@@ -14,6 +14,7 @@
  * 3. http://en.wikipedia.org/wiki/MD4  */
 
 #include "opencl_device_info.h"
+#include "opencl_mask.h"
 
 #if gpu_amd(DEVICE_INFO)
 #define USE_BITSELECT
@@ -41,13 +42,118 @@
 	(a) += f((b), (c), (d)) + (x); \
 	(a) = rotate((a), (uint)(s))
 
+inline void md4_encrypt(__private uint *hash, __private uint *W, uint len) {
+	PUTCHAR(W, len, 0x80);
+	W[14] = len << 3;
+
+	hash[0] = 0x67452301;
+	hash[1] = 0xefcdab89;
+	hash[2] = 0x98badcfe;
+	hash[3] = 0x10325476;
+
+	/* Round 1 */
+	STEP(F, hash[0], hash[1], hash[2], hash[3], W[0], 3);
+	STEP(F, hash[3], hash[0], hash[1], hash[2], W[1], 7);
+	STEP(F, hash[2], hash[3], hash[0], hash[1], W[2], 11);
+	STEP(F, hash[1], hash[2], hash[3], hash[0], W[3], 19);
+	STEP(F, hash[0], hash[1], hash[2], hash[3], W[4], 3);
+	STEP(F, hash[3], hash[0], hash[1], hash[2], W[5], 7);
+	STEP(F, hash[2], hash[3], hash[0], hash[1], W[6], 11);
+	STEP(F, hash[1], hash[2], hash[3], hash[0], W[7], 19);
+	STEP(F, hash[0], hash[1], hash[2], hash[3], W[8], 3);
+	STEP(F, hash[3], hash[0], hash[1], hash[2], W[9], 7);
+	STEP(F, hash[2], hash[3], hash[0], hash[1], W[10], 11);
+	STEP(F, hash[1], hash[2], hash[3], hash[0], W[11], 19);
+	STEP(F, hash[0], hash[1], hash[2], hash[3], W[12], 3);
+	STEP(F, hash[3], hash[0], hash[1], hash[2], W[13], 7);
+	STEP(F, hash[2], hash[3], hash[0], hash[1], W[14], 11);
+	STEP(F, hash[1], hash[2], hash[3], hash[0], W[15], 19);
+
+	/* Rounhash[3] 2 */
+	STEP(G, hash[0], hash[1], hash[2], hash[3], W[0] + 0x5a827999, 3);
+	STEP(G, hash[3], hash[0], hash[1], hash[2], W[4] + 0x5a827999, 5);
+	STEP(G, hash[2], hash[3], hash[0], hash[1], W[8] + 0x5a827999, 9);
+	STEP(G, hash[1], hash[2], hash[3], hash[0], W[12] + 0x5a827999, 13);
+	STEP(G, hash[0], hash[1], hash[2], hash[3], W[1] + 0x5a827999, 3);
+	STEP(G, hash[3], hash[0], hash[1], hash[2], W[5] + 0x5a827999, 5);
+	STEP(G, hash[2], hash[3], hash[0], hash[1], W[9] + 0x5a827999, 9);
+	STEP(G, hash[1], hash[2], hash[3], hash[0], W[13] + 0x5a827999, 13);
+	STEP(G, hash[0], hash[1], hash[2], hash[3], W[2] + 0x5a827999, 3);
+	STEP(G, hash[3], hash[0], hash[1], hash[2], W[6] + 0x5a827999, 5);
+	STEP(G, hash[2], hash[3], hash[0], hash[1], W[10] + 0x5a827999, 9);
+	STEP(G, hash[1], hash[2], hash[3], hash[0], W[14] + 0x5a827999, 13);
+	STEP(G, hash[0], hash[1], hash[2], hash[3], W[3] + 0x5a827999, 3);
+	STEP(G, hash[3], hash[0], hash[1], hash[2], W[7] + 0x5a827999, 5);
+	STEP(G, hash[2], hash[3], hash[0], hash[1], W[11] + 0x5a827999, 9);
+	STEP(G, hash[1], hash[2], hash[3], hash[0], W[15] + 0x5a827999, 13);
+
+	/* Rounhash[3] 3 */
+	STEP(H, hash[0], hash[1], hash[2], hash[3], W[0] + 0x6ed9eba1, 3);
+	STEP(H, hash[3], hash[0], hash[1], hash[2], W[8] + 0x6ed9eba1, 9);
+	STEP(H, hash[2], hash[3], hash[0], hash[1], W[4] + 0x6ed9eba1, 11);
+	STEP(H, hash[1], hash[2], hash[3], hash[0], W[12] + 0x6ed9eba1, 15);
+	STEP(H, hash[0], hash[1], hash[2], hash[3], W[2] + 0x6ed9eba1, 3);
+	STEP(H, hash[3], hash[0], hash[1], hash[2], W[10] + 0x6ed9eba1, 9);
+	STEP(H, hash[2], hash[3], hash[0], hash[1], W[6] + 0x6ed9eba1, 11);
+	STEP(H, hash[1], hash[2], hash[3], hash[0], W[14] + 0x6ed9eba1, 15);
+	STEP(H, hash[0], hash[1], hash[2], hash[3], W[1] + 0x6ed9eba1, 3);
+	STEP(H, hash[3], hash[0], hash[1], hash[2], W[9] + 0x6ed9eba1, 9);
+	STEP(H, hash[2], hash[3], hash[0], hash[1], W[5] + 0x6ed9eba1, 11);
+	STEP(H, hash[1], hash[2], hash[3], hash[0], W[13] + 0x6ed9eba1, 15);
+	STEP(H, hash[0], hash[1], hash[2], hash[3], W[3] + 0x6ed9eba1, 3);
+	STEP(H, hash[3], hash[0], hash[1], hash[2], W[11] + 0x6ed9eba1, 9);
+	STEP(H, hash[2], hash[3], hash[0], hash[1], W[7] + 0x6ed9eba1, 11);
+	STEP(H, hash[1], hash[2], hash[3], hash[0], W[15] + 0x6ed9eba1, 15);
+}
+
+inline void cmp(uint gid,
+		uint iter,
+		uint num_hashes,
+		volatile __global uint *output,
+		__global const uint *loaded_hashes,
+		__private uint *hash,
+		volatile __global uint *bitmap) {
+	uint t, j;
+
+	hash[0] += 0x67452301;
+	hash[1] += 0xefcdab89;
+	hash[2] += 0x98badcfe;
+	hash[3] += 0x10325476;
+
+	for (j = 0; j < num_hashes; j++) {
+		t = 0;
+
+		t = (loaded_hashes[4 * j] == hash[0]) && (loaded_hashes[4 * j + 1] == hash[1]) &&
+			(loaded_hashes[4 * j + 2] == hash[2]) && (loaded_hashes[4 * j + 3] == hash[3]);
+		if(t) {
+/* Prevent duplicate keys from cracking same hash */
+			if (!(atomic_or(&bitmap[j/32], (1U << (j % 32))) & (1U << (j % 32)))) {
+				t = atomic_inc(&output[0]);
+				output[1 + 3 * t] = gid;
+				output[2 + 3 * t] = iter;
+				output[3 + 3 * t] = j;
+			}
+
+		}
+	}
+}
+
 /* some constants used below are passed with -D */
 //#define KEY_LENGTH (MD4_PLAINTEXT_LENGTH + 1)
 
 /* OpenCL kernel entry point. Copy key to be hashed from
  * global to local (thread) memory. Break the key into 16 32-bit (uint)
  * words. MD4 hash of a key is 128 bit (uint4). */
-__kernel void md4(__global const uint *keys, __global const uint *index, __global uint *hashes)
+__kernel void md4(__global const uint *keys,
+		  __global const uint *index,
+		 // __global uint *hashes,
+		  __global const uint *int_key_loc,
+		  __global const uint *int_keys,
+		  uint num_int_keys,
+		  __global const uint *loaded_hashes,
+		  uint num_loaded_hashes,
+		  volatile __global uint *out_hash,
+		  volatile __global uint *bitmap)
 {
 	uint gid = get_global_id(0);
 	uint W[16] = { 0 };
@@ -55,77 +161,40 @@ __kernel void md4(__global const uint *keys, __global const uint *index, __globa
 	uint num_keys = get_global_size(0);
 	uint base = index[gid];
 	uint len = base & 63;
-	uint a, b, c, d;
+	uint hash[4];
+
+	if (!gid) {
+		out_hash[0] = 0;
+		for (i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
+			bitmap[i] = 0;
+	}
+
+	barrier(CLK_GLOBAL_MEM_FENCE);
 
 	keys += base >> 6;
 
 	for (i = 0; i < (len+3)/4; i++)
 		W[i] = *keys++;
 
-	PUTCHAR(W, len, 0x80);
-	W[14] = len << 3;
+	for (i = 0; i < num_int_keys; i++) {
 
-	a = 0x67452301;
-	b = 0xefcdab89;
-	c = 0x98badcfe;
-	d = 0x10325476;
+		if (num_int_keys > 1) {
+			uint ikl = int_key_loc[gid];
+			PUTCHAR(W, (ikl & 0xff), (int_keys[i] & 0xff));
+			if ((1 < MASK_FMT_INT_PLHDR) && (ikl & 0xff00) != 0x8000)
+				PUTCHAR(W, ((ikl & 0xff00) >> 8), ((int_keys[i] & 0xff00) >> 8));
+			if ((2 < MASK_FMT_INT_PLHDR) && (ikl & 0xff0000) != 0x800000)
+				PUTCHAR(W, ((ikl & 0xff0000) >> 16), ((int_keys[i] & 0xff0000) >> 16));
+			if ((3 < MASK_FMT_INT_PLHDR) && (ikl & 0xff000000) != 0x80000000)
+				PUTCHAR(W, ((ikl & 0xff000000) >> 24), ((int_keys[i] & 0xff000000) >> 24));
+		}
 
-	/* Round 1 */
-	STEP(F, a, b, c, d, W[0], 3);
-	STEP(F, d, a, b, c, W[1], 7);
-	STEP(F, c, d, a, b, W[2], 11);
-	STEP(F, b, c, d, a, W[3], 19);
-	STEP(F, a, b, c, d, W[4], 3);
-	STEP(F, d, a, b, c, W[5], 7);
-	STEP(F, c, d, a, b, W[6], 11);
-	STEP(F, b, c, d, a, W[7], 19);
-	STEP(F, a, b, c, d, W[8], 3);
-	STEP(F, d, a, b, c, W[9], 7);
-	STEP(F, c, d, a, b, W[10], 11);
-	STEP(F, b, c, d, a, W[11], 19);
-	STEP(F, a, b, c, d, W[12], 3);
-	STEP(F, d, a, b, c, W[13], 7);
-	STEP(F, c, d, a, b, W[14], 11);
-	STEP(F, b, c, d, a, W[15], 19);
+		md4_encrypt(hash, W, len);
+		cmp(gid, i, num_loaded_hashes, out_hash, loaded_hashes, hash, bitmap);
 
-	/* Round 2 */
-	STEP(G, a, b, c, d, W[0] + 0x5a827999, 3);
-	STEP(G, d, a, b, c, W[4] + 0x5a827999, 5);
-	STEP(G, c, d, a, b, W[8] + 0x5a827999, 9);
-	STEP(G, b, c, d, a, W[12] + 0x5a827999, 13);
-	STEP(G, a, b, c, d, W[1] + 0x5a827999, 3);
-	STEP(G, d, a, b, c, W[5] + 0x5a827999, 5);
-	STEP(G, c, d, a, b, W[9] + 0x5a827999, 9);
-	STEP(G, b, c, d, a, W[13] + 0x5a827999, 13);
-	STEP(G, a, b, c, d, W[2] + 0x5a827999, 3);
-	STEP(G, d, a, b, c, W[6] + 0x5a827999, 5);
-	STEP(G, c, d, a, b, W[10] + 0x5a827999, 9);
-	STEP(G, b, c, d, a, W[14] + 0x5a827999, 13);
-	STEP(G, a, b, c, d, W[3] + 0x5a827999, 3);
-	STEP(G, d, a, b, c, W[7] + 0x5a827999, 5);
-	STEP(G, c, d, a, b, W[11] + 0x5a827999, 9);
-	STEP(G, b, c, d, a, W[15] + 0x5a827999, 13);
-
-	/* Round 3 */
-	STEP(H, a, b, c, d, W[0] + 0x6ed9eba1, 3);
-	STEP(H, d, a, b, c, W[8] + 0x6ed9eba1, 9);
-	STEP(H, c, d, a, b, W[4] + 0x6ed9eba1, 11);
-	STEP(H, b, c, d, a, W[12] + 0x6ed9eba1, 15);
-	STEP(H, a, b, c, d, W[2] + 0x6ed9eba1, 3);
-	STEP(H, d, a, b, c, W[10] + 0x6ed9eba1, 9);
-	STEP(H, c, d, a, b, W[6] + 0x6ed9eba1, 11);
-	STEP(H, b, c, d, a, W[14] + 0x6ed9eba1, 15);
-	STEP(H, a, b, c, d, W[1] + 0x6ed9eba1, 3);
-	STEP(H, d, a, b, c, W[9] + 0x6ed9eba1, 9);
-	STEP(H, c, d, a, b, W[5] + 0x6ed9eba1, 11);
-	STEP(H, b, c, d, a, W[13] + 0x6ed9eba1, 15);
-	STEP(H, a, b, c, d, W[3] + 0x6ed9eba1, 3);
-	STEP(H, d, a, b, c, W[11] + 0x6ed9eba1, 9);
-	STEP(H, c, d, a, b, W[7] + 0x6ed9eba1, 11);
-	STEP(H, b, c, d, a, W[15] + 0x6ed9eba1, 15);
-
-	hashes[gid] = a + 0x67452301;
-	hashes[1 * num_keys + gid] = b + 0xefcdab89;
-	hashes[2 * num_keys + gid] = c + 0x98badcfe;
-	hashes[3 * num_keys + gid] = d + 0x10325476;
+//		hashes[num_keys * i +gid] = hash[0];
+//		hashes[1 * num_keys * num_int_keys + num_keys * i + gid] = hash[1];
+//		hashes[2 * num_keys * num_int_keys + num_keys * i + gid] = hash[2];
+//		hashes[3 * num_keys * num_int_keys + num_keys * i + gid] = hash[3];
+	}
 }
