@@ -479,7 +479,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 #ifndef BENCH_BUILD
 		if (extra_tests && maxlength == 0) {
-			int min = format->params.min_keys_per_crypt;
+			//int min = format->params.min_keys_per_crypt;
 			maxlength = 1;
 
 			/* Check that claimed max. length is actually supported:
@@ -523,7 +523,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (index == 0)
 			format->methods.clear_keys();
 		fmt_set_key(current->plaintext, index);
-		fprintf(stderr, "Self test:%s %d\n", current->plaintext, index);
 
 #if !defined(BENCH_BUILD) && (defined(HAVE_OPENCL) || defined(HAVE_CUDA))
 		advance_cursor();
@@ -541,7 +540,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				if (format->methods.cmp_one(binary, i))
 					break;
 			}
-			fprintf(stderr, "Self-test:cmp_one_idx:%d\n", i);
+
 			if (i == match) {
 				sprintf(s_size, "cmp_one(%d)", i);
 				return s_size;

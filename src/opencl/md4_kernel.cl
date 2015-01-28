@@ -106,7 +106,13 @@ inline void md4_encrypt(__private uint *hash, __private uint *W, uint len) {
 	STEP(H, hash[1], hash[2], hash[3], hash[0], W[15] + 0x6ed9eba1, 15);
 }
 
-inline void cmp(uint gid, uint iter, uint num_hashes, volatile __global uint *output, __global const uint *loaded_hashes, __private uint *hash, volatile __global uint *bitmap) {
+inline void cmp(uint gid,
+		uint iter,
+		uint num_hashes,
+		volatile __global uint *output,
+		__global const uint *loaded_hashes,
+		__private uint *hash,
+		volatile __global uint *bitmap) {
 	uint t, j;
 
 	hash[0] += 0x67452301;
@@ -114,14 +120,14 @@ inline void cmp(uint gid, uint iter, uint num_hashes, volatile __global uint *ou
 	hash[2] += 0x98badcfe;
 	hash[3] += 0x10325476;
 
-	//if (hash[0] == 0x5c78786d) printf("In krnl:Bingo\n");
 	for (j = 0; j < num_hashes; j++) {
 		t = 0;
 
-		t = (loaded_hashes[4 * j] == hash[0]) && (loaded_hashes[4 * j + 1] == hash[1]) && (loaded_hashes[4 * j + 2] == hash[2]) && (loaded_hashes[4 * j + 3] == hash[3]);
+		t = (loaded_hashes[4 * j] == hash[0]) && (loaded_hashes[4 * j + 1] == hash[1]) &&
+			(loaded_hashes[4 * j + 2] == hash[2]) && (loaded_hashes[4 * j + 3] == hash[3]);
 		if(t) {
 /* Prevent duplicate keys from cracking same hash */
-			if (!(atomic_or(&bitmap[j/32],(1U<<(j%32))) & (1U<<(j%32)))) {
+			if (!(atomic_or(&bitmap[j/32], (1U << (j % 32))) & (1U << (j % 32)))) {
 				t = atomic_inc(&output[0]);
 				output[1 + 3 * t] = gid;
 				output[2 + 3 * t] = iter;
@@ -159,14 +165,12 @@ __kernel void md4(__global const uint *keys,
 
 	if (!gid) {
 		out_hash[0] = 0;
-		for (i = 0; i < (num_loaded_hashes-1)/32 + 1; i++)
+		for (i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
 			bitmap[i] = 0;
 	}
-/*
-	if (gid == 5) {
-	  printf("Krnl:%d\n", num_int_keys);
-	}*/
-barrier(CLK_GLOBAL_MEM_FENCE);
+
+	barrier(CLK_GLOBAL_MEM_FENCE);
+
 	keys += base >> 6;
 
 	for (i = 0; i < (len+3)/4; i++)
