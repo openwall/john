@@ -206,16 +206,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	while ((current++)->ciphertext)
 		ntests++;
 	current = format->params.tests;
-#ifdef _MSC_VER
-	if (current->ciphertext[0] == 0 && !strcmp(format->params.label, "LUKS")) {
-		// luks has a string that is longer than the 64k max string length of
-		// VC. So to get it to work, we post load the the test value.
-		void LUKS_test_fixup();
-		LUKS_test_fixup();
-		current = format->params.tests;
-	}
-#endif
-
 	if (ntests==0) return NULL;
 
 	/* Check prepare, valid, split before init */
@@ -546,13 +536,13 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				return s_size;
 			}
 
-			for (i = 0; i < match; i++) {
+			for (i = match - 1; i >= 0; i--) {
 				if (format->methods.cmp_one(binary, i))
 					break;
 			}
 
-			if (i == match) {
-				sprintf(s_size, "cmp_one(%d)", i);
+			if (i == -1) {
+				sprintf(s_size, "cmp_one(%d)", match);
 				return s_size;
 			}
 
