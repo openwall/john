@@ -197,11 +197,15 @@ static void done(void)
 static void init(struct fmt_main *self)
 {
 	size_t gws_limit;
+	unsigned int flag;
 	num_loaded_hashes = 0;
 
 	opencl_init("$JOHN/kernels/md4_kernel.cl", gpu_id, NULL);
 	crypt_kernel = clCreateKernel(program[gpu_id], "md4", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+
+	opencl_get_user_preferences(FORMAT_LABEL);
+	flag = (options.flags & FLG_MASK_CHK) && !global_work_size;
 
 	gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
 			get_max_mem_alloc_size(gpu_id) / BUFSIZE);
@@ -219,6 +223,12 @@ static void init(struct fmt_main *self)
 		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
 
 	mask_int_cand_target = 10000;
+
+	if (flag) {
+		self->params.max_keys_per_crypt /= 16;
+		fprintf(stdout, "Using Mask Mode with internal candidate generation,"
+			"global worksize(GWS) set to %d\n", self->params.max_keys_per_crypt);
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -289,10 +299,10 @@ static void set_key(char *_key, int index)
 				saved_int_key_loc[index] |= ((mask_int_cand.
 				int_cpu_mask_ctx->ranges[mask_skip_ranges[i]].offset +
 				mask_int_cand.int_cpu_mask_ctx->
-				ranges[mask_skip_ranges[i]].pos) & 0xff) << (i * 8);
+				ranges[mask_skip_ranges[i]].pos) & 0xff) << (i << 3);
 		}
 		else
-			saved_int_key_loc[index] |= 0x80 << (i * 8);
+			saved_int_key_loc[index] |= 0x80 << (i << 3);
 		}
 	}
 
@@ -324,7 +334,7 @@ static char *get_key(int index)
 	}
 
 	if (t > global_work_size) {
-		fprintf(stderr, "Get key error!\n");
+		fprintf(stderr, "Get key error! %d %d\n", t, index);
 		t = 0;
 	}
 
@@ -344,6 +354,43 @@ static char *get_key(int index)
 	return out;
 }
 
+
+static void load_hash(struct db_salt *salt) {
+	unsigned int *bin, i;
+	struct db_password *pw;
+	num_loaded_hashes = (salt->count);
+
+	if (loaded_hashes)
+		MEM_FREE(loaded_hashes);
+	if (hash_ids)
+		 MEM_FREE(hash_ids);
+
+	loaded_hashes = (cl_uint*) malloc(16 * num_loaded_hashes);
+	hash_ids = (cl_uint*) malloc((3 * num_loaded_hashes + 1) * 4);
+
+	pw = salt -> list;
+	i = 0;
+	do {
+		bin = (unsigned int *)pw -> binary;
+		// Potential segfault if removed
+		if(bin != NULL) {
+			loaded_hashes[4*i] = bin[0];
+			loaded_hashes[4*i + 1] = bin[1];
+			loaded_hashes[4*i + 2] = bin[2];
+			loaded_hashes[4*i + 3] = bin[3];
+			i++ ;
+		}
+	} while ((pw = pw -> next)) ;
+
+	if(i != (salt->count)) {
+		fprintf(stderr, "Something went wrong while loading hashes to gpu..Exiting..\n");
+		exit(0);
+	}
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_loaded_hashes, CL_TRUE, 0, 16 * num_loaded_hashes, loaded_hashes, 0, NULL, multi_profilingEvent[5]), "failed in clEnqueueWriteBuffer buffer_keys");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(cl_uint), (void *) &num_loaded_hashes), "Error setting argument 7");
+}
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
@@ -360,6 +407,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * global_work_size, saved_idx, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueWriteBuffer buffer_idx");
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueWriteBuffer buffer_int_key_loc");
+
+	if (salt != NULL && num_loaded_hashes != salt->count)
+		load_hash(salt);
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueNDRangeKernel");
 
@@ -398,50 +448,16 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void load_hash(struct db_salt *salt) {
-	unsigned int *bin, i;
-	struct db_password *pw;
-	num_loaded_hashes = (salt->count);
-
-	if (loaded_hashes)
-		MEM_FREE(loaded_hashes);
-	if (hash_ids)
-		 MEM_FREE(hash_ids);
-
-	loaded_hashes = (cl_uint*) malloc(16 * num_loaded_hashes);
-	hash_ids = (cl_uint*) malloc((3 * num_loaded_hashes + 1) * 4);
-
-	pw = salt -> list;
-	i = 0;
-	do {
-		bin = (unsigned int *)pw -> binary;
-		// Potential segfault if removed
-		if(bin != NULL) {
-			loaded_hashes[4*i] = bin[0];
-			loaded_hashes[4*i + 1] = bin[1];
-			loaded_hashes[4*i + 2] = bin[2];
-			loaded_hashes[4*i + 3] = bin[3];
-			i++ ;
-		}
-	} while ((pw = pw -> next)) ;
-
-	if(i != (salt->count)) {
-		fprintf(stderr, "Something went wrong while loading hashes to gpu..Exiting..\n");
-		exit(0);
-	}
-
-}
-
 static void reset(struct db_main *db) {
 	if (db) {
-		size_t kpc;
+		size_t buffer_size;
 		if (ref_ctr > 0)
 			release_clobj();
 
-		kpc = db->format->params.max_keys_per_crypt;
-	        load_hash(db->salts);
-		create_clobj(kpc, NULL);
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_loaded_hashes, CL_TRUE, 0, 16 * num_loaded_hashes, loaded_hashes, 0, NULL, multi_profilingEvent[5]), "failed in clEnqueueWriteBuffer buffer_keys");
+		buffer_size = db->format->params.max_keys_per_crypt;
+	       	num_loaded_hashes = db->salts->count;
+		create_clobj(buffer_size, NULL);
+		load_hash(db->salts);
 	}
 
 	else {
@@ -467,7 +483,6 @@ static void reset(struct db_main *db) {
 		}
 
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_loaded_hashes, CL_TRUE, 0, 16 * num_loaded_hashes, loaded_hashes, 0, NULL, multi_profilingEvent[5]), "failed in clEnqueueWriteBuffer buffer_keys");
-
 	}
 }
 

@@ -125,7 +125,7 @@ void mask_calc_combination(cpu_mask_context *ptr) {
 		generate_int_keys(ptr);
 	}
 
-	for (i = 0; i < mask_int_cand.num_int_cand && mask_int_cand.int_cand; i++)
-		fprintf(stderr, "%c%c%c%c\n", mask_int_cand.int_cand[i].x[0], mask_int_cand.int_cand[i].x[1], mask_int_cand.int_cand[i].x[2], mask_int_cand.int_cand[i].x[3]);
+	/*for (i = 0; i < mask_int_cand.num_int_cand && mask_int_cand.int_cand; i++)
+		fprintf(stderr, "%c%c%c%c\n", mask_int_cand.int_cand[i].x[0], mask_int_cand.int_cand[i].x[1], mask_int_cand.int_cand[i].x[2], mask_int_cand.int_cand[i].x[3]);*/
 	MEM_FREE(data);
 }

@@ -1697,10 +1697,10 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 	mask_calc_combination(&cpu_mask_ctx);
 
-	fprintf(stderr, "MASK_FMT_INT_PLHDRs:");
+/*	fprintf(stderr, "MASK_FMT_INT_PLHDRs:");
 	for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges; i++)
 	fprintf(stderr, "%d ", mask_skip_ranges[i]);
-	fprintf(stderr, "\n");
+	fprintf(stderr, "\n");*/
 
 	/*
 	 * Warning: NULL to be replaced by an array containing information
