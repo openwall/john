@@ -1323,6 +1323,8 @@ void do_prince_crack(struct db_main *db, char *filename)
   if (case_permute)
     log_event("- Permuting case of 1st character");
 
+  size_t uniq_mem = 0;
+
   if (dupe_check) {
     long size = file_len / pw_max;
 
@@ -1480,6 +1482,11 @@ void do_prince_crack(struct db_main *db, char *filename)
 
       uniq_t *uniq = db_entry->uniq;
 
+#ifdef JTR_MODE
+      uniq_mem += sizeof(uniq_t);
+      uniq_mem += uniq->alloc * sizeof(uniq_data_t);
+      uniq_mem += (uniq->hash_mask + 1) * sizeof(u32);
+#endif
       free (uniq->hash);
       free (uniq->data);
       free (uniq);
@@ -1610,6 +1617,7 @@ void do_prince_crack(struct db_main *db, char *filename)
   mpz_set(pos, rec_pos);
 
   log_event("Calculating keyspace");
+  size_t tot_mem = (pw_max + 1) * (sizeof(db_entry_t) + sizeof(pw_order_t) + sizeof(u64));
 #endif
   for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
   {
@@ -1618,6 +1626,11 @@ void do_prince_crack(struct db_main *db, char *filename)
     int      chains_cnt = db_entry->chains_cnt;
     chain_t *chains_buf = db_entry->chains_buf;
 
+#ifdef JTR_MODE
+    tot_mem += db_entry->elems_alloc * sizeof(elem_t);
+    tot_mem += db_entry->elems_cnt * pw_len;
+    tot_mem += db_entry->chains_alloc * sizeof(chain_t);
+#endif
     mpz_set_si (tmp, 0);
 
     for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
@@ -1669,6 +1682,11 @@ void do_prince_crack(struct db_main *db, char *filename)
     mpz_get_str(l_msg, 10, total_ks_cnt);
     log_event("- Keyspace size %s (%d bits used)", l_msg,
               get_bits(&total_ks_cnt));
+
+    if (dupe_check)
+      log_event("- Memory use for PRINCE: %zu bytes (peak %zu bytes)", tot_mem, uniq_mem + tot_mem);
+    else
+      log_event("- Memory use for PRINCE: %zu bytes", tot_mem);
   }
 
   mpf_set_z(count, total_ks_cnt);
