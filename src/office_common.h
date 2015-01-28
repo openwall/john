@@ -20,6 +20,7 @@ typedef struct ms_office_custom_salt_t {
 } ms_office_custom_salt;
 
 void *ms_office_common_get_salt(char *ciphertext);
+void *ms_office_common_binary(char *ciphertext);
 int ms_office_common_valid_all(char *ciphertext, struct fmt_main *self);
 int ms_office_common_valid_2007(char *ciphertext, struct fmt_main *self);
 int ms_office_common_valid_2010(char *ciphertext, struct fmt_main *self);
@@ -30,4 +31,5 @@ int ms_office_common_valid_2013(char *ciphertext, struct fmt_main *self);
 unsigned int ms_office_common_iteration_count(void *salt);
 #endif
 void ms_office_common_DecryptUsingSymmetricKeyAlgorithm(ms_office_custom_salt *cur_salt, unsigned char *verifierInputKey, unsigned char *encryptedVerifier, const unsigned char *decryptedVerifier, int length);
-int ms_office_common_PasswordVerifier(ms_office_custom_salt *cur_salt, unsigned char *key);
+int ms_office_common_PasswordVerifier(ms_office_custom_salt *cur_salt, unsigned char *key, ARCH_WORD_32 *out);
+

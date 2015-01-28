@@ -37,9 +37,9 @@ john_register_one(&fmt_office);
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		0
+#define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(*cur_salt)
-#define BINARY_ALIGN	1
+#define BINARY_ALIGN	4
 #define SALT_ALIGN	sizeof(int)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -93,6 +93,7 @@ static int omp_t = 1;
 static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 /* UCS-2 password length, in octets */
 static int *saved_len;
+static ARCH_WORD_32 (*crypt_key)[4];
 static int *cracked;
 
 /* Office 2010/2013 */
@@ -282,9 +283,10 @@ static void init(struct fmt_main *self)
 	                            self->params.max_keys_per_crypt, sizeof(UTF16));
 	saved_len = mem_calloc_tiny(sizeof(*saved_len) *
 	                            self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
 }
@@ -307,7 +309,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if(cur_salt->version == 2007) {
 			unsigned char encryptionKey[256];
 			GeneratePasswordHashUsingSHA1(saved_key[index], saved_len[index], encryptionKey);
-			cracked[index] = ms_office_common_PasswordVerifier(cur_salt, encryptionKey);
+			ms_office_common_PasswordVerifier(cur_salt, encryptionKey, crypt_key[index]);
 		}
 		else if (cur_salt->version == 2010) {
 			unsigned char verifierKeys[64], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
@@ -340,6 +342,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index;
+	if (cur_salt->version == 2007) {
+		for (index = 0; index < count; index++) {
+			if ( ((ARCH_WORD_32*)binary)[0] == crypt_key[index][0] )
+				return 1;
+		}
+		return 0;
+	}
 	for (index = 0; index < count; index++)
 		if (cracked[index])
 			return 1;
@@ -348,6 +357,9 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
+	if (cur_salt->version == 2007) {
+		return !memcmp(binary, crypt_key[index], BINARY_SIZE);
+	}
 	return cracked[index];
 }
 
@@ -355,6 +367,14 @@ static int cmp_exact(char *source, int index)
 {
 	return 1;
 }
+
+static int get_hash_0(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & 0xf; }
+static int get_hash_1(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & 0xff; }
+static int get_hash_2(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & 0xfff; }
+static int get_hash_3(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & 0xffff; }
+static int get_hash_4(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & 0xfffff; }
+static int get_hash_5(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & 0xffffff; }
+static int get_hash_6(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & 0x7ffffff; }
 
 static void office_set_key(char *key, int index)
 {
@@ -412,7 +432,7 @@ struct fmt_main fmt_office = {
 		fmt_default_prepare,
 		ms_office_common_valid_all,
 		fmt_default_split,
-		fmt_default_binary,
+		ms_office_common_binary,
 		ms_office_common_get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
@@ -422,7 +442,13 @@ struct fmt_main fmt_office = {
 #endif
 		fmt_default_source,
 		{
-			fmt_default_binary_hash
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -432,7 +458,13 @@ struct fmt_main fmt_office = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

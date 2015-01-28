@@ -47,8 +47,8 @@ john_register_one(&fmt_opencl_office2007);
 #define ALGORITHM_NAME		OCL_ALGORITHM_NAME CPU_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	" (50,000 iterations)"
 #define BENCHMARK_LENGTH	-1
-#define BINARY_SIZE		0
-#define BINARY_ALIGN		1
+#define BINARY_SIZE		16
+#define BINARY_ALIGN		4
 #define SALT_LENGTH		16
 #define SALT_SIZE		sizeof(*cur_salt)
 #define SALT_ALIGN		1
@@ -77,7 +77,7 @@ static struct fmt_tests tests[] = {
 
 static ms_office_custom_salt *cur_salt;
 
-static int *cracked, any_cracked;
+static ARCH_WORD_32 (*crypt_key)[4];
 static unsigned int v_width = 1;	/* Vector width of kernel */
 
 static char *saved_key;	/* Password encoded in UCS-2 */
@@ -189,7 +189,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(Generate2007key, 0, sizeof(cl_mem), (void*)&cl_pwhash), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(Generate2007key, 1, sizeof(cl_mem), (void*)&cl_key), "Error setting argument 1");
 
-	cracked = mem_alloc(sizeof(*cracked) * gws);
+	crypt_key = mem_calloc(sizeof(*crypt_key) * gws);
 }
 
 static void release_clobj(void)
@@ -210,7 +210,7 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release GPU buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_pwhash), "Release GPU buffer");
 
-	MEM_FREE(cracked);
+	MEM_FREE(crypt_key);
 }
 
 static void done(void)
@@ -310,11 +310,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	gws = ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size;
 	scalar_gws = gws * v_width;
 
-	if (any_cracked) {
-		memset(cracked, 0, count * sizeof(*cracked));
-		any_cracked = 0;
-	}
-
 	if (new_keys) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * scalar_gws, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
@@ -338,15 +333,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++)
-		if (ms_office_common_PasswordVerifier(cur_salt, &key[index*16]))
-		{
-			cracked[index] = 1;
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			any_cracked |= 1;
-		}
-
+		ms_office_common_PasswordVerifier(cur_salt, &key[index*16], crypt_key[index]);
 	return count;
 }
 
@@ -377,18 +364,31 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	return any_cracked;
+	int index;
+	for (index = 0; index < count; index++) {
+		if ( ((ARCH_WORD_32*)binary)[0] == crypt_key[index][0] )
+			return 1;
+	}
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked[index];
+	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
 {
 	return 1;
 }
+
+static int get_hash_0(int index) { return crypt_key[index][0] & 0xf; }
+static int get_hash_1(int index) { return crypt_key[index][0] & 0xff; }
+static int get_hash_2(int index) { return crypt_key[index][0] & 0xfff; }
+static int get_hash_3(int index) { return crypt_key[index][0] & 0xffff; }
+static int get_hash_4(int index) { return crypt_key[index][0] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_key[index][0] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_key[index][0] & 0x7ffffff; }
 
 static char *get_key(int index)
 {
@@ -426,14 +426,20 @@ struct fmt_main fmt_opencl_office2007 = {
 		fmt_default_prepare,
 		ms_office_common_valid_2007,
 		fmt_default_split,
-		fmt_default_binary,
+		ms_office_common_binary,
 		ms_office_common_get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
 		fmt_default_source,
 		{
-			fmt_default_binary_hash
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -443,7 +449,13 @@ struct fmt_main fmt_opencl_office2007 = {
 		clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
