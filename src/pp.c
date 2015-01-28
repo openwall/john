@@ -1351,7 +1351,9 @@ void do_prince_crack(struct db_main *db, char *filename)
     if (john_main_process && options.verbosity < 5)
       log_event("- Suppressing dupes");
 
-    for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+    int in_max = MIN(IN_LEN_MAX, pw_max);
+
+    for (int pw_len = IN_LEN_MIN; pw_len <= in_max; pw_len++)
     {
       db_entry_t *db_entry = &db_entries[pw_len];
 
