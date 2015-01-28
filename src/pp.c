@@ -2089,9 +2089,7 @@ void do_prince_crack(struct db_main *db, char *filename)
   mpz_clear (limit);
   mpz_clear (tmp);
 
-  int in_max = MIN(IN_LEN_MAX, pw_max);
-
-  for (int pw_len = IN_LEN_MIN; pw_len <= in_max; pw_len++)
+  for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
   {
     db_entry_t *db_entry = &db_entries[pw_len];
 
