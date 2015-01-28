@@ -514,7 +514,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 					sprintf(s_size, "max. length in index "
 					        "%d: wrote %d, got %d back", i,
 					        ml, (int)strlen(getkey));
-					//return s_size;
+					return s_size;
 				}
 			}
 		}
