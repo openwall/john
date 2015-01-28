@@ -557,11 +557,32 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			}
 
 			for (size = 0; size < PASSWORD_HASH_SIZES; size++)
-				if (format->methods.binary_hash[size] &&
-				    format->methods.get_hash[size](i) !=
-				    format->methods.binary_hash[size](binary)) {
-					sprintf(s_size, "get_hash[%d](%d)", size, i);
-					return s_size;
+			if (format->methods.binary_hash[size] &&
+			    format->methods.get_hash[size](i) !=
+			    format->methods.binary_hash[size](binary)) {
+#ifndef DEBUG
+				sprintf(s_size, "get_hash[%d](%d) %x!=%x", size, index, format->methods.get_hash[size](index), format->methods.binary_hash[size](binary));
+#else
+				// Dump out as much as possible (up to 3 full bytes). This can
+				// help in trying to track down problems, like needing to SWAP
+				// the binary or other issues, when doing BE ports.  Here
+				// PASSWORD_HASH_SIZES is assumed to be 7. This loop will max
+				// out at 6, in that case (i.e. 3 full bytes).
+				int maxi=size;
+				while (maxi+2 < PASSWORD_HASH_SIZES && format->methods.binary_hash[maxi]) {
+					if (format->methods.binary_hash[++maxi] == NULL) {
+						--maxi;
+						break;
+					}
+				}
+				if (format->methods.get_hash[maxi] && format->methods.binary_hash[maxi])
+					sprintf(s_size, "get_hash[%d](%d) %x!=%x", size, index,
+					        format->methods.get_hash[maxi](index),
+					        format->methods.binary_hash[maxi](binary));
+				else
+					sprintf(s_size, "get_hash[%d](%d)", size, index);
+#endif
+				return s_size;
 			}
 
 			if (!format->methods.cmp_exact(ciphertext, i)) {
