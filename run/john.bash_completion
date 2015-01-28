@@ -381,7 +381,6 @@ _john()
 			return 0
 			;;
 		--wordlist=*|--mkv-stats=*|--prince=*)
-echo TEST
 			# as long as Markov stats files can have any name,
 			# I can just reuse the --wordlist= logic for --mkv-stats=*
 			cur=${cur#*[=:]}
