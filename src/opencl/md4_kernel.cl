@@ -158,7 +158,7 @@ __kernel void md4(__global const uint *keys,
 	uint gid = get_global_id(0);
 	uint W[16] = { 0 };
 	uint i;
-	uint num_keys = get_global_size(0);
+	//uint num_keys = get_global_size(0);
 	uint base = index[gid];
 	uint len = base & 63;
 	uint hash[4];
