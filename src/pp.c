@@ -1176,6 +1176,8 @@ void do_prince_crack(struct db_main *db, char *filename)
     elem_cnt_min = MAX(1, prince_elem_cnt_min);
   if (prince_elem_cnt_max)
     elem_cnt_max = MIN(prince_elem_cnt_max, pw_max);
+  else
+    elem_cnt_max = MIN(ELEM_CNT_MAX, pw_max);
   if (options.flags & FLG_PRINCE_DIST)
     wl_dist_len = 1;
   if (options.flags & FLG_PRINCE_CASE_PERMUTE)
