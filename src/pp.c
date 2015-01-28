@@ -509,7 +509,21 @@ static int in_superchop (char *buf)
 #ifndef JTR_MODE
 static void out_flush (out_t *out)
 {
-  fwrite (out->buf, 1, out->len, out->fp);
+  const size_t n = fwrite (out->buf, 1, out->len, out->fp);
+
+  if (n != (size_t) out->len)
+  {
+    const int err = ferror (out->fp);
+
+    if (err == EPIPE)
+    {
+     // out->fp is probably closed
+
+      exit (0);
+    }
+
+    exit (-1);
+  }
 
   out->len = 0;
 }
@@ -1214,7 +1228,9 @@ void do_prince_crack(struct db_main *db, char *filename)
 
   if (dupe_check)
   {
-    for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+    int in_max = MIN(IN_LEN_MAX, pw_max);
+
+    for (int pw_len = IN_LEN_MIN; pw_len <= in_max; pw_len++)
     {
       db_entry_t *db_entry = &db_entries[pw_len];
 
@@ -1476,7 +1492,9 @@ void do_prince_crack(struct db_main *db, char *filename)
 
   if (dupe_check)
   {
-    for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+    int in_max = MIN(IN_LEN_MAX, pw_max);
+
+    for (int pw_len = IN_LEN_MIN; pw_len <= in_max; pw_len++)
     {
       db_entry_t *db_entry = &db_entries[pw_len];
 
@@ -2071,7 +2089,9 @@ void do_prince_crack(struct db_main *db, char *filename)
   mpz_clear (limit);
   mpz_clear (tmp);
 
-  for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+  int in_max = MIN(IN_LEN_MAX, pw_max);
+
+  for (int pw_len = IN_LEN_MIN; pw_len <= in_max; pw_len++)
   {
     db_entry_t *db_entry = &db_entries[pw_len];
 
