@@ -99,6 +99,7 @@ john_register_one(&fmt_NETNTLM_new);
 #include "md4.h"
 #include "md5.h"
 #include "unicode.h"
+#include "john.h"
 #include "memdbg.h"
 
 extern volatile int bench_running;
@@ -1042,6 +1043,7 @@ static void *get_binary(char *ciphertext)
 
 	if (!binary) binary = mem_alloc_tiny(FULL_BINARY_SIZE, BINARY_ALIGN);
 
+	if (john_main_process)
 	if (!warned && !ldr_in_pot && !bench_running && ++loaded > 100) {
 		warned = 1;
 		fprintf(stderr, "%s: Note: slow loading. For short runs, try "
