@@ -242,7 +242,7 @@ _john()
 
 	# Check if completion is requested for a valid option
 	# --prince= is a hack for now, should be made generic:
-	if [[ "${cur}" == --prince=* ]]; then
+	if [[ "${cur}" == --prince[=:]* ]]; then
 		COMPREPLY=("--prince")
 	elif [[ "${cur}" == --* ]] ; then
 		COMPREPLY=( $(compgen -W "${options}" -- "${cur%%[=:]*}") )
