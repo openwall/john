@@ -2029,24 +2029,30 @@ void do_prince_crack(struct db_main *db, char *filename)
 
             iter_pos_u64++;
           }
+#ifdef JTR_MODE
+          mpz_set(pos, iter_pos_u64);
+
+          if (jtr_done || event_abort)
+            break;
+#endif
         }
         else
         {
           mpz_add (tmp, chain_buf->ks_pos, iter_max);
 
           set_chain_ks_poses (chain_buf, db_entries, &tmp, db_entry->cur_chain_ks_poses);
+#ifdef JTR_MODE
+          mpz_set(pos, iter_max_u64);
+
+          if (jtr_done || event_abort)
+            break;
+#endif
         }
 
         outs_pos += iter_max_u64;
 
         mpz_add (total_ks_pos, total_ks_pos, iter_max);
 
-#ifdef JTR_MODE
-        mpz_set(pos, total_ks_pos);
-
-        if (jtr_done || event_abort)
-          break;
-#endif
         mpz_add (chain_buf->ks_pos, chain_buf->ks_pos, iter_max);
 
         if (mpz_cmp (chain_buf->ks_pos, chain_buf->ks_cnt) == 0)
