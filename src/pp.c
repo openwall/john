@@ -126,6 +126,8 @@
 #include "memory.h"
 #include "unicode.h"
 #include "prince.h"
+#include "rpp.h"
+#include "rules.h"
 #include "memdbg.h"
 
 #define _STR_VALUE(arg) #arg
@@ -805,6 +807,8 @@ static FILE *word_file;
 static mpf_t count;
 static mpz_t pos, rec_pos;
 static int rec_pos_destroyed;
+static int rule_number, rule_count;
+static struct rpp_context *rule_ctx;
 
 static void save_state(FILE *file)
 {
@@ -955,7 +959,7 @@ static MAYBE_INLINE char *mgets(int *len)
   return pos;
 }
 
-void do_prince_crack(struct db_main *db, char *filename)
+void do_prince_crack(struct db_main *db, char *filename, int rules)
 #endif
 {
   mpz_t pw_ks_pos[OUT_LEN_MAX + 1];
@@ -1148,6 +1152,9 @@ void do_prince_crack(struct db_main *db, char *filename)
   setmode (fileno (stdout), O_BINARY);
   #endif
 #else
+  struct rpp_context ctx;
+  char *prerule="", *rule="", *word="";
+  char *last = "\r";
   int loopback = (options.flags & FLG_PRINCE_LOOPBACK) ? 1 : 0;
 
   dupe_check = (options.flags & FLG_DUPESUPP) ? 1 : 0;
@@ -1212,6 +1219,30 @@ void do_prince_crack(struct db_main *db, char *filename)
   log_event("- Wordlist file: %.100s", path_expand(filename));
   log_event("- Will generate candidates of length %d - %d", pw_min, pw_max);
   log_event("- Using chains with %d - %d elements.", elem_cnt_min, elem_cnt_max);
+
+  if (rules) {
+    if (pers_opts.activewordlistrules)
+      log_event("- Rules: %.100s", pers_opts.activewordlistrules);
+
+    if (rpp_init(rule_ctx = &ctx, pers_opts.activewordlistrules)) {
+      log_event("! No \"%s\" mode rules found",
+                pers_opts.activewordlistrules);
+      if (john_main_process)
+        fprintf(stderr,
+                "No \"%s\" mode rules found in %s\n",
+                pers_opts.activewordlistrules, cfg_name);
+      error();
+    }
+
+    /* rules.c honors -min/max-len options on its own */
+    rules_init(pers_opts.internal_enc == pers_opts.target_enc ?
+               pw_max : db->format->params.plaintext_length);
+    rule_count = rules_count(&ctx, -1);
+
+    log_event("- %d preprocessed word mangling rules", rule_count);
+
+    prerule = rpp_next(&ctx);
+  }
 #endif
 
   /**
@@ -1620,11 +1651,6 @@ void do_prince_crack(struct db_main *db, char *filename)
       }
     }
   }
-
-  /**
-   * Calculate keyspace stuff
-   */
-
 #ifdef JTR_MODE
   status_init(get_progress, 0);
 
@@ -1641,6 +1667,11 @@ void do_prince_crack(struct db_main *db, char *filename)
   log_event("Calculating keyspace");
   size_t tot_mem = (pw_max + 1) * (sizeof(db_entry_t) + sizeof(pw_order_t) + sizeof(u64));
 #endif
+
+  /**
+   * Calculate keyspace stuff
+   */
+
   for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
   {
     db_entry_t *db_entry = &db_entries[pw_len];
@@ -2020,9 +2051,56 @@ void do_prince_crack(struct db_main *db, char *filename)
 #ifndef JTR_MODE
             out_push (out, pw_buf, pw_len + 1);
 #else
-            if (ext_filter(pw_buf))
-            if ((jtr_done = crk_process_key(pw_buf)))
-              break;
+            if (!rules) {
+              if (ext_filter(pw_buf))
+              if ((jtr_done = crk_process_key(pw_buf)))
+                break;
+            } else {
+              rule_number = 0;
+              if (rpp_init(rule_ctx = &ctx, pers_opts.activewordlistrules)) {
+                log_event("! No \"%s\" mode rules found",
+                          pers_opts.activewordlistrules);
+              }
+              rules_init(pers_opts.internal_enc == pers_opts.target_enc ?
+                         pw_max : db->format->params.plaintext_length);
+
+              if ((prerule = rpp_next(&ctx)))
+              do {
+                if (rules) {
+                  if ((rule = rules_reject(prerule, -1, last, db))) {
+                    if (strcmp(prerule, rule))
+                      log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
+                                rule_number + 1, prerule, rule);
+                    else
+                      log_event("- Rule #%d: '%.100s' accepted",
+                                rule_number + 1, prerule);
+                  } else {
+                    log_event("- Rule #%d: '%.100s' rejected",
+                              rule_number + 1, prerule);
+                    goto next_rule;
+                  }
+                }
+
+                if ((word = rules_apply(pw_buf, rule, -1, last))) {
+                  last = word;
+
+                  if (ext_filter(word))
+                  if ((jtr_done = crk_process_key(word))) {
+                    rules = 0;
+                    break;
+                  }
+                }
+
+                if (rules) {
+next_rule:
+                  if (!(rule = rpp_next(&ctx))) break;
+                  rule_number++;
+                }
+              } while (rules);
+
+              if (jtr_done || event_abort)
+                break;
+            }
 #endif
 
             chain_set_pwbuf_increment (chain_buf, db_entries, db_entry->cur_chain_ks_poses, pw_buf);

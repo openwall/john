@@ -13,7 +13,7 @@
 /*
  * Runs the prince cracker reading words from the supplied file name
  */
-extern void do_prince_crack(struct db_main *db, char *name);
+extern void do_prince_crack(struct db_main *db, char *name, int rules);
 
 /* Minimum number of elements per chain */
 extern int prince_elem_cnt_min;

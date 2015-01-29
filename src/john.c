@@ -1382,7 +1382,8 @@ static void john_run(void)
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 		else
 		if (options.flags & FLG_PRINCE_CHK)
-			do_prince_crack(&database, options.wordlist);
+			do_prince_crack(&database, options.wordlist,
+			                (options.flags & FLG_RULES) != 0);
 #endif
 #if HAVE_REXGEN
 		else
