@@ -1,0 +1,314 @@
+/*
+ * This file is part of John the Ripper password cracker,
+ * Copyright (c) 2011,2012 by Solar Designer
+ * Copyright (c) 2015 by magnum
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
+ */
+
+#define FMT_STRUCT	fmt_plaintext
+
+#if FMT_EXTERNS_H
+extern struct fmt_main FMT_STRUCT;
+#elif FMT_REGISTERS_H
+john_register_one(&FMT_STRUCT);
+#else
+
+#include <string.h>
+
+#include "common.h"
+#include "formats.h"
+#include "options.h"
+#include "memdbg.h"
+
+#define FORMAT_LABEL			"plaintext"
+#define FORMAT_TAG			"$0$"
+#define FORMAT_TAG_LEN			(sizeof(FORMAT_TAG) - 1)
+#define FORMAT_NAME			"$0$"
+#define ALGORITHM_NAME			"n/a"
+
+#define BENCHMARK_COMMENT		""
+#define BENCHMARK_LENGTH		-1
+
+#define PLAINTEXT_MIN_LENGTH		0
+#define PLAINTEXT_LENGTH		125
+#define CIPHERTEXT_LENGTH		(PLAINTEXT_LENGTH + FORMAT_TAG_LEN)
+
+typedef struct {
+	ARCH_WORD_32 hash;
+	char c0;
+} plaintext_binary;
+
+#define BINARY_SIZE			sizeof(plaintext_binary)
+#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
+#define SALT_SIZE			0
+#define SALT_ALIGN			1
+
+#define MIN_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		(0x4000 / (PLAINTEXT_LENGTH + 1))
+
+static struct fmt_tests tests[] = {
+	{"$0$cleartext", "cleartext"},
+	{FORMAT_TAG, ""},
+	{"$0$magnum", "magnum"},
+	{"$0$password", "password"},
+	{NULL}
+};
+
+static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
+
+static int valid(char *ciphertext, struct fmt_main *self)
+{
+	int len;
+
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		return 0;
+
+	ciphertext += FORMAT_TAG_LEN;
+
+	len = strlen(ciphertext);
+
+	if (len < PLAINTEXT_MIN_LENGTH || len > PLAINTEXT_LENGTH)
+		return 0;
+	return 1;
+}
+
+static MAYBE_INLINE ARCH_WORD_32 string_hash(char *s)
+{
+	ARCH_WORD_32 hash, extra;
+	char *p;
+
+	p = s + 2;
+	hash = (unsigned char)s[0];
+	if (!hash)
+		goto out;
+	extra = (unsigned char)s[1];
+	if (!extra)
+		goto out;
+
+	while (*p) {
+		hash <<= 3; extra <<= 2;
+		hash += (unsigned char)p[0];
+		if (!p[1]) break;
+		extra += (unsigned char)p[1];
+		p += 2;
+		if (hash & 0xe0000000) {
+			hash ^= hash >> 20;
+			extra ^= extra >> 20;
+			hash &= 0xfffff;
+		}
+	}
+
+	hash -= extra;
+	hash ^= extra << 10;
+
+	hash ^= hash >> 16;
+
+out:
+	return hash;
+}
+
+static void *binary(char *ciphertext)
+{
+	static plaintext_binary out;
+
+	ciphertext += FORMAT_TAG_LEN;
+	memset(&out, 0, sizeof(out));
+	out.hash = string_hash(ciphertext);
+	out.c0 = ciphertext[0];
+
+	return &out;
+}
+
+static int binary_hash_0(void *binary)
+{
+	ARCH_WORD_32 hash = ((plaintext_binary *)binary)->hash;
+	hash ^= hash >> 8;
+	return (hash ^ (hash >> 4)) & 0xf;
+}
+
+static int binary_hash_1(void *binary)
+{
+	ARCH_WORD_32 hash = ((plaintext_binary *)binary)->hash;
+	return (hash ^ (hash >> 8)) & 0xff;
+}
+
+static int binary_hash_2(void *binary)
+{
+	ARCH_WORD_32 hash = ((plaintext_binary *)binary)->hash;
+	return (hash ^ (hash >> 12)) & 0xfff;
+}
+
+static int binary_hash_3(void *binary)
+{
+	return ((plaintext_binary *)binary)->hash & 0xffff;
+}
+
+static int binary_hash_4(void *binary)
+{
+	return ((plaintext_binary *)binary)->hash & 0xfffff;
+}
+
+static int binary_hash_5(void *binary)
+{
+	return ((plaintext_binary *)binary)->hash & 0xffffff;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return ((plaintext_binary *)binary)->hash & 0x7ffffff;
+}
+
+static int get_hash_0(int index)
+{
+	ARCH_WORD_32 hash = string_hash(saved_key[index]);
+	hash ^= hash >> 8;
+	return (hash ^ (hash >> 4)) & 0xf;
+}
+
+static int get_hash_1(int index)
+{
+	ARCH_WORD_32 hash = string_hash(saved_key[index]);
+	return (hash ^ (hash >> 8)) & 0xff;
+}
+
+static int get_hash_2(int index)
+{
+	ARCH_WORD_32 hash = string_hash(saved_key[index]);
+	return (hash ^ (hash >> 12)) & 0xfff;
+}
+
+static int get_hash_3(int index)
+{
+	return string_hash(saved_key[index]) & 0xffff;
+}
+
+static int get_hash_4(int index)
+{
+	return string_hash(saved_key[index]) & 0xfffff;
+}
+
+static int get_hash_5(int index)
+{
+	return string_hash(saved_key[index]) & 0xffffff;
+}
+
+static int get_hash_6(int index)
+{
+	return string_hash(saved_key[index]) & 0x7ffffff;
+}
+
+static void set_key(char *key, int index)
+{
+	char *p = saved_key[index];
+
+	while (*key)
+		*p++ = *key++;
+	*p = 0;
+}
+
+static char *get_key(int index)
+{
+	return saved_key[index];
+}
+
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	return *pcount;
+}
+
+static int cmp_all(void *binary, int count)
+{
+	int i;
+
+	for (i = 0; i < count; i++) {
+		if (((plaintext_binary *)binary)->c0 != saved_key[i][0])
+			continue;
+		if (((plaintext_binary *)binary)->hash == string_hash(saved_key[i]))
+			return 1;
+	}
+
+	return 0;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	return
+	    ((plaintext_binary *)binary)->c0 == saved_key[index][0] &&
+	    ((plaintext_binary *)binary)->hash == string_hash(saved_key[index]);
+}
+
+static int cmp_exact(char *source, int index)
+{
+	source += FORMAT_TAG_LEN;
+	return !strcmp(source, saved_key[index]);
+}
+
+struct fmt_main FMT_STRUCT = {
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_MIN_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		tests
+	}, {
+		fmt_default_init,
+		fmt_default_done,
+		fmt_default_reset,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		binary,
+		fmt_default_salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_default_source,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+		fmt_default_salt_hash,
+		NULL,
+		fmt_default_set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
+};
+
+#endif /* plugin stanza */

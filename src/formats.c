@@ -308,7 +308,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (!current->fields[1])
 			current->fields[1] = current->ciphertext;
 		ciphertext = format->methods.prepare(current->fields, format);
-		if (!ciphertext || strlen(ciphertext) < 7)
+		if (!ciphertext || (strcmp(format->params.label, "plaintext") &&
+		                    strlen(ciphertext) < 7))
 			return "prepare";
 		if (format->methods.valid(ciphertext, format) != 1) {
 			snprintf(s_size, sizeof(s_size), "valid (%s)", ciphertext);
@@ -316,8 +317,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 
 #if !defined(BENCH_BUILD)
-		if (extra_tests && !dhirutest++ && strcmp(format->params.label, "dummy")
-		    && strcmp(format->params.label, "crypt")) {
+		if (extra_tests && !dhirutest++ &&
+		    strcmp(format->params.label, "plaintext") &&
+		    strcmp(format->params.label, "dummy") &&
+		    strcmp(format->params.label, "crypt")) {
 			if (*ciphertext == '$') {
 				char *p, *k = strdup(ciphertext);
 
