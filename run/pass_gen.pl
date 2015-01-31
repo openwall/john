@@ -85,7 +85,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 
 
 # todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
-my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass;
+my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
 my @chrAsciiTextHi=('A'..'Z');
@@ -342,6 +342,7 @@ sub reset_out_vars {
 	$out_username = "";
 	$out_extras = 2;
 	$out_uc_pass = 0;
+	$l0pht_fmt = 0;
 }
 #############################################################################
 #   sub output_hash($hash, $pass, $encoded_pass)
@@ -350,6 +351,10 @@ sub reset_out_vars {
 # to give us ability to change the output format.
 #############################################################################
 sub output_hash {
+	if ($l0pht_fmt == 1) {
+		print "$_[0]:$_[1]:\n";
+		return;
+	}
 	my $p = $_[1];
 	if ($out_uc_pass) {$p = uc $p; }
 	if ($out_extras == 2)    { $p = "$u:0:".$p;}
@@ -2591,9 +2596,9 @@ sub netntlm_ess {
 	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 14, 7)), 'DES', $challenge, PADDING_NONE());
 	my $type = "ntlm ESS";
 	my $lmresp = $c_challenge . "\0"x16;
-	printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", unpack("H*",$lmresp), unpack("H*",$ntresp), unpack("H*",$s_challenge), $_[0], $type);
-	# this one CAN NOT be done unified, I think.
-	return "";
+	#printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", unpack("H*",$lmresp), unpack("H*",$ntresp), unpack("H*",$s_challenge), $_[0], $type);
+	$l0pht_fmt = 1;
+	return "u$u".":::".unpack("H*",$lmresp).":".unpack("H*",$ntresp).":".unpack("H*",$s_challenge);
 }
 # Alias for l0phtcrack
 sub netntlm {
@@ -2624,9 +2629,9 @@ sub l0phtcrack {
 		$lmresp .= Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 7, 7)), 'DES', $challenge, PADDING_NONE());
 		$lmresp .= Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 14, 7)), 'DES', $challenge, PADDING_NONE());
 	}
-	printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", unpack("H*",$lmresp), unpack("H*",$ntresp), unpack("H*",$challenge), $_[0], $type);
-	# this one CAN NOT be done unified, I think.
-	return "";
+	#printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", unpack("H*",$lmresp), unpack("H*",$ntresp), unpack("H*",$challenge), $_[0], $type);
+	$l0pht_fmt = 1;
+	return "u$u".":::".unpack("H*",$lmresp).":".unpack("H*",$ntresp).":".unpack("H*",$challenge);
 }
 sub hsrp {
 	if (length($_[1]) > 55) { return; }
@@ -2644,9 +2649,9 @@ sub netlmv2 {
 	my $s_challenge = get_iv(8);
 	my $c_challenge = get_content(8);
 	my $lmresponse = _hmacmd5(_hmacmd5($nthash, $identity), $s_challenge.$c_challenge);
-	printf("%s\\%s:::%s:%s:%s::%s:netlmv2\n", $domain, $user, unpack("H*",$s_challenge), unpack("H*",$lmresponse), unpack("H*",$c_challenge), $_[0]);
-	# this one CAN NOT be done unified, I think.
-	return "";
+	#printf("%s\\%s:::%s:%s:%s::%s:netlmv2\n", $domain, $user, unpack("H*",$s_challenge), unpack("H*",$lmresponse), unpack("H*",$c_challenge), $_[0]);
+	$l0pht_fmt = 1;
+	return "$domain\\$user".":::".unpack("H*",$s_challenge).":".unpack("H*",$lmresponse).":".unpack("H*",$c_challenge);
 }
 sub netntlmv2 {
 	my $pwd = $_[1];
@@ -2659,9 +2664,9 @@ sub netntlmv2 {
 	my $temp = '\x01\x01' . "\x00"x6 . "abdegagt" . $c_challenge . "\x00"x4 . "flasjhstgluahr" . '\x00';
 	my $ntproofstr = _hmacmd5(_hmacmd5($nthash, $identity), $s_challenge.$temp);
 	# $ntresponse = $ntproofstr.$temp but we separate them with a :
-	printf("%s\\%s:::%s:%s:%s::%s:netntlmv2\n", $domain, $user, unpack("H*",$s_challenge), unpack("H*",$ntproofstr), unpack("H*",$temp), $_[0]);
-	# this one CAN NOT be done unified, I think.
-	return "";
+	#printf("%s\\%s:::%s:%s:%s::%s:netntlmv2\n", $domain, $user, unpack("H*",$s_challenge), unpack("H*",$ntproofstr), unpack("H*",$temp), $_[0]);
+	$l0pht_fmt = 1;
+	return "$domain\\$user".":::".unpack("H*",$s_challenge).":".unpack("H*",$ntproofstr).":".unpack("H*",$temp);
 }
 sub mschapv2 {
 	require Crypt::ECB;
@@ -2679,9 +2684,9 @@ sub mschapv2 {
 	my $response = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, PADDING_NONE());
 	$response .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, PADDING_NONE());
 	$response .= Crypt::ECB::encrypt(setup_des_key(substr($nthash . "\x00" x 5, 14, 7)), 'DES', $challenge, PADDING_NONE());
-	printf("%s:::%s:%s:%s::%s:mschapv2\n", $user, unpack("H*",$a_challenge), unpack("H*",$response), unpack("H*",$p_challenge), $_[0]);
-	# this one CAN NOT be done unified, I think.
-	return "";
+	#printf("%s:::%s:%s:%s::%s:mschapv2\n", $user, unpack("H*",$a_challenge), unpack("H*",$response), unpack("H*",$p_challenge), $_[0]);
+	$l0pht_fmt = 1;
+	return "$user".":::".unpack("H*",$a_challenge).":".unpack("H*",$response).":".unpack("H*",$p_challenge);
 }
 sub crc_32 {
 	require String::CRC32;
