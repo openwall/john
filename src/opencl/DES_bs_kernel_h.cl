@@ -1,3 +1,53 @@
+/* CAUTION:Do not change or move the next 48 lines */
+#define index00 31
+#define index01  0
+#define index02  1
+#define index03  2
+#define index04  3
+#define index05  4
+#define index06  3
+#define index07  4
+#define index08  5
+#define index09  6
+#define index10  7
+#define index11  8
+#define index24 15
+#define index25 16
+#define index26 17
+#define index27 18
+#define index28 19
+#define index29 20
+#define index30 19
+#define index31 20
+#define index32 21
+#define index33 22
+#define index34 23
+#define index35 24
+#define index48 63
+#define index49 32
+#define index50 33
+#define index51 34
+#define index52 35
+#define index53 36
+#define index54 35
+#define index55 36
+#define index56 37
+#define index57 38
+#define index58 39
+#define index59 40
+#define index72 47
+#define index73 48
+#define index74 49
+#define index75 50
+#define index76 51
+#define index77 52
+#define index78 51
+#define index79 52
+#define index80 53
+#define index81 54
+#define index82 55
+#define index83 56
+
 /*
  * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
@@ -353,121 +403,111 @@ inline void DES_bs_finalize_keys(unsigned int section,
 	DES_bs_clear_block_8(48); 			\
 	DES_bs_clear_block_8(56);
 
-#if !HARDCODE_SALT
-
-#ifndef RV7xx
-#define x(p) vxorf(B[ index96[p]], _local_K[_local_index768[p + k] + local_offset_K])
-#define y(p, q) vxorf(B[p]       , _local_K[_local_index768[q + k] + local_offset_K])
-#else
-#define x(p) vxorf(B[index96[p] ], _local_K[index768[p + k] + local_offset_K])
-#define y(p, q) vxorf(B[p]       , _local_K[index768[q + k] + local_offset_K])
-#endif
-
-#define H1()\
-	s1(x(0), x(1), x(2), x(3), x(4), x(5),\
+#define H1_s()\
+	s1(z(index00, 0), z(index01, 1), z(index02, 2), z(index03, 3), z(index04, 4), z(index05, 5),\
 		B,40, 48, 54, 62);\
-	s2(x(6), x(7), x(8), x(9), x(10), x(11),\
+	s2(z(index06, 6), z(index07, 7), z(index08, 8), z(index09, 9), z(index10, 10), z(index11, 11),\
 		B,44, 59, 33, 49);\
-	s3(y(7, 12), y(8, 13), y(9, 14),\
-		y(10, 15), y(11, 16), y(12, 17),\
+	s3(z(7, 12), z(8, 13), z(9, 14),\
+		z(10, 15), z(11, 16), z(12, 17),\
 		B,55, 47, 61, 37);\
-	s4(y(11, 18), y(12, 19), y(13, 20),\
-		y(14, 21), y(15, 22), y(16, 23),\
+	s4(z(11, 18), z(12, 19), z(13, 20),\
+		z(14, 21), z(15, 22), z(16, 23),\
 		B,57, 51, 41, 32);\
-	s5(x(24), x(25), x(26), x(27), x(28), x(29),\
+	s5(z(index24, 24), z(index25, 25), z(index26, 26), z(index27, 27), z(index28, 28), z(index29, 29),\
 		B,39, 45, 56, 34);\
-	s6(x(30), x(31), x(32), x(33), x(34), x(35),\
+	s6(z(index30, 30), z(index31, 31), z(index32, 32), z(index33, 33), z(index34, 34), z(index35, 35),\
 		B,35, 60, 42, 50);\
-	s7(y(23, 36), y(24, 37), y(25, 38),\
-		y(26, 39), y(27, 40), y(28, 41),\
+	s7(z(23, 36), z(24, 37), z(25, 38),\
+		z(26, 39), z(27, 40), z(28, 41),\
 		B,63, 43, 53, 38);\
-	s8(y(27, 42), y(28, 43), y(29, 44),\
-		y(30, 45), y(31, 46), y(0, 47),\
+	s8(z(27, 42), z(28, 43), z(29, 44),\
+		z(30, 45), z(31, 46), z(0, 47),\
 		B,36, 58, 46, 52);
 
-#define H2()\
-	s1(x(48), x(49), x(50), x(51), x(52), x(53),\
+#define H2_s()\
+	s1(z(index48, 48), z(index49, 49), z(index50, 50), z(index51, 51), z(index52, 52), z(index53, 53),\
 		B,8, 16, 22, 30);\
-	s2(x(54), x(55), x(56), x(57), x(58), x(59),\
+	s2(z(index54, 54), z(index55, 55), z(index56, 56), z(index57, 57), z(index58, 58), z(index59, 59),\
 		B,12, 27, 1, 17);\
-	s3(y(39, 60), y(40, 61), y(41, 62),\
-		y(42, 63), y(43, 64), y(44, 65),\
+	s3(z(39, 60), z(40, 61), z(41, 62),\
+		z(42, 63), z(43, 64), z(44, 65),\
 		B,23, 15, 29, 5);\
-	s4(y(43, 66), y(44, 67), y(45, 68),\
-		y(46, 69), y(47, 70), y(48, 71),\
+	s4(z(43, 66), z(44, 67), z(45, 68),\
+		z(46, 69), z(47, 70), z(48, 71),\
 		B,25, 19, 9, 0);\
-	s5(x(72), x(73), x(74), x(75), x(76), x(77),\
+	s5(z(index72, 72), z(index73, 73), z(index74, 74), z(index75, 75), z(index76, 76), z(index77, 77),\
 		B,7, 13, 24, 2);\
-	s6(x(78), x(79), x(80), x(81), x(82), x(83),\
+	s6(z(index78, 78), z(index79, 79), z(index80, 80), z(index81, 81), z(index82, 82), z(index83, 83),\
 		B,3, 28, 10, 18);\
-	s7(y(55, 84), y(56, 85), y(57, 86),\
-		y(58, 87), y(59, 88), y(60, 89),\
+	s7(z(55, 84), z(56, 85), z(57, 86),\
+		z(58, 87), z(59, 88), z(60, 89),\
 		B,31, 11, 21, 6);\
-	s8(y(59, 90), y(60, 91), y(61, 92),\
-		y(62, 93), y(63, 94), y(32, 95),\
+	s8(z(59, 90), z(60, 91), z(61, 92),\
+		z(62, 93), z(63, 94), z(32, 95),\
 		B,4, 26, 14, 20);
 
+#define H2_k48()\
+	s1(y48(index48, 12), y48(index49, 46), y48(index50, 33), y48(index51, 52), y48(index52, 48), y48(index53, 20),\
+		B,8, 16, 22, 30);\
+	s2(y48(index54, 34), y48(index55, 55), y48(index56, 5), y48(index57, 13), y48(index58, 18), y48(index59, 40),\
+		B,12, 27, 1, 17);\
+	s3(y48(39, 4), y48(40, 32), y48(41, 26),\
+		y48(42, 27), y48(43, 38), y48(44, 54),\
+		B,23, 15, 29, 5);\
+	s4(y48(43, 53), y48(44, 6), y48(45, 31),\
+		y48(46, 25), y48(47, 19), y48(48, 41),\
+		B,25, 19, 9, 0);\
+	s5(y48(index72, 15), y48(index73, 24), y48(index74, 28), y48(index75, 43), y48(index76, 30), y48(index77, 3),\
+		B,7, 13, 24, 2);\
+	s6(y48(index78, 35), y48(index79, 22), y48(index80, 2), y48(index81, 44), y48(index82, 14), y48(index83, 23),\
+		B,3, 28, 10, 18);\
+	s7(y48(55, 51), y48(56, 16), y48(57, 29),\
+		y48(58, 49), y48(59, 7), y48(60, 17),\
+		B,31, 11, 21, 6);\
+	s8(y48(59, 37), y48(60, 8), y48(61, 9),\
+		y48(62, 50), y48(63, 42), y48(32, 21),\
+		B,4, 26, 14, 20);
 
+#if  (HARDCODE_SALT && !FULL_UNROLL)
 
+#define y48(p, q) vxorf(B[p]     , _local_K[q + local_offset_K])
 
-#ifdef _CPU
-#define loop_body()\
-		H1();\
-		if (rounds_and_swapped == 0x100) goto next;\
-		H2();\
-		k += 96;\
-		rounds_and_swapped--;\
-		H1();\
-		if (rounds_and_swapped == 0x100) goto next;\
-		H2();\
-		k += 96;\
-		rounds_and_swapped--;\
-                barrier(CLK_LOCAL_MEM_FENCE);
-#elif defined(_NV)
-#define loop_body()\
-		H1();\
-		if (rounds_and_swapped == 0x100) goto next;\
-		H2();\
-		k += 96;\
-		rounds_and_swapped--;\
-		barrier(CLK_LOCAL_MEM_FENCE);
+#ifndef RV7xx
+#define z(p, q) vxorf(B[p]      , _local_K[*_index768_ptr++ + local_offset_K])
 #else
-#define loop_body()\
-		H1();\
-		if (rounds_and_swapped == 0x100) goto next;\
-		H2();\
-		k += 96;\
-		rounds_and_swapped--;
+#define z(p, q) vxorf(B[p]      , _local_K[index768[q + k] + local_offset_K])
 #endif
 
-__kernel void DES_bs_25_b( constant uint *index768
+__kernel void DES_bs_25( constant uint *index768
 #if gpu_amd(DEVICE_INFO)
-                           __attribute__((max_constant_size(3072)))
+                         __attribute__((max_constant_size(3072)))
 #endif
-                           , __global int *index96 ,
-                           __global DES_bs_transfer *DES_bs_all,
-                           __global DES_bs_vector *B_global,
-                           __global int *binary,
-                           int num_loaded_hash,
-                           volatile __global uint *output)
-{
+                         , __global DES_bs_transfer *DES_bs_all,
+                         __global DES_bs_vector *B_global,
+                         __global int *binary,
+                         int num_loaded_hash,
+                         volatile __global uint *output) {
 
-		unsigned int section = get_global_id(0), global_offset_B ,local_offset_K;
+		unsigned int section = get_global_id(0), global_offset_B, local_offset_K;
 		unsigned int local_id = get_local_id(0);
 
 		global_offset_B = 64 * section;
 		local_offset_K  = 56 * local_id;
 
-		vtype B[64], tmp;
+		vtype B[64],tmp;
 
-		__local DES_bs_vector _local_K[56 * WORK_GROUP_SIZE] ;
+		__local DES_bs_vector _local_K[56*WORK_GROUP_SIZE] ;
 #ifndef RV7xx
 		__local ushort _local_index768[768] ;
+		__local ushort *_index768_ptr ;
 #endif
 		int iterations;
+
 #ifndef SAFE_GOTO
 		int rounds_and_swapped;
 #endif
+
 		long int k = 0, i;
 
 		if (DES_bs_all[section].keys_changed) {
@@ -480,11 +520,12 @@ __kernel void DES_bs_25_b( constant uint *index768
 			DES_bs_clear_block
 		}
 
-		if(!section)
-			for(i = 0; i < num_loaded_hash; i++)
-				output[i] = 0;
+		if (!section)
+			for (i = 0; i < num_loaded_hash; i++)
+			output[i] = 0;
+		barrier(CLK_GLOBAL_MEM_FENCE);
 
-		k=0;
+		k = 0;
 #ifndef SAFE_GOTO
 		rounds_and_swapped = 8;
 #endif
@@ -494,32 +535,39 @@ __kernel void DES_bs_25_b( constant uint *index768
 		if (!local_id )
 			for (i = 0; i < 768; i++)
 				_local_index768[i] = index768[i];
-
 		barrier(CLK_LOCAL_MEM_FENCE);
 #endif
 #ifdef SAFE_GOTO
-	for (iterations = 24; iterations >= 0; iterations--) {
-		for (k = 0; k < 768; k += 96) {
-			H1();
-			H2();
+		for (iterations = 24; iterations >= 0; iterations--) {
+			for (k = 0; k < 768; k += 96) {
+#ifndef RV7xx
+				_index768_ptr = _local_index768 + k ;
+#endif
+				H1_s();
+				H2_s();
+			}
+			for (i = 0; i < 32 && iterations; i++) {
+				tmp = B[i];
+				B[i] = B[i + 32];
+				B[i + 32] = tmp;
+			}
 		}
-		for (i = 0; i < 32 && iterations; i++) {
-			tmp = B[i];
-			B[i] = B[i + 32];
-			B[i + 32] = tmp;
-		}
-	}
 #else
 start:
-		loop_body();
+#ifndef RV7xx
+		_index768_ptr = _local_index768 + k ;
+#endif
+		H1_s();
+		if (rounds_and_swapped == 0x100) goto next;
+		H2_s();
+		k += 96;
+		rounds_and_swapped--;
 
 		if (rounds_and_swapped > 0) goto start;
 		k -= (0x300 + 48);
 		rounds_and_swapped = 0x108;
-
 		if (--iterations) goto swap;
 #endif
-
 		cmp(B, binary, num_loaded_hash, output, section);
 
 		tmp = 0 ;
@@ -528,14 +576,14 @@ start:
 			if(tmp) break ;
 		}
 
-		if(tmp || (!num_loaded_hash))
-		for (i = 0; i < 64; i++)
-			B_global[global_offset_B + i] = (DES_bs_vector)B[i] ;
+		if(tmp)
+			for (i = 0; i < 64; i++)
+				B_global[global_offset_B + i] = (DES_bs_vector)B[i] ;
 
 		return;
 #ifndef SAFE_GOTO
 swap:
-		H2();
+		H2_k48();
 		k += 96;
 		if (--rounds_and_swapped) goto start;
 next:

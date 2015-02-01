@@ -139,6 +139,7 @@ static int cmp_exact(char *source, int index)
 
 static char *get_key(int index)
 {
+	//fprintf(stderr, "Get Key In\n");
 	static char out[PLAINTEXT_LENGTH + 1];
 	unsigned int sector,block;
 	unsigned char *src;
@@ -154,7 +155,6 @@ static char *get_key(int index)
 		dst++;
 	}
 	*dst = 0;
-
 
 	return out;
 }

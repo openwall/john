@@ -71,6 +71,8 @@ typedef struct{
 
 struct fmt_main;
 
+struct fmt_main fmt_opencl_DES;
+
 #define DES_bs_cpt			1
 extern opencl_DES_bs_combined *opencl_DES_bs_all;
 extern opencl_DES_bs_transfer *opencl_DES_bs_data;

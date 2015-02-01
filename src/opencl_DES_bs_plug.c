@@ -207,6 +207,7 @@ void opencl_DES_bs_set_key(char *key, int index)
 	unsigned char *dst;
 	unsigned int sector,key_index;
 	unsigned int flag=key[0];
+
 	init_t();
 	sector = index >> DES_BS_LOG2;
 	key_index = index & (DES_BS_DEPTH - 1);
@@ -227,6 +228,7 @@ void opencl_DES_bs_set_key(char *key, int index)
 	flag = flag&&key[6];
 	dst[sizeof(DES_bs_vector) * 8 * 6]  =	(!flag) ? 0 : key[6];
 	dst[sizeof(DES_bs_vector) * 8 * 7]  =	(!flag) ? 0 : key[7];
+
 /*
 	if (!key[0]) goto fill8;
 	*dst = key[0];
