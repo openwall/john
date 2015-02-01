@@ -78,8 +78,10 @@ void opencl_DES_reset(struct db_main *db) {
 
 		for (i = 0; i < 4096; i++) {
 			stored_salt[i] = 0x7fffffff;
-			if (krnl[gpu_id][i])
+			if (krnl[gpu_id][i]) {
 				clReleaseKernel(krnl[gpu_id][i]);
+				krnl[gpu_id][i] = 0;
+			}
 		}
 
 		benchmark = 0;
