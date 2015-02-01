@@ -1694,12 +1694,19 @@ sub agilekeychain {
 sub mdc2 {
 }
 sub bitcoin {
-#	my $cry_master; my $cry_salt; my $cry_rounds; my $ckey; my $public_key;
-#	$cry_salt = get_salt(16);
-#	$h = sha512($_[1] . $cry_salt);
-#	for (my $i = 1; $i < $cry_rounds; $i++) {
-#		$h = sha512($h);
-#	}
+	my $master; my $rounds; # my $ckey; my $public_key;
+	$master = pack("H*", "0e34a996b1ce8a1735bba1acf6d696a43bc6730b5c41224206c93006f14f951410101010101010101010101010101010");
+	$salt = get_salt(8);
+	#$rounds = 177864;
+	$rounds = 20000;		# very SMALL number of rounds as default.
+	$h = sha512($_[1] . $salt);
+	for (my $i = 1; $i < $rounds; $i++) {
+		$h = sha512($h);
+	}
+	require Crypt::OpenSSL::AES;
+	require Crypt::CBC;
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => substr($h,0,32), -keysize => 32, -iv => substr($h,32,16), -cipher => 'Crypt::OpenSSL::AES', -header => 'none');
+	return '$bitcoin$96$'.substr(unpack("H*", $crypt->encrypt($master)),0,96).'$16$'.unpack("H*", $salt).'$'.$rounds.'$2$00$2$00';
 }
 sub sevenz {
 }
