@@ -7618,6 +7618,12 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 		error();
 	}
 
+	pFmt->params.algorithm_name = pFmtLocal->params.algorithm_name;
+	if (pFmt->params.plaintext_length == 0 ||
+		pFmt->params.plaintext_length > pFmtLocal->params.plaintext_length) {
+		pFmt->params.plaintext_length = pFmtLocal->params.plaintext_length;
+		pFmt->params.plaintext_min_length = pFmtLocal->params.plaintext_min_length;
+	}
 	pFmt->params.max_keys_per_crypt = pFmtLocal->params.max_keys_per_crypt;
 	pFmt->params.min_keys_per_crypt = pFmtLocal->params.min_keys_per_crypt;
 	pFmt->params.flags = pFmtLocal->params.flags;
@@ -7646,6 +7652,7 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 	pFmt->methods.clear_keys = pFmtLocal->methods.clear_keys;
 	pFmt->methods.crypt_all  = pFmtLocal->methods.crypt_all;
 	pFmt->methods.prepare    = pFmtLocal->methods.prepare;
+	pFmt->methods.salt_compare    = pFmtLocal->methods.salt_compare;
 	for (i = 0; i < PASSWORD_HASH_SIZES; ++i)
 	{
 		pFmt->methods.binary_hash[i] = pFmtLocal->methods.binary_hash[i];
