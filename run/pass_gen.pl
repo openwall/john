@@ -3257,6 +3257,7 @@ sub dynamic_compile {
 			$dynamic_args==1030 && do {$fmt='trunc32(whirlpool($p))';	last SWITCH; };
 			$dynamic_args==1031 && do {$fmt='trunc32(gost($p))';	last SWITCH; };
 			$dynamic_args==1032 && do {$fmt='sha1_64(utf16($p))';	last SWITCH; };
+			$dynamic_args==1033 && do {$fmt='sha1_64(utf16($p).$s)';	last SWITCH; };
 			$dynamic_args==1300 && do {$fmt='md5(md5_raw($p))';	last SWITCH; };
 			$dynamic_args==1350 && do {$fmt='md5(md5($s.$p).$c1.$s),saltlen=2,const1=:';	last SWITCH; };
 			$dynamic_args==1400 && do {$fmt='sha1u($p)';	last SWITCH; };
