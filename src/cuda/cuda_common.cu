@@ -103,6 +103,10 @@ void cuda_device_list()
 		       devProp.major, devProp.minor,
 		       devProp.major, devProp.minor);
 
+		if (devProp.major == 2 && devProp.minor >= 1)
+		printf("\tNumber of stream processors:   %d (%d x %d)\n",
+		    devProp.multiProcessorCount * 48,
+		    devProp.multiProcessorCount, 48);
 		if (devProp.major <= 5 && arch_sm[devProp.major])
 		printf("\tNumber of stream processors:   %d (%d x %d)\n",
 		    devProp.multiProcessorCount * arch_sm[devProp.major],

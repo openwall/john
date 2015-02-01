@@ -2045,7 +2045,7 @@ cl_uint get_processors_count(int sequential_id)
 		unsigned int major = 0, minor = 0;
 
 		get_compute_capability(sequential_id, &major, &minor);
-		if (major == 1)
+		if (major == 1)	// 1.x Tesla
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 8);
 		else if (major == 2 && minor == 0)	// 2.0 Fermi
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 32);
