@@ -2401,7 +2401,7 @@ sub ipb2 {
 }
 sub phps {
 	$salt = get_salt(3);
-	return "\$PHPS\$".unpack("H*",$salt)."\$", md5_hex(md5_hex($_[1]), $salt);
+	return "\$PHPS\$".unpack("H*",$salt)."\$".md5_hex(md5_hex($_[1]),$salt);
 }
 sub md4p {
 	$salt = get_salt(8);
