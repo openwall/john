@@ -672,7 +672,7 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	to_compact(gecos, hccap.mac1);
 	to_dashed(ap_mac, hccap.mac1);
 	to_dashed(sta_mac, hccap.mac2);
-	cp += sprintf(cp, ":%s:%s:%s::WPA", sta_mac, ap_mac, gecos);
+	cp += sprintf(cp, ":%s:%s:%s::WPA", ap_mac, sta_mac, gecos);
 	if (hccap.keyver > 1)
 		cp += sprintf(cp, "%d", hccap.keyver);
 	search_len = cp-TmpKey;
