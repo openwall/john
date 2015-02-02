@@ -51,7 +51,8 @@ john_register_one(&fmt_OSC);
 #define DYNA_SALT_SIZE		(sizeof(char*))
 #define SALT_ALIGN			MEM_ALIGN_WORD
 
-#define PLAINTEXT_LENGTH	32
+// set PLAINTEXT_LENGTH to 0, so dyna will set this
+#define PLAINTEXT_LENGTH	0
 #define CIPHERTEXT_LENGTH	(1 + 3 + 1 + SALT_SIZE * 2 + 1 + MD5_HEX_SIZE)
 
 static struct fmt_tests osc_tests[] = {
@@ -184,11 +185,9 @@ static void link_funcs() {
 
 static void osc_init(struct fmt_main *self)
 {
-	get_ptr();
 	if (self->private.initialized == 0) {
-		pDynamic_4 = dynamic_THIN_FORMAT_LINK(&fmt_OSC, Convert(Conv_Buf, osc_tests[0].ciphertext), "osc", 1);
-		link_funcs();
-		fmt_OSC.params.algorithm_name = pDynamic_4->params.algorithm_name;
+		get_ptr();
+		pDynamic_4->methods.init(pDynamic_4);
 		self->private.initialized = 1;
 	}
 }
