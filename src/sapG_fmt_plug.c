@@ -45,11 +45,7 @@ john_register_one(&fmt_sapG);
 static unsigned int omp_t = 1;
 #if defined(_OPENMP)
 #include <omp.h>
-#ifdef MMX_COEF
-#define OMP_SCALE			128
-#else
 #define OMP_SCALE			2048
-#endif
 #endif
 
 #include "memdbg.h"
