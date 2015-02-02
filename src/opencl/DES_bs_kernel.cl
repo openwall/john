@@ -483,6 +483,7 @@ __kernel void DES_bs_25_b( constant uint *index768
 		if(!section)
 			for(i = 0; i < num_loaded_hash; i++)
 				output[i] = 0;
+		barrier(CLK_GLOBAL_MEM_FENCE);
 
 		k=0;
 #ifndef SAFE_GOTO
@@ -521,6 +522,7 @@ start:
 #endif
 
 		cmp(B, binary, num_loaded_hash, output, section);
+		barrier(CLK_GLOBAL_MEM_FENCE);
 
 		tmp = 0 ;
 		for (i = 0; i < num_loaded_hash; i++) {
@@ -528,7 +530,7 @@ start:
 			if(tmp) break ;
 		}
 
-		if(tmp || (!num_loaded_hash))
+		if(tmp)
 		for (i = 0; i < 64; i++)
 			B_global[global_offset_B + i] = (DES_bs_vector)B[i] ;
 

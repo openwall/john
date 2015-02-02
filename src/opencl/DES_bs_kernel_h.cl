@@ -570,6 +570,8 @@ start:
 #endif
 		cmp(B, binary, num_loaded_hash, output, section);
 
+		barrier(CLK_GLOBAL_MEM_FENCE);
+
 		tmp = 0 ;
 		for (i = 0; i < num_loaded_hash; i++) {
 				tmp = tmp | output[i];
