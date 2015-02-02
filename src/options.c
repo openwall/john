@@ -51,9 +51,21 @@
 #define _PER_NODE ""
 #endif
 #ifdef DEBUG
-#define DEBUG_STRING "-dbg"
+#define DEBUG_STRING "_dbg"
 #else
 #define DEBUG_STRING ""
+#endif
+#ifdef WITH_ASAN
+#define ASAN_STRING "_asAN"
+#else
+#define ASAN_STRING ""
+#endif
+#if defined(MEMDBG_ON) && defined(MEMDBG_EXTRA_CHECKS)
+#define MEMDBG_STRING "_memdbg-ex"
+#elif defined(MEMDBG_ON)
+#define MEMDBG_STRING "_memdbg"
+#else
+#define MEMDBG_STRING ""
 #endif
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
@@ -294,7 +306,7 @@ static struct opt_entry opt_list[] = {
 #endif
 
 #define JOHN_USAGE	  \
-"John the Ripper password cracker, version " JOHN_VERSION _MP_VERSION DEBUG_STRING " [" JOHN_BLD "]\n" \
+"John the Ripper password cracker, version " JOHN_VERSION _MP_VERSION DEBUG_STRING MEMDBG_STRING ASAN_STRING " [" JOHN_BLD "]\n" \
 "Copyright (c) 1996-2014 by " JOHN_COPYRIGHT "\n" \
 "Homepage: http://www.openwall.com/john/\n" \
 "\n" \

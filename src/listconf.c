@@ -72,20 +72,25 @@ extern void cuda_device_list();
 #endif
 #else
 #ifdef _OPENMP
-#define _MP_VERSION " OMP"
+#define _MP_VERSION "_omp"
 #else
 #define _MP_VERSION ""
 #endif
 #endif
 #ifdef DEBUG
-#define DEBUG_STRING "-dbg"
+#define DEBUG_STRING "_dbg"
 #else
 #define DEBUG_STRING ""
 #endif
+#ifdef WITH_ASAN
+#define ASAN_STRING "_asAN"
+#else
+#define ASAN_STRING ""
+#endif
 #if defined(MEMDBG_ON) && defined(MEMDBG_EXTRA_CHECKS)
-#define MEMDBG_STRING "-memdbg_ex"
+#define MEMDBG_STRING "_memdbg-ex"
 #elif defined(MEMDBG_ON)
-#define MEMDBG_STRING "-memdbg"
+#define MEMDBG_STRING "_memdbg"
 #else
 #define MEMDBG_STRING ""
 #endif
@@ -144,7 +149,7 @@ static void listconf_list_build_info(void)
 #ifdef __GNU_MP_VERSION
 	int gmp_major, gmp_minor, gmp_patchlevel;
 #endif
-	puts("Version: " JOHN_VERSION _MP_VERSION DEBUG_STRING MEMDBG_STRING);
+	puts("Version: " JOHN_VERSION _MP_VERSION DEBUG_STRING MEMDBG_STRING ASAN_STRING);
 	puts("Build: " JOHN_BLD);
 	printf("Arch: %d-bit %s\n", ARCH_BITS,
 	       ARCH_LITTLE_ENDIAN ? "LE" : "BE");
