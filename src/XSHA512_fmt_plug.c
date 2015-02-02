@@ -15,6 +15,11 @@ john_register_one(&fmt_XSHA512);
 #include "params.h"
 #include "common.h"
 #include "formats.h"
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE				64
+#endif
+
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"xsha512"
@@ -37,11 +42,7 @@ john_register_one(&fmt_XSHA512);
 #define SALT_ALIGN			sizeof(ARCH_WORD_32)
 
 #define MIN_KEYS_PER_CRYPT		1
-#ifdef _OPENMP
-#define MAX_KEYS_PER_CRYPT		(0x200 * 3)
-#else
 #define MAX_KEYS_PER_CRYPT		0x100
-#endif
 
 #if ARCH_BITS >= 64 || defined(__SSE2__)
 /* 64-bitness happens to correlate with faster memcpy() */
@@ -69,9 +70,15 @@ static ARCH_WORD_32 saved_salt;
 
 static void init(struct fmt_main *self)
 {
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
-	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
+#ifdef _OPENMP
+	int omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
