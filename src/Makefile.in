@@ -983,53 +983,8 @@ distclean: clean
 	$(RM) arch.h
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
 
-# a rule to make snapshots  (NOTE, still to be done for JtR)
-snapshot: $(SOURCES) $(DOCS) $(OTHERFILES)
-	@echo
-	@echo "->Note: The version for now is hacked into Makefile.in as"
-	@echo "->" $(VERS)
-	@echo
-	@echo "->copying all release files to the directory " xyplot-$(VERS)
-	@echo
-	tar cf - $(SOURCES) $(DOCS) $(OTHERFILES) | gzip > xyplot-$(VERS).tar.gz
-	-mkdir xyplot-$(VERS)
-	gzcat xyplot-$(VERS).tar.gz | (cd xyplot-$(VERS); tar xf -)
-	$(RM) xyplot-$(VERS).tar.gz
-	@echo
-	@echo "->making the compressed tar file " xyplot-$(VERS).tar.gz
-	@echo
-	tar cf - xyplot-$(VERS) | gzip > xyplot-$(VERS).tar.gz
-	@echo
-#	@echo "->placing the snapshot for anonymous ftp in " $(FTPDIR)
-#	@echo
-#	rcp xyplot-$(VERS).tar.gz $(FTPDIR)
-	echo "->removnig the temporary directory " xyplot-$(VERS)
-	/bin/rm -rf xyplot-$(VERS)             # remove the old directory
-
 install: default shell-completion
 	@echo Stripping executables.
 	$(STRIP) $(PROJ)
-
-#install:
-#	@for dir in ${subdirs}; do \
-#	  (cd $$dir && $(MAKE) install) \
-#	  || case "$(MFLAGS)" in *k*) fail=yes;; *) exit 1;; esac; \
-#	done && test -z "$$fail"
-
-# TBD JtR
-#install: all
-#	$(top_srcdir)/mkinstalldirs $(bindir)
-#	$(top_srcdir)/mkinstalldirs $(libdir)
-#	$(INSTALL) xyplot $(bindir)
-#	$(INSTALL) xyps $(bindir)
-#	$(INSTALL) xyug $(bindir)
-#	$(INSTALL) xypost $(libdir)
-
-# TBD JtR
-uninstall:
-	-$(RM) $(bindir)/xyplot
-	-$(RM) $(bindir)/xyps
-	-$(RM) $(bindir)/xyug
-	-$(RM) $(libdir)/xypost
 
 include Makefile.dep
