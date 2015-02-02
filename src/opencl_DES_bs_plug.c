@@ -188,7 +188,7 @@ void opencl_DES_bs_init(int LM, int cpt,int block)
 				//opencl_DES_bs_all[block].Ens[index] =
 				  //  &opencl_DES_bs_all[block].B[opencl_DES_E[index]];
 			opencl_DES_bs_all[block].Ens[index] =
-				    &B[opencl_DES_E[index] + block * 64];
+				opencl_DES_E[index] + block * 64;
 			opencl_DES_bs_all[block].salt = 0xffffff;
 
 			opencl_DES_bs_set_salt(0);

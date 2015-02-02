@@ -19,7 +19,7 @@
 typedef unsigned WORD vtype;
 
 opencl_DES_bs_transfer *opencl_DES_bs_data;
-DES_bs_vector *B;
+DES_bs_vector *B = NULL;
 
 static cl_kernel krnl[MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM][4096];
 static cl_int err;
@@ -53,12 +53,19 @@ void opencl_DES_reset(struct db_main *db) {
 	if (db) {
 		MEM_FREE(loaded_hash);
 		MEM_FREE(cmp_out);
+		MEM_FREE(B);
 
 		clReleaseMemObject(cmp_out_gpu);
 		clReleaseMemObject(loaded_hash_gpu);
+		clReleaseMemObject(B_gpu);
 
 		loaded_hash = (int*)mem_alloc((db->password_count)*sizeof(int)*2);
 		cmp_out     = (unsigned int*)mem_alloc((2 * db->password_count + 1) * sizeof(unsigned int));
+		B = (DES_bs_vector*) mem_alloc (db->password_count * 64 * sizeof(DES_bs_vector));
+
+		B_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 64 * db->password_count * sizeof(DES_bs_vector), NULL, &err);
+		if (B_gpu == (cl_mem)0)
+			HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
 		loaded_hash_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (db->password_count)*sizeof(int)*2, NULL, &err);
 		if (loaded_hash_gpu == (cl_mem)0)
@@ -80,6 +87,12 @@ void opencl_DES_reset(struct db_main *db) {
 			MEM_FREE(loaded_hash);
 		if (!cmp_out)
 			MEM_FREE(cmp_out);
+		if (!B)
+			MEM_FREE(B);
+
+		clReleaseMemObject(cmp_out_gpu);
+		clReleaseMemObject(loaded_hash_gpu);
+		clReleaseMemObject(B_gpu);
 
 		fprintf(stderr, "ciphertext:%s\n", fmt_opencl_DES.params.tests[0].ciphertext);
 
@@ -88,6 +101,11 @@ void opencl_DES_reset(struct db_main *db) {
 
 		loaded_hash = (int *) mem_alloc(num_loaded_hashes * sizeof(int) * 2);
 		cmp_out     = (unsigned int *) mem_alloc((2 * num_loaded_hashes + 1) * sizeof(unsigned int));
+		B = (DES_bs_vector*) mem_alloc (num_loaded_hashes * 64 * sizeof(DES_bs_vector));
+
+		B_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 64 * num_loaded_hashes * sizeof(DES_bs_vector), NULL, &err);
+		if (B_gpu == (cl_mem)0)
+			HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
 		loaded_hash_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, num_loaded_hashes * sizeof(int) * 2, NULL, &err);
 		if (loaded_hash_gpu == (cl_mem)0)
@@ -116,10 +134,8 @@ void opencl_DES_reset(struct db_main *db) {
 }
 
 void opencl_DES_bs_init_global_variables() {
-
 	opencl_DES_bs_all = (opencl_DES_bs_combined*) mem_alloc (MULTIPLIER * sizeof(opencl_DES_bs_combined));
 	opencl_DES_bs_data = (opencl_DES_bs_transfer*) mem_alloc (MULTIPLIER * sizeof(opencl_DES_bs_transfer));
-	B = (DES_bs_vector*) mem_alloc (MULTIPLIER * 64 * sizeof(DES_bs_vector));
 }
 
 
@@ -173,6 +189,7 @@ static void find_best_gws(struct fmt_main *fmt)
 	ccount = count * local_work_size * DES_BS_DEPTH;
 	num_loaded_hashes = 1;
 	cmp_out = (unsigned int *) malloc((2 * num_loaded_hashes + 1) * sizeof(int));
+	B = (DES_bs_vector*) mem_alloc (num_loaded_hashes * 64 * sizeof(DES_bs_vector));
 	opencl_DES_bs_crypt_25(&ccount, NULL);
 	gettimeofday(&end, NULL);
 	savetime = (end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec) / 1000000.000;
@@ -203,7 +220,9 @@ static void find_best_gws(struct fmt_main *fmt)
 	fmt -> params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
 
 	MEM_FREE(cmp_out);
+	MEM_FREE(B);
 	cmp_out = NULL;
+	B = NULL;
 
 	if (options.verbosity > 2)
 		fprintf(stderr, "Local worksize (LWS) %zu, Global worksize (GWS) %zu\n", local_work_size, count * local_work_size);
@@ -266,7 +285,7 @@ void DES_bs_select_device(struct fmt_main *fmt)
 	if (index96_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, errMsg);
 
-	B_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 64 * MULTIPLIER * sizeof(DES_bs_vector), NULL, &err);
+	B_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 64 * sizeof(DES_bs_vector), NULL, &err);
 	if (B_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, errMsg);
 
@@ -317,7 +336,7 @@ void opencl_DES_bs_set_salt(WORD salt)
 	current_salt = salt ;
 	for (dst = 0; dst < 24; dst++) {
 		if ((new ^ old) & 1) {
-			DES_bs_vector *sp1, *sp2;
+			DES_bs_vector sp1, sp2;
 			int src1 = dst;
 			int src2 = dst + 24;
 			if (new & 1) {
@@ -327,10 +346,10 @@ void opencl_DES_bs_set_salt(WORD salt)
 			sp1 = opencl_DES_bs_all[section].Ens[src1];
 			sp2 = opencl_DES_bs_all[section].Ens[src2];
 
-			index96[dst] = (WORD *)sp1 - (WORD *)B;
-			index96[dst + 24] = (WORD *)sp2 - (WORD *)B;
-			index96[dst + 48] = (WORD *)(sp1 + 32) - (WORD *)B;
-			index96[dst + 72] = (WORD *)(sp2 + 32) - (WORD *)B;
+			index96[dst] = sp1;
+			index96[dst + 24] = sp2;
+			index96[dst + 48] = sp1 + 32;
+			index96[dst + 72] = sp2 + 32;
 		}
 		new >>= 1;
 		old >>= 1;
@@ -394,6 +413,7 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 
 	if (set_salt == 1) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], index96_gpu, CL_TRUE, 0, 96 * sizeof(unsigned int), index96, 0, NULL, NULL), "Failed Copy data to gpu");
+		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 3, sizeof(cl_mem), &B_gpu), "Set Kernel Arg FAILED arg4\n");
 		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 4, sizeof(cl_mem), &loaded_hash_gpu), "Set Kernel krnl Arg 4 :FAILED");
 		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 6, sizeof(cl_mem), &cmp_out_gpu), "Set Kernel Arg krnl FAILED arg6\n");
 		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 7, sizeof(cl_mem), &bitmap), "Set Kernel Arg krnl FAILED arg7\n");

@@ -47,7 +47,7 @@ typedef struct {
 
 	unsigned char *pxkeys[DES_BS_DEPTH]; /* Pointers into xkeys.c */
 	unsigned int salt;	/* Salt value corresponding to E[] contents */
-	DES_bs_vector *Ens[48];	/* Pointers into B[] for non-salted E */
+	DES_bs_vector Ens[48];	/* Pointers into B[] for non-salted E */
 
 
 } opencl_DES_bs_combined;
