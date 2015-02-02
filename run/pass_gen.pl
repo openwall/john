@@ -2981,7 +2981,7 @@ sub pad_md64 {
 }
 
 sub dynamic_17 { #dynamic_17 --> phpass ($P$ or $H$)	phpass
-	if (defined $argsalt) { $salt = md5_hex($argsalt); } else { $salt=randstr(8); }
+	$salt=get_salt(8);
 	my $h = PHPass_hash($_[1], 11, $salt);
 	return "\$dynamic_17\$".substr(base64i($h),0,22)."\$".to_phpbyte(11).$salt;
 }
