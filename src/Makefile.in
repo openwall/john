@@ -40,11 +40,6 @@ subdirs = aes escrypt
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
 prefix = @prefix@
-exec_prefix = @exec_prefix@
-bindir = $(exec_prefix)/bin
-infodir = $(prefix)/info
-libdir = $(prefix)/lib/gnudl
-mandir = $(prefix)/man/man1
 
 # CUDA settings. See output of "nvcc -h"
 NVCC_FLAGS = -c -Xptxas -v -fmad=true
@@ -986,5 +981,16 @@ distclean: clean
 install: default shell-completion
 	@echo Stripping executables.
 	$(STRIP) $(PROJ)
+#ifneq ($(prefix), ../run)
+#	@echo Copying binaries to $(prefix)
+#	$(MKDIR) $(prefix)
+#	$(CP) -p -P -R ../run/*.{py,pl,rb} $(PROJ) $(prefix)
+#	@echo Copying data and config files to $(prefix)
+#	$(MKDIR) $(prefix)
+#	$(CP) -p -P -R ../run/*.{chr,conf,lst} $(prefix)
+#ifdef WITH_OPENCL
+#	$(CP) -p -P -R ../run/kernels $(prefix)
+#endif
+#endif
 
 include Makefile.dep

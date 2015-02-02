@@ -58,6 +58,8 @@ AC_ARG_WITH(openssl, [AS_HELP_STRING([--without-openssl],[Do not use Openssl (Co
 AC_ARG_WITH(commoncrypto, [AS_HELP_STRING([--with-commoncrypto],[Use CommonCrypto])],,[with_commoncrypto=no])
 # Cludge for endian (if not auto detected)
 AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness for target if it doesn't detect properly])],,[endian=unknown])
+# -DJOHN_SYSTEMWIDE
+AC_ARG_WITH(systemwide, [AS_HELP_STRING([--with-systemwide],[install for all users])],,[with_systemwide=no])
 
 AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory debugging (safe level)])], [memdbg=$enableval], [memdbg=no])
 AC_ARG_ENABLE([memdbg-ex], [AC_HELP_STRING([--enable-memdbg-ex], [* Enable memdbg memory debugging (expanded level)])], [memdbgex=$enableval], [memdbgex=no])
@@ -732,6 +734,13 @@ AS_IF([test "x$enable_nt_unicode" != xno], [AC_DEFINE([NT_FULL_UNICODE],1,[Defin
 
 # code to create M4_INCLUDES (all ./m4/*.m4 )
 AC_SUBST([M4_INCLUDES],[`echo m4/*.m4`])
+
+# Handle --prefix -> JOHN_SYSTEMWIDE_EXEC
+AS_IF([test $prefix != "../run" && test $prefix != "NONE" ],
+   [CFLAGS="$CFLAGS -DJOHN_SYSTEMWIDE -DJOHN_SYSTEMWIDE_EXEC='\"$prefix\"'"],
+   [AS_IF([test $with_systemwide != no], [CFLAGS="$CFLAGS -DJOHN_SYSTEMWIDE"
+   prefix=/usr/libexec/john])]
+)
 
 ####################################################
 # Code  to create @PLUGFORMATS_OBJS@ and

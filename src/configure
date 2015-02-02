@@ -750,6 +750,7 @@ with_icc_asm
 with_openssl
 with_commoncrypto
 with_endian
+with_systemwide
 enable_memdbg
 enable_memdbg_ex
 enable_asan
@@ -1412,6 +1413,7 @@ Optional Packages:
   --with-endian=little|big
                           Set endianness for target if it doesn't detect
                           properly
+  --with-systemwide       install for all users
 
 Some influential environment variables:
   CFLAGS_EXTRA
@@ -3472,6 +3474,15 @@ if test "${with_endian+set}" = set; then :
   withval=$with_endian;
 else
   endian=unknown
+fi
+
+# -DJOHN_SYSTEMWIDE
+
+# Check whether --with-systemwide was given.
+if test "${with_systemwide+set}" = set; then :
+  withval=$with_systemwide;
+else
+  with_systemwide=no
 fi
 
 
@@ -13226,6 +13237,17 @@ fi
 # code to create M4_INCLUDES (all ./m4/*.m4 )
 M4_INCLUDES=`echo m4/*.m4`
 
+
+# Handle --prefix -> JOHN_SYSTEMWIDE_EXEC
+if test $prefix != "../run" && test $prefix != "NONE" ; then :
+  CFLAGS="$CFLAGS -DJOHN_SYSTEMWIDE -DJOHN_SYSTEMWIDE_EXEC='\"$prefix\"'"
+else
+  if test $with_systemwide != no; then :
+  CFLAGS="$CFLAGS -DJOHN_SYSTEMWIDE"
+   prefix=/usr/libexec/john
+fi
+
+fi
 
 ####################################################
 # Code  to create @PLUGFORMATS_OBJS@ and
