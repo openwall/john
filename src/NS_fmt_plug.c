@@ -60,8 +60,8 @@ john_register_one(&fmt_NS);
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
-#define PLAINTEXT_LENGTH		25
-#define CIPHERTEXT_LENGTH		50
+// set PLAINTEXT_LENGTH to 0, so dyna will set this
+#define PLAINTEXT_LENGTH		0
 
 #define BINARY_SIZE			16
 #define SALT_SIZE			32
@@ -175,10 +175,9 @@ static void link_funcs() {
 
 static void our_init(struct fmt_main *self)
 {
-	get_ptr();
 	if (self->private.initialized == 0) {
-		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_NS, Convert(Conv_Buf, tests[0].ciphertext), "md5ns", 1);
-		link_funcs();
+		get_ptr();
+		pDynamic->methods.init(pDynamic);
 		self->private.initialized = 1;
 	}
 }
