@@ -325,12 +325,12 @@ static void ldr_set_encoding(struct fmt_main *format)
 }
 
 static int ldr_split_line(char **login, char **ciphertext,
-	char **gecos, char **home,
+	char **gecos, char **home, char **uid,
 	char *source, struct fmt_main **format,
 	struct db_options *db_opts, char *line)
 {
 	struct fmt_main *alt;
-	char *fields[10], *uid, *gid, *shell;
+	char *fields[10], *gid, *shell;
 	int i, retval;
 
 	fields[0] = *login = ldr_get_field(&line, db_opts->field_sep_char);
@@ -398,7 +398,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 	}
 
 	/* /etc/passwd */
-	uid = fields[2];
+	*uid = fields[2];
 	gid = fields[3];
 	*gecos = fields[4];
 	*home = fields[5];
@@ -407,7 +407,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 	if (SPLFLEN(2) == 32 || SPLFLEN(3) == 32) {
 		/* PWDUMP */
 		/* user:uid:LMhash:NThash:comment:homedir: */
-		uid = fields[1];
+		*uid = fields[1];
 		*ciphertext = fields[2];
 		if (!strncmp(*ciphertext, "NO PASSWORD", 11))
 			*ciphertext = "";
@@ -417,7 +417,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 
 		/* Re-introduce the previously removed uid field */
 		if (source) {
-			int shift = strlen(uid);
+			int shift = strlen(*uid);
 			memmove(source + shift + 1, source, strlen(source) + 1);
 			memcpy(source, uid, shift);
 			source[shift] = db_opts->field_sep_char;
@@ -429,7 +429,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 		   user:::lm response:ntlm response:challenge
 		   user::domain:srvr challenge:ntlmv2 response:client challenge
 		 */
-		uid = gid = *home = shell = "";
+		*uid = gid = *home = shell = "";
 		*gecos = fields[2]; // in case there's a domain name here
 	}
 	else if (fields[5][0] != '/' &&
@@ -442,7 +442,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 		shell = fields[9];
 	}
 
-	if (ldr_check_list(db_opts->users, *login, uid)) return 0;
+	if (ldr_check_list(db_opts->users, *login, *uid)) return 0;
 	if (ldr_check_list(db_opts->groups, gid, gid)) return 0;
 	if (ldr_check_shells(db_opts->shells, shell)) return 0;
 
@@ -627,7 +627,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	static int skip_dupe_checking = 0;
 	struct fmt_main *format;
 	int index, count;
-	char *login, *ciphertext, *gecos, *home;
+	char *login, *ciphertext, *gecos, *home, *uid;
 	char *piece;
 	void *binary, *salt;
 	int salt_hash, pw_hash;
@@ -639,7 +639,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	int i;
 #endif
 
-	count = ldr_split_line(&login, &ciphertext, &gecos, &home,
+	count = ldr_split_line(&login, &ciphertext, &gecos, &home, &uid,
 		NULL, &db->format, db->options, line);
 	if (count <= 0) return;
 	if (count >= 2) db->options->flags |= DB_SPLIT;
@@ -811,19 +811,23 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			if (login != no_username && index == 0)
 				login = ldr_conv(login);
 
+			current_pw->uid = "";
 			if (count >= 2 && count <= 9) {
 				current_pw->login = mem_alloc_tiny(
 					strlen(login) + 3, MEM_ALIGN_NONE);
 				sprintf(current_pw->login, "%s:%d",
 					login, index + 1);
+				current_pw->uid = str_alloc_copy(uid);
 			} else
 			if (login == no_username)
 				current_pw->login = login;
 			else
 			if (words && *login)
 				current_pw->login = words->head->data;
-			else
+			else {
 				current_pw->login = str_alloc_copy(login);
+				current_pw->uid = str_alloc_copy(uid);
+			}
 		}
 	}
 }
@@ -1065,17 +1069,25 @@ static void ldr_sort_salts(struct db_main *db)
  */
 static void ldr_show_left(struct db_main *db, struct db_password *pw)
 {
+	char *uid_sep = "";
+	char *uid_out = "";
+	if (options.show_uid_on_crack && pw->uid && *pw->uid) {
+		uid_sep = ":";
+		uid_out = pw->uid;
+	}
 	if (pers_opts.target_enc != UTF_8 && pers_opts.report_utf8)
 	{
 		char utf8login[PLAINTEXT_BUFFER_SIZE + 1];
 
 		cp_to_utf8_r(pw->login, utf8login,
 		             PLAINTEXT_BUFFER_SIZE);
-		printf("%s%c%s\n", utf8login, db->options->field_sep_char,
-		       db->format->methods.source(pw->source, pw->binary));
+		printf("%s%c%s%s%s\n", utf8login, db->options->field_sep_char,
+		       db->format->methods.source(pw->source, pw->binary),
+			   uid_sep, uid_out);
 	} else
-		printf("%s%c%s\n", pw->login, db->options->field_sep_char,
-		       db->format->methods.source(pw->source, pw->binary));
+		printf("%s%c%s%s%s\n", pw->login, db->options->field_sep_char,
+		       db->format->methods.source(pw->source, pw->binary),
+			   uid_sep, uid_out);
 }
 
 /*
@@ -1481,7 +1493,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	struct fmt_main *format;
 	char *(*split)(char *ciphertext, int index, struct fmt_main *self);
 	int index, count, unify;
-	char *login, *ciphertext, *gecos, *home;
+	char *login, *ciphertext, *gecos, *home, *uid;
 	char *piece;
 	int pass, found, chars;
 	int hash;
@@ -1491,7 +1503,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	char joined[PLAINTEXT_BUFFER_SIZE + 1] = "";
 
 	format = NULL;
-	count = ldr_split_line(&login, &ciphertext, &gecos, &home,
+	count = ldr_split_line(&login, &ciphertext, &gecos, &home, &uid,
 		source, &format, db->options, line);
 	if (!count) return;
 

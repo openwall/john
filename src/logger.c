@@ -274,12 +274,19 @@ static char *components(char *string, int len)
 	return out;
 }
 
-void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain, char field_sep)
+void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain, char *store_plain, char field_sep)
 {
 	int count1, count2;
 	int len;
 	char spacer[] = "                ";
 	char *secret = "";
+	char *uid_sep = "";
+	char *uid_out = "";
+
+	if (options.show_uid_on_crack && uid && *uid) {
+		uid_sep = ":";
+		uid_out = uid;
+	}
 
 	// This is because printf("%-16s") does not line up multibyte UTF-8.
 	// We need to count characters, not octets.
@@ -291,9 +298,9 @@ void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain
 
 	if (options.secure) {
 		secret = components(rep_plain, len);
-		printf("%-16s (%s)\n", secret, login);
+		printf("%-16s (%s%s%s)\n", secret, login, uid_sep, uid_out);
 	} else if (options.verbosity > 1)
-	printf("%s%s (%s)\n", rep_plain, spacer, login);
+	printf("%s%s (%s%s%s)\n", rep_plain, spacer, login, uid_sep, uid_out);
 
 	in_logger = 1;
 
@@ -321,7 +328,7 @@ void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain
 		count1 = log_time();
 		if (count1 > 0) {
 			log.ptr += count1;
-			count2 = (int)sprintf(log.ptr, "+ Cracked %s", login);
+			count2 = (int)sprintf(log.ptr, "+ Cracked %s%s%s", login, uid_sep, uid_out);
 
 			if (options.secure)
 				count2 += (int)sprintf(log.ptr + count2,

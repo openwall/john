@@ -284,7 +284,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	char utf8login[PLAINTEXT_BUFFER_SIZE + 1];
 	char tmp8[PLAINTEXT_BUFFER_SIZE + 1];
 	int dupe;
-	char *key, *utf8key, *repkey, *replogin;
+	char *key, *utf8key, *repkey, *replogin, *repuid;
 
 	if (index >= 0 && index < crk_params.max_keys_per_crypt) {
 		dupe = !memcmp(&crk_timestamps[index],
@@ -295,6 +295,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 
 	repkey = key = index < 0 ? "" : crk_methods.get_key(index);
 	replogin = pw->login;
+	repuid = pw->uid;
 
 	if (index >= 0 && (pers_opts.store_utf8 || pers_opts.report_utf8)) {
 		if (pers_opts.target_enc == UTF_8)
@@ -334,6 +335,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	/* If we got this crack from a pot sync, don't report or count */
 	if (index >= 0) {
 		log_guess(crk_db->options->flags & DB_LOGIN ? replogin : "?",
+		          crk_db->options->flags & DB_LOGIN ? repuid : "",
 		          dupe ?
 		          NULL : crk_methods.source(pw->source, pw->binary),
 		          repkey, key, crk_db->options->field_sep_char);

@@ -301,6 +301,8 @@ struct options_main {
 	int verbosity;
 /* Secure mode. Do not output, log or store cracked passwords. */
 	int secure;
+/* Mode that appended the uid to the user name (on display) */
+	int show_uid_on_crack;
 /* regular expression */
 	char *regex;
 /* Custom masks */

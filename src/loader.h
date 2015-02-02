@@ -42,6 +42,9 @@ struct db_password {
  * ciphertext was split into two parts. */
 	char *login;
 
+/* uid field from the password file */
+	char *uid;
+
 /* Words from the GECOS field (loaded for "single crack" mode only) */
 	struct list_main *words;
 };
