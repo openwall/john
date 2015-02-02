@@ -28,7 +28,6 @@ john_register_one(&fmt_opencl_DES);
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
-#define PLAINTEXT_LENGTH		8
 #define CIPHERTEXT_LENGTH_1		13
 #define CIPHERTEXT_LENGTH_2		24
 
@@ -137,28 +136,6 @@ static int cmp_exact(char *source, int index)
 	return opencl_DES_bs_cmp_one_b(opencl_DES_bs_get_binary(source), 64, index);
 }
 
-static char *get_key(int index)
-{
-	//fprintf(stderr, "Get Key In\n");
-	static char out[PLAINTEXT_LENGTH + 1];
-	unsigned int sector,block;
-	unsigned char *src;
-	char *dst;
-	sector = index/DES_BS_DEPTH;
-	block  = index%DES_BS_DEPTH;
-	init_t();
-
-	src = opencl_DES_bs_all[sector].pxkeys[block];
-	dst = out;
-	while (dst < &out[PLAINTEXT_LENGTH] && (*dst = *src)) {
-		src += sizeof(DES_bs_vector) * 8;
-		dst++;
-	}
-	*dst = 0;
-
-	return out;
-}
-
 struct fmt_main fmt_opencl_DES = {
 	{
 		FORMAT_LABEL,
@@ -208,7 +185,7 @@ struct fmt_main fmt_opencl_DES = {
 		NULL,
 		set_salt,
 		opencl_DES_bs_set_key,
-		get_key,
+		opencl_DES_bs_get_key,
 		fmt_default_clear_keys,
 		opencl_DES_bs_crypt_25,
 		{

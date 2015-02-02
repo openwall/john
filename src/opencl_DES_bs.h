@@ -24,7 +24,7 @@
 #define DES_bs_vector			WORD
 
 #define MULTIPLIER                      (WORK_GROUP_SIZE*256)
-
+#define PLAINTEXT_LENGTH		8
 
 #define MIN_KEYS_PER_CRYPT		(DES_BS_DEPTH*MULTIPLIER)
 #define MAX_KEYS_PER_CRYPT		(DES_BS_DEPTH*MULTIPLIER)
@@ -33,7 +33,6 @@
 
 unsigned int CC_CACHE_ALIGN index768[0x300];
 unsigned int CC_CACHE_ALIGN index96[96];
-
 
 #define	MAX_DEVICES_PER_PLATFORM	10
 #define DES_BS_EXPAND                   1
@@ -93,10 +92,10 @@ extern void opencl_DES_bs_set_salt(WORD salt);
 
 
 /*
- * Set a key for DES_bs_crypt() or DES_bs_crypt_LM(), respectively.
+ * Set a key for DES_bs_crypt() or respectively.
  */
 extern void opencl_DES_bs_set_key(char *key, int index);
-extern void opencl_DES_bs_set_key_LM(char *key, int index);
+char *opencl_DES_bs_get_key(int index);
 
 /*
  * Almost generic implementation: 24-bit salts, variable iteration count.
