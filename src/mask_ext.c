@@ -13,7 +13,7 @@
 
 int *mask_skip_ranges = NULL;
 int mask_max_skip_loc = -1;
-int mask_int_cand_target = 100;
+int mask_int_cand_target = 0;
 mask_int_cand_ctx mask_int_cand = {NULL, NULL, 1};
 
 static void combination_util(int *data, int start, int end, int index,
