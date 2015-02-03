@@ -43,6 +43,7 @@ void DES_opencl_clean_all_buffer()
 	HANDLE_CLERROR(clReleaseMemObject(B_gpu), errMsg);
 	clReleaseMemObject(cmp_out_gpu);
 	clReleaseMemObject(loaded_hash_gpu);
+	clReleaseMemObject(bitmap);
 	clReleaseKernel(krnl[gpu_id][0]);
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 	               "Error releasing Program");
@@ -58,10 +59,11 @@ void opencl_DES_reset(struct db_main *db) {
 		clReleaseMemObject(cmp_out_gpu);
 		clReleaseMemObject(loaded_hash_gpu);
 		clReleaseMemObject(B_gpu);
+		clReleaseMemObject(bitmap);
 
-		loaded_hash = (int*)mem_alloc((db->password_count)*sizeof(int)*2);
-		cmp_out     = (unsigned int*)mem_alloc((2 * db->password_count + 1) * sizeof(unsigned int));
-		B = (DES_bs_vector*) mem_alloc (db->password_count * 64 * sizeof(DES_bs_vector));
+		loaded_hash = (int *) mem_alloc((db->password_count) * sizeof(int) * 2);
+		cmp_out     = (unsigned int *) mem_alloc((2 * db->password_count + 1) * sizeof(unsigned int));
+		B = (DES_bs_vector*) mem_alloc(db->password_count * 64 * sizeof(DES_bs_vector));
 
 		B_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 64 * db->password_count * sizeof(DES_bs_vector), NULL, &err);
 		if (B_gpu == (cl_mem)0)
@@ -93,6 +95,7 @@ void opencl_DES_reset(struct db_main *db) {
 		clReleaseMemObject(cmp_out_gpu);
 		clReleaseMemObject(loaded_hash_gpu);
 		clReleaseMemObject(B_gpu);
+		clReleaseMemObject(bitmap);
 
 		fprintf(stderr, "ciphertext:%s\n", fmt_opencl_DES.params.tests[0].ciphertext);
 
@@ -289,7 +292,7 @@ void DES_bs_select_device(struct fmt_main *fmt)
 	if (B_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, errMsg);
 
-	loaded_hash_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(int), NULL, &err);
+	loaded_hash_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 2 * sizeof(int), NULL, &err);
 	if(loaded_hash_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, errMsg);
 

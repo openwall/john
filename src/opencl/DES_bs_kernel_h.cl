@@ -322,10 +322,13 @@ typedef struct{
 #define GET_BIT \
 	(unsigned int)*(unsigned char *)&b[0] >> idx
 
+
 inline void cmp( __private unsigned DES_bs_vector *B,
 	  __global int *binary,
 	  int num_loaded_hash,
 	  volatile __global uint *output,
+	  volatile __global uint *bitmap,
+	  __global DES_bs_vector *B_global,
 	  int section) {
 
 	int value[2] , mask, i, bit;
@@ -343,12 +346,18 @@ inline void cmp( __private unsigned DES_bs_vector *B,
 		for (; bit < 64; bit += 2) {
 			mask |= B[bit] ^ -((value[1] >> (bit & 0x1F)) & 1);
 			mask |= B[bit + 1] ^ -((value[1] >> ((bit + 1) & 0x1F)) & 1);
-
-			//if (mask == ~(int)0) break;
 		}
 
-		if (mask != ~(int)0)
-			atomic_max(&output[i], section + 1);
+		if (mask != ~(int)0) {
+			if (!(atomic_or(&bitmap[i/32], (1U << (i % 32))) & (1U << (i % 32)))) {
+				mask = atomic_inc(&output[0]);
+				output[1 + 2 * mask] = section;
+				output[2 + 2 * mask] = 0;
+				for (bit = 0; bit < 64; bit++)
+					B_global[mask * 64 + bit] = (DES_bs_vector)B[bit];
+
+			}
+		}
 	}
 }
 #undef GET_BIT
@@ -486,8 +495,9 @@ __kernel void DES_bs_25( constant uint *index768
                          , __global DES_bs_transfer *DES_bs_all,
                          __global DES_bs_vector *B_global,
                          __global int *binary,
-                         int num_loaded_hash,
-                         volatile __global uint *output) {
+                         int num_loaded_hashes,
+                         volatile __global uint *hash_ids,
+			 volatile __global uint *bitmap) {
 
 		unsigned int section = get_global_id(0), global_offset_B, local_offset_K;
 		unsigned int local_id = get_local_id(0);
@@ -495,9 +505,9 @@ __kernel void DES_bs_25( constant uint *index768
 		global_offset_B = 64 * section;
 		local_offset_K  = 56 * local_id;
 
-		vtype B[64],tmp;
+		vtype B[64];
 
-		__local DES_bs_vector _local_K[56*WORK_GROUP_SIZE] ;
+		__local DES_bs_vector _local_K[56 * WORK_GROUP_SIZE] ;
 #ifndef RV7xx
 		__local ushort _local_index768[768] ;
 		__local ushort *_index768_ptr ;
@@ -506,6 +516,7 @@ __kernel void DES_bs_25( constant uint *index768
 
 #ifndef SAFE_GOTO
 		int rounds_and_swapped;
+		vtype tmp;
 #endif
 
 		long int k = 0, i;
@@ -520,9 +531,11 @@ __kernel void DES_bs_25( constant uint *index768
 			DES_bs_clear_block
 		}
 
-		if (!section)
-			for (i = 0; i < num_loaded_hash; i++)
-			output[i] = 0;
+		if(!section) {
+			hash_ids[0] = 0;
+			for (i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
+				bitmap[i] = 0;
+		}
 		barrier(CLK_GLOBAL_MEM_FENCE);
 
 		k = 0;
@@ -568,19 +581,7 @@ start:
 		rounds_and_swapped = 0x108;
 		if (--iterations) goto swap;
 #endif
-		cmp(B, binary, num_loaded_hash, output, section);
-
-		barrier(CLK_GLOBAL_MEM_FENCE);
-
-		tmp = 0 ;
-		for (i = 0; i < num_loaded_hash; i++) {
-				tmp = tmp | output[i];
-			if(tmp) break ;
-		}
-
-		if(tmp)
-			for (i = 0; i < 64; i++)
-				B_global[global_offset_B + i] = (DES_bs_vector)B[i] ;
+		cmp(B, binary, num_loaded_hashes, hash_ids, bitmap, B_global, section);
 
 		return;
 #ifndef SAFE_GOTO
