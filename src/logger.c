@@ -301,6 +301,7 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain, char *
 		printf("%-16s (%s%s%s)\n", secret, login, uid_sep, uid_out);
 	} else if (options.verbosity > 1)
 	printf("%s%s (%s%s%s)\n", rep_plain, spacer, login, uid_sep, uid_out);
+	fflush(stdout);
 
 	in_logger = 1;
 
