@@ -83,7 +83,7 @@ extern void cuda_device_list();
 #define DEBUG_STRING ""
 #endif
 #ifdef WITH_ASAN
-#define ASAN_STRING "_asAN"
+#define ASAN_STRING "_asan"
 #else
 #define ASAN_STRING ""
 #endif
