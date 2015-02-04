@@ -206,3 +206,4 @@ typedef double                  mpf_t;
 #define mpf_div(q, n, d) q = (n) / (d)
 #define mpf_clear(x) x = 0
 #define mpf_get_d(x) x
+#define mpf_mul_ui(rop, op1, op2) rop = op1 * (op2)
