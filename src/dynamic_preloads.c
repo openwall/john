@@ -865,6 +865,8 @@ static struct fmt_tests _Preloads_25[] =
 	{"$dynamic_25$a34af873d9047541b4d76ceae7b391f0664ca99e$xxRW","thatsworking"},
 	{"$dynamic_25$f0058038be0e821caa3031b463aed00fbe7e3beb$s3xx","test3"},
 MTL({"$dynamic_25$1b8cde0e3ecaed9abfa4deaf37addc7adcb8a932$123456789012345678901234", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456"},)
+	// Inno Setup, Digest::SHA1("PasswordCheckHash" . salt . password)
+	{"$dynamic_25$6d29001f8a5062d7b6f5b32b30a8cf64da6567e0$HEX$50617373776f7264436865636b48617368463243d92abc14cc", "openwall"},
 	{NULL}
 };
 
