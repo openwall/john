@@ -1190,25 +1190,30 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
   dupe_check = (options.flags & FLG_DUPESUPP) ? 1 : 0;
 
-  if (options.force_maxlength > OUT_LEN_MAX)
-  {
-    if (john_main_process)
-    fprintf (stderr, "Error: --max-len for PRINCE can't be greater than %d\n",
-             OUT_LEN_MAX);
-
-    error();
-  }
-
   log_event("Proceeding with PRINCE (" REALGMP " version)%s",
             loopback ? " in loopback mode" : "");
 
   /* This mode defaults to length 16 (unless lowered by format) */
   pw_min = MAX(PW_MIN, options.force_minlength);
-  pw_max = MIN(PW_MAX, db->format->params.plaintext_length);
+  pw_max = MIN(PW_MAX, db->format->params.plaintext_length - mask_add_len);
 
   /* ...but can be bumped using -max-len */
   if (options.force_maxlength)
     pw_max = options.force_maxlength;
+
+  if (mask_num_qw > 1) {
+    pw_min /= MIN(PW_MIN, mask_num_qw);
+    pw_max /= mask_num_qw;
+  }
+
+  if (pw_max > OUT_LEN_MAX)
+  {
+    if (john_main_process)
+    fprintf (stderr, "Error: net max length for PRINCE can't be greater than %d\n",
+             OUT_LEN_MAX);
+
+    error();
+  }
 
   if (prince_elem_cnt_min)
     elem_cnt_min = MAX(1, prince_elem_cnt_min);
@@ -1265,7 +1270,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
       error();
     }
 
-    /* rules.c honors -min/max-len options on its own */
+	/* rules.c honors -min/max-len options on its own */
     rules_init(pers_opts.internal_enc == pers_opts.target_enc ?
                pw_max : db->format->params.plaintext_length);
     rule_count = rules_count(&ctx, -1);
@@ -1273,7 +1278,8 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     log_event("- %d preprocessed word mangling rules", rule_count);
 
     prerule = rpp_next(&ctx);
-  }
+  } else
+    rule_count = 1;
 #endif
 
   /**
@@ -1798,6 +1804,9 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   }
 
   mpf_set_z(count, total_ks_cnt);
+  mpf_mul_ui(count, count, rule_count);
+  if (mask_tot_cand)
+    mpf_mul_ui(count, count, mask_tot_cand);
 
   crk_init(db, fix_state, NULL);
 #endif
