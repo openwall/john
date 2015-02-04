@@ -283,25 +283,33 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain, char *
 	char *uid_sep = "";
 	char *uid_out = "";
 
+/* This is because printf("%-16s") does not line up multibyte UTF-8.
+   We need to count characters, not octets. */
+	if (pers_opts.target_enc == UTF_8 || pers_opts.report_utf8)
+		len = strlen8((UTF8*)rep_plain);
+	else
+		len = strlen(rep_plain);
+
 	if (options.show_uid_on_crack && uid && *uid) {
 		uid_sep = ":";
 		uid_out = uid;
 	}
 
-	// This is because printf("%-16s") does not line up multibyte UTF-8.
-	// We need to count characters, not octets.
-	if (pers_opts.target_enc == UTF_8 || pers_opts.report_utf8)
-		len = strlen8((UTF8*)rep_plain);
-	else
-		len = strlen(rep_plain);
-	spacer[len > 16 ? 0 : 16 - len] = 0;
+	if (options.verbosity > 1) {
+		if (options.secure) {
+			secret = components(rep_plain, len);
+			printf("%-16s (%s%s%s)\n",
+			       secret, login, uid_sep, uid_out);
+		} else {
+			spacer[len > 16 ? 0 : 16 - len] = 0;
 
-	if (options.secure) {
-		secret = components(rep_plain, len);
-		printf("%-16s (%s%s%s)\n", secret, login, uid_sep, uid_out);
-	} else if (options.verbosity > 1)
-	printf("%s%s (%s%s%s)\n", rep_plain, spacer, login, uid_sep, uid_out);
-	fflush(stdout);
+			printf("%s%s (%s%s%s)\n",
+			       rep_plain, spacer, login, uid_sep, uid_out);
+
+			if (options.fork)
+				fflush(stdout);
+		}
+	}
 
 	in_logger = 1;
 
@@ -374,11 +382,11 @@ void log_event(const char *format, ...)
 	if (options.flags & FLG_LOG_STDERR) {
 		unsigned int time;
 
-		if (options.fork
-#ifdef HAVE_MPI
-		    || mpi_p > 1
+#ifndef HAVE_MPI
+		if (options.fork)
+#else
+		if (options.fork || mpi_p > 1)
 #endif
-			)
 			fprintf(stderr, "%u ", options.node_min);
 
 		time = pot.fd >= 0 ? status_get_time() : status_restored_time;
