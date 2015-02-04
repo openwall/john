@@ -129,6 +129,7 @@
 #include "prince.h"
 #include "rpp.h"
 #include "rules.h"
+#include "mask.h"
 #include "memdbg.h"
 
 #define _STR_VALUE(arg) #arg
@@ -2110,9 +2111,13 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
             out_push (out, pw_buf, pw_len + 1);
 #else
             if (!rules) {
-              if (ext_filter(pw_buf))
-              if ((jtr_done = crk_process_key(pw_buf)))
-                break;
+              if (options.mask) {
+                if ((jtr_done = do_mask_crack(pw_buf)))
+                  break;
+              } else {
+                if (ext_filter(pw_buf) && (jtr_done = crk_process_key(pw_buf)))
+                  break;
+              }
             } else {
               rule_number = 0;
               if (rpp_init(rule_ctx = &ctx, pers_opts.activewordlistrules)) {
@@ -2142,10 +2147,15 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
                 if ((word = rules_apply(pw_buf, rule, -1, last))) {
                   last = word;
 
-                  if (ext_filter(word))
-                  if ((jtr_done = crk_process_key(word))) {
-                    rules = 0;
-                    break;
+                  if (options.mask) {
+                    if ((jtr_done = do_mask_crack(word)))
+                      break;
+                  } else {
+                    if (ext_filter(word) && (jtr_done = crk_process_key(word)))
+                    {
+                      rules = 0;
+                      break;
+                    }
                   }
                 }
 
