@@ -26,11 +26,11 @@ DES_bs_vector *B;
 
 static cl_kernel krnl[MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM][4096];
 static cl_int err;
-static cl_mem index768_gpu, opencl_DES_bs_data_gpu, B_gpu, cmp_out_gpu, loaded_hash_gpu, bitmap;
+static cl_mem index768_gpu, opencl_DES_bs_data_gpu, B_gpu, cmp_out_gpu, loaded_hash_gpu, bitmap, *loaded_hash_gpu_salt = NULL;
 static int set_salt = 0;
 static   WORD current_salt;
 static int *loaded_hash = NULL;
-static unsigned int *cmp_out = NULL, num_loaded_hashes;
+static unsigned int *cmp_out = NULL, num_loaded_hashes, num_set_keys;
 static WORD stored_salt[4096]= {0x7fffffff};
 static int num_salt_set = 0;
 void DES_opencl_clean_all_buffer()
@@ -51,6 +51,12 @@ void DES_opencl_clean_all_buffer()
 	for( i = 0; i < 4096; i++)
 		if (krnl[gpu_id][i])
 			clReleaseKernel(krnl[gpu_id][i]);
+	if (loaded_hash_gpu_salt) {
+		for (i = 0; i < 4096; i++)
+			if (loaded_hash_gpu_salt[i] != (cl_mem)0)
+				clReleaseMemObject(loaded_hash_gpu_salt[i]);
+		MEM_FREE(loaded_hash_gpu_salt);
+	}
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 	               "Error releasing Program");
 }
@@ -65,20 +71,19 @@ void opencl_DES_reset(struct db_main *db) {
 		MEM_FREE(B);
 
 		clReleaseMemObject(cmp_out_gpu);
-		clReleaseMemObject(loaded_hash_gpu);
 		clReleaseMemObject(B_gpu);
 		clReleaseMemObject(bitmap);
 
 		loaded_hash = (int *) mem_alloc((db->password_count) * sizeof(int) * 2);
 		cmp_out     = (unsigned int *) mem_alloc((2 * db->password_count + 1) * sizeof(unsigned int));
 		B = (DES_bs_vector*) mem_alloc(db->password_count * 64 * sizeof(DES_bs_vector));
+		loaded_hash_gpu_salt = (cl_mem *) mem_alloc(4096 * sizeof(cl_mem));
+
+		for (i = 0; i < 4096; i++)
+			loaded_hash_gpu_salt[i] = (cl_mem)0;
 
 		B_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 64 * db->password_count * sizeof(DES_bs_vector), NULL, &err);
 		if (B_gpu == (cl_mem)0)
-			HANDLE_CLERROR(err, "Create Buffer FAILED\n");
-
-		loaded_hash_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (db->password_count)*sizeof(int)*2, NULL, &err);
-		if (loaded_hash_gpu == (cl_mem)0)
 			HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
 		cmp_out_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (2 * db->password_count + 1) * sizeof(unsigned int), NULL, &err);
@@ -496,9 +501,11 @@ char *opencl_DES_bs_get_key(int index)
 	else
 		section = cmp_out[2 * (index/DES_BS_DEPTH) + 1];
 
-	if (section > global_work_size) {
-		fprintf(stderr, "Get key error! %d %d\n", section, index);
+	if (section > num_set_keys / 32) {
+		fprintf(stderr, "Get key error! %d %d\n", section, num_set_keys);
 		section = 0;
+		if (num_set_keys)
+			error();
 	}
 	block  = index % DES_BS_DEPTH;
 
@@ -517,16 +524,17 @@ char *opencl_DES_bs_get_key(int index)
 
 int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 {
-	int keys_count = *pcount, i;
+	int i;
 	unsigned int section = 0, keys_count_multiple;
 	static unsigned int pos ;
 	cl_event evnt;
-	size_t N,M;
+	size_t N, M;
 
-	if (keys_count%DES_BS_DEPTH == 0)
-		keys_count_multiple = keys_count;
+	num_set_keys = *pcount;
+	if (num_set_keys % DES_BS_DEPTH == 0)
+		keys_count_multiple = num_set_keys;
 	else
-		keys_count_multiple = (keys_count / DES_BS_DEPTH + 1) * DES_BS_DEPTH;
+		keys_count_multiple = (num_set_keys / DES_BS_DEPTH + 1) * DES_BS_DEPTH;
 
 	section = keys_count_multiple / DES_BS_DEPTH;
 
@@ -574,22 +582,33 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id],opencl_DES_bs_data_gpu,CL_TRUE,0,MULTIPLIER*sizeof(opencl_DES_bs_transfer),opencl_DES_bs_data,0,NULL,NULL ), "Failed Copy data to gpu");
 
-	if(salt) {
-		struct db_password *pw;
-		int *bin;
-
-		i = 0;
-		pw = salt -> list;
-		do {
-			  bin = (int *)pw -> binary;
-			  loaded_hash[i] = bin[0] ;
-			  loaded_hash[i + salt -> count] = bin[1];
-			  i++ ;
-			  //  printf("%d %d\n", i++, bin[0]);
-		} while ((pw = pw -> next)) ;
+	if (salt) {
+		static unsigned int num_loaded_hashes_salt[4096];
 		num_loaded_hashes = (salt -> count);
-		//printf("%d\n",loaded_hash[salt->count-1]);
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], loaded_hash_gpu, CL_TRUE, 0, (salt -> count) * sizeof(int) * 2, loaded_hash, 0, NULL, NULL ), "Failed Copy data to gpu");
+		if (num_loaded_hashes_salt[current_salt] != salt->count) {
+			int *bin;
+			struct db_password *pw;
+			i = 0;
+			pw = salt -> list;
+			do {
+				bin = (int *)pw -> binary;
+				loaded_hash[i] = bin[0] ;
+				loaded_hash[i + salt -> count] = bin[1];
+				i++ ;
+				//printf("%d %d\n", i++, bin[0]);
+			} while ((pw = pw -> next)) ;
+
+			//printf("%d\n",loaded_hash[salt->count-1 + salt -> count]);
+			if (num_loaded_hashes_salt[current_salt] < salt->count) {
+				if (loaded_hash_gpu_salt[current_salt] != (cl_mem)0)
+					clReleaseMemObject(loaded_hash_gpu_salt[current_salt]);
+				loaded_hash_gpu_salt[current_salt] = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 2 * sizeof(int) * num_loaded_hashes, NULL, &err);
+				HANDLE_CLERROR(err, "Failed to Create Buffer loaded_hash_gpu_salt");
+			}
+			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], loaded_hash_gpu_salt[current_salt], CL_TRUE, 0, num_loaded_hashes * sizeof(int) * 2, loaded_hash, 0, NULL, NULL ), "Failed Copy data to gpu");
+			num_loaded_hashes_salt[current_salt] = salt ->count;
+		}
+		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][pos], 3, sizeof(cl_mem), &loaded_hash_gpu_salt[current_salt]), "Set Kernel krnl Arg 4 :FAILED");
 	}
 
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][pos], 4, sizeof(int), &num_loaded_hashes), "Set Kernel krnl Arg 5 :FAILED") ;

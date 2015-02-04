@@ -386,7 +386,9 @@ char *opencl_DES_bs_get_key(int index)
 
 	if (section > num_set_keys / 32) {
 		fprintf(stderr, "Get key error! %d %d\n", section, num_set_keys);
-		error();
+		section = 0;
+		if (num_set_keys)
+			error();
 	}
 	block  = index % DES_BS_DEPTH;
 
@@ -451,12 +453,16 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 			} while ((pw = pw -> next)) ;
 
 			//printf("%d\n",loaded_hash[salt->count-1 + salt -> count]);
-			loaded_hash_gpu_salt[current_salt] = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 2 * sizeof(int) * num_loaded_hashes, NULL, &err);
-			HANDLE_CLERROR(err, "Failed to Create Buffer loaded_hash_gpu_salt");
+			if (num_loaded_hashes_salt[current_salt] < salt->count) {
+				if (loaded_hash_gpu_salt[current_salt] != (cl_mem)0)
+					clReleaseMemObject(loaded_hash_gpu_salt[current_salt]);
+				loaded_hash_gpu_salt[current_salt] = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 2 * sizeof(int) * num_loaded_hashes, NULL, &err);
+				HANDLE_CLERROR(err, "Failed to Create Buffer loaded_hash_gpu_salt");
+			}
 			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], loaded_hash_gpu_salt[current_salt], CL_TRUE, 0, num_loaded_hashes * sizeof(int) * 2, loaded_hash, 0, NULL, NULL ), "Failed Copy data to gpu");
 			num_loaded_hashes_salt[current_salt] = salt ->count;
 		}
-		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 4, sizeof(cl_mem), &loaded_hash_gpu_salt[current_salt]), "Set Kernel krnl Arg 4 :FAILED");
+		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 4, sizeof(cl_mem), &loaded_hash_gpu_salt[current_salt]), "Set Kernel krnl Arg 5 :FAILED");
 	}
 
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 5, sizeof(int), &num_loaded_hashes), "Set Kernel krnl Arg 5 :FAILED") ;
