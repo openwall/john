@@ -47,6 +47,7 @@
 #include "recovery.h"
 #include "external.h"
 #include "options.h"
+#include "mask_ext.h"
 #include "mask.h"
 #include "unicode.h"
 #include "john.h"
@@ -746,8 +747,16 @@ static int crk_salt_loop(void)
 			break;
 	} while ((salt = salt->next));
 
-	if (done >= 0)
-		add32to64(&status.cands, crk_key_index);
+	if (done >= 0) {
+#if 1 /* Assumes we'll never overrun 32-bit in one crypt */
+		add32to64(&status.cands, crk_key_index *
+		          mask_int_cand.num_int_cand);
+#else /* Safe for 64-bit */
+		int64 totcand;
+		mul32by32(&totcand, crk_key_index, mask_int_cand.num_int_cand);
+		add64to64(&status.cands, &totcand);
+#endif
+	}
 
 	if (salt)
 		return 1;
