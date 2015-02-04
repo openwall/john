@@ -339,10 +339,11 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain, char *
 			log.ptr += count1;
 			count2 = (int)sprintf(log.ptr, "+ Cracked %s%s%s", login, uid_sep, uid_out);
 
-			if (options.secure)
+			if (options.secure) {
+				secret = components(rep_plain, len);
 				count2 += (int)sprintf(log.ptr + count2,
 				                       ": %s", secret);
-			else
+			} else
 			if (cfg_log_passwords)
 				count2 += (int)sprintf(log.ptr + count2,
 				                       ": %s", rep_plain);
