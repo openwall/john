@@ -493,8 +493,10 @@ int crk_reload_pot(void)
 	}
 
 #if OS_FLOCK
-	if (flock(pot_fd, LOCK_SH) == -1)
-		pexit("flock: %s", pers_opts.activepot);
+	while (flock(pot_fd, LOCK_SH)) {
+		if (errno != EINTR)
+			pexit("flock(LOCK_SH)");
+	}
 #endif
 	if (!(pot_file = fdopen(pot_fd, "rb")))
 		pexit("fdopen: %s", pers_opts.activepot);

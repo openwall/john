@@ -11,6 +11,8 @@
 #include "autoconfig.h"
 #endif
 
+#define NEED_OS_FLOCK
+#include "os.h"
 
 #if !AC_BUILT
 # include <string.h>
@@ -170,6 +172,11 @@ static void listconf_list_build_info(void)
 	printf("CHARSET_LENGTH: %d\n", CHARSET_LENGTH);
 	printf("Max. Markov mode level: %d\n", MAX_MKV_LVL);
 	printf("Max. Markov mode password length: %d\n", MAX_MKV_LEN);
+#if OS_FLOCK
+	puts("File locking: supported and used.");
+#else
+	puts("File locking: NOT supported by this build - do not run concurrent sessions!");
+#endif
 #ifdef __VERSION__
 	printf("Compiler version: %s\n", __VERSION__);
 #endif
