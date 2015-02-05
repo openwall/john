@@ -461,13 +461,12 @@ __kernel void DES_bs_25_b( constant uint *index768
 			   volatile __global uint *bitmap)
 {
 
-		unsigned int section = get_global_id(0), global_offset_B ,local_offset_K;
+		unsigned int section = get_global_id(0), local_offset_K;
 		unsigned int local_id = get_local_id(0);
 
-		global_offset_B = 64 * section;
 		local_offset_K  = 56 * local_id;
 
-		vtype B[64], tmp;
+		vtype B[64];
 
 		__local DES_bs_vector _local_K[56 * WORK_GROUP_SIZE] ;
 #ifndef RV7xx
@@ -476,13 +475,12 @@ __kernel void DES_bs_25_b( constant uint *index768
 		int iterations;
 #ifndef SAFE_GOTO
 		int rounds_and_swapped;
+#else
+		vtype tmp;
 #endif
 		long int k = 0, i;
 
-		if (DES_bs_all[section].keys_changed) {
-			DES_bs_all[section].keys_changed = 0;
-			DES_bs_finalize_keys(section, DES_bs_all, local_offset_K, _local_K);
-		}
+		DES_bs_finalize_keys(section, DES_bs_all, local_offset_K, _local_K);
 
 		{
 			vtype zero = vzero;

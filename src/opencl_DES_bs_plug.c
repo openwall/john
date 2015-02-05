@@ -213,7 +213,7 @@ void opencl_DES_bs_set_key(char *key, int index)
 	key_index = index & (DES_BS_DEPTH - 1);
 	dst = opencl_DES_bs_all[sector].pxkeys[key_index];
 
-	opencl_DES_bs_data[sector].keys_changed = 1;
+	opencl_DES_bs_data[0].keys_changed = 1;
 
 	dst[0] = 				(!flag) ? 0 : key[0];
 	dst[sizeof(DES_bs_vector) * 8]      =	(!flag) ? 0 : key[1];

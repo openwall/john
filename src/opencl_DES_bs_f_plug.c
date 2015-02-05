@@ -570,7 +570,10 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 		set_salt = 0;
 	}
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id],opencl_DES_bs_data_gpu,CL_TRUE,0,MULTIPLIER*sizeof(opencl_DES_bs_transfer),opencl_DES_bs_data,0,NULL,NULL ), "Failed Copy data to gpu");
+	if (opencl_DES_bs_data[0].keys_changed) {
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], opencl_DES_bs_data_gpu, CL_TRUE, 0, MULTIPLIER * sizeof(opencl_DES_bs_transfer), opencl_DES_bs_data, 0, NULL, NULL), "Failed Copy data to gpu");
+		opencl_DES_bs_data[0].keys_changed = 0;
+	}
 
 	if (salt) {
 		static unsigned int num_loaded_hashes_salt[4096];

@@ -773,10 +773,9 @@ __kernel void DES_bs_25(__global DES_bs_transfer *DES_bs_all,
 			  volatile __global uint *hash_ids,
 			  volatile __global uint *bitmap) {
 
-		unsigned int section = get_global_id(0), global_offset_B ,local_offset_K;
+		unsigned int section = get_global_id(0), local_offset_K;
 		unsigned int local_id = get_local_id(0),i;
 
-		global_offset_B = 64 * section;
 		local_offset_K  = 56 * local_id;
 
 		vtype B[64], tmp;
@@ -792,9 +791,7 @@ __kernel void DES_bs_25(__global DES_bs_transfer *DES_bs_all,
 
 		int iterations;
 
-
-		if (DES_bs_all[section].keys_changed)
-			goto finalize_keys;
+		goto finalize_keys;
 body:
 		{
 			vtype zero = vzero;
@@ -834,8 +831,7 @@ start:         	H1_k0();
 		return;
 
 finalize_keys:
-		DES_bs_all[section].keys_changed = 0;
-	        DES_bs_finalize_keys(section, DES_bs_all, local_offset_K, _local_K);
+		DES_bs_finalize_keys(section, DES_bs_all, local_offset_K, _local_K);
 		goto body;
 }
 
