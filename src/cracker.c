@@ -501,7 +501,7 @@ int crk_reload_pot(void)
 		if (errno != EINTR)
 			pexit("flock(LOCK_SH)");
 	}
-#ifdef POTSYNC_DEBUG
+#ifdef LOCK_DEBUG
 	fprintf(stderr, "%s(%u): Successfully locked potfile LOCK_SH\n", __FUNCTION__, options.node_min);
 #endif
 #endif
@@ -542,7 +542,7 @@ int crk_reload_pot(void)
 #if OS_FLOCK
 	if (flock(pot_fd, LOCK_UN))
 		perror("flock(LOCK_UN)");
-#ifdef POTSYNC_DEBUG
+#ifdef LOCK_DEBUG
 	fprintf(stderr, "%s(%u): Unlocked potfile\n", __FUNCTION__, options.node_min);
 #endif
 #endif
