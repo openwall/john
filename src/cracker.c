@@ -485,16 +485,10 @@ int crk_reload_pot(void)
 	if (crk_params.flags & FMT_NOT_EXACT)
 		return 0;
 
-	if ((pot_fd =
-	     open(path_expand(pers_opts.activepot), O_RDONLY
-#if ARCH_BITS == 32
-		 | O_LARGEFILE
-#endif
-		 )) == -1) {
-		if (errno != ENOENT)
-			perror("open potfile");
-		return 0;
-	}
+	if (!(pot_file = fopen(path_expand(pers_opts.activepot), "rb")))
+		pexit("fopen: %s", path_expand(pers_opts.activepot));
+
+	pot_fd = fileno(pot_file);
 
 #if OS_FLOCK
 	while (flock(pot_fd, LOCK_SH)) {
@@ -505,9 +499,6 @@ int crk_reload_pot(void)
 	fprintf(stderr, "%s(%u): Successfully locked potfile LOCK_SH\n", __FUNCTION__, options.node_min);
 #endif
 #endif
-	if (!(pot_file = fdopen(pot_fd, "rb")))
-		pexit("fdopen: %s", pers_opts.activepot);
-
 	if (crk_pot_pos && (jtr_fseek64(pot_file, crk_pot_pos, SEEK_SET) == -1)) {
 		perror("fseek");
 		rewind(pot_file);
