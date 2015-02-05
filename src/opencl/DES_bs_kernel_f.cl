@@ -80,13 +80,10 @@ typedef unsigned ARCH_WORD vtype ;
 #endif
 
 typedef struct{
-
 	union {
 		unsigned char c[8][8][sizeof(DES_bs_vector)] ;
 		DES_bs_vector v[8][8] ;
 	} xkeys ;
-
-	int keys_changed ;
 } DES_bs_transfer ;
 
 #define vxorf(a, b) 					\

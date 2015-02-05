@@ -21,6 +21,7 @@
 #define for_each_depth()
 
 opencl_DES_bs_combined *opencl_DES_bs_all;
+int opencl_DES_keys_changed = 1;
 
 static unsigned char DES_LM_KP[56] = {
 	1, 2, 3, 4, 5, 6, 7,
@@ -213,7 +214,7 @@ void opencl_DES_bs_set_key(char *key, int index)
 	key_index = index & (DES_BS_DEPTH - 1);
 	dst = opencl_DES_bs_all[sector].pxkeys[key_index];
 
-	opencl_DES_bs_data[0].keys_changed = 1;
+	opencl_DES_keys_changed = 1;
 
 	dst[0] = 				(!flag) ? 0 : key[0];
 	dst[sizeof(DES_bs_vector) * 8]      =	(!flag) ? 0 : key[1];

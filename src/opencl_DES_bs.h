@@ -48,20 +48,13 @@ typedef struct {
 	unsigned char *pxkeys[DES_BS_DEPTH]; /* Pointers into xkeys.c */
 	unsigned int salt;	/* Salt value corresponding to E[] contents */
 	DES_bs_vector Ens[48];	/* Pointers into B[] for non-salted E */
-
-
 } opencl_DES_bs_combined;
 
 typedef struct{
-
-
 	union {
 		unsigned char c[8][8][sizeof(DES_bs_vector)];
 		DES_bs_vector v[8][8];
 	} xkeys;
-
-	int keys_changed;
-
 } opencl_DES_bs_transfer ;
 
 /*
@@ -75,6 +68,7 @@ struct fmt_main fmt_opencl_DES;
 #define DES_bs_cpt			1
 extern opencl_DES_bs_combined *opencl_DES_bs_all;
 extern opencl_DES_bs_transfer *opencl_DES_bs_data;
+extern int opencl_DES_keys_changed;
 extern DES_bs_vector *B;
 #define for_each_t(n)
 #define init_t()
