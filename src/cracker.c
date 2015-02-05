@@ -66,6 +66,10 @@
 #undef index
 #endif
 
+#if defined(LOCK_DEBUG) && !defined(POTSYNC_DEBUG)
+#define POTSYNC_DEBUG 1
+#endif
+
 #ifdef POTSYNC_DEBUG
 static clock_t salt_time = 0;
 #endif
@@ -497,6 +501,9 @@ int crk_reload_pot(void)
 		if (errno != EINTR)
 			pexit("flock(LOCK_SH)");
 	}
+#ifdef POTSYNC_DEBUG
+	fprintf(stderr, "%s(%u): Successfully locked potfile LOCK_SH\n", __FUNCTION__, options.node_min);
+#endif
 #endif
 	if (!(pot_file = fdopen(pot_fd, "rb")))
 		pexit("fdopen: %s", pers_opts.activepot);
@@ -535,6 +542,9 @@ int crk_reload_pot(void)
 #if OS_FLOCK
 	if (flock(pot_fd, LOCK_UN))
 		perror("flock(LOCK_UN)");
+#ifdef POTSYNC_DEBUG
+	fprintf(stderr, "%s(%u): Unlocked potfile\n", __FUNCTION__, options.node_min);
+#endif
 #endif
 	if (fclose(pot_file))
 		pexit("fclose");
@@ -558,7 +568,7 @@ int crk_reload_pot(void)
 #if defined(_SC_CLK_TCK) && !defined(CLK_TCK)
 #define CLK_TCK	sysconf(_SC_CLK_TCK)
 #endif
-	fprintf(stderr, "%d: potsync removed %d hashes in %lu ms (%lu ms finding salts); %s\n", options.node_min, others, 1000UL*(end - start)/CLK_TCK, 1000UL * salt_time / CLK_TCK, crk_loaded_counts());
+	fprintf(stderr, "%s(%u): potsync removed %d hashes in %lu ms (%lu ms finding salts); %s\n", __FUNCTION__, options.node_min, others, 1000UL*(end - start)/CLK_TCK, 1000UL * salt_time / CLK_TCK, crk_loaded_counts());
 #endif
 
 	return (!crk_db->salts);
