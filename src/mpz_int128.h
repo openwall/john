@@ -201,9 +201,9 @@ static inline size_t mpz_out_str(FILE *stream, int base, mpz_t op)
 typedef double                  mpf_t;
 
 #define mpf_init(x) x = 0
-#define mpf_init_set_ui(x, y) x = y
+#define mpf_init_set_ui(x, y) x = (y)
 #define mpf_set_z(x, y) x = y
-#define mpf_div(q, n, d) q = (n) / (d)
+#define mpf_div(q, n, d) q = n / d
 #define mpf_clear(x) x = 0
 #define mpf_get_d(x) x
 #define mpf_mul_ui(rop, op1, op2) rop = op1 * (op2)

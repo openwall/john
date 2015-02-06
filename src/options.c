@@ -95,7 +95,7 @@ static struct opt_entry opt_list[] = {
 	{"prince", FLG_PRINCE_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"prince-loopback", FLG_PRINCE_SET | FLG_PRINCE_LOOPBACK | FLG_DUPESUPP,
-		FLG_CRACKING_CHK, 0, FLG_PRINCE_MMAP, OPT_FMT_STR_ALLOC,
+		FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC,
 		&options.wordlist},
 	{"prince-elem-cnt-min", FLG_ZERO, 0, FLG_PRINCE_CHK,
 		OPT_REQ_PARAM, "%d", &prince_elem_cnt_min},
@@ -111,7 +111,7 @@ static struct opt_entry opt_list[] = {
 	{"prince-keyspace", FLG_PRINCE_KEYSPACE | FLG_STDOUT, 0,
 		FLG_PRINCE_CHK, 0},
 	{"prince-mmap", FLG_PRINCE_MMAP, 0,
-		FLG_PRINCE_CHK, FLG_PRINCE_LOOPBACK | FLG_PRINCE_CASE_PERMUTE},
+		FLG_PRINCE_CHK, FLG_PRINCE_CASE_PERMUTE},
 #endif
 	/* -enc is an alias for -input-enc for legacy reasons */
 	{"encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,

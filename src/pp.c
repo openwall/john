@@ -733,7 +733,7 @@ static char *add_elem (db_entry_t *db_entry, char *input_buf, int input_len)
 
   memcpy (elem_buf->buf, input_buf, input_len);
 #else
-  if (mem_map)
+  if (mem_map && pers_opts.input_enc == pers_opts.target_enc)
   {
     elem_buf->buf = (u8*)input_buf;
   }
@@ -1270,7 +1270,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
       error();
     }
 
-	/* rules.c honors -min/max-len options on its own */
+  /* rules.c honors -min/max-len options on its own */
     rules_init(pers_opts.internal_enc == pers_opts.target_enc ?
                pw_max : db->format->params.plaintext_length);
     rule_count = rules_count(&ctx, -1);
@@ -1278,8 +1278,12 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     log_event("- %d preprocessed word mangling rules", rule_count);
 
     prerule = rpp_next(&ctx);
-  } else
+  }
+  else
+  {
+    log_event("- No word mangling rules");
     rule_count = 1;
+  }
 #endif
 
   /**
@@ -1497,7 +1501,12 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     char *p;
 
     if (loopback && (p = strchr(input_buf, options.loader.field_sep_char)))
-      input_buf = p + 1;
+    {
+      p++;
+      if (mem_map)
+        input_len -= (p - input_buf);
+      input_buf = p;
+    }
     else
     if (!strncmp(input_buf, "#!comment", 9))
       continue;
@@ -1519,6 +1528,9 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
         fprintf(stderr, "Warning: UTF-8 seen reading %s\n", wordlist);
       }
     }
+
+    if (mem_map)
+      input_len -= (line - input_buf);
 
     input_buf = line;
 
