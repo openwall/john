@@ -618,7 +618,8 @@ static void john_wait(void)
 	log_flush();
 
 	/* Tell our friends there is nothing more to crack! */
-	if (!database.password_count && !options.reload_at_crack)
+	if (!database.password_count && !options.reload_at_crack &&
+	    cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtDone", 0))
 		raise(SIGUSR2);
 
 /*
