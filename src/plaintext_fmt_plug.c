@@ -7,6 +7,18 @@
  * modification, are permitted.
  *
  * There's ABSOLUTELY NO WARRANTY, express or implied.
+ *
+ * NOTE: Due to core limitations this format can not crack a plaintext
+ * containing ':' or that has trailing whitespace.
+ *
+ * Example hash generation:
+ *
+ * Without usernames:
+ * perl -ne 'print "\$0\$$_" if m/^[^:]{0,124}[^:\s]$/' < in > out
+ *
+ * With usernames:
+ * perl -ne 'chomp; print "$_:\$0\$$_\n" if m/^[^:]{0,124}[^:\s]$/' < in > out
+ *
  */
 
 #define FMT_STRUCT	fmt_plaintext
@@ -55,6 +67,7 @@ static struct fmt_tests tests[] = {
 	{"$0$cleartext", "cleartext"},
 	{FORMAT_TAG, ""},
 	{"$0$magnum", "magnum"},
+	{"$0$ spa  ce", " spa  ce"},
 	{"$0$password", "password"},
 	{NULL}
 };
@@ -74,6 +87,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (len < PLAINTEXT_MIN_LENGTH || len > PLAINTEXT_LENGTH)
 		return 0;
+
 	return 1;
 }
 
