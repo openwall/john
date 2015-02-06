@@ -1683,5 +1683,9 @@ int main(int argc, char **argv)
 
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
+#ifdef __CYGWIN32__
+	system("stty echo");
+#endif
+
 	return exit_status;
 }
