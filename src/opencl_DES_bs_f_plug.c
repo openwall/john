@@ -43,6 +43,7 @@ void DES_opencl_clean_all_buffer()
 	MEM_FREE(B);
 	MEM_FREE(loaded_hash);
 	MEM_FREE(cmp_out);
+	MEM_FREE(index96);
 	HANDLE_CLERROR(clReleaseMemObject(opencl_DES_bs_data_gpu), errMsg);
 	HANDLE_CLERROR(clReleaseMemObject(B_gpu), errMsg);
 	clReleaseMemObject(cmp_out_gpu);
@@ -160,6 +161,7 @@ void opencl_DES_reset(struct db_main *db) {
 void opencl_DES_bs_init_global_variables() {
 	opencl_DES_bs_all = (opencl_DES_bs_combined*) mem_alloc (MULTIPLIER * sizeof(opencl_DES_bs_combined));
 	opencl_DES_bs_data = (opencl_DES_bs_transfer*) mem_alloc (MULTIPLIER * sizeof(opencl_DES_bs_transfer));
+	index96 = (unsigned int *) malloc (4097 * 96 * sizeof(unsigned int));
 }
 
 
@@ -415,12 +417,12 @@ void modify_src() {
 					     48,49,50,51,52,53,54,55,56,57,58,59,
 					     72,73,74,75,76,77,78,79,80,81,82,83 } ;
 	  for (j = 1; j <= 48; j++) {
-		tmp = index96[index[j - 1]] / 10;
+		tmp = index96[current_salt * 96 + index[j - 1]] / 10;
 		if (tmp == 0)
 			kernel_source[i + j * 17] = ' ' ;
 		else
 			kernel_source[i + j * 17] = digits[tmp];
-		tmp = index96[index[j - 1]] % 10;
+		tmp = index96[current_salt * 96 + index[j - 1]] % 10;
 	     ++i;
 	     kernel_source[i + j * 17 ] = digits[tmp];
 	     ++i;
@@ -444,19 +446,15 @@ void DES_bs_select_device(struct fmt_main *fmt)
 	}
 }
 
-void opencl_DES_bs_set_salt(WORD salt)
-{
-	unsigned int new = salt, section = 0;
+static void build_salt(WORD salt) {
+	unsigned int new = salt;
 	unsigned int old;
 	int dst;
 
-	for (section = 0; section < MAX_KEYS_PER_CRYPT / DES_BS_DEPTH; section++) {
 	new = salt;
-	old = opencl_DES_bs_all[section].salt;
-	opencl_DES_bs_all[section].salt = new;
-	}
-	section = 0;
-	current_salt = salt ;
+	old = opencl_DES_bs_all[0].salt;
+	opencl_DES_bs_all[0].salt = new;
+
 	for (dst = 0; dst < 24; dst++) {
 		if ((new ^ old) & 1) {
 			DES_bs_vector sp1, sp2;
@@ -466,20 +464,30 @@ void opencl_DES_bs_set_salt(WORD salt)
 				src1 = src2;
 				src2 = dst;
 			}
-			sp1 = opencl_DES_bs_all[section].Ens[src1];
-			sp2 = opencl_DES_bs_all[section].Ens[src2];
-
-			index96[dst] = sp1;
-			index96[dst + 24] = sp2;
-			index96[dst + 48] = sp1 + 32;
-			index96[dst + 72] = sp2 + 32;
+			sp1 = opencl_DES_bs_all[0].Ens[src1];
+			sp2 = opencl_DES_bs_all[0].Ens[src2];
+			index96[4096 * 96 + dst] = sp1;
+			index96[4096 * 96 + dst + 24] = sp2;
+			index96[4096 * 96 + dst + 48] = sp1 + 32;
+			index96[4096 * 96 + dst + 72] = sp2 + 32;
 		}
 		new >>= 1;
 		old >>= 1;
 		if (new == old)
 			break;
 	}
+	memcpy(&index96[salt * 96], &index96[4096 * 96], 96 * sizeof(unsigned int));
+}
 
+void opencl_DES_build_all_salts(void) {
+	int i;
+	for (i = 0; i < 4096; i++)
+		build_salt(i);
+}
+
+void opencl_DES_bs_set_salt(WORD salt)
+{
+	current_salt = salt ;
 	set_salt = 1;
 }
 
@@ -503,8 +511,6 @@ char *opencl_DES_bs_get_key(int index)
 			error();
 	}
 	block  = index % DES_BS_DEPTH;
-
-	init_t();
 
 	src = opencl_DES_bs_all[section].pxkeys[block];
 	dst = out;

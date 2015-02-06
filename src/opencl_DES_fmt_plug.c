@@ -57,13 +57,12 @@ static void init(struct fmt_main *pFmt)
 
 	// Check if specific LWS/GWS was requested
 	opencl_get_user_preferences(FORMAT_LABEL);
-
 	opencl_DES_bs_init_global_variables();
 
-	for(i=0;i<MULTIPLIER;i++)
-		opencl_DES_bs_init(0, DES_bs_cpt,i);
-
+	for (i = 0; i < MULTIPLIER; i++)
+		opencl_DES_bs_init(i);
 	DES_bs_select_device(pFmt);
+	opencl_DES_build_all_salts();
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)

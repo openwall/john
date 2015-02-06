@@ -32,7 +32,7 @@
 #define GWS_CONFIG		        "des_GWS"
 
 unsigned int CC_CACHE_ALIGN index768[0x300];
-unsigned int CC_CACHE_ALIGN index96[96];
+unsigned int  *index96;
 
 #define	MAX_DEVICES_PER_PLATFORM	10
 #define DES_BS_EXPAND                   1
@@ -65,18 +65,15 @@ struct fmt_main;
 
 struct fmt_main fmt_opencl_DES;
 
-#define DES_bs_cpt			1
 extern opencl_DES_bs_combined *opencl_DES_bs_all;
 extern opencl_DES_bs_transfer *opencl_DES_bs_data;
 extern int opencl_DES_keys_changed;
 extern DES_bs_vector *B;
-#define for_each_t(n)
-#define init_t()
-
+extern void opencl_DES_build_all_salts(void);
 /*
  * Initializes the internal structures.
  */
-extern void opencl_DES_bs_init(int LM, int cpt,int block);
+extern void opencl_DES_bs_init(int block);
 extern void opencl_DES_bs_init_global_variables(void);
 
 /*
