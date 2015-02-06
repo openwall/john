@@ -11698,9 +11698,9 @@ fi
 rm -f conftest.mmap conftest.txt
 
 
-# JtR's usage of fork does not work on cygwin, even though the AC_FUNC_FORK says it should
+# JtR's usage of fork may not work on minwin, even though the AC_FUNC_FORK says it should
 case "$host_os" in
-  mingw*|cygwin*)
+  mingw*)
     # FORK is known to 'compile' but to fail and not be usable.
     ac_cv_func_fork=no
     ac_cv_func_fork_works=no

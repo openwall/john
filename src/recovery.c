@@ -95,7 +95,7 @@ static void rec_name_complete(void)
 	rec_name_completed = 1;
 }
 
-#if OS_FLOCK
+#if OS_FLOCK && !__CYGWIN__
 static void rec_lock(int lock)
 {
 	int lockmode;

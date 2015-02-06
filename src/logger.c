@@ -108,38 +108,45 @@ static void log_file_flush(struct log_file *f)
 	count = f->ptr - f->buffer;
 	if (count <= 0) return;
 
-#if OS_FLOCK
+#if OS_FLOCK && !__CYGWIN__
+#ifdef LOCK_DEBUG
+	fprintf(stderr, "%s(%u): preparing to call flock(LOCK_EX) %s\n", __FUNCTION__, options.node_min, f->name);
+#endif
 	while (flock(f->fd, LOCK_EX)) {
 		if (errno != EINTR)
 			pexit("flock(LOCK_EX)");
 	}
 #ifdef LOCK_DEBUG
-	if (f == &pot) fprintf(stderr, "%s(%u): Successfully locked %s LOCK_EX\n", __FUNCTION__, options.node_min, f->name);
+	fprintf(stderr, "%s(%u): Successfully locked %s LOCK_EX\n", __FUNCTION__, options.node_min, f->name);
 #endif
 #endif
-	if (f == &pot) {
+
+#if defined(LOCK_DEBUG)
+	// in DEBUG mode, we get FP for both pot and log, to output to screen.
+	pos_b4 = (long int)lseek(f->fd, 0, SEEK_END);
+	fprintf(stderr, "%s(%u): writing %d at %ld, ending at %ld to file %s\n", __FUNCTION__, options.node_min, count, pos_b4, pos_b4+count, f->name);
+#else
+	if (f == &pot)
 		pos_b4 = (long int)lseek(f->fd, 0, SEEK_END);
-#ifdef LOCK_DEBUG
-		fprintf(stderr, "%s(%u): writing %d at %ld, ending at %ld\n", __FUNCTION__, options.node_min, count, pos_b4, pos_b4 + count);
 #endif
-	}
 
 	if (write_loop(f->fd, f->buffer, count) < 0) pexit("write");
 	f->ptr = f->buffer;
 
-	if (f == &pot && pos_b4 == crk_pot_pos) {
-		crk_pot_pos = (long int)lseek(f->fd, 0, SEEK_CUR);
+	if (f == &pot && pos_b4 == crk_pot_pos)
+		crk_pot_pos += count;
+
+#if OS_FLOCK && !__CYGWIN__
 #ifdef LOCK_DEBUG
-		fprintf(stderr, "%s(%u): set crk_pot_pos to %ld\n", __FUNCTION__, options.node_min, crk_pot_pos);
+	fprintf(stderr, "%s(%u): preparing to call flock(LOCK_UN) on %s\n", __FUNCTION__, options.node_min, f->name);
 #endif
-	}
-#if OS_FLOCK
 	if (flock(f->fd, LOCK_UN))
 		pexit("flock(LOCK_UN)");
 #ifdef LOCK_DEBUG
-	if (f == &pot) fprintf(stderr, "%s(%u): Unlocked %s\n", __FUNCTION__, options.node_min, f->name);
+	fprintf(stderr, "%s(%u): Unlocked %s\n", __FUNCTION__, options.node_min, f->name);
 #endif
 #endif
+
 #ifdef SIGUSR2
 	/* We don't really send a sync trigger "at crack" but
 	   after it's actually written to the pot file. That is, now. */

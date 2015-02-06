@@ -471,7 +471,6 @@ static int crk_remove_pot_entry(char *ciphertext)
 int crk_reload_pot(void)
 {
 	char line[LINE_BUFFER_SIZE], *fields[10];
-	int pot_fd;
 	FILE *pot_file;
 	int total = crk_db->password_count, others;
 #ifdef POTSYNC_DEBUG
@@ -488,10 +487,8 @@ int crk_reload_pot(void)
 	if (!(pot_file = fopen(path_expand(pers_opts.activepot), "rb")))
 		pexit("fopen: %s", path_expand(pers_opts.activepot));
 
-	pot_fd = fileno(pot_file);
-
-#if OS_FLOCK
-	while (flock(pot_fd, LOCK_SH)) {
+#if OS_FLOCK && !__CYGWIN__
+	while (flock(fileno(pot_file), LOCK_SH)) {
 		if (errno != EINTR)
 			pexit("flock(LOCK_SH)");
 	}
@@ -530,8 +527,8 @@ int crk_reload_pot(void)
 	ldr_in_pot = 0;
 
 	crk_pot_pos = jtr_ftell64(pot_file);
-#if OS_FLOCK
-	if (flock(pot_fd, LOCK_UN))
+#if OS_FLOCK && !__CYGWIN__
+	if (flock(fileno(pot_file), LOCK_UN))
 		perror("flock(LOCK_UN)");
 #ifdef LOCK_DEBUG
 	fprintf(stderr, "%s(%u): Unlocked potfile\n", __FUNCTION__, options.node_min);

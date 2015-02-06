@@ -573,9 +573,9 @@ AS_IF([test $CPU_BIT_STR -ge 64], [AS_IF([test "x$enable_int128" != xno], [AC_CH
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MMAP
 
-# JtR's usage of fork does not work on cygwin, even though the AC_FUNC_FORK says it should
+# JtR's usage of fork may not work on minwin, even though the AC_FUNC_FORK says it should
 case "$host_os" in
-  mingw*|cygwin*)
+  mingw*)
     # FORK is known to 'compile' but to fail and not be usable.
     ac_cv_func_fork=no
     ac_cv_func_fork_works=no
