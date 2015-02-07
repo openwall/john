@@ -156,9 +156,6 @@ static void log_file_flush(struct log_file *f)
 	if (flock(f->fd, LOCK_UN))
 		pexit("flock(LOCK_UN)");
 #endif
-#ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Unlocked %s\n", __FUNCTION__, options.node_min, f->name);
-#endif
 #endif
 
 #ifdef SIGUSR2

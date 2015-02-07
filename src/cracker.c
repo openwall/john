@@ -491,6 +491,9 @@ int crk_reload_pot(void)
 		pexit("fopen: %s", path_expand(pers_opts.activepot));
 
 #if OS_FLOCK || FCNTL_LOCKS
+#ifdef LOCK_DEBUG
+	fprintf(stderr, "%s(%u): Locking potfile...\n", __FUNCTION__, options.node_min);
+#endif
 #if FCNTL_LOCKS
 	memset(&lock, 0, sizeof(lock));
 	lock.l_type = F_RDLCK;
@@ -537,6 +540,9 @@ int crk_reload_pot(void)
 
 	crk_pot_pos = jtr_ftell64(pot_file);
 #if OS_FLOCK || FCNTL_LOCKS
+#ifdef LOCK_DEBUG
+	fprintf(stderr, "%s(%u): Unlocking potfile\n", __FUNCTION__, options.node_min);
+#endif
 #if FCNTL_LOCKS
 	lock.l_type = F_UNLCK;
 	if (fcntl(fileno(pot_file), F_SETLKW, &lock))
@@ -544,9 +550,6 @@ int crk_reload_pot(void)
 #else
 	if (flock(fileno(pot_file), LOCK_UN))
 		perror("flock(LOCK_UN)");
-#endif
-#ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Unlocked potfile\n", __FUNCTION__, options.node_min);
 #endif
 #endif
 	if (fclose(pot_file))
