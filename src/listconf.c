@@ -172,8 +172,10 @@ static void listconf_list_build_info(void)
 	printf("CHARSET_LENGTH: %d\n", CHARSET_LENGTH);
 	printf("Max. Markov mode level: %d\n", MAX_MKV_LVL);
 	printf("Max. Markov mode password length: %d\n", MAX_MKV_LEN);
-#if OS_FLOCK
-	puts("File locking: supported and used.");
+#if FCNTL_LOCKS
+	puts("File locking: fcntl()");
+#elif OS_FLOCK
+	puts("File locking: flock()");
 #else
 	puts("File locking: NOT supported by this build - do not run concurrent sessions!");
 #endif

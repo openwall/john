@@ -48,12 +48,17 @@
 #if defined(__APPLE__) && !defined(_DARWIN_C_SOURCE)
 #define _DARWIN_C_SOURCE /* for LOCK_EX */
 #endif
+#if PREFER_FLOCK
 #include <sys/file.h>
 #ifdef LOCK_EX
 #define OS_FLOCK			1
 #else
 #define OS_FLOCK			0
 #warning LOCK_EX is not available - will skip locking
+#endif
+#else
+#define OS_FLOCK			0
+#define FCNTL_LOCKS			1
 #endif
 #endif
 

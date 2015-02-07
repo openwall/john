@@ -473,6 +473,9 @@ int crk_reload_pot(void)
 	char line[LINE_BUFFER_SIZE], *fields[10];
 	FILE *pot_file;
 	int total = crk_db->password_count, others;
+#if FCNTL_LOCKS
+	struct flock lock;
+#endif
 #ifdef POTSYNC_DEBUG
 	struct tms buffer;
 	clock_t start = times(&buffer), end;
@@ -487,13 +490,19 @@ int crk_reload_pot(void)
 	if (!(pot_file = fopen(path_expand(pers_opts.activepot), "rb")))
 		pexit("fopen: %s", path_expand(pers_opts.activepot));
 
-#if OS_FLOCK && !__CYGWIN__
+#if OS_FLOCK || FCNTL_LOCKS
+#if FCNTL_LOCKS
+	memset(&lock, 0, sizeof(lock));
+	lock.l_type = F_RDLCK;
+	while (fcntl(fileno(pot_file), F_SETLKW, &lock)) {
+#else
 	while (flock(fileno(pot_file), LOCK_SH)) {
+#endif
 		if (errno != EINTR)
 			pexit("flock(LOCK_SH)");
 	}
 #ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Successfully locked potfile LOCK_SH\n", __FUNCTION__, options.node_min);
+	fprintf(stderr, "%s(%u): Locked potfile (shared)\n", __FUNCTION__, options.node_min);
 #endif
 #endif
 	if (crk_pot_pos && (jtr_fseek64(pot_file, crk_pot_pos, SEEK_SET) == -1)) {
@@ -527,9 +536,15 @@ int crk_reload_pot(void)
 	ldr_in_pot = 0;
 
 	crk_pot_pos = jtr_ftell64(pot_file);
-#if OS_FLOCK && !__CYGWIN__
+#if OS_FLOCK || FCNTL_LOCKS
+#if FCNTL_LOCKS
+	lock.l_type = F_UNLCK;
+	if (fcntl(fileno(pot_file), F_SETLKW, &lock))
+		perror("fcntl(F_UNLCK)");
+#else
 	if (flock(fileno(pot_file), LOCK_UN))
 		perror("flock(LOCK_UN)");
+#endif
 #ifdef LOCK_DEBUG
 	fprintf(stderr, "%s(%u): Unlocked potfile\n", __FUNCTION__, options.node_min);
 #endif

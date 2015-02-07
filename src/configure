@@ -751,6 +751,7 @@ with_openssl
 with_commoncrypto
 with_endian
 with_systemwide
+with_flock
 enable_memdbg
 enable_memdbg_ex
 enable_asan
@@ -1414,6 +1415,7 @@ Optional Packages:
                           Set endianness for target if it doesn't detect
                           properly
   --with-systemwide       install for all users
+  --with-flock            use flock() file locking instead of fcntl()
 
 Some influential environment variables:
   CFLAGS_EXTRA
@@ -3483,6 +3485,14 @@ if test "${with_systemwide+set}" = set; then :
   withval=$with_systemwide;
 else
   with_systemwide=no
+fi
+
+
+# Check whether --with-flock was given.
+if test "${with_flock+set}" = set; then :
+  withval=$with_flock;
+else
+  with_flock=no
 fi
 
 
@@ -13247,6 +13257,10 @@ else
    prefix=/usr/libexec/john
 fi
 
+fi
+
+if test x$with_flock != xno; then
+   CFLAGS="$CFLAGS -DPREFER_FLOCK"
 fi
 
 ####################################################

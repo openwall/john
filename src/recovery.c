@@ -30,7 +30,9 @@
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
+#if (!AC_BUILT || HAVE_FCNTL_H)
 #include <fcntl.h>
+#endif
 #if !AC_BUILT || HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
@@ -95,10 +97,14 @@ static void rec_name_complete(void)
 	rec_name_completed = 1;
 }
 
-#if OS_FLOCK && !__CYGWIN__
-static void rec_lock(int lock)
+#if OS_FLOCK || FCNTL_LOCKS
+static void rec_lock(int block)
 {
 	int lockmode;
+#if FCNTL_LOCKS
+	int blockmode;
+	struct flock lock;
+#endif
 
 	/*
 	 * In options.c, MPI code path call rec_restore_args(mpi_p)
@@ -106,17 +112,41 @@ static void rec_lock(int lock)
 	 * root node must block, in case some other node has not yet
 	 * closed the original file
 	 */
-	if (lock == 1) {
+	if (block == 1) {
+#if FCNTL_LOCKS
+		lockmode = F_WRLCK;
+		blockmode = F_SETLKW;
+#else
 		lockmode = LOCK_EX;
+#endif
 #ifdef HAVE_MPI
 		if (!rec_restored || mpi_id || mpi_p == 1)
 #endif
+#if FCNTL_LOCKS
+			blockmode = F_SETLK;
+#else
 			lockmode |= LOCK_NB;
+#endif
 	} else
-		lockmode = LOCK_SH | LOCK_NB;
+#if FCNTL_LOCKS
+	{
+		lockmode = F_RDLCK;
+		blockmode = F_SETLK;
+	}
 
+#else
+		lockmode = LOCK_SH | LOCK_NB;
+#endif
+
+#if FCNTL_LOCKS
+	memset(&lock, 0, sizeof(lock));
+	lock.l_type = lockmode;
+	if (fcntl(rec_fd, blockmode, &lock)) {
+		if (errno == EAGAIN) {
+#else
 	if (flock(rec_fd, lockmode)) {
 		if (errno == EWOULDBLOCK) {
+#endif
 #ifdef HAVE_MPI
 			fprintf(stderr, "Node %d@%s: Crash recovery file is"
 			        " locked: %s\n", mpi_id + 1, mpi_name,
@@ -132,8 +162,15 @@ static void rec_lock(int lock)
 }
 static void rec_unlock(void)
 {
+#if FCNTL_LOCKS
+	struct flock lock;
+	lock.l_type = F_UNLCK;
+	if (fcntl(rec_fd, F_SETLKW, &lock))
+		perror("fcntl(F_UNLCK)");
+#else
 	if (flock(rec_fd, LOCK_UN))
 		perror("flock(LOCK_UN)");
+#endif
 }
 #else
 #define rec_lock(lock) \

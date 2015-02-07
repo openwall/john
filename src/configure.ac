@@ -60,6 +60,7 @@ AC_ARG_WITH(commoncrypto, [AS_HELP_STRING([--with-commoncrypto],[Use CommonCrypt
 AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness for target if it doesn't detect properly])],,[endian=unknown])
 # -DJOHN_SYSTEMWIDE
 AC_ARG_WITH(systemwide, [AS_HELP_STRING([--with-systemwide],[install for all users])],,[with_systemwide=no])
+AC_ARG_WITH(flock, [AS_HELP_STRING([--with-flock],[use flock() file locking instead of fcntl()])],,[with_flock=no])
 
 AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory debugging (safe level)])], [memdbg=$enableval], [memdbg=no])
 AC_ARG_ENABLE([memdbg-ex], [AC_HELP_STRING([--enable-memdbg-ex], [* Enable memdbg memory debugging (expanded level)])], [memdbgex=$enableval], [memdbgex=no])
@@ -741,6 +742,10 @@ AS_IF([test $prefix != "../run" && test $prefix != "NONE" ],
    [AS_IF([test $with_systemwide != no], [CFLAGS="$CFLAGS -DJOHN_SYSTEMWIDE"
    prefix=/usr/libexec/john])]
 )
+
+if test x$with_flock != xno; then
+   CFLAGS="$CFLAGS -DPREFER_FLOCK"
+fi
 
 ####################################################
 # Code  to create @PLUGFORMATS_OBJS@ and

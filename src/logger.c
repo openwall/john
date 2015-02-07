@@ -15,12 +15,6 @@
 #define NEED_OS_FLOCK
 #include "os.h"
 
-#if __CYGWIN__
-// cygwin will now use fcntl to lock, vs flock
-#include <fcntl.h>
-#include <unistd.h>
-#endif
-
 #include <stdio.h>
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
@@ -36,7 +30,9 @@
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
+#if (!AC_BUILT || HAVE_FCNTL_H)
 #include <fcntl.h>
+#endif
 #include <errno.h>
 #include <stdarg.h>
 #include <string.h>
@@ -108,7 +104,7 @@ static void log_file_flush(struct log_file *f)
 {
 	int count;
 	long int pos_b4 = 0;
-#if __CYGWIN__
+#if FCNTL_LOCKS
 	struct flock lock;
 #endif
 
@@ -117,11 +113,11 @@ static void log_file_flush(struct log_file *f)
 	count = f->ptr - f->buffer;
 	if (count <= 0) return;
 
-#if OS_FLOCK
+#if OS_FLOCK || FCNTL_LOCKS
 #ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): preparing to call flock(LOCK_EX) %s\n", __FUNCTION__, options.node_min, f->name);
+	fprintf(stderr, "%s(%u): Locking %s...\n", __FUNCTION__, options.node_min, f->name);
 #endif
-#if __CYGWIN__
+#if FCNTL_LOCKS
 	memset(&lock, 0, sizeof(lock));
 	lock.l_type = F_WRLCK;
 	fcntl(f->fd, F_SETLKW, &lock);
@@ -132,18 +128,16 @@ static void log_file_flush(struct log_file *f)
 	}
 #endif
 #ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Successfully locked %s LOCK_EX\n", __FUNCTION__, options.node_min, f->name);
+	fprintf(stderr, "%s(%u): Locked %s exclusively\n", __FUNCTION__, options.node_min, f->name);
 #endif
 #endif
 
-#if defined(LOCK_DEBUG)
-	// in DEBUG mode, we get FP for both pot and log, to output to screen.
-	pos_b4 = (long int)lseek(f->fd, 0, SEEK_END);
-	fprintf(stderr, "%s(%u): writing %d at %ld, ending at %ld to file %s\n", __FUNCTION__, options.node_min, count, pos_b4, pos_b4+count, f->name);
-#else
-	if (f == &pot)
+	if (f == &pot) {
 		pos_b4 = (long int)lseek(f->fd, 0, SEEK_END);
+#if defined(LOCK_DEBUG)
+		fprintf(stderr, "%s(%u): writing %d at %ld, ending at %ld to file %s\n", __FUNCTION__, options.node_min, count, pos_b4, pos_b4+count, f->name);
 #endif
+	}
 
 	if (write_loop(f->fd, f->buffer, count) < 0) pexit("write");
 	f->ptr = f->buffer;
@@ -151,11 +145,11 @@ static void log_file_flush(struct log_file *f)
 	if (f == &pot && pos_b4 == crk_pot_pos)
 		crk_pot_pos += count;
 
-#if OS_FLOCK
+#if OS_FLOCK || FCNTL_LOCKS
 #ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): preparing to call flock(LOCK_UN) on %s\n", __FUNCTION__, options.node_min, f->name);
+	fprintf(stderr, "%s(%u): Unlocking %s\n", __FUNCTION__, options.node_min, f->name);
 #endif
-#if __CYGWIN__
+#if FCNTL_LOCKS
 	lock.l_type = F_UNLCK;
 	fcntl(f->fd, F_SETLKW, &lock);
 #else
