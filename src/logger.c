@@ -15,6 +15,12 @@
 #define NEED_OS_FLOCK
 #include "os.h"
 
+#if __CYGWIN__
+// cygwin will now use fcntl to lock, vs flock
+#include <fcntl.h>
+#include <unistd.h>
+#endif
+
 #include <stdio.h>
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
@@ -102,20 +108,29 @@ static void log_file_flush(struct log_file *f)
 {
 	int count;
 	long int pos_b4 = 0;
+#if __CYGWIN__
+	struct flock lock;
+#endif
 
 	if (f->fd < 0) return;
 
 	count = f->ptr - f->buffer;
 	if (count <= 0) return;
 
-#if OS_FLOCK && !__CYGWIN__
+#if OS_FLOCK
 #ifdef LOCK_DEBUG
 	fprintf(stderr, "%s(%u): preparing to call flock(LOCK_EX) %s\n", __FUNCTION__, options.node_min, f->name);
 #endif
+#if __CYGWIN__
+	memset(&lock, 0, sizeof(lock));
+	lock.l_type = F_WRLCK;
+	fcntl(f->fd, F_SETLKW, &lock);
+#else
 	while (flock(f->fd, LOCK_EX)) {
 		if (errno != EINTR)
 			pexit("flock(LOCK_EX)");
 	}
+#endif
 #ifdef LOCK_DEBUG
 	fprintf(stderr, "%s(%u): Successfully locked %s LOCK_EX\n", __FUNCTION__, options.node_min, f->name);
 #endif
@@ -136,12 +151,17 @@ static void log_file_flush(struct log_file *f)
 	if (f == &pot && pos_b4 == crk_pot_pos)
 		crk_pot_pos += count;
 
-#if OS_FLOCK && !__CYGWIN__
+#if OS_FLOCK
 #ifdef LOCK_DEBUG
 	fprintf(stderr, "%s(%u): preparing to call flock(LOCK_UN) on %s\n", __FUNCTION__, options.node_min, f->name);
 #endif
+#if __CYGWIN__
+	lock.l_type = F_UNLCK;
+	fcntl(f->fd, F_SETLKW, &lock);
+#else
 	if (flock(f->fd, LOCK_UN))
 		pexit("flock(LOCK_UN)");
+#endif
 #ifdef LOCK_DEBUG
 	fprintf(stderr, "%s(%u): Unlocked %s\n", __FUNCTION__, options.node_min, f->name);
 #endif
