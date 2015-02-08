@@ -43,7 +43,7 @@ static int omp_t = 1;
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_MIN_LENGTH		1
-#define PLAINTEXT_LENGTH		31
+#define PLAINTEXT_LENGTH		72
 #define CIPHERTEXT_LENGTH		13
 
 #define BINARY_SIZE			7
@@ -62,6 +62,7 @@ static struct fmt_tests tests[] = {
     {"+zIvO/1nDsd9.", "654321"},
     {"+V6ZOx0rVGWT0", "1"},
     {"+V6ZOx0rVGWT0", "11"},
+    {"+Obytd.zXYjH/", "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"},
     {NULL}
 };
 
