@@ -60,6 +60,8 @@ static struct fmt_tests tests[] = {
     {"+EEHgy/MBLDd0", "walkman"},
     {"+vPBrs07OTXE/", "tesztuser"},
     {"+zIvO/1nDsd9.", "654321"},
+    {"+V6ZOx0rVGWT0", "1"},
+    {"+V6ZOx0rVGWT0", "11"},
     {NULL}
 };
 
@@ -208,7 +210,7 @@ struct fmt_main fmt_BFEgg = {
     SALT_ALIGN,
     MIN_KEYS_PER_CRYPT,
     MAX_KEYS_PER_CRYPT,
-    FMT_CASE | FMT_8_BIT | FMT_OMP,
+    FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
