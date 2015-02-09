@@ -21,6 +21,7 @@
  *
  *  The 2nd 8 hex value is what we are looking for.
  *
+ * If you want alternate plaintexts, run with --keep-guessing option.
  */
 
 #if FMT_EXTERNS_H
@@ -231,7 +232,7 @@ struct fmt_main fmt_crc32 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_NOT_EXACT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

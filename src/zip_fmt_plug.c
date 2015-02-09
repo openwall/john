@@ -16,8 +16,8 @@
  * correct password.). The alternative is to implement/use a full unzip engine.
  *
  * This format significantly improved, Summer of 2014, JimF.  Changed the signature
- * to the $zip2$, and added logic to properly make this format work. Now it is NOT a
- * 'FMT_NOT_EXACT' format any more.  Now it properly cracks the passwords. There is
+ * to the $zip2$, and added logic to properly make this format work. Now there is no
+ * false positives any more.  Now it properly cracks the passwords. There is
  * an hmac-sha1 'key' that is also processed (and the decryption key), in the pbkdf2
  * call.  Now we use this hmac-sha1 key, process the compressed and encrypted buffer,
  * compare to a 10 byte checksum (which is now the binary blob), and we KNOW that we
