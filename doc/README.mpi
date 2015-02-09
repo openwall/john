@@ -163,22 +163,17 @@ USAGE:
     You may send a USR2 signal to the parent MPI process (or to all individual
     processes) for manually requesting a "pot file sync". All nodes will
     re-read the pot file and stop attacking any hashes (and salts!) that some
-    other node (or independant job) had already cracked.  You can request to
-    periodically get such syncing using the option --reload=<seconds>, but
-    try to refrain from putting a too small number here, as the overhead just
-    may eat the gain. Using a number like 600 is probably sane. There is also
-    a john.conf option "ReloadAtCrack" that when enabled will make an MPI
-    node (or --fork process) signal to the others that they should resync.
-    Unless you have independant jobs running this should be enough.
+    other node (or independant job) had already cracked.  Current code handles
+    this automagically with default config and no user intervention.
 
 
 ====================
 MISC TIPS:
 ====================
-    All MPI nodes share the same working directory, usually over NFS. When a
-    larger number of nodes is in use, the overhead for writing to the log file
-    (which includes file locking) may become an overhead. Use the -nolog option
-    to disable logging.
+    All MPI nodes must share the same working directory, usually over NFS. When
+    a larger number of nodes is in use, the overhead for writing to the log
+    file (which includes file locking) may become an overhead. Use the -nolog
+    option to disable logging or -verb=2 option to reduce chatter.
 
 ====================
 CAVEATS:
