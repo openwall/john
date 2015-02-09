@@ -2,6 +2,10 @@
  * This file is part of Eggdrop blowfish patch for John The Ripper.
  * Copyright (c) 2002 by Sun-Zero <sun-zero at freemail.hu>
  * This is a free software distributable under terms of the GNU GPL.
+ *
+ * This format has collisions but FMT_NOT_EXACT is not set - instead
+ * you can run it with --keep-guessing if you'd like to see alternative
+ * plaintexts.
  */
 
 #if FMT_EXTERNS_H
@@ -211,7 +215,7 @@ struct fmt_main fmt_BFEgg = {
     SALT_ALIGN,
     MIN_KEYS_PER_CRYPT,
     MAX_KEYS_PER_CRYPT,
-    FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
+    FMT_CASE | FMT_8_BIT | FMT_OMP /*| FMT_NOT_EXACT */,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
