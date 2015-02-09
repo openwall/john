@@ -151,7 +151,7 @@ static void log_file_flush(struct log_file *f)
 #endif
 #if FCNTL_LOCKS
 	lock.l_type = F_UNLCK;
-	fcntl(f->fd, F_SETLKW, &lock);
+	fcntl(f->fd, F_SETLK, &lock);
 #else
 	if (flock(f->fd, LOCK_UN))
 		pexit("flock(LOCK_UN)");

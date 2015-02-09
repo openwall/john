@@ -545,7 +545,7 @@ int crk_reload_pot(void)
 #endif
 #if FCNTL_LOCKS
 	lock.l_type = F_UNLCK;
-	if (fcntl(fileno(pot_file), F_SETLKW, &lock))
+	if (fcntl(fileno(pot_file), F_SETLK, &lock))
 		perror("fcntl(F_UNLCK)");
 #else
 	if (flock(fileno(pot_file), LOCK_UN))

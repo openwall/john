@@ -98,7 +98,7 @@ static void rec_name_complete(void)
 }
 
 #if OS_FLOCK || FCNTL_LOCKS
-static void rec_lock(int block)
+static void rec_lock(int shared)
 {
 	int lockmode;
 #if FCNTL_LOCKS
@@ -112,7 +112,7 @@ static void rec_lock(int block)
 	 * root node must block, in case some other node has not yet
 	 * closed the original file
 	 */
-	if (block == 1) {
+	if (shared == 1) {
 #if FCNTL_LOCKS
 		lockmode = F_WRLCK;
 		blockmode = F_SETLKW;
@@ -138,11 +138,14 @@ static void rec_lock(int block)
 		lockmode = LOCK_SH | LOCK_NB;
 #endif
 
+#ifdef LOCK_DEBUG
+	fprintf(stderr, "%s(%u): Locking session file...\n", __FUNCTION__, options.node_min);
+#endif
 #if FCNTL_LOCKS
 	memset(&lock, 0, sizeof(lock));
 	lock.l_type = lockmode;
 	if (fcntl(rec_fd, blockmode, &lock)) {
-		if (errno == EAGAIN) {
+		if (errno == EAGAIN || errno == EACCES) {
 #else
 	if (flock(rec_fd, lockmode)) {
 		if (errno == EWOULDBLOCK) {
@@ -157,19 +160,32 @@ static void rec_lock(int block)
 #endif
 			error();
 		} else
-			pexit("flock(%d)", lockmode);
+#if FCNTL_LOCKS
+			pexit("fcntl()");
+#else
+			pexit("flock()");
+#endif
 	}
+#ifdef LOCK_DEBUG
+	fprintf(stderr, "%s(%u): Locked session file (%s)\n", __FUNCTION__, options.node_min, shared == 1 ? "exclusive" : "shared");
+#endif
 }
+
 static void rec_unlock(void)
 {
 #if FCNTL_LOCKS
-	struct flock lock;
+	struct flock lock = { 0 };
 	lock.l_type = F_UNLCK;
-	if (fcntl(rec_fd, F_SETLKW, &lock))
-		perror("fcntl(F_UNLCK)");
+#endif
+#ifdef LOCK_DEBUG
+	fprintf(stderr, "%s(%u): Unlocking session file\n", __FUNCTION__, options.node_min);
+#endif
+#if FCNTL_LOCKS
+	if (fcntl(rec_fd, F_SETLK, &lock))
+		pexit("fcntl(F_UNLCK)");
 #else
 	if (flock(rec_fd, LOCK_UN))
-		perror("flock(LOCK_UN)");
+		pexit("flock(LOCK_UN)");
 #endif
 }
 #else
