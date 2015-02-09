@@ -1565,8 +1565,8 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     {
       const char old_c = input_buf[0];
 
-      const char new_cu = toupper (old_c);
-      const char new_cl = tolower (old_c);
+      const char new_cu = toupper (ARCH_INDEX(old_c));
+      const char new_cl = tolower (ARCH_INDEX(old_c));
 
       if (old_c != new_cu)
       {
