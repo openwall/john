@@ -705,6 +705,55 @@ def pcap_parser_hsrp(fname):
     f.close()
 
 
+def pcap_parser_hsrp_v2(fname):
+    f = open(fname, "rb")
+    pcap = dpkt.pcap.Reader(f)
+
+    index = 0
+    for _, buf in pcap:
+        index = index + 1
+        eth = dpkt.ethernet.Ethernet(buf)
+        if eth.type == dpkt.ethernet.ETH_TYPE_IP:
+            ip = eth.data
+
+            if eth.type == dpkt.ethernet.ETH_TYPE_IP and ip.p != dpkt.ip.IP_PROTO_UDP:
+                continue
+            if eth.type == dpkt.ethernet.ETH_TYPE_IP6 and ip.nxt != dpkt.ip.IP_PROTO_UDP:
+                continue
+
+            udp = ip.data
+            if udp.dport != 1985:  # is this HSRP traffic?
+                continue
+            data = udp.data
+
+            # HSRPv2 uses TLVs
+            offset = 0
+            uses_authentication = False
+            salt = ""
+            print data[0:8].encode("hex")
+            while True:
+                try:
+                    tlv_type = ord(data[offset:offset+1])
+                    tlv_length = ord(data[offset+1:offset+2])
+                    if tlv_type == 1:  # Group State TLV
+                        salt = salt + data[offset:offset+tlv_length+2]
+                        offset = offset + tlv_length + 2  # +2 for tlv_length and tlv_length
+                    elif tlv_type == 4:  # MD5 Authentication TLV
+                        h = data[offset+tlv_length+2-16:]  # MD5 hash, last 16 bytes
+                        salt = salt + data[offset:offset+tlv_length+2].replace(h, "\x00" * 16)
+                        uses_authentication = True
+                        offset = offset + tlv_length + 2
+                    else:
+                        break
+                except:
+                    break
+
+            if uses_authentication:
+                sys.stdout.write("%d:$hsrp$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+
+    f.close()
+
+
 def pcap_parser_glbp(fname):
 
     f = open(fname, "rb")
@@ -1022,6 +1071,7 @@ if __name__ == "__main__":
             pass
         pcap_parser_isis(sys.argv[i])
         pcap_parser_hsrp(sys.argv[i])
+        pcap_parser_hsrp_v2(sys.argv[i])
         pcap_parser_glbp(sys.argv[i])
         pcap_parser_gadu(sys.argv[i])
         pcap_parser_eigrp(sys.argv[i])
