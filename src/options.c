@@ -488,8 +488,7 @@ void opt_print_hidden_usage(void)
 	puts("--prince-wl-dist-len      calculate length distribution from wordlist");
 	puts("                          instead of using built-in table");
 	puts("--prince-case-permute     permute case of first letter");
-	puts("--prince-mmap             memory-map input file (not available for loopback");
-	puts("                          or when permuting case)");
+	puts("--prince-mmap             memory-map infile (not available when permuting case)");
 	puts("--prince-keyspace         just show total keyspace that would be produced");
 	puts("                          (disregarding skip and limit)");
 #endif
