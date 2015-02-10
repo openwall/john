@@ -333,6 +333,11 @@ _john()
 			# For now this works, because no other option after --format=NAME needs more than
 			# one line of text.
 			formats=`${first} |sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e 's#^ *##' -e 's#\<dynamic_n\>#dynamic#' -e 's#^\(.*\)$#\1#' -e 's#/# #g' -e 'p }' | tr A-Z a-z`
+			# john changed to not contain format names on normal usage. If so, simply look for
+			# '--list=formats'  If that string found, then use --list=formats to get real format list
+			if [[ $formats = *--list=formats* ]] ; then
+				formats=`${first} 2>/dev/null --list=formats|sed -e 's/,//g' -e 's#\<dynamic_n\>#dynamic#' | tr A-Z a-z`
+			fi
 			# Meanwhile, there are other hidden options using more than one line of text.
 			# But for now, all the format classes fit into a single line.
 			format_classes=`${first} --list=hidden-options  2>/dev/null|sed -n -e 's#,##g ; s#^--format=[ A-Za-z]*:## p'`
