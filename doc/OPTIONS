@@ -424,11 +424,20 @@ lengths of 9, 10 and so on.
 Gracefully exit after N seconds. If you resume it, it will run for another N
 seconds and exit again.
 
+--keep-guessing			search for alternative plaintexts
+
+Some formats has plaintext collisions, that is, many different plaintexts will
+result in the same, equally valid, hash. It may be due to a design flaw, as in
+BFEgg, or due to limited keyspace as in oldoffice (40-bit NSA giveaway). When
+this option is used a successful crack will not result in that hash being
+removed from further cracking so you may find alternative plaintexts.
+
 --reject-printable		reject printable binaries
 
 This esoteric option can be used to filter out many bogus hashes. It only works
 well with not to small binary sizes. Rejected hashes are printed (as text) to
-stderr.
+stderr. It may fail to work with some formats that eg. reverses steps. A good
+example of that is it does not work with NT format, but works fine with NT2.
 
 --verbosity=N			change verbosity
 
@@ -439,9 +448,14 @@ OpenCL formats and level 1 will mute printing of cracked passwords to screen.
 --skip-self-tests		skip self tests
 
 Tells John to skip self tests. Basic integrity checks will be done but hashes
-from test vector will not be cracked. This option is useful to run many small
+from test vectors will not be cracked. This option is useful to run many small
 attacks in a row against slow hashes. Usually it is not needed. It affects
 --test option: --skip-self-tests and --test together perform only benchmarks.
+
+--stress-test=N			continuous self-test
+
+This is exactly like --test or --test=N except it loops until aborted by user.
+It's mostly for debugging.
 
 --list=WHAT			list capabilities
 
