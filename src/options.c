@@ -343,7 +343,7 @@ JOHN_USAGE_FORK \
 "--list=WHAT               list capabilities, see --list=help or doc/OPTIONS\n"
 
 #define JOHN_USAGE_FORMAT \
-"--format=NAME             force hash of type NAME. The supported hashes can\n" \
+"--format=NAME             force hash of type NAME. The supported formats can\n" \
 "                          be seen with --list=formats and --list=subformats\n\n"
 #if defined(HAVE_OPENCL) && defined(HAVE_CUDA)
 #define JOHN_USAGE_GPU \
