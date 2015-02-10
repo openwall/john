@@ -343,11 +343,8 @@ JOHN_USAGE_FORK \
 "--list=WHAT               list capabilities, see --list=help or doc/OPTIONS\n"
 
 #define JOHN_USAGE_FORMAT \
-"--format=NAME             force hash type NAME:"
-
-#define JOHN_USAGE_INDENT \
-"                         " // formats are prepended with a space
-
+"--format=NAME             force hash of type NAME. The supported hashes can\n" \
+"                          be seen with --list=formats and --list=subformats\n\n"
 #if defined(HAVE_OPENCL) && defined(HAVE_CUDA)
 #define JOHN_USAGE_GPU \
 "--devices=N[,..]          set OpenCL or CUDA device(s)\n"
@@ -359,65 +356,16 @@ JOHN_USAGE_FORK \
 "--device=N                set CUDA device (list using --list=cuda-devices)\n"
 #endif
 
-static int qcmpstr(const void *p1, const void *p2)
-{
-	return strcasecmp(*(const char**)p1, *(const char**)p2);
-}
-
 static void print_usage(char *name)
 {
-	int column;
-	struct fmt_main *format;
-	int i, dynamics = 0;
-	char **formats_list;
-
 	if (!john_main_process)
 		exit(0);
-
-	i = 1;
-	format = fmt_list;
-	while ((format = format->next))
-		i++;
-
-	formats_list = mem_alloc(i * sizeof(char*));
-
-	i = 0;
-	format = fmt_list;
-	do {
-		char *label = format->params.label;
-		if (!strncmp(label, "dynamic", 7)) {
-			if (dynamics++)
-				continue;
-			else
-				label = "dynamic_n";
-		}
-		formats_list[i++] = label;
-	} while ((format = format->next));
-	formats_list[i] = NULL;
-
-	qsort(formats_list, i, sizeof(formats_list[0]), qcmpstr);
 
 	printf(JOHN_USAGE, name);
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 	printf("%s", JOHN_USAGE_GPU);
 #endif
 	printf("%s", JOHN_USAGE_FORMAT);
-	column = sizeof(JOHN_USAGE_FORMAT);
-
-	i = 0;
-	do {
-		int length;
-		char *label = formats_list[i++];
-		length = strlen(label) + 1;
-		column += length;
-		if (column > 79) { /* silly Redmond Bug[tm] if we use 80 */
-			printf("\n" JOHN_USAGE_INDENT);
-			column = strlen(JOHN_USAGE_INDENT) + length;
-		}
-		printf(" %s%s", label, formats_list[i] ? "" : "\n");
-	} while (formats_list[i]);
-	MEM_FREE(formats_list);
-
 	exit(0);
 }
 
