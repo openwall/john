@@ -403,7 +403,7 @@ void rec_restore_args(int lock)
 #ifndef HAVE_MPI
 		if (options.fork && !john_main_process && errno == ENOENT) {
 #else
-		if (!john_main_process && errno == ENOENT) {
+		if (options.node_min > 1 && errno == ENOENT) {
 #endif
 			fprintf(stderr, "%u Session completed\n",
 			    options.node_min);
@@ -416,6 +416,14 @@ void rec_restore_args(int lock)
 #endif
 			exit(0);
 		}
+#ifdef HAVE_MPI
+		if (mpi_p > 1) {
+			fprintf(stderr, "%u@%s: fopen: %s: %s\n",
+				mpi_id + 1, mpi_name,
+				path_expand(rec_name), strerror(errno));
+			error();
+		}
+#endif
 		pexit("fopen: %s", path_expand(rec_name));
 	}
 	rec_fd = fileno(rec_file);

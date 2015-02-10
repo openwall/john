@@ -38,6 +38,8 @@ static struct fmt_main **fmt_tail = &fmt_list;
 extern volatile int bench_running;
 
 #ifndef BENCH_BUILD
+static int orig_min, orig_max, orig_len;
+
 /* We could move this to misc.c */
 static size_t fmt_strnlen(const char *s, size_t max)
 {
@@ -61,6 +63,12 @@ void fmt_init(struct fmt_main *format)
 	char *opt;
 	if (!format->private.initialized) {
 		double d = 0;
+
+		if (options.flags & FLG_LOOPTEST) {
+			orig_min = format->params.min_keys_per_crypt;
+			orig_max = format->params.max_keys_per_crypt;
+			orig_len = format->params.plaintext_length;
+		}
 
 		if (!(opt = getenv("OMP_SCALE")))
 			opt = cfg_get_param(SECTION_OPTIONS, NULL,
@@ -119,6 +127,12 @@ void fmt_done(struct fmt_main *format)
 #ifdef HAVE_OPENCL
 		opencl_done();
 #endif
+		if (options.flags & FLG_LOOPTEST) {
+			format->params.min_keys_per_crypt = orig_min;
+			format->params.max_keys_per_crypt = orig_max;
+			format->params.plaintext_length = orig_len;
+		}
+
 	}
 }
 

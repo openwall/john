@@ -525,6 +525,8 @@ IV_LEN[] = {
 public int
 iv_len(unsigned int type)
 {
+	(void) SYM_ALGS; /* Mutes a compiler warning in clang */
+
 	if (type < SYM_ALGS_NUM)
 		return IV_LEN[type];
 	else
@@ -1441,7 +1443,7 @@ parse_packet(void)
 		}
 		if (tag < TAG_NUM)
 			// printf("%s(tag %d)", TAG[tag], tag);
-			;
+			(void) TAG; /* Mutes a compiler warning in clang */
 		else
 			fprintf(stderr, "unknown(tag %d)", tag);
 
@@ -1517,6 +1519,7 @@ parse_signature_subpacket(string prefix, int tlen)
 		else
 			printf("\t%s: unknown(sub %d%s)", prefix, subtype, critical ? ", critical" : "");
 		printf("(%d bytes)\n", len); */
+		(void) SIGSUB; /* mute a compiler warning in clang */
 		if (subtype < SIGSUB_NUM && sigsub_func[subtype] != NULL)
 			(*sigsub_func[subtype])(len);
 		else

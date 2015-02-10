@@ -419,7 +419,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 		if (source) {
 			int shift = strlen(*uid);
 			memmove(source + shift + 1, source, strlen(source) + 1);
-			memcpy(source, uid, shift);
+			memcpy(source, *uid, shift);
 			source[shift] = db_opts->field_sep_char;
 		}
 	}
