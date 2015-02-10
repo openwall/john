@@ -426,11 +426,13 @@ seconds and exit again.
 
 --keep-guessing			search for alternative plaintexts
 
-Some formats has plaintext collisions, that is, many different plaintexts will
-result in the same, equally valid, hash. It may be due to a design flaw, as in
-BFEgg, or due to limited keyspace as in oldoffice (40-bit NSA giveaway). When
-this option is used a successful crack will not result in that hash being
-removed from further cracking so you may find alternative plaintexts.
+Some formats has plaintext collisions. That means some (or many) different
+plaintexts will result in the same hash, so are equally valid. It may be due
+to a design flaw as in BFEgg, or due to limited binary size as in CRC-32 - or
+artificially limited keyspace as in Office formats before 2007 (a good sized
+key is truncated to 40-bit on purpose - thank you Microsoft). When this option
+is used a successful crack will not result in that hash being removed from
+further cracking, so you can use it to find alternative plaintexts.
 
 --reject-printable		reject printable binaries
 
