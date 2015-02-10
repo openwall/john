@@ -329,14 +329,16 @@ _john()
 			;;
 		--format=*)
 			cur=`echo ${cur#*[=:]} | tr A-Z a-z`
-			# Looks like b is not a good enough replacement for q (which is a GNU extension).
-			# For now this works, because no other option after --format=NAME needs more than
-			# one line of text.
-			formats=`${first} |sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e 's#^ *##' -e 's#\<dynamic_n\>#dynamic#' -e 's#^\(.*\)$#\1#' -e 's#/# #g' -e 'p }' | tr A-Z a-z`
-			# john changed to not contain format names on normal usage. If so, simply look for
-			# '--list=formats'  If that string found, then use --list=formats to get real format list
-			if [[ $formats = *--list=formats* ]] ; then
-				formats=`${first} 2>/dev/null --list=formats|sed -e 's/,//g' -e 's#\<dynamic_n\>#dynamic#' | tr A-Z a-z`
+			# john (jumbo version) changed to not contain format names on normal usage.
+			# Use --list=formats output if available.
+			formats=`${first} 2>/dev/null --list=formats|sed -n -e 's#,##g' -e 's#\<dynamic_n\>#dynamic#' -e 'p' | tr A-Z a-z`
+			if [[ "x${formats}" == x ]] ; then
+				# --list=formats not available, use usage output as fallback
+				#
+				# Looks like sed's b is not a good enough replacement for q (which is a GNU extension).
+				# For now this works, because no other option after --format=NAME needs more than
+				#  one line of text
+				formats=`${first} |sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e 's#^ *##' -e 's#\<dynamic_n\>#dynamic#' -e 's#^\(.*\)$#\1#' -e 's#/# #g' -e 'p }' | tr A-Z a-z`
 			fi
 			# Meanwhile, there are other hidden options using more than one line of text.
 			# But for now, all the format classes fit into a single line.
