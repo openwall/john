@@ -41,6 +41,7 @@ void DES_opencl_clean_all_buffer()
 	HANDLE_CLERROR(clReleaseMemObject(index768_gpu),errMsg);
 	HANDLE_CLERROR(clReleaseMemObject(opencl_DES_bs_data_gpu), errMsg);
 	HANDLE_CLERROR(clReleaseMemObject(B_gpu), errMsg);
+	HANDLE_CLERROR(clReleaseMemObject(K_gpu), errMsg);
 	clReleaseMemObject(cmp_out_gpu);
 	clReleaseMemObject(loaded_hash_gpu);
 	clReleaseMemObject(bitmap);
@@ -56,6 +57,7 @@ void DES_opencl_clean_all_buffer()
 	MEM_FREE(index96_gpu);
 	MEM_FREE(index96);
 	clReleaseKernel(krnl[gpu_id][0]);
+	clReleaseKernel(krnl[gpu_id][1]);
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 	               "Error releasing Program");
 }
@@ -258,7 +260,7 @@ void DES_bs_select_device(struct fmt_main *fmt)
 	krnl[gpu_id][0] = clCreateKernel(program[gpu_id], "DES_bs_25_b", &err) ;
 	if (err) {
 		fprintf(stderr, "Create Kernel DES_bs_25_b FAILED\n");
-		return ;
+		return;
 	}
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
 
@@ -267,7 +269,7 @@ void DES_bs_select_device(struct fmt_main *fmt)
 	krnl[gpu_id][1] = clCreateKernel(program[gpu_id], "DES_bs_finalize_keys", &err) ;
 	if (err) {
 		fprintf(stderr, "Create Kernel DES_bs_finalize_keys\n");
-		return ;
+		return;
 	}
 
 	/* Cap LWS at kernel limit */

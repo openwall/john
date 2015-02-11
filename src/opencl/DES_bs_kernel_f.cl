@@ -763,7 +763,7 @@ inline void DES_bs_finalize_keys(unsigned int section,
 		z(62, 0), z(63, 49), z(32, 28),\
 		B,4, 26, 14, 20);
 
-__kernel void DES_bs_25(__global DES_bs_transfer *DES_bs_all,
+__kernel void DES_bs_25(__global DES_bs_vector *K,
                         __global DES_bs_vector *B_global,
 			__global int *binary,
 			  int num_loaded_hashes,
@@ -771,13 +771,18 @@ __kernel void DES_bs_25(__global DES_bs_transfer *DES_bs_all,
 			  volatile __global uint *bitmap) {
 
 		unsigned int section = get_global_id(0), local_offset_K;
-		unsigned int local_id = get_local_id(0),i;
+		unsigned int local_id = get_local_id(0), i;
+		int global_work_size = get_global_size(0);
 
 		local_offset_K  = 56 * local_id;
 
 		vtype B[64], tmp;
 
-		__local DES_bs_vector _local_K[56 * WORK_GROUP_SIZE] ;
+		__local DES_bs_vector _local_K[56 * WORK_GROUP_SIZE];
+
+		for (i = 0; i < 56; i++)
+			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
+		barrier(CLK_LOCAL_MEM_FENCE);
 
 		if(!section) {
 			hash_ids[0] = 0;
@@ -788,8 +793,6 @@ __kernel void DES_bs_25(__global DES_bs_transfer *DES_bs_all,
 
 		int iterations;
 
-		goto finalize_keys;
-body:
 		{
 			vtype zero = vzero;
 			DES_bs_clear_block
@@ -827,9 +830,6 @@ start:         	H1_k0();
 
 		return;
 
-finalize_keys:
-		DES_bs_finalize_keys(section, DES_bs_all, local_offset_K, _local_K);
-		goto body;
 }
 
 #endif

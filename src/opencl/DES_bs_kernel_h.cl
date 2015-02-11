@@ -489,7 +489,7 @@ __kernel void DES_bs_25( constant uint *index768
 #if gpu_amd(DEVICE_INFO)
                          __attribute__((max_constant_size(3072)))
 #endif
-                         , __global DES_bs_transfer *DES_bs_all,
+                         , __global DES_bs_vector *K,
                          __global DES_bs_vector *B_global,
                          __global int *binary,
                          int num_loaded_hashes,
@@ -498,6 +498,7 @@ __kernel void DES_bs_25( constant uint *index768
 
 		unsigned int section = get_global_id(0), local_offset_K;
 		unsigned int local_id = get_local_id(0);
+		int global_work_size = get_global_size(0);
 
 		local_offset_K  = 56 * local_id;
 
@@ -518,7 +519,10 @@ __kernel void DES_bs_25( constant uint *index768
 
 		long int k = 0, i;
 
-		DES_bs_finalize_keys(section, DES_bs_all, local_offset_K, _local_K);
+		for (i = 0; i < 56; i++)
+			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
+		barrier(CLK_LOCAL_MEM_FENCE);
+
 
 		{
 			vtype zero = vzero;

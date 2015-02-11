@@ -254,7 +254,6 @@ __kernel void DES_bs_25_b( constant uint *index768
 		unsigned int section = get_global_id(0), local_offset_K;
 		unsigned int local_id = get_local_id(0);
 		int global_work_size = get_global_size(0);
-		int local_work_size = get_local_size(0);
 
 		local_offset_K  = 56 * local_id;
 
