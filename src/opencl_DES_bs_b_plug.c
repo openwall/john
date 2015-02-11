@@ -251,17 +251,22 @@ void DES_bs_select_device(struct fmt_main *fmt)
 	if (!local_work_size)
 		local_work_size = WORK_GROUP_SIZE;
 
-	opencl_init("$JOHN/kernels/DES_bs_kernel.cl", gpu_id, NULL);
+	opencl_prepare_dev(gpu_id);
 
+	opencl_read_source("$JOHN/kernels/DES_bs_kernel.cl");
+	opencl_build(gpu_id, NULL, 0, NULL);
 	krnl[gpu_id][0] = clCreateKernel(program[gpu_id], "DES_bs_25_b", &err) ;
 	if (err) {
 		fprintf(stderr, "Create Kernel DES_bs_25_b FAILED\n");
 		return ;
 	}
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
 
-	krnl[gpu_id][1] = clCreateKernel(program[gpu_id], "kDES_bs_finalize_keys", &err) ;
+	opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
+	opencl_build(gpu_id, NULL, 0, NULL);
+	krnl[gpu_id][1] = clCreateKernel(program[gpu_id], "DES_bs_finalize_keys", &err) ;
 	if (err) {
-		fprintf(stderr, "Create Kernel kDES_bs_finalize_keys\n");
+		fprintf(stderr, "Create Kernel DES_bs_finalize_keys\n");
 		return ;
 	}
 

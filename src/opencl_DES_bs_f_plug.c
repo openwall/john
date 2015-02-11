@@ -405,7 +405,7 @@ static void init_dev()
 	if (bitmap == (cl_mem)0)
 		HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
-	opencl_read_source("$JOHN/kernels/DES_bs_kernel_f.cl") ;
+	opencl_read_source("$JOHN/kernels/DES_bs_kernel_f.cl");
 }
 
 void modify_src() {
