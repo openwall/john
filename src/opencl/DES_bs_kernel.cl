@@ -269,6 +269,117 @@ typedef struct{
 #define GET_BIT \
 	(unsigned int)*(unsigned char *)&b[0] >> idx
 
+#define FINALIZE_NEXT_KEY_BIT_0g { 			\
+	kvtype m = mask01, va, vb, tmp; 		\
+	kvand(va, v0, m); 				\
+	kvand_shl1(vb, v1, m); 				\
+	kvand_shl_or(va, v2, m, 2); 			\
+	kvand_shl_or(vb, v3, m, 3); 			\
+	kvand_shl_or(va, v4, m, 4); 			\
+	kvand_shl_or(vb, v5, m, 5); 			\
+	kvand_shl_or(va, v6, m, 6); 			\
+	kvand_shl_or(vb, v7, m, 7); 			\
+	kvor(kp[0], va, vb); 				\
+	kp += global_work_size; 						\
+}
+
+#define FINALIZE_NEXT_KEY_BIT_1g { 			\
+	kvtype m = mask02, va, vb, tmp; 		\
+	kvand_shr(va, v0, m, 1); 			\
+	kvand(vb, v1, m); 				\
+	kvand_shl1_or(va, v2, m); 			\
+	kvand_shl_or(vb, v3, m, 2); 			\
+	kvand_shl_or(va, v4, m, 3); 			\
+	kvand_shl_or(vb, v5, m, 4); 			\
+	kvand_shl_or(va, v6, m, 5); 			\
+	kvand_shl_or(vb, v7, m, 6); 			\
+	kvor(kp[0], va, vb); 				\
+	kp += global_work_size; 						\
+}
+
+#define FINALIZE_NEXT_KEY_BIT_2g { 			\
+	kvtype m = mask04, va, vb, tmp; 		\
+	kvand_shr(va, v0, m, 2); 			\
+	kvand_shr(vb, v1, m, 1); 			\
+	kvand_or(va, v2, m); 				\
+	kvand_shl1_or(vb, v3, m); 			\
+	kvand_shl_or(va, v4, m, 2); 			\
+	kvand_shl_or(vb, v5, m, 3); 			\
+	kvand_shl_or(va, v6, m, 4); 			\
+	kvand_shl_or(vb, v7, m, 5); 			\
+	kvor(kp[0], va, vb); 				\
+	kp += global_work_size; 						\
+}
+
+#define FINALIZE_NEXT_KEY_BIT_3g { 			\
+	kvtype m = mask08, va, vb, tmp; 		\
+	kvand_shr(va, v0, m, 3); 			\
+	kvand_shr(vb, v1, m, 2); 			\
+	kvand_shr_or(va, v2, m, 1); 			\
+	kvand_or(vb, v3, m); 				\
+	kvand_shl1_or(va, v4, m); 			\
+	kvand_shl_or(vb, v5, m, 2); 			\
+	kvand_shl_or(va, v6, m, 3); 			\
+	kvand_shl_or(vb, v7, m, 4); 			\
+	kvor(kp[0], va, vb); 				\
+	kp += global_work_size; 						\
+}
+
+#define FINALIZE_NEXT_KEY_BIT_4g { 			\
+	kvtype m = mask10, va, vb, tmp; 		\
+	kvand_shr(va, v0, m, 4); 			\
+	kvand_shr(vb, v1, m, 3); 			\
+	kvand_shr_or(va, v2, m, 2); 			\
+	kvand_shr_or(vb, v3, m, 1); 			\
+	kvand_or(va, v4, m); 				\
+	kvand_shl1_or(vb, v5, m); 			\
+	kvand_shl_or(va, v6, m, 2); 			\
+	kvand_shl_or(vb, v7, m, 3); 			\
+	kvor(kp[0], va, vb); 				\
+	kp += global_work_size; 						\
+}
+
+#define FINALIZE_NEXT_KEY_BIT_5g { 			\
+	kvtype m = mask20, va, vb, tmp; 		\
+	kvand_shr(va, v0, m, 5); 			\
+	kvand_shr(vb, v1, m, 4); 			\
+	kvand_shr_or(va, v2, m, 3); 			\
+	kvand_shr_or(vb, v3, m, 2); 			\
+	kvand_shr_or(va, v4, m, 1); 			\
+	kvand_or(vb, v5, m); 				\
+	kvand_shl1_or(va, v6, m); 			\
+	kvand_shl_or(vb, v7, m, 2); 			\
+	kvor(kp[0], va, vb); 				\
+	kp += global_work_size; 						\
+}
+
+#define FINALIZE_NEXT_KEY_BIT_6g { 			\
+	kvtype m = mask40, va, vb, tmp; 		\
+	kvand_shr(va, v0, m, 6); 			\
+	kvand_shr(vb, v1, m, 5); 			\
+	kvand_shr_or(va, v2, m, 4); 			\
+	kvand_shr_or(vb, v3, m, 3); 			\
+	kvand_shr_or(va, v4, m, 2); 			\
+	kvand_shr_or(vb, v5, m, 1); 			\
+	kvand_or(va, v6, m); 				\
+	kvand_shl1_or(vb, v7, m); 			\
+	kvor(kp[0], va, vb); 				\
+	kp += global_work_size; 						\
+}
+
+#define FINALIZE_NEXT_KEY_BIT_7g { 			\
+	kvtype m = mask80, va, vb, tmp; 		\
+	kvand_shr(va, v0, m, 7); 			\
+	kvand_shr(vb, v1, m, 6); 			\
+	kvand_shr_or(va, v2, m, 5); 			\
+	kvand_shr_or(vb, v3, m, 4); 			\
+	kvand_shr_or(va, v4, m, 3); 			\
+	kvand_shr_or(vb, v5, m, 2); 			\
+	kvand_shr_or(va, v6, m, 1); 			\
+	kvand_or(vb, v7, m); 				\
+	kvor(kp[0], va, vb); 				\
+	kp += global_work_size;
+
 inline void cmp( __private unsigned DES_bs_vector *B,
 	  __global int *binary,
 	  int num_loaded_hash,
@@ -307,6 +418,28 @@ inline void cmp( __private unsigned DES_bs_vector *B,
 	}
 }
 #undef GET_BIT
+
+__kernel void kDES_bs_finalize_keys(__global DES_bs_transfer *DES_bs_all,
+				   __global DES_bs_vector *K) {
+
+	int section = get_global_id(0);
+	int global_work_size = get_global_size(0);
+	__global DES_bs_vector *kp = (__global DES_bs_vector *)&K[section];
+
+	int ic ;
+	for (ic = 0; ic < 8; ic++) {
+		MAYBE_GLOBAL DES_bs_vector *vp =
+		    (MAYBE_GLOBAL DES_bs_vector *)&DES_bs_all[section].xkeys.v[ic][0] ;
+		LOAD_V
+		FINALIZE_NEXT_KEY_BIT_0g
+		FINALIZE_NEXT_KEY_BIT_1g
+		FINALIZE_NEXT_KEY_BIT_2g
+		FINALIZE_NEXT_KEY_BIT_3g
+		FINALIZE_NEXT_KEY_BIT_4g
+		FINALIZE_NEXT_KEY_BIT_5g
+		FINALIZE_NEXT_KEY_BIT_6g
+	}
+}
 
 inline void DES_bs_finalize_keys(unsigned int section,
 				__global DES_bs_transfer *DES_bs_all,
@@ -450,7 +583,7 @@ __kernel void DES_bs_25_b( constant uint *index768
                            __attribute__((max_constant_size(3072)))
 #endif
                            , __global int *index96 ,
-                           __global DES_bs_transfer *DES_bs_all,
+                           __global DES_bs_vector *K,
                            __global DES_bs_vector *B_global,
                            __global int *binary,
                            int num_loaded_hashes,
@@ -460,6 +593,8 @@ __kernel void DES_bs_25_b( constant uint *index768
 
 		unsigned int section = get_global_id(0), local_offset_K;
 		unsigned int local_id = get_local_id(0);
+		int global_work_size = get_global_size(0);
+		int local_work_size = get_local_size(0);
 
 		local_offset_K  = 56 * local_id;
 
@@ -477,7 +612,10 @@ __kernel void DES_bs_25_b( constant uint *index768
 #endif
 		long int k = 0, i;
 
-		DES_bs_finalize_keys(section, DES_bs_all, local_offset_K, _local_K);
+		//DES_bs_finalize_keys(section, DES_bs_all, local_offset_K, _local_K);
+		for (i = 0; i < 56; i++)
+			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
+		barrier(CLK_LOCAL_MEM_FENCE);
 
 		{
 			vtype zero = vzero;
