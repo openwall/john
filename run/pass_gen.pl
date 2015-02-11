@@ -1690,6 +1690,21 @@ sub ike {
 sub cloudkeychain {
 }
 sub agilekeychain {
+	my $nkeys=1; my $iterations=1000;
+	my $salt=get_salt(8); my $ct;
+	my $iv=get_content(16);
+#$iv = pack("H*", "22a5fad4ee4f37a682ffb7234bea6198");
+	my $dat=randstr(1040-32);
+	$dat .= $iv;
+#$salt = pack("H*", "7146eaa1cca395e5");
+	my $key = pp_pbkdf2($_[1], $salt, $iterations,"sha1",16, 64);
+	require Crypt::OpenSSL::AES;
+	require Crypt::CBC;
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 16, -iv => $iv, -cipher => 'Crypt::OpenSSL::AES', -header => 'none');
+	my $h = $crypt->encrypt("\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10");
+	$dat .= substr($h,0,16);
+
+	return "\$agilekeychain\$$nkeys*$iterations*8*".unpack("H*", $salt)."*1040*".unpack("H*", $dat)."*".unpack("H*", $key);
 }
 sub mdc2 {
 }
