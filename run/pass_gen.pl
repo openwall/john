@@ -1690,13 +1690,12 @@ sub ike {
 sub cloudkeychain {
 }
 sub agilekeychain {
-	my $nkeys=1; my $iterations=1000;
-	my $salt=get_salt(8); my $ct;
-	my $iv=get_content(16);
-#$iv = pack("H*", "22a5fad4ee4f37a682ffb7234bea6198");
-	my $dat=randstr(1040-32);
+	my $nkeys=1;
+	my $iterations=1000;
+	my $salt=get_salt(8);
+	my $iv=get_iv(16);
+	my $dat=randstr(1040-32); # not sure what would be here, but JtR does not do anything with it.
 	$dat .= $iv;
-#$salt = pack("H*", "7146eaa1cca395e5");
 	my $key = pp_pbkdf2($_[1], $salt, $iterations,"sha1",16, 64);
 	require Crypt::OpenSSL::AES;
 	require Crypt::CBC;
