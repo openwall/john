@@ -13,9 +13,7 @@
 #endif
 
 #define ARCH_WORD     			int
-#define DES_BS_DEPTH                    32
 #define DES_bs_vector                   ARCH_WORD
-
 typedef unsigned ARCH_WORD vtype ;
 
 typedef struct{
@@ -25,41 +23,14 @@ typedef struct{
 	} xkeys;
 } DES_bs_transfer;
 
-#define vxorf(a, b) 					\
-	((a) ^ (b))
-
-#define vnot(dst, a) 					\
-	(dst) = ~(a)
 #define vand(dst, a, b) 				\
 	(dst) = (a) & (b)
 #define vor(dst, a, b) 					\
 	(dst) = (a) | (b)
-#define vandn(dst, a, b) 				\
-	(dst) = (a) & ~(b)
-
-#if defined(_NV)||defined(_CPU)
-#define vsel(dst, a, b, c) 				\
-	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
-#else
-#define vsel(dst, a, b, c) 				\
-	(dst) = bitselect((a),(b),(c))
-#endif
-
 #define vshl(dst, src, shift) 				\
 	(dst) = (src) << (shift)
 #define vshr(dst, src, shift) 				\
 	(dst) = (src) >> (shift)
-
-#define vzero 0
-
-#define vones (~(vtype)0)
-
-#define vst(dst, ofs, src) 				\
-	*((MAYBE_GLOBAL vtype *)((MAYBE_GLOBAL DES_bs_vector *)&(dst) + (ofs))) = (src)
-
-#define vxor(dst, a, b) 				\
-	(dst) = vxorf((a), (b))
-
 #define vshl1(dst, src) 				\
 	vshl((dst), (src), 1)
 
@@ -105,6 +76,7 @@ typedef struct{
 #define kvand_shr(dst, src, mask, shift) 		\
 	kvand(tmp, src, mask); 				\
 	kvshr(dst, tmp, shift)
+
 #define LOAD_V 						\
 	kvtype v0 = *(MAYBE_GLOBAL kvtype *)&vp[0]; 	\
 	kvtype v1 = *(MAYBE_GLOBAL kvtype *)&vp[1]; 	\

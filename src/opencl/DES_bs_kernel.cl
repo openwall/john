@@ -29,26 +29,21 @@
 #endif
 
 #define ARCH_WORD     			int
-#define DES_BS_DEPTH                    32
 #define DES_bs_vector                   ARCH_WORD
-
 typedef unsigned ARCH_WORD vtype;
 
 #if no_byte_addressable(DEVICE_INFO)
 #define RV7xx
 #endif
-
 #if gpu_nvidia(DEVICE_INFO)
 #define _NV
 #endif
-
 #if cpu(DEVICE_INFO)
 #define _CPU
 #endif
 
 #define vxorf(a, b) 					\
 	((a) ^ (b))
-
 #define vnot(dst, a) 					\
 	(dst) = ~(a)
 #define vand(dst, a, b) 				\
@@ -57,6 +52,14 @@ typedef unsigned ARCH_WORD vtype;
 	(dst) = (a) | (b)
 #define vandn(dst, a, b) 				\
 	(dst) = (a) & ~(b)
+#define vxor(dst, a, b) 				\
+	(dst) = vxorf((a), (b))
+#define vshl(dst, src, shift) 				\
+	(dst) = (src) << (shift)
+#define vshr(dst, src, shift) 				\
+	(dst) = (src) >> (shift)
+#define vshl1(dst, src) 				\
+	vshl((dst), (src), 1)
 
 #if defined(_NV)||defined(_CPU)
 #define vsel(dst, a, b, c) 				\
@@ -65,24 +68,6 @@ typedef unsigned ARCH_WORD vtype;
 #define vsel(dst, a, b, c) 				\
 	(dst) = bitselect((a),(b),(c))
 #endif
-
-#define vshl(dst, src, shift) 				\
-	(dst) = (src) << (shift)
-#define vshr(dst, src, shift) 				\
-	(dst) = (src) >> (shift)
-
-#define vzero 0
-
-#define vones (~(vtype)0)
-
-#define vst(dst, ofs, src) 				\
-	*((MAYBE_GLOBAL vtype *)((MAYBE_GLOBAL DES_bs_vector *)&(dst) + (ofs))) = (src)
-
-#define vxor(dst, a, b) 				\
-	(dst) = vxorf((a), (b))
-
-#define vshl1(dst, src) 				\
-	vshl((dst), (src), 1)
 
 inline void cmp( __private unsigned DES_bs_vector *B,
 	  __global int *binary,

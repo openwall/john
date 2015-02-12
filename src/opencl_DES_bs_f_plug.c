@@ -129,6 +129,8 @@ void opencl_DES_reset(struct db_main *db) {
 		cmp_out     = (unsigned int *) mem_alloc((2 * num_loaded_hashes + 1) * sizeof(unsigned int));
 		B = (DES_bs_vector*) mem_alloc (num_loaded_hashes * 64 * sizeof(DES_bs_vector));
 
+		cmp_out[0] = 0;
+
 		B_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 64 * num_loaded_hashes * sizeof(DES_bs_vector), NULL, &err);
 		if (B_gpu == (cl_mem)0)
 			HANDLE_CLERROR(err, "Create Buffer FAILED\n");

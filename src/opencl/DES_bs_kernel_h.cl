@@ -79,39 +79,21 @@
 #endif
 
 #define ARCH_WORD     			int
-#define DES_BS_DEPTH                    32
 #define DES_bs_vector                   ARCH_WORD
-
 typedef unsigned ARCH_WORD vtype ;
 
 #if no_byte_addressable(DEVICE_INFO)
 #define RV7xx
 #endif
-
 #if gpu_nvidia(DEVICE_INFO)
 #define _NV
 #endif
-
 #if cpu(DEVICE_INFO)
 #define _CPU
 #endif
 
-#if 1
-#define MAYBE_GLOBAL __global
-#else
-#define MAYBE_GLOBAL
-#endif
-
-typedef struct{
-	union {
-		unsigned char c[8][8][sizeof(DES_bs_vector)] ;
-		DES_bs_vector v[8][8] ;
-	} xkeys ;
-} DES_bs_transfer ;
-
 #define vxorf(a, b) 					\
 	((a) ^ (b))
-
 #define vnot(dst, a) 					\
 	(dst) = ~(a)
 #define vand(dst, a, b) 				\
@@ -120,6 +102,14 @@ typedef struct{
 	(dst) = (a) | (b)
 #define vandn(dst, a, b) 				\
 	(dst) = (a) & ~(b)
+#define vxor(dst, a, b) 				\
+	(dst) = vxorf((a), (b))
+#define vshl(dst, src, shift) 				\
+	(dst) = (src) << (shift)
+#define vshr(dst, src, shift) 				\
+	(dst) = (src) >> (shift)
+#define vshl1(dst, src) 				\
+	vshl((dst), (src), 1)
 
 #if defined(_NV)||defined(_CPU)
 #define vsel(dst, a, b, c) 				\
@@ -128,197 +118,6 @@ typedef struct{
 #define vsel(dst, a, b, c) 				\
 	(dst) = bitselect((a),(b),(c))
 #endif
-
-#define vshl(dst, src, shift) 				\
-	(dst) = (src) << (shift)
-#define vshr(dst, src, shift) 				\
-	(dst) = (src) >> (shift)
-
-#define vzero 0
-
-#define vones (~(vtype)0)
-
-#define vst(dst, ofs, src) 				\
-	*((MAYBE_GLOBAL vtype *)((MAYBE_GLOBAL DES_bs_vector *)&(dst) + (ofs))) = (src)
-
-#define vst_private(dst, ofs, src) 			\
-	*((__private vtype *)((__private DES_bs_vector *)&(dst) + (ofs))) = (src)
-
-#define vxor(dst, a, b) 				\
-	(dst) = vxorf((a), (b))
-
-#define vshl1(dst, src) 				\
-	vshl((dst), (src), 1)
-
-#define kvtype vtype
-#define kvand vand
-#define kvor vor
-#define kvshl1 vshl1
-#define kvshl vshl
-#define kvshr vshr
-
-
-#define mask01 0x01010101
-#define mask02 0x02020202
-#define mask04 0x04040404
-#define mask08 0x08080808
-#define mask10 0x10101010
-#define mask20 0x20202020
-#define mask40 0x40404040
-#define mask80 0x80808080
-
-
-#define LOAD_V 						\
-	kvtype v0 = *(MAYBE_GLOBAL kvtype *)&vp[0]; 	\
-	kvtype v1 = *(MAYBE_GLOBAL kvtype *)&vp[1]; 	\
-	kvtype v2 = *(MAYBE_GLOBAL kvtype *)&vp[2]; 	\
-	kvtype v3 = *(MAYBE_GLOBAL kvtype *)&vp[3]; 	\
-	kvtype v4 = *(MAYBE_GLOBAL kvtype *)&vp[4]; 	\
-	kvtype v5 = *(MAYBE_GLOBAL kvtype *)&vp[5]; 	\
-	kvtype v6 = *(MAYBE_GLOBAL kvtype *)&vp[6]; 	\
-	kvtype v7 = *(MAYBE_GLOBAL kvtype *)&vp[7];
-
-#define kvand_shl1_or(dst, src, mask) 			\
-	kvand(tmp, src, mask); 				\
-	kvshl1(tmp, tmp); 				\
-	kvor(dst, dst, tmp)
-
-#define kvand_shl_or(dst, src, mask, shift) 		\
-	kvand(tmp, src, mask); 				\
-	kvshl(tmp, tmp, shift); 			\
-	kvor(dst, dst, tmp)
-
-#define kvand_shl1(dst, src, mask) 			\
-	kvand(tmp, src, mask) ;				\
-	kvshl1(dst, tmp)
-
-#define kvand_or(dst, src, mask) 			\
-	kvand(tmp, src, mask); 				\
-	kvor(dst, dst, tmp)
-
-#define kvand_shr_or(dst, src, mask, shift)		\
-	kvand(tmp, src, mask); 				\
-	kvshr(tmp, tmp, shift); 			\
-	kvor(dst, dst, tmp)
-
-#define kvand_shr(dst, src, mask, shift) 		\
-	kvand(tmp, src, mask); 				\
-	kvshr(dst, tmp, shift)
-
-#define FINALIZE_NEXT_KEY_BIT_0 { 			\
-	kvtype m = mask01, va, vb, tmp; 		\
-	kvand(va, v0, m); 				\
-	kvand_shl1(vb, v1, m); 				\
-	kvand_shl_or(va, v2, m, 2); 			\
-	kvand_shl_or(vb, v3, m, 3); 			\
-	kvand_shl_or(va, v4, m, 4); 			\
-	kvand_shl_or(vb, v5, m, 5); 			\
-	kvand_shl_or(va, v6, m, 6); 			\
-	kvand_shl_or(vb, v7, m, 7); 			\
-	kvor(kp[0], va, vb); 				\
-	kp++; 						\
-}
-
-#define FINALIZE_NEXT_KEY_BIT_1 { 			\
-	kvtype m = mask02, va, vb, tmp; 		\
-	kvand_shr(va, v0, m, 1); 			\
-	kvand(vb, v1, m); 				\
-	kvand_shl1_or(va, v2, m); 			\
-	kvand_shl_or(vb, v3, m, 2); 			\
-	kvand_shl_or(va, v4, m, 3); 			\
-	kvand_shl_or(vb, v5, m, 4); 			\
-	kvand_shl_or(va, v6, m, 5); 			\
-	kvand_shl_or(vb, v7, m, 6); 			\
-	kvor(kp[0], va, vb); 				\
-	kp++; 						\
-}
-
-#define FINALIZE_NEXT_KEY_BIT_2 { 			\
-	kvtype m = mask04, va, vb, tmp; 		\
-	kvand_shr(va, v0, m, 2); 			\
-	kvand_shr(vb, v1, m, 1); 			\
-	kvand_or(va, v2, m); 				\
-	kvand_shl1_or(vb, v3, m); 			\
-	kvand_shl_or(va, v4, m, 2); 			\
-	kvand_shl_or(vb, v5, m, 3); 			\
-	kvand_shl_or(va, v6, m, 4); 			\
-	kvand_shl_or(vb, v7, m, 5); 			\
-	kvor(kp[0], va, vb); 				\
-	kp++; 						\
-}
-
-#define FINALIZE_NEXT_KEY_BIT_3 { 			\
-	kvtype m = mask08, va, vb, tmp; 		\
-	kvand_shr(va, v0, m, 3); 			\
-	kvand_shr(vb, v1, m, 2); 			\
-	kvand_shr_or(va, v2, m, 1); 			\
-	kvand_or(vb, v3, m); 				\
-	kvand_shl1_or(va, v4, m); 			\
-	kvand_shl_or(vb, v5, m, 2); 			\
-	kvand_shl_or(va, v6, m, 3); 			\
-	kvand_shl_or(vb, v7, m, 4); 			\
-	kvor(kp[0], va, vb); 				\
-	kp++; 						\
-}
-
-#define FINALIZE_NEXT_KEY_BIT_4 { 			\
-	kvtype m = mask10, va, vb, tmp; 		\
-	kvand_shr(va, v0, m, 4); 			\
-	kvand_shr(vb, v1, m, 3); 			\
-	kvand_shr_or(va, v2, m, 2); 			\
-	kvand_shr_or(vb, v3, m, 1); 			\
-	kvand_or(va, v4, m); 				\
-	kvand_shl1_or(vb, v5, m); 			\
-	kvand_shl_or(va, v6, m, 2); 			\
-	kvand_shl_or(vb, v7, m, 3); 			\
-	kvor(kp[0], va, vb); 				\
-	kp++; 						\
-}
-
-#define FINALIZE_NEXT_KEY_BIT_5 { 			\
-	kvtype m = mask20, va, vb, tmp; 		\
-	kvand_shr(va, v0, m, 5); 			\
-	kvand_shr(vb, v1, m, 4); 			\
-	kvand_shr_or(va, v2, m, 3); 			\
-	kvand_shr_or(vb, v3, m, 2); 			\
-	kvand_shr_or(va, v4, m, 1); 			\
-	kvand_or(vb, v5, m); 				\
-	kvand_shl1_or(va, v6, m); 			\
-	kvand_shl_or(vb, v7, m, 2); 			\
-	kvor(kp[0], va, vb); 				\
-	kp++; 						\
-}
-
-#define FINALIZE_NEXT_KEY_BIT_6 { 			\
-	kvtype m = mask40, va, vb, tmp; 		\
-	kvand_shr(va, v0, m, 6); 			\
-	kvand_shr(vb, v1, m, 5); 			\
-	kvand_shr_or(va, v2, m, 4); 			\
-	kvand_shr_or(vb, v3, m, 3); 			\
-	kvand_shr_or(va, v4, m, 2); 			\
-	kvand_shr_or(vb, v5, m, 1); 			\
-	kvand_or(va, v6, m); 				\
-	kvand_shl1_or(vb, v7, m); 			\
-	kvor(kp[0], va, vb); 				\
-	kp++; 						\
-}
-
-#define FINALIZE_NEXT_KEY_BIT_7 { 			\
-	kvtype m = mask80, va, vb, tmp; 		\
-	kvand_shr(va, v0, m, 7); 			\
-	kvand_shr(vb, v1, m, 6); 			\
-	kvand_shr_or(va, v2, m, 5); 			\
-	kvand_shr_or(vb, v3, m, 4); 			\
-	kvand_shr_or(va, v4, m, 3); 			\
-	kvand_shr_or(vb, v5, m, 2); 			\
-	kvand_shr_or(va, v6, m, 1); 			\
-	kvand_or(vb, v7, m); 				\
-	kvor(kp[0], va, vb); 				\
-	kp++;
-
-#define GET_BIT \
-	(unsigned int)*(unsigned char *)&b[0] >> idx
-
 
 inline void cmp( __private unsigned DES_bs_vector *B,
 	  __global int *binary,
@@ -357,37 +156,15 @@ inline void cmp( __private unsigned DES_bs_vector *B,
 		}
 	}
 }
-#undef GET_BIT
-
-inline void DES_bs_finalize_keys(unsigned int section,
-				__global DES_bs_transfer *DES_bs_all,
-				int local_offset_K,
-				__local DES_bs_vector *K ) {
-
-	__local DES_bs_vector *kp = (__local DES_bs_vector *)&K[local_offset_K] ;
-
-	int ic ;
-	for (ic = 0; ic < 8; ic++) {
-		MAYBE_GLOBAL DES_bs_vector *vp =
-		    (MAYBE_GLOBAL DES_bs_vector *)&DES_bs_all[section].xkeys.v[ic][0] ;
-		LOAD_V
-		FINALIZE_NEXT_KEY_BIT_0
-		FINALIZE_NEXT_KEY_BIT_1
-		FINALIZE_NEXT_KEY_BIT_2
-		FINALIZE_NEXT_KEY_BIT_3
-		FINALIZE_NEXT_KEY_BIT_4
-		FINALIZE_NEXT_KEY_BIT_5
-		FINALIZE_NEXT_KEY_BIT_6
-
-	}
-
-}
 
 #if defined(_NV) || defined(_CPU)
 #include "opencl_sboxes.h"
 #else
 #include "opencl_sboxes-s.h"
 #endif
+
+#define vst_private(dst, ofs, src) 			\
+	*((__private vtype *)((__private DES_bs_vector *)&(dst) + (ofs))) = (src)
 
 #define DES_bs_clear_block_8(j) 			\
 	vst_private(B[j] , 0, zero); 			\
@@ -525,7 +302,7 @@ __kernel void DES_bs_25( constant uint *index768
 
 
 		{
-			vtype zero = vzero;
+			vtype zero = 0;
 			DES_bs_clear_block
 		}
 
