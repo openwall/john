@@ -148,7 +148,11 @@ static void *salt(char *ciphertext)
 	static crypt_md5_salt ret;
 	uint8_t i, *pos = (uint8_t *) ciphertext, *end;
 	char *dest = ret.salt;
-	if (strncmp(ciphertext, md5_salt_prefix, strlen(md5_salt_prefix)) == 0) {
+
+	memset(&ret, 0, SALT_SIZE);
+
+	if (strncmp(ciphertext, md5_salt_prefix, strlen(md5_salt_prefix)) == 0)
+	{
 		pos += strlen(md5_salt_prefix);
 		ret.prefix = '1';
 	}
