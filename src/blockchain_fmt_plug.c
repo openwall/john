@@ -168,7 +168,7 @@ static int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 		return -1;
 
 	// We are assuming that "guid" will be found in the first block
-	if (memmem(out, SAFETY_FACTOR, "\"guid\"", 6)) {
+	if (memmem(out, 16, "\"guid\"", 6)) {
 		memcpy(iv, cur_salt->data, 16); //IV has to be reset.
 		AES_cbc_encrypt(data + 16, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
 		if (memmem(out, SAFETY_FACTOR, "\"sharedKey\"", 11) &&
