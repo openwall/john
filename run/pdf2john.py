@@ -133,9 +133,9 @@ class PdfParser:
                     # print >> sys.stderr, encryption_dictionary
                     try:
                         pas = pr.findall(encryption_dictionary)[0]
-                        output += self.get_password_from_byte_string(pas)+"*"
                     except IndexError:
                         break
+                output += self.get_password_from_byte_string(pas)+"*"
             else:
                 pr = re.compile(let + b'\s*<\w+>')
                 pas = pr.findall(encryption_dictionary)
