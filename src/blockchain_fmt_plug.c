@@ -8,6 +8,8 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * improved dection, added iteration count and handle v2 hashes, Feb, 2015, JimF.
  */
 
 #if FMT_EXTERNS_H
@@ -186,7 +188,7 @@ static int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 	if (out[0] != '{') // fast test
 		return -1;
 
-	// We are assuming that "guid" will be found in the first block
+	// "guid" will be found in the first block
 	if (memmem(out, 16, "\"guid\"", 6)) {
 		memcpy(iv, cur_salt->data, 16); //IV has to be reset.
 		AES_cbc_encrypt(data + 16, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
