@@ -1,5 +1,14 @@
 	Known issues with using this release.
 
+If available, the autoconf script enables use of the option -march=native
+to gcc (or similar things for other systems). On a few systems (including
+Ubuntu 12.04 used with a modern CPU) this can result in, for example, AVX2
+instructions being emitted by gcc while the rest of the toolchain (in this
+case 'as') does not support it. It will end up with errors like "no such
+instruction: `vfmadd312sd ...". The workaround is to add the option
+"--disable-native-march" to configure, which will stop it from ever adding
+that compiler option.
+
 Not working on big-endian CPU architectures (disabled by autoconf):
 * OpenVMS
 
