@@ -762,7 +762,7 @@ enable_rexgen
 enable_cuda
 enable_pcap
 enable_native_tests
-enable_native_macro
+enable_native_march
 enable_ln_s
 enable_pkg_config
 enable_nt_full_unicode
@@ -1393,9 +1393,11 @@ Optional Features:
   --enable-rexgen         Use rexgen library if present
   --disable-cuda          Do not use CUDA
   --disable-pcap          Do not build helpers depending on PCAP
-  --disable-native-tests  Do not use test build system for target features
-  --disable-native-macro  Do not use -march=native even if a valid compiler
-                          flag. Native tests still can be run in this mode
+  --disable-native-tests  Do not test build system for target features.
+                          Implies --disable-native-march.
+  --disable-native-march  Do not use things like -march=native even if valid
+                          compiler option(s). Native tests still can be run in
+                          this mode
   --enable-ln-s           Use ln -s vs symlink.c wrappers (Cygwin only)
   --disable-pkg-config    do not use pkg-config for any probing tests
   --enable-nt-full-unicode
@@ -3570,11 +3572,11 @@ else
   enable_native_tests=auto
 fi
 
-# Check whether --enable-native-macro was given.
-if test "${enable_native_macro+set}" = set; then :
-  enableval=$enable_native_macro; enable_native_macro=$enableval
+# Check whether --enable-native-march was given.
+if test "${enable_native_march+set}" = set; then :
+  enableval=$enable_native_march; enable_native_march=$enableval
 else
-  enable_native_macro=auto
+  enable_native_march=auto
 fi
 
 # Check whether --enable-ln-s was given.
@@ -5234,6 +5236,11 @@ $as_echo "$as_me: This is a cross-compile; all native tests disabled" >&6;}
    else
       enable_native_tests=yes
    fi
+fi
+
+# --disable-native-tests implies --disable-native-march
+if test "x$enable_native_tests" = xno; then
+   enable_native_march=no
 fi
 
 ###
@@ -7505,7 +7512,7 @@ CFLAGS_BACKUP=$CFLAGS
 # Config probe test code copyright 2014, Jim Fougeron.  Placed into public domain.
 #############################################################################
 CFLAGS="$CFLAGS -O0"
-if test "x$enable_native_tests" = xyes; then
+if test "x$enable_native_tests" != xno; then
   CPU_NOTFOUND=0
   { $as_echo "$as_me:${as_lineno-$LINENO}: Testing build host's native CPU features" >&5
 $as_echo "$as_me: Testing build host's native CPU features" >&6;}
@@ -8152,8 +8159,7 @@ $as_echo "${ARCH_LINK}" >&6; }
 CC_BACKUP=$CC
 
 # Check for -march=native and add it to CPU_BEST_FLAGS
-# This should be rewritten for aestethical reasons and readability
-if test "x$enable_native_tests" != xno -a "x$enable_native_macro" != xno -a "x$osx_assembler_warn" != xyes; then
+if test "x$enable_native_march" != xno -a "x$osx_assembler_warn" != xyes; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -march=native" >&5
 $as_echo_n "checking whether compiler understands -march=native... " >&6; }
   CC="$CC_BACKUP -march=native"
@@ -8824,7 +8830,7 @@ fi
 fi
 
 if test "x$with_openssl" != xno; then :
-  if test "x$enable_native_tests" = xyes -a "x$PKG_CONFIG" != xno; then
+  if test "x$enable_native_tests" != xno -a "x$PKG_CONFIG" != xno; then
 
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OPENSSL" >&5

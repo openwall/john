@@ -47,7 +47,7 @@ dnl
 #############################################################################
 dnl
 CFLAGS="$CFLAGS -O0"
-if test "x$enable_native_tests" = xyes; then
+if test "x$enable_native_tests" != xno; then
   CPU_NOTFOUND=0
   AC_MSG_NOTICE([Testing build host's native CPU features])
   CC="$CC_BACKUP -mmmx"
