@@ -7860,9 +7860,8 @@ else
   # cross-compile versions of the same tests
   ##########################################
   CPU_NOTFOUND=0
-  { $as_echo "$as_me:${as_lineno-$LINENO}: Testing build host's native CPU features" >&5
-$as_echo "$as_me: Testing build host's native CPU features" >&6;}
-  CC="$CC_BACKUP -mmmx"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Testing tool-chain's CPU features" >&5
+$as_echo "$as_me: Testing tool-chain's CPU features" >&6;}
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for MMX" >&5
 $as_echo_n "checking for MMX... " >&6; }
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -7893,7 +7892,6 @@ rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CC="$CC_BACKUP -msse2"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE2" >&5
 $as_echo_n "checking for SSE2... " >&6; }
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -7926,7 +7924,6 @@ rm -f core conftest.err conftest.$ac_objext \
 fi
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CC="$CC_BACKUP -mssse3"
   CPU_NOTFOUND=0
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSSE3" >&5
 $as_echo_n "checking for SSSE3... " >&6; }
@@ -7958,7 +7955,6 @@ rm -f core conftest.err conftest.$ac_objext \
 fi
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CC="$CC_BACKUP -msse4.1"
   CPU_NOTFOUND=0
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE4.1" >&5
 $as_echo_n "checking for SSE4.1... " >&6; }
@@ -8055,7 +8051,6 @@ esac
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CC="$CC_BACKUP -mavx"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX" >&5
 $as_echo_n "checking for AVX... " >&6; }
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -8087,7 +8082,6 @@ fi
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CC="$CC_BACKUP -mavx2"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX2" >&5
 $as_echo_n "checking for AVX2... " >&6; }
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -8117,7 +8111,6 @@ rm -f core conftest.err conftest.$ac_objext \
 fi
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CC="$CC_BACKUP -mxop"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for XOP" >&5
 $as_echo_n "checking for XOP... " >&6; }
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext

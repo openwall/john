@@ -227,8 +227,7 @@ else
   # cross-compile versions of the same tests
   ##########################################
   CPU_NOTFOUND=0
-  AC_MSG_NOTICE([Testing build host's native CPU features])
-  CC="$CC_BACKUP -mmmx"
+  AC_MSG_NOTICE([Testing tool-chain's CPU features])
   AC_MSG_CHECKING([for MMX])
   AC_LINK_IFELSE(
     [
@@ -247,7 +246,6 @@ else
   )
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CC="$CC_BACKUP -msse2"
   AC_MSG_CHECKING([for SSE2])
   AC_LINK_IFELSE(
     [
@@ -267,7 +265,6 @@ else
   ])
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CC="$CC_BACKUP -mssse3"
   CPU_NOTFOUND=0
   AC_MSG_CHECKING([for SSSE3])
   AC_LINK_IFELSE(
@@ -288,7 +285,6 @@ else
   )
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CC="$CC_BACKUP -msse4.1"
   CPU_NOTFOUND=0
   AC_MSG_CHECKING([for SSE4.1])
   AC_LINK_IFELSE(
@@ -343,7 +339,6 @@ else
 
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CC="$CC_BACKUP -mavx"
   AC_MSG_CHECKING([for AVX])
   AC_LINK_IFELSE(
     [
@@ -364,7 +359,6 @@ else
 
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CC="$CC_BACKUP -mavx2"
   AC_MSG_CHECKING([for AVX2])
   AC_LINK_IFELSE(
     [
@@ -383,7 +377,6 @@ else
   )
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CC="$CC_BACKUP -mxop"
   AC_MSG_CHECKING([for XOP])
   AC_LINK_IFELSE(
     [
