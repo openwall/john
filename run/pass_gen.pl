@@ -1727,6 +1727,21 @@ sub sevenz {
 sub afs {
 }
 sub blockchain {
+	my $unenc = "{\n{\t\"guid\" : \"246093c1-de47-4227-89be-".randstr(12,\@chrHexLo)."\",\n\t\"sharedKey\" : \"fccdf579-707c-46bc-9ed1-".randstr(12,\@chrHexLo)."\",\n\t";
+	$unenc .= "\"options\" : {\"pbkdf2_iterations\":10,\"fee_policy\":0,\"html5_notifications\":false,\"logout_time\":600000,\"tx_display\":0,\"always_keep_local_backup\":false},\n\t";
+	$unenc .= "\"keys\" : [\n\t{\"addr\" : \"156yFScjeoMCvPnNji2UiztuVuYL2MY16Z\",\n\t \"priv\" : \"DNDjMS2CsrKE8kXhwkZawbou56fJECiGCqNEzZbwgxSJ\"}\n\t]\n}";
+	my $len = length($unenc);
+	$len = floor(($len+15)/16);
+	$len *= 16;
+	my $data;
+	my $iv = get_salt(16);
+	my $key = pp_pbkdf2($_[1], $iv, 10,"sha1",32, 64);
+	require Crypt::OpenSSL::AES;
+	require Crypt::CBC;
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 32, -iv => $iv, -cipher => 'Crypt::OpenSSL::AES', -header => 'none');
+	my $h = $crypt->encrypt($unenc);
+	$data = $iv.substr($h,0,$len);
+	return '$blockchain$'.length($data).'$'.unpack("H*", $data);
 }
 sub cq {
 }
