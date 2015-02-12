@@ -1069,10 +1069,10 @@ static void ldr_sort_salts(struct db_main *db)
  */
 static void ldr_show_left(struct db_main *db, struct db_password *pw)
 {
-	char *uid_sep = "";
+	char uid_sep[2] = { 0 };
 	char *uid_out = "";
 	if (options.show_uid_on_crack && pw->uid && *pw->uid) {
-		uid_sep = ":";
+		uid_sep[0] = db->options->field_sep_char;
 		uid_out = pw->uid;
 	}
 	if (pers_opts.target_enc != UTF_8 && pers_opts.report_utf8)

@@ -308,7 +308,7 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain, char *
 	int len;
 	char spacer[] = "                ";
 	char *secret = "";
-	char *uid_sep = "";
+	char uid_sep[2] = { 0 };
 	char *uid_out = "";
 
 /* This is because printf("%-16s") does not line up multibyte UTF-8.
@@ -319,7 +319,7 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain, char *
 		len = strlen(rep_plain);
 
 	if (options.show_uid_on_crack && uid && *uid) {
-		uid_sep = ":";
+		uid_sep[0] = field_sep;
 		uid_out = uid;
 	}
 
