@@ -222,7 +222,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		/* Start computation of S byte sequence.  */
 		SHA512_Init(&alt_ctx);
 
-		/* For every character in the password add the entire password.  */
+		/* repeast the following 16+A[0] times, where A[0] represents the
+		   first byte in digest A interpreted as an 8-bit unsigned value */
 		for (cnt = 0; cnt < 16 + ((unsigned char*)crypt_out[index])[0]; ++cnt)
 			SHA512_Update(&alt_ctx, cur_salt->salt, cur_salt->len);
 
