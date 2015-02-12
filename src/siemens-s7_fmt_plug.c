@@ -232,6 +232,18 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static int salt_hash(void *salt)
+{
+    unsigned char *s = salt;
+    unsigned int hash = 5381;
+    unsigned int len = SALT_SIZE;
+
+    while (len--)
+        hash = ((hash << 5) + hash) ^ *s++;
+
+    return hash & (SALT_HASH_SIZE - 1);
+}
+
 struct fmt_main fmt_s7 = {
 	{
 		FORMAT_LABEL,
@@ -274,7 +286,7 @@ struct fmt_main fmt_s7 = {
 			fmt_default_binary_hash_5,
 			fmt_default_binary_hash_6
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		NULL,
 		set_salt,
 		s7_set_key,

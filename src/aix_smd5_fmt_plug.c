@@ -348,6 +348,11 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static int salt_hash(void *salt)
+{
+	return *(unsigned int*)salt & (SALT_HASH_SIZE - 1);
+}
+
 struct fmt_main fmt_smd5 = {
 	{
 		FORMAT_LABEL,
@@ -390,7 +395,7 @@ struct fmt_main fmt_smd5 = {
 			fmt_default_binary_hash_5,
 			fmt_default_binary_hash_6
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		NULL,
 		set_salt,
 		smd5_set_key,
