@@ -138,7 +138,7 @@ john_register_one(&fmt_cryptsha256);
 // then let the threads go on ALL data, without caring about the length, since each thread will only
 // be working on passwords in a single MMX buffer that all match, at any given moment.
 //
-#undef MMX_COEF_SHA256
+//#undef MMX_COEF_SHA256
 #ifdef MMX_COEF_SHA256
 #ifdef _OPENMP
 #define MMX_COEF_SCALE      (128/MMX_COEF_SHA256)
@@ -269,6 +269,7 @@ static void set_key(char *key, int index)
 	if (len > PLAINTEXT_LENGTH)
 		len = saved_key_length[index] = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, len);
+	saved_key[index][len] = 0;
 }
 
 static char *get_key(int index)
@@ -300,6 +301,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	// in SSE mode, we FORCE every buffer to be 2 blocks, even if it COULD fit into 1.
 	// Then we simply use the 2 block SSE code.
 	unsigned char *next_cp;
+	cp += idx*2*64;
 #endif
 
 	len_pc   = plen + BINARY_SIZE;
@@ -596,7 +598,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 	int *MixOrder, tot_todo;
 
-//	static int times=-1;
+//	static int times=0;
 //	++times;
 
 //	if (times==1) {
@@ -605,7 +607,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef MMX_COEF_SHA256
 	// group based upon size splits.
-	MixOrder = mem_alloc(sizeof(int)*(count+5*MMX_COEF_SHA256));
+	MixOrder = mem_calloc(sizeof(int)*(count+6*MMX_COEF_SHA256));
 	{
 		const int lens[6] = {0,4,8,12,24,36};
 		int j;
@@ -620,7 +622,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				MixOrder[tot_todo++] = count;
 		}
 	}
-	printf ("tot_todo=%d count+5*MMX_COEF_SHA256=%d\n", tot_todo, count+5*MMX_COEF_SHA256);
+//	printf ("tot_todo=%d count+5*MMX_COEF_SHA256=%d\n", tot_todo, count+5*MMX_COEF_SHA256);
 #else
 	// no need to mix. just run them one after the next, in any order.
 	MixOrder = mem_alloc(sizeof(int)*count);
@@ -736,26 +738,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			LoadCryptStruct(&crypt_struct, MixOrder[index+idx], idx, p_bytes, s_bytes);
 		}
 
-		//dump_stuff(&crypt_struct, 2*64*8*BLKS);
 		idx = 0;
 #ifdef MMX_COEF_SHA256
 		for (cnt = 1; ; ++cnt) {
-//			printf ("SHA #%d\n", cnt);
+//			printf ("idx=%d len=%d\n", idx, crypt_struct.datlen[idx]);
+//			dump_stuff_msg("crypt_struct.bufs[0][idx]", crypt_struct.bufs[0][idx], crypt_struct.datlen[idx], 0);
 			if (crypt_struct.datlen[idx]==128) {
 				unsigned char *cp = crypt_struct.bufs[0][idx];
 				SSESHA256body((__m128i *)cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
 //				dump_stuff_mmx(sse_out, 32, 0);
 				SSESHA256body((__m128i *)&cp[64], sse_out, sse_out, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK|SSEi_RELOAD);
 //				if (!index && times == 1) {
-//					printf("SHA1 : #%d\n", cnt);
-//					dump_stuff_mmx(sse_out, 32, 0);
+//					dump_stuff_mmx_msg("ctx                      ", sse_out, 32, 0);
 //				}
 			} else {
 				unsigned char *cp = crypt_struct.bufs[0][idx];
 				SSESHA256body((__m128i *)cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
 //				if (!index && times == 1) {
-//					printf("SHA1 : #%d\n", cnt);
-//					dump_stuff_mmx(sse_out, 32, 0);
+//					dump_stuff_mmx_msg("ctx                      ", sse_out, 32, 0);
 //				}
 			}
 
@@ -782,10 +782,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 #else
 		SHA256_Init(&ctx);
+		//printf ("Password=%s  ", saved_key[index]);
 		for (cnt = 1; ; ++cnt) {
 			// calling with 64 byte, or 128 byte always, will force the update to properly crypt the data.
 			// NOTE the data is fully formed. It ends in a 0x80, is padded with nulls, AND has bit appended.
+	//		printf ("idx=%d len=%d\n", idx, crypt_struct.datlen[idx]);
+	//		dump_stuff_msg("crypt_struct.bufs[0][idx]", crypt_struct.bufs[0][idx], crypt_struct.datlen[idx]);
 			SHA256_Update(&ctx, crypt_struct.bufs[0][idx], crypt_struct.datlen[idx]);
+	//		dump_stuff_msg("ctx                      ", ctx.h, 32);
 //			if (times == 1) {
 //				printf("SHA1 : #%d\n", cnt);
 //				dump_stuff(ctx.h, 32);
