@@ -569,7 +569,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// group based upon size splits.
 	MixOrder = mem_calloc(sizeof(int)*(count+6*MMX_COEF_SHA512));
 	{
-		const int lens[6] = {0,16,24,31,47,80};
+		const int lens[6] = {0,16,24,32,48,80};
 		int j;
 		tot_todo = 0;
 		saved_key_length[count] = 0; // point all 'tail' MMX buffer elements to this location.
