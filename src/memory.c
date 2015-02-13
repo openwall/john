@@ -336,6 +336,9 @@ void alter_endianity(void *_x, unsigned int size) {
 #define SHA64GETPOS(i,index)	( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7) )*MMX_COEF_SHA512 + (7-((i)&7)) + (index>>(MMX_COEF_SHA512>>1))*SHA_BUF_SIZ*8*MMX_COEF_SHA512 )
 #define SHA64GETOUTPOS(i,index)	( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7) )*MMX_COEF_SHA512 + (7-((i)&7)) + (index>>(MMX_COEF_SHA512>>1))*64*MMX_COEF_SHA512 )
 
+// for SHA384/SHA512 128 byte FLAT interleaved hash (arrays of 16 8 byte ints), but we do not BE interleave.
+#define SHA64GETPOSne(i,index)      ( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7) )*MMX_COEF_SHA512 + ((i)&7) + (index>>(MMX_COEF_SHA512>>1))*SHA_BUF_SIZ*8*MMX_COEF_SHA512 )
+
 void dump_stuff_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
 	for(i=0;i<size;i++)
@@ -454,6 +457,21 @@ void dump_stuff_shammx64_msg(void *msg, void *buf, unsigned int size, unsigned i
 	printf("%s : ", (char*)msg);
 	dump_stuff_shammx64(buf, size, index);
 }
+void dump_stuff_mmx64(void *buf, unsigned int size, unsigned int index) {
+	unsigned int i;
+	for(i=0;i<size;i++)
+	{
+		printf("%.2x", ((unsigned char*)buf)[SHA64GETPOSne(i, index)]);
+		if( (i%4)==3 )
+			printf(" ");
+	}
+	printf("\n");
+}
+void dump_stuff_mmx64_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+	printf("%s : ", (char*)msg);
+	dump_stuff_mmx64(buf, size, index);
+}
+
 void dump_out_shammx64(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
 	for(i=0;i<size;i++)

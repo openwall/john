@@ -171,6 +171,9 @@ void dump_stuff_mmx(void *x, unsigned int size, unsigned int index);
 void dump_stuff_mmx_noeol(void *x, unsigned int size, unsigned int index);
 void dump_stuff_mmx_msg(void *msg, void *buf, unsigned int size, unsigned int index);
 void dump_stuff_mmx_msg_sepline(void *msg, void *buf, unsigned int size, unsigned int index);
+// for flat input, we do want to see SHA512 without byte swapping.
+void dump_stuff_mmx64(void *buf, unsigned int size, unsigned int index);
+void dump_stuff_mmx64_msg(void *msg, void *buf, unsigned int size, unsigned int index);
 void dump_out_mmx(void *x, unsigned int size, unsigned int index);
 void dump_out_mmx_noeol(void *x, unsigned int size, unsigned int index);
 void dump_out_mmx_msg(void *msg, void *buf, unsigned int size, unsigned int index);
