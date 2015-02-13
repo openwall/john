@@ -713,7 +713,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				unsigned char *cp = crypt_struct.bufs[0][idx];
 				SSESHA512body((__m128i *)cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
 //				dump_stuff_mmx64(sse_out, 64, 0);
-				SSESHA512body((__m128i *)&cp[64], sse_out, sse_out, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK|SSEi_RELOAD);
+				SSESHA512body((__m128i *)&cp[128], sse_out, sse_out, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK|SSEi_RELOAD);
 //				if (!index && times == 1) {
 //					dump_stuff_mmx64_msg("ctx                      ", sse_out, 64, 0);
 //				}
