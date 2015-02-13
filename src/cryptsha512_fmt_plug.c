@@ -66,11 +66,6 @@ john_register_one(&fmt_cryptsha512);
 
 #include "arch.h"
 
-// Helpful for debugging (at times).
-//#if ARCH_BITS==32 && ARCH_LITTLE_ENDIAN == 1
-//#define FORCE_GENERIC_SHA2
-//#endif
-
 #include "sha2.h"
 
 #define _GNU_SOURCE 1
@@ -107,8 +102,6 @@ john_register_one(&fmt_cryptsha512);
 // of SSE data full, until the last in a range.  We probably can simply build all the rearrangments,
 // then let the threads go on ALL data, without caring about the length, since each thread will only
 // be working on passwords in a single MMX buffer that all match, at any given moment.
-//
-//#undef MMX_COEF_SHA512
 #ifdef MMX_COEF_SHA512
 #ifdef _OPENMP
 #define MMX_COEF_SCALE      (32/MMX_COEF_SHA512)
@@ -715,22 +708,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		idx = 0;
 #ifdef MMX_COEF_SHA512
 		for (cnt = 1; ; ++cnt) {
-//			printf ("idx=%d len=%d\n", idx, crypt_struct->datlen[idx]);
-//			dump_stuff_msg("crypt_struct->bufs[0][idx]", crypt_struct->bufs[0][idx], crypt_struct->datlen[idx]);
 			if (crypt_struct->datlen[idx]==256) {
 				unsigned char *cp = crypt_struct->bufs[0][idx];
 				SSESHA512body((__m128i *)cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
-//				dump_stuff_mmx64(sse_out, 64, 0);
 				SSESHA512body((__m128i *)&cp[128], sse_out, sse_out, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK|SSEi_RELOAD);
-//				if (!index && times == 1) {
-//					dump_stuff_mmx64_msg("ctx                      ", sse_out, 64, 0);
-//				}
 			} else {
 				unsigned char *cp = crypt_struct->bufs[0][idx];
 				SSESHA512body((__m128i *)cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
-//				if (!index && times == 1) {
-//					dump_stuff_mmx64_msg("ctx                      ", sse_out, 64, 0);
-//				}
 			}
 			if (cnt == cur_salt->rounds)
 				break;
@@ -755,19 +739,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 #else
 		SHA512_Init(&ctx);
-		//printf ("Password=%s  ", saved_key[index]);
 		for (cnt = 1; ; ++cnt) {
 			// calling with 128 byte, or 256 byte always, will force the update to properly crypt the data.
 			// NOTE the data is fully formed. It ends in a 0x80, is padded with nulls, AND has bit appended.
-		//	printf ("idx=%d len=%d\n", idx, crypt_struct->datlen[idx]);
-		//	dump_stuff_msg("crypt_struct->bufs[0][idx]", crypt_struct->bufs[0][idx], crypt_struct->datlen[idx]);
 			SHA512_Update(&ctx, crypt_struct->bufs[0][idx], crypt_struct->datlen[idx]);
-		//	dump_stuff_msg("ctx                      ", ctx.h, 64);
-//			if (times == 1) {
-//				printf("SHA1 : #%d\n", cnt);
-//				dump_stuff(ctx.h, 64);
-//			}
-
 			if (cnt == cur_salt->rounds)
 				break;
 #ifdef JTR_INC_COMMON_CRYPTO_SHA2
@@ -809,15 +784,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 #endif
 
-#endif // MMX_COEF_SHA512
-//		if (!index && times==1) {
-//			printf ("crypt_out[%d] MixOrder[%d]\n", MixOrder[index], index);
-//			dump_stuff(crypt_out[MixOrder[index]], 64);
-//		}
+#endif
 	}
 	MEM_FREE(MixOrder);
-//	if (!index && times==1)
-//	exit(0);
 	return count;
 }
 
