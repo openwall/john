@@ -102,16 +102,6 @@ john_register_one(&fmt_cryptsha256);
 #include "johnswap.h"
 #include "sse-intrinsics.h"
 
-#ifdef MMX_COEF_SHA256
-// there are problems with SSE OMP builds.  Until found, simply do not allow OMP.
-//#undef _OPENMP
-//#undef FMT_OMP
-//#define FMT_OMP 0
-// Well, I tried by turning of OMP, but the run still failed.  So, I will simply
-// leave OMP on, but turn off SSE in an OMP build, until I get this figured out.
-//#undef MMX_COEF_SHA256
-#endif
-
 #ifdef _OPENMP
 #define OMP_SCALE			8
 #include <omp.h>
@@ -174,6 +164,12 @@ john_register_one(&fmt_cryptsha256);
 #define __CRYPTSHA256_CREATE_PROPER_TESTS_ARRAY__
 #include "cryptsha256_common.h"
 
+#ifndef MMX_COEF_SHA256
+#define BLKS 1
+#else
+#define BLKS MMX_COEF_SHA256
+#endif
+
 /* This structure is 'pre-loaded' with the keyspace of all possible crypts which  */
 /* will be performed WITHIN the inner loop.  There are 8 possible buffers that    */
 /* are used.  They are cp, pspc, cspp, ppc, cpp, psc, csp, and pc, where p stands */
@@ -197,12 +193,6 @@ john_register_one(&fmt_cryptsha256);
 /* To do this, we have to use the JtR sha2.c functions, since there is this func: */
 /* sha256_hash_block(&CTX, data, int perform_endian_swap).  So if we set the last */
 /* param to 0, we can call this function, and it will avoid the byte swapping     */
-#ifndef MMX_COEF_SHA256
-#define BLKS 1
-#else
-#define BLKS MMX_COEF_SHA256
-#endif
-
 typedef struct cryptloopstruct_t {
 	unsigned char buf[8*2*64*BLKS];	// will allocate to hold 42 2 block buffers (42 * 2 * 64)  Reduced to only requiring 8*2*64
 								// now, the cryptstructs are on the stack within the crypt for loop, so we avoid allocation.
@@ -625,7 +615,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 //	printf ("tot_todo=%d count+5*MMX_COEF_SHA256=%d\n", tot_todo, count+5*MMX_COEF_SHA256);
 #else
 	// no need to mix. just run them one after the next, in any order.
-	MixOrder = mem_alloc(sizeof(int)*count);
+	MixOrder = mem_calloc(sizeof(int)*count);
 	for (index = 0; index < count; ++index)
 		MixOrder[index] = index;
 	tot_todo = count;
@@ -742,7 +732,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef MMX_COEF_SHA256
 		for (cnt = 1; ; ++cnt) {
 //			printf ("idx=%d len=%d\n", idx, crypt_struct.datlen[idx]);
-//			dump_stuff_msg("crypt_struct.bufs[0][idx]", crypt_struct.bufs[0][idx], crypt_struct.datlen[idx], 0);
+//			dump_stuff_msg("crypt_struct.bufs[0][idx]", crypt_struct.bufs[0][idx], crypt_struct.datlen[idx]);
 			if (crypt_struct.datlen[idx]==128) {
 				unsigned char *cp = crypt_struct.bufs[0][idx];
 				SSESHA256body((__m128i *)cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
