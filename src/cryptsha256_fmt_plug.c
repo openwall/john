@@ -639,10 +639,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		char *cp;
 		char p_bytes[PLAINTEXT_LENGTH+1];
 		char s_bytes[PLAINTEXT_LENGTH+1];
-		JTR_ALIGN(16) cryptloopstruct crypt_struct;
+		//JTR_ALIGN(16) cryptloopstruct crypt_struct;
+		// alignment may 'fail' on cygwin32 for OMP builds :(
+		// so do the alignment by hand
+		char tmp_cls[sizeof(cryptloopstruct)+16];
+		cryptloopstruct *crypt_struct;
 #ifdef MMX_COEF_SHA256
-		JTR_ALIGN(16) ARCH_WORD_32 sse_out[64];
+		//JTR_ALIGN(16) ARCH_WORD_32 sse_out[64];
+		char tmp_sse_out[64*4+16];
+		ARCH_WORD_32 *sse_out;
+		sse_out = (ARCH_WORD_32 *)mem_align(tmp_sse_out, 16);
 #endif
+		crypt_struct = (cryptloopstruct *)mem_align(tmp_cls,16);
 
 		for (idx = 0; idx < MAX_KEYS_PER_CRYPT; ++idx)
 		{
@@ -725,16 +733,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			/* Repeatedly run the collected hash value through SHA256 to
 			   burn CPU cycles.  */
-			LoadCryptStruct(&crypt_struct, MixOrder[index+idx], idx, p_bytes, s_bytes);
+			LoadCryptStruct(crypt_struct, MixOrder[index+idx], idx, p_bytes, s_bytes);
 		}
 
 		idx = 0;
 #ifdef MMX_COEF_SHA256
 		for (cnt = 1; ; ++cnt) {
-//			printf ("idx=%d len=%d\n", idx, crypt_struct.datlen[idx]);
-//			dump_stuff_msg("crypt_struct.bufs[0][idx]", crypt_struct.bufs[0][idx], crypt_struct.datlen[idx]);
-			if (crypt_struct.datlen[idx]==128) {
-				unsigned char *cp = crypt_struct.bufs[0][idx];
+//			printf ("idx=%d len=%d\n", idx, crypt_struct->datlen[idx]);
+//			dump_stuff_msg("crypt_struct->bufs[0][idx]", crypt_struct->bufs[0][idx], crypt_struct->datlen[idx]);
+			if (crypt_struct->datlen[idx]==128) {
+				unsigned char *cp = crypt_struct->bufs[0][idx];
 				SSESHA256body((__m128i *)cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
 //				dump_stuff_mmx(sse_out, 32, 0);
 				SSESHA256body((__m128i *)&cp[64], sse_out, sse_out, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK|SSEi_RELOAD);
@@ -742,7 +750,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 //					dump_stuff_mmx_msg("ctx                      ", sse_out, 32, 0);
 //				}
 			} else {
-				unsigned char *cp = crypt_struct.bufs[0][idx];
+				unsigned char *cp = crypt_struct->bufs[0][idx];
 				SSESHA256body((__m128i *)cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
 //				if (!index && times == 1) {
 //					dump_stuff_mmx_msg("ctx                      ", sse_out, 32, 0);
@@ -754,7 +762,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			{
 				int j, k;
 				for (k = 0; k < MMX_COEF_SHA256; ++k) {
-					ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_struct.cptr[k][idx];
+					ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_struct->cptr[k][idx];
 					for (j = 0; j < 8; ++j)
 						*o++ = JOHNSWAP(sse_out[(j<<(MMX_COEF_SHA256>>1))+k]);
 				}
@@ -776,9 +784,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (cnt = 1; ; ++cnt) {
 			// calling with 64 byte, or 128 byte always, will force the update to properly crypt the data.
 			// NOTE the data is fully formed. It ends in a 0x80, is padded with nulls, AND has bit appended.
-	//		printf ("idx=%d len=%d\n", idx, crypt_struct.datlen[idx]);
-	//		dump_stuff_msg("crypt_struct.bufs[0][idx]", crypt_struct.bufs[0][idx], crypt_struct.datlen[idx]);
-			SHA256_Update(&ctx, crypt_struct.bufs[0][idx], crypt_struct.datlen[idx]);
+	//		printf ("idx=%d len=%d\n", idx, crypt_struct->datlen[idx]);
+	//		dump_stuff_msg("crypt_struct->bufs[0][idx]", crypt_struct->bufs[0][idx], crypt_struct->datlen[idx]);
+			SHA256_Update(&ctx, crypt_struct->bufs[0][idx], crypt_struct->datlen[idx]);
 	//		dump_stuff_msg("ctx                      ", ctx.h, 32);
 //			if (times == 1) {
 //				printf("SHA1 : #%d\n", cnt);
@@ -788,17 +796,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			if (cnt == cur_salt->rounds)
 				break;
 #ifdef JTR_INC_COMMON_CRYPTO_SHA2
-			SHA256_Final(crypt_struct.cptr[0][idx], &ctx);
+			SHA256_Final(crypt_struct->cptr[0][idx], &ctx);
 #else // !defined JTR_INC_COMMON_CRYPTO_SHA2, so it is oSSL, or generic
 #if ARCH_LITTLE_ENDIAN
 			{
 				int j;
-				ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_struct.cptr[0][idx];
+				ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_struct->cptr[0][idx];
 				for (j = 0; j < 8; ++j)
 					*o++ = JOHNSWAP(ctx.h[j]);
 			}
 #else
-			memcpy(crypt_struct.cptr[0][idx], ctx.h, BINARY_SIZE);
+			memcpy(crypt_struct->cptr[0][idx], ctx.h, BINARY_SIZE);
 #endif
 #endif
 			if (++idx == 42)
