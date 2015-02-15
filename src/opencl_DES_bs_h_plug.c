@@ -120,8 +120,6 @@ void opencl_DES_reset(struct db_main *db) {
 		clReleaseMemObject(B_gpu);
 		clReleaseMemObject(bitmap);
 
-		fprintf(stderr, "ciphertext:%s\n", fmt_opencl_DES.params.tests[0].ciphertext);
-
 		num_loaded_hashes = 0;
 		while (fmt_opencl_DES.params.tests[num_loaded_hashes].ciphertext) num_loaded_hashes++;
 
@@ -154,7 +152,7 @@ void opencl_DES_reset(struct db_main *db) {
 			loaded_hash[i] = binary[0];
 			loaded_hash[i + num_loaded_hashes] = binary[1];
 			i++;
-			fprintf(stderr, "C:%s B:%d %d\n", ciphertext, binary[0], i == num_loaded_hashes );
+			//fprintf(stderr, "C:%s B:%d %d\n", ciphertext, binary[0], i == num_loaded_hashes );
 		}
 
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], loaded_hash_gpu, CL_TRUE, 0, num_loaded_hashes * sizeof(int) * 2, loaded_hash, 0, NULL, NULL ), "Failed Copy data to gpu");
