@@ -89,7 +89,8 @@ static unsigned char DES_atoi64[0x100] = {
 	37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,
 	53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 0, 1, 2, 3, 4
 };
-void init_index()
+
+static void init_index()
 {
 	int p,q,s,t ;
 	int round, index, bit;
@@ -119,10 +120,7 @@ void opencl_DES_bs_init(int block)
 
 	if (block == 0)
 		init_index(0);
-/*
- * Have keys go to bit layers where DES_bs_get_hash() and DES_bs_cmp_one()
- * currently expect them.
- */
+
 	for (index = 0; index < DES_BS_DEPTH; index++)
 		opencl_DES_bs_all[block].pxkeys[index] =
 			&opencl_DES_bs_data[block].xkeys.c[0][index & 7][index >> 3];
@@ -196,6 +194,75 @@ fill2:
 	*/
 }
 
+int opencl_DES_bs_cmp_one_b(WORD *binary, int count, int index)
+{
+	int bit;
+	DES_bs_vector *b;
+	int depth;
+	unsigned int section;
+
+	section = index >> DES_BS_LOG2;
+	index &= (DES_BS_DEPTH - 1);
+	depth = index >> 3;
+	index &= 7;
+
+	b = (DES_bs_vector *)((unsigned char *)&B[section * 64] + depth);
+
+#define GET_BIT \
+	((unsigned WORD)*(unsigned char *)&b[0] >> index)
+
+	for (bit = 0; bit < 31; bit++, b++)
+		if ((GET_BIT ^ (binary[0] >> bit)) & 1)
+			return 0;
+
+	for (; bit < count; bit++, b++)
+		if ((GET_BIT ^ (binary[bit >> 5] >> (bit & 0x1F))) & 1)
+			return 0;
+#undef GET_BIT
+	return 1;
+}
+
+static WORD *opencl_DES_do_IP(WORD in[2])
+{
+	static WORD out[2];
+	int src, dst;
+
+	out[0] = out[1] = 0;
+	for (dst = 0; dst < 64; dst++) {
+		src = DES_IP[dst ^ 0x20];
+
+		if (in[src >> 5] & (1 << (src & 0x1F)))
+			out[dst >> 5] |= 1 << (dst & 0x1F);
+	}
+
+	return out;
+}
+
+static WORD *DES_raw_get_binary(char *ciphertext)
+{
+	WORD block[3];
+	WORD mask;
+	int ofs, chr, src, dst, value;
+
+	if (ciphertext[13]) ofs = 9; else ofs = 2;
+
+	block[0] = block[1] = 0;
+	dst = 0;
+	for (chr = 0; chr < 11; chr++) {
+		value = DES_atoi64[ARCH_INDEX(ciphertext[chr + ofs])];
+		mask = 0x20;
+
+		for (src = 0; src < 6; src++) {
+			if (value & mask)
+				block[dst >> 5] |= 1 << (dst & 0x1F);
+			mask >>= 1;
+			dst++;
+		}
+	}
+
+	return opencl_DES_do_IP(block);
+}
+
 static WORD *DES_bs_get_binary_raw(WORD *raw, int count)
 {
 	static WORD out[2];
@@ -209,11 +276,21 @@ static WORD *DES_bs_get_binary_raw(WORD *raw, int count)
 	return out;
 }
 
+
+static WORD DES_raw_get_count(char *ciphertext)
+{
+	if (ciphertext[13]) return DES_atoi64[ARCH_INDEX(ciphertext[1])] |
+		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[2])] << 6) |
+		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[3])] << 12) |
+		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[4])] << 18);
+	else return 25;
+}
+
 WORD *opencl_DES_bs_get_binary(char *ciphertext)
 {
 	return DES_bs_get_binary_raw(
-		opencl_DES_raw_get_binary(ciphertext),
-		opencl_DES_raw_get_count(ciphertext));
+		DES_raw_get_binary(ciphertext),
+		DES_raw_get_count(ciphertext));
 }
 
 static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
@@ -335,55 +412,4 @@ WORD opencl_DES_raw_get_salt(char *ciphertext)
 	else return DES_atoi64[ARCH_INDEX(ciphertext[0])] |
 		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[1])] << 6);
 }
-
-WORD opencl_DES_raw_get_count(char *ciphertext)
-{
-	if (ciphertext[13]) return DES_atoi64[ARCH_INDEX(ciphertext[1])] |
-		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[2])] << 6) |
-		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[3])] << 12) |
-		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[4])] << 18);
-	else return 25;
-}
-
-WORD *opencl_DES_do_IP(WORD in[2])
-{
-	static WORD out[2];
-	int src, dst;
-
-	out[0] = out[1] = 0;
-	for (dst = 0; dst < 64; dst++) {
-		src = DES_IP[dst ^ 0x20];
-
-		if (in[src >> 5] & (1 << (src & 0x1F)))
-			out[dst >> 5] |= 1 << (dst & 0x1F);
-	}
-
-	return out;
-}
-
-WORD *opencl_DES_raw_get_binary(char *ciphertext)
-{
-	WORD block[3];
-	WORD mask;
-	int ofs, chr, src, dst, value;
-
-	if (ciphertext[13]) ofs = 9; else ofs = 2;
-
-	block[0] = block[1] = 0;
-	dst = 0;
-	for (chr = 0; chr < 11; chr++) {
-		value = DES_atoi64[ARCH_INDEX(ciphertext[chr + ofs])];
-		mask = 0x20;
-
-		for (src = 0; src < 6; src++) {
-			if (value & mask)
-				block[dst >> 5] |= 1 << (dst & 0x1F);
-			mask >>= 1;
-			dst++;
-		}
-	}
-
-	return opencl_DES_do_IP(block);
-}
-
 #endif /* HAVE_OPENCL */

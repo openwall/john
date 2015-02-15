@@ -27,13 +27,14 @@ DES_bs_vector *B;
 static cl_kernel krnl[MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM][4097];
 static cl_int err;
 static cl_mem index768_gpu, opencl_DES_bs_data_gpu, B_gpu, K_gpu, cmp_out_gpu, loaded_hash_gpu, bitmap, *loaded_hash_gpu_salt = NULL;
-static int set_salt = 0;
 static   WORD current_salt;
 static int *loaded_hash = NULL;
 static unsigned int *cmp_out = NULL, num_loaded_hashes, num_set_keys;
 static WORD stored_salt[4096]= {0x7fffffff};
-static int num_salt_set = 0;
-void DES_opencl_clean_all_buffer()
+static int num_compiled_salt;
+static unsigned int *index96 = NULL;
+
+void opencl_DES_clean_all_buffer()
 {
 	int i;
 	const char* errMsg = "Release Memory Object :Failed";
@@ -163,45 +164,6 @@ void opencl_DES_bs_init_global_variables() {
 	opencl_DES_bs_all = (opencl_DES_bs_combined*) mem_alloc (MULTIPLIER * sizeof(opencl_DES_bs_combined));
 	opencl_DES_bs_data = (opencl_DES_bs_transfer*) mem_alloc (MULTIPLIER * sizeof(opencl_DES_bs_transfer));
 	index96 = (unsigned int *) malloc (4097 * 96 * sizeof(unsigned int));
-}
-
-
-int opencl_DES_bs_cmp_all(WORD *binary, int count)
-{
-	return 1;
-}
-
-inline int opencl_DES_bs_cmp_one(void *binary, int index)
-{
-	return opencl_DES_bs_cmp_one_b((WORD*)binary, 32, index);
-}
-
-int opencl_DES_bs_cmp_one_b(WORD *binary, int count, int index)
-{
-	int bit;
-	DES_bs_vector *b;
-	int depth;
-	unsigned int sector;
-
-	sector = index >> DES_BS_LOG2;
-	index &= (DES_BS_DEPTH - 1);
-	depth = index >> 3;
-	index &= 7;
-
-	b = (DES_bs_vector *)((unsigned char *)&B[sector * 64] + depth);
-
-#define GET_BIT \
-	((unsigned WORD)*(unsigned char *)&b[0] >> index)
-
-	for (bit = 0; bit < 31; bit++, b++)
-		if ((GET_BIT ^ (binary[0] >> bit)) & 1)
-			return 0;
-
-	for (; bit < count; bit++, b++)
-		if ((GET_BIT ^ (binary[bit >> 5] >> (bit & 0x1F))) & 1)
-			return 0;
-#undef GET_BIT
-	return 1;
 }
 
 static void find_best_gws(struct fmt_main *fmt)
@@ -429,7 +391,7 @@ static void init_dev()
 	opencl_read_source("$JOHN/kernels/DES_bs_kernel_h.cl") ;
 }
 
-void modify_src() {
+static void modify_src() {
 
 	  int i = 53, j = 1, tmp;
 	  static char digits[10] = {'0','1','2','3','4','5','6','7','8','9'} ;
@@ -450,7 +412,7 @@ void modify_src() {
 	  }
 }
 
-void DES_bs_select_device(struct fmt_main *fmt)
+void opencl_DES_bs_select_device(struct fmt_main *fmt)
 {
 	init_dev();
 
@@ -467,7 +429,7 @@ void DES_bs_select_device(struct fmt_main *fmt)
 	}
 }
 
-static void build_salt(WORD salt) {
+void opencl_DES_bs_build_salt(WORD salt) {
 	unsigned int new = salt;
 	unsigned int old;
 	int dst;
@@ -500,55 +462,20 @@ static void build_salt(WORD salt) {
 	memcpy(&index96[salt * 96], &index96[4096 * 96], 96 * sizeof(unsigned int));
 }
 
-void opencl_DES_build_all_salts(void) {
-	int i;
-	for (i = 0; i < 4096; i++)
-		build_salt(i);
-}
-
 void opencl_DES_bs_set_salt(WORD salt)
 {
 	current_salt = salt ;
-	set_salt = 1;
 }
 
 char *opencl_DES_bs_get_key(int index)
 {
-	static char out[PLAINTEXT_LENGTH + 1];
-	unsigned int section, block;
-	unsigned char *src;
-	char *dst;
-
-	if (cmp_out == NULL || cmp_out[0] == 0 ||
-	    index > 32 * cmp_out[0] || cmp_out[0] > num_loaded_hashes)
-		section = index / DES_BS_DEPTH;
-	else
-		section = cmp_out[2 * (index/DES_BS_DEPTH) + 1];
-
-	if (section > num_set_keys / 32) {
-		fprintf(stderr, "Get key error! %d %d\n", section, num_set_keys);
-		section = 0;
-		if (num_set_keys)
-			error();
-	}
-	block  = index % DES_BS_DEPTH;
-
-	src = opencl_DES_bs_all[section].pxkeys[block];
-	dst = out;
-	while (dst < &out[PLAINTEXT_LENGTH] && (*dst = *src)) {
-		src += sizeof(DES_bs_vector) * 8;
-		dst++;
-	}
-	*dst = 0;
-
-	return out;
+      get_key_body();
 }
 
 int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 {
 	int i;
 	unsigned int section = 0, keys_count_multiple;
-	static unsigned int pos ;
 	cl_event evnt;
 	size_t N, M;
 
@@ -567,39 +494,32 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 	else
 		N = section;
 
-	if (set_salt == 1) {
+	{
 		unsigned int found = 0;
-		if (stored_salt[current_salt] == current_salt) {
+		if (stored_salt[current_salt] == current_salt)
 			found = 1;
-			pos = current_salt;
-		}
 
 		if (found == 0) {
-			pos = current_salt;
-			fprintf(stderr, "Current Salt0:%d\n", pos);
 			modify_src();
 			clReleaseProgram(program[gpu_id]);
 			//build_kernel( gpu_id, "-fno-bin-amdil -fno-bin-source -fbin-exe") ;
 			opencl_build(gpu_id, "-fno-bin-amdil -fno-bin-source -fbin-exe", 0, NULL);
-			krnl[gpu_id][pos] = clCreateKernel(program[gpu_id], "DES_bs_25", &err) ;
+			krnl[gpu_id][current_salt] = clCreateKernel(program[gpu_id], "DES_bs_25", &err) ;
 			if (err) {
 				fprintf(stderr, "Create Kernel DES_bs_25 FAILED\n");
 				return 0;
 			}
 
-			HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][pos], 0, sizeof(cl_mem), &index768_gpu), "Set Kernel Arg FAILED arg0\n");
-			HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][pos], 1, sizeof(cl_mem), &K_gpu), "Set Kernel Arg FAILED arg2\n");
-			HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][pos], 2, sizeof(cl_mem), &B_gpu), "Set Kernel Arg FAILED arg3\n");
-			HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][pos], 3, sizeof(cl_mem), &loaded_hash_gpu), "Set Kernel krnl Arg 4 :FAILED") ;
-			HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][pos], 5, sizeof(cl_mem), &cmp_out_gpu), "Set Kernel Arg krnl FAILED arg6\n");
-			HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][pos], 6, sizeof(cl_mem), &bitmap), "Set Kernel Arg krnl FAILED arg7\n");
+			HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][current_salt], 0, sizeof(cl_mem), &index768_gpu), "Set Kernel Arg FAILED arg0\n");
+			HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][current_salt], 1, sizeof(cl_mem), &K_gpu), "Set Kernel Arg FAILED arg2\n");
+			HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][current_salt], 2, sizeof(cl_mem), &B_gpu), "Set Kernel Arg FAILED arg3\n");
+			HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][current_salt], 3, sizeof(cl_mem), &loaded_hash_gpu), "Set Kernel krnl Arg 4 :FAILED") ;
+			HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][current_salt], 5, sizeof(cl_mem), &cmp_out_gpu), "Set Kernel Arg krnl FAILED arg6\n");
+			HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][current_salt], 6, sizeof(cl_mem), &bitmap), "Set Kernel Arg krnl FAILED arg7\n");
 
 			stored_salt[current_salt] = current_salt;
-			fprintf(stderr, "Current Salt:%d %d\n", pos, ++num_salt_set);
-
-
+			fprintf(stderr, "No of Salt compiled:%d\n", ++num_compiled_salt);
 		}
-		set_salt = 0;
 	}
 
 	if (opencl_DES_keys_changed) {
@@ -637,12 +557,12 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], loaded_hash_gpu_salt[current_salt], CL_TRUE, 0, num_loaded_hashes * sizeof(int) * 2, loaded_hash, 0, NULL, NULL ), "Failed Copy data to gpu");
 			num_loaded_hashes_salt[current_salt] = salt ->count;
 		}
-		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][pos], 3, sizeof(cl_mem), &loaded_hash_gpu_salt[current_salt]), "Set Kernel krnl Arg 4 :FAILED");
+		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][current_salt], 3, sizeof(cl_mem), &loaded_hash_gpu_salt[current_salt]), "Set Kernel krnl Arg 4 :FAILED");
 	}
 
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][pos], 4, sizeof(int), &num_loaded_hashes), "Set Kernel krnl Arg 5 :FAILED") ;
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][current_salt], 4, sizeof(int), &num_loaded_hashes), "Set Kernel krnl Arg 5 :FAILED") ;
 
-	err = clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id][pos], 1, NULL, &N, &M, 0, NULL, &evnt);
+	err = clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id][current_salt], 1, NULL, &N, &M, 0, NULL, &evnt);
 	HANDLE_CLERROR(err, "Enque Kernel Failed");
 
 	clWaitForEvents(1, &evnt);

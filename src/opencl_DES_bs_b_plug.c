@@ -27,8 +27,9 @@ static cl_mem index768_gpu, *index96_gpu, opencl_DES_bs_data_gpu, K_gpu, B_gpu, 
 static   WORD current_salt;
 static int *loaded_hash = NULL;
 static unsigned int num_loaded_hashes, *cmp_out = NULL, num_set_keys;
+static unsigned int *index96 = NULL;
 
-void DES_opencl_clean_all_buffer()
+void opencl_DES_clean_all_buffer()
 {
 	int i;
 	const char* errMsg = "Release Memory Object :Failed";
@@ -160,45 +161,6 @@ void opencl_DES_bs_init_global_variables() {
 	index96 = (unsigned int *) malloc (96 * sizeof(unsigned int));
 }
 
-
-int opencl_DES_bs_cmp_all(WORD *binary, int count)
-{
-	return 1;
-}
-
-inline int opencl_DES_bs_cmp_one(void *binary, int index)
-{
-	return opencl_DES_bs_cmp_one_b((WORD*)binary, 32, index);
-}
-
-int opencl_DES_bs_cmp_one_b(WORD *binary, int count, int index)
-{
-	int bit;
-	DES_bs_vector *b;
-	int depth;
-	unsigned int section;
-
-	section = index >> DES_BS_LOG2;
-	index &= (DES_BS_DEPTH - 1);
-	depth = index >> 3;
-	index &= 7;
-
-	b = (DES_bs_vector *)((unsigned char *)&B[section * 64] + depth);
-
-#define GET_BIT \
-	((unsigned WORD)*(unsigned char *)&b[0] >> index)
-
-	for (bit = 0; bit < 31; bit++, b++)
-		if ((GET_BIT ^ (binary[0] >> bit)) & 1)
-			return 0;
-
-	for (; bit < count; bit++, b++)
-		if ((GET_BIT ^ (binary[bit >> 5] >> (bit & 0x1F))) & 1)
-			return 0;
-#undef GET_BIT
-	return 1;
-}
-
 static void find_best_gws(struct fmt_main *fmt)
 {
 	struct timeval start, end;
@@ -249,7 +211,7 @@ static void find_best_gws(struct fmt_main *fmt)
 		fprintf(stderr, "Local worksize (LWS) %zu, Global worksize (GWS) %zu\n", local_work_size, count * local_work_size);
 }
 
-void DES_bs_select_device(struct fmt_main *fmt)
+void opencl_DES_bs_select_device(struct fmt_main *fmt)
 {
 	const char *errMsg;
 	int i;
@@ -365,7 +327,7 @@ void DES_bs_select_device(struct fmt_main *fmt)
 	}
 }
 
-static void build_salt(WORD salt) {
+void opencl_DES_bs_build_salt(WORD salt) {
 	unsigned int new = salt;
 	unsigned int old;
 	int dst;
@@ -398,12 +360,6 @@ static void build_salt(WORD salt) {
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], index96_gpu[salt], CL_TRUE, 0, 96 * sizeof(unsigned int), index96, 0, NULL, NULL), "Failed Copy data to gpu");
 }
 
-void opencl_DES_build_all_salts(void) {
-	int i;
-	for (i = 0; i < 4096; i++)
-		build_salt(i);
-}
-
 void opencl_DES_bs_set_salt(WORD salt)
 {
 	current_salt = salt;
@@ -411,34 +367,7 @@ void opencl_DES_bs_set_salt(WORD salt)
 
 char *opencl_DES_bs_get_key(int index)
 {
-	static char out[PLAINTEXT_LENGTH + 1];
-	unsigned int section, block;
-	unsigned char *src;
-	char *dst;
-
-	if (cmp_out == NULL || cmp_out[0] == 0 ||
-	    index > 32 * cmp_out[0] || cmp_out[0] > num_loaded_hashes)
-		section = index / DES_BS_DEPTH;
-	else
-		section = cmp_out[2 * (index/DES_BS_DEPTH) + 1];
-
-	if (section > num_set_keys / 32) {
-		fprintf(stderr, "Get key error! %d %d\n", section, num_set_keys);
-		section = 0;
-		if (num_set_keys)
-			error();
-	}
-	block  = index % DES_BS_DEPTH;
-
-	src = opencl_DES_bs_all[section].pxkeys[block];
-	dst = out;
-	while (dst < &out[PLAINTEXT_LENGTH] && (*dst = *src)) {
-		src += sizeof(DES_bs_vector) * 8;
-		dst++;
-	}
-	*dst = 0;
-
-	return out;
+      get_key_body();
 }
 
 int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)

@@ -48,7 +48,7 @@ static struct fmt_tests tests[] = {
 
 static void done()
 {
-	DES_opencl_clean_all_buffer();
+	opencl_DES_clean_all_buffer();
 }
 
 static void init(struct fmt_main *pFmt)
@@ -57,12 +57,16 @@ static void init(struct fmt_main *pFmt)
 
 	// Check if specific LWS/GWS was requested
 	opencl_get_user_preferences(FORMAT_LABEL);
+
 	opencl_DES_bs_init_global_variables();
 
 	for (i = 0; i < MULTIPLIER; i++)
 		opencl_DES_bs_init(i);
-	DES_bs_select_device(pFmt);
-	opencl_DES_build_all_salts();
+
+	opencl_DES_bs_select_device(pFmt);
+
+	for (i = 0; i < 4096; i++)
+		opencl_DES_bs_build_salt(i);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -128,6 +132,16 @@ static int salt_hash(void *salt)
 static void set_salt(void *salt)
 {
 	opencl_DES_bs_set_salt(*(WORD *)salt);
+}
+
+static int cmp_all(WORD *binary, int count)
+{
+	return 1;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	return opencl_DES_bs_cmp_one_b((WORD*)binary, 32, index);
 }
 
 static int cmp_exact(char *source, int index)
@@ -197,9 +211,9 @@ struct fmt_main fmt_opencl_DES = {
 			get_hash_6
 		},
 
-		(int (*)(void *, int))opencl_DES_bs_cmp_all,
+		(int (*)(void *, int))cmp_all,
 
-		opencl_DES_bs_cmp_one,
+		cmp_one,
 		cmp_exact
 	}
 };
