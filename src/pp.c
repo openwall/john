@@ -94,7 +94,7 @@
 /**
  * Name........: princeprocessor (pp)
  * Description.: Standalone password candidate generator using the PRINCE algorithm
- * Version.....: 0.21
+ * Version.....: 0.22
  * Autor.......: Jens Steube <jens.steube@gmail.com>
  * License.....: MIT
  */
@@ -137,6 +137,7 @@
 
 int prince_elem_cnt_min;
 int prince_elem_cnt_max;
+int prince_wl_max;
 char *prince_skip_str;
 char *prince_limit_str;
 
@@ -151,12 +152,13 @@ static char *mem_map, *map_pos, *map_end;
 #define ELEM_CNT_MIN  1
 #define ELEM_CNT_MAX  8
 #define WL_DIST_LEN   0
+#define WL_MAX        10000000
 #define CASE_PERMUTE  0
 #define DUPE_CHECK    1
 #define SAVE_POS      1
 #define SAVE_FILE     "pp.save"
 
-#define VERSION_BIN   21
+#define VERSION_BIN   22
 
 #define ALLOC_NEW_ELEMS  0x40000
 #define ALLOC_NEW_CHAINS 0x10
@@ -316,6 +318,7 @@ static const char *USAGE_BIG[] =
   "       --elem-cnt-min=NUM    Minimum number of elements per chain",
   "       --elem-cnt-max=NUM    Maximum number of elements per chain",
   "       --wl-dist-len         Calculate output length distribution from wordlist",
+  "       --wl-max=NUM          Load only NUM words from input wordlist or use 0 to disable",
   "  -c,  --dupe-check-disable  Disable dupes check for faster inital load",
   "       --save-pos-disable    Save the position for later resume with -s",
   "",
@@ -1007,6 +1010,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   int     elem_cnt_min  = ELEM_CNT_MIN;
   int     elem_cnt_max  = ELEM_CNT_MAX;
   int     wl_dist_len   = WL_DIST_LEN;
+  int     wl_max        = WL_MAX;
   int     case_permute  = CASE_PERMUTE;
   int     dupe_check    = DUPE_CHECK;
 #ifndef JTR_MODE
@@ -1022,8 +1026,9 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   #define IDX_ELEM_CNT_MAX          0x4000
   #define IDX_KEYSPACE              0x5000
   #define IDX_WL_DIST_LEN           0x6000
-  #define IDX_CASE_PERMUTE          0x7000
-  #define IDX_SAVE_POS_DISABLE      0x8000
+  #define IDX_WL_MAX                0x7000
+  #define IDX_CASE_PERMUTE          0x8000
+  #define IDX_SAVE_POS_DISABLE      0x9000
   #define IDX_DUPE_CHECK_DISABLE    'c'
   #define IDX_SKIP                  's'
   #define IDX_LIMIT                 'l'
@@ -1040,6 +1045,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     {"elem-cnt-min",          required_argument, 0, IDX_ELEM_CNT_MIN},
     {"elem-cnt-max",          required_argument, 0, IDX_ELEM_CNT_MAX},
     {"wl-dist-len",           no_argument,       0, IDX_WL_DIST_LEN},
+    {"wl-max",                required_argument, 0, IDX_WL_MAX},
     {"case-permute",          no_argument,       0, IDX_CASE_PERMUTE},
     {"dupe-check-disable",    no_argument,       0, IDX_DUPE_CHECK_DISABLE},
     {"save-pos-disable",      no_argument,       0, IDX_SAVE_POS_DISABLE},
@@ -1068,6 +1074,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
       case IDX_ELEM_CNT_MAX:          elem_cnt_max      = atoi (optarg);
                                       elem_cnt_max_chgd = 1;              break;
       case IDX_WL_DIST_LEN:           wl_dist_len       = 1;              break;
+      case IDX_WL_MAX:                wl_max            = atoi (optarg);  break;
       case IDX_CASE_PERMUTE:          case_permute      = 1;              break;
       case IDX_DUPE_CHECK_DISABLE:    dupe_check        = 0;              break;
       case IDX_SAVE_POS_DISABLE:      save_pos          = 0;              break;
@@ -1214,6 +1221,8 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
     error();
   }
+
+  wl_max = prince_wl_max; /* JtR defaults to 0 as in unlimited */
 
   if (prince_elem_cnt_min)
     elem_cnt_min = MAX(1, prince_elem_cnt_min);
@@ -1374,6 +1383,8 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     }
   }
 
+  int wl_cnt = 0;
+
   while (!feof (read_fp))
   {
     char buf[BUFSIZ];
@@ -1477,6 +1488,8 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
                   hash_size * sizeof(u32));
     }
   }
+
+  int wl_cnt = 0;
 
   while (!feof (read_fp))
   {
@@ -1596,6 +1609,10 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
         }
       }
     }
+
+    wl_cnt++;
+
+    if (wl_max > 0 && wl_cnt == wl_max) break;
   }
 
   if (wordlist)

@@ -106,6 +106,8 @@ static struct opt_entry opt_list[] = {
 	{"prince-limit", FLG_ZERO, 0, FLG_PRINCE_CHK,
 		0, OPT_FMT_STR_ALLOC, &prince_limit_str},
 	{"prince-wl-dist-len", FLG_PRINCE_DIST, 0, FLG_PRINCE_CHK, 0},
+	{"prince-wl-max", FLG_ZERO, 0, FLG_PRINCE_CHK,
+		OPT_REQ_PARAM, "%d", &prince_wl_max},
 	{"prince-case-permute", FLG_PRINCE_CASE_PERMUTE, 0,
 		FLG_PRINCE_CHK, FLG_PRINCE_MMAP},
 	{"prince-keyspace", FLG_PRINCE_KEYSPACE | FLG_STDOUT, 0,
@@ -435,6 +437,7 @@ void opt_print_hidden_usage(void)
 	puts("--prince-limit=N          limit number of candidates generated");
 	puts("--prince-wl-dist-len      calculate length distribution from wordlist");
 	puts("                          instead of using built-in table");
+	puts("--prince-wl-max=N         load only N words from input wordlist");
 	puts("--prince-case-permute     permute case of first letter");
 	puts("--prince-mmap             memory-map infile (not available when permuting case)");
 	puts("--prince-keyspace         just show total keyspace that would be produced");

@@ -27,4 +27,7 @@ extern char *prince_skip_str;
 /* Limit, in a string since it may overflow a 64 bit */
 extern char *prince_limit_str;
 
+/* If non-zero, only load this many words from wordlist */
+extern int prince_wl_max;
+
 #endif /* _JOHN_PRINCE_H */
