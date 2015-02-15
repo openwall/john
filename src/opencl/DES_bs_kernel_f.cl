@@ -56,108 +56,7 @@
  * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
  */
 
-#include "opencl_DES_WGS.h"
-#include "opencl_device_info.h"
-
-#define ARCH_WORD     			int
-#define DES_bs_vector                   ARCH_WORD
-typedef unsigned ARCH_WORD vtype ;
-
-#if gpu_nvidia(DEVICE_INFO)
-#define _NV
-#endif
-
-#if cpu(DEVICE_INFO)
-#define _CPU
-#endif
-
-#define vxorf(a, b) 					\
-	((a) ^ (b))
-#define vnot(dst, a) 					\
-	(dst) = ~(a)
-#define vand(dst, a, b) 				\
-	(dst) = (a) & (b)
-#define vor(dst, a, b) 					\
-	(dst) = (a) | (b)
-#define vandn(dst, a, b) 				\
-	(dst) = (a) & ~(b)
-#define vxor(dst, a, b) 				\
-	(dst) = vxorf((a), (b))
-
-#if defined(_NV)||defined(_CPU)
-#define vsel(dst, a, b, c) 				\
-	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
-#else
-#define vsel(dst, a, b, c) 				\
-	(dst) = bitselect((a),(b),(c))
-#endif
-
-inline void cmp( __private unsigned DES_bs_vector *B,
-	  __global int *binary,
-	  int num_loaded_hash,
-	  volatile __global uint *output,
-	  volatile __global uint *bitmap,
-	  __global DES_bs_vector *B_global,
-	  int section) {
-
-	int value[2] , mask, i, bit;
-
-	for(i = 0; i < num_loaded_hash; i++) {
-
-		value[0] = binary[i];
-		value[1] = binary[i + num_loaded_hash];
-
-		mask = B[0] ^ -(value[0] & 1);
-
-		for (bit = 1; bit < 32; bit++)
-			mask |= B[bit] ^ -((value[0] >> bit) & 1);
-
-		for (; bit < 64; bit += 2) {
-			mask |= B[bit] ^ -((value[1] >> (bit & 0x1F)) & 1);
-			mask |= B[bit + 1] ^ -((value[1] >> ((bit + 1) & 0x1F)) & 1);
-		}
-
-		if (mask != ~(int)0) {
-			if (!(atomic_or(&bitmap[i/32], (1U << (i % 32))) & (1U << (i % 32)))) {
-				mask = atomic_inc(&output[0]);
-				output[1 + 2 * mask] = section;
-				output[2 + 2 * mask] = 0;
-				for (bit = 0; bit < 64; bit++)
-					B_global[mask * 64 + bit] = (DES_bs_vector)B[bit];
-
-			}
-		}
-	}
-}
-
-#if defined(_NV) || defined(_CPU)
-#include "opencl_sboxes.h"
-#else
-#include "opencl_sboxes-s.h"
-#endif
-
-#define vst_private(dst, ofs, src) 			\
-	*((__private vtype *)((__private DES_bs_vector *)&(dst) + (ofs))) = (src)
-
-#define DES_bs_clear_block_8(j) 			\
-	vst_private(B[j] , 0, zero); 			\
-	vst_private(B[j] , 1, zero); 			\
-	vst_private(B[j] , 2, zero); 			\
-	vst_private(B[j] , 3, zero); 			\
-	vst_private(B[j] , 4, zero); 			\
-	vst_private(B[j] , 5, zero); 			\
-	vst_private(B[j] , 6, zero); 			\
-	vst_private(B[j] , 7, zero);
-
-#define DES_bs_clear_block 				\
-	DES_bs_clear_block_8(0); 			\
-	DES_bs_clear_block_8(8); 			\
-	DES_bs_clear_block_8(16); 			\
-	DES_bs_clear_block_8(24); 			\
-	DES_bs_clear_block_8(32); 			\
-	DES_bs_clear_block_8(40); 			\
-	DES_bs_clear_block_8(48); 			\
-	DES_bs_clear_block_8(56);
+#include "opencl_DES_kernel_params.h"
 
 #if (FULL_UNROLL && HARDCODE_SALT)
 
@@ -604,5 +503,4 @@ start:         	H1_k0();
 
 		return;
 }
-
 #endif

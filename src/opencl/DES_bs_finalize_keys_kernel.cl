@@ -5,34 +5,13 @@
  * modification, are permitted.
  * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
  */
+#include "opencl_DES_kernel_params.h"
 
 #if 1
 #define MAYBE_GLOBAL __global
 #else
 #define MAYBE_GLOBAL
 #endif
-
-#define ARCH_WORD     			int
-#define DES_bs_vector                   ARCH_WORD
-typedef unsigned ARCH_WORD vtype ;
-
-typedef struct{
-	union {
-		unsigned char c[8][8][sizeof(DES_bs_vector)];
-		DES_bs_vector v[8][8];
-	} xkeys;
-} DES_bs_transfer;
-
-#define vand(dst, a, b) 				\
-	(dst) = (a) & (b)
-#define vor(dst, a, b) 					\
-	(dst) = (a) | (b)
-#define vshl(dst, src, shift) 				\
-	(dst) = (src) << (shift)
-#define vshr(dst, src, shift) 				\
-	(dst) = (src) >> (shift)
-#define vshl1(dst, src) 				\
-	vshl((dst), (src), 1)
 
 #define kvtype vtype
 #define kvand vand
@@ -199,7 +178,7 @@ typedef struct{
 	kp += global_work_size;				\
 }
 
-__kernel void DES_bs_finalize_keys(__global DES_bs_transfer *DES_bs_all,
+__kernel void DES_bs_finalize_keys(__global opencl_DES_bs_transfer *DES_bs_all,
 				   __global DES_bs_vector *K) {
 
 	int section = get_global_id(0);
