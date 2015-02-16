@@ -159,6 +159,7 @@ void opencl_DES_bs_init_global_variables() {
 	opencl_DES_bs_all = (opencl_DES_bs_combined*) mem_alloc (MULTIPLIER * sizeof(opencl_DES_bs_combined));
 	opencl_DES_bs_data = (opencl_DES_bs_transfer*) mem_alloc (MULTIPLIER * sizeof(opencl_DES_bs_transfer));
 	index96 = (unsigned int *) malloc (96 * sizeof(unsigned int));
+	memset(index96, 0, 96 * sizeof(unsigned int));
 }
 
 static void find_best_gws(struct fmt_main *fmt)
@@ -287,6 +288,8 @@ void opencl_DES_bs_select_device(struct fmt_main *fmt)
 		if (index96_gpu[i] == (cl_mem)0)
 			HANDLE_CLERROR(err, errMsg);
 	}
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], index96_gpu[0], CL_TRUE, 0, 96 * sizeof(unsigned int), index96, 0, NULL, NULL), "Failed Copy data to gpu");
 
 	B_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 64 * sizeof(DES_bs_vector), NULL, &err);
 	if (B_gpu == (cl_mem)0)
