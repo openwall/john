@@ -1435,7 +1435,7 @@ char *stretch_mask(char *mask, parsed_ctx *parsed_mask)
 	int i, j, k;
 
 	j = strlen(mask);
-	stretched_mask = (char*)malloc((options.force_maxlength + 2) * j);
+	stretched_mask = (char*)mem_alloc((options.force_maxlength + 2) * j);
 
 	strncpy(stretched_mask, mask, j);
 	k = 0;

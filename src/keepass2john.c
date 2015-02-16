@@ -410,7 +410,7 @@ int keepass2john(int argc, char **argv)
 			}
 			break;
 		case 'k':
-			keyfile = (char *)malloc(strlen(optarg) + 1);
+			keyfile = (char *)mem_alloc(strlen(optarg) + 1);
 			strcpy(keyfile, optarg);
 			break;
 		case '?':

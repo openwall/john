@@ -186,6 +186,10 @@ _Bool Packet_Reader_kick(struct Packet_Reader* self)
 		    header.len - (sizeof(struct ether_header) + size_ip + size_tcp);
 
 		self->payload_str = malloc(payload_len);
+		if (self->payload_str == NULL) {
+			fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+			exit(EXIT_FAILURE);
+		}
 		self->payload_len = payload_len;
 		memcpy(self->payload_str, payload_buf, payload_len);
 

@@ -46,6 +46,7 @@
 #include "filevault.h"
 #include "misc.h"
 #include "jumbo.h"
+#include "memory.h"
 #include "memdbg.h"
 
 #ifndef ntohll
@@ -305,7 +306,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 			v2_password_header_byteorder_fix(&v2_password_header);
 
 			// Allocate the keyblob memory
-			v2_password_header.keyblob = malloc(v2_password_header.keyblobsize);
+			v2_password_header.keyblob = mem_alloc(v2_password_header.keyblobsize);
 
 			// Seek to the keyblob in the header
 			if (lseek(fd, header_pointer.header_offset + sizeof(cencrypted_v2_password_header) - sizeof(unsigned char *), SEEK_SET) < 0) {
@@ -385,7 +386,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 		}
 
 		/* read starting chunk(s) */
-		chunk1 = (unsigned char *) malloc(data_size);
+		chunk1 = (unsigned char *) mem_alloc(data_size);
 		if (lseek(fd, header2.dataoffset + cno * 4096LL, SEEK_SET) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
 			free(chunk1);

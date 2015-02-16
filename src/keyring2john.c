@@ -63,8 +63,7 @@ static int get_utf8_string(FILE * fp, int *next_offset)
 	unsigned char *buf;
 	get_uint32(fp, next_offset, &len);
 
-	buf = (unsigned char*)malloc(len);
-	assert(buf);
+	buf = (unsigned char*)mem_alloc(len);
 	if (len == 0xffffffff) {
 		goto ok;
 	} else if (len >= 0x7fffffff) {

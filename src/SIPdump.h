@@ -76,7 +76,7 @@ typedef struct {
 
 #include <stdio.h>
 
-void *Malloc(size_t);
+void *Calloc(size_t);
 void *Realloc(void *, size_t);
 char **stringtoarray(char *, char, int *);
 void get_string_input(char *, size_t, const char *, ...);
@@ -102,11 +102,16 @@ void extract_method(char *, const char *, size_t);
 #include <errno.h>
 
 /* malloc() wrapper */
-void *Malloc(size_t size)
+void *Calloc(size_t size)
 {
 	void *buffer;
 
 	buffer = calloc(size, 1);
+
+	if (buffer == NULL) {
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		exit(EXIT_FAILURE);
+	}
 
 	return (buffer);
 }
@@ -118,7 +123,7 @@ void *Realloc(void *buffer, size_t size)
 	buffer = realloc(buffer, size);
 
 	if (buffer == NULL) {
-		fprintf(stderr, "realloc() failed: %s\n", strerror(errno));
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
 		exit(EXIT_FAILURE);
 	}
 
@@ -265,7 +270,7 @@ void update_login_data(login_t * data, const char *pw, const char *file)
 	debug(("update_login_data(): %s", file));
 
 	tempfile_len = (strlen(file) + strlen(".tmp") + 1);
-	tempfile = (char *) Malloc(tempfile_len);
+	tempfile = (char *) Calloc(tempfile_len);
 
 	snprintf(tempfile, tempfile_len, "%s.tmp", file);
 
@@ -334,7 +339,7 @@ int find_value(const char *value, const char *buffer, char *outbuf,
 	ptr1 += strlen(value);
 
 	b = strlen(ptr1);
-	tempbuf = Malloc(b + 1);
+	tempbuf = Calloc(b + 1);
 
 	/* value is quoted */
 	if (ptr1[0] == '"') {

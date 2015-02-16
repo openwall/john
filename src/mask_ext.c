@@ -99,8 +99,8 @@ void mask_calc_combination(cpu_mask_context *ptr) {
 	}
 
 	n = ptr->count;
-	data = (int*) malloc(n * sizeof(int));
-	mask_skip_ranges = (int*) malloc (MASK_FMT_INT_PLHDR * sizeof(int));
+	data = (int*) mem_alloc(n * sizeof(int));
+	mask_skip_ranges = (int*) mem_alloc (MASK_FMT_INT_PLHDR * sizeof(int));
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
 		mask_skip_ranges[i] = -1;
@@ -121,7 +121,7 @@ void mask_calc_combination(cpu_mask_context *ptr) {
 	if (mask_int_cand.num_int_cand > 1) {
 		mask_int_cand.int_cpu_mask_ctx = ptr;
 		mask_int_cand.int_cand = (mask_char4*)
-			malloc(mask_int_cand.num_int_cand * sizeof(mask_char4));
+			mem_alloc(mask_int_cand.num_int_cand * sizeof(mask_char4));
 		generate_int_keys(ptr);
 	}
 

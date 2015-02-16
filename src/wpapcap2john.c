@@ -537,6 +537,10 @@ static void Handle4Way(int bIsQOS)
 	if (msg == 1) {
 		if (wpa[ess].packet1) free(wpa[ess].packet1);
 		wpa[ess].packet1 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
+		if (wpa[ess].packet1 == NULL) {
+			fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+			exit(EXIT_FAILURE);
+		}
 		memcpy(wpa[ess].packet1, packet, pkt_hdr.orig_len);
 		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
 		if (wpa[ess].orig_2)  free(wpa[ess].orig_2);   wpa[ess].orig_2 = NULL;
@@ -552,7 +556,15 @@ static void Handle4Way(int bIsQOS)
 		// see if we have a msg1 that 'matches'.
 		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
 		wpa[ess].packet2 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
+		if (wpa[ess].packet2 == NULL) {
+			fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+			exit(EXIT_FAILURE);
+		}
 		wpa[ess].orig_2  = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
+		if (wpa[ess].orig_2 == NULL) {
+			fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+			exit(EXIT_FAILURE);
+		}
 		memcpy(wpa[ess].packet2, packet, pkt_hdr.orig_len);
 		memcpy(wpa[ess].orig_2, orig_2, pkt_hdr.orig_len);
 
@@ -576,6 +588,10 @@ static void Handle4Way(int bIsQOS)
 	else if (msg == 3) {
 		// see if we have a msg2 that 'matches',  which is 1 less than our replay count.
 		wpa[ess].packet3 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
+		if (wpa[ess].packet3 == NULL) {
+			fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+			exit(EXIT_FAILURE);
+		}
 		memcpy(wpa[ess].packet3, packet, pkt_hdr.orig_len);
 		if (wpa[ess].packet2) {
 			ether_auto_802_1x_t *auth3 = auth, *auth2;

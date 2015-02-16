@@ -66,13 +66,27 @@ int main(int argc, char * * argv)
 	}
 
 	first = malloc( sizeof(unsigned int) * 256 );
+	if (first == NULL) {
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		exit(EXIT_FAILURE);
+	}
 
 	ligne = malloc(4096);
+	if (ligne == NULL) {
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		exit(EXIT_FAILURE);
+	}
 
-	proba2 = malloc(sizeof(unsigned int) * 256 * 256);
-	proba1 = malloc(sizeof(unsigned int) * 256 );
-	memset(proba2, 0, sizeof(unsigned int) * 256 * 256);
-	memset(proba1, 0, sizeof(unsigned int) * 256 );
+	proba2 = calloc(256 * 256, sizeof(unsigned int));
+	if (proba2 == NULL) {
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		exit(EXIT_FAILURE);
+	}
+	proba1 = calloc(256, sizeof(unsigned int));
+	if (proba1 == NULL) {
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		exit(EXIT_FAILURE);
+	}
 
 	statfile = fopen(argv[2+args], "w");
 

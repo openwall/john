@@ -211,7 +211,7 @@ static void init(struct fmt_main *self)
 			get_max_mem_alloc_size(gpu_id) / BUFSIZE);
 
 	while (tests[num_loaded_hashes].ciphertext != NULL) num_loaded_hashes++;
-	hash_ids = (cl_uint*) malloc((3 * num_loaded_hashes + 1) * 4);
+	hash_ids = (cl_uint*) mem_alloc((3 * num_loaded_hashes + 1) * 4);
 
 	// Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL, warn,
@@ -365,8 +365,8 @@ static void load_hash(struct db_salt *salt) {
 	if (hash_ids)
 		 MEM_FREE(hash_ids);
 
-	loaded_hashes = (cl_uint*) malloc(16 * num_loaded_hashes);
-	hash_ids = (cl_uint*) malloc((3 * num_loaded_hashes + 1) * 4);
+	loaded_hashes = (cl_uint*) mem_alloc(16 * num_loaded_hashes);
+	hash_ids = (cl_uint*) mem_alloc((3 * num_loaded_hashes + 1) * 4);
 
 	pw = salt -> list;
 	i = 0;
@@ -469,8 +469,8 @@ static void reset(struct db_main *db) {
 		if (hash_ids)
 			 MEM_FREE(hash_ids);
 
-		loaded_hashes = (cl_uint*) malloc(16 * num_loaded_hashes);
-		hash_ids = (cl_uint*) malloc((3 * num_loaded_hashes + 1) * 4);
+		loaded_hashes = (cl_uint*) mem_alloc(16 * num_loaded_hashes);
+		hash_ids = (cl_uint*) mem_alloc((3 * num_loaded_hashes + 1) * 4);
 
 		while (tests[i].ciphertext != NULL) {
 			ciphertext = split(tests[i].ciphertext, 0, &fmt_opencl_rawMD4);

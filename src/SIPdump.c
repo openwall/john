@@ -148,18 +148,18 @@ int main(int argc, char *argv[])
 	while ((c = getopt(argc, argv, "i:mp:f:")) != -1) {
 		switch (c) {
 		case 'i':
-			dev = (char *) Malloc(strlen(optarg) + 1);
+			dev = (char *) Calloc(strlen(optarg) + 1);
 			strcpy(dev, optarg);
 			break;
 		case 'f':
-			filter = (char *) Malloc(strlen(optarg) + 1);
+			filter = (char *) Calloc(strlen(optarg) + 1);
 			strcpy(filter, optarg);
 			break;
 		case 'm':
 			manual = 1;
 			break;
 		case 'p':
-			pcap_file = (char *) Malloc(strlen(optarg) + 1);
+			pcap_file = (char *) Calloc(strlen(optarg) + 1);
 			strcpy(pcap_file, optarg);
 			break;
 		default:
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 		usage("You need to specify dump file");
 	}
 
-	dump_file = (char *) Malloc(strlen(argv[0]) + 1);
+	dump_file = (char *) Calloc(strlen(argv[0]) + 1);
 	strcpy(dump_file, argv[0]);
 
 	/* Check for manual mode */
@@ -381,7 +381,7 @@ static void parse_payload(const conn_t * connection,
 				    payload_len +
 				    strlen(conn_table[i].buffer) + 1;
 				payload_buffer =
-				    (char *) Malloc(payload_buffer_len);
+				    (char *) Calloc(payload_buffer_len);
 				strncpy(payload_buffer, conn_table[i].buffer,
 				    payload_buffer_len - 1);
 				strncat(payload_buffer, (char *) payload,

@@ -40,6 +40,7 @@
 #endif
 
 #include "plugin.h"
+#include "memory.h"
 #include "memdbg.h"
 
 /*
@@ -120,7 +121,7 @@ void register_dlls(
 	/*
          * Step through combined list and load files named.
          */
-	dll_handle = malloc(sizeof(void *) * (cfg_list->count + dll_list->count));
+	dll_handle = mem_alloc(sizeof(void *) * (cfg_list->count + dll_list->count));
 	ndx = 0;
 	for (; le; le = le->next) {
 

@@ -152,6 +152,10 @@ static int hash_plugin_parse_hash(char *filename)
 
 	/* common handling */
 	cipherbuf = malloc(afsize);
+	if (cipherbuf == NULL) {
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		exit(EXIT_FAILURE);
+	}
 	jtr_fseek64(myfile, ntohl(myphdr.keyblock[bestslot].keyMaterialOffset) * 512,
 	SEEK_SET);
 	readbytes = fread(cipherbuf, afsize, 1, myfile);

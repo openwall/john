@@ -241,7 +241,7 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 	int nbytes, margin;
 
 #ifdef _MSC_VER
-	out = malloc(cur_salt->length);
+	out = mem_alloc(cur_salt->length);
 #endif
 	memcpy(iv, cur_salt->iv, 16);
 

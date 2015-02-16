@@ -23,6 +23,10 @@ unsigned char *char2hex(char *chr, int nLen)
 	unsigned int hex3;
 
 	retHex = (unsigned char *)malloc(nLen);
+	if (retHex == NULL) {
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		exit(EXIT_FAILURE);
+	}
 	memset(retHex, 0, nLen);
 
 	for ( i=0; i<nLen; i++ ) {
