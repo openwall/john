@@ -39,7 +39,7 @@
 /* Latency 2 may also mean dual-issue with latency 1 */
 #define latency 2
 
-#if regs >= 17 || latency >= 3
+//#if regs >= 17 || latency >= 3
 /* s1-000010, 36 gates, 17 regs, 8/28/65/102/139 stall cycles */
 
 inline  void
@@ -107,8 +107,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c3], out[c3], x2);
 }
 
-
-#else
+//#else
 /* s1-000011, 36 gates, 16 regs, 10/37/74/111/148 stall cycles */
 /*
 inline  void
@@ -176,9 +175,9 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c3], out[c3], x2);
 }
 */
-#endif
+//#endif
 
-#if regs >= 18 && latency <= 2
+//#if regs >= 18 && latency <= 2
 /* s2-000000, 33 gates, 18 regs, 3/26/57/90/125 stall cycles */
 
 inline  void
@@ -242,7 +241,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c3], out[c3], x2);
 }
 
-#elif regs >= 18 && latency >= 4
+//#elif regs >= 18 && latency >= 4
 /* s2-000002, 33 gates, 18 regs, 4/22/49/82/117 stall cycles */
 /*
 inline  void
@@ -306,7 +305,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c3], out[c3], x2);
 }
 */
-#else
+//#else
 /* s2-000012, 33 gates, 17 regs, 5/17/51/86/121 stall cycles */
 /*
 inline  void
@@ -370,9 +369,9 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c3], out[c3], x2);
 }
 */
-#endif
+//#endif
 
-#if latency >= 3
+//#if latency >= 3
 /* s3-000000, 33 gates, 17 regs, 6/10/33/66/102 stall cycles */
 /*
 inline  void
@@ -436,7 +435,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c3], out[c3], x2);
 }
 */
-#else
+//#else
 /* s3-000004, 33 gates, 17 regs, 3/13/41/77/113 stall cycles */
 inline  void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
@@ -498,11 +497,9 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vsel(x2, xB32C6396, x47B135C6, a1);
 	vxor(out[c3], out[c3], x2);
 }
+//#endif
 
-
-#endif
-
-#if regs >= 13
+//#if regs >= 13
 /* s4-000014, 26 gates, 13 regs, 2/17/42/70/98 stall cycles */
 
 inline  void
@@ -556,9 +553,7 @@ s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c2], out[c2], x1);
 }
 
-
-
-#else
+//#else
 /* s4-000033, 26 gates, 12 regs, 4/22/48/76/104 stall cycles */
 /*
 inline  void
@@ -612,9 +607,9 @@ s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c2], out[c2], x1);
 }
 */
-#endif
+//#endif
 
-#if regs <= 18 && latency <= 2
+//#if regs <= 18 && latency <= 2
 /* s5-000000, 35 gates, 18 regs, 7/33/68/105/142 stall cycles */
 /*
 inline  void
@@ -680,7 +675,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c4], out[c4], x3);
 }
 */
-#elif regs == 19 || (regs >= 20 && latency >= 3)
+//#elif regs == 19 || (regs >= 20 && latency >= 3)
 /* s5-000005, 35 gates, 19 regs, 7/29/60/95/132 stall cycles */
 /*
 inline  void
@@ -746,7 +741,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c4], out[c4], x3);
 }
 */
-#elif regs <= 18 && latency >= 5
+//#elif regs <= 18 && latency >= 5
 /* s5-000011, 35 gates, 18 regs, 9/31/62/95/132 stall cycles */
 /*
 inline  void
@@ -812,7 +807,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c4], out[c4], x3);
 }
 */
-#elif regs >= 20
+//#elif regs >= 20
 /* s5-000016, 35 gates, 20 regs, 6/30/62/98/135 stall cycles */
 
 inline  void
@@ -878,7 +873,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c1], out[c1], x0);
 }
 
-#else
+//#else
 /* s5-000023, 35 gates, 18 regs, 9/30/61/96/133 stall cycles */
 /*
 inline  void
@@ -944,9 +939,9 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c1], out[c1], x0);
 }
 */
-#endif
+//#endif
 
-#if regs >= 16 && latency <= 2
+//#if regs >= 16 && latency <= 2
 /* s6-000000, 34 gates, 16 regs, 5/34/70/107/144 stall cycles */
 
 inline  void
@@ -1011,8 +1006,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c3], out[c3], x2);
 }
 
-
-#elif regs == 15
+//#elif regs == 15
 /* s6-000008, 34 gates, 15 regs, 6/25/57/94/131 stall cycles */
 /*
 inline  void
@@ -1077,7 +1071,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c3], out[c3], x2);
 }
 */
-#elif regs <= 14
+//#elif regs <= 14
 /* s6-000082, 34 gates, 14 regs, 8/31/65/102/139 stall cycles */
 /*
 inline  void
@@ -1142,7 +1136,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c2], out[c2], x1);
 }
 */
-#else
+//#else
 /* s6-000461, 34 gates, 16 regs, 7/23/48/82/118 stall cycles */
 /*
 inline  void
@@ -1206,9 +1200,9 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vsel(x2, x16E94A97, xB946D2B4, a6);
 	vxor(out[c3], out[c3], x2);
 }*/
-#endif
+//#endif
 
-#if regs <= 16 || latency >= 3
+//#if regs <= 16 || latency >= 3
 /* s7-000013, 34 gates, 15 regs, 9/27/56/88/119 stall cycles */
 /*
 inline  void
@@ -1273,7 +1267,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(out[c4], out[c4], x3);
 }
 */
-#else
+//#else
 /* s7-000019, 34 gates, 17 regs, 5/28/57/88/119 stall cycles */
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
@@ -1336,10 +1330,9 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vsel(x3, x74878E78, x8B7869C6, a1);
 	vxor(out[c4], out[c4], x3);
 }
+//#endif
 
-#endif
-
-#if latency >= 3
+//#if latency >= 3
 /* s8-000035, 32 gates, 15 regs, 6/15/47/79/111 stall cycles */
 /*
 inline  void
@@ -1401,7 +1394,7 @@ s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vsel(x0, xA59E6C31, x38D696A5, a6);
 	vxor(out[c1], out[c1], x0);
 }*/
-#else
+//#else
 /* s8-000037, 32 gates, 15 regs, 3/17/49/81/113 stall cycles */
 inline  void
 s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
@@ -1462,5 +1455,4 @@ s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vsel(x0, xA59E6C31, x38D696A5, a6);
 	vxor(out[c1], out[c1], x0);
 }
-
-#endif
+//#endif
