@@ -158,7 +158,7 @@ void opencl_DES_reset(struct db_main *db) {
 void opencl_DES_bs_init_global_variables() {
 	opencl_DES_bs_all = (opencl_DES_bs_combined*) mem_alloc (MULTIPLIER * sizeof(opencl_DES_bs_combined));
 	opencl_DES_bs_data = (opencl_DES_bs_transfer*) mem_alloc (MULTIPLIER * sizeof(opencl_DES_bs_transfer));
-	index96 = (unsigned int *) malloc (96 * sizeof(unsigned int));
+	index96 = (unsigned int *) mem_alloc (96 * sizeof(unsigned int));
 	memset(index96, 0, 96 * sizeof(unsigned int));
 }
 
@@ -173,7 +173,7 @@ static void find_best_gws(struct fmt_main *fmt)
 	gettimeofday(&start, NULL);
 	ccount = count * local_work_size * DES_BS_DEPTH;
 	num_loaded_hashes = 1;
-	cmp_out = (unsigned int *) malloc((2 * num_loaded_hashes + 1) * sizeof(int));
+	cmp_out = (unsigned int *) mem_alloc((2 * num_loaded_hashes + 1) * sizeof(int));
 	B = (DES_bs_vector*) mem_alloc (num_loaded_hashes * 64 * sizeof(DES_bs_vector));
 	opencl_DES_bs_crypt_25(&ccount, NULL);
 	gettimeofday(&end, NULL);
