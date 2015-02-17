@@ -120,7 +120,8 @@ static void bench_install_handler(void)
 #define fmt_set_key(key, index)	  \
 	{ \
 		static char buf_key[PLAINTEXT_BUFFER_SIZE]; \
-		strncpy(buf_key, key, sizeof(buf_key)); \
+		char *s = key, *d = buf_key; \
+		while ((*d++ = *s++)); \
 		format->methods.set_key(buf_key, index); \
 	}
 
