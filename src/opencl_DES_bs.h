@@ -11,7 +11,7 @@
 
 #include "arch.h"
 #include "common-opencl.h"
-#include "opencl_DES_WGS.h"
+#include "opencl_DES_hst_dev_shared.h"
 #include "loader.h"
 
 #define DES_BS_OPENCL_ALGORITHM_NAME		"DES OpenCL"
@@ -24,109 +24,76 @@
 #define DES_bs_vector			WORD
 
 #define MULTIPLIER                      (WORK_GROUP_SIZE*256)
-
+#define PLAINTEXT_LENGTH		8
 
 #define MIN_KEYS_PER_CRYPT		(DES_BS_DEPTH*MULTIPLIER)
 #define MAX_KEYS_PER_CRYPT		(DES_BS_DEPTH*MULTIPLIER)
 
 #define GWS_CONFIG		        "des_GWS"
 
-unsigned int CC_CACHE_ALIGN index768[0x300];
-unsigned int CC_CACHE_ALIGN index96[96];
-
-
 #define	MAX_DEVICES_PER_PLATFORM	10
 #define DES_BS_EXPAND                   1
-/*
- * All bitslice DES parameters combined into one struct for more efficient
- * cache usage. Don't re-order unless you know what you're doing, as there
- * is an optimization that would produce undefined results if you did.
- *
- * This must match the definition in x86-mmx.S.
- */
+
+#define get_key_body() {						\
+	static char out[PLAINTEXT_LENGTH + 1];				\
+	unsigned int section, block;					\
+	unsigned char *src;						\
+	char *dst;							\
+									\
+	if (cmp_out == NULL || cmp_out[0] == 0 ||			\
+	    index > 32 * cmp_out[0] || cmp_out[0] > num_loaded_hashes)	\
+		section = index / DES_BS_DEPTH;				\
+	else								\
+		section = cmp_out[2 * (index/DES_BS_DEPTH) + 1];	\
+									\
+	if (section > num_set_keys / 32) {				\
+		fprintf(stderr, "Get key error! %d %d\n", section,	\
+			num_set_keys);					\
+		section = 0;						\
+		if (num_set_keys)					\
+			error();					\
+	}								\
+	block  = index % DES_BS_DEPTH;					\
+									\
+	src = opencl_DES_bs_all[section].pxkeys[block];			\
+	dst = out;							\
+	while (dst < &out[PLAINTEXT_LENGTH] && (*dst = *src)) {		\
+		src += sizeof(DES_bs_vector) * 8;			\
+		dst++;							\
+	}								\
+	*dst = 0;							\
+									\
+	return out;							\
+}
+
+unsigned int CC_CACHE_ALIGN index768[0x300];
+
 typedef struct {
 
 	unsigned char *pxkeys[DES_BS_DEPTH]; /* Pointers into xkeys.c */
 	unsigned int salt;	/* Salt value corresponding to E[] contents */
-	DES_bs_vector *Ens[48];	/* Pointers into B[] for non-salted E */
-
-
+	DES_bs_vector Ens[48];	/* Pointers into B[] for non-salted E */
 } opencl_DES_bs_combined;
-
-typedef struct{
-
-
-	union {
-		unsigned char c[8][8][sizeof(DES_bs_vector)];
-		DES_bs_vector v[8][8];
-	} xkeys;
-
-	int keys_changed;
-
-} opencl_DES_bs_transfer ;
-
-/*
- * Various DES tables exported for use by other implementations.
- */
 
 struct fmt_main;
 
-#define DES_bs_cpt			1
+struct fmt_main fmt_opencl_DES;
+
 extern opencl_DES_bs_combined *opencl_DES_bs_all;
 extern opencl_DES_bs_transfer *opencl_DES_bs_data;
+extern int opencl_DES_keys_changed;
 extern DES_bs_vector *B;
-#define for_each_t(n)
-#define init_t()
 
-/*
- * Initializes the internal structures.
- */
-extern void opencl_DES_bs_init(int LM, int cpt,int block);
+extern void opencl_DES_bs_build_salt(WORD);
+extern void opencl_DES_bs_init(int block);
 extern void opencl_DES_bs_init_global_variables(void);
 
-/*
- * Sets a salt for DES_bs_crypt().
- */
 extern void opencl_DES_bs_set_salt(WORD salt);
-
-
-/*
- * Set a key for DES_bs_crypt() or DES_bs_crypt_LM(), respectively.
- */
 extern void opencl_DES_bs_set_key(char *key, int index);
-extern void opencl_DES_bs_set_key_LM(char *key, int index);
-
-/*
- * Almost generic implementation: 24-bit salts, variable iteration count.
- */
-/*
-extern void opencl_DES_bs_crypt(int count, int keys_count);
-*/
-/*
- * A simplified special-case implementation: 12-bit salts, 25 iterations.
- */
+extern char *opencl_DES_bs_get_key(int index);
 extern int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt);
-
-/*
- * Another special-case version: a non-zero IV, no salts, no iterations.
- */
-/*
-extern void opencl_DES_bs_crypt_LM(int keys_count);
-*/
-/*
- * Converts an ASCII ciphertext to binary to be used with one of the
- * comparison functions.
- */
 extern WORD *opencl_DES_bs_get_binary(char *ciphertext);
 
-/*
- * Similarly, for LM hashes.
- */
-extern WORD *opencl_DES_bs_get_binary_LM(char *ciphertext);
-
-/*
- * Calculate a hash for a DES_bs_crypt() output.
- */
 extern int opencl_DES_bs_get_hash_0(int index);
 extern int opencl_DES_bs_get_hash_1(int index);
 extern int opencl_DES_bs_get_hash_2(int index);
@@ -135,44 +102,9 @@ extern int opencl_DES_bs_get_hash_4(int index);
 extern int opencl_DES_bs_get_hash_5(int index);
 extern int opencl_DES_bs_get_hash_6(int index);
 
-/*
- * Compares 32 bits of a given ciphertext against at least the first count of
- * the DES_bs_crypt*() outputs and returns zero if no matches detected.
- */
-extern int opencl_DES_bs_cmp_all(WORD *binary, int count);
-
-/*
- * Compares count bits of a given ciphertext against one of the outputs.
- */
 extern int opencl_DES_bs_cmp_one_b(WORD *binary, int count, int index);
-extern int opencl_DES_bs_cmp_one(void *binary, int index);
-
-/*
- * Returns the salt.
- */
 extern WORD opencl_DES_raw_get_salt(char *ciphertext);
-
-/*
- * Returns the iteration count for DES_std_crypt().
- */
-extern WORD opencl_DES_raw_get_count(char *ciphertext);
-
-/*
- * Does the Initial Permutation; to be used at startup only (doesn't
- * require that DES_std_init() has been called, is not as fast as it
- * could be).
- */
-extern WORD *opencl_DES_do_IP(WORD in[2]);
-
-/*
- * Converts an ASCII ciphertext to binary.
- */
-extern WORD *opencl_DES_raw_get_binary(char *ciphertext);
-
-extern void DES_bs_select_device(struct fmt_main*);
-
-extern void DES_opencl_clean_all_buffer(void);
-
+extern void opencl_DES_bs_select_device(struct fmt_main*);
+extern void opencl_DES_clean_all_buffer(void);
 extern void opencl_DES_reset(struct db_main *);
-
 #endif

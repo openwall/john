@@ -28,7 +28,6 @@ john_register_one(&fmt_opencl_DES);
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
-#define PLAINTEXT_LENGTH		8
 #define CIPHERTEXT_LENGTH_1		13
 #define CIPHERTEXT_LENGTH_2		24
 
@@ -49,7 +48,7 @@ static struct fmt_tests tests[] = {
 
 static void done()
 {
-	DES_opencl_clean_all_buffer();
+	opencl_DES_clean_all_buffer();
 }
 
 static void init(struct fmt_main *pFmt)
@@ -61,10 +60,13 @@ static void init(struct fmt_main *pFmt)
 
 	opencl_DES_bs_init_global_variables();
 
-	for(i=0;i<MULTIPLIER;i++)
-		opencl_DES_bs_init(0, DES_bs_cpt,i);
+	for (i = 0; i < MULTIPLIER; i++)
+		opencl_DES_bs_init(i);
 
-	DES_bs_select_device(pFmt);
+	opencl_DES_bs_select_device(pFmt);
+
+	for (i = 0; i < 4096; i++)
+		opencl_DES_bs_build_salt(i);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -132,31 +134,19 @@ static void set_salt(void *salt)
 	opencl_DES_bs_set_salt(*(WORD *)salt);
 }
 
+static int cmp_all(WORD *binary, int count)
+{
+	return 1;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	return opencl_DES_bs_cmp_one_b((WORD*)binary, 32, index);
+}
+
 static int cmp_exact(char *source, int index)
 {
 	return opencl_DES_bs_cmp_one_b(opencl_DES_bs_get_binary(source), 64, index);
-}
-
-static char *get_key(int index)
-{
-	static char out[PLAINTEXT_LENGTH + 1];
-	unsigned int sector,block;
-	unsigned char *src;
-	char *dst;
-	sector = index/DES_BS_DEPTH;
-	block  = index%DES_BS_DEPTH;
-	init_t();
-
-	src = opencl_DES_bs_all[sector].pxkeys[block];
-	dst = out;
-	while (dst < &out[PLAINTEXT_LENGTH] && (*dst = *src)) {
-		src += sizeof(DES_bs_vector) * 8;
-		dst++;
-	}
-	*dst = 0;
-
-
-	return out;
 }
 
 struct fmt_main fmt_opencl_DES = {
@@ -208,7 +198,7 @@ struct fmt_main fmt_opencl_DES = {
 		NULL,
 		set_salt,
 		opencl_DES_bs_set_key,
-		get_key,
+		opencl_DES_bs_get_key,
 		fmt_default_clear_keys,
 		opencl_DES_bs_crypt_25,
 		{
@@ -221,9 +211,9 @@ struct fmt_main fmt_opencl_DES = {
 			get_hash_6
 		},
 
-		(int (*)(void *, int))opencl_DES_bs_cmp_all,
+		(int (*)(void *, int))cmp_all,
 
-		opencl_DES_bs_cmp_one,
+		cmp_one,
 		cmp_exact
 	}
 };

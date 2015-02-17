@@ -21,21 +21,7 @@
 #define for_each_depth()
 
 opencl_DES_bs_combined *opencl_DES_bs_all;
-
-static unsigned char DES_LM_KP[56] = {
-	1, 2, 3, 4, 5, 6, 7,
-	10, 11, 12, 13, 14, 15, 0,
-	19, 20, 21, 22, 23, 8, 9,
-	28, 29, 30, 31, 16, 17, 18,
-	37, 38, 39, 24, 25, 26, 27,
-	46, 47, 32, 33, 34, 35, 36,
-	55, 40, 41, 42, 43, 44, 45,
-	48, 49, 50, 51, 52, 53, 54
-};
-
-static unsigned char DES_LM_reverse[16] = {
-	0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15
-};
+int opencl_DES_keys_changed = 1;
 
 static unsigned char opencl_DES_E[48] = {
 	31, 0, 1, 2, 3, 4,
@@ -103,7 +89,8 @@ static unsigned char DES_atoi64[0x100] = {
 	37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,
 	53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 0, 1, 2, 3, 4
 };
-void init_index(int LM)
+
+static void init_index()
 {
 	int p,q,s,t ;
 	int round, index, bit;
@@ -121,84 +108,30 @@ void init_index(int LM)
 			bit ^= 070;
 			bit -= bit >> 3;
 			bit = 55 - bit;
-			if (LM) bit = DES_LM_KP[bit];
-			//*k++ = &opencl_DES_bs_all[block].K[bit] START;
 			index768[t++] = bit;
 		}
 	}
 
 }
 
-void opencl_DES_bs_init(int LM, int cpt,int block)
+void opencl_DES_bs_init(int block)
 {
-	//WORD **k;
 	int index;
-	//int p, q, s, round, bit;
-	//int c;
 
-	for_each_t(n) {
-/*
-#if DES_BS_EXPAND
-		if (LM)
-			k = opencl_DES_bs_all[block].KS.p;
-		else
-			k = opencl_DES_bs_all[block].KSp;
-#else
-		k = opencl_DES_bs_all[block].KS.p;
-#endif
+	if (block == 0)
+		init_index(0);
 
-		s = 0;
-		for (round = 0; round < 16; round++) {
-			s += opencl_DES_ROT[round];
-			for (index = 0; index < 48; index++) {
-				p = opencl_DES_PC2[index];
-				q = p < 28 ? 0 : 28;
-				p += s;
-				while (p >= 28) p -= 28;
-				bit = opencl_DES_PC1[p + q];
-				bit ^= 070;
-				bit -= bit >> 3;
-				bit = 55 - bit;
-				if (LM) bit = DES_LM_KP[bit];
-				*k++ = &opencl_DES_bs_all[block].K[bit] START;
-			}
-		}*/
-	if(block==0)
-		init_index(LM);
-/*
- * Have keys go to bit layers where DES_bs_get_hash() and DES_bs_cmp_one()
- * currently expect them.
- */
-		for (index = 0; index < DES_BS_DEPTH; index++)
-			opencl_DES_bs_all[block].pxkeys[index] =
-			    &opencl_DES_bs_data[block].xkeys.c[0][index & 7][index >> 3];
+	for (index = 0; index < DES_BS_DEPTH; index++)
+		opencl_DES_bs_all[block].pxkeys[index] =
+			&opencl_DES_bs_data[block].xkeys.c[0][index & 7][index >> 3];
 
-		if (LM) {
-			/*for (c = 0; c < 0x100; c++)
-#ifdef BENCH_BUILD
-			if (c >= 'a' && c <= 'z')
-				opencl_DES_bs_all[block].E.u[c] = c & ~0x20;
-			else
-				opencl_DES_bs_all[block].E.u[c] = c;
-#else
-			opencl_DES_bs_all[block].E.u[c] = CP_up[c];
-#endif*/
-		} else {
-			for (index = 0; index < 48; index++)
-				//opencl_DES_bs_all[block].Ens[index] =
-				  //  &opencl_DES_bs_all[block].B[opencl_DES_E[index]];
-			opencl_DES_bs_all[block].Ens[index] =
-				    &B[opencl_DES_E[index] + block * 64];
-			opencl_DES_bs_all[block].salt = 0xffffff;
+	for (index = 0; index < 48; index++)
+		opencl_DES_bs_all[block].Ens[index] =
+			opencl_DES_E[index] + block * 64;
+	opencl_DES_bs_all[block].salt = 0xffffff;
 
-			opencl_DES_bs_set_salt(0);
-
-		}
-		//memset(&opencl_DES_bs_data[block].zero, 0, sizeof(opencl_DES_bs_data[block].zero));
-		//memset(&opencl_DES_bs_data[block].ones, -1, sizeof(opencl_DES_bs_data[block].ones));
-		//for (bit = 0; bit < 8; bit++)
-			//memset(&opencl_DES_bs_data[block].masks[bit], 1 << bit,
-			  //  sizeof(opencl_DES_bs_data[block].masks[bit]));
+	if (block == 0) {
+		opencl_DES_bs_set_salt(0);
 	}
 }
 
@@ -207,12 +140,12 @@ void opencl_DES_bs_set_key(char *key, int index)
 	unsigned char *dst;
 	unsigned int sector,key_index;
 	unsigned int flag=key[0];
-	init_t();
+
 	sector = index >> DES_BS_LOG2;
 	key_index = index & (DES_BS_DEPTH - 1);
 	dst = opencl_DES_bs_all[sector].pxkeys[key_index];
 
-	opencl_DES_bs_data[sector].keys_changed = 1;
+	opencl_DES_keys_changed = 1;
 
 	dst[0] = 				(!flag) ? 0 : key[0];
 	dst[sizeof(DES_bs_vector) * 8]      =	(!flag) ? 0 : key[1];
@@ -227,6 +160,7 @@ void opencl_DES_bs_set_key(char *key, int index)
 	flag = flag&&key[6];
 	dst[sizeof(DES_bs_vector) * 8 * 6]  =	(!flag) ? 0 : key[6];
 	dst[sizeof(DES_bs_vector) * 8 * 7]  =	(!flag) ? 0 : key[7];
+
 /*
 	if (!key[0]) goto fill8;
 	*dst = key[0];
@@ -259,54 +193,76 @@ fill2:
 	dst[sizeof(DES_bs_vector) * 8 * 7] = 0;
 	*/
 }
-/*
-void opencl_DES_bs_set_key_LM(char *key, int index)
+
+int opencl_DES_bs_cmp_one_b(WORD *binary, int count, int index)
 {
-	unsigned long c;
-	unsigned char *dst;
-	unsigned int sector,key_index;
-	init_t();
-	sector = index/DES_BS_DEPTH;
-	key_index = index % DES_BS_DEPTH;
-	dst = opencl_DES_bs_all[sector].pxkeys[key_index];
+	int bit;
+	DES_bs_vector *b;
+	int depth;
+	unsigned int section;
 
+	section = index >> DES_BS_LOG2;
+	index &= (DES_BS_DEPTH - 1);
+	depth = index >> 3;
+	index &= 7;
 
-	c = (unsigned char)key[0];
-	if (!c) goto fill7;
-	*dst = opencl_DES_bs_all[sector].E.u[c];
-	c = (unsigned char)key[1];
-	if (!c) goto fill6;
-	*(dst + sizeof(DES_bs_vector) * 8) = opencl_DES_bs_all[sector].E.u[c];
-	c = (unsigned char)key[2];
-	if (!c) goto fill5;
-	*(dst + sizeof(DES_bs_vector) * 8 * 2) = opencl_DES_bs_all[sector].E.u[c];
-	c = (unsigned char)key[3];
-	if (!c) goto fill4;
-	*(dst + sizeof(DES_bs_vector) * 8 * 3) = opencl_DES_bs_all[sector].E.u[c];
-	c = (unsigned char)key[4];
-	if (!c) goto fill3;
-	*(dst + sizeof(DES_bs_vector) * 8 * 4) = opencl_DES_bs_all[sector].E.u[c];
-	c = (unsigned char)key[5];
-	if (!c) goto fill2;
-	*(dst + sizeof(DES_bs_vector) * 8 * 5) = opencl_DES_bs_all[sector].E.u[c];
-	c = (unsigned char)key[6];
-	*(dst + sizeof(DES_bs_vector) * 8 * 6) = opencl_DES_bs_all[sector].E.u[c];
-	return;
-fill7:
-	dst[0] = 0;
-fill6:
-	dst[sizeof(DES_bs_vector) * 8] = 0;
-fill5:
-	dst[sizeof(DES_bs_vector) * 8 * 2] = 0;
-fill4:
-	dst[sizeof(DES_bs_vector) * 8 * 3] = 0;
-fill3:
-	dst[sizeof(DES_bs_vector) * 8 * 4] = 0;
-fill2:
-	dst[sizeof(DES_bs_vector) * 8 * 5] = 0;
-	dst[sizeof(DES_bs_vector) * 8 * 6] = 0;
+	b = (DES_bs_vector *)((unsigned char *)&B[section * 64] + depth);
+
+#define GET_BIT \
+	((unsigned WORD)*(unsigned char *)&b[0] >> index)
+
+	for (bit = 0; bit < 31; bit++, b++)
+		if ((GET_BIT ^ (binary[0] >> bit)) & 1)
+			return 0;
+
+	for (; bit < count; bit++, b++)
+		if ((GET_BIT ^ (binary[bit >> 5] >> (bit & 0x1F))) & 1)
+			return 0;
+#undef GET_BIT
+	return 1;
 }
-*/
+
+static WORD *opencl_DES_do_IP(WORD in[2])
+{
+	static WORD out[2];
+	int src, dst;
+
+	out[0] = out[1] = 0;
+	for (dst = 0; dst < 64; dst++) {
+		src = DES_IP[dst ^ 0x20];
+
+		if (in[src >> 5] & (1 << (src & 0x1F)))
+			out[dst >> 5] |= 1 << (dst & 0x1F);
+	}
+
+	return out;
+}
+
+static WORD *DES_raw_get_binary(char *ciphertext)
+{
+	WORD block[3];
+	WORD mask;
+	int ofs, chr, src, dst, value;
+
+	if (ciphertext[13]) ofs = 9; else ofs = 2;
+
+	block[0] = block[1] = 0;
+	dst = 0;
+	for (chr = 0; chr < 11; chr++) {
+		value = DES_atoi64[ARCH_INDEX(ciphertext[chr + ofs])];
+		mask = 0x20;
+
+		for (src = 0; src < 6; src++) {
+			if (value & mask)
+				block[dst >> 5] |= 1 << (dst & 0x1F);
+			mask >>= 1;
+			dst++;
+		}
+	}
+
+	return opencl_DES_do_IP(block);
+}
+
 static WORD *DES_bs_get_binary_raw(WORD *raw, int count)
 {
 	static WORD out[2];
@@ -320,28 +276,21 @@ static WORD *DES_bs_get_binary_raw(WORD *raw, int count)
 	return out;
 }
 
+
+static WORD DES_raw_get_count(char *ciphertext)
+{
+	if (ciphertext[13]) return DES_atoi64[ARCH_INDEX(ciphertext[1])] |
+		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[2])] << 6) |
+		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[3])] << 12) |
+		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[4])] << 18);
+	else return 25;
+}
+
 WORD *opencl_DES_bs_get_binary(char *ciphertext)
 {
 	return DES_bs_get_binary_raw(
-		opencl_DES_raw_get_binary(ciphertext),
-		opencl_DES_raw_get_count(ciphertext));
-}
-
-WORD *opencl_DES_bs_get_binary_LM(char *ciphertext)
-{
-	WORD block[2], value;
-	int l, h;
-	int index;
-
-	block[0] = block[1] = 0;
-	for (index = 0; index < 16; index += 2) {
-		l = atoi16[ARCH_INDEX(ciphertext[index])];
-		h = atoi16[ARCH_INDEX(ciphertext[index + 1])];
-		value = DES_LM_reverse[l] | (DES_LM_reverse[h] << 4);
-		block[index >> 3] |= value << ((index << 2) & 0x18);
-	}
-
-	return DES_bs_get_binary_raw(opencl_DES_do_IP(block), 1);
+		DES_raw_get_binary(ciphertext),
+		DES_raw_get_count(ciphertext));
 }
 
 static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
@@ -349,7 +298,7 @@ static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
 	int result;
 	DES_bs_vector *b;
 	unsigned int sector;
-	init_t();
+
 	sector = index>>DES_BS_LOG2;
 	index &= (DES_BS_DEPTH-1);
 #if ARCH_LITTLE_ENDIAN
@@ -463,55 +412,4 @@ WORD opencl_DES_raw_get_salt(char *ciphertext)
 	else return DES_atoi64[ARCH_INDEX(ciphertext[0])] |
 		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[1])] << 6);
 }
-
-WORD opencl_DES_raw_get_count(char *ciphertext)
-{
-	if (ciphertext[13]) return DES_atoi64[ARCH_INDEX(ciphertext[1])] |
-		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[2])] << 6) |
-		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[3])] << 12) |
-		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[4])] << 18);
-	else return 25;
-}
-
-WORD *opencl_DES_do_IP(WORD in[2])
-{
-	static WORD out[2];
-	int src, dst;
-
-	out[0] = out[1] = 0;
-	for (dst = 0; dst < 64; dst++) {
-		src = DES_IP[dst ^ 0x20];
-
-		if (in[src >> 5] & (1 << (src & 0x1F)))
-			out[dst >> 5] |= 1 << (dst & 0x1F);
-	}
-
-	return out;
-}
-
-WORD *opencl_DES_raw_get_binary(char *ciphertext)
-{
-	WORD block[3];
-	WORD mask;
-	int ofs, chr, src, dst, value;
-
-	if (ciphertext[13]) ofs = 9; else ofs = 2;
-
-	block[0] = block[1] = 0;
-	dst = 0;
-	for (chr = 0; chr < 11; chr++) {
-		value = DES_atoi64[ARCH_INDEX(ciphertext[chr + ofs])];
-		mask = 0x20;
-
-		for (src = 0; src < 6; src++) {
-			if (value & mask)
-				block[dst >> 5] |= 1 << (dst & 0x1F);
-			mask >>= 1;
-			dst++;
-		}
-	}
-
-	return opencl_DES_do_IP(block);
-}
-
 #endif /* HAVE_OPENCL */
