@@ -501,6 +501,25 @@ static void rules_init_classes(void)
 		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP437);
 		rules_init_class('Y', CHARS_INVALID_CP437);
 		break;
+	case CP720:
+		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP720);
+		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP720);
+		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP720);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_CP720);
+		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP720);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP720
+		                 CHARS_LOW_ONLY_CP720);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP720
+		                 CHARS_UP_ONLY_CP720);
+		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP720);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_CP720);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP720
+		                 CHARS_DIGITS CHARS_DIGITS_CP720);
+		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP720);
+		rules_init_class('Y', CHARS_INVALID_CP720);
+		break;
 	case CP737:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP737);
 		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP737);
@@ -598,6 +617,25 @@ static void rules_init_classes(void)
 		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP866);
 		rules_init_class('Y', CHARS_INVALID_CP866);
 		break;
+	case CP868:
+		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP868);
+		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP868);
+		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP868);
+		rules_init_class('p', CHARS_PUNCTUATION
+		                 CHARS_PUNCTUATION_CP868);
+		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP868);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP868
+		                 CHARS_LOW_ONLY_CP868);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP868
+		                 CHARS_UP_ONLY_CP868);
+		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP868);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+		                 CHARS_ALPHA_CP868);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP868
+		                 CHARS_DIGITS CHARS_DIGITS_CP868);
+		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP868);
+		rules_init_class('Y', CHARS_INVALID_CP868);
+		break;
 	case CP1250:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP1250);
 		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP1250);
@@ -674,6 +712,63 @@ static void rules_init_classes(void)
 		                 CHARS_DIGITS CHARS_DIGITS_CP1253);
 		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP1253);
 		rules_init_class('Y', CHARS_INVALID_CP1253);
+		break;
+	case CP1254:
+		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP1254);
+		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP1254);
+		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP1254);
+		rules_init_class('p', CHARS_PUNCTUATION
+				 CHARS_PUNCTUATION_CP1254);
+		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP1254);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP1254
+				 CHARS_LOW_ONLY_CP1254);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP1254
+				 CHARS_UP_ONLY_CP1254);
+		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP1254);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+				 CHARS_ALPHA_CP1254);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP1254
+				 CHARS_DIGITS  CHARS_DIGITS_CP1254);
+		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP1254);
+		rules_init_class('Y', CHARS_INVALID_CP1254);
+		break;
+	case CP1255:
+		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP1255);
+		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP1255);
+		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP1255);
+		rules_init_class('p', CHARS_PUNCTUATION
+				 CHARS_PUNCTUATION_CP1255);
+		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP1255);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP1255
+				 CHARS_LOW_ONLY_CP1255);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP1255
+				 CHARS_UP_ONLY_CP1255);
+		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP1255);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+				 CHARS_ALPHA_CP1255);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP1255
+				 CHARS_DIGITS  CHARS_DIGITS_CP1255);
+		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP1255);
+		rules_init_class('Y', CHARS_INVALID_CP1255);
+		break;
+	case CP1256:
+		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_CP1256);
+		rules_init_class('c', CHARS_CONSONANTS CHARS_CONSONANTS_CP1256);
+		rules_init_class('w', CHARS_WHITESPACE CHARS_WHITESPACE_CP1256);
+		rules_init_class('p', CHARS_PUNCTUATION
+				 CHARS_PUNCTUATION_CP1256);
+		rules_init_class('s', CHARS_SPECIALS CHARS_SPECIALS_CP1256);
+		rules_init_class('l', CHARS_LOWER CHARS_LOWER_CP1256
+				 CHARS_LOW_ONLY_CP1256);
+		rules_init_class('u', CHARS_UPPER CHARS_UPPER_CP1256
+				 CHARS_UP_ONLY_CP1256);
+		rules_init_class('d', CHARS_DIGITS CHARS_DIGITS_CP1256);
+		rules_init_class('a', CHARS_LOWER CHARS_UPPER
+				 CHARS_ALPHA_CP1256);
+		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_ALPHA_CP1256
+				 CHARS_DIGITS  CHARS_DIGITS_CP1256);
+		rules_init_class('o', CHARS_CONTROL_ASCII CHARS_CONTROL_CP1256);
+		rules_init_class('Y', CHARS_INVALID_CP1256);
 		break;
 	default:
 		rules_init_class('v', CHARS_VOWELS);
@@ -816,6 +911,19 @@ static void rules_init_convs(void)
 		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP437,
 		                               CHARS_UPPER CHARS_UPPER_CP437);
 		break;
+	case CP720:
+		conv_source = CONV_SOURCE CHARS_LOWER_CP720 CHARS_UPPER_CP720;
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_CP720
+		                             CHARS_LOWER_CP720);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_CP720
+		                              CHARS_LOWER_CP720);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP720,
+		                               CHARS_LOWER CHARS_LOWER_CP720);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP720,
+		                               CHARS_UPPER CHARS_UPPER_CP720);
+		break;
 	case CP737:
 		conv_source = CONV_SOURCE CHARS_LOWER_CP737 CHARS_UPPER_CP737;
 		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
@@ -886,6 +994,19 @@ static void rules_init_convs(void)
 		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP866,
 		                               CHARS_UPPER CHARS_UPPER_CP866);
 		break;
+	case CP868:
+		conv_source = CONV_SOURCE CHARS_LOWER_CP868 CHARS_UPPER_CP868;
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+		                             CHARS_UPPER_CP868
+		                             CHARS_LOWER_CP868);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+		                              CHARS_UPPER_CP868
+		                              CHARS_LOWER_CP868);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP868,
+		                               CHARS_LOWER CHARS_LOWER_CP868);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP868,
+		                               CHARS_UPPER CHARS_UPPER_CP868);
+		break;
 	case CP1250:
 		conv_source = CONV_SOURCE CHARS_LOWER_CP1250 CHARS_UPPER_CP1250;
 		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
@@ -937,6 +1058,45 @@ static void rules_init_convs(void)
 		                               CHARS_LOWER CHARS_LOWER_CP1253);
 		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP1253,
 		                               CHARS_UPPER CHARS_UPPER_CP1253);
+		break;
+	case CP1254:
+		conv_source = CONV_SOURCE CHARS_LOWER_CP1254 CHARS_UPPER_CP1254;
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+					     CHARS_UPPER_CP1254
+					     CHARS_LOWER_CP1254);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+					      CHARS_UPPER_CP1254
+					      CHARS_LOWER_CP1254);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP1254,
+					       CHARS_LOWER CHARS_LOWER_CP1254);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP1254,
+					       CHARS_UPPER CHARS_UPPER_CP1254);
+		break;
+	case CP1255:
+		conv_source = CONV_SOURCE CHARS_LOWER_CP1255 CHARS_UPPER_CP1255;
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+					     CHARS_UPPER_CP1255
+					     CHARS_LOWER_CP1255);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+					      CHARS_UPPER_CP1255
+					      CHARS_LOWER_CP1255);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP1255,
+					       CHARS_LOWER CHARS_LOWER_CP1255);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP1255,
+					       CHARS_UPPER CHARS_UPPER_CP1255);
+		break;
+	case CP1256:
+		conv_source = CONV_SOURCE CHARS_LOWER_CP1256 CHARS_UPPER_CP1256;
+		conv_shift = rules_init_conv(conv_source, CONV_SHIFT
+					     CHARS_UPPER_CP1256
+					     CHARS_LOWER_CP1256);
+		conv_invert = rules_init_conv(conv_source, CONV_INVERT
+					      CHARS_UPPER_CP1256
+					      CHARS_LOWER_CP1256);
+		conv_tolower = rules_init_conv(CHARS_UPPER CHARS_UPPER_CP1256,
+					       CHARS_LOWER CHARS_LOWER_CP1256);
+		conv_toupper = rules_init_conv(CHARS_LOWER CHARS_LOWER_CP1256,
+					       CHARS_UPPER CHARS_UPPER_CP1256);
 		break;
 	default:
 		conv_shift = rules_init_conv(conv_source, CONV_SHIFT);

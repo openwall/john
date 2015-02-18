@@ -188,6 +188,10 @@ static char* plhdr2string(char p, int fmt_case)
 			add_string(CHARS_LOWER_CP437
 			           CHARS_LOW_ONLY_CP437);
 			break;
+		case CP720:
+			add_string(CHARS_LOWER_CP720
+			           CHARS_LOW_ONLY_CP720);
+			break;
 		case CP737:
 			add_string(CHARS_LOWER_CP737
 			           CHARS_LOW_ONLY_CP737);
@@ -208,6 +212,10 @@ static char* plhdr2string(char p, int fmt_case)
 			add_string(CHARS_LOWER_CP866
 			           CHARS_LOW_ONLY_CP866);
 			break;
+		case CP868:
+			add_string(CHARS_LOWER_CP868
+			           CHARS_LOW_ONLY_CP868);
+			break;
 		case CP1250:
 			add_string(CHARS_LOWER_CP1250
 			           CHARS_LOW_ONLY_CP1250);
@@ -223,6 +231,18 @@ static char* plhdr2string(char p, int fmt_case)
 		case CP1253:
 			add_string(CHARS_LOWER_CP1253
 			           CHARS_LOW_ONLY_CP1253);
+			break;
+		case CP1254:
+			add_string(CHARS_LOWER_CP1254
+			           CHARS_LOW_ONLY_CP1254);
+			break;
+		case CP1255:
+			add_string(CHARS_LOWER_CP1255
+			           CHARS_LOW_ONLY_CP1255);
+			break;
+		case CP1256:
+			add_string(CHARS_LOWER_CP1256
+			           CHARS_LOW_ONLY_CP1256);
 			break;
 		case ISO_8859_1:
 			add_string(CHARS_LOWER_ISO_8859_1
@@ -255,6 +275,10 @@ static char* plhdr2string(char p, int fmt_case)
 			add_string(CHARS_UPPER_CP437
 			           CHARS_UP_ONLY_CP437);
 			break;
+		case CP720:
+			add_string(CHARS_UPPER_CP720
+			           CHARS_UP_ONLY_CP720);
+			break;
 		case CP737:
 			add_string(CHARS_UPPER_CP737
 			           CHARS_UP_ONLY_CP737);
@@ -275,6 +299,10 @@ static char* plhdr2string(char p, int fmt_case)
 			add_string(CHARS_UPPER_CP866
 			           CHARS_UP_ONLY_CP866);
 			break;
+		case CP868:
+			add_string(CHARS_UPPER_CP868
+			           CHARS_UP_ONLY_CP868);
+			break;
 		case CP1250:
 			add_string(CHARS_UPPER_CP1250
 			           CHARS_UP_ONLY_CP1250);
@@ -290,6 +318,18 @@ static char* plhdr2string(char p, int fmt_case)
 		case CP1253:
 			add_string(CHARS_UPPER_CP1253
 			           CHARS_UP_ONLY_CP1253);
+			break;
+		case CP1254:
+			add_string(CHARS_UPPER_CP1254
+			           CHARS_UP_ONLY_CP1254);
+			break;
+		case CP1255:
+			add_string(CHARS_UPPER_CP1255
+			           CHARS_UP_ONLY_CP1255);
+			break;
+		case CP1256:
+			add_string(CHARS_UPPER_CP1256
+			           CHARS_UP_ONLY_CP1256);
 			break;
 		case ISO_8859_1:
 			add_string(CHARS_UPPER_ISO_8859_1
@@ -321,6 +361,9 @@ static char* plhdr2string(char p, int fmt_case)
 		case CP437:
 			add_string(CHARS_DIGITS_CP437);
 			break;
+		case CP720:
+			add_string(CHARS_DIGITS_CP720);
+			break;
 		case CP737:
 			add_string(CHARS_DIGITS_CP737);
 			break;
@@ -336,6 +379,9 @@ static char* plhdr2string(char p, int fmt_case)
 		case CP866:
 			add_string(CHARS_DIGITS_CP866);
 			break;
+		case CP868:
+			add_string(CHARS_DIGITS_CP868);
+			break;
 		case CP1250:
 			add_string(CHARS_DIGITS_CP1250);
 			break;
@@ -347,6 +393,15 @@ static char* plhdr2string(char p, int fmt_case)
 			break;
 		case CP1253:
 			add_string(CHARS_DIGITS_CP1253);
+			break;
+		case CP1254:
+			add_string(CHARS_DIGITS_CP1254);
+			break;
+		case CP1255:
+			add_string(CHARS_DIGITS_CP1255);
+			break;
+		case CP1256:
+			add_string(CHARS_DIGITS_CP1256);
 			break;
 		case ISO_8859_1:
 			add_string(CHARS_DIGITS_ISO_8859_1);
@@ -378,6 +433,11 @@ static char* plhdr2string(char p, int fmt_case)
 			           CHARS_SPECIALS_CP437
 			           CHARS_WHITESPACE_CP437);
 			break;
+		case CP720:
+			add_string(CHARS_PUNCTUATION_CP720
+			           CHARS_SPECIALS_CP720
+			           CHARS_WHITESPACE_CP720);
+			break;
 		case CP737:
 			add_string(CHARS_PUNCTUATION_CP737
 			           CHARS_SPECIALS_CP737
@@ -403,6 +463,11 @@ static char* plhdr2string(char p, int fmt_case)
 			           CHARS_SPECIALS_CP866
 			           CHARS_WHITESPACE_CP866);
 			break;
+		case CP868:
+			add_string(CHARS_PUNCTUATION_CP868
+			           CHARS_SPECIALS_CP868
+			           CHARS_WHITESPACE_CP868);
+			break;
 		case CP1250:
 			add_string(CHARS_PUNCTUATION_CP1250
 			           CHARS_SPECIALS_CP1250
@@ -422,6 +487,21 @@ static char* plhdr2string(char p, int fmt_case)
 			add_string(CHARS_PUNCTUATION_CP1253
 			           CHARS_SPECIALS_CP1253
 			           CHARS_WHITESPACE_CP1253);
+			break;
+		case CP1254:
+			add_string(CHARS_PUNCTUATION_CP1254
+			           CHARS_SPECIALS_CP1254
+			           CHARS_WHITESPACE_CP1254);
+			break;
+		case CP1255:
+			add_string(CHARS_PUNCTUATION_CP1255
+			           CHARS_SPECIALS_CP1255
+			           CHARS_WHITESPACE_CP1255);
+			break;
+		case CP1256:
+			add_string(CHARS_PUNCTUATION_CP1256
+			           CHARS_SPECIALS_CP1256
+			           CHARS_WHITESPACE_CP1256);
 			break;
 		case ISO_8859_1:
 			add_string(CHARS_PUNCTUATION_ISO_8859_1
@@ -476,6 +556,17 @@ static char* plhdr2string(char p, int fmt_case)
 			           CHARS_PUNCTUATION_CP437
 			           CHARS_SPECIALS_CP437
 			           CHARS_WHITESPACE_CP437);
+			break;
+		case CP720:
+			if (fmt_case)
+				add_string(CHARS_ALPHA_CP720);
+			else
+				add_string(CHARS_LOWER_CP720
+				           CHARS_LOW_ONLY_CP720);
+			add_string(CHARS_DIGITS_CP720
+			           CHARS_PUNCTUATION_CP720
+			           CHARS_SPECIALS_CP720
+			           CHARS_WHITESPACE_CP720);
 			break;
 		case CP737:
 			if (fmt_case)
@@ -532,6 +623,17 @@ static char* plhdr2string(char p, int fmt_case)
 			           CHARS_SPECIALS_CP866
 			           CHARS_WHITESPACE_CP866);
 			break;
+		case CP868:
+			if (fmt_case)
+				add_string(CHARS_ALPHA_CP868);
+			else
+				add_string(CHARS_LOWER_CP868
+				           CHARS_LOW_ONLY_CP868);
+			add_string(CHARS_DIGITS_CP868
+			           CHARS_PUNCTUATION_CP868
+			           CHARS_SPECIALS_CP868
+			           CHARS_WHITESPACE_CP868);
+			break;
 		case CP1250:
 			if (fmt_case)
 				add_string(CHARS_ALPHA_CP1250);
@@ -575,6 +677,39 @@ static char* plhdr2string(char p, int fmt_case)
 			           CHARS_PUNCTUATION_CP1253
 			           CHARS_SPECIALS_CP1253
 			           CHARS_WHITESPACE_CP1253);
+			break;
+		case CP1254:
+			if (fmt_case)
+				add_string(CHARS_ALPHA_CP1254);
+			else
+				add_string(CHARS_LOWER_CP1254
+				           CHARS_LOW_ONLY_CP1254);
+			add_string(CHARS_DIGITS_CP1254
+			           CHARS_PUNCTUATION_CP1254
+			           CHARS_SPECIALS_CP1254
+			           CHARS_WHITESPACE_CP1254);
+			break;
+		case CP1255:
+			if (fmt_case)
+				add_string(CHARS_ALPHA_CP1255);
+			else
+				add_string(CHARS_LOWER_CP1255
+				           CHARS_LOW_ONLY_CP1255);
+			add_string(CHARS_DIGITS_CP1255
+			           CHARS_PUNCTUATION_CP1255
+			           CHARS_SPECIALS_CP1255
+			           CHARS_WHITESPACE_CP1255);
+			break;
+		case CP1256:
+			if (fmt_case)
+				add_string(CHARS_ALPHA_CP1256);
+			else
+				add_string(CHARS_LOWER_CP1256
+				           CHARS_LOW_ONLY_CP1256);
+			add_string(CHARS_DIGITS_CP1256
+			           CHARS_PUNCTUATION_CP1256
+			           CHARS_SPECIALS_CP1256
+			           CHARS_WHITESPACE_CP1256);
 			break;
 		case ISO_8859_1:
 			if (fmt_case)

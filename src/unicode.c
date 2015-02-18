@@ -899,23 +899,29 @@ void listEncodings(FILE *fd) {
 	        ", ISO-8859-2"
 	        ", ISO-8859-7"
 	        ", ISO-8859-15"
-	        ",\nKOI8-R"
-	        ", CP437"
+	        ", KOI8-R"
+	        ",\nCP437"
+	        ", CP720"
 	        ", CP737"
 	        ", CP850"
 	        ", CP852"
 	        ", CP858"
 	        ", CP866"
-	        ", CP1250"
+	        ", CP868"
+	        ",\nCP1250"
 	        ", CP1251"
-	        ",\nCP1252"
+	        ", CP1252"
 	        ", CP1253"
+	        ", CP1254"
+	        ", CP1255"
+	        ", CP1256"
 	        "\n");
 }
 
-static char *enc_name[] = { "UNDEF", "ASCII", "CP437", "CP737", "CP850",
-                            "CP852", "CP858", "CP866", "CP1250",
-                            "CP1251", "CP1252", "CP1253", "ISO-8859-1",
+static char *enc_name[] = { "UNDEF", "ASCII", "CP437", "CP720", "CP737",
+                            "CP850", "CP852", "CP858", "CP866", "CP868",
+                            "CP1250", "CP1251", "CP1252", "CP1253", "CP1254",
+			    "CP1255", "CP1256", "ISO-8859-1",
                             "ISO-8859-2", "ISO-8859-7", "ISO-8859-15",
                             "KOI8-R", "UTF-8" };
 
@@ -929,9 +935,10 @@ char *cp_id2name(int encoding)
 	exit(EXIT_FAILURE);
 }
 
-static char *enc_macro[] = { "UNDEF", "ASCII", "CP437", "CP737", "CP850",
-                             "CP852", "CP858", "CP866", "CP1250",
-                             "CP1251", "CP1252", "CP1253", "ISO_8859_1",
+static char *enc_macro[] = { "UNDEF", "ASCII", "CP437", "CP720", "CP737",
+                             "CP850", "CP852", "CP858", "CP866", "CP868",
+                             "CP1250", "CP1251", "CP1252", "CP1253", "CP1254",
+			     "CP1255", "CP1256", "ISO_8859_1",
                              "ISO_8859_2", "ISO_8859_7", "ISO_8859_15",
                              "KOI8_R", "UTF_8" };
 
@@ -990,6 +997,9 @@ int cp_name2id(char *encoding)
 	if (!strcmp(enc, "cp437"))
 		return CP437;
 	else
+	if (!strcmp(enc, "cp720"))
+		return CP720;
+	else
 	if (!strcmp(enc, "cp737"))
 		return CP737;
 	else
@@ -1005,6 +1015,9 @@ int cp_name2id(char *encoding)
 	if (!strcmp(enc, "cp866"))
 		return CP866;
 	else
+	if (!strcmp(enc, "cp868"))
+		return CP868;
+	else
 	if (!strcmp(enc, "cp1250"))
 		return CP1250;
 	else
@@ -1016,6 +1029,15 @@ int cp_name2id(char *encoding)
 	else
 	if (!strcmp(enc, "cp1253"))
 		return CP1253;
+	else
+	if (!strcmp(enc, "cp1254"))
+		return CP1254;
+	else
+	if (!strcmp(enc, "cp1255"))
+		return CP1255;
+	else
+	if (!strcmp(enc, "cp1256"))
+		return CP1256;
 	else
 	if (!strcmp(enc, "raw") || !strcmp(enc, "ascii"))
 		return ASCII;
@@ -1157,6 +1179,9 @@ void initUnicode(int type) {
 		case CP437:
 			CP_to_Unicode[i] = CP437_to_unicode_high128[i-128];
 			break;
+		case CP720:
+			CP_to_Unicode[i] = CP720_to_unicode_high128[i-128];
+			break;
 		case CP737:
 			CP_to_Unicode[i] = CP737_to_unicode_high128[i-128];
 			break;
@@ -1172,6 +1197,9 @@ void initUnicode(int type) {
 		case CP866:
 			CP_to_Unicode[i] = CP866_to_unicode_high128[i-128];
 			break;
+		case CP868:
+			CP_to_Unicode[i] = CP868_to_unicode_high128[i-128];
+			break;
 		case CP1250:
 			CP_to_Unicode[i] = CP1250_to_unicode_high128[i-128];
 			break;
@@ -1183,6 +1211,15 @@ void initUnicode(int type) {
 			break;
 		case CP1253:
 			CP_to_Unicode[i] = CP1253_to_unicode_high128[i-128];
+			break;
+		case CP1254:
+			CP_to_Unicode[i] = CP1254_to_unicode_high128[i-128];
+			break;
+		case CP1255:
+			CP_to_Unicode[i] = CP1255_to_unicode_high128[i-128];
+			break;
+		case CP1256:
+			CP_to_Unicode[i] = CP1256_to_unicode_high128[i-128];
 			break;
 		default: // 8859-1
 			CP_to_Unicode[i] = ISO_8859_1_to_unicode_high128[i-128];
@@ -1198,11 +1235,13 @@ void initUnicode(int type) {
 
 		case CP_DOS:
 		CP_from_Unicode[CP437_to_unicode_high128[i]] = i+128;
+		CP_from_Unicode[CP720_to_unicode_high128[i]] = i+128;
 		CP_from_Unicode[CP737_to_unicode_high128[i]] = i+128;
 		CP_from_Unicode[CP850_to_unicode_high128[i]] = i+128;
 		CP_from_Unicode[CP852_to_unicode_high128[i]] = i+128;
 		CP_from_Unicode[CP858_to_unicode_high128[i]] = i+128;
 		CP_from_Unicode[CP866_to_unicode_high128[i]] = i+128;
+		CP_from_Unicode[CP868_to_unicode_high128[i]] = i+128;
 		break;
 
 		case CP_WIN:
@@ -1243,6 +1282,9 @@ void initUnicode(int type) {
 		case CP437:
 			CP_from_Unicode[CP437_to_unicode_high128[i]] = i+128;
 			break;
+		case CP720:
+			CP_from_Unicode[CP720_to_unicode_high128[i]] = i+128;
+			break;
 		case CP737:
 			CP_from_Unicode[CP737_to_unicode_high128[i]] = i+128;
 			break;
@@ -1258,6 +1300,9 @@ void initUnicode(int type) {
 		case CP866:
 			CP_from_Unicode[CP866_to_unicode_high128[i]] = i+128;
 			break;
+		case CP868:
+			CP_from_Unicode[CP868_to_unicode_high128[i]] = i+128;
+			break;
 		case CP1250:
 			CP_from_Unicode[CP1250_to_unicode_high128[i]] = i+128;
 			break;
@@ -1269,6 +1314,15 @@ void initUnicode(int type) {
 			break;
 		case CP1253:
 			CP_from_Unicode[CP1253_to_unicode_high128[i]] = i+128;
+			break;
+		case CP1254:
+			CP_from_Unicode[CP1254_to_unicode_high128[i]] = i+128;
+			break;
+		case CP1255:
+			CP_from_Unicode[CP1255_to_unicode_high128[i]] = i+128;
+			break;
+		case CP1256:
+			CP_from_Unicode[CP1256_to_unicode_high128[i]] = i+128;
 			break;
 		default:
 			CP_from_Unicode[ISO_8859_1_to_unicode_high128[i]] =
@@ -1344,6 +1398,14 @@ void initUnicode(int type) {
 			CHARS_CONTROL_CP437 CHARS_INVALID_CP437;
 		Letter = (unsigned char*)CHARS_ALPHA_CP437;
 		break;
+	case CP720:
+		cpU = (unsigned char*)CHARS_UPPER_CP720;
+		cpL = (unsigned char*)CHARS_LOWER_CP720;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP720
+			CHARS_SPECIALS_CP720 CHARS_WHITESPACE_CP720
+			CHARS_CONTROL_CP720 CHARS_INVALID_CP720;
+		Letter = (unsigned char*)CHARS_ALPHA_CP720;
+		break;
 	case CP737:
 		cpU = (unsigned char*)CHARS_UPPER_CP737;
 		cpL = (unsigned char*)CHARS_LOWER_CP737;
@@ -1384,6 +1446,14 @@ void initUnicode(int type) {
 			CHARS_CONTROL_CP866 CHARS_INVALID_CP866;
 		Letter = (unsigned char*)CHARS_ALPHA_CP866;
 		break;
+	case CP868:
+		cpU = (unsigned char*)CHARS_UPPER_CP868;
+		cpL = (unsigned char*)CHARS_LOWER_CP868;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP868
+			CHARS_SPECIALS_CP868 CHARS_WHITESPACE_CP868
+			CHARS_CONTROL_CP868 CHARS_INVALID_CP868;
+		Letter = (unsigned char*)CHARS_ALPHA_CP868;
+		break;
 	case CP1250:
 		cpU = (unsigned char*)CHARS_UPPER_CP1250;
 		cpL = (unsigned char*)CHARS_LOWER_CP1250;
@@ -1415,6 +1485,30 @@ void initUnicode(int type) {
 			CHARS_SPECIALS_CP1253 CHARS_WHITESPACE_CP1253
 			CHARS_CONTROL_CP1253 CHARS_INVALID_CP1253;
 		Letter = (unsigned char*)CHARS_ALPHA_CP1253;
+		break;
+	case CP1254:
+		cpU = (unsigned char*)CHARS_UPPER_CP1254;
+		cpL = (unsigned char*)CHARS_LOWER_CP1254;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP1254
+			CHARS_SPECIALS_CP1254 CHARS_WHITESPACE_CP1254
+			CHARS_CONTROL_CP1254 CHARS_INVALID_CP1254;
+		Letter = (unsigned char*)CHARS_ALPHA_CP1254;
+		break;
+	case CP1255:
+		cpU = (unsigned char*)CHARS_UPPER_CP1255;
+		cpL = (unsigned char*)CHARS_LOWER_CP1255;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP1255
+			CHARS_SPECIALS_CP1255 CHARS_WHITESPACE_CP1255
+			CHARS_CONTROL_CP1255 CHARS_INVALID_CP1255;
+		Letter = (unsigned char*)CHARS_ALPHA_CP1255;
+		break;
+	case CP1256:
+		cpU = (unsigned char*)CHARS_UPPER_CP1256;
+		cpL = (unsigned char*)CHARS_LOWER_CP1256;
+		Sep = (unsigned char*)CP_issep CHARS_PUNCTUATION_CP1256
+			CHARS_SPECIALS_CP1256 CHARS_WHITESPACE_CP1256
+			CHARS_CONTROL_CP1256 CHARS_INVALID_CP1256;
+		Letter = (unsigned char*)CHARS_ALPHA_CP1256;
 		break;
 	default:
 		cpU = (unsigned char*)"";

@@ -384,6 +384,60 @@ static const UTF16 CP437_to_unicode_high128[] = {
 
 // 8               9               A               B               C               D               E               F               
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
+//
+
+// here is the CP720 to Unicode conversion for CP720 characters from 0x80 to 0xFF
+static const UTF16 CP720_to_unicode_high128[] = {
+0x0080,0x0081,0x00E9,0x00E2,0x0084,0x00E0,0x0086,0x00E7,0x00EA,0x00EB,0x00E8,0x00EF,0x00EE,0x008D,0x008E,0x008F,
+0x0090,0x0651,0x0652,0x00F4,0x00A4,0x0640,0x00FB,0x00F9,0x0621,0x0622,0x0623,0x0624,0x00A3,0x0625,0x0626,0x0627,
+0x0628,0x0629,0x062A,0x062B,0x062C,0x062D,0x062E,0x062F,0x0630,0x0631,0x0632,0x0633,0x0634,0x0635,0x00AB,0x00BB,
+0x2591,0x2592,0x2593,0x2502,0x2524,0x2561,0x2562,0x2556,0x2555,0x2563,0x2551,0x2557,0x255D,0x255C,0x255B,0x2510,
+0x2514,0x2534,0x252C,0x251C,0x2500,0x253C,0x255E,0x255F,0x255A,0x2554,0x2569,0x2566,0x2560,0x2550,0x256C,0x2567,
+0x2568,0x2564,0x2565,0x2559,0x2558,0x2552,0x2553,0x256B,0x256A,0x2518,0x250C,0x2588,0x2584,0x258C,0x2590,0x2580,
+0x0636,0x0637,0x0638,0x0639,0x063A,0x0641,0x00B5,0x0642,0x0643,0x0644,0x0645,0x0646,0x0647,0x0648,0x0649,0x064A,
+0x2261,0x064B,0x064C,0x064D,0x064E,0x064F,0x0650,0x2248,0x00B0,0x2219,0x00B7,0x221A,0x207F,0x00B2,0x25A0,0x00A0 };
+
+// éâàçêëèïîôûù
+#define CHARS_LOWER_CP720 "\x82\x83\x85\x87\x88\x89\x8A\x8B\x8C\x93\x96\x97"
+
+// µ
+#define CHARS_LOW_ONLY_CP720 "\xE6"
+
+//
+#define CHARS_UPPER_CP720 ""
+
+//
+#define CHARS_UP_ONLY_CP720
+
+// ²
+#define CHARS_DIGITS_CP720 "\xFD"
+
+// «»
+#define CHARS_PUNCTUATION_CP720 "\xAE\xAF"
+
+// ░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀≈°∙√ⁿ■
+#define CHARS_SPECIALS_CP720 \
+	"\xB0\xB1\xB2\xB3\xB4\xB5\xB6\xB7\xB8\xB9\xBA\xBB\xBC\xBD\xBE\xBF\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDA\xDB\xDC\xDD\xDE\xDF\xF7\xF8\xF9\xFA\xFB\xFC\xFD\xFE"
+
+//
+#define CHARS_ALPHA_CP720 \
+	"\x91\x92\x95\x98\x99\x9A\x9B\x9D\x9E\x9F\xA0\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8\xA9\xAA\xAB\xAC\xAD\xE0\xE1\xE2\xE3\xE4\xE5\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF0\xF1\xF2\xF3\xF4\xF5\xF6"
+
+#define CHARS_WHITESPACE_CP720 "\xFF"
+
+#define CHARS_CONTROL_CP720 "\x80\x81\x84\x86\x8D\x8E\x8F\x90"
+
+#define CHARS_INVALID_CP720 ""
+
+//
+#define CHARS_VOWELS_CP720
+
+//
+#define CHARS_CONSONANTS_CP720 \
+	"\x91\x92\x95\x98\x99\x9A\x9B\x9D\x9E\x9F\xA0\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8\xA9\xAA\xAB\xAC\xAD\xE0\xE1\xE2\xE3\xE4\xE5\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF0\xF1\xF2\xF3\xF4\xF5\xF6"
+
+// 8               9               A               B               C               D               E               F
+// 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 // ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρσςτυφχψ░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀ωάέήϊίόύϋώΆΈΉΊΌΎΏ±≥≤ΪΫ÷≈°∙·√ⁿ²■ 
 
 // here is the CP737 to Unicode conversion for CP737 characters from 0x80 to 0xFF
@@ -671,6 +725,54 @@ static const UTF16 CP866_to_unicode_high128[] = {
 
 // 8               9               A               B               C               D               E               F               
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
+// ٠١٢٣٤٥٦٧٨٩،؛؟آاﺎبﺑپةتﺗثﺛجﺟحﺣخﺧدذرزسﺳش«»ﺷص░▒▓│┤ﺻضﺿط╣║╗╝ظع┐└┴┬├─┼ﻊﻋ╚╔╩╦╠═╬ﻌغﻎﻏﻐفﻓقﻗﻚ┘┌█▀ﻛ▄لﻞﻠمﻣنﻧوء­ّﹽ■ 
+
+// here is the CP868 to Unicode conversion for CP868 characters from 0x80 to 0xFF
+static const UTF16 CP868_to_unicode_high128[] = {
+0x0660,0x0661,0x0662,0x0663,0x0664,0x0665,0x0666,0x0667,0x0668,0x0669,0x060C,0x061B,0x061F,0x0622,0x0627,0xFE8E,
+0xE016,0x0628,0xFE91,0x067E,0x0094,0x0629,0x062A,0xFE97,0x0098,0x0099,0x062B,0xFE9B,0x062C,0xFE9F,0x009E,0x009F,
+0x062D,0xFEA3,0x062E,0xFEA7,0x062F,0x00A5,0x0630,0x0631,0x00A8,0x0632,0x00AA,0x0633,0xFEB3,0x0634,0x00AB,0x00BB,
+0xFEB7,0x0635,0x2591,0x2592,0x2593,0x2502,0x2524,0xFEBB,0x0636,0xFEBF,0x0637,0x2563,0x2551,0x2557,0x255D,0x0638,
+0x0639,0x2510,0x2514,0x2534,0x252C,0x251C,0x2500,0x253C,0xFECA,0xFECB,0x255A,0x2554,0x2569,0x2566,0x2560,0x2550,
+0x256C,0xFECC,0x063A,0xFECE,0xFECF,0xFED0,0x0641,0xFED3,0x0642,0xFED7,0xFEDA,0x2518,0x250C,0x2588,0x2580,0xFEDB,
+0x00E0,0x2584,0x00E2,0x0644,0xFEDE,0xFEE0,0x0645,0xFEE3,0x00E8,0x0646,0xFEE7,0x00EB,0x0648,0x00ED,0x00EE,0x00EF,
+0x00F0,0x0621,0x00AD,0x00F3,0x00F4,0x00F5,0x00F6,0x00F7,0x00F8,0x00F9,0x00FA,0x0651,0xFE7D,0x00FD,0x25A0,0x00A0 };
+
+#define CHARS_LOWER_CP868 ""
+
+#define CHARS_LOW_ONLY_CP868
+
+#define CHARS_UPPER_CP868 ""
+
+#define CHARS_UP_ONLY_CP868
+
+//٠١٢٣٤٥٦٧٨٩
+#define CHARS_DIGITS_CP868 "\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89"
+
+// ،؛؟«»
+#define CHARS_PUNCTUATION_CP868 "\x8A\x8B\x8C\xAE\xAF"
+
+//
+#define CHARS_SPECIALS_CP868 ""
+
+// آاﺎبﺑپةتﺗثﺛجﺟحﺣخﺧدذرزسﺳشﺷصﺻضﺿطظعﻊﻋﻌغﻎﻏﻐفﻓقﻗﻚﻛلﻞﻠمﻣنﻧوءّﹽ
+#define CHARS_ALPHA_CP868 \
+	"\x8D\x8E\x8F\x90\x91\x92\x93\x95\x96\x97\x9A\x9B\x9C\x9D\xA0\xA1\xA2\xA3\xA4\xA6\xA7\xA9\xAB\xAC\xAD\xB0\xB1\xB7\xB8\xB9\xBA\xBF\xC0\xC8\xC9\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDA\xDF\xE3\xE4\xE5\xE6\xE7\xE9\xEA\xEC\xF1\xFB\xFC"
+
+#define CHARS_WHITESPACE_CP868 "\xF2\xFF"
+
+#define CHARS_CONTROL_CP868
+
+#define CHARS_INVALID_CP868 "\x94\x9E\x9F\xA5\xA8\xAA\xE2\xE8\xEB\xED\xEE\xEF\xF0\xF3\xF4\xF5\xF6\xF7\xF8\xF9\xFA\xFD"
+
+#define CHARS_VOWELS_CP868
+
+// آاﺎبﺑپةتﺗثﺛجﺟحﺣخﺧدذرزسﺳشﺷصﺻضﺿطظعﻊﻋﻌغﻎﻏﻐفﻓقﻗﻚﻛلﻞﻠمﻣنﻧوءّﹽ
+#define CHARS_CONSONANTS_CP868 \
+	"\x8D\x8E\x8F\x90\x91\x92\x93\x95\x96\x97\x9A\x9B\x9C\x9D\xA0\xA1\xA2\xA3\xA4\xA6\xA7\xA9\xAB\xAC\xAD\xB0\xB1\xB7\xB8\xB9\xBA\xBF\xC0\xC8\xC9\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDA\xDF\xE3\xE4\xE5\xE6\xE7\xE9\xEA\xEC\xF1\xFB\xFC"
+
+// 8               9               A               B               C               D               E               F
+// 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 // €�‚�„…†‡�‰Š‹ŚŤŽŹ�‘’“”•–—�™š›śťžź ˇ˘Ł¤Ą¦§¨©Ş«¬­®Ż°±˛ł´µ¶·¸ąş»Ľ˝ľżŔÁÂĂÄĹĆÇČÉĘËĚÍÎĎĐŃŇÓÔŐÖ×ŘŮÚŰÜÝŢßŕáâăäĺćçčéęëěíîďđńňóôőö÷řůúűüýţ˙
 
 // here is the CP1250 to Unicode conversion for CP1250 characters from 0x80 to 0xFF
@@ -898,6 +1000,163 @@ static const UTF16 CP1253_to_unicode_high128[] = {
 // ƒµΒΓΔΖΘΚΛΜΝΞΠΡΣΤΦΧΨβγδζθκλμνξπρςστφχψ
 #define CHARS_CONSONANTS_CP1253 \
 	"\x83\xB5\xC2\xC3\xC4\xC6\xC8\xCA\xCB\xCC\xCD\xCE\xD0\xD1\xD3\xD4\xD6\xD7\xD8\xE2\xE3\xE4\xE6\xE8\xEA\xEB\xEC\xED\xEE\xF0\xF1\xF2\xF3\xF4\xF6\xF7\xF8"
+
+// here is the CP1254 to Unicode conversion for CP1254 characters from 0x80 to 0xFF
+static const UTF16 CP1254_to_unicode_high128[] = {
+0x20AC,0x0081,0x201A,0x0192,0x201E,0x2026,0x2020,0x2021,0x02C6,0x2030,0x0160,0x2039,0x0152,0x008D,0x008E,0x008F,
+0x0090,0x2018,0x2019,0x201C,0x201D,0x2022,0x2013,0x2014,0x02DC,0x2122,0x0161,0x203A,0x0153,0x009D,0x009E,0x0178,
+0x00A0,0x00A1,0x00A2,0x00A3,0x00A4,0x00A5,0x00A6,0x00A7,0x00A8,0x00A9,0x00AA,0x00AB,0x00AC,0x00AD,0x00AE,0x00AF,
+0x00B0,0x00B1,0x00B2,0x00B3,0x00B4,0x00B5,0x00B6,0x00B7,0x00B8,0x00B9,0x00BA,0x00BB,0x00BC,0x00BD,0x00BE,0x00BF,
+0x00C0,0x00C1,0x00C2,0x00C3,0x00C4,0x00C5,0x00C6,0x00C7,0x00C8,0x00C9,0x00CA,0x00CB,0x00CC,0x00CD,0x00CE,0x00CF,
+0x011E,0x00D1,0x00D2,0x00D3,0x00D4,0x00D5,0x00D6,0x00D7,0x00D8,0x00D9,0x00DA,0x00DB,0x00DC,0x0130,0x015E,0x00DF,
+0x00E0,0x00E1,0x00E2,0x00E3,0x00E4,0x00E5,0x00E6,0x00E7,0x00E8,0x00E9,0x00EA,0x00EB,0x00EC,0x00ED,0x00EE,0x00EF,
+0x011F,0x00F1,0x00F2,0x00F3,0x00F4,0x00F5,0x00F6,0x00F7,0x00F8,0x00F9,0x00FA,0x00FB,0x00FC,0x0131,0x015F,0x00FF };
+// *** WARNING, char at 0xDF U+00DF (ß -> SS) needs to be looked into.  Single to multi-byte conversion
+// *** WARNING, char at 0xFD -> U+0131 -> U+0049 -> 0x49 (ı -> I) needs to be looked into.  Likely one way casing conversion
+
+// šœàáâãäåæçèéêëìíîïğñòóôõöøùúûüşÿ
+#define CHARS_LOWER_CP1254 \
+	"\x9A\x9C\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF0\xF1\xF2\xF3\xF4\xF5\xF6\xF8\xF9\xFA\xFB\xFC\xFE\xFF"
+
+// ƒªµºßı
+#define CHARS_LOW_ONLY_CP1254 "\x83\xAA\xB5\xBA\xDF\xFD"
+
+// ŠŒÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖØÙÚÛÜŞŸ
+#define CHARS_UPPER_CP1254 \
+	"\x8A\x8C\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD8\xD9\xDA\xDB\xDC\xDE\x9F"
+
+//
+#define CHARS_UP_ONLY_CP1254
+
+// ²³¹¼½¾
+#define CHARS_DIGITS_CP1254 "\xB2\xB3\xB9\xBC\xBD\xBE"
+
+// ‚„…†‡‰‹‘’“”•–—›¡«·»¿
+#define CHARS_PUNCTUATION_CP1254 "\x82\x84\x85\x86\x87\x89\x8B\x91\x92\x93\x94\x95\x96\x97\x9B\xA1\xAB\xB7\xBB\xBF"
+
+// €ˆ˜™¢£¤¥¦§¨©¬­®¯°±´¶¸×÷
+#define CHARS_SPECIALS_CP1254 \
+	"\x80\x88\x98\x99\xA2\xA3\xA4\xA5\xA6\xA7\xA8\xA9\xAC\xAD\xAE\xAF\xB0\xB1\xB4\xB6\xB8\xD7\xF7"
+
+// ƒŠŒšœŸªµºÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖØÙÚÛÜİŞßàáâãäåæçèéêëìíîïğñòóôõöøùúûüışÿ
+#define CHARS_ALPHA_CP1254 \
+	"\x83\x8A\x8C\x9A\x9C\x9F\xAA\xB5\xBA\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD8\xD9\xDA\xDB\xDC\xDD\xDE\xDF\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF0\xF1\xF2\xF3\xF4\xF5\xF6\xF8\xF9\xFA\xFB\xFC\xFD\xFE\xFF"
+
+#define CHARS_WHITESPACE_CP1254 "\xA0"
+
+#define CHARS_CONTROL_CP1254
+
+#define CHARS_INVALID_CP1254 "\x81\x8D\x8E\x8F\x90\x9D\x9E"
+
+// YyŒœŸÀÁÂÃÄÅÆÈÉÊËÌÍÎÏÒÓÔÕÖØÙÚÛÜİàáâãäåæèéêëìíîïòóôõöøùúûüıÿ
+#define CHARS_VOWELS_CP1254 \
+	"\x59\x79\x8C\x9C\x9F\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD2\xD3\xD4\xD5\xD6\xD8\xD9\xDA\xDB\xDC\xDD\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF2\xF3\xF4\xF5\xF6\xF8\xF9\xFA\xFB\xFC\xFD\xFF"
+
+// ƒŠšŸªµºÇĞÑŞßçğñşÿ
+#define CHARS_CONSONANTS_CP1254 "\x83\x8A\x9A\x9F\xAA\xB5\xBA\xC7\xD0\xD1\xDE\xDF\xE7\xF0\xF1\xFE\xFF"
+
+// here is the CP1255 to Unicode conversion for CP1255 characters from 0x80 to 0xFF
+static const UTF16 CP1255_to_unicode_high128[] = {
+0x20AC,0x0081,0x201A,0x0192,0x201E,0x2026,0x2020,0x2021,0x02C6,0x2030,0x008A,0x2039,0x008C,0x008D,0x008E,0x008F,
+0x0090,0x2018,0x2019,0x201C,0x201D,0x2022,0x2013,0x2014,0x02DC,0x2122,0x009A,0x203A,0x009C,0x009D,0x009E,0x009F,
+0x00A0,0x00A1,0x00A2,0x00A3,0x20AA,0x00A5,0x00A6,0x00A7,0x00A8,0x00A9,0x00D7,0x00AB,0x00AC,0x00AD,0x00AE,0x00AF,
+0x00B0,0x00B1,0x00B2,0x00B3,0x00B4,0x00B5,0x00B6,0x00B7,0x00B8,0x00B9,0x00F7,0x00BB,0x00BC,0x00BD,0x00BE,0x00BF,
+0x05B0,0x05B1,0x05B2,0x05B3,0x05B4,0x05B5,0x05B6,0x05B7,0x05B8,0x05B9,0x00CA,0x05BB,0x05BC,0x05BD,0x05BE,0x05BF,
+0x05C0,0x05C1,0x05C2,0x05C3,0x05F0,0x05F1,0x05F2,0x05F3,0x05F4,0x00D9,0x00DA,0x00DB,0x00DC,0x00DD,0x00DE,0x00DF,
+0x05D0,0x05D1,0x05D2,0x05D3,0x05D4,0x05D5,0x05D6,0x05D7,0x05D8,0x05D9,0x05DA,0x05DB,0x05DC,0x05DD,0x05DE,0x05DF,
+0x05E0,0x05E1,0x05E2,0x05E3,0x05E4,0x05E5,0x05E6,0x05E7,0x05E8,0x05E9,0x05EA,0x00FB,0x00FC,0x200E,0x200F,0x00FF };
+
+//
+#define CHARS_LOWER_CP1255 ""
+
+// ƒµ
+#define CHARS_LOW_ONLY_CP1255 "\x83\xB5"
+
+//
+#define CHARS_UPPER_CP1255 ""
+
+//
+#define CHARS_UP_ONLY_CP1255
+
+// ²³¹¼½¾
+#define CHARS_DIGITS_CP1255 "\xB2\xB3\xB9\xBC\xBD\xBE"
+
+// ‚„…†‡‰‹‘’“”•–—›¡«·»¿־׀׃׳״
+#define CHARS_PUNCTUATION_CP1255 \
+	"\x82\x84\x85\x86\x87\x89\x8B\x91\x92\x93\x94\x95\x96\x97\x9B\xA1\xAB\xB7\xBB\xBF\xCE\xD0\xD3\xD7\xD8"
+
+// €ˆ˜™¢£₪¥¦§¨©×¬­®¯°±´¶¸÷ְֱֲֳִֵֶַָֹֻּֽֿׁׂ‎‏
+#define CHARS_SPECIALS_CP1255 \
+	"\x80\x88\x98\x99\xA2\xA3\xA4\xA5\xA6\xA7\xA8\xA9\xAA\xAC\xAD\xAE\xAF\xB0\xB1\xB4\xB6\xB8\xBA\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCB\xCC\xCD\xCF\xD1\xD2\xFD\xFE"
+
+// ƒµװױײאבגדהוזחטיךכלםמןנסעףפץצקרשת
+#define CHARS_ALPHA_CP1255 \
+	"\x83\xB5\xD4\xD5\xD6\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF0\xF1\xF2\xF3\xF4\xF5\xF6\xF7\xF8\xF9\xFA"
+
+#define CHARS_WHITESPACE_CP1255 "\xA0"
+
+#define CHARS_CONTROL_CP1255
+
+#define CHARS_INVALID_CP1255 \
+	"\x81\x8A\x8C\x8D\x8E\x8F\x90\x9A\x9C\x9D\x9E\x9F\xCA\xD9\xDA\xDB\xDC\xDD\xDE\xDF\xFB\xFC\xFF"
+
+// Yy
+#define CHARS_VOWELS_CP1255 "\x59\x79"
+
+// ƒµװױײאבגדהוזחטיךכלםמןנסעףפץצקרשת
+#define CHARS_CONSONANTS_CP1255 \
+	"\x83\xB5\xD4\xD5\xD6\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF0\xF1\xF2\xF3\xF4\xF5\xF6\xF7\xF8\xF9\xFA"
+
+// here is the CP1256 to Unicode conversion for CP1256 characters from 0x80 to 0xFF
+static const UTF16 CP1256_to_unicode_high128[] = {
+0x20AC,0x067E,0x201A,0x0192,0x201E,0x2026,0x2020,0x2021,0x02C6,0x2030,0x0679,0x2039,0x0152,0x0686,0x0698,0x0688,
+0x06AF,0x2018,0x2019,0x201C,0x201D,0x2022,0x2013,0x2014,0x06A9,0x2122,0x0691,0x203A,0x0153,0x200C,0x200D,0x06BA,
+0x00A0,0x060C,0x00A2,0x00A3,0x00A4,0x00A5,0x00A6,0x00A7,0x00A8,0x00A9,0x06BE,0x00AB,0x00AC,0x00AD,0x00AE,0x00AF,
+0x00B0,0x00B1,0x00B2,0x00B3,0x00B4,0x00B5,0x00B6,0x00B7,0x00B8,0x00B9,0x061B,0x00BB,0x00BC,0x00BD,0x00BE,0x061F,
+0x06C1,0x0621,0x0622,0x0623,0x0624,0x0625,0x0626,0x0627,0x0628,0x0629,0x062A,0x062B,0x062C,0x062D,0x062E,0x062F,
+0x0630,0x0631,0x0632,0x0633,0x0634,0x0635,0x0636,0x00D7,0x0637,0x0638,0x0639,0x063A,0x0640,0x0641,0x0642,0x0643,
+0x00E0,0x0644,0x00E2,0x0645,0x0646,0x0647,0x0648,0x00E7,0x00E8,0x00E9,0x00EA,0x00EB,0x0649,0x064A,0x00EE,0x00EF,
+0x064B,0x064C,0x064D,0x064E,0x00F4,0x064F,0x0650,0x00F7,0x0651,0x00F9,0x0652,0x00FB,0x00FC,0x200E,0x200F,0x06D2 };
+
+// œ
+#define CHARS_LOWER_CP1256 "\x9C"
+
+// ƒµàâçèéêëîïôùûü
+#define CHARS_LOW_ONLY_CP1256 "\x83\xB5\xE0\xE2\xE7\xE8\xE9\xEA\xEB\xEE\xEF\xF4\xF9\xFB\xFC"
+
+// Œ
+#define CHARS_UPPER_CP1256 "\x8C"
+
+//
+#define CHARS_UP_ONLY_CP1256
+
+// ²³¹¼½¾
+#define CHARS_DIGITS_CP1256 "\xB2\xB3\xB9\xBC\xBD\xBE"
+
+// ‚„…†‡‰‹‘’“”•–—›،«·؛»؟
+#define CHARS_PUNCTUATION_CP1256 \
+	"\x82\x84\x85\x86\x87\x89\x8B\x91\x92\x93\x94\x95\x96\x97\x9B\xA1\xAB\xB7\xBA\xBB\xBF"
+
+// €ˆ™‌‍¢£¤¥¦§¨©¬­®¯°±´¶¸×ـًٌٍَُِ÷ّْ‎‏
+#define CHARS_SPECIALS_CP1256 \
+	"\x80\x88\x99\x9D\x9E\xA2\xA3\xA4\xA5\xA6\xA7\xA8\xA9\xAC\xAD\xAE\xAF\xB0\xB1\xB4\xB6\xB8\xD7\xDC\xF0\xF1\xF2\xF3\xF5\xF6\xF7\xF8\xFA\xFD\xFE"
+
+// پƒٹŒچژڈگکڑœںھµہءآأؤإئابةتثجحخدذرزسشصضطظعغفقكàلâمنهوçèéêëىيîïôùûüے
+#define CHARS_ALPHA_CP1256 \
+	"\x81\x83\x8A\x8C\x8D\x8E\x8F\x90\x98\x9A\x9C\x9F\xAA\xB5\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD8\xD9\xDA\xDB\xDD\xDE\xDF\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF4\xF9\xFB\xFC\xFF"
+
+#define CHARS_WHITESPACE_CP1256 "\xA0"
+
+#define CHARS_CONTROL_CP1256
+
+#define CHARS_INVALID_CP1256 ""
+
+// YyŒœàâèéêëîïôùûü
+#define CHARS_VOWELS_CP1256 "\x59\x79\x8C\x9C\xE0\xE2\xE8\xE9\xEA\xEB\xEE\xEF\xF4\xF9\xFB\xFC"
+
+// پƒٹچژڈگکڑںھµہءآأؤإئابةتثجحخدذرزسشصضطظعغفقكلمنهوçىيے
+#define CHARS_CONSONANTS_CP1256 \
+	"\x81\x83\x8A\x8D\x8E\x8F\x90\x98\x9A\x9F\xAA\xB5\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD8\xD9\xDA\xDB\xDD\xDE\xDF\xE1\xE3\xE4\xE5\xE6\xE7\xEC\xED\xFF"
 
 // ----8<------8<---- END OF AUTO-GENERATED DATA ----8<------8<----
 
