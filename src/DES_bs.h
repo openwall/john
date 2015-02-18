@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2010-2012 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2010-2012,2015 by Solar Designer
  */
 
 /*
@@ -112,7 +112,7 @@ extern DES_bs_combined *DES_bs_all_p;
 #else
 #define DES_bs_mt			0
 #define DES_bs_cpt			1
-extern DES_bs_combined DES_bs_all;
+extern DES_bs_combined CC_CACHE_ALIGN DES_bs_all;
 #define for_each_t(n)
 #define init_t()
 #endif
