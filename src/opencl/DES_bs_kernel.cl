@@ -96,8 +96,11 @@ __kernel void DES_bs_25_b( constant uint *index768
 #if gpu_amd(DEVICE_INFO)
                            __attribute__((max_constant_size(3072)))
 #endif
-                           , __global int *index96 ,
-                           __global DES_bs_vector *K,
+                           ,constant int *index96
+#if gpu_amd(DEVICE_INFO)
+                           __attribute__((max_constant_size(384)))
+#endif
+			   ,__global DES_bs_vector *K,
                            __global DES_bs_vector *B_global,
                            __global int *binary,
                            int num_loaded_hashes,
@@ -107,7 +110,8 @@ __kernel void DES_bs_25_b( constant uint *index768
 
 		unsigned int section = get_global_id(0), local_offset_K;
 		unsigned int local_id = get_local_id(0);
-		int global_work_size = get_global_size(0);
+		unsigned int global_work_size = get_global_size(0);
+		unsigned int local_work_size = get_local_size(0);
 
 		local_offset_K  = 56 * local_id;
 
@@ -123,11 +127,22 @@ __kernel void DES_bs_25_b( constant uint *index768
 #else
 		vtype tmp;
 #endif
-		long int k = 0, i;
+		int k = 0, i;
 
-		//DES_bs_finalize_keys(section, DES_bs_all, local_offset_K, _local_K);
+		if (!section) {
+			hash_ids[0] = 0;
+			for (i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
+				bitmap[i] = 0;
+		}
+		barrier(CLK_GLOBAL_MEM_FENCE);
+
 		for (i = 0; i < 56; i++)
 			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
+
+#ifndef RV7xx
+		for (i = 0; i < 768; i += local_work_size)
+			_local_index768[local_id + i] = index768[local_id + i];
+#endif
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		{
@@ -135,26 +150,13 @@ __kernel void DES_bs_25_b( constant uint *index768
 			DES_bs_clear_block
 		}
 
-		if(!section) {
-			hash_ids[0] = 0;
-			for (i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
-				bitmap[i] = 0;
-		}
-		barrier(CLK_GLOBAL_MEM_FENCE);
-
 		k = 0;
 #ifndef SAFE_GOTO
 		rounds_and_swapped = 8;
 #endif
 		iterations = 25;
 
-#ifndef RV7xx
-		if (!local_id )
-			for (i = 0; i < 768; i++)
-				_local_index768[i] = index768[i];
 
-		barrier(CLK_LOCAL_MEM_FENCE);
-#endif
 #ifdef SAFE_GOTO
 	for (iterations = 24; iterations >= 0; iterations--) {
 		for (k = 0; k < 768; k += 96) {

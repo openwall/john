@@ -436,6 +436,63 @@
 		z(62, 0), z(63, 49), z(32, 28),\
 		B,4, 26, 14, 20);
 
+#define SWAP(a, b) 	\
+	tmp = B[a];	\
+	B[a] = B[b];	\
+	B[b] = tmp;
+
+#define BIG_SWAP() { 	\
+	SWAP(0, 32);	\
+	SWAP(1, 33);	\
+	SWAP(2, 34);	\
+	SWAP(3, 35);	\
+	SWAP(4, 36);	\
+	SWAP(5, 37);	\
+	SWAP(6, 38);	\
+	SWAP(7, 39);	\
+	SWAP(8, 40);	\
+	SWAP(9, 41);	\
+	SWAP(10, 42);	\
+	SWAP(11, 43);	\
+	SWAP(12, 44);	\
+	SWAP(13, 45);	\
+	SWAP(14, 46);	\
+	SWAP(15, 47);	\
+	SWAP(16, 48);	\
+	SWAP(17, 49);	\
+	SWAP(18, 50);	\
+	SWAP(19, 51);	\
+	SWAP(20, 52);	\
+	SWAP(21, 53);	\
+	SWAP(22, 54);	\
+	SWAP(23, 55);	\
+	SWAP(24, 56);	\
+	SWAP(25, 57);	\
+	SWAP(26, 58);	\
+	SWAP(27, 59);	\
+	SWAP(28, 60);	\
+	SWAP(29, 61);	\
+	SWAP(30, 62);	\
+	SWAP(31, 63);  	\
+}
+#define H()		\
+	H1_k0();	\
+	H2_k0();	\
+	H1_k96();	\
+	H2_k96();	\
+	H1_k192();	\
+	H2_k192();	\
+	H1_k288();	\
+	H2_k288();	\
+	H1_k384();	\
+	H2_k384();	\
+	H1_k480();	\
+	H2_k480();	\
+	H1_k576();	\
+	H2_k576();	\
+	H1_k672();	\
+	H2_k672();
+
 __kernel void DES_bs_25(__global DES_bs_vector *K,
                         __global DES_bs_vector *B_global,
 			__global int *binary,
@@ -453,16 +510,16 @@ __kernel void DES_bs_25(__global DES_bs_vector *K,
 
 		__local DES_bs_vector _local_K[56 * WORK_GROUP_SIZE];
 
-		for (i = 0; i < 56; i++)
-			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
-		barrier(CLK_LOCAL_MEM_FENCE);
-
 		if(!section) {
 			hash_ids[0] = 0;
 			for (i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
 				bitmap[i] = 0;
 		}
 		barrier(CLK_GLOBAL_MEM_FENCE);
+
+		for (i = 0; i < 56; i++)
+			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
+		barrier(CLK_LOCAL_MEM_FENCE);
 
 		int iterations;
 
@@ -471,32 +528,11 @@ __kernel void DES_bs_25(__global DES_bs_vector *K,
 			DES_bs_clear_block
 		}
 
-		iterations = 25;
-
-start:         	H1_k0();
-		H2_k0();
-		H1_k96();
-		H2_k96();
-		H1_k192();
-		H2_k192();
-		H1_k288();
-		H2_k288();
-		H1_k384();
-		H2_k384();
-		H1_k480();
-		H2_k480();
-		H1_k576();
-		H2_k576();
-		H1_k672();
-		H2_k672();
-
-		if (--iterations) {
-			for (i = 0; i < 32; i++){
-				tmp = B[i];
-				B[i] = B[i + 32];
-				B[i + 32] = tmp;
-			}
-			goto start;
+		for (iterations = 24; iterations >= 0; --iterations) {
+			barrier(CLK_GLOBAL_MEM_FENCE);
+			H();
+			if (iterations)
+				BIG_SWAP();
 		}
 
 		cmp(B, binary, num_loaded_hashes, hash_ids, bitmap, B_global, section);

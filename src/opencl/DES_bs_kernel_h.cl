@@ -134,6 +134,12 @@
 #define z(p, q) vxorf(B[p]      , _local_K[index768[q + k] + local_offset_K])
 #endif
 
+#define SWAP(a, b) {	\
+	tmp = B[a];	\
+	B[a] = B[b];	\
+	B[b] = tmp;	\
+}
+
 __kernel void DES_bs_25( constant uint *index768
 #if gpu_amd(DEVICE_INFO)
                          __attribute__((max_constant_size(3072)))
@@ -147,7 +153,8 @@ __kernel void DES_bs_25( constant uint *index768
 
 		unsigned int section = get_global_id(0), local_offset_K;
 		unsigned int local_id = get_local_id(0);
-		int global_work_size = get_global_size(0);
+		unsigned int global_work_size = get_global_size(0);
+		unsigned int local_work_size = get_local_size(0);
 
 		local_offset_K  = 56 * local_id;
 
@@ -165,18 +172,7 @@ __kernel void DES_bs_25( constant uint *index768
 #else
 		vtype tmp;
 #endif
-
-		long int k = 0, i;
-
-		for (i = 0; i < 56; i++)
-			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-
-		{
-			vtype zero = 0;
-			DES_bs_clear_block
-		}
+		int k = 0, i;
 
 		if(!section) {
 			hash_ids[0] = 0;
@@ -185,18 +181,26 @@ __kernel void DES_bs_25( constant uint *index768
 		}
 		barrier(CLK_GLOBAL_MEM_FENCE);
 
+		for (i = 0; i < 56; i++)
+			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
+
+#ifndef RV7xx
+		for (i = 0; i < 768; i += local_work_size)
+			_local_index768[local_id + i] = index768[local_id + i];
+#endif
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		{
+			vtype zero = 0;
+			DES_bs_clear_block
+		}
+
 		k = 0;
 #ifndef SAFE_GOTO
 		rounds_and_swapped = 8;
 #endif
 		iterations = 25;
 
-#ifndef RV7xx
-		if (!local_id )
-			for (i = 0; i < 768; i++)
-				_local_index768[i] = index768[i];
-		barrier(CLK_LOCAL_MEM_FENCE);
-#endif
 #ifdef SAFE_GOTO
 		for (iterations = 24; iterations >= 0; iterations--) {
 			for (k = 0; k < 768; k += 96) {
@@ -206,11 +210,8 @@ __kernel void DES_bs_25( constant uint *index768
 				H1_s();
 				H2_s();
 			}
-			for (i = 0; i < 32 && iterations; i++) {
-				tmp = B[i];
-				B[i] = B[i + 32];
-				B[i + 32] = tmp;
-			}
+			for (i = 0; i < 32 && iterations; i++)
+				SWAP(i, i + 32);
 		}
 #else
 start:

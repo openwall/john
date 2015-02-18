@@ -85,7 +85,7 @@ void opencl_DES_reset(struct db_main *db) {
 		for (i = 0; i < 4096; i++)
 			loaded_hash_gpu_salt[i] = (cl_mem)0;
 
-		B_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 64 * db->password_count * sizeof(DES_bs_vector), NULL, &err);
+		B_gpu = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, 64 * db->password_count * sizeof(DES_bs_vector), NULL, &err);
 		if (B_gpu == (cl_mem)0)
 			HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
@@ -130,11 +130,11 @@ void opencl_DES_reset(struct db_main *db) {
 
 		cmp_out[0] = 0;
 
-		B_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 64 * num_loaded_hashes * sizeof(DES_bs_vector), NULL, &err);
+		B_gpu = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, 64 * num_loaded_hashes * sizeof(DES_bs_vector), NULL, &err);
 		if (B_gpu == (cl_mem)0)
 			HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
-		loaded_hash_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, num_loaded_hashes * sizeof(int) * 2, NULL, &err);
+		loaded_hash_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, num_loaded_hashes * sizeof(int) * 2, NULL, &err);
 		if (loaded_hash_gpu == (cl_mem)0)
 			HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
@@ -355,15 +355,15 @@ static void init_dev()
 		return;
 	}
 
-	opencl_DES_bs_data_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, MULTIPLIER * sizeof(opencl_DES_bs_transfer), NULL, &err);
+	opencl_DES_bs_data_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, MULTIPLIER * sizeof(opencl_DES_bs_transfer), NULL, &err);
 	if(opencl_DES_bs_data_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
-	index768_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 768 * sizeof(unsigned int), NULL, &err);
+	index768_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 768 * sizeof(unsigned int), NULL, &err);
 	if(index768_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
-	B_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 64 * sizeof(DES_bs_vector), NULL, &err);
+	B_gpu = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, 64 * sizeof(DES_bs_vector), NULL, &err);
 	if (B_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
@@ -371,7 +371,7 @@ static void init_dev()
 	if (K_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
-	loaded_hash_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 2 * sizeof(int), NULL, &err);
+	loaded_hash_gpu = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 2 * sizeof(int), NULL, &err);
 	if(loaded_hash_gpu == (cl_mem)0)
 		HANDLE_CLERROR(err, "Create Buffer FAILED\n");
 
@@ -551,7 +551,7 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 			if (num_loaded_hashes_salt[current_salt] < salt->count) {
 				if (loaded_hash_gpu_salt[current_salt] != (cl_mem)0)
 					clReleaseMemObject(loaded_hash_gpu_salt[current_salt]);
-				loaded_hash_gpu_salt[current_salt] = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 2 * sizeof(int) * num_loaded_hashes, NULL, &err);
+				loaded_hash_gpu_salt[current_salt] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 2 * sizeof(int) * num_loaded_hashes, NULL, &err);
 				HANDLE_CLERROR(err, "Failed to Create Buffer loaded_hash_gpu_salt");
 			}
 			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], loaded_hash_gpu_salt[current_salt], CL_TRUE, 0, num_loaded_hashes * sizeof(int) * 2, loaded_hash, 0, NULL, NULL ), "Failed Copy data to gpu");
