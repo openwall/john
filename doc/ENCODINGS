@@ -106,9 +106,10 @@ Examples:
 
 
 Currently supported encodings:
-UTF-8, ISO-8859-1, ISO-8859-2, ISO-8859-7, ISO-8859-15,
-CP437, CP737, CP850, CP852, CP858, CP866,
-CP1250, CP1251, CP1252, CP1253 and KOI8-R.
+ASCII, UTF-8, KOI8-R,
+ISO-8859-1 (alias latin1), ISO-8859-2, ISO-8859-7, ISO-8859-15,
+CP437, CP720, CP737, CP850, CP852, CP858, CP866, CP868,
+CP1250, CP1251, CP1252, CP1253, CP1254, CP1255, CP1256
 
 New encodings can be added with ease, using automated tools that rely on the
 Unicode Database (see Openwall wiki, or just post a request on john-users
