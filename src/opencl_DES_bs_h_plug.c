@@ -33,6 +33,7 @@ static unsigned int *cmp_out = NULL, num_loaded_hashes, num_set_keys;
 static WORD stored_salt[4096]= {0x7fffffff};
 static int num_compiled_salt;
 static unsigned int *index96 = NULL;
+static unsigned int save_binary = 1;
 
 void opencl_DES_clean_all_buffer()
 {
@@ -174,13 +175,17 @@ static void find_best_gws(struct fmt_main *fmt)
 	double speed = 999999, diff;
 	int ccount;
 
-	gettimeofday(&start, NULL);
-	ccount = count * local_work_size * DES_BS_DEPTH;
 	num_loaded_hashes = 1;
 	cmp_out = (unsigned int *) mem_alloc((2 * num_loaded_hashes + 1) * sizeof(int));
 	B = (DES_bs_vector*) mem_alloc (num_loaded_hashes * 64 * sizeof(DES_bs_vector));
+
+	save_binary = 0;
+
+	gettimeofday(&start, NULL);
+	ccount = count * local_work_size * DES_BS_DEPTH;
 	opencl_DES_bs_crypt_25(&ccount, NULL);
 	gettimeofday(&end, NULL);
+
 	savetime = (end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec) / 1000000.000;
 	speed = ((double)count) / savetime;
 	do {
@@ -214,6 +219,8 @@ static void find_best_gws(struct fmt_main *fmt)
 	B = NULL;
 	stored_salt[0] = 0x7fffffff;
 	clReleaseKernel(krnl[gpu_id][0]);
+
+	save_binary = 1;
 
 	if (options.verbosity > 2)
 		fprintf(stderr, "Local worksize (LWS) %zu, Global worksize (GWS) %zu\n", local_work_size, count * local_work_size);
@@ -387,8 +394,6 @@ static void init_dev()
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][4096], 1, sizeof(cl_mem), &K_gpu), "Set Kernel Arg FAILED arg2\n");
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], index768_gpu, CL_TRUE, 0, 768 * sizeof(unsigned int), index768, 0, NULL, NULL ), "Failed Copy data to gpu");
-
-	opencl_read_source("$JOHN/kernels/DES_bs_kernel_h.cl") ;
 }
 
 static void modify_src() {
@@ -472,6 +477,27 @@ char *opencl_DES_bs_get_key(int index)
       get_key_body();
 }
 
+static void modify_build_save_restore(int cur_salt, int id_gpu) {
+	char kernel_bin_name[100];
+	FILE *file;
+
+	clReleaseProgram(program[gpu_id]);
+	sprintf(kernel_bin_name, "$JOHN/kernels/DES_bs_kernel_h_%d_%d.bin", cur_salt, id_gpu);
+
+	file = fopen(path_expand(kernel_bin_name), "r");
+
+	if (file == NULL) {
+		opencl_read_source("$JOHN/kernels/DES_bs_kernel_h.cl");
+		modify_src();
+		opencl_build(id_gpu, "-fno-bin-amdil -fno-bin-source -fbin-exe", save_binary, kernel_bin_name);
+	}
+	else {
+		fclose(file);
+		opencl_read_source(kernel_bin_name);
+		opencl_build_from_binary(id_gpu);
+	}
+}
+
 int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 {
 	int i;
@@ -500,10 +526,7 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 			found = 1;
 
 		if (found == 0) {
-			modify_src();
-			clReleaseProgram(program[gpu_id]);
-			//build_kernel( gpu_id, "-fno-bin-amdil -fno-bin-source -fbin-exe") ;
-			opencl_build(gpu_id, "-fno-bin-amdil -fno-bin-source -fbin-exe", 0, NULL);
+			modify_build_save_restore(current_salt, gpu_id);
 			krnl[gpu_id][current_salt] = clCreateKernel(program[gpu_id], "DES_bs_25", &err) ;
 			if (err) {
 				fprintf(stderr, "Create Kernel DES_bs_25 FAILED\n");

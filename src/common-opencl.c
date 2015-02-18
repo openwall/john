@@ -951,7 +951,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name)
 	}
 }
 
-static void opencl_build_from_binary(int sequential_id)
+void opencl_build_from_binary(int sequential_id)
 {
 	cl_int build_code;
 	const char *srcptr[] = { kernel_source };

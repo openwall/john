@@ -137,8 +137,9 @@ int opencl_prepare_dev(int sequential_id);
 /* User can pass build options to the OpenCL compiler */
 void opencl_init(char *kernel_filename, int sequential_id, char *options);
 
-/* used by opencl_DES_bs_b.c */
+/* used by opencl_DES_bs_*.c */
 void opencl_build(int sequential_id, char *opts, int save, char *file_name);
+void opencl_build_from_binary(int sequential_id);
 
 /* Build kernel (if not cached), and cache it */
 void opencl_build_kernel(char *kernel_filename, int sequential_id,
