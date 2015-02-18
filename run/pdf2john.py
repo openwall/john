@@ -314,10 +314,13 @@ class PdfParser:
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s <PDF file(s)>\n" % \
-                         sys.argv[0])
+                         os.path.basename(sys.argv[0]))
         sys.exit(-1)
     for j in range(1, len(sys.argv)):
-        filename = sys.argv[j].decode('UTF-8')
+        if not PY3:
+            filename = sys.argv[j].decode('UTF-8')
+        else:
+            filename = sys.argv[j]
         # sys.stderr.write("Analyzing %s\n" % sys.argv[j].decode('UTF-8'))
         parser = PdfParser(filename)
         try:
