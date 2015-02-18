@@ -68,7 +68,9 @@ class PdfParser:
         r = dr.findall(rr.findall(encryption_dictionary)[0])[0]
         lr = re.compile(b'\/Length \d+')
         longest = 0
-        length = ''
+        # According to the docs:
+        # Length : (Optional; PDF 1.4; only if V is 2 or 3). Default value: 40
+        length = b'40'
         for le in lr.findall(encryption_dictionary):
             if(int(dr.findall(le)[0]) > longest):
                 longest = int(dr.findall(le)[0])
