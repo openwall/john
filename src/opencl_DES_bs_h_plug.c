@@ -478,23 +478,28 @@ char *opencl_DES_bs_get_key(int index)
 }
 
 static void modify_build_save_restore(int cur_salt, int id_gpu) {
-	char kernel_bin_name[100];
+	char kernel_bin_name[200];
 	FILE *file;
 
-	clReleaseProgram(program[gpu_id]);
+	clReleaseProgram(program[id_gpu]);
 	sprintf(kernel_bin_name, "$JOHN/kernels/DES_bs_kernel_h_%d_%d.bin", cur_salt, id_gpu);
 
 	file = fopen(path_expand(kernel_bin_name), "r");
 
 	if (file == NULL) {
+		char *build_opt = "-fno-bin-amdil -fno-bin-source -fbin-exe";
 		opencl_read_source("$JOHN/kernels/DES_bs_kernel_h.cl");
 		modify_src();
-		opencl_build(id_gpu, "-fno-bin-amdil -fno-bin-source -fbin-exe", save_binary, kernel_bin_name);
+		if (get_platform_vendor_id(get_platform_id(id_gpu)) != DEV_AMD)
+			build_opt = NULL;
+		opencl_build(id_gpu, build_opt, save_binary, kernel_bin_name);
+		fprintf(stderr, "Salt compiled from Source:%d\n", ++num_compiled_salt);
 	}
 	else {
 		fclose(file);
 		opencl_read_source(kernel_bin_name);
 		opencl_build_from_binary(id_gpu);
+		fprintf(stderr, "Salt compiled from Binary:%d\n", ++num_compiled_salt);
 	}
 }
 
@@ -541,7 +546,6 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 			HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][current_salt], 6, sizeof(cl_mem), &bitmap), "Set Kernel Arg krnl FAILED arg7\n");
 
 			stored_salt[current_salt] = current_salt;
-			fprintf(stderr, "No of Salt compiled:%d\n", ++num_compiled_salt);
 		}
 	}
 

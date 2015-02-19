@@ -527,9 +527,11 @@ __kernel void DES_bs_25(__global DES_bs_vector *K,
 			vtype zero = 0;
 			DES_bs_clear_block
 		}
-
+#pragma unroll 1
 		for (iterations = 24; iterations >= 0; --iterations) {
+#if gpu_amd(DEVICE_INFO)
 			barrier(CLK_GLOBAL_MEM_FENCE);
+#endif
 			H();
 			if (iterations)
 				BIG_SWAP();
