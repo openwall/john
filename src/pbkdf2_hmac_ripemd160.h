@@ -21,7 +21,7 @@
 
 #if (AC_BUILT && HAVE_RIPEMD160) && 0
 // actually, built in sph_ripemd160 may be faster than oSSL build :(
-#include "openssl/ripemd.h"
+#include <openssl/ripemd.h>
 #define sph_ripemd160_context     RIPEMD160_CTX
 #define sph_ripemd160_init(a)	  RIPEMD160_Init(a)
 #define sph_ripemd160(a,b,c)	  RIPEMD160_Update(a,b,c)

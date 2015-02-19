@@ -22,7 +22,7 @@
  * each half of the HMAC is KNOWN data. It simply is the 0x80 and the length
  * of bits (at the end of the buffer). Yes it is known, but there is only a
  * little speed up due to this knowledge (the known ZEROS algorithm), but
- * we do not use this 
+ * we do not use this
  */
 
 #ifndef JOHN_PBKDF2_HMAC_WHIRLPOOL_H
@@ -32,7 +32,7 @@
 #include "sph_whirlpool.h"
 #if (AC_BUILT && HAVE_WHIRLPOOL) ||	\
    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
-#include "openssl/whrlpool.h"
+#include <openssl/whrlpool.h>
 #else
 // on my 32 bit cygwin builds, this code is about 4x slower than the oSSL code.
 #define WHIRLPOOL_CTX             sph_whirlpool_context

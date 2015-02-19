@@ -1,7 +1,7 @@
 #include "os.h"
 #if HAVE_WINDOWS_H
 #define WIN32_LEAN_AND_MEAN
-#include "windows.h"
+#include <windows.h>
 
 #define IPC_MM_MAX_WORDS (2048*1024+43660)
 #define IPC_MM_DAT_LEN   (24*1024*1024)
