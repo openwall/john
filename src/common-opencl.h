@@ -52,6 +52,14 @@
 #define CL_DEVICE_REGISTERS_PER_BLOCK_NV            0x4002
 #endif
 
+#ifndef CL_DEVICE_WARP_SIZE_NV
+#define CL_DEVICE_WARP_SIZE_NV                      0x4003
+#endif
+
+#ifndef CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV
+#define CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV            0x4005
+#endif
+
 #ifndef CL_DEVICE_PCI_BUS_ID_NV
 #define CL_DEVICE_PCI_BUS_ID_NV                     0x4008
 #endif
