@@ -496,7 +496,7 @@
 __kernel void DES_bs_25(__global DES_bs_vector *K,
                         __global DES_bs_vector *B_global,
 			__global int *binary,
-			  int num_loaded_hashes,
+			  uint num_loaded_hashes,
 			  volatile __global uint *hash_ids,
 			  volatile __global uint *bitmap) {
 
