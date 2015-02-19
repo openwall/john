@@ -328,6 +328,8 @@ void opencl_DES_bs_select_device(struct fmt_main *fmt)
 		fmt -> params.max_keys_per_crypt = global_work_size * DES_BS_DEPTH;
 		fmt -> params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
 	}
+
+	num_set_keys = fmt -> params.max_keys_per_crypt;
 }
 
 void opencl_DES_bs_build_salt(WORD salt) {

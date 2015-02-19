@@ -65,7 +65,8 @@ void opencl_DES_clean_all_buffer()
 	               "Error releasing Program");
 }
 
-void opencl_DES_reset(struct db_main *db) {
+void opencl_DES_reset(struct db_main *db)
+{
 
 	if (db) {
 		int i;
@@ -162,9 +163,9 @@ void opencl_DES_reset(struct db_main *db) {
 }
 
 void opencl_DES_bs_init_global_variables() {
-	opencl_DES_bs_all = (opencl_DES_bs_combined*) mem_alloc (MULTIPLIER * sizeof(opencl_DES_bs_combined));
-	opencl_DES_bs_data = (opencl_DES_bs_transfer*) mem_alloc (MULTIPLIER * sizeof(opencl_DES_bs_transfer));
-	index96 = (unsigned int *) mem_alloc (4097 * 96 * sizeof(unsigned int));
+	opencl_DES_bs_all = (opencl_DES_bs_combined*) mem_alloc(MULTIPLIER * sizeof(opencl_DES_bs_combined));
+	opencl_DES_bs_data = (opencl_DES_bs_transfer*) mem_alloc(MULTIPLIER * sizeof(opencl_DES_bs_transfer));
+	index96 = (unsigned int *) mem_alloc(4097 * 96 * sizeof(unsigned int));
 }
 
 static void find_best_gws(struct fmt_main *fmt)
@@ -208,7 +209,7 @@ static void find_best_gws(struct fmt_main *fmt)
 		diff = diff - 1;
 		diff = (diff < 0) ? (-diff) : diff;
 		speed = ((double)count) / savetime;
-	} while(diff > 0.01);
+	} while (diff > 0.01);
 
 	fmt -> params.max_keys_per_crypt = count * local_work_size * DES_BS_DEPTH;
 	fmt -> params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
@@ -225,130 +226,6 @@ static void find_best_gws(struct fmt_main *fmt)
 	if (options.verbosity > 2)
 		fprintf(stderr, "Local worksize (LWS) %zu, Global worksize (GWS) %zu\n", local_work_size, count * local_work_size);
 }
-
-	//static char *kernel_source;
-
-	//static int kernel_loaded;
-
-	//static size_t program_size;
-/*
-static char *include_source(char *pathname, int dev_id, char *options)
-{
-	static char include[PATH_BUFFER_SIZE];
-
-	sprintf(include, "-I %s %s %s%d %s %s", path_expand(pathname),
-	        get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU ?
-	        "-DDEVICE_IS_CPU" : "",
-	        "-DDEVICE_INFO=", device_info[gpu_id],
-#ifdef __APPLE__
-	        "-DAPPLE",
-#else
-	        gpu_nvidia(device_info[gpu_id]) ? "-cl-nv-verbose" : "",
-#endif
-	        OPENCLBUILDOPTIONS);
-
-	if (options) {
-		strcat(include, " ");
-		strcat(include, options);
-	}
-
-	//fprintf(stderr, "Options used: %s\n", include);
-	return include;
-}
-
-static void opencl_read_source(char *kernel_filename)
-{
-	char *kernel_path = path_expand(kernel_filename);
-	FILE *fp = fopen(kernel_path, "r");
-	size_t source_size, read_size;
-
-	if (!fp)
-		fp = fopen(kernel_path, "rb");
-
-	if (!fp)
-		HANDLE_CLERROR(!CL_SUCCESS, "Source kernel not found!");
-
-	fseek(fp, 0, SEEK_END);
-	source_size = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	MEM_FREE(kernel_source);
-	kernel_source = mem_calloc(source_size + 1);
-	read_size = fread(kernel_source, sizeof(char), source_size, fp);
-	if (read_size != source_size)
-		fprintf(stderr,
-		    "Error reading source: expected %zu, got %zu bytes.\n",
-		    source_size, read_size);
-	fclose(fp);
-	program_size = source_size;
-	kernel_loaded = 1;
-}
-*/
-/*
-static void build_kernel_exp(int dev_id, char *options)
-{
-	//cl_int build_code;
-        //char * build_log; size_t log_size;
-	const char *srcptr[] = { kernel_source };
-	assert(kernel_loaded);
-	program[gpu_id] =
-	    clCreateProgramWithSource(context[gpu_id], 1, srcptr, NULL,
-	    &ret_code);
-
-	HANDLE_CLERROR(ret_code, "Error while creating program");
-
-	if(gpu_nvidia(device_info[gpu_id]))
-	   options = "";
-
-	//build_code =
-	clBuildProgram(program[gpu_id], 0, NULL,
-		include_source("$JOHN/kernels/", gpu_id, options), NULL, NULL);
-*/
-	/*
-        HANDLE_CLERROR(clGetProgramBuildInfo(program[gpu_id], devices[gpu_id],
-                CL_PROGRAM_BUILD_LOG, 0, NULL,
-                &log_size), "Error while getting build info I");
-        build_log = (char *) mem_alloc((log_size + 1));
-
-	HANDLE_CLERROR(clGetProgramBuildInfo(program[gpu_id], devices[gpu_id],
-		CL_PROGRAM_BUILD_LOG, log_size + 1, (void *) build_log,
-		NULL), "Error while getting build info");
-
-	///Report build errors and warnings
-	if (build_code != CL_SUCCESS) {
-		//Give us much info about error and exit
-		fprintf(stderr, "Compilation log: %s\n", build_log);
-		fprintf(stderr, "Error building kernel. Returned build code: %d. DEVICE_INFO=%d\n", build_code, device_info[gpu_id]);
-		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
-	}
-#ifdef REPORT_OPENCL_WARNINGS
-	else if (strlen(build_log) > 1) // Nvidia may return a single '\n' which is not that interesting
-		fprintf(stderr, "Compilation log: %s\n", build_log);
-#endif
-        MEM_FREE(build_log);
-#if 0
-	FILE *file;
-	size_t source_size;
-	char *source;
-
-	HANDLE_CLERROR(clGetProgramInfo(program[gpu_id],
-		CL_PROGRAM_BINARY_SIZES,
-		sizeof(size_t), &source_size, NULL), "error");
-	fprintf(stderr, "source size %zu\n", source_size);
-	source = mem_alloc(source_size);
-
-	HANDLE_CLERROR(clGetProgramInfo(program[gpu_id],
-		CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");
-
-	file = fopen("program.bin", "w");
-	if (file == NULL)
-		fprintf(stderr, "Error opening binary file\n");
-	else if (fwrite(source, source_size, 1, file) != 1)
-		fprintf(stderr, "error writing binary\n");
-	fclose(file);
-	MEM_FREE(source);
-#endif
-*/
-//}
 
 static void init_dev()
 {
@@ -432,6 +309,8 @@ void opencl_DES_bs_select_device(struct fmt_main *fmt)
 		fmt -> params.max_keys_per_crypt = global_work_size * DES_BS_DEPTH;
 		fmt -> params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
 	}
+
+	num_set_keys = fmt -> params.max_keys_per_crypt;
 }
 
 void opencl_DES_bs_build_salt(WORD salt) {
@@ -469,7 +348,7 @@ void opencl_DES_bs_build_salt(WORD salt) {
 
 void opencl_DES_bs_set_salt(WORD salt)
 {
-	current_salt = salt ;
+	current_salt = salt;
 }
 
 char *opencl_DES_bs_get_key(int index)
