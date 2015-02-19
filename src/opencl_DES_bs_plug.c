@@ -12,6 +12,7 @@
 #include "arch.h"
 #include "common.h"
 #include "opencl_DES_bs.h"
+#include "opencl_DES_hst_dev_shared.h"
 #include "unicode.h"
 #include "memdbg.h"
 

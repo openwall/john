@@ -13,6 +13,7 @@
 
 #include "options.h"
 #include "opencl_DES_bs.h"
+#include "opencl_DES_hst_dev_shared.h"
 #include "memdbg.h"
 
 #if !HARDCODE_SALT
