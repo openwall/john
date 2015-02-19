@@ -4,6 +4,8 @@
  * and binary forms, with or without modification, are permitted.
  *
  * Based on hmac-md5 by Bartavelle
+ *
+ * SIMD added Feb, 2015, JimF.
  */
 
 #if FMT_EXTERNS_H
@@ -115,7 +117,7 @@ static void init(struct fmt_main *self)
 	prep_opad = mem_calloc_tiny(sizeof(*prep_opad) * self->params.max_keys_per_crypt * BINARY_SIZE_256, MEM_ALIGN_SIMD);
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
 		crypt_key[GETPOS(BINARY_SIZE, i)] = 0x80;
-		((unsigned int*)crypt_key)[15 * MMX_COEF_SHA256 + (i & 3) + (i >> 2) * SHA256_BUF_SIZ * MMX_COEF_SHA256] = (BINARY_SIZE + 64) << 3;
+		((unsigned int*)crypt_key)[15 * MMX_COEF_SHA256 + (i & 3) + (i >> 2) * SHA256_BUF_SIZ * MMX_COEF_SHA256] = (BINARY_SIZE + PAD_SIZE) << 3;
 	}
 	clear_keys();
 #else
@@ -337,6 +339,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|SSEi_CRYPT_SHA224);
 		// NOTE, SSESHA224 will output 32 bytes. We need the first 28 (plus the 0x80 padding).
 		// so we are forced to 'clean' this crap up, before using the crypt as the input.
+		// NOTE, this fix assumes MMX_COEF_SHA256==4
 		pclear = (unsigned int*)&crypt_key[index * SHA256_BUF_SIZ * 4];
 		pclear[28] = pclear[29] = pclear[30] = pclear[31] = 0x80000000;
 		SSESHA256body(&crypt_key[index * SHA256_BUF_SIZ * 4],
