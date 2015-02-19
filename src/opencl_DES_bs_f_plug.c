@@ -440,7 +440,8 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 			i = 0;
 			pw = salt -> list;
 			do {
-				bin = (int *)pw -> binary;
+				if (!(bin = (int *)pw->binary))
+					continue;
 				loaded_hash[i] = bin[0] ;
 				loaded_hash[i + salt -> count] = bin[1];
 				i++ ;
