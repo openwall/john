@@ -40,6 +40,18 @@
 
 #define OPENCLBUILDOPTIONS "-cl-mad-enable"
 
+#ifndef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
+#define CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV       0x4000
+#endif
+
+#ifndef CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV
+#define CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV       0x4001
+#endif
+
+#ifndef CL_DEVICE_REGISTERS_PER_BLOCK_NV
+#define CL_DEVICE_REGISTERS_PER_BLOCK_NV            0x4002
+#endif
+
 #ifndef CL_DEVICE_PCI_BUS_ID_NV
 #define CL_DEVICE_PCI_BUS_ID_NV                     0x4008
 #endif
@@ -57,6 +69,10 @@ typedef union
 } cl_device_topology_amd;
 
 #define CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD            1
+#endif
+
+#ifndef CL_DEVICE_BOARD_NAME_AMD
+#define CL_DEVICE_BOARD_NAME_AMD                    0x4038
 #endif
 
 #ifdef DEBUG_CL_ALLOC

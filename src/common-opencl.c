@@ -324,8 +324,6 @@ static cl_int get_pci_info(int sequential_id, hw_bus * hardware_info) {
 	hardware_info->device = -1;
 	memset(hardware_info->busId, '\0', sizeof(hardware_info->busId));
 
-#if defined(CL_DEVICE_TOPOLOGY_AMD) && CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD == 1
-
 	if (gpu_amd(device_info[sequential_id]) || cpu(device_info[sequential_id])) {
 		cl_device_topology_amd topo;
 
@@ -341,11 +339,7 @@ static cl_int get_pci_info(int sequential_id, hw_bus * hardware_info) {
 				return CL_SUCCESS;
 			else
 				return ret;
-	}
-#endif
-
-#ifdef CL_DEVICE_REGISTERS_PER_BLOCK_NV
-
+	} else
 	if (gpu_nvidia(device_info[sequential_id])) {
 		cl_uint entries;
 
@@ -369,7 +363,7 @@ static cl_int get_pci_info(int sequential_id, hw_bus * hardware_info) {
 		} else
 		    return ret;
 	}
-#endif
+
 	sprintf(hardware_info->busId, "%02x:%02x.%x", hardware_info->bus,
 		hardware_info->device, hardware_info->function);
 	return CL_SUCCESS;
@@ -807,15 +801,13 @@ void opencl_get_user_preferences(char *format)
 static void dev_init(int sequential_id)
 {
 	char device_name[MAX_OCLINFO_STRING_LEN];
-#ifdef CL_DEVICE_BOARD_NAME_AMD
 	cl_int ret_code;
 	int len;
-#endif
+
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
 		sizeof(device_name), device_name, NULL),
 		"Error querying DEVICE_NAME");
 
-#ifdef CL_DEVICE_BOARD_NAME_AMD
 	ret_code = clGetDeviceInfo(devices[sequential_id],
 				   CL_DEVICE_BOARD_NAME_AMD,
 				   sizeof(opencl_log), opencl_log, NULL);
@@ -828,9 +820,7 @@ static void dev_init(int sequential_id)
 		if (options.verbosity >= 2)
 			fprintf(stderr, "Device %d: %s (%s)\n",
 				sequential_id, device_name, opencl_log);
-	} else
-#endif
-	{
+	} else 	{
 		char *dname = device_name;
 
 		/* Skip leading whitespace seen on Intel */
@@ -1704,6 +1694,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 static void opencl_get_dev_info(int sequential_id)
 {
 	cl_device_type device;
+	unsigned int major = 0, minor = 0;
 
 	device = get_device_type(sequential_id);
 
@@ -1718,24 +1709,18 @@ static void opencl_get_dev_info(int sequential_id)
 	device_info[sequential_id] += get_processor_family(sequential_id);
 	device_info[sequential_id] += get_byte_addressable(sequential_id);
 
-#ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
-	{
-		unsigned int major = 0, minor = 0;
+	get_compute_capability(sequential_id, &major, &minor);
 
-		get_compute_capability(sequential_id, &major, &minor);
-
-		if (major) {
-			device_info[sequential_id] +=
-				(major == 2 ? DEV_NV_C2X : 0);
-			device_info[sequential_id] +=
-				(major == 3 && minor == 0 ? DEV_NV_C30 : 0);
-			device_info[sequential_id] +=
-				(major == 3 && minor == 5 ? DEV_NV_C35 : 0);
-			device_info[sequential_id] +=
-				(major == 5 ? DEV_NV_C5X : 0);
-		}
+	if (major) {
+		device_info[sequential_id] +=
+			(major == 2 ? DEV_NV_C2X : 0);
+		device_info[sequential_id] +=
+			(major == 3 && minor == 0 ? DEV_NV_C30 : 0);
+		device_info[sequential_id] +=
+			(major == 3 && minor == 5 ? DEV_NV_C35 : 0);
+		device_info[sequential_id] +=
+			(major == 5 ? DEV_NV_C5X : 0);
 	}
-#endif
 }
 
 static void find_valid_opencl_device(int *dev_id, int *platform_id)
@@ -2015,7 +2000,6 @@ size_t get_kernel_preferred_multiple(int sequential_id, cl_kernel crypt_kernel)
 	return size;
 }
 
-#ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
 void get_compute_capability(int sequential_id, unsigned int *major,
         unsigned int *minor)
 {
@@ -2026,7 +2010,6 @@ void get_compute_capability(int sequential_id, unsigned int *major,
                              CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
                              sizeof(cl_uint), minor, NULL);
 }
-#endif
 
 cl_uint get_processors_count(int sequential_id)
 {
@@ -2041,7 +2024,6 @@ cl_uint get_processors_count(int sequential_id)
 	ocl_device_list[sequential_id].cores_per_MP = 0;
 
 	if (gpu_nvidia(device_info[sequential_id])) {
-#ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
 		unsigned int major = 0, minor = 0;
 
 		get_compute_capability(sequential_id, &major, &minor);
@@ -2055,7 +2037,7 @@ cl_uint get_processors_count(int sequential_id)
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 192);
 		else if (major == 5)	// 5.x Maxwell
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
-#else
+
 /*
  * Apple does not expose get_compute_capability() so we need this crap.
  * http://en.wikipedia.org/wiki/Comparison_of_Nvidia_graphics_processing_units
@@ -2065,7 +2047,7 @@ cl_uint get_processors_count(int sequential_id)
  */
 
 		// Fermi
-		if (strstr(dname, "GT 5") || strstr(dname, "GTX 5"))
+		else if (strstr(dname, "GT 5") || strstr(dname, "GTX 5"))
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 48);
 		// Kepler
 		else if (strstr(dname, "GT 6") || strstr(dname, "GTX 6") ||
@@ -2075,7 +2057,7 @@ cl_uint get_processors_count(int sequential_id)
 		// Maxwell
 		else if (strstr(dname, "GTX 9"))
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
-#endif
+
 	} else if (gpu_amd(device_info[sequential_id])) {
 			// 16 thread proc * 5 SP
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = (16 *
@@ -2394,13 +2376,13 @@ void opencl_list_devices(void)
 					       "Queue creation error",
 					       get_error_name(ret_code));
 			}
-#ifdef CL_DEVICE_BOARD_NAME_AMD
+
 			ret = clGetDeviceInfo(devices[sequence_nr],
 					      CL_DEVICE_BOARD_NAME_AMD,
 					      sizeof(dname), dname, NULL);
 			if (ret == CL_SUCCESS && strlen(dname))
 				printf("\tBoard name:\t\t%s\n", dname);
-#endif
+
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_VENDOR,
 					sizeof(dname), dname, NULL);
 			printf("\tDevice vendor:\t\t%s\n", dname);
@@ -2541,7 +2523,6 @@ void opencl_list_devices(void)
 				       entries,
 				       ocl_device_list[sequence_nr].cores_per_MP);
 
-#ifdef CL_DEVICE_REGISTERS_PER_BLOCK_NV
 			ret = clGetDeviceInfo(devices[sequence_nr],
 					      CL_DEVICE_WARP_SIZE_NV,
 					      sizeof(cl_uint),
@@ -2573,7 +2554,7 @@ void opencl_list_devices(void)
 			if (ret == CL_SUCCESS)
 				printf("\tKernel exec. timeout:\t%s\n",
 				       boolean ? "yes" : "no");
-#endif
+
 			if (ocl_device_list[sequence_nr].pci_info.bus >= 0) {
 				printf("\tPCI device topology:\t%s\n",
 				       ocl_device_list[sequence_nr].pci_info.busId);
