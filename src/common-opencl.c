@@ -15,6 +15,7 @@
 
 #define _BSD_SOURCE // setenv()
 #define NEED_OS_TIMER
+#define NEED_OS_FLOCK
 #include "os.h"
 
 #include <assert.h>
@@ -25,6 +26,9 @@
 #include <signal.h>
 #include <stdlib.h>
 
+#if (!AC_BUILT || HAVE_FCNTL_H)
+#include <fcntl.h>
+#endif
 #include "options.h"
 #include "config.h"
 #include "common-opencl.h"
@@ -933,6 +937,25 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name)
 			fprintf(stderr, "Error creating binary file %s\n",
 				file_name);
 		else {
+#if OS_FLOCK || FCNTL_LOCKS
+			{
+#if FCNTL_LOCKS
+				struct flock lock;
+
+				memset(&lock, 0, sizeof(lock));
+				lock.l_type = F_WRLCK;
+				while (fcntl(fileno(file), F_SETLKW, &lock)) {
+					if (errno != EINTR)
+						pexit("fcntl(F_WRLCK)");
+				}
+#else
+				while (flock(fileno(file), LOCK_EX)) {
+					if (errno != EINTR)
+						pexit("flock(LOCK_EX)");
+				}
+#endif
+			}
+#endif
 			if (fwrite(source, source_size, 1, file) != 1)
 				fprintf(stderr, "error writing binary\n");
 			fclose(file);
@@ -1774,17 +1797,33 @@ err:
 void opencl_read_source(char *kernel_filename)
 {
 	char *kernel_path = path_expand(kernel_filename);
-	FILE *fp = fopen(kernel_path, "r");
+	FILE *fp = fopen(kernel_path, "rb");
 	size_t source_size, read_size;
 
 	kernel_source_file = kernel_filename;
 
 	if (!fp)
-		fp = fopen(kernel_path, "rb");
-
-	if (!fp)
 		HANDLE_CLERROR(!CL_SUCCESS, "Source kernel not found!");
 
+#if OS_FLOCK || FCNTL_LOCKS
+	{
+#if FCNTL_LOCKS
+		struct flock lock;
+
+		memset(&lock, 0, sizeof(lock));
+		lock.l_type = F_RDLCK;
+		while (fcntl(fileno(fp), F_SETLKW, &lock)) {
+			if (errno != EINTR)
+				pexit("fcntl(F_RDLCK)");
+		}
+#else
+		while (flock(fileno(fp), LOCK_SH)) {
+			if (errno != EINTR)
+				pexit("flock(LOCK_SH)");
+		}
+#endif
+	}
+#endif
 	fseek(fp, 0, SEEK_END);
 	source_size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
