@@ -498,12 +498,15 @@ int crk_reload_pot(void)
 	memset(&lock, 0, sizeof(lock));
 	lock.l_type = F_RDLCK;
 	while (fcntl(fileno(pot_file), F_SETLKW, &lock)) {
+		if (errno != EINTR)
+			pexit("fcntl(F_RDLCK)");
+	}
 #else
 	while (flock(fileno(pot_file), LOCK_SH)) {
-#endif
 		if (errno != EINTR)
 			pexit("flock(LOCK_SH)");
 	}
+#endif
 #ifdef LOCK_DEBUG
 	fprintf(stderr, "%s(%u): Locked potfile (shared)\n", __FUNCTION__, options.node_min);
 #endif

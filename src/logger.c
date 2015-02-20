@@ -120,7 +120,10 @@ static void log_file_flush(struct log_file *f)
 #if FCNTL_LOCKS
 	memset(&lock, 0, sizeof(lock));
 	lock.l_type = F_WRLCK;
-	fcntl(f->fd, F_SETLKW, &lock);
+	while (fcntl(f->fd, F_SETLKW, &lock)) {
+		if (errno != EINTR)
+			pexit("fcntl(F_WRLCK)");
+	}
 #else
 	while (flock(f->fd, LOCK_EX)) {
 		if (errno != EINTR)
