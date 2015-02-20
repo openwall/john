@@ -101,6 +101,15 @@ void SSESHA512body(__m128i* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 #define SHA512_SSE_PARA 1
 #endif
 
+#else
+#if ARCH_BITS >= 64
+#define SHA256_ALGORITHM_NAME                 "64/" ARCH_BITS_STR " " SHA2_LIB
+#define SHA512_ALGORITHM_NAME                 "64/" ARCH_BITS_STR " " SHA2_LIB
+#else
+#define SHA256_ALGORITHM_NAME                 "32/" ARCH_BITS_STR " " SHA2_LIB
+#define SHA512_ALGORITHM_NAME                 "32/" ARCH_BITS_STR " " SHA2_LIB
+#endif
+
 #endif
 
 #endif // __JTR_SSE_INTRINSICS_H__
