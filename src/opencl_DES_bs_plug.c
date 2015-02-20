@@ -22,7 +22,9 @@
 #define for_each_depth()
 
 opencl_DES_bs_combined *opencl_DES_bs_all;
+opencl_DES_bs_transfer *opencl_DES_bs_data;
 int opencl_DES_keys_changed = 1;
+DES_bs_vector *B;
 
 static unsigned char opencl_DES_E[48] = {
 	31, 0, 1, 2, 3, 4,
@@ -130,10 +132,6 @@ void opencl_DES_bs_init(int block)
 		opencl_DES_bs_all[block].Ens[index] =
 			opencl_DES_E[index] + block * 64;
 	opencl_DES_bs_all[block].salt = 0xffffff;
-
-	if (block == 0) {
-		opencl_DES_bs_set_salt(0);
-	}
 }
 
 void opencl_DES_bs_set_key(char *key, int index)

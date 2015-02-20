@@ -47,14 +47,19 @@ static struct fmt_tests tests[] = {
 #define BINARY_SIZE			(2 * sizeof(WORD))
 #define SALT_SIZE			sizeof(WORD)
 
-static void done()
-{
-	opencl_DES_clean_all_buffer();
-}
+void (*opencl_DES_bs_init_global_variables)(void);
+void (*opencl_DES_bs_select_device)(struct fmt_main *);
 
 static void init(struct fmt_main *pFmt)
 {
 	unsigned int i;
+
+	if (HARDCODE_SALT && FULL_UNROLL)
+		opencl_DES_bs_f_register_functions(pFmt);
+	else if (HARDCODE_SALT)
+		opencl_DES_bs_h_register_functions(pFmt);
+	else
+		opencl_DES_bs_b_register_functions(pFmt);
 
 	// Check if specific LWS/GWS was requested
 	opencl_get_user_preferences(FORMAT_LABEL);
@@ -73,9 +78,6 @@ static void init(struct fmt_main *pFmt)
 		opencl_DES_bs_init(i);
 
 	opencl_DES_bs_select_device(pFmt);
-
-	for (i = 0; i < 4096; i++)
-		opencl_DES_bs_build_salt(i);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -138,11 +140,6 @@ static int salt_hash(void *salt)
 	return *(WORD *)salt & (SALT_HASH_SIZE - 1);
 }
 
-static void set_salt(void *salt)
-{
-	opencl_DES_bs_set_salt(*(WORD *)salt);
-}
-
 static int cmp_all(WORD *binary, int count)
 {
 	return 1;
@@ -180,8 +177,8 @@ struct fmt_main fmt_opencl_DES = {
 		tests
 	}, {
 		init,
-		done,
-		opencl_DES_reset,
+		NULL,
+		NULL,
 		fmt_default_prepare,
 		valid,
 		split,
@@ -205,11 +202,11 @@ struct fmt_main fmt_opencl_DES = {
 		},
 		salt_hash,
 		NULL,
-		set_salt,
+		NULL,
 		opencl_DES_bs_set_key,
-		opencl_DES_bs_get_key,
+		NULL,
 		fmt_default_clear_keys,
-		opencl_DES_bs_crypt_25,
+		NULL,
 		{
 			get_hash_0,
 			get_hash_1,

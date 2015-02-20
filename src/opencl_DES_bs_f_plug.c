@@ -16,19 +16,10 @@
 #include "opencl_DES_hst_dev_shared.h"
 #include "memdbg.h"
 
-#if (HARDCODE_SALT && FULL_UNROLL)
-
-#define LOG_SIZE 1024*16
-
-typedef unsigned WORD vtype;
-
-opencl_DES_bs_transfer *opencl_DES_bs_data;
-DES_bs_vector *B;
-
 static cl_kernel krnl[MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM][4097];
 static cl_int err;
 static cl_mem opencl_DES_bs_data_gpu, B_gpu, K_gpu, cmp_out_gpu, loaded_hash_gpu, bitmap, *loaded_hash_gpu_salt = NULL;
-static   WORD current_salt;
+static   WORD current_salt = 0;
 static int *loaded_hash = NULL;
 static unsigned int *cmp_out = NULL, num_loaded_hashes, num_set_keys;
 static WORD stored_salt[4096]= {0x7fffffff};
@@ -36,7 +27,9 @@ static int num_compiled_salt = 0;
 static unsigned int *index96 = NULL;
 static unsigned int save_binary = 1;
 
-void opencl_DES_clean_all_buffer()
+static int des_crypt_25(int *pcount, struct db_salt *salt);
+
+static void clean_all_buffers()
 {
 	int i;
 	const char* errMsg = "Release Memory Object :Failed";
@@ -65,7 +58,7 @@ void opencl_DES_clean_all_buffer()
 	               "Error releasing Program");
 }
 
-void opencl_DES_reset(struct db_main *db)
+static void reset(struct db_main *db)
 {
 	const char* errMsg = "Release Memory Object :Failed";
 
@@ -163,7 +156,7 @@ void opencl_DES_reset(struct db_main *db)
 	}
 }
 
-void opencl_DES_bs_init_global_variables()
+static void init_global_variables()
 {
 	opencl_DES_bs_all = (opencl_DES_bs_combined*) mem_alloc(MULTIPLIER * sizeof(opencl_DES_bs_combined));
 	opencl_DES_bs_data = (opencl_DES_bs_transfer*) mem_alloc(MULTIPLIER * sizeof(opencl_DES_bs_transfer));
@@ -186,7 +179,7 @@ static void find_best_gws(struct fmt_main *fmt)
 
 	gettimeofday(&start, NULL);
 	ccount = count * local_work_size * DES_BS_DEPTH;
-	opencl_DES_bs_crypt_25(&ccount, NULL);
+	des_crypt_25(&ccount, NULL);
 	gettimeofday(&end, NULL);
 
 	savetime = (end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec) / 1000000.000;
@@ -201,7 +194,7 @@ static void find_best_gws(struct fmt_main *fmt)
 		}
 		gettimeofday(&start, NULL);
 		ccount = count * local_work_size * DES_BS_DEPTH;
-		opencl_DES_bs_crypt_25(&ccount, NULL);
+		des_crypt_25(&ccount, NULL);
 		gettimeofday(&end, NULL);
 		savetime = (end.tv_sec - start.tv_sec) + (double)(end.tv_usec - start.tv_usec) / 1000000.000;
 		diff = (((double)count) / savetime) / speed;
@@ -282,8 +275,43 @@ static void modify_src() {
 	  }
 }
 
-void opencl_DES_bs_select_device(struct fmt_main *fmt)
+static void build_salt(WORD salt) {
+	unsigned int new = salt;
+	unsigned int old;
+	int dst;
+
+	new = salt;
+	old = opencl_DES_bs_all[0].salt;
+	opencl_DES_bs_all[0].salt = new;
+
+	for (dst = 0; dst < 24; dst++) {
+		if ((new ^ old) & 1) {
+			DES_bs_vector sp1, sp2;
+			int src1 = dst;
+			int src2 = dst + 24;
+			if (new & 1) {
+				src1 = src2;
+				src2 = dst;
+			}
+			sp1 = opencl_DES_bs_all[0].Ens[src1];
+			sp2 = opencl_DES_bs_all[0].Ens[src2];
+			index96[4096 * 96 + dst] = sp1;
+			index96[4096 * 96 + dst + 24] = sp2;
+			index96[4096 * 96 + dst + 48] = sp1 + 32;
+			index96[4096 * 96 + dst + 72] = sp2 + 32;
+		}
+		new >>= 1;
+		old >>= 1;
+		if (new == old)
+			break;
+	}
+	memcpy(&index96[salt * 96], &index96[4096 * 96], 96 * sizeof(unsigned int));
+}
+
+static void select_device(struct fmt_main *fmt)
 {
+	int i;
+
 	if (!local_work_size)
 		local_work_size = WORK_GROUP_SIZE;
 
@@ -339,47 +367,17 @@ void opencl_DES_bs_select_device(struct fmt_main *fmt)
 	}
 
 	num_set_keys = fmt -> params.max_keys_per_crypt;
+
+	for (i = 0; i < 4096; i++)
+		build_salt(i);
 }
 
-void opencl_DES_bs_build_salt(WORD salt) {
-	unsigned int new = salt;
-	unsigned int old;
-	int dst;
-
-	new = salt;
-	old = opencl_DES_bs_all[0].salt;
-	opencl_DES_bs_all[0].salt = new;
-
-	for (dst = 0; dst < 24; dst++) {
-		if ((new ^ old) & 1) {
-			DES_bs_vector sp1, sp2;
-			int src1 = dst;
-			int src2 = dst + 24;
-			if (new & 1) {
-				src1 = src2;
-				src2 = dst;
-			}
-			sp1 = opencl_DES_bs_all[0].Ens[src1];
-			sp2 = opencl_DES_bs_all[0].Ens[src2];
-			index96[4096 * 96 + dst] = sp1;
-			index96[4096 * 96 + dst + 24] = sp2;
-			index96[4096 * 96 + dst + 48] = sp1 + 32;
-			index96[4096 * 96 + dst + 72] = sp2 + 32;
-		}
-		new >>= 1;
-		old >>= 1;
-		if (new == old)
-			break;
-	}
-	memcpy(&index96[salt * 96], &index96[4096 * 96], 96 * sizeof(unsigned int));
-}
-
-void opencl_DES_bs_set_salt(WORD salt)
+static void set_salt(void *salt)
 {
-	current_salt = salt;
+	current_salt = *(WORD *)salt;
 }
 
-char *opencl_DES_bs_get_key(int index)
+static char *get_key(int index)
 {
 	get_key_body();
 }
@@ -409,7 +407,7 @@ static void modify_build_save_restore(int cur_salt, int id_gpu) {
 	}
 }
 
-int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
+static int des_crypt_25(int *pcount, struct db_salt *salt)
 {
 	int i;
 	unsigned int section = 0, keys_count_multiple;
@@ -509,6 +507,16 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 
 	return 32 * cmp_out[0];
 }
-#endif
 
+void opencl_DES_bs_f_register_functions(struct fmt_main *fmt)
+{
+	fmt->methods.done = &clean_all_buffers;
+	fmt->methods.reset = &reset;
+	fmt->methods.set_salt = &set_salt;
+	fmt->methods.get_key = &get_key;
+	fmt->methods.crypt_all = &des_crypt_25;
+
+	opencl_DES_bs_init_global_variables = &init_global_variables;
+	opencl_DES_bs_select_device = select_device;
+}
 #endif /* HAVE_OPENCL */

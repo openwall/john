@@ -66,6 +66,8 @@
 	return out;							\
 }
 
+typedef unsigned WORD vtype;
+
 unsigned int CC_CACHE_ALIGN index768[0x300];
 
 typedef struct {
@@ -84,15 +86,13 @@ extern opencl_DES_bs_transfer *opencl_DES_bs_data;
 extern int opencl_DES_keys_changed;
 extern DES_bs_vector *B;
 
-extern void opencl_DES_bs_build_salt(WORD);
-extern void opencl_DES_bs_init(int block);
-extern void opencl_DES_bs_init_global_variables(void);
+extern void opencl_DES_bs_b_register_functions(struct fmt_main *);
+extern void opencl_DES_bs_h_register_functions(struct fmt_main *);
+extern void opencl_DES_bs_f_register_functions(struct fmt_main *);
 
-extern void opencl_DES_bs_set_salt(WORD salt);
-extern void opencl_DES_bs_set_key(char *key, int index);
-extern char *opencl_DES_bs_get_key(int index);
-extern int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt);
-extern WORD *opencl_DES_bs_get_binary(char *ciphertext);
+extern void (*opencl_DES_bs_init_global_variables)(void);
+extern void (*opencl_DES_bs_select_device)(struct fmt_main *);
+
 
 extern int opencl_DES_bs_get_hash_0(int index);
 extern int opencl_DES_bs_get_hash_1(int index);
@@ -101,10 +101,10 @@ extern int opencl_DES_bs_get_hash_3(int index);
 extern int opencl_DES_bs_get_hash_4(int index);
 extern int opencl_DES_bs_get_hash_5(int index);
 extern int opencl_DES_bs_get_hash_6(int index);
-
+extern void opencl_DES_bs_init(int block);
 extern int opencl_DES_bs_cmp_one_b(WORD *binary, int count, int index);
 extern WORD opencl_DES_raw_get_salt(char *ciphertext);
-extern void opencl_DES_bs_select_device(struct fmt_main*);
-extern void opencl_DES_clean_all_buffer(void);
-extern void opencl_DES_reset(struct db_main *);
+extern WORD *opencl_DES_bs_get_binary(char *ciphertext);
+extern void opencl_DES_bs_set_key(char *key, int index);
+
 #endif
