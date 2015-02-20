@@ -14,8 +14,6 @@ extern struct fmt_main fmt_hmacSHA384;
 john_register_one(&fmt_hmacSHA384);
 #else
 
-//#define FORCE_GENERIC_SHA2 1
-
 #include "sha2.h"
 
 #include "arch.h"
@@ -25,12 +23,10 @@ john_register_one(&fmt_hmacSHA384);
 #include "johnswap.h"
 #include "sse-intrinsics.h"
 
-//#undef MMX_COEF_SHA512
-
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef MMX_COEF_SHA512
-#define OMP_SCALE               512 // scaled on scaled core i7-quad HT
+#define OMP_SCALE               1024 // scaled on scaled core i7-quad HT
 #else
 #define OMP_SCALE               512 // scaled K8-dual HT
 #endif
@@ -351,62 +347,44 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 #ifdef MMX_COEF_SHA512
 		ARCH_WORD_64 *pclear;
-		//printf("\nkey=%s\n", saved_plain[0]);
 		if (new_keys) {
 			SSESHA512body(&ipad[index * SHA512_BUF_SIZ * 8],
 			            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384);
-			//dump_stuff_mmx64_msg("1", prep_ipad, 64, 0);
 			SSESHA512body(&opad[index * SHA512_BUF_SIZ * 8],
 			            (ARCH_WORD_64*)&prep_opad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384);
-			//dump_stuff_mmx64_msg("2", prep_opad, 64, 0);
 		}
-		//dump_stuff_shammx64_msg("S", cur_salt, 128, 0);
 		SSESHA512body(cur_salt,
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|SSEi_CRYPT_SHA384);
-		//dump_stuff_shammx64_msg("3", crypt_key, 64, 0);
-
 		// NOTE, SSESHA384 will output 64 bytes. We need the first 48 (plus the 0x80 padding).
 		// so we are forced to 'clean' this crap up, before using the crypt as the input.
 		// NOTE, this fix assumes MMX_COEF_SHA512==2
 		pclear = (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8];
 		pclear[12] = pclear[13] = 0x8000000000000000ULL;
 		pclear[14] = pclear[15] = 0;
-		//dump_stuff_shammx64_msg("C", crypt_key, 128, 0);
 		SSESHA512body(&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&prep_opad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|SSEi_CRYPT_SHA384);
-		//dump_stuff_shammx64_msg("4", crypt_key, 64, 0);
-		//exit(0);
 #else
 		SHA512_CTX ctx;
 
-		//printf("\nkey=%s\n", saved_plain[0]);
 		if (new_keys) {
 			SHA384_Init(&ipad_ctx[index]);
 			SHA384_Update(&ipad_ctx[index], ipad[index], PAD_SIZE);
-			//dump_stuff_msg("1", ipad_ctx->h, 64);
 			SHA384_Init(&opad_ctx[index]);
 			SHA384_Update(&opad_ctx[index], opad[index], PAD_SIZE);
-			//dump_stuff_msg("2", opad_ctx->h, 64);
 		}
 
 		memcpy(&ctx, &ipad_ctx[index], sizeof(ctx));
-		//dump_stuff_msg("S", cur_salt, strlen( (char*) cur_salt));
 		SHA384_Update( &ctx, cur_salt, strlen( (char*) cur_salt) );
 		SHA384_Final( (unsigned char*) crypt_key[index], &ctx);
-		//dump_stuff_msg("3", crypt_key, 48);
-
 		memcpy(&ctx, &opad_ctx[index], sizeof(ctx));
-		//dump_stuff_msg("C", crypt_key[index], BINARY_SIZE);
 		SHA384_Update( &ctx, crypt_key[index], BINARY_SIZE);
 		SHA384_Final( (unsigned char*) crypt_key[index], &ctx);
-		//dump_stuff_msg("4", crypt_key, 48);
-		//exit(0);
 #endif
 	}
 	new_keys = 0;

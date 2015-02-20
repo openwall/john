@@ -23,12 +23,10 @@ john_register_one(&fmt_hmacSHA512);
 #include "johnswap.h"
 #include "sse-intrinsics.h"
 
-//#undef MMX_COEF_SHA512
-
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef MMX_COEF_SHA512
-#define OMP_SCALE               512 // scaled on scaled core i7-quad HT
+#define OMP_SCALE               1024 // scaled on scaled core i7-quad HT
 #else
 #define OMP_SCALE               512 // scaled K8-dual HT
 #endif
@@ -360,54 +358,39 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef MMX_COEF_SHA512
-//		printf("\nkey=%s\n", saved_plain[0]);
 		if (new_keys) {
 			SSESHA512body(&ipad[index * SHA512_BUF_SIZ * 8],
 			            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN);
-//			dump_stuff_mmx64_msg("1", prep_ipad, 64, 0);
 			SSESHA512body(&opad[index * SHA512_BUF_SIZ * 8],
 			            (ARCH_WORD_64*)&prep_opad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN);
-//			dump_stuff_mmx64_msg("2", prep_opad, 64, 0);
 		}
-//		dump_stuff_mmx64_msg("S", cur_salt, 128, 0);
 		SSESHA512body(cur_salt,
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
-//		dump_stuff_mmx64_msg("3", crypt_key, 64, 0);
-
 		SSESHA512body(&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&prep_opad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
-//		dump_stuff_mmx64_msg("4", crypt_key, 64, 0);
-//		exit(0);
 #else
 		SHA512_CTX ctx;
 
-//		printf("\nkey=%s\n", saved_plain[0]);
 		if (new_keys) {
 			SHA512_Init(&ipad_ctx[index]);
 			SHA512_Update(&ipad_ctx[index], ipad[index], PAD_SIZE);
-//			dump_stuff_msg("1", ipad_ctx->h, 64);
-
 			SHA512_Init(&opad_ctx[index]);
 			SHA512_Update(&opad_ctx[index], opad[index], PAD_SIZE);
-//			dump_stuff_msg("2", opad_ctx->h, 64);
 		}
 
 		memcpy(&ctx, &ipad_ctx[index], sizeof(ctx));
 		SHA512_Update( &ctx, cur_salt, strlen( (char*) cur_salt) );
 		SHA512_Final( (unsigned char*) crypt_key[index], &ctx);
-//		dump_stuff_msg("3", crypt_key, 64);
 
 		memcpy(&ctx, &opad_ctx[index], sizeof(ctx));
 		SHA512_Update( &ctx, crypt_key[index], BINARY_SIZE);
 		SHA512_Final( (unsigned char*) crypt_key[index], &ctx);
-//		dump_stuff_msg("4", crypt_key, 64);
-//		exit(0);
 #endif
 	}
 	new_keys = 0;

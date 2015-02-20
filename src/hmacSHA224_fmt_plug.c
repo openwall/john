@@ -23,8 +23,6 @@ john_register_one(&fmt_hmacSHA224);
 #include "johnswap.h"
 #include "sse-intrinsics.h"
 
-//#undef MMX_COEF_SHA256
-
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef MMX_COEF_SHA256
