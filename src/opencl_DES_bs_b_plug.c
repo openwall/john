@@ -43,27 +43,30 @@ void opencl_DES_clean_all_buffer()
 	HANDLE_CLERROR(clReleaseMemObject(opencl_DES_bs_data_gpu), errMsg);
 	HANDLE_CLERROR(clReleaseMemObject(B_gpu), errMsg);
 	HANDLE_CLERROR(clReleaseMemObject(K_gpu), errMsg);
-	clReleaseMemObject(cmp_out_gpu);
-	clReleaseMemObject(loaded_hash_gpu);
-	clReleaseMemObject(bitmap);
+	HANDLE_CLERROR(clReleaseMemObject(cmp_out_gpu), errMsg);
+	HANDLE_CLERROR(clReleaseMemObject(loaded_hash_gpu), errMsg);
+	HANDLE_CLERROR(clReleaseMemObject(bitmap), errMsg);
 	if (loaded_hash_gpu_salt) {
 		for (i = 0; i < 4096; i++)
 			if (loaded_hash_gpu_salt[i] != (cl_mem)0)
-				clReleaseMemObject(loaded_hash_gpu_salt[i]);
+				HANDLE_CLERROR(clReleaseMemObject(loaded_hash_gpu_salt[i]),
+					       errMsg);
 		MEM_FREE(loaded_hash_gpu_salt);
 	}
 	for (i = 0; i < 4096; i++)
 		if (index96_gpu[i] != (cl_mem)0)
-			clReleaseMemObject(index96_gpu[i]);
+			HANDLE_CLERROR(clReleaseMemObject(index96_gpu[i]), errMsg);
 	MEM_FREE(index96_gpu);
 	MEM_FREE(index96);
-	clReleaseKernel(krnl[gpu_id][0]);
-	clReleaseKernel(krnl[gpu_id][1]);
+	HANDLE_CLERROR(clReleaseKernel(krnl[gpu_id][0]), "Error releasing kernel 0");
+	HANDLE_CLERROR(clReleaseKernel(krnl[gpu_id][1]), "Error releasing kernel 1");
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 	               "Error releasing Program");
 }
 
-void opencl_DES_reset(struct db_main *db) {
+void opencl_DES_reset(struct db_main *db)
+{
+	const char* errMsg = "Release Memory Object :Failed";
 
 	if (db) {
 		int i;
@@ -72,9 +75,9 @@ void opencl_DES_reset(struct db_main *db) {
 		MEM_FREE(cmp_out);
 		MEM_FREE(B);
 
-		clReleaseMemObject(cmp_out_gpu);
-		clReleaseMemObject(B_gpu);
-		clReleaseMemObject(bitmap);
+		HANDLE_CLERROR(clReleaseMemObject(cmp_out_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(B_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(bitmap), errMsg);
 
 		loaded_hash = (int *) mem_alloc((db->password_count) * sizeof(int) * 2);
 		cmp_out     = (unsigned int *) mem_alloc((2 * db->password_count + 1) * sizeof(unsigned int));
@@ -107,10 +110,10 @@ void opencl_DES_reset(struct db_main *db) {
 		if (!B)
 			MEM_FREE(B);
 
-		clReleaseMemObject(cmp_out_gpu);
-		clReleaseMemObject(loaded_hash_gpu);
-		clReleaseMemObject(B_gpu);
-		clReleaseMemObject(bitmap);
+		HANDLE_CLERROR(clReleaseMemObject(cmp_out_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(loaded_hash_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(B_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(bitmap), errMsg);
 
 		num_loaded_hashes = 0;
 		while (fmt_opencl_DES.params.tests[num_loaded_hashes].ciphertext) num_loaded_hashes++;
@@ -230,7 +233,6 @@ void opencl_DES_bs_select_device(struct fmt_main *fmt)
 		fprintf(stderr, "Create Kernel DES_bs_25_b FAILED\n");
 		return;
 	}
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
 
 	opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
 	opencl_build(gpu_id, NULL, 0, NULL);
@@ -248,6 +250,11 @@ void opencl_DES_bs_select_device(struct fmt_main *fmt)
 	    get_kernel_max_lws(gpu_id, krnl[gpu_id][0]))
 		local_work_size =
 			get_kernel_max_lws(gpu_id, krnl[gpu_id][0]);
+
+	if (local_work_size >
+	    get_kernel_max_lws(gpu_id, krnl[gpu_id][1]))
+		local_work_size =
+			get_kernel_max_lws(gpu_id, krnl[gpu_id][1]);
 
 	/* Cludge for buggy AMD CPU driver */
 	if (cpu(device_info[gpu_id]) &&
@@ -418,16 +425,16 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 			do {
 				if (!(bin = (int *)pw->binary))
 					continue;
-				loaded_hash[i] = bin[0] ;
+				loaded_hash[i] = bin[0];
 				loaded_hash[i + salt -> count] = bin[1];
-				i++ ;
+				i++;
 				//printf("%d %d\n", i++, bin[0]);
-			} while ((pw = pw -> next)) ;
+			} while ((pw = pw -> next));
 
 			//printf("%d\n",loaded_hash[salt->count-1 + salt -> count]);
 			if (num_loaded_hashes_salt[current_salt] < salt->count) {
 				if (loaded_hash_gpu_salt[current_salt] != (cl_mem)0)
-					clReleaseMemObject(loaded_hash_gpu_salt[current_salt]);
+					HANDLE_CLERROR(clReleaseMemObject(loaded_hash_gpu_salt[current_salt]), "Error releasing Memory Object");
 				loaded_hash_gpu_salt[current_salt] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 2 * sizeof(int) * num_loaded_hashes, NULL, &err);
 				HANDLE_CLERROR(err, "Failed to Create Buffer loaded_hash_gpu_salt");
 			}
