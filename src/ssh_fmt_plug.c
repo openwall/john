@@ -9,6 +9,8 @@
  * This patch is inspired by the ssh-privkey-crack program.
  * http://neophob.com/2007/10/ssh-private-key-cracker/
  *
+ * Greets to Voxar, and David (February 2015)
+ *
  * PEM_read_bio_PrivateKey and related OpenSSL functions are too high
  * level for brute-forcing purposes. So we drill down and find suitable
  * low-level OpenSSL functions. */
