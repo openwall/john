@@ -50,37 +50,39 @@ static void process_file(const char *filename)
 	char *nm = NULL, *header = NULL;
 	unsigned char *data = NULL;
 	EVP_CIPHER_INFO cipher;
-	EVP_PKEY pk;
+	EVP_PKEY pk = {0};
 	long len;
 	DSA *dsapkc = NULL;
 	RSA *rsapkc = NULL;
+	int type = 0;
 	const char unsigned *dc;
 
 	if (!(keyfile = fopen(filename, "rb"))) {
-	    fprintf(stderr, "! %s : %s\n", filename, strerror(errno));
-	    return;
+		fprintf(stderr, "! %s : %s\n", filename, strerror(errno));
+		return;
 	}
 	/* verify input files using OpenSSL */
 	bp = BIO_new(BIO_s_file());
 	if(!bp) {
-	    fprintf(stderr, "OpenSSL BIO allocation failure\n");
-	    fclose(keyfile);
-	    return;
+		fprintf(stderr, "OpenSSL BIO allocation failure\n");
+		fclose(keyfile);
+		return;
 	}
 	if(!BIO_read_filename(bp, filename)) {
-	    fprintf(stderr, "OpenSSL BIO_read_filename failure\n");
-	    ERR_print_errors_fp(stderr);
-	    fclose(keyfile);
-	    return;
+		fprintf(stderr, "OpenSSL BIO_read_filename failure\n");
+		ERR_print_errors_fp(stderr);
+		fclose(keyfile);
+		return;
 	}
-	/* PEM_bytes_read_bio function in crypto/pem/pem_lib.c
-	 * check_pem function in crypto/pem/pem_lib.c */
+
+	// PEM_bytes_read_bio function is in crypto/pem/pem_lib.c
+	// check_pem function is in crypto/pem/pem_lib.c */
 	for (;;) {
 		if (!PEM_read_bio(bp, &nm, &header, &data, &len)) {
 			if (ERR_GET_REASON(ERR_peek_error()) ==
-			    PEM_R_NO_START_LINE) {
+					PEM_R_NO_START_LINE) {
 				/* ERR_print_errors_fp(stderr); */
-	            fprintf(stderr, "! %s : %s\n", filename, "input keyfile validation failed");
+				fprintf(stderr, "! %s : %s\n", filename, "input keyfile validation failed");
 				goto out;
 			}
 		}
@@ -88,7 +90,7 @@ static void process_file(const char *filename)
 			fprintf(stderr, "! %s : %s\n", filename, "input keyfile validation failed");
 			goto out;
 		}
-        /* only PEM encoded DSA and RSA private keys are supported. */
+		/* PEM encoded DSA and RSA private keys are supported. */
 		if (!strcmp(nm, PEM_STRING_DSA)) {
 			pk.save_type = EVP_PKEY_DSA;
 			break;
@@ -97,16 +99,32 @@ static void process_file(const char *filename)
 			pk.save_type = EVP_PKEY_RSA;
 			break;
 		}
+		/* PKCS#8 private keys are also supported */
+		if (!strcmp(nm, PEM_STRING_PKCS8)) {
+			type = 1;
+			break;
+		}
 		OPENSSL_free(nm);
 		OPENSSL_free(header);
 		OPENSSL_free(data);
 		BIO_free(bp);
 	}
+
 	if (!PEM_get_EVP_CIPHER_INFO(header, &cipher)) {
 		ERR_print_errors_fp(stderr);
 		return;
 	}
+
 	/* check if key has no password */
+	if(type == 1) {
+		EVP_PKEY *key;
+		key = PEM_read_bio_PrivateKey(bp, NULL, 0, "");
+		if (key != NULL) {
+			fprintf(stderr, "%s has no password!\n", filename);
+			goto out;
+		}
+	}
+
 	dc = data;
 	if (PEM_do_header(&cipher, data, &len, NULL, (char *) "")) {
 		if (pk.save_type == EVP_PKEY_DSA) {
@@ -121,17 +139,20 @@ static void process_file(const char *filename)
 				fprintf(stderr, "%s has no password!\n", filename);
 				RSA_free(rsapkc);
 				goto out;
-                        }
-                }
-        }
+			}
+		}
+	}
+
 	/* key has been verified */
 	count = fread(buffer, 1, LINE_BUFFER_SIZE, keyfile);
 	printf("%s:$ssh2$", basename(filename));
 	for (i = 0; i < count; i++) {
-	    printf("%c%c", itoa16[ARCH_INDEX(buffer[i] >> 4)],
-	            itoa16[ARCH_INDEX(buffer[i] & 0x0f)]);
+		printf("%c%c", itoa16[ARCH_INDEX(buffer[i] >> 4)],
+				itoa16[ARCH_INDEX(buffer[i] & 0x0f)]);
 	}
-	printf("*%d\n", count);
+
+	// NOTE: old test vectors / hashes won't have the "type", but that is OK
+	printf("*%d*%d\n", count, type);
 out:
 	fclose(keyfile);
 	if(bp)
@@ -153,7 +174,7 @@ int ssh2john(int argc, char **argv)
 	}
 
 	for (i = 1; i < argc; i++)
-	    process_file(argv[i]);
+		process_file(argv[i]);
 
 	return 0;
 }
