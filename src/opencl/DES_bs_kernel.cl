@@ -8,8 +8,6 @@
 
 #include "opencl_DES_kernel_params.h"
 
-#if !HARDCODE_SALT
-
 #ifndef RV7xx
 #define x(p) vxorf(B[ index96[p]], _local_K[_local_index768[p + k] + local_offset_K])
 #define y(p, q) vxorf(B[p]       , _local_K[_local_index768[q + k] + local_offset_K])
@@ -194,4 +192,3 @@ next:
 		goto start;
 #endif
 }
-#endif

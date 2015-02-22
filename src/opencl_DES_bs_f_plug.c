@@ -426,24 +426,18 @@ static void modify_build_save_restore(int cur_salt, int id_gpu) {
 static int des_crypt_25(int *pcount, struct db_salt *salt)
 {
 	int i;
-	unsigned int section = 0, keys_count_multiple;
+	static unsigned int section = 1;
 	cl_event evnt;
-	size_t N, M;
+	static size_t N, M;
 
-	num_set_keys = *pcount;
-	if (num_set_keys % DES_BS_DEPTH == 0)
-		keys_count_multiple = num_set_keys;
-	else
-		keys_count_multiple = (num_set_keys / DES_BS_DEPTH + 1) * DES_BS_DEPTH;
-
-	section = keys_count_multiple / DES_BS_DEPTH;
-
-	M = local_work_size;
-
-	if (section % local_work_size != 0)
-		N = (section / local_work_size + 1) * local_work_size ;
-	else
-		N = section;
+	if (*pcount != num_set_keys || section) {
+		num_set_keys = *pcount;
+		section = (((num_set_keys - 1) >> DES_BS_LOG2) + 1);
+		M = local_work_size;
+		N = ((section - 1) / M + 1) * M;
+		N = N > MULTIPLIER ? MULTIPLIER : N;
+		section = 0;
+	}
 
 	{
 		unsigned int found = 0;

@@ -58,8 +58,6 @@
 
 #include "opencl_DES_kernel_params.h"
 
-#if (HARDCODE_SALT && !FULL_UNROLL)
-
 #define H1_s()\
 	s1(z(index00, 0), z(index01, 1), z(index02, 2), z(index03, 3), z(index04, 4), z(index05, 5),\
 		B,40, 48, 54, 62);\
@@ -244,4 +242,3 @@ next:
 		goto start;
 #endif
 }
-#endif

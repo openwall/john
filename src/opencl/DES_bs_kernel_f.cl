@@ -58,8 +58,6 @@
 
 #include "opencl_DES_kernel_params.h"
 
-#if (FULL_UNROLL && HARDCODE_SALT)
-
 #define z(p, q) vxorf(B[p], _local_K[q + local_offset_K])
 
 #define H1_k0()\
@@ -541,4 +539,3 @@ __kernel void DES_bs_25(__global DES_bs_vector *K,
 
 		return;
 }
-#endif

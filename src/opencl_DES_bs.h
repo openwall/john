@@ -32,7 +32,6 @@
 #define GWS_CONFIG		        "des_GWS"
 
 #define	MAX_DEVICES_PER_PLATFORM	10
-#define DES_BS_EXPAND                   1
 
 #define get_key_body() {						\
 	static char out[PLAINTEXT_LENGTH + 1];				\
