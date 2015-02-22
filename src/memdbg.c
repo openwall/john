@@ -68,8 +68,8 @@ void *MEMDBG_libc_alloc(size_t size) {
 	return malloc(size);
 }
 
-void *MEMDBG_libc_calloc(size_t size) {
-	return calloc(1, size);
+void *MEMDBG_libc_calloc(size_t count, size_t size) {
+	return calloc(count, size);
 }
 
 #if defined (MEMDBG_ON)
@@ -521,9 +521,10 @@ static void release_oldest_freed_block() {
 }
 #endif
 
-void * MEMDBG_calloc(size_t size, char *file, int line)
+void * MEMDBG_calloc(size_t count, size_t size, char *file, int line)
 {
 	char *p;
+	size *= count;
 	if ( ((signed long long)mem_size) < 0)
 		fprintf(stderr, "MEMDBG_calloc %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 	p = (char*)MEMDBG_alloc(size,file,line);
