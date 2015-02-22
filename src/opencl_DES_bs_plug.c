@@ -22,9 +22,9 @@
 #define for_each_depth()
 
 opencl_DES_bs_combined *opencl_DES_bs_all;
-opencl_DES_bs_transfer *opencl_DES_bs_data;
-int opencl_DES_keys_changed = 1;
-DES_bs_vector *B;
+opencl_DES_bs_transfer *opencl_DES_bs_keys;
+int opencl_DES_bs_keys_changed = 1;
+DES_bs_vector *opencl_DES_bs_cracked_hashes;
 
 static unsigned char opencl_DES_E[48] = {
 	31, 0, 1, 2, 3, 4,
@@ -111,7 +111,7 @@ static void init_index()
 			bit ^= 070;
 			bit -= bit >> 3;
 			bit = 55 - bit;
-			index768[t++] = bit;
+			opencl_DES_bs_index768[t++] = bit;
 		}
 	}
 
@@ -126,7 +126,7 @@ void opencl_DES_bs_init(int block)
 
 	for (index = 0; index < DES_BS_DEPTH; index++)
 		opencl_DES_bs_all[block].pxkeys[index] =
-			&opencl_DES_bs_data[block].xkeys.c[0][index & 7][index >> 3];
+			&opencl_DES_bs_keys[block].xkeys.c[0][index & 7][index >> 3];
 
 	for (index = 0; index < 48; index++)
 		opencl_DES_bs_all[block].Ens[index] =
@@ -144,7 +144,7 @@ void opencl_DES_bs_set_key(char *key, int index)
 	key_index = index & (DES_BS_DEPTH - 1);
 	dst = opencl_DES_bs_all[sector].pxkeys[key_index];
 
-	opencl_DES_keys_changed = 1;
+	opencl_DES_bs_keys_changed = 1;
 
 	dst[0] = 				(!flag) ? 0 : key[0];
 	dst[sizeof(DES_bs_vector) * 8]      =	(!flag) ? 0 : key[1];
@@ -205,7 +205,7 @@ int opencl_DES_bs_cmp_one_b(WORD *binary, int count, int index)
 	depth = index >> 3;
 	index &= 7;
 
-	b = (DES_bs_vector *)((unsigned char *)&B[section * 64] + depth);
+	b = (DES_bs_vector *)((unsigned char *)&opencl_DES_bs_cracked_hashes[section * 64] + depth);
 
 #define GET_BIT \
 	((unsigned WORD)*(unsigned char *)&b[0] >> index)
@@ -306,15 +306,15 @@ static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
  * little-endian archs is removed, even if the arch is in fact little-endian.
  */
 	init_depth();
-	//b = (DES_bs_vector *)&opencl_DES_bs_all[sector].B[0] DEPTH;
-	b = (DES_bs_vector *)&B[sector * 64] DEPTH;
+	//b = (DES_bs_vector *)&opencl_DES_bs_all[sector].opencl_DES_bs_cracked_hashes[0] DEPTH;
+	b = (DES_bs_vector *)&opencl_DES_bs_cracked_hashes[sector * 64] DEPTH;
 #define GET_BIT(bit) \
 	(((unsigned WORD)b[(bit)] START >> index) & 1)
 #else
 	depth = index >> 3;
 	index &= 7;
-	//b = (DES_bs_vector *)((unsigned char *)&opencl_DES_bs_all[sector].B[0] START + depth);
-	b = (DES_bs_vector *)((unsigned char *)&B[sector * 64] START + depth);
+	//b = (DES_bs_vector *)((unsigned char *)&opencl_DES_bs_all[sector].opencl_DES_bs_cracked_hashes[0] START + depth);
+	b = (DES_bs_vector *)((unsigned char *)&opencl_DES_bs_cracked_hashes[sector * 64] START + depth);
 #define GET_BIT(bit) \
 	(((unsigned int)*(unsigned char *)&b[(bit)] START >> index) & 1)
 #endif

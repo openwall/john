@@ -68,7 +68,7 @@
 
 typedef unsigned WORD vtype;
 
-unsigned int CC_CACHE_ALIGN index768[0x300];
+unsigned int CC_CACHE_ALIGN opencl_DES_bs_index768[0x300];
 
 typedef struct {
 
@@ -82,9 +82,9 @@ struct fmt_main;
 struct fmt_main fmt_opencl_DES;
 
 extern opencl_DES_bs_combined *opencl_DES_bs_all;
-extern opencl_DES_bs_transfer *opencl_DES_bs_data;
-extern int opencl_DES_keys_changed;
-extern DES_bs_vector *B;
+extern opencl_DES_bs_transfer *opencl_DES_bs_keys;
+extern int opencl_DES_bs_keys_changed;
+extern DES_bs_vector *opencl_DES_bs_cracked_hashes;
 
 extern void opencl_DES_bs_b_register_functions(struct fmt_main *);
 extern void opencl_DES_bs_h_register_functions(struct fmt_main *);
