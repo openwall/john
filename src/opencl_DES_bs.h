@@ -45,7 +45,7 @@
 	else								\
 		section = cmp_out[2 * (index/DES_BS_DEPTH) + 1];	\
 									\
-	if (section > num_set_keys / 32) {				\
+	if (section > (num_set_keys + 31) / 32) {			\
 		fprintf(stderr, "Get key error! %d %d\n", section,	\
 			num_set_keys);					\
 		section = 0;						\
