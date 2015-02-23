@@ -1,22 +1,4 @@
-Date: Wed, 28 Jul 2010 00:33:13 +0400
-From: Solar Designer <solar@...nwall.com>
-To: john-users@...ts.openwall.com
-Subject: HMAC-MD5, SMTP AUTH CRAM-MD5
-
-Simon, all -
-
-Today I happened to use the HMAC-MD5 "format" - hmacMD5_fmt.c (in the
-jumbo patch) contributed by Simon - to see if a spammer had found and
-used a weak password (and this proved to be the case, although indeed I
-can't rule out the possibility that the password leaked from the user's
-computer rather than was cracked remotely).  While doing this, I ran
-into and fixed a bug in hmacMD5_fmt.c.  The fix is included in
-john-1.7.6-jumbo-6, which I've just released, and I've also attached
-just the fix (against 1.7.6-jumbo-5) to this message.
-
-http://www.openwall.com/john/#contrib
-
-Here's how to crack/check/audit SMTP's AUTH CRAM-MD5 exchanges with this:
+Here's how to crack/check/audit SMTP's AUTH CRAM-MD5 exchanges with JtR:
 
 Capture an SMTP session with a sniffer.  You need traffic in both
 directions.  The client will send the "AUTH CRAM-MD5" command, the
@@ -24,38 +6,13 @@ server will respond with a base64-encoded challenge, and the client will
 similarly provide a base64-encoded response.  You need the challenge and
 the response.
 
-base64-decode the challenge and the response, e.g. using "base64 -d"
-(from GNU coreutils) or "openssl base64 -d".  The decoded challenge will
-typically look like:
+The input format for JtR is:
 
-<12345.1234567890@...ver.example.org>
+$cram_md5$<challenge>$<response>
 
-(where the numbers are typically a Unix process ID and a Unix timestamp).
+eg.
 
-The decoded response will look like:
+$cram_md5$PG5vLXJlcGx5QGhhc2hjYXQubmV0Pg==$dXNlciA0NGVhZmQyMmZlNzY2NzBmNmIyODc5MDgxYTdmNWY3MQ==
 
-username 01234567890123456789012345678901
-
-The second field of it is a hex-encoded MD5 digest value (yes, it was
-encoded twice).
-
-Then construct a line usable by JtR:
-
-username:<12345.1234567890@...ver.example.org>#01234567890123456789012345678901
-
-and simply run "john" on the file (no options are needed, the "format"
+Now simply run "john" on the input file (no options are needed, the "format"
 should be autodetected).
-
-The above line is loaded just fine by john-1.7.6-jumbo-6 for me, but
-indeed the password is not expected to be cracked because I did not post
-a real C/R pair - sorry, the one I was dealing with in practice is still
-valid and is otherwise security-sensitive.  Maybe someone else will post
-a real-world example.
-
-As usual, it is possible to have multiple lines like this in the same
-file.  This only makes sense for different target accounts (there's
-usually no point in attacking different C/R pairs for the same account).
-
-I hope someone will find this helpful.
-
-Alexander

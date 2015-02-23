@@ -1,6 +1,6 @@
 /*
  * This software is Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>
- * and (c) magnum 2011-2013,
+ * and (c) magnum 2011-2015,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -27,6 +27,7 @@ john_register_one(&fmt_hmacMD5);
 #include "md5.h"
 #include "aligned.h"
 #include "sse-intrinsics.h"
+#include "base64_convert.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "HMAC-MD5"
@@ -69,6 +70,7 @@ static struct fmt_tests tests[] = {
 	{"#74e6f7298a9c2d168935f58c001bad88", ""},
 	{"The quick brown fox jumps over the lazy dog#80070713463e7749b90c2dc24911e275", "key"},
 	{"Beppe Grillo#F8457C3046C587BBCBD6D7036BA42C81", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
+	{"$cram_md5$PG5vLXJlcGx5QGhhc2hjYXQubmV0Pg==$dXNlciA0NGVhZmQyMmZlNzY2NzBmNmIyODc5MDgxYTdmNWY3MQ==", "hashcat"},
 	{NULL}
 };
 
@@ -135,10 +137,53 @@ static void init(struct fmt_main *self)
 	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 }
 
+/* Convert from Base64 format with tag to our legacy format */
+static char *prepare(char *split_fields[10], struct fmt_main *self)
+{
+	char *p = split_fields[1];
+
+	if (!strncmp(p, "$cram_md5$", 10)) {
+		static char out[256];
+		int len;
+		char *d, *o = out;
+
+		p += 10;
+		if (!(d = strchr(p, '$')))
+			return split_fields[1];
+		len = base64_convert(p, e_b64_mime, (int)(d - p - 1),
+		                     o, e_b64_raw,
+#if MMX_COEF
+		                     55,
+#else
+		                     SALT_LENGTH,
+#endif
+		                     flg_Base64_MIME_TRAIL_EQ);
+		o += len;
+		*o++ = '#';
+		len = base64_convert(++d, e_b64_mime, strlen(p),
+		                     o, e_b64_raw,
+		                     sizeof(out) - len - 2,
+		                     flg_Base64_MIME_TRAIL_EQ);
+		if (!(p = strchr(o, ' ')))
+			return split_fields[1];
+		p++;
+		memmove(o, p, len - (p - o));
+		if (strlen(o) == BINARY_SIZE * 2)
+			return out;
+	}
+	return p;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int pos, i;
 	char *p;
+
+	if (!strncmp(ciphertext, "$cram_md5$", 10)) {
+		char *f[10];
+		f[1] = ciphertext;
+		ciphertext = prepare(f, self);
+	}
 
 	p = strrchr(ciphertext, '#'); // allow # in salt
 	if (!p || p > &ciphertext[strlen(ciphertext) - 1]) return 0;
@@ -451,7 +496,7 @@ struct fmt_main fmt_hmacMD5 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		split,
 		binary,
