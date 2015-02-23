@@ -422,8 +422,8 @@ LIBS=""
 using_rexgen=no
 # Check for rexgen only if rexgen wanted
 if test "x$enable_rexgen" != xno ; then
-	AC_CHECK_HEADER([librexgen/api/c/librexgen.h],
-	  [AC_SEARCH_LIBS([c_simplestring_terminate],[rexgen librexgen],
+	AC_CHECK_HEADER([librexgen/c/librexgen.h],
+	  [AC_SEARCH_LIBS([c_simplestring_new],[rexgen librexgen],
 		using_rexgen=yes
 		[AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])])])
 	AC_SUBST(REXGEN_LIBS, [$LIBS])

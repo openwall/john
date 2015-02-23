@@ -9514,11 +9514,11 @@ LIBS=""
 using_rexgen=no
 # Check for rexgen only if rexgen wanted
 if test "x$enable_rexgen" != xno ; then
-	ac_fn_c_check_header_mongrel "$LINENO" "librexgen/api/c/librexgen.h" "ac_cv_header_librexgen_api_c_librexgen_h" "$ac_includes_default"
-if test "x$ac_cv_header_librexgen_api_c_librexgen_h" = xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing c_simplestring_terminate" >&5
-$as_echo_n "checking for library containing c_simplestring_terminate... " >&6; }
-if ${ac_cv_search_c_simplestring_terminate+:} false; then :
+	ac_fn_c_check_header_mongrel "$LINENO" "librexgen/c/librexgen.h" "ac_cv_header_librexgen_c_librexgen_h" "$ac_includes_default"
+if test "x$ac_cv_header_librexgen_c_librexgen_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing c_simplestring_new" >&5
+$as_echo_n "checking for library containing c_simplestring_new... " >&6; }
+if ${ac_cv_search_c_simplestring_new+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_func_search_save_LIBS=$LIBS
@@ -9531,11 +9531,11 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char c_simplestring_terminate ();
+char c_simplestring_new ();
 int
 main ()
 {
-return c_simplestring_terminate ();
+return c_simplestring_new ();
   ;
   return 0;
 }
@@ -9548,25 +9548,25 @@ for ac_lib in '' rexgen librexgen; do
     LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
   fi
   if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_search_c_simplestring_terminate=$ac_res
+  ac_cv_search_c_simplestring_new=$ac_res
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext
-  if ${ac_cv_search_c_simplestring_terminate+:} false; then :
+  if ${ac_cv_search_c_simplestring_new+:} false; then :
   break
 fi
 done
-if ${ac_cv_search_c_simplestring_terminate+:} false; then :
+if ${ac_cv_search_c_simplestring_new+:} false; then :
 
 else
-  ac_cv_search_c_simplestring_terminate=no
+  ac_cv_search_c_simplestring_new=no
 fi
 rm conftest.$ac_ext
 LIBS=$ac_func_search_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_c_simplestring_terminate" >&5
-$as_echo "$ac_cv_search_c_simplestring_terminate" >&6; }
-ac_res=$ac_cv_search_c_simplestring_terminate
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_c_simplestring_new" >&5
+$as_echo "$ac_cv_search_c_simplestring_new" >&6; }
+ac_res=$ac_cv_search_c_simplestring_new
 if test "$ac_res" != no; then :
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
   using_rexgen=yes

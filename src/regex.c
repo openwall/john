@@ -34,6 +34,7 @@
 #define _UNICODE
 
 char *rexgen_alphabets[256];
+static const size_t WORDSIZE=1024;
 
 static void fix_state(void) {}
 static double get_progress(void) { return -1; }
@@ -105,8 +106,7 @@ int do_regex_crack_as_rules(const char *regex, const char *base_word, int regex_
 	c_simplestring_ptr buffer = c_simplestring_new();
 	c_iterator_ptr iter = NULL;
 	charset encoding = CHARSET_UTF8;
-	int randomize = 0;
-	const char* word;
+	char word[WORDSIZE];
 	static int bFirst=1;
 	static int bALPHA=0;
 
@@ -159,15 +159,14 @@ int do_regex_crack_as_rules(const char *regex, const char *base_word, int regex_
 		}
 		return 0;
 	}
-	iter = c_regex_iterator_cb(regex, regex_case, encoding, randomize, callback);
+	iter = c_regex_iterator_cb(regex, regex_case, encoding, callback);
 	if (!iter) {
 		fprintf(stderr, "Error, invalid regex expression.  John exiting now  base_word=%s  Regex= %s\n", base_word, regex);
 		exit(1);
 	}
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
-		c_simplestring_terminate(buffer);
-		word = c_simplestring_bufferaddress(buffer);
+		c_simplestring_to_binary_string(buffer, &word[0], sizeof(word));
 		c_simplestring_clear(buffer);
 		if (ext_filter((char*)word)) {
 			if (crk_process_key((char*)word)) {
@@ -187,8 +186,7 @@ void do_regex_crack(struct db_main *db, const char *regex) {
 	c_iterator_ptr iter = NULL;
 	charset encoding = CHARSET_UTF8;
 	int ignore_case = 0;
-	int randomize = 0;
-	const char* word;
+	char word[WORDSIZE];
 
 	if (john_main_process)
 		fprintf(stderr, "Warning: regex mode currently can't be "
@@ -199,15 +197,14 @@ void do_regex_crack(struct db_main *db, const char *regex) {
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 	crk_init(db, fix_state, NULL);
-	iter = c_regex_iterator_cb(regex, ignore_case, encoding, randomize, callback);
+	iter = c_regex_iterator_cb(regex, ignore_case, encoding, callback);
 	if (!iter) {
 		fprintf(stderr, "Error, invalid regex expression.  John exiting now\n");
 		exit(1);
 	}
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
-		c_simplestring_terminate(buffer);
-		word = c_simplestring_bufferaddress(buffer);
+		c_simplestring_to_binary_string(buffer, &word[0], sizeof(word));
 		c_simplestring_clear(buffer);
 		if (ext_filter((char*)word)) {
 			if (crk_process_key((char*)word))
