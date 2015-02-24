@@ -506,7 +506,7 @@ static void *get_salt(char *ciphertext)
 	int type2 = 0;
 
 	/* Needs word align on REQ_ALIGN systems.  May crash otherwise (in the sscanf) */
-	salt = mem_calloc(sizeof(PKZ_SALT));
+	salt = mem_calloc(1, sizeof(PKZ_SALT));
 
 	cp = cpalloc;
 	strcpy((c8*)cp, ciphertext);
@@ -656,7 +656,7 @@ static void *get_salt(char *ciphertext)
 			salt->H[i].magic = 0;	// remove any 'magic' logic from this hash.
 	}
 
-	psalt = mem_calloc(sizeof(PKZ_SALT) + ex_len[0]+ex_len[1]+ex_len[2]+2);
+	psalt = mem_calloc(1, sizeof(PKZ_SALT) + ex_len[0]+ex_len[1]+ex_len[2]+2);
 	memcpy(psalt, salt, sizeof(*salt));
 	MEM_FREE(salt);
 	memcpy(psalt->zip_data, H[0], ex_len[0]);

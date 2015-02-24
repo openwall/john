@@ -114,8 +114,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	fprintf(stderr, "%s(%zu) kpc %zu\n", __FUNCTION__, gws, kpc);
 #endif
 	key_buf_size = PLAINTEXT_LENGTH * kpc;
-	inbuffer = mem_calloc(key_buf_size);
-	host_crack = mem_calloc(kpc * sizeof(pbkdf1_out));
+	inbuffer = mem_calloc(1, key_buf_size);
+	host_crack = mem_calloc(kpc, sizeof(pbkdf1_out));
 
 	mem_in = CLCREATEBUFFER(CL_RO, key_buf_size);
 	mem_salt = CLCREATEBUFFER(CL_RO, sizeof(pbkdf1_salt));

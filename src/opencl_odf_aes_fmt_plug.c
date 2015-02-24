@@ -134,10 +134,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	settingsize = sizeof(odf_salt);
 	cracked_size = sizeof(*crypt_out) * gws;
 
-	inbuffer = mem_calloc(insize);
+	inbuffer = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
-	saved_key = mem_calloc(sizeof(*saved_key) * gws);
-	crypt_out = mem_calloc(cracked_size);
+	saved_key = mem_calloc(gws, sizeof(*saved_key));
+	crypt_out = mem_calloc(1, cracked_size);
 
 	/// Allocate memory
 	mem_in =

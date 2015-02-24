@@ -155,7 +155,7 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	outsize = sizeof(phpass_hash) * kpc;
 	settingsize = sizeof(uint8_t) * ACTUAL_SALT_SIZE + 4;
 
-	inbuffer = mem_calloc(insize);
+	inbuffer = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
 
 	// Allocate memory

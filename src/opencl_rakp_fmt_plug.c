@@ -169,7 +169,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	gws *= v_width;
 
 	keys = mem_alloc((PLAINTEXT_LENGTH + 1) * gws);
-	idx = mem_calloc(sizeof(*idx) * gws);
+	idx = mem_calloc(gws, sizeof(*idx));
 	digest = mem_alloc(gws * BINARY_SIZE);
 
 	salt_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, SALT_STORAGE_SIZE, NULL, &ret_code);

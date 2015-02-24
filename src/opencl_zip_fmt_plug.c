@@ -158,9 +158,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	outsize = sizeof(zip_hash) * gws;
 	settingsize = sizeof(zip_salt);
 
-	inbuffer = mem_calloc(insize);
+	inbuffer = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
-	crypt_key = mem_calloc(sizeof(*crypt_key) * gws);
+	crypt_key = mem_calloc(gws, sizeof(*crypt_key));
 
 	mem_in =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
@@ -411,7 +411,7 @@ static void *get_salt(char *ciphertext)
 
 	// Ok, now create the allocated salt record we are going to return back to John, using the dynamic
 	// sized data buffer.
-	psalt = (my_salt*)mem_calloc(sizeof(my_salt)+salt.comp_len);
+	psalt = (my_salt*)mem_calloc(1, sizeof(my_salt) + salt.comp_len);
 	psalt->v.type = salt.v.type;
 	psalt->v.mode = salt.v.mode;
 	psalt->comp_len = salt.comp_len;

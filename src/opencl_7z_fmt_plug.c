@@ -161,10 +161,10 @@ static void create_clobj(size_t global_work_size, struct fmt_main *self)
 {
 	cl_int cl_error;
 
-	inbuffer = (sevenzip_password*) mem_calloc(insize);
+	inbuffer = (sevenzip_password*) mem_calloc(1, insize);
 	outbuffer = (sevenzip_hash*) mem_alloc(outsize);
 
-	cracked = mem_calloc(cracked_size);
+	cracked = mem_calloc(1, cracked_size);
 
 	// Allocate memory
 	mem_in =

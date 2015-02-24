@@ -57,7 +57,7 @@ static void done(void) {
 }
 
 static void init(struct fmt_main *self) {
-	saved_key = mem_calloc(BF_N * sizeof(*saved_key)) ;
+	saved_key = mem_calloc(BF_N, sizeof(*saved_key)) ;
 	global_work_size = 0 ;
 
 	//Prepare OpenCL environment.

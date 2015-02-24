@@ -104,7 +104,7 @@ static void init(struct fmt_main *self) {
 	opencl_preinit();
 
 	///Allocate memory
-	key_host = mem_calloc(self -> params.max_keys_per_crypt * sizeof(*key_host)) ;
+	key_host = mem_calloc(self -> params.max_keys_per_crypt, sizeof(*key_host)) ;
 	dcc_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
 	dcc2_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
 	hmac_sha1_out  = (cl_uint*)mem_alloc(5 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;

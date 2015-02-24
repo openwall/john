@@ -51,8 +51,8 @@ static void init(struct fmt_main *self)
 {
 	///Allocate memory for hashes and passwords
 	inbuffer =
-	    (wpapsk_password *) mem_calloc(MAX_KEYS_PER_CRYPT *
-	      sizeof(wpapsk_password));
+		(wpapsk_password *) mem_calloc(MAX_KEYS_PER_CRYPT,
+		                               sizeof(wpapsk_password));
 	outbuffer =
 	    (wpapsk_hash *) mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(wpapsk_hash));
 	check_mem_allocation(inbuffer, outbuffer);

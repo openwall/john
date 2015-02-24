@@ -124,9 +124,9 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 #define CLKERNELARG(kernel, id, arg, msg)\
 	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), msg);
 
-	host_pass = mem_calloc(kpc * sizeof(pass_t));
-	host_crack = mem_calloc(kpc * sizeof(crack_t));
-	host_salt = mem_calloc(sizeof(salt_t));
+	host_pass = mem_calloc(kpc, sizeof(pass_t));
+	host_crack = mem_calloc(kpc, sizeof(crack_t));
+	host_salt = mem_calloc(1, sizeof(salt_t));
 
 	mem_in =
 		CLCREATEBUFFER(CL_RO, kpc * sizeof(pass_t),

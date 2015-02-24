@@ -171,7 +171,7 @@ static void *get_salt(char *ciphertext)
 	BIO *bp;
 
 	if (!ptr) ptr = mem_alloc_tiny(sizeof(struct custom_salt*),sizeof(struct custom_salt*));
-	psalt = (struct custom_salt*)mem_calloc(sizeof(struct custom_salt) + strlen(ciphertext) + 1);
+	psalt = (struct custom_salt*)mem_calloc(1, sizeof(struct custom_salt) + strlen(ciphertext) + 1);
 	strcpy(psalt->orig_hash, ciphertext);
 	psalt->hash_len = strlen(ciphertext);
 	ctcopy += 6;	/* skip over "$pfx$*" */

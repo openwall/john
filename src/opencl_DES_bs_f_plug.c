@@ -166,11 +166,11 @@ static void init_global_variables()
 
 	opencl_DES_bs_all = (opencl_DES_bs_combined*) mem_alloc(MULTIPLIER * sizeof(opencl_DES_bs_combined));
 	opencl_DES_bs_keys = (opencl_DES_bs_transfer*) mem_alloc(MULTIPLIER * sizeof(opencl_DES_bs_transfer));
-	index96 = (unsigned int *) mem_calloc(4097 * 96 * sizeof(unsigned int));
+	index96 = (unsigned int *) mem_calloc(4097, 96 * sizeof(unsigned int));
 
-	krnl = (cl_kernel **) mem_calloc(MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM * sizeof(cl_kernel *));
+	krnl = (cl_kernel **) mem_calloc(MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM, sizeof(cl_kernel *));
 	for (i = 0; i < MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM; i++)
-		krnl[i] = (cl_kernel *) mem_calloc(4097 * sizeof(cl_kernel));
+		krnl[i] = (cl_kernel *) mem_calloc(4097, sizeof(cl_kernel));
 
 	stored_salt = (WORD *) mem_alloc(4096 * sizeof(WORD));
 	for (i = 0; i < 4096; i++)

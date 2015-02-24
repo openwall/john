@@ -64,9 +64,8 @@ static void done()
 static void init(struct fmt_main *self)
 {
 	//Allocate memory for hashes and passwords
-	inbuffer =
-	    (mscash_password *) mem_calloc(MAX_KEYS_PER_CRYPT *
-	    sizeof(mscash_password));
+	inbuffer = (mscash_password *) mem_calloc(MAX_KEYS_PER_CRYPT,
+	                                          sizeof(mscash_password));
 	outbuffer =
 	    (mscash_hash *) mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(mscash_hash));
 	check_mem_allocation(inbuffer, outbuffer);

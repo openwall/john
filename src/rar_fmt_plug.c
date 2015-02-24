@@ -301,7 +301,7 @@ static void *get_salt(char *ciphertext)
 		tmp_salt[i] = atoi16[ARCH_INDEX(encoded_salt[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_salt[i * 2 + 1])];
 	if (type == 0) {	/* rar-hp mode */
 		char *encoded_ct = strtok(NULL, "*");
-		psalt = mem_calloc(sizeof(*psalt)+16);
+		psalt = mem_calloc(1, sizeof(*psalt)+16);
 		psalt->type = type;
 		ex_len = 16;
 		memcpy(psalt->salt, tmp_salt, 8);
@@ -325,9 +325,9 @@ static void *get_salt(char *ciphertext)
 		/* load ciphertext. We allocate and load all files
 		   here, and they are freed when password found. */
 #if HAVE_MMAP
-		psalt = mem_calloc(sizeof(*psalt) + (inlined ? ex_len : 0));
+		psalt = mem_calloc(1, sizeof(*psalt) + (inlined ? ex_len : 0));
 #else
-		psalt = mem_calloc(sizeof(*psalt)+ex_len);
+		psalt = mem_calloc(1, sizeof(*psalt) + ex_len);
 #endif
 		psalt->type = type;
 		memcpy(psalt->salt, tmp_salt, 8);

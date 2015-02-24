@@ -64,7 +64,8 @@ static void done()
 static void init(struct fmt_main *self)
 {
   //Allocate memory for hashes and passwords
-  inbuffer=(crypt_sha256_password*)mem_calloc(MAX_KEYS_PER_CRYPT*sizeof(crypt_sha256_password));
+  inbuffer=(crypt_sha256_password*)mem_calloc(MAX_KEYS_PER_CRYPT,
+                                              sizeof(crypt_sha256_password));
   outbuffer=(uint32_t*)mem_alloc(MAX_KEYS_PER_CRYPT*sizeof(uint32_t)*8);
   check_mem_allocation(inbuffer,outbuffer);
   //Initialize CUDA

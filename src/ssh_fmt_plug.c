@@ -263,7 +263,7 @@ static void *get_salt(char *ciphertext)
 	EVP_PKEY pk;
 	long len;
 
-	psalt = (struct custom_salt*)mem_calloc(sizeof(struct custom_salt));
+	psalt = (struct custom_salt*)mem_calloc(1, sizeof(struct custom_salt));
 	memset(psalt, 0, sizeof(struct custom_salt));
 
 	if (!ptr) ptr = mem_alloc_tiny(sizeof(struct custom_salt*),sizeof(struct custom_salt*));

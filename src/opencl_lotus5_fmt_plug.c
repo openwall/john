@@ -155,8 +155,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 				      sizeof(cl_mem), &cl_tx_binary),
 		                      "Set Kernel Arg 1 :FAILED");
 
-	crypt_key = mem_calloc(BINARY_SIZE * gws);
-	saved_key = mem_calloc(KEY_SIZE_IN_BYTES * gws);
+	crypt_key = mem_calloc(gws, BINARY_SIZE);
+	saved_key = mem_calloc(gws, KEY_SIZE_IN_BYTES);
 }
 
 static void release_clobj(void)

@@ -1334,9 +1334,9 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     }
   }
 #else
-  db_entry_t *db_entries   = (db_entry_t *) mem_calloc ((pw_max + 1) * sizeof (db_entry_t));
-  pw_order_t *pw_orders    = (pw_order_t *) mem_calloc ((pw_max + 1) * sizeof (pw_order_t));
-  u64        *wordlen_dist = (u64 *)        mem_calloc ((pw_max + 1) * sizeof (u64));
+  db_entry_t *db_entries   = (db_entry_t *) mem_calloc(pw_max + 1, sizeof (db_entry_t));
+  pw_order_t *pw_orders    = (pw_order_t *) mem_calloc(pw_max + 1, sizeof (pw_order_t));
+  u64        *wordlen_dist = (u64 *)        mem_calloc(pw_max + 1, sizeof (u64));
 #endif
 
   /**

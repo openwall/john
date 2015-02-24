@@ -235,9 +235,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	settingsize = sizeof(dmg_salt);
 	cracked_size = sizeof(*cracked) * gws;
 
-	inbuffer = mem_calloc(insize);
+	inbuffer = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
-	cracked = mem_calloc(cracked_size);
+	cracked = mem_calloc(1, cracked_size);
 
 	/// Allocate memory
 	mem_in =

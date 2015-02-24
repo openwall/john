@@ -175,8 +175,8 @@ static void process_file(const char *archive_name)
 	int best_len = 0, gecos_len = 0;
 
 	/* We misuse PATH_BUFFER_SIZE as a sane maximum for this */
-	gecos = mem_calloc(PATH_BUFFER_SIZE);
-	best = mem_calloc(LINE_BUFFER_SIZE);
+	gecos = mem_calloc(1, PATH_BUFFER_SIZE);
+	best = mem_calloc(1, LINE_BUFFER_SIZE);
 
 	strnzcpy(path, archive_name, sizeof(path));
 	base_aname = basename(path);

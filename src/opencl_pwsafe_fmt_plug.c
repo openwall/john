@@ -161,9 +161,9 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 {
 	global_work_size = gws; /* needed for size macros */
 
-	host_pass = mem_calloc(insize);
-	host_hash = mem_calloc(outsize);
-	host_salt = mem_calloc(saltsize);
+	host_pass = mem_calloc(1, insize);
+	host_hash = mem_calloc(1, outsize);
+	host_salt = mem_calloc(1, saltsize);
 
 	// Allocate memory on the GPU
 	mem_salt =

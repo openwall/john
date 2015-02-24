@@ -583,7 +583,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef MMX_COEF_SHA256
 	// group based upon size splits.
-	MixOrder = mem_calloc(sizeof(int)*(count+6*MMX_COEF_SHA256));
+	MixOrder = mem_calloc((count+6*MMX_COEF_SHA256), sizeof(int));
 	{
 		const int lens[6] = {0,4,8,12,24,36};
 		int j;
@@ -600,7 +600,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 #else
 	// no need to mix. just run them one after the next, in any order.
-	MixOrder = mem_calloc(sizeof(int)*count);
+	MixOrder = mem_calloc(count, sizeof(int));
 	for (index = 0; index < count; ++index)
 		MixOrder[index] = index;
 	tot_todo = count;

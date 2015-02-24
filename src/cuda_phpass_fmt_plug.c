@@ -104,9 +104,11 @@ static void init(struct fmt_main *self)
 {
 	///Allocate memory for hashes and passwords
 	inbuffer =
-	    (uint8_t *) mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(phpass_password));
+		(uint8_t *) mem_calloc(MAX_KEYS_PER_CRYPT,
+		                       sizeof(phpass_password));
 	outbuffer =
-	    (phpass_crack *) mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(phpass_crack));
+		(phpass_crack *) mem_calloc(MAX_KEYS_PER_CRYPT,
+		                            sizeof(phpass_crack));
 	check_mem_allocation(inbuffer, outbuffer);
 	///Initialize CUDA
 	cuda_init();

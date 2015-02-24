@@ -859,7 +859,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 					fromWrk=fromTmp;
 				else {
 					alloced = 1;
-					fromWrk = (char*)mem_calloc(from_len+3);
+					fromWrk = (char*)mem_calloc(1, from_len+3);
 				}
 				strnzcpy(fromWrk, (const char*)from, from_len+1);
 				fromWrk[from_len+1] = fromWrk[from_len+2] = 0;
@@ -876,7 +876,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 						fromWrk=fromTmp;
 					else {
 						alloced = 1;
-						fromWrk = (char*)mem_calloc(from_len+3);
+						fromWrk = (char*)mem_calloc(1, from_len+3);
 					}
 					strnzcpy(fromWrk, (const char*)from, from_len+1);
 					fromWrk[from_len+1] = fromWrk[from_len+2] = 0;
@@ -894,7 +894,7 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 						fromWrk=fromTmp;
 					else {
 						alloced = 1;
-						fromWrk = (char*)mem_calloc(from_len+3);
+						fromWrk = (char*)mem_calloc(1, from_len+3);
 					}
 					strnzcpy(fromWrk, (const char*)from, from_len+1);
 					fromWrk[from_len+1] = fromWrk[from_len+2] = 0;
@@ -1050,7 +1050,7 @@ void base64_convert_error_exit(int err) {
 	exit(1);
 }
 char *base64_convert_error(int err) {
-	char *p = (char*)mem_calloc(256);
+	char *p = (char*)mem_calloc(1, 256);
 	switch (err) {
 		case ERR_base64_unk_from_type:	sprintf(p, "base64_convert error-%d, Unknown From Type\n", err); break;
 		case ERR_base64_unk_to_type:	sprintf(p, "base64_convert error-%d, Unknown To Type\n", err); break;
@@ -1184,7 +1184,7 @@ static void do_convert(char *in_str, b64_convert_type in_t,
 	if (in_len == 0)
 		return;
 
-	po = (char*)mem_calloc(in_len*3);
+	po = (char*)mem_calloc(3, in_len);
 	if (err_chk)
 		memset(po, 2, in_len*3);
 	len=base64_convert(in_str, in_t, in_len, po, out_t, in_len*3, flags);

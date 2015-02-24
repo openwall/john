@@ -73,9 +73,9 @@ static void done()
 
 static void init(struct fmt_main *self)
 {
-        host_pass = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_pass));
-        host_hash = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_hash));
-        host_salt = mem_calloc(sizeof(pwsafe_salt));
+	host_pass = mem_calloc(KEYS_PER_CRYPT, sizeof(pwsafe_pass));
+	host_hash = mem_calloc(KEYS_PER_CRYPT, sizeof(pwsafe_hash));
+	host_salt = mem_calloc(1, sizeof(pwsafe_salt));
 	cuda_init();
 }
 

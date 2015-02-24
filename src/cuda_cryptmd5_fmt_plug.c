@@ -124,8 +124,8 @@ static void init(struct fmt_main *self)
 {
 	///Allocate memory for hashes and passwords
 	inbuffer =
-	    (crypt_md5_password *) mem_calloc(MAX_KEYS_PER_CRYPT *
-	    sizeof(crypt_md5_password));
+		(crypt_md5_password *) mem_calloc(MAX_KEYS_PER_CRYPT,
+		                                  sizeof(crypt_md5_password));
 	outbuffer =
 	    (crypt_md5_crack *) mem_alloc(MAX_KEYS_PER_CRYPT *
 	    sizeof(crypt_md5_crack));

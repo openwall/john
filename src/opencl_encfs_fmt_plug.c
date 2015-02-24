@@ -146,9 +146,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	key_buf_size = 64 * gws;
 
 	/// Allocate memory
-	inbuffer = mem_calloc(key_buf_size);
+	inbuffer = mem_calloc(1, key_buf_size);
 	output = mem_alloc(sizeof(pbkdf2_out) * gws);
-	cracked = mem_calloc(cracked_size);
+	cracked = mem_calloc(1, cracked_size);
 
 	mem_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, key_buf_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem in");

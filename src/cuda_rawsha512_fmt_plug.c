@@ -108,8 +108,8 @@ static void done(void)
 
 static void init(struct fmt_main *self)
 {
-	gkey = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(sha512_key));
-	ghash = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(sha512_hash));
+	gkey = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(sha512_key));
+	ghash = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(sha512_hash));
 
 	cuda_init();
 	cuda_sha512_init();

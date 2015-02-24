@@ -139,10 +139,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	outsize = sizeof(sxc_hash) * gws;
 	settingsize = sizeof(sxc_salt);
 
-	inbuffer = mem_calloc(insize);
+	inbuffer = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
-	saved_key = mem_calloc(sizeof(*saved_key) * gws);
-	crypt_out = mem_calloc(sizeof(*crypt_out) * gws);
+	saved_key = mem_calloc(gws, sizeof(*saved_key));
+	crypt_out = mem_calloc(gws, sizeof(*crypt_out));
 
 	/// Allocate memory
 	mem_in =

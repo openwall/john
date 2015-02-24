@@ -888,7 +888,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name)
 					     CL_PROGRAM_BUILD_LOG, 0, NULL,
 					     &log_size),
 		       "Error while getting build info I");
-	build_log = (char *) mem_calloc((log_size + 1));
+	build_log = (char *) mem_calloc(1, log_size + 1);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[sequential_id],
 					     devices[sequential_id],
@@ -924,7 +924,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name)
 		if (options.verbosity > 4)
 			fprintf(stderr, "binary size %zu\n", source_size);
 
-		source = mem_calloc(source_size);
+		source = mem_calloc(1, source_size);
 
 		HANDLE_CLERROR(clGetProgramInfo(program[sequential_id],
 						CL_PROGRAM_BINARIES,
@@ -1829,7 +1829,7 @@ void opencl_read_source(char *kernel_filename)
 	fseek(fp, 0, SEEK_SET);
 	if (kernel_source)	libc_free(kernel_source);
 	kernel_source = NULL;
-	kernel_source = libc_calloc(source_size + 1, 1);
+	kernel_source = libc_calloc(1, source_size + 1);
 	read_size = fread(kernel_source, sizeof(char), source_size, fp);
 	if (read_size != source_size)
 		fprintf(stderr,

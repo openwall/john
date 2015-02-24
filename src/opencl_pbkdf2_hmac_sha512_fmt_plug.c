@@ -146,9 +146,9 @@ static size_t get_default_workgroup()
 
 static void create_clobj(size_t kpc, struct fmt_main *self)
 {
-	host_pass = mem_calloc(kpc * sizeof(pass_t));
-	host_crack = mem_calloc(kpc * sizeof(crack_t));
-	host_salt = mem_calloc(sizeof(salt_t));
+	host_pass = mem_calloc(kpc, sizeof(pass_t));
+	host_crack = mem_calloc(kpc, sizeof(crack_t));
+	host_salt = mem_calloc(1, sizeof(salt_t));
 #define CL_RO CL_MEM_READ_ONLY
 #define CL_WO CL_MEM_WRITE_ONLY
 #define CL_RW CL_MEM_READ_WRITE

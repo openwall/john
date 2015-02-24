@@ -189,7 +189,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(Generate2007key, 0, sizeof(cl_mem), (void*)&cl_pwhash), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(Generate2007key, 1, sizeof(cl_mem), (void*)&cl_key), "Error setting argument 1");
 
-	crypt_key = mem_calloc(sizeof(*crypt_key) * gws);
+	crypt_key = mem_calloc(gws, sizeof(*crypt_key));
 }
 
 static void release_clobj(void)

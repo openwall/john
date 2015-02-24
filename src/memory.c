@@ -79,16 +79,18 @@ void *mem_alloc_func(size_t size
 	return res;
 }
 
-void *mem_calloc_func(size_t size
+void *mem_calloc_func(size_t count, size_t size
 #if defined (MEMDBG_ON)
 	, char *file, int line
 #endif
 	)
 {
+	char *res;
+	size *= count;
 #if defined (MEMDBG_ON)
-	char *res = (char*) MEMDBG_alloc(size, file, line);
+	res = (char*) MEMDBG_alloc(size, file, line);
 #else
-	char *res = (char*) mem_alloc(size);
+	res = (char*) mem_alloc(size);
 #endif
 	memset(res, 0, size);
 	return res;

@@ -75,7 +75,7 @@ extern void *mem_alloc_func(size_t size
  * this version same as mem_alloc, but initialized the memory
  * to NULL bytes, like CALLOC(3) function does
  */
-extern void *mem_calloc_func(size_t size
+extern void *mem_calloc_func(size_t count, size_t size
 #if defined (MEMDBG_ON)
 	, char *file, int line
 #endif
@@ -83,14 +83,14 @@ extern void *mem_calloc_func(size_t size
 
 #if defined (MEMDBG_ON)
 #define mem_alloc(a) mem_alloc_func(a,__FILE__,__LINE__)
-#define mem_calloc(a) mem_calloc_func(a,__FILE__,__LINE__)
+#define mem_calloc(a,b) mem_calloc_func(a,b,__FILE__,__LINE__)
 #define mem_alloc_tiny(a,b) mem_alloc_tiny_func(a,b,__FILE__,__LINE__)
 #define mem_calloc_tiny(a,b) mem_calloc_tiny_func(a,b,__FILE__,__LINE__)
 #define mem_alloc_copy(a,b,c) mem_alloc_copy_func(a,b,c,__FILE__,__LINE__)
 #define str_alloc_copy(a) str_alloc_copy_func(a,__FILE__,__LINE__)
 #else
 #define mem_alloc(a) mem_alloc_func(a)
-#define mem_calloc(a) mem_calloc_func(a)
+#define mem_calloc(a,b) mem_calloc_func(a,b)
 #define mem_alloc_tiny(a,b) mem_alloc_tiny_func(a,b)
 #define mem_calloc_tiny(a,b) mem_calloc_tiny_func(a,b)
 #define mem_alloc_copy(a,b,c) mem_alloc_copy_func(a,b,c)

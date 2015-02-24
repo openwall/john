@@ -223,7 +223,7 @@ static int AF_merge(unsigned char *src, unsigned char *dst, int afsize,
 	char *bufblock;
 	int blocksize = afsize / stripes;
 
-	bufblock = mem_calloc(blocksize + 20);
+	bufblock = mem_calloc(1, blocksize + 20);
 
 	for (i = 0; i < (stripes - 1); i++) {
 		XORblock((char *) (src + (blocksize * i)), bufblock, bufblock,
@@ -292,7 +292,7 @@ static int hash_plugin_parse_hash(char *filename, unsigned char **cp, int afsize
 	}
 
 	// can this go over 4gb?
-	*cp =(unsigned char*) mem_calloc(afsize + 1);
+	*cp =(unsigned char*) mem_calloc(1, afsize + 1);
 	if (!*cp)
 		goto bad;
 	// printf(">>> %d\n", cs->afsize);
@@ -475,7 +475,7 @@ static void *get_salt(char *ciphertext)
 	if (is_inlined) {
 		p = strtok(NULL, "$");
 		size = strlen(p) / 4 * 3 + 1;
-		buf = mem_calloc(size+4);
+		buf = mem_calloc(1, size+4);
 		base64_decode(p, strlen(p), (char*)buf);
 		cs.afsize = size;
 	}

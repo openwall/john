@@ -142,8 +142,8 @@ static void init(struct fmt_main *self)
 		overlap = 0;
 		//device does not support overlaping memcpy and kernel execution
 		inbuffer =
-		    (sha256_password *) mem_calloc(MAX_KEYS_PER_CRYPT *
-		    sizeof(sha256_password));
+			(sha256_password *) mem_calloc(MAX_KEYS_PER_CRYPT,
+			                               sizeof(sha256_password));
 		outbuffer =
 		    (SHA_HASH *) mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(SHA_HASH));
 	}
