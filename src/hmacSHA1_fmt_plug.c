@@ -116,8 +116,8 @@ static void init(struct fmt_main *self)
 	crypt_key = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
 	ipad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
 	opad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
-	prep_ipad = mem_calloc_tiny(sizeof(*prep_ipad) * self->params.max_keys_per_crypt * BINARY_SIZE, MEM_ALIGN_SIMD);
-	prep_opad = mem_calloc_tiny(sizeof(*prep_opad) * self->params.max_keys_per_crypt * BINARY_SIZE, MEM_ALIGN_SIMD);
+	prep_ipad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
+	prep_opad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
 		crypt_key[GETPOS(BINARY_SIZE, i)] = 0x80;
 		((unsigned int*)crypt_key)[15 * MMX_COEF + (i & 3) + (i >> 2) * SHA_BUF_SIZ * MMX_COEF] = (BINARY_SIZE + 64) << 3;
