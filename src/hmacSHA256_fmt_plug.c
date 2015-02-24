@@ -336,20 +336,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef MMX_COEF_SHA256
 		if (new_keys) {
 			SSESHA256body(&ipad[index * SHA256_BUF_SIZ * 4],
-			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
+			            (unsigned int*)&prep_ipad[index * PAD_SIZE],
 			            NULL, SSEi_MIXED_IN);
 			SSESHA256body(&opad[index * SHA256_BUF_SIZ * 4],
-			            (unsigned int*)&prep_opad[index * BINARY_SIZE],
+			            (unsigned int*)&prep_opad[index * PAD_SIZE],
 			            NULL, SSEi_MIXED_IN);
 		}
 		SSESHA256body(cur_salt,
 		            (unsigned int*)&crypt_key[index * SHA256_BUF_SIZ * 4],
-		            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
+		            (unsigned int*)&prep_ipad[index * PAD_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 
 		SSESHA256body(&crypt_key[index * SHA256_BUF_SIZ * 4],
 		            (unsigned int*)&crypt_key[index * SHA256_BUF_SIZ * 4],
-		            (unsigned int*)&prep_opad[index * BINARY_SIZE],
+		            (unsigned int*)&prep_opad[index * PAD_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #else
 		SHA256_CTX ctx;
@@ -447,7 +447,6 @@ static int get_hash_4(int index) { return crypt_key[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_key[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_key[index][0] & 0x7ffffff; }
 #endif
-
 
 struct fmt_main fmt_hmacSHA256 = {
 	{

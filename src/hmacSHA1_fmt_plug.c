@@ -318,19 +318,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef MMX_COEF
 		if (new_keys) {
 			SSESHA1body(&ipad[index * SHA_BUF_SIZ * 4],
-			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
+			            (unsigned int*)&prep_ipad[index * PAD_SIZE],
 			            NULL, SSEi_MIXED_IN);
 			SSESHA1body(&opad[index * SHA_BUF_SIZ * 4],
-			            (unsigned int*)&prep_opad[index * BINARY_SIZE],
+			            (unsigned int*)&prep_opad[index * PAD_SIZE],
 			            NULL, SSEi_MIXED_IN);
 		}
 		SSESHA1body(cur_salt,
 		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
-		            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
+		            (unsigned int*)&prep_ipad[index * PAD_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		SSESHA1body(&crypt_key[index * SHA_BUF_SIZ * 4],
 		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
-		            (unsigned int*)&prep_opad[index * BINARY_SIZE],
+		            (unsigned int*)&prep_opad[index * PAD_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #else
 		SHA_CTX ctx;

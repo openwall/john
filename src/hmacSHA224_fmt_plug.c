@@ -325,15 +325,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned int *pclear;
 		if (new_keys) {
 			SSESHA256body(&ipad[index * SHA256_BUF_SIZ * 4],
-			            (unsigned int*)&prep_ipad[index * BINARY_SIZE_256],
+			            (unsigned int*)&prep_ipad[index * PAD_SIZE],
 			            NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA224);
 			SSESHA256body(&opad[index * SHA256_BUF_SIZ * 4],
-			            (unsigned int*)&prep_opad[index * BINARY_SIZE_256],
+			            (unsigned int*)&prep_opad[index * PAD_SIZE],
 			            NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA224);
 		}
 		SSESHA256body(cur_salt,
 		            (unsigned int*)&crypt_key[index * SHA256_BUF_SIZ * 4],
-		            (unsigned int*)&prep_ipad[index * BINARY_SIZE_256],
+		            (unsigned int*)&prep_ipad[index * PAD_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|SSEi_CRYPT_SHA224);
 		// NOTE, SSESHA224 will output 32 bytes. We need the first 28 (plus the 0x80 padding).
 		// so we are forced to 'clean' this crap up, before using the crypt as the input.
@@ -342,7 +342,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pclear[28] = pclear[29] = pclear[30] = pclear[31] = 0x80000000;
 		SSESHA256body(&crypt_key[index * SHA256_BUF_SIZ * 4],
 		            (unsigned int*)&crypt_key[index * SHA256_BUF_SIZ * 4],
-		            (unsigned int*)&prep_opad[index * BINARY_SIZE_256],
+		            (unsigned int*)&prep_opad[index * PAD_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|SSEi_CRYPT_SHA224);
 #else
 		SHA256_CTX ctx;

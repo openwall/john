@@ -26,7 +26,7 @@ john_register_one(&fmt_hmacSHA384);
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef MMX_COEF_SHA512
-#define OMP_SCALE               1024 // scaled on scaled core i7-quad HT
+#define OMP_SCALE               1024 // scaled on core i7-quad HT
 #else
 #define OMP_SCALE               512 // scaled K8-dual HT
 #endif
@@ -187,6 +187,7 @@ static void set_key(char *key, int index)
 	memcpy(saved_plain[index], key, len);
 	saved_plain[index][len] = 0;
 
+#if PAD_SIZE < PLAINTEXT_LENGTH
 	if (len > PAD_SIZE) {
 		unsigned char k0[BINARY_SIZE];
 		SHA512_CTX ctx;
@@ -205,6 +206,7 @@ static void set_key(char *key, int index)
 		}
 	}
 	else
+#endif
 	while(((temp = JOHNSWAP64(*keyp++)) & 0xff00000000000000)) {
 		if (!(temp & 0x00ff000000000000) || !(temp & 0x0000ff0000000000))
 		{
@@ -251,6 +253,7 @@ static void set_key(char *key, int index)
 	memset(ipad[index], 0x36, PAD_SIZE);
 	memset(opad[index], 0x5C, PAD_SIZE);
 
+#if PAD_SIZE < PLAINTEXT_LENGTH
 	if (len > PAD_SIZE) {
 		SHA512_CTX ctx;
 		unsigned char k0[BINARY_SIZE];
@@ -268,6 +271,7 @@ static void set_key(char *key, int index)
 		}
 	}
 	else
+#endif
 	for(i=0;i<len;i++)
 	{
 		ipad[index][i] ^= key[i];
@@ -330,7 +334,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
-	int local_new_keys = new_keys;
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	int inc = 1;
 #endif
@@ -348,17 +351,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 #ifdef MMX_COEF_SHA512
 		ARCH_WORD_64 *pclear;
-		if (local_new_keys) {
+		if (new_keys) {
 			SSESHA512body(&ipad[index * SHA512_BUF_SIZ * 8],
-			            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE],
+			            (ARCH_WORD_64*)&prep_ipad[index * PAD_SIZE],
 			            NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384);
 			SSESHA512body(&opad[index * SHA512_BUF_SIZ * 8],
-			            (ARCH_WORD_64*)&prep_opad[index * BINARY_SIZE],
+			            (ARCH_WORD_64*)&prep_opad[index * PAD_SIZE],
 			            NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384);
 		}
 		SSESHA512body(cur_salt,
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
-		            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE],
+		            (ARCH_WORD_64*)&prep_ipad[index * PAD_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		// NOTE, SSESHA384 will output 64 bytes. We need the first 48 (plus the 0x80 padding).
 		// so we are forced to 'clean' this crap up, before using the crypt as the input.
@@ -368,7 +371,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pclear[14] = pclear[15] = 0;
 		SSESHA512body(&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
-		            (ARCH_WORD_64*)&prep_opad[index * BINARY_SIZE],
+		            (ARCH_WORD_64*)&prep_opad[index * PAD_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #else
 		SHA512_CTX ctx;
@@ -461,7 +464,6 @@ static int get_hash_4(int index) { return crypt_key[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_key[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_key[index][0] & 0x7ffffff; }
 #endif
-
 
 struct fmt_main fmt_hmacSHA384 = {
 	{

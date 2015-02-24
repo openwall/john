@@ -363,19 +363,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef MMX_COEF
 		if (new_keys) {
 			SSEmd5body(&ipad[index * PAD_SIZE],
-			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
+			            (unsigned int*)&prep_ipad[index * PAD_SIZE],
 			            NULL, SSEi_MIXED_IN);
 			SSEmd5body(&opad[index * PAD_SIZE],
-			            (unsigned int*)&prep_opad[index * BINARY_SIZE],
+			            (unsigned int*)&prep_opad[index * PAD_SIZE],
 			            NULL, SSEi_MIXED_IN);
 		}
 		SSEmd5body(cur_salt,
 		            (unsigned int*)&crypt_key[index * PAD_SIZE],
-		            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
+		            (unsigned int*)&prep_ipad[index * PAD_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		SSEmd5body(&crypt_key[index * PAD_SIZE],
 		            (unsigned int*)&crypt_key[index * PAD_SIZE],
-		            (unsigned int*)&prep_opad[index * BINARY_SIZE],
+		            (unsigned int*)&prep_opad[index * PAD_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #else
 	MD5_CTX ctx;

@@ -26,7 +26,7 @@ john_register_one(&fmt_hmacSHA512);
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef MMX_COEF_SHA512
-#define OMP_SCALE               1024 // scaled on scaled core i7-quad HT
+#define OMP_SCALE               1024 // scaled on core i7-quad HT
 #else
 #define OMP_SCALE               512 // scaled K8-dual HT
 #endif
@@ -199,6 +199,7 @@ static void set_key(char *key, int index)
 	memcpy(saved_plain[index], key, len);
 	saved_plain[index][len] = 0;
 
+#if PAD_SIZE < PLAINTEXT_LENGTH
 	if (len > PAD_SIZE) {
 		unsigned char k0[BINARY_SIZE];
 		SHA512_CTX ctx;
@@ -217,6 +218,7 @@ static void set_key(char *key, int index)
 		}
 	}
 	else
+#endif
 	while(((temp = JOHNSWAP64(*keyp++)) & 0xff00000000000000)) {
 		if (!(temp & 0x00ff000000000000) || !(temp & 0x0000ff0000000000))
 		{
@@ -263,6 +265,7 @@ static void set_key(char *key, int index)
 	memset(ipad[index], 0x36, PAD_SIZE);
 	memset(opad[index], 0x5C, PAD_SIZE);
 
+#if PAD_SIZE < PLAINTEXT_LENGTH
 	if (len > PAD_SIZE) {
 		SHA512_CTX ctx;
 		unsigned char k0[BINARY_SIZE];
@@ -280,6 +283,7 @@ static void set_key(char *key, int index)
 		}
 	}
 	else
+#endif
 	for(i=0;i<len;i++)
 	{
 		ipad[index][i] ^= key[i];
@@ -360,19 +364,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef MMX_COEF_SHA512
 		if (new_keys) {
 			SSESHA512body(&ipad[index * SHA512_BUF_SIZ * 8],
-			            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE],
+			            (ARCH_WORD_64*)&prep_ipad[index * PAD_SIZE],
 			            NULL, SSEi_MIXED_IN);
 			SSESHA512body(&opad[index * SHA512_BUF_SIZ * 8],
-			            (ARCH_WORD_64*)&prep_opad[index * BINARY_SIZE],
+			            (ARCH_WORD_64*)&prep_opad[index * PAD_SIZE],
 			            NULL, SSEi_MIXED_IN);
 		}
 		SSESHA512body(cur_salt,
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
-		            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE],
+		            (ARCH_WORD_64*)&prep_ipad[index * PAD_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		SSESHA512body(&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
-		            (ARCH_WORD_64*)&prep_opad[index * BINARY_SIZE],
+		            (ARCH_WORD_64*)&prep_opad[index * PAD_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #else
 		SHA512_CTX ctx;
