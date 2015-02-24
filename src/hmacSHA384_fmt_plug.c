@@ -45,6 +45,7 @@ john_register_one(&fmt_hmacSHA384);
 
 #define PAD_SIZE			128
 #define BINARY_SIZE			(384/8)
+#define BINARY_SIZE_512			(512/8)
 #define BINARY_ALIGN			8
 
 #ifndef MMX_COEF_SHA512
@@ -115,8 +116,8 @@ static void init(struct fmt_main *self)
 	crypt_key = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
 	ipad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
 	opad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
-	prep_ipad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
-	prep_opad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
+	prep_ipad = mem_calloc_tiny(sizeof(*prep_ipad) * self->params.max_keys_per_crypt * BINARY_SIZE_512, MEM_ALIGN_SIMD);
+	prep_opad = mem_calloc_tiny(sizeof(*prep_opad) * self->params.max_keys_per_crypt * BINARY_SIZE_512, MEM_ALIGN_SIMD);
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
 		crypt_key[GETPOS(BINARY_SIZE, i)] = 0x80;
 		((ARCH_WORD_64*)crypt_key)[15 * MMX_COEF_SHA512 + (i & (MMX_COEF_SHA512-1)) + (i >> (MMX_COEF_SHA512>>1)) * SHA512_BUF_SIZ * MMX_COEF_SHA512] = (BINARY_SIZE + PAD_SIZE) << 3;
@@ -353,15 +354,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		ARCH_WORD_64 *pclear;
 		if (new_keys) {
 			SSESHA512body(&ipad[index * SHA512_BUF_SIZ * 8],
-			            (ARCH_WORD_64*)&prep_ipad[index * PAD_SIZE],
+			            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE_512],
 			            NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384);
 			SSESHA512body(&opad[index * SHA512_BUF_SIZ * 8],
-			            (ARCH_WORD_64*)&prep_opad[index * PAD_SIZE],
+			            (ARCH_WORD_64*)&prep_opad[index * BINARY_SIZE_512],
 			            NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384);
 		}
 		SSESHA512body(cur_salt,
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
-		            (ARCH_WORD_64*)&prep_ipad[index * PAD_SIZE],
+		            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE_512],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		// NOTE, SSESHA384 will output 64 bytes. We need the first 48 (plus the 0x80 padding).
 		// so we are forced to 'clean' this crap up, before using the crypt as the input.
@@ -371,7 +372,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pclear[14] = pclear[15] = 0;
 		SSESHA512body(&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
-		            (ARCH_WORD_64*)&prep_opad[index * PAD_SIZE],
+		            (ARCH_WORD_64*)&prep_opad[index * BINARY_SIZE_512],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #else
 		SHA512_CTX ctx;

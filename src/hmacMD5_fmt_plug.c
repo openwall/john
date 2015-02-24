@@ -120,8 +120,8 @@ static void init(struct fmt_main *self)
 	crypt_key = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
 	ipad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
 	opad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
-	prep_ipad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
-	prep_opad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
+	prep_ipad = mem_calloc_tiny(sizeof(*prep_ipad) * self->params.max_keys_per_crypt * BINARY_SIZE, MEM_ALIGN_SIMD);
+	prep_opad = mem_calloc_tiny(sizeof(*prep_opad) * self->params.max_keys_per_crypt * BINARY_SIZE, MEM_ALIGN_SIMD);
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
 		crypt_key[GETPOS(BINARY_SIZE, i)] = 0x80;
 		((unsigned int*)crypt_key)[14 * MMX_COEF + (i & 3) + (i >> 2) * 16 * MMX_COEF] = (BINARY_SIZE + 64) << 3;
@@ -363,19 +363,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef MMX_COEF
 		if (new_keys) {
 			SSEmd5body(&ipad[index * PAD_SIZE],
-			            (unsigned int*)&prep_ipad[index * PAD_SIZE],
+			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN);
 			SSEmd5body(&opad[index * PAD_SIZE],
-			            (unsigned int*)&prep_opad[index * PAD_SIZE],
+			            (unsigned int*)&prep_opad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN);
 		}
 		SSEmd5body(cur_salt,
 		            (unsigned int*)&crypt_key[index * PAD_SIZE],
-		            (unsigned int*)&prep_ipad[index * PAD_SIZE],
+		            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		SSEmd5body(&crypt_key[index * PAD_SIZE],
 		            (unsigned int*)&crypt_key[index * PAD_SIZE],
-		            (unsigned int*)&prep_opad[index * PAD_SIZE],
+		            (unsigned int*)&prep_opad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #else
 	MD5_CTX ctx;
