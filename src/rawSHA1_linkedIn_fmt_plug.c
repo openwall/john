@@ -14,6 +14,10 @@
  * format but raw-sha1.
  */
 
+#include "arch.h"
+
+#if defined(SHA1_SSE_PARA) && SHA1_SSE_PARA < 4
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rawSHA1_LI;
 #elif FMT_REGISTERS_H
@@ -21,8 +25,6 @@ john_register_one(&fmt_rawSHA1_LI);
 #else
 
 #include <string.h>
-
-#include "arch.h"
 
 #ifdef MMX_COEF
 #define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
@@ -429,3 +431,5 @@ struct fmt_main fmt_rawSHA1_LI = {
 };
 
 #endif /* plugin stanza */
+
+#endif /* defined(SHA1_SSE_PARA) && SHA1_SSE_PARA < 4 */
