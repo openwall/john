@@ -192,9 +192,9 @@ static void set_key(char *key, int index)
 		SHA512_CTX ctx;
 		int i;
 
-		SHA512_Init(&ctx);
-		SHA512_Update(&ctx, key, len);
-		SHA512_Final(k0, &ctx);
+		SHA384_Init(&ctx);
+		SHA384_Update(&ctx, key, len);
+		SHA384_Final(k0, &ctx);
 
 		keyp = (ARCH_WORD_64*)k0;
 		for(i = 0; i < BINARY_SIZE / 8; i++, ipadp += MMX_COEF_SHA512, opadp += MMX_COEF_SHA512)
@@ -330,6 +330,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
+	int local_new_keys = new_keys;
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	int inc = 1;
 #endif
@@ -347,7 +348,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 #ifdef MMX_COEF_SHA512
 		ARCH_WORD_64 *pclear;
-		if (new_keys) {
+		if (local_new_keys) {
 			SSESHA512body(&ipad[index * SHA512_BUF_SIZ * 8],
 			            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384);
@@ -358,7 +359,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SSESHA512body(cur_salt,
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE],
-		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|SSEi_CRYPT_SHA384);
+		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		// NOTE, SSESHA384 will output 64 bytes. We need the first 48 (plus the 0x80 padding).
 		// so we are forced to 'clean' this crap up, before using the crypt as the input.
 		// NOTE, this fix assumes MMX_COEF_SHA512==2
@@ -368,7 +369,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SSESHA512body(&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&prep_opad[index * BINARY_SIZE],
-		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|SSEi_CRYPT_SHA384);
+		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #else
 		SHA512_CTX ctx;
 
