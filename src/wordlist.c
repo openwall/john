@@ -176,7 +176,7 @@ static MAYBE_INLINE char *mgetl(char *res)
 	if (map_pos >= map_end)
 		return NULL;
 
-	while (map_pos < map_scan_end &&
+	while ((char*)ss < map_scan_end &&
 	       (char*)dd < res + LINE_BUFFER_SIZE - 9 &&
 	       !((((*ss ^ 0x0a0a0a0a0a0a0a0a) - 0x0101010101010101) &
 	          ~(*ss ^ 0x0a0a0a0a0a0a0a0a)) & 0x8080808080808080))
@@ -184,7 +184,7 @@ static MAYBE_INLINE char *mgetl(char *res)
 
 	s = (unsigned int*)ss;
 	d = (unsigned int*)dd;
-	if (map_pos < map_scan_end &&
+	if ((char*)s < map_scan_end &&
 	    (char*)d < res + LINE_BUFFER_SIZE - 5 &&
 	    !((((*s ^ 0x0a0a0a0a) - 0x01010101) &
 	       ~(*s ^ 0x0a0a0a0a)) & 0x80808080))
@@ -206,7 +206,7 @@ static MAYBE_INLINE char *mgetl(char *res)
 	if (map_pos >= map_end)
 		return NULL;
 
-	while (map_pos < map_scan_end &&
+	while ((char*)s < map_scan_end &&
 	       (char*)d < res + LINE_BUFFER_SIZE - 5 &&
 	       !((((*s ^ 0x0a0a0a0a) - 0x01010101) &
 	          ~(*s ^ 0x0a0a0a0a)) & 0x80808080))
