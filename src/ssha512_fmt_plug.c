@@ -95,7 +95,7 @@ static ARCH_WORD_64 (**len_ptr64);
 static int max_count;
 #else
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / 4];
-static ARCH_WORD_64 (*saved_key)[SHA512_BUF_SIZ*MMX_COEF_SHA512];
+static ARCH_WORD_64 (*saved_key)[PLAINTEXT_LENGTH + 1];
 #endif
 static int *saved_len;
 
@@ -233,10 +233,9 @@ key_cleaning:
 static void set_key(char *key, int index)
 {
 	int len = strlen(key);
+
 	saved_len[index] = len;
-	if (len > PLAINTEXT_LENGTH)
-		len = saved_len[index] = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, len);
+	memcpy(saved_key[index], key, len + 1);
 }
 #endif
 
