@@ -160,7 +160,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		                     flg_Base64_MIME_TRAIL_EQ);
 		o += len;
 		*o++ = '#';
-		len = base64_convert(++d, e_b64_mime, strlen(p),
+		d++;
+		len = base64_convert(d, e_b64_mime, strlen(d) + 1,
 		                     o, e_b64_raw,
 		                     sizeof(out) - len - 2,
 		                     flg_Base64_MIME_TRAIL_EQ);
