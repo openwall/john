@@ -758,6 +758,10 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 	if (!mime_setup)
 		setup_mime();
 
+	if (from_t != e_b64_raw) {
+		if (from_len > strlen((char*)from))
+			from_len = strlen((char*)from);
+	}
 	switch (from_t) {
 		case e_b64_raw:		/* raw memory */
 		{
@@ -1124,13 +1128,14 @@ int base64_valid_length(const char *from, b64_convert_type from_t, unsigned flag
 /* used by base64conv 'main()' function */
 static int usage(char *name)
 {
-	fprintf(stderr, "Usage: %s [-i intype] [-o outtype] [-q] [-e] [-f flag] [data[data ...] | < stdin]\n"
+	fprintf(stderr, "Usage: %s [-l] [-i intype] [-o outtype] [-q] [-e] [-f flag] [data[data ...] | < stdin]\n"
 	        " - data must match input_type i.e. if hex, then data should be in hex\n"
 	        " - if data is not present, then base64conv will read data from std input)\n"
 	        " - if data read from stdin, max size of any line is 256k\n"
 	        "\n"
 	        "  -q will only output resultant string. No extra junk text\n"
 	        "  -e turns on buffer overwrite error checking logic\n"
+			"  -l performs a 'length' test\n"
 	        "\n"
 	        "Input/Output types:\n"
 	        "  raw      raw data byte\n"
@@ -1212,6 +1217,39 @@ static void do_convert(char *in_str, b64_convert_type in_t,
 	MEM_FREE(po);
 }
 
+void length_test() {
+	/* this test is to see if the length returned is correct, even if we 
+	 * list more input data than we have. */
+	char out[256];
+	int len;
+	char *d = "dXNlciA0NGVhZmQyMmZlNzY2NzBmNmIyODc5MDgxYTdmNWY3MQ==";
+	len = base64_convert(d, e_b64_mime, strlen(d),
+	                     out, e_b64_raw,
+	                     sizeof(out),
+	                     flg_Base64_MIME_TRAIL_EQ);
+	printf ("len=%d  data = %s\n", len, out);
+	len = base64_convert(d, e_b64_mime, strlen(d)+1,
+	                     out, e_b64_raw,
+	                     sizeof(out),
+	                     flg_Base64_MIME_TRAIL_EQ);
+	printf ("len=%d  data = %s\n", len, out);
+	len = base64_convert(d, e_b64_mime, strlen(d)+2,
+	                     out, e_b64_raw,
+	                     sizeof(out),
+	                     flg_Base64_MIME_TRAIL_EQ);
+	printf ("len=%d  data = %s\n", len, out);
+	len = base64_convert(d, e_b64_mime, strlen(d)+3,
+	                     out, e_b64_raw,
+	                     sizeof(out),
+	                     flg_Base64_MIME_TRAIL_EQ);
+	printf ("len=%d  data = %s\n", len, out);
+	len = base64_convert(d, e_b64_mime, strlen(d)+8,
+	                     out, e_b64_raw,
+	                     sizeof(out),
+	                     flg_Base64_MIME_TRAIL_EQ);
+	printf ("len=%d  data = %s\n", len, out);
+}
+
 /* simple conerter of strings or raw memory     */
 /* this is a main() function for john, and      */
 /* the program created is ../run/base64_convert */
@@ -1221,10 +1259,12 @@ int base64conv(int argc, char **argv) {
 	int quiet=0,err_chk=0;
 	int flags=flg_Base64_NO_FLAGS;
 
+	length_test();
+
 	/* Parse command line */
 	if (argc == 1)
 		return usage(argv[0]);
-	while ((c = getopt(argc, argv, "i:o:q!e!f:")) != -1) {
+	while ((c = getopt(argc, argv, "i:o:q!e!f:l!")) != -1) {
 		switch (c) {
 		case 'i':
 			in_t = str2convtype(optarg);
@@ -1233,6 +1273,9 @@ int base64conv(int argc, char **argv) {
 				return usage(argv[0]);
 			}
 			break;
+		case 'l':
+			length_test();
+			return;
 		case 'f':
 			flags |= handle_flag_type(optarg);
 			break;
