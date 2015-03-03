@@ -18,6 +18,8 @@ john_register_one(&fmt_XSHA512);
 #include "johnswap.h"
 #include "sse-intrinsics.h"
 
+//#undef MMX_COEF_SHA512
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef MMX_COEF_SHA512
@@ -356,9 +358,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #ifndef MMX_COEF_SHA512
 #ifdef PRECOMPUTE_CTX_FOR_SALT
-#pragma omp parallel for default(none) private(i) shared(ctx_salt, count, saved_key, saved_key_length, crypt_out)
+#pragma omp parallel for default(none) private(i) shared(inc, ctx_salt, count, saved_key, saved_key_length, crypt_out)
 #else
-#pragma omp parallel for default(none) private(i) shared(saved_salt, count, saved_key, saved_key_length, crypt_out)
+#pragma omp parallel for default(none) private(i) shared(inc, saved_salt, count, saved_key, saved_key_length, crypt_out)
 #endif
 #else
 #pragma omp parallel for
