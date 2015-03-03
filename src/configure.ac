@@ -63,7 +63,6 @@ AC_ARG_WITH(systemwide, [AS_HELP_STRING([--with-systemwide],[install for all use
 AC_ARG_WITH(flock, [AS_HELP_STRING([--with-flock],[use flock() file locking instead of fcntl()])],,[with_flock=no])
 
 AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory debugging (safe level)])], [memdbg=$enableval], [memdbg=no])
-AC_ARG_ENABLE([memdbg-ex], [AC_HELP_STRING([--enable-memdbg-ex], [* Enable memdbg memory debugging (expanded level)])], [memdbgex=$enableval], [memdbgex=no])
 AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSanitizer])], [asan=$enableval], [asan=no])
 AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependencies], [Do not create best-effort Makefile dependencies for plugins])], [plug_deps=$enableval], [plug_deps=yes])
 
@@ -437,9 +436,6 @@ fi
 
 if test "x$memdbg" = xyes ; then
    MEMDBG_CFLAGS="-DMEMDBG_ON"
-fi
-if test "x$memdbgex" = xyes ; then
-   MEMDBG_CFLAGS="-DMEMDBG_ON -DMEMDBG_EXTRA_CHECKS"
 fi
 AC_SUBST([MEMDBG_CFLAGS],["${MEMDBG_CFLAGS}"])
 

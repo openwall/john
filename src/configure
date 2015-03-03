@@ -753,7 +753,6 @@ with_endian
 with_systemwide
 with_flock
 enable_memdbg
-enable_memdbg_ex
 enable_asan
 enable_plugin_dependencies
 enable_openmp_for_fast_formats
@@ -1382,7 +1381,6 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-memdbg         Enable memdbg memory debugging (safe level)
-  --enable-memdbg-ex      * Enable memdbg memory debugging (expanded level)
   --enable-asan           * Build with AddressSanitizer
   --disable-plugin-dependencies
                           Do not create best-effort Makefile dependencies for
@@ -3503,13 +3501,6 @@ if test "${enable_memdbg+set}" = set; then :
   enableval=$enable_memdbg; memdbg=$enableval
 else
   memdbg=no
-fi
-
-# Check whether --enable-memdbg-ex was given.
-if test "${enable_memdbg_ex+set}" = set; then :
-  enableval=$enable_memdbg_ex; memdbgex=$enableval
-else
-  memdbgex=no
 fi
 
 # Check whether --enable-asan was given.
@@ -9593,9 +9584,6 @@ fi
 
 if test "x$memdbg" = xyes ; then
    MEMDBG_CFLAGS="-DMEMDBG_ON"
-fi
-if test "x$memdbgex" = xyes ; then
-   MEMDBG_CFLAGS="-DMEMDBG_ON -DMEMDBG_EXTRA_CHECKS"
 fi
 MEMDBG_CFLAGS="${MEMDBG_CFLAGS}"
 
