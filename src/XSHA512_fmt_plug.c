@@ -69,6 +69,20 @@ static struct fmt_tests tests[] = {
 	{"bb0489df7b073e715f19f83fd52d08ede24243554450f7159dd65c100298a5820525b55320f48182491b72b4c4ba50d7b0e281c1d98e06591a5e9c6167f42a742f0359c7", "password"},
 	{"$LION$74911f723bd2f66a3255e0af4b85c639776d510b63f0b939c432ab6e082286c47586f19b4e2f3aab74229ae124ccb11e916a7a1c9b29c64bd6b0fd6cbd22e7b1f0ba1673", "hello"},
 	{"$LION$5e3ab14c8bd0f210eddafbe3c57c0003147d376bf4caf75dbffa65d1891e39b82c383d19da392d3fcc64ea16bf8203b1fc3f2b14ab82c095141bb6643de507e18ebe7489", "boobies"},
+	{"6e447043e0ffd398d8cadeb2b693dd3306dbe164824a31912fb38579b9c94284da8dddfde04b94f8dc03acaa88ed7acabf4d179d4a5a1ae67f9d18edd600292b3b3aa3b7", "1"},
+	{"$LION$4f665a61556fc2f8eb85805fb59aff5b285f61bd3304ea88521f6a9576aa1ba0a83387206cb23db5f59b908ffdcc15dfa74a8665bdcc04afc5a4932cb1b70c328b927821", "12"},
+	{"6b354a4d64903461d26cb623d077d26263a70b9b9e9bd238a7212df03e78653c0a82c2cb9eebc8abde8af5a6868f96e67d75653590b4e4c3e50c2c2dc3087fd0999a2398", "123"},
+	{"$LION$4f7a5742171fa68108e0a14e9e2e5dde63cb91edf1ebf97373776eb89ad1416a9daa52128d66adb550a0efe22772738af90a63d86336995ecbb78072f8b01272bdc5a4af", "1234"},
+	{"3553414d79fe726061ed53f6733fbd114e50bb7b671405db7a438ce2278b03631ea892bc66e80f8e81c0848cfef66d0d90d8d81ccd2a794258cf8c156630fd6b1e34cb54", "12345"},
+	{"$LION$7130783388b31fabc563ba8054106afd4cfa7d479d3747e6d6db454987015625c8ab912813e3d6e8ac35a7e00fa05cfbbaf64e7629e4d03f87a3ec61073daef2f8ade82b", "123456"},
+	{"45736e346f878c0017207c3398f8abd6b3a01550518f8f9d3b9250077d5a519c2bacf8d69f8d17ca479f3ada7759fa5005a387256ae9dcccf78ae7630ec344458ed5f123", "1234567"},
+	{"$LION$4b43646117eb0c976059469175e7c020b5668deee5a3fb50afd9b06f5e4a6e01935a38fa0d77990f5ddb663df3a4c9e1d73cec03af1e6f8c8896b7ec01863298219c2655", "12345678"},
+	{"5656764a7760e50b1057b3afdb98c02bd2e7919c244ec2fa791768d4fd6a5ecffb5d16241f34705156a49ec2a33b2e0ed3a1aa2ff744af4c086adbdcbe112720ed388474", "123456789"},
+	{"$LION$52396836b22e1966f14f090fc611ed99916992d6e03bffa86fe77a4993bd0952e706c13acc34edefa97a1dee885c149b34c27b8b4f5b3b611d9e739833b21c5cf772e9e7", "1234567890"},
+	{"66726849de71b8757c15933a6c1dda60e8253e649bef07b93199ccafe1897186ed0ad448ddbfdbe86681e70c0d1a427eaf3b269a7b78dcc4fa67c89e6273b062b29b0410", "12345678901"},
+	{"$LION$51334c32935aaa987ca03d0085c566e57b50cd5277834cd54995b4bc7255b798303b7e000c8b0d59d1ab15ce895c331c0c9a3fe021f5485dbf5955835ecd02de169f39cd", "123456789012"},
+	{"4d7677548a5ab1517073cd317db2639c6f7f9de5b4e5246ef7805fc0619c474ed82e3fa88c99bf3dc7f9f670ff70d9a23af429181cc2c79ff38f5cad1937e4fc02db1e5a", "1234567890123"},
+
 	{NULL}
 };
 
@@ -248,7 +262,7 @@ static void set_key(char *key, int index)
 	// this is because we already have 4 byte salt loaded into our saved_key.
 	// IF there are more bytes of password, we drop into the multi loader.
 	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)&(key[4]);
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(MMX_COEF_SHA512-1)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512 + MMX_COEF_SHA512];
+	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(MMX_COEF_SHA512-1)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512];
 	ARCH_WORD_64 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_64 temp;
@@ -263,10 +277,10 @@ static void set_key(char *key, int index)
 	if (key[2] == 0) {wucp[GETPOS(6, index)] = 0x80; wucp[GETPOS(7, index)] = 0; goto key_cleaning; }
 	wucp[GETPOS(6, index)] = key[2];
 	++len;
-	if (key[2] == 0) {wucp[GETPOS(7, index)] = 0x80;}
+	if (key[3] == 0) {wucp[GETPOS(7, index)] = 0x80; goto key_cleaning; }
 	wucp[GETPOS(7, index)] = key[3];
 	++len;
-
+	keybuf_word += MMX_COEF_SHA512;
 	while((unsigned char)(temp = *wkey++)) {
 		if (!(temp & 0xff00))
 		{
@@ -321,7 +335,7 @@ key_cleaning:
 		*keybuf_word = 0;
 		keybuf_word += MMX_COEF_SHA512;
 	}
-	keybuffer[14*MMX_COEF_SHA512] = len << 3;
+	keybuffer[15*MMX_COEF_SHA512] = len << 3;
 #endif
 }
 
