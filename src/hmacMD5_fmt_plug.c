@@ -161,14 +161,14 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		o += len;
 		*o++ = '#';
 		d++;
-		len = base64_convert(d, e_b64_mime, strlen(d) + 1,
+		len = base64_convert(d, e_b64_mime, strlen(d),
 		                     o, e_b64_raw,
 		                     sizeof(out) - len - 2,
 		                     flg_Base64_MIME_TRAIL_EQ);
 		if (!(p = strchr(o, ' ')))
 			return split_fields[1];
 		p++;
-		memmove(o, p, len - (p - o));
+		memmove(o, p, len - (p - o) + 1);
 		if (strlen(o) == BINARY_SIZE * 2)
 			return out;
 	}
