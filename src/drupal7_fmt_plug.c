@@ -181,7 +181,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (j = 0; j < 8; ++j)
 				keys[GETPOS(j, i)] = cursalt[j];
 			for (j = 0; j < len; ++j)
-					keys[GETPOS(j+8, i)] = EncKey[index+i][j];
+				keys[GETPOS(j+8, i)] = EncKey[index+i][j];
 			keys[GETPOS(j+8, i)] = 0x80;
 			keys64[15*MMX_COEF_SHA512+i] = (len+8) << 3;
 		}
@@ -189,7 +189,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			len = EncKeyLen[index+i];
 			for (j = 0; j < len; ++j)
-					keys[GETPOS(j+64, i)] = EncKey[index+i][j];
+				keys[GETPOS(j+64, i)] = EncKey[index+i][j];
 			keys[GETPOS(j+64, i)] = 0x80;
 			keys64[15*MMX_COEF_SHA512+i] = (len+64) << 3;
 		}
@@ -199,9 +199,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// Ok, now marshal crypt back into flat mode
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			crypt = (ARCH_WORD_64*)crypt_key[index+i];
-			for (j = 0; j < 8; ++j) {
-					crypt[j] = JOHNSWAP64(keys64[j*MMX_COEF_SHA512]);
-			}
+			for (j = 0; j < 8; ++j)
+				crypt[j] = JOHNSWAP64(keys64[j*MMX_COEF_SHA512]);
 			++keys64;
 		}
 #else
