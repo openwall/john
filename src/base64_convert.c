@@ -1256,7 +1256,7 @@ void length_test() {
 int base64conv(int argc, char **argv) {
 	int c;
 	b64_convert_type in_t=e_b64_unk, out_t=e_b64_unk;
-	int quiet=0,err_chk=0;
+	int quiet=0,err_chk=0,did_len_check=0;
 	int flags=flg_Base64_NO_FLAGS;
 
 	/* Parse command line */
@@ -1273,7 +1273,8 @@ int base64conv(int argc, char **argv) {
 			break;
 		case 'l':
 			length_test();
-			return;
+			did_len_check=1;
+			break;
 		case 'f':
 			flags |= handle_flag_type(optarg);
 			break;
@@ -1295,8 +1296,10 @@ int base64conv(int argc, char **argv) {
 			return usage(argv[0]);
 		}
 	}
-	if (in_t == e_b64_unk || out_t == e_b64_unk)
+	if (in_t == e_b64_unk || out_t == e_b64_unk) {
+		if (did_len_check) return 0;
 		return usage(argv[0]);
+	}
 	argc -= optind;
 	argv += optind;
 	if (!argc) {
