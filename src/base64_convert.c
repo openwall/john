@@ -759,8 +759,8 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 		setup_mime();
 
 	if (from_t != e_b64_raw) {
-		if (from_len > strlen((char*)from))
-			from_len = strlen((char*)from);
+		if (from_len > strnlen((char*)from, from_len))
+			from_len = strnlen((char*)from, from_len);
 	}
 	switch (from_t) {
 		case e_b64_raw:		/* raw memory */
