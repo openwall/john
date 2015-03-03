@@ -39,15 +39,6 @@ extern volatile int bench_running;
 
 #ifndef BENCH_BUILD
 static int orig_min, orig_max, orig_len;
-
-/* We could move this to misc.c */
-static size_t fmt_strnlen(const char *s, size_t max)
-{
-	const char *p=s;
-	while(*p && max--)
-		++p;
-	return(p - s);
-}
 #endif
 
 void fmt_register(struct fmt_main *format)
@@ -529,7 +520,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				char *setkey = longcand(i, ml);
 
 				if (strncmp(getkey, setkey, ml + 1)) {
-					if (fmt_strnlen(getkey, ml + 1) > ml)
+					if (strnlen(getkey, ml + 1) > ml)
 					sprintf(s_size, "max. length in index "
 					        "%d: wrote %d, got longer back",
 					        i, ml);

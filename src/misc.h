@@ -96,6 +96,15 @@ extern int strnzcpyn(char *dst, const char *src, int size);
 extern char *strnzcat(char *dst, const char *src, int size);
 
 /*
+ * Like strlen but will not scan past max, so will return at most max.
+ */
+#if AC_BUILT && !HAVE_STRNLEN
+#undef strnlen
+#define strnlen jtr_strnlen
+extern size_t strnlen(const char *s, size_t max);
+#endif
+
+/*
  * Similar to atoi(), but properly handles unsigned int.  Do not use
  * atoi() for unsigned data if the data can EVER be over MAX_INT.
  */

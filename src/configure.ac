@@ -606,7 +606,7 @@ AC_CHECK_FUNCS([fseek64 fseeko fseeko64 _fseeki64 lseek64 lseek ftell64 ftello \
                ftello64 _ftelli64 fopen64 _fopen64 memmem sleep \
                setenv putenv strcasecmp strncasecmp \
                stricmp strcmpi _stricmp _strcmpi strnicmp strncmpi _strnicmp \
-               _strncmpi strlwr strupr strrev \
+               _strncmpi strnlen strlwr strupr strrev \
                bzero atoll _atoi64 snprintf sprintf_s])
 dnl AC_CHECK_FUNCS([memchr memmove memset munmap pow \
 dnl                 select setlocale socket strchr \

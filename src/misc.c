@@ -167,6 +167,15 @@ char *strnzcat(char *dst, const char *src, int size)
 	return dst;
 }
 
+#if AC_BUILT && !HAVE_STRNLEN
+size_t strnlen(const char *s, size_t max) {
+	const char *p=s;
+	while(*p && max--)
+		++p;
+	return(p - s);
+}
+#endif
+
 unsigned atou(const char *src) {
 	unsigned val;
 	sscanf(src, "%u", &val);

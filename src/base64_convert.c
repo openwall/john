@@ -758,10 +758,9 @@ int base64_convert(const void *from, b64_convert_type from_t, int from_len, void
 	if (!mime_setup)
 		setup_mime();
 
-	if (from_t != e_b64_raw) {
-		if (from_len > strnlen((char*)from, from_len))
-			from_len = strnlen((char*)from, from_len);
-	}
+	if (from_t != e_b64_raw)
+		from_len = strnlen((char*)from, from_len);
+
 	switch (from_t) {
 		case e_b64_raw:		/* raw memory */
 		{
@@ -1218,7 +1217,7 @@ static void do_convert(char *in_str, b64_convert_type in_t,
 }
 
 void length_test() {
-	/* this test is to see if the length returned is correct, even if we 
+	/* this test is to see if the length returned is correct, even if we
 	 * list more input data than we have. */
 	char out[256];
 	int len;
