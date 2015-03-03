@@ -1135,7 +1135,7 @@ static int usage(char *name)
 	        "\n"
 	        "  -q will only output resultant string. No extra junk text\n"
 	        "  -e turns on buffer overwrite error checking logic\n"
-			"  -l performs a 'length' test\n"
+	        "  -l performs a 'length' test\n"
 	        "\n"
 	        "Input/Output types:\n"
 	        "  raw      raw data byte\n"
@@ -1258,8 +1258,6 @@ int base64conv(int argc, char **argv) {
 	b64_convert_type in_t=e_b64_unk, out_t=e_b64_unk;
 	int quiet=0,err_chk=0;
 	int flags=flg_Base64_NO_FLAGS;
-
-	length_test();
 
 	/* Parse command line */
 	if (argc == 1)
