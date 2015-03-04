@@ -159,12 +159,10 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[(MMX_COEF
 	 * create input buffer for SHA1 from salt and unicode version of password */
 	unsigned char X1[20];
 	SHA_CTX ctx;
-	unsigned char _IBuf[64*(MMX_COEF*SHA1_SSE_PARA)+16], *keys, _OBuf[20*(MMX_COEF*SHA1_SSE_PARA)+16];
-	uint32_t *crypt;
+	unsigned char _IBuf[64*(MMX_COEF*SHA1_SSE_PARA)+16], *keys;
 	uint32_t *keys32;
 	unsigned i, j;
 
-	crypt = (uint32_t*)mem_align(_OBuf, 16);
 	keys = (unsigned char*)mem_align(_IBuf, 16);
 	keys32 = (uint32_t*)keys;
 	memset(keys, 0, 64*(MMX_COEF*SHA1_SSE_PARA));
@@ -208,12 +206,12 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[(MMX_COEF
 	// hashBuf = SHA1Hash(hashBuf, 0);
 	for (i = 0; i < SHA1_SSE_PARA; ++i)
 		memcpy(&keys[GETPOS_1(23,i*MMX_COEF)], "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 4*MMX_COEF);
-	SSESHA1body(keys, crypt, NULL, SSEi_MIXED_IN);
+	SSESHA1body(keys, keys32, NULL, SSEi_MIXED_IN);
 
 	// Now convert back into a 'flat' value, which is a flat array.
 	for (i = 0; i < MMX_COEF*SHA1_SSE_PARA; ++i) {
 		uint32_t *Optr32 = (uint32_t*)hashBuf;
-		uint32_t *Iptr32 = (uint32_t *)crypt;
+		uint32_t *Iptr32 = keys32;
 		Iptr32 += (i/MMX_COEF)*MMX_COEF*5;
 		Iptr32 += (i%MMX_COEF);
 		for (j = 0; j < 5; ++j)
