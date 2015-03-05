@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2008,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2008,2010,2011,2013 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -59,7 +59,13 @@ struct BF_ctx {
 #define for_each_index()
 #endif
 
-#if BF_X2
+#if BF_X2 == 3
+#if BF_mt > 1
+#define INDEX2				[lindex]
+#else
+#define INDEX2				[index]
+#endif
+#elif BF_X2
 #if BF_mt > 1
 #define INDEX2				[index & 1]
 #else
@@ -70,7 +76,12 @@ struct BF_ctx {
 #endif
 
 #if BF_mt > 1
-#if BF_X2
+#if BF_X2 == 3
+#define for_each_t() \
+	for (t = 0; t < n; t += 3)
+#define for_each_ti() \
+	for (index = t, lindex = 0; lindex < 3; index++, lindex++)
+#elif BF_X2
 #define for_each_t() \
 	for (t = 0; t < n; t += 2)
 #define for_each_ti() \
@@ -493,9 +504,100 @@ extern void (*BF_body)(void);
 
 #else
 
-#if BF_X2
+#if BF_X2 == 3
 /*
- * Encrypt two blocks in parallel, BF_ROUNDS is hardcoded here.
+ * Encrypt three blocks in parallel.  BF_ROUNDS is hardcoded here.
+ */
+#define BF_ENCRYPT2 \
+	L0 ^= BF_current[0].P[0]; \
+	L1 ^= BF_current[1].P[0]; \
+	L2 ^= BF_current[2].P[0]; \
+	BF_ROUND(BF_current[0], L0, R0, 0, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], L1, R1, 0, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], L2, R2, 0, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], R0, L0, 1, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], R1, L1, 1, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], R2, L2, 1, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], L0, R0, 2, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], L1, R1, 2, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], L2, R2, 2, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], R0, L0, 3, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], R1, L1, 3, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], R2, L2, 3, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], L0, R0, 4, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], L1, R1, 4, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], L2, R2, 4, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], R0, L0, 5, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], R1, L1, 5, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], R2, L2, 5, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], L0, R0, 6, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], L1, R1, 6, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], L2, R2, 6, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], R0, L0, 7, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], R1, L1, 7, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], R2, L2, 7, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], L0, R0, 8, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], L1, R1, 8, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], L2, R2, 8, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], R0, L0, 9, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], R1, L1, 9, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], R2, L2, 9, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], L0, R0, 10, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], L1, R1, 10, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], L2, R2, 10, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], R0, L0, 11, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], R1, L1, 11, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], R2, L2, 11, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], L0, R0, 12, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], L1, R1, 12, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], L2, R2, 12, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], R0, L0, 13, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], R1, L1, 13, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], R2, L2, 13, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], L0, R0, 14, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], L1, R1, 14, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], L2, R2, 14, w1, w2, w3, w4); \
+	BF_ROUND(BF_current[0], R0, L0, 15, u1, u2, u3, u4); \
+	BF_ROUND(BF_current[1], R1, L1, 15, v1, v2, v3, v4); \
+	BF_ROUND(BF_current[2], R2, L2, 15, w1, w2, w3, w4); \
+	u4 = R0; \
+	v4 = R1; \
+	w4 = R2; \
+	R0 = L0; \
+	R1 = L1; \
+	R2 = L2; \
+	L0 = u4 ^ BF_current[0].P[BF_ROUNDS + 1]; \
+	L1 = v4 ^ BF_current[1].P[BF_ROUNDS + 1]; \
+	L2 = w4 ^ BF_current[2].P[BF_ROUNDS + 1];
+
+#define BF_body() \
+	L0 = R0 = L1 = R1 = L2 = R2 = 0; \
+	ptr = BF_current[0].P; \
+	do { \
+		BF_ENCRYPT2; \
+		*ptr = L0; \
+		*(ptr + 1) = R0; \
+		*(ptr + (BF_current[1].P - BF_current[0].P)) = L1; \
+		*(ptr + (BF_current[1].P - BF_current[0].P) + 1) = R1; \
+		*(ptr + (BF_current[2].P - BF_current[0].P)) = L2; \
+		*(ptr + (BF_current[2].P - BF_current[0].P) + 1) = R2; \
+		ptr += 2; \
+	} while (ptr < &BF_current[0].P[BF_ROUNDS + 2]); \
+\
+	ptr = BF_current[0].S[0]; \
+	do { \
+		ptr += 2; \
+		BF_ENCRYPT2; \
+		*(ptr - 2) = L0; \
+		*(ptr - 1) = R0; \
+		*(ptr - 2 + (BF_current[1].S[0] - BF_current[0].S[0])) = L1; \
+		*(ptr - 1 + (BF_current[1].S[0] - BF_current[0].S[0])) = R1; \
+		*(ptr - 2 + (BF_current[2].S[0] - BF_current[0].S[0])) = L2; \
+		*(ptr - 1 + (BF_current[2].S[0] - BF_current[0].S[0])) = R2; \
+	} while (ptr < &BF_current[0].S[3][0xFF]);
+#elif BF_X2
+/*
+ * Encrypt two blocks in parallel.  BF_ROUNDS is hardcoded here.
  */
 #define BF_ENCRYPT2 \
 	L0 ^= BF_current[0].P[0]; \
@@ -616,7 +718,9 @@ void BF_std_crypt(BF_salt *salt, int n)
 #endif
 	for_each_t() {
 #if BF_mt > 1
-#if BF_X2
+#if BF_X2 == 3
+		struct BF_ctx BF_current[3];
+#elif BF_X2
 		struct BF_ctx BF_current[2];
 #else
 		struct BF_ctx BF_current;
@@ -628,11 +732,18 @@ void BF_std_crypt(BF_salt *salt, int n)
 #if BF_X2
 		BF_word L1, R1;
 		BF_word v1, v2, v3, v4;
+#if BF_X2 == 3
+		BF_word L2, R2;
+		BF_word w1, w2, w3, w4;
+#endif
 #endif
 		BF_word *ptr;
 		BF_word count;
 #if BF_N > 1
 		int index;
+#endif
+#if BF_X2 == 3 && BF_mt > 1
+		int lindex;
 #endif
 
 		for_each_ti() {
