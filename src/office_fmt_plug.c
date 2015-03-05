@@ -47,21 +47,22 @@ john_register_one(&fmt_office);
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT	(MMX_COEF*SHA1_SSE_PARA)
+#define SHA1_LOOP_CNT (MMX_COEF*SHA1_SSE_PARA)
 #else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#define SHA1_LOOP_CNT		1
 #endif
 
 #ifdef MMX_COEF
 #define GETPOS_1(i, index)      ( (index&(MMX_COEF-1))       *4 + ((i)&(0xffffffff-3))*MMX_COEF        + (3-((i)&3)) + (index>>(MMX_COEF>>1))       *SHA_BUF_SIZ   *MMX_COEF        *4 )
 #endif
 
-#ifdef MMX_COEF_SHA256
-#define GETPOS_256(i, index)    ( (index&(MMX_COEF_SHA256-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF_SHA256 + (3-((i)&3)) + (index>>(MMX_COEF_SHA256>>1))*SHA256_BUF_SIZ*MMX_COEF_SHA256 *4 )
-#endif
-
 #ifdef MMX_COEF_SHA512
 #define GETPOS_512(i, index)    ( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7))*MMX_COEF_SHA512 + (7-((i)&7)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512 *8 )
+#define SHA512_LOOP_CNT MMX_COEF_SHA512
+#else
+#define SHA512_LOOP_CNT 1
 #endif
 
 #undef MIN
@@ -151,7 +152,7 @@ static unsigned char *DeriveKey(unsigned char *hashValue, unsigned char *X1)
 }
 
 #ifdef MMX_COEF
-static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[(MMX_COEF * SHA1_SSE_PARA)][20])
+static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP_CNT][20])
 {
 	unsigned char hashBuf[20], *key;
 	/* H(0) = H(salt, password)
@@ -159,15 +160,15 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[(MMX_COEF
 	 * create input buffer for SHA1 from salt and unicode version of password */
 	unsigned char X1[20];
 	SHA_CTX ctx;
-	unsigned char _IBuf[64*(MMX_COEF*SHA1_SSE_PARA)+16], *keys;
+	unsigned char _IBuf[64*SHA1_LOOP_CNT+16], *keys;
 	uint32_t *keys32;
 	unsigned i, j;
 
 	keys = (unsigned char*)mem_align(_IBuf, 16);
 	keys32 = (uint32_t*)keys;
-	memset(keys, 0, 64*(MMX_COEF*SHA1_SSE_PARA));
+	memset(keys, 0, 64*SHA1_LOOP_CNT);
 
-	for (i = 0; i < MMX_COEF*SHA1_SSE_PARA; ++i) {
+	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
 		SHA1_Update(&ctx, saved_key[idx+i], saved_len[idx+i]);
@@ -187,7 +188,7 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[(MMX_COEF
 	}
 	// we do 1 less than actual number of iterations here.
 	for (i = 0; i < MS_OFFICE_2007_ITERATIONS-1; i++) {
-		for (j = 0; j < MMX_COEF*SHA1_SSE_PARA; ++j) {
+		for (j = 0; j < SHA1_LOOP_CNT; ++j) {
 			keys[GETPOS_1(0, j)] = i&0xff;
 			keys[GETPOS_1(1, j)] = i>>8;
 		}
@@ -196,7 +197,7 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[(MMX_COEF
 	}
 	// last iteration is output to start of input buffer, then 32 bit 0 appended.
 	// but this is still ends up being 24 bytes of crypt data.
-	for (j = 0; j < MMX_COEF*SHA1_SSE_PARA; ++j) {
+	for (j = 0; j < SHA1_LOOP_CNT; ++j) {
 		keys[GETPOS_1(0, j)] = i&0xff;
 		keys[GETPOS_1(1, j)] = i>>8;
 	}
@@ -209,7 +210,7 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[(MMX_COEF
 	SSESHA1body(keys, keys32, NULL, SSEi_MIXED_IN);
 
 	// Now convert back into a 'flat' value, which is a flat array.
-	for (i = 0; i < MMX_COEF*SHA1_SSE_PARA; ++i) {
+	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
 		uint32_t *Optr32 = (uint32_t*)hashBuf;
 		uint32_t *Iptr32 = keys32;
 		Iptr32 += (i/MMX_COEF)*MMX_COEF*5;
@@ -221,9 +222,12 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[(MMX_COEF
 	}
 }
 #else
-static unsigned char* GeneratePasswordHashUsingSHA1(UTF16 *passwordBuf, int passwordBufSize, unsigned char *final)
+// for non MMX, SHA1_LOOP_CNT is 1
+static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP_CNT][20])
 {
 	unsigned char hashBuf[20], *key;
+	UTF16 *passwordBuf=saved_key[idx];
+	int passwordBufSize=saved_len[idx];
 	/* H(0) = H(salt, password)
 	 * hashBuf = SHA1Hash(salt, password);
 	 * create input buffer for SHA1 from salt and unicode version of password */
@@ -266,9 +270,7 @@ static unsigned char* GeneratePasswordHashUsingSHA1(UTF16 *passwordBuf, int pass
 
 	// Should handle the case of longer key lengths as shown in 2.3.4.9
 	// Grab the key length bytes of the final hash as the encrypytion key
-	memcpy(final, key, cur_salt->keySize/8);
-
-	return final;
+	memcpy(final[0], key, cur_salt->keySize/8);
 }
 #endif
 
@@ -391,12 +393,16 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0, inc = 1;
+	int index = 0, inc;
 
-#ifdef MMX_COEF
 	if (cur_salt->version == 2007)
-		inc = (MMX_COEF * SHA1_SSE_PARA);
-#endif
+		inc = SHA1_LOOP_CNT;
+	if (cur_salt->version == 2010)
+//		inc = SHA1_LOOP_CNT;
+		inc = 1;
+	if (cur_salt->version == 2013)
+//		inc = SHA512_LOOP_CNT;
+		inc = 1;
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -404,22 +410,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index+=inc)
 	{
 		if(cur_salt->version == 2007) {
-#ifdef MMX_COEF
-			unsigned char encryptionKey[(MMX_COEF * SHA1_SSE_PARA)][20];
+			unsigned char encryptionKey[SHA1_LOOP_CNT][20];
 			int i;
 			GeneratePasswordHashUsingSHA1(index, encryptionKey);
-			for (i = 0; i < MMX_COEF * SHA1_SSE_PARA; ++i)
+			for (i = 0; i < SHA1_LOOP_CNT; ++i)
 				ms_office_common_PasswordVerifier(cur_salt, encryptionKey[i], crypt_key[index+i]);
-#else
-			unsigned char encryptionKey[256];
-			GeneratePasswordHashUsingSHA1(saved_key[index], saved_len[index], encryptionKey);
-			ms_office_common_PasswordVerifier(cur_salt, encryptionKey, crypt_key[index]);
-#endif
 		}
 		else if (cur_salt->version == 2010) {
 			unsigned char verifierKeys[64], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
 			unsigned char hash[20];
 			SHA_CTX ctx;
+//#ifdef MMX_COEF
+//#else
 			GenerateAgileEncryptionKey(saved_key[index], saved_len[index], cur_salt->keySize >> 3, verifierKeys);
 			ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys, cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
 			ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, &verifierKeys[32], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
@@ -427,6 +429,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA1_Update(&ctx, decryptedVerifierHashInputBytes, 16);
 			SHA1_Final(hash, &ctx);
 			cracked[index] = !memcmp(hash, decryptedVerifierHashBytes, 20);
+//#endif
 		}
 		else if (cur_salt->version == 2013) {
 			unsigned char verifierKeys[128], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
