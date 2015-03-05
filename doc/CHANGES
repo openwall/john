@@ -3,6 +3,8 @@ The following changes have been made between John 1.8.0 and 1.8.0.4:
 * 3x interleaving for bcrypt on x86-64, except in AVX-enabled builds.
 Provides significant speedup on Core 2 CPUs.
 * Recognize the $2b$ bcrypt prefix.
+* Added linux-mic make target for Intel MIC (first generation Xeon Phi, aka
+Knights Corner), along with use of 512-bit SIMD intrinsics for bitslice DES.
 * Added linux-arm32le and linux-arm32le-neon make targets (the latter makes use
 of NEON for bitslice DES).
 * Fixed a bug where unaligned access SSE/AVX instructions would unnecessarily
