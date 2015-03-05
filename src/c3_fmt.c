@@ -3,7 +3,7 @@
  * Solaris' MT-safe crypt(3C) with OpenMP parallelization.
  *
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2009-2013 by Solar Designer
+ * Copyright (c) 2009-2015 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -212,6 +212,7 @@ static void *salt(char *ciphertext)
 		else
 		if (length == 60 &&
 		    (!strncmp(ciphertext, "$2a$", 4) ||
+		    !strncmp(ciphertext, "$2b$", 4) ||
 		    !strncmp(ciphertext, "$2x$", 4) ||
 		    !strncmp(ciphertext, "$2y$", 4)))
 			cut = 29;
