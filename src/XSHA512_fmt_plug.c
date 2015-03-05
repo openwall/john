@@ -52,7 +52,6 @@ john_register_one(&fmt_XSHA512);
 #ifdef MMX_COEF_SHA512
 #define MIN_KEYS_PER_CRYPT      MMX_COEF_SHA512
 #define MAX_KEYS_PER_CRYPT      MMX_COEF_SHA512
-#define GETPOS(i, index)        ( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7))*MMX_COEF_SHA512 + (7-((i)&7)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512*8 )
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		0x100
@@ -348,13 +347,11 @@ static char *get_key(int index)
 	static unsigned char key[PLAINTEXT_LENGTH+1];
 	int i;
 	unsigned char *wucp = (unsigned char*)saved_key;
-	for (i = 0; i < PLAINTEXT_LENGTH; ++i) {
-		key[i] = wucp[GETPOS(4+i, index)];
-		if (key[i] == 0x80) {
-			key[i] = 0;
-			return (char*)key;
-		}
-	}
+	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64*)saved_key)[(index&(MMX_COEF_SHA512-1)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512];
+	int len = (keybuffer[15*MMX_COEF_SHA512] >> 3) - SALT_SIZE;
+
+	for (i = 0; i < len; ++i)
+		key[i] = wucp[GETPOS(SALT_SIZE + i, index)];
 	key[i] = 0;
 	return (char*)key;
 #endif
