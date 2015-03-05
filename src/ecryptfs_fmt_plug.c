@@ -32,6 +32,8 @@ john_register_one(&fmt_ecryptfs1);
 #include "params.h"
 #include "options.h"
 #include "base64_convert.h"
+#include "johnswap.h"
+#include "sse-intrinsics.h"
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
@@ -39,11 +41,13 @@ static int omp_t = 1;
 #endif
 #include "memdbg.h"
 
+//#undef MMX_COEF_SHA512
+
 #define FORMAT_TAG 		"$ecryptfs$"
 #define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG) - 1)
 #define FORMAT_LABEL 		"eCryptfs"
 #define FORMAT_NAME 		""
-#define ALGORITHM_NAME 		"65536x SHA-512"  // good luck with that!
+#define ALGORITHM_NAME 		"65536x " SHA512_ALGORITHM_NAME  // good luck with that!
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -54,8 +58,13 @@ static int omp_t = 1;
 #define BINARY_ALIGN		4
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT		1
+#ifdef MMX_COEF_SHA512
+#define MAX_KEYS_PER_CRYPT      MMX_COEF_SHA512
+#define GETPOS_512(i, index)    ( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7))*MMX_COEF_SHA512 + (7-((i)&7)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512 *8 )
+#else
+#define MAX_KEYS_PER_CRYPT		1
+#endif
 
 /* taken from eCryptfs */
 #define ECRYPTFS_DEFAULT_NUM_HASH_ITERATIONS 65536
@@ -200,18 +209,69 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		int j;
 		SHA512_CTX ctx;
+#ifdef MMX_COEF_SHA512
+		unsigned char tmpBuf[64];
+		int i;
+		unsigned char _IBuf[128*MMX_COEF_SHA512+16], *keys;
+		ARCH_WORD_64 *keys64;
+
+		keys = (unsigned char*)mem_align(_IBuf, 16);
+		keys64 = (ARCH_WORD_64*)keys;
+		memset(keys, 0, 128*MMX_COEF_SHA512);
+
+		for (i = 0; i < MMX_COEF_SHA512; ++i) {
+			SHA512_Init(&ctx);
+			SHA512_Update(&ctx, cur_salt->salt, ECRYPTFS_SALT_SIZE);
+			SHA512_Update(&ctx, saved_key[index+i], strlen(saved_key[index+i]));
+			SHA512_Final((unsigned char *)tmpBuf, &ctx);
+			for (j = 0; j < 64; ++j)
+				keys[GETPOS_512(j, i)] = tmpBuf[j];
+			keys[GETPOS_512(j, i)] = 0x80;
+			// 64 bytes of crypt data (0x200 bits).
+			keys[GETPOS_512(126, i)] = 0x02;
+		}
+//		dump_stuff_shammx64_msg("\n00000", _IBuf, 128, 0);
+		for (j = 1; j <= ECRYPTFS_DEFAULT_NUM_HASH_ITERATIONS; j++) {
+			SSESHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+//			if (j < 8) {
+//				printf ("%05d : ", j);
+//				dump_stuff_shammx64(keys, 128, 0);
+//			}
+		}
+//		printf ("%05d : ", j);
+//		dump_stuff_shammx64(keys, 128, 0);
+
+		// now marshal into crypt_out;
+		for (i = 0; i < MMX_COEF_SHA512; ++i) {
+			ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(crypt_out[index+i]);
+			ARCH_WORD_64 *Iptr64 = &keys64[(i/MMX_COEF_SHA512)*MMX_COEF_SHA512*16 + (i%MMX_COEF_SHA512)];
+			for (j = 0; j < 8; ++j)
+				Optr64[j] = JOHNSWAP64(Iptr64[j*MMX_COEF_SHA512]);
+		}
+//		printf ("%05d : ", j);
+//		dump_stuff(crypt_out, 64);
+//		exit(0);
+#else
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, cur_salt->salt, ECRYPTFS_SALT_SIZE);
 		SHA512_Update(&ctx, saved_key[index], strlen(saved_key[index]));
 		SHA512_Final((unsigned char *)crypt_out[index], &ctx);
-
+//		dump_stuff_msg("\n00000", crypt_out, 64);
 		/* now "h" (crypt_out[index] becomes our input, total SHA-512 calls => 65536 */
 		for (j = 1; j <= ECRYPTFS_DEFAULT_NUM_HASH_ITERATIONS; j++) {
 			SHA512_CTX ctx;
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);
 			SHA512_Final((unsigned char *)crypt_out[index], &ctx);
+//			if (j < 8) {
+//				printf ("%05d : ", j);
+//				dump_stuff(crypt_out, 64);
+//			}
 		}
+//		printf ("%05d : ", j);
+//		dump_stuff(crypt_out, 64);
+//		exit(0);
+#endif
 	}
 	return count;
 }
