@@ -40,7 +40,7 @@ john_register_one(&fmt_office);
 #define ALGORITHM_NAME		"SHA1 " SHA1_ALGORITHM_NAME " / SHA512 " SHA512_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
+#define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(*cur_salt)
 #define BINARY_ALIGN	4
@@ -485,8 +485,8 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 	}
 	SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN);
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
-		uint64_t *Optr64 = (uint64_t*)(hashBuf[i]);
-		uint64_t *Iptr64 = &crypt[(i/MMX_COEF_SHA512)*MMX_COEF_SHA512*8 + (i%MMX_COEF_SHA512)];
+		ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(hashBuf[i]);
+		ARCH_WORD_64 *Iptr64 = &crypt[(i/MMX_COEF_SHA512)*MMX_COEF_SHA512*8 + (i%MMX_COEF_SHA512)];
 		for (j = 0; j < 8; ++j)
 			Optr64[j] = JOHNSWAP64(Iptr64[j*MMX_COEF_SHA512]);
 	}
@@ -497,8 +497,8 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 	}
 	SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN);
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
-		uint64_t *Optr64 = (uint64_t*)(&(hashBuf[i][64]));
-		uint64_t *Iptr64 = &crypt[(i/MMX_COEF_SHA512)*MMX_COEF_SHA512*8 + (i%MMX_COEF_SHA512)];
+		ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(&(hashBuf[i][64]));
+		ARCH_WORD_64 *Iptr64 = &crypt[(i/MMX_COEF_SHA512)*MMX_COEF_SHA512*8 + (i%MMX_COEF_SHA512)];
 		for (j = 0; j < 8; ++j)
 			Optr64[j] = JOHNSWAP64(Iptr64[j*MMX_COEF_SHA512]);
 	}
