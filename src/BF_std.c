@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2008,2010,2011,2013 by Solar Designer
+ * Copyright (c) 1996-2001,2008,2010,2011,2013,2015 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -933,7 +933,15 @@ void *BF_std_get_salt(char *ciphertext)
 	BF_swap(salt.salt, 4);
 
 	salt.rounds = atoi(&ciphertext[4]);
-	if (ciphertext[2] == 'a')
+
+/*
+ * 'a' is ambiguous due to past bugs, but for password cracking we treat it the
+ * same as 'y' (if a hash is known to be affected by the sign extension bug, it
+ * should be explicitly marked with 'x' instead of 'a').
+ *
+ * 'b' is in fact the same as 'y'.
+ */
+	if (ciphertext[2] == 'a' || ciphertext[2] == 'b')
 		salt.subtype = 'y';
 	else
 		salt.subtype = ciphertext[2];
