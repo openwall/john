@@ -33,6 +33,7 @@ john_register_one(&fmt_office);
 #include "memdbg.h"
 
 //#undef MMX_COEF
+//#undef MMX_COEF_SHA512
 
 #define FORMAT_LABEL		"Office"
 #define FORMAT_NAME		"2007/2010 (SHA-1) / 2013 (SHA-512), with AES"
@@ -182,7 +183,7 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 		// 1.3.6 says that little-endian byte ordering is expected
 		for (j = 4; j < 24; ++j)
 			keys[GETPOS_1(j, i)] = hashBuf[j-4];
-		keys[GETPOS_1(24, i)] = 0x80;
+		keys[GETPOS_1(j, i)] = 0x80;
 		// 24 bytes of crypt data (192 bits).
 		keys[GETPOS_1(63, i)] = 192;
 	}
@@ -274,11 +275,120 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 }
 #endif
 
-static void GenerateAgileEncryptionKey(UTF16 *passwordBuf, int passwordBufSize, int hashSize, unsigned char *hashBuf)
+#ifdef MMX_COEF
+static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_CNT][64])
+{
+	unsigned char tmpBuf[20];
+	int hashSize = cur_salt->keySize >> 3;
+	unsigned i, j;
+	SHA_CTX ctx;
+	unsigned char _IBuf[64*SHA1_LOOP_CNT+16], *keys, _OBuf[20*SHA1_LOOP_CNT+16];
+	uint32_t *keys32, *crypt;
+
+	crypt = (uint32_t*)mem_align(_OBuf, 16);
+	keys = (unsigned char*)mem_align(_IBuf, 16);
+	keys32 = (uint32_t*)keys;
+	memset(keys, 0, 64*SHA1_LOOP_CNT);
+
+//	printf("pass : %S  len=%d\n", saved_key[idx], saved_len[idx]);
+
+	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
+		SHA1_Init(&ctx);
+		SHA1_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
+		SHA1_Update(&ctx, saved_key[idx+i], saved_len[idx+i]);
+		SHA1_Final(tmpBuf, &ctx);
+		for (j = 4; j < 24; ++j)
+			keys[GETPOS_1(j, i)] = tmpBuf[j-4];
+		keys[GETPOS_1(j, i)] = 0x80;
+		// 24 bytes of crypt data (192 bits).
+		keys[GETPOS_1(63, i)] = 192;
+	}
+//	dump_stuff_shammx_msg("HB01", keys, 64, 0);
+
+	// we do 1 less than actual number of iterations here.
+	for (i = 0; i < cur_salt->spinCount-1; i++) {
+		for (j = 0; j < SHA1_LOOP_CNT; ++j) {
+			keys[GETPOS_1(0, j)] = i&0xff;
+			keys[GETPOS_1(1, j)] = (i>>8)&0xff;
+			keys[GETPOS_1(2, j)] = i>>16;
+		}
+//		if (i < 16) {
+//			printf ("%04d : ", i);
+//			dump_stuff_shammx(keys, 64, 0);
+//		}
+		// Here we output to 4 bytes past start of input buffer.
+		SSESHA1body(keys, &keys32[MMX_COEF], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+	}
+	// last iteration is output to start of input buffer, then 32 bit 0 appended.
+	// but this is still ends up being 24 bytes of crypt data.
+	for (j = 0; j < SHA1_LOOP_CNT; ++j) {
+		keys[GETPOS_1(0, j)] = i&0xff;
+		keys[GETPOS_1(1, j)] = (i>>8)&0xff;
+		keys[GETPOS_1(2, j)] = i>>16;
+	}
+	SSESHA1body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+//	printf ("%04d : ", i);
+//	dump_stuff_shammx(keys, 64, 0);
+
+	// Finally, append "block" (0) to H(n)
+	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
+		for (j = 0; j < 8; ++j)
+			keys[GETPOS_1(20+j, i)] = encryptedVerifierHashInputBlockKey[j];
+		keys[GETPOS_1(20+j, i)] = 0x80;
+		// 28 bytes of crypt data (192 bits).
+		keys[GETPOS_1(63, i)] = 224;
+	}
+//	dump_stuff_shammx_msg("VHIB", keys, 64, 0);
+	SSESHA1body(keys, crypt, NULL, SSEi_MIXED_IN);
+//	dump_out_shammx(crypt, 20, 0);
+	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
+		uint32_t *Optr32 = (uint32_t*)(hashBuf[i]);
+		uint32_t *Iptr32 = crypt;
+		Iptr32 += (i/MMX_COEF)*MMX_COEF*5;
+		Iptr32 += (i%MMX_COEF);
+		for (j = 0; j < 5; ++j)
+			Optr32[j] = JOHNSWAP(Iptr32[j*MMX_COEF]);
+	}
+
+	// And second "block" (0) to H(n)
+	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
+		for (j = 0; j < 8; ++j)
+			keys[GETPOS_1(20+j, i)] = encryptedVerifierHashValueBlockKey[j];
+	}
+//	dump_stuff_shammx_msg("VHVB", keys, 64, 0);
+	SSESHA1body(keys, crypt, NULL, SSEi_MIXED_IN);
+//	dump_out_shammx(crypt, 20, 0);
+	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
+		uint32_t *Optr32 = (uint32_t*)(hashBuf[i]);
+		uint32_t *Iptr32 = crypt;
+		Iptr32 += (i/MMX_COEF)*MMX_COEF*5;
+		Iptr32 += (i%MMX_COEF);
+		Optr32 += 8; // put data into offset 32, like we do for non-SIMD
+		for (j = 0; j < 5; ++j)
+			Optr32[j] = JOHNSWAP(Iptr32[j*MMX_COEF]);
+	}
+
+	// Fix up the size per the spec
+	if (20 < hashSize) { // FIXME: Is this ever true?
+		for (i = 0; i < SHA1_LOOP_CNT; ++i) {
+			for(j = 20; j < hashSize; j++) {
+				hashBuf[i][j] = 0x36;
+				hashBuf[i][32 + j] = 0x36;
+			}
+		}
+	}
+//	dump_stuff_msg("hash", hashBuf[0], 64);
+//	exit(0);
+}
+#else
+static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_CNT][64])
 {
 	/* H(0) = H(salt, password)
 	 * hashBuf = SHA1Hash(salt, password);
 	 * create input buffer for SHA1 from salt and unicode version of password */
+	UTF16 *passwordBuf=saved_key[idx];
+	int passwordBufSize=saved_len[idx];
+	int hashSize = cur_salt->keySize >> 3;
 	unsigned int inputBuf[(28 + 4) / sizeof(int)];
 	int i;
 	SHA_CTX ctx;
@@ -286,7 +396,10 @@ static void GenerateAgileEncryptionKey(UTF16 *passwordBuf, int passwordBufSize, 
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
 	SHA1_Update(&ctx, passwordBuf, passwordBufSize);
-	SHA1_Final(hashBuf, &ctx);
+	SHA1_Final(hashBuf[0], &ctx);
+
+//	printf("pass : %S  len=%d\n", saved_key[idx], saved_len[idx]);
+//	dump_stuff_msg("HB01", hashBuf[0], 20);
 
 	/* Generate each hash in turn
 	 * H(n) = H(i, H(n-1))
@@ -294,7 +407,7 @@ static void GenerateAgileEncryptionKey(UTF16 *passwordBuf, int passwordBufSize, 
 
 	// Create a byte array of the integer and put at the front of the input buffer
 	// 1.3.6 says that little-endian byte ordering is expected
-	memcpy(&inputBuf[1], hashBuf, 20);
+	memcpy(&inputBuf[1], hashBuf[0], 20);
 	for (i = 0; i < cur_salt->spinCount; i++) {
 #if ARCH_LITTLE_ENDIAN
 		*inputBuf = i;
@@ -302,33 +415,168 @@ static void GenerateAgileEncryptionKey(UTF16 *passwordBuf, int passwordBufSize, 
 		*inputBuf = JOHNSWAP(i);
 #endif
 		// 'append' the previously generated hash to the input buffer
+//		if (i < 16) {
+//			printf ("%04d : ", i);
+//			dump_stuff(inputBuf, 24);
+//		}
+
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, inputBuf, 0x14 + 0x04);
 		SHA1_Final((unsigned char*)&inputBuf[1], &ctx);
 	}
+//	printf ("%04d : ", i);
+//	dump_stuff(inputBuf, 24);
+
 	// Finally, append "block" (0) to H(n)
 	memcpy(&inputBuf[6], encryptedVerifierHashInputBlockKey, 8);
 	SHA1_Init(&ctx);
+
+//	dump_stuff_msg("VHIB", &inputBuf[1], 28);
+
 	SHA1_Update(&ctx, &inputBuf[1], 28);
-	SHA1_Final(hashBuf, &ctx);
+	SHA1_Final(hashBuf[0], &ctx);
 
 	// And second "block" (0) to H(n)
 	memcpy(&inputBuf[6], encryptedVerifierHashValueBlockKey, 8);
 	SHA1_Init(&ctx);
+
+//	dump_stuff_msg("VHVB", &inputBuf[1], 28);
+
 	SHA1_Update(&ctx, &inputBuf[1], 28);
-	SHA1_Final(&hashBuf[32], &ctx);
+	SHA1_Final(&hashBuf[0][32], &ctx);
 
 	// Fix up the size per the spec
 	if (20 < hashSize) { // FIXME: Is this ever true?
 		for(i = 20; i < hashSize; i++) {
-			hashBuf[i] = 0x36;
-			hashBuf[32 + i] = 0x36;
+			hashBuf[0][i] = 0x36;
+			hashBuf[0][32 + i] = 0x36;
 		}
 	}
+//	dump_stuff_msg("hash", hashBuf[0], 64);
+//	exit(0);
 }
+#endif
 
-static void GenerateAgileEncryptionKey512(UTF16 *passwordBuf, int passwordBufSize, unsigned char *hashBuf)
+#ifdef MMX_COEF_SHA512
+static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_LOOP_CNT][128])
 {
+	unsigned char tmpBuf[64];
+	int i, j, k;
+	SHA512_CTX ctx;
+	unsigned char _IBuf[128*SHA512_LOOP_CNT+16], *keys, _OBuf[64*SHA512_LOOP_CNT+16];
+	ARCH_WORD_64 *keys64, *crypt;
+	uint32_t *keys32, *crypt32;
+
+	crypt = (ARCH_WORD_64*)mem_align(_OBuf, 16);
+	keys = (unsigned char*)mem_align(_IBuf, 16);
+	keys64 = (ARCH_WORD_64*)keys;
+	keys32 = (uint32_t*)keys;
+	crypt32 = (uint32_t*)crypt;
+
+	memset(keys, 0, 128*SHA512_LOOP_CNT);
+
+//	printf("pass : %S  len=%d\n", saved_key[idx], saved_len[idx]);
+
+	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
+		SHA512_Init(&ctx);
+		SHA512_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
+		SHA512_Update(&ctx, saved_key[idx+i], saved_len[idx+i]);
+		SHA512_Final(tmpBuf, &ctx);
+		for (j = 4; j < 68; ++j)
+			keys[GETPOS_512(j, i)] = tmpBuf[j-4];
+		keys[GETPOS_512(j, i)] = 0x80;
+		// 68 bytes of crypt data (0x220 bits).
+		keys[GETPOS_512(127, i)] = 0x20;
+		keys[GETPOS_512(126, i)] = 0x02;
+	}
+//	dump_stuff_shammx64_msg("HB01", keys, 128, 0);
+
+	// Create a byte array of the integer and put at the front of the input buffer
+	// 1.3.6 says that little-endian byte ordering is expected
+	// we do 1 less than actual number of iterations here.
+	for (i = 0; i < cur_salt->spinCount-1; i++) {
+		for (j = 0; j < SHA512_LOOP_CNT; ++j) {
+			keys[GETPOS_512(0, j)] = i&0xff;
+			keys[GETPOS_512(1, j)] = (i>>8)&0xff;
+			keys[GETPOS_512(2, j)] = i>>16;
+		}
+//		if (i < 8) {
+//			printf ("%04d : ", i);
+//			dump_stuff_shammx64(keys, 128, 0);
+//		}
+		// Here we output to 4 bytes past start of input buffer.
+		SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+		for (k = 0; k < SHA512_LOOP_CNT; ++k) {
+			uint32_t *o = keys32;
+			uint32_t *i = crypt32;
+			o += ((SHA512_LOOP_CNT*k));
+			i += (SHA512_LOOP_CNT*k);
+			for (j = 0; j < 8; ++j) {
+				*o = i[1];
+				o += SHA512_LOOP_CNT*2+1;
+				*o-- = i[0];
+				i += SHA512_LOOP_CNT*2;
+			}
+		}
+	}
+	// last iteration is output to start of input buffer, then 32 bit 0 appended.
+	// but this is still ends up being 24 bytes of crypt data.
+	for (j = 0; j < SHA512_LOOP_CNT; ++j) {
+		keys[GETPOS_512(0, j)] = i&0xff;
+		keys[GETPOS_512(1, j)] = (i>>8)&0xff;
+		keys[GETPOS_512(2, j)] = i>>16;
+	}
+	SSESHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+//	printf ("%04d : ", i);
+//	dump_stuff_shammx64(keys, 128, 0);
+
+	// Finally, append "block" (0) to H(n)
+	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
+		for (j = 0; j < 8; ++j)
+			keys[GETPOS_512(64+j, i)] = encryptedVerifierHashInputBlockKey[j];
+		keys[GETPOS_512(64+j, i)] = 0x80;
+		// 72 bytes of crypt data (0x240  we already have 0x220 here)
+		keys[GETPOS_512(127, i)] = 0x40;
+	}
+	
+//	dump_stuff_shammx64_msg("VHIB", keys, 128, 0);
+	SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN);
+//	dump_out_shammx64(crypt, 64, 0);
+
+	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
+		uint64_t *Optr64 = (uint64_t*)(hashBuf[i]);
+		uint64_t *Iptr64 = (uint64_t*)crypt;
+		Iptr64 += (i/MMX_COEF_SHA512)*MMX_COEF_SHA512*8;
+		Iptr64 += (i%MMX_COEF_SHA512);
+		for (j = 0; j < 8; ++j)
+			Optr64[j] = JOHNSWAP64(Iptr64[j*MMX_COEF_SHA512]);
+	}
+
+	// And second "block" (0) to H(n)
+	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
+		for (j = 0; j < 8; ++j)
+			keys[GETPOS_512(64+j, i)] = encryptedVerifierHashValueBlockKey[j];
+	}
+//	dump_stuff_shammx64_msg("VHVB", keys, 128, 0);
+	SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN);
+//	dump_out_shammx64(crypt, 64, 0);
+	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
+		uint64_t *Optr64 = (uint64_t*)(hashBuf[i]);
+		uint64_t *Iptr64 = (uint64_t*)crypt;
+		Iptr64 += (i/MMX_COEF_SHA512)*MMX_COEF_SHA512*8;
+		Iptr64 += (i%MMX_COEF_SHA512);
+		Optr64 += 8; // put data into offset 64, like we do for non-SIMD
+		for (j = 0; j < 8; ++j)
+			Optr64[j] = JOHNSWAP64(Iptr64[j*MMX_COEF_SHA512]);
+	}
+//	dump_stuff_msg("hash", hashBuf[0], 128);
+//	exit(0);
+}
+#else
+static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_LOOP_CNT][128])
+{
+	UTF16 *passwordBuf=saved_key[idx];
+	int passwordBufSize=saved_len[idx];
 	unsigned int inputBuf[128 / sizeof(int)];
 	int i;
 	SHA512_CTX ctx;
@@ -336,7 +584,10 @@ static void GenerateAgileEncryptionKey512(UTF16 *passwordBuf, int passwordBufSiz
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
 	SHA512_Update(&ctx, passwordBuf, passwordBufSize);
-	SHA512_Final(hashBuf, &ctx);
+	SHA512_Final(hashBuf[0], &ctx);
+
+//	printf("pass : %S  len=%d\n", saved_key[idx], saved_len[idx]);
+//	dump_stuff_msg("HB01", hashBuf[0], 64);
 
 	// Create a byte array of the integer and put at the front of the input buffer
 	// 1.3.6 says that little-endian byte ordering is expected
@@ -347,23 +598,36 @@ static void GenerateAgileEncryptionKey512(UTF16 *passwordBuf, int passwordBufSiz
 #else
 		*inputBuf = JOHNSWAP(i);
 #endif
+//		if (i < 16) {
+//			printf ("%04d : ", i);
+//			dump_stuff(inputBuf, 68);
+//		}
+
 		// 'append' the previously generated hash to the input buffer
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, inputBuf, 64 + 0x04);
 		SHA512_Final((unsigned char*)&inputBuf[1], &ctx);
 	}
+//	printf ("%04d : ", i);
+//	dump_stuff(inputBuf, 68);
+
 	// Finally, append "block" (0) to H(n)
 	memcpy(&inputBuf[68/4], encryptedVerifierHashInputBlockKey, 8);
 	SHA512_Init(&ctx);
+//	dump_stuff_msg("VHIB", &inputBuf[1], 72);
 	SHA512_Update(&ctx, &inputBuf[1], 64 + 8);
-	SHA512_Final(hashBuf, &ctx);
+	SHA512_Final(hashBuf[0], &ctx);
 
 	// And second "block" (0) to H(n)
 	memcpy(&inputBuf[68/4], encryptedVerifierHashValueBlockKey, 8);
 	SHA512_Init(&ctx);
+//	dump_stuff_msg("VHVB", &inputBuf[1], 72);
 	SHA512_Update(&ctx, &inputBuf[1], 64 + 8);
-	SHA512_Final(&hashBuf[64], &ctx);
+	SHA512_Final(&hashBuf[0][64], &ctx);
+//	dump_stuff_msg("hash", hashBuf[0], 128);
+//	exit(0);
 }
+#endif
 
 static void init(struct fmt_main *self)
 {
@@ -398,50 +662,49 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (cur_salt->version == 2007)
 		inc = SHA1_LOOP_CNT;
 	if (cur_salt->version == 2010)
-//		inc = SHA1_LOOP_CNT;
-		inc = 1;
+		inc = SHA1_LOOP_CNT;
 	if (cur_salt->version == 2013)
-//		inc = SHA512_LOOP_CNT;
-		inc = 1;
+		inc = SHA512_LOOP_CNT;
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index+=inc)
 	{
+		int i;
 		if(cur_salt->version == 2007) {
 			unsigned char encryptionKey[SHA1_LOOP_CNT][20];
-			int i;
 			GeneratePasswordHashUsingSHA1(index, encryptionKey);
 			for (i = 0; i < SHA1_LOOP_CNT; ++i)
 				ms_office_common_PasswordVerifier(cur_salt, encryptionKey[i], crypt_key[index+i]);
 		}
 		else if (cur_salt->version == 2010) {
-			unsigned char verifierKeys[64], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
+			unsigned char verifierKeys[SHA1_LOOP_CNT][64], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
 			unsigned char hash[20];
 			SHA_CTX ctx;
-//#ifdef MMX_COEF
-//#else
-			GenerateAgileEncryptionKey(saved_key[index], saved_len[index], cur_salt->keySize >> 3, verifierKeys);
-			ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys, cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
-			ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, &verifierKeys[32], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
-			SHA1_Init(&ctx);
-			SHA1_Update(&ctx, decryptedVerifierHashInputBytes, 16);
-			SHA1_Final(hash, &ctx);
-			cracked[index] = !memcmp(hash, decryptedVerifierHashBytes, 20);
-//#endif
+			GenerateAgileEncryptionKey(index, verifierKeys);
+			for (i = 0; i < inc; ++i) {
+				ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys[i], cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
+				ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, &verifierKeys[i][32], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
+				SHA1_Init(&ctx);
+				SHA1_Update(&ctx, decryptedVerifierHashInputBytes, 16);
+				SHA1_Final(hash, &ctx);
+				cracked[index+i] = !memcmp(hash, decryptedVerifierHashBytes, 20);
+			}
 		}
 		else if (cur_salt->version == 2013) {
-			unsigned char verifierKeys[128], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
+			unsigned char verifierKeys[SHA512_LOOP_CNT][128], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
 			unsigned char hash[64];
 			SHA512_CTX ctx;
-			GenerateAgileEncryptionKey512(saved_key[index], saved_len[index], verifierKeys);
-			ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys, cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
-			ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, &verifierKeys[64], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
-			SHA512_Init(&ctx);
-			SHA512_Update(&ctx, decryptedVerifierHashInputBytes, 16);
-			SHA512_Final(hash, &ctx);
-			cracked[index] = !memcmp(hash, decryptedVerifierHashBytes, 20);
+			GenerateAgileEncryptionKey512(index, verifierKeys);
+			for (i = 0; i < inc; ++i) {
+				ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys[i], cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
+				ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, &verifierKeys[i][64], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
+				SHA512_Init(&ctx);
+				SHA512_Update(&ctx, decryptedVerifierHashInputBytes, 16);
+				SHA512_Final(hash, &ctx);
+				cracked[index+i] = !memcmp(hash, decryptedVerifierHashBytes, 20);
+			}
 		}
 	}
 	return count;
