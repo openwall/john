@@ -143,12 +143,17 @@ static int is_aligned(void *p, size_t align)
 	}
 
 #define MAXLABEL        "MAXLENGTH" /* must be upper-case ASCII chars only */
-static char *longcand(int index, int ml)
+#define MAXLABEL_SIMD   "0X80_IS_NOT_EOW\x80" /* Catch a common bug */
+static char *longcand(struct fmt_main *format, int index, int ml)
 {
 	static char out[PLAINTEXT_BUFFER_SIZE];
 
 	memset(out, 'A' + (index % 23), ml);
-	memcpy(out, MAXLABEL, strlen(MAXLABEL));
+	if (!(format->params.flags & FMT_8_BIT) ||
+	    !(format->params.flags & FMT_CASE) || pers_opts.target_enc == UTF_8)
+		memcpy(out, MAXLABEL, strlen(MAXLABEL));
+	else
+		memcpy(out, MAXLABEL_SIMD, strlen(MAXLABEL_SIMD));
 	out[ml] = 0;
 
 	return out;
@@ -500,7 +505,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			   1. Fill the buffer with maximum length keys */
 			format->methods.clear_keys();
 			for (i = 0; i < max; i++) {
-				char *pCand = longcand(i, ml);
+				char *pCand = longcand(format, i, ml);
 				format->methods.set_key(pCand, i);
 			}
 
@@ -517,7 +522,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			/* 3. Now read them back and verify they are intact */
 			for (i = 0; i < max; i++) {
 				char *getkey = format->methods.get_key(i);
-				char *setkey = longcand(i, ml);
+				char *setkey = longcand(format, i, ml);
 
 				if (strncmp(getkey, setkey, ml + 1)) {
 					if (strnlen(getkey, ml + 1) > ml)
@@ -610,7 +615,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 /* Always call set_key() even if skipping. Some formats depend on it. */
 			for (i = index + 1;
 			     i < max && i < (index + (index >> 1)); i++)
-				format->methods.set_key(longcand(i, ml), i);
+				format->methods.set_key(longcand(format, i, ml), i);
 			index = i;
 		} else
 			index++;
@@ -631,7 +636,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			if (strstr(format->params.label, "-opencl") ||
 			    strstr(format->params.label, "-cuda")) {
 				for (i = index + 1; i < max - 1; i++)
-				    format->methods.set_key(longcand(i, ml), i);
+				    format->methods.set_key(longcand(format, i, ml), i);
 				index = max - 1;
 			} else
 #endif
