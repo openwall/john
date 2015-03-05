@@ -290,8 +290,6 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 	keys32 = (uint32_t*)keys;
 	memset(keys, 0, 64*SHA1_LOOP_CNT);
 
-//	printf("pass : %S  len=%d\n", saved_key[idx], saved_len[idx]);
-
 	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
@@ -303,7 +301,6 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 		// 24 bytes of crypt data (192 bits).
 		keys[GETPOS_1(63, i)] = 192;
 	}
-//	dump_stuff_shammx_msg("HB01", keys, 64, 0);
 
 	// we do 1 less than actual number of iterations here.
 	for (i = 0; i < cur_salt->spinCount-1; i++) {
@@ -312,10 +309,6 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 			keys[GETPOS_1(1, j)] = (i>>8)&0xff;
 			keys[GETPOS_1(2, j)] = i>>16;
 		}
-//		if (i < 16) {
-//			printf ("%04d : ", i);
-//			dump_stuff_shammx(keys, 64, 0);
-//		}
 		// Here we output to 4 bytes past start of input buffer.
 		SSESHA1body(keys, &keys32[MMX_COEF], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 	}
@@ -327,8 +320,6 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 		keys[GETPOS_1(2, j)] = i>>16;
 	}
 	SSESHA1body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
-//	printf ("%04d : ", i);
-//	dump_stuff_shammx(keys, 64, 0);
 
 	// Finally, append "block" (0) to H(n)
 	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
@@ -338,9 +329,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 		// 28 bytes of crypt data (192 bits).
 		keys[GETPOS_1(63, i)] = 224;
 	}
-//	dump_stuff_shammx_msg("VHIB", keys, 64, 0);
 	SSESHA1body(keys, crypt, NULL, SSEi_MIXED_IN);
-//	dump_out_shammx(crypt, 20, 0);
 	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
 		uint32_t *Optr32 = (uint32_t*)(hashBuf[i]);
 		uint32_t *Iptr32 = crypt;
@@ -355,9 +344,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 		for (j = 0; j < 8; ++j)
 			keys[GETPOS_1(20+j, i)] = encryptedVerifierHashValueBlockKey[j];
 	}
-//	dump_stuff_shammx_msg("VHVB", keys, 64, 0);
 	SSESHA1body(keys, crypt, NULL, SSEi_MIXED_IN);
-//	dump_out_shammx(crypt, 20, 0);
 	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
 		uint32_t *Optr32 = (uint32_t*)(hashBuf[i]);
 		uint32_t *Iptr32 = crypt;
@@ -377,8 +364,6 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 			}
 		}
 	}
-//	dump_stuff_msg("hash", hashBuf[0], 64);
-//	exit(0);
 }
 #else
 static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_CNT][64])
@@ -398,9 +383,6 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 	SHA1_Update(&ctx, passwordBuf, passwordBufSize);
 	SHA1_Final(hashBuf[0], &ctx);
 
-//	printf("pass : %S  len=%d\n", saved_key[idx], saved_len[idx]);
-//	dump_stuff_msg("HB01", hashBuf[0], 20);
-
 	/* Generate each hash in turn
 	 * H(n) = H(i, H(n-1))
 	 * hashBuf = SHA1Hash(i, hashBuf); */
@@ -415,33 +397,19 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 		*inputBuf = JOHNSWAP(i);
 #endif
 		// 'append' the previously generated hash to the input buffer
-//		if (i < 16) {
-//			printf ("%04d : ", i);
-//			dump_stuff(inputBuf, 24);
-//		}
-
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, inputBuf, 0x14 + 0x04);
 		SHA1_Final((unsigned char*)&inputBuf[1], &ctx);
 	}
-//	printf ("%04d : ", i);
-//	dump_stuff(inputBuf, 24);
-
 	// Finally, append "block" (0) to H(n)
 	memcpy(&inputBuf[6], encryptedVerifierHashInputBlockKey, 8);
 	SHA1_Init(&ctx);
-
-//	dump_stuff_msg("VHIB", &inputBuf[1], 28);
-
 	SHA1_Update(&ctx, &inputBuf[1], 28);
 	SHA1_Final(hashBuf[0], &ctx);
 
 	// And second "block" (0) to H(n)
 	memcpy(&inputBuf[6], encryptedVerifierHashValueBlockKey, 8);
 	SHA1_Init(&ctx);
-
-//	dump_stuff_msg("VHVB", &inputBuf[1], 28);
-
 	SHA1_Update(&ctx, &inputBuf[1], 28);
 	SHA1_Final(&hashBuf[0][32], &ctx);
 
@@ -452,8 +420,6 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 			hashBuf[0][32 + i] = 0x36;
 		}
 	}
-//	dump_stuff_msg("hash", hashBuf[0], 64);
-//	exit(0);
 }
 #endif
 
@@ -474,9 +440,6 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 	crypt32 = (uint32_t*)crypt;
 
 	memset(keys, 0, 128*SHA512_LOOP_CNT);
-
-//	printf("pass : %S  len=%d\n", saved_key[idx], saved_len[idx]);
-
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
@@ -489,8 +452,6 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 		keys[GETPOS_512(127, i)] = 0x20;
 		keys[GETPOS_512(126, i)] = 0x02;
 	}
-//	dump_stuff_shammx64_msg("HB01", keys, 128, 0);
-
 	// Create a byte array of the integer and put at the front of the input buffer
 	// 1.3.6 says that little-endian byte ordering is expected
 	// we do 1 less than actual number of iterations here.
@@ -500,10 +461,6 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 			keys[GETPOS_512(1, j)] = (i>>8)&0xff;
 			keys[GETPOS_512(2, j)] = i>>16;
 		}
-//		if (i < 8) {
-//			printf ("%04d : ", i);
-//			dump_stuff_shammx64(keys, 128, 0);
-//		}
 		// Here we output to 4 bytes past start of input buffer.
 		SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 		for (k = 0; k < SHA512_LOOP_CNT; ++k) {
@@ -527,8 +484,6 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 		keys[GETPOS_512(2, j)] = i>>16;
 	}
 	SSESHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
-//	printf ("%04d : ", i);
-//	dump_stuff_shammx64(keys, 128, 0);
 
 	// Finally, append "block" (0) to H(n)
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
@@ -538,11 +493,7 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 		// 72 bytes of crypt data (0x240  we already have 0x220 here)
 		keys[GETPOS_512(127, i)] = 0x40;
 	}
-	
-//	dump_stuff_shammx64_msg("VHIB", keys, 128, 0);
 	SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN);
-//	dump_out_shammx64(crypt, 64, 0);
-
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
 		uint64_t *Optr64 = (uint64_t*)(hashBuf[i]);
 		uint64_t *Iptr64 = (uint64_t*)crypt;
@@ -551,15 +502,12 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 		for (j = 0; j < 8; ++j)
 			Optr64[j] = JOHNSWAP64(Iptr64[j*MMX_COEF_SHA512]);
 	}
-
 	// And second "block" (0) to H(n)
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
 		for (j = 0; j < 8; ++j)
 			keys[GETPOS_512(64+j, i)] = encryptedVerifierHashValueBlockKey[j];
 	}
-//	dump_stuff_shammx64_msg("VHVB", keys, 128, 0);
 	SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN);
-//	dump_out_shammx64(crypt, 64, 0);
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
 		uint64_t *Optr64 = (uint64_t*)(hashBuf[i]);
 		uint64_t *Iptr64 = (uint64_t*)crypt;
@@ -569,8 +517,6 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 		for (j = 0; j < 8; ++j)
 			Optr64[j] = JOHNSWAP64(Iptr64[j*MMX_COEF_SHA512]);
 	}
-//	dump_stuff_msg("hash", hashBuf[0], 128);
-//	exit(0);
 }
 #else
 static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_LOOP_CNT][128])
@@ -586,9 +532,6 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 	SHA512_Update(&ctx, passwordBuf, passwordBufSize);
 	SHA512_Final(hashBuf[0], &ctx);
 
-//	printf("pass : %S  len=%d\n", saved_key[idx], saved_len[idx]);
-//	dump_stuff_msg("HB01", hashBuf[0], 64);
-
 	// Create a byte array of the integer and put at the front of the input buffer
 	// 1.3.6 says that little-endian byte ordering is expected
 	memcpy(&inputBuf[1], hashBuf, 64);
@@ -598,34 +541,22 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 #else
 		*inputBuf = JOHNSWAP(i);
 #endif
-//		if (i < 16) {
-//			printf ("%04d : ", i);
-//			dump_stuff(inputBuf, 68);
-//		}
-
 		// 'append' the previously generated hash to the input buffer
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, inputBuf, 64 + 0x04);
 		SHA512_Final((unsigned char*)&inputBuf[1], &ctx);
 	}
-//	printf ("%04d : ", i);
-//	dump_stuff(inputBuf, 68);
 
 	// Finally, append "block" (0) to H(n)
 	memcpy(&inputBuf[68/4], encryptedVerifierHashInputBlockKey, 8);
 	SHA512_Init(&ctx);
-//	dump_stuff_msg("VHIB", &inputBuf[1], 72);
 	SHA512_Update(&ctx, &inputBuf[1], 64 + 8);
 	SHA512_Final(hashBuf[0], &ctx);
-
 	// And second "block" (0) to H(n)
 	memcpy(&inputBuf[68/4], encryptedVerifierHashValueBlockKey, 8);
 	SHA512_Init(&ctx);
-//	dump_stuff_msg("VHVB", &inputBuf[1], 72);
 	SHA512_Update(&ctx, &inputBuf[1], 64 + 8);
 	SHA512_Final(&hashBuf[0][64], &ctx);
-//	dump_stuff_msg("hash", hashBuf[0], 128);
-//	exit(0);
 }
 #endif
 
