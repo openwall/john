@@ -26,6 +26,8 @@ OMPFLAGS =
 #OMPFLAGS = -fopenmp -msse2
 # Mac OS X (llvm-gcc) with OpenMP
 #OMPFLAGS = -fopenmp -D_FORTIFY_SOURCE=0
+# icc with OpenMP
+#OMPFLAGS = -openmp
 # Sun Studio with OpenMP (set the OMP_NUM_THREADS env var at runtime)
 #OMPFLAGS = -xopenmp
 CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer $(OMPFLAGS)
@@ -97,6 +99,7 @@ default:
 	@echo "linux-x86-sse2           Linux, x86 32-bit with SSE2 (most common, if 32-bit)"
 	@echo "linux-x86-mmx            Linux, x86 32-bit with MMX (for old computers)"
 	@echo "linux-x86-any            Linux, x86 32-bit (for truly ancient computers)"
+	@echo "linux-mic                Linux, Intel MIC (Xeon Phi)"
 	@echo "linux-arm32le-neon       Linux, ARM 32-bit little-endian w/NEON (best)"
 	@echo "linux-arm32le            Linux, ARM 32-bit little-endian"
 	@echo "linux-alpha              Linux, Alpha"
@@ -242,6 +245,15 @@ linux-x86-any:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
+
+linux-mic:
+	$(LN) mic.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CC=icc \
+		CFLAGS="$(CFLAGS) -mmic -openmp -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -mmic -openmp -lcrypt"
+	@echo "You'll likely need to scp Intel's OpenMP runtime library such as /opt/intel/*/compiler/lib/mic/libiomp?.so over to the target MIC cards and set LD_LIBRARY_PATH in order to run the produced john binary"
 
 linux-arm32le-neon:
 	$(LN) arm32le.h arch.h
