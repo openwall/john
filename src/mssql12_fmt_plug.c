@@ -102,9 +102,7 @@ static struct fmt_tests tests[] = {
 
 static unsigned char cursalt[SALT_SIZE];
 #ifdef MMX_COEF_SHA512
-#define GETPOS(i, index)        ( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7))*MMX_COEF_SHA512 + (7-((i)&7)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512*8 )
-#define GETPOS16(i, index)      ( (index&(MMX_COEF_SHA512-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF_SHA512 + (3-((i)&3)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512*4 )
-static ARCH_WORD_64 (*saved_key)[SHA512_BUF_SIZ*MMX_COEF_SHA512];
+static ARCH_WORD_64 (*saved_key)[SHA512_BUF_SIZ];
 static ARCH_WORD_64 (*crypt_out)[8*MMX_COEF_SHA512];
 static int max_keys;
 static int new_keys;
@@ -166,7 +164,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 #ifdef MMX_COEF_SHA512
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt/MMX_COEF_SHA512, MEM_ALIGN_SIMD);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt/MMX_COEF_SHA512, MEM_ALIGN_SIMD);
 	max_keys = self->params.max_keys_per_crypt;
 #else
@@ -181,6 +179,11 @@ static void init(struct fmt_main *self)
 	if (pers_opts.target_enc != ISO_8859_1 &&
 	         pers_opts.target_enc != ASCII)
 		self->methods.set_key = set_key_enc;
+}
+
+static void clear_keys()
+{
+	memset(saved_key, 0, sizeof(*saved_key) * max_keys);
 }
 
 static void set_key(char *_key, int index)
@@ -199,22 +202,15 @@ static void set_key(char *_key, int index)
 	d[key_length[index]] = 0;
 	key_length[index] <<= 1;
 #else
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64*)saved_key)[(index&(MMX_COEF_SHA512-1)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512];
-	unsigned short *w16 = (unsigned short*)saved_key;
-	UTF8 c, *key = (UTF8*)_key;
+	ARCH_WORD_64 *keybuffer = saved_key[index];
+	unsigned short *w16 = (unsigned short*)keybuffer;
+	UTF8 *key = (UTF8*)_key;
 	int len = 0;
 
-	while ((c = key[len])) {
-		w16[GETPOS16(len, index)] = c << 8;
+	while ((*w16++ = *key++))
 		len++;
-	}
 
-	keybuffer[15*MMX_COEF_SHA512] = ((len << 1) + SALT_SIZE) << 3;
-
-	while (w16[GETPOS16(len, index)]) {
-		w16[GETPOS16(len, index)] = 0;
-		len++;
-	}
+	keybuffer[15] = ((len << 1) + SALT_SIZE) << 3;
 
 	new_keys = 1;
 #endif
@@ -231,23 +227,17 @@ static void set_key_enc(char *_key, int index)
 		key_length[index] = strlen16((UTF16*)saved_key[index]);
 	key_length[index] <<= 1;
 #else
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64*)saved_key)[(index&(MMX_COEF_SHA512-1)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512];
-	unsigned short *w16 = (unsigned short*)saved_key;
-	UTF16 key[PLAINTEXT_LENGTH + 1];
-	int i, len = enc_to_utf16_be(key, PLAINTEXT_LENGTH,
-	                             (unsigned char*)_key, strlen(_key));
+	ARCH_WORD_64 *keybuffer = saved_key[index];
+	UTF16 *w16 = (UTF16*)keybuffer;
+	UTF8 *key = (UTF8*)_key;
+	int len;
+
+	len = enc_to_utf16(w16, PLAINTEXT_LENGTH, key, strlen(_key));
+
 	if (len < 0)
-		len = strlen16(key);
+		len = strlen16(w16);
 
-	for(i = 0; i < len; i++)
-		w16[GETPOS16(i, index)] = key[i];
-
-	keybuffer[15*MMX_COEF_SHA512] = ((len << 1) + SALT_SIZE) << 3;
-
-	while (w16[GETPOS16(len, index)]) {
-		w16[GETPOS16(len, index)] = 0;
-		len++;
-	}
+	keybuffer[15] = ((len << 1) + SALT_SIZE) << 3;
 
 	new_keys = 1;
 #endif
@@ -259,16 +249,16 @@ static char *get_key(int index)
 	((UTF16*)saved_key[index])[key_length[index]>>1] = 0;
 	return (char*)utf16_to_enc((UTF16*)saved_key[index]);
 #else
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64*)saved_key)[(index&(MMX_COEF_SHA512-1)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512];
+	ARCH_WORD_64 *keybuffer = saved_key[index];
+	UTF16 *w16 = (UTF16*)keybuffer;
 	static UTF16 out[PLAINTEXT_LENGTH + 1];
 	unsigned int i, len;
 
-	len = ((keybuffer[15*MMX_COEF_SHA512] >> 3) - SALT_SIZE) >> 1;
+	len = ((keybuffer[15] >> 3) - SALT_SIZE) >> 1;
 
-	for(i = 0; i < len; i++) {
-		out[i] = ((unsigned char*)saved_key)[GETPOS(i << 1, index)] |
-			(((unsigned char*)saved_key)[GETPOS((i << 1) + 1, index)] << 8);
-	}
+	for(i = 0; i < len; i++)
+		out[i] = w16[i];
+
 	out[i] = 0;
 
 	return (char*)utf16_to_enc(out);
@@ -312,7 +302,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 	int index = 0;
 #ifdef MMX_COEF_SHA512
-	unsigned char *wucp = (unsigned char*)saved_key;
 	const int inc = MMX_COEF_SHA512;
 #else
 	const int inc = 1;
@@ -327,17 +316,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 #ifdef MMX_COEF_SHA512
 		if (new_keys) {
-			int i, j;
+			int i;
 			for (i = 0; i < MMX_COEF_SHA512; i++) {
-				ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64*)saved_key)[((index+i)&(MMX_COEF_SHA512-1)) + ((index+i)>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512];
-				int len = (keybuffer[15*MMX_COEF_SHA512] >> 3) - SALT_SIZE;
+				ARCH_WORD_64 *keybuffer = saved_key[index + i];
+				unsigned char *wucp = (unsigned char*)keybuffer;
+				int j, len = (keybuffer[15] >> 3) - SALT_SIZE;
+
 				if (len >= 0)
 				for (j = 0; j < SALT_SIZE; j++)
-					wucp[GETPOS((len + j), (index + i))] = cursalt[j];
-				wucp[GETPOS((len + 4), (index + i))] = 0x80;
+					wucp[len + j] = cursalt[j];
+
+				wucp[len + 4] = 0x80;
 			}
 		}
-		SSESHA512body(&saved_key[index/MMX_COEF_SHA512], crypt_out[index/MMX_COEF_SHA512], NULL, SSEi_MIXED_IN);
+		SSESHA512body(&saved_key[index], crypt_out[index/MMX_COEF_SHA512], NULL, SSEi_FLAT_IN);
 #else
 		SHA512_CTX ctx;
 		memcpy(saved_key[index]+key_length[index], cursalt, SALT_SIZE);
@@ -442,7 +434,11 @@ struct fmt_main fmt_mssql12 = {
 		set_salt,
 		set_key,
 		get_key,
+#ifdef MMX_COEF_SHA512
+		clear_keys,
+#else
 		fmt_default_clear_keys,
+#endif
 		crypt_all,
 		{
 			get_hash_0,
