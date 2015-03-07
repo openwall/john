@@ -202,7 +202,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		                  saved_salt->realm,
 		                  &saved_key.key);
 	else
-		des_string_to_key(saved_key.string,
+		DES_string_to_key(saved_key.string,
 		                  &saved_key.key);
 
 	return *pcount;
