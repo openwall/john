@@ -95,7 +95,7 @@ void register_dlls(
 	if (config_param) {
 		cfg_names = strdup(config_param);	/* so strtok can modify */
 		for (dll_name = strtok(strdup(cfg_names), ","); dll_name;
-			dll_name = strtok(0, ",")) {
+			dll_name = strtok(NULL, ",")) {
 			dll_name += strspn(dll_name, " \t");	/* skip whitespace */
 			if (*dll_name)
 				list_add(cfg_list, dll_name);
