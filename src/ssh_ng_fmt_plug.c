@@ -368,9 +368,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			memcpy(key1, key, 8);
 			memcpy(key2, key + 8, 8);
 			memcpy(key3, key + 16, 8);
-			DES_set_key((C_Block *) key1, &ks1);
-			DES_set_key((C_Block *) key2, &ks2);
-			DES_set_key((C_Block *) key3, &ks3);
+			DES_set_key((DES_cblock *) key1, &ks1);
+			DES_set_key((DES_cblock *) key2, &ks2);
+			DES_set_key((DES_cblock *) key3, &ks3);
 			memcpy(ivec, cur_salt->salt, 8);
 			// DES_ede3_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &ks1, &ks2, &ks3, &ivec, DES_DECRYPT);
 			DES_ede3_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks1, &ks2, &ks3, &ivec, DES_DECRYPT);

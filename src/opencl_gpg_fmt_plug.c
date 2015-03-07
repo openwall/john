@@ -851,9 +851,9 @@ static int check(unsigned char *keydata, int ks)
 					  memcpy(key2, keydata + 8, 8);
 					  memcpy(key3, keydata + 16, 8);
 					  memcpy(divec, ivec, 8);
-					  DES_set_key((C_Block *)key1, &ks1);
-					  DES_set_key((C_Block *)key2, &ks2);
-					  DES_set_key((C_Block *)key3, &ks3);
+					  DES_set_key((DES_cblock *)key1, &ks1);
+					  DES_set_key((DES_cblock *)key2, &ks2);
+					  DES_set_key((DES_cblock *)key3, &ks3);
 					  DES_ede3_cfb64_encrypt(cur_salt->data, out, 8, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
 				    }
 				    break;
@@ -905,9 +905,9 @@ static int check(unsigned char *keydata, int ks)
 					  memcpy(key2, keydata + 8, 8);
 					  memcpy(key3, keydata + 16, 8);
 					  memcpy(divec, ivec, 8);
-					  DES_set_key((C_Block *) key1, &ks1);
-					  DES_set_key((C_Block *) key2, &ks2);
-					  DES_set_key((C_Block *) key3, &ks3);
+					  DES_set_key((DES_cblock *) key1, &ks1);
+					  DES_set_key((DES_cblock *) key2, &ks2);
+					  DES_set_key((DES_cblock *) key3, &ks3);
 					  DES_ede3_cfb64_encrypt(cur_salt->data, out, cur_salt->datalen, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
 				    }
 				    break;
