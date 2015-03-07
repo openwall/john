@@ -27,22 +27,27 @@ john_register_one(&fmt_sapH);
 #include <ctype.h>
 
 #include "arch.h"
+/* for now, undef this until I get OMP working, then start on SIMD */
+//#undef _OPENMP
+//#undef MMX_COEF
+//#undef SHA1_SSE_PARA
+//#undef MMX_COEF_SHA256
+//#undef SHA256_SSE_PARA
+//#undef MMX_COEF_SHA512
+//#undef SHA512_SSE_PARA
+
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "base64_convert.h"
 #include "sha.h"
 #include "sha2.h"
-
-/* for now, undef this until I get OMP working, then start on SIMD */
-#undef MMX_COEF
-#undef SHA1_SSE_PARA
-
+#include "johnswap.h"
 
 #if defined(_OPENMP)
 #include <omp.h>
 #ifdef MMX_COEF
-#define OMP_SCALE			16
+#define OMP_SCALE			8
 #else
 #define OMP_SCALE			64
 #endif
@@ -56,15 +61,29 @@ john_register_one(&fmt_sapH);
  * SHA256_SSE_PARA was 2, then we would have problems.
  */
 #ifdef MMX_COEF
-#define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
+#define NBKEYS1	(MMX_COEF * SHA1_SSE_PARA)
+#else
+#define NBKEYS1 1
 #endif
+
+#ifdef MMX_COEF_SHA256
+#define NBKEYS256	(MMX_COEF_SHA256 * SHA256_SSE_PARA)
+#else
+#define NBKEYS256 1
+#endif
+
+#ifdef MMX_COEF_SHA512
+#define NBKEYS512	(MMX_COEF_SHA512 * SHA512_SSE_PARA)
+#else
+#define NBKEYS512 1
+#endif
+
 #include "sse-intrinsics.h"
 
 #define FORMAT_LABEL            "saph"
 #define FORMAT_NAME             "SAP CODVN H (PWDSALTEDHASH)"
 
-//#define ALGORITHM_NAME          "SHA-1/256/384/512 " SHA1_ALGORITHM_NAME
-#define ALGORITHM_NAME          "SHA-1/256/384/512"
+#define ALGORITHM_NAME          "SHA-1/256/384/512 " SHA1_ALGORITHM_NAME
 
 #include "memdbg.h"
 
@@ -72,7 +91,6 @@ john_register_one(&fmt_sapH);
 #define BENCHMARK_LENGTH		0
 
 #define SALT_LENGTH             16  /* the max used sized salt */
-#define PLAINTEXT_LENGTH        125
 #define CIPHERTEXT_LENGTH       132 /* max salt+sha512 + 2^32 iterations */
 
 #define BINARY_SIZE             16 /* we cut off all hashes down to 16 bytes */
@@ -85,13 +103,14 @@ john_register_one(&fmt_sapH);
 #define SALT_SIZE               sizeof(struct sapH_salt)
 #define SALT_ALIGN              4
 
-#ifdef MMX_COEF
-#define MIN_KEYS_PER_CRYPT		NBKEYS
-#define MAX_KEYS_PER_CRYPT		NBKEYS
 /* NOTE, format is slow enough that endianity conversion is pointless. Just use flat buffers. */
+#define MIN_KEYS_PER_CRYPT		1
+#ifdef MMX_COEF
+#define MAX_KEYS_PER_CRYPT		NBKEYS1
+#define PLAINTEXT_LENGTH        23
 #else
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT		1
+#define PLAINTEXT_LENGTH        125
 #endif
 
 static struct fmt_tests tests[] = {
@@ -218,14 +237,19 @@ static int cmp_one(void * binary, int index)
 }
 
 static void crypt_all_1(int count) {
-	int idx;
+	int idx=0;
+
 #if defined(_OPENMP)
-#pragma omp parallel for
+#pragma omp parallel for default(none) private(idx) shared(count, sapH_cur_salt, saved_plain, crypt_key)
 #endif
-	for (idx = 0; idx < count; ++idx) {
-		int i, len = strlen(saved_plain[idx]);
-		unsigned char tmp[PLAINTEXT_LENGTH+SHA1_BINARY_SIZE], *cp=&tmp[len];
+	for (idx = 0; idx < count;  idx += NBKEYS1)
+	{
 		SHA_CTX ctx;
+		int i;
+
+#if !defined (MMX_COEF)
+		int len = strlen(saved_plain[idx]);
+		unsigned char tmp[PLAINTEXT_LENGTH+SHA1_BINARY_SIZE], *cp=&tmp[len];
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, saved_plain[idx], len);
 		SHA1_Update(&ctx, sapH_cur_salt->s, sapH_cur_salt->slen);
@@ -238,17 +262,66 @@ static void crypt_all_1(int count) {
 			SHA1_Final(cp, &ctx);
 		}
 		memcpy(crypt_key[idx], cp, BINARY_SIZE);
+#else
+		unsigned char _IBuf[64*NBKEYS1+16], *keys, tmpBuf[20], _OBuf[20*NBKEYS1+16], *crypt;
+		uint32_t j, *crypt32, offs[NBKEYS1], len;
+
+		keys  = (unsigned char*)mem_align(_IBuf, 16);
+		crypt = (unsigned char*)mem_align(_OBuf, 16);
+		crypt32 = (uint32_t*)crypt;
+		memset(keys, 0, 64*NBKEYS1);
+
+		for (i = 0; i < NBKEYS1; ++i) {
+			len = strlen(saved_plain[idx+i]);
+			SHA1_Init(&ctx);
+			SHA1_Update(&ctx, saved_plain[idx+i], len);
+			SHA1_Update(&ctx, sapH_cur_salt->s, sapH_cur_salt->slen);
+			SHA1_Final(tmpBuf, &ctx);
+			memcpy(&keys[i<<6], saved_plain[idx+i], len);
+			memcpy(&keys[(i<<6)+len], tmpBuf, 20);
+			keys[(i<<6)+len+20] = 0x80;
+			offs[i] = len;
+			len += 20;
+			keys[(i<<6)+60] = (len<<3)&0xff;
+			keys[(i<<6)+61] = (len>>5);
+		}
+		for (i = 1; i < sapH_cur_salt->iter; ++i) {
+			int k;
+			SSESHA1body(keys, crypt32, NULL, SSEi_FLAT_IN);
+			for (k = 0; k < NBKEYS1; ++k) {
+				uint32_t *pcrypt = &crypt32[ ((k>>(MMX_COEF>>1))*(MMX_COEF*5)) + (k&(MMX_COEF-1))];
+				uint32_t *Icp32 = (uint32_t *)(&keys[(k<<6)+offs[k]]);
+				for (j = 0; j < 5; ++j) {
+					Icp32[j] = JOHNSWAP(*pcrypt);
+					pcrypt += MMX_COEF;
+				}
+			}
+		}
+		// now marshal into crypt_out;
+		for (i = 0; i < NBKEYS1; ++i) {
+			uint32_t *Optr32 = (uint32_t*)(crypt_key[idx+i]);
+			uint32_t *Iptr32 = &crypt32[ ((i>>(MMX_COEF>>1))*(MMX_COEF*5)) + (i&(MMX_COEF-1))];
+			// we only want 16 bytes, not 20
+			for (j = 0; j < 4; ++j) {
+				Optr32[j] = JOHNSWAP(*Iptr32);
+				Iptr32 += MMX_COEF;
+			}
+		}
+#endif
 	}
 }
 static void crypt_all_256(int count) {
 	int idx;
 #if defined(_OPENMP)
-#pragma omp parallel for
+#pragma omp parallel for default(none) private(idx) shared(count, sapH_cur_salt, saved_plain, crypt_key)
 #endif
-	for (idx = 0; idx < count; ++idx) {
-		int i, len = strlen(saved_plain[idx]);
-		unsigned char tmp[PLAINTEXT_LENGTH+SHA256_BINARY_SIZE], *cp=&tmp[len];
+	for (idx = 0; idx < count; idx += NBKEYS256) {
 		SHA256_CTX ctx;
+		int i;
+
+#if !defined (MMX_COEF)
+		int len = strlen(saved_plain[idx]);
+		unsigned char tmp[PLAINTEXT_LENGTH+SHA256_BINARY_SIZE], *cp=&tmp[len];
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, saved_plain[idx], len);
 		SHA256_Update(&ctx, sapH_cur_salt->s, sapH_cur_salt->slen);
@@ -261,17 +334,66 @@ static void crypt_all_256(int count) {
 			SHA256_Final(cp, &ctx);
 		}
 		memcpy(crypt_key[idx], cp, BINARY_SIZE);
+#else
+		unsigned char _IBuf[64*NBKEYS256+16], *keys, tmpBuf[32], _OBuf[32*NBKEYS256+16], *crypt;
+		uint32_t j, *crypt32, offs[NBKEYS256], len;
+
+		keys  = (unsigned char*)mem_align(_IBuf, 16);
+		crypt = (unsigned char*)mem_align(_OBuf, 16);
+		crypt32 = (uint32_t*)crypt;
+		memset(keys, 0, 64*NBKEYS256);
+
+		for (i = 0; i < NBKEYS256; ++i) {
+			len = strlen(saved_plain[idx+i]);
+			SHA256_Init(&ctx);
+			SHA256_Update(&ctx, saved_plain[idx+i], len);
+			SHA256_Update(&ctx, sapH_cur_salt->s, sapH_cur_salt->slen);
+			SHA256_Final(tmpBuf, &ctx);
+			memcpy(&keys[i<<6], saved_plain[idx+i], len);
+			memcpy(&keys[(i<<6)+len], tmpBuf, 32);
+			keys[(i<<6)+len+32] = 0x80;
+			offs[i] = len;
+			len += 32;
+			keys[(i<<6)+60] = (len<<3)&0xff;
+			keys[(i<<6)+61] = (len>>5);
+		}
+		for (i = 1; i < sapH_cur_salt->iter; ++i) {
+			int k;
+			SSESHA256body(keys, crypt32, NULL, SSEi_FLAT_IN);
+			for (k = 0; k < NBKEYS256; ++k) {
+				uint32_t *pcrypt = &crypt32[ ((k>>(MMX_COEF_SHA256>>1))*(MMX_COEF_SHA256*8)) + (k&(MMX_COEF_SHA256-1))];
+				uint32_t *Icp32 = (uint32_t *)(&keys[(k<<6)+offs[k]]);
+				for (j = 0; j < 8; ++j) {
+					Icp32[j] = JOHNSWAP(*pcrypt);
+					pcrypt += MMX_COEF_SHA256;
+				}
+			}
+		}
+		// now marshal into crypt_out;
+		for (i = 0; i < NBKEYS256; ++i) {
+			uint32_t *Optr32 = (uint32_t*)(crypt_key[idx+i]);
+			uint32_t *Iptr32 = &crypt32[ ((i>>(MMX_COEF_SHA256>>1))*(MMX_COEF_SHA256*8)) + (i&(MMX_COEF_SHA256-1))];
+			// we only want 16 bytes, not 32
+			for (j = 0; j < 4; ++j) {
+				Optr32[j] = JOHNSWAP(*Iptr32);
+				Iptr32 += MMX_COEF_SHA256;
+			}
+		}
+#endif
 	}
 }
 static void crypt_all_384(int count) {
 	int idx;
 #if defined(_OPENMP)
-#pragma omp parallel for
+#pragma omp parallel for default(none) private(idx) shared(count, sapH_cur_salt, saved_plain, crypt_key)
 #endif
-	for (idx = 0; idx < count; ++idx) {
-		int i, len = strlen(saved_plain[idx]);
-		unsigned char tmp[PLAINTEXT_LENGTH+SHA384_BINARY_SIZE], *cp=&tmp[len];
+	for (idx = 0; idx < count; idx+=NBKEYS512) {
 		SHA512_CTX ctx;
+		int i;
+
+#if !defined MMX_COEF_SHA512
+		int len = strlen(saved_plain[idx]);
+		unsigned char tmp[PLAINTEXT_LENGTH+SHA384_BINARY_SIZE], *cp=&tmp[len];
 		SHA384_Init(&ctx);
 		SHA384_Update(&ctx, saved_plain[idx], len);
 		SHA384_Update(&ctx, sapH_cur_salt->s, sapH_cur_salt->slen);
@@ -284,17 +406,66 @@ static void crypt_all_384(int count) {
 			SHA384_Final(cp, &ctx);
 		}
 		memcpy(crypt_key[idx], cp, BINARY_SIZE);
+#else
+		unsigned char _IBuf[128*NBKEYS512+16], *keys, tmpBuf[64], _OBuf[64*NBKEYS512+16], *crypt;
+		ARCH_WORD_64 j, *crypt64, offs[NBKEYS512];
+		int len;
+
+		keys  = (unsigned char*)mem_align(_IBuf, 16);
+		crypt = (unsigned char*)mem_align(_OBuf, 16);
+		crypt64 = (ARCH_WORD_64*)crypt;
+		memset(keys, 0, 128*NBKEYS512);
+
+		for (i = 0; i < NBKEYS512; ++i) {
+			len = strlen(saved_plain[idx+i]);
+			SHA384_Init(&ctx);
+			SHA384_Update(&ctx, saved_plain[idx+i], len);
+			SHA384_Update(&ctx, sapH_cur_salt->s, sapH_cur_salt->slen);
+			SHA384_Final(tmpBuf, &ctx);
+			memcpy(&keys[i<<7], saved_plain[idx+i], len);
+			memcpy(&keys[(i<<7)+len], tmpBuf, 48);
+			keys[(i<<7)+len+48] = 0x80;
+			offs[i] = len;
+			len += 48;
+			keys[(i<<7)+120] = (len<<3)&0xff;
+			keys[(i<<7)+121] = (len>>5);
+		}
+		for (i = 1; i < sapH_cur_salt->iter; ++i) {
+			int k;
+			SSESHA512body(keys, crypt64, NULL, SSEi_FLAT_IN|SSEi_CRYPT_SHA384);
+			for (k = 0; k < NBKEYS512; ++k) {
+				ARCH_WORD_64 *pcrypt = &crypt64[ ((k>>(MMX_COEF_SHA512>>1))*(MMX_COEF_SHA512*8)) + (k&(MMX_COEF_SHA512-1))];
+				ARCH_WORD_64 *Icp64 = (ARCH_WORD_64 *)(&keys[(k<<7)+offs[k]]);
+				for (j = 0; j < 6; ++j) {
+					Icp64[j] = JOHNSWAP64(*pcrypt);
+					pcrypt += MMX_COEF_SHA512;
+				}
+			}
+		}
+		// now marshal into crypt_out;
+		for (i = 0; i < NBKEYS512; ++i) {
+			ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(crypt_key[idx+i]);
+			ARCH_WORD_64 *Iptr64 = &crypt64[ ((i>>(MMX_COEF_SHA512>>1))*(MMX_COEF_SHA512*8)) + (i&(MMX_COEF_SHA512-1))];
+			// we only want 16 bytes, not 48
+			for (j = 0; j < 2; ++j) {
+				Optr64[j] = JOHNSWAP64(*Iptr64);
+				Iptr64 += MMX_COEF_SHA512;
+			}
+		}
+#endif
 	}
 }
 static void crypt_all_512(int count) {
 	int idx;
 #if defined(_OPENMP)
-#pragma omp parallel for
+#pragma omp parallel for default(none) private(idx) shared(count, sapH_cur_salt, saved_plain, crypt_key)
 #endif
-	for (idx = 0; idx < count; ++idx) {
-		int i, len = strlen(saved_plain[idx]);
-		unsigned char tmp[PLAINTEXT_LENGTH+SHA512_BINARY_SIZE], *cp=&tmp[len];
+	for (idx = 0; idx < count; idx+=NBKEYS512) {
 		SHA512_CTX ctx;
+		int i;
+#if !defined MMX_COEF_SHA512
+		int len = strlen(saved_plain[idx]);
+		unsigned char tmp[PLAINTEXT_LENGTH+SHA512_BINARY_SIZE], *cp=&tmp[len];
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, saved_plain[idx], len);
 		SHA512_Update(&ctx, sapH_cur_salt->s, sapH_cur_salt->slen);
@@ -307,6 +478,53 @@ static void crypt_all_512(int count) {
 			SHA512_Final(cp, &ctx);
 		}
 		memcpy(crypt_key[idx], cp, BINARY_SIZE);
+#else
+		unsigned char _IBuf[128*NBKEYS512+16], *keys, tmpBuf[64], _OBuf[64*NBKEYS512+16], *crypt;
+		ARCH_WORD_64 j, *crypt64, offs[NBKEYS512];
+		int len;
+
+		keys  = (unsigned char*)mem_align(_IBuf, 16);
+		crypt = (unsigned char*)mem_align(_OBuf, 16);
+		crypt64 = (ARCH_WORD_64*)crypt;
+		memset(keys, 0, 128*NBKEYS512);
+
+		for (i = 0; i < NBKEYS512; ++i) {
+			len = strlen(saved_plain[idx+i]);
+			SHA512_Init(&ctx);
+			SHA512_Update(&ctx, saved_plain[idx+i], len);
+			SHA512_Update(&ctx, sapH_cur_salt->s, sapH_cur_salt->slen);
+			SHA512_Final(tmpBuf, &ctx);
+			memcpy(&keys[i<<7], saved_plain[idx+i], len);
+			memcpy(&keys[(i<<7)+len], tmpBuf, 64);
+			keys[(i<<7)+len+64] = 0x80;
+			offs[i] = len;
+			len += 64;
+			keys[(i<<7)+120] = (len<<3)&0xff;
+			keys[(i<<7)+121] = (len>>5);
+		}
+		for (i = 1; i < sapH_cur_salt->iter; ++i) {
+			int k;
+			SSESHA512body(keys, crypt64, NULL, SSEi_FLAT_IN);
+			for (k = 0; k < NBKEYS512; ++k) {
+				ARCH_WORD_64 *pcrypt = &crypt64[ ((k>>(MMX_COEF_SHA512>>1))*(MMX_COEF_SHA512*8)) + (k&(MMX_COEF_SHA512-1))];
+				ARCH_WORD_64 *Icp64 = (ARCH_WORD_64 *)(&keys[(k<<7)+offs[k]]);
+				for (j = 0; j < 8; ++j) {
+					Icp64[j] = JOHNSWAP64(*pcrypt);
+					pcrypt += MMX_COEF_SHA512;
+				}
+			}
+		}
+		// now marshal into crypt_out;
+		for (i = 0; i < NBKEYS512; ++i) {
+			ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(crypt_key[idx+i]);
+			ARCH_WORD_64 *Iptr64 = &crypt64[((i>>(MMX_COEF_SHA512>>1))*(MMX_COEF_SHA512*8)) + (i&(MMX_COEF_SHA512-1))];
+			// we only want 16 bytes, not 64
+			for (j = 0; j < 2; ++j) {
+				Optr64[j] = JOHNSWAP64(*Iptr64);
+				Iptr64 += MMX_COEF_SHA512;
+			}
+		}
+#endif
 	}
 }
 
