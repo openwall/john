@@ -21,6 +21,11 @@ john_register_one(&fmt_keyring);
 #endif
 
 #include "arch.h"
+
+//#undef _OPENMP
+//#undef MMX_COEF
+//#undef MMX_COEF_SHA256
+
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -29,11 +34,13 @@ john_register_one(&fmt_keyring);
 #include "md5.h"
 #include "sha2.h"
 #include <openssl/aes.h>
+#include "johnswap.h"
+#include "sse-intrinsics.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"keyring"
 #define FORMAT_NAME		"GNOME Keyring"
-#define ALGORITHM_NAME		"SHA256 AES 32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME		"SHA256 AES " SHA256_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
@@ -42,7 +49,12 @@ john_register_one(&fmt_keyring);
 #define BINARY_ALIGN		1
 #define SALT_ALIGN			sizeof(int)
 #define MIN_KEYS_PER_CRYPT	1
+#ifdef MMX_COEF_SHA256
+#define MAX_KEYS_PER_CRYPT MMX_COEF_SHA256
+#define GETPOS(i, index)        ( (index&(MMX_COEF_SHA256-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF_SHA256 + (3-((i)&3)) + (index>>(MMX_COEF_SHA256>>1))*SHA256_BUF_SIZ*MMX_COEF_SHA256*4 )
+#else
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 
 #define SALTLEN 8
 typedef unsigned char guchar;
@@ -63,7 +75,6 @@ static struct custom_salt {
 	unsigned char ct[LINE_BUFFER_SIZE / 2]; /* after hex conversion */
 } *cur_salt;
 
-unsigned char (*input)[sizeof(cur_salt->ct)];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
 static int any_cracked;
@@ -78,9 +89,6 @@ static void init(struct fmt_main *self)
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	self->params.max_keys_per_crypt *= omp_t * OMP_SCALE;
-	input = mem_alloc_tiny(sizeof(*input) * omp_t, MEM_ALIGN_WORD);
-#else
-	input = mem_alloc_tiny(sizeof(*input), MEM_ALIGN_WORD);
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -187,80 +195,89 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-static void symkey_generate_simple(const char *password, int n_password, unsigned char *salt, int n_salt, int iterations, unsigned char *key, unsigned char *iv)
+#ifdef MMX_COEF_SHA256
+static void symkey_generate_simple(int index, unsigned char *salt, int n_salt, int iterations,
+	                               unsigned char key[MAX_KEYS_PER_CRYPT][32],
+								   unsigned char iv[MAX_KEYS_PER_CRYPT][32])
 {
-
 	SHA256_CTX ctx;
-	guchar digest[64];
-	guint n_digest;
-	gint pass, i;
-	gint needed_iv, needed_key;
-	guchar *at_iv, *at_key;
+	unsigned char digest[32], _IBuf[64*MMX_COEF_SHA256+16], *keys;
+	uint32_t *keys32;
+	int i, j;
 
-	at_key = key;
-	at_iv = iv;
+	keys = (unsigned char*)mem_align(_IBuf, 16);
+	memset(keys, 0, 64*MMX_COEF_SHA256);
+	keys32 = (uint32_t*)keys;
 
-	needed_key = 16;
-	needed_iv = 16;
-	n_digest = 32;		/* SHA256 digest size */
-
-	for (pass = 0;; ++pass) {
+	// use oSSL to do first crypt, and marshal into SIMD buffers.
+	for (i = 0; i < MMX_COEF_SHA256; ++i) {
 		SHA256_Init(&ctx);
-
-		/* Hash in the previous buffer on later passes */
-		if (pass > 0) {
-			SHA256_Update(&ctx, digest, n_digest);
-		}
-
-		if (password) {
-			SHA256_Update(&ctx, password, n_password);
-
-		}
-		if (salt && n_salt) {
-			SHA256_Update(&ctx, salt, n_salt);
-		}
+		SHA256_Update(&ctx, saved_key[index+i], strlen(saved_key[index+i]));
+		SHA256_Update(&ctx, salt, n_salt);
 		SHA256_Final(digest, &ctx);
+		for (j = 0; j < 32; ++j)
+			keys[GETPOS(j, i)] = digest[j];
+		keys[GETPOS(j, i)] = 0x80;
+		// 32 bytes is 256 bits (0x100, simply put a 1 into offset 62)
+		keys[GETPOS(62, i)] = 1;
+	}
 
-		for (i = 1; i < iterations; ++i) {
-			SHA256_Init(&ctx);
-			SHA256_Update(&ctx, digest, n_digest);
-			SHA256_Final(digest, &ctx);
-		}
-		/* Copy as much as possible into the destinations */
-		i = 0;
-		while (needed_key && i < n_digest) {
-			*(at_key++) = digest[i];
-			needed_key--;
-			i++;
-		}
-		while (needed_iv && i < n_digest) {
-			if (at_iv)
-				*(at_iv++) = digest[i];
-			needed_iv--;
-			i++;
-		}
+	// the 'simple' inner loop in SIMD.
+	for (i = 1; i < iterations; ++i)
+		SSESHA256body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 
-		if (needed_key == 0 && needed_iv == 0)
-			break;
-
+	// marshal data back into flat buffers.
+	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		uint32_t *Optr32 = (uint32_t*)(key[i]);
+		uint32_t *Iptr32 = &keys32[(i/MMX_COEF_SHA256)*MMX_COEF_SHA256*16 + (i%MMX_COEF_SHA256)];
+		for (j = 0; j < 4; ++j)
+			Optr32[j] = JOHNSWAP(Iptr32[j*MMX_COEF_SHA256]);
+		Optr32 = (uint32_t*)(iv[i]);
+		for (j = 0; j < 4; ++j)
+			Optr32[j] = JOHNSWAP(Iptr32[(j+4)*MMX_COEF_SHA256]);
 	}
 }
-
-static void decrypt_buffer(unsigned char *buffer, unsigned int len,
-    unsigned char *salt, int iterations, char *password)
+#else
+static void symkey_generate_simple(int index, unsigned char *salt, int n_salt, int iterations,
+	                               unsigned char key[MAX_KEYS_PER_CRYPT][32],
+								   unsigned char iv[MAX_KEYS_PER_CRYPT][32])
 {
-	unsigned char key[32];
-	unsigned char iv[32];
-	AES_KEY akey;
-	int n_password = strlen(password);
+	SHA256_CTX ctx;
+	unsigned char digest[32];
+	int i;
 
-	symkey_generate_simple(password, n_password, salt, 8, iterations, key, iv);
+	SHA256_Init(&ctx);
+	SHA256_Update(&ctx, saved_key[index], strlen(saved_key[index]));
+	SHA256_Update(&ctx, salt, n_salt);
+	SHA256_Final(digest, &ctx);
 
-	memset(&akey, 0, sizeof(AES_KEY));
-	if (AES_set_decrypt_key(key, 128, &akey) < 0) {
-		fprintf(stderr, "AES_set_decrypt_key failed!\n");
+	for (i = 1; i < iterations; ++i) {
+		SHA256_Init(&ctx);
+		SHA256_Update(&ctx, digest, 32);
+		SHA256_Final(digest, &ctx);
 	}
-	AES_cbc_encrypt(buffer, buffer, len, &akey, iv, AES_DECRYPT);
+	memcpy(key[0], digest, 16);
+	memcpy(iv[0], &digest[16], 16);
+}
+#endif
+static void decrypt_buffer(unsigned char buffers[MAX_KEYS_PER_CRYPT][sizeof(cur_salt->ct)], int index)
+{
+	unsigned char key[MAX_KEYS_PER_CRYPT][32];
+	unsigned char iv[MAX_KEYS_PER_CRYPT][32];
+	AES_KEY akey;
+	unsigned int i, len = cur_salt->crypto_size;
+	unsigned char *salt = cur_salt->salt;
+	int iterations = cur_salt->iterations;
+
+	symkey_generate_simple(index, salt, 8, iterations, key, iv);
+
+	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		memset(&akey, 0, sizeof(AES_KEY));
+		if (AES_set_decrypt_key(key[i], 128, &akey) < 0) {
+			fprintf(stderr, "AES_set_decrypt_key failed!\n");
+		}
+		AES_cbc_encrypt(buffers[i], buffers[i], len, &akey, iv[i], AES_DECRYPT);
+	}
 }
 
 static int verify_decrypted_buffer(unsigned char *buffer, int len)
@@ -285,18 +302,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index+=MAX_KEYS_PER_CRYPT)
 	{
-#ifdef _OPENMP
-		int t = omp_get_thread_num();
-#else
-		const int t = 0;
-#endif
-		memcpy(input[t], cur_salt->ct, cur_salt->crypto_size);
-		decrypt_buffer(input[t], cur_salt->crypto_size, cur_salt->salt, cur_salt->iterations, saved_key[index]);
-		if (verify_decrypted_buffer(input[t], cur_salt->crypto_size)) {
-			cracked[index] = 1;
+		int i;
+		unsigned char buffers[MAX_KEYS_PER_CRYPT][sizeof(cur_salt->ct)];
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+			memcpy(buffers[i], cur_salt->ct, cur_salt->crypto_size);
+		decrypt_buffer(buffers, index);
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			if (verify_decrypted_buffer(buffers[i], cur_salt->crypto_size)) {
+				cracked[index+i] = 1;
+			}
 #ifdef _OPENMP
 #pragma omp atomic
 #endif

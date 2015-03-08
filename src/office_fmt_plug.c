@@ -40,23 +40,20 @@ john_register_one(&fmt_office);
 #define ALGORITHM_NAME		"SHA1 " SHA1_ALGORITHM_NAME " / SHA512 " SHA512_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
+#define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(*cur_salt)
 #define BINARY_ALIGN	4
 #define SALT_ALIGN	sizeof(int)
 #ifdef MMX_COEF
+#define GETPOS_1(i, index)  ( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 )
+#define SHA1_LOOP_CNT       (MMX_COEF*SHA1_SSE_PARA)
 #define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT	(MMX_COEF*SHA1_SSE_PARA)
-#define SHA1_LOOP_CNT (MMX_COEF*SHA1_SSE_PARA)
+#define MAX_KEYS_PER_CRYPT	SHA1_LOOP_CNT
 #else
+#define SHA1_LOOP_CNT		1
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
-#define SHA1_LOOP_CNT		1
-#endif
-
-#ifdef MMX_COEF
-#define GETPOS_1(i, index)      ( (index&(MMX_COEF-1))       *4 + ((i)&(0xffffffff-3))*MMX_COEF        + (3-((i)&3)) + (index>>(MMX_COEF>>1))       *SHA_BUF_SIZ   *MMX_COEF        *4 )
 #endif
 
 #ifdef MMX_COEF_SHA512
@@ -101,6 +98,12 @@ static struct fmt_tests office_tests[] = {
 	{"$office$*2013*100000*256*16*59b49c64c0d29de733f0025837327d50*70acc7946646ea300fc13cfe3bd751e2*627c8bdb7d9846228aaea81eeed434d022bb93bb5f4da146cb3ad9d847de9ec9", "password"},
 	/* 365-2013-strict-password.docx */
 	{"$office$*2013*100000*256*16*f1c23049d85876e6b20e95ab86a477f1*13303dbd27a38ea86ef11f1b2bc56225*9a69596de0655a6c6a5b2dc4b24d6e713e307fb70af2d6b67b566173e89f941d", "password"},
+
+	/* Max password length data, 125 bytes.  Made with pass_gen.pl */
+	{"$office$*2007*20*128*16*7268323350556e527671367031526263*54344b786a6967615052493837496735*96c9d7cc44e81971aadfe81cce88cb8b00000000", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
+	{"$office$*2010*100000*128*16*42624931633777446c67354e34686e64*73592fdc2ecb12cd8dcb3ca2cec852bd*82f7315701818a7150ed7a7977717d0b56dcd1bc27e40a23dee6287a6ed55f9b", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
+	{"$office$*2013*100000*256*16*36537a3373756b587632386d77665362*c5958bd6177be548ce33d99f8e4fd7a7*43baa9dfab09a7e54b9d719dbe5187f1f7b55d7b761361fe1f60c85b044aa125", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
+
 	{NULL}
 };
 
@@ -207,15 +210,13 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 	// Finally, append "block" (0) to H(n)
 	// hashBuf = SHA1Hash(hashBuf, 0);
 	for (i = 0; i < SHA1_SSE_PARA; ++i)
-		memcpy(&keys[GETPOS_1(23,i*MMX_COEF)], "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 4*MMX_COEF);
+		memset(&keys[GETPOS_1(23,i*MMX_COEF)], 0, 4*MMX_COEF);
 	SSESHA1body(keys, keys32, NULL, SSEi_MIXED_IN);
 
 	// Now convert back into a 'flat' value, which is a flat array.
 	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
 		uint32_t *Optr32 = (uint32_t*)hashBuf;
-		uint32_t *Iptr32 = keys32;
-		Iptr32 += (i/MMX_COEF)*MMX_COEF*5;
-		Iptr32 += (i%MMX_COEF);
+		uint32_t *Iptr32 = &keys32[(i/MMX_COEF)*MMX_COEF*5 + (i%MMX_COEF)];
 		for (j = 0; j < 5; ++j)
 			Optr32[j] = JOHNSWAP(Iptr32[j*MMX_COEF]);
 		key = DeriveKey(hashBuf, X1);
@@ -332,9 +333,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 	SSESHA1body(keys, crypt, NULL, SSEi_MIXED_IN);
 	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
 		uint32_t *Optr32 = (uint32_t*)(hashBuf[i]);
-		uint32_t *Iptr32 = crypt;
-		Iptr32 += (i/MMX_COEF)*MMX_COEF*5;
-		Iptr32 += (i%MMX_COEF);
+		uint32_t *Iptr32 = &crypt[(i/MMX_COEF)*MMX_COEF*5 + (i%MMX_COEF)];
 		for (j = 0; j < 5; ++j)
 			Optr32[j] = JOHNSWAP(Iptr32[j*MMX_COEF]);
 	}
@@ -346,11 +345,8 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 	}
 	SSESHA1body(keys, crypt, NULL, SSEi_MIXED_IN);
 	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
-		uint32_t *Optr32 = (uint32_t*)(hashBuf[i]);
-		uint32_t *Iptr32 = crypt;
-		Iptr32 += (i/MMX_COEF)*MMX_COEF*5;
-		Iptr32 += (i%MMX_COEF);
-		Optr32 += 8; // put data into offset 32, like we do for non-SIMD
+		uint32_t *Optr32 = (uint32_t*)(&(hashBuf[i][32]));
+		uint32_t *Iptr32 = &crypt[(i/MMX_COEF)*MMX_COEF*5 + (i%MMX_COEF)];
 		for (j = 0; j < 5; ++j)
 			Optr32[j] = JOHNSWAP(Iptr32[j*MMX_COEF]);
 	}
@@ -495,10 +491,8 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 	}
 	SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN);
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
-		uint64_t *Optr64 = (uint64_t*)(hashBuf[i]);
-		uint64_t *Iptr64 = (uint64_t*)crypt;
-		Iptr64 += (i/MMX_COEF_SHA512)*MMX_COEF_SHA512*8;
-		Iptr64 += (i%MMX_COEF_SHA512);
+		ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(hashBuf[i]);
+		ARCH_WORD_64 *Iptr64 = &crypt[(i/MMX_COEF_SHA512)*MMX_COEF_SHA512*8 + (i%MMX_COEF_SHA512)];
 		for (j = 0; j < 8; ++j)
 			Optr64[j] = JOHNSWAP64(Iptr64[j*MMX_COEF_SHA512]);
 	}
@@ -509,11 +503,8 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 	}
 	SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN);
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
-		uint64_t *Optr64 = (uint64_t*)(hashBuf[i]);
-		uint64_t *Iptr64 = (uint64_t*)crypt;
-		Iptr64 += (i/MMX_COEF_SHA512)*MMX_COEF_SHA512*8;
-		Iptr64 += (i%MMX_COEF_SHA512);
-		Optr64 += 8; // put data into offset 64, like we do for non-SIMD
+		ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(&(hashBuf[i][64]));
+		ARCH_WORD_64 *Iptr64 = &crypt[(i/MMX_COEF_SHA512)*MMX_COEF_SHA512*8 + (i%MMX_COEF_SHA512)];
 		for (j = 0; j < 8; ++j)
 			Optr64[j] = JOHNSWAP64(Iptr64[j*MMX_COEF_SHA512]);
 	}
@@ -588,12 +579,8 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0, inc;
+	int index = 0, inc = SHA1_LOOP_CNT;
 
-	if (cur_salt->version == 2007)
-		inc = SHA1_LOOP_CNT;
-	if (cur_salt->version == 2010)
-		inc = SHA1_LOOP_CNT;
 	if (cur_salt->version == 2013)
 		inc = SHA512_LOOP_CNT;
 
