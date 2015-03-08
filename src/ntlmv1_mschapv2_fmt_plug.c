@@ -1098,7 +1098,7 @@ out:
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 
 	if (!keys_prepared) {
 		int i = 0;

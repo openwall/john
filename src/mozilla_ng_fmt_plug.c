@@ -270,7 +270,7 @@ static void set_salt(void *salt)
 // http://www.drh-consultancy.demon.co.uk/key3.html
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for

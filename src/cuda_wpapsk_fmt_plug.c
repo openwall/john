@@ -63,7 +63,7 @@ static void init(struct fmt_main *self)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 
 	if (new_keys || strcmp(last_ssid, hccap.essid)) {
 		wpapsk_gpu(inbuffer, outbuffer, &currentsalt, count);

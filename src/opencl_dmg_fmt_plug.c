@@ -736,7 +736,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 

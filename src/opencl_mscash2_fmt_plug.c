@@ -265,7 +265,7 @@ static void pbkdf2_iter0(unsigned int *input_dcc_hash,unsigned char *salt_buffer
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount ;
+	const int count = *pcount ;
 	int salt_len;
 #ifdef _DEBUG
 	struct timeval startc, endc, startg, endg ;

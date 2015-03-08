@@ -300,7 +300,7 @@ static void crypt_md5(char *pw, char *salt, int is_standard, char *passwd)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 
 #ifdef _OPENMP

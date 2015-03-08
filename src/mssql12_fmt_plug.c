@@ -299,7 +299,7 @@ static int cmp_one(void *binary, int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 #ifdef MMX_COEF_SHA512
 	const int inc = MMX_COEF_SHA512;

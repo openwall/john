@@ -228,7 +228,7 @@ static void init(struct fmt_main *self)
 // TODO: Use concurrent memory copy & execute
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int key_length_mul_4 = (((max_key_length+1) + 3)/4)*4;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 

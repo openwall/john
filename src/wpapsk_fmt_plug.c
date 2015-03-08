@@ -349,7 +349,7 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 
 	if (new_keys || strcmp(last_ssid, hccap.essid)) {
 #ifndef MMX_COEF

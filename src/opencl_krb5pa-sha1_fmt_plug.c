@@ -665,7 +665,7 @@ static void krb_decrypt(const unsigned char ciphertext[], size_t ctext_size,
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int i;
 	int key_size;
 	size_t scalar_gws;
