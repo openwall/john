@@ -474,7 +474,7 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int i, index;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 

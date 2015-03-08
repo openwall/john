@@ -1012,7 +1012,7 @@ static int check(unsigned char *keydata, int ks)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 

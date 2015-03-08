@@ -659,7 +659,7 @@ static MAYBE_INLINE int check_huffman(unsigned char *next) {
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 
 #ifdef _OPENMP

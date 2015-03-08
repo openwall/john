@@ -172,7 +172,7 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 
 	mscash2_gpu(inbuffer, outbuffer, &currentsalt, count);
 	return count;

@@ -284,7 +284,8 @@ static void AES_256_XTS_first_sector(const unsigned char *double_key,
 }
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int i, count = *pcount;
+        int i;
+        const int count = *pcount;
 
 #ifdef _OPENMP
 #pragma omp parallel for

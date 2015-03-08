@@ -303,7 +303,7 @@ static void init(struct fmt_main *self)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index;
 	size_t gws, scalar_gws;
 

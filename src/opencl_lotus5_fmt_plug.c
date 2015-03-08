@@ -267,7 +267,7 @@ static int cmp_exact (char *source, int index)
 /*the last public function; generates ciphertext*/
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	size_t mem_cpy_sz;
 	size_t N, *M;
 

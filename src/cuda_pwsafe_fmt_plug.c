@@ -153,7 +153,7 @@ static void set_salt(void *salt)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 
         gpu_pwpass(host_pass, host_salt, host_hash, count);
         return count;

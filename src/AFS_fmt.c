@@ -289,7 +289,7 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index, pos, length;
 	char xor[8];
 	ARCH_WORD_32 space[(PLAINTEXT_LENGTH + SALT_SIZE + 8) / 4 + 1];

@@ -113,7 +113,7 @@ static int cmp_one(void * binary, int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 
 	SHA_Init( &ctx );
 	SHA_Update( &ctx, (unsigned char *) saved_key, strlen( saved_key ) );

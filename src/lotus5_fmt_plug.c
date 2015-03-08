@@ -268,7 +268,7 @@ static void lotus_mix (unsigned char *m0, unsigned char *m1)
 /*the last public function; generates ciphertext*/
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index;
 
 #ifdef _OPENMP

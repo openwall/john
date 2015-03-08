@@ -325,7 +325,7 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+        const int count = *pcount;
 	DES_bs_crypt(saved_count, count);
 	return count;
 }
@@ -344,7 +344,7 @@ static int cmp_exact(char *source, int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index;
 
 	if (current_salt != saved_salt)
