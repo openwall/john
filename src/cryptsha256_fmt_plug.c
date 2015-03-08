@@ -70,7 +70,7 @@ void proc(int p) {
    printf("%-2d : %d    %d    %d    %d    %d    %d    %d    %d\n",
           p,S(cp),S(cp+s+p),S(cp+s+p),S(cp+p),S(cp+p),S(cp+s),S(cp+s),S(cp));
 }
-void main() {
+void main(int argc, char **argv) {
    int i;
    if (argc==2) s=atoi(argv[1]);
    printf ("Len: cp   pspc cspp ppc  cpp  psc  csp  pc   (saltlen=%d)\n",s);
