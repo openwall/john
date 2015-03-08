@@ -246,7 +246,7 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 
 	cuda_sha512(gkey, ghash, count);
 	sha512_key_changed = 0;

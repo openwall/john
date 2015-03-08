@@ -728,7 +728,7 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index;
 
 	memset(cracked, 0, sizeof(cracked[0])*cracked_count);

@@ -239,7 +239,7 @@ static int verify_passphrase(char *passphrase)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for

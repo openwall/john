@@ -207,7 +207,7 @@ static void set_salt(void *salt)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 
 	if (cur_salt->magic != MAGIC) {

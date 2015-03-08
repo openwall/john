@@ -581,7 +581,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 	int *MixOrder, tot_todo;
 

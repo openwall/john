@@ -391,7 +391,8 @@ static void opencl_limit_gws(int count)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int i, count = *pcount;
+        int i;
+        const int count = *pcount;
 	int loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
 
 	opencl_limit_gws(count);

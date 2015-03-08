@@ -219,7 +219,7 @@ static int cmp_one(void * binary, int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 
 #ifdef MMX_COEF
 	SSESHA1body(saved_key, (ARCH_WORD_32*)crypt_key, NULL, SSEi_MIXED_IN);

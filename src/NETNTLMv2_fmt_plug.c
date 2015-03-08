@@ -283,7 +283,7 @@ static void *get_binary(char *ciphertext)
 */
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int identity_length, challenge_size;
 	int i = 0;
 

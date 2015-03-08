@@ -440,7 +440,7 @@ static unsigned int walld0rf_magic(const int index, const unsigned char *temp_ke
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 #if MMX_COEF
 #if defined(_OPENMP)
 	int t;

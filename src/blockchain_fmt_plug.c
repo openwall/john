@@ -204,7 +204,7 @@ static int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for

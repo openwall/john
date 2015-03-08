@@ -270,7 +270,7 @@ static inline void setup_des_key(unsigned char key_56[], int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int i;
 
 	if (!keys_prepared) {

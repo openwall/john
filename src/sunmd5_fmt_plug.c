@@ -516,7 +516,7 @@ static int nbig, nsmall;
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int idx, roundasciilen;
 	int round, maxrounds = BASIC_ROUND_COUNT + getrounds(saved_salt);
 	char roundascii[8];

@@ -384,7 +384,8 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int i, count = *pcount;
+        int i;
+        const int count = *pcount;
 	int loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
 
 	opencl_limit_gws(count);
