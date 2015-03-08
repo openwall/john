@@ -2386,7 +2386,6 @@ sub _sha_crypts {
 }
 sub sha256crypt {
 	$salt = get_salt(-16);
-	$salt="";
 	my $bin = _sha_crypts(\&sha256, 256, $_[1], $salt);
 	if ($arg_loops != -1) { return "\$5\$rounds=${arg_loops}\$$salt\$$bin"; }
 	return "\$5\$$salt\$$bin";
