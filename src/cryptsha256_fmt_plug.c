@@ -87,6 +87,9 @@ john_register_one(&fmt_cryptsha256);
 
 #include "arch.h"
 
+//#undef MMX_COEF
+//#undef MMX_COEF_SHA256
+
 #include "sha2.h"
 
 #define _GNU_SOURCE 1
