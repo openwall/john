@@ -160,6 +160,25 @@ static struct fmt_tests tests[] = {
 
 	{"$5$QSTVVEKDIDYRNK$4j8TST.29P07GHASD.BUHd0UTaFz7h.Mz//zcHokoZ5", "cgyihfkqk"},
 
+	// These were found in a bug #1077 https://github.com/magnumripper/JohnTheRipper/issues/1077
+	// and created by pass_gen to test all lengths of salts. NOTE, I could
+	// not get pass_gen.pl to do a null salt. Not sure it could be made anyway
+	{"$5$1$EjlWWGGbmWXm00wmWG2EutReY7G/TA9awDah5IvTSy2", "short_salt"},
+	{"$5$12$lhPEqohC1/lflYSl2juFZgDasZIiVdryUeIP/.XKRDA", "short_salt"},
+	{"$5$123$KOc9ndqmAVjarsk6RvQu2bEca5o7qly.lG2gNTAvzYA", "short_salt"},
+	{"$5$1234$LqOTc55Fc4K0O6h53GqAVINUCmtYuAW/8zNDoXE9zjA", "short_salt"},
+	{"$5$12345$9fAbLJJamYElIPFc5Pb9S6XfteLYOEHjdBMwdy1oWp.", "short_salt"},
+	{"$5$123456$qKfIMUCUvbINEaqXwe6LAvog3Ofj6YKXPpTXGWc5VPB", "short_salt"},
+	{"$5$1234567$367DyB16D3vHEhYfZAPQPqynsKNgkClsdQiB/I3EfQ6", "short_salt"},
+	{"$5$12345678$5Xt3LE6ogpAZvCXdQ/vPCwpzNYpABPINvsLiM5iJ9Z4", "short_salt"},
+	{"$5$123456789$csTeZZS4O/WMMHBn9mgI9mrQC8xuffJvd/jdrvYRHV5", "short_salt"},
+	{"$5$1234567890$ZS3MJOM5Rin821TVyDKq0QNTRnU6di94XhLwJc.BTj5", "short_salt"},
+	{"$5$12345678901$QdspXWcGfNr9E/Y85tslyPjFt5yQzZLsnUTlFH5AXq4", "short_salt"},
+	{"$5$123456789012$g4ldCaiyPo9fwJLJZV/oA1qux/hHElXYdgo//9UOqB6", "short_salt"},
+	{"$5$1234567890123$rejKhy.g7TXlffFRqEgPxI1gTDbqt/LDuvfRPinDHs3", "short_salt"},
+	{"$5$12345678901234$aKCh3GXmEudusN/fbNpSprqtwetjEGrEzNJdkAm9HF/", "short_salt"},
+	{"$5$123456789012345$F0HVo5HW7oxYD6cYALYrLXPq.oILAyWpdjn9pdGw6M/", "short_salt"},
+
 	// from a comment in the OpenCL implementation:
 	//{"$5$EKt.VLXiPjwyv.xe$52wdOp9ixFXMsHDI1JcCw8KJ83IakDP6J7MIEV2OUk0", "1234567"},
 #endif

@@ -72,7 +72,8 @@ void proc(int p) {
 }
 void main() {
    int i;
-   printf ("Len: cp   pspc cspp ppc  cpp  psc  csp  pc\n");
+   if (argc==2) s=atoi(argv[1]);
+   printf ("Len: cp   pspc cspp ppc  cpp  psc  csp  pc   (saltlen=%d)\n",s);
    for (i = 0; i < 40; ++i)
      proc(i);
 }
@@ -585,13 +586,30 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// group based upon size splits.
 	MixOrder = mem_calloc((count+6*MMX_COEF_SHA256), sizeof(int));
 	{
-		const int lens[6] = {0,4,8,12,24,36};
+		static const int lens[17][6] = {
+			{0,12,24,38,39,40},  //  0 byte salt (down to 2 slots now, but probably NOT valid.)
+			{0,12,23,24,39,40},  //  1 byte salt (down to 3 slots now)
+			{0,11,12,22,24,39},  //  2 byte salt
+			{0,11,12,21,24,39},  //  3 byte salt
+			{0,10,12,20,24,39},  //  4 byte salt
+			{0,10,12,19,24,39},  //  5 byte salt
+			{0, 9,12,18,24,39},  //  6 byte salt
+			{0, 9,12,17,24,39},  //  7 byte salt
+			{0, 8,12,16,24,39},  //  8 byte salt
+			{0, 8,12,15,24,39},  //  9 byte salt
+			{0, 7,12,14,24,39},  // 10 byte salt
+			{0, 7,12,13,24,39},  // 11 byte salt
+			{0, 6,12,24,38,39},  // 12 byte salt (down to 4 slots now)
+			{0, 6,11,12,24,38},  // 13 byte salt
+			{0, 5,10,12,24,37},  // 14 byte salt
+			{0, 5, 9,12,24,37},  // 15 byte salt
+			{0, 4, 8,12,24,36} };
 		int j;
 		tot_todo = 0;
 		saved_key_length[count] = 0; // point all 'tail' MMX buffer elements to this location.
 		for (j = 0; j < 5; ++j) {
 			for (index = 0; index < count; ++index) {
-				if (saved_key_length[index] >= lens[j] && saved_key_length[index] < lens[j+1])
+				if (saved_key_length[index] >= lens[cur_salt->len][j] && saved_key_length[index] < lens[cur_salt->len][j+1])
 					MixOrder[tot_todo++] = index;
 			}
 			while (tot_todo & (MMX_COEF_SHA256-1))
