@@ -545,10 +545,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 #ifdef MMX_COEF
 #if (BLOCK_LOOPS > 1)
-	int count;
 	int i;
 
-	count = (*pcount + NBKEYS - 1) / NBKEYS;
+	const int count = (*pcount + NBKEYS - 1) / NBKEYS;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif

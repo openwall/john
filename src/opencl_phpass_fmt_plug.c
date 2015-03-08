@@ -324,7 +324,7 @@ static void set_salt(void *salt)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = local_work_size ? (((count + 7) / 8) + local_work_size - 1) / local_work_size * local_work_size : (count + 7 / 8);

@@ -316,7 +316,7 @@ static int cmp_exact(char *source, int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	int inc = 1;

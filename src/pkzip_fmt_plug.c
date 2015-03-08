@@ -1314,7 +1314,7 @@ MAYBE_INLINE static int check_inflate_CODE1(u8 *next, int left) {
  */
 static int crypt_all(int *pcount, struct db_salt *_salt)
 {
-	int _count = *pcount;
+	const int _count = *pcount;
 	int idx;
 #if (ZIP_DEBUG==2)
 	static int CNT, FAILED, FAILED2;

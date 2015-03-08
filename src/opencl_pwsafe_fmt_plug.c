@@ -325,7 +325,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int i = 0;
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;

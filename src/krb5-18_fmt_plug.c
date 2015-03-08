@@ -194,7 +194,7 @@ static void *get_binary(char *ciphertext)
 
 static int crypt_all(int *pcount, struct db_salt *_salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 
 #ifdef _OPENMP

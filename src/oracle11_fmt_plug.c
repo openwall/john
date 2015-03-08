@@ -294,7 +294,7 @@ static int cmp_one(void * binary, int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 #ifdef MMX_COEF
 	unsigned int index;
 
