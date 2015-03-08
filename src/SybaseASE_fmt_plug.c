@@ -33,14 +33,22 @@ extern struct fmt_main fmt_SybaseASE;
 john_register_one(&fmt_SybaseASE);
 #else
 
-#include "sha2.h"
-
 #include "arch.h"
+
+//#undef _OPENMP
+//#undef MMX_COEF
+//#undef MMX_COEF_SHA256
+//#undef SHA256_SSE_PARA
+//
+//#define FORCE_GENERIC_SHA2 2
+#include "sha2.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
 #include "options.h"
 #include "unicode.h"
+#include "johnswap.h"
+#include "sse-intrinsics.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -49,7 +57,7 @@ john_register_one(&fmt_SybaseASE);
 #define FORMAT_LABEL        "sybasease"
 #define FORMAT_NAME         "Sybase ASE"
 
-#define ALGORITHM_NAME      "SHA256 32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME      SHA256_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0
@@ -64,8 +72,13 @@ john_register_one(&fmt_SybaseASE);
 #define SALT_ALIGN          4
 
 #define MIN_KEYS_PER_CRYPT  1
+#ifdef MMX_COEF_SHA256
+#define MAX_KEYS_PER_CRYPT	(MMX_COEF_SHA256*SHA256_SSE_PARA)
+#define OMP_SCALE           512
+#else
 #define MAX_KEYS_PER_CRYPT  1
 #define OMP_SCALE           256
+#endif
 
 static struct fmt_tests SybaseASE_tests[] = {
     {"0xc0074f9cc8c0d55d9803b0c0816e127f2a56ee080230af5b4ce3da1f3d9fcc5449fcfcf3fb9595eb8ea6", "test12"},
@@ -73,30 +86,48 @@ static struct fmt_tests SybaseASE_tests[] = {
     {NULL}
 };
 
+#ifdef MMX_COEF_SHA256
+// note, elements 3-7 are 'nulls', and are not in this array.
+static UTF16 (*prep_key)[4][MAX_KEYS_PER_CRYPT][64 / sizeof(UTF16)];
+static unsigned char *NULL_LIMB;
+static int (*last_len);
+#else
 static UTF16 (*prep_key)[518 / sizeof(UTF16)];
+#endif
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE/4];
 static int kpc;
 
 extern struct fmt_main fmt_SybaseASE;
 static void init(struct fmt_main *self)
 {
+	int i;
 #ifdef _OPENMP
-	int omp_t;
-
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	i = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= i;
+	i *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= i;
 #endif
 	kpc = self->params.max_keys_per_crypt;
 
 	prep_key = mem_calloc_tiny(sizeof(*prep_key) *
-		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+		self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	crypt_out = mem_alloc_tiny(sizeof(*crypt_out) *
-		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+		self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 
 	if (pers_opts.target_enc == UTF_8)
 		fmt_SybaseASE.params.plaintext_length = 125;
+	// will simply set SIMD stuff here, even if not 'used'
+#ifdef MMX_COEF_SHA256
+	NULL_LIMB = mem_calloc_tiny(64*MAX_KEYS_PER_CRYPT, MEM_ALIGN_SIMD);
+	last_len = mem_calloc_tiny(sizeof(*last_len)*self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	for (i = 0; i < kpc/MAX_KEYS_PER_CRYPT; ++i) {
+		int j;
+		for (j = 0; j < MAX_KEYS_PER_CRYPT; ++j) {
+			prep_key[i][3][j][3] = 0x80;
+			prep_key[i][3][j][30] = 518<<3;
+		}
+	}
+#endif
 }
 
 // TODO: strengthen checks
@@ -183,31 +214,72 @@ static void set_salt(void *salt)
 	for(index = 0; index < kpc; index++)
 	{
 		/* append salt at offset 510 */
+#ifdef MMX_COEF_SHA256
+		int idx1=index/MAX_KEYS_PER_CRYPT, idx2=index%MAX_KEYS_PER_CRYPT;
+		memcpy(&prep_key[idx1][2][idx2][31], salt, 2);
+		memcpy(prep_key[idx1][3][idx2], &((unsigned char*)salt)[2], 6);
+#else
 		memcpy((unsigned char*)prep_key[index] + 510,
 		       (unsigned char*)salt, 8);
+#endif
 	}
 }
 
 static void set_key(char *key, int index)
 {
-    /* Clean slate */
+#ifdef MMX_COEF_SHA256
+	UTF16 tmp[PLAINTEXT_LENGTH+1];
+	int len2, len = enc_to_utf16_be(tmp, PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
+	int idx1=index/MAX_KEYS_PER_CRYPT, idx2=index%MAX_KEYS_PER_CRYPT;
+	if (len > 32)
+		memcpy(prep_key[idx1][1][idx2], &tmp[32], (len-32)<<1);
+	len2 = len;
+	if (len2 > 32) len2 = 32;
+	memcpy(prep_key[idx1][0][idx2], tmp, len2<<1);
+	len2 = len;
+	while (len < last_len[index]) {
+		if (len < 32)
+			prep_key[idx1][0][idx2][len] = 0;
+		else
+			prep_key[idx1][1][idx2][len-32] = 0;
+		++len;
+	}
+	last_len[index] = len2;
+#else
+	/* Clean slate */
     memset(prep_key[index], 0, 2 * PLAINTEXT_LENGTH);
 
     /* convert key to UTF-16BE, --encoding aware */
     enc_to_utf16_be(prep_key[index], PLAINTEXT_LENGTH, (UTF8*)key,
                     strlen(key));
+#endif
 }
 
 static char *get_key(int index)
 {
     UTF16 key_le[PLAINTEXT_LENGTH + 1];
-    UTF16 *s = prep_key[index];
-    UTF16 *d = key_le;
+
+#ifdef MMX_COEF_SHA256
+	int j, idx1=index/MAX_KEYS_PER_CRYPT, idx2=index%MAX_KEYS_PER_CRYPT;
+	
+	if (last_len[index] < 32) {
+		for (j = 0; j < last_len[index]; ++j)
+			key_le[j] = JOHNSWAP(prep_key[idx1][0][idx2][j])>>16;
+	} else {
+		for (j = 0; j < 32; ++j)
+			key_le[j] = JOHNSWAP(prep_key[idx1][0][idx2][j])>>16;
+		for (; j < last_len[index]; ++j)
+			key_le[j] = JOHNSWAP(prep_key[idx1][1][idx2][j-32])>>16;
+	}
+	key_le[j] = 0;
+#else
+	UTF16 *d = key_le;
+	UTF16 *s = prep_key[index];
 
     // Byte-swap back to UTF-16LE
     while ((*d++ = *s >> 8 | *s << 8))
         s++;
-
+#endif
     return (char*)utf16_to_enc(key_le);
 }
 
@@ -217,15 +289,43 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 
 #ifdef _OPENMP
+#ifndef MMX_COEF_SHA256
 #pragma omp parallel for default(none) private(index) shared(count, crypt_out, prep_key)
-	for(index = 0; index < count; index++)
+#else
+#pragma omp parallel for default(none) private(index) shared(count, crypt_out, prep_key, NULL_LIMB)
 #endif
+#endif
+	for(index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
+#ifndef MMX_COEF_SHA256
 		SHA256_CTX ctx;
 
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, prep_key[index], 518);
 		SHA256_Final((unsigned char *)crypt_out[index], &ctx);
+#else
+		unsigned char _OBuf[32*MAX_KEYS_PER_CRYPT+16], *crypt;
+		uint32_t *crypt32, i, j;
+		crypt = (unsigned char*)mem_align(_OBuf, 16);
+		crypt32 = (uint32_t*)crypt;
+
+		SSESHA256body(prep_key[index/MAX_KEYS_PER_CRYPT], crypt32, NULL, SSEi_FLAT_IN|SSEi_FLAT_RELOAD_SWAPLAST);
+		SSESHA256body(&(prep_key[index/MAX_KEYS_PER_CRYPT][1]), crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD|SSEi_FLAT_RELOAD_SWAPLAST);
+		SSESHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
+		SSESHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
+		SSESHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
+		SSESHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
+		SSESHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
+		SSESHA256body(&(prep_key[index/MAX_KEYS_PER_CRYPT][2]), crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD|SSEi_FLAT_RELOAD_SWAPLAST);
+		SSESHA256body(&(prep_key[index/MAX_KEYS_PER_CRYPT][3]), crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
+		// now marshal into crypt_out;
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			uint32_t *Optr32 = (uint32_t*)(crypt_out[index+i]);
+			uint32_t *Iptr32 = &crypt32[(i/MMX_COEF_SHA256)*MMX_COEF_SHA256*8 + (i%MMX_COEF_SHA256)];
+			for (j = 0; j < 8; ++j)
+				Optr32[j] = JOHNSWAP(Iptr32[j*MMX_COEF_SHA256]);
+		}
+#endif
 	}
 	return count;
 }
@@ -234,9 +334,7 @@ static int cmp_all(void *binary, int count)
 {
     int index = 0;
 
-#ifdef _OPENMP
     for (index = 0; index < count; index++)
-#endif
         if (*(ARCH_WORD_32 *)binary == *(ARCH_WORD_32 *)crypt_out[index])
             return 1;
     return 0;
