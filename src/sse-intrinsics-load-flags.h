@@ -30,6 +30,9 @@ typedef enum {
 	SSEi_2BUF_INPUT_FIRST_BLK=(0x40|0x80),  // input array 2x in size.  This is the first block, so we MUST rotate element 14/15 if in flat mode.
 	SSEi_4BUF_INPUT=0x100,        // input array is 4x in size (This is seen in the dynamic type, for sha256. We have 256 byte input buffers there).
 	SSEi_4BUF_INPUT_FIRST_BLK=(0x100|0x200),  // input array 4x in size.  This is the first block, so we MUST rotate element 14/15 if in flat mode.
+	SSEi_FLAT_RELOAD_SWAPLAST=0x400,	// can be an issue for flat mode, and reload (i.e. multi buffers.) The LAST limb should NEVER have this flag set.
+	                                	// this also only 'affects' the SHA1, SHA256 formats. Similar to SSEi_4BUF_INPUT_FIRST_BLK, but simply says we will
+	                                	// have more buffers coming after this one.
 
 	// this are specific to SHA2 hashes. Can be the same bit, since only 1 will be used (i.e. it is not valid to do SSE_CRYPT_SHA224|SSE_CRYPT_SHA224 and expect both to be loaded)
 	// WARNING, SHA224 requires a FULL SHA256 width output buffer, and SHA384 requires a full SHA512 width output buffer.  This is to allow proper reloading and doing multi-limb crypts.
