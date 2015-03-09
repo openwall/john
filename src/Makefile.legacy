@@ -248,6 +248,10 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/gpg2john.exe ../run/base64conv.exe
 PROJ_PCAP = ../run/SIPdump ../run/vncpcap2john
 default:
+	@echo "===================================================="
+	@echo "Makefile.legacy is unsupported. You are on your own!"
+	@echo "===================================================="
+	@echo ""
 	@echo "To build John the Ripper, type:"
 	@echo "	make -f Makefile.legacy clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
