@@ -83,7 +83,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
  *      performance IMPROVEMENTS on some formats.  The biggest benefit, is that this becomes
  *      OMP usable, and it reduces the code complexity a LOT, and makes writing scripts easier,
  *      with less internal knowledge of the strange way SHA1 worked before, to make an optimal
- *      speed format.  SHA224/256 have been done in SSE2. Only SHA384/512 left to do.
+ *      speed format.  SHA224/256 have been done in SSE2. Only SHA384/512 left to do (DONE).
  *
  *   5. Change regen-salts to be generic. Add the logic to dynamic_fmt.c proper, and change
  *      the fake-salts.c, and options so that 'generic' regen-salts can be done.
