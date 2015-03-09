@@ -789,8 +789,6 @@ static int crk_salt_loop(void)
 	else
 	crk_fix_state();
 
-	crk_methods.clear_keys();
-
 	if (ext_abort)
 		event_abort = 1;
 
@@ -799,6 +797,8 @@ static int crk_salt_loop(void)
 		event_status = 0;
 		status_print();
 	}
+
+	crk_methods.clear_keys();
 
 	return ext_abort;
 }
