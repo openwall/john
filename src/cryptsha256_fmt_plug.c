@@ -858,6 +858,9 @@ static void *get_salt(char *ciphertext)
 
 	for (len = 0; ciphertext[len] != '$'; len++);
 
+	if (len > SALT_LENGTH)
+		len = SALT_LENGTH;
+
 	memcpy(out.salt, ciphertext, len);
 	out.len = len;
 	return &out;

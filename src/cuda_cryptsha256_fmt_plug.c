@@ -84,6 +84,10 @@ static void *salt(char *ciphertext)
 			break;
 
 		}
+
+	if (end > SALT_LENGTH + 3) /* +3 for $5$ */
+		end = SALT_LENGTH + 3;
+
 	for (i = 0; i < end; i++)
 		ret[i] = ciphertext[i];
 	ret[end] = 0;

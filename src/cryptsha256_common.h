@@ -51,7 +51,7 @@ static int valid(char * ciphertext, struct fmt_main * self) {
 			ciphertext = endp + 1;
 			}
 	for (pos = ciphertext; *pos && *pos != '$'; pos++);
-	if (!*pos || pos < ciphertext || pos > &ciphertext[SALT_LENGTH]) return 0;
+	if (!*pos || pos < ciphertext) return 0;
 
 	start = ++pos;
 	while (atoi64[ARCH_INDEX(*pos)] != 0x7F) pos++;
@@ -102,7 +102,7 @@ static struct fmt_tests tests[] = {
 	{"$5$LKO/Ute40T3FNF95$fdgfoJEBoMajNxCv3Ru9LyQ0xZgv0OBMQoq80LQ/Qd.", "U*U***U"},
 	{"$5$LKO/Ute40T3FNF95$8Ry82xGnnPI/6HtFYnvPBTYgOL23sdMXn8C29aO.x/A", "U*U***U*"},
 	{"$5$9mx1HkCz7G1xho50$O7V7YgleJKLUhcfk9pgzdh3RapEaWqMtEp9UUBAKIPA", "*U*U*U*U"},
-	{"$5$kc7lRD1fpYg0g.IP$d7CMTcEqJyTXyeq8hTdu/jB/I6DGkoo62NXbHIR7S43", ""},
+	{"$5$kc7lRD1fpYg0g.IP.ThisShouldBeTruncated.$d7CMTcEqJyTXyeq8hTdu/jB/I6DGkoo62NXbHIR7S43", ""},
 	{"$5$saltstring$5B8vYYiY.CVt1RlTTf8KbXBH3hsxY/GNooZaBBGWEc5", "Hello world!"},
 	{"$5$V8UMZ8/8.j$GGzeGHZy60318qdLiocMj7DddCnfr7jIcLMDIRy9Tr0", "password"},
 
