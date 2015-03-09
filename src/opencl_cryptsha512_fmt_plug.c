@@ -451,7 +451,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 
 static int crypt_all(int *pcount, struct db_salt *_salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int i;
 	size_t gws;
 

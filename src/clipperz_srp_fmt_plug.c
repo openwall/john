@@ -340,7 +340,7 @@ static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int j;
 #ifdef _OPENMP
 #pragma omp parallel for

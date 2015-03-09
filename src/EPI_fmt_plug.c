@@ -145,7 +145,7 @@ static char* get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int i=0;
 #ifdef _OPENMP
 #pragma omp parallel for private(i) shared(global_salt, saved_key, key_len, crypt_out)

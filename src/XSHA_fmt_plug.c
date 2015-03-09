@@ -333,7 +333,7 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 #ifdef MMX_COEF
 	int i = 0;
 #if defined(_OPENMP)

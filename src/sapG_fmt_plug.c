@@ -408,7 +408,7 @@ static inline void crypt_done(unsigned const int *source, unsigned int *dest, in
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 #if MMX_COEF
 
 #if defined(_OPENMP)

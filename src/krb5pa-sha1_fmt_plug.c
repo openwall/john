@@ -503,7 +503,7 @@ static void krb_encrypt(const unsigned char ciphertext[], size_t ctext_size,
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for

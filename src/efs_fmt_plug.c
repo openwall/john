@@ -251,7 +251,7 @@ static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *pwdha
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for

@@ -401,7 +401,8 @@ static void set_salt(void *salt)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int index, count = *pcount;
+	int index;
+	const int count = *pcount;
 	int m = cur_salt->has_mitm;
 	size_t lws;
 

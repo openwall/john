@@ -181,7 +181,7 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	MD4_Init(&ctx);
 	if (saved_salt[1] == 'p') {
 		MD4_Update(&ctx, &saved_salt[2], (unsigned char)saved_salt[0]);

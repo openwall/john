@@ -349,7 +349,7 @@ int bcrypt_pbkdf(const char *pass, size_t passlen, const uint8_t *salt, size_t s
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 
 #ifdef _OPENMP
