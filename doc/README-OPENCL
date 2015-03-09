@@ -46,9 +46,6 @@ To build without OpenCL, use:
     ./configure --disable-opencl
     make -s
 
-As a last resort, you can use the legacy Makefile:
-    make -sf Makefile.legacy linux-x86-64-opencl
-
 
 ATI/AMD suggest you to use ATISTREAMSDKROOT env variable to
 provide where you have installed their SDK root.

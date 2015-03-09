@@ -18,9 +18,6 @@ Compiling:
   To build without CUDA, use:
       ./configure --disable-cuda".
 
-  As a last resort, you can use the legacy Makefile:
-      make -f Makefile.legacy linux-x86-64-gpu
-
 
 If you have problems with JtR CUDA support:
   Please check that your PATH contains cuda bin (eg. /usr/local/cuda/bin)

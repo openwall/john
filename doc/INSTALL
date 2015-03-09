@@ -78,20 +78,6 @@ there is one) you can disable its use within configure:
 You can also disable certain features you don't want, eg:
 	./configure --disable-openmp && make
 
-If you have problems with the autoconf feature, you can revert to the
-legacy Makefile like this:
-	make -f Makefile.legacy
-
-You'll get a list of operating systems for which specific support
-exists. Note the make target for your system and type:
-
-	make -f Makefile.legacy clean SYSTEM
-
-where SYSTEM is the appropriate make target.  Alternatively, if your
-system is not listed, use:
-
-	make -f Makefile.legacy clean generic
-
 If everything goes well, this will create the executables for John and
 its related utilities under "../run/".  You can change directory to
 there and start John, like this:
