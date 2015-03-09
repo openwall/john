@@ -26,22 +26,18 @@ john_register_one(&fmt_cuda_cryptsha256);
 #include "misc.h"
 #include "cuda_common.h"
 
+#define __CRYPTSHA256_CREATE_PROPER_TESTS_ARRAY__
+#include "cuda_cryptsha256.h"
+#include "cryptsha256_common.h"
+#include "memdbg.h"
+
 #define FORMAT_LABEL		"sha256crypt-cuda"
 #define ALGORITHM_NAME		"SHA256 CUDA (inefficient, please use sha256crypt-opencl instead)"
-
-#define PLAINTEXT_LENGTH	15
-#define MD5_DIGEST_LENGTH 	16
 
 #define SALT_SIZE		(3+7+9+16)
 
 #define MIN_KEYS_PER_CRYPT	THREADS
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
-
-#define __CRYPTSHA256_CREATE_PROPER_TESTS_ARRAY__
-#include "cryptsha256_common.h"
-#include "cuda_cryptsha256.h"
-
-#include "memdbg.h"
 
 extern void sha256_crypt_gpu(crypt_sha256_password * inbuffer,
 	uint32_t * outbuffer, crypt_sha256_salt * host_salt, int count);
@@ -105,7 +101,8 @@ static void set_salt(void *salt)
 	if (strncmp((char *) "$5$", (char *) currentsalt, 3) == 0)
 		offset += 3;
 
-	if (strncmp((char *) currentsalt + offset, (char *) "rounds=", 7) == 0) {
+	if (strncmp((char *) currentsalt + offset, (char *) "rounds=", 7) == 0)
+	{
 		const char *num = currentsalt + offset + 7;
 		char *endp;
 		unsigned long int srounds = strtoul(num, &endp, 10);

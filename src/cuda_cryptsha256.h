@@ -34,6 +34,7 @@
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
+#define PLAINTEXT_LENGTH 23
 #define SALT_LEN_MAX 16
 
 typedef struct {
@@ -51,7 +52,7 @@ typedef struct {
 
 typedef struct {
 	unsigned char length;
-	unsigned char v[15];
+	unsigned char v[PLAINTEXT_LENGTH];
 } crypt_sha256_password;
 
 
