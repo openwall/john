@@ -198,7 +198,7 @@ static int max_crypts;
 
 /* these 2 values are used in setup of the cryptloopstruct, AND to do our SHA512_Init() calls, in the inner loop */
 static const unsigned char padding[256] = { 0x80, 0 /* 0,0,0,0.... */ };
-#ifndef JTR_INC_COMMON_CRYPTO_SHA2
+#if !defined(JTR_INC_COMMON_CRYPTO_SHA2) && !defined (MMX_COEF_SHA512)
 static const uint64_t ctx_init[8] =
 	{0x6A09E667F3BCC908ULL,0xBB67AE8584CAA73BULL,0x3C6EF372FE94F82BULL,0xA54FF53A5F1D36F1ULL,0x510E527FADE682D1ULL,0x9B05688C2B3E6C1FULL,0x1F83D9ABFB41BD6BULL,0x5BE0CD19137E2179ULL};
 #endif
