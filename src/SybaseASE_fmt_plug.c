@@ -130,15 +130,23 @@ static void init(struct fmt_main *self)
 #endif
 }
 
-// TODO: strengthen checks
 static int valid(char *ciphertext, struct fmt_main *self)
 {
     if(strncmp(ciphertext, "0xc007", 6)!=0)
         return 0;
     if(strlen(ciphertext) != CIPHERTEXT_LENGTH)
         return 0;
-
+	if (!ishex(&ciphertext[6]))
+		return 0;
     return 1;
+}
+
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[CIPHERTEXT_LENGTH+1];
+	strnzcpy(out, ciphertext, CIPHERTEXT_LENGTH+1);
+	strlwr(out);
+	return out;
 }
 
 static void *get_binary(char *ciphertext)
@@ -370,7 +378,7 @@ struct fmt_main fmt_SybaseASE = {
         SALT_ALIGN,
         MIN_KEYS_PER_CRYPT,
         MAX_KEYS_PER_CRYPT,
-        FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8,
+        FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -381,7 +389,7 @@ struct fmt_main fmt_SybaseASE = {
         fmt_default_reset,
         fmt_default_prepare,
         valid,
-        fmt_default_split,
+        split,
         get_binary,
         salt,
 #if FMT_MAIN_VERSION > 11
