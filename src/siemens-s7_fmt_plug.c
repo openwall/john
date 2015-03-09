@@ -84,18 +84,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 12;		/* skip over "$siemens-s7$" */
-	if ((p = strtok(ctcopy, "$")) == NULL)	/* outcome */
+	if ((p = strtok(ctcopy, "$")) == NULL)	/* outcome, currently unused */
 		goto bail;
 	outcome = atoi(p);
 	if (outcome != 1 && outcome != 0)
 		goto bail;
 	if ((p = strtok(NULL, "$")) == NULL)	/* challenge */
 		goto bail;
-	if (strlen(p) != 40)
+	if (strlen(p) != 40 || !ishexlc(p))     /* must be hex string and lower cases*/
 		goto bail;
 	if ((p = strtok(NULL, "$")) == NULL)	/* Fix bug: #1090 */
 		goto bail;
-	if (strlen(p) != 40)
+	if (strlen(p) != 40 || !ishexlc(p))
 		goto bail;
 	MEM_FREE(keeptr);
 	return 1;
