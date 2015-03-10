@@ -270,10 +270,6 @@ static void *binary(char *ciphertext)
 	return out;
 }
 
-static void clear_keys(void)
-{
-}
-
 // ISO-8859-1 to UCS-2, directly into vector key buffer
 static void set_key(char *_key, int index)
 {
@@ -756,7 +752,7 @@ struct fmt_main fmt_NT2 = {
 		fmt_default_set_salt,
 		set_key,
 		get_key,
-		clear_keys,
+		fmt_default_clear_keys,
 		crypt_all,
 		{
 			get_hash_0,

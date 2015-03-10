@@ -190,10 +190,6 @@ static int get_hash_5(int index) { return crypt_key[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_key[index][0] & 0x7ffffff; }
 #endif
 
-static void clear_keys(void)
-{
-}
-
 #ifdef MMX_COEF
 static void set_key(char *_key, int index)
 {
@@ -391,7 +387,7 @@ struct fmt_main fmt_rawMD4 = {
 		fmt_default_set_salt,
 		set_key,
 		get_key,
-		clear_keys,
+		fmt_default_clear_keys,
 		crypt_all,
 		{
 			get_hash_0,

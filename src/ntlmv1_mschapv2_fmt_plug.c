@@ -707,10 +707,6 @@ static void set_salt(void *salt)
 	challenge = salt;
 }
 
-static void clear_keys(void)
-{
-}
-
 // ISO-8859-1 to UCS-2, directly into vector key buffer
 static void set_key_ansi(char *_key, int index)
 {
@@ -1353,7 +1349,7 @@ struct fmt_main fmt_MSCHAPv2_new = {
 		set_salt,
 		set_key_ansi,
 		get_key,
-		clear_keys,
+		fmt_default_clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
@@ -1420,7 +1416,7 @@ struct fmt_main fmt_NETNTLM_new = {
 		set_salt,
 		set_key_ansi,
 		get_key,
-		clear_keys,
+		fmt_default_clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
