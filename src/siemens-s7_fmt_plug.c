@@ -93,6 +93,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if (strlen(p) != 40)
 		goto bail;
+	if ((p = strtok(NULL, "$")) == NULL)	/* Fix bug: #1090 */
+		goto bail;
+	if (strlen(p) < 40)
+		goto bail;
 	MEM_FREE(keeptr);
 	return 1;
 bail:
