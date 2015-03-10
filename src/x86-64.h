@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2003,2006,2008,2010,2011 by Solar Designer
+ * Copyright (c) 2003,2006,2008,2010,2011,2015 by Solar Designer
  *
  * ...with a trivial change in the jumbo patch, by Alain Espinosa.
  *
@@ -323,6 +323,28 @@
 
 #define BF_ASM				0
 #define BF_SCALE			1
+
+/*
+ * 3x (as opposed to 2x) interleaving provides substantial speedup on Core 2
+ * CPUs, as well as slight speedup on some other CPUs.  Unfortunately, it
+ * results in lower cumulative performance with multiple concurrent threads or
+ * processes on some newer SMT-capable CPUs.  While this has nothing to do with
+ * AVX per se, building for AVX implies we do not intend to run on a Core 2
+ * (which has at most SSE4.1), so checking for AVX here provides an easy way to
+ * avoid this performance regression in AVX-enabled builds.  In multi-binary
+ * packages with runtime fallbacks, the AVX-enabled binary would invoke a
+ * non-AVX fallback binary from its john.c if run e.g. on a Core 2.  We could
+ * check for SSE4.2 rather than AVX here, as SSE4.2 was introduced along with
+ * SMT-capable Nehalem microarchitecture CPUs, but apparently those CPUs did
+ * not yet exhibit the performance regression with 3x interleaving.  Besides,
+ * some newer CPUs capable of SSE4.2 but not AVX happen to lack SMT, so will
+ * likely benefit from the 3x interleaving with no adverse effects for the
+ * multi-threaded case.
+ */
+#ifdef __AVX__
+#define BF_X2				1
+#else
 #define BF_X2				3
+#endif
 
 #endif
