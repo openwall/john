@@ -358,3 +358,12 @@ char *strrev(char *str) {
 	return str;
 }
 #endif
+
+#if AC_BUILT && !HAVE_STRNLEN
+size_t strnlen(const char *s, size_t max) {
+	const char *p=s;
+	while(*p && max--)
+		++p;
+	return(p - s);
+}
+#endif

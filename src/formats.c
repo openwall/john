@@ -30,6 +30,7 @@ typedef unsigned int ARCH_WORD_32;
 #elif HAVE_CUDA
 #include "cuda_common.h"
 #endif
+#include "jumbo.h"
 #include "memdbg.h"
 
 struct fmt_main *fmt_list = NULL;

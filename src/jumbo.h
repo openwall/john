@@ -392,4 +392,13 @@ char *strrev(char *str);
 //HAVE_STRTOL
 //HAVE_STRTOUL
 
+/*
+ * Like strlen but will not scan past max, so will return at most max.
+ */
+#if AC_BUILT && !HAVE_STRNLEN
+#undef strnlen
+#define strnlen jtr_strnlen
+extern size_t strnlen(const char *s, size_t max);
+#endif
+
 #endif /* _JTR_JUMBO_H */
