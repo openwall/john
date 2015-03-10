@@ -798,14 +798,15 @@ static int crk_salt_loop(void)
 		status_print();
 	}
 
-	crk_methods.clear_keys();
-
 	return ext_abort;
 }
 
 int crk_process_key(char *key)
 {
 	if (crk_db->loaded) {
+		if (crk_key_index == 0)
+			crk_methods.clear_keys();
+
 		crk_methods.set_key(key, crk_key_index++);
 
 		if (crk_key_index >= crk_params.max_keys_per_crypt)
