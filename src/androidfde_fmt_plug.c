@@ -300,7 +300,7 @@ void hash_plugin_check_hash(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 
 	memset(cracked, 0, sizeof(cracked[0])*max_cracked);

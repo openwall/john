@@ -593,7 +593,7 @@ static void pdf_compute_user_password(unsigned char *password,  unsigned char *o
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index = 0;
 
 	if (any_cracked) {

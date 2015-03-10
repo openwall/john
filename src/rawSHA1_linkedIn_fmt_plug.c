@@ -260,7 +260,7 @@ static int cmp_one(void * binary, int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 
   // get plaintext input in saved_key put it into ciphertext crypt_key
 #ifdef MMX_COEF

@@ -135,7 +135,7 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 
 	sha256_crypt_gpu(inbuffer, outbuffer, &host_salt, count);
 	return count;

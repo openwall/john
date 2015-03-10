@@ -184,7 +184,7 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 
 	SHA1_Init(&ctx);
 	if (saved_salt[1] == 'p') {

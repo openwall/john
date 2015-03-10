@@ -491,7 +491,7 @@ static MAYBE_INLINE void crypt_traverse_by_salt(int count)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	crypt_link_by_salt(count);
 	crypt_traverse_by_salt(count);
 	return count;
