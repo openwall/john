@@ -28,7 +28,7 @@
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		72
-//#define CIPHERTEXT_LENGTH		60 // in BF_commmon.h
+#define CIPHERTEXT_LENGTH		60
 
 #define BINARY_SIZE			4
 #define BINARY_ALIGN			4
@@ -38,7 +38,55 @@
 #define MIN_KEYS_PER_CRYPT		BF_Nmin
 #define MAX_KEYS_PER_CRYPT		BF_N
 
-// static struct fmt_tests BF_common_tests[] = {  // defined in BF_common_plug.c
+static struct fmt_tests tests[] = {
+	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.E5YPO9kmyuRGyh0XouQYb4YMJKvyOeW",
+		"U*U"},
+	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.VGOzA784oUp/Z0DY336zx7pLYAy0lwK",
+		"U*U*"},
+	{"$2a$05$XXXXXXXXXXXXXXXXXXXXXOAcXxm9kjPGEMsLznoKqmqw7tc8WCx4a",
+		"U*U*U"},
+	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.7uG0VCzI2bS7j6ymqJi9CdcdxiRTWNy",
+		""},
+	{"$2a$05$abcdefghijklmnopqrstuu5s2v8.iXieOjg/.AySBTTZIIVFJeBui",
+		"0123456789abcdefghijklmnopqrstuvwxyz"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+		"chars after 72 are ignored"},
+	{"$2x$05$/OK.fbVrR/bpIqNJ5ianF.CE5elHaaO4EbggVDjb8P19RukzXSM3e",
+		"\xa3"},
+	{"$2y$05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq",
+		"\xa3"},
+	{"$2x$05$6bNw2HLQYeqHYyBfLMsv/OiwqTymGIGzFsA4hOTWebfehXHNprcAS",
+		"\xd1\x91"},
+	{"$2x$05$6bNw2HLQYeqHYyBfLMsv/O9LIGgn8OMzuDoHfof8AQimSGfcSWxnS",
+		"\xd0\xc1\xd2\xcf\xcc\xd8"},
+	{"$2a$05$/OK.fbVrR/bpIqNJ5ianF.swQOIzjOiJ9GHEPuhEkvqrUyvWhEMx6",
+		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+		"chars after 72 are ignored as usual"},
+	{"$2a$05$/OK.fbVrR/bpIqNJ5ianF.R9xrDjiycxMbQE2bp.vgqlYpW5wx2yy",
+		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
+		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
+		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
+		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
+		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
+		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"},
+	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.7uG0VCzI2bS7j6ymqJi9CdcdxiRTWNy",
+		""},
+	{"$2a$05$/OK.fbVrR/bpIqNJ5ianF.9tQZzcJfm3uj2NvJ/n5xkhpqLrMpWCe",
+		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
+		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
+		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
+		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
+		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
+		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"},
+	{"$2b$05$XXXXXXXXXXXXXXXXXXXXXOAcXxm9kjPGEMsLznoKqmqw7tc8WCx4a",
+		"U*U*U"},
+	{NULL}
+};
 
 static char saved_key[BF_N][PLAINTEXT_LENGTH + 1];
 static char keys_mode;
@@ -66,6 +114,32 @@ static void init(struct fmt_main *self)
 
 	keys_mode = 'y';
 	sign_extension_bug = 0;
+}
+
+static int valid(char *ciphertext, struct fmt_main *self)
+{
+	int rounds;
+	char *pos;
+
+	if (strncmp(ciphertext, "$2a$", 4) &&
+	    strncmp(ciphertext, "$2b$", 4) &&
+	    strncmp(ciphertext, "$2x$", 4) &&
+	    strncmp(ciphertext, "$2y$", 4))
+		return 0;
+
+	if (ciphertext[4] < '0' || ciphertext[4] > '9') return 0;
+	if (ciphertext[5] < '0' || ciphertext[5] > '9') return 0;
+	if (ciphertext[6] != '$') return 0;
+	rounds = atoi(ciphertext + 4);
+	if (rounds < 4 || rounds > 31) return 0;
+
+	for (pos = &ciphertext[7]; atoi64[ARCH_INDEX(*pos)] != 0x7F; pos++);
+	if (*pos || pos - ciphertext != CIPHERTEXT_LENGTH) return 0;
+
+	if (BF_atoi64[ARCH_INDEX(*(pos - 1))] & 3) return 0;
+	if (BF_atoi64[ARCH_INDEX(ciphertext[28])] & 0xF) return 0;
+
+	return 1;
 }
 
 static int get_hash_0(int index)
@@ -171,7 +245,7 @@ static int cmp_exact(char *source, int index)
 	BF_std_crypt_exact(index);
 #endif
 
-	return !memcmp(BF_common_get_binary(source), BF_out[index],
+	return !memcmp(BF_std_get_binary(source), BF_out[index],
 	    sizeof(BF_binary));
 }
 
@@ -199,19 +273,19 @@ struct fmt_main fmt_BF = {
 			"iteration count",
 		},
 #endif
-		BF_common_tests
+		tests
 	}, {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		BF_common_valid,
+		valid,
 		fmt_default_split,
-		BF_common_get_binary,
-		BF_common_get_salt,
+		BF_std_get_binary,
+		BF_std_get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
-			BF_common_iteration_count,
+			BF_iteration_count,
 		},
 #endif
 		fmt_default_source,
