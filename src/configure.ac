@@ -200,6 +200,8 @@ fi
    JTR_FLAG_CHECK([-Wno-format-extra-args], 1)
    #JTR_FLAG_CHECK([-Wno-unneeded-internal-declaration], 1)
    AS_IF([test "x$JTR_FLAG_Q_CHECK_WORKS" = xyes], [JTR_FLAG_CHECK([-Qunused-arguments],1)])
+   # Justified and Ancient (see #1093)
+   JTR_FLAG_CHECK([-std=gnu89], 1)
    JTR_LIST_ADD(CFLAGS_EXTRA, ["$CFLAGS_EX"])
 ],[dnl
    AC_MSG_NOTICE([Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build])
