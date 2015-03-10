@@ -511,9 +511,12 @@ int benchmark_all(void)
 AGAIN:
 #endif
 	total = failed = 0;
-#ifdef DEBUG
+#ifdef WITH_ASAN
 	if (benchmark_time)
-	puts("NOTE: This is a debug build, figures might be lower than normal");
+	puts("NOTE: This is an ASan debug build, speed will be lower than normal");
+#elif defined(DEBUG)
+	if (benchmark_time)
+	puts("NOTE: This is a -DDEBUG build, speed may be lower than normal");
 #endif
 #ifndef BENCH_BUILD
 	options.loader.field_sep_char = 31;
