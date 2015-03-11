@@ -247,13 +247,31 @@ static char *opencl_driver_info(int sequential_id)
 	int major = 0, minor = 0, i = 0;
 
 	int known_drivers[][2] = {
-			{1642, 5},
-			{0, 0}
+		{938, 2},
+		{1084, 4},
+		{1124, 2},
+		{1214, 3},
+		{1311, 2},
+		{1348, 5},
+		{1445, 5},
+		{1526, 3},
+		{1573, 4},
+		{1642, 5},
+		{0, 0}
 	};
 
 	char * drivers_info[] = {
-			" - 14.12 Omega [supported]",
-			""
+		"12.8",
+		"13.1",
+		"13.4",
+		"13.6 beta",
+		"13.11 beta-1",
+		"13.12",
+		"14.4 (Mantle)",
+		"14.6 beta (Mantle)",
+		"14.9 (Mantle)",
+		"14.12 (Omega) [supported]",
+		""
 	};
 
 	clGetDeviceInfo(devices[sequential_id], CL_DRIVER_VERSION,
@@ -281,7 +299,7 @@ static char *opencl_driver_info(int sequential_id)
 				break;
 			i++;
 		}
-		snprintf(ret, sizeof (ret), "%s%s", dname, drivers_info[i]);
+		snprintf(ret, sizeof (ret), "%s - %s", dname, drivers_info[i]);
 
 	} else if (gpu_nvidia(device_info[sequential_id])) {
 
