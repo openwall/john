@@ -36,6 +36,7 @@ john_register_one(&fmt_s7);
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	125
+#define CIPHERTEXT_LENGTH	(1 + 10 + 1 + 1 + 1 + 40 + 1 + 40)
 #define BINARY_SIZE		20
 #define SALT_SIZE		20
 #define BINARY_ALIGN	sizeof(ARCH_WORD_32)
@@ -45,7 +46,7 @@ john_register_one(&fmt_s7);
 
 static struct fmt_tests s7_tests[] = {
 	{"$siemens-s7$1$599fe00cdb61f76cc6e949162f22c95943468acb$002e45951f62602b2f5d15df217f49da2f5379cb", "123"},
-	{"$siemens-s7$0$387c1fe4ce97e0e71f5a93b4a9557a947cd40d6c$d7789feee651559a09e2f2d92b57306d2835e209", "321"},
+	{"$siemens-s7$1$387c1fe4ce97e0e71f5a93b4a9557a947cd40d6c$d7789feee651559a09e2f2d92b57306d2835e209", "321"},
 	{NULL}
 };
 
@@ -100,6 +101,21 @@ static int valid(char *ciphertext, struct fmt_main *self)
 bail:
 	MEM_FREE(keeptr);
 	return 0;
+}
+
+/*
+ * Hash versions '0' and '1' were exactly the same.
+ * Version '0' is still supported for backwards compatibility,
+ * but version '1' is used as the canonical hash representation
+ */
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[CIPHERTEXT_LENGTH+1];
+
+	strnzcpy(out, ciphertext, CIPHERTEXT_LENGTH+1);
+	if( out[12] == '0')
+		out[12] = '1';
+	return out;
 }
 
 static void *get_salt(char *ciphertext)
@@ -272,7 +288,7 @@ struct fmt_main fmt_s7 = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
