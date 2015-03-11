@@ -239,6 +239,66 @@ static char *opencl_driver_ver(int sequential_id)
 	return ret;
 }
 
+static char *opencl_driver_info(int sequential_id)
+{
+	static char ret[64];
+	char dname[MAX_OCLINFO_STRING_LEN];
+	char *p;
+	int major = 0, minor = 0, i = 0;
+
+	int known_drivers[][2] = {
+			{1642, 5},
+			{0, 0}
+	};
+
+	char * drivers_info[] = {
+			" - 14.12 Omega [supported]",
+			""
+	};
+
+	clGetDeviceInfo(devices[sequential_id], CL_DRIVER_VERSION,
+	                sizeof(dname), dname, NULL);
+
+	p = dname;
+	while (*p && !isdigit((int)*p))
+		p++;
+	if (*p) {
+		major = atoi(p);
+		while (*p && isdigit((int)*p))
+			p++;
+		while (*p && !isdigit((int)*p))
+			p++;
+		if (*p) {
+			minor = atoi(p);
+		}
+	}
+
+	if (gpu_amd(device_info[sequential_id])) {
+
+		while (known_drivers[i][0]) {
+
+			if (known_drivers[i][0] == major && known_drivers[i][1] == minor)
+				break;
+			i++;
+		}
+		snprintf(ret, sizeof (ret), "%s%s", dname, drivers_info[i]);
+
+	} else if (gpu_nvidia(device_info[sequential_id])) {
+
+		if (major >= 319)
+			snprintf(ret, sizeof (ret), "%s%s", dname, " [supported]");
+		else
+			snprintf(ret, sizeof (ret), "%s", dname);
+
+	} else if (cpu(device_info[sequential_id])) {
+		snprintf(ret, sizeof (ret), "%s%s", dname, " [CPU]");
+
+	} else
+		snprintf(ret, sizeof (ret), "%s", dname);
+
+	return ret;
+}
+
 static char* ns2string(cl_ulong nanosec)
 {
 	char *buf = mem_alloc_tiny(16, MEM_ALIGN_NONE);
@@ -2448,9 +2508,7 @@ void opencl_list_devices(void)
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_VERSION,
 					sizeof(dname), dname, NULL);
 			printf("\tDevice version:\t\t%s\n", dname);
-			clGetDeviceInfo(devices[sequence_nr], CL_DRIVER_VERSION,
-					sizeof(dname), dname, NULL);
-			printf("\tDriver version:\t\t%s\n", dname);
+			printf("\tDriver version:\t\t%s\n", opencl_driver_info(sequence_nr));
 
 			clGetDeviceInfo(devices[sequence_nr],
 					CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR,
