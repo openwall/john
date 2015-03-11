@@ -299,7 +299,7 @@ static char *opencl_driver_info(int sequential_id)
 				break;
 			i++;
 		}
-		snprintf(ret, sizeof (ret), "%s - %s", dname, drivers_info[i]);
+		snprintf(ret, sizeof (ret), "%s - Catalyst %s", dname, drivers_info[i]);
 
 	} else if (gpu_nvidia(device_info[sequential_id])) {
 
