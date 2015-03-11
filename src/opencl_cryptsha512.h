@@ -18,12 +18,15 @@
 #include "opencl_sha512.h"
 
 /* ***
- * TODO: IMPORTANT => due to optimizations
+ *   IMPORTANT => due to optimizations
  *       len(salt) + len(key) MUST BE less than 40 bytes.
- *       Need to put this information somewhere since if the user has
- *       a 16 bytes salt, he will never be able to crack a
+ *
+ *       - if the user has a 16 bytes salt, he will never be able to crack a
  *       password of 24 bytes. If the salt has less than 16 bytes
  *       JtR will be able to crack a 24 bytes password without problems.
+ *
+ *	 So, for safety, the format claims its limit is, in fact,
+ *       - PLAINTEXT_LENGTH 23
  *** */
 
 //Constants.
