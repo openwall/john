@@ -1359,7 +1359,7 @@ sub siemens_s7 {
 	$h = Digest::SHA::hmac_sha1($salt, sha1($_[1]));
 	$salt = unpack("H*",$salt);
 	$h = unpack("H*",$h);
-	return "\$siemens-s7\$\$1\$$salt\$$h";
+	return "\$siemens-s7\$1\$$salt\$$h";
 }
 sub ssha512 {
 	$salt = get_salt(8, -16);
