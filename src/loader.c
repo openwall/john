@@ -471,8 +471,14 @@ static int ldr_split_line(char **login, char **ciphertext,
 				continue;
 			/* Format disabled in john.conf */
 			if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
-			                 alt->params.label, 0))
+			                 alt->params.label, 0)) {
+#ifdef DEBUG
+				if ((alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
+					// in debug mode, we 'allow' dyna
+				} else
+#endif
 				continue;
+			}
 #ifdef HAVE_CRYPT
 			if (alt == &fmt_crypt &&
 #ifdef __sun
@@ -511,8 +517,14 @@ static int ldr_split_line(char **login, char **ciphertext,
 		/* Format disabled in john.conf, unless forced */
 		if (fmt_list->next &&
 		    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
-		                 alt->params.label, 0))
+		                 alt->params.label, 0)) {
+#ifdef DEBUG
+			if ((alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
+				// in debug mode, we 'allow' dyna
+			} else
+#endif
 			continue;
+		}
 
 #ifdef HAVE_CRYPT
 /*

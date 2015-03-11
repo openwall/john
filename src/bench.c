@@ -535,8 +535,14 @@ AGAIN:
 /* Format disabled in john.conf, unless forced */
 		if (fmt_list->next &&
 		    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
-		                 format->params.label, 0))
+		                 format->params.label, 0)) {
+#ifdef DEBUG
+			if ((format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
+				// in debug mode, we 'allow' dyna
+			} else
+#endif
 			continue;
+		}
 
 /* Just test the encoding-aware formats if --encoding was used explicitly */
 		if (!pers_opts.default_enc && pers_opts.target_enc != ASCII &&

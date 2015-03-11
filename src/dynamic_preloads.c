@@ -3514,8 +3514,10 @@ int dynamic_IS_VALID(int i, int force)
 	sprintf(Type, "dynamic_%d", i);
 	if (i < 0 || i >= 5000)
 		return -1;
+#ifndef DEBUG
 	if (!force && cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, Type, 0))
 		return 0;
+#endif
 	if (i < 1000) {
 		int j,len;
 		len=strlen(Type);
