@@ -35,7 +35,8 @@
 #define F(x, y, z)	((z) ^ ((x) & ((y) ^ (z))))
 #endif
 #define G(x, y, z)	(((x) & ((y) | (z))) | ((y) & (z)))
-#define H(x, y, z)	((x) ^ (y) ^ (z))
+#define H(x, y, z)	(((x) ^ (y)) ^ (z))
+#define H2(x, y, z)	((x) ^ ((y) ^ (z)))
 
 /* The MD4 transformation for all three rounds. */
 #define STEP(f, a, b, c, d, x, s)	  \
@@ -89,21 +90,21 @@ inline void md4_encrypt(__private uint *hash, __private uint *W, uint len) {
 
 	/* Rounhash[3] 3 */
 	STEP(H, hash[0], hash[1], hash[2], hash[3], W[0] + 0x6ed9eba1, 3);
-	STEP(H, hash[3], hash[0], hash[1], hash[2], W[8] + 0x6ed9eba1, 9);
+	STEP(H2, hash[3], hash[0], hash[1], hash[2], W[8] + 0x6ed9eba1, 9);
 	STEP(H, hash[2], hash[3], hash[0], hash[1], W[4] + 0x6ed9eba1, 11);
-	STEP(H, hash[1], hash[2], hash[3], hash[0], W[12] + 0x6ed9eba1, 15);
+	STEP(H2, hash[1], hash[2], hash[3], hash[0], W[12] + 0x6ed9eba1, 15);
 	STEP(H, hash[0], hash[1], hash[2], hash[3], W[2] + 0x6ed9eba1, 3);
-	STEP(H, hash[3], hash[0], hash[1], hash[2], W[10] + 0x6ed9eba1, 9);
+	STEP(H2, hash[3], hash[0], hash[1], hash[2], W[10] + 0x6ed9eba1, 9);
 	STEP(H, hash[2], hash[3], hash[0], hash[1], W[6] + 0x6ed9eba1, 11);
-	STEP(H, hash[1], hash[2], hash[3], hash[0], W[14] + 0x6ed9eba1, 15);
+	STEP(H2, hash[1], hash[2], hash[3], hash[0], W[14] + 0x6ed9eba1, 15);
 	STEP(H, hash[0], hash[1], hash[2], hash[3], W[1] + 0x6ed9eba1, 3);
-	STEP(H, hash[3], hash[0], hash[1], hash[2], W[9] + 0x6ed9eba1, 9);
+	STEP(H2, hash[3], hash[0], hash[1], hash[2], W[9] + 0x6ed9eba1, 9);
 	STEP(H, hash[2], hash[3], hash[0], hash[1], W[5] + 0x6ed9eba1, 11);
-	STEP(H, hash[1], hash[2], hash[3], hash[0], W[13] + 0x6ed9eba1, 15);
+	STEP(H2, hash[1], hash[2], hash[3], hash[0], W[13] + 0x6ed9eba1, 15);
 	STEP(H, hash[0], hash[1], hash[2], hash[3], W[3] + 0x6ed9eba1, 3);
-	STEP(H, hash[3], hash[0], hash[1], hash[2], W[11] + 0x6ed9eba1, 9);
+	STEP(H2, hash[3], hash[0], hash[1], hash[2], W[11] + 0x6ed9eba1, 9);
 	STEP(H, hash[2], hash[3], hash[0], hash[1], W[7] + 0x6ed9eba1, 11);
-	STEP(H, hash[1], hash[2], hash[3], hash[0], W[15] + 0x6ed9eba1, 15);
+	STEP(H2, hash[1], hash[2], hash[3], hash[0], W[15] + 0x6ed9eba1, 15);
 }
 
 inline void cmp(uint gid,

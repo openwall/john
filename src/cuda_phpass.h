@@ -17,7 +17,8 @@
 
 #define F(x, y, z)			((z) ^ ((x) & ((y) ^ (z))))
 #define G(x, y, z)			((y) ^ ((z) & ((x) ^ (y))))
-#define H(x, y, z)			((x) ^ (y) ^ (z))
+#define H(x, y, z)			(((x) ^ (y)) ^ (z))
+#define H2(x, y, z)			((x) ^ ((y) ^ (z)))
 #define I(x, y, z)			((y) ^ ((x) | ~(z)))
 
 #define address(j,idx) 			(((j)*KEYS_PER_CRYPT)+(idx))
@@ -34,6 +35,11 @@
   }
 #define HH(a, b, c, d, x, s, ac) \
   {(a) += H ((b), (c), (d)) + (x) + (uint32_t)(ac); \
+   (a) = ROTATE_LEFT ((a), (s)); \
+   (a) += (b); \
+  }
+#define HH2(a, b, c, d, x, s, ac) \
+  {(a) += H2 ((b), (c), (d)) + (x) + (uint32_t)(ac); \
    (a) = ROTATE_LEFT ((a), (s)); \
    (a) += (b); \
   }

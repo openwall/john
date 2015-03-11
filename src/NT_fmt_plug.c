@@ -207,20 +207,20 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 			b += ((c & (d | a)) | (d & a))			   +SQRT_2;b = (b<<13) | (b>>19);
 
 			/* Round 3 */
-			a += (d ^ c ^ b) + nt_buffer1x[i*16+0]  +  SQRT_3; a = (a << 3 ) | (a >> 29);
-			d += (c ^ b ^ a) + nt_buffer1x[i*16+8]  +  SQRT_3; d = (d << 9 ) | (d >> 23);
-			c += (b ^ a ^ d) + nt_buffer1x[i*16+4]  +  SQRT_3; c = (c << 11) | (c >> 21);
-			b += (a ^ d ^ c) + nt_buffer1x[i*16+12] +  SQRT_3; b = (b << 15) | (b >> 17);
+			a += (d ^ (c ^ b)) + nt_buffer1x[i*16+0]  +  SQRT_3; a = (a << 3 ) | (a >> 29);
+			d += ((c ^ b) ^ a) + nt_buffer1x[i*16+8]  +  SQRT_3; d = (d << 9 ) | (d >> 23);
+			c += (b ^ (a ^ d)) + nt_buffer1x[i*16+4]  +  SQRT_3; c = (c << 11) | (c >> 21);
+			b += ((a ^ d) ^ c) + nt_buffer1x[i*16+12] +  SQRT_3; b = (b << 15) | (b >> 17);
 
-			a += (d ^ c ^ b) + nt_buffer1x[i*16+2]  +  SQRT_3; a = (a << 3 ) | (a >> 29);
-			d += (c ^ b ^ a) + nt_buffer1x[i*16+10] +  SQRT_3; d = (d << 9 ) | (d >> 23);
-			c += (b ^ a ^ d) + nt_buffer1x[i*16+6]  +  SQRT_3; c = (c << 11) | (c >> 21);
-			b += (a ^ d ^ c) + nt_buffer1x[i*16+14] +  SQRT_3; b = (b << 15) | (b >> 17);
+			a += (d ^ (c ^ b)) + nt_buffer1x[i*16+2]  +  SQRT_3; a = (a << 3 ) | (a >> 29);
+			d += ((c ^ b) ^ a) + nt_buffer1x[i*16+10] +  SQRT_3; d = (d << 9 ) | (d >> 23);
+			c += (b ^ (a ^ d)) + nt_buffer1x[i*16+6]  +  SQRT_3; c = (c << 11) | (c >> 21);
+			b += ((a ^ d) ^ c) + nt_buffer1x[i*16+14] +  SQRT_3; b = (b << 15) | (b >> 17);
 
-			a += (d ^ c ^ b) + nt_buffer1x[i*16+1]  +  SQRT_3; a = (a << 3 ) | (a >> 29);
-			d += (c ^ b ^ a) + nt_buffer1x[i*16+9]  +  SQRT_3; d = (d << 9 ) | (d >> 23);
-			c += (b ^ a ^ d) + nt_buffer1x[i*16+5]  +  SQRT_3; c = (c << 11) | (c >> 21);
-			b += (a ^ d ^ c) + nt_buffer1x[i*16+13];
+			a += (d ^ (c ^ b)) + nt_buffer1x[i*16+1]  +  SQRT_3; a = (a << 3 ) | (a >> 29);
+			d += ((c ^ b) ^ a) + nt_buffer1x[i*16+9]  +  SQRT_3; d = (d << 9 ) | (d >> 23);
+			c += (b ^ (a ^ d)) + nt_buffer1x[i*16+5]  +  SQRT_3; c = (c << 11) | (c >> 21);
+			b += ((a ^ d) ^ c) + nt_buffer1x[i*16+13];
 
 			output1x[4*i+0]=a;
 			output1x[4*i+1]=b;

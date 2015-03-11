@@ -22,7 +22,8 @@
 #define MD4_F(x, y, z)	((z) ^ ((x) & ((y) ^ (z))))
 #endif
 
-#define MD4_H(x, y, z)	((x) ^ (y) ^ (z))
+#define MD4_H(x, y, z)	(((x) ^ (y)) ^ (z))
+#define MD4_H2(x, y, z)	((x) ^ ((y) ^ (z)))
 
 
 /* The basic MD4 functions */
@@ -84,21 +85,21 @@
 		MD4STEP(MD4_G, c, d, a, b, block[11] + 0x5a827999, 9); \
 		MD4STEP(MD4_G, b, c, d, a, block[15] + 0x5a827999, 13); \
 		MD4STEP(MD4_H, a, b, c, d, block[0] + 0x6ed9eba1, 3); \
-		MD4STEP(MD4_H, d, a, b, c, block[8] + 0x6ed9eba1, 9); \
+		MD4STEP(MD4_H2, d, a, b, c, block[8] + 0x6ed9eba1, 9); \
 		MD4STEP(MD4_H, c, d, a, b, block[4] + 0x6ed9eba1, 11); \
-		MD4STEP(MD4_H, b, c, d, a, block[12] + 0x6ed9eba1, 15); \
+		MD4STEP(MD4_H2, b, c, d, a, block[12] + 0x6ed9eba1, 15); \
 		MD4STEP(MD4_H, a, b, c, d, block[2] + 0x6ed9eba1, 3); \
-		MD4STEP(MD4_H, d, a, b, c, block[10] + 0x6ed9eba1, 9); \
+		MD4STEP(MD4_H2, d, a, b, c, block[10] + 0x6ed9eba1, 9); \
 		MD4STEP(MD4_H, c, d, a, b, block[6] + 0x6ed9eba1, 11); \
-		MD4STEP(MD4_H, b, c, d, a, block[14] + 0x6ed9eba1, 15); \
+		MD4STEP(MD4_H2, b, c, d, a, block[14] + 0x6ed9eba1, 15); \
 		MD4STEP(MD4_H, a, b, c, d, block[1] + 0x6ed9eba1, 3); \
-		MD4STEP(MD4_H, d, a, b, c, block[9] + 0x6ed9eba1, 9); \
+		MD4STEP(MD4_H2, d, a, b, c, block[9] + 0x6ed9eba1, 9); \
 		MD4STEP(MD4_H, c, d, a, b, block[5] + 0x6ed9eba1, 11); \
-		MD4STEP(MD4_H, b, c, d, a, block[13] + 0x6ed9eba1, 15); \
+		MD4STEP(MD4_H2, b, c, d, a, block[13] + 0x6ed9eba1, 15); \
 		MD4STEP(MD4_H, a, b, c, d, block[3] + 0x6ed9eba1, 3); \
-		MD4STEP(MD4_H, d, a, b, c, block[11] + 0x6ed9eba1, 9); \
+		MD4STEP(MD4_H2, d, a, b, c, block[11] + 0x6ed9eba1, 9); \
 		MD4STEP(MD4_H, c, d, a, b, block[7] + 0x6ed9eba1, 11); \
-		MD4STEP(MD4_H, b, c, d, a, block[15] + 0x6ed9eba1, 15); \
+		MD4STEP(MD4_H2, b, c, d, a, block[15] + 0x6ed9eba1, 15); \
 		output[0] += a; \
 		output[1] += b; \
 		output[2] += c; \

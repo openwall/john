@@ -91,21 +91,21 @@ __device__ void md5_digest(md5_ctx * ctx, uint32_t * result,
 
 
 	HH(a, b, c, d, x[5], S31, 0xfffa3942);	/* 33 */
-	HH(d, a, b, c, x[8], S32, 0x8771f681);	/* 34 */
+	HHH(d, a, b, c, x[8], S32, 0x8771f681);	/* 34 */
 	HH(c, d, a, b, x[11], S33, 0x6d9d6122);	/* 35 */
-	HH(b, c, d, a, len, S34, 0xfde5380c);	/* 36 */
+	HHH(b, c, d, a, len, S34, 0xfde5380c);	/* 36 */
 	HH(a, b, c, d, x[1], S31, 0xa4beea44);	/* 37 */
-	HH(d, a, b, c, x[4], S32, 0x4bdecfa9);	/* 38 */
+	HHH(d, a, b, c, x[4], S32, 0x4bdecfa9);	/* 38 */
 	HH(c, d, a, b, x[7], S33, 0xf6bb4b60);	/* 39 */
-	HH(b, c, d, a, x[10], S34, 0xbebfbc70);	/* 40 */
+	HHH(b, c, d, a, x[10], S34, 0xbebfbc70);/* 40 */
 	HH(a, b, c, d, x[13], S31, 0x289b7ec6);	/* 41 */
-	HH(d, a, b, c, x[0], S32, 0xeaa127fa);	/* 42 */
+	HHH(d, a, b, c, x[0], S32, 0xeaa127fa);	/* 42 */
 	HH(c, d, a, b, x[3], S33, 0xd4ef3085);	/* 43 */
-	HH(b, c, d, a, x[6], S34, 0x4881d05);	/* 44 */
+	HHH(b, c, d, a, x[6], S34, 0x4881d05);	/* 44 */
 	HH(a, b, c, d, x[9], S31, 0xd9d4d039);	/* 45 */
-	HH(d, a, b, c, x[12], S32, 0xe6db99e5);	/* 46 */
+	HHH(d, a, b, c, x[12], S32, 0xe6db99e5);/* 46 */
 	HH2(c, d, a, b, S33, 0x1fa27cf8);	/* 47 */
-	HH(b, c, d, a, x[2], S34, 0xc4ac5665);	/* 48 */
+	HHH(b, c, d, a, x[2], S34, 0xc4ac5665);	/* 48 */
 
 
 	II(a, b, c, d, x[0], S41, 0xf4292244);	/* 49 */

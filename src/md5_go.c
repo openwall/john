@@ -58,7 +58,8 @@ ARCH_WORD_32 MD5_bitswapped_out[4];
  */
 #define F(x, y, z)			((z) ^ ((x) & ((y) ^ (z))))
 #define G(x, y, z)			((y) ^ ((z) & ((x) ^ (y))))
-#define H(x, y, z)			((x) ^ (y) ^ (z))
+#define H(x, y, z)			(((x) ^ (y)) ^ (z))
+#define H2(x, y, z)			((x) ^ ((y) ^ (z)))
 #define I(x, y, z)			((y) ^ ((x) | ~(z)))
 
 /*
@@ -155,21 +156,21 @@ static void body(void *data, unsigned int size)
 
 /* Round 3 */
 		STEP(H, a, b, c, d, GET(5), 0xfffa3942, 4)
-		STEP(H, d, a, b, c, GET(8), 0x8771f681, 11)
+		STEP(H2, d, a, b, c, GET(8), 0x8771f681, 11)
 		STEP(H, c, d, a, b, GET(11), 0x6d9d6122, 16)
-		STEP(H, b, c, d, a, GET(14), 0xfde5380c, 23)
+		STEP(H2, b, c, d, a, GET(14), 0xfde5380c, 23)
 		STEP(H, a, b, c, d, GET(1), 0xa4beea44, 4)
-		STEP(H, d, a, b, c, GET(4), 0x4bdecfa9, 11)
+		STEP(H2, d, a, b, c, GET(4), 0x4bdecfa9, 11)
 		STEP(H, c, d, a, b, GET(7), 0xf6bb4b60, 16)
-		STEP(H, b, c, d, a, GET(10), 0xbebfbc70, 23)
+		STEP(H2, b, c, d, a, GET(10), 0xbebfbc70, 23)
 		STEP(H, a, b, c, d, GET(13), 0x289b7ec6, 4)
-		STEP(H, d, a, b, c, GET(0), 0xeaa127fa, 11)
+		STEP(H2, d, a, b, c, GET(0), 0xeaa127fa, 11)
 		STEP(H, c, d, a, b, GET(3), 0xd4ef3085, 16)
-		STEP(H, b, c, d, a, GET(6), 0x04881d05, 23)
+		STEP(H2, b, c, d, a, GET(6), 0x04881d05, 23)
 		STEP(H, a, b, c, d, GET(9), 0xd9d4d039, 4)
-		STEP(H, d, a, b, c, GET(12), 0xe6db99e5, 11)
+		STEP(H2, d, a, b, c, GET(12), 0xe6db99e5, 11)
 		STEP(H, c, d, a, b, GET(15), 0x1fa27cf8, 16)
-		STEP(H, b, c, d, a, GET(2), 0xc4ac5665, 23)
+		STEP(H2, b, c, d, a, GET(2), 0xc4ac5665, 23)
 
 /* Round 4 */
 		STEP(I, a, b, c, d, GET(0), 0xf4292244, 6)

@@ -45,7 +45,8 @@ typedef struct __attribute__((__aligned__(4))){
 #define F(x, y, z) ((z) ^ ((x) & ((y) ^ (z))))
 #define G(x, y, z) ((y) ^ ((z) & ((x) ^ (y))))
 
-#define H(x, y, z) (x^y^z)
+#define H(x, y, z) ((x^y)^z)
+#define H2(x, y, z) (x^(y^z))
 #define I(x, y, z) (y^(x|~z))
 
 #define FF(v, w, x, y, z, s, ac) { \
@@ -56,6 +57,9 @@ typedef struct __attribute__((__aligned__(4))){
  }
 #define HH(v, w, x, y, z, s, ac) { \
  v = ROTATE_LEFT(v + z + ac + H(w, x, y), s) + w; \
+ }
+#define HHH(v, w, x, y, z, s, ac) { \
+ v = ROTATE_LEFT(v + z + ac + H2(w, x, y), s) + w; \
  }
 #define II(v, w, x, y, z, s, ac) { \
  v = ROTATE_LEFT(v + z + ac + I(w, x, y), s) + w; \

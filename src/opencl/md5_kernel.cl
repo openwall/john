@@ -35,7 +35,8 @@
 #define F(x, y, z)	((z) ^ ((x) & ((y) ^ (z))))
 #define G(x, y, z)	((y) ^ ((z) & ((x) ^ (y))))
 #endif
-#define H(x, y, z)	((x) ^ (y) ^ (z))
+#define H(x, y, z)	(((x) ^ (y)) ^ (z))
+#define H2(x, y, z)	((x) ^ ((y) ^ (z)))
 #define I(x, y, z)	((y) ^ ((x) | ~(z)))
 
 /* The MD5 transformation for all four rounds. */
@@ -111,21 +112,21 @@ __kernel void md5(__global const uint *keys, __global const uint *index, __globa
 
 	/* Round 3 */
 	STEP(H, a, b, c, d, W[5], 0xfffa3942, 4);
-	STEP(H, d, a, b, c, W[8], 0x8771f681, 11);
+	STEP(H2, d, a, b, c, W[8], 0x8771f681, 11);
 	STEP(H, c, d, a, b, W[11], 0x6d9d6122, 16);
-	STEP(H, b, c, d, a, W[14], 0xfde5380c, 23);
+	STEP(H2, b, c, d, a, W[14], 0xfde5380c, 23);
 	STEP(H, a, b, c, d, W[1], 0xa4beea44, 4);
-	STEP(H, d, a, b, c, W[4], 0x4bdecfa9, 11);
+	STEP(H2, d, a, b, c, W[4], 0x4bdecfa9, 11);
 	STEP(H, c, d, a, b, W[7], 0xf6bb4b60, 16);
-	STEP(H, b, c, d, a, W[10], 0xbebfbc70, 23);
+	STEP(H2, b, c, d, a, W[10], 0xbebfbc70, 23);
 	STEP(H, a, b, c, d, W[13], 0x289b7ec6, 4);
-	STEP(H, d, a, b, c, W[0], 0xeaa127fa, 11);
+	STEP(H2, d, a, b, c, W[0], 0xeaa127fa, 11);
 	STEP(H, c, d, a, b, W[3], 0xd4ef3085, 16);
-	STEP(H, b, c, d, a, W[6], 0x04881d05, 23);
+	STEP(H2, b, c, d, a, W[6], 0x04881d05, 23);
 	STEP(H, a, b, c, d, W[9], 0xd9d4d039, 4);
-	STEP(H, d, a, b, c, W[12], 0xe6db99e5, 11);
+	STEP(H2, d, a, b, c, W[12], 0xe6db99e5, 11);
 	STEP(H, c, d, a, b, W[15], 0x1fa27cf8, 16);
-	STEP(H, b, c, d, a, W[2], 0xc4ac5665, 23);
+	STEP(H2, b, c, d, a, W[2], 0xc4ac5665, 23);
 
 	/* Round 4 */
 	STEP(I, a, b, c, d, W[0], 0xf4292244, 6);

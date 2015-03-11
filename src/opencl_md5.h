@@ -25,7 +25,8 @@
 #define MD5_G(x, y, z)	((y) ^ ((z) & ((x) ^ (y))))
 #endif
 
-#define MD5_H(x, y, z)	((x) ^ (y) ^ (z))
+#define MD5_H(x, y, z)	(((x) ^ (y)) ^ (z))
+#define MD5_H2(x, y, z)	((x) ^ ((y) ^ (z)))
 #define MD5_I(x, y, z)	((y) ^ ((x) | ~(z)))
 
 
@@ -86,21 +87,21 @@
 		MD5_STEP(MD5_G, c, d, a, b, block[7], 0x676f02d9, 14); \
 		MD5_STEP(MD5_G, b, c, d, a, block[12], 0x8d2a4c8a, 20); \
 		MD5_STEP(MD5_H, a, b, c, d, block[5], 0xfffa3942, 4); \
-		MD5_STEP(MD5_H, d, a, b, c, block[8], 0x8771f681, 11); \
+		MD5_STEP(MD5_H2, d, a, b, c, block[8], 0x8771f681, 11); \
 		MD5_STEP(MD5_H, c, d, a, b, block[11], 0x6d9d6122, 16); \
-		MD5_STEP(MD5_H, b, c, d, a, block[14], 0xfde5380c, 23); \
+		MD5_STEP(MD5_H2, b, c, d, a, block[14], 0xfde5380c, 23); \
 		MD5_STEP(MD5_H, a, b, c, d, block[1], 0xa4beea44, 4); \
-		MD5_STEP(MD5_H, d, a, b, c, block[4], 0x4bdecfa9, 11); \
+		MD5_STEP(MD5_H2, d, a, b, c, block[4], 0x4bdecfa9, 11); \
 		MD5_STEP(MD5_H, c, d, a, b, block[7], 0xf6bb4b60, 16); \
-		MD5_STEP(MD5_H, b, c, d, a, block[10], 0xbebfbc70, 23); \
+		MD5_STEP(MD5_H2, b, c, d, a, block[10], 0xbebfbc70, 23); \
 		MD5_STEP(MD5_H, a, b, c, d, block[13], 0x289b7ec6, 4); \
-		MD5_STEP(MD5_H, d, a, b, c, block[0], 0xeaa127fa, 11); \
+		MD5_STEP(MD5_H2, d, a, b, c, block[0], 0xeaa127fa, 11); \
 		MD5_STEP(MD5_H, c, d, a, b, block[3], 0xd4ef3085, 16); \
-		MD5_STEP(MD5_H, b, c, d, a, block[6], 0x04881d05, 23); \
+		MD5_STEP(MD5_H2, b, c, d, a, block[6], 0x04881d05, 23); \
 		MD5_STEP(MD5_H, a, b, c, d, block[9], 0xd9d4d039, 4); \
-		MD5_STEP(MD5_H, d, a, b, c, block[12], 0xe6db99e5, 11); \
+		MD5_STEP(MD5_H2, d, a, b, c, block[12], 0xe6db99e5, 11); \
 		MD5_STEP(MD5_H, c, d, a, b, block[15], 0x1fa27cf8, 16); \
-		MD5_STEP(MD5_H, b, c, d, a, block[2], 0xc4ac5665, 23); \
+		MD5_STEP(MD5_H2, b, c, d, a, block[2], 0xc4ac5665, 23); \
 		MD5_STEP(MD5_I, a, b, c, d, block[0], 0xf4292244, 6); \
 		MD5_STEP(MD5_I, d, a, b, c, block[7], 0x432aff97, 10); \
 		MD5_STEP(MD5_I, c, d, a, b, block[14], 0xab9423a7, 15); \

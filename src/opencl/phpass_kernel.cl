@@ -16,7 +16,8 @@ typedef struct {
 } phpass_hash;
 
 
-#define H(x, y, z)              ((x) ^ (y) ^ (z))
+#define H(x, y, z)              (((x) ^ (y)) ^ (z))
+#define H2(x, y, z)             ((x) ^ ((y) ^ (z)))
 #define I(x, y, z)              ((y) ^ ((x) | (~z)))
 
 #define ROTATE_LEFT(x, s)       rotate(x,(uint)s)
@@ -31,6 +32,9 @@ typedef struct {
 
 #define HH(v, w, x, y, z, s, ac)\
 	v = ROTATE_LEFT(v + z + ac + H(w, x, y), (uint)s) + w;
+
+#define HHH(v, w, x, y, z, s, ac)\
+	v = ROTATE_LEFT(v + z + ac + H2(w, x, y), (uint)s) + w;
 
 #define II(v, w, x, y, z, s, ac)\
 	v = ROTATE_LEFT(v + z + ac + I(w, x, y), (uint)s) + w;
@@ -112,21 +116,21 @@ inline void md5(uint8 len,__private uint8 * internal_ret,__private uint8 * x)
         GG(b, c, d, a, 0, S24,(uint8) 0x8d2a4c8a);
 
         HH(a, b, c, d, x[5], S31,(uint8) 0xfffa3942);
-        HH(d, a, b, c, 0, S32,(uint8) 0x8771f681);
+        HHH(d, a, b, c, 0, S32,(uint8) 0x8771f681);
         HH(c, d, a, b, 0, S33,(uint8) 0x6d9d6122);
-        HH(b, c, d, a, x14, S34,(uint8) 0xfde5380c);
+        HHH(b, c, d, a, x14, S34,(uint8) 0xfde5380c);
         HH(a, b, c, d, x[1], S31,(uint8) 0xa4beea44);
-        HH(d, a, b, c, x[4], S32,(uint8) 0x4bdecfa9);
+        HHH(d, a, b, c, x[4], S32,(uint8) 0x4bdecfa9);
         HH(c, d, a, b, x[7], S33,(uint8) 0xf6bb4b60);
-        HH(b, c, d, a, 0, S34,(uint8) 0xbebfbc70);
+        HHH(b, c, d, a, 0, S34,(uint8) 0xbebfbc70);
         HH(a, b, c, d, 0, S31,(uint8) 0x289b7ec6);
-        HH(d, a, b, c, x[0], S32,(uint8) 0xeaa127fa);
+        HHH(d, a, b, c, x[0], S32,(uint8) 0xeaa127fa);
         HH(c, d, a, b, x[3], S33,(uint8) 0xd4ef3085);
-        HH(b, c, d, a, x[6], S34,(uint8) 0x4881d05);
+        HHH(b, c, d, a, x[6], S34,(uint8) 0x4881d05);
         HH(a, b, c, d, 0, S31,(uint8) 0xd9d4d039);
-        HH(d, a, b, c, 0, S32,(uint8) 0xe6db99e5);
+        HHH(d, a, b, c, 0, S32,(uint8) 0xe6db99e5);
         HH(c, d, a, b, 0, S33,(uint8) 0x1fa27cf8);
-        HH(b, c, d, a, x[2], S34,(uint8) 0xc4ac5665);
+        HHH(b, c, d, a, x[2], S34,(uint8) 0xc4ac5665);
 
         II(a, b, c, d, x[0], S41,(uint8) 0xf4292244);
         II(d, a, b, c, x[7], S42,(uint8) 0x432aff97);

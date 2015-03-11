@@ -34,7 +34,8 @@
  */
 #define F(x, y, z)			((z) ^ ((x) & ((y) ^ (z))))
 #define G(x, y, z)			(((x) & ((y) | (z))) | ((y) & (z)))
-#define H(x, y, z)			((x) ^ (y) ^ (z))
+#define H(x, y, z)			(((x) ^ (y)) ^ (z))
+#define H2(x, y, z)			((x) ^ ((y) ^ (z)))
 
 /*
  * The MD4 transformation for all three rounds.
@@ -128,21 +129,21 @@ static void *body(MD4_CTX *ctx, void *data, unsigned long size)
 
 /* Round 3 */
 		STEP(H, a, b, c, d, GET(0) + 0x6ed9eba1, 3)
-		STEP(H, d, a, b, c, GET(8) + 0x6ed9eba1, 9)
+		STEP(H2, d, a, b, c, GET(8) + 0x6ed9eba1, 9)
 		STEP(H, c, d, a, b, GET(4) + 0x6ed9eba1, 11)
-		STEP(H, b, c, d, a, GET(12) + 0x6ed9eba1, 15)
+		STEP(H2, b, c, d, a, GET(12) + 0x6ed9eba1, 15)
 		STEP(H, a, b, c, d, GET(2) + 0x6ed9eba1, 3)
-		STEP(H, d, a, b, c, GET(10) + 0x6ed9eba1, 9)
+		STEP(H2, d, a, b, c, GET(10) + 0x6ed9eba1, 9)
 		STEP(H, c, d, a, b, GET(6) + 0x6ed9eba1, 11)
-		STEP(H, b, c, d, a, GET(14) + 0x6ed9eba1, 15)
+		STEP(H2, b, c, d, a, GET(14) + 0x6ed9eba1, 15)
 		STEP(H, a, b, c, d, GET(1) + 0x6ed9eba1, 3)
-		STEP(H, d, a, b, c, GET(9) + 0x6ed9eba1, 9)
+		STEP(H2, d, a, b, c, GET(9) + 0x6ed9eba1, 9)
 		STEP(H, c, d, a, b, GET(5) + 0x6ed9eba1, 11)
-		STEP(H, b, c, d, a, GET(13) + 0x6ed9eba1, 15)
+		STEP(H2, b, c, d, a, GET(13) + 0x6ed9eba1, 15)
 		STEP(H, a, b, c, d, GET(3) + 0x6ed9eba1, 3)
-		STEP(H, d, a, b, c, GET(11) + 0x6ed9eba1, 9)
+		STEP(H2, d, a, b, c, GET(11) + 0x6ed9eba1, 9)
 		STEP(H, c, d, a, b, GET(7) + 0x6ed9eba1, 11)
-		STEP(H, b, c, d, a, GET(15) + 0x6ed9eba1, 15)
+		STEP(H2, b, c, d, a, GET(15) + 0x6ed9eba1, 15)
 
 		a += saved_a;
 		b += saved_b;

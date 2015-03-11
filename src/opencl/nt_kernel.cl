@@ -151,26 +151,26 @@ __kernel void nt_crypt(const __global uint *keys , __global uint *output)
 	b += ((c & (d | a)) | (d & a))                + SQRT_2; b = rotate(b , 13u);
 
 	/* Round 3 */
-	a += (d ^ c ^ b) + nt_buffer[0]  + SQRT_3; a = rotate(a , 3u );
-	d += (c ^ b ^ a) + nt_buffer[8]  + SQRT_3; d = rotate(d , 9u );
-	c += (b ^ a ^ d) + nt_buffer[4]  + SQRT_3; c = rotate(c , 11u);
-	b += (a ^ d ^ c)                 + SQRT_3; b = rotate(b , 15u);
+	a += (d ^ (c ^ b)) + nt_buffer[0]  + SQRT_3; a = rotate(a , 3u );
+	d += ((c ^ b) ^ a) + nt_buffer[8]  + SQRT_3; d = rotate(d , 9u );
+	c += (b ^ (a ^ d)) + nt_buffer[4]  + SQRT_3; c = rotate(c , 11u);
+	b += ((a ^ d) ^ c)                 + SQRT_3; b = rotate(b , 15u);
 
-	a += (d ^ c ^ b) + nt_buffer[2]  + SQRT_3; a = rotate(a , 3u );
-	d += (c ^ b ^ a) + nt_buffer[10] + SQRT_3; d = rotate(d , 9u );
-	c += (b ^ a ^ d) + nt_buffer[6]  + SQRT_3; c = rotate(c , 11u);
-	b += (a ^ d ^ c) +   md4_size    + SQRT_3; b = rotate(b , 15u);
+	a += (d ^ (c ^ b)) + nt_buffer[2]  + SQRT_3; a = rotate(a , 3u );
+	d += ((c ^ b) ^ a) + nt_buffer[10] + SQRT_3; d = rotate(d , 9u );
+	c += (b ^ (a ^ d)) + nt_buffer[6]  + SQRT_3; c = rotate(c , 11u);
+	b += ((a ^ d) ^ c) +   md4_size    + SQRT_3; b = rotate(b , 15u);
 
-	a += (d ^ c ^ b) + nt_buffer[1]  + SQRT_3; a = rotate(a , 3u );
-	d += (c ^ b ^ a) + nt_buffer[9]  + SQRT_3; d = rotate(d , 9u );
-	c += (b ^ a ^ d) + nt_buffer[5]  + SQRT_3; c = rotate(c , 11u);
+	a += (d ^ (c ^ b)) + nt_buffer[1]  + SQRT_3; a = rotate(a , 3u );
+	d += ((c ^ b) ^ a) + nt_buffer[9]  + SQRT_3; d = rotate(d , 9u );
+	c += (b ^ (a ^ d)) + nt_buffer[5]  + SQRT_3; c = rotate(c , 11u);
 	//It is better to calculate this remining steps that access global memory
-	b += (a ^ d ^ c) ;
+	b += ((a ^ d) ^ c) ;
 	output[i] = b;//Coalescing write
 	b+= SQRT_3; b = rotate(b , 15u);
 
-	a += (b ^ c ^ d) + nt_buffer[3]  + SQRT_3; a = rotate(a , 3u );
-	d += (a ^ b ^ c) + nt_buffer[11] + SQRT_3; d = rotate(d , 9u );
+	a += ((b ^ c) ^ d) + nt_buffer[3]  + SQRT_3; a = rotate(a , 3u );
+	d += (a ^ (b ^ c)) + nt_buffer[11] + SQRT_3; d = rotate(d , 9u );
 	c += (d ^ a ^ b) + nt_buffer[7]  + SQRT_3; c = rotate(c , 11u);
 
 	//Coalescing writes
