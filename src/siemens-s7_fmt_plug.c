@@ -81,6 +81,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *keeptr;
 	if (strncmp(ciphertext, "$siemens-s7$", 12) != 0)
 		return 0;
+	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
+		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 12;		/* skip over "$siemens-s7$" */
