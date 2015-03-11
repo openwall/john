@@ -88,7 +88,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 12;		/* skip over "$siemens-s7$" */
 	if ((p = strtok(ctcopy, "$")) == NULL)	/* outcome, currently unused */
 		goto bail;
-	if (strlen(p) != 1 || (*p != '1' && *p != '0')) /* outcome must be '1' or '0' */
+	if (*p != '1' || p[1] != 0)	/* ignored, but only allow "1" to be valid */
 		goto bail;
 	if ((p = strtok(NULL, "$")) == NULL)	/* challenge */
 		goto bail;
