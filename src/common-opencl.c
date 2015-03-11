@@ -308,9 +308,10 @@ static char *opencl_driver_info(int sequential_id)
 		else
 			snprintf(ret, sizeof (ret), "%s", dname);
 
+#if 0 /* I see no reason to say "CPU", it's indicated elsewhere */
 	} else if (cpu(device_info[sequential_id])) {
 		snprintf(ret, sizeof (ret), "%s%s", dname, " [CPU]");
-
+#endif
 	} else
 		snprintf(ret, sizeof (ret), "%s", dname);
 
