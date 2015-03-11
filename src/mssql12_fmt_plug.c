@@ -183,7 +183,9 @@ static void init(struct fmt_main *self)
 
 static void clear_keys()
 {
+#ifdef MMX_COEF_SHA512
 	memset(saved_key, 0, sizeof(*saved_key) * max_keys);
+#endif
 }
 
 static void set_key(char *_key, int index)
