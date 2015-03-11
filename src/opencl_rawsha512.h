@@ -19,7 +19,7 @@
 #include "opencl_sha512.h"
 
 //Constants.
-#define PLAINTEXT_LENGTH        56      /* 55 characters + 0x80 */
+#define PLAINTEXT_LENGTH        55
 #define CIPHERTEXT_LENGTH_RAW   128
 #define CIPHERTEXT_LENGTH_X     136
 
