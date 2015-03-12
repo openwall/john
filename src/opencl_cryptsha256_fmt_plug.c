@@ -1,11 +1,11 @@
 /*
- * Developed by Claudio André <claudio.andre at correios.net.br> in 2012
+ * Developed by Claudio André <claudioandre.br at gmail.com> in 2012
  * Based on source code provided by Samuele Giovanni Tonon
  *
  * More information at http://openwall.info/wiki/john/OpenCL-SHA-256
  *
  * Copyright (c) 2011 Samuele Giovanni Tonon <samu at linuxasylum dot net>
- * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
+ * Copyright (c) 2012-2015 Claudio André <claudioandre.br at gmail.com>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied .
  * This is free software, and you are welcome to redistribute it
  * under certain conditions; as expressed here

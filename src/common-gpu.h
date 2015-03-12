@@ -4,7 +4,7 @@
  * Functions common to CUDA and OpenCL go in this file.
  *
  *
- * Copyright (c) 2013 by Claudio André <claudio.andre at correios.net.br>,
+ * Copyright (c) 2013-2015 Claudio André <claudioandre.br at gmail.com>,
  * Copyright (c) 2012-2013 magnum,
  * Others and
  * is hereby released to the general public under the following terms:
