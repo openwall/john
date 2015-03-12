@@ -28,7 +28,7 @@ john_register_one(&fmt_rawMD4);
 #endif
 
 #ifdef _OPENMP
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define OMP_SCALE               1024
 #else
 #define OMP_SCALE				2048
@@ -42,8 +42,8 @@ john_register_one(&fmt_rawMD4);
 #define FORMAT_NAME			""
 #define ALGORITHM_NAME			"MD4 " MD4_ALGORITHM_NAME
 
-#ifdef MMX_COEF
-#  define NBKEYS				(MMX_COEF * MD4_SSE_PARA)
+#ifdef SIMD_COEF_32
+#  define NBKEYS				(SIMD_COEF_32 * MD4_SSE_PARA)
 #  define DO_MMX_MD4(in,out,n)	SSEmd4body(in, (unsigned int*)out, NULL, SSEi_MIXED_IN)
 #endif
 
@@ -83,18 +83,18 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define PLAINTEXT_LENGTH		55
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*MD4_BUF_SIZ*4*MMX_COEF )
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (index>>(SIMD_COEF_32>>1))*MD4_BUF_SIZ*4*SIMD_COEF_32 )
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 static ARCH_WORD_32 (*saved_key)[MD4_BUF_SIZ*NBKEYS];
 static ARCH_WORD_32 (*crypt_key)[DIGEST_SIZE/4*NBKEYS];
 #else
@@ -113,7 +113,7 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-#ifndef MMX_COEF
+#ifndef SIMD_COEF_32
 	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -171,8 +171,8 @@ static void *binary(char *ciphertext)
 	return out;
 }
 
-#ifdef MMX_COEF
-#define HASH_OFFSET (index&(MMX_COEF-1))+((index%NBKEYS)/MMX_COEF)*MMX_COEF*4
+#ifdef SIMD_COEF_32
+#define HASH_OFFSET (index&(SIMD_COEF_32-1))+((index%NBKEYS)/SIMD_COEF_32)*SIMD_COEF_32*4
 static int get_hash_0(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & 0xf; }
 static int get_hash_1(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & 0xff; }
 static int get_hash_2(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & 0xfff; }
@@ -190,11 +190,11 @@ static int get_hash_5(int index) { return crypt_key[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_key[index][0] & 0x7ffffff; }
 #endif
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 static void set_key(char *_key, int index)
 {
 	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
-	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32*)saved_key)[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*MD4_BUF_SIZ*MMX_COEF];
+	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32*)saved_key)[(index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*MD4_BUF_SIZ*SIMD_COEF_32];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
@@ -221,17 +221,17 @@ static void set_key(char *_key, int index)
 		}
 		*keybuf_word = temp;
 		len += 4;
-		keybuf_word += MMX_COEF;
+		keybuf_word += SIMD_COEF_32;
 	}
 	*keybuf_word = 0x80;
 
 key_cleaning:
-	keybuf_word += MMX_COEF;
+	keybuf_word += SIMD_COEF_32;
 	while(*keybuf_word) {
 		*keybuf_word = 0;
-		keybuf_word += MMX_COEF;
+		keybuf_word += SIMD_COEF_32;
 	}
-	keybuffer[14*MMX_COEF] = len << 3;
+	keybuffer[14*SIMD_COEF_32] = len << 3;
 }
 #else
 static void set_key(char *key, int index)
@@ -242,12 +242,12 @@ static void set_key(char *key, int index)
 }
 #endif
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 static char *get_key(int index)
 {
 	static char out[PLAINTEXT_LENGTH + 1];
 	unsigned int i;
-	ARCH_WORD_32 len = ((ARCH_WORD_32*)saved_key)[14*MMX_COEF + (index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*MD4_BUF_SIZ*MMX_COEF] >> 3;
+	ARCH_WORD_32 len = ((ARCH_WORD_32*)saved_key)[14*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*MD4_BUF_SIZ*SIMD_COEF_32] >> 3;
 
 	for(i=0;i<len;i++)
 		out[i] = ((char*)saved_key)[GETPOS(i, index)];
@@ -274,7 +274,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < loops; ++index)
 #endif
 	{
-#if MMX_COEF
+#if SIMD_COEF_32
 		DO_MMX_MD4(saved_key[index], crypt_key[index], total_len[index]);
 #else
 		MD4_CTX ctx;
@@ -289,8 +289,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count) {
 	int index;
 	for (index = 0; index < count; index++)
-#ifdef MMX_COEF
-        if (((ARCH_WORD_32 *) binary)[0] == ((ARCH_WORD_32*)crypt_key)[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*4*MMX_COEF])
+#ifdef SIMD_COEF_32
+        if (((ARCH_WORD_32 *) binary)[0] == ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*4*SIMD_COEF_32])
 #else
 		if ( ((ARCH_WORD_32*)binary)[0] == crypt_key[index][0] )
 #endif
@@ -300,10 +300,10 @@ static int cmp_all(void *binary, int count) {
 
 static int cmp_one(void *binary, int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
     int i;
 	for (i = 0; i < BINARY_SIZE/sizeof(ARCH_WORD_32); i++)
-        if (((ARCH_WORD_32 *) binary)[i] != ((ARCH_WORD_32*)crypt_key)[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*4*MMX_COEF+i*MMX_COEF])
+        if (((ARCH_WORD_32 *) binary)[i] != ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*4*SIMD_COEF_32+i*SIMD_COEF_32])
             return 0;
 	return 1;
 #else

@@ -142,13 +142,13 @@ typedef struct private_subformat_data
 
 #define OMP_SCALE 1
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 # define MIN_KEYS_PER_CRYPT	1
 # ifdef _OPENMP
 // in openMP mode, we multiply everything by 24
 // in openMP mode, we multiply everything by 48
 // Now, we mult by 192x with OMP_SCALE=4
-#  if MMX_COEF == 4
+#  if SIMD_COEF_32 == 4
 #   define BLOCK_LOOPS		(1536*OMP_SCALE)
 #   if !defined MD5_SSE_PARA || MD5_SSE_PARA==1
 #    define BY_X			(1536*OMP_SCALE)
@@ -165,7 +165,7 @@ typedef struct private_subformat_data
 #   endif
 #  endif
 #else
-#  if MMX_COEF == 4
+#  if SIMD_COEF_32 == 4
 #   define BLOCK_LOOPS		32
 #   if !defined MD5_SSE_PARA || MD5_SSE_PARA==1
 #    define BY_X			32
@@ -183,7 +183,7 @@ typedef struct private_subformat_data
 # endif
 # endif
 # define LOOP_STR
-# if MMX_COEF == 4
+# if SIMD_COEF_32 == 4
 #  ifdef MD5_SSE_PARA
 #   define ALGORITHM_NAME		"128/128 " MD5_SSE_type  " " STRINGIZE(BY_X) "x4x" STRINGIZE(MD5_SSE_PARA)
 #   define BSD_BLKS (MD5_SSE_PARA)
@@ -204,12 +204,12 @@ typedef struct private_subformat_data
 #  define PLAINTEXT_LENGTH	(27*3+1) // for worst-case UTF-8
 #  ifdef MD5_SSE_PARA
 // gives us 16 'loops' for para=2 and 10 loops for para==3 (or max of 128 for 2 and 120 for 3)
-#   define MAX_KEYS_PER_CRYPT	(((MMX_COEF*BLOCK_LOOPS)/(MD5_SSE_PARA*4))*(MD5_SSE_PARA*4))
+#   define MAX_KEYS_PER_CRYPT	(((SIMD_COEF_32*BLOCK_LOOPS)/(MD5_SSE_PARA*4))*(MD5_SSE_PARA*4))
 #  else
-#   define MAX_KEYS_PER_CRYPT	MMX_COEF*BLOCK_LOOPS
+#   define MAX_KEYS_PER_CRYPT	SIMD_COEF_32*BLOCK_LOOPS
 #  endif
 # endif
-#else // !MMX_COEF
+#else // !SIMD_COEF_32
 # ifdef _OPENMP
 #  define BLOCK_LOOPS			(6144*OMP_SCALE)
 # else
@@ -308,7 +308,7 @@ extern void MD5_body(ARCH_WORD_32 x[15], ARCH_WORD_32 out[4]);
 #endif
 #endif
 #else // !USE_MD5_Go
-#ifndef MMX_COEF
+#ifndef SIMD_COEF_32
 //static MD5_OUT tmpOut;
 #endif
 #define MIN_KEYS_PER_CRYPT_X86	1

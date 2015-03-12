@@ -39,7 +39,7 @@ john_register_one(&fmt_ctrxns);
 #include <string.h>
 
 #ifdef _OPENMP
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define OMP_SCALE                       1024
 #else
 #define OMP_SCALE                       2048
@@ -53,8 +53,8 @@ john_register_one(&fmt_ctrxns);
 #include "options.h"
 #include "johnswap.h"
 
-#ifdef MMX_COEF
-#define NBKEYS  (MMX_COEF * SHA1_SSE_PARA)
+#ifdef SIMD_COEF_32
+#define NBKEYS  (SIMD_COEF_32 * SHA1_SSE_PARA)
 #endif
 #include "sse-intrinsics.h"
 #include "common.h"
@@ -76,10 +76,10 @@ john_register_one(&fmt_ctrxns);
 #define SALT_SIZE                       8
 #define SALT_ALIGN                      4
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT              NBKEYS
 #define MAX_KEYS_PER_CRYPT              NBKEYS
-#define GETPOS(i, index)                ((index & (MMX_COEF - 1)) * 4 + ((i) & (0xffffffff - 3)) * MMX_COEF + (((i) & 3) ^ 3) + (index >> (MMX_COEF >> 1)) * SHA_BUF_SIZ * MMX_COEF * 4) //for endianity conversion
+#define GETPOS(i, index)                ((index & (SIMD_COEF_32 - 1)) * 4 + ((i) & (0xffffffff - 3)) * SIMD_COEF_32 + (((i) & 3) ^ 3) + (index >> (SIMD_COEF_32 >> 1)) * SHA_BUF_SIZ * SIMD_COEF_32 * 4) //for endianity conversion
 #else
 #define MIN_KEYS_PER_CRYPT              1
 #define MAX_KEYS_PER_CRYPT              1
@@ -97,7 +97,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 static unsigned char (*saved_key)[SHA_BUF_SIZ * 4 * NBKEYS];
 static unsigned char (*crypt_key)[BINARY_SIZE * NBKEYS];
 static int kpc;
@@ -117,7 +117,7 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt / NBKEYS, MEM_ALIGN_SIMD);
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt / NBKEYS, MEM_ALIGN_SIMD);
 	kpc = self->params.max_keys_per_crypt;
@@ -144,7 +144,7 @@ static void *binary(char *ciphertext)
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(ciphertext[i * 2 + 1])];
 	}
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	alter_endianity(realcipher, BINARY_SIZE);
 #endif
 	return (void*)realcipher;
@@ -170,7 +170,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void set_key(char *key, int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
 	ARCH_WORD_32 *keybuf_word = (ARCH_WORD_32*)&saved_key[0][GETPOS(SALT_SIZE ^ 3, index)];
 	unsigned int len;
@@ -191,7 +191,7 @@ static void set_key(char *key, int index)
 			goto key_cleaning;
 		}
 		*keybuf_word = JOHNSWAP(temp);
-		keybuf_word += MMX_COEF;
+		keybuf_word += SIMD_COEF_32;
 		if (!(temp & 0xff000000))
 		{
 			*keybuf_word = 0x80000000;
@@ -203,15 +203,15 @@ static void set_key(char *key, int index)
 	*keybuf_word = 0x00800000;
 
 key_cleaning:
-	keybuf_word += MMX_COEF;
+	keybuf_word += SIMD_COEF_32;
 	while(*keybuf_word) {
 		*keybuf_word = 0;
-		keybuf_word += MMX_COEF;
+		keybuf_word += SIMD_COEF_32;
 	}
 
 	len += 1; /* Trailing null is included */
 
-	((unsigned int*)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = len << 3;
+	((unsigned int*)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 #else
 	strnzcpy(saved_plain[index], key, PLAINTEXT_LENGTH + 1);
 #endif
@@ -219,11 +219,11 @@ key_cleaning:
 
 static char *get_key(int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned int i, s;
 	static char out[PLAINTEXT_LENGTH + 1];
 
-	s = (((unsigned int*)saved_key)[15*MMX_COEF + (index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF] >> 3) - SALT_SIZE - 1;
+	s = (((unsigned int*)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*SHA_BUF_SIZ*SIMD_COEF_32] >> 3) - SALT_SIZE - 1;
 	for(i = 0; i < s; i++)
 		out[i] = ((char*)saved_key)[GETPOS(SALT_SIZE + i, index)];
 	out[i] = 0;
@@ -248,7 +248,7 @@ static void *salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	int i, index;
 
 	for (index = 0; index < kpc; index++)
@@ -262,14 +262,14 @@ static void set_salt(void *salt)
 
 static int cmp_all(void *binary, int count)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned int x, y=0;
 
-	for(; y<kpc / MMX_COEF; y++)
-		for(x = 0; x < MMX_COEF; x++)
+	for(; y<kpc / SIMD_COEF_32; y++)
+		for(x = 0; x < SIMD_COEF_32; x++)
 		{
 			if(((ARCH_WORD_32*)binary)[0] ==
-			   ((ARCH_WORD_32*)crypt_key)[x + y * MMX_COEF*5])
+			   ((ARCH_WORD_32*)crypt_key)[x + y * SIMD_COEF_32*5])
 				return 1;
 		}
 	return 0;
@@ -287,20 +287,20 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned int x, y;
 	x = index & 3;
 	y = index / 4;
 
-	if(((ARCH_WORD_32*)binary)[0] != ((ARCH_WORD_32*)crypt_key)[x + y * MMX_COEF*5])
+	if(((ARCH_WORD_32*)binary)[0] != ((ARCH_WORD_32*)crypt_key)[x + y * SIMD_COEF_32*5])
 		return 0;
-	if(((ARCH_WORD_32*)binary)[1] != ((ARCH_WORD_32*)crypt_key)[x + y * MMX_COEF*5+MMX_COEF*1])
+	if(((ARCH_WORD_32*)binary)[1] != ((ARCH_WORD_32*)crypt_key)[x + y * SIMD_COEF_32*5+SIMD_COEF_32*1])
 		return 0;
-	if(((ARCH_WORD_32*)binary)[2] != ((ARCH_WORD_32*)crypt_key)[x + y * MMX_COEF*5+MMX_COEF*2])
+	if(((ARCH_WORD_32*)binary)[2] != ((ARCH_WORD_32*)crypt_key)[x + y * SIMD_COEF_32*5+SIMD_COEF_32*2])
 		return 0;
-	if(((ARCH_WORD_32*)binary)[3] != ((ARCH_WORD_32*)crypt_key)[x + y * MMX_COEF*5+MMX_COEF*3])
+	if(((ARCH_WORD_32*)binary)[3] != ((ARCH_WORD_32*)crypt_key)[x + y * SIMD_COEF_32*5+SIMD_COEF_32*3])
 		return 0;
-	if(((ARCH_WORD_32*)binary)[4] != ((ARCH_WORD_32*)crypt_key)[x + y * MMX_COEF*5+MMX_COEF*4])
+	if(((ARCH_WORD_32*)binary)[4] != ((ARCH_WORD_32*)crypt_key)[x + y * SIMD_COEF_32*5+SIMD_COEF_32*4])
 		return 0;
 	return 1;
 #else
@@ -325,7 +325,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < loops; ++index)
 #endif
 	{
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		SSESHA1body(saved_key[index], (unsigned int*)crypt_key[index], NULL, SSEi_MIXED_IN);
 #else
 		SHA_CTX ctx;
@@ -339,8 +339,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-#ifdef MMX_COEF
-#define HASH_IDX ((index&3)+(index/4)*MMX_COEF*5)
+#ifdef SIMD_COEF_32
+#define HASH_IDX ((index&3)+(index/4)*SIMD_COEF_32*5)
 static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xfff; }

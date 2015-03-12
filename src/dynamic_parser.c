@@ -723,7 +723,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 
 	if (c == 't' && !strncasecmp(Line, "TestM=", 6))
 	{
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		char *cp;
 		if (pers_opts.target_enc == UTF_8)
 			return 1;
@@ -754,7 +754,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 
 	if (c == 't' && !strncasecmp(Line, "TestF=", 6))
 	{
-#ifndef MMX_COEF
+#ifndef SIMD_COEF_32
 		char *cp;
 		if (pers_opts.target_enc == UTF_8)
 			return 1;
@@ -1015,7 +1015,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt)
 #ifdef DEBUG
 	cnt += Count_Items("TestD=");
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	cnt += Count_Items("TestM=");
 #else
 	cnt += Count_Items("TestF=");

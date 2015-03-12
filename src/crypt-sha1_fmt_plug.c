@@ -42,7 +42,7 @@ john_register_one(&fmt_cryptsha1);
 #define BENCHMARK_COMMENT           ""
 #define BENCHMARK_LENGTH            -1001
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF1-SHA1 " SHA1_N_STR MMX_TYPE
 #else
 #define ALGORITHM_NAME          "PBKDF1-SHA1 " ARCH_BITS_STR "/" ARCH_BITS_STR
@@ -54,8 +54,8 @@ john_register_one(&fmt_cryptsha1);
 #define SALT_SIZE                   sizeof(struct saltstruct)
 #define SALT_ALIGN                  4
 
-#ifdef MMX_COEF
-#define MIN_KEYS_PER_CRYPT      MMX_COEF
+#ifdef SIMD_COEF_32
+#define MIN_KEYS_PER_CRYPT      SIMD_COEF_32
 #define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #else
 #define MIN_KEYS_PER_CRYPT      1

@@ -30,10 +30,10 @@ john_register_one(&fmt_wpapsk);
 
 // if this is uncommented, we will force building of SSE to be 'off'. It is
 // useful in testing but 99.9% of the builds should have this undef commented out.
-//#undef MMX_COEF
+//#undef SIMD_COEF_32
 
-#ifdef MMX_COEF
-#  define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
+#ifdef SIMD_COEF_32
+#  define NBKEYS	(SIMD_COEF_32 * SHA1_SSE_PARA)
 #  ifdef _OPENMP
 #    include <omp.h>
 #  endif
@@ -59,10 +59,10 @@ extern wpapsk_salt currentsalt;
 extern hccap_t hccap;
 extern mic_t *mic;
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 // Ok, now we have our MMX/SSE2/intr buffer.
 // this version works properly for MMX, SSE2 (.S) and SSE2 intrinsic.
-#define GETPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 ) //for endianity conversion
+#define GETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + (index>>(SIMD_COEF_32>>1))*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
 static unsigned char (*sse_hash1);
 static unsigned char (*sse_crypt1);
 static unsigned char (*sse_crypt2);
@@ -86,7 +86,7 @@ static void init(struct fmt_main *self)
 	mic = mem_alloc_tiny(sizeof(*mic) *
 	    self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
-#if defined (MMX_COEF)
+#if defined (SIMD_COEF_32)
 	sse_hash1 = mem_calloc_tiny(sizeof(*sse_hash1)*SHA_BUF_SIZ*4*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	sse_crypt1 = mem_calloc_tiny(sizeof(*sse_crypt1)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	sse_crypt2 = mem_calloc_tiny(sizeof(*sse_crypt2)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
@@ -97,11 +97,11 @@ static void init(struct fmt_main *self)
 			// set the length of all hash1 SSE buffer to 64+20 * 8 bits. The 64 is for the ipad/opad,
 			// the 20 is for the length of the SHA1 buffer that also gets into each crypt.
 			// Works for SSE2i and SSE2
-			((unsigned int *)sse_hash1)[15*MMX_COEF + (index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF] = (84<<3); // all encrypts are 64+20 bytes.
+			((unsigned int *)sse_hash1)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*SHA_BUF_SIZ*SIMD_COEF_32] = (84<<3); // all encrypts are 64+20 bytes.
 			sse_hash1[GETPOS(20,index)] = 0x80;
 		}
 	}
-	// From this point on, we ONLY touch the first 20 bytes (* MMX_COEF) of each buffer 'block'.  If !SHA_PARA', then only the first
+	// From this point on, we ONLY touch the first 20 bytes (* SIMD_COEF_32) of each buffer 'block'.  If !SHA_PARA', then only the first
 	// block is written to after this, if there are more that one SHA_PARA, then the start of each para block will be updated inside the inner loop.
 #endif
 
@@ -116,7 +116,7 @@ static void init(struct fmt_main *self)
 	}
 }
 
-#ifndef MMX_COEF
+#ifndef SIMD_COEF_32
 static MAYBE_INLINE void wpapsk_cpu(int count,
     wpapsk_password * in, wpapsk_hash * out, wpapsk_salt * salt)
 {
@@ -259,19 +259,19 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 				buffer[j].i[i] ^= 0x6a6a6a6a;
 			SHA1_Update(&ctx_opad[j], buffer[j].c, 64);
 
-			// we memcopy from flat into MMX_COEF output buffer's (our 'temp' ctx buffer).
+			// we memcopy from flat into SIMD_COEF_32 output buffer's (our 'temp' ctx buffer).
 			// This data will NOT need to be BE swapped (it already IS BE swapped).
-			i1[(j/MMX_COEF)*MMX_COEF*5+(j&(MMX_COEF-1))]               = ctx_ipad[j].h0;
-			i1[(j/MMX_COEF)*MMX_COEF*5+(j&(MMX_COEF-1))+MMX_COEF]      = ctx_ipad[j].h1;
-			i1[(j/MMX_COEF)*MMX_COEF*5+(j&(MMX_COEF-1))+(MMX_COEF<<1)] = ctx_ipad[j].h2;
-			i1[(j/MMX_COEF)*MMX_COEF*5+(j&(MMX_COEF-1))+MMX_COEF*3]    = ctx_ipad[j].h3;
-			i1[(j/MMX_COEF)*MMX_COEF*5+(j&(MMX_COEF-1))+(MMX_COEF<<2)] = ctx_ipad[j].h4;
+			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))]               = ctx_ipad[j].h0;
+			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+SIMD_COEF_32]      = ctx_ipad[j].h1;
+			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)] = ctx_ipad[j].h2;
+			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+SIMD_COEF_32*3]    = ctx_ipad[j].h3;
+			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)] = ctx_ipad[j].h4;
 
-			i2[(j/MMX_COEF)*MMX_COEF*5+(j&(MMX_COEF-1))]               = ctx_opad[j].h0;
-			i2[(j/MMX_COEF)*MMX_COEF*5+(j&(MMX_COEF-1))+MMX_COEF]      = ctx_opad[j].h1;
-			i2[(j/MMX_COEF)*MMX_COEF*5+(j&(MMX_COEF-1))+(MMX_COEF<<1)] = ctx_opad[j].h2;
-			i2[(j/MMX_COEF)*MMX_COEF*5+(j&(MMX_COEF-1))+MMX_COEF*3]    = ctx_opad[j].h3;
-			i2[(j/MMX_COEF)*MMX_COEF*5+(j&(MMX_COEF-1))+(MMX_COEF<<2)] = ctx_opad[j].h4;
+			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))]               = ctx_opad[j].h0;
+			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+SIMD_COEF_32]      = ctx_opad[j].h1;
+			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)] = ctx_opad[j].h2;
+			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+SIMD_COEF_32*3]    = ctx_opad[j].h3;
+			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)] = ctx_opad[j].h4;
 
 			essid[slen - 1] = 1;
 //			HMAC(EVP_sha1(), in[j].v, in[j].length, essid, slen, outbuf.c, NULL);
@@ -285,23 +285,23 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 			SHA1_Final(outbuf[j].c, &sha1_ctx);
 //			memcpy(buffer[j].c, &outbuf[j], 20);
 
-			// now convert this from flat into MMX_COEF buffers.   (same as the memcpy() commented out in the last line)
+			// now convert this from flat into SIMD_COEF_32 buffers.   (same as the memcpy() commented out in the last line)
 			// Also, perform the 'first' ^= into the crypt buffer.  NOTE, we are doing that in BE format
 			// so we will need to 'undo' that in the end.
-			o1[(j/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(j&(MMX_COEF-1))]                = outbuf[j].i[0] = sha1_ctx.h0;
-			o1[(j/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(j&(MMX_COEF-1))+MMX_COEF]       = outbuf[j].i[1] = sha1_ctx.h1;
-			o1[(j/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(j&(MMX_COEF-1))+(MMX_COEF<<1)]  = outbuf[j].i[2] = sha1_ctx.h2;
-			o1[(j/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(j&(MMX_COEF-1))+MMX_COEF*3]     = outbuf[j].i[3] = sha1_ctx.h3;
-			o1[(j/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(j&(MMX_COEF-1))+(MMX_COEF<<2)]  = outbuf[j].i[4] = sha1_ctx.h4;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))]                = outbuf[j].i[0] = sha1_ctx.h0;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+SIMD_COEF_32]       = outbuf[j].i[1] = sha1_ctx.h1;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)]  = outbuf[j].i[2] = sha1_ctx.h2;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+SIMD_COEF_32*3]     = outbuf[j].i[3] = sha1_ctx.h3;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)]  = outbuf[j].i[4] = sha1_ctx.h4;
 		}
 
 		for (i = 1; i < 4096; i++) {
 			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			for (j = 0; j < NBKEYS; j++) {
-				unsigned *p = &((unsigned int*)t_sse_hash1)[(((j>>2)*SHA_BUF_SIZ)<<2) + (j&(MMX_COEF-1))];
+				unsigned *p = &((unsigned int*)t_sse_hash1)[(((j>>2)*SHA_BUF_SIZ)<<2) + (j&(SIMD_COEF_32-1))];
 				for(k = 0; k < 5; k++)
-					outbuf[j].i[k] ^= p[(k<<(MMX_COEF>>1))];
+					outbuf[j].i[k] ^= p[(k<<(SIMD_COEF_32>>1))];
 			}
 		}
 		essid[slen - 1] = 2;
@@ -318,22 +318,22 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 			SHA1_Final(&outbuf[j].c[20], &sha1_ctx);
 //			memcpy(&buffer[j], &outbuf[j].c[20], 20);
 
-			// now convert this from flat into MMX_COEF buffers.  (same as the memcpy() commented out in the last line)
+			// now convert this from flat into SIMD_COEF_32 buffers.  (same as the memcpy() commented out in the last line)
 			// Also, perform the 'first' ^= into the crypt buffer.  NOTE, we are doing that in BE format
 			// so we will need to 'undo' that in the end. (only 3 dwords of the 2nd block outbuf are worked with).
-			o1[(j/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(j&(MMX_COEF-1))]                = outbuf[j].i[5] = sha1_ctx.h0;
-			o1[(j/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(j&(MMX_COEF-1))+MMX_COEF]       = outbuf[j].i[6] = sha1_ctx.h1;
-			o1[(j/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(j&(MMX_COEF-1))+(MMX_COEF<<1)]  = outbuf[j].i[7] = sha1_ctx.h2;
-			o1[(j/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(j&(MMX_COEF-1))+MMX_COEF*3]                      = sha1_ctx.h3;
-			o1[(j/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(j&(MMX_COEF-1))+(MMX_COEF<<2)]                   = sha1_ctx.h4;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))]                = outbuf[j].i[5] = sha1_ctx.h0;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+SIMD_COEF_32]       = outbuf[j].i[6] = sha1_ctx.h1;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)]  = outbuf[j].i[7] = sha1_ctx.h2;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+SIMD_COEF_32*3]                      = sha1_ctx.h3;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)]                   = sha1_ctx.h4;
 		}
 		for (i = 1; i < 4096; i++) {
 			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			for (j = 0; j < NBKEYS; j++) {
-				unsigned *p = &((unsigned int*)t_sse_hash1)[(((j>>2)*SHA_BUF_SIZ)<<2) + (j&(MMX_COEF-1))];
+				unsigned *p = &((unsigned int*)t_sse_hash1)[(((j>>2)*SHA_BUF_SIZ)<<2) + (j&(SIMD_COEF_32-1))];
 				for(k = 5; k < 8; k++)
-					outbuf[j].i[k] ^= p[((k-5)<<(MMX_COEF>>1))];
+					outbuf[j].i[k] ^= p[((k-5)<<(SIMD_COEF_32>>1))];
 			}
 		}
 
@@ -352,7 +352,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 
 	if (new_keys || strcmp(last_ssid, hccap.essid)) {
-#ifndef MMX_COEF
+#ifndef SIMD_COEF_32
 		wpapsk_cpu(count, inbuffer, outbuffer, &currentsalt);
 #else
 		wpapsk_sse(count, inbuffer, outbuffer, &currentsalt);

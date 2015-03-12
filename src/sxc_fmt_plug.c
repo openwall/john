@@ -33,7 +33,7 @@ john_register_one(&fmt_sxc);
 
 #define FORMAT_LABEL		"sxc"
 #define FORMAT_NAME		"StarOffice .sxc"
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"SHA1 Blowfish " SHA1_N_STR MMX_TYPE
 #else
 #define ALGORITHM_NAME		"SHA1 Blowfish 32/" ARCH_BITS_STR
@@ -45,7 +45,7 @@ john_register_one(&fmt_sxc);
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define BINARY_ALIGN	sizeof(ARCH_WORD_32)
 #define SALT_ALIGN		sizeof(int)
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #else
@@ -286,7 +286,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA1_Update(&ctx, (unsigned char *)saved_key[index+i], strlen(saved_key[index+i]));
 			SHA1_Final((unsigned char *)hash[i], &ctx);
 		}
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		{
 			int lens[MAX_KEYS_PER_CRYPT];
 			unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];

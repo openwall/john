@@ -3,7 +3,6 @@
  * Copyright (c) 1996-2002,2005,2006,2008,2010,2011,2013 by Solar Designer
  *
  * ...with changes in the jumbo patch for mingw and MSC, by JimF.
- * ...and introduction of MMX_TYPE and MMX_COEF by Simon Marechal.
  * ...and NT_SSE2 by Alain Espinosa.
  * ...and various little things by magnum
  *
@@ -268,7 +267,6 @@
 #endif
 
 #define MMX_TYPE			" SSE2"
-#define MMX_COEF			4
 
 #define NT_SSE2
 

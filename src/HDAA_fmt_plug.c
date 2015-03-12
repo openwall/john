@@ -55,19 +55,19 @@ john_register_one(&fmt_HDAA);
 
 #if defined(_OPENMP)
 static unsigned int omp_t = 1;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define OMP_SCALE			256
 #else
 #define OMP_SCALE			64
 #endif
 #endif
 
-#ifdef MMX_COEF
-#define NBKEYS					(MMX_COEF * MD5_SSE_PARA)
+#ifdef SIMD_COEF_32
+#define NBKEYS					(SIMD_COEF_32 * MD5_SSE_PARA)
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&60)*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*64*MMX_COEF )
-#define GETOUTPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&0x1c)*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*16*MMX_COEF )
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + ((i)&3) + (index>>(SIMD_COEF_32>>1))*64*SIMD_COEF_32 )
+#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&0x1c)*SIMD_COEF_32 + ((i)&3) + (index>>(SIMD_COEF_32>>1))*16*SIMD_COEF_32 )
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -119,7 +119,7 @@ static struct fmt_tests tests[] = {
 /* used by set_key */
 static char (*saved_plain)[PLAINTEXT_LENGTH + 1];
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 
 #define LIMBS	9
 static unsigned char *saved_key[LIMBS];
@@ -138,7 +138,7 @@ static reqinfo_t *rinfo = NULL;
 
 static void init(struct fmt_main *self)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	int i;
 #endif
 #if defined (_OPENMP)
@@ -147,7 +147,7 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	for (i = 0; i < LIMBS; i++)
 		saved_key[i] = mem_calloc_tiny(64 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	interm_key = mem_calloc_tiny(16 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
@@ -210,7 +210,7 @@ static void set_salt(void *salt)
 static void set_key(char *key, int index)
 {
 	strcpy(saved_plain[index], key);
-#ifndef MMX_COEF
+#ifndef SIMD_COEF_32
 	saved_len[index] = -1;
 #endif
 }
@@ -222,16 +222,16 @@ static char *get_key(int index)
 
 static int cmp_all(void *binary, int count)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned int x,y=0;
 #ifdef _OPENMP
 	for(; y < MD5_SSE_PARA * omp_t; y++)
 #else
 	for(; y < MD5_SSE_PARA; y++)
 #endif
-		for(x = 0; x < MMX_COEF; x++)
+		for(x = 0; x < SIMD_COEF_32; x++)
 		{
-			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[y*MMX_COEF*4+x] )
+			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[y*SIMD_COEF_32*4+x] )
 				return 1;
 		}
 	return 0;
@@ -247,12 +247,12 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned int i,x,y;
-	x = index&(MMX_COEF-1);
-	y = index/MMX_COEF;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	for(i=0;i<(BINARY_SIZE/4);i++)
-		if ( ((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[y*MMX_COEF*4+i*MMX_COEF+x] )
+		if ( ((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[y*SIMD_COEF_32*4+i*SIMD_COEF_32+x] )
 			return 0;
 	return 1;
 #else
@@ -268,7 +268,7 @@ static int cmp_exact(char *source, int count)
 
 /* convert hash from binary to ascii */
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 
 // This code should be rewritten in intrinsics, reading from
 // MMX or SSE2 output buffers and writing to MMX/SSE2 input buffers.
@@ -296,7 +296,7 @@ static inline void sse_bin2ascii(unsigned char *conv, unsigned char *src)
 	}
 }
 
-#endif /* MMX_COEF */
+#endif /* SIMD_COEF_32 */
 
 #ifdef __MMX__
 static inline void bin2ascii(__m64 *conv, __m64 *src)
@@ -381,17 +381,17 @@ static inline void bin2ascii(uint32_t *conv, uint32_t *source)
 
 #endif /* MMX */
 
-#if MMX_COEF
+#if SIMD_COEF_32
 static inline void crypt_done(unsigned const int *source, unsigned int *dest, int index)
 {
 	unsigned int i;
-	unsigned const int *s = &source[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*4*MMX_COEF];
-	unsigned int *d = &dest[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*4*MMX_COEF];
+	unsigned const int *s = &source[(index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*4*SIMD_COEF_32];
+	unsigned int *d = &dest[(index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*4*SIMD_COEF_32];
 
 	for (i = 0; i < BINARY_SIZE / 4; i++) {
 		*d = *s;
-		s += MMX_COEF;
-		d += MMX_COEF;
+		s += SIMD_COEF_32;
+		d += SIMD_COEF_32;
 	}
 }
 #endif
@@ -399,7 +399,7 @@ static inline void crypt_done(unsigned const int *source, unsigned int *dest, in
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-#if MMX_COEF
+#if SIMD_COEF_32
 #if defined(_OPENMP)
 #define ti	(thread*NBKEYS+index)
 	int thread;
@@ -437,7 +437,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (; i < (((len+8)>>6)+1)*64; i += 4)
 				*(ARCH_WORD_32*)&saved_key[i>>6][GETPOS(i, ti)] = 0;
 
-			((unsigned int *)saved_key[(len+8)>>6])[14*MMX_COEF + (ti&3) + (ti>>2)*16*MMX_COEF] = len << 3;
+			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&3) + (ti>>2)*16*SIMD_COEF_32] = len << 3;
 		}
 
 		SSEmd5body(&saved_key[0][thread*64*NBKEYS], &crypt_key[thread*4*NBKEYS], NULL, SSEi_MIXED_IN);
@@ -470,7 +470,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (; i <= crypt_len[index]; i += 4)
 				*(ARCH_WORD_32*)&saved_key[i>>6][GETPOS(i, ti)] = 0;
 
-			((unsigned int *)saved_key[(len+8)>>6])[14*MMX_COEF + (ti&3) + (ti>>2)*16*MMX_COEF] = len << 3;
+			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&3) + (ti>>2)*16*SIMD_COEF_32] = len << 3;
 			crypt_len[index] = len;
 			if (len > longest)
 				longest = len;
@@ -655,8 +655,8 @@ static void *binary(char *ciphertext)
 	return (void*) realcipher;
 }
 
-#ifdef MMX_COEF
-#define HASH_OFFSET (index&(MMX_COEF-1))+(index/MMX_COEF)*MMX_COEF*4
+#ifdef SIMD_COEF_32
+#define HASH_OFFSET (index&(SIMD_COEF_32-1))+(index/SIMD_COEF_32)*SIMD_COEF_32*4
 static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xfff; }

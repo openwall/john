@@ -25,7 +25,7 @@ john_register_one(&fmt_blackberry1);
 #include "arch.h"
 
 //#undef _OPENMP
-//#undef MMX_COEF
+//#undef SIMD_COEF_32
 //#undef SIMD_COEF_64
 //#undef SIMD_PARA_SHA512
 

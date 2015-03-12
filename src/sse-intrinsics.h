@@ -8,10 +8,10 @@
 #if !defined (__JTR_SSE_INTRINSICS_H__)
 #define __JTR_SSE_INTRINSICS_H__
 
-#if (MMX_COEF && MMX_COEF == 2) || !MMX_COEF
+#if (SIMD_COEF_32 && SIMD_COEF_32 == 2) || !SIMD_COEF_32
 #undef SSE_type
 #define SSE_type			"x86"
-#undef MMX_COEF
+#undef SIMD_COEF_32
 #endif
 
 #include "common.h"
@@ -37,7 +37,7 @@
 #elif defined(__SSSE3__)
 #undef SSE_type
 #define SSE_type			"SSSE3"
-#elif MMX_COEF
+#elif SIMD_COEF_32
 #undef SSE_type
 #define SSE_type			"SSE2"
 #endif
@@ -83,8 +83,8 @@ void SSESHA1body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 #define SIMD_TYPE                 "SSE2"
 #endif
 
-// we use the 'outter' MMX_COEF wrapper, as the flag for SHA256/SHA512.  FIX_ME!!
-#if MMX_COEF==4
+// we use the 'outter' SIMD_COEF_32 wrapper, as the flag for SHA256/SHA512.  FIX_ME!!
+#if SIMD_COEF_32==4
 
 #ifdef SIMD_COEF_32
 #define SHA256_ALGORITHM_NAME	"128/128 " SIMD_TYPE " " STRINGIZE(SIMD_COEF_32)"x"

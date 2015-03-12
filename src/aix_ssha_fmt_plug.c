@@ -46,7 +46,7 @@ static int omp_t = 1;
 #define FORMAT_NAME_SHA1	"AIX LPA {ssha1}"
 #define FORMAT_NAME_SHA256	"AIX LPA {ssha256}"
 #define FORMAT_NAME_SHA512	"AIX LPA {ssha512}"
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME_SHA1	"PBKDF2-SHA1 " SHA1_N_STR MMX_TYPE
 #else
 #define ALGORITHM_NAME_SHA1	"PBKDF2-SHA1 32/" ARCH_BITS_STR
@@ -71,7 +71,7 @@ static int omp_t = 1;
 #define MAX_SALT_SIZE		24
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 // since we have a 'common' crypt_all() function, find 'max' of sha1/sha256/sha512, and that is the block size
 // crypt_all handles looping 'within' each OMP thread (or within the single thread if non OMP).
 #if SSE_GROUP_SZ_SHA1 > SSE_GROUP_SZ_SHA256 && SSE_GROUP_SZ_SHA1 > SSE_GROUP_SZ_SHA512

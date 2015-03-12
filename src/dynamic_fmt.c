@@ -77,7 +77,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
  *      and sha256 are the same.  The size of ALL of these are the same, but they differ in
  *      endianity.  sha384, sha512 are the same, but they are 128 byte vs 64 byte per limb.
  *      NOTE, this has been totally changed, in design. SHA1 has been removed from the intermixed
- *      MMX_COEF buffers, and now only uses 'flat' buffers.  The mix to MMX_COEF code has been
+ *      SIMD_COEF_32 buffers, and now only uses 'flat' buffers.  The mix to SIMD_COEF_32 code has been
  *      placed inside the SSE intrinsic body.  There has been a 10-15% slowdown on some formats
  *      (most notably the 'raw-sha1', but this is just the way it will be. There were some
  *      performance IMPROVEMENTS on some formats.  The biggest benefit, is that this becomes
@@ -98,7 +98,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 
 #include "arch.h"
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #include "sse-intrinsics.h"
 #endif
 
@@ -176,9 +176,9 @@ static void MD5_swap2(MD5_word *x, MD5_word *x2, MD5_word *y, MD5_word *y2, int 
 #define FORMAT_LABEL		"dynamic"
 #define FORMAT_NAME         "Generic MD5"
 
-#ifdef MMX_COEF
-# define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + ((i)&3) )
-# define SHAGETPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) ) //for endianity conversion
+#ifdef SIMD_COEF_32
+# define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + ((i)&3) )
+# define SHAGETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) ) //for endianity conversion
 #endif
 
 #define BENCHMARK_COMMENT		""
@@ -208,16 +208,16 @@ static struct fmt_tests dynamic_tests[] = {
 	{NULL},{NULL},{NULL},{NULL},{NULL},{NULL},{NULL},{NULL},{NULL}
 };
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 // SSE2 works only with 54 byte keys. Thus, md5(md5($p).md5($s)) can NOT be used
 // with the SSE2, since that final md5 will be over a 64 byte block of data.
 static union {
-	ARCH_WORD_32 w[(64*MMX_COEF)/sizeof(ARCH_WORD_32)];
-	unsigned char c[64*MMX_COEF];
+	ARCH_WORD_32 w[(64*SIMD_COEF_32)/sizeof(ARCH_WORD_32)];
+	unsigned char c[64*SIMD_COEF_32];
 } *input_buf, *input_buf2;
 static union {
-	ARCH_WORD_32 w[(BINARY_SIZE*MMX_COEF)/sizeof(ARCH_WORD_32)];
-	unsigned char c[BINARY_SIZE*MMX_COEF];
+	ARCH_WORD_32 w[(BINARY_SIZE*SIMD_COEF_32)/sizeof(ARCH_WORD_32)];
+	unsigned char c[BINARY_SIZE*SIMD_COEF_32];
 } *crypt_key, *crypt_key2;
 static unsigned int *total_len;
 static unsigned int *total_len2;
@@ -518,17 +518,17 @@ static char *HandleCase(char *cp, int caseType);
 // thead, which ONLY wants to work on a subset of the data.  These functions should NOT be called by threading
 // code, EVER.  But this functions KNOW what to do.  Some actually have threads, others do not need them.
 #ifdef _OPENMP
-#ifndef MMX_COEF
+#ifndef SIMD_COEF_32
 const int OMP_INC = (MD5_X2+1);
 const int OMP_MD5_INC = (MD5_X2+1);
 const int OMP_MD4_INC = (MD5_X2+1);
 const int OMP_SHA1_INC = (MD5_X2+1);
 #else
 const int OMP_INC = (MD5_X2+1);
-const int OMP_MD5_INC = (MD5_SSE_PARA*MMX_COEF);
-const int OMP_MD4_INC = (MD4_SSE_PARA*MMX_COEF);
-const int OMP_SHA1_INC = (SHA1_SSE_PARA*MMX_COEF);
-#endif // MMX_COEF
+const int OMP_MD5_INC = (MD5_SSE_PARA*SIMD_COEF_32);
+const int OMP_MD4_INC = (MD4_SSE_PARA*SIMD_COEF_32);
+const int OMP_SHA1_INC = (SHA1_SSE_PARA*SIMD_COEF_32);
+#endif // SIMD_COEF_32
 #endif // _OPENMP
 
 static inline void __nonMP_DynamicFunc__SSEtoX86_switch_output2() {
@@ -605,7 +605,7 @@ static void __possMP_DynamicFunc__crypt2_md5() {
 }
 static void __nonMP_DynamicFunc__clean_input() {
 	unsigned i=0;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		memset(input_buf, 0, MMX_INP_BUF_SZ);
 		memset(total_len, 0, MMX_TOT_LEN_SZ);
@@ -627,7 +627,7 @@ static void __nonMP_DynamicFunc__clean_input() {
 }
 static void __nonMP_DynamicFunc__clean_input2() {
 	unsigned i=0;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		memset(input_buf2, 0, MMX_INP_BUF2_SZ);
 		memset(total_len2, 0, MMX_TOT_LEN2_SZ);
@@ -652,7 +652,7 @@ static void __nonMP_DynamicFunc__clean_input2() {
 	return;
 }
 static void __nonMP_DynamicFunc__clean_input_full() {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	memset(input_buf, 0, MMX_INP_BUF_SZ);
 	memset(total_len, 0, MMX_TOT_LEN_SZ);
 #endif
@@ -660,7 +660,7 @@ static void __nonMP_DynamicFunc__clean_input_full() {
 	memset(total_len_X86, 0, FLAT_TOT_LEN_SZ);
 }
 static void __nonMP_DynamicFunc__clean_input2_full() {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	memset(input_buf2, 0, MMX_INP_BUF2_SZ);
 	memset(total_len2, 0, MMX_TOT_LEN2_SZ);
 #endif
@@ -668,7 +668,7 @@ static void __nonMP_DynamicFunc__clean_input2_full() {
 	memset(total_len2_X86, 0, FLAT_TOT_LEN_SZ);
 }
 static void __nonMP_DynamicFunc__clean_input_kwik() {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		memset(total_len, 0, MMX_TOT_LEN_SZ);
 		return;
@@ -681,7 +681,7 @@ static void __nonMP_DynamicFunc__clean_input_kwik() {
 }
 #ifndef _OPENMP
 static void __nonMP_DynamicFunc__clean_input2_kwik() {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		memset(total_len2, 0, MMX_TOT_LEN2_SZ);
 		return;
@@ -729,7 +729,7 @@ static void init(struct fmt_main *pFmt)
 #endif
 	eLargeOut[0] = eBase16;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (!input_buf) {
 		input_buf  = mem_calloc_tiny(MMX_INP_BUF_SZ,    MEM_ALIGN_SIMD);
 		total_len  = mem_calloc_tiny(MMX_TOT_LEN_SZ,    MEM_ALIGN_SIMD);
@@ -816,13 +816,13 @@ static void init(struct fmt_main *pFmt)
 	if (curdat.input2_set_len32) {
 		for (i = 0; i < MAX_KEYS_PER_CRYPT_X86; ++i)
 			total_len2_X86[i] = 32;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		for (i = 0; i < BLOCK_LOOPS; ++i) {
 			input_buf2[i].c[GETPOS(32,0)] = 0x80;
 			input_buf2[i].c[GETPOS(57,0)] = 0x1;
 			input_buf2[i].c[GETPOS(32,1)] = 0x80;
 			input_buf2[i].c[GETPOS(57,1)] = 0x1;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 			input_buf2[i].c[GETPOS(32,2)] = 0x80;
 			input_buf2[i].c[GETPOS(57,2)] = 0x1;
 			input_buf2[i].c[GETPOS(32,3)] = 0x80;
@@ -1162,7 +1162,7 @@ static void set_key(char *key, int index)
 	unsigned int len;
 
 	//printf("idx=%d key=%s\n", index, key);
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (curdat.store_keys_in_input==2)
 		dynamic_use_sse = 3;
 	else if (curdat.md5_startup_in_x86)
@@ -1178,12 +1178,12 @@ static void set_key(char *key, int index)
 
 	if (curdat.store_keys_in_input)
 	{
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		if (dynamic_use_sse==1) {
 			// code derived from rawMD5_fmt_plug.c code from magnum
 			const ARCH_WORD_32 *key32 = (ARCH_WORD_32*)key;
-			unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
-			ARCH_WORD_32 *keybuffer = &input_buf[idx].w[index&(MMX_COEF-1)];
+			unsigned int idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
+			ARCH_WORD_32 *keybuffer = &input_buf[idx].w[index&(SIMD_COEF_32-1)];
 			ARCH_WORD_32 *keybuf_word = keybuffer;
 			unsigned int len;
 			ARCH_WORD_32 temp;
@@ -1210,17 +1210,17 @@ static void set_key(char *key, int index)
 				}
 				*keybuf_word = temp;
 				len += 4;
-				keybuf_word += MMX_COEF;
+				keybuf_word += SIMD_COEF_32;
 			}
 			*keybuf_word = 0x80;
 
 key_cleaning:
-			keybuf_word += MMX_COEF;
+			keybuf_word += SIMD_COEF_32;
 			while(*keybuf_word) {
 				*keybuf_word = 0;
-				keybuf_word += MMX_COEF;
+				keybuf_word += SIMD_COEF_32;
 			}
-			keybuffer[14*MMX_COEF] = len << 3;
+			keybuffer[14*SIMD_COEF_32] = len << 3;
 			return;
 		}
 #endif
@@ -1255,7 +1255,7 @@ key_cleaning:
 }
 
 static void clear_keys(void) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (curdat.pSetup->flags & MGF_FULL_CLEAN_REQUIRED) {
 		__nonMP_DynamicFunc__clean_input_full();
 		return;
@@ -1286,19 +1286,19 @@ static char *get_key(int index)
 	{
 		unsigned int i;
 		unsigned char *cp;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		//if (dynamic_use_sse==1) {
 		// Note, if we are not in
 		if (dynamic_use_sse && !curdat.md5_startup_in_x86) {
 			unsigned int s;
-			unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
+			unsigned int idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
 //if (curdat.store_keys_in_input && dynamic_use_sse==1)
 
 //			s = saved_key_len[index];  // NOTE, we now have to get the length from the buffer, we do NOT store it into a saved_key_len buffer.
-			ARCH_WORD_32 *keybuffer = &input_buf[idx].w[index&(MMX_COEF-1)];
-			s = keybuffer[14*MMX_COEF] >> 3;
+			ARCH_WORD_32 *keybuffer = &input_buf[idx].w[index&(SIMD_COEF_32-1)];
+			s = keybuffer[14*SIMD_COEF_32] >> 3;
 			for(i=0;i<s;i++)
-				out[i] = input_buf[idx].c[GETPOS(i, index&(MMX_COEF-1))];
+				out[i] = input_buf[idx].c[GETPOS(i, index&(SIMD_COEF_32-1))];
 			out[i] = 0;
 			return (char*)out;
 		}
@@ -1328,14 +1328,14 @@ static char *get_key(int index)
 static int cmp_all(void *binary, int count)
 {
 	unsigned int i;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int cnt = ( ((unsigned)count+MMX_COEF-1)>>(MMX_COEF>>1));
+		unsigned int cnt = ( ((unsigned)count+SIMD_COEF_32-1)>>(SIMD_COEF_32>>1));
 		for (i = 0; i < cnt; ++i)
 		{
 			if(( *((ARCH_WORD_32 *)binary) == crypt_key[i].w[0])
 			|| ( *((ARCH_WORD_32 *)binary) == crypt_key[i].w[1])
-#if (MMX_COEF > 3)
+#if (SIMD_COEF_32 > 3)
 			|| ( *((ARCH_WORD_32 *)binary) == crypt_key[i].w[2])
 			|| ( *((ARCH_WORD_32 *)binary) == crypt_key[i].w[3])
 #endif
@@ -1367,14 +1367,14 @@ static int cmp_all(void *binary, int count)
 static int cmp_all_64_4x6(void *binary, int count)
 {
 	unsigned int i;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		unsigned int cnt = ( ((unsigned)count+MMX_COEF-1)>>(MMX_COEF>>1));
+		unsigned int cnt = ( ((unsigned)count+SIMD_COEF_32-1)>>(SIMD_COEF_32>>1));
 		for (i = 0; i < cnt; ++i)
 		{
 			if(( *((ARCH_WORD_32 *)binary) == (crypt_key[i].w[0] & MASK_4x6))
 			|| ( *((ARCH_WORD_32 *)binary) == (crypt_key[i].w[1] & MASK_4x6))
-#if (MMX_COEF > 3)
+#if (SIMD_COEF_32 > 3)
 		        || ( *((ARCH_WORD_32 *)binary) == (crypt_key[i].w[2] & MASK_4x6))
 			|| ( *((ARCH_WORD_32 *)binary) == (crypt_key[i].w[3] & MASK_4x6))
 #endif
@@ -1413,13 +1413,13 @@ static int cmp_exact(char *binary, int index)
  *********************************************************************************/
 static int cmp_one(void *binary, int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
-		if( (((ARCH_WORD_32 *)binary)[0] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[0*MMX_COEF+(index&(MMX_COEF-1))]) &&
-			(((ARCH_WORD_32 *)binary)[1] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[1*MMX_COEF+(index&(MMX_COEF-1))]) &&
-			(((ARCH_WORD_32 *)binary)[2] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[2*MMX_COEF+(index&(MMX_COEF-1))]) &&
-			(((ARCH_WORD_32 *)binary)[3] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[3*MMX_COEF+(index&(MMX_COEF-1))]))
+		unsigned int idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
+		if( (((ARCH_WORD_32 *)binary)[0] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[0*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
+			(((ARCH_WORD_32 *)binary)[1] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[1*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
+			(((ARCH_WORD_32 *)binary)[2] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[2*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
+			(((ARCH_WORD_32 *)binary)[3] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[3*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]))
 			return 1;
 		return 0;
 	}
@@ -1444,13 +1444,13 @@ static int cmp_one(void *binary, int index)
 }
 static int cmp_one_64_4x6(void *binary, int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
-		if( (((ARCH_WORD_32 *)binary)[0] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[0*MMX_COEF+(index&(MMX_COEF-1))] & MASK_4x6)) &&
-			(((ARCH_WORD_32 *)binary)[1] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[1*MMX_COEF+(index&(MMX_COEF-1))] & MASK_4x6)) &&
-			(((ARCH_WORD_32 *)binary)[2] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[2*MMX_COEF+(index&(MMX_COEF-1))] & MASK_4x6)) &&
-			(((ARCH_WORD_32 *)binary)[3] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[3*MMX_COEF+(index&(MMX_COEF-1))] & MASK_4x6)))
+		unsigned int idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
+		if( (((ARCH_WORD_32 *)binary)[0] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[0*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
+			(((ARCH_WORD_32 *)binary)[1] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[1*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
+			(((ARCH_WORD_32 *)binary)[2] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[2*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
+			(((ARCH_WORD_32 *)binary)[3] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[3*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)))
 			return 1;
 		return 0;
 	}
@@ -1494,7 +1494,7 @@ static void crypt_all(int count)
 #endif
 	__nonMP_eLargeOut(eBase16);
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	// If this format is MMX built, but is supposed to start in X86 (but be switchable), then we
 	// set that value here.
 	if (curdat.store_keys_in_input==2)
@@ -1565,7 +1565,7 @@ static void crypt_all(int count)
 				}
 				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32)
 				{
-#ifndef MMX_COEF
+#ifndef SIMD_COEF_32
 					if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32==2)
 #else
 					if (dynamic_use_sse == 1)
@@ -1633,7 +1633,7 @@ static void crypt_all(int count)
 		// Dump state (for debugging help)
 		printf ("\nState after function: %s\n", dynamic_Find_Function_Name(curdat.dynamic_FUNCTIONS[i]));
 		// dump input 1
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		dump_stuff_mmx_msg("input_buf[0]", input_buf[0].c, 64, 0);
 		dump_stuff_mmx_msg("input_buf[1]", input_buf[0].c, 64, 1);
 		dump_stuff_mmx_msg("input_buf[2]", input_buf[0].c, 64, 2);
@@ -1644,7 +1644,7 @@ static void crypt_all(int count)
 		printf ("input_buf86[2] : %*.*s\n", total_len_X86[2],total_len_X86[2],input_buf_X86[2].x1.b);
 		printf ("input_buf86[3] : %*.*s\n", total_len_X86[3],total_len_X86[3],input_buf_X86[3].x1.b);
 		// dump crypt 1
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		dump_stuff_mmx_msg("crypt_key[0]", crypt_key[0].c, 16, 0);
 		dump_stuff_mmx_msg("crypt_key[1]", crypt_key[0].c, 16, 1);
 		dump_stuff_mmx_msg("crypt_key[2]", crypt_key[0].c, 16, 2);
@@ -1655,7 +1655,7 @@ static void crypt_all(int count)
 		dump_stuff_be_msg("crypt_key_X86[2]", crypt_key_X86[2].x1.b, 16);
 		dump_stuff_be_msg("crypt_key_X86[3]", crypt_key_X86[3].x1.b, 16);
 		// dump input 2
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		dump_stuff_mmx_msg("input_buf2[0]", input_buf2[0].c, 64, 0);
 		dump_stuff_mmx_msg("input_buf2[1]", input_buf2[0].c, 64, 1);
 		dump_stuff_mmx_msg("input_buf2[2]", input_buf2[0].c, 64, 2);
@@ -1666,7 +1666,7 @@ static void crypt_all(int count)
 		printf ("input2_buf86[2] : %*.*s\n", total_len2_X86[2],total_len2_X86[2],input_buf2_X86[2].x1.b);
 		printf ("input2_buf86[3] : %*.*s\n", total_len2_X86[3],total_len2_X86[3],input_buf2_X86[3].x1.b);
 		// dump crypt 2
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		dump_stuff_mmx_msg("crypt_key2[0]", crypt_key2[0].c, 16, 0);
 		dump_stuff_mmx_msg("crypt_key2[1]", crypt_key2[0].c, 16, 1);
 		dump_stuff_mmx_msg("crypt_key2[2]", crypt_key2[0].c, 16, 2);
@@ -1735,10 +1735,10 @@ static int get_hash_5_64x4(int index) {
 
 static int get_hash_0(int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(MMX_COEF-1)] & 0xf;
+		unsigned int idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xf;
 	}
 #endif
 #if MD5_X2
@@ -1750,10 +1750,10 @@ static int get_hash_0(int index)
 
 static int get_hash_1(int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(MMX_COEF-1)] & 0xff;
+		unsigned int idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xff;
 	}
 #endif
 #if MD5_X2
@@ -1765,10 +1765,10 @@ static int get_hash_1(int index)
 
 static int get_hash_2(int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(MMX_COEF-1)] & 0xfff;
+		unsigned int idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xfff;
 	}
 #endif
 #if MD5_X2
@@ -1780,10 +1780,10 @@ static int get_hash_2(int index)
 
 static int get_hash_3(int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(MMX_COEF-1)] & 0xffff;
+		unsigned int idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xffff;
 	}
 #endif
 #if MD5_X2
@@ -1794,10 +1794,10 @@ static int get_hash_3(int index)
 }
 static int get_hash_4(int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(MMX_COEF-1)] & 0xfffff;
+		unsigned int idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xfffff;
 	}
 #endif
 #if MD5_X2
@@ -1808,10 +1808,10 @@ static int get_hash_4(int index)
 }
 static int get_hash_5(int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(MMX_COEF-1)] & 0xffffff;
+		unsigned int idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xffffff;
 	}
 #endif
 #if MD5_X2
@@ -1822,10 +1822,10 @@ static int get_hash_5(int index)
 }
 static int get_hash_6(int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(MMX_COEF-1)] & 0x7ffffff;
+		unsigned int idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0x7ffffff;
 	}
 #endif
 #if MD5_X2
@@ -2526,7 +2526,7 @@ static struct fmt_main fmt_Dynamic =
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		ALGORITHM_NAME,
 #else
 		ALGORITHM_NAME_X86,
@@ -2534,7 +2534,7 @@ static struct fmt_main fmt_Dynamic =
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		0,
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		PLAINTEXT_LENGTH,
 #else
 		PLAINTEXT_LENGTH_X86,
@@ -2547,7 +2547,7 @@ static struct fmt_main fmt_Dynamic =
 #if FMT_MAIN_VERSION > 9
 		SALT_ALIGN,
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #else
@@ -2639,7 +2639,7 @@ static void Dynamic_Load_itoa16_w2()
 	}
 }
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 
 
 /**************************************************************
@@ -2660,7 +2660,7 @@ static void __SSE_append_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned ch
 	// 3381K  (ath64, $dynamic_2$)
 	// 824.7k (ath64, $dynamic_1006$)
 #undef inc
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 #define inc 6
 #else
 #define inc 2
@@ -2712,7 +2712,7 @@ static void __SSE_overwrite_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned
 	// 3381K  (ath64, $dynamic_2$)
 	// 824.7k (ath64, $dynamic_1006$)
 #undef inc
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 #define inc 6
 #else
 #define inc 2
@@ -2761,7 +2761,7 @@ static void __SSE_append_output_base16_to_input_semi_aligned_2(unsigned ip, ARCH
     // 5113k/4382k  (core2,$dynamic_10$)
 	//  (ath64, $dynamic_9$)
 	//  (ath64, $dynamic_10$)
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 # define inc 4
 # define incCRY 12
 #else
@@ -2773,7 +2773,7 @@ static void __SSE_append_output_base16_to_input_semi_aligned_2(unsigned ip, ARCH
 
 	// start our pointers out at the right 32 bit offset into the first MMX/SSE buffer
 	IPBdw += idx_mod;
-	IPBdw += (ip>>2)*MMX_COEF;
+	IPBdw += (ip>>2)*SIMD_COEF_32;
 
 	CRY += (idx_mod<<2);
 
@@ -2826,7 +2826,7 @@ static void __SSE_append_output_base16_to_input_semi_aligned_0(unsigned ip, ARCH
 	// 3537K  (ath64, $dynamic_2$)
 	// 890.3K (ath64, $dynamic_1006$)
 #undef inc
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 #define inc 4
 //# define incCRY 12
 # define incCRY 14
@@ -2838,7 +2838,7 @@ static void __SSE_append_output_base16_to_input_semi_aligned_0(unsigned ip, ARCH
 
 	// start our pointers out at the right 32 bit offset into the first MMX/SSE buffer
 	IPBdw += idx_mod;
-	IPBdw += (ip>>2)*MMX_COEF;
+	IPBdw += (ip>>2)*SIMD_COEF_32;
 	CRY += (idx_mod<<2);
 
 	*IPBdw = (((ARCH_WORD_32)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
@@ -2907,7 +2907,7 @@ static void __SSE_append_string_to_input_unicode(unsigned char *IPB, unsigned id
 				x += cp[0];
 				*wpO = x;
                 cp += 2;
-                wpO += MMX_COEF;
+                wpO += SIMD_COEF_32;
             }
             while (--w32_cnt);
         }
@@ -2918,10 +2918,10 @@ static void __SSE_append_string_to_input_unicode(unsigned char *IPB, unsigned id
 	{
 		*cpO++ = *cp++;
 		if ( ((++bf_ptr)&3) == 0)
-			cpO += ((MMX_COEF-1)*4);
+			cpO += ((SIMD_COEF_32-1)*4);
 		*cpO++ = 0;
 		if ( ((++bf_ptr)&3) == 0)
-			cpO += ((MMX_COEF-1)*4);
+			cpO += ((SIMD_COEF_32-1)*4);
 	}
 	if (bUpdate0x80)
 		*cpO = 0x80;
@@ -2963,7 +2963,7 @@ static void __SSE_append_string_to_input(unsigned char *IPB, unsigned idx_mod, u
             {
                 *wpO = *((ARCH_WORD_32*)cp);
                 cp += 4;
-                wpO += MMX_COEF;
+                wpO += SIMD_COEF_32;
             }
             while (--w32_cnt);
         }
@@ -2979,14 +2979,14 @@ static void __SSE_append_string_to_input(unsigned char *IPB, unsigned idx_mod, u
 	{
 		*cpO++ = *cp++;
 		if ( ((++bf_ptr)&3) == 0)
-			cpO += ((MMX_COEF-1)*4);
+			cpO += ((SIMD_COEF_32-1)*4);
 	}
 	if (bUpdate0x80)
 		*cpO = 0x80;
 }
 
 
-#endif  // #ifdef MMX_COEF from way above.
+#endif  // #ifdef SIMD_COEF_32 from way above.
 
 
 static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned len)
@@ -3000,14 +3000,14 @@ static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		if (!md5_unicode_convert_get(tid)) {
 			for (; j < til; ++j) {
-				unsigned idx = (j>>(MMX_COEF>>1));
-				unsigned idx_mod = j&(MMX_COEF-1);
-				unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
-				total_len[idx] += (len << ((32/MMX_COEF)*idx_mod));
+				unsigned idx = (j>>(SIMD_COEF_32>>1));
+				unsigned idx_mod = j&(SIMD_COEF_32-1);
+				unsigned bf_ptr = (total_len[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
+				total_len[idx] += (len << ((32/SIMD_COEF_32)*idx_mod));
 				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,Str,len,bf_ptr,1);
 			}
 		} else {
@@ -3019,19 +3019,19 @@ static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (; j < til; ++j) {
-					unsigned idx = (j>>(MMX_COEF>>1));
-					unsigned idx_mod = j&(MMX_COEF-1);
-					unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
-					total_len[idx] += ( outlen << ((32/MMX_COEF)*idx_mod));
+					unsigned idx = (j>>(SIMD_COEF_32>>1));
+					unsigned idx_mod = j&(SIMD_COEF_32-1);
+					unsigned bf_ptr = (total_len[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
+					total_len[idx] += ( outlen << ((32/SIMD_COEF_32)*idx_mod));
 					// note we use the 'non' unicode variant, since we have already computed the unicode, and length properly
 					__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
 				}
 			} else {
 				for (; j < til; ++j) {
-					unsigned idx = (j>>(MMX_COEF>>1));
-					unsigned idx_mod = j&(MMX_COEF-1);
-					unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
-					total_len[idx] += ( (len<<1) << ((32/MMX_COEF)*idx_mod));
+					unsigned idx = (j>>(SIMD_COEF_32>>1));
+					unsigned idx_mod = j&(SIMD_COEF_32-1);
+					unsigned bf_ptr = (total_len[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
+					total_len[idx] += ( (len<<1) << ((32/SIMD_COEF_32)*idx_mod));
 					__SSE_append_string_to_input_unicode(input_buf[idx].c,idx_mod,Str,len,bf_ptr,1);
 				}
 			}
@@ -3103,14 +3103,14 @@ static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigne
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		if (!md5_unicode_convert_get(tid)) {
 			for (; j < til; ++j) {
-				unsigned idx = (j>>(MMX_COEF>>1));
-				unsigned idx_mod = j&(MMX_COEF-1);
-				unsigned bf_ptr = (total_len2[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
-				total_len2[idx] += ( len << ((32/MMX_COEF)*idx_mod));
+				unsigned idx = (j>>(SIMD_COEF_32>>1));
+				unsigned idx_mod = j&(SIMD_COEF_32-1);
+				unsigned bf_ptr = (total_len2[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
+				total_len2[idx] += ( len << ((32/SIMD_COEF_32)*idx_mod));
 				__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,Str,len,bf_ptr,1);
 			}
 		} else {
@@ -3122,19 +3122,19 @@ static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigne
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (; j < til; ++j) {
-					unsigned idx = (j>>(MMX_COEF>>1));
-					unsigned idx_mod = j&(MMX_COEF-1);
-					unsigned bf_ptr = (total_len2[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
-					total_len2[idx] += ( outlen << ((32/MMX_COEF)*idx_mod));
+					unsigned idx = (j>>(SIMD_COEF_32>>1));
+					unsigned idx_mod = j&(SIMD_COEF_32-1);
+					unsigned bf_ptr = (total_len2[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
+					total_len2[idx] += ( outlen << ((32/SIMD_COEF_32)*idx_mod));
 					// note we use the 'non' unicode variant of __SSE_append_string_to_input(), since it's already unicode, and length properly
 					__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
 				}
 			} else {
 				for (; j < til; ++j) {
-					unsigned idx = (j>>(MMX_COEF>>1));
-					unsigned idx_mod = j&(MMX_COEF-1);
-					unsigned bf_ptr = (total_len2[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
-					total_len2[idx] += ( (len<<1) << ((32/MMX_COEF)*idx_mod));
+					unsigned idx = (j>>(SIMD_COEF_32>>1));
+					unsigned idx_mod = j&(SIMD_COEF_32-1);
+					unsigned bf_ptr = (total_len2[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
+					total_len2[idx] += ( (len<<1) << ((32/SIMD_COEF_32)*idx_mod));
 					__SSE_append_string_to_input_unicode(input_buf2[idx].c,idx_mod,Str,len,bf_ptr,1);
 				}
 			}
@@ -3214,10 +3214,10 @@ void DynamicFunc__clean_input(DYNA_OMP_PARAMS)
 	__nonMP_DynamicFunc__clean_input();
 #else
 	unsigned i=0;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		int x = first / MMX_COEF;
-		int y = (last+MMX_COEF-1) / MMX_COEF;
+		int x = first / SIMD_COEF_32;
+		int y = (last+SIMD_COEF_32-1) / SIMD_COEF_32;
 		while (x < y) {
 			memset(input_buf[x].c, 0, sizeof(input_buf[0]));
 			total_len[x] = 0;
@@ -3243,10 +3243,10 @@ void DynamicFunc__clean_input2(DYNA_OMP_PARAMS)
 	__nonMP_DynamicFunc__clean_input2();
 #else
 	unsigned i=0;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		int x = first / MMX_COEF;
-		int y = (last+MMX_COEF-1) / MMX_COEF;
+		int x = first / SIMD_COEF_32;
+		int y = (last+SIMD_COEF_32-1) / SIMD_COEF_32;
 		while (x < y) {
 			memset(input_buf2[x].c, 0, sizeof(input_buf2[0]));
 			total_len2[x] = 0;
@@ -3273,9 +3273,9 @@ void DynamicFunc__clean_input_full(DYNA_OMP_PARAMS)
 	__nonMP_DynamicFunc__clean_input_full();
 #else
 	int i;
-#ifdef MMX_COEF
-	int x = first / MMX_COEF;
-	int y = (last+MMX_COEF-1) / MMX_COEF;
+#ifdef SIMD_COEF_32
+	int x = first / SIMD_COEF_32;
+	int y = (last+SIMD_COEF_32-1) / SIMD_COEF_32;
 	while (x < y) {
 		memset(input_buf[x].c, 0, sizeof(input_buf[0]));
 		total_len[x] = 0;
@@ -3299,9 +3299,9 @@ void DynamicFunc__clean_input2_full(DYNA_OMP_PARAMS)
 	__nonMP_DynamicFunc__clean_input2_full();
 #else
 	int i;
-#ifdef MMX_COEF
-	int x = first / MMX_COEF;
-	int y = (last+MMX_COEF-1) / MMX_COEF;
+#ifdef SIMD_COEF_32
+	int x = first / SIMD_COEF_32;
+	int y = (last+SIMD_COEF_32-1) / SIMD_COEF_32;
 	while (x < y) {
 		memset(input_buf2[x].c, 0, sizeof(input_buf2[0]));
 		total_len2[x] = 0;
@@ -3324,11 +3324,11 @@ void DynamicFunc__clean_input_kwik(DYNA_OMP_PARAMS)
 #ifndef _OPENMP
 	__nonMP_DynamicFunc__clean_input_kwik();
 #else
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	int i;
 	if (dynamic_use_sse==1) {
-		int x = first / MMX_COEF;
-		int y = (last+MMX_COEF-1) / MMX_COEF;
+		int x = first / SIMD_COEF_32;
+		int y = (last+SIMD_COEF_32-1) / SIMD_COEF_32;
 		while (x < y)
 			total_len[x++] = 0;
 		return;
@@ -3354,11 +3354,11 @@ void DynamicFunc__clean_input2_kwik(DYNA_OMP_PARAMS)
 #ifndef _OPENMP
 	__nonMP_DynamicFunc__clean_input2_kwik();
 #else
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	int i;
 	if (dynamic_use_sse==1) {
-		int x = first / MMX_COEF;
-		int y = (last+MMX_COEF-1) / MMX_COEF;
+		int x = first / SIMD_COEF_32;
+		int y = (last+SIMD_COEF_32-1) / SIMD_COEF_32;
 		while (x < y)
 			total_len2[x++] = 0;
 		return;
@@ -3396,12 +3396,12 @@ void DynamicFunc__append_keys(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		for (; j < til; ++j) {
-			unsigned idx = (j>>(MMX_COEF>>1));
-			unsigned idx_mod = j&(MMX_COEF-1);
-			unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
+			unsigned idx = (j>>(SIMD_COEF_32>>1));
+			unsigned idx_mod = j&(SIMD_COEF_32-1);
+			unsigned bf_ptr = (total_len[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
 			if (md5_unicode_convert_get(tid)) {
 				if (pers_opts.target_enc != ASCII && pers_opts.target_enc != ISO_8859_1) {
 					UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
@@ -3415,14 +3415,14 @@ void DynamicFunc__append_keys(DYNA_OMP_PARAMS)
 						if (outlen < 0)
 							outlen = strlen16(utf16Str) * sizeof(UTF16);
 					}
-					total_len[idx] += ( outlen << ((32/MMX_COEF)*idx_mod));
+					total_len[idx] += ( outlen << ((32/SIMD_COEF_32)*idx_mod));
 					__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
 				} else {
-					total_len[idx] += ( ((saved_key_len[j])<<1) << ((32/MMX_COEF)*idx_mod));
+					total_len[idx] += ( ((saved_key_len[j])<<1) << ((32/SIMD_COEF_32)*idx_mod));
 					__SSE_append_string_to_input_unicode(input_buf[idx].c,idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
 				}
 			} else {
-				total_len[idx] += (saved_key_len[j] << ((32/MMX_COEF)*idx_mod));
+				total_len[idx] += (saved_key_len[j] << ((32/SIMD_COEF_32)*idx_mod));
 				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
 			}
 		}
@@ -3496,20 +3496,20 @@ void DynamicFunc__append_keys_pad16(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		for (; j < til; ++j) {
-			unsigned idx = (j>>(MMX_COEF>>1));
-			unsigned idx_mod = j&(MMX_COEF-1);
-			unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
+			unsigned idx = (j>>(SIMD_COEF_32>>1));
+			unsigned idx_mod = j&(SIMD_COEF_32-1);
+			unsigned bf_ptr = (total_len[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
 			saved_key[j][saved_key_len[j]] = 0; // so strncpy 'works'
 			if (saved_key_len[j] < 16) {
 				char buf[17];
 				strncpy(buf, saved_key[j], 17);
-				total_len[idx] += (16 << ((32/MMX_COEF)*idx_mod));
+				total_len[idx] += (16 << ((32/SIMD_COEF_32)*idx_mod));
 				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)buf,16,bf_ptr,1);
 			} else {
-				total_len[idx] += (saved_key_len[j] << ((32/MMX_COEF)*idx_mod));
+				total_len[idx] += (saved_key_len[j] << ((32/SIMD_COEF_32)*idx_mod));
 				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
 			}
 		}
@@ -3538,20 +3538,20 @@ void DynamicFunc__append_keys_pad20(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		for (; j < til; ++j) {
-			unsigned idx = (j>>(MMX_COEF>>1));
-			unsigned idx_mod = j&(MMX_COEF-1);
-			unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
+			unsigned idx = (j>>(SIMD_COEF_32>>1));
+			unsigned idx_mod = j&(SIMD_COEF_32-1);
+			unsigned bf_ptr = (total_len[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
 			saved_key[j][saved_key_len[j]] = 0; // so strncpy 'works'
 			if (saved_key_len[j] < 20) {
 				char buf[21];
 				strncpy(buf, saved_key[j], 21);
-				total_len[idx] += (20 << ((32/MMX_COEF)*idx_mod));
+				total_len[idx] += (20 << ((32/SIMD_COEF_32)*idx_mod));
 				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)buf,20,bf_ptr,1);
 			} else {
-				total_len[idx] += (saved_key_len[j] << ((32/MMX_COEF)*idx_mod));
+				total_len[idx] += (saved_key_len[j] << ((32/SIMD_COEF_32)*idx_mod));
 				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
 			}
 		}
@@ -3585,12 +3585,12 @@ void DynamicFunc__append_keys2(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		for (; j < til; ++j) {
-			unsigned idx = (j>>(MMX_COEF>>1));
-			unsigned idx_mod = j&(MMX_COEF-1);
-			unsigned bf_ptr = (total_len2[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
+			unsigned idx = (j>>(SIMD_COEF_32>>1));
+			unsigned idx_mod = j&(SIMD_COEF_32-1);
+			unsigned bf_ptr = (total_len2[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
 			if (md5_unicode_convert_get(tid)) {
 				if (pers_opts.target_enc != ASCII && pers_opts.target_enc != ISO_8859_1) {
 					UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
@@ -3604,14 +3604,14 @@ void DynamicFunc__append_keys2(DYNA_OMP_PARAMS)
 						if (outlen < 0)
 							outlen = strlen16(utf16Str) * sizeof(UTF16);
 					}
-					total_len2[idx] += ( outlen << ((32/MMX_COEF)*idx_mod));
+					total_len2[idx] += ( outlen << ((32/SIMD_COEF_32)*idx_mod));
 					__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
 				} else {
-					total_len2[idx] += ( (saved_key_len[j]<<1) << ((32/MMX_COEF)*idx_mod));
+					total_len2[idx] += ( (saved_key_len[j]<<1) << ((32/SIMD_COEF_32)*idx_mod));
 					__SSE_append_string_to_input_unicode(input_buf2[idx].c,idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
 				}
 			} else {
-				total_len2[idx] += (saved_key_len[j] << ((32/MMX_COEF)*idx_mod));
+				total_len2[idx] += (saved_key_len[j] << ((32/SIMD_COEF_32)*idx_mod));
 				__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
 			}
 		}
@@ -3681,28 +3681,28 @@ void DynamicFunc__set_input_len_16(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned k;
-		j /= MMX_COEF;
-		til = (til+MMX_COEF-1)/MMX_COEF;
+		j /= SIMD_COEF_32;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
 		for (; j < til; ++j)
 		{
 			// If length is < 16, then remove existing end of buffer marker, and then set
 			// one at offset 16
 			unsigned cur_block_len = total_len[j];
-			for (k = 0; k < MMX_COEF; ++k) {
+			for (k = 0; k < SIMD_COEF_32; ++k) {
 				unsigned this_item_len = cur_block_len & 0xFF;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
 #endif
 				if (this_item_len < 16)
-					input_buf[j].c[GETPOS(this_item_len, k&(MMX_COEF-1))] = 0x00;
-				input_buf[j].c[GETPOS(16, k&(MMX_COEF-1))] = 0x80;
+					input_buf[j].c[GETPOS(this_item_len, k&(SIMD_COEF_32-1))] = 0x00;
+				input_buf[j].c[GETPOS(16, k&(SIMD_COEF_32-1))] = 0x80;
 			}
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 			total_len[j] = 0x10101010;
 #else
 			total_len[j] = 0x100010;
@@ -3737,28 +3737,28 @@ void DynamicFunc__set_input2_len_16(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned k;
-		j /= MMX_COEF;
-		til = (til+MMX_COEF-1)/MMX_COEF;
+		j /= SIMD_COEF_32;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
 		for (; j < til; ++j)
 		{
 			// If length is < 16, then remove existing end of buffer marker, and then set
 			// one at offset 16
 			unsigned cur_block_len = total_len2[j];
-			for (k = 0; k < MMX_COEF; ++k) {
+			for (k = 0; k < SIMD_COEF_32; ++k) {
 				unsigned this_item_len = cur_block_len & 0xFF;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
 #endif
 				if (this_item_len < 16)
-					input_buf2[j].c[GETPOS(this_item_len, k&(MMX_COEF-1))] = 0x00;
-				input_buf2[j].c[GETPOS(16, k&(MMX_COEF-1))] = 0x80;
+					input_buf2[j].c[GETPOS(this_item_len, k&(SIMD_COEF_32-1))] = 0x00;
+				input_buf2[j].c[GETPOS(16, k&(SIMD_COEF_32-1))] = 0x80;
 			}
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 			total_len2[j] = 0x10101010;
 #else
 			total_len2[j] = 0x100010;
@@ -3793,28 +3793,28 @@ void DynamicFunc__set_input_len_20(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned k;
-		j /= MMX_COEF;
-		til = (til+MMX_COEF-1)/MMX_COEF;
+		j /= SIMD_COEF_32;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
 		for (; j < til; ++j)
 		{
 			// If length is < 20, then remove existing end of buffer marker, and then set
 			// one at offset 20
 			unsigned cur_block_len = total_len[j];
-			for (k = 0; k < MMX_COEF; ++k) {
+			for (k = 0; k < SIMD_COEF_32; ++k) {
 				unsigned this_item_len = cur_block_len & 0xFF;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
 #endif
 				if (this_item_len < 20)
-					input_buf[j].c[GETPOS(this_item_len, k&(MMX_COEF-1))] = 0x00;
-				input_buf[j].c[GETPOS(20, k&(MMX_COEF-1))] = 0x80;
+					input_buf[j].c[GETPOS(this_item_len, k&(SIMD_COEF_32-1))] = 0x00;
+				input_buf[j].c[GETPOS(20, k&(SIMD_COEF_32-1))] = 0x80;
 			}
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 			total_len[j] = 0x14141414;
 #else
 			total_len[j] = 0x140014;
@@ -3848,28 +3848,28 @@ void DynamicFunc__set_input2_len_20(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned k;
-		j /= MMX_COEF;
-		til = (til+MMX_COEF-1)/MMX_COEF;
+		j /= SIMD_COEF_32;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
 		for (; j < til; ++j)
 		{
 			// If length is < 20, then remove existing end of buffer marker, and then set
 			// one at offset 20
 			unsigned cur_block_len = total_len2[j];
-			for (k = 0; k < MMX_COEF; ++k) {
+			for (k = 0; k < SIMD_COEF_32; ++k) {
 				unsigned this_item_len = cur_block_len & 0xFF;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
 #endif
 				if (this_item_len < 20)
-					input_buf2[j].c[GETPOS(this_item_len, k&(MMX_COEF-1))] = 0x00;
-				input_buf2[j].c[GETPOS(20, k&(MMX_COEF-1))] = 0x80;
+					input_buf2[j].c[GETPOS(this_item_len, k&(SIMD_COEF_32-1))] = 0x00;
+				input_buf2[j].c[GETPOS(20, k&(SIMD_COEF_32-1))] = 0x80;
 			}
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 			total_len2[j] = 0x14141414;
 #else
 			total_len2[j] = 0x100014;
@@ -3903,16 +3903,16 @@ void DynamicFunc__set_input_len_32(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		j /= MMX_COEF;
-		til = (til+MMX_COEF-1)/MMX_COEF;
+		j /= SIMD_COEF_32;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
 		for (; j < til; ++j)
 		{
 			unsigned k;
-			for (k = 0; k < MMX_COEF; ++k)
-				input_buf[j].c[GETPOS(32, k&(MMX_COEF-1))] = 0x80;
-#if (MMX_COEF==4)
+			for (k = 0; k < SIMD_COEF_32; ++k)
+				input_buf[j].c[GETPOS(32, k&(SIMD_COEF_32-1))] = 0x80;
+#if (SIMD_COEF_32==4)
 			total_len[j] = 0x20202020;
 #else
 			total_len[j] = 0x200020;
@@ -3950,16 +3950,16 @@ void DynamicFunc__set_input2_len_32(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		j /= MMX_COEF;
-		til = (til+MMX_COEF-1)/MMX_COEF;
+		j /= SIMD_COEF_32;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
 		for (; j < til; ++j)
 		{
 			unsigned k;
-			for (k = 0; k < MMX_COEF; ++k)
-				input_buf2[j].c[GETPOS(32, k&(MMX_COEF-1))] = 0x80;
-#if (MMX_COEF==4)
+			for (k = 0; k < SIMD_COEF_32; ++k)
+				input_buf2[j].c[GETPOS(32, k&(SIMD_COEF_32-1))] = 0x80;
+#if (SIMD_COEF_32==4)
 			total_len2[j] = 0x20202020;
 #else
 			total_len2[j] = 0x200020;
@@ -3997,16 +3997,16 @@ void DynamicFunc__set_input_len_40(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		j /= MMX_COEF;
-		til = (til+MMX_COEF-1)/MMX_COEF;
+		j /= SIMD_COEF_32;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
 		for (; j < til; ++j)
 		{
 			unsigned k;
-			for (k = 0; k < MMX_COEF; ++k)
-				input_buf[j].c[GETPOS(40, k&(MMX_COEF-1))] = 0x80;
-#if (MMX_COEF==4)
+			for (k = 0; k < SIMD_COEF_32; ++k)
+				input_buf[j].c[GETPOS(40, k&(SIMD_COEF_32-1))] = 0x80;
+#if (SIMD_COEF_32==4)
 			total_len[j] = 0x28282828;
 #else
 			total_len[j] = 0x280028;
@@ -4042,16 +4042,16 @@ void DynamicFunc__set_input2_len_40(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		j /= MMX_COEF;
-		til = (til+MMX_COEF-1)/MMX_COEF;
+		j /= SIMD_COEF_32;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
 		for (; j < til; ++j)
 		{
 			unsigned k;
-			for (k = 0; k < MMX_COEF; ++k)
-				input_buf2[j].c[GETPOS(40, k&(MMX_COEF-1))] = 0x80;
-#if (MMX_COEF==4)
+			for (k = 0; k < SIMD_COEF_32; ++k)
+				input_buf2[j].c[GETPOS(40, k&(SIMD_COEF_32-1))] = 0x80;
+#if (SIMD_COEF_32==4)
 			total_len2[j] = 0x28282828;
 #else
 			total_len2[j] = 0x280028;
@@ -4087,7 +4087,7 @@ void DynamicFunc__set_input_len_64(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse == 1) {
 		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_64 in SSE2/MMX mode\n");
 		error();
@@ -4106,7 +4106,7 @@ void DynamicFunc__set_input2_len_64(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse == 1) {
 		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_64 in SSE2/MMX mode\n");
 		error();
@@ -4125,7 +4125,7 @@ void DynamicFunc__set_input_len_100(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse == 1) {
 		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_100 in SSE2/MMX mode\n");
 		error();
@@ -4175,21 +4175,21 @@ unsigned i, til;
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned j, k;
-		til = (til+MMX_COEF-1)/MMX_COEF;
-		i /= MMX_COEF;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		for (; i < til; ++i)
 		{
-			for (j = 0; j < MMX_COEF; ++j)
+			for (j = 0; j < SIMD_COEF_32; ++j)
 			{
-				unsigned start_len = (total_len[i] >> ((32/MMX_COEF)*j)) & 0xFF;
-				unsigned len1 = (total_len2[i] >> ((32/MMX_COEF)*j)) & 0xFF;
+				unsigned start_len = (total_len[i] >> ((32/SIMD_COEF_32)*j)) & 0xFF;
+				unsigned len1 = (total_len2[i] >> ((32/SIMD_COEF_32)*j)) & 0xFF;
 				for (k = 0; k < len1; ++k)
 					input_buf[i].c[GETPOS((k+start_len), j)] = input_buf2[i].c[GETPOS(k,j)];
 				input_buf[i].c[GETPOS((len1+start_len), j)] = 0x80;
-				total_len[i] += ( len1 << ( ( (32/MMX_COEF) * j ) ));
+				total_len[i] += ( len1 << ( ( (32/SIMD_COEF_32) * j ) ));
 			}
 		}
 		return;
@@ -4217,21 +4217,21 @@ unsigned i, til;
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned j, k;
-		til = (til+MMX_COEF-1)/MMX_COEF;
-		i /= MMX_COEF;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		for (; i < til; ++i)
 		{
-			for (j = 0; j < MMX_COEF; ++j)
+			for (j = 0; j < SIMD_COEF_32; ++j)
 			{
-				unsigned start_len = (total_len2[i] >> ((32/MMX_COEF)*j)) & 0xFF;
-				unsigned len1 = (total_len[i] >> ((32/MMX_COEF)*j)) & 0xFF;
+				unsigned start_len = (total_len2[i] >> ((32/SIMD_COEF_32)*j)) & 0xFF;
+				unsigned len1 = (total_len[i] >> ((32/SIMD_COEF_32)*j)) & 0xFF;
 				for (k = 0; k < len1; ++k)
 					input_buf2[i].c[GETPOS((k+start_len), j)] = input_buf[i].c[GETPOS(k,j)];
 				input_buf2[i].c[GETPOS((len1+start_len), j)] = 0x80;
-				total_len2[i] += ( len1 << ( ( (32/MMX_COEF) * j ) ));
+				total_len2[i] += ( len1 << ( ( (32/SIMD_COEF_32) * j ) ));
 			}
 		}
 		return;
@@ -4259,20 +4259,20 @@ unsigned i, til;
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned j, k;
-		til = (til+MMX_COEF-1)/MMX_COEF;
-		i /= MMX_COEF;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		for (; i < til; ++i)
 		{
-			for (j = 0; j < MMX_COEF; ++j)
+			for (j = 0; j < SIMD_COEF_32; ++j)
 			{
-				unsigned start_len = (total_len[i] >> ((32/MMX_COEF)*j)) & 0xFF;
+				unsigned start_len = (total_len[i] >> ((32/SIMD_COEF_32)*j)) & 0xFF;
 				for (k = 0; k < start_len; ++k)
 					input_buf[i].c[GETPOS((k+start_len), j)] = input_buf[i].c[GETPOS(k,j)];
 				input_buf[i].c[GETPOS((start_len+start_len), j)] = 0x80;
-				total_len[i] += ( start_len << ( ( (32/MMX_COEF) * j ) ));
+				total_len[i] += ( start_len << ( ( (32/SIMD_COEF_32) * j ) ));
 			}
 		}
 		return;
@@ -4299,20 +4299,20 @@ unsigned i, til;
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned j, k;
-		til = (til+MMX_COEF-1)/MMX_COEF;
-		i /= MMX_COEF;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		for (; i < til; ++i)
 		{
-			for (j = 0; j < MMX_COEF; ++j)
+			for (j = 0; j < SIMD_COEF_32; ++j)
 			{
-				unsigned start_len = (total_len2[i] >> ((32/MMX_COEF)*j)) & 0xFF;
+				unsigned start_len = (total_len2[i] >> ((32/SIMD_COEF_32)*j)) & 0xFF;
 				for (k = 0; k < start_len; ++k)
 					input_buf2[i].c[GETPOS((k+start_len), j)] = input_buf2[i].c[GETPOS(k,j)];
 				input_buf2[i].c[GETPOS((start_len+start_len), j)] = 0x80;
-				total_len2[i] += ( start_len << ( ( (32/MMX_COEF) * j ) ));
+				total_len2[i] += ( start_len << ( ( (32/SIMD_COEF_32) * j ) ));
 			}
 		}
 		return;
@@ -4342,10 +4342,10 @@ static void SSE_Intrinsics_LoadLens(int side, int i)
 		{
 			p = input_buf[i+j].w;
 			TL = (ARCH_WORD_32)total_len[i+j];
-			p[14*MMX_COEF+0] = ((TL>>0)&0xFF)<<3;
-			p[14*MMX_COEF+1] = ((TL>>8)&0xFF)<<3;
-			p[14*MMX_COEF+2] = ((TL>>16)&0xFF)<<3;
-			p[14*MMX_COEF+3] = ((TL>>24)&0xFF)<<3;
+			p[14*SIMD_COEF_32+0] = ((TL>>0)&0xFF)<<3;
+			p[14*SIMD_COEF_32+1] = ((TL>>8)&0xFF)<<3;
+			p[14*SIMD_COEF_32+2] = ((TL>>16)&0xFF)<<3;
+			p[14*SIMD_COEF_32+3] = ((TL>>24)&0xFF)<<3;
 		}
 	}
 	else
@@ -4354,10 +4354,10 @@ static void SSE_Intrinsics_LoadLens(int side, int i)
 		{
 			p = input_buf2[i+j].w;
 			TL = (ARCH_WORD_32)total_len2[i+j];
-			p[14*MMX_COEF+0] = ((TL>>0)&0xFF)<<3;
-			p[14*MMX_COEF+1] = ((TL>>8)&0xFF)<<3;
-			p[14*MMX_COEF+2] = ((TL>>16)&0xFF)<<3;
-			p[14*MMX_COEF+3] = ((TL>>24)&0xFF)<<3;
+			p[14*SIMD_COEF_32+0] = ((TL>>0)&0xFF)<<3;
+			p[14*SIMD_COEF_32+1] = ((TL>>8)&0xFF)<<3;
+			p[14*SIMD_COEF_32+2] = ((TL>>16)&0xFF)<<3;
+			p[14*SIMD_COEF_32+3] = ((TL>>24)&0xFF)<<3;
 		}
 	}
 }
@@ -4384,10 +4384,10 @@ void DynamicFunc__crypt_md5(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
-		i >>= (MMX_COEF>>1);
+		til = (til+SIMD_COEF_32-1)>>(SIMD_COEF_32>>1);
+		i >>= (SIMD_COEF_32>>1);
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD5_SSE_PARA) {
 				SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
@@ -4425,10 +4425,10 @@ unsigned i, til;
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
-		i >>= (MMX_COEF>>1);
+		til = (til+SIMD_COEF_32-1)>>(SIMD_COEF_32>>1);
+		i >>= (SIMD_COEF_32>>1);
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD4_SSE_PARA) {
 				SSEmd4body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
@@ -4616,10 +4616,10 @@ void DynamicFunc__crypt2_md5(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
-		i >>= (MMX_COEF>>1);
+		til = (til+SIMD_COEF_32-1)>>(SIMD_COEF_32>>1);
+		i >>= (SIMD_COEF_32>>1);
 		for (; i < til; i += MD5_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(1, i);
 			SSEmd5body(input_buf2[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
@@ -4651,10 +4651,10 @@ void DynamicFunc__crypt2_md4(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
-		i >>= (MMX_COEF>>1);
+		til = (til+SIMD_COEF_32-1)>>(SIMD_COEF_32>>1);
+		i >>= (SIMD_COEF_32>>1);
 		for (; i < til; i += MD4_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(1, i);
 			SSEmd4body(input_buf2[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
@@ -4693,10 +4693,10 @@ void DynamicFunc__crypt_md5_in1_to_out2(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
-		i >>= (MMX_COEF>>1);
+		til = (til+SIMD_COEF_32-1)>>(SIMD_COEF_32>>1);
+		i >>= (SIMD_COEF_32>>1);
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD5_SSE_PARA) {
 				SSEmd5body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
@@ -4734,10 +4734,10 @@ void DynamicFunc__crypt_md4_in1_to_out2(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
-		i >>= (MMX_COEF>>1);
+		til = (til+SIMD_COEF_32-1)>>(SIMD_COEF_32>>1);
+		i >>= (SIMD_COEF_32>>1);
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD4_SSE_PARA) {
 				SSEmd4body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
@@ -4782,10 +4782,10 @@ void DynamicFunc__crypt_md5_in2_to_out1(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
-		i >>= (MMX_COEF>>1);
+		til = (til+SIMD_COEF_32-1)>>(SIMD_COEF_32>>1);
+		i >>= (SIMD_COEF_32>>1);
 		for (; i < til; i += MD5_SSE_PARA)
 		{
 			SSE_Intrinsics_LoadLens(1, i);
@@ -4819,10 +4819,10 @@ void DynamicFunc__crypt_md4_in2_to_out1(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
-		i >>= (MMX_COEF>>1);
+		til = (til+SIMD_COEF_32-1)>>(SIMD_COEF_32>>1);
+		i >>= (SIMD_COEF_32>>1);
 		for (; i < til; i += MD4_SSE_PARA)
 		{
 			SSE_Intrinsics_LoadLens(1, i);
@@ -4858,10 +4858,10 @@ void DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
-		i >>= (MMX_COEF>>1);
+		til = (til+SIMD_COEF_32-1)>>(SIMD_COEF_32>>1);
+		i >>= (SIMD_COEF_32>>1);
 		for (; i < til; i += MD5_SSE_PARA)
 		{
 			unsigned j;
@@ -4906,10 +4906,10 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE(DYNA_
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
-		i >>=(MMX_COEF>>1);
+		til = (til+SIMD_COEF_32-1)>>(SIMD_COEF_32>>1);
+		i >>=(SIMD_COEF_32>>1);
 		for (; i < til; i += MD5_SSE_PARA)
 		{
 			unsigned j;
@@ -4949,10 +4949,10 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+MMX_COEF-1)>>(MMX_COEF>>1);
-		i >>= (MMX_COEF>>1);
+		til = (til+SIMD_COEF_32-1)>>(SIMD_COEF_32>>1);
+		i >>= (SIMD_COEF_32>>1);
 		for (; i < til; i += MD5_SSE_PARA)
 		{
 			unsigned j;
@@ -4992,7 +4992,7 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		if (md5_unicode_convert_get(tid)) {
 			if (pers_opts.target_enc != ASCII && pers_opts.target_enc != ISO_8859_1) {
@@ -5002,16 +5002,16 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix(DYNA_OMP_PARAMS)
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (; j < til; ++j) {
-					__SSE_append_string_to_input(input_buf[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),(unsigned char*)utf16Str,outlen,0,0);
+					__SSE_append_string_to_input(input_buf[j>>(SIMD_COEF_32>>1)].c,j&(SIMD_COEF_32-1),(unsigned char*)utf16Str,outlen,0,0);
 				}
 			} else {
 				for (; j < til; ++j)
-					__SSE_append_string_to_input_unicode(input_buf[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),(unsigned char*)cursalt,saltlen,0,0);
+					__SSE_append_string_to_input_unicode(input_buf[j>>(SIMD_COEF_32>>1)].c,j&(SIMD_COEF_32-1),(unsigned char*)cursalt,saltlen,0,0);
 			}
 			return;
 		}
 		for (; j < til; ++j)
-			__SSE_append_string_to_input(input_buf[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),cursalt,saltlen,0,0);
+			__SSE_append_string_to_input(input_buf[j>>(SIMD_COEF_32>>1)].c,j&(SIMD_COEF_32-1),cursalt,saltlen,0,0);
 		return;
 	}
 #endif
@@ -5072,7 +5072,7 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		if (md5_unicode_convert_get(tid)) {
 			if (pers_opts.target_enc != ASCII && pers_opts.target_enc != ISO_8859_1) {
@@ -5082,16 +5082,16 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix(DYNA_OMP_PARAMS)
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (; j < til; ++j) {
-					__SSE_append_string_to_input(input_buf2[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),(unsigned char*)utf16Str,outlen,0,0);
+					__SSE_append_string_to_input(input_buf2[j>>(SIMD_COEF_32>>1)].c,j&(SIMD_COEF_32-1),(unsigned char*)utf16Str,outlen,0,0);
 				}
 			} else {
 				for (; j < til; ++j)
-					__SSE_append_string_to_input_unicode(input_buf2[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),(unsigned char*)cursalt,saltlen,0,0);
+					__SSE_append_string_to_input_unicode(input_buf2[j>>(SIMD_COEF_32>>1)].c,j&(SIMD_COEF_32-1),(unsigned char*)cursalt,saltlen,0,0);
 			}
 			return;
 		}
 		for (; j < til; ++j)
-			__SSE_append_string_to_input(input_buf2[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),cursalt,saltlen,0,0);
+			__SSE_append_string_to_input(input_buf2[j>>(SIMD_COEF_32>>1)].c,j&(SIMD_COEF_32-1),cursalt,saltlen,0,0);
 		return;
 	}
 #endif
@@ -5158,13 +5158,13 @@ void DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix(DY
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned idx;
 		for (; j < til; ++j)
 		{
-			idx = ( ((unsigned)j)>>(MMX_COEF>>1));
-			__SSE_overwrite_output_base16_to_input(input_buf[idx].w, crypt_key2[idx].c, j&(MMX_COEF-1));
+			idx = ( ((unsigned)j)>>(SIMD_COEF_32>>1));
+			__SSE_overwrite_output_base16_to_input(input_buf[idx].w, crypt_key2[idx].c, j&(SIMD_COEF_32-1));
 		}
 		return;
 	}
@@ -5203,13 +5203,13 @@ void DynamicFunc__overwrite_from_last_output_as_base16_no_size_fix(DYNA_OMP_PARA
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned idx;
 		for (; j < til; ++j)
 		{
-			idx = ( ((unsigned)j)>>(MMX_COEF>>1));
-			__SSE_overwrite_output_base16_to_input(input_buf[idx].w, crypt_key[idx].c, j&(MMX_COEF-1));
+			idx = ( ((unsigned)j)>>(SIMD_COEF_32>>1));
+			__SSE_overwrite_output_base16_to_input(input_buf[idx].w, crypt_key[idx].c, j&(SIMD_COEF_32-1));
 		}
 		return;
 	}
@@ -5251,34 +5251,34 @@ void DynamicFunc__append_from_last_output_as_base16(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned idx;
 		for (; j < til; ++j)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)j)>>(MMX_COEF>>1));
+			idx = ( ((unsigned)j)>>(SIMD_COEF_32>>1));
 			// This is the 'actual' work.
-			ip = (total_len[idx] >> ((32/MMX_COEF)*(j&(MMX_COEF-1)))) & 0xFF;
-			total_len[idx] += (32<<((32/MMX_COEF)*(j&(MMX_COEF-1))));
+			ip = (total_len[idx] >> ((32/SIMD_COEF_32)*(j&(SIMD_COEF_32-1)))) & 0xFF;
+			total_len[idx] += (32<<((32/SIMD_COEF_32)*(j&(SIMD_COEF_32-1))));
 			if (!ip)
-				__SSE_append_output_base16_to_input(input_buf[idx].w, crypt_key[idx].c, j&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input(input_buf[idx].w, crypt_key[idx].c, j&(SIMD_COEF_32-1));
 			else if (ip&1)
 			{
 				// Note we are 100% unaligned, and it seems fastest to handle byte/byte (at this time).
 				unsigned k;
 				for (k = 0; k < 16; ++k)
 				{
-					unsigned char v = crypt_key[idx].c[GETPOS(k, j&(MMX_COEF-1))];
-					input_buf[idx].c[GETPOS(ip+(k<<1), j&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
-					input_buf[idx].c[GETPOS(ip+(k<<1)+1, j&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
+					unsigned char v = crypt_key[idx].c[GETPOS(k, j&(SIMD_COEF_32-1))];
+					input_buf[idx].c[GETPOS(ip+(k<<1), j&(SIMD_COEF_32-1))] = dynamic_itoa16[v>>4];
+					input_buf[idx].c[GETPOS(ip+(k<<1)+1, j&(SIMD_COEF_32-1))] = dynamic_itoa16[v&0xF];
 				}
-				input_buf[idx].c[GETPOS(ip+32, j&(MMX_COEF-1))] = 0x80;
+				input_buf[idx].c[GETPOS(ip+32, j&(SIMD_COEF_32-1))] = 0x80;
 			}
 			else if ((ip&3)==0)
-				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf[idx].w, crypt_key[idx].c, j&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf[idx].w, crypt_key[idx].c, j&(SIMD_COEF_32-1));
 			else
-				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf[idx].w, crypt_key[idx].c, j&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf[idx].w, crypt_key[idx].c, j&(SIMD_COEF_32-1));
 
 		}
 		return;
@@ -5325,33 +5325,33 @@ void DynamicFunc__append_from_last_output2_as_base16(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned idx;
 		for (; i < til; ++i)
 		{
 			unsigned ip, j;
-			idx = ( ((unsigned)i)>>(MMX_COEF>>1));
+			idx = ( ((unsigned)i)>>(SIMD_COEF_32>>1));
 			// This is the 'actual' work.
-			ip = (total_len2[idx] >> ((32/MMX_COEF)*(i&(MMX_COEF-1)))) & 0xFF;
-			total_len2[idx] += (32<<((32/MMX_COEF)*(i&(MMX_COEF-1))));
+			ip = (total_len2[idx] >> ((32/SIMD_COEF_32)*(i&(SIMD_COEF_32-1)))) & 0xFF;
+			total_len2[idx] += (32<<((32/SIMD_COEF_32)*(i&(SIMD_COEF_32-1))));
 			if (!ip)
-				__SSE_append_output_base16_to_input(input_buf2[idx].w, crypt_key2[idx].c, i&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input(input_buf2[idx].w, crypt_key2[idx].c, i&(SIMD_COEF_32-1));
 			else if (ip&1)
 			{
 				// Note we are 100% unaligned, and it seems fastest to handle byte/byte (at this time).
 				for (j = 0; j < 16; ++j)
 				{
-					unsigned char v = crypt_key2[idx].c[GETPOS(j, i&(MMX_COEF-1))];
-					input_buf2[idx].c[GETPOS(ip+(j<<1), i&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
-					input_buf2[idx].c[GETPOS(ip+(j<<1)+1, i&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
+					unsigned char v = crypt_key2[idx].c[GETPOS(j, i&(SIMD_COEF_32-1))];
+					input_buf2[idx].c[GETPOS(ip+(j<<1), i&(SIMD_COEF_32-1))] = dynamic_itoa16[v>>4];
+					input_buf2[idx].c[GETPOS(ip+(j<<1)+1, i&(SIMD_COEF_32-1))] = dynamic_itoa16[v&0xF];
 				}
-				input_buf2[idx].c[GETPOS(ip+32, i&(MMX_COEF-1))] = 0x80;
+				input_buf2[idx].c[GETPOS(ip+32, i&(SIMD_COEF_32-1))] = 0x80;
 			}
 			else if ((ip&3)==0)
-				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf2[idx].w, crypt_key2[idx].c, i&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf2[idx].w, crypt_key2[idx].c, i&(SIMD_COEF_32-1));
 			else
-				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf2[idx].w, crypt_key2[idx].c, i&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf2[idx].w, crypt_key2[idx].c, i&(SIMD_COEF_32-1));
 		}
 		return;
 	}
@@ -5399,13 +5399,13 @@ void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix(DYN
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned idx;
 		for (; i < til; ++i)
 		{
-			idx = ( ((unsigned)i)>>(MMX_COEF>>1));
-			__SSE_overwrite_output_base16_to_input(input_buf2[idx].w, crypt_key[idx].c, i&(MMX_COEF-1));
+			idx = ( ((unsigned)i)>>(SIMD_COEF_32>>1));
+			__SSE_overwrite_output_base16_to_input(input_buf2[idx].w, crypt_key[idx].c, i&(SIMD_COEF_32-1));
 		}
 		return;
 	}
@@ -5443,13 +5443,13 @@ void DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix(DYNA_OMP_PAR
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned idx;
 		for (; i < til; ++i)
 		{
-			idx = ( ((unsigned)i)>>(MMX_COEF>>1));
-			__SSE_overwrite_output_base16_to_input(input_buf2[idx].w, crypt_key2[idx].c, i&(MMX_COEF-1));
+			idx = ( ((unsigned)i)>>(SIMD_COEF_32>>1));
+			__SSE_overwrite_output_base16_to_input(input_buf2[idx].w, crypt_key2[idx].c, i&(SIMD_COEF_32-1));
 		}
 		return;
 	}
@@ -5490,33 +5490,33 @@ void DynamicFunc__append_from_last_output_to_input2_as_base16(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned index=i, idx;
 		for (; index < til; ++index)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)index)>>(MMX_COEF>>1));
+			idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
 			// This is the 'actual' work.
-			ip = (total_len2[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
-			total_len2[idx] += (32<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
+			ip = (total_len2[idx] >> ((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1)))) & 0xFF;
+			total_len2[idx] += (32<<((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1))));
 			if (!ip)
-				__SSE_append_output_base16_to_input(input_buf2[idx].w, crypt_key[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input(input_buf2[idx].w, crypt_key[idx].c, index&(SIMD_COEF_32-1));
 			else if (ip&1)
 			{
 				// Note we are 100% unaligned, and it seems fastest to handle byte/byte (at this time).
 				for (i = 0; i < 16; ++i)
 				{
-					unsigned char v = crypt_key[idx].c[GETPOS(i, index&(MMX_COEF-1))];
-					input_buf2[idx].c[GETPOS(ip+(i<<1), index&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
-					input_buf2[idx].c[GETPOS(ip+(i<<1)+1, index&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
+					unsigned char v = crypt_key[idx].c[GETPOS(i, index&(SIMD_COEF_32-1))];
+					input_buf2[idx].c[GETPOS(ip+(i<<1), index&(SIMD_COEF_32-1))] = dynamic_itoa16[v>>4];
+					input_buf2[idx].c[GETPOS(ip+(i<<1)+1, index&(SIMD_COEF_32-1))] = dynamic_itoa16[v&0xF];
 				}
-				input_buf2[idx].c[GETPOS(ip+32, index&(MMX_COEF-1))] = 0x80;
+				input_buf2[idx].c[GETPOS(ip+32, index&(SIMD_COEF_32-1))] = 0x80;
 			}
 			else if ((ip&3)==0)
-				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf2[idx].w, crypt_key[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf2[idx].w, crypt_key[idx].c, index&(SIMD_COEF_32-1));
 			else
-				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf2[idx].w, crypt_key[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf2[idx].w, crypt_key[idx].c, index&(SIMD_COEF_32-1));
 		}
 		return;
 	}
@@ -5562,33 +5562,33 @@ void DynamicFunc__append_from_last_output2_to_input1_as_base16(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned index=i, idx;
 		for (; index < til; ++index)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)index)>>(MMX_COEF>>1));
+			idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
 			// This is the 'actual' work.
-			ip = (total_len[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
-			total_len[idx] += (32<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
+			ip = (total_len[idx] >> ((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1)))) & 0xFF;
+			total_len[idx] += (32<<((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1))));
 			if (!ip)
-				__SSE_append_output_base16_to_input(input_buf[idx].w, crypt_key2[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input(input_buf[idx].w, crypt_key2[idx].c, index&(SIMD_COEF_32-1));
 			else if (ip&1)
 			{
 				// Note we are 100% unaligned, and it seems fastest to handle byte/byte (at this time).
 				for (i = 0; i < 16; ++i)
 				{
-					unsigned char v = crypt_key2[idx].c[GETPOS(i, index&(MMX_COEF-1))];
-					input_buf[idx].c[GETPOS(ip+(i<<1), index&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
-					input_buf[idx].c[GETPOS(ip+(i<<1)+1, index&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
+					unsigned char v = crypt_key2[idx].c[GETPOS(i, index&(SIMD_COEF_32-1))];
+					input_buf[idx].c[GETPOS(ip+(i<<1), index&(SIMD_COEF_32-1))] = dynamic_itoa16[v>>4];
+					input_buf[idx].c[GETPOS(ip+(i<<1)+1, index&(SIMD_COEF_32-1))] = dynamic_itoa16[v&0xF];
 				}
-				input_buf[idx].c[GETPOS(ip+32, index&(MMX_COEF-1))] = 0x80;
+				input_buf[idx].c[GETPOS(ip+32, index&(SIMD_COEF_32-1))] = 0x80;
 			}
 			else if ((ip&3)==0)
-				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf[idx].w, crypt_key2[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf[idx].w, crypt_key2[idx].c, index&(SIMD_COEF_32-1));
 			else
-				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf[idx].w, crypt_key2[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf[idx].w, crypt_key2[idx].c, index&(SIMD_COEF_32-1));
 		}
 		return;
 	}
@@ -5629,36 +5629,36 @@ void DynamicFunc__append_from_last_output2_as_raw(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned index=i, idx;
 		for (; index < til; ++index)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)index)>>(MMX_COEF>>1));
+			idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
 			// This is the 'actual' work.
-			ip = (total_len[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
+			ip = (total_len[idx] >> ((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1)))) & 0xFF;
 			if (!ip)
 			{
 				ARCH_WORD_32 *po = input_buf[idx].w;
 				ARCH_WORD_32 *pi = crypt_key2[idx].w;
-				po += (index&(MMX_COEF-1));
-				pi += (index&(MMX_COEF-1));
+				po += (index&(SIMD_COEF_32-1));
+				pi += (index&(SIMD_COEF_32-1));
 				for (i = 0; i < 4; i++)
 				{
 					*po = *pi;
-					po += MMX_COEF;
-					pi += MMX_COEF;
+					po += SIMD_COEF_32;
+					pi += SIMD_COEF_32;
 				}
-				input_buf[idx].c[GETPOS(16, index&(MMX_COEF-1))] = 0x80;
+				input_buf[idx].c[GETPOS(16, index&(SIMD_COEF_32-1))] = 0x80;
 			}
 			else
 			{
 				for (i = 0; i < 16; ++i)
-					input_buf[idx].c[GETPOS(ip+i, index&(MMX_COEF-1))] = crypt_key2[idx].c[GETPOS(i, index&(MMX_COEF-1))];
-				input_buf[idx].c[GETPOS(ip+16, index&(MMX_COEF-1))] = 0x80;
+					input_buf[idx].c[GETPOS(ip+i, index&(SIMD_COEF_32-1))] = crypt_key2[idx].c[GETPOS(i, index&(SIMD_COEF_32-1))];
+				input_buf[idx].c[GETPOS(ip+16, index&(SIMD_COEF_32-1))] = 0x80;
 			}
-			total_len[idx] += (16<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
+			total_len[idx] += (16<<((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1))));
 		}
 		return;
 	}
@@ -5692,36 +5692,36 @@ void DynamicFunc__append2_from_last_output2_as_raw(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned index=i, idx;
 		for (; index < til; ++index)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)index)>>(MMX_COEF>>1));
+			idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
 			// This is the 'actual' work.
-			ip = (total_len2[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
+			ip = (total_len2[idx] >> ((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1)))) & 0xFF;
 			if (!ip)
 			{
 				ARCH_WORD_32 *po = input_buf2[idx].w;
 				ARCH_WORD_32 *pi = crypt_key2[idx].w;
-				po += (index&(MMX_COEF-1));
-				pi += (index&(MMX_COEF-1));
+				po += (index&(SIMD_COEF_32-1));
+				pi += (index&(SIMD_COEF_32-1));
 				for (i = 0; i < 4; i++)
 				{
 					*po = *pi;
-					po += MMX_COEF;
-					pi += MMX_COEF;
+					po += SIMD_COEF_32;
+					pi += SIMD_COEF_32;
 				}
-				input_buf2[idx].c[GETPOS(16, index&(MMX_COEF-1))] = 0x80;
+				input_buf2[idx].c[GETPOS(16, index&(SIMD_COEF_32-1))] = 0x80;
 			}
 			else
 			{
 				for (i = 0; i < 16; ++i)
-					input_buf2[idx].c[GETPOS(ip+i, index&(MMX_COEF-1))] = crypt_key2[idx].c[GETPOS(i, index&(MMX_COEF-1))];
-				input_buf2[idx].c[GETPOS(ip+16, index&(MMX_COEF-1))] = 0x80;
+					input_buf2[idx].c[GETPOS(ip+i, index&(SIMD_COEF_32-1))] = crypt_key2[idx].c[GETPOS(i, index&(SIMD_COEF_32-1))];
+				input_buf2[idx].c[GETPOS(ip+16, index&(SIMD_COEF_32-1))] = 0x80;
 			}
-			total_len2[idx] += (16<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
+			total_len2[idx] += (16<<((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1))));
 		}
 		return;
 	}
@@ -5754,36 +5754,36 @@ void DynamicFunc__append_from_last_output1_as_raw(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned index, idx;
 		for (index = i; index < til; ++index)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)index)>>(MMX_COEF>>1));
+			idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
 			// This is the 'actual' work.
-			ip = (total_len[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
+			ip = (total_len[idx] >> ((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1)))) & 0xFF;
 			if (!ip)
 			{
 				ARCH_WORD_32 *po = input_buf[idx].w;
 				ARCH_WORD_32 *pi = crypt_key[idx].w;
-				po += (index&(MMX_COEF-1));
-				pi += (index&(MMX_COEF-1));
+				po += (index&(SIMD_COEF_32-1));
+				pi += (index&(SIMD_COEF_32-1));
 				for (i = 0; i < 4; i++)
 				{
 					*po = *pi;
-					po += MMX_COEF;
-					pi += MMX_COEF;
+					po += SIMD_COEF_32;
+					pi += SIMD_COEF_32;
 				}
-				input_buf[idx].c[GETPOS(16, index&(MMX_COEF-1))] = 0x80;
+				input_buf[idx].c[GETPOS(16, index&(SIMD_COEF_32-1))] = 0x80;
 			}
 			else
 			{
 				for (i = 0; i < 16; ++i)
-					input_buf[idx].c[GETPOS(ip+i, index&(MMX_COEF-1))] = crypt_key[idx].c[GETPOS(i, index&(MMX_COEF-1))];
-				input_buf[idx].c[GETPOS(ip+16, index&(MMX_COEF-1))] = 0x80;
+					input_buf[idx].c[GETPOS(ip+i, index&(SIMD_COEF_32-1))] = crypt_key[idx].c[GETPOS(i, index&(SIMD_COEF_32-1))];
+				input_buf[idx].c[GETPOS(ip+16, index&(SIMD_COEF_32-1))] = 0x80;
 			}
-			total_len[idx] += (16<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
+			total_len[idx] += (16<<((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1))));
 		}
 		return;
 	}
@@ -5816,36 +5816,36 @@ void DynamicFunc__append2_from_last_output1_as_raw(DYNA_OMP_PARAMS)
 	i = 0;
 	til = m_count;
 #endif
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned index, idx;
 		for (index = i; index < til; ++index)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)index)>>(MMX_COEF>>1));
+			idx = ( ((unsigned)index)>>(SIMD_COEF_32>>1));
 			// This is the 'actual' work.
-			ip = (total_len2[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
+			ip = (total_len2[idx] >> ((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1)))) & 0xFF;
 			if (!ip)
 			{
 				ARCH_WORD_32 *po = input_buf2[idx].w;
 				ARCH_WORD_32 *pi = crypt_key[idx].w;
-				po += (index&(MMX_COEF-1));
-				pi += (index&(MMX_COEF-1));
+				po += (index&(SIMD_COEF_32-1));
+				pi += (index&(SIMD_COEF_32-1));
 				for (i = 0; i < 4; i++)
 				{
 					*po = *pi;
-					po += MMX_COEF;
-					pi += MMX_COEF;
+					po += SIMD_COEF_32;
+					pi += SIMD_COEF_32;
 				}
-				input_buf2[idx].c[GETPOS(16, index&(MMX_COEF-1))] = 0x80;
+				input_buf2[idx].c[GETPOS(16, index&(SIMD_COEF_32-1))] = 0x80;
 			}
 			else
 			{
 				for (i = 0; i < 16; ++i)
-					input_buf2[idx].c[GETPOS(ip+i, index&(MMX_COEF-1))] = crypt_key[idx].c[GETPOS(i, index&(MMX_COEF-1))];
-				input_buf2[idx].c[GETPOS(ip+16, index&(MMX_COEF-1))] = 0x80;
+					input_buf2[idx].c[GETPOS(ip+i, index&(SIMD_COEF_32-1))] = crypt_key[idx].c[GETPOS(i, index&(SIMD_COEF_32-1))];
+				input_buf2[idx].c[GETPOS(ip+16, index&(SIMD_COEF_32-1))] = 0x80;
 			}
-			total_len2[idx] += (16<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
+			total_len2[idx] += (16<<((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1))));
 		}
 		return;
 	}
@@ -6052,13 +6052,13 @@ void DynamicFunc__append2_fld9(DYNA_OMP_PARAMS)
 }
 
 void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	int j, k, idx, max;
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 2;
 
-	for (j = 0; j < m_count; j += MMX_COEF)
+	for (j = 0; j < m_count; j += SIMD_COEF_32)
 	{
 		ARCH_WORD_32 *cpi;
 #if (MD5_X2)
@@ -6069,12 +6069,12 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = input_buf_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = input_buf_X86[j+1].x1.w;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 		ARCH_WORD_32 *cpo3 = input_buf_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = input_buf_X86[j+3].x1.w;
 #endif
 #endif
-		idx = ( ((unsigned)j)>>(MMX_COEF>>1));
+		idx = ( ((unsigned)j)>>(SIMD_COEF_32>>1));
 		cpi = input_buf[idx].w;
 
 		max = total_len_X86[j] = (total_len[idx]&0xFF);
@@ -6088,7 +6088,7 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 		for (k = 0; k < max; ++k) {
 			*cpo++ = *cpi++;
 			*cpo2++ = *cpi++;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 			*cpo3++ = *cpi++;
 			*cpo4++ = *cpi++;
 #endif
@@ -6101,7 +6101,7 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 #else
 		input_buf_X86[j].x1.b[total_len_X86[j]] = 0;
 		input_buf_X86[j+1].x1.b[total_len_X86[j+1]] = 0;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 		input_buf_X86[j+2].x1.b[total_len_X86[j+2]] = 0;
 		input_buf_X86[j+3].x1.b[total_len_X86[j+3]] = 0;
 #endif
@@ -6110,14 +6110,14 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 #endif
 }
 void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	int j, k, idx, max;
 
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 2;
 
-	for (j = 0; j < m_count; j += MMX_COEF)
+	for (j = 0; j < m_count; j += SIMD_COEF_32)
 	{
 		ARCH_WORD_32 *cpi;
 #if (MD5_X2)
@@ -6128,12 +6128,12 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = input_buf2_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = input_buf2_X86[j+1].x1.w;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 		ARCH_WORD_32 *cpo3 = input_buf2_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = input_buf2_X86[j+3].x1.w;
 #endif
 #endif
-		idx = ( ((unsigned)j)>>(MMX_COEF>>1));
+		idx = ( ((unsigned)j)>>(SIMD_COEF_32>>1));
 		cpi = input_buf2[idx].w;
 
 		max = total_len2_X86[j] = (total_len2[idx]&0xFF);
@@ -6147,7 +6147,7 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 		for (k = 0; k < max; ++k) {
 			*cpo++ = *cpi++;
 			*cpo2++ = *cpi++;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 			*cpo3++ = *cpi++;
 			*cpo4++ = *cpi++;
 #endif
@@ -6161,7 +6161,7 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 #else
 		input_buf2_X86[j].x1.b[total_len2_X86[j]] = 0;
 		input_buf2_X86[j+1].x1.b[total_len2_X86[j+1]] = 0;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 		input_buf2_X86[j+2].x1.b[total_len2_X86[j+2]] = 0;
 		input_buf2_X86[j+3].x1.b[total_len2_X86[j+3]] = 0;
 #endif
@@ -6170,14 +6170,14 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 #endif
 }
 void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	int j, k, idx;
 
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 2;
 
-	for (j = 0; j < m_count; j += MMX_COEF)
+	for (j = 0; j < m_count; j += SIMD_COEF_32)
 	{
 		ARCH_WORD_32 *cpi;
 #if (MD5_X2)
@@ -6188,17 +6188,17 @@ void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = crypt_key_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = crypt_key_X86[j+1].x1.w;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 		ARCH_WORD_32 *cpo3 = crypt_key_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = crypt_key_X86[j+3].x1.w;
 #endif
 #endif
-		idx = ( ((unsigned)j)>>(MMX_COEF>>1));
+		idx = ( ((unsigned)j)>>(SIMD_COEF_32>>1));
 		cpi = (void*)crypt_key[idx].c;
 		for (k = 0; k < 4; ++k) {
 			*cpo++ = *cpi++;
 			*cpo2++ = *cpi++;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 			*cpo3++ = *cpi++;
 			*cpo4++ = *cpi++;
 #endif
@@ -6207,14 +6207,14 @@ void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS) {
 #endif
 }
 void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	int j, k, idx;
 
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 2;
 
-	for (j = 0; j < m_count; j += MMX_COEF)
+	for (j = 0; j < m_count; j += SIMD_COEF_32)
 	{
 		ARCH_WORD_32 *cpi;
 #if (MD5_X2)
@@ -6225,17 +6225,17 @@ void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = crypt_key2_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = crypt_key2_X86[j+1].x1.w;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 		ARCH_WORD_32 *cpo3 = crypt_key2_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = crypt_key2_X86[j+3].x1.w;
 #endif
 #endif
-		idx = ( ((unsigned)j)>>(MMX_COEF>>1));
+		idx = ( ((unsigned)j)>>(SIMD_COEF_32>>1));
 		cpi = crypt_key2[idx].w;
 		for (k = 0; k < 4; ++k) {
 			*cpo++ = *cpi++;
 			*cpo2++ = *cpi++;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 			*cpo3++ = *cpi++;
 			*cpo4++ = *cpi++;
 #endif
@@ -6244,16 +6244,16 @@ void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS) {
 #endif
 }
 void DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMS) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned j, idx, idx_mod;
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 1;
 	__nonMP_DynamicFunc__clean_input();
 	for (j = 0; j < m_count; ++j) {
-		idx = (j>>(MMX_COEF>>1));
-		idx_mod = j&(MMX_COEF-1);
-		total_len[idx] += (total_len_X86[j] << ((32/MMX_COEF)*idx_mod));
+		idx = (j>>(SIMD_COEF_32>>1));
+		idx_mod = j&(SIMD_COEF_32-1);
+		total_len[idx] += (total_len_X86[j] << ((32/SIMD_COEF_32)*idx_mod));
 #if (MD5_X2)
 		if (j & 1)
 			__SSE_append_string_to_input(input_buf[idx].c,idx_mod,input_buf_X86[j>>1].x2.B2,total_len_X86[j],0,1);
@@ -6264,16 +6264,16 @@ void DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMS) {
 #endif
 }
 void DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMS) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned j, idx, idx_mod;
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 1;
 	__nonMP_DynamicFunc__clean_input2();
 	for (j = 0; j < m_count; ++j) {
-		idx = (j>>(MMX_COEF>>1));
-		idx_mod = j&(MMX_COEF-1);
-		total_len2[idx] += (total_len2_X86[j] << ((32/MMX_COEF)*idx_mod));
+		idx = (j>>(SIMD_COEF_32>>1));
+		idx_mod = j&(SIMD_COEF_32-1);
+		total_len2[idx] += (total_len2_X86[j] << ((32/SIMD_COEF_32)*idx_mod));
 #if (MD5_X2)
 		if (j & 1)
 			__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,input_buf2_X86[j>>1].x2.B2,total_len2_X86[j],0,1);
@@ -6284,14 +6284,14 @@ void DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMS) {
 #endif
 }
 void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	int j, k, idx;
 
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 1;
 
-	for (j = 0; j < m_count; j += MMX_COEF)
+	for (j = 0; j < m_count; j += SIMD_COEF_32)
 	{
 		ARCH_WORD_32 *cpi;
 #if (MD5_X2)
@@ -6302,17 +6302,17 @@ void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = crypt_key_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = crypt_key_X86[j+1].x1.w;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 		ARCH_WORD_32 *cpo3 = crypt_key_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = crypt_key_X86[j+3].x1.w;
 #endif
 #endif
-		idx = ( ((unsigned)j)>>(MMX_COEF>>1));
+		idx = ( ((unsigned)j)>>(SIMD_COEF_32>>1));
 		cpi = (void*)crypt_key[idx].c;
 		for (k = 0; k < 4; ++k) {
 			*cpi++ = *cpo++;
 			*cpi++ = *cpo2++;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 			*cpi++ = *cpo3++;
 			*cpi++ = *cpo4++;
 #endif
@@ -6321,14 +6321,14 @@ void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS) {
 #endif
 }
 void DynamicFunc__X86toSSE_switch_output2(DYNA_OMP_PARAMS) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	int j, k, idx;
 
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 1;
 
-	for (j = 0; j < m_count; j += MMX_COEF)
+	for (j = 0; j < m_count; j += SIMD_COEF_32)
 	{
 		ARCH_WORD_32 *cpi;
 #if (MD5_X2)
@@ -6339,17 +6339,17 @@ void DynamicFunc__X86toSSE_switch_output2(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = crypt_key2_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = crypt_key2_X86[j+1].x1.w;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 		ARCH_WORD_32 *cpo3 = crypt_key2_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = crypt_key2_X86[j+3].x1.w;
 #endif
 #endif
-		idx = ( ((unsigned)j)>>(MMX_COEF>>1));
+		idx = ( ((unsigned)j)>>(SIMD_COEF_32>>1));
 		cpi = crypt_key2[idx].w;
 		for (k = 0; k < 4; ++k) {
 			*cpi++ = *cpo++;
 			*cpi++ = *cpo2++;
-#if (MMX_COEF==4)
+#if (SIMD_COEF_32==4)
 			*cpi++ = *cpo3++;
 			*cpi++ = *cpo4++;
 #endif
@@ -6501,7 +6501,7 @@ static DYNAMIC_primitive_funcp *ConvertFuncs(DYNAMIC_primitive_funcp p, int *cou
 		p==DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1_offset32)
 		return fncs; // ignore these
 
-#ifndef MMX_COEF
+#ifndef SIMD_COEF_32
 	if (p==DynamicFunc__SSEtoX86_switch_input1  || p==DynamicFunc__SSEtoX86_switch_input2 ||
 		p==DynamicFunc__SSEtoX86_switch_output1 || p==DynamicFunc__SSEtoX86_switch_output2 ||
 		p==DynamicFunc__X86toSSE_switch_input1  || p==DynamicFunc__X86toSSE_switch_input2 ||
@@ -6538,7 +6538,7 @@ static DYNAMIC_primitive_funcp *ConvertFuncs(DYNAMIC_primitive_funcp p, int *cou
 #ifdef _OPENMP
 static int isBadOMPFunc(DYNAMIC_primitive_funcp p) {
 	// If ANY of these functions are seen, we can NOT use OMP for this single format.
-#if MMX_COEF
+#if SIMD_COEF_32
 	if (p==DynamicFunc__SSEtoX86_switch_input1   || p==DynamicFunc__SSEtoX86_switch_input2   ||
 		p==DynamicFunc__SSEtoX86_switch_output1  || p==DynamicFunc__SSEtoX86_switch_output2  ||
 		p==DynamicFunc__X86toSSE_switch_input1   || p==DynamicFunc__X86toSSE_switch_input2   ||
@@ -6572,7 +6572,7 @@ static int isMD4Func(DYNAMIC_primitive_funcp p) {
 
 #ifdef _OPENMP
 // Only used in OMP code, to compute LCM granularity. So we #ifdef it out to avoid compiler warnings.
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 // otherwise unused
 static int isMD5Func(DYNAMIC_primitive_funcp p) {
 	// handle flats
@@ -6751,7 +6751,7 @@ static int isLargeHashFinalFunc(DYNAMIC_primitive_funcp p) {
 }
 
 #ifdef _OPENMP
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 // Simple euclid algorithm for GCD
 static int GCD (int a, int b) {
 	while (b) {
@@ -6771,7 +6771,7 @@ static int LCM(int a, int b) {
 static void dyna_setupOMP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt) {
 	int i;
 
-#ifndef MMX_COEF
+#ifndef SIMD_COEF_32
 	curdat.omp_granularity=OMP_INC;
 #else
 	if ((curdat.pSetup->flags& MGF_NOTSSE2Safe) == MGF_NOTSSE2Safe)
@@ -6780,11 +6780,11 @@ static void dyna_setupOMP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt) {
 		curdat.omp_granularity = 1;
 		for (i=0; Setup->pFuncs[i]; ++i) {
 			if (isMD5Func(Setup->pFuncs[i]))
-				curdat.omp_granularity = LCM(curdat.omp_granularity, MD5_SSE_PARA*MMX_COEF);
+				curdat.omp_granularity = LCM(curdat.omp_granularity, MD5_SSE_PARA*SIMD_COEF_32);
 			else if (isMD4Func(Setup->pFuncs[i]))
-				curdat.omp_granularity = LCM(curdat.omp_granularity, MD4_SSE_PARA*MMX_COEF);
+				curdat.omp_granularity = LCM(curdat.omp_granularity, MD4_SSE_PARA*SIMD_COEF_32);
 			else if (isSHA1Func(Setup->pFuncs[i]))
-				curdat.omp_granularity = LCM(curdat.omp_granularity, SHA1_SSE_PARA*MMX_COEF);
+				curdat.omp_granularity = LCM(curdat.omp_granularity, SHA1_SSE_PARA*SIMD_COEF_32);
 			else if (isSHA2_256Func(Setup->pFuncs[i]))
 #if SIMD_COEF_32
 	#if SIMD_PARA_SHA256
@@ -6890,7 +6890,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	curdat.using_flat_buffers_sse2_ok = 0;	// used to distingish MGF_NOTSSE2Safe from MGF_FLAT_BUFFERS
 	if ((Setup->flags & MGF_FLAT_BUFFERS) == MGF_FLAT_BUFFERS)
 		curdat.using_flat_buffers_sse2_ok = 1;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	curdat.dynamic_use_sse = 1;  // if 1, then we are in SSE2 mode (but can switch out)
 	if ((Setup->flags & MGF_NOTSSE2Safe) == MGF_NOTSSE2Safe) {
 		curdat.dynamic_use_sse = 0;  // Do not use SSE code at all.
@@ -7038,7 +7038,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 				curdat.dynamic_FIXED_SALT_SIZE = -1;
 			else {
 				curdat.dynamic_FIXED_SALT_SIZE = Setup->SaltLen;
-#if !defined (MMX_COEF)
+#if !defined (SIMD_COEF_32)
 				// for non-sse, we limit ourselves to 110 bytes, not 55.  So, we can add 55 to this value
 				curdat.dynamic_FIXED_SALT_SIZE -= 55;
 #endif
@@ -7061,7 +7061,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 			}
 		}
 	}
-#ifndef MMX_COEF
+#ifndef SIMD_COEF_32
 	if (Setup->MaxInputLenX86) {
 		pFmt->params.plaintext_length = Setup->MaxInputLenX86;
 	} else {
@@ -7118,9 +7118,9 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	{
 		pFmt->methods.salt = salt_phpass;
 #ifdef _OPENMP
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		// no reason to do 128 crypts, causes slow validity checking.  But we do get some gains
-		// by doing more than simple 1 set of MMX_COEF
+		// by doing more than simple 1 set of SIMD_COEF_32
 		pFmt->params.algorithm_name = "128/128 " SSE_type " 96x4x" STRINGIZE(MD5_SSE_PARA);
 		pFmt->params.max_keys_per_crypt = 96*MD5_SSE_PARA;
 #else
@@ -7136,7 +7136,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 #endif
 #endif
 #else
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		pFmt->params.algorithm_name = "128/128 " SSE_type " 4x4x" STRINGIZE(MD5_SSE_PARA);
 		pFmt->params.max_keys_per_crypt = 16*MD5_SSE_PARA;
 #else
@@ -7566,7 +7566,7 @@ static void dynamic_RESET(struct fmt_main *fmt)
 	saltlen=saltlen2=usernamelen=0;
 	// make 'sure' we startout with blank inputs.
 	m_count = 0;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	if (input_buf) {
 #else
 	if (input_buf_X86) {

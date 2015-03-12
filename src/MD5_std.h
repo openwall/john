@@ -64,10 +64,10 @@ typedef struct {
 #endif
 
 #ifdef MD5_SSE_PARA
-# ifndef MMX_COEF
-#  define MMX_COEF			4
+# ifndef SIMD_COEF_32
+#  define SIMD_COEF_32			4
 # endif
-# define MD5_N				(MD5_SSE_PARA*MMX_COEF)
+# define MD5_N				(MD5_SSE_PARA*SIMD_COEF_32)
 #else
 # undef MD5_ALGORITHM_NAME
 # if MD5_X2

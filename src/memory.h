@@ -36,8 +36,8 @@
 /*
  * SIMD buffers need to be aligned to register size
  */
-#if MMX_COEF
-#define MEM_ALIGN_SIMD			(MMX_COEF * 4)
+#if SIMD_COEF_32
+#define MEM_ALIGN_SIMD			(SIMD_COEF_32 * 4)
 #else
 #define MEM_ALIGN_SIMD			(16)
 #endif
@@ -166,7 +166,7 @@ void dump_stuff_be_msg(void *msg, void *x, unsigned int size);
 void dump_stuff_be_noeol(void *x, unsigned int size);
 void dump_stuff_be_msg_sepline(void *msg, void *x, unsigned int size);
 
-#if defined (MMX_COEF) || defined(NT_X86_64) || defined (MD5_SSE_PARA) || defined (MD4_SSE_PARA) || defined (SHA1_SSE_PARA)
+#if defined (SIMD_COEF_32) || defined(NT_X86_64) || defined (MD5_SSE_PARA) || defined (MD4_SSE_PARA) || defined (SHA1_SSE_PARA)
 void dump_stuff_mmx(void *x, unsigned int size, unsigned int index);
 void dump_stuff_mmx_noeol(void *x, unsigned int size, unsigned int index);
 void dump_stuff_mmx_msg(void *msg, void *buf, unsigned int size, unsigned int index);

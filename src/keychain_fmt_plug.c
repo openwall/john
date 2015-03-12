@@ -35,7 +35,7 @@ john_register_one(&fmt_keychain);
 
 #define FORMAT_LABEL		"keychain"
 #define FORMAT_NAME		"Mac OS X Keychain"
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA1 3DES " SHA1_N_STR MMX_TYPE
 #else
 #define ALGORITHM_NAME		"PBKDF2-SHA1 3DES 32/" ARCH_BITS_STR
@@ -47,7 +47,7 @@ john_register_one(&fmt_keychain);
 #define SALT_SIZE		sizeof(*salt_struct)
 #define BINARY_ALIGN		1
 #define SALT_ALIGN			1
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
 #else
@@ -200,7 +200,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		unsigned char master[MAX_KEYS_PER_CRYPT][32];
 		int i;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		int lens[MAX_KEYS_PER_CRYPT];
 		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {

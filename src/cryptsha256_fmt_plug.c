@@ -87,7 +87,7 @@ john_register_one(&fmt_cryptsha256);
 
 #include "arch.h"
 
-//#undef MMX_COEF
+//#undef SIMD_COEF_32
 //#undef SIMD_COEF_32
 
 #include "sha2.h"
@@ -113,7 +113,7 @@ john_register_one(&fmt_cryptsha256);
 // of crypt block counts for each 'type'.  We may want to scale as much as 128 or so, just
 // to try to have better saturation.  If we only had 8 passwords given to us, and they were
 // one each of these lengths:  3 7 8 12 13 14 15 21, in theory, we could do this
-// with only 2 SSE calls (MMX_COEF==4 for SHA256).  However, length 3 has to to run by itself,
+// with only 2 SSE calls (SIMD_COEF_32==4 for SHA256).  However, length 3 has to to run by itself,
 // length 7 by itself, 8 by itself, and the rest can run together, but there are 5 of them,
 // so it takes to runs. So, instead of 2 runs, we have to do 5 runs.  Not very efficient.
 // however, if we have a lot more passwords to work with, we can re-arrange them, to run

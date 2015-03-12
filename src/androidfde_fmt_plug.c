@@ -61,7 +61,7 @@ static int omp_t = 1;
 #define TAG_LENGTH          5
 #define FORMAT_LABEL        "fde"
 #define FORMAT_NAME         "Android FDE"
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME      "PBKDF2-SHA1 SHA256/AES " SHA1_N_STR MMX_TYPE
 #else
 #define ALGORITHM_NAME      "PBKDF2-SHA1 SHA256/AES 32/" ARCH_BITS_STR
@@ -73,7 +73,7 @@ static int omp_t = 1;
 #define BINARY_ALIGN		1
 #define SALT_ALIGN			sizeof(int)
 #define SALT_SIZE           sizeof(struct custom_salt)
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #else
@@ -233,7 +233,7 @@ void hash_plugin_check_hash(int index)
 	uint32_t v1,v5;
 	int j = 0;
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned char *keycandidate, Keycandidate[SSE_GROUP_SZ_SHA1][255];
 	int lens[SSE_GROUP_SZ_SHA1], i;
 	unsigned char *pin[SSE_GROUP_SZ_SHA1];
@@ -264,7 +264,7 @@ void hash_plugin_check_hash(int index)
 #endif
 
 	j = 0;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	for (; j < SSE_GROUP_SZ_SHA1; ++j) {
 	keycandidate = Keycandidate[j];
 #endif
@@ -293,7 +293,7 @@ void hash_plugin_check_hash(int index)
 		if ((v1<5)&&(v2<4)&&(v3<5)&&(v4<2)&&(v5<5))
 			cracked[index+j] = 1;
 	}
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	}
 #endif
 }

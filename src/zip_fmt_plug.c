@@ -91,7 +91,7 @@ typedef struct my_salt_t {
 #define FORMAT_TAG			"$zip2$"
 #define FORMAT_CLOSE_TAG	"$/zip2$"
 #define TAG_LENGTH			6
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME      "PBKDF2-SHA1 " SHA1_N_STR MMX_TYPE
 #else
 #define ALGORITHM_NAME      "PBKDF2-SHA1 32/" ARCH_BITS_STR
@@ -103,7 +103,7 @@ typedef struct my_salt_t {
 #define BINARY_ALIGN        sizeof(ARCH_WORD_32)
 #define SALT_SIZE           sizeof(my_salt*)
 #define SALT_ALIGN          sizeof(my_salt*)
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #else
@@ -462,7 +462,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for default(none) private(index) shared(count, saved_key, saved_salt, crypt_key)
 #endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		unsigned char pwd_ver[(2+64)*MAX_KEYS_PER_CRYPT];
 		int lens[MAX_KEYS_PER_CRYPT], i;
 		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];

@@ -43,8 +43,8 @@ john_register_one(&fmt_efs);
 #endif
 #include "memdbg.h"
 
-#ifdef MMX_COEF
-#define SHA1_BLK                (SHA1_SSE_PARA * MMX_COEF)
+#ifdef SIMD_COEF_32
+#define SHA1_BLK                (SHA1_SSE_PARA * SIMD_COEF_32)
 #endif
 
 #define FORMAT_LABEL            "EFS"
@@ -66,7 +66,7 @@ john_register_one(&fmt_efs);
 #define SALT_SIZE               sizeof(*cur_salt)
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              sizeof(int)
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SHA1_BLK
 #define MAX_KEYS_PER_CRYPT      SHA1_BLK
 #else
@@ -258,7 +258,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		int lens[MAX_KEYS_PER_CRYPT];
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		union {
@@ -288,13 +288,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			passwordBuf = (unsigned char*)cur_salt->SID;
 			passwordBufSize = (strlen16(cur_salt->SID) + 1) * 2;
 			hmac_sha1(out[i], 20, passwordBuf, passwordBufSize, out2[i], 20);
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 			lens[i] = 20;
 			pin[i] = (unsigned char*)out2[i];
 			x.pout[i] = (ARCH_WORD_32*)(out[i]);
 #endif
 		}
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->iv, 16, cur_salt->iterations, &(x.poutc), 32, 0);
 #else
 		pbkdf2_sha1(out2[0], 20, cur_salt->iv, 16, cur_salt->iterations, out[0], 32, 0);

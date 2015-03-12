@@ -62,7 +62,7 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL       "krb5pa-sha1"
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 17/18" /* aes-cts-hmac-sha1-96 */
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME      SHA1_N_STR MMX_TYPE
 #else
 #define ALGORITHM_NAME     "32/" ARCH_BITS_STR
@@ -74,7 +74,7 @@ static int omp_t = 1;
 #define PLAINTEXT_LENGTH	125
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #else
@@ -516,7 +516,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char plaintext[44];
 		int key_size, i;
 		int len[MAX_KEYS_PER_CRYPT];
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			len[i] = strlen(saved_key[i+index]);

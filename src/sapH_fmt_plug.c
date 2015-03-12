@@ -29,7 +29,7 @@ john_register_one(&fmt_sapH);
 #include "arch.h"
 /* for now, undef this until I get OMP working, then start on SIMD */
 //#undef _OPENMP
-//#undef MMX_COEF
+//#undef SIMD_COEF_32
 //#undef SHA1_SSE_PARA
 //#undef SIMD_COEF_32
 //#undef SIMD_PARA_SHA256
@@ -46,7 +46,7 @@ john_register_one(&fmt_sapH);
 
 #if defined(_OPENMP)
 #include <omp.h>
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define OMP_SCALE			8
 #else
 #define OMP_SCALE			64
@@ -54,14 +54,14 @@ john_register_one(&fmt_sapH);
 #endif
 
 /*
- * Assumption is made that MMX_COEF*SHA1_SSE_PARA is >= than
+ * Assumption is made that SIMD_COEF_32*SHA1_SSE_PARA is >= than
  * SHA256_COEF*PARA and SHA512_COEF*PARA, and that these other 2
- * will evenly divide the MMX_COEF*SHA1_SSRE_PARA value.
+ * will evenly divide the SIMD_COEF_32*SHA1_SSRE_PARA value.
  * Works with current code. BUT if SHA1_SSE_PARA was 3 and
  * SIMD_PARA_SHA256 was 2, then we would have problems.
  */
-#ifdef MMX_COEF
-#define NBKEYS1	(MMX_COEF * SHA1_SSE_PARA)
+#ifdef SIMD_COEF_32
+#define NBKEYS1	(SIMD_COEF_32 * SHA1_SSE_PARA)
 #else
 #define NBKEYS1 1
 #endif
@@ -105,7 +105,7 @@ john_register_one(&fmt_sapH);
 
 /* NOTE, format is slow enough that endianity conversion is pointless. Just use flat buffers. */
 #define MIN_KEYS_PER_CRYPT		1
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MAX_KEYS_PER_CRYPT		NBKEYS1
 #define PLAINTEXT_LENGTH        23
 #else
@@ -247,7 +247,7 @@ static void crypt_all_1(int count) {
 		SHA_CTX ctx;
 		int i;
 
-#if !defined (MMX_COEF)
+#if !defined (SIMD_COEF_32)
 		int len = strlen(saved_plain[idx]);
 		unsigned char tmp[PLAINTEXT_LENGTH+SHA1_BINARY_SIZE], *cp=&tmp[len];
 		SHA1_Init(&ctx);
@@ -289,22 +289,22 @@ static void crypt_all_1(int count) {
 			int k;
 			SSESHA1body(keys, crypt32, NULL, SSEi_FLAT_IN);
 			for (k = 0; k < NBKEYS1; ++k) {
-				uint32_t *pcrypt = &crypt32[ ((k>>(MMX_COEF>>1))*(MMX_COEF*5)) + (k&(MMX_COEF-1))];
+				uint32_t *pcrypt = &crypt32[ ((k>>(SIMD_COEF_32>>1))*(SIMD_COEF_32*5)) + (k&(SIMD_COEF_32-1))];
 				uint32_t *Icp32 = (uint32_t *)(&keys[(k<<6)+offs[k]]);
 				for (j = 0; j < 5; ++j) {
 					Icp32[j] = JOHNSWAP(*pcrypt);
-					pcrypt += MMX_COEF;
+					pcrypt += SIMD_COEF_32;
 				}
 			}
 		}
 		// now marshal into crypt_out;
 		for (i = 0; i < NBKEYS1; ++i) {
 			uint32_t *Optr32 = (uint32_t*)(crypt_key[idx+i]);
-			uint32_t *Iptr32 = &crypt32[ ((i>>(MMX_COEF>>1))*(MMX_COEF*5)) + (i&(MMX_COEF-1))];
+			uint32_t *Iptr32 = &crypt32[ ((i>>(SIMD_COEF_32>>1))*(SIMD_COEF_32*5)) + (i&(SIMD_COEF_32-1))];
 			// we only want 16 bytes, not 20
 			for (j = 0; j < 4; ++j) {
 				Optr32[j] = JOHNSWAP(*Iptr32);
-				Iptr32 += MMX_COEF;
+				Iptr32 += SIMD_COEF_32;
 			}
 		}
 #endif
@@ -319,7 +319,7 @@ static void crypt_all_256(int count) {
 		SHA256_CTX ctx;
 		int i;
 
-#if !defined (MMX_COEF)
+#if !defined (SIMD_COEF_32)
 		int len = strlen(saved_plain[idx]);
 		unsigned char tmp[PLAINTEXT_LENGTH+SHA256_BINARY_SIZE], *cp=&tmp[len];
 		SHA256_Init(&ctx);

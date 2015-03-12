@@ -6,7 +6,7 @@
 
 #include "arch.h"
 #if HAVE_COMMONCRYPTO || (!AC_BUILT &&	  \
-	!defined(MMX_COEF) && defined(__APPLE__) && defined(__MACH__) && \
+	!defined(SIMD_COEF_32) && defined(__APPLE__) && defined(__MACH__) && \
 	 defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
 	 __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070)
 /* Mitigate CommonCrypto name clashes */

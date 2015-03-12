@@ -17,8 +17,8 @@ john_register_one(&fmt_rawmd5uthick);
 
 #include "arch.h"
 
-#ifdef MMX_COEF
-#define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
+#ifdef SIMD_COEF_32
+#define NBKEYS				(SIMD_COEF_32 * MD5_SSE_PARA)
 #endif
 #include "sse-intrinsics.h"
 
@@ -47,19 +47,19 @@ john_register_one(&fmt_rawmd5uthick);
 #define SALT_SIZE			0
 #define SALT_ALIGN			1
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define BLOCK_LOOPS			1
 #define PLAINTEXT_LENGTH		27
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS * BLOCK_LOOPS
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*16*MMX_COEF*4 )
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (index>>(SIMD_COEF_32>>1))*16*SIMD_COEF_32*4 )
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 static unsigned char (*saved_key);
 static unsigned char (*crypt_key);
 static unsigned int (**buf_ptr);
@@ -92,13 +92,13 @@ static void set_key_CP(char *_key, int index);
 
 static void init(struct fmt_main *self)
 {
-#if MMX_COEF
+#if SIMD_COEF_32
 	int i;
 #endif
 	if (pers_opts.target_enc == UTF_8) {
 		/* This avoids an if clause for every set_key */
 		self->methods.set_key = set_key_utf8;
-#if MMX_COEF
+#if SIMD_COEF_32
 		/* kick it up from 27. We will truncate in setkey_utf8() */
 		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
 #endif
@@ -127,7 +127,7 @@ static void init(struct fmt_main *self)
 			tests[4].plaintext = "\xFC\xFC\xFC\xFC";
 		}
 	}
-#if MMX_COEF
+#if SIMD_COEF_32
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * 64*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * BINARY_SIZE*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	buf_ptr = mem_calloc_tiny(sizeof(*buf_ptr) * self->params.max_keys_per_crypt, sizeof(*buf_ptr));
@@ -205,7 +205,7 @@ static void *binary(char *ciphertext)
 // ISO-8859-1 to UCS-2, directly into vector key buffer
 static void set_key(char *_key, int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	const unsigned char *key = (unsigned char*)_key;
 	unsigned int *keybuf_word = buf_ptr[index];
 	unsigned int len, temp2;
@@ -226,18 +226,18 @@ static void set_key(char *_key, int index)
 			goto key_cleaning;
 		}
 		len += 2;
-		keybuf_word += MMX_COEF;
+		keybuf_word += SIMD_COEF_32;
 	}
 	*keybuf_word = 0x80;
 
 key_cleaning:
-	keybuf_word += MMX_COEF;
+	keybuf_word += SIMD_COEF_32;
 	while(*keybuf_word) {
 		*keybuf_word = 0;
-		keybuf_word += MMX_COEF;
+		keybuf_word += SIMD_COEF_32;
 	}
 
-	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
+	((unsigned int *)saved_key)[14*SIMD_COEF_32 + (index&3) + (index>>2)*16*SIMD_COEF_32] = len << 4;
 #else
 #if ARCH_LITTLE_ENDIAN
 	UTF8 *s = (UTF8*)_key;
@@ -262,7 +262,7 @@ key_cleaning:
 // Legacy codepage to UCS-2, directly into vector key buffer
 static void set_key_CP(char *_key, int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	const unsigned char *key = (unsigned char*)_key;
 	unsigned int *keybuf_word = buf_ptr[index];
 	unsigned int len, temp2;
@@ -283,18 +283,18 @@ static void set_key_CP(char *_key, int index)
 			goto key_cleaning_enc;
 		}
 		len += 2;
-		keybuf_word += MMX_COEF;
+		keybuf_word += SIMD_COEF_32;
 	}
 	*keybuf_word = 0x80;
 
 key_cleaning_enc:
-	keybuf_word += MMX_COEF;
+	keybuf_word += SIMD_COEF_32;
 	while(*keybuf_word) {
 		*keybuf_word = 0;
-		keybuf_word += MMX_COEF;
+		keybuf_word += SIMD_COEF_32;
 	}
 
-	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
+	((unsigned int *)saved_key)[14*SIMD_COEF_32 + (index&3) + (index>>2)*16*SIMD_COEF_32] = len << 4;
 #else
 	saved_key_length = enc_to_utf16((UTF16*)&saved_key,
 	                                PLAINTEXT_LENGTH + 1,
@@ -308,7 +308,7 @@ key_cleaning_enc:
 // UTF-8 to UCS-2, directly into vector key buffer
 static void set_key_utf8(char *_key, int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	const UTF8 *source = (UTF8*)_key;
 	unsigned int *keybuf_word = buf_ptr[index];
 	UTF32 chl, chh = 0x80;
@@ -353,7 +353,7 @@ static void set_key_utf8(char *_key, int index)
 			if (len == PLAINTEXT_LENGTH) {
 				chh = 0x80;
 				*keybuf_word = (chh << 16) | chl;
-				keybuf_word += MMX_COEF;
+				keybuf_word += SIMD_COEF_32;
 				break;
 			}
 			#define halfBase 0x0010000UL
@@ -404,24 +404,24 @@ static void set_key_utf8(char *_key, int index)
 		} else {
 			chh = 0x80;
 			*keybuf_word = (chh << 16) | chl;
-			keybuf_word += MMX_COEF;
+			keybuf_word += SIMD_COEF_32;
 			break;
 		}
 		*keybuf_word = (chh << 16) | chl;
-		keybuf_word += MMX_COEF;
+		keybuf_word += SIMD_COEF_32;
 	}
 	if (chh != 0x80 || len == 0) {
 		*keybuf_word = 0x80;
-		keybuf_word += MMX_COEF;
+		keybuf_word += SIMD_COEF_32;
 	}
 
 bailout:
 	while(*keybuf_word) {
 		*keybuf_word = 0;
-		keybuf_word += MMX_COEF;
+		keybuf_word += SIMD_COEF_32;
 	}
 
-	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
+	((unsigned int *)saved_key)[14*SIMD_COEF_32 + (index&3) + (index>>2)*16*SIMD_COEF_32] = len << 4;
 #else
 	saved_key_length = utf8_to_utf16((UTF16*)&saved_key,
 	                                 PLAINTEXT_LENGTH + 1,
@@ -434,14 +434,14 @@ bailout:
 
 static char *get_key(int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	// Get the key back from the key buffer, from UCS-2
 	unsigned int *keybuffer = (unsigned int*)&saved_key[GETPOS(0, index)];
 	static UTF16 key[PLAINTEXT_LENGTH + 1 + 1]; // if only +1 we 'can' overflow.  Not sure why, but ASan found it.
 	unsigned int md5_size=0;
 	unsigned int i=0;
 
-	for(; md5_size < PLAINTEXT_LENGTH; i += MMX_COEF, md5_size++)
+	for(; md5_size < PLAINTEXT_LENGTH; i += SIMD_COEF_32, md5_size++)
 	{
 		key[md5_size] = keybuffer[i];
 		key[md5_size+1] = keybuffer[i] >> 16;
@@ -450,7 +450,7 @@ static char *get_key(int index)
 			break;
 		}
 		++md5_size;
-		if (key[md5_size] == 0x80 && ((keybuffer[i+MMX_COEF]&0xFFFF) == 0 || md5_size == PLAINTEXT_LENGTH)) {
+		if (key[md5_size] == 0x80 && ((keybuffer[i+SIMD_COEF_32]&0xFFFF) == 0 || md5_size == PLAINTEXT_LENGTH)) {
 			key[md5_size] = 0;
 			break;
 		}
@@ -462,13 +462,13 @@ static char *get_key(int index)
 }
 
 static int cmp_all(void *binary, int count) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned int x,y=0;
 
 	for(;y<MD5_SSE_PARA*BLOCK_LOOPS;y++)
-		for(x=0;x<MMX_COEF;x++)
+		for(x=0;x<SIMD_COEF_32;x++)
 		{
-			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4] )
+			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] )
 				return 1;
 		}
 	return 0;
@@ -483,18 +483,18 @@ static int cmp_exact(char *source, int count){
 
 static int cmp_one(void *binary, int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned int x,y;
 	x = index&3;
 	y = index/4;
 
-	if( ((ARCH_WORD_32*)binary)[0] != ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4] )
+	if( ((ARCH_WORD_32*)binary)[0] != ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] )
 		return 0;
-	if( ((ARCH_WORD_32*)binary)[1] != ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4+MMX_COEF] )
+	if( ((ARCH_WORD_32*)binary)[1] != ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4+SIMD_COEF_32] )
 		return 0;
-	if( ((ARCH_WORD_32*)binary)[2] != ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4+2*MMX_COEF] )
+	if( ((ARCH_WORD_32*)binary)[2] != ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4+2*SIMD_COEF_32] )
 		return 0;
-	if( ((ARCH_WORD_32*)binary)[3] != ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4+3*MMX_COEF] )
+	if( ((ARCH_WORD_32*)binary)[3] != ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4+3*SIMD_COEF_32] )
 		return 0;
 	return 1;
 #else
@@ -505,7 +505,7 @@ static int cmp_one(void *binary, int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-#if defined(MMX_COEF)
+#if defined(SIMD_COEF_32)
 #if (BLOCK_LOOPS > 1)
 	int i;
 
@@ -527,55 +527,55 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 static int get_hash_0(int index)
 {
 	unsigned int x,y;
 	x = index&3;
 	y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4] & 0xf;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & 0xf;
 }
 static int get_hash_1(int index)
 {
 	unsigned int x,y;
 	x = index&3;
 	y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4] & 0xff;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & 0xff;
 }
 static int get_hash_2(int index)
 {
 	unsigned int x,y;
 	x = index&3;
 	y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4] & 0xfff;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & 0xfff;
 }
 static int get_hash_3(int index)
 {
 	unsigned int x,y;
 	x = index&3;
 	y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4] & 0xffff;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & 0xffff;
 }
 static int get_hash_4(int index)
 {
 	unsigned int x,y;
 	x = index&3;
 	y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4] & 0xfffff;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & 0xfffff;
 }
 static int get_hash_5(int index)
 {
 	unsigned int x,y;
 	x = index&3;
 	y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4] & 0xffffff;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & 0xffffff;
 }
 static int get_hash_6(int index)
 {
 	unsigned int x,y;
 	x = index&3;
 	y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4] & 0x7ffffff;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & 0x7ffffff;
 }
 #else
 static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & 0xf; }

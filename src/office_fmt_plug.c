@@ -32,7 +32,7 @@ john_register_one(&fmt_office);
 #include "sse-intrinsics.h"
 #include "memdbg.h"
 
-//#undef MMX_COEF
+//#undef SIMD_COEF_32
 //#undef SIMD_COEF_64
 
 #define FORMAT_LABEL		"Office"
@@ -45,9 +45,9 @@ john_register_one(&fmt_office);
 #define SALT_SIZE		sizeof(*cur_salt)
 #define BINARY_ALIGN	4
 #define SALT_ALIGN	sizeof(int)
-#ifdef MMX_COEF
-#define GETPOS_1(i, index)  ( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 )
-#define SHA1_LOOP_CNT       (MMX_COEF*SHA1_SSE_PARA)
+#ifdef SIMD_COEF_32
+#define GETPOS_1(i, index)  ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>(SIMD_COEF_32>>1))*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define SHA1_LOOP_CNT       (SIMD_COEF_32*SHA1_SSE_PARA)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT	SHA1_LOOP_CNT
 #else
@@ -155,7 +155,7 @@ static unsigned char *DeriveKey(unsigned char *hashValue, unsigned char *X1)
 	return NULL;
 }
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP_CNT][20])
 {
 	unsigned char hashBuf[20], *key;
@@ -197,7 +197,7 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 			keys[GETPOS_1(1, j)] = i>>8;
 		}
 		// Here we output to 4 bytes past start of input buffer.
-		SSESHA1body(keys, &keys32[MMX_COEF], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+		SSESHA1body(keys, &keys32[SIMD_COEF_32], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 	}
 	// last iteration is output to start of input buffer, then 32 bit 0 appended.
 	// but this is still ends up being 24 bytes of crypt data.
@@ -210,15 +210,15 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 	// Finally, append "block" (0) to H(n)
 	// hashBuf = SHA1Hash(hashBuf, 0);
 	for (i = 0; i < SHA1_SSE_PARA; ++i)
-		memset(&keys[GETPOS_1(23,i*MMX_COEF)], 0, 4*MMX_COEF);
+		memset(&keys[GETPOS_1(23,i*SIMD_COEF_32)], 0, 4*SIMD_COEF_32);
 	SSESHA1body(keys, keys32, NULL, SSEi_MIXED_IN);
 
 	// Now convert back into a 'flat' value, which is a flat array.
 	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
 		uint32_t *Optr32 = (uint32_t*)hashBuf;
-		uint32_t *Iptr32 = &keys32[(i/MMX_COEF)*MMX_COEF*5 + (i%MMX_COEF)];
+		uint32_t *Iptr32 = &keys32[(i/SIMD_COEF_32)*SIMD_COEF_32*5 + (i%SIMD_COEF_32)];
 		for (j = 0; j < 5; ++j)
-			Optr32[j] = JOHNSWAP(Iptr32[j*MMX_COEF]);
+			Optr32[j] = JOHNSWAP(Iptr32[j*SIMD_COEF_32]);
 		key = DeriveKey(hashBuf, X1);
 		memcpy(final[i], key, cur_salt->keySize/8);
 	}
@@ -276,7 +276,7 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 }
 #endif
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_CNT][64])
 {
 	unsigned char tmpBuf[20];
@@ -311,7 +311,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 			keys[GETPOS_1(2, j)] = i>>16;
 		}
 		// Here we output to 4 bytes past start of input buffer.
-		SSESHA1body(keys, &keys32[MMX_COEF], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+		SSESHA1body(keys, &keys32[SIMD_COEF_32], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 	}
 	// last iteration is output to start of input buffer, then 32 bit 0 appended.
 	// but this is still ends up being 24 bytes of crypt data.
@@ -333,9 +333,9 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 	SSESHA1body(keys, crypt, NULL, SSEi_MIXED_IN);
 	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
 		uint32_t *Optr32 = (uint32_t*)(hashBuf[i]);
-		uint32_t *Iptr32 = &crypt[(i/MMX_COEF)*MMX_COEF*5 + (i%MMX_COEF)];
+		uint32_t *Iptr32 = &crypt[(i/SIMD_COEF_32)*SIMD_COEF_32*5 + (i%SIMD_COEF_32)];
 		for (j = 0; j < 5; ++j)
-			Optr32[j] = JOHNSWAP(Iptr32[j*MMX_COEF]);
+			Optr32[j] = JOHNSWAP(Iptr32[j*SIMD_COEF_32]);
 	}
 
 	// And second "block" (0) to H(n)
@@ -346,9 +346,9 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 	SSESHA1body(keys, crypt, NULL, SSEi_MIXED_IN);
 	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
 		uint32_t *Optr32 = (uint32_t*)(&(hashBuf[i][32]));
-		uint32_t *Iptr32 = &crypt[(i/MMX_COEF)*MMX_COEF*5 + (i%MMX_COEF)];
+		uint32_t *Iptr32 = &crypt[(i/SIMD_COEF_32)*SIMD_COEF_32*5 + (i%SIMD_COEF_32)];
 		for (j = 0; j < 5; ++j)
-			Optr32[j] = JOHNSWAP(Iptr32[j*MMX_COEF]);
+			Optr32[j] = JOHNSWAP(Iptr32[j*SIMD_COEF_32]);
 	}
 
 	// Fix up the size per the spec

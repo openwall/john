@@ -181,12 +181,12 @@ _inline __m128i _mm_set1_epi64x(long long a)
 #define GATHER64(x,y,z)		{x = _mm_set_epi64x (y[1][z], y[0][z]);}
 
 
-#ifndef MMX_COEF
-#define MMX_COEF 4
+#ifndef SIMD_COEF_32
+#define SIMD_COEF_32 4
 #endif
 
 #ifdef MD5_SSE_PARA
-#define MD5_SSE_NUM_KEYS	(MMX_COEF*MD5_SSE_PARA)
+#define MD5_SSE_NUM_KEYS	(SIMD_COEF_32*MD5_SSE_PARA)
 #define MD5_PARA_DO(x)	for((x)=0;(x)<MD5_SSE_PARA;(x)++)
 
 #define MD5_F(x,y,z) \
@@ -235,7 +235,7 @@ void SSEmd5body(__m128i* _data, unsigned int * out, ARCH_WORD_32 *reload_state, 
 	mask = _mm_set1_epi32(0Xffffffff);
 
 	if(SSEi_flags & SSEi_FLAT_IN) {
-		// Move _data to __data, mixing it MMX_COEF wise.
+		// Move _data to __data, mixing it SIMD_COEF_32 wise.
 #ifdef __SSE4_1__
 		unsigned k;
 		__m128i *W = w;
@@ -244,13 +244,13 @@ void SSEmd5body(__m128i* _data, unsigned int * out, ARCH_WORD_32 *reload_state, 
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (i=0; i < 16; ++i) { GATHER_4x (W[i], saved_key, i); }
-				saved_key += (MMX_COEF<<6);
+				saved_key += (SIMD_COEF_32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (i=0; i < 16; ++i) { GATHER_2x (W[i], saved_key, i); }
-				saved_key += (MMX_COEF<<5);
+				saved_key += (SIMD_COEF_32<<5);
 			} else {
 				for (i=0; i < 16; ++i) { GATHER (W[i], saved_key, i); }
-				saved_key += (MMX_COEF<<4);
+				saved_key += (SIMD_COEF_32<<4);
 			}
 			W += 16;
 		}
@@ -263,19 +263,19 @@ void SSEmd5body(__m128i* _data, unsigned int * out, ARCH_WORD_32 *reload_state, 
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < MMX_COEF; i++)
+					for (i=0; i < SIMD_COEF_32; i++)
 						*p++ = saved_key[(i<<6)+j];
-				saved_key += (MMX_COEF<<6);
+				saved_key += (SIMD_COEF_32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < MMX_COEF; i++)
+					for (i=0; i < SIMD_COEF_32; i++)
 						*p++ = saved_key[(i<<5)+j];
-				saved_key += (MMX_COEF<<5);
+				saved_key += (SIMD_COEF_32<<5);
 			} else {
 				for (j=0; j < 16; j++)
-					for (i=0; i < MMX_COEF; i++)
+					for (i=0; i < SIMD_COEF_32; i++)
 						*p++ = saved_key[(i<<4)+j];
-				saved_key += (MMX_COEF<<4);
+				saved_key += (SIMD_COEF_32<<4);
 			}
 			W += 16;
 		}
@@ -446,14 +446,14 @@ void SSEmd5body(__m128i* _data, unsigned int * out, ARCH_WORD_32 *reload_state, 
 	}
 }
 
-#define GETPOS(i, index)                ( (index&3)*4 + (i& (0xffffffff-3) )*MMX_COEF + ((i)&3) )
+#define GETPOS(i, index)                ( (index&3)*4 + (i& (0xffffffff-3) )*SIMD_COEF_32 + ((i)&3) )
 
 static MAYBE_INLINE void mmxput(void * buf, unsigned int index, unsigned int bid, unsigned int offset, unsigned char * src, unsigned int len)
 {
 	unsigned char * nbuf;
 	unsigned int i;
 
-	nbuf = ((unsigned char*)buf) + (index>>2)*64*MMX_COEF + bid*64*MD5_SSE_NUM_KEYS;
+	nbuf = ((unsigned char*)buf) + (index>>2)*64*SIMD_COEF_32 + bid*64*MD5_SSE_NUM_KEYS;
 	for(i=0;i<len;i++)
 		nbuf[ GETPOS((offset+i), index) ] = src[i];
 
@@ -466,7 +466,7 @@ static MAYBE_INLINE void mmxput2(void * buf, unsigned int bid, void * src)
 
 	nbuf = ((unsigned char*)buf) + bid*64*MD5_SSE_NUM_KEYS;
 	MD5_PARA_DO(i)
-		memcpy( nbuf+i*64*MMX_COEF, ((unsigned char*)src)+i*64, 64);
+		memcpy( nbuf+i*64*SIMD_COEF_32, ((unsigned char*)src)+i*64, 64);
 }
 
 static MAYBE_INLINE void mmxput3(void * buf, unsigned int bid, unsigned int * offset, int mult, int saltlen, void * src)
@@ -479,10 +479,10 @@ static MAYBE_INLINE void mmxput3(void * buf, unsigned int bid, unsigned int * of
 
 	MD5_PARA_DO(j)
 	{
-		nbuf = ((unsigned char*)buf) + bid*64*MD5_SSE_NUM_KEYS + j*64*MMX_COEF;
-		for(i=0;i<MMX_COEF;i++)
+		nbuf = ((unsigned char*)buf) + bid*64*MD5_SSE_NUM_KEYS + j*64*SIMD_COEF_32;
+		for(i=0;i<SIMD_COEF_32;i++)
 		{
-			noff = offset[i+j*MMX_COEF]*mult + saltlen;
+			noff = offset[i+j*SIMD_COEF_32]*mult + saltlen;
 			dec = (noff&3)*8;
 			if(dec)
 			{
@@ -638,14 +638,14 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 		mmxput(buffers, i, 7, length_i+saltlen, pwd[i], length_i);
 		mmxput(buffers, i, 7, saltlen+2*length_i+16, (unsigned char *)"\x80", 1);
 
-		bt = (unsigned int *) &buffers[0]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i+16)<<3;
-		bt = (unsigned int *) &buffers[1]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i+16)<<3;
-		bt = (unsigned int *) &buffers[2]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i*2+16)<<3;
-		bt = (unsigned int *) &buffers[3]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i*2+16)<<3;
-		bt = (unsigned int *) &buffers[4]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i+saltlen+16)<<3;
-		bt = (unsigned int *) &buffers[5]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i+saltlen+16)<<3;
-		bt = (unsigned int *) &buffers[6]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i*2+saltlen+16)<<3;
-		bt = (unsigned int *) &buffers[7]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i*2+saltlen+16)<<3;
+		bt = (unsigned int *) &buffers[0]; bt[14*SIMD_COEF_32 + (i&3) + (i>>2)*64] = (length_i+16)<<3;
+		bt = (unsigned int *) &buffers[1]; bt[14*SIMD_COEF_32 + (i&3) + (i>>2)*64] = (length_i+16)<<3;
+		bt = (unsigned int *) &buffers[2]; bt[14*SIMD_COEF_32 + (i&3) + (i>>2)*64] = (length_i*2+16)<<3;
+		bt = (unsigned int *) &buffers[3]; bt[14*SIMD_COEF_32 + (i&3) + (i>>2)*64] = (length_i*2+16)<<3;
+		bt = (unsigned int *) &buffers[4]; bt[14*SIMD_COEF_32 + (i&3) + (i>>2)*64] = (length_i+saltlen+16)<<3;
+		bt = (unsigned int *) &buffers[5]; bt[14*SIMD_COEF_32 + (i&3) + (i>>2)*64] = (length_i+saltlen+16)<<3;
+		bt = (unsigned int *) &buffers[6]; bt[14*SIMD_COEF_32 + (i&3) + (i>>2)*64] = (length_i*2+saltlen+16)<<3;
+		bt = (unsigned int *) &buffers[7]; bt[14*SIMD_COEF_32 + (i&3) + (i>>2)*64] = (length_i*2+saltlen+16)<<3;
 
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, pwd[i], length_i);
@@ -679,7 +679,7 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 #endif /* MD5_SSE_PARA */
 
 #ifdef MD4_SSE_PARA
-#define MD4_SSE_NUM_KEYS	(MMX_COEF*MD4_SSE_PARA)
+#define MD4_SSE_NUM_KEYS	(SIMD_COEF_32*MD4_SSE_PARA)
 #define MD4_PARA_DO(x)	for((x)=0;(x)<MD4_SSE_PARA;(x)++)
 
 #define MD4_F(x,y,z) \
@@ -716,7 +716,7 @@ void SSEmd4body(__m128i* _data, unsigned int * out, ARCH_WORD_32 *reload_state, 
 	__m128i *data;
 
 if(SSEi_flags & SSEi_FLAT_IN) {
-		// Move _data to __data, mixing it MMX_COEF wise.
+		// Move _data to __data, mixing it SIMD_COEF_32 wise.
 #ifdef __SSE4_1__
 		unsigned k;
 		__m128i *W = w;
@@ -725,13 +725,13 @@ if(SSEi_flags & SSEi_FLAT_IN) {
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (i=0; i < 16; ++i) { GATHER_4x (W[i], saved_key, i); }
-				saved_key += (MMX_COEF<<6);
+				saved_key += (SIMD_COEF_32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (i=0; i < 16; ++i) { GATHER_2x (W[i], saved_key, i); }
-				saved_key += (MMX_COEF<<5);
+				saved_key += (SIMD_COEF_32<<5);
 			} else {
 				for (i=0; i < 16; ++i) { GATHER (W[i], saved_key, i); }
-				saved_key += (MMX_COEF<<4);
+				saved_key += (SIMD_COEF_32<<4);
 			}
 			W += 16;
 		}
@@ -744,19 +744,19 @@ if(SSEi_flags & SSEi_FLAT_IN) {
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < MMX_COEF; i++)
+					for (i=0; i < SIMD_COEF_32; i++)
 						*p++ = saved_key[(i<<6)+j];
-				saved_key += (MMX_COEF<<6);
+				saved_key += (SIMD_COEF_32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < MMX_COEF; i++)
+					for (i=0; i < SIMD_COEF_32; i++)
 						*p++ = saved_key[(i<<5)+j];
-				saved_key += (MMX_COEF<<5);
+				saved_key += (SIMD_COEF_32<<5);
 			} else {
 				for (j=0; j < 16; j++)
-					for (i=0; i < MMX_COEF; i++)
+					for (i=0; i < SIMD_COEF_32; i++)
 						*p++ = saved_key[(i<<4)+j];
-				saved_key += (MMX_COEF<<4);
+				saved_key += (SIMD_COEF_32<<4);
 			}
 			W += 16;
 		}
@@ -917,7 +917,7 @@ if(SSEi_flags & SSEi_FLAT_IN) {
 #endif /* MD4_SSE_PARA */
 
 #ifdef SHA1_SSE_PARA
-#define SHA1_SSE_NUM_KEYS	(MMX_COEF*SHA1_SSE_PARA)
+#define SHA1_SSE_NUM_KEYS	(SIMD_COEF_32*SHA1_SSE_PARA)
 #define SHA1_PARA_DO(x)		for((x)=0;(x)<SHA1_SSE_PARA;(x)++)
 
 #define SHA1_F(x,y,z) \
@@ -1264,7 +1264,7 @@ void SSESHA1body(__m128i* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
 	__m128i *data;
 
 	if(SSEi_flags & SSEi_FLAT_IN) {
-		// Move _data to __data, mixing it MMX_COEF wise.
+		// Move _data to __data, mixing it SIMD_COEF_32 wise.
 #ifdef __SSE4_1__
 		unsigned k;
 		__m128i *W = w;
@@ -1275,17 +1275,17 @@ void SSESHA1body(__m128i* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
 				for (i=0; i < 14; ++i) { GATHER_4x (W[i], saved_key, i); SWAP_ENDIAN (W[i]); }
 				GATHER_4x (W[14], saved_key, 14);
 				GATHER_4x (W[15], saved_key, 15);
-				saved_key += (MMX_COEF<<6);
+				saved_key += (SIMD_COEF_32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (i=0; i < 14; ++i) { GATHER_2x (W[i], saved_key, i); SWAP_ENDIAN (W[i]); }
 				GATHER_2x (W[14], saved_key, 14);
 				GATHER_2x (W[15], saved_key, 15);
-				saved_key += (MMX_COEF<<5);
+				saved_key += (SIMD_COEF_32<<5);
 			} else {
 				for (i=0; i < 14; ++i) { GATHER (W[i], saved_key, i); SWAP_ENDIAN (W[i]); }
 				GATHER (W[14], saved_key, 14);
 				GATHER (W[15], saved_key, 15);
-				saved_key += (MMX_COEF<<4);
+				saved_key += (SIMD_COEF_32<<4);
 			}
 			if ( ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
 				 ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
@@ -1304,19 +1304,19 @@ void SSESHA1body(__m128i* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < MMX_COEF; i++)
+					for (i=0; i < SIMD_COEF_32; i++)
 						*p++ = saved_key[(i<<6)+j];
-				saved_key += (MMX_COEF<<6);
+				saved_key += (SIMD_COEF_32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < MMX_COEF; i++)
+					for (i=0; i < SIMD_COEF_32; i++)
 						*p++ = saved_key[(i<<5)+j];
-				saved_key += (MMX_COEF<<5);
+				saved_key += (SIMD_COEF_32<<5);
 			} else {
 				for (j=0; j < 16; j++)
-					for (i=0; i < MMX_COEF; i++)
+					for (i=0; i < SIMD_COEF_32; i++)
 						*p++ = saved_key[(i<<4)+j];
-				saved_key += (MMX_COEF<<4);
+				saved_key += (SIMD_COEF_32<<4);
 			}
 			for (i=0; i < 14; i++)
 				SWAP_ENDIAN (W[i]);

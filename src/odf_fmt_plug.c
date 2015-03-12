@@ -36,7 +36,7 @@ john_register_one(&fmt_odf);
 
 #define FORMAT_LABEL		"ODF"
 #define FORMAT_NAME		""
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"SHA1 BF / SHA256 AES " SHA1_N_STR MMX_TYPE
 #else
 #define ALGORITHM_NAME		"SHA1 BF / SHA256 AES 32/" ARCH_BITS_STR " " SHA2_LIB
@@ -48,7 +48,7 @@ john_register_one(&fmt_odf);
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define BINARY_ALIGN		sizeof(ARCH_WORD_32)
 #define SALT_ALIGN			sizeof(int)
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #else
@@ -276,7 +276,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char ivec[8];
 		unsigned char output[1024];
 		SHA_CTX ctx;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		int lens[MAX_KEYS_PER_CRYPT];
 		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
 #endif
@@ -286,7 +286,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				SHA1_Update(&ctx, (unsigned char *)saved_key[index+i], strlen(saved_key[index+i]));
 				SHA1_Final((unsigned char *)(hash[i]), &ctx);
 			}
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				lens[i] = 20;
 				pin[i] = hash[i];
@@ -327,7 +327,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				SHA256_Update(&ctx, (unsigned char *)saved_key[index+i], strlen(saved_key[index+i]));
 				SHA256_Final((unsigned char *)hash[i], &ctx);
 			}
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				lens[i] = 32;
 				pin[i] = hash[i];

@@ -27,7 +27,7 @@ dnl further. If there is no SSE4, then there will never be a need
 dnl to test for AVX or XOP.  This CPU simply does not have them.
 dnl
 dnl
-dnl TODO: We should move the MMX_COEF and *_PARA shite into this file and
+dnl TODO: We should move the SIMD_COEF_32 and *_PARA shite into this file and
 dnl ifdef it out from the arch.h
 dnl
 dnl TODO: Ultimately we should not depend on any predefined stuff in arch.h

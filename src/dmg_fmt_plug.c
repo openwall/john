@@ -82,7 +82,7 @@ extern volatile int bench_running;
 
 #define FORMAT_LABEL        "dmg"
 #define FORMAT_NAME         "Apple DMG"
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME      "PBKDF2-SHA1 3DES/AES " SHA1_N_STR MMX_TYPE
 #else
 #define ALGORITHM_NAME      "PBKDF2-SHA1 3DES/AES 32/" ARCH_BITS_STR
@@ -94,7 +94,7 @@ extern volatile int bench_running;
 #define SALT_SIZE           sizeof(struct custom_salt)
 #define BINARY_ALIGN		1
 #define SALT_ALIGN			sizeof(int)
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #else
@@ -458,7 +458,7 @@ static void hash_plugin_check_hash(int index)
 	int j;
 
 	if (cur_salt->headerver == 1) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		unsigned char *derived_key, Derived_key[SSE_GROUP_SZ_SHA1][32];
 		int lens[SSE_GROUP_SZ_SHA1], i;
 		unsigned char *pin[SSE_GROUP_SZ_SHA1];
@@ -488,14 +488,14 @@ static void hash_plugin_check_hash(int index)
 		}
 #endif
 		j = 0;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		for(j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
 		derived_key = Derived_key[j];
 #endif
 		if ((apple_des3_ede_unwrap_key1(cur_salt->wrapped_aes_key, cur_salt->len_wrapped_aes_key, derived_key) == 0) && (apple_des3_ede_unwrap_key1(cur_salt->wrapped_hmac_sha1_key, cur_salt->len_hmac_sha1_key, derived_key) == 0)) {
 			cracked[index+j] = 1;
 		}
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		}
 #endif
 	} else {
@@ -513,7 +513,7 @@ static void hash_plugin_check_hash(int index)
 #endif
 		const char nulls[8] = { 0 };
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		unsigned char *derived_key, Derived_key[SSE_GROUP_SZ_SHA1][32];
 		int lens[SSE_GROUP_SZ_SHA1], i;
 		unsigned char *pin[SSE_GROUP_SZ_SHA1];
@@ -543,7 +543,7 @@ static void hash_plugin_check_hash(int index)
 		}
 #endif
 		j = 0;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		for(j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
 		derived_key = Derived_key[j];
 #endif
@@ -552,7 +552,7 @@ static void hash_plugin_check_hash(int index)
 		if (!EVP_DecryptUpdate(&ctx, TEMP1, &outlen,
 		    cur_salt->encrypted_keyblob, cur_salt->encrypted_keyblob_size)) {
 			EVP_CIPHER_CTX_cleanup(&ctx);
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 			continue;
 #else
 			return;
@@ -697,7 +697,7 @@ static void hash_plugin_check_hash(int index)
 #endif
 		}
 #endif /* DMG_DEBUG */
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		}
 #endif
 	}

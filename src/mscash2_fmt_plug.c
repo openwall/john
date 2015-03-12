@@ -121,11 +121,11 @@ static struct fmt_tests tests[] = {
 
 #define ALGORITHM_NAME			"PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 
-#ifdef MMX_COEF
-#define MS_NUM_KEYS			(MMX_COEF*SHA1_SSE_PARA)
+#ifdef SIMD_COEF_32
+#define MS_NUM_KEYS			(SIMD_COEF_32*SHA1_SSE_PARA)
 // Ok, now we have our MMX/SSE2/intr buffer.
 // this version works properly for MMX, SSE2 (.S) and SSE2 intrinsic.
-#define GETPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 ) //for endianity conversion
+#define GETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + (index>>(SIMD_COEF_32>>1))*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
 static unsigned char (*sse_hash1);
 static unsigned char (*sse_crypt1);
 static unsigned char (*sse_crypt2);
@@ -161,7 +161,7 @@ static void init(struct fmt_main *self)
 	key = mem_calloc_tiny(sizeof(*key)*(PLAINTEXT_LENGTH + 1)*self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	md4hash = mem_calloc_tiny(sizeof(*md4hash)*HASH_LEN*self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out)*4*self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-#if defined (MMX_COEF)
+#if defined (SIMD_COEF_32)
 	sse_hash1 = mem_calloc_tiny(sizeof(*sse_hash1)*SHA_BUF_SIZ*4*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	sse_crypt1 = mem_calloc_tiny(sizeof(*sse_crypt1)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	sse_crypt2 = mem_calloc_tiny(sizeof(*sse_crypt2)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
@@ -171,11 +171,11 @@ static void init(struct fmt_main *self)
 			// set the length of all hash1 SSE buffer to 64+20 * 8 bits
 			// The 64 is for the ipad/opad, the 20 is for the length of the SHA1 buffer that also gets into each crypt
 			// this works for SSEi
-			((unsigned int *)sse_hash1)[15*MMX_COEF + (index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF] = (84<<3); // all encrypts are 64+20 bytes.
+			((unsigned int *)sse_hash1)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*SHA_BUF_SIZ*SIMD_COEF_32] = (84<<3); // all encrypts are 64+20 bytes.
 			sse_hash1[GETPOS(20,index)] = 0x80;
 		}
 	}
-	// From this point on, we ONLY touch the first 20 bytes (* MMX_COEF) of each buffer 'block'.  If !SHA_PARA', then only the first
+	// From this point on, we ONLY touch the first 20 bytes (* SIMD_COEF_32) of each buffer 'block'.  If !SHA_PARA', then only the first
 	// block is written to after this, if there are more that one SHA_PARA, then the start of each para block will be updated inside the inner loop.
 #endif
 
@@ -375,7 +375,7 @@ static void *get_binary(char *ciphertext)
 #endif
 		out[i] = temp;
 	}
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	alter_endianity(out, BINARY_SIZE);
 #endif
 	return out;
@@ -521,7 +521,7 @@ static int salt_hash(void *salt)
 }
 
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 // NOTE, in the end, this block will move above the pbkdf2() function, and the #else and #endif wrapping that function will be
 // uncommented. Thus, if built for SSE2 (mmx, or intrisic), we get this function. Otherwise we get the pbkdf2() function which
 // uses OpenSSL.  However to get the 'layout' right, The code here will walk through the array buffer, calling the pbkdf2
@@ -562,19 +562,19 @@ static void pbkdf2_sse2(int t)
 		SHA1_Update(&ctx1,ipad,SHA_CBLOCK);
 		SHA1_Update(&ctx2,opad,SHA_CBLOCK);
 
-		// we memcopy from flat into MMX_COEF output buffer's (our 'temp' ctx buffer).
+		// we memcopy from flat into SIMD_COEF_32 output buffer's (our 'temp' ctx buffer).
 		// This data will NOT need to be BE swapped (it already IS BE swapped).
-		i1[(k/MMX_COEF)*MMX_COEF*5+(k&(MMX_COEF-1))]               = ctx1.h0;
-		i1[(k/MMX_COEF)*MMX_COEF*5+(k&(MMX_COEF-1))+MMX_COEF]      = ctx1.h1;
-		i1[(k/MMX_COEF)*MMX_COEF*5+(k&(MMX_COEF-1))+(MMX_COEF<<1)] = ctx1.h2;
-		i1[(k/MMX_COEF)*MMX_COEF*5+(k&(MMX_COEF-1))+MMX_COEF*3]    = ctx1.h3;
-		i1[(k/MMX_COEF)*MMX_COEF*5+(k&(MMX_COEF-1))+(MMX_COEF<<2)] = ctx1.h4;
+		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))]               = ctx1.h0;
+		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+SIMD_COEF_32]      = ctx1.h1;
+		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)] = ctx1.h2;
+		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+SIMD_COEF_32*3]    = ctx1.h3;
+		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)] = ctx1.h4;
 
-		i2[(k/MMX_COEF)*MMX_COEF*5+(k&(MMX_COEF-1))]               = ctx2.h0;
-		i2[(k/MMX_COEF)*MMX_COEF*5+(k&(MMX_COEF-1))+MMX_COEF]      = ctx2.h1;
-		i2[(k/MMX_COEF)*MMX_COEF*5+(k&(MMX_COEF-1))+(MMX_COEF<<1)] = ctx2.h2;
-		i2[(k/MMX_COEF)*MMX_COEF*5+(k&(MMX_COEF-1))+MMX_COEF*3]    = ctx2.h3;
-		i2[(k/MMX_COEF)*MMX_COEF*5+(k&(MMX_COEF-1))+(MMX_COEF<<2)] = ctx2.h4;
+		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))]               = ctx2.h0;
+		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+SIMD_COEF_32]      = ctx2.h1;
+		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)] = ctx2.h2;
+		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+SIMD_COEF_32*3]    = ctx2.h3;
+		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)] = ctx2.h4;
 
 		SHA1_Update(&ctx1,salt_buffer,salt_len);
 		SHA1_Update(&ctx1,"\x0\x0\x0\x1",4);
@@ -583,14 +583,14 @@ static void pbkdf2_sse2(int t)
 		SHA1_Update(&ctx2,(unsigned char*)tmp_hash,SHA_DIGEST_LENGTH);
 		SHA1_Final((unsigned char*)tmp_hash,&ctx2);
 
-		// now convert this from flat into MMX_COEF buffers.
+		// now convert this from flat into SIMD_COEF_32 buffers.
 		// Also, perform the 'first' ^= into the crypt buffer.  NOTE, we are doing that in BE format
 		// so we will need to 'undo' that in the end.
-		o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(k&(MMX_COEF-1))]                = t_crypt[k*4+0] = ctx2.h0;
-		o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(k&(MMX_COEF-1))+MMX_COEF]       = t_crypt[k*4+1] = ctx2.h1;
-		o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(k&(MMX_COEF-1))+(MMX_COEF<<1)]  = t_crypt[k*4+2] = ctx2.h2;
-		o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(k&(MMX_COEF-1))+MMX_COEF*3]     = t_crypt[k*4+3] = ctx2.h3;
-		o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(k&(MMX_COEF-1))+(MMX_COEF<<2)]                   = ctx2.h4;
+		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))]                = t_crypt[k*4+0] = ctx2.h0;
+		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))+SIMD_COEF_32]       = t_crypt[k*4+1] = ctx2.h1;
+		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)]  = t_crypt[k*4+2] = ctx2.h2;
+		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))+SIMD_COEF_32*3]     = t_crypt[k*4+3] = ctx2.h3;
+		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)]                   = ctx2.h4;
 	}
 
 	for(i = 1; i < iteration_cnt; i++)
@@ -599,9 +599,9 @@ static void pbkdf2_sse2(int t)
 		SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		// only xor first 16 bytes, since that is ALL this format uses
 		for (k = 0; k < MS_NUM_KEYS; k++) {
-			unsigned *p = &((unsigned int*)t_sse_hash1)[(((k>>2)*SHA_BUF_SIZ)<<2) + (k&(MMX_COEF-1))];
+			unsigned *p = &((unsigned int*)t_sse_hash1)[(((k>>2)*SHA_BUF_SIZ)<<2) + (k&(SIMD_COEF_32-1))];
 			for(j = 0; j < 4; j++)
-				t_crypt[(k<<2)+j] ^= p[(j<<(MMX_COEF>>1))];
+				t_crypt[(k<<2)+j] ^= p[(j<<(SIMD_COEF_32>>1))];
 		}
 	}
 }
@@ -714,12 +714,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD4_Final((unsigned char*)&crypt_out[(t * MS_NUM_KEYS + i) * 4], &ctx);
 			// now we have DCC1 (mscash) which is MD4 (MD4(unicode(pass)) . unicode(lc username))
 
-#ifndef MMX_COEF
+#ifndef SIMD_COEF_32
 			// Non-SSE: Compute DCC2 one at a time
 			pbkdf2(&crypt_out[(t * MS_NUM_KEYS + i) * 4]);
 #endif
 		}
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		// SSE: Compute DCC2 in parallel, once per thread
 		pbkdf2_sse2(t);
 #endif

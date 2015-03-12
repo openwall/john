@@ -312,7 +312,6 @@
 #endif
 
 #define MMX_TYPE			" SSE2"
-#define MMX_COEF			4
 
 #define NT_X86_64
 

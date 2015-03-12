@@ -18,8 +18,8 @@ john_register_one(&fmt_mssql);
 
 #include "arch.h"
 
-#ifdef MMX_COEF
-#define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
+#ifdef SIMD_COEF_32
+#define NBKEYS	(SIMD_COEF_32 * SHA1_SSE_PARA)
 #endif
 #include "sse-intrinsics.h"
 
@@ -48,11 +48,11 @@ john_register_one(&fmt_mssql);
 #define SALT_SIZE			4
 #define SALT_ALIGN			4
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 ) //for endianity conversion
-#if (MMX_COEF==2)
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>(SIMD_COEF_32>>1))*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#if (SIMD_COEF_32==2)
 #define SALT_EXTRA_LEN          0x40004
 #else
 #define SALT_EXTRA_LEN          0x4040404
@@ -81,7 +81,7 @@ static struct fmt_tests tests[] = {
 
 static unsigned char cursalt[SALT_SIZE];
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 /* Cygwin would not guarantee the alignment if these were declared static */
 #define saved_key mssql_saved_key
 #define crypt_key mssql_crypt_key
@@ -140,7 +140,7 @@ extern struct fmt_main fmt_mssql;
 static void init(struct fmt_main *self)
 {
 	initUnicode(UNICODE_MS_OLD);
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	memset(saved_key, 0, sizeof(saved_key));
 #else
 	saved_key = mem_calloc_tiny(PLAINTEXT_LENGTH*2 + 1 + SALT_SIZE, MEM_ALIGN_WORD);
@@ -153,14 +153,14 @@ static void init(struct fmt_main *self)
 		fmt_mssql.methods.set_key = set_key_enc;
 }
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 static void clear_keys(void) {
 #if SHA_BUF_SIZ == 16
 	memset(saved_key, 0, sizeof(saved_key));
 #else
 	int j=0;
 	for (; j<SHA1_SSE_PARA; j++)
-		memset(saved_key+j*4*SHA_BUF_SIZ*MMX_COEF, 0, 56*MMX_COEF);
+		memset(saved_key+j*4*SHA_BUF_SIZ*SIMD_COEF_32, 0, 56*SIMD_COEF_32);
 #endif
 }
 #endif
@@ -169,7 +169,7 @@ static void set_key(char *key, int index) {
 	UTF8 utf8[PLAINTEXT_LENGTH+1];
 	int utf8len, orig_len;
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	int i;
 	strnzcpy(plain_keys[index], key, PLAINTEXT_LENGTH + 1);
 #else
@@ -180,8 +180,8 @@ static void set_key(char *key, int index) {
 	if (utf8len <= 0 && *key)
 		return;
 
-#ifdef MMX_COEF
-	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = (2*utf8len+SALT_SIZE)<<3;
+#ifdef SIMD_COEF_32
+	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = (2*utf8len+SALT_SIZE)<<3;
 	for(i=0;i<utf8len;i++)
 		saved_key[GETPOS((i*2), index)] = utf8[i];
 	saved_key[GETPOS((i*2+SALT_SIZE) , index)] = 0x80;
@@ -199,7 +199,7 @@ static void set_key_enc(char *key, int index) {
 	int i;
 	int utf16len;
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	strnzcpy(plain_keys[index], key, PLAINTEXT_LENGTH*3 + 1);
 #else
 	plain_keys[index] = key;
@@ -215,8 +215,8 @@ static void set_key_enc(char *key, int index) {
 	if (utf16len <= 0)
 		utf16len *= -1;
 
-#ifdef MMX_COEF
-	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = (2*utf16len+SALT_SIZE)<<3;
+#ifdef SIMD_COEF_32
+	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = (2*utf16len+SALT_SIZE)<<3;
 	for(i=0;i<utf16len;i++)
 	{
 		saved_key[GETPOS((i*2), index)] = (char)utf16key[i];
@@ -244,12 +244,12 @@ static char *get_key(int index) {
 }
 
 static int cmp_all(void *binary, int count) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned int x,y=0;
 	for(;y<SHA1_SSE_PARA;y++)
-	for(x=0;x<MMX_COEF;x++)
+	for(x=0;x<SIMD_COEF_32;x++)
 	{
-		if( ((unsigned int *)binary)[0] == ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] )
+		if( ((unsigned int *)binary)[0] == ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5] )
 			return 1;
 	}
 	return 0;
@@ -264,16 +264,16 @@ static int cmp_exact(char *source, int count){
 
 static int cmp_one(void * binary, int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned int x,y;
-	x = index&(MMX_COEF-1);
-	y = index>>(MMX_COEF>>1);
+	x = index&(SIMD_COEF_32-1);
+	y = index>>(SIMD_COEF_32>>1);
 
-	if( (((unsigned int *)binary)[0] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5])   |
-	    (((unsigned int *)binary)[1] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+MMX_COEF]) |
-	    (((unsigned int *)binary)[2] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+2*MMX_COEF]) |
-	    (((unsigned int *)binary)[3] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+3*MMX_COEF])|
-	    (((unsigned int *)binary)[4] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+4*MMX_COEF]) )
+	if( (((unsigned int *)binary)[0] != ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5])   |
+	    (((unsigned int *)binary)[1] != ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32]) |
+	    (((unsigned int *)binary)[2] != ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5+2*SIMD_COEF_32]) |
+	    (((unsigned int *)binary)[3] != ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5+3*SIMD_COEF_32])|
+	    (((unsigned int *)binary)[4] != ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5+4*SIMD_COEF_32]) )
 		return 0;
 	return 1;
 #else
@@ -284,12 +284,12 @@ static int cmp_one(void * binary, int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned i, index;
 
 	for (index = 0; index < count; ++index)
 	{
-		unsigned len = (((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF]) >> 3) & 0xff) - SALT_SIZE;
+		unsigned len = (((((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32]) >> 3) & 0xff) - SALT_SIZE;
 		for(i=0;i<SALT_SIZE;i++)
 			saved_key[GETPOS((len+i), index)] = cursalt[i];
 	}
@@ -316,14 +316,14 @@ static void * binary(char *ciphertext)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2+54])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+55])];
 	}
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	alter_endianity((unsigned char *)realcipher, BINARY_SIZE);
 #endif
 	return (void *)realcipher;
 }
 
-#ifdef MMX_COEF
-#define KEY_OFF ((index/MMX_COEF)*MMX_COEF*5+(index&(MMX_COEF-1)))
+#ifdef SIMD_COEF_32
+#define KEY_OFF ((index/SIMD_COEF_32)*SIMD_COEF_32*5+(index&(SIMD_COEF_32-1)))
 static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xfff; }
@@ -399,7 +399,7 @@ struct fmt_main fmt_mssql = {
 		set_salt,
 		set_key,
 		get_key,
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		clear_keys,
 #else
 		fmt_default_clear_keys,

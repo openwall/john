@@ -23,7 +23,7 @@ john_register_one(&fmt_keyring);
 #include "arch.h"
 
 //#undef _OPENMP
-//#undef MMX_COEF
+//#undef SIMD_COEF_32
 //#undef SIMD_COEF_32
 
 #include "misc.h"

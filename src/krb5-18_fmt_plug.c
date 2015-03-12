@@ -44,7 +44,7 @@ john_register_one(&fmt_krb5_18);
 #include <openssl/aes.h>
 #ifdef _OPENMP
 #include <omp.h>
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define OMP_SCALE               8
 #else
 #define OMP_SCALE               32
@@ -58,7 +58,7 @@ john_register_one(&fmt_krb5_18);
 #define FORMAT_TAG		"$krb18$"
 #define TAG_LENGTH		7
 
-#if MMX_COEF
+#if SIMD_COEF_32
 #define ALGORITHM_NAME    SHA1_ALGORITHM_NAME
 #else
 #if ARCH_BITS >= 64
@@ -76,8 +76,8 @@ john_register_one(&fmt_krb5_18);
 #define BINARY_ALIGN		4
 #define SALT_SIZE		CIPHERTEXT_LENGTH
 #define SALT_ALIGN		1
-#ifdef MMX_COEF
-#define MIN_KEYS_PER_CRYPT      MMX_COEF
+#ifdef SIMD_COEF_32
+#define MIN_KEYS_PER_CRYPT      SIMD_COEF_32
 #define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #else
 #define MIN_KEYS_PER_CRYPT      1

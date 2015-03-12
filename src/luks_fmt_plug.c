@@ -73,7 +73,7 @@ john_register_one(&fmt_luks);
 
 #define FORMAT_LABEL		"LUKS"
 #define FORMAT_NAME		""
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA1 " SHA1_N_STR MMX_TYPE
 #else
 #define ALGORITHM_NAME		"PBKDF2-SHA1 32/" ARCH_BITS_STR
@@ -85,7 +85,7 @@ john_register_one(&fmt_luks);
 #define BINARY_ALIGN		4
 #define SALT_SIZE		sizeof(struct custom_salt_LUKS*)
 #define SALT_ALIGN			sizeof(struct custom_salt_LUKS*)
-#if MMX_COEF
+#if SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
 #else
@@ -559,7 +559,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int dklen = john_ntohl(cur_salt->myphdr.keyBytes);
 		ARCH_WORD_32 keycandidate[MAX_KEYS_PER_CRYPT][256/4];
 		ARCH_WORD_32 masterkeycandidate[MAX_KEYS_PER_CRYPT][256/4];
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		int lens[MAX_KEYS_PER_CRYPT];
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		union {
@@ -593,7 +593,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			john_ntohl(cur_salt->myphdr.keyblock[cur_salt->bestslot].stripes));
 		}
 		// pbkdf2 again
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			lens[i] = john_ntohl(cur_salt->myphdr.keyBytes);
 			pin[i] = (unsigned char*)masterkeycandidate[i];

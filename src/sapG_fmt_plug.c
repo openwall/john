@@ -24,8 +24,8 @@ john_register_one(&fmt_sapG);
 
 #include "arch.h"
 
-#ifdef MMX_COEF
-#define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
+#ifdef SIMD_COEF_32
+#define NBKEYS	(SIMD_COEF_32 * SHA1_SSE_PARA)
 #endif
 #include "sse-intrinsics.h"
 
@@ -65,13 +65,13 @@ static unsigned int omp_t = 1;
 #define SALT_ALIGN			4
 #define CIPHERTEXT_LENGTH		(SALT_LENGTH + 1 + 2*BINARY_SIZE)	/* SALT + $ + 2x20 bytes for SHA1-representation */
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&60)*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 ) //for endianity conversion
-#define GETWORDPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&60)*MMX_COEF + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 )
-#define GETSTARTPOS(index)		( (index&(MMX_COEF-1))*4 + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 )
-#define GETOUTPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*20*MMX_COEF ) //for endianity conversion
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (3-((i)&3)) + (index>>(SIMD_COEF_32>>1))*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#define GETWORDPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (index>>(SIMD_COEF_32>>1))*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETSTARTPOS(index)		( (index&(SIMD_COEF_32-1))*4 + (index>>(SIMD_COEF_32>>1))*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>(SIMD_COEF_32>>1))*20*SIMD_COEF_32 ) //for endianity conversion
 
 #else
 #define MIN_KEYS_PER_CRYPT		1
@@ -125,7 +125,7 @@ static struct fmt_tests tests[] = {
 static UTF8 (*saved_plain)[UTF8_PLAINTEXT_LENGTH + 1];
 static int *keyLen;
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 
 // max intermediate crypt size is 256 bytes
 // multiple key buffers for lengths > 55
@@ -150,7 +150,7 @@ static struct saltstruct {
 static void init(struct fmt_main *self)
 {
 	static int warned = 0;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	int i;
 #endif
 	// This is needed in order NOT to upper-case german double-s
@@ -175,7 +175,7 @@ static void init(struct fmt_main *self)
 
 	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	keyLen = mem_calloc_tiny(sizeof(*keyLen) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	clean_pos = mem_calloc_tiny(sizeof(*clean_pos) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	for(i = 0; i < LIMB; i++)
 		saved_key[i] = mem_calloc_tiny(SHA_BUF_SIZ*4 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
@@ -273,7 +273,7 @@ static char *get_key(int index) {
 }
 
 static int cmp_all(void *binary, int count) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned int x,y=0;
 
 #ifdef _OPENMP
@@ -281,9 +281,9 @@ static int cmp_all(void *binary, int count) {
 #else
 	for(;y<SHA1_SSE_PARA;y++)
 #endif
-	for(x=0;x<MMX_COEF;x++)
+	for(x=0;x<SIMD_COEF_32;x++)
 	{
-		if( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x+y*MMX_COEF*5] )
+		if( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5] )
 			return 1;
 	}
 	return 0;
@@ -302,16 +302,16 @@ static int cmp_exact(char *source, int index){
 
 static int cmp_one(void *binary, int index)
 {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	unsigned int x,y;
-	x = index&(MMX_COEF-1);
-	y = index>>(MMX_COEF>>1);
+	x = index&(SIMD_COEF_32-1);
+	y = index>>(SIMD_COEF_32>>1);
 
-	if( (((unsigned int*)binary)[0] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5])   |
-	    (((unsigned int*)binary)[1] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+MMX_COEF]) |
-	    (((unsigned int*)binary)[2] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+2*MMX_COEF]) |
-	    (((unsigned int*)binary)[3] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+3*MMX_COEF])|
-	    (((unsigned int*)binary)[4] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+4*MMX_COEF]) )
+	if( (((unsigned int*)binary)[0] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5])   |
+	    (((unsigned int*)binary)[1] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32]) |
+	    (((unsigned int*)binary)[2] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+2*SIMD_COEF_32]) |
+	    (((unsigned int*)binary)[3] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+3*SIMD_COEF_32])|
+	    (((unsigned int*)binary)[4] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+4*SIMD_COEF_32]) )
 		return 0;
 	return 1;
 #else
@@ -324,7 +324,7 @@ static int cmp_one(void *binary, int index)
  * this is part of the walld0rf-magic
  * The return value will always be between 32 and 82, inclusive
  */
-#if MMX_COEF
+#if SIMD_COEF_32
 static inline unsigned int extractLengthOfMagicArray(unsigned const char *pbHashArray, unsigned int index)
 #else
 static inline unsigned int extractLengthOfMagicArray(unsigned const char *pbHashArray)
@@ -332,18 +332,18 @@ static inline unsigned int extractLengthOfMagicArray(unsigned const char *pbHash
 {
 	unsigned int modSum = 0;
 
-#if MMX_COEF
+#if SIMD_COEF_32
 	unsigned const char *p = &pbHashArray[GETOUTPOS(3, index)];
 	modSum += *p++ % 6;
 	modSum += *p++ % 6;
 	modSum += *p++ % 6;
 	modSum += *p++ % 6;
-	p += 4*(MMX_COEF - 1);
+	p += 4*(SIMD_COEF_32 - 1);
 	modSum += *p++ % 6;
 	modSum += *p++ % 6;
 	modSum += *p++ % 6;
 	modSum += *p++ % 6;
-	p += 4*(MMX_COEF - 1) + 2;
+	p += 4*(SIMD_COEF_32 - 1) + 2;
 	modSum += *p++ % 6;
 	modSum += *p % 6;
 #else
@@ -360,7 +360,7 @@ static inline unsigned int extractLengthOfMagicArray(unsigned const char *pbHash
  * part of the walld0rf-magic
  * The return value will always be between 0 and 70, inclusive
  */
-#if MMX_COEF
+#if SIMD_COEF_32
 static inline unsigned int extractOffsetToMagicArray(unsigned const char *pbHashArray, unsigned int index)
 #else
 static inline unsigned int extractOffsetToMagicArray(unsigned const char *pbHashArray)
@@ -368,17 +368,17 @@ static inline unsigned int extractOffsetToMagicArray(unsigned const char *pbHash
 {
 	unsigned int modSum = 0;
 
-#if MMX_COEF
+#if SIMD_COEF_32
 	unsigned const int *p = (unsigned int*)&pbHashArray[GETOUTPOS(11, index)];
 	unsigned int temp;
 
 	temp = *p & 0x0707;
 	modSum += (temp >> 8) + (unsigned char)temp;
-	p += MMX_COEF;
+	p += SIMD_COEF_32;
 	temp = *p & 0x07070707;
 	modSum += (temp >> 24) + (unsigned char)(temp >> 16) +
 		(unsigned char)(temp >> 8) + (unsigned char)temp;
-	p += MMX_COEF;
+	p += SIMD_COEF_32;
 	temp = *p & 0x07070707;
 	modSum += (temp >> 24) + (unsigned char)(temp >> 16) +
 		(unsigned char)(temp >> 8) + (unsigned char)temp;
@@ -391,17 +391,17 @@ static inline unsigned int extractOffsetToMagicArray(unsigned const char *pbHash
 	return modSum;
 }
 
-#if MMX_COEF
+#if SIMD_COEF_32
 static inline void crypt_done(unsigned const int *source, unsigned int *dest, int index)
 {
 	unsigned int i;
-	unsigned const int *s = &source[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*5*MMX_COEF];
-	unsigned int *d = &dest[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*5*MMX_COEF];
+	unsigned const int *s = &source[(index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*5*SIMD_COEF_32];
+	unsigned int *d = &dest[(index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*5*SIMD_COEF_32];
 
 	for (i = 0; i < 5; i++) {
 		*d = *s;
-		s += MMX_COEF;
-		d += MMX_COEF;
+		s += SIMD_COEF_32;
+		d += SIMD_COEF_32;
 	}
 }
 #endif
@@ -409,7 +409,7 @@ static inline void crypt_done(unsigned const int *source, unsigned int *dest, in
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-#if MMX_COEF
+#if SIMD_COEF_32
 
 #if defined(_OPENMP)
 	int t;
@@ -457,7 +457,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					}
 					len += 4;
 					if (len & 63)
-						keybuf_word += MMX_COEF;
+						keybuf_word += SIMD_COEF_32;
 					else
 						keybuf_word = (ARCH_WORD_32*)&saved_key[len>>6][GETSTARTPOS(ti)];
 				}
@@ -488,7 +488,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			if (len > longest)
 				longest = len;
-			((unsigned int*)saved_key[(len+8)>>6])[15*MMX_COEF + (ti&3) + (ti>>2)*SHA_BUF_SIZ*MMX_COEF] = len << 3;
+			((unsigned int*)saved_key[(len+8)>>6])[15*SIMD_COEF_32 + (ti&3) + (ti>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 			crypt_len[index] = len;
 		}
 
@@ -515,7 +515,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// If final crypt ends up to be 56-61 bytes (or so), this must be clean
 			for (i = 0; i < LIMB; i++)
 				if (keyLen[ti] < i * 64 + 55)
-					((unsigned int*)saved_key[i])[15*MMX_COEF + (ti&3) + (ti>>2)*SHA_BUF_SIZ*MMX_COEF] = 0;
+					((unsigned int*)saved_key[i])[15*SIMD_COEF_32 + (ti&3) + (ti>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = 0;
 
 			len = keyLen[ti];
 			lengthIntoMagicArray = extractLengthOfMagicArray(crypt_key, ti);
@@ -549,7 +549,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			if (len > longest)
 				longest = len;
 
-			((unsigned int*)saved_key[(len+8)>>6])[15*MMX_COEF + (ti&3) + (ti>>2)*SHA_BUF_SIZ*MMX_COEF] = len << 3;
+			((unsigned int*)saved_key[(len+8)>>6])[15*SIMD_COEF_32 + (ti&3) + (ti>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 		}
 
 		SSESHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], NULL, SSEi_MIXED_IN);
@@ -634,7 +634,7 @@ static void *binary(char *ciphertext)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(newCiphertextPointer[i*2])]*16 + atoi16[ARCH_INDEX(newCiphertextPointer[i*2+1])];
 	}
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	alter_endianity((unsigned char*)realcipher, BINARY_SIZE);
 #endif
 	return (void*)realcipher;
@@ -650,7 +650,7 @@ static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	int i;
 
 	memcpy(realcipher, pw->binary, BINARY_SIZE);
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	alter_endianity(realcipher, BINARY_SIZE);
 #endif
 	memcpy(Buf, salt_s->s, salt_s->l);
@@ -669,8 +669,8 @@ static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 }
 #endif
 
-#ifdef MMX_COEF
-#define KEY_OFF ((index/MMX_COEF)*MMX_COEF*5+(index&(MMX_COEF-1)))
+#ifdef SIMD_COEF_32
+#define KEY_OFF ((index/SIMD_COEF_32)*SIMD_COEF_32*5+(index&(SIMD_COEF_32-1)))
 static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xfff; }
@@ -742,7 +742,7 @@ struct fmt_main fmt_sapG = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#if !defined(MMX_COEF) || defined(SHA1_SSE_PARA)
+#if !defined(SIMD_COEF_32) || defined(SHA1_SSE_PARA)
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_UTF8,

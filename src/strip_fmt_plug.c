@@ -33,7 +33,7 @@ john_register_one(&fmt_strip);
 
 #define FORMAT_LABEL		"STRIP"
 #define FORMAT_NAME		"Password Manager"
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA1 " SHA1_N_STR MMX_TYPE
 #else
 #define ALGORITHM_NAME		"PBKDF2-SHA1 32/" ARCH_BITS_STR
@@ -45,7 +45,7 @@ john_register_one(&fmt_strip);
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define BINARY_ALIGN	1
 #define SALT_ALIGN		1
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #else
@@ -192,7 +192,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int reserve_sz = 16; /* for HMAC off case */
 		AES_KEY akey;
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		int len[MAX_KEYS_PER_CRYPT];
 		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {

@@ -42,7 +42,7 @@ static int omp_t = 1;
 #define PLAINTEXT_LENGTH            125
 #define SALT_SIZE                   sizeof(struct custom_salt)
 #define SALT_ALIGN                  4
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT          SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT          SSE_GROUP_SZ_SHA1
 #else
@@ -275,7 +275,7 @@ $openbsd-softraid$8192$c2891132ca5305d1189a7da94d32de29182abc2f56dc641d685e47193
 	{NULL}
 };
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF2-SHA1 " SHA1_N_STR MMX_TYPE
 #else
 #define ALGORITHM_NAME          "PBKDF2-SHA1 32/" ARCH_BITS_STR

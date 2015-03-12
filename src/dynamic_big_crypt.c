@@ -284,7 +284,7 @@ int large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, i
  ****  Here are the MD5 functions (Now using 'common' interface)
  *******************************************************************/
 #ifdef MD5_SSE_PARA
-#define MD5_LOOPS (MMX_COEF*MD5_SSE_PARA)
+#define MD5_LOOPS (SIMD_COEF_32*MD5_SSE_PARA)
 static const int MD5_inc = MD5_LOOPS;
 
 static inline uint32_t DoMD5_FixBufferLen32(unsigned char *input_buf, int total_len) {
@@ -352,7 +352,7 @@ static void DoMD5_crypt_f_sse(void *in, int len[MD5_LOOPS], void *out) {
 			if (cnt == loops[i]) {
 				unsigned int offx = ((i>>2)*16)+(i&3);
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i<<(MMX_COEF>>1))+j] = a[(j<<(MMX_COEF>>1))+offx];
+					((ARCH_WORD_32*)out)[(i<<(SIMD_COEF_32>>1))+j] = a[(j<<(SIMD_COEF_32>>1))+offx];
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -380,7 +380,7 @@ static void DoMD5_crypt_sse(void *in, int ilen[MD5_LOOPS], void *out[MD5_LOOPS],
 			if (cnt == loops[i]) {
 				unsigned int offx = ((i>>2)*16)+(i&3);
 				for (j = 0; j < 4; ++j) {
-					y.a[j] = a[(j<<(MMX_COEF>>1))+offx];
+					y.a[j] = a[(j<<(SIMD_COEF_32>>1))+offx];
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), 16, tid);
 			} else if (cnt < loops[i])
@@ -708,7 +708,7 @@ void DynamicFunc__MD5_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
  ****  Here are the MD4 functions (Now using 'common' interface)
  *******************************************************************/
 #ifdef MD4_SSE_PARA
-#define MD4_LOOPS (MMX_COEF*MD4_SSE_PARA)
+#define MD4_LOOPS (SIMD_COEF_32*MD4_SSE_PARA)
 static const int MD4_inc = MD4_LOOPS;
 
 static inline uint32_t DoMD4_FixBufferLen32(unsigned char *input_buf, int total_len) {
@@ -754,7 +754,7 @@ static void DoMD4_crypt_f_sse(void *in, int len[MD4_LOOPS], void *out) {
 			if (cnt == loops[i]) {
 				unsigned int offx = ((i>>2)*16)+(i&3);
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i<<(MMX_COEF>>1))+j] = a[(j<<(MMX_COEF>>1))+offx];
+					((ARCH_WORD_32*)out)[(i<<(SIMD_COEF_32>>1))+j] = a[(j<<(SIMD_COEF_32>>1))+offx];
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -782,7 +782,7 @@ static void DoMD4_crypt_sse(void *in, int ilen[MD4_LOOPS], void *out[MD4_LOOPS],
 			if (cnt == loops[i]) {
 				unsigned int offx = ((i>>2)*16)+(i&3);
 				for (j = 0; j < 4; ++j) {
-					y.a[j] = a[(j<<(MMX_COEF>>1))+offx];
+					y.a[j] = a[(j<<(SIMD_COEF_32>>1))+offx];
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), 16, tid);
 			} else if (cnt < loops[i])
@@ -1105,7 +1105,7 @@ void DynamicFunc__MD4_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
  ****  Here are the SHA1 functions (Now using 'common' interface)
  *******************************************************************/
 #ifdef SHA1_SSE_PARA
-#define SHA1_LOOPS (MMX_COEF*SHA1_SSE_PARA)
+#define SHA1_LOOPS (SIMD_COEF_32*SHA1_SSE_PARA)
 static const int sha1_inc = SHA1_LOOPS;
 
 static inline uint32_t DoSHA1_FixBufferLen32(unsigned char *input_buf, int total_len) {
@@ -1155,7 +1155,7 @@ static void DoSHA1_crypt_f_sse(void *in, int len[SHA1_LOOPS], void *out) {
 				unsigned int offx = ((i>>2)*20)+(i&3);
 				// only 16 bytes in the 'final'
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i<<(MMX_COEF>>1))+j] = JOHNSWAP(a[(j<<(MMX_COEF>>1))+offx]);
+					((ARCH_WORD_32*)out)[(i<<(SIMD_COEF_32>>1))+j] = JOHNSWAP(a[(j<<(SIMD_COEF_32>>1))+offx]);
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;

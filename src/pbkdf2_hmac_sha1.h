@@ -34,7 +34,7 @@
 #define pbkdf2_sha1_sse pbkdf1_sha1_sse
 #endif
 
-#if !defined(MMX_COEF) || defined (PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX)
+#if !defined(SIMD_COEF_32) || defined (PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX)
 
 static void _pbkdf2_sha1_load_hmac(const unsigned char *K, int KL, SHA_CTX *pIpad, SHA_CTX *pOpad) {
 	unsigned char ipad[SHA_CBLOCK], opad[SHA_CBLOCK], k0[SHA_DIGEST_LENGTH];
@@ -136,9 +136,9 @@ static void pbkdf2_sha1(const unsigned char *K, int KL, const unsigned char *S, 
 
 #endif
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 
-#define SSE_GROUP_SZ_SHA1 (MMX_COEF*SHA1_SSE_PARA)
+#define SSE_GROUP_SZ_SHA1 (SIMD_COEF_32*SHA1_SSE_PARA)
 
 
 static void _pbkdf2_sha1_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SSE_GROUP_SZ_SHA1], SHA_CTX pIpad[SSE_GROUP_SZ_SHA1], SHA_CTX pOpad[SSE_GROUP_SZ_SHA1])
@@ -193,14 +193,14 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 	// then zero out the rest of the buffer, putting 0x2A0 (#bits), into the proper location in the buffer.  Once this
 	// part of the buffer is setup, we never touch it again, for the rest of the crypt.  We simply overwrite the first
 	// half of this buffer, over and over again, with BE results of the prior hash.
-	for (j = 0; j < SSE_GROUP_SZ_SHA1/MMX_COEF; ++j) {
-		ptmp = &o1[j*MMX_COEF*SHA_BUF_SIZ];
-		for (i = 0; i < MMX_COEF; ++i)
-			ptmp[ (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32))*MMX_COEF + (i&(MMX_COEF-1))] = 0x80000000;
-		for (i = (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)+1)*MMX_COEF; i < 15*MMX_COEF; ++i)
+	for (j = 0; j < SSE_GROUP_SZ_SHA1/SIMD_COEF_32; ++j) {
+		ptmp = &o1[j*SIMD_COEF_32*SHA_BUF_SIZ];
+		for (i = 0; i < SIMD_COEF_32; ++i)
+			ptmp[ (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32))*SIMD_COEF_32 + (i&(SIMD_COEF_32-1))] = 0x80000000;
+		for (i = (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)+1)*SIMD_COEF_32; i < 15*SIMD_COEF_32; ++i)
 			ptmp[i] = 0;
-		for (i = 0; i < MMX_COEF; ++i)
-			ptmp[15*MMX_COEF + (i&(MMX_COEF-1))] = ((64+SHA_DIGEST_LENGTH)<<3); // all encrypts are 64+20 bytes.
+		for (i = 0; i < SIMD_COEF_32; ++i)
+			ptmp[15*SIMD_COEF_32 + (i&(SIMD_COEF_32-1))] = ((64+SHA_DIGEST_LENGTH)<<3); // all encrypts are 64+20 bytes.
 	}
 
 	// Load up the IPAD and OPAD values, saving off the first half of the crypt.  We then push the ipad/opad all
@@ -208,19 +208,19 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 	// the 2 first halves, to load the sha256 2nd part of each crypt, in each loop.
 	_pbkdf2_sha1_sse_load_hmac(K, KL, ipad, opad);
 	for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
-		ptmp = &i1[(j/MMX_COEF)*MMX_COEF*(SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(MMX_COEF-1))];
+		ptmp = &i1[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(SIMD_COEF_32-1))];
 		ptmp[0]          = ipad[j].h0;
-		ptmp[MMX_COEF]   = ipad[j].h1;
-		ptmp[MMX_COEF*2] = ipad[j].h2;
-		ptmp[MMX_COEF*3] = ipad[j].h3;
-		ptmp[MMX_COEF*4] = ipad[j].h4;
+		ptmp[SIMD_COEF_32]   = ipad[j].h1;
+		ptmp[SIMD_COEF_32*2] = ipad[j].h2;
+		ptmp[SIMD_COEF_32*3] = ipad[j].h3;
+		ptmp[SIMD_COEF_32*4] = ipad[j].h4;
 
-		ptmp = &i2[(j/MMX_COEF)*MMX_COEF*(SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(MMX_COEF-1))];
+		ptmp = &i2[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(SIMD_COEF_32-1))];
 		ptmp[0]          = opad[j].h0;
-		ptmp[MMX_COEF]   = opad[j].h1;
-		ptmp[MMX_COEF*2] = opad[j].h2;
-		ptmp[MMX_COEF*3] = opad[j].h3;
-		ptmp[MMX_COEF*4] = opad[j].h4;
+		ptmp[SIMD_COEF_32]   = opad[j].h1;
+		ptmp[SIMD_COEF_32*2] = opad[j].h2;
+		ptmp[SIMD_COEF_32*3] = opad[j].h3;
+		ptmp[SIMD_COEF_32*4] = opad[j].h4;
 	}
 
 	loops = (skip_bytes + outlen + (SHA_DIGEST_LENGTH-1)) / SHA_DIGEST_LENGTH;
@@ -246,15 +246,15 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 			SHA1_Update(&ctx, tmp_hash, SHA_DIGEST_LENGTH);
 			SHA1_Final(tmp_hash, &ctx);
 
-			// now convert this from flat into MMX_COEF buffers.
+			// now convert this from flat into SIMD_COEF_32 buffers.
 			// Also, perform the 'first' ^= into the crypt buffer.  NOTE, we are doing that in BE format
 			// so we will need to 'undo' that in the end.
-			ptmp = &o1[(j/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(j&(MMX_COEF-1))];
+			ptmp = &o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))];
 			ptmp[0]           = dgst[j][0] = ctx.h0;
-			ptmp[MMX_COEF]    = dgst[j][1] = ctx.h1;
-			ptmp[MMX_COEF*2]  = dgst[j][2] = ctx.h2;
-			ptmp[MMX_COEF*3]  = dgst[j][3] = ctx.h3;
-			ptmp[MMX_COEF*4]  = dgst[j][4] = ctx.h4;
+			ptmp[SIMD_COEF_32]    = dgst[j][1] = ctx.h1;
+			ptmp[SIMD_COEF_32*2]  = dgst[j][2] = ctx.h2;
+			ptmp[SIMD_COEF_32*3]  = dgst[j][3] = ctx.h3;
+			ptmp[SIMD_COEF_32*4]  = dgst[j][4] = ctx.h4;
 		}
 
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.
@@ -263,11 +263,11 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 			SSESHA1body((unsigned char*)o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #if !defined (PBKDF1_LOGIC)
 			for (k = 0; k < SSE_GROUP_SZ_SHA1; k++) {
-				unsigned *p = &o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ + (k&(MMX_COEF-1))];
+				unsigned *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ + (k&(SIMD_COEF_32-1))];
 				for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++) {
-					dgst[k][j] ^= p[(j<<(MMX_COEF>>1))];
+					dgst[k][j] ^= p[(j<<(SIMD_COEF_32>>1))];
 #if defined (EFS_CRAP_LOGIC)
-					p[(j<<(MMX_COEF>>1))] = dgst[k][j];
+					p[(j<<(SIMD_COEF_32>>1))] = dgst[k][j];
 #endif
 				}
 			}
@@ -276,9 +276,9 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 #if defined (PBKDF1_LOGIC)
 		// PBKDF1 simply uses the end 'result' of all of the HMAC iterations.
 		for (k = 0; k < SSE_GROUP_SZ_SHA1; k++) {
-			unsigned *p = &o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ + (k&(MMX_COEF-1))];
+			unsigned *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ + (k&(SIMD_COEF_32-1))];
 			for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++)
-				dgst[k][j] = p[(j<<(MMX_COEF>>1))];
+				dgst[k][j] = p[(j<<(SIMD_COEF_32>>1))];
 		}
 #endif
 

@@ -23,7 +23,7 @@ john_register_one(&fmt_pwsafe);
 
 #include "arch.h"
 
-//#undef MMX_COEF
+//#undef SIMD_COEF_32
 //#undef SIMD_COEF_32
 
 #include "sha2.h"

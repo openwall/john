@@ -54,7 +54,7 @@ john_register_one(&fmt_sunmd5);
  * undefine these 2, then we force build oSSL model.
  */
 //#undef MD5_SSE_PARA
-//#undef MMX_COEF
+//#undef SIMD_COEF_32
 
 #ifndef MD5_CBLOCK
 #define MD5_CBLOCK 64
@@ -77,7 +77,7 @@ john_register_one(&fmt_sunmd5);
 #define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 /*
  * 576 divides evenly by 4, 8, 12, 16 (para = 1, 2, 3, 4) Each of these
  * will get an even number of para buckets, so hopefully we get the best
@@ -104,7 +104,7 @@ john_register_one(&fmt_sunmd5);
 
 #define FORMAT_LABEL			"SunMD5"
 #define FORMAT_NAME			""
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME " x" STRINGIZE(MAX_KEYS_PER_CRYPT)
 #else
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
@@ -138,8 +138,8 @@ static struct fmt_tests tests[] = {
 #define PARA 1
 #endif
 
-#ifdef MMX_COEF
-#define COEF MMX_COEF
+#ifdef SIMD_COEF_32
+#define COEF SIMD_COEF_32
 #define BLK_CNT (PARA*COEF)
 #if PARA > 1
 /*
@@ -153,15 +153,15 @@ static struct fmt_tests tests[] = {
 #else
 #define MIN_DROP_BACK 1
 #endif
-//#define GETPOS(i, index)		    ( ((index)&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) )
-//#define PARAGETPOS(i, index)		( ((index)&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) + ((index)>>(MMX_COEF>>1))*MMX_COEF*64 )
+//#define GETPOS(i, index)		    ( ((index)&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) )
+//#define PARAGETPOS(i, index)		( ((index)&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + ((index)>>(SIMD_COEF_32>>1))*SIMD_COEF_32*64 )
 // these next 2 defines are same as above, but faster (on my gcc). Speed went fro 282 to 292, about 3.5% improvement.  Shifts vs mults.
-#define GETPOS(i, index)		    ( (((index)&(MMX_COEF-1))<<2) + (((i)&(0xffffffff-3))<<(MMX_COEF>>1)) + ((i)&3) )
-#define PARAGETPOS(i, index)		( (((index)&(MMX_COEF-1))<<2) + (((i)&(0xffffffff-3))<<(MMX_COEF>>1)) + ((i)&3) + ((((index)>>(MMX_COEF>>1))<<(MMX_COEF>>1))<<6) )
+#define GETPOS(i, index)		    ( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))<<(SIMD_COEF_32>>1)) + ((i)&3) )
+#define PARAGETPOS(i, index)		( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))<<(SIMD_COEF_32>>1)) + ((i)&3) + ((((index)>>(SIMD_COEF_32>>1))<<(SIMD_COEF_32>>1))<<6) )
 /* GETPOS0 can be 'faster' if we already have a pointer to the first DWORD in this block.  Thus we can do a GETPOS(0,idx), and then multiple GETPOS0(x) and sometimes be faster */
-#define GETPOS0(i)					(                               (((i)&(0xffffffff-3))<<(MMX_COEF>>1)) + ((i)&3) )
+#define GETPOS0(i)					(                               (((i)&(0xffffffff-3))<<(SIMD_COEF_32>>1)) + ((i)&3) )
 /* output buffer for para is only 16 bytes per COEF, vs 64, so it's fewer bytes to jumbo to the next PARA start */
-#define PARAGETOUTPOS(i, index)		( (((index)&(MMX_COEF-1))<<2) + (((i)&(0xffffffff-3))<<(MMX_COEF>>1)) + ((i)&3) + ((((index)>>(MMX_COEF>>1))<<(MMX_COEF>>1))<<4) )
+#define PARAGETOUTPOS(i, index)		( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))<<(SIMD_COEF_32>>1)) + ((i)&3) + ((((index)>>(SIMD_COEF_32>>1))<<(SIMD_COEF_32>>1))<<4) )
 
 #if defined (_DEBUG)
 // for VC debugging
@@ -238,7 +238,7 @@ static unsigned char mod5[0x100];
 static void init(struct fmt_main *self)
 {
 	int i;
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	/*
 	 * allocate SSE2 input and output buffer space.  For input's we have
 	 * 2 buffers.  One does the 'short' 1 block crypts. The other does the
@@ -508,7 +508,7 @@ typedef struct {
 } Contx, *pConx;
 static Contx data[MAX_KEYS_PER_CRYPT];
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 static int bigs[MAX_KEYS_PER_CRYPT], smalls[MAX_KEYS_PER_CRYPT];
 #endif
 // it is easiest to just leave these to be set even in non. mmx builds.
@@ -521,7 +521,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int round, maxrounds = BASIC_ROUND_COUNT + getrounds(saved_salt);
 	char roundascii[8];
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	int i, j, zs, zb, zs0, zb0;
 	// int zb2;  // used in debugging
 	memset(input_buf, 0, BLK_CNT*MD5_CBLOCK);
@@ -607,7 +607,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			/* xor a coin-toss; if true, mix-in the constant phrase */
 
-#ifndef MMX_COEF
+#ifndef SIMD_COEF_32
 			/*
 			 * This is the real 'crypt'. Pretty trival, but there are 2 possible sizes
 			 * there is a 1 block crypte, and a 25 block crypt.  They are chosen based
@@ -630,7 +630,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			/*
 			 * we do not actually perform the work here. We run through all of the
 			 * keys we are working on, and figure out which ones need 'small' buffers
-			 * and which ones need large buffers. Then we can group them MMX_COEF*MD5_SSE_PARA
+			 * and which ones need large buffers. Then we can group them SIMD_COEF_32*MD5_SSE_PARA
 			 * at a time, later in the process.
 			 */
 			if (bit)
@@ -640,7 +640,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 
 		}
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		/*
 		 * ok, at this time we know what group each element is in.  Either a large
 		 * crypt, or small one. Now group our crypts up based upon the crypt size
@@ -863,7 +863,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 	}
 
-#ifndef MMX_COEF
+#ifndef SIMD_COEF_32
 #else
 #endif
 	for (idx = 0; idx < count; ++idx) {

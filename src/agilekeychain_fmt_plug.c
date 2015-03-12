@@ -37,7 +37,7 @@ john_register_one(&fmt_agile_keychain);
 
 #define FORMAT_LABEL		"agilekeychain"
 #define FORMAT_NAME		"1Password Agile Keychain"
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_N_STR MMX_TYPE
 #else
 #define ALGORITHM_NAME		"PBKDF2-SHA1 AES 32/" ARCH_BITS_STR
@@ -49,7 +49,7 @@ john_register_one(&fmt_agile_keychain);
 #define SALT_ALIGN		sizeof(int)
 #define PLAINTEXT_LENGTH	125
 #define SALT_SIZE		sizeof(struct custom_salt)
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #else
@@ -214,7 +214,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 		unsigned char master[MAX_KEYS_PER_CRYPT][32];
 		int lens[MAX_KEYS_PER_CRYPT], i;
 		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
