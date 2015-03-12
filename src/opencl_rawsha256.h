@@ -18,7 +18,7 @@
 #include "opencl_sha256.h"
 
 //Constants.
-#define RAW_PLAINTEXT_LENGTH    56      /* 55 characters + 0x80 */
+#define RAW_PLAINTEXT_LENGTH    55
 #define CISCO_PLAINTEXT_LENGTH  26      /* 25 characters + 0x80 */
 
 #define BUFFER_SIZE             56      /* RAW_PLAINTEXT_LENGTH multiple of 4 */
