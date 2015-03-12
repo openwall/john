@@ -51,7 +51,7 @@ john_register_one(&fmt_efs);
 #define FORMAT_TAG              "$efs$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define FORMAT_NAME             ""
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 #define ALGORITHM_NAME          "PBKDF2-SHA1-efs-variant 3DES  " SHA512_ALGORITHM_NAME
 #else
 #define ALGORITHM_NAME          "PBKDF2-SHA1-efs-variant 3DES 32/" ARCH_BITS_STR

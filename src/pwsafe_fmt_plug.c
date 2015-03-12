@@ -24,7 +24,7 @@ john_register_one(&fmt_pwsafe);
 #include "arch.h"
 
 //#undef MMX_COEF
-//#undef MMX_COEF_SHA256
+//#undef SIMD_COEF_32
 
 #include "sha2.h"
 #include "misc.h"
@@ -54,10 +54,10 @@ static int omp_t = 1;
 #define SALT_ALIGN		sizeof(int)
 
 #define MIN_KEYS_PER_CRYPT	1
-#ifdef MMX_COEF_SHA256
-#define GETPOS(i, index)        ( (index&(MMX_COEF_SHA256-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF_SHA256 + (3-((i)&3)) + (index>>(MMX_COEF_SHA256>>1))*SHA256_BUF_SIZ*MMX_COEF_SHA256*4 )
+#ifdef SIMD_COEF_32
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>(SIMD_COEF_32>>1))*SHA256_BUF_SIZ*SIMD_COEF_32*4 )
 #define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT	(MMX_COEF_SHA256*SHA256_SSE_PARA)
+#define MAX_KEYS_PER_CRYPT	(SIMD_COEF_32*SIMD_PARA_SHA256)
 #else
 #define MAX_KEYS_PER_CRYPT	1
 #endif
@@ -186,7 +186,7 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-#ifndef MMX_COEF_SHA256
+#ifndef SIMD_COEF_32
 
 #define rotl(x,y) ( x<<y | x>>(32-y) )
 #define rotr(x,y) ( x>>y | x<<(32-y) )
@@ -523,7 +523,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index+=MAX_KEYS_PER_CRYPT)
 	{
 		SHA256_CTX ctx;
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 		int i;
 		unsigned char _IBuf[64*MAX_KEYS_PER_CRYPT+16], *keys, tmpBuf[32];
 		uint32_t *keys32, j;
@@ -549,9 +549,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// now marshal into crypt_out;
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			uint32_t *Optr32 = (uint32_t*)(crypt_out[index+i]);
-			uint32_t *Iptr32 = &keys32[(i/MMX_COEF_SHA256)*MMX_COEF_SHA256*16 + (i%MMX_COEF_SHA256)];
+			uint32_t *Iptr32 = &keys32[(i/SIMD_COEF_32)*SIMD_COEF_32*16 + (i%SIMD_COEF_32)];
 			for (j = 0; j < 8; ++j)
-				Optr32[j] = JOHNSWAP(Iptr32[j*MMX_COEF_SHA256]);
+				Optr32[j] = JOHNSWAP(Iptr32[j*SIMD_COEF_32]);
 		}
 #else
 		SHA256_Init(&ctx);

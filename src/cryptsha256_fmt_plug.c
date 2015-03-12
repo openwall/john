@@ -88,7 +88,7 @@ john_register_one(&fmt_cryptsha256);
 #include "arch.h"
 
 //#undef MMX_COEF
-//#undef MMX_COEF_SHA256
+//#undef SIMD_COEF_32
 
 #include "sha2.h"
 
@@ -126,11 +126,11 @@ john_register_one(&fmt_cryptsha256);
 // of SSE data full, until the last in a range.  We probably can simply build all the rearrangments,
 // then let the threads go on ALL data, without caring about the length, since each thread will only
 // be working on passwords in a single MMX buffer that all match, at any given moment.
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 #ifdef _OPENMP
-#define MMX_COEF_SCALE      (128/MMX_COEF_SHA256)
+#define MMX_COEF_SCALE      (128/SIMD_COEF_32)
 #else
-#define MMX_COEF_SCALE      (256/MMX_COEF_SHA256)
+#define MMX_COEF_SCALE      (256/SIMD_COEF_32)
 #endif
 #else
 #define MMX_COEF_SCALE      1
@@ -138,7 +138,7 @@ john_register_one(&fmt_cryptsha256);
 
 #define FORMAT_LABEL			"sha256crypt"
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          SHA256_ALGORITHM_NAME
 #else
 #define ALGORITHM_NAME          "32/" ARCH_BITS_STR " " SHA2_LIB
@@ -152,8 +152,8 @@ john_register_one(&fmt_cryptsha256);
 #define SALT_SIZE				sizeof(struct saltstruct)
 
 #define MIN_KEYS_PER_CRYPT		1
-#ifdef MMX_COEF_SHA256
-#define MAX_KEYS_PER_CRYPT		MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
+#define MAX_KEYS_PER_CRYPT		SIMD_COEF_32
 #else
 #define MAX_KEYS_PER_CRYPT		1
 #endif
@@ -161,10 +161,10 @@ john_register_one(&fmt_cryptsha256);
 #define __CRYPTSHA256_CREATE_PROPER_TESTS_ARRAY__
 #include "cryptsha256_common.h"
 
-#ifndef MMX_COEF_SHA256
+#ifndef SIMD_COEF_32
 #define BLKS 1
 #else
-#define BLKS MMX_COEF_SHA256
+#define BLKS SIMD_COEF_32
 #endif
 
 /* This structure is 'pre-loaded' with the keyspace of all possible crypts which  */
@@ -195,7 +195,7 @@ typedef struct cryptloopstruct_t {
 								// now, the cryptstructs are on the stack within the crypt for loop, so we avoid allocation.
 								// and to avoid the single static variable, or a static array.
 	unsigned char *bufs[BLKS][42];	// points to the start of each 2 block buffer.
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	int offs[BLKS][42];
 #endif
 	unsigned char *cptr[BLKS][42];	// points to where we copy the crypt pointer for next round.
@@ -214,7 +214,7 @@ static int max_crypts;
 
 /* these 2 values are used in setup of the cryptloopstruct, AND to do our SHA256_Init() calls, in the inner loop */
 static const unsigned char padding[128] = { 0x80, 0 /* 0,0,0,0.... */ };
-#if !defined(JTR_INC_COMMON_CRYPTO_SHA2) && !defined (MMX_COEF_SHA512)
+#if !defined(JTR_INC_COMMON_CRYPTO_SHA2) && !defined (SIMD_COEF_64)
 static const ARCH_WORD_32 ctx_init[8] =
 	{0x6A09E667,0xBB67AE85,0x3C6EF372,0xA54FF53A,0x510E527F,0x9B05688C,0x1F83D9AB,0x5BE0CD19};
 #endif
@@ -284,7 +284,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	unsigned plen=saved_key_length[index];
 	unsigned char *cp = crypt_struct->buf;
 	cryptloopstruct *pstr = crypt_struct;
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	// in SSE mode, we FORCE every buffer to be 2 blocks, even if it COULD fit into 1.
 	// Then we simply use the 2 block SSE code.
 	unsigned char *next_cp;
@@ -317,7 +317,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	off_psc  = len_psc  - BINARY_SIZE;
 
 	// Adjust cp for idx;
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	next_cp = cp + (2*64*BLKS);
 #endif
 
@@ -331,7 +331,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][0][tot_pc-2] = (len_pc<<3)>>8;
 	pstr->bufs[idx][0][tot_pc-1] = (len_pc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	cp = next_cp;
 	next_cp = cp + (2*64*BLKS);
 #endif
@@ -347,7 +347,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][1][tot_ppsc-2] = (len_ppsc<<3)>>8;
 	pstr->bufs[idx][1][tot_ppsc-1] = (len_ppsc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	cp = next_cp;
 	next_cp = cp + (2*64*BLKS);
 #endif
@@ -363,7 +363,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][2][tot_ppsc-2] = (len_ppsc<<3)>>8;
 	pstr->bufs[idx][2][tot_ppsc-1] = (len_ppsc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	cp = next_cp;
 	next_cp = cp + (2*64*BLKS);
 #endif
@@ -378,7 +378,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][3][tot_ppc-2] = (len_ppc<<3)>>8;
 	pstr->bufs[idx][3][tot_ppc-1] = (len_ppc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	cp = next_cp;
 	next_cp = cp + (2*64*BLKS);
 #endif
@@ -401,7 +401,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][6][tot_ppc-2] = (len_ppc<<3)>>8;
 	pstr->bufs[idx][6][tot_ppc-1] = (len_ppc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	cp = next_cp;
 	next_cp = cp + (2*64*BLKS);
 #endif
@@ -416,7 +416,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][7][tot_psc-2] = (len_psc<<3)>>8;
 	pstr->bufs[idx][7][tot_psc-1] = (len_psc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	cp = next_cp;
 	next_cp = cp + (2*64*BLKS);
 #endif
@@ -455,7 +455,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][14][tot_psc-2] = (len_psc<<3)>>8;
 	pstr->bufs[idx][14][tot_psc-1] = (len_psc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	cp = next_cp;
 	next_cp = cp + (2*64*BLKS);
 #endif
@@ -493,7 +493,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][21][tot_pc-2] = (len_pc<<3)>>8;
 	pstr->bufs[idx][21][tot_pc-1] = (len_pc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	cp = next_cp;
 	next_cp = cp + (2*64*BLKS);
 #endif
@@ -585,9 +585,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 	int *MixOrder, tot_todo;
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	// group based upon size splits.
-	MixOrder = mem_calloc((count+6*MMX_COEF_SHA256), sizeof(int));
+	MixOrder = mem_calloc((count+6*SIMD_COEF_32), sizeof(int));
 	{
 		static const int lens[17][6] = {
 			{0,12,24,38,39,40},  //  0 byte salt (down to 2 slots now, but probably NOT valid.)
@@ -615,7 +615,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				if (saved_key_length[index] >= lens[cur_salt->len][j] && saved_key_length[index] < lens[cur_salt->len][j+1])
 					MixOrder[tot_todo++] = index;
 			}
-			while (tot_todo & (MMX_COEF_SHA256-1))
+			while (tot_todo & (SIMD_COEF_32-1))
 				MixOrder[tot_todo++] = count;
 		}
 	}
@@ -650,7 +650,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// so do the alignment by hand
 		char tmp_cls[sizeof(cryptloopstruct)+16];
 		cryptloopstruct *crypt_struct;
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 		//JTR_ALIGN(16) ARCH_WORD_32 sse_out[64];
 		char tmp_sse_out[64*4+16];
 		ARCH_WORD_32 *sse_out;
@@ -743,7 +743,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 		idx = 0;
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 		for (cnt = 1; ; ++cnt) {
 			if (crypt_struct->datlen[idx]==128) {
 				unsigned char *cp = crypt_struct->bufs[0][idx];
@@ -758,10 +758,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				break;
 			{
 				int j, k;
-				for (k = 0; k < MMX_COEF_SHA256; ++k) {
+				for (k = 0; k < SIMD_COEF_32; ++k) {
 					ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_struct->cptr[k][idx];
 					for (j = 0; j < 8; ++j)
-						*o++ = JOHNSWAP(sse_out[(j<<(MMX_COEF_SHA256>>1))+k]);
+						*o++ = JOHNSWAP(sse_out[(j<<(SIMD_COEF_32>>1))+k]);
 				}
 			}
 			if (++idx == 42)
@@ -769,10 +769,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		{
 			int j, k;
-			for (k = 0; k < MMX_COEF_SHA256; ++k) {
+			for (k = 0; k < SIMD_COEF_32; ++k) {
 				ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_out[MixOrder[index+k]];
 				for (j = 0; j < 8; ++j)
-					*o++ = JOHNSWAP(sse_out[(j<<(MMX_COEF_SHA256>>1))+k]);
+					*o++ = JOHNSWAP(sse_out[(j<<(SIMD_COEF_32>>1))+k]);
 			}
 		}
 #else

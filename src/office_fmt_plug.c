@@ -33,7 +33,7 @@ john_register_one(&fmt_office);
 #include "memdbg.h"
 
 //#undef MMX_COEF
-//#undef MMX_COEF_SHA512
+//#undef SIMD_COEF_64
 
 #define FORMAT_LABEL		"Office"
 #define FORMAT_NAME		"2007/2010 (SHA-1) / 2013 (SHA-512), with AES"
@@ -56,9 +56,9 @@ john_register_one(&fmt_office);
 #define MAX_KEYS_PER_CRYPT	1
 #endif
 
-#ifdef MMX_COEF_SHA512
-#define GETPOS_512(i, index)    ( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7))*MMX_COEF_SHA512 + (7-((i)&7)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512 *8 )
-#define SHA512_LOOP_CNT MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
+#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (index>>(SIMD_COEF_64>>1))*SHA512_BUF_SIZ*SIMD_COEF_64 *8 )
+#define SHA512_LOOP_CNT SIMD_COEF_64
 #else
 #define SHA512_LOOP_CNT 1
 #endif
@@ -419,7 +419,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 }
 #endif
 
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_LOOP_CNT][128])
 {
 	unsigned char tmpBuf[64];
@@ -492,9 +492,9 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 	SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN);
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
 		ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(hashBuf[i]);
-		ARCH_WORD_64 *Iptr64 = &crypt[(i/MMX_COEF_SHA512)*MMX_COEF_SHA512*8 + (i%MMX_COEF_SHA512)];
+		ARCH_WORD_64 *Iptr64 = &crypt[(i/SIMD_COEF_64)*SIMD_COEF_64*8 + (i%SIMD_COEF_64)];
 		for (j = 0; j < 8; ++j)
-			Optr64[j] = JOHNSWAP64(Iptr64[j*MMX_COEF_SHA512]);
+			Optr64[j] = JOHNSWAP64(Iptr64[j*SIMD_COEF_64]);
 	}
 	// And second "block" (0) to H(n)
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
@@ -504,9 +504,9 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 	SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN);
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
 		ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(&(hashBuf[i][64]));
-		ARCH_WORD_64 *Iptr64 = &crypt[(i/MMX_COEF_SHA512)*MMX_COEF_SHA512*8 + (i%MMX_COEF_SHA512)];
+		ARCH_WORD_64 *Iptr64 = &crypt[(i/SIMD_COEF_64)*SIMD_COEF_64*8 + (i%SIMD_COEF_64)];
 		for (j = 0; j < 8; ++j)
-			Optr64[j] = JOHNSWAP64(Iptr64[j*MMX_COEF_SHA512]);
+			Optr64[j] = JOHNSWAP64(Iptr64[j*SIMD_COEF_64]);
 	}
 }
 #else

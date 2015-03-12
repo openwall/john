@@ -6786,21 +6786,21 @@ static void dyna_setupOMP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt) {
 			else if (isSHA1Func(Setup->pFuncs[i]))
 				curdat.omp_granularity = LCM(curdat.omp_granularity, SHA1_SSE_PARA*MMX_COEF);
 			else if (isSHA2_256Func(Setup->pFuncs[i]))
-#if MMX_COEF_SHA256
-	#if SHA256_SSE_PARA
-				curdat.omp_granularity = LCM(curdat.omp_granularity, SHA256_SSE_PARA*MMX_COEF_SHA256);
+#if SIMD_COEF_32
+	#if SIMD_PARA_SHA256
+				curdat.omp_granularity = LCM(curdat.omp_granularity, SIMD_PARA_SHA256*SIMD_COEF_32);
 	#else
-				curdat.omp_granularity = LCM(curdat.omp_granularity, MMX_COEF_SHA256);
+				curdat.omp_granularity = LCM(curdat.omp_granularity, SIMD_COEF_32);
 	#endif
 #else
 				curdat.omp_granularity=LCM(curdat.omp_granularity, OMP_INC);
 #endif
 			else if (isSHA2_512Func(Setup->pFuncs[i]))
-#if MMX_COEF_SHA512
-	#if SHA512_SSE_PARA
-				curdat.omp_granularity = LCM(curdat.omp_granularity, SHA512_SSE_PARA*MMX_COEF_SHA512);
+#if SIMD_COEF_64
+	#if SIMD_PARA_SHA512
+				curdat.omp_granularity = LCM(curdat.omp_granularity, SIMD_PARA_SHA512*SIMD_COEF_64);
 	#else
-				curdat.omp_granularity = LCM(curdat.omp_granularity, MMX_COEF_SHA512);
+				curdat.omp_granularity = LCM(curdat.omp_granularity, SIMD_COEF_64);
 	#endif
 #else
 				curdat.omp_granularity=LCM(curdat.omp_granularity, OMP_INC);
@@ -7288,7 +7288,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_S;
 				}
 				if (isSHA2_256Func(pFuncs[x])) {
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 					if (curdat.using_flat_buffers_sse2_ok)
 						pFmt->params.algorithm_name = ALGORITHM_NAME_S2_256;
 					else
@@ -7296,7 +7296,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_S2_256;
 				}
 				if (isSHA2_512Func(pFuncs[x])) {
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 					if (curdat.using_flat_buffers_sse2_ok)
 						pFmt->params.algorithm_name = ALGORITHM_NAME_S2_512;
 					else

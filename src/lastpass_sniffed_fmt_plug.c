@@ -38,7 +38,7 @@ john_register_one(&fmt_sniffed_lastpass);
 
 #define FORMAT_LABEL		"LastPass"
 #define FORMAT_NAME		"sniffed sessions"
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 AES " SHA256_ALGORITHM_NAME
 #else
 #define ALGORITHM_NAME		"PBKDF2-SHA256 AES 32/" ARCH_BITS_STR
@@ -50,7 +50,7 @@ john_register_one(&fmt_sniffed_lastpass);
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define BINARY_ALIGN		4
 #define SALT_ALIGN			sizeof(int)
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
 #define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
 #else
@@ -175,7 +175,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		ARCH_WORD_32 key[MAX_KEYS_PER_CRYPT][8];
 		unsigned i;
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 		int lens[MAX_KEYS_PER_CRYPT];
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		union {

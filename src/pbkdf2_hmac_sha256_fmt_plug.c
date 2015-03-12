@@ -42,7 +42,7 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 
 #define BENCHMARK_COMMENT	", rounds=12000"
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
 #else
 #if ARCH_BITS >= 64
@@ -59,7 +59,7 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define FMT_PREFIX		"$pbkdf2-sha256$"
 #define FMT_CISCO8		"$8$"
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
 #define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
 #else

@@ -31,7 +31,7 @@
 #define SHA256_DIGEST_LENGTH 32
 #endif
 
-#if !defined(MMX_COEF_SHA256) || defined (PBKDF2_HMAC_SHA256_ALSO_INCLUDE_CTX)
+#if !defined(SIMD_COEF_32) || defined (PBKDF2_HMAC_SHA256_ALSO_INCLUDE_CTX)
 
 static void _pbkdf2_sha256_load_hmac(const unsigned char *K, int KL, SHA256_CTX *pIpad, SHA256_CTX *pOpad) {
 	unsigned char ipad[SHA256_CBLOCK], opad[SHA256_CBLOCK], k0[SHA256_DIGEST_LENGTH];
@@ -143,7 +143,7 @@ static void pbkdf2_sha256(const unsigned char *K, int KL, unsigned char *S, int 
 
 #endif
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 
 #ifndef __JTR_SHA2___H_
 // we MUST call our sha2.c functions, to know the layout.  Since it is possible that apple's CommonCrypto lib could
@@ -164,10 +164,10 @@ extern void sha256_final  (void *output, sha256_ctx *ctx);
 #endif
 
 
-#if SHA256_SSE_PARA
-#define SSE_GROUP_SZ_SHA256 (MMX_COEF_SHA256*SHA256_SSE_PARA)
+#if SIMD_PARA_SHA256
+#define SSE_GROUP_SZ_SHA256 (SIMD_COEF_32*SIMD_PARA_SHA256)
 #else
-#define SSE_GROUP_SZ_SHA256 MMX_COEF_SHA256
+#define SSE_GROUP_SZ_SHA256 SIMD_COEF_32
 #endif
 
 static void _pbkdf2_sha256_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA256], int KL[SSE_GROUP_SZ_SHA256], SHA256_CTX pIpad[SSE_GROUP_SZ_SHA256], SHA256_CTX pOpad[SSE_GROUP_SZ_SHA256])
@@ -200,7 +200,7 @@ static void _pbkdf2_sha256_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA
 	}
 }
 
-static void pbkdf2_sha256_sse(const unsigned char *K[MMX_COEF_SHA256], int KL[MMX_COEF_SHA256], unsigned char *S, int SL, int R, unsigned char *out[MMX_COEF_SHA256], int outlen, int skip_bytes)
+static void pbkdf2_sha256_sse(const unsigned char *K[SIMD_COEF_32], int KL[SIMD_COEF_32], unsigned char *S, int SL, int R, unsigned char *out[SIMD_COEF_32], int outlen, int skip_bytes)
 {
 	unsigned char tmp_hash[SHA256_DIGEST_LENGTH];
 	ARCH_WORD_32 *i1, *i2, *o1, *ptmp;
@@ -222,14 +222,14 @@ static void pbkdf2_sha256_sse(const unsigned char *K[MMX_COEF_SHA256], int KL[MM
 	// then zero out the rest of the buffer, putting 0x300 (#bits), into the proper location in the buffer.  Once this
 	// part of the buffer is setup, we never touch it again, for the rest of the crypt.  We simply overwrite the first
 	// half of this buffer, over and over again, with BE results of the prior hash.
-	for (j = 0; j < SSE_GROUP_SZ_SHA256/MMX_COEF_SHA256; ++j) {
-		ptmp = &o1[j*MMX_COEF_SHA256*SHA256_BUF_SIZ];
-		for (i = 0; i < MMX_COEF_SHA256; ++i)
-			ptmp[ (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32))*MMX_COEF_SHA256 + (i&(MMX_COEF_SHA256-1))] = 0x80000000;
-		for (i = (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)+1)*MMX_COEF_SHA256; i < 15*MMX_COEF_SHA256; ++i)
+	for (j = 0; j < SSE_GROUP_SZ_SHA256/SIMD_COEF_32; ++j) {
+		ptmp = &o1[j*SIMD_COEF_32*SHA256_BUF_SIZ];
+		for (i = 0; i < SIMD_COEF_32; ++i)
+			ptmp[ (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32))*SIMD_COEF_32 + (i&(SIMD_COEF_32-1))] = 0x80000000;
+		for (i = (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)+1)*SIMD_COEF_32; i < 15*SIMD_COEF_32; ++i)
 			ptmp[i] = 0;
-		for (i = 0; i < MMX_COEF_SHA256; ++i)
-			ptmp[15*MMX_COEF_SHA256 + (i&(MMX_COEF_SHA256-1))] = ((64+SHA256_DIGEST_LENGTH)<<3); // all encrypts are 64+32 bytes.
+		for (i = 0; i < SIMD_COEF_32; ++i)
+			ptmp[15*SIMD_COEF_32 + (i&(SIMD_COEF_32-1))] = ((64+SHA256_DIGEST_LENGTH)<<3); // all encrypts are 64+32 bytes.
 	}
 
 	// Load up the IPAD and OPAD values, saving off the first half of the crypt.  We then push the ipad/opad all
@@ -237,23 +237,23 @@ static void pbkdf2_sha256_sse(const unsigned char *K[MMX_COEF_SHA256], int KL[MM
 	// the 2 first halves, to load the sha256 2nd part of each crypt, in each loop.
 	_pbkdf2_sha256_sse_load_hmac(K, KL, ipad, opad);
 	for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
-		ptmp = &i1[(j/MMX_COEF_SHA256)*MMX_COEF_SHA256*(SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(MMX_COEF_SHA256-1))];
+		ptmp = &i1[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(SIMD_COEF_32-1))];
 		for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); ++i) {
 #if COMMON_DIGEST_FOR_OPENSSL
 			*ptmp = ipad[j].hash[i];
 #else
 			*ptmp = ipad[j].h[i];
 #endif
-			ptmp += MMX_COEF_SHA256;
+			ptmp += SIMD_COEF_32;
 		}
-		ptmp = &i2[(j/MMX_COEF_SHA256)*MMX_COEF_SHA256*(SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(MMX_COEF_SHA256-1))];
+		ptmp = &i2[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(SIMD_COEF_32-1))];
 		for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); ++i) {
 #if COMMON_DIGEST_FOR_OPENSSL
 			*ptmp = opad[j].hash[i];
 #else
 			*ptmp = opad[j].h[i];
 #endif
-			ptmp += MMX_COEF_SHA256;
+			ptmp += SIMD_COEF_32;
 		}
 	}
 
@@ -277,17 +277,17 @@ static void pbkdf2_sha256_sse(const unsigned char *K[MMX_COEF_SHA256], int KL[MM
 			SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
 			SHA256_Final(tmp_hash, &ctx);
 
-			// now convert this from flat into MMX_COEF_SHA256 buffers.
+			// now convert this from flat into SIMD_COEF_32 buffers.
 			// Also, perform the 'first' ^= into the crypt buffer.  NOTE, we are doing that in BE format
 			// so we will need to 'undo' that in the end.
-			ptmp = &o1[(j/MMX_COEF_SHA256)*MMX_COEF_SHA256*SHA256_BUF_SIZ+(j&(MMX_COEF_SHA256-1))];
+			ptmp = &o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA256_BUF_SIZ+(j&(SIMD_COEF_32-1))];
 			for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); ++i) {
 #if COMMON_DIGEST_FOR_OPENSSL
 				*ptmp = dgst[j][i] = ctx.hash[i];
 #else
 				*ptmp = dgst[j][i] = ctx.h[i];
 #endif
-				ptmp += MMX_COEF_SHA256;
+				ptmp += SIMD_COEF_32;
 			}
 		}
 
@@ -298,9 +298,9 @@ static void pbkdf2_sha256_sse(const unsigned char *K[MMX_COEF_SHA256], int KL[MM
 			SSESHA256body(o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			// only xor first 16 bytes, since that is ALL this format uses
 			for (k = 0; k < SSE_GROUP_SZ_SHA256; k++) {
-				ARCH_WORD_32 *p = &o1[(k/MMX_COEF_SHA256)*MMX_COEF_SHA256*SHA256_BUF_SIZ + (k&(MMX_COEF_SHA256-1))];
+				ARCH_WORD_32 *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA256_BUF_SIZ + (k&(SIMD_COEF_32-1))];
 				for(j = 0; j < (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++)
-					dgst[k][j] ^= p[(j<<(MMX_COEF_SHA256>>1))];
+					dgst[k][j] ^= p[(j<<(SIMD_COEF_32>>1))];
 			}
 		}
 

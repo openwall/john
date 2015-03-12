@@ -1508,8 +1508,8 @@ void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
 /********************************************************************
  ****  Here are the SHA224 and SHA256 functions!!!
  *******************************************************************/
-#ifdef MMX_COEF_SHA256
-#define SHA256_LOOPS (MMX_COEF_SHA256*SHA256_SSE_PARA)
+#ifdef SIMD_COEF_32
+#define SHA256_LOOPS (SIMD_COEF_32*SIMD_PARA_SHA256)
 static const int sha256_inc = SHA256_LOOPS;
 
 static inline uint32_t DoSHA256_FixBufferLen32(unsigned char *input_buf, int total_len) {
@@ -1543,9 +1543,9 @@ static inline uint32_t DoSHA256_FixBufferLen32(unsigned char *input_buf, int tot
 	p[(ret*16)-1] = JOHNSWAP(total_len<<3);
 	return ret;
 }
-static void DoSHA256_crypt_f_sse(void *in, int len[MMX_COEF_SHA256], void *out, int isSHA256) {
-	JTR_ALIGN(16) ARCH_WORD_32 a[(32*MMX_COEF_SHA256)/sizeof(ARCH_WORD_32)];
-	unsigned int i, j, loops[MMX_COEF_SHA256], bMore, cnt;
+static void DoSHA256_crypt_f_sse(void *in, int len[SIMD_COEF_32], void *out, int isSHA256) {
+	JTR_ALIGN(16) ARCH_WORD_32 a[(32*SIMD_COEF_32)/sizeof(ARCH_WORD_32)];
+	unsigned int i, j, loops[SIMD_COEF_32], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA256_LOOPS; ++i) {
 		loops[i] = DoSHA256_FixBufferLen32(cp, len[i]);
@@ -1561,7 +1561,7 @@ static void DoSHA256_crypt_f_sse(void *in, int len[MMX_COEF_SHA256], void *out, 
 			if (cnt == loops[i]) {
 				// only 16 bytes.
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i<<(MMX_COEF_SHA256>>1))+j] = JOHNSWAP(a[(j<<(MMX_COEF_SHA256>>1))+i]);
+					((ARCH_WORD_32*)out)[(i<<(SIMD_COEF_32>>1))+j] = JOHNSWAP(a[(j<<(SIMD_COEF_32>>1))+i]);
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -1570,10 +1570,10 @@ static void DoSHA256_crypt_f_sse(void *in, int len[MMX_COEF_SHA256], void *out, 
 		++cnt;
 	}
 }
-static void DoSHA256_crypt_sse(void *in, int ilen[MMX_COEF_SHA256], void *out[MMX_COEF_SHA256], unsigned int *tot_len, int isSHA256, int tid) {
-	JTR_ALIGN(16) ARCH_WORD_32 a[(32*MMX_COEF_SHA256)/sizeof(ARCH_WORD_32)];
+static void DoSHA256_crypt_sse(void *in, int ilen[SIMD_COEF_32], void *out[SIMD_COEF_32], unsigned int *tot_len, int isSHA256, int tid) {
+	JTR_ALIGN(16) ARCH_WORD_32 a[(32*SIMD_COEF_32)/sizeof(ARCH_WORD_32)];
 	union yy { unsigned char u[32]; ARCH_WORD_32 a[32/sizeof(ARCH_WORD_32)]; } y;
-	unsigned int i, j, loops[MMX_COEF_SHA256], bMore, cnt;
+	unsigned int i, j, loops[SIMD_COEF_32], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA256_LOOPS; ++i) {
 		loops[i] = DoSHA256_FixBufferLen32(cp, ilen[i]);
@@ -1588,7 +1588,7 @@ static void DoSHA256_crypt_sse(void *in, int ilen[MMX_COEF_SHA256], void *out[MM
 		for (i = 0; i < SHA256_LOOPS; ++i) {
 			if (cnt == loops[i]) {
 				for (j = 0; j < 8; ++j) {
-					y.a[j] =JOHNSWAP(a[(j<<(MMX_COEF_SHA256>>1))+i]);
+					y.a[j] =JOHNSWAP(a[(j<<(SIMD_COEF_32>>1))+i]);
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), isSHA256?32:28, tid);
 			} else if (cnt < loops[i])
@@ -1640,10 +1640,10 @@ void DynamicFunc__SHA224_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 	til = m_count;
 #endif
 	for (; i < til; i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-		int len[MMX_COEF_SHA256], j;
-		void *out[MMX_COEF_SHA256];
-		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+#ifdef SIMD_COEF_32
+		int len[SIMD_COEF_32], j;
+		void *out[SIMD_COEF_32];
+		for (j = 0; j < SIMD_COEF_32; ++j) {
 			len[j] = total_len_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -1675,10 +1675,10 @@ void DynamicFunc__SHA256_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 	til = m_count;
 #endif
 	for (; i < til; i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-		int len[MMX_COEF_SHA256], j;
-		void *out[MMX_COEF_SHA256];
-		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+#ifdef SIMD_COEF_32
+		int len[SIMD_COEF_32], j;
+		void *out[SIMD_COEF_32];
+		for (j = 0; j < SIMD_COEF_32; ++j) {
 			len[j] = total_len_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -1710,10 +1710,10 @@ void DynamicFunc__SHA224_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 	til = m_count;
 #endif
 	for (; i < til; i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-		int len[MMX_COEF_SHA256], j;
-		void *out[MMX_COEF_SHA256];
-		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+#ifdef SIMD_COEF_32
+		int len[SIMD_COEF_32], j;
+		void *out[SIMD_COEF_32];
+		for (j = 0; j < SIMD_COEF_32; ++j) {
 			len[j] = total_len2_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -1745,10 +1745,10 @@ void DynamicFunc__SHA256_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 	til = m_count;
 #endif
 	for (; i < til; i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-		int len[MMX_COEF_SHA256], j;
-		void *out[MMX_COEF_SHA256];
-		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+#ifdef SIMD_COEF_32
+		int len[SIMD_COEF_32], j;
+		void *out[SIMD_COEF_32];
+		for (j = 0; j < SIMD_COEF_32; ++j) {
 			len[j] = total_len2_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -1780,11 +1780,11 @@ void DynamicFunc__SHA224_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-		int len[MMX_COEF_SHA256], j;
-		unsigned int x[MMX_COEF_SHA256];
-		void *out[MMX_COEF_SHA256];
-		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+#ifdef SIMD_COEF_32
+		int len[SIMD_COEF_32], j;
+		unsigned int x[SIMD_COEF_32];
+		void *out[SIMD_COEF_32];
+		for (j = 0; j < SIMD_COEF_32; ++j) {
 			len[j] = total_len_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -1795,7 +1795,7 @@ void DynamicFunc__SHA224_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA256_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, 0, tid);
-		for (j = 0; j < MMX_COEF_SHA256; ++j)
+		for (j = 0; j < SIMD_COEF_32; ++j)
 			total_len_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -1821,11 +1821,11 @@ void DynamicFunc__SHA256_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-		int len[MMX_COEF_SHA256], j;
-		unsigned int x[MMX_COEF_SHA256];
-		void *out[MMX_COEF_SHA256];
-		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+#ifdef SIMD_COEF_32
+		int len[SIMD_COEF_32], j;
+		unsigned int x[SIMD_COEF_32];
+		void *out[SIMD_COEF_32];
+		for (j = 0; j < SIMD_COEF_32; ++j) {
 			len[j] = total_len_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -1836,7 +1836,7 @@ void DynamicFunc__SHA256_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA256_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, 1, tid);
-		for (j = 0; j < MMX_COEF_SHA256; ++j)
+		for (j = 0; j < SIMD_COEF_32; ++j)
 			total_len_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -1862,11 +1862,11 @@ void DynamicFunc__SHA224_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-		int len[MMX_COEF_SHA256], j;
-		unsigned int x[MMX_COEF_SHA256];
-		void *out[MMX_COEF_SHA256];
-		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+#ifdef SIMD_COEF_32
+		int len[SIMD_COEF_32], j;
+		unsigned int x[SIMD_COEF_32];
+		void *out[SIMD_COEF_32];
+		for (j = 0; j < SIMD_COEF_32; ++j) {
 			len[j] = total_len_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -1877,7 +1877,7 @@ void DynamicFunc__SHA224_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA256_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, 0, tid);
-		for (j = 0; j < MMX_COEF_SHA256; ++j)
+		for (j = 0; j < SIMD_COEF_32; ++j)
 			total_len2_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -1903,11 +1903,11 @@ void DynamicFunc__SHA256_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til;i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-		int len[MMX_COEF_SHA256], j;
-		unsigned int x[MMX_COEF_SHA256];
-		void *out[MMX_COEF_SHA256];
-		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+#ifdef SIMD_COEF_32
+		int len[SIMD_COEF_32], j;
+		unsigned int x[SIMD_COEF_32];
+		void *out[SIMD_COEF_32];
+		for (j = 0; j < SIMD_COEF_32; ++j) {
 			len[j] = total_len_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -1918,7 +1918,7 @@ void DynamicFunc__SHA256_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA256_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, 1, tid);
-		for (j = 0; j < MMX_COEF_SHA256; ++j)
+		for (j = 0; j < SIMD_COEF_32; ++j)
 			total_len2_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -1944,11 +1944,11 @@ void DynamicFunc__SHA224_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-		int len[MMX_COEF_SHA256], j;
-		unsigned int x[MMX_COEF_SHA256];
-		void *out[MMX_COEF_SHA256];
-		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+#ifdef SIMD_COEF_32
+		int len[SIMD_COEF_32], j;
+		unsigned int x[SIMD_COEF_32];
+		void *out[SIMD_COEF_32];
+		for (j = 0; j < SIMD_COEF_32; ++j) {
 			len[j] = total_len2_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -1959,7 +1959,7 @@ void DynamicFunc__SHA224_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA256_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, 0, tid);
-		for (j = 0; j < MMX_COEF_SHA256; ++j)
+		for (j = 0; j < SIMD_COEF_32; ++j)
 			total_len_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -1985,11 +1985,11 @@ void DynamicFunc__SHA256_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-		int len[MMX_COEF_SHA256], j;
-		unsigned int x[MMX_COEF_SHA256];
-		void *out[MMX_COEF_SHA256];
-		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+#ifdef SIMD_COEF_32
+		int len[SIMD_COEF_32], j;
+		unsigned int x[SIMD_COEF_32];
+		void *out[SIMD_COEF_32];
+		for (j = 0; j < SIMD_COEF_32; ++j) {
 			len[j] = total_len2_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2000,7 +2000,7 @@ void DynamicFunc__SHA256_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA256_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, 1, tid);
-		for (j = 0; j < MMX_COEF_SHA256; ++j)
+		for (j = 0; j < SIMD_COEF_32; ++j)
 			total_len_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -2026,11 +2026,11 @@ void DynamicFunc__SHA224_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-		int len[MMX_COEF_SHA256], j;
-		unsigned int x[MMX_COEF_SHA256];
-		void *out[MMX_COEF_SHA256];
-		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+#ifdef SIMD_COEF_32
+		int len[SIMD_COEF_32], j;
+		unsigned int x[SIMD_COEF_32];
+		void *out[SIMD_COEF_32];
+		for (j = 0; j < SIMD_COEF_32; ++j) {
 			len[j] = total_len2_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2041,7 +2041,7 @@ void DynamicFunc__SHA224_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA256_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, 0, tid);
-		for (j = 0; j < MMX_COEF_SHA256; ++j)
+		for (j = 0; j < SIMD_COEF_32; ++j)
 			total_len2_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -2067,11 +2067,11 @@ void DynamicFunc__SHA256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-		int len[MMX_COEF_SHA256], j;
-		unsigned int x[MMX_COEF_SHA256];
-		void *out[MMX_COEF_SHA256];
-		for (j = 0; j < MMX_COEF_SHA256; ++j) {
+#ifdef SIMD_COEF_32
+		int len[SIMD_COEF_32], j;
+		unsigned int x[SIMD_COEF_32];
+		void *out[SIMD_COEF_32];
+		for (j = 0; j < SIMD_COEF_32; ++j) {
 			len[j] = total_len2_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2082,7 +2082,7 @@ void DynamicFunc__SHA256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA256_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, 1, tid);
-		for (j = 0; j < MMX_COEF_SHA256; ++j)
+		for (j = 0; j < SIMD_COEF_32; ++j)
 			total_len2_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -2107,9 +2107,9 @@ void DynamicFunc__SHA224_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-	int len[MMX_COEF_SHA256], j;
-	for (j = 0; j < MMX_COEF_SHA256; ++j)
+#ifdef SIMD_COEF_32
+	int len[SIMD_COEF_32], j;
+	for (j = 0; j < SIMD_COEF_32; ++j)
 		len[j] = total_len_X86[i+j];
 	DoSHA256_crypt_f_sse(input_buf_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b, 0);
 #else
@@ -2133,9 +2133,9 @@ void DynamicFunc__SHA256_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-	int len[MMX_COEF_SHA256], j;
-	for (j = 0; j < MMX_COEF_SHA256; ++j)
+#ifdef SIMD_COEF_32
+	int len[SIMD_COEF_32], j;
+	for (j = 0; j < SIMD_COEF_32; ++j)
 		len[j] = total_len_X86[i+j];
 	DoSHA256_crypt_f_sse(input_buf_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b, 1);
 #else
@@ -2159,9 +2159,9 @@ void DynamicFunc__SHA224_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til;  i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-	int len[MMX_COEF_SHA256], j;
-	for (j = 0; j < MMX_COEF_SHA256; ++j)
+#ifdef SIMD_COEF_32
+	int len[SIMD_COEF_32], j;
+	for (j = 0; j < SIMD_COEF_32; ++j)
 		len[j] = total_len2_X86[i+j];
 	DoSHA256_crypt_f_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b, 0);
 #else
@@ -2185,9 +2185,9 @@ void DynamicFunc__SHA256_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha256_inc) {
-#ifdef MMX_COEF_SHA256
-	int len[MMX_COEF_SHA256], j;
-	for (j = 0; j < MMX_COEF_SHA256; ++j)
+#ifdef SIMD_COEF_32
+	int len[SIMD_COEF_32], j;
+	for (j = 0; j < SIMD_COEF_32; ++j)
 		len[j] = total_len2_X86[i+j];
 	DoSHA256_crypt_f_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b, 1);
 #else
@@ -2204,8 +2204,8 @@ void DynamicFunc__SHA256_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
 /********************************************************************
  ****  Here are the SHA384 and SHA512 functions!!!
  *******************************************************************/
-#ifdef MMX_COEF_SHA512
-#define SHA512_LOOPS (MMX_COEF_SHA512*SHA512_SSE_PARA)
+#ifdef SIMD_COEF_64
+#define SHA512_LOOPS (SIMD_COEF_64*SIMD_PARA_SHA512)
 static const int sha512_inc = SHA512_LOOPS;
 
 static inline uint32_t DoSHA512_FixBufferLen64(unsigned char *input_buf, int total_len) {
@@ -2239,9 +2239,9 @@ static inline uint32_t DoSHA512_FixBufferLen64(unsigned char *input_buf, int tot
 	p[(ret*16)-1] = JOHNSWAP64(total_len<<3);
 	return ret;
 }
-static void DoSHA512_crypt_f_sse(void *in, int len[MMX_COEF_SHA512], void *out, int isSHA512) {
-	JTR_ALIGN(16) ARCH_WORD_64 a[(64*MMX_COEF_SHA512)/sizeof(ARCH_WORD_64)];
-	unsigned int i, j, loops[MMX_COEF_SHA512], bMore, cnt;
+static void DoSHA512_crypt_f_sse(void *in, int len[SIMD_COEF_64], void *out, int isSHA512) {
+	JTR_ALIGN(16) ARCH_WORD_64 a[(64*SIMD_COEF_64)/sizeof(ARCH_WORD_64)];
+	unsigned int i, j, loops[SIMD_COEF_64], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA512_LOOPS; ++i) {
 		loops[i] = DoSHA512_FixBufferLen64(cp, len[i]);
@@ -2257,7 +2257,7 @@ static void DoSHA512_crypt_f_sse(void *in, int len[MMX_COEF_SHA512], void *out, 
 			if (cnt == loops[i]) {
 				// only copy 16 bytes
 				for (j = 0; j < 2; ++j) {
-					((ARCH_WORD_64*)out)[(i<<(MMX_COEF_SHA512>>1))+j] = JOHNSWAP64(a[(j<<(MMX_COEF_SHA512>>1))+i]);
+					((ARCH_WORD_64*)out)[(i<<(SIMD_COEF_64>>1))+j] = JOHNSWAP64(a[(j<<(SIMD_COEF_64>>1))+i]);
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -2266,10 +2266,10 @@ static void DoSHA512_crypt_f_sse(void *in, int len[MMX_COEF_SHA512], void *out, 
 		++cnt;
 	}
 }
-static void DoSHA512_crypt_sse(void *in, int ilen[MMX_COEF_SHA512], void *out[MMX_COEF_SHA512], unsigned int *tot_len, int isSHA512, int tid) {
-	JTR_ALIGN(16) ARCH_WORD_64 a[(64*MMX_COEF_SHA512)/sizeof(ARCH_WORD_64)];
+static void DoSHA512_crypt_sse(void *in, int ilen[SIMD_COEF_64], void *out[SIMD_COEF_64], unsigned int *tot_len, int isSHA512, int tid) {
+	JTR_ALIGN(16) ARCH_WORD_64 a[(64*SIMD_COEF_64)/sizeof(ARCH_WORD_64)];
 	union yy { unsigned char u[64]; ARCH_WORD_64 a[64/sizeof(ARCH_WORD_64)]; } y;
-	unsigned int i, j, loops[MMX_COEF_SHA512], bMore, cnt;
+	unsigned int i, j, loops[SIMD_COEF_64], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA512_LOOPS; ++i) {
 		loops[i] = DoSHA512_FixBufferLen64(cp, ilen[i]);
@@ -2284,7 +2284,7 @@ static void DoSHA512_crypt_sse(void *in, int ilen[MMX_COEF_SHA512], void *out[MM
 		for (i = 0; i < SHA512_LOOPS; ++i) {
 			if (cnt == loops[i]) {
 				for (j = 0; j < 8; ++j) {
-					y.a[j] =JOHNSWAP64(a[(j<<(MMX_COEF_SHA512>>1))+i]);
+					y.a[j] =JOHNSWAP64(a[(j<<(SIMD_COEF_64>>1))+i]);
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), isSHA512?64:48, tid);
 			} else if (cnt < loops[i])
@@ -2335,10 +2335,10 @@ void DynamicFunc__SHA384_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 	til = m_count;
 #endif
 	for (; i < til; i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-		int len[MMX_COEF_SHA512], j;
-		void *out[MMX_COEF_SHA512];
-		for (j = 0; j < MMX_COEF_SHA512; ++j) {
+#ifdef SIMD_COEF_64
+		int len[SIMD_COEF_64], j;
+		void *out[SIMD_COEF_64];
+		for (j = 0; j < SIMD_COEF_64; ++j) {
 			len[j] = total_len_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2371,10 +2371,10 @@ void DynamicFunc__SHA512_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 	til = m_count;
 #endif
 	for (; i < til; i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-		int len[MMX_COEF_SHA512], j;
-		void *out[MMX_COEF_SHA512];
-		for (j = 0; j < MMX_COEF_SHA512; ++j) {
+#ifdef SIMD_COEF_64
+		int len[SIMD_COEF_64], j;
+		void *out[SIMD_COEF_64];
+		for (j = 0; j < SIMD_COEF_64; ++j) {
 			len[j] = total_len_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2406,10 +2406,10 @@ void DynamicFunc__SHA384_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 	til = m_count;
 #endif
 	for (; i < til; i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-		int len[MMX_COEF_SHA512], j;
-		void *out[MMX_COEF_SHA512];
-		for (j = 0; j < MMX_COEF_SHA512; ++j) {
+#ifdef SIMD_COEF_64
+		int len[SIMD_COEF_64], j;
+		void *out[SIMD_COEF_64];
+		for (j = 0; j < SIMD_COEF_64; ++j) {
 			len[j] = total_len2_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2441,10 +2441,10 @@ void DynamicFunc__SHA512_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 	til = m_count;
 #endif
 	for (; i < til; i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-		int len[MMX_COEF_SHA512], j;
-		void *out[MMX_COEF_SHA512];
-		for (j = 0; j < MMX_COEF_SHA512; ++j) {
+#ifdef SIMD_COEF_64
+		int len[SIMD_COEF_64], j;
+		void *out[SIMD_COEF_64];
+		for (j = 0; j < SIMD_COEF_64; ++j) {
 			len[j] = total_len2_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2476,11 +2476,11 @@ void DynamicFunc__SHA384_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-		int len[MMX_COEF_SHA512], j;
-		unsigned int x[MMX_COEF_SHA512];
-		void *out[MMX_COEF_SHA512];
-		for (j = 0; j < MMX_COEF_SHA512; ++j) {
+#ifdef SIMD_COEF_64
+		int len[SIMD_COEF_64], j;
+		unsigned int x[SIMD_COEF_64];
+		void *out[SIMD_COEF_64];
+		for (j = 0; j < SIMD_COEF_64; ++j) {
 			len[j] = total_len_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2491,7 +2491,7 @@ void DynamicFunc__SHA384_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA512_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, 0, tid);
-		for (j = 0; j < MMX_COEF_SHA512; ++j)
+		for (j = 0; j < SIMD_COEF_64; ++j)
 			total_len_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -2517,11 +2517,11 @@ void DynamicFunc__SHA512_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-		int len[MMX_COEF_SHA512], j;
-		unsigned int x[MMX_COEF_SHA512];
-		void *out[MMX_COEF_SHA512];
-		for (j = 0; j < MMX_COEF_SHA512; ++j) {
+#ifdef SIMD_COEF_64
+		int len[SIMD_COEF_64], j;
+		unsigned int x[SIMD_COEF_64];
+		void *out[SIMD_COEF_64];
+		for (j = 0; j < SIMD_COEF_64; ++j) {
 			len[j] = total_len_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2532,7 +2532,7 @@ void DynamicFunc__SHA512_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA512_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, 1, tid);
-		for (j = 0; j < MMX_COEF_SHA512; ++j)
+		for (j = 0; j < SIMD_COEF_64; ++j)
 			total_len_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -2558,11 +2558,11 @@ void DynamicFunc__SHA384_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-		int len[MMX_COEF_SHA512], j;
-		unsigned int x[MMX_COEF_SHA512];
-		void *out[MMX_COEF_SHA512];
-		for (j = 0; j < MMX_COEF_SHA512; ++j) {
+#ifdef SIMD_COEF_64
+		int len[SIMD_COEF_64], j;
+		unsigned int x[SIMD_COEF_64];
+		void *out[SIMD_COEF_64];
+		for (j = 0; j < SIMD_COEF_64; ++j) {
 			len[j] = total_len_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2573,7 +2573,7 @@ void DynamicFunc__SHA384_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA512_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, 0, tid);
-		for (j = 0; j < MMX_COEF_SHA512; ++j)
+		for (j = 0; j < SIMD_COEF_64; ++j)
 			total_len2_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -2599,11 +2599,11 @@ void DynamicFunc__SHA512_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-		int len[MMX_COEF_SHA512], j;
-		unsigned int x[MMX_COEF_SHA512];
-		void *out[MMX_COEF_SHA512];
-		for (j = 0; j < MMX_COEF_SHA512; ++j) {
+#ifdef SIMD_COEF_64
+		int len[SIMD_COEF_64], j;
+		unsigned int x[SIMD_COEF_64];
+		void *out[SIMD_COEF_64];
+		for (j = 0; j < SIMD_COEF_64; ++j) {
 			len[j] = total_len_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2614,7 +2614,7 @@ void DynamicFunc__SHA512_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA512_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, 1, tid);
-		for (j = 0; j < MMX_COEF_SHA512; ++j)
+		for (j = 0; j < SIMD_COEF_64; ++j)
 			total_len2_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -2640,11 +2640,11 @@ void DynamicFunc__SHA384_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-		int len[MMX_COEF_SHA512], j;
-		unsigned int x[MMX_COEF_SHA512];
-		void *out[MMX_COEF_SHA512];
-		for (j = 0; j < MMX_COEF_SHA512; ++j) {
+#ifdef SIMD_COEF_64
+		int len[SIMD_COEF_64], j;
+		unsigned int x[SIMD_COEF_64];
+		void *out[SIMD_COEF_64];
+		for (j = 0; j < SIMD_COEF_64; ++j) {
 			len[j] = total_len2_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2655,7 +2655,7 @@ void DynamicFunc__SHA384_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA512_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, 0, tid);
-		for (j = 0; j < MMX_COEF_SHA512; ++j)
+		for (j = 0; j < SIMD_COEF_64; ++j)
 			total_len_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -2681,11 +2681,11 @@ void DynamicFunc__SHA512_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-		int len[MMX_COEF_SHA512], j;
-		unsigned int x[MMX_COEF_SHA512];
-		void *out[MMX_COEF_SHA512];
-		for (j = 0; j < MMX_COEF_SHA512; ++j) {
+#ifdef SIMD_COEF_64
+		int len[SIMD_COEF_64], j;
+		unsigned int x[SIMD_COEF_64];
+		void *out[SIMD_COEF_64];
+		for (j = 0; j < SIMD_COEF_64; ++j) {
 			len[j] = total_len2_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2696,7 +2696,7 @@ void DynamicFunc__SHA512_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA512_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, 1, tid);
-		for (j = 0; j < MMX_COEF_SHA512; ++j)
+		for (j = 0; j < SIMD_COEF_64; ++j)
 			total_len_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -2722,11 +2722,11 @@ void DynamicFunc__SHA384_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-		int len[MMX_COEF_SHA512], j;
-		unsigned int x[MMX_COEF_SHA512];
-		void *out[MMX_COEF_SHA512];
-		for (j = 0; j < MMX_COEF_SHA512; ++j) {
+#ifdef SIMD_COEF_64
+		int len[SIMD_COEF_64], j;
+		unsigned int x[SIMD_COEF_64];
+		void *out[SIMD_COEF_64];
+		for (j = 0; j < SIMD_COEF_64; ++j) {
 			len[j] = total_len2_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2737,7 +2737,7 @@ void DynamicFunc__SHA384_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA512_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, 0, tid);
-		for (j = 0; j < MMX_COEF_SHA512; ++j)
+		for (j = 0; j < SIMD_COEF_64; ++j)
 			total_len2_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -2763,11 +2763,11 @@ void DynamicFunc__SHA512_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-		int len[MMX_COEF_SHA512], j;
-		unsigned int x[MMX_COEF_SHA512];
-		void *out[MMX_COEF_SHA512];
-		for (j = 0; j < MMX_COEF_SHA512; ++j) {
+#ifdef SIMD_COEF_64
+		int len[SIMD_COEF_64], j;
+		unsigned int x[SIMD_COEF_64];
+		void *out[SIMD_COEF_64];
+		for (j = 0; j < SIMD_COEF_64; ++j) {
 			len[j] = total_len2_X86[i+j];
 			#if (MD5_X2)
 			if (j&1)
@@ -2778,7 +2778,7 @@ void DynamicFunc__SHA512_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS){
 			x[j] = 0;
 		}
 		DoSHA512_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, 1, tid);
-		for (j = 0; j < MMX_COEF_SHA512; ++j)
+		for (j = 0; j < SIMD_COEF_64; ++j)
 			total_len2_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
@@ -2803,9 +2803,9 @@ void DynamicFunc__SHA384_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-	int len[MMX_COEF_SHA512], j;
-	for (j = 0; j < MMX_COEF_SHA512; ++j)
+#ifdef SIMD_COEF_64
+	int len[SIMD_COEF_64], j;
+	for (j = 0; j < SIMD_COEF_64; ++j)
 		len[j] = total_len_X86[i+j];
 	DoSHA512_crypt_f_sse(input_buf_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b, 0);
 #else
@@ -2829,9 +2829,9 @@ void DynamicFunc__SHA512_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til; i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-	int len[MMX_COEF_SHA512], j;
-	for (j = 0; j < MMX_COEF_SHA512; ++j)
+#ifdef SIMD_COEF_64
+	int len[SIMD_COEF_64], j;
+	for (j = 0; j < SIMD_COEF_64; ++j)
 		len[j] = total_len_X86[i+j];
 	DoSHA512_crypt_f_sse(input_buf_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b, 1);
 #else
@@ -2855,9 +2855,9 @@ void DynamicFunc__SHA384_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til;  i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-	int len[MMX_COEF_SHA512], j;
-	for (j = 0; j < MMX_COEF_SHA512; ++j)
+#ifdef SIMD_COEF_64
+	int len[SIMD_COEF_64], j;
+	for (j = 0; j < SIMD_COEF_64; ++j)
 		len[j] = total_len2_X86[i+j];
 	DoSHA512_crypt_f_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b, 0);
 #else
@@ -2881,9 +2881,9 @@ void DynamicFunc__SHA512_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS){
 	til = m_count;
 #endif
 	for (; i < til;  i += sha512_inc) {
-#ifdef MMX_COEF_SHA512
-	int len[MMX_COEF_SHA512], j;
-	for (j = 0; j < MMX_COEF_SHA512; ++j)
+#ifdef SIMD_COEF_64
+	int len[SIMD_COEF_64], j;
+	for (j = 0; j < SIMD_COEF_64; ++j)
 		len[j] = total_len2_X86[i+j];
 	DoSHA512_crypt_f_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b, 1);
 #else

@@ -29,7 +29,7 @@ john_register_one(&fmt_rawSHA224);
 #include "formats.h"
 #include "sse-intrinsics.h"
 #ifdef _OPENMP
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 #define OMP_SCALE			1024
 #else
 #define OMP_SCALE			2048
@@ -43,7 +43,7 @@ john_register_one(&fmt_rawSHA224);
 #define FORMAT_TAG              "$SHA224$"
 #define TAG_LENGTH              8
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME			SHA256_ALGORITHM_NAME
 #else
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
@@ -52,7 +52,7 @@ john_register_one(&fmt_rawSHA224);
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 #define PLAINTEXT_LENGTH		55
 #else
 #define PLAINTEXT_LENGTH		125
@@ -65,8 +65,8 @@ john_register_one(&fmt_rawSHA224);
 #define SALT_ALIGN				1
 
 #define MIN_KEYS_PER_CRYPT		1
-#ifdef MMX_COEF_SHA256
-#define MAX_KEYS_PER_CRYPT      MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
+#define MAX_KEYS_PER_CRYPT      SIMD_COEF_32
 #else
 #define MAX_KEYS_PER_CRYPT		1
 #endif
@@ -79,10 +79,10 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-#ifdef MMX_COEF_SHA256
-#define GETPOS(i, index)		( (index&(MMX_COEF_SHA256-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF_SHA256 + (3-((i)&3)) + (index>>(MMX_COEF_SHA256>>1))*SHA256_BUF_SIZ*MMX_COEF_SHA256*4 )
-static uint32_t (*saved_key)[SHA256_BUF_SIZ*MMX_COEF_SHA256];
-static uint32_t (*crypt_out)[8*MMX_COEF_SHA256];
+#ifdef SIMD_COEF_32
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>(SIMD_COEF_32>>1))*SHA256_BUF_SIZ*SIMD_COEF_32*4 )
+static uint32_t (*saved_key)[SHA256_BUF_SIZ*SIMD_COEF_32];
+static uint32_t (*crypt_out)[8*SIMD_COEF_32];
 #else
 static int (*saved_key_length);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -100,13 +100,13 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-#ifndef MMX_COEF_SHA256
+#ifndef SIMD_COEF_32
 	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #else
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt/MMX_COEF_SHA256, MEM_ALIGN_SIMD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt/MMX_COEF_SHA256, MEM_ALIGN_SIMD);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt/SIMD_COEF_32, MEM_ALIGN_SIMD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt/SIMD_COEF_32, MEM_ALIGN_SIMD);
 #endif
 }
 
@@ -150,20 +150,20 @@ static void *binary(char *ciphertext)
 		out[i] = atoi16[ARCH_INDEX(ciphertext[i*2])] * 16 +
                  atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
 	}
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	alter_endianity (out, BINARY_SIZE);
 #endif
 	return out;
 }
 
-#ifdef MMX_COEF_SHA256
-static int get_hash_0 (int index) { return crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)] & 0xf; }
-static int get_hash_1 (int index) { return crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)] & 0xff; }
-static int get_hash_2 (int index) { return crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)] & 0xfff; }
-static int get_hash_3 (int index) { return crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)] & 0xffff; }
-static int get_hash_4 (int index) { return crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)] & 0xfffff; }
-static int get_hash_5 (int index) { return crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)] & 0xffffff; }
-static int get_hash_6 (int index) { return crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)] & 0x7ffffff; }
+#ifdef SIMD_COEF_32
+static int get_hash_0 (int index) { return crypt_out[index>>(SIMD_COEF_32>>1)][index&(SIMD_COEF_32-1)] & 0xf; }
+static int get_hash_1 (int index) { return crypt_out[index>>(SIMD_COEF_32>>1)][index&(SIMD_COEF_32-1)] & 0xff; }
+static int get_hash_2 (int index) { return crypt_out[index>>(SIMD_COEF_32>>1)][index&(SIMD_COEF_32-1)] & 0xfff; }
+static int get_hash_3 (int index) { return crypt_out[index>>(SIMD_COEF_32>>1)][index&(SIMD_COEF_32-1)] & 0xffff; }
+static int get_hash_4 (int index) { return crypt_out[index>>(SIMD_COEF_32>>1)][index&(SIMD_COEF_32-1)] & 0xfffff; }
+static int get_hash_5 (int index) { return crypt_out[index>>(SIMD_COEF_32>>1)][index&(SIMD_COEF_32-1)] & 0xffffff; }
+static int get_hash_6 (int index) { return crypt_out[index>>(SIMD_COEF_32>>1)][index&(SIMD_COEF_32-1)] & 0x7ffffff; }
 #else
 static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
 static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
@@ -174,10 +174,10 @@ static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 #endif
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 static void set_key(char *key, int index) {
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
-	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)saved_key)[(index&(MMX_COEF_SHA256-1)) + (index>>(MMX_COEF_SHA256>>1))*SHA256_BUF_SIZ*MMX_COEF_SHA256];
+	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)saved_key)[(index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*SHA256_BUF_SIZ*SIMD_COEF_32];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
@@ -204,17 +204,17 @@ static void set_key(char *key, int index) {
 		}
 		*keybuf_word = JOHNSWAP(temp);
 		len += 4;
-		keybuf_word += MMX_COEF_SHA256;
+		keybuf_word += SIMD_COEF_32;
 	}
 	*keybuf_word = 0x80000000;
 
 key_cleaning:
-	keybuf_word += MMX_COEF_SHA256;
+	keybuf_word += SIMD_COEF_32;
 	while(*keybuf_word) {
 		*keybuf_word = 0;
-		keybuf_word += MMX_COEF_SHA256;
+		keybuf_word += SIMD_COEF_32;
 	}
-	keybuffer[15*MMX_COEF_SHA256] = len << 3;
+	keybuffer[15*SIMD_COEF_32] = len << 3;
 }
 #else
 static void set_key(char *key, int index)
@@ -227,13 +227,13 @@ static void set_key(char *key, int index)
 }
 #endif
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 static char *get_key(int index) {
 	unsigned int i,s;
 	static char out[PLAINTEXT_LENGTH+1];
 	unsigned char *wucp = (unsigned char*)saved_key;
 
-	s = ((ARCH_WORD_32 *)saved_key)[15*MMX_COEF_SHA256 + (index&(MMX_COEF_SHA256-1)) + (index>>(MMX_COEF_SHA256>>1))*SHA256_BUF_SIZ*MMX_COEF_SHA256] >> 3;
+	s = ((ARCH_WORD_32 *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*SHA256_BUF_SIZ*SIMD_COEF_32] >> 3;
 	for(i=0;i<s;i++)
 		out[i] = wucp[ GETPOS(i, index) ];
 	out[i] = 0;
@@ -253,8 +253,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 
 #ifdef _OPENMP
-#ifdef MMX_COEF_SHA256
-	int inc = MMX_COEF_SHA256;
+#ifdef SIMD_COEF_32
+	int inc = SIMD_COEF_32;
 #else
 	int inc = 1;
 #endif
@@ -263,8 +263,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index += inc)
 #endif
 	{
-#ifdef MMX_COEF_SHA256
-		SSESHA256body(&saved_key[index/MMX_COEF_SHA256], crypt_out[index/MMX_COEF_SHA256], NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA224);
+#ifdef SIMD_COEF_32
+		SSESHA256body(&saved_key[index/SIMD_COEF_32], crypt_out[index/SIMD_COEF_32], NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA224);
 #else
 		SHA256_CTX ctx;
 		SHA224_Init(&ctx);
@@ -280,8 +280,8 @@ static int cmp_all(void *binary, int count)
     int index;
 
     for (index = 0; index < count; index++)
-#ifdef MMX_COEF_SHA256
-        if (((uint32_t *) binary)[0] == crypt_out[index>>(MMX_COEF_SHA256>>1)][index&(MMX_COEF_SHA256-1)])
+#ifdef SIMD_COEF_32
+        if (((uint32_t *) binary)[0] == crypt_out[index>>(SIMD_COEF_32>>1)][index&(SIMD_COEF_32-1)])
 #else
 		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
 #endif
@@ -291,10 +291,10 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
     int i;
     for (i = 0; i < BINARY_SIZE/4; i++)
-        if (((uint32_t *) binary)[i] != crypt_out[index>>(MMX_COEF_SHA256>>1)][(index&(MMX_COEF_SHA256-1))+i*MMX_COEF_SHA256])
+        if (((uint32_t *) binary)[i] != crypt_out[index>>(SIMD_COEF_32>>1)][(index&(SIMD_COEF_32-1))+i*SIMD_COEF_32])
             return 0;
     return 1;
 #else

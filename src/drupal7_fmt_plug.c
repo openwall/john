@@ -54,10 +54,10 @@ john_register_one(&fmt_drupal7);
 #define SALT_SIZE			8
 #define SALT_ALIGN			4
 
-#ifdef MMX_COEF_SHA512
-#define MIN_KEYS_PER_CRYPT      MMX_COEF_SHA512
-#define MAX_KEYS_PER_CRYPT      MMX_COEF_SHA512
-#define GETPOS(i, index)        ( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7))*MMX_COEF_SHA512 + (7-((i)&7)) + (index>>(MMX_COEF_SHA512>>1))*SHA512_BUF_SIZ*MMX_COEF_SHA512*8 )
+#ifdef SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT      SIMD_COEF_64
+#define MAX_KEYS_PER_CRYPT      SIMD_COEF_64
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (index>>(SIMD_COEF_64>>1))*SHA512_BUF_SIZ*SIMD_COEF_64*8 )
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -168,7 +168,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index+=MAX_KEYS_PER_CRYPT)
 	{
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+16], *keys;
 		ARCH_WORD_64 *keys64, *crypt;
 		unsigned i, j, len, Lcount = loopCnt;
@@ -183,7 +183,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (j = 0; j < len; ++j)
 				keys[GETPOS(j+8, i)] = EncKey[index+i][j];
 			keys[GETPOS(j+8, i)] = 0x80;
-			keys64[15*MMX_COEF_SHA512+i] = (len+8) << 3;
+			keys64[15*SIMD_COEF_64+i] = (len+8) << 3;
 		}
 		SSESHA512body(keys, keys64, NULL, SSEi_MIXED_IN);
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
@@ -191,7 +191,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (j = 0; j < len; ++j)
 				keys[GETPOS(j+64, i)] = EncKey[index+i][j];
 			keys[GETPOS(j+64, i)] = 0x80;
-			keys64[15*MMX_COEF_SHA512+i] = (len+64) << 3;
+			keys64[15*SIMD_COEF_64+i] = (len+64) << 3;
 		}
 		do {
 			SSESHA512body(keys, keys64, NULL, SSEi_MIXED_IN);
@@ -200,7 +200,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			crypt = (ARCH_WORD_64*)crypt_key[index+i];
 			for (j = 0; j < 8; ++j)
-				crypt[j] = JOHNSWAP64(keys64[j*MMX_COEF_SHA512]);
+				crypt[j] = JOHNSWAP64(keys64[j*SIMD_COEF_64]);
 			++keys64;
 		}
 #else

@@ -37,8 +37,8 @@ john_register_one(&fmt_SybaseASE);
 
 //#undef _OPENMP
 //#undef MMX_COEF
-//#undef MMX_COEF_SHA256
-//#undef SHA256_SSE_PARA
+//#undef SIMD_COEF_32
+//#undef SIMD_PARA_SHA256
 //
 //#define FORCE_GENERIC_SHA2 2
 #include "sha2.h"
@@ -72,8 +72,8 @@ john_register_one(&fmt_SybaseASE);
 #define SALT_ALIGN          4
 
 #define MIN_KEYS_PER_CRYPT  1
-#ifdef MMX_COEF_SHA256
-#define MAX_KEYS_PER_CRYPT	(MMX_COEF_SHA256*SHA256_SSE_PARA)
+#ifdef SIMD_COEF_32
+#define MAX_KEYS_PER_CRYPT	(SIMD_COEF_32*SIMD_PARA_SHA256)
 #define OMP_SCALE           512
 #else
 #define MAX_KEYS_PER_CRYPT  1
@@ -86,7 +86,7 @@ static struct fmt_tests SybaseASE_tests[] = {
     {NULL}
 };
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 // note, elements 3-7 are 'nulls', and are not in this array.
 static UTF16 (*prep_key)[4][MAX_KEYS_PER_CRYPT][64 / sizeof(UTF16)];
 static unsigned char *NULL_LIMB;
@@ -117,7 +117,7 @@ static void init(struct fmt_main *self)
 	if (pers_opts.target_enc == UTF_8)
 		fmt_SybaseASE.params.plaintext_length = 125;
 	// will simply set SIMD stuff here, even if not 'used'
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	NULL_LIMB = mem_calloc_tiny(64*MAX_KEYS_PER_CRYPT, MEM_ALIGN_SIMD);
 	last_len = mem_calloc_tiny(sizeof(*last_len)*self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	for (i = 0; i < kpc/MAX_KEYS_PER_CRYPT; ++i) {
@@ -222,7 +222,7 @@ static void set_salt(void *salt)
 	for(index = 0; index < kpc; index++)
 	{
 		/* append salt at offset 510 */
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 		int idx1=index/MAX_KEYS_PER_CRYPT, idx2=index%MAX_KEYS_PER_CRYPT;
 		memcpy(&prep_key[idx1][2][idx2][31], salt, 2);
 		memcpy(prep_key[idx1][3][idx2], &((unsigned char*)salt)[2], 6);
@@ -235,7 +235,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	UTF16 tmp[PLAINTEXT_LENGTH+1];
 	int len2, len = enc_to_utf16_be(tmp, PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
 	int idx1=index/MAX_KEYS_PER_CRYPT, idx2=index%MAX_KEYS_PER_CRYPT;
@@ -267,7 +267,7 @@ static char *get_key(int index)
 {
     UTF16 key_le[PLAINTEXT_LENGTH + 1];
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 	int j, idx1=index/MAX_KEYS_PER_CRYPT, idx2=index%MAX_KEYS_PER_CRYPT;
 	
 	if (last_len[index] < 32) {
@@ -297,7 +297,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 
 #ifdef _OPENMP
-#ifndef MMX_COEF_SHA256
+#ifndef SIMD_COEF_32
 #pragma omp parallel for default(none) private(index) shared(count, crypt_out, prep_key)
 #else
 #pragma omp parallel for default(none) private(index) shared(count, crypt_out, prep_key, NULL_LIMB)
@@ -305,7 +305,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for(index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
-#ifndef MMX_COEF_SHA256
+#ifndef SIMD_COEF_32
 		SHA256_CTX ctx;
 
 		SHA256_Init(&ctx);
@@ -329,9 +329,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// now marshal into crypt_out;
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			uint32_t *Optr32 = (uint32_t*)(crypt_out[index+i]);
-			uint32_t *Iptr32 = &crypt32[(i/MMX_COEF_SHA256)*MMX_COEF_SHA256*8 + (i%MMX_COEF_SHA256)];
+			uint32_t *Iptr32 = &crypt32[(i/SIMD_COEF_32)*SIMD_COEF_32*8 + (i%SIMD_COEF_32)];
 			for (j = 0; j < 8; ++j)
-				Optr32[j] = JOHNSWAP(Iptr32[j*MMX_COEF_SHA256]);
+				Optr32[j] = JOHNSWAP(Iptr32[j*SIMD_COEF_32]);
 		}
 #endif
 	}

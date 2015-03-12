@@ -316,8 +316,8 @@
 
 #define NT_X86_64
 
-#define MMX_COEF_SHA256 4
-#define MMX_COEF_SHA512 2
+#define SIMD_COEF_32 4
+#define SIMD_COEF_64 2
 
 #endif /* __SSE2__ */
 

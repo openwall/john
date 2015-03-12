@@ -68,7 +68,7 @@ john_register_one(&fmt_cryptsha512);
 #include "arch.h"
 
 //#undef MMX_COEF
-//#undef MMX_COEF_SHA512
+//#undef SIMD_COEF_64
 
 #include "sha2.h"
 
@@ -106,11 +106,11 @@ john_register_one(&fmt_cryptsha512);
 // of SSE data full, until the last in a range.  We probably can simply build all the rearrangments,
 // then let the threads go on ALL data, without caring about the length, since each thread will only
 // be working on passwords in a single MMX buffer that all match, at any given moment.
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 #ifdef _OPENMP
-#define MMX_COEF_SCALE      (32/MMX_COEF_SHA512)
+#define MMX_COEF_SCALE      (32/SIMD_COEF_64)
 #else
-#define MMX_COEF_SCALE      (64/MMX_COEF_SHA512)
+#define MMX_COEF_SCALE      (64/SIMD_COEF_64)
 #endif
 #else
 #define MMX_COEF_SCALE      1
@@ -118,7 +118,7 @@ john_register_one(&fmt_cryptsha512);
 
 #define FORMAT_LABEL			"sha512crypt"
 
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 #define ALGORITHM_NAME          SHA512_ALGORITHM_NAME
 #else
 #define ALGORITHM_NAME			"64/" ARCH_BITS_STR " " SHA2_LIB
@@ -132,8 +132,8 @@ john_register_one(&fmt_cryptsha512);
 #define SALT_ALIGN			4
 
 #define MIN_KEYS_PER_CRYPT		1
-#ifdef MMX_COEF_SHA512
-#define MAX_KEYS_PER_CRYPT		MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
+#define MAX_KEYS_PER_CRYPT		SIMD_COEF_64
 #else
 #define MAX_KEYS_PER_CRYPT		1
 #endif
@@ -145,10 +145,10 @@ john_register_one(&fmt_cryptsha512);
 #define __CRYPTSHA512_CREATE_PROPER_TESTS_ARRAY__
 #include "cryptsha512_common.h"
 
-#ifndef MMX_COEF_SHA512
+#ifndef SIMD_COEF_64
 #define BLKS 1
 #else
-#define BLKS MMX_COEF_SHA512
+#define BLKS SIMD_COEF_64
 #endif
 
 /* This structure is 'pre-loaded' with the keyspace of all possible crypts which  */
@@ -179,7 +179,7 @@ typedef struct cryptloopstruct_t {
 								// now, the cryptstructs are on the stack within the crypt for loop, so we avoid allocation.
 								// and to avoid the single static variable, or a static array.
 	unsigned char *bufs[BLKS][42];	// points to the start of each 2 block buffer.
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 	int offs[BLKS][42];
 #endif
 	unsigned char *cptr[BLKS][42];	// points to where we copy the crypt pointer for next round.
@@ -198,7 +198,7 @@ static int max_crypts;
 
 /* these 2 values are used in setup of the cryptloopstruct, AND to do our SHA512_Init() calls, in the inner loop */
 static const unsigned char padding[256] = { 0x80, 0 /* 0,0,0,0.... */ };
-#if !defined(JTR_INC_COMMON_CRYPTO_SHA2) && !defined (MMX_COEF_SHA512)
+#if !defined(JTR_INC_COMMON_CRYPTO_SHA2) && !defined (SIMD_COEF_64)
 static const uint64_t ctx_init[8] =
 	{0x6A09E667F3BCC908ULL,0xBB67AE8584CAA73BULL,0x3C6EF372FE94F82BULL,0xA54FF53A5F1D36F1ULL,0x510E527FADE682D1ULL,0x9B05688C2B3E6C1FULL,0x1F83D9ABFB41BD6BULL,0x5BE0CD19137E2179ULL};
 #endif
@@ -268,7 +268,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	unsigned plen=saved_key_length[index];
 	unsigned char *cp = crypt_struct->buf;
 	cryptloopstruct *pstr = crypt_struct;
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 	// in SSE mode, we FORCE every buffer to be 2 blocks, even if it COULD fit into 1.
 	// Then we simply use the 2 block SSE code.
 	unsigned char *next_cp;
@@ -301,7 +301,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	off_psc  = len_psc  - BINARY_SIZE;
 
 	// Adjust cp for idx;
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 	next_cp = cp + (2*128*BLKS);
 #endif
 
@@ -315,7 +315,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][0][tot_pc-2] = (len_pc<<3)>>8;
 	pstr->bufs[idx][0][tot_pc-1] = (len_pc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 	cp = next_cp;
 	next_cp = cp + (2*128*BLKS);
 #endif
@@ -331,7 +331,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][1][tot_ppsc-2] = (len_ppsc<<3)>>8;
 	pstr->bufs[idx][1][tot_ppsc-1] = (len_ppsc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 	cp = next_cp;
 	next_cp = cp + (2*128*BLKS);
 #endif
@@ -347,7 +347,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][2][tot_ppsc-2] = (len_ppsc<<3)>>8;
 	pstr->bufs[idx][2][tot_ppsc-1] = (len_ppsc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 	cp = next_cp;
 	next_cp = cp + (2*128*BLKS);
 #endif
@@ -362,7 +362,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][3][tot_ppc-2] = (len_ppc<<3)>>8;
 	pstr->bufs[idx][3][tot_ppc-1] = (len_ppc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 	cp = next_cp;
 	next_cp = cp + (2*128*BLKS);
 #endif
@@ -385,7 +385,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][6][tot_ppc-2] = (len_ppc<<3)>>8;
 	pstr->bufs[idx][6][tot_ppc-1] = (len_ppc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 	cp = next_cp;
 	next_cp = cp + (2*128*BLKS);
 #endif
@@ -400,7 +400,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][7][tot_psc-2] = (len_psc<<3)>>8;
 	pstr->bufs[idx][7][tot_psc-1] = (len_psc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 	cp = next_cp;
 	next_cp = cp + (2*128*BLKS);
 #endif
@@ -439,7 +439,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][14][tot_psc-2] = (len_psc<<3)>>8;
 	pstr->bufs[idx][14][tot_psc-1] = (len_psc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 	cp = next_cp;
 	next_cp = cp + (2*128*BLKS);
 #endif
@@ -477,7 +477,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][21][tot_pc-2] = (len_pc<<3)>>8;
 	pstr->bufs[idx][21][tot_pc-1] = (len_pc<<3)&0xFF;
 
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 	cp = next_cp;
 	next_cp = cp + (2*128*BLKS);
 #endif
@@ -569,9 +569,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 	int *MixOrder, tot_todo;
 
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 	// group based upon size splits.
-	MixOrder = mem_calloc((count+6*MMX_COEF_SHA512), sizeof(int));
+	MixOrder = mem_calloc((count+6*SIMD_COEF_64), sizeof(int));
 	{
 		static const int lens[17][6] = {
 			{0,24,48,88,89,90},  //  0 byte salt
@@ -599,7 +599,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				if (saved_key_length[index] >= lens[cur_salt->len][j] && saved_key_length[index] < lens[cur_salt->len][j+1])
 					MixOrder[tot_todo++] = index;
 			}
-			while (tot_todo & (MMX_COEF_SHA512-1))
+			while (tot_todo & (SIMD_COEF_64-1))
 				MixOrder[tot_todo++] = count;
 		}
 	}
@@ -634,7 +634,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// align by hand, at runtime using flat buffers on the stack.
 		char tmp_cls[sizeof(cryptloopstruct)+16];
 		cryptloopstruct *crypt_struct;
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 		//JTR_ALIGN(16) ARCH_WORD_64 sse_out[64];
 		char tmp_sse_out[64*8+16];
 		ARCH_WORD_64 *sse_out;
@@ -727,7 +727,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 		idx = 0;
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 		for (cnt = 1; ; ++cnt) {
 			if (crypt_struct->datlen[idx]==256) {
 				unsigned char *cp = crypt_struct->bufs[0][idx];
@@ -741,10 +741,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				break;
 			{
 				int j, k;
-				for (k = 0; k < MMX_COEF_SHA512; ++k) {
+				for (k = 0; k < SIMD_COEF_64; ++k) {
 					ARCH_WORD_64 *o = (ARCH_WORD_64 *)crypt_struct->cptr[k][idx];
 					for (j = 0; j < 8; ++j)
-						*o++ = JOHNSWAP64(sse_out[(j<<(MMX_COEF_SHA512>>1))+k]);
+						*o++ = JOHNSWAP64(sse_out[(j<<(SIMD_COEF_64>>1))+k]);
 				}
 			}
 			if (++idx == 42)
@@ -752,10 +752,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		{
 			int j, k;
-			for (k = 0; k < MMX_COEF_SHA512; ++k) {
+			for (k = 0; k < SIMD_COEF_64; ++k) {
 				ARCH_WORD_64 *o = (ARCH_WORD_64 *)crypt_out[MixOrder[index+k]];
 				for (j = 0; j < 8; ++j)
-					*o++ = JOHNSWAP64(sse_out[(j<<(MMX_COEF_SHA512>>1))+k]);
+					*o++ = JOHNSWAP64(sse_out[(j<<(SIMD_COEF_64>>1))+k]);
 			}
 		}
 #else

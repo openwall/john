@@ -34,7 +34,7 @@ john_register_one(&fmt_saltedsha);
 #include "base64.h"
 
 #ifdef _OPENMP
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 #define OMP_SCALE               1024
 #else
 #define OMP_SCALE				2048

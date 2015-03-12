@@ -321,11 +321,11 @@ void alter_endianity(void *_x, unsigned int size) {
 #ifndef MMX_COEF
 #define MMX_COEF	4
 #endif
-#ifndef MMX_COEF_SHA512
-#define MMX_COEF_SHA512 2
+#ifndef SIMD_COEF_64
+#define SIMD_COEF_64 2
 #endif
-#ifndef MMX_COEF_SHA256
-#define MMX_COEF_SHA256 4
+#ifndef SIMD_COEF_32
+#define SIMD_COEF_32 4
 #endif
 
 // These work for standard MMX_COEF buffers, AND for SSEi MMX_PARA multiple MMX_COEF blocks, where index will be mod(X * MMX_COEF) and not simply mod(MMX_COEF)
@@ -335,11 +335,11 @@ void alter_endianity(void *_x, unsigned int size) {
 #define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF +    ((i)&3)  + (index>>(MMX_COEF>>1))*64*MMX_COEF  )
 #define GETOUTPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF +    ((i)&3)  + (index>>(MMX_COEF>>1))*16*MMX_COEF  )
 // for SHA384/SHA512 128 byte BE interleaved hash (arrays of 16 8 byte ints)
-#define SHA64GETPOS(i,index)	( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7) )*MMX_COEF_SHA512 + (7-((i)&7)) + (index>>(MMX_COEF_SHA512>>1))*SHA_BUF_SIZ*8*MMX_COEF_SHA512 )
-#define SHA64GETOUTPOS(i,index)	( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7) )*MMX_COEF_SHA512 + (7-((i)&7)) + (index>>(MMX_COEF_SHA512>>1))*64*MMX_COEF_SHA512 )
+#define SHA64GETPOS(i,index)	( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + (7-((i)&7)) + (index>>(SIMD_COEF_64>>1))*SHA_BUF_SIZ*8*SIMD_COEF_64 )
+#define SHA64GETOUTPOS(i,index)	( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + (7-((i)&7)) + (index>>(SIMD_COEF_64>>1))*64*SIMD_COEF_64 )
 
 // for SHA384/SHA512 128 byte FLAT interleaved hash (arrays of 16 8 byte ints), but we do not BE interleave.
-#define SHA64GETPOSne(i,index)      ( (index&(MMX_COEF_SHA512-1))*8 + ((i)&(0xffffffff-7) )*MMX_COEF_SHA512 + ((i)&7) + (index>>(MMX_COEF_SHA512>>1))*SHA_BUF_SIZ*8*MMX_COEF_SHA512 )
+#define SHA64GETPOSne(i,index)      ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + ((i)&7) + (index>>(SIMD_COEF_64>>1))*SHA_BUF_SIZ*8*SIMD_COEF_64 )
 
 void dump_stuff_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;

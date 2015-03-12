@@ -34,7 +34,7 @@ john_register_one(&fmt_lastpass);
 
 #define FORMAT_LABEL		"lp"
 #define FORMAT_NAME		"LastPass offline"
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
 #else
 #define ALGORITHM_NAME		"PBKDF2-SHA256 32/" ARCH_BITS_STR
@@ -46,7 +46,7 @@ john_register_one(&fmt_lastpass);
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define BINARY_ALIGN		sizeof(ARCH_WORD_32)
 #define SALT_ALIGN			sizeof(int)
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
 #define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
 #else
@@ -169,7 +169,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 		AES_KEY akey;
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 		int lens[MAX_KEYS_PER_CRYPT], i;
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		ARCH_WORD_32 key[MAX_KEYS_PER_CRYPT][8];

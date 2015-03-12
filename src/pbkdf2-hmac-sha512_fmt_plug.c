@@ -40,7 +40,7 @@ john_register_one(&fmt_pbkdf2_hmac_sha512);
 #define FORMAT_TAG3             "grub.pbkdf2.sha512."
 #define FORMAT_NAME             "GRUB2 / OS X 10.8+"
 
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 #define ALGORITHM_NAME		"PBKDF2-SHA512 " SHA512_ALGORITHM_NAME
 #else
 #if ARCH_BITS >= 64
@@ -55,7 +55,7 @@ john_register_one(&fmt_pbkdf2_hmac_sha512);
 #define MAX_BINARY_SIZE         (4*64) /* Bump this and code will adopt */
 #define MAX_SALT_SIZE           128 /* Bump this and code will adopt */
 #define SALT_SIZE               sizeof(struct custom_salt)
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
 #define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
 #else

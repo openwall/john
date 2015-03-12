@@ -1917,7 +1917,7 @@ MTL({"$dynamic_86$aba2ed0a61430a2eb16edc25630163f1ca217005947a120985451290f30a05
 	{NULL}
 };
 
-#ifndef MMX_COEF_SHA512
+#ifndef SIMD_COEF_64
 //	dynamic_87: SHA512(SHA512($s).SHA512($p))
 static DYNAMIC_primitive_funcp _Funcs_87[] =
 {
@@ -3394,7 +3394,7 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_84: sha512(sha512_raw($p))",      _Funcs_84,_Preloads_84,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE },
 	{ "dynamic_85: sha512(sha512($p).$s)",       _Funcs_85,_Preloads_85,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -64, 110, 110 },
 	{ "dynamic_86: sha512($s.sha512($p))",       _Funcs_86,_Preloads_86,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -64, 110, 110 },
-#ifndef MMX_COEF_SHA512
+#ifndef SIMD_COEF_64
 	{ "dynamic_87: sha512(sha512($s).sha512($p))",_Funcs_87,_Preloads_87,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -64, 110, 110 },
 	{ "dynamic_88: sha512(sha512($p).sha512($p))",_Funcs_88,_Preloads_88,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE },
 #endif

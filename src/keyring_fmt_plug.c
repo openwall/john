@@ -24,7 +24,7 @@ john_register_one(&fmt_keyring);
 
 //#undef _OPENMP
 //#undef MMX_COEF
-//#undef MMX_COEF_SHA256
+//#undef SIMD_COEF_32
 
 #include "misc.h"
 #include "common.h"
@@ -49,9 +49,9 @@ john_register_one(&fmt_keyring);
 #define BINARY_ALIGN		1
 #define SALT_ALIGN			sizeof(int)
 #define MIN_KEYS_PER_CRYPT	1
-#ifdef MMX_COEF_SHA256
-#define MAX_KEYS_PER_CRYPT MMX_COEF_SHA256
-#define GETPOS(i, index)        ( (index&(MMX_COEF_SHA256-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF_SHA256 + (3-((i)&3)) + (index>>(MMX_COEF_SHA256>>1))*SHA256_BUF_SIZ*MMX_COEF_SHA256*4 )
+#ifdef SIMD_COEF_32
+#define MAX_KEYS_PER_CRYPT SIMD_COEF_32
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>(SIMD_COEF_32>>1))*SHA256_BUF_SIZ*SIMD_COEF_32*4 )
 #else
 #define MAX_KEYS_PER_CRYPT	1
 #endif
@@ -195,22 +195,22 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 static void symkey_generate_simple(int index, unsigned char *salt, int n_salt, int iterations,
 	                               unsigned char key[MAX_KEYS_PER_CRYPT][32],
 								   unsigned char iv[MAX_KEYS_PER_CRYPT][32])
 {
 	SHA256_CTX ctx;
-	unsigned char digest[32], _IBuf[64*MMX_COEF_SHA256+16], *keys;
+	unsigned char digest[32], _IBuf[64*SIMD_COEF_32+16], *keys;
 	uint32_t *keys32;
 	int i, j;
 
 	keys = (unsigned char*)mem_align(_IBuf, 16);
-	memset(keys, 0, 64*MMX_COEF_SHA256);
+	memset(keys, 0, 64*SIMD_COEF_32);
 	keys32 = (uint32_t*)keys;
 
 	// use oSSL to do first crypt, and marshal into SIMD buffers.
-	for (i = 0; i < MMX_COEF_SHA256; ++i) {
+	for (i = 0; i < SIMD_COEF_32; ++i) {
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, saved_key[index+i], strlen(saved_key[index+i]));
 		SHA256_Update(&ctx, salt, n_salt);
@@ -229,12 +229,12 @@ static void symkey_generate_simple(int index, unsigned char *salt, int n_salt, i
 	// marshal data back into flat buffers.
 	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 		uint32_t *Optr32 = (uint32_t*)(key[i]);
-		uint32_t *Iptr32 = &keys32[(i/MMX_COEF_SHA256)*MMX_COEF_SHA256*16 + (i%MMX_COEF_SHA256)];
+		uint32_t *Iptr32 = &keys32[(i/SIMD_COEF_32)*SIMD_COEF_32*16 + (i%SIMD_COEF_32)];
 		for (j = 0; j < 4; ++j)
-			Optr32[j] = JOHNSWAP(Iptr32[j*MMX_COEF_SHA256]);
+			Optr32[j] = JOHNSWAP(Iptr32[j*SIMD_COEF_32]);
 		Optr32 = (uint32_t*)(iv[i]);
 		for (j = 0; j < 4; ++j)
-			Optr32[j] = JOHNSWAP(Iptr32[(j+4)*MMX_COEF_SHA256]);
+			Optr32[j] = JOHNSWAP(Iptr32[(j+4)*SIMD_COEF_32]);
 	}
 }
 #else

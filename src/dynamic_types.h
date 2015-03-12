@@ -140,28 +140,31 @@ typedef struct private_subformat_data
 #endif
 } private_subformat_data;
 
+#define OMP_SCALE 1
+
 #ifdef MMX_COEF
 # define MIN_KEYS_PER_CRYPT	1
 # ifdef _OPENMP
 // in openMP mode, we multiply everything by 24
 // in openMP mode, we multiply everything by 48
+// Now, we mult by 192x with OMP_SCALE=4
 #  if MMX_COEF == 4
-#   define BLOCK_LOOPS		1536
+#   define BLOCK_LOOPS		(1536*OMP_SCALE)
 #   if !defined MD5_SSE_PARA || MD5_SSE_PARA==1
-#    define BY_X			1536
+#    define BY_X			(1536*OMP_SCALE)
 #   elif MD5_SSE_PARA==2
-#    define BY_X			768
+#    define BY_X			(768*OMP_SCALE)
 #   elif MD5_SSE_PARA==3
-#    define BY_X			480
+#    define BY_X			(480*OMP_SCALE)
 #   elif MD5_SSE_PARA==4
-#    define BY_X			384
+#    define BY_X			(384*OMP_SCALE)
 #   elif MD5_SSE_PARA==5
-#    define BY_X			288
+#    define BY_X			(288*OMP_SCALE)
 #   elif MD5_SSE_PARA==6
-#    define BY_X			240
+#    define BY_X			(240*OMP_SCALE)
 #   endif
 #  endif
-# else
+#else
 #  if MMX_COEF == 4
 #   define BLOCK_LOOPS		32
 #   if !defined MD5_SSE_PARA || MD5_SSE_PARA==1
@@ -208,7 +211,7 @@ typedef struct private_subformat_data
 # endif
 #else // !MMX_COEF
 # ifdef _OPENMP
-#  define BLOCK_LOOPS			6144
+#  define BLOCK_LOOPS			(6144*OMP_SCALE)
 # else
 #  define BLOCK_LOOPS			128
 # endif
@@ -218,8 +221,8 @@ typedef struct private_subformat_data
 #endif
 
 #ifdef _OPENMP
-# define X86_BLOCK_LOOPS			6144
-# define X86_BLOCK_LOOPSx2			3072
+# define X86_BLOCK_LOOPS			(6144*OMP_SCALE)
+# define X86_BLOCK_LOOPSx2			(3072*OMP_SCALE)
 #else
 # define X86_BLOCK_LOOPS			128
 # define X86_BLOCK_LOOPSx2			64

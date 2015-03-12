@@ -41,7 +41,7 @@ john_register_one(&fmt_cloud_keychain);
 
 #define FORMAT_LABEL		"cloudkeychain"
 #define FORMAT_NAME		"1Password Cloud Keychain"
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 #define ALGORITHM_NAME		"PBKDF2-SHA512  " SHA512_ALGORITHM_NAME
 #else
 #define ALGORITHM_NAME		"PBKDF2-SHA512 32/" ARCH_BITS_STR
@@ -54,7 +54,7 @@ john_register_one(&fmt_cloud_keychain);
 #define PLAINTEXT_LENGTH	125
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
-#ifdef MMX_COEF_SHA512
+#ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
 #define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
 #else

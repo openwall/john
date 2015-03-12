@@ -56,7 +56,7 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"Django"
 #define FORMAT_NAME		""
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
 #else
 #define ALGORITHM_NAME		"PBKDF2-SHA256 32/" ARCH_BITS_STR
@@ -70,7 +70,7 @@ static int omp_t = 1;
 #define BINARY_ALIGN	sizeof(ARCH_WORD_32)
 #define SALT_ALIGN		sizeof(int)
 
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
 #define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
 #else
@@ -204,7 +204,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-#ifdef MMX_COEF_SHA256
+#ifdef SIMD_COEF_32
 		int lens[MAX_KEYS_PER_CRYPT], i;
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		union {

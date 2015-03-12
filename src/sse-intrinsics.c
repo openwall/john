@@ -1620,7 +1620,7 @@ void SSESHA1body(__m128i* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
  *  6. Optimizations.  Look at intel, AMD, newest intel, newest AMD, etc performances.
  *  7. See if we can do anything better using 'DO_PARA' type methods, like we do in SHA1/MD4/5
  */
-#if defined (MMX_COEF_SHA256)
+#if defined (SIMD_COEF_32)
 void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
 	__m128i a, b, c, d, e, f, g, h;
@@ -1662,15 +1662,15 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 		saved_key = (ARCH_WORD_32 *)data;
 		if (SSEi_flags & SSEi_4BUF_INPUT) {
 			for (j=0; j < 16; j++)
-				for (i=0; i < MMX_COEF_SHA256; i++)
+				for (i=0; i < SIMD_COEF_32; i++)
 					*p++ = saved_key[(i<<6)+j];
 		} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 			for (j=0; j < 16; j++)
-				for (i=0; i < MMX_COEF_SHA256; i++)
+				for (i=0; i < SIMD_COEF_32; i++)
 					*p++ = saved_key[(i<<5)+j];
 		} else {
 			for (j=0; j < 16; j++)
-				for (i=0; i < MMX_COEF_SHA256; i++)
+				for (i=0; i < SIMD_COEF_32; i++)
 					*p++ = saved_key[(i<<4)+j];
 		}
 		for (i=0; i < 14; i++)
@@ -1976,7 +1976,7 @@ void SSESHA256body(__m128i *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
     h    = _mm_add_epi64 (tmp1, tmp2);               \
 }
 
-#if defined (MMX_COEF_SHA512)
+#if defined (SIMD_COEF_64)
 void SSESHA512body(__m128i* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, unsigned SSEi_flags)
 {
 	int i;
