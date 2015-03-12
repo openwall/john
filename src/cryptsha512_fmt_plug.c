@@ -108,12 +108,12 @@ john_register_one(&fmt_cryptsha512);
 // be working on passwords in a single MMX buffer that all match, at any given moment.
 #ifdef SIMD_COEF_64
 #ifdef _OPENMP
-#define MMX_COEF_SCALE      (32/SIMD_COEF_64)
+#define SIMD_COEF_SCALE     (32/SIMD_COEF_64)
 #else
-#define MMX_COEF_SCALE      (64/SIMD_COEF_64)
+#define SIMD_COEF_SCALE     (64/SIMD_COEF_64)
 #endif
 #else
-#define MMX_COEF_SCALE      1
+#define SIMD_COEF_SCALE     1
 #endif
 
 #define FORMAT_LABEL			"sha512crypt"
@@ -216,7 +216,7 @@ static void init(struct fmt_main *self)
 	omp_t = omp_get_max_threads();
 	omp_t *= OMP_SCALE;
 #endif
-	max_crypts = MMX_COEF_SCALE * omp_t * MAX_KEYS_PER_CRYPT;
+	max_crypts = SIMD_COEF_SCALE * omp_t * MAX_KEYS_PER_CRYPT;
 	self->params.max_keys_per_crypt = max_crypts;
 	// we allocate 1 more than needed, and use that 'extra' value as a zero length PW to fill in the
 	// tail groups in MMX mode.
