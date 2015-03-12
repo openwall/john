@@ -205,7 +205,7 @@ _inline __m128i _mm_set1_epi64x(long long a)
 	MD5_PARA_DO(i) tmp[i] = _mm_xor_si128((tmp[i]),(y[i]));
 
 #define MD5_STEP(f, a, b, c, d, x, t, s) \
-	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], _mm_set_epi32(t,t,t,t) ); \
+	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], _mm_set1_epi32(t) ); \
 	f((b),(c),(d)) \
 	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], tmp[i] ); \
 	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], data[i*16+x] ); \
@@ -213,7 +213,7 @@ _inline __m128i _mm_set1_epi64x(long long a)
 	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], b[i] );
 
 #define MD5_STEP_r16(f, a, b, c, d, x, t, s) \
-	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], _mm_set_epi32(t,t,t,t) ); \
+	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], _mm_set1_epi32(t) ); \
 	f((b),(c),(d)) \
 	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], tmp[i] ); \
 	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], data[i*16+x] ); \
@@ -802,7 +802,7 @@ if(SSEi_flags & SSEi_FLAT_IN) {
 
 
 /* Round 1 */
-		cst = _mm_set_epi32(0,0,0,0);
+		cst = _mm_set1_epi32(0);
 		MD4_STEP(MD4_F, a, b, c, d, 0, cst, 3)
 		MD4_STEP(MD4_F, d, a, b, c, 1, cst, 7)
 		MD4_STEP(MD4_F, c, d, a, b, 2, cst, 11)
@@ -821,7 +821,7 @@ if(SSEi_flags & SSEi_FLAT_IN) {
 		MD4_STEP(MD4_F, b, c, d, a, 15, cst, 19)
 
 /* Round 2 */
-		cst = _mm_set_epi32(0x5A827999L,0x5A827999L,0x5A827999L,0x5A827999L);
+		cst = _mm_set1_epi32(0x5A827999L);
 		MD4_STEP(MD4_G, a, b, c, d, 0, cst, 3)
 		MD4_STEP(MD4_G, d, a, b, c, 4, cst, 5)
 		MD4_STEP(MD4_G, c, d, a, b, 8, cst, 9)
@@ -840,7 +840,7 @@ if(SSEi_flags & SSEi_FLAT_IN) {
 		MD4_STEP(MD4_G, b, c, d, a, 15, cst, 13)
 
 /* Round 3 */
-		cst = _mm_set_epi32(0x6ED9EBA1L,0x6ED9EBA1L,0x6ED9EBA1L,0x6ED9EBA1L);
+		cst = _mm_set1_epi32(0x6ED9EBA1L);
 		MD4_STEP(MD4_H, a, b, c, d, 0, cst, 3)
 		MD4_STEP(MD4_H, d, a, b, c, 8, cst, 9)
 		MD4_STEP(MD4_H, c, d, a, b, 4, cst, 11)
