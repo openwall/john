@@ -202,7 +202,9 @@ typedef double                  mpf_t;
 
 #define mpf_init(x) x = 0
 #define mpf_init_set_ui(x, y) x = (y)
-#ifdef __MIC__ // workaround for a bug in icc
+// workaround for a bug in icc, see:
+// https://software.intel.com/en-us/forums/topic/542900
+#ifdef __MIC__ 
 extern double __ntod(__uint128_t);
 #define mpf_set_z(x, y) x = __ntod(y)
 #else
