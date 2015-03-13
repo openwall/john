@@ -1,0 +1,74 @@
+
+Intel MIC (Xeon Phi) is a coprocessor computer architecture developed by Intel.
+Program built for MIC cannot run on normal Intel processors. So you need to 
+have a MIC coprocessor and related enviroments setup before trying to build 
+John the Ripper (JtR) for MIC. Tutorial on how to setup the software 
+environments for MIC can be found on Intel's website.
+
+
+-----------------------
+Library Denpendencies:
+-----------------------
+
+JtR requires some libraries that are not available on MIC, which means you'll 
+need to built them for MIC by yourself.
+These libraries are:
+    Zlib (libz)
+    GMP (libgmp)
+    OpenSSL (libssl & libcrypto)
+
+They can be downloaded from their websites. But building them requires some 
+effort, and only the mentioned versions are guaranteed to work.  
+Assuming those libraries are to be install under path $MIC and the path to
+JtR is $JOHN, then follow the steps below.
+
+Build Zlib (version 1.2.8):
+$ cd */zlib-1.2.8
+$ ./configure CC=icc CFLAGS="-mmic" --prefix=$MIC
+$ make && make install
+
+Build GMP (version 6.0.0a):
+$ cd */gmp-6.0.0
+$ patch configfsf.sub < $JOHN/src/unused/gmp.patch
+$ ./configure CC=icc CFLAGS="-mmic" --host=mic --prefix=$MIC
+$ make && make install
+
+Build OpenSSL (version 1.0.0q):
+$ cd openssl-1.0.0q
+$ patch Configure < $JOHN/src/unused/openssl.patch
+$ ./Configure linux-mic shared --prefix=$MIC
+$ make && make install
+
+
+--------------
+Building JtR:
+--------------
+
+After building those libraries, now it's straightforward to build JtR for MIC.
+
+$ cd $JOHN/src
+$ ./configure CC=icc CFLAGS="-mmic -I$MIC/include" LDFLAGS="-mmic -lssl -lcrypto -L$MIC/lib" --host=mic-linux"
+$ make && make install
+
+After that, you can use scp to transfer the executables and config files you 
+need under directory $JOHN/run to MIC. 
+You also need to transfer some dynamic libraries to MIC, which is requried by 
+JtR at runtime, including those mentioned above (under $MIC/lib) and the 
+following:
+    libiomp*
+    libimf
+    libirng
+    libintlc
+    libsvml
+They can be found under /opt/intel/lib/mic or some other directory you
+specified when installing Intel compiler.
+
+
+---------
+Contact:
+---------
+If you still have problem building JtR for MIC, feel free to contact
+<zhanglei.april@gmail.com> or JtR's mailing list.
+
+Have fun.
+Lei Zhang
