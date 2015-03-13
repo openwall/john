@@ -17,20 +17,20 @@ These libraries are:
     GMP (libgmp)
     OpenSSL (libssl & libcrypto)
 
-They can be downloaded from their websites. But building them require some 
+They can be downloaded from their websites. But building them requires some 
 effort, and only the mentioned versions are guaranteed to work.  
 Assuming those libraries are to be install under path $MIC and the path to
 JtR is $JOHN, then follow the steps below.
 
 Build Zlib (version 1.2.8):
 $ cd */zlib-1.2.8
-$ CC=icc CFLAGS="-mmic" ./configure --prefix=$MIC
+$ ./configure CC=icc CFLAGS="-mmic" --prefix=$MIC
 $ make && make install
 
 Build GMP (version 6.0.0a):
 $ cd */gmp-6.0.0
 $ patch configfsf.sub < $JOHN/src/unused/gmp.patch
-$ CC=icc CFLAGS="-mmic" ./configure --host=mic --prefix=$MIC
+$ ./configure CC=icc CFLAGS="-mmic" --host=mic --prefix=$MIC
 $ make && make install
 
 Build OpenSSL (version 1.0.0q):
@@ -47,7 +47,7 @@ Building JtR:
 After building those libraries, now it's straightforward to build JtR for MIC.
 
 $ cd $JOHN/src
-$ CC=icc CFLAGS="-mmic -I$MIC/include" LDFLAGS="-mmic -lssl -lcrypto -L$MIC/lib" ./configure --host=mic-linux"
+$ ./configure CC=icc CFLAGS="-mmic -I$MIC/include" LDFLAGS="-mmic -lssl -lcrypto -L$MIC/lib" --host=mic-linux"
 $ make && make install
 
 After that, you can use scp to transfer the executables and config files you 
