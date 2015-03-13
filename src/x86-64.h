@@ -311,7 +311,7 @@
 #endif
 #endif
 
-#define MMX_TYPE			" SSE2"
+#define SIMD_TYPE_STR			" SSE2"
 
 #define NT_X86_64
 
