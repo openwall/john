@@ -2316,7 +2316,8 @@ static void DoSHA512_crypt(void *in, int ilen, void *out, unsigned int *tot_len,
 	SHA512_CTX ctx;
 	if (isSHA512)
 		SHA512_Init(&ctx);
-	else384224_Init(&ctx);
+	else
+		SHA384_Init(&ctx);
 	SHA512_Update(&ctx, in, ilen);
 	SHA512_Final(crypt_out, &ctx);
 	*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), isSHA512?64:48, tid);
