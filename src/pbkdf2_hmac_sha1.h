@@ -265,9 +265,9 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 			for (k = 0; k < SSE_GROUP_SZ_SHA1; k++) {
 				unsigned *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ + (k&(SIMD_COEF_32-1))];
 				for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++) {
-					dgst[k][j] ^= p[(j<<(SIMD_COEF_32>>1))];
+					dgst[k][j] ^= p[(j<<SIMD_COEF32_BITS)];
 #if defined (EFS_CRAP_LOGIC)
-					p[(j<<(SIMD_COEF_32>>1))] = dgst[k][j];
+					p[(j<<SIMD_COEF32_BITS)] = dgst[k][j];
 #endif
 				}
 			}
@@ -278,7 +278,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 		for (k = 0; k < SSE_GROUP_SZ_SHA1; k++) {
 			unsigned *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ + (k&(SIMD_COEF_32-1))];
 			for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++)
-				dgst[k][j] = p[(j<<(SIMD_COEF_32>>1))];
+				dgst[k][j] = p[(j<<SIMD_COEF32_BITS)];
 		}
 #endif
 

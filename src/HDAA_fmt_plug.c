@@ -66,8 +66,8 @@ static unsigned int omp_t = 1;
 #define NBKEYS					(SIMD_COEF_32 * MD5_SSE_PARA)
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + ((i)&3) + (index>>(SIMD_COEF_32>>1))*64*SIMD_COEF_32 )
-#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&0x1c)*SIMD_COEF_32 + ((i)&3) + (index>>(SIMD_COEF_32>>1))*16*SIMD_COEF_32 )
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + ((i)&3) + (index>>SIMD_COEF32_BITS)*64*SIMD_COEF_32 )
+#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&0x1c)*SIMD_COEF_32 + ((i)&3) + (index>>SIMD_COEF32_BITS)*16*SIMD_COEF_32 )
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -385,8 +385,8 @@ static inline void bin2ascii(uint32_t *conv, uint32_t *source)
 static inline void crypt_done(unsigned const int *source, unsigned int *dest, int index)
 {
 	unsigned int i;
-	unsigned const int *s = &source[(index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*4*SIMD_COEF_32];
-	unsigned int *d = &dest[(index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*4*SIMD_COEF_32];
+	unsigned const int *s = &source[(index&(SIMD_COEF_32-1)) + (index>>SIMD_COEF32_BITS)*4*SIMD_COEF_32];
+	unsigned int *d = &dest[(index&(SIMD_COEF_32-1)) + (index>>SIMD_COEF32_BITS)*4*SIMD_COEF_32];
 
 	for (i = 0; i < BINARY_SIZE / 4; i++) {
 		*d = *s;

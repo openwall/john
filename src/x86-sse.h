@@ -273,4 +273,22 @@
 #define SIMD_COEF_32 4
 #define SIMD_COEF_64 2
 
+// SIMD_COEF32_BITS can be used instead of division. So  buffer[(size)>>SIMD_COEF32_BITS]
+// would be same as buffer[(size)/SIMD_COEF_32] but without the division
+#if (SIMD_COEF_32==4)
+#define SIMD_COEF32_BITS 2
+#elif (SIMD_COEF_32==8)
+#define SIMD_COEF32_BITS 3
+#elif (SIMD_COEF_32==16)
+#define SIMD_COEF32_BITS 4
+#endif
+
+#if (SIMD_COEF_64==2)
+#define SIMD_COEF64_BITS 1
+#elif (SIMD_COEF_64==4)
+#define SIMD_COEF64_BITS 2
+#elif (SIMD_COEF_64==8)
+#define SIMD_COEF64_BITS 3
+#endif
+
 #endif

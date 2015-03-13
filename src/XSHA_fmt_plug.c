@@ -53,7 +53,7 @@ static unsigned int omp_t = 1;
 
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>(SIMD_COEF_32>>1))*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>SIMD_COEF32_BITS)*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
 
 #else
 
@@ -265,7 +265,7 @@ static void set_key(char *key, int index)
 {
 #ifdef SIMD_COEF_32
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
-	ARCH_WORD_32 *keybuffer = &saved_key[(index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*SHA_BUF_SIZ*SIMD_COEF_32 + SIMD_COEF_32];
+	ARCH_WORD_32 *keybuffer = &saved_key[(index&(SIMD_COEF_32-1)) + (index>>SIMD_COEF32_BITS)*SHA_BUF_SIZ*SIMD_COEF_32 + SIMD_COEF_32];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
@@ -344,7 +344,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned int *out = &crypt_key[i*NBKEYS*BINARY_SIZE/4];
 		unsigned int j;
 		for (j=0; j < NBKEYS; j++)
-			in[(j&(SIMD_COEF_32-1)) + (j>>(SIMD_COEF_32>>1))*SHA_BUF_SIZ*SIMD_COEF_32] = cur_salt;
+			in[(j&(SIMD_COEF_32-1)) + (j>>SIMD_COEF32_BITS)*SHA_BUF_SIZ*SIMD_COEF_32] = cur_salt;
 		SSESHA1body(in, out, NULL, SSEi_MIXED_IN);
 #if defined(_OPENMP)
 	}

@@ -87,7 +87,7 @@ static struct fmt_tests tests[] = {
 #define PLAINTEXT_LENGTH		55
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (index>>(SIMD_COEF_32>>1))*MD4_BUF_SIZ*4*SIMD_COEF_32 )
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (index>>SIMD_COEF32_BITS)*MD4_BUF_SIZ*4*SIMD_COEF_32 )
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
@@ -194,7 +194,7 @@ static int get_hash_6(int index) { return crypt_key[index][0] & 0x7ffffff; }
 static void set_key(char *_key, int index)
 {
 	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
-	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32*)saved_key)[(index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*MD4_BUF_SIZ*SIMD_COEF_32];
+	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32*)saved_key)[(index&(SIMD_COEF_32-1)) + (index>>SIMD_COEF32_BITS)*MD4_BUF_SIZ*SIMD_COEF_32];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
@@ -247,7 +247,7 @@ static char *get_key(int index)
 {
 	static char out[PLAINTEXT_LENGTH + 1];
 	unsigned int i;
-	ARCH_WORD_32 len = ((ARCH_WORD_32*)saved_key)[14*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*MD4_BUF_SIZ*SIMD_COEF_32] >> 3;
+	ARCH_WORD_32 len = ((ARCH_WORD_32*)saved_key)[14*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (index>>SIMD_COEF32_BITS)*MD4_BUF_SIZ*SIMD_COEF_32] >> 3;
 
 	for(i=0;i<len;i++)
 		out[i] = ((char*)saved_key)[GETPOS(i, index)];
@@ -290,7 +290,7 @@ static int cmp_all(void *binary, int count) {
 	int index;
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_32
-        if (((ARCH_WORD_32 *) binary)[0] == ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*4*SIMD_COEF_32])
+        if (((ARCH_WORD_32 *) binary)[0] == ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + (index>>SIMD_COEF32_BITS)*4*SIMD_COEF_32])
 #else
 		if ( ((ARCH_WORD_32*)binary)[0] == crypt_key[index][0] )
 #endif
@@ -303,7 +303,7 @@ static int cmp_one(void *binary, int index)
 #ifdef SIMD_COEF_32
     int i;
 	for (i = 0; i < BINARY_SIZE/sizeof(ARCH_WORD_32); i++)
-        if (((ARCH_WORD_32 *) binary)[i] != ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + (index>>(SIMD_COEF_32>>1))*4*SIMD_COEF_32+i*SIMD_COEF_32])
+        if (((ARCH_WORD_32 *) binary)[i] != ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + (index>>SIMD_COEF32_BITS)*4*SIMD_COEF_32+i*SIMD_COEF_32])
             return 0;
 	return 1;
 #else

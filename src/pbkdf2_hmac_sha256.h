@@ -300,7 +300,7 @@ static void pbkdf2_sha256_sse(const unsigned char *K[SIMD_COEF_32], int KL[SIMD_
 			for (k = 0; k < SSE_GROUP_SZ_SHA256; k++) {
 				ARCH_WORD_32 *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA256_BUF_SIZ + (k&(SIMD_COEF_32-1))];
 				for(j = 0; j < (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++)
-					dgst[k][j] ^= p[(j<<(SIMD_COEF_32>>1))];
+					dgst[k][j] ^= p[(j<<SIMD_COEF32_BITS)];
 			}
 		}
 

@@ -55,7 +55,7 @@ static int omp_t = 1;
 
 #define MIN_KEYS_PER_CRYPT	1
 #ifdef SIMD_COEF_32
-#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>(SIMD_COEF_32>>1))*SHA256_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>SIMD_COEF32_BITS)*SHA256_BUF_SIZ*SIMD_COEF_32*4 )
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT	(SIMD_COEF_32*SIMD_PARA_SHA256)
 #else
