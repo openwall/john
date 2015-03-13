@@ -973,4 +973,59 @@ __constant ulong K[] = {
 	W[9] = W[10] = W[11] = W[12] = W[13] = W[14] = 0; \
 	SHA512(A, B, C, D, E, F, G, H)
 
+#ifdef SCALAR
+#define sha512_single_s		sha512_single
+#else
+
+/* Raw'n'lean single-block SHA-512, no context[tm] */
+inline void sha512_single_s(ulong *W, ulong *output) {
+	ulong A, B, C, D, E, F, G, H, t;
+
+	A = INIT_A;
+	B = INIT_B;
+	C = INIT_C;
+	D = INIT_D;
+	E = INIT_E;
+	F = INIT_F;
+	G = INIT_G;
+	H = INIT_H;
+
+	SHA512(A, B, C, D, E, F, G, H)
+
+	output[0] = A + INIT_A;
+	output[1] = B + INIT_B;
+	output[2] = C + INIT_C;
+	output[3] = D + INIT_D;
+	output[4] = E + INIT_E;
+	output[5] = F + INIT_F;
+	output[6] = G + INIT_G;
+	output[7] = H + INIT_H;
+}
+#endif
+
+/* Raw'n'lean single-block SHA-512, no context[tm] */
+inline void sha512_single(MAYBE_VECTOR_ULONG *W, MAYBE_VECTOR_ULONG *output) {
+	MAYBE_VECTOR_ULONG A, B, C, D, E, F, G, H, t;
+
+	A = INIT_A;
+	B = INIT_B;
+	C = INIT_C;
+	D = INIT_D;
+	E = INIT_E;
+	F = INIT_F;
+	G = INIT_G;
+	H = INIT_H;
+
+	SHA512(A, B, C, D, E, F, G, H)
+
+	output[0] = A + INIT_A;
+	output[1] = B + INIT_B;
+	output[2] = C + INIT_C;
+	output[3] = D + INIT_D;
+	output[4] = E + INIT_E;
+	output[5] = F + INIT_F;
+	output[6] = G + INIT_G;
+	output[7] = H + INIT_H;
+}
+
 #endif /* _OPENCL_SHA2_H */

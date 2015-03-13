@@ -197,8 +197,8 @@ inline void sha1_mblock(uint *Win, uint *out, uint blocks)
 }
 
 /* This version has less overhead but destroys input */
-inline void sha1_block(uint *W, uint *output) {
-	uint A, B, C, D, E, temp;
+inline void sha1_block(MAYBE_VECTOR_UINT *W, MAYBE_VECTOR_UINT *output) {
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 
 	A = output[0];
 	B = output[1];
