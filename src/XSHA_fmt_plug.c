@@ -353,7 +353,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int i;
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(i) shared(ctx_salt, count, saved_key, saved_key_length, crypt_out)
+#pragma omp parallel for default(none) private(i) shared(ctx_salt, saved_key, saved_key_length, crypt_out)
 #endif
 	for (i = 0; i < count; i++) {
 		SHA_CTX ctx;

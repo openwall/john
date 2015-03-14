@@ -369,9 +369,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #ifndef SIMD_COEF_64
 #ifdef PRECOMPUTE_CTX_FOR_SALT
-#pragma omp parallel for default(none) private(i) shared(inc, ctx_salt, count, saved_key, saved_key_length, crypt_out)
+#pragma omp parallel for default(none) private(i) shared(inc, ctx_salt, saved_key, saved_key_length, crypt_out)
 #else
-#pragma omp parallel for default(none) private(i) shared(inc, saved_salt, count, saved_key, saved_key_length, crypt_out)
+#pragma omp parallel for default(none) private(i) shared(inc, saved_salt, saved_key, saved_key_length, crypt_out)
 #endif
 #else
 #pragma omp parallel for
