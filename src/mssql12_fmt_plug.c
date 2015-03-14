@@ -181,12 +181,12 @@ static void init(struct fmt_main *self)
 		self->methods.set_key = set_key_enc;
 }
 
+#ifdef SIMD_COEF_64
 static void clear_keys()
 {
-#ifdef SIMD_COEF_64
 	memset(saved_key, 0, sizeof(*saved_key) * max_keys);
-#endif
 }
+#endif
 
 static void set_key(char *_key, int index)
 {
