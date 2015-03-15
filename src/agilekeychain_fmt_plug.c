@@ -108,7 +108,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 15;
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* nkeys */
 		goto err;
-	if(atoi(p) > 2)
+	if('0' != *p && '1' != *p && '2' != *p) /* must be '0' or '1' or '2' */
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
 		goto err;
