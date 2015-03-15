@@ -15,6 +15,9 @@
 #ifndef _JOHN_ARCH_H
 #define _JOHN_ARCH_H
 
+#if AC_BUILT
+#include "autoconfig.h"
+#else
 #define ARCH_WORD			long
 #define ARCH_SIZE			8
 #define ARCH_BITS			64
@@ -22,6 +25,8 @@
 #define ARCH_BITS_STR			"64"
 #define ARCH_LITTLE_ENDIAN		1
 #define ARCH_INT_GT_32			0
+#endif
+
 #define ARCH_ALLOWS_UNALIGNED		0
 #define ARCH_INDEX(x)			((unsigned int)(unsigned char)(x))
 
