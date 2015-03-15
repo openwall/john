@@ -1,5 +1,24 @@
 # *John the Ripper* [![Build Status](https://travis-ci.org/magnumripper/JohnTheRipper.svg)](https://travis-ci.org/magnumripper/JohnTheRipper) [![License](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)] (https://github.com/magnumripper/JohnTheRipper/blob/readme/doc/LICENSE) [![Downloads](https://img.shields.io/badge/Download-zip%20file-yellowgreen.svg)] (https://github.com/magnumripper/JohnTheRipper/archive/bleeding-jumbo.zip) #
 
+This is a community-enhanced, "jumbo" version of John the Ripper.
+It has a lot of code, documentation, and data contributed by the
+user community.  This is not "official" John the Ripper code.  It is
+very easy for new code to be added to jumbo: the quality requirements
+are low.  This means that you get a lot of functionality that is not
+"mature" enough or is otherwise inappropriate for the official JtR,
+which in turn also means that bugs in this code are to be expected.
+
+If you have any comments on this release or on JtR in general, please
+join the john-users mailing list and post in there.
+
+Licensing info:
+http://openwall.info/wiki/john/licensing
+
+How to contribute more code:
+http://openwall.info/wiki/how-to-make-patches
+
+---
+
 	John the Ripper password cracker.
 
 John the Ripper is a fast password cracker, currently available for
@@ -157,5 +176,3 @@ the recommended order of reading:
 (*) most users can safely skip these.
 
 Happy reading!
-
-$Owl: Owl/packages/john/john/doc/README,v 1.25 2013/05/30 00:22:14 solar Exp $
