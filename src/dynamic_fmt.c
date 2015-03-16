@@ -709,47 +709,29 @@ static void init(struct fmt_main *pFmt)
 	pPriv->pFmtMain = pFmt;
 #ifdef _OPENMP
 	m_ompt = omp_get_max_threads();
-	mem_calloc_tiny(1, MEM_ALIGN_WORD); // throw this one away, to get our allocations memory aligned
-#if ARCH_ALLOWS_UNALIGNED
-	md5_unicode_convert = (int*)mem_calloc_tiny(sizeof(int)*m_ompt, MEM_ALIGN_NONE);
-	eLargeOut = (eLargeOut_t*)mem_calloc_tiny(sizeof(eLargeOut_t)*m_ompt, MEM_ALIGN_NONE);
-#else
-	md5_unicode_convert = (int*)mem_calloc_tiny(sizeof(int)*m_ompt, MEM_ALIGN_WORD);
-	eLargeOut = (eLargeOut_t*)mem_calloc_tiny(sizeof(eLargeOut_t)*m_ompt, MEM_ALIGN_WORD);
-#endif
+	md5_unicode_convert = (int*)mem_calloc(m_ompt, sizeof(int));
+	eLargeOut = (eLargeOut_t*)mem_calloc(m_ompt, sizeof(eLargeOut_t));
 	for (i = 0; i < m_ompt; ++i)
 		eLargeOut[i] = eBase16;
 #else
-#if ARCH_ALLOWS_UNALIGNED
-	md5_unicode_convert = (int*)mem_calloc_tiny(sizeof(int), MEM_ALIGN_NONE);
-	eLargeOut = (eLargeOut_t*)mem_calloc_tiny(sizeof(eLargeOut_t), MEM_ALIGN_NONE);
-#else
-	md5_unicode_convert = (int*)mem_calloc_tiny(sizeof(int), MEM_ALIGN_WORD);
-	eLargeOut = (eLargeOut_t*)mem_calloc_tiny(sizeof(eLargeOut_t), MEM_ALIGN_WORD);
-#endif
+	md5_unicode_convert = (int*)mem_calloc(1, sizeof(int));
+	eLargeOut = (eLargeOut_t*)mem_calloc(1, sizeof(eLargeOut_t));
 	eLargeOut[0] = eBase16;
 #endif
 #ifdef SIMD_COEF_32
-	if (!input_buf) {
-		input_buf  = mem_calloc_tiny(MMX_INP_BUF_SZ,    MEM_ALIGN_SIMD);
-		total_len  = mem_calloc_tiny(MMX_TOT_LEN_SZ,    MEM_ALIGN_SIMD);
-		total_len2 = mem_calloc_tiny(MMX_TOT_LEN2_SZ,   MEM_ALIGN_SIMD);
-		input_buf2 = mem_calloc_tiny(MMX_INP_BUF2_SZ,   MEM_ALIGN_SIMD);
-		crypt_key  = mem_calloc_tiny(MMX_CRYPT_KEY_SZ,  MEM_ALIGN_SIMD);
-		crypt_key2 = mem_calloc_tiny(MMX_CRYPT_KEY2_SZ, MEM_ALIGN_SIMD);
-	}
+	input_buf  = mem_calloc(1, MMX_INP_BUF_SZ);
+	total_len  = mem_calloc(1, MMX_TOT_LEN_SZ);
+	total_len2 = mem_calloc(1, MMX_TOT_LEN2_SZ);
+	input_buf2 = mem_calloc(1, MMX_INP_BUF2_SZ);
+	crypt_key  = mem_calloc(1, MMX_CRYPT_KEY_SZ);
+	crypt_key2 = mem_calloc(1, MMX_CRYPT_KEY2_SZ);
 #endif
-	if (!crypt_key_X86) {
-		// we have to align SIMD, since now we may load directly from these buffers (or save to them), in
-		// large hash SIMD code (sha256, etc).  Also 1 larger in the array, since we might point 'extra'
-		// hashes past the end of our buffer to that value.
-		crypt_key_X86  = (MD5_OUT *)mem_calloc_tiny(sizeof(*crypt_key_X86)*((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1),	MEM_ALIGN_SIMD);
-		crypt_key2_X86 = (MD5_OUT *)mem_calloc_tiny(sizeof(*crypt_key2_X86)*((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1),	MEM_ALIGN_SIMD);
-		input_buf_X86  = (MD5_IN *)mem_calloc_tiny(sizeof(*input_buf_X86)*((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1),		MEM_ALIGN_SIMD);
-		input_buf2_X86 = (MD5_IN *)mem_calloc_tiny(sizeof(*input_buf2_X86)*((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1),	MEM_ALIGN_SIMD);
-		total_len_X86  = (unsigned int *)mem_calloc_tiny(sizeof(*total_len_X86)*(MAX_KEYS_PER_CRYPT_X86+1),			sizeof(*total_len_X86));
-		total_len2_X86 = (unsigned int *)mem_calloc_tiny(sizeof(*total_len2_X86)*(MAX_KEYS_PER_CRYPT_X86+1),		sizeof(*total_len2_X86));
-	}
+	crypt_key_X86  = (MD5_OUT *)mem_calloc(((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1), sizeof(*crypt_key_X86));
+	crypt_key2_X86 = (MD5_OUT *)mem_calloc(((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1), sizeof(*crypt_key2_X86));
+	input_buf_X86  = (MD5_IN *)mem_calloc(((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1), sizeof(*input_buf_X86));
+	input_buf2_X86 = (MD5_IN *)mem_calloc(((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1), sizeof(*input_buf2_X86));
+	total_len_X86  = (unsigned int *)mem_calloc((MAX_KEYS_PER_CRYPT_X86+1), sizeof(*total_len_X86));
+	total_len2_X86 = (unsigned int *)mem_calloc((MAX_KEYS_PER_CRYPT_X86+1), sizeof(*total_len2_X86));
 
 	gost_init_table();
 	if (!pPriv || (pPriv->init == 1 && !strcmp(curdat.dynamic_WHICH_TYPE_SIG, pPriv->dynamic_WHICH_TYPE_SIG)))
@@ -865,6 +847,26 @@ static void init(struct fmt_main *pFmt)
 		}
 #endif
 	}
+}
+
+static void done()
+{
+	MEM_FREE(total_len2_X86);
+	MEM_FREE(total_len_X86);
+	MEM_FREE(input_buf2_X86);
+	MEM_FREE(input_buf_X86);
+	MEM_FREE(crypt_key2_X86);
+	MEM_FREE(crypt_key_X86);
+#ifdef SIMD_COEF_32
+	MEM_FREE(crypt_key2);
+	MEM_FREE(crypt_key);
+	MEM_FREE(input_buf2);
+	MEM_FREE(total_len2);
+	MEM_FREE(total_len);
+	MEM_FREE(input_buf);
+#endif
+	MEM_FREE(eLargeOut);
+	MEM_FREE(md5_unicode_convert);
 }
 
 /*********************************************************************************
@@ -2588,7 +2590,7 @@ static struct fmt_main fmt_Dynamic =
 	}, {
 		init,
 #if FMT_MAIN_VERSION > 10
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 #endif
 		prepare,
