@@ -321,7 +321,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 5;	/* skip over "$gpg$" marker */
+	ctcopy += 6;	/* skip over "$gpg$" marker and '*' */
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* algorithm */
 		goto err;
 	algorithm = atoi(p);
@@ -737,7 +737,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 5;	/* skip over "$gpg$" marker */
+	ctcopy += 6;	/* skip over "$gpg$" marker and first '*' */
 	p = strtok(ctcopy, "*");
 	cs.pk_algorithm = atoi(p);
 	p = strtok(NULL, "*");
