@@ -200,6 +200,15 @@ void *mem_alloc_copy_func(void *src, size_t size, size_t align
 #endif
 }
 
+void *mem_alloc_align(size_t size, int align, unsigned char **real_ptr) {
+	*real_ptr = mem_alloc(size+align);
+	return mem_align(*real_ptr, align);
+}
+void *mem_calloc_align(size_t size, size_t count, int align, unsigned char **real_ptr) {
+	*real_ptr = mem_calloc(1, count*size+align);
+	return mem_align(*real_ptr, align);
+}
+
 char *str_alloc_copy_func(char *src
 #if defined (MEMDBG_ON)
 	, char *file, int line
