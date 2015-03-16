@@ -67,4 +67,4 @@ Since Linux and *BSD distributions' packages of John typically use make
 targets other than "generic" and since they typically use gcc, they are
 usually not affected by this potential problem.
 
-$Owl: Owl/packages/john/john/doc/INSTALL,v 1.5 2010/05/27 13:37:48 solar Exp $
+$Owl$

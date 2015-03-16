@@ -342,4 +342,4 @@ speed it up on a sufficiently large computer (RAM and CPUs), "&" may be
 added after the John invocation inside the script (to run all of them in
 parallel).
 
-$Owl: Owl/packages/john/john/doc/OPTIONS,v 1.19 2013/05/29 20:20:08 solar Exp $
+$Owl$
