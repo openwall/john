@@ -96,9 +96,9 @@ static void init(struct fmt_main *self)
 		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
 		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	ipad_ctx = mem_calloc_tiny(sizeof(*opad_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	ipad_ctx = mem_calloc_tiny(sizeof(*ipad_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	opad_ctx = mem_calloc_tiny(sizeof(*opad_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	ipad_mctx = mem_calloc_tiny(sizeof(*opad_mctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	ipad_mctx = mem_calloc_tiny(sizeof(*ipad_mctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	opad_mctx = mem_calloc_tiny(sizeof(*opad_mctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
