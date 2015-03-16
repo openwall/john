@@ -720,14 +720,10 @@ static void init(struct fmt_main *pFmt)
 	eLargeOut[0] = eBase16;
 #endif
 #ifdef SIMD_COEF_32
-	SIMD_ptr1 = mem_calloc(1,MMX_INP_BUF_SZ+16);
-	input_buf = mem_align(SIMD_ptr1,16);
-	SIMD_ptr2 = mem_calloc(1,MMX_INP_BUF2_SZ+16);
-	input_buf2 = mem_align(SIMD_ptr2,16);
-	SIMD_ptr3 = mem_calloc(1,MMX_CRYPT_KEY_SZ+16);
-	crypt_key = mem_align(SIMD_ptr3,16);
-	SIMD_ptr4 = mem_calloc(1,MMX_CRYPT_KEY2_SZ+16);
-	crypt_key2 = mem_align(SIMD_ptr4,16);
+	input_buf = mem_calloc_align(1,MMX_INP_BUF_SZ, MEM_ALIGN_SIMD, &SIMD_ptr1);
+	input_buf2 = mem_calloc(1,MMX_INP_BUF2_SZ, MEM_ALIGN_SIMD, &SIMD_ptr1);
+	crypt_key = mem_calloc(1,MMX_CRYPT_KEY_SZ, MEM_ALIGN_SIMD, &SIMD_ptr1);
+	crypt_key2 = mem_calloc(1,MMX_CRYPT_KEY2_SZ, MEM_ALIGN_SIMD, &SIMD_ptr1);
 	total_len  = mem_calloc(1, MMX_TOT_LEN_SZ);
 	total_len2 = mem_calloc(1, MMX_TOT_LEN2_SZ);
 #endif
