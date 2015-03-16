@@ -109,7 +109,7 @@ static void init(struct fmt_main *self)
 #endif
 #ifdef SIMD_COEF_32
 	bufsize = sizeof(*opad) * self->params.max_keys_per_crypt * SHA256_BUF_SIZ * 4;
-	crypt_key = mem_calloc_align(1, bufsize+16, MEM_ALIGN_SIMD, &SIMD_ptr1);
+	crypt_key = mem_calloc_align(1, bufsize, MEM_ALIGN_SIMD, &SIMD_ptr1);
 	ipad = mem_calloc_align(1, bufsize, MEM_ALIGN_SIMD, &SIMD_ptr2);
 	opad = mem_calloc_align(1, bufsize, MEM_ALIGN_SIMD, &SIMD_ptr3);
 	prep_ipad = mem_calloc_align(1, self->params.max_keys_per_crypt*BINARY_SIZE_256*sizeof(*prep_ipad), MEM_ALIGN_SIMD, &SIMD_ptr4);
