@@ -109,7 +109,7 @@ static int new_keys;
 #else
 static char (*saved_key)[(PLAINTEXT_LENGTH + 1) * 2 + SALT_SIZE];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / 4];
-static int *key_length;
+static int *saved_len;
 #endif
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -163,15 +163,17 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
 #ifdef SIMD_COEF_64
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt/SIMD_COEF_64, MEM_ALIGN_SIMD);
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt/SIMD_COEF_64,
+	                       sizeof(*crypt_out));
 	max_keys = self->params.max_keys_per_crypt;
 #else
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	key_length = mem_calloc_tiny(sizeof(*key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_out));
+	saved_len = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_len));
 #endif
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
@@ -179,6 +181,15 @@ static void init(struct fmt_main *self)
 	if (pers_opts.target_enc != ISO_8859_1 &&
 	         pers_opts.target_enc != ASCII)
 		self->methods.set_key = set_key_enc;
+}
+
+static void done()
+{
+#ifndef SIMD_COEF_64
+	MEM_FREE(saved_len);
+#endif
+	MEM_FREE(crypt_out);
+	MEM_FREE(saved_key);
 }
 
 #ifdef SIMD_COEF_64
@@ -195,14 +206,14 @@ static void set_key(char *_key, int index)
 	UTF8 *s = (UTF8*)_key;
 	UTF16 *d = (UTF16*)saved_key[index];
 
-	for (key_length[index] = 0; s[key_length[index]]; key_length[index]++)
+	for (saved_len[index] = 0; s[saved_len[index]]; saved_len[index]++)
 #if ARCH_LITTLE_ENDIAN
-		d[key_length[index]] = s[key_length[index]];
+		d[saved_len[index]] = s[saved_len[index]];
 #else
-		d[key_length[index]] = s[key_length[index]] << 8;
+		d[saved_len[index]] = s[saved_len[index]] << 8;
 #endif
-	d[key_length[index]] = 0;
-	key_length[index] <<= 1;
+	d[saved_len[index]] = 0;
+	saved_len[index] <<= 1;
 #else
 	ARCH_WORD_64 *keybuffer = saved_key[index];
 	unsigned short *w16 = (unsigned short*)keybuffer;
@@ -222,12 +233,12 @@ static void set_key_enc(char *_key, int index)
 {
 #ifndef SIMD_COEF_64
 	/* Any encoding -> UTF-16 */
-	key_length[index] = enc_to_utf16((UTF16*)saved_key[index],
+	saved_len[index] = enc_to_utf16((UTF16*)saved_key[index],
 	                                 PLAINTEXT_LENGTH,
 	                                 (unsigned char*)_key, strlen(_key));
-	if (key_length[index] < 0)
-		key_length[index] = strlen16((UTF16*)saved_key[index]);
-	key_length[index] <<= 1;
+	if (saved_len[index] < 0)
+		saved_len[index] = strlen16((UTF16*)saved_key[index]);
+	saved_len[index] <<= 1;
 #else
 	ARCH_WORD_64 *keybuffer = saved_key[index];
 	UTF16 *w16 = (UTF16*)keybuffer;
@@ -248,7 +259,7 @@ static void set_key_enc(char *_key, int index)
 static char *get_key(int index)
 {
 #ifndef SIMD_COEF_64
-	((UTF16*)saved_key[index])[key_length[index]>>1] = 0;
+	((UTF16*)saved_key[index])[saved_len[index]>>1] = 0;
 	return (char*)utf16_to_enc((UTF16*)saved_key[index]);
 #else
 	ARCH_WORD_64 *keybuffer = saved_key[index];
@@ -334,9 +345,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SSESHA512body(&saved_key[index], crypt_out[index/SIMD_COEF_64], NULL, SSEi_FLAT_IN);
 #else
 		SHA512_CTX ctx;
-		memcpy(saved_key[index]+key_length[index], cursalt, SALT_SIZE);
+		memcpy(saved_key[index]+saved_len[index], cursalt, SALT_SIZE);
 		SHA512_Init(&ctx );
-		SHA512_Update(&ctx, saved_key[index], key_length[index]+SALT_SIZE );
+		SHA512_Update(&ctx, saved_key[index], saved_len[index]+SALT_SIZE );
 		SHA512_Final((unsigned char *)crypt_out[index], &ctx);
 #endif
 	}
@@ -411,7 +422,7 @@ struct fmt_main fmt_mssql12 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

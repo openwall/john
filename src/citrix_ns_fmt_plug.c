@@ -103,7 +103,7 @@ static unsigned char (*crypt_key)[BINARY_SIZE * NBKEYS];
 static int kpc;
 #else
 static char saved_salt[SALT_SIZE];
-static char (*saved_plain)[PLAINTEXT_LENGTH + 1];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / 4];
 #endif
 
@@ -118,13 +118,23 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 #ifdef SIMD_COEF_32
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt / NBKEYS, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt / NBKEYS, MEM_ALIGN_SIMD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt / NBKEYS,
+	                       sizeof(*saved_key));
+	crypt_key = mem_calloc(self->params.max_keys_per_crypt / NBKEYS,
+	                       sizeof(*crypt_key));
 	kpc = self->params.max_keys_per_crypt;
 #else
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_key));
 #endif
+}
+
+static void done()
+{
+	MEM_FREE(crypt_key);
+	MEM_FREE(saved_key);
 }
 
 static void *binary(char *ciphertext)
@@ -213,7 +223,7 @@ key_cleaning:
 
 	((unsigned int*)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 #else
-	strnzcpy(saved_plain[index], key, PLAINTEXT_LENGTH + 1);
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 #endif
 }
 
@@ -229,7 +239,7 @@ static char *get_key(int index)
 	out[i] = 0;
 	return out;
 #else
-	return saved_plain[index];
+	return saved_key[index];
 #endif
 }
 
@@ -332,7 +342,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, (unsigned char*)saved_salt, SALT_SIZE);
-		SHA1_Update(&ctx, (unsigned char*)saved_plain[index], strlen(saved_plain[index]) + 1);
+		SHA1_Update(&ctx, (unsigned char*)saved_key[index], strlen(saved_key[index]) + 1);
 		SHA1_Final((unsigned char*)crypt_key[index], &ctx);
 #endif
 	}
@@ -385,7 +395,7 @@ struct fmt_main fmt_ctrxns = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

@@ -77,6 +77,7 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 static void get_ptr();
 static void init(struct fmt_main *self);
+static void done();
 
 #define MAGIC 0xfe5dd5ef
 
@@ -305,7 +306,7 @@ struct fmt_main fmt_netmd5 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		prepare,
 		valid,
@@ -371,8 +372,16 @@ static void init(struct fmt_main *self)
 		pDynamicFmt = dynamic_THIN_FORMAT_LINK(pNetMd5_Dyna, Convert(Conv_Buf, tests[1].ciphertext), "net-md5", 1);
 		self->private.initialized = 1;
 	}
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_out));
+}
+
+static void done()
+{
+	MEM_FREE(crypt_out);
+	MEM_FREE(saved_key);
 }
 
 #endif /* plugin stanza */

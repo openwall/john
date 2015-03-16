@@ -260,9 +260,17 @@ static void sha1_fmt_init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 
-    M   = mem_calloc_tiny(sizeof(*M)  * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-    N   = mem_calloc_tiny(sizeof(*N)  * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-    MD  = mem_calloc_tiny(sizeof(*MD) * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	M   = mem_calloc(self->params.max_keys_per_crypt, sizeof(*M));
+	N   = mem_calloc(self->params.max_keys_per_crypt, sizeof(*N));
+	MD  = mem_calloc(self->params.max_keys_per_crypt, sizeof(*MD));
+}
+
+
+static void done()
+{
+	MEM_FREE(MD);
+	MEM_FREE(N);
+	MEM_FREE(M);
 }
 
 
@@ -763,7 +771,7 @@ struct fmt_main fmt_sha1_ng = {
     },
     .methods                = {
         .init               = sha1_fmt_init,
-        .done               = fmt_default_done,
+        .done               = done,
         .reset              = fmt_default_reset,
         .prepare            = fmt_default_prepare,
         .valid              = sha1_fmt_valid,

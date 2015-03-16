@@ -72,7 +72,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static int (*saved_key_length);
+static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)
     [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
@@ -87,10 +87,20 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_len = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_len));
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_out));
 	KeccakInitialize();
+}
+
+static void done()
+{
+	MEM_FREE(crypt_out);
+	MEM_FREE(saved_key);
+	MEM_FREE(saved_len);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -177,15 +187,15 @@ static int get_hash_6(int index)
 static void set_key(char *key, int index)
 {
 	int len = strlen(key);
-	saved_key_length[index] = len;
+	saved_len[index] = len;
 	if (len > PLAINTEXT_LENGTH)
-		len = saved_key_length[index] = PLAINTEXT_LENGTH;
+		len = saved_len[index] = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, len);
 }
 
 static char *get_key(int index)
 {
-	saved_key[index][saved_key_length[index]] = 0;
+	saved_key[index][saved_len[index]] = 0;
 	return saved_key[index];
 }
 
@@ -198,7 +208,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index++)
 	{
-		Hash(256, (BitSequence *)saved_key[index], saved_key_length[index] * 8, (BitSequence *)crypt_out[index]);
+		Hash(256, (BitSequence *)saved_key[index], saved_len[index] * 8, (BitSequence *)crypt_out[index]);
 	}
 	return count;
 }
@@ -248,7 +258,7 @@ struct fmt_main fmt_rawKeccak_256 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
