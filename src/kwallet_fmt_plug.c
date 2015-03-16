@@ -95,6 +95,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(ctcopy, "$")) == NULL)	/* ctlen */
 		goto err;
 	res = atoi(p);
+	if (!res)
+		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* ct */
 		goto err;
 	if(strlen(p) != res * 2)
