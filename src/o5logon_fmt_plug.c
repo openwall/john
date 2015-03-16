@@ -82,22 +82,29 @@ static aes_fptr_cbc aesFunc;
 
 static void init(struct fmt_main *self)
 {
-	char *Buf;
+	static char Buf[128];
+
 #ifdef _OPENMP
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	cracked = mem_calloc_tiny(sizeof(*cracked) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	cracked = mem_calloc(self->params.max_keys_per_crypt,
+	                     sizeof(*cracked));
 
 	aesFunc = get_AES_dec192_CBC();
-	Buf = mem_alloc_tiny(128, 1);
-	sprintf(Buf, "%s %s", self->params.algorithm_name, get_AES_type_string());
+	sprintf(Buf, "%s %s", self->params.algorithm_name,
+	        get_AES_type_string());
 	self->params.algorithm_name=Buf;
+}
+
+static void done()
+{
+	MEM_FREE(cracked);
+	MEM_FREE(saved_key);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -252,7 +259,7 @@ struct fmt_main fmt_o5logon = {
 		o5logon_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

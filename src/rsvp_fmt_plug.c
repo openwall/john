@@ -90,16 +90,31 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_len = mem_calloc_tiny(sizeof(*saved_len) *
-		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
-		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	ipad_ctx = mem_calloc_tiny(sizeof(*opad_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	opad_ctx = mem_calloc_tiny(sizeof(*opad_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	ipad_mctx = mem_calloc_tiny(sizeof(*opad_mctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	opad_mctx = mem_calloc_tiny(sizeof(*opad_mctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	saved_len = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_len));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_out));
+	ipad_ctx  = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*opad_ctx));
+	opad_ctx  = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*opad_ctx));
+	ipad_mctx = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*opad_mctx));
+	opad_mctx = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*opad_mctx));
+}
+
+static void done()
+{
+	MEM_FREE(opad_mctx);
+	MEM_FREE(ipad_mctx);
+	MEM_FREE(opad_ctx);
+	MEM_FREE(ipad_ctx);
+	MEM_FREE(crypt_out);
+	MEM_FREE(saved_len);
+	MEM_FREE(saved_key);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -363,7 +378,7 @@ struct fmt_main fmt_rsvp = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

@@ -98,7 +98,7 @@ static struct fmt_tests tests[] = {
 static ARCH_WORD_32 (*saved_key)[MD4_BUF_SIZ*NBKEYS];
 static ARCH_WORD_32 (*crypt_key)[DIGEST_SIZE/4*NBKEYS];
 #else
-static int (*saved_key_length);
+static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_key)[4];
 #endif
@@ -114,12 +114,26 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 #ifndef SIMD_COEF_32
-	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_len = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_len));
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_key));
 #else
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt/NBKEYS, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt/NBKEYS, MEM_ALIGN_SIMD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt/NBKEYS,
+	                       sizeof(*saved_key));
+	crypt_key = mem_calloc(self->params.max_keys_per_crypt/NBKEYS,
+	                       sizeof(*crypt_key));
+#endif
+}
+
+static void done()
+{
+	MEM_FREE(crypt_key);
+	MEM_FREE(saved_key);
+#ifndef SIMD_COEF_32
+	MEM_FREE(saved_len);
 #endif
 }
 
@@ -237,7 +251,7 @@ key_cleaning:
 static void set_key(char *key, int index)
 {
 	int len = strlen(key);
-	saved_key_length[index] = len;
+	saved_len[index] = len;
 	memcpy(saved_key[index], key, len);
 }
 #endif
@@ -257,7 +271,7 @@ static char *get_key(int index)
 #else
 static char *get_key(int index)
 {
-	saved_key[index][saved_key_length[index]] = 0;
+	saved_key[index][saved_len[index]] = 0;
 	return saved_key[index];
 }
 #endif
@@ -279,7 +293,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 		MD4_CTX ctx;
 		MD4_Init(&ctx);
-		MD4_Update(&ctx, saved_key[index], saved_key_length[index]);
+		MD4_Update(&ctx, saved_key[index], saved_len[index]);
 		MD4_Final((unsigned char *)crypt_key[index], &ctx);
 #endif
 	}
@@ -362,7 +376,7 @@ struct fmt_main fmt_rawMD4 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

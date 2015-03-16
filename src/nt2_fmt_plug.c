@@ -176,11 +176,22 @@ static void init(struct fmt_main *self)
 		}
 	}
 #if SIMD_COEF_32
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * 64*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * DIGEST_SIZE*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	buf_ptr = mem_calloc_tiny(sizeof(*buf_ptr) * self->params.max_keys_per_crypt, sizeof(*buf_ptr));
+	saved_key = mem_calloc(64*self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	crypt_key = mem_calloc(DIGEST_SIZE*self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_key));
+	buf_ptr = mem_calloc(self->params.max_keys_per_crypt, sizeof(*buf_ptr));
 	for (i=0; i<self->params.max_keys_per_crypt; i++)
 		buf_ptr[i] = (unsigned int*)&saved_key[GETPOS(0, i)];
+#endif
+}
+
+static void done()
+{
+#if SIMD_COEF_32
+	MEM_FREE(buf_ptr);
+	MEM_FREE(crypt_key);
+	MEM_FREE(saved_key);
 #endif
 }
 
@@ -726,7 +737,7 @@ struct fmt_main fmt_NT2 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		prepare,
 		valid,

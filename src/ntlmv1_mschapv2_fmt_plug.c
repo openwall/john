@@ -151,7 +151,7 @@ extern volatile int bench_running;
 static unsigned char *saved_key;
 #else
 static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int (*saved_key_length);
+static int (*saved_len);
 #endif
 
 static unsigned short (*crypt_key);
@@ -750,7 +750,7 @@ key_cleaning:
 	while (*s)
 		*d++ = *s++;
 	*d = 0;
-	saved_key_length[index] = (int)((char*)d - (char*)saved_key[index]);
+	saved_len[index] = (int)((char*)d - (char*)saved_key[index]);
 #else
 	UTF8 *s = (UTF8*)_key;
 	UTF8 *d = (UTF8*)saved_key[index];
@@ -759,7 +759,7 @@ key_cleaning:
 		++d;
 	}
 	*d = 0;
-	saved_key_length[index] = (int)((char*)d - (char*)saved_key[index]);
+	saved_len[index] = (int)((char*)d - (char*)saved_key[index]);
 #endif
 #endif
 	keys_prepared = 0;
@@ -802,12 +802,12 @@ key_cleaning_enc:
 	((unsigned int*)saved_key)[14*SIMD_COEF_32 + (index&3) +
 	                           (index>>2)*16*SIMD_COEF_32] = len << 4;
 #else
-	saved_key_length[index] = enc_to_utf16(saved_key[index],
+	saved_len[index] = enc_to_utf16(saved_key[index],
 	                                       PLAINTEXT_LENGTH + 1,
 	                                       (uchar*)_key,
 	                                       strlen(_key)) << 1;
-	if (saved_key_length[index] < 0)
-		saved_key_length[index] = strlen16(saved_key[index]);
+	if (saved_len[index] < 0)
+		saved_len[index] = strlen16(saved_key[index]);
 #endif
 	keys_prepared = 0;
 }
@@ -939,12 +939,12 @@ bailout:
 	((unsigned int*)saved_key)[14*SIMD_COEF_32 + (index&3) +
 	                           (index>>2)*16*SIMD_COEF_32] = len << 4;
 #else
-	saved_key_length[index] = utf8_to_utf16(saved_key[index],
+	saved_len[index] = utf8_to_utf16(saved_key[index],
 	                                        PLAINTEXT_LENGTH + 1,
 	                                        (uchar*)_key,
 	                                        strlen(_key)) << 1;
-	if (saved_key_length[index] < 0)
-		saved_key_length[index] = strlen16(saved_key[index]);
+	if (saved_len[index] < 0)
+		saved_len[index] = strlen16(saved_key[index]);
 #endif
 	keys_prepared = 0;
 }
@@ -967,35 +967,34 @@ static void init(struct fmt_main *self)
 			self->methods.set_key = set_key_CP;
 	}
 #if SIMD_COEF_32
-	saved_key =
-		mem_calloc_tiny(sizeof(*saved_key) * 64 *
-		                self->params.max_keys_per_crypt,
-		                MEM_ALIGN_SIMD);
-	nthash =
-		mem_calloc_tiny(sizeof(*nthash) * 16 *
-		                self->params.max_keys_per_crypt,
-		                MEM_ALIGN_SIMD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key) * 64);
 #else
-	saved_key =
-		mem_calloc_tiny(sizeof(*saved_key) *
-		                self->params.max_keys_per_crypt,
-		                MEM_ALIGN_WORD);
-	saved_key_length =
-		mem_calloc_tiny(sizeof(*saved_key_length) *
-		                self->params.max_keys_per_crypt,
-		                MEM_ALIGN_WORD);
-	nthash =
-		mem_calloc_tiny(sizeof(*nthash) * 16 *
-		                self->params.max_keys_per_crypt,
-		                MEM_ALIGN_WORD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	saved_len = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_len));
 #endif
-	crypt_key =
-		mem_calloc_tiny(sizeof(unsigned short) *
-		                self->params.max_keys_per_crypt,
-		                MEM_ALIGN_CACHE);
-	bitmap = mem_calloc_tiny(0x10000 / 8, MEM_ALIGN_CACHE);
+	nthash    = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*nthash) * 16);
+	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(unsigned short));
+	if (bitmap == NULL)
+		bitmap = mem_calloc_tiny(0x10000 / 8, MEM_ALIGN_CACHE);
+	else
+		memset(bitmap, 0, 0x10000 / 8);
 	use_bitmap = 0; /* we did not use bitmap yet */
 	cmps_per_crypt = 2; /* try bitmap */
+}
+
+static void done()
+{
+	MEM_FREE(crypt_key);
+	MEM_FREE(nthash);
+#ifndef SIMD_COEF_32
+	MEM_FREE(saved_len);
+#endif
+	MEM_FREE(saved_key);
 }
 
 // Get the key back from the key buffer, from UCS-2
@@ -1156,7 +1155,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD4_CTX ctx;
 
 			MD4_Init( &ctx );
-			MD4_Update(&ctx, saved_key[i], saved_key_length[i]);
+			MD4_Update(&ctx, saved_key[i], saved_len[i]);
 			MD4_Final((uchar*)&nthash[i * 16], &ctx);
 
 			crypt_key[i] = ((unsigned short*)&nthash[i * 16])[7];
@@ -1324,7 +1323,7 @@ struct fmt_main fmt_MSCHAPv2_new = {
 		chap_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		chap_prepare,
 		chap_valid,
@@ -1391,7 +1390,7 @@ struct fmt_main fmt_NETNTLM_new = {
 		ntlm_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		ntlm_prepare,
 		ntlm_valid,

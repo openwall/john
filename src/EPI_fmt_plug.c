@@ -65,12 +65,21 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	key_len = mem_calloc_tiny(sizeof(*key_len) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	key_len   = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*key_len));
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_out));
 }
+
+static void done()
+{
+	MEM_FREE(crypt_out);
+	MEM_FREE(saved_key);
+	MEM_FREE(key_len);
+}
+
 /*
  * Expects ciphertext of format: 0xHEX*60 0xHEX*40
  */
@@ -221,7 +230,7 @@ struct fmt_main fmt_EPI =
 	},
 	{ // fmt_methods
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

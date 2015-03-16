@@ -92,7 +92,7 @@ static ARCH_WORD_64 (*crypt_out)[8*SIMD_COEF_64];
 static int max_keys;
 #else
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int (*saved_key_length);
+static int (*saved_len);
 static ARCH_WORD_32 (*crypt_out)[16];
 #ifdef PRECOMPUTE_CTX_FOR_SALT
 static SHA512_CTX ctx_salt;
@@ -111,14 +111,28 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 #ifdef SIMD_COEF_64
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt/SIMD_COEF_64, MEM_ALIGN_SIMD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt/SIMD_COEF_64, MEM_ALIGN_SIMD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt/SIMD_COEF_64,
+	                       sizeof(*saved_key));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt/SIMD_COEF_64,
+	                       sizeof(*crypt_out));
 	max_keys = self->params.max_keys_per_crypt;
 #else
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	saved_len = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_len));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_out));
 #endif
+}
+
+static void done()
+{
+	MEM_FREE(crypt_out);
+#ifndef SIMD_COEF_64
+	MEM_FREE(saved_len);
+#endif
+	MEM_FREE(saved_key);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -254,7 +268,7 @@ static void set_key(char *key, int index)
 	int length = strlen(key);
 	if (length > PLAINTEXT_LENGTH)
 		length = PLAINTEXT_LENGTH;
-	saved_key_length[index] = length;
+	saved_len[index] = length;
 	memcpy(saved_key[index], key, length);
 #else
 	// ok, first 4 bytes (if there are that many or more), we handle one offs.
@@ -341,7 +355,7 @@ key_cleaning:
 static char *get_key(int index)
 {
 #ifndef SIMD_COEF_64
-	saved_key[index][saved_key_length[index]] = 0;
+	saved_key[index][saved_len[index]] = 0;
 	return saved_key[index];
 #else
 	static unsigned char key[PLAINTEXT_LENGTH+1];
@@ -369,9 +383,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #ifndef SIMD_COEF_64
 #ifdef PRECOMPUTE_CTX_FOR_SALT
-#pragma omp parallel for default(none) private(i) shared(inc, ctx_salt, saved_key, saved_key_length, crypt_out)
+#pragma omp parallel for default(none) private(i) shared(inc, ctx_salt, saved_key, saved_len, crypt_out)
 #else
-#pragma omp parallel for default(none) private(i) shared(inc, saved_salt, saved_key, saved_key_length, crypt_out)
+#pragma omp parallel for default(none) private(i) shared(inc, saved_salt, saved_key, saved_len, crypt_out)
 #endif
 #else
 #pragma omp parallel for
@@ -388,7 +402,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, &saved_salt, SALT_SIZE);
 #endif
-		SHA512_Update(&ctx, saved_key[i], saved_key_length[i]);
+		SHA512_Update(&ctx, saved_key[i], saved_len[i]);
 		SHA512_Final((unsigned char *)(crypt_out[i]), &ctx);
 #endif
 	}
@@ -449,7 +463,7 @@ struct fmt_main fmt_XSHA512 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		prepare,
 		valid,
