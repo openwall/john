@@ -115,6 +115,7 @@ static struct fmt_tests tests[] = {
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>SIMD_COEF32_BITS)*SHA256_BUF_SIZ*SIMD_COEF_32*4 )
 static uint32_t (*saved_key)[SHA256_BUF_SIZ*SIMD_COEF_32];
 static uint32_t (*crypt_out)[8*SIMD_COEF_32];
+static unsigned char *SIMD_ptr1, *SIMD_ptr2;
 #else
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -140,19 +141,22 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_out));
 #else
-	saved_key = mem_calloc(self->params.max_keys_per_crypt/SIMD_COEF_32,
-	                       sizeof(*saved_key));
-	crypt_out = mem_calloc(self->params.max_keys_per_crypt/SIMD_COEF_32,
-	                       sizeof(*crypt_out));
+	saved_key = mem_calloc_align(self->params.max_keys_per_crypt/SIMD_COEF_32,
+	                       sizeof(*saved_key), MEM_ALIGN_SIMD, &SIMD_ptr1);
+	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt/SIMD_COEF_32,
+	                       sizeof(*crypt_out), MEM_ALIGN_SIMD, &SIMD_ptr2);
 #endif
 }
 
 static void done()
 {
-	MEM_FREE(crypt_out);
-	MEM_FREE(saved_key);
 #ifndef SIMD_COEF_32
 	MEM_FREE(saved_len);
+	MEM_FREE(crypt_out);
+	MEM_FREE(saved_key);
+#else
+	MEM_FREE(SIMD_ptr1);
+	MEM_FREE(SIMD_ptr2);
 #endif
 }
 

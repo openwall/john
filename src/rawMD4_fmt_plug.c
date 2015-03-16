@@ -97,6 +97,7 @@ static struct fmt_tests tests[] = {
 #ifdef SIMD_COEF_32
 static ARCH_WORD_32 (*saved_key)[MD4_BUF_SIZ*NBKEYS];
 static ARCH_WORD_32 (*crypt_key)[DIGEST_SIZE/4*NBKEYS];
+static unsigned char *SIMD_ptr1, *SIMD_ptr2;
 #else
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -121,19 +122,22 @@ static void init(struct fmt_main *self)
 	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_key));
 #else
-	saved_key = mem_calloc(self->params.max_keys_per_crypt/NBKEYS,
-	                       sizeof(*saved_key));
-	crypt_key = mem_calloc(self->params.max_keys_per_crypt/NBKEYS,
-	                       sizeof(*crypt_key));
+	saved_key = mem_calloc_align(self->params.max_keys_per_crypt/NBKEYS,
+	                       sizeof(*saved_key), MEM_ALIGN_SIMD, &SIMD_ptr1);
+	crypt_key = mem_calloc_align(self->params.max_keys_per_crypt/NBKEYS,
+	                       sizeof(*crypt_key), MEM_ALIGN_SIMD, &SIMD_ptr2);
 #endif
 }
 
 static void done()
 {
-	MEM_FREE(crypt_key);
-	MEM_FREE(saved_key);
 #ifndef SIMD_COEF_32
 	MEM_FREE(saved_len);
+	MEM_FREE(crypt_key);
+	MEM_FREE(saved_key);
+#else
+	MEM_FREE(SIMD_ptr1);
+	MEM_FREE(SIMD_ptr2);
 #endif
 }
 
