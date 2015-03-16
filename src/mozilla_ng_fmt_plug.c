@@ -108,6 +108,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = &keepptr[TAG_LENGTH];
 	if (*p != '*')
 		goto err;
+	++p;
 	if ((p = strtok(p, "*")) == NULL) /* version */
 		goto err;
 	res = atoi(p);
