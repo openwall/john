@@ -100,7 +100,7 @@ static void init(struct fmt_main *self)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int len, type, NumCyclesPower;
+	int len, NumCyclesPower;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
@@ -110,10 +110,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += TAG_LENGTH;
 	if ((p = strtok(ctcopy, "$")) == NULL)
 		goto err;
-	if (strlen(p) > 1)
-		goto err;
-	type = atoi(p);
-	if (type != 0)
+	if (strlen(p) != 1 || '0' != *p)     /* p must be "0" */
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL) /* NumCyclesPower */
 		goto err;
