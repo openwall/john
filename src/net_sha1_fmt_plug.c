@@ -374,6 +374,7 @@ static void done()
 {
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
+	pDynamicFmt->methods.done();
 }
 
 #endif /* plugin stanza */
