@@ -138,7 +138,7 @@ static void *get_salt(char *ciphertext)
 		ARCH_WORD_32 dummy;
 	} un;
 	static struct custom_salt *cs = &(un._cs);
-	ctcopy += TAG_LENGTH;
+	ctcopy += TAG_LENGTH + 1;
 	p = strtok(ctcopy, "$");
 	strncpy((char*)cs->salt, p, 32);
 	p = strtok(NULL, "$");
