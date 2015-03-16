@@ -211,23 +211,28 @@ static struct fmt_tests dynamic_tests[] = {
 #ifdef SIMD_COEF_32
 // SSE2 works only with 54 byte keys. Thus, md5(md5($p).md5($s)) can NOT be used
 // with the SSE2, since that final md5 will be over a 64 byte block of data.
-static union {
+static union SIMD_inpup {
 	ARCH_WORD_32 w[(64*SIMD_COEF_32)/sizeof(ARCH_WORD_32)];
 	unsigned char c[64*SIMD_COEF_32];
 } *input_buf, *input_buf2;
-static union {
+static union SIMD_crypt {
 	ARCH_WORD_32 w[(BINARY_SIZE*SIMD_COEF_32)/sizeof(ARCH_WORD_32)];
 	unsigned char c[BINARY_SIZE*SIMD_COEF_32];
 } *crypt_key, *crypt_key2;
 static unsigned int *total_len;
 static unsigned int *total_len2;
+// this buffer used to allocate input_buf, input_buf2, crypt_key, crypt_key2,
+// so that we KNOW we can ALIGN to 16 bytes properly, now that we no longer
+// are using mem_alloc_tiny where we could control this.  On 32 bit systems
+// we may get only 8 byte granularity on allocation.
+static char *SIMD_data_buffer;
 
 #define MMX_INP_BUF_SZ    (sizeof(input_buf[0]) *BLOCK_LOOPS)
 #define MMX_INP_BUF2_SZ   (sizeof(input_buf2[0])*BLOCK_LOOPS)
 #define MMX_TOT_LEN_SZ    (sizeof(total_len[0]) *BLOCK_LOOPS)
 #define MMX_TOT_LEN2_SZ   (sizeof(total_len2[0])*BLOCK_LOOPS)
 #define MMX_INP_BUF_SZ    (sizeof(input_buf[0]) *BLOCK_LOOPS)
-#define MMX_CRYPT_KEY_SZ  (sizeof(crypt_key[0]) *BLOCK_LOOPS+1)
+#define MMX_CRYPT_KEY_SZ  (sizeof(crypt_key[0]) *BLOCK_LOOPS+sizeof(crypt_key[0]))
 #define MMX_CRYPT_KEY2_SZ (sizeof(crypt_key2[0])*BLOCK_LOOPS)
 #endif
 
@@ -719,12 +724,19 @@ static void init(struct fmt_main *pFmt)
 	eLargeOut[0] = eBase16;
 #endif
 #ifdef SIMD_COEF_32
-	input_buf  = mem_calloc(1, MMX_INP_BUF_SZ);
+	SIMD_data_buffer = mem_calloc(1,MMX_INP_BUF_SZ+MMX_INP_BUF2_SZ+MMX_CRYPT_KEY_SZ+MMX_CRYPT_KEY2_SZ+16);
+	input_buf = (union SIMD_inpup*)mem_align(SIMD_data_buffer,16);
+	input_buf2 = (union SIMD_inpup*)(((unsigned char*)input_buf)+MMX_INP_BUF_SZ);
+	crypt_key = (union SIMD_crypt*)(((unsigned char*)input_buf2)+MMX_INP_BUF2_SZ);
+	crypt_key2 = (union SIMD_crypt*)(((unsigned char*)crypt_key)+MMX_CRYPT_KEY_SZ);
+
+	//input_buf  = mem_calloc(1, MMX_INP_BUF_SZ);
+	//input_buf2 = mem_calloc(1, MMX_INP_BUF2_SZ);
+	//crypt_key  = mem_calloc(1, MMX_CRYPT_KEY_SZ);
+	//crypt_key2 = mem_calloc(1, MMX_CRYPT_KEY2_SZ);
+
 	total_len  = mem_calloc(1, MMX_TOT_LEN_SZ);
 	total_len2 = mem_calloc(1, MMX_TOT_LEN2_SZ);
-	input_buf2 = mem_calloc(1, MMX_INP_BUF2_SZ);
-	crypt_key  = mem_calloc(1, MMX_CRYPT_KEY_SZ);
-	crypt_key2 = mem_calloc(1, MMX_CRYPT_KEY2_SZ);
 #endif
 	crypt_key_X86  = (MD5_OUT *)mem_calloc(((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1), sizeof(*crypt_key_X86));
 	crypt_key2_X86 = (MD5_OUT *)mem_calloc(((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1), sizeof(*crypt_key2_X86));
@@ -858,12 +870,14 @@ static void done()
 	MEM_FREE(crypt_key2_X86);
 	MEM_FREE(crypt_key_X86);
 #ifdef SIMD_COEF_32
-	MEM_FREE(crypt_key2);
-	MEM_FREE(crypt_key);
-	MEM_FREE(input_buf2);
 	MEM_FREE(total_len2);
 	MEM_FREE(total_len);
-	MEM_FREE(input_buf);
+	// Now, all 4 of these pointers are 'owned' by this one pointer.
+	MEM_FREE(SIMD_data_buffer);
+	//MEM_FREE(crypt_key2);
+	//MEM_FREE(crypt_key);
+	//MEM_FREE(input_buf2);
+	//MEM_FREE(input_buf);
 #endif
 	MEM_FREE(eLargeOut);
 	MEM_FREE(md5_unicode_convert);
@@ -6905,6 +6919,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	pFmt->methods.source=fmt_default_source;
 #endif
 	pFmt->methods.salt = salt;
+	pFmt->methods.done = done;
 	pFmt->methods.set_salt = set_salt;
 	pFmt->methods.salt_hash = salt_hash;
 	//pFmt->params.format_name = str_alloc_copy(Setup->szFORMAT_NAME);
@@ -7670,6 +7685,7 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 #endif
 	pFmt->methods.set_salt   = pFmtLocal->methods.set_salt;
 	pFmt->methods.salt       = pFmtLocal->methods.salt;
+	pFmt->methods.done       = pFmtLocal->methods.done;
 	pFmt->methods.salt_hash  = pFmtLocal->methods.salt_hash;
 	pFmt->methods.split      = pFmtLocal->methods.split;
 	pFmt->methods.set_key    = pFmtLocal->methods.set_key;
