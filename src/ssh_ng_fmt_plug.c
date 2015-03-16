@@ -117,7 +117,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "$")) == NULL)	/* salt len */
 		goto err;
 	len = atoi(p);
-	if(len > 16)
+	if(len > 16 || !len)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
 		goto err;
