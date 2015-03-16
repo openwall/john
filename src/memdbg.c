@@ -115,7 +115,7 @@ typedef struct _hdr {
    const char  *mdbg_file;
    ARCH_WORD_32 mdbg_line;
    ARCH_WORD_32 mdbg_cnt;
-   size_t mdbg_size;
+   ARCH_WORD_32 mdbg_size;
    ARCH_WORD_32 mdbg_fpst; /* this should be 'right' against the allocated memory, for underflow catching */
 } MEMDBG_HDR;
 
