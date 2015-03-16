@@ -347,11 +347,6 @@ static int salt_hash(void *salt)
 	return (*((ARCH_WORD_32 *)salt) >> 8) & (SALT_HASH_SIZE - 1);
 }
 
-static void done(void)
-{
-	initUnicode(UNICODE_UNICODE);
-}
-
 struct fmt_main fmt_mssql = {
 	{
 		FORMAT_LABEL,
@@ -374,7 +369,7 @@ struct fmt_main fmt_mssql = {
 		tests
 	}, {
 		init,
-		done,
+		fmt_default_done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
