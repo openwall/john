@@ -75,6 +75,10 @@ john_register_one(&fmt_SKEY);
 
 #define HEXCHARS                "0123456789abcdefABCDEF"
 
+// Since our test strings have 1 space as first delim, and 2 spaces as 2nd
+// delim, then it is NOT equivelant to use strtokm() vs strtok.
+#undef strtok
+
 static struct fmt_tests skey_tests[] = {
 	{"0096 luky451004  b519dcfe18eb7aab", "w00w00 v00d00"},
 	{"md5 0099 luky451001  93b3774544ba92a3", "swirling zagnuts"},
