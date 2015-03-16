@@ -303,4 +303,4 @@ trivial to explain, it is not possible to reasonably describe some
 others without going into great detail on John internals.  If you really
 need to know, read the source code.
 
-$Owl: Owl/packages/john/john/doc/FAQ,v 1.34 2013/05/29 22:44:35 solar Exp $
+$Owl$
