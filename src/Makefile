@@ -251,9 +251,9 @@ linux-mic:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CC=icc \
-		CFLAGS="$(CFLAGS) -mmic -openmp -DHAVE_CRYPT" \
+		CFLAGS="$(CFLAGS) -no-opt-prefetch -mmic -openmp -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -mmic -openmp -lcrypt" \
-		OPT_INLINE="$(OPT_NORMAL) -finline-functions -no-opt-prefetch"
+		OPT_INLINE="$(OPT_NORMAL) -finline-functions"
 	@echo "You'll likely need to scp Intel's OpenMP runtime library such as /opt/intel/*/compiler/lib/mic/libiomp?.so over to the target MIC cards and set LD_LIBRARY_PATH in order to run the produced john binary"
 
 linux-arm32le-neon:
