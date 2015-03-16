@@ -368,7 +368,7 @@ struct fmt_main fmt_dragonfly3_64 = {
 		tests_64
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
