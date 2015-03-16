@@ -84,7 +84,7 @@ static ARCH_WORD_32 cur_salt;
 #else
 
 static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
-static int saved_key_length[MAX_KEYS_PER_CRYPT];
+static int saved_len[MAX_KEYS_PER_CRYPT];
 static SHA_CTX ctx_salt;
 static ARCH_WORD_32 crypt_out[MAX_KEYS_PER_CRYPT][5];
 
@@ -307,7 +307,7 @@ key_cleaning:
 	int length = strlen(key);
 	if (length > PLAINTEXT_LENGTH)
 		length = PLAINTEXT_LENGTH;
-	saved_key_length[index] = length;
+	saved_len[index] = length;
 	memcpy(saved_key[index], key, length);
 #endif
 }
@@ -326,7 +326,7 @@ static char *get_key(int index)
 
 	return (char *) out;
 #else
-	saved_key[index][saved_key_length[index]] = 0;
+	saved_key[index][saved_len[index]] = 0;
 	return saved_key[index];
 #endif
 }
@@ -353,14 +353,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int i;
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(i) shared(ctx_salt, saved_key, saved_key_length, crypt_out)
+#pragma omp parallel for default(none) private(i) shared(ctx_salt, saved_key, saved_len, crypt_out)
 #endif
 	for (i = 0; i < count; i++) {
 		SHA_CTX ctx;
 
 		memcpy(&ctx, &ctx_salt, sizeof(ctx));
 
-		SHA1_Update(&ctx, saved_key[i], saved_key_length[i]);
+		SHA1_Update(&ctx, saved_key[i], saved_len[i]);
 		SHA1_Final((unsigned char *)(crypt_out[i]), &ctx);
 	}
 #endif

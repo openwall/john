@@ -129,7 +129,7 @@ unsigned char *crypt_key;
 #else
 
 static char saved_key[PLAINTEXT_LENGTH + 1];
-static int saved_key_length;
+static int saved_len;
 static SHA_CTX ctx;
 static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 
@@ -226,11 +226,11 @@ static void set_key(char *key, int index)
 	saved_key[GETPOS(len, index)] = 0x80;
 	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 #else
-	saved_key_length = strlen(key);
-	if (saved_key_length > PLAINTEXT_LENGTH)
-		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key, key, saved_key_length);
-	saved_key[saved_key_length] = 0;
+	saved_len = strlen(key);
+	if (saved_len > PLAINTEXT_LENGTH)
+		saved_len = PLAINTEXT_LENGTH;
+	memcpy(saved_key, key, saved_len);
+	saved_key[saved_len] = 0;
 #endif
 }
 
@@ -248,7 +248,7 @@ static char *get_key(int index)
 
 	return (char *) out;
 #else
-	saved_key[saved_key_length] = 0;
+	saved_key[saved_len] = 0;
 	return saved_key;
 #endif
 }
@@ -362,7 +362,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
 #else
 	SHA1_Init( &ctx );
-	SHA1_Update( &ctx, (unsigned char *) saved_key, saved_key_length );
+	SHA1_Update( &ctx, (unsigned char *) saved_key, saved_len );
 	SHA1_Update( &ctx, saved_salt, SALT_SIZE );
 	SHA1_Final( (unsigned char *)crypt_key, &ctx);
 

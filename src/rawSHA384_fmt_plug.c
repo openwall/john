@@ -86,7 +86,7 @@ static struct fmt_tests tests[] = {
 static ARCH_WORD_64 (*saved_key)[SHA512_BUF_SIZ*SIMD_COEF_64];
 static ARCH_WORD_64 (*crypt_out)[8*SIMD_COEF_64];
 #else
-static int (*saved_key_length);
+static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)
     [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
@@ -103,7 +103,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 #ifndef SIMD_COEF_64
-	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #else
@@ -246,7 +246,7 @@ key_cleaning:
 static void set_key(char *key, int index)
 {
 	int len = strlen(key);
-	saved_key_length[index] = len;
+	saved_len[index] = len;
 	memcpy(saved_key[index], key, len);
 }
 #endif
@@ -267,7 +267,7 @@ static char *get_key(int index) {
 #else
 static char *get_key(int index)
 {
-	saved_key[index][saved_key_length[index]] = 0;
+	saved_key[index][saved_len[index]] = 0;
 	return saved_key[index];
 }
 #endif
@@ -293,7 +293,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 		SHA512_CTX ctx;
 		SHA384_Init(&ctx);
-		SHA384_Update(&ctx, saved_key[index], saved_key_length[index]);
+		SHA384_Update(&ctx, saved_key[index], saved_len[index]);
 		SHA384_Final((unsigned char *)crypt_out[index], &ctx);
 #endif
 	}

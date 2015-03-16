@@ -255,11 +255,11 @@ static int cmp_exact(char *source, int index)
 
 static void vnc_set_key(char *key, int index)
 {
-	int saved_key_length = strlen(key);
-	if (saved_key_length > 8)
-		saved_key_length = 8;
-	memcpy(saved_key[index], key, saved_key_length);
-	saved_key[index][saved_key_length] = 0;
+	int saved_len = strlen(key);
+	if (saved_len > 8)
+		saved_len = 8;
+	memcpy(saved_key[index], key, saved_len);
+	saved_key[index][saved_len] = 0;
 }
 
 static char *get_key(int index)

@@ -500,11 +500,11 @@ static int cmp_exact(char *source, int index)
 
 static void set_key(char *key, int index)
 {
-	int saved_key_length = MIN(strlen(key), PLAINTEXT_LENGTH);
+	int saved_len = MIN(strlen(key), PLAINTEXT_LENGTH);
 	// make sure LAST uint64 that has any key in it gets null, since we simply
 	// ^= the whole uint64 with the ipad/opad mask
 	strncpy((char*)host_pass[index].v, key, PLAINTEXT_LENGTH);
-	host_pass[index].length = saved_key_length;
+	host_pass[index].length = saved_len;
 }
 
 static char *get_key(int index)

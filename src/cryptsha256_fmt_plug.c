@@ -207,7 +207,7 @@ typedef struct cryptloopstruct_t {
 								// things slow down. For now, we are limiting ourselves to 35 byte password, which fits into 2 SHA256 buffers
 } cryptloopstruct;
 
-static int (*saved_key_length);
+static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 static int max_crypts;
@@ -236,7 +236,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt = max_crypts;
 	// we allocate 1 more than needed, and use that 'extra' value as a zero length PW to fill in the
 	// tail groups in MMX mode.
-	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * (1+max_crypts), MEM_ALIGN_WORD);
+	saved_len = mem_calloc_tiny(sizeof(*saved_len) * (1+max_crypts), MEM_ALIGN_WORD);
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * (1+max_crypts), MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * (1+max_crypts), MEM_ALIGN_WORD);
 }
@@ -252,16 +252,16 @@ static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 static void set_key(char *key, int index)
 {
 	int len = strlen(key);
-	saved_key_length[index] = len;
+	saved_len[index] = len;
 	if (len > PLAINTEXT_LENGTH)
-		len = saved_key_length[index] = PLAINTEXT_LENGTH;
+		len = saved_len[index] = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, len);
 	saved_key[index][len] = 0;
 }
 
 static char *get_key(int index)
 {
-	saved_key[index][saved_key_length[index]] = 0;
+	saved_key[index][saved_len[index]] = 0;
 	return saved_key[index];
 }
 
@@ -281,7 +281,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	unsigned tot_pc, tot_ppsc, tot_ppc, tot_psc; // length of entire block to crypt (64 or 128)
 	unsigned off_pc, off_pspc, off_ppc, off_psc; // offset to the crypt ptr for these 4 'types'.
 	unsigned dlen_pc, dlen_ppsc, dlen_ppc, dlen_psc; // is this 1 or 2 block (or actual len for CommonCrypto, since it uses SHA256_Final()
-	unsigned plen=saved_key_length[index];
+	unsigned plen=saved_len[index];
 	unsigned char *cp = crypt_struct->buf;
 	cryptloopstruct *pstr = crypt_struct;
 #ifdef SIMD_COEF_32
@@ -609,10 +609,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			{0, 4, 8,12,24,36} };
 		int j;
 		tot_todo = 0;
-		saved_key_length[count] = 0; // point all 'tail' MMX buffer elements to this location.
+		saved_len[count] = 0; // point all 'tail' MMX buffer elements to this location.
 		for (j = 0; j < 5; ++j) {
 			for (index = 0; index < count; ++index) {
-				if (saved_key_length[index] >= lens[cur_salt->len][j] && saved_key_length[index] < lens[cur_salt->len][j+1])
+				if (saved_len[index] >= lens[cur_salt->len][j] && saved_len[index] < lens[cur_salt->len][j+1])
 					MixOrder[tot_todo++] = index;
 			}
 			while (tot_todo & (SIMD_COEF_32-1))
@@ -664,7 +664,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA256_Init(&ctx);
 
 			/* Add the key string.  */
-			SHA256_Update(&ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_key_length[MixOrder[index+idx]]);
+			SHA256_Update(&ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
 
 			/* The last part is the salt string.  This must be at most 16
 			   characters and it ends at the first `$' character (for
@@ -676,30 +676,30 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA256_Init(&alt_ctx);
 
 			/* Add key.  */
-			SHA256_Update(&alt_ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_key_length[MixOrder[index+idx]]);
+			SHA256_Update(&alt_ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
 
 			/* Add salt.  */
 			SHA256_Update(&alt_ctx, cur_salt->salt, cur_salt->len);
 
 			/* Add key again.  */
-			SHA256_Update(&alt_ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_key_length[MixOrder[index+idx]]);
+			SHA256_Update(&alt_ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
 
 			/* Now get result of this (32 bytes) and add it to the other
 			   context.  */
 			SHA256_Final((unsigned char*)crypt_out[MixOrder[index+idx]], &alt_ctx);
 
 			/* Add for any character in the key one byte of the alternate sum.  */
-			for (cnt = saved_key_length[MixOrder[index+idx]]; cnt > BINARY_SIZE; cnt -= BINARY_SIZE)
+			for (cnt = saved_len[MixOrder[index+idx]]; cnt > BINARY_SIZE; cnt -= BINARY_SIZE)
 				SHA256_Update(&ctx, (unsigned char*)crypt_out[MixOrder[index+idx]], BINARY_SIZE);
 			SHA256_Update(&ctx, (unsigned char*)crypt_out[MixOrder[index+idx]], cnt);
 
 			/* Take the binary representation of the length of the key and for every
 			   1 add the alternate sum, for every 0 the key.  */
-			for (cnt = saved_key_length[MixOrder[index+idx]]; cnt > 0; cnt >>= 1)
+			for (cnt = saved_len[MixOrder[index+idx]]; cnt > 0; cnt >>= 1)
 				if ((cnt & 1) != 0)
 					SHA256_Update(&ctx, (unsigned char*)crypt_out[MixOrder[index+idx]], BINARY_SIZE);
 				else
-					SHA256_Update(&ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_key_length[MixOrder[index+idx]]);
+					SHA256_Update(&ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
 
 			/* Create intermediate result.  */
 			SHA256_Final((unsigned char*)crypt_out[MixOrder[index+idx]], &ctx);
@@ -708,15 +708,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA256_Init(&alt_ctx);
 
 			/* For every character in the password add the entire password.  */
-			for (cnt = 0; cnt < saved_key_length[MixOrder[index+idx]]; ++cnt)
-				SHA256_Update(&alt_ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_key_length[MixOrder[index+idx]]);
+			for (cnt = 0; cnt < saved_len[MixOrder[index+idx]]; ++cnt)
+				SHA256_Update(&alt_ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
 
 			/* Finish the digest.  */
 			SHA256_Final(temp_result, &alt_ctx);
 
 			/* Create byte sequence P.  */
 			cp = p_bytes;
-			for (cnt = saved_key_length[MixOrder[index+idx]]; cnt >= BINARY_SIZE; cnt -= BINARY_SIZE)
+			for (cnt = saved_len[MixOrder[index+idx]]; cnt >= BINARY_SIZE; cnt -= BINARY_SIZE)
 				cp = (char *) memcpy (cp, temp_result, BINARY_SIZE) + BINARY_SIZE;
 			memcpy (cp, temp_result, cnt);
 

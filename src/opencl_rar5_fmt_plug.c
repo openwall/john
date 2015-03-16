@@ -345,10 +345,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void set_key(char *key, int index)
 {
-	int saved_key_length = MIN(strlen(key), PLAINTEXT_LENGTH);
+	int saved_len = MIN(strlen(key), PLAINTEXT_LENGTH);
 
-	memcpy(host_pass[index].v, key, saved_key_length);
-	host_pass[index].length = saved_key_length;
+	memcpy(host_pass[index].v, key, saved_len);
+	host_pass[index].length = saved_len;
 #if 0
 	fprintf(stderr, "%s(%s)\n", __FUNCTION__, key);
 #endif

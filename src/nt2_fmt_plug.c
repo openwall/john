@@ -83,7 +83,7 @@ static unsigned char (*crypt_key);
 static unsigned int (**buf_ptr);
 #else
 static MD4_CTX ctx;
-static int saved_key_length;
+static int saved_len;
 static UTF16 saved_key[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 crypt_key[DIGEST_SIZE / 4];
 #endif
@@ -324,7 +324,7 @@ key_cleaning:
 	while (*s)
 		*d++ = *s++;
 	*d = 0;
-	saved_key_length = (int)((char*)d - (char*)saved_key);
+	saved_len = (int)((char*)d - (char*)saved_key);
 #else
 	UTF8 *s = (UTF8*)_key;
 	UTF8 *d = (UTF8*)saved_key;
@@ -333,7 +333,7 @@ key_cleaning:
 		++d;
 	}
 	*d = 0;
-	saved_key_length = (int)((char*)d - (char*)saved_key);
+	saved_len = (int)((char*)d - (char*)saved_key);
 #endif
 //	dump_stuff_msg(_key, saved_key, 24);
 #endif
@@ -375,12 +375,12 @@ key_cleaning_enc:
 	}
 	((unsigned int *)saved_key)[14*SIMD_COEF_32 + (index&3) + (index>>2)*16*SIMD_COEF_32] = len << 4;
 #else
-	saved_key_length = enc_to_utf16((UTF16*)&saved_key,
+	saved_len = enc_to_utf16((UTF16*)&saved_key,
 	                                PLAINTEXT_LENGTH + 1,
 	                                (unsigned char*)_key,
 	                                strlen(_key)) << 1;
-	if (saved_key_length < 0)
-		saved_key_length = strlen16(saved_key);
+	if (saved_len < 0)
+		saved_len = strlen16(saved_key);
 #endif
 }
 
@@ -510,12 +510,12 @@ bailout:
 	((unsigned int *)saved_key)[14*SIMD_COEF_32 + (index&3) + (index>>2)*16*SIMD_COEF_32] = len << 4;
 
 #else
-	saved_key_length = utf8_to_utf16((UTF16*)&saved_key,
+	saved_len = utf8_to_utf16((UTF16*)&saved_key,
 	                                 PLAINTEXT_LENGTH + 1,
 	                                 (unsigned char*)_key,
 	                                 strlen(_key)) << 1;
-	if (saved_key_length < 0)
-		saved_key_length = strlen16(saved_key);
+	if (saved_len < 0)
+		saved_len = strlen16(saved_key);
 #endif
 }
 
@@ -566,8 +566,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #else
 	MD4_Init( &ctx );
-//	dump_stuff_msg("saved_key", saved_key, saved_key_length);
-	MD4_Update(&ctx, (unsigned char*)saved_key, saved_key_length);
+//	dump_stuff_msg("saved_key", saved_key, saved_len);
+	MD4_Update(&ctx, (unsigned char*)saved_key, saved_len);
 	MD4_Final((unsigned char*) crypt_key, &ctx);
 //	dump_stuff_msg("crypt_key", crypt_key, 16);
 #endif

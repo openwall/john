@@ -44,7 +44,7 @@ static struct fmt_tests tests[] = {
 };
 
 static char saved_salt[SALT_SIZE];
-static int saved_key_length;
+static int saved_len;
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static SHA_CTX ctx;
 static ARCH_WORD_32 crypt_out[5];
@@ -170,15 +170,15 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	saved_key_length = strlen(key);
-	if (saved_key_length > PLAINTEXT_LENGTH)
-		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key, key, saved_key_length);
+	saved_len = strlen(key);
+	if (saved_len > PLAINTEXT_LENGTH)
+		saved_len = PLAINTEXT_LENGTH;
+	memcpy(saved_key, key, saved_len);
 }
 
 static char *get_key(int index)
 {
-	saved_key[saved_key_length] = 0;
+	saved_key[saved_len] = 0;
 	return saved_key;
 }
 
@@ -189,9 +189,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	SHA1_Init(&ctx);
 	if (saved_salt[1] == 'p') {
 		SHA1_Update(&ctx, &saved_salt[2], (unsigned char)saved_salt[0]);
-		SHA1_Update(&ctx, saved_key, saved_key_length);
+		SHA1_Update(&ctx, saved_key, saved_len);
 	} else {
-		SHA1_Update(&ctx, saved_key, saved_key_length);
+		SHA1_Update(&ctx, saved_key, saved_len);
 		SHA1_Update(&ctx, &saved_salt[2], (unsigned char)saved_salt[0]);
 	}
 	SHA1_Final((unsigned char *)crypt_out, &ctx);

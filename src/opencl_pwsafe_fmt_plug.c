@@ -151,9 +151,9 @@ static void done(void)
 
 static void pwsafe_set_key(char *key, int index)
 {
-	int saved_key_length = MIN(strlen(key), PLAINTEXT_LENGTH);
-	memcpy(host_pass[index].v, key, saved_key_length);
-	host_pass[index].length = saved_key_length;
+	int saved_len = MIN(strlen(key), PLAINTEXT_LENGTH);
+	memcpy(host_pass[index].v, key, saved_len);
+	host_pass[index].length = saved_len;
 }
 
 /* ------- Create and destroy necessary objects ------- */
