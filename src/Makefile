@@ -1,6 +1,6 @@
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2013 by Solar Designer
+# Copyright (c) 1996-2015 by Solar Designer
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.
@@ -252,7 +252,8 @@ linux-mic:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CC=icc \
 		CFLAGS="$(CFLAGS) -mmic -openmp -DHAVE_CRYPT" \
-		LDFLAGS="$(LDFLAGS) -mmic -openmp -lcrypt"
+		LDFLAGS="$(LDFLAGS) -mmic -openmp -lcrypt" \
+		OPT_INLINE="$(OPT_NORMAL) -finline-functions -no-opt-prefetch"
 	@echo "You'll likely need to scp Intel's OpenMP runtime library such as /opt/intel/*/compiler/lib/mic/libiomp?.so over to the target MIC cards and set LD_LIBRARY_PATH in order to run the produced john binary"
 
 linux-arm32le-neon:
