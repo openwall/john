@@ -75,6 +75,7 @@ static struct fmt_tests tests[] = {
 
 #ifdef SIMD_COEF_32
 #define cur_salt rakp_cur_salt
+static unsigned char *SIMD_ptr1, *SIMD_ptr2, *SIMD_ptr3, *SIMD_ptr4, *SIMD_ptr5;
 static unsigned char *crypt_key;
 static unsigned char *ipad, *prep_ipad;
 static unsigned char *opad, *prep_opad;
@@ -119,13 +120,16 @@ static void init(struct fmt_main *self)
 #endif
 #ifdef SIMD_COEF_32
 	bufsize = sizeof(*opad) * self->params.max_keys_per_crypt * SHA_BUF_SIZ * 4;
-	crypt_key = mem_calloc(1, bufsize);
-	ipad = mem_calloc(1, bufsize);
-	opad = mem_calloc(1, bufsize);
-	prep_ipad = mem_calloc(self->params.max_keys_per_crypt * BINARY_SIZE,
-	                       sizeof(*prep_ipad));
-	prep_opad = mem_calloc(self->params.max_keys_per_crypt * BINARY_SIZE,
-	                       sizeof(*prep_opad));
+	SIMD_ptr1 = mem_calloc(1, bufsize+16);
+	crypt_key = mem_align(SIMD_ptr1,16);
+	SIMD_ptr2 = mem_calloc(1, bufsize+16);
+	ipad = mem_align(SIMD_ptr2,16);
+	SIMD_ptr3 = mem_calloc(1, bufsize+16);
+	opad = mem_align(SIMD_ptr3,16);
+	SIMD_ptr4 = mem_calloc(1, self->params.max_keys_per_crypt*BINARY_SIZE*sizeof(*prep_ipad)+16);
+	prep_ipad = mem_align(SIMD_ptr4,16);
+	SIMD_ptr5 = mem_calloc(1, self->params.max_keys_per_crypt*BINARY_SIZE*sizeof(*prep_opad)+16);
+	prep_opad = mem_align(SIMD_ptr5,16);
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
 		crypt_key[GETPOS(BINARY_SIZE, i)] = 0x80;
 		((unsigned int*)crypt_key)[15 * SIMD_COEF_32 + (i & 3) + (i >> 2) * SHA_BUF_SIZ * SIMD_COEF_32] = (BINARY_SIZE + 64) << 3;
@@ -149,15 +153,18 @@ static void done()
 {
 	MEM_FREE(saved_plain);
 #ifdef SIMD_COEF_32
-	MEM_FREE(prep_opad);
-	MEM_FREE(prep_ipad);
+	MEM_FREE(SIMD_ptr1);
+	MEM_FREE(SIMD_ptr2);
+	MEM_FREE(SIMD_ptr3);
+	MEM_FREE(SIMD_ptr4);
+	MEM_FREE(SIMD_ptr5);
 #else
 	MEM_FREE(opad_ctx);
 	MEM_FREE(ipad_ctx);
-#endif
 	MEM_FREE(opad);
 	MEM_FREE(ipad);
 	MEM_FREE(crypt_key);
+#endif
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

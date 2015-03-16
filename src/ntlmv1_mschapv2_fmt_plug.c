@@ -147,6 +147,7 @@ extern volatile int bench_running;
 #define MAX_KEYS_PER_CRYPT      2048
 #endif
 
+static unsigned char *saved_ptr1, *saved_ptr2;
 #ifdef SIMD_COEF_32
 static unsigned char *saved_key;
 #else
@@ -967,18 +968,18 @@ static void init(struct fmt_main *self)
 			self->methods.set_key = set_key_CP;
 	}
 #if SIMD_COEF_32
-	saved_key = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*saved_key) * 64);
+	saved_ptr1 = mem_calloc(1, self->params.max_keys_per_crypt*sizeof(*saved_key)*64+16);
+	saved_key = mem_align(saved_ptr1, 16);
 #else
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_len));
 #endif
-	nthash    = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*nthash) * 16);
-	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(unsigned short));
+	saved_ptr2 = mem_calloc(1, self->params.max_keys_per_crypt*sizeof(*nthash)*16+16);
+	nthash = mem_align(saved_ptr2, 16);
+
+	crypt_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(unsigned short));
 	if (bitmap == NULL)
 		bitmap = mem_calloc_tiny(0x10000 / 8, MEM_ALIGN_CACHE);
 	else
@@ -989,12 +990,12 @@ static void init(struct fmt_main *self)
 
 static void done()
 {
+	MEM_FREE(saved_ptr2);
 	MEM_FREE(crypt_key);
-	MEM_FREE(nthash);
 #ifndef SIMD_COEF_32
 	MEM_FREE(saved_len);
 #endif
-	MEM_FREE(saved_key);
+	MEM_FREE(saved_ptr1);
 }
 
 // Get the key back from the key buffer, from UCS-2
