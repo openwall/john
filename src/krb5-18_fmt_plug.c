@@ -95,21 +95,27 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static char saved_salt[SALT_SIZE+1];
 static ARCH_WORD_32 (*crypt_out)[16];
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt *= omp_t;
+	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt *= omp_t;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_out));
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static void done()
+{
+	MEM_FREE(crypt_out);
+	MEM_FREE(saved_key);
+}
+
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q;
 
@@ -138,7 +144,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 }
 
 
-static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + SALT_SIZE + 1];
 
@@ -310,7 +316,7 @@ struct fmt_main fmt_krb5_18 = {
 		kinit_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

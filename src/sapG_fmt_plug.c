@@ -173,18 +173,38 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	keyLen = mem_calloc_tiny(sizeof(*keyLen) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
+	                         sizeof(*saved_plain));
+	keyLen = mem_calloc(self->params.max_keys_per_crypt, sizeof(*keyLen));
 #ifdef SIMD_COEF_32
-	clean_pos = mem_calloc_tiny(sizeof(*clean_pos) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	clean_pos = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*clean_pos));
 	for(i = 0; i < LIMB; i++)
-		saved_key[i] = mem_calloc_tiny(SHA_BUF_SIZ*4 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	interm_crypt = mem_calloc_tiny(20 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(20 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+		saved_key[i] = mem_calloc(self->params.max_keys_per_crypt,
+		                          SHA_BUF_SIZ * 4);
+	interm_crypt = mem_calloc(self->params.max_keys_per_crypt, 20);
+	crypt_key = mem_calloc(self->params.max_keys_per_crypt, 20);
 #else
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_key));
 	saved_key = saved_plain;
 #endif
+}
+
+static void done()
+{
+#ifdef SIMD_COEF_32
+	int i;
+#endif
+	MEM_FREE(crypt_key);
+#ifdef SIMD_COEF_32
+	MEM_FREE(interm_crypt);
+	for(i = 0; i < LIMB; i++)
+		MEM_FREE(saved_key[i]);
+	MEM_FREE(clean_pos);
+#endif
+	MEM_FREE(keyLen);
+	MEM_FREE(saved_plain);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -720,11 +740,6 @@ static int salt_hash(void *salt)
 		hash = ((hash << 5) + hash) ^ s->s[i];
 
 	return hash & (SALT_HASH_SIZE - 1);
-}
-
-static void done(void)
-{
-	initUnicode(UNICODE_UNICODE);
 }
 
 struct fmt_main fmt_sapG = {

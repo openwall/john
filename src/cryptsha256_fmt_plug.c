@@ -234,11 +234,18 @@ static void init(struct fmt_main *self)
 #endif
 	max_crypts = SIMD_COEF_SCALE * omp_t * MAX_KEYS_PER_CRYPT;
 	self->params.max_keys_per_crypt = max_crypts;
-	// we allocate 1 more than needed, and use that 'extra' value as a zero length PW to fill in the
-	// tail groups in MMX mode.
-	saved_len = mem_calloc_tiny(sizeof(*saved_len) * (1+max_crypts), MEM_ALIGN_WORD);
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * (1+max_crypts), MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * (1+max_crypts), MEM_ALIGN_WORD);
+	// we allocate 1 more than needed, and use that 'extra' value as a zero
+	// length PW to fill in the tail groups in MMX mode.
+	saved_len = mem_calloc(1 + max_crypts, sizeof(*saved_len));
+	saved_key = mem_calloc(1 + max_crypts, sizeof(*saved_key));
+	crypt_out = mem_calloc(1 + max_crypts, sizeof(*crypt_out));
+}
+
+static void done()
+{
+	MEM_FREE(crypt_out);
+	MEM_FREE(saved_key);
+	MEM_FREE(saved_len);
 }
 
 static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
@@ -933,7 +940,7 @@ struct fmt_main fmt_cryptsha256 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

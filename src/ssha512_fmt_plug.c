@@ -110,14 +110,20 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_len = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_len));
 #ifndef SIMD_COEF_64
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_out));
 #else
-	len_ptr64 = mem_calloc_tiny(sizeof(*len_ptr64) * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt/SIMD_COEF_64, MEM_ALIGN_SIMD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt/SIMD_COEF_64, MEM_ALIGN_SIMD);
+	len_ptr64 = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*len_ptr64));
+	saved_key = mem_calloc(self->params.max_keys_per_crypt/SIMD_COEF_64,
+	                       sizeof(*saved_key));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt/SIMD_COEF_64,
+	                       sizeof(*crypt_out));
 	for (i = 0; i < self->params.max_keys_per_crypt; i += SIMD_COEF_64) {
 		ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(i&(SIMD_COEF_64-1)) + (i>>(SIMD_COEF_64>>1))*SHA512_BUF_SIZ*SIMD_COEF_64];
 		for (j = 0; j < SIMD_COEF_64; ++j) {
@@ -127,6 +133,16 @@ static void init(struct fmt_main *self)
 	}
 	max_count = self->params.max_keys_per_crypt;
 #endif
+}
+
+static void done()
+{
+	MEM_FREE(crypt_out);
+	MEM_FREE(saved_key);
+#ifdef SIMD_COEF_64
+	MEM_FREE(len_ptr64);
+#endif
+	MEM_FREE(saved_len);
 }
 
 static void * binary(char *ciphertext) {
@@ -338,7 +354,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			int idx = i+index;
 			int x = saved_len[idx];
-			for (j = 0; j < saved_salt->len; ++j) 
+			for (j = 0; j < saved_salt->len; ++j)
 				sk[GETPOS(x+j,idx)] = saved_salt->data.c[j];
 			x += j;
 			sk[GETPOS(x,idx)] = 0x80;
@@ -401,7 +417,7 @@ struct fmt_main fmt_saltedsha2 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
