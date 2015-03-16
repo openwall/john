@@ -221,11 +221,7 @@ static union SIMD_crypt {
 } *crypt_key, *crypt_key2;
 static unsigned int *total_len;
 static unsigned int *total_len2;
-// this buffer used to allocate input_buf, input_buf2, crypt_key, crypt_key2,
-// so that we KNOW we can ALIGN to 16 bytes properly, now that we no longer
-// are using mem_alloc_tiny where we could control this.  On 32 bit systems
-// we may get only 8 byte granularity on allocation.
-static char *SIMD_data_buffer;
+static unsigned char *SIMD_ptr1, *SIMD_ptr2, *SIMD_ptr3, *SIMD_ptr4;
 
 #define MMX_INP_BUF_SZ    (sizeof(input_buf[0]) *BLOCK_LOOPS)
 #define MMX_INP_BUF2_SZ   (sizeof(input_buf2[0])*BLOCK_LOOPS)
@@ -724,17 +720,14 @@ static void init(struct fmt_main *pFmt)
 	eLargeOut[0] = eBase16;
 #endif
 #ifdef SIMD_COEF_32
-	SIMD_data_buffer = mem_calloc(1,MMX_INP_BUF_SZ+MMX_INP_BUF2_SZ+MMX_CRYPT_KEY_SZ+MMX_CRYPT_KEY2_SZ+16);
-	input_buf = (union SIMD_inpup*)mem_align(SIMD_data_buffer,16);
-	input_buf2 = (union SIMD_inpup*)(((unsigned char*)input_buf)+MMX_INP_BUF_SZ);
-	crypt_key = (union SIMD_crypt*)(((unsigned char*)input_buf2)+MMX_INP_BUF2_SZ);
-	crypt_key2 = (union SIMD_crypt*)(((unsigned char*)crypt_key)+MMX_CRYPT_KEY_SZ);
-
-	//input_buf  = mem_calloc(1, MMX_INP_BUF_SZ);
-	//input_buf2 = mem_calloc(1, MMX_INP_BUF2_SZ);
-	//crypt_key  = mem_calloc(1, MMX_CRYPT_KEY_SZ);
-	//crypt_key2 = mem_calloc(1, MMX_CRYPT_KEY2_SZ);
-
+	SIMD_ptr1 = mem_calloc(1,MMX_INP_BUF_SZ+16);
+	input_buf = mem_align(SIMD_ptr1,16);
+	SIMD_ptr2 = mem_calloc(1,MMX_INP_BUF2_SZ+16);
+	input_buf2 = mem_align(SIMD_ptr2,16);
+	SIMD_ptr3 = mem_calloc(1,MMX_CRYPT_KEY_SZ+16);
+	crypt_key = mem_align(SIMD_ptr3,16);
+	SIMD_ptr4 = mem_calloc(1,MMX_CRYPT_KEY2_SZ+16);
+	crypt_key2 = mem_align(SIMD_ptr4,16);
 	total_len  = mem_calloc(1, MMX_TOT_LEN_SZ);
 	total_len2 = mem_calloc(1, MMX_TOT_LEN2_SZ);
 #endif
@@ -872,12 +865,10 @@ static void done()
 #ifdef SIMD_COEF_32
 	MEM_FREE(total_len2);
 	MEM_FREE(total_len);
-	// Now, all 4 of these pointers are 'owned' by this one pointer.
-	MEM_FREE(SIMD_data_buffer);
-	//MEM_FREE(crypt_key2);
-	//MEM_FREE(crypt_key);
-	//MEM_FREE(input_buf2);
-	//MEM_FREE(input_buf);
+	MEM_FREE(SIMD_ptr1);
+	MEM_FREE(SIMD_ptr2);
+	MEM_FREE(SIMD_ptr3);
+	MEM_FREE(SIMD_ptr4);
 #endif
 	MEM_FREE(eLargeOut);
 	MEM_FREE(md5_unicode_convert);
