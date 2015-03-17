@@ -255,7 +255,7 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 	while (nbytes > 0) {
 		if (out[i] != 0) {
 #ifdef _MSC_VER
-			free(out);
+			MEM_FREE(out);
 #endif
 			return -1;
 		}
@@ -266,7 +266,7 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 		// printf("valid padding test ;-)\n");
 		// print_hex(out, cur_salt->length);
 #ifdef _MSC_VER
-			free(out);
+			MEM_FREE(out);
 #endif
 		return 0;
 	}
@@ -281,7 +281,7 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 #endif
 	if (ccrc == cur_salt->crc) {
 #ifdef _MSC_VER
-		free(out);
+		MEM_FREE(out);
 #endif
 		return 0;  // XXX don't be too eager!
 	}
@@ -290,13 +290,13 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 	if (validFolder(out)) {
 		printf("validFolder check ;-)\n");
 #ifdef _MSC_VER
-		free(out);
+		MEM_FREE(out);
 #endif
 		return 0;
 	}
 
 #ifdef _MSC_VER
-	free(out);
+	MEM_FREE(out);
 #endif
 	return -1;
 }

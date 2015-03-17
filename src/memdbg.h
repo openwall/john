@@ -188,8 +188,10 @@ void MEMDBG_tag_mem_from_alloc_tiny(void *);
 
 #if !defined(__MEMDBG__)
 /* this code mimicks JtR's FREE_MEM(a) but does it for any normal free(a) call */
+#if !defined _MSC_VER
 extern void MEMDBG_off_free(void *a);
 #define free(a)   do { if(a) MEMDBG_off_free(a); a=0; } while(0)
+#endif
 #endif
 #define MemDbg_Used(a) 0
 #define MemDbg_Display(a)
