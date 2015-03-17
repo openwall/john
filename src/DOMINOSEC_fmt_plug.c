@@ -170,7 +170,7 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	digest34 = mem_calloc_tiny(sizeof(*saved_key) *
+	digest34 = mem_calloc_tiny(sizeof(*digest34) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	keys_changed = salt_changed = 0;
 }
