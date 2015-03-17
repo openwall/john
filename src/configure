@@ -13064,7 +13064,9 @@ fi
 
 fi
     # For exposing aligned_alloc
-    if test "x$ac_cv_func_aligned_alloc" = xyes; then :
+    case "$host_os" in
+        linux*)
+        if test "x$ac_cv_func_aligned_alloc" = xyes; then :
 
    for i in -D_ISOC11_SOURCE; do
       jtr_list_add_dupe=0
@@ -13082,7 +13084,7 @@ fi
 
 else
   # For exposing posix_memalign()
-        if test "x$ac_cv_func_posix_memalign" = xyes; then :
+            if test "x$ac_cv_func_posix_memalign" = xyes; then :
 
    for i in -D_XOPEN_SOURCE=600; do
       jtr_list_add_dupe=0
@@ -13101,6 +13103,8 @@ else
 fi
 
 fi
+        ;;
+    esac
     ;;
 
   mingw*)
