@@ -88,6 +88,8 @@ extern void *mem_calloc_func(size_t count, size_t size
 #define mem_calloc_tiny(a,b) mem_calloc_tiny_func(a,b,__FILE__,__LINE__)
 #define mem_alloc_copy(a,b,c) mem_alloc_copy_func(a,b,c,__FILE__,__LINE__)
 #define str_alloc_copy(a) str_alloc_copy_func(a,__FILE__,__LINE__)
+#define mem_alloc_align(a,b) mem_alloc_align_func(a,b,__FILE__,__LINE__)
+#define mem_calloc_align(a,b,c) mem_calloc_align_func(a,b,c,__FILE__,__LINE__)
 #else
 #define mem_alloc(a) mem_alloc_func(a)
 #define mem_calloc(a,b) mem_calloc_func(a,b)
@@ -95,17 +97,51 @@ extern void *mem_calloc_func(size_t count, size_t size
 #define mem_calloc_tiny(a,b) mem_calloc_tiny_func(a,b)
 #define mem_alloc_copy(a,b,c) mem_alloc_copy_func(a,b,c)
 #define str_alloc_copy(a) str_alloc_copy_func(a)
+#define mem_alloc_align(a,b) mem_alloc_align_func(a,b)
+#define mem_calloc_align(a,b,c) mem_calloc_align_func(a,b,c)
 #endif
 
 /* These allow alignment and are wrappers to system-specific functions */
-void *mem_alloc_align(size_t size, size_t align);
-void *mem_calloc_align(size_t size, size_t count, size_t align);
+void *mem_alloc_align_func(size_t size, size_t align
+#if defined (MEMDBG_ON)
+	, char *file, int line
+#endif
+	);
+
+void *mem_calloc_align_func(size_t size, size_t count, size_t align
+#if defined (MEMDBG_ON)
+	, char *file, int line
+#endif
+	);
 
 /*
  * Frees memory allocated with mem_alloc() and sets the pointer to NULL.
  * Does nothing if the pointer is already NULL.
  */
 #undef MEM_FREE
+
+#ifdef _MSC_VER
+#if !defined (MEMDBG_ON)
+#define strdup(a) MSVC_strdup(a)
+char *MSVC_strdup(const char *str);
+#define MEM_FREE(ptr) \
+{ \
+	if ((ptr)) { \
+		_aligned_free((ptr)); \
+		(ptr) = NULL; \
+	} \
+}
+#else
+#define MEM_FREE(ptr) \
+{ \
+	if ((ptr)) { \
+		MEMDBG_free(((const void*)ptr),__FILE__,__LINE__); \
+		(ptr) = NULL; \
+	} \
+}
+#endif
+
+#else
 #define MEM_FREE(ptr) \
 { \
 	if ((ptr)) { \
@@ -113,6 +149,7 @@ void *mem_calloc_align(size_t size, size_t count, size_t align);
 		(ptr) = NULL; \
 	} \
 }
+#endif
 
 /*
  * Similar to the above function, except the memory can't be freed.

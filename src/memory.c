@@ -24,6 +24,20 @@
 #include "johnswap.h"
 #include "memdbg.h"
 
+#if defined (_MSC_VER) && !defined (MEMDBG_ON)
+#define malloc(a) _aligned_malloc(a,16)
+#define realloc(a,b) _aligned_realloc(a,b,16)
+#define free(a) _aligned_free(a)
+char *MSVC_strdup(const char *str)
+{
+	char * s;
+	s = (char*)mem_alloc_func(strlen(str)+1);
+	if (s != NULL)
+		strcpy(s, str);
+	return s;
+}
+#endif
+
 unsigned int mem_saving_level = 0;
 
 // Add 'cleanup' methods for the mem_alloc_tiny.  VERY little cost, but
@@ -203,34 +217,48 @@ void *mem_alloc_copy_func(void *src, size_t size, size_t align
 #endif
 }
 
-void *mem_alloc_align(size_t size, size_t align)
+void *mem_alloc_align_func(size_t size, size_t align
+#if defined (MEMDBG_ON)
+	, char *file, int line
+#endif
+	)
 {
 	void *ptr;
-#if HAVE_ALIGNED_ALLOC
+#if defined (MEMDBG_ON)
+	ptr = (char*) MEMDBG_alloc_align(size, align, file, line);
+#elif HAVE_ALIGNED_ALLOC
 	if (!(ptr = aligned_alloc(align, size)))
-		pexit("aligned_alloc");
+		perror("aligned_alloc");
 #elif HAVE_POSIX_MEMALIGN
 	if (posix_memalign(&ptr, align, size))
-		pexit("posix_memalign");
+		perror("posix_memalign");
 #elif HAVE_MEMALIGN
 	/* Let's just pray this implementation can actually free it */
 	if (!(ptr = memalign(&ptr, align, size)))
-		pexit("memalign");
+		perror("memalign");
 #elif HAVE___MINGW_ALIGNED_MALLOC
 	if (!(ptr = __mingw_aligned_malloc(size, align)))
-		pexit("__mingw_aligned_malloc");
+		perror("__mingw_aligned_malloc");
 #elif HAVE__ALIGNED_MALLOC
 	if (!(ptr = _aligned_malloc(size, align)))
-		pexit("_aligned_malloc");
+		perror("_aligned_malloc");
 #else
 #error No suitable alligned alloc found, please report to john-dev mailing list (state your OS details).
 #endif
 	return ptr;
 }
 
-void *mem_calloc_align(size_t size, size_t count, size_t align)
+void *mem_calloc_align_func(size_t size, size_t count, size_t align
+#if defined (MEMDBG_ON)
+	, char *file, int line
+#endif
+	)
 {
-	void *ptr = mem_alloc_align(size * count, align);
+#if defined (MEMDBG_ON)
+	void *ptr = mem_alloc_align_func(size * count, align, file, line);
+#else
+	void *ptr = mem_alloc_align_func(size * count, align);
+#endif
 
 	memset(ptr, 0, size * count);
 	return ptr;
