@@ -223,7 +223,7 @@ void *mem_alloc_align_func(size_t size, size_t align
 #endif
 	)
 {
-	void *ptr;
+	void *ptr = NULL;
 #if defined (MEMDBG_ON)
 	ptr = (char*) MEMDBG_alloc_align(size, align, file, line);
 #elif HAVE_ALIGNED_ALLOC
