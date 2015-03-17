@@ -100,7 +100,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *keeptr;
 	char *p;
 	int res;
-	if (strncmp(ciphertext, "$sxc$", 5))
+	if (strncmp(ciphertext, "$sxc$*", 6))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;

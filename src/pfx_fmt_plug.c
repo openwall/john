@@ -118,7 +118,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	PKCS12 *p12 = NULL;
 	BIO *bp = NULL;
 	int len, i;
-	if (strncmp(ciphertext, "$pfx$", 5))
+	if (strncmp(ciphertext, "$pfx$*", 6))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;

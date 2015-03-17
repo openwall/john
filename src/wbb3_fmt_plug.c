@@ -103,7 +103,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *keeptr;
 	char *p;
 	int res;
-	if (strncmp(ciphertext, "$wbb3$", 6))
+	if (strncmp(ciphertext, "$wbb3$*", 7))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
