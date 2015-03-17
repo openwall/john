@@ -901,7 +901,7 @@ static void dev_init(int sequential_id)
 		opencl_log[len] = '\0';
 
 		if (options.verbosity >= 2 && !(options.flags & FLG_SHOW_CHK))
-			fprintf(stderr, "Device %d: %s (%s)\n",
+			fprintf(stderr, "Device %d: %s [%s]\n",
 				sequential_id, device_name, opencl_log);
 	} else 	{
 		char *dname = device_name;
