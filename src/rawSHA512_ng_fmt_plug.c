@@ -241,11 +241,11 @@ static void init(struct fmt_main *self)
     omp_t *= OMP_SCALE;
     self->params.max_keys_per_crypt *= omp_t;
 #endif
-    saved_key = mem_calloc(self->params.max_keys_per_crypt,
-                           sizeof(*saved_key));
+    saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
+                           sizeof(*saved_key), MEM_ALIGN_SIMD);
     for (i = 0; i < 8; i++)
-        crypt_key[i] = mem_calloc(self->params.max_keys_per_crypt,
-	                          sizeof(uint64_t));
+        crypt_key[i] = mem_calloc_align(self->params.max_keys_per_crypt,
+	                          sizeof(uint64_t), MEM_ALIGN_SIMD);
 }
 
 
