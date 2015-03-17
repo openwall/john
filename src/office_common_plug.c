@@ -12,6 +12,7 @@
 #include "sha.h"
 #include "sha2.h"
 #include <openssl/aes.h>
+#include "memdbg.h"
 
 void *ms_office_common_get_salt(char *ciphertext)
 {
@@ -65,6 +66,7 @@ void *ms_office_common_binary(char *ciphertext)
 	p = strtok(ctcopy, "*");
 	if (atoi(p) != 2007) {
 		memset(out, 0, sizeof(out));
+		MEM_FREE(keeptr);
 		return out;
 	}
 	p = strtok(NULL, "*");

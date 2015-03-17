@@ -38,6 +38,7 @@ static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE                   1
 #endif
+#include "memdbg.h"
 
 #define PLAINTEXT_LENGTH            125
 #define SALT_SIZE                   sizeof(struct custom_salt)
