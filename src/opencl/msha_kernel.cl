@@ -39,14 +39,14 @@ __kernel void mysqlsha1_crypt_kernel(__global const uchar *key,
 	W[3] = output[3];
 	W[4] = output[4];
 	W[5] = 0x80000000;
-#if 0
+#if USE_SHA1SHORT
+	W[15] = 20 << 3;
+	sha1_single_short(W, output);
+#else
 	for (i = 6; i < 16; i++)
 		W[i] = 0;
 	W[15] = 20 << 3;
 	sha1_single(W, output);
-#else
-	W[15] = 20 << 3;
-	sha1_single_short(W, output);
 #endif
 	for (i = 0; i < 5; i++)
 		digest[i * gws + gid] = output[i];

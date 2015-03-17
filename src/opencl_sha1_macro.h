@@ -168,7 +168,7 @@
 	P4(C, D, E, A, B, R(78)); \
 	P4(B, C, D, E, A, R(79));
 
-#ifdef USE_SHA1SHORT
+#if USE_SHA1SHORT
 #define SHA1_SHORT_BEG(A, B, C, D, E, W)	  \
 	P1(A, B, C, D, E, W[0]); \
 	P1(E, A, B, C, D, W[1]); \
@@ -324,7 +324,7 @@
 		o[4] = E + INIT_E; \
 	}
 
-#ifdef USE_SHA1SHORT
+#if USE_SHA1SHORT
 #define sha1_block_short(b, o) {	\
 		A = o[0]; \
 		B = o[1]; \

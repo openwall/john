@@ -61,7 +61,6 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 	uint i;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 
 	for (i = 0; i < 5; i++)
 		output[i] = ipad[i];
@@ -100,7 +99,6 @@ inline void preproc(__global const MAYBE_VECTOR_UINT *key,
 	uint i;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 
 	for (i = 0; i < 16; i++)
 		W[i] = key[i] ^ padding;
@@ -142,7 +140,6 @@ void pbkdf1_loop(__global pbkdf1_state *state)
 {
 	uint gid = get_global_id(0);
 	uint i, j;
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
