@@ -28,7 +28,7 @@
 #define malloc(a) _aligned_malloc(a,16)
 #define realloc(a,b) _aligned_realloc(a,b,16)
 #define free(a) _aligned_free(a)
-char *MSVC_strdup(const char *str)
+char *strdup_MSVC(const char *str)
 {
 	char * s;
 	s = (char*)mem_alloc_func(strlen(str)+1);

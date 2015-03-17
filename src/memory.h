@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "arch.h"
 
@@ -122,8 +123,8 @@ void *mem_calloc_align_func(size_t size, size_t count, size_t align
 
 #ifdef _MSC_VER
 #if !defined (MEMDBG_ON)
-#define strdup(a) MSVC_strdup(a)
-char *MSVC_strdup(const char *str);
+#define strdup(a) strdup_MSVC(a)
+char *strdup_MSVC(const char *str);
 #define MEM_FREE(ptr) \
 { \
 	if ((ptr)) { \
