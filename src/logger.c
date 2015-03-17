@@ -10,7 +10,9 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE /* for fileno(3) and fsync(2) */
+#endif
 
 #define NEED_OS_FLOCK
 #include "os.h"
