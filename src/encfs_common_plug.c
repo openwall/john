@@ -9,6 +9,7 @@
 #include "common.h"
 #include "encfs_common.h"
 #include <openssl/hmac.h>
+#include "memdbg.h"
 
 int encfs_common_valid(char *ciphertext, struct fmt_main *self)
 {
@@ -25,7 +26,7 @@ int encfs_common_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	res = atoi(p);
 	if (res < 128 || res > MAX_KEYLENGTH*8)
-		return 0;
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* cipher */
