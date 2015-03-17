@@ -78,7 +78,6 @@ john_register_one(&fmt_NT2);
 #endif
 
 #ifdef SIMD_COEF_32
-static unsigned char *SIMD_ptr1, *SIMD_ptr2;
 static unsigned char (*saved_key);
 static unsigned char (*crypt_key);
 static unsigned int (**buf_ptr);
@@ -177,10 +176,11 @@ static void init(struct fmt_main *self)
 		}
 	}
 #if SIMD_COEF_32
-	saved_key = mem_calloc_align(64*self->params.max_keys_per_crypt,
-	                       sizeof(*saved_key), MEM_ALIGN_SIMD, &SIMD_ptr1);
-	crypt_key = mem_calloc_align(DIGEST_SIZE*self->params.max_keys_per_crypt,
-	                       sizeof(*crypt_key), MEM_ALIGN_SIMD, &SIMD_ptr2);
+	saved_key = mem_calloc_align(64 * self->params.max_keys_per_crypt,
+	                             sizeof(*saved_key), MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_align(DIGEST_SIZE *
+	                             self->params.max_keys_per_crypt,
+	                             sizeof(*crypt_key), MEM_ALIGN_SIMD);
 	buf_ptr = mem_calloc(self->params.max_keys_per_crypt, sizeof(*buf_ptr));
 	for (i=0; i<self->params.max_keys_per_crypt; i++)
 		buf_ptr[i] = (unsigned int*)&saved_key[GETPOS(0, i)];
@@ -191,8 +191,8 @@ static void done()
 {
 #if SIMD_COEF_32
 	MEM_FREE(buf_ptr);
-	MEM_FREE(SIMD_ptr1);
-	MEM_FREE(SIMD_ptr2);
+	MEM_FREE(crypt_key);
+	MEM_FREE(saved_key);
 #endif
 }
 

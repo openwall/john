@@ -11023,7 +11023,7 @@ See \`config.log' for more details" "$LINENO" 5; }
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-for ac_header in arpa/inet.h crypt.h fcntl.h limits.h locale.h \
+for ac_header in arpa/inet.h crypt.h fcntl.h limits.h locale.h malloc.h \
                   net/ethernet.h netdb.h netinet/in.h netinet/in_systm.h \
                   stdint.h string.h strings.h \
                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h \
@@ -12008,6 +12008,21 @@ _ACEOF
 
 fi
 done
+
+
+# This will stop at first found, will be used for mem_alloc_aligned()
+for ac_func in aligned_alloc posix_memalign memalign __mingw_aligned_malloc _aligned_malloc
+do :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+_ACEOF
+ break
+fi
+done
+
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -13046,6 +13061,44 @@ fi
          jtr_list_add_result="$jtr_list_add_result $i"
       fi
    done
+
+fi
+    # For exposing aligned_alloc
+    if test "x$ac_cv_func_aligned_alloc" = xyes; then :
+
+   for i in -D_ISOC11_SOURCE; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EXTRA; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+else
+  # For exposing posix_memalign()
+        if test "x$ac_cv_func_posix_memalign" = xyes; then :
+
+   for i in -D_XOPEN_SOURCE=600; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EXTRA; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+fi
 
 fi
     ;;

@@ -260,9 +260,12 @@ static void sha1_fmt_init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 
-	M   = mem_calloc(self->params.max_keys_per_crypt, sizeof(*M));
-	N   = mem_calloc(self->params.max_keys_per_crypt, sizeof(*N));
-	MD  = mem_calloc(self->params.max_keys_per_crypt, sizeof(*MD));
+	M   = mem_calloc_align(self->params.max_keys_per_crypt, sizeof(*M),
+	                       MEM_ALIGN_SIMD);
+	N   = mem_calloc_align(self->params.max_keys_per_crypt, sizeof(*N),
+	                       MEM_ALIGN_SIMD);
+	MD  = mem_calloc_align(self->params.max_keys_per_crypt, sizeof(*MD),
+	                       MEM_ALIGN_SIMD);
 }
 
 

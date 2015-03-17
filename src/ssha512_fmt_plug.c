@@ -118,12 +118,14 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_out));
 #else
-	len_ptr64 = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*len_ptr64));
-	saved_key = mem_calloc(self->params.max_keys_per_crypt/SIMD_COEF_64,
-	                       sizeof(*saved_key));
-	crypt_out = mem_calloc(self->params.max_keys_per_crypt/SIMD_COEF_64,
-	                       sizeof(*crypt_out));
+	len_ptr64 = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             sizeof(*len_ptr64), MEM_ALIGN_SIMD);
+	saved_key = mem_calloc_align(self->params.max_keys_per_crypt /
+	                             SIMD_COEF_64,
+	                             sizeof(*saved_key), MEM_ALIGN_SIMD);
+	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt /
+	                             SIMD_COEF_64,
+	                             sizeof(*crypt_out), MEM_ALIGN_SIMD);
 	for (i = 0; i < self->params.max_keys_per_crypt; i += SIMD_COEF_64) {
 		ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(i&(SIMD_COEF_64-1)) + (i>>(SIMD_COEF_64>>1))*SHA512_BUF_SIZ*SIMD_COEF_64];
 		for (j = 0; j < SIMD_COEF_64; ++j) {

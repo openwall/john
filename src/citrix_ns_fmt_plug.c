@@ -98,7 +98,6 @@ static struct fmt_tests tests[] = {
 };
 
 #ifdef SIMD_COEF_32
-static unsigned char *SIMD_ptr1, *SIMD_ptr2;
 static unsigned char (*saved_key)[SHA_BUF_SIZ * 4 * NBKEYS];
 static unsigned char (*crypt_key)[BINARY_SIZE * NBKEYS];
 static int kpc;
@@ -119,8 +118,10 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 #ifdef SIMD_COEF_32
-	saved_key = mem_calloc_align(1, (self->params.max_keys_per_crypt/NBKEYS)*sizeof(*saved_key), MEM_ALIGN_SIMD, &SIMD_ptr1);
-	crypt_key = mem_calloc_align(1, (self->params.max_keys_per_crypt/NBKEYS)*sizeof(*crypt_key), MEM_ALIGN_SIMD, &SIMD_ptr2);
+	saved_key = mem_calloc_align(self->params.max_keys_per_crypt / NBKEYS,
+	                       sizeof(*saved_key), MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_align(self->params.max_keys_per_crypt / NBKEYS,
+	                       sizeof(*crypt_key), MEM_ALIGN_SIMD);
 	kpc = self->params.max_keys_per_crypt;
 #else
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
@@ -132,13 +133,8 @@ static void init(struct fmt_main *self)
 
 static void done()
 {
-#ifdef SIMD_COEF_32
-	MEM_FREE(SIMD_ptr1);
-	MEM_FREE(SIMD_ptr2);
-#else
 	MEM_FREE(crypt_key);
 	MEM_FREE(saved_key);
-#endif
 }
 
 static void *binary(char *ciphertext)

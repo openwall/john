@@ -30,6 +30,9 @@
 /* Define to 1 if you have the `AES_encrypt' function. */
 #undef HAVE_AES_ENCRYPT
 
+/* Define to 1 if you have the `aligned_alloc' function. */
+#undef HAVE_ALIGNED_ALLOC
+
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
@@ -162,6 +165,12 @@
 /* Define to 1 if you have the `lseek64' function. */
 #undef HAVE_LSEEK64
 
+/* Define to 1 if you have the <malloc.h> header file. */
+#undef HAVE_MALLOC_H
+
+/* Define to 1 if you have the `memalign' function. */
+#undef HAVE_MEMALIGN
+
 /* Define to 1 if you have the `memmem' function. */
 #undef HAVE_MEMMEM
 
@@ -203,6 +212,9 @@
 
 /* Define to 1 if you have the <pcap/pcap.h> header file. */
 #undef HAVE_PCAP_PCAP_H
+
+/* Define to 1 if you have the `posix_memalign' function. */
+#undef HAVE_POSIX_MEMALIGN
 
 /* Define if you have POSIX threads libraries and header files. */
 #undef HAVE_PTHREAD
@@ -330,6 +342,9 @@
 /* Define to 1 if `vfork' works. */
 #undef HAVE_WORKING_VFORK
 
+/* Define to 1 if you have the `_aligned_malloc' function. */
+#undef HAVE__ALIGNED_MALLOC
+
 /* Define to 1 if you have the `_atoi64' function. */
 #undef HAVE__ATOI64
 
@@ -365,6 +380,9 @@
 
 /* Define to 1 if the system has the type `__int128_t'. */
 #undef HAVE___INT128_T
+
+/* Define to 1 if you have the `__mingw_aligned_malloc' function. */
+#undef HAVE___MINGW_ALIGNED_MALLOC
 
 /* Define to 1 if you want support for 4-byte UTF-8 in fast MS formats. */
 #undef NT_FULL_UNICODE

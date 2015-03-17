@@ -496,7 +496,7 @@ JTR_CUDA
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-AC_CHECK_HEADERS([arpa/inet.h crypt.h fcntl.h limits.h locale.h \
+AC_CHECK_HEADERS([arpa/inet.h crypt.h fcntl.h limits.h locale.h malloc.h \
                   net/ethernet.h netdb.h netinet/in.h netinet/in_systm.h \
                   stdint.h string.h strings.h \
                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h \
@@ -619,6 +619,10 @@ dnl                 endpwent isascii mkdir rmdir atexit floor
 dnl                 ftruncate gethostbyname gettimeofday inet_ntoa
 dnl                 strrchr strcspn strspn strtol strtoul
 dnl ])
+
+# This will stop at first found, will be used for mem_alloc_aligned()
+AC_CHECK_FUNCS([aligned_alloc posix_memalign memalign __mingw_aligned_malloc _aligned_malloc], break)
+
 AC_CACHE_SAVE
 
 AC_SUBST([CC_CPU],["${CPU_BEST_FLAGS}"])

@@ -145,10 +145,10 @@ static void init(struct fmt_main *self)
 #else
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_len));
-	saved_key = mem_calloc(self->params.max_keys_per_crypt/NBKEYS,
-	                       sizeof(*saved_key));
-	crypt_key = mem_calloc(self->params.max_keys_per_crypt/NBKEYS,
-	                       sizeof(*crypt_key));
+	saved_key = mem_calloc_align(self->params.max_keys_per_crypt/NBKEYS,
+	                             sizeof(*saved_key), MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_align(self->params.max_keys_per_crypt/NBKEYS,
+	                             sizeof(*crypt_key), MEM_ALIGN_SIMD);
 #endif
 }
 

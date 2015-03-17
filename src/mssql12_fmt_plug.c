@@ -104,7 +104,6 @@ static unsigned char cursalt[SALT_SIZE];
 #ifdef SIMD_COEF_64
 static ARCH_WORD_64 (*saved_key)[SHA512_BUF_SIZ];
 static ARCH_WORD_64 (*crypt_out)[8*SIMD_COEF_64];
-static unsigned char *SIMD_ptr1, *SIMD_ptr2;
 static int max_keys;
 static int new_keys;
 #else
@@ -165,16 +164,18 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 #ifdef SIMD_COEF_64
-	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt/SIMD_COEF_64,
-	                       sizeof(*crypt_out), MEM_ALIGN_SIMD, &SIMD_ptr1);
 	saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
-	                       sizeof(*saved_key), MEM_ALIGN_SIMD, &SIMD_ptr2);
+	                             sizeof(*saved_key),
+	                             MEM_ALIGN_SIMD);
+	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt /
+	                             SIMD_COEF_64,
+	                             sizeof(*crypt_out), MEM_ALIGN_SIMD);
 	max_keys = self->params.max_keys_per_crypt;
 #else
-	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*crypt_out));
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_out));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_len));
 #endif
@@ -190,12 +191,9 @@ static void done()
 {
 #ifndef SIMD_COEF_64
 	MEM_FREE(saved_len);
+#endif
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
-#else
-	MEM_FREE(SIMD_ptr1);
-	MEM_FREE(SIMD_ptr2);
-#endif
 }
 
 #ifdef SIMD_COEF_64

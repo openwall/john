@@ -180,10 +180,13 @@ static void init(struct fmt_main *self)
 	clean_pos = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*clean_pos));
 	for(i = 0; i < LIMB; i++)
-		saved_key[i] = mem_calloc(self->params.max_keys_per_crypt,
-		                          SHA_BUF_SIZ * 4);
-	interm_crypt = mem_calloc(self->params.max_keys_per_crypt, 20);
-	crypt_key = mem_calloc(self->params.max_keys_per_crypt, 20);
+		saved_key[i] = mem_calloc_align(self->params.max_keys_per_crypt,
+		                                SHA_BUF_SIZ * 4,
+		                                MEM_ALIGN_SIMD);
+	interm_crypt = mem_calloc_align(self->params.max_keys_per_crypt,
+	                                20, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             20, MEM_ALIGN_SIMD);
 #else
 	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_key));

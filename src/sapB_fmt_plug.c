@@ -172,11 +172,14 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt = (omp_t * MAX_KEYS_PER_CRYPT);
 #endif
 #ifdef SIMD_COEF_32
-	saved_key = mem_calloc(self->params.max_keys_per_crypt, 64);
-	interm_key = mem_calloc(self->params.max_keys_per_crypt, 64);
-	clean_pos = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*clean_pos));
-	crypt_key = mem_calloc(self->params.max_keys_per_crypt, 16);
+	saved_key  = mem_calloc_align(self->params.max_keys_per_crypt,
+	                              64, MEM_ALIGN_SIMD);
+	interm_key = mem_calloc_align(self->params.max_keys_per_crypt,
+	                              64, MEM_ALIGN_SIMD);
+	clean_pos  = mem_calloc(self->params.max_keys_per_crypt,
+	                        sizeof(*clean_pos));
+	crypt_key  = mem_calloc_align(self->params.max_keys_per_crypt,
+	                              16, MEM_ALIGN_SIMD);
 #else
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));

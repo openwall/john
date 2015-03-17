@@ -97,9 +97,9 @@ extern void *mem_calloc_func(size_t count, size_t size
 #define str_alloc_copy(a) str_alloc_copy_func(a)
 #endif
 
-/* these allow alignment. The 'real_ptr' is the pointer to later pass to MEM_FREE */
-void *mem_alloc_align(size_t size, int align, unsigned char **real_ptr);
-void *mem_calloc_align(size_t size, size_t count, int align, unsigned char **real_ptr);
+/* These allow alignment and are wrappers to system-specific functions */
+void *mem_alloc_align(size_t size, size_t align);
+void *mem_calloc_align(size_t size, size_t count, size_t align);
 
 /*
  * Frees memory allocated with mem_alloc() and sets the pointer to NULL.

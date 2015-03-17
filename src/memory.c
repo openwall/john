@@ -13,6 +13,9 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h> /* for isprint() */
+#if HAVE_MEMALIGN && HAVE_MALLOC_H
+#include <malloc.h>
+#endif
 
 #include "arch.h"
 #include "misc.h"
@@ -200,13 +203,37 @@ void *mem_alloc_copy_func(void *src, size_t size, size_t align
 #endif
 }
 
-void *mem_alloc_align(size_t size, int align, unsigned char **real_ptr) {
-	*real_ptr = mem_alloc(size+align);
-	return mem_align(*real_ptr, align);
+void *mem_alloc_align(size_t size, size_t align)
+{
+	void *ptr;
+#if HAVE_ALIGNED_ALLOC
+	if (!(ptr = aligned_alloc(align, size)))
+		pexit("aligned_alloc");
+#elif HAVE_POSIX_MEMALIGN
+	if (posix_memalign(&ptr, align, size))
+		pexit("posix_memalign");
+#elif HAVE_MEMALIGN
+	/* Let's just pray this implementation can actually free it */
+	if (!(ptr = memalign(&ptr, align, size)))
+		pexit("memalign");
+#elif HAVE___MINGW_ALIGNED_MALLOC
+	if (!(ptr = __mingw_aligned_malloc(size, align)))
+		pexit("__mingw_aligned_malloc");
+#elif HAVE__ALIGNED_MALLOC
+	if (!(ptr = _aligned_malloc(size, align)))
+		pexit("_aligned_malloc");
+#else
+#error No suitable alligned alloc found, please report to john-dev mailing list (state your OS details).
+#endif
+	return ptr;
 }
-void *mem_calloc_align(size_t size, size_t count, int align, unsigned char **real_ptr) {
-	*real_ptr = mem_calloc(1, count*size+align);
-	return mem_align(*real_ptr, align);
+
+void *mem_calloc_align(size_t size, size_t count, size_t align)
+{
+	void *ptr = mem_alloc_align(size * count, align);
+
+	memset(ptr, 0, size * count);
+	return ptr;
 }
 
 char *str_alloc_copy_func(char *src
