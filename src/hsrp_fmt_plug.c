@@ -28,7 +28,11 @@ john_register_one(&fmt_hsrp);
 // 32k  - 12111k 7803k  ** this value chosen
 // 64k  - 12420k 6523k
 // 128k - 12220k 6741k
+#ifdef __MIC__
+#define OMP_SCALE 16384
+#else
 #define OMP_SCALE 32768
+#endif
 #endif
 
 #include "arch.h"

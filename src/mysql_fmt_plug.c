@@ -30,7 +30,11 @@ john_register_one(&fmt_MYSQL_fast);
 
 #ifdef _OPENMP
 #include <omp.h>
+#ifdef __MIC__
+#define OMP_SCALE			2048
+#else
 #define OMP_SCALE			81920
+#endif
 #endif
 
 #include "arch.h"

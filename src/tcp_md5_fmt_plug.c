@@ -17,7 +17,11 @@ john_register_one(&fmt_tcpmd5);
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
+#ifdef __MIC__
+#define OMP_SCALE 16384
+#else
 #define OMP_SCALE 32768  // scaled K8-dual HT
+#endif
 #endif
 
 #include "arch.h"
