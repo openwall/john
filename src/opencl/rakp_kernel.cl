@@ -36,7 +36,7 @@ void rakp_kernel(__constant      uint* salt,
                  __global        uint* digest)
 {
 	MAYBE_VECTOR_UINT W[16], K[16] = { 0 }, stage1[5], stage2[5];
-	MAYBE_VECTOR_UINT temp, A, B, C, D, E;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp, a, b, c, d, e;
 	uint gid = get_global_id(0);
 	uint gws = get_global_size(0);
 	uint i;

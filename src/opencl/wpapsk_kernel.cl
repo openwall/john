@@ -45,7 +45,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 	uint i;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp, a, b, c, d, e;
 	uint gid = get_global_id(0);
 	uint gws = get_global_size(0);
 
@@ -126,7 +126,7 @@ void wpapsk_loop(__global MAYBE_VECTOR_UINT *state)
 	uint gid = get_global_id(0);
 	uint gws = get_global_size(0);
 	uint i, j;
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp, a, b, c, d, e;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
@@ -213,7 +213,7 @@ inline void prf_512(const MAYBE_VECTOR_UINT *key,
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp, a, b, c, d, e;
 
 	// HMAC(EVP_sha1(), key, 32, (text.data), 100, ret, NULL);
 
@@ -383,7 +383,7 @@ void wpapsk_final_sha1(__global MAYBE_VECTOR_UINT *state,
 	MAYBE_VECTOR_UINT opad[5];
 	uint i, eapol_blocks;
 	MAYBE_CONSTANT uint *cp = salt->eapol;
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp, a, b, c, d, e;
 
 	for (i = 0; i < 5; i++)
 		outbuffer[i] = state[(PARTIAL + i) * gws + gid];

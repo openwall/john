@@ -413,7 +413,7 @@
 		C = ctx[2]; \
 		D = ctx[3]; \
 		E = ctx[4]; \
-		MAYBE_VECTOR_UINT a=A, b=B, c=C, d=D, e=E; \
+		a=A, b=B, c=C, d=D, e=E; \
 		SHA1(A, B, C, D, E, W); \
 		ctx[0] = a + A; \
 		ctx[1] = b + B; \
@@ -442,7 +442,7 @@
 		C = ctx[2]; \
 		D = ctx[3]; \
 		E = ctx[4]; \
-		MAYBE_VECTOR_UINT a=A, b=B, c=C, d=D, e=E; \
+		a=A, b=B, c=C, d=D, e=E; \
 		SHA1_160Z(A, B, C, D, E, W); \
 		ctx[0] = a + A; \
 		ctx[1] = b + B; \
@@ -471,7 +471,7 @@
 		C = ctx[2]; \
 		D = ctx[3]; \
 		E = ctx[4]; \
-		MAYBE_VECTOR_UINT a=A, b=B, c=C, d=D, e=E; \
+		a=A, b=B, c=C, d=D, e=E; \
 		SHA1_192Z(A, B, C, D, E, W); \
 		ctx[0] = a + A; \
 		ctx[1] = b + B; \

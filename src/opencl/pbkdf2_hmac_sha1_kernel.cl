@@ -60,7 +60,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
                       MAYBE_CONSTANT uchar *salt, uint saltlen, uchar add)
 {
 	uint i;
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp, a, b, c, d, e;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
 
@@ -143,7 +143,7 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 {
 	uint gid = get_global_id(0);
 	uint i, j;
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp, a, b, c, d, e;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];

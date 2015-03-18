@@ -30,7 +30,7 @@ __kernel void GenerateSHA1pwhash(
 	uint W[16];
 	uint output[5];
 	uint gid = get_global_id(0);
-	uint A, B, C, D, E, temp;
+	uint A, B, C, D, E, temp, a, b, c, d, e;
 
 	/* Initial hash of salt + password */
 	/* The ending 0x80 is already in the buffer */

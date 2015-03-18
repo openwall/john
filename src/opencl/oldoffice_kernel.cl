@@ -376,7 +376,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 {
 	uint i;
 	uint gid = get_global_id(0);
-	uint A, B, C, D, E, temp;
+	uint A, B, C, D, E, temp, a, b, c, d, e;
 	uint W[64/4];
 	uint verifier[32/4];
 	uint sha1[20/4];
