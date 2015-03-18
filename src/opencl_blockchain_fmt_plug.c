@@ -231,11 +231,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 	}
 	len = atoi(p);
-	if(len > BIG_ENOUGH)
+	if(len > BIG_ENOUGH || !len)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)
 		goto err;
-	if (strlen(p) != len * 2)
+	if (strlen(p) != len * 2 || !ishex(p))
 		goto err;
 
 	MEM_FREE(keeptr);

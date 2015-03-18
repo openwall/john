@@ -399,7 +399,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 5;	/* skip over "$gpg$" marker */
+	ctcopy += 6;	/* skip over "$gpg$" marker and '*' */
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* algorithm */
 		goto err;
 	algorithm = atoi(p);
