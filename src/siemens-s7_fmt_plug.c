@@ -76,7 +76,7 @@ static void init(struct fmt_main *self)
 	                       sizeof(*opad_ctx));
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(opad_ctx);
 	MEM_FREE(ipad_ctx);

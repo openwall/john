@@ -194,7 +194,7 @@ static void init(struct fmt_main *self)
 #endif
 }
 
-static void done()
+static void done(void)
 {
 #ifdef SIMD_COEF_32
 	int i;

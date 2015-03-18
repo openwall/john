@@ -109,7 +109,7 @@ static void init(struct fmt_main *self)
 	output = mem_calloc(self->params.max_keys_per_crypt, sizeof(*output));
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(output);
 	MEM_FREE(saved_plain);

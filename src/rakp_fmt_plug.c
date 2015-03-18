@@ -147,7 +147,7 @@ static void init(struct fmt_main *self)
 	                         sizeof(*saved_plain));
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(saved_plain);
 #ifdef SIMD_COEF_32

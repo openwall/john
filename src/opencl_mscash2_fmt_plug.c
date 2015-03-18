@@ -160,7 +160,7 @@ static void DCC(unsigned char *salt, unsigned int username_len,
 	}
 }
 
-static void done() {
+static void done(void) {
 	MEM_FREE(dcc2_hash_host) ;
 	MEM_FREE(dcc_hash_host) ;
 	MEM_FREE(key_host) ;

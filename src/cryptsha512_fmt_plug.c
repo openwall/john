@@ -225,7 +225,7 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc(1 + max_crypts, sizeof(*crypt_out));
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);

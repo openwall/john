@@ -40,7 +40,7 @@ extern void wpapsk_gpu(wpapsk_password *, wpapsk_hash *, wpapsk_salt *, int);
 
 extern void *salt(char *ciphertext);
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);

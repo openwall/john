@@ -63,7 +63,7 @@ static struct fmt_tests tests[] = {
 extern void mscash2_gpu(mscash2_password *, mscash2_hash *, mscash2_salt *,
                         int count);
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);

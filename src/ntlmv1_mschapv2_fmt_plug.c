@@ -989,7 +989,7 @@ static void init(struct fmt_main *self)
 	cmps_per_crypt = 2; /* try bitmap */
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(crypt_key);
 	MEM_FREE(nthash);

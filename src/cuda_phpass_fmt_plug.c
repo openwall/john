@@ -94,7 +94,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);

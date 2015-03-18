@@ -116,7 +116,7 @@ extern int cuda_getAsyncEngineCount();
 static sha256_password *inbuffer;			/** binary ciphertexts **/
 static SHA_HASH *outbuffer;				/** calculated hashes **/
 static int overlap;
-static void done()
+static void done(void)
 {
 	if (overlap) {
 		cuda_pageLockedFree(inbuffer);

@@ -128,7 +128,7 @@ static void init(struct fmt_main *self)
 #endif
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(crypt_out);
 #ifndef SIMD_COEF_64

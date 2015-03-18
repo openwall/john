@@ -139,7 +139,7 @@ static void init(struct fmt_main *self)
 #endif
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);

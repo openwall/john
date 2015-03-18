@@ -55,7 +55,7 @@ static struct fmt_tests tests[] = {
 
 extern void cuda_mscash(mscash_password *, mscash_hash *, mscash_salt *, int);
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);

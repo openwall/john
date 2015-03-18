@@ -249,7 +249,7 @@ static void init(struct fmt_main *self)
 }
 
 
-static void done()
+static void done(void)
 {
     int i;
 

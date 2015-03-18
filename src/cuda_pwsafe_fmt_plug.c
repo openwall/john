@@ -64,7 +64,7 @@ static pwsafe_salt *host_salt;                          /** salt **/
 static pwsafe_hash *host_hash;                          /** calculated hashes **/
 extern void gpu_pwpass(pwsafe_pass *, pwsafe_salt *, pwsafe_hash *, int count);
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(host_salt);
 	MEM_FREE(host_hash);

@@ -55,7 +55,7 @@ void sha512_crypt_gpu(crypt_sha512_password * inbuffer,
 static char currentsalt[64];
 static crypt_sha512_salt _salt;
 
-static void done()
+static void done(void)
 {
  MEM_FREE(inbuffer);
  MEM_FREE(outbuffer);

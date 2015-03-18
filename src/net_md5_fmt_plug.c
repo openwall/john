@@ -77,7 +77,7 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 static void get_ptr();
 static void init(struct fmt_main *self);
-static void done();
+static void done(void);
 
 #define MAGIC 0xfe5dd5ef
 
@@ -378,7 +378,7 @@ static void init(struct fmt_main *self)
 	                       sizeof(*crypt_out));
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);

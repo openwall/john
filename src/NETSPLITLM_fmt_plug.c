@@ -91,7 +91,7 @@ static void init(struct fmt_main *self)
 	                    sizeof(*output));
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(output);
 	MEM_FREE(saved_pre);

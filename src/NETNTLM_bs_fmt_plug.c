@@ -127,7 +127,7 @@ static void init(struct fmt_main *self)
 	                       sizeof(*saved_key));
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(saved_key);
 	MEM_FREE(output);

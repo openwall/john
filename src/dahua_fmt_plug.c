@@ -82,7 +82,7 @@ static void init(struct fmt_main *self)
 	                       sizeof(*crypt_out));
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_len);

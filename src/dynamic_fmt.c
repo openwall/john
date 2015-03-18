@@ -849,7 +849,7 @@ static void init(struct fmt_main *pFmt)
 	}
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(total_len2_X86);
 	MEM_FREE(total_len_X86);

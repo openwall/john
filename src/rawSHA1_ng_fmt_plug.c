@@ -269,7 +269,7 @@ static void sha1_fmt_init(struct fmt_main *self)
 }
 
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(MD);
 	MEM_FREE(N);

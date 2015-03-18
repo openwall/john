@@ -97,7 +97,7 @@ static void init(struct fmt_main *self)
 	                           sizeof(*saved_key_len));
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(saved_key_len);
 	MEM_FREE(crypt_key);

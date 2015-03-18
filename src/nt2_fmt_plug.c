@@ -187,7 +187,7 @@ static void init(struct fmt_main *self)
 #endif
 }
 
-static void done()
+static void done(void)
 {
 #if SIMD_COEF_32
 	MEM_FREE(buf_ptr);

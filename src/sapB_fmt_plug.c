@@ -192,7 +192,7 @@ static void init(struct fmt_main *self)
 	                    sizeof(*keyLen));
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(keyLen);
 	MEM_FREE(saved_plain);

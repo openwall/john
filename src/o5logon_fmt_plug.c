@@ -101,7 +101,7 @@ static void init(struct fmt_main *self)
 	self->params.algorithm_name=Buf;
 }
 
-static void done()
+static void done(void)
 {
 	MEM_FREE(cracked);
 	MEM_FREE(saved_key);
