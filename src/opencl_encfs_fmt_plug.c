@@ -141,7 +141,7 @@ struct fmt_main *me;
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	global_work_size = gws *= v_width;
+	gws *= v_width;
 
 	key_buf_size = 64 * gws;
 

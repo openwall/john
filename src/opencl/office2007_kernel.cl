@@ -13,7 +13,7 @@
 
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
-#include "opencl_sha1_macro.h"
+#include "opencl_sha1.h"
 
 #define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
 #define VECTOR(x, y)		CONCAT(x, y)
@@ -90,12 +90,15 @@ void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
 		for (i = 1; i < 6; i++)
 			W[i] = output[i - 1];
 		W[6] = 0x80000000;
-#ifndef USE_SHA1SHORT
+#ifdef USE_SHA1_SHORT
+		W[15] = 24 << 3;
+		sha1_single_192Z(W, output);
+#else
 		for (i = 7; i < 15; i++)
 			W[i] = 0;
-#endif
 		W[15] = 24 << 3;
-		sha1_single_short(W, output);
+		sha1_single(W, output);
+#endif
 	}
 	for (i = 0; i < 5; i++)
 		pwhash[gid * 6 + i] = output[i];
@@ -127,12 +130,15 @@ void Generate2007key(
 		for (i = 1; i < 6; i++)
 			W[i] = output[i - 1];
 		W[6] = 0x80000000;
-#ifndef USE_SHA1SHORT
+#ifdef USE_SHA1_SHORT
+		W[15] = 24 << 3;
+		sha1_single_192Z(W, output);
+#else
 		for (i = 7; i < 15; i++)
 			W[i] = 0;
-#endif
 		W[15] = 24 << 3;
-		sha1_single_short(W, output);
+		sha1_single(W, output);
+#endif
 	}
 
 	/* Final hash */
@@ -146,12 +152,15 @@ void Generate2007key(
 
 	W[5] = 0;
 	W[6] = 0x80000000;
-#ifndef USE_SHA1SHORT
+#ifdef USE_SHA1_SHORT
+	W[15] = 24 << 3;
+	sha1_single_192Z(W, output);
+#else
 	for (i = 7; i < 15; i++)
 		W[i] = 0;
-#endif
 	W[15] = 24 << 3;
-	sha1_single_short(W, output);
+	sha1_single(W, output);
+#endif
 
 	/* DeriveKey */
 	for (i = 0; i < 5; i++)
@@ -161,14 +170,17 @@ void Generate2007key(
 	sha1_single(W, output);
 	/* sha1_final (last block was 64 bytes) */
 	W[0] = 0x80000000;
-	for (i = 1; i < 7; i++)
+	for (i = 1; i < 6; i++)
 		W[i] = 0;
-#ifndef USE_SHA1SHORT
-	for (i = 7; i < 15; i++)
-		W[i] = 0;
-#endif
+#ifdef USE_SHA1_SHORT
 	W[15] = 64 << 3;
-	sha1_block_short(W, output);
+	sha1_block_160Z(W, output);
+#else
+	for (i = 6; i < 15; i++)
+		W[i] = 0;
+	W[15] = 64 << 3;
+	sha1_block(W, output);
+#endif
 
 	/* Endian-swap to output (we only use 16 bytes) */
 	for (i = 0; i < 4; i++)

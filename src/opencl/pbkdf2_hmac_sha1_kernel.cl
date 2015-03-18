@@ -60,6 +60,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
                       MAYBE_CONSTANT uchar *salt, uint saltlen, uchar add)
 {
 	uint i;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
 
@@ -83,8 +84,8 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 
 	for (i = 0; i < 5; i++)
 		output[i] = opad[i];
-#ifdef USE_SHA1SHORT
-	sha1_block_short(W, output);
+#ifdef USE_SHA1_SHORT
+	sha1_block_160Z(W, output);
 #else
 	for (i = 6; i < 15; i++)
 		W[i] = 0;
@@ -99,6 +100,7 @@ inline void preproc(__global const MAYBE_VECTOR_UINT *key,
                     __global MAYBE_VECTOR_UINT *state, uint padding)
 {
 	uint i;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
 
@@ -142,6 +144,7 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 {
 	uint gid = get_global_id(0);
 	uint i, j;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
@@ -167,8 +170,8 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 			output[i] = ipad[i];
 		W[5] = 0x80000000;
 		W[15] = (64 + 20) << 3;
-#ifdef USE_SHA1SHORT
-		sha1_block_short(W, output);
+#ifdef USE_SHA1_SHORT
+		sha1_block_160Z(W, output);
 #else
 		for (i = 6; i < 15; i++)
 			W[i] = 0;
@@ -181,8 +184,8 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 		W[15] = (64 + 20) << 3;
 		for (i = 0; i < 5; i++)
 			output[i] = opad[i];
-#ifdef USE_SHA1SHORT
-		sha1_block_short(W, output);
+#ifdef USE_SHA1_SHORT
+		sha1_block_160Z(W, output);
 #else
 		for (i = 6; i < 15; i++)
 			W[i] = 0;

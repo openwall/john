@@ -14,7 +14,7 @@
 
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
-#include "opencl_sha1_macro.h"
+#include "opencl_sha1.h"
 
 __kernel void sha1_crypt_kernel(__global uint* keys, __global const uint *index, __global uint* digest)
 {

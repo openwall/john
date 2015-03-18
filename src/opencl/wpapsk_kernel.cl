@@ -65,14 +65,18 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 	for (i = 0; i < 5; i++)
 		W[i] = output[i];
 	W[5] = 0x80000000;
-	W[15] = (64 + 20) << 3;
 
 	for (i = 0; i < 5; i++)
 		output[i] = state[(OPAD + i) * gws + gid];
+#if USE_SHA1_SHORT
+	W[15] = (64 + 20) << 3;
+	sha1_block_160Z(W, output);
+#else
+	W[15] = (64 + 20) << 3;
 	for (i = 6; i < 15; i++)
 		W[i] = 0;
 	sha1_block(W, output);
-
+#endif
 	for (i = 0; i < 5; i++)
 		state[(OUT + i) * gws + gid] = output[i];
 }
@@ -141,21 +145,29 @@ void wpapsk_loop(__global MAYBE_VECTOR_UINT *state)
 		for (i = 0; i < 5; i++)
 			output[i] = ipad[i];
 		W[5] = 0x80000000;
+#if USE_SHA1_SHORT
 		W[15] = (64 + 20) << 3;
+		sha1_block_160Z(W, output);
+#else
 		for (i = 6; i < 15; i++)
 			W[i] = 0;
+		W[15] = (64 + 20) << 3;
 		sha1_block(W, output);
-
+#endif
 		for (i = 0; i < 5; i++)
 			W[i] = output[i];
 		W[5] = 0x80000000;
-		W[15] = (64 + 20) << 3;
 		for (i = 0; i < 5; i++)
 			output[i] = opad[i];
+#if USE_SHA1_SHORT
+		W[15] = (64 + 20) << 3;
+		sha1_block_160Z(W, output);
+#else
 		for (i = 6; i < 15; i++)
 			W[i] = 0;
+		W[15] = (64 + 20) << 3;
 		sha1_block(W, output);
-
+#endif
 		for (i = 0; i < 5; i++)
 			W[i] = output[i];
 
@@ -247,11 +259,15 @@ inline void prf_512(const MAYBE_VECTOR_UINT *key,
 	for (i = 0; i < 5; i++)
 		W[i] = ipad[i];
 	W[5] = 0x80000000;
+#if USE_SHA1_SHORT
 	W[15] = (64 + 20) << 3;
+	sha1_block_160Z(W, opad);
+#else
 	for (i = 6; i < 15; i++)
 		W[i] = 0;
+	W[15] = (64 + 20) << 3;
 	sha1_block(W, opad); // update(digest) + final
-
+#endif
 	/* Only 16 bits used */
 	for (i = 0; i < 4; i++)
 		ret[i] = opad[i];
@@ -413,11 +429,15 @@ void wpapsk_final_sha1(__global MAYBE_VECTOR_UINT *state,
 	for (i = 0; i < 5; i++)
 		W[i] = ipad[i];
 	W[5] = 0x80000000;
+#if USE_SHA1_SHORT
 	W[15] = (64 + 20) << 3;
+	sha1_block_160Z(W, opad);
+#else
 	for (i = 6; i < 15; i++)
 		W[i] = 0;
+	W[15] = (64 + 20) << 3;
 	sha1_block(W, opad);
-
+#endif
 	/* We only use 16 bytes */
 	for (i = 0; i < 4; i++)
 #ifdef SCALAR

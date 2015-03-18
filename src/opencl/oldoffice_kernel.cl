@@ -376,6 +376,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 {
 	uint i;
 	uint gid = get_global_id(0);
+	uint A, B, C, D, E, temp;
 	uint W[64/4];
 	uint verifier[32/4];
 	uint sha1[20/4];
@@ -436,7 +437,6 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 		sha1_block(W, key);
 	}
 
-	sha1_init(sha1);
 	for (i = 0; i < 5; i++)
 		W[i] = key[i];
 	W[5] = 0;
@@ -444,7 +444,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 	for (i = 7; i < 15; i++)
 		W[i] = 0;
 	W[15] = 24 << 3;
-	sha1_block(W, sha1);
+	sha1_single(W, sha1);
 
 	sha1[0] = SWAP32(sha1[0]);
 	sha1[1] = SWAP32(sha1[1]);
@@ -478,8 +478,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 		for (i = 5; i < 15; i++)
 			W[i] = 0;
 		W[15] = 16 << 3;
-		sha1_init(key);
-		sha1_block(W, key);
+		sha1_single(W, key);
 
 		verifier[0] = SWAP32(key[0]);
 		verifier[1] = SWAP32(key[1]);

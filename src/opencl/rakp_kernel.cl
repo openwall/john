@@ -13,7 +13,7 @@
 
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
-#include "opencl_sha1_macro.h"
+#include "opencl_sha1.h"
 
 #define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
 #define VECTOR(x, y)		CONCAT(x, y)
@@ -98,10 +98,15 @@ void rakp_kernel(__constant      uint* salt,
 	for (i = 0; i < 5; i++)
 		W[i] = stage1[i];
 	W[5] = 0x80000000;
+#ifdef USE_SHA1_SHORT
+	W[15] = 672; // (64 + 20) * 8
+	sha1_block_160Z(W, stage2);
+#else
 	for (i = 6; i < 15; i++)
 		W[i] = 0;
 	W[15] = 672; // (64 + 20) * 8
 	sha1_block(W, stage2);
+#endif
 
 	for (i = 0; i < 5; i++)
 #ifdef SCALAR

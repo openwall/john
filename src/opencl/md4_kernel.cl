@@ -14,19 +14,8 @@
  * 3. http://en.wikipedia.org/wiki/MD4  */
 
 #include "opencl_device_info.h"
+#include "opencl_misc.h"
 #include "opencl_mask.h"
-
-#if gpu_amd(DEVICE_INFO)
-#define USE_BITSELECT
-#endif
-
-/* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
-#define GETCHAR(buf, index) (((uchar*)(buf))[(index)])
-#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
-#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
-#else
-#define PUTCHAR(buf, index, val) ((uchar*)(buf))[index] = (val)
-#endif
 
 /* The basic MD4 functions */
 #ifdef USE_BITSELECT
