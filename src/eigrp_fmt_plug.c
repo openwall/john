@@ -29,7 +29,11 @@ john_register_one(&fmt_eigrp);
 // 64k  - 16106k/14700k
 // 64k  - 16674k/14674k
 // 128k - 17795k/14663k  --test=0 has a tiny delay, but not bad.
+#ifdef __MIC__
+#define OMP_SCALE 32768
+#else
 #define OMP_SCALE 131072
+#endif
 #endif
 
 #include "arch.h"
