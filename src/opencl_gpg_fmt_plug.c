@@ -46,12 +46,12 @@ john_register_one(&fmt_opencl_gpg);
 #define ALGORITHM_NAME		"SHA1 OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
+#define PLAINTEXT_LENGTH	32
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 #define BINARY_SIZE		0
-#define PLAINTEXT_LENGTH	32
-#define SALT_SIZE		sizeof(struct custom_salt)
 #define BINARY_ALIGN		MEM_ALIGN_WORD
+#define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		MEM_ALIGN_WORD
 
 
@@ -393,7 +393,7 @@ static int valid_hash_algorithm(int hash_algorithm, int spec)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int res,i,j,spec,usage,algorithm,ex_flds=0;
+	int res,j,spec,usage,algorithm,ex_flds=0;
 
 	if (strncmp(ciphertext, "$gpg$", 5) != 0)
 		return 0;
@@ -410,39 +410,38 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* bits */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* data */
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
-	for(i = 0; i < strlen(p); i++) {
-		if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
-			goto err;
-	}
+	if (!ishex(p))
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* spec */
 		goto err;
-	if (strlen(p) >= 10)
-		goto err;
 	spec = atoi(p);
-	if ((p = strtok(NULL, "*")) == NULL)	/* usage */
-		goto err;
 	if (!isdec(p))
 		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* usage */
+		goto err;
 	usage = atoi(p);
+	if (!isdec(p))
+		goto err;
 	if(usage != 0 && usage != 254 && usage != 255 && usage != 1)
 		goto err;
-
 	if ((p = strtok(NULL, "*")) == NULL)	/* hash_algorithm */
 		goto err;
-	if (strlen(p) >= 10)
-		goto err;
 	res = atoi(p);
+	if (!isdec(p))
+		goto err;
 	if(!valid_hash_algorithm(res, spec))
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* cipher_algorithm */
 		goto err;
-	if (strlen(p) >= 10)
-		goto err;
 	res = atoi(p);
+	if (!isdec(p))
+		goto err;
 	if(!valid_cipher_algorithm(res))
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* ivlen */
@@ -454,10 +453,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
-	for(i = 0; i < strlen(p); i++) {
-		if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
-			goto err;
-	}
+	if (!ishex(p))
+		goto err;
 	/* handle "SPEC_SIMPLE" correctly */
 	if (spec == 0) {
 		MEM_FREE(keeptr);
@@ -472,9 +469,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != 8 * 2)
 		goto err;
-	for (i = 0; i < strlen(p); i++)
-		if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
-			goto err;
+	if (!ishex(p))
+		goto err;
 	/*
 	 * For some test vectors, there are no more fields,
 	 * for others, there are (and need to be checked)
@@ -506,12 +502,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)
 			goto err;
-		if (strlen(p) != res * 2)
+		if (strlen(p) != res * 2) /* validates res is a valid int */
 			goto err;
-		for(i = 0; i < strlen(p); i++) {
-			if(atoi16[ARCH_INDEX(p[i])] == 0x7F)
-				goto err;
-		}
+		if (!ishex(p))
+			goto err;
 		p = strtok(NULL, "*");  /* NOTE, do not goto err if null, we WANT p nul if there are no fields */
 	}
 
@@ -535,8 +529,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 
 	memset(&cs, 0, sizeof(cs));
-
-	ctcopy += 5;	/* skip over "$gpg$" marker */
+	ctcopy += 6;	/* skip over "$gpg$" marker and first '*' */
 	p = strtok(ctcopy, "*");
 	cs.pk_algorithm = atoi(p);
 	p = strtok(NULL, "*");
@@ -1072,7 +1065,7 @@ static int cmp_exact(char *source, int index)
 
 #if FMT_MAIN_VERSION > 11
 /*
- * Report iteration count algorithm as 1st tunable cost,
+ * Report iteration count as 1st tunable cost,
  * hash algorithm as 2nd tunable cost,
  * cipher algorithm as 3rd tunable cost.
  */

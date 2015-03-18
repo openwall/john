@@ -61,12 +61,12 @@ john_register_one(&fmt_gpg);
 #define BENCHMARK_LENGTH    -1001
 #define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         0
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT  1
 #define BINARY_ALIGN	sizeof(ARCH_WORD_32)
+#define SALT_SIZE		sizeof(struct custom_salt)
 // salt has a function pointer.  Use ARCH_WORD
 #define SALT_ALIGN		sizeof(ARCH_WORD)
+#define MIN_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  1
 
 #ifndef SHA256_DIGEST_LENGTH
 #define SHA256_DIGEST_LENGTH 32
@@ -736,6 +736,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
+
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += 6;	/* skip over "$gpg$" marker and first '*' */
 	p = strtok(ctcopy, "*");
@@ -1345,7 +1346,7 @@ struct fmt_main fmt_gpg = {
 		BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE,
-		BINARY_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
