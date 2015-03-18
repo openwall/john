@@ -110,7 +110,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	ctcopy += 5;	/* skip leading "$nk$" */
+	ctcopy += 5;	/* skip leading "$nk$*" */
 	if (!(ptr = strtok(ctcopy, "*")))
 		goto error;
 	/* HASHKEY is of fixed length 40 */
