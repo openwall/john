@@ -196,7 +196,7 @@ endif
 # target turns off optimizations for better debugging, and defines DEBUG
 # so code can adopt.
 debug:
-	$(MAKE) default CFLAGS="-DDEBUG $(CFLAGS) -O0" CFLAGS_MAIN="-DDEBUG $(CFLAGS_MAIN) -O0"
+	$(MAKE) default CFLAGS="-DDEBUG $(CFLAGS) @O_DEBUG@" CFLAGS_MAIN="-DDEBUG $(CFLAGS_MAIN) @O_DEBUG@"
 
 # Similar but just turn memdbg on instead, and normal optimizations.
 memdbg:

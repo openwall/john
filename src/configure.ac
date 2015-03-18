@@ -171,6 +171,16 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
    JTR_FLAG_CHECK([-finline-functions], 1)
    AC_SUBST([OPT_INLINE_FLAGS],["${CFLAGS_EX}"])
 
+   # pick -Og or -O1 for debug targets (applies to ASan too)
+   CFLAGS_EX=""
+   JTR_FLAG_CHECK([-Og], 1)
+   if test "x${CFLAGS_EX}" != x ; then
+      O_DEBUG=${CFLAGS_EX}
+   else
+      O_DEBUG="-O1"
+   fi
+   AC_SUBST([O_DEBUG],[$O_DEBUG])
+
    # if user requested  ASan, make sure we can properly build/link with it.
 if test "x$asan" = xyes ; then
    CFLAGS_EX=""
@@ -715,7 +725,7 @@ CFLAGS="$CFLAGS_BACKUP"
 if test "x$asan" = xyes ; then
    CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
    CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
-   CFLAGS="-g -O1 -fsanitize=address $CFLAGS"
+   CFLAGS="-g $O_DEBUG -fsanitize=address $CFLAGS"
    LDFLAGS="-fsanitize=address $LDFLAGS"
 fi
 

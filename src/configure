@@ -682,6 +682,7 @@ ifGNUmake
 SED
 GREP
 LN_S
+O_DEBUG
 OPT_INLINE_FLAGS
 OPT_NORMAL_FLAGS
 HAVE_MPI
@@ -5726,6 +5727,62 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
    OPT_INLINE_FLAGS="${CFLAGS_EX}"
+
+
+   # pick -Og or -O1 for debug targets (applies to ASan too)
+   CFLAGS_EX=""
+     if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Og" >&5
+$as_echo_n "checking if $CC supports -Og... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror -Og"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX -Og"
+
+else
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+   if test "x${CFLAGS_EX}" != x ; then
+      O_DEBUG=${CFLAGS_EX}
+   else
+      O_DEBUG="-O1"
+   fi
+   O_DEBUG=$O_DEBUG
 
 
    # if user requested  ASan, make sure we can properly build/link with it.
@@ -13303,7 +13360,7 @@ CFLAGS="$CFLAGS_BACKUP"
 if test "x$asan" = xyes ; then
    CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
    CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
-   CFLAGS="-g -O1 -fsanitize=address $CFLAGS"
+   CFLAGS="-g $O_DEBUG -fsanitize=address $CFLAGS"
    LDFLAGS="-fsanitize=address $LDFLAGS"
 fi
 
