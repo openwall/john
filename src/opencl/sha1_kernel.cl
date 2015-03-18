@@ -34,8 +34,7 @@ __kernel void sha1_crypt_kernel(__global uint* keys, __global const uint *index,
 	PUTCHAR_BE(W, len, 0x80);
 	W[15] = len << 3;
 
-	sha1_init(output);
-	sha1_block(W, output);
+	sha1_single(W, output);
 
 	digest[gid + 0 * num_keys] = SWAP32(output[0]);
 	digest[gid + 1 * num_keys] = SWAP32(output[1]);

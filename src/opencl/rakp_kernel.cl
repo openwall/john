@@ -75,11 +75,9 @@ void rakp_kernel(__constant      uint* salt,
 #endif
 #endif
 #endif
-	sha1_init(stage1);
-
 	for (i = 0; i < 16; i++)
 		W[i] = K[i] ^ 0x36363636U;
-	sha1_block(W, stage1);
+	sha1_single(W, stage1);
 
 	for (i = 0; i < 16; i++)
 		W[i] = *salt++;
@@ -88,12 +86,10 @@ void rakp_kernel(__constant      uint* salt,
 	for (i = 0; i < 16; i++)
 		W[i] = *salt++;
 	sha1_block(W, stage1);
-
-	sha1_init(stage2);
 
 	for (i = 0; i < 16; i++)
 		W[i] = K[i] ^ 0x5C5C5C5CU;
-	sha1_block(W, stage2);
+	sha1_single(W, stage2);
 
 	for (i = 0; i < 5; i++)
 		W[i] = stage1[i];

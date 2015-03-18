@@ -391,96 +391,107 @@
 
 #define SHA1_192Z(A, B, C, D, E, W) SHA1_192Z_BEG(A, B, C, D, E, W) SHA1_192Z_END(A, B, C, D, E, W)
 
-#define sha1_init(o) {	  \
-		o[0] = INIT_A; \
-		o[1] = INIT_B; \
-		o[2] = INIT_C; \
-		o[3] = INIT_D; \
-		o[4] = INIT_E; \
+#define sha1_init(ctx) {	  \
+		ctx[0] = INIT_A; \
+		ctx[1] = INIT_B; \
+		ctx[2] = INIT_C; \
+		ctx[3] = INIT_D; \
+		ctx[4] = INIT_E; \
 	}
 
-#define sha1_block(b, o) {	\
-		A = o[0]; \
-		B = o[1]; \
-		C = o[2]; \
-		D = o[3]; \
-		E = o[4]; \
-		SHA1(A, B, C, D, E, b); \
-		o[0] += A; \
-		o[1] += B; \
-		o[2] += C; \
-		o[3] += D; \
-		o[4] += E; \
+/*
+ * The extra a, b, c, d, e variables are a workaround for a really silly
+ * AMD bug (seen in eg. Catalyst 14.9). We should really do without them
+ * but somehow we get thrashed output without them.
+ * On the other hand, they seem to be optimized away - and taking the bug
+ * with them as they go! So they do no harm.
+ */
+
+#define sha1_block(W, ctx) {	\
+		A = ctx[0]; \
+		B = ctx[1]; \
+		C = ctx[2]; \
+		D = ctx[3]; \
+		E = ctx[4]; \
+		MAYBE_VECTOR_UINT a=A, b=B, c=C, d=D, e=E; \
+		SHA1(A, B, C, D, E, W); \
+		ctx[0] = a + A; \
+		ctx[1] = b + B; \
+		ctx[2] = c + C; \
+		ctx[3] = d + D; \
+		ctx[4] = e + E; \
 	}
 
-#define sha1_single(b, o) {	\
+#define sha1_single(W, out) {	\
 		A = INIT_A; \
 		B = INIT_B; \
 		C = INIT_C; \
 		D = INIT_D; \
 		E = INIT_E; \
-		SHA1(A, B, C, D, E, b); \
-		o[0] = A + INIT_A; \
-		o[1] = B + INIT_B; \
-		o[2] = C + INIT_C; \
-		o[3] = D + INIT_D; \
-		o[4] = E + INIT_E; \
+		SHA1(A, B, C, D, E, W); \
+		out[0] = A + INIT_A; \
+		out[1] = B + INIT_B; \
+		out[2] = C + INIT_C; \
+		out[3] = D + INIT_D; \
+		out[4] = E + INIT_E; \
 	}
 
-#define sha1_block_160Z(b, o) {	\
-		A = o[0]; \
-		B = o[1]; \
-		C = o[2]; \
-		D = o[3]; \
-		E = o[4]; \
-		SHA1_160Z(A, B, C, D, E, b); \
-		o[0] += A; \
-		o[1] += B; \
-		o[2] += C; \
-		o[3] += D; \
-		o[4] += E; \
+#define sha1_block_160Z(W, ctx) {	\
+		A = ctx[0]; \
+		B = ctx[1]; \
+		C = ctx[2]; \
+		D = ctx[3]; \
+		E = ctx[4]; \
+		MAYBE_VECTOR_UINT a=A, b=B, c=C, d=D, e=E; \
+		SHA1_160Z(A, B, C, D, E, W); \
+		ctx[0] = a + A; \
+		ctx[1] = b + B; \
+		ctx[2] = c + C; \
+		ctx[3] = d + D; \
+		ctx[4] = e + E; \
 	}
 
-#define sha1_single_160Z(b, o) {	\
+#define sha1_single_160Z(W, out) {	\
 		A = INIT_A; \
 		B = INIT_B; \
 		C = INIT_C; \
 		D = INIT_D; \
 		E = INIT_E; \
-		SHA1_160Z(A, B, C, D, E, b); \
-		o[0] = A + INIT_A; \
-		o[1] = B + INIT_B; \
-		o[2] = C + INIT_C; \
-		o[3] = D + INIT_D; \
-		o[4] = E + INIT_E; \
+		SHA1_160Z(A, B, C, D, E, W); \
+		out[0] = A + INIT_A; \
+		out[1] = B + INIT_B; \
+		out[2] = C + INIT_C; \
+		out[3] = D + INIT_D; \
+		out[4] = E + INIT_E; \
 	}
 
-#define sha1_block_192Z(b, o) {	\
-		A = o[0]; \
-		B = o[1]; \
-		C = o[2]; \
-		D = o[3]; \
-		E = o[4]; \
-		SHA1_192Z(A, B, C, D, E, b); \
-		o[0] += A; \
-		o[1] += B; \
-		o[2] += C; \
-		o[3] += D; \
-		o[4] += E; \
+#define sha1_block_192Z(W, ctx) {	\
+		A = ctx[0]; \
+		B = ctx[1]; \
+		C = ctx[2]; \
+		D = ctx[3]; \
+		E = ctx[4]; \
+		MAYBE_VECTOR_UINT a=A, b=B, c=C, d=D, e=E; \
+		SHA1_192Z(A, B, C, D, E, W); \
+		ctx[0] = a + A; \
+		ctx[1] = b + B; \
+		ctx[2] = c + C; \
+		ctx[3] = d + D; \
+		ctx[4] = e + E; \
 	}
 
-#define sha1_single_192Z(b, o) {	\
+#define sha1_single_192Z(W, out) {	\
 		A = INIT_A; \
 		B = INIT_B; \
 		C = INIT_C; \
 		D = INIT_D; \
 		E = INIT_E; \
-		SHA1_192Z(A, B, C, D, E, b); \
-		o[0] = A + INIT_A; \
-		o[1] = B + INIT_B; \
-		o[2] = C + INIT_C; \
-		o[3] = D + INIT_D; \
-		o[4] = E + INIT_E; \
+		SHA1_192Z(A, B, C, D, E, W); \
+		out[0] = A + INIT_A; \
+		out[1] = B + INIT_B; \
+		out[2] = C + INIT_C; \
+		out[3] = D + INIT_D; \
+		out[4] = E + INIT_E; \
 	}
 
 #endif /* _OPENCL_SHA1M_H */

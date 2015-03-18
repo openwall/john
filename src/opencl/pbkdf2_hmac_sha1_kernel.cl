@@ -107,8 +107,7 @@ inline void preproc(__global const MAYBE_VECTOR_UINT *key,
 	for (i = 0; i < 16; i++)
 		W[i] = key[i] ^ padding;
 
-	sha1_init(output);
-	sha1_block(W, output);
+	sha1_single(W, output);
 
 	for (i = 0; i < 5; i++)
 		state[i] = output[i];

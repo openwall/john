@@ -94,8 +94,7 @@ inline void preproc(__global const MAYBE_VECTOR_UINT *key,
 	for (i = 0; i < 16; i++)
 		W[i] = key[i] ^ padding;
 
-	sha1_init(output);
-	sha1_block(W, output);
+	sha1_single(W, output);
 
 	for (i = 0; i < 5; i++)
 		state[(pad + i) * gws + gid] = output[i];
@@ -223,8 +222,7 @@ inline void prf_512(const MAYBE_VECTOR_UINT *key,
 		W[i] = 0x36363636 ^ key[i]; // key is already swapped
 	for (i = 8; i < 16; i++)
 		W[i] = 0x36363636;
-	sha1_init(ipad);
-	sha1_block(W, ipad); // update(ipad)
+	sha1_single(W, ipad); // update(ipad)
 
 	/* 64 first bytes */
 	for (i = 0; i < 6; i++)
@@ -253,8 +251,7 @@ inline void prf_512(const MAYBE_VECTOR_UINT *key,
 		W[i] = 0x5c5c5c5c ^ key[i];
 	for (i = 8; i < 16; i++)
 		W[i] = 0x5c5c5c5c;
-	sha1_init(opad);
-	sha1_block(W, opad); // update(opad)
+	sha1_single(W, opad); // update(opad)
 
 	for (i = 0; i < 5; i++)
 		W[i] = ipad[i];
@@ -403,8 +400,7 @@ void wpapsk_final_sha1(__global MAYBE_VECTOR_UINT *state,
 		W[i] = 0x36363636 ^ prf[i];
 	for (i = 4; i < 16; i++)
 		W[i] = 0x36363636;
-	sha1_init(ipad);
-	sha1_block(W, ipad);
+	sha1_single(W, ipad);
 
 	/* eapol_blocks (of SHA1),
 	 * eapol data + 0x80, null padded and len set in set_salt() */
@@ -423,8 +419,7 @@ void wpapsk_final_sha1(__global MAYBE_VECTOR_UINT *state,
 	for (i = 4; i < 16; i++)
 		W[i] = 0x5c5c5c5c;
 
-	sha1_init(opad);
-	sha1_block(W, opad);
+	sha1_single(W, opad);
 
 	for (i = 0; i < 5; i++)
 		W[i] = ipad[i];
