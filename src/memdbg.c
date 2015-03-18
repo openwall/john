@@ -863,7 +863,7 @@ char *MEMDBG_strdup(const char *str, char *file, int line)
 {
 	char * s;
 	if ( ((signed long long)mem_size) < 0)
-		fprintf(stderr, "MEMDBG_strdup(%ld) %s:%d  mem:%lld\n", strlen(str), file, line, (unsigned long long)mem_size);
+		fprintf(stderr, "MEMDBG_strdup(%ld) %s:%d  mem:%lld\n", (long)strlen(str), file, line, (unsigned long long)mem_size);
 	s = (char*)MEMDBG_alloc(strlen(str)+1, file, line);
 	if (s != NULL)
 		strcpy(s, str);
