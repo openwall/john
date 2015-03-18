@@ -312,13 +312,13 @@ extern int _exit(int);
 #endif
 
 #ifndef MEMDBG_ON
-#if (AC_BUILT && HAVE__STRDUP) && !defined (strdup)
+#if ((AC_BUILT && HAVE__STRDUP)  || (!AC_BUILT && _MSC_VER)) && !defined (strdup)
 #undef strdup
 #define strdup _strdup
 #endif
 #endif
 
-#if (AC_BUILT && !HAVE_SNPRINTF && HAVE_SPRINTF_S)
+#if (AC_BUILT && !HAVE_SNPRINTF && HAVE_SPRINTF_S) || (!AC_BUILT && _MSC_VER)
 #undef  snprintf
 #define snprintf sprintf_s
 #endif
