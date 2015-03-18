@@ -362,16 +362,6 @@ static char *get_key(int index)
 	return ret;
 }
 
-#if FMT_MAIN_VERSION > 11
-static unsigned int iteration_count(void *salt)
-{
-	salt_t *my_salt;
-
-	my_salt = salt;
-	return (unsigned int)my_salt->rounds;
-}
-#endif
-
 struct fmt_main fmt_ocl_rar5 = {
 {
 	FORMAT_LABEL,
