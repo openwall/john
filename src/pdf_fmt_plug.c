@@ -256,7 +256,7 @@ char * convert_old_to_new(char ciphertext[])
 	p = strtokm(ctcopy, "*");
 	for (c = 0; c < 14; c++) {
 		fields[c] = p;
-		p = strtok (NULL, "*");
+		p = strtokm(NULL, "*");
 	}
 	strcpy(out,"$pdf$");
 	strcat(out,fields[13]);
