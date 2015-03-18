@@ -25,7 +25,7 @@ john_register_one(&fmt_pst);
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef __MIC__
-#define OMP_SCALE				1024
+#define OMP_SCALE               1024
 #else
 #define OMP_SCALE               16384 // core i7 no HT
 #endif

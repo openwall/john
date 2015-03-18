@@ -34,7 +34,7 @@ john_register_one(&fmt_chap);
 static int omp_t = 1;
 #include <omp.h>
 #ifdef __MIC__
-#define OMP_SCALE				2048
+#define OMP_SCALE               2048
 #else
 #define OMP_SCALE               65536 // core i7 no HT
 #endif
