@@ -23,29 +23,29 @@ void *ms_office_common_get_salt(char *ciphertext)
 
 	cur_salt = mem_calloc_tiny(sizeof(ms_office_custom_salt), MEM_ALIGN_WORD);
 	ctcopy += 9;	/* skip over "$office$*" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	cur_salt->version = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	if(cur_salt->version == 2007) {
 		cur_salt->verifierHashSize = atoi(p);
 	}
 	else {
 		cur_salt->spinCount = atoi(p);
 	}
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cur_salt->keySize = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cur_salt->saltSize = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < cur_salt->saltSize; i++)
 		cur_salt->osalt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < 16; i++)
 		cur_salt->encryptedVerifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	if (cur_salt->version != 2007) {
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		length = strlen(p) / 2;
 		for (i = 0; i < length; i++)
 			cur_salt->encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -63,18 +63,18 @@ void *ms_office_common_binary(char *ciphertext)
 	char *keeptr = ctcopy, *p, Tmp[16];
 
 	ctcopy += 9;	/* skip over "$office$*" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	if (atoi(p) != 2007) {
 		memset(out, 0, sizeof(out));
 		MEM_FREE(keeptr);
 		return out;
 	}
-	p = strtok(NULL, "*");
-	p = strtok(NULL, "*");
-	p = strtok(NULL, "*");
-	p = strtok(NULL, "*");
-	p = strtok(NULL, "*");
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
+	p = strtokm(NULL, "*");
+	p = strtokm(NULL, "*");
+	p = strtokm(NULL, "*");
+	p = strtokm(NULL, "*");
+	p = strtokm(NULL, "*");
 	length = strlen(p) / 2;
 	for (i = 0; i < length && i < 16; i++)
 		Tmp[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -99,41 +99,41 @@ static int valid(char *ciphertext, struct fmt_main *self, char *which)
 	}
 	keeptr = ctcopy;
 	ctcopy += 9;
-	if (!(ptr = strtok(ctcopy, "*")))
+	if (!(ptr = strtokm(ctcopy, "*")))
 		goto error;
 	if (strncmp(ptr, "2007", 4) && strncmp(ptr, "2010", 4) && strncmp(ptr, "2013", 4))
 		goto error;
 	if (which && strncmp(ptr, which, 4))
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* hash size or iterations */
+	if (!(ptr = strtokm(NULL, "*"))) /* hash size or iterations */
 		goto error;
 	if (!isdec(ptr)) goto error;
-	if (!(ptr = strtok(NULL, "*")))
+	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
 	if (strncmp(ptr, "128", 3) && strncmp(ptr, "256", 3)) /* key size */
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* salt size */
+	if (!(ptr = strtokm(NULL, "*"))) /* salt size */
 		goto error;
 	res = atoi(ptr);
 	if (res != 16) /* can we handle other values? */
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* salt */
+	if (!(ptr = strtokm(NULL, "*"))) /* salt */
 		goto error;
 	if (strlen(ptr) != res * 2)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* encrypted verifier */
+	if (!(ptr = strtokm(NULL, "*"))) /* encrypted verifier */
 		goto error;
 	if (!ishex(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* encrypted verifier hash */
+	if (!(ptr = strtokm(NULL, "*"))) /* encrypted verifier hash */
 		goto error;
 	if (!ishex(ptr))
 		goto error;
 	if (strlen(ptr) > 64)
 		goto error;
-	if ((ptr = strtok(NULL, "*")))
+	if ((ptr = strtokm(NULL, "*")))
 		goto error;
 
 	MEM_FREE(keeptr);

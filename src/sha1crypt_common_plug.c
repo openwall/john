@@ -32,7 +32,7 @@ int sha1crypt_common_valid(char * ciphertext, struct fmt_main * self) {
 	// validate rounds
 	keeptr = strdup(ciphertext);
 	p = &keeptr[sizeof(SHA1_MAGIC)-1];
-	if ((p = strtok(p, "$")) == NULL)	/* rounds */
+	if ((p = strtokm(p, "$")) == NULL)	/* rounds */
 		goto err;
 	rounds = strtoul(p, NULL, 10);
 	sprintf(tst, "%u", rounds);
@@ -40,18 +40,18 @@ int sha1crypt_common_valid(char * ciphertext, struct fmt_main * self) {
 		goto err;
 
 	// validate salt
-	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) > SALT_LENGTH || strlen(p) != base64_valid_length(p, e_b64_crypt, 0))
 		goto err;
 
 	// validate checksum
-	if ((p = strtok(NULL, "$")) == NULL)	/* checksum */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* checksum */
 		goto err;
 	if (strlen(p) > CHECKSUM_LENGTH || strlen(p) != base64_valid_length(p, e_b64_crypt, 0))
 		goto err;
 	
-	if (strtok(NULL, "$"))
+	if (strtokm(NULL, "$"))
 		goto err;
 
 	MEM_FREE(keeptr);

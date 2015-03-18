@@ -22,32 +22,32 @@ int encfs_common_valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 7;
-	if ((p = strtok(ctcopy, "*")) == NULL)	/* key size */
+	if ((p = strtokm(ctcopy, "*")) == NULL)	/* key size */
 		goto err;
 	res = atoi(p);
 	if (res < 128 || res > MAX_KEYLENGTH*8)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* cipher */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* cipher */
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* salt length */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* salt length */
 		goto err;
 	res = atoi(p);
 	if (res > 40)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (res * 2 != strlen(p))
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* data length */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* data length */
 		goto err;
 	res = atoi(p);
 	if (res > 128)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* data */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* data */
 		goto err;
 	if (res * 2 != strlen(p))
 		goto err;
@@ -70,7 +70,7 @@ void *encfs_common_get_salt(char *ciphertext)
 	char *p;
 	static encfs_common_custom_salt cs;
 	ctcopy += 7;
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	cs.keySize = atoi(p);
 	switch(cs.keySize)
 	{
@@ -90,20 +90,20 @@ void *encfs_common_get_salt(char *ciphertext)
 			break;
 	}
 	cs.keySize = cs.keySize / 8;
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.iterations = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.cipher = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.saltLen = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < cs.saltLen; i++)
 		cs.salt[i] =
 			atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.dataLen = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < cs.dataLen; i++)
 		cs.data[i] =
 			atoi16[ARCH_INDEX(p[i * 2])] * 16 +
