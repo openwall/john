@@ -167,6 +167,41 @@ char *strnzcat(char *dst, const char *src, int size)
 	return dst;
 }
 
+/*
+ * strtok code, BUT returns empty token "" for adjacent delmiters. It also
+ * returns leading and trailing tokens for leading and trailing delimiters
+ * (strtok strips them away and does not return them). Several other issues
+ * in strtok also impact this code
+ *  - static pointer, not thread safe
+ *  - mangled input string (requires a copy)
+ * These 'bugs' were left in, so that this function is a straight drop in for
+ * strtok, with the caveat of returning empty tokens for the 3 conditions.
+ * Other than not being able to properly remove multiple adjacent tokens in
+ * data such as arbitrary white space removal of text files, this is really
+ * is what strtok should have been written to do from the beginning (IMHO).
+ * A strtokm_r() should be trivial to write if we need thread safety, or need
+ * to have multiple strtokm calls working at the same time, by just passing
+ * in the *last pointer.
+ * JimF, March 2015.
+ */
+char *strtokm(char *s1, const char *delims)
+{
+	static char *last = NULL;
+	char *endp;
+
+	if (!s1)
+		s1 = last;
+	if (!s1 || *s1 == 0)
+		return last = NULL;
+	endp = strpbrk(s1, delims);
+	if (endp) {
+		*endp = '\0';
+		last = endp + 1;
+	} else
+		last = NULL;
+	return s1;
+}
+
 unsigned atou(const char *src) {
 	unsigned val;
 	sscanf(src, "%u", &val);

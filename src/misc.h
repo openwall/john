@@ -101,6 +101,18 @@ extern char *strnzcat(char *dst, const char *src, int size);
  */
 extern unsigned atou(const char *src);
 
+/*
+ * Similar to strtok(), but properly handles adjacent delmiters as
+ * empty strings.  strtok() in the CRTL merges adjacent delimiters
+ * and sort of 'skips' them. This one also returns 'empty' tokens
+ * for any leading or trailing delims. strtok() strips those off
+ * also.
+ */
+char *strtokm(char *s1, const char *delimit);
+
+/* force code to use the strtokm() function */
+#define strtok(a,b) strtokm(a,b)
+
 #ifndef __has_feature
 # define __has_feature(x) 0
 #endif
