@@ -149,17 +149,17 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 		if (strlen(fields[1]) > sizeof(tmp)+sizeof(FMT_SCRYPTKDF)-1)
 			return fields[1];
 		strcpy(tmp, &fields[1][sizeof(FMT_SCRYPTKDF)-1]);
-		cp = strtok(tmp, "*");
+		cp = strtokm(tmp, "*");
 		if (!isdec(cp)) return fields[1];
 		N = atoi(cp);
-		cp = strtok(NULL, "*");
+		cp = strtokm(NULL, "*");
 		if (!isdec(cp)) return fields[1];
 		r = atoi(cp);
-		cp = strtok(NULL, "*");
+		cp = strtokm(NULL, "*");
 		if (!isdec(cp)) return fields[1];
 		p = atoi(cp);
-		cp = strtok(NULL, "*");
-		cp2 = strtok(NULL, "*");
+		cp = strtokm(NULL, "*");
+		cp2 = strtokm(NULL, "*");
 		if (base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT) != strlen(cp))
 			return fields[1];
 		if (base64_valid_length(cp2, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT) != strlen(cp2))

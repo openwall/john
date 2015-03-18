@@ -105,15 +105,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 10;
-	if ((p = strtok(ctcopy, "$")) == NULL)	/* username */
+	if ((p = strtokm(ctcopy, "$")) == NULL)	/* username */
 		goto err;
 	if (strlen(p) > 128)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* iterations */
 		goto err;
 	if (!isdec(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* data */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* data */
 		goto err;
 	if (strlen(p) > 50) /* not exact! */
 		goto err;
@@ -134,13 +134,13 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += 10;	/* skip over "$lastpass$" */
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	i = strlen(p);
 	if (i > 16)
 		i = 16;
 	cs.length = i; /* truncated length */
 	strncpy(cs.username, p, 128);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.iterations = atoi(p);
 	MEM_FREE(keeptr);
 	return (void *)&cs;

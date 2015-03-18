@@ -122,71 +122,71 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 15;
-	if ((p = strtok(ctcopy, "$")) == NULL)	/* salt length */
+	if ((p = strtokm(ctcopy, "$")) == NULL)	/* salt length */
 		goto err;
 	len = atoi(p);
-	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if(strlen(p) != len * 2)	/* validates salt_len also */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* iterations */
 		goto err;
 	if (!isdecu(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* masterkey length */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* masterkey length */
 		goto err;
 	len = atoi(p);
-	if ((p = strtok(NULL, "$")) == NULL)	/* masterkey */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* masterkey */
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if(strlen(p) != len * 2)	/* validates masterkey_len also */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* plaintext length */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* plaintext length */
 		goto err;
 	if (!isdecu(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* iv length */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* iv length */
 		goto err;
 	len = atoi(p);
 	if(len > IVLEN || len < 0)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* iv */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* iv */
 		goto err;
 	if(strlen(p) != len * 2)	/* validates iv_len */
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* cryptext length */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* cryptext length */
 		goto err;
 	len = atoi(p);
 	if (len > CTLEN || len < 0)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* cryptext */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* cryptext */
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if(strlen(p) != len * 2)	/* validates cryptext_len */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* expectedhmac length */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* expectedhmac length */
 		goto err;
 	len = atoi(p);
 	if (len > EHMLEN || len < 0)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* expectedhmac */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* expectedhmac */
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if(strlen(p) != len * 2)	/* validates expectedhmac_len */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* hmacdata length */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* hmacdata length */
 		goto err;
 	len = atoi(p);
 	if (len > CTLEN || len < 0)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* hmacdata */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* hmacdata */
 		goto err;
 	if (!ishex(p))
 		goto err;
@@ -210,44 +210,44 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += 15;	/* skip over "$cloudkeychain$" */
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	cs.saltlen = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.saltlen; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.iterations = atou(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.masterkeylen = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.masterkeylen; i++)
 		cs.masterkey[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.plaintextlen = atou(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.ivlen = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.ivlen; i++)
 		cs.iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.cryptextlen = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.cryptextlen; i++)
 		cs.cryptext[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.expectedhmaclen = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.expectedhmaclen; i++)
 		cs.expectedhmac[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 		cs.hmacdatalen = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.hmacdatalen; i++)
 		cs.hmacdata[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];

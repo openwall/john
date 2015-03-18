@@ -174,10 +174,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 7;
-	p = strtok(ctcopy, "*"); /* username */
+	p = strtokm(ctcopy, "*"); /* username */
 	if(!p)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* hash */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
 	q = p;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
@@ -199,7 +199,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 
 	ctcopy += 7;	/* skip over "$racf$*" */
-	username = strtok(ctcopy, "*");
+	username = strtokm(ctcopy, "*");
 	/* process username */
 	strncpy((char*)cs.userid, username, 8);
 	cs.userid[8] = 0; // terminate username at 8 bytes

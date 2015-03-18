@@ -123,12 +123,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;
-	if ((p = strtok(ctcopy, "*")) == NULL)	/* length */
+	if ((p = strtokm(ctcopy, "*")) == NULL)	/* length */
 		goto err;
 	len = atoi(p);
 	if (!isdec(p))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* data */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* data */
 		goto err;
 	if (!ishex(p))
 		goto err;
@@ -175,10 +175,10 @@ static void *get_salt(char *ciphertext)
 	strcpy(psalt->orig_hash, ciphertext);
 	psalt->hash_len = strlen(ciphertext);
 	ctcopy += 6;	/* skip over "$pfx$*" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	psalt->len = atoi(p);
 	decoded_data = (char *) mem_alloc(psalt->len + 1);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < psalt->len; i++)
 		decoded_data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];

@@ -129,20 +129,20 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 12;	/* skip leading '$episerver$*' */
 	if (strlen(ciphertext) > 255)
 		goto error;
-	if (!(ptr = strtok(ctcopy, "*")))
+	if (!(ptr = strtokm(ctcopy, "*")))
 		goto error;
 	/* check version, must be '0' or '1' */
 	if (*ptr != '0' && *ptr != '1')
 		goto error;
-	if (!(ptr = strtok(NULL, "*")))	/* salt */
+	if (!(ptr = strtokm(NULL, "*")))	/* salt */
 		goto error;
 	if (strlen(ptr) > 24)
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* hash */
+	if (!(ptr = strtokm(NULL, "*"))) /* hash */
 		goto error;
 	if (strlen(ptr) > 44)
 		goto error;
-	if ((ptr = strtok(NULL, "*"))) /* end */
+	if ((ptr = strtokm(NULL, "*"))) /* end */
 		goto error;
 	MEM_FREE(keeptr);
 	return 1;
@@ -161,9 +161,9 @@ static void *get_salt(char *ciphertext)
 	strncpy(ctcopy, ciphertext, 255);
 	ctcopy[255] = 0;
 	ctcopy += 12;	/* skip over "$episerver$*" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	cs.version = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	base64_decode(p, strlen(p), (char*)cs.esalt);
 	return (void *)&cs;
 }

@@ -186,21 +186,21 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += CLIPPERZSIGLEN;
-	if ((p = strtok(ctcopy, "$")) == NULL)
+	if ((p = strtokm(ctcopy, "$")) == NULL)
 		goto err;
 	if (strlen(p) > CIPHERTEXT_LENGTH)
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)
+	if ((p = strtokm(NULL, "*")) == NULL)
 		goto err;
 	if (strlen(p) > SZ)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)
+	if ((p = strtokm(NULL, "*")) == NULL)
 		goto err;
 	if (strlen(p) > SZ)
 		goto err;
-	if ((p = strtok(NULL, "*")))
+	if ((p = strtokm(NULL, "*")))
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;

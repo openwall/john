@@ -298,27 +298,27 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 
 	ctcopy += 8;
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	cs.etype = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	if (p[-1] == '$')
 		cs.user[0] = 0;
 	else {
 		strcpy((char*)cs.user, p);
-		p = strtok(NULL, "$");
+		p = strtokm(NULL, "$");
 	}
 	if (p[-1] == '$')
 		cs.realm[0] = 0;
 	else {
 		strcpy((char*)cs.realm, p);
-		p = strtok(NULL, "$");
+		p = strtokm(NULL, "$");
 	}
 	if (p[-1] == '$') {
 		strcpy((char*)cs.salt, (char*)cs.realm);
 		strcat((char*)cs.salt, (char*)cs.user);
 	} else {
 		strcpy((char*)cs.salt, p);
-		p = strtok(NULL, "$");
+		p = strtokm(NULL, "$");
 	}
 	for (i = 0; i < TIMESTAMP_SIZE; i++)
 		cs.ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16

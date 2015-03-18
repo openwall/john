@@ -108,17 +108,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LENGTH;
 
-	if ((p = strtok(ctcopy, "$")) == NULL) /* hash */
+	if ((p = strtokm(ctcopy, "$")) == NULL) /* hash */
 		goto err;
 	if(strlen(p) != BINARY_SIZE * 2)
 		goto err;
 	if (!ishexuc(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* salt */
+	if ((p = strtokm(NULL, "$")) == NULL) /* salt */
 		goto err;
 	if(strlen(p) > MAX_SALT_SIZE)
 		goto err;
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	if (p)
 		goto err;
 

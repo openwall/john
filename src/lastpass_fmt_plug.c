@@ -94,11 +94,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 4;
-	if ((p = strtok(ctcopy, "$")) == NULL)	/* email */
+	if ((p = strtokm(ctcopy, "$")) == NULL)	/* email */
 		goto err;
 	if (strlen(p) > 32)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* hash */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
 	if (strlen(p) != 32)
 		goto err;
@@ -121,7 +121,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += 4;	/* skip over "$lp$" */
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	strncpy((char*)cs.salt, p, 32);
 	cs.salt_length = strlen((char*)p);
 	MEM_FREE(keeptr);

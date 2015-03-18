@@ -220,20 +220,20 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
-	if ((p = strtok(ctcopy, "$")) == NULL)
+	if ((p = strtokm(ctcopy, "$")) == NULL)
 		goto err;
 	if (!strcmp(p, "v2")) {
-		if ((p = strtok(NULL, "$")) == NULL)
+		if ((p = strtokm(NULL, "$")) == NULL)
 			goto err;
 		if (!isdec(p))
 			goto err;
-		if ((p = strtok(NULL, "$")) == NULL)
+		if ((p = strtokm(NULL, "$")) == NULL)
 			goto err;
 	}
 	len = atoi(p);
 	if(len > BIG_ENOUGH || !len)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)
+	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
 	if (strlen(p) != len * 2 || !ishex(p))
 		goto err;
@@ -260,15 +260,15 @@ static void *get_salt(char *ciphertext)
 	struct custom_salt *cs = &(un._cs);
 
 	ctcopy += TAG_LENGTH;
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	if (!strcmp(p, "v2")) {
-		p = strtok(NULL, "$");
+		p = strtokm(NULL, "$");
 		cs->iter = atoi(p);
-		p = strtok(NULL, "$");
+		p = strtokm(NULL, "$");
 	} else
 		cs->iter = 10;
 	cs->length = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs->length; i++)
 		cs->data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];

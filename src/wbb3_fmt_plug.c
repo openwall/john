@@ -108,19 +108,19 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 7;
-	p = strtok(ctcopy, "*"); /* type */
+	p = strtokm(ctcopy, "*"); /* type */
 	if(!p)
 		goto err;
 	res = atoi(p);
 	if (res != 1)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if (strlen(p) > 40)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* hash */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
 	if (strlen(p) != BINARY_SIZE * 2)
 		goto err;
@@ -144,9 +144,9 @@ static void *get_salt(char *ciphertext)
 	memset(&cs, 0, sizeof(cs));
 	strnzcpy(ctcopy, ciphertext, 255);
 	ctcopy += 7;	/* skip over "$wbb3$*" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	cs.type = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	strcpy((char *)cs.salt, p);
 	return (void *)&cs;
 }

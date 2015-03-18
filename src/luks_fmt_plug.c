@@ -372,30 +372,30 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;
-	if ((p = strtok(ctcopy, "$")) == NULL)	/* is_inlined */
+	if ((p = strtokm(ctcopy, "$")) == NULL)	/* is_inlined */
 		goto err;
 	is_inlined = atoi(p);
 
-	if ((p = strtok(NULL, "$")) == NULL)
+	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
 	res = atoi(p);
 	afsize = res;
 	if (res != sizeof(struct luks_phdr))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)
+	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
 	if (res * 2 != strlen(p))
 		goto err;
 	if (!ishexlc(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)
+	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
 	res = atoi(p);
 
 	if (is_inlined) {
-		if ((p = strtok(NULL, "$")) == NULL)
+		if ((p = strtokm(NULL, "$")) == NULL)
 			goto err;
-		if ((p = strtok(NULL, "$")) == NULL)
+		if ((p = strtokm(NULL, "$")) == NULL)
 			goto err;
 		if (strlen(p) != LUKS_DIGESTSIZE * 2)
 			goto err;
@@ -403,12 +403,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 	}
 	else {
-		if ((p = strtok(NULL, "$")) == NULL)	/* LUKS file */
+		if ((p = strtokm(NULL, "$")) == NULL)	/* LUKS file */
 			goto err;
-		if ((p = strtok(NULL, "$")) == NULL)	/* dump file */
+		if ((p = strtokm(NULL, "$")) == NULL)	/* dump file */
 			goto err;
 		q = p;
-		if ((p = strtok(NULL, "$")) == NULL)	/* mkDigest */
+		if ((p = strtokm(NULL, "$")) == NULL)	/* mkDigest */
 			goto err;
 		if (strlen(p) != LUKS_DIGESTSIZE * 2)
 			goto err;
@@ -452,19 +452,19 @@ static void *get_salt(char *ciphertext)
 	memset(&cs, 0, sizeof(cs));
 	out = (unsigned char*)&cs.myphdr;
 
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	is_inlined = atoi(p);
 
 	/* common handling */
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	res = atoi(p);
 	assert(res == sizeof(struct luks_phdr));
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < res; i++) {
 		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	res = atoi(p);
 
 	cs.afsize = af_sectors(john_ntohl(cs.myphdr.keyBytes),
@@ -473,15 +473,15 @@ static void *get_salt(char *ciphertext)
 	assert(res == cs.afsize);
 
 	if (is_inlined) {
-		p = strtok(NULL, "$");
+		p = strtokm(NULL, "$");
 		size = strlen(p) / 4 * 3 + 1;
 		buf = mem_calloc(1, size+4);
 		base64_decode(p, strlen(p), (char*)buf);
 		cs.afsize = size;
 	}
 	else {
-		p = strtok(NULL, "$");
-		p = strtok(NULL, "$");
+		p = strtokm(NULL, "$");
+		p = strtokm(NULL, "$");
 		strcpy(cs.path, p);
 		size = hash_plugin_parse_hash(cs.path, &buf, cs.afsize, 1);
 	}

@@ -120,54 +120,54 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 5;
-	if ((p = strtok(ctcopy, "*")) == NULL)	/* V */
+	if ((p = strtokm(ctcopy, "*")) == NULL)	/* V */
 		goto err;
 	if (!isdec(p)) goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* R */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* R */
 		goto err;
 	if (!isdec(p)) goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* length */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* length */
 		goto err;
 	if (!isdec(p)) goto err;
 	res = atoi(p);
 	if (res > 256)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* P */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* P */
 		goto err;
 	if (!isdec_negok(p)) goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* encrypt_metadata */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* encrypt_metadata */
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* length_id */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* length_id */
 		goto err;
 	if (!isdec(p)) goto err;
 	res = atoi(p);
 	if (res > 32)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* id */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* id */
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
 	if (!ishexlc(p))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* length_u */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* length_u */
 		goto err;
 	if (!isdec(p)) goto err;
 	res = atoi(p);
 	if (res > 127)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* u */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* u */
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
 	if (!ishexlc(p))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* length_o */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* length_o */
 		goto err;
 	if (!isdec(p)) goto err;
 	res = atoi(p);
 	if (res > 127)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* o */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* o */
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
@@ -192,51 +192,51 @@ static int old_valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	keeptr = ctcopy;
 	ctcopy += 14;
-	if (!(ptr = strtok(ctcopy, "*"))) /* o_string */
+	if (!(ptr = strtokm(ctcopy, "*"))) /* o_string */
 		goto error;
 	if (!ishexlc(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* u_string */
+	if (!(ptr = strtokm(NULL, "*"))) /* u_string */
 		goto error;
 	if (!ishexlc(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* fileIDLen */
+	if (!(ptr = strtokm(NULL, "*"))) /* fileIDLen */
 		goto error;
 	if (strncmp(ptr, "16", 2))
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* fileID */
+	if (!(ptr = strtokm(NULL, "*"))) /* fileID */
 		goto error;
 	if (!ishexlc(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* encryptMetaData */
+	if (!(ptr = strtokm(NULL, "*"))) /* encryptMetaData */
 		goto error;
 	res = atoi(ptr);
 	if (res != 0 && res != 1)
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* work_with_user */
+	if (!(ptr = strtokm(NULL, "*"))) /* work_with_user */
 		goto error;
 	res = atoi(ptr);
 	if (res != 0 && res != 1)
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* have_userpassword */
+	if (!(ptr = strtokm(NULL, "*"))) /* have_userpassword */
 		goto error;
 	res = atoi(ptr);
 	if (res != 0 && res != 1)
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* version_major */
+	if (!(ptr = strtokm(NULL, "*"))) /* version_major */
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* version_minor */
+	if (!(ptr = strtokm(NULL, "*"))) /* version_minor */
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* length */
+	if (!(ptr = strtokm(NULL, "*"))) /* length */
 		goto error;
 	res = atoi(ptr);
 	if (res < 0 || res > 256)
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* permissions */
+	if (!(ptr = strtokm(NULL, "*"))) /* permissions */
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* revision */
+	if (!(ptr = strtokm(NULL, "*"))) /* revision */
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* version */
+	if (!(ptr = strtokm(NULL, "*"))) /* version */
 		goto error;
 	MEM_FREE(keeptr);
 	return 1;
@@ -253,7 +253,7 @@ char * convert_old_to_new(char ciphertext[])
 	const char *fields[14];
 	char *p;
 	int c = 0;
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	for (c = 0; c < 14; c++) {
 		fields[c] = p;
 		p = strtok (NULL, "*");
@@ -306,33 +306,33 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += 5;	/* skip over "$pdf$" marker */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	cs.V = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.R = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.length = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.P = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.encrypt_metadata = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.length_id = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < cs.length_id; i++)
 		cs.id[i] =
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.length_u = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < cs.length_u; i++)
 		cs.u[i] =
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.length_o = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < cs.length_o; i++)
 		cs.o[i] =
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +

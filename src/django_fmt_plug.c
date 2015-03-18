@@ -118,24 +118,24 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;;
 	ctcopy += 9;
-	if ((p = strtok(ctcopy, "*")) == NULL)	/* type */
+	if ((p = strtokm(ctcopy, "*")) == NULL)	/* type */
 		goto err;
 	/* type must be 1 */
 	if (atoi(p) != 1)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* algorithm */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* algorithm */
 		goto err;
 	if (strcmp(p, "pbkdf2_sha256") != 0)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* iterations */
 		goto err;
 	if (!isdec(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p)  > SALT_SIZE)
 		goto err;
-	if ((p = strtok(NULL, "")) == NULL)	/* hash */
+	if ((p = strtokm(NULL, "")) == NULL)	/* hash */
 		goto err;
 	if (strlen(p)-1 != base64_valid_length(p,e_b64_mime,flg_Base64_MIME_TRAIL_EQ) || strlen(p)-1 > HASH_LENGTH-1)  {
 		goto err;
@@ -157,14 +157,14 @@ static void *get_salt(char *ciphertext)
 	strncpy(Buf, ciphertext, 119);
 	Buf[119] = 0;
 	ctcopy += 9;	/* skip over "$django$*" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	cs.type = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	/* break up 'p' */
-	strtok(p, "$");
-	t = strtok(NULL, "$");
+	strtokm(p, "$");
+	t = strtokm(NULL, "$");
 	cs.iterations = atoi(t);
-	t = strtok(NULL, "$");
+	t = strtokm(NULL, "$");
 	strcpy((char*)cs.salt, t);
 
 	return (void *)&cs;

@@ -102,26 +102,26 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 	ctcopy += 9;
 
-	if (!(ptr = strtok(ctcopy, "$"))) /* type */
+	if (!(ptr = strtokm(ctcopy, "$"))) /* type */
 		goto error;
 	type = atoi(ptr);
 	if (type != 0 && type != 1)
 		goto error;
-	if (!(ptr = strtok(NULL, "$"))) /* username */
+	if (!(ptr = strtokm(NULL, "$"))) /* username */
 		goto error;
 	if (strlen(ptr) > 127)
 		goto error;
 	if (type == 0) {
-		if (!(ptr = strtok(NULL, "$"))) /* hash */
+		if (!(ptr = strtokm(NULL, "$"))) /* hash */
 			goto error;
 		if (strlen(ptr) != 32 || !ishex(ptr))
 			goto error;
 	} else {
-		if (!(ptr = strtok(NULL, "$"))) /* salt */
+		if (!(ptr = strtokm(NULL, "$"))) /* salt */
 			goto error;
 		if (strlen(ptr) != 16 || !ishex(ptr))
 			goto error;
-		if (!(ptr = strtok(NULL, "$"))) /* hash */
+		if (!(ptr = strtokm(NULL, "$"))) /* hash */
 			goto error;
 		if (strlen(ptr) != 32 || !ishex(ptr))
 			goto error;
@@ -143,12 +143,12 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += 9;	/* skip over "$mongodb$" */
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	cs.type = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	strcpy((char*)cs.username, p);
 	if (cs.type == 1) {
-		p = strtok(NULL, "$");
+		p = strtokm(NULL, "$");
 		strcpy((char*)cs.salt, p);
 	}
 	MEM_FREE(keeptr);

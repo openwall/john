@@ -215,27 +215,27 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 15;
-	if ((p = strtok(ctcopy, "*")) == NULL)	/* nkeys */
+	if ((p = strtokm(ctcopy, "*")) == NULL)	/* nkeys */
 		goto err;
 	if(atoi(p) > 2)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* salt length */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* salt length */
 		goto err;
 	saltlen = atoi(p);
 	if(saltlen > SALTLEN)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if(strlen(p) != saltlen * 2)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* ct length */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* ct length */
 		goto err;
 	ctlen = atoi(p);
 	if (ctlen > CTLEN)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* ciphertext */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
 	if(strlen(p) != ctlen * 2)
 		goto err;
@@ -259,19 +259,19 @@ static void *get_salt(char *ciphertext)
 	memset(&cs, 0, sizeof(cs));
 
 	ctcopy += 15;	/* skip over "$agilekeychain$" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	cs.nkeys = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.iterations[0] = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.saltlen[0] = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < cs.saltlen[0]; i++)
 		cs.salt[0][i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.ctlen[0] = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < cs.ctlen[0]; i++)
 		cs.ct[0][i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];

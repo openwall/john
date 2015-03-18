@@ -130,25 +130,25 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	if (!(ptr = strtok(ctcopy, ".")))
+	if (!(ptr = strtokm(ctcopy, ".")))
 		goto error;
 	if (!isdecu(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, ".")))
+	if (!(ptr = strtokm(NULL, ".")))
 		goto error;
 	len = strlen(ptr); // salt length
 	if (len > 2 * MAX_SALT_SIZE || len & 1)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, ".")))
+	if (!(ptr = strtokm(NULL, ".")))
 		goto error;
 	len = strlen(ptr); // binary length
 	if (len < BINARY_SIZE || len > MAX_BINARY_SIZE || len & 1)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
-	ptr = strtok(NULL, ".");
+	ptr = strtokm(NULL, ".");
 	if (ptr)
 		goto error;
 	MEM_FREE(keeptr);

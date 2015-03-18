@@ -128,24 +128,24 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	keeptr = ctcopy;
 	ctcopy += TAG_LEN;
-	if (!(ptr = strtok(ctcopy, "*"))) /* type */
+	if (!(ptr = strtokm(ctcopy, "*"))) /* type */
 		goto error;
 	res = atoi(ptr);
 	if (res > 4)
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* salt */
+	if (!(ptr = strtokm(NULL, "*"))) /* salt */
 		goto error;
 	if (strlen(ptr) != 32)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* verifier */
+	if (!(ptr = strtokm(NULL, "*"))) /* verifier */
 		goto error;
 	if (strlen(ptr) != 32)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*"))) /* verifier hash */
+	if (!(ptr = strtokm(NULL, "*"))) /* verifier hash */
 		goto error;
 	if (strlen(ptr) != 32 && strlen(ptr) != 40)
 		goto error;
@@ -177,17 +177,17 @@ static void *get_salt(char *ciphertext)
 
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += TAG_LEN;	/* skip over "$oldoffice$" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	cs.type = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < 16; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < 16; i++)
 		cs.verifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	if(cs.type < 3) {
 		for (i = 0; i < 16; i++)
 			cs.verifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -198,7 +198,7 @@ static void *get_salt(char *ciphertext)
 			cs.verifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
-	if ((p = strtok(NULL, "*"))) {
+	if ((p = strtokm(NULL, "*"))) {
 		cs.has_mitm = 1;
 		for (i = 0; i < 5; i++)
 			cs.mitm[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16

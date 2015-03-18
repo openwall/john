@@ -128,25 +128,25 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
-	if ((p = strtok(ctcopy, "$")) == NULL)  /* version number */
+	if ((p = strtokm(ctcopy, "$")) == NULL)  /* version number */
 		goto err;
 	if(!isdec(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* SID */
+	if ((p = strtokm(NULL, "$")) == NULL) /* SID */
 		goto err;
 	if (strlen(p) > MAX_SID_LEN)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* iv */
+	if ((p = strtokm(NULL, "$")) == NULL) /* iv */
 		goto err;
 	if (strlen(p) > MAX_IV_LEN * 2 || (strlen(p)&1)) /* iv length */
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* iterations */
+	if ((p = strtokm(NULL, "$")) == NULL) /* iterations */
 		goto err;
 	if(!isdec(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* data */
+	if ((p = strtokm(NULL, "$")) == NULL) /* data */
 		goto err;
 	if (strlen(p) > MAX_CT_LEN * 2 || (strlen(p)&1))
 		goto err;
@@ -171,24 +171,24 @@ static void *get_salt(char *ciphertext)
 
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += TAG_LENGTH;  // skip over "$efs$"
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	cs.version = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 
 	// Convert SID to Unicode
 	enc_to_utf16(cs.SID, MAX_SID_LEN, (UTF8*)p, strlen(p));
 
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	length = strlen(p) / 2;
 	cs.ivlen = length;
 
 	for (i = 0; i < cs.ivlen; i++)
 		cs.iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.iterations = atoi(p);
 
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	length = strlen(p) / 2;
 	cs.ctlen = length;
 

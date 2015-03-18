@@ -133,11 +133,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 	ctcopy += 6;	/* skip leading $vnc$* */
 
-	if (!(ptr = strtok(ctcopy, "*")))
+	if (!(ptr = strtokm(ctcopy, "*")))
 		goto error;
 	if (strlen(ptr) != 32 || !ishex(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*")))
+	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
 	if (strlen(ptr) != 32 || !ishex(ptr))
 		goto error;
@@ -156,11 +156,11 @@ static void *get_salt(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *p, *keeptr = ctcopy;
 	ctcopy += 6;	/* skip over "$vnc$*" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	for (i = 0; i < 16; i++)
 		cs.challenge[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < 16; i++)
 		cs.response[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];

@@ -130,25 +130,25 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
-	if ((p = strtok(ctcopy, "$")) == NULL)
+	if ((p = strtokm(ctcopy, "$")) == NULL)
 		goto err;
 	saltlen = atoi(p);
 	if(saltlen > 16)			/* saltlen */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != saltlen * 2)
 		goto err;
-	if ((p = strtok(NULL, "*$")) == NULL)	/* keysize */
+	if ((p = strtokm(NULL, "*$")) == NULL)	/* keysize */
 		goto err;
 	keysize = atoi(p);
 	if(keysize > 64)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* key */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* key */
 		goto err;
 	if(strlen(p) != keysize * 2)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* data */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* data */
 		goto err;
 	if(strlen(p) != 512 * 3 * 2)
 		goto err;
@@ -171,21 +171,21 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += TAG_LENGTH;
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	cs.saltlen = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.saltlen; i++) {
 		cs.salt[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.keysize = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.keysize; i++) {
 		cs.mkey[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < 512 * 3; i++) {
 		cs.data[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;

@@ -189,12 +189,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	cp = keeptr;
 	while (*cp++ != ' ') ;  /* skip the "{x-issha?, " */
 
-	if ((cp = strtok(cp, "}")) == NULL)
+	if ((cp = strtokm(cp, "}")) == NULL)
 		goto err;
 	if (!isdecu(cp))
 		goto err;
 
-	if ((cp = strtok(NULL, " ")) == NULL)
+	if ((cp = strtokm(NULL, " ")) == NULL)
 		goto err;
 	if (strlen(cp) != base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ|flg_Base64_MIME_TRAIL_EQ_CNT))
 		return 0;

@@ -95,20 +95,20 @@ static int valid(char* ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 	ctcopy += 18;
 
-	if ((p = strtok(ctcopy, "$")) == NULL)
+	if ((p = strtokm(ctcopy, "$")) == NULL)
 		goto err;
 	i = atoi(p);
 	if (i < 0)                /* iterations */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)
+	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
 	if (strlen(p) != 2 * 128) /* salt */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)
+	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
 	if (strlen(p) != 2 * 32 * 64) /* masked keys */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)
+	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
 	if (strlen(p) != 2 * BINARY_SIZE) /* HMAC-SHA1 */
 		goto err;
@@ -135,13 +135,13 @@ static void* get_salt(char *ciphertext)
 	char *p;
 
 	ctcopy += 18;
-	p = strtok(ctcopy, "$"); /* iterations */
+	p = strtokm(ctcopy, "$"); /* iterations */
 	cs.num_iterations = atoi(p);
-	p = strtok(NULL, "$");   /* salt */
+	p = strtokm(NULL, "$");   /* salt */
 	for (i = 0; i < OPENBSD_SOFTRAID_SALTLENGTH ; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "$");   /* masked keys */
+	p = strtokm(NULL, "$");   /* masked keys */
 	for (i = 0; i < OPENBSD_SOFTRAID_KEYLENGTH * OPENBSD_SOFTRAID_KEYS; i++)
 		cs.masked_keys[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];

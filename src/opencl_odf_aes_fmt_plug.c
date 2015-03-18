@@ -217,51 +217,51 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;
-	if ((p = strtok(ctcopy, "*")) == NULL)	/* cipher type */
+	if ((p = strtokm(ctcopy, "*")) == NULL)	/* cipher type */
 		goto err;
 	res = atoi(p);
 	if (res != 1) {
 		goto err;
 	}
-	if ((p = strtok(NULL, "*")) == NULL)	/* checksum type */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* checksum type */
 		goto err;
 	res = atoi(p);
 	if (res != 0 && res != 1)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* key size */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* key size */
 		goto err;
 	res = atoi(p);
 	if (res != 16 && res != 32)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* checksum field (skipped) */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* checksum field (skipped) */
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* iv length */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* iv length */
 		goto err;
 	res = atoi(p);
 	if (res > 16)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* iv */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* salt length */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* salt length */
 		goto err;
 	res = atoi(p);
 	if (res > 32)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* something */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* something */
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* content */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* content */
 		goto err;
 	res = strlen(p);
 	if (res > 2048 || res & 1)
@@ -285,30 +285,30 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	static odf_cpu_salt cs;
 	ctcopy += 6;	/* skip over "$odf$*" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	cs.cipher_type = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.checksum_type = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.iterations = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.key_size = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	/* skip checksum field */
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.iv_length = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < cs.iv_length; i++)
 		cs.iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.salt_length = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < cs.salt_length; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
+	p = strtokm(NULL, "*");
 	memset(cs.content, 0, sizeof(cs.content));
 	for (i = 0; p[i * 2] && i < 1024; i++)
 		cs.content[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -330,11 +330,11 @@ static void *get_binary(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	ctcopy += 6;	/* skip over "$odf$*" */
-	p = strtok(ctcopy, "*");
-	p = strtok(NULL, "*");
-	p = strtok(NULL, "*");
-	p = strtok(NULL, "*");
-	p = strtok(NULL, "*");
+	p = strtokm(ctcopy, "*");
+	p = strtokm(NULL, "*");
+	p = strtokm(NULL, "*");
+	p = strtokm(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
 			(atoi16[ARCH_INDEX(*p)] << 4) |

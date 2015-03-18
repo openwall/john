@@ -110,9 +110,6 @@ extern unsigned atou(const char *src);
  */
 char *strtokm(char *s1, const char *delimit);
 
-/* force code to use the strtokm() function */
-#define strtok(a,b) strtokm(a,b)
-
 #ifndef __has_feature
 # define __has_feature(x) 0
 #endif

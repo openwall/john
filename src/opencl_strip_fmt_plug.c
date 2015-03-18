@@ -214,7 +214,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 7+1;	/* skip over "$strip$" and first '*' */
-	if ((p = strtok(ctcopy, "*")) == NULL)	/* salt + data */
+	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt + data */
 		goto err;
 	if (strlen(p) != 2048)
 		goto err;
@@ -237,7 +237,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	static struct custom_salt cs;
 	ctcopy += 7+1;	/* skip over "$strip$" and first '*' */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	for (i = 0; i < 16; i++)
 			cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];

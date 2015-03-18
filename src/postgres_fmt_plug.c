@@ -140,9 +140,9 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 
 	ctcopy += 10;   /* skip over "$postgres$" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	strnzcpy((char*)cs.user, p, MAX_USERNAME_LEN + 1);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < 4; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];

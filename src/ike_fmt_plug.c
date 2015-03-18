@@ -123,55 +123,55 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (*ctcopy != '*')
 		goto error;
 	ctcopy += 1;
-	if (!(ptr = strtok(ctcopy, "*")))
+	if (!(ptr = strtokm(ctcopy, "*")))
 		goto error;
 	if (strlen(ptr) > MAXLEN)
 		goto error;
 	if (!ishexlc(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*")))
+	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
 	if (strlen(ptr) > MAXLEN)
 		goto error;
 	if (!ishexlc(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*")))
+	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
 	if (strlen(ptr) > MAXLEN)
 		goto error;
 	if (!ishexlc(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*")))
+	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
 	if (strlen(ptr) > MAXLEN)
 		goto error;
 	if (!ishexlc(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*")))
+	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
 	if (strlen(ptr) > MAXLEN)
 		goto error;
 	if (!ishexlc(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*")))
+	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
 	if (strlen(ptr) > MAXLEN)
 		goto error;
 	if (!ishexlc(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*")))
+	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
 	if (strlen(ptr) > MAXLEN)
 		goto error;
 	if (!ishexlc(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*")))
+	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
 	if (strlen(ptr) > MAXLEN)
 		goto error;
 	if (!ishexlc(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*")))
+	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
 	if (strlen(ptr) != 32 && strlen(ptr) != 40) // md5 or sha1 length.
 		goto error;

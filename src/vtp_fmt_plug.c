@@ -117,33 +117,33 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ptrkeep = strdup(ciphertext);
 	p = &ptrkeep[TAG_LENGTH];
 
-	if ((p = strtok(p, "$")) == NULL) /* version */
+	if ((p = strtokm(p, "$")) == NULL) /* version */
 		goto err;
 	res = atoi(p);
 	if (res != 1  && res != 2)  // VTP version 3 support is pending
 		goto err;
 
-	if ((p = strtok(NULL, "$")) == NULL)  /* vlans len */
+	if ((p = strtokm(NULL, "$")) == NULL)  /* vlans len */
 		goto err;
 	res = atoi(p);
-	if ((p = strtok(NULL, "$")) == NULL)  /* vlans data */
+	if ((p = strtokm(NULL, "$")) == NULL)  /* vlans data */
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
 	if (!ishex(p))
 		goto err;
 
-	if ((p = strtok(NULL, "$")) == NULL)  /* salt len */
+	if ((p = strtokm(NULL, "$")) == NULL)  /* salt len */
 		goto err;
 	res = atoi(p);
-	if ((p = strtok(NULL, "$")) == NULL)  /* salt */
+	if ((p = strtokm(NULL, "$")) == NULL)  /* salt */
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
 	if (!ishex(p))
 		goto err;
 
-	if ((p = strtok(NULL, "$")) == NULL)  /* hash */
+	if ((p = strtokm(NULL, "$")) == NULL)  /* hash */
 		goto err;
 	if (strlen(p) != BINARY_SIZE * 2)
 		goto err;

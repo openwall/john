@@ -127,20 +127,20 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	strkeep = strdup(ciphertext);
 	p = &strkeep[TAG_LENGTH];
 
-	if ((p = strtok(p, "$")) == NULL) /* version */
+	if ((p = strtokm(p, "$")) == NULL) /* version */
 		goto err;
 	version = atoi(p);
 	if (version != 1  && version != 2)
 		goto err;
 
-	if ((p = strtok(NULL, "$")) == NULL) /* salt */
+	if ((p = strtokm(NULL, "$")) == NULL) /* salt */
 		goto err;
 	if (strlen(p) >= MAX_SALT_SIZE*2)
 		goto err;
 	if (!ishex(p))
 		goto err;
 
-	if ((p = strtok(NULL, "$")) == NULL) /* hash */
+	if ((p = strtokm(NULL, "$")) == NULL) /* hash */
 		goto err;
 	/* there is code that trim longer binary values, so we do not need to check for extra long */
 	if (strlen(p) < BINARY_SIZE*2)

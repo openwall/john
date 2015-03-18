@@ -95,11 +95,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	else
 		ctcopy += 3;
 
-	if ((p = strtok(ctcopy, "$")) == NULL)	/* salt */
+	if ((p = strtokm(ctcopy, "$")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != 8)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* hash */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* hash */
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;
@@ -125,9 +125,9 @@ static void *get_salt(char *ciphertext)
 		cs.is_standard = 1;
 	}
 
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	strncpy((char*)cs.salt, p, 9);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 
 	MEM_FREE(keeptr);
 	return (void *)&cs;

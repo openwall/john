@@ -169,29 +169,29 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 	ctcopy += sizeof(MAGIC)-1;
 
-	if ((p = strtok(ctcopy, "$")) == NULL) /* hash */
+	if ((p = strtokm(ctcopy, "$")) == NULL) /* hash */
 		goto err;
 	if (!ishexlc(p) || strlen(p) != 32)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* user */
+	if ((p = strtokm(NULL, "$")) == NULL) /* user */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* realm */
+	if ((p = strtokm(NULL, "$")) == NULL) /* realm */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* method */
+	if ((p = strtokm(NULL, "$")) == NULL) /* method */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* uri */
+	if ((p = strtokm(NULL, "$")) == NULL) /* uri */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* nonce */
-		goto err;
-	if (!ishexlc(p) )
-		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* noncecount */
-		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* clientnonce */
+	if ((p = strtokm(NULL, "$")) == NULL) /* nonce */
 		goto err;
 	if (!ishexlc(p) )
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* qop */
+	if ((p = strtokm(NULL, "$")) == NULL) /* noncecount */
+		goto err;
+	if ((p = strtokm(NULL, "$")) == NULL) /* clientnonce */
+		goto err;
+	if (!ishexlc(p) )
+		goto err;
+	if ((p = strtokm(NULL, "$")) == NULL) /* qop */
 		goto err;
 
 	MEM_FREE(keeptr);

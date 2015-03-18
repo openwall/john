@@ -128,13 +128,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;
-	if ((p = strtok(ctcopy, "*")) == NULL)	/* data */
+	if ((p = strtokm(ctcopy, "*")) == NULL)	/* data */
 		goto err;
 	if (!ishex(p))
 		goto err;
 	length = strlen(p);
 
-	if ((p = strtok(NULL, "*")) == NULL)	/* length */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* length */
 		goto err;
 	if (!ishex(p))
 		goto err;
@@ -143,7 +143,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if(length != res * 2)
 		goto err;
 
-	p = strtok(NULL, "*"); // type (optional)
+	p = strtokm(NULL, "*"); // type (optional)
 
 	MEM_FREE(keeptr);
 	return 1;
@@ -255,7 +255,7 @@ static void *get_salt(char *ciphertext)
 	int i, filelength;
 	char *decoded_data;
 	char *copy = strdup(ciphertext);
-	char *encoded_data = strtok(copy, "*");
+	char *encoded_data = strtokm(copy, "*");
 	char *nm = NULL, *header = NULL;
 	unsigned char *data = NULL;
 	char *t;
@@ -272,8 +272,8 @@ static void *get_salt(char *ciphertext)
 		error();
 	}
 
-	filelength = atoi(strtok(NULL, "*"));
-	t = strtok(NULL, "*");
+	filelength = atoi(strtokm(NULL, "*"));
+	t = strtokm(NULL, "*");
 	if (t)
 		psalt->type = atoi(t);
 	encoded_data += 6;	/* skip over "$ssh2$ marker */

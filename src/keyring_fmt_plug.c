@@ -119,29 +119,29 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (keeptr == NULL)
 		goto err;
 	ctcopy += 9;
-	if ((p = strtok(ctcopy, "*")) == NULL)	/* salt */
+	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != SALTLEN * 2)
 		goto err;
 	while (*p)
 		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
 			goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
 		goto err;
 	if (!looks_like_nice_int(p))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* crypto size */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* crypto size */
 		goto err;
 	if (!looks_like_nice_int(p))
 		goto err;
 	ctlen = atoi(p);
 	if (ctlen > sizeof(cur_salt->ct))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* inlined - unused? TODO */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* inlined - unused? TODO */
 		goto err;
 	if (!looks_like_nice_int(p))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* ciphertext */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
 	if (ctlen > LINE_BUFFER_SIZE)
 		goto err;
@@ -172,17 +172,17 @@ static void *get_salt(char *ciphertext)
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += 9;	/* skip over "$keyring$" */
 	cur_salt = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	for (i = 0; i < SALTLEN; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.iterations = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.crypto_size = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.inlined = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < cs.crypto_size; i++)
 		cs.ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];

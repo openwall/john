@@ -139,13 +139,13 @@ static void *get_salt(char *ciphertext)
 	} un;
 	static struct custom_salt *cs = &(un._cs);
 	ctcopy += TAG_LENGTH + 1;
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	strncpy((char*)cs->salt, p, 32);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs->N = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs->r = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs->p = atoi(p);
 	MEM_FREE(keeptr);
 	return (void *)cs;

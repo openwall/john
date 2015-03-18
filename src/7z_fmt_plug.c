@@ -108,49 +108,49 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
-	if ((p = strtok(ctcopy, "$")) == NULL)
+	if ((p = strtokm(ctcopy, "$")) == NULL)
 		goto err;
 	if (strlen(p) != 1 || '0' != *p)     /* p must be "0" */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* NumCyclesPower */
+	if ((p = strtokm(NULL, "$")) == NULL) /* NumCyclesPower */
 		goto err;
 	if (strlen(p) > 2)
 		goto err;
 	NumCyclesPower = atoi(p);
 	if (NumCyclesPower > 24 || NumCyclesPower < 1)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* salt length */
+	if ((p = strtokm(NULL, "$")) == NULL) /* salt length */
 		goto err;
 	len = atoi(p);
 	if(len > 16 || len < 0) /* salt length */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* salt */
+	if ((p = strtokm(NULL, "$")) == NULL) /* salt */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* iv length */
+	if ((p = strtokm(NULL, "$")) == NULL) /* iv length */
 		goto err;
 	if (strlen(p) > 2)
 		goto err;
 	len = atoi(p);
 	if(len < 0 || len > 16) /* iv length */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* iv */
+	if ((p = strtokm(NULL, "$")) == NULL) /* iv */
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if (strlen(p) > len*2 && strcmp(p+len*2, "0000000000000000"))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* crc */
+	if ((p = strtokm(NULL, "$")) == NULL) /* crc */
 		goto err;
 	if (!isdecu(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* data length */
+	if ((p = strtokm(NULL, "$")) == NULL) /* data length */
 		goto err;
 	len = atoi(p);
-	if ((p = strtok(NULL, "$")) == NULL) /* unpacksize */
+	if ((p = strtokm(NULL, "$")) == NULL) /* unpacksize */
 		goto err;
 	if (!isdec(p))	/* no way to validate, other than atoi() works for it */
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* data */
+	if ((p = strtokm(NULL, "$")) == NULL) /* data */
 		goto err;
 	if (strlen(p) != len * 2)	/* validates data_len atoi() */
 		goto err;
@@ -179,26 +179,26 @@ static void *get_salt(char *ciphertext)
 	memset(cs, 0, SALT_SIZE);
 
 	ctcopy += 4;
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	cs->type = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs->NumCyclesPower = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs->SaltSize = atoi(p);
-	p = strtok(NULL, "$"); /* salt */
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$"); /* salt */
+	p = strtokm(NULL, "$");
 	cs->ivSize = atoi(p);
-	p = strtok(NULL, "$"); /* iv */
+	p = strtokm(NULL, "$"); /* iv */
 	for (i = 0; i < cs->ivSize; i++)
 		cs->iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "$"); /* crc */
+	p = strtokm(NULL, "$"); /* crc */
 	cs->crc = atou(p); /* unsigned function */
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs->length = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs->unpacksize = atoi(p);
-	p = strtok(NULL, "$"); /* crc */
+	p = strtokm(NULL, "$"); /* crc */
 	for (i = 0; i < cs->length; i++)
 		cs->data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];

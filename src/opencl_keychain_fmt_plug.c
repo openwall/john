@@ -211,15 +211,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 11;
-	if ((p = strtok(ctcopy, "*")) == NULL)	/* salt */
+	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
 	if(strlen(p) != SALTLEN * 2)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* iv */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 		goto err;
 	if(strlen(p) != IVLEN * 2)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* ciphertext */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
 	if(strlen(p) != CTLEN * 2)
 		goto err;
@@ -242,15 +242,15 @@ static void *get_salt(char *ciphertext)
 	salt_struct = mem_calloc_tiny(sizeof(struct custom_salt),
 	                              MEM_ALIGN_WORD);
 	ctcopy += 11;	/* skip over "$keychain$*" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	for (i = 0; i < SALTLEN; i++)
 		salt_struct->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < IVLEN; i++)
 		salt_struct->iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < CTLEN; i++)
 		salt_struct->ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];

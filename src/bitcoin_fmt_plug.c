@@ -139,41 +139,41 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 	ctcopy += 9;
 
-	if ((p = strtok(ctcopy, "$")) == NULL) /* cry_master_length (of the hex string) */
+	if ((p = strtokm(ctcopy, "$")) == NULL) /* cry_master_length (of the hex string) */
 		goto err;
 	res = atoi(p);
-	if ((p = strtok(NULL, "$")) == NULL) /* cry_master */
+	if ((p = strtokm(NULL, "$")) == NULL) /* cry_master */
 		goto err;
 	if (strlen(p) != res || strlen(p) > SZ * 2) /* validates atoi() and cry_master */
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* cry_salt_length (length of hex string) */
+	if ((p = strtokm(NULL, "$")) == NULL) /* cry_salt_length (length of hex string) */
 		goto err;
 	res = atoi(p);
-	if ((p = strtok(NULL, "$")) == NULL) /* cry_salt */
+	if ((p = strtokm(NULL, "$")) == NULL) /* cry_salt */
 		goto err;
 	if (strlen(p) != res || strlen(p) > SZ * 2) /* validates atoi() and cry_salt */
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* cry_rounds */
+	if ((p = strtokm(NULL, "$")) == NULL) /* cry_rounds */
 		goto err;
 	if (!isdec(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* ckey_length (of hex) */
+	if ((p = strtokm(NULL, "$")) == NULL) /* ckey_length (of hex) */
 		goto err;
 	res = atoi(p);
-	if ((p = strtok(NULL, "$")) == NULL) /* ckey */
+	if ((p = strtokm(NULL, "$")) == NULL) /* ckey */
 		goto err;
 	if (strlen(p) != res || strlen(p) > SZ * 2) /* validates atoi() and ckey */
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL) /* public_key_length */
+	if ((p = strtokm(NULL, "$")) == NULL) /* public_key_length */
 		goto err;
 	res = atoi(p);
-	if ((p = strtok(NULL, "$")) == NULL) /* public_key */
+	if ((p = strtokm(NULL, "$")) == NULL) /* public_key */
 		goto err;
 	if (strlen(p) != res || strlen(p) > SZ * 2) /* validates atoi() and public_key */
 		goto err;
@@ -196,31 +196,31 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += 9;
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	cs.cry_master_length = atoi(p) / 2;
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.cry_master_length; i++)
 		cs.cry_master[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.cry_salt_length = atoi(p) / 2;
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.cry_salt_length; i++)
 		cs.cry_salt[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.cry_rounds = atoi(p);
 
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.ckey_length = atoi(p) / 2;
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.ckey_length; i++)
 		cs.ckey[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.public_key_length = atoi(p) / 2;
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.public_key_length; i++)
 		cs.public_key[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];

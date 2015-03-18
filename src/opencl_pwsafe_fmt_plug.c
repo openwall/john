@@ -224,21 +224,21 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 9;		/* skip over "$pwsafe$*" */
-	if ((p = strtok(ctcopy, "*")) == NULL)	/* version */
+	if ((p = strtokm(ctcopy, "*")) == NULL)	/* version */
 		goto err;
 	if (atoi(p) == 0)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) < 64)
 		goto err;
 	if (strspn(p, "0123456789abcdef") != 64)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
 		goto err;
 	if (atoi(p) == 0)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* hash */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
 	if (strlen(p) != 64)
 		goto err;
@@ -263,15 +263,15 @@ static void *get_salt(char *ciphertext)
 		salt_struct = mem_calloc_tiny(sizeof(pwsafe_salt),
 		                              MEM_ALIGN_WORD);
 	ctcopy += 9;		/* skip over "$pwsafe$*" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	salt_struct->version = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < 32; i++)
 		salt_struct->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 		    + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	salt_struct->iterations = (unsigned int) atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < 32; i++)
 		salt_struct->hash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 		    + atoi16[ARCH_INDEX(p[i * 2 + 1])];

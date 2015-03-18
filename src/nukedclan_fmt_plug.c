@@ -111,14 +111,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	keeptr = ctcopy;
 	ctcopy += 5;	/* skip leading "$nk$*" */
-	if (!(ptr = strtok(ctcopy, "*")))
+	if (!(ptr = strtokm(ctcopy, "*")))
 		goto error;
 	/* HASHKEY is of fixed length 40 */
 	if (strlen(ptr) != 40)
 		goto error;
 	if(!ishex(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, "*")))
+	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
 	/* skip two characters, for "nk_tests[]" this is '#'
 	 * followed by decal value */
@@ -147,11 +147,11 @@ static void *get_salt(char *ciphertext)
 	int i;
 	strnzcpy(ctcopy, ciphertext, 255);
 	ctcopy += 5;	/* skip over "$nk$*" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	for (i = 0; i < 20; i++)
 		cs.HASHKEY[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.decal = atoi16[ARCH_INDEX(p[1])];
 	return (void *)&cs;
 }

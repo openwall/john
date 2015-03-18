@@ -223,41 +223,41 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += TAG_LENGTH;
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	cs.cipher = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.md = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.saltlen = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.saltlen; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	res = strlen(p) / 2;
 	for (i = 0; i < res; i++)
 		cs.last_chunks[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.inlined = atoi(p);
 	if (cs.inlined) {
-		p = strtok(NULL, "$");
+		p = strtokm(NULL, "$");
 		cs.kpa = atoi(p);
 		if (cs.kpa) {
-			p = strtok(NULL, "$");
+			p = strtokm(NULL, "$");
 			strncpy((char*)cs.kpt, p, 255);
 		}
 	}
 	else {
-		p = strtok(NULL, "$");
+		p = strtokm(NULL, "$");
 		cs.datalen = atoi(p);
-		p = strtok(NULL, "$");
+		p = strtokm(NULL, "$");
 		for (i = 0; i < cs.datalen; i++)
 		cs.data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "$");
+		p = strtokm(NULL, "$");
 		cs.kpa = atoi(p);
 		if (cs.kpa) {
-			p = strtok(NULL, "$");
+			p = strtokm(NULL, "$");
 			strncpy((char*)cs.kpt, p, 255);
 		}
 	}

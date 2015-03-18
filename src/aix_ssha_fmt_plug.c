@@ -207,9 +207,9 @@ static void *get_salt(char *ciphertext)
 	else
 		ctcopy += 9;
 
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	cs.iterations = 1 << atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	strncpy((char*)cs.salt, p, 17);
 
 	MEM_FREE(keeptr);

@@ -98,15 +98,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;
-	if ((p = strtok(ctcopy, "*")) == NULL)	/* id */
+	if ((p = strtokm(ctcopy, "*")) == NULL)	/* id */
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* challenge */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* challenge */
 		goto err;
 	if (strlen(p) > 64)
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* binary */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* binary */
 		goto err;
 	if (strlen(p) != BINARY_SIZE*2)
 		goto err;
@@ -129,9 +129,9 @@ static void *get_salt(char *ciphertext)
 	int i;
 	static struct custom_salt cs;
 	ctcopy += 6; /* skip over "$chap$" */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	cs.id = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.challenge_length = strlen(p) / 2;
 	for (i = 0; i < cs.challenge_length; i++)
 		cs.challenge[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16

@@ -96,15 +96,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 12;		/* skip over "$siemens-s7$" */
-	if ((p = strtok(ctcopy, "$")) == NULL)	/* outcome, currently unused */
+	if ((p = strtokm(ctcopy, "$")) == NULL)	/* outcome, currently unused */
 		goto bail;
 	if (strlen(p) != 1 || (*p != '1' && *p != '0')) /* outcome must be '1' or '0' */
 		goto bail;
-	if ((p = strtok(NULL, "$")) == NULL)	/* challenge */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* challenge */
 		goto bail;
 	if (strlen(p) != 40 || !ishexlc(p))     /* must be hex string and lower cases*/
 		goto bail;
-	if ((p = strtok(NULL, "$")) == NULL)	/* Fix bug: #1090 */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* Fix bug: #1090 */
 		goto bail;
 	if (strlen(p) != 40 || !ishexlc(p))
 		goto bail;
@@ -138,8 +138,8 @@ static void *get_salt(char *ciphertext)
 	int i;
 	static unsigned char lchallenge[20];
 	ctcopy += 12;		/* skip over "$siemens-s7$" */
-	p = strtok(ctcopy, "$");
-	p = strtok(NULL, "$");
+	p = strtokm(ctcopy, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < 20; i++)
 		lchallenge[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];

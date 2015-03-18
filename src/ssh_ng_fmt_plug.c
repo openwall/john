@@ -111,31 +111,31 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 7;
-	if ((p = strtok(ctcopy, "$")) == NULL)	/* cipher */
+	if ((p = strtokm(ctcopy, "$")) == NULL)	/* cipher */
 		goto err;
 	cipher = atoi(p);
-	if ((p = strtok(NULL, "$")) == NULL)	/* salt len */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* salt len */
 		goto err;
 	len = atoi(p);
 	if(len > 16 || !len)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
 	if(strlen(p) != len * 2)
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* ciphertext length */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* ciphertext length */
 		goto err;
 	len = atoi(p);
-	if ((p = strtok(NULL, "$")) == NULL)	/* ciphertext */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* ciphertext */
 		goto err;
 	if(strlen(p) != len * 2)
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if (cipher == 2) {
-		if ((p = strtok(NULL, "$")) == NULL)	/* rounds */
+		if ((p = strtokm(NULL, "$")) == NULL)	/* rounds */
 			goto err;
 		if (!isdec(p))
 			goto err;
@@ -157,22 +157,22 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(struct custom_salt));
 	ctcopy += 7;	/* skip over "$sshng$" */
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	cs.cipher = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.sl = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.sl; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	cs.ctl = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.ctl; i++)
 		cs.ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	if (cs.cipher == 2) {
-		p = strtok(NULL, "$");
+		p = strtokm(NULL, "$");
 		cs.rounds = atoi(p);
 	}
 	MEM_FREE(keeptr);

@@ -92,12 +92,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 9;
-	if ((p = strtok(ctcopy, "$")) == NULL)	/* ctlen */
+	if ((p = strtokm(ctcopy, "$")) == NULL)	/* ctlen */
 		goto err;
 	res = atoi(p);
 	if (!res)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* ct */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* ct */
 		goto err;
 	if(strlen(p) != res * 2)
 		goto err;
@@ -117,9 +117,9 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	ctcopy += 9;	/* skip over "$kwallet$" */
 	cur_salt = mem_calloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
-	p = strtok(ctcopy, "$");
+	p = strtokm(ctcopy, "$");
 	cur_salt->ctlen = atoi(p);
-	p = strtok(NULL, "$");
+	p = strtokm(NULL, "$");
 	for (i = 0; i < cur_salt->ctlen; i++)
 		cur_salt->ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];

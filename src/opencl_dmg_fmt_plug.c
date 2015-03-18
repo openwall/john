@@ -316,83 +316,83 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 5;	/* skip over "$dmg$" marker */
-	if ((p = strtok(ctcopy, "*")) == NULL)
+	if ((p = strtokm(ctcopy, "*")) == NULL)
 		goto err;
 	headerver = atoi(p);
 	if (headerver == 2) {
-		if ((p = strtok(NULL, "*")) == NULL)	/* salt len */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* salt len */
 			goto err;
 		res = atoi(p);
 		if (res > 20)
 			goto err;
-		if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 			goto err;
 		if (strlen(p) != res * 2)
 			goto err;
-		if ((p = strtok(NULL, "*")) == NULL)	/* ivlen */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* ivlen */
 			goto err;
 		res = atoi(p);
 		if (atoi(p) > 32)
 			goto err;
-		if ((p = strtok(NULL, "*")) == NULL)	/* iv */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 			goto err;
 		if (strlen(p) != res * 2)
 			goto err;
-		if ((p = strtok(NULL, "*")) == NULL)	/* encrypted_keyblob_size */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* encrypted_keyblob_size */
 			goto err;
 		res = atoi(p);
 		if (res > 128)
 			goto err;
-		if ((p = strtok(NULL, "*")) == NULL)	/* encrypted keyblob */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* encrypted keyblob */
 			goto err;
 		if (strlen(p) != res * 2)
 			goto err;
-		if ((p = strtok(NULL, "*")) == NULL)	/* chunk number */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* chunk number */
 			goto err;
-		if ((p = strtok(NULL, "*")) == NULL)	/* data_size */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* data_size */
 			goto err;
 		res = atoi(p);
-		if ((p = strtok(NULL, "*")) == NULL)	/* chunk */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* chunk */
 			goto err;
 		if (strlen(p) != res * 2)
 			goto err;
 		if (res > 8192)
 			goto err;
-		if ((p = strtok(NULL, "*")) == NULL)	/* scp */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* scp */
 			goto err;
 		res = atoi(p);
 		if (res == 1) {
-			if ((p = strtok(NULL, "*")) == NULL)	/* zchunk */
+			if ((p = strtokm(NULL, "*")) == NULL)	/* zchunk */
 				goto err;
 			if (strlen(p) != 4096 * 2)
 				goto err;
 		}
 	}
 	else if (headerver == 1) {
-		if ((p = strtok(NULL, "*")) == NULL)	/* salt len */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* salt len */
 			goto err;
 		res = atoi(p);
 		if (res > 20)
 			goto err;
-		if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 			goto err;
 		if (strlen(p) != res * 2)
 			goto err;
-		if ((p = strtok(NULL, "*")) == NULL)	/* len_wrapped_aes_key */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* len_wrapped_aes_key */
 			goto err;
 		res = atoi(p);
 		if (res > 296)
 			goto err;
-		if ((p = strtok(NULL, "*")) == NULL)	/* wrapped_aes_key  */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* wrapped_aes_key  */
 			goto err;
 		if (strlen(p) != res * 2)
 			goto err;
-		if ((p = strtok(NULL, "*")) == NULL)	/* len_hmac_sha1_key */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* len_hmac_sha1_key */
 			goto err;
 		res = atoi(p);
 		if (res > 300)
 			goto err;
-		if ((p = strtok(NULL, "*")) == NULL)	/* hmac_sha1_key */
+		if ((p = strtokm(NULL, "*")) == NULL)	/* hmac_sha1_key */
 			goto err;
 		if (strlen(p) != res * 2)
 			goto err;
@@ -415,68 +415,68 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	static struct custom_salt cs;
 	ctcopy += 5;
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	cs.headerver = atoi(p);
 	if (cs.headerver == 2) {
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.saltlen = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < cs.saltlen; i++)
 			cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.ivlen = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < cs.ivlen; i++)
 			cs.iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.encrypted_keyblob_size = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < cs.encrypted_keyblob_size; i++)
 			cs.encrypted_keyblob[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.cno = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.data_size = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < cs.data_size; i++)
 			cs.chunk[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.scp = atoi(p);
 		if (cs.scp == 1) {
-			p = strtok(NULL, "*");
+			p = strtokm(NULL, "*");
 			for (i = 0; i < 4096; i++)
 				cs.zchunk[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 		}
-		if ((p = strtok(NULL, "*")))
+		if ((p = strtokm(NULL, "*")))
 			cs.iterations = atoi(p);
 		else
 			cs.iterations = 1000;
 	}
 	else {
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.saltlen = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < cs.saltlen; i++)
 			cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.len_wrapped_aes_key = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < cs.len_wrapped_aes_key; i++)
 			cs.wrapped_aes_key[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.len_hmac_sha1_key = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < cs.len_hmac_sha1_key; i++)
 			cs.wrapped_hmac_sha1_key[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		if ((p = strtok(NULL, "*")))
+		if ((p = strtokm(NULL, "*")))
 			cs.iterations = atoi(p);
 		else
 			cs.iterations = 1000;

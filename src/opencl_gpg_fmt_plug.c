@@ -400,56 +400,56 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;	/* skip over "$gpg$" marker and '*' */
-	if ((p = strtok(ctcopy, "*")) == NULL)	/* algorithm */
+	if ((p = strtokm(ctcopy, "*")) == NULL)	/* algorithm */
 		goto err;
 	algorithm = atoi(p);
-	if ((p = strtok(NULL, "*")) == NULL)	/* datalen */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* datalen */
 		goto err;
 	res = atoi(p);
 	if (res > BIG_ENOUGH * 2)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* bits */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* bits */
 		goto err;
 	if (!isdec(p))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* data */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* data */
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* spec */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* spec */
 		goto err;
 	spec = atoi(p);
 	if (!isdec(p))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* usage */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* usage */
 		goto err;
 	usage = atoi(p);
 	if (!isdec(p))
 		goto err;
 	if(usage != 0 && usage != 254 && usage != 255 && usage != 1)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* hash_algorithm */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* hash_algorithm */
 		goto err;
 	res = atoi(p);
 	if (!isdec(p))
 		goto err;
 	if(!valid_hash_algorithm(res, spec))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* cipher_algorithm */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* cipher_algorithm */
 		goto err;
 	res = atoi(p);
 	if (!isdec(p))
 		goto err;
 	if(!valid_cipher_algorithm(res))
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* ivlen */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* ivlen */
 		goto err;
 	res = atoi(p);
 	if (res != 8 && res != 16)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* iv */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
@@ -460,12 +460,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		MEM_FREE(keeptr);
 		return 1;
 	}
-	if ((p = strtok(NULL, "*")) == NULL)	/* count */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* count */
 		goto err;
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != 8 * 2)
 		goto err;
@@ -492,7 +492,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		/* NOT sure what to do here, probably nothing */
 	}
 
-	p = strtok(NULL, "*"); /* NOTE, do not goto err if null, we WANT p nul if there are no fields */
+	p = strtokm(NULL, "*"); /* NOTE, do not goto err if null, we WANT p nul if there are no fields */
 
 	for (j = 0; j < ex_flds; ++j) {  /* handle extra p, q, g, y fields */
 		if (!p) /* check for null p */
@@ -500,13 +500,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		res = atoi(p);
 		if (res > BIG_ENOUGH * 2)
 			goto err;
-		if ((p = strtok(NULL, "*")) == NULL)
+		if ((p = strtokm(NULL, "*")) == NULL)
 			goto err;
 		if (strlen(p) != res * 2) /* validates res is a valid int */
 			goto err;
 		if (!ishex(p))
 			goto err;
-		p = strtok(NULL, "*");  /* NOTE, do not goto err if null, we WANT p nul if there are no fields */
+		p = strtokm(NULL, "*");  /* NOTE, do not goto err if null, we WANT p nul if there are no fields */
 	}
 
 	if (p)	/* at this point, there should be NO trailing stuff left from the hash. */
@@ -530,37 +530,37 @@ static void *get_salt(char *ciphertext)
 
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += 6;	/* skip over "$gpg$" marker and first '*' */
-	p = strtok(ctcopy, "*");
+	p = strtokm(ctcopy, "*");
 	cs.pk_algorithm = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.datalen = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.bits = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < cs.datalen; i++)
 		cs.data[i] =
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.spec = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.usage = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.hash_algorithm = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.cipher_algorithm = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	cs.ivlen = atoi(p);
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	for (i = 0; i < cs.ivlen; i++)
 		cs.iv[i] =
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
+	p = strtokm(NULL, "*");
 	/* handle "SPEC_SIMPLE" correctly */
 	if (cs.spec != 0 || cs.usage == 255) {
 		cs.count = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < 8; i++)
 			cs.salt[i] =
 			atoi16[ARCH_INDEX(p[i * 2])] * 16 +
@@ -568,57 +568,57 @@ static void *get_salt(char *ciphertext)
 	}
 	if (cs.usage == 255 && cs.spec == 1 && cs.pk_algorithm == 17) {
 		/* old hashes will crash!, "gpg --s2k-mode 1 --gen-key" */
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.pl = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < strlen(p) / 2; i++)
 			cs.p[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.ql = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < strlen(p) / 2; i++)
 			cs.q[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.gl = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < strlen(p) / 2; i++)
 			cs.g[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.yl = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < strlen(p) / 2; i++)
 			cs.y[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
 	if (cs.usage == 255 && cs.spec == 1 && cs.pk_algorithm == 16) {
 		/* ElGamal */
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.pl = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < strlen(p) / 2; i++)
 			cs.p[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.gl = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < strlen(p) / 2; i++)
 			cs.g[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.yl = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < strlen(p) / 2; i++)
 			cs.y[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
 	if (cs.usage == 255 && cs.pk_algorithm == 1) {
 		/* RSA */
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		cs.nl = atoi(p);
-		p = strtok(NULL, "*");
+		p = strtokm(NULL, "*");
 		for (i = 0; i < strlen(p) / 2; i++)
 			cs.n[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];

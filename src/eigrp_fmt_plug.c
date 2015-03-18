@@ -123,26 +123,26 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ptrkeep = strdup(ciphertext);
 	p = &ptrkeep[TAG_LENGTH];
 
-	if ((p = strtok(p, "$")) == NULL)
+	if ((p = strtokm(p, "$")) == NULL)
 		goto err;
 	res = atoi(p);
 
 	if (res != 2 && res != 3)  // MD5 hashes + HMAC-SHA256 hashes
 		goto err;
 
-	if ((p = strtok(NULL, "$")) == NULL)	// salt
+	if ((p = strtokm(NULL, "$")) == NULL)	// salt
 		goto err;
 	if (strlen(p) > MAX_SALT_SIZE*2)
 		goto err;
 	if (!ishex(p))
 		goto err;
 
-	if ((p = strtok(NULL, "$")) == NULL)
+	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
 	res = atoi(p);
 	if (p[1] || res > 1)
 		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	// salt2 (or a junk field)
+	if ((p = strtokm(NULL, "$")) == NULL)	// salt2 (or a junk field)
 		goto err;
 	if (res == 1) {
 		// we only care about extra salt IF that number was a 1
@@ -152,16 +152,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 	}
 
-	if ((p = strtok(NULL, "$")) == NULL)	// binary hash (or IP)
+	if ((p = strtokm(NULL, "$")) == NULL)	// binary hash (or IP)
 		goto err;
 	if (!strcmp(p, "1")) {	// this was an IP
-		if ((p = strtok(NULL, "$")) == NULL)	// IP
+		if ((p = strtokm(NULL, "$")) == NULL)	// IP
 			goto err;
 		// not doing too much IP validation. Length will have to do.
 		// 5 char ip 'could' be 127.1  I know of no short IP. 1.1.1.1 is longer.
 		if (strlen(p) < 5 || strlen(p) > sizeof(cur_salt->ip))
 			goto err;
-		if ((p = strtok(NULL, "$")) == NULL)	// ok, now p is binary.
+		if ((p = strtokm(NULL, "$")) == NULL)	// ok, now p is binary.
 			goto err;
 	}
 	res = strlen(p);
