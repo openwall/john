@@ -337,8 +337,11 @@ inline void sha1_final( sha1_context *ctx, uchar output[20] )
 	PUT_UINT32BE( ctx->state[4], output, 16 );
 }
 
-#if nvidia_sm_5x(DEVICE_INFO)
-#define KISS
+// Slower on CPU
+// 40% faster on Intel HD4000
+// Bugs out on nvidia
+#if !cpu(DEVICE_INFO)
+#define LEAN
 #endif
 
 inline void S2KItSaltedSHA1Generator(__global const uchar *password,
@@ -350,13 +353,13 @@ inline void S2KItSaltedSHA1Generator(__global const uchar *password,
 	sha1_context ctx;
 	const uint tl = password_length + SALT_LENGTH;
 	uint n;
-#ifdef KISS
-	uchar keybuf[PLAINTEXT_LENGTH + SALT_LENGTH];
+	uint bs;
+#ifdef LEAN
+	uchar keybuf[128 + PLAINTEXT_LENGTH + SALT_LENGTH];
 #else
 	uchar keybuf[64 * (PLAINTEXT_LENGTH + SALT_LENGTH)];
 	uchar *bptr;
 	uint mul;
-	uint bs;
 #endif
 	uchar *lkey = (uchar*)keybuf;	//uchar lkey[20];
 
@@ -365,12 +368,20 @@ inline void S2KItSaltedSHA1Generator(__global const uchar *password,
 
 	sha1_init(&ctx);
 
-#ifdef KISS
-	while (count > tl) {
-		sha1_update(&ctx, keybuf, tl);
-		count -= tl;
+#ifdef LEAN
+	bs = tl;
+	while (bs < 128) {
+		_memcpy_(&keybuf[bs], keybuf, tl);
+		bs += tl;
 	}
-	sha1_update(&ctx, keybuf, count);
+
+	bs = 0;
+	while (count > 64) {
+		sha1_update(&ctx, &keybuf[bs], 64);
+		count -= 64;
+		bs = (bs + 64) % tl;
+	}
+	sha1_update(&ctx, &keybuf[bs], count);
 #else
 	// Find multiplicator
 	mul = 1;
