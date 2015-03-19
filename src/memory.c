@@ -615,7 +615,7 @@ void alter_endianity_w64(void *_x, unsigned int count) {
 		c = cpX[3];
 		cpX[3] = cpX[4];
 		cpX[4] = c;
-		cpX += 4;
+		cpX += 8;
 	}
 #endif
 }
