@@ -96,7 +96,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
-	if (strncmp(ciphertext, "$strip$", 7))
+	if (strncmp(ciphertext, "$strip$*", 8))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
