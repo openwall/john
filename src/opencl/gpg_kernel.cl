@@ -29,40 +29,16 @@
  */
 
 #include "opencl_device_info.h"
+#include "opencl_misc.h"
 
-#if gpu_amd(DEVICE_INFO)
-#define USE_BITSELECT
+#ifndef PLAINTEXT_LENGTH
+#error PLAINTEXT_LENGTH must be defined
+#endif
+#ifndef SALT_LENGTH
+#error SALT_LENGTH must be defined
 #endif
 
-#define  uint8_t		uchar
-#define uint16_t		ushort
-#define uint32_t		uint
-
-/*
- * 32-bit integer manipulation macros (big endian)
- */
-
-#ifndef GET_UINT_BE
-#define GET_UINT_BE(n,b,i)	  \
-	{ \
-		(n) = ( (uint32_t) (b)[(i)    ] << 24 ) \
-			| ( (uint32_t) (b)[(i) + 1] << 16 ) \
-			| ( (uint32_t) (b)[(i) + 2] <<  8 ) \
-			| ( (uint32_t) (b)[(i) + 3]       ); \
-	}
-#endif
-
-#ifndef PUT_UINT_BE
-#define PUT_UINT_BE(n,b,i)	  \
-	{ \
-		(b)[(i)    ] = (uchar) ( (n) >> 24 ); \
-		(b)[(i) + 1] = (uchar) ( (n) >> 16 ); \
-		(b)[(i) + 2] = (uchar) ( (n) >>  8 ); \
-		(b)[(i) + 3] = (uchar) ( (n)       ); \
-	}
-#endif
-
-inline void* _memcpy(void* dest, __global const uchar *src, int count)
+inline void* _memcpy(void* dest, __global const uchar *src, uint count)
 {
 	char* dst8 = (char*)dest;
 	__global uchar* src8 = (__global uchar*)src;
@@ -73,7 +49,7 @@ inline void* _memcpy(void* dest, __global const uchar *src, int count)
 	return dest;
 }
 
-inline void* _memcpy_(void* dest, const uchar *src, int count)
+inline void* _memcpy_(void* dest, const uchar *src, uint count)
 {
 	char* dst8 = (char*)dest;
 	uchar* src8 = (uchar*)src;
@@ -85,31 +61,29 @@ inline void* _memcpy_(void* dest, const uchar *src, int count)
 }
 
 typedef struct {
-        uint32_t length;
-        uint8_t v[PLAINTEXT_LENGTH];
+        uint length;
+        uchar v[PLAINTEXT_LENGTH];
 } gpg_password;
 
 typedef struct {
-	uint8_t v[16];
+	uchar v[16];
 } gpg_hash;
 
 typedef struct {
-        uint32_t length;
-	uint32_t count;
-        uint8_t salt[8];
+        uint length;
+	uint count;
+        uchar salt[SALT_LENGTH];
 } gpg_salt;
 
 /*
  * SHA-1 context setup
  */
 
-typedef struct
-{
-	uint32_t total;        /*!< number of bytes processed  */
-	uint32_t state[5];     /*!< intermediate digest state  */
-	uint8_t buffer[64];    /*!< data block being processed */
-}
-	sha1_context;
+typedef struct {
+	uint total;        /* number of bytes processed  */
+	uint state[5];     /* intermediate digest state  */
+	uchar buffer[64];  /* data block being processed */
+} sha1_context;
 
 inline void sha1_init( sha1_context *ctx )
 {
@@ -124,24 +98,24 @@ inline void sha1_init( sha1_context *ctx )
 
 inline void sha1_process( sha1_context *ctx, const uchar data[64] )
 {
-	uint32_t temp, W[16], A, B, C, D, E;
+	uint temp, W[16], A, B, C, D, E;
 
-	GET_UINT_BE( W[ 0], data,  0 );
-	GET_UINT_BE( W[ 1], data,  4 );
-	GET_UINT_BE( W[ 2], data,  8 );
-	GET_UINT_BE( W[ 3], data, 12 );
-	GET_UINT_BE( W[ 4], data, 16 );
-	GET_UINT_BE( W[ 5], data, 20 );
-	GET_UINT_BE( W[ 6], data, 24 );
-	GET_UINT_BE( W[ 7], data, 28 );
-	GET_UINT_BE( W[ 8], data, 32 );
-	GET_UINT_BE( W[ 9], data, 36 );
-	GET_UINT_BE( W[10], data, 40 );
-	GET_UINT_BE( W[11], data, 44 );
-	GET_UINT_BE( W[12], data, 48 );
-	GET_UINT_BE( W[13], data, 52 );
-	GET_UINT_BE( W[14], data, 56 );
-	GET_UINT_BE( W[15], data, 60 );
+	GET_UINT32BE( W[ 0], data,  0 );
+	GET_UINT32BE( W[ 1], data,  4 );
+	GET_UINT32BE( W[ 2], data,  8 );
+	GET_UINT32BE( W[ 3], data, 12 );
+	GET_UINT32BE( W[ 4], data, 16 );
+	GET_UINT32BE( W[ 5], data, 20 );
+	GET_UINT32BE( W[ 6], data, 24 );
+	GET_UINT32BE( W[ 7], data, 28 );
+	GET_UINT32BE( W[ 8], data, 32 );
+	GET_UINT32BE( W[ 9], data, 36 );
+	GET_UINT32BE( W[10], data, 40 );
+	GET_UINT32BE( W[11], data, 44 );
+	GET_UINT32BE( W[12], data, 48 );
+	GET_UINT32BE( W[13], data, 52 );
+	GET_UINT32BE( W[14], data, 56 );
+	GET_UINT32BE( W[15], data, 60 );
 
 #if gpu(DEVICE_INFO)
 #define S(x,n) (rotate(x, (uint)n))
@@ -293,10 +267,10 @@ inline void sha1_process( sha1_context *ctx, const uchar data[64] )
 /*
  * SHA-1 process buffer
  */
-inline void sha1_update( sha1_context *ctx, const uchar *input, int ilen )
+inline void sha1_update( sha1_context *ctx, const uchar *input, uint ilen )
 {
-	int fill;
-	uint32_t left;
+	uint fill;
+	uint left;
 
 	if( ilen <= 0 )
 		return;
@@ -304,7 +278,7 @@ inline void sha1_update( sha1_context *ctx, const uchar *input, int ilen )
 	left = ctx->total & 0x3F;
 	fill = 64 - left;
 
-	ctx->total += (uint32_t) ilen;
+	ctx->total += ilen;
 
 	if( left && ilen >= fill )
 	{
@@ -335,8 +309,8 @@ inline void sha1_update( sha1_context *ctx, const uchar *input, int ilen )
  */
 inline void sha1_final( sha1_context *ctx, uchar output[20] )
 {
-	uint32_t last, padn;
-	uint32_t bits;
+	uint last, padn;
+	uint bits;
 	uchar msglen[8];
 	uchar sha1_padding[64] = {
 		0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -347,8 +321,8 @@ inline void sha1_final( sha1_context *ctx, uchar output[20] )
 
 	bits  = ctx->total <<  3;
 
-	PUT_UINT_BE( 0, msglen, 0 );
-	PUT_UINT_BE( bits,  msglen, 4 );
+	PUT_UINT32BE( 0, msglen, 0 );
+	PUT_UINT32BE( bits,  msglen, 4 );
 
 	last = ctx->total & 0x3F;
 	padn = ( last < 56 ) ? ( 56 - last ) : ( 120 - last );
@@ -356,83 +330,82 @@ inline void sha1_final( sha1_context *ctx, uchar output[20] )
 	sha1_update( ctx, sha1_padding, padn );
 	sha1_update( ctx, msglen, 8 );
 
-	PUT_UINT_BE( ctx->state[0], output,  0 );
-	PUT_UINT_BE( ctx->state[1], output,  4 );
-	PUT_UINT_BE( ctx->state[2], output,  8 );
-	PUT_UINT_BE( ctx->state[3], output, 12 );
-	PUT_UINT_BE( ctx->state[4], output, 16 );
+	PUT_UINT32BE( ctx->state[0], output,  0 );
+	PUT_UINT32BE( ctx->state[1], output,  4 );
+	PUT_UINT32BE( ctx->state[2], output,  8 );
+	PUT_UINT32BE( ctx->state[3], output, 12 );
+	PUT_UINT32BE( ctx->state[4], output, 16 );
 }
 
-// mul is at most (PLAINTEXT_LENGTH + SALT_LENGTH)
-#define KEYBUFFER_LENGTH (64 * (PLAINTEXT_LENGTH + SALT_LENGTH))
-#define SHA_DIGEST_LENGTH 20
-
-// outlen is 16, hashlen is 20
-#undef OUTLEN_GT_HASHLEN
-
-inline void S2KItSaltedSHA1Generator(__global const uchar *password, int password_length, __global const uchar *salt, int count, __global uchar *key, int length)
-{
-	uchar keybuf[KEYBUFFER_LENGTH];
-	sha1_context ctx;
-	uchar *bptr;
-#if OUTLEN_GT_HASHLEN
-	int i;
-	int numHashes = (length + SHA_DIGEST_LENGTH - 1) / SHA_DIGEST_LENGTH;
-	const uchar pad[(PLAINTEXT_LENGTH + SHA_DIGEST_LENGTH - 1) / SHA_DIGEST_LENGTH] = { 0 };
+#if nvidia_sm_5x(DEVICE_INFO)
+#define KISS
 #endif
-	uchar lkey[20];
-	int outlen = 0;
+
+inline void S2KItSaltedSHA1Generator(__global const uchar *password,
+                                     uint password_length,
+                                     __global const uchar *salt,
+                                     uint count,
+                                     __global uchar *key)
+{
+	sha1_context ctx;
+	const uint tl = password_length + SALT_LENGTH;
+	uint n;
+#ifdef KISS
+	uchar keybuf[PLAINTEXT_LENGTH + SALT_LENGTH];
+#else
+	uchar keybuf[64 * (PLAINTEXT_LENGTH + SALT_LENGTH)];
+	uchar *bptr;
+	uint mul;
+	uint bs;
+#endif
+	uchar *lkey = (uchar*)keybuf;	//uchar lkey[20];
 
 	_memcpy(keybuf, salt, SALT_LENGTH);
 	_memcpy(keybuf + SALT_LENGTH, password, password_length);
 
-	// TODO: This is not very efficient with multiple hashes
-#if OUTLEN_GT_HASHLEN
-	for (i = 0; i < numHashes; i++)
-#endif
-	{
-		int tl;
-		int mul;
-		int bs;
-		int n;
+	sha1_init(&ctx);
 
-		sha1_init(&ctx);
-
-#if OUTLEN_GT_HASHLEN
-		if (i)
-			sha1_update(&ctx, pad, i);
-#endif
-		// Find multiplicator
-		tl = password_length + SALT_LENGTH;
-		mul = 1;
-		while (mul < tl && ((64 * mul) % tl)) {
-			++mul;
-		}
-		// Try to feed the hash function with 64-byte blocks
-		bs = mul * 64;
-		bptr = keybuf + tl;
-		n = bs / tl;
-		while (n-- > 1) {
-			_memcpy_(bptr, keybuf, tl);
-			bptr += tl;
-		}
-		n = count / bs;
-		while (n-- > 0) {
-			sha1_update(&ctx, keybuf, bs);
-		}
-		sha1_update(&ctx, keybuf, count % bs);
-		sha1_final(&ctx, lkey);
-
-		for(n = 0; n < length && outlen < length; n++)
-			key[outlen++] = lkey[n];
+#ifdef KISS
+	while (count > tl) {
+		sha1_update(&ctx, keybuf, tl);
+		count -= tl;
 	}
+	sha1_update(&ctx, keybuf, count);
+#else
+	// Find multiplicator
+	mul = 1;
+	while (mul < tl && ((64 * mul) % tl)) {
+		++mul;
+	}
+	// Try to feed the hash function with 64-byte blocks
+	bs = mul * 64;
+	bptr = keybuf + tl;
+	n = bs / tl;
+	while (n-- > 1) {
+		_memcpy_(bptr, keybuf, tl);
+		bptr += tl;
+	}
+	n = count / bs;
+	while (n-- > 0) {
+		sha1_update(&ctx, keybuf, bs);
+	}
+	sha1_update(&ctx, keybuf, count % bs);
+#endif
+	sha1_final(&ctx, lkey);
+
+	for(n = 0; n < 16; n++)
+		key[n] = lkey[n];
 }
 
 __kernel void gpg(__global const gpg_password * inbuffer,
-                  __global gpg_hash * outbuffer, __global const gpg_salt * salt)
+                  __global gpg_hash * outbuffer,
+                  __global const gpg_salt * salt)
 {
-	uint32_t idx = get_global_id(0);
+	uint idx = get_global_id(0);
 
-	S2KItSaltedSHA1Generator(inbuffer[idx].v, inbuffer[idx].length,
-	                         salt->salt, salt->count, outbuffer[idx].v, 16);
+	S2KItSaltedSHA1Generator(inbuffer[idx].v,
+	                         inbuffer[idx].length,
+	                         salt->salt,
+	                         salt->count,
+	                         outbuffer[idx].v);
 }
