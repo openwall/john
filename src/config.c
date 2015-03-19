@@ -404,8 +404,8 @@ static int cfg_process_directive_include_section(char *line, int number)
 #endif
 		return 1;
 	}
-	p = strtok(p, ":");
-	p2 = strtok(NULL, "");
+	p = strtokm(p, ":");
+	p2 = strtokm(NULL, "");
 	if (!p || !p2) {
 		fprintf(stderr, "ERROR, invalid .include line, can not find this section:  %s\n", line);
 #ifndef BENCH_BUILD
