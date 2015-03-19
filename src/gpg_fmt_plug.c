@@ -317,7 +317,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy, *keeptr, *p;
 	int res,j,spec,usage,algorithm,ex_flds=0;
 
-	if (strncmp(ciphertext, "$gpg$", 5) != 0)
+	if (strncmp(ciphertext, "$gpg$*", 6) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
