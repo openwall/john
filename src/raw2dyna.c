@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
 
 	FGETS(Buf, sizeof(Buf), stdin);
 	while (!feof(stdin)) {
-		strtok(Buf, "\r\n");
+		strtokm(Buf, "\r\n");
 		strcpy(usr_id, ":");
 		if (!leading_salt) {
 			recurse=0;
@@ -119,7 +119,7 @@ char *GetSalt(char *s) {
 	else {
 		cp = s;
 		while (*cp) {
-			// NOTE, some of these chars will never be seen in this app, due to strtok taking them out, or
+			// NOTE, some of these chars will never be seen in this app, due to strtokm taking them out, or
 			// due to the C language not allowing them (i.e. null).  But they are listed here for documenation
 			if (*cp == ':' || *cp == '\\' || *cp == '\n' || *cp == '\r' || *cp == '\x0' || *cp == '$') { tohex=1; break; }
 			// Ok, if there is trailing white space in the salt, jtr core 'can' strip this out, if there is only a
