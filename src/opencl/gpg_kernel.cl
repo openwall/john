@@ -340,7 +340,7 @@ inline void sha1_final( sha1_context *ctx, uchar output[20] )
 // Slower on CPU
 // 40% faster on Intel HD4000
 // Bugs out on nvidia
-#if !cpu(DEVICE_INFO)
+#if !cpu(DEVICE_INFO) && !gpu_nvidia(DEVICE_INFO)
 #define LEAN
 #endif
 
