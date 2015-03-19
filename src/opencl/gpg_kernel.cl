@@ -363,15 +363,19 @@ inline void sha1_final( sha1_context *ctx, uchar output[20] )
 	PUT_UINT_BE( ctx->state[4], output, 16 );
 }
 
-#define KEYBUFFER_LENGTH (64 * (PLAINTEXT_LENGTH + 8))
+// mul is at most (PLAINTEXT_LENGTH + SALT_LENGTH)
+#define KEYBUFFER_LENGTH (64 * (PLAINTEXT_LENGTH + SALT_LENGTH))
 #define SHA_DIGEST_LENGTH 20
+
+// outlen is 16, hashlen is 20
+#undef OUTLEN_GT_HASHLEN
 
 inline void S2KItSaltedSHA1Generator(__global const uchar *password, int password_length, __global const uchar *salt, int count, __global uchar *key, int length)
 {
 	uchar keybuf[KEYBUFFER_LENGTH];
 	sha1_context ctx;
 	uchar *bptr;
-#if PLAINTEXT_LENGTH > 20
+#if OUTLEN_GT_HASHLEN
 	int i;
 	int numHashes = (length + SHA_DIGEST_LENGTH - 1) / SHA_DIGEST_LENGTH;
 	const uchar pad[(PLAINTEXT_LENGTH + SHA_DIGEST_LENGTH - 1) / SHA_DIGEST_LENGTH] = { 0 };
@@ -379,11 +383,11 @@ inline void S2KItSaltedSHA1Generator(__global const uchar *password, int passwor
 	uchar lkey[20];
 	int outlen = 0;
 
-	_memcpy(keybuf, salt, 8);
-	_memcpy(keybuf + 8, password, password_length);
+	_memcpy(keybuf, salt, SALT_LENGTH);
+	_memcpy(keybuf + SALT_LENGTH, password, password_length);
 
 	// TODO: This is not very efficient with multiple hashes
-#if PLAINTEXT_LENGTH > 20
+#if OUTLEN_GT_HASHLEN
 	for (i = 0; i < numHashes; i++)
 #endif
 	{
@@ -394,12 +398,12 @@ inline void S2KItSaltedSHA1Generator(__global const uchar *password, int passwor
 
 		sha1_init(&ctx);
 
-#if PLAINTEXT_LENGTH > 20
+#if OUTLEN_GT_HASHLEN
 		if (i)
 			sha1_update(&ctx, pad, i);
 #endif
 		// Find multiplicator
-		tl = password_length + 8;
+		tl = password_length + SALT_LENGTH;
 		mul = 1;
 		while (mul < tl && ((64 * mul) % tl)) {
 			++mul;

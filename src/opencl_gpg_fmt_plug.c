@@ -40,34 +40,26 @@ john_register_one(&fmt_opencl_gpg);
 #include "common-opencl.h"
 #include "options.h"
 #include "sha2.h"
+#include "stdint.h"
 
 #define FORMAT_LABEL		"gpg-opencl"
 #define FORMAT_NAME		"OpenPGP / GnuPG Secret Key"
 #define ALGORITHM_NAME		"SHA1 OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
+#define PLAINTEXT_LENGTH	125
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		MEM_ALIGN_WORD
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		MEM_ALIGN_WORD
-
-
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned int
+#define SALT_LENGTH		8
 
 typedef struct {
 	uint32_t length;
 	uint8_t v[PLAINTEXT_LENGTH];
 } gpg_password;
-
-#define KEYBUFFER_LENGTH 8192
-#ifndef MD5_DIGEST_LENGTH
-#define MD5_DIGEST_LENGTH 16
-#endif
 
 typedef struct {
 	uint8_t v[16];
@@ -78,6 +70,9 @@ typedef struct {
 	uint32_t count;
 	uint8_t salt[8];
 } gpg_salt;
+
+// mul is at most (PLAINTEXT_LENGTH + SALT_LENGTH)
+#define KEYBUFFER_LENGTH ((PLAINTEXT_LENGTH + SALT_LENGTH) * 64)
 
 // Minimum number of bits when checking the first BN
 #define MIN_BN_BITS 64
@@ -132,7 +127,7 @@ static struct custom_salt {
 	char cipher_algorithm;
 	int usage;
 	int bits;
-	unsigned char salt[8];
+	unsigned char salt[SALT_LENGTH];
 	unsigned char iv[16];
 	int ivlen;
 	int count;
@@ -282,7 +277,7 @@ static uint32_t blockSize(char algorithm)
 		case CIPHER_BLOWFISH:
 			return BF_BLOCK;
 		case CIPHER_IDEA:
-			return 8; // XXX
+			return 8;
 		case CIPHER_AES128:
 		case CIPHER_AES192:
 		case CIPHER_AES256:
@@ -319,21 +314,13 @@ static uint32_t keySize(char algorithm)
 	return 0;
 }
 
-static void done(void)
-{
-	release_clobj();
-
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
-}
-
 static void init(struct fmt_main *self)
 {
 	char build_opts[64];
 
 	snprintf(build_opts, sizeof(build_opts),
-	         "-DPLAINTEXT_LENGTH=%d",
-	         PLAINTEXT_LENGTH);
+	         "-DPLAINTEXT_LENGTH=%d -DSALT_LENGTH=%d",
+	         PLAINTEXT_LENGTH, SALT_LENGTH);
 	opencl_init("$JOHN/kernels/gpg_kernel.cl",
 	                gpu_id, build_opts);
 
@@ -349,44 +336,56 @@ static void init(struct fmt_main *self)
 	autotune_run(self, 1, 0, 1000);
 }
 
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+}
+
 static int valid_cipher_algorithm(int cipher_algorithm)
 {
-	switch(cipher_algorithm)
-	{
-	  case CIPHER_CAST5: return 1;
-	  case CIPHER_BLOWFISH: return 1;
-	  case CIPHER_AES128: return 1;
-	  case CIPHER_AES192: return 1;
-	  case CIPHER_AES256: return 1;
-	  case CIPHER_IDEA: return 1;
-	  case CIPHER_3DES: return 1;
+	switch(cipher_algorithm) {
+		case CIPHER_CAST5: return 1;
+		case CIPHER_BLOWFISH: return 1;
+		case CIPHER_AES128: return 1;
+		case CIPHER_AES192: return 1;
+		case CIPHER_AES256: return 1;
+		case CIPHER_IDEA: return 1;
+		case CIPHER_3DES: return 1;
 	}
+
 	return 0;
 }
 
 static int valid_hash_algorithm(int hash_algorithm, int spec)
 {
-	if(spec == SPEC_SIMPLE || spec == SPEC_SALTED) {
-		return 0;
+	if(spec == SPEC_SIMPLE || spec == SPEC_SALTED)
+#if 1
+		goto print_warn;
+#else
+		switch(hash_algorithm) {
+			case HASH_SHA1: return 1;
+			case HASH_MD5: return 1;
+			case 0: return 1; // http://www.ietf.org/rfc/rfc1991.txt
+		}
+#endif
+
+	if(spec == SPEC_ITERATED_SALTED)
 		switch(hash_algorithm)
 		{
-		  case HASH_SHA1: return 1;
-		  case HASH_MD5: return 1;
-		  case 0: return 1; // http://www.ietf.org/rfc/rfc1991.txt
-		}
-	}
-	if(spec == SPEC_ITERATED_SALTED)
-	switch(hash_algorithm)
-	{
-	  case HASH_SHA1: return 1;
+			case HASH_SHA1: return 1;
 #if 0
-	  case HASH_MD5: return 1;
-	  case HASH_SHA256: return 1;
-	  case HASH_RIPEMD160: return 1;
-	  case HASH_SHA512: return 1;
+			case HASH_MD5: return 1;
+			case HASH_SHA256: return 1;
+			case HASH_RIPEMD160: return 1;
+			case HASH_SHA512: return 1;
 #endif
-	}
+		}
+print_warn:
 	fprintf(stderr, "[-] gpg-opencl currently only supports keys using iterated salted SHA1\n");
+
 	return 0;
 }
 
@@ -467,7 +466,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	res = atoi(p);
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p) != 8 * 2)
+	if (strlen(p) != SALT_LENGTH * 2)
 		goto err;
 	if (!ishex(p))
 		goto err;
@@ -487,7 +486,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		ex_flds = 1; /* handle p */
 	} else if (usage == 255 && spec == 3 && algorithm == 1) {
 		/* gpg --homedir . --s2k-cipher-algo 3des --simple-sk-checksum --gen-key */
+#if 1
 		ex_flds = 0; /* do NOT handle p at this time.  Cause the hash to be invalid. */
+#else
+		ex_flds = 1; /* handle p */
+#endif
 	} else {
 		/* NOT sure what to do here, probably nothing */
 	}
@@ -561,7 +564,7 @@ static void *get_salt(char *ciphertext)
 	if (cs.spec != 0 || cs.usage == 255) {
 		cs.count = atoi(p);
 		p = strtokm(NULL, "*");
-		for (i = 0; i < 8; i++)
+		for (i = 0; i < SALT_LENGTH; i++)
 			cs.salt[i] =
 			atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
@@ -631,7 +634,7 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
-	currentsalt.length = 8;
+	currentsalt.length = SALT_LENGTH;
 	memcpy((char*)currentsalt.salt, cur_salt->salt, currentsalt.length);
 	currentsalt.count = cur_salt->count;
 
@@ -812,7 +815,7 @@ static int check(unsigned char *keydata, int ks)
 		case CIPHER_IDEA: {
 					   IDEA_KEY_SCHEDULE iks;
 					   JtR_idea_set_encrypt_key(keydata, &iks);
-					   JtR_idea_cfb64_encrypt(cur_salt->data, out, 8, &iks, ivec, &tmp, IDEA_DECRYPT);
+					   JtR_idea_cfb64_encrypt(cur_salt->data, out, SALT_LENGTH, &iks, ivec, &tmp, IDEA_DECRYPT);
 				   }
 				   break;
 		case CIPHER_CAST5: {
@@ -847,7 +850,7 @@ static int check(unsigned char *keydata, int ks)
 					  DES_set_key((DES_cblock *)key1, &ks1);
 					  DES_set_key((DES_cblock *)key2, &ks2);
 					  DES_set_key((DES_cblock *)key3, &ks3);
-					  DES_ede3_cfb64_encrypt(cur_salt->data, out, 8, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
+					  DES_ede3_cfb64_encrypt(cur_salt->data, out, SALT_LENGTH, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
 				    }
 				    break;
 
@@ -950,10 +953,10 @@ static int check(unsigned char *keydata, int ks)
 			ElGamal_secret_key elg;
 			RSA_secret_key rsa;
 			if (strlen(str) != blen * 2) { /* verifier 2 */
-				free(str);
+				OPENSSL_free(str);
 				return 0;
 			}
-			free(str);
+			OPENSSL_free(str);
 
 			if (cur_salt->pk_algorithm == 17) { /* DSA check */
 				dsa.p = BN_bin2bn(cur_salt->p, cur_salt->pl, NULL);
