@@ -42,6 +42,7 @@ john_register_one(&fmt_phpassmd5);
 #include "common.h"
 #include "formats.h"
 #include "dynamic.h"
+#include "aligned.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"phpass"
@@ -83,7 +84,7 @@ static struct fmt_tests phpassmd5_tests[] = {
 
 /* (256+256+512+1024+8192)/5 = 2048 */
 
-static char Conv_Buf[80];
+JTR_ALIGN(BINARY_ALIGN) static char Conv_Buf[80];
 static struct fmt_main *pDynamic_17;
 static void phpassmd5_init(struct fmt_main *self);
 static void get_ptr();
