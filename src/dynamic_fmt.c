@@ -1368,7 +1368,7 @@ static int cmp_all(void *binary, int count)
 		for (i = 0; i < cnt; ++i)
 		{
 			for (j = 0; j < SIMD_COEF_32; ++j)
-				if(( *((ARCH_WORD_32 *)binary) == crypt_key[i].w[j]))
+				if( *((ARCH_WORD_32 *)binary) == crypt_key[i].w[j])
 					return 1;
 		}
 		return 0;
@@ -1403,7 +1403,7 @@ static int cmp_all_64_4x6(void *binary, int count)
 		for (i = 0; i < cnt; ++i)
 		{
 			for (j = 0; j < SIMD_COEF_32; ++j)
-				if(( *((ARCH_WORD_32 *)binary) == (crypt_key[i].w[j] & MASK_4x6)))
+				if( *((ARCH_WORD_32 *)binary) == (crypt_key[i].w[j] & MASK_4x6))
 					return 1;
 		}
 		return 0;

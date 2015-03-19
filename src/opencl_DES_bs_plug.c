@@ -122,7 +122,7 @@ void opencl_DES_bs_init(int block)
 	int index;
 
 	if (block == 0)
-		init_index(0);
+		init_index();
 
 	for (index = 0; index < DES_BS_DEPTH; index++)
 		opencl_DES_bs_all[block].pxkeys[index] =
