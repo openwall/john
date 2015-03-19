@@ -285,11 +285,14 @@ void get_markov_options(struct db_main *db,
  *
  *        For now, live with strtok(), may be later I need a replacement
  *        for strsep().
+ *
+ *  FIXED:  We now use strtokm which allows --markov=mode::0:10000000
  */
 	if (mkv_param)
 	{
 		int i;
-		lvl_token = strtok(mkv_param, ":");
+		if (*mkv_param == ':') ++mkv_param;
+		lvl_token = strtokm(mkv_param, ":");
 		/*
 		 * If the first token contains anything else than digits
 		 * (for the Markov level) or '-' (for a level interval),
@@ -301,15 +304,15 @@ void get_markov_options(struct db_main *db,
 			if((lvl_token[i] < '0' || lvl_token[i] > '9') && lvl_token[i] != '-')
 			{
 				mode = lvl_token;
-				lvl_token = strtok(NULL, ":");
+				lvl_token = strtokm(NULL, ":");
 			}
 
 		}
-		*start_token = strtok(NULL, ":");
-		*end_token = strtok(NULL, ":");
-		len_token = strtok(NULL, ":");
+		*start_token = strtokm(NULL, ":");
+		*end_token = strtokm(NULL, ":");
+		len_token = strtokm(NULL, ":");
 
-		dummy_token = strtok(NULL, ":");
+		dummy_token = strtokm(NULL, ":");
 		if(dummy_token)
 		{
 			if (john_main_process)
@@ -507,11 +510,12 @@ void get_markov_start_end(char *start_token, char *end_token,
 		if((end_token != NULL) && (sscanf(end_token, LLd, mkv_end)==1) )
 		{
 		}
-		else if(end_token != NULL)
+		/* NOTE, end_token can be an empty string. Treat "" and mkv_max as equal */
+		else if(end_token != NULL && *end_token)
 		{
 			if (john_main_process)
 				fprintf(stderr,
-				        "invalid end: %s\n", end_token);
+						"invalid end: %s\n", end_token);
 			error();
 		}
 	}
@@ -524,7 +528,8 @@ void get_markov_start_end(char *start_token, char *end_token,
 	 * sscanf(start_token, LLd, start)
 	 * because the values could be too large for integers
 	 */
-	else if(start_token != NULL)
+	/* NOTE, start_token can be an empty string. Treat "" and "0" equal */
+	else if(start_token != NULL && *start_token)
 	{
 		if (john_main_process)
 			fprintf(stderr,
@@ -532,7 +537,7 @@ void get_markov_start_end(char *start_token, char *end_token,
 		error();
 	}
 
-	if (start_token != NULL && start_token[strlen(start_token)-1] == '%') {
+	if (start_token != NULL && strlen(start_token) && start_token[strlen(start_token)-1] == '%') {
 		if (*mkv_start >= 100) {
 			log_event("! Start = %s is too large (max < 100%%)", end_token);
 			if (john_main_process)
@@ -547,7 +552,7 @@ void get_markov_start_end(char *start_token, char *end_token,
 				        "\n", start_token, *mkv_start);
 		}
 	}
-	if (end_token != NULL && end_token[strlen(end_token)-1] == '%') {
+	if (end_token != NULL && strlen(end_token) && end_token[strlen(end_token)-1] == '%') {
 		if (*mkv_end >= 100) {
 			if (*mkv_end > 100) {
 				if (john_main_process)

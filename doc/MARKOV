@@ -34,10 +34,12 @@ section. If MODE is not specified on the command line, see CONFIGURATION
 OPTIONS.
 
 * START is the index of the first password that is going to be tested, starting
-with 0.
+with 0.  NOTE, an 'empty' value is treated just like zero.  So these are equal:
+--markov:100:0:0:3-12 --markov:100:::3-12
 
 * END is the index of the last password that is going to be tested. When it is
-set to 0, it will represent the last possible password.
+set to 0, it will represent the last possible password. Note, this can also
+be an 'empty' value, see above.
 
 * LENGTH determines the length of passwords generated. If LENGTH is 0 or not
 specified on the command line, the LENGTH interval is read from config
