@@ -25,7 +25,9 @@ If the mode name is not specified, the default mode as specified in section
 It can be specified as MIN_LEVEL-MAX_LEVEL or as MAX_LEVEL.
 MAX_LEVEL determines the maximum strength of passwords that are going to be
 tried. When MAX_LEVEL increases, the quantity of passwords that are going
-to be tested increases exponentially.
+to be tested increases exponentially.  NOTE, the level 'can' be an empty
+value (i.e. just ::).  If so, then the level will be pull in from the
+[Markov::MODE] section (the MkvLvl = xxx item)
 
 MIN_LEVEL determines the minimum strength of passwords that are generated.
 If LEVEL is 0 or not specified on the command line, the LEVEL interval is

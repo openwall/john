@@ -287,6 +287,9 @@ void get_markov_options(struct db_main *db,
  *        for strsep().
  *
  *  FIXED:  We now use strtokm which allows --markov=mode::0:10000000
+ *          Can also do --markov::::9-12  (default markov but only 9-12 length)
+ *          level, start and stop are all 'optional' and handled properly
+ *          with the strtokm() function.
  */
 	if (mkv_param)
 	{
@@ -349,7 +352,9 @@ void get_markov_options(struct db_main *db,
 			        SECTION_MARKOV "%s]\n", mode);
 		error();
 	}
-
+	/* treat 'empty' level token same as NULL, i.e. pull in from config */
+	if (!strlen(lvl_token))
+		lvl_token = 0;
 	if(lvl_token != NULL)
 	{
 		if(sscanf(lvl_token, "%d-%d", &minlevel, &level) != 2)
