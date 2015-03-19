@@ -90,10 +90,10 @@ void HashLoop(__global MAYBE_VECTOR_ULONG *pwhash)
 		for (i = 1; i < 8; i++)
 			block[i] = (output[i - 1] << 32) | (output[i] >> 32);
 		block[8] = (output[7] << 32) | 0x80000000UL;
-		for (i = 9; i < 15; i++)
-			block[i] = 0;
+		//for (i = 9; i < 15; i++)
+		//	block[i] = 0;
 		block[15] = 68 << 3;
-		sha512_single(block, output);
+		sha512_single_zeros(block, output);
 	}
 	for (i = 0; i < 8; i++)
 		pwhash[gid * 9 + i] = output[i];
@@ -128,10 +128,10 @@ void Generate2013key(
 		for (i = 1; i < 8; i++)
 			block[i] = (output[i - 1] << 32) | (output[i] >> 32);
 		block[8] = (output[7] << 32) | 0x80000000UL;
-		for (i = 9; i < 15; i++)
-			block[i] = 0;
+		//for (i = 9; i < 15; i++)
+		//	block[i] = 0;
 		block[15] = 68 << 3;
-		sha512_single(block, output);
+		sha512_single_zeros(block, output);
 	}
 
 	/* Our sha512 destroys input so we store a needed portion in temp[] */

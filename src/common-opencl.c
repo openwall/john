@@ -1762,7 +1762,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 			        num, (long long)(kpc / (run_time / 1E9)),
 			        speed, ns2string(run_time));
 
-		if (best_speed && speed < 2 * best_speed &&
+		if (best_speed && speed < 1.8 * best_speed &&
 		    max_run_time && run_time > max_run_time) {
 			if (!optimal_gws)
 				optimal_gws = num;
