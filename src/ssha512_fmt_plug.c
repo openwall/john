@@ -51,7 +51,7 @@ john_register_one(&fmt_saltedsha2);
 #define PLAINTEXT_LENGTH                (111-MAX_SALT_LEN)
 
 #define BINARY_SIZE                     (512 / 8)
-#define BINARY_ALIGN                    4
+#define BINARY_ALIGN                    8
 #define SALT_SIZE                       (MAX_SALT_LEN + sizeof(unsigned int))
 #define SALT_ALIGN                      4
 
@@ -150,7 +150,7 @@ static void done(void)
 static void * binary(char *ciphertext) {
 	static char *realcipher;
 
-	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE + 1 + SALT_SIZE, MEM_ALIGN_WORD);
+	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE + 1 + SALT_SIZE, 8);
 
 	ciphertext += NSLDAP_MAGIC_LENGTH;
 	memset(realcipher, 0, BINARY_SIZE);

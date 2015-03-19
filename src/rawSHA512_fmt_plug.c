@@ -62,7 +62,7 @@ john_register_one(&fmt_raw0_SHA512);
 #define CIPHERTEXT_LENGTH		128
 
 #define BINARY_SIZE				64
-#define BINARY_ALIGN			MEM_ALIGN_WORD
+#define BINARY_ALIGN			8
 #define SALT_SIZE				0
 #define SALT_ALIGN				1
 
@@ -181,7 +181,7 @@ static void *binary(char *ciphertext)
 	int i;
 
 	if (!out)
-		out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+		out = mem_alloc_tiny(BINARY_SIZE, 8);
 
 	ciphertext += TAG_LENGTH;
 	for (i = 0; i < BINARY_SIZE; i++) {
