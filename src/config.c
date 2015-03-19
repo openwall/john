@@ -417,10 +417,13 @@ static int cfg_process_directive_include_section(char *line, int number)
 	strnzcpy(&Section[1], p2, 254);
 	if ((newsection = cfg_get_section(p, Section))) {
 		if (newsection->list) {
-			struct cfg_line *pLine = newsection->list->head;
-			while (pLine) {
-				cfg_add_line(pLine->data, number);
-				pLine = pLine->next;
+			// Must check cfg_database->list before cfg_add_line()
+			if (NULL != cfg_database->list) {
+				struct cfg_line *pLine = newsection->list->head;
+				while (pLine) {
+					cfg_add_line(pLine->data, number);
+					pLine = pLine->next;
+				}
 			}
 			return 0;
 		}
