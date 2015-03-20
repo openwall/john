@@ -227,7 +227,7 @@ static void init(struct fmt_main *self)
 	if (options.flags & FLG_MASK_CHK) {
 		fprintf(stdout, "Using Mask Mode with internal candidate generation%s", flag ? "" : "\n");
 		if (flag) {
-			self->params.max_keys_per_crypt /= 16;
+			self->params.max_keys_per_crypt /= 256;
 			fprintf(stdout, ", global worksize(GWS) set to %d\n",
 			        self->params.max_keys_per_crypt);
 		}
