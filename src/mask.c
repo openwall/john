@@ -1383,7 +1383,7 @@ static void skip_position(cpu_mask_context *cpu_mask_ctx, int *arr)
 
 	if (arr != NULL) {
 		int k = 0;
-		while (arr[k] >= 0 && arr[k] < cpu_mask_ctx->count) {
+		while (k < MASK_FMT_INT_PLHDR && arr[k] >= 0 && arr[k] < cpu_mask_ctx->count) {
 			int j, i, flag1 = 0, flag2 = 0;
 			cpu_mask_ctx->active_positions[arr[k]] = 0;
 			cpu_mask_ctx->ranges[arr[k]].next = MAX_NUM_MASK_PLHDR;

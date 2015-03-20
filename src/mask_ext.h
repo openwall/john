@@ -15,8 +15,8 @@
 #include "opencl_mask.h"
 
 typedef union {
-	char x[4];
-	int i;
+	unsigned char x[4];
+	unsigned int i;
 } mask_char4;
 
 typedef struct {
