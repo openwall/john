@@ -2426,9 +2426,10 @@ static char *source_64_hex(char *source, void *binary)
 static void * binary_b64m(char *ciphertext)
 {
 	int i;
-	static unsigned char b[64+3];
+	static unsigned char *b;
 	char *pos;
 
+	if (!b) b = mem_alloc_tiny(64+3, MEM_ALIGN_WORD);
 	pos = ciphertext;
 	if (!strncmp(pos, "$dynamic_", 9)) {
 		pos += 9;
@@ -2436,7 +2437,7 @@ static void * binary_b64m(char *ciphertext)
 			;
 	}
 	i = base64_valid_length(pos, e_b64_mime, 0);
-	base64_convert(pos, e_b64_mime, i, b, e_b64_raw, sizeof(b), 0);
+	base64_convert(pos, e_b64_mime, i, b, e_b64_raw, 64+3, 0);
 	//printf("\nciphertext=%s\n", ciphertext);
 	//dump_stuff_msg("binary", b, 16);
 	return b;
@@ -2445,9 +2446,10 @@ static void * binary_b64m(char *ciphertext)
 static void * binary_b64(char *ciphertext)
 {
 	int i;
-	static unsigned char b[64+3];
+	static unsigned char *b;
 	char *pos;
 
+	if (!b) b = mem_alloc_tiny(64+3, MEM_ALIGN_WORD);
 	pos = ciphertext;
 	if (!strncmp(pos, "$dynamic_", 9)) {
 		pos += 9;
@@ -2455,7 +2457,7 @@ static void * binary_b64(char *ciphertext)
 			;
 	}
 	i = base64_valid_length(pos, e_b64_crypt, 0);
-	base64_convert(pos, e_b64_cryptBS, i, b, e_b64_raw, sizeof(b), 0);
+	base64_convert(pos, e_b64_cryptBS, i, b, e_b64_raw, 64+3, 0);
 	//printf("\nciphertext=%s\n", ciphertext);
 	//dump_stuff_msg("binary", b, 16);
 	return b;
@@ -2464,9 +2466,10 @@ static void * binary_b64(char *ciphertext)
 static void * binary_b64b(char *ciphertext)
 {
 	int i;
-	static unsigned char b[64+3];
+	static unsigned char *b;
 	char *pos;
 
+	if (!b) b = mem_alloc_tiny(64+3, MEM_ALIGN_WORD);
 	pos = ciphertext;
 	if (!strncmp(pos, "$dynamic_", 9)) {
 		pos += 9;
@@ -2474,7 +2477,7 @@ static void * binary_b64b(char *ciphertext)
 			;
 	}
 	i = base64_valid_length(pos, e_b64_crypt, 0);
-	base64_convert(pos, e_b64_crypt, i, b, e_b64_raw, sizeof(b), 0);
+	base64_convert(pos, e_b64_crypt, i, b, e_b64_raw, 64+3, 0);
 	//printf("\nciphertext=%s\n", ciphertext);
 	//dump_stuff_msg("binary", b, 16);
 	return b;
@@ -2492,10 +2495,11 @@ static void * binary_b64b(char *ciphertext)
 	b[b3] = value;
 static void * binary_b64a(char *ciphertext)
 {
-	static unsigned char b[16];
+	static unsigned char *b;
 	char *pos;
 	MD5_word value;
 
+	if (!b) b = mem_alloc_tiny(16, MEM_ALIGN_WORD);
 	pos = ciphertext;
 	if (!strncmp(pos, "$dynamic_", 9)) {
 		pos += 9;
@@ -2520,10 +2524,11 @@ static void * binary_b64a(char *ciphertext)
  *********************************************************************************/
 static void * binary_b64_4x6(char *ciphertext)
 {
-	static ARCH_WORD_32 b[4];
+	static ARCH_WORD_32 *b;
 	int i;
 	char *pos;
 
+	if (!b) b = mem_alloc_tiny(16, MEM_ALIGN_WORD);
 	pos = ciphertext;
 	if (!strncmp(pos, "$dynamic_", 9)) {
 		pos += 9;
