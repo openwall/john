@@ -24,8 +24,6 @@
 #define F(x, y, z)	((z) ^ ((x) & ((y) ^ (z))))
 #endif
 #define G(x, y, z)	(((x) & ((y) | (z))) | ((y) & (z)))
-#define H(x, y, z)	(((x) ^ (y)) ^ (z))
-#define H2(x, y, z)	((x) ^ ((y) ^ (z)))
 
 /* The MD4 transformation for all three rounds. */
 #define STEP(f, a, b, c, d, x, s)	  \
@@ -33,6 +31,27 @@
 	(a) = rotate((a), (uint)(s))
 
 inline void md4_encrypt(__private uint *hash, __private uint *W, uint len) {
+
+// one hash, -mask:?l?l?l?l?l?l?l?d ran to completion with 8K/32K GWS
+
+#if 0 // HD7970 Cat 14.9 2362Mp/s, GTX980 6693Mp/s
+
+#define H(x, y, z)	((x) ^ (y) ^ (z))
+#define H2 H
+
+#elif 0 // Also 2362Mp/s, GTX980 6693Mp/s
+
+	uint tmp;
+#define H(x, y, z)	((tmp = ((x) ^ (y))) ^ (z))
+#define H2(x, y, z)	((x) ^ tmp)
+
+#else // Also 2362Mp/s, GTX980 6693Mp/s
+
+#define H(x, y, z)	(((x) ^ (y)) ^ (z))
+#define H2(x, y, z)	((x) ^ ((y) ^ (z)))
+
+#endif
+
 	PUTCHAR(W, len, 0x80);
 	W[14] = len << 3;
 
