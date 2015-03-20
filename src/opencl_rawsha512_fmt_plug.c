@@ -310,6 +310,12 @@ static int salt_hash(void * salt) {
 }
 
 /* ------- Key functions ------- */
+static void reset(struct db_main *db) {
+	offset = 0;
+	offset_idx = 0;
+	key_idx = 0;
+}
+
 static void clear_keys(void) {
 	offset = 0;
 	offset_idx = 0;
@@ -317,12 +323,9 @@ static void clear_keys(void) {
 }
 
 static void set_key(char * _key, int index) {
-	int len = 0;
 
-	const uint32_t * key = (uint32_t *) _key;
-
-	while (*(_key++))
-		len++;
+	const ARCH_WORD_32 * key = (ARCH_WORD_32 *) _key;
+	int len = strlen(_key);
 
 	saved_idx[index] = (key_idx << 6) | len;
 
@@ -331,7 +334,7 @@ static void set_key(char * _key, int index) {
 		len -= 4;
 	}
 
-	if (len)
+	if (len > 0)
 		plaintext[key_idx++] = *key;
 
 	//Batch transfers to GPU.
@@ -355,9 +358,11 @@ static void set_key(char * _key, int index) {
 }
 
 static char * get_key(int index) {
-	static char ret[PLAINTEXT_LENGTH + 1];
+	static char * ret;
 	int len = saved_idx[index] & 63;
 	char * key = (char *) &plaintext[saved_idx[index] >> 6];
+
+	if (!ret) ret = mem_alloc_tiny(PLAINTEXT_LENGTH + 1, MEM_ALIGN_WORD);
 
 	memcpy(ret, key, PLAINTEXT_LENGTH);
 	ret[len] = '\0';
@@ -424,7 +429,9 @@ static int valid(char * ciphertext, struct fmt_main * self) {
 
 static char *split(char *ciphertext, int index, struct fmt_main *pFmt) {
 
-	static char out[8 + CIPHERTEXT_LENGTH_RAW + 1];
+	static char * out;
+
+	if (!out) out = mem_alloc_tiny(8 + CIPHERTEXT_LENGTH_RAW + 1, MEM_ALIGN_WORD);
 
 	if (!strncmp(ciphertext, "$SHA512$", 8))
 		ciphertext += 8;
@@ -449,7 +456,9 @@ static int valid_x(char * ciphertext, struct fmt_main * self) {
 }
 
 static char *split_x(char *ciphertext, int index, struct fmt_main *pFmt) {
-	static char out[8 + CIPHERTEXT_LENGTH_X + 1];
+	static char * out;
+
+	if (!out) out = mem_alloc_tiny(8 + CIPHERTEXT_LENGTH_X + 1, MEM_ALIGN_WORD);
 
 	if (!strncmp(ciphertext, "$LION$", 6))
 		return ciphertext;
@@ -514,10 +523,6 @@ static int crypt_all(int *pcount, struct db_salt *_salt) {
 
 	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	/* Self-test cludge */
-	if (offset > key_idx || offset > gws)
-		offset = 0;
-
 	//Send data to device.
 	if (new_keys && key_idx > offset)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE,
@@ -562,9 +567,6 @@ static int cmp_all(void * binary, int count) {
 	//Send data to device.
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], p_binary_buffer, CL_FALSE, 0,
 			sizeof(uint32_t), &partial_binary, 0, NULL, NULL),
-			"failed in clEnqueueWriteBuffer p_binary_buffer");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], result_buffer, CL_FALSE, 0,
-			sizeof(int), &hash_found, 0, NULL, NULL),
 			"failed in clEnqueueWriteBuffer p_binary_buffer");
 
 	//Enqueue the kernel
@@ -686,7 +688,7 @@ struct fmt_main fmt_opencl_rawsha512 = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		split,
@@ -750,7 +752,7 @@ struct fmt_main fmt_opencl_xsha512 = {
 	}, {
 		init_x,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid_x,
 		split_x,
