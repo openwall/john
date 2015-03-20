@@ -42,9 +42,6 @@
 /* Define to 1 if you have the `BIO_new' function. */
 #undef HAVE_BIO_NEW
 
-/* Define to 1 if you have the `bzero' function. */
-#undef HAVE_BZERO
-
 /* Define to 1 if you have the <CL/cl.h> header file. */
 #undef HAVE_CL_CL_H
 
