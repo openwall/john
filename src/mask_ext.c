@@ -10,6 +10,7 @@
 
 #include "mask_ext.h"
 #include "memory.h"
+#include "memdbg.h"
 
 int *mask_skip_ranges = NULL;
 int mask_max_skip_loc = -1;
