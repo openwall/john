@@ -18,13 +18,14 @@
 #include "opencl_sha256.h"
 
 //Constants.
-#define RAW_PLAINTEXT_LENGTH    55
+#define RAW_PLAINTEXT_LENGTH    55	/* 55 characters + 0x80 */
 #define CISCO_PLAINTEXT_LENGTH  26      /* 25 characters + 0x80 */
+#define PLAINTEXT_LENGTH	RAW_PLAINTEXT_LENGTH
 
 #define BUFFER_SIZE             56      /* RAW_PLAINTEXT_LENGTH multiple of 4 */
 #define CIPHERTEXT_LENGTH       64
-#define BINARY_SIZE             4
-#define FULL_BINARY_SIZE        32
+#define BINARY_SIZE             32
+#define HASH_PARTS		BINARY_SIZE / 4
 #define BINARY_ALIGN            4
 #define SALT_SIZE               0
 #define SALT_ALIGN              1

@@ -62,8 +62,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 /* Convert Cisco hashes to hex ones, so .pot entries are compatible */
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
-	static char out[HEX_TAG_LEN + HEX_CIPHERTEXT_LENGTH + 1];
+	static char * out;
 	char *o, *p = split_fields[1];
+
+	if (!out) out = mem_alloc_tiny(HEX_TAG_LEN + HEX_CIPHERTEXT_LENGTH + 1, MEM_ALIGN_WORD);
 
 	if (!valid_cisco(p))
 		return p;
@@ -108,7 +110,9 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 /* ------- Split ------- */
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[HEX_TAG_LEN + HEX_CIPHERTEXT_LENGTH + 1];
+	static char * out;
+
+	if (!out) out = mem_alloc_tiny(HEX_TAG_LEN + HEX_CIPHERTEXT_LENGTH + 1, MEM_ALIGN_WORD);
 
 	if (!strncmp(ciphertext, HEX_TAG, HEX_TAG_LEN))
 		ciphertext += HEX_TAG_LEN;
