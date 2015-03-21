@@ -206,7 +206,7 @@ extern void *memmem(const void *haystack, size_t haystack_len,
 extern int sleep(int i);
 #endif
 
-#ifndef AC_BUILT
+#if !AC_BUILT
 #if _MSC_VER
 #define strcasecmp _stricmp
 #endif
