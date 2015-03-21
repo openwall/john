@@ -126,7 +126,7 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 #define GETCHAR_MC(buf, index) (((MAYBE_CONSTANT uchar*)(buf))[(index)])
 #define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
 
-#if no_byte_addressable(DEVICE_INFO) || !defined(SCALAR) /* 32-bit stores */
+#if no_byte_addressable(DEVICE_INFO) || !defined(SCALAR) || gpu_amd(DEVICE_INFO) /* 32-bit stores */
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 #define PUTCHAR_G	PUTCHAR
 #define PUTCHAR_L	PUTCHAR
