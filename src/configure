@@ -12054,7 +12054,7 @@ for ac_func in fseek64 fseeko fseeko64 _fseeki64 lseek64 lseek ftell64 ftello \
                setenv putenv strcasecmp strncasecmp \
                stricmp strcmpi _stricmp _strcmpi strnicmp strncmpi _strnicmp \
                _strncmpi strnlen strlwr strupr strrev \
-               bzero atoll _atoi64 snprintf sprintf_s
+               atoll _atoi64 snprintf sprintf_s
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"

@@ -262,7 +262,7 @@ int strcasecmp(char *dst, char *src) {
 		if ( ((l = (unsigned char)(*(src++))) >= 'A') && (l <= 'Z') )
 			l -= 'A' - 'a';
 	} while (f && (f==l));
-	return return(f - l);
+	return(f - l);
 }
 #endif
 
