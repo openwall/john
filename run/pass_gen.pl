@@ -61,30 +61,26 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		mssql oracle oracle_no_upcase_change oracle11 hdaa netntlm_ess
 		openssha l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki
 		crc_32 Dynamic dummy raw-sha224 raw-sha256 raw-sha384 raw-sha512
-		dragonfly3-32 dragonfly4-32 dragonfly3-64 dragonfly4-64 ssh
+		dragonfly3-32 dragonfly4-32 dragonfly3-64 dragonfly4-64
 		salted-sha1 raw_gost raw_gost_cp hmac-sha1 hmac-sha224 mozilla
 		hmac-sha256 hmac-sha384 hmac-sha512 sha1crypt sha256crypt sha512crypt
 		XSHA512 dynamic_27 dynamic_28 pwsafe django drupal7 epi zip
-		episerver_sha1 episerver_sha256 hmailserver ike keepass pkzip
-		keychain nukedclan pfx racf radmin raw-SHA sip SybaseASE vnc
+		episerver_sha1 episerver_sha256 hmailserver ike keepass
+		keychain nukedclan radmin raw-SHA sip SybaseASE
 		wbb3 wpapsk sunmd5 wowsrp django-scrypt aix-ssha1 aix-ssha256
-		aix-ssha512 pbkdf2-hmac-sha512 pbkdf2-hmac-sha256 scrypt pdf
+		aix-ssha512 pbkdf2-hmac-sha512 pbkdf2-hmac-sha256 scrypt
 		rakp osc formspring skey-md5 pbkdf2-hmac-sha1 odf odf-1 office_2007
 		skey-md4 skey-sha1 skey-rmd160 cloudkeychain agilekeychain
-		rar rar5 ecryptfs office_2010 office_2013 tc_ripemd160 tc_sha512
-		tc_whirlpool Haval-256 SAP-H rsvp pbkdf2-hmac-sha1-p5k2
+		rar ecryptfs office_2010 office_2013 tc_ripemd160 tc_sha512
+		tc_whirlpool SAP-H rsvp pbkdf2-hmac-sha1-p5k2
 		pbkdf2-hmac-sha1-pkcs5s2 md5crypt-smd5 ripemd-128 ripemd-160
 		raw-tiger raw-whirlpool hsrp known-hosts chap bb-es10 citrix-ns10
-		clipperz-srp dahua fortigate lp lastpass rawmd2 mdc2 mongodb mysqlna
+		clipperz-srp dahua fortigate lp lastpass rawmd2 mongodb mysqlna
 		o5logon postgres pst raw-blake2 raw-keccak raw-keccak256 siemens-s7
-		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip bitcoin sevenz afs
-		blockchain cq dmg dominosec efs eigrp encfs fde gpg haval-128 keyring
-		oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128
-		snefru-256 ssh-ng sxc sybase-prop tripcode vtp whirlpool0 whirlpool1
-		keystore krb4 krb5 krb5pa-sha1 kwallet luks ));
+		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip bitcoin blockchain
+	      ));
 
-
-# todo: sapb sapfg ike keepass cloudkeychain agilekeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp
+# todo: sapb sapfg ike keepass cloudkeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring keystore krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sxc sybase-prop tripcode vtp whirlpool0 whirlpool1
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
@@ -1540,7 +1536,7 @@ sub chap {
 	$salt = get_salt(16);
 	my $h = md5("\0" . $_[1] . $salt);
 	$salt = unpack("H*",$salt);
-	$h = unpack("H*",$h); 
+	$h = unpack("H*",$h);
 	return "\$chap\$0*$salt*$h";
 }
 sub fortigate {
