@@ -377,8 +377,8 @@ static char * get_key(int index) {
 
 	//TODO: FIXME: Why does it happen?
 	//../run/john ~/testhashes -form=raw-sha256-opencl --mask=clau?a?l?l?d?d?d -dev=0 --skip
-	if (hash_ids[0] == 0 && index > global_work_size)
-		return "";
+	//if (hash_ids[0] == 0 && index > global_work_size)
+	//	return "";
 
 	//Mask Mode plaintext recovery
 	if (hash_ids == NULL || hash_ids[0] == 0 ||
@@ -423,6 +423,9 @@ static void init(struct fmt_main * self) {
 	opencl_prepare_dev(gpu_id);
 	opencl_build_kernel(task, gpu_id, NULL, 1);
 
+	/* Read LWS/GWS prefs from config or environment */
+	opencl_get_user_preferences(FORMAT_LABEL);
+
 	// create kernel(s) to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
@@ -449,15 +452,21 @@ static void init(struct fmt_main * self) {
 
 	reset(NULL);
 
-	if (flag) {
-		self->params.max_keys_per_crypt /= 256;
+	if (options.flags & FLG_MASK_CHK) {
+		fprintf(stdout,
+			"Using Mask Mode with internal candidate generation%s",
+			flag ? "" : "\n");
 
-		if (self->params.max_keys_per_crypt < 1)
-			self->params.max_keys_per_crypt = 1;
+		if (flag) {
+			self->params.max_keys_per_crypt /= 256;
 
-		fprintf(stdout, "Using Mask Mode with internal candidate generation, "
-			"global worksize(GWS) set to %d\n", self->params.max_keys_per_crypt);
-	}
+			if (self->params.max_keys_per_crypt < 1)
+				self->params.max_keys_per_crypt = 1;
+
+				fprintf(stdout, ", global worksize(GWS) set to %d\n",
+					self->params.max_keys_per_crypt);
+		}
+ 	}
 }
 
 static void done(void) {
