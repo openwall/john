@@ -106,7 +106,7 @@ void kernel_crypt(
     if (!gid) {
 	hash_id[0] = 0;
 
-	for (int i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
+	for (uint i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
 	    bitmap[i] = 0;
     }
     barrier(CLK_GLOBAL_MEM_FENCE);
@@ -131,7 +131,7 @@ void kernel_crypt(
     APPEND_SINGLE(w, 0x80U, total);
 
     //Handle the candidates (candidates_number) to be produced.
-    for (int i = 0; i < candidates_number; i++) {
+    for (uint i = 0; i < candidates_number; i++) {
 
 	//Mask Mode: keys generation/finalization.
 	MASK_KEYS_GENERATION
