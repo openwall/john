@@ -84,8 +84,16 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= (n*OMP_SCALE);
 #endif
 	//printf("Using %u x %u = %u keys per crypt\n", MAX_KEYS_PER_CRYPT, n, self->params.max_keys_per_crypt);
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crcs = mem_calloc_tiny(sizeof(*crcs) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	crcs      = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crcs));
+}
+
+static void done(void)
+{
+	MEM_FREE(crcs);
+	MEM_FREE(saved_key);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -239,7 +247,7 @@ struct fmt_main fmt_crc32 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

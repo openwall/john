@@ -299,15 +299,19 @@ static void lotus85_init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	lotus85_saved_passwords = mem_calloc_tiny(
-		(PLAINTEXT_LENGTH + 1) * self->params.max_keys_per_crypt,
-		MEM_ALIGN_CACHE);
-	lotus85_last_binary_hash1 = mem_calloc_tiny(
-		BINARY_LENGTH * self->params.max_keys_per_crypt,
-		MEM_ALIGN_CACHE);
-	lotus85_last_binary_hash2 = mem_calloc_tiny(
-		BINARY_LENGTH * self->params.max_keys_per_crypt,
-		MEM_ALIGN_CACHE);
+	lotus85_saved_passwords = mem_calloc(self->params.max_keys_per_crypt,
+	                                     PLAINTEXT_LENGTH + 1);
+	lotus85_last_binary_hash1 = mem_calloc(self->params.max_keys_per_crypt,
+	                                       BINARY_LENGTH);
+	lotus85_last_binary_hash2 = mem_calloc(self->params.max_keys_per_crypt,
+	                                       BINARY_LENGTH);
+}
+
+static void done(void)
+{
+	MEM_FREE(lotus85_last_binary_hash2);
+	MEM_FREE(lotus85_last_binary_hash1);
+	MEM_FREE(lotus85_saved_passwords);
 }
 
 /* Check if given ciphertext (hash) format is valid */
@@ -455,7 +459,7 @@ struct fmt_main fmt_lotus_85 =
 		lotus85_tests
 	}, {
 		lotus85_init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		lotus85_valid,

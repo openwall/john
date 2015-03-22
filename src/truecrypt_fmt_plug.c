@@ -139,10 +139,16 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	key_buffer = mem_calloc_tiny(sizeof(*key_buffer) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	first_block_dec = mem_calloc_tiny(sizeof(*first_block_dec) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	key_buffer = mem_calloc(self->params.max_keys_per_crypt,
+	                        sizeof(*key_buffer));
+	first_block_dec = mem_calloc(self->params.max_keys_per_crypt,
+	                             sizeof(*first_block_dec));
+}
+
+static void done(void)
+{
+	MEM_FREE(first_block_dec);
+	MEM_FREE(key_buffer);
 }
 
 static int valid(char* ciphertext, int pos)
@@ -514,7 +520,7 @@ struct fmt_main fmt_truecrypt = {
 		tests_all
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid_truecrypt,

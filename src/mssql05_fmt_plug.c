@@ -155,7 +155,7 @@ static void init(struct fmt_main *self)
 #ifdef SIMD_COEF_32
 	memset(saved_key, 0, sizeof(saved_key));
 #else
-	saved_key = mem_calloc_tiny(PLAINTEXT_LENGTH*2 + 1 + SALT_SIZE, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(1, PLAINTEXT_LENGTH * 2 + 1 + SALT_SIZE);
 #endif
 	if (pers_opts.target_enc == UTF_8) {
 		self->methods.set_key = set_key_utf8;
@@ -165,6 +165,13 @@ static void init(struct fmt_main *self)
 	         pers_opts.target_enc != ASCII) {
 		self->methods.set_key = set_key_CP;
 	}
+}
+
+static void done(void)
+{
+#ifndef SIMD_COEF_32
+	MEM_FREE(saved_key);
+#endif
 }
 
 // ISO-8859-1 to UCS-2, directly into vector key buffer
@@ -543,7 +550,7 @@ struct fmt_main fmt_mssql05 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		prepare,
 		valid,

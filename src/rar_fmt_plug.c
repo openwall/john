@@ -424,13 +424,17 @@ static void init(struct fmt_main *self)
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 
-	unpack_data = mem_calloc_tiny(sizeof(unpack_data_t) * omp_t, MEM_ALIGN_WORD);
-	cracked = mem_calloc_tiny(sizeof(*cracked) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_key = mem_calloc_tiny(UNICODE_LENGTH * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_salt = mem_calloc_tiny(8, MEM_ALIGN_NONE);
-	aes_key = mem_calloc_tiny(16 * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	aes_iv = mem_calloc_tiny(16 * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	unpack_data = mem_calloc(omp_t, sizeof(unpack_data_t));
+	cracked = mem_calloc(self->params.max_keys_per_crypt,
+	                     sizeof(*cracked));
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       UNICODE_LENGTH);
+	saved_len = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_len));
+	if (!saved_salt)
+		saved_salt = mem_calloc_tiny(8, MEM_ALIGN_NONE);
+	aes_key = mem_calloc(self->params.max_keys_per_crypt, 16);
+	aes_iv = mem_calloc(self->params.max_keys_per_crypt, 16);
 
 #ifdef DEBUG
 	self->params.benchmark_comment = " (1-16 characters)";
@@ -449,6 +453,16 @@ static void init(struct fmt_main *self)
 		CRC32_t crc;
 		CRC32_Init(&crc);
 	}
+}
+
+static void done(void)
+{
+	MEM_FREE(aes_iv);
+	MEM_FREE(aes_key);
+	MEM_FREE(saved_len);
+	MEM_FREE(saved_key);
+	MEM_FREE(cracked);
+	MEM_FREE(unpack_data);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -850,7 +864,7 @@ struct fmt_main fmt_rar = {
 		cpu_tests
 	},{
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

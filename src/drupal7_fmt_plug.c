@@ -94,9 +94,19 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	EncKey = mem_calloc_tiny(sizeof(*EncKey) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	EncKeyLen = mem_calloc_tiny(sizeof(*EncKeyLen) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, sizeof(ARCH_WORD_64));
+	EncKey    = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*EncKey));
+	EncKeyLen = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*EncKeyLen));
+	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_key));
+}
+
+static void done(void)
+{
+	MEM_FREE(crypt_key);
+	MEM_FREE(EncKeyLen);
+	MEM_FREE(EncKey);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -323,7 +333,7 @@ struct fmt_main fmt_drupal7 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

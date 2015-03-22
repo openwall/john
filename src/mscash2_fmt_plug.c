@@ -158,13 +158,20 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 
-	key = mem_calloc_tiny(sizeof(*key)*(PLAINTEXT_LENGTH + 1)*self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	md4hash = mem_calloc_tiny(sizeof(*md4hash)*HASH_LEN*self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out)*4*self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	key = mem_calloc(self->params.max_keys_per_crypt,
+	                 (PLAINTEXT_LENGTH + 1));
+	md4hash = mem_calloc(self->params.max_keys_per_crypt,
+	                     HASH_LEN);
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+	                       BINARY_SIZE);
 #if defined (SIMD_COEF_32)
-	sse_hash1 = mem_calloc_tiny(sizeof(*sse_hash1)*SHA_BUF_SIZ*4*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	sse_crypt1 = mem_calloc_tiny(sizeof(*sse_crypt1)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	sse_crypt2 = mem_calloc_tiny(sizeof(*sse_crypt2)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	sse_hash1 = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             sizeof(*sse_hash1)*SHA_BUF_SIZ*4,
+	                             MEM_ALIGN_SIMD);
+	sse_crypt1 = mem_calloc_align(self->params.max_keys_per_crypt,
+	                              sizeof(*sse_crypt1) * 20, MEM_ALIGN_SIMD);
+	sse_crypt2 = mem_calloc_align(self->params.max_keys_per_crypt,
+	                              sizeof(*sse_crypt2) * 20, MEM_ALIGN_SIMD);
 	{
 		int index;
 		for (index = 0; index < self->params.max_keys_per_crypt; ++index) {
@@ -194,6 +201,18 @@ static void init(struct fmt_main *self)
 		tests[2].plaintext = "\xfc\xfc";
 		tests[2].ciphertext = "$DCC2$10240#admin#0839e4a07c00f18a8c65cf5b985b9e73";
 	}
+}
+
+static void done(void)
+{
+#ifdef SIMD_COEF_32
+	MEM_FREE(sse_crypt2);
+	MEM_FREE(sse_crypt1);
+	MEM_FREE(sse_hash1);
+#endif
+	MEM_FREE(crypt_out);
+	MEM_FREE(md4hash);
+	MEM_FREE(key);
 }
 
 char * mscash2_split(char *ciphertext, int index, struct fmt_main *self)
@@ -749,7 +768,7 @@ struct fmt_main fmt_mscash2 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		mscash2_prepare,
 		valid,

@@ -136,10 +136,14 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	output = mem_calloc_tiny(sizeof(*output) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_ctx = mem_calloc_tiny(sizeof(*saved_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
+	                         sizeof(*saved_plain));
+	saved_len   = mem_calloc(self->params.max_keys_per_crypt,
+	                         sizeof(*saved_len));
+	output      = mem_calloc(self->params.max_keys_per_crypt,
+	                         sizeof(*output));
+	saved_ctx   = mem_calloc(self->params.max_keys_per_crypt,
+	                         sizeof(*saved_ctx));
 
 	if (pers_opts.target_enc == UTF_8) {
 		tests[1].plaintext = "\xC3\xBC"; // German u-umlaut in UTF-8
@@ -156,6 +160,14 @@ static void init(struct fmt_main *self)
 			tests[2].ciphertext = "$mskrb5$$$057cd5cb706b3de18e059912b1f057e3$fe2e561bd4e42767e972835ea99f08582ba526e62a6a2b6f61364e30aca7c6631929d427";
 		}
 	}
+}
+
+static void done(void)
+{
+	MEM_FREE(saved_ctx);
+	MEM_FREE(output);
+	MEM_FREE(saved_len);
+	MEM_FREE(saved_plain);
 }
 
 static void *salt(char *ciphertext)
@@ -434,7 +446,7 @@ struct fmt_main fmt_mskrb5 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

@@ -245,9 +245,9 @@ static void init(struct fmt_main *self)
 	 * long 25 block crypts.  All MUST be aligned to 16 bytes
 	 */
 #if !defined (_DEBUG)
-	input_buf     = mem_calloc_tiny(BLK_CNT*MD5_CBLOCK, MEM_ALIGN_SIMD);
-	input_buf_big = mem_calloc_tiny(sizeof(*input_buf_big) * 25, MEM_ALIGN_SIMD);
-	out_buf       = mem_calloc_tiny(BLK_CNT*MD5_DIGEST_LENGTH, MEM_ALIGN_SIMD);
+	input_buf     = mem_calloc_align(BLK_CNT, MD5_CBLOCK, MEM_ALIGN_SIMD);
+	input_buf_big = mem_calloc_align(25, sizeof(*input_buf_big), MEM_ALIGN_SIMD);
+	out_buf       = mem_calloc_align(BLK_CNT, MD5_DIGEST_LENGTH, MEM_ALIGN_SIMD);
 #endif
 
 	/* not super optimal, but only done one time, at program startup, so speed is not important */
@@ -257,12 +257,24 @@ static void init(struct fmt_main *self)
 			input_buf_big[(i+16)/64][PARAGETPOS((16+i)%64,j)] = constant_phrase[i];
 	}
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_salt = mem_calloc_tiny(SALT_SIZE+1, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
+	if (!saved_salt)
+		saved_salt = mem_calloc_tiny(SALT_SIZE + 1, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt, sizeof(*crypt_out));
 
 	for (i = 0; i < 0x100; i++)
 		mod5[i] = i % 5;
+}
+
+static void done(void)
+{
+	MEM_FREE(crypt_out);
+	MEM_FREE(saved_key);
+#if defined(SIMD_COEF_32) && !defined(_DEBUG)
+	MEM_FREE(out_buf);
+	MEM_FREE(input_buf_big);
+	MEM_FREE(input_buf);
+#endif
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -911,7 +923,7 @@ struct fmt_main fmt_sunmd5 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

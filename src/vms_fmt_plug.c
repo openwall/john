@@ -109,14 +109,21 @@ static void fmt_vms_init ( struct fmt_main *self )
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	/* Init bin 2 hex table for faster conversions later */
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, sizeof(uaf_qword));
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_out));
 
 	if (!initialized) {
 		uaf_init();
 		initialized = 1;
 	}
+}
+
+static void done(void)
+{
+	MEM_FREE(crypt_out);
+	MEM_FREE(saved_key);
 }
 
 /*
@@ -249,7 +256,7 @@ struct fmt_main fmt_VMS = {
 		tests
 	}, {
 		fmt_vms_init,			/* changed for jumbo */
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

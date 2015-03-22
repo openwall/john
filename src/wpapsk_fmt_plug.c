@@ -79,18 +79,23 @@ static void init(struct fmt_main *self)
 
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
 
-	inbuffer = mem_alloc_tiny(sizeof(*inbuffer) *
-	    self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	outbuffer = mem_alloc_tiny(sizeof(*outbuffer) *
-	    self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	mic = mem_alloc_tiny(sizeof(*mic) *
-	    self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	inbuffer = mem_alloc(sizeof(*inbuffer) *
+	                     self->params.max_keys_per_crypt);
+	outbuffer = mem_alloc(sizeof(*outbuffer) *
+	                      self->params.max_keys_per_crypt);
+	mic = mem_alloc(sizeof(*mic) *
+	                self->params.max_keys_per_crypt);
 
 #if defined (SIMD_COEF_32)
-	sse_hash1 = mem_calloc_tiny(sizeof(*sse_hash1)*SHA_BUF_SIZ*4*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	sse_crypt1 = mem_calloc_tiny(sizeof(*sse_crypt1)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	sse_crypt2 = mem_calloc_tiny(sizeof(*sse_crypt2)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	sse_crypt = mem_calloc_tiny(sizeof(*sse_crypt)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	sse_hash1 = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             SHA_BUF_SIZ * 4 * sizeof(*sse_hash1),
+	                             MEM_ALIGN_SIMD);
+	sse_crypt1 = mem_calloc_align(self->params.max_keys_per_crypt,
+	                              20 * sizeof(*sse_crypt1), MEM_ALIGN_SIMD);
+	sse_crypt2 = mem_calloc_align(self->params.max_keys_per_crypt,
+	                              20 * sizeof(*sse_crypt2), MEM_ALIGN_SIMD);
+	sse_crypt = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             20 * sizeof(*sse_crypt), MEM_ALIGN_SIMD);
 	{
 		int index;
 		for (index = 0; index < self->params.max_keys_per_crypt; ++index) {
@@ -114,6 +119,19 @@ static void init(struct fmt_main *self)
 		for (i = 0; i < self->params.max_keys_per_crypt; i++)
 			inbuffer[i].length = 0;
 	}
+}
+
+static void done(void)
+{
+#ifdef SIMD_COEF_32
+	MEM_FREE(sse_crypt);
+	MEM_FREE(sse_crypt2);
+	MEM_FREE(sse_crypt1);
+	MEM_FREE(sse_hash1);
+#endif
+	MEM_FREE(mic);
+	MEM_FREE(outbuffer);
+	MEM_FREE(inbuffer);
 }
 
 #ifndef SIMD_COEF_32
@@ -389,7 +407,7 @@ struct fmt_main fmt_wpapsk = {
 	},
 	{
 		    init,
-		    fmt_default_done,
+		    done,
 		    fmt_default_reset,
 		    fmt_default_prepare,
 		    valid,
