@@ -139,7 +139,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != saltlen * 2)
 		goto err;
-	if ((p = strtokm(NULL, "*$")) == NULL)	/* keysize */
+	if ((p = strtokm(NULL, "$")) == NULL)	/* keysize */
 		goto err;
 	keysize = atoi(p);
 	if(keysize > 64)
