@@ -248,7 +248,7 @@ void *mem_alloc_align_func(size_t size, size_t align
 	return ptr;
 }
 
-void *mem_calloc_align_func(size_t size, size_t count, size_t align
+void *mem_calloc_align_func(size_t count, size_t size, size_t align
 #if defined (MEMDBG_ON)
 	, char *file, int line
 #endif
