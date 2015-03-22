@@ -37,10 +37,10 @@ Options:
 
 options.regen_lost_salts   (now only 0 or 1)
 
-?d – 0123456789
-?l – abcdefghijklmnopqrstuvwxyz
-?u – ABCDEFGHIJKLMNOPQRSTUVWXYZ
-?s – !@#$%^&*()`~-_=+\|[]{};:'",.<>/?
+?d = 0123456789
+?l = abcdefghijklmnopqrstuvwxyz
+?u = ABCDEFGHIJKLMNOPQRSTUVWXYZ
+?s = !@#$%^&*()`~-_=+\|[]{};:'",.<>/?
 ?h = 0123456789abcdef
 ?y = all
 ?a = a-zA-Z
