@@ -50,8 +50,8 @@ static cl_mem pinned_plaintext, pinned_saved_idx, pinned_int_key_loc;
 static struct fmt_main * this;
 
 //Device (GPU) buffers
-//int_keys: mask to be applied
-//loaded_hashes: buffer of password hashes transfered
+//int_keys: mask to apply
+//loaded_hashes: buffer of binary hashes transfered/loaded to GPU
 //hash_ids: information about how recover the cracked password
 //bitmap: a bitmap memory space.
 //int_key_loc: the position of the mask to apply
@@ -60,8 +60,8 @@ static cl_mem buffer_int_keys, buffer_loaded_hashes, buffer_hash_ids,
 
 //Host buffers
 //saved_int_key_loc: the position of the mask to apply
-//num_loaded_hashes: number of password hashes transfered/loaded to GPU
-//loaded_hashes: buffer of password hashes transfered/loaded to GPU
+//num_loaded_hashes: number of binary hashes transfered/loaded to GPU
+//loaded_hashes: buffer of binary hashes transfered/loaded to GPU
 //hash_ids: information about how recover the cracked password
 static uint32_t * saved_int_key_loc, num_loaded_hashes,
 	* loaded_hashes = NULL, * hash_ids = NULL;
@@ -527,14 +527,9 @@ static void load_hash(const struct db_salt *salt) {
 			binary = (uint32_t *) get_binary(ciphertext);
 		}
 
-		//TODO: ### remove me.
-		if (!binary) {
-			fprintf(stderr, "Load_hash error! i: %d \n", i);
-		}
-
-		// Potential segfault if removed.
+		// Skip cracked hashes (segfault if removed).
 		if (binary) {
-			//It is not better to handle only part of binary on GPU
+			//It is not better to handle (only) part of binary on GPU
 			loaded_hashes[HASH_PARTS * i] = binary[0];
 			loaded_hashes[HASH_PARTS * i + 1] = binary[1];
 			loaded_hashes[HASH_PARTS * i + 2] = binary[2];
