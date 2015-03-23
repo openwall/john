@@ -32,6 +32,7 @@ john_register_one(&fmt_opencl_xsha512);
 
 #include "sha.h"
 #include "sha2.h"
+#include "johnswap.h"
 #include "common-opencl.h"
 #include "config.h"
 #include "options.h"
@@ -39,7 +40,7 @@ john_register_one(&fmt_opencl_xsha512);
 
 #define FORMAT_LABEL			"Raw-SHA512-opencl"
 #define FORMAT_NAME			""
-#define RAW_FORMAT_TAG			"$SHA512$"
+
 #define X_FORMAT_LABEL			"XSHA512-opencl"
 #define X_FORMAT_NAME			"Mac OS X 10.7 salted"
 
@@ -68,20 +69,26 @@ static size_t offset = 0, offset_idx = 0;
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
 
+#define _RAWSHA512_H
+#define _XSHA512_H
+#include "rawSHA512_common.h"
+#undef _RAWSHA512_H
+#undef _XSHA512_H
+
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
 #include "opencl-autotune.h"
 #include "memdbg.h"
 
 static struct fmt_tests raw_tests[] = {
 	{"f342aae82952db35b8e02c30115e3deed3d80fdfdadacab336f0ba51ac54e297291fa1d6b201d69a2bd77e2535280f17a54fa1e527abc6e2eddba79ad3be11c0", "epixoip"},
-	{RAW_FORMAT_TAG "f342aae82952db35b8e02c30115e3deed3d80fdfdadacab336f0ba51ac54e297291fa1d6b201d69a2bd77e2535280f17a54fa1e527abc6e2eddba79ad3be11c0", "epixoip"},
+	{FORMAT_TAG "f342aae82952db35b8e02c30115e3deed3d80fdfdadacab336f0ba51ac54e297291fa1d6b201d69a2bd77e2535280f17a54fa1e527abc6e2eddba79ad3be11c0", "epixoip"},
 	{"b109f3bbbc244eb82441917ed06d618b9008dd09b3befd1b5e07394c706a8bb980b1d7785e5976ec049b46df5f1326af5a2ea6d103fd07c95385ffab0cacbc86", "password"},
 	{"2c80f4c2b3db6b677d328775be4d38c8d8cd9a4464c3b6273644fb148f855e3db51bc33b54f3f6fa1f5f52060509f0e4d350bb0c7f51947728303999c6eff446", "john-user"},
 	{"71ebcb1eccd7ea22bd8cebaec735a43f1f7164d003dacdeb06e0de4a6d9f64d123b00a45227db815081b1008d1a1bbad4c39bde770a2c23308ff1b09418dd7ed", "ALLCAPS"},
 	{"82244918c2e45fbaa00c7c7d52eb61f309a37e2f33ea1fba78e61b4140efa95731eec849de02ee16aa31c82848b51fb7b7fbae62f50df6e150a8a85e70fa740c", "TestTESTt3st"},
 	{"fa585d89c851dd338a70dcf535aa2a92fee7836dd6aff1226583e88e0996293f16bc009c652826e0fc5c706695a03cddce372f139eff4d13959da6f1f5d3eabe", "12345678"},
-	{RAW_FORMAT_TAG "fa585d89c851dd338a70dcf535aa2a92fee7836dd6aff1226583e88e0996293f16bc009c652826e0fc5c706695a03cddce372f139eff4d13959da6f1f5d3eabe", "12345678"},
-	{RAW_FORMAT_TAG "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e", ""},
+	{FORMAT_TAG "fa585d89c851dd338a70dcf535aa2a92fee7836dd6aff1226583e88e0996293f16bc009c652826e0fc5c706695a03cddce372f139eff4d13959da6f1f5d3eabe", "12345678"},
+	{FORMAT_TAG "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e", ""},
 	{"c96f1c1260074832bd3068ddd29e733090285dfc65939555dbbcafb27834957d15d9c509481cc7df0e2a7e21429783ba573036b78f5284f9928b5fef02a791ef", "mot\xf6rhead"},
 	{"aa3b7bdd98ec44af1f395bbd5f7f27a5cd9569d794d032747323bf4b1521fbe7725875a68b440abdf0559de5015baf873bb9c01cae63ecea93ad547a7397416e", "12345678901234567890"},
 	{"db9981645857e59805132f7699e78bbcf39f69380a41aac8e6fa158a0593f2017ffe48764687aa855dae3023fcceefd51a1551d57730423df18503e80ba381ba", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
@@ -413,76 +420,20 @@ static void done(void) {
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
-/* ------- Check if the ciphertext if a valid SHA-512 ------- */
-static int valid(char * ciphertext, struct fmt_main * self) {
-	char *p, *q;
-
-	p = ciphertext;
-	if (!strncmp(p, "$SHA512$", 8))
-		p += 8;
-
-	q = p;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		q++;
-	return !*q && q - p == CIPHERTEXT_LENGTH_RAW;
-}
-
-static char *split(char *ciphertext, int index, struct fmt_main *pFmt) {
-
-	static char * out;
-
-	if (!out) out = mem_alloc_tiny(8 + CIPHERTEXT_LENGTH_RAW + 1, MEM_ALIGN_WORD);
-
-	if (!strncmp(ciphertext, "$SHA512$", 8))
-		ciphertext += 8;
-
-	memcpy(out, "$SHA512$", 8);
-	memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH_RAW + 1);
-	strlwr(out + 8);
-	return out;
-}
-
-static int valid_x(char * ciphertext, struct fmt_main * self) {
-	char *p, *q;
-
-	p = ciphertext;
-	if (!strncmp(p, "$LION$", 6))
-		p += 6;
-
-	q = p;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		q++;
-	return !*q && q - p == CIPHERTEXT_LENGTH_X;
-}
-
-static char *split_x(char *ciphertext, int index, struct fmt_main *pFmt) {
-	static char * out;
-
-	if (!out) out = mem_alloc_tiny(8 + CIPHERTEXT_LENGTH_X + 1, MEM_ALIGN_WORD);
-
-	if (!strncmp(ciphertext, "$LION$", 6))
-		return ciphertext;
-
-	memcpy(out, "$LION$", 6);
-	memcpy(out + 6, ciphertext, CIPHERTEXT_LENGTH_X + 1);
-	strlwr(out + 6);
-	return out;
-}
-
 /* ------- To binary functions ------- */
-static void * get_binary(char *ciphertext) {
+static void * get_short_binary(char *ciphertext) {
 	static unsigned char *out;
 	uint64_t * b;
 	char *p;
 	int i;
 
-	if (!out) out = mem_alloc_tiny(FULL_BINARY_SIZE, MEM_ALIGN_WORD);
+	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
 	if (salted_format)
 		ciphertext += 6;
 
 	p = ciphertext + 8;
-	for (i = 0; i < FULL_BINARY_SIZE; i++) {
+	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
 				(atoi16[ARCH_INDEX(*p)] << 4) |
 				 atoi16[ARCH_INDEX(p[1])];
@@ -495,22 +446,14 @@ static void * get_binary(char *ciphertext) {
 }
 
 static void * get_full_binary(char *ciphertext) {
-	static unsigned char *out;
-	char *p;
-	int i;
-
-	if (!out) out = mem_alloc_tiny(FULL_BINARY_SIZE, MEM_ALIGN_WORD);
+	unsigned char * out;
 
 	if (salted_format)
-		ciphertext += 6;
+		out = binary_xsha512(ciphertext);
+	else
+		out = binary(ciphertext);
 
-	p = ciphertext + 8;
-	for (i = 0; i < FULL_BINARY_SIZE; i++) {
-		out[i] =
-				(atoi16[ARCH_INDEX(*p)] << 4) |
-				 atoi16[ARCH_INDEX(p[1])];
-		p += 2;
-	}
+	alter_endianity_to_BE64 (out, BINARY_SIZE/8);
 
 	return out;
 }
@@ -601,7 +544,7 @@ static int cmp_exact(char *source, int index) {
 	crypt_one(index, &full_hash);
 
 	binary = (uint64_t *) get_full_binary(source);
-	return !memcmp(binary, (void *) &full_hash, FULL_BINARY_SIZE);
+	return !memcmp(binary, (void *) &full_hash, BINARY_SIZE);
 }
 
 static int cmp_exact_x(char *source, int index) {
@@ -616,7 +559,7 @@ static int cmp_exact_x(char *source, int index) {
 	crypt_one_x(index, &full_hash);
 
 	binary = (uint64_t *) get_full_binary(source);
-	return !memcmp(binary, (void *) &full_hash, FULL_BINARY_SIZE);
+	return !memcmp(binary, (void *) &full_hash, BINARY_SIZE);
 }
 
 /* ------- Binary Hash functions group ------- */
@@ -674,7 +617,7 @@ struct fmt_main fmt_opencl_rawsha512 = {
 		RAW_BENCHMARK_LENGTH,
 		0,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		SHORT_BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE_RAW,
 		SALT_ALIGN_RAW,
@@ -692,7 +635,7 @@ struct fmt_main fmt_opencl_rawsha512 = {
 		fmt_default_prepare,
 		valid,
 		split,
-		get_binary,
+		get_short_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
@@ -738,7 +681,7 @@ struct fmt_main fmt_opencl_xsha512 = {
 		X_BENCHMARK_LENGTH,
 		0,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		SHORT_BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE_X,
 		SALT_ALIGN_X,
@@ -753,10 +696,10 @@ struct fmt_main fmt_opencl_xsha512 = {
 		init_x,
 		done,
 		reset,
-		fmt_default_prepare,
-		valid_x,
-		split_x,
-		get_binary,
+		prepare_xsha512,
+		valid_xsha512,
+		split_xsha512,
+		get_short_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

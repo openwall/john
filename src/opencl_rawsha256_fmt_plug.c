@@ -50,8 +50,8 @@ static cl_mem pinned_plaintext, pinned_saved_idx, pinned_int_key_loc;
 static struct fmt_main * this;
 
 //Device (GPU) buffers
-//int_keys: mask to be applied
-//loaded_hashes: buffer of password hashes transfered
+//int_keys: mask to apply
+//loaded_hashes: buffer of binary hashes transfered/loaded to GPU
 //hash_ids: information about how recover the cracked password
 //bitmap: a bitmap memory space.
 //int_key_loc: the position of the mask to apply
@@ -60,8 +60,8 @@ static cl_mem buffer_int_keys, buffer_loaded_hashes, buffer_hash_ids,
 
 //Host buffers
 //saved_int_key_loc: the position of the mask to apply
-//num_loaded_hashes: number of password hashes transfered/loaded to GPU
-//loaded_hashes: buffer of password hashes transfered/loaded to GPU
+//num_loaded_hashes: number of binary hashes transfered/loaded to GPU
+//loaded_hashes: buffer of binary hashes transfered/loaded to GPU
 //hash_ids: information about how recover the cracked password
 static uint32_t * saved_int_key_loc, num_loaded_hashes,
 	* loaded_hashes = NULL, * hash_ids = NULL;
@@ -303,11 +303,46 @@ static void reset(struct db_main *db) {
 		load_hash(db->salts);
 
 	} else {
+	    	size_t gws_limit;
+		unsigned int flag;
+
 	    	// Auto-tune / Benckmark / Self-test.
+		gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
+				get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
+
+		//Mask initialization
+		flag = (options.flags & FLG_MASK_CHK) && !global_work_size;
+
 		for (num_loaded_hashes = 0; tests[num_loaded_hashes].ciphertext;)
 			num_loaded_hashes++;
+		create_mask_buffers();
 
-	    	load_hash(NULL);
+		//Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL,
+			warn, 1, this, create_clobj, release_clobj,
+			2 * BUFFER_SIZE, gws_limit);
+
+		//Auto tune execution from shared/included code.
+		autotune_run(this, 1, gws_limit,
+			(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
+
+		load_hash(NULL);
+
+		if (options.flags & FLG_MASK_CHK) {
+			fprintf(stdout,
+				"Using Mask Mode with internal candidate generation%s",
+				flag ? "" : "\n");
+
+			if (flag) {
+				this->params.max_keys_per_crypt /= 256;
+
+				if (this->params.max_keys_per_crypt < 1)
+					this->params.max_keys_per_crypt = 1;
+
+					fprintf(stdout, ", global worksize(GWS) set to %d\n",
+						this->params.max_keys_per_crypt);
+			}
+		}
 	}
 }
 
@@ -415,8 +450,6 @@ static char * get_key(int index) {
 /* ------- Initialization  ------- */
 static void init(struct fmt_main * self) {
 	char * task = "$JOHN/kernels/sha256_kernel.cl";
-	size_t gws_limit;
-	unsigned int flag;
 
 	this = self;
 
@@ -430,43 +463,7 @@ static void init(struct fmt_main * self) {
 	crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
-			get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
-
-	//Mask initialization
-	flag = (options.flags & FLG_MASK_CHK) && !global_work_size;
 	mask_int_cand_target = 10000;
-
-	for (num_loaded_hashes = 0; tests[num_loaded_hashes].ciphertext;)
-		num_loaded_hashes++;
-	create_mask_buffers();
-
-	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, NULL,
-		warn, 1, self, create_clobj, release_clobj,
-		2 * BUFFER_SIZE, gws_limit);
-
-	//Auto tune execution from shared/included code.
-	autotune_run(self, 1, gws_limit,
-		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
-
-	reset(NULL);
-
-	if (options.flags & FLG_MASK_CHK) {
-		fprintf(stdout,
-			"Using Mask Mode with internal candidate generation%s",
-			flag ? "" : "\n");
-
-		if (flag) {
-			self->params.max_keys_per_crypt /= 256;
-
-			if (self->params.max_keys_per_crypt < 1)
-				self->params.max_keys_per_crypt = 1;
-
-				fprintf(stdout, ", global worksize(GWS) set to %d\n",
-					self->params.max_keys_per_crypt);
-		}
- 	}
 }
 
 static void done(void) {
@@ -527,14 +524,9 @@ static void load_hash(const struct db_salt *salt) {
 			binary = (uint32_t *) get_binary(ciphertext);
 		}
 
-		//TODO: ### remove me.
-		if (!binary) {
-			fprintf(stderr, "Load_hash error! i: %d \n", i);
-		}
-
-		// Potential segfault if removed.
+		// Skip cracked hashes (segfault if removed).
 		if (binary) {
-			//It is not better to handle only part of binary on GPU
+			//It is not better to handle (only) part of binary on GPU
 			loaded_hashes[HASH_PARTS * i] = binary[0];
 			loaded_hashes[HASH_PARTS * i + 1] = binary[1];
 			loaded_hashes[HASH_PARTS * i + 2] = binary[2];
