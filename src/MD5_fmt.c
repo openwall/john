@@ -113,7 +113,9 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
+#ifdef MD5_SSE_PARA
 	MEM_FREE(sout);
+#endif
 	MEM_FREE(saved_key);
 }
 
