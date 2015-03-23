@@ -47,7 +47,7 @@ Building JtR:
 After building those libraries, now it's straightforward to build JtR for MIC.
 
 $ cd $JOHN/src
-$ ./configure CC="icc -mmic" CPPFLAGS="-I$MIC/include" LDFLAGS="-L$MIC/lib" LIBS="-lssl -lcrypto" --host=mic-linux
+$ ./configure CC="icc -mmic" CPPFLAGS="-I$MIC/include" LDFLAGS="-L$MIC/lib" --host=mic-linux
 $ make && make install
 
 After that, you can use scp to transfer the executables and config files you 
