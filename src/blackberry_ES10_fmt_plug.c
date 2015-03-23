@@ -114,6 +114,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LENGTH;
 
+	if (0 < strlen(ctcopy) && '$' == ctcopy[strlen(ctcopy) - 1]) /* Can not end with '$' */
+		goto err;
 	if ((p = strtokm(ctcopy, "$")) == NULL) /* hash */
 		goto err;
 	if(strlen(p) != BINARY_SIZE * 2)
