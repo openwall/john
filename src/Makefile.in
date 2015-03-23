@@ -900,11 +900,11 @@ clean-intrinsics:
 	$(RM) sse-intrinsics-64.S sse-intrinsics-32.S sse-intrinsics-win32.S
 
 sse-intrinsics-64.S:
-	$(LN) x86-64.h arch.h
+	$(LN) -f x86-64.h arch.h
 	icc -S -o sse-intrinsics-64.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE -Wall
 
 sse-intrinsics-32.S:
-	$(LN) x86-sse.h arch.h
+	$(LN) -f x86-sse.h arch.h
 	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE -Wall
 	perl sse2i_winfix.pl sse-intrinsics-32.S sse-intrinsics-win32.S
 	mv sse-intrinsics-win32.S sse-intrinsics-32.S
