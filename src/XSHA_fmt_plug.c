@@ -99,8 +99,18 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt = omp_t * NBKEYS;
 #endif
-	saved_key = mem_calloc_tiny(SHA_BUF_SIZ*4 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(BINARY_SIZE * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             SHA_BUF_SIZ * 4, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             BINARY_SIZE, MEM_ALIGN_SIMD);
+#endif
+}
+
+static void done(void)
+{
+#ifdef SIMD_COEF_32
+	MEM_FREE(crypt_key);
+	MEM_FREE(saved_key);
 #endif
 }
 
@@ -447,7 +457,7 @@ struct fmt_main fmt_XSHA = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

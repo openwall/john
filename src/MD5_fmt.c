@@ -103,14 +103,18 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt = MD5_std_max_kpc;
 #endif
 
-	saved_key = mem_calloc_tiny(
-	    sizeof(*saved_key) * self->params.max_keys_per_crypt,
-	    MEM_ALIGN_CACHE);
+	saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             sizeof(*saved_key), MEM_ALIGN_CACHE);
 #ifdef MD5_SSE_PARA
-	sout = mem_calloc_tiny(sizeof(*sout) *
-	                       self->params.max_keys_per_crypt *
-	                       BINARY_SIZE, sizeof(MD5_word));
+	sout = mem_calloc(self->params.max_keys_per_crypt,
+	                  sizeof(*sout) * BINARY_SIZE);
 #endif
+}
+
+static void done(void)
+{
+	MEM_FREE(sout);
+	MEM_FREE(saved_key);
 }
 
 static int get_hash_0(int index)
@@ -363,7 +367,7 @@ struct fmt_main fmt_MD5 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		cryptmd5_common_valid,

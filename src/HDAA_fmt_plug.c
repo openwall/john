@@ -149,14 +149,36 @@ static void init(struct fmt_main *self)
 #endif
 #ifdef SIMD_COEF_32
 	for (i = 0; i < LIMBS; i++)
-		saved_key[i] = mem_calloc_tiny(64 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	interm_key = mem_calloc_tiny(16 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(16 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+		saved_key[i] = mem_calloc_align(self->params.max_keys_per_crypt,
+		                                64, MEM_ALIGN_SIMD);
+	interm_key = mem_calloc_align(self->params.max_keys_per_crypt,
+	                              16, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             16, MEM_ALIGN_SIMD);
 #else
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_len = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_len));
+	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_key));
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
+	                         sizeof(*saved_plain));
+}
+
+static void done(void)
+{
+#ifdef SIMD_COEF_32
+	int i;
+#endif
+	MEM_FREE(saved_plain);
+	MEM_FREE(crypt_key);
+#ifdef SIMD_COEF_32
+	MEM_FREE(interm_key);
+	for (i = 0; i < LIMBS; i++)
+		MEM_FREE(saved_key[i]);
+#else
+	MEM_FREE(saved_len);
+#endif
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -697,7 +719,7 @@ struct fmt_main fmt_HDAA = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

@@ -122,9 +122,19 @@ static void init(struct fmt_main *self)
 	self->params.min_keys_per_crypt = DES_bs_min_kpc;
 	self->params.max_keys_per_crypt = DES_bs_max_kpc;
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
+	                         sizeof(*saved_plain));
+	saved_len   = mem_calloc(self->params.max_keys_per_crypt,
+	                         sizeof(*saved_len));
+	saved_key   = mem_calloc(self->params.max_keys_per_crypt,
+	                         sizeof(*saved_key));
+}
+
+static void done(void)
+{
+	MEM_FREE(saved_key);
+	MEM_FREE(saved_len);
+	MEM_FREE(saved_plain);
 }
 
 static int valid_long(char *ciphertext)
@@ -616,7 +626,7 @@ struct fmt_main fmt_MSCHAPv2_old = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		prepare,
 		valid,

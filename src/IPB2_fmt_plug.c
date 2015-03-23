@@ -150,19 +150,37 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt = (omp_t*NBKEYS);
 #endif
 #if SIMD_COEF_32
-	key_buf = mem_calloc_tiny(64 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(BINARY_SIZE * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	saved_key = mem_calloc_tiny(64 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	empty_key = mem_calloc_tiny(64 * NBKEYS, MEM_ALIGN_SIMD);
+	key_buf   = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             64, MEM_ALIGN_SIMD);
+	empty_key = mem_calloc_align(64 * NBKEYS,
+	                             sizeof(empty_key), MEM_ALIGN_SIMD);
 	for (i = 0; i < NBKEYS; ++i) {
 		empty_key[GETPOS(0, i)] = 0x80;
 		((unsigned int*)empty_key)[14*SIMD_COEF_32 + (i&3) + (i>>2)*16*SIMD_COEF_32] = (2 * MD5_HEX_SIZE)<<3;
 	}
+	crypt_key = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             BINARY_SIZE, MEM_ALIGN_SIMD);
+	saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             64, MEM_ALIGN_SIMD);
 #else
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_key));
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
+	                         sizeof(*saved_plain));
+}
+
+static void done(void)
+{
+	MEM_FREE(saved_plain);
+	MEM_FREE(saved_key);
+	MEM_FREE(crypt_key);
+#if SIMD_COEF_32
+	MEM_FREE(empty_key);
+	MEM_FREE(key_buf);
+#endif
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -475,7 +493,7 @@ struct fmt_main fmt_IPB2 = {
 	},
 	{
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
