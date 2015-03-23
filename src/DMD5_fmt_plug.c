@@ -120,7 +120,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
-	                       SHA_BUF_SIZ * 4);
+	                       PLAINTEXT_LENGTH + 1);
 	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       BINARY_SIZE);
 }
