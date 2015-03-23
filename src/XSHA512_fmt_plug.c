@@ -34,15 +34,11 @@ john_register_one(&fmt_XSHA512);
 #define FORMAT_LABEL			"xsha512"
 #define FORMAT_NAME			"Mac OS X 10.7"
 #define ALGORITHM_NAME			"SHA512 " SHA512_ALGORITHM_NAME
-#define FORMAT_TAG              "$LION$"
-#define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
-
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
 #define PLAINTEXT_LENGTH		107
-#define CIPHERTEXT_LENGTH		136
 
 #define BINARY_SIZE			64
 #define BINARY_ALIGN			8
@@ -63,6 +59,10 @@ john_register_one(&fmt_XSHA512);
 #else
 #undef PRECOMPUTE_CTX_FOR_SALT
 #endif
+
+#define _XSHA512_H
+#include "rawSHA512_common.h"
+#undef _XSHA512_H
 
 static struct fmt_tests tests[] = {
 	{"bb0489df7b073e715f19f83fd52d08ede24243554450f7159dd65c100298a5820525b55320f48182491b72b4c4ba50d7b0e281c1d98e06591a5e9c6167f42a742f0359c7", "password"},
@@ -137,67 +137,6 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *pos;
-
-	/* Require lowercase hex digits (assume ASCII) */
-	pos = ciphertext;
-	if (strncmp(pos, FORMAT_TAG, TAG_LENGTH))
-		return 0;
-	pos += 6;
-	while (atoi16[ARCH_INDEX(*pos)] != 0x7F && (*pos <= '9' || *pos >= 'a'))
-		pos++;
-	return !*pos && pos - ciphertext == CIPHERTEXT_LENGTH+6;
-}
-
-static char *prepare(char *split_fields[10], struct fmt_main *self) {
-	char Buf[200];
-	if (!strncmp(split_fields[1], FORMAT_TAG, TAG_LENGTH))
-		return split_fields[1];
-	if (split_fields[0] && strlen(split_fields[0]) == CIPHERTEXT_LENGTH) {
-		sprintf(Buf, "%s%s", FORMAT_TAG, split_fields[0]);
-		if (valid(Buf, self)) {
-			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH+7, MEM_ALIGN_NONE);
-			strcpy(cp, Buf);
-			return cp;
-		}
-	}
-	if (strlen(split_fields[1]) == CIPHERTEXT_LENGTH) {
-		sprintf(Buf, "%s%s", FORMAT_TAG, split_fields[1]);
-		if (valid(Buf, self)) {
-			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH+7, MEM_ALIGN_NONE);
-			strcpy(cp, Buf);
-			return cp;
-		}
-	}
-	return split_fields[1];
-}
-
-static void *get_binary(char *ciphertext)
-{
-	static union {
-		unsigned char c[BINARY_SIZE];
-		ARCH_WORD_64 dummy;
-	} buf;
-	unsigned char *out = buf.c;
-	char *p;
-	int i;
-
-	ciphertext += 6;
-	p = ciphertext + 8;
-	for (i = 0; i < sizeof(buf.c); i++) {
-		out[i] =
-		    (atoi16[ARCH_INDEX(*p)] << 4) |
-		    atoi16[ARCH_INDEX(p[1])];
-		p += 2;
-	}
-#ifdef SIMD_COEF_64
-	alter_endianity_to_BE64 (out, BINARY_SIZE/8);
-#endif
-	return out;
-}
-
 static void *salt(char *ciphertext)
 {
 	static union {
@@ -208,7 +147,7 @@ static void *salt(char *ciphertext)
 	char *p;
 	int i;
 
-	ciphertext += TAG_LENGTH;
+	ciphertext += XSHA512_TAG_LENGTH;
 	p = ciphertext;
 	for (i = 0; i < sizeof(buf.c); i++) {
 		out[i] =
@@ -467,10 +406,10 @@ struct fmt_main fmt_XSHA512 = {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
-		valid,
-		fmt_default_split,
-		get_binary,
+		prepare_xsha512,
+		valid_xsha512,
+		split_xsha512,
+		binary_xsha512,
 		salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

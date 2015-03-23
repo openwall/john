@@ -20,12 +20,10 @@
 
 //Constants.
 #define PLAINTEXT_LENGTH        55
-#define CIPHERTEXT_LENGTH_RAW   128
-#define CIPHERTEXT_LENGTH_X     136
 
 #define BUFFER_SIZE             56      /* PLAINTEXT_LENGTH multiple of 4 */
-#define BINARY_SIZE             4
-#define FULL_BINARY_SIZE        64
+#define SHORT_BINARY_SIZE	 4
+#define BINARY_SIZE		64
 #define BINARY_ALIGN            4
 #define SALT_SIZE_RAW           0
 #define SALT_SIZE_X             4

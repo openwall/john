@@ -41,9 +41,6 @@ john_register_one(&fmt_raw0_SHA512);
 
 #define FORMAT_LABEL		"Raw-SHA512"
 #define FORMAT_NAME		""
-#define FORMAT_TAG              "$SHA512$"
-
-#define TAG_LENGTH             (sizeof(FORMAT_TAG) - 1)
 
 #ifdef SIMD_COEF_64
 #define ALGORITHM_NAME          SHA512_ALGORITHM_NAME
@@ -59,7 +56,6 @@ john_register_one(&fmt_raw0_SHA512);
 #else
 #define PLAINTEXT_LENGTH        125
 #endif
-#define CIPHERTEXT_LENGTH		128
 
 #define BINARY_SIZE				64
 #define BINARY_ALIGN			8
@@ -72,6 +68,9 @@ john_register_one(&fmt_raw0_SHA512);
 #else
 #define MAX_KEYS_PER_CRYPT		1
 #endif
+#define _RAWSHA512_H
+#include "rawSHA512_common.h"
+#undef _RAWSHA512_H
 
 static struct fmt_tests tests[] = {
 	{"f342aae82952db35b8e02c30115e3deed3d80fdfdadacab336f0ba51ac54e297291fa1d6b201d69a2bd77e2535280f17a54fa1e527abc6e2eddba79ad3be11c0", "epixoip"},
@@ -148,51 +147,7 @@ static void done(void)
 #endif
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *p, *q;
 
-	p = ciphertext;
-	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		p += 8;
-
-	q = p;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		q++;
-	return !*q && q - p == CIPHERTEXT_LENGTH;
-}
-
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
-
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		ciphertext += TAG_LENGTH;
-
-	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
-	strlwr(out + TAG_LENGTH);
-	return out;
-}
-
-static void *binary(char *ciphertext)
-{
-	static unsigned char *out;
-	int i;
-
-	if (!out)
-		out = mem_alloc_tiny(BINARY_SIZE, 8);
-
-	ciphertext += TAG_LENGTH;
-	for (i = 0; i < BINARY_SIZE; i++) {
-		out[i] = atoi16[ARCH_INDEX(ciphertext[i*2])] * 16 +
-                 atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
-	}
-#ifdef SIMD_COEF_64
-	alter_endianity_to_BE64 (out, BINARY_SIZE/8);
-#endif
-	return out;
-}
 
 #ifdef SIMD_COEF_64
 static int get_hash_0 (int index) { return crypt_out[index>>(SIMD_COEF_64>>1)][index&(SIMD_COEF_64-1)] & 0xf; }
