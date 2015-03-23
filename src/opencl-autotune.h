@@ -129,7 +129,7 @@ static void autotune_run(struct fmt_main * self, unsigned int rounds,
 	global_work_size = GET_EXACT_MULTIPLE(global_work_size, local_work_size);
 	create_clobj(global_work_size, self);
 
-	if (options.verbosity > 2 && !(options.flags & FLG_SHOW_CHK))
+	if (options.verbosity > 3 && !(options.flags & FLG_SHOW_CHK))
 		fprintf(stderr,
 		        "Local worksize (LWS) %zd, global worksize (GWS) %zd\n",
 		        local_work_size, global_work_size);
