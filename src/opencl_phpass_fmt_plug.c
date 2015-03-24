@@ -111,7 +111,8 @@ static struct fmt_tests tests[] = {
 // OpenCL variables:
 static cl_int cl_error;
 static cl_mem mem_in, mem_out, mem_setting;
-size_t insize, outsize, settingsize;
+static size_t insize, outsize, settingsize;
+static struct fmt_main *self;
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
@@ -219,20 +220,27 @@ static char *get_key(int index)
 	return ret;
 }
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
+	self = _self;
+
 	opencl_init("$JOHN/kernels/phpass_kernel.cl", gpu_id, NULL);
 
 	crypt_kernel = clCreateKernel(program[gpu_id], "phpass", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
+}
 
-	// Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, NULL,
-	                       warn, 1, self, create_clobj, release_clobj,
-	                       sizeof(phpass_password), 0);
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 1,
+		                       self, create_clobj, release_clobj,
+		                       sizeof(phpass_password), 0);
 
-	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, 0, 200);
+		// Auto tune execution from shared/included code.
+		autotune_run(self, 1, 0, 200);
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -469,7 +477,7 @@ struct fmt_main fmt_opencl_phpass = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

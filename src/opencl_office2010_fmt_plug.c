@@ -80,6 +80,7 @@ static int *saved_len;	/* UCS-2 password length, in octets */
 static char *saved_salt;
 static unsigned char *key;	/* Output key from kernel */
 static int new_keys, spincount;
+static struct fmt_main *self;
 
 static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_pwhash, cl_key, cl_spincount;
 static cl_mem pinned_saved_key, pinned_saved_len, pinned_salt, pinned_key;
@@ -258,10 +259,12 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
 	char build_opts[64];
 	static char valgo[32] = "";
+
+	self = _self;
 
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
@@ -287,19 +290,25 @@ static void init(struct fmt_main *self)
 	Generate2010key = clCreateKernel(program[gpu_id], "Generate2010key", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	// Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
-		warn, 3, self, create_clobj, release_clobj,
-		2 * v_width * UNICODE_LENGTH, 0);
-
-	// Auto tune execution from shared/included code.
-	self->methods.crypt_all = crypt_all_benchmark;
-	autotune_run(self, ITERATIONS + 4, 0,
-	             (cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
-	self->methods.crypt_all = crypt_all;
-
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
+}
+
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
+		                       3, self, create_clobj, release_clobj,
+		                       2 * v_width * UNICODE_LENGTH, 0);
+
+		// Auto tune execution from shared/included code.
+		self->methods.crypt_all = crypt_all_benchmark;
+		autotune_run(self, ITERATIONS + 4, 0,
+		             (cpu(device_info[gpu_id]) ?
+		              1000000000 : 10000000000ULL));
+		self->methods.crypt_all = crypt_all;
+	}
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -433,7 +442,7 @@ struct fmt_main fmt_opencl_office2010 = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		ms_office_common_valid_2010,
 		fmt_default_split,

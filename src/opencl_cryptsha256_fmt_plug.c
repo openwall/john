@@ -49,6 +49,7 @@ static cl_mem pass_buffer;		//Plaintext buffer.
 static cl_mem hash_buffer;		//Hash keys (output).
 static cl_mem work_buffer;		//Temporary buffer
 static cl_mem pinned_saved_keys, pinned_partial_hashes;
+static struct fmt_main *self;
 
 static cl_kernel prepare_kernel, final_kernel;
 
@@ -288,9 +289,11 @@ static void build_kernel(char * task) {
 	}
 }
 
-static void init(struct fmt_main * self) {
+static void init(struct fmt_main *_self) {
 	char * tmp_value;
 	char * task = "$JOHN/kernels/cryptsha256_kernel_DEFAULT.cl";
+
+	self = _self;
 
 	opencl_prepare_dev(gpu_id);
 	source_in_use = device_info[gpu_id];
@@ -303,20 +306,28 @@ static void init(struct fmt_main * self) {
 
 	build_kernel(task);
 
-	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, HASH_LOOPS,
-		((_SPLIT_KERNEL_IN_USE) ? split_events : NULL),
-		warn, 1, self, create_clobj, release_clobj,
-		sizeof(sha256_password), 0);
-
 	if (source_in_use != device_info[gpu_id])
-		fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
+		fprintf(stderr, "Selected runtime id %d, source (%s)\n",
+		        source_in_use, task);
+}
 
-	//Auto tune execution from shared/included code.
-	self->methods.crypt_all = crypt_all_benchmark;
-	autotune_run(self, ROUNDS_DEFAULT, 0,
-		(cpu(device_info[gpu_id]) ? 2000000000ULL : 4000000000ULL));
-	self->methods.crypt_all = crypt_all;
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		//Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, HASH_LOOPS,
+		                       ((_SPLIT_KERNEL_IN_USE) ?
+		                        split_events : NULL), warn, 1,
+		                       self, create_clobj, release_clobj,
+		                       sizeof(sha256_password), 0);
+
+		//Auto tune execution from shared/included code.
+		self->methods.crypt_all = crypt_all_benchmark;
+		autotune_run(self, ROUNDS_DEFAULT, 0,
+		             (cpu(device_info[gpu_id]) ?
+		              2000000000ULL : 4000000000ULL));
+		self->methods.crypt_all = crypt_all;
+	}
 }
 
 static void done(void) {
@@ -490,7 +501,7 @@ struct fmt_main fmt_opencl_cryptsha256 = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

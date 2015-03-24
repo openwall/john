@@ -115,6 +115,7 @@ static cl_kernel sevenzip_init;
 #define statesize (sizeof(sevenzip_state) * global_work_size)
 #define saltsize (sizeof(sevenzip_salt))
 #define cracked_size (sizeof(*cracked) * global_work_size)
+static struct fmt_main *self;
 
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 
@@ -223,11 +224,13 @@ static void done(void)
 static int crypt_all(int *pcount, struct db_salt *salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
 	CRC32_t crc;
 	char build_opts[64];
 	cl_int cl_error;
+
+	self = _self;
 
 	CRC32_Init(&crc);
 	snprintf(build_opts, sizeof(build_opts),
@@ -244,18 +247,24 @@ static void init(struct fmt_main *self)
 	                              &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
 
-	// Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn, 2, self,
-	                       create_clobj, release_clobj,
-	                       sizeof(sevenzip_salt), 0);
-
-	//  Auto tune execution from shared/included code.
-	self->methods.crypt_all = crypt_all_benchmark;
-	autotune_run(self, 1 << 19, 0, 15000000000ULL);
-	self->methods.crypt_all = crypt_all;
-
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
+}
+
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
+		                       warn, 2, self,
+		                       create_clobj, release_clobj,
+		                       sizeof(sevenzip_salt), 0);
+
+		//  Auto tune execution from shared/included code.
+		self->methods.crypt_all = crypt_all_benchmark;
+		autotune_run(self, 1 << 19, 0, 15000000000ULL);
+		self->methods.crypt_all = crypt_all;
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -617,7 +626,7 @@ struct fmt_main fmt_opencl_sevenzip = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

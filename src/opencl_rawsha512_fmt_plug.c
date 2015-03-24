@@ -61,6 +61,7 @@ static cl_mem idx_buffer;		//Sizes and offsets buffer.
 static cl_mem p_binary_buffer;		//To compare partial binary ([3]).
 static cl_mem result_buffer;		//To get the if a hash was found.
 static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_partial_hashes;
+static struct fmt_main *self;
 
 static cl_kernel cmp_kernel;
 static int new_keys, hash_found, salted_format = 0;
@@ -316,13 +317,6 @@ static int salt_hash(void * salt) {
 	return common_salt_hash(salt, SALT_SIZE_X, SALT_HASH_SIZE);
 }
 
-/* ------- Key functions ------- */
-static void reset(struct db_main *db) {
-	offset = 0;
-	offset_idx = 0;
-	key_idx = 0;
-}
-
 static void clear_keys(void) {
 	offset = 0;
 	offset_idx = 0;
@@ -378,9 +372,10 @@ static char * get_key(int index) {
 }
 
 /* ------- Initialization  ------- */
-static void init(struct fmt_main * self) {
+static void init(struct fmt_main *_self) {
 	char * task = "$JOHN/kernels/sha512_kernel.cl";
-	size_t gws_limit;
+
+	self = _self;
 
 	opencl_prepare_dev(gpu_id);
 	opencl_build_kernel(task, gpu_id, NULL, 1);
@@ -393,18 +388,30 @@ static void init(struct fmt_main * self) {
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 	cmp_kernel = clCreateKernel(program[gpu_id], "kernel_cmp", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel_cmp. Double-check kernel name?");
+}
 
-	gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
-			get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
+/* ------- Key functions ------- */
+static void reset(struct db_main *db) {
+	offset = 0;
+	offset_idx = 0;
+	key_idx = 0;
 
-	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, NULL,
-		warn, 1, self, create_clobj, release_clobj,
-		2 * BUFFER_SIZE, gws_limit);
+	if (!db) {
+		size_t gws_limit;
 
-	//Auto tune execution from shared/included code.
-	autotune_run(self, 1, gws_limit,
-		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
+		gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
+		                get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
+
+		//Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 1,
+		                       self, create_clobj, release_clobj,
+		                       2 * BUFFER_SIZE, gws_limit);
+
+		//Auto tune execution from shared/included code.
+		autotune_run(self, 1, gws_limit,
+		             (cpu(device_info[gpu_id]) ?
+		              500000000ULL : 1000000000ULL));
+	}
 }
 
 static void init_x(struct fmt_main * self) {

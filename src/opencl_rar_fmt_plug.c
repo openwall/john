@@ -141,6 +141,7 @@ static unsigned char *saved_key;
 static int new_keys;
 static int (*cracked);
 static unpack_data_t (*unpack_data);
+static struct fmt_main *self;
 
 static unsigned int *saved_len;
 static unsigned char *aes_key;
@@ -608,9 +609,11 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, 8, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
 }
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
 	char build_opts[64];
+
+	self = _self;
 
 	snprintf(build_opts, sizeof(build_opts), "-DPLAINTEXT_LENGTH=%u", PLAINTEXT_LENGTH);
 	opencl_init("$JOHN/kernels/rar_kernel.cl", gpu_id, build_opts);
@@ -634,17 +637,6 @@ static void init(struct fmt_main *self)
 		self->params.tests = gpu_tests;
 	}
 
-	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
-		warn, 3, self, create_clobj, release_clobj,
-	        UNICODE_LENGTH + sizeof(cl_int) * 14, 0);
-
-	//Auto tune execution from shared/included code.
-	self->methods.crypt_all = crypt_all_benchmark;
-	autotune_run(self, ITERATIONS, 0,
-	             (cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
-	self->methods.crypt_all = crypt_all;
-
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
 	init_locks();
@@ -667,6 +659,24 @@ static void init(struct fmt_main *self)
 	{
 		CRC32_t crc;
 		CRC32_Init(&crc);
+	}
+}
+
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		//Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
+		                       warn, 3, self,
+		                       create_clobj, release_clobj,
+		                       UNICODE_LENGTH + sizeof(cl_int) * 14, 0);
+
+		//Auto tune execution from shared/included code.
+		self->methods.crypt_all = crypt_all_benchmark;
+		autotune_run(self, ITERATIONS, 0,
+		             (cpu(device_info[gpu_id]) ?
+		              1000000000 : 10000000000ULL));
+		self->methods.crypt_all = crypt_all;
 	}
 }
 
@@ -1068,7 +1078,7 @@ struct fmt_main fmt_ocl_rar = {
 	},{
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

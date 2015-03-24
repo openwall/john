@@ -84,6 +84,7 @@ static const unsigned int lotus_magic_table[256] = {
 /*Some more JTR variables*/
 static cl_uint *crypt_key;
 static char *saved_key;
+static struct fmt_main *self;
 
 static cl_int err;
 static cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
@@ -171,20 +172,27 @@ static void release_clobj(void)
 	MEM_FREE(crypt_key);
 }
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
+	self = _self;
+
 	opencl_init("$JOHN/kernels/lotus5_kernel.cl", gpu_id, NULL);
 
 	crypt_kernel = clCreateKernel(program[gpu_id], "lotus5", &err);
 	HANDLE_CLERROR(err, "Create kernel FAILED.");
+}
 
-	// Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, NULL,
-	                       warn, 1, self, create_clobj, release_clobj,
-	                       KEY_SIZE_IN_BYTES, 0);
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
+		                       create_clobj, release_clobj,
+		                       KEY_SIZE_IN_BYTES, 0);
 
-	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, 0, 1000);
+		// Auto tune execution from shared/included code.
+		autotune_run(self, 1, 0, 1000);
+	}
 }
 
 static void done(void)
@@ -330,7 +338,7 @@ struct fmt_main fmt_opencl_1otus5 = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

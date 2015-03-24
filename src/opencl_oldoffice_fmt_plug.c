@@ -106,6 +106,7 @@ static size_t key_offset, idx_offset;
 static cl_mem cl_saved_key, cl_saved_idx, cl_salt, cl_mid_key, cl_result;
 static cl_mem pinned_key, pinned_idx, pinned_result;
 static cl_kernel oldoffice_utf16, oldoffice_md5, oldoffice_sha1;
+static struct fmt_main *self;
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
@@ -218,10 +219,11 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
 	char build_opts[96];
-	size_t gws_limit = 4 << 20;
+
+	self = _self;
 
 	if (pers_opts.target_enc == UTF_8)
 		max_len = self->params.plaintext_length =
@@ -240,14 +242,21 @@ static void init(struct fmt_main *self)
 	oldoffice_sha1 =
 		clCreateKernel(program[gpu_id], "oldoffice_sha1", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+}
 
-	// Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, NULL,
-	                       warn, 3, self, create_clobj, release_clobj,
-	                       2 * sizeof(mid_t), gws_limit);
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		size_t gws_limit = 4 << 20;
 
-	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, gws_limit, 1000000000);
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 3,
+		                       self, create_clobj, release_clobj,
+		                       2 * sizeof(mid_t), gws_limit);
+
+		// Auto tune execution from shared/included code.
+		autotune_run(self, 1, gws_limit, 1000000000);
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -544,7 +553,7 @@ struct fmt_main FORMAT_STRUCT = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		split,

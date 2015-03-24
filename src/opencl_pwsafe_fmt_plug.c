@@ -127,6 +127,7 @@ static cl_mem mem_in, mem_out, mem_salt;
 static pwsafe_pass *host_pass;				/** binary ciphertexts **/
 static pwsafe_salt *host_salt;				/** salt **/
 static pwsafe_hash *host_hash;				/** calculated hashes **/
+static struct fmt_main *self;
 
 static void release_clobj(void)
 {
@@ -157,7 +158,7 @@ static void pwsafe_set_key(char *key, int index)
 }
 
 /* ------- Create and destroy necessary objects ------- */
-static void create_clobj(size_t gws, struct fmt_main * self)
+static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	global_work_size = gws; /* needed for size macros */
 
@@ -188,8 +189,10 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 	clSetKernelArg(finish_kernel, 2, sizeof(mem_salt), &mem_salt);
 }
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
+	self = _self;
+
 	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", gpu_id, NULL);
 
 	init_kernel = clCreateKernel(program[gpu_id], KERNEL_INIT_NAME, &ret_code);
@@ -200,17 +203,23 @@ static void init(struct fmt_main *self)
 
 	finish_kernel = clCreateKernel(program[gpu_id], KERNEL_FINISH_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating finish kernel");
+}
 
-	//Initialize openCL tuning (library) for this format.
-	self->methods.crypt_all = crypt_all_benchmark;
-	opencl_init_auto_setup(SEED, ROUNDS_DEFAULT/8, split_events,
-		warn, 2, self, create_clobj,
-	        release_clobj, sizeof(pwsafe_pass), 0);
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		//Initialize openCL tuning (library) for this format.
+		self->methods.crypt_all = crypt_all_benchmark;
+		opencl_init_auto_setup(SEED, ROUNDS_DEFAULT/8, split_events,
+		                       warn, 2, self, create_clobj,
+		                       release_clobj, sizeof(pwsafe_pass), 0);
 
-	//Auto tune execution from shared/included code.
-	autotune_run(self, ROUNDS_DEFAULT, 0,
-		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
-	self->methods.crypt_all = crypt_all;
+		//Auto tune execution from shared/included code.
+		autotune_run(self, ROUNDS_DEFAULT, 0,
+		             (cpu(device_info[gpu_id]) ?
+		              500000000ULL : 1000000000ULL));
+		self->methods.crypt_all = crypt_all;
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -427,7 +436,7 @@ struct fmt_main fmt_opencl_pwsafe = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

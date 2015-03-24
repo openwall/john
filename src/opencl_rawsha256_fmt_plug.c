@@ -47,7 +47,7 @@ static cl_mem idx_buffer;		//Sizes and offsets buffer.
 static cl_mem pinned_plaintext, pinned_saved_idx, pinned_int_key_loc;
 
 //Reference to self
-static struct fmt_main * this;
+static struct fmt_main *self;
 
 //Device (GPU) buffers
 //int_keys: mask to apply
@@ -138,8 +138,8 @@ static size_t get_default_workgroup()
 }
 
 /* ------- Create and destroy necessary objects ------- */
-static void create_mask_buffers() {
-
+static void create_mask_buffers()
+{
 	if (loaded_hashes)
 		MEM_FREE(loaded_hashes);
 
@@ -150,7 +150,7 @@ static void create_mask_buffers() {
 	hash_ids = (cl_uint *) mem_alloc((num_loaded_hashes + 1) * 3 * sizeof(uint32_t));
 }
 
-static void create_clobj(size_t gws, struct fmt_main * self)
+static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	pinned_plaintext = clCreateBuffer(context[gpu_id],
 			CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
@@ -243,7 +243,8 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 	memset(saved_int_key_loc, '\0', sizeof(uint32_t) * gws);
 }
 
-static void release_clobj(void) {
+static void release_clobj(void)
+{
 	cl_int ret_code;
 
 	ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_plaintext,
@@ -285,8 +286,8 @@ static void release_clobj(void) {
 }
 
 /* ------- Key functions ------- */
-static void reset(struct db_main *db) {
-
+static void reset(struct db_main *db)
+{
 	offset = 0;
 	offset_idx = 0;
 	key_idx = 0;
@@ -299,7 +300,7 @@ static void reset(struct db_main *db) {
 			release_clobj();
 
 		create_mask_buffers();
-		create_clobj(global_work_size, this);
+		create_clobj(global_work_size, self);
 		load_hash(db->salts);
 
 	} else {
@@ -319,11 +320,11 @@ static void reset(struct db_main *db) {
 
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL,
-			warn, 1, this, create_clobj, release_clobj,
+			warn, 1, self, create_clobj, release_clobj,
 			2 * BUFFER_SIZE, gws_limit);
 
 		//Auto tune execution from shared/included code.
-		autotune_run(this, 1, gws_limit,
+		autotune_run(self, 1, gws_limit,
 			(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
 
 		load_hash(NULL);
@@ -334,27 +335,28 @@ static void reset(struct db_main *db) {
 				flag ? "" : "\n");
 
 			if (flag) {
-				this->params.max_keys_per_crypt /= 256;
+				self->params.max_keys_per_crypt /= 256;
 
-				if (this->params.max_keys_per_crypt < 1)
-					this->params.max_keys_per_crypt = 1;
+				if (self->params.max_keys_per_crypt < 1)
+					self->params.max_keys_per_crypt = 1;
 
 					fprintf(stdout, ", global worksize(GWS) set to %d\n",
-						this->params.max_keys_per_crypt);
+						self->params.max_keys_per_crypt);
 			}
 		}
 	}
 }
 
 /* ------- Key functions ------- */
-static void clear_keys(void) {
+static void clear_keys(void)
+{
 	offset = 0;
 	offset_idx = 0;
 	key_idx = 0;
 }
 
-static void set_key(char * _key, int index) {
-
+static void set_key(char * _key, int index)
+{
 	const ARCH_WORD_32 * key = (ARCH_WORD_32 *) _key;
 	int len = strlen(_key);
 
@@ -404,7 +406,8 @@ static void set_key(char * _key, int index) {
 	}
 }
 
-static char * get_key(int index) {
+static char * get_key(int index)
+{
 	static char * ret;
 	int int_index, t, i;
 
@@ -448,10 +451,11 @@ static char * get_key(int index) {
 }
 
 /* ------- Initialization  ------- */
-static void init(struct fmt_main * self) {
+static void init(struct fmt_main *_self)
+{
 	char * task = "$JOHN/kernels/sha256_kernel.cl";
 
-	this = self;
+	self = _self;
 
 	opencl_prepare_dev(gpu_id);
 	opencl_build_kernel(task, gpu_id, NULL, 1);
@@ -466,7 +470,8 @@ static void init(struct fmt_main * self) {
 	mask_int_cand_target = 10000;
 }
 
-static void done(void) {
+static void done(void)
+{
 	release_clobj();
 
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
@@ -480,7 +485,8 @@ static void done(void) {
 }
 
 /* ------- To binary functions ------- */
-static void * get_binary(char *ciphertext) {
+static void * get_binary(char *ciphertext)
+{
 	static unsigned char * out;
 	char *p;
 	int i;
@@ -499,7 +505,8 @@ static void * get_binary(char *ciphertext) {
 }
 
 /* ------- Send hashes to crack (binary) to GPU ------- */
-static void load_hash(const struct db_salt *salt) {
+static void load_hash(const struct db_salt *salt)
+{
 	uint32_t * binary, i = 0, more;
 	struct db_password * pw;
 
@@ -520,7 +527,7 @@ static void load_hash(const struct db_salt *salt) {
 			if (!fields[1])
 				fields[1] = tests[i].ciphertext;
 
-			ciphertext = split(prepare(fields, this), 0, this);
+			ciphertext = split(prepare(fields, self), 0, self);
 			binary = (uint32_t *) get_binary(ciphertext);
 		}
 
@@ -560,7 +567,8 @@ static void load_hash(const struct db_salt *salt) {
 }
 
 /* ------- Crypt function ------- */
-static int crypt_all(int *pcount, struct db_salt *_salt) {
+static int crypt_all(int *pcount, struct db_salt *_salt)
+{
 	const int count = *pcount;
 	const struct db_salt * salt = _salt;
 	size_t gws;
@@ -620,18 +628,18 @@ static int crypt_all(int *pcount, struct db_salt *_salt) {
 }
 
 /* ------- Compare functins ------- */
-static int cmp_all(void * binary, int count) {
-
+static int cmp_all(void * binary, int count)
+{
 	return (count > 0);
 }
 
-static int cmp_one(void *binary, int index) {
-
+static int cmp_one(void *binary, int index)
+{
 	return (loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] == ((uint32_t *) binary)[0]);
 }
 
-static int cmp_exact(char *source, int index) {
-
+static int cmp_exact(char *source, int index)
+{
 	uint32_t * binary = (uint32_t *) get_binary(source);
 
 	if (binary[1] != loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index] + 1])

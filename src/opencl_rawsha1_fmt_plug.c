@@ -62,14 +62,12 @@ typedef struct {
 } SHA_DEV_CTX;
 
 
-cl_command_queue queue_prof;
-cl_int ret_code;
-cl_kernel crypt_kernel;
-cl_mem pinned_saved_keys, pinned_saved_idx, pinned_partial_hashes, buffer_out;
-cl_mem buffer_keys, buffer_idx;
+static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_partial_hashes, buffer_out;
+static cl_mem buffer_keys, buffer_idx;
 static cl_uint *partial_hashes, *saved_plain, *saved_idx;
 static int have_full_hashes;
 static unsigned int key_idx = 0;
+static struct fmt_main *self;
 
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
@@ -202,29 +200,37 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
-	size_t gws_limit;
+	self = _self;
 
 	opencl_init("$JOHN/kernels/sha1_kernel.cl", gpu_id, NULL);
-
-	// Current key_idx can only hold 26 bits of offset so
-	// we can't reliably use a GWS higher than 4.7M or so.
-	gws_limit = MIN((1 << 26) * 4 / BUFSIZE,
-			get_max_mem_alloc_size(gpu_id) / BUFSIZE);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+}
 
-	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
-	                       self, create_clobj, release_clobj,
-	                       2 * BUFSIZE, gws_limit);
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		size_t gws_limit;
 
-	//Auto tune execution from shared/included code.
-	autotune_run(self, ROUNDS, gws_limit,
-		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
+		// Current key_idx can only hold 26 bits of offset so
+		// we can't reliably use a GWS higher than 4.7M or so.
+		gws_limit = MIN((1 << 26) * 4 / BUFSIZE,
+		                get_max_mem_alloc_size(gpu_id) / BUFSIZE);
+
+		//Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
+		                       self, create_clobj, release_clobj,
+		                       2 * BUFSIZE, gws_limit);
+
+		//Auto tune execution from shared/included code.
+		autotune_run(self, ROUNDS, gws_limit,
+		             (cpu(device_info[gpu_id]) ?
+		              500000000ULL : 1000000000ULL));
+	}
 }
 
 static void clear_keys(void)
@@ -374,7 +380,7 @@ struct fmt_main fmt_opencl_rawSHA1 = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		split,

@@ -103,6 +103,7 @@ static struct fmt_tests tests[] = {
 static cl_mem mem_in, mem_out, mem_salt, mem_state, pinned_in, pinned_out;
 static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final;
 static unsigned int v_width = 1;	/* Vector width of kernel */
+static struct fmt_main *self;
 
 static struct custom_salt {
 	int type;
@@ -321,15 +322,14 @@ static void nfold(unsigned int inbits, const unsigned char *in,
 static int crypt_all(int *pcount, struct db_salt *salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
 	unsigned char usage[5];
 	char build_opts[128];
 	static char valgo[sizeof(ALGORITHM_NAME) + 8] = "";
 
-#if 0
-	me = self;
-#endif
+	self = _self;
+
 	opencl_preinit();
 	/* VLIW5 does better with just 2x vectors due to GPR pressure */
 	if (!options.v_width && amd_vliw5(device_info[gpu_id]))
@@ -359,17 +359,6 @@ static void init(struct fmt_main *self)
 	pbkdf2_final = clCreateKernel(program[gpu_id], "pbkdf2_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
-	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 2 * HASH_LOOPS, split_events,
-		warn, 2, self, create_clobj, release_clobj,
-	        v_width * sizeof(pbkdf2_state), 0);
-
-	//Auto tune execution from shared/included code.
-	self->methods.crypt_all = crypt_all_benchmark;
-	autotune_run(self, 4 * ITERATIONS + 4, 0,
-		(cpu(device_info[gpu_id]) ? 1000000000 : 5000000000ULL));
-	self->methods.crypt_all = crypt_all;
-
 	// generate 128 bits from 40 bits of "kerberos" string
 	nfold(8 * 8, (unsigned char*)"kerberos", 128, constant);
 
@@ -382,6 +371,24 @@ static void init(struct fmt_main *self)
 	usage[3] = 0x01;        // key number in big-endian format
 	usage[4] = 0x55;        // used to derive Ki
 	nfold(sizeof(usage)*8,usage,sizeof(ki_input)*8,ki_input);
+}
+
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		//Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 2 * HASH_LOOPS, split_events,
+		                       warn, 2, self, create_clobj,
+		                       release_clobj,
+		                       v_width * sizeof(pbkdf2_state), 0);
+
+		//Auto tune execution from shared/included code.
+		self->methods.crypt_all = crypt_all_benchmark;
+		autotune_run(self, 4 * ITERATIONS + 4, 0,
+		             (cpu(device_info[gpu_id]) ?
+		              1000000000 : 5000000000ULL));
+		self->methods.crypt_all = crypt_all;
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -837,7 +844,7 @@ struct fmt_main fmt_opencl_krb5pa_sha1 = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		split,

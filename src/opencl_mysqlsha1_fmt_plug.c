@@ -71,6 +71,7 @@ static size_t key_offset, idx_offset;
 static cl_mem cl_saved_key, cl_saved_idx, cl_result;
 static cl_mem pinned_key, pinned_idx, pinned_result;
 static int partial_output;
+static struct fmt_main *self;
 
 static struct fmt_tests tests[] = {
 	{"*5AD8F88516BD021DD43F171E2C785C69F8E54ADB", "tere"},
@@ -185,31 +186,39 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
 	char build_opts[64];
-	size_t gws_limit;
+
+	self = _self;
 
 	snprintf(build_opts, sizeof(build_opts),
 	        "-DPLAINTEXT_LENGTH=%u", PLAINTEXT_LENGTH);
 	opencl_init("$JOHN/kernels/msha_kernel.cl", gpu_id, build_opts);
 
-        // Current key_idx can only hold 26 bits of offset so
-        // we can't reliably use a GWS higher than 4M or so.
-        gws_limit = MIN((1 << 26) * 4 / PLAINTEXT_LENGTH,
-                        get_max_mem_alloc_size(gpu_id) / PLAINTEXT_LENGTH);
-
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "mysqlsha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+}
 
-	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, NULL,
-		warn, 2, self, create_clobj, release_clobj,
-		2 * PLAINTEXT_LENGTH, gws_limit);
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		size_t gws_limit;
 
-	//Auto tune execution from shared/included code.
-	autotune_run(self, 2, gws_limit, 200);
+		// Current key_idx can only hold 26 bits of offset so
+		// we can't reliably use a GWS higher than 4M or so.
+		gws_limit = MIN((1 << 26) * 4 / PLAINTEXT_LENGTH,
+		                get_max_mem_alloc_size(gpu_id) / PLAINTEXT_LENGTH);
+
+		//Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
+		                       self, create_clobj, release_clobj,
+		                       2 * PLAINTEXT_LENGTH, gws_limit);
+
+		//Auto tune execution from shared/included code.
+		autotune_run(self, 2, gws_limit, 200);
+	}
 }
 
 static void clear_keys(void)
@@ -356,7 +365,7 @@ struct fmt_main fmt_opencl_mysqlsha1 = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		split,

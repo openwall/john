@@ -105,12 +105,6 @@ static struct fmt_tests tests[] = {
 #define SQRT_2 0x5a827999
 #define SQRT_3 0x6ed9eba1
 
-//Putting here for successful compilation (Needed by assembly functions).
-//Maybe useful in the future perform CPU and GPU cracking side by side
-unsigned int *nt_buffer8x, *output8x;
-unsigned int *nt_buffer4x, *output4x;
-unsigned int *nt_buffer1x, *output1x;
-
 static int have_full_hashes;
 
 static cl_uint *bbbs;
@@ -118,9 +112,10 @@ static cl_uint *res_hashes;
 static char *saved_plain;
 static int max_key_length = 0;
 static char get_key_saved[PLAINTEXT_LENGTH+1];
+static struct fmt_main *self;
 
 //OpenCL variables
-cl_mem pinned_saved_keys, pinned_bbbs, buffer_out, buffer_keys;
+static cl_mem pinned_saved_keys, pinned_bbbs, buffer_out, buffer_keys;
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 
@@ -209,20 +204,27 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
+	self = _self;
+
 	opencl_init("$JOHN/kernels/nt_kernel.cl", gpu_id, NULL);
 
 	crypt_kernel = clCreateKernel( program[gpu_id], "nt_crypt", &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating kernel");
+}
 
-	// Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, NULL,
-	                       warn, 1, self, create_clobj, release_clobj,
-	                       2 * 2 * (PLAINTEXT_LENGTH + 1), 0);
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
+		                       create_clobj, release_clobj,
+		                       2 * 2 * (PLAINTEXT_LENGTH + 1), 0);
 
-	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, 0, 200);
+		// Auto tune execution from shared/included code.
+		autotune_run(self, 1, 0, 200);
+	}
 }
 
 // TODO: Use concurrent memory copy & execute
@@ -450,7 +452,7 @@ struct fmt_main fmt_opencl_NT = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		prepare,
 		valid,
 		split,

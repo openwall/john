@@ -80,6 +80,7 @@ static size_t key_buf_size;
 static unsigned int v_width = 1;	/* Vector width of kernel */
 static cl_kernel pbkdf1_init, pbkdf1_loop, pbkdf1_final;
 static int new_keys;
+static struct fmt_main *self;
 
 static const char * warn[] = {
         "in xfer: "  ,  ", init: "   , ", crypt: " , ", final: ", ", out xfer: "
@@ -170,10 +171,12 @@ static void release_clobj(void)
 	MEM_FREE(host_crack);
 }
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
 	char build_opts[64];
 	static char valgo[sizeof(ALGORITHM_NAME) + 8] = "";
+
+	self = _self;
 
 	opencl_preinit();
 	/* VLIW5 does better with just 2x vectors due to GPR pressure */
@@ -202,17 +205,25 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 	pbkdf1_final = clCreateKernel(program[gpu_id], "pbkdf1_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
+}
 
-	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
-		warn, 2, self, create_clobj, release_clobj,
-	        v_width * (PLAINTEXT_LENGTH + sizeof(pbkdf1_out)), 0);
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		//Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
+		                       2, self, create_clobj, release_clobj,
+		                       v_width *
+		                       (PLAINTEXT_LENGTH + sizeof(pbkdf1_out)),
+		                       0);
 
-	//Auto tune execution from shared/included code.
-	self->methods.crypt_all = crypt_all_benchmark;
-	autotune_run(self, ITERATIONS, 0,
-	             (cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
-	self->methods.crypt_all = crypt_all;
+		//Auto tune execution from shared/included code.
+		self->methods.crypt_all = crypt_all_benchmark;
+		autotune_run(self, ITERATIONS, 0,
+		             (cpu(device_info[gpu_id]) ?
+		              1000000000 : 10000000000ULL));
+		self->methods.crypt_all = crypt_all;
+	}
 }
 
 static void done(void)
@@ -434,7 +445,7 @@ struct fmt_main fmt_ocl_cryptsha1 = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		sha1crypt_common_valid,
 		fmt_default_split,

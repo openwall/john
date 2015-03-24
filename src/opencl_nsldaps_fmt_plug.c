@@ -63,14 +63,14 @@ typedef struct {
 #define BASE64_ALPHABET	  \
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
-cl_command_queue queue_prof;
-cl_mem pinned_saved_keys, pinned_partial_hashes, buffer_out, buffer_keys,
-    len_buffer, mysalt, mycrypt;
+static cl_mem pinned_saved_keys, pinned_partial_hashes;
+static cl_mem buffer_out, buffer_keys, mysalt;
 static cl_uint *outbuffer;
 static cl_uint *outbuffer2;
 static char *saved_plain;
 static char saved_salt[SALT_SIZE];
 static int have_full_hashes;
+static struct fmt_main *self;
 
 static struct fmt_tests tests[] = {
 	{"{SSHA}8VKmzf3SqceSL8/CJ0bGz7ij+L0SQCxcHHYzBw==", "mabelove"},
@@ -205,9 +205,11 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
-static void fmt_ssha_init(struct fmt_main *self)
+static void fmt_ssha_init(struct fmt_main *_self)
 {
 	char build_opts[64];
+
+	self = _self;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DPLAINTEXT_LENGTH=%d", PLAINTEXT_LENGTH);
@@ -216,16 +218,20 @@ static void fmt_ssha_init(struct fmt_main *self)
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
-	// Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 1, NULL, warn,
-	                       1, self, create_clobj, release_clobj,
-	                       2 * PLAINTEXT_LENGTH, 0);
-
-	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, 0, 1000);
 }
 
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 1, NULL, warn,
+		                       1, self, create_clobj, release_clobj,
+		                       2 * PLAINTEXT_LENGTH, 0);
+
+		// Auto tune execution from shared/included code.
+		autotune_run(self, 1, 0, 1000);
+	}
+}
 
 static void *binary(char *ciphertext) {
 	static char realcipher[DIGEST_SIZE + 1 + SALT_SIZE + 9];
@@ -383,7 +389,7 @@ struct fmt_main fmt_opencl_NSLDAPS = {
 	}, {
 		fmt_ssha_init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

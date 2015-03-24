@@ -101,6 +101,7 @@ static size_t key_offset, idx_offset;
 static unsigned char *saltblob;
 static int new_keys;
 static int max_len = PLAINTEXT_LENGTH;
+static struct fmt_main *self;
 
 static cl_mem cl_saved_key, cl_saved_idx, cl_saltblob, cl_nthash, cl_result;
 static cl_mem pinned_key, pinned_idx, pinned_result, pinned_salt;
@@ -214,9 +215,11 @@ static void done(void)
 
 static void *salt(char *ciphertext);
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
 	char build_opts[64];
+
+	self = _self;
 
 	if (pers_opts.target_enc == UTF_8) {
 		max_len = self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
@@ -246,14 +249,19 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 	crypt_kernel = clCreateKernel(program[gpu_id], "krb5pa_md5_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+}
 
-	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, NULL,
-		warn, 2, self, create_clobj, release_clobj,
-		2 * PLAINTEXT_LENGTH, 0);
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		//Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 2, self,
+		                       create_clobj, release_clobj,
+		                       2 * PLAINTEXT_LENGTH, 0);
 
-	//Auto tune execution from shared/included code.
-	autotune_run(self, 1, 0, 200);
+		//Auto tune execution from shared/included code.
+		autotune_run(self, 1, 0, 200);
+	}
 }
 
 static void *salt(char *ciphertext)
@@ -568,7 +576,7 @@ struct fmt_main fmt_opencl_krb5pa_md5 = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		split,

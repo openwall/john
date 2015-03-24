@@ -86,6 +86,7 @@ static keyring_password *inbuffer;
 static keyring_hash *outbuffer;
 static keyring_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
+static struct fmt_main *self;
 
 #define insize (sizeof(keyring_password) * global_work_size)
 #define outsize (sizeof(keyring_hash) * global_work_size)
@@ -172,10 +173,12 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
 	char build_opts[64];
 	cl_int cl_error;
+
+	self = _self;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DPLAINTEXT_LENGTH=%d -DSALTLEN=%d",
@@ -185,14 +188,20 @@ static void init(struct fmt_main *self)
 
 	crypt_kernel = clCreateKernel(program[gpu_id], "keyring", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
+}
 
-	// Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self, create_clobj,
-	                       release_clobj, sizeof(keyring_password), 0);
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
+		                       create_clobj, release_clobj,
+		                       sizeof(keyring_password), 0);
 
-	//Auto tune execution from shared/included code.
-	autotune_run(self, 1, 0, cpu(device_info[gpu_id]) ?
-	                             500000000ULL : 1000000000ULL);
+		//Auto tune execution from shared/included code.
+		autotune_run(self, 1, 0, cpu(device_info[gpu_id]) ?
+		             500000000ULL : 1000000000ULL);
+	}
 }
 
 static int looks_like_nice_int(char *p)
@@ -440,7 +449,7 @@ struct fmt_main fmt_opencl_keyring = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

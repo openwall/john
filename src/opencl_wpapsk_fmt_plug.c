@@ -29,6 +29,7 @@ static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final_md5, wpaps
 static unsigned int v_width = 1;	/* Vector width of kernel */
 static size_t key_buf_size;
 static unsigned int *inbuffer;
+static struct fmt_main *self;
 
 #define JOHN_OCL_WPAPSK
 #include "wpapsk.h"
@@ -212,11 +213,13 @@ static char* get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
 	char *custom_opts;
 	char build_opts[256];
 	static char valgo[32] = "";
+
+	self = _self;
 
 	opencl_preinit();
 	/* VLIW5 does better with just 2x vectors due to GPR pressure */
@@ -257,17 +260,24 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 	wpapsk_final_sha1 = clCreateKernel(program[gpu_id], "wpapsk_final_sha1", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
+}
 
-	// Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 2 * HASH_LOOPS, split_events,
-		warn, 2, self, create_clobj, release_clobj,
-		2 * v_width * sizeof(wpapsk_state), 0);
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 2 * HASH_LOOPS, split_events,
+		                       warn, 2, self,
+		                       create_clobj, release_clobj,
+		                       2 * v_width * sizeof(wpapsk_state), 0);
 
-	// Auto tune execution from shared/included code.
-	self->methods.crypt_all = crypt_all_benchmark;
-	autotune_run(self, 2 * ITERATIONS * 2 + 2, 0,
-	             (cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
-	self->methods.crypt_all = crypt_all;
+		// Auto tune execution from shared/included code.
+		self->methods.crypt_all = crypt_all_benchmark;
+		autotune_run(self, 2 * ITERATIONS * 2 + 2, 0,
+		             (cpu(device_info[gpu_id]) ?
+		              1000000000 : 10000000000ULL));
+		self->methods.crypt_all = crypt_all;
+	}
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -366,7 +376,7 @@ struct fmt_main fmt_opencl_wpapsk = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

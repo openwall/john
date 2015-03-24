@@ -32,7 +32,7 @@ john_register_one(&fmt_opencl_rawMD4);
 #define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)
 #define FORMAT_LABEL        "Raw-MD4-opencl"
 #define FORMAT_NAME         ""
-#define ALGORITHM_NAME      "MD4 OpenCL (inefficient, development use only)"
+#define ALGORITHM_NAME      "MD4 OpenCL"
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
 #define CIPHERTEXT_LENGTH   32
@@ -45,12 +45,12 @@ john_register_one(&fmt_opencl_rawMD4);
 #define FORMAT_TAG          "$MD4$"
 #define TAG_LENGTH          (sizeof(FORMAT_TAG) - 1)
 
-cl_command_queue queue_prof;
-cl_mem pinned_saved_keys, pinned_saved_idx, pinned_partial_hashes, pinned_int_key_loc;
-cl_mem buffer_keys, buffer_idx, buffer_int_keys, buffer_int_key_loc, buffer_loaded_hashes, buffer_hash_ids, buffer_bitmap;
+static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_int_key_loc;
+static cl_mem buffer_keys, buffer_idx, buffer_int_keys, buffer_int_key_loc, buffer_loaded_hashes, buffer_hash_ids, buffer_bitmap;
 static cl_uint *saved_plain, *saved_idx, *saved_int_key_loc, *loaded_hashes = NULL, num_loaded_hashes, *hash_ids = NULL;
 static unsigned int key_idx = 0;
 static unsigned int ref_ctr;
+static struct fmt_main *self;
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
@@ -108,7 +108,7 @@ static size_t get_default_workgroup()
 	return 0;
 }
 
-static void create_clobj(size_t kpc, struct fmt_main * self)
+static void create_clobj(size_t kpc, struct fmt_main *self)
 {
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys");
@@ -194,44 +194,15 @@ static void done(void)
 		MEM_FREE(hash_ids);
 }
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
-	size_t gws_limit;
-	unsigned int flag;
-	num_loaded_hashes = 0;
-
 	opencl_init("$JOHN/kernels/md4_kernel.cl", gpu_id, NULL);
 	crypt_kernel = clCreateKernel(program[gpu_id], "md4", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	opencl_get_user_preferences(FORMAT_LABEL);
-	flag = (options.flags & FLG_MASK_CHK) && !global_work_size;
-
-	gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
-			get_max_mem_alloc_size(gpu_id) / BUFSIZE);
-
-	while (tests[num_loaded_hashes].ciphertext != NULL) num_loaded_hashes++;
-	hash_ids = (cl_uint*) mem_alloc((3 * num_loaded_hashes + 1) * 4);
-
-	// Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, NULL, warn,
-	        1, self, create_clobj,
-	        release_clobj, 2 * BUFSIZE, gws_limit);
-
-	//Auto tune execution from shared/included code.
-	autotune_run(self, 1, gws_limit,
-		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
-
+	self = _self;
+	num_loaded_hashes = 0;
 	mask_int_cand_target = 10000;
-
-	if (options.flags & FLG_MASK_CHK) {
-		fprintf(stdout, "Using Mask Mode with internal candidate generation%s", flag ? "" : "\n");
-		if (flag) {
-			self->params.max_keys_per_crypt /= 256;
-			fprintf(stdout, ", global worksize(GWS) set to %d\n",
-			        self->params.max_keys_per_crypt);
-		}
-	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -451,7 +422,8 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void reset(struct db_main *db) {
+static void reset(struct db_main *db)
+{
 	if (db) {
 		size_t buffer_size;
 		if (ref_ctr > 0)
@@ -462,18 +434,50 @@ static void reset(struct db_main *db) {
 		create_clobj(buffer_size, NULL);
 		load_hash(db->salts);
 	}
-
 	else {
 		unsigned int *binary, i = 0;
 		char *ciphertext;
+		size_t gws_limit;
+		unsigned int flag;
+
+		opencl_get_user_preferences(FORMAT_LABEL);
+		flag = (options.flags & FLG_MASK_CHK) && !global_work_size;
+
+		gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
+		                get_max_mem_alloc_size(gpu_id) / BUFSIZE);
+
+		while (tests[num_loaded_hashes].ciphertext != NULL)
+			num_loaded_hashes++;
+		hash_ids = (cl_uint*)mem_alloc((3 * num_loaded_hashes + 1) * 4);
+
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
+		                       create_clobj, release_clobj,
+		                       2 * BUFSIZE, gws_limit);
+
+		//Auto tune execution from shared/included code.
+		autotune_run(self, 1, gws_limit,
+		             (cpu(device_info[gpu_id]) ?
+		              500000000ULL : 1000000000ULL));
+
+		if (options.flags & FLG_MASK_CHK) {
+			fprintf(stdout, "Using Mask Mode with internal "
+			        "candidate generation%s", flag ? "" : "\n");
+			if (flag) {
+				self->params.max_keys_per_crypt /= 256;
+				fprintf(stdout,
+				        ", global worksize(GWS) set to %d\n",
+				        self->params.max_keys_per_crypt);
+			}
+		}
 
 		if (loaded_hashes)
 			MEM_FREE(loaded_hashes);
 		if (hash_ids)
 			 MEM_FREE(hash_ids);
 
-		loaded_hashes = (cl_uint*) mem_alloc(16 * num_loaded_hashes);
-		hash_ids = (cl_uint*) mem_alloc((3 * num_loaded_hashes + 1) * 4);
+		loaded_hashes = (cl_uint*)mem_alloc(16 * num_loaded_hashes);
+		hash_ids = (cl_uint*)mem_alloc((3 * num_loaded_hashes + 1) * 4);
 
 		while (tests[i].ciphertext != NULL) {
 			ciphertext = split(tests[i].ciphertext, 0, &fmt_opencl_rawMD4);

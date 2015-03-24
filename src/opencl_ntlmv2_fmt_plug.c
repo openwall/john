@@ -91,6 +91,7 @@ static unsigned char *challenge;
 static int new_keys, partial_output;
 static int max_len = PLAINTEXT_LENGTH;
 static unsigned int v_width = 1;	/* Vector width of kernel */
+static struct fmt_main *self;
 
 static cl_mem cl_saved_key, cl_saved_idx, cl_challenge, cl_nthash, cl_result;
 static cl_mem pinned_key, pinned_idx, pinned_result, pinned_salt;
@@ -280,11 +281,12 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
 }
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
 	char build_opts[96];
 	static char valgo[32] = "";
-	size_t gws_limit;
+
+	self = _self;
 
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
@@ -293,8 +295,6 @@ static void init(struct fmt_main *self)
 		         ALGORITHM_NAME " %ux", v_width);
 		self->params.algorithm_name = valgo;
 	}
-
-	gws_limit = (4 << 20) / v_width;
 
 	if (pers_opts.target_enc == UTF_8)
 		max_len = self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
@@ -309,14 +309,23 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 	crypt_kernel = clCreateKernel(program[gpu_id], "ntlmv2_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+}
 
-	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, NULL,
-		warn, 3, self, create_clobj, release_clobj,
-		2 * v_width * max_len, gws_limit);
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		size_t gws_limit;
 
-	//Auto tune execution from shared/included code.
-	autotune_run(self, 11, gws_limit, 500);
+		gws_limit = (4 << 20) / v_width;
+
+		//Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 3, self,
+		                       create_clobj, release_clobj,
+		                       2 * v_width * max_len, gws_limit);
+
+		//Auto tune execution from shared/included code.
+		autotune_run(self, 11, gws_limit, 500);
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -617,7 +626,7 @@ struct fmt_main fmt_opencl_NTLMv2 = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		prepare,
 		valid,
 		split,

@@ -110,6 +110,7 @@ static crack_t *host_crack;			      /** cracked or no **/
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static cl_kernel split_kernel;
 static cl_int cl_error;
+static struct fmt_main *self;
 
 #define STEP			0
 #define SEED			256
@@ -180,9 +181,11 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
 	char build_opts[128];
+
+	self = _self;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%d -DMAX_SALT_SIZE=%d",
@@ -197,17 +200,23 @@ static void init(struct fmt_main *self)
 	split_kernel =
 	    clCreateKernel(program[gpu_id], SPLIT_KERNEL_NAME, &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating split kernel");
+}
 
-	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
-		warn, 2, self, create_clobj, release_clobj,
-		sizeof(state_t), 0);
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		//Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
+		                       2, self, create_clobj, release_clobj,
+		                       sizeof(state_t), 0);
 
-	//Auto tune execution from shared/included code.
-	self->methods.crypt_all = crypt_all_benchmark;
-	autotune_run(self, ITERATIONS, 0,
-	             (cpu(device_info[gpu_id]) ? 1000000000 : 10000000000ULL));
-	self->methods.crypt_all = crypt_all;
+		//Auto tune execution from shared/included code.
+		self->methods.crypt_all = crypt_all_benchmark;
+		autotune_run(self, ITERATIONS, 0,
+		             (cpu(device_info[gpu_id]) ?
+		              1000000000 : 10000000000ULL));
+		self->methods.crypt_all = crypt_all;
+	}
 }
 
 static void release_clobj(void)
@@ -586,7 +595,7 @@ struct fmt_main fmt_opencl_pbkdf2_hmac_sha512 = {
 	            tests}, {
 		    init,
 		    done,
-		    fmt_default_reset,
+		    reset,
 		    prepare,
 		    valid,
 		    split,

@@ -44,11 +44,11 @@ john_register_one(&fmt_opencl_rawMD5);
 #define FORMAT_TAG          "$dynamic_0$"
 #define TAG_LENGTH          (sizeof(FORMAT_TAG) - 1)
 
-cl_command_queue queue_prof;
-cl_mem pinned_saved_keys, pinned_saved_idx, pinned_partial_hashes;
-cl_mem buffer_keys, buffer_idx, buffer_out;
+static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_partial_hashes;
+static cl_mem buffer_keys, buffer_idx, buffer_out;
 static cl_uint *partial_hashes, *saved_plain, *saved_idx;
 static unsigned int key_idx = 0;
+static struct fmt_main *self;
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
@@ -159,25 +159,33 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *_self)
 {
-	size_t gws_limit;
+	self = _self;
 
 	opencl_init("$JOHN/kernels/md5_kernel.cl", gpu_id, NULL);
 	crypt_kernel = clCreateKernel(program[gpu_id], "md5", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+}
 
-	gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
-			get_max_mem_alloc_size(gpu_id) / BUFSIZE);
+static void reset(struct db_main *db)
+{
+	if (!db) {
+		size_t gws_limit;
 
-	// Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, NULL, warn,
-	        1, self, create_clobj,
-	        release_clobj, BUFSIZE, gws_limit);
+		gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
+		                get_max_mem_alloc_size(gpu_id) / BUFSIZE);
 
-	//Auto tune execution from shared/included code.
-	autotune_run(self, 1, gws_limit,
-		(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL, warn,
+		                       1, self, create_clobj,
+		                       release_clobj, BUFSIZE, gws_limit);
+
+		//Auto tune execution from shared/included code.
+		autotune_run(self, 1, gws_limit,
+		             (cpu(device_info[gpu_id]) ?
+		              500000000ULL : 1000000000ULL));
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -346,7 +354,7 @@ struct fmt_main fmt_opencl_rawMD5 = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		split,
