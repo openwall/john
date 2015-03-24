@@ -14,6 +14,7 @@
  * 3. http://en.wikipedia.org/wiki/MD4  */
 
 #include "opencl_device_info.h"
+#define AMD_PUTCHAR_NOCAST
 #include "opencl_misc.h"
 #include "opencl_mask.h"
 
