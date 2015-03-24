@@ -149,6 +149,11 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 #define XORCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] ^= (val)
 #endif
 
+/* Use with some caution... */
+#define memcpy_macro(dst, src, count) do {	  \
+		for (uint _i = 0; _i < count; _i++) \
+			(dst)[_i] = (src)[_i]; \
+	} while (0)
 
 /* requires int/uint */
 #define dump_stuff_msg(msg, x, size) do {	  \

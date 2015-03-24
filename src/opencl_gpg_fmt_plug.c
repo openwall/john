@@ -68,7 +68,7 @@ typedef struct {
 typedef struct {
 	uint32_t length;
 	uint32_t count;
-	uint8_t salt[8];
+	uint8_t salt[SALT_LENGTH];
 } gpg_salt;
 
 // mul is at most (PLAINTEXT_LENGTH + SALT_LENGTH)
@@ -654,7 +654,7 @@ static void set_salt(void *salt)
 #undef set_key
 static void set_key(char *key, int index)
 {
-	uint8_t length = strlen(key);
+	uint32_t length = strlen(key);
 	if (length > PLAINTEXT_LENGTH)
 		length = PLAINTEXT_LENGTH;
 	inbuffer[index].length = length;
@@ -664,7 +664,7 @@ static void set_key(char *key, int index)
 static char *get_key(int index)
 {
 	static char ret[PLAINTEXT_LENGTH + 1];
-	uint8_t length = inbuffer[index].length;
+	uint32_t length = inbuffer[index].length;
 	memcpy(ret, inbuffer[index].v, length);
 	ret[length] = '\0';
 	return ret;

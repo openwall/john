@@ -38,27 +38,7 @@
 #error SALT_LENGTH must be defined
 #endif
 
-inline void* _memcpy(void* dest, __global const uchar *src, uint count)
-{
-	char* dst8 = (char*)dest;
-	__global uchar* src8 = (__global uchar*)src;
-
-	while (count--) {
-		*dst8++ = *src8++;
-	}
-	return dest;
-}
-
-inline void* _memcpy_(void* dest, const uchar *src, uint count)
-{
-	char* dst8 = (char*)dest;
-	uchar* src8 = (uchar*)src;
-
-	while (count--) {
-		*dst8++ = *src8++;
-	}
-	return dest;
-}
+#define _memcpy	memcpy_macro
 
 typedef struct {
         uint length;
@@ -282,8 +262,7 @@ inline void sha1_update( sha1_context *ctx, const uchar *input, uint ilen )
 
 	if( left && ilen >= fill )
 	{
-		_memcpy_( (void *) (ctx->buffer + left),
-		          input, fill );
+		_memcpy(ctx->buffer + left, input, fill );
 		sha1_process( ctx, ctx->buffer );
 		input += fill;
 		ilen  -= fill;
@@ -299,8 +278,7 @@ inline void sha1_update( sha1_context *ctx, const uchar *input, uint ilen )
 
 	if( ilen > 0 )
 	{
-		_memcpy_( (void *) (ctx->buffer + left),
-		          input, ilen );
+		_memcpy(ctx->buffer + left, input, ilen );
 	}
 }
 
@@ -312,12 +290,7 @@ inline void sha1_final( sha1_context *ctx, uchar output[20] )
 	uint last, padn;
 	uint bits;
 	uchar msglen[8];
-	uchar sha1_padding[64] = {
-		0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-	};
+	uchar sha1_padding[64] = { 0x80 /* , 0, 0 ... */ };
 
 	bits  = ctx->total <<  3;
 
@@ -361,7 +334,7 @@ inline void S2KItSaltedSHA1Generator(__global const uchar *password,
 	uchar *bptr;
 	uint mul;
 #endif
-	uchar *lkey = (uchar*)keybuf;	//uchar lkey[20];
+	uchar *lkey = keybuf;	//uchar lkey[20];
 
 	_memcpy(keybuf, salt, SALT_LENGTH);
 	_memcpy(keybuf + SALT_LENGTH, password, password_length);
@@ -371,7 +344,7 @@ inline void S2KItSaltedSHA1Generator(__global const uchar *password,
 #ifdef LEAN
 	bs = tl;
 	while (bs < 128) {
-		_memcpy_(&keybuf[bs], keybuf, tl);
+		_memcpy(keybuf + bs, keybuf, tl);
 		bs += tl;
 	}
 
@@ -393,7 +366,7 @@ inline void S2KItSaltedSHA1Generator(__global const uchar *password,
 	bptr = keybuf + tl;
 	n = bs / tl;
 	while (n-- > 1) {
-		_memcpy_(bptr, keybuf, tl);
+		_memcpy(bptr, keybuf, tl);
 		bptr += tl;
 	}
 	n = count / bs;
