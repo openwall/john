@@ -382,7 +382,7 @@ static void *get_salt(char *ciphertext)
 
 	memset(salt, 0, SALT_SIZE);
 	p = ciphertext + TAG_LENGTH;
-	q = strchr(p, '$');
+	q = strrchr(p, '$');
 	memcpy(salt, p, q - p);
 
 	return salt;
