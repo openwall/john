@@ -326,7 +326,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
                 "failed in clEnqueueWriteBuffer buffer_keys");
 
         HANDLE_CLERROR(
-                clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * count, saved_idx, 0, NULL, multi_profilingEvent[1]),
+                clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]),
                 "failed in clEnqueueWriteBuffer buffer_idx");
 
         HANDLE_CLERROR(
