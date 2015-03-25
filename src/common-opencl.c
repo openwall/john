@@ -32,6 +32,7 @@
 #include "options.h"
 #include "config.h"
 #include "common-opencl.h"
+#include "mask_ext.h"
 #include "dyna_salt.h"
 #include "signals.h"
 #include "recovery.h"
@@ -1682,7 +1683,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 {
 	size_t num = 0;
 	size_t optimal_gws = local_work_size;
-	unsigned long long speed, best_speed = 0;
+	unsigned long long speed, best_speed = 0, raw_speed;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 
 	/*
@@ -1744,7 +1745,8 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		if (options.verbosity < 4)
 			advance_cursor();
 
-		speed = rounds * kpc / (run_time / 1000000000.);
+		raw_speed = (kpc / (run_time / 1E9)) * mask_int_cand.num_int_cand;
+		speed = rounds * raw_speed;
 
 		if (run_time < min_time)
 			min_time = run_time;
@@ -1752,8 +1754,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		if (options.verbosity > 3)
 			fprintf(stderr, "gws: %9zu\t%10llu c/s%12llu "
 			        "rounds/s%10s per crypt_all()",
-			        num, (long long)(kpc / (run_time / 1E9)),
-			        speed, ns2string(run_time));
+			        num, raw_speed, speed, ns2string(run_time));
 
 		if (best_speed && speed < 1.8 * best_speed &&
 		    max_run_time && run_time > max_run_time) {
