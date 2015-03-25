@@ -1661,19 +1661,15 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		error();
 	}
 
-#ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s) maxlen %d\n", __FUNCTION__, unprocessed_mask,
-	        max_keylen);
-#endif
 	log_event("Proceeding with mask mode");
 
 	/* Load defaults from john.conf */
 	if (options.flags & FLG_MASK_STACKED) {
-		if (!unprocessed_mask && !(options.mask =
+		if (!options.mask && !(options.mask =
 		   cfg_get_param("Mask", NULL, "DefaultHybridMask")))
 			options.mask = "";
 	} else
-		if (!unprocessed_mask && !(options.mask =
+		if (!options.mask && !(options.mask =
 		   cfg_get_param("Mask", NULL, "DefaultMask")))
 			options.mask = "";
 
@@ -1686,7 +1682,15 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			options.custom_mask[i] = "";
 	}
 
-	mask = options.mask;
+	if (!unprocessed_mask)
+		unprocessed_mask = options.mask;
+
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s) maxlen %d\n", __FUNCTION__, unprocessed_mask,
+	        max_keylen);
+#endif
+
+	mask = unprocessed_mask;
 	template_key = (char*)mem_alloc(0x400);
 
 	/* Handle command-line (or john.conf) masks given in UTF-8 */
