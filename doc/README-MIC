@@ -15,7 +15,7 @@ need to build them for MIC by yourself.
 These libraries are:
     Zlib (libz)
     GMP (libgmp)
-    OpenSSL (libssl & libcrypto)
+    LibreSSL (libssl & libcrypto)
 
 They can be downloaded from their websites. But building them requires some 
 effort, and only the mentioned versions are guaranteed to work.  
@@ -24,19 +24,17 @@ JtR is $JOHN, then follow the steps below.
 
 Build Zlib (version 1.2.8):
 $ cd */zlib-1.2.8
-$ ./configure CC=icc CFLAGS="-mmic" --prefix=$MIC
+$ CC="icc -mmic" ./configure --prefix=$MIC
 $ make && make install
 
 Build GMP (version 6.0.0a):
 $ cd */gmp-6.0.0
-$ patch configfsf.sub < $JOHN/src/unused/gmp.patch
-$ ./configure CC=icc CFLAGS="-mmic" --host=mic --prefix=$MIC
+$ ./configure CC="icc -mmic" --host=k1om --prefix=$MIC
 $ make && make install
 
-Build OpenSSL (version 1.0.0q):
-$ cd openssl-1.0.0q
-$ patch Configure < $JOHN/src/unused/openssl.patch
-$ ./Configure linux-mic shared --prefix=$MIC
+Build LibreSSL (version 2.1.6):
+$ cd libressl-2.1.6
+$ ./configure CC="icc -mmic" --host=k1om-linux --prefix=$MIC
 $ make && make install
 
 
