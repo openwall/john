@@ -1192,6 +1192,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 			      self->params.max_keys_per_crypt - 1);
 
 	// Timing run
+	count = self->params.max_keys_per_crypt;
 	self->methods.crypt_all(&count, NULL);
 
 	if (*lastEvent == NULL)
@@ -1243,6 +1244,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 				self->params.tests[0].plaintext,
 				self->params.max_keys_per_crypt - 1);
 
+			count = self->params.max_keys_per_crypt;
 			if (self->methods.crypt_all(&count, NULL) < 0) {
 				startTime = endTime = 0;
 				if (options.verbosity > 3)
@@ -1592,6 +1594,7 @@ void opencl_find_best_lws(
 		multi_profilingEvent[i] = &benchEvent[i];
 
 	// Timing run
+	count = global_work_size * opencl_v_width;
 	self->methods.crypt_all(&count, NULL);
 
 	HANDLE_CLERROR(
@@ -1637,6 +1640,7 @@ void opencl_find_best_lws(
 			for (j = 0; j < MAX_EVENTS; j++)
 				multi_profilingEvent[j] = &benchEvent[j];
 
+			count = global_work_size * opencl_v_width;
 			if (self->methods.crypt_all(&count, NULL) < 0) {
 				startTime = endTime = 0;
 
