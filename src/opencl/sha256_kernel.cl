@@ -14,15 +14,16 @@
 #include "opencl_rawsha256.h"
 #include "opencl_mask_extras.h"
 
-inline void _memcpy(               uint32_t * dest,
+inline void _memcpy(		   uint32_t * dest,
                     __global const uint32_t * src,
                              const uint32_t   len) {
 
-    for (uint32_t i = 0; i < len; i += 4)
-        *dest++ = *src++;
+    for (uint32_t i = 0; i < BUFFER_SIZE + 4; i += 4)
+        *dest++ = select(0U, *src++, i < len);
 }
 
-inline void sha256_block(uint32_t * buffer, int total, uint32_t * H) {
+inline void sha256_block(const uint32_t * const buffer,
+			 const uint32_t total, uint32_t * const H) {
     uint32_t a = H0;
     uint32_t b = H1;
     uint32_t c = H2;
@@ -37,7 +38,7 @@ inline void sha256_block(uint32_t * buffer, int total, uint32_t * H) {
     #pragma unroll
     for (int i = 0; i < 15; i++)
         w[i] = SWAP32(buffer[i]);
-    w[15] = (uint32_t) (total * 8);
+    w[15] = (total * 8);
 
     /* Do the job. */
     #pragma unroll
@@ -82,28 +83,35 @@ inline void sha256_block(uint32_t * buffer, int total, uint32_t * H) {
     H[7] = SWAP32(h + H7);
 }
 
+/* *****************
+- index,		//keys offset and length
+- int_key_loc,		//the position of the mask to apply
+- int_keys,		//mask to be applied
+- candidates_number,	//the number of candidates by mask mode
+- num_loaded_hashes,	//number of password hashes transfered
+- loaded_hashes,	//buffer of password hashes transfered
+- hash_id,		//information about how recover the cracked password
+***************** */
 __kernel
 void kernel_crypt(
-	     __global const uint32_t * keys_buffer,
-             __global const uint32_t * index,		//keys offset and length
-	     __global const uint32_t * int_key_loc,	//the position of the mask to apply
-	     __global const uint32_t * int_keys,	//mask to be applied
-			    uint32_t candidates_number,	//the number of candidates by mask mode
-			    uint32_t num_loaded_hashes,	//number of password hashes transfered
-	     __global const uint32_t * loaded_hashes,	//buffer of password hashes transfered
-    volatile __global       uint32_t * hash_id,		//information about how recover the cracked password
-    volatile __global       uint32_t * bitmap) {
+	     __global const uint32_t * __restrict keys_buffer,
+             __global const uint32_t * __restrict index,
+	     __global const uint32_t * __restrict int_key_loc,
+	     __global const uint32_t * __restrict int_keys,
+		      const uint32_t              candidates_number,
+		      const uint32_t              num_loaded_hashes,
+	     __global const uint32_t * __restrict loaded_hashes,
+    volatile __global       uint32_t * __restrict hash_id,
+    volatile __global       uint32_t * __restrict bitmap) {
 
     //Compute buffers (on CPU and NVIDIA, better private)
-    int		    total;
-    uint32_t	    w[16];
-    uint32_t	    H[8];
-
-    //Get the task to be done
-    size_t gid = get_global_id(0);
+    uint32_t		w[16];
+    uint32_t		H[8];
+    __local uint32_t	_ltotal[512];
+    #define		total    _ltotal[get_local_id(0)]
 
     //Clean bitmap and result buffer
-    if (!gid) {
+    if (get_global_id(0) == 0) {
 	hash_id[0] = 0;
 
 	for (uint i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
@@ -111,18 +119,14 @@ void kernel_crypt(
     }
     barrier(CLK_GLOBAL_MEM_FENCE);
 
-    //Get position and length of informed key.
-    uint32_t base = index[gid];
-    total = base & 63;
+    {
+	//Get position and length of informed key.
+	uint32_t base = index[get_global_id(0)];
+	total = base & 63;
 
-    //Ajust keys to it start position.
-    keys_buffer += (base >> 6);
-
-    //Clear the buffer.
-    w[0] = 0;
-    w[1] = 0; w[2] = 0; w[3] = 0;  w[4] = 0;  w[5] = 0;  w[6] = 0;  w[7] = 0;
-    w[8] = 0; w[9] = 0; w[10] = 0; w[11] = 0; w[12] = 0; w[13] = 0; w[14] = 0;
-
+	//Ajust keys to it start position.
+	keys_buffer += (base >> 6);
+    }
     //Get password.
     _memcpy(w, keys_buffer, total);
 
