@@ -63,7 +63,7 @@ inline void md4_encrypt(__private uint *hash, __private uint *W, uint len)
 	STEP(F, hash[2], hash[3], hash[0], hash[1], W[14], 11);
 	STEP(F, hash[1], hash[2], hash[3], hash[0], W[15], 19);
 
-	/* Rounhash[3] 2 */
+	/* Round 2 */
 	STEP(G, hash[0], hash[1], hash[2], hash[3], W[0] + 0x5a827999, 3);
 	STEP(G, hash[3], hash[0], hash[1], hash[2], W[4] + 0x5a827999, 5);
 	STEP(G, hash[2], hash[3], hash[0], hash[1], W[8] + 0x5a827999, 9);
@@ -81,7 +81,7 @@ inline void md4_encrypt(__private uint *hash, __private uint *W, uint len)
 	STEP(G, hash[2], hash[3], hash[0], hash[1], W[11] + 0x5a827999, 9);
 	STEP(G, hash[1], hash[2], hash[3], hash[0], W[15] + 0x5a827999, 13);
 
-	/* Rounhash[3] 3 */
+	/* Round 3 */
 	STEP(H, hash[0], hash[1], hash[2], hash[3], W[0] + 0x6ed9eba1, 3);
 	STEP(H2, hash[3], hash[0], hash[1], hash[2], W[8] + 0x6ed9eba1, 9);
 	STEP(H, hash[2], hash[3], hash[0], hash[1], W[4] + 0x6ed9eba1, 11);
