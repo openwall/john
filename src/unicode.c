@@ -958,7 +958,9 @@ int cp_name2id(char *encoding)
 	char enc[16] = "";
 	char *d = enc;
 
-	if (!encoding || strlen(encoding) > sizeof(enc))
+	if (!encoding)
+		return CP_UNDEF;
+	if (strlen(encoding) > sizeof(enc))
 		goto err;
 
 	/* Strip iso prefix */
