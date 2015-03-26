@@ -7446,7 +7446,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 {
 	extern struct options_main options;
-	char label[16], label_id[16], *cp;
+	char label[16] = { 0 }, label_id[16] = { 0 }, *cp = NULL;
 	memcpy(pFmt, &fmt_Dynamic, sizeof(struct fmt_main));
 	dynamic_RESET(pFmt);
 
@@ -7467,10 +7467,10 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	/* number.  So we simply grab the label from the test cyphertext string */
 	strncpy(label, pFmt->params.tests[0].ciphertext, 15);
 	cp = strchr(&label[1], '$');
-	cp[1] = 0;
+	if (NULL != cp) cp[1] = 0;
 	strcpy(label_id, &label[1]);
 	cp = strchr(label_id, '$');
-	*cp = 0;
+	if (NULL != cp) *cp = 0;
 
 //	if (!options.format || strncmp(options.format, "dynamic_", 8))
 //		pFmt->params.label = str_alloc_copy("dynamic");
