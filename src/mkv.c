@@ -353,7 +353,7 @@ void get_markov_options(struct db_main *db,
 		error();
 	}
 	/* treat 'empty' level token same as NULL, i.e. pull in from config */
-	if (!strlen(lvl_token))
+	if (NULL != lvl_token && !strlen(lvl_token))
 		lvl_token = 0;
 	if(lvl_token != NULL)
 	{
