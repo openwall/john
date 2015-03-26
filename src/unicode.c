@@ -959,7 +959,7 @@ int cp_name2id(char *encoding)
 	char *d = enc;
 
 	if (!encoding || strlen(encoding) > sizeof(enc))
-		return CP_UNDEF;
+		goto err;
 
 	/* Strip iso prefix */
 	if (!strncasecmp(encoding, "iso-", 4))
@@ -1041,8 +1041,8 @@ int cp_name2id(char *encoding)
 	else
 	if (!strcmp(enc, "raw") || !strcmp(enc, "ascii"))
 		return ASCII;
-	else
 
+ err:
 	fprintf(stderr, "Invalid encoding. Supported encodings:\n");
 	listEncodings(stderr);
 	exit(EXIT_FAILURE);
