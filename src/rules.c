@@ -797,6 +797,11 @@ static char *rules_init_conv(char *src, char *dst)
 	char *conv;
 	int pos;
 
+	if (strlen(src) != strlen(dst)) {
+		fprintf(stderr, "Error: encoding_data.h format error. CHARS_UPPER and CHARS_LOWER must be same\nlength and map exactly to each other\n");
+		error();
+	}
+
 	conv = mem_alloc_tiny(0x100, MEM_ALIGN_NONE);
 	for (pos = 0; pos < 0x100; pos++) conv[pos] = pos;
 
