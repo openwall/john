@@ -186,12 +186,18 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
 if test "x$asan" = xyes ; then
    CFLAGS_EX=""
    LDFLAGS_BAK=${LDFLAGS}
-   LDFLAGS="-fsanitize=address $LDFLAGS"
    JTR_FLAG_CHECK_LINK([-fsanitize=address], 1)
-   LDFLAGS=${LDFLAGS_BAK}
    if test "x${CFLAGS_EX}" = x ; then
-      asan=no
+      JTR_FLAG_CHECK_LINK([-faddress-sanitizer], 1)
+      if test "x${CFLAGS_EX}" = x ; then
+         asan=no
+      else
+         LDFLAGS="-faddress-sanitizer $LDFLAGS"
+      fi
+   else
+      LDFLAGS="-fsanitize=address $LDFLAGS"
    fi
+   LDFLAGS=${LDFLAGS_BAK}
 fi
 
    # now fill out CFLAGS
@@ -299,7 +305,7 @@ case "$host_cpu" in
   ia64) ARCH_LINK=ia64.h endian=little cpu_family=intel ;;
   i?86) ARCH_LINK=x86-any.h endian=little cpu_family=intel ;;
   m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
-  mic) ARCH_LINK=mic.h endian=little 
+  mic) ARCH_LINK=mic.h endian=little
        JTR_MIC_SPECIAL_LOGIC
        ;;
   mips|mipseb) ARCH_LINK=mips32.h endian=big ;;
