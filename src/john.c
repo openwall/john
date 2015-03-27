@@ -868,7 +868,8 @@ static void john_load_conf_db(void)
 		}
 
 		if (pers_opts.input_enc != pers_opts.internal_enc)
-		if (database.format->params.flags & FMT_UNICODE)
+		if (database.format &&
+		    (database.format->params.flags & FMT_UNICODE))
 			fprintf(stderr, "Rules/masks using %s\n",
 			        cp_id2name(pers_opts.internal_enc));
 	}
