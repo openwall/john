@@ -51,7 +51,7 @@ john_register_one(&fmt_pkzip);
 #define BINARY_ALIGN			1
 
 #define SALT_SIZE			(sizeof(PKZ_SALT*))
-#define SALT_ALIGN			(sizeof(PKZ_SALT*))
+#define SALT_ALIGN			(sizeof(ARCH_WORD_32))
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		64

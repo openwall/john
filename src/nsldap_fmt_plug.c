@@ -234,16 +234,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void * binary(char *ciphertext)
 {
-	static char realcipher[BINARY_SIZE + 1 + 9];
+	static union {
+		char c[BINARY_SIZE + 1 + 9];
+		int dummy;
+	} out;
 
-	memset(realcipher, 0, sizeof(realcipher));
+	memset(out.c, 0, sizeof(out.c));
 	base64_decode(ciphertext + NSLDAP_MAGIC_LENGTH,
-	              CIPHERTEXT_LENGTH, realcipher);
+	              CIPHERTEXT_LENGTH, out.c);
 
 #ifdef SIMD_COEF_32
-	alter_endianity((unsigned char*)realcipher, BINARY_SIZE);
+	alter_endianity((unsigned char*)out.c, BINARY_SIZE);
 #endif
-	return (void*)realcipher;
+	return (void*)out.c;
 }
 
 #ifdef SIMD_COEF_32
