@@ -1194,6 +1194,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   char *prerule="", *rule="", *word="";
   char *last = "\r";
   int loopback = (options.flags & FLG_PRINCE_LOOPBACK) ? 1 : 0;
+  int our_fmt_len = db->format->params.plaintext_length - mask_add_len;
 
   dupe_check = (options.flags & FLG_DUPESUPP) ? 1 : 0;
 
@@ -1202,7 +1203,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
   /* This mode defaults to length 16 (unless lowered by format) */
   pw_min = MAX(PW_MIN, options.force_minlength);
-  pw_max = MIN(PW_MAX, db->format->params.plaintext_length - mask_add_len);
+  pw_max = MIN(PW_MAX, our_fmt_len);
 
   /* ...but can be bumped using -max-len */
   if (options.force_maxlength)
@@ -1221,6 +1222,37 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
     error();
   }
+
+	if (pw_min > pw_max) {
+		log_event("! MinLen = %d exceeds MaxLen = %d",
+              pw_min, pw_max);
+		if (john_main_process)
+			fprintf(stderr, "MinLen = %d exceeds MaxLen = %d\n",
+              pw_min, pw_max);
+		error();
+	}
+
+	if (pw_min > our_fmt_len) {
+		log_event("! MinLen = %d is too large for this hash type",
+              pw_min);
+		if (john_main_process)
+			fprintf(stderr,
+              "MinLen = %d exceeds the maximum possible "
+              "length for the current hash type (%d)\n",
+              pw_min, db->format->params.plaintext_length);
+		error();
+	}
+
+	if (pw_max > our_fmt_len) {
+		log_event("! MaxLen = %d is too large for this hash type",
+              pw_max);
+		if (john_main_process)
+			fprintf(stderr, "Warning: MaxLen = %d is too large "
+              "for the current hash type, reduced to %d\n",
+              pw_max,
+              our_fmt_len);
+		pw_max = our_fmt_len;
+	}
 
   wl_max = prince_wl_max; /* JtR defaults to 0 as in unlimited */
 
