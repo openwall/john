@@ -1192,7 +1192,8 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 #else
   struct rpp_context ctx;
   char *prerule="", *rule="", *word="";
-  char *last = "\r";
+  char last_buf[PLAINTEXT_BUFFER_SIZE] = "\r";
+  char *last = last_buf;
   int loopback = (options.flags & FLG_PRINCE_LOOPBACK) ? 1 : 0;
   int our_fmt_len = db->format->params.plaintext_length - mask_add_len;
 
