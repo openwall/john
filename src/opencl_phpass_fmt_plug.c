@@ -275,7 +275,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 };
 
 //code from historical JtR phpass patch
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static unsigned char b[BINARY_SIZE];
 	int i, bidx = 0;
@@ -304,7 +304,7 @@ static void *binary(char *ciphertext)
 	return (void *) b;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_SIZE];
 
@@ -481,8 +481,8 @@ struct fmt_main fmt_opencl_phpass = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

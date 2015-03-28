@@ -373,7 +373,7 @@ Bail:;
 	return ret;
 }
 
-static void *binary(char *ciphertext) {
+static void *get_binary(char *ciphertext) {
 	static unsigned buf[(BINARY_SIZE+sizeof(unsigned)-1)/sizeof(unsigned)];
 	unsigned char *bin = (unsigned char*)buf;
 	char *c = strrchr(ciphertext, '*')-2*BINARY_SIZE;
@@ -589,7 +589,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	void *b = binary(source);
+	void *b = get_binary(source);
 	return !memcmp(b, crypt_key[index], sizeof(crypt_key[index]));
 }
 
@@ -620,7 +620,7 @@ struct fmt_main fmt_opencl_zip = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
+		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

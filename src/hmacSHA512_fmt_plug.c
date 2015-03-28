@@ -423,7 +423,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static union toalign {
 		unsigned char c[BINARY_SIZE];
@@ -443,7 +443,7 @@ static void *binary(char *ciphertext)
 	return (void*)realcipher;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_LENGTH+1];
 #ifdef SIMD_COEF_64
@@ -520,8 +520,8 @@ struct fmt_main fmt_hmacSHA512 = {
 		fmt_default_prepare,
 		valid,
 		split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

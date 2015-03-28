@@ -173,7 +173,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return mscash2_valid(ciphertext, MAX_SALT_LENGTH, self);
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static unsigned int 	binary[4] ;
 	int 			i ;
@@ -192,7 +192,7 @@ static void *binary(char *ciphertext)
 	return binary ;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static ms_cash2_salt salt;
 	char *pos = strchr(ciphertext, '#') + 1;
@@ -367,7 +367,7 @@ static int cmp_one(void *binary, int index) {
 static int cmp_exact(char *source, int count) {
       unsigned int 	*bin, i ;
 
-      bin = (unsigned int*)binary(source) ;
+      bin = (unsigned int*)get_binary(source) ;
       i = 4 * count + 1 ;
 
       if (bin[1] != dcc2_hash_host[i++])
@@ -420,8 +420,8 @@ struct fmt_main fmt_opencl_mscash2 = {
 		mscash2_prepare,
 		valid,
 		mscash2_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

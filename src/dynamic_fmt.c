@@ -2094,7 +2094,7 @@ static unsigned salt_external_to_internal_convert(unsigned char *extern_salt, un
  *  for many format types.  For a few types, we do use more memory with this method
  *  than before, but for more the memory usage is way down.
  *********************************************************************************/
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	char Salt[SALT_SIZE+1], saltIntBuf[SALT_SIZE+1];
 	int off, possible_neg_one=0;
@@ -2279,7 +2279,7 @@ static int salt_compare(const void *x, const void *y)
 /*********************************************************************************
  * Gets the binary value from a base-16 hash.
  *********************************************************************************/
-static void *binary(char *_ciphertext)
+static void *get_binary(char *_ciphertext)
 {
 	static char *realcipher;
 	int i;
@@ -2601,8 +2601,8 @@ static struct fmt_main fmt_Dynamic =
 		prepare,
 		valid,
 		split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 9
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
@@ -6903,13 +6903,13 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	curdat.md5_startup_in_x86 = curdat.dynamic_use_sse = 0;  // if 0, then never use SSE2
 	curdat.init = 0;
 	curdat.pSetup = Setup;
-	pFmt->methods.binary = binary;
+	pFmt->methods.binary = get_binary;
 	pFmt->methods.cmp_all=cmp_all;
 	pFmt->methods.cmp_one=cmp_one;
 #if FMT_MAIN_VERSION > 9
 	pFmt->methods.source=fmt_default_source;
 #endif
-	pFmt->methods.salt = salt;
+	pFmt->methods.salt = get_salt;
 	pFmt->methods.done = done;
 	pFmt->methods.set_salt = set_salt;
 	pFmt->methods.salt_hash = salt_hash;

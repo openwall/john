@@ -168,7 +168,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned long dummy;
@@ -617,7 +617,7 @@ struct fmt_main fmt_rawmd5uthick = {
 		fmt_default_prepare,
 		valid,
 		split,
-		binary,
+		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

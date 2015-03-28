@@ -159,7 +159,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static unsigned char *out;
 	char *p;
@@ -382,7 +382,7 @@ struct fmt_main fmt_rawMD5 = {
 		fmt_default_prepare,
 		valid,
 		split,
-		binary,
+		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

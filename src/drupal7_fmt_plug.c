@@ -10,7 +10,7 @@
  * 6 but not 8. I presume this is for getting unpadded base64. Anyway we store
  * an extra byte but for now we will only compare 256 bits. I doubt that will
  * pose any problems. Actually I'm not quite sure the last bits end up correct
- * from the current version of binary().
+ * from the current version of get_binary().
  *
  * Based on [old thick] phpass-md5.
  */
@@ -239,7 +239,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static void * binary(char *ciphertext)
+static void * get_binary(char *ciphertext)
 {
 	int i;
 	unsigned sixbits;
@@ -276,7 +276,7 @@ static void * binary(char *ciphertext)
 	return out.u8;
 }
 
-static void * salt(char *ciphertext)
+static void * get_salt(char *ciphertext)
 {
 	static union {
 		unsigned char u8[SALT_SIZE + 1];
@@ -338,8 +338,8 @@ struct fmt_main fmt_drupal7 = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
 			iteration_count,

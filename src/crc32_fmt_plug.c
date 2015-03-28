@@ -131,7 +131,7 @@ static int get_hash_4(int index) { return crcs[index] & 0xfffff; }
 static int get_hash_5(int index) { return crcs[index] & 0xffffff; }
 static int get_hash_6(int index) { return crcs[index] & 0x7ffffff; }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static ARCH_WORD_32 *out;
 	if (!out)
@@ -143,7 +143,7 @@ static void *binary(char *ciphertext)
 	return out;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static ARCH_WORD_32 *out;
 	if (!out)
@@ -252,8 +252,8 @@ struct fmt_main fmt_crc32 = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

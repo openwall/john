@@ -145,7 +145,7 @@ static char * get_key(int index)
 	return saved_key[index];
 }
 
-static void * binary(char *ciphertext)
+static void * get_binary(char *ciphertext)
 {
 	static union {
 		char b[BINARY_SIZE];
@@ -257,7 +257,7 @@ struct fmt_main fmt_FGT = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
+		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

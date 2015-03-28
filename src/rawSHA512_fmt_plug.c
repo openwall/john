@@ -355,7 +355,7 @@ struct fmt_main fmt_raw0_SHA512 = {
 		fmt_default_prepare,
 		valid,
 		split,
-		binary,
+		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

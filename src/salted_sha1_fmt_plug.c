@@ -161,7 +161,7 @@ static void done(void)
 #endif
 }
 
-static void * binary(char *ciphertext) {
+static void * get_binary(char *ciphertext) {
 	static char *realcipher;
 
 	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE + 1 + SALT_SIZE, MEM_ALIGN_WORD);
@@ -419,7 +419,7 @@ struct fmt_main fmt_saltedsha = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
+		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

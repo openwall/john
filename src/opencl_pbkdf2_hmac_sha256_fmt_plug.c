@@ -323,7 +323,7 @@ static void *get_salt(char *ciphertext)
 	return (void *)&salt;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static char ret[256 / 8 + 1];
 	char *c = ciphertext;
@@ -561,7 +561,7 @@ struct fmt_main fmt_opencl_pbkdf2_hmac_sha256 = {
 	prepare,
 	valid,
 	fmt_default_split,
-	binary,
+	get_binary,
 	get_salt,
 #if FMT_MAIN_VERSION > 11
 		{

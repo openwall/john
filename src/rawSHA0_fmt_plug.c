@@ -122,7 +122,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static ARCH_WORD_32 outb[BINARY_SIZE / 4];
 	unsigned char *realcipher = (unsigned char*)outb;
@@ -172,7 +172,7 @@ struct fmt_main fmt_rawSHA_0 = {
 		fmt_default_prepare,
 		valid,
 		split,
-		binary,
+		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

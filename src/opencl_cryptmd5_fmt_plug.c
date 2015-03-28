@@ -262,7 +262,7 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, saltsize, &host_salt, 0, NULL, NULL), "Copy memsalt");
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static uint8_t ret[SALT_SIZE];
 	uint8_t i, *pos = (uint8_t *) ciphertext, *dest = ret, *end;
@@ -321,7 +321,7 @@ static void reset(struct db_main *db)
 }
 
 void *MD5_std_get_binary(char *ciphertext);
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	return MD5_std_get_binary(ciphertext);
 }
@@ -439,8 +439,8 @@ struct fmt_main fmt_opencl_cryptMD5 = {
 		fmt_default_prepare,
 		cryptmd5_common_valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

@@ -166,14 +166,14 @@ static void pbinary(char *ciphertext, unsigned char *out)
 	out[bidx] |= (sixbits << 6);
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static unsigned char b[BINARY_SIZE];
 	pbinary(ciphertext, b);
 	return (void *) b;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static phpass_salt salt;
 	salt.rounds = 1 << atoi64[ARCH_INDEX(ciphertext[3])];
@@ -271,8 +271,8 @@ struct fmt_main fmt_cuda_phpass = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

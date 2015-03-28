@@ -247,7 +247,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	return split_fields[1];
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned long dummy;
@@ -619,7 +619,7 @@ static int cmp_exact(char *source, int index)
 	unsigned int i, x, y;
 	ARCH_WORD_32 *full_binary;
 
-	full_binary = (ARCH_WORD_32*)binary(source);
+	full_binary = (ARCH_WORD_32*)get_binary(source);
 	x = index&(SIMD_COEF_32-1);
 	y = index/SIMD_COEF_32;
 	for(i=0;i<(DIGEST_SIZE/4);i++)
@@ -627,7 +627,7 @@ static int cmp_exact(char *source, int index)
 			return 0;
 	return 1;
 #else
-	return !memcmp(binary(source), crypt_key, DIGEST_SIZE);
+	return !memcmp(get_binary(source), crypt_key, DIGEST_SIZE);
 #endif
 #endif
 }
@@ -743,7 +743,7 @@ struct fmt_main fmt_NT2 = {
 		prepare,
 		valid,
 		split,
-		binary,
+		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

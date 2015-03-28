@@ -137,7 +137,7 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static unsigned char *realcipher;
 	int i, len;
@@ -243,7 +243,7 @@ static char *get_key(int index)
 #endif
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static union {
 		unsigned char c[SALT_SIZE];
@@ -400,8 +400,8 @@ struct fmt_main fmt_ctrxns = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

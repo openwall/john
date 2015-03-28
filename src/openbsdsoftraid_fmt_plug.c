@@ -150,7 +150,7 @@ static void* get_salt(char *ciphertext)
 	return (void *)&cs;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[BINARY_SIZE];
@@ -247,7 +247,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	void *bin = binary(source);
+	void *bin = get_binary(source);
 	return !memcmp(bin, crypt_out[index], 20);
 }
 
@@ -311,7 +311,7 @@ struct fmt_main fmt_openbsd_softraid = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
+		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{

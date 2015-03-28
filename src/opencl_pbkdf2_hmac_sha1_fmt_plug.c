@@ -341,7 +341,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static pbkdf2_salt cs;
 	char *p;
@@ -368,7 +368,7 @@ static void *salt(char *ciphertext)
 	return (void*)&cs;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[MAX_BINARY_SIZE];
@@ -632,8 +632,8 @@ struct fmt_main fmt_ocl_pbkdf1_sha1 = {
 		prepare,
 		valid,
 		split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
 			iteration_count,

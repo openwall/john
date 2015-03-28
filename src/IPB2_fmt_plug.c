@@ -203,7 +203,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static unsigned char binary_cipher[BINARY_SIZE];
 	int i;
@@ -217,7 +217,7 @@ static void *binary(char *ciphertext)
 	return (void *)binary_cipher;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static ARCH_WORD_32 hex_salt[MD5_HEX_SIZE/4];
 	unsigned char binary_salt[SALT_LENGTH];
@@ -498,8 +498,8 @@ struct fmt_main fmt_IPB2 = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

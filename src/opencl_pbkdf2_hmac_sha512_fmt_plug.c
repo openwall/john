@@ -320,7 +320,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static union {
 		uint64_t swp[BINARY_SIZE/8];
@@ -500,7 +500,7 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	int i;
-	void *bin = binary(source);
+	void *bin = get_binary(source);
 	for (i = 0; i < 8; i++)
 		if (host_crack[index].hash[i] != ((uint64_t *) bin)[i])
 			return 0;
@@ -599,7 +599,7 @@ struct fmt_main fmt_opencl_pbkdf2_hmac_sha512 = {
 		    prepare,
 		    valid,
 		    split,
-		    binary,
+		    get_binary,
 		    get_salt,
 #if FMT_MAIN_VERSION > 11
 		{

@@ -230,14 +230,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return p[length]==0 && length >= 43;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static char out[BINARY_SIZE];
 	strncpy(out, ciphertext, sizeof(out)); /* NUL padding is required */
 	return out;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static char out[SALT_SIZE];
 	char *cp;
@@ -534,8 +534,8 @@ struct fmt_main fmt_scrypt = {
 		prepare,
 		valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
 			tunable_cost_N,

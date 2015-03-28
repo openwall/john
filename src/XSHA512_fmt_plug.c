@@ -137,7 +137,7 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static union {
 		unsigned char c[SALT_SIZE];
@@ -410,7 +410,7 @@ struct fmt_main fmt_XSHA512 = {
 		valid_xsha512,
 		split_xsha512,
 		binary_xsha512,
-		salt,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

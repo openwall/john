@@ -117,7 +117,7 @@ static void _tobin(char* dst, char *src, unsigned int len)
              atoi16[ARCH_INDEX(src[n*2+1])];
 }
 
-static void* binary(char *ciphertext)
+static void* get_binary(char *ciphertext)
 {
   static ARCH_WORD bin[(BINARY_LENGTH + sizeof(ARCH_WORD) - 1) / sizeof(ARCH_WORD)];
 
@@ -126,7 +126,7 @@ static void* binary(char *ciphertext)
   return bin;
 }
 
-static void* salt(char *ciphertext)
+static void* get_salt(char *ciphertext)
 {
   static ARCH_WORD salt[(SALT_LENGTH + sizeof(ARCH_WORD) - 1) / sizeof(ARCH_WORD)];
 
@@ -235,8 +235,8 @@ struct fmt_main fmt_EPI =
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

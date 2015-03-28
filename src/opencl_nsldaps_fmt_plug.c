@@ -233,7 +233,7 @@ static void reset(struct db_main *db)
 	}
 }
 
-static void *binary(char *ciphertext) {
+static void *get_binary(char *ciphertext) {
 	static char realcipher[DIGEST_SIZE + 1 + SALT_SIZE + 9];
 
 	memset(realcipher, 0, sizeof(realcipher));
@@ -325,7 +325,7 @@ static int cmp_one(void *binary, int index){
 }
 
 static int cmp_exact(char *source, int index){
-	unsigned int *t = (unsigned int *) binary(source);
+	unsigned int *t = (unsigned int *) get_binary(source);
 
 	if (!have_full_hashes){
 		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,
@@ -393,7 +393,7 @@ struct fmt_main fmt_opencl_NSLDAPS = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
+		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

@@ -126,7 +126,7 @@ out:
 	return hash;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static plaintext_binary out;
 
@@ -289,7 +289,7 @@ struct fmt_main FMT_STRUCT = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
+		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

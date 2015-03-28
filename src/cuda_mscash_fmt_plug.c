@@ -153,7 +153,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	return split_fields[1];
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static uint32_t binary[4];
 	char *hash = strrchr(ciphertext, '#') + 1;
@@ -165,7 +165,7 @@ static void *binary(char *ciphertext)
 	return binary;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static mscash_salt salt;
 	UTF8 insalt[SALT_LENGTH + 1];
@@ -308,8 +308,8 @@ struct fmt_main fmt_cuda_mscash = {
 		prepare,
 		valid,
 		split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

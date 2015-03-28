@@ -458,7 +458,7 @@ static void * get_full_binary(char *ciphertext) {
 	if (salted_format)
 		out = binary_xsha512(ciphertext);
 	else
-		out = binary(ciphertext);
+		out = get_binary(ciphertext);
 
 	alter_endianity_to_BE64 (out, BINARY_SIZE/8);
 

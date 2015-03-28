@@ -91,7 +91,7 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static unsigned long out_[SALT_SIZE/sizeof(unsigned long)];
 	unsigned char *out = (unsigned char*)out_;
@@ -237,7 +237,7 @@ struct fmt_main fmt_sha1_gen = {
 		valid,
 		fmt_default_split,
 		get_binary,
-		salt,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

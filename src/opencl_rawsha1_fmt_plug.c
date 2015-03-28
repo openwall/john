@@ -265,7 +265,7 @@ static char *get_key(int index)
 	return out;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static unsigned char *realcipher;
 	int i;
@@ -304,7 +304,7 @@ static int cmp_one(void *binary, int index){
 
 static int cmp_exact(char *source, int index)
 {
-	unsigned int *t = (unsigned int *) binary(source);
+	unsigned int *t = (unsigned int *) get_binary(source);
 
 	if (!have_full_hashes){
 		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,
@@ -384,7 +384,7 @@ struct fmt_main fmt_opencl_rawSHA1 = {
 		fmt_default_prepare,
 		valid,
 		split,
-		binary,
+		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

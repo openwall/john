@@ -72,7 +72,7 @@ static void init(struct fmt_main *self)
   cuda_init();
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	int end = 0, i, len = strlen(ciphertext);
 	static unsigned char ret[50];
@@ -250,7 +250,7 @@ struct fmt_main fmt_cuda_cryptsha512 = {
 		valid,
 		fmt_default_split,
 		get_binary,
-		salt,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
 			NULL, //iteration_count,

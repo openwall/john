@@ -119,7 +119,7 @@ static void done(void)
 }
 
 /* The base64 is flawed - we just mimic flaws from the original code */
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static union toalign {
 		unsigned char c[BINARY_SIZE];
@@ -234,7 +234,7 @@ struct fmt_main fmt_BFEgg = {
     fmt_default_prepare,
     valid,
     fmt_default_split,
-    binary,
+    get_binary,
     fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

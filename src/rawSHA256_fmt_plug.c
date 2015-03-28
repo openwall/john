@@ -158,7 +158,7 @@ static void done(void)
 #endif
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static unsigned char *out;
 	int i;
@@ -355,7 +355,7 @@ struct fmt_main fmt_rawSHA256 = {
 		prepare,
 		valid,
 		split,
-		binary,
+		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

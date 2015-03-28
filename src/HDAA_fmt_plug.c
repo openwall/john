@@ -606,7 +606,7 @@ static size_t reqlen(char *str)
 	return len;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	int nb;
 	int i;
@@ -664,7 +664,7 @@ static void *salt(char *ciphertext)
 }
 
 /* convert response to binary form */
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static unsigned int realcipher[BINARY_SIZE / sizeof(int)];
 	int i;
@@ -724,8 +724,8 @@ struct fmt_main fmt_HDAA = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

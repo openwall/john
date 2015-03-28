@@ -181,7 +181,7 @@ static int decrypt_compare() {
  * void * krb5_salt
  *
  */
-static void * salt(char *ciphertext) {
+static void * get_salt(char *ciphertext) {
     static struct salt salt;
     char *data = ciphertext, *p;
     int n;
@@ -227,7 +227,7 @@ static int valid(char *ciphertext, struct fmt_main *self) {
     if (strncmp(ciphertext, MAGIC_PREFIX, sizeof(MAGIC_PREFIX) - 1) != 0)
         return 0;
 
-    return salt(ciphertext) ? 1 : 0;
+    return get_salt(ciphertext) ? 1 : 0;
 }
 
 /**
@@ -347,7 +347,7 @@ struct fmt_main fmt_KRB5 = {
 		valid,
 		fmt_default_split,
 		fmt_default_binary,
-		salt,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

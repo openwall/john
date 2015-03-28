@@ -357,7 +357,7 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 
 		for (j = 0; j < NBKEYS; ++j) {
 			// the BE() convert should be done in binary, BUT since we use 'common' code for
-			// binary(), which is shared between CPU and CUDA/OPenCL, we have to do it here.
+			// get_binary(), which is shared between CPU and CUDA/OPenCL, we have to do it here.
 			memcpy(out[t*NBKEYS+j].v, outbuf[j].c, 32);
 			alter_endianity_to_BE(out[t*NBKEYS+j].v,8);
 		}
@@ -412,8 +412,8 @@ struct fmt_main fmt_wpapsk = {
 		    fmt_default_prepare,
 		    valid,
 		    fmt_default_split,
-		    binary,
-		    salt,
+		    get_binary,
+		    get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

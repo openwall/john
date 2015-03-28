@@ -644,7 +644,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static int outbuf[BINARY_SIZE / sizeof(int)];
 	char *realcipher = (char*)outbuf;
@@ -775,7 +775,7 @@ struct fmt_main fmt_sapG = {
 		fmt_default_prepare,
 		valid,
 		split,
-		binary,
+		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

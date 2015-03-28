@@ -148,7 +148,7 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static unsigned int outbuf[SALT_SIZE / sizeof(int)];
 	unsigned char *out = (unsigned char*)outbuf;
@@ -463,7 +463,7 @@ struct fmt_main fmt_XSHA = {
 		valid,
 		fmt_default_split,
 		get_binary,
-		salt,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

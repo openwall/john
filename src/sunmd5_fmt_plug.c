@@ -340,7 +340,7 @@ static long from64 (unsigned char *s, int n) {
 	return l;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static union {
 		char c[FULL_BINARY_SIZE];
@@ -365,7 +365,7 @@ static void *binary(char *ciphertext)
 	return out.c;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static char out[SALT_SIZE];
 
@@ -432,7 +432,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	return !memcmp(binary(source), crypt_out[index], FULL_BINARY_SIZE);
+	return !memcmp(get_binary(source), crypt_out[index], FULL_BINARY_SIZE);
 }
 
 
@@ -928,8 +928,8 @@ struct fmt_main fmt_sunmd5 = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
 			sunmd5_cost,

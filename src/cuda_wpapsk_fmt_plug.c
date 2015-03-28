@@ -38,7 +38,7 @@ extern hccap_t hccap;
 extern mic_t *mic;
 extern void wpapsk_gpu(wpapsk_password *, wpapsk_hash *, wpapsk_salt *, int);
 
-extern void *salt(char *ciphertext);
+extern void *get_salt(char *ciphertext);
 
 static void done(void)
 {
@@ -102,8 +102,8 @@ struct fmt_main fmt_cuda_wpapsk = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

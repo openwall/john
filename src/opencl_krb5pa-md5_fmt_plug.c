@@ -213,7 +213,7 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
-static void *salt(char *ciphertext);
+static void *get_salt(char *ciphertext);
 
 static void init(struct fmt_main *_self)
 {
@@ -264,7 +264,7 @@ static void reset(struct db_main *db)
 	}
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static salt_t salt;
 	char *p;
@@ -435,7 +435,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static unsigned char *binary;
 	char *p;
@@ -580,8 +580,8 @@ struct fmt_main fmt_opencl_krb5pa_md5 = {
 		fmt_default_prepare,
 		valid,
 		split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

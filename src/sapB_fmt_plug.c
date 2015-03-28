@@ -603,7 +603,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #undef ti
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static ARCH_WORD_32 binary[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 	char *realcipher = (char*)binary;
@@ -722,7 +722,7 @@ struct fmt_main fmt_sapB = {
 		fmt_default_prepare,
 		valid,
 		split,
-		binary,
+		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

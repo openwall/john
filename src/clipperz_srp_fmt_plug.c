@@ -270,7 +270,7 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	char *p;
 	char *q;
@@ -460,7 +460,7 @@ struct fmt_main fmt_clipperz = {
 		valid,
 		split,
 		get_binary,
-		salt,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

@@ -118,7 +118,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 	return out;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static WORD out;
 
@@ -186,7 +186,7 @@ struct fmt_main fmt_opencl_DES = {
 
 			opencl_DES_bs_get_binary,
 
-		salt,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

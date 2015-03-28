@@ -87,7 +87,7 @@ static char *split_xsha512(char *ciphertext, int index, struct fmt_main *pFmt) {
 
 /* ------- Binary ------- */
 #ifdef _RAWSHA512_H
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static unsigned char *out;
 	int i;

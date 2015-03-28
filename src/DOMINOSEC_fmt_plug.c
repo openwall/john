@@ -591,7 +591,7 @@ static void decode(unsigned char *ascii_cipher, unsigned char *binary)
 	binary[3] += -4;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static ARCH_WORD_32 out[BINARY_SIZE / sizeof(ARCH_WORD_32) + 1];
 
@@ -600,7 +600,7 @@ static void *binary(char *ciphertext)
 	return (void*)out;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static ARCH_WORD_32 out[SALT_SIZE / sizeof(ARCH_WORD_32) + 1];
 
@@ -759,8 +759,8 @@ struct fmt_main fmt_DOMINOSEC = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

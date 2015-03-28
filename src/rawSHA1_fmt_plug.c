@@ -246,7 +246,7 @@ static char *get_key(int index) {
 }
 #endif
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static unsigned char *realcipher;
 	int i;
@@ -376,7 +376,7 @@ struct fmt_main fmt_rawSHA1 = {
 		fmt_default_prepare,
 		valid,
 		split,
-		binary,
+		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

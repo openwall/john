@@ -274,7 +274,7 @@ static void set_salt(void *salt)
 	pSalt = (sip_salt*)salt;
 }
 
-static void * binary(char *ciphertext) {
+static void * get_binary(char *ciphertext) {
 	static char *bin_val;
 	char *p;
 	int i;
@@ -391,7 +391,7 @@ struct fmt_main fmt_sip = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
+		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

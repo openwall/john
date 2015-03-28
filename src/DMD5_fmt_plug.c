@@ -174,7 +174,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static ARCH_WORD_32 out[BINARY_SIZE/4];
 	char response[MD5_HEX_SIZE + 1];
@@ -203,7 +203,7 @@ static void *binary(char *ciphertext)
 	return (void*)out;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	char username[64];
 	char realm[64];
@@ -422,8 +422,8 @@ struct fmt_main fmt_DMD5 = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif

@@ -152,7 +152,7 @@ static void *get_salt(char *ciphertext)
 	return (void *)&cs;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static unsigned int out[4];
 	char Tmp[48];
@@ -297,7 +297,7 @@ struct fmt_main fmt_sniffed_lastpass = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
+		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{

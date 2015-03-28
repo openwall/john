@@ -302,7 +302,7 @@ static char *get_key(int index)
 	return out;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[BINARY_SIZE];
@@ -326,7 +326,7 @@ static void *binary(char *ciphertext)
 	return out;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
@@ -388,7 +388,7 @@ static int cmp_exact(char *source, int index)
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], digest_buffer, CL_TRUE, 0, BINARY_SIZE * global_work_size * v_width, digest, 0, NULL, NULL), "failed reading results back");
 		partial_output = 0;
 	}
-	b = (ARCH_WORD_32*)binary(source);
+	b = (ARCH_WORD_32*)get_binary(source);
 
 	for(i = 0; i < BINARY_SIZE / 4; i++)
 		if (digest[i * global_work_size * v_width + index] != b[i])
@@ -463,8 +463,8 @@ struct fmt_main fmt_opencl_rakp = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		binary,
-		salt,
+		get_binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
