@@ -235,7 +235,7 @@ static struct opt_entry opt_list[] = {
 	{"log-stderr", FLG_LOG_STDERR | FLG_NOLOG, FLG_LOG_STDERR},
 	{"crack-status", FLG_CRKSTAT, FLG_CRKSTAT},
 	{"mkpc", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
-		"%u", &options.force_maxkeys},
+		"%d", &options.force_maxkeys},
 	{"min-length", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		"%u", &options.force_minlength},
 	{"max-length", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
@@ -742,6 +742,12 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	if (options.force_maxlength < 0 || options.force_maxlength > PLAINTEXT_BUFFER_SIZE - 3) {
 		if (john_main_process)
 			fprintf(stderr, "Invalid max length requested\n");
+		error();
+	}
+	if (options.force_maxkeys != 0 && options.force_maxkeys < 1) {
+		if (john_main_process)
+			fprintf(stderr,
+			        "Invalid options: --mkpc must be at least 1\n");
 		error();
 	}
 
