@@ -12131,7 +12131,7 @@ done
 
 
 # This will stop at first found, will be used for mem_alloc_aligned()
-for ac_func in aligned_alloc posix_memalign memalign __mingw_aligned_malloc _aligned_malloc
+for ac_func in posix_memalign aligned_alloc memalign __mingw_aligned_malloc _aligned_malloc
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"

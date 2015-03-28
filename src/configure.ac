@@ -640,7 +640,7 @@ dnl                 strrchr strcspn strspn strtol strtoul
 dnl ])
 
 # This will stop at first found, will be used for mem_alloc_aligned()
-AC_CHECK_FUNCS([aligned_alloc posix_memalign memalign __mingw_aligned_malloc _aligned_malloc], break)
+AC_CHECK_FUNCS([posix_memalign aligned_alloc memalign __mingw_aligned_malloc _aligned_malloc], break)
 
 AC_CACHE_SAVE
 

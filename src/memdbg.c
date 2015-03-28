@@ -606,12 +606,12 @@ void * MEMDBG_alloc(size_t size, char *file, int line)
 static void *_mem_alloc_align(size_t size, size_t align)
 {
 	void *ptr;
-#if HAVE_ALIGNED_ALLOC
-	if (!(ptr = aligned_alloc(align, size)))
-		perror("aligned_alloc");
-#elif HAVE_POSIX_MEMALIGN
+#if HAVE_POSIX_MEMALIGN
 	if (posix_memalign(&ptr, align, size))
 		perror("posix_memalign");
+#elif HAVE_ALIGNED_ALLOC
+	if (!(ptr = aligned_alloc(align, size)))
+		perror("aligned_alloc");
 #elif HAVE_MEMALIGN
 	/* Let's just pray this implementation can actually free it */
 	if (!(ptr = memalign(&ptr, align, size)))
