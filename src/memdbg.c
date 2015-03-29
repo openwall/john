@@ -610,6 +610,10 @@ static void *_mem_alloc_align(size_t size, size_t align)
 	if (posix_memalign(&ptr, align, size))
 		perror("posix_memalign");
 #elif HAVE_ALIGNED_ALLOC
+	/* According to the Linux man page, "size should be a multiple of
+	   alignment", whatever they mean with "should"... This does not
+	   make any sense whatsoever but we round it up to comply. */
+	size = ((size + (align - 1)) / align) * align;
 	if (!(ptr = aligned_alloc(align, size)))
 		perror("aligned_alloc");
 #elif HAVE_MEMALIGN
