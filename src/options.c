@@ -234,7 +234,7 @@ static struct opt_entry opt_list[] = {
 	{"nolog", FLG_NOLOG, FLG_NOLOG},
 	{"log-stderr", FLG_LOG_STDERR | FLG_NOLOG, FLG_LOG_STDERR},
 	{"crack-status", FLG_CRKSTAT, FLG_CRKSTAT},
-	{"mkpc", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
+	{"mkpc", FLG_ZERO, 0, 0, FLG_TEST_CHK | OPT_REQ_PARAM,
 		"%d", &options.force_maxkeys},
 	{"min-length", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		"%u", &options.force_minlength},
