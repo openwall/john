@@ -84,17 +84,16 @@ void fmt_init(struct fmt_main *format)
 		format->params.flags |= FMT_NOT_EXACT;
 
 	if (options.force_maxkeys) {
-		if (options.force_maxkeys <= format->params.max_keys_per_crypt)
-			format->params.min_keys_per_crypt =
-				format->params.max_keys_per_crypt =
-				options.force_maxkeys;
-		else {
+		if (options.force_maxkeys > format->params.max_keys_per_crypt) {
 			fprintf(stderr,
 			    "Can't set mkpc larger than %u for %s format\n",
 			    format->params.max_keys_per_crypt,
 			    format->params.label);
 			error();
 		}
+		if (options.force_maxkeys < format->params.min_keys_per_crypt)
+			format->params.min_keys_per_crypt =
+				options.force_maxkeys;
 	}
 	if (options.force_maxlength > format->params.plaintext_length) {
 		fprintf(stderr, "Can't set max length larger than %u "

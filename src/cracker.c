@@ -84,6 +84,7 @@ static struct db_keys *crk_guesses;
 static int64 *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
 int64_t crk_pot_pos;
+static int crk_mkpc;
 
 static void crk_dummy_set_salt(void *salt)
 {
@@ -183,6 +184,9 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	crk_help();
 
 	idle_init(db->format);
+
+	crk_mkpc = options.force_maxkeys ?
+		options.force_maxkeys : crk_params.max_keys_per_crypt;
 }
 
 /*
@@ -809,7 +813,7 @@ int crk_process_key(char *key)
 
 		crk_methods.set_key(key, crk_key_index++);
 
-		if (crk_key_index >= crk_params.max_keys_per_crypt)
+		if (crk_key_index >= crk_mkpc)
 			return crk_salt_loop();
 
 		return 0;
@@ -872,7 +876,7 @@ int crk_process_salt(struct db_salt *salt)
 		ptr += crk_params.plaintext_length;
 
 		crk_methods.set_key(key, index++);
-		if (index >= crk_params.max_keys_per_crypt || !count) {
+		if (index >= crk_mkpc || !count) {
 			int done;
 			crk_key_index = index;
 			if ((done = crk_password_loop(salt)) >= 0) {
