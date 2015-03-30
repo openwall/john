@@ -19,11 +19,12 @@
 #ifdef _OPENCL_COMPILER
 //To keep Sayantan license, some code was moved to this file.
 
-inline void compare(uint32_t iter,		//which candidates_number is this one
-		    uint32_t num_loaded_hashes,	//number of password hashes transfered
+inline void compare(
+	      const uint32_t iter,		//which candidates_number is this one
+	      const uint32_t num_loaded_hashes,	//number of password hashes transfered
      __global const uint32_t * loaded_hashes,   //buffer of password hashes transfered
   volatile __global uint32_t * hash_id,		//information about how recover the cracked password
-		    uint32_t * hash,		//the hash calculated by this kernel
+	      const uint32_t * hash,		//the hash calculated by this kernel
   volatile __global uint32_t * bitmap) {
 
     uint32_t found, j;
@@ -59,7 +60,7 @@ inline void compare(uint32_t iter,		//which candidates_number is this one
 
 #define	MASK_KEYS_GENERATION \
 	if (candidates_number > 1) {								\
-		uint32_t ikl = int_key_loc[gid];						\
+		uint32_t ikl = int_key_loc[get_global_id(0)];					\
 		PUTCHAR(w, (ikl & 0xff), (int_keys[i] & 0xff));					\
 												\
 		if ((ikl & 0xff00) != 0x8000)							\

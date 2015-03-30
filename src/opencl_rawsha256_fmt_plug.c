@@ -124,7 +124,7 @@ static size_t get_task_max_work_group_size()
 	size_t s;
 
 	s = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
-	return s;
+	return MIN(s, 512);
 }
 
 static size_t get_task_max_size()
@@ -571,8 +571,8 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 {
 	const int count = *pcount;
 	const struct db_salt * salt = _salt;
-	size_t gws;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
+	size_t gws, initial = 128;
+	size_t *lws = local_work_size ? &local_work_size : &initial;
 
 	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
