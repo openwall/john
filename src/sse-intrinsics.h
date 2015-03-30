@@ -28,9 +28,9 @@
 #if defined(__XOP__)
 #undef SSE_type
 #define SSE_type			"XOP"
-#elif defined(__AVX__)
-#undef SSE_type
-#define SSE_type			"AVX"
+//#elif defined(__AVX__)
+//#undef SSE_type
+//#define SSE_type			"AVX"
 #elif defined(__SSE4_1__)
 #undef SSE_type
 #define SSE_type			"SSE4.1"

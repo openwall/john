@@ -745,8 +745,8 @@ struct fmt_main fmt_sha1_ng = {
         .algorithm_name     = "SHA1 128/128 "
 #if defined(__XOP__)
     "XOP"
-#elif defined(__AVX__)
-    "AVX"
+//#elif defined(__AVX__)
+//    "AVX"
 #elif defined(__SSE4_1__)
     "SSE4.1"
 #else
