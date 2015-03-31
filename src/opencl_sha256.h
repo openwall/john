@@ -18,15 +18,11 @@
 #define MAX_KEYS_PER_CRYPT      1
 
 //Macros.
-#define SWAP(n) \
-	    (((n) << 24)	       | (((n) & 0xff00) << 8) |     \
-	    (((n) >> 8) & 0xff00)      | ((n) >> 24))
-
 #ifdef USE_BITSELECT
 	#define Ch(x, y, z)     bitselect(z, y, x)
 	#define Maj(x, y, z)    bitselect(x, y, z ^ x)
-	#define ror(x, n)       rotate(x, (uint32_t) 32-n)
-	#define SWAP32(n)       rotate(n & 0x00FF00FF, 24U) | rotate(n & 0xFF00FF00, 8U)
+	#define ror(x, n)       rotate(x, 32U-n)
+	#define SWAP32(n)       rotate(n & 0x00FF00FFU, 24U) | rotate(n & 0xFF00FF00U, 8U)
 
 #ifdef AMD_STUPID_BUG_2
 	#define SWAP_V(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
@@ -35,17 +31,21 @@
 #endif
 
 #else
+	#define SWAP(n) \
+	    (((n) << 24)	       | (((n) & 0xff00U) << 8) |     \
+	    (((n) >> 8) & 0xff00U)     | ((n) >> 24))
+
 	#define Ch(x, y, z)     ((x & y) ^ ( (~x) & z))
 	#define Maj(x, y, z)    ((x & y) ^ (x & z) ^ (y & z))
-	#define ror(x, n)       ((x >> n) | (x << (32-n)))
+	#define ror(x, n)       ((x >> n) | (x << (32U-n)))
 	#define SWAP32(n)       SWAP(n)
 	#define SWAP_V(n)       SWAP(n)
 #endif
 #define SWAP32_V(n)		SWAP_V(n)
-#define Sigma0(x)		((ror(x,2))  ^ (ror(x,13)) ^ (ror(x,22)))
-#define Sigma1(x)		((ror(x,6))  ^ (ror(x,11)) ^ (ror(x,25)))
-#define sigma0(x)		((ror(x,7))  ^ (ror(x,18)) ^ (x>>3))
-#define sigma1(x)		((ror(x,17)) ^ (ror(x,19)) ^ (x>>10))
+#define Sigma0(x)		((ror(x,2U))  ^ (ror(x,13U)) ^ (ror(x,22U)))
+#define Sigma1(x)		((ror(x,6U))  ^ (ror(x,11U)) ^ (ror(x,25U)))
+#define sigma0(x)		((ror(x,7U))  ^ (ror(x,18U)) ^ (x>>3))
+#define sigma1(x)		((ror(x,17U)) ^ (ror(x,19U)) ^ (x>>10))
 
 //SHA256 constants.
 #define H0      0x6a09e667U
@@ -78,21 +78,21 @@ __constant uint32_t k[] = {
 };
 
 __constant uint32_t clear_mask[] = {
-    0xffffffffUL, 0x000000ffUL,			//0,   8bits
-    0x0000ffffUL, 0x00ffffffUL,			//16, 24bits
-    0xffffffffUL				//32    bits
+    0xffffffffU, 0x000000ffU,			//0,   8bits
+    0x0000ffffU, 0x00ffffffU,			//16, 24bits
+    0xffffffffU					//32    bits
 };
 
 #define CLEAR_BUFFER_32_SINGLE(dest, start) {	\
     uint32_t tmp, pos;				\
-    tmp = (uint32_t) (start & 3);		\
+    tmp = (uint32_t) (start & 3U);		\
     pos = (uint32_t) (start >> 2);		\
     dest[pos] = dest[pos] & clear_mask[tmp];	\
 }
 
 #define CLEAR_BUFFER_32(dest, start) {		\
     uint32_t tmp, pos;				\
-    tmp = (uint32_t) (start & 3);		\
+    tmp = (uint32_t) (start & 3U);		\
     pos = (uint32_t) (start >> 2);		\
     dest[pos] = dest[pos] & clear_mask[tmp];	\
     if (tmp)					\
@@ -103,24 +103,24 @@ __constant uint32_t clear_mask[] = {
 
 #define APPEND(dest, src, start) {		\
     uint32_t tmp, pos;				\
-    tmp = (uint32_t) (start & 3) << 3;		\
+    tmp = (uint32_t) (start & 3U) << 3;		\
     pos = (uint32_t) (start >> 2);		\
     dest[pos]   = (dest[pos] | (src << tmp));	\
-    dest[pos+1] = (tmp == 0 ? (uint32_t) 0 : (src >> (32 - tmp)));  \
+    dest[pos+1] = (tmp ? (src >> (32U - tmp)) : 0U); \
 }
 
 #define APPEND_F(dest, src, start) {		\
     uint32_t tmp, pos;				\
-    tmp = (uint32_t) (start & 3) << 3;		\
+    tmp = (uint32_t) (start & 3U) << 3;		\
     pos = (uint32_t) (start >> 2);		\
     dest[pos]   = (dest[pos] | (src << tmp));	\
     if (pos < 15)                               \
-	dest[pos+1] = (tmp == 0 ? (uint32_t) 0 : (src >> (32 - tmp)));  \
+	dest[pos+1] = (tmp ? (src >> (32U - tmp)) : 0U); \
 }
 
 #define APPEND_SINGLE(dest, src, start) {	\
     uint32_t tmp, pos;				\
-    tmp = (uint32_t) (start & 3) << 3;		\
+    tmp = (uint32_t) (start & 3U) << 3;		\
     pos = (uint32_t) (start >> 2);		\
     dest[pos]   = (dest[pos] | (src << tmp));	\
 }

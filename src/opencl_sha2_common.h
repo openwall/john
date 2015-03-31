@@ -28,11 +28,19 @@
     #define AMD_STUPID_BUG_1
 
     ///TODO: can't use a valid command twice on sha256crypt. (At least) HD 6770.
+    ///Fixed (back in 14.12). Kept for future reference.
+    /// ----------------------
+    ///  #define SWAP32(n)	rotate(n & 0x00FF00FF, 24U) | rotate(n & 0xFF00FF00, 8U)
+    ///  #ifdef AMD_STUPID_BUG_2
+    ///	   #define SWAP_V(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
+    /// ----------------------
     #define AMD_STUPID_BUG_2
 
     ///TODO: can't use constant. (At least) HD 6770.
     ///Fixed. Kept for future reference.
+    /// ----------------------
     ///inline void sha512_prepare(__constant   sha512_salt     * salt_data,
+    /// ----------------------
     ///#define AMD_STUPID_BUG_3
 #endif
 
@@ -50,19 +58,27 @@
 	#define USE_BITSELECT
 #endif
 
-#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
-#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
+#if no_byte_addressable(DEVICE_INFO)
+	#define USE_32BITS_FOR_CHAR
+#endif
+
+#ifdef USE_32BITS_FOR_CHAR
+    #define PUT         PUTCHAR
+    #define BUFFER      ctx->buffer->mem_32
+    #define F_BUFFER    ctx.buffer->mem_32
+#else
+    #define PUT         ATTRIB
+    #define BUFFER      ctx->buffer->mem_08
+    #define F_BUFFER    ctx.buffer->mem_08
+#endif
+
+#ifdef USE_32BITS_FOR_CHAR
+#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3U) << 3))) + ((val) << (((index) & 3U) << 3))
 #else
 #define PUTCHAR(buf, index, val) ((uchar*)(buf))[(index)] = (val)
 #endif
 
 #define TRANSFER_SIZE           (1024 * 64)
-
-#define CLEAR_CTX_32(i)\
-    ctx.buffer[i].mem_32[0] = 0;
-
-#define CLEAR_CTX_64(i)\
-    ctx.buffer[i].mem_64[0] = 0;
 
 #define ROUND_A(A, B, C, D, E, F, G, H, ki, wi)\
 	t = (ki) + (wi) + (H) + Sigma1(E) + Ch((E),(F),(G));\
@@ -362,16 +378,6 @@
 	ROUND_B(d, e, f, g, h, a, b, c, k[77], w[13], w[11], w[14], w[13], w[6])\
 	ROUND_B(c, d, e, f, g, h, a, b, k[78], w[14], w[12], w[15], w[14], w[7])\
 	ROUND_B(b, c, d, e, f, g, h, a, k[79], w[15], w[13], w[0],  w[15], w[8])
-
-#if no_byte_addressable(DEVICE_INFO)
-    #define PUT         PUTCHAR
-    #define BUFFER      ctx->buffer->mem_32
-    #define F_BUFFER    ctx.buffer->mem_32
-#else
-    #define PUT         ATTRIB
-    #define BUFFER      ctx->buffer->mem_08
-    #define F_BUFFER    ctx.buffer->mem_08
-#endif
 
 #ifndef _OPENCL_COMPILER
 /* --
