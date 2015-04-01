@@ -148,7 +148,7 @@ typedef struct private_subformat_data
 // in openMP mode, we multiply everything by 24
 // in openMP mode, we multiply everything by 48
 // Now, we mult by 192x with OMP_SCALE=4
-#  if SIMD_COEF_32 == 4
+#  if SIMD_COEF_32 >= 4
 #   define BLOCK_LOOPS		(1536*OMP_SCALE)
 #   if !defined MD5_SSE_PARA || MD5_SSE_PARA==1
 #    define BY_X			(1536*OMP_SCALE)
@@ -165,7 +165,7 @@ typedef struct private_subformat_data
 #   endif
 #  endif
 #else
-#  if SIMD_COEF_32 == 4
+#  if SIMD_COEF_32 >= 4
 #   define BLOCK_LOOPS		32
 #   if !defined MD5_SSE_PARA || MD5_SSE_PARA==1
 #    define BY_X			32
@@ -183,7 +183,7 @@ typedef struct private_subformat_data
 # endif
 # endif
 # define LOOP_STR
-# if SIMD_COEF_32 == 4
+# if SIMD_COEF_32 >= 4
 #  ifdef MD5_SSE_PARA
 #   define ALGORITHM_NAME		"128/128 " MD5_SSE_type  " " STRINGIZE(BY_X) "x4x" STRINGIZE(MD5_SSE_PARA)
 #   define BSD_BLKS (MD5_SSE_PARA)

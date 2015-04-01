@@ -98,10 +98,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 
 #include "arch.h"
 
-#ifdef SIMD_COEF_32
 #include "sse-intrinsics.h"
-#endif
-
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
