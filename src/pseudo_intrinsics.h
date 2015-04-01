@@ -177,7 +177,7 @@ static inline void vmerge(const vtype v0, const vtype v1, vtype *vl, vtype *vh)
 		vmerge(t3, t7, &R[6], &R[7]); \
 	} while (false)
 
-#if !__INTEL_COMPILER && !__clang__ && !__llvm__
+#if !__INTEL_COMPILER && !__llvm__
 // This intrinsic is not always available in GCC, so define it here.
 static inline int vtestz(vtype __M, vtype __V)
 {
@@ -280,7 +280,7 @@ typedef __m128i vtype;
 	} while (false)
 
 #if __SSE4_1__
-#if !__INTEL_COMPILER && !__clang__ && !__llvm__
+#if !__INTEL_COMPILER && !__llvm__
 // This intrinsic is not always available in GCC, so define it here.
 static inline int vtestz(vtype __M, vtype __V)
 {
