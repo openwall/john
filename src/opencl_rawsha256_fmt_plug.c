@@ -54,8 +54,7 @@ static struct fmt_main *self;
 //loaded_hashes: buffer of binary hashes transfered/loaded to GPU
 //hash_ids: information about how recover the cracked password
 //bitmap: a bitmap memory space.
-//int_key_loc: the position of the mask to apply
-//work: GPU buffer to handle keys manipulation (commented)
+//int_key_loc: the position of the mask to apply.
 static cl_mem buffer_int_keys, buffer_loaded_hashes, buffer_hash_ids,
 	buffer_bitmap, buffer_int_key_loc;
 
@@ -214,11 +213,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		4 * mask_int_cand.num_int_cand, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys");
 
-#if (0)
-	buffer_work = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-		sizeof(uint32_t) * gws * 16, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_work");
-#endif
 	//Set kernel arguments
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
 		(void *) &pass_buffer), "Error setting argument 0");
@@ -239,11 +233,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		(void *) &buffer_hash_ids), "Error setting argument 7");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 8, sizeof(buffer_bitmap),
 		(void *) &buffer_bitmap), "Error setting argument 8");
-
-#if (0)
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 9, sizeof(buffer_work),
-		(void *) &buffer_work), "Error setting argument 9");
-#endif
 
 	//Indicates that the OpenCL objetcs are initialized.
 	ref_counter++;
@@ -285,11 +274,6 @@ static void release_clobj(void)
 	HANDLE_CLERROR(ret_code, "Error Releasing buffer_int_key_loc");
 	ret_code = clReleaseMemObject(buffer_int_keys);
 	HANDLE_CLERROR(ret_code, "Error Releasing buffer_int_keys");
-
-#if (0)
-		ret_code = clReleaseMemObject(buffer_work);
-		HANDLE_CLERROR(ret_code, "Error Releasing buffer_work");
-#endif
 	ret_code = clReleaseMemObject(pinned_plaintext);
 	HANDLE_CLERROR(ret_code, "Error Releasing pinned_plaintext");
 	ret_code = clReleaseMemObject(pinned_saved_idx);

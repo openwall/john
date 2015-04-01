@@ -14,13 +14,7 @@
 #include "opencl_rawsha256.h"
 #include "opencl_mask_extras.h"
 
-#if (1)
-    #define  MEM_TYPE   __private
-#else
-    #define  MEM_TYPE   __global
-#endif
-
-inline void _memcpy(MEM_TYPE	   uint32_t * dest,
+inline void _memcpy(               uint32_t * dest,
                     __global const uint32_t * src,
                              const uint32_t   len) {
 
@@ -28,8 +22,8 @@ inline void _memcpy(MEM_TYPE	   uint32_t * dest,
         *dest++ = select(0U, *src++, i < len);
 }
 
-inline void sha256_block(MEM_TYPE const uint32_t * const buffer,
-			          const uint32_t total, uint32_t * const H) {
+inline void sha256_block(	  const uint32_t * const buffer,
+				  const uint32_t total, uint32_t * const H) {
     uint32_t a = H0;
     uint32_t b = H1;
     uint32_t c = H2;
@@ -109,15 +103,9 @@ void kernel_crypt(
 	     __global const uint32_t * const __restrict loaded_hashes,
     volatile __global       uint32_t * const __restrict hash_id,
     volatile __global       uint32_t * const __restrict bitmap) {
-    //	     __global       uint32_t * const __restrict work) {
 
     //Compute buffers (on CPU and NVIDIA, better private)
-#if (1)
     uint32_t		w[16];
-#else
-    __global uint32_t * w = &work[get_global_id(0) * 16];
-#endif
-
     uint32_t		H[8];
     __local uint32_t	_ltotal[512];
     #define		total    _ltotal[get_local_id(0)]
