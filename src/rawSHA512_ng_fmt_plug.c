@@ -134,6 +134,8 @@ _inline __m128i _mm_set1_epi64x(uint64_t a) {
 }
 #endif
 
+#undef GATHER /* This one is not like the shared ones in pseudo_intrinsics.h */
+
 #if __AVX512__ || __MIC__
 #define GATHER(x,y,z)                                                     \
 {                                                                         \
@@ -142,7 +144,7 @@ _inline __m128i _mm_set1_epi64x(uint64_t a) {
                     y[index + 3][z], y[index + 2][z],                     \
                     y[index + 1][z], y[index + 0][z]);                    \
 }
-                    
+
 #elif __AVX2__
 #define GATHER(x,y,z)                                                     \
 {                                                                         \
@@ -382,17 +384,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
         vtype a, b, c, d, e, f, g, h;
         vtype w[80], tmp1, tmp2;
 
-
         for (i = 0; i < 14; i += 2) {
             GATHER(tmp1, saved_key, i);
             GATHER(tmp2, saved_key, i + 1);
-            SWAP_ENDIAN(tmp1);
-            SWAP_ENDIAN(tmp2);
+            vswap64(tmp1);
+            vswap64(tmp2);
             w[i] = tmp1;
             w[i + 1] = tmp2;
         }
         GATHER(tmp1, saved_key, 14);
-        SWAP_ENDIAN(tmp1);
+        vswap64(tmp1);
         w[14] = tmp1;
         GATHER(w[15], saved_key, 15);
         for (i = 16; i < 80; i++) R(i);

@@ -15,20 +15,31 @@
 #endif
 
 #include "common.h"
+#include "pseudo_intrinsics.h"
 #include "sse-intrinsics-load-flags.h"
 #include "aligned.h"
 
 #ifndef _EMMINTRIN_H_INCLUDED
 #define __m128i void
 #endif
+#define vtype void
 
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 
-#if defined(__XOP__)
+#if __MIC__
+#undef SSE_type
+#define SSE_type			"MIC"
+#elif __AVX512__
+#undef SSE_type
+#define SSE_type			"AVX512"
+#elif __AVX2__
+#undef SSE_type
+#define SSE_type			"AVX2"
+#elif defined(__XOP__)
 #undef SSE_type
 #define SSE_type			"XOP"
-//#elif defined(__AVX__)
+//#elif defined(__AVX__) /* We actually only use up to SSE4.1, or AVX2+ */
 //#undef SSE_type
 //#define SSE_type			"AVX"
 #elif defined(__SSE4_1__)
@@ -44,7 +55,7 @@
 
 #ifdef MD5_SSE_PARA
 void md5cryptsse(unsigned char * buf, unsigned char * salt, char * out, int md5_type);
-void SSEmd5body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
+void SSEmd5body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define MD5_SSE_type			SSE_type
 #define MD5_ALGORITHM_NAME		"128/128 " MD5_SSE_type " " MD5_N_STR
 #else
@@ -54,7 +65,7 @@ void SSEmd5body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, un
 
 #ifdef MD4_SSE_PARA
 //void SSEmd4body(__m128i* data, unsigned int * out, int init);
-void SSEmd4body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
+void SSEmd4body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define MD4_SSE_type			SSE_type
 #define MD4_ALGORITHM_NAME		"128/128 " MD4_SSE_type " " MD4_N_STR
 #else
@@ -63,7 +74,7 @@ void SSEmd4body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, un
 #endif
 
 #ifdef SHA1_SSE_PARA
-void SSESHA1body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
+void SSESHA1body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define SHA1_SSE_type			SSE_type
 #define SHA1_ALGORITHM_NAME		"128/128 " SHA1_SSE_type " " SHA1_N_STR
 #else
@@ -84,18 +95,18 @@ void SSESHA1body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 #endif
 
 // we use the 'outter' SIMD_COEF_32 wrapper, as the flag for SHA256/SHA512.  FIX_ME!!
-#if SIMD_COEF_32==4
+#if SIMD_COEF_32 > 1
 
 #ifdef SIMD_COEF_32
 #define SHA256_ALGORITHM_NAME	"128/128 " SIMD_TYPE " " STRINGIZE(SIMD_COEF_32)"x"
-void SSESHA256body(__m128i* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
+void SSESHA256body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define SHA256_BUF_SIZ 16
 #define SIMD_PARA_SHA256 1
 #endif
 
 #ifdef SIMD_COEF_64
 #define SHA512_ALGORITHM_NAME	"128/128 " SIMD_TYPE " " STRINGIZE(SIMD_COEF_64)"x"
-void SSESHA512body(__m128i* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, unsigned SSEi_flags);
+void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, unsigned SSEi_flags);
 // ????  (16 long longs).
 #define SHA512_BUF_SIZ 16
 #define SIMD_PARA_SHA512 1

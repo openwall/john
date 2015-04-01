@@ -254,9 +254,9 @@ static void *sha1_fmt_binary(char *ciphertext)
 {
 	// Static buffer storing the binary representation of ciphertext.
 #if VWIDTH > SHA1_DIGEST_WORDS
-	static uint32_t JTR_ALIGN(VWIDTH * 4) result[VWIDTH];
+	static uint32_t JTR_ALIGN(MEM_ALIGN_SIMD) result[VWIDTH];
 #else
-	static uint32_t JTR_ALIGN(VWIDTH * 4) result[SHA1_DIGEST_WORDS];
+	static uint32_t JTR_ALIGN(MEM_ALIGN_SIMD) result[SHA1_DIGEST_WORDS];
 #endif
 
 	// Skip over tag.
@@ -319,7 +319,7 @@ static void sha1_fmt_set_key(char *key, int index)
 #if VWIDTH > 8
 #error Code needed here
 #elif VWIDTH > 4
-	static const JTR_ALIGN(VWIDTH * 4) uint32_t kTrailingBitTable[][8] = {
+	static const JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t kTrailingBitTable[][8] = {
 		{ 0x00000080, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
 		{ 0x00008000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
 		{ 0x00800000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
@@ -354,7 +354,7 @@ static void sha1_fmt_set_key(char *key, int index)
 		{ 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x80000000 },
 	};
 
-	static const JTR_ALIGN(VWIDTH * 4) uint32_t kUsedBytesTable[][8] = {
+	static const JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t kUsedBytesTable[][8] = {
 		{ 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
 		{ 0xFFFFFF00, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
 		{ 0xFFFF0000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
@@ -389,7 +389,7 @@ static void sha1_fmt_set_key(char *key, int index)
 		{ 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFF000000 },
 	};
 #else
-	static const JTR_ALIGN(VWIDTH * 4) uint32_t kTrailingBitTable[][4] = {
+	static const JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t kTrailingBitTable[][4] = {
 		{ 0x00000080, 0x00000000, 0x00000000, 0x00000000 },
 		{ 0x00008000, 0x00000000, 0x00000000, 0x00000000 },
 		{ 0x00800000, 0x00000000, 0x00000000, 0x00000000 },
@@ -408,7 +408,7 @@ static void sha1_fmt_set_key(char *key, int index)
 		{ 0x00000000, 0x00000000, 0x00000000, 0x80000000 },
 	};
 
-	static const JTR_ALIGN(VWIDTH * 4) uint32_t kUsedBytesTable[][4] = {
+	static const JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t kUsedBytesTable[][4] = {
 		{ 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
 		{ 0xFFFFFF00, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
 		{ 0xFFFF0000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
