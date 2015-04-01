@@ -52,6 +52,7 @@ john_register_one(&fmt_sha1_ng);
 #include "memory.h"
 #include "sha.h"
 #include "johnswap.h"
+#include "aligned.h"
 #include "memdbg.h"
 
 #define VWIDTH SIMD_COEF_32
@@ -62,8 +63,6 @@ john_register_one(&fmt_sha1_ng);
 #define SHA1_DIGEST_WORDS        5
 #define SHA1_PARALLEL_HASH     512 // This must be a multiple of max VWIDTH.
 #define OMP_SCALE             2048 // Multiplier to hide OMP overhead
-
-#define __aligned_simd __attribute__((aligned(VWIDTH * 4)))
 
 #define X(X0, X2, X8, X13) do {	  \
 		X0  = vxor(X0, X8); \
@@ -255,9 +254,9 @@ static void *sha1_fmt_binary(char *ciphertext)
 {
 	// Static buffer storing the binary representation of ciphertext.
 #if VWIDTH > SHA1_DIGEST_WORDS
-	static uint32_t __aligned_simd result[VWIDTH];
+	static uint32_t JTR_ALIGN(VWIDTH * 4) result[VWIDTH];
 #else
-	static uint32_t __aligned_simd result[SHA1_DIGEST_WORDS];
+	static uint32_t JTR_ALIGN(VWIDTH * 4) result[SHA1_DIGEST_WORDS];
 #endif
 
 	// Skip over tag.
@@ -320,7 +319,7 @@ static void sha1_fmt_set_key(char *key, int index)
 #if VWIDTH > 8
 #error Code needed here
 #elif VWIDTH > 4
-	static const __aligned_simd uint32_t kTrailingBitTable[][8] = {
+	static const JTR_ALIGN(VWIDTH * 4) uint32_t kTrailingBitTable[][8] = {
 		{ 0x00000080, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
 		{ 0x00008000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
 		{ 0x00800000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
@@ -355,7 +354,7 @@ static void sha1_fmt_set_key(char *key, int index)
 		{ 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x80000000 },
 	};
 
-	static const __aligned_simd uint32_t kUsedBytesTable[][8] = {
+	static const JTR_ALIGN(VWIDTH * 4) uint32_t kUsedBytesTable[][8] = {
 		{ 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
 		{ 0xFFFFFF00, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
 		{ 0xFFFF0000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
@@ -390,7 +389,7 @@ static void sha1_fmt_set_key(char *key, int index)
 		{ 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
 	};
 #else
-	static const __aligned_simd uint32_t kTrailingBitTable[][4] = {
+	static const JTR_ALIGN(VWIDTH * 4) uint32_t kTrailingBitTable[][4] = {
 		{ 0x00000080, 0x00000000, 0x00000000, 0x00000000 },
 		{ 0x00008000, 0x00000000, 0x00000000, 0x00000000 },
 		{ 0x00800000, 0x00000000, 0x00000000, 0x00000000 },
@@ -409,7 +408,7 @@ static void sha1_fmt_set_key(char *key, int index)
 		{ 0x00000000, 0x00000000, 0x00000000, 0x80000000 },
 	};
 
-	static const __aligned_simd uint32_t kUsedBytesTable[][4] = {
+	static const JTR_ALIGN(VWIDTH * 4) uint32_t kUsedBytesTable[][4] = {
 		{ 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
 		{ 0xFFFFFF00, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
 		{ 0xFFFF0000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },

@@ -23,6 +23,8 @@
 #ifndef _SSE_PSEUDO_H
 #define _SSE_PSEUDO_H
 
+#include "aligned.h"
+
 #undef SIMD_COEF_32
 #undef SIMD_COEF_64
 
@@ -82,7 +84,7 @@ typedef __m512i vtype;
 
 static inline int vtestz_epi32(vtype __X)
 {
-    uint32_t __aligned_simd words[8];
+    uint32_t JTR_ALIGN(SIMD_COEF_32 * 4) words[8];
     vstore(words, __X);
     return !words[0] || !words[1] || !words[2] || !words[3] ||
 	    !words[4] || !words[5] || !words[6] || !words[7];
@@ -177,6 +179,7 @@ static inline void vmerge(const vtype v0, const vtype v1, vtype *vl, vtype *vh)
 		vmerge(t3, t7, &R[6], &R[7]); \
 	} while (false)
 
+#if !__clang__
 #if !__INTEL_COMPILER && !__llvm__
 // This intrinsic is not always available in GCC, so define it here.
 static inline int vtestz(vtype __M, vtype __V)
@@ -194,6 +197,14 @@ static inline int vtestz_epi32(vtype __X)
     vtype Y = vandnot(vor(vor(vadd_epi32(vand(__X, Z), Z), __X), Z), M);
     return ! vtestz(Y, M);
 }
+#else
+static inline int vtestz_epi32(vtype __X)
+{
+    uint32_t JTR_ALIGN(SIMD_COEF_32 * 4) words[4];
+    vstore(words, __X);
+    return !words[0] || !words[1] || !words[2] || !words[3];
+}
+#endif
 
 /************************* SSE2/3/4/AVX/XOP ***************************/
 #elif __SSE2__
@@ -279,7 +290,7 @@ typedef __m128i vtype;
 		R[3]  = vunpackhi_epi64(T2, T3); \
 	} while (false)
 
-#if __SSE4_1__
+#if __SSE4_1__ && !__clang__
 #if !__INTEL_COMPILER && !__llvm__
 // This intrinsic is not always available in GCC, so define it here.
 static inline int vtestz(vtype __M, vtype __V)
@@ -300,7 +311,7 @@ static inline int vtestz_epi32(vtype __X)
 #else
 static inline int vtestz_epi32(vtype __X)
 {
-    uint32_t __aligned_simd words[4];
+    uint32_t JTR_ALIGN(SIMD_COEF_32 * 4) words[4];
     vstore(words, __X);
     return !words[0] || !words[1] || !words[2] || !words[3];
 }
