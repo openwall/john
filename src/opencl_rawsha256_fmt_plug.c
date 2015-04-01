@@ -54,7 +54,7 @@ static struct fmt_main *self;
 //loaded_hashes: buffer of binary hashes transfered/loaded to GPU
 //hash_ids: information about how recover the cracked password
 //bitmap: a bitmap memory space.
-//int_key_loc: the position of the mask to apply
+//int_key_loc: the position of the mask to apply.
 static cl_mem buffer_int_keys, buffer_loaded_hashes, buffer_hash_ids,
 	buffer_bitmap, buffer_int_key_loc;
 
@@ -274,7 +274,6 @@ static void release_clobj(void)
 	HANDLE_CLERROR(ret_code, "Error Releasing buffer_int_key_loc");
 	ret_code = clReleaseMemObject(buffer_int_keys);
 	HANDLE_CLERROR(ret_code, "Error Releasing buffer_int_keys");
-
 	ret_code = clReleaseMemObject(pinned_plaintext);
 	HANDLE_CLERROR(ret_code, "Error Releasing pinned_plaintext");
 	ret_code = clReleaseMemObject(pinned_saved_idx);

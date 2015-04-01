@@ -14,7 +14,7 @@
 #include "opencl_rawsha256.h"
 #include "opencl_mask_extras.h"
 
-inline void _memcpy(		   uint32_t * dest,
+inline void _memcpy(               uint32_t * dest,
                     __global const uint32_t * src,
                              const uint32_t   len) {
 
@@ -22,8 +22,8 @@ inline void _memcpy(		   uint32_t * dest,
         *dest++ = select(0U, *src++, i < len);
 }
 
-inline void sha256_block(const uint32_t * const buffer,
-			 const uint32_t total, uint32_t * const H) {
+inline void sha256_block(	  const uint32_t * const buffer,
+				  const uint32_t total, uint32_t * const H) {
     uint32_t a = H0;
     uint32_t b = H1;
     uint32_t c = H2;
@@ -36,13 +36,13 @@ inline void sha256_block(const uint32_t * const buffer,
     uint32_t w[16];	//#define  w   buffer
 
     #pragma unroll
-    for (int i = 0; i < 15; i++)
+    for (uint32_t i = 0; i < 15; i++)
         w[i] = SWAP32(buffer[i]);
-    w[15] = (total * 8);
+    w[15] = (total * 8U);
 
     /* Do the job. */
     #pragma unroll
-    for (int i = 0; i < 16; i++) {
+    for (uint32_t i = 0U; i < 16U; i++) {
 	t = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
 
 	h = g;
@@ -57,7 +57,7 @@ inline void sha256_block(const uint32_t * const buffer,
     }
 
     #pragma unroll
-    for (int i = 16; i < 64; i++) {
+    for (uint32_t i = 16U; i < 64U; i++) {
 	w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
 	t = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
 
@@ -94,15 +94,15 @@ inline void sha256_block(const uint32_t * const buffer,
 ***************** */
 __kernel
 void kernel_crypt(
-	     __global const uint32_t * __restrict keys_buffer,
-             __global const uint32_t * __restrict index,
-	     __global const uint32_t * __restrict int_key_loc,
-	     __global const uint32_t * __restrict int_keys,
+	     __global const uint32_t *       __restrict keys_buffer,
+             __global const uint32_t * const __restrict index,
+	     __global const uint32_t * const __restrict int_key_loc,
+	     __global const uint32_t * const __restrict int_keys,
 		      const uint32_t              candidates_number,
 		      const uint32_t              num_loaded_hashes,
-	     __global const uint32_t * __restrict loaded_hashes,
-    volatile __global       uint32_t * __restrict hash_id,
-    volatile __global       uint32_t * __restrict bitmap) {
+	     __global const uint32_t * const __restrict loaded_hashes,
+    volatile __global       uint32_t * const __restrict hash_id,
+    volatile __global       uint32_t * const __restrict bitmap) {
 
     //Compute buffers (on CPU and NVIDIA, better private)
     uint32_t		w[16];
