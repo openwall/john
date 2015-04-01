@@ -1,5 +1,6 @@
 /*
  * Copyright 2013, epixoip.
+ * AVX2 support, Copyright (c) 2015 magnum
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that redistribution of source
@@ -7,7 +8,7 @@
  */
 
 #include "arch.h"
-#if defined (__SSE2__)  || defined (_MSC_VER)
+#if __SSE2__ || __MIC__ || _MSC_VER
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rawSHA256_ng;
@@ -15,9 +16,11 @@ extern struct fmt_main fmt_rawSHA256_ng;
 john_register_one(&fmt_rawSHA256_ng);
 #else
 
-#ifdef _OPENMP
+#if !FAST_FORMATS_OMP
+#undef _OPENMP
+#elif _OPENMP
 #include <omp.h>
-#if defined __XOP__
+#if __XOP__
 #define OMP_SCALE                 512 /* AMD */
 #else
 #define OMP_SCALE                 512 /* Intel */
@@ -25,46 +28,41 @@ john_register_one(&fmt_rawSHA256_ng);
 #endif
 
 // These compilers claim to be __GNUC__ but warn on gcc pragmas.
-#if defined(__GNUC__) && !defined(__INTEL_COMPILER) && !defined(__clang__) && !defined(__llvm__) && !defined (_MSC_VER)
+#if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER
 #pragma GCC optimize 3
 #endif
 
 //#define DEBUG
 
 #include <string.h>
+
 #include "stdint.h"
-#include <emmintrin.h>
-
-#if defined __XOP__
-#include <x86intrin.h>
-#elif defined __SSE4_1__
-#include <smmintrin.h>
-#elif defined __SSSE3__
-#include <tmmintrin.h>
-#endif
-
+#include "pseudo_intrinsics.h"
 #include "common.h"
 #include "formats.h"
 #include "aligned.h"
 #include "rawSHA256_common.h"
 #include "memdbg.h"
 
-#if defined __XOP__
-#define SIMD_TYPE                 "XOP"
-#elif defined __SSE4_1__
-#define SIMD_TYPE                 "SSE4.1"
-#elif defined __SSSE3__
-#define SIMD_TYPE                 "SSSE3"
+#if __AVX512__ || __MIC__
+#define SIMD_TYPE                 "512/512 AVX512 16x"
+#elif __AVX2__
+#define SIMD_TYPE                 "256/256 AVX2 8x"
+#elif __XOP__
+#define SIMD_TYPE                 "128/128 XOP 4x"
+#elif __SSE4_1__
+#define SIMD_TYPE                 "128/128 SSE4.1 4x"
+#elif __SSSE3__
+#define SIMD_TYPE                 "128/128 SSSE3 4x"
 #else
-#define SIMD_TYPE                 "SSE2"
+#define SIMD_TYPE                 "128/128 SSE2 4x"
 #endif
 
 #define FORMAT_LABEL              "Raw-SHA256-ng"
 #define FORMAT_NAME               ""
-#define ALGORITHM_NAME            "SHA256 128/128 " SIMD_TYPE " 4x"
+#define ALGORITHM_NAME            "SHA256 " SIMD_TYPE
 
-#define VWIDTH                    4
-#define NUMKEYS                   VWIDTH
+#define VWIDTH                    SIMD_COEF_32
 
 #define BENCHMARK_COMMENT         ""
 #define BENCHMARK_LENGTH          -1
@@ -76,132 +74,85 @@ john_register_one(&fmt_rawSHA256_ng);
 #define BINARY_ALIGN              4
 #define SALT_SIZE                 0
 #define SALT_ALIGN                1
-#define MIN_KEYS_PER_CRYPT        NUMKEYS
-#define MAX_KEYS_PER_CRYPT        NUMKEYS
+#define MIN_KEYS_PER_CRYPT        VWIDTH
+#define MAX_KEYS_PER_CRYPT        VWIDTH
 
-
-#ifndef __XOP__
-#define _mm_roti_epi32(x, n)                                              \
-(                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_srli_epi32(x, ~n + 1),                                        \
-        _mm_slli_epi32(x, 32 + n)                                         \
-    )                                                                     \
-)
-
-#define _mm_cmov_si128(y, z, x)                                           \
-(                                                                         \
-    _mm_xor_si128 (z,                                                     \
-        _mm_and_si128 (x,                                                 \
-            _mm_xor_si128 (y, z)                                          \
-        )                                                                 \
-    )                                                                     \
-)
-#endif
-
-#ifdef __SSSE3__
-#define SWAP_ENDIAN(n)                                                    \
-{                                                                         \
-    n = _mm_shuffle_epi8 (n,                                              \
-            _mm_set_epi32 (0x0c0d0e0f, 0x08090a0b,                        \
-                           0x04050607, 0x00010203                         \
-            )                                                             \
-        );                                                                \
-}
-#else
-#define ROT16(n)                                                          \
-(                                                                         \
-    _mm_shufflelo_epi16 (                                                 \
-        _mm_shufflehi_epi16 (n, 0xb1), 0xb1                               \
-    )                                                                     \
-)
-
-#define SWAP_ENDIAN(n)                                                    \
-(                                                                         \
-    n = _mm_xor_si128 (                                                   \
-            _mm_srli_epi16 (ROT16(n), 8),                                 \
-            _mm_slli_epi16 (ROT16(n), 8)                                  \
-        )                                                                 \
-)
-#endif
-
-#ifdef __SSE4_1__
+#if __SSE4_1__ && !__AVX2__
 #define GATHER(x, y, z)                                                   \
 {                                                                         \
-    x = _mm_cvtsi32_si128 (   y[index][z]   );                            \
-    x = _mm_insert_epi32  (x, y[index + 1][z], 1);                        \
-    x = _mm_insert_epi32  (x, y[index + 2][z], 2);                        \
-    x = _mm_insert_epi32  (x, y[index + 3][z], 3);                        \
+    x = _mm_cvtsi32_si128(   y[index][z]   );                             \
+    x = _mm_insert_epi32(x, y[index + 1][z], 1);                          \
+    x = _mm_insert_epi32(x, y[index + 2][z], 2);                          \
+    x = _mm_insert_epi32(x, y[index + 3][z], 3);                          \
 }
 #endif
 
 #define S0(x)                                                             \
 (                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_roti_epi32 (x, -22),                                          \
-        _mm_xor_si128 (                                                   \
-            _mm_roti_epi32 (x,  -2),                                      \
-            _mm_roti_epi32 (x, -13)                                       \
+    vxor(                                                       \
+        vroti_epi32(x, -22),                                          \
+        vxor(                                                   \
+            vroti_epi32(x,  -2),                                      \
+            vroti_epi32(x, -13)                                       \
         )                                                                 \
     )                                                                     \
 )
 
 #define S1(x)                                                             \
 (                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_roti_epi32 (x, -25),                                          \
-        _mm_xor_si128 (                                                   \
-            _mm_roti_epi32 (x,  -6),                                      \
-            _mm_roti_epi32 (x, -11)                                       \
+    vxor(                                                       \
+        vroti_epi32(x, -25),                                          \
+        vxor(                                                   \
+            vroti_epi32(x,  -6),                                      \
+            vroti_epi32(x, -11)                                       \
         )                                                                 \
     )                                                                     \
 )
 
 #define s0(x)                                                             \
 (                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_srli_epi32 (x, 3),                                            \
-        _mm_xor_si128 (                                                   \
-            _mm_roti_epi32 (x,  -7),                                      \
-            _mm_roti_epi32 (x, -18)                                       \
+    vxor(                                                       \
+        vsrli_epi32(x, 3),                                            \
+        vxor(                                                   \
+            vroti_epi32(x,  -7),                                      \
+            vroti_epi32(x, -18)                                       \
         )                                                                 \
     )                                                                     \
 )
 
 #define s1(x)                                                             \
 (                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_srli_epi32 (x, 10),                                           \
-        _mm_xor_si128 (                                                   \
-            _mm_roti_epi32 (x, -17),                                      \
-            _mm_roti_epi32 (x, -19)                                       \
+    vxor(                                                       \
+        vsrli_epi32(x, 10),                                           \
+        vxor(                                                   \
+            vroti_epi32(x, -17),                                      \
+            vroti_epi32(x, -19)                                       \
         )                                                                 \
     )                                                                     \
 )
 
-#define Maj(x,y,z) _mm_cmov_si128 (x, y, _mm_xor_si128 (z, y))
+#define Maj(x,y,z) vcmov(x, y, vxor(z, y))
 
-#define Ch(x,y,z) _mm_cmov_si128 (y, z, x)
+#define Ch(x,y,z) vcmov(y, z, x)
 
 #define R(t)                                                              \
 {                                                                         \
-    w[t] = _mm_add_epi32 (s1(w[t -  2]), w[t - 7]);                       \
-    w[t] = _mm_add_epi32 (s0(w[t - 15]), w[t]);                           \
-    w[t] = _mm_add_epi32 (   w[t - 16],  w[t]);                           \
+    w[t] = vadd_epi32(s1(w[t -  2]), w[t - 7]);                       \
+    w[t] = vadd_epi32(s0(w[t - 15]), w[t]);                           \
+    w[t] = vadd_epi32(   w[t - 16],  w[t]);                           \
 }
 
 #define SHA256_STEP(a,b,c,d,e,f,g,h,x,K)                                  \
 {                                                                         \
     if (x > 15) R(x);                                                     \
-    tmp1 = _mm_add_epi32 (h,    S1(e));                                   \
-    tmp1 = _mm_add_epi32 (tmp1, Ch(e,f,g));                               \
-    tmp1 = _mm_add_epi32 (tmp1, _mm_set1_epi32(K));                       \
-    tmp1 = _mm_add_epi32 (tmp1, w[x]);                                    \
-    tmp2 = _mm_add_epi32 (S0(a),Maj(a,b,c));                              \
-    d    = _mm_add_epi32 (tmp1, d);                                       \
-    h    = _mm_add_epi32 (tmp1, tmp2);                                    \
+    tmp1 = vadd_epi32(h,    S1(e));                                   \
+    tmp1 = vadd_epi32(tmp1, Ch(e,f,g));                               \
+    tmp1 = vadd_epi32(tmp1, vset1_epi32(K));                       \
+    tmp1 = vadd_epi32(tmp1, w[x]);                                    \
+    tmp2 = vadd_epi32(S0(a),Maj(a,b,c));                              \
+    d    = vadd_epi32(tmp1, d);                                       \
+    h    = vadd_epi32(tmp1, tmp2);                                    \
 }
-
 
 static struct fmt_tests tests[] = {
 	{"71c3f65d17745f05235570f1799d75e69795d469d9fcb83e326f82f1afa80dea", "epixoip"},
@@ -261,10 +212,10 @@ static void init(struct fmt_main *self)
     self->params.max_keys_per_crypt *= omp_t;
 #endif
     saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
-                                 sizeof(*saved_key), MEM_ALIGN_SIMD);
+                                 sizeof(*saved_key), VWIDTH * 4);
     for (i = 0; i < 8; i++)
             crypt_key[i] = mem_calloc_align(self->params.max_keys_per_crypt,
-                                            sizeof(uint32_t), MEM_ALIGN_SIMD);
+                                            sizeof(uint32_t), VWIDTH * 4);
 }
 
 static void done(void)
@@ -275,13 +226,13 @@ static void done(void)
     MEM_FREE(saved_key);
 }
 
-static void *get_binary (char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
     static unsigned char *out;
     int i;
 
     if (!out)
-        out = mem_alloc_tiny (DIGEST_SIZE, MEM_ALIGN_WORD);
+        out = mem_alloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
     ciphertext += HEX_TAG_LEN;
 
@@ -289,24 +240,24 @@ static void *get_binary (char *ciphertext)
         out[i] = atoi16[ARCH_INDEX(ciphertext[i*2])] * 16 +
                  atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
 
-    alter_endianity (out, DIGEST_SIZE);
+    alter_endianity(out, DIGEST_SIZE);
 
-    return (void *) out;
+    return (void*) out;
 }
 
-static int get_hash_0 (int index) { return crypt_key[0][index] & 0xf; }
-static int get_hash_1 (int index) { return crypt_key[0][index] & 0xff; }
-static int get_hash_2 (int index) { return crypt_key[0][index] & 0xfff; }
-static int get_hash_3 (int index) { return crypt_key[0][index] & 0xffff; }
-static int get_hash_4 (int index) { return crypt_key[0][index] & 0xfffff; }
-static int get_hash_5 (int index) { return crypt_key[0][index] & 0xffffff; }
-static int get_hash_6 (int index) { return crypt_key[0][index] & 0x7ffffff; }
+static int get_hash_0(int index) { return crypt_key[0][index] & 0xf; }
+static int get_hash_1(int index) { return crypt_key[0][index] & 0xff; }
+static int get_hash_2(int index) { return crypt_key[0][index] & 0xfff; }
+static int get_hash_3(int index) { return crypt_key[0][index] & 0xffff; }
+static int get_hash_4(int index) { return crypt_key[0][index] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_key[0][index] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_key[0][index] & 0x7ffffff; }
 
 
-static void set_key (char *key, int index)
+static void set_key(char *key, int index)
 {
-    uint32_t *buf32 = (uint32_t *) &saved_key[index];
-    uint8_t  *buf8  = (uint8_t *) buf32;
+    uint32_t *buf32 = (uint32_t*) &saved_key[index];
+    uint8_t  *buf8  = (uint8_t*) buf32;
     int len = 0;
 
     while (*key)
@@ -318,29 +269,23 @@ static void set_key (char *key, int index)
 }
 
 
-static char *get_key (int index)
+static char *get_key(int index)
 {
-    uint32_t *buf = (uint32_t *) &saved_key[index];
+    uint32_t *buf = (uint32_t*) &saved_key[index];
     static char out[MAXLEN + 1];
 
     int len = buf[15] >> 3;
 
-    memset (out, 0, MAXLEN + 1);
-    memcpy (out, buf, len);
+    memset(out, 0, MAXLEN + 1);
+    memcpy(out, buf, len);
 
-    return (char *) out;
+    return (char*) out;
 }
 
 
-#if FMT_MAIN_VERSION > 10
-static int crypt_all (int *pcount, struct db_salt *salt)
-#else
-static void crypt_all (int count)
-#endif
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
-#if FMT_MAIN_VERSION > 10
     int count = *pcount;
-#endif
     int index = 0;
 
 #ifdef _OPENMP
@@ -348,16 +293,15 @@ static void crypt_all (int count)
     for (index = 0; index < count; index += VWIDTH)
 #endif
     {
-        __m128i a, b, c, d, e, f, g, h;
-        __m128i w[64], tmp1, tmp2;
-
+        vtype a, b, c, d, e, f, g, h;
+        vtype w[64], tmp1, tmp2;
         int i;
 
-#ifdef __SSE4_1__
-        for (i=0; i < 16; i++) GATHER (w[i], saved_key, i);
-        for (i=0; i < 15; i++) SWAP_ENDIAN (w[i]);
+#if __SSE4_1__ && !__AVX2__
+        for (i=0; i < 16; i++) GATHER(w[i], saved_key, i);
+        for (i=0; i < 15; i++) vswap32(w[i]);
 #else
-        JTR_ALIGN(16) uint32_t __w[16][VWIDTH];
+        JTR_ALIGN(VWIDTH * 4) uint32_t __w[16][VWIDTH];
         int j;
 
         for (i=0; i < VWIDTH; i++)
@@ -366,21 +310,21 @@ static void crypt_all (int count)
 
         for (i=0; i < 15; i++)
         {
-	        w[i] = _mm_load_si128 ((__m128i *) __w[i]);
-	        SWAP_ENDIAN (w[i]);
+	        w[i] = vload((vtype*) __w[i]);
+	        vswap32(w[i]);
         }
 
-        w[15] = _mm_load_si128 ((__m128i *) __w[15]);
+        w[15] = vload((vtype*) __w[15]);
 #endif
 
-        a = _mm_set1_epi32 (0x6a09e667);
-        b = _mm_set1_epi32 (0xbb67ae85);
-        c = _mm_set1_epi32 (0x3c6ef372);
-        d = _mm_set1_epi32 (0xa54ff53a);
-        e = _mm_set1_epi32 (0x510e527f);
-        f = _mm_set1_epi32 (0x9b05688c);
-        g = _mm_set1_epi32 (0x1f83d9ab);
-        h = _mm_set1_epi32 (0x5be0cd19);
+        a = vset1_epi32(0x6a09e667);
+        b = vset1_epi32(0xbb67ae85);
+        c = vset1_epi32(0x3c6ef372);
+        d = vset1_epi32(0xa54ff53a);
+        e = vset1_epi32(0x510e527f);
+        f = vset1_epi32(0x9b05688c);
+        g = vset1_epi32(0x1f83d9ab);
+        h = vset1_epi32(0x5be0cd19);
 
         SHA256_STEP(a, b, c, d, e, f, g, h,  0, 0x428a2f98);
         SHA256_STEP(h, a, b, c, d, e, f, g,  1, 0x71374491);
@@ -450,68 +394,66 @@ static void crypt_all (int count)
         SHA256_STEP(c, d, e, f, g, h, a, b, 62, 0xbef9a3f7);
         SHA256_STEP(b, c, d, e, f, g, h, a, 63, 0xc67178f2);
 
-        a = _mm_add_epi32 (a, _mm_set1_epi32 (0x6a09e667));
-        b = _mm_add_epi32 (b, _mm_set1_epi32 (0xbb67ae85));
-        c = _mm_add_epi32 (c, _mm_set1_epi32 (0x3c6ef372));
-        d = _mm_add_epi32 (d, _mm_set1_epi32 (0xa54ff53a));
-        e = _mm_add_epi32 (e, _mm_set1_epi32 (0x510e527f));
-        f = _mm_add_epi32 (f, _mm_set1_epi32 (0x9b05688c));
-        g = _mm_add_epi32 (g, _mm_set1_epi32 (0x1f83d9ab));
-        h = _mm_add_epi32 (h, _mm_set1_epi32 (0x5be0cd19));
+        a = vadd_epi32(a, vset1_epi32(0x6a09e667));
+        b = vadd_epi32(b, vset1_epi32(0xbb67ae85));
+        c = vadd_epi32(c, vset1_epi32(0x3c6ef372));
+        d = vadd_epi32(d, vset1_epi32(0xa54ff53a));
+        e = vadd_epi32(e, vset1_epi32(0x510e527f));
+        f = vadd_epi32(f, vset1_epi32(0x9b05688c));
+        g = vadd_epi32(g, vset1_epi32(0x1f83d9ab));
+        h = vadd_epi32(h, vset1_epi32(0x5be0cd19));
 
-        _mm_store_si128 ((__m128i *) &crypt_key[0][index], a);
-        _mm_store_si128 ((__m128i *) &crypt_key[1][index], b);
-        _mm_store_si128 ((__m128i *) &crypt_key[2][index], c);
-        _mm_store_si128 ((__m128i *) &crypt_key[3][index], d);
-        _mm_store_si128 ((__m128i *) &crypt_key[4][index], e);
-        _mm_store_si128 ((__m128i *) &crypt_key[5][index], f);
-        _mm_store_si128 ((__m128i *) &crypt_key[6][index], g);
-        _mm_store_si128 ((__m128i *) &crypt_key[7][index], h);
+        vstore((vtype*) &crypt_key[0][index], a);
+        vstore((vtype*) &crypt_key[1][index], b);
+        vstore((vtype*) &crypt_key[2][index], c);
+        vstore((vtype*) &crypt_key[3][index], d);
+        vstore((vtype*) &crypt_key[4][index], e);
+        vstore((vtype*) &crypt_key[5][index], f);
+        vstore((vtype*) &crypt_key[6][index], g);
+        vstore((vtype*) &crypt_key[7][index], h);
     }
-#if FMT_MAIN_VERSION > 10
+
     return count;
-#endif
 }
 
 
-static int cmp_all (void *binary, int count)
+static int cmp_all(void *binary, int count)
 {
+	static const vtype zero = {0};
+	vtype tmp;
+	vtype bin;
+	vtype digest;
+	int i = 0;
+
 #ifdef _OPENMP
-    int i;
-
-    for (i = 0; i < count; i++)
-        if (((uint32_t *) binary)[0] == crypt_key[0][i])
-             return 1;
-    return 0;
-#else
-    static const __m128i zero = {0};
-
-    __m128i tmp;
-    __m128i bin;
-    __m128i digest;
-
-    digest = _mm_load_si128 ((__m128i *) crypt_key[0]);
-    bin    = _mm_set1_epi32 (((uint32_t *) binary)[0]);
-    tmp    = _mm_cmpeq_epi32 (bin, digest);
-
-    return _mm_movemask_epi8 (_mm_cmpeq_epi32 (tmp, zero)) != 0xffff;
+	for (i = 0; i < count; i += VWIDTH)
 #endif
+	{
+		digest = vload((vtype*) &crypt_key[0][i]);
+		bin    = vset1_epi32(((uint32_t*) binary)[0]);
+		tmp    = vcmpeq_epi32(bin, digest);
+
+		if (vmovemask_epi8(vcmpeq_epi32(tmp, zero)) != 0xffff)
+			return 1;
+	}
+
+	return 0;
 }
 
 
-static int cmp_one (void *binary, int index)
+static int cmp_one(void *binary, int index)
 {
     int i;
 
     for (i = 0; i < 8; i++)
-        if (((uint32_t *) binary)[i] != crypt_key[i][index])
+        if (((uint32_t*) binary)[i] != crypt_key[i][index])
             return 0;
 
     return 1;
 }
 
 
-static int cmp_exact (char *source, int index)
+static int cmp_exact(char *source, int index)
 {
     return 1;
 }
@@ -527,13 +469,9 @@ struct fmt_main fmt_rawSHA256_ng = {
         0,
         MAXLEN,
         BINARY_SIZE,
-#if FMT_MAIN_VERSION > 9
         BINARY_ALIGN,
-#endif
         SALT_SIZE,
-#if FMT_MAIN_VERSION > 9
         SALT_ALIGN,
-#endif
         MIN_KEYS_PER_CRYPT,
         MAX_KEYS_PER_CRYPT,
         FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
@@ -543,21 +481,17 @@ struct fmt_main fmt_rawSHA256_ng = {
         tests
     }, {
         init,
-#if FMT_MAIN_VERSION > 10
         done,
         fmt_default_reset,
-#endif
         prepare,
         valid,
         split,
         get_binary,
         fmt_default_salt,
-#if FMT_MAIN_VERSION > 9
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
         fmt_default_source,
-#endif
         {
 		fmt_default_binary_hash_0,
 		fmt_default_binary_hash_1,
