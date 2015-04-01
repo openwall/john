@@ -28,7 +28,7 @@ struct pers_opts pers_opts;
 #undef LINE_BUFFER_SIZE
 #define LINE_BUFFER_SIZE 0x10000
 
-void dump_stuff_msg(void *msg, void *x, unsigned int size)
+void dump_stuff_msg(const void *msg, void *x, unsigned int size)
 {
 	unsigned int i;
 
