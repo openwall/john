@@ -322,11 +322,11 @@ void dump_stuff(void* x, unsigned int size)
 	dump_stuff_noeol(x,size);
 	printf("\n");
 }
-void dump_stuff_msg(void *msg, void *x, unsigned int size) {
+void dump_stuff_msg(const void *msg, void *x, unsigned int size) {
 	printf("%s : ", (char *)msg);
 	dump_stuff(x, size);
 }
-void dump_stuff_msg_sepline(void *msg, void *x, unsigned int size) {
+void dump_stuff_msg_sepline(const void *msg, void *x, unsigned int size) {
 	printf("%s :\n", (char *)msg);
 	dump_stuff(x, size);
 }
@@ -345,11 +345,11 @@ void dump_stuff_be(void* x, unsigned int size)
 	dump_stuff_be_noeol(x,size);
 	printf("\n");
 }
-void dump_stuff_be_msg(void *msg, void *x, unsigned int size) {
+void dump_stuff_be_msg(const void *msg, void *x, unsigned int size) {
 	printf("%s : ", (char *)msg);
 	dump_stuff_be(x, size);
 }
-void dump_stuff_be_msg_sepline(void *msg, void *x, unsigned int size) {
+void dump_stuff_be_msg_sepline(const void *msg, void *x, unsigned int size) {
 	printf("%s :\n", (char *)msg);
 	dump_stuff_be(x, size);
 }
@@ -422,11 +422,11 @@ void dump_stuff_mmx(void *buf, unsigned int size, unsigned int index) {
 	dump_stuff_mmx_noeol(buf, size, index);
 	printf("\n");
 }
-void dump_stuff_mmx_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+void dump_stuff_mmx_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
 	printf("%s : ", (char*)msg);
 	dump_stuff_mmx(buf, size, index);
 }
-void dump_stuff_mmx_msg_sepline(void *msg, void *buf, unsigned int size, unsigned int index) {
+void dump_stuff_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, unsigned int index) {
 	printf("%s :\n", (char*)msg);
 	dump_stuff_mmx(buf, size, index);
 }
@@ -443,11 +443,11 @@ void dump_out_mmx(void *buf, unsigned int size, unsigned int index) {
 	dump_out_mmx_noeol(buf,size,index);
 	printf("\n");
 }
-void dump_out_mmx_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+void dump_out_mmx_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
 	printf("%s : ", (char*)msg);
 	dump_out_mmx(buf, size, index);
 }
-void dump_out_mmx_msg_sepline(void *msg, void *buf, unsigned int size, unsigned int index) {
+void dump_out_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, unsigned int index) {
 	printf("%s :\n", (char*)msg);
 	dump_out_mmx(buf, size, index);
 }
@@ -474,11 +474,11 @@ void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, u
 	for(i=0;i<size;i++)
 		*oBuf++ = ((unsigned char*)buf)[GETPOSMPARA(i, index)];
 }
-void dump_stuff_mpara_mmx_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+void dump_stuff_mpara_mmx_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
 	printf("%s : ", (char*)msg);
 	dump_stuff_mpara_mmx(buf, size, index);
 }
-void dump_stuff_mpara_mmx_msg_sepline(void *msg, void *buf, unsigned int size, unsigned int index) {
+void dump_stuff_mpara_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, unsigned int index) {
 	printf("%s :\n", (char*)msg);
 	dump_stuff_mpara_mmx(buf, size, index);
 }
@@ -494,7 +494,7 @@ void dump_stuff_shammx(void *buf, unsigned int size, unsigned int index) {
 	}
 	printf("\n");
 }
-void dump_stuff_shammx_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+void dump_stuff_shammx_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
 	printf("%s : ", (char*)msg);
 	dump_stuff_shammx(buf, size, index);
 }
@@ -508,7 +508,7 @@ void dump_out_shammx(void *buf, unsigned int size, unsigned int index) {
 	}
 	printf("\n");
 }
-void dump_out_shammx_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+void dump_out_shammx_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
 	printf("%s : ", (char*)msg);
 	dump_out_shammx(buf, size, index);
 }
@@ -523,7 +523,7 @@ void dump_stuff_shammx64(void *buf, unsigned int size, unsigned int index) {
 	}
 	printf("\n");
 }
-void dump_stuff_shammx64_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+void dump_stuff_shammx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
 	printf("%s : ", (char*)msg);
 	dump_stuff_shammx64(buf, size, index);
 }
@@ -537,7 +537,7 @@ void dump_stuff_mmx64(void *buf, unsigned int size, unsigned int index) {
 	}
 	printf("\n");
 }
-void dump_stuff_mmx64_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+void dump_stuff_mmx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
 	printf("%s : ", (char*)msg);
 	dump_stuff_mmx64(buf, size, index);
 }
@@ -552,7 +552,7 @@ void dump_out_shammx64(void *buf, unsigned int size, unsigned int index) {
 	}
 	printf("\n");
 }
-void dump_out_shammx64_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+void dump_out_shammx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
 	printf("%s : ", (char*)msg);
 	dump_out_shammx64(buf, size, index);
 }
