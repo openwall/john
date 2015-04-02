@@ -54,7 +54,7 @@ void * raw_sha256_common_binary(char *ciphertext)
 	char *p;
 	int i;
 
-	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+	if (!out) out = mem_calloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
 	p = ciphertext + HEX_TAG_LEN;
 	for (i = 0; i < BINARY_SIZE; i++) {
