@@ -73,14 +73,14 @@ inline void sha256_block(	  const uint32_t * const buffer,
     }
 
     /* Put checksum in context given as argument. */
-    H[0] = SWAP32(a + H0);
-    H[1] = SWAP32(b + H1);
-    H[2] = SWAP32(c + H2);
-    H[3] = SWAP32(d + H3);
-    H[4] = SWAP32(e + H4);
-    H[5] = SWAP32(f + H5);
-    H[6] = SWAP32(g + H6);
-    H[7] = SWAP32(h + H7);
+    H[0] = (a + H0);
+    H[1] = (b + H1);
+    H[2] = (c + H2);
+    H[3] = (d + H3);
+    H[4] = (e + H4);
+    H[5] = (f + H5);
+    H[6] = (g + H6);
+    H[7] = (h + H7);
 }
 
 /* *****************

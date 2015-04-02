@@ -24,9 +24,12 @@
 
 #define BUFFER_SIZE             56      /* RAW_PLAINTEXT_LENGTH multiple of 4 */
 #define CIPHERTEXT_LENGTH       64
+
+#ifdef _OPENCL_COMPILER
 #define BINARY_SIZE             32
+#endif
+
 #define HASH_PARTS		BINARY_SIZE / 4
-#define BINARY_ALIGN            4
 #define SALT_SIZE               0
 #define SALT_ALIGN              1
 #define STEP			0
