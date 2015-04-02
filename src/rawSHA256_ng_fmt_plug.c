@@ -420,7 +420,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	static const vtype zero = {0};
-	vtype tmp;
 	vtype bin;
 	vtype digest;
 	int i = 0;
@@ -431,10 +430,9 @@ static int cmp_all(void *binary, int count)
 	{
 		digest = vload((vtype*) &crypt_key[0][i]);
 		bin    = vset1_epi32(((uint32_t*) binary)[0]);
-		tmp    = vcmpeq_epi32(bin, digest);
-
-		if (vmovemask_epi8(vcmpeq_epi32(tmp, zero)) != 0xffff)
-			return 1;
+        
+        if (vtesteq_epi32(bin, digest))
+            return 1;
 	}
 
 	return 0;
