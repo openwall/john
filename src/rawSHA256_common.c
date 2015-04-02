@@ -42,13 +42,13 @@ static int valid_hex(char *ciphertext)
 	return !*q && q - p == HEX_CIPHERTEXT_LENGTH;
 }
 
-int raw_sha256_common_valid(char *ciphertext, struct fmt_main *self)
+int sha256_common_valid(char *ciphertext, struct fmt_main *self)
 {
 	return (valid_hex(ciphertext) || valid_cisco(ciphertext));
 }
 
 /* ------- Binary ------- */
-void * raw_sha256_common_binary(char *ciphertext)
+void * sha256_common_binary(char *ciphertext)
 {
 	static unsigned char * out;
 	char *p;
@@ -72,7 +72,7 @@ void * raw_sha256_common_binary(char *ciphertext)
 
 /* ------- Prepare ------- */
 /* Convert Cisco hashes to hex ones, so .pot entries are compatible */
-char * raw_sha256_common_prepare(char *split_fields[10], struct fmt_main *self)
+char * sha256_common_prepare(char *split_fields[10], struct fmt_main *self)
 {
 	static char * out;
 	char *o, *p = split_fields[1];
@@ -121,7 +121,7 @@ char * raw_sha256_common_prepare(char *split_fields[10], struct fmt_main *self)
 }
 
 /* ------- Split ------- */
-char * raw_sha256_common_split(char *ciphertext, int index, struct fmt_main *self)
+char * sha256_common_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char * out;
 

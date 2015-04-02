@@ -657,7 +657,7 @@ struct fmt_main fmt_opencl_xsha512 = {
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
-		sha512_common_xsha512_tests
+		sha512_common_tests_xsha512
 	}, {
 		init_x,
 		done,

@@ -368,7 +368,7 @@ static int cmp_all(void *binary, int count)
 	{
 		digest = vload((vtype*) &crypt_key[0][i]);
 		bin    = vset1_epi32(((uint32_t*) binary)[0]);
-        
+
         if (vtesteq_epi32(bin, digest))
             return 1;
 	}
@@ -414,15 +414,15 @@ struct fmt_main fmt_rawSHA256_ng = {
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
-        tests
+        sha256_common_tests
     }, {
         init,
         done,
         fmt_default_reset,
-	raw_sha256_common_prepare,
-	raw_sha256_common_valid,
-	raw_sha256_common_split,
-	raw_sha256_common_binary,
+	sha256_common_prepare,
+	sha256_common_valid,
+	sha256_common_split,
+	sha256_common_binary,
         fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

@@ -470,9 +470,9 @@ static void load_hash(const struct db_salt *salt)
 			if (!fields[1])
 				fields[1] = tests[i].ciphertext;
 
-			ciphertext = raw_sha256_common_split(
-				raw_sha256_common_prepare(fields, self), 0, self);
-			binary = (uint32_t *) raw_sha256_common_binary(ciphertext);
+			ciphertext = sha256_common_split(
+				sha256_common_prepare(fields, self), 0, self);
+			binary = (uint32_t *) sha256_common_binary(ciphertext);
 		}
 
 		// Skip cracked hashes (segfault if removed).
@@ -584,7 +584,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	uint32_t * binary = (uint32_t *) raw_sha256_common_binary(source);
+	uint32_t * binary = (uint32_t *) sha256_common_binary(source);
 
 	if (binary[1] != loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index] + 1])
 		return 0;
@@ -629,15 +629,15 @@ struct fmt_main fmt_opencl_rawsha256 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		tests
+		sha256_common_tests
 	}, {
 		init,
 		done,
 		reset,
-		raw_sha256_common_prepare,
-		raw_sha256_common_valid,
-		raw_sha256_common_split,
-		raw_sha256_common_binary,
+		sha256_common_prepare,
+		sha256_common_valid,
+		sha256_common_split,
+		sha256_common_binary,
 		fmt_default_salt,
 		{ NULL },
 		fmt_default_source,

@@ -28,13 +28,13 @@
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 
-int raw_sha256_common_valid(char *ciphertext, struct fmt_main *self);
-void * raw_sha256_common_binary(char *ciphertext);
-char * raw_sha256_common_prepare(char *split_fields[10], struct fmt_main *self);
-char * raw_sha256_common_split(char *ciphertext, int index, struct fmt_main *self);
+int sha256_common_valid(char *ciphertext, struct fmt_main *self);
+void * sha256_common_binary(char *ciphertext);
+char * sha256_common_prepare(char *split_fields[10], struct fmt_main *self);
+char * sha256_common_split(char *ciphertext, int index, struct fmt_main *self);
 
 #ifdef _RAWSHA256_H
-static struct fmt_tests tests[] = {
+static struct fmt_tests sha256_common_tests[] = {
 	{"71c3f65d17745f05235570f1799d75e69795d469d9fcb83e326f82f1afa80dea", "epixoip"},
 	{HEX_TAG "71c3f65d17745f05235570f1799d75e69795d469d9fcb83e326f82f1afa80dea", "epixoip"},
 	{"25b64f637b373d33a8aa2b7579784e99a20e6b7dfea99a71af124394b8958f27", "doesthiswork"},
