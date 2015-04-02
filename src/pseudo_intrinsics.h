@@ -272,7 +272,7 @@ typedef __m128i vtype;
 	n = vshuffle_epi8(n, vset_epi32(0x0c0d0e0f, 0x08090a0b, \
 	                                0x04050607, 0x00010203))
 #else
-#define ROT16(n) vshufflelo_epi16(vshufflehi_epi16(n, 0xb1), 0xb1))
+#define ROT16(n) vshufflelo_epi16(vshufflehi_epi16(n, 0xb1), 0xb1)
 
 #define vswap32(n) n = vxor(vsrli_epi16(ROT16(n), 8),	\
                             vslli_epi16(ROT16(n), 8))
