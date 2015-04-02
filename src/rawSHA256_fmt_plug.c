@@ -56,7 +56,9 @@ john_register_one(&fmt_rawSHA256);
 #else
 #define PLAINTEXT_LENGTH        125
 #endif
+#define _RAWSHA256_H
 #include "rawSHA256_common.h"
+#undef _RAWSHA256_H
 
 #define SALT_SIZE               0
 #define SALT_ALIGN				1

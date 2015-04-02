@@ -113,7 +113,8 @@ JOHN_OBJS = \
 	undrop.o \
 	regex.o pp.o \
 	c3_fmt.o \
-	unique.o putty2john.o gpg2john.o memdbg.o rawSHA256_common.o
+	unique.o putty2john.o gpg2john.o memdbg.o rawSHA256_common.o  \
+	rawSHA512_common.o
 
 OCL_OBJS = common-opencl.o opencl_autotune.o
 
@@ -521,6 +522,8 @@ wpapcap2john.o:	wpapcap2john.c wpapcap2john.h memdbg.h
 zip2john.o:	zip2john.c common.h jumbo.h formats.h stdint.h pkzip.h missing_getopt.h memdbg.h
 
 rawSHA256_common.o:	rawSHA256_common.c rawSHA256_common.h memdbg.h
+
+rawSHA512_common.o:	rawSHA512_common.c rawSHA512_common.h memdbg.h
 ########
 
 SUBDIRS = aes

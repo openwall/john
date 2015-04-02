@@ -136,9 +136,3 @@ char * raw_sha256_common_split(char *ciphertext, int index, struct fmt_main *sel
 	strlwr(out + HEX_TAG_LEN);
 	return out;
 }
-
-/* ------- Mute a warning ------- */
-void raw_sha256_common_test()
-{
-	if (tests[0].fields);
-}

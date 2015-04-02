@@ -27,7 +27,9 @@ john_register_one(&fmt_opencl_rawsha256);
 #include "config.h"
 #include "options.h"
 #include "opencl_rawsha256.h"
+#define _RAWSHA256_H
 #include "rawSHA256_common.h"
+#undef _RAWSHA256_H
 #include "mask_ext.h"
 #include "opencl_mask_extras.h"
 
