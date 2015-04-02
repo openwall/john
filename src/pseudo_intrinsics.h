@@ -49,8 +49,8 @@ typedef __m512i vtype;
 #define vmovemask_epi8          _mm512_movemask_epi8
 #define vor                     _mm512_or_si512
 #define vset1_epi32             _mm512_set1_epi32
-#define vset1_epi64x            _mm512_set1_epi64x
-#define vset_epi64x             _mm512_set_epi64x
+#define vset1_epi64x            _mm512_set1_epi64
+#define vset_epi64x             _mm512_set_epi64
 #define vsetzero                _mm512_setzero_si512
 #define vshuffle_epi8           _mm512_shuffle_epi8
 #define vshuffle_epi32          _mm512_shuffle_epi32
@@ -72,23 +72,29 @@ typedef __m512i vtype;
 #define vpermute2x128           _mm512_permute2x128_si512
 #define vset_epi32              _mm512_set_epi32
 
+// MIC doesn't support _mm512_shuffle_epi8
+#if __MIC__   
+// TODO: the code is not optimized yet
+#define vswap32(n)                                                          \
+    n = vxor(vsrli_epi32(n, 24),                                            \
+             vxor(vslli_epi32(vsrli_epi32(vslli_epi32(n, 8), 24), 8),       \
+                  vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(n, 8), 24), 8),  \
+                       vslli_epi32(n, 24))))
+#else
 #define vswap32(n)	  \
-	n = _mm512_shuffle_epi8(n, _mm512_set_epi32(0x3c3d3e3f, 0x38393a3b, \
-	                                            0x34353637, 0x30313233, \
-	                                            0x2c2d2e2f, 0x28292a2b, \
-	                                            0x24252627, 0x20212223, \
-	                                            0x1c1d1e1f, 0x18191a1b, \
-	                                            0x14151617, 0x10111213, \
-	                                            0x0c0d0e0f, 0x08090a0b, \
-	                                            0x04050607, 0x00010203))
+	n = vshuffle_epi8(n, vset_epi32(0x3c3d3e3f, 0x38393a3b, \
+	                                0x34353637, 0x30313233, \
+	                                0x2c2d2e2f, 0x28292a2b, \
+	                                0x24252627, 0x20212223, \
+	                                0x1c1d1e1f, 0x18191a1b, \
+	                                0x14151617, 0x10111213, \
+	                                0x0c0d0e0f, 0x08090a0b, \
+	                                0x04050607, 0x00010203))
+#endif
 
-static inline int vtestz_epi32(vtype __X)
-{
-    uint32_t JTR_ALIGN(SIMD_COEF_32 * 4) words[8];
-    vstore(words, __X);
-    return !words[0] || !words[1] || !words[2] || !words[3] ||
-	    !words[4] || !words[5] || !words[6] || !words[7];
-}
+#define vtestz_epi32(n)         !_mm512_min_epu32(n)
+#define vtesteq_epi32(x, y)   \
+    _mm512_mask2int(_mm512_cmp_epi32_mask(x, y, _MM_CMPINT_EQ))
 
 /******************************** AVX2 ********************************/
 #elif __AVX2__
@@ -206,6 +212,12 @@ static inline int vtestz_epi32(vtype __X)
 }
 #endif
 
+#define vtesteq_epi32(x, y)                                             \
+(                                                                       \
+    0xffffffff != vmovemask_epi8(vcmpeq_epi32(vcmpeq_epi32(x, y),       \
+                                              vsetzero()))              \
+)
+
 /************************* SSE2/3/4/AVX/XOP ***************************/
 #elif __SSE2__
 #if __AVX__
@@ -316,6 +328,12 @@ static inline int vtestz_epi32(vtype __X)
     return !words[0] || !words[1] || !words[2] || !words[3];
 }
 #endif
+
+#define vtesteq_epi32(x, y)                                             \
+(                                                                       \
+    0xffff != vmovemask_epi8(vcmpeq_epi32(vcmpeq_epi32(x, y),           \
+                                              vsetzero()))              \
+)
 
 /******************************** MMX *********************************/
 

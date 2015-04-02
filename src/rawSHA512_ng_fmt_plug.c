@@ -8,7 +8,7 @@
  */
 
 #include "arch.h"
-#if __SSE2__
+#if __SSE2__ || __MIC__
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rawSHA512_ng;
@@ -95,7 +95,7 @@ _inline __m128i _mm_set1_epi64x(uint64_t a) {
 }
 #endif
 
-#if __AVX512__ || __MIC__
+#if __AVX512__
 #define SWAP_ENDIAN(n)                                                    \
 {                                                                         \
     n = vshuffle_epi8(n,                                                  \
@@ -104,6 +104,12 @@ _inline __m128i _mm_set1_epi64x(uint64_t a) {
                         0x18191a1b1c1d1e1f, 0x1011121314151617,           \
                         0x08090a0b0c0d0e0f, 0x0001020304050607)           \
         );                                                                \
+}
+#elif __MIC__ 
+#define SWAP_ENDIAN(n)                                                    \
+{                                                                         \
+    n = vshuffle_epi32(n, 0xb1);                                          \
+    vswap32(n);                                                           \
 }
 #elif __AVX2__
 #define SWAP_ENDIAN(n)                                                    \
@@ -129,7 +135,16 @@ _inline __m128i _mm_set1_epi64x(uint64_t a) {
 }
 #endif
 
-#if __AVX2__
+#if __AVX512__ || __MIC__
+#define GATHER(x,y,z)                                                     \
+{                                                                         \
+    x = vset_epi64x(y[index + 7][z], y[index + 6][z],                     \
+                    y[index + 5][z], y[index + 4][z],                     \
+                    y[index + 3][z], y[index + 2][z],                     \
+                    y[index + 1][z], y[index + 0][z]);                    \
+}
+                    
+#elif __AVX2__
 #define GATHER(x,y,z)                                                     \
 {                                                                         \
     x = vset_epi64x(y[index + 3][z], y[index + 2][z],                     \
