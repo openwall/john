@@ -27,7 +27,9 @@ john_register_one(&fmt_opencl_rawsha256);
 #include "config.h"
 #include "options.h"
 #include "opencl_rawsha256.h"
+#define _RAWSHA256_H
 #include "rawSHA256_common.h"
+#undef _RAWSHA256_H
 #include "mask_ext.h"
 #include "opencl_mask_extras.h"
 
@@ -275,7 +277,8 @@ static void reset(struct db_main *db)
 		//Mask initialization
 		flag = (options.flags & FLG_MASK_CHK) && !global_work_size;
 
-		for (num_loaded_hashes = 0; tests[num_loaded_hashes].ciphertext;)
+		for (num_loaded_hashes = 0;
+			    sha256_common_tests[num_loaded_hashes].ciphertext;)
 			num_loaded_hashes++;
 		create_mask_buffers();
 
@@ -463,14 +466,14 @@ static void load_hash(const struct db_salt *salt)
 			binary = (uint32_t *) pw->binary;
 		else {
 		    	char * ciphertext;
-		    	char **fields = tests[i].fields;
+		    	char **fields = sha256_common_tests[i].fields;
 
 			if (!fields[1])
-				fields[1] = tests[i].ciphertext;
+				fields[1] = sha256_common_tests[i].ciphertext;
 
-			ciphertext = raw_sha256_common_split(
-				raw_sha256_common_prepare(fields, self), 0, self);
-			binary = (uint32_t *) raw_sha256_common_binary(ciphertext);
+			ciphertext = sha256_common_split(
+				sha256_common_prepare(fields, self), 0, self);
+			binary = (uint32_t *) sha256_common_binary(ciphertext);
 		}
 
 		// Skip cracked hashes (segfault if removed).
@@ -491,7 +494,7 @@ static void load_hash(const struct db_salt *salt)
 			pw = pw->next;
 			more = (pw != NULL);
 		} else
-		    more = (tests[i].ciphertext != NULL);
+		    more = (sha256_common_tests[i].ciphertext != NULL);
 
 	} while (more);
 
@@ -582,7 +585,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	uint32_t * binary = (uint32_t *) raw_sha256_common_binary(source);
+	uint32_t * binary = (uint32_t *) sha256_common_binary(source);
 
 	if (binary[1] != loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index] + 1])
 		return 0;
@@ -627,15 +630,15 @@ struct fmt_main fmt_opencl_rawsha256 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		tests
+		sha256_common_tests
 	}, {
 		init,
 		done,
 		reset,
-		raw_sha256_common_prepare,
-		raw_sha256_common_valid,
-		raw_sha256_common_split,
-		raw_sha256_common_binary,
+		sha256_common_prepare,
+		sha256_common_valid,
+		sha256_common_split,
+		sha256_common_binary,
 		fmt_default_salt,
 		{ NULL },
 		fmt_default_source,
