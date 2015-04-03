@@ -56,7 +56,9 @@ john_register_one(&fmt_rawSHA256);
 #else
 #define PLAINTEXT_LENGTH        125
 #endif
+#define _RAWSHA256_H
 #include "rawSHA256_common.h"
+#undef _RAWSHA256_H
 
 #define SALT_SIZE               0
 #define SALT_ALIGN				1
@@ -285,15 +287,15 @@ struct fmt_main fmt_rawSHA256 = {
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
-		tests
+		sha256_common_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		raw_sha256_common_prepare,
-		raw_sha256_common_valid,
-		raw_sha256_common_split,
-		raw_sha256_common_binary,
+		sha256_common_prepare,
+		sha256_common_valid,
+		sha256_common_split,
+		sha256_common_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
