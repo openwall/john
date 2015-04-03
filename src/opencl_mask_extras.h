@@ -100,16 +100,19 @@ inline void compare_64(
 #define	MASK_KEYS_GENERATION \
 	if (candidates_number > 1) {								\
 		uint32_t ikl = int_key_loc[get_global_id(0)];					\
-		PUTCHAR(w, (ikl & 0xff), (int_keys[i] & 0xff));					\
+		PUTCHAR(w, (ikl & 0xff) + W_OFFSET, (int_keys[i] & 0xff));					\
 												\
 		if ((ikl & 0xff00) != 0x8000)							\
-		    PUTCHAR(w, ((ikl & 0xff00) >> 8), ((int_keys[i] & 0xff00) >> 8));		\
+		    PUTCHAR(w, ((ikl & 0xff00U) >> 8) + W_OFFSET,				\
+						((int_keys[i] & 0xff00U) >> 8));		\
 												\
 		if ((ikl & 0xff0000) != 0x800000)						\
-		    PUTCHAR(w, ((ikl & 0xff0000) >> 16), ((int_keys[i] & 0xff0000) >> 16));	\
+		    PUTCHAR(w, ((ikl & 0xff0000U) >> 16) + W_OFFSET,				\
+							((int_keys[i] & 0xff0000U) >> 16));	\
 												\
 		if ((ikl & 0xff000000) != 0x80000000)						\
-		    PUTCHAR(w, ((ikl & 0xff000000) >> 24), ((int_keys[i] & 0xff000000) >> 24));	\
+		    PUTCHAR(w, ((ikl & 0xff000000U) >> 24) + W_OFFSET,				\
+						    ((int_keys[i] & 0xff000000U) >> 24));	\
 	}
 
 #endif

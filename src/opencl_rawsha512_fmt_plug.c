@@ -536,6 +536,8 @@ static void load_hash(const struct db_salt *salt)
 	if (salt) {
 		num_loaded_hashes = salt->count;
 		pw = salt->list;
+		previous_salt = salt;
+		set_salt(salt->salt);
 	} else
 		pw = NULL;
 
@@ -606,10 +608,9 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	//Check if any password was cracked and reload (if necessary)
-	if (salt && (num_loaded_hashes != salt->count || previous_salt != salt)) {
-		previous_salt = salt;
+	if (salt && (num_loaded_hashes != salt->count || previous_salt != salt))
 		load_hash(salt);
-	}
+
 	//Send data to device.
 	if (new_keys && key_idx > offset)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE,
@@ -624,7 +625,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		saved_idx + offset, 0, NULL, multi_profilingEvent[3]),
 		"failed in clEnqueueWriteBuffer idx_buffer");
 
-	if (mask_int_cand.num_int_cand > 1) {
+	if (new_keys && mask_int_cand.num_int_cand > 1) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE,
 			0, 4 * gws, saved_int_key_loc, 0, NULL, multi_profilingEvent[4]),
 			"failed in clEnqueueWriteBuffer buffer_int_key_loc");
