@@ -21,7 +21,7 @@
 #ifdef USE_BITSELECT
 	#define Ch(x, y, z)     bitselect(z, y, x)
 	#define Maj(x, y, z)    bitselect(x, y, z ^ x)
-	#define ror(x, n)       rotate(x, 32U-n)
+	#define ror(x, n)       rotate(x, (32U-n))
 	#define SWAP32(n)       rotate(n & 0x00FF00FFU, 24U) | rotate(n & 0xFF00FF00U, 8U)
 
 #ifdef AMD_STUPID_BUG_2

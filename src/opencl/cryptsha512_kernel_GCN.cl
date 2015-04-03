@@ -20,6 +20,13 @@
 #undef SWAP64
 #undef SWAP64_V
 
+#define SWAP(n) \
+            (((n)             << 56)     | (((n) & 0xff00UL)     << 40) |   \
+            (((n) & 0xff0000UL) << 24)   | (((n) & 0xff000000UL) << 8)  |   \
+            (((n) >> 8)  & 0xff000000UL) | (((n) >> 24) & 0xff0000UL)   |   \
+            (((n) >> 40) & 0xff00UL)     | ((n)  >> 56))
+
+
 #define SWAP64(n)       (as_ulong(as_uchar8(n).s76543210))
 #define SWAP64_V(n)     SWAP(n)
 
