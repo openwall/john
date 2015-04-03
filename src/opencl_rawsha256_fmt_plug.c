@@ -278,7 +278,7 @@ static void reset(struct db_main *db)
 		flag = (options.flags & FLG_MASK_CHK) && !global_work_size;
 
 		for (num_loaded_hashes = 0;
-			    sha256_common_tests[num_loaded_hashes].ciphertext;)
+			    self->params.tests[num_loaded_hashes].ciphertext;)
 			num_loaded_hashes++;
 		create_mask_buffers();
 
@@ -466,10 +466,10 @@ static void load_hash(const struct db_salt *salt)
 			binary = (uint32_t *) pw->binary;
 		else {
 		    	char * ciphertext;
-		    	char **fields = sha256_common_tests[i].fields;
+		    	char **fields = self->params.tests[i].fields;
 
 			if (!fields[1])
-				fields[1] = sha256_common_tests[i].ciphertext;
+				fields[1] = self->params.tests[i].ciphertext;
 
 			ciphertext = sha256_common_split(
 				sha256_common_prepare(fields, self), 0, self);
@@ -494,7 +494,7 @@ static void load_hash(const struct db_salt *salt)
 			pw = pw->next;
 			more = (pw != NULL);
 		} else
-		    more = (sha256_common_tests[i].ciphertext != NULL);
+		    more = (self->params.tests[i].ciphertext != NULL);
 
 	} while (more);
 

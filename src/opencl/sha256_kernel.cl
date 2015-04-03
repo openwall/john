@@ -109,6 +109,7 @@ void kernel_crypt(
     uint32_t		H[8];
     __local uint32_t	_ltotal[512];
     #define		total    _ltotal[get_local_id(0)]
+    #define		W_OFFSET    0
 
     //Clean bitmap and result buffer
     if (get_global_id(0) == 0) {

@@ -23,7 +23,6 @@
 #define PLAINTEXT_LENGTH	RAW_PLAINTEXT_LENGTH
 
 #define BUFFER_SIZE             56      /* RAW_PLAINTEXT_LENGTH multiple of 4 */
-#define CIPHERTEXT_LENGTH       64
 
 #ifdef _OPENCL_COMPILER
 #define BINARY_SIZE             32

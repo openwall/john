@@ -19,14 +19,17 @@
 #include "opencl_sha512.h"
 
 //Constants.
-#define PLAINTEXT_LENGTH        55
-
+#define PLAINTEXT_LENGTH        55	/* 55 characters + 0x80 */
 #define BUFFER_SIZE             56      /* PLAINTEXT_LENGTH multiple of 4 */
-#define SHORT_BINARY_SIZE	 4
+
+#ifdef _OPENCL_COMPILER
+#define BINARY_SIZE             64
+#endif
+
+#define HASH_PARTS		BINARY_SIZE / 8
 #define SALT_SIZE_RAW           0
 #define SALT_SIZE_X             4
-#define SALT_ALIGN_RAW          1
-#define SALT_ALIGN_X            4
+#define SALT_ALIGN              4
 #define STEP			0
 #define SEED			1024
 
@@ -56,7 +59,8 @@ typedef struct {
 
 #ifndef _OPENCL_COMPILER
     static const char * warn[] = {
-        "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: ",  ", index xfer: "
+        "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: ",  ", index xfer: ",
+	", mask xfer: ",  " + "
 };
 #endif
 
