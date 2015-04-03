@@ -41,7 +41,9 @@ john_register_one(&fmt_rawSHA512_ng);
 #include "johnswap.h"
 #include "memdbg.h"
 
-#if __AVX512__ || __MIC__
+#if __MIC__
+#define SIMD_TYPE                 "512/512 MIC 8x"
+#elif __AVX512__
 #define SIMD_TYPE                 "512/512 AVX512 8x"
 #elif __AVX2__
 #define SIMD_TYPE                 "256/256 AVX2 4x"

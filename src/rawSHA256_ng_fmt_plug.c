@@ -43,7 +43,9 @@ john_register_one(&fmt_rawSHA256_ng);
 #include "aligned.h"
 #include "memdbg.h"
 
-#if __AVX512__ || __MIC__
+#if __MIC__
+#define SIMD_TYPE                 "512/512 MIC 16x"
+#elif __AVX512__
 #define SIMD_TYPE                 "512/512 AVX512 16x"
 #elif __AVX2__
 #define SIMD_TYPE                 "256/256 AVX2 8x"
