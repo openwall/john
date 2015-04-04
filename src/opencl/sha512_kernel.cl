@@ -15,11 +15,23 @@
 #include "opencl_rawsha512.h"
 #include "opencl_mask_extras.h"
 
+///	    *** UNROLL ***
+///AMD: sometimes a bad thing(?).
+#if amd_vliw4(DEVICE_INFO) || amd_vliw5(DEVICE_INFO)
+    #define UNROLL_LEVEL	2
+#elif amd_gcn(DEVICE_INFO)
+    #define UNROLL_LEVEL	1
+#elif gpu_nvidia(DEVICE_INFO)
+    #define UNROLL_LEVEL	0
+#endif
+
 inline void _memcpy(               uint32_t * dest,
                     __global const uint32_t * src,
                              const uint32_t   len) {
 
+#if UNROLL_LEVEL > 0
     #pragma unroll
+#endif
     for (uint32_t i = 0; i < 120; i += 4)
         *dest++ = select(0U, *src++, i < len);
 }
@@ -37,13 +49,17 @@ inline void sha512_block(	  const uint64_t * const buffer,
     uint64_t t;
     uint64_t w[16];	//#define  w   buffer
 
+#if UNROLL_LEVEL > 0
     #pragma unroll
+#endif
     for (uint64_t i = 0; i < 15; i++)
         w[i] = SWAP64(buffer[i]);
     w[15] = (total * 8UL);
 
     /* Do the job. */
+#if UNROLL_LEVEL > 0
     #pragma unroll
+#endif
     for (uint64_t i = 0U; i < 16U; i++) {
 	t = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
 
@@ -58,7 +74,9 @@ inline void sha512_block(	  const uint64_t * const buffer,
 	a = t;
     }
 
+#if UNROLL_LEVEL > 1
     #pragma unroll
+#endif
     for (uint64_t i = 16U; i < 80U; i++) {
 	w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
 	t = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
@@ -118,7 +136,7 @@ void kernel_crypt_raw(
     if (get_global_id(0) == 0) {
 	hash_id[0] = 0;
 
-	for (uint i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
+	for (uint32_t i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
 	    bitmap[i] = 0;
     }
     barrier(CLK_GLOBAL_MEM_FENCE);
@@ -139,7 +157,7 @@ void kernel_crypt_raw(
     APPEND_SINGLE(w, 0x80UL, total);
 
     //Handle the candidates (candidates_number) to be produced.
-    for (uint i = 0; i < candidates_number; i++) {
+    for (uint32_t i = 0; i < candidates_number; i++) {
 
 	//Mask Mode: keys generation/finalization.
 	MASK_KEYS_GENERATION
@@ -176,7 +194,7 @@ void kernel_crypt_xsha(
     if (get_global_id(0) == 0) {
 	hash_id[0] = 0;
 
-	for (uint i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
+	for (uint32_t i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
 	    bitmap[i] = 0;
     }
     barrier(CLK_GLOBAL_MEM_FENCE);
@@ -201,7 +219,7 @@ void kernel_crypt_xsha(
     APPEND_SINGLE(w, 0x80UL, total);
 
     //Handle the candidates (candidates_number) to be produced.
-    for (uint i = 0; i < candidates_number; i++) {
+    for (uint32_t i = 0; i < candidates_number; i++) {
 
 	//Mask Mode: keys generation/finalization.
 	MASK_KEYS_GENERATION

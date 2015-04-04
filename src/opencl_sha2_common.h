@@ -58,7 +58,7 @@
 	#define USE_BITSELECT
 #endif
 
-#if no_byte_addressable(DEVICE_INFO)
+#if no_byte_addressable(DEVICE_INFO) || (gpu_amd(DEVICE_INFO) && defined(AMD_PUTCHAR_NOCAST))
 	#define USE_32BITS_FOR_CHAR
 #endif
 
