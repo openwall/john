@@ -403,11 +403,11 @@ void alter_endianity(void *_x, unsigned int size) {
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 +    ((i)&3)  + (index>>SIMD_COEF32_BITS)*64*SIMD_COEF_32  )
 #define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 +    ((i)&3)  + (index>>SIMD_COEF32_BITS)*16*SIMD_COEF_32  )
 // for SHA384/SHA512 128 byte BE interleaved hash (arrays of 16 8 byte ints)
-#define SHA64GETPOS(i,index)	( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + (7-((i)&7)) + (index>>(SIMD_COEF_64>>1))*SHA_BUF_SIZ*8*SIMD_COEF_64 )
-#define SHA64GETOUTPOS(i,index)	( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + (7-((i)&7)) + (index>>(SIMD_COEF_64>>1))*64*SIMD_COEF_64 )
+#define SHA64GETPOS(i,index)	( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + (7-((i)&7)) + (index>>SIMD_COEF64_BITS)*SHA_BUF_SIZ*8*SIMD_COEF_64 )
+#define SHA64GETOUTPOS(i,index)	( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + (7-((i)&7)) + (index>>SIMD_COEF64_BITS)*64*SIMD_COEF_64 )
 
 // for SHA384/SHA512 128 byte FLAT interleaved hash (arrays of 16 8 byte ints), but we do not BE interleave.
-#define SHA64GETPOSne(i,index)      ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + ((i)&7) + (index>>(SIMD_COEF_64>>1))*SHA_BUF_SIZ*8*SIMD_COEF_64 )
+#define SHA64GETPOSne(i,index)      ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + ((i)&7) + (index>>SIMD_COEF64_BITS)*SHA_BUF_SIZ*8*SIMD_COEF_64 )
 
 void dump_stuff_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;

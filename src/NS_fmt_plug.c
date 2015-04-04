@@ -52,7 +52,7 @@ john_register_one(&fmt_NS);
 #define FORMAT_LABEL			"md5ns"
 #define FORMAT_NAME			"Netscreen"
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME			"dynamic_2004 MD5 " MD5_N_STR SIMD_TYPE_STR
+#define ALGORITHM_NAME			"dynamic_2004 MD5 " MD5_N_STR " " CPU_NAME
 #else
 #define ALGORITHM_NAME			"dynamic_2004 MD5 32/" ARCH_BITS_STR
 #endif
