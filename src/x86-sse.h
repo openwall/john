@@ -266,12 +266,21 @@
 #endif
 #endif
 
-#define SIMD_TYPE_STR			" SSE2"
-
 #define NT_SSE2
 
+#if __AVX512__
+#define SIMD_COEF_32 16
+#define SIMD_COEF_64 8
+#elif __AVX2__
+#define SIMD_COEF_32 8
+#define SIMD_COEF_64 4
+#elif __SSE2__
 #define SIMD_COEF_32 4
 #define SIMD_COEF_64 2
+#elif __MMX__
+#define SIMD_COEF_32 2
+#define SIMD_COEF_64 1
+#endif
 
 // SIMD_COEF32_BITS can be used instead of division. So  buffer[(size)>>SIMD_COEF32_BITS]
 // would be same as buffer[(size)/SIMD_COEF_32] but without the division
