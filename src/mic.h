@@ -32,6 +32,8 @@
 
 #define CPU_DETECT			0
 
+#define CPU_NAME			"MIC"
+
 #define DES_ASM				0
 #define DES_128K			0
 #define DES_X2				0
@@ -52,5 +54,16 @@
 #define BF_ASM				0
 #define BF_SCALE			1
 #define BF_X2				1
+
+#define SIMD_COEF_32		16
+#define SIMD_COEF_64		8
+#define SIMD_COEF32_BITS	4
+
+#define MD5_SSE_PARA		1
+#define MD5_N_STR			"16x"
+#define MD4_SSE_PARA		1
+#define MD4_N_STR			"16x"
+#define SHA1_SSE_PARA		1
+#define SHA1_N_STR			"16x"
 
 #endif

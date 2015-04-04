@@ -38,7 +38,7 @@ john_register_one(&fmt_agile_keychain);
 #define FORMAT_LABEL		"agilekeychain"
 #define FORMAT_NAME		"1Password Agile Keychain"
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_N_STR SIMD_TYPE_STR
+#define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_N_STR " " CPU_NAME
 #else
 #define ALGORITHM_NAME		"PBKDF2-SHA1 AES 32/" ARCH_BITS_STR
 #endif

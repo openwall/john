@@ -26,21 +26,13 @@
 #ifndef _SSE_PSEUDO_H
 #define _SSE_PSEUDO_H
 
+#include "arch.h"
 #include "aligned.h"
 #include "stdint.h"
-
-#undef SIMD_COEF_32
-#undef SIMD_COEF_64
-#undef MEM_ALIGN_SIMD
-#undef SIMD_COEF32_BITS
 
 /*************************** AVX512 and MIC ***************************/
 #if __MIC__ || __AVX512__
 #include <immintrin.h>
-
-#define SIMD_COEF_32            16
-#define SIMD_COEF_64            8
-#define SIMD_COEF32_BITS        4
 
 typedef __m512i vtype;
 
@@ -108,10 +100,6 @@ typedef __m512i vtype;
 /******************************** AVX2 ********************************/
 #elif __AVX2__
 #include <immintrin.h>
-
-#define SIMD_COEF_32            8
-#define SIMD_COEF_64            4
-#define SIMD_COEF32_BITS        3
 
 typedef __m256i vtype;
 
@@ -290,10 +278,6 @@ static inline int vtestz_epi32(vtype __X)
 
 #include <emmintrin.h>
 
-#define SIMD_COEF_32            4
-#define SIMD_COEF_64            2
-#define SIMD_COEF32_BITS        2
-
 typedef __m128i vtype;
 
 #define vadd_epi32              _mm_add_epi32
@@ -455,10 +439,6 @@ static inline int vtestz_epi32(vtype __X)
 
 #elif __MMX__
 #include <mmintrin.h>
-
-#define SIMD_COEF_32            2
-#define SIMD_COEF_64            1
-#define SIMD_COEF32_BITS        1
 
 typedef __m64i vtype;
 

@@ -40,7 +40,7 @@ john_register_one(&fmt_encfs);
 #define FORMAT_LABEL        "EncFS"
 #define FORMAT_NAME         ""
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME      "PBKDF2-SHA1 AES/Blowfish " SHA1_N_STR SIMD_TYPE_STR
+#define ALGORITHM_NAME      "PBKDF2-SHA1 AES/Blowfish " SHA1_N_STR " " CPU_NAME
 #else
 #define ALGORITHM_NAME      "PBKDF2-SHA1 AES/Blowfish 32/" ARCH_BITS_STR
 #endif
