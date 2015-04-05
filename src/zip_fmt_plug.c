@@ -92,7 +92,7 @@ typedef struct my_salt_t {
 #define FORMAT_CLOSE_TAG	"$/zip2$"
 #define TAG_LENGTH			6
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME      "PBKDF2-SHA1 " SHA1_N_STR " " CPU_NAME
+#define ALGORITHM_NAME      "PBKDF2-SHA1 " SHA1_N_STR " " SIMD_TYPE
 #else
 #define ALGORITHM_NAME      "PBKDF2-SHA1 32/" ARCH_BITS_STR
 #endif
