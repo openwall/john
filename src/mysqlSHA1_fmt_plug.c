@@ -241,7 +241,7 @@ static int cmp_one(void * binary, int index)
 #ifdef SIMD_COEF_32
 	unsigned int x,y;
 	x = index&3;
-	y = index/4;
+	y = index/SIMD_COEF_32;
 
 	if( ((unsigned int*)binary)[0] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5] )
 		return 0;
@@ -310,49 +310,49 @@ static int get_hash_0(int index)
 {
 	unsigned int x,y;
         x = index&3;
-        y = index/4;
+        y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xf;
 }
 static int get_hash_1(int index)
 {
 	unsigned int x,y;
         x = index&3;
-        y = index/4;
+        y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xff;
 }
 static int get_hash_2(int index)
 {
 	unsigned int x,y;
         x = index&3;
-        y = index/4;
+        y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xfff;
 }
 static int get_hash_3(int index)
 {
 	unsigned int x,y;
         x = index&3;
-        y = index/4;
+        y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xffff;
 }
 static int get_hash_4(int index)
 {
 	unsigned int x,y;
         x = index&3;
-        y = index/4;
+        y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xfffff;
 }
 static int get_hash_5(int index)
 {
 	unsigned int x,y;
         x = index&3;
-        y = index/4;
+        y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xffffff;
 }
 static int get_hash_6(int index)
 {
 	unsigned int x,y;
         x = index&3;
-        y = index/4;
+        y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0x7ffffff;
 }
 #else
