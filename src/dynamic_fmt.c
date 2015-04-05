@@ -7421,7 +7421,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 #ifdef SIMD_COEF_32
 		// no reason to do 128 crypts, causes slow validity checking.  But we do get some gains
 		// by doing more than simple 1 set of SIMD_COEF_32
-		pFmt->params.algorithm_name = "128/128 " SSE_type " 96x4x" STRINGIZE(MD5_SSE_PARA);
+		pFmt->params.algorithm_name = "128/128 " SIMD_TYPE " 96x4x" STRINGIZE(MD5_SSE_PARA);
 		pFmt->params.max_keys_per_crypt = 96*MD5_SSE_PARA;
 #else
 #if ARCH_LITTLE_ENDIAN
@@ -7437,7 +7437,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 #endif
 #else
 #ifdef SIMD_COEF_32
-		pFmt->params.algorithm_name = "128/128 " SSE_type " 4x4x" STRINGIZE(MD5_SSE_PARA);
+		pFmt->params.algorithm_name = "128/128 " SIMD_TYPE " 4x4x" STRINGIZE(MD5_SSE_PARA);
 		pFmt->params.max_keys_per_crypt = 16*MD5_SSE_PARA;
 #else
 		// In non-sse mode, 1 test runs as fast as 128. But validity checking is MUCH faster if
