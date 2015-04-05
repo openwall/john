@@ -279,17 +279,17 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 
 			// we memcopy from flat into SIMD_COEF_32 output buffer's (our 'temp' ctx buffer).
 			// This data will NOT need to be BE swapped (it already IS BE swapped).
-			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))]               = ctx_ipad[j].h0;
-			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+SIMD_COEF_32]      = ctx_ipad[j].h1;
-			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)] = ctx_ipad[j].h2;
-			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+SIMD_COEF_32*3]    = ctx_ipad[j].h3;
-			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)] = ctx_ipad[j].h4;
+			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+0*SIMD_COEF_32] = ctx_ipad[j].h0;
+			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+1*SIMD_COEF_32] = ctx_ipad[j].h1;
+			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+2*SIMD_COEF_32] = ctx_ipad[j].h2;
+			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+3*SIMD_COEF_32] = ctx_ipad[j].h3;
+			i1[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+4*SIMD_COEF_32] = ctx_ipad[j].h4;
 
-			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))]               = ctx_opad[j].h0;
-			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+SIMD_COEF_32]      = ctx_opad[j].h1;
-			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)] = ctx_opad[j].h2;
-			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+SIMD_COEF_32*3]    = ctx_opad[j].h3;
-			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)] = ctx_opad[j].h4;
+			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+0*SIMD_COEF_32] = ctx_opad[j].h0;
+			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+1*SIMD_COEF_32] = ctx_opad[j].h1;
+			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+2*SIMD_COEF_32] = ctx_opad[j].h2;
+			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+3*SIMD_COEF_32] = ctx_opad[j].h3;
+			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+4*SIMD_COEF_32] = ctx_opad[j].h4;
 
 			essid[slen - 1] = 1;
 //			HMAC(EVP_sha1(), in[j].v, in[j].length, essid, slen, outbuf.c, NULL);
@@ -306,18 +306,18 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 			// now convert this from flat into SIMD_COEF_32 buffers.   (same as the memcpy() commented out in the last line)
 			// Also, perform the 'first' ^= into the crypt buffer.  NOTE, we are doing that in BE format
 			// so we will need to 'undo' that in the end.
-			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))]                = outbuf[j].i[0] = sha1_ctx.h0;
-			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+SIMD_COEF_32]       = outbuf[j].i[1] = sha1_ctx.h1;
-			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)]  = outbuf[j].i[2] = sha1_ctx.h2;
-			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+SIMD_COEF_32*3]     = outbuf[j].i[3] = sha1_ctx.h3;
-			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)]  = outbuf[j].i[4] = sha1_ctx.h4;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+0*SIMD_COEF_32] = outbuf[j].i[0] = sha1_ctx.h0;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+1*SIMD_COEF_32] = outbuf[j].i[1] = sha1_ctx.h1;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+2*SIMD_COEF_32] = outbuf[j].i[2] = sha1_ctx.h2;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+3*SIMD_COEF_32] = outbuf[j].i[3] = sha1_ctx.h3;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+4*SIMD_COEF_32] = outbuf[j].i[4] = sha1_ctx.h4;
 		}
 
 		for (i = 1; i < 4096; i++) {
 			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			for (j = 0; j < NBKEYS; j++) {
-				unsigned *p = &((unsigned int*)t_sse_hash1)[(((j>>2)*SHA_BUF_SIZ)<<2) + (j&(SIMD_COEF_32-1))];
+				unsigned *p = &((unsigned int*)t_sse_hash1)[(((j/SIMD_COEF_32)*SHA_BUF_SIZ)*SIMD_COEF_32) + (j&(SIMD_COEF_32-1))];
 				for(k = 0; k < 5; k++)
 					outbuf[j].i[k] ^= p[(k*SIMD_COEF_32)];
 			}
@@ -339,17 +339,17 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 			// now convert this from flat into SIMD_COEF_32 buffers.  (same as the memcpy() commented out in the last line)
 			// Also, perform the 'first' ^= into the crypt buffer.  NOTE, we are doing that in BE format
 			// so we will need to 'undo' that in the end. (only 3 dwords of the 2nd block outbuf are worked with).
-			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))]                = outbuf[j].i[5] = sha1_ctx.h0;
-			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+SIMD_COEF_32]       = outbuf[j].i[6] = sha1_ctx.h1;
-			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)]  = outbuf[j].i[7] = sha1_ctx.h2;
-			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+SIMD_COEF_32*3]                      = sha1_ctx.h3;
-			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)]                   = sha1_ctx.h4;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+0*SIMD_COEF_32] = outbuf[j].i[5] = sha1_ctx.h0;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+1*SIMD_COEF_32] = outbuf[j].i[6] = sha1_ctx.h1;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+2*SIMD_COEF_32] = outbuf[j].i[7] = sha1_ctx.h2;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+3*SIMD_COEF_32] = sha1_ctx.h3;
+			o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))+4*SIMD_COEF_32] = sha1_ctx.h4;
 		}
 		for (i = 1; i < 4096; i++) {
 			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			for (j = 0; j < NBKEYS; j++) {
-				unsigned *p = &((unsigned int*)t_sse_hash1)[(((j>>2)*SHA_BUF_SIZ)<<2) + (j&(SIMD_COEF_32-1))];
+				unsigned *p = &((unsigned int*)t_sse_hash1)[(((j/SIMD_COEF_32)*SHA_BUF_SIZ)*SIMD_COEF_32) + (j&(SIMD_COEF_32-1))];
 				for(k = 5; k < 8; k++)
 					outbuf[j].i[k] ^= p[((k-5)*SIMD_COEF_32)];
 			}
