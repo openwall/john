@@ -36,7 +36,7 @@ john_register_one(&fmt_keychain);
 #define FORMAT_LABEL		"keychain"
 #define FORMAT_NAME		"Mac OS X Keychain"
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME		"PBKDF2-SHA1 3DES " SHA1_N_STR " " CPU_NAME
+#define ALGORITHM_NAME		"PBKDF2-SHA1 3DES " SHA1_N_STR " " SIMD_TYPE
 #else
 #define ALGORITHM_NAME		"PBKDF2-SHA1 3DES 32/" ARCH_BITS_STR
 #endif
