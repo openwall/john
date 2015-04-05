@@ -220,12 +220,17 @@ static inline int vtestz_epi32(vtype __X)
 
 /************************* SSE2/3/4/AVX/XOP ***************************/
 #elif __SSE2__
-#if __AVX__
-#include <immintrin.h>
+
 #if __XOP__
 #include <x86intrin.h>
+#elif __AVX__
+#include <immintrin.h>
+#elif __SSE4_1__
+#include <smmintrin.h>
+#elif __SSSE3__
+#include <tmmintrin.h>
 #endif
-#endif
+
 #include <emmintrin.h>
 
 #define SIMD_COEF_32            4
