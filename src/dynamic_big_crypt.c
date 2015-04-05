@@ -350,7 +350,7 @@ static void DoMD5_crypt_f_sse(void *in, int len[MD5_LOOPS], void *out) {
 		bMore = 0;
 		for (i = 0; i < MD5_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				unsigned int offx = ((i/SIMD_COEF_32)*16)+(i&3);
+				unsigned int offx = ((i/SIMD_COEF_32)*16)+(i&(SIMD_COEF_32-1));
 				for (j = 0; j < 4; ++j) {
 					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = a[(j*SIMD_COEF_32)+offx];
 				}
@@ -378,7 +378,7 @@ static void DoMD5_crypt_sse(void *in, int ilen[MD5_LOOPS], void *out[MD5_LOOPS],
 		bMore = 0;
 		for (i = 0; i < MD5_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				unsigned int offx = ((i/SIMD_COEF_32)*16)+(i&3);
+				unsigned int offx = ((i/SIMD_COEF_32)*16)+(i&(SIMD_COEF_32-1));
 				for (j = 0; j < 4; ++j) {
 					y.a[j] = a[(j*SIMD_COEF_32)+offx];
 				}
@@ -752,7 +752,7 @@ static void DoMD4_crypt_f_sse(void *in, int len[MD4_LOOPS], void *out) {
 		bMore = 0;
 		for (i = 0; i < MD4_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				unsigned int offx = ((i/SIMD_COEF_32)*16)+(i&3);
+				unsigned int offx = ((i/SIMD_COEF_32)*16)+(i&(SIMD_COEF_32-1));
 				for (j = 0; j < 4; ++j) {
 					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = a[(j*SIMD_COEF_32)+offx];
 				}
@@ -780,7 +780,7 @@ static void DoMD4_crypt_sse(void *in, int ilen[MD4_LOOPS], void *out[MD4_LOOPS],
 		bMore = 0;
 		for (i = 0; i < MD4_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				unsigned int offx = ((i/SIMD_COEF_32)*16)+(i&3);
+				unsigned int offx = ((i/SIMD_COEF_32)*16)+(i&(SIMD_COEF_32-1));
 				for (j = 0; j < 4; ++j) {
 					y.a[j] = a[(j*SIMD_COEF_32)+offx];
 				}
@@ -1152,7 +1152,7 @@ static void DoSHA1_crypt_f_sse(void *in, int len[SHA1_LOOPS], void *out) {
 		bMore = 0;
 		for (i = 0; i < SHA1_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				unsigned int offx = ((i/SIMD_COEF_32)*20)+(i&3);
+				unsigned int offx = ((i/SIMD_COEF_32)*20)+(i&(SIMD_COEF_32-1));
 				// only 16 bytes in the 'final'
 				for (j = 0; j < 4; ++j) {
 					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = JOHNSWAP(a[(j*SIMD_COEF_32)+offx]);
@@ -1181,7 +1181,7 @@ static void DoSHA1_crypt_sse(void *in, int ilen[SHA1_LOOPS], void *out[SHA1_LOOP
 		bMore = 0;
 		for (i = 0; i < SHA1_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				unsigned int offx = ((i/SIMD_COEF_32)*20)+(i&3);
+				unsigned int offx = ((i/SIMD_COEF_32)*20)+(i&(SIMD_COEF_32-1));
 				for (j = 0; j < 5; ++j) {
 					y.a[j] =JOHNSWAP(a[(j*SIMD_COEF_32)+offx]);
 				}
