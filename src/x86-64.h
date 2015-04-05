@@ -227,7 +227,9 @@
 #endif
 
 #ifndef MD5_SSE_PARA
-#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#if __AVX2__
+#define MD5_SSE_PARA			2
+#elif defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define MD5_SSE_PARA			3
 #elif defined(__clang__)
 #define MD5_SSE_PARA			5
@@ -247,7 +249,9 @@
 #endif
 
 #ifndef MD4_SSE_PARA
-#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#if __AVX2__
+#define MD4_SSE_PARA			2
+#elif defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define MD4_SSE_PARA			3
 #elif defined(__clang__)
 #define MD4_SSE_PARA			4
@@ -265,7 +269,9 @@
 #endif
 
 #ifndef SHA1_SSE_PARA
-#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#if __AVX2__
+#define SHA1_SSE_PARA			2
+#elif defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define SHA1_SSE_PARA			1
 #elif defined(__clang__)
 #define SHA1_SSE_PARA			2
@@ -282,16 +288,23 @@
 #endif
 
 #define STR_VALUE(arg)			#arg
-#define PARA_TO_N(m, n)			STR_VALUE(m) "x" STR_VALUE(n)
+#define PARA_TO_N(n)			STR_VALUE(n) "x"
+#define PARA_TO_MxN(m, n)		STR_VALUE(m) "x" STR_VALUE(n)
 
-#ifndef MD4_N_STR
-#define MD4_N_STR			PARA_TO_N(SIMD_COEF_32, MD4_SSE_PARA)
+#if MD4_SSE_PARA > 1
+#define MD4_N_STR			PARA_TO_MxN(SIMD_COEF_32, MD4_SSE_PARA)
+#else
+#define MD4_N_STR			PARA_TO_N(SIMD_COEF_32)
 #endif
-#ifndef MD5_N_STR
-#define MD5_N_STR			PARA_TO_N(SIMD_COEF_32, MD5_SSE_PARA)
+#if MD5_SSE_PARA > 1
+#define MD5_N_STR			PARA_TO_MxN(SIMD_COEF_32, MD5_SSE_PARA)
+#else
+#define MD5_N_STR			PARA_TO_N(SIMD_COEF_32)
 #endif
-#ifndef SHA1_N_STR
-#define SHA1_N_STR			PARA_TO_N(SIMD_COEF_32, SHA1_SSE_PARA)
+#if SHA1_SSE_PARA > 1
+#define SHA1_N_STR			PARA_TO_MxN(SIMD_COEF_32, SHA1_SSE_PARA)
+#else
+#define SHA1_N_STR			PARA_TO_N(SIMD_COEF_32)
 #endif
 
 #ifndef SHA_BUF_SIZ
@@ -305,24 +318,6 @@
 #endif
 
 #define NT_X86_64
-
-// SIMD_COEF32_BITS can be used instead of division. So  buffer[(size)>>SIMD_COEF32_BITS]
-// would be same as buffer[(size)/SIMD_COEF_32] but without the division
-#if (SIMD_COEF_32==4)
-#define SIMD_COEF32_BITS 2
-#elif (SIMD_COEF_32==8)
-#define SIMD_COEF32_BITS 3
-#elif (SIMD_COEF_32==16)
-#define SIMD_COEF32_BITS 4
-#endif
-
-#if (SIMD_COEF_64==2)
-#define SIMD_COEF64_BITS 1
-#elif (SIMD_COEF_64==4)
-#define SIMD_COEF64_BITS 2
-#elif (SIMD_COEF_64==8)
-#define SIMD_COEF64_BITS 3
-#endif
 
 #endif /* __SSE2__ */
 

@@ -57,7 +57,6 @@
 
 #define SIMD_COEF_32		16
 #define SIMD_COEF_64		8
-#define SIMD_COEF32_BITS	4
 
 #define MD5_SSE_PARA		1
 #define MD5_N_STR			"16x"
