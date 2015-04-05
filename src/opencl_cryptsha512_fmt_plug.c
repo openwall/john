@@ -382,6 +382,7 @@ static void reset(struct db_main *db)
 		             (cpu(device_info[gpu_id]) ?
 		              2000000000ULL : 7000000000ULL));
 		self->methods.crypt_all = crypt_all;
+		memset(plaintext, '\0', sizeof(sha512_password) * global_work_size);
 	}
 }
 

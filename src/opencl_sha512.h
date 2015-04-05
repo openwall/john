@@ -21,7 +21,7 @@
 #ifdef USE_BITSELECT
 	#define Ch(x,y,z)       bitselect(z, y, x)
 	#define Maj(x,y,z)      bitselect(x, y, z ^ x)
-	#define ror(x, n)       rotate(x, (64UL-n))
+	#define ror(x, n)       ((x >> n) | (x << (64UL-n)))
 	#define SWAP64(n)	bitselect(					    \
 				    bitselect(rotate(n, 24UL),			    \
 					rotate(n, 8UL), 0x000000FF000000FFUL),	    \
@@ -38,14 +38,14 @@
             (((n) >> 40) & 0xff00UL)     | ((n)  >> 56))
 	#define Ch(x,y,z)       ((x & y) ^ ( (~x) & z))
         #define Maj(x,y,z)      ((x & y) ^ (x & z) ^ (y & z))
-        #define ror(x, n)       ((x >> n) | (x << (64U-n)))
+        #define ror(x, n)       ((x >> n) | (x << (64UL-n)))
         #define SWAP64(n)       SWAP(n)
 	#define SWAP64_V(n)     SWAP(n)
 #endif
-#define Sigma0(x)               ((ror(x,28U)) ^ (ror(x,34U)) ^ (ror(x,39U)))
-#define Sigma1(x)               ((ror(x,14U)) ^ (ror(x,18U)) ^ (ror(x,41U)))
-#define sigma0(x)               ((ror(x,1U))  ^ (ror(x,8U))  ^ (x>>7))
-#define sigma1(x)               ((ror(x,19U)) ^ (ror(x,61U)) ^ (x>>6))
+#define Sigma0(x)               ((ror(x,28UL)) ^ (ror(x,34UL)) ^ (ror(x,39UL)))
+#define Sigma1(x)               ((ror(x,14UL)) ^ (ror(x,18UL)) ^ (ror(x,41UL)))
+#define sigma0(x)               ((ror(x,1UL))  ^ (ror(x,8UL))  ^ (x>>7))
+#define sigma1(x)               ((ror(x,19UL)) ^ (ror(x,61UL)) ^ (x>>6))
 
 //SHA512 constants.
 #define H0      0x6a09e667f3bcc908UL
