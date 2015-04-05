@@ -97,8 +97,8 @@ static struct fmt_tests tests[] = {
 #define saved_key rawSHA1_saved_key_LI
 #define crypt_key rawSHA1_crypt_key_LI
 #ifdef SIMD_COEF_32
-JTR_ALIGN(16) ARCH_WORD_32 saved_key[SHA_BUF_SIZ*NBKEYS];
-JTR_ALIGN(16) ARCH_WORD_32 crypt_key[BINARY_SIZE/4*NBKEYS];
+JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 saved_key[SHA_BUF_SIZ*NBKEYS];
+JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 crypt_key[BINARY_SIZE/4*NBKEYS];
 static unsigned char out[PLAINTEXT_LENGTH + 1];
 #else
 static char saved_key[PLAINTEXT_LENGTH + 1];

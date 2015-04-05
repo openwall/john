@@ -165,9 +165,9 @@ static struct fmt_tests tests[] = {
 
 #if defined (_DEBUG)
 // for VC debugging
-JTR_ALIGN(16) static unsigned char input_buf[BLK_CNT*MD5_CBLOCK];
-JTR_ALIGN(16) static unsigned char out_buf[BLK_CNT*MD5_DIGEST_LENGTH];
-JTR_ALIGN(16) static unsigned char input_buf_big[25][BLK_CNT*MD5_CBLOCK];
+JTR_ALIGN(MEM_ALIGN_SIMD) static unsigned char input_buf[BLK_CNT*MD5_CBLOCK];
+JTR_ALIGN(MEM_ALIGN_SIMD) static unsigned char out_buf[BLK_CNT*MD5_DIGEST_LENGTH];
+JTR_ALIGN(MEM_ALIGN_SIMD) static unsigned char input_buf_big[25][BLK_CNT*MD5_CBLOCK];
 /*  Now these are allocated in init()
 unsigned char input_buf[BLK_CNT*MD5_CBLOCK]         __attribute__ ((aligned(16)));
 unsigned char input_buf_big[25][BLK_CNT*MD5_CBLOCK] __attribute__ ((aligned(16)));
