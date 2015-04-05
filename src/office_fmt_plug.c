@@ -46,7 +46,7 @@ john_register_one(&fmt_office);
 #define BINARY_ALIGN	4
 #define SALT_ALIGN	sizeof(int)
 #ifdef SIMD_COEF_32
-#define GETPOS_1(i, index)  ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>SIMD_COEF32_BITS)*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETPOS_1(i, index)  ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
 #define SHA1_LOOP_CNT       (SIMD_COEF_32*SHA1_SSE_PARA)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT	SHA1_LOOP_CNT

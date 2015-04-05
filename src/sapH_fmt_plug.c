@@ -297,7 +297,7 @@ static void crypt_all_1(int count) {
 			int k;
 			SSESHA1body(keys, crypt32, NULL, SSEi_FLAT_IN);
 			for (k = 0; k < NBKEYS1; ++k) {
-				uint32_t *pcrypt = &crypt32[ ((k>>SIMD_COEF32_BITS)*(SIMD_COEF_32*5)) + (k&(SIMD_COEF_32-1))];
+				uint32_t *pcrypt = &crypt32[ ((k/SIMD_COEF_32)*(SIMD_COEF_32*5)) + (k&(SIMD_COEF_32-1))];
 				uint32_t *Icp32 = (uint32_t *)(&keys[(k<<6)+offs[k]]);
 				for (j = 0; j < 5; ++j) {
 					Icp32[j] = JOHNSWAP(*pcrypt);
@@ -308,7 +308,7 @@ static void crypt_all_1(int count) {
 		// now marshal into crypt_out;
 		for (i = 0; i < NBKEYS1; ++i) {
 			uint32_t *Optr32 = (uint32_t*)(crypt_key[idx+i]);
-			uint32_t *Iptr32 = &crypt32[ ((i>>SIMD_COEF32_BITS)*(SIMD_COEF_32*5)) + (i&(SIMD_COEF_32-1))];
+			uint32_t *Iptr32 = &crypt32[ ((i/SIMD_COEF_32)*(SIMD_COEF_32*5)) + (i&(SIMD_COEF_32-1))];
 			// we only want 16 bytes, not 20
 			for (j = 0; j < 4; ++j) {
 				Optr32[j] = JOHNSWAP(*Iptr32);
@@ -369,7 +369,7 @@ static void crypt_all_256(int count) {
 			int k;
 			SSESHA256body(keys, crypt32, NULL, SSEi_FLAT_IN);
 			for (k = 0; k < NBKEYS256; ++k) {
-				uint32_t *pcrypt = &crypt32[ ((k>>SIMD_COEF32_BITS)*(SIMD_COEF_32*8)) + (k&(SIMD_COEF_32-1))];
+				uint32_t *pcrypt = &crypt32[ ((k/SIMD_COEF_32)*(SIMD_COEF_32*8)) + (k&(SIMD_COEF_32-1))];
 				uint32_t *Icp32 = (uint32_t *)(&keys[(k<<6)+offs[k]]);
 				for (j = 0; j < 8; ++j) {
 					Icp32[j] = JOHNSWAP(*pcrypt);
@@ -380,7 +380,7 @@ static void crypt_all_256(int count) {
 		// now marshal into crypt_out;
 		for (i = 0; i < NBKEYS256; ++i) {
 			uint32_t *Optr32 = (uint32_t*)(crypt_key[idx+i]);
-			uint32_t *Iptr32 = &crypt32[ ((i>>SIMD_COEF32_BITS)*(SIMD_COEF_32*8)) + (i&(SIMD_COEF_32-1))];
+			uint32_t *Iptr32 = &crypt32[ ((i/SIMD_COEF_32)*(SIMD_COEF_32*8)) + (i&(SIMD_COEF_32-1))];
 			// we only want 16 bytes, not 32
 			for (j = 0; j < 4; ++j) {
 				Optr32[j] = JOHNSWAP(*Iptr32);
