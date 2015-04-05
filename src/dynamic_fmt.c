@@ -2687,7 +2687,10 @@ static void __SSE_append_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned ch
 	// 3381K  (ath64, $dynamic_2$)
 	// 824.7k (ath64, $dynamic_1006$)
 #undef inc
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 #define inc 6
 #else
 #define inc 2
@@ -2739,7 +2742,10 @@ static void __SSE_overwrite_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned
 	// 3381K  (ath64, $dynamic_2$)
 	// 824.7k (ath64, $dynamic_1006$)
 #undef inc
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 #define inc 6
 #else
 #define inc 2
@@ -2788,7 +2794,10 @@ static void __SSE_append_output_base16_to_input_semi_aligned_2(unsigned ip, ARCH
     // 5113k/4382k  (core2,$dynamic_10$)
 	//  (ath64, $dynamic_9$)
 	//  (ath64, $dynamic_10$)
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 # define inc 4
 # define incCRY 12
 #else
@@ -2853,7 +2862,10 @@ static void __SSE_append_output_base16_to_input_semi_aligned_0(unsigned ip, ARCH
 	// 3537K  (ath64, $dynamic_2$)
 	// 890.3K (ath64, $dynamic_1006$)
 #undef inc
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 #define inc 4
 //# define incCRY 12
 # define incCRY 14
@@ -3720,7 +3732,10 @@ void DynamicFunc__set_input_len_16(DYNA_OMP_PARAMS)
 			unsigned cur_block_len = total_len[j];
 			for (k = 0; k < SIMD_COEF_32; ++k) {
 				unsigned this_item_len = cur_block_len & 0xFF;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
@@ -3729,7 +3744,10 @@ void DynamicFunc__set_input_len_16(DYNA_OMP_PARAMS)
 					input_buf[j].c[GETPOS(this_item_len, k&(SIMD_COEF_32-1))] = 0x00;
 				input_buf[j].c[GETPOS(16, k&(SIMD_COEF_32-1))] = 0x80;
 			}
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len[j] = 0x10101010;
 #else
 			total_len[j] = 0x100010;
@@ -3776,7 +3794,10 @@ void DynamicFunc__set_input2_len_16(DYNA_OMP_PARAMS)
 			unsigned cur_block_len = total_len2[j];
 			for (k = 0; k < SIMD_COEF_32; ++k) {
 				unsigned this_item_len = cur_block_len & 0xFF;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
@@ -3785,7 +3806,10 @@ void DynamicFunc__set_input2_len_16(DYNA_OMP_PARAMS)
 					input_buf2[j].c[GETPOS(this_item_len, k&(SIMD_COEF_32-1))] = 0x00;
 				input_buf2[j].c[GETPOS(16, k&(SIMD_COEF_32-1))] = 0x80;
 			}
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len2[j] = 0x10101010;
 #else
 			total_len2[j] = 0x100010;
@@ -3832,7 +3856,10 @@ void DynamicFunc__set_input_len_20(DYNA_OMP_PARAMS)
 			unsigned cur_block_len = total_len[j];
 			for (k = 0; k < SIMD_COEF_32; ++k) {
 				unsigned this_item_len = cur_block_len & 0xFF;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
@@ -3841,7 +3868,10 @@ void DynamicFunc__set_input_len_20(DYNA_OMP_PARAMS)
 					input_buf[j].c[GETPOS(this_item_len, k&(SIMD_COEF_32-1))] = 0x00;
 				input_buf[j].c[GETPOS(20, k&(SIMD_COEF_32-1))] = 0x80;
 			}
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len[j] = 0x14141414;
 #else
 			total_len[j] = 0x140014;
@@ -3887,7 +3917,10 @@ void DynamicFunc__set_input2_len_20(DYNA_OMP_PARAMS)
 			unsigned cur_block_len = total_len2[j];
 			for (k = 0; k < SIMD_COEF_32; ++k) {
 				unsigned this_item_len = cur_block_len & 0xFF;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
@@ -3896,7 +3929,10 @@ void DynamicFunc__set_input2_len_20(DYNA_OMP_PARAMS)
 					input_buf2[j].c[GETPOS(this_item_len, k&(SIMD_COEF_32-1))] = 0x00;
 				input_buf2[j].c[GETPOS(20, k&(SIMD_COEF_32-1))] = 0x80;
 			}
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len2[j] = 0x14141414;
 #else
 			total_len2[j] = 0x100014;
@@ -3939,7 +3975,10 @@ void DynamicFunc__set_input_len_32(DYNA_OMP_PARAMS)
 			unsigned k;
 			for (k = 0; k < SIMD_COEF_32; ++k)
 				input_buf[j].c[GETPOS(32, k&(SIMD_COEF_32-1))] = 0x80;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len[j] = 0x20202020;
 #else
 			total_len[j] = 0x200020;
@@ -3986,7 +4025,10 @@ void DynamicFunc__set_input2_len_32(DYNA_OMP_PARAMS)
 			unsigned k;
 			for (k = 0; k < SIMD_COEF_32; ++k)
 				input_buf2[j].c[GETPOS(32, k&(SIMD_COEF_32-1))] = 0x80;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len2[j] = 0x20202020;
 #else
 			total_len2[j] = 0x200020;
@@ -4033,7 +4075,10 @@ void DynamicFunc__set_input_len_40(DYNA_OMP_PARAMS)
 			unsigned k;
 			for (k = 0; k < SIMD_COEF_32; ++k)
 				input_buf[j].c[GETPOS(40, k&(SIMD_COEF_32-1))] = 0x80;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len[j] = 0x28282828;
 #else
 			total_len[j] = 0x280028;
@@ -4078,7 +4123,10 @@ void DynamicFunc__set_input2_len_40(DYNA_OMP_PARAMS)
 			unsigned k;
 			for (k = 0; k < SIMD_COEF_32; ++k)
 				input_buf2[j].c[GETPOS(40, k&(SIMD_COEF_32-1))] = 0x80;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len2[j] = 0x28282828;
 #else
 			total_len2[j] = 0x280028;
@@ -6096,10 +6144,26 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = input_buf_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = input_buf_X86[j+1].x1.w;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		ARCH_WORD_32 *cpo3 = input_buf_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = input_buf_X86[j+3].x1.w;
 #endif
+#endif
+#if (SIMD_COEF_32>=8)
+		ARCH_WORD_32 *cpo5 = input_buf_X86[j+4].x1.w;
+		ARCH_WORD_32 *cpo6 = input_buf_X86[j+5].x1.w;
+		ARCH_WORD_32 *cpo7 = input_buf_X86[j+6].x1.w;
+		ARCH_WORD_32 *cpo8 = input_buf_X86[j+7].x1.w;
+#endif
+#if (SIMD_COEF_32>=16)
+		ARCH_WORD_32 *cpo9 = input_buf_X86[j+8].x1.w;
+		ARCH_WORD_32 *cpo10 = input_buf_X86[j+9].x1.w;
+		ARCH_WORD_32 *cpo11 = input_buf_X86[j+10].x1.w;
+		ARCH_WORD_32 *cpo12 = input_buf_X86[j+11].x1.w;
+		ARCH_WORD_32 *cpo13 = input_buf_X86[j+12].x1.w;
+		ARCH_WORD_32 *cpo14 = input_buf_X86[j+13].x1.w;
+		ARCH_WORD_32 *cpo15 = input_buf_X86[j+14].x1.w;
+		ARCH_WORD_32 *cpo16 = input_buf_X86[j+15].x1.w;
 #endif
 		idx = ( ((unsigned)j)/SIMD_COEF_32);
 		cpi = input_buf[idx].w;
@@ -6115,9 +6179,25 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 		for (k = 0; k < max; ++k) {
 			*cpo++ = *cpi++;
 			*cpo2++ = *cpi++;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 			*cpo3++ = *cpi++;
 			*cpo4++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=8)
+			*cpo5++ = *cpi++;
+			*cpo6++ = *cpi++;
+			*cpo7++ = *cpi++;
+			*cpo8++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=16)
+			*cpo9++ = *cpi++;
+			*cpo10++ = *cpi++;
+			*cpo11++ = *cpi++;
+			*cpo12++ = *cpi++;
+			*cpo13++ = *cpi++;
+			*cpo14++ = *cpi++;
+			*cpo15++ = *cpi++;
+			*cpo16++ = *cpi++;
 #endif
 		}
 #if (MD5_X2)
@@ -6128,9 +6208,25 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 #else
 		input_buf_X86[j].x1.b[total_len_X86[j]] = 0;
 		input_buf_X86[j+1].x1.b[total_len_X86[j+1]] = 0;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		input_buf_X86[j+2].x1.b[total_len_X86[j+2]] = 0;
 		input_buf_X86[j+3].x1.b[total_len_X86[j+3]] = 0;
+#endif
+#if (SIMD_COEF_32>=8)
+		input_buf_X86[j+4].x1.b[total_len_X86[j+4]] = 0;
+		input_buf_X86[j+5].x1.b[total_len_X86[j+5]] = 0;
+		input_buf_X86[j+6].x1.b[total_len_X86[j+6]] = 0;
+		input_buf_X86[j+7].x1.b[total_len_X86[j+7]] = 0;
+#endif
+#if (SIMD_COEF_32>=8)
+		input_buf_X86[j+8].x1.b[total_len_X86[j+8]] = 0;
+		input_buf_X86[j+9].x1.b[total_len_X86[j+9]] = 0;
+		input_buf_X86[j+10].x1.b[total_len_X86[j+10]] = 0;
+		input_buf_X86[j+11].x1.b[total_len_X86[j+11]] = 0;
+		input_buf_X86[j+12].x1.b[total_len_X86[j+12]] = 0;
+		input_buf_X86[j+13].x1.b[total_len_X86[j+13]] = 0;
+		input_buf_X86[j+14].x1.b[total_len_X86[j+14]] = 0;
+		input_buf_X86[j+15].x1.b[total_len_X86[j+15]] = 0;
 #endif
 #endif
 	}
@@ -6155,10 +6251,26 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = input_buf2_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = input_buf2_X86[j+1].x1.w;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		ARCH_WORD_32 *cpo3 = input_buf2_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = input_buf2_X86[j+3].x1.w;
 #endif
+#endif
+#if (SIMD_COEF_32>=8)
+		ARCH_WORD_32 *cpo5 = input_buf2_X86[j+4].x1.w;
+		ARCH_WORD_32 *cpo6 = input_buf2_X86[j+5].x1.w;
+		ARCH_WORD_32 *cpo7 = input_buf2_X86[j+6].x1.w;
+		ARCH_WORD_32 *cpo8 = input_buf2_X86[j+7].x1.w;
+#endif
+#if (SIMD_COEF_32>=16)
+		ARCH_WORD_32 *cpo9 = input_buf2_X86[j+8].x1.w;
+		ARCH_WORD_32 *cpo10 = input_buf2_X86[j+9].x1.w;
+		ARCH_WORD_32 *cpo11 = input_buf2_X86[j+10].x1.w;
+		ARCH_WORD_32 *cpo12 = input_buf2_X86[j+11].x1.w;
+		ARCH_WORD_32 *cpo13 = input_buf2_X86[j+12].x1.w;
+		ARCH_WORD_32 *cpo14 = input_buf2_X86[j+13].x1.w;
+		ARCH_WORD_32 *cpo15 = input_buf2_X86[j+14].x1.w;
+		ARCH_WORD_32 *cpo16 = input_buf2_X86[j+15].x1.w;
 #endif
 		idx = ( ((unsigned)j)/SIMD_COEF_32);
 		cpi = input_buf2[idx].w;
@@ -6174,9 +6286,25 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 		for (k = 0; k < max; ++k) {
 			*cpo++ = *cpi++;
 			*cpo2++ = *cpi++;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 			*cpo3++ = *cpi++;
 			*cpo4++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=8)
+			*cpo5++ = *cpi++;
+			*cpo6++ = *cpi++;
+			*cpo7++ = *cpi++;
+			*cpo8++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=16)
+			*cpo9++ = *cpi++;
+			*cpo10++ = *cpi++;
+			*cpo11++ = *cpi++;
+			*cpo12++ = *cpi++;
+			*cpo13++ = *cpi++;
+			*cpo14++ = *cpi++;
+			*cpo15++ = *cpi++;
+			*cpo16++ = *cpi++;
 #endif
 		}
 		// get rid of the 0x80
@@ -6188,9 +6316,25 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 #else
 		input_buf2_X86[j].x1.b[total_len2_X86[j]] = 0;
 		input_buf2_X86[j+1].x1.b[total_len2_X86[j+1]] = 0;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		input_buf2_X86[j+2].x1.b[total_len2_X86[j+2]] = 0;
 		input_buf2_X86[j+3].x1.b[total_len2_X86[j+3]] = 0;
+#endif
+#if (SIMD_COEF_32>=8)
+		input_buf2_X86[j+4].x1.b[total_len2_X86[j+4]] = 0;
+		input_buf2_X86[j+5].x1.b[total_len2_X86[j+5]] = 0;
+		input_buf2_X86[j+6].x1.b[total_len2_X86[j+6]] = 0;
+		input_buf2_X86[j+7].x1.b[total_len2_X86[j+7]] = 0;
+#endif
+#if (SIMD_COEF_32>=16)
+		input_buf2_X86[j+8].x1.b[total_len2_X86[j+8]] = 0;
+		input_buf2_X86[j+9].x1.b[total_len2_X86[j+9]] = 0;
+		input_buf2_X86[j+10].x1.b[total_len2_X86[j+10]] = 0;
+		input_buf2_X86[j+11].x1.b[total_len2_X86[j+11]] = 0;
+		input_buf2_X86[j+12].x1.b[total_len2_X86[j+12]] = 0;
+		input_buf2_X86[j+13].x1.b[total_len2_X86[j+13]] = 0;
+		input_buf2_X86[j+14].x1.b[total_len2_X86[j+14]] = 0;
+		input_buf2_X86[j+15].x1.b[total_len2_X86[j+15]] = 0;
 #endif
 #endif
 	}
@@ -6215,19 +6359,51 @@ void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = crypt_key_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = crypt_key_X86[j+1].x1.w;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		ARCH_WORD_32 *cpo3 = crypt_key_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = crypt_key_X86[j+3].x1.w;
 #endif
+#endif
+#if (SIMD_COEF_32>=8)
+		ARCH_WORD_32 *cpo5 = crypt_key_X86[j+4].x1.w;
+		ARCH_WORD_32 *cpo6 = crypt_key_X86[j+5].x1.w;
+		ARCH_WORD_32 *cpo7 = crypt_key_X86[j+6].x1.w;
+		ARCH_WORD_32 *cpo8 = crypt_key_X86[j+7].x1.w;
+#endif
+#if (SIMD_COEF_32>=16)
+		ARCH_WORD_32 *cpo9 = crypt_key_X86[j+8].x1.w;
+		ARCH_WORD_32 *cpo10 = crypt_key_X86[j+9].x1.w;
+		ARCH_WORD_32 *cpo11 = crypt_key_X86[j+10].x1.w;
+		ARCH_WORD_32 *cpo12 = crypt_key_X86[j+11].x1.w;
+		ARCH_WORD_32 *cpo13 = crypt_key_X86[j+12].x1.w;
+		ARCH_WORD_32 *cpo14 = crypt_key_X86[j+13].x1.w;
+		ARCH_WORD_32 *cpo15 = crypt_key_X86[j+14].x1.w;
+		ARCH_WORD_32 *cpo16 = crypt_key_X86[j+15].x1.w;
 #endif
 		idx = ( ((unsigned)j)/SIMD_COEF_32);
 		cpi = (void*)crypt_key[idx].c;
 		for (k = 0; k < 4; ++k) {
 			*cpo++ = *cpi++;
 			*cpo2++ = *cpi++;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 			*cpo3++ = *cpi++;
 			*cpo4++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=8)
+			*cpo5++ = *cpi++;
+			*cpo6++ = *cpi++;
+			*cpo7++ = *cpi++;
+			*cpo8++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=16)
+			*cpo9++ = *cpi++;
+			*cpo10++ = *cpi++;
+			*cpo11++ = *cpi++;
+			*cpo12++ = *cpi++;
+			*cpo13++ = *cpi++;
+			*cpo14++ = *cpi++;
+			*cpo15++ = *cpi++;
+			*cpo16++ = *cpi++;
 #endif
 		}
 	}
@@ -6252,19 +6428,51 @@ void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = crypt_key2_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = crypt_key2_X86[j+1].x1.w;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		ARCH_WORD_32 *cpo3 = crypt_key2_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = crypt_key2_X86[j+3].x1.w;
 #endif
+#endif
+#if (SIMD_COEF_32>=8)
+		ARCH_WORD_32 *cpo5 = crypt_key2_X86[j+4].x1.w;
+		ARCH_WORD_32 *cpo6 = crypt_key2_X86[j+5].x1.w;
+		ARCH_WORD_32 *cpo7 = crypt_key2_X86[j+6].x1.w;
+		ARCH_WORD_32 *cpo8 = crypt_key2_X86[j+7].x1.w;
+#endif
+#if (SIMD_COEF_32>=16)
+		ARCH_WORD_32 *cpo9 = crypt_key2_X86[j+8].x1.w;
+		ARCH_WORD_32 *cpo10 = crypt_key2_X86[j+9].x1.w;
+		ARCH_WORD_32 *cpo11 = crypt_key2_X86[j+10].x1.w;
+		ARCH_WORD_32 *cpo12 = crypt_key2_X86[j+11].x1.w;
+		ARCH_WORD_32 *cpo13 = crypt_key2_X86[j+12].x1.w;
+		ARCH_WORD_32 *cpo14 = crypt_key2_X86[j+13].x1.w;
+		ARCH_WORD_32 *cpo15 = crypt_key2_X86[j+14].x1.w;
+		ARCH_WORD_32 *cpo16 = crypt_key2_X86[j+15].x1.w;
 #endif
 		idx = ( ((unsigned)j)/SIMD_COEF_32);
 		cpi = crypt_key2[idx].w;
 		for (k = 0; k < 4; ++k) {
 			*cpo++ = *cpi++;
 			*cpo2++ = *cpi++;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 			*cpo3++ = *cpi++;
 			*cpo4++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=8)
+			*cpo5++ = *cpi++;
+			*cpo6++ = *cpi++;
+			*cpo7++ = *cpi++;
+			*cpo8++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=16)
+			*cpo9++ = *cpi++;
+			*cpo10++ = *cpi++;
+			*cpo11++ = *cpi++;
+			*cpo12++ = *cpi++;
+			*cpo13++ = *cpi++;
+			*cpo14++ = *cpi++;
+			*cpo15++ = *cpi++;
+			*cpo16++ = *cpi++;
 #endif
 		}
 	}
@@ -6329,19 +6537,51 @@ void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = crypt_key_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = crypt_key_X86[j+1].x1.w;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		ARCH_WORD_32 *cpo3 = crypt_key_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = crypt_key_X86[j+3].x1.w;
 #endif
+#endif
+#if (SIMD_COEF_32>=8)
+		ARCH_WORD_32 *cpo5 = crypt_key_X86[j+4].x1.w;
+		ARCH_WORD_32 *cpo6 = crypt_key_X86[j+5].x1.w;
+		ARCH_WORD_32 *cpo7 = crypt_key_X86[j+6].x1.w;
+		ARCH_WORD_32 *cpo8 = crypt_key_X86[j+7].x1.w;
+#endif
+#if (SIMD_COEF_32>=16)
+		ARCH_WORD_32 *cpo9 = crypt_key_X86[j+8].x1.w;
+		ARCH_WORD_32 *cpo10 = crypt_key_X86[j+9].x1.w;
+		ARCH_WORD_32 *cpo11 = crypt_key_X86[j+10].x1.w;
+		ARCH_WORD_32 *cpo12 = crypt_key_X86[j+11].x1.w;
+		ARCH_WORD_32 *cpo13 = crypt_key_X86[j+12].x1.w;
+		ARCH_WORD_32 *cpo14 = crypt_key_X86[j+13].x1.w;
+		ARCH_WORD_32 *cpo15 = crypt_key_X86[j+14].x1.w;
+		ARCH_WORD_32 *cpo16 = crypt_key_X86[j+15].x1.w;
 #endif
 		idx = ( ((unsigned)j)/SIMD_COEF_32);
 		cpi = (void*)crypt_key[idx].c;
 		for (k = 0; k < 4; ++k) {
 			*cpi++ = *cpo++;
 			*cpi++ = *cpo2++;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 			*cpi++ = *cpo3++;
 			*cpi++ = *cpo4++;
+#endif
+#if (SIMD_COEF_32>=8)
+			*cpi++ = *cpo5++;
+			*cpi++ = *cpo6++;
+			*cpi++ = *cpo7++;
+			*cpi++ = *cpo8++;
+#endif
+#if (SIMD_COEF_32>=16)
+			*cpi++ = *cpo9++;
+			*cpi++ = *cpo10++;
+			*cpi++ = *cpo11++;
+			*cpi++ = *cpo12++;
+			*cpi++ = *cpo13++;
+			*cpi++ = *cpo14++;
+			*cpi++ = *cpo15++;
+			*cpi++ = *cpo16++;
 #endif
 		}
 	}
@@ -6366,19 +6606,51 @@ void DynamicFunc__X86toSSE_switch_output2(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = crypt_key2_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = crypt_key2_X86[j+1].x1.w;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		ARCH_WORD_32 *cpo3 = crypt_key2_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = crypt_key2_X86[j+3].x1.w;
 #endif
+#endif
+#if (SIMD_COEF_32>=8)
+		ARCH_WORD_32 *cpo5 = crypt_key2_X86[j+4].x1.w;
+		ARCH_WORD_32 *cpo6 = crypt_key2_X86[j+5].x1.w;
+		ARCH_WORD_32 *cpo7 = crypt_key2_X86[j+6].x1.w;
+		ARCH_WORD_32 *cpo8 = crypt_key2_X86[j+7].x1.w;
+#endif
+#if (SIMD_COEF_32>=16)
+		ARCH_WORD_32 *cpo9 = crypt_key2_X86[j+8].x1.w;
+		ARCH_WORD_32 *cpo10 = crypt_key2_X86[j+9].x1.w;
+		ARCH_WORD_32 *cpo11 = crypt_key2_X86[j+10].x1.w;
+		ARCH_WORD_32 *cpo12 = crypt_key2_X86[j+11].x1.w;
+		ARCH_WORD_32 *cpo13 = crypt_key2_X86[j+12].x1.w;
+		ARCH_WORD_32 *cpo14 = crypt_key2_X86[j+13].x1.w;
+		ARCH_WORD_32 *cpo15 = crypt_key2_X86[j+14].x1.w;
+		ARCH_WORD_32 *cpo16 = crypt_key2_X86[j+15].x1.w;
 #endif
 		idx = ( ((unsigned)j)/SIMD_COEF_32);
 		cpi = crypt_key2[idx].w;
 		for (k = 0; k < 4; ++k) {
 			*cpi++ = *cpo++;
 			*cpi++ = *cpo2++;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 			*cpi++ = *cpo3++;
 			*cpi++ = *cpo4++;
+#endif
+#if (SIMD_COEF_32>=8)
+			*cpi++ = *cpo5++;
+			*cpi++ = *cpo6++;
+			*cpi++ = *cpo7++;
+			*cpi++ = *cpo8++;
+#endif
+#if (SIMD_COEF_32>=16)
+			*cpi++ = *cpo9++;
+			*cpi++ = *cpo10++;
+			*cpi++ = *cpo11++;
+			*cpi++ = *cpo12++;
+			*cpi++ = *cpo13++;
+			*cpi++ = *cpo14++;
+			*cpi++ = *cpo15++;
+			*cpi++ = *cpo16++;
 #endif
 		}
 	}
