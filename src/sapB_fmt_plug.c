@@ -68,8 +68,8 @@ static unsigned int omp_t = 1;
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (index>>SIMD_COEF32_BITS)*16*SIMD_COEF_32*4 )
-#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (index>>SIMD_COEF32_BITS)*16*SIMD_COEF_32)
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + index/SIMD_COEF_32*16*SIMD_COEF_32*4 )
+#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + index/SIMD_COEF_32*16*SIMD_COEF_32)
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1

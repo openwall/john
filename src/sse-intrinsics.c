@@ -318,7 +318,7 @@ static MAYBE_INLINE void mmxput(void * buf, unsigned int index, unsigned int bid
 	unsigned char * nbuf;
 	unsigned int i;
 
-	nbuf = ((unsigned char*)buf) + (index>>SIMD_COEF32_BITS)*64*SIMD_COEF_32 + bid*64*MD5_SSE_NUM_KEYS;
+	nbuf = ((unsigned char*)buf) + index/SIMD_COEF_32*64*SIMD_COEF_32 + bid*64*MD5_SSE_NUM_KEYS;
 	for(i=0;i<len;i++)
 		nbuf[ GETPOS((offset+i), index) ] = src[i];
 
@@ -503,14 +503,14 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 		mmxput(buffers, i, 7, length_i+saltlen, pwd[i], length_i);
 		mmxput(buffers, i, 7, saltlen+2*length_i+16, (unsigned char*)"\x80", 1);
 
-		bt = (unsigned int*) &buffers[0]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i>>SIMD_COEF32_BITS)*64] = (length_i+16)<<3;
-		bt = (unsigned int*) &buffers[1]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i>>SIMD_COEF32_BITS)*64] = (length_i+16)<<3;
-		bt = (unsigned int*) &buffers[2]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i>>SIMD_COEF32_BITS)*64] = (length_i*2+16)<<3;
-		bt = (unsigned int*) &buffers[3]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i>>SIMD_COEF32_BITS)*64] = (length_i*2+16)<<3;
-		bt = (unsigned int*) &buffers[4]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i>>SIMD_COEF32_BITS)*64] = (length_i+saltlen+16)<<3;
-		bt = (unsigned int*) &buffers[5]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i>>SIMD_COEF32_BITS)*64] = (length_i+saltlen+16)<<3;
-		bt = (unsigned int*) &buffers[6]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i>>SIMD_COEF32_BITS)*64] = (length_i*2+saltlen+16)<<3;
-		bt = (unsigned int*) &buffers[7]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i>>SIMD_COEF32_BITS)*64] = (length_i*2+saltlen+16)<<3;
+		bt = (unsigned int*) &buffers[0]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i+16)<<3;
+		bt = (unsigned int*) &buffers[1]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i+16)<<3;
+		bt = (unsigned int*) &buffers[2]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i*2+16)<<3;
+		bt = (unsigned int*) &buffers[3]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i*2+16)<<3;
+		bt = (unsigned int*) &buffers[4]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i+saltlen+16)<<3;
+		bt = (unsigned int*) &buffers[5]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i+saltlen+16)<<3;
+		bt = (unsigned int*) &buffers[6]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i*2+saltlen+16)<<3;
+		bt = (unsigned int*) &buffers[7]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i*2+saltlen+16)<<3;
 
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, pwd[i], length_i);
@@ -533,10 +533,10 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 			else
 				MD5_Update(&ctx, pwd[i], 1);
 		MD5_Final((unsigned char*)tf, &ctx);
-		F[(i>>SIMD_COEF32_BITS)*16 + (i&(VS32-1))] = tf[0];
-		F[(i>>SIMD_COEF32_BITS)*16 + (i&(VS32-1)) + 4] = tf[1];
-		F[(i>>SIMD_COEF32_BITS)*16 + (i&(VS32-1)) + 8] = tf[2];
-		F[(i>>SIMD_COEF32_BITS)*16 + (i&(VS32-1)) + 12] = tf[3];
+		F[(i/SIMD_COEF_32)*16 + (i&(VS32-1))] = tf[0];
+		F[(i/SIMD_COEF_32)*16 + (i&(VS32-1)) + 4] = tf[1];
+		F[(i/SIMD_COEF_32)*16 + (i&(VS32-1)) + 8] = tf[2];
+		F[(i/SIMD_COEF_32)*16 + (i&(VS32-1)) + 12] = tf[3];
 	}
 	dispatch(buffers, F, length, saltlen);
 	memcpy(out, F, MD5_SSE_NUM_KEYS*16);
