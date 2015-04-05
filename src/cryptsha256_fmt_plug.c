@@ -768,7 +768,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				for (k = 0; k < SIMD_COEF_32; ++k) {
 					ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_struct->cptr[k][idx];
 					for (j = 0; j < 8; ++j)
-						*o++ = JOHNSWAP(sse_out[(j<<SIMD_COEF32_BITS)+k]);
+						*o++ = JOHNSWAP(sse_out[(j*SIMD_COEF_32)+k]);
 				}
 			}
 			if (++idx == 42)
@@ -779,7 +779,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (k = 0; k < SIMD_COEF_32; ++k) {
 				ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_out[MixOrder[index+k]];
 				for (j = 0; j < 8; ++j)
-					*o++ = JOHNSWAP(sse_out[(j<<SIMD_COEF32_BITS)+k]);
+					*o++ = JOHNSWAP(sse_out[(j*SIMD_COEF_32)+k]);
 			}
 		}
 #else

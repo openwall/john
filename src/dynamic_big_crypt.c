@@ -356,7 +356,7 @@ static void DoMD5_crypt_f_sse(void *in, int len[MD5_LOOPS], void *out) {
 			if (cnt == loops[i]) {
 				unsigned int offx = ((i>>2)*16)+(i&3);
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i<<SIMD_COEF32_BITS)+j] = a[(j<<SIMD_COEF32_BITS)+offx];
+					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = a[(j*SIMD_COEF_32)+offx];
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -384,7 +384,7 @@ static void DoMD5_crypt_sse(void *in, int ilen[MD5_LOOPS], void *out[MD5_LOOPS],
 			if (cnt == loops[i]) {
 				unsigned int offx = ((i>>2)*16)+(i&3);
 				for (j = 0; j < 4; ++j) {
-					y.a[j] = a[(j<<SIMD_COEF32_BITS)+offx];
+					y.a[j] = a[(j*SIMD_COEF_32)+offx];
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), 16, tid);
 			} else if (cnt < loops[i])
@@ -758,7 +758,7 @@ static void DoMD4_crypt_f_sse(void *in, int len[MD4_LOOPS], void *out) {
 			if (cnt == loops[i]) {
 				unsigned int offx = ((i>>2)*16)+(i&3);
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i<<SIMD_COEF32_BITS)+j] = a[(j<<SIMD_COEF32_BITS)+offx];
+					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = a[(j*SIMD_COEF_32)+offx];
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -786,7 +786,7 @@ static void DoMD4_crypt_sse(void *in, int ilen[MD4_LOOPS], void *out[MD4_LOOPS],
 			if (cnt == loops[i]) {
 				unsigned int offx = ((i>>2)*16)+(i&3);
 				for (j = 0; j < 4; ++j) {
-					y.a[j] = a[(j<<SIMD_COEF32_BITS)+offx];
+					y.a[j] = a[(j*SIMD_COEF_32)+offx];
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), 16, tid);
 			} else if (cnt < loops[i])
@@ -1159,7 +1159,7 @@ static void DoSHA1_crypt_f_sse(void *in, int len[SHA1_LOOPS], void *out) {
 				unsigned int offx = ((i>>2)*20)+(i&3);
 				// only 16 bytes in the 'final'
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i<<SIMD_COEF32_BITS)+j] = JOHNSWAP(a[(j<<SIMD_COEF32_BITS)+offx]);
+					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = JOHNSWAP(a[(j*SIMD_COEF_32)+offx]);
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -1565,7 +1565,7 @@ static void DoSHA256_crypt_f_sse(void *in, int len[SIMD_COEF_32], void *out, int
 			if (cnt == loops[i]) {
 				// only 16 bytes.
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i<<SIMD_COEF32_BITS)+j] = JOHNSWAP(a[(j<<SIMD_COEF32_BITS)+i]);
+					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = JOHNSWAP(a[(j*SIMD_COEF_32)+i]);
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -1592,7 +1592,7 @@ static void DoSHA256_crypt_sse(void *in, int ilen[SIMD_COEF_32], void *out[SIMD_
 		for (i = 0; i < SHA256_LOOPS; ++i) {
 			if (cnt == loops[i]) {
 				for (j = 0; j < 8; ++j) {
-					y.a[j] =JOHNSWAP(a[(j<<SIMD_COEF32_BITS)+i]);
+					y.a[j] =JOHNSWAP(a[(j*SIMD_COEF_32)+i]);
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), isSHA256?32:28, tid);
 			} else if (cnt < loops[i])
