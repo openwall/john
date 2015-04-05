@@ -471,7 +471,7 @@ typedef __m64i vtype;
      vor(vslli_epi64((a), (s)), vsrli_epi64((a), 64-(s))))
 
 #if __AVX2__ || __AVX512__ || __MIC__
-#define vroti16_epi32(a,s) vroti_epi16(a, 16)
+#define vroti16_epi32(a,s) vroti_epi32(a, 16)
 #else
 #ifdef __SSSE3__
 #define rot16_mask                                                  \
