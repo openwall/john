@@ -212,10 +212,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_64
 		unsigned char tmpBuf[64];
 		int i;
-		unsigned char _IBuf[128*SIMD_COEF_64+16], *keys;
+		unsigned char _IBuf[128*SIMD_COEF_64+MEM_ALIGN_SIMD], *keys;
 		ARCH_WORD_64 *keys64;
 
-		keys = (unsigned char*)mem_align(_IBuf, 16);
+		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 		keys64 = (ARCH_WORD_64*)keys;
 		memset(keys, 0, 128*SIMD_COEF_64);
 

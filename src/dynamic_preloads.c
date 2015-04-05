@@ -48,11 +48,6 @@
 #define MTL(a,b,c)
 #endif
 
-#ifdef MD5_SSE_PARA
-#undef SIMD_COEF_32
-#define SIMD_COEF_32 4
-#endif
-
 //
 // HERE is the 'official' list of dynamic_#) builtin's to John.
 //

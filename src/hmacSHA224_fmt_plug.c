@@ -54,7 +54,7 @@ john_register_one(&fmt_hmacSHA224);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SIMD_COEF_32
 #define MAX_KEYS_PER_CRYPT      SIMD_COEF_32
-#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i) & (0xffffffff - 3)) * SIMD_COEF_32 + (3 - ((i) & 3)) + (index >> (SIMD_COEF_32 >> 1)) * SHA256_BUF_SIZ * 4 * SIMD_COEF_32)
+#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i) & (0xffffffff - 3)) * SIMD_COEF_32 + (3 - ((i) & 3)) + index/SIMD_COEF_32 * SHA256_BUF_SIZ * 4 * SIMD_COEF_32)
 #else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -119,7 +119,7 @@ static void init(struct fmt_main *self)
 	                             sizeof(*prep_opad), MEM_ALIGN_SIMD);
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
 		crypt_key[GETPOS(BINARY_SIZE, i)] = 0x80;
-		((unsigned int*)crypt_key)[15 * SIMD_COEF_32 + (i & 3) + (i >> 2) * SHA256_BUF_SIZ * SIMD_COEF_32] = (BINARY_SIZE + PAD_SIZE) << 3;
+		((unsigned int*)crypt_key)[15 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * SHA256_BUF_SIZ * SIMD_COEF_32] = (BINARY_SIZE + PAD_SIZE) << 3;
 	}
 	clear_keys();
 #else
@@ -311,7 +311,7 @@ static int cmp_one(void *binary, int index)
 	int i;
 	for(i = 0; i < (BINARY_SIZE/4); i++)
 		// NOTE crypt_key is in input format (4 * SHA256_BUF_SIZ * SIMD_COEF_32)
-		if (((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[i * SIMD_COEF_32 + (index & 3) + (index >> 2) * SHA256_BUF_SIZ * SIMD_COEF_32])
+		if (((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[i * SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32 * SHA256_BUF_SIZ * SIMD_COEF_32])
 			return 0;
 	return 1;
 #else
@@ -344,7 +344,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef SIMD_COEF_32
-		unsigned int *pclear;
+		unsigned int i, *pclear;
 		if (new_keys) {
 			SSESHA256body(&ipad[index * SHA256_BUF_SIZ * 4],
 			            (unsigned int*)&prep_ipad[index * BINARY_SIZE_256],
@@ -359,9 +359,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|SSEi_CRYPT_SHA224);
 		// NOTE, SSESHA224 will output 32 bytes. We need the first 28 (plus the 0x80 padding).
 		// so we are forced to 'clean' this crap up, before using the crypt as the input.
-		// NOTE, this fix assumes SIMD_COEF_32==4
 		pclear = (unsigned int*)&crypt_key[index * SHA256_BUF_SIZ * 4];
-		pclear[28] = pclear[29] = pclear[30] = pclear[31] = 0x80000000;
+		for (i = 0; i < SIMD_COEF_32; i++)
+			pclear[28*SIMD_COEF_32/4+i] = 0x80000000;
 		SSESHA256body(&crypt_key[index * SHA256_BUF_SIZ * 4],
 		            (unsigned int*)&crypt_key[index * SHA256_BUF_SIZ * 4],
 		            (unsigned int*)&prep_opad[index * BINARY_SIZE_256],
@@ -434,7 +434,7 @@ static void *get_salt(char *ciphertext)
 		for (i = 0; i < SIMD_COEF_32; ++i)
 			cur_salt[GETPOS(j, i)] = 0;
 	for (i = 0; i < SIMD_COEF_32; ++i)
-		((unsigned int*)cur_salt)[15 * SIMD_COEF_32 + (i & 3) + (i >> 2) * SHA256_BUF_SIZ * SIMD_COEF_32] = (total_len + 64) << 3;
+		((unsigned int*)cur_salt)[15 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * SHA256_BUF_SIZ * SIMD_COEF_32] = (total_len + 64) << 3;
 	return cur_salt;
 #else
 	return salt;

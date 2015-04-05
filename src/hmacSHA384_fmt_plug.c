@@ -352,6 +352,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 #ifdef SIMD_COEF_64
 		ARCH_WORD_64 *pclear;
+		unsigned int i;
+
 		if (new_keys) {
 			SSESHA512body(&ipad[index * SHA512_BUF_SIZ * 8],
 			            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE_512],
@@ -366,10 +368,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		// NOTE, SSESHA384 will output 64 bytes. We need the first 48 (plus the 0x80 padding).
 		// so we are forced to 'clean' this crap up, before using the crypt as the input.
-		// NOTE, this fix assumes SIMD_COEF_64==2
 		pclear = (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8];
-		pclear[12] = pclear[13] = 0x8000000000000000ULL;
-		pclear[14] = pclear[15] = 0;
+		for (i = 0; i < SIMD_COEF_64; i++) {
+			pclear[48*SIMD_COEF_64/8+i] = 0x8000000000000000ULL;
+			pclear[48*SIMD_COEF_64/8+i+SIMD_COEF_64] = 0;
+		}
 		SSESHA512body(&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&prep_opad[index * BINARY_SIZE_512],

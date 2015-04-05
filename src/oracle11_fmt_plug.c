@@ -224,7 +224,7 @@ static void set_key(char *key, int index)
 		keybuf_word += SIMD_COEF_32;
 	}
 	saved_key[GETPOS(len, index)] = 0x80;
-	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
+	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 #else
 	saved_len = strlen(key);
 	if (saved_len > PLAINTEXT_LENGTH)
@@ -240,7 +240,7 @@ static char *get_key(int index)
 	unsigned int i,s;
 	static char out[PLAINTEXT_LENGTH + 1];
 
-	s = (((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] >> 3) - SALT_SIZE;
+	s = (((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3) - SALT_SIZE;
 
 	for(i = 0; i < s; i++)
 		out[i] = ((char*)saved_key)[ GETPOS(i, index) ];
@@ -300,7 +300,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	for (index = 0; index < count; ++index)
 	{
-		unsigned int len = ((((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32]) >> 3) - SALT_SIZE;
+		unsigned int len = ((((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32]) >> 3) - SALT_SIZE;
 		unsigned int i = 0;
 
 		// 1. Copy a byte at a time until we're aligned in buffer

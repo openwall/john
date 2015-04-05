@@ -525,10 +525,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA256_CTX ctx;
 #ifdef SIMD_COEF_32
 		int i;
-		unsigned char _IBuf[64*MAX_KEYS_PER_CRYPT+16], *keys, tmpBuf[32];
+		unsigned char _IBuf[64*MAX_KEYS_PER_CRYPT+MEM_ALIGN_SIMD], *keys, tmpBuf[32];
 		uint32_t *keys32, j;
 
-		keys = (unsigned char*)mem_align(_IBuf, 16);
+		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 		keys32 = (uint32_t*)keys;
 		memset(keys, 0, 64*MAX_KEYS_PER_CRYPT);
 

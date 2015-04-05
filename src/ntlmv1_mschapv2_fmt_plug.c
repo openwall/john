@@ -741,8 +741,8 @@ key_cleaning:
 		*keybuf_word = 0;
 		keybuf_word += SIMD_COEF_32;
 	}
-	((unsigned int*)saved_key)[14*SIMD_COEF_32 + (index&3) +
-	                           (index>>2)*16*SIMD_COEF_32] = len << 4;
+	((unsigned int*)saved_key)[14*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) +
+	                           index/SIMD_COEF_32*16*SIMD_COEF_32] = len << 4;
 #else
 #if ARCH_LITTLE_ENDIAN
 	UTF8 *s = (UTF8*)_key;
@@ -799,8 +799,8 @@ key_cleaning_enc:
 		*keybuf_word = 0;
 		keybuf_word += SIMD_COEF_32;
 	}
-	((unsigned int*)saved_key)[14*SIMD_COEF_32 + (index&3) +
-	                           (index>>2)*16*SIMD_COEF_32] = len << 4;
+	((unsigned int*)saved_key)[14*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) +
+	                           index/SIMD_COEF_32*16*SIMD_COEF_32] = len << 4;
 #else
 	saved_len[index] = enc_to_utf16(saved_key[index],
 	                                       PLAINTEXT_LENGTH + 1,
@@ -936,8 +936,8 @@ bailout:
 		*keybuf_word = 0;
 		keybuf_word += SIMD_COEF_32;
 	}
-	((unsigned int*)saved_key)[14*SIMD_COEF_32 + (index&3) +
-	                           (index>>2)*16*SIMD_COEF_32] = len << 4;
+	((unsigned int*)saved_key)[14*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) +
+	                           index/SIMD_COEF_32*16*SIMD_COEF_32] = len << 4;
 #else
 	saved_len[index] = utf8_to_utf16(saved_key[index],
 	                                        PLAINTEXT_LENGTH + 1,
