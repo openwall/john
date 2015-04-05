@@ -221,7 +221,7 @@ key_cleaning:
 
 	len += 1; /* Trailing null is included */
 
-	((unsigned int*)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
+	((unsigned int*)saved_key)[15*SIMD_COEF_32 + (index&3) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 #else
 	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 #endif

@@ -193,7 +193,7 @@ key_cleaning:
 		*keybuf_word = 0;
 		keybuf_word += SIMD_COEF_32;
 	}
-	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
+	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 #else
 	strnzcpy(saved_key, key, PLAINTEXT_LENGTH + 1);
 #endif
@@ -204,7 +204,7 @@ static char *get_key(int index) {
 	static char out[PLAINTEXT_LENGTH+1];
 	unsigned int i, s;
 
-	s = ((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
+	s = ((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
 	for (i = 0; i < s; i++)
 		out[i] = saved_key[ GETPOS(i, index) ];
 	out[i] = 0;

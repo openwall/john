@@ -328,7 +328,7 @@ static char *get_key(int index)
 	unsigned int i,s;
 	static char out[PLAINTEXT_LENGTH + 1];
 
-	s = ((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
+	s = ((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
 
 	for(i = 0; i < (s - SALT_SIZE); i++)
 		out[i] = ((char*)saved_key)[ GETPOS((i + SALT_SIZE), index) ];

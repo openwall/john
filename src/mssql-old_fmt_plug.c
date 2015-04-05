@@ -181,7 +181,7 @@ static void set_key(char *key, int index) {
 		return;
 
 #ifdef SIMD_COEF_32
-	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = (2*utf8len+SALT_SIZE)<<3;
+	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = (2*utf8len+SALT_SIZE)<<3;
 	for(i=0;i<utf8len;i++)
 		saved_key[GETPOS((i*2), index)] = utf8[i];
 	saved_key[GETPOS((i*2+SALT_SIZE) , index)] = 0x80;
@@ -216,7 +216,7 @@ static void set_key_enc(char *key, int index) {
 		utf16len *= -1;
 
 #ifdef SIMD_COEF_32
-	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = (2*utf16len+SALT_SIZE)<<3;
+	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = (2*utf16len+SALT_SIZE)<<3;
 	for(i=0;i<utf16len;i++)
 	{
 		saved_key[GETPOS((i*2), index)] = (char)utf16key[i];
@@ -289,7 +289,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	for (index = 0; index < count; ++index)
 	{
-		unsigned len = (((((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32]) >> 3) & 0xff) - SALT_SIZE;
+		unsigned len = (((((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32]) >> 3) & 0xff) - SALT_SIZE;
 		for(i=0;i<SALT_SIZE;i++)
 			saved_key[GETPOS((len+i), index)] = cursalt[i];
 	}
