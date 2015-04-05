@@ -83,7 +83,7 @@ static struct fmt_tests tests[] = {
 static unsigned char *crypt_key;
 static unsigned char *ipad, *prep_ipad;
 static unsigned char *opad, *prep_opad;
-JTR_ALIGN(16) unsigned char cur_salt[SALT_LENGTH * 4 * SIMD_COEF_32];
+JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char cur_salt[SALT_LENGTH * 4 * SIMD_COEF_32];
 static int bufsize;
 #else
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];

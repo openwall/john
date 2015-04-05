@@ -182,9 +182,9 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 	SHA_CTX ipad[SSE_GROUP_SZ_SHA1], opad[SSE_GROUP_SZ_SHA1], ctx;
 
 	// sse_hash1 would need to be 'adjusted' for SHA1_PARA
-	JTR_ALIGN(16) unsigned char sse_hash1[SHA_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_SHA1];
-	JTR_ALIGN(16) unsigned char sse_crypt1[SHA_DIGEST_LENGTH*SSE_GROUP_SZ_SHA1];
-	JTR_ALIGN(16) unsigned char sse_crypt2[SHA_DIGEST_LENGTH*SSE_GROUP_SZ_SHA1];
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_hash1[SHA_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_SHA1];
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt1[SHA_DIGEST_LENGTH*SSE_GROUP_SZ_SHA1];
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt2[SHA_DIGEST_LENGTH*SSE_GROUP_SZ_SHA1];
 	i1 = (ARCH_WORD_32*)sse_crypt1;
 	i2 = (ARCH_WORD_32*)sse_crypt2;
 	o1 = (ARCH_WORD_32*)sse_hash1;

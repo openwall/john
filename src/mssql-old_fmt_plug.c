@@ -85,8 +85,8 @@ static unsigned char cursalt[SALT_SIZE];
 /* Cygwin would not guarantee the alignment if these were declared static */
 #define saved_key mssql_saved_key
 #define crypt_key mssql_crypt_key
-JTR_ALIGN(16) char saved_key[SHA_BUF_SIZ*4*NBKEYS];
-JTR_ALIGN(16) char crypt_key[BINARY_SIZE*NBKEYS];
+JTR_ALIGN(MEM_ALIGN_SIMD) char saved_key[SHA_BUF_SIZ*4*NBKEYS];
+JTR_ALIGN(MEM_ALIGN_SIMD) char crypt_key[BINARY_SIZE*NBKEYS];
 static char plain_keys[NBKEYS][PLAINTEXT_LENGTH*3+1];
 #else
 

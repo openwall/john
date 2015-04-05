@@ -84,8 +84,8 @@ static struct fmt_tests tests[] = {
 /* Cygwin would not guarantee the alignment if these were declared static */
 #define saved_key nsldap_saved_key
 #define crypt_key nsldap_crypt_key
-JTR_ALIGN(16) unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS];
-JTR_ALIGN(16) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
+JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS];
+JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
 static unsigned char out[PLAINTEXT_LENGTH + 1];
 #else
 static char saved_key[PLAINTEXT_LENGTH + 1];
