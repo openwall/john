@@ -207,11 +207,11 @@ static void symkey_generate_simple(int index, unsigned char *salt, int n_salt, i
 								   unsigned char iv[MAX_KEYS_PER_CRYPT][32])
 {
 	SHA256_CTX ctx;
-	unsigned char digest[32], _IBuf[64*SIMD_COEF_32+16], *keys;
+	unsigned char digest[32], _IBuf[64*SIMD_COEF_32+MEM_ALIGN_SIMD], *keys;
 	uint32_t *keys32;
 	int i, j;
 
-	keys = (unsigned char*)mem_align(_IBuf, 16);
+	keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 	memset(keys, 0, 64*SIMD_COEF_32);
 	keys32 = (uint32_t*)keys;
 

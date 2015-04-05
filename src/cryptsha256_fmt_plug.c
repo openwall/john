@@ -655,15 +655,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		//JTR_ALIGN(MEM_ALIGN_SIMD) cryptloopstruct crypt_struct;
 		// alignment may 'fail' on cygwin32 for OMP builds :(
 		// so do the alignment by hand
-		char tmp_cls[sizeof(cryptloopstruct)+16];
+		char tmp_cls[sizeof(cryptloopstruct)+MEM_ALIGN_SIMD];
 		cryptloopstruct *crypt_struct;
 #ifdef SIMD_COEF_32
 		//JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 sse_out[64];
-		char tmp_sse_out[64*4+16];
+		char tmp_sse_out[64*4+MEM_ALIGN_SIMD];
 		ARCH_WORD_32 *sse_out;
-		sse_out = (ARCH_WORD_32 *)mem_align(tmp_sse_out, 16);
+		sse_out = (ARCH_WORD_32 *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
 #endif
-		crypt_struct = (cryptloopstruct *)mem_align(tmp_cls,16);
+		crypt_struct = (cryptloopstruct *)mem_align(tmp_cls,MEM_ALIGN_SIMD);
 
 		for (idx = 0; idx < MAX_KEYS_PER_CRYPT; ++idx)
 		{
