@@ -271,7 +271,7 @@ static char *get_key(int index)
 
 #ifdef SIMD_COEF_32
 	int j, idx1=index/MAX_KEYS_PER_CRYPT, idx2=index%MAX_KEYS_PER_CRYPT;
-	
+
 	if (last_len[index] < 32) {
 		for (j = 0; j < last_len[index]; ++j)
 			key_le[j] = JOHNSWAP(prep_key[idx1][0][idx2][j])>>16;
@@ -314,9 +314,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA256_Update(&ctx, prep_key[index], 518);
 		SHA256_Final((unsigned char *)crypt_out[index], &ctx);
 #else
-		unsigned char _OBuf[32*MAX_KEYS_PER_CRYPT+16], *crypt;
+		unsigned char _OBuf[32*MAX_KEYS_PER_CRYPT+MEM_ALIGN_SIMD], *crypt;
 		uint32_t *crypt32, i, j;
-		crypt = (unsigned char*)mem_align(_OBuf, 16);
+		crypt = (unsigned char*)mem_align(_OBuf, MEM_ALIGN_SIMD);
 		crypt32 = (uint32_t*)crypt;
 
 		SSESHA256body(prep_key[index/MAX_KEYS_PER_CRYPT], crypt32, NULL, SSEi_FLAT_IN|SSEi_FLAT_RELOAD_SWAPLAST);

@@ -179,11 +179,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index+=MAX_KEYS_PER_CRYPT)
 	{
 #ifdef SIMD_COEF_64
-		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+16], *keys;
+		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+MEM_ALIGN_SIMD], *keys;
 		ARCH_WORD_64 *keys64, *crypt;
 		unsigned i, j, len, Lcount = loopCnt;
 
-		keys = (unsigned char*)mem_align(_IBuf, 16);
+		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 		keys64 = (ARCH_WORD_64*)keys;
 		memset(keys, 0, 128*MAX_KEYS_PER_CRYPT);
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {

@@ -210,7 +210,7 @@ key_cleaning:
 		keybuf_word += SIMD_COEF_32;
 	}
 
-	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = len << 4;
+	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 4;
 #else
 	UTF8 *s = (UTF8*)_key;
 	UTF16 *d = (UTF16*)saved_key;
@@ -263,7 +263,7 @@ key_cleaning_enc:
 		keybuf_word += SIMD_COEF_32;
 	}
 
-	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = len << 4;
+	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 4;
 #else
 	key_length = enc_to_utf16((UTF16*)saved_key, PLAINTEXT_LENGTH,
 	                          (unsigned char*)_key, strlen(_key));
@@ -394,7 +394,7 @@ bailout:
 		keybuf_word += SIMD_COEF_32;
 	}
 
-	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = len << 4;
+	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 4;
 #else
 	key_length = utf8_to_utf16((UTF16*)saved_key, PLAINTEXT_LENGTH,
 	                           (unsigned char*)_key, strlen(_key));
@@ -410,7 +410,7 @@ static char *get_key(int index) {
 	static UTF16 out[PLAINTEXT_LENGTH + 1];
 	unsigned int i,s;
 
-	s = ((((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] >> 3) - SALT_SIZE) >> 1;
+	s = ((((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3) - SALT_SIZE) >> 1;
 	for(i=0;i<s;i++) {
 		out[i] = saved_key[GETPOS(i<<1, index)] |
 			(saved_key[GETPOS((i<<1) + 1, index)] << 8);
@@ -471,7 +471,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	for (index = 0; index < count; ++index)
 	{
-		unsigned len = ((((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32]) >> 3) - SALT_SIZE;
+		unsigned len = ((((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32]) >> 3) - SALT_SIZE;
 		for(i=0;i<SALT_SIZE;i++)
 			saved_key[GETPOS((len+i), index)] = cursalt[i];
 	}

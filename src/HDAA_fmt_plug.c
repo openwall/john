@@ -459,7 +459,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (; i < (((len+8)>>6)+1)*64; i += 4)
 				*(ARCH_WORD_32*)&saved_key[i>>6][GETPOS(i, ti)] = 0;
 
-			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&3) + (ti>>2)*16*SIMD_COEF_32] = len << 3;
+			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + (ti/SIMD_COEF_32)*16*SIMD_COEF_32] = len << 3;
 		}
 
 		SSEmd5body(&saved_key[0][thread*64*NBKEYS], &crypt_key[thread*4*NBKEYS], NULL, SSEi_MIXED_IN);
@@ -492,7 +492,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (; i <= crypt_len[index]; i += 4)
 				*(ARCH_WORD_32*)&saved_key[i>>6][GETPOS(i, ti)] = 0;
 
-			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&3) + (ti>>2)*16*SIMD_COEF_32] = len << 3;
+			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + (ti/SIMD_COEF_32)*16*SIMD_COEF_32] = len << 3;
 			crypt_len[index] = len;
 			if (len > longest)
 				longest = len;

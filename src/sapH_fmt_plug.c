@@ -271,11 +271,11 @@ static void crypt_all_1(int count) {
 		}
 		memcpy(crypt_key[idx], cp, BINARY_SIZE);
 #else
-		unsigned char _IBuf[64*NBKEYS1+16], *keys, tmpBuf[20], _OBuf[20*NBKEYS1+16], *crypt;
+		unsigned char _IBuf[64*NBKEYS1+MEM_ALIGN_SIMD], *keys, tmpBuf[20], _OBuf[20*NBKEYS1+MEM_ALIGN_SIMD], *crypt;
 		uint32_t j, *crypt32, offs[NBKEYS1], len;
 
-		keys  = (unsigned char*)mem_align(_IBuf, 16);
-		crypt = (unsigned char*)mem_align(_OBuf, 16);
+		keys  = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
+		crypt = (unsigned char*)mem_align(_OBuf, MEM_ALIGN_SIMD);
 		crypt32 = (uint32_t*)crypt;
 		memset(keys, 0, 64*NBKEYS1);
 
@@ -343,11 +343,11 @@ static void crypt_all_256(int count) {
 		}
 		memcpy(crypt_key[idx], cp, BINARY_SIZE);
 #else
-		unsigned char _IBuf[64*NBKEYS256+16], *keys, tmpBuf[32], _OBuf[32*NBKEYS256+16], *crypt;
+		unsigned char _IBuf[64*NBKEYS256+MEM_ALIGN_SIMD], *keys, tmpBuf[32], _OBuf[32*NBKEYS256+MEM_ALIGN_SIMD], *crypt;
 		uint32_t j, *crypt32, offs[NBKEYS256], len;
 
-		keys  = (unsigned char*)mem_align(_IBuf, 16);
-		crypt = (unsigned char*)mem_align(_OBuf, 16);
+		keys  = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
+		crypt = (unsigned char*)mem_align(_OBuf, MEM_ALIGN_SIMD);
 		crypt32 = (uint32_t*)crypt;
 		memset(keys, 0, 64*NBKEYS256);
 
@@ -415,12 +415,12 @@ static void crypt_all_384(int count) {
 		}
 		memcpy(crypt_key[idx], cp, BINARY_SIZE);
 #else
-		unsigned char _IBuf[128*NBKEYS512+16], *keys, tmpBuf[64], _OBuf[64*NBKEYS512+16], *crypt;
+		unsigned char _IBuf[128*NBKEYS512+MEM_ALIGN_SIMD], *keys, tmpBuf[64], _OBuf[64*NBKEYS512+MEM_ALIGN_SIMD], *crypt;
 		ARCH_WORD_64 j, *crypt64, offs[NBKEYS512];
 		int len;
 
-		keys  = (unsigned char*)mem_align(_IBuf, 16);
-		crypt = (unsigned char*)mem_align(_OBuf, 16);
+		keys  = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
+		crypt = (unsigned char*)mem_align(_OBuf, MEM_ALIGN_SIMD);
 		crypt64 = (ARCH_WORD_64*)crypt;
 		memset(keys, 0, 128*NBKEYS512);
 
@@ -487,12 +487,12 @@ static void crypt_all_512(int count) {
 		}
 		memcpy(crypt_key[idx], cp, BINARY_SIZE);
 #else
-		unsigned char _IBuf[128*NBKEYS512+16], *keys, tmpBuf[64], _OBuf[64*NBKEYS512+16], *crypt;
+		unsigned char _IBuf[128*NBKEYS512+MEM_ALIGN_SIMD], *keys, tmpBuf[64], _OBuf[64*NBKEYS512+MEM_ALIGN_SIMD], *crypt;
 		ARCH_WORD_64 j, *crypt64, offs[NBKEYS512];
 		int len;
 
-		keys  = (unsigned char*)mem_align(_IBuf, 16);
-		crypt = (unsigned char*)mem_align(_OBuf, 16);
+		keys  = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
+		crypt = (unsigned char*)mem_align(_OBuf, MEM_ALIGN_SIMD);
 		crypt64 = (ARCH_WORD_64*)crypt;
 		memset(keys, 0, 128*NBKEYS512);
 
