@@ -42,7 +42,7 @@ john_register_one(&fmt_blockchain);
 #define TAG_LENGTH		12
 
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_N_STR " " CPU_NAME
+#define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_N_STR " " SIMD_TYPE
 #else
 #define ALGORITHM_NAME		"PBKDF2-SHA1 AES 32/" ARCH_BITS_STR
 #endif
