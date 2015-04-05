@@ -442,7 +442,7 @@ static void crypt_all_384(int count) {
 			int k;
 			SSESHA512body(keys, crypt64, NULL, SSEi_FLAT_IN|SSEi_CRYPT_SHA384);
 			for (k = 0; k < NBKEYS512; ++k) {
-				ARCH_WORD_64 *pcrypt = &crypt64[ ((k>>(SIMD_COEF_64>>1))*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
+				ARCH_WORD_64 *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
 				ARCH_WORD_64 *Icp64 = (ARCH_WORD_64 *)(&keys[(k<<7)+offs[k]]);
 				for (j = 0; j < 6; ++j) {
 					Icp64[j] = JOHNSWAP64(*pcrypt);
@@ -453,7 +453,7 @@ static void crypt_all_384(int count) {
 		// now marshal into crypt_out;
 		for (i = 0; i < NBKEYS512; ++i) {
 			ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(crypt_key[idx+i]);
-			ARCH_WORD_64 *Iptr64 = &crypt64[ ((i>>(SIMD_COEF_64>>1))*(SIMD_COEF_64*8)) + (i&(SIMD_COEF_64-1))];
+			ARCH_WORD_64 *Iptr64 = &crypt64[ ((i/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (i&(SIMD_COEF_64-1))];
 			// we only want 16 bytes, not 48
 			for (j = 0; j < 2; ++j) {
 				Optr64[j] = JOHNSWAP64(*Iptr64);
@@ -514,7 +514,7 @@ static void crypt_all_512(int count) {
 			int k;
 			SSESHA512body(keys, crypt64, NULL, SSEi_FLAT_IN);
 			for (k = 0; k < NBKEYS512; ++k) {
-				ARCH_WORD_64 *pcrypt = &crypt64[ ((k>>(SIMD_COEF_64>>1))*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
+				ARCH_WORD_64 *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
 				ARCH_WORD_64 *Icp64 = (ARCH_WORD_64 *)(&keys[(k<<7)+offs[k]]);
 				for (j = 0; j < 8; ++j) {
 					Icp64[j] = JOHNSWAP64(*pcrypt);
@@ -525,7 +525,7 @@ static void crypt_all_512(int count) {
 		// now marshal into crypt_out;
 		for (i = 0; i < NBKEYS512; ++i) {
 			ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(crypt_key[idx+i]);
-			ARCH_WORD_64 *Iptr64 = &crypt64[((i>>(SIMD_COEF_64>>1))*(SIMD_COEF_64*8)) + (i&(SIMD_COEF_64-1))];
+			ARCH_WORD_64 *Iptr64 = &crypt64[((i/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (i&(SIMD_COEF_64-1))];
 			// we only want 16 bytes, not 64
 			for (j = 0; j < 2; ++j) {
 				Optr64[j] = JOHNSWAP64(*Iptr64);
