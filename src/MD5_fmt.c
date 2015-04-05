@@ -123,7 +123,7 @@ static int get_hash_0(int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
+	x = index&(SIMD_COEF_32-1);
 	y = index/SIMD_COEF_32;
 	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0xF;
 #else
@@ -136,7 +136,7 @@ static int get_hash_1(int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
+	x = index&(SIMD_COEF_32-1);
 	y = index/SIMD_COEF_32;
 	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0xFF;
 #else
@@ -149,7 +149,7 @@ static int get_hash_2(int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
+	x = index&(SIMD_COEF_32-1);
 	y = index/SIMD_COEF_32;
 	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0xFFF;
 #else
@@ -162,7 +162,7 @@ static int get_hash_3(int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
+	x = index&(SIMD_COEF_32-1);
 	y = index/SIMD_COEF_32;
 	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0xFFFF;
 #else
@@ -175,7 +175,7 @@ static int get_hash_4(int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
+	x = index&(SIMD_COEF_32-1);
 	y = index/SIMD_COEF_32;
 	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0xFFFFF;
 #else
@@ -188,7 +188,7 @@ static int get_hash_5(int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
+	x = index&(SIMD_COEF_32-1);
 	y = index/SIMD_COEF_32;
 	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0xFFFFFF;
 #else
@@ -201,7 +201,7 @@ static int get_hash_6(int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
+	x = index&(SIMD_COEF_32-1);
 	y = index/SIMD_COEF_32;
 	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0x7FFFFFF;
 #else
@@ -297,7 +297,7 @@ static int cmp_one(void *binary, int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
+	x = index&(SIMD_COEF_32-1);
 	y = index/SIMD_COEF_32;
 
 	if( ((unsigned int *)binary)[0] != ((unsigned int *)sout)[x+y*SIMD_COEF_32*4] )

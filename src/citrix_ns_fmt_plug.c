@@ -221,7 +221,7 @@ key_cleaning:
 
 	len += 1; /* Trailing null is included */
 
-	((unsigned int*)saved_key)[15*SIMD_COEF_32 + (index&3) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
+	((unsigned int*)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 #else
 	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 #endif
@@ -350,7 +350,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 }
 
 #ifdef SIMD_COEF_32
-#define HASH_IDX ((index&3)+(index/4)*SIMD_COEF_32*5)
+#define HASH_IDX ((index&(SIMD_COEF_32-1))+(index/4)*SIMD_COEF_32*5)
 static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xfff; }
