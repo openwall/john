@@ -24,6 +24,7 @@
 #if !defined (__DYNAMIC___H)
 #define __DYNAMIC___H
 
+#include "sse-intrinsics.h"
 #include <openssl/opensslv.h>
 
 #ifdef _OPENMP
