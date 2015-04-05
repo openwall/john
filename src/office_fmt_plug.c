@@ -57,7 +57,7 @@ john_register_one(&fmt_office);
 #endif
 
 #ifdef SIMD_COEF_64
-#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (index>>(SIMD_COEF_64>>1))*SHA512_BUF_SIZ*SIMD_COEF_64 *8 )
+#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64*8 )
 #define SHA512_LOOP_CNT SIMD_COEF_64
 #else
 #define SHA512_LOOP_CNT 1
@@ -164,11 +164,11 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 	 * create input buffer for SHA1 from salt and unicode version of password */
 	unsigned char X1[20];
 	SHA_CTX ctx;
-	unsigned char _IBuf[64*SHA1_LOOP_CNT+16], *keys;
+	unsigned char _IBuf[64*SHA1_LOOP_CNT+MEM_ALIGN_SIMD], *keys;
 	uint32_t *keys32;
 	unsigned i, j;
 
-	keys = (unsigned char*)mem_align(_IBuf, 16);
+	keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 	keys32 = (uint32_t*)keys;
 	memset(keys, 0, 64*SHA1_LOOP_CNT);
 
@@ -283,11 +283,11 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 	int hashSize = cur_salt->keySize >> 3;
 	unsigned i, j;
 	SHA_CTX ctx;
-	unsigned char _IBuf[64*SHA1_LOOP_CNT+16], *keys, _OBuf[20*SHA1_LOOP_CNT+16];
+	unsigned char _IBuf[64*SHA1_LOOP_CNT+MEM_ALIGN_SIMD], *keys, _OBuf[20*SHA1_LOOP_CNT+MEM_ALIGN_SIMD];
 	uint32_t *keys32, *crypt;
 
-	crypt = (uint32_t*)mem_align(_OBuf, 16);
-	keys = (unsigned char*)mem_align(_IBuf, 16);
+	crypt = (uint32_t*)mem_align(_OBuf, MEM_ALIGN_SIMD);
+	keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 	keys32 = (uint32_t*)keys;
 	memset(keys, 0, 64*SHA1_LOOP_CNT);
 
@@ -425,12 +425,12 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 	unsigned char tmpBuf[64];
 	int i, j, k;
 	SHA512_CTX ctx;
-	unsigned char _IBuf[128*SHA512_LOOP_CNT+16], *keys, _OBuf[64*SHA512_LOOP_CNT+16];
+	unsigned char _IBuf[128*SHA512_LOOP_CNT+MEM_ALIGN_SIMD], *keys, _OBuf[64*SHA512_LOOP_CNT+MEM_ALIGN_SIMD];
 	ARCH_WORD_64 *keys64, *crypt;
 	uint32_t *keys32, *crypt32;
 
-	crypt = (ARCH_WORD_64*)mem_align(_OBuf, 16);
-	keys = (unsigned char*)mem_align(_IBuf, 16);
+	crypt = (ARCH_WORD_64*)mem_align(_OBuf, MEM_ALIGN_SIMD);
+	keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 	keys64 = (ARCH_WORD_64*)keys;
 	keys32 = (uint32_t*)keys;
 	crypt32 = (uint32_t*)crypt;
