@@ -2690,7 +2690,7 @@ static void __SSE_append_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned ch
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 #define inc 6
 #else
 #define inc 2
@@ -2745,7 +2745,7 @@ static void __SSE_overwrite_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 #define inc 6
 #else
 #define inc 2
@@ -2797,7 +2797,7 @@ static void __SSE_append_output_base16_to_input_semi_aligned_2(unsigned ip, ARCH
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 # define inc 4
 # define incCRY 12
 #else
@@ -2865,7 +2865,7 @@ static void __SSE_append_output_base16_to_input_semi_aligned_0(unsigned ip, ARCH
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 #define inc 4
 //# define incCRY 12
 # define incCRY 14
@@ -3735,7 +3735,7 @@ void DynamicFunc__set_input_len_16(DYNA_OMP_PARAMS)
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
@@ -3747,7 +3747,7 @@ void DynamicFunc__set_input_len_16(DYNA_OMP_PARAMS)
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 			total_len[j] = 0x10101010;
 #else
 			total_len[j] = 0x100010;
@@ -3797,7 +3797,7 @@ void DynamicFunc__set_input2_len_16(DYNA_OMP_PARAMS)
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
@@ -3809,7 +3809,7 @@ void DynamicFunc__set_input2_len_16(DYNA_OMP_PARAMS)
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 			total_len2[j] = 0x10101010;
 #else
 			total_len2[j] = 0x100010;
@@ -3859,7 +3859,7 @@ void DynamicFunc__set_input_len_20(DYNA_OMP_PARAMS)
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
@@ -3871,7 +3871,7 @@ void DynamicFunc__set_input_len_20(DYNA_OMP_PARAMS)
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 			total_len[j] = 0x14141414;
 #else
 			total_len[j] = 0x140014;
@@ -3920,7 +3920,7 @@ void DynamicFunc__set_input2_len_20(DYNA_OMP_PARAMS)
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
@@ -3932,7 +3932,7 @@ void DynamicFunc__set_input2_len_20(DYNA_OMP_PARAMS)
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 			total_len2[j] = 0x14141414;
 #else
 			total_len2[j] = 0x100014;
@@ -3978,7 +3978,7 @@ void DynamicFunc__set_input_len_32(DYNA_OMP_PARAMS)
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 			total_len[j] = 0x20202020;
 #else
 			total_len[j] = 0x200020;
@@ -4028,7 +4028,7 @@ void DynamicFunc__set_input2_len_32(DYNA_OMP_PARAMS)
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 			total_len2[j] = 0x20202020;
 #else
 			total_len2[j] = 0x200020;
@@ -4078,7 +4078,7 @@ void DynamicFunc__set_input_len_40(DYNA_OMP_PARAMS)
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 			total_len[j] = 0x28282828;
 #else
 			total_len[j] = 0x280028;
@@ -4126,7 +4126,7 @@ void DynamicFunc__set_input2_len_40(DYNA_OMP_PARAMS)
 #if (SIMD_COEF_32>4)
 #warning FIXME: hardcoded SIMD width issue
 #endif
-#if (SIMD_COEF>=4)
+#if (SIMD_COEF_32>=4)
 			total_len2[j] = 0x28282828;
 #else
 			total_len2[j] = 0x280028;
