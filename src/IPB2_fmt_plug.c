@@ -156,7 +156,7 @@ static void init(struct fmt_main *self)
 	                             sizeof(empty_key), MEM_ALIGN_SIMD);
 	for (i = 0; i < NBKEYS; ++i) {
 		empty_key[GETPOS(0, i)] = 0x80;
-		((unsigned int*)empty_key)[14*SIMD_COEF_32 + (i&3) + (i>>2)*16*SIMD_COEF_32] = (2 * MD5_HEX_SIZE)<<3;
+		((unsigned int*)empty_key)[14*SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32*16*SIMD_COEF_32] = (2 * MD5_HEX_SIZE)<<3;
 	}
 	crypt_key = mem_calloc_align(self->params.max_keys_per_crypt,
 	                             BINARY_SIZE, MEM_ALIGN_SIMD);
