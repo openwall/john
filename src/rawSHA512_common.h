@@ -36,7 +36,7 @@ char * sha512_common_prepare_xsha(char *split_fields[10], struct fmt_main *self)
 char * sha512_common_split(char *ciphertext, int index, struct fmt_main *self);
 char * sha512_common_split_xsha(char *ciphertext, int index, struct fmt_main *pFmt);
 
-#ifdef _RAWSHA512_H
+#ifdef __RAWSHA512_CREATE_PROPER_TESTS_ARRAY__
 static struct fmt_tests sha512_common_tests[] = {
 	{"f342aae82952db35b8e02c30115e3deed3d80fdfdadacab336f0ba51ac54e297291fa1d6b201d69a2bd77e2535280f17a54fa1e527abc6e2eddba79ad3be11c0", "epixoip"},
 	{FORMAT_TAG "f342aae82952db35b8e02c30115e3deed3d80fdfdadacab336f0ba51ac54e297291fa1d6b201d69a2bd77e2535280f17a54fa1e527abc6e2eddba79ad3be11c0", "epixoip"},
@@ -68,7 +68,7 @@ static struct fmt_tests sha512_common_tests[] = {
 };
 #endif
 
-#ifdef _XSHA512_H
+#ifdef __XSHA512_CREATE_PROPER_TESTS_ARRAY__
 static struct fmt_tests sha512_common_tests_xsha512[] = {
 	{"bb0489df7b073e715f19f83fd52d08ede24243554450f7159dd65c100298a5820525b55320f48182491b72b4c4ba50d7b0e281c1d98e06591a5e9c6167f42a742f0359c7", "password"},
 	{"$LION$74911f723bd2f66a3255e0af4b85c639776d510b63f0b939c432ab6e082286c47586f19b4e2f3aab74229ae124ccb11e916a7a1c9b29c64bd6b0fd6cbd22e7b1f0ba1673", "hello"},

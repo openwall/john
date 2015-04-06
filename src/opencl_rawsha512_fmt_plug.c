@@ -32,11 +32,10 @@ john_register_one(&fmt_opencl_xsha512);
 #include "config.h"
 #include "options.h"
 #include "opencl_rawsha512.h"
-#define _RAWSHA512_H
-#define _XSHA512_H
+#define __RAWSHA512_CREATE_PROPER_TESTS_ARRAY__
+#define __XSHA512_CREATE_PROPER_TESTS_ARRAY__
 #include "rawSHA512_common.h"
-#undef _RAWSHA512_H
-#undef _XSHA512_H
+
 #include "mask_ext.h"
 #include "opencl_mask_extras.h"
 
