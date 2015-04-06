@@ -618,9 +618,9 @@ static void pbkdf2_sse2(int t)
 		SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		// only xor first 16 bytes, since that is ALL this format uses
 		for (k = 0; k < MS_NUM_KEYS; k++) {
-			unsigned *p = &((unsigned int*)t_sse_hash1)[(((k>>2)*SHA_BUF_SIZ)<<2) + (k&(SIMD_COEF_32-1))];
+			unsigned *p = &((unsigned int*)t_sse_hash1)[k/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32 + (k&(SIMD_COEF_32-1))];
 			for(j = 0; j < 4; j++)
-				t_crypt[(k<<2)+j] ^= p[(j*SIMD_COEF_32)];
+				t_crypt[k*4+j] ^= p[(j*SIMD_COEF_32)];
 		}
 	}
 }
