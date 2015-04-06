@@ -44,6 +44,7 @@ static uint32_t				* plaintext, * saved_idx;
 
 static cl_mem pass_buffer;		//Plaintext buffer.
 static cl_mem idx_buffer;		//Sizes and offsets buffer.
+static cl_kernel prepare_kernel;
 
 //Pinned buffers
 static cl_mem pinned_plaintext, pinned_saved_idx, pinned_int_key_loc;
@@ -88,6 +89,7 @@ static size_t get_task_max_work_group_size()
 	size_t s;
 
 	s = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, prepare_kernel));
 	return MIN(s, 512);
 }
 
@@ -165,7 +167,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_buffer_hash_ids");
 
 	buffer_bitmap = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
-		GET_MULTIPLE_OR_BIGGER(num_loaded_hashes/32 + 1, 32),
+		(num_loaded_hashes/32 + 1) * sizeof(uint32_t),
 		NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_bitmap");
 
@@ -197,6 +199,14 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		(void *) &buffer_hash_ids), "Error setting argument 7");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 8, sizeof(buffer_bitmap),
 		(void *) &buffer_bitmap), "Error setting argument 8");
+
+	//Set prepare kernel arguments
+	HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_uint),
+		(void *) &num_loaded_hashes), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(buffer_hash_ids),
+		(void *) &buffer_hash_ids), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(buffer_bitmap),
+		(void *) &buffer_bitmap), "Error setting argument 2");
 
 	//Indicates that the OpenCL objetcs are initialized.
 	ref_counter++;
@@ -428,6 +438,8 @@ static void init(struct fmt_main *_self)
 	opencl_get_user_preferences(FORMAT_LABEL);
 
 	// create kernel(s) to execute
+	prepare_kernel = clCreateKernel(program[gpu_id], "kernel_prepare", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel_prepare. Double-check kernel name?");
 	crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
@@ -439,6 +451,7 @@ static void done(void)
 	release_clobj();
 
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 	if (loaded_hashes)
@@ -503,6 +516,8 @@ static void load_hash(const struct db_salt *salt)
 		loaded_hashes, 0, NULL, NULL),
 		"failed in clEnqueueWriteBuffer num_loaded_hashes");
 
+	HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_uint),
+		(void *) &num_loaded_hashes), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_uint),
 		(void *) &(mask_int_cand.num_int_cand)), "Error setting argument 4");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(cl_uint),
@@ -524,6 +539,10 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 	//Check if any password was cracked and reload (if necessary)
 	if (salt && num_loaded_hashes != salt->count)
 		load_hash(salt);
+
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1, NULL,
+		&gws, lws, 0, NULL, NULL),
+		"failed in clEnqueueNDRangeKernel I");
 
 	//Send data to device.
 	if (key_idx > offset)
