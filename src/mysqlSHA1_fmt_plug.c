@@ -148,7 +148,7 @@ static void init(struct fmt_main *self)
 	 */
 	for (i = 0; i < NBKEYS; i++) {
 		interm_key[GETPOS(20,i)] = 0x80;
-		((unsigned int *)interm_key)[15*SIMD_COEF_32 + (i&3) + (i>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = 20 << 3;
+		((unsigned int *)interm_key)[15*SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = 20 << 3;
 	}
 #endif
 }
