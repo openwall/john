@@ -104,7 +104,7 @@ _inline __m128i _mm_set1_epi64x(uint64_t a) {
                         0x08090a0b0c0d0e0f, 0x0001020304050607)           \
         );                                                                \
 }
-#elif __MIC__ 
+#elif __MIC__
 #define SWAP_ENDIAN(n)                                                    \
 {                                                                         \
     n = vshuffle_epi32(n, 0xb1);                                          \

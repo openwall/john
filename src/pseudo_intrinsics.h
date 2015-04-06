@@ -73,7 +73,7 @@ typedef __m512i vtype;
 #define vset_epi32              _mm512_set_epi32
 
 // MIC doesn't support _mm512_shuffle_epi8
-#if __MIC__   
+#if __MIC__
 // TODO: the code is not optimized yet
 #define vswap32(n)                                                          \
     n = vxor(vsrli_epi32(n, 24),                                            \
