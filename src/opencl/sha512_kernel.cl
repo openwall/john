@@ -23,6 +23,8 @@
     #define UNROLL_LEVEL	1
 #elif gpu_nvidia(DEVICE_INFO)
     #define UNROLL_LEVEL	0
+#else
+    #define UNROLL_LEVEL	0
 #endif
 
 inline void _memcpy(               uint32_t * dest,

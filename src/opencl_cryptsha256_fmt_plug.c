@@ -269,6 +269,7 @@ static char * get_key(int index) {
 /* ------- Initialization  ------- */
 static void build_kernel(char * task) {
 	char *custom_opts;
+	int major, minor;
 
 	if (!(custom_opts = getenv(OCL_CONFIG "_BuildOpts")))
 		custom_opts = cfg_get_param(SECTION_OPTIONS,
@@ -276,7 +277,13 @@ static void build_kernel(char * task) {
 		                            OCL_CONFIG "_BuildOpts");
 
 	opencl_build_kernel(task, gpu_id, custom_opts, 1);
+	opencl_driver_value(gpu_id, &major, &minor);
 
+	if (major == 1311 && minor == 2) {
+		fprintf(stderr,
+			"The OpenCL driver in use cannot run this kernel. Please, update your driver!\n");
+		error();
+	}
 	// create kernel(s) to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
@@ -492,11 +499,9 @@ struct fmt_main fmt_opencl_cryptsha256 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-#if FMT_MAIN_VERSION > 11
 		{
 			"iteration count",
 		},
-#endif
 		tests
 	}, {
 		init,
@@ -507,11 +512,9 @@ struct fmt_main fmt_opencl_cryptsha256 = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

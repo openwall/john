@@ -55,9 +55,8 @@ john_register_one(&fmt_XSHA512);
 #undef PRECOMPUTE_CTX_FOR_SALT
 #endif
 
-#define _XSHA512_H
+#define __XSHA512_CREATE_PROPER_TESTS_ARRAY__
 #include "rawSHA512_common.h"
-#undef _XSHA512_H
 
 #ifdef SIMD_COEF_64
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (index>>(SIMD_COEF_64>>1))*SHA512_BUF_SIZ*SIMD_COEF_64*8 )

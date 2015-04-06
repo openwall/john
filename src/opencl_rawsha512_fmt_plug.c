@@ -32,11 +32,10 @@ john_register_one(&fmt_opencl_xsha512);
 #include "config.h"
 #include "options.h"
 #include "opencl_rawsha512.h"
-#define _RAWSHA512_H
-#define _XSHA512_H
+#define __RAWSHA512_CREATE_PROPER_TESTS_ARRAY__
+#define __XSHA512_CREATE_PROPER_TESTS_ARRAY__
 #include "rawSHA512_common.h"
-#undef _RAWSHA512_H
-#undef _XSHA512_H
+
 #include "mask_ext.h"
 #include "opencl_mask_extras.h"
 
@@ -52,6 +51,7 @@ static sha512_salt			* salt;
 
 //To keep the previous salt in order to reload hashes to GPU
 static const struct db_salt * previous_salt = NULL;
+static int previous_num_hashes = 0;
 
 //plaintext: keys to compute the hash function
 //saved_idx: offset and length of each plaintext (data is sent using chunks)
@@ -120,20 +120,40 @@ static size_t get_default_workgroup()
 /* ------- Create and destroy necessary objects ------- */
 static void create_mask_buffers()
 {
+
 	if (loaded_hashes)
 		MEM_FREE(loaded_hashes);
 
 	if (hash_ids)
 		 MEM_FREE(hash_ids);
 
+	if (buffer_loaded_hashes)
+		clReleaseMemObject(buffer_loaded_hashes);
+
+	if (buffer_hash_ids)
+		clReleaseMemObject(buffer_hash_ids);
+
+	buffer_loaded_hashes = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
+		BINARY_SIZE * num_loaded_hashes, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_loaded_hashes");
+
+	buffer_hash_ids = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
+		(num_loaded_hashes + 1) * 3 * sizeof(uint32_t), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_buffer_hash_ids");
+
 	loaded_hashes = (uint64_t *) mem_alloc(BINARY_SIZE * num_loaded_hashes);
 	hash_ids = (uint32_t *) mem_alloc((num_loaded_hashes + 1) * 3 * sizeof(uint32_t));
+
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(cl_uint),
+		(void *) &num_loaded_hashes), "Error setting argument 6");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_loaded_hashes),
+		(void *) &buffer_loaded_hashes), "Error setting argument 7");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 8, sizeof(buffer_hash_ids),
+		(void *) &buffer_hash_ids), "Error setting argument 8");
 }
 
 static void create_clobj(size_t gws, struct fmt_main * self)
 {
-	int position = 0;
-
 	pinned_plaintext = clCreateBuffer(context[gpu_id],
 			CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
 			BUFFER_SIZE * gws, NULL, &ret_code);
@@ -178,14 +198,6 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument idx_buffer");
 
 	//Mask mode
-	buffer_loaded_hashes = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-		BINARY_SIZE * num_loaded_hashes, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_loaded_hashes");
-
-	buffer_hash_ids = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
-		(num_loaded_hashes + 1) * 3 * sizeof(uint32_t), NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_buffer_hash_ids");
-
 	buffer_bitmap = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
 		GET_MULTIPLE_OR_BIGGER(num_loaded_hashes/32 + 1, 32),
 		NULL, &ret_code);
@@ -200,27 +212,21 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys");
 
 	//Set kernel arguments
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, position++, sizeof(cl_mem),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
 		(void *) &salt_buffer), "Error setting argument 0");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, position++, sizeof(cl_mem),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
 		(void *) &pass_buffer), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, position++, sizeof(cl_mem),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
 		(void *) &idx_buffer), "Error setting argument 2");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, position++, sizeof(buffer_int_key_loc),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_int_key_loc),
 		(void *) &buffer_int_key_loc), "Error setting argument 3");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, position++, sizeof(buffer_int_keys),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(buffer_int_keys),
 		(void *) &buffer_int_keys), "Error setting argument 4");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, position++, sizeof(cl_uint),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(cl_uint),
 		(void *) &(mask_int_cand.num_int_cand)), "Error setting argument 5");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, position++, sizeof(cl_uint),
-		(void *) &num_loaded_hashes), "Error setting argument 6");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, position++, sizeof(buffer_loaded_hashes),
-		(void *) &buffer_loaded_hashes), "Error setting argument 7");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, position++, sizeof(buffer_hash_ids),
-		(void *) &buffer_hash_ids), "Error setting argument 8");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, position++, sizeof(buffer_bitmap),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 9, sizeof(buffer_bitmap),
 		(void *) &buffer_bitmap), "Error setting argument 9");
 
 	//Indicates that the OpenCL objetcs are initialized.
@@ -255,10 +261,6 @@ static void release_clobj(void)
 	ret_code = clReleaseMemObject(idx_buffer);
 	HANDLE_CLERROR(ret_code, "Error Releasing idx_buffer");
 
-	ret_code = clReleaseMemObject(buffer_loaded_hashes);
-	HANDLE_CLERROR(ret_code, "Error Releasing buffer_loaded_hashes");
-	ret_code = clReleaseMemObject(buffer_hash_ids);
-	HANDLE_CLERROR(ret_code, "Error Releasing buffer_hash_ids");
 	ret_code = clReleaseMemObject(buffer_bitmap);
 	HANDLE_CLERROR(ret_code, "Error Releasing buffer_bitmap");
 	ret_code = clReleaseMemObject(buffer_int_key_loc);
@@ -329,7 +331,6 @@ static void reset(struct db_main *db)
 		if (ref_counter > 0)
 			release_clobj();
 
-		create_mask_buffers();
 		create_clobj(global_work_size, self);
 		load_hash(db->salts);
 
@@ -520,6 +521,14 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
+	if (buffer_loaded_hashes)
+		ret_code = clReleaseMemObject(buffer_loaded_hashes);
+		HANDLE_CLERROR(ret_code, "Error Releasing buffer_loaded_hashes");
+
+	if (buffer_hash_ids)
+		ret_code = clReleaseMemObject(buffer_hash_ids);
+		HANDLE_CLERROR(ret_code, "Error Releasing buffer_hash_ids");
+
 	if (loaded_hashes)
 		MEM_FREE(loaded_hashes);
 
@@ -538,6 +547,12 @@ static void load_hash(const struct db_salt *salt)
 		pw = salt->list;
 		previous_salt = salt;
 		set_salt(salt->salt);
+
+		if (previous_num_hashes < num_loaded_hashes) {
+			//Mask buffers needed to be increased.
+			previous_num_hashes = num_loaded_hashes;
+			create_mask_buffers();
+		}
 	} else
 		pw = NULL;
 
@@ -589,8 +604,6 @@ static void load_hash(const struct db_salt *salt)
 		loaded_hashes, 0, NULL, NULL),
 		"failed in clEnqueueWriteBuffer num_loaded_hashes");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(cl_uint),
-		(void *) &(mask_int_cand.num_int_cand)), "Error setting argument 5");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(cl_uint),
 		(void *) &num_loaded_hashes), "Error setting argument 6");
 

@@ -296,4 +296,12 @@ void opencl_init_auto_setup(
 	void (*p_create_clobj)(size_t gws, struct fmt_main * self),
 	void (*p_release_clobj)(void), int p_buffer_size, size_t p_gws_limit);
 
+/*
+ * Shared function to get the OpenCL driver number.
+ *
+ * - sequential_id: the sequential number of the device in use.
+ * - major: the major number of the driver version.
+ * - minor: the minor number of the driver version.
+ */void opencl_driver_value(int sequential_id, int * major, int * minor);
+
 #endif
