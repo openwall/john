@@ -714,7 +714,6 @@ static int sha1_fmt_cmp_all(void *binary, int count)
 	int32_t  M;
 	int32_t  i;
 	vtype  B;
-	vtype  A;
 
 	// This function is hot, we need to do this quickly. We use PCMP to find
 	// out if any of the dwords in A75 matched E in the input hash.
