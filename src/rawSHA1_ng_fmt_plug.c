@@ -23,7 +23,7 @@
 //
 
 #include "arch.h"
-#if __SSE2__ && !_MSC_VER
+#if (__SSE2__ || __MIC__) && !_MSC_VER
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_sha1_ng;
@@ -272,7 +272,7 @@ static void *sha1_fmt_binary(char *ciphertext)
 	result[15] = result[14] = result[13] = result[12] =
 	result[11] = result[10] = result[9] = result[8] =
 #endif
-	result[7] = result[6] = result[5] =
+	result[7] = result[6] = result[5] = result[4] =
 #endif
 	result[3] = result[2] = result[1] = result[0] =
 		rotateleft(__builtin_bswap32(result[4]) - 0xC3D2E1F0, 2);
@@ -310,14 +310,60 @@ static void sha1_fmt_set_key(char *key, int index)
 {
 	vtype  Z   = vsetzero();
 	vtype  X   = vloadu(key);
-	uint32_t len = vmovemask_epi8(vcmpeq_epi8(X, Z));
 	vtype  B;
+#if __MIC__ || __AVX512__
+	uint32_t len = strlen(key);
+#else
+	uint32_t mask = vmovemask_epi8(vcmpeq_epi8(X, Z));
+	uint32_t len = __builtin_ctz(mask);
+#endif
 
 	// Create a lookup tables to find correct masks for each supported input
 	// length. It would be nice if we could use bit shifts to produce these
 	// dynamically, but they require an immediate operand.
 #if VWIDTH > 8
-#error Code needed here
+#include "mpz_int128.h"
+#define XX ((((uint128_t)0xFFFFFFFFFFFFFFFF)<<64) + 0xFFFFFFFFFFFFFFFF)
+#define YY ((uint128_t)0x80)
+#define ZZ ((uint128_t)0x0)
+	static const JTR_ALIGN(VWIDTH * 4) uint128_t kTrailingBitTable[][4] = {
+		{YY<<  0, ZZ, ZZ, ZZ}, {YY<<  8, ZZ, ZZ, ZZ}, {YY<< 16, ZZ, ZZ, ZZ}, {YY<< 24, ZZ, ZZ, ZZ},
+		{YY<< 32, ZZ, ZZ, ZZ}, {YY<< 40, ZZ, ZZ, ZZ}, {YY<< 48, ZZ, ZZ, ZZ}, {YY<< 56, ZZ, ZZ, ZZ},
+		{YY<< 64, ZZ, ZZ, ZZ}, {YY<< 72, ZZ, ZZ, ZZ}, {YY<< 80, ZZ, ZZ, ZZ}, {YY<< 88, ZZ, ZZ, ZZ},
+		{YY<< 96, ZZ, ZZ, ZZ}, {YY<<104, ZZ, ZZ, ZZ}, {YY<<112, ZZ, ZZ, ZZ}, {YY<<120, ZZ, ZZ, ZZ},
+		{ZZ, YY<<  0, ZZ, ZZ}, {ZZ, YY<<  8, ZZ, ZZ}, {ZZ, YY<< 16, ZZ, ZZ}, {ZZ, YY<< 24, ZZ, ZZ},
+		{ZZ, YY<< 32, ZZ, ZZ}, {ZZ, YY<< 40, ZZ, ZZ}, {ZZ, YY<< 48, ZZ, ZZ}, {ZZ, YY<< 56, ZZ, ZZ},
+		{ZZ, YY<< 64, ZZ, ZZ}, {ZZ, YY<< 72, ZZ, ZZ}, {ZZ, YY<< 80, ZZ, ZZ}, {ZZ, YY<< 88, ZZ, ZZ},
+		{ZZ, YY<< 96, ZZ, ZZ}, {ZZ, YY<<104, ZZ, ZZ}, {ZZ, YY<<112, ZZ, ZZ}, {ZZ, YY<<120, ZZ, ZZ},
+		{ZZ, ZZ, YY<<  0, ZZ}, {ZZ, ZZ, YY<<  8, ZZ}, {ZZ, ZZ, YY<< 16, ZZ}, {ZZ, ZZ, YY<< 24, ZZ},
+		{ZZ, ZZ, YY<< 32, ZZ}, {ZZ, ZZ, YY<< 40, ZZ}, {ZZ, ZZ, YY<< 48, ZZ}, {ZZ, ZZ, YY<< 56, ZZ},
+		{ZZ, ZZ, YY<< 64, ZZ}, {ZZ, ZZ, YY<< 72, ZZ}, {ZZ, ZZ, YY<< 80, ZZ}, {ZZ, ZZ, YY<< 88, ZZ},
+		{ZZ, ZZ, YY<< 96, ZZ}, {ZZ, ZZ, YY<<104, ZZ}, {ZZ, ZZ, YY<<112, ZZ}, {ZZ, ZZ, YY<<120, ZZ},
+		{ZZ, ZZ, ZZ, YY<<  0}, {ZZ, ZZ, ZZ, YY<<  8}, {ZZ, ZZ, ZZ, YY<< 16}, {ZZ, ZZ, ZZ, YY<< 24},
+		{ZZ, ZZ, ZZ, YY<< 32}, {ZZ, ZZ, ZZ, YY<< 40}, {ZZ, ZZ, ZZ, YY<< 48}, {ZZ, ZZ, ZZ, YY<< 56},
+		{ZZ, ZZ, ZZ, YY<< 64}, {ZZ, ZZ, ZZ, YY<< 72}, {ZZ, ZZ, ZZ, YY<< 80}, {ZZ, ZZ, ZZ, YY<< 88},
+		{ZZ, ZZ, ZZ, YY<< 96}, {ZZ, ZZ, ZZ, YY<<104}, {ZZ, ZZ, ZZ, YY<<112}, {ZZ, ZZ, ZZ, YY<<120},
+	};
+
+	static const JTR_ALIGN(VWIDTH * 4) uint128_t kUsedBytesTable[][4] = {
+		{XX<<  0, XX, XX, XX}, {XX<<  8, XX, XX, XX}, {XX<< 16, XX, XX, XX}, {XX<< 24, XX, XX, XX},
+		{XX<< 32, XX, XX, XX}, {XX<< 40, XX, XX, XX}, {XX<< 48, XX, XX, XX}, {XX<< 56, XX, XX, XX},
+		{XX<< 64, XX, XX, XX}, {XX<< 72, XX, XX, XX}, {XX<< 80, XX, XX, XX}, {XX<< 88, XX, XX, XX},
+		{XX<< 96, XX, XX, XX}, {XX<<104, XX, XX, XX}, {XX<<112, XX, XX, XX}, {XX<<120, XX, XX, XX},
+		{ZZ, XX<<  0, XX, XX}, {ZZ, XX<<  8, XX, XX}, {ZZ, XX<< 16, XX, XX}, {ZZ, XX<< 24, XX, XX},
+		{ZZ, XX<< 32, XX, XX}, {ZZ, XX<< 40, XX, XX}, {ZZ, XX<< 48, XX, XX}, {ZZ, XX<< 56, XX, XX},
+		{ZZ, XX<< 64, XX, XX}, {ZZ, XX<< 72, XX, XX}, {ZZ, XX<< 80, XX, XX}, {ZZ, XX<< 88, XX, XX},
+		{ZZ, XX<< 96, XX, XX}, {ZZ, XX<<104, XX, XX}, {ZZ, XX<<112, XX, XX}, {ZZ, XX<<120, XX, XX},
+		{ZZ, ZZ, XX<<  0, XX}, {ZZ, ZZ, XX<<  8, XX}, {ZZ, ZZ, XX<< 16, XX}, {ZZ, ZZ, XX<< 24, XX},
+		{ZZ, ZZ, XX<< 32, XX}, {ZZ, ZZ, XX<< 40, XX}, {ZZ, ZZ, XX<< 48, XX}, {ZZ, ZZ, XX<< 56, XX},
+		{ZZ, ZZ, XX<< 64, XX}, {ZZ, ZZ, XX<< 72, XX}, {ZZ, ZZ, XX<< 80, XX}, {ZZ, ZZ, XX<< 88, XX},
+		{ZZ, ZZ, XX<< 96, XX}, {ZZ, ZZ, XX<<104, XX}, {ZZ, ZZ, XX<<112, XX}, {ZZ, ZZ, XX<<120, XX},
+		{ZZ, ZZ, ZZ, XX<<  0}, {ZZ, ZZ, ZZ, XX<<  8}, {ZZ, ZZ, ZZ, XX<< 16}, {ZZ, ZZ, ZZ, XX<< 24},
+		{ZZ, ZZ, ZZ, XX<< 32}, {ZZ, ZZ, ZZ, XX<< 40}, {ZZ, ZZ, ZZ, XX<< 48}, {ZZ, ZZ, ZZ, XX<< 56},
+		{ZZ, ZZ, ZZ, XX<< 64}, {ZZ, ZZ, ZZ, XX<< 72}, {ZZ, ZZ, ZZ, XX<< 80}, {ZZ, ZZ, ZZ, XX<< 88},
+		{ZZ, ZZ, ZZ, XX<< 96}, {ZZ, ZZ, ZZ, XX<<104}, {ZZ, ZZ, ZZ, XX<<112}, {ZZ, ZZ, ZZ, XX<<120}
+	};
+
 #elif VWIDTH > 4
 	static const JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t kTrailingBitTable[][8] = {
 		{ 0x00000080, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
@@ -429,7 +475,7 @@ static void sha1_fmt_set_key(char *key, int index)
 #endif
 
 	// First, find the length of the key by scanning for a zero byte.
-	N[index] = len = __builtin_ctz(len);
+	N[index] = len;
 
 	// Zero out the rest of the DQWORD in X by making a suitable mask.
 	Z = vload(kUsedBytesTable[len]);
@@ -453,8 +499,7 @@ static void sha1_fmt_set_key(char *key, int index)
 	// we do here.
 	//  X = 40 41 42 44 45 80 00 00 00 00 00 00 00 00 00    // What we have.
 	//  X = 44 42 41 40 00 00 80 45 00 00 00 00 00 00 00    // What we want.
-	X = vroti_epi32(X, 16);
-	X = vroti_epi16(X, 8);
+	vswap32(X);
 
 	// Store the result into the message buffer.
 	vstore(&M[index], X);
@@ -477,9 +522,16 @@ static char *sha1_fmt_get_key(int index)
 	key[5] = __builtin_bswap32(M[index][5]);
 	key[6] = __builtin_bswap32(M[index][6]);
 	key[7] = __builtin_bswap32(M[index][7]);
-#if VWIDTH > 8
-#error Code needed here
 #endif
+#if VWIDTH > 8
+	key[8]  = __builtin_bswap32(M[index][8]);
+	key[9]  = __builtin_bswap32(M[index][9]);
+	key[10] = __builtin_bswap32(M[index][10]);
+	key[11] = __builtin_bswap32(M[index][11]);
+	key[12] = __builtin_bswap32(M[index][12]);
+	key[13] = __builtin_bswap32(M[index][13]);
+	key[14] = __builtin_bswap32(M[index][14]);
+	key[15] = __builtin_bswap32(M[index][15]);
 #endif
 
 	// Skip backwards until we hit the trailing bit, then remove it.
@@ -516,9 +568,16 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 		W[5]  = vload(&M[i + 5]);
 		W[6]  = vload(&M[i + 6]);
 		W[7]  = vload(&M[i + 7]);
-#if VWIDTH > 8
-#error Code needed here
 #endif
+#if VWIDTH > 8
+		W[8]  = vload(&M[i + 8]);
+		W[9]  = vload(&M[i + 9]);
+		W[10] = vload(&M[i + 10]);
+		W[11] = vload(&M[i + 11]);
+		W[12] = vload(&M[i + 12]);
+		W[13] = vload(&M[i + 13]);
+		W[14] = vload(&M[i + 14]);
+		W[15] = vload(&M[i + 15]);
 #endif
 
 		vtranspose_epi32(W);
@@ -534,9 +593,6 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 		R1(W[1],  E, A, B, C, D);
 		R1(W[2],  D, E, A, B, C);
 #if VWIDTH > 4
-#if VWIDTH > 8
-#error Code needed here
-#endif
 		R1(W[3],  C, D, E, A, B);
 		R1(W[4],  B, C, D, E, A);
 		R1(W[5],  A, B, C, D, E);                          // 5
@@ -547,6 +603,16 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 		R1(W[5],  A, B, C, D, E); W[6]  = vsetzero();      // 5
 		R1(W[6],  E, A, B, C, D); W[7]  = vsetzero();
 #endif
+#if VWIDTH > 8
+		R1(W[7],  D, E, A, B, C);
+		R1(W[8],  C, D, E, A, B);
+		R1(W[9],  B, C, D, E, A);
+		R1(W[10], A, B, C, D, E);                          // 10
+		R1(W[11], E, A, B, C, D);
+		R1(W[12], D, E, A, B, C);
+		R1(W[13], C, D, E, A, B);
+		R1(W[14], B, C, D, E, A);
+#else
 		R1(W[7],  D, E, A, B, C); W[8]  = vsetzero();
 		R1(W[8],  C, D, E, A, B); W[9]  = vsetzero();
 		R1(W[9],  B, C, D, E, A); W[10] = vsetzero();
@@ -555,6 +621,7 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 		R1(W[12], D, E, A, B, C); W[13] = vsetzero();
 		R1(W[13], C, D, E, A, B); W[14] = vsetzero();
 		R1(W[14], B, C, D, E, A);
+#endif
 
 		// Fetch the message lengths, multiply 8 (to get the length in bits).
 		W[15] = vslli_epi32(vload(&N[i]), 3);
@@ -647,7 +714,6 @@ static int sha1_fmt_cmp_all(void *binary, int count)
 	int32_t  M;
 	int32_t  i;
 	vtype  B;
-	vtype  A;
 
 	// This function is hot, we need to do this quickly. We use PCMP to find
 	// out if any of the dwords in A75 matched E in the input hash.
@@ -667,39 +733,38 @@ static int sha1_fmt_cmp_all(void *binary, int count)
 	// manually unrolled it a little bit.
 	for (i = 0; i < count; i += 64) {
 		int32_t R = 0;
-
-		A  = vcmpeq_epi32(B, vload(&MD[i +  0]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i +  4]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i +  8]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i + 12]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i + 16]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i + 20]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i + 24]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i + 28]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i + 32]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i + 36]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i + 40]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i + 44]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i + 48]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i + 52]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i + 56]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
-		A  = vcmpeq_epi32(B, vload(&MD[i + 60]));
-		R |= vtestz_epi32(vandnot(A, vcmpeq_epi32(A, A)));
+#if __MIC__ || __AVX512__
+		R |= vtesteq_epi32(B, vload(&MD[i +  0]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 16]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 32]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 48]));
+#elif __AVX2__
+		R |= vtesteq_epi32(B, vload(&MD[i +  0]));
+		R |= vtesteq_epi32(B, vload(&MD[i +  8]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 16]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 24]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 32]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 40]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 48]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 56]));
+#else
+		R |= vtesteq_epi32(B, vload(&MD[i +  0]));
+		R |= vtesteq_epi32(B, vload(&MD[i +  4]));
+		R |= vtesteq_epi32(B, vload(&MD[i +  8]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 12]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 16]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 20]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 24]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 28]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 32]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 36]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 40]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 44]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 48]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 52]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 56]));
+		R |= vtesteq_epi32(B, vload(&MD[i + 60]));
+#endif
 		M |= R;
 	}
 
