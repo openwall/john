@@ -1,5 +1,6 @@
 /*
- * This software is Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>,
+ * This software is
+ * Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>,
  * Copyright (c) 2012 Solar Designer,
  * Copyright (c) 2011-2015 JimF,
  * Copyright (c) 2011-2015 magnum,
@@ -85,7 +86,7 @@ _inline __m128i _mm_set1_epi64x(long long a)
 	MD5_PARA_DO(i) a[i] = vroti16_epi32( a[i], (s) ); \
 	MD5_PARA_DO(i) a[i] = vadd_epi32( a[i], b[i] );
 
-void SSEmd5body(vtype* _data, unsigned int * out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
+void SSEmd5body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
 	vtype w[16*MD5_SSE_PARA];
 	vtype a[MD5_SSE_PARA];
@@ -109,13 +110,13 @@ void SSEmd5body(vtype* _data, unsigned int * out, ARCH_WORD_32 *reload_state, un
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (i=0; i < 16; ++i) { GATHER_4x(W[i], saved_key, i); }
-				saved_key += (SIMD_COEF_32<<6);
+				saved_key += (VS32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (i=0; i < 16; ++i) { GATHER_2x(W[i], saved_key, i); }
-				saved_key += (SIMD_COEF_32<<5);
+				saved_key += (VS32<<5);
 			} else {
 				for (i=0; i < 16; ++i) { GATHER(W[i], saved_key, i); }
-				saved_key += (SIMD_COEF_32<<4);
+				saved_key += (VS32<<4);
 			}
 			W += 16;
 		}
@@ -128,19 +129,19 @@ void SSEmd5body(vtype* _data, unsigned int * out, ARCH_WORD_32 *reload_state, un
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<6)+j];
-				saved_key += (SIMD_COEF_32<<6);
+				saved_key += (VS32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<5)+j];
-				saved_key += (SIMD_COEF_32<<5);
+				saved_key += (VS32<<5);
 			} else {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<4)+j];
-				saved_key += (SIMD_COEF_32<<4);
+				saved_key += (VS32<<4);
 			}
 			W += 16;
 		}
@@ -311,32 +312,32 @@ void SSEmd5body(vtype* _data, unsigned int * out, ARCH_WORD_32 *reload_state, un
 	}
 }
 
-#define GETPOS(i, index)                ( (index&(VS32-1))*4 + (i& (0xffffffff-3) )*SIMD_COEF_32 + ((i)&3) )
+#define GETPOS(i, index)                ( (index&(VS32-1))*4 + (i& (0xffffffff-3) )*VS32 + ((i)&3) )
 
-static MAYBE_INLINE void mmxput(void * buf, unsigned int index, unsigned int bid, unsigned int offset, unsigned char * src, unsigned int len)
+static MAYBE_INLINE void mmxput(void *buf, unsigned int index, unsigned int bid, unsigned int offset, unsigned char *src, unsigned int len)
 {
-	unsigned char * nbuf;
+	unsigned char *nbuf;
 	unsigned int i;
 
-	nbuf = ((unsigned char*)buf) + index/SIMD_COEF_32*64*SIMD_COEF_32 + bid*64*MD5_SSE_NUM_KEYS;
+	nbuf = ((unsigned char*)buf) + index/VS32*64*VS32 + bid*64*MD5_SSE_NUM_KEYS;
 	for(i=0;i<len;i++)
 		nbuf[ GETPOS((offset+i), index) ] = src[i];
 
 }
 
-static MAYBE_INLINE void mmxput2(void * buf, unsigned int bid, void * src)
+static MAYBE_INLINE void mmxput2(void *buf, unsigned int bid, void *src)
 {
-	unsigned char * nbuf;
+	unsigned char *nbuf;
 	unsigned int i;
 
 	nbuf = ((unsigned char*)buf) + bid*64*MD5_SSE_NUM_KEYS;
 	MD5_PARA_DO(i)
-		memcpy( nbuf+i*64*SIMD_COEF_32, ((unsigned char*)src)+i*64, 64);
+		memcpy( nbuf+i*64*VS32, ((unsigned char*)src)+i*16*VS32, 16*VS32);
 }
 
-static MAYBE_INLINE void mmxput3(void * buf, unsigned int bid, unsigned int * offset, int mult, int saltlen, void * src)
+static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid, unsigned int *offset, int mult, int saltlen, void *src)
 {
-	unsigned char * nbuf;
+	unsigned char *nbuf;
 	unsigned int noff;
 	unsigned int noffd;
 	unsigned int i,j;
@@ -348,24 +349,24 @@ static MAYBE_INLINE void mmxput3(void * buf, unsigned int bid, unsigned int * of
 		for(i=0;i<VS32;i++)
 		{
 			noff = offset[i+j*VS32]*mult + saltlen;
-			dec = (noff&(VS32-1))*8;
+			dec = (noff&3)*8;
 			if(dec)
 			{
 				noffd = noff & (~3);
-				((unsigned int*)(nbuf+noffd*4))[i+0*VS32] &= (0xffffffff>>(32-dec));
-				((unsigned int*)(nbuf+noffd*4))[i+0*VS32] |= (((unsigned int*)src)[i+j*16+0*VS32] << dec);
-				((unsigned int*)(nbuf+noffd*4))[i+1*VS32] = (((unsigned int*)src)[i+j*16+1*VS32] << dec) | (((unsigned int*)src)[i+j*16+0*VS32] >> (32-dec));
-				((unsigned int*)(nbuf+noffd*4))[i+2*VS32] = (((unsigned int*)src)[i+j*16+2*VS32] << dec) | (((unsigned int*)src)[i+j*16+1*VS32] >> (32-dec));
-				((unsigned int*)(nbuf+noffd*4))[i+3*VS32] = (((unsigned int*)src)[i+j*16+3*VS32] << dec) | (((unsigned int*)src)[i+j*16+2*VS32] >> (32-dec));
-				((unsigned int*)(nbuf+noffd*4))[i+4*VS32] &= (0xffffffff<<dec);
-				((unsigned int*)(nbuf+noffd*4))[i+4*VS32] |= (((unsigned int*)src)[i+j*16+3*VS32] >> (32-dec));
+				((unsigned int*)(nbuf+noffd*VS32))[i+0*VS32] &= (0xffffffff>>(32-dec));
+				((unsigned int*)(nbuf+noffd*VS32))[i+0*VS32] |= (((unsigned int*)src)[i+j*4*VS32+0*VS32] << dec);
+				((unsigned int*)(nbuf+noffd*VS32))[i+1*VS32] = (((unsigned int*)src)[i+j*4*VS32+1*VS32] << dec) | (((unsigned int*)src)[i+j*4*VS32+0*VS32] >> (32-dec));
+				((unsigned int*)(nbuf+noffd*VS32))[i+2*VS32] = (((unsigned int*)src)[i+j*4*VS32+2*VS32] << dec) | (((unsigned int*)src)[i+j*4*VS32+1*VS32] >> (32-dec));
+				((unsigned int*)(nbuf+noffd*VS32))[i+3*VS32] = (((unsigned int*)src)[i+j*4*VS32+3*VS32] << dec) | (((unsigned int*)src)[i+j*4*VS32+2*VS32] >> (32-dec));
+				((unsigned int*)(nbuf+noffd*VS32))[i+4*VS32] &= (0xffffffff<<dec);
+				((unsigned int*)(nbuf+noffd*VS32))[i+4*VS32] |= (((unsigned int*)src)[i+j*4*VS32+3*VS32] >> (32-dec));
 			}
 			else
 			{
-				((unsigned int*)(nbuf+noff*4))[i+0*VS32] = ((unsigned int*)src)[i+j*16+0*VS32];
-				((unsigned int*)(nbuf+noff*4))[i+1*VS32] = ((unsigned int*)src)[i+j*16+1*VS32];
-				((unsigned int*)(nbuf+noff*4))[i+2*VS32] = ((unsigned int*)src)[i+j*16+2*VS32];
-				((unsigned int*)(nbuf+noff*4))[i+3*VS32] = ((unsigned int*)src)[i+j*16+3*VS32];
+				((unsigned int*)(nbuf+noff*VS32))[i+0*VS32] = ((unsigned int*)src)[i+j*4*VS32+0*VS32];
+				((unsigned int*)(nbuf+noff*VS32))[i+1*VS32] = ((unsigned int*)src)[i+j*4*VS32+1*VS32];
+				((unsigned int*)(nbuf+noff*VS32))[i+2*VS32] = ((unsigned int*)src)[i+j*4*VS32+2*VS32];
+				((unsigned int*)(nbuf+noff*VS32))[i+3*VS32] = ((unsigned int*)src)[i+j*4*VS32+3*VS32];
 			}
 		}
 	}
@@ -452,16 +453,13 @@ static MAYBE_INLINE void dispatch(unsigned char buffers[8][64*MD5_SSE_NUM_KEYS],
 }
 
 
-void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, char * out, int md5_type)
+void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt, char *out, int md5_type)
 {
 	unsigned int length[MD5_SSE_NUM_KEYS];
 	unsigned int saltlen;
-	unsigned int * bt;
-	unsigned int tf[4];
 	unsigned int i,j;
 	MD5_CTX ctx;
 	MD5_CTX tctx;
-
 	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char buffers[8][64*MD5_SSE_NUM_KEYS];
 	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned int F[4*MD5_SSE_NUM_KEYS];
 
@@ -471,6 +469,9 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 	for(i=0;i<MD5_SSE_NUM_KEYS;i++)
 	{
 		unsigned int length_i = strlen((char*)pwd[i]);
+		unsigned int *bt;
+		unsigned int tf[4];
+
 		/* cas 0 fs */
 		mmxput(buffers, i, 0, 16, pwd[i], length_i);
 		mmxput(buffers, i, 0, length_i+16, (unsigned char*)"\x80", 1);
@@ -504,14 +505,14 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 		mmxput(buffers, i, 7, length_i+saltlen, pwd[i], length_i);
 		mmxput(buffers, i, 7, saltlen+2*length_i+16, (unsigned char*)"\x80", 1);
 
-		bt = (unsigned int*) &buffers[0]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i+16)<<3;
-		bt = (unsigned int*) &buffers[1]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i+16)<<3;
-		bt = (unsigned int*) &buffers[2]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i*2+16)<<3;
-		bt = (unsigned int*) &buffers[3]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i*2+16)<<3;
-		bt = (unsigned int*) &buffers[4]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i+saltlen+16)<<3;
-		bt = (unsigned int*) &buffers[5]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i+saltlen+16)<<3;
-		bt = (unsigned int*) &buffers[6]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i*2+saltlen+16)<<3;
-		bt = (unsigned int*) &buffers[7]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + (i/SIMD_COEF_32)*64] = (length_i*2+saltlen+16)<<3;
+		bt = (unsigned int*)&buffers[0]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+16)<<3;
+		bt = (unsigned int*)&buffers[1]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+16)<<3;
+		bt = (unsigned int*)&buffers[2]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+16)<<3;
+		bt = (unsigned int*)&buffers[3]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+16)<<3;
+		bt = (unsigned int*)&buffers[4]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+saltlen+16)<<3;
+		bt = (unsigned int*)&buffers[5]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+saltlen+16)<<3;
+		bt = (unsigned int*)&buffers[6]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+saltlen+16)<<3;
+		bt = (unsigned int*)&buffers[7]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+saltlen+16)<<3;
 
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, pwd[i], length_i);
@@ -534,10 +535,10 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 			else
 				MD5_Update(&ctx, pwd[i], 1);
 		MD5_Final((unsigned char*)tf, &ctx);
-		F[(i/SIMD_COEF_32)*16 + (i&(VS32-1))] = tf[0];
-		F[(i/SIMD_COEF_32)*16 + (i&(VS32-1)) + 4] = tf[1];
-		F[(i/SIMD_COEF_32)*16 + (i&(VS32-1)) + 8] = tf[2];
-		F[(i/SIMD_COEF_32)*16 + (i&(VS32-1)) + 12] = tf[3];
+		F[i/VS32*4*VS32 + (i&(VS32-1)) + 0*VS32] = tf[0];
+		F[i/VS32*4*VS32 + (i&(VS32-1)) + 1*VS32] = tf[1];
+		F[i/VS32*4*VS32 + (i&(VS32-1)) + 2*VS32] = tf[2];
+		F[i/VS32*4*VS32 + (i&(VS32-1)) + 3*VS32] = tf[3];
 	}
 	dispatch(buffers, F, length, saltlen);
 	memcpy(out, F, MD5_SSE_NUM_KEYS*16);
@@ -568,7 +569,7 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 	MD4_PARA_DO(i) a[i] = vadd_epi32( a[i], data[i*16+x] ); \
 	MD4_PARA_DO(i) a[i] = vroti_epi32( a[i], (s) );
 
-void SSEmd4body(vtype* _data, unsigned int * out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
+void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
 	vtype w[16*MD4_SSE_PARA];
 	vtype a[MD4_SSE_PARA];
@@ -591,13 +592,13 @@ if(SSEi_flags & SSEi_FLAT_IN) {
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (i=0; i < 16; ++i) { GATHER_4x(W[i], saved_key, i); }
-				saved_key += (SIMD_COEF_32<<6);
+				saved_key += (VS32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (i=0; i < 16; ++i) { GATHER_2x(W[i], saved_key, i); }
-				saved_key += (SIMD_COEF_32<<5);
+				saved_key += (VS32<<5);
 			} else {
 				for (i=0; i < 16; ++i) { GATHER(W[i], saved_key, i); }
-				saved_key += (SIMD_COEF_32<<4);
+				saved_key += (VS32<<4);
 			}
 			W += 16;
 		}
@@ -610,19 +611,19 @@ if(SSEi_flags & SSEi_FLAT_IN) {
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<6)+j];
-				saved_key += (SIMD_COEF_32<<6);
+				saved_key += (VS32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<5)+j];
-				saved_key += (SIMD_COEF_32<<5);
+				saved_key += (VS32<<5);
 			} else {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<4)+j];
-				saved_key += (SIMD_COEF_32<<4);
+				saved_key += (VS32<<4);
 			}
 			W += 16;
 		}
@@ -1141,17 +1142,17 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, un
 				for (i=0; i < 14; ++i) { GATHER_4x(W[i], saved_key, i); vswap32(W[i]); }
 				GATHER_4x(W[14], saved_key, 14);
 				GATHER_4x(W[15], saved_key, 15);
-				saved_key += (SIMD_COEF_32<<6);
+				saved_key += (VS32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (i=0; i < 14; ++i) { GATHER_2x(W[i], saved_key, i); vswap32(W[i]); }
 				GATHER_2x(W[14], saved_key, 14);
 				GATHER_2x(W[15], saved_key, 15);
-				saved_key += (SIMD_COEF_32<<5);
+				saved_key += (VS32<<5);
 			} else {
 				for (i=0; i < 14; ++i) { GATHER(W[i], saved_key, i); vswap32(W[i]); }
 				GATHER(W[14], saved_key, 14);
 				GATHER(W[15], saved_key, 15);
-				saved_key += (SIMD_COEF_32<<4);
+				saved_key += (VS32<<4);
 			}
 			if ( ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
 				 ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
@@ -1170,19 +1171,19 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, un
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<6)+j];
-				saved_key += (SIMD_COEF_32<<6);
+				saved_key += (VS32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<5)+j];
-				saved_key += (SIMD_COEF_32<<5);
+				saved_key += (VS32<<5);
 			} else {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<4)+j];
-				saved_key += (SIMD_COEF_32<<4);
+				saved_key += (VS32<<4);
 			}
 			for (i=0; i < 14; i++)
 				vswap32(W[i]);
@@ -1527,15 +1528,15 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 		saved_key = (ARCH_WORD_32*)data;
 		if (SSEi_flags & SSEi_4BUF_INPUT) {
 			for (j=0; j < 16; j++)
-				for (i=0; i < SIMD_COEF_32; i++)
+				for (i=0; i < VS32; i++)
 					*p++ = saved_key[(i<<6)+j];
 		} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 			for (j=0; j < 16; j++)
-				for (i=0; i < SIMD_COEF_32; i++)
+				for (i=0; i < VS32; i++)
 					*p++ = saved_key[(i<<5)+j];
 		} else {
 			for (j=0; j < 16; j++)
-				for (i=0; i < SIMD_COEF_32; i++)
+				for (i=0; i < VS32; i++)
 					*p++ = saved_key[(i<<4)+j];
 		}
 		for (i=0; i < 14; i++)
