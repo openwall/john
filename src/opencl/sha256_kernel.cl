@@ -22,6 +22,8 @@
     #define UNROLL_LEVEL	1
 #elif gpu_nvidia(DEVICE_INFO)
     #define UNROLL_LEVEL	2
+#else
+    #define UNROLL_LEVEL	0
 #endif
 
 inline void _memcpy(               uint32_t * dest,
@@ -130,15 +132,6 @@ void kernel_crypt(
     #define		total    _ltotal[get_local_id(0)]
     #define		W_OFFSET    0
 
-    //Clean bitmap and result buffer
-    if (get_global_id(0) == 0) {
-	hash_id[0] = 0;
-
-	for (uint i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
-	    bitmap[i] = 0;
-    }
-    barrier(CLK_GLOBAL_MEM_FENCE);
-
     {
 	//Get position and length of informed key.
 	uint32_t base = index[get_global_id(0)];
@@ -164,5 +157,20 @@ void kernel_crypt(
 	sha256_block(w, total, H);
 
 	compare(i, num_loaded_hashes, loaded_hashes, hash_id, H, bitmap);
+    }
+}
+
+__kernel
+void kernel_prepare(
+		      const uint32_t                    num_loaded_hashes,
+    volatile __global       uint32_t * const __restrict hash_id,
+    volatile __global       uint32_t * const __restrict bitmap) {
+
+    //Clean bitmap and result buffer
+    if (get_global_id(0) == 0) {
+	hash_id[0] = 0;
+
+	for (uint32_t i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
+	    bitmap[i] = 0;
     }
 }

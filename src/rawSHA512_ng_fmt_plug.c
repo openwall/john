@@ -74,9 +74,8 @@ john_register_one(&fmt_rawSHA512_ng);
 #define SALT_ALIGN                1
 #define MIN_KEYS_PER_CRYPT        VWIDTH
 #define MAX_KEYS_PER_CRYPT        VWIDTH
-#define _RAWSHA512_H
+#define __RAWSHA512_CREATE_PROPER_TESTS_ARRAY__
 #include "rawSHA512_common.h"
-#undef _RAWSHA512_H
 
 #if _MSC_VER && !_M_X64
 // 32 bit VC does NOT define these intrinsics :((((
