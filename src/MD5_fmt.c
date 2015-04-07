@@ -300,13 +300,13 @@ static int cmp_one(void *binary, int index)
 	x = index&(SIMD_COEF_32-1);
 	y = index/SIMD_COEF_32;
 
-	if( ((unsigned int *)binary)[0] != ((unsigned int *)sout)[x+y*SIMD_COEF_32*4] )
+	if(((unsigned int*)binary)[0] != ((unsigned int*)sout)[x+y*SIMD_COEF_32*4+0*SIMD_COEF_32])
 		return 0;
-	if( ((unsigned int *)binary)[1] != ((unsigned int *)sout)[x+y*SIMD_COEF_32*4+4] )
+	if(((unsigned int*)binary)[1] != ((unsigned int*)sout)[x+y*SIMD_COEF_32*4+1*SIMD_COEF_32])
 		return 0;
-	if( ((unsigned int *)binary)[2] != ((unsigned int *)sout)[x+y*SIMD_COEF_32*4+8] )
+	if(((unsigned int*)binary)[2] != ((unsigned int*)sout)[x+y*SIMD_COEF_32*4+2*SIMD_COEF_32])
 		return 0;
-	if( ((unsigned int *)binary)[3] != ((unsigned int *)sout)[x+y*SIMD_COEF_32*4+12] )
+	if(((unsigned int*)binary)[3] != ((unsigned int*)sout)[x+y*SIMD_COEF_32*4+3*SIMD_COEF_32])
 		return 0;
 	return 1;
 #else
