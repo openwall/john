@@ -147,7 +147,7 @@ static void init(struct fmt_main *self)
 	   keys would otherwise get a length of -10 and a salt appended
 	   at pos 4294967286... */
 	for (i=0; i < NBKEYS; i++)
-		((unsigned int *)saved_key)[15*SIMD_COEF_32 + (i&3) + (i>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = 10 << 3;
+		((unsigned int *)saved_key)[15*SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = 10 << 3;
 #endif
 	saved_salt = mem_calloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 }
@@ -192,7 +192,7 @@ static void clear_keys(void)
 	   keys would otherwise get a length of -10 and a salt appended
 	   at pos 4294967286... */
 	for (i=0; i < NBKEYS; i++)
-		((unsigned int *)saved_key)[15*SIMD_COEF_32 + (i&3) + (i>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = 10 << 3;
+		((unsigned int *)saved_key)[15*SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = 10 << 3;
 #endif
 }
 
