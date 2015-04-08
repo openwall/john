@@ -342,7 +342,7 @@ static void sha1_fmt_set_key(char *key, int index)
 		{ZZ, ZZ, ZZ, YY<<  0}, {ZZ, ZZ, ZZ, YY<<  8}, {ZZ, ZZ, ZZ, YY<< 16}, {ZZ, ZZ, ZZ, YY<< 24},
 		{ZZ, ZZ, ZZ, YY<< 32}, {ZZ, ZZ, ZZ, YY<< 40}, {ZZ, ZZ, ZZ, YY<< 48}, {ZZ, ZZ, ZZ, YY<< 56},
 		{ZZ, ZZ, ZZ, YY<< 64}, {ZZ, ZZ, ZZ, YY<< 72}, {ZZ, ZZ, ZZ, YY<< 80}, {ZZ, ZZ, ZZ, YY<< 88},
-		{ZZ, ZZ, ZZ, YY<< 96}, {ZZ, ZZ, ZZ, YY<<104}, {ZZ, ZZ, ZZ, YY<<112}, {ZZ, ZZ, ZZ, YY<<120},
+		{ZZ, ZZ, ZZ, YY<< 96}, {ZZ, ZZ, ZZ, YY<<104}, {ZZ, ZZ, ZZ, YY<<112}, {ZZ, ZZ, ZZ, YY<<120}
 	};
 
 	static const JTR_ALIGN(VWIDTH * 4) uint128_t kUsedBytesTable[][4] = {
