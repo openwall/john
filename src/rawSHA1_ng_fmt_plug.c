@@ -23,7 +23,7 @@
 //
 
 #include "arch.h"
-#if (__SSE2__ || __MIC__) && !_MSC_VER 
+#if (__SSE2__ || __MIC__) && !_MSC_VER
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_sha1_ng;
@@ -327,41 +327,41 @@ static void sha1_fmt_set_key(char *key, int index)
 #define YY ((uint128_t)0x80)
 #define ZZ ((uint128_t)0x0)
 	static const JTR_ALIGN(VWIDTH * 4) uint128_t kTrailingBitTable[][4] = {
-		{YY<<  0, ZZ, ZZ, ZZ}, {YY<<  8, ZZ, ZZ, ZZ}, {YY<< 16, ZZ, ZZ, ZZ}, {YY<< 24, ZZ, ZZ, ZZ}, 
-		{YY<< 32, ZZ, ZZ, ZZ}, {YY<< 40, ZZ, ZZ, ZZ}, {YY<< 48, ZZ, ZZ, ZZ}, {YY<< 56, ZZ, ZZ, ZZ}, 
-		{YY<< 64, ZZ, ZZ, ZZ}, {YY<< 72, ZZ, ZZ, ZZ}, {YY<< 80, ZZ, ZZ, ZZ}, {YY<< 88, ZZ, ZZ, ZZ}, 
-		{YY<< 96, ZZ, ZZ, ZZ}, {YY<<104, ZZ, ZZ, ZZ}, {YY<<112, ZZ, ZZ, ZZ}, {YY<<120, ZZ, ZZ, ZZ}, 
-		{ZZ, YY<<  0, ZZ, ZZ}, {ZZ, YY<<  8, ZZ, ZZ}, {ZZ, YY<< 16, ZZ, ZZ}, {ZZ, YY<< 24, ZZ, ZZ}, 
-		{ZZ, YY<< 32, ZZ, ZZ}, {ZZ, YY<< 40, ZZ, ZZ}, {ZZ, YY<< 48, ZZ, ZZ}, {ZZ, YY<< 56, ZZ, ZZ}, 
-		{ZZ, YY<< 64, ZZ, ZZ}, {ZZ, YY<< 72, ZZ, ZZ}, {ZZ, YY<< 80, ZZ, ZZ}, {ZZ, YY<< 88, ZZ, ZZ}, 
-		{ZZ, YY<< 96, ZZ, ZZ}, {ZZ, YY<<104, ZZ, ZZ}, {ZZ, YY<<112, ZZ, ZZ}, {ZZ, YY<<120, ZZ, ZZ}, 
-		{ZZ, ZZ, YY<<  0, ZZ}, {ZZ, ZZ, YY<<  8, ZZ}, {ZZ, ZZ, YY<< 16, ZZ}, {ZZ, ZZ, YY<< 24, ZZ}, 
-		{ZZ, ZZ, YY<< 32, ZZ}, {ZZ, ZZ, YY<< 40, ZZ}, {ZZ, ZZ, YY<< 48, ZZ}, {ZZ, ZZ, YY<< 56, ZZ}, 
-		{ZZ, ZZ, YY<< 64, ZZ}, {ZZ, ZZ, YY<< 72, ZZ}, {ZZ, ZZ, YY<< 80, ZZ}, {ZZ, ZZ, YY<< 88, ZZ}, 
-		{ZZ, ZZ, YY<< 96, ZZ}, {ZZ, ZZ, YY<<104, ZZ}, {ZZ, ZZ, YY<<112, ZZ}, {ZZ, ZZ, YY<<120, ZZ}, 
-		{ZZ, ZZ, ZZ, YY<<  0}, {ZZ, ZZ, ZZ, YY<<  8}, {ZZ, ZZ, ZZ, YY<< 16}, {ZZ, ZZ, ZZ, YY<< 24}, 
-		{ZZ, ZZ, ZZ, YY<< 32}, {ZZ, ZZ, ZZ, YY<< 40}, {ZZ, ZZ, ZZ, YY<< 48}, {ZZ, ZZ, ZZ, YY<< 56}, 
-		{ZZ, ZZ, ZZ, YY<< 64}, {ZZ, ZZ, ZZ, YY<< 72}, {ZZ, ZZ, ZZ, YY<< 80}, {ZZ, ZZ, ZZ, YY<< 88}, 
-		{ZZ, ZZ, ZZ, YY<< 96}, {ZZ, ZZ, ZZ, YY<<104}, {ZZ, ZZ, ZZ, YY<<112}, {ZZ, ZZ, ZZ, YY<<120},  
+		{YY<<  0, ZZ, ZZ, ZZ}, {YY<<  8, ZZ, ZZ, ZZ}, {YY<< 16, ZZ, ZZ, ZZ}, {YY<< 24, ZZ, ZZ, ZZ},
+		{YY<< 32, ZZ, ZZ, ZZ}, {YY<< 40, ZZ, ZZ, ZZ}, {YY<< 48, ZZ, ZZ, ZZ}, {YY<< 56, ZZ, ZZ, ZZ},
+		{YY<< 64, ZZ, ZZ, ZZ}, {YY<< 72, ZZ, ZZ, ZZ}, {YY<< 80, ZZ, ZZ, ZZ}, {YY<< 88, ZZ, ZZ, ZZ},
+		{YY<< 96, ZZ, ZZ, ZZ}, {YY<<104, ZZ, ZZ, ZZ}, {YY<<112, ZZ, ZZ, ZZ}, {YY<<120, ZZ, ZZ, ZZ},
+		{ZZ, YY<<  0, ZZ, ZZ}, {ZZ, YY<<  8, ZZ, ZZ}, {ZZ, YY<< 16, ZZ, ZZ}, {ZZ, YY<< 24, ZZ, ZZ},
+		{ZZ, YY<< 32, ZZ, ZZ}, {ZZ, YY<< 40, ZZ, ZZ}, {ZZ, YY<< 48, ZZ, ZZ}, {ZZ, YY<< 56, ZZ, ZZ},
+		{ZZ, YY<< 64, ZZ, ZZ}, {ZZ, YY<< 72, ZZ, ZZ}, {ZZ, YY<< 80, ZZ, ZZ}, {ZZ, YY<< 88, ZZ, ZZ},
+		{ZZ, YY<< 96, ZZ, ZZ}, {ZZ, YY<<104, ZZ, ZZ}, {ZZ, YY<<112, ZZ, ZZ}, {ZZ, YY<<120, ZZ, ZZ},
+		{ZZ, ZZ, YY<<  0, ZZ}, {ZZ, ZZ, YY<<  8, ZZ}, {ZZ, ZZ, YY<< 16, ZZ}, {ZZ, ZZ, YY<< 24, ZZ},
+		{ZZ, ZZ, YY<< 32, ZZ}, {ZZ, ZZ, YY<< 40, ZZ}, {ZZ, ZZ, YY<< 48, ZZ}, {ZZ, ZZ, YY<< 56, ZZ},
+		{ZZ, ZZ, YY<< 64, ZZ}, {ZZ, ZZ, YY<< 72, ZZ}, {ZZ, ZZ, YY<< 80, ZZ}, {ZZ, ZZ, YY<< 88, ZZ},
+		{ZZ, ZZ, YY<< 96, ZZ}, {ZZ, ZZ, YY<<104, ZZ}, {ZZ, ZZ, YY<<112, ZZ}, {ZZ, ZZ, YY<<120, ZZ},
+		{ZZ, ZZ, ZZ, YY<<  0}, {ZZ, ZZ, ZZ, YY<<  8}, {ZZ, ZZ, ZZ, YY<< 16}, {ZZ, ZZ, ZZ, YY<< 24},
+		{ZZ, ZZ, ZZ, YY<< 32}, {ZZ, ZZ, ZZ, YY<< 40}, {ZZ, ZZ, ZZ, YY<< 48}, {ZZ, ZZ, ZZ, YY<< 56},
+		{ZZ, ZZ, ZZ, YY<< 64}, {ZZ, ZZ, ZZ, YY<< 72}, {ZZ, ZZ, ZZ, YY<< 80}, {ZZ, ZZ, ZZ, YY<< 88},
+		{ZZ, ZZ, ZZ, YY<< 96}, {ZZ, ZZ, ZZ, YY<<104}, {ZZ, ZZ, ZZ, YY<<112}, {ZZ, ZZ, ZZ, YY<<120}
 	};
 
 	static const JTR_ALIGN(VWIDTH * 4) uint128_t kUsedBytesTable[][4] = {
-		{XX<<  0, XX, XX, XX}, {XX<<  8, XX, XX, XX}, {XX<< 16, XX, XX, XX}, {XX<< 24, XX, XX, XX}, 
-		{XX<< 32, XX, XX, XX}, {XX<< 40, XX, XX, XX}, {XX<< 48, XX, XX, XX}, {XX<< 56, XX, XX, XX}, 
-		{XX<< 64, XX, XX, XX}, {XX<< 72, XX, XX, XX}, {XX<< 80, XX, XX, XX}, {XX<< 88, XX, XX, XX}, 
-		{XX<< 96, XX, XX, XX}, {XX<<104, XX, XX, XX}, {XX<<112, XX, XX, XX}, {XX<<120, XX, XX, XX}, 
-		{ZZ, XX<<  0, XX, XX}, {ZZ, XX<<  8, XX, XX}, {ZZ, XX<< 16, XX, XX}, {ZZ, XX<< 24, XX, XX}, 
-		{ZZ, XX<< 32, XX, XX}, {ZZ, XX<< 40, XX, XX}, {ZZ, XX<< 48, XX, XX}, {ZZ, XX<< 56, XX, XX}, 
-		{ZZ, XX<< 64, XX, XX}, {ZZ, XX<< 72, XX, XX}, {ZZ, XX<< 80, XX, XX}, {ZZ, XX<< 88, XX, XX}, 
-		{ZZ, XX<< 96, XX, XX}, {ZZ, XX<<104, XX, XX}, {ZZ, XX<<112, XX, XX}, {ZZ, XX<<120, XX, XX}, 
-		{ZZ, ZZ, XX<<  0, XX}, {ZZ, ZZ, XX<<  8, XX}, {ZZ, ZZ, XX<< 16, XX}, {ZZ, ZZ, XX<< 24, XX}, 
-		{ZZ, ZZ, XX<< 32, XX}, {ZZ, ZZ, XX<< 40, XX}, {ZZ, ZZ, XX<< 48, XX}, {ZZ, ZZ, XX<< 56, XX}, 
-		{ZZ, ZZ, XX<< 64, XX}, {ZZ, ZZ, XX<< 72, XX}, {ZZ, ZZ, XX<< 80, XX}, {ZZ, ZZ, XX<< 88, XX}, 
-		{ZZ, ZZ, XX<< 96, XX}, {ZZ, ZZ, XX<<104, XX}, {ZZ, ZZ, XX<<112, XX}, {ZZ, ZZ, XX<<120, XX}, 
-		{ZZ, ZZ, ZZ, XX<<  0}, {ZZ, ZZ, ZZ, XX<<  8}, {ZZ, ZZ, ZZ, XX<< 16}, {ZZ, ZZ, ZZ, XX<< 24}, 
-		{ZZ, ZZ, ZZ, XX<< 32}, {ZZ, ZZ, ZZ, XX<< 40}, {ZZ, ZZ, ZZ, XX<< 48}, {ZZ, ZZ, ZZ, XX<< 56}, 
-		{ZZ, ZZ, ZZ, XX<< 64}, {ZZ, ZZ, ZZ, XX<< 72}, {ZZ, ZZ, ZZ, XX<< 80}, {ZZ, ZZ, ZZ, XX<< 88}, 
-		{ZZ, ZZ, ZZ, XX<< 96}, {ZZ, ZZ, ZZ, XX<<104}, {ZZ, ZZ, ZZ, XX<<112}, {ZZ, ZZ, ZZ, XX<<120} 
+		{XX<<  0, XX, XX, XX}, {XX<<  8, XX, XX, XX}, {XX<< 16, XX, XX, XX}, {XX<< 24, XX, XX, XX},
+		{XX<< 32, XX, XX, XX}, {XX<< 40, XX, XX, XX}, {XX<< 48, XX, XX, XX}, {XX<< 56, XX, XX, XX},
+		{XX<< 64, XX, XX, XX}, {XX<< 72, XX, XX, XX}, {XX<< 80, XX, XX, XX}, {XX<< 88, XX, XX, XX},
+		{XX<< 96, XX, XX, XX}, {XX<<104, XX, XX, XX}, {XX<<112, XX, XX, XX}, {XX<<120, XX, XX, XX},
+		{ZZ, XX<<  0, XX, XX}, {ZZ, XX<<  8, XX, XX}, {ZZ, XX<< 16, XX, XX}, {ZZ, XX<< 24, XX, XX},
+		{ZZ, XX<< 32, XX, XX}, {ZZ, XX<< 40, XX, XX}, {ZZ, XX<< 48, XX, XX}, {ZZ, XX<< 56, XX, XX},
+		{ZZ, XX<< 64, XX, XX}, {ZZ, XX<< 72, XX, XX}, {ZZ, XX<< 80, XX, XX}, {ZZ, XX<< 88, XX, XX},
+		{ZZ, XX<< 96, XX, XX}, {ZZ, XX<<104, XX, XX}, {ZZ, XX<<112, XX, XX}, {ZZ, XX<<120, XX, XX},
+		{ZZ, ZZ, XX<<  0, XX}, {ZZ, ZZ, XX<<  8, XX}, {ZZ, ZZ, XX<< 16, XX}, {ZZ, ZZ, XX<< 24, XX},
+		{ZZ, ZZ, XX<< 32, XX}, {ZZ, ZZ, XX<< 40, XX}, {ZZ, ZZ, XX<< 48, XX}, {ZZ, ZZ, XX<< 56, XX},
+		{ZZ, ZZ, XX<< 64, XX}, {ZZ, ZZ, XX<< 72, XX}, {ZZ, ZZ, XX<< 80, XX}, {ZZ, ZZ, XX<< 88, XX},
+		{ZZ, ZZ, XX<< 96, XX}, {ZZ, ZZ, XX<<104, XX}, {ZZ, ZZ, XX<<112, XX}, {ZZ, ZZ, XX<<120, XX},
+		{ZZ, ZZ, ZZ, XX<<  0}, {ZZ, ZZ, ZZ, XX<<  8}, {ZZ, ZZ, ZZ, XX<< 16}, {ZZ, ZZ, ZZ, XX<< 24},
+		{ZZ, ZZ, ZZ, XX<< 32}, {ZZ, ZZ, ZZ, XX<< 40}, {ZZ, ZZ, ZZ, XX<< 48}, {ZZ, ZZ, ZZ, XX<< 56},
+		{ZZ, ZZ, ZZ, XX<< 64}, {ZZ, ZZ, ZZ, XX<< 72}, {ZZ, ZZ, ZZ, XX<< 80}, {ZZ, ZZ, ZZ, XX<< 88},
+		{ZZ, ZZ, ZZ, XX<< 96}, {ZZ, ZZ, ZZ, XX<<104}, {ZZ, ZZ, ZZ, XX<<112}, {ZZ, ZZ, ZZ, XX<<120}
 	};
 
 #elif VWIDTH > 4
@@ -608,7 +608,7 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 		R1(W[8],  C, D, E, A, B);
 		R1(W[9],  B, C, D, E, A);
 		R1(W[10], A, B, C, D, E);                          // 10
-		R1(W[11], E, A, B, C, D); 
+		R1(W[11], E, A, B, C, D);
 		R1(W[12], D, E, A, B, C);
 		R1(W[13], C, D, E, A, B);
 		R1(W[14], B, C, D, E, A);
