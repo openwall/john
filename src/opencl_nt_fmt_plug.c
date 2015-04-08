@@ -378,7 +378,8 @@ static int cmp_one(void * binary, int index)
 	return 0;
 }
 
-static int cmp_exact(char *source, int index) {
+static int cmp_exact(char *source, int index)
+{
 	unsigned int *t = (unsigned int *) get_binary(source);
 
 	if (!have_full_hashes){

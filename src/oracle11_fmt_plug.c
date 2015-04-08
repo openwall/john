@@ -253,7 +253,8 @@ static char *get_key(int index)
 #endif
 }
 
-static int cmp_all(void *binary, int index) {
+static int cmp_all(void *binary, int count)
+{
 #ifdef SIMD_COEF_32
 	unsigned int x,y=0;
 
@@ -267,10 +268,6 @@ static int cmp_all(void *binary, int index) {
 #else
 	return !memcmp(binary, crypt_key, BINARY_SIZE);
 #endif
-}
-
-static int cmp_exact(char *source, int count) {
-	return 1;
 }
 
 static int cmp_one(void * binary, int index)
@@ -290,6 +287,11 @@ static int cmp_one(void * binary, int index)
 #else
 	return cmp_all(binary, index);
 #endif
+}
+
+static int cmp_exact(char *source, int index)
+{
+	return 1;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)

@@ -294,7 +294,8 @@ static int cmp_all(void *binary, int count){
 	return 0;
 }
 
-static int cmp_one(void *binary, int index){
+static int cmp_one(void *binary, int index)
+{
 	unsigned int *t = (unsigned int *) binary;
 
 	if (t[0] == partial_hashes[index])

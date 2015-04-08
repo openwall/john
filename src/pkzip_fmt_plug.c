@@ -748,7 +748,8 @@ static int get_next_decrypted_block(u8 *in, int sizeof_n, FILE *fp, u32 *inp_use
  * this code is modifications made to the zpipe.c 'example' code from the zlib web site.
  */
 #define CHUNK (64*1024)
-static int cmp_exact_loadfile(int index) {
+static int cmp_exact_loadfile(int index)
+{
 
     int ret;
     u32 have, k;

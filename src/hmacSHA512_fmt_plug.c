@@ -359,7 +359,7 @@ static int cmp_one(void *binary, int index)
 #endif
 }
 
-static int cmp_exact(char *source, int count)
+static int cmp_exact(char *source, int index)
 {
 	return (1);
 }

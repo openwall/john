@@ -261,7 +261,7 @@ skey_cmp_one(void *binary, int count)
 }
 
 static int
-skey_cmp_exact(char *source, int count)
+skey_cmp_exact(char *source, int index)
 {
 	return 1;
 }

@@ -175,7 +175,8 @@ static int cmp_one(void *binary, int index)
 	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
-static int cmp_exact(char *source, int index) {
+static int cmp_exact(char *source, int index)
+{
   return 1;
 }
 

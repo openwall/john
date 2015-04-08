@@ -144,10 +144,14 @@ static char *get_key(int index)
 	return saved_key;
 }
 
-static int cmp_all(void *binary, int index)
+static int cmp_all(void *binary, int count)
 {
-	/* also used for cmp_one */
 	return *(MD5_word *)binary == MD5_out[0];
+}
+
+static int cmp_one(void *binary, int index)
+{
+	return 1;
 }
 
 static int cmp_exact(char *source, int index)
@@ -259,7 +263,7 @@ struct fmt_main fmt_PO = {
 			get_hash_6
 		},
 		cmp_all,
-		cmp_all,
+		cmp_one,
 		cmp_exact
 	}
 };
