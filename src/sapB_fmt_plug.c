@@ -506,7 +506,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					cur_salt->s[i];
 
 			saved_key[GETPOS((len + i), ti)] = 0x80;
-			((unsigned int *)saved_key)[14*SIMD_COEF_32 + (ti&3) + (ti>>2)*16*SIMD_COEF_32] = (len + i) << 3;
+			((unsigned int *)saved_key)[14*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + ti/SIMD_COEF_32*16*SIMD_COEF_32] = (len + i) << 3;
 
 			// Clean rest of buffer
 			for (i = i + len + 1; i <= clean_pos[ti]; i++)
@@ -540,7 +540,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (i = 0;i <= sum20; i += 4, dw += SIMD_COEF_32)
 				*dw = destArray[i >> 2];
 
-			((unsigned int *)interm_key)[14*SIMD_COEF_32 + (ti&3) + (ti>>2)*16*SIMD_COEF_32] = sum20 << 3;
+			((unsigned int *)interm_key)[14*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + ti/SIMD_COEF_32*16*SIMD_COEF_32] = sum20 << 3;
 		}
 
 		DO_MMX_MD5(&interm_key[t*NBKEYS*64], &crypt_key[t*NBKEYS*16]);
