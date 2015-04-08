@@ -1,5 +1,6 @@
 /*
- * This software is Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>,
+ * This software is
+ * Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>,
  * Copyright (c) 2012 Solar Designer,
  * Copyright (c) 2011-2015 JimF,
  * Copyright (c) 2011-2015 magnum,
@@ -109,13 +110,13 @@ void SSEmd5body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state, uns
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (i=0; i < 16; ++i) { GATHER_4x(W[i], saved_key, i); }
-				saved_key += (SIMD_COEF_32<<6);
+				saved_key += (VS32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (i=0; i < 16; ++i) { GATHER_2x(W[i], saved_key, i); }
-				saved_key += (SIMD_COEF_32<<5);
+				saved_key += (VS32<<5);
 			} else {
 				for (i=0; i < 16; ++i) { GATHER(W[i], saved_key, i); }
-				saved_key += (SIMD_COEF_32<<4);
+				saved_key += (VS32<<4);
 			}
 			W += 16;
 		}
@@ -128,19 +129,19 @@ void SSEmd5body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state, uns
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<6)+j];
-				saved_key += (SIMD_COEF_32<<6);
+				saved_key += (VS32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<5)+j];
-				saved_key += (SIMD_COEF_32<<5);
+				saved_key += (VS32<<5);
 			} else {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<4)+j];
-				saved_key += (SIMD_COEF_32<<4);
+				saved_key += (VS32<<4);
 			}
 			W += 16;
 		}
@@ -311,23 +312,14 @@ void SSEmd5body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state, uns
 	}
 }
 
-/*
- * TODO:
- * In the md5crypt code below, there are many vector widths hard-coded for 4,
- * disguised as eg. "+4", "&3" or ">>2". And some instances of eg. "*16" may
- * likely be "4*SIMD_COEF_32". The problem is not I'm not quite sure WHICH
- * of these should be replaced and which should not. It's not all of them,
- * that I know. The code is currently reverted to original, and segfaults
- * on any SIMD width != 4.
- */
-#define GETPOS(i, index)                ( (index&(SIMD_COEF_32-1))*4 + (i& (0xffffffff-3) )*SIMD_COEF_32 + ((i)&3) )
+#define GETPOS(i, index)                ( (index&(VS32-1))*4 + (i& (0xffffffff-3) )*VS32 + ((i)&3) )
 
 static MAYBE_INLINE void mmxput(void *buf, unsigned int index, unsigned int bid, unsigned int offset, unsigned char *src, unsigned int len)
 {
 	unsigned char *nbuf;
 	unsigned int i;
 
-	nbuf = ((unsigned char*)buf) + index/VS32*64*SIMD_COEF_32 + bid*64*MD5_SSE_NUM_KEYS;
+	nbuf = ((unsigned char*)buf) + index/VS32*64*VS32 + bid*64*MD5_SSE_NUM_KEYS;
 	for(i=0;i<len;i++)
 		nbuf[ GETPOS((offset+i), index) ] = src[i];
 
@@ -340,7 +332,7 @@ static MAYBE_INLINE void mmxput2(void *buf, unsigned int bid, void *src)
 
 	nbuf = ((unsigned char*)buf) + bid*64*MD5_SSE_NUM_KEYS;
 	MD5_PARA_DO(i)
-		memcpy( nbuf+i*64*SIMD_COEF_32, ((unsigned char*)src)+i*16*VS32, 16*VS32);
+		memcpy( nbuf+i*64*VS32, ((unsigned char*)src)+i*16*VS32, 16*VS32);
 }
 
 static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid, unsigned int *offset, int mult, int saltlen, void *src)
@@ -353,10 +345,10 @@ static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid, unsigned int *offs
 
 	MD5_PARA_DO(j)
 	{
-		nbuf = ((unsigned char*)buf) + bid*64*MD5_SSE_NUM_KEYS + j*64*SIMD_COEF_32;
-		for(i=0;i<SIMD_COEF_32;i++)
+		nbuf = ((unsigned char*)buf) + bid*64*MD5_SSE_NUM_KEYS + j*64*VS32;
+		for(i=0;i<VS32;i++)
 		{
-			noff = offset[i+j*SIMD_COEF_32]*mult + saltlen;
+			noff = offset[i+j*VS32]*mult + saltlen;
 			dec = (noff&3)*8;
 			if(dec)
 			{
@@ -513,14 +505,14 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt, c
 		mmxput(buffers, i, 7, length_i+saltlen, pwd[i], length_i);
 		mmxput(buffers, i, 7, saltlen+2*length_i+16, (unsigned char*)"\x80", 1);
 
-		bt = (unsigned int*)&buffers[0]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+16)<<3;
-		bt = (unsigned int*)&buffers[1]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+16)<<3;
-		bt = (unsigned int*)&buffers[2]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+16)<<3;
-		bt = (unsigned int*)&buffers[3]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+16)<<3;
-		bt = (unsigned int*)&buffers[4]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+saltlen+16)<<3;
-		bt = (unsigned int*)&buffers[5]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+saltlen+16)<<3;
-		bt = (unsigned int*)&buffers[6]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+saltlen+16)<<3;
-		bt = (unsigned int*)&buffers[7]; bt[14*SIMD_COEF_32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+saltlen+16)<<3;
+		bt = (unsigned int*)&buffers[0]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+16)<<3;
+		bt = (unsigned int*)&buffers[1]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+16)<<3;
+		bt = (unsigned int*)&buffers[2]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+16)<<3;
+		bt = (unsigned int*)&buffers[3]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+16)<<3;
+		bt = (unsigned int*)&buffers[4]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+saltlen+16)<<3;
+		bt = (unsigned int*)&buffers[5]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+saltlen+16)<<3;
+		bt = (unsigned int*)&buffers[6]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+saltlen+16)<<3;
+		bt = (unsigned int*)&buffers[7]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+saltlen+16)<<3;
 
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, pwd[i], length_i);
@@ -600,13 +592,13 @@ if(SSEi_flags & SSEi_FLAT_IN) {
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (i=0; i < 16; ++i) { GATHER_4x(W[i], saved_key, i); }
-				saved_key += (SIMD_COEF_32<<6);
+				saved_key += (VS32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (i=0; i < 16; ++i) { GATHER_2x(W[i], saved_key, i); }
-				saved_key += (SIMD_COEF_32<<5);
+				saved_key += (VS32<<5);
 			} else {
 				for (i=0; i < 16; ++i) { GATHER(W[i], saved_key, i); }
-				saved_key += (SIMD_COEF_32<<4);
+				saved_key += (VS32<<4);
 			}
 			W += 16;
 		}
@@ -619,19 +611,19 @@ if(SSEi_flags & SSEi_FLAT_IN) {
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<6)+j];
-				saved_key += (SIMD_COEF_32<<6);
+				saved_key += (VS32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<5)+j];
-				saved_key += (SIMD_COEF_32<<5);
+				saved_key += (VS32<<5);
 			} else {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<4)+j];
-				saved_key += (SIMD_COEF_32<<4);
+				saved_key += (VS32<<4);
 			}
 			W += 16;
 		}
@@ -1150,17 +1142,17 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, un
 				for (i=0; i < 14; ++i) { GATHER_4x(W[i], saved_key, i); vswap32(W[i]); }
 				GATHER_4x(W[14], saved_key, 14);
 				GATHER_4x(W[15], saved_key, 15);
-				saved_key += (SIMD_COEF_32<<6);
+				saved_key += (VS32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (i=0; i < 14; ++i) { GATHER_2x(W[i], saved_key, i); vswap32(W[i]); }
 				GATHER_2x(W[14], saved_key, 14);
 				GATHER_2x(W[15], saved_key, 15);
-				saved_key += (SIMD_COEF_32<<5);
+				saved_key += (VS32<<5);
 			} else {
 				for (i=0; i < 14; ++i) { GATHER(W[i], saved_key, i); vswap32(W[i]); }
 				GATHER(W[14], saved_key, 14);
 				GATHER(W[15], saved_key, 15);
-				saved_key += (SIMD_COEF_32<<4);
+				saved_key += (VS32<<4);
 			}
 			if ( ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
 				 ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
@@ -1179,19 +1171,19 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, un
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<6)+j];
-				saved_key += (SIMD_COEF_32<<6);
+				saved_key += (VS32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<5)+j];
-				saved_key += (SIMD_COEF_32<<5);
+				saved_key += (VS32<<5);
 			} else {
 				for (j=0; j < 16; j++)
-					for (i=0; i < SIMD_COEF_32; i++)
+					for (i=0; i < VS32; i++)
 						*p++ = saved_key[(i<<4)+j];
-				saved_key += (SIMD_COEF_32<<4);
+				saved_key += (VS32<<4);
 			}
 			for (i=0; i < 14; i++)
 				vswap32(W[i]);
@@ -1536,15 +1528,15 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 		saved_key = (ARCH_WORD_32*)data;
 		if (SSEi_flags & SSEi_4BUF_INPUT) {
 			for (j=0; j < 16; j++)
-				for (i=0; i < SIMD_COEF_32; i++)
+				for (i=0; i < VS32; i++)
 					*p++ = saved_key[(i<<6)+j];
 		} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 			for (j=0; j < 16; j++)
-				for (i=0; i < SIMD_COEF_32; i++)
+				for (i=0; i < VS32; i++)
 					*p++ = saved_key[(i<<5)+j];
 		} else {
 			for (j=0; j < 16; j++)
-				for (i=0; i < SIMD_COEF_32; i++)
+				for (i=0; i < VS32; i++)
 					*p++ = saved_key[(i<<4)+j];
 		}
 		for (i=0; i < 14; i++)
