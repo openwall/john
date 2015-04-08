@@ -136,7 +136,7 @@ static void pbkdf2_sha1(const unsigned char *K, int KL, const unsigned char *S, 
 
 #endif
 
-#ifdef SIMD_COEF_32
+#if defined(SIMD_COEF_32) && !defined(OPENCL_FORMAT)
 
 #define SSE_GROUP_SZ_SHA1 (SIMD_COEF_32*SHA1_SSE_PARA)
 
