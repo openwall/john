@@ -328,7 +328,7 @@ static inline void set_onesalt(int index)
 	while (++i <= last_salt_size)
 		sk[GETPOS(i+saved_len[index], idx)] = 0;
 
-	((unsigned int*)sk)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + ((idx)>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = (saved_salt->len + saved_len[index])<<3;
+	((unsigned int*)sk)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + idx/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = (saved_salt->len + saved_len[index])<<3;
 }
 #endif
 
