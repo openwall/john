@@ -681,11 +681,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				cpo[GETPOS0(k+16)] = roundascii[k];
 			}
 			cpo[GETPOS0(k+16)] = 0x80;
-#if COEF > 1
-			((ARCH_WORD_32*)cpo)[56]=((16+roundasciilen)<<3);
-#else
-			((ARCH_WORD_32*)cpo)[28]=((16+roundasciilen)<<3);
-#endif
+			((ARCH_WORD_32*)cpo)[14 * SIMD_COEF_32]=((16+roundasciilen)<<3);
 		}
 		/* now do the 'loop' for the small 1-limb blocks. */
 		zs = zs0 = zb = zb0 = 0;
@@ -782,11 +778,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					cpo24[3] = 0x80;
 					break;
 			}
-#if COEF > 1
-			((ARCH_WORD_32*)cpo24)[56]=((16+constant_phrase_size+roundasciilen)<<3);
-#else
-			((ARCH_WORD_32*)cpo24)[28]=((16+constant_phrase_size+roundasciilen)<<3);
-#endif
+			((ARCH_WORD_32*)cpo24)[14*SIMD_COEF_32]=((16+constant_phrase_size+roundasciilen)<<3);
 		}
 		for (i = 0; i < nbig-MIN_DROP_BACK; i += BLK_CNT) {
 			for (j = 0; j < BLK_CNT && zb < nbig; ++j) {
