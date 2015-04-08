@@ -287,7 +287,7 @@ static int cmp_all(void *binary, int count)
 	int index;
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_64
-		if (((ARCH_WORD_64*) binary)[0] == crypt_out[index>>(SIMD_COEF_64>>1)][index&(SIMD_COEF_64-1)])
+		if (((ARCH_WORD_64*) binary)[0] == crypt_out[index/SIMD_COEF_64][index&(SIMD_COEF_64-1)])
 			return 1;
 #else
 		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
@@ -306,7 +306,7 @@ static int cmp_one(void *binary, int index)
 #ifdef SIMD_COEF_64
 	int i;
 	for (i = 0; i < BINARY_SIZE/sizeof(ARCH_WORD_64); i++)
-		if (((ARCH_WORD_64*) binary)[i] != crypt_out[index>>(SIMD_COEF_64>>1)][(index&(SIMD_COEF_64-1))+i*SIMD_COEF_64])
+		if (((ARCH_WORD_64*) binary)[i] != crypt_out[index/SIMD_COEF_64][(index&(SIMD_COEF_64-1))+i*SIMD_COEF_64])
 			return 0;
 	return 1;
 #else
@@ -380,13 +380,13 @@ static void *get_binary(char *ciphertext)
 }
 
 #ifdef SIMD_COEF_64
-static int get_hash_0 (int index) { return crypt_out[index>>(SIMD_COEF_64>>1)][index&(SIMD_COEF_64-1)] & 0xf; }
-static int get_hash_1 (int index) { return crypt_out[index>>(SIMD_COEF_64>>1)][index&(SIMD_COEF_64-1)] & 0xff; }
-static int get_hash_2 (int index) { return crypt_out[index>>(SIMD_COEF_64>>1)][index&(SIMD_COEF_64-1)] & 0xfff; }
-static int get_hash_3 (int index) { return crypt_out[index>>(SIMD_COEF_64>>1)][index&(SIMD_COEF_64-1)] & 0xffff; }
-static int get_hash_4 (int index) { return crypt_out[index>>(SIMD_COEF_64>>1)][index&(SIMD_COEF_64-1)] & 0xfffff; }
-static int get_hash_5 (int index) { return crypt_out[index>>(SIMD_COEF_64>>1)][index&(SIMD_COEF_64-1)] & 0xffffff; }
-static int get_hash_6 (int index) { return crypt_out[index>>(SIMD_COEF_64>>1)][index&(SIMD_COEF_64-1)] & 0x7ffffff; }
+static int get_hash_0 (int index) { return crypt_out[index/SIMD_COEF_64][index&(SIMD_COEF_64-1)] & 0xf; }
+static int get_hash_1 (int index) { return crypt_out[index/SIMD_COEF_64][index&(SIMD_COEF_64-1)] & 0xff; }
+static int get_hash_2 (int index) { return crypt_out[index/SIMD_COEF_64][index&(SIMD_COEF_64-1)] & 0xfff; }
+static int get_hash_3 (int index) { return crypt_out[index/SIMD_COEF_64][index&(SIMD_COEF_64-1)] & 0xffff; }
+static int get_hash_4 (int index) { return crypt_out[index/SIMD_COEF_64][index&(SIMD_COEF_64-1)] & 0xfffff; }
+static int get_hash_5 (int index) { return crypt_out[index/SIMD_COEF_64][index&(SIMD_COEF_64-1)] & 0xffffff; }
+static int get_hash_6 (int index) { return crypt_out[index/SIMD_COEF_64][index&(SIMD_COEF_64-1)] & 0x7ffffff; }
 #else
 static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
 static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }

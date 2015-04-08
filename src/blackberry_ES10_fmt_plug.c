@@ -219,7 +219,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// now marshal into crypt_out;
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(crypt_out[index+i]);
-			ARCH_WORD_64 *Iptr64 = &keys64[((i>>(SIMD_COEF_64>>1))*(SIMD_COEF_64*16)) + (i&(SIMD_COEF_64-1))];
+			ARCH_WORD_64 *Iptr64 = &keys64[((i/SIMD_COEF_64)*(SIMD_COEF_64*16)) + (i&(SIMD_COEF_64-1))];
 			for (j = 0; j < 8; ++j) {
 				Optr64[j] = JOHNSWAP64(*Iptr64);
 				Iptr64 += SIMD_COEF_64;
