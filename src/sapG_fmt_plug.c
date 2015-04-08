@@ -512,7 +512,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			if (len > longest)
 				longest = len;
-			((unsigned int*)saved_key[(len+8)>>6])[15*SIMD_COEF_32 + (ti&3) + (ti>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
+			((unsigned int*)saved_key[(len+8)>>6])[15*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + ti/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 			crypt_len[index] = len;
 		}
 
@@ -539,7 +539,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// If final crypt ends up to be 56-61 bytes (or so), this must be clean
 			for (i = 0; i < LIMB; i++)
 				if (keyLen[ti] < i * 64 + 55)
-					((unsigned int*)saved_key[i])[15*SIMD_COEF_32 + (ti&3) + (ti>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = 0;
+					((unsigned int*)saved_key[i])[15*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + ti/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = 0;
 
 			len = keyLen[ti];
 			lengthIntoMagicArray = extractLengthOfMagicArray(crypt_key, ti);
@@ -573,7 +573,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			if (len > longest)
 				longest = len;
 
-			((unsigned int*)saved_key[(len+8)>>6])[15*SIMD_COEF_32 + (ti&3) + (ti>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
+			((unsigned int*)saved_key[(len+8)>>6])[15*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + ti/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 		}
 
 		SSESHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], NULL, SSEi_MIXED_IN);
