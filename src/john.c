@@ -217,6 +217,15 @@ static void john_register_one(struct fmt_main *format)
 		else if (!strcasecmp(options.format, "dynamic")) {
 			if ( (format->params.flags & FMT_DYNAMIC) == 0) return;
 		}
+		else if (!strcasecmp(options.format, "avx")) {
+			if (!strstr(format->params.algorithm_name, "AVX")) return;
+		}
+		else if (!strcasecmp(options.format, "avx2")) {
+			if (!strstr(format->params.algorithm_name, "AVX2")) return;
+		}
+		else if (!strcasecmp(options.format, "avx512")) {
+			if (!strstr(format->params.algorithm_name, "AVX512")) return;
+		}
 		else if (!strcasecmp(options.format, "cpu")) {
 			if (strstr(format->params.label, "-opencl") ||
 			    strstr(format->params.label, "-cuda")) return;
