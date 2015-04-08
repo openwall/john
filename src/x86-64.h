@@ -227,9 +227,7 @@
 #endif
 
 #ifndef MD5_SSE_PARA
-#if __AVX2__
-#define MD5_SSE_PARA			2
-#elif defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define MD5_SSE_PARA			3
 #elif defined(__clang__)
 #define MD5_SSE_PARA			5
@@ -249,9 +247,7 @@
 #endif
 
 #ifndef MD4_SSE_PARA
-#if __AVX2__
-#define MD4_SSE_PARA			2
-#elif defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define MD4_SSE_PARA			3
 #elif defined(__clang__)
 #define MD4_SSE_PARA			4
@@ -269,9 +265,7 @@
 #endif
 
 #ifndef SHA1_SSE_PARA
-#if __AVX2__
-#define SHA1_SSE_PARA			2
-#elif defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define SHA1_SSE_PARA			1
 #elif defined(__clang__)
 #define SHA1_SSE_PARA			2
@@ -280,7 +274,7 @@
 #define SHA1_SSE_PARA			2
 #elif defined(__GNUC__) && GCC_VERSION < 40504	// 4.5.4
 #define SHA1_SSE_PARA			1
-#elif !defined(JOHN_AVX) && defined(__GNUC__) && GCC_VERSION > 40700 // 4.7.0
+#elif !defined(__AVX__) && defined(__GNUC__) && GCC_VERSION > 40700 // 4.7.0
 #define SHA1_SSE_PARA			1
 #else
 #define SHA1_SSE_PARA			2

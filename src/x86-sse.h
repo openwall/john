@@ -187,9 +187,7 @@
 #endif
 
 #ifndef MD5_SSE_PARA
-#if __AVX2__
-#define MD5_SSE_PARA			2
-#elif defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define MD5_SSE_PARA			3
 #define MD5_N_STR			"12x"
 #elif defined(__clang__)
@@ -211,9 +209,7 @@
 #endif /* MD5_SSE_PARA */
 
 #ifndef MD4_SSE_PARA
-#if __AVX2__
-#define MD4_SSE_PARA			2
-#elif defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define MD4_SSE_PARA			3
 #define MD4_N_STR			"12x"
 #elif defined(__clang__)
@@ -238,9 +234,7 @@
 #endif /* MD4_SSE_PARA */
 
 #ifndef SHA1_SSE_PARA
-#if __AVX2__
-#define SHA1_SSE_PARA			2
-#elif defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define SHA1_SSE_PARA			1
 #define SHA1_N_STR			"4x"
 #elif defined(__clang__)
