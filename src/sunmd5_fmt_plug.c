@@ -157,11 +157,11 @@ static struct fmt_tests tests[] = {
 //#define PARAGETPOS(i, index)		( ((index)&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + ((index)/SIMD_COEF_32)*SIMD_COEF_32*64 )
 // these next 2 defines are same as above, but faster (on my gcc). Speed went fro 282 to 292, about 3.5% improvement.  Shifts vs mults.
 #define GETPOS(i, index)		    ( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) )
-#define PARAGETPOS(i, index)		( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) + ((((index)/SIMD_COEF_32)*SIMD_COEF_32)<<6) )
+#define PARAGETPOS(i, index)		( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) + ((index/SIMD_COEF_32*SIMD_COEF_32)<<6) )
 /* GETPOS0 can be 'faster' if we already have a pointer to the first DWORD in this block.  Thus we can do a GETPOS(0,idx), and then multiple GETPOS0(x) and sometimes be faster */
 #define GETPOS0(i)					(                               (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) )
 /* output buffer for para is only 16 bytes per COEF, vs 64, so it's fewer bytes to jumbo to the next PARA start */
-#define PARAGETOUTPOS(i, index)		( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) + ((((index)/SIMD_COEF_32)*SIMD_COEF_32)<<4) )
+#define PARAGETOUTPOS(i, index)		( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) + ((index/SIMD_COEF_32*SIMD_COEF_32)<<4) )
 
 #if defined (_DEBUG)
 // for VC debugging
@@ -681,7 +681,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				cpo[GETPOS0(k+16)] = roundascii[k];
 			}
 			cpo[GETPOS0(k+16)] = 0x80;
-#if COEF==4
+#if COEF > 1
 			((ARCH_WORD_32*)cpo)[56]=((16+roundasciilen)<<3);
 #else
 			((ARCH_WORD_32*)cpo)[28]=((16+roundasciilen)<<3);
@@ -782,7 +782,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					cpo24[3] = 0x80;
 					break;
 			}
-#if COEF==4
+#if COEF > 1
 			((ARCH_WORD_32*)cpo24)[56]=((16+constant_phrase_size+roundasciilen)<<3);
 #else
 			((ARCH_WORD_32*)cpo24)[28]=((16+constant_phrase_size+roundasciilen)<<3);
