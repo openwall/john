@@ -87,6 +87,10 @@ static inline __m512i _mm512_loadu_si512(void const *addr)
 	         vxor(vslli_epi32(vsrli_epi32(vslli_epi32(n, 8), 24), 8),       \
 	              vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(n, 8), 24), 8),  \
 	                   vslli_epi32(n, 24))))
+#define vswap64(n) {                                                        \
+	n = vshuffle_epi32(n, _MM_SHUFFLE(2, 3, 0, 1));                         \
+	vswap32(n);                                            					\
+}
 #else
 #define vswap32(n)	  \
 	n = vshuffle_epi8(n, vset_epi32(0x3c3d3e3f, 0x38393a3b, \
@@ -97,6 +101,11 @@ static inline __m512i _mm512_loadu_si512(void const *addr)
 	                                0x14151617, 0x10111213, \
 	                                0x0c0d0e0f, 0x08090a0b, \
 	                                0x04050607, 0x00010203))
+#define vswap64(n) \
+	n = vshuffle_epi8(n, vset_epi64(0x38393a3b3c3d3e3f, 0x3031323334353637, \
+				                    0x28292a2b2c2d2e2f, 0x2021222324252627, \
+				                    0x18191a1b1c1d1e1f, 0x1011121314151617, \
+				                    0x08090a0b0c0d0e0f, 0x0001020304050607))
 #endif
 
 // FIXME: this code is terribly unoptimized
@@ -119,6 +128,11 @@ static inline __m512i _mm512_loadu_si512(void const *addr)
 #define vtestz_epi32(n)         !_mm512_min_epu32(n)
 #define vtesteq_epi32(x, y)   \
 	_mm512_mask2int(_mm512_cmp_epi32_mask(x, y, _MM_CMPINT_EQ))
+
+#define GATHER64(x,y,z) {                                                   \
+	x = vset_epi64x(y[7][z], y[6][z], y[5][z], y[4][z],                     \
+			        y[3][z], y[2][z], y[1][z], y[0][z]);                    \
+}
 
 /******************************** AVX2 ********************************/
 #elif __AVX2__
