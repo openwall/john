@@ -224,7 +224,8 @@ static void john_register_one(struct fmt_main *format)
 			if (!strstr(format->params.algorithm_name, "AVX2")) return;
 		}
 		else if (!strcasecmp(options.format, "avx512")) {
-			if (!strstr(format->params.algorithm_name, "AVX512")) return;
+			if (!strstr(format->params.algorithm_name, "AVX512")
+			    && (!strstr(format->params.algorithm_name, "MIC"))) return;
 		}
 		else if (!strcasecmp(options.format, "cpu")) {
 			if (strstr(format->params.label, "-opencl") ||
