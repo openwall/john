@@ -224,7 +224,7 @@ static int validFolder(unsigned char *data)
 	return 0;
 }
 
-static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
+static int sevenzip_decrypt(unsigned char *derived_key)
 {
 #ifdef _MSC_VER
 	unsigned char *out;
@@ -307,9 +307,7 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 	return -1;
 }
 
-
-
-void sevenzip_kdf(UTF8 *password, unsigned char *master)
+static void sevenzip_kdf(UTF8 *password, unsigned char *master)
 {
 	int len;
 	long long rounds = (long long) 1 << cur_salt->NumCyclesPower;
@@ -349,18 +347,20 @@ void sevenzip_kdf(UTF8 *password, unsigned char *master)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
+
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
+
 		/* derive key */
 		unsigned char master[32];
 		sevenzip_kdf((unsigned char*)saved_key[index], master);
 
 		/* do decryption and checks */
-		if(sevenzip_decrypt(master, cur_salt->data) == 0)
+		if(sevenzip_decrypt(master) == 0)
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;
