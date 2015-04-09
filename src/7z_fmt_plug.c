@@ -347,14 +347,12 @@ static void sevenzip_kdf(UTF8 *password, unsigned char *master)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-
 		/* derive key */
 		unsigned char master[32];
 		sevenzip_kdf((unsigned char*)saved_key[index], master);
