@@ -4,8 +4,8 @@
 #
 # Refer to "ecryptfs-utils_104.orig.tar.gz" in case of doubt.
 #
-# This software is Copyright (c) 2014, 2015, Dhiru Kholia <dhiru.kholia at gmail.com> and 
-# NagraVision <sylvain.pelissier at nagra.com>
+# This software is Copyright (c) 2014 Dhiru Kholia <dhiru.kholia at gmail.com> and 
+# Copyright (c) 2015, NagraVision <sylvain.pelissier at nagra.com>
 # and it is hereby released to the general public under the following terms:
 #
 # Redistribution and use in source and binary forms, with or without
