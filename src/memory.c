@@ -397,17 +397,17 @@ void alter_endianity(void *_x, unsigned int size) {
 #endif
 
 // These work for standard SIMD_COEF_32 buffers, AND for SSEi MMX_PARA multiple SIMD_COEF_32 blocks, where index will be mod(X * SIMD_COEF_32) and not simply mod(SIMD_COEF_32)
-#define SHAGETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + (index>>SIMD_COEF32_BITS)*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
-#define SHAGETOUTPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + (index>>SIMD_COEF32_BITS)*20*SIMD_COEF_32 ) //for endianity conversion
+#define SHAGETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
+#define SHAGETOUTPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*20*SIMD_COEF_32 ) //for endianity conversion
 // for MD4/MD5 or any 64 byte LE SSE interleaved hash
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 +    ((i)&3)  + (index>>SIMD_COEF32_BITS)*64*SIMD_COEF_32  )
-#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 +    ((i)&3)  + (index>>SIMD_COEF32_BITS)*16*SIMD_COEF_32  )
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 +    ((i)&3)  + index/SIMD_COEF_32*64*SIMD_COEF_32  )
+#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 +    ((i)&3)  + index/SIMD_COEF_32*16*SIMD_COEF_32  )
 // for SHA384/SHA512 128 byte BE interleaved hash (arrays of 16 8 byte ints)
-#define SHA64GETPOS(i,index)	( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + (7-((i)&7)) + (index>>(SIMD_COEF_64>>1))*SHA_BUF_SIZ*8*SIMD_COEF_64 )
-#define SHA64GETOUTPOS(i,index)	( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + (7-((i)&7)) + (index>>(SIMD_COEF_64>>1))*64*SIMD_COEF_64 )
+#define SHA64GETPOS(i,index)	( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + (7-((i)&7)) + index/SIMD_COEF_64*SHA_BUF_SIZ*8*SIMD_COEF_64 )
+#define SHA64GETOUTPOS(i,index)	( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + (7-((i)&7)) + index/SIMD_COEF_64*64*SIMD_COEF_64 )
 
 // for SHA384/SHA512 128 byte FLAT interleaved hash (arrays of 16 8 byte ints), but we do not BE interleave.
-#define SHA64GETPOSne(i,index)      ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + ((i)&7) + (index>>(SIMD_COEF_64>>1))*SHA_BUF_SIZ*8*SIMD_COEF_64 )
+#define SHA64GETPOSne(i,index)      ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + ((i)&7) + index/SIMD_COEF_64*SHA_BUF_SIZ*8*SIMD_COEF_64 )
 
 void dump_stuff_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
@@ -453,7 +453,7 @@ void dump_out_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, uns
 }
 
 #if defined (MD5_SSE_PARA)
-#define GETPOSMPARA(i, index)	( (index&(SIMD_COEF_32-1))*4 + (((i)&(0xffffffff-3))%64)*SIMD_COEF_32 + (i/64)*SIMD_COEF_32*MD5_SSE_PARA*64 +    ((i)&3)  + (index>>SIMD_COEF32_BITS)*64*SIMD_COEF_32  )
+#define GETPOSMPARA(i, index)	( (index&(SIMD_COEF_32-1))*4 + (((i)&(0xffffffff-3))%64)*SIMD_COEF_32 + (i/64)*SIMD_COEF_32*MD5_SSE_PARA*64 +    ((i)&3)  + index/SIMD_COEF_32*64*SIMD_COEF_32  )
 // multiple para blocks
 void dump_stuff_mpara_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;

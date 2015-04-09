@@ -27,7 +27,7 @@ john_register_one(&fmt_ocl_pbkdf1_sha1);
 #include "options.h"
 #define OUTLEN 20
 #include "opencl_pbkdf2_hmac_sha1.h"
-#undef SIMD_COEF_32
+#define OPENCL_FORMAT
 #define PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX 1
 #include "pbkdf2_hmac_sha1.h"
 

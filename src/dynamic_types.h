@@ -148,7 +148,7 @@ typedef struct private_subformat_data
 // in openMP mode, we multiply everything by 24
 // in openMP mode, we multiply everything by 48
 // Now, we mult by 192x with OMP_SCALE=4
-#  if SIMD_COEF_32 == 4
+#  if SIMD_COEF_32 >= 4
 #   define BLOCK_LOOPS		(1536*OMP_SCALE)
 #   if !defined MD5_SSE_PARA || MD5_SSE_PARA==1
 #    define BY_X			(1536*OMP_SCALE)
@@ -165,7 +165,7 @@ typedef struct private_subformat_data
 #   endif
 #  endif
 #else
-#  if SIMD_COEF_32 == 4
+#  if SIMD_COEF_32 >= 4
 #   define BLOCK_LOOPS		32
 #   if !defined MD5_SSE_PARA || MD5_SSE_PARA==1
 #    define BY_X			32
@@ -183,23 +183,32 @@ typedef struct private_subformat_data
 # endif
 # endif
 # define LOOP_STR
-# if SIMD_COEF_32 == 4
+# if SIMD_COEF_32 >= 4
+#  if SIMD_COEF_32 == 16
+#   define BITS				"512/512"
+#  elif SIMD_COEF_32 == 8
+#   define BITS				"256/256"
+#  elif SIMD_COEF_32 == 4
+#   define BITS				"128/128"
+# elif SIMD_COEF_32 == 2
+#   define BITS				"64/64"
+#endif
 #  ifdef MD5_SSE_PARA
-#   define ALGORITHM_NAME		"128/128 " MD5_SSE_type  " " STRINGIZE(BY_X) "x4x" STRINGIZE(MD5_SSE_PARA)
+#   define ALGORITHM_NAME		BITS " " SIMD_TYPE  " " STRINGIZE(BY_X) "x" STRINGIZE(SIMD_COEF_32) "x" STRINGIZE(MD5_SSE_PARA)
 #   define BSD_BLKS (MD5_SSE_PARA)
 #  else
-#   define ALGORITHM_NAME		"128/128 " MD5_SSE_type  " " STRINGIZE(BY_X) "x4"
+#   define ALGORITHM_NAME		BITS " " SIMD_TYPE  " " STRINGIZE(BY_X) "x" STRINGIZE(SIMD_COEF_32)
 #   define BSD_BLKS 1
 #  endif
 #  ifdef SHA1_SSE_PARA
-#   define ALGORITHM_NAME_S		"128/128 " SHA1_SSE_type " " STRINGIZE(BY_X) "x4x" STRINGIZE(SHA1_SSE_PARA)
+#   define ALGORITHM_NAME_S		BITS " " SIMD_TYPE " " STRINGIZE(BY_X) "x" STRINGIZE(SIMD_COEF_32) "x" STRINGIZE(SHA1_SSE_PARA)
 #  else
-#   define ALGORITHM_NAME_S		"128/128 " SHA1_SSE_type " " STRINGIZE(BY_X) "x4"
+#   define ALGORITHM_NAME_S		BITS " " SIMD_TYPE " " STRINGIZE(BY_X) "x" STRINGIZE(SIMD_COEF_32)
 #  endif
 #  ifdef MD4_SSE_PARA
-#   define ALGORITHM_NAME_4		"128/128 " MD4_SSE_type  " " STRINGIZE(BY_X) "x4x" STRINGIZE(MD4_SSE_PARA)
+#   define ALGORITHM_NAME_4		BITS " " SIMD_TYPE  " " STRINGIZE(BY_X) "x" STRINGIZE(SIMD_COEF_32) "x" STRINGIZE(MD4_SSE_PARA)
 #  else
-#   define ALGORITHM_NAME_4		"128/128 " MD4_SSE_type  " " STRINGIZE(BY_X) "x4"
+#   define ALGORITHM_NAME_4		BITS " " SIMD_TYPE  " " STRINGIZE(BY_X) "x" STRINGIZE(SIMD_COEF_32)
 #  endif
 #  define PLAINTEXT_LENGTH	(27*3+1) // for worst-case UTF-8
 #  ifdef MD5_SSE_PARA
@@ -231,8 +240,8 @@ typedef struct private_subformat_data
 #define ALGORITHM_NAME_X86_S	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1"
 #define ALGORITHM_NAME_X86_4	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1"
 
-#define ALGORITHM_NAME_S2_256		"128/128 "CPU_NAME" 4x"
-#define ALGORITHM_NAME_S2_512		"128/128 "CPU_NAME" 2x"
+#define ALGORITHM_NAME_S2_256		BITS " " CPU_NAME " " STRINGIZE(SIMD_COEF_32) "x"
+#define ALGORITHM_NAME_S2_512		BITS " " CPU_NAME " " STRINGIZE(SIMD_COEF_64) "x"
 #if defined (COMMON_DIGEST_FOR_OPENSSL)
 #define ALGORITHM_NAME_X86_S2_256	ARCH_BITS_STR"/"ARCH_BITS_STR" "STRINGIZE(X86_BLOCK_LOOPS) "x1 CommonCrypto"
 #define ALGORITHM_NAME_X86_S2_512	ARCH_BITS_STR"/64 "STRINGIZE(X86_BLOCK_LOOPS) "x1 CommonCrypto"

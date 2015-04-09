@@ -652,18 +652,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		char *cp;
 		char p_bytes[PLAINTEXT_LENGTH+1];
 		char s_bytes[PLAINTEXT_LENGTH+1];
-		//JTR_ALIGN(16) cryptloopstruct crypt_struct;
+		//JTR_ALIGN(MEM_ALIGN_SIMD) cryptloopstruct crypt_struct;
 		// alignment may 'fail' on cygwin32 for OMP builds :(
 		// so do the alignment by hand
-		char tmp_cls[sizeof(cryptloopstruct)+16];
+		char tmp_cls[sizeof(cryptloopstruct)+MEM_ALIGN_SIMD];
 		cryptloopstruct *crypt_struct;
 #ifdef SIMD_COEF_32
-		//JTR_ALIGN(16) ARCH_WORD_32 sse_out[64];
-		char tmp_sse_out[64*4+16];
+		//JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 sse_out[64];
+		char tmp_sse_out[64*4+MEM_ALIGN_SIMD];
 		ARCH_WORD_32 *sse_out;
-		sse_out = (ARCH_WORD_32 *)mem_align(tmp_sse_out, 16);
+		sse_out = (ARCH_WORD_32 *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
 #endif
-		crypt_struct = (cryptloopstruct *)mem_align(tmp_cls,16);
+		crypt_struct = (cryptloopstruct *)mem_align(tmp_cls,MEM_ALIGN_SIMD);
 
 		for (idx = 0; idx < MAX_KEYS_PER_CRYPT; ++idx)
 		{
@@ -768,7 +768,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				for (k = 0; k < SIMD_COEF_32; ++k) {
 					ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_struct->cptr[k][idx];
 					for (j = 0; j < 8; ++j)
-						*o++ = JOHNSWAP(sse_out[(j<<SIMD_COEF32_BITS)+k]);
+						*o++ = JOHNSWAP(sse_out[(j*SIMD_COEF_32)+k]);
 				}
 			}
 			if (++idx == 42)
@@ -779,7 +779,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (k = 0; k < SIMD_COEF_32; ++k) {
 				ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_out[MixOrder[index+k]];
 				for (j = 0; j < 8; ++j)
-					*o++ = JOHNSWAP(sse_out[(j<<SIMD_COEF32_BITS)+k]);
+					*o++ = JOHNSWAP(sse_out[(j*SIMD_COEF_32)+k]);
 			}
 		}
 #else

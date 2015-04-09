@@ -98,10 +98,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 
 #include "arch.h"
 
-#ifdef SIMD_COEF_32
 #include "sse-intrinsics.h"
-#endif
-
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -1215,7 +1212,7 @@ static void set_key(char *key, int index)
 		if (dynamic_use_sse==1) {
 			// code derived from rawMD5_fmt_plug.c code from magnum
 			const ARCH_WORD_32 *key32 = (ARCH_WORD_32*)key;
-			unsigned int idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+			unsigned int idx = ( ((unsigned)index)/SIMD_COEF_32);
 			ARCH_WORD_32 *keybuffer = &input_buf[idx].w[index&(SIMD_COEF_32-1)];
 			ARCH_WORD_32 *keybuf_word = keybuffer;
 			unsigned int len;
@@ -1324,7 +1321,7 @@ static char *get_key(int index)
 		// Note, if we are not in
 		if (dynamic_use_sse && !curdat.md5_startup_in_x86) {
 			unsigned int s;
-			unsigned int idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+			unsigned int idx = ( ((unsigned)index)/SIMD_COEF_32);
 //if (curdat.store_keys_in_input && dynamic_use_sse==1)
 
 //			s = saved_key_len[index];  // NOTE, we now have to get the length from the buffer, we do NOT store it into a saved_key_len buffer.
@@ -1364,7 +1361,7 @@ static int cmp_all(void *binary, int count)
 #ifdef SIMD_COEF_32
 	int j;
 	if (dynamic_use_sse&1) {
-		unsigned int cnt = ( ((unsigned)count+SIMD_COEF_32-1)>>SIMD_COEF32_BITS);
+		unsigned int cnt = ( ((unsigned)count+SIMD_COEF_32-1)/SIMD_COEF_32);
 		for (i = 0; i < cnt; ++i)
 		{
 			for (j = 0; j < SIMD_COEF_32; ++j)
@@ -1399,7 +1396,7 @@ static int cmp_all_64_4x6(void *binary, int count)
 #ifdef SIMD_COEF_32
 	int j;
 	if (dynamic_use_sse==1) {
-		unsigned int cnt = ( ((unsigned)count+SIMD_COEF_32-1)>>SIMD_COEF32_BITS);
+		unsigned int cnt = ( ((unsigned)count+SIMD_COEF_32-1)/SIMD_COEF_32);
 		for (i = 0; i < cnt; ++i)
 		{
 			for (j = 0; j < SIMD_COEF_32; ++j)
@@ -1440,7 +1437,7 @@ static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+		unsigned int idx = ( ((unsigned)index)/SIMD_COEF_32);
 		if( (((ARCH_WORD_32 *)binary)[0] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[0*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
 			(((ARCH_WORD_32 *)binary)[1] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[1*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
 			(((ARCH_WORD_32 *)binary)[2] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[2*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
@@ -1471,7 +1468,7 @@ static int cmp_one_64_4x6(void *binary, int index)
 {
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		unsigned int idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+		unsigned int idx = ( ((unsigned)index)/SIMD_COEF_32);
 		if( (((ARCH_WORD_32 *)binary)[0] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[0*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
 			(((ARCH_WORD_32 *)binary)[1] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[1*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
 			(((ARCH_WORD_32 *)binary)[2] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[2*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
@@ -1762,7 +1759,7 @@ static int get_hash_0(int index)
 {
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+		unsigned int idx = ( ((unsigned)index)/SIMD_COEF_32);
 		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xf;
 	}
 #endif
@@ -1777,7 +1774,7 @@ static int get_hash_1(int index)
 {
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+		unsigned int idx = ( ((unsigned)index)/SIMD_COEF_32);
 		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xff;
 	}
 #endif
@@ -1792,7 +1789,7 @@ static int get_hash_2(int index)
 {
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+		unsigned int idx = ( ((unsigned)index)/SIMD_COEF_32);
 		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xfff;
 	}
 #endif
@@ -1807,7 +1804,7 @@ static int get_hash_3(int index)
 {
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+		unsigned int idx = ( ((unsigned)index)/SIMD_COEF_32);
 		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xffff;
 	}
 #endif
@@ -1821,7 +1818,7 @@ static int get_hash_4(int index)
 {
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+		unsigned int idx = ( ((unsigned)index)/SIMD_COEF_32);
 		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xfffff;
 	}
 #endif
@@ -1835,7 +1832,7 @@ static int get_hash_5(int index)
 {
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+		unsigned int idx = ( ((unsigned)index)/SIMD_COEF_32);
 		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xffffff;
 	}
 #endif
@@ -1849,7 +1846,7 @@ static int get_hash_6(int index)
 {
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
-		unsigned int idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+		unsigned int idx = ( ((unsigned)index)/SIMD_COEF_32);
 		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0x7ffffff;
 	}
 #endif
@@ -2690,7 +2687,10 @@ static void __SSE_append_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned ch
 	// 3381K  (ath64, $dynamic_2$)
 	// 824.7k (ath64, $dynamic_1006$)
 #undef inc
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 #define inc 6
 #else
 #define inc 2
@@ -2742,7 +2742,10 @@ static void __SSE_overwrite_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned
 	// 3381K  (ath64, $dynamic_2$)
 	// 824.7k (ath64, $dynamic_1006$)
 #undef inc
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 #define inc 6
 #else
 #define inc 2
@@ -2791,7 +2794,10 @@ static void __SSE_append_output_base16_to_input_semi_aligned_2(unsigned ip, ARCH
     // 5113k/4382k  (core2,$dynamic_10$)
 	//  (ath64, $dynamic_9$)
 	//  (ath64, $dynamic_10$)
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 # define inc 4
 # define incCRY 12
 #else
@@ -2856,7 +2862,10 @@ static void __SSE_append_output_base16_to_input_semi_aligned_0(unsigned ip, ARCH
 	// 3537K  (ath64, $dynamic_2$)
 	// 890.3K (ath64, $dynamic_1006$)
 #undef inc
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 #define inc 4
 //# define incCRY 12
 # define incCRY 14
@@ -3034,7 +3043,7 @@ static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 	if (dynamic_use_sse==1) {
 		if (!md5_unicode_convert_get(tid)) {
 			for (; j < til; ++j) {
-				unsigned idx = (j>>SIMD_COEF32_BITS);
+				unsigned idx = j/SIMD_COEF_32;
 				unsigned idx_mod = j&(SIMD_COEF_32-1);
 				unsigned bf_ptr = (total_len[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
 				total_len[idx] += (len << ((32/SIMD_COEF_32)*idx_mod));
@@ -3049,7 +3058,7 @@ static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (; j < til; ++j) {
-					unsigned idx = (j>>SIMD_COEF32_BITS);
+					unsigned idx = j/SIMD_COEF_32;
 					unsigned idx_mod = j&(SIMD_COEF_32-1);
 					unsigned bf_ptr = (total_len[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
 					total_len[idx] += ( outlen << ((32/SIMD_COEF_32)*idx_mod));
@@ -3058,7 +3067,7 @@ static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 				}
 			} else {
 				for (; j < til; ++j) {
-					unsigned idx = (j>>SIMD_COEF32_BITS);
+					unsigned idx = j/SIMD_COEF_32;
 					unsigned idx_mod = j&(SIMD_COEF_32-1);
 					unsigned bf_ptr = (total_len[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
 					total_len[idx] += ( (len<<1) << ((32/SIMD_COEF_32)*idx_mod));
@@ -3137,7 +3146,7 @@ static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigne
 	if (dynamic_use_sse==1) {
 		if (!md5_unicode_convert_get(tid)) {
 			for (; j < til; ++j) {
-				unsigned idx = (j>>SIMD_COEF32_BITS);
+				unsigned idx = j/SIMD_COEF_32;
 				unsigned idx_mod = j&(SIMD_COEF_32-1);
 				unsigned bf_ptr = (total_len2[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
 				total_len2[idx] += ( len << ((32/SIMD_COEF_32)*idx_mod));
@@ -3152,7 +3161,7 @@ static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigne
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (; j < til; ++j) {
-					unsigned idx = (j>>SIMD_COEF32_BITS);
+					unsigned idx = j/SIMD_COEF_32;
 					unsigned idx_mod = j&(SIMD_COEF_32-1);
 					unsigned bf_ptr = (total_len2[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
 					total_len2[idx] += ( outlen << ((32/SIMD_COEF_32)*idx_mod));
@@ -3161,7 +3170,7 @@ static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigne
 				}
 			} else {
 				for (; j < til; ++j) {
-					unsigned idx = (j>>SIMD_COEF32_BITS);
+					unsigned idx = j/SIMD_COEF_32;
 					unsigned idx_mod = j&(SIMD_COEF_32-1);
 					unsigned bf_ptr = (total_len2[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
 					total_len2[idx] += ( (len<<1) << ((32/SIMD_COEF_32)*idx_mod));
@@ -3429,7 +3438,7 @@ void DynamicFunc__append_keys(DYNA_OMP_PARAMS)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		for (; j < til; ++j) {
-			unsigned idx = (j>>SIMD_COEF32_BITS);
+			unsigned idx = j/SIMD_COEF_32;
 			unsigned idx_mod = j&(SIMD_COEF_32-1);
 			unsigned bf_ptr = (total_len[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
 			if (md5_unicode_convert_get(tid)) {
@@ -3529,7 +3538,7 @@ void DynamicFunc__append_keys_pad16(DYNA_OMP_PARAMS)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		for (; j < til; ++j) {
-			unsigned idx = (j>>SIMD_COEF32_BITS);
+			unsigned idx = j/SIMD_COEF_32;
 			unsigned idx_mod = j&(SIMD_COEF_32-1);
 			unsigned bf_ptr = (total_len[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
 			saved_key[j][saved_key_len[j]] = 0; // so strncpy 'works'
@@ -3571,7 +3580,7 @@ void DynamicFunc__append_keys_pad20(DYNA_OMP_PARAMS)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		for (; j < til; ++j) {
-			unsigned idx = (j>>SIMD_COEF32_BITS);
+			unsigned idx = j/SIMD_COEF_32;
 			unsigned idx_mod = j&(SIMD_COEF_32-1);
 			unsigned bf_ptr = (total_len[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
 			saved_key[j][saved_key_len[j]] = 0; // so strncpy 'works'
@@ -3618,7 +3627,7 @@ void DynamicFunc__append_keys2(DYNA_OMP_PARAMS)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		for (; j < til; ++j) {
-			unsigned idx = (j>>SIMD_COEF32_BITS);
+			unsigned idx = j/SIMD_COEF_32;
 			unsigned idx_mod = j&(SIMD_COEF_32-1);
 			unsigned bf_ptr = (total_len2[idx] >> ((32/SIMD_COEF_32)*idx_mod)) & 0xFF;
 			if (md5_unicode_convert_get(tid)) {
@@ -3723,7 +3732,10 @@ void DynamicFunc__set_input_len_16(DYNA_OMP_PARAMS)
 			unsigned cur_block_len = total_len[j];
 			for (k = 0; k < SIMD_COEF_32; ++k) {
 				unsigned this_item_len = cur_block_len & 0xFF;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
@@ -3732,7 +3744,10 @@ void DynamicFunc__set_input_len_16(DYNA_OMP_PARAMS)
 					input_buf[j].c[GETPOS(this_item_len, k&(SIMD_COEF_32-1))] = 0x00;
 				input_buf[j].c[GETPOS(16, k&(SIMD_COEF_32-1))] = 0x80;
 			}
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len[j] = 0x10101010;
 #else
 			total_len[j] = 0x100010;
@@ -3779,7 +3794,10 @@ void DynamicFunc__set_input2_len_16(DYNA_OMP_PARAMS)
 			unsigned cur_block_len = total_len2[j];
 			for (k = 0; k < SIMD_COEF_32; ++k) {
 				unsigned this_item_len = cur_block_len & 0xFF;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
@@ -3788,7 +3806,10 @@ void DynamicFunc__set_input2_len_16(DYNA_OMP_PARAMS)
 					input_buf2[j].c[GETPOS(this_item_len, k&(SIMD_COEF_32-1))] = 0x00;
 				input_buf2[j].c[GETPOS(16, k&(SIMD_COEF_32-1))] = 0x80;
 			}
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len2[j] = 0x10101010;
 #else
 			total_len2[j] = 0x100010;
@@ -3835,7 +3856,10 @@ void DynamicFunc__set_input_len_20(DYNA_OMP_PARAMS)
 			unsigned cur_block_len = total_len[j];
 			for (k = 0; k < SIMD_COEF_32; ++k) {
 				unsigned this_item_len = cur_block_len & 0xFF;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
@@ -3844,7 +3868,10 @@ void DynamicFunc__set_input_len_20(DYNA_OMP_PARAMS)
 					input_buf[j].c[GETPOS(this_item_len, k&(SIMD_COEF_32-1))] = 0x00;
 				input_buf[j].c[GETPOS(20, k&(SIMD_COEF_32-1))] = 0x80;
 			}
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len[j] = 0x14141414;
 #else
 			total_len[j] = 0x140014;
@@ -3890,7 +3917,10 @@ void DynamicFunc__set_input2_len_20(DYNA_OMP_PARAMS)
 			unsigned cur_block_len = total_len2[j];
 			for (k = 0; k < SIMD_COEF_32; ++k) {
 				unsigned this_item_len = cur_block_len & 0xFF;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 				cur_block_len >>= 8;
 #else
 				cur_block_len >>= 16;
@@ -3899,7 +3929,10 @@ void DynamicFunc__set_input2_len_20(DYNA_OMP_PARAMS)
 					input_buf2[j].c[GETPOS(this_item_len, k&(SIMD_COEF_32-1))] = 0x00;
 				input_buf2[j].c[GETPOS(20, k&(SIMD_COEF_32-1))] = 0x80;
 			}
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len2[j] = 0x14141414;
 #else
 			total_len2[j] = 0x100014;
@@ -3942,7 +3975,10 @@ void DynamicFunc__set_input_len_32(DYNA_OMP_PARAMS)
 			unsigned k;
 			for (k = 0; k < SIMD_COEF_32; ++k)
 				input_buf[j].c[GETPOS(32, k&(SIMD_COEF_32-1))] = 0x80;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len[j] = 0x20202020;
 #else
 			total_len[j] = 0x200020;
@@ -3989,7 +4025,10 @@ void DynamicFunc__set_input2_len_32(DYNA_OMP_PARAMS)
 			unsigned k;
 			for (k = 0; k < SIMD_COEF_32; ++k)
 				input_buf2[j].c[GETPOS(32, k&(SIMD_COEF_32-1))] = 0x80;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len2[j] = 0x20202020;
 #else
 			total_len2[j] = 0x200020;
@@ -4036,7 +4075,10 @@ void DynamicFunc__set_input_len_40(DYNA_OMP_PARAMS)
 			unsigned k;
 			for (k = 0; k < SIMD_COEF_32; ++k)
 				input_buf[j].c[GETPOS(40, k&(SIMD_COEF_32-1))] = 0x80;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len[j] = 0x28282828;
 #else
 			total_len[j] = 0x280028;
@@ -4081,7 +4123,10 @@ void DynamicFunc__set_input2_len_40(DYNA_OMP_PARAMS)
 			unsigned k;
 			for (k = 0; k < SIMD_COEF_32; ++k)
 				input_buf2[j].c[GETPOS(40, k&(SIMD_COEF_32-1))] = 0x80;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>4)
+#warning FIXME: hardcoded SIMD width issue
+#endif
+#if (SIMD_COEF_32>=4)
 			total_len2[j] = 0x28282828;
 #else
 			total_len2[j] = 0x280028;
@@ -4416,8 +4461,8 @@ void DynamicFunc__crypt_md5(DYNA_OMP_PARAMS)
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+SIMD_COEF_32-1)>>SIMD_COEF32_BITS;
-		i >>= SIMD_COEF32_BITS;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD5_SSE_PARA) {
 				SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
@@ -4457,8 +4502,8 @@ unsigned i, til;
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+SIMD_COEF_32-1)>>SIMD_COEF32_BITS;
-		i >>= SIMD_COEF32_BITS;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD4_SSE_PARA) {
 				SSEmd4body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
@@ -4648,8 +4693,8 @@ void DynamicFunc__crypt2_md5(DYNA_OMP_PARAMS)
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+SIMD_COEF_32-1)>>SIMD_COEF32_BITS;
-		i >>= SIMD_COEF32_BITS;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		for (; i < til; i += MD5_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(1, i);
 			SSEmd5body(input_buf2[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
@@ -4683,8 +4728,8 @@ void DynamicFunc__crypt2_md4(DYNA_OMP_PARAMS)
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+SIMD_COEF_32-1)>>SIMD_COEF32_BITS;
-		i >>= SIMD_COEF32_BITS;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		for (; i < til; i += MD4_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(1, i);
 			SSEmd4body(input_buf2[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
@@ -4725,8 +4770,8 @@ void DynamicFunc__crypt_md5_in1_to_out2(DYNA_OMP_PARAMS)
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+SIMD_COEF_32-1)>>SIMD_COEF32_BITS;
-		i >>= SIMD_COEF32_BITS;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD5_SSE_PARA) {
 				SSEmd5body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
@@ -4766,8 +4811,8 @@ void DynamicFunc__crypt_md4_in1_to_out2(DYNA_OMP_PARAMS)
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+SIMD_COEF_32-1)>>SIMD_COEF32_BITS;
-		i >>= SIMD_COEF32_BITS;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += MD4_SSE_PARA) {
 				SSEmd4body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
@@ -4814,8 +4859,8 @@ void DynamicFunc__crypt_md5_in2_to_out1(DYNA_OMP_PARAMS)
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+SIMD_COEF_32-1)>>SIMD_COEF32_BITS;
-		i >>= SIMD_COEF32_BITS;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		for (; i < til; i += MD5_SSE_PARA)
 		{
 			SSE_Intrinsics_LoadLens(1, i);
@@ -4851,8 +4896,8 @@ void DynamicFunc__crypt_md4_in2_to_out1(DYNA_OMP_PARAMS)
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+SIMD_COEF_32-1)>>SIMD_COEF32_BITS;
-		i >>= SIMD_COEF32_BITS;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		for (; i < til; i += MD4_SSE_PARA)
 		{
 			SSE_Intrinsics_LoadLens(1, i);
@@ -4890,8 +4935,8 @@ void DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMS)
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+SIMD_COEF_32-1)>>SIMD_COEF32_BITS;
-		i >>= SIMD_COEF32_BITS;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		for (; i < til; i += MD5_SSE_PARA)
 		{
 			unsigned j;
@@ -4938,8 +4983,8 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE(DYNA_
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+SIMD_COEF_32-1)>>SIMD_COEF32_BITS;
-		i >>=SIMD_COEF32_BITS;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		for (; i < til; i += MD5_SSE_PARA)
 		{
 			unsigned j;
@@ -4981,8 +5026,8 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMS)
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		til = (til+SIMD_COEF_32-1)>>SIMD_COEF32_BITS;
-		i >>= SIMD_COEF32_BITS;
+		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
+		i /= SIMD_COEF_32;
 		for (; i < til; i += MD5_SSE_PARA)
 		{
 			unsigned j;
@@ -5032,16 +5077,16 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix(DYNA_OMP_PARAMS)
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (; j < til; ++j) {
-					__SSE_append_string_to_input(input_buf[j>>SIMD_COEF32_BITS].c,j&(SIMD_COEF_32-1),(unsigned char*)utf16Str,outlen,0,0);
+					__SSE_append_string_to_input(input_buf[j/SIMD_COEF_32].c,j&(SIMD_COEF_32-1),(unsigned char*)utf16Str,outlen,0,0);
 				}
 			} else {
 				for (; j < til; ++j)
-					__SSE_append_string_to_input_unicode(input_buf[j>>SIMD_COEF32_BITS].c,j&(SIMD_COEF_32-1),(unsigned char*)cursalt,saltlen,0,0);
+					__SSE_append_string_to_input_unicode(input_buf[j/SIMD_COEF_32].c,j&(SIMD_COEF_32-1),(unsigned char*)cursalt,saltlen,0,0);
 			}
 			return;
 		}
 		for (; j < til; ++j)
-			__SSE_append_string_to_input(input_buf[j>>SIMD_COEF32_BITS].c,j&(SIMD_COEF_32-1),cursalt,saltlen,0,0);
+			__SSE_append_string_to_input(input_buf[j/SIMD_COEF_32].c,j&(SIMD_COEF_32-1),cursalt,saltlen,0,0);
 		return;
 	}
 #endif
@@ -5112,16 +5157,16 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix(DYNA_OMP_PARAMS)
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (; j < til; ++j) {
-					__SSE_append_string_to_input(input_buf2[j>>SIMD_COEF32_BITS].c,j&(SIMD_COEF_32-1),(unsigned char*)utf16Str,outlen,0,0);
+					__SSE_append_string_to_input(input_buf2[j/SIMD_COEF_32].c,j&(SIMD_COEF_32-1),(unsigned char*)utf16Str,outlen,0,0);
 				}
 			} else {
 				for (; j < til; ++j)
-					__SSE_append_string_to_input_unicode(input_buf2[j>>SIMD_COEF32_BITS].c,j&(SIMD_COEF_32-1),(unsigned char*)cursalt,saltlen,0,0);
+					__SSE_append_string_to_input_unicode(input_buf2[j/SIMD_COEF_32].c,j&(SIMD_COEF_32-1),(unsigned char*)cursalt,saltlen,0,0);
 			}
 			return;
 		}
 		for (; j < til; ++j)
-			__SSE_append_string_to_input(input_buf2[j>>SIMD_COEF32_BITS].c,j&(SIMD_COEF_32-1),cursalt,saltlen,0,0);
+			__SSE_append_string_to_input(input_buf2[j/SIMD_COEF_32].c,j&(SIMD_COEF_32-1),cursalt,saltlen,0,0);
 		return;
 	}
 #endif
@@ -5193,7 +5238,7 @@ void DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix(DY
 		unsigned idx;
 		for (; j < til; ++j)
 		{
-			idx = ( ((unsigned)j)>>SIMD_COEF32_BITS);
+			idx = ( ((unsigned)j)/SIMD_COEF_32);
 			__SSE_overwrite_output_base16_to_input(input_buf[idx].w, crypt_key2[idx].c, j&(SIMD_COEF_32-1));
 		}
 		return;
@@ -5238,7 +5283,7 @@ void DynamicFunc__overwrite_from_last_output_as_base16_no_size_fix(DYNA_OMP_PARA
 		unsigned idx;
 		for (; j < til; ++j)
 		{
-			idx = ( ((unsigned)j)>>SIMD_COEF32_BITS);
+			idx = ( ((unsigned)j)/SIMD_COEF_32);
 			__SSE_overwrite_output_base16_to_input(input_buf[idx].w, crypt_key[idx].c, j&(SIMD_COEF_32-1));
 		}
 		return;
@@ -5287,7 +5332,7 @@ void DynamicFunc__append_from_last_output_as_base16(DYNA_OMP_PARAMS)
 		for (; j < til; ++j)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)j)>>SIMD_COEF32_BITS);
+			idx = ( ((unsigned)j)/SIMD_COEF_32);
 			// This is the 'actual' work.
 			ip = (total_len[idx] >> ((32/SIMD_COEF_32)*(j&(SIMD_COEF_32-1)))) & 0xFF;
 			total_len[idx] += (32<<((32/SIMD_COEF_32)*(j&(SIMD_COEF_32-1))));
@@ -5361,7 +5406,7 @@ void DynamicFunc__append_from_last_output2_as_base16(DYNA_OMP_PARAMS)
 		for (; i < til; ++i)
 		{
 			unsigned ip, j;
-			idx = ( ((unsigned)i)>>SIMD_COEF32_BITS);
+			idx = ( ((unsigned)i)/SIMD_COEF_32);
 			// This is the 'actual' work.
 			ip = (total_len2[idx] >> ((32/SIMD_COEF_32)*(i&(SIMD_COEF_32-1)))) & 0xFF;
 			total_len2[idx] += (32<<((32/SIMD_COEF_32)*(i&(SIMD_COEF_32-1))));
@@ -5434,7 +5479,7 @@ void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix(DYN
 		unsigned idx;
 		for (; i < til; ++i)
 		{
-			idx = ( ((unsigned)i)>>SIMD_COEF32_BITS);
+			idx = ( ((unsigned)i)/SIMD_COEF_32);
 			__SSE_overwrite_output_base16_to_input(input_buf2[idx].w, crypt_key[idx].c, i&(SIMD_COEF_32-1));
 		}
 		return;
@@ -5478,7 +5523,7 @@ void DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix(DYNA_OMP_PAR
 		unsigned idx;
 		for (; i < til; ++i)
 		{
-			idx = ( ((unsigned)i)>>SIMD_COEF32_BITS);
+			idx = ( ((unsigned)i)/SIMD_COEF_32);
 			__SSE_overwrite_output_base16_to_input(input_buf2[idx].w, crypt_key2[idx].c, i&(SIMD_COEF_32-1));
 		}
 		return;
@@ -5526,7 +5571,7 @@ void DynamicFunc__append_from_last_output_to_input2_as_base16(DYNA_OMP_PARAMS)
 		for (; index < til; ++index)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+			idx = ( ((unsigned)index)/SIMD_COEF_32);
 			// This is the 'actual' work.
 			ip = (total_len2[idx] >> ((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1)))) & 0xFF;
 			total_len2[idx] += (32<<((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1))));
@@ -5598,7 +5643,7 @@ void DynamicFunc__append_from_last_output2_to_input1_as_base16(DYNA_OMP_PARAMS)
 		for (; index < til; ++index)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+			idx = ( ((unsigned)index)/SIMD_COEF_32);
 			// This is the 'actual' work.
 			ip = (total_len[idx] >> ((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1)))) & 0xFF;
 			total_len[idx] += (32<<((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1))));
@@ -5665,7 +5710,7 @@ void DynamicFunc__append_from_last_output2_as_raw(DYNA_OMP_PARAMS)
 		for (; index < til; ++index)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+			idx = ( ((unsigned)index)/SIMD_COEF_32);
 			// This is the 'actual' work.
 			ip = (total_len[idx] >> ((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1)))) & 0xFF;
 			if (!ip)
@@ -5728,7 +5773,7 @@ void DynamicFunc__append2_from_last_output2_as_raw(DYNA_OMP_PARAMS)
 		for (; index < til; ++index)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+			idx = ( ((unsigned)index)/SIMD_COEF_32);
 			// This is the 'actual' work.
 			ip = (total_len2[idx] >> ((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1)))) & 0xFF;
 			if (!ip)
@@ -5790,7 +5835,7 @@ void DynamicFunc__append_from_last_output1_as_raw(DYNA_OMP_PARAMS)
 		for (index = i; index < til; ++index)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+			idx = ( ((unsigned)index)/SIMD_COEF_32);
 			// This is the 'actual' work.
 			ip = (total_len[idx] >> ((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1)))) & 0xFF;
 			if (!ip)
@@ -5852,7 +5897,7 @@ void DynamicFunc__append2_from_last_output1_as_raw(DYNA_OMP_PARAMS)
 		for (index = i; index < til; ++index)
 		{
 			unsigned ip;
-			idx = ( ((unsigned)index)>>SIMD_COEF32_BITS);
+			idx = ( ((unsigned)index)/SIMD_COEF_32);
 			// This is the 'actual' work.
 			ip = (total_len2[idx] >> ((32/SIMD_COEF_32)*(index&(SIMD_COEF_32-1)))) & 0xFF;
 			if (!ip)
@@ -6099,12 +6144,28 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = input_buf_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = input_buf_X86[j+1].x1.w;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		ARCH_WORD_32 *cpo3 = input_buf_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = input_buf_X86[j+3].x1.w;
 #endif
 #endif
-		idx = ( ((unsigned)j)>>SIMD_COEF32_BITS);
+#if (SIMD_COEF_32>=8)
+		ARCH_WORD_32 *cpo5 = input_buf_X86[j+4].x1.w;
+		ARCH_WORD_32 *cpo6 = input_buf_X86[j+5].x1.w;
+		ARCH_WORD_32 *cpo7 = input_buf_X86[j+6].x1.w;
+		ARCH_WORD_32 *cpo8 = input_buf_X86[j+7].x1.w;
+#endif
+#if (SIMD_COEF_32>=16)
+		ARCH_WORD_32 *cpo9 = input_buf_X86[j+8].x1.w;
+		ARCH_WORD_32 *cpo10 = input_buf_X86[j+9].x1.w;
+		ARCH_WORD_32 *cpo11 = input_buf_X86[j+10].x1.w;
+		ARCH_WORD_32 *cpo12 = input_buf_X86[j+11].x1.w;
+		ARCH_WORD_32 *cpo13 = input_buf_X86[j+12].x1.w;
+		ARCH_WORD_32 *cpo14 = input_buf_X86[j+13].x1.w;
+		ARCH_WORD_32 *cpo15 = input_buf_X86[j+14].x1.w;
+		ARCH_WORD_32 *cpo16 = input_buf_X86[j+15].x1.w;
+#endif
+		idx = ( ((unsigned)j)/SIMD_COEF_32);
 		cpi = input_buf[idx].w;
 
 		max = total_len_X86[j] = (total_len[idx]&0xFF);
@@ -6118,9 +6179,25 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 		for (k = 0; k < max; ++k) {
 			*cpo++ = *cpi++;
 			*cpo2++ = *cpi++;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 			*cpo3++ = *cpi++;
 			*cpo4++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=8)
+			*cpo5++ = *cpi++;
+			*cpo6++ = *cpi++;
+			*cpo7++ = *cpi++;
+			*cpo8++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=16)
+			*cpo9++ = *cpi++;
+			*cpo10++ = *cpi++;
+			*cpo11++ = *cpi++;
+			*cpo12++ = *cpi++;
+			*cpo13++ = *cpi++;
+			*cpo14++ = *cpi++;
+			*cpo15++ = *cpi++;
+			*cpo16++ = *cpi++;
 #endif
 		}
 #if (MD5_X2)
@@ -6131,9 +6208,25 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 #else
 		input_buf_X86[j].x1.b[total_len_X86[j]] = 0;
 		input_buf_X86[j+1].x1.b[total_len_X86[j+1]] = 0;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		input_buf_X86[j+2].x1.b[total_len_X86[j+2]] = 0;
 		input_buf_X86[j+3].x1.b[total_len_X86[j+3]] = 0;
+#endif
+#if (SIMD_COEF_32>=8)
+		input_buf_X86[j+4].x1.b[total_len_X86[j+4]] = 0;
+		input_buf_X86[j+5].x1.b[total_len_X86[j+5]] = 0;
+		input_buf_X86[j+6].x1.b[total_len_X86[j+6]] = 0;
+		input_buf_X86[j+7].x1.b[total_len_X86[j+7]] = 0;
+#endif
+#if (SIMD_COEF_32>=8)
+		input_buf_X86[j+8].x1.b[total_len_X86[j+8]] = 0;
+		input_buf_X86[j+9].x1.b[total_len_X86[j+9]] = 0;
+		input_buf_X86[j+10].x1.b[total_len_X86[j+10]] = 0;
+		input_buf_X86[j+11].x1.b[total_len_X86[j+11]] = 0;
+		input_buf_X86[j+12].x1.b[total_len_X86[j+12]] = 0;
+		input_buf_X86[j+13].x1.b[total_len_X86[j+13]] = 0;
+		input_buf_X86[j+14].x1.b[total_len_X86[j+14]] = 0;
+		input_buf_X86[j+15].x1.b[total_len_X86[j+15]] = 0;
 #endif
 #endif
 	}
@@ -6158,12 +6251,28 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = input_buf2_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = input_buf2_X86[j+1].x1.w;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		ARCH_WORD_32 *cpo3 = input_buf2_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = input_buf2_X86[j+3].x1.w;
 #endif
 #endif
-		idx = ( ((unsigned)j)>>SIMD_COEF32_BITS);
+#if (SIMD_COEF_32>=8)
+		ARCH_WORD_32 *cpo5 = input_buf2_X86[j+4].x1.w;
+		ARCH_WORD_32 *cpo6 = input_buf2_X86[j+5].x1.w;
+		ARCH_WORD_32 *cpo7 = input_buf2_X86[j+6].x1.w;
+		ARCH_WORD_32 *cpo8 = input_buf2_X86[j+7].x1.w;
+#endif
+#if (SIMD_COEF_32>=16)
+		ARCH_WORD_32 *cpo9 = input_buf2_X86[j+8].x1.w;
+		ARCH_WORD_32 *cpo10 = input_buf2_X86[j+9].x1.w;
+		ARCH_WORD_32 *cpo11 = input_buf2_X86[j+10].x1.w;
+		ARCH_WORD_32 *cpo12 = input_buf2_X86[j+11].x1.w;
+		ARCH_WORD_32 *cpo13 = input_buf2_X86[j+12].x1.w;
+		ARCH_WORD_32 *cpo14 = input_buf2_X86[j+13].x1.w;
+		ARCH_WORD_32 *cpo15 = input_buf2_X86[j+14].x1.w;
+		ARCH_WORD_32 *cpo16 = input_buf2_X86[j+15].x1.w;
+#endif
+		idx = ( ((unsigned)j)/SIMD_COEF_32);
 		cpi = input_buf2[idx].w;
 
 		max = total_len2_X86[j] = (total_len2[idx]&0xFF);
@@ -6177,9 +6286,25 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 		for (k = 0; k < max; ++k) {
 			*cpo++ = *cpi++;
 			*cpo2++ = *cpi++;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 			*cpo3++ = *cpi++;
 			*cpo4++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=8)
+			*cpo5++ = *cpi++;
+			*cpo6++ = *cpi++;
+			*cpo7++ = *cpi++;
+			*cpo8++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=16)
+			*cpo9++ = *cpi++;
+			*cpo10++ = *cpi++;
+			*cpo11++ = *cpi++;
+			*cpo12++ = *cpi++;
+			*cpo13++ = *cpi++;
+			*cpo14++ = *cpi++;
+			*cpo15++ = *cpi++;
+			*cpo16++ = *cpi++;
 #endif
 		}
 		// get rid of the 0x80
@@ -6191,9 +6316,25 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 #else
 		input_buf2_X86[j].x1.b[total_len2_X86[j]] = 0;
 		input_buf2_X86[j+1].x1.b[total_len2_X86[j+1]] = 0;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		input_buf2_X86[j+2].x1.b[total_len2_X86[j+2]] = 0;
 		input_buf2_X86[j+3].x1.b[total_len2_X86[j+3]] = 0;
+#endif
+#if (SIMD_COEF_32>=8)
+		input_buf2_X86[j+4].x1.b[total_len2_X86[j+4]] = 0;
+		input_buf2_X86[j+5].x1.b[total_len2_X86[j+5]] = 0;
+		input_buf2_X86[j+6].x1.b[total_len2_X86[j+6]] = 0;
+		input_buf2_X86[j+7].x1.b[total_len2_X86[j+7]] = 0;
+#endif
+#if (SIMD_COEF_32>=16)
+		input_buf2_X86[j+8].x1.b[total_len2_X86[j+8]] = 0;
+		input_buf2_X86[j+9].x1.b[total_len2_X86[j+9]] = 0;
+		input_buf2_X86[j+10].x1.b[total_len2_X86[j+10]] = 0;
+		input_buf2_X86[j+11].x1.b[total_len2_X86[j+11]] = 0;
+		input_buf2_X86[j+12].x1.b[total_len2_X86[j+12]] = 0;
+		input_buf2_X86[j+13].x1.b[total_len2_X86[j+13]] = 0;
+		input_buf2_X86[j+14].x1.b[total_len2_X86[j+14]] = 0;
+		input_buf2_X86[j+15].x1.b[total_len2_X86[j+15]] = 0;
 #endif
 #endif
 	}
@@ -6218,19 +6359,51 @@ void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = crypt_key_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = crypt_key_X86[j+1].x1.w;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		ARCH_WORD_32 *cpo3 = crypt_key_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = crypt_key_X86[j+3].x1.w;
 #endif
 #endif
-		idx = ( ((unsigned)j)>>SIMD_COEF32_BITS);
+#if (SIMD_COEF_32>=8)
+		ARCH_WORD_32 *cpo5 = crypt_key_X86[j+4].x1.w;
+		ARCH_WORD_32 *cpo6 = crypt_key_X86[j+5].x1.w;
+		ARCH_WORD_32 *cpo7 = crypt_key_X86[j+6].x1.w;
+		ARCH_WORD_32 *cpo8 = crypt_key_X86[j+7].x1.w;
+#endif
+#if (SIMD_COEF_32>=16)
+		ARCH_WORD_32 *cpo9 = crypt_key_X86[j+8].x1.w;
+		ARCH_WORD_32 *cpo10 = crypt_key_X86[j+9].x1.w;
+		ARCH_WORD_32 *cpo11 = crypt_key_X86[j+10].x1.w;
+		ARCH_WORD_32 *cpo12 = crypt_key_X86[j+11].x1.w;
+		ARCH_WORD_32 *cpo13 = crypt_key_X86[j+12].x1.w;
+		ARCH_WORD_32 *cpo14 = crypt_key_X86[j+13].x1.w;
+		ARCH_WORD_32 *cpo15 = crypt_key_X86[j+14].x1.w;
+		ARCH_WORD_32 *cpo16 = crypt_key_X86[j+15].x1.w;
+#endif
+		idx = ( ((unsigned)j)/SIMD_COEF_32);
 		cpi = (void*)crypt_key[idx].c;
 		for (k = 0; k < 4; ++k) {
 			*cpo++ = *cpi++;
 			*cpo2++ = *cpi++;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 			*cpo3++ = *cpi++;
 			*cpo4++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=8)
+			*cpo5++ = *cpi++;
+			*cpo6++ = *cpi++;
+			*cpo7++ = *cpi++;
+			*cpo8++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=16)
+			*cpo9++ = *cpi++;
+			*cpo10++ = *cpi++;
+			*cpo11++ = *cpi++;
+			*cpo12++ = *cpi++;
+			*cpo13++ = *cpi++;
+			*cpo14++ = *cpi++;
+			*cpo15++ = *cpi++;
+			*cpo16++ = *cpi++;
 #endif
 		}
 	}
@@ -6255,19 +6428,51 @@ void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = crypt_key2_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = crypt_key2_X86[j+1].x1.w;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		ARCH_WORD_32 *cpo3 = crypt_key2_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = crypt_key2_X86[j+3].x1.w;
 #endif
 #endif
-		idx = ( ((unsigned)j)>>SIMD_COEF32_BITS);
+#if (SIMD_COEF_32>=8)
+		ARCH_WORD_32 *cpo5 = crypt_key2_X86[j+4].x1.w;
+		ARCH_WORD_32 *cpo6 = crypt_key2_X86[j+5].x1.w;
+		ARCH_WORD_32 *cpo7 = crypt_key2_X86[j+6].x1.w;
+		ARCH_WORD_32 *cpo8 = crypt_key2_X86[j+7].x1.w;
+#endif
+#if (SIMD_COEF_32>=16)
+		ARCH_WORD_32 *cpo9 = crypt_key2_X86[j+8].x1.w;
+		ARCH_WORD_32 *cpo10 = crypt_key2_X86[j+9].x1.w;
+		ARCH_WORD_32 *cpo11 = crypt_key2_X86[j+10].x1.w;
+		ARCH_WORD_32 *cpo12 = crypt_key2_X86[j+11].x1.w;
+		ARCH_WORD_32 *cpo13 = crypt_key2_X86[j+12].x1.w;
+		ARCH_WORD_32 *cpo14 = crypt_key2_X86[j+13].x1.w;
+		ARCH_WORD_32 *cpo15 = crypt_key2_X86[j+14].x1.w;
+		ARCH_WORD_32 *cpo16 = crypt_key2_X86[j+15].x1.w;
+#endif
+		idx = ( ((unsigned)j)/SIMD_COEF_32);
 		cpi = crypt_key2[idx].w;
 		for (k = 0; k < 4; ++k) {
 			*cpo++ = *cpi++;
 			*cpo2++ = *cpi++;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 			*cpo3++ = *cpi++;
 			*cpo4++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=8)
+			*cpo5++ = *cpi++;
+			*cpo6++ = *cpi++;
+			*cpo7++ = *cpi++;
+			*cpo8++ = *cpi++;
+#endif
+#if (SIMD_COEF_32>=16)
+			*cpo9++ = *cpi++;
+			*cpo10++ = *cpi++;
+			*cpo11++ = *cpi++;
+			*cpo12++ = *cpi++;
+			*cpo13++ = *cpi++;
+			*cpo14++ = *cpi++;
+			*cpo15++ = *cpi++;
+			*cpo16++ = *cpi++;
 #endif
 		}
 	}
@@ -6281,7 +6486,7 @@ void DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMS) {
 	dynamic_use_sse = 1;
 	__nonMP_DynamicFunc__clean_input();
 	for (j = 0; j < m_count; ++j) {
-		idx = (j>>SIMD_COEF32_BITS);
+		idx = j/SIMD_COEF_32;
 		idx_mod = j&(SIMD_COEF_32-1);
 		total_len[idx] += (total_len_X86[j] << ((32/SIMD_COEF_32)*idx_mod));
 #if (MD5_X2)
@@ -6301,7 +6506,7 @@ void DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMS) {
 	dynamic_use_sse = 1;
 	__nonMP_DynamicFunc__clean_input2();
 	for (j = 0; j < m_count; ++j) {
-		idx = (j>>SIMD_COEF32_BITS);
+		idx = j/SIMD_COEF_32;
 		idx_mod = j&(SIMD_COEF_32-1);
 		total_len2[idx] += (total_len2_X86[j] << ((32/SIMD_COEF_32)*idx_mod));
 #if (MD5_X2)
@@ -6332,19 +6537,51 @@ void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = crypt_key_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = crypt_key_X86[j+1].x1.w;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		ARCH_WORD_32 *cpo3 = crypt_key_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = crypt_key_X86[j+3].x1.w;
 #endif
 #endif
-		idx = ( ((unsigned)j)>>SIMD_COEF32_BITS);
+#if (SIMD_COEF_32>=8)
+		ARCH_WORD_32 *cpo5 = crypt_key_X86[j+4].x1.w;
+		ARCH_WORD_32 *cpo6 = crypt_key_X86[j+5].x1.w;
+		ARCH_WORD_32 *cpo7 = crypt_key_X86[j+6].x1.w;
+		ARCH_WORD_32 *cpo8 = crypt_key_X86[j+7].x1.w;
+#endif
+#if (SIMD_COEF_32>=16)
+		ARCH_WORD_32 *cpo9 = crypt_key_X86[j+8].x1.w;
+		ARCH_WORD_32 *cpo10 = crypt_key_X86[j+9].x1.w;
+		ARCH_WORD_32 *cpo11 = crypt_key_X86[j+10].x1.w;
+		ARCH_WORD_32 *cpo12 = crypt_key_X86[j+11].x1.w;
+		ARCH_WORD_32 *cpo13 = crypt_key_X86[j+12].x1.w;
+		ARCH_WORD_32 *cpo14 = crypt_key_X86[j+13].x1.w;
+		ARCH_WORD_32 *cpo15 = crypt_key_X86[j+14].x1.w;
+		ARCH_WORD_32 *cpo16 = crypt_key_X86[j+15].x1.w;
+#endif
+		idx = ( ((unsigned)j)/SIMD_COEF_32);
 		cpi = (void*)crypt_key[idx].c;
 		for (k = 0; k < 4; ++k) {
 			*cpi++ = *cpo++;
 			*cpi++ = *cpo2++;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 			*cpi++ = *cpo3++;
 			*cpi++ = *cpo4++;
+#endif
+#if (SIMD_COEF_32>=8)
+			*cpi++ = *cpo5++;
+			*cpi++ = *cpo6++;
+			*cpi++ = *cpo7++;
+			*cpi++ = *cpo8++;
+#endif
+#if (SIMD_COEF_32>=16)
+			*cpi++ = *cpo9++;
+			*cpi++ = *cpo10++;
+			*cpi++ = *cpo11++;
+			*cpi++ = *cpo12++;
+			*cpi++ = *cpo13++;
+			*cpi++ = *cpo14++;
+			*cpi++ = *cpo15++;
+			*cpi++ = *cpo16++;
 #endif
 		}
 	}
@@ -6369,19 +6606,51 @@ void DynamicFunc__X86toSSE_switch_output2(DYNA_OMP_PARAMS) {
 #else
 		ARCH_WORD_32 *cpo = crypt_key2_X86[j].x1.w;
 		ARCH_WORD_32 *cpo2 = crypt_key2_X86[j+1].x1.w;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 		ARCH_WORD_32 *cpo3 = crypt_key2_X86[j+2].x1.w;
 		ARCH_WORD_32 *cpo4 = crypt_key2_X86[j+3].x1.w;
 #endif
 #endif
-		idx = ( ((unsigned)j)>>SIMD_COEF32_BITS);
+#if (SIMD_COEF_32>=8)
+		ARCH_WORD_32 *cpo5 = crypt_key2_X86[j+4].x1.w;
+		ARCH_WORD_32 *cpo6 = crypt_key2_X86[j+5].x1.w;
+		ARCH_WORD_32 *cpo7 = crypt_key2_X86[j+6].x1.w;
+		ARCH_WORD_32 *cpo8 = crypt_key2_X86[j+7].x1.w;
+#endif
+#if (SIMD_COEF_32>=16)
+		ARCH_WORD_32 *cpo9 = crypt_key2_X86[j+8].x1.w;
+		ARCH_WORD_32 *cpo10 = crypt_key2_X86[j+9].x1.w;
+		ARCH_WORD_32 *cpo11 = crypt_key2_X86[j+10].x1.w;
+		ARCH_WORD_32 *cpo12 = crypt_key2_X86[j+11].x1.w;
+		ARCH_WORD_32 *cpo13 = crypt_key2_X86[j+12].x1.w;
+		ARCH_WORD_32 *cpo14 = crypt_key2_X86[j+13].x1.w;
+		ARCH_WORD_32 *cpo15 = crypt_key2_X86[j+14].x1.w;
+		ARCH_WORD_32 *cpo16 = crypt_key2_X86[j+15].x1.w;
+#endif
+		idx = ( ((unsigned)j)/SIMD_COEF_32);
 		cpi = crypt_key2[idx].w;
 		for (k = 0; k < 4; ++k) {
 			*cpi++ = *cpo++;
 			*cpi++ = *cpo2++;
-#if (SIMD_COEF_32==4)
+#if (SIMD_COEF_32>=4)
 			*cpi++ = *cpo3++;
 			*cpi++ = *cpo4++;
+#endif
+#if (SIMD_COEF_32>=8)
+			*cpi++ = *cpo5++;
+			*cpi++ = *cpo6++;
+			*cpi++ = *cpo7++;
+			*cpi++ = *cpo8++;
+#endif
+#if (SIMD_COEF_32>=16)
+			*cpi++ = *cpo9++;
+			*cpi++ = *cpo10++;
+			*cpi++ = *cpo11++;
+			*cpi++ = *cpo12++;
+			*cpi++ = *cpo13++;
+			*cpi++ = *cpo14++;
+			*cpi++ = *cpo15++;
+			*cpi++ = *cpo16++;
 #endif
 		}
 	}
@@ -7152,7 +7421,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 #ifdef SIMD_COEF_32
 		// no reason to do 128 crypts, causes slow validity checking.  But we do get some gains
 		// by doing more than simple 1 set of SIMD_COEF_32
-		pFmt->params.algorithm_name = "128/128 " SSE_type " 96x4x" STRINGIZE(MD5_SSE_PARA);
+		pFmt->params.algorithm_name = "128/128 " SIMD_TYPE " 96x4x" STRINGIZE(MD5_SSE_PARA);
 		pFmt->params.max_keys_per_crypt = 96*MD5_SSE_PARA;
 #else
 #if ARCH_LITTLE_ENDIAN
@@ -7168,7 +7437,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 #endif
 #else
 #ifdef SIMD_COEF_32
-		pFmt->params.algorithm_name = "128/128 " SSE_type " 4x4x" STRINGIZE(MD5_SSE_PARA);
+		pFmt->params.algorithm_name = "128/128 " SIMD_TYPE " 4x4x" STRINGIZE(MD5_SSE_PARA);
 		pFmt->params.max_keys_per_crypt = 16*MD5_SSE_PARA;
 #else
 		// In non-sse mode, 1 test runs as fast as 128. But validity checking is MUCH faster if

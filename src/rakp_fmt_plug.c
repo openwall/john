@@ -57,7 +57,7 @@ john_register_one(&fmt_rakp);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SHA1_N
 #define MAX_KEYS_PER_CRYPT      SHA1_N
-#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i) & (0xffffffff - 3)) * SIMD_COEF_32 + (3 - ((i) & 3)) + (index >> (SIMD_COEF_32 >> 1)) * SHA_BUF_SIZ * 4 * SIMD_COEF_32)
+#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i) & (0xffffffff - 3)) * SIMD_COEF_32 + (3 - ((i) & 3)) + index/SIMD_COEF_32 * SHA_BUF_SIZ * 4 * SIMD_COEF_32)
 
 #else
 #define MIN_KEYS_PER_CRYPT      1
@@ -78,7 +78,7 @@ static struct fmt_tests tests[] = {
 static unsigned char *crypt_key;
 static unsigned char *ipad, *prep_ipad;
 static unsigned char *opad, *prep_opad;
-JTR_ALIGN(16) unsigned char cur_salt[2][SHA_BUF_SIZ * 4 * SHA1_N];
+JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char cur_salt[2][SHA_BUF_SIZ * 4 * SHA1_N];
 static int bufsize;
 #else
 static struct {
@@ -130,7 +130,7 @@ static void init(struct fmt_main *self)
 	                             sizeof(*prep_opad), MEM_ALIGN_SIMD);
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
 		crypt_key[GETPOS(BINARY_SIZE, i)] = 0x80;
-		((unsigned int*)crypt_key)[15 * SIMD_COEF_32 + (i & 3) + (i >> 2) * SHA_BUF_SIZ * SIMD_COEF_32] = (BINARY_SIZE + 64) << 3;
+		((unsigned int*)crypt_key)[15 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * SHA_BUF_SIZ * SIMD_COEF_32] = (BINARY_SIZE + 64) << 3;
 	}
 	clear_keys();
 #else
@@ -315,8 +315,8 @@ static int cmp_one(void *binary, int index)
 #ifdef SIMD_COEF_32
 	int i;
 	for(i = 0; i < (BINARY_SIZE/4); i++)
-		// NOTE crypt_key is in input format (4*SHA_BUF_SIZ*SIMD_COEF_32)
-		if (((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[i * SIMD_COEF_32 + (index & 3) + (index >> 2) * SHA_BUF_SIZ * SIMD_COEF_32])
+		// NOTE crypt_key is in input format (4 * SHA_BUF_SIZ * SIMD_COEF_32)
+		if (((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[i * SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32 * SHA_BUF_SIZ * SIMD_COEF_32])
 			return 0;
 	return 1;
 #else
@@ -437,7 +437,7 @@ static void *get_salt(char *ciphertext)
 			cur_salt[j>>6][GETPOS(j & 63, i)] = 0;
 
 	for (i = 0; i < SHA1_N; ++i)
-		((unsigned int*)cur_salt[1])[15 * SIMD_COEF_32 + (i & 3) + (i >> 2) * SHA_BUF_SIZ * SIMD_COEF_32] = (len + 64) << 3;
+		((unsigned int*)cur_salt[1])[15 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * SHA_BUF_SIZ * SIMD_COEF_32] = (len + 64) << 3;
 	return &cur_salt;
 #else
 	cur_salt.length = len;

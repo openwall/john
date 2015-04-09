@@ -59,7 +59,7 @@ john_register_one(&fmt_hmacSHA384);
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      SIMD_COEF_64
 #define MAX_KEYS_PER_CRYPT      SIMD_COEF_64
-#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (index>>(SIMD_COEF_64>>1))*SHA512_BUF_SIZ*SIMD_COEF_64*8 )
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64*8 )
 #else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -76,7 +76,7 @@ static struct fmt_tests tests[] = {
 static unsigned char *crypt_key;
 static unsigned char *ipad, *prep_ipad;
 static unsigned char *opad, *prep_opad;
-JTR_ALIGN(16) unsigned char cur_salt[SALT_LENGTH * 8 * SIMD_COEF_64];
+JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char cur_salt[SALT_LENGTH * 8 * SIMD_COEF_64];
 static int bufsize;
 #else
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
@@ -120,7 +120,7 @@ static void init(struct fmt_main *self)
 	prep_opad = mem_calloc_tiny(sizeof(*prep_opad) * self->params.max_keys_per_crypt * BINARY_SIZE_512, MEM_ALIGN_SIMD);
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
 		crypt_key[GETPOS(BINARY_SIZE, i)] = 0x80;
-		((ARCH_WORD_64*)crypt_key)[15 * SIMD_COEF_64 + (i & (SIMD_COEF_64-1)) + (i >> (SIMD_COEF_64>>1)) * SHA512_BUF_SIZ * SIMD_COEF_64] = (BINARY_SIZE + PAD_SIZE) << 3;
+		((ARCH_WORD_64*)crypt_key)[15 * SIMD_COEF_64 + (i & (SIMD_COEF_64-1)) + (i/SIMD_COEF_64) * SHA512_BUF_SIZ * SIMD_COEF_64] = (BINARY_SIZE + PAD_SIZE) << 3;
 	}
 	clear_keys();
 #else
@@ -318,7 +318,7 @@ static int cmp_one(void *binary, int index)
 	int i;
 	for(i = 0; i < (BINARY_SIZE/8); i++)
 		// NOTE crypt_key is in input format (8 * SHA512_BUF_SIZ * SIMD_COEF_64)
-		if (((ARCH_WORD_64*)binary)[i] != ((ARCH_WORD_64*)crypt_key)[i * SIMD_COEF_64 + (index & (SIMD_COEF_64-1)) + (index >> (SIMD_COEF_64>>1)) * SHA512_BUF_SIZ * SIMD_COEF_64])
+		if (((ARCH_WORD_64*)binary)[i] != ((ARCH_WORD_64*)crypt_key)[i * SIMD_COEF_64 + (index & (SIMD_COEF_64-1)) + (index/SIMD_COEF_64) * SHA512_BUF_SIZ * SIMD_COEF_64])
 			return 0;
 	return 1;
 #else
@@ -352,6 +352,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 #ifdef SIMD_COEF_64
 		ARCH_WORD_64 *pclear;
+		unsigned int i;
+
 		if (new_keys) {
 			SSESHA512body(&ipad[index * SHA512_BUF_SIZ * 8],
 			            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE_512],
@@ -366,10 +368,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		// NOTE, SSESHA384 will output 64 bytes. We need the first 48 (plus the 0x80 padding).
 		// so we are forced to 'clean' this crap up, before using the crypt as the input.
-		// NOTE, this fix assumes SIMD_COEF_64==2
 		pclear = (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8];
-		pclear[12] = pclear[13] = 0x8000000000000000ULL;
-		pclear[14] = pclear[15] = 0;
+		for (i = 0; i < SIMD_COEF_64; i++) {
+			pclear[48*SIMD_COEF_64/8+i] = 0x8000000000000000ULL;
+			pclear[48*SIMD_COEF_64/8+i+SIMD_COEF_64] = 0;
+		}
 		SSESHA512body(&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&prep_opad[index * BINARY_SIZE_512],
@@ -439,7 +442,7 @@ static void *get_salt(char *ciphertext)
 	for (i = 0; i < SIMD_COEF_64; ++i)
 		cur_salt[GETPOS(total_len, i)] = 0x80;
 	for (i = 0; i < SIMD_COEF_64; ++i)
-		((ARCH_WORD_64*)cur_salt)[15 * SIMD_COEF_64 + (i & (SIMD_COEF_64-1)) + (i >> (SIMD_COEF_64>>1)) * SHA512_BUF_SIZ * SIMD_COEF_64] = (total_len + 128) << 3;
+		((ARCH_WORD_64*)cur_salt)[15 * SIMD_COEF_64 + (i & (SIMD_COEF_64-1)) + (i/SIMD_COEF_64) * SHA512_BUF_SIZ * SIMD_COEF_64] = (total_len + 128) << 3;
 	return cur_salt;
 #else
 	return salt;

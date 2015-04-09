@@ -465,7 +465,7 @@ signals.o:	signals.c os.h arch.h misc.h params.h tty.h options.h config.h bench.
 
 single.o:	single.c misc.h params.h common.h memory.h os.h signals.h loader.h logger.h status.h recovery.h options.h rpp.h rules.h external.h cracker.h john.h unicode.h config.h memdbg.h
 
-sse-intrinsics.o:	sse-intrinsics.c arch.h memory.h md5.h MD5_std.h stdint.h johnswap.h sse-intrinsics-load-flags.h aligned.h memdbg.h
+sse-intrinsics.o:	sse-intrinsics.c pseudo_intrinsics.h arch.h memory.h md5.h MD5_std.h stdint.h johnswap.h sse-intrinsics-load-flags.h aligned.h memdbg.h
 
 ssh2john.o:	ssh2john.c jumbo.h common.h arch.h params.h memdbg.h
 

@@ -16,7 +16,7 @@
 
 #include "arch.h"
 
-#if defined(SHA1_SSE_PARA) && SHA1_SSE_PARA < 4
+#if defined(SHA1_SSE_PARA)
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rawSHA1_LI;
@@ -63,33 +63,22 @@ john_register_one(&fmt_rawSHA1_LI);
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 // this version works properly for MMX, SSE2 (.S) and SSE2 intrinsic.
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>SIMD_COEF32_BITS)*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
-/* We can't have crippled hashes in the tests, due to how JtR core works */
 static struct fmt_tests tests[] = {
-	{"c3e337f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
-	//{"000007f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
+	{"000007f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
 	{"2fbf0eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
-	//{"00000eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
-
-	// if we have these 2 (raw and same) we get a source error. NOTE, the code
-	// works, the source error is a red-herring.
-//	{"a9993e364706816aba3e25717850c26c9cd0d89d", "abc"},
+	{"000006c9bca350e96223a850d9e862a6b3bf2641", "magnum"},
 	{FORMAT_TAG "a9993e364706816aba3e25717850c26c9cd0d89d", "abc"},
-	//{FORMAT_TAG "00000E364706816ABA3E25717850C26C9CD0D89D", "abc"},
-
-	{"f879f8090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
-	//{"000008090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
-	{"1813c12f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
-	//{"0000012f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
-	{"095bec1163897ac86e393fa16d6ae2c2fce21602", "7850"},
-	//{"00000c1163897ac86e393fa16d6ae2c2fce21602", "7850"},
-	{"dd3fbb0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
-	//{"00000b0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
+	{FORMAT_TAG "00000E364706816ABA3E25717850C26C9CD0D89D", "abc"},
+	{"000008090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
+	{"0000012f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
+	{"00000c1163897ac86e393fa16d6ae2c2fce21602", "7850"},
+	{"00000b0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
 	{NULL}
 };
 
@@ -97,14 +86,16 @@ static struct fmt_tests tests[] = {
 #define saved_key rawSHA1_saved_key_LI
 #define crypt_key rawSHA1_crypt_key_LI
 #ifdef SIMD_COEF_32
-JTR_ALIGN(16) ARCH_WORD_32 saved_key[SHA_BUF_SIZ*NBKEYS];
-JTR_ALIGN(16) ARCH_WORD_32 crypt_key[BINARY_SIZE/4*NBKEYS];
+JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 saved_key[SHA_BUF_SIZ*NBKEYS];
+JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 crypt_key[BINARY_SIZE/4*NBKEYS];
 static unsigned char out[PLAINTEXT_LENGTH + 1];
 #else
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 static SHA_CTX ctx;
 #endif
+
+extern volatile int bench_running;
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -149,7 +140,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 static void set_key(char *key, int index) {
 #ifdef SIMD_COEF_32
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
-	ARCH_WORD_32 *keybuffer = &saved_key[(index&(SIMD_COEF_32-1)) + (index>>SIMD_COEF32_BITS)*SHA_BUF_SIZ*SIMD_COEF_32];
+	ARCH_WORD_32 *keybuffer = &saved_key[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
@@ -196,7 +187,7 @@ static char *get_key(int index) {
 #ifdef SIMD_COEF_32
 	unsigned int i,s;
 
-	s = saved_key[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (index>>SIMD_COEF32_BITS)*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
+	s = saved_key[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
 	for(i=0;i<s;i++)
 		out[i] = ((unsigned char*)saved_key)[ GETPOS(i, index) ];
 	out[i] = 0;
@@ -231,8 +222,8 @@ static int cmp_one(void * binary, int index)
 {
 #ifdef SIMD_COEF_32
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 
 //	if( ((ARCH_WORD_32*)binary)[0] != crypt_key[x+y*SIMD_COEF_32*5] )
 //		return 0;
@@ -302,7 +293,7 @@ static int binary_hash_5(void * binary) { return ((ARCH_WORD_32*)binary)[1] & 0x
 static int binary_hash_6(void * binary) { return ((ARCH_WORD_32*)binary)[1] & 0x7ffffff; }
 
 #ifdef SIMD_COEF_32
-#define INDEX	((index&3)+(index>>2)*SIMD_COEF_32*5)
+#define INDEX	((index&(SIMD_COEF_32-1))+index/SIMD_COEF_32*SIMD_COEF_32*5)
 static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[INDEX+SIMD_COEF_32] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[INDEX+SIMD_COEF_32] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[INDEX+SIMD_COEF_32] & 0xfff; }
@@ -336,7 +327,7 @@ static char *source(char *source, void *binary)
 			if (crypt_key[(i/SIMD_COEF_32)*20+SIMD_COEF_32*2+(i%SIMD_COEF_32)] == ((ARCH_WORD_32*)binary)[2] &&
 			    crypt_key[(i/SIMD_COEF_32)*20+SIMD_COEF_32*3+(i%SIMD_COEF_32)] == ((ARCH_WORD_32*)binary)[3] &&
 			    crypt_key[(i/SIMD_COEF_32)*20+SIMD_COEF_32*4+(i%SIMD_COEF_32)] == ((ARCH_WORD_32*)binary)[4]) {
-				((ARCH_WORD_32*)binary)[0] = crypt_key[(i/SIMD_COEF_32)*20+(i%SIMD_COEF_32)];
+				if (!bench_running) ((ARCH_WORD_32*)binary)[0] = crypt_key[(i/SIMD_COEF_32)*20+(i%SIMD_COEF_32)];
 				break;
 			}
 		}
@@ -346,7 +337,7 @@ static char *source(char *source, void *binary)
 		crypt_key[2] == ((ARCH_WORD_32*)binary)[2] &&
 		crypt_key[3] == ((ARCH_WORD_32*)binary)[3] &&
 		crypt_key[4] == ((ARCH_WORD_32*)binary)[4])
-		   ((ARCH_WORD_32*)binary)[0] = crypt_key[0];
+		   if (!bench_running) ((ARCH_WORD_32*)binary)[0] = crypt_key[0];
 #endif
 	memcpy(realcipher, binary, BINARY_SIZE);
 #ifdef SIMD_COEF_32

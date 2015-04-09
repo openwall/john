@@ -212,93 +212,93 @@
 
 #ifdef __SSE2__
 
+#if __AVX512__
+#define SIMD_COEF_32 16
+#define SIMD_COEF_64 8
+#elif __AVX2__
+#define SIMD_COEF_32 8
+#define SIMD_COEF_64 4
+#elif __SSE2__
+#define SIMD_COEF_32 4
+#define SIMD_COEF_64 2
+#elif __MMX__
+#define SIMD_COEF_32 2
+#define SIMD_COEF_64 1
+#endif
+
 #ifndef MD5_SSE_PARA
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define MD5_SSE_PARA			3
-#define MD5_N_STR			"12x"
 #elif defined(__clang__)
 #define MD5_SSE_PARA			5
-#define MD5_N_STR			"20x"
 #elif defined(__llvm__)
 #define MD5_SSE_PARA			3
-#define MD5_N_STR			"12x"
 #elif defined(__GNUC__) && GCC_VERSION == 30406	// 3.4.6
 #define MD5_SSE_PARA			3
-#define MD5_N_STR			"12x"
 #elif defined(__GNUC__) && GCC_VERSION < 40405	// 4.4.5
 #define MD5_SSE_PARA			1
-#define MD5_N_STR			"4x"
 #elif defined(__GNUC__) && GCC_VERSION < 40500	// 4.5.0
 #define MD5_SSE_PARA			3
-#define MD5_N_STR			"12x"
 #elif defined(__GNUC__) && (GCC_VERSION < 40600 || defined(__XOP__)) // 4.6.0
 #define MD5_SSE_PARA			2
-#define MD5_N_STR			"8x"
 #else
 #define MD5_SSE_PARA			3
-#define MD5_N_STR			"12x"
 #endif
 #endif
 
 #ifndef MD4_SSE_PARA
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define MD4_SSE_PARA			3
-#define MD4_N_STR			"12x"
 #elif defined(__clang__)
 #define MD4_SSE_PARA			4
-#define MD4_N_STR			"16x"
 #elif defined(__llvm__)
 #define MD4_SSE_PARA			3
-#define MD4_N_STR			"12x"
 #elif defined(__GNUC__) && GCC_VERSION < 40405	// 4.4.5
 #define MD4_SSE_PARA			1
-#define MD4_N_STR			"4x"
 #elif defined(__GNUC__) && GCC_VERSION < 40500	// 4.5.0
 #define MD4_SSE_PARA			3
-#define MD4_N_STR			"12x"
 #elif defined(__GNUC__) && (GCC_VERSION < 40600 || defined(__XOP__)) // 4.6.0
 #define MD4_SSE_PARA			2
-#define MD4_N_STR			"8x"
 #else
 #define MD4_SSE_PARA			3
-#define MD4_N_STR			"12x"
 #endif
 #endif
 
 #ifndef SHA1_SSE_PARA
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define SHA1_SSE_PARA			1
-#define SHA1_N_STR			"4x"
 #elif defined(__clang__)
 #define SHA1_SSE_PARA			2
-#define SHA1_N_STR			"8x"
 #elif defined(__llvm__)
 #define SHA_BUF_SIZ			80
 #define SHA1_SSE_PARA			2
-#define SHA1_N_STR			"8x"
 #elif defined(__GNUC__) && GCC_VERSION < 40504	// 4.5.4
 #define SHA1_SSE_PARA			1
-#define SHA1_N_STR			"4x"
-#elif !defined(JOHN_AVX) && defined(__GNUC__) && GCC_VERSION > 40700 // 4.7.0
+#elif !defined(__AVX__) && defined(__GNUC__) && GCC_VERSION > 40700 // 4.7.0
 #define SHA1_SSE_PARA			1
-#define SHA1_N_STR			"4x"
 #else
 #define SHA1_SSE_PARA			2
-#define SHA1_N_STR			"8x"
 #endif
 #endif
 
 #define STR_VALUE(arg)			#arg
-#define PARA_TO_N(n)			"4x" STR_VALUE(n)
+#define PARA_TO_N(n)			STR_VALUE(n) "x"
+#define PARA_TO_MxN(m, n)		STR_VALUE(m) "x" STR_VALUE(n)
 
-#ifndef MD4_N_STR
-#define MD4_N_STR			PARA_TO_N(MD4_SSE_PARA)
+#if MD4_SSE_PARA > 1
+#define MD4_N_STR			PARA_TO_MxN(SIMD_COEF_32, MD4_SSE_PARA)
+#else
+#define MD4_N_STR			PARA_TO_N(SIMD_COEF_32)
 #endif
-#ifndef MD5_N_STR
-#define MD5_N_STR			PARA_TO_N(MD5_SSE_PARA)
+#if MD5_SSE_PARA > 1
+#define MD5_N_STR			PARA_TO_MxN(SIMD_COEF_32, MD5_SSE_PARA)
+#else
+#define MD5_N_STR			PARA_TO_N(SIMD_COEF_32)
 #endif
-#ifndef SHA1_N_STR
-#define SHA1_N_STR			PARA_TO_N(SHA1_SSE_PARA)
+#if SHA1_SSE_PARA > 1
+#define SHA1_N_STR			PARA_TO_MxN(SIMD_COEF_32, SHA1_SSE_PARA)
+#else
+#define SHA1_N_STR			PARA_TO_N(SIMD_COEF_32)
 #endif
 
 #ifndef SHA_BUF_SIZ
@@ -311,30 +311,7 @@
 #endif
 #endif
 
-#define SIMD_TYPE_STR			" SSE2"
-
 #define NT_X86_64
-
-#define SIMD_COEF_32 4
-#define SIMD_COEF_64 2
-
-// SIMD_COEF32_BITS can be used instead of division. So  buffer[(size)>>SIMD_COEF32_BITS]
-// would be same as buffer[(size)/SIMD_COEF_32] but without the division
-#if (SIMD_COEF_32==4)
-#define SIMD_COEF32_BITS 2
-#elif (SIMD_COEF_32==8)
-#define SIMD_COEF32_BITS 3
-#elif (SIMD_COEF_32==16)
-#define SIMD_COEF32_BITS 4
-#endif
-
-#if (SIMD_COEF_64==2)
-#define SIMD_COEF64_BITS 1
-#elif (SIMD_COEF_64==4)
-#define SIMD_COEF64_BITS 2
-#elif (SIMD_COEF_64==8)
-#define SIMD_COEF64_BITS 3
-#endif
 
 #endif /* __SSE2__ */
 
