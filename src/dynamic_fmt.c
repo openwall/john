@@ -2692,14 +2692,7 @@ static void __SSE_append_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned ch
 	// 3381K  (ath64, $dynamic_2$)
 	// 824.7k (ath64, $dynamic_1006$)
 #undef inc
-#if (SIMD_COEF_32>4)
-#warning FIXME: hardcoded SIMD width issue
-#endif
-#if (SIMD_COEF_32>=4)
-#define inc 6
-#else
-#define inc 2
-#endif
+#define inc ((SIMD_COEF_32-1) * 2)
 	unsigned short *IPBw = (unsigned short*)IPBdw;
 	IPBw += (idx_mod<<1);
 	CRY += (idx_mod<<2);
@@ -2747,14 +2740,7 @@ static void __SSE_overwrite_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned
 	// 3381K  (ath64, $dynamic_2$)
 	// 824.7k (ath64, $dynamic_1006$)
 #undef inc
-#if (SIMD_COEF_32>4)
-#warning FIXME: hardcoded SIMD width issue
-#endif
-#if (SIMD_COEF_32>=4)
-#define inc 6
-#else
-#define inc 2
-#endif
+#define inc ((SIMD_COEF_32-1) * 2)
 	unsigned short *IPBw = (unsigned short *)IPBdw;
 	IPBw += (idx_mod<<1);
 	CRY += (idx_mod<<2);
@@ -2868,17 +2854,19 @@ static void __SSE_append_output_base16_to_input_semi_aligned_0(unsigned ip, ARCH
 	// 890.3K (ath64, $dynamic_1006$)
 #undef inc
 #if (SIMD_COEF_32>4)
-#warning FIXME: hardcoded SIMD width issue
+#warning FIXME: hardcoded SIMD width issue?
 #endif
+#define inc SIMD_COEF_32
+#define incCRY (4*SIMD_COEF_32-2)
+/*
 #if (SIMD_COEF_32>=4)
 #define inc 4
-//# define incCRY 12
 # define incCRY 14
 #else
 #define inc 2
 # define incCRY 6
 #endif
-
+*/
 
 	// start our pointers out at the right 32 bit offset into the first MMX/SSE buffer
 	IPBdw += idx_mod;
@@ -4953,7 +4941,7 @@ void DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMS)
 			for (j = 0; j < MD5_SSE_PARA; ++j)
 			{
 				memset(input_buf[i+j].c, 0, sizeof(input_buf[0]));
-				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*4);
+				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*SIMD_COEF_32);
 				total_len[i+j] = 0x10101010;
 			}
 		}
@@ -4999,7 +4987,7 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE(DYNA_
 			// input buff, but have to use the crypt_key buffer, and then memcpy when done.
 			SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			for (j = 0; j < MD5_SSE_PARA; ++j)
-				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*4);
+				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*SIMD_COEF_32);
 		}
 		return;
 	}
@@ -5041,7 +5029,7 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMS)
 			// input buff, but have to use the crypt_key buffer, and then memcpy when done.
 			SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			for (j = 0; j < MD5_SSE_PARA; ++j)
-				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*4);
+				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*SIMD_COEF_32);
 		}
 		return;
 	}
