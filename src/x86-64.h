@@ -270,7 +270,6 @@
 #elif defined(__clang__)
 #define SHA1_SSE_PARA			2
 #elif defined(__llvm__)
-#define SHA_BUF_SIZ			80
 #define SHA1_SSE_PARA			2
 #elif defined(__GNUC__) && GCC_VERSION < 40504	// 4.5.4
 #define SHA1_SSE_PARA			1
@@ -301,15 +300,7 @@
 #define SHA1_N_STR			PARA_TO_N(SIMD_COEF_32)
 #endif
 
-#ifndef SHA_BUF_SIZ
-#ifdef SHA1_SSE_PARA
-// This can be 80 (old code) or 16 (new code)
 #define SHA_BUF_SIZ			16
-#else
-// This must be 80
-#define SHA_BUF_SIZ			80
-#endif
-#endif
 
 #define NT_X86_64
 

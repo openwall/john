@@ -155,13 +155,7 @@ static void init(struct fmt_main *self)
 
 #ifdef SIMD_COEF_32
 static void clear_keys(void) {
-#if SHA_BUF_SIZ == 16
 	memset(saved_key, 0, sizeof(saved_key));
-#else
-	int j=0;
-	for (; j<SHA1_SSE_PARA; j++)
-		memset(saved_key+j*4*SHA_BUF_SIZ*SIMD_COEF_32, 0, 56*SIMD_COEF_32);
-#endif
 }
 #endif
 

@@ -277,15 +277,7 @@
 
 #endif /* JOHN_DISABLE_INTRINSICS */
 
-#ifndef SHA_BUF_SIZ
-#ifdef SHA1_SSE_PARA
-// This can be 80 (old code) or 16 (new code)
 #define SHA_BUF_SIZ			16
-#else
-// This must be 80
-#define SHA_BUF_SIZ			80
-#endif
-#endif
 
 #define NT_SSE2
 

@@ -33,12 +33,17 @@
    ones let me debug, and develop this code, and work, but use CPU */
 _inline __m128i _mm_set_epi64x(long long a, long long b)
 {
-	__m128i x; x.m128i_i64[0] = b; x.m128i_i64[1] = a;
+	__m128i x;
+
+	x.m128i_i64[0] = b;
+	x.m128i_i64[1] = a;
 	return x;
 }
 _inline __m128i _mm_set1_epi64x(long long a)
 {
-	__m128i x; x.m128i_i64[0] = x.m128i_i64[1] = a;
+	__m128i x;
+
+	x.m128i_i64[0] = x.m128i_i64[1] = a;
 	return x;
 }
 #endif
@@ -47,7 +52,7 @@ _inline __m128i _mm_set1_epi64x(long long a)
 #pragma GCC optimize 3
 #endif
 
-/* Shorter names for use in indices */
+/* Shorter names for use in index calculations */
 #define VS32 SIMD_COEF_32
 #define VS64 SIMD_COEF_64
 
@@ -86,7 +91,8 @@ _inline __m128i _mm_set1_epi64x(long long a)
 	MD5_PARA_DO(i) a[i] = vroti16_epi32( a[i], (s) ); \
 	MD5_PARA_DO(i) a[i] = vadd_epi32( a[i], b[i] );
 
-void SSEmd5body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
+void SSEmd5body(vtype* _data, unsigned int *out,
+                ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
 	vtype w[16*MD5_SSE_PARA];
 	vtype a[MD5_SSE_PARA];
@@ -312,9 +318,11 @@ void SSEmd5body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state, uns
 	}
 }
 
-#define GETPOS(i, index)                ( (index&(VS32-1))*4 + (i& (0xffffffff-3) )*VS32 + ((i)&3) )
+#define GETPOS(i, index)    ( (index&(VS32-1))*4 + (i& (0xffffffff-3) )*VS32 + ((i)&3) )
 
-static MAYBE_INLINE void mmxput(void *buf, unsigned int index, unsigned int bid, unsigned int offset, unsigned char *src, unsigned int len)
+static MAYBE_INLINE void mmxput(void *buf, unsigned int index, unsigned int bid,
+                                unsigned int offset, unsigned char *src,
+                                unsigned int len)
 {
 	unsigned char *nbuf;
 	unsigned int i;
@@ -335,7 +343,9 @@ static MAYBE_INLINE void mmxput2(void *buf, unsigned int bid, void *src)
 		memcpy( nbuf+i*64*VS32, ((unsigned char*)src)+i*16*VS32, 16*VS32);
 }
 
-static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid, unsigned int *offset, int mult, int saltlen, void *src)
+static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid,
+                                 unsigned int *offset, int mult,
+                                 int saltlen, void *src)
 {
 	unsigned char *nbuf;
 	unsigned int noff;
@@ -353,27 +363,44 @@ static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid, unsigned int *offs
 			if(dec)
 			{
 				noffd = noff & (~3);
-				((unsigned int*)(nbuf+noffd*VS32))[i+0*VS32] &= (0xffffffff>>(32-dec));
-				((unsigned int*)(nbuf+noffd*VS32))[i+0*VS32] |= (((unsigned int*)src)[i+j*4*VS32+0*VS32] << dec);
-				((unsigned int*)(nbuf+noffd*VS32))[i+1*VS32] = (((unsigned int*)src)[i+j*4*VS32+1*VS32] << dec) | (((unsigned int*)src)[i+j*4*VS32+0*VS32] >> (32-dec));
-				((unsigned int*)(nbuf+noffd*VS32))[i+2*VS32] = (((unsigned int*)src)[i+j*4*VS32+2*VS32] << dec) | (((unsigned int*)src)[i+j*4*VS32+1*VS32] >> (32-dec));
-				((unsigned int*)(nbuf+noffd*VS32))[i+3*VS32] = (((unsigned int*)src)[i+j*4*VS32+3*VS32] << dec) | (((unsigned int*)src)[i+j*4*VS32+2*VS32] >> (32-dec));
-				((unsigned int*)(nbuf+noffd*VS32))[i+4*VS32] &= (0xffffffff<<dec);
-				((unsigned int*)(nbuf+noffd*VS32))[i+4*VS32] |= (((unsigned int*)src)[i+j*4*VS32+3*VS32] >> (32-dec));
+				((unsigned int*)(nbuf+noffd*VS32))[i+0*VS32] &=
+					(0xffffffff>>(32-dec));
+				((unsigned int*)(nbuf+noffd*VS32))[i+0*VS32] |=
+					(((unsigned int*)src)[i+j*4*VS32+0*VS32] << dec);
+				((unsigned int*)(nbuf+noffd*VS32))[i+1*VS32] =
+					(((unsigned int*)src)[i+j*4*VS32+1*VS32] << dec) |
+					(((unsigned int*)src)[i+j*4*VS32+0*VS32] >> (32-dec));
+				((unsigned int*)(nbuf+noffd*VS32))[i+2*VS32] =
+					(((unsigned int*)src)[i+j*4*VS32+2*VS32] << dec) |
+					(((unsigned int*)src)[i+j*4*VS32+1*VS32] >> (32-dec));
+				((unsigned int*)(nbuf+noffd*VS32))[i+3*VS32] =
+					(((unsigned int*)src)[i+j*4*VS32+3*VS32] << dec) |
+					(((unsigned int*)src)[i+j*4*VS32+2*VS32] >> (32-dec));
+				((unsigned int*)(nbuf+noffd*VS32))[i+4*VS32] &=
+					(0xffffffff<<dec);
+				((unsigned int*)(nbuf+noffd*VS32))[i+4*VS32] |=
+					(((unsigned int*)src)[i+j*4*VS32+3*VS32] >> (32-dec));
 			}
 			else
 			{
-				((unsigned int*)(nbuf+noff*VS32))[i+0*VS32] = ((unsigned int*)src)[i+j*4*VS32+0*VS32];
-				((unsigned int*)(nbuf+noff*VS32))[i+1*VS32] = ((unsigned int*)src)[i+j*4*VS32+1*VS32];
-				((unsigned int*)(nbuf+noff*VS32))[i+2*VS32] = ((unsigned int*)src)[i+j*4*VS32+2*VS32];
-				((unsigned int*)(nbuf+noff*VS32))[i+3*VS32] = ((unsigned int*)src)[i+j*4*VS32+3*VS32];
+				((unsigned int*)(nbuf+noff*VS32))[i+0*VS32] =
+					((unsigned int*)src)[i+j*4*VS32+0*VS32];
+				((unsigned int*)(nbuf+noff*VS32))[i+1*VS32] =
+					((unsigned int*)src)[i+j*4*VS32+1*VS32];
+				((unsigned int*)(nbuf+noff*VS32))[i+2*VS32] =
+					((unsigned int*)src)[i+j*4*VS32+2*VS32];
+				((unsigned int*)(nbuf+noff*VS32))[i+3*VS32] =
+					((unsigned int*)src)[i+j*4*VS32+3*VS32];
 			}
 		}
 	}
 
 }
 
-static MAYBE_INLINE void dispatch(unsigned char buffers[8][64*MD5_SSE_NUM_KEYS], unsigned int f[4*MD5_SSE_NUM_KEYS], unsigned int length[MD5_SSE_NUM_KEYS], unsigned int saltlen)
+static MAYBE_INLINE void dispatch(unsigned char buffers[8][64*MD5_SSE_NUM_KEYS],
+                                  unsigned int f[4*MD5_SSE_NUM_KEYS],
+                                  unsigned int length[MD5_SSE_NUM_KEYS],
+                                  unsigned int saltlen)
 {
 	unsigned int i, j;
 	unsigned int bufferid;
@@ -453,7 +480,8 @@ static MAYBE_INLINE void dispatch(unsigned char buffers[8][64*MD5_SSE_NUM_KEYS],
 }
 
 
-void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt, char *out, int md5_type)
+void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
+                 char *out, int md5_type)
 {
 	unsigned int length[MD5_SSE_NUM_KEYS];
 	unsigned int saltlen;
@@ -505,14 +533,22 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt, c
 		mmxput(buffers, i, 7, length_i+saltlen, pwd[i], length_i);
 		mmxput(buffers, i, 7, saltlen+2*length_i+16, (unsigned char*)"\x80", 1);
 
-		bt = (unsigned int*)&buffers[0]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+16)<<3;
-		bt = (unsigned int*)&buffers[1]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+16)<<3;
-		bt = (unsigned int*)&buffers[2]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+16)<<3;
-		bt = (unsigned int*)&buffers[3]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+16)<<3;
-		bt = (unsigned int*)&buffers[4]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+saltlen+16)<<3;
-		bt = (unsigned int*)&buffers[5]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+saltlen+16)<<3;
-		bt = (unsigned int*)&buffers[6]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+saltlen+16)<<3;
-		bt = (unsigned int*)&buffers[7]; bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+saltlen+16)<<3;
+		bt = (unsigned int*)&buffers[0];
+		bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+16)<<3;
+		bt = (unsigned int*)&buffers[1];
+		bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+16)<<3;
+		bt = (unsigned int*)&buffers[2];
+		bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+16)<<3;
+		bt = (unsigned int*)&buffers[3];
+		bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+16)<<3;
+		bt = (unsigned int*)&buffers[4];
+		bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+saltlen+16)<<3;
+		bt = (unsigned int*)&buffers[5];
+		bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i+saltlen+16)<<3;
+		bt = (unsigned int*)&buffers[6];
+		bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+saltlen+16)<<3;
+		bt = (unsigned int*)&buffers[7];
+		bt[14*VS32 + (i&(VS32-1)) + i/VS32*16*VS32] = (length_i*2+saltlen+16)<<3;
 
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, pwd[i], length_i);
@@ -569,7 +605,8 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt, c
 	MD4_PARA_DO(i) a[i] = vadd_epi32( a[i], data[i*16+x] ); \
 	MD4_PARA_DO(i) a[i] = vroti_epi32( a[i], (s) );
 
-void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
+void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
+                unsigned SSEi_flags)
 {
 	vtype w[16*MD4_SSE_PARA];
 	vtype a[MD4_SSE_PARA];
@@ -809,230 +846,6 @@ if(SSEi_flags & SSEi_FLAT_IN) {
 
 #define SHA1_I(x,y,z) SHA1_G(x,y,z)
 
-#if SHA_BUF_SIZ == 80
-
-// Bartavelle's original code, using 80x4 words of buffer
-
-#define SHA1_EXPAND(t) \
-	SHA1_PARA_DO(i) tmp[i] = vxor( data[i*80+t-3], data[i*80+t-8] ); \
-	SHA1_PARA_DO(i) tmp[i] = vxor( tmp[i], data[i*80+t-14] ); \
-	SHA1_PARA_DO(i) tmp[i] = vxor( tmp[i], data[i*80+t-16] ); \
-	SHA1_PARA_DO(i) data[i*80+t] = vroti_epi32(tmp[i], 1);
-
-#define SHA1_ROUND(a,b,c,d,e,F,t) \
-	F(b,c,d) \
-	SHA1_PARA_DO(i) e[i] = vadd_epi32( e[i], tmp[i] ); \
-	SHA1_PARA_DO(i) tmp[i] = vroti_epi32(a[i], 5); \
-	SHA1_PARA_DO(i) e[i] = vadd_epi32( e[i], tmp[i] ); \
-	SHA1_PARA_DO(i) e[i] = vadd_epi32( e[i], cst ); \
-	SHA1_PARA_DO(i) e[i] = vadd_epi32( e[i], data[i*80+t] ); \
-	SHA1_PARA_DO(i) b[i] = vroti_epi32(b[i], 30);
-
-void SSESHA1body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned int SSEi_flags)
-{
-	vtype a[SHA1_SSE_PARA];
-	vtype b[SHA1_SSE_PARA];
-	vtype c[SHA1_SSE_PARA];
-	vtype d[SHA1_SSE_PARA];
-	vtype e[SHA1_SSE_PARA];
-	vtype tmp[SHA1_SSE_PARA];
-	vtype tmp2[SHA1_SSE_PARA];
-	vtype	cst;
-	unsigned int i,j;
-
-	for(j=16;j<80;j++)
-	{
-		SHA1_EXPAND(j);
-	}
-
-	if((SSEi_flags & SSEi_RELOAD)==0)
-	{
-		SHA1_PARA_DO(i)
-		{
-			a[i] = vset1_epi32(0x67452301);
-			b[i] = vset1_epi32(0xefcdab89);
-			c[i] = vset1_epi32(0x98badcfe);
-			d[i] = vset1_epi32(0x10325476);
-			e[i] = vset1_epi32(0xC3D2E1F0);
-		}
-	}
-	else
-	{
-		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
-		{
-			SHA1_PARA_DO(i)
-			{
-				a[i] = vload((vtype*)&reload_state[i*80*VS32+0*VS32]);
-				b[i] = vload((vtype*)&reload_state[i*80*VS32+1*VS32]);
-				c[i] = vload((vtype*)&reload_state[i*80*VS32+2*VS32]);
-				d[i] = vload((vtype*)&reload_state[i*80*VS32+3*VS32]);
-				e[i] = vload((vtype*)&reload_state[i*80*VS32+4*VS32]);
-			}
-		}
-		else
-		{
-			SHA1_PARA_DO(i)
-			{
-				a[i] = vload((vtype*)&reload_state[i*5*VS32+0*VS32]);
-				b[i] = vload((vtype*)&reload_state[i*5*VS32+1*VS32]);
-				c[i] = vload((vtype*)&reload_state[i*5*VS32+2*VS32]);
-				d[i] = vload((vtype*)&reload_state[i*5*VS32+3*VS32]);
-				e[i] = vload((vtype*)&reload_state[i*5*VS32+4*VS32]);
-			}
-		}
-	}
-
-	cst = vset1_epi32(0x5A827999);
-	SHA1_ROUND( a, b, c, d, e, SHA1_F,  0 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_F,  1 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_F,  2 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_F,  3 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_F,  4 );
-	SHA1_ROUND( a, b, c, d, e, SHA1_F,  5 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_F,  6 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_F,  7 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_F,  8 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_F,  9 );
-	SHA1_ROUND( a, b, c, d, e, SHA1_F, 10 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_F, 11 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_F, 12 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_F, 13 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_F, 14 );
-	SHA1_ROUND( a, b, c, d, e, SHA1_F, 15 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_F, 16 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_F, 17 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_F, 18 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_F, 19 );
-
-	cst = vset1_epi32(0x6ED9EBA1);
-	SHA1_ROUND( a, b, c, d, e, SHA1_G, 20 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_G, 21 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_G, 22 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_G, 23 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_G, 24 );
-	SHA1_ROUND( a, b, c, d, e, SHA1_G, 25 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_G, 26 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_G, 27 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_G, 28 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_G, 29 );
-	SHA1_ROUND( a, b, c, d, e, SHA1_G, 30 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_G, 31 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_G, 32 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_G, 33 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_G, 34 );
-	SHA1_ROUND( a, b, c, d, e, SHA1_G, 35 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_G, 36 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_G, 37 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_G, 38 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_G, 39 );
-
-	cst = vset1_epi32(0x8F1BBCDC);
-	SHA1_ROUND( a, b, c, d, e, SHA1_H, 40 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_H, 41 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_H, 42 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_H, 43 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_H, 44 );
-	SHA1_ROUND( a, b, c, d, e, SHA1_H, 45 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_H, 46 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_H, 47 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_H, 48 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_H, 49 );
-	SHA1_ROUND( a, b, c, d, e, SHA1_H, 50 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_H, 51 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_H, 52 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_H, 53 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_H, 54 );
-	SHA1_ROUND( a, b, c, d, e, SHA1_H, 55 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_H, 56 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_H, 57 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_H, 58 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_H, 59 );
-
-	cst = vset1_epi32(0xCA62C1D6);
-	SHA1_ROUND( a, b, c, d, e, SHA1_I, 60 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_I, 61 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_I, 62 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_I, 63 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_I, 64 );
-	SHA1_ROUND( a, b, c, d, e, SHA1_I, 65 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_I, 66 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_I, 67 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_I, 68 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_I, 69 );
-	SHA1_ROUND( a, b, c, d, e, SHA1_I, 70 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_I, 71 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_I, 72 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_I, 73 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_I, 74 );
-	SHA1_ROUND( a, b, c, d, e, SHA1_I, 75 );
-	SHA1_ROUND( e, a, b, c, d, SHA1_I, 76 );
-	SHA1_ROUND( d, e, a, b, c, SHA1_I, 77 );
-	SHA1_ROUND( c, d, e, a, b, SHA1_I, 78 );
-	SHA1_ROUND( b, c, d, e, a, SHA1_I, 79 );
-
-	if((SSEi_flags & SSEi_RELOAD)==0)
-	{
-		SHA1_PARA_DO(i)
-		{
-			a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
-			b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
-			c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
-			d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
-			e[i] = vadd_epi32(e[i], vset1_epi32(0xC3D2E1F0));
-		}
-	}
-	else
-	{
-		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
-		{
-			SHA1_PARA_DO(i)
-			{
-				a[i] = vadd_epi32(a[i], vload((vtype*)&reload_state[i*80*VS32+0*VS32]));
-				b[i] = vadd_epi32(b[i], vload((vtype*)&reload_state[i*80*VS32+1*VS32]));
-				c[i] = vadd_epi32(c[i], vload((vtype*)&reload_state[i*80*VS32+2*VS32]));
-				d[i] = vadd_epi32(d[i], vload((vtype*)&reload_state[i*80*VS32+3*VS32]));
-				e[i] = vadd_epi32(e[i], vload((vtype*)&reload_state[i*80*VS32+4*VS32]));
-			}
-		}
-		else
-		{
-			SHA1_PARA_DO(i)
-			{
-				a[i] = vadd_epi32(a[i], vload((vtype*)&reload_state[i*5*VS32+0*VS32]));
-				b[i] = vadd_epi32(b[i], vload((vtype*)&reload_state[i*5*VS32+1*VS32]));
-				c[i] = vadd_epi32(c[i], vload((vtype*)&reload_state[i*5*VS32+2*VS32]));
-				d[i] = vadd_epi32(d[i], vload((vtype*)&reload_state[i*5*VS32+3*VS32]));
-				e[i] = vadd_epi32(e[i], vload((vtype*)&reload_state[i*5*VS32+4*VS32]));
-			}
-		}
-	}
-	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
-	{
-		SHA1_PARA_DO(i)
-		{
-			vstore((vtype*)&out[i*80*VS32+0*VS32], a[i]);
-			vstore((vtype*)&out[i*80*VS32+1*VS32], b[i]);
-			vstore((vtype*)&out[i*80*VS32+2*VS32], c[i]);
-			vstore((vtype*)&out[i*80*VS32+3*VS32], d[i]);
-			vstore((vtype*)&out[i*80*VS32+4*VS32], e[i]);
-		}
-	}
-	else
-	{
-		SHA1_PARA_DO(i)
-		{
-			vstore((vtype*)&out[i*5*VS32+0*VS32], a[i]);
-			vstore((vtype*)&out[i*5*VS32+1*VS32], b[i]);
-			vstore((vtype*)&out[i*5*VS32+2*VS32], c[i]);
-			vstore((vtype*)&out[i*5*VS32+3*VS32], d[i]);
-			vstore((vtype*)&out[i*5*VS32+4*VS32], e[i]);
-		}
-	}
-}
-#else /* SHA_BUF_SIZ */
-
-// JimF's code, using 16x4 words of buffer just like MD4/5
-
 #define SHA1_EXPAND2a(t) \
 	SHA1_PARA_DO(i) tmp[i] = vxor( data[i*16+t-3], data[i*16+t-8] ); \
 	SHA1_PARA_DO(i) tmp[i] = vxor( tmp[i], data[i*16+t-14] ); \
@@ -1114,7 +927,8 @@ void SSESHA1body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, uns
 	SHA1_PARA_DO(i) e[i] = vadd_epi32( e[i], tmpR[i*16+(t&0xF)] ); \
 	SHA1_PARA_DO(i) b[i] = vroti_epi32(b[i], 30);
 
-void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
+void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
+                 unsigned SSEi_flags)
 {
 	vtype w[16*SHA1_SSE_PARA];
 	vtype a[SHA1_SSE_PARA];
@@ -1139,17 +953,26 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, un
 		SHA1_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
-				for (i=0; i < 14; ++i) { GATHER_4x(W[i], saved_key, i); vswap32(W[i]); }
+				for (i=0; i < 14; ++i) {
+					GATHER_4x(W[i], saved_key, i);
+					vswap32(W[i]);
+				}
 				GATHER_4x(W[14], saved_key, 14);
 				GATHER_4x(W[15], saved_key, 15);
 				saved_key += (VS32<<6);
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
-				for (i=0; i < 14; ++i) { GATHER_2x(W[i], saved_key, i); vswap32(W[i]); }
+				for (i=0; i < 14; ++i) {
+					GATHER_2x(W[i], saved_key, i);
+					vswap32(W[i]);
+				}
 				GATHER_2x(W[14], saved_key, 14);
 				GATHER_2x(W[15], saved_key, 15);
 				saved_key += (VS32<<5);
 			} else {
-				for (i=0; i < 14; ++i) { GATHER(W[i], saved_key, i); vswap32(W[i]); }
+				for (i=0; i < 14; ++i) {
+					GATHER(W[i], saved_key, i);
+					vswap32(W[i]);
+				}
 				GATHER(W[14], saved_key, 14);
 				GATHER(W[15], saved_key, 15);
 				saved_key += (VS32<<4);
@@ -1386,52 +1209,51 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, un
 		}
 	}
 }
-#endif /* SHA_BUF_SIZ */
 #endif /* SHA1_SSE_PARA */
 
 
-#define S0(x)                           \
-(                                       \
-    vxor(                     \
-        vroti_epi32(x, -22),        \
-        vxor(                 \
-            vroti_epi32(x,  -2),    \
-            vroti_epi32(x, -13)     \
-        )                               \
-    )                                   \
+#define S0(x)                                   \
+(                                               \
+    vxor(                                       \
+        vroti_epi32(x, -22),                    \
+        vxor(                                   \
+            vroti_epi32(x,  -2),                \
+            vroti_epi32(x, -13)                 \
+        )                                       \
+    )                                           \
 )
 
-#define S1(x)                           \
-(                                       \
-    vxor(                     \
-        vroti_epi32(x, -25),        \
-        vxor(                 \
-            vroti_epi32(x,  -6),    \
-            vroti_epi32(x, -11)     \
-        )                               \
-    )                                   \
+#define S1(x)                                   \
+(                                               \
+    vxor(                                       \
+        vroti_epi32(x, -25),                    \
+        vxor(                                   \
+            vroti_epi32(x,  -6),                \
+            vroti_epi32(x, -11)                 \
+        )                                       \
+    )                                           \
 )
 
-#define s0(x)                           \
-(                                       \
-    vxor(                     \
-        vsrli_epi32(x, 3),          \
-        vxor(                 \
-            vroti_epi32(x,  -7),    \
-            vroti_epi32(x, -18)     \
-        )                               \
-    )                                   \
+#define s0(x)                                   \
+(                                               \
+    vxor(                                       \
+        vsrli_epi32(x, 3),                      \
+        vxor(                                   \
+            vroti_epi32(x,  -7),                \
+            vroti_epi32(x, -18)                 \
+        )                                       \
+    )                                           \
 )
 
-#define s1(x)                           \
-(                                       \
-    vxor(                     \
-        vsrli_epi32(x, 10),         \
-        vxor(                 \
-            vroti_epi32(x, -17),    \
-            vroti_epi32(x, -19)     \
-        )                               \
-    )                                   \
+#define s1(x)                                   \
+(                                               \
+    vxor(                                       \
+        vsrli_epi32(x, 10),                     \
+        vxor(                                   \
+            vroti_epi32(x, -17),                \
+            vroti_epi32(x, -19)                 \
+        )                                       \
+    )                                           \
 )
 
 #define Maj(x,y,z) vcmov(x, y, vxor(z, y))
@@ -1439,53 +1261,47 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, un
 #define Ch(x,y,z) vcmov(y, z, x)
 
 #undef R
-#define R(x,x1,x2,x3)                         \
-{                                             \
-    tmp1 = vadd_epi32(s1(w[x1]), w[x2]);  \
-    tmp1 = vadd_epi32(w[x],  tmp1);       \
-    w[x] = vadd_epi32(s0(w[x3]), tmp1);   \
+#define R(x,x1,x2,x3)                           \
+{                                               \
+    tmp1 = vadd_epi32(s1(w[x1]), w[x2]);        \
+    tmp1 = vadd_epi32(w[x],  tmp1);             \
+    w[x] = vadd_epi32(s0(w[x3]), tmp1);         \
 }
 
-#define SHA256_STEP0(a,b,c,d,e,f,g,h,x,K)            \
-{                                                    \
-    tmp1 = vadd_epi32(h,    S1(e));              \
-    tmp1 = vadd_epi32(tmp1, Ch(e,f,g));          \
-    tmp1 = vadd_epi32(tmp1, vset1_epi32(K));  \
-    tmp1 = vadd_epi32(tmp1, w[x]);               \
-    tmp2 = vadd_epi32(S0(a),Maj(a,b,c));         \
-    d    = vadd_epi32(tmp1, d);                  \
-    h    = vadd_epi32(tmp1, tmp2);               \
+#define SHA256_STEP0(a,b,c,d,e,f,g,h,x,K)       \
+{                                               \
+    tmp1 = vadd_epi32(h,    S1(e));             \
+    tmp1 = vadd_epi32(tmp1, Ch(e,f,g));         \
+    tmp1 = vadd_epi32(tmp1, vset1_epi32(K));    \
+    tmp1 = vadd_epi32(tmp1, w[x]);              \
+    tmp2 = vadd_epi32(S0(a),Maj(a,b,c));        \
+    d    = vadd_epi32(tmp1, d);                 \
+    h    = vadd_epi32(tmp1, tmp2);              \
 }
-#define SHA256_STEP_R(a,b,c,d,e,f,g,h, x,x1,x2,x3, K)\
-{                                                    \
-	R(x,x1,x2,x3);								     \
-    tmp1 = vadd_epi32(h,    S1(e));              \
-    tmp1 = vadd_epi32(tmp1, Ch(e,f,g));          \
-    tmp1 = vadd_epi32(tmp1, vset1_epi32(K));  \
-    tmp1 = vadd_epi32(tmp1, w[x]);				 \
-    tmp2 = vadd_epi32(S0(a),Maj(a,b,c));         \
-    d    = vadd_epi32(tmp1, d);                  \
-    h    = vadd_epi32(tmp1, tmp2);               \
+#define SHA256_STEP_R(a,b,c,d,e,f,g,h, x,x1,x2,x3, K)   \
+{                                                       \
+    R(x,x1,x2,x3);                                      \
+    tmp1 = vadd_epi32(h,    S1(e));                     \
+    tmp1 = vadd_epi32(tmp1, Ch(e,f,g));                 \
+    tmp1 = vadd_epi32(tmp1, vset1_epi32(K));            \
+    tmp1 = vadd_epi32(tmp1, w[x]);                      \
+    tmp2 = vadd_epi32(S0(a),Maj(a,b,c));                \
+    d    = vadd_epi32(tmp1, d);                         \
+    h    = vadd_epi32(tmp1, tmp2);                      \
 }
 
-// this macro was used to create the new macros for the smaller w[16] array.
 /*
+ This macro was used to create the new macros for the smaller w[16] array:
 #define SHA256_STEP(a,b,c,d,e,f,g,h,x,K)       \
 	printf ("_SHA256_STEP(%s,%s,%s,%s,%s,%s,%s,%s, %d,%d,%2d,%2d, 0x%08x);\n", \
                         #a, #b, #c, #d, #e, #f, #g, #h, \
                         (x)%16, (x-2)>15?(x-2)%16:x-2, (x-7)>15?(x-7)%16:x-7, (x-15)>15?(x-15)%16:x-15, K);
 */
 
-/* TODO:
- *  1. (DONE) try to get w[] array down to w[32].  (Actually, now it is ONLY [16] in size.
- *            the data[] array is only required to be 16 elements also.
- *  2. (DONE) Get sha224 working (different IV, and only copy 224 bits)
- *  3. (DONE, needs tested.) Handle the init, so we can do more than 1 block.
- *  4. (DONE) try to make this function work properly with either a 'flat' input or a more common (in JtR lingo), COEF mixed set of data
- *  5. (DONE) Redid the out, into a MMX mixed blob, and not 8 arrays
- *  6. (DONE) Separated the reload array from the out array.  Required for work like PBKDF2, where we capture first block value, then replay it over and over.
- *  6. Optimizations.  Look at intel, AMD, newest intel, newest AMD, etc performances.
- *  7. See if we can do anything better using 'DO_PARA' type methods, like we do in SHA1/MD4/5
+/*
+ * TODO:
+ * See if we benefit from interleaving, using 'DO_PARA' type methods, like we
+ * do in SHA1/MD4/MD5
  */
 void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
@@ -1504,15 +1320,24 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 #if __SSE4_1__
 		saved_key = (ARCH_WORD_32*)data;
 		if (SSEi_flags & SSEi_4BUF_INPUT) {
-			for (i=0; i < 14; ++i) { GATHER_4x(w[i], saved_key, i); vswap32(w[i]); }
+			for (i=0; i < 14; ++i) {
+				GATHER_4x(w[i], saved_key, i);
+				vswap32(w[i]);
+			}
 			GATHER_4x(w[14], saved_key, 14);
 			GATHER_4x(w[15], saved_key, 15);
 		} else if (SSEi_flags & SSEi_2BUF_INPUT) {
-			for (i=0; i < 14; ++i) { GATHER_2x(w[i], saved_key, i); vswap32(w[i]); }
+			for (i=0; i < 14; ++i) {
+				GATHER_2x(w[i], saved_key, i);
+				vswap32(w[i]);
+			}
 			GATHER_2x(w[14], saved_key, 14);
 			GATHER_2x(w[15], saved_key, 15);
 		} else {
-			for (i=0; i < 14; ++i) { GATHER(w[i], saved_key, i); vswap32(w[i]); }
+			for (i=0; i < 14; ++i) {
+				GATHER(w[i], saved_key, i);
+				vswap32(w[i]);
+			}
 			GATHER(w[14], saved_key, 14);
 			GATHER(w[15], saved_key, 15);
 		}
@@ -1719,10 +1544,6 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 		}
 	}
 	if (SSEi_flags & SSEi_SWAP_FINAL) {
-		/* NOTE, if we swap OUT of BE into proper LE, then this can not be
-		 * used in a sha256_flags&SHA256_RELOAD manner, without swapping back into BE format.
-		 * NORMALLY, a format will switch binary values into BE format at start, and then
-		 * just take the 'normal' non swapped output of this function (i.e. keep it in BE) */
 		vswap32(a);
 		vswap32(b);
 		vswap32(c);
@@ -1732,11 +1553,7 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 		vswap32(g);
 		vswap32(h);
 	}
-	/* We store the MMX_mixed values.  This will be in proper 'mixed' format, in BE
-	 * format (i.e. correct to reload on a subsquent call), UNLESS, swapped in the prior
-	 * if statement (the SHA256_SWAP_FINAL) */
-	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
-	{
+	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT) {
 		i=0;
 		//SHA256_PARA_DO(i)
 		{
@@ -1771,51 +1588,51 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 /* SHA-512 below */
 
 #undef S0
-#define S0(x)                          \
-(                                      \
-    vxor(                    \
-        vroti_epi64(x, -39),       \
-        vxor(                \
-            vroti_epi64(x, -28),   \
-            vroti_epi64(x, -34)    \
-        )                              \
-    )                                  \
+#define S0(x)                                   \
+(                                               \
+    vxor(                                       \
+        vroti_epi64(x, -39),                    \
+        vxor(                                   \
+            vroti_epi64(x, -28),                \
+            vroti_epi64(x, -34)                 \
+        )                                       \
+    )                                           \
 )
 
 #undef S1
-#define S1(x)                          \
-(                                      \
-    vxor(                    \
-        vroti_epi64(x, -41),       \
-        vxor(                \
-            vroti_epi64(x, -14),   \
-            vroti_epi64(x, -18)    \
-        )                              \
-    )                                  \
+#define S1(x)                                   \
+(                                               \
+    vxor(                                       \
+        vroti_epi64(x, -41),                    \
+        vxor(                                   \
+            vroti_epi64(x, -14),                \
+            vroti_epi64(x, -18)                 \
+        )                                       \
+    )                                           \
 )
 
 #undef s0
-#define s0(x)                          \
-(                                      \
-    vxor(                    \
-        vsrli_epi64(x, 7),         \
-        vxor(                \
-            vroti_epi64(x, -1),    \
-            vroti_epi64(x, -8)     \
-        )                              \
-    )                                  \
+#define s0(x)                                   \
+(                                               \
+    vxor(                                       \
+        vsrli_epi64(x, 7),                      \
+        vxor(                                   \
+            vroti_epi64(x, -1),                 \
+            vroti_epi64(x, -8)                  \
+        )                                       \
+    )                                           \
 )
 
 #undef s1
-#define s1(x)                          \
-(                                      \
-    vxor(                    \
-        vsrli_epi64(x, 6),         \
-        vxor(                \
-            vroti_epi64(x, -19),   \
-            vroti_epi64(x, -61)    \
-        )                              \
-    )                                  \
+#define s1(x)                                   \
+(                                               \
+    vxor(                                       \
+        vsrli_epi64(x, 6),                      \
+        vxor(                                   \
+            vroti_epi64(x, -19),                \
+            vroti_epi64(x, -61)                 \
+        )                                       \
+    )                                           \
 )
 
 #define Maj(x,y,z) vcmov(x, y, vxor(z, y))
@@ -1823,25 +1640,26 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 #define Ch(x,y,z)  vcmov(y, z, x)
 
 #undef R
-#define R(t)                                         \
-{                                                    \
-    tmp1 = vadd_epi64(s1(w[t -  2]), w[t - 7]);  \
-    tmp2 = vadd_epi64(s0(w[t - 15]), w[t - 16]); \
-    w[t] = vadd_epi64(tmp1, tmp2);               \
+#define R(t)                                        \
+{                                                   \
+    tmp1 = vadd_epi64(s1(w[t -  2]), w[t - 7]);     \
+    tmp2 = vadd_epi64(s0(w[t - 15]), w[t - 16]);    \
+    w[t] = vadd_epi64(tmp1, tmp2);                  \
 }
 
-#define SHA512_STEP(a,b,c,d,e,f,g,h,x,K)             \
-{                                                    \
-    tmp1 = vadd_epi64(h,    w[x]);               \
-    tmp2 = vadd_epi64(S1(e),vset1_epi64x(K)); \
-    tmp1 = vadd_epi64(tmp1, Ch(e,f,g));          \
-    tmp1 = vadd_epi64(tmp1, tmp2);               \
-    tmp2 = vadd_epi64(S0(a),Maj(a,b,c));         \
-    d    = vadd_epi64(tmp1, d);                  \
-    h    = vadd_epi64(tmp1, tmp2);               \
+#define SHA512_STEP(a,b,c,d,e,f,g,h,x,K)        \
+{                                               \
+    tmp1 = vadd_epi64(h,    w[x]);              \
+    tmp2 = vadd_epi64(S1(e),vset1_epi64x(K));   \
+    tmp1 = vadd_epi64(tmp1, Ch(e,f,g));         \
+    tmp1 = vadd_epi64(tmp1, tmp2);              \
+    tmp2 = vadd_epi64(S0(a),Maj(a,b,c));        \
+    d    = vadd_epi64(tmp1, d);                 \
+    h    = vadd_epi64(tmp1, tmp2);              \
 }
 
-void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, unsigned SSEi_flags)
+void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
+                   unsigned SSEi_flags)
 {
 	int i;
 
@@ -2078,10 +1896,6 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, u
 	}
 
 	if (SSEi_flags & SSEi_SWAP_FINAL) {
-		/* NOTE, if we swap OUT of BE into proper LE, then this can not be
-		 * used in a sha512_flags&SHA512_RELOAD manner, without swapping back into BE format.
-		 * NORMALLY, a format will switch binary values into BE format at start, and then
-		 * just take the 'normal' non swapped output of this function (i.e. keep it in BE) */
 		vswap64(a);
 		vswap64(b);
 		vswap64(c);
@@ -2092,9 +1906,6 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, u
 		vswap64(h);
 	}
 
-	/* We store the MMX_mixed values.  This will be in proper 'mixed' format, in BE
-	 * format (i.e. correct to reload on a subsquent call), UNLESS, swapped in the prior
-	 * if statement (the SHA512_SWAP_FINAL) */
 	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		i=0;
@@ -2125,6 +1936,4 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, u
 			vstore((vtype*)&(out[i*8*VS64+7*VS64]), h);
 		}
 	}
-
-
 }
