@@ -29,6 +29,7 @@
 #include "arch.h"
 #include "aligned.h"
 #include "stdint.h"
+#include "common.h" /* for is_aligned() */
 
 /*************************** AVX512 and MIC ***************************/
 #if __MIC__ || __AVX512__
@@ -45,8 +46,8 @@ typedef __m512i vtype;
 #define vcmpeq_epi32            _mm512_cmpeq_epi32
 #define vcvtsi32                _mm512_cvtsi32_si512
 #define vinsert_epi32           _mm512_insert_epi32
-#define vload(x)                _mm512_load_si512((void*)x)
-#define vloadu(x)               _mm512_loadu_si512((void*)x)
+#define vload(x)                _mm512_load_si512((void*)(x))
+#define vloadu(x)               _mm512_loadu_si512((void*)(x))
 #define vmovemask_epi8          _mm512_movemask_epi8
 #define vor                     _mm512_or_si512
 #define vpermute2x128           _mm512_permute2x128_si512
@@ -66,7 +67,7 @@ typedef __m512i vtype;
 #define vsrli_epi16             _mm512_srli_epi16
 #define vsrli_epi32             _mm512_srli_epi32
 #define vsrli_epi64             _mm512_srli_epi64
-#define vstore(x, y)            _mm512_store_si512((void*)x, y)
+#define vstore(x, y)            _mm512_store_si512((void*)(x), y)
 #define vunpackhi_epi32         _mm512_unpackhi_epi32
 #define vunpackhi_epi64         _mm512_unpackhi_epi64
 #define vunpacklo_epi32         _mm512_unpacklo_epi32
@@ -78,10 +79,11 @@ typedef __m512i vtype;
 #if __MIC__
 static inline __m512i _mm512_loadu_si512(void const *addr)
 {
-	static char JTR_ALIGN(64) buf[64];
-	memcpy(buf, addr, 64);
-	return _mm512_load_si512(buf);
+	char JTR_ALIGN(64) buf[64];
+	return _mm512_load_si512(is_aligned(addr, SIMD_COEF_32) ?
+	                         addr : memcpy(buf, addr, 64));
 }
+
 #define vswap32(n)                                                          \
 	n = vxor(vsrli_epi32(n, 24),                                            \
 	         vxor(vslli_epi32(vsrli_epi32(vslli_epi32(n, 8), 24), 8),       \
@@ -91,7 +93,7 @@ static inline __m512i _mm512_loadu_si512(void const *addr)
 	n = vshuffle_epi32(n, _MM_SHUFFLE(2, 3, 0, 1));                         \
 	vswap32(n);                                            					\
 }
-#else
+#else /* non-MIC AVX512 (untested) */
 #define vswap32(n)	  \
 	n = vshuffle_epi8(n, vset_epi32(0x3c3d3e3f, 0x38393a3b, \
 	                                0x34353637, 0x30313233, \
@@ -106,7 +108,7 @@ static inline __m512i _mm512_loadu_si512(void const *addr)
 				                    0x28292a2b2c2d2e2f, 0x2021222324252627, \
 				                    0x18191a1b1c1d1e1f, 0x1011121314151617, \
 				                    0x08090a0b0c0d0e0f, 0x0001020304050607))
-#endif
+#endif /* MIC */
 
 // FIXME: this code is terribly unoptimized
 #define vtranspose_epi32(R) {                                               \
@@ -149,8 +151,8 @@ typedef __m256i vtype;
 #define vcmpeq_epi32            _mm256_cmpeq_epi32
 #define vcvtsi32                _mm256_cvtsi32_si256
 #define vinsert_epi32           _mm256_insert_epi32
-#define vload(x)                _mm256_load_si256((void*)x)
-#define vloadu(x)               _mm256_loadu_si256((void*)x)
+#define vload(x)                _mm256_load_si256((void*)(x))
+#define vloadu(x)               _mm256_loadu_si256((void*)(x))
 #define vmovemask_epi8          _mm256_movemask_epi8
 #define vor                     _mm256_or_si256
 #define vpermute2x128           _mm256_permute2x128_si256
@@ -170,7 +172,7 @@ typedef __m256i vtype;
 #define vsrli_epi16             _mm256_srli_epi16
 #define vsrli_epi32             _mm256_srli_epi32
 #define vsrli_epi64             _mm256_srli_epi64
-#define vstore(x, y)            _mm256_store_si256((void*)x, y)
+#define vstore(x, y)            _mm256_store_si256((void*)(x), y)
 #define vunpackhi_epi32         _mm256_unpackhi_epi32
 #define vunpackhi_epi64         _mm256_unpackhi_epi64
 #define vunpacklo_epi32         _mm256_unpacklo_epi32
@@ -230,7 +232,17 @@ static inline void vmerge(const vtype v0, const vtype v1, vtype *vl, vtype *vh)
         vmerge(t3, t7, &R[6], &R[7]);           \
     } while (false)
 
-#if !__clang__
+#if __clang__
+static inline int vtestz_epi32(vtype __X)
+{
+	uint32_t JTR_ALIGN(SIMD_COEF_32 * 4) words[4];
+	vstore(words, __X);
+	return !words[0] || !words[1] || !words[2] || !words[3];
+}
+#else
+// This is a modified SSE2 port of Algorithm 6-2 from "Hackers Delight" by
+// Henry Warren, ISBN 0-201-91465-4. Returns non-zero if any double word in X
+// is zero using a branchless algorithm. -- taviso.
 #if !__INTEL_COMPILER && !__llvm__
 // This intrinsic is not always available in GCC, so define it here.
 static inline int vtestz(vtype __M, vtype __V)
@@ -238,9 +250,6 @@ static inline int vtestz(vtype __M, vtype __V)
 	return __builtin_ia32_ptestz256((__v4di)__M, (__v4di)__V);
 }
 #endif
-// This is a modified SSE2 port of Algorithm 6-2 from "Hackers Delight" by
-// Henry Warren, ISBN 0-201-91465-4. Returns non-zero if any double word in X
-// is zero using a branchless algorithm. -- taviso.
 static inline int vtestz_epi32(vtype __X)
 {
 	vtype M = vcmpeq_epi32(__X, __X);
@@ -248,14 +257,7 @@ static inline int vtestz_epi32(vtype __X)
 	vtype Y = vandnot(vor(vor(vadd_epi32(vand(__X, Z), Z), __X), Z), M);
 	return ! vtestz(Y, M);
 }
-#else
-static inline int vtestz_epi32(vtype __X)
-{
-	uint32_t JTR_ALIGN(SIMD_COEF_32 * 4) words[4];
-	vstore(words, __X);
-	return !words[0] || !words[1] || !words[2] || !words[3];
-}
-#endif
+#endif /* __clang__ */
 
 #define vtesteq_epi32(x, y)                                             \
 (                                                                       \
@@ -328,12 +330,12 @@ typedef __m128i vtype;
 #endif
 #define vcmpeq_epi8             _mm_cmpeq_epi8
 #define vcmpeq_epi32            _mm_cmpeq_epi32
-#ifdef __SSE4_1__
+#if __SSE4_1__
 #define vcvtsi32                _mm_cvtsi32_si128
 #endif
 #define vinsert_epi32           _mm_insert_epi32
-#define vload(x)                _mm_load_si128((void*)x)
-#define vloadu(x)               _mm_loadu_si128((void*)x)
+#define vload(x)                _mm_load_si128((void*)(x))
+#define vloadu(x)               _mm_loadu_si128((void*)(x))
 #define vmovemask_epi8          _mm_movemask_epi8
 #define vor                     _mm_or_si128
 #define vpermute4x64_epi64      _mm_permute4x64_epi64
@@ -349,7 +351,7 @@ typedef __m128i vtype;
 #define vset1_epi64x            _mm_set1_epi64x
 #define vset_epi64x             _mm_set_epi64x
 #define vsetzero                _mm_setzero_si128
-#ifdef __SSSE3__
+#if __SSSE3__
 #define vshuffle_epi8           _mm_shuffle_epi8
 #endif
 #define vshuffle_epi32          _mm_shuffle_epi32
@@ -361,7 +363,7 @@ typedef __m128i vtype;
 #define vsrli_epi16             _mm_srli_epi16
 #define vsrli_epi32             _mm_srli_epi32
 #define vsrli_epi64             _mm_srli_epi64
-#define vstore(x, y)            _mm_store_si128((void*)x, y)
+#define vstore(x, y)            _mm_store_si128((void*)(x), y)
 #define vunpackhi_epi32         _mm_unpackhi_epi32
 #define vunpackhi_epi64         _mm_unpackhi_epi64
 #define vunpacklo_epi32         _mm_unpacklo_epi32
@@ -380,7 +382,17 @@ typedef __m128i vtype;
         R[3]  = vunpackhi_epi64(T2, T3);        \
     } while (false)
 
-#if __SSE4_1__ && !__clang__
+#if !__SSE4_1__ || __clang__
+static inline int vtestz_epi32(vtype __X)
+{
+	uint32_t JTR_ALIGN(SIMD_COEF_32 * 4) words[4];
+	vstore(words, __X);
+	return !words[0] || !words[1] || !words[2] || !words[3];
+}
+#else
+// This is a modified SSE2 port of Algorithm 6-2 from "Hackers Delight" by
+// Henry Warren, ISBN 0-201-91465-4. Returns non-zero if any double word in X
+// is zero using a branchless algorithm. -- taviso.
 #if !__INTEL_COMPILER && !__llvm__
 // This intrinsic is not always available in GCC, so define it here.
 static inline int vtestz(vtype __M, vtype __V)
@@ -388,9 +400,6 @@ static inline int vtestz(vtype __M, vtype __V)
 	return __builtin_ia32_ptestz128((__v2di)__M, (__v2di)__V);
 }
 #endif
-// This is a modified SSE2 port of Algorithm 6-2 from "Hackers Delight" by
-// Henry Warren, ISBN 0-201-91465-4. Returns non-zero if any double word in X
-// is zero using a branchless algorithm. -- taviso.
 static inline int vtestz_epi32(vtype __X)
 {
 	vtype M = vcmpeq_epi32(__X, __X);
@@ -398,40 +407,34 @@ static inline int vtestz_epi32(vtype __X)
 	vtype Y = vandnot(vor(vor(vadd_epi32(vand(__X, Z), Z), __X), Z), M);
 	return ! vtestz(Y, M);
 }
-#else
-static inline int vtestz_epi32(vtype __X)
-{
-	uint32_t JTR_ALIGN(SIMD_COEF_32 * 4) words[4];
-	vstore(words, __X);
-	return !words[0] || !words[1] || !words[2] || !words[3];
-}
-#endif
+#endif /* !__SSE4_1__ || __clang__ */
 
 #define vtesteq_epi32(x, y)                                                 \
 (                                                                           \
 	0xffff != vmovemask_epi8(vcmpeq_epi32(vcmpeq_epi32(x, y), vsetzero()))  \
 )
 
-#ifdef __SSSE3__
+#if __SSSE3__
 
 #ifndef __XOP__
 #define rot16_mask                                              \
     vset_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
-
 #define vroti16_epi32(a,s)                      \
     (vshuffle_epi8((a), rot16_mask))
 #endif
 
 #define swap_endian_mask                                        \
     vset_epi32(0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203)
-#define swap_endian64_mask                                      \
-    vset_epi64x(0x08090a0b0c0d0e0fULL, 0x0001020304050607ULL)
-
 #define vswap32(n)                          \
     (n = vshuffle_epi8(n, swap_endian_mask))
+
+#define swap_endian64_mask                                      \
+    vset_epi64x(0x08090a0b0c0d0e0fULL, 0x0001020304050607ULL)
 #define vswap64(n)                        \
     (n = vshuffle_epi8(n, swap_endian64_mask))
-#else
+
+#else /* Just basic SSE2 */
+
 #define vswap32(n)                              \
     (n = vxor(                                      \
         vsrli_epi16(                                \
@@ -443,9 +446,9 @@ static inline int vtestz_epi32(vtype __X)
     n = vxor(vslli_epi16(n, 8), vsrli_epi16(n, 8));         \
     n = vshuffle_epi32(n, 0xb1);                            \
   }
-#endif
+#endif /* __SSSE3__ */
 
-#ifdef __SSE4_1__
+#if __SSE4_1__
 #define GATHER_4x(x, y, z)                      \
 {                                               \
     x = vcvtsi32(   y[z]   );                   \
@@ -467,7 +470,7 @@ static inline int vtestz_epi32(vtype __X)
     x = vinsert_epi32(x, y[z+(2<<4)], 2);       \
     x = vinsert_epi32(x, y[z+(3<<4)], 3);       \
 }
-#endif
+#endif /* __SSE4_1__ */
 
 #define GATHER64(x,y,z)     { x = vset_epi64x (y[1][z], y[0][z]); }
 
@@ -478,11 +481,11 @@ static inline int vtestz_epi32(vtype __X)
 
 typedef __m64i vtype;
 
-#error MMX intrinsics not implemented
+#error MMX intrinsics not implemented (contributions are welcome!)
 
 #endif /* __SIMD__ elif __SIMD__ elif __SIMD__ */
 
-/**************************** common stuff ****************************/
+/************************* COMMON STUFF BELOW *************************/
 
 #define MEM_ALIGN_SIMD          (SIMD_COEF_32 * 4)
 
@@ -490,8 +493,8 @@ typedef __m64i vtype;
 #define vslli_epi32a(a, s) ((s) == 1 ?              \
      vadd_epi32((a), (a)) : vslli_epi32((a), (s)))
 
-  // XOP roti must handle both ROTL and ROTR. If s < 0, then ROTR. Else ROTL
-  // There's a specialized rotate16, which is specialized for ssse3+
+// vroti must handle both ROTL and ROTR. If s < 0, then ROTR.
+// There's a specialized rotate16 for ssse3+
 #define vroti_epi16(x, n)  ((n) > 0 ?                       \
      vxor(vsrli_epi16(x, 16 - (n)), vslli_epi16(x, n)) :    \
      vxor(vsrli_epi16(x, -n), vslli_epi16(x, 16 + (n))))
@@ -500,26 +503,30 @@ typedef __m64i vtype;
      vor(vsrli_epi32((a), ~(s) + 1), vslli_epi32a((a),32 + (s))) :  \
      vor(vslli_epi32a((a), (s)), vsrli_epi32((a), 32 - (s))))
 
-  // 64 bit roti  (both ROTL and ROTR handled)
+// 64 bit roti  (both ROTL and ROTR handled)
 #define vroti_epi64(a, s)                                       \
     ((s) < 0 ?                                                  \
      vor(vsrli_epi64((a), ~(s)+1), vslli_epi64((a),64+(s))) :   \
      vor(vslli_epi64((a), (s)), vsrli_epi64((a), 64-(s))))
 
 #if __AVX2__ || __AVX512__ || __MIC__
+
+// FIXME: Implement width-specific variants of the SSSE3 thing below!
 #define vroti16_epi32(a,s) vroti_epi32(a, 16)
-#else
-#ifdef __SSSE3__
+
+#elif __SSSE3__
+
 #define rot16_mask                                                  \
         vset_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
-
-#define vroti16_epi32(a,s)                      \
+#define vroti16_epi32(a, s)                      \
         (vshuffle_epi8((a), rot16_mask))
-#else
+
+#else /* just SSE2 */
+
 #define vroti16_epi32(a,s)                                      \
         (vshufflelo_epi16(vshufflehi_epi16((a), 0xb1), 0xb1))
-#endif
-#endif
-#endif
+
+#endif /* __AVX2__ || __AVX512__ || __MIC__ */
+#endif /* !__XOP__ || __AVX2__ || __AVX512__ || __MIC__ */
 
 #endif /* _SSE_PSEUDO_H */
