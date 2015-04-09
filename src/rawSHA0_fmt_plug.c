@@ -102,7 +102,8 @@ static int cmp_all(void *binary, int count) {
 	return !memcmp(binary, crypt_key, BINARY_SIZE);
 }
 
-static int cmp_exact(char *source, int count){
+static int cmp_exact(char *source, int index)
+{
   return (1);
 }
 

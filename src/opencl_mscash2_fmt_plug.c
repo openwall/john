@@ -360,15 +360,17 @@ static int cmp_all(void *binary, int count) {
 	return 0 ;
 }
 
-static int cmp_one(void *binary, int index) {
+static int cmp_one(void *binary, int index)
+{
 	return 1 ;
 }
 
-static int cmp_exact(char *source, int count) {
+static int cmp_exact(char *source, int index)
+{
       unsigned int 	*bin, i ;
 
       bin = (unsigned int*)get_binary(source) ;
-      i = 4 * count + 1 ;
+      i = 4 * index + 1 ;
 
       if (bin[1] != dcc2_hash_host[i++])
 		return 0 ;

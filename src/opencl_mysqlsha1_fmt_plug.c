@@ -274,12 +274,12 @@ static void *get_binary(char *ciphertext)
 	return (void *)realcipher;
 }
 
-static int cmp_all(void *binary, int index)
+static int cmp_all(void *binary, int count)
 {
 	unsigned int i;
 	unsigned int b = ((unsigned int*)binary)[0];
 
-	for(i = 0; i < index; i++)
+	for(i = 0; i < count; i++)
 		if (b == output[i])
 			return 1;
 	return 0;

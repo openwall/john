@@ -341,11 +341,18 @@ static int get_hash_4(int index) { return crypt_key[0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_key[0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_key[0] & 0x7ffffff; }
 
-static int cmp_all(void *binary, int index) {
+static int cmp_all(void *binary, int count)
+{
 	return !memcmp(binary, crypt_key, sizeof(crypt_key));
 }
 
-static int cmp_exact(char *source, int count) {
+static int cmp_one(void *binary, int index)
+{
+	return 1;
+}
+
+static int cmp_exact(char *source, int index)
+{
 	return 1;
 }
 
@@ -408,7 +415,7 @@ struct fmt_main fmt_oracle = {
 			get_hash_6
 		},
 		cmp_all,
-		cmp_all,
+		cmp_one,
 		cmp_exact
 	}
 };

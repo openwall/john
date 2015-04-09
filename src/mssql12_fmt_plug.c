@@ -296,7 +296,7 @@ static int cmp_all(void *binary, int count)
 	return 0;
 }
 
-static int cmp_exact(char *source, int count)
+static int cmp_exact(char *source, int index)
 {
 	return 1;
 }

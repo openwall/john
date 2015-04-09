@@ -142,11 +142,13 @@ static int cmp_all(void *binary, int count) {
 	return 0 ;
 }
 
-static int cmp_one(void *binary, int index) {
+static int cmp_one(void *binary, int index)
+{
 	return *(BF_word *)binary == opencl_BF_out[index][0] ;
 }
 
-static int cmp_exact(char *source, int index) {
+static int cmp_exact(char *source, int index)
+{
 	opencl_BF_std_crypt_exact(index) ;
 
 	return !memcmp(BF_common_get_binary(source), opencl_BF_out[index],

@@ -417,7 +417,8 @@ static int cmp_all(void * binary, int count) {
 	return 0;
 }
 
-static int cmp_one(void * binary, int index) {
+static int cmp_one(void * binary, int index)
+{
 	return !memcmp(binary, (void *) &calculated_hash[index], BINARY_SIZE);
 }
 
