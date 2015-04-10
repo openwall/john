@@ -2261,8 +2261,7 @@ static void DoSHA512_crypt_f_sse(void *in, int len[SIMD_COEF_64], void *out, int
 			if (cnt == loops[i]) {
 				// only copy 16 bytes
 				for (j = 0; j < 2; ++j) {
-#warning "Potential issue for MIC."
-					((ARCH_WORD_64*)out)[(i<<(SIMD_COEF_64>>1))+j] = JOHNSWAP64(a[(j<<(SIMD_COEF_64>>1))+i]);
+					((ARCH_WORD_64*)out)[i*SIMD_COEF_64+j] = JOHNSWAP64(a[j*SIMD_COEF_64+i]);
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -2289,8 +2288,7 @@ static void DoSHA512_crypt_sse(void *in, int ilen[SIMD_COEF_64], void *out[SIMD_
 		for (i = 0; i < SHA512_LOOPS; ++i) {
 			if (cnt == loops[i]) {
 				for (j = 0; j < 8; ++j) {
-#warning "Potential issue for MIC."
-					y.a[j] =JOHNSWAP64(a[(j<<(SIMD_COEF_64>>1))+i]);
+					y.a[j] =JOHNSWAP64(a[j*SIMD_COEF_64+i]);
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), isSHA512?64:48, tid);
 			} else if (cnt < loops[i])
