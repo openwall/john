@@ -104,11 +104,7 @@ john_register_one(&fmt_sunmd5);
 
 #define FORMAT_LABEL			"SunMD5"
 #define FORMAT_NAME			""
-#ifdef SIMD_COEF_32
-#define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME " x" STRINGIZE(MAX_KEYS_PER_CRYPT)
-#else
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
-#endif
 
 #define BENCHMARK_COMMENT		""
 // it is salted, but very slow, AND there is no difference between 1 and multi salts, so simply turn off salt benchmarks
