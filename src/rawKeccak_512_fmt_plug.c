@@ -31,15 +31,15 @@ john_register_one(&fmt_rawKeccak);
 #define FORMAT_LABEL		"Raw-Keccak"
 #define FORMAT_NAME		""
 #if defined(__AVX__)
-#define ALGORITHM_NAME			"AVX"
+#define ALGORITHM_NAME			"128/128 AVX"
 #elif defined(__XOP__)
-#define ALGORITHM_NAME			"XOP"
+#define ALGORITHM_NAME			"128/128 XOP"
 #elif defined(__SSE4_1__)
-#define ALGORITHM_NAME			"SSE4.1"
+#define ALGORITHM_NAME			"128/128 SSE4.1"
 #elif defined(__SSSE3__)
-#define ALGORITHM_NAME			"SSSE3"
+#define ALGORITHM_NAME			"128/128 SSSE3"
 #elif defined(__SSE2__)
-#define ALGORITHM_NAME			"SSE2"
+#define ALGORITHM_NAME			"128/128 SSE2"
 #else
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 #endif
