@@ -42,7 +42,11 @@ john_register_one(&fmt_saltedsha2);
 #ifdef SIMD_COEF_64
 #define ALGORITHM_NAME					"SHA512 " SHA512_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME					"SHA512 " ARCH_BITS_STR "/64 " SHA2_LIB
+#if ARCH_BITS >= 64
+#define ALGORITHM_NAME					"SHA512 64/" ARCH_BITS_STR " " SHA2_LIB
+#else
+#define ALGORITHM_NAME					"SHA512 32/" ARCH_BITS_STR " " SHA2_LIB
+#endif
 #endif
 
 #define BENCHMARK_COMMENT               ""

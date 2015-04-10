@@ -491,9 +491,9 @@ struct fmt_main fmt_truecrypt = {
 		"SHA512 " SHA512_ALGORITHM_NAME " /RIPEMD160/WHIRLPOOL",
 #else
 #if ARCH_BITS >= 64
-		"SHA512 64/64 /RIPEMD160/WHIRLPOOL",
+		"SHA512 64/" ARCH_BITS_STR " /RIPEMD160/WHIRLPOOL",
 #else
-		"SHA512 " ARCH_BITS_STR "/64 /RIPEMD160/WHIRLPOOL",
+		"SHA512 32/" ARCH_BITS_STR " /RIPEMD160/WHIRLPOOL",
 #endif
 #endif
 		"",                               // BENCHMARK_COMMENT
@@ -612,9 +612,9 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		"SHA512 " SHA512_ALGORITHM_NAME,            // ALGORITHM_NAME,
 #else
 #if ARCH_BITS >= 64
-		"SHA512 " "64/64",
+		"SHA512 64/" ARCH_BITS_STR,
 #else
-		"SHA512 " ARCH_BITS_STR "/64",
+		"SHA512 32/" ARCH_BITS_STR,
 #endif
 #endif
 		"",                               // BENCHMARK_COMMENT
@@ -674,9 +674,9 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		"tc_whirlpool",                   // FORMAT_LABEL
 		"TrueCrypt AES256_XTS", // FORMAT_NAME
 #if ARCH_BITS >= 64
-		"WHIRLPOOL " ARCH_BITS_STR "/64",    // ALGORITHM_NAME,
+		"WHIRLPOOL 64/" ARCH_BITS_STR,    // ALGORITHM_NAME,
 #else
-		"WHIRLPOOL " ARCH_BITS_STR "/64",    // ALGORITHM_NAME,
+		"WHIRLPOOL 32/" ARCH_BITS_STR,    // ALGORITHM_NAME,
 #endif
 		"",                               // BENCHMARK_COMMENT
 		-1,                               // BENCHMARK_LENGTH

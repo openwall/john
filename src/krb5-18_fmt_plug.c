@@ -61,11 +61,7 @@ john_register_one(&fmt_krb5_18);
 #if SIMD_COEF_32
 #define ALGORITHM_NAME    "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME " AES"
 #else
-#if ARCH_BITS >= 64
-#define ALGORITHM_NAME    "PBKDF2-SHA1 64/" ARCH_BITS_STR " AES"
-#else
 #define ALGORITHM_NAME    "PBKDF2-SHA1 32/" ARCH_BITS_STR " AES"
-#endif
 #endif
 
 #define BENCHMARK_COMMENT	""
