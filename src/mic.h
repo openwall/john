@@ -65,4 +65,6 @@
 #define SHA1_SSE_PARA		1
 #define SHA1_N_STR			"16x"
 
+#define SHA_BUF_SIZ			16
+
 #endif

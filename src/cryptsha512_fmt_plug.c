@@ -643,7 +643,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		cryptloopstruct *crypt_struct;
 #ifdef SIMD_COEF_64
 		//JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 sse_out[64];
-		char tmp_sse_out[64*8+MEM_ALIGN_SIMD];
+		char tmp_sse_out[8*SIMD_COEF_64*8+MEM_ALIGN_SIMD];
 		ARCH_WORD_64 *sse_out;
 		sse_out = (ARCH_WORD_64 *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
 #endif
@@ -751,7 +751,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				for (k = 0; k < SIMD_COEF_64; ++k) {
 					ARCH_WORD_64 *o = (ARCH_WORD_64 *)crypt_struct->cptr[k][idx];
 					for (j = 0; j < 8; ++j)
-						*o++ = JOHNSWAP64(sse_out[(j<<(SIMD_COEF_64>>1))+k]);
+						*o++ = JOHNSWAP64(sse_out[j*SIMD_COEF_64+k]);
 				}
 			}
 			if (++idx == 42)
@@ -762,7 +762,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (k = 0; k < SIMD_COEF_64; ++k) {
 				ARCH_WORD_64 *o = (ARCH_WORD_64 *)crypt_out[MixOrder[index+k]];
 				for (j = 0; j < 8; ++j)
-					*o++ = JOHNSWAP64(sse_out[(j<<(SIMD_COEF_64>>1))+k]);
+					*o++ = JOHNSWAP64(sse_out[j*SIMD_COEF_64+k]);
 			}
 		}
 #else

@@ -659,7 +659,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		cryptloopstruct *crypt_struct;
 #ifdef SIMD_COEF_32
 		//JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 sse_out[64];
-		char tmp_sse_out[64*4+MEM_ALIGN_SIMD];
+		char tmp_sse_out[8*SIMD_COEF_32*4+MEM_ALIGN_SIMD];
 		ARCH_WORD_32 *sse_out;
 		sse_out = (ARCH_WORD_32 *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
 #endif
