@@ -83,7 +83,7 @@ john_register_one(&fmt_sapH);
 #define FORMAT_LABEL            "saph"
 #define FORMAT_NAME             "SAP CODVN H (PWDSALTEDHASH)"
 
-#define ALGORITHM_NAME          "SHA-1/256/384/512 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME          "SHA-1/SHA-2 " SHA1_ALGORITHM_NAME
 
 #include "memdbg.h"
 
