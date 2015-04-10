@@ -44,7 +44,7 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"pwsafe"
 #define FORMAT_NAME		"Password Safe"
-#define ALGORITHM_NAME		SHA256_ALGORITHM_NAME
+#define ALGORITHM_NAME		"SHA256 " SHA256_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125

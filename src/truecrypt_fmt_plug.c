@@ -486,14 +486,14 @@ static unsigned int tc_hash_algorithm(void *salt)
 struct fmt_main fmt_truecrypt = {
 	{
 		"tc_aes_xts",                     // FORMAT_LABEL
-		"TrueCrypt (RIPEMD160/SHA512/WHIRLPOOL) AES256_XTS", // FORMAT_NAME
+		"TrueCrypt AES256_XTS", // FORMAT_NAME
 #if SSE_GROUP_SZ_SHA512
-		SHA512_ALGORITHM_NAME,            // ALGORITHM_NAME,
+		"SHA512 " SHA512_ALGORITHM_NAME " /RIPEMD160/WHIRLPOOL",
 #else
 #if ARCH_BITS >= 64
-		"64/" ARCH_BITS_STR,              // ALGORITHM_NAME,
+		"SHA512 64/64 /RIPEMD160/WHIRLPOOL",
 #else
-		"32/" ARCH_BITS_STR,              // ALGORITHM_NAME,
+		"SHA512 " ARCH_BITS_STR "/64 /RIPEMD160/WHIRLPOOL",
 #endif
 #endif
 		"",                               // BENCHMARK_COMMENT
@@ -555,8 +555,8 @@ struct fmt_main fmt_truecrypt = {
 struct fmt_main fmt_truecrypt_ripemd160 = {
 	{
 		"tc_ripemd160",                   // FORMAT_LABEL
-		"TrueCrypt RIPEMD160 AES256_XTS", // FORMAT_NAME
-		"32/" ARCH_BITS_STR,              // ALGORITHM_NAME,
+		"TrueCrypt AES256_XTS", // FORMAT_NAME
+		"RIPEMD160 32/" ARCH_BITS_STR,    // ALGORITHM_NAME,
 		"",                               // BENCHMARK_COMMENT
 		-1,                               // BENCHMARK_LENGTH
 		0,
@@ -607,14 +607,14 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 struct fmt_main fmt_truecrypt_sha512 = {
 	{
 		"tc_sha512",                      // FORMAT_LABEL
-		"TrueCrypt SHA512 AES256_XTS",    // FORMAT_NAME
+		"TrueCrypt AES256_XTS",    // FORMAT_NAME
 #if SSE_GROUP_SZ_SHA512
-		SHA512_ALGORITHM_NAME,            // ALGORITHM_NAME,
+		"SHA512 " SHA512_ALGORITHM_NAME,            // ALGORITHM_NAME,
 #else
 #if ARCH_BITS >= 64
-		"64/" ARCH_BITS_STR,              // ALGORITHM_NAME,
+		"SHA512 " "64/64",
 #else
-		"32/" ARCH_BITS_STR,              // ALGORITHM_NAME,
+		"SHA512 " ARCH_BITS_STR "/64",
 #endif
 #endif
 		"",                               // BENCHMARK_COMMENT
@@ -672,11 +672,11 @@ struct fmt_main fmt_truecrypt_sha512 = {
 struct fmt_main fmt_truecrypt_whirlpool = {
 	{
 		"tc_whirlpool",                   // FORMAT_LABEL
-		"TrueCrypt WHIRLPOOL AES256_XTS", // FORMAT_NAME
+		"TrueCrypt AES256_XTS", // FORMAT_NAME
 #if ARCH_BITS >= 64
-		"64/" ARCH_BITS_STR,              // ALGORITHM_NAME,
+		"WHIRLPOOL " ARCH_BITS_STR "/64",    // ALGORITHM_NAME,
 #else
-		"32/" ARCH_BITS_STR,              // ALGORITHM_NAME,
+		"WHIRLPOOL " ARCH_BITS_STR "/64",    // ALGORITHM_NAME,
 #endif
 		"",                               // BENCHMARK_COMMENT
 		-1,                               // BENCHMARK_LENGTH

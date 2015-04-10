@@ -53,9 +53,9 @@ john_register_one(&fmt_blackberry1);
 #define FORMAT_TAG_LENGTH	8
 #define FORMAT_LABEL 		"blackberry-es10"
 #define FORMAT_NAME 		""
-#define ALGORITHM_NAME 		"101x " SHA256_ALGORITHM_NAME
+#define ALGORITHM_NAME 		"SHA-256 " SHA256_ALGORITHM_NAME
 
-#define BENCHMARK_COMMENT	""
+#define BENCHMARK_COMMENT	" (101x)"
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		64

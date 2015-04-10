@@ -53,18 +53,18 @@ john_register_one(&fmt_krb5_18);
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"krb5-18"
-#define FORMAT_NAME		"Kerberos 5 db etype 18 aes256-cts-hmac-sha1-96"
+#define FORMAT_NAME		"Kerberos 5 db etype 18"
 
 #define FORMAT_TAG		"$krb18$"
 #define TAG_LENGTH		7
 
 #if SIMD_COEF_32
-#define ALGORITHM_NAME    SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME    "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME " AES"
 #else
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME     "64/" ARCH_BITS_STR
+#define ALGORITHM_NAME    "PBKDF2-SHA1 64/" ARCH_BITS_STR " AES"
 #else
-#define ALGORITHM_NAME      "32/" ARCH_BITS_STR
+#define ALGORITHM_NAME    "PBKDF2-SHA1 32/" ARCH_BITS_STR " AES"
 #endif
 #endif
 

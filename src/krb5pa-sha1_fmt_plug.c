@@ -63,9 +63,9 @@ static int omp_t = 1;
 #define FORMAT_LABEL       "krb5pa-sha1"
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 17/18" /* aes-cts-hmac-sha1-96 */
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME      SHA1_N_STR " " SIMD_TYPE
+#define ALGORITHM_NAME     "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME     "32/" ARCH_BITS_STR
+#define ALGORITHM_NAME     "PBKDF2-SHA1 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   -1

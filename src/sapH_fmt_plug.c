@@ -87,7 +87,7 @@ john_register_one(&fmt_sapH);
 
 #include "memdbg.h"
 
-#define BENCHMARK_COMMENT		" (sha1, 1024)"
+#define BENCHMARK_COMMENT		" (SHA1x1024)"
 #define BENCHMARK_LENGTH		0
 
 #define SALT_LENGTH             16  /* the max used sized salt */

@@ -57,7 +57,7 @@ john_register_one(&fmt_SybaseASE);
 #define FORMAT_LABEL        "sybasease"
 #define FORMAT_NAME         "Sybase ASE"
 
-#define ALGORITHM_NAME      SHA256_ALGORITHM_NAME
+#define ALGORITHM_NAME      "SHA256 " SHA256_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0
