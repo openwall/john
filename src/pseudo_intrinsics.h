@@ -80,7 +80,7 @@ typedef __m512i vtype;
 static inline __m512i _mm512_loadu_si512(void const *addr)
 {
 	char JTR_ALIGN(64) buf[64];
-	return _mm512_load_si512(is_aligned(addr, SIMD_COEF_32) ?
+	return _mm512_load_si512(is_aligned(addr, 64) ?
 	                         addr : memcpy(buf, addr, 64));
 }
 
