@@ -1292,17 +1292,26 @@ static int cmp_exact(char *source, int index)
 
 #if FMT_MAIN_VERSION > 11
 /*
- * Report iteration count as 1st tunable cost,
+ * Report gpg --s2k-count n as 1st tunable cost,
  * hash algorithm as 2nd tunable cost,
  * cipher algorithm as 3rd tunable cost.
  */
 
-static unsigned int gpg_iteration_count(void *salt)
+static unsigned int gpg_s2k_count(void *salt)
 {
 	struct custom_salt *my_salt;
 
 	my_salt = salt;
-	return (unsigned int) my_salt->count;
+	if (my_salt->spec == 3)
+		/*
+		 * gpg --s2k-count is only meaningful
+		 * if --s2k-mode is 3, see man gpg
+		 */
+		return (unsigned int) my_salt->count;
+	else if (my_salt->spec == 1)
+		return 1; /* --s2k-mode 1 */
+	else
+		return 0; /* --s2k-mode 0 */
 }
 static unsigned int gpg_hash_algorithm(void *salt)
 {
@@ -1338,7 +1347,7 @@ struct fmt_main fmt_gpg = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{
-			"iteration count",
+			"s2k-count", /* only for gpg --s2k-mode 3, see man gpg, option --s2k-count n */
 			"hash algorithm [1:MD5 2:SHA1 3:RIPEMD160 8:SHA256 9:SHA384 10:SHA512 11:SHA224]",
 			"cipher algorithm [1:IDEA 2:3DES 3:CAST5 4:Blowfish 7:AES128 8:AES192 9:AES256]",
 		},
@@ -1356,7 +1365,7 @@ struct fmt_main fmt_gpg = {
 		get_salt,
 #if FMT_MAIN_VERSION > 11
 		{
-			gpg_iteration_count,
+			gpg_s2k_count,
 			gpg_hash_algorithm,
 			gpg_cipher_algorithm,
 		},
