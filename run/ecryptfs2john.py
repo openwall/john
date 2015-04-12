@@ -4,7 +4,7 @@
 #
 # Refer to "ecryptfs-utils_104.orig.tar.gz" in case of doubt.
 #
-# This software is Copyright (c) 2014 Dhiru Kholia <dhiru.kholia at gmail.com> and 
+# This software is Copyright (c) 2014 Dhiru Kholia <dhiru.kholia at gmail.com> and
 # Copyright (c) 2015, NagraVision <sylvain.pelissier at nagra.com>
 # and it is hereby released to the general public under the following terms:
 #
@@ -13,6 +13,7 @@
 
 import sys
 import binascii
+
 
 def process(filename, ecryptfsrc):
     salt = None
@@ -24,13 +25,13 @@ def process(filename, ecryptfsrc):
                     salt = salt[0:16]  # fixed size salt
 
     with open(filename, "rb") as f:
-        version = f.read(2)	# Read file version
-        if version == b':\x02':	# Test if version 2 of the file format is used.
+        version = f.read(2)  # Read file version
+        if version == b':\x02':  # Test if version 2 of the file format is used.
             salt = binascii.hexlify(f.read(8)).decode("ascii")
             h = f.read(16).decode("ascii")
-        else:			# Version 1 is used.
+        else:  # Version 1 is used.
             h = (version + f.read(14)).decode("ascii")
-        
+
         if len(h) != 16:
             return
 
