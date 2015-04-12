@@ -40,6 +40,7 @@
  *       debugging code exausted all memory.
  */
 
+#if defined (MEMDBG_ON)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,8 +78,6 @@ void *MEMDBG_libc_alloc(size_t size) {
 void *MEMDBG_libc_calloc(size_t count, size_t size) {
 	return calloc(count, size);
 }
-
-#if defined (MEMDBG_ON)
 
 /*
  * these fence posts (first fence post guarding underflow), are:
@@ -1097,9 +1096,4 @@ static void mem_fence_post_errd_ne_fp(void *p, const char *file, int line, char 
 	fprintf(stderr, "Memory fence_postd error, using dangling pointer, memory already freed - %p - %s(%d) (%d)\n", p, file, line, line2);
 }
 
-#else
-
-void MEMDBG_off_free(void *a) {
-	free(a);
-}
 #endif /* MEMDBG_ON */

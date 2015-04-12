@@ -117,7 +117,7 @@ extern char *MEMDBG_strdup(const char *, char *, int);
 #define free(a)       do { if (a) MEMDBG_free((a),__FILE__,__LINE__); a=0; } while(0)
 #define strdup(a)     MEMDBG_strdup((a),__FILE__,__LINE__)
 
-#endif
+#endif /* !defined __MEMDBG__ */
 
 /* pass the file handle to write to (normally stderr) */
 #define MEMDBG_PROGRAM_EXIT_CHECKS(a) do { \
@@ -169,7 +169,7 @@ void MEMDBG_checkSnapshot_possible_exit_on_error(MEMDBG_HANDLE, int exit_on_any_
 
 void MEMDBG_tag_mem_from_alloc_tiny(void *);
 
-#else
+#elif 0
 /* NOTE, we DO keep one special function here.  We make free a little
  * smarter. this function gets used, even when we do NOT compile with
  * any memory debugging on. This makes free work more like C++ delete,
@@ -192,7 +192,18 @@ void MEMDBG_tag_mem_from_alloc_tiny(void *);
 extern void MEMDBG_off_free(void *a);
 #define free(a)   do { if(a) MEMDBG_off_free(a); a=0; } while(0)
 #endif
-#endif
+#endif /* !defined(__MEMDBG__) */
+
+extern void MEMDBG_libc_free(void *);
+extern void *MEMDBG_libc_alloc(size_t size);
+extern void *MEMDBG_libc_calloc(size_t count, size_t size);
+
+#else
+
+#define libc_alloc alloc
+#define libc_calloc calloc
+#define libc_free free
+
 #define MemDbg_Used(a) 0
 #define MemDbg_Display(a)
 #define MemDbg_Validate(a)
@@ -207,9 +218,5 @@ extern void MEMDBG_off_free(void *a);
 #define MEMDBG_checkSnapshot_possible_exit_on_error(a, b) if(a) printf(" \b")
 
 #endif /* MEMDBG_ON */
-
-extern void MEMDBG_libc_free(void *);
-extern void *MEMDBG_libc_alloc(size_t size);
-extern void *MEMDBG_libc_calloc(size_t count, size_t size);
 
 #endif /* __MEMDBG_H_ */
