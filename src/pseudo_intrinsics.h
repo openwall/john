@@ -193,6 +193,19 @@ typedef __m256i vtype;
 #define vswap64(n)                              \
     (n = vshuffle_epi8(n, swap_endian64_mask))
 
+#if 0
+#define swapd(x, y) { uint32_t temp = x; x = y; y = temp; }
+
+static inline void vtranspose_epi32(void *_W)
+{
+	uint32_t r, c;
+	uint32_t *W = (uint32_t*)_W;
+
+	for (r = 1; r < SIMD_COEF_32; r++)
+		for (c = 0; c < r; c++)
+			swapd(W[r * SIMD_COEF_32 + c], W[c * SIMD_COEF_32 + r]);
+}
+#else
 static inline void vmerge_epi32(const vtype v0, const vtype v1, vtype *vl, vtype *vh)
 {
 	vtype va = vpermute4x64_epi64(v0, _MM_SHUFFLE(3, 1, 2, 0));
@@ -231,6 +244,7 @@ static inline void vmerge(const vtype v0, const vtype v1, vtype *vl, vtype *vh)
         vmerge(t2, t6, &R[4], &R[5]);           \
         vmerge(t3, t7, &R[6], &R[7]);           \
     } while (false)
+#endif
 
 #if __clang__
 static inline int vtestz_epi32(vtype __X)
