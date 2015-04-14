@@ -124,23 +124,6 @@ static inline __m512i _mm512_loadu_si512(void const *addr)
                                     0x08090a0b0c0d0e0f, 0x0001020304050607))
 #endif /* MIC */
 
-// FIXME: this code is terribly unoptimized
-#define vtranspose_epi32(R) {                   \
-    int32_t JTR_ALIGN(64) mtx[16][16];          \
-    int i, j;                                   \
-    for (i = 0; i < 16; ++i)                    \
-        _mm512_store_epi32(mtx[i], R[i]);       \
-    for (i = 0; i < 16; ++i) {                  \
-        for (j = 0; j < i; ++j) {               \
-            int32_t tmp = mtx[i][j];            \
-            mtx[i][j] = mtx[j][i];              \
-            mtx[j][i] = tmp;                    \
-        }                                       \
-    }                                           \
-    for (i = 0; i < 16; ++i)                    \
-        R[i] = _mm512_load_epi32(mtx[i]);       \
-}
-
 #define vtestz_epi32(n)         !_mm512_min_epu32(n)
 #define vtesteq_epi32(x, y)                                     \
     _mm512_mask2int(_mm512_cmp_epi32_mask(x, y, _MM_CMPINT_EQ))
@@ -233,59 +216,6 @@ typedef __m256i vtype;
 
 #define vswap64(n)                              \
     (n = vshuffle_epi8(n, swap_endian64_mask))
-
-#if 0
-#define swapd(x, y) { uint32_t temp = x; x = y; y = temp; }
-
-static inline void vtranspose_epi32(void *_W)
-{
-	uint32_t r, c;
-	uint32_t *W = (uint32_t*)_W;
-
-	for (r = 1; r < SIMD_COEF_32; r++)
-		for (c = 0; c < r; c++)
-			swapd(W[r * SIMD_COEF_32 + c], W[c * SIMD_COEF_32 + r]);
-}
-#else
-static inline void vmerge_epi32(const vtype v0, const vtype v1, vtype *vl, vtype *vh)
-{
-	vtype va = vpermute4x64_epi64(v0, _MM_SHUFFLE(3, 1, 2, 0));
-	vtype vb = vpermute4x64_epi64(v1, _MM_SHUFFLE(3, 1, 2, 0));
-	*vl = vunpacklo_epi32(va, vb);
-	*vh = vunpackhi_epi32(va, vb);
-}
-
-static inline void vmerge_epi64(const vtype v0, const vtype v1, vtype *vl, vtype *vh)
-{
-	vtype va = vpermute4x64_epi64(v0, _MM_SHUFFLE(3, 1, 2, 0));
-	vtype vb = vpermute4x64_epi64(v1, _MM_SHUFFLE(3, 1, 2, 0));
-	*vl = vunpacklo_epi64(va, vb);
-	*vh = vunpackhi_epi64(va, vb);
-}
-
-static inline void vmerge(const vtype v0, const vtype v1, vtype *vl, vtype *vh)
-{
-	*vl = vpermute2x128(v0, v1, _MM_SHUFFLE(0, 2, 0, 0));
-	*vh = vpermute2x128(v0, v1, _MM_SHUFFLE(0, 3, 0, 1));
-}
-
-#define vtranspose_epi32(R) do {                \
-        vtype T0, T1, T2, T3, T4, T5, T6, T7;   \
-        vtype t0, t1, t2, t3, t4, t5, t6, t7;   \
-        vmerge_epi32(R[0], R[1], &T0, &T1);     \
-        vmerge_epi32(R[2], R[3], &T2, &T3);     \
-        vmerge_epi32(R[4], R[5], &T4, &T5);     \
-        vmerge_epi32(R[6], R[7], &T6, &T7);     \
-        vmerge_epi64(T0, T2, &t0, &t1);         \
-        vmerge_epi64(T1, T3, &t2, &t3);         \
-        vmerge_epi64(T4, T6, &t4, &t5);         \
-        vmerge_epi64(T5, T7, &t6, &t7);         \
-        vmerge(t0, t4, &R[0], &R[1]);           \
-        vmerge(t1, t5, &R[2], &R[3]);           \
-        vmerge(t2, t6, &R[4], &R[5]);           \
-        vmerge(t3, t7, &R[6], &R[7]);           \
-    } while (false)
-#endif
 
 #if __clang__
 static inline int vtestz_epi32(vtype __X)
@@ -409,18 +339,6 @@ typedef __m128i vtype;
 #define vunpacklo_epi32         _mm_unpacklo_epi32
 #define vunpacklo_epi64         _mm_unpacklo_epi64
 #define vxor                    _mm_xor_si128
-
-#define vtranspose_epi32(R) do {                \
-        vtype T0, T1, T2, T3;                   \
-        T0  = vunpacklo_epi32(R[0], R[1]);      \
-        T1  = vunpacklo_epi32(R[2], R[3]);      \
-        T2  = vunpackhi_epi32(R[0], R[1]);      \
-        T3  = vunpackhi_epi32(R[2], R[3]);      \
-        R[0]  = vunpacklo_epi64(T0, T1);        \
-        R[1]  = vunpackhi_epi64(T0, T1);        \
-        R[2]  = vunpacklo_epi64(T2, T3);        \
-        R[3]  = vunpackhi_epi64(T2, T3);        \
-    } while (false)
 
 #if !__SSE4_1__ || __clang__
 static inline int vtestz_epi32(vtype __X)
