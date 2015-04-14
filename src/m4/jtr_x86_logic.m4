@@ -333,8 +333,8 @@ else
     AS_IF([test x$OSX_AS_CLANG != x],
       [CC_BACKUP="$CC_BACKUP $OSX_AS_CLANG"]
       [AS_IF([test "x$AS" = xgcc], [AS="$AS $OSX_AS_CLANG"])]
-     ,[CC="$CC_BACKUP"])
-    ])]
+    )
+    [CC="$CC_BACKUP"]])]
   )
 
   AS_IF([test "x$CPU_NOTFOUND" = x0],

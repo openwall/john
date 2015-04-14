@@ -8198,10 +8198,8 @@ rm -f core conftest.err conftest.$ac_objext \
   AS="$AS $OSX_AS_CLANG"
 fi
 
-else
-  CC="$CC_BACKUP"
 fi
-
+    CC="$CC_BACKUP"
 fi
    ;; #(
   *) :
