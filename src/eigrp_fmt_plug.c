@@ -30,7 +30,7 @@ john_register_one(&fmt_eigrp);
 // 64k  - 16674k/14674k
 // 128k - 17795k/14663k  --test=0 has a tiny delay, but not bad.
 #ifdef __MIC__
-#define OMP_SCALE 32768
+#define OMP_SCALE 8192
 #else
 #define OMP_SCALE 131072
 #endif

@@ -43,7 +43,7 @@ john_register_one(&fmt_cryptsha1);
 #define BENCHMARK_LENGTH            -1001
 
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME          "PBKDF1-SHA1 " SHA1_N_STR SIMD_TYPE_STR
+#define ALGORITHM_NAME          "PBKDF1-SHA1 " SHA1_ALGORITHM_NAME
 #else
 #define ALGORITHM_NAME          "PBKDF1-SHA1 " ARCH_BITS_STR "/" ARCH_BITS_STR
 #endif

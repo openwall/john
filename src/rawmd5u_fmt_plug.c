@@ -52,7 +52,7 @@ john_register_one(&fmt_rawmd5uthick);
 #define PLAINTEXT_LENGTH		27
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS * BLOCK_LOOPS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (index>>SIMD_COEF32_BITS)*16*SIMD_COEF_32*4 )
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + index/SIMD_COEF_32*16*SIMD_COEF_32*4 )
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
@@ -237,7 +237,7 @@ key_cleaning:
 		keybuf_word += SIMD_COEF_32;
 	}
 
-	((unsigned int *)saved_key)[14*SIMD_COEF_32 + (index&3) + (index>>2)*16*SIMD_COEF_32] = len << 4;
+	((unsigned int *)saved_key)[14*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*16*SIMD_COEF_32] = len << 4;
 #else
 #if ARCH_LITTLE_ENDIAN
 	UTF8 *s = (UTF8*)_key;
@@ -294,7 +294,7 @@ key_cleaning_enc:
 		keybuf_word += SIMD_COEF_32;
 	}
 
-	((unsigned int *)saved_key)[14*SIMD_COEF_32 + (index&3) + (index>>2)*16*SIMD_COEF_32] = len << 4;
+	((unsigned int *)saved_key)[14*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*16*SIMD_COEF_32] = len << 4;
 #else
 	saved_len = enc_to_utf16((UTF16*)&saved_key,
 	                                PLAINTEXT_LENGTH + 1,
@@ -421,7 +421,7 @@ bailout:
 		keybuf_word += SIMD_COEF_32;
 	}
 
-	((unsigned int *)saved_key)[14*SIMD_COEF_32 + (index&3) + (index>>2)*16*SIMD_COEF_32] = len << 4;
+	((unsigned int *)saved_key)[14*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*16*SIMD_COEF_32] = len << 4;
 #else
 	saved_len = utf8_to_utf16((UTF16*)&saved_key,
 	                                 PLAINTEXT_LENGTH + 1,
@@ -486,8 +486,8 @@ static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_32
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 
 	if( ((ARCH_WORD_32*)binary)[0] != ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] )
 		return 0;
@@ -532,50 +532,50 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int get_hash_0(int index)
 {
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & 0xf;
 }
 static int get_hash_1(int index)
 {
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & 0xff;
 }
 static int get_hash_2(int index)
 {
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & 0xfff;
 }
 static int get_hash_3(int index)
 {
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & 0xffff;
 }
 static int get_hash_4(int index)
 {
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & 0xfffff;
 }
 static int get_hash_5(int index)
 {
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & 0xffffff;
 }
 static int get_hash_6(int index)
 {
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & 0x7ffffff;
 }
 #else

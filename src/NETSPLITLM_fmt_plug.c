@@ -22,7 +22,11 @@ john_register_one(&fmt_NETHALFLM);
 
 #include <string.h>
 #ifdef _OPENMP
+#ifdef __MIC__
+#define OMP_SCALE	2048
+#else
 #define OMP_SCALE	65536
+#endif // __MIC__
 #include <omp.h>
 #endif
 

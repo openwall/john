@@ -36,8 +36,8 @@ john_register_one(&fmt_office);
 //#undef SIMD_COEF_64
 
 #define FORMAT_LABEL		"Office"
-#define FORMAT_NAME		"2007/2010 (SHA-1) / 2013 (SHA-512), with AES"
-#define ALGORITHM_NAME		"SHA1 " SHA1_ALGORITHM_NAME " / SHA512 " SHA512_ALGORITHM_NAME
+#define FORMAT_NAME		"2007/2010/2013"
+#define ALGORITHM_NAME		"SHA1 " SHA1_ALGORITHM_NAME " / SHA512 " SHA512_ALGORITHM_NAME " AES"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
@@ -46,7 +46,7 @@ john_register_one(&fmt_office);
 #define BINARY_ALIGN	4
 #define SALT_ALIGN	sizeof(int)
 #ifdef SIMD_COEF_32
-#define GETPOS_1(i, index)  ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>SIMD_COEF32_BITS)*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETPOS_1(i, index)  ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
 #define SHA1_LOOP_CNT       (SIMD_COEF_32*SHA1_SSE_PARA)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT	SHA1_LOOP_CNT
@@ -57,7 +57,7 @@ john_register_one(&fmt_office);
 #endif
 
 #ifdef SIMD_COEF_64
-#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (index>>(SIMD_COEF_64>>1))*SHA512_BUF_SIZ*SIMD_COEF_64 *8 )
+#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64*8 )
 #define SHA512_LOOP_CNT SIMD_COEF_64
 #else
 #define SHA512_LOOP_CNT 1
@@ -164,11 +164,11 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 	 * create input buffer for SHA1 from salt and unicode version of password */
 	unsigned char X1[20];
 	SHA_CTX ctx;
-	unsigned char _IBuf[64*SHA1_LOOP_CNT+16], *keys;
+	unsigned char _IBuf[64*SHA1_LOOP_CNT+MEM_ALIGN_SIMD], *keys;
 	uint32_t *keys32;
 	unsigned i, j;
 
-	keys = (unsigned char*)mem_align(_IBuf, 16);
+	keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 	keys32 = (uint32_t*)keys;
 	memset(keys, 0, 64*SHA1_LOOP_CNT);
 
@@ -283,11 +283,11 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 	int hashSize = cur_salt->keySize >> 3;
 	unsigned i, j;
 	SHA_CTX ctx;
-	unsigned char _IBuf[64*SHA1_LOOP_CNT+16], *keys, _OBuf[20*SHA1_LOOP_CNT+16];
+	unsigned char _IBuf[64*SHA1_LOOP_CNT+MEM_ALIGN_SIMD], *keys, _OBuf[20*SHA1_LOOP_CNT+MEM_ALIGN_SIMD];
 	uint32_t *keys32, *crypt;
 
-	crypt = (uint32_t*)mem_align(_OBuf, 16);
-	keys = (unsigned char*)mem_align(_IBuf, 16);
+	crypt = (uint32_t*)mem_align(_OBuf, MEM_ALIGN_SIMD);
+	keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 	keys32 = (uint32_t*)keys;
 	memset(keys, 0, 64*SHA1_LOOP_CNT);
 
@@ -425,15 +425,19 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 	unsigned char tmpBuf[64];
 	int i, j, k;
 	SHA512_CTX ctx;
-	unsigned char _IBuf[128*SHA512_LOOP_CNT+16], *keys, _OBuf[64*SHA512_LOOP_CNT+16];
+	unsigned char _IBuf[128*SHA512_LOOP_CNT+MEM_ALIGN_SIMD], *keys, _OBuf[64*SHA512_LOOP_CNT+MEM_ALIGN_SIMD];
 	ARCH_WORD_64 *keys64, *crypt;
+#if SIMD_COEF_64 <= 2
 	uint32_t *keys32, *crypt32;
+#endif
 
-	crypt = (ARCH_WORD_64*)mem_align(_OBuf, 16);
-	keys = (unsigned char*)mem_align(_IBuf, 16);
+	crypt = (ARCH_WORD_64*)mem_align(_OBuf, MEM_ALIGN_SIMD);
+	keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 	keys64 = (ARCH_WORD_64*)keys;
+#if SIMD_COEF_64 <= 2
 	keys32 = (uint32_t*)keys;
 	crypt32 = (uint32_t*)crypt;
+#endif
 
 	memset(keys, 0, 128*SHA512_LOOP_CNT);
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
@@ -460,16 +464,23 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 		// Here we output to 4 bytes past start of input buffer.
 		SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 		for (k = 0; k < SHA512_LOOP_CNT; ++k) {
+#if SIMD_COEF_64 > 2
+/* Works but slow. I have no idea what is wrong with the other version */
+			for (j = 0; j < 64; ++j)
+				keys[GETPOS_512(j + 4, k)] =
+					((unsigned char*)crypt)[GETPOS_512(j, k)];
+#else
 			uint32_t *o = keys32;
 			uint32_t *i = crypt32;
-			o += ((SHA512_LOOP_CNT*k));
-			i += (SHA512_LOOP_CNT*k);
+			o += (k*SIMD_COEF_64);
+			i += (k*SIMD_COEF_64);
 			for (j = 0; j < 8; ++j) {
 				*o = i[1];
-				o += SHA512_LOOP_CNT*2+1;
+				o += SIMD_COEF_64*2+1;
 				*o-- = i[0];
-				i += SHA512_LOOP_CNT*2;
+				i += SIMD_COEF_64*2;
 			}
+#endif
 		}
 	}
 	// last iteration is output to start of input buffer, then 32 bit 0 appended.

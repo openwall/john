@@ -102,6 +102,9 @@ case "${host_cpu}_${CFLAGS}" in
         [CC_ASM_OBJS="x86.o x86-sse.o sse-intrinsics.o"]
       fi
    ;;
+   mic*)
+      [CC_ASM_OBJS="sse-intrinsics.o"]
+      ;;
    alpha*dec*)
       [CC_ASM_OBJS="digipaq-alpha.o"]
       ;;

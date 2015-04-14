@@ -47,9 +47,8 @@ static int omp_t = 1;
 #define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG) - 1)
 #define FORMAT_LABEL 		"eCryptfs"
 #define FORMAT_NAME 		""
-#define ALGORITHM_NAME 		"65536x " SHA512_ALGORITHM_NAME  // good luck with that!
-
-#define BENCHMARK_COMMENT	""
+#define ALGORITHM_NAME 		"SHA-512 " SHA512_ALGORITHM_NAME
+#define BENCHMARK_COMMENT	" (65536x)"  // good luck with that!
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
 #define REAL_BINARY_SIZE	8
@@ -61,7 +60,7 @@ static int omp_t = 1;
 #define MIN_KEYS_PER_CRYPT		1
 #ifdef SIMD_COEF_64
 #define MAX_KEYS_PER_CRYPT      SIMD_COEF_64
-#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (index>>(SIMD_COEF_64>>1))*SHA512_BUF_SIZ*SIMD_COEF_64 *8 )
+#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64 *8 )
 #else
 #define MAX_KEYS_PER_CRYPT		1
 #endif
@@ -212,10 +211,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_64
 		unsigned char tmpBuf[64];
 		int i;
-		unsigned char _IBuf[128*SIMD_COEF_64+16], *keys;
+		unsigned char _IBuf[128*SIMD_COEF_64+MEM_ALIGN_SIMD], *keys;
 		ARCH_WORD_64 *keys64;
 
-		keys = (unsigned char*)mem_align(_IBuf, 16);
+		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 		keys64 = (ARCH_WORD_64*)keys;
 		memset(keys, 0, 128*SIMD_COEF_64);
 

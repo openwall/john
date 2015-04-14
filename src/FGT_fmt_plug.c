@@ -37,7 +37,11 @@ john_register_one(&fmt_FGT);
 #include "sse-intrinsics.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifdef __MIC__
+#define OMP_SCALE               8192
+#else
 #define OMP_SCALE               32768 // tuned on AMD K8 dual-HT (XOP)
+#endif // __MIC__
 #endif
 #include "memdbg.h"
 

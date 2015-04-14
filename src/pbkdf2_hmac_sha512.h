@@ -211,9 +211,9 @@ static void pbkdf2_sha512_sse(const unsigned char *K[SIMD_COEF_64], int KL[SIMD_
 	SHA512_CTX ipad[SSE_GROUP_SZ_SHA512], opad[SSE_GROUP_SZ_SHA512], ctx;
 
 	// sse_hash1 would need to be 'adjusted' for SHA512_PARA
-	JTR_ALIGN(16) unsigned char sse_hash1[SHA512_BUF_SIZ*sizeof(ARCH_WORD_64)*SSE_GROUP_SZ_SHA512];
-	JTR_ALIGN(16) unsigned char sse_crypt1[SHA512_DIGEST_LENGTH*SSE_GROUP_SZ_SHA512];
-	JTR_ALIGN(16) unsigned char sse_crypt2[SHA512_DIGEST_LENGTH*SSE_GROUP_SZ_SHA512];
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_hash1[SHA512_BUF_SIZ*sizeof(ARCH_WORD_64)*SSE_GROUP_SZ_SHA512];
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt1[SHA512_DIGEST_LENGTH*SSE_GROUP_SZ_SHA512];
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt2[SHA512_DIGEST_LENGTH*SSE_GROUP_SZ_SHA512];
 	i1 = (ARCH_WORD_64*)sse_crypt1;
 	i2 = (ARCH_WORD_64*)sse_crypt2;
 	o1 = (ARCH_WORD_64*)sse_hash1;
@@ -300,7 +300,7 @@ static void pbkdf2_sha512_sse(const unsigned char *K[SIMD_COEF_64], int KL[SIMD_
 			for (k = 0; k < SSE_GROUP_SZ_SHA512; k++) {
 				ARCH_WORD_64 *p = &o1[(k/SIMD_COEF_64)*SIMD_COEF_64*SHA512_BUF_SIZ + (k&(SIMD_COEF_64-1))];
 				for(j = 0; j < (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)); j++)
-					dgst[k][j] ^= p[(j<<(SIMD_COEF_64>>1))];
+					dgst[k][j] ^= p[j*SIMD_COEF_64];
 			}
 		}
 

@@ -189,7 +189,7 @@ static void listconf_list_build_info(void)
 #ifdef __ICC
 	printf("icc version: %d\n", __ICC);
 #endif
-#ifdef __clang_version__
+#if defined(__clang_version__) && !__INTEL_COMPILER
 	printf("clang version: %s\n", __clang_version__);
 #endif
 #if HAVE_CUDA

@@ -66,8 +66,8 @@ static unsigned int omp_t = 1;
 #define NBKEYS					(SIMD_COEF_32 * MD5_SSE_PARA)
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + ((i)&3) + (index>>SIMD_COEF32_BITS)*64*SIMD_COEF_32 )
-#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&0x1c)*SIMD_COEF_32 + ((i)&3) + (index>>SIMD_COEF32_BITS)*16*SIMD_COEF_32 )
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + ((i)&3) + index/SIMD_COEF_32*64*SIMD_COEF_32 )
+#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&0x1c)*SIMD_COEF_32 + ((i)&3) + index/SIMD_COEF_32*16*SIMD_COEF_32 )
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -407,8 +407,8 @@ static inline void bin2ascii(uint32_t *conv, uint32_t *source)
 static inline void crypt_done(unsigned const int *source, unsigned int *dest, int index)
 {
 	unsigned int i;
-	unsigned const int *s = &source[(index&(SIMD_COEF_32-1)) + (index>>SIMD_COEF32_BITS)*4*SIMD_COEF_32];
-	unsigned int *d = &dest[(index&(SIMD_COEF_32-1)) + (index>>SIMD_COEF32_BITS)*4*SIMD_COEF_32];
+	unsigned const int *s = &source[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*4*SIMD_COEF_32];
+	unsigned int *d = &dest[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*4*SIMD_COEF_32];
 
 	for (i = 0; i < BINARY_SIZE / 4; i++) {
 		*d = *s;
@@ -459,7 +459,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (; i < (((len+8)>>6)+1)*64; i += 4)
 				*(ARCH_WORD_32*)&saved_key[i>>6][GETPOS(i, ti)] = 0;
 
-			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&3) + (ti>>2)*16*SIMD_COEF_32] = len << 3;
+			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + (ti/SIMD_COEF_32)*16*SIMD_COEF_32] = len << 3;
 		}
 
 		SSEmd5body(&saved_key[0][thread*64*NBKEYS], &crypt_key[thread*4*NBKEYS], NULL, SSEi_MIXED_IN);
@@ -492,7 +492,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (; i <= crypt_len[index]; i += 4)
 				*(ARCH_WORD_32*)&saved_key[i>>6][GETPOS(i, ti)] = 0;
 
-			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&3) + (ti>>2)*16*SIMD_COEF_32] = len << 3;
+			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + (ti/SIMD_COEF_32)*16*SIMD_COEF_32] = len << 3;
 			crypt_len[index] = len;
 			if (len > longest)
 				longest = len;

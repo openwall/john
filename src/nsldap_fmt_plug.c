@@ -48,7 +48,7 @@ john_register_one(&fmt_nsldap);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>SIMD_COEF32_BITS)*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -84,8 +84,8 @@ static struct fmt_tests tests[] = {
 /* Cygwin would not guarantee the alignment if these were declared static */
 #define saved_key nsldap_saved_key
 #define crypt_key nsldap_crypt_key
-JTR_ALIGN(16) unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS];
-JTR_ALIGN(16) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
+JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS];
+JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
 static unsigned char out[PLAINTEXT_LENGTH + 1];
 #else
 static char saved_key[PLAINTEXT_LENGTH + 1];
@@ -153,7 +153,7 @@ key_cleaning:
 		*keybuf_word = 0;
 		keybuf_word += SIMD_COEF_32;
 	}
-	((ARCH_WORD_32 *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
+	((ARCH_WORD_32 *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 #else
 	strnzcpy(saved_key, _key, PLAINTEXT_LENGTH + 1);
 #endif
@@ -163,7 +163,7 @@ static char *get_key(int index) {
 #ifdef SIMD_COEF_32
 	unsigned int i, s;
 
-	s = ((ARCH_WORD_32 *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
+	s = ((ARCH_WORD_32 *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
 	for(i=0;i<s;i++)
 		out[i] = saved_key[ GETPOS(i, index) ];
 	out[i] = 0;
@@ -199,8 +199,8 @@ static int cmp_one(void * binary, int index)
 {
 #ifdef SIMD_COEF_32
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 
 	if( ((ARCH_WORD_32*)binary)[0] != ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] )
 		return 0;
@@ -251,7 +251,7 @@ static void * get_binary(char *ciphertext)
 }
 
 #ifdef SIMD_COEF_32
-#define HASH_IDX ((index&3)+(index/4)*SIMD_COEF_32*5)
+#define HASH_IDX ((index&(SIMD_COEF_32-1))+index/SIMD_COEF_32*SIMD_COEF_32*5)
 static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xfff; }

@@ -30,7 +30,11 @@ john_register_one(&fmt_EPI);
 #include "sha.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifdef __MIC__
+#define OMP_SCALE              8192
+#else
 #define OMP_SCALE              32768   // Tuned, K8-dual HT
+#endif // __MIC__
 #endif
 #include "memdbg.h"
 

@@ -339,7 +339,7 @@ static inline uint32_t DoMD5_FixBufferLen32(unsigned char *input_buf, int total_
 	return ret;
 }
 static void DoMD5_crypt_f_sse(void *in, int len[MD5_LOOPS], void *out) {
-	JTR_ALIGN(16) ARCH_WORD_32 a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32)];
 	unsigned int i, j, loops[MD5_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < MD5_LOOPS; ++i) {
@@ -354,9 +354,9 @@ static void DoMD5_crypt_f_sse(void *in, int len[MD5_LOOPS], void *out) {
 		bMore = 0;
 		for (i = 0; i < MD5_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				unsigned int offx = ((i>>2)*16)+(i&3);
+				unsigned int offx = ((i/SIMD_COEF_32)*4*SIMD_COEF_32)+(i&(SIMD_COEF_32-1));
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i<<SIMD_COEF32_BITS)+j] = a[(j<<SIMD_COEF32_BITS)+offx];
+					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = a[(j*SIMD_COEF_32)+offx];
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -366,7 +366,7 @@ static void DoMD5_crypt_f_sse(void *in, int len[MD5_LOOPS], void *out) {
 	}
 }
 static void DoMD5_crypt_sse(void *in, int ilen[MD5_LOOPS], void *out[MD5_LOOPS], unsigned int *tot_len, int tid) {
-	JTR_ALIGN(16) ARCH_WORD_32 a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32)];
 	union yy { unsigned char u[16]; ARCH_WORD_32 a[16/sizeof(ARCH_WORD_32)]; } y;
 	unsigned int i, j, loops[MD5_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -382,9 +382,9 @@ static void DoMD5_crypt_sse(void *in, int ilen[MD5_LOOPS], void *out[MD5_LOOPS],
 		bMore = 0;
 		for (i = 0; i < MD5_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				unsigned int offx = ((i>>2)*16)+(i&3);
+				unsigned int offx = ((i/SIMD_COEF_32)*4*SIMD_COEF_32)+(i&(SIMD_COEF_32-1));
 				for (j = 0; j < 4; ++j) {
-					y.a[j] = a[(j<<SIMD_COEF32_BITS)+offx];
+					y.a[j] = a[(j*SIMD_COEF_32)+offx];
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), 16, tid);
 			} else if (cnt < loops[i])
@@ -741,7 +741,7 @@ static inline uint32_t DoMD4_FixBufferLen32(unsigned char *input_buf, int total_
 	return ret;
 }
 static void DoMD4_crypt_f_sse(void *in, int len[MD4_LOOPS], void *out) {
-	JTR_ALIGN(16) ARCH_WORD_32 a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32)];
 	unsigned int i, j, loops[MD4_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < MD4_LOOPS; ++i) {
@@ -756,9 +756,9 @@ static void DoMD4_crypt_f_sse(void *in, int len[MD4_LOOPS], void *out) {
 		bMore = 0;
 		for (i = 0; i < MD4_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				unsigned int offx = ((i>>2)*16)+(i&3);
+				unsigned int offx = ((i/SIMD_COEF_32)*4*SIMD_COEF_32)+(i&(SIMD_COEF_32-1));
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i<<SIMD_COEF32_BITS)+j] = a[(j<<SIMD_COEF32_BITS)+offx];
+					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = a[(j*SIMD_COEF_32)+offx];
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -768,7 +768,7 @@ static void DoMD4_crypt_f_sse(void *in, int len[MD4_LOOPS], void *out) {
 	}
 }
 static void DoMD4_crypt_sse(void *in, int ilen[MD4_LOOPS], void *out[MD4_LOOPS], unsigned int *tot_len, int tid) {
-	JTR_ALIGN(16) ARCH_WORD_32 a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32)];
 	union yy { unsigned char u[16]; ARCH_WORD_32 a[16/sizeof(ARCH_WORD_32)]; } y;
 	unsigned int i, j, loops[MD4_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -784,9 +784,9 @@ static void DoMD4_crypt_sse(void *in, int ilen[MD4_LOOPS], void *out[MD4_LOOPS],
 		bMore = 0;
 		for (i = 0; i < MD4_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				unsigned int offx = ((i>>2)*16)+(i&3);
+				unsigned int offx = ((i/SIMD_COEF_32)*4*SIMD_COEF_32)+(i&(SIMD_COEF_32-1));
 				for (j = 0; j < 4; ++j) {
-					y.a[j] = a[(j<<SIMD_COEF32_BITS)+offx];
+					y.a[j] = a[(j*SIMD_COEF_32)+offx];
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), 16, tid);
 			} else if (cnt < loops[i])
@@ -1141,7 +1141,7 @@ static inline uint32_t DoSHA1_FixBufferLen32(unsigned char *input_buf, int total
 	return ret;
 }
 static void DoSHA1_crypt_f_sse(void *in, int len[SHA1_LOOPS], void *out) {
-	JTR_ALIGN(16) ARCH_WORD_32 a[(20*SHA1_LOOPS)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(20*SHA1_LOOPS)/sizeof(ARCH_WORD_32)];
 	unsigned int i, j, loops[SHA1_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA1_LOOPS; ++i) {
@@ -1156,10 +1156,10 @@ static void DoSHA1_crypt_f_sse(void *in, int len[SHA1_LOOPS], void *out) {
 		bMore = 0;
 		for (i = 0; i < SHA1_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				unsigned int offx = ((i>>2)*20)+(i&3);
+				unsigned int offx = ((i/SIMD_COEF_32)*5*SIMD_COEF_32)+(i&(SIMD_COEF_32-1));
 				// only 16 bytes in the 'final'
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i<<SIMD_COEF32_BITS)+j] = JOHNSWAP(a[(j<<SIMD_COEF32_BITS)+offx]);
+					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = JOHNSWAP(a[(j*SIMD_COEF_32)+offx]);
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -1169,7 +1169,7 @@ static void DoSHA1_crypt_f_sse(void *in, int len[SHA1_LOOPS], void *out) {
 	}
 }
 static void DoSHA1_crypt_sse(void *in, int ilen[SHA1_LOOPS], void *out[SHA1_LOOPS], unsigned int *tot_len, int tid) {
-	JTR_ALIGN(16) ARCH_WORD_32 a[(20*SHA1_LOOPS)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(20*SHA1_LOOPS)/sizeof(ARCH_WORD_32)];
 	union yy { unsigned char u[20]; ARCH_WORD_32 a[20/sizeof(ARCH_WORD_32)]; } y;
 	unsigned int i, j, loops[SHA1_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -1185,9 +1185,9 @@ static void DoSHA1_crypt_sse(void *in, int ilen[SHA1_LOOPS], void *out[SHA1_LOOP
 		bMore = 0;
 		for (i = 0; i < SHA1_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				unsigned int offx = ((i>>2)*20)+(i&3);
+				unsigned int offx = ((i/SIMD_COEF_32)*5*SIMD_COEF_32)+(i&(SIMD_COEF_32-1));
 				for (j = 0; j < 5; ++j) {
-					y.a[j] =JOHNSWAP(a[(j<<2)+offx]);
+					y.a[j] =JOHNSWAP(a[(j*SIMD_COEF_32)+offx]);
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), 20, tid);
 			} else if (cnt < loops[i])
@@ -1548,7 +1548,7 @@ static inline uint32_t DoSHA256_FixBufferLen32(unsigned char *input_buf, int tot
 	return ret;
 }
 static void DoSHA256_crypt_f_sse(void *in, int len[SIMD_COEF_32], void *out, int isSHA256) {
-	JTR_ALIGN(16) ARCH_WORD_32 a[(32*SIMD_COEF_32)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(32*SIMD_COEF_32)/sizeof(ARCH_WORD_32)];
 	unsigned int i, j, loops[SIMD_COEF_32], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA256_LOOPS; ++i) {
@@ -1565,7 +1565,7 @@ static void DoSHA256_crypt_f_sse(void *in, int len[SIMD_COEF_32], void *out, int
 			if (cnt == loops[i]) {
 				// only 16 bytes.
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i<<SIMD_COEF32_BITS)+j] = JOHNSWAP(a[(j<<SIMD_COEF32_BITS)+i]);
+					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = JOHNSWAP(a[(j*SIMD_COEF_32)+i]);
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -1575,7 +1575,7 @@ static void DoSHA256_crypt_f_sse(void *in, int len[SIMD_COEF_32], void *out, int
 	}
 }
 static void DoSHA256_crypt_sse(void *in, int ilen[SIMD_COEF_32], void *out[SIMD_COEF_32], unsigned int *tot_len, int isSHA256, int tid) {
-	JTR_ALIGN(16) ARCH_WORD_32 a[(32*SIMD_COEF_32)/sizeof(ARCH_WORD_32)];
+	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(32*SIMD_COEF_32)/sizeof(ARCH_WORD_32)];
 	union yy { unsigned char u[32]; ARCH_WORD_32 a[32/sizeof(ARCH_WORD_32)]; } y;
 	unsigned int i, j, loops[SIMD_COEF_32], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -1592,7 +1592,7 @@ static void DoSHA256_crypt_sse(void *in, int ilen[SIMD_COEF_32], void *out[SIMD_
 		for (i = 0; i < SHA256_LOOPS; ++i) {
 			if (cnt == loops[i]) {
 				for (j = 0; j < 8; ++j) {
-					y.a[j] =JOHNSWAP(a[(j<<SIMD_COEF32_BITS)+i]);
+					y.a[j] =JOHNSWAP(a[(j*SIMD_COEF_32)+i]);
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), isSHA256?32:28, tid);
 			} else if (cnt < loops[i])
@@ -2244,7 +2244,7 @@ static inline uint32_t DoSHA512_FixBufferLen64(unsigned char *input_buf, int tot
 	return ret;
 }
 static void DoSHA512_crypt_f_sse(void *in, int len[SIMD_COEF_64], void *out, int isSHA512) {
-	JTR_ALIGN(16) ARCH_WORD_64 a[(64*SIMD_COEF_64)/sizeof(ARCH_WORD_64)];
+	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 a[(64*SIMD_COEF_64)/sizeof(ARCH_WORD_64)];
 	unsigned int i, j, loops[SIMD_COEF_64], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA512_LOOPS; ++i) {
@@ -2261,7 +2261,7 @@ static void DoSHA512_crypt_f_sse(void *in, int len[SIMD_COEF_64], void *out, int
 			if (cnt == loops[i]) {
 				// only copy 16 bytes
 				for (j = 0; j < 2; ++j) {
-					((ARCH_WORD_64*)out)[(i<<(SIMD_COEF_64>>1))+j] = JOHNSWAP64(a[(j<<(SIMD_COEF_64>>1))+i]);
+					((ARCH_WORD_64*)out)[i*SIMD_COEF_64+j] = JOHNSWAP64(a[j*SIMD_COEF_64+i]);
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -2271,7 +2271,7 @@ static void DoSHA512_crypt_f_sse(void *in, int len[SIMD_COEF_64], void *out, int
 	}
 }
 static void DoSHA512_crypt_sse(void *in, int ilen[SIMD_COEF_64], void *out[SIMD_COEF_64], unsigned int *tot_len, int isSHA512, int tid) {
-	JTR_ALIGN(16) ARCH_WORD_64 a[(64*SIMD_COEF_64)/sizeof(ARCH_WORD_64)];
+	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 a[(64*SIMD_COEF_64)/sizeof(ARCH_WORD_64)];
 	union yy { unsigned char u[64]; ARCH_WORD_64 a[64/sizeof(ARCH_WORD_64)]; } y;
 	unsigned int i, j, loops[SIMD_COEF_64], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -2288,7 +2288,7 @@ static void DoSHA512_crypt_sse(void *in, int ilen[SIMD_COEF_64], void *out[SIMD_
 		for (i = 0; i < SHA512_LOOPS; ++i) {
 			if (cnt == loops[i]) {
 				for (j = 0; j < 8; ++j) {
-					y.a[j] =JOHNSWAP64(a[(j<<(SIMD_COEF_64>>1))+i]);
+					y.a[j] =JOHNSWAP64(a[j*SIMD_COEF_64+i]);
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), isSHA512?64:48, tid);
 			} else if (cnt < loops[i])

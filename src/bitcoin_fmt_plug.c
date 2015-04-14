@@ -257,12 +257,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int i;
 
 #ifdef SIMD_COEF_64
-		//JTR_ALIGN(16) ARCH_WORD_64 key_iv[SIMD_COEF_64*SHA512_BUF_SIZ];  // 2 * 16 bytes == 2048 bits, i.e. two SHA blocks
+		//JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 key_iv[SIMD_COEF_64*SHA512_BUF_SIZ];  // 2 * 16 bytes == 2048 bits, i.e. two SHA blocks
 		// the above alignment was crashing on OMP build on some 32 bit linux (compiler bug?? not aligning).
 		// so the alignment was done using raw buffer, and aligning at runtime to get 16 byte alignment.
 		// that works, and should cause no noticeable overhead differences.
-		char unaligned_buf[SIMD_COEF_64*SHA512_BUF_SIZ*sizeof(ARCH_WORD_64)+16];
-		ARCH_WORD_64 *key_iv = (ARCH_WORD_64*)mem_align(unaligned_buf, 16);
+		char unaligned_buf[SIMD_COEF_64*SHA512_BUF_SIZ*sizeof(ARCH_WORD_64)+MEM_ALIGN_SIMD];
+		ARCH_WORD_64 *key_iv = (ARCH_WORD_64*)mem_align(unaligned_buf, MEM_ALIGN_SIMD);
 		JTR_ALIGN(8)  unsigned char hash1[SHA512_DIGEST_LENGTH];            // 512 bits
 		int index2;
 

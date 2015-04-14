@@ -53,7 +53,7 @@ static unsigned int omp_t = 1;
 
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (index>>SIMD_COEF32_BITS)*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
 
 #else
 
@@ -173,50 +173,50 @@ static void *get_salt(char *ciphertext)
 static int get_hash_0(int index)
 {
 	unsigned int x,y;
-        x = index&3;
-        y = index/4;
+        x = index&(SIMD_COEF_32-1);
+        y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xf;
 }
 static int get_hash_1(int index)
 {
 	unsigned int x,y;
-        x = index&3;
-        y = index/4;
+        x = index&(SIMD_COEF_32-1);
+        y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xff;
 }
 static int get_hash_2(int index)
 {
 	unsigned int x,y;
-        x = index&3;
-        y = index/4;
+        x = index&(SIMD_COEF_32-1);
+        y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xfff;
 }
 static int get_hash_3(int index)
 {
 	unsigned int x,y;
-        x = index&3;
-        y = index/4;
+        x = index&(SIMD_COEF_32-1);
+        y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xffff;
 }
 static int get_hash_4(int index)
 {
 	unsigned int x,y;
-        x = index&3;
-        y = index/4;
+        x = index&(SIMD_COEF_32-1);
+        y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xfffff;
 }
 static int get_hash_5(int index)
 {
 	unsigned int x,y;
-        x = index&3;
-        y = index/4;
+        x = index&(SIMD_COEF_32-1);
+        y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xffffff;
 }
 static int get_hash_6(int index)
 {
 	unsigned int x,y;
-        x = index&3;
-        y = index/4;
+        x = index&(SIMD_COEF_32-1);
+        y = index/SIMD_COEF_32;
 	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0x7ffffff;
 }
 #else
@@ -275,7 +275,7 @@ static void set_key(char *key, int index)
 {
 #ifdef SIMD_COEF_32
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
-	ARCH_WORD_32 *keybuffer = &saved_key[(index&(SIMD_COEF_32-1)) + (index>>SIMD_COEF32_BITS)*SHA_BUF_SIZ*SIMD_COEF_32 + SIMD_COEF_32];
+	ARCH_WORD_32 *keybuffer = &saved_key[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32 + SIMD_COEF_32];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
@@ -328,7 +328,7 @@ static char *get_key(int index)
 	unsigned int i,s;
 	static char out[PLAINTEXT_LENGTH + 1];
 
-	s = ((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&3) + (index>>2)*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
+	s = ((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
 
 	for(i = 0; i < (s - SALT_SIZE); i++)
 		out[i] = ((char*)saved_key)[ GETPOS((i + SALT_SIZE), index) ];
@@ -354,7 +354,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned int *out = &crypt_key[i*NBKEYS*BINARY_SIZE/4];
 		unsigned int j;
 		for (j=0; j < NBKEYS; j++)
-			in[(j&(SIMD_COEF_32-1)) + (j>>SIMD_COEF32_BITS)*SHA_BUF_SIZ*SIMD_COEF_32] = cur_salt;
+			in[(j&(SIMD_COEF_32-1)) + j/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = cur_salt;
 		SSESHA1body(in, out, NULL, SSEi_MIXED_IN);
 #if defined(_OPENMP)
 	}
@@ -411,8 +411,8 @@ static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_32
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 
 	if( ((ARCH_WORD_32 *)binary)[0] != ((ARCH_WORD_32 *)crypt_key)[x+y*SIMD_COEF_32*5] )
 		return 0;

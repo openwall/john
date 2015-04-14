@@ -53,9 +53,9 @@ john_register_one(&fmt_blackberry1);
 #define FORMAT_TAG_LENGTH	8
 #define FORMAT_LABEL 		"blackberry-es10"
 #define FORMAT_NAME 		""
-#define ALGORITHM_NAME 		"101x " SHA256_ALGORITHM_NAME
+#define ALGORITHM_NAME 		"SHA-256 " SHA256_ALGORITHM_NAME
 
-#define BENCHMARK_COMMENT	""
+#define BENCHMARK_COMMENT	" (101x)"
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		64
@@ -197,9 +197,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA512_CTX ctx;
 #ifdef SIMD_COEF_64
 		int i;
-		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+16], *keys, tmpBuf[128];
+		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+MEM_ALIGN_SIMD], *keys, tmpBuf[128];
 		ARCH_WORD_64 *keys64, *tmpBuf64=(ARCH_WORD_64*)tmpBuf, *p64;
-		keys = (unsigned char*)mem_align(_IBuf, 16);
+		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 		keys64 = (ARCH_WORD_64*)keys;
 		memset(keys, 0, 128*MAX_KEYS_PER_CRYPT);
 
@@ -219,7 +219,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// now marshal into crypt_out;
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(crypt_out[index+i]);
-			ARCH_WORD_64 *Iptr64 = &keys64[((i>>(SIMD_COEF_64>>1))*(SIMD_COEF_64*16)) + (i&(SIMD_COEF_64-1))];
+			ARCH_WORD_64 *Iptr64 = &keys64[((i/SIMD_COEF_64)*(SIMD_COEF_64*16)) + (i&(SIMD_COEF_64-1))];
 			for (j = 0; j < 8; ++j) {
 				Optr64[j] = JOHNSWAP64(*Iptr64);
 				Iptr64 += SIMD_COEF_64;

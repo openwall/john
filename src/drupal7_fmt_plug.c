@@ -57,7 +57,7 @@ john_register_one(&fmt_drupal7);
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      SIMD_COEF_64
 #define MAX_KEYS_PER_CRYPT      SIMD_COEF_64
-#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (index>>(SIMD_COEF_64>>1))*SHA512_BUF_SIZ*SIMD_COEF_64*8 )
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64*8 )
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -179,11 +179,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index+=MAX_KEYS_PER_CRYPT)
 	{
 #ifdef SIMD_COEF_64
-		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+16], *keys;
+		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+MEM_ALIGN_SIMD], *keys;
 		ARCH_WORD_64 *keys64, *crypt;
 		unsigned i, j, len, Lcount = loopCnt;
 
-		keys = (unsigned char*)mem_align(_IBuf, 16);
+		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 		keys64 = (ARCH_WORD_64*)keys;
 		memset(keys, 0, 128*MAX_KEYS_PER_CRYPT);
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {

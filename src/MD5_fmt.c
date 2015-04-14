@@ -123,8 +123,8 @@ static int get_hash_0(int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0xF;
 #else
 	init_t();
@@ -136,8 +136,8 @@ static int get_hash_1(int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0xFF;
 #else
 	init_t();
@@ -149,8 +149,8 @@ static int get_hash_2(int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0xFFF;
 #else
 	init_t();
@@ -162,8 +162,8 @@ static int get_hash_3(int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0xFFFF;
 #else
 	init_t();
@@ -175,8 +175,8 @@ static int get_hash_4(int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0xFFFFF;
 #else
 	init_t();
@@ -188,8 +188,8 @@ static int get_hash_5(int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0xFFFFFF;
 #else
 	init_t();
@@ -201,8 +201,8 @@ static int get_hash_6(int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0x7FFFFFF;
 #else
 	init_t();
@@ -297,16 +297,16 @@ static int cmp_one(void *binary, int index)
 {
 #ifdef MD5_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = index/SIMD_COEF_32;
 
-	if( ((unsigned int *)binary)[0] != ((unsigned int *)sout)[x+y*SIMD_COEF_32*4] )
+	if(((unsigned int*)binary)[0] != ((unsigned int*)sout)[x+y*SIMD_COEF_32*4+0*SIMD_COEF_32])
 		return 0;
-	if( ((unsigned int *)binary)[1] != ((unsigned int *)sout)[x+y*SIMD_COEF_32*4+4] )
+	if(((unsigned int*)binary)[1] != ((unsigned int*)sout)[x+y*SIMD_COEF_32*4+1*SIMD_COEF_32])
 		return 0;
-	if( ((unsigned int *)binary)[2] != ((unsigned int *)sout)[x+y*SIMD_COEF_32*4+8] )
+	if(((unsigned int*)binary)[2] != ((unsigned int*)sout)[x+y*SIMD_COEF_32*4+2*SIMD_COEF_32])
 		return 0;
-	if( ((unsigned int *)binary)[3] != ((unsigned int *)sout)[x+y*SIMD_COEF_32*4+12] )
+	if(((unsigned int*)binary)[3] != ((unsigned int*)sout)[x+y*SIMD_COEF_32*4+3*SIMD_COEF_32])
 		return 0;
 	return 1;
 #else
