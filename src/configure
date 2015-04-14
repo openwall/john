@@ -767,6 +767,7 @@ enable_ln_s
 enable_pkg_config
 enable_nt_full_unicode
 enable_int128
+enable_experimental_code
 enable_openmp
 enable_opencl
 '
@@ -1402,6 +1403,8 @@ Optional Features:
   --enable-nt-full-unicode
                           support 4-byte UTF-8 for MS formats
   --disable-int128        Do not use int128
+  --enable-experimental-code
+                          Use experimental code
   --disable-openmp        do not use OpenMP
   --disable-opencl        do not use OpenCL
 
@@ -3600,6 +3603,13 @@ if test "${enable_int128+set}" = set; then :
   enableval=$enable_int128; enable_int128=$enableval
 else
   enable_int128=auto
+fi
+
+# Check whether --enable-experimental-code was given.
+if test "${enable_experimental_code+set}" = set; then :
+  enableval=$enable_experimental_code; experimental=$enableval
+else
+  experimental=no
 fi
 
 
@@ -13454,6 +13464,13 @@ $as_echo "#define NT_FULL_UNICODE 1" >>confdefs.h
 
 fi
 
+# Use features that may not yet be stable
+if test "x$experimental" != xno; then :
+
+$as_echo "#define USE_EXPERIMENTAL 1" >>confdefs.h
+
+fi
+
 # code to create M4_INCLUDES (all ./m4/*.m4 )
 M4_INCLUDES=`echo m4/*.m4`
 
@@ -15029,6 +15046,7 @@ CUDA support ................................ ${using_cuda}
 Generic crypt(3) format ..................... ${using_crypt}
 
 Optional libraries/features found:
+Experimental code ........................... ${experimental}
 Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (PRINCE mode and faster SRP formats) .... ${ac_cv_lib_gmp___gmpz_init}
 128-bit integer (faster PRINCE mode) ........ ${have_int128}
