@@ -189,69 +189,50 @@
 #ifndef MD5_SSE_PARA
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define MD5_SSE_PARA			3
-#define MD5_N_STR			"12x"
 #elif defined(__clang__)
 #define MD5_SSE_PARA			4
-#define MD5_N_STR			"16x"
 #elif defined (_MSC_VER)
 #define MD5_SSE_PARA			1
-#define MD5_N_STR			"4x"
 #elif defined(__GNUC__) && GCC_VERSION < 40405	// 4.4.5
 #define MD5_SSE_PARA			1
-#define MD5_N_STR			"4x"
 #elif defined(__GNUC__)
 #define MD5_SSE_PARA			3
-#define MD5_N_STR			"12x"
 #else
 #define MD5_SSE_PARA			2
-#define MD5_N_STR			"8x"
 #endif
 #endif /* MD5_SSE_PARA */
 
 #ifndef MD4_SSE_PARA
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define MD4_SSE_PARA			3
-#define MD4_N_STR			"12x"
 #elif defined(__clang__)
 #define MD4_SSE_PARA			3
-#define MD4_N_STR			"12x"
 #elif defined (_MSC_VER)
 #define MD4_SSE_PARA			1
-#define MD4_N_STR			"4x"
 #elif defined(__GNUC__) && GCC_VERSION < 40405	// 4.4.5
 #define MD4_SSE_PARA			1
-#define MD4_N_STR			"4x"
 #elif defined(__GNUC__) && GCC_VERSION < 40500	// 4.5
 #define MD4_SSE_PARA			2
-#define MD4_N_STR			"8x"
 #elif defined(__GNUC__)
 #define MD4_SSE_PARA			3
-#define MD4_N_STR			"12x"
 #else
 #define MD4_SSE_PARA			2
-#define MD4_N_STR			"8x"
 #endif
 #endif /* MD4_SSE_PARA */
 
 #ifndef SHA1_SSE_PARA
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define SHA1_SSE_PARA			1
-#define SHA1_N_STR			"4x"
 #elif defined(__clang__)
 #define SHA1_SSE_PARA			3
-#define SHA1_N_STR			"12x"
 #elif defined (_MSC_VER)
 #define SHA1_SSE_PARA			1
-#define SHA1_N_STR			"4x"
 #elif defined(__GNUC__) && GCC_VERSION > 40600 // 4.6
 #define SHA1_SSE_PARA			2
-#define SHA1_N_STR			"8x"
 #elif defined(__GNUC__)
 #define SHA1_SSE_PARA			1
-#define SHA1_N_STR			"4x"
 #else
 #define SHA1_SSE_PARA			1
-#define SHA1_N_STR			"4x"
 #endif
 #endif /* SHA1_SSE_PARA */
 

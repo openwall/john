@@ -10,10 +10,12 @@
 
 #include "stdint.h"
 
+#if HAVE___INT128 || HAVE_INT128 || HAVE___INT128_T
 #undef int128_t
 #define int128_t our_int128_t
 #undef uint128_t
 #define uint128_t our_uint128_t
+#endif
 
 #if HAVE___INT128
 typedef __int128                int128_t;
@@ -24,9 +26,9 @@ typedef unsigned int128         uint128_t;
 #elif HAVE___INT128_T
 typedef __int128_t              int128_t;
 typedef __uint128_t             uint128_t;
-#else
-#error No int128 type found supported by the compiler.
 #endif
+
+#if HAVE___INT128 || HAVE_INT128 || HAVE___INT128_T
 
 #ifndef UINT128_MAX
 #define UINT128_MAX             ((uint128_t)-1)
@@ -35,5 +37,7 @@ typedef __uint128_t             uint128_t;
 #ifndef INT128_MAX
 #define INT128_MAX              ((int128_t)(UINT128_MAX >> 1))
 #endif
+
+#endif /* HAVE___INT128 || HAVE_INT128 || HAVE___INT128_T */
 
 #endif /* _INT128_H */

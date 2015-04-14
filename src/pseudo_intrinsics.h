@@ -442,6 +442,8 @@ typedef __m64i vtype;
 
 /************************* COMMON STUFF BELOW *************************/
 
+#if SIMD_COEF_32
+
 #define MEM_ALIGN_SIMD          (SIMD_COEF_32 * 4)
 
 #if !__XOP__ || __AVX2__ || __AVX512__ || __MIC__
@@ -481,5 +483,5 @@ typedef __m64i vtype;
 
 #endif /* __AVX2__ || __AVX512__ || __MIC__ */
 #endif /* !__XOP__ || __AVX2__ || __AVX512__ || __MIC__ */
-
+#endif /* SIMD_COEF_32 */
 #endif /* _SSE_PSEUDO_H */

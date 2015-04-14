@@ -45,7 +45,9 @@ john_register_one(&fmt_sha1_ng);
 
 #include "stdbool.h"
 #include "stdint.h"
+#if SIMD_COEF_32 > 8
 #include "int128.h"
+#endif
 #include "pseudo_intrinsics.h"
 #include "stdint.h"
 #include "params.h"
