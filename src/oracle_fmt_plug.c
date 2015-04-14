@@ -346,11 +346,6 @@ static int cmp_all(void *binary, int count)
 	return !memcmp(binary, crypt_key, sizeof(crypt_key));
 }
 
-static int cmp_one(void *binary, int index)
-{
-	return 1;
-}
-
 static int cmp_exact(char *source, int index)
 {
 	return 1;
@@ -415,7 +410,7 @@ struct fmt_main fmt_oracle = {
 			get_hash_6
 		},
 		cmp_all,
-		cmp_one,
+		cmp_all,
 		cmp_exact
 	}
 };
