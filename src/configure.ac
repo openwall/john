@@ -778,7 +778,7 @@ if test x$with_flock != xno; then
    CFLAGS="$CFLAGS -DPREFER_FLOCK"
 fi
 
-if test x$experimental = xno && test ${host_cpu} = "AVX2"; then
+if test x$experimental = xno && test ${CPU_STR} = "AVX2"; then
    AC_DEFINE([DYNAMIC_DISABLED], 1, [Disables Dynamic format completely])
 fi
 
