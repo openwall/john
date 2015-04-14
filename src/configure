@@ -13493,10 +13493,12 @@ if test x$with_flock != xno; then
    CFLAGS="$CFLAGS -DPREFER_FLOCK"
 fi
 
-if test x$experimental = xno && test ${CPU_STR} = "AVX2"; then
+if test ${CPU_STR} = "AVX2" || test ${$host_cpu} = "k1om"; then
+   if test x$experimental = xno; then
 
 $as_echo "#define DYNAMIC_DISABLED 1" >>confdefs.h
 
+   fi
 fi
 
 ####################################################
