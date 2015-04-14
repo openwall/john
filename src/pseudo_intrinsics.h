@@ -27,6 +27,9 @@
 #define _SSE_PSEUDO_H
 
 #include "arch.h"
+
+#if SIMD_COEF_32
+
 #include "aligned.h"
 #include "stdint.h"
 #include "common.h" /* for is_aligned() */
@@ -441,8 +444,6 @@ typedef __m64i vtype;
 #endif /* __SIMD__ elif __SIMD__ elif __SIMD__ */
 
 /************************* COMMON STUFF BELOW *************************/
-
-#if SIMD_COEF_32
 
 #define MEM_ALIGN_SIMD          (SIMD_COEF_32 * 4)
 
