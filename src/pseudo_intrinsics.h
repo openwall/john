@@ -45,6 +45,7 @@ typedef __m512i vtype;
 #define vcmpeq_epi8             _mm512_cmpeq_epi8
 #define vcmpeq_epi32            _mm512_cmpeq_epi32
 #define vcvtsi32                _mm512_cvtsi32_si512
+#define vgather_epi32			_mm512_i32gather_epi32
 #define vinsert_epi32           _mm512_insert_epi32
 #define vload(x)                _mm512_load_si512((void*)(x))
 #define vloadu(x)               _mm512_loadu_si512((void*)(x))
@@ -131,9 +132,35 @@ static inline __m512i _mm512_loadu_si512(void const *addr)
 #define vtesteq_epi32(x, y)                                     \
     _mm512_mask2int(_mm512_cmp_epi32_mask(x, y, _MM_CMPINT_EQ))
 
-#define GATHER64(x,y,z) {                                   \
-    x = vset_epi64x(y[7][z], y[6][z], y[5][z], y[4][z],     \
-                    y[3][z], y[2][z], y[1][z], y[0][z]);    \
+#define GATHER_4x(x, y, z)                               \
+{                                                        \
+	vtype indices = vset_epi32(15<<6,14<<6,13<<6,12<<6,  \
+			                   11<<6,10<<6, 9<<6, 8<<6,  \
+			                    7<<6, 6<<6, 5<<6, 4<<6,  \
+							    3<<6, 2<<6, 1<<6, 0<<6); \
+	x = vgather_epi32(indices, &y[z], sizeof(y[z]));     \
+}
+#define GATHER_2x(x, y, z)                               \
+{                                                        \
+	vtype indices = vset_epi32(15<<5,14<<5,13<<5,12<<5,  \
+			                   11<<5,10<<5, 9<<5, 8<<5,  \
+			                    7<<5, 6<<5, 5<<5, 4<<5,  \
+							    3<<5, 2<<5, 1<<5, 0<<5); \
+	x = vgather_epi32(indices, &y[z], sizeof(y[z]));     \
+}
+#define GATHER(x, y, z)                                  \
+{                                                        \
+	vtype indices = vset_epi32(15<<4,14<<4,13<<4,12<<4,  \
+			                   11<<4,10<<4, 9<<4, 8<<4,  \
+			                    7<<4, 6<<4, 5<<4, 4<<4,  \
+							    3<<4, 2<<4, 1<<4, 0<<4); \
+	x = vgather_epi32(indices, &y[z], sizeof(y[z]));     \
+}
+
+#define GATHER64(x, y, z)                                \
+{                                                        \
+    x = vset_epi64x(y[7][z], y[6][z], y[5][z], y[4][z],  \
+                    y[3][z], y[2][z], y[1][z], y[0][z]); \
 }
 
 /******************************** AVX2 ********************************/
@@ -150,6 +177,7 @@ typedef __m256i vtype;
 #define vcmpeq_epi8             _mm256_cmpeq_epi8
 #define vcmpeq_epi32            _mm256_cmpeq_epi32
 #define vcvtsi32                _mm256_cvtsi32_si256
+#define vgather_epi32			_mm256_i32gather_epi32
 #define vinsert_epi32           _mm256_insert_epi32
 #define vload(x)                _mm256_load_si256((void*)(x))
 #define vloadu(x)               _mm256_loadu_si256((void*)(x))
@@ -279,38 +307,23 @@ static inline int vtestz_epi32(vtype __X)
                                               vsetzero()))          \
 )
 
-#define GATHER_4x(x, y, z)                      \
-{                                               \
-    x = vinsert_epi32(x, y[z       ], 0);       \
-    x = vinsert_epi32(x, y[z+(1<<6)], 1);       \
-    x = vinsert_epi32(x, y[z+(2<<6)], 2);       \
-    x = vinsert_epi32(x, y[z+(3<<6)], 3);       \
-    x = vinsert_epi32(x, y[z+(4<<6)], 4);       \
-    x = vinsert_epi32(x, y[z+(5<<6)], 5);       \
-    x = vinsert_epi32(x, y[z+(6<<6)], 6);       \
-    x = vinsert_epi32(x, y[z+(7<<6)], 7);       \
+#define GATHER_4x(x, y, z)                           \
+{                                                    \
+	vtype indices = vset_epi32(7<<6,6<<6,5<<6,4<<6,  \
+			                   3<<6,2<<6,1<<6,0<<6); \
+	x = vgather_epi32(indices, &y[z], sizeof(y[z])); \
 }
-#define GATHER_2x(x, y, z)                      \
-{                                               \
-    x = vinsert_epi32(x, y[z       ], 0);       \
-    x = vinsert_epi32(x, y[z+(1<<5)], 1);       \
-    x = vinsert_epi32(x, y[z+(2<<5)], 2);       \
-    x = vinsert_epi32(x, y[z+(3<<5)], 3);       \
-    x = vinsert_epi32(x, y[z+(4<<5)], 4);       \
-    x = vinsert_epi32(x, y[z+(5<<5)], 5);       \
-    x = vinsert_epi32(x, y[z+(6<<5)], 6);       \
-    x = vinsert_epi32(x, y[z+(7<<5)], 7);       \
+#define GATHER_2x(x, y, z)                           \
+{                                                    \
+	vtype indices = vset_epi32(7<<5,6<<5,5<<5,4<<5,  \
+			                   3<<5,2<<5,1<<5,0<<5); \
+	x = vgather_epi32(indices, &y[z], sizeof(y[z])); \
 }
-#define GATHER(x, y, z)                         \
-{                                               \
-    x = vinsert_epi32(x, y[z       ], 0);       \
-    x = vinsert_epi32(x, y[z+(1<<4)], 1);       \
-    x = vinsert_epi32(x, y[z+(2<<4)], 2);       \
-    x = vinsert_epi32(x, y[z+(3<<4)], 3);       \
-    x = vinsert_epi32(x, y[z+(4<<4)], 4);       \
-    x = vinsert_epi32(x, y[z+(5<<4)], 5);       \
-    x = vinsert_epi32(x, y[z+(6<<4)], 6);       \
-    x = vinsert_epi32(x, y[z+(7<<4)], 7);       \
+#define GATHER(x, y, z)                              \
+{                                                    \
+	vtype indices = vset_epi32(7<<4,6<<4,5<<4,4<<4,  \
+			                   3<<4,2<<4,1<<4,0<<4); \
+	x = vgather_epi32(indices, &y[z], sizeof(y[z])); \
 }
 
 #define GATHER64(x,y,z)                                         \

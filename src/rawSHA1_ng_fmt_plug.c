@@ -557,30 +557,30 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 		vtype A, B, C, D, E;
 		vtype K;
 
-		// Fetch the message, then use a 8x8 matrix transpose to shuffle them
+#if __AVX512__ || __MIC__
+		vtype indices = vset_epi32(15<<4,14<<4,13<<4,12<<4,
+			                       11<<4,10<<4, 9<<4, 8<<4,
+			                        7<<4, 6<<4, 5<<4, 4<<4,
+							        3<<4, 2<<4, 1<<4, 0<<4);
+#elif __AVX2__
+		vtype indices = vset_epi32( 7<<3, 6<<3, 5<<3, 4<<3,
+							        3<<3, 2<<3, 1<<3, 0<<3);
+#endif
+
+		// Fetch the message, then use a matrix transpose to shuffle them
 		// into place.
+#if __AVX2__ || __MIC__
+		int32_t j;
+		for (j = 0; j < VWIDTH; ++j)
+			W[j] = vgather_epi32(indices, &M[i][j], sizeof(uint32_t));
+#else
 		W[0]  = vload(&M[i + 0]);
 		W[1]  = vload(&M[i + 1]);
 		W[2]  = vload(&M[i + 2]);
 		W[3]  = vload(&M[i + 3]);
-#if VWIDTH > 4
-		W[4]  = vload(&M[i + 4]);
-		W[5]  = vload(&M[i + 5]);
-		W[6]  = vload(&M[i + 6]);
-		W[7]  = vload(&M[i + 7]);
-#endif
-#if VWIDTH > 8
-		W[8]  = vload(&M[i + 8]);
-		W[9]  = vload(&M[i + 9]);
-		W[10] = vload(&M[i + 10]);
-		W[11] = vload(&M[i + 11]);
-		W[12] = vload(&M[i + 12]);
-		W[13] = vload(&M[i + 13]);
-		W[14] = vload(&M[i + 14]);
-		W[15] = vload(&M[i + 15]);
-#endif
 
 		vtranspose_epi32(W);
+#endif
 
 		A = vset1_epi32(0x67452301);
 		B = vset1_epi32(0xEFCDAB89);

@@ -108,7 +108,7 @@ void SSEmd5body(vtype* _data, unsigned int *out,
 
 	if(SSEi_flags & SSEi_FLAT_IN) {
 		// Move _data to __data, mixing it SIMD_COEF_32 wise.
-#if __SSE4_1__
+#if __SSE4_1__ || __MIC__
 		unsigned k;
 		vtype *W = w;
 		ARCH_WORD_32 *saved_key = (ARCH_WORD_32*)_data;
@@ -619,9 +619,9 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	unsigned int i;
 	vtype *data;
 
-if(SSEi_flags & SSEi_FLAT_IN) {
+	if(SSEi_flags & SSEi_FLAT_IN) {
 		// Move _data to __data, mixing it SIMD_COEF_32 wise.
-#if __SSE4_1__
+#if __SSE4_1__ || __MIC__
 		unsigned k;
 		vtype *W = w;
 		ARCH_WORD_32 *saved_key = (ARCH_WORD_32*)_data;
@@ -946,7 +946,7 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 
 	if(SSEi_flags & SSEi_FLAT_IN) {
 		// Move _data to __data, mixing it SIMD_COEF_32 wise.
-#if __SSE4_1__
+#if __SSE4_1__ || __MIC__
 		unsigned k;
 		vtype *W = w;
 		ARCH_WORD_32 *saved_key = (ARCH_WORD_32*)_data;
@@ -1317,7 +1317,7 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 	int i;
 	if (SSEi_flags & SSEi_FLAT_IN) {
 
-#if __SSE4_1__
+#if __SSE4_1__ || __MIC__
 		saved_key = (ARCH_WORD_32*)data;
 		if (SSEi_flags & SSEi_4BUF_INPUT) {
 			for (i=0; i < 14; ++i) {
