@@ -14,6 +14,11 @@
  * within dynamic.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+#ifndef DYNAMIC_DISABLED
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_netsha1;
 #elif FMT_REGISTERS_H
@@ -26,7 +31,6 @@ john_register_one(&fmt_netsha1);
 #define OMP_SCALE 2048 // XXX
 #endif
 
-#include "arch.h"
 #include "formats.h"
 #include "dynamic.h"
 #include "sha.h"
@@ -378,3 +382,5 @@ static void done(void)
 }
 
 #endif /* plugin stanza */
+
+#endif /* DYNAMIC_DISABLED */

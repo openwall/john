@@ -98,6 +98,8 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 
 #include "arch.h"
 
+#ifndef DYNAMIC_DISABLED
+
 #ifdef SIMD_COEF_32
 #include "sse-intrinsics.h"
 #endif
@@ -7824,3 +7826,5 @@ int dynamic_real_salt_length(struct fmt_main *pFmt) {
 	// NOT a dynamic format
 	return -1;
 }
+
+#endif /* DYNAMIC_DISABLED */

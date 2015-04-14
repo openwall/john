@@ -24,6 +24,9 @@
 #if !defined (__DYNAMIC___H)
 #define __DYNAMIC___H
 
+#include "arch.h"
+#ifndef DYNAMIC_DISABLED
+
 #include <openssl/opensslv.h>
 
 #ifdef _OPENMP
@@ -558,5 +561,7 @@ extern void DynamicFunc__MD4_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAM
 extern void DynamicFunc__MD4_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__MD4_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__MD4_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
+
+#endif /* DYNAMIC_DISABLED */
 
 #endif // __DYNAMIC___H

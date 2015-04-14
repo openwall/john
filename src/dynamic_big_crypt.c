@@ -17,7 +17,11 @@
  *
  */
 
-#include "arch.h"
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+#ifndef DYNAMIC_DISABLED
+
 #include "openssl_local_overrides.h"
 
 #include "misc.h"
@@ -41,7 +45,7 @@
 #include "johnswap.h"
 #include "sse-intrinsics.h"
 
-#if (AC_BUILT && HAVE_WHIRLPOOL) ||	\
+#if (AC_BUILT && HAVE_WHIRLPOOL) ||	  \
    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
 #include <openssl/whrlpool.h>
 #else
@@ -4771,3 +4775,5 @@ void DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 			memcpy(crypt_key_X86[i>>MD5_X2].x1.B, crypt_out, 16);
 	}
 }
+
+#endif /* DYNAMIC_DISABLED */

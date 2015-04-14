@@ -24,6 +24,9 @@
 /* "Type with native size" */
 #undef ARCH_WORD
 
+/* Disables Dynamic format completely */
+#undef DYNAMIC_DISABLED
+
 /* "Enable if you want OpenMP for fast formats" */
 #undef FAST_FORMATS_OMP
 

@@ -35,6 +35,8 @@
 #include "dynamic.h"
 #include "memdbg.h"
 
+#ifndef DYNAMIC_DISABLED
+
 void dynamic_DISPLAY_ALL_FORMATS()
 {
 	int i;
@@ -178,3 +180,5 @@ char *dynamic_FIX_SALT_TO_HEX(char *ciphertext) {
 	}
 	return ciphertext;
 }
+
+#endif /* DYNAMIC_DISABLED */

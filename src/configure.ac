@@ -778,6 +778,10 @@ if test x$with_flock != xno; then
    CFLAGS="$CFLAGS -DPREFER_FLOCK"
 fi
 
+if test x$experimental = xno && test ${host_cpu} = "AVX2"; then
+   AC_DEFINE([DYNAMIC_DISABLED], 1, [Disables Dynamic format completely])
+fi
+
 ####################################################
 # Code  to create @PLUGFORMATS_OBJS@ and
 # john_buildrule.h moved from Makefile.in to here.

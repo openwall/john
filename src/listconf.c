@@ -400,8 +400,13 @@ char *get_test(struct fmt_main *format, int ntests)
 		return format->params.tests[ntests].ciphertext;
 }
 
+#ifdef DYNAMIC_DISABLED
+#define dynamic_real_salt_length(format) 0
+#endif
+
 void listconf_parse_late(void)
 {
+#ifndef DYNAMIC_DISABLED
 	if ((options.subformat && !strcasecmp(options.subformat, "list")) ||
 	    (options.listconf && !strcasecmp(options.listconf, "subformats")))
 	{
@@ -410,6 +415,7 @@ void listconf_parse_late(void)
    should have a DISPLAY_ALL_FORMATS() function and we can call them here. */
 		exit(EXIT_SUCCESS);
 	}
+#endif
 
 	if (!strcasecmp(options.listconf, "inc-modes"))
 	{

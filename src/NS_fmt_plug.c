@@ -31,6 +31,11 @@
  * Changed to thin format dynamic_2004, Dec 2014, JimF
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+#ifndef DYNAMIC_DISABLED
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_NS;
 #elif FMT_REGISTERS_H
@@ -39,7 +44,6 @@ john_register_one(&fmt_NS);
 
 #include <string.h>
 
-#include "arch.h"
 #include "misc.h"
 #include "md5.h"
 #include "common.h"
@@ -116,7 +120,7 @@ static char *Convert(char *Buf, char *ciphertext)
 
 static int our_valid(char *ciphertext, struct fmt_main *self)
 {
-	if (!ciphertext ) 
+	if (!ciphertext )
 		return 0;
 
 	get_ptr();
@@ -285,3 +289,5 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 
 #endif /* plugin stanza */
+
+#endif /* DYNAMIC_DISABLED */

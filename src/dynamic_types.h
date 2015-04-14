@@ -1,5 +1,9 @@
 #if !defined (__Dynamic_Types__H__)
 #define __Dynamic_Types__H__
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+#ifndef DYNAMIC_DISABLED
 /*
  * This software was written by Jim Fougeron jfoug AT cox dot net
  * in 2013. No copyright is claimed, and the software is hereby
@@ -353,5 +357,6 @@ int large_hash_output_no_null(unsigned char *cpi, unsigned char *cpo, int in_byt
 
 typedef enum { eUNK=0, eBase16=1, eBase16u=2, eBase64=3, eBase64_nte=4, eBaseRaw=5} eLargeOut_t;
 
+#endif /* DYNAMIC_DISABLED */
 
 #endif  // __Dynamic_Types__H__

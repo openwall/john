@@ -261,16 +261,12 @@ static void john_register_one(struct fmt_main *format)
 
 static void john_register_all(void)
 {
+#ifndef DYNAMIC_DISABLED
 	int i, cnt;
 	struct fmt_main *selfs;
+#endif
 
 	if (options.format) strlwr(options.format);
-
-	// NOTE, this MUST happen, before ANY format that links a 'thin' format
-	// to dynamic.
-	// Since gen(27) and gen(28) are MD5 and MD5a formats, we build the
-	// generic format first
-	cnt = dynamic_Register_formats(&selfs);
 
 	john_register_one(&fmt_DES);
 	john_register_one(&fmt_BSDI);
@@ -282,8 +278,16 @@ static void john_register_all(void)
 	john_register_one(&fmt_trip);
 	john_register_one(&fmt_dummy);
 
+#ifndef DYNAMIC_DISABLED
+	// NOTE, this MUST happen, before ANY format that links a 'thin' format
+	// to dynamic.
+	// Since gen(27) and gen(28) are MD5 and MD5a formats, we build the
+	// generic format first
+	cnt = dynamic_Register_formats(&selfs);
+
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));
+#endif
 
 #include "fmt_registers.h"
 

@@ -35,6 +35,8 @@
 #include "config.h"
 #include "memdbg.h"
 
+#ifndef DYNAMIC_DISABLED
+
 // This set of defines will turn on testing of the MAX_LENGTH hashes. Some of them can cause changes in
 // the self test speeds. Thus, we can turn them on, to make sure that the formats ARE handling max length
 // passwords properly, but then later compile differently and turn them off, so that the ST speeds are not
@@ -3531,3 +3533,5 @@ int dynamic_IS_VALID(int i, int force)
 		return 0;
 	return 1;
 }
+
+#endif /* DYNAMIC_DISABLED */

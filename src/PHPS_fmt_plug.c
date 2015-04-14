@@ -30,6 +30,11 @@
  *
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+#ifndef DYNAMIC_DISABLED
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_PHPS;
 #elif FMT_REGISTERS_H
@@ -230,3 +235,5 @@ static void get_ptr() {
  */
 
 #endif /* plugin stanza */
+
+#endif /* DYNAMIC_DISABLED */

@@ -57,6 +57,11 @@
  *
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+#ifndef DYNAMIC_DISABLED
+
 #include <string.h>
 #include <ctype.h>
 
@@ -1057,3 +1062,5 @@ int dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt)
 
 	return ret;
 }
+
+#endif /* DYNAMIC_DISABLED */

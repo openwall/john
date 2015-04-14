@@ -1085,10 +1085,12 @@ static void ldr_show_left(struct db_main *db, struct db_password *pw)
 	char *uid_out = "";
 	char *pw_source = db->format->methods.source(pw->source, pw->binary);
 
+#ifndef DYNAMIC_DISABLED
 	/* Note for salted dynamic, we 'may' need to fix up the salts to
 	 * make them properly usable. */
 	if (!strncmp(pw_source, "$dynamic_", 9))
 		pw_source = dynamic_FIX_SALT_TO_HEX(pw_source);
+#endif
 	if (options.show_uid_on_crack && pw->uid && *pw->uid) {
 		uid_sep[0] = db->options->field_sep_char;
 		uid_out = pw->uid;
@@ -1428,7 +1430,9 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 		strnzcpy(new, ciphertext, 12 + 41);
 		memset(new + 12, '0', 5);
 		ciphertext = new;
-	} else
+	}
+#ifndef DYNAMIC_DISABLED
+	else
 	if (!strncmp(ciphertext, "$dynamic_", 9) && strstr(ciphertext, "$HEX$"))
 	{
 		char Tmp[512], *cp=Tmp;
@@ -1438,30 +1442,12 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 			alloced = 1;
 		}
 		RemoveHEX(Tmp, ciphertext);
-#if 0
-		// I am pretty sure that this removed hex should be used all the time, even if
-		// there are ':' or \n chars. I believe this logic was from an older version of
-		// dynamic, and simply was not changed here. I am leaving the code (commented out)
-		// for now, just in case there are issue, and it can be reverted back. This bug was
-		// found digging into https://github.com/magnumripper/JohnTheRipper/issues/930
-
-		// We only remove hex if the end result is 'safe'. IF there are any line feeds, or
-		// ':' chars, then it is not safe to remove.  NULL is also dangrous, BUT the
-		// RemoveHEX itself bails if there are nulls, putting original ciphertext into Tmp.
-		if (strchr(Tmp, ':') || strchr(Tmp, '\n')
-#if (AC_BUILT && HAVE_WINDOWS_H) || (!AC_BUILT && (_MSC_VER || __CYGWIN__ || __MINGW__))
-			|| strchr(Tmp, '\r') || strchr(Tmp, 0x1A)
-#endif
-		)
-			; // do nothing.
-		else
-#endif
 			// tmp will always be 'shorter' or equal length to ciphertext
 			strcpy(ciphertext, Tmp);
 		if (alloced)
 			MEM_FREE(cp);
 	}
-
+#endif
 	if (line) {
 /* If just one format was forced on the command line, insist on it */
 		if (!fmt_list->next &&

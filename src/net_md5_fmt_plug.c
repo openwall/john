@@ -14,6 +14,11 @@
  * within dynamic.  This is the FIRST format that is hybrid fat-thin.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+#ifndef DYNAMIC_DISABLED
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_netmd5;
 #elif FMT_REGISTERS_H
@@ -26,7 +31,6 @@ john_register_one(&fmt_netmd5);
 #define OMP_SCALE 2048 // XXX
 #endif
 
-#include "arch.h"
 #include "formats.h"
 #include "dynamic.h"
 #include "md5.h"
@@ -386,3 +390,5 @@ static void done(void)
 }
 
 #endif /* plugin stanza */
+
+#endif /* DYNAMIC_DISABLED */

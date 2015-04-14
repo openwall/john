@@ -25,6 +25,11 @@
  * JimF Feb, 2015: converted into a 'thin' format, hooked to dynamic_61
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+#ifndef DYNAMIC_DISABLED
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_hmailserver;
 #elif FMT_REGISTERS_H
@@ -33,7 +38,6 @@ john_register_one(&fmt_hmailserver);
 
 #include "sha2.h"
 
-#include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
@@ -173,3 +177,5 @@ static void get_ptr() {
 }
 
 #endif /* plugin stanza */
+
+#endif /* DYNAMIC_DISABLED */
