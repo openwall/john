@@ -559,12 +559,12 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 
 #if __AVX512__ || __MIC__
 		vtype indices = vset_epi32(15<<4,14<<4,13<<4,12<<4,
-			                       11<<4,10<<4, 9<<4, 8<<4,
-			                        7<<4, 6<<4, 5<<4, 4<<4,
-							        3<<4, 2<<4, 1<<4, 0<<4);
+		                           11<<4,10<<4, 9<<4, 8<<4,
+		                            7<<4, 6<<4, 5<<4, 4<<4,
+		                            3<<4, 2<<4, 1<<4, 0<<4);
 #elif __AVX2__
 		vtype indices = vset_epi32( 7<<3, 6<<3, 5<<3, 4<<3,
-							        3<<3, 2<<3, 1<<3, 0<<3);
+		                            3<<3, 2<<3, 1<<3, 0<<3);
 #endif
 
 		// Fetch the message, then use a matrix transpose to shuffle them
@@ -572,7 +572,7 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 #if __AVX2__ || __MIC__
 		int32_t j;
 		for (j = 0; j < VWIDTH; ++j)
-			W[j] = vgather_epi32(indices, &M[i][j], sizeof(uint32_t));
+			W[j] = vgather_epi32(&M[i][j], indices, sizeof(uint32_t));
 #else
 		W[0]  = vload(&M[i + 0]);
 		W[1]  = vload(&M[i + 1]);
