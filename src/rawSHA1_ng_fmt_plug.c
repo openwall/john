@@ -45,6 +45,7 @@ john_register_one(&fmt_sha1_ng);
 
 #include "stdbool.h"
 #include "stdint.h"
+#include "int128.h"
 #include "pseudo_intrinsics.h"
 #include "stdint.h"
 #include "params.h"
@@ -334,11 +335,8 @@ static void sha1_fmt_set_key(char *key, int index)
 	// length. It would be nice if we could use bit shifts to produce these
 	// dynamically, but they require an immediate operand.
 #if VWIDTH > 8
-	// FIXME: We should not use mpz_int128.h for this. The typedefs needed
-	// should be in a separate header (that mpz_int128.h should source too).
-	// Despite that, a problem with using int128 here is it won't work at
+	// FIXME: a problem with using int128 here is it won't work at
 	// all for 32-bit builds - but that may be academic.
-#include "mpz_int128.h"
 #define XX ((((uint128_t)0xFFFFFFFFFFFFFFFF)<<64) + 0xFFFFFFFFFFFFFFFF)
 #define YY ((uint128_t)0x80)
 #define ZZ ((uint128_t)0x0)
