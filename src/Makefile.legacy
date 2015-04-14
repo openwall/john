@@ -180,10 +180,10 @@ BENCH_DES_BS_OBJS_DEPEND = \
 	DES_bs_b.o
 
 BENCH_MD5_OBJS_DEPEND = \
-	MD5_fmt.o MD5_std.o
+	MD5_fmt.o MD5_std.o cryptmd5_common_plug.o
 
 BENCH_BF_OBJS_DEPEND = \
-	BF_fmt.o BF_std.o
+	BF_fmt.o BF_std.o BF_common_plug.o
 
 BENCH_OBJS = \
     $(MPIOBJ) \

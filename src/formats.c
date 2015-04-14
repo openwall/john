@@ -52,11 +52,13 @@ void fmt_register(struct fmt_main *format)
 void fmt_init(struct fmt_main *format)
 {
 	if (!format->private.initialized) {
+#ifndef BENCH_BUILD
 		if (options.flags & FLG_LOOPTEST) {
 			orig_min = format->params.min_keys_per_crypt;
 			orig_max = format->params.max_keys_per_crypt;
 			orig_len = format->params.plaintext_length;
 		}
+#endif
 		format->methods.init(format);
 		format->private.initialized = 1;
 	}
@@ -94,11 +96,13 @@ void fmt_done(struct fmt_main *format)
 #ifdef HAVE_OPENCL
 		opencl_done();
 #endif
+#ifndef BENCH_BUILD
 		if (options.flags & FLG_LOOPTEST) {
 			format->params.min_keys_per_crypt = orig_min;
 			format->params.max_keys_per_crypt = orig_max;
 			format->params.plaintext_length = orig_len;
 		}
+#endif
 
 	}
 }
@@ -131,7 +135,12 @@ static char *longcand(struct fmt_main *format, int index, int ml)
 
 	memset(out, 'A' + (index % 23), ml);
 	if (!(format->params.flags & FMT_8_BIT) ||
-	    !(format->params.flags & FMT_CASE) || pers_opts.target_enc == UTF_8)
+#ifndef BENCH_BUILD
+	    !(format->params.flags & FMT_CASE) || pers_opts.target_enc == UTF_8
+#else
+	    !(format->params.flags & FMT_CASE)
+#endif
+	   )
 		memcpy(out, MAXLABEL, strlen(MAXLABEL));
 	else
 		memcpy(out, MAXLABEL_SIMD, strlen(MAXLABEL_SIMD));

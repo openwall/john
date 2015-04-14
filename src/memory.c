@@ -246,8 +246,21 @@ void *mem_alloc_align_func(size_t size, size_t align
 #elif HAVE__ALIGNED_MALLOC
 	if (!(ptr = _aligned_malloc(size, align)))
 		pexit("_aligned_malloc (%zu bytes)", size);
-#else
+
+#elif AC_BUILT
 #error No suitable alligned alloc found, please report to john-dev mailing list (state your OS details).
+
+/* we need an aligned alloc function for legacy builds */
+#elif _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600
+	if (posix_memalign(&ptr, align, size))
+		pexit("posix_memalign (%zu bytes)", size);
+#elif _ISOC11_SOURCE
+	size = ((size + (align - 1)) / align) * align;
+	if (!(ptr = aligned_alloc(align, size)))
+		pexit("aligned_alloc (%zu bytes)", size);
+#else
+	if (!(ptr = memalign(&ptr, align, size)))
+		pexit("memalign (%zu bytes)", size);
 #endif
 	return ptr;
 }
