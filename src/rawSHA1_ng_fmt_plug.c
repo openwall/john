@@ -23,7 +23,7 @@
 //
 
 #include "arch.h"
-#if (__SSE2__ || __MIC__) && (SIMD_COEF_32 < 16 || ARCH_BITS >= 64) && !_MSC_VER
+#if defined(SIMD_COEF_32) && (SIMD_COEF_32 < 16 || ARCH_BITS >= 64) && !_MSC_VER
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_sha1_ng;
@@ -923,4 +923,4 @@ struct fmt_main fmt_sha1_ng = {
 
 #endif /* plugin stanza */
 
-#endif /* (__SSE2__ || __MIC__) && (SIMD_COEF_32 < 16 || ARCH_BITS >= 64) && !_MSC_VER */
+#endif /* defined(SIMD_COEF_32) && (SIMD_COEF_32 < 16 || ARCH_BITS >= 64) && !_MSC_VER */

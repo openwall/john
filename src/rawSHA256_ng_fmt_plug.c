@@ -8,7 +8,7 @@
  */
 
 #include "arch.h"
-#if __SSE2__ || __MIC__ || _MSC_VER
+#if SIMD_COEF_32
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rawSHA256_ng;
@@ -463,4 +463,4 @@ struct fmt_main fmt_rawSHA256_ng = {
 
 #endif /* plugin stanza */
 
-#endif /* __SSE2__ */
+#endif /* SIMD_COEF_32 */
