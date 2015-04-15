@@ -63,14 +63,15 @@ JOHN_OBJS = \
 	jumbo.o john-mpi.o \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
 	BSDI_fmt.o \
-	MD5_fmt.o MD5_std.o \
-	BF_fmt.o BF_std.o \
+	MD5_fmt.o MD5_std.o cryptmd5_common.o \
+	BF_fmt.o BF_std.o BF_common.o \
 	scrypt_fmt.o \
 	escrypt/crypto_scrypt-best.o escrypt/crypto_scrypt-common.o \
 	escrypt/sha256.o \
 	AFS_fmt.o \
 	LM_fmt.o \
 	trip_fmt.o \
+	NT_fmt.o \
 	timer.o \
 	md5_go.o \
 	md5.o \
@@ -79,11 +80,12 @@ JOHN_OBJS = \
 	base64.o base64_convert.o \
 	md4.o sha2.o \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
+	ripemd.o tiger.o \
 	ssh2john.o \
 	pfx2john.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar2john.o \
-	zip2john.o gladman_hmac.o gladman_pwd2key.o \
+	zip2john.o pkzip.o gladman_hmac.o gladman_pwd2key.o \
 	racf2john.o \
 	keychain2john.o \
 	kwallet2john.o \
@@ -107,6 +109,7 @@ JOHN_OBJS = \
 	listconf.o \
 	fake_salts.o \
 	win32_memmap.o \
+	uaf_encode.o \
 	unicode.o \
 	unshadow.o \
 	unafs.o \
@@ -263,6 +266,8 @@ cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
 ######## auto-generated, best-effort
 AFS_fmt.o:	AFS_fmt.c arch.h misc.h params.h DES_std.h common.h formats.h memdbg.h
 
+BF_common.o:	BF_common.c arch.h misc.h common.h formats.h BF_common.h
+
 BF_fmt.o:	BF_fmt.c arch.h misc.h BF_std.h common.h formats.h memdbg.h
 
 BF_std.o:	BF_std.c arch.h common.h BF_std.h memdbg.h
@@ -318,6 +323,8 @@ cprepair.o:	cprepair.c autoconfig.h unicode.h memdbg.h
 cracker.o:	cracker.c os.h arch.h misc.h math.h params.h memory.h signals.h idle.h formats.h dyna_salt.h loader.h logger.h status.h recovery.h external.h options.h mask.h unicode.h john.h fake_salts.h john-mpi.h path.h jumbo.h common-gpu.h memdbg.h
 
 crc32.o:	crc32.c memory.h crc32.h memdbg.h
+
+cryptmd5_common.o:	cryptmd5_common.c arch.h misc.h common.h formats.h cryptmd5_common.h
 
 detect.o:	detect.c memdbg.h
 
@@ -419,6 +426,8 @@ mmap-windows.o:	mmap-windows.c memdbg.h
 
 nonstd.o:	nonstd.c
 
+NT_fmt.o:	NT_fmt.c arch.h misc.h memory.h common.h formats.h options.h unicode.h aligned.h johnswap.h memdbg.h
+
 opencl_autotune.o:	opencl_autotune.c common-opencl.h memdbg.h
 
 options.o:	options.c os.h arch.h misc.h params.h memory.h list.h loader.h logger.h status.h recovery.h options.h bench.h external.h john.h dynamic.h unicode.h fake_salts.h regex.h john-mpi.h common-opencl.h prince.h memdbg.h john_build_rule.h
@@ -430,6 +439,8 @@ params.o:	params.c params.h memdbg.h
 path.o:	path.c autoconfig.h misc.h params.h memory.h path.h memdbg.h
 
 pfx2john.o:	pfx2john.c jumbo.h common.h arch.h params.h memdbg.h
+
+pkzip.o:	pkzip.c arch.h misc.h common.h memory.h formats.h pkzip.h memdbg.h
 
 plugin.o:	plugin.c autoconfig.h Win32-dlfcn-port.h plugin.h memdbg.h
 
@@ -448,6 +459,8 @@ rc4.o:	rc4.c rc4.h memdbg.h
 recovery.o:	recovery.c os.h arch.h misc.h params.h path.h memory.h options.h loader.h logger.h status.h recovery.h john.h mask.h unicode.h john-mpi.h signals.h memdbg.h
 
 regex.o:	regex.c regex.h loader.h logger.h status.h os.h signals.h recovery.h options.h config.h cracker.h john.h external.h memdbg.h
+
+ripemd.o:	ripemd.c sph_ripemd.h memdbg.h md_helper.c md_helper.c md_helper.c md_helper.c md_helper.c
 
 rpp.o:	rpp.c arch.h params.h config.h rpp.h common.h memdbg.h
 
@@ -485,7 +498,9 @@ tty.o:	tty.c arch.h tty.h memdbg.h
 
 uaf2john.o:	uaf2john.c uaf_encode.h uaf_raw.h memdbg.h
 
-uaf_hash.o:	uaf_hash.c uaf_encode_plug.c memdbg.h
+uaf_encode.o:	uaf_encode.c arch.h uaf_raw.h uaf_encode.h memdbg.h uaf_hash.c
+
+uaf_hash.o:	uaf_hash.c uaf_encode.c memdbg.h
 
 unafs.o:	unafs.c misc.h memdbg.h
 
@@ -753,8 +768,8 @@ aes/aes.a:
 ../run/vncpcap2john@EXE_EXT@: vncpcap2john.o
 	$(CC) -DAC_BUILT -Wall vncpcap2john.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o ../run/vncpcap2john
 
-../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode_plug.o
-	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode_plug.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/uaf2john
+../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode.o
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/uaf2john
 
 # Note that this is NOT depending on PCAP lib. It is self-contained.
 ../run/wpapcap2john@EXE_EXT@: wpapcap2john.o

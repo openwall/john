@@ -141,6 +141,7 @@ extern struct fmt_main fmt_crypt;
 #endif
 extern struct fmt_main fmt_trip;
 extern struct fmt_main fmt_dummy;
+extern struct fmt_main fmt_NT;
 
 #include "fmt_externs.h"
 
@@ -287,6 +288,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_trip);
 	john_register_one(&fmt_dummy);
+	john_register_one(&fmt_NT);
 
 #ifndef DYNAMIC_DISABLED
 	// NOTE, this MUST happen, before ANY format that links a 'thin' format

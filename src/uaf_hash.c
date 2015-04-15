@@ -16,7 +16,7 @@
  */
 #ifndef _uaf_hash_
 #define _uaf_hash_
-#include "uaf_encode_plug.c"
+#include "uaf_encode.c"
 
 #ifdef VMS
 #	include <ssdef.h>
