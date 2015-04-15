@@ -28,8 +28,6 @@
 
 #include "arch.h"
 
-#if SIMD_COEF_32
-
 #include "aligned.h"
 #include "stdint.h"
 #include "common.h" /* for is_aligned() */
@@ -37,6 +35,9 @@
 /*************************** AVX512 and MIC ***************************/
 #if __MIC__ || __AVX512__
 #include <immintrin.h>
+
+#define SIMD_COEF_32 16
+#define SIMD_COEF_64 8
 
 typedef __m512i vtype;
 
@@ -166,6 +167,9 @@ static inline __m512i _mm512_loadu_si512(void const *addr)
 #elif __AVX2__
 #include <immintrin.h>
 
+#define SIMD_COEF_32 8
+#define SIMD_COEF_64 4
+
 typedef __m256i vtype;
 
 #define vadd_epi32              _mm256_add_epi32
@@ -289,6 +293,9 @@ static inline int vtestz_epi32(vtype __X)
 #endif
 
 #include <emmintrin.h>
+
+#define SIMD_COEF_32 4
+#define SIMD_COEF_64 2
 
 typedef __m128i vtype;
 
@@ -437,6 +444,9 @@ static inline int vtestz_epi32(vtype __X)
 #elif __MMX__
 #include <mmintrin.h>
 
+#define SIMD_COEF_32 2
+#define SIMD_COEF_64 1
+
 typedef __m64i vtype;
 
 #error MMX intrinsics not implemented (contributions are welcome!)
@@ -445,7 +455,9 @@ typedef __m64i vtype;
 
 /************************* COMMON STUFF BELOW *************************/
 
+#if !defined(MEM_ALIGN_SIMD) && defined(SIMD_COEF_32)
 #define MEM_ALIGN_SIMD          (SIMD_COEF_32 * 4)
+#endif
 
 #if !__XOP__ || __AVX2__ || __AVX512__ || __MIC__
 #define vslli_epi32a(a, s) ((s) == 1 ?              \
@@ -477,12 +489,12 @@ typedef __m64i vtype;
         vset_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
 #define vroti16_epi32(a, s)     (vshuffle_epi8((a), rot16_mask))
 
-#else /* just SSE2 */
+#elif __SSE2__
 
 #define vroti16_epi32(a,s)                                      \
         (vshufflelo_epi16(vshufflehi_epi16((a), 0xb1), 0xb1))
 
 #endif /* __AVX2__ || __AVX512__ || __MIC__ */
 #endif /* !__XOP__ || __AVX2__ || __AVX512__ || __MIC__ */
-#endif /* SIMD_COEF_32 */
+
 #endif /* _SSE_PSEUDO_H */
