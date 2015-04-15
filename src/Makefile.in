@@ -96,7 +96,6 @@ JOHN_OBJS = \
 	truecrypt_volume2john.o \
 	hccap2john.o \
 	$(PLUGFORMATS_OBJS) \
-	plugin.o \
 	dyna_salt.o dummy.o \
 	gost.o \
 	common-gpu.o \
@@ -441,8 +440,6 @@ path.o:	path.c autoconfig.h misc.h params.h memory.h path.h memdbg.h
 pfx2john.o:	pfx2john.c jumbo.h common.h arch.h params.h memdbg.h
 
 pkzip.o:	pkzip.c arch.h misc.h common.h memory.h formats.h pkzip.h memdbg.h
-
-plugin.o:	plugin.c autoconfig.h Win32-dlfcn-port.h plugin.h memdbg.h
 
 putty2john.o:	putty2john.c autoconfig.h memory.h jumbo.h memdbg.h
 
@@ -791,7 +788,7 @@ john.o: john.c autoconfig.h os.h params.h arch.h openssl_local_overrides.h \
 	formats.h dyna_salt.h loader.h logger.h status.h recovery.h options.h \
 	config.h bench.h charset.h single.h wordlist.h inc.h mask.h mkv.h \
 	external.h batch.h dynamic.h fake_salts.h listconf.h john-mpi.h \
-	regex.h unicode.h plugin.h common-opencl.h cuda_common.h prince.h \
+	regex.h unicode.h common-opencl.h cuda_common.h prince.h \
 	john_build_rule.h memdbg.h fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
 

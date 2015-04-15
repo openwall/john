@@ -17,7 +17,6 @@
  */
 
 #if AC_BUILT
-/* need to know if HAVE_LIBDL is set, for autoconfig build */
 #include "autoconfig.h"
 #else
 #ifdef __SIZEOF_INT128__
@@ -101,7 +100,6 @@ static int john_omp_threads_new;
 #include "regex.h"
 
 #include "unicode.h"
-#include "plugin.h"
 #if HAVE_OPENCL
 #include "common-opencl.h"
 #endif
@@ -310,13 +308,6 @@ static void john_register_all(void)
 
 #if HAVE_CRYPT
 	john_register_one(&fmt_crypt);
-#endif
-
-#if HAVE_LIBDL
-	if (options.fmt_dlls)
-	register_dlls ( options.fmt_dlls,
-		cfg_get_param(SECTION_OPTIONS, NULL, "plugin"),
-		john_register_one );
 #endif
 
 	if (!fmt_list) {

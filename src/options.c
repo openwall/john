@@ -215,10 +215,6 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &options.subformat},
 	{"list", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.listconf},
-#ifdef HAVE_LIBDL
-	{"plugin", FLG_DYNFMT, 0, 0, OPT_REQ_PARAM,
-		OPT_FMT_ADD_LIST_MULTI,	&options.fmt_dlls},
-#endif
 	{"mem-file-size", FLG_ZERO, 0,
 		FLG_WORDLIST_CHK, (FLG_DUPESUPP | FLG_SAVEMEM |
 		FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM),
@@ -420,9 +416,6 @@ void opt_print_hidden_usage(void)
 	puts("--input-encoding=NAME     input encoding (alias for --encoding)");
 	puts("--internal-encoding=NAME  encoding used in rules/masks (see doc/ENCODING)");
 	puts("--target-encoding=NAME    output encoding (used by format, see doc/ENCODING)");
-#ifdef HAVE_LIBDL
-	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
-#endif
 #ifdef HAVE_OPENCL
 	puts("--force-scalar            (OpenCL) force scalar mode");
 	puts("--force-vector-width=N    (OpenCL) force vector width N");
@@ -469,9 +462,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	list_init(&options.loader.users);
 	list_init(&options.loader.groups);
 	list_init(&options.loader.shells);
-#ifdef HAVE_LIBDL
-	list_init(&options.fmt_dlls);
-#endif
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 	list_init(&options.gpu_devices);
 #endif
