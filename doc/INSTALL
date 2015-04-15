@@ -50,6 +50,16 @@ This version of Jumbo has autoconf - that is, it supports the very common
 chain of:
 	./configure && make
 
+Pass a CFLAGS variable in case you need to enable/disable compiler options
+different than default. For example, here's how to configure for just AVX
+on a host that is AVX2-capable (default is -march=native if your compiler
+supports it, that will enable all CPU features you've got):
+
+    ./configure CFLAGS="-g -O2 -mno-avx2"
+
+Note that whenever you pass CFLAGS like this, the default "-g -O2" will go
+away, so add that too (like was done above).
+
 You might want to add "-s" to make, for suppressing normal output and just
 print warnings and errors. For a multi-core host you can also add eg. "-j4"
 for using 4 cores in parallel when building. This can be written together,

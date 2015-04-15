@@ -1,9 +1,9 @@
 	Known issues with using this release.
 
-The Dynamic format currently does not support AVX2. If you build with AVX2,
-Dynamic will automatically be disabled (totally left out from the build). For
+The dynamic format currently does not support AVX2. If you build with AVX2,
+dynamic will automatically be disabled (totally left out from the build). For
 debugging/testing, add "--enable-experimental-code" to ./configure. To get
-an actually usable Dynamic format, build without AVX2.
+an actually usable dynamic format, build without AVX2 (see INSTALL).
 
 If available, the autoconf script enables use of the option -march=native
 to gcc (or similar things for other systems). On a few systems (including
