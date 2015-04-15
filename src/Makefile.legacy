@@ -118,8 +118,8 @@ JOHN_OBJS = \
 	escrypt/sha256.o \
 	AFS_fmt.o \
 	LM_fmt.o \
-	NT_fmt.o \
 	trip_fmt.o \
+	NT_format.o \
 	timer.o \
 	md5_go.o \
 	md5.o \
