@@ -49,10 +49,10 @@ static void rexgen_setlocale() {
 		setlocale(LC_CTYPE, sysLocale);
 	}
 	if ((sysLocale = getenv("LC_MESSAGES")) != NULL) {
-		setlocale(LC_CTYPE, sysLocale);
+		setlocale(LC_MESSAGES, sysLocale);
 	}
 	if ((sysLocale = getenv("LC_ALL")) != NULL) {
-		setlocale(LC_CTYPE, sysLocale);
+		setlocale(LC_ALL, sysLocale);
 	}
 	if (sysLocale == NULL) {
 		setlocale(LC_ALL, defaultLocale);
