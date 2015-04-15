@@ -111,13 +111,14 @@ JOHN_OBJS = \
 	jumbo.o john-mpi.o \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
 	BSDI_fmt.o \
-	MD5_fmt.o MD5_std.o \
-	BF_fmt.o BF_std.o \
+	MD5_fmt.o MD5_std.o cryptmd5_common.o \
+	BF_fmt.o BF_std.o BF_common.o \
 	scrypt_fmt.o \
 	escrypt/crypto_scrypt-best.o escrypt/crypto_scrypt-common.o \
 	escrypt/sha256.o \
 	AFS_fmt.o \
 	LM_fmt.o \
+	NT_fmt.o \
 	trip_fmt.o \
 	timer.o \
 	md5_go.o \
@@ -127,11 +128,12 @@ JOHN_OBJS = \
 	base64.o base64_convert.o \
 	md4.o sha2.o \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
+	ripemd.o tiger.o \
 	ssh2john.o \
 	pfx2john.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar2john.o \
-	zip2john.o gladman_hmac.o gladman_pwd2key.o \
+	zip2john.o pkzip.o gladman_hmac.o gladman_pwd2key.o \
 	racf2john.o \
 	keychain2john.o \
 	kwallet2john.o \
@@ -142,7 +144,6 @@ JOHN_OBJS = \
 	truecrypt_volume2john.o \
 	hccap2john.o \
 	$(PLUGFORMATS_OBJS) \
-	plugin.o \
 	dyna_salt.o dummy.o \
 	gost.o \
 	common-gpu.o \
@@ -155,6 +156,7 @@ JOHN_OBJS = \
 	listconf.o \
 	fake_salts.o \
 	win32_memmap.o \
+	uaf_encode.o \
 	unicode.o \
 	unshadow.o \
 	unafs.o \
@@ -180,10 +182,10 @@ BENCH_DES_BS_OBJS_DEPEND = \
 	DES_bs_b.o
 
 BENCH_MD5_OBJS_DEPEND = \
-	MD5_fmt.o MD5_std.o cryptmd5_common_plug.o
+	MD5_fmt.o MD5_std.o cryptmd5_common.o
 
 BENCH_BF_OBJS_DEPEND = \
-	BF_fmt.o BF_std.o BF_common_plug.o
+	BF_fmt.o BF_std.o BF_common.o
 
 BENCH_OBJS = \
     $(MPIOBJ) \
@@ -2307,8 +2309,8 @@ john.com: john.asm
 ../run/vncpcap2john: vncpcap2john.o
 	$(CC) -Wall vncpcap2john.o memdbg.o -lpcap $(OMPFLAGS) -o ../run/vncpcap2john
 
-../run/uaf2john: uaf2john.o uaf_encode_plug.o
-	$(LD) $(LDFLAGS) uaf2john.o uaf_encode_plug.o memdbg.o $(OMPFLAGS) -o ../run/uaf2john
+../run/uaf2john: uaf2john.o uaf_encode.o
+	$(LD) $(LDFLAGS) uaf2john.o uaf_encode.o memdbg.o $(OMPFLAGS) -o ../run/uaf2john
 
 ../run/wpapcap2john: wpapcap2john.o
 	$(LD) $(LDFLAGS) wpapcap2john.o memdbg.o $(OMPFLAGS) -o ../run/wpapcap2john
