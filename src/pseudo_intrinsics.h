@@ -375,12 +375,6 @@ static inline int vtestz_epi32(vtype __X)
 
 #if __SSSE3__
 
-#ifndef __XOP__
-#define rot16_mask  \
-    vset_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
-#define vroti16_epi32(a,s)      (vshuffle_epi8((a), rot16_mask))
-#endif
-
 #define swap_endian_mask    \
     vset_epi32(0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203)
 #define vswap32(n)              (n = vshuffle_epi8(n, swap_endian_mask))
@@ -447,28 +441,33 @@ typedef __m64i vtype;
 
 #define MEM_ALIGN_SIMD          (SIMD_COEF_32 * 4)
 
-#if !__XOP__ || __AVX2__ || __AVX512__ || __MIC__
+#if !__XOP__ || __AVX2__ || __MIC__
+#define vslli_epi16a(a, s) ((s) == 1 ?              \
+     vadd_epi16((a), (a)) : vslli_epi16((a), (s)))
+
 #define vslli_epi32a(a, s) ((s) == 1 ?              \
      vadd_epi32((a), (a)) : vslli_epi32((a), (s)))
 
+#define vslli_epi64a(a, s) ((s) == 1 ?              \
+     vadd_epi64((a), (a)) : vslli_epi64((a), (s)))
+
 // vroti must handle both ROTL and ROTR. If s < 0, then ROTR.
-// There's a specialized rotate16 for ssse3+
-#define vroti_epi16(x, n)  ((n) > 0 ?                       \
-     vxor(vsrli_epi16(x, 16 - (n)), vslli_epi16(x, n)) :    \
-     vxor(vsrli_epi16(x, -n), vslli_epi16(x, 16 + (n))))
+// There's a specialized rotate16 for SSSE3
+#define vroti_epi16(a, s)  ((s) < 0 ?                                   \
+     vxor(vsrli_epi16((a), ~(s) + 1), vslli_epi16a((a), 16 + (s))) :    \
+     vxor(vsrli_epi16a((a), 16 - (s)), vslli_epi16((a), (s))))
 
-#define vroti_epi32(a, s)  ((s) < 0 ?                               \
-     vor(vsrli_epi32((a), ~(s) + 1), vslli_epi32a((a),32 + (s))) :  \
-     vor(vslli_epi32a((a), (s)), vsrli_epi32((a), 32 - (s))))
+#define vroti_epi32(a, s)  ((s) < 0 ?                                   \
+     vxor(vsrli_epi32((a), ~(s) + 1), vslli_epi32a((a), 32 + (s))) :    \
+     vxor(vslli_epi32a((a), (s)), vsrli_epi32((a), 32 - (s))))
 
-// 64 bit roti  (both ROTL and ROTR handled)
-#define vroti_epi64(a, s)  ((s) < 0 ?                           \
-     vor(vsrli_epi64((a), ~(s)+1), vslli_epi64((a),64+(s))) :   \
-     vor(vslli_epi64((a), (s)), vsrli_epi64((a), 64-(s))))
+#define vroti_epi64(a, s)  ((s) < 0 ?                                   \
+     vxor(vsrli_epi64((a), ~(s) + 1), vslli_epi64a((a), 64 + (s))) :    \
+     vxor(vslli_epi64a((a), (s)), vsrli_epi64((a), 64 - (s))))
 
-#if __AVX2__ || __AVX512__ || __MIC__
+#if __AVX2__ || __MIC__
 
-// FIXME: Implement width-specific variants of the SSSE3 thing below!
+// This seems to be faster (using shift/xor per above) than the shuffle below
 #define vroti16_epi32(a,s) vroti_epi32(a, 16)
 
 #elif __SSSE3__
@@ -482,7 +481,7 @@ typedef __m64i vtype;
 #define vroti16_epi32(a,s)                                      \
         (vshufflelo_epi16(vshufflehi_epi16((a), 0xb1), 0xb1))
 
-#endif /* __AVX2__ || __AVX512__ || __MIC__ */
-#endif /* !__XOP__ || __AVX2__ || __AVX512__ || __MIC__ */
+#endif /* __AVX2__ || __MIC__ */
+#endif /* !__XOP__ || __AVX2__ || __MIC__ */
 #endif /* SIMD_COEF_32 */
 #endif /* _SSE_PSEUDO_H */
