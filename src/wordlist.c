@@ -82,10 +82,13 @@
 #include "unicode.h"
 #include "regex.h"
 #include "mask.h"
+#include "pseudo_intrinsics.h"
 #include "memdbg.h"
 
-#define _STR_VALUE(arg)			#arg
-#define STR_MACRO(n)			_STR_VALUE(n)
+#define _STR_VALUE(arg)         #arg
+#define STR_MACRO(n)            _STR_VALUE(n)
+
+#define VSCANSZ                 (SIMD_COEF_32 * 4)
 
 static int dist_rules;
 
@@ -132,19 +135,20 @@ static MAYBE_INLINE char *mgetl(char *res)
 {
 	char *pos = res;
 
-#if defined(__SSE2__) && !defined(__APPLE__) && !defined(_MSC_VER)
+#if defined(SIMD_COEF_32) && !defined(_MSC_VER)
 
-	/* 16 chars at a time with known remainder. */
-	__m128i cx16 = _mm_set1_epi8('\n');
+	/* 16/32/64 chars at a time with known remainder. */
+	const vtype vnl = vset1_epi8('\n');
 
 	if (map_pos >= map_end)
 		return NULL;
 
-	while (map_pos < map_scan_end && pos < res + LINE_BUFFER_SIZE - 17) {
-		__m128i x = _mm_loadu_si128((__m128i const *)map_pos);
-		unsigned int v = _mm_movemask_epi8(_mm_cmpeq_epi8(cx16, x));
+	while (map_pos < map_scan_end &&
+	       pos < res + LINE_BUFFER_SIZE - (VSCANSZ + 1)) {
+		vtype x = vloadu((vtype const *)map_pos);
+		unsigned int v = vmovemask_epi8(vcmpeq_epi8(vnl, x));
 
-		_mm_storeu_si128((__m128i*)pos, x);
+		vstoreu((vtype*)pos, x);
 		if (v) {
 #ifdef __GNUC__
 			unsigned int r = __builtin_ctz(v);
@@ -155,8 +159,8 @@ static MAYBE_INLINE char *mgetl(char *res)
 			pos += r;
 			break;
 		}
-		map_pos += 16;
-		pos += 16;
+		map_pos += VSCANSZ;
+		pos += VSCANSZ;
 	}
 
 	if (*map_pos != '\n')
@@ -609,7 +613,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		} else {
 			map_pos = mem_map;
 			map_end = mem_map + file_len;
-			map_scan_end = map_end - 16;
+			map_scan_end = map_end - VSCANSZ;
 		}
 #endif
 

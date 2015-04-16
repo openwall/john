@@ -69,6 +69,7 @@ typedef __m512i vtype;
 #define vor                     _mm512_or_si512
 #define vpermute2x128           _mm512_permute2x128_si512
 #define vpermute4x64_epi64      _mm512_permute4x64_epi64
+#define vset1_epi8              _mm512_set1_epi8
 #define vset1_epi32             _mm512_set1_epi32
 #define vset1_epi64x            _mm512_set1_epi64
 #define vset_epi32              _mm512_set_epi32
@@ -85,6 +86,7 @@ typedef __m512i vtype;
 #define vsrli_epi32             _mm512_srli_epi32
 #define vsrli_epi64             _mm512_srli_epi64
 #define vstore(x, y)            _mm512_store_si512((void*)(x), y)
+#define vstoreu(x, y)           _mm512_storeu_si512((void*)(x), y)
 #define vunpackhi_epi32         _mm512_unpackhi_epi32
 #define vunpackhi_epi64         _mm512_unpackhi_epi64
 #define vunpacklo_epi32         _mm512_unpacklo_epi32
@@ -99,6 +101,18 @@ static inline __m512i _mm512_loadu_si512(void const *addr)
 	char JTR_ALIGN(64) buf[64];
 	return _mm512_load_si512(is_aligned(addr, 64) ?
 	                         addr : memcpy(buf, addr, 64));
+}
+
+static inline void _mm512_storeu_si512(void *addr, vtype d)
+{
+	char JTR_ALIGN(64) buf[64];
+
+	if (is_aligned(addr, 64))
+		_mm512_store_si512(addr, d);
+	else {
+		_mm512_store_si512(buf, d);
+		memcpy(addr, buf, 64);
+	}
 }
 
 #define vswap32(n)                                                          \
@@ -184,6 +198,7 @@ typedef __m256i vtype;
 #define vor                     _mm256_or_si256
 #define vpermute2x128           _mm256_permute2x128_si256
 #define vpermute4x64_epi64      _mm256_permute4x64_epi64
+#define vset1_epi8              _mm256_set1_epi8
 #define vset1_epi32             _mm256_set1_epi32
 #define vset1_epi64x            _mm256_set1_epi64x
 #define vset_epi32              _mm256_set_epi32
@@ -200,6 +215,7 @@ typedef __m256i vtype;
 #define vsrli_epi32             _mm256_srli_epi32
 #define vsrli_epi64             _mm256_srli_epi64
 #define vstore(x, y)            _mm256_store_si256((void*)(x), y)
+#define vstoreu(x, y)           _mm256_storeu_si256((void*)(x), y)
 #define vunpackhi_epi32         _mm256_unpackhi_epi32
 #define vunpackhi_epi64         _mm256_unpackhi_epi64
 #define vunpacklo_epi32         _mm256_unpacklo_epi32
@@ -320,6 +336,7 @@ typedef __m128i vtype;
 #define vroti_epi64             _mm_roti_epi64
 #endif
 #define vset_epi32              _mm_set_epi32
+#define vset1_epi8              _mm_set1_epi8
 #define vset1_epi32             _mm_set1_epi32
 #define vset1_epi64x            _mm_set1_epi64x
 #define vset_epi64x             _mm_set_epi64x
@@ -337,6 +354,7 @@ typedef __m128i vtype;
 #define vsrli_epi32             _mm_srli_epi32
 #define vsrli_epi64             _mm_srli_epi64
 #define vstore(x, y)            _mm_store_si128((void*)(x), y)
+#define vstoreu(x, y)           _mm_storeu_si128((void*)(x), y)
 #define vunpackhi_epi32         _mm_unpackhi_epi32
 #define vunpackhi_epi64         _mm_unpackhi_epi64
 #define vunpacklo_epi32         _mm_unpacklo_epi32
