@@ -66,9 +66,19 @@ _inline __m128i _mm_set1_epi64x(long long a)
 #define MD5_G(x,y,z) \
 	MD5_PARA_DO(i) tmp[i] = vcmov((x[i]),(y[i]),(z[i]));
 
+#if 0 // For some reason this ends up slower, even using another tmp
+#define MD5_H(x,y,z) \
+	MD5_PARA_DO(i) tmp[i] = vxor(vxor((x[i]),(y[i])), (z[i]));
+
+#define MD5_H2(x,y,z) \
+	MD5_PARA_DO(i) tmp[i] = vxor((x[i]), vxor((y[i]),(z[i])));
+#else
 #define MD5_H(x,y,z) \
 	MD5_PARA_DO(i) tmp[i] = vxor((y[i]),(z[i])); \
 	MD5_PARA_DO(i) tmp[i] = vxor((tmp[i]),(x[i]));
+
+#define MD5_H2(x,y,z) MD5_H(x,y,z)
+#endif
 
 #define MD5_I(x,y,z) \
 	MD5_PARA_DO(i) tmp[i] = vandnot((z[i]), mask); \
@@ -229,21 +239,21 @@ void SSEmd5body(vtype* _data, unsigned int *out,
 
 /* Round 3 */
 	MD5_STEP(MD5_H, a, b, c, d, 5, 0xfffa3942, 4)
-	MD5_STEP(MD5_H, d, a, b, c, 8, 0x8771f681, 11)
+	MD5_STEP(MD5_H2, d, a, b, c, 8, 0x8771f681, 11)
 	MD5_STEP_r16(MD5_H, c, d, a, b, 11, 0x6d9d6122, 16)
-	MD5_STEP(MD5_H, b, c, d, a, 14, 0xfde5380c, 23)
+	MD5_STEP(MD5_H2, b, c, d, a, 14, 0xfde5380c, 23)
 	MD5_STEP(MD5_H, a, b, c, d, 1, 0xa4beea44, 4)
-	MD5_STEP(MD5_H, d, a, b, c, 4, 0x4bdecfa9, 11)
+	MD5_STEP(MD5_H2, d, a, b, c, 4, 0x4bdecfa9, 11)
 	MD5_STEP_r16(MD5_H, c, d, a, b, 7, 0xf6bb4b60, 16)
-	MD5_STEP(MD5_H, b, c, d, a, 10, 0xbebfbc70, 23)
+	MD5_STEP(MD5_H2, b, c, d, a, 10, 0xbebfbc70, 23)
 	MD5_STEP(MD5_H, a, b, c, d, 13, 0x289b7ec6, 4)
-	MD5_STEP(MD5_H, d, a, b, c, 0, 0xeaa127fa, 11)
+	MD5_STEP(MD5_H2, d, a, b, c, 0, 0xeaa127fa, 11)
 	MD5_STEP_r16(MD5_H, c, d, a, b, 3, 0xd4ef3085, 16)
-	MD5_STEP(MD5_H, b, c, d, a, 6, 0x04881d05, 23)
+	MD5_STEP(MD5_H2, b, c, d, a, 6, 0x04881d05, 23)
 	MD5_STEP(MD5_H, a, b, c, d, 9, 0xd9d4d039, 4)
-	MD5_STEP(MD5_H, d, a, b, c, 12, 0xe6db99e5, 11)
+	MD5_STEP(MD5_H2, d, a, b, c, 12, 0xe6db99e5, 11)
 	MD5_STEP_r16(MD5_H, c, d, a, b, 15, 0x1fa27cf8, 16)
-	MD5_STEP(MD5_H, b, c, d, a, 2, 0xc4ac5665, 23)
+	MD5_STEP(MD5_H2, b, c, d, a, 2, 0xc4ac5665, 23)
 
 /* Round 4 */
 	MD5_STEP(MD5_I, a, b, c, d, 0, 0xf4292244, 6)
@@ -594,9 +604,19 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 	MD4_PARA_DO(i) tmp[i] = vand((tmp[i]),(x[i])); \
 	MD4_PARA_DO(i) tmp[i] = vor((tmp[i]), (tmp2[i]) );
 
+#if 0 // For some reason this ends up slower, even using another tmp
+#define MD4_H(x,y,z) \
+	MD4_PARA_DO(i) tmp[i] = vxor(vxor((x[i]),(y[i])), (z[i]));
+
+#define MD4_H2(x,y,z) \
+	MD4_PARA_DO(i) tmp[i] = vxor((x[i]), vxor((y[i]),(z[i])));
+#else
 #define MD4_H(x,y,z) \
 	MD4_PARA_DO(i) tmp[i] = vxor((y[i]),(z[i])); \
 	MD4_PARA_DO(i) tmp[i] = vxor((tmp[i]),(x[i]));
+
+#define MD4_H2(x,y,z) MD4_H(x,y,z)
+#endif
 
 #define MD4_STEP(f, a, b, c, d, x, t, s) \
 	MD4_PARA_DO(i) a[i] = vadd_epi32( a[i], t ); \
@@ -746,21 +766,21 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 /* Round 3 */
 	cst = vset1_epi32(0x6ED9EBA1L);
 	MD4_STEP(MD4_H, a, b, c, d, 0, cst, 3)
-	MD4_STEP(MD4_H, d, a, b, c, 8, cst, 9)
+	MD4_STEP(MD4_H2, d, a, b, c, 8, cst, 9)
 	MD4_STEP(MD4_H, c, d, a, b, 4, cst, 11)
-	MD4_STEP(MD4_H, b, c, d, a, 12, cst, 15)
+	MD4_STEP(MD4_H2, b, c, d, a, 12, cst, 15)
 	MD4_STEP(MD4_H, a, b, c, d, 2, cst, 3)
-	MD4_STEP(MD4_H, d, a, b, c, 10, cst, 9)
+	MD4_STEP(MD4_H2, d, a, b, c, 10, cst, 9)
 	MD4_STEP(MD4_H, c, d, a, b, 6, cst, 11)
-	MD4_STEP(MD4_H, b, c, d, a, 14, cst, 15)
+	MD4_STEP(MD4_H2, b, c, d, a, 14, cst, 15)
 	MD4_STEP(MD4_H, a, b, c, d, 1, cst, 3)
-	MD4_STEP(MD4_H, d, a, b, c, 9, cst, 9)
+	MD4_STEP(MD4_H2, d, a, b, c, 9, cst, 9)
 	MD4_STEP(MD4_H, c, d, a, b, 5, cst, 11)
-	MD4_STEP(MD4_H, b, c, d, a, 13, cst, 15)
+	MD4_STEP(MD4_H2, b, c, d, a, 13, cst, 15)
 	MD4_STEP(MD4_H, a, b, c, d, 3, cst, 3)
-	MD4_STEP(MD4_H, d, a, b, c, 11, cst, 9)
+	MD4_STEP(MD4_H2, d, a, b, c, 11, cst, 9)
 	MD4_STEP(MD4_H, c, d, a, b, 7, cst, 11)
-	MD4_STEP(MD4_H, b, c, d, a, 15, cst, 15)
+	MD4_STEP(MD4_H2, b, c, d, a, 15, cst, 15)
 
 
 	if((SSEi_flags & SSEi_RELOAD)==0)
