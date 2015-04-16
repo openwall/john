@@ -220,7 +220,8 @@ if test "x$enable_native_tests" != xno; then
     ,[CPU_BEST_FLAGS="-mavx2"]dnl
      [CPU_STR="AVX2"]
      [AC_MSG_RESULT([yes])]
-    ,[AC_MSG_RESULT([no])]
+    ,[CPU_NOTFOUND=1]
+     [AC_MSG_RESULT([no])]
     )
   ]
   )
@@ -380,7 +381,8 @@ else
     ,[CPU_BEST_FLAGS="-mavx2"]dnl
      [CPU_STR="AVX2"]
      [AC_MSG_RESULT([yes])]
-    ,[AC_MSG_RESULT([no])]
+    ,[CPU_NOTFOUND=1]
+     [AC_MSG_RESULT([no])]
     )
   ]
   )
