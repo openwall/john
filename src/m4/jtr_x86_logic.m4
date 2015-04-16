@@ -47,6 +47,40 @@ dnl
 #############################################################################
 dnl
 CFLAGS="$CFLAGS -O0"
+
+  AS_CASE([$host_os], [darwin*],
+    [CC="$CC_BACKUP -mavx"
+    AC_MSG_CHECKING([whether OS X 'as' needs -q option])
+    AC_LINK_IFELSE(
+      [
+      AC_LANG_SOURCE(
+        [[#include <immintrin.h>
+          #include <stdio.h>
+          extern void exit(int);
+          int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+      )]
+      ,[AC_MSG_RESULT([no])]
+      ,[OSX_AS_CLANG="-Wa,-q"]
+       [CC="$CC_BACKUP -mavx $OSX_AS_CLANG"][
+       AC_LINK_IFELSE(
+         [
+         AC_LANG_SOURCE(
+           [[#include <immintrin.h>
+             #include <stdio.h>
+             extern void exit(int);
+             int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+         )]
+         ,[AC_MSG_RESULT([yes])]
+         ,[AC_MSG_RESULT([no])]
+      )]
+    )
+    AS_IF([test x$OSX_AS_CLANG != x],
+      [CC_BACKUP="$CC_BACKUP $OSX_AS_CLANG"]
+      [AS_IF([test "x$AS" = xgcc], [AS="$AS $OSX_AS_CLANG"])]
+    )
+    [CC="$CC_BACKUP"]]
+  )
+
 if test "x$enable_native_tests" != xno; then
   CPU_NOTFOUND=0
   AC_MSG_NOTICE([Testing build host's native CPU features])
@@ -128,39 +162,6 @@ if test "x$enable_native_tests" != xno; then
      [AC_MSG_RESULT([no])]
     )
   ]
-  )
-
-  AS_CASE([$host_os], [darwin*], [AS_IF([test "x$CPU_NOTFOUND" = x0],
-    [CC="$CC_BACKUP -mavx"
-    AC_MSG_CHECKING([whether OS X 'as' needs -q option])
-    AC_LINK_IFELSE(
-      [
-      AC_LANG_SOURCE(
-        [[#include <immintrin.h>
-          #include <stdio.h>
-          extern void exit(int);
-          int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
-      )]
-      ,[AC_MSG_RESULT([no])]
-      ,[OSX_AS_CLANG="-Wa,-q"]
-       [CC="$CC_BACKUP -mavx $OSX_AS_CLANG"][
-       AC_LINK_IFELSE(
-         [
-         AC_LANG_SOURCE(
-           [[#include <immintrin.h>
-             #include <stdio.h>
-             extern void exit(int);
-             int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
-         )]
-         ,[AC_MSG_RESULT([yes])]
-         ,[AC_MSG_RESULT([no])]
-      )]
-    )
-    AS_IF([test x$OSX_AS_CLANG != x],
-      [CC_BACKUP="$CC_BACKUP $OSX_AS_CLANG"]
-      [AS_IF([test "x$AS" = xgcc], [AS="$AS $OSX_AS_CLANG"])]
-     ,[CC="$CC_BACKUP"])
-    ])]
   )
 
   AS_IF([test "x$CPU_NOTFOUND" = x0],
@@ -324,39 +325,6 @@ else
      [AC_MSG_RESULT([no])]
     )
   ]
-  )
-
-  AS_CASE([$host_os], [darwin*], [AS_IF([test "x$CPU_NOTFOUND" = x0],
-    [CC="$CC_BACKUP -mavx"
-    AC_MSG_CHECKING([whether OS X 'as' needs -q option])
-    AC_LINK_IFELSE(
-      [
-      AC_LANG_SOURCE(
-        [[#include <immintrin.h>
-          #include <stdio.h>
-          extern void exit(int);
-          int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
-      )]
-      ,[AC_MSG_RESULT([no])]
-      ,[OSX_AS_CLANG="-Wa,-q"]
-       [CC="$CC_BACKUP -mavx $OSX_AS_CLANG"][
-       AC_LINK_IFELSE(
-         [
-         AC_LANG_SOURCE(
-           [[#include <immintrin.h>
-             #include <stdio.h>
-             extern void exit(int);
-             int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
-         )]
-         ,[AC_MSG_RESULT([yes])]
-         ,[AC_MSG_RESULT([no])]
-      )]
-    )
-    AS_IF([test x$OSX_AS_CLANG != x],
-      [CC_BACKUP="$CC_BACKUP $OSX_AS_CLANG"]
-      [AS_IF([test "x$AS" = xgcc], [AS="$AS $OSX_AS_CLANG"])]
-    )
-    [CC="$CC_BACKUP"]])]
   )
 
   AS_IF([test "x$CPU_NOTFOUND" = x0],

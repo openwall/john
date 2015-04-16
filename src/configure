@@ -7681,6 +7681,67 @@ CFLAGS_BACKUP=$CFLAGS
 # Config probe test code copyright 2014, Jim Fougeron.  Placed into public domain.
 #############################################################################
 CFLAGS="$CFLAGS -O0"
+
+  case $host_os in #(
+  darwin*) :
+    CC="$CC_BACKUP -mavx"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether OS X 'as' needs -q option" >&5
+$as_echo_n "checking whether OS X 'as' needs -q option... " >&6; }
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+      #include <immintrin.h>
+          #include <stdio.h>
+          extern void exit(int);
+          int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}
+
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+else
+  OSX_AS_CLANG="-Wa,-q"
+       CC="$CC_BACKUP -mavx $OSX_AS_CLANG"
+       cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+         #include <immintrin.h>
+             #include <stdio.h>
+             extern void exit(int);
+             int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}
+
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+    if test x$OSX_AS_CLANG != x; then :
+  CC_BACKUP="$CC_BACKUP $OSX_AS_CLANG"
+      if test "x$AS" = xgcc; then :
+  AS="$AS $OSX_AS_CLANG"
+fi
+
+fi
+    CC="$CC_BACKUP"
+   ;; #(
+  *) :
+     ;;
+esac
+
 if test "x$enable_native_tests" != xno; then
   CPU_NOTFOUND=0
   { $as_echo "$as_me:${as_lineno-$LINENO}: Testing build host's native CPU features" >&5
@@ -7843,70 +7904,6 @@ fi
 
 
 fi
-
-  case $host_os in #(
-  darwin*) :
-    if test "x$CPU_NOTFOUND" = x0; then :
-  CC="$CC_BACKUP -mavx"
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether OS X 'as' needs -q option" >&5
-$as_echo_n "checking whether OS X 'as' needs -q option... " >&6; }
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-      #include <immintrin.h>
-          #include <stdio.h>
-          extern void exit(int);
-          int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}
-
-
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-
-else
-  OSX_AS_CLANG="-Wa,-q"
-       CC="$CC_BACKUP -mavx $OSX_AS_CLANG"
-       cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-         #include <immintrin.h>
-             #include <stdio.h>
-             extern void exit(int);
-             int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}
-
-
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-    if test x$OSX_AS_CLANG != x; then :
-  CC_BACKUP="$CC_BACKUP $OSX_AS_CLANG"
-      if test "x$AS" = xgcc; then :
-  AS="$AS $OSX_AS_CLANG"
-fi
-
-else
-  CC="$CC_BACKUP"
-fi
-
-fi
-   ;; #(
-  *) :
-     ;;
-esac
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
@@ -8194,68 +8191,6 @@ rm -f core conftest.err conftest.$ac_objext \
 
 
 fi
-
-  case $host_os in #(
-  darwin*) :
-    if test "x$CPU_NOTFOUND" = x0; then :
-  CC="$CC_BACKUP -mavx"
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether OS X 'as' needs -q option" >&5
-$as_echo_n "checking whether OS X 'as' needs -q option... " >&6; }
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-      #include <immintrin.h>
-          #include <stdio.h>
-          extern void exit(int);
-          int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}
-
-
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-
-else
-  OSX_AS_CLANG="-Wa,-q"
-       CC="$CC_BACKUP -mavx $OSX_AS_CLANG"
-       cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-         #include <immintrin.h>
-             #include <stdio.h>
-             extern void exit(int);
-             int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}
-
-
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-    if test x$OSX_AS_CLANG != x; then :
-  CC_BACKUP="$CC_BACKUP $OSX_AS_CLANG"
-      if test "x$AS" = xgcc; then :
-  AS="$AS $OSX_AS_CLANG"
-fi
-
-fi
-    CC="$CC_BACKUP"
-fi
-   ;; #(
-  *) :
-     ;;
-esac
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
