@@ -460,6 +460,13 @@ typedef __m64i vtype;
 #define MEM_ALIGN_SIMD          (SIMD_COEF_32 * 4)
 
 #if !__XOP__ || __AVX2__ || __MIC__
+
+#if __SSE3__ || __MIC__
+#define vslli_epi16a(a, s) vslli_epi16(a, s)
+#define vslli_epi32a(a, s) vslli_epi32(a, s)
+#define vslli_epi64a(a, s) vslli_epi64(a, s)
+
+#else
 #define vslli_epi16a(a, s) ((s) == 1 ?              \
      vadd_epi16((a), (a)) : vslli_epi16((a), (s)))
 
@@ -468,6 +475,8 @@ typedef __m64i vtype;
 
 #define vslli_epi64a(a, s) ((s) == 1 ?              \
      vadd_epi64((a), (a)) : vslli_epi64((a), (s)))
+
+#endif /* __SSE3__ || __MIC__ */
 
 // vroti must handle both ROTL and ROTR. If s < 0, then ROTR.
 // There's a specialized rotate16 for SSSE3
@@ -483,23 +492,28 @@ typedef __m64i vtype;
      vxor(vsrli_epi64((a), ~(s) + 1), vslli_epi64a((a), 64 + (s))) :    \
      vxor(vslli_epi64a((a), (s)), vsrli_epi64((a), 64 - (s))))
 
-#if __AVX2__ || __MIC__
-
-// This seems to be faster (using shift/xor per above) than the shuffle below
+#if __AVX512__ || __MIC__
 #define vroti16_epi32(a,s) vroti_epi32(a, 16)
 
-#elif __SSSE3__
+#elif __AVX2__
+#define rot16_mask                                              \
+    vset_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302,  \
+               0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
+#define vroti16_epi32(a, s)     (vshuffle_epi8((a), rot16_mask))
 
+#elif __SSSE3__
 #define rot16_mask  \
         vset_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
 #define vroti16_epi32(a, s)     (vshuffle_epi8((a), rot16_mask))
 
 #else /* just SSE2 */
-
 #define vroti16_epi32(a,s)                                      \
         (vshufflelo_epi16(vshufflehi_epi16((a), 0xb1), 0xb1))
 
-#endif /* __AVX2__ || __MIC__ */
+#endif /* __AVX512__ || __MIC__ */
+
 #endif /* !__XOP__ || __AVX2__ || __MIC__ */
+
 #endif /* SIMD_COEF_32 */
+
 #endif /* _SSE_PSEUDO_H */
