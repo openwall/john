@@ -87,17 +87,17 @@ _inline __m128i _mm_set1_epi64x(long long a)
 
 #define MD5_STEP(f, a, b, c, d, x, t, s) \
 	MD5_PARA_DO(i) a[i] = vadd_epi32( a[i], vset1_epi32(t) ); \
+	MD5_PARA_DO(i) a[i] = vadd_epi32( a[i], data[i*16+x] ); \
 	f((b),(c),(d)) \
 	MD5_PARA_DO(i) a[i] = vadd_epi32( a[i], tmp[i] ); \
-	MD5_PARA_DO(i) a[i] = vadd_epi32( a[i], data[i*16+x] ); \
 	MD5_PARA_DO(i) a[i] = vroti_epi32( a[i], (s) ); \
 	MD5_PARA_DO(i) a[i] = vadd_epi32( a[i], b[i] );
 
 #define MD5_STEP_r16(f, a, b, c, d, x, t, s) \
 	MD5_PARA_DO(i) a[i] = vadd_epi32( a[i], vset1_epi32(t) ); \
+	MD5_PARA_DO(i) a[i] = vadd_epi32( a[i], data[i*16+x] ); \
 	f((b),(c),(d)) \
 	MD5_PARA_DO(i) a[i] = vadd_epi32( a[i], tmp[i] ); \
-	MD5_PARA_DO(i) a[i] = vadd_epi32( a[i], data[i*16+x] ); \
 	MD5_PARA_DO(i) a[i] = vroti16_epi32( a[i], (s) ); \
 	MD5_PARA_DO(i) a[i] = vadd_epi32( a[i], b[i] );
 
