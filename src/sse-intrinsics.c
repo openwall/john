@@ -354,8 +354,8 @@ static MAYBE_INLINE void mmxput2(void *buf, unsigned int bid, void *src)
 }
 
 static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid,
-                                 unsigned int *offset, int mult,
-                                 int saltlen, void *src)
+                                 unsigned int *offset, unsigned int mult,
+                                 unsigned int saltlen, void *src)
 {
 	unsigned char *nbuf;
 	unsigned int noff;
@@ -491,7 +491,7 @@ static MAYBE_INLINE void dispatch(unsigned char buffers[8][64*MD5_SSE_NUM_KEYS],
 
 
 void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
-                 char *out, int md5_type)
+                 char *out, unsigned int md5_type)
 {
 	unsigned int length[MD5_SSE_NUM_KEYS];
 	unsigned int saltlen;
@@ -1334,7 +1334,7 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 	vtype tmp1, tmp2, *w=_w.w;
 	ARCH_WORD_32 *saved_key=0;
 
-	int i;
+	unsigned int i;
 	if (SSEi_flags & SSEi_FLAT_IN) {
 
 #if __SSE4_1__ || __MIC__
@@ -1368,7 +1368,7 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 			vswap32(w[15]);
 		}
 #else
-		int j;
+		unsigned int j;
 		ARCH_WORD_32 *p = _w.p;
 		saved_key = (ARCH_WORD_32*)data;
 		if (SSEi_flags & SSEi_4BUF_INPUT) {
@@ -1681,7 +1681,7 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
                    unsigned SSEi_flags)
 {
-	int i;
+	unsigned int i;
 
 	vtype a, b, c, d, e, f, g, h;
 	vtype w[80], tmp1, tmp2;
