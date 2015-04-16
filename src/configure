@@ -7950,44 +7950,6 @@ fi
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CC="$CC_BACKUP -mavx2"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX2" >&5
-$as_echo_n "checking for AVX2... " >&6; }
-  if test "$cross_compiling" = yes; then :
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "cannot run test program while cross compiling
-See \`config.log' for more details" "$LINENO" 5; }
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-    #include <immintrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m256i t, t1;*((long long*)&t)=1;t1=t;t=_mm256_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}
-
-
-_ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
-  CPU_BEST_FLAGS="-mavx2"     CPU_STR="AVX2"
-     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-
-fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
-
-
-fi
-  if test "x$CPU_NOTFOUND" = x0; then :
-
   CC="$CC_BACKUP -mxop"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for XOP" >&5
 $as_echo_n "checking for XOP... " >&6; }
@@ -8024,6 +7986,85 @@ fi
 
 
 fi
+
+  if test "x$CPU_NOTFOUND" = x0; then :
+
+  CC="$CC_BACKUP -mavx2"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX2" >&5
+$as_echo_n "checking for AVX2... " >&6; }
+  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #include <immintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m256i t, t1;*((long long*)&t)=1;t1=t;t=_mm256_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  CPU_BEST_FLAGS="-mavx2"     CPU_STR="AVX2"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+
+fi
+
+  if test "x$CPU_NOTFOUND" = x0; then :
+
+  CC="$CC_BACKUP -mavx512f"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX512" >&5
+$as_echo_n "checking for AVX512... " >&6; }
+  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #include <immintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  CPU_BEST_FLAGS="-mavx512f"     CPU_STR="AVX512"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+
+fi
+
 else
   ##########################################
   # cross-compile versions of the same tests
@@ -8249,6 +8290,36 @@ fi
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for XOP" >&5
+$as_echo_n "checking for XOP... " >&6; }
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #include <x86intrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m128i t;*((long long*)&t)=1;t=_mm_roti_epi32(t,5);if((*(long long*)&t)==88)printf(".");exit(0);}
+
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  CPU_BEST_FLAGS="-mxop"     CPU_STR="XOP"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+
+fi
+
+  if test "x$CPU_NOTFOUND" = x0; then :
+
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX2" >&5
 $as_echo_n "checking for AVX2... " >&6; }
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -8276,22 +8347,23 @@ rm -f core conftest.err conftest.$ac_objext \
 
 
 fi
+
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for XOP" >&5
-$as_echo_n "checking for XOP... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX512" >&5
+$as_echo_n "checking for AVX512... " >&6; }
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-    #include <x86intrin.h>
+    #include <immintrin.h>
         #include <stdio.h>
         extern void exit(int);
-        int main(){__m128i t;*((long long*)&t)=1;t=_mm_roti_epi32(t,5);if((*(long long*)&t)==88)printf(".");exit(0);}
+        int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}
 
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  CPU_BEST_FLAGS="-mxop"     CPU_STR="XOP"
+  CPU_BEST_FLAGS="-mavx512f"     CPU_STR="AVX512"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
