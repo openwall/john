@@ -473,7 +473,7 @@ typedef __m64i vtype;
 // There's a specialized rotate16 for SSSE3
 #define vroti_epi16(a, s)  ((s) < 0 ?                                   \
      vxor(vsrli_epi16((a), ~(s) + 1), vslli_epi16a((a), 16 + (s))) :    \
-     vxor(vsrli_epi16a((a), (s)), vslli_epi16((a), 16 - (s))))
+     vxor(vslli_epi16a((a), (s)), vsrli_epi16((a), 16 - (s))))
 
 #define vroti_epi32(a, s)  ((s) < 0 ?                                   \
      vxor(vsrli_epi32((a), ~(s) + 1), vslli_epi32a((a), 32 + (s))) :    \
