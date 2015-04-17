@@ -462,44 +462,31 @@ typedef __m64i vtype;
 #if !__XOP__ || __AVX2__ || __MIC__
 
 #if __SSE3__ || __MIC__
-#define vslli_epi16a(a, s) vslli_epi16(a, s)
-#define vslli_epi32a(a, s) vslli_epi32(a, s)
 #define vslli_epi64a(a, s) vslli_epi64(a, s)
 
 #else
-#define vslli_epi16a(a, s) ((s) == 1 ?              \
-     vadd_epi16((a), (a)) : vslli_epi16((a), (s)))
-
-#define vslli_epi32a(a, s) ((s) == 1 ?              \
-     vadd_epi32((a), (a)) : vslli_epi32((a), (s)))
-
+// Optimization for really old CPUs for << 1 (for vroti -1) (SHA512)
 #define vslli_epi64a(a, s) ((s) == 1 ?              \
      vadd_epi64((a), (a)) : vslli_epi64((a), (s)))
 
 #endif /* __SSE3__ || __MIC__ */
 
 // vroti must handle both ROTL and ROTR. If s < 0, then ROTR.
-// There's a specialized rotate16 for SSSE3
 #define vroti_epi16(a, s)  ((s) < 0 ?                                   \
-     vxor(vsrli_epi16((a), ~(s) + 1), vslli_epi16a((a), 16 + (s))) :    \
-     vxor(vslli_epi16a((a), (s)), vsrli_epi16((a), 16 - (s))))
+     vxor(vsrli_epi16((a), ~(s) + 1), vslli_epi16((a), 16 + (s))) :     \
+     vxor(vslli_epi16((a), (s)), vsrli_epi16((a), 16 - (s))))
 
 #define vroti_epi32(a, s)  ((s) < 0 ?                                   \
-     vxor(vsrli_epi32((a), ~(s) + 1), vslli_epi32a((a), 32 + (s))) :    \
-     vxor(vslli_epi32a((a), (s)), vsrli_epi32((a), 32 - (s))))
+     vxor(vsrli_epi32((a), ~(s) + 1), vslli_epi32((a), 32 + (s))) :     \
+     vxor(vslli_epi32((a), (s)), vsrli_epi32((a), 32 - (s))))
 
 #define vroti_epi64(a, s)  ((s) < 0 ?                                   \
      vxor(vsrli_epi64((a), ~(s) + 1), vslli_epi64a((a), 64 + (s))) :    \
      vxor(vslli_epi64a((a), (s)), vsrli_epi64((a), 64 - (s))))
 
-#if __AVX512__ || __MIC__
+// Specialized ROTL16 for SSE4.1 and lower (MD5)
+#if __AVX__ || __MIC__
 #define vroti16_epi32(a,s) vroti_epi32(a, 16)
-
-#elif __AVX2__
-#define rot16_mask                                              \
-    vset_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302,  \
-               0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
-#define vroti16_epi32(a, s)     (vshuffle_epi8((a), rot16_mask))
 
 #elif __SSSE3__
 #define rot16_mask  \
@@ -510,7 +497,7 @@ typedef __m64i vtype;
 #define vroti16_epi32(a,s)                                      \
         (vshufflelo_epi16(vshufflehi_epi16((a), 0xb1), 0xb1))
 
-#endif /* __AVX512__ || __MIC__ */
+#endif /* __AVX__ || __MIC__ */
 
 #endif /* !__XOP__ || __AVX2__ || __MIC__ */
 
