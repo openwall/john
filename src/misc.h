@@ -48,11 +48,11 @@
  */
 extern void real_error(char *file, int line)
 #ifdef __GNUC__
-	__attribute__((__noreturn__));
+	__attribute__ ((__noreturn__));
 #else
 	;
 #endif
-	;
+
 #define error(...) real_error(__FILE__, __LINE__)
 
 /*
@@ -60,7 +60,7 @@ extern void real_error(char *file, int line)
  */
 extern void real_pexit(char *file, int line, char *format, ...)
 #ifdef __GNUC__
-	__attribute__((__noreturn__))
+	__attribute__ ((__noreturn__))
 	__attribute__ ((format (printf, 3, 4)));
 #else
 	;
