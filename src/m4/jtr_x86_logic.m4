@@ -241,7 +241,8 @@ if test "x$enable_native_tests" != xno; then
     ,[CPU_BEST_FLAGS="-mavx512f"]dnl
      [CPU_STR="AVX512F"]
      [AC_MSG_RESULT([yes])]
-    ,[AC_MSG_RESULT([no])]
+    ,[CPU_NOTFOUND=1]
+     [AC_MSG_RESULT([no])]
     )
   ]
   )
