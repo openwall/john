@@ -229,7 +229,7 @@ if test "x$enable_native_tests" != xno; then
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
   CC="$CC_BACKUP -mavx512f"
-  AC_MSG_CHECKING([for AVX512])
+  AC_MSG_CHECKING([for AVX512F])
   AC_RUN_IFELSE(
     [
     AC_LANG_SOURCE(
@@ -239,7 +239,27 @@ if test "x$enable_native_tests" != xno; then
         int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mavx512f"]dnl
-     [CPU_STR="AVX512"]
+     [CPU_STR="AVX512F"]
+     [AC_MSG_RESULT([yes])]
+    ,[AC_MSG_RESULT([no])]
+    )
+  ]
+  )
+
+  AS_IF([test "x$CPU_NOTFOUND" = x0],
+  [
+  CC="$CC_BACKUP -mavx512bw"
+  AC_MSG_CHECKING([for AVX512BW])
+  AC_RUN_IFELSE(
+    [
+    AC_LANG_SOURCE(
+      [[#include <immintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_slli_epi16(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+    )]
+    ,[CPU_BEST_FLAGS="-mavx512bw"]dnl
+     [CPU_STR="AVX512BW"]
      [AC_MSG_RESULT([yes])]
     ,[AC_MSG_RESULT([no])]
     )
@@ -389,7 +409,7 @@ else
 
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  AC_MSG_CHECKING([for AVX512])
+  AC_MSG_CHECKING([for AVX512F])
   AC_LINK_IFELSE(
     [
     AC_LANG_SOURCE(
@@ -399,7 +419,26 @@ else
         int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mavx512f"]dnl
-     [CPU_STR="AVX512"]
+     [CPU_STR="AVX512F"]
+     [AC_MSG_RESULT([yes])]
+    ,[AC_MSG_RESULT([no])]
+    )
+  ]
+  )
+
+  AS_IF([test "x$CPU_NOTFOUND" = x0],
+  [
+  AC_MSG_CHECKING([for AVX512BW])
+  AC_LINK_IFELSE(
+    [
+    AC_LANG_SOURCE(
+      [[#include <immintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_slli_epi16(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+    )]
+    ,[CPU_BEST_FLAGS="-mavx512bw"]dnl
+     [CPU_STR="AVX512BW"]
      [AC_MSG_RESULT([yes])]
     ,[AC_MSG_RESULT([no])]
     )
