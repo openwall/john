@@ -84,13 +84,14 @@ __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
  */
 inline void rc4(
 #ifdef RC4_USE_LOCAL
-                __local uint *state,
+                __local uint *restrict state,
 #endif
-                const uint *key,
+                const uint *restrict key,
 #ifdef RC4_IN_PLACE
                 uint *buf
 #else
-                MAYBE_CONSTANT uint *in, __global uint *out
+                MAYBE_CONSTANT uint *restrict in,
+                __global uint *restrict out
 #endif
 	)
 {
