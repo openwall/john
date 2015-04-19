@@ -65,7 +65,11 @@ john_register_one(&fmt_sha1_ng);
 #define SHA1_DIGEST_SIZE        20
 #define SHA1_DIGEST_WORDS        5
 #define SHA1_PARALLEL_HASH     512 // This must be a multiple of max VWIDTH.
+#ifdef __MIC__
+#define OMP_SCALE              128 
+#else
 #define OMP_SCALE             2048 // Multiplier to hide OMP overhead
+#endif
 
 #define X(X0, X2, X8, X13) do {                 \
         X0  = vxor(X0, X8);                     \
@@ -326,7 +330,7 @@ static void sha1_fmt_set_key(char *key, int index)
 	vtype  Z   = vsetzero();
 	vtype  X   = vloadu(key);
 	vtype  B;
-#if __MIC__ || __AVX512__
+#if __AVX512F__ || __MIC__
 	uint32_t len = strlen(key);
 #else
 	uint32_t mask = vmovemask_epi8(vcmpeq_epi8(X, Z));
@@ -556,7 +560,7 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 		vtype A, B, C, D, E;
 		vtype K;
 
-#if __AVX512__ || __MIC__
+#if __AVX512F__ || __MIC__
 		vtype indices = vset_epi32(15<<4,14<<4,13<<4,12<<4,
 		                           11<<4,10<<4, 9<<4, 8<<4,
 		                            7<<4, 6<<4, 5<<4, 4<<4,
@@ -733,7 +737,7 @@ static int sha1_fmt_cmp_all(void *binary, int count)
 	// manually unrolled it a little bit.
 	for (i = 0; i < count; i += 64) {
 		int32_t R = 0;
-#if __MIC__ || __AVX512__
+#if __AVX512F__ || __MIC__
 		R |= vtesteq_epi32(B, vload(&MD[i +  0]));
 		R |= vtesteq_epi32(B, vload(&MD[i + 16]));
 		R |= vtesteq_epi32(B, vload(&MD[i + 32]));

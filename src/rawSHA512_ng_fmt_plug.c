@@ -43,7 +43,7 @@ john_register_one(&fmt_rawSHA512_ng);
 
 #if __MIC__
 #define SIMD_TYPE                 "512/512 MIC 8x"
-#elif __AVX512__
+#elif __AVX512F__
 #define SIMD_TYPE                 "512/512 AVX512 8x"
 #elif __AVX2__
 #define SIMD_TYPE                 "256/256 AVX2 4x"
@@ -93,49 +93,9 @@ _inline __m128i _mm_set1_epi64x(uint64_t a) {
 }
 #endif
 
-#if __AVX512__
-#define SWAP_ENDIAN(n)                                                    \
-{                                                                         \
-    n = vshuffle_epi8(n,                                                  \
-            vset_epi64x(0x38393a3b3c3d3e3f, 0x3031323334353637,           \
-                        0x28292a2b2c2d2e2f, 0x2021222324252627,           \
-                        0x18191a1b1c1d1e1f, 0x1011121314151617,           \
-                        0x08090a0b0c0d0e0f, 0x0001020304050607)           \
-        );                                                                \
-}
-#elif __MIC__
-#define SWAP_ENDIAN(n)                                                    \
-{                                                                         \
-    n = vshuffle_epi32(n, 0xb1);                                          \
-    vswap32(n);                                                           \
-}
-#elif __AVX2__
-#define SWAP_ENDIAN(n)                                                    \
-{                                                                         \
-    n = vshuffle_epi8(n,                                                  \
-            vset_epi64x(0x18191a1b1c1d1e1f, 0x1011121314151617,           \
-                        0x08090a0b0c0d0e0f, 0x0001020304050607)           \
-        );                                                                \
-}
-#elif __SSSE3__
-#define SWAP_ENDIAN(n)                                                    \
-{                                                                         \
-    n = vshuffle_epi8(n,                                                  \
-            vset_epi64x(0x08090a0b0c0d0e0f, 0x0001020304050607)           \
-        );                                                                \
-}
-#else
-#define SWAP_ENDIAN(n)                                                    \
-{                                                                         \
-    n = vshufflehi_epi16(vshufflelo_epi16(n, 0xb1), 0xb1);                \
-    n = vxor(vslli_epi16(n, 8), vsrli_epi16(n, 8));                       \
-    n = vshuffle_epi32(n, 0xb1);                                          \
-}
-#endif
-
 #undef GATHER /* This one is not like the shared ones in pseudo_intrinsics.h */
 
-#if __AVX512__ || __MIC__
+#if __AVX512F__ || __MIC__
 #define GATHER(x,y,z)                                                     \
 {                                                                         \
     x = vset_epi64x(y[index + 7][z], y[index + 6][z],                     \

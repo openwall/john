@@ -45,7 +45,7 @@ john_register_one(&fmt_rawSHA256_ng);
 
 #if __MIC__
 #define SIMD_TYPE                 "512/512 MIC 16x"
-#elif __AVX512__
+#elif __AVX512F__
 #define SIMD_TYPE                 "512/512 AVX512 16x"
 #elif __AVX2__
 #define SIMD_TYPE                 "256/256 AVX2 8x"
