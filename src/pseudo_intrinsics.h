@@ -35,7 +35,7 @@
 #include "common.h" /* for is_aligned() */
 
 /*************************** AVX512 and MIC ***************************/
-#if __MIC__ || __AVX512__
+#if __AVX512F__ || __MIC__
 #include <immintrin.h>
 
 typedef __m512i vtype;
@@ -45,9 +45,6 @@ typedef __m512i vtype;
 #define vand                    _mm512_and_si512
 #define vandnot                 _mm512_andnot_si512
 #define vcmov(y, z, x)          vxor(z, vand(x, vxor(y, z)))
-#define vcmpeq_epi8             _mm512_cmpeq_epi8
-#define vcmpeq_epi32            _mm512_cmpeq_epi32
-#define vcvtsi32                _mm512_cvtsi32_si512
 #if __MIC__
 /*
  * NOTE: AVX2 has it as (base, index, scale) while MIC and AVX512 are
@@ -62,27 +59,18 @@ typedef __m512i vtype;
                                                        _MM_UPCONV_EPI32_NONE, \
                                                        s, _MM_HINT_NONE)
 #endif
-#define vinsert_epi32           _mm512_insert_epi32
 #define vload(x)                _mm512_load_si512((void*)(x))
 #define vloadu(x)               _mm512_loadu_si512((void*)(x))
-#define vmovemask_epi8          _mm512_movemask_epi8
 #define vor                     _mm512_or_si512
-#define vpermute2x128           _mm512_permute2x128_si512
-#define vpermute4x64_epi64      _mm512_permute4x64_epi64
 #define vset1_epi8              _mm512_set1_epi8
 #define vset1_epi32             _mm512_set1_epi32
 #define vset1_epi64x            _mm512_set1_epi64
 #define vset_epi32              _mm512_set_epi32
 #define vset_epi64x             _mm512_set_epi64
 #define vsetzero                _mm512_setzero_si512
-#define vshuffle_epi8           _mm512_shuffle_epi8
 #define vshuffle_epi32          _mm512_shuffle_epi32
-#define vshufflehi_epi16        _mm512_shufflehi_epi16
-#define vshufflelo_epi16        _mm512_shufflelo_epi16
-#define vslli_epi16             _mm512_slli_epi16
 #define vslli_epi32             _mm512_slli_epi32
 #define vslli_epi64             _mm512_slli_epi64
-#define vsrli_epi16             _mm512_srli_epi16
 #define vsrli_epi32             _mm512_srli_epi32
 #define vsrli_epi64             _mm512_srli_epi64
 #define vstore(x, y)            _mm512_store_si512((void*)(x), y)
@@ -93,56 +81,8 @@ typedef __m512i vtype;
 #define vunpacklo_epi64         _mm512_unpacklo_epi64
 #define vxor                    _mm512_xor_si512
 
-// MIC doesn't support some SIMD instructions in AVX-512
-// TODO: those workarounds are inefficient and need optimizing
-#if __MIC__
-static inline __m512i _mm512_loadu_si512(void const *addr)
-{
-	char JTR_ALIGN(64) buf[64];
-	return _mm512_load_si512(is_aligned(addr, 64) ?
-	                         addr : memcpy(buf, addr, 64));
-}
-
-static inline void _mm512_storeu_si512(void *addr, vtype d)
-{
-	char JTR_ALIGN(64) buf[64];
-
-	if (is_aligned(addr, 64))
-		_mm512_store_si512(addr, d);
-	else {
-		_mm512_store_si512(buf, d);
-		memcpy(addr, buf, 64);
-	}
-}
-
-#define vswap32(n)                                                          \
-    n = vxor(vsrli_epi32(n, 24),                                            \
-             vxor(vslli_epi32(vsrli_epi32(vslli_epi32(n, 8), 24), 8),       \
-                  vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(n, 8), 24), 8),  \
-                       vslli_epi32(n, 24))))
-#define vswap64(n) {                                \
-    n = vshuffle_epi32(n, _MM_SHUFFLE(2, 3, 0, 1)); \
-    vswap32(n);                                     \
-}
-#else /* non-MIC AVX512 (untested) */
-#define vswap32(n)                                              \
-    n = vshuffle_epi8(n, vset_epi32(0x3c3d3e3f, 0x38393a3b,     \
-                                    0x34353637, 0x30313233,     \
-                                    0x2c2d2e2f, 0x28292a2b,     \
-                                    0x24252627, 0x20212223,     \
-                                    0x1c1d1e1f, 0x18191a1b,     \
-                                    0x14151617, 0x10111213,     \
-                                    0x0c0d0e0f, 0x08090a0b,     \
-                                    0x04050607, 0x00010203))
-#define vswap64(n) \
-    n = vshuffle_epi8(n, vset_epi64(0x38393a3b3c3d3e3f, 0x3031323334353637, \
-                                    0x28292a2b2c2d2e2f, 0x2021222324252627, \
-                                    0x18191a1b1c1d1e1f, 0x1011121314151617, \
-                                    0x08090a0b0c0d0e0f, 0x0001020304050607))
-#endif /* MIC */
-
 #define vtestz_epi32(n)         !_mm512_min_epu32(n)
-#define vtesteq_epi32(x, y)                                     \
+#define vtesteq_epi32(x, y) \
     _mm512_mask2int(_mm512_cmp_epi32_mask(x, y, _MM_CMPINT_EQ))
 
 #define GATHER_4x(x, y, z)                               \
@@ -175,6 +115,63 @@ static inline void _mm512_storeu_si512(void *addr, vtype d)
     x = vset_epi64x(y[7][z], y[6][z], y[5][z], y[4][z],  \
                     y[3][z], y[2][z], y[1][z], y[0][z]); \
 }
+
+#if __AVX512BW__
+#define vshuffle_epi8           _mm512_shuffle_epi8
+#define vshufflehi_epi16        _mm512_shufflehi_epi16
+#define vshufflelo_epi16        _mm512_shufflelo_epi16
+#define vslli_epi16             _mm512_slli_epi16
+#define vsrli_epi16             _mm512_srli_epi16
+
+#define vswap32(n)                                              \
+    n = vshuffle_epi8(n, vset_epi32(0x3c3d3e3f, 0x38393a3b,     \
+                                    0x34353637, 0x30313233,     \
+                                    0x2c2d2e2f, 0x28292a2b,     \
+                                    0x24252627, 0x20212223,     \
+                                    0x1c1d1e1f, 0x18191a1b,     \
+                                    0x14151617, 0x10111213,     \
+                                    0x0c0d0e0f, 0x08090a0b,     \
+                                    0x04050607, 0x00010203))
+#define vswap64(n) \
+    n = vshuffle_epi8(n, vset_epi64(0x38393a3b3c3d3e3f, 0x3031323334353637, \
+                                    0x28292a2b2c2d2e2f, 0x2021222324252627, \
+                                    0x18191a1b1c1d1e1f, 0x1011121314151617, \
+                                    0x08090a0b0c0d0e0f, 0x0001020304050607))
+#else // workarounds without AVX512BW
+#define vswap32(n)                                                          \
+    n = vxor(vsrli_epi32(n, 24),                                            \
+             vxor(vslli_epi32(vsrli_epi32(vslli_epi32(n, 8), 24), 8),       \
+                  vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(n, 8), 24), 8),  \
+                       vslli_epi32(n, 24))))
+#define vswap64(n) {                                \
+    n = vshuffle_epi32(n, _MM_SHUFFLE(2, 3, 0, 1)); \
+    vswap32(n);                                     \
+}
+#endif // __AVX512BW__
+
+// MIC lacks some intrinsics in AVX512F, thus needing emulation.
+#if __MIC__
+#define _mm512_set1_epi8(x) _mm512_set1_epi32(x | x<<8 | x<<16 | x<<24)
+
+static inline __m512i _mm512_loadu_si512(void const *addr)
+{
+	char JTR_ALIGN(64) buf[64];
+	return _mm512_load_si512(is_aligned(addr, 64) ?
+	                         addr : memcpy(buf, addr, 64));
+}
+
+static inline void _mm512_storeu_si512(void *addr, vtype d)
+{
+	char JTR_ALIGN(64) buf[64];
+
+	if (is_aligned(addr, 64))
+		_mm512_store_si512(addr, d);
+	else {
+		_mm512_store_si512(buf, d);
+		memcpy(addr, buf, 64);
+	}
+}
+#endif // __MIC__
 
 /******************************** AVX2 ********************************/
 #elif __AVX2__
