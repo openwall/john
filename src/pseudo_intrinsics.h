@@ -45,20 +45,12 @@ typedef __m512i vtype;
 #define vand                    _mm512_and_si512
 #define vandnot                 _mm512_andnot_si512
 #define vcmov(y, z, x)          vxor(z, vand(x, vxor(y, z)))
-#if __MIC__
 /*
  * NOTE: AVX2 has it as (base, index, scale) while MIC and AVX512 are
- * different (even from each other).
+ * different.
  */
 #define vgather_epi32(b, i, s)  _mm512_i32gather_epi32(i, (void*)(b), s)
-#else
-/*
- * AVX512, untested, see https://software.intel.com/en-us/node/523826
- */
-#define vgather_epi32(b, i, s)  _mm512_i32gather_epi32(i, (void*)(b),         \
-                                                       _MM_UPCONV_EPI32_NONE, \
-                                                       s, _MM_HINT_NONE)
-#endif
+#define vgather_epi64(b, i, s)  _mm512_i64gather_epi64(i, (void*)(b), s)
 #define vload(x)                _mm512_load_si512((void*)(x))
 #define vloadu(x)               _mm512_loadu_si512((void*)(x))
 #define vor                     _mm512_or_si512
@@ -110,10 +102,12 @@ typedef __m512i vtype;
     x = vgather_epi32(&y[z], indices, sizeof(y[z]));     \
 }
 
-#define GATHER64(x, y, z)                                \
-{                                                        \
-    x = vset_epi64x(y[7][z], y[6][z], y[5][z], y[4][z],  \
-                    y[3][z], y[2][z], y[1][z], y[0][z]); \
+#define GATHER64(x, y, z)                                               \
+{                                                                       \
+    uint64_t stride = sizeof(*y);                                       \
+    vtype indices = vset_epi64x(7*stride, 6*stride, 5*stride, 4*stride, \
+                               3*stride, 2*stride, 1*stride, 0);        \
+    x = vgather_epi64(&y[0][z], indices, 1);                            \
 }
 
 #if __AVX512BW__
@@ -133,10 +127,10 @@ typedef __m512i vtype;
                                     0x0c0d0e0f, 0x08090a0b,     \
                                     0x04050607, 0x00010203))
 #define vswap64(n) \
-    n = vshuffle_epi8(n, vset_epi64(0x38393a3b3c3d3e3f, 0x3031323334353637, \
-                                    0x28292a2b2c2d2e2f, 0x2021222324252627, \
-                                    0x18191a1b1c1d1e1f, 0x1011121314151617, \
-                                    0x08090a0b0c0d0e0f, 0x0001020304050607))
+    n = vshuffle_epi8(n, vset_epi64x(0x38393a3b3c3d3e3f, 0x3031323334353637, \
+                                     0x28292a2b2c2d2e2f, 0x2021222324252627, \
+                                     0x18191a1b1c1d1e1f, 0x1011121314151617, \
+                                     0x08090a0b0c0d0e0f, 0x0001020304050607))
 #else // workarounds without AVX512BW
 #define vswap32(n)                                                          \
     n = vxor(vsrli_epi32(n, 24),                                            \
@@ -155,21 +149,19 @@ typedef __m512i vtype;
 
 static inline __m512i _mm512_loadu_si512(void const *addr)
 {
-	char JTR_ALIGN(64) buf[64];
-	return _mm512_load_si512(is_aligned(addr, 64) ?
-	                         addr : memcpy(buf, addr, 64));
+	__m512i indices = _mm512_set_epi64(7, 6, 5, 4, 3, 2, 1, 0);
+	return is_aligned(addr, 64) ? _mm512_load_si512(addr) : 
+	                              _mm512_i64gather_epi64(indices, addr, 8);
 }
 
 static inline void _mm512_storeu_si512(void *addr, vtype d)
 {
-	char JTR_ALIGN(64) buf[64];
+	__m512i indices = _mm512_set_epi64(7, 6, 5, 4, 3, 2, 1, 0);
 
 	if (is_aligned(addr, 64))
 		_mm512_store_si512(addr, d);
-	else {
-		_mm512_store_si512(buf, d);
-		memcpy(addr, buf, 64);
-	}
+	else 
+		_mm512_i64scatter_epi64(addr, indices, d, 8);
 }
 #endif // __MIC__
 
@@ -188,6 +180,7 @@ typedef __m256i vtype;
 #define vcmpeq_epi32            _mm256_cmpeq_epi32
 #define vcvtsi32                _mm256_cvtsi32_si256
 #define vgather_epi32(b, i, s)  _mm256_i32gather_epi32((void*)(b), i, s)
+#define vgather_epi64(b, i, s)  _mm256_i64gather_epi64((void*)(b), i, s)
 #define vinsert_epi32           _mm256_insert_epi32
 #define vload(x)                _mm256_load_si256((void*)(x))
 #define vloadu(x)               _mm256_loadu_si256((void*)(x))
@@ -285,8 +278,12 @@ static inline int vtestz_epi32(vtype __X)
     x = vgather_epi32(&y[z], indices, sizeof(y[z])); \
 }
 
-#define GATHER64(x,y,z)                                         \
-    { x = vset_epi64x (y[3][z], y[2][z], y[1][z], y[0][z]); }
+#define GATHER64(x, y, z)                                         \
+{                                                                 \
+    uint64_t stride = sizeof(*y);                                 \
+    vtype indices = vset_epi64x(3*stride, 2*stride, 1*stride, 0); \
+    x = vgather_epi64(&y[0][z], indices, 1);                      \
+}
 
 /************************* SSE2/3/4/AVX/XOP ***************************/
 #elif __SSE2__
