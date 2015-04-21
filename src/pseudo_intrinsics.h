@@ -106,7 +106,7 @@ typedef __m512i vtype;
 {                                                                       \
     uint64_t stride = sizeof(*y);                                       \
     vtype indices = vset_epi64x(7*stride, 6*stride, 5*stride, 4*stride, \
-                               3*stride, 2*stride, 1*stride, 0);        \
+                                3*stride, 2*stride, 1*stride, 0);       \
     x = vgather_epi64(&y[0][z], indices, 1);                            \
 }
 
@@ -127,10 +127,14 @@ typedef __m512i vtype;
                                     0x0c0d0e0f, 0x08090a0b,     \
                                     0x04050607, 0x00010203))
 #define vswap64(n) \
-    n = vshuffle_epi8(n, vset_epi64x(0x38393a3b3c3d3e3f, 0x3031323334353637, \
-                                     0x28292a2b2c2d2e2f, 0x2021222324252627, \
-                                     0x18191a1b1c1d1e1f, 0x1011121314151617, \
-                                     0x08090a0b0c0d0e0f, 0x0001020304050607))
+    n = vshuffle_epi8(n, vset_epi64x(0x38393a3b3c3d3e3fULL, \
+                                     0x3031323334353637ULL, \
+                                     0x28292a2b2c2d2e2fULL, \
+                                     0x2021222324252627ULL, \
+                                     0x18191a1b1c1d1e1fULL, \
+                                     0x1011121314151617ULL, \
+                                     0x08090a0b0c0d0e0fULL, \
+                                     0x0001020304050607ULL))
 #else // workarounds without AVX512BW
 #define vswap32(n)                                                          \
     n = vxor(vsrli_epi32(n, 24),                                            \
@@ -216,9 +220,9 @@ typedef __m256i vtype;
     _mm256_set_epi32(0x1c1d1e1f, 0x18191a1b, 0x14151617, 0x10111213,    \
                      0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203)
 
-#define swap_endian64_mask                              \
-    vset_epi64x(0x18191a1b1c1d1e1f, 0x1011121314151617, \
-                0x08090a0b0c0d0e0f, 0x0001020304050607)
+#define swap_endian64_mask                                    \
+    vset_epi64x(0x18191a1b1c1d1e1fULL, 0x1011121314151617ULL, \
+                0x08090a0b0c0d0e0fULL, 0x0001020304050607ULL)
 
 #define vswap32(n)                              \
     (n = vshuffle_epi8(n, swap_endian_mask))
