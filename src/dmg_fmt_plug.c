@@ -83,7 +83,7 @@ extern volatile int bench_running;
 #define FORMAT_LABEL        "dmg"
 #define FORMAT_NAME         "Apple DMG"
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME      "PBKDF2-SHA1 3DES/AES " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME      "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME " 3DES/AES"
 #else
 #define ALGORITHM_NAME      "PBKDF2-SHA1 3DES/AES 32/" ARCH_BITS_STR
 #endif

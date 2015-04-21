@@ -34,7 +34,7 @@ john_register_one(&fmt_sxc);
 #define FORMAT_LABEL		"sxc"
 #define FORMAT_NAME		"StarOffice .sxc"
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME		"SHA1 Blowfish " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME		"SHA1 " SHA1_ALGORITHM_NAME " Blowfish"
 #else
 #define ALGORITHM_NAME		"SHA1 Blowfish 32/" ARCH_BITS_STR
 #endif
