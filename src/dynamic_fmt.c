@@ -4334,7 +4334,7 @@ void DynamicFunc__crypt_md5(DYNA_OMP_PARAMS)
 }
 void DynamicFunc__crypt_md4(DYNA_OMP_PARAMS)
 {
-unsigned i, til;
+	unsigned i, til;
 #ifdef _OPENMP
 	til = last;
 	i = first;
@@ -5971,7 +5971,8 @@ void DynamicFunc__append2_fld9(DYNA_OMP_PARAMS)
 
 void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 #ifdef SIMD_COEF_32
-	int i, j, k, idx, max;
+	unsigned int i, j, k, idx, max;
+
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 2;
@@ -5981,19 +5982,16 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 		ARCH_WORD_32 *cpi;
 		ARCH_WORD_32 *cpo[SIMD_COEF_32];
 #if (MD5_X2)
-		cpo[0] = input_buf_X86[j>>1].x1.w;
-		cpo[1] = input_buf_X86[j>>1].x2.w2;
-		cpo[2] = input_buf_X86[(j>>1)+1].x1.w;
-		cpo[3] = input_buf_X86[(j>>1)+1].x2.w2;
-
-		for (i = 4; i < SIMD_COEF_32; i++)
-			cpo[i] = input_buf_X86[j+i].x1.w;
+		for (i = 0; i < SIMD_COEF_32; i += 2) {
+			cpo[i  ] = input_buf_X86[(j>>1)+(i>>1)].x1.w;
+			cpo[i+1] = input_buf_X86[(j>>1)+(i>>1)].x2.w2;
+		}
 #else
 		for (i = 0; i < SIMD_COEF_32; i++)
 			cpo[i] = input_buf_X86[j+i].x1.w;
 #endif
 
-		idx = ( ((unsigned)j)/SIMD_COEF_32);
+		idx = j / SIMD_COEF_32;
 		cpi = input_buf[idx].w;
 
 		max = total_len_X86[j] = (total_len[idx][0]);
@@ -6008,12 +6006,10 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 		}
 
 #if (MD5_X2)
-		input_buf_X86[j>>1].x1.b[total_len_X86[j]] = 0;
-		input_buf_X86[j>>1].x2.b2[total_len_X86[j+1]] = 0;
-		input_buf_X86[(j>>1)+1].x1.b[total_len_X86[j+2]] = 0;
-		input_buf_X86[(j>>1)+1].x2.b2[total_len_X86[j+3]] = 0;
-		for (i = 4; i < SIMD_COEF_32; i++)
-			input_buf_X86[j+i].x1.b[total_len_X86[j+i]] = 0;
+		for (i = 0; i < SIMD_COEF_32; i += 2) {
+			input_buf_X86[(j>>1)+(i>>1)].x1.b[total_len_X86[j+i]] = 0;
+			input_buf_X86[(j>>1)+(i>>1)].x2.b2[total_len_X86[j+i+1]] = 0;
+		}
 #else
 		for (i = 0; i < SIMD_COEF_32; i++)
 			input_buf_X86[j+i].x1.b[total_len_X86[j+i]] = 0;
@@ -6024,7 +6020,7 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS) {
 
 void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 #ifdef SIMD_COEF_32
-	int i, j, k, idx, max;
+	unsigned int i, j, k, idx, max;
 
 	if (dynamic_use_sse == 0)
 		return;
@@ -6035,19 +6031,16 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 		ARCH_WORD_32 *cpi;
 		ARCH_WORD_32 *cpo[SIMD_COEF_32];
 #if (MD5_X2)
-		cpo[0] = input_buf2_X86[j>>1].x1.w;
-		cpo[1] = input_buf2_X86[j>>1].x2.w2;
-		cpo[2] = input_buf2_X86[(j>>1)+1].x1.w;
-		cpo[3] = input_buf2_X86[(j>>1)+1].x2.w2;
-
-		for (i = 4; i < SIMD_COEF_32; i++)
-			cpo[i] = input_buf2_X86[j+i].x1.w;
+		for (i = 0; i < SIMD_COEF_32; i += 2) {
+			cpo[i  ] = input_buf2_X86[(j>>1)+(i>>1)].x1.w;
+			cpo[i+1] = input_buf2_X86[(j>>1)+(i>>1)].x2.w2;
+		}
 #else
 		for (i = 0; i < SIMD_COEF_32; i++)
 			cpo[i] = input_buf2_X86[j+i].x1.w;
 #endif
 
-		idx = ( ((unsigned)j)/SIMD_COEF_32);
+		idx = j / SIMD_COEF_32;
 		cpi = input_buf2[idx].w;
 
 		max = total_len2_X86[j] = (total_len2[idx][0]);
@@ -6063,12 +6056,10 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 
 		// get rid of the 0x80
 #if (MD5_X2)
-		input_buf2_X86[j>>1].x1.b[total_len2_X86[j]] = 0;
-		input_buf2_X86[j>>1].x2.b2[total_len2_X86[j+1]] = 0;
-		input_buf2_X86[(j>>1)+1].x1.b[total_len2_X86[j+2]] = 0;
-		input_buf2_X86[(j>>1)+1].x2.b2[total_len2_X86[j+3]] = 0;
-		for (i = 4; i < SIMD_COEF_32; i++)
-			input_buf2_X86[j+i].x1.b[total_len2_X86[j+i]] = 0;
+		for (i = 0; i < SIMD_COEF_32; i += 2) {
+			input_buf2_X86[(j>>1)+(i>>1)].x1.b[total_len_X86[j+i]] = 0;
+			input_buf2_X86[(j>>1)+(i>>1)].x2.b2[total_len_X86[j+i+1]] = 0;
+		}
 #else
 		for (i = 0; i < SIMD_COEF_32; i++)
 			input_buf2_X86[j+i].x1.b[total_len2_X86[j+i]] = 0;
@@ -6076,9 +6067,10 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS) {
 	}
 #endif
 }
+
 void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS) {
 #ifdef SIMD_COEF_32
-	int i, j, k, idx;
+	unsigned int i, j, k, idx;
 
 	if (dynamic_use_sse == 0)
 		return;
@@ -6088,20 +6080,17 @@ void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS) {
 	{
 		ARCH_WORD_32 *cpi;
 		ARCH_WORD_32 *cpo[SIMD_COEF_32];
-#if (MD5_X2)
-		cpo[0] = crypt_key_X86[j>>1].x1.w;
-		cpo[1] = crypt_key_X86[j>>1].x2.w2;
-		cpo[2] = crypt_key_X86[(j>>1)+1].x1.w;
-		cpo[3] = crypt_key_X86[(j>>1)+1].x2.w2;
-
-		for (i = 4; i < SIMD_COEF_32; i++)
-			cpo[i] = crypt_key_X86[j+i].x1.w;
+#if MD5_X2
+		for (i = 0; i < SIMD_COEF_32; i += 2) {
+			cpo[i  ] = crypt_key_X86[(j>>1)+(i>>1)].x1.w;
+			cpo[i+1] = crypt_key_X86[(j>>1)+(i>>1)].x2.w2;
+		}
 #else
 		for (i = 0; i < SIMD_COEF_32; i++)
 			cpo[i] = crypt_key_X86[j+i].x1.w;
 #endif
 
-		idx = ( ((unsigned)j)/SIMD_COEF_32);
+		idx = j/SIMD_COEF_32;
 		cpi = (void*)crypt_key[idx].c;
 		for (k = 0; k < 4; ++k) {
 			for (i = 0; i < SIMD_COEF_32; i++)
@@ -6110,9 +6099,10 @@ void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS) {
 	}
 #endif
 }
+
 void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS) {
 #ifdef SIMD_COEF_32
-	int i, j, k, idx;
+	unsigned int i, j, k, idx;
 
 	if (dynamic_use_sse == 0)
 		return;
@@ -6123,19 +6113,16 @@ void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS) {
 		ARCH_WORD_32 *cpi;
 		ARCH_WORD_32 *cpo[SIMD_COEF_32];
 #if (MD5_X2)
-		cpo[0] = crypt_key2_X86[j>>1].x1.w;
-		cpo[1] = crypt_key2_X86[j>>1].x2.w2;
-		cpo[2] = crypt_key2_X86[(j>>1)+1].x1.w;
-		cpo[3] = crypt_key2_X86[(j>>1)+1].x2.w2;
-
-		for (i = 4; i < SIMD_COEF_32; i++)
-			cpo[i] = crypt_key2_X86[j+i].x1.w;
+		for (i = 0; i < SIMD_COEF_32; i += 2) {
+			cpo[i  ] = crypt_key2_X86[(j>>1)+(i>>1)].x1.w;
+			cpo[i+1] = crypt_key2_X86[(j>>1)+(i>>1)].x2.w2;
+		}
 #else
 		for (i = 0; i < SIMD_COEF_32; i++)
 			cpo[i] = crypt_key2_X86[j+i].x1.w;
 #endif
 
-		idx = ( ((unsigned)j)/SIMD_COEF_32);
+		idx = j / SIMD_COEF_32;
 		cpi = crypt_key2[idx].w;
 		for (k = 0; k < 4; ++k) {
 			for (i = 0; i < SIMD_COEF_32; i++)
@@ -6144,9 +6131,11 @@ void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS) {
 	}
 #endif
 }
+
 void DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMS) {
 #ifdef SIMD_COEF_32
 	unsigned j, idx, idx_mod;
+
 	if (dynamic_use_sse == 0)
 		return;
 	dynamic_use_sse = 1;
@@ -6164,6 +6153,7 @@ void DynamicFunc__X86toSSE_switch_input1(DYNA_OMP_PARAMS) {
 	}
 #endif
 }
+
 void DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMS) {
 #ifdef SIMD_COEF_32
 	unsigned j, idx, idx_mod;
@@ -6184,9 +6174,10 @@ void DynamicFunc__X86toSSE_switch_input2(DYNA_OMP_PARAMS) {
 	}
 #endif
 }
+
 void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS) {
 #ifdef SIMD_COEF_32
-	int i, j, k, idx;
+	unsigned int i, j, k, idx;
 
 	if (dynamic_use_sse == 0)
 		return;
@@ -6197,19 +6188,16 @@ void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS) {
 		ARCH_WORD_32 *cpi;
 		ARCH_WORD_32 *cpo[SIMD_COEF_32];
 #if (MD5_X2)
-		cpo[0] = crypt_key_X86[j>>1].x1.w;
-		cpo[1] = crypt_key_X86[j>>1].x2.w2;
-		cpo[2] = crypt_key_X86[(j>>1)+1].x1.w;
-		cpo[3] = crypt_key_X86[(j>>1)+1].x2.w2;
-
-		for (i = 4; i < SIMD_COEF_32; i++)
-			cpo[i] = crypt_key_X86[j+i].x1.w;
+		for (i = 0; i < SIMD_COEF_32; i += 2) {
+			cpo[i  ] = crypt_key_X86[(j>>1)+(i>>1)].x1.w;
+			cpo[i+1] = crypt_key_X86[(j>>1)+(i>>1)].x2.w2;
+		}
 #else
 		for (i = 0; i < SIMD_COEF_32; i++)
 			cpo[i] = crypt_key_X86[j+i].x1.w;
 #endif
 
-		idx = ( ((unsigned)j)/SIMD_COEF_32);
+		idx = j / SIMD_COEF_32;
 		cpi = (void*)crypt_key[idx].c;
 		for (k = 0; k < 4; ++k) {
 			for (i = 0; i < SIMD_COEF_32; i++)
@@ -6218,9 +6206,10 @@ void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS) {
 	}
 #endif
 }
+
 void DynamicFunc__X86toSSE_switch_output2(DYNA_OMP_PARAMS) {
 #ifdef SIMD_COEF_32
-	int i, j, k, idx;
+	unsigned int i, j, k, idx;
 
 	if (dynamic_use_sse == 0)
 		return;
@@ -6231,19 +6220,16 @@ void DynamicFunc__X86toSSE_switch_output2(DYNA_OMP_PARAMS) {
 		ARCH_WORD_32 *cpi;
 		ARCH_WORD_32 *cpo[SIMD_COEF_32];
 #if (MD5_X2)
-		cpo[0] = crypt_key2_X86[j>>1].x1.w;
-		cpo[1] = crypt_key2_X86[j>>1].x2.w2;
-		cpo[2] = crypt_key2_X86[(j>>1)+1].x1.w;
-		cpo[3] = crypt_key2_X86[(j>>1)+1].x2.w2;
-
-		for (i = 4; i < SIMD_COEF_32; i++)
-			cpo[i] = crypt_key2_X86[j+i].x1.w;
+		for (i = 0; i < SIMD_COEF_32; i += 2) {
+			cpo[i  ] = crypt_key2_X86[(j>>1)+(i>>1)].x1.w;
+			cpo[i+1] = crypt_key2_X86[(j>>1)+(i>>1)].x2.w2;
+		}
 #else
 		for (i = 0; i < SIMD_COEF_32; i++)
 			cpo[i] = crypt_key2_X86[j+i].x1.w;
 #endif
 
-		idx = ( ((unsigned)j)/SIMD_COEF_32);
+		idx = j / SIMD_COEF_32;
 		cpi = crypt_key2[idx].w;
 		for (k = 0; k < 4; ++k) {
 			for (i = 0; i < SIMD_COEF_32; i++)
@@ -6252,6 +6238,7 @@ void DynamicFunc__X86toSSE_switch_output2(DYNA_OMP_PARAMS) {
 	}
 #endif
 }
+
 // This function, simply 'switches' back to SSE  It does NOT copy any data from X86 to SSE
 void DynamicFunc__ToSSE(DYNA_OMP_PARAMS) {
 	if (dynamic_use_sse == 0)
