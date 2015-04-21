@@ -343,7 +343,7 @@ static void sha1_fmt_set_key(char *key, int index)
 #if VWIDTH > 8
 	// FIXME: a problem with using int128 here is it won't work at
 	// all for 32-bit builds - but that may be academic.
-#define XX ((((uint128_t)0xFFFFFFFFFFFFFFFF)<<64) + 0xFFFFFFFFFFFFFFFF)
+#define XX ((((uint128_t)0xFFFFFFFFFFFFFFFFULL)<<64) + 0xFFFFFFFFFFFFFFFFULL)
 #define YY ((uint128_t)0x80)
 #define ZZ ((uint128_t)0x0)
 	static const JTR_ALIGN(MEM_ALIGN_SIMD) uint128_t kTrailingBitTable[][4] = {
