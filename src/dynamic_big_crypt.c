@@ -301,21 +301,6 @@ static inline uint32_t DoMD5_FixBufferLen32(unsigned char *input_buf, int total_
 		++ret;
 	input_buf[total_len] = 0x80;
 
-	// This code was kept, for history.  There were problems clearing. The
-	// problem was if 2 runs ago, we had a 2 limb hash, 1 run ago we had a
-	// 1 limb hash and now we have a 2 limb hash, but the length of it was
-	// less than 59 bytes, the loop would not be entered, AND thus, that
-	// still dirty limb2 would not get cleaned.  The code below these 3
-	// lines of cleaning code is the new cleaning loop. It is just a touch
-	// faster now, than it was.  The other alternative was to alway use
-	// a full clean, which is VERY costly (5 to 20%).  This same change
-	// has to be done to MD5/MD4/SHA1 and SHA224-256 buffer clean functions.
-
-	//p = (uint32_t *)&(input_buf[total_len+1]);
-	//while (*p && p < (uint32_t *)&input_buf[(ret<<6)])
-	//	*p++ = 0;
-
-	// Here is the start of the new code.
 	cp = &(input_buf[total_len+1]);
 	i = total_len+1;
 	// first, get us to an even 32 bit boundary.
@@ -332,7 +317,6 @@ static inline uint32_t DoMD5_FixBufferLen32(unsigned char *input_buf, int total_
 		if (!p[0] && !p[1])
 			break;
 	}
-	// This is the end of the code to replace the original 3 line clean loop.
 
 	p = (uint32_t *)input_buf;
 	p[(ret*16)-2] = (total_len<<3);
@@ -344,7 +328,7 @@ static void DoMD5_crypt_f_sse(void *in, int len[MD5_LOOPS], void *out) {
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < MD5_LOOPS; ++i) {
 		loops[i] = DoMD5_FixBufferLen32(cp, len[i]);
-		cp += 256;
+		cp += 64*4;
 	}
 	cp = (unsigned char*)in;
 	bMore = 1;
@@ -356,7 +340,7 @@ static void DoMD5_crypt_f_sse(void *in, int len[MD5_LOOPS], void *out) {
 			if (cnt == loops[i]) {
 				unsigned int offx = ((i/SIMD_COEF_32)*4*SIMD_COEF_32)+(i&(SIMD_COEF_32-1));
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = a[(j*SIMD_COEF_32)+offx];
+					((ARCH_WORD_32*)out)[(i*4)+j] = a[(j*SIMD_COEF_32)+offx];
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -372,7 +356,7 @@ static void DoMD5_crypt_sse(void *in, int ilen[MD5_LOOPS], void *out[MD5_LOOPS],
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < MD5_LOOPS; ++i) {
 		loops[i] = DoMD5_FixBufferLen32(cp, ilen[i]);
-		cp += 256;
+		cp += 64*4;
 	}
 	cp = (unsigned char*)in;
 	bMore = 1;
@@ -746,7 +730,7 @@ static void DoMD4_crypt_f_sse(void *in, int len[MD4_LOOPS], void *out) {
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < MD4_LOOPS; ++i) {
 		loops[i] = DoMD4_FixBufferLen32(cp, len[i]);
-		cp += 256;
+		cp += 64*4;
 	}
 	cp = (unsigned char*)in;
 	bMore = 1;
@@ -758,7 +742,7 @@ static void DoMD4_crypt_f_sse(void *in, int len[MD4_LOOPS], void *out) {
 			if (cnt == loops[i]) {
 				unsigned int offx = ((i/SIMD_COEF_32)*4*SIMD_COEF_32)+(i&(SIMD_COEF_32-1));
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = a[(j*SIMD_COEF_32)+offx];
+					((ARCH_WORD_32*)out)[(i*4)+j] = a[(j*SIMD_COEF_32)+offx];
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -774,7 +758,7 @@ static void DoMD4_crypt_sse(void *in, int ilen[MD4_LOOPS], void *out[MD4_LOOPS],
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < MD4_LOOPS; ++i) {
 		loops[i] = DoMD4_FixBufferLen32(cp, ilen[i]);
-		cp += 256;
+		cp += 64*4;
 	}
 	cp = (unsigned char*)in;
 	bMore = 1;
@@ -1146,7 +1130,7 @@ static void DoSHA1_crypt_f_sse(void *in, int len[SHA1_LOOPS], void *out) {
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA1_LOOPS; ++i) {
 		loops[i] = DoSHA1_FixBufferLen32(cp, len[i]);
-		cp += 256;
+		cp += 64*4;
 	}
 	cp = (unsigned char*)in;
 	bMore = 1;
@@ -1159,7 +1143,7 @@ static void DoSHA1_crypt_f_sse(void *in, int len[SHA1_LOOPS], void *out) {
 				unsigned int offx = ((i/SIMD_COEF_32)*5*SIMD_COEF_32)+(i&(SIMD_COEF_32-1));
 				// only 16 bytes in the 'final'
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = JOHNSWAP(a[(j*SIMD_COEF_32)+offx]);
+					((ARCH_WORD_32*)out)[(i*4)+j] = JOHNSWAP(a[(j*SIMD_COEF_32)+offx]);
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -1175,7 +1159,7 @@ static void DoSHA1_crypt_sse(void *in, int ilen[SHA1_LOOPS], void *out[SHA1_LOOP
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA1_LOOPS; ++i) {
 		loops[i] = DoSHA1_FixBufferLen32(cp, ilen[i]);
-		cp += 256;
+		cp += 64*4;
 	}
 	cp = (unsigned char*)in;
 	bMore = 1;
@@ -1553,7 +1537,7 @@ static void DoSHA256_crypt_f_sse(void *in, int len[SIMD_COEF_32], void *out, int
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA256_LOOPS; ++i) {
 		loops[i] = DoSHA256_FixBufferLen32(cp, len[i]);
-		cp += 256;
+		cp += 64*4;
 	}
 	cp = (unsigned char*)in;
 	bMore = 1;
@@ -1565,7 +1549,7 @@ static void DoSHA256_crypt_f_sse(void *in, int len[SIMD_COEF_32], void *out, int
 			if (cnt == loops[i]) {
 				// only 16 bytes.
 				for (j = 0; j < 4; ++j) {
-					((ARCH_WORD_32*)out)[(i*SIMD_COEF_32)+j] = JOHNSWAP(a[(j*SIMD_COEF_32)+i]);
+					((ARCH_WORD_32*)out)[(i*4)+j] = JOHNSWAP(a[(j*SIMD_COEF_32)+i]);
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -1581,7 +1565,7 @@ static void DoSHA256_crypt_sse(void *in, int ilen[SIMD_COEF_32], void *out[SIMD_
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA256_LOOPS; ++i) {
 		loops[i] = DoSHA256_FixBufferLen32(cp, ilen[i]);
-		cp += 256;
+		cp += 64*4;
 	}
 	cp = (unsigned char*)in;
 	bMore = 1;
@@ -2249,7 +2233,7 @@ static void DoSHA512_crypt_f_sse(void *in, int len[SIMD_COEF_64], void *out, int
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA512_LOOPS; ++i) {
 		loops[i] = DoSHA512_FixBufferLen64(cp, len[i]);
-		cp += 256;
+		cp += 128*2;
 	}
 	cp = (unsigned char*)in;
 	bMore = 1;
@@ -2261,7 +2245,7 @@ static void DoSHA512_crypt_f_sse(void *in, int len[SIMD_COEF_64], void *out, int
 			if (cnt == loops[i]) {
 				// only copy 16 bytes
 				for (j = 0; j < 2; ++j) {
-					((ARCH_WORD_64*)out)[i*SIMD_COEF_64+j] = JOHNSWAP64(a[j*SIMD_COEF_64+i]);
+					((ARCH_WORD_64*)out)[i*2+j] = JOHNSWAP64(a[j*SIMD_COEF_64+i]);
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -2277,7 +2261,7 @@ static void DoSHA512_crypt_sse(void *in, int ilen[SIMD_COEF_64], void *out[SIMD_
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA512_LOOPS; ++i) {
 		loops[i] = DoSHA512_FixBufferLen64(cp, ilen[i]);
-		cp += 256;
+		cp += 128*2;
 	}
 	cp = (unsigned char*)in;
 	bMore = 1;
@@ -2288,7 +2272,7 @@ static void DoSHA512_crypt_sse(void *in, int ilen[SIMD_COEF_64], void *out[SIMD_
 		for (i = 0; i < SHA512_LOOPS; ++i) {
 			if (cnt == loops[i]) {
 				for (j = 0; j < 8; ++j) {
-					y.a[j] =JOHNSWAP64(a[j*SIMD_COEF_64+i]);
+					y.a[j] = JOHNSWAP64(a[j*SIMD_COEF_64+i]);
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), isSHA512?64:48, tid);
 			} else if (cnt < loops[i])
