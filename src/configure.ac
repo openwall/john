@@ -778,11 +778,11 @@ if test x$with_flock != xno; then
    CFLAGS="$CFLAGS -DPREFER_FLOCK"
 fi
 
-if test ${CPU_STR} = "AVX2" || test ${host_cpu} = "k1om"; then
-   if test x$experimental = xno; then
-      AC_DEFINE([DYNAMIC_DISABLED], 1, [Disables Dynamic format completely])
-   fi
-fi
+#if test ${CPU_STR} = "AVX2" || test ${host_cpu} = "k1om"; then
+#   if test x$experimental = xno; then
+#      AC_DEFINE([DYNAMIC_DISABLED], 1, [Disables Dynamic format completely])
+#   fi
+#fi
 
 ####################################################
 # Code  to create @PLUGFORMATS_OBJS@ and
