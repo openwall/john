@@ -31,8 +31,8 @@
 #include <openssl/opensslv.h>
 
 #ifdef _OPENMP
-#define DYNA_OMP_PARAMS int first, int last, int tid
-#define DYNA_OMP_PARAMSm int first, int last, int tid,
+#define DYNA_OMP_PARAMS unsigned int first, unsigned int last, unsigned int tid
+#define DYNA_OMP_PARAMSm unsigned int first, unsigned int last, unsigned int tid,
 #define DYNA_OMP_PARAMSd first, last, tid
 #define DYNA_OMP_PARAMSdm first, last, tid,
 #else
