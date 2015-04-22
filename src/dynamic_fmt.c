@@ -7678,5 +7678,5 @@ int dynamic_real_salt_length(struct fmt_main *pFmt) {
 }
 
 #else
-#warning Notice: Dynamic format disabled for AVX2 builds. See doc/BUGS
+#warning Notice: Dynamic format disabled from build.
 #endif /* DYNAMIC_DISABLED */
