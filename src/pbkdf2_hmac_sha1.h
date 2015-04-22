@@ -175,7 +175,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 {
 	unsigned char tmp_hash[SHA_DIGEST_LENGTH];
 	ARCH_WORD_32 *i1, *i2, *o1, *ptmp;
-	int i,j;
+	unsigned int i, j;
 	ARCH_WORD_32 dgst[SSE_GROUP_SZ_SHA1][SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)];
 	int loops, accum=0;
 	unsigned char loop;
@@ -226,7 +226,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 	loops = (skip_bytes + outlen + (SHA_DIGEST_LENGTH-1)) / SHA_DIGEST_LENGTH;
 	loop = skip_bytes / SHA_DIGEST_LENGTH + 1;
 	while (loop <= loops) {
-		int k;
+		unsigned int k;
 		for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
 			memcpy(&ctx, &ipad[j], sizeof(ctx));
 			SHA1_Update(&ctx, S, SL);

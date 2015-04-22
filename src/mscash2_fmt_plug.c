@@ -125,7 +125,7 @@ static struct fmt_tests tests[] = {
 #define MS_NUM_KEYS			(SIMD_COEF_32*SHA1_SSE_PARA)
 // Ok, now we have our MMX/SSE2/intr buffer.
 // this version works properly for MMX, SSE2 (.S) and SSE2 intrinsic.
-#define GETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#define GETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
 static unsigned char (*sse_hash1);
 static unsigned char (*sse_crypt1);
 static unsigned char (*sse_crypt2);
@@ -178,7 +178,7 @@ static void init(struct fmt_main *self)
 			// set the length of all hash1 SSE buffer to 64+20 * 8 bits
 			// The 64 is for the ipad/opad, the 20 is for the length of the SHA1 buffer that also gets into each crypt
 			// this works for SSEi
-			((unsigned int *)sse_hash1)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = (84<<3); // all encrypts are 64+20 bytes.
+			((unsigned int *)sse_hash1)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = (84<<3); // all encrypts are 64+20 bytes.
 			sse_hash1[GETPOS(20,index)] = 0x80;
 		}
 	}

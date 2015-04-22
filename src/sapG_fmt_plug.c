@@ -68,10 +68,10 @@ static unsigned int omp_t = 1;
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
-#define GETWORDPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
-#define GETSTARTPOS(index)		( (index&(SIMD_COEF_32-1))*4 + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
-#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*20*SIMD_COEF_32 ) //for endianity conversion
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#define GETWORDPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETSTARTPOS(index)		( (index&(SIMD_COEF_32-1))*4 + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*20*SIMD_COEF_32 ) //for endianity conversion
 
 #else
 #define MIN_KEYS_PER_CRYPT		1
@@ -329,7 +329,7 @@ static int cmp_one(void *binary, int index)
 #ifdef SIMD_COEF_32
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
-	y = index/SIMD_COEF_32;
+	y = (unsigned int)index/SIMD_COEF_32;
 
 	if( (((unsigned int*)binary)[0] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5])   |
 	    (((unsigned int*)binary)[1] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32]) |
@@ -419,8 +419,8 @@ static inline unsigned int extractOffsetToMagicArray(unsigned const char *pbHash
 static inline void crypt_done(unsigned const int *source, unsigned int *dest, int index)
 {
 	unsigned int i;
-	unsigned const int *s = &source[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*5*SIMD_COEF_32];
-	unsigned int *d = &dest[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*5*SIMD_COEF_32];
+	unsigned const int *s = &source[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32];
+	unsigned int *d = &dest[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32];
 
 	for (i = 0; i < 5; i++) {
 		*d = *s;
@@ -694,7 +694,7 @@ static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 #endif
 
 #ifdef SIMD_COEF_32
-#define KEY_OFF ((index/SIMD_COEF_32)*SIMD_COEF_32*5+(index&(SIMD_COEF_32-1)))
+#define KEY_OFF (((unsigned int)index/SIMD_COEF_32)*SIMD_COEF_32*5+(index&(SIMD_COEF_32-1)))
 static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xfff; }

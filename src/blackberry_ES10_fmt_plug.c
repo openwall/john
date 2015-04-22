@@ -196,7 +196,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int j;
 		SHA512_CTX ctx;
 #ifdef SIMD_COEF_64
-		int i;
+		unsigned int i;
 		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+MEM_ALIGN_SIMD], *keys, tmpBuf[128];
 		ARCH_WORD_64 *keys64, *tmpBuf64=(ARCH_WORD_64*)tmpBuf, *p64;
 		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);

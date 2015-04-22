@@ -51,7 +51,7 @@ john_register_one(&fmt_mssql);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
 #if (SIMD_COEF_32==2)
 #define SALT_EXTRA_LEN          0x40004
 #else
@@ -175,7 +175,7 @@ static void set_key(char *key, int index) {
 		return;
 
 #ifdef SIMD_COEF_32
-	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = (2*utf8len+SALT_SIZE)<<3;
+	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = (2*utf8len+SALT_SIZE)<<3;
 	for(i=0;i<utf8len;i++)
 		saved_key[GETPOS((i*2), index)] = utf8[i];
 	saved_key[GETPOS((i*2+SALT_SIZE) , index)] = 0x80;
@@ -210,7 +210,7 @@ static void set_key_enc(char *key, int index) {
 		utf16len *= -1;
 
 #ifdef SIMD_COEF_32
-	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = (2*utf16len+SALT_SIZE)<<3;
+	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = (2*utf16len+SALT_SIZE)<<3;
 	for(i=0;i<utf16len;i++)
 	{
 		saved_key[GETPOS((i*2), index)] = (char)utf16key[i];
@@ -262,7 +262,7 @@ static int cmp_one(void * binary, int index)
 #ifdef SIMD_COEF_32
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
-	y = index/SIMD_COEF_32;
+	y = (unsigned int)index/SIMD_COEF_32;
 
 	if( (((unsigned int *)binary)[0] != ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5])   |
 	    (((unsigned int *)binary)[1] != ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32]) |
@@ -284,7 +284,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	for (index = 0; index < count; ++index)
 	{
-		unsigned len = (((((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32]) >> 3) & 0xff) - SALT_SIZE;
+		unsigned len = (((((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32]) >> 3) & 0xff) - SALT_SIZE;
 		for(i=0;i<SALT_SIZE;i++)
 			saved_key[GETPOS((len+i), index)] = cursalt[i];
 	}
@@ -318,7 +318,7 @@ static void * get_binary(char *ciphertext)
 }
 
 #ifdef SIMD_COEF_32
-#define KEY_OFF ((index/SIMD_COEF_32)*SIMD_COEF_32*5+(index&(SIMD_COEF_32-1)))
+#define KEY_OFF (((unsigned int)index/SIMD_COEF_32)*SIMD_COEF_32*5+(index&(SIMD_COEF_32-1)))
 static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xfff; }

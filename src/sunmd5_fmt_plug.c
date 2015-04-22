@@ -153,11 +153,11 @@ static struct fmt_tests tests[] = {
 //#define PARAGETPOS(i, index)		( ((index)&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + ((index)/SIMD_COEF_32)*SIMD_COEF_32*64 )
 // these next 2 defines are same as above, but faster (on my gcc). Speed went fro 282 to 292, about 3.5% improvement.  Shifts vs mults.
 #define GETPOS(i, index)		    ( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) )
-#define PARAGETPOS(i, index)		( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) + ((index/SIMD_COEF_32*SIMD_COEF_32)<<6) )
+#define PARAGETPOS(i, index)		( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) + (((unsigned int)index/SIMD_COEF_32*SIMD_COEF_32)<<6) )
 /* GETPOS0 can be 'faster' if we already have a pointer to the first DWORD in this block.  Thus we can do a GETPOS(0,idx), and then multiple GETPOS0(x) and sometimes be faster */
 #define GETPOS0(i)					(                               (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) )
 /* output buffer for para is only 16 bytes per COEF, vs 64, so it's fewer bytes to jumbo to the next PARA start */
-#define PARAGETOUTPOS(i, index)		( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) + ((index/SIMD_COEF_32*SIMD_COEF_32)<<4) )
+#define PARAGETOUTPOS(i, index)		( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) + (((unsigned int)index/SIMD_COEF_32*SIMD_COEF_32)<<4) )
 
 #if defined (_DEBUG)
 // for VC debugging

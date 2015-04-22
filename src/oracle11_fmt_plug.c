@@ -102,8 +102,8 @@ john_register_one(&fmt_oracle11);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
-#define GETPOS_WORD(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 +               index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4)
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#define GETPOS_WORD(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 +               (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4)
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -138,7 +138,7 @@ static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 static void init(struct fmt_main *self)
 {
 #ifdef SIMD_COEF_32
-	int i;
+	unsigned int i;
 
 	saved_key = mem_calloc_tiny(SHA_BUF_SIZ * 4 * NBKEYS, MEM_ALIGN_SIMD);
 	crypt_key = mem_calloc_tiny(BINARY_SIZE * NBKEYS, MEM_ALIGN_SIMD);
@@ -185,7 +185,7 @@ static void set_salt(void *salt)
 static void clear_keys(void)
 {
 #ifdef SIMD_COEF_32
-	int i;
+	unsigned int i;
 	memset(saved_key, 0, SHA_BUF_SIZ * 4 * NBKEYS);
 	/* Set lengths to SALT_LEN to avoid strange things in crypt_all()
 	   if called without setting all keys (in benchmarking). Unset
@@ -224,7 +224,7 @@ static void set_key(char *key, int index)
 		keybuf_word += SIMD_COEF_32;
 	}
 	saved_key[GETPOS(len, index)] = 0x80;
-	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
+	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 #else
 	saved_len = strlen(key);
 	if (saved_len > PLAINTEXT_LENGTH)
@@ -240,7 +240,7 @@ static char *get_key(int index)
 	unsigned int i,s;
 	static char out[PLAINTEXT_LENGTH + 1];
 
-	s = (((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3) - SALT_SIZE;
+	s = (((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3) - SALT_SIZE;
 
 	for(i = 0; i < s; i++)
 		out[i] = ((char*)saved_key)[ GETPOS(i, index) ];
@@ -275,7 +275,7 @@ static int cmp_one(void * binary, int index)
 #ifdef SIMD_COEF_32
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
-	y = index/SIMD_COEF_32;
+	y = (unsigned int)index/SIMD_COEF_32;
 
 	if( (((unsigned int *)binary)[0] != ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5])   |
 	    (((unsigned int *)binary)[1] != ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32]) |
@@ -302,7 +302,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	for (index = 0; index < count; ++index)
 	{
-		unsigned int len = ((((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32]) >> 3) - SALT_SIZE;
+		unsigned int len = ((((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32]) >> 3) - SALT_SIZE;
 		unsigned int i = 0;
 
 		// 1. Copy a byte at a time until we're aligned in buffer
@@ -391,7 +391,7 @@ static void * get_binary(char *ciphertext)
 }
 
 #ifdef SIMD_COEF_32
-#define KEY_OFF ((index/SIMD_COEF_32)*SIMD_COEF_32*5+(index&(SIMD_COEF_32-1)))
+#define KEY_OFF (((unsigned int)index/SIMD_COEF_32)*SIMD_COEF_32*5+(index&(SIMD_COEF_32-1)))
 static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xfff; }

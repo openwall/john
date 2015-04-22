@@ -71,7 +71,7 @@ john_register_one(&fmt_rawSHA256);
 #endif
 
 #ifdef SIMD_COEF_32
-#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*SHA256_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA256_BUF_SIZ*SIMD_COEF_32*4 )
 static uint32_t (*saved_key)[SHA256_BUF_SIZ*SIMD_COEF_32];
 static uint32_t (*crypt_out)[8*SIMD_COEF_32];
 #else
@@ -118,13 +118,13 @@ static void done(void)
 }
 
 #ifdef SIMD_COEF_32
-static int get_hash_0 (int index) { return crypt_out[index/SIMD_COEF_32][index&(SIMD_COEF_32-1)] & 0xf; }
-static int get_hash_1 (int index) { return crypt_out[index/SIMD_COEF_32][index&(SIMD_COEF_32-1)] & 0xff; }
-static int get_hash_2 (int index) { return crypt_out[index/SIMD_COEF_32][index&(SIMD_COEF_32-1)] & 0xfff; }
-static int get_hash_3 (int index) { return crypt_out[index/SIMD_COEF_32][index&(SIMD_COEF_32-1)] & 0xffff; }
-static int get_hash_4 (int index) { return crypt_out[index/SIMD_COEF_32][index&(SIMD_COEF_32-1)] & 0xfffff; }
-static int get_hash_5 (int index) { return crypt_out[index/SIMD_COEF_32][index&(SIMD_COEF_32-1)] & 0xffffff; }
-static int get_hash_6 (int index) { return crypt_out[index/SIMD_COEF_32][index&(SIMD_COEF_32-1)] & 0x7ffffff; }
+static int get_hash_0 (int index) { return crypt_out[(unsigned int)index/SIMD_COEF_32][index&(SIMD_COEF_32-1)] & 0xf; }
+static int get_hash_1 (int index) { return crypt_out[(unsigned int)index/SIMD_COEF_32][index&(SIMD_COEF_32-1)] & 0xff; }
+static int get_hash_2 (int index) { return crypt_out[(unsigned int)index/SIMD_COEF_32][index&(SIMD_COEF_32-1)] & 0xfff; }
+static int get_hash_3 (int index) { return crypt_out[(unsigned int)index/SIMD_COEF_32][index&(SIMD_COEF_32-1)] & 0xffff; }
+static int get_hash_4 (int index) { return crypt_out[(unsigned int)index/SIMD_COEF_32][index&(SIMD_COEF_32-1)] & 0xfffff; }
+static int get_hash_5 (int index) { return crypt_out[(unsigned int)index/SIMD_COEF_32][index&(SIMD_COEF_32-1)] & 0xffffff; }
+static int get_hash_6 (int index) { return crypt_out[(unsigned int)index/SIMD_COEF_32][index&(SIMD_COEF_32-1)] & 0x7ffffff; }
 #else
 static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
 static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
@@ -138,7 +138,7 @@ static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 #ifdef SIMD_COEF_32
 static void set_key(char *key, int index) {
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
-	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)saved_key)[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA256_BUF_SIZ*SIMD_COEF_32];
+	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA256_BUF_SIZ*SIMD_COEF_32];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
@@ -211,7 +211,7 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	unsigned int index = 0;
 
 #ifdef _OPENMP
 #ifdef SIMD_COEF_32
@@ -238,7 +238,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
+	unsigned int index;
 
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_32

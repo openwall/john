@@ -297,7 +297,7 @@ static int cmp_all(void *binary, int count)
 #ifdef SIMD_COEF_32
 	unsigned int x, y = 0;
 
-	for(; y < (count + SIMD_COEF_32 - 1) / SIMD_COEF_32; y++)
+	for(; y < (unsigned int)(count + SIMD_COEF_32 - 1) / SIMD_COEF_32; y++)
 		for(x = 0; x < SIMD_COEF_32; x++)
 		{
 			// NOTE crypt_key is in input format (4 * SHA256_BUF_SIZ * SIMD_COEF_32)
@@ -452,7 +452,7 @@ static void *get_salt(char *ciphertext)
 
 #ifdef SIMD_COEF_32
 // NOTE crypt_key is in input format (4 * SHA256_BUF_SIZ * SIMD_COEF_32)
-#define HASH_OFFSET (index & (SIMD_COEF_32 - 1)) + (index / SIMD_COEF_32) * SIMD_COEF_32 * SHA256_BUF_SIZ
+#define HASH_OFFSET (index & (SIMD_COEF_32 - 1)) + ((unsigned int)index / SIMD_COEF_32) * SIMD_COEF_32 * SHA256_BUF_SIZ
 static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xfff; }

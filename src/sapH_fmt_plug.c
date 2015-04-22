@@ -253,10 +253,10 @@ static void crypt_all_1(int count) {
 	for (idx = 0; idx < count;  idx += NBKEYS1)
 	{
 		SHA_CTX ctx;
-		int i;
+		uint32_t i;
 
 #if !defined (SIMD_COEF_32)
-		int len = strlen(saved_plain[idx]);
+		uint32_t len = strlen(saved_plain[idx]);
 		unsigned char tmp[PLAINTEXT_LENGTH+SHA1_BINARY_SIZE], *cp=&tmp[len];
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, saved_plain[idx], len);
@@ -294,7 +294,7 @@ static void crypt_all_1(int count) {
 			keys[(i<<6)+61] = (len>>5);
 		}
 		for (i = 1; i < sapH_cur_salt->iter; ++i) {
-			int k;
+			uint32_t k;
 			SSESHA1body(keys, crypt32, NULL, SSEi_FLAT_IN);
 			for (k = 0; k < NBKEYS1; ++k) {
 				uint32_t *pcrypt = &crypt32[ ((k/SIMD_COEF_32)*(SIMD_COEF_32*5)) + (k&(SIMD_COEF_32-1))];
@@ -319,16 +319,16 @@ static void crypt_all_1(int count) {
 	}
 }
 static void crypt_all_256(int count) {
-	int idx;
+	uint32_t idx;
 #if defined(_OPENMP)
 #pragma omp parallel for default(none) private(idx) shared(count, sapH_cur_salt, saved_plain, crypt_key)
 #endif
 	for (idx = 0; idx < count; idx += NBKEYS256) {
 		SHA256_CTX ctx;
-		int i;
+		uint32_t i;
 
 #if !defined (SIMD_COEF_32)
-		int len = strlen(saved_plain[idx]);
+		uint32_t len = strlen(saved_plain[idx]);
 		unsigned char tmp[PLAINTEXT_LENGTH+SHA256_BINARY_SIZE], *cp=&tmp[len];
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, saved_plain[idx], len);
@@ -366,7 +366,7 @@ static void crypt_all_256(int count) {
 			keys[(i<<6)+61] = (len>>5);
 		}
 		for (i = 1; i < sapH_cur_salt->iter; ++i) {
-			int k;
+			uint32_t k;
 			SSESHA256body(keys, crypt32, NULL, SSEi_FLAT_IN);
 			for (k = 0; k < NBKEYS256; ++k) {
 				uint32_t *pcrypt = &crypt32[ ((k/SIMD_COEF_32)*(SIMD_COEF_32*8)) + (k&(SIMD_COEF_32-1))];
@@ -391,16 +391,16 @@ static void crypt_all_256(int count) {
 	}
 }
 static void crypt_all_384(int count) {
-	int idx;
+	uint32_t idx;
 #if defined(_OPENMP)
 #pragma omp parallel for default(none) private(idx) shared(count, sapH_cur_salt, saved_plain, crypt_key)
 #endif
 	for (idx = 0; idx < count; idx+=NBKEYS512) {
 		SHA512_CTX ctx;
-		int i;
+		uint32_t i;
 
 #if !defined SIMD_COEF_64
-		int len = strlen(saved_plain[idx]);
+		uint32_t len = strlen(saved_plain[idx]);
 		unsigned char tmp[PLAINTEXT_LENGTH+SHA384_BINARY_SIZE], *cp=&tmp[len];
 		SHA384_Init(&ctx);
 		SHA384_Update(&ctx, saved_plain[idx], len);
@@ -417,7 +417,7 @@ static void crypt_all_384(int count) {
 #else
 		unsigned char _IBuf[128*NBKEYS512+MEM_ALIGN_SIMD], *keys, tmpBuf[64], _OBuf[64*NBKEYS512+MEM_ALIGN_SIMD], *crypt;
 		ARCH_WORD_64 j, *crypt64, offs[NBKEYS512];
-		int len;
+		uint32_t len;
 
 		keys  = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 		crypt = (unsigned char*)mem_align(_OBuf, MEM_ALIGN_SIMD);
@@ -439,7 +439,7 @@ static void crypt_all_384(int count) {
 			keys[(i<<7)+121] = (len>>5);
 		}
 		for (i = 1; i < sapH_cur_salt->iter; ++i) {
-			int k;
+			uint32_t k;
 			SSESHA512body(keys, crypt64, NULL, SSEi_FLAT_IN|SSEi_CRYPT_SHA384);
 			for (k = 0; k < NBKEYS512; ++k) {
 				ARCH_WORD_64 *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
@@ -464,15 +464,15 @@ static void crypt_all_384(int count) {
 	}
 }
 static void crypt_all_512(int count) {
-	int idx;
+	uint32_t idx;
 #if defined(_OPENMP)
 #pragma omp parallel for default(none) private(idx) shared(count, sapH_cur_salt, saved_plain, crypt_key)
 #endif
 	for (idx = 0; idx < count; idx+=NBKEYS512) {
 		SHA512_CTX ctx;
-		int i;
+		uint32_t i;
 #if !defined SIMD_COEF_64
-		int len = strlen(saved_plain[idx]);
+		uint32_t len = strlen(saved_plain[idx]);
 		unsigned char tmp[PLAINTEXT_LENGTH+SHA512_BINARY_SIZE], *cp=&tmp[len];
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, saved_plain[idx], len);
@@ -489,7 +489,7 @@ static void crypt_all_512(int count) {
 #else
 		unsigned char _IBuf[128*NBKEYS512+MEM_ALIGN_SIMD], *keys, tmpBuf[64], _OBuf[64*NBKEYS512+MEM_ALIGN_SIMD], *crypt;
 		ARCH_WORD_64 j, *crypt64, offs[NBKEYS512];
-		int len;
+		uint32_t len;
 
 		keys  = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 		crypt = (unsigned char*)mem_align(_OBuf, MEM_ALIGN_SIMD);
@@ -511,7 +511,7 @@ static void crypt_all_512(int count) {
 			keys[(i<<7)+121] = (len>>5);
 		}
 		for (i = 1; i < sapH_cur_salt->iter; ++i) {
-			int k;
+			uint32_t k;
 			SSESHA512body(keys, crypt64, NULL, SSEi_FLAT_IN);
 			for (k = 0; k < NBKEYS512; ++k) {
 				ARCH_WORD_64 *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];

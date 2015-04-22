@@ -46,7 +46,7 @@ john_register_one(&fmt_office);
 #define BINARY_ALIGN	4
 #define SALT_ALIGN	sizeof(int)
 #ifdef SIMD_COEF_32
-#define GETPOS_1(i, index)  ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETPOS_1(i, index)  ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
 #define SHA1_LOOP_CNT       (SIMD_COEF_32*SHA1_SSE_PARA)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT	SHA1_LOOP_CNT
@@ -57,7 +57,7 @@ john_register_one(&fmt_office);
 #endif
 
 #ifdef SIMD_COEF_64
-#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64*8 )
+#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64*8 )
 #define SHA512_LOOP_CNT SIMD_COEF_64
 #else
 #define SHA512_LOOP_CNT 1
@@ -371,7 +371,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 	int passwordBufSize=saved_len[idx];
 	int hashSize = cur_salt->keySize >> 3;
 	unsigned int inputBuf[(28 + 4) / sizeof(int)];
-	int i;
+	unsigned int i;
 	SHA_CTX ctx;
 
 	SHA1_Init(&ctx);
@@ -423,7 +423,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_LOOP_CNT][128])
 {
 	unsigned char tmpBuf[64];
-	int i, j, k;
+	unsigned int i, j, k;
 	SHA512_CTX ctx;
 	unsigned char _IBuf[128*SHA512_LOOP_CNT+MEM_ALIGN_SIMD], *keys, _OBuf[64*SHA512_LOOP_CNT+MEM_ALIGN_SIMD];
 	ARCH_WORD_64 *keys64, *crypt;

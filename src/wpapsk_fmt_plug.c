@@ -62,7 +62,7 @@ extern mic_t *mic;
 #ifdef SIMD_COEF_32
 // Ok, now we have our MMX/SSE2/intr buffer.
 // this version works properly for MMX, SSE2 (.S) and SSE2 intrinsic.
-#define GETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#define GETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
 static unsigned char (*sse_hash1);
 static unsigned char (*sse_crypt1);
 static unsigned char (*sse_crypt2);
@@ -102,7 +102,7 @@ static void init(struct fmt_main *self)
 			// set the length of all hash1 SSE buffer to 64+20 * 8 bits. The 64 is for the ipad/opad,
 			// the 20 is for the length of the SHA1 buffer that also gets into each crypt.
 			// Works for SSE2i and SSE2
-			((unsigned int *)sse_hash1)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = (84<<3); // all encrypts are 64+20 bytes.
+			((unsigned int *)sse_hash1)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = (84<<3); // all encrypts are 64+20 bytes.
 			sse_hash1[GETPOS(20,index)] = 0x80;
 		}
 	}
@@ -235,7 +235,7 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 #pragma omp parallel for default(none) private(t) shared(count, slen, salt, in, out, loops, sse_crypt1, sse_crypt2, sse_hash1)
 #endif
 	for (t = 0; t < loops; t++) {
-		int i, k, j;
+		unsigned int i, k, j;
 		unsigned char essid[32 + 4];
 		union {
 			unsigned char c[64];

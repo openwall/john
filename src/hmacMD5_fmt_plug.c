@@ -56,7 +56,7 @@ john_register_one(&fmt_hmacMD5);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      MD5_N
 #define MAX_KEYS_PER_CRYPT      MD5_N
-#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i) & (0xffffffff - 3)) * SIMD_COEF_32 + ((i) & 3) + index/SIMD_COEF_32 * 64 * SIMD_COEF_32)
+#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i) & (0xffffffff - 3)) * SIMD_COEF_32 + ((i) & 3) + (unsigned int)index/SIMD_COEF_32 * 64 * SIMD_COEF_32)
 
 #else
 #define MIN_KEYS_PER_CRYPT      1
@@ -106,7 +106,7 @@ static void clear_keys(void)
 static void init(struct fmt_main *self)
 {
 #ifdef SIMD_COEF_32
-	int i;
+	unsigned int i;
 #endif
 #ifdef _OPENMP
 	int omp_t = omp_get_num_threads();
@@ -335,7 +335,7 @@ static int cmp_all(void *binary, int count)
 #ifdef SIMD_COEF_32
 	unsigned int x, y = 0;
 
-	for(; y < (count + SIMD_COEF_32 - 1) / SIMD_COEF_32; y++)
+	for(; y < (unsigned int)(count + SIMD_COEF_32 - 1) / SIMD_COEF_32; y++)
 		for(x = 0; x < SIMD_COEF_32; x++)
 		{
 			// NOTE crypt_key is in input format (64 * SIMD_COEF_32)
@@ -478,7 +478,7 @@ static void *get_salt(char *ciphertext)
 
 #ifdef SIMD_COEF_32
 // NOTE crypt_key is in input format (64 * SIMD_COEF_32)
-#define HASH_OFFSET (index & (SIMD_COEF_32 - 1)) + (index / SIMD_COEF_32) * SIMD_COEF_32 * 16
+#define HASH_OFFSET (index & (SIMD_COEF_32 - 1)) + ((unsigned int)index / SIMD_COEF_32) * SIMD_COEF_32 * 16
 static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xfff; }

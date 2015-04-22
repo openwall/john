@@ -66,8 +66,8 @@ static unsigned int omp_t = 1;
 #define NBKEYS					(SIMD_COEF_32 * MD5_SSE_PARA)
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + ((i)&3) + index/SIMD_COEF_32*64*SIMD_COEF_32 )
-#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&0x1c)*SIMD_COEF_32 + ((i)&3) + index/SIMD_COEF_32*16*SIMD_COEF_32 )
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
+#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&0x1c)*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32 )
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -272,7 +272,7 @@ static int cmp_one(void *binary, int index)
 #ifdef SIMD_COEF_32
 	unsigned int i,x,y;
 	x = index&(SIMD_COEF_32-1);
-	y = index/SIMD_COEF_32;
+	y = (unsigned int)index/SIMD_COEF_32;
 	for(i=0;i<(BINARY_SIZE/4);i++)
 		if ( ((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[y*SIMD_COEF_32*4+i*SIMD_COEF_32+x] )
 			return 0;
@@ -407,8 +407,8 @@ static inline void bin2ascii(uint32_t *conv, uint32_t *source)
 static inline void crypt_done(unsigned const int *source, unsigned int *dest, int index)
 {
 	unsigned int i;
-	unsigned const int *s = &source[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*4*SIMD_COEF_32];
-	unsigned int *d = &dest[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*4*SIMD_COEF_32];
+	unsigned const int *s = &source[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*4*SIMD_COEF_32];
+	unsigned int *d = &dest[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*4*SIMD_COEF_32];
 
 	for (i = 0; i < BINARY_SIZE / 4; i++) {
 		*d = *s;
@@ -678,7 +678,7 @@ static void *get_binary(char *ciphertext)
 }
 
 #ifdef SIMD_COEF_32
-#define HASH_OFFSET (index&(SIMD_COEF_32-1))+(index/SIMD_COEF_32)*SIMD_COEF_32*4
+#define HASH_OFFSET (index&(SIMD_COEF_32-1))+((unsigned int)index/SIMD_COEF_32)*SIMD_COEF_32*4
 static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xfff; }

@@ -204,7 +204,7 @@ static void pbkdf2_sha512_sse(const unsigned char *K[SIMD_COEF_64], int KL[SIMD_
 {
 	unsigned char tmp_hash[SHA512_DIGEST_LENGTH];
 	ARCH_WORD_64 *i1, *i2, *o1, *ptmp;
-	int i,j;
+	unsigned int i, j;
 	ARCH_WORD_64 dgst[SSE_GROUP_SZ_SHA512][SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)];
 	int loops, accum=0;
 	unsigned char loop;
@@ -293,7 +293,7 @@ static void pbkdf2_sha512_sse(const unsigned char *K[SIMD_COEF_64], int KL[SIMD_
 
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.
 		for(i = 1; i < R; i++) {
-			int k;
+			unsigned int k;
 			SSESHA512body(o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SSESHA512body(o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			// only xor first 16 bytes, since that is ALL this format uses
