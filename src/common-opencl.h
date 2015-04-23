@@ -33,10 +33,10 @@
 #include "stdint.h"
 #include "opencl_device_info.h"
 
-#define MAX_PLATFORMS	8
+#define MAX_PLATFORMS   8
 #define MAX_EVENTS 8
-#define SUBSECTION_OPENCL	":OpenCL"
-#define MAX_OCLINFO_STRING_LEN	2048
+#define SUBSECTION_OPENCL   ":OpenCL"
+#define MAX_OCLINFO_STRING_LEN  2048
 
 #define OPENCLBUILDOPTIONS "-cl-mad-enable"
 
@@ -70,10 +70,18 @@
 
 #ifndef CL_DEVICE_TOPOLOGY_AMD
 #define CL_DEVICE_TOPOLOGY_AMD                      0x4037
-typedef union
-{
-  struct { cl_uint type; cl_uint data[5]; } raw;
-  struct { cl_uint type; cl_char unused[17]; cl_char bus; cl_char device; cl_char function; } pcie;
+typedef union {
+	struct {
+		cl_uint type;
+		cl_uint data[5];
+	} raw;
+	struct {
+		cl_uint type;
+		cl_char unused[17];
+		cl_char bus;
+		cl_char device;
+		cl_char function;
+	} pcie;
 } cl_device_topology_amd;
 
 #define CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD            1
@@ -84,29 +92,28 @@ typedef union
 #endif
 
 #ifdef DEBUG_CL_ALLOC
-static inline cl_mem john_clCreateBuffer (int l, char *f,
-					  cl_context context,
-					  cl_mem_flags flags, size_t size,
-					  void *host_ptr, cl_int *errcode_ret)
+static inline cl_mem
+john_clCreateBuffer(int l, char *f, cl_context context, cl_mem_flags flags,
+                    size_t size, void *host_ptr, cl_int *errcode_ret)
 {
 	fprintf(stderr, "allocating %zu bytes in line %d of %s\n", size, l, f);
 	return clCreateBuffer(context, flags, size, host_ptr, errcode_ret);
 }
 
-#define clCreateBuffer(a, b, c, d, e)	john_clCreateBuffer(__LINE__, \
-			    __FILE__, a, b, c, d, e)
+#define clCreateBuffer(a, b, c, d, e)   john_clCreateBuffer(__LINE__, \
+                __FILE__, a, b, c, d, e)
 #endif
 
 typedef struct {
-	cl_platform_id			platform;
-	int				num_devices;
+	cl_platform_id platform;
+	int num_devices;
 } cl_platform;
 cl_platform platforms[MAX_PLATFORMS];
 
 typedef struct {
-	int				device_info;
-	int				cores_per_MP;
-	hw_bus				pci_info;
+	int device_info;
+	int cores_per_MP;
+	hw_bus pci_info;
 } ocl_device_detais;
 
 /* Common OpenCL variables */
@@ -130,10 +137,10 @@ extern cl_event *multi_profilingEvent[MAX_EVENTS];
 
 extern int device_info[MAX_GPU_DEVICES];
 
-#define LWS_CONFIG_NAME			"_LWS"
-#define GWS_CONFIG_NAME			"_GWS"
-#define DUR_CONFIG_NAME			"_MaxDuration"
-#define FALSE				0
+#define LWS_CONFIG_NAME         "_LWS"
+#define GWS_CONFIG_NAME         "_GWS"
+#define DUR_CONFIG_NAME         "_MaxDuration"
+#define FALSE               0
 
 void opencl_read_source(char *kernel_filename);
 
@@ -167,12 +174,11 @@ void opencl_build_from_binary(int sequential_id);
 
 /* Build kernel (if not cached), and cache it */
 void opencl_build_kernel(char *kernel_filename, int sequential_id,
-			 char *options, int warn);
+                         char *options, int warn);
 
 void opencl_find_best_workgroup(struct fmt_main *self);
-void opencl_find_best_workgroup_limit(
-	struct fmt_main *self, size_t group_size_limit, int sequential_id,
-	cl_kernel crypt_kernel);
+void opencl_find_best_workgroup_limit(struct fmt_main *self,
+                                      size_t group_size_limit, int sequential_id, cl_kernel crypt_kernel);
 
 cl_device_type get_device_type(int sequential_id);
 cl_ulong get_local_memory_size(int sequential_id);
@@ -183,17 +189,21 @@ size_t get_kernel_max_lws(int sequential_id, cl_kernel crypt_kernel);
 cl_uint get_max_compute_units(int sequential_id);
 cl_uint get_processors_count(int sequential_id);
 cl_uint get_processor_family(int sequential_id);
+
 /* Vendor id for hardware */
 int get_vendor_id(int sequential_id);
 int get_platform_id(int sequential_id);
+
 /* Vendor id for openCL platform */
 int get_platform_vendor_id(int platform_id);
 int get_device_version(int sequential_id);
 int get_byte_addressable(int sequential_id);
-size_t get_kernel_preferred_multiple(int sequential_id, cl_kernel crypt_kernel);
-void get_compute_capability(int sequential_id, unsigned int *major, unsigned int *minor);
+size_t get_kernel_preferred_multiple(int sequential_id,
+                                     cl_kernel crypt_kernel);
+void get_compute_capability(int sequential_id, unsigned int *major,
+                            unsigned int *minor);
 
-void opencl_get_user_preferences(char * format);
+void opencl_get_user_preferences(char *format);
 
 /* Returns error name based on error codes list defined in cl.h */
 char *get_error_name(cl_int cl_error);
@@ -201,7 +211,8 @@ char *get_error_name(cl_int cl_error);
 /* Returns OpenCL version based on macro CL_VERSION_X_Y definded in cl.h */
 char *get_opencl_header_version(void);
 
-void handle_clerror(cl_int cl_error, const char *message, const char *file, int line);
+void handle_clerror(cl_int cl_error, const char *message, const char *file,
+                    int line);
 
 /* List all available devices. For each one, shows a set of useful
  * hardware/software details */
@@ -214,22 +225,22 @@ void opencl_process_event(void);
 #define HANDLE_CLERROR(cl_error, message) (handle_clerror(cl_error,message,__FILE__,__LINE__))
 
 /* Use this macro for OpenCL Error handling in crypt_all_benchmark() */
-#define BENCH_CLERROR(cl_error, message) {	  \
-		if ((cl_error) != CL_SUCCESS) { \
-			if (options.verbosity > 4) \
-				fprintf(stderr, message); \
-			return -1; \
-		} \
-	}
+#define BENCH_CLERROR(cl_error, message) {    \
+        if ((cl_error) != CL_SUCCESS) { \
+            if (options.verbosity > 4) \
+                fprintf(stderr, message); \
+            return -1; \
+        } \
+    }
 
 /* Macro for get a multiple of a given value */
 #define GET_MULTIPLE_OR_BIGGER(dividend, divisor)   \
-	(divisor) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
-#define GET_MULTIPLE_OR_ZERO(dividend, divisor)	    \
-	((divisor) ? ((dividend / divisor) * divisor) : (dividend))
-#define GET_EXACT_MULTIPLE(dividend, divisor)	(divisor) ? \
-			((dividend > divisor) ? ((dividend / divisor) * divisor) : divisor) : \
-		dividend
+    (divisor) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
+#define GET_MULTIPLE_OR_ZERO(dividend, divisor)     \
+    ((divisor) ? ((dividend / divisor) * divisor) : (dividend))
+#define GET_EXACT_MULTIPLE(dividend, divisor)   (divisor) ? \
+            ((dividend > divisor) ? ((dividend / divisor) * divisor) : divisor) : \
+        dividend
 
 /*
  * Shared function to find 'the best' local work group size.
@@ -240,7 +251,7 @@ void opencl_process_event(void);
  * - Your kernel (or main kernel) should be crypt_kernel.
  */
 void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
-			  cl_kernel crypt_kernel);
+                          cl_kernel crypt_kernel);
 
 /*
  * Shared function to find 'the best' global work group size (keys per crypt).
@@ -255,7 +266,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
  *   For raw formats it should be 1. For sha512crypt it is 5000.
  */
 void opencl_find_best_gws(int step, unsigned long long int max_run_time,
-			  int sequential_id, unsigned int rounds);
+                          int sequential_id, unsigned int rounds);
 
 /*
  * Shared function to initialize variables necessary by shared find(lws/gws) functions.
@@ -269,10 +280,10 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
  *   Find best_gws will compute the split-kernel three times in order to get the 'real' runtime.
  *   Example:
  *       for (i = 0; i < 3; i++) {
- *	   HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], main_kernel[gpu_id], 1, NULL,
- *	       &gws, &local_work_size, 0, NULL,
- *	       multi_profilingEvent[split_events[i]]),  //split_events contains: 2 ,5 ,6
- *	       "failed in clEnqueueNDRangeKernel");
+ *     HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], main_kernel[gpu_id], 1, NULL,
+ *         &gws, &local_work_size, 0, NULL,
+ *         multi_profilingEvent[split_events[i]]),  //split_events contains: 2 ,5 ,6
+ *         "failed in clEnqueueNDRangeKernel");
  *       }
  *
  * - p_warnings: array of strings to be used to show the execution details.
@@ -289,12 +300,11 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
  * - p_gws_limit: the maximum number of global_work_size the format can handle.
  *   (needed to variable size plaintext formats).
  */
-void opencl_init_auto_setup(
-	int p_default_value, int p_hash_loops,
-	int * p_split_events, const char ** p_warnings,
-	int p_main_opencl_event, struct fmt_main * p_self,
-	void (*p_create_clobj)(size_t gws, struct fmt_main * self),
-	void (*p_release_clobj)(void), int p_buffer_size, size_t p_gws_limit);
+void opencl_init_auto_setup(int p_default_value, int p_hash_loops,
+                            int *p_split_events, const char **p_warnings,
+                            int p_main_opencl_event, struct fmt_main *p_self,
+                            void (*p_create_clobj)(size_t gws, struct fmt_main *self),
+                            void (*p_release_clobj)(void), int p_buffer_size, size_t p_gws_limit);
 
 /*
  * Shared function to get the OpenCL driver number.
@@ -302,6 +312,6 @@ void opencl_init_auto_setup(
  * - sequential_id: the sequential number of the device in use.
  * - major: the major number of the driver version.
  * - minor: the minor number of the driver version.
- */void opencl_driver_value(int sequential_id, int * major, int * minor);
+ */ void opencl_driver_value(int sequential_id, int *major, int *minor);
 
 #endif
