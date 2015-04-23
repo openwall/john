@@ -2338,6 +2338,7 @@ static char *human_format(size_t size)
 void opencl_list_devices(void)
 {
 	char dname[MAX_OCLINFO_STRING_LEN];
+	size_t z_entries;
 	cl_uint entries;
 	cl_ulong long_entries;
 	int i, j, sequence_nr = 0, err_type = 0, platform_in_use = -1;
@@ -2505,17 +2506,14 @@ void opencl_list_devices(void)
 			printf("\tMax memory alloc. size:\t%s\n",
 			       human_format(long_entries));
 			ret = clGetDeviceInfo(devices[sequence_nr],
-			                      CL_DEVICE_MAX_CLOCK_FREQUENCY,
-			                      sizeof(cl_ulong), &long_entries, NULL);
-			if (ret == CL_SUCCESS && long_entries)
-				printf("\tMax clock (MHz):\t%llu\n",
-				       (unsigned long long)long_entries);
+			                      CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(cl_int), &entries, NULL);
+			if (ret == CL_SUCCESS && entries)
+				printf("\tMax clock (MHz):\t%u\n", entries);
 			ret = clGetDeviceInfo(devices[sequence_nr],
 			                      CL_DEVICE_PROFILING_TIMER_RESOLUTION,
-			                      sizeof(cl_ulong), &long_entries, NULL);
-			if (ret == CL_SUCCESS && long_entries)
-				printf("\tProfiling timer res.:\t%llu ns\n",
-				       (unsigned long long)long_entries);
+			                      sizeof(size_t), &z_entries, NULL);
+			if (ret == CL_SUCCESS && z_entries)
+				printf("\tProfiling timer res.:\t%zu ns\n", z_entries);
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &p_size, NULL);
 			printf("\tMax Work Group Size:\t%d\n", (int)p_size);
