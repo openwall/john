@@ -117,4 +117,6 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, u
 
 #endif
 
+#undef vtype /* void */
+
 #endif // __JTR_SSE_INTRINSICS_H__
