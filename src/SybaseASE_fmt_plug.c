@@ -74,7 +74,11 @@ john_register_one(&fmt_SybaseASE);
 #define MIN_KEYS_PER_CRYPT  1
 #ifdef SIMD_COEF_32
 #define MAX_KEYS_PER_CRYPT	(SIMD_COEF_32*SIMD_PARA_SHA256)
+#ifdef __MIC__
+#define OMP_SCALE           64
+#else
 #define OMP_SCALE           512
+#endif // __MIC__
 #else
 #define MAX_KEYS_PER_CRYPT  1
 #define OMP_SCALE           256
