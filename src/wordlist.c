@@ -46,15 +46,16 @@
 
 #if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
 #include "win32_memmap.h"
+#undef MEM_FREE
 #ifndef __CYGWIN__
 #include "mmap-windows.c"
-#elif defined HAVE_MMAP
+#endif /* __CYGWIN */
+#endif /* _MSC_VER ... */
+
+#if defined(HAVE_MMAP)
 #include <sys/mman.h>
 #endif
-#undef MEM_FREE
-#elif defined(HAVE_MMAP)
-#include <sys/mman.h>
-#endif
+
 #include <errno.h>
 
 #include "arch.h"
