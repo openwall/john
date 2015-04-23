@@ -57,9 +57,6 @@
 #endif
 #include <errno.h>
 
-#ifdef __SSE2__
-#include <emmintrin.h>
-#endif
 #include "arch.h"
 #include "jumbo.h"
 #include "misc.h"
