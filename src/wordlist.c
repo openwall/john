@@ -144,7 +144,7 @@ static MAYBE_INLINE char *mgetl(char *res)
 	while (map_pos < map_scan_end &&
 	       pos < res + LINE_BUFFER_SIZE - (VSCANSZ + 1)) {
 		vtype x = vloadu((vtype const *)map_pos);
-		unsigned int v = vmovemask_epi8(vcmpeq_epi8(vnl, x));
+		uint64_t v = vcmpeq_epi8_mask(vnl, x);
 
 		vstoreu((vtype*)pos, x);
 		if (v) {
