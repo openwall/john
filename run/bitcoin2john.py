@@ -789,20 +789,16 @@ def read_wallet(json_db, walletfile, print_wallet, print_wallet_transactions, tr
         return {'crypted':crypted}
 
 
-from optparse import OptionParser
 
 if __name__ == '__main__':
 
-    parser = OptionParser(usage="%prog [bitcoin wallet files]")
 
-    (options, args) = parser.parse_args()
-
-    if len(args) < 1:
+    if len(sys.argv) < 2:
         print >> sys.stderr, "Usage: %s [bitcon wallet files]" % sys.argv[0]
         sys.exit(-1)
 
-    for i in range(0, len(args)):
-        filename = args[i]
+    for i in range(0, len(sys.argv)):
+        filename = sys.argv[i]
         if read_wallet(json_db, filename, True, True, "", False) == -1:
             continue
 
