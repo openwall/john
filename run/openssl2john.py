@@ -2,8 +2,8 @@
 
 import sys
 import base64
-import optparse
-
+#import optparse
+import argparse
 
 def process(filename, plaintext=None, cipher=0, md=0):
 
@@ -50,11 +50,16 @@ if __name__ == '__main__':
         sys.stderr.write("md: 0 => md5, 1 => sha1\n")
         sys.exit(-1)
 
-    parser = optparse.OptionParser()
-    parser.add_option('-p', action="store", dest="plaintext")
-    parser.add_option('-c', action="store", dest="cipher", default=0)
-    parser.add_option('-m', action="store", dest="md", default=0)
-    options, remainder = parser.parse_args()
+    #parser = optparse.OptionParser()
+    parser = argparse.ArgumentParser()
+    #parser.add_option('-p', action="store", dest="plaintext")
+    parser.add_argument('-p', action="store", dest="plaintext")
+    #parser.add_option('-c', action="store", dest="cipher", default=0)
+    parser.add_argument('-c', action="store", dest="cipher", default=0)
+    #parser.add_option('-m', action="store", dest="md", default=0)
+    parser.add_argument('-m', action="store", dest="md", default=0)
+    #options, remainder = parser.parse_args()
+    args = parser.parse_args()
 
-    for j in range(0, len(remainder)):
-        data = process(remainder[j], options.plaintext, options.cipher, options.md)
+    for j in range(0, len(parser.REMAINDER)):
+        data = process(parser.REMAINDER[j], args.plaintext, args.cipher, args.md)
