@@ -25,7 +25,6 @@ try:
 except ImportError:
     sys.stderr.write("For additional functionality, please install python-m2crypto package.\n")
 import cPickle
-#from optparse import OptionParser
 import argparse
 from collections import defaultdict
 
@@ -1051,16 +1050,11 @@ efs2john.py --masterkey=samples/Win-2012-non-DC/1b52eb4f-440f-479e-b84a-654fdcca
 """
 
 if __name__ == "__main__":
-    #parser = OptionParser()
     parser =  argparse.ArgumentParser()
-    #parser.add_option("--sid", metavar="SID", dest="sid")
     parser.add_argument("--sid", metavar="SID", dest="sid")
-    #parser.add_option("--masterkey", metavar="DIRECTORY", dest="masterkey")
     parser.add_argument("--masterkey", metavar="DIRECTORY", dest="masterkey")
-    #parser.add_option("--password", metavar="PASSWORD", dest="password")
     parser.add_argument("--password", metavar="PASSWORD", dest="passwprd")
 
-    #(options, args) = parser.parse_args()
     args = parser.parse_args()
 
     mkp = MasterKeyPool()
