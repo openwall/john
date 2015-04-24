@@ -45,6 +45,7 @@ typedef __m512i vtype;
 #define vand                    _mm512_and_si512
 #define vandnot                 _mm512_andnot_si512
 #define vcmov(y, z, x)          vxor(z, vand(x, vxor(y, z)))
+#define vcmpeq_epi8_mask        (uint64_t)_mm512_cmpeq_epi8_mask
 /*
  * NOTE: AVX2 has it as (base, index, scale) while MIC and AVX512 are
  * different.
@@ -136,6 +137,21 @@ typedef __m512i vtype;
                                      0x08090a0b0c0d0e0fULL, \
                                      0x0001020304050607ULL))
 #else // workarounds without AVX512BW
+static inline __mmask64 _mm512_cmpeq_epi8_mask(__mm512i a, __mm512i b)
+{
+	char JTR_ALIGN(64) ma[64],
+	     JTR_ALIGN(64) mb[64];
+	_mm512_store_si512(ma, a);
+	_mm512_store_si512(mb, b);
+
+	uint64_t mask = 0;
+	int i;
+	for (i = 0; i < 64; ++i) 
+		mask |= ((ma[i] == mb[i]) << i);
+
+	return (__mmask64)mask;
+}
+
 #define vswap32(n)                                                          \
     n = vxor(vsrli_epi32(n, 24),                                            \
              vxor(vslli_epi32(vsrli_epi32(vslli_epi32(n, 8), 24), 8),       \
@@ -180,7 +196,7 @@ typedef __m256i vtype;
 #define vand                    _mm256_and_si256
 #define vandnot                 _mm256_andnot_si256
 #define vcmov(y, z, x)          vxor(z, vand(x, vxor(y, z)))
-#define vcmpeq_epi8             _mm256_cmpeq_epi8
+#define vcmpeq_epi8_mask(a, b)  _mm256_movemask_epi8(_mm256_cmpeq_epi8(a, b))
 #define vcmpeq_epi32            _mm256_cmpeq_epi32
 #define vcvtsi32                _mm256_cvtsi32_si256
 #define vgather_epi32(b, i, s)  _mm256_i32gather_epi32((void*)(b), i, s)
@@ -315,7 +331,7 @@ typedef __m128i vtype;
 #else
 #define vcmov(y, z, x)          vxor(z, vand(x, vxor(y, z)))
 #endif
-#define vcmpeq_epi8             _mm_cmpeq_epi8
+#define vcmpeq_epi8_mask(a, b)  _mm_movemask_epi8(_mm_cmpeq_epi8(a, b))
 #define vcmpeq_epi32            _mm_cmpeq_epi32
 #if __SSE4_1__
 #define vcvtsi32                _mm_cvtsi32_si128

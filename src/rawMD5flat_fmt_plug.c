@@ -201,12 +201,9 @@ static void set_key(char *key, int index)
 	vtype  Z   = vsetzero();
 	vtype  X   = vloadu(key);
 	vtype  B;
-#if __AVX512F__ || __MIC__
-	uint32_t len = strlen(key);
-#else
-	uint32_t mask = vmovemask_epi8(vcmpeq_epi8(X, Z));
+	
+	uint64_t mask = vcmpeq_epi8_mask(X, Z);
 	uint32_t len = __builtin_ctz(mask);
-#endif
 
 	// Create a lookup tables to find correct masks for each supported input
 	// length. It would be nice if we could use bit shifts to produce these
