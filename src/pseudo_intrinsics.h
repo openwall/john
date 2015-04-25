@@ -137,7 +137,7 @@ typedef __m512i vtype;
                                      0x08090a0b0c0d0e0fULL, \
                                      0x0001020304050607ULL))
 #else // workarounds without AVX512BW
-static inline __mmask64 _mm512_cmpeq_epi8_mask(__mm512i a, __mm512i b)
+static inline __mmask64 _mm512_cmpeq_epi8_mask(__m512i a, __m512i b)
 {
 	char JTR_ALIGN(64) ma[64],
 	     JTR_ALIGN(64) mb[64];
