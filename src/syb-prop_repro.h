@@ -11,6 +11,6 @@
 // static void print_block(unsigned char * bytes, int endpos, const char * szoveg);
 
 void generate_hash(unsigned char * password, unsigned char seed,
-	unsigned char * result_hash, int *g_seed, struct JtR_FEAL8_CTX *ctx);
+	unsigned char * result_hash, unsigned int *g_seed, struct JtR_FEAL8_CTX *ctx);
 
 // static int myrand(void);

@@ -4,12 +4,12 @@
 static unsigned char joke[] =
     "Q:Whydidtheflydanceonthejar?A:Becausethelidsaidtwisttoopen.HaHa!";
 
-static void rnd_srand(unsigned int seed, int *g_seed)
+static void rnd_srand(unsigned int seed, unsigned int *g_seed)
 {
 	*g_seed = seed;
 }
 
-static int rnd_rand(int *g_seed)
+static int rnd_rand(unsigned int *g_seed)
 {
 	*g_seed = (*g_seed) * 0x343FD + 0x269EC3;
 	return ((*g_seed) >> 0x10) & 0x7FFF;
@@ -69,7 +69,7 @@ static void syb_apply_salt_byte(unsigned char salt, unsigned char *password,
 	result[7] = result[1] ^ password[7];
 }
 
-static unsigned char salt_prob(int *g_seed)
+static unsigned char salt_prob(unsigned int *g_seed)
 {
 	unsigned int random = rnd_rand(g_seed);
 
@@ -80,7 +80,7 @@ static unsigned char salt_prob(int *g_seed)
 }
 
 static void meta_keysch_repro(unsigned int seed, unsigned char *password,
-    unsigned char *result, int *g_seed, struct JtR_FEAL8_CTX *ctx)
+    unsigned char *result, unsigned int *g_seed, struct JtR_FEAL8_CTX *ctx)
 {
 	unsigned char expanded_password[EXPANDED_PWDLEN];
 	unsigned char salt_byte;
@@ -150,7 +150,7 @@ static int myrand(void)
 } */
 
 void generate_hash(unsigned char *password, unsigned char seed,
-    unsigned char *result_hash, int *g_seed, struct JtR_FEAL8_CTX *ctx)
+    unsigned char *result_hash, unsigned int *g_seed, struct JtR_FEAL8_CTX *ctx)
 {
 	unsigned char meta_keysch_result[META_KEYSCH_LEN];
 	unsigned char meta_encrypt_result[META_KEYSCH_LEN];

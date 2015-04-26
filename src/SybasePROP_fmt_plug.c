@@ -168,7 +168,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		int g_seed = 0x3f;
+		unsigned int g_seed = 0x3f;
 		struct JtR_FEAL8_CTX ctx;
 		generate_hash((unsigned char*)saved_key[index], saved_salt,
 				(unsigned char*)crypt_out[index], &g_seed, &ctx);
