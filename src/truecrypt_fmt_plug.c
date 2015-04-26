@@ -574,7 +574,7 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 		tests_ripemd160
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid_ripemd160,
@@ -639,7 +639,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		tests_sha512
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid_sha512,
@@ -695,7 +695,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		tests_whirlpool
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid_whirlpool,
