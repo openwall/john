@@ -346,7 +346,7 @@ struct fmt_main fmt_snefru_128 = {
 		snefru_128_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		prepare,
 		valid128,
