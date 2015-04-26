@@ -48,6 +48,7 @@
 #include "common.h"
 #define __MEMDBG__
 #include "memdbg.h"
+#include "pseudo_intrinsics.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -114,14 +115,19 @@ typedef struct _hdr2 {
  *  allow us to catch a single byte over or underflow.
  */
 typedef struct _hdr {
-   struct _hdr *mdbg_next;
-   struct _hdr *mdbg_prev;
-   MEMDBG_HDR2 *mdbg_hdr2; /* points to just 'right' after allocated memory, for overflow catching */
-   const char  *mdbg_file;
-   ARCH_WORD_32 mdbg_line;
-   ARCH_WORD_32 mdbg_cnt;
-   ARCH_WORD_32 mdbg_size;
-   ARCH_WORD_32 mdbg_fpst; /* this should be 'right' against the allocated memory, for underflow catching */
+	struct _hdr *mdbg_next;
+	struct _hdr *mdbg_prev;
+/* points to just 'right' after allocated memory, for overflow catching */
+	MEMDBG_HDR2 *mdbg_hdr2;
+	const char  *mdbg_file;
+	ARCH_WORD_32 mdbg_line;
+	ARCH_WORD_32 mdbg_cnt;
+	ARCH_WORD_32 mdbg_size;
+#if SIMD_COEF_32 > 4
+	char padding[sizeof(vtype) - 16];
+#endif
+/* this should be 'right' against the allocated block, for underflow catching */
+	ARCH_WORD_32 mdbg_fpst;
 } MEMDBG_HDR;
 
 static size_t   mem_size = 0;
@@ -604,7 +610,7 @@ void * MEMDBG_alloc(size_t size, char *file, int line)
 
 static void *_mem_alloc_align(size_t size, size_t align)
 {
-	void *ptr;
+	void *ptr = NULL;
 #if HAVE_POSIX_MEMALIGN
 	if (posix_memalign(&ptr, align, size))
 		perror("posix_memalign");

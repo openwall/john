@@ -169,6 +169,10 @@ void MEMDBG_checkSnapshot_possible_exit_on_error(MEMDBG_HANDLE, int exit_on_any_
 
 void MEMDBG_tag_mem_from_alloc_tiny(void *);
 
+extern void MEMDBG_libc_free(void *);
+extern void *MEMDBG_libc_alloc(size_t size);
+extern void *MEMDBG_libc_calloc(size_t count, size_t size);
+
 #elif 0
 /* NOTE, we DO keep one special function here.  We make free a little
  * smarter. this function gets used, even when we do NOT compile with
@@ -193,10 +197,6 @@ extern void MEMDBG_off_free(void *a);
 #define free(a)   do { if(a) MEMDBG_off_free(a); a=0; } while(0)
 #endif
 #endif /* !defined(__MEMDBG__) */
-
-extern void MEMDBG_libc_free(void *);
-extern void *MEMDBG_libc_alloc(size_t size);
-extern void *MEMDBG_libc_calloc(size_t count, size_t size);
 
 #else
 
