@@ -351,7 +351,7 @@ struct fmt_main fmt_whirlpool_1 = {
 		whirlpool_1_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
@@ -416,7 +416,7 @@ struct fmt_main fmt_whirlpool = {
 		whirlpool_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
