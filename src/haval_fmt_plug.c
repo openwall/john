@@ -359,7 +359,7 @@ struct fmt_main fmt_haval_128_4 = {
 		haval_128_4_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid4,
