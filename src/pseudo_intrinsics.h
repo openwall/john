@@ -137,16 +137,21 @@ typedef __m512i vtype;
                                      0x08090a0b0c0d0e0fULL, \
                                      0x0001020304050607ULL))
 #else // workarounds without AVX512BW
+
+// Some (early?) headers don't define this
+//typedef uint64_t __mmask64;
+
 static inline __mmask64 _mm512_cmpeq_epi8_mask(__m512i a, __m512i b)
 {
 	char JTR_ALIGN(64) ma[64],
 	     JTR_ALIGN(64) mb[64];
+	uint64_t mask = 0;
+	int i;
+
 	_mm512_store_si512(ma, a);
 	_mm512_store_si512(mb, b);
 
-	uint64_t mask = 0;
-	int i;
-	for (i = 0; i < 64; ++i) 
+	for (i = 0; i < 64; ++i)
 		mask |= ((ma[i] == mb[i]) << i);
 
 	return (__mmask64)mask;
@@ -170,7 +175,7 @@ static inline __mmask64 _mm512_cmpeq_epi8_mask(__m512i a, __m512i b)
 static inline __m512i _mm512_loadu_si512(void const *addr)
 {
 	__m512i indices = _mm512_set_epi64(7, 6, 5, 4, 3, 2, 1, 0);
-	return is_aligned(addr, 64) ? _mm512_load_si512(addr) : 
+	return is_aligned(addr, 64) ? _mm512_load_si512(addr) :
 	                              _mm512_i64gather_epi64(indices, addr, 8);
 }
 
@@ -180,7 +185,7 @@ static inline void _mm512_storeu_si512(void *addr, vtype d)
 
 	if (is_aligned(addr, 64))
 		_mm512_store_si512(addr, d);
-	else 
+	else
 		_mm512_i64scatter_epi64(addr, indices, d, 8);
 }
 #endif // __MIC__
