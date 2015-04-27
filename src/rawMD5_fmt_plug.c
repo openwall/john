@@ -27,7 +27,7 @@ john_register_one(&fmt_rawMD5);
 
 #ifdef _OPENMP
 #ifdef SIMD_COEF_32
-#define OMP_SCALE               1024
+#define OMP_SCALE               256 // core i7
 #else
 #define OMP_SCALE				2048
 #endif
