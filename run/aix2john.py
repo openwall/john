@@ -4,7 +4,7 @@ import binascii
 import sys
 
 try:
-    import optparse
+	 import argparse
 except ImportError:
     sys.stderr.write("Stop living in the past. Upgrade your python!\n")
 
@@ -54,14 +54,14 @@ if __name__ == "__main__":
             "(/etc/security/passwd)>\n" % sys.argv[0])
         sys.exit(-1)
 
-parser = optparse.OptionParser()
-parser.add_option('-s', action="store_true",
-                  default=False,
-                  dest="is_standard",
-                  help='Use this option if "lpa_options '
-                        '= std_hash=true" is activated'
-                  )
-options, remainder = parser.parse_args()
+parser = argparse.ArgumentParser()
+parser.add_argument('-s', action="store_true",
+						default=False,
+						dest="is_standard",
+						help='Use this option if "lpa_options '
+								'= std_hash=true" is activated'
+						)
+args = parser.parse_args()
 
 for f in remainder:
     process_file(f, options.is_standard)
