@@ -40,7 +40,7 @@
 #define SQRT_3 0x6ed9eba1
 
 
-#define FORMAT_LABEL			"NT"
+#define FORMAT_LABEL			"NT-old"
 #define FORMAT_NAME			""
 
 #define BENCHMARK_COMMENT		""

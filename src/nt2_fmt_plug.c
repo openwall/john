@@ -1,5 +1,5 @@
 /*
- * Alternate NT format, with reduced binary size
+ * NT-ng format, using intrinsics.
  *
  * This software is Copyright 2011, 2012 magnum, and it is hereby released to
  * the general public under the following terms:  Redistribution and use in
@@ -35,8 +35,8 @@ john_register_one(&fmt_NT2);
 #include "johnswap.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"nt2" /* Should be nt-ng now */
-#define FORMAT_NAME			"NT"
+#define FORMAT_LABEL			"NT"
+#define FORMAT_NAME			""
 
 #define ALGORITHM_NAME			"MD4 " MD4_ALGORITHM_NAME
 

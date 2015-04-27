@@ -286,7 +286,6 @@ static void john_register_all(void)
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_trip);
 	john_register_one(&fmt_dummy);
-	john_register_one(&fmt_NT);
 
 #ifndef DYNAMIC_DISABLED
 	// NOTE, this MUST happen, before ANY format that links a 'thin' format
@@ -300,6 +299,9 @@ static void john_register_all(void)
 #endif
 
 #include "fmt_registers.h"
+
+	// This format is deprecated so now registers after plug-in NT format.
+	john_register_one(&fmt_NT);
 
 #if HAVE_CUDA
 	john_register_one(&fmt_cuda_rawsha224);
