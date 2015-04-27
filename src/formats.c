@@ -406,7 +406,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 
 		/* validate that salt dupe checks will work */
-		if (!salt_dupe_warned) {
+		if (!salt_dupe_warned && format->params.salt_size) {
 			char *copy = mem_alloc(format->params.salt_size);
 
 			memcpy(copy, salt, format->params.salt_size);
