@@ -67,6 +67,8 @@ extern void cuda_device_list();
 #endif
 #if HAVE_OPENCL
 #include "common-opencl.h"
+#define _BSD_SOURCE 1
+#define _DEFAULT_SOURCE 1
 #endif
 #include "memdbg.h"
 
