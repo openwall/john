@@ -11,6 +11,10 @@
 #include "autoconfig.h"
 #endif
 
+#if HAVE_OPENCL
+#define _BSD_SOURCE 1
+#define _DEFAULT_SOURCE 1
+#endif
 #define NEED_OS_FLOCK
 #include "os.h"
 
