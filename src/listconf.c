@@ -513,9 +513,7 @@ void listconf_parse_late(void)
 
 /* Some encodings change max plaintext length when
    encoding is used, or KPC when under OMP */
-			if (format->params.flags & FMT_UTF8 &&
-			    pers_opts.target_enc != ASCII)
-				fmt_init(format);
+			fmt_init(format);
 
 			if (format->params.tests) {
 				while (format->params.tests[ntests++].ciphertext);
@@ -582,9 +580,7 @@ void listconf_parse_late(void)
 
 /* Some encodings change max plaintext length when encoding is used,
    or KPC when under OMP */
-			if (format->params.flags & FMT_UTF8 &&
-			     pers_opts.target_enc != ASCII)
-				fmt_init(format);
+			fmt_init(format);
 
 			if (format->params.tests) {
 				while (format->params.tests[ntests++].ciphertext);
@@ -668,9 +664,8 @@ void listconf_parse_late(void)
 		do {
 			int ShowIt = 1, i;
 
-			if (format->params.flags & FMT_DYNAMIC)
 /* required for thin formats, these adjust their methods here */
-				fmt_init(format);
+			fmt_init(format);
 
 			if (options.listconf[14] == '=' || options.listconf[14] == ':') {
 				ShowIt = 0;
@@ -870,9 +865,7 @@ void listconf_parse_late(void)
 			 * support, because some formats (like Raw-MD5u)
 			 * change their tests[] depending on the encoding.
 			 */
-			if (format->params.flags & FMT_UTF8 &&
-			     pers_opts.target_enc != ASCII)
-				fmt_init(format);
+			fmt_init(format);
 
 			if (format->params.tests) {
 				while (format->params.tests[ntests].ciphertext) {
