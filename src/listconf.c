@@ -49,6 +49,10 @@
 #endif
 #endif
 
+#if __GNUC__
+#include <gnu/libc-version.h>
+#endif
+
 #include "regex.h"
 
 #ifdef NO_JOHN_BLD
@@ -63,6 +67,8 @@ extern void cuda_device_list();
 #endif
 #if HAVE_OPENCL
 #include "common-opencl.h"
+#define _BSD_SOURCE 1
+#define _DEFAULT_SOURCE 1
 #endif
 #include "memdbg.h"
 
@@ -191,6 +197,12 @@ static void listconf_list_build_info(void)
 #endif
 #if defined(__clang_version__) && !__INTEL_COMPILER
 	printf("clang version: %s\n", __clang_version__);
+#endif
+#ifdef __GLIBC_MINOR__
+#ifdef __GNUC__
+	printf("GNU libc version: %d.%d (loaded: %s)\n",
+	       __GLIBC__, __GLIBC_MINOR__, gnu_get_libc_version());
+#endif
 #endif
 #if HAVE_CUDA
 	printf("CUDA library version: %s\n",get_cuda_header_version());

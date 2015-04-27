@@ -33,6 +33,7 @@
 #include "dynamic.h"
 #include "unicode.h"
 #include "fake_salts.h"
+#include "path.h"
 #include "regex.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
@@ -591,6 +592,9 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			}
 		}
 #endif
+		path_done();
+		cleanup_tiny_memory();
+		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 		exit(0);
 	}
 #if FMT_MAIN_VERSION > 11
