@@ -13,7 +13,8 @@
  *    modifications, are permitted.
  */
 
-#define _BSD_SOURCE             // setenv()
+#define _BSD_SOURCE 1           // setenv()
+#define _DEFAULT_SOURCE 1       // setenv()
 #define NEED_OS_TIMER
 #define NEED_OS_FLOCK
 #include "os.h"

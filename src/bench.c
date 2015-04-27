@@ -11,6 +11,7 @@
  */
 
 #define _BSD_SOURCE /* for setenv() */
+#define _DEFAULT_SOURCE 1 /* for setenv() */
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 #define SIGALRM SIGFPE
