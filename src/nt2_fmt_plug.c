@@ -57,19 +57,12 @@ john_register_one(&fmt_NT2);
 
 #ifdef SIMD_COEF_32
 #if defined(_OPENMP)
-#ifdef __XOP__
-#define BLOCK_LOOPS			(1024*1024)
-#elif __AVX__
-#define BLOCK_LOOPS			4096 // tuned for i7 w/o HT
-#else
-#define BLOCK_LOOPS			1 // Old CPUs won't work well with OMP
-#endif
-#else
-#define BLOCK_LOOPS			1 // Never change this
+#include <omp.h>
+#define OMP_SCALE			512 // tuned for i7 w/o HT
 #endif
 #define PLAINTEXT_LENGTH		27
 #define MIN_KEYS_PER_CRYPT		NBKEYS
-#define MAX_KEYS_PER_CRYPT		NBKEYS * BLOCK_LOOPS
+#define MAX_KEYS_PER_CRYPT		NBKEYS
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32*4 )
 #else
 #define PLAINTEXT_LENGTH		125
@@ -143,6 +136,14 @@ static void init(struct fmt_main *self)
 {
 #if SIMD_COEF_32
 	int i;
+#endif
+#ifdef _OPENMP
+	int omp_t;
+
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	if (pers_opts.target_enc == UTF_8) {
 		/* This avoids an if clause for every set_key */
@@ -552,10 +553,10 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 #ifdef SIMD_COEF_32
-#if (BLOCK_LOOPS > 1)
-	int i;
+#ifdef _OPENMP
+	unsigned int i;
 
-	const int count = (*pcount + NBKEYS - 1) / NBKEYS;
+	const unsigned int count = (*pcount + NBKEYS - 1) / NBKEYS;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -567,18 +568,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #else
 	MD4_Init( &ctx );
-//	dump_stuff_msg("saved_key", saved_key, saved_len);
 	MD4_Update(&ctx, (unsigned char*)saved_key, saved_len);
 	MD4_Final((unsigned char*) crypt_key, &ctx);
-//	dump_stuff_msg("crypt_key", crypt_key, 16);
 #endif
 	return *pcount;
 }
 
 static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
-	unsigned int x,y=0;
-	for(; y < MD4_SSE_PARA * BLOCK_LOOPS; y++)
+	unsigned int x, y;
+	const unsigned int c = (count + SIMD_COEF_32 - 1) / SIMD_COEF_32;
+
+	for(y = 0; y < c; y++)
 		for(x = 0; x < SIMD_COEF_32; x++)
 		{
 			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[y*SIMD_COEF_32*4+x] )
@@ -728,7 +729,7 @@ struct fmt_main fmt_NT2 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#if defined(_OPENMP) && (BLOCK_LOOPS > 1) && defined(MD4_SSE_PARA)
+#ifdef _OPENMP
 		FMT_OMP | FMT_OMP_BAD |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
