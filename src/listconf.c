@@ -161,6 +161,9 @@ static void listconf_list_build_info(void)
 #endif
 	puts("Version: " JOHN_VERSION _MP_VERSION DEBUG_STRING MEMDBG_STRING ASAN_STRING);
 	puts("Build: " JOHN_BLD);
+#ifdef __TIMESTAMP__
+	puts("Time stamp: " __TIMESTAMP__);
+#endif
 	printf("Arch: %d-bit %s\n", ARCH_BITS,
 	       ARCH_LITTLE_ENDIAN ? "LE" : "BE");
 #if JOHN_SYSTEMWIDE
