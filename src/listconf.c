@@ -203,6 +203,24 @@ static void listconf_list_build_info(void)
 #if defined(__clang_version__) && !__INTEL_COMPILER
 	printf("clang version: %s\n", __clang_version__);
 #endif
+
+#ifdef _MSC_VER
+/*
+ * See https://msdn.microsoft.com/en-us/library/b0084kay.aspx
+ * Currently, _MSC_BUILD is not reported, but we could convert
+ * _MSC_FULL_VER 150020706 and _MSC_BUILD 1 into a string
+ * "15.00.20706.01".
+ */
+#ifdef _MSC_FULL_VER
+	printf("Microsoft compiler version: %d\n", _MSC_FULL_VER);
+#else
+	printf("Microsoft compiler version: %d\n", _MSC_VER);
+#endif
+#ifdef __CLR_VER
+	puts("Common Language Runtime version: " __CLR_VER);
+#endif
+#endif
+
 #ifdef __GLIBC_MINOR__
 #ifdef __GNUC__
 	printf("GNU libc version: %d.%d (loaded: %s)\n",
