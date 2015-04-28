@@ -75,8 +75,7 @@ typedef __m512i vtype;
 #define vxor                    _mm512_xor_si512
 
 #define vtestz_epi32(n)         !_mm512_min_epu32(n)
-#define vtesteq_epi32(x, y) \
-    _mm512_mask2int(_mm512_cmp_epi32_mask(x, y, _MM_CMPINT_EQ))
+#define vtesteq_epi32(x, y)     (int)_mm512_cmp_epi32_mask(x, y, _MM_CMPINT_EQ)
 
 #define GATHER_4x(x, y, z)                               \
 {                                                        \
@@ -138,10 +137,8 @@ typedef __m512i vtype;
                                      0x0001020304050607ULL))
 #else // workarounds without AVX512BW
 
-// Some (early?) headers don't define this
-//typedef uint64_t __mmask64;
-
-static inline __mmask64 _mm512_cmpeq_epi8_mask(__m512i a, __m512i b)
+// Currently this is equivalent to _mm512_cmpeq_epi8_mask
+static inline uint64_t _mm512_cmp_epi8_mask(__m512i a, __m512i b, const int imm)
 {
 	char JTR_ALIGN(64) ma[64],
 	     JTR_ALIGN(64) mb[64];
@@ -154,8 +151,11 @@ static inline __mmask64 _mm512_cmpeq_epi8_mask(__m512i a, __m512i b)
 	for (i = 0; i < 64; ++i)
 		mask |= ((ma[i] == mb[i]) << i);
 
-	return (__mmask64)mask;
+	return mask;
 }
+#ifndef _mm512_cmpeq_epi8_mask // needed by gcc-4.9
+#define _mm512_cmpeq_epi8_mask(a, b) _mm512_cmp_epi8_mask(a, b, _MM_CMPINT_EQ)
+#endif
 
 #define vswap32(n)                                                          \
     n = vxor(vsrli_epi32(n, 24),                                            \
