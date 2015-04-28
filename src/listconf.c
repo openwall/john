@@ -53,11 +53,9 @@
 #endif
 #endif
 
-/* fails when building on gcc on non-GNU systems (eg. OSX)
-#if __GNUC__
+#if __GLIBC__
 #include <gnu/libc-version.h>
 #endif
-*/
 
 #include "regex.h"
 
@@ -204,6 +202,13 @@ static void listconf_list_build_info(void)
 #endif
 #if defined(__clang_version__) && !__INTEL_COMPILER
 	printf("clang version: %s\n", __clang_version__);
+#endif
+
+#ifdef __GLIBC_MINOR__
+#ifdef __GLIBC__
+	printf("GNU libc version: %d.%d (loaded: %s)\n",
+	       __GLIBC__, __GLIBC_MINOR__, gnu_get_libc_version());
+#endif
 #endif
 
 #ifdef _MSC_VER
