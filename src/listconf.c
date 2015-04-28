@@ -53,9 +53,11 @@
 #endif
 #endif
 
+/* fails when building on gcc on non-GNU systems (eg. OSX)
 #if __GNUC__
 #include <gnu/libc-version.h>
 #endif
+*/
 
 #include "regex.h"
 
