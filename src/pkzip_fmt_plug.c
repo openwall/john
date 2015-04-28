@@ -384,7 +384,7 @@ static void init(struct fmt_main *self)
 	 */
 #ifdef PKZIP_USE_MULT_TABLE
 	for (n = 0; n < 16384; n++)
-		mult_tab[n] = ((n*4+3) * (n*4+2) >> 8) & 0xff;
+		mult_tab[n] = ((unsigned)((n*4+3) * (n*4+2)) >> 8) & 0xff;
 #endif
 
 #if USE_PKZIP_MAGIC
