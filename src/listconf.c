@@ -11,6 +11,10 @@
 #include "autoconfig.h"
 #endif
 
+#if HAVE_OPENCL
+#define _BSD_SOURCE 1
+#define _DEFAULT_SOURCE 1
+#endif
 #define NEED_OS_FLOCK
 #include "os.h"
 
@@ -47,6 +51,10 @@
 #else
 #include <gmp.h>
 #endif
+#endif
+
+#if __GNUC__
+#include <gnu/libc-version.h>
 #endif
 
 #include "regex.h"
@@ -153,6 +161,9 @@ static void listconf_list_build_info(void)
 #endif
 	puts("Version: " JOHN_VERSION _MP_VERSION DEBUG_STRING MEMDBG_STRING ASAN_STRING);
 	puts("Build: " JOHN_BLD);
+#ifdef __TIMESTAMP__
+	puts("Time stamp: " __TIMESTAMP__);
+#endif
 	printf("Arch: %d-bit %s\n", ARCH_BITS,
 	       ARCH_LITTLE_ENDIAN ? "LE" : "BE");
 #if JOHN_SYSTEMWIDE
@@ -191,6 +202,30 @@ static void listconf_list_build_info(void)
 #endif
 #if defined(__clang_version__) && !__INTEL_COMPILER
 	printf("clang version: %s\n", __clang_version__);
+#endif
+
+#ifdef _MSC_VER
+/*
+ * See https://msdn.microsoft.com/en-us/library/b0084kay.aspx
+ * Currently, _MSC_BUILD is not reported, but we could convert
+ * _MSC_FULL_VER 150020706 and _MSC_BUILD 1 into a string
+ * "15.00.20706.01".
+ */
+#ifdef _MSC_FULL_VER
+	printf("Microsoft compiler version: %d\n", _MSC_FULL_VER);
+#else
+	printf("Microsoft compiler version: %d\n", _MSC_VER);
+#endif
+#ifdef __CLR_VER
+	puts("Common Language Runtime version: " __CLR_VER);
+#endif
+#endif
+
+#ifdef __GLIBC_MINOR__
+#ifdef __GNUC__
+	printf("GNU libc version: %d.%d (loaded: %s)\n",
+	       __GLIBC__, __GLIBC_MINOR__, gnu_get_libc_version());
+#endif
 #endif
 #if HAVE_CUDA
 	printf("CUDA library version: %s\n",get_cuda_header_version());
