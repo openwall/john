@@ -149,7 +149,7 @@ static MAYBE_INLINE char *mgetl(char *res)
 		vstoreu((vtype*)pos, x);
 		if (v) {
 #ifdef __GNUC__
-			unsigned int r = __builtin_ctz(v);
+			unsigned int r = __builtin_ctzl(v);
 #else
 			unsigned int r = ffs(v) - 1;
 #endif

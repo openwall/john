@@ -149,7 +149,7 @@ static inline uint64_t _mm512_cmp_epi8_mask(__m512i a, __m512i b, const int imm)
 	_mm512_store_si512(mb, b);
 
 	for (i = 0; i < 64; ++i)
-		mask |= ((ma[i] == mb[i]) << i);
+		mask |= ((uint64_t)(ma[i] == mb[i]) << i);
 
 	return mask;
 }

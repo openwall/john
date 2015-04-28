@@ -333,7 +333,7 @@ static void sha1_fmt_set_key(char *key, int index)
 
 	// FIXME: even uint64_t won't be long enough for AVX-1024
 	uint64_t mask = vcmpeq_epi8_mask(X, Z);
-	uint32_t len = __builtin_ctz(mask);
+	uint32_t len = __builtin_ctzl(mask);
 
 	// Create a lookup tables to find correct masks for each supported input
 	// length. It would be nice if we could use bit shifts to produce these
