@@ -223,12 +223,6 @@ static void listconf_list_build_info(void)
 #endif
 #endif
 
-#ifdef __GLIBC_MINOR__
-#ifdef __GNUC__
-	printf("GNU libc version: %d.%d (loaded: %s)\n",
-	       __GLIBC__, __GLIBC_MINOR__, gnu_get_libc_version());
-#endif
-#endif
 #if HAVE_CUDA
 	printf("CUDA library version: %s\n",get_cuda_header_version());
 #endif
