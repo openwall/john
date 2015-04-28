@@ -183,6 +183,7 @@ Netscape LDAP SHA-1	nsldap, Netscape LDAP {SHA}
 Netscreen MD5	md5ns, Netscreen
 NT MD4	NT
 NT v2	NT
+NT-old	NT
 NTLMv1 C/R MD4 DES	netntlm, NTLMv1 C/R
 NTLMv1 C/R MD4 DES (ESS MD5)	netntlm, NTLMv1 C/R
 NTLMv2 C/R MD4 HMAC-MD5	netntlmv2, NTLMv2 C/R
