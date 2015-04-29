@@ -331,9 +331,13 @@ static void sha1_fmt_set_key(char *key, int index)
 	vtype  X   = vloadu(key);
 	vtype  B;
 
+#if (__AVX512F__ && !__AVX512BW__) || __MIC__
+	uint32_t len = strlen(key);
+#else
 	// FIXME: even uint64_t won't be long enough for AVX-1024
 	uint64_t mask = vcmpeq_epi8_mask(X, Z);
 	uint32_t len = __builtin_ctzl(mask);
+#endif
 
 	// Create a lookup tables to find correct masks for each supported input
 	// length. It would be nice if we could use bit shifts to produce these
