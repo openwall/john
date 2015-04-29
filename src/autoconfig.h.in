@@ -90,9 +90,6 @@
 /* "Enable if GetFileSizeEx function is available" */
 #undef HAVE_GETFILESIZEEX
 
-/* Define to 1 if you have the `getpagesize' function. */
-#undef HAVE_GETPAGESIZE
-
 /* Define to 1 if you have the <gmp/gmp.h> header file. */
 #undef HAVE_GMP_GMP_H
 
@@ -174,7 +171,7 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
-/* Define to 1 if you have a working `mmap' system call. */
+/* Define to 1 if you have the `mmap' function. */
 #undef HAVE_MMAP
 
 /* Define to 1 if you have the <netdb.h> header file. */

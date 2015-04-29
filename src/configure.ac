@@ -596,7 +596,6 @@ AS_IF([test $CPU_BIT_STR -ge 64], [AS_IF([test "x$enable_int128" != xno], [AC_CH
 
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
-AC_FUNC_MMAP
 
 # JtR's usage of fork may not work on minwin, even though the AC_FUNC_FORK says it should
 case "$host_os" in
@@ -626,7 +625,7 @@ dnl   setenv/putenv  fseek/ftell set,   memmem  sleep
 dnl   stri*cmp/strcasecmp strlwr/strupr/strrev
 dnl --------------------------------------------------------------------
 AC_CHECK_FUNCS([fseek64 fseeko fseeko64 _fseeki64 lseek64 lseek ftell64 ftello \
-               ftello64 _ftelli64 fopen64 _fopen64 memmem sleep \
+               ftello64 _ftelli64 fopen64 _fopen64 memmem mmap sleep \
                setenv putenv strcasecmp strncasecmp \
                stricmp strcmpi _stricmp _strcmpi strnicmp strncmpi _strnicmp \
                _strncmpi strnlen strlwr strupr strrev \
@@ -867,6 +866,12 @@ else
    using_bz2=no
 fi
 
+if test "x$ac_cv_func_mmap" != xno; then
+   using_mmap=yes
+else
+   using_mmap=no
+fi
+
 if test "x$host_cpu" != "x$CPU_STR" ; then
    host_cpu="$host_cpu $CPU_STR"
 fi
@@ -934,20 +939,21 @@ AES-NI support .............................. ${using_aesni}
 Target OS ................................... ${host_os}
 Cross compiling ............................. ${cross_compiling}
 Legacy arch header .......................... ${ARCH_LINK}
+
+Optional libraries/features found:
+Experimental code ........................... ${experimental}
 OpenMPI support (default disabled) .......... ${using_mpi}
 Fork support ................................ ${ac_cv_func_fork_works}
 OpenMP support .............................. ${using_omp}
 OpenCL support .............................. ${using_cl}
 CUDA support ................................ ${using_cuda}
 Generic crypt(3) format ..................... ${using_crypt}
-
-Optional libraries/features found:
-Experimental code ........................... ${experimental}
 Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (PRINCE mode and faster SRP formats) .... ${ac_cv_lib_gmp___gmpz_init}
 128-bit integer (faster PRINCE mode) ........ ${have_int128}
 PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
+Memory map (share/page large files) ......... ${using_mmap}
 
 Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ............ ${memdbg_settings}
