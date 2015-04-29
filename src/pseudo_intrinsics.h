@@ -45,7 +45,6 @@ typedef __m512i vtype;
 #define vand                    _mm512_and_si512
 #define vandnot                 _mm512_andnot_si512
 #define vcmov(y, z, x)          vxor(z, vand(x, vxor(y, z)))
-#define vcmpeq_epi8_mask        (uint64_t)_mm512_cmpeq_epi8_mask
 /*
  * NOTE: AVX2 has it as (base, index, scale) while MIC and AVX512 are
  * different.
@@ -111,6 +110,7 @@ typedef __m512i vtype;
 }
 
 #if __AVX512BW__
+#define vcmpeq_epi8_mask        (uint64_t)_mm512_cmpeq_epi8_mask
 #define vshuffle_epi8           _mm512_shuffle_epi8
 #define vshufflehi_epi16        _mm512_shufflehi_epi16
 #define vshufflelo_epi16        _mm512_shufflelo_epi16
@@ -136,27 +136,6 @@ typedef __m512i vtype;
                                      0x08090a0b0c0d0e0fULL, \
                                      0x0001020304050607ULL))
 #else // workarounds without AVX512BW
-
-// Currently this is equivalent to _mm512_cmpeq_epi8_mask
-static inline uint64_t _mm512_cmp_epi8_mask(__m512i a, __m512i b, const int imm)
-{
-	char JTR_ALIGN(64) ma[64],
-	     JTR_ALIGN(64) mb[64];
-	uint64_t mask = 0;
-	int i;
-
-	_mm512_store_si512(ma, a);
-	_mm512_store_si512(mb, b);
-
-	for (i = 0; i < 64; ++i)
-		mask |= ((uint64_t)(ma[i] == mb[i]) << i);
-
-	return mask;
-}
-#ifndef _mm512_cmpeq_epi8_mask // needed by gcc-4.9
-#define _mm512_cmpeq_epi8_mask(a, b) _mm512_cmp_epi8_mask(a, b, _MM_CMPINT_EQ)
-#endif
-
 #define vswap32(n)                                                          \
     n = vxor(vsrli_epi32(n, 24),                                            \
              vxor(vslli_epi32(vsrli_epi32(vslli_epi32(n, 8), 24), 8),       \
