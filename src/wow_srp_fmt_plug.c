@@ -131,7 +131,7 @@ static unsigned char saved_salt[SALT_SIZE];
 static unsigned char user_id[USERNAMELEN];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[8];
-
+static int max_keys_per_crypt;
 
 static void init(struct fmt_main *self)
 {
@@ -149,7 +149,8 @@ static void init(struct fmt_main *self)
 	pSRP_CTX  = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*pSRP_CTX));
 
-	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
+	max_keys_per_crypt = self->params.max_keys_per_crypt;
+	for (i = 0; i < max_keys_per_crypt; ++i) {
 #ifdef HAVE_LIBGMP
 		mpz_init_set_str(pSRP_CTX[i].z_mod, "112624315653284427036559548610503669920632123929604336254260115573677366691719", 10);
 		mpz_init_set_str(pSRP_CTX[i].z_base, "47", 10);
@@ -173,6 +174,15 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
+#ifdef HAVE_LIBGMP
+	int i;
+	for (i = 0; i < max_keys_per_crypt; ++i) {
+		mpz_clear(pSRP_CTX[i].z_mod);
+		mpz_clear(pSRP_CTX[i].z_base);
+		mpz_clear(pSRP_CTX[i].z_exp);
+		mpz_clear(pSRP_CTX[i].z_rop);
+	}
+#endif
 	MEM_FREE(pSRP_CTX);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
