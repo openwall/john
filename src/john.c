@@ -854,7 +854,7 @@ static void john_load_conf_db(void)
 		if (john_main_process)
 			fprintf(stderr, "Target encoding can only be specified"
 			        " if input encoding is UTF-8\n");
-		exit(0);
+		error();
 	}
 
 	if (john_main_process)
@@ -1257,7 +1257,7 @@ static void john_init(char *name, int argc, char **argv)
 			if (john_main_process)
 			fprintf(stderr, "Internal encoding can only be "
 			        "specified if input encoding is UTF-8\n");
-			exit(0);
+			error();
 		}
 	}
 
