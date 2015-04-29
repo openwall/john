@@ -358,7 +358,7 @@ static void load_hash(struct db_salt *salt) {
 
 	if(i != (salt->count)) {
 		fprintf(stderr, "Something went wrong while loading hashes to gpu..Exiting..\n");
-		exit(0);
+		error();
 	}
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_loaded_hashes, CL_TRUE, 0, 16 * num_loaded_hashes, loaded_hashes, 0, NULL, multi_profilingEvent[5]), "failed in clEnqueueWriteBuffer buffer_keys");
