@@ -614,6 +614,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			map_end = mem_map + file_len;
 			map_scan_end = map_end - VSCANSZ;
 		}
+#else
+#warning Notice: No mmap() support.
 #endif
 
 		ourshare = options.node_count ?

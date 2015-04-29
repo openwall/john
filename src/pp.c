@@ -2355,8 +2355,10 @@ next_rule:
 #ifndef JTR_MODE
   return 0;
 #else
+#if defined(HAVE_MMAP)
   if (mem_map)
     munmap(mem_map, file_len);
+#endif
 
   crk_done();
   rec_done(event_abort || (status.pass && db->salts));
