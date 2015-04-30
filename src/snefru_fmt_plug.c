@@ -79,10 +79,12 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*saved_key));
-	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*crypt_out));
+	if (!saved_key) {
+		saved_key = mem_calloc(self->params.max_keys_per_crypt,
+		                       sizeof(*saved_key));
+		crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+		                       sizeof(*crypt_out));
+	}
 }
 
 static void done(void)

@@ -966,21 +966,23 @@ static void init(struct fmt_main *self)
 		    pers_opts.target_enc != ISO_8859_1)
 			self->methods.set_key = set_key_CP;
 	}
+	if (!saved_key) {
 #if SIMD_COEF_32
-	saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
-	                             sizeof(*saved_key) * 64, MEM_ALIGN_SIMD);
-	nthash    = mem_calloc_align(self->params.max_keys_per_crypt,
-	                             sizeof(*nthash) * 16, MEM_ALIGN_SIMD);
+		saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
+		                             sizeof(*saved_key) * 64, MEM_ALIGN_SIMD);
+		nthash    = mem_calloc_align(self->params.max_keys_per_crypt,
+		                             sizeof(*nthash) * 16, MEM_ALIGN_SIMD);
 #else
-	saved_key = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*saved_key));
-	nthash    = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*nthash) * 16);
-	saved_len = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*saved_len));
+		saved_key = mem_calloc(self->params.max_keys_per_crypt,
+		                       sizeof(*saved_key));
+		nthash    = mem_calloc(self->params.max_keys_per_crypt,
+		                       sizeof(*nthash) * 16);
+		saved_len = mem_calloc(self->params.max_keys_per_crypt,
+		                       sizeof(*saved_len));
 #endif
-	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(unsigned short));
+		crypt_key = mem_calloc(self->params.max_keys_per_crypt,
+		                       sizeof(unsigned short));
+	}
 	if (bitmap == NULL)
 		bitmap = mem_calloc_tiny(0x10000 / 8, MEM_ALIGN_CACHE);
 	else
