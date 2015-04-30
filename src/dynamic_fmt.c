@@ -739,29 +739,37 @@ static void init(struct fmt_main *pFmt)
 	pPriv->pFmtMain = pFmt;
 #ifdef _OPENMP
 	m_ompt = omp_get_max_threads();
-	md5_unicode_convert = (int*)mem_calloc(m_ompt, sizeof(int));
-	eLargeOut = (eLargeOut_t*)mem_calloc(m_ompt, sizeof(eLargeOut_t));
-	for (i = 0; i < m_ompt; ++i)
-		eLargeOut[i] = eBase16;
+	if (!md5_unicode_convert) {
+		md5_unicode_convert = (int*)mem_calloc(m_ompt, sizeof(int));
+		eLargeOut = (eLargeOut_t*)mem_calloc(m_ompt, sizeof(eLargeOut_t));
+		for (i = 0; i < m_ompt; ++i)
+			eLargeOut[i] = eBase16;
+	}
 #else
-	md5_unicode_convert = (int*)mem_calloc(1, sizeof(int));
-	eLargeOut = (eLargeOut_t*)mem_calloc(1, sizeof(eLargeOut_t));
-	eLargeOut[0] = eBase16;
+	if (!md5_unicode_convert) {
+		md5_unicode_convert = (int*)mem_calloc(1, sizeof(int));
+		eLargeOut = (eLargeOut_t*)mem_calloc(1, sizeof(eLargeOut_t));
+		eLargeOut[0] = eBase16;
+	}
 #endif
 #ifdef SIMD_COEF_32
-	input_buf  = mem_calloc_align(1, MMX_INP_BUF_SZ, MEM_ALIGN_SIMD);
-	total_len  = mem_calloc_align(1, MMX_TOT_LEN_SZ, MEM_ALIGN_SIMD);
-	total_len2 = mem_calloc_align(1, MMX_TOT_LEN2_SZ, MEM_ALIGN_SIMD);
-	input_buf2 = mem_calloc_align(1, MMX_INP_BUF2_SZ, MEM_ALIGN_SIMD);
-	crypt_key  = mem_calloc_align(1, MMX_CRYPT_KEY_SZ, MEM_ALIGN_SIMD);
-	crypt_key2 = mem_calloc_align(1, MMX_CRYPT_KEY2_SZ, MEM_ALIGN_SIMD);
+	if (!input_buf) {
+		input_buf  = mem_calloc_align(1, MMX_INP_BUF_SZ, MEM_ALIGN_SIMD);
+		total_len  = mem_calloc_align(1, MMX_TOT_LEN_SZ, MEM_ALIGN_SIMD);
+		total_len2 = mem_calloc_align(1, MMX_TOT_LEN2_SZ, MEM_ALIGN_SIMD);
+		input_buf2 = mem_calloc_align(1, MMX_INP_BUF2_SZ, MEM_ALIGN_SIMD);
+		crypt_key  = mem_calloc_align(1, MMX_CRYPT_KEY_SZ, MEM_ALIGN_SIMD);
+		crypt_key2 = mem_calloc_align(1, MMX_CRYPT_KEY2_SZ, MEM_ALIGN_SIMD);
+	}
 #endif
-	crypt_key_X86  = (MD5_OUT *)mem_calloc(((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1), sizeof(*crypt_key_X86));
-	crypt_key2_X86 = (MD5_OUT *)mem_calloc(((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1), sizeof(*crypt_key2_X86));
-	input_buf_X86  = (MD5_IN *)mem_calloc(((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1), sizeof(*input_buf_X86));
-	input_buf2_X86 = (MD5_IN *)mem_calloc(((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1), sizeof(*input_buf2_X86));
-	total_len_X86  = (unsigned int *)mem_calloc((MAX_KEYS_PER_CRYPT_X86+1), sizeof(*total_len_X86));
-	total_len2_X86 = (unsigned int *)mem_calloc((MAX_KEYS_PER_CRYPT_X86+1), sizeof(*total_len2_X86));
+	if (!crypt_key_X86) {
+		crypt_key_X86  = (MD5_OUT *)mem_calloc(((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1), sizeof(*crypt_key_X86));
+		crypt_key2_X86 = (MD5_OUT *)mem_calloc(((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1), sizeof(*crypt_key2_X86));
+		input_buf_X86  = (MD5_IN *)mem_calloc(((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1), sizeof(*input_buf_X86));
+		input_buf2_X86 = (MD5_IN *)mem_calloc(((MAX_KEYS_PER_CRYPT_X86>>MD5_X2)+1), sizeof(*input_buf2_X86));
+		total_len_X86  = (unsigned int *)mem_calloc((MAX_KEYS_PER_CRYPT_X86+1), sizeof(*total_len_X86));
+		total_len2_X86 = (unsigned int *)mem_calloc((MAX_KEYS_PER_CRYPT_X86+1), sizeof(*total_len2_X86));
+	}
 
 	gost_init_table();
 	if (!pPriv || (pPriv->init == 1 && !strcmp(curdat.dynamic_WHICH_TYPE_SIG, pPriv->dynamic_WHICH_TYPE_SIG)))
