@@ -342,6 +342,11 @@ extern void fmt_init(struct fmt_main *format);
 extern void fmt_done(struct fmt_main *format);
 
 /*
+ * De-initializes all initialized formats.
+ */
+extern void fmt_all_done(void);
+
+/*
  * Tests the format's methods for correct operation. Returns NULL on
  * success, method name on error.
  */

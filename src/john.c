@@ -960,6 +960,8 @@ static void john_load(void)
 				database.password_count -
 				database.guess_count);
 
+			fmt_all_done();
+
 			return;
 		}
 

@@ -107,6 +107,22 @@ void fmt_done(struct fmt_main *format)
 	}
 }
 
+void fmt_all_done(void)
+{
+	struct fmt_main *format = fmt_list;
+
+	while (format) {
+		if (format->private.initialized) {
+			format->methods.done();
+			format->private.initialized = 0;
+		}
+		format = format->next;
+	}
+#ifdef HAVE_OPENCL
+	opencl_done();
+#endif
+}
+
 static int is_poweroftwo(size_t align)
 {
 	return align != 0 && (align & (align - 1)) == 0;
