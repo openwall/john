@@ -265,7 +265,7 @@ char *prepare_regex(char *regex, int *bCase, char **regex_alpha) {
 		fprintf(stderr,
 		        "--regex need to contain \"\\0\" in combination"
 		        " with wordist, or an alpha option\n");
-		exit(0);
+		error();
 	} else {
 		log_event("- Rexgen (after rules): %s", regex);
 	}
