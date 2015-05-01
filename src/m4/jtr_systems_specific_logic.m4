@@ -70,6 +70,8 @@ case "$host_os" in
     ;;
 
   linux*|cygwin*)
+    # For exposing fileno()
+    JTR_LIST_ADD(CFLAGS_EXTRA, [-D_POSIX_SOURCE])
     # For exposing memmem()
     AS_IF([test "x$ac_cv_func_memmem" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_GNU_SOURCE])])
     # For exposing aligned_alloc
