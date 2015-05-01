@@ -877,7 +877,7 @@ public void
 Symmetric_Key_Encrypted_Session_Key_Packet(int len)
 {
 	int left = len, alg;
-	fprintf(stderr, "(Symmetric_Key_Encrypted_Session_Key_Packet) Make us add support for such files ;(\n");
+	fprintf(stderr, "[!] Symmetrically encrypted PGP files are not supported, currently. Try using \"PGPCrack-NG\" program instead.\n");
 	ver(NULL_VER, 4, Getc());
 	alg = Getc();
 	sym_algs(alg);
