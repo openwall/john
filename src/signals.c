@@ -146,6 +146,16 @@ void check_abort(int be_async_signal_safe)
 
 static void sig_install_abort(void);
 
+#if OS_FORK
+static void signal_children(int signum)
+{
+	int i;
+	for (i = 0; i < john_child_count; i++)
+		if (john_child_pids[i])
+			kill(john_child_pids[i], signum);
+}
+#endif
+
 static void sig_handle_abort(int signum)
 {
 	int saved_errno = errno;
@@ -154,6 +164,14 @@ static void sig_handle_abort(int signum)
 
 	event_abort = event_pending = 1;
 
+	 #if OS_FORK
+	// Forward SIGINT,SIGTERM to children
+	if(john_main_process)
+	{
+	  signal_children(signum);
+	}
+	#endif
+	
 	write_loop(2, "Wait...\r", 8);
 
 	sig_install_abort();
@@ -205,15 +223,6 @@ static void sig_remove_abort(void)
 #endif
 }
 
-#if OS_FORK
-static void signal_children(int signum)
-{
-	int i;
-	for (i = 0; i < john_child_count; i++)
-		if (john_child_pids[i])
-			kill(john_child_pids[i], signum);
-}
-#endif
 
 static void sig_install_timer(void);
 
