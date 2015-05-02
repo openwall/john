@@ -658,13 +658,15 @@ static void *get_salt(char *ciphertext)
 
 	psalt = mem_calloc(1, sizeof(PKZ_SALT) + ex_len[0]+ex_len[1]+ex_len[2]+2);
 	memcpy(psalt, salt, sizeof(*salt));
-	MEM_FREE(salt);
 	memcpy(psalt->zip_data, H[0], ex_len[0]);
 	MEM_FREE(H[0]);
-	memcpy(psalt->zip_data+ex_len[0]+1, H[1], ex_len[1]);
+	if(salt->cnt > 1)
+		memcpy(psalt->zip_data+ex_len[0]+1, H[1], ex_len[1]);
 	MEM_FREE(H[1]);
-	memcpy(psalt->zip_data+ex_len[0]+ex_len[1]+2, H[2], ex_len[2]);
+	if(salt->cnt > 2)
+		memcpy(psalt->zip_data+ex_len[0]+ex_len[1]+2, H[2], ex_len[2]);
 	MEM_FREE(H[2]);
+	MEM_FREE(salt);
 
 	psalt->dsalt.salt_alloc_needs_free = 1;  // we used mem_calloc, so JtR CAN free our pointer when done with them.
 	// NOTE, we need some way to close the BIO and EVP crap!!
