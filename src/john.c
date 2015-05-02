@@ -884,6 +884,20 @@ static void john_load_conf_db(void)
 	}
 }
 
+static void db_main_free(struct db_main *db)
+{
+	if (db->format &&
+		(db->format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
+		struct db_salt *psalt = db->salts;
+		while (psalt) {
+			dyna_salt_remove(psalt->salt);
+			psalt = psalt->next;
+		}
+	}
+	MEM_FREE(db->salt_hash);
+	MEM_FREE(db->cracked_hash);
+}
+
 static void john_load(void)
 {
 	struct list_entry *current;
@@ -1101,6 +1115,7 @@ static void john_load(void)
 		options.loader.flags &= ~DB_CRACKED;
 		pers_opts.activepot = save_pot;
 		fmt_list = save_list;
+		db_main_free(&loop_db);
 	}
 
 #ifdef _OPENMP
@@ -1504,17 +1519,11 @@ static void john_done(void)
 
 	path_done();
 
-	/* this may not be the correct place to free this, it likely can be freed much earlier, but it works here */
-	if (database.format && (database.format->params.flags &  FMT_DYNA_SALT) == FMT_DYNA_SALT) {
-		struct db_salt *psalt = database.salts;
-		while (psalt) {
-			dyna_salt_remove(psalt->salt);
-			psalt = psalt->next;
-		}
-	}
-	MEM_FREE(database.salt_hash);
-	MEM_FREE(database.cracked_hash);
-
+/*
+ * This may not be the correct place to free this, it likely
+ * can be freed much earlier, but it works here
+ */
+	db_main_free(&database);
 	check_abort(0);
 	cleanup_tiny_memory();
 }
