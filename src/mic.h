@@ -60,8 +60,8 @@
 
 #define MD5_SSE_PARA		1
 #define MD5_N_STR			"16x"
-#define MD4_SSE_PARA		1
-#define MD4_N_STR			"16x"
+#define MD4_SSE_PARA		6
+#define MD4_N_STR			"16x6"
 #define SHA1_SSE_PARA		1
 #define SHA1_N_STR			"16x"
 
