@@ -279,12 +279,15 @@ rare after a few minutes.  For long-living sessions, which is where we
 care about performance the most, this overhead is negligible.  This is a
 very low price for the better order of candidate passwords tried.
 
-Q: What are the "real" and "virtual" c/s rates as reported by "--test"
-(on Unix-like operating systems)?
+Q: What are the "real" and "virtual" c/s rates as reported by "--test"?
 A: These correspond to real and virtual (processor) time, respectively.
-The two results would differ when the system is under other load, with
-the "virtual" c/s rate indicating roughly what you could expect to get
-from the same machine if it were not loaded.
+When running single-threaded, the two results are normally almost the
+same, but the "real" c/s rate becomes smaller when the system is under
+other load, with the "virtual" c/s rate indicating roughly what you
+could expect to get from the same system if it were not loaded.  When
+running multi-threaded, the "real" c/s rate is normally much higher than
+the "virtual" c/s rate, with the latter roughly indicating performance
+of one thread on an otherwise idle system.
 
 Q: How can I test John's password hashing routines for proper operation?
 A: John always performs a self-test when you run it on a password file
