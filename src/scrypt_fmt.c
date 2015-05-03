@@ -159,7 +159,11 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 		if (!isdec(cp)) return fields[1];
 		p = atoi(cp);
 		cp = strtokm(NULL, "*");
+		if (!cp)
+			return fields[1];
 		cp2 = strtokm(NULL, "*");
+		if (!cp2)
+			return fields[1];
 		if (base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT) != strlen(cp))
 			return fields[1];
 		if (base64_valid_length(cp2, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT) != strlen(cp2))
