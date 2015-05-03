@@ -215,6 +215,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* qop */
 		goto err;
+	if ((p = strtokm(NULL, "$")) != NULL)
+		goto err;
 
 	MEM_FREE(keeptr);
 	return 1;
