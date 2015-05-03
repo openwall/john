@@ -150,13 +150,13 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 			return fields[1];
 		strcpy(tmp, &fields[1][sizeof(FMT_SCRYPTKDF)-1]);
 		cp = strtokm(tmp, "*");
-		if (!isdec(cp)) return fields[1];
+		if (!cp || !isdec(cp)) return fields[1];
 		N = atoi(cp);
 		cp = strtokm(NULL, "*");
-		if (!isdec(cp)) return fields[1];
+		if (!cp || !isdec(cp)) return fields[1];
 		r = atoi(cp);
 		cp = strtokm(NULL, "*");
-		if (!isdec(cp)) return fields[1];
+		if (!cp || !isdec(cp)) return fields[1];
 		p = atoi(cp);
 		cp = strtokm(NULL, "*");
 		if (!cp)
