@@ -132,9 +132,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 6;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* length */
 		goto err;
-	len = atoi(p);
 	if (!isdec(p))
 		goto err;
+	len = atoi(p);
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data */
 		goto err;
 	if (!ishex(p))
