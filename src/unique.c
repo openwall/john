@@ -27,9 +27,10 @@
 
 #if AC_BUILT
 #include "autoconfig.h"
+#else
+#define _POSIX_SOURCE /* for fdopen(3) */
 #endif
 
-#define _POSIX_SOURCE /* for fdopen(3) */
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>

@@ -10,16 +10,15 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-/* NOTE, _POSIX_SOURCE fuk's up solaris 32 bit 64 bit processing!!! */
-#ifndef sparc
-#define _POSIX_SOURCE /* for fileno(3) */
-#endif
-
 #include <stdio.h>
 #include <sys/stat.h>
 
 #if AC_BUILT
 #include "autoconfig.h"
+#else
+#ifndef sparc
+#define _POSIX_SOURCE /* for fileno(3) */
+#endif
 #endif
 
 #include "os.h"
