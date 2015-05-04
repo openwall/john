@@ -530,6 +530,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				char *getkey = format->methods.get_key(i);
 				char *setkey = longcand(format, i, ml);
 
+				if (!getkey)
+					return "get_key() returned NULL";
+
 				if (strncmp(getkey, setkey, ml + 1)) {
 					if (strnlen(getkey, ml + 1) > ml)
 					sprintf(s_size, "max. length in index "
