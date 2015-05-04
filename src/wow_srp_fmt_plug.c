@@ -219,14 +219,20 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static void StripZeros(const char *ct, char *ct2) {
+/*
+ * Copy as much as ct2_size to ct2 to avoid buffer overflow
+ */
+static void StripZeros(const char *ct, char *ct2, const int ct2_size) {
 	int i;
-	for (i = 0; i < WOWSIGLEN; ++i)
+
+	for (i = 0; i < WOWSIGLEN && i < (ct2_size - 1); ++i)
 		*ct2++ = *ct++;
 	while (*ct == '0')
 		++ct;
-	while (*ct)
+	while (*ct && i < (ct2_size - 1)) {
 		*ct2++ = *ct++;
+		i++;
+	}
 	*ct2 = 0;
 }
 
@@ -240,7 +246,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
 	cp = strchr(split_fields[1], '*');
 	if (cp) {
 		if (split_fields[1][WOWSIGLEN] == '0') {
-			StripZeros(split_fields[1], ct);
+			StripZeros(split_fields[1], ct, sizeof(ct));
 			return ct;
 		}
 		return split_fields[1];
@@ -254,7 +260,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
 	// Ok, if there are leading 0's for that binary resultant value, then remove them.
 	if (ct[WOWSIGLEN] == '0') {
 		char ct2[128+32+1];
-		StripZeros(ct, ct2);
+		StripZeros(ct, ct2, sizeof(ct2));
 		strcpy(ct, ct2);
 	}
 	return ct;
@@ -271,7 +277,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt) {
 	if (cp) *cp = '*';
 	if (ct[WOWSIGLEN] == '0') {
 		char ct2[128+32+1];
-		StripZeros(ct, ct2);
+		StripZeros(ct, ct2, sizeof(ct2));
 		strcpy(ct, ct2);
 	}
 	return ct;
