@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006,2010,2013 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2010,2013,2015 by Solar Designer
  *
  * ...with changes in the jumbo patch, by JimF and magnum.
  *
@@ -126,6 +126,16 @@ void sig_timer_emu_tick(void)
 
 #endif
 
+#if OS_FORK
+static void signal_children(int signum)
+{
+	int i;
+	for (i = 0; i < john_child_count; i++)
+		if (john_child_pids[i])
+			kill(john_child_pids[i], signum);
+}
+#endif
+
 static void sig_install(void *handler, int signum)
 {
 #ifdef SA_RESTART
@@ -190,6 +200,38 @@ static void sig_handle_abort(int signum)
 {
 	int saved_errno = errno;
 
+#if OS_FORK
+	if (john_main_process) {
+/*
+ * We assume that our children are running on the same tty with us, so if we
+ * receive a SIGINT they probably do as well without us needing to forward the
+ * signal to them.  If we forwarded the signal anyway, this could result in
+ * them receiving the signal twice for a single Ctrl-C keypress and proceeding
+ * with immediate abort without updating the files, which is behavior that we
+ * reserve for (presumably intentional) repeated Ctrl-C keypress.
+ *
+ * We forward the signal as SIGINT even though ours was different (typically a
+ * SIGTERM) in order not to trigger a repeated same signal for children if the
+ * user does e.g. "killall john", which would send SIGTERM directly to children
+ * and also have us forward a signal.
+ */
+		if (signum != SIGINT)
+			signal_children(SIGINT);
+	} else {
+		static int prev_signum;
+/*
+ * If it's not the same signal twice in a row, don't proceed with immediate
+ * abort since these two signals could have been triggered by the same killall
+ * (perhaps a SIGTERM from killall directly and a SIGINT as forwarded by our
+ * parent).  event_abort would be set back to 1 just below the check_abort()
+ * call.  We only reset it to 0 temporarily to skip the immediate abort here.
+ */
+		if (prev_signum && signum != prev_signum)
+			event_abort = 0;
+		prev_signum = signum;
+	}
+#endif
+
 	check_abort(1);
 
 	event_abort = event_pending = 1;
@@ -246,16 +288,6 @@ static void sig_remove_abort(void)
 	signal(SIGXFSZ, SIG_DFL);
 #endif
 }
-
-#if OS_FORK
-static void signal_children(int signum)
-{
-	int i;
-	for (i = 0; i < john_child_count; i++)
-		if (john_child_pids[i])
-			kill(john_child_pids[i], signum);
-}
-#endif
 
 static void sig_install_timer(void);
 #ifndef BENCH_BUILD

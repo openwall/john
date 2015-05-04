@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2003,2005,2011-2013 by Solar Designer
+ * Copyright (c) 1996-2000,2003,2005,2011-2013,2015 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -883,6 +883,10 @@ void *c_lookup(char *name)
 
 void c_execute_fast(void *addr)
 {
+/*
+ * Push a NULL pc to the stack, so that when the VM function invokes
+ * c_f_op_return() it sets pc to NULL terminating the loop below.
+ */
 	c_stack[0].pc = NULL;
 	c_sp = &c_stack[2];
 
@@ -915,7 +919,14 @@ void c_execute_fast(void *addr)
 void c_execute_fast(void *addr)
 {
 	union c_insn *pc = addr;
-	union c_insn *sp = c_stack;
+/*
+ * We cache the top of stack value in imm.  We initially set sp to &c_stack[2]
+ * so that there's room for op_push_* to spill imm to stack even when there
+ * wasn't actually a previous top of stack value to cache (since we're at the
+ * top level).  It is simpler and quicker to let them do it than to treat this
+ * as a special case in the code.
+ */
+	union c_insn *sp = &c_stack[2];
 	c_int imm = 0;
 
 	static void *ops[] = {

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2004,2006,2009-2013 by Solar Designer
+ * Copyright (c) 1996-2004,2006,2009-2013,2015 by Solar Designer
  *
  * ...with changes in the jumbo patch, by JimF and magnum (and various others?)
  *
@@ -621,6 +621,7 @@ static void john_wait(void)
 
 	log_event("Waiting for %d child%s to terminate",
 	    waiting_for, waiting_for == 1 ? "" : "ren");
+	log_flush();
 	fprintf(stderr, "Waiting for %d child%s to terminate\n",
 	    waiting_for, waiting_for == 1 ? "" : "ren");
 
