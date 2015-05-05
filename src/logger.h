@@ -26,7 +26,8 @@ extern void log_init(char *log_name, char *pot_name, char *session);
  * Prints a guessed password to stdout and logs it to john.pot (unless
  * ciphertext is NULL) and other related information to the log file.
  */
-extern void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain, char *store_plain, char field_sep);
+extern void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
+                      char *store_plain, char field_sep, int index);
 
 /*
  * Logs an arbitrary event.

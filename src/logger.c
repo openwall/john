@@ -307,7 +307,8 @@ static char *components(char *string, int len)
 	return out;
 }
 
-void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain, char *store_plain, char field_sep)
+void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
+               char *store_plain, char field_sep, int index)
 {
 	int count1, count2;
 	int len;
@@ -387,7 +388,7 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain, char *
 				                       " as candidate #%llu",
 				                       ((unsigned long long)
 				                       status.cands.hi << 32) +
-				                       status.cands.lo);
+				                       status.cands.lo + index + 1);
 			count2 += (int)sprintf(log.ptr + count2, "\n");
 
 			if (count2 > 0)

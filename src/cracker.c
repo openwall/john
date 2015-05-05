@@ -343,7 +343,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		          crk_db->options->flags & DB_LOGIN ? repuid : "",
 		          dupe ?
 		          NULL : crk_methods.source(pw->source, pw->binary),
-		          repkey, key, crk_db->options->field_sep_char);
+		          repkey, key, crk_db->options->field_sep_char, index);
 
 		if (options.flags & FLG_CRKSTAT)
 			event_pending = event_status = 1;
