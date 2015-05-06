@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004,2006,2008-2012 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006,2008-2012,2015 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -24,6 +24,7 @@
 #include <string.h>
 #include <signal.h>
 #include <time.h>
+#include <assert.h>
 #include <sys/time.h>
 #include <sys/times.h>
 
@@ -110,7 +111,9 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 	clk_tck_init();
 
-	if (!(current = format->params.tests)) return "FAILED (no data)";
+	if (!(current = format->params.tests) || !current->ciphertext)
+		return "FAILED (no data)";
+
 	if ((where = fmt_self_test(format))) {
 		sprintf(s_error, "FAILED (%s)", where);
 		return s_error;
@@ -132,10 +135,16 @@ char *benchmark_format(struct fmt_main *format, int salts,
 			ciphertext = format->methods.split(
 			    format->methods.prepare(fields, format), 0, format);
 			salt = format->methods.salt(ciphertext);
-		} else
+		} else {
+			assert(index > 0);
+/* If we have exactly one test vector, reuse its salt in two_salts[1] */
 			salt = two_salts[0];
+		}
 
-		memcpy(two_salts[index], salt, format->params.salt_size);
+/* mem_alloc()'ed two_salts[index] may be NULL if salt_size is 0 */
+		if (format->params.salt_size)
+			memcpy(two_salts[index], salt,
+			    format->params.salt_size);
 	}
 
 	if (format->params.benchmark_length > 0) {
