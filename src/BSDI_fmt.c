@@ -276,7 +276,8 @@ static void set_key(char *key, int index)
 		ptr -= 8;
 		for (word = 0; word < 2; word++)
 		for (pos = 0; pos < 4; pos++)
-			block[word] ^= (ARCH_WORD)*ptr++ << (1 + (pos << 3));
+			block[word] ^= (unsigned ARCH_WORD)(unsigned char)
+			    *ptr++ << (1 + (pos << 3));
 
 #if !DES_BS
 		if (current_salt)
