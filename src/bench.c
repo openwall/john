@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004,2006,2008-2012 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006,2008-2012,2015 by Solar Designer
  *
  * ...with changes in the jumbo patch, by JimF and magnum
  *
@@ -35,6 +35,7 @@
 #include <string.h>
 #include <signal.h>
 #include <time.h>
+#include <assert.h>
 #if HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
@@ -200,7 +201,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 	clk_tck_init();
 
-	if (!(current = format->params.tests)) return "FAILED (no data)";
+	if (!(current = format->params.tests) || !current->ciphertext)
+		return "FAILED (no data)";
 
 #if FMT_MAIN_VERSION > 11
 #ifndef BENCH_BUILD
@@ -243,8 +245,9 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		return s_error;
 	}
 #endif
+	if (!(current = format->params.tests) || !current->ciphertext)
+		return "FAILED (no data)";
 #endif
-	if (!(current = format->params.tests)) return "FAILED (no data)";
 	if ((where = fmt_self_test(format))) {
 		sprintf(s_error, "FAILED (%s)\n", where);
 		return s_error;
@@ -271,10 +274,16 @@ char *benchmark_format(struct fmt_main *format, int salts,
 			    format->methods.prepare(fields, format), 0, format);
 			salt = format->methods.salt(ciphertext);
 			dyna_salt_create(salt);
-		} else
+		} else {
+			assert(index > 0);
+/* If we have exactly one test vector, reuse its salt in two_salts[1] */
 			salt = two_salts[0];
+		}
 
-		memcpy(two_salts[index], salt, format->params.salt_size);
+/* mem_alloc()'ed two_salts[index] may be NULL if salt_size is 0 */
+		if (format->params.salt_size)
+			memcpy(two_salts[index], salt,
+			    format->params.salt_size);
 #ifndef BENCH_BUILD
 #if FMT_MAIN_VERSION > 11
 		for (i = 0; i < FMT_TUNABLE_COSTS &&
