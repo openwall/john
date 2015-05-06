@@ -124,7 +124,7 @@ typedef struct _hdr {
 	ARCH_WORD_32 mdbg_cnt;
 	ARCH_WORD_32 mdbg_size;
 #if SIMD_COEF_32 > 4
-	char padding[(sizeof(vtype) - ((4 * sizeof(void*) - 4 * sizeof(ARCH_WORD_32)) & (sizeof(vtype) - 1)))];
+	char padding[((sizeof(vtype) - ((4 * sizeof(void*) - 4 * sizeof(ARCH_WORD_32)) & (sizeof(vtype) - 1)))) & (sizeof(vtype) - 1)];
 #endif
 /* this should be 'right' against the allocated block, for underflow catching */
 	ARCH_WORD_32 mdbg_fpst;
