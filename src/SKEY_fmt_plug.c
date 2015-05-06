@@ -195,20 +195,22 @@ skey_salt(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {
 	static unsigned char *realcipher;
-	char buf[128], *p;
+	char *ctcopy, *p;
 
 	if (!realcipher)
 		realcipher = mem_alloc_tiny(SKEY_BINKEY_SIZE, MEM_ALIGN_WORD);
-	strnzcpy(buf, ciphertext, sizeof(buf));
+	ctcopy = strdup(ciphertext);
+	p = strtok(ctcopy, " \t");
 
-	p = strtok(buf, " \t");
 	if (isalpha((unsigned char)(*p)))
 		strtok(NULL, " \t");
 	strtok(NULL, " \t");
 	p = strtok(NULL, " \t");
+
 	memset(realcipher, 0, SKEY_BINKEY_SIZE);
 	hex_decode(p, realcipher,SKEY_BINKEY_SIZE);
 
+	MEM_FREE(ctcopy);
 	return realcipher;
 }
 
