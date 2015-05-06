@@ -77,7 +77,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 /* We assume that these are zero-initialized */
 	static char sup_length[BINARY_SIZE], sup_id[0x80];
 
-	length = count_base64 = 0;
+	length = count_base64 = count_base64_2 = 0;
 	while (ciphertext[length]) {
 		if (atoi64[ARCH_INDEX(ciphertext[length])] != 0x7F) {
 			count_base64++;
