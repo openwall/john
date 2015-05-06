@@ -182,6 +182,11 @@ void opt_init(char *name, int argc, char **argv)
 	opt_check(opt_list, options.flags, argv);
 
 	if (options.session) {
+		if (strchr(options.session, '.')) {
+			fprintf(stderr,
+			    "Invalid session name: must not contain a dot\n");
+			error();
+		}
 		rec_name = options.session;
 		rec_name_completed = 0;
 	}
