@@ -302,6 +302,7 @@ static void *get_salt(char *ciphertext)
 					ERR_print_errors_fp(stderr);
 					error();
 				}
+				return NULL;
 			}
 			/* PEM encoded DSA and RSA private keys are supported. */
 			if (!strcmp(nm, PEM_STRING_DSA)) {
@@ -317,17 +318,19 @@ static void *get_salt(char *ciphertext)
 			OPENSSL_free(nm);
 			OPENSSL_free(header);
 			OPENSSL_free(data);
-			OPENSSL_free(psalt->bp);
 		}
 	}
+	OPENSSL_free(nm);
 
 	if (psalt->type == 0 && !PEM_get_EVP_CIPHER_INFO(header, &cipher)) {
 		ERR_print_errors_fp(stderr);
 		error();
+		return NULL;
 	}
 #ifdef SSH_FMT_DEBUG
 	printf("Header Information:\n%s\n", header);
 #endif
+	OPENSSL_free(header);
 
 	/* save custom_salt information */
 	memcpy(&(psalt->cipher), &cipher, sizeof(cipher));
@@ -338,6 +341,7 @@ static void *get_salt(char *ciphertext)
 	} else {
 		memcpy(psalt->data, data, len);
 		psalt->len = len;
+		OPENSSL_free(data);
 	}
 
 	psalt->dsalt.salt_alloc_needs_free = 1;  // we used mem_calloc, so JtR CAN free our pointer when done with them.
@@ -347,9 +351,7 @@ static void *get_salt(char *ciphertext)
 	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(struct custom_salt, len);
 	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(struct custom_salt, len, cipher, 0);
 
-	OPENSSL_free(nm);
-	OPENSSL_free(header);
-	OPENSSL_free(data);
+	BIO_free(psalt->bp);
 	MEM_FREE(copy);
 	MEM_FREE(decoded_data);
 
