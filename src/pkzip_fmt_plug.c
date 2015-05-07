@@ -14,6 +14,9 @@
  *
  */
 
+#include "arch.h"
+#if HAVE_LIBZ
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_pkzip;
 #elif FMT_REGISTERS_H
@@ -21,15 +24,14 @@ john_register_one(&fmt_pkzip);
 #else
 
 #include <string.h>
+#include <zlib.h>
 
 #include "common.h"
-#include "arch.h"
 #include "misc.h"
 #include "formats.h"
 #define USE_PKZIP_MAGIC 1
 #include "pkzip.h"
 
-#include <zlib.h>
 #include "pkzip_inffixed.h"  // This file is a data file, taken from zlib
 #include "loader.h"
 
@@ -1701,3 +1703,4 @@ struct fmt_main fmt_pkzip = {
 };
 
 #endif /* plugin stanza */
+#endif /* HAVE_LIBZ */

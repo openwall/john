@@ -418,7 +418,7 @@ else
 # libz is found in pkg-config --switch zlib
 #################
 AC_CHECK_LIB([m],[sqrt],[AC_DEFINE(HAVE_LIBM,1,[Define to 1 if you have the `m' library (-lm).])] [AC_SUBST(M_LIBS, [-lm])],[AC_MSG_FAILURE(JtR requires libm being installed,1)])
-AC_CHECK_LIB([z],[deflate],[AC_DEFINE(HAVE_LIBZ,1,[Define to 1 if you have the `z' library (-lz).])] [AC_SUBST(Z_LIBS, [-lz])],[AC_MSG_FAILURE(JtR requires libz being installed,1)])
+AC_CHECK_LIB([z],[deflate],[AC_DEFINE(HAVE_LIBZ,1,[Define to 1 if you have the `z' library (-lz).])] [AC_SUBST(Z_LIBS, [-lz])])
 BACKUP_LIBS="$LIBS"
 LIBS=""
 AC_SEARCH_LIBS([crypt],[crypt],[AC_DEFINE(HAVE_CRYPT,1,[Define to 1 if you have the `crypt' library (-lcrypt).])])
@@ -860,6 +860,12 @@ else
    using_crypt=no
 fi
 
+if test "x$ac_cv_lib_z_deflate" != xno; then
+   using_zlib=yes
+else
+   using_zlib=no
+fi
+
 if test "x$ac_cv_lib_bz2_main" != xno; then
    using_bz2=yes
 else
@@ -950,9 +956,10 @@ CUDA support ................................ ${using_cuda}
 Generic crypt(3) format ..................... ${using_crypt}
 Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (PRINCE mode and faster SRP formats) .... ${ac_cv_lib_gmp___gmpz_init}
-128-bit integer (faster PRINCE mode) ........ ${have_int128}
 PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
+Z (pkzip format, gpg2john) .................. ${using_zlib}
 BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
+128-bit integer (faster PRINCE mode) ........ ${have_int128}
 Memory map (share/page large files) ......... ${using_mmap}
 
 Development options (these may hurt performance when enabled):

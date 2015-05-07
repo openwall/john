@@ -38,6 +38,7 @@
 #include <stdarg.h>
 
 #if !AC_BUILT
+#define HAVE_LIBZ 1
 # include <string.h>
 # ifndef _MSC_VER
 #  include <strings.h>
@@ -68,8 +69,6 @@ int __riscosify_control = __RISCOSIFY_NO_PROCESS;
 
 typedef char * string;
 typedef unsigned char byte;
-
-#define HAVE_LIBZ 1
 
 #if HAVE_LIBZ
 #include <zlib.h>
