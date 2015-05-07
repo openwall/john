@@ -58,7 +58,7 @@ john_register_one(&fmt_office);
 
 #ifdef SIMD_COEF_64
 #define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64*8 )
-#define SHA512_LOOP_CNT SIMD_COEF_64
+#define SHA512_LOOP_CNT (SIMD_COEF_64 * SIMD_PARA_SHA512)
 #else
 #define SHA512_LOOP_CNT 1
 #endif
@@ -427,17 +427,13 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 	SHA512_CTX ctx;
 	unsigned char _IBuf[128*SHA512_LOOP_CNT+MEM_ALIGN_SIMD], *keys, _OBuf[64*SHA512_LOOP_CNT+MEM_ALIGN_SIMD];
 	ARCH_WORD_64 *keys64, *crypt;
-#if SIMD_COEF_64 <= 2
 	uint32_t *keys32, *crypt32;
-#endif
 
 	crypt = (ARCH_WORD_64*)mem_align(_OBuf, MEM_ALIGN_SIMD);
 	keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 	keys64 = (ARCH_WORD_64*)keys;
-#if SIMD_COEF_64 <= 2
 	keys32 = (uint32_t*)keys;
 	crypt32 = (uint32_t*)crypt;
-#endif
 
 	memset(keys, 0, 128*SHA512_LOOP_CNT);
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
@@ -452,35 +448,28 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 		keys[GETPOS_512(127, i)] = 0x20;
 		keys[GETPOS_512(126, i)] = 0x02;
 	}
-	// Create a byte array of the integer and put at the front of the input buffer
-	// 1.3.6 says that little-endian byte ordering is expected
+
 	// we do 1 less than actual number of iterations here.
 	for (i = 0; i < cur_salt->spinCount-1; i++) {
-		for (j = 0; j < SHA512_LOOP_CNT; ++j) {
-			keys[GETPOS_512(0, j)] = i&0xff;
-			keys[GETPOS_512(1, j)] = (i>>8)&0xff;
-			keys[GETPOS_512(2, j)] = i>>16;
-		}
-		// Here we output to 4 bytes past start of input buffer.
-		SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
-		for (k = 0; k < SHA512_LOOP_CNT; ++k) {
-#if SIMD_COEF_64 > 2
-/* Works but slow. I have no idea what is wrong with the other version */
-			for (j = 0; j < 64; ++j)
-				keys[GETPOS_512(j + 4, k)] =
-					((unsigned char*)crypt)[GETPOS_512(j, k)];
-#else
-			uint32_t *o = keys32;
-			uint32_t *i = crypt32;
-			o += (k*SIMD_COEF_64);
-			i += (k*SIMD_COEF_64);
-			for (j = 0; j < 8; ++j) {
-				*o = i[1];
-				o += SIMD_COEF_64*2+1;
-				*o-- = i[0];
-				i += SIMD_COEF_64*2;
+		unsigned int i_be = JOHNSWAP(i);
+
+		// Iteration counter in first 4 bytes
+		for (j = 0; j < SHA512_LOOP_CNT; j++)
+			keys32[j * 2 + j/SIMD_COEF_64*32*SIMD_COEF_64 + 1] = i_be;
+
+		SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN);
+
+		// Then we output to 4 bytes past start of input buffer.
+		for (j = 0; j < SHA512_LOOP_CNT; j++) {
+			uint32_t *o = keys32 + 2 * j + j/SIMD_COEF_64*32*SIMD_COEF_64;
+			uint32_t *in = crypt32 + 2 * j + j/SIMD_COEF_64*16*SIMD_COEF_64;
+
+			for (k = 0; k < 8; k++) {
+				o[0] = in[1];
+				o += SIMD_COEF_64*2;
+				o[1] = in[0];
+				in += SIMD_COEF_64*2;
 			}
-#endif
 		}
 	}
 	// last iteration is output to start of input buffer, then 32 bit 0 appended.
