@@ -42,6 +42,22 @@ static struct custom_salt {
 	//unsigned char iv[32];
 } *cur_salt;
 
+static int get_integer(char *int_str, int *output)
+{
+	char *endptr;
+	long val;
+
+	errno = 0;
+	val = strtol(int_str, &endptr, 10);
+	if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
+		|| (0 != errno && 0 == val)) {
+		return 0;
+	}
+
+        *output = (int) val;
+        return 1;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
@@ -55,7 +71,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += TAG_LENGTH;
 	if ((p = strtokm(ctcopy, "$")) == NULL) // salt length
 		goto err;
-	len = atoi(p);
+	if (!get_integer(p, &len))
+		goto err;
 	if(len > 32)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // salt
@@ -64,7 +81,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // iterations (in log2)
 		goto err;
-	if(atoi(p) > 24) // CRYPT5_KDF_LG2_COUNT_MAX
+	if (!get_integer(p, &len))
+		goto err;
+	if(len > 24) // CRYPT5_KDF_LG2_COUNT_MAX
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // AES IV
 		goto err;
@@ -72,7 +91,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // pswcheck len (redundant)
 		goto err;
-	len = atoi(p);
+	if (!get_integer(p, &len))
+		goto err;
 	if(len != BINARY_SIZE)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // pswcheck
