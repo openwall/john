@@ -882,9 +882,7 @@ static double get_progress(void)
   mpf_init(fpos); mpf_init(perc);
 
   mpf_set_z(fpos, rec_pos);
-  if ((double)0 == count)
-    perc = 0;
-  else
+  if (0 != mpf_sgn(count))
     mpf_div(perc, fpos, count);
   progress = 100.0 * mpf_get_d(perc);
 
