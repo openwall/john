@@ -193,6 +193,7 @@ extern double __ntod(__uint128_t);
 #else
 #define mpf_set_z(x, y) x = y
 #endif // __MIC__
+#define mpf_sgn(F) ((F) < (double)0.0 ? -1 : (F) > (double)0.0)
 #define mpf_div(q, n, d) q = n / d
 #define mpf_clear(x) x = 0
 #define mpf_get_d(x) x
