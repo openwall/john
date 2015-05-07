@@ -54,8 +54,8 @@ static int get_integer(char *int_str, int *output)
 		return 0;
 	}
 
-        *output = (int) val;
-        return 1;
+	*output = (int) val;
+	return 1;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
