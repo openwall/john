@@ -159,20 +159,11 @@ static struct fmt_tests tests[] = {
 /* output buffer for para is only 16 bytes per COEF, vs 64, so it's fewer bytes to jumbo to the next PARA start */
 #define PARAGETOUTPOS(i, index)		( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) + (((unsigned int)index/SIMD_COEF_32*SIMD_COEF_32)<<4) )
 
-#if defined (_DEBUG)
-// for VC debugging
 JTR_ALIGN(MEM_ALIGN_SIMD) static unsigned char input_buf[BLK_CNT*MD5_CBLOCK];
 JTR_ALIGN(MEM_ALIGN_SIMD) static unsigned char out_buf[BLK_CNT*MD5_DIGEST_LENGTH];
 JTR_ALIGN(MEM_ALIGN_SIMD) static unsigned char input_buf_big[25][BLK_CNT*MD5_CBLOCK];
-/*  Now these are allocated in init()
-unsigned char input_buf[BLK_CNT*MD5_CBLOCK]         __attribute__ ((aligned(16)));
-unsigned char input_buf_big[25][BLK_CNT*MD5_CBLOCK] __attribute__ ((aligned(16)));
-unsigned char out_buf[BLK_CNT*MD5_DIGEST_LENGTH]    __attribute__ ((aligned(16)));
-*/
-#else
-static unsigned char *input_buf;
-static unsigned char *out_buf;
-static unsigned char (*input_buf_big)[BLK_CNT*MD5_CBLOCK];
+#ifdef _OPENMP
+#pragma omp threadprivate(out_buf, input_buf, input_buf_big)
 #endif
 
 #else
@@ -183,6 +174,20 @@ static unsigned char (*input_buf_big)[BLK_CNT*MD5_CBLOCK];
 static char (*crypt_out)[FULL_BINARY_SIZE];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static char *saved_salt;
+
+/* minimum number of rounds we do, not including the per-user ones */
+
+#define	BASIC_ROUND_COUNT 4096 /* enough to make things interesting */
+#define	DIGEST_LEN	16
+#define	ROUND_BUFFER_LEN	64
+
+/* ------------------------------------------------------------------ */
+
+typedef struct {
+	MD5_CTX context;	/* working buffer for MD5 algorithm */
+	unsigned char digest[DIGEST_LEN]; /* where the MD5 digest is stored */
+} Contx, *pConx;
+static Contx *data;
 
 /*
  * Public domain quotation courtesy of Project Gutenberg.
@@ -240,11 +245,6 @@ static void init(struct fmt_main *self)
 	 * 2 buffers.  One does the 'short' 1 block crypts. The other does the
 	 * long 25 block crypts.  All MUST be aligned to 16 bytes
 	 */
-#if !defined (_DEBUG)
-	input_buf     = mem_calloc_align(BLK_CNT, MD5_CBLOCK, MEM_ALIGN_SIMD);
-	input_buf_big = mem_calloc_align(25, sizeof(*input_buf_big), MEM_ALIGN_SIMD);
-	out_buf       = mem_calloc_align(BLK_CNT, MD5_DIGEST_LENGTH, MEM_ALIGN_SIMD);
-#endif
 
 	/* not super optimal, but only done one time, at program startup, so speed is not important */
 	for (i = 0; i < constant_phrase_size; ++i) {
@@ -253,10 +253,16 @@ static void init(struct fmt_main *self)
 			input_buf_big[(i+16)/64][PARAGETPOS((16+i)%64,j)] = constant_phrase[i];
 	}
 #endif
+
+#ifdef _OPENMP
+	int omp_t = omp_get_max_threads();
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
 	if (!saved_salt)
 		saved_salt = mem_calloc_tiny(SALT_SIZE + 1, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt, sizeof(*crypt_out));
+	data = mem_calloc(self->params.max_keys_per_crypt, sizeof(*data));
 
 	for (i = 0; i < 0x100; i++)
 		mod5[i] = i % 5;
@@ -266,11 +272,7 @@ static void done(void)
 {
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
-#if defined(SIMD_COEF_32) && !defined(_DEBUG)
-	MEM_FREE(out_buf);
-	MEM_FREE(input_buf_big);
-	MEM_FREE(input_buf);
-#endif
+	MEM_FREE(data);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -432,16 +434,6 @@ static int cmp_exact(char *source, int index)
 }
 
 
-/* minimum number of rounds we do, not including the per-user ones */
-
-#define	BASIC_ROUND_COUNT 4096 /* enough to make things interesting */
-#define	DIGEST_LEN	16
-#define	ROUND_BUFFER_LEN	64
-
-
-/* ------------------------------------------------------------------ */
-
-
 // inline function, as a macro.
 #define md5bit_1(d,b) ((d[((b)>>3)&0xF]&(1<<((b)&7))) ? 1 : 0)
 // md5bit with no conditional logic.
@@ -510,30 +502,24 @@ getrounds(const char *s)
 	return ((unsigned int)val);
 }
 
-typedef struct {
-	MD5_CTX context;	/* working buffer for MD5 algorithm */
-	unsigned char digest[DIGEST_LEN]; /* where the MD5 digest is stored */
-} Contx, *pConx;
-static Contx data[MAX_KEYS_PER_CRYPT];
-
 #ifdef SIMD_COEF_32
 static int bigs[MAX_KEYS_PER_CRYPT], smalls[MAX_KEYS_PER_CRYPT];
-#endif
-// it is easiest to just leave these to be set even in non. mmx builds.
 static int nbig, nsmall;
+#ifdef _OPENMP
+#pragma omp threadprivate(smalls, bigs, nsmall, nbig)
+#endif // _OPENMP
+#endif // SIMD_COEF_32
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int idx, roundasciilen;
-	int round, maxrounds = BASIC_ROUND_COUNT + getrounds(saved_salt);
-	char roundascii[8];
-
-#ifdef SIMD_COEF_32
-	int i, j, zs, zb, zs0, zb0;
-	// int zb2;  // used in debugging
-	memset(input_buf, 0, BLK_CNT*MD5_CBLOCK);
+	int idx, k;
+#ifdef _OPENMP
+	int ngroups = omp_get_max_threads();
+#else
+	int ngroups = 1;
 #endif
+	int group_sz = (count + ngroups - 1) / ngroups;
 
 	for (idx = 0; idx < count; ++idx) {
 		/* initialise the context */
@@ -553,319 +539,312 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD5_Final(data[idx].digest, &data[idx].context);
 	}
 
-	/*
-	 * now to delay high-speed md5 implementations that have stuff
-	 * like code inlining, loops unrolled and table lookup
-	 */
+#ifdef _OPENMP
+#pragma omp parallel for copyin(input_buf_big)
+#endif
+	for (k = 0; k < ngroups; ++k) {
+		int roundasciilen;
+		int round, maxrounds = BASIC_ROUND_COUNT + getrounds(saved_salt);
+		char roundascii[8];
 
-	/* this is the 'first' sprintf(roundascii,"%d",round);  The rest are at the bottom of the loop */
-	strcpy(roundascii, "0");
-	roundasciilen=1;
+		int idx_begin = k * group_sz;
+		int idx_end = idx_begin + group_sz > count ?
+			count : idx_begin + group_sz;
 
-	for (round = 0; round < maxrounds; round++) {
-
-		nbig = nsmall = 0;
+#ifdef SIMD_COEF_32
+		int i, j, zs, zb, zs0, zb0;
+		// int zb2;  // used in debugging
+		memset(input_buf, 0, BLK_CNT*MD5_CBLOCK);
+#endif
 
 		/*
-		 *  now this is computed at bottom of loop (we start properly set at "0", len==1)
-		 *    ** code replaced**
-		 *  roundasciilen = sprintf(roundascii, "%d", round);
+		 * now to delay high-speed md5 implementations that have stuff
+		 * like code inlining, loops unrolled and table lookup
 		 */
 
-		for (idx = 0; idx < count; ++idx) {
-			pConx px = &data[idx];
+		/* this is the 'first' sprintf(roundascii,"%d",round);  The rest are at the bottom of the loop */
+		strcpy(roundascii, "0");
+		roundasciilen=1;
 
-                        int indirect_a =
-                          md5bit(px->digest, round) ?
-                          coin_step(px->digest, 1,  4,  0) |
-                          coin_step(px->digest, 2,  5,  1) |
-                          coin_step(px->digest, 3,  6,  2) |
-                          coin_step(px->digest, 4,  7,  3) |
-                          coin_step(px->digest, 5,  8,  4) |
-                          coin_step(px->digest, 6,  9,  5) |
-                          coin_step(px->digest, 7, 10,  6)
-                          :
-                          coin_step(px->digest, 0,  3,  0) |
-                          coin_step(px->digest, 1,  4,  1) |
-                          coin_step(px->digest, 2,  5,  2) |
-                          coin_step(px->digest, 3,  6,  3) |
-                          coin_step(px->digest, 4,  7,  4) |
-                          coin_step(px->digest, 5,  8,  5) |
-                          coin_step(px->digest, 6,  9,  6);
+		for (round = 0; round < maxrounds; round++) {
+#ifdef SIMD_COEF_32
+			nbig = nsmall = 0;
+#endif
 
-                        int indirect_b =
-                          md5bit(px->digest, round + 64) ?
-                          coin_step(px->digest,  9, 12,  0) |
-                          coin_step(px->digest, 10, 13,  1) |
-                          coin_step(px->digest, 11, 14,  2) |
-                          coin_step(px->digest, 12, 15,  3) |
-                          coin_step(px->digest, 13,  0,  4) |
-                          coin_step(px->digest, 14,  1,  5) |
-                          coin_step(px->digest, 15,  2,  6)
-                          :
-                          coin_step(px->digest,  8, 11,  0) |
-                          coin_step(px->digest,  9, 12,  1) |
-                          coin_step(px->digest, 10, 13,  2) |
-                          coin_step(px->digest, 11, 14,  3) |
-                          coin_step(px->digest, 12, 15,  4) |
-                          coin_step(px->digest, 13,  0,  5) |
-                          coin_step(px->digest, 14,  1,  6);
+			/*
+			 *  now this is computed at bottom of loop (we start properly set at "0", len==1)
+			 *    ** code replaced**
+			 *  roundasciilen = sprintf(roundascii, "%d", round);
+			 */
 
-			int bit = md5bit(px->digest, indirect_a) ^ md5bit(px->digest, indirect_b);
+			for (idx = idx_begin; idx < idx_end; ++idx) {
+				pConx px = &data[idx];
 
-			/* xor a coin-toss; if true, mix-in the constant phrase */
+							int indirect_a =
+							  md5bit(px->digest, round) ?
+							  coin_step(px->digest, 1,  4,  0) |
+							  coin_step(px->digest, 2,  5,  1) |
+							  coin_step(px->digest, 3,  6,  2) |
+							  coin_step(px->digest, 4,  7,  3) |
+							  coin_step(px->digest, 5,  8,  4) |
+							  coin_step(px->digest, 6,  9,  5) |
+							  coin_step(px->digest, 7, 10,  6)
+							  :
+							  coin_step(px->digest, 0,  3,  0) |
+							  coin_step(px->digest, 1,  4,  1) |
+							  coin_step(px->digest, 2,  5,  2) |
+							  coin_step(px->digest, 3,  6,  3) |
+							  coin_step(px->digest, 4,  7,  4) |
+							  coin_step(px->digest, 5,  8,  5) |
+							  coin_step(px->digest, 6,  9,  6);
+
+							int indirect_b =
+							  md5bit(px->digest, round + 64) ?
+							  coin_step(px->digest,  9, 12,  0) |
+							  coin_step(px->digest, 10, 13,  1) |
+							  coin_step(px->digest, 11, 14,  2) |
+							  coin_step(px->digest, 12, 15,  3) |
+							  coin_step(px->digest, 13,  0,  4) |
+							  coin_step(px->digest, 14,  1,  5) |
+							  coin_step(px->digest, 15,  2,  6)
+							  :
+							  coin_step(px->digest,  8, 11,  0) |
+							  coin_step(px->digest,  9, 12,  1) |
+							  coin_step(px->digest, 10, 13,  2) |
+							  coin_step(px->digest, 11, 14,  3) |
+							  coin_step(px->digest, 12, 15,  4) |
+							  coin_step(px->digest, 13,  0,  5) |
+							  coin_step(px->digest, 14,  1,  6);
+
+				int bit = md5bit(px->digest, indirect_a) ^ md5bit(px->digest, indirect_b);
+
+				/* xor a coin-toss; if true, mix-in the constant phrase */
 
 #ifndef SIMD_COEF_32
-			/*
-			 * This is the real 'crypt'. Pretty trival, but there are 2 possible sizes
-			 * there is a 1 block crypte, and a 25 block crypt.  They are chosen based
-			 * upon the 'long' coin flip algorithm above.
-			 */
+				/*
+				 * This is the real 'crypt'. Pretty trival, but there are 2 possible sizes
+				 * there is a 1 block crypte, and a 25 block crypt.  They are chosen based
+				 * upon the 'long' coin flip algorithm above.
+				 */
 
-			/* re-initialise the context */
-			MD5_Init(&px->context);
+				/* re-initialise the context */
+				MD5_Init(&px->context);
 
-			/* update with the previous digest */
-			MD5_Update(&px->context, px->digest, sizeof (px->digest));
+				/* update with the previous digest */
+				MD5_Update(&px->context, px->digest, sizeof (px->digest));
 
-			/* optional, add a constant string. This is what makes the 'long' crypt loops */
-			if (bit)
-				MD5_Update(&px->context, (unsigned char *) constant_phrase, constant_phrase_size);
-			/* Add a decimal current roundcount */
-			MD5_Update(&px->context, (unsigned char *) roundascii, roundasciilen);
-			MD5_Final(px->digest, &px->context);
+				/* optional, add a constant string. This is what makes the 'long' crypt loops */
+				if (bit)
+					MD5_Update(&px->context, (unsigned char *) constant_phrase, constant_phrase_size);
+				/* Add a decimal current roundcount */
+				MD5_Update(&px->context, (unsigned char *) roundascii, roundasciilen);
+				MD5_Final(px->digest, &px->context);
 #else
-			/*
-			 * we do not actually perform the work here. We run through all of the
-			 * keys we are working on, and figure out which ones need 'small' buffers
-			 * and which ones need large buffers. Then we can group them SIMD_COEF_32*MD5_SSE_PARA
-			 * at a time, later in the process.
-			 */
-			if (bit)
-				bigs[nbig++] = idx;
-			else
-				smalls[nsmall++] = idx;
+				/*
+				 * we do not actually perform the work here. We run through all of the
+				 * keys we are working on, and figure out which ones need 'small' buffers
+				 * and which ones need large buffers. Then we can group them SIMD_COEF_32*MD5_SSE_PARA
+				 * at a time, later in the process.
+				 */
+				if (bit)
+					bigs[nbig++] = idx;
+				else
+					smalls[nsmall++] = idx;
 #endif
 
-		}
+			}
 #ifdef SIMD_COEF_32
-		/*
-		 * ok, at this time we know what group each element is in.  Either a large
-		 * crypt, or small one. Now group our crypts up based upon the crypt size
-		 * doing COEF*PARA at a time, until we have 2 'partial' buffers left. We
-		 * 'waste' some CPU in them, but that is what happens. If there is only 1 or
-		 * or 2, we may even drop back and use oSSL, it may be faster than an entire
-		 * SSE crypt.  We will have to time test, and find where the cut over point is
-		 * but likely it will NOT be 0. The cuttover appears to be 1, meaning that 0,
-		 * only a 1 limb PARA buffer will not be done (and will fall back to oSSL). This
-		 * was for PARA==3 on 32 bit.   A much BIGGER difference was in the MAX_KEYS_PER_CRYPT
-		 * increasing this does make for more speed, HOWEVER, it also makes for more lost time
-		 * if the run is stopped, since ALL of the words in the keys buffer would have to be
-		 * redone again (hopefully only redone over the candidates left to test in the input file).
-		 * The choice to use 512 MAX_KEYS seems about right.
-		 */
-
-		/********************************************/
-		/* get the little ones out of the way first */
-		/********************************************/
-
-		/* first, put the length text, 0x80, and buffer length into the buffer 1 time, not in the loop */
-		for (j = 0; j < BLK_CNT; ++j) {
-			unsigned char *cpo = &input_buf[PARAGETPOS(0, j)];
-			int k;
-			for (k = 0; k < roundasciilen; ++k) {
-				cpo[GETPOS0(k+16)] = roundascii[k];
-			}
-			cpo[GETPOS0(k+16)] = 0x80;
-			((ARCH_WORD_32*)cpo)[14 * SIMD_COEF_32]=((16+roundasciilen)<<3);
-		}
-		/* now do the 'loop' for the small 1-limb blocks. */
-		zs = zs0 = zb = zb0 = 0;
-		// zb2 = 0; /* for debugging */
-		for (i = 0; i < nsmall-MIN_DROP_BACK; i += BLK_CNT) {
-			for (j = 0; j < BLK_CNT && zs < nsmall; ++j) {
-				pConx px = &data[smalls[zs++]];
-				ARCH_WORD_32 *pi = (ARCH_WORD_32*)px->digest;
-				ARCH_WORD_32 *po = (ARCH_WORD_32*)&input_buf[PARAGETPOS(0, j)];
-				/*
-				 * digest is flat, input buf is SSE_COEF.
-				 * input_buf is po (output) here, we are writing to it.
-				 */
-				po[0] = pi[0];
-				po[COEF] = pi[1];
-				po[COEF+COEF] = pi[2];
-				po[COEF+COEF+COEF] = pi[3];
-			}
-			SSEmd5body(input_buf, (unsigned int *)out_buf, NULL, SSEi_MIXED_IN);
 			/*
-			 * we convert from COEF back to flat. since this data will later be used
-			 * in non linear order, there is no gain trying to keep it in COEF order
+			 * ok, at this time we know what group each element is in.  Either a large
+			 * crypt, or small one. Now group our crypts up based upon the crypt size
+			 * doing COEF*PARA at a time, until we have 2 'partial' buffers left. We
+			 * 'waste' some CPU in them, but that is what happens. If there is only 1 or
+			 * or 2, we may even drop back and use oSSL, it may be faster than an entire
+			 * SSE crypt.  We will have to time test, and find where the cut over point is
+			 * but likely it will NOT be 0. The cuttover appears to be 1, meaning that 0,
+			 * only a 1 limb PARA buffer will not be done (and will fall back to oSSL). This
+			 * was for PARA==3 on 32 bit.   A much BIGGER difference was in the MAX_KEYS_PER_CRYPT
+			 * increasing this does make for more speed, HOWEVER, it also makes for more lost time
+			 * if the run is stopped, since ALL of the words in the keys buffer would have to be
+			 * redone again (hopefully only redone over the candidates left to test in the input file).
+			 * The choice to use 512 MAX_KEYS seems about right.
 			 */
-			for (j = 0; j < BLK_CNT && zs0 < nsmall; ++j) {
-				ARCH_WORD_32 *pi, *po;
-				pConx px = &data[smalls[zs0++]];
-				pi = (ARCH_WORD_32*)&out_buf[PARAGETOUTPOS(0, j)];
-				po = (ARCH_WORD_32*)px->digest;
-				po[0] = pi[0];
-				po[1] = pi[COEF];
-				po[2] = pi[COEF+COEF];
-				po[3] = pi[COEF+COEF+COEF];
-			}
-		}
-		/* this catches any left over small's, and simply uses oSSL */
-		while (zs < nsmall) {
-			pConx px = &data[smalls[zs++]];
-			MD5_Init(&px->context);
-			MD5_Update(&px->context, px->digest, sizeof (px->digest));
-			MD5_Update(&px->context, (unsigned char *) roundascii, roundasciilen);
-			MD5_Final(px->digest, &px->context);
-		}
-		/*****************************************************************************
-		 * Now do the big ones.  These are more complex that the little ones
-		 * (much more complex actually).  Here, we have to insert the prior crypt
-		 * into the first 16 bytes (just like in the little ones, but then we have
-		 * our buffer 'pre-loaded' with a 1517 byte string.  we append the text number
-		 * after the null byte of that 1517 byte string, then put on the 0x80, and
-		 * then put the bit length.  NOTE, that this actually is an array of 25
-		 * SSE_PARA buffer blocks, so there is quite a bit more manipluation of where
-		 * in the buffer to write this.  This is most noted in the text number, where
-		 * it spills over from buffer 24 to 25.
-		 *****************************************************************************/
 
-		/* first, put the length text, 0x80, and buffer length into the buffer 1 time, not in the loop */
-		for (j = 0; j < BLK_CNT; ++j) {
-			unsigned char *cpo23 = &(input_buf_big[23][PARAGETPOS(0, j)]);
-			unsigned char *cpo24 = &(input_buf_big[24][PARAGETPOS(0, j)]);
-			*((ARCH_WORD_32*)cpo24) = 0; /* key clean */
-			cpo23[GETPOS0(61)] = roundascii[0];
-			switch(roundasciilen) {
-				case 1:
-					cpo23[GETPOS0(62)] = 0x80;
-					cpo23[GETPOS0(63)] = 0; /* key clean. */
-					break;
-				case 2:
-					cpo23[GETPOS0(62)] = roundascii[1];
-					cpo23[GETPOS0(63)] = 0x80;
-					break;
-				case 3:
-					cpo23[GETPOS0(62)] = roundascii[1];
-					cpo23[GETPOS0(63)] = roundascii[2];
-					cpo24[0] = 0x80;
-					break;
-				case 4:
-					cpo23[GETPOS0(62)] = roundascii[1];
-					cpo23[GETPOS0(63)] = roundascii[2];
-					cpo24[0] = roundascii[3];
-					cpo24[1] = 0x80;
-					break;
-				case 5:
-					cpo23[GETPOS0(62)] = roundascii[1];
-					cpo23[GETPOS0(63)] = roundascii[2];
-					cpo24[0] = roundascii[3];
-					cpo24[1] = roundascii[4];
-					cpo24[2] = 0x80;
-					break;
-				case 6:
-					cpo23[GETPOS0(62)] = roundascii[1];
-					cpo23[GETPOS0(63)] = roundascii[2];
-					cpo24[0] = roundascii[3];
-					cpo24[1] = roundascii[4];
-					cpo24[2] = roundascii[5];
-					cpo24[3] = 0x80;
-					break;
+			/********************************************/
+			/* get the little ones out of the way first */
+			/********************************************/
+
+			/* first, put the length text, 0x80, and buffer length into the buffer 1 time, not in the loop */
+			for (j = 0; j < BLK_CNT; ++j) {
+				unsigned char *cpo = &input_buf[PARAGETPOS(0, j)];
+				int k;
+				for (k = 0; k < roundasciilen; ++k) {
+					cpo[GETPOS0(k+16)] = roundascii[k];
+				}
+				cpo[GETPOS0(k+16)] = 0x80;
+				((ARCH_WORD_32*)cpo)[14 * SIMD_COEF_32]=((16+roundasciilen)<<3);
 			}
-			((ARCH_WORD_32*)cpo24)[14*SIMD_COEF_32]=((16+constant_phrase_size+roundasciilen)<<3);
-		}
-		for (i = 0; i < nbig-MIN_DROP_BACK; i += BLK_CNT) {
-			for (j = 0; j < BLK_CNT && zb < nbig; ++j) {
-				pConx px = &data[bigs[zb++]];
-				ARCH_WORD_32 *pi = (ARCH_WORD_32 *)px->digest;
-				ARCH_WORD_32 *po = (ARCH_WORD_32*)&input_buf_big[0][PARAGETPOS(0, j)];
+			/* now do the 'loop' for the small 1-limb blocks. */
+			zs = zs0 = zb = zb0 = 0;
+			// zb2 = 0; /* for debugging */
+			for (i = 0; i < nsmall-MIN_DROP_BACK; i += BLK_CNT) {
+				for (j = 0; j < BLK_CNT && zs < nsmall; ++j) {
+					pConx px = &data[smalls[zs++]];
+					ARCH_WORD_32 *pi = (ARCH_WORD_32*)px->digest;
+					ARCH_WORD_32 *po = (ARCH_WORD_32*)&input_buf[PARAGETPOS(0, j)];
+					/*
+					 * digest is flat, input buf is SSE_COEF.
+					 * input_buf is po (output) here, we are writing to it.
+					 */
+					po[0] = pi[0];
+					po[COEF] = pi[1];
+					po[COEF+COEF] = pi[2];
+					po[COEF+COEF+COEF] = pi[3];
+				}
+				SSEmd5body(input_buf, (unsigned int *)out_buf, NULL, SSEi_MIXED_IN);
 				/*
-				 * digest is flat, input buf is SSE_COEF.
-				 * input_buf is po (output) here, we are writing to it.
+				 * we convert from COEF back to flat. since this data will later be used
+				 * in non linear order, there is no gain trying to keep it in COEF order
 				 */
-				po[0] = pi[0];
-				po[COEF] = pi[1];
-				po[COEF+COEF] = pi[2];
-				po[COEF+COEF+COEF] = pi[3];
-			}
-			SSEmd5body(input_buf_big[0], (unsigned int *)out_buf, NULL, SSEi_MIXED_IN);
-			for (j = 1; j < 25; ++j)
-				SSEmd5body(input_buf_big[j], (unsigned int *)out_buf, (unsigned int *)out_buf, SSEi_RELOAD|SSEi_MIXED_IN);
-/*
-			{
-				int x,y,z;
-				unsigned char tmp[1600], sse_to_flat[1600];
-				for (z = 0; zb2 < nbig && z < BLK_CNT; ++z) {
-					pConx px = &data[bigs[zb2++]];
-					memcpy(tmp, px->digest, 16);
-					memcpy(&tmp[16], constant_phrase, constant_phrase_size);
-					memcpy(&tmp[16+constant_phrase_size], roundascii, roundasciilen);
-					tmp[16+constant_phrase_size+roundasciilen] = 0x80;
-					memset(&tmp[16+constant_phrase_size+roundasciilen+1], 0, 1600-(16+constant_phrase_size+roundasciilen+1));
-					*(unsigned*)&tmp[1592] = (16+constant_phrase_size+roundasciilen)<<3;
-					getbuf_stuff_mpara_mmx(sse_to_flat, input_buf_big, 1600, z);
-
-					if (memcmp(tmp, sse_to_flat, 1600)) {
-						printf("Error, z=%d  count=%d, round = %d\n", z, count, round);
-						printf("FLAT:\n");
-						dump_stuff(tmp, 1600);
-						printf("\nSSE2:\n");
-						dump_stuff(sse_to_flat, 1600);
-						exit(0);
-					}
+				for (j = 0; j < BLK_CNT && zs0 < nsmall; ++j) {
+					ARCH_WORD_32 *pi, *po;
+					pConx px = &data[smalls[zs0++]];
+					pi = (ARCH_WORD_32*)&out_buf[PARAGETOUTPOS(0, j)];
+					po = (ARCH_WORD_32*)px->digest;
+					po[0] = pi[0];
+					po[1] = pi[COEF];
+					po[2] = pi[COEF+COEF];
+					po[3] = pi[COEF+COEF+COEF];
 				}
 			}
-*/
-			for (j = 0; j < BLK_CNT && zb0 < nbig; ++j) {
-				ARCH_WORD_32 *pi, *po;
-				pConx px = &data[bigs[zb0++]];
-				pi = (ARCH_WORD_32*)&out_buf[PARAGETOUTPOS(0, j)];
-				po = (ARCH_WORD_32*)px->digest;
-				po[0] = pi[0];
-				po[1] = pi[COEF];
-				po[2] = pi[COEF+COEF];
-				po[3] = pi[COEF+COEF+COEF];
+			/* this catches any left over small's, and simply uses oSSL */
+			while (zs < nsmall) {
+				pConx px = &data[smalls[zs++]];
+				MD5_Init(&px->context);
+				MD5_Update(&px->context, px->digest, sizeof (px->digest));
+				MD5_Update(&px->context, (unsigned char *) roundascii, roundasciilen);
+				MD5_Final(px->digest, &px->context);
 			}
-		}
-		/* this catches any left overs, and simply uses oSSL */
-		while (zb < nbig) {
-			pConx px = &data[bigs[zb++]];
-			MD5_Init(&px->context);
-			MD5_Update(&px->context, px->digest, sizeof (px->digest));
-			MD5_Update(&px->context, (unsigned char *) constant_phrase, constant_phrase_size);
-			MD5_Update(&px->context, (unsigned char *) roundascii, roundasciilen);
-			MD5_Final(px->digest, &px->context);
-		}
-#endif
-		/*
-		 * this is the equivelent of the original code:
-		 *    roundasciilen = sprintf(roundascii, "%d", round);
-		 * that was at the top of this rounds loop.  We have moved
-		 * it to the bottom. It does compute one 'extra' value that
-		 * is never used (5001), but it is faster, and that one
-		 * extra value causes no harm.
-		 * we do call the sprintf a few times (at 10, 100, 1000, etc)
-		 * but we only call it there.
-		 */
+			/*****************************************************************************
+			 * Now do the big ones.  These are more complex that the little ones
+			 * (much more complex actually).  Here, we have to insert the prior crypt
+			 * into the first 16 bytes (just like in the little ones, but then we have
+			 * our buffer 'pre-loaded' with a 1517 byte string.  we append the text number
+			 * after the null byte of that 1517 byte string, then put on the 0x80, and
+			 * then put the bit length.  NOTE, that this actually is an array of 25
+			 * SSE_PARA buffer blocks, so there is quite a bit more manipluation of where
+			 * in the buffer to write this.  This is most noted in the text number, where
+			 * it spills over from buffer 24 to 25.
+			 *****************************************************************************/
 
-		if (++roundascii[roundasciilen-1] == '9'+1) {
-			int j = roundasciilen-1;
-			if (j > 0) {
-				do {
-					roundascii[j] = '0';
-					++roundascii[--j];
-				} while (j > 0 && roundascii[j] == '9'+1);
+			/* first, put the length text, 0x80, and buffer length into the buffer 1 time, not in the loop */
+			for (j = 0; j < BLK_CNT; ++j) {
+				unsigned char *cpo23 = &(input_buf_big[23][PARAGETPOS(0, j)]);
+				unsigned char *cpo24 = &(input_buf_big[24][PARAGETPOS(0, j)]);
+				*((ARCH_WORD_32*)cpo24) = 0; /* key clean */
+				cpo23[GETPOS0(61)] = roundascii[0];
+				switch(roundasciilen) {
+					case 1:
+						cpo23[GETPOS0(62)] = 0x80;
+						cpo23[GETPOS0(63)] = 0; /* key clean. */
+						break;
+					case 2:
+						cpo23[GETPOS0(62)] = roundascii[1];
+						cpo23[GETPOS0(63)] = 0x80;
+						break;
+					case 3:
+						cpo23[GETPOS0(62)] = roundascii[1];
+						cpo23[GETPOS0(63)] = roundascii[2];
+						cpo24[0] = 0x80;
+						break;
+					case 4:
+						cpo23[GETPOS0(62)] = roundascii[1];
+						cpo23[GETPOS0(63)] = roundascii[2];
+						cpo24[0] = roundascii[3];
+						cpo24[1] = 0x80;
+						break;
+					case 5:
+						cpo23[GETPOS0(62)] = roundascii[1];
+						cpo23[GETPOS0(63)] = roundascii[2];
+						cpo24[0] = roundascii[3];
+						cpo24[1] = roundascii[4];
+						cpo24[2] = 0x80;
+						break;
+					case 6:
+						cpo23[GETPOS0(62)] = roundascii[1];
+						cpo23[GETPOS0(63)] = roundascii[2];
+						cpo24[0] = roundascii[3];
+						cpo24[1] = roundascii[4];
+						cpo24[2] = roundascii[5];
+						cpo24[3] = 0x80;
+						break;
+				}
+				((ARCH_WORD_32*)cpo24)[14*SIMD_COEF_32]=((16+constant_phrase_size+roundasciilen)<<3);
 			}
-			if (!j && roundascii[0] == '9'+1)
-				roundasciilen = sprintf(roundascii, "%d", round+1);
+			for (i = 0; i < nbig-MIN_DROP_BACK; i += BLK_CNT) {
+				for (j = 0; j < BLK_CNT && zb < nbig; ++j) {
+					pConx px = &data[bigs[zb++]];
+					ARCH_WORD_32 *pi = (ARCH_WORD_32 *)px->digest;
+					ARCH_WORD_32 *po = (ARCH_WORD_32*)&input_buf_big[0][PARAGETPOS(0, j)];
+					/*
+					 * digest is flat, input buf is SSE_COEF.
+					 * input_buf is po (output) here, we are writing to it.
+					 */
+					po[0] = pi[0];
+					po[COEF] = pi[1];
+					po[COEF+COEF] = pi[2];
+					po[COEF+COEF+COEF] = pi[3];
+				}
+				SSEmd5body(input_buf_big[0], (unsigned int *)out_buf, NULL, SSEi_MIXED_IN);
+				for (j = 1; j < 25; ++j)
+					SSEmd5body(input_buf_big[j], (unsigned int *)out_buf, (unsigned int *)out_buf, SSEi_RELOAD|SSEi_MIXED_IN);
+	
+				for (j = 0; j < BLK_CNT && zb0 < nbig; ++j) {
+					ARCH_WORD_32 *pi, *po;
+					pConx px = &data[bigs[zb0++]];
+					pi = (ARCH_WORD_32*)&out_buf[PARAGETOUTPOS(0, j)];
+					po = (ARCH_WORD_32*)px->digest;
+					po[0] = pi[0];
+					po[1] = pi[COEF];
+					po[2] = pi[COEF+COEF];
+					po[3] = pi[COEF+COEF+COEF];
+				}
+			}
+			/* this catches any left overs, and simply uses oSSL */
+			while (zb < nbig) {
+				pConx px = &data[bigs[zb++]];
+				MD5_Init(&px->context);
+				MD5_Update(&px->context, px->digest, sizeof (px->digest));
+				MD5_Update(&px->context, (unsigned char *) constant_phrase, constant_phrase_size);
+				MD5_Update(&px->context, (unsigned char *) roundascii, roundasciilen);
+				MD5_Final(px->digest, &px->context);
+			}
+#endif
+			/*
+			 * this is the equivelent of the original code:
+			 *    roundasciilen = sprintf(roundascii, "%d", round);
+			 * that was at the top of this rounds loop.  We have moved
+			 * it to the bottom. It does compute one 'extra' value that
+			 * is never used (5001), but it is faster, and that one
+			 * extra value causes no harm.
+			 * we do call the sprintf a few times (at 10, 100, 1000, etc)
+			 * but we only call it there.
+			 */
+
+			if (++roundascii[roundasciilen-1] == '9'+1) {
+				int j = roundasciilen-1;
+				if (j > 0) {
+					do {
+						roundascii[j] = '0';
+						++roundascii[--j];
+					} while (j > 0 && roundascii[j] == '9'+1);
+				}
+				if (!j && roundascii[0] == '9'+1)
+					roundasciilen = sprintf(roundascii, "%d", round+1);
+			}
 		}
 	}
 
-#ifndef SIMD_COEF_32
-#else
-#endif
 	for (idx = 0; idx < count; ++idx) {
 		pConx px = &data[idx];
 		memcpy(crypt_out[idx], px->digest, FULL_BINARY_SIZE);
@@ -898,7 +877,7 @@ struct fmt_main fmt_sunmd5 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{
 			/*
