@@ -35,7 +35,6 @@ john_register_one(&fmt_sapB);
 
 #ifdef SIMD_COEF_32
 #define NBKEYS				(SIMD_COEF_32 * MD5_SSE_PARA)
-#define DO_MMX_MD5(in, out)		SSEmd5body(in, (unsigned int*)out, NULL, SSEi_MIXED_IN)
 #endif
 #include "sse-intrinsics.h"
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
@@ -514,7 +513,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			clean_pos[ti] = len + cur_salt->l;
 		}
 
-		DO_MMX_MD5(&saved_key[t*NBKEYS*64], &crypt_key[t*NBKEYS*16]);
+		SSEmd5body(&saved_key[t*NBKEYS*64],
+		           (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
 
 		for (i = 0; i < MD5_SSE_PARA; i++)
 			memset(&interm_key[t*64*NBKEYS+i*64*SIMD_COEF_32+32*SIMD_COEF_32], 0, 32*SIMD_COEF_32);
@@ -543,7 +543,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			((unsigned int *)interm_key)[14*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + (unsigned int)ti/SIMD_COEF_32*16*SIMD_COEF_32] = sum20 << 3;
 		}
 
-		DO_MMX_MD5(&interm_key[t*NBKEYS*64], &crypt_key[t*NBKEYS*16]);
+		SSEmd5body(&interm_key[t*NBKEYS*64],
+		           (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
 
 		for (index = 0; index < NBKEYS; index++) {
 			*(ARCH_WORD_32*)&crypt_key[GETOUTPOS(0, ti)] ^= *(ARCH_WORD_32*)&crypt_key[GETOUTPOS(8, ti)];

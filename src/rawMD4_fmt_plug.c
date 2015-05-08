@@ -43,8 +43,7 @@ john_register_one(&fmt_rawMD4);
 #define ALGORITHM_NAME			"MD4 " MD4_ALGORITHM_NAME
 
 #ifdef SIMD_COEF_32
-#  define NBKEYS				(SIMD_COEF_32 * MD4_SSE_PARA)
-#  define DO_MMX_MD4(in,out,n)	SSEmd4body(in, (unsigned int*)out, NULL, SSEi_MIXED_IN)
+#define NBKEYS				(SIMD_COEF_32 * MD4_SSE_PARA)
 #endif
 
 #define BENCHMARK_COMMENT		""
@@ -289,7 +288,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #if SIMD_COEF_32
-		DO_MMX_MD4(saved_key[index], crypt_key[index], total_len[index]);
+		SSEmd4body(saved_key[index], crypt_key[index], NULL, SSEi_MIXED_IN);
 #else
 		MD4_CTX ctx;
 		MD4_Init(&ctx);

@@ -42,8 +42,7 @@ john_register_one(&fmt_rawSHA1);
 #define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 #ifdef SIMD_COEF_32
-#  define NBKEYS				(SIMD_COEF_32 * SHA1_SSE_PARA)
-#  define DO_MMX_SHA1(in,out,n)	SSESHA1body(in, out, NULL, n)
+#define NBKEYS				(SIMD_COEF_32 * SHA1_SSE_PARA)
 #endif
 
 #define BENCHMARK_COMMENT		""
@@ -279,7 +278,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #if SIMD_COEF_32
-		DO_MMX_SHA1(saved_key[index], crypt_key[index], SSEi_MIXED_IN);
+		SSESHA1body(saved_key[index], crypt_key[index], NULL, SSEi_MIXED_IN);
 #else
 		SHA_CTX ctx;
 		SHA1_Init( &ctx );

@@ -41,8 +41,7 @@ john_register_one(&fmt_rawMD5);
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
 #ifdef SIMD_COEF_32
-#  define NBKEYS				(SIMD_COEF_32 * MD5_SSE_PARA)
-#  define DO_MMX_MD5(in, out)	SSEmd5body(in, (unsigned int*)out, NULL, SSEi_MIXED_IN)
+#define NBKEYS				(SIMD_COEF_32 * MD5_SSE_PARA)
 #endif
 
 #define BENCHMARK_COMMENT		""
@@ -290,7 +289,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #if SIMD_COEF_32
-		DO_MMX_MD5(saved_key[index], crypt_key[index]);
+		SSEmd5body(saved_key[index], crypt_key[index], NULL, SSEi_MIXED_IN);
 #else
 		MD5_CTX ctx;
 		MD5_Init(&ctx);
