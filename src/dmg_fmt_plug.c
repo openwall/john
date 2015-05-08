@@ -59,6 +59,15 @@ john_register_one(&fmt_dmg);
 #include <openssl/evp.h>
 #include <openssl/aes.h>
 #include <openssl/hmac.h>
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE               64
+#endif
+
+#ifdef DMG_DEBUG
+#define NEED_OS_FLOCK
+#include "os.h"
+#endif
 #include "filevault.h"
 #include "arch.h"
 #include "jumbo.h"
@@ -67,10 +76,6 @@ john_register_one(&fmt_dmg);
 #include "common.h"
 #include "formats.h"
 #include "pbkdf2_hmac_sha1.h"
-#ifdef _OPENMP
-#include <omp.h>
-#define OMP_SCALE               64
-#endif
 #ifdef DMG_DEBUG
 #include <sys/file.h>
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
@@ -670,8 +675,20 @@ static void hash_plugin_check_hash(int index)
 			if ((fd = open("dmg.debug.main", O_RDWR | O_CREAT | O_TRUNC, 0660)) == -1)
 				perror("open()");
 			else {
-				if (flock(fd, LOCK_EX))
-					perror("flock()");
+#if FCNTL_LOCKS
+				struct flock lock = { 0 };
+
+				lock.l_type = F_WRLCK;
+				while (fcntl(fd, F_SETLKW, &lock)) {
+					if (errno != EINTR)
+						pexit("fcntl(F_WRLCK)");
+				}
+#elif OS_FLOCK
+				while (flock(fd, LOCK_EX)) {
+					if (errno != EINTR)
+						pexit("flock(LOCK_EX)");
+				}
+#endif
 				if ((write(fd, outbuf, cur_salt->data_size) == -1))
 					perror("write()");
 				if (cur_salt->scp == 1)

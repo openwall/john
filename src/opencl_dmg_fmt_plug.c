@@ -33,6 +33,10 @@ john_register_one(&fmt_opencl_dmg);
 #include <omp.h>
 #endif
 
+#ifdef DMG_DEBUG
+#define NEED_OS_FLOCK
+#include "os.h"
+#endif
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
@@ -710,8 +714,20 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 			if ((fd = open("dmg.debug.main", O_RDWR | O_CREAT | O_TRUNC, 0660)) == -1)
 				perror("open()");
 			else {
-				if (flock(fd, LOCK_EX))
-					perror("flock()");
+#if FCNTL_LOCKS
+				struct flock lock = { 0 };
+
+				lock.l_type = F_WRLCK;
+				while (fcntl(fd, F_SETLKW, &lock)) {
+					if (errno != EINTR)
+						pexit("fcntl(F_WRLCK)");
+				}
+#elif OS_FLOCK
+				while (flock(fd, LOCK_EX)) {
+					if (errno != EINTR)
+						pexit("flock(LOCK_EX)");
+				}
+#endif
 				if ((write(fd, outbuf, cur_salt->data_size) == -1))
 					perror("write()");
 				if (cur_salt->scp == 1)
