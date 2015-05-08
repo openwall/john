@@ -540,13 +540,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(idx) copyin(input_buf_big) \
-	shared(saved_salt, data, constant_phrase, ngroups, group_sz)
+#pragma omp parallel for copyin(input_buf_big)
 #endif
 	for (k = 0; k < ngroups; ++k) {
 		int roundasciilen;
 		int round, maxrounds = BASIC_ROUND_COUNT + getrounds(saved_salt);
 		char roundascii[8];
+
+		int idx_begin = k * group_sz;
+		int idx_end = idx_begin + group_sz > count ?
+			count : idx_begin + group_sz;
 
 #ifdef SIMD_COEF_32
 		int i, j, zs, zb, zs0, zb0;
@@ -562,11 +565,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		/* this is the 'first' sprintf(roundascii,"%d",round);  The rest are at the bottom of the loop */
 		strcpy(roundascii, "0");
 		roundasciilen=1;
-
-		int idx_begin = k * group_sz;
-		int idx_end = idx_begin + group_sz;
-		if (idx_end > count)
-			idx_end = count;
 
 		for (round = 0; round < maxrounds; round++) {
 #ifdef SIMD_COEF_32
