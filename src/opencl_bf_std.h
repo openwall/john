@@ -33,7 +33,7 @@
 #define NUM_CHANNELS                    1
 #define WAVEFRONT_SIZE                  1
 #define CHANNEL_INTERLEAVE              (WAVEFRONT_SIZE*NUM_CHANNELS)
-#define MULTIPLIER                      1024
+#define MULTIPLIER                      4096
 #define BF_N				(CHANNEL_INTERLEAVE*MULTIPLIER)
 #define MAX_DEVICES_PER_PLATFORM        8
 #define GWS_CONFIG		        "bf_GWS"
