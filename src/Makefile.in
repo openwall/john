@@ -565,7 +565,7 @@ aes/aes.a:
 # PTHREAD_CFLAGS and OPENMP_CFLAGS may actually contain linker options,
 # like -fopenmp
 ../run/john@EXE_EXT@: $(JOHN_OBJS) aes/aes.a
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CUDA_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ aes/aes.a -o ../run/john
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CUDA_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ aes/aes.a -o ../run/john
 
 ../run/unshadow: ../run/john
 	$(RM) ../run/unshadow
