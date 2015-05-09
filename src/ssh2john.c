@@ -107,14 +107,13 @@ static void process_file(const char *filename)
 		OPENSSL_free(nm);
 		OPENSSL_free(header);
 		OPENSSL_free(data);
+		BIO_free(bp);
 	}
-	OPENSSL_free(nm);
 
 	if (!PEM_get_EVP_CIPHER_INFO(header, &cipher)) {
 		ERR_print_errors_fp(stderr);
-		goto out;
+		return;
 	}
-	OPENSSL_free(header);
 
 	/* check if key has no password */
 	if(type == 1) {
@@ -155,9 +154,9 @@ static void process_file(const char *filename)
 	// NOTE: old test vectors / hashes won't have the "type", but that is OK
 	printf("*%d*%d\n", count, type);
 out:
-	OPENSSL_free(data);
-	BIO_free(bp);
 	fclose(keyfile);
+	if(bp)
+		BIO_free(bp);
 }
 
 int ssh2john(int argc, char **argv)
