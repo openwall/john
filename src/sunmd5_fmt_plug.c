@@ -30,6 +30,10 @@ john_register_one(&fmt_sunmd5);
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "options.h"
