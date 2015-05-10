@@ -32,6 +32,7 @@ john_register_one(&fmt_sunmd5);
 
 #ifdef _OPENMP
 #include <omp.h>
+#define OMP_SCALE 1
 #endif
 
 #include "arch.h"
@@ -243,7 +244,10 @@ static void init(struct fmt_main *self)
 	int ngroups = 1;
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
+
 	ngroups = omp_t;
 #endif
 
@@ -521,7 +525,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	int idx, group_idx;
 #ifdef _OPENMP
-	int ngroups = omp_get_max_threads();
+	int ngroups = OMP_SCALE * omp_get_max_threads();
 #else
 	int ngroups = 1;
 #endif
