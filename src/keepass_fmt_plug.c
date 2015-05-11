@@ -66,8 +66,8 @@ static int any_cracked, *cracked;
 static size_t cracked_size;
 
 static struct custom_salt {
-	int version;
 	long long offset;
+	int version;
 	int isinline;
 	int keyfilesize;
 	int have_keyfile;

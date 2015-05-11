@@ -30,6 +30,11 @@ john_register_one(&fmt_sunmd5);
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE 1
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "options.h"
@@ -159,12 +164,9 @@ static struct fmt_tests tests[] = {
 /* output buffer for para is only 16 bytes per COEF, vs 64, so it's fewer bytes to jumbo to the next PARA start */
 #define PARAGETOUTPOS(i, index)		( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) + (((unsigned int)index/SIMD_COEF_32*SIMD_COEF_32)<<4) )
 
-JTR_ALIGN(MEM_ALIGN_SIMD) static unsigned char input_buf[BLK_CNT*MD5_CBLOCK];
-JTR_ALIGN(MEM_ALIGN_SIMD) static unsigned char out_buf[BLK_CNT*MD5_DIGEST_LENGTH];
-JTR_ALIGN(MEM_ALIGN_SIMD) static unsigned char input_buf_big[25][BLK_CNT*MD5_CBLOCK];
-#ifdef _OPENMP
-#pragma omp threadprivate(out_buf, input_buf, input_buf_big)
-#endif
+static unsigned char (*input_buf)[BLK_CNT*MD5_CBLOCK];
+static unsigned char (*out_buf)[BLK_CNT*MD5_DIGEST_LENGTH];
+static unsigned char (*input_buf_big)[25][BLK_CNT*MD5_CBLOCK];
 
 #else
 #define COEF 1
@@ -238,26 +240,36 @@ static unsigned char mod5[0x100];
 
 static void init(struct fmt_main *self)
 {
-	int i;
+	int i, j, k;
+	int ngroups = 1;
+#ifdef _OPENMP
+	int omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+
+	ngroups = omp_t;
+#endif
+
 #ifdef SIMD_COEF_32
 	/*
 	 * allocate SSE2 input and output buffer space.  For input's we have
 	 * 2 buffers.  One does the 'short' 1 block crypts. The other does the
 	 * long 25 block crypts.  All MUST be aligned to 16 bytes
 	 */
+	input_buf     = mem_calloc_align(ngroups, sizeof(*input_buf), MEM_ALIGN_SIMD);
+	input_buf_big = mem_calloc_align(ngroups, sizeof(*input_buf_big), MEM_ALIGN_SIMD);
+	out_buf       = mem_calloc_align(ngroups, sizeof(*out_buf), MEM_ALIGN_SIMD);
 
 	/* not super optimal, but only done one time, at program startup, so speed is not important */
-	for (i = 0; i < constant_phrase_size; ++i) {
-		int j;
-		for (j = 0; j < BLK_CNT; ++j)
-			input_buf_big[(i+16)/64][PARAGETPOS((16+i)%64,j)] = constant_phrase[i];
+	for (k = 0; k < ngroups; ++k) {
+		for (i = 0; i < constant_phrase_size; ++i) {
+			for (j = 0; j < BLK_CNT; ++j)
+				input_buf_big[k][(i+16)/64][PARAGETPOS((16+i)%64,j)] = constant_phrase[i];
+		}
 	}
 #endif
 
-#ifdef _OPENMP
-	int omp_t = omp_get_max_threads();
-	self->params.max_keys_per_crypt *= omp_t;
-#endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
 	if (!saved_salt)
 		saved_salt = mem_calloc_tiny(SALT_SIZE + 1, MEM_ALIGN_WORD);
@@ -270,6 +282,11 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
+#ifdef SIMD_COEF_32
+	MEM_FREE(input_buf);
+	MEM_FREE(input_buf_big);
+	MEM_FREE(out_buf);
+#endif
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
 	MEM_FREE(data);
@@ -502,20 +519,13 @@ getrounds(const char *s)
 	return ((unsigned int)val);
 }
 
-#ifdef SIMD_COEF_32
-static int bigs[MAX_KEYS_PER_CRYPT], smalls[MAX_KEYS_PER_CRYPT];
-static int nbig, nsmall;
-#ifdef _OPENMP
-#pragma omp threadprivate(smalls, bigs, nsmall, nbig)
-#endif // _OPENMP
-#endif // SIMD_COEF_32
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int idx, k;
+	int idx, group_idx;
 #ifdef _OPENMP
-	int ngroups = omp_get_max_threads();
+	int ngroups = OMP_SCALE * omp_get_max_threads();
 #else
 	int ngroups = 1;
 #endif
@@ -540,21 +550,27 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel for copyin(input_buf_big)
-#endif
-	for (k = 0; k < ngroups; ++k) {
+#ifdef __INTEL_COMPILER
+#pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data, input_buf, input_buf_big, out_buf, constant_phrase)
+#else
+#pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data, input_buf, input_buf_big, out_buf)
+#endif // _OPENMP
+#endif // __INTEL_COMPILER
+	for (group_idx = 0; group_idx < ngroups; ++group_idx) {
 		int roundasciilen;
 		int round, maxrounds = BASIC_ROUND_COUNT + getrounds(saved_salt);
 		char roundascii[8];
 
-		int idx_begin = k * group_sz;
+		int idx_begin = group_idx * group_sz;
 		int idx_end = idx_begin + group_sz > count ?
 			count : idx_begin + group_sz;
 
 #ifdef SIMD_COEF_32
 		int i, j, zs, zb, zs0, zb0;
+		int bigs[MAX_KEYS_PER_CRYPT], smalls[MAX_KEYS_PER_CRYPT];
+		int nbig, nsmall;
 		// int zb2;  // used in debugging
-		memset(input_buf, 0, BLK_CNT*MD5_CBLOCK);
+		memset(input_buf[group_idx], 0, BLK_CNT*MD5_CBLOCK);
 #endif
 
 		/*
@@ -676,7 +692,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			/* first, put the length text, 0x80, and buffer length into the buffer 1 time, not in the loop */
 			for (j = 0; j < BLK_CNT; ++j) {
-				unsigned char *cpo = &input_buf[PARAGETPOS(0, j)];
+				unsigned char *cpo = &input_buf[group_idx][PARAGETPOS(0, j)];
 				int k;
 				for (k = 0; k < roundasciilen; ++k) {
 					cpo[GETPOS0(k+16)] = roundascii[k];
@@ -691,7 +707,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				for (j = 0; j < BLK_CNT && zs < nsmall; ++j) {
 					pConx px = &data[smalls[zs++]];
 					ARCH_WORD_32 *pi = (ARCH_WORD_32*)px->digest;
-					ARCH_WORD_32 *po = (ARCH_WORD_32*)&input_buf[PARAGETPOS(0, j)];
+					ARCH_WORD_32 *po = (ARCH_WORD_32*)&input_buf[group_idx][PARAGETPOS(0, j)];
 					/*
 					 * digest is flat, input buf is SSE_COEF.
 					 * input_buf is po (output) here, we are writing to it.
@@ -701,7 +717,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					po[COEF+COEF] = pi[2];
 					po[COEF+COEF+COEF] = pi[3];
 				}
-				SSEmd5body(input_buf, (unsigned int *)out_buf, NULL, SSEi_MIXED_IN);
+				SSEmd5body(input_buf[group_idx], (unsigned int *)out_buf[group_idx], NULL, SSEi_MIXED_IN);
 				/*
 				 * we convert from COEF back to flat. since this data will later be used
 				 * in non linear order, there is no gain trying to keep it in COEF order
@@ -709,7 +725,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				for (j = 0; j < BLK_CNT && zs0 < nsmall; ++j) {
 					ARCH_WORD_32 *pi, *po;
 					pConx px = &data[smalls[zs0++]];
-					pi = (ARCH_WORD_32*)&out_buf[PARAGETOUTPOS(0, j)];
+					pi = (ARCH_WORD_32*)&out_buf[group_idx][PARAGETOUTPOS(0, j)];
 					po = (ARCH_WORD_32*)px->digest;
 					po[0] = pi[0];
 					po[1] = pi[COEF];
@@ -739,8 +755,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			/* first, put the length text, 0x80, and buffer length into the buffer 1 time, not in the loop */
 			for (j = 0; j < BLK_CNT; ++j) {
-				unsigned char *cpo23 = &(input_buf_big[23][PARAGETPOS(0, j)]);
-				unsigned char *cpo24 = &(input_buf_big[24][PARAGETPOS(0, j)]);
+				unsigned char *cpo23 = &(input_buf_big[group_idx][23][PARAGETPOS(0, j)]);
+				unsigned char *cpo24 = &(input_buf_big[group_idx][24][PARAGETPOS(0, j)]);
 				*((ARCH_WORD_32*)cpo24) = 0; /* key clean */
 				cpo23[GETPOS0(61)] = roundascii[0];
 				switch(roundasciilen) {
@@ -785,7 +801,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				for (j = 0; j < BLK_CNT && zb < nbig; ++j) {
 					pConx px = &data[bigs[zb++]];
 					ARCH_WORD_32 *pi = (ARCH_WORD_32 *)px->digest;
-					ARCH_WORD_32 *po = (ARCH_WORD_32*)&input_buf_big[0][PARAGETPOS(0, j)];
+					ARCH_WORD_32 *po = (ARCH_WORD_32*)&input_buf_big[group_idx][0][PARAGETPOS(0, j)];
 					/*
 					 * digest is flat, input buf is SSE_COEF.
 					 * input_buf is po (output) here, we are writing to it.
@@ -795,14 +811,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					po[COEF+COEF] = pi[2];
 					po[COEF+COEF+COEF] = pi[3];
 				}
-				SSEmd5body(input_buf_big[0], (unsigned int *)out_buf, NULL, SSEi_MIXED_IN);
+				SSEmd5body(input_buf_big[group_idx][0], (unsigned int *)out_buf[group_idx], NULL, SSEi_MIXED_IN);
 				for (j = 1; j < 25; ++j)
-					SSEmd5body(input_buf_big[j], (unsigned int *)out_buf, (unsigned int *)out_buf, SSEi_RELOAD|SSEi_MIXED_IN);
+					SSEmd5body(input_buf_big[group_idx][j], (unsigned int *)out_buf[group_idx], (unsigned int *)out_buf[group_idx], SSEi_RELOAD|SSEi_MIXED_IN);
 	
 				for (j = 0; j < BLK_CNT && zb0 < nbig; ++j) {
 					ARCH_WORD_32 *pi, *po;
 					pConx px = &data[bigs[zb0++]];
-					pi = (ARCH_WORD_32*)&out_buf[PARAGETOUTPOS(0, j)];
+					pi = (ARCH_WORD_32*)&out_buf[group_idx][PARAGETOUTPOS(0, j)];
 					po = (ARCH_WORD_32*)px->digest;
 					po[0] = pi[0];
 					po[1] = pi[COEF];

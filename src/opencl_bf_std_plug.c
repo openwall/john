@@ -246,6 +246,8 @@ void BF_select_device(struct fmt_main *fmt) {
 	if (global_work_size) {
 		global_work_size =
 			global_work_size / local_work_size * local_work_size;
+		if (global_work_size > BF_N)
+			global_work_size = BF_N;
 		fmt->params.max_keys_per_crypt = global_work_size;
 	} else
 		find_best_gws(fmt);

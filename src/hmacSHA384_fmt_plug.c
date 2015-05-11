@@ -20,6 +20,7 @@ john_register_one(&fmt_hmacSHA384);
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#include "aligned.h"
 #include "johnswap.h"
 #include "sse-intrinsics.h"
 
@@ -401,11 +402,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void *get_binary(char *ciphertext)
 {
-	static union toalign {
-		unsigned char c[BINARY_SIZE];
-		ARCH_WORD_64 a[1];
-	} a;
-	unsigned char *realcipher = a.c;
+	JTR_ALIGN(BINARY_ALIGN) static unsigned char realcipher[BINARY_SIZE];
 	int i,pos;
 
 	for(i=strlen(ciphertext);ciphertext[i]!='#';i--); // allow # in salt
