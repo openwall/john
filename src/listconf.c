@@ -234,6 +234,12 @@ static void listconf_list_build_info(void)
 #if HAVE_OPENCL
 	printf("OpenCL library version: %s\n",get_opencl_header_version());
 #endif
+#if HAVE_LIBSSL
+	printf("Crypto library: OpenSSL\n");
+#endif
+#if HAVE_COMMONCRYPTO
+	printf("Crypto library: CommonCrypto\n");
+#endif
 #ifdef OPENSSL_VERSION_NUMBER
 	printf("OpenSSL library version: %09lx", (unsigned long)OPENSSL_VERSION_NUMBER);
 	if (OPENSSL_VERSION_NUMBER != SSLeay())
@@ -271,17 +277,11 @@ static void listconf_list_build_info(void)
 	printf("ftell(): " STR_MACRO(jtr_ftell64) "\n");
 	printf("fopen(): " STR_MACRO(jtr_fopen) "\n");
 #if HAVE_MEMMEM
-#define memmem_func	"System's\n"
+#define memmem_func	"System's"
 #else
-#define memmem_func	"JtR internal\n"
+#define memmem_func	"JtR internal"
 #endif
 	printf("memmem(): " memmem_func "\n");
-
-#if HAVE_OPENSSL
-	printf("Crypto library: OpenSSL\n");
-#elif HAVE_COMMONCRYPTO
-	printf("Crypto library: CommonCrypto\n");
-#endif
 
 // OK, now append debugging options, BUT only output  something if
 // one or more of them is set. IF none set, be silent.
