@@ -936,11 +936,19 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 				if (john_main_process)
 					fprintf (stderr, "trying to use an "
 					         "invalid field separator char:"
-					         "  %s\n",
+					         " %s\n",
 					         field_sep_char_str);
 				error();
 			}
 			options.loader.field_sep_char = (char)xTmp;
+		} else {
+				if (john_main_process)
+					fprintf (stderr, "trying to use an "
+					         "invalid field separator char:"
+					         " %s (must be single byte "
+					         "character)\n",
+					         field_sep_char_str);
+				error();
 		}
 
 		if (options.loader.field_sep_char != ':')
