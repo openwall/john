@@ -66,7 +66,7 @@ john_register_one(&fmt_sha1_ng);
 #define SHA1_DIGEST_WORDS        5
 #define SHA1_PARALLEL_HASH     512 // This must be a multiple of max VWIDTH.
 #ifdef __MIC__
-#define OMP_SCALE              128 
+#define OMP_SCALE              128
 #else
 #define OMP_SCALE             2048 // Multiplier to hide OMP overhead
 #endif
@@ -110,7 +110,7 @@ john_register_one(&fmt_sha1_ng);
     } while (false)
 
 #if SIMD_COEF_32 == 4
-// For AVX2 and better, we use gather instead of load and transpose
+// Not used for AVX2 and better, which has gather instructions.
 #define _MM_TRANSPOSE4_EPI32(R0, R1, R2, R3) do {   \
     __m128i T0, T1, T2, T3;                         \
     T0  = _mm_unpacklo_epi32(R0, R1);               \
@@ -228,11 +228,11 @@ static void sha1_fmt_init(struct fmt_main *self)
 #endif
 
 	M   = mem_calloc_align(self->params.max_keys_per_crypt, sizeof(*M),
-	                       MEM_ALIGN_SIMD);
+	                       MEM_ALIGN_CACHE);
 	N   = mem_calloc_align(self->params.max_keys_per_crypt, sizeof(*N),
-	                       MEM_ALIGN_SIMD);
+	                       MEM_ALIGN_CACHE);
 	MD  = mem_calloc_align(self->params.max_keys_per_crypt, sizeof(*MD),
-	                       MEM_ALIGN_SIMD);
+	                       MEM_ALIGN_CACHE);
 }
 
 
@@ -321,7 +321,7 @@ static char *sha1_fmt_split(char *ciphertext, int index, struct fmt_main *self)
 // This implementation is hardcoded to only accept passwords under 15
 // characters. This is because we can create a new message block in just two
 // MOVDQA instructions (we need 15 instead of 16 because we must append a bit
-// to the message).
+// to the message). For AVX2 it's 31 characters and for AVX-512+ it's 125.
 //
 // This routine assumes that key is not on an unmapped page boundary, but
 // doesn't require it to be 16 byte aligned (although that would be nice).
@@ -331,6 +331,7 @@ static void sha1_fmt_set_key(char *key, int index)
 	vtype  X   = vloadu(key);
 	vtype  B;
 
+	// First, find the length of the key by scanning for a zero byte.
 #if (__AVX512F__ && !__AVX512BW__) || __MIC__
 	uint32_t len = strlen(key);
 #else
@@ -496,7 +497,6 @@ static void sha1_fmt_set_key(char *key, int index)
 	};
 #endif
 
-	// First, find the length of the key by scanning for a zero byte.
 	N[index] = len;
 
 	// Zero out the rest of the DQWORD in X by making a suitable mask.
@@ -547,10 +547,10 @@ static char *sha1_fmt_get_key(int index)
 
 static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 {
-	int32_t i, count;
+	uint32_t i;
 
 	// Fetch crypt count from john.
-	count = *pcount;
+	const int32_t count = *pcount;
 
 	// To reduce the overhead of multiple function calls, we buffer lots of
 	// passwords, and then hash them in multiples of VWIDTH all at once.
@@ -563,23 +563,22 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 		vtype K;
 
 #if __AVX512F__ || __MIC__
-		vtype indices = vset_epi32(15<<4,14<<4,13<<4,12<<4,
-		                           11<<4,10<<4, 9<<4, 8<<4,
-		                            7<<4, 6<<4, 5<<4, 4<<4,
-		                            3<<4, 2<<4, 1<<4, 0<<4);
+		const vtype indices = vset_epi32(15<<4,14<<4,13<<4,12<<4,
+		                                 11<<4,10<<4, 9<<4, 8<<4,
+		                                  7<<4, 6<<4, 5<<4, 4<<4,
+		                                  3<<4, 2<<4, 1<<4, 0<<4);
 #elif __AVX2__
-		vtype indices = vset_epi32( 7<<3, 6<<3, 5<<3, 4<<3,
-		                            3<<3, 2<<3, 1<<3, 0<<3);
+		const vtype indices = vset_epi32( 7<<3, 6<<3, 5<<3, 4<<3,
+		                                  3<<3, 2<<3, 1<<3, 0<<3);
 #endif
 
 #if __AVX2__ || __MIC__
 		// Gather the message right into place.
-		int32_t j;
+		uint32_t j;
 		for (j = 0; j < VWIDTH; ++j)
 			W[j] = vgather_epi32(&M[i][j], indices, sizeof(uint32_t));
 #else
-		// Fetch the message, then use a matrix transpose to shuffle them
-		// into place.
+		// AVX has no gather instructions, so load and transpose.
 		W[0]  = vload(&M[i + 0]);
 		W[1]  = vload(&M[i + 1]);
 		W[2]  = vload(&M[i + 2]);
@@ -717,8 +716,8 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 
 static int sha1_fmt_cmp_all(void *binary, int count)
 {
-	int32_t  M;
-	int32_t  i;
+	uint32_t  M;
+	uint32_t  i;
 	vtype  B;
 
 	// This function is hot, we need to do this quickly. We use PCMP to find
@@ -738,7 +737,7 @@ static int sha1_fmt_cmp_all(void *binary, int count)
 	// It's hard to convince GCC that it's safe to unroll this loop, so I've
 	// manually unrolled it a little bit.
 	for (i = 0; i < count; i += 64) {
-		int32_t R = 0;
+		uint32_t R = 0;
 #if __AVX512F__ || __MIC__
 		R |= vtesteq_epi32(B, vload(&MD[i +  0]));
 		R |= vtesteq_epi32(B, vload(&MD[i + 16]));
