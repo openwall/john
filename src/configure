@@ -9747,6 +9747,19 @@ $as_echo "#define HAVE_LIBDL 1" >>confdefs.h
 fi
 
 
+for ac_header in intrin.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "intrin.h" "ac_cv_header_intrin_h" "$ac_includes_default"
+if test "x$ac_cv_header_intrin_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_INTRIN_H 1
+_ACEOF
+ break
+fi
+
+done
+
+
 BACKUP_LIBS="$LIBS"
 
 LIBS=""
