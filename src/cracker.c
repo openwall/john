@@ -470,7 +470,7 @@ static int crk_remove_pot_entry(char *ciphertext)
 
 int crk_reload_pot(void)
 {
-	char line[LINE_BUFFER_SIZE], *fields[10];
+	char line[LINE_BUFFER_SIZE];
 	FILE *pot_file;
 	int total = crk_db->password_count, others;
 #if FCNTL_LOCKS
@@ -519,11 +519,9 @@ int crk_reload_pot(void)
 
 	ldr_in_pot = 1; /* Mutes some warnings from valid() et al */
 
-	/* We only ever use fields[1] here */
-	memset(fields, 0, sizeof(fields));
-
 	while (fgetl(line, sizeof(line), pot_file)) {
 		char *p, *ciphertext = line;
+		char *fields[10] = { NULL };
 
 		if (!(p = strchr(ciphertext, options.loader.field_sep_char)))
 			continue;
