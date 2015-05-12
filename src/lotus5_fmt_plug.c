@@ -122,11 +122,13 @@ static void init(struct fmt_main *self)
 /*Utility function to convert hex to bin */
 static void * get_binary(char *ciphertext)
 {
-  static char realcipher[BINARY_SIZE];
+  static ARCH_WORD_32 out[BINARY_SIZE/4];
+  char *realcipher = (char*)out;
   int i;
+
   for (i = 0; i < BINARY_SIZE; i++)
       realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
-  return ((void *) realcipher);
+  return (void*)out;
 }
 
 /*Another function required by JTR: decides whether we have a valid
