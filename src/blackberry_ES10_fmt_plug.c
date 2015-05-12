@@ -63,10 +63,11 @@ john_register_one(&fmt_blackberry1);
 #define MAX_SALT_SIZE		64
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
-#define MIN_KEYS_PER_CRYPT	1
 #ifdef SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT	SIMD_COEF_64
 #define MAX_KEYS_PER_CRYPT	SIMD_COEF_64
 #else
+#define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 #endif
 static struct fmt_tests blackberry_tests[] = {

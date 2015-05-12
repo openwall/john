@@ -55,7 +55,7 @@ john_register_one(&fmt_cryptsha1);
 #define SALT_ALIGN                  4
 
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT      SIMD_COEF_32
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #else
 #define MIN_KEYS_PER_CRYPT      1

@@ -48,7 +48,7 @@ john_register_one(&fmt_office);
 #ifdef SIMD_COEF_32
 #define GETPOS_1(i, index)  ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
 #define SHA1_LOOP_CNT       (SIMD_COEF_32*SHA1_SSE_PARA)
-#define MIN_KEYS_PER_CRYPT  1
+#define MIN_KEYS_PER_CRYPT  SHA1_LOOP_CNT
 #define MAX_KEYS_PER_CRYPT	SHA1_LOOP_CNT
 #else
 #define SHA1_LOOP_CNT		1

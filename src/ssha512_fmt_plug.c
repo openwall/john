@@ -61,10 +61,11 @@ john_register_one(&fmt_saltedsha2);
 
 #define CIPHERTEXT_LENGTH               ((BINARY_SIZE + 1 + MAX_SALT_LEN + 2) / 3 * 4)
 
-#define MIN_KEYS_PER_CRYPT		1
 #ifdef SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT		SIMD_COEF_64
 #define MAX_KEYS_PER_CRYPT      SIMD_COEF_64
 #else
+#define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
