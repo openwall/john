@@ -1272,9 +1272,6 @@ static MAYBE_INLINE void DES_bs_finalize_keys(void)
 #endif
 
 #if DES_bs_mt
-#if __GNUC__ >= 5
-extern
-#endif
 MAYBE_INLINE void DES_bs_set_salt_for_thread(int t, unsigned int salt)
 #else
 void DES_bs_set_salt(ARCH_WORD salt)

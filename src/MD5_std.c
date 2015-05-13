@@ -496,15 +496,9 @@ extern void MD5_body(MD5_word x[15], MD5_word out[4]);
 #if MD5_std_mt
 #define MD5_body(x, out) \
 	MD5_body_for_thread(t, x, out)
-#if __GNUC__ >= 5
-extern
-#endif
 MAYBE_INLINE_BODY void MD5_body_for_thread(int t,
 	MD5_word x[15], MD5_word out[4])
 #else
-#if __GNUC__ >= 5
-extern
-#endif
 MAYBE_INLINE_BODY void MD5_body(MD5_word x[15], MD5_word out[4])
 #endif
 {
@@ -601,16 +595,10 @@ MAYBE_INLINE_BODY void MD5_body(MD5_word x[15], MD5_word out[4])
 #if MD5_std_mt
 #define MD5_body(x0, x1, out0, out1) \
 	MD5_body_for_thread(t, x0, x1, out0, out1)
-#if __GNUC__ >= 5
-extern
-#endif
 MAYBE_INLINE_BODY void MD5_body_for_thread(int t,
 	MD5_word x0[15], MD5_word x1[15],
 	MD5_word out0[4], MD5_word out1[4])
 #else
-#if __GNUC__ >= 5
-extern
-#endif
 MAYBE_INLINE_BODY void MD5_body(MD5_word x0[15], MD5_word x1[15],
 	MD5_word out0[4], MD5_word out1[4])
 #endif
