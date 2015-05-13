@@ -169,7 +169,7 @@ static char *saved_salt;
 typedef struct {
 	MD5_CTX context;	/* working buffer for MD5 algorithm */
 	unsigned char digest[DIGEST_LEN]; /* where the MD5 digest is stored */
-} Contx, *pConx;
+} JTR_ALIGN(MEM_ALIGN_CACHE) Contx, *pConx;
 static Contx *data;
 
 /*
