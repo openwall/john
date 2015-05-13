@@ -1192,7 +1192,7 @@ private void
 	Private_Packet,
 };
 
-char *pkt_type(tag) {
+char *pkt_type(int tag) {
 	switch(tag) {
 	case 0: return "Reserved";
 	case 1: return "Public_Key_Encrypted_Session_Key_Packet";
