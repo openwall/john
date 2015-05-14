@@ -2583,6 +2583,10 @@ read_radix64(byte *p, unsigned int max)
 			done = YES;
 			return out;
 		}
+
+		if (sizeof(base256) <= c)
+			warn_exit("illegal radix64 character.");
+
 		d = base256[c];
 		switch (d) {
 		case OOB:
