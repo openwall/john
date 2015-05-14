@@ -466,8 +466,6 @@ static int ldr_split_line(char **login, char **ciphertext,
 
 	if (db_opts->showtypes) {
 		int fs = db_opts->field_sep_char;
-		/* Flag: no formats can load the hash. */
-		int not_valid = 1;
 		/* Flag: the format is not the first valid format. The
 		 * first format should not print the first field
 		 * separator. */
@@ -571,7 +569,6 @@ static int ldr_split_line(char **login, char **ciphertext,
 			valid = alt->methods.valid(prepared, alt);
 			if (!valid)
 				continue;
-			not_valid = 0;
 			ldr_set_encoding(alt);
 			/* Empty field between valid formats */
 			if (not_first_format) {
