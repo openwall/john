@@ -83,8 +83,9 @@ static void process_file(const char *filename)
 					PEM_R_NO_START_LINE) {
 				/* ERR_print_errors_fp(stderr); */
 				fprintf(stderr, "! %s : %s\n", filename, "input keyfile validation failed");
-				goto out;
 			}
+			fclose(keyfile);
+			return;
 		}
 		if(!nm) {
 			fprintf(stderr, "! %s : %s\n", filename, "input keyfile validation failed");

@@ -50,7 +50,7 @@ john_register_one(&fmt_wpapsk);
 #define FORMAT_NAME		"WPA/WPA2 PSK"
 #define ALGORITHM_NAME		"PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 
-#define MIN_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT	NBKEYS
 #define MAX_KEYS_PER_CRYPT	NBKEYS
 
 extern wpapsk_password *inbuffer;

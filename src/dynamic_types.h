@@ -147,7 +147,7 @@ typedef struct private_subformat_data
 #define OMP_SCALE 1
 
 #ifdef SIMD_COEF_32
-# define MIN_KEYS_PER_CRYPT	1
+# define MIN_KEYS_PER_CRYPT	SIMD_COEF_32
 # ifdef _OPENMP
 // in openMP mode, we multiply everything by 24
 // in openMP mode, we multiply everything by 48

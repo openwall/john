@@ -171,7 +171,7 @@ public void skip(int);
 public void dump(int);
 public void pdump(int);
 public void kdump(int);
-public void give(int, unsigned char*);
+public void give(const int, unsigned char *, const int);
 
 /*
  * buffer.c
@@ -334,12 +334,12 @@ int gpg2john(int argc, char **argv)
 			argv[i] = argv[i+1];
 		--argc;
 	}
-    if (argc < 2) {
-         fprintf(stderr, "Usage: %s [-d] [-S] <GPG Secret Key File(s)>\n", argv[0]);
-		 fprintf(stderr, "   if -d is used, then debugging of the object types decoded is written\n");
-		 fprintf(stderr, "   if -S is used, then subkeys will also be output\n");
-         exit(-1);
-    }
+	if (argc < 2) {
+		fprintf(stderr, "Usage: %s [-d] [-S] <GPG Secret Key File(s)>\n", argv[0]);
+		fprintf(stderr, "   if -d is used, then debugging of the object types decoded is written\n");
+		fprintf(stderr, "   if -S is used, then subkeys will also be output\n");
+		exit(-1);
+	}
 
 	for (i = 1; i < argc; ++i) {
 		filename = argv[i];
@@ -385,9 +385,14 @@ dump(int len)
 }
 
 public void
-give(int len, unsigned char *buf)
+give(const int len, unsigned char *buf, const int buf_size)
 {
 	int i;
+
+	if (len > buf_size)
+		warn_exit("Bad parameter: give(len=%d, buf=%p, buf_size=%d), len can not be bigger than buf_size.",
+			len, buf, buf_size);
+
 	for (i = 0; i < len; i++)
 		buf[i] = Getc();
 }
@@ -404,6 +409,11 @@ public void
 give_pdump(int len)
 {
 	int i;
+
+	if (len > sizeof(gecos))
+		warn_exit("Bad parameter: give_pdump(len=%d), len can not be bigger than sizeof(gecos)=%d.",
+			len, sizeof(gecos));
+
 	for (i = 0; i < len; i++)
 		gecos[i] = Getc();
 	gecos[i] = 0;
@@ -729,7 +739,7 @@ string_to_key(void)
 		// hash_algs(Getc());
 		m_hashAlgorithm = Getc();
 		// printf("\t\tSalt - ");
-		give(8, m_salt);
+		give(8, m_salt, sizeof(m_salt));
 		// dump(8);
 		// printf("\n");
 		break;
@@ -744,7 +754,7 @@ string_to_key(void)
 		// hash_algs(Getc());
 		// printf("\t\tSalt - ");
 		// dump(8);
-		give(8, m_salt);
+		give(8, m_salt, sizeof(m_salt));
 		// printf("\n");
 		{
 			int count, c = Getc();
@@ -788,9 +798,8 @@ skip_multi_precision_integer(string str)
 	skip(bytes);
 }
 
-
 public int
-give_multi_precision_integer(unsigned char *buf, int *key_bits)
+give_multi_precision_integer(unsigned char *buf, const int buf_size, int *key_bits)
 {
 	int bytes;
 	int bits = Getc() * 256;
@@ -799,7 +808,7 @@ give_multi_precision_integer(unsigned char *buf, int *key_bits)
 	*key_bits = bits;
 
 	// printf("\t%s(%d bits) - ", str, bits);
-	give(bytes, buf);
+	give(bytes, buf, buf_size);
 	return bytes;
 	// dump(bytes);
 	// printf("\n");
@@ -1192,7 +1201,7 @@ private void
 	Private_Packet,
 };
 
-char *pkt_type(tag) {
+char *pkt_type(int tag) {
 	switch(tag) {
 	case 0: return "Reserved";
 	case 1: return "Public_Key_Encrypted_Session_Key_Packet";
@@ -2136,8 +2145,8 @@ old_Public_Key_Packet(void)
 	pub_algs(PUBLIC); /* PUBLIC should be 1 */
 	// skip_multi_precision_integer("RSA n");
 	// skip_multi_precision_integer("RSA e");
-	give_multi_precision_integer(n, &n_bits);
-	give_multi_precision_integer(e, &e_bits);
+	give_multi_precision_integer(n, sizeof(n), &n_bits);
+	give_multi_precision_integer(e, sizeof(e), &e_bits);
 }
 
 private void
@@ -2152,22 +2161,22 @@ new_Public_Key_Packet(int len)
 	case 1:
 	case 2:
 	case 3:
-		give_multi_precision_integer(n, &n_bits);  // RSA n
-		give_multi_precision_integer(e, &e_bits);  // RSA e
+		give_multi_precision_integer(n, sizeof(n), &n_bits);  // RSA n
+		give_multi_precision_integer(e, sizeof(e), &e_bits);  // RSA e
 		break;
 	case 16:
 	case 20:
 		// ElGamal
-		give_multi_precision_integer(p, &p_bits);
-		give_multi_precision_integer(g, &g_bits);
-		give_multi_precision_integer(y, &y_bits);
+		give_multi_precision_integer(p, sizeof(p), &p_bits);
+		give_multi_precision_integer(g, sizeof(g), &g_bits);
+		give_multi_precision_integer(y, sizeof(y), &y_bits);
 		break;
 	case 17:
 		// multi_precision_integer("DSA p");
-		give_multi_precision_integer(p, &key_bits);
-		give_multi_precision_integer(q, &q_bits);
-		give_multi_precision_integer(g, &g_bits);
-		give_multi_precision_integer(y, &y_bits);
+		give_multi_precision_integer(p, sizeof(p), &key_bits);
+		give_multi_precision_integer(q, sizeof(q), &q_bits);
+		give_multi_precision_integer(g, sizeof(g), &g_bits);
+		give_multi_precision_integer(y, sizeof(y), &y_bits);
 		break;
 	default:
 		fprintf(stderr, "\tUnknown public key(pub %d)\n", PUBLIC);
@@ -2180,7 +2189,7 @@ private void
 IV(unsigned int len)
 {
 	// printf("\tIV - ");
-	give(len, iv);
+	give(len, iv, sizeof(iv));
 	bs = len;
 	// dump(len);
 	// printf("\n");
@@ -2260,10 +2269,10 @@ plain_Secret_Key(int len)
 		// multi_precision_integer("RSA p");
 		// multi_precision_integer("RSA q");
 		// multi_precision_integer("RSA u");
-		give_multi_precision_integer(d, &d_bits);
-		give_multi_precision_integer(p, &p_bits);
-		give_multi_precision_integer(q, &q_bits);
-		give_multi_precision_integer(u, &u_bits);
+		give_multi_precision_integer(d, sizeof(d), &d_bits);
+		give_multi_precision_integer(p, sizeof(p), &p_bits);
+		give_multi_precision_integer(q, sizeof(q), &q_bits);
+		give_multi_precision_integer(u, sizeof(u), &u_bits);
 		fprintf(stderr, "%s contains plain RSA secret key packet!\n", base);
 		// printf("\tChecksum - ");
 		skip(2);
@@ -2279,10 +2288,10 @@ plain_Secret_Key(int len)
 			// multi_precision_integer("RSA p");
 			// multi_precision_integer("RSA q");
 			// multi_precision_integer("RSA u");
-			give_multi_precision_integer(d, &d_bits);
-			give_multi_precision_integer(p, &p_bits);
-			give_multi_precision_integer(q, &q_bits);
-			give_multi_precision_integer(u, &u_bits);
+			give_multi_precision_integer(d, sizeof(d), &d_bits);
+			give_multi_precision_integer(p, sizeof(p), &p_bits);
+			give_multi_precision_integer(q, sizeof(q), &q_bits);
+			give_multi_precision_integer(u, sizeof(u), &u_bits);
 			fprintf(stderr, "%s contains plain RSA secret key packet!\n", base);
 			break;
 		case 16:
@@ -2320,6 +2329,10 @@ encrypted_Secret_Key(int len, int sha1)
 	char *gecos_remains = gecos;
 	const char *ext[] = {".gpg", ".pgp"};
 
+	if (len < 0)
+		warn_exit("Bad parameter: encrypted_Secret_Key(len=%d, sha1=%d), len can not be negative.",
+			len, sha1);
+
 	/* Use base of filename as login as last resort */
 	/* /path/johndoe.gpg -> johndoe */
 	if (!gecos[0]) {
@@ -2353,7 +2366,7 @@ encrypted_Secret_Key(int len, int sha1)
 		// give_multi_precision_integer(p, &p_bits);
 		// give_multi_precision_integer(q, &p_bits);
 		// give_multi_precision_integer(u, &u_bits);
-		give(len, m_data); // we can't break down the "data" further into fields
+		give(len, m_data, sizeof(m_data)); // we can't break down the "data" further into fields
 		used += len;
 
 		m_algorithm = PUBLIC;
@@ -2382,7 +2395,7 @@ encrypted_Secret_Key(int len, int sha1)
 		case 2:
 		case 3:
 			/* Encrypted RSA stuff */
-			give(len, m_data); // we can't break down the "data" further into fields
+			give(len, m_data, sizeof(m_data)); // we can't break down the "data" further into fields
 			used += len;
 			m_algorithm = PUBLIC;  // Encrypted RSA
 			if (*last_hash) {
@@ -2408,7 +2421,7 @@ encrypted_Secret_Key(int len, int sha1)
 		case 16:
 		case 20:
 			m_algorithm = PUBLIC;  // Encrypted ElGamal
-			give(len, m_data);
+			give(len, m_data, sizeof(m_data));
 			used += len;
 			if (*last_hash) {
 				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
@@ -2435,7 +2448,7 @@ encrypted_Secret_Key(int len, int sha1)
 			break;
 		case 17:
 			m_algorithm = PUBLIC;  // Encrypted DSA
-			give(len, m_data);
+			give(len, m_data, sizeof(m_data));
 			used += len;
 			if (*last_hash) {
 				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
@@ -2583,6 +2596,10 @@ read_radix64(byte *p, unsigned int max)
 			done = YES;
 			return out;
 		}
+
+		if (sizeof(base256) <= c)
+			warn_exit("illegal radix64 character.");
+
 		d = base256[c];
 		switch (d) {
 		case OOB:

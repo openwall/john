@@ -104,11 +104,12 @@ john_register_one(&fmt_sapH);
 #define SALT_ALIGN              4
 
 /* NOTE, format is slow enough that endianity conversion is pointless. Just use flat buffers. */
-#define MIN_KEYS_PER_CRYPT		1
 #ifdef SIMD_COEF_32
+#define MIN_KEYS_PER_CRYPT		NBKEYS1
 #define MAX_KEYS_PER_CRYPT		NBKEYS1
 #define PLAINTEXT_LENGTH        23
 #else
+#define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 #define PLAINTEXT_LENGTH        125
 #endif

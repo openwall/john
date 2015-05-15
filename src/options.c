@@ -412,6 +412,7 @@ void opt_print_hidden_usage(void)
 	puts("--mkv-stats=FILE          \"Markov\" stats file (see doc/MARKOV)");
 	puts("--reject-printable        reject printable binaries");
 	puts("--verbosity=N             change verbosity (1-5, default 3)");
+	puts("--show=types              show some information about hashes in file (machine readable)");
 	puts("--skip-self-tests         skip self tests");
 	puts("--stress-test[=TIME]      loop self tests forever");
 	puts("--input-encoding=NAME     input encoding (alias for --encoding)");
@@ -905,8 +906,11 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			// instead of normal loading if we are in 'normal' show mode)
 			options.flags &= ~FLG_SHOW_CHK;
 		}
+		else if (!strcasecmp(show_uncracked_str, "types")) {
+			options.loader.showtypes = 1;
+		}
 		else {
-			fprintf(stderr, "Invalid option in --show switch.\nOnly --show or --show=left are valid\n");
+			fprintf(stderr, "Invalid option in --show switch.\nOnly --show , --show=left or --show=types are valid\n");
 			error();
 		}
 	}
@@ -936,11 +940,19 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 				if (john_main_process)
 					fprintf (stderr, "trying to use an "
 					         "invalid field separator char:"
-					         "  %s\n",
+					         " %s\n",
 					         field_sep_char_str);
 				error();
 			}
 			options.loader.field_sep_char = (char)xTmp;
+		} else {
+				if (john_main_process)
+					fprintf (stderr, "trying to use an "
+					         "invalid field separator char:"
+					         " %s (must be single byte "
+					         "character)\n",
+					         field_sep_char_str);
+				error();
 		}
 
 		if (options.loader.field_sep_char != ':')

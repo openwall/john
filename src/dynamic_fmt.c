@@ -303,7 +303,7 @@ unsigned int m_count;
 // that if set to true, we will perform a 1 time check within the valid function. If at
 // that time we find out that we are cracking (or showing, etc) that we will accept lines
 // that are either format of $dynamic_0$hhhhhh...32 or simply in the format of hhhhhhh..32
-static int m_allow_rawhash_fixup = 0;
+int dynamic_allow_rawhash_fixup = 0;
 
 // this one IS in the private_dat, but since it is accessed SO much, we pull it
 // out prior to 'internal' processing. The others are accessed right from
@@ -7478,13 +7478,13 @@ int dynamic_Register_formats(struct fmt_main **ptr)
 	if (options.format && options.subformat  && !strcmp(options.format, "dynamic") && !strncmp(options.subformat, "dynamic_", 8))
 		sscanf(options.subformat, "dynamic_%d", &single);
 	if (options.dynamic_bare_hashes_always_valid == 'Y')
-		m_allow_rawhash_fixup = 1;
+		dynamic_allow_rawhash_fixup = 1;
 	else if (options.dynamic_bare_hashes_always_valid != 'N'  && cfg_get_bool(SECTION_OPTIONS, NULL, "DynamicAlwaysUseBareHashes", 1))
-		m_allow_rawhash_fixup = 1;
+		dynamic_allow_rawhash_fixup = 1;
 
 	if (single != -1) {
 		// user wanted only a 'specific' format.  Simply load that one.
-		m_allow_rawhash_fixup = 1;
+		dynamic_allow_rawhash_fixup = 1;
 		if (dynamic_IS_VALID(single, 1) == 0)
 			return 0;
 		pFmts = mem_alloc_tiny(sizeof(pFmts[0]), MEM_ALIGN_WORD);
@@ -7568,7 +7568,7 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 	struct fmt_main *pFmtLocal;
 	static char subformat[17], *cp;
 
-	m_allow_rawhash_fixup = 0;
+	dynamic_allow_rawhash_fixup = 0;
 	strncpy(subformat, ciphertext, 16);
 	subformat[16] = 0;
 	cp = strchr(&subformat[9], '$');
@@ -7683,7 +7683,7 @@ static char *FixupIfNeeded(char *ciphertext, private_subformat_data *pPriv)
 {
 	if (!ciphertext || *ciphertext == 0 || *ciphertext == '*')
 		return ciphertext;
-	if (m_allow_rawhash_fixup && strncmp(ciphertext, "$dynamic_", 9) && looks_like_raw_hash(ciphertext, pPriv))
+	if (dynamic_allow_rawhash_fixup && strncmp(ciphertext, "$dynamic_", 9) && looks_like_raw_hash(ciphertext, pPriv))
 	{
 		static char __ciphertext[512+24];
 		if (pPriv->pSetup->flags & MGF_SALTED) {

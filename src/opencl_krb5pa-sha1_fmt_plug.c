@@ -462,6 +462,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	static struct custom_salt cs;
 
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += 8;
 	p = strtokm(ctcopy, "$");
 	cs.etype = atoi(p);

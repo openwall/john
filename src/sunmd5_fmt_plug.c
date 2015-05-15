@@ -32,7 +32,7 @@ john_register_one(&fmt_sunmd5);
 
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE 1
+#define OMP_SCALE 2
 #endif
 
 #include "arch.h"
@@ -81,28 +81,9 @@ john_register_one(&fmt_sunmd5);
 #define SALT_SIZE			40
 #define SALT_ALIGN			1
 
-#define MIN_KEYS_PER_CRYPT		1
-#ifdef SIMD_COEF_32
-/*
- * 576 divides evenly by 4, 8, 12, 16 (para = 1, 2, 3, 4) Each of these
- * will get an even number of para buckets, so hopefully we get the best
- * average fill we possibly can get. 960 would also allow us to pick up 20 (para 5)
- *
- * NOTE, made 'smaller' fit. 240 would get all 4,8,12,16,20, but now it is multiple
- * defines. this allows self tests to run much faster, BUT the speed of the format
- * is still about the same.
- */
-//#define MAX_KEYS_PER_CRYPT		576
-//#define MAX_KEYS_PER_CRYPT		240
-#if !defined(MD5_SSE_PARA) || MD5_SSE_PARA==1
-#define MAX_KEYS_PER_CRYPT 48
-#elif MD5_SSE_PARA==2
-#define MAX_KEYS_PER_CRYPT 64
-#elif MD5_SSE_PARA==3 || MD5_SSE_PARA==4
-#define MAX_KEYS_PER_CRYPT 96
-#elif MD5_SSE_PARA==5
-#define MAX_KEYS_PER_CRYPT 100
-#endif
+#if SIMD_COEF_32
+#define MIN_KEYS_PER_CRYPT  SIMD_COEF_32
+#define MAX_KEYS_PER_CRYPT  (16 * SIMD_COEF_32 * MD5_SSE_PARA)
 #else
 #define MAX_KEYS_PER_CRYPT		1
 #endif
@@ -188,7 +169,7 @@ static char *saved_salt;
 typedef struct {
 	MD5_CTX context;	/* working buffer for MD5 algorithm */
 	unsigned char digest[DIGEST_LEN]; /* where the MD5 digest is stored */
-} Contx, *pConx;
+} JTR_ALIGN(MEM_ALIGN_CACHE) Contx, *pConx;
 static Contx *data;
 
 /*
@@ -255,11 +236,11 @@ static void init(struct fmt_main *self)
 	/*
 	 * allocate SSE2 input and output buffer space.  For input's we have
 	 * 2 buffers.  One does the 'short' 1 block crypts. The other does the
-	 * long 25 block crypts.  All MUST be aligned to 16 bytes
+	 * long 25 block crypts.  All MUST be aligned to SIMD.
 	 */
-	input_buf     = mem_calloc_align(ngroups, sizeof(*input_buf), MEM_ALIGN_SIMD);
-	input_buf_big = mem_calloc_align(ngroups, sizeof(*input_buf_big), MEM_ALIGN_SIMD);
-	out_buf       = mem_calloc_align(ngroups, sizeof(*out_buf), MEM_ALIGN_SIMD);
+	input_buf     = mem_calloc_align(ngroups, sizeof(*input_buf), MEM_ALIGN_CACHE);
+	input_buf_big = mem_calloc_align(ngroups, sizeof(*input_buf_big), MEM_ALIGN_CACHE);
+	out_buf       = mem_calloc_align(ngroups, sizeof(*out_buf), MEM_ALIGN_CACHE);
 
 	/* not super optimal, but only done one time, at program startup, so speed is not important */
 	for (k = 0; k < ngroups; ++k) {
@@ -274,7 +255,7 @@ static void init(struct fmt_main *self)
 	if (!saved_salt)
 		saved_salt = mem_calloc_tiny(SALT_SIZE + 1, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt, sizeof(*crypt_out));
-	data = mem_calloc(self->params.max_keys_per_crypt, sizeof(*data));
+	data = mem_calloc_align(self->params.max_keys_per_crypt, sizeof(*data), MEM_ALIGN_CACHE);
 
 	for (i = 0; i < 0x100; i++)
 		mod5[i] = i % 5;
@@ -554,8 +535,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data, input_buf, input_buf_big, out_buf, constant_phrase)
 #else
 #pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data, input_buf, input_buf_big, out_buf)
-#endif // _OPENMP
 #endif // __INTEL_COMPILER
+#endif // _OPENMP
 	for (group_idx = 0; group_idx < ngroups; ++group_idx) {
 		int roundasciilen;
 		int round, maxrounds = BASIC_ROUND_COUNT + getrounds(saved_salt);
@@ -814,7 +795,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				SSEmd5body(input_buf_big[group_idx][0], (unsigned int *)out_buf[group_idx], NULL, SSEi_MIXED_IN);
 				for (j = 1; j < 25; ++j)
 					SSEmd5body(input_buf_big[group_idx][j], (unsigned int *)out_buf[group_idx], (unsigned int *)out_buf[group_idx], SSEi_RELOAD|SSEi_MIXED_IN);
-	
+
 				for (j = 0; j < BLK_CNT && zb0 < nbig; ++j) {
 					ARCH_WORD_32 *pi, *po;
 					pConx px = &data[bigs[zb0++]];

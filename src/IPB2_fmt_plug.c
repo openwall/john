@@ -205,7 +205,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned char binary_cipher[BINARY_SIZE];
+	static ARCH_WORD_32 out[BINARY_SIZE/4];
+	unsigned char *binary_cipher = (unsigned char*)out;
 	int i;
 
 	ciphertext += 17;
@@ -214,7 +215,7 @@ static void *get_binary(char *ciphertext)
 			(atoi16[ARCH_INDEX(ciphertext[i*2])] << 4)
 			+ atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 
-	return (void *)binary_cipher;
+	return (void*)out;
 }
 
 static void *get_salt(char *ciphertext)

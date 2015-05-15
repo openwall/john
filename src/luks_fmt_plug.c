@@ -86,7 +86,7 @@ john_register_one(&fmt_luks);
 #define SALT_SIZE		sizeof(struct custom_salt_LUKS*)
 #define SALT_ALIGN			sizeof(struct custom_salt_LUKS*)
 #if SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
 #else
 #define MIN_KEYS_PER_CRYPT	1

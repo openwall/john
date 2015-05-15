@@ -104,16 +104,13 @@ static void print_hex(unsigned char *str, int len)
 		printf("%02x", str[i]);
 }
 
-static uint64_t BytesToUInt64(unsigned char * s)
+static uint64_t BytesToUInt64(unsigned char * s, const int s_size)
 {
-	uint64_t v = s[0];
-	v |= (uint64_t)s[1] << 8;
-	v |= (uint64_t)s[2] << 16;
-	v |= (uint64_t)s[3] << 24;
-	v |= (uint64_t)s[4] << 32;
-	v |= (uint64_t)s[5] << 40;
-	v |= (uint64_t)s[6] << 48;
-	v |= (uint64_t)s[7] << 56;
+	int i;
+	uint64_t v = 0;
+
+	for (i = 0; i < 8 && i < s_size; i++)
+		v |= (uint64_t)s[i] << 8 * i;
 	return v;
 }
 
@@ -320,7 +317,7 @@ static void process_database(char* encryptedDatabase)
 					goto bailout;
 				}
 				else {
-					transformRounds = BytesToUInt64(pbData);
+					transformRounds = BytesToUInt64(pbData, uSize);
 					MEM_FREE(pbData);
 				}
 				break;

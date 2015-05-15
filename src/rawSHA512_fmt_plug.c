@@ -57,10 +57,11 @@ john_register_one(&fmt_raw0_SHA512);
 #define SALT_SIZE				0
 #define SALT_ALIGN				1
 
-#define MIN_KEYS_PER_CRYPT		1
 #ifdef SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT		SIMD_COEF_64
 #define MAX_KEYS_PER_CRYPT      SIMD_COEF_64
 #else
+#define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 #define __RAWSHA512_CREATE_PROPER_TESTS_ARRAY__

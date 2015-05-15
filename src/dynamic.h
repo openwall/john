@@ -149,6 +149,9 @@ typedef struct DYNAMIC_Setup_t
 	int SaltLenX86;			// if zero, then use salt len of SSE
 } DYNAMIC_Setup;
 
+/* See dynamic_fmt.c for description */
+extern int dynamic_allow_rawhash_fixup;
+
 int dynamic_SETUP(DYNAMIC_Setup *, struct fmt_main *pFmt);
 int dynamic_IS_VALID(int i, int force);
 int dynamic_real_salt_length(struct fmt_main *pFmt);

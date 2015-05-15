@@ -71,8 +71,8 @@ john_register_one(&fmt_SybaseASE);
 #define SALT_SIZE           8
 #define SALT_ALIGN          4
 
-#define MIN_KEYS_PER_CRYPT  1
 #ifdef SIMD_COEF_32
+#define MIN_KEYS_PER_CRYPT  (SIMD_COEF_32*SIMD_PARA_SHA256)
 #define MAX_KEYS_PER_CRYPT	(SIMD_COEF_32*SIMD_PARA_SHA256)
 #ifdef __MIC__
 #define OMP_SCALE           64

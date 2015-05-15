@@ -31,6 +31,10 @@
 extern "C" {
 #endif
 
+#if AC_BUILT
+#include "../../autoconfig.h"
+#endif
+
 #include "iaesni.h"
 #include "iaes_asm_interface.h"
 
@@ -266,6 +270,16 @@ void intel_AES_encdec128_CTR(UCHAR *in,UCHAR *out,UCHAR *key,size_t numBlocks,UC
 #if HAVE_INTRIN_H
 
 #include <intrin.h>
+
+#elif __i386__
+
+// FIXME: Implement this correctly. Currently always returns "no"
+
+static void __cpuid(unsigned int where[4], unsigned int leaf) {
+//  asm volatile("cpuid":"=a"(*where), "=c"(*(where+2)),"=d"(*(where+3)):"a"(leaf));
+	where[2] = 0;
+  return;
+}
 
 #else
 

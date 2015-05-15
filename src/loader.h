@@ -198,6 +198,9 @@ struct db_options {
 /* if --show=left is used, john dumps the non-cracked hashes */
 	int showuncracked;
 
+/* if --show=types is used, john shows all hashes in machine readable form */
+	int showtypes;
+
 /* Field separator (normally ':') */
 	char field_sep_char;
 

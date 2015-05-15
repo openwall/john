@@ -438,6 +438,8 @@ AC_CHECK_HEADER([bzlib.h], [AC_CHECK_LIB([bz2],[main],
 AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen],[AC_DEFINE(HAVE_LIBDL,1,[Define to 1 if you have the `dl' library (-ldl).])] [AC_SUBST(DL_LIBS, [-ldl])])
 
+AC_CHECK_HEADERS([intrin.h], break)
+
 BACKUP_LIBS="$LIBS"
 
 LIBS=""
