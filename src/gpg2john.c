@@ -2320,6 +2320,10 @@ encrypted_Secret_Key(int len, int sha1)
 	char *gecos_remains = gecos;
 	const char *ext[] = {".gpg", ".pgp"};
 
+	if (len < 0)
+		warn_exit("Bad parameter: encrypted_Secret_Key(len=%d, sha1=%d), len can not be negative.",
+			len, sha1);
+
 	/* Use base of filename as login as last resort */
 	/* /path/johndoe.gpg -> johndoe */
 	if (!gecos[0]) {
