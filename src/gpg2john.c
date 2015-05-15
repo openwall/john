@@ -334,12 +334,12 @@ int gpg2john(int argc, char **argv)
 			argv[i] = argv[i+1];
 		--argc;
 	}
-    if (argc < 2) {
-         fprintf(stderr, "Usage: %s [-d] [-S] <GPG Secret Key File(s)>\n", argv[0]);
-		 fprintf(stderr, "   if -d is used, then debugging of the object types decoded is written\n");
-		 fprintf(stderr, "   if -S is used, then subkeys will also be output\n");
-         exit(-1);
-    }
+	if (argc < 2) {
+		fprintf(stderr, "Usage: %s [-d] [-S] <GPG Secret Key File(s)>\n", argv[0]);
+		fprintf(stderr, "   if -d is used, then debugging of the object types decoded is written\n");
+		fprintf(stderr, "   if -S is used, then subkeys will also be output\n");
+		exit(-1);
+	}
 
 	for (i = 1; i < argc; ++i) {
 		filename = argv[i];
@@ -409,6 +409,11 @@ public void
 give_pdump(int len)
 {
 	int i;
+
+	if (len > sizeof(gecos))
+		warn_exit("Bad parameter: give_pdump(len=%d), len can not be bigger than sizeof(gecos)=%d.",
+			len, sizeof(gecos));
+
 	for (i = 0; i < len; i++)
 		gecos[i] = Getc();
 	gecos[i] = 0;
