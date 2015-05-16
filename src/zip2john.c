@@ -212,7 +212,8 @@ static void process_file(const char *fname)
 				(void) actual_compression_method; /* we need this!! */
 
 				if (store) cp += sprintf(cp, "%s:$zip2$*0*%x*%x*", bname, efh_aes_strength, magic_enum);
-				if (fread(salt, 1, 4+4*efh_aes_strength, fp) != 4+4*efh_aes_strength) {
+				if (sizeof(salt) < 4 + 4 * efh_aes_strength ||
+					fread(salt, 1, 4+4*efh_aes_strength, fp) != 4+4*efh_aes_strength) {
 						fprintf(stderr, "Error, in fread of file data!\n");
 						goto cleanup;
 				}
@@ -349,7 +350,8 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 	/* unused variables */
 	(void) lastmod_date;
 
-	if (fread(filename, 1, filename_length, fp) != filename_length) {
+	if (sizeof(filename) < filename_length ||
+		fread(filename, 1, filename_length, fp) != filename_length) {
 		fprintf(stderr, "Error, fread could not read the data from the file:  %s\n", zip_fname);
 		return 0;
 	}
