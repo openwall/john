@@ -221,7 +221,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	print_hex(contents_hash, 32);
 	filesize = (long long)get_file_size(encryptedDatabase);
 	datasize = filesize - 124;
-	if((filesize + datasize) < inline_thr) {
+	if((filesize + datasize) < inline_thr && sizeof(buffer) > datasize) {
 		/* we can inline the content with the hash */
 		fprintf(stderr, "Inlining %s\n", encryptedDatabase);
 		printf("*1*%lld*", datasize);
@@ -237,7 +237,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 
 		printf("*0*%s", dbname); /* data is not inline */
 	}
-	if (keyfile) {
+	if (keyfile && sizeof(buffer) > filesize) {
 		printf("*1*%lld*", filesize); /* inline keyfile content */
 		if (fread(buffer, filesize, 1, kfp) != 1)
 			warn_exit("Error: read failed.");
