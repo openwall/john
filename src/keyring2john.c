@@ -6,6 +6,7 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #if !AC_BUILT || HAVE_LIMITS_H
@@ -13,7 +14,7 @@
 #endif
 #include <errno.h>
 #include <string.h>
-#include <assert.h>
+
 #include "stdint.h"
 #include "memory.h"
 #include "jumbo.h"
@@ -27,15 +28,28 @@ typedef unsigned int guint;
 typedef int gint;
 static int count;
 
+static void warn_exit(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	if (fmt != NULL)
+		vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	fprintf(stderr, "\n");
+
+	exit(EXIT_FAILURE);
+}
+
 /* helper functions for byte order conversions, header values are stored
  * in big-endian byte order */
 static uint32_t fget32_(FILE * fp)
 {
 	unsigned char buf[4];
-	int count;
 	uint32_t v;
-	count = fread(buf, 4, 1, fp);
-	assert(count == 1);
+
+	if (fread(buf, 4, 1, fp) != 1)
+		warn_exit("Error: read failed.");
 
 	v = buf[0] << 24;
 	v |= buf[1] << 16;
@@ -92,12 +106,12 @@ static void buffer_get_attributes(FILE * fp, int *next_offset)
 	guint type;
 	guint val;
 	int i;
-	int ret;
 
 	get_uint32(fp, next_offset, &list_size);
 	for (i = 0; i < list_size; i++) {
-		ret = get_utf8_string(fp, next_offset);
-		assert(ret == 1);
+		if (get_utf8_string(fp, next_offset) != 1)
+			warn_exit("Error: get_utf8_string(%p, %p) failed.",
+				fp, next_offset);
 
 		get_uint32(fp, next_offset, &type);
 		switch (type) {
@@ -146,8 +160,10 @@ static void process_file(const char *fname)
 		fprintf(stderr, "%s : %s\n", fname, strerror(errno));
 		return;
 	}
-	count = fread(buf, KEYRING_FILE_HEADER_LEN, 1, fp);
-	assert(count == 1);
+	if (fread(buf, KEYRING_FILE_HEADER_LEN, 1, fp) != 1)
+		warn_exit("Error: read failed.");
+
+
 	if (memcmp(buf, KEYRING_FILE_HEADER, KEYRING_FILE_HEADER_LEN) != 0) {
 		fprintf(stderr, "%s : Not a GNOME Keyring file!\n", fname);
 		fclose(fp);
@@ -208,8 +224,9 @@ static void process_file(const char *fname)
 		goto bail;
 
 	to_decrypt = (unsigned char *) mem_alloc(crypto_size);
-	count = fread(to_decrypt, crypto_size, 1, fp);
-	assert(count == 1);
+	if (fread(to_decrypt, crypto_size, 1, fp) != 1)
+		warn_exit("Error: read failed.");
+
 	printf("%s:$keyring$", basename(fname));
 	print_hex(salt, 8);
 	printf("*%d*%d*%d*", hash_iterations, crypto_size, 0);

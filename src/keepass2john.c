@@ -35,7 +35,6 @@
 #include "missing_getopt.h"
 #endif
 #include <errno.h>
-#include <assert.h>
 // needs to be above sys/types.h and sys/stat.h for mingw, if -std=c99 used.
 #include "jumbo.h"
 #include <sys/stat.h>
