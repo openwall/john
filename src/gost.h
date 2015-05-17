@@ -143,6 +143,8 @@ typedef struct gost_ctx
 	unsigned char message[gost_block_size]; /* 256-bit buffer for leftovers */
 	uint64_t length;   /* number of processed bytes */
 	unsigned cryptpro; /* boolean flag, the type of sbox to use */
+	unsigned char ipad[64];
+	unsigned char opad[64];
 } gost_ctx;
 
 /* hash functions */
@@ -151,6 +153,11 @@ void john_gost_init(gost_ctx *ctx);
 void john_gost_cryptopro_init(gost_ctx *ctx);
 void john_gost_update(gost_ctx *ctx, const unsigned char* msg, size_t size);
 void john_gost_final(gost_ctx *ctx, unsigned char result[32]);
+
+void john_gost_hmac_starts( gost_ctx *ctx, const unsigned char *key, size_t keylen );
+void john_gost_hmac_update( gost_ctx *ctx, const unsigned char *input, size_t ilen );
+void john_gost_hmac_finish( gost_ctx *ctx, unsigned char *output );
+void john_gost_hmac( const unsigned char *key, size_t keylen, const unsigned char *input, size_t ilen, unsigned char *output );
 
 void gost_init_table(void); /* initialize algorithm static data */
 
