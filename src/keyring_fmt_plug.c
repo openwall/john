@@ -283,7 +283,7 @@ static void decrypt_buffer(unsigned char buffers[MAX_KEYS_PER_CRYPT][sizeof(cur_
 		if (AES_set_decrypt_key(key[i], 128, &akey) < 0) {
 			fprintf(stderr, "AES_set_decrypt_key failed!\n");
 		}
-		AES_cbc_encrypt(buffers[i], buffers[i], len, &akey, iv[i], AES_DECRYPT);
+		AES_cbc_encrypt(cur_salt->ct, buffers[i], len, &akey, iv[i], AES_DECRYPT);
 	}
 }
 
@@ -313,10 +313,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index+=MAX_KEYS_PER_CRYPT)
 	{
 		int i;
-		unsigned char buffers[MAX_KEYS_PER_CRYPT][sizeof(cur_salt->ct)];
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
-			memcpy(buffers[i], cur_salt->ct, cur_salt->crypto_size);
+		unsigned char (*buffers)[sizeof(cur_salt->ct)];
+
+		// This is too big to be on stack. See #1292.
+		buffers = mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(*buffers));
+
 		decrypt_buffer(buffers, index);
+
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			if (verify_decrypted_buffer(buffers[i], cur_salt->crypto_size)) {
 				cracked[index+i] = 1;
@@ -326,6 +329,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 			any_cracked |= 1;
 		}
+		MEM_FREE(buffers);
 	}
 	return count;
 }
