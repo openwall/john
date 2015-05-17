@@ -26,6 +26,7 @@
 #include "autoconfig.h"
 #endif
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -130,6 +131,19 @@ static uint16_t fget16(FILE * fp)
 	return v;
 }
 
+static void warn_exit(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	if (fmt != NULL)
+		vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	fprintf(stderr, "\n");
+
+	exit(EXIT_FAILURE);
+}
+
 /* process KeePass 1.x databases */
 static void process_old_database(FILE *fp, char* encryptedDatabase)
 {
@@ -143,26 +157,30 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	uint32_t num_entries;
 	uint32_t key_transf_rounds;
 	unsigned char buffer[LINE_BUFFER_SIZE];
-	int count;
 	long long filesize = 0;
 	long long datasize;
 	int algorithm = -1;
 	char *dbname;
 	FILE *kfp = NULL;
+
 	enc_flag = fget32(fp);
 	version = fget32(fp);
-	count = fread(final_randomseed, 16, 1, fp);
-	assert(count == 1);
-	count = fread(enc_iv, 16, 1, fp);
-	assert(count == 1);
+
+	if (fread(final_randomseed, 16, 1, fp) != 1)
+		warn_exit("Error: read failed.");
+	if (fread(enc_iv, 16, 1, fp) != 1)
+		warn_exit("Error: read failed.");
+
 	num_groups = fget32(fp);
 	num_entries = fget32(fp);
 	(void)num_groups;
 	(void)num_entries;
-	count = fread(contents_hash, 32, 1, fp);
-	assert(count == 1);
-	count = fread(transf_randomseed, 32, 1, fp);
-	assert(count == 1);
+
+	if (fread(contents_hash, 32, 1, fp) != 1)
+		warn_exit("Error: read failed.");
+	if (fread(transf_randomseed, 32, 1, fp) != 1)
+		warn_exit("Error: read failed.");
+
 	key_transf_rounds = fget32(fp);
 	/* Check if the database is supported */
 	if((version & 0xFFFFFF00) != (0x00030002 & 0xFFFFFF00)) {
@@ -203,13 +221,14 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	print_hex(contents_hash, 32);
 	filesize = (long long)get_file_size(encryptedDatabase);
 	datasize = filesize - 124;
-	if((filesize + datasize) < inline_thr) {
+	if((filesize + datasize) < inline_thr && sizeof(buffer) > datasize) {
 		/* we can inline the content with the hash */
 		fprintf(stderr, "Inlining %s\n", encryptedDatabase);
 		printf("*1*%lld*", datasize);
 		fseek(fp, 124, SEEK_SET);
-		count = fread(buffer, datasize, 1, fp);
-		assert(count == 1);
+		if (fread(buffer, datasize, 1, fp) != 1)
+			warn_exit("Error: read failed.");
+
 		print_hex(buffer, datasize);
 	}
 	else {
@@ -218,9 +237,11 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 
 		printf("*0*%s", dbname); /* data is not inline */
 	}
-	if (keyfile) {
+	if (keyfile && sizeof(buffer) > filesize) {
 		printf("*1*%lld*", filesize); /* inline keyfile content */
-		count = fread(buffer, filesize, 1, kfp);
+		if (fread(buffer, filesize, 1, kfp) != 1)
+			warn_exit("Error: read failed.");
+
 		print_hex(buffer, filesize);
 	}
 	printf("\n");
