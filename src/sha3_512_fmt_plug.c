@@ -1,5 +1,8 @@
-/* SHA3-512 cracker patch for JtR. Hacked together during January of 2013
+/* SHA3-512 cracker patch for JtR. Hacked together during May, 2015
  * by Dhiru Kholia <dhiru.kholia at gmail.com>.
+ *
+ * Thanks to https://github.com/codedot/keccak (Jim McDevitt) for the
+ * "delimited suffix" stuff.
  *
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2012 by Solar Designer
