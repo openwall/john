@@ -1,24 +1,33 @@
 /* Cracks Notes/Domino 8+ H-hashes. Thanks to philsmd and atom, for publishing
  * the algorithm.
  *
- * Based on DOMINOSEC_fmt_plug.c (version 3)
+ * This file is based on DOMINOSEC_fmt_plug.c (version 3).
  *
- * Notes/Domino More Secure Internet Password module for Solar Designer's JtR
- * by regenrecht at o2.pl, Dec 2005.
- * Algorithm discovery by regenrecht at o2.pl, bartavelle at bandecon.com.
+ * The following description of the algorithm was published by philsmd, on
+ * hashcat forums.
  *
- * Short description.
- * 1. Make 128bit digest of key. (128/8=16 bytes)
- * 2. Do bin2hex() of key digest and put braces around it. (16*2+2=34 bytes)
- * 3. Concat output of previous step to 5 bytes of salt. (5+34=39 bytes)
- * 4. Make 128bit digest of first 34 bytes (out of 39 bytes). (128/8=16 bytes)
- * 5. Compare first 10 bytes (out of 16) to check if the key was correct.
+ * H-hashes depends on (both of) the older "dominosec" hash types:
+ * Lotus Notes/Domino 5 aka SEC_pwddigest_V1, start ([0-F] and
+ * Lotus Notes/Domino 6 aka SEC_pwddigest_V2, start (G
  *
- * Password file should have form of:
- * TomaszJegerman:(GKjXibCW2Ml6juyQHUoP)
- * RubasznyJan:(GrixoFHOckC/2CnHrHtM)
+ * You need to generate those digests/hashes first and continue with the new
+ * algorithm starting from the encoded SEC_pwddigest_V2 hash.
  *
- * Further optimizations (including some code rewrites) by Solar Designer
+ * The encoding too is the same as for the other 2 algos, but the new hashes
+ * (following SEC_pwddigest_V3) are longer and starts with '(H'
+ *
+ * Furthermore, the hashes themself encode the following information:
+ * - 16 byte salt (first 5 needed for SEC_pwddigest_V2, SEC_pwddigest_V1 is unsalted)
+ * - round number (length 10, in ascii)
+ * - 2 additional chars
+ * - 8 bytes (a part of the) digest
+ *
+ * So we start to generate the SEC_pwddigest_V2 hash with the first 5 bytes of
+ * the salt. After that PBKDF2-HMACSHA1 is used with the now generated
+ * "(G[known "small" salt]...)" hash as password, the full 16 bytes salt and
+ * the round number found in the encoded hash. From the full digest (output of
+ * PBKDF2), only the first 8 bytes of the digest are then used in the final
+ * encoding step.
  */
 
 #if FMT_EXTERNS_H
