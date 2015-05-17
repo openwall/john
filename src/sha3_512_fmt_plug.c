@@ -188,21 +188,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-unsigned int appendSuffixToMessage(char *out, const char *in, unsigned int inputLengthInBits, unsigned char delimitedSuffix)
-{
-	printf("got bits %d\n", inputLengthInBits);
-	memcpy(out, in, (inputLengthInBits+7)/8);
-	if (delimitedSuffix == 0x00)
-		abort();
-	while(delimitedSuffix != 0x01) {
-		unsigned char bit = delimitedSuffix & 0x01;
-		out[inputLengthInBits/8] |= (bit << (inputLengthInBits%8));
-		inputLengthInBits++;
-		delimitedSuffix >>= 1;
-	}
-	return inputLengthInBits;
-}
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
