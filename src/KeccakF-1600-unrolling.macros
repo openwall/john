@@ -38,7 +38,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
     thetaRhoPiChiIotaPrepareTheta(21, E, A) \
     thetaRhoPiChiIotaPrepareTheta(22, A, E) \
     thetaRhoPiChiIota(23, E, A) \
-    copyToState(state, A)
+
 #elif (Unrolling == 12)
 #define rounds \
     prepareTheta \
@@ -56,7 +56,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
         thetaRhoPiChiIotaPrepareTheta(i+10, A, E) \
         thetaRhoPiChiIotaPrepareTheta(i+11, E, A) \
     } \
-    copyToState(state, A)
+
 #elif (Unrolling == 8)
 #define rounds \
     prepareTheta \
@@ -70,7 +70,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
         thetaRhoPiChiIotaPrepareTheta(i+6, A, E) \
         thetaRhoPiChiIotaPrepareTheta(i+7, E, A) \
     } \
-    copyToState(state, A)
+
 #elif (Unrolling == 6)
 #define rounds \
     prepareTheta \
@@ -82,7 +82,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
         thetaRhoPiChiIotaPrepareTheta(i+4, A, E) \
         thetaRhoPiChiIotaPrepareTheta(i+5, E, A) \
     } \
-    copyToState(state, A)
+
 #elif (Unrolling == 4)
 #define rounds \
     prepareTheta \
@@ -92,7 +92,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
         thetaRhoPiChiIotaPrepareTheta(i+2, A, E) \
         thetaRhoPiChiIotaPrepareTheta(i+3, E, A) \
     } \
-    copyToState(state, A)
+
 #elif (Unrolling == 3)
 #define rounds \
     prepareTheta \
@@ -102,7 +102,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
         thetaRhoPiChiIotaPrepareTheta(i+2, A, E) \
         copyStateVariables(A, E) \
     } \
-    copyToState(state, A)
+
 #elif (Unrolling == 2)
 #define rounds \
     prepareTheta \
@@ -110,7 +110,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
         thetaRhoPiChiIotaPrepareTheta(i  , A, E) \
         thetaRhoPiChiIotaPrepareTheta(i+1, E, A) \
     } \
-    copyToState(state, A)
+
 #elif (Unrolling == 1)
 #define rounds \
     prepareTheta \
@@ -118,7 +118,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
         thetaRhoPiChiIotaPrepareTheta(i  , A, E) \
         copyStateVariables(A, E) \
     } \
-    copyToState(state, A)
+
 #else
 #error "Unrolling is not correctly specified!"
 #endif

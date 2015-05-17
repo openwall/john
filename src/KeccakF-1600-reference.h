@@ -11,14 +11,11 @@ and related or neighboring rights to the source code in this file.
 http://creativecommons.org/publicdomain/zero/1.0/
 */
 
-#ifdef UseSchedule
-    #if (UseSchedule == 1)
-        #include "KeccakF-1600-32-s1.macros"
-    #elif (UseSchedule == 2)
-        #include "KeccakF-1600-32-s2.macros"
-    #else
-        #error "This schedule is not supported."
-    #endif
-#else
-    #include "KeccakF-1600-32-s1.macros"
+#ifndef _KeccakF1600Reference_h_
+#define _KeccakF1600Reference_h_
+#include "KeccakF-1600-interface.h"
+
+void displayRoundConstants(FILE *f);
+void displayRhoOffsets(FILE *f);
+
 #endif

@@ -16,50 +16,60 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #include "KeccakF-1600-interface.h"
 #include "memdbg.h"
 
-int InitDuplex(duplexState *state, unsigned int rate, unsigned int capacity)
+int Keccak_DuplexInitialize(Keccak_DuplexInstance *instance, unsigned int rate, unsigned int capacity)
 {
     if (rate+capacity != 1600)
         return 1;
-    if ((rate <= 0) || (rate > 1600))
+    if ((rate <= 2) || (rate > 1600))
         return 1;
-    KeccakInitialize();
-    state->rate = rate;
-    state->capacity = capacity;
-    state->rho_max = rate-2;
-    KeccakInitializeState(state->state);
+    KeccakF1600_Initialize();
+    instance->rate = rate;
+    KeccakF1600_StateInitialize(instance->state);
     return 0;
 }
 
-int Duplexing(duplexState *state, const unsigned char *in, unsigned int inBitLen, unsigned char *out, unsigned int outBitLen)
+int Keccak_Duplexing(Keccak_DuplexInstance *instance, const unsigned char *sigmaBegin, unsigned int sigmaBeginByteLen, unsigned char *Z, unsigned int ZByteLen, unsigned char delimitedSigmaEnd)
 {
-    JTR_ALIGN(32) unsigned char block[KeccakPermutationSizeInBytes];
+    unsigned char delimitedSigmaEnd1[1];
+    const unsigned int rho_max = instance->rate - 2;
 
-    if (inBitLen > state->rho_max)
+    if (delimitedSigmaEnd == 0)
         return 1;
-    if ((inBitLen % 8) != 0) {
-        unsigned char mask = ~((1 << (inBitLen % 8)) - 1);
-        if ((in[inBitLen/8] & mask) != 0)
-            return 1; // The bits of the last incomplete byte must be aligned on the LSB
+    if (sigmaBeginByteLen*8 > rho_max)
+        return 1;
+    if (rho_max - sigmaBeginByteLen*8 < 7) {
+        unsigned int maxBitsInDelimitedSigmaEnd = rho_max - sigmaBeginByteLen*8;
+        if (delimitedSigmaEnd >= (1 << (maxBitsInDelimitedSigmaEnd+1)))
+            return 1;
     }
-    if (outBitLen > state->rate)
-        return 1; // The output length must not be greater than the rate
+    if (ZByteLen > (instance->rate+7)/8)
+        return 1; // The output length must not be greater than the rate (rounded up to a byte)
 
-    memcpy(block, in, (inBitLen+7)/8);
-    memset(block+(inBitLen+7)/8, 0, ((state->rate+63)/64)*8 - (inBitLen+7)/8);
+    if ((sigmaBeginByteLen%KeccakF_laneInBytes) > 0) {
+        unsigned int offsetBeyondLane = (sigmaBeginByteLen/KeccakF_laneInBytes)*KeccakF_laneInBytes;
+        unsigned int beyondLaneBytes = sigmaBeginByteLen%KeccakF_laneInBytes;
+        KeccakF1600_StateXORBytesInLane(instance->state, sigmaBeginByteLen/KeccakF_laneInBytes,
+            sigmaBegin+offsetBeyondLane, 0, beyondLaneBytes);
+    }
 
-    block[inBitLen/8] |= 1 << (inBitLen%8);
-    block[(state->rate-1)/8] |= 1 << ((state->rate-1) % 8);
+    delimitedSigmaEnd1[0] = delimitedSigmaEnd;
+    // Last few bits, whose delimiter coincides with first bit of padding
+    KeccakF1600_StateXORBytesInLane(instance->state, sigmaBeginByteLen/KeccakF_laneInBytes,
+        delimitedSigmaEnd1, sigmaBeginByteLen%KeccakF_laneInBytes, 1);
+    // Second bit of padding
+    KeccakF1600_StateComplementBit(instance->state, instance->rate - 1);
+    KeccakF1600_StateXORPermuteExtract(instance->state, sigmaBegin, sigmaBeginByteLen/KeccakF_laneInBytes,
+        Z, ZByteLen/KeccakF_laneInBytes);
 
-    #ifdef KeccakReference
-    displayBytes(1, "Block to be absorbed (after padding)", block, (state->rate+7)/8);
-    #endif
-    KeccakAbsorb(state->state, block, (state->rate+63)/64);
-
-    KeccakExtract(state->state, block, (state->rate+63)/64);
-    memcpy(out, block, (outBitLen+7)/8);
-    if ((outBitLen % 8) != 0) {
-        unsigned char mask = (1 << (outBitLen % 8)) - 1;
-        out[outBitLen/8] &= mask;
+    if ((ZByteLen%KeccakF_laneInBytes) > 0) {
+        unsigned int offsetBeyondLane = (ZByteLen/KeccakF_laneInBytes)*KeccakF_laneInBytes;
+        unsigned int beyondLaneBytes = ZByteLen%KeccakF_laneInBytes;
+        KeccakF1600_StateExtractBytesInLane(instance->state, ZByteLen/KeccakF_laneInBytes,
+            Z+offsetBeyondLane, 0, beyondLaneBytes);
+    }
+    if (ZByteLen*8 > instance->rate) {
+        unsigned char mask = (1 << (instance->rate % 8)) - 1;
+        Z[ZByteLen-1] &= mask;
     }
 
     return 0;
