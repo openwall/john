@@ -49,11 +49,12 @@
  *     { password + whitener + preceding body }
  */
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+
 #include "stdint.h"
 #include "jumbo.h"
 #include "memdbg.h"
@@ -68,6 +69,19 @@ static unsigned char data[N];
 static unsigned char protectedPrivKey[N];
 static unsigned char certdata[N];
 static unsigned char buf[N];
+
+static void warn_exit(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	if (fmt != NULL)
+		vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	fprintf(stderr, "\n");
+
+	exit(EXIT_FAILURE);
+}
 
 static uint32_t fget32(FILE * fp)
 {
@@ -94,7 +108,6 @@ static void process_file(char *filename)
 	int count, keysize = 0;
 	int numOfCerts, certsize;
 	long size;
-	size_t read;
 	int pos;
 	unsigned char md[20];
 	int xMagic;
@@ -108,10 +121,13 @@ static void process_file(char *filename)
 	}
 	fseek(fp, 0, SEEK_END);
 	size = ftell(fp);
-	assert(size <= sizeof(data));
+	if (size > sizeof(data))
+		warn_exit("size=%ld should smaller or equal to sizeof(data)=%d",
+			size, sizeof(data));
 	fseek(fp, 0, SEEK_SET);
-	read = fread(data, size, 1,  fp);
-	assert(read == 1);
+	if (fread(data, size, 1,  fp) != 1)
+		warn_exit("Error: read failed.");
+
 	fseek(fp, 0, SEEK_SET);
 
 	xMagic = fget32(fp);
@@ -130,17 +146,18 @@ static void process_file(char *filename)
 			// Read the alias
 			p = fgetc(fp);
 			length = fgetc(fp);
-			read = fread(buf, length, 1, fp);
-			assert(read == 1);
+
+			if (sizeof(buf) < length || fread(buf, length, 1, fp) != 1)
+				warn_exit("Error: read failed.");
 
 			// Read the (entry creation) date
-			read = fread(buf, 8, 1, fp);
-			assert(read == 1);
+			if (fread(buf, 8, 1, fp) != 1)
+				warn_exit("Error: read failed.");
 
 			// Read the key
 			keysize = fget32(fp);
-			read = fread(protectedPrivKey, keysize, 1, fp);
-			assert(read == 1);
+			if (sizeof(protectedPrivKey) < keysize || fread(protectedPrivKey, keysize, 1, fp) != 1)
+				warn_exit("Error: read failed.");
 
 			// read certificates
 			numOfCerts = fget32(fp);
@@ -149,15 +166,16 @@ static void process_file(char *filename)
 					if (xVersion == 2) {
 						// read the certificate type
 						p = fgetc(fp);
-						assert(p == 1 || p == 0);
+						if (p != 1 && p != 0)
+							warn_exit("Error: p=%d which should be 1 or 0.", p);
 						length = fgetc(fp);
-						read = fread(buf, length, 1, fp);
-						assert(read == 1);
+						if (sizeof(buf) < length || fread(buf, length, 1, fp) != 1)
+							warn_exit("Error: read failed.");
 					}
 					// read certificate data
 					certsize = fget32(fp);
-					read = fread(certdata, certsize, 1, fp);
-					assert(read == 1);
+					if (sizeof(certdata) < certsize || fread(certdata, certsize, 1, fp) != 1)
+						warn_exit("Error: read failed.");
 				}
 			}
 			// We can be sure now that numOfCerts of certs are read
@@ -165,25 +183,24 @@ static void process_file(char *filename)
 			// Read the alias
 			p = fgetc(fp);
 			length = fgetc(fp);
-			read = fread(buf, length, 1, fp);
-			assert(read == 1);
+			if (sizeof(buf) < length || fread(buf, length, 1, fp) != 1)
+				warn_exit("Error: read failed.");
 
 			// Read the (entry creation) date
-			read = fread(buf, 8, 1, fp);
-			assert(read == 1);
+			if (fread(buf, 8, 1, fp) != 1)
+				warn_exit("Error: read failed.");
 
 			// Read the trusted certificate
 			if (xVersion == 2) {
 				// read the certificate type
 				p = fgetc(fp);
 				length = fgetc(fp);
-				read = fread(buf, length, 1, fp);
-				assert(read == 1);
+				if (sizeof(buf) < length || fread(buf, length, 1, fp) != 1)
+					warn_exit("Error: read failed.");
 			}
 			certsize = fget32(fp);
-			read = fread(certdata, certsize, 1, fp);
-			assert(read == 1);
-
+			if (sizeof(certdata) < certsize || fread(certdata, certsize, 1, fp) != 1)
+				warn_exit("Error: read failed.");
 		} else {
 			fprintf(stderr, "Unrecognized keystore entry");
 			fclose(fp);
@@ -195,8 +212,8 @@ static void process_file(char *filename)
 	pos = ftell(fp);
 
 	/* read hash */
-	read = fread(md, 20, 1, fp);
-	assert(read == 1);
+	if (fread(md, 20, 1, fp) != 1)
+		warn_exit("Error: read failed.");
 
 	bname = strip_suffixes(basename(filename), extension, 1);
 	printf("%s:$keystore$0$%d$", bname, pos);
