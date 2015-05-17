@@ -114,6 +114,11 @@ static int hash_plugin_parse_hash(char *filename)
 
 	myfile = jtr_fopen(filename, "rb");
 
+	if (!myfile) {
+		fprintf(stderr, "\n%s : %s!\n", filename, strerror(errno));
+		return -1;
+	}
+
 	if (fread(&myphdr, sizeof(struct luks_phdr), 1, myfile) < 1) {
 		fprintf(stderr, "%s : file opening problem!\n", filename);
 		fclose(myfile);
