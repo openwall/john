@@ -534,6 +534,9 @@ void john_gost_hmac_finish( gost_ctx *ctx, unsigned char *output )
 
 /*
  * output = HMAC-gost( hmac key, input buffer )
+ *
+ * key == "password" and input == "" should produce output ==
+ * "4463230a0698ba7525ebc40383d7c0834d1559e738472b8af305b65965d83a6d"
  */
 void john_gost_hmac( const unsigned char *key, size_t keylen, const unsigned char *input, size_t ilen, unsigned char *output )
 {
