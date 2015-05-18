@@ -13057,22 +13057,6 @@ fi
     ;;
 
   linux*|cygwin*)
-    # For exposing fileno()
-
-   for i in -D_POSIX_SOURCE; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS_EXTRA; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
     # For exposing memmem()
     if test "x$ac_cv_func_memmem" = xyes; then :
 
@@ -13091,9 +13075,25 @@ fi
    done
 
 fi
-    # For exposing aligned_alloc
     case "$host_os" in
         linux*)
+    # For exposing fileno()
+
+   for i in -D_POSIX_SOURCE; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EXTRA; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+   
+    # For exposing aligned_alloc
         if test "x$ac_cv_func_aligned_alloc" = xyes; then :
 
    for i in -D_ISOC11_SOURCE; do
@@ -13112,7 +13112,7 @@ fi
 
 else
   # For exposing posix_memalign()
-            if test "x$ac_cv_func_posix_memalign" = xyes; then :
+        if test "x$ac_cv_func_posix_memalign" = xyes; then :
 
    for i in -D_XOPEN_SOURCE=600; do
       jtr_list_add_dupe=0
