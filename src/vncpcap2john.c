@@ -154,7 +154,7 @@ _Bool Packet_Reader_kick(struct Packet_Reader* self)
 		size_t payload_len;
 		char buf[512];
 
-		if (header.len < sizeof(struct ether_header))
+		if (header.caplen < sizeof(struct ether_header))
 			continue;
 
 		eptr = (void*) packet;
@@ -162,7 +162,7 @@ _Bool Packet_Reader_kick(struct Packet_Reader* self)
 		if (ntohs(eptr->ether_type) != ETHERTYPE_IP)
 			continue;
 
-		if (header.len < sizeof(struct ether_header) + sizeof(struct ip))
+		if (header.caplen < sizeof(struct ether_header) + sizeof(struct ip))
 			continue;
 
 		ip_header = (void*)(packet + sizeof(struct ether_header));
@@ -171,7 +171,7 @@ _Bool Packet_Reader_kick(struct Packet_Reader* self)
 		if (size_ip < 20)
 			continue;	// bogus IP header
 
-		if (header.len < sizeof(struct ether_header) + size_ip + sizeof(struct tcp_hdr))
+		if (header.caplen < sizeof(struct ether_header) + size_ip + sizeof(struct tcp_hdr))
 			continue;
 
 		tcp = (void*) (packet + sizeof(struct ether_header) + size_ip);
@@ -184,7 +184,7 @@ _Bool Packet_Reader_kick(struct Packet_Reader* self)
 		payload_buf =
 		    packet + sizeof(struct ether_header) + size_ip + size_tcp;
 		payload_len =
-		    header.len - (sizeof(struct ether_header) + size_ip + size_tcp);
+		    header.caplen - (sizeof(struct ether_header) + size_ip + size_tcp);
 
 		self->payload_str = malloc(payload_len);
 		if (self->payload_str == NULL) {
