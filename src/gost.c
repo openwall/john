@@ -438,7 +438,7 @@ static void rhash_gost_fill_sbox(unsigned out[4][256], const unsigned char src[8
 /**
  * Initialize the GOST lookup tables for both parameters sets.
  * Two lookup tables contain 8 KiB in total, so calculating
- * them at rine-time can save a little space in the exutable file
+ * them at run-time can save a little space in the executable file
  * in trade of consuming some time at pogram start.
  */
 void gost_init_table(void)
@@ -478,6 +478,75 @@ void gost_init_table(void)
 
 	rhash_gost_fill_sbox(rhash_gost_sbox, sbox);
 	rhash_gost_fill_sbox(rhash_gost_sbox_cryptpro, sbox_cryptpro);
+}
+
+/*
+ * gost HMAC context setup
+ */
+void john_gost_hmac_starts( gost_ctx *ctx, const unsigned char *key, size_t keylen )
+{
+	size_t i;
+	unsigned char sum[32];
+
+	if( keylen > 32 )
+	{
+		john_gost_init( ctx );
+		john_gost_update( ctx, key, keylen );
+		john_gost_final( ctx, sum );
+		keylen = 32;
+		key = sum;
+	}
+
+	memset( ctx->ipad, 0x36, 64 );
+	memset( ctx->opad, 0x5C, 64 );
+
+	for( i = 0; i < keylen; i++ )
+	{
+		ctx->ipad[i] = (unsigned char)( ctx->ipad[i] ^ key[i] );
+		ctx->opad[i] = (unsigned char)( ctx->opad[i] ^ key[i] );
+	}
+
+	john_gost_init( ctx );
+	john_gost_update( ctx, ctx->ipad, 64 );
+}
+
+/*
+ * gost HMAC process buffer
+ */
+void john_gost_hmac_update( gost_ctx *ctx, const unsigned char *input, size_t ilen )
+{
+	john_gost_update( ctx, input, ilen );
+}
+
+/*
+ * gost HMAC final digest
+ */
+void john_gost_hmac_finish( gost_ctx *ctx, unsigned char *output )
+{
+	unsigned char tmpbuf[32];
+
+	john_gost_final( ctx, tmpbuf );
+	john_gost_init( ctx );
+	john_gost_update( ctx, ctx->opad, 64 );
+	john_gost_update( ctx, tmpbuf, 32 );
+	john_gost_final( ctx, output );
+}
+
+/*
+ * output = HMAC-gost( hmac key, input buffer )
+ *
+ * key == "password" and input == "" should produce output ==
+ * "4463230a0698ba7525ebc40383d7c0834d1559e738472b8af305b65965d83a6d"
+ */
+void john_gost_hmac( const unsigned char *key, size_t keylen, const unsigned char *input, size_t ilen, unsigned char *output )
+{
+	gost_ctx ctx;
+
+	john_gost_init( &ctx );
+
+	john_gost_hmac_starts( &ctx, key, keylen );
+	john_gost_hmac_update( &ctx, input, ilen );
+	john_gost_hmac_finish( &ctx, output );
 }
 
 #ifdef TEST

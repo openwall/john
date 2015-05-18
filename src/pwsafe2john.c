@@ -21,7 +21,7 @@
 #endif
 #include <errno.h>
 #include <string.h>
-#include <assert.h>
+
 #include "stdint.h"
 #include "jumbo.h"
 #include "memdbg.h"
@@ -59,21 +59,26 @@ static void process_file(const char *filename)
 		fprintf(stderr, "! %s: %s\n", filename, strerror(errno));
 		return;
 	}
-	count = fread(buf, 4, 1, fp);
-	assert(count == 1);
+	if (fread(buf, 4, 1, fp) != 1) {
+		fprintf(stderr, "Error: read failed.\n");
+		return;
+	}
 	if(memcmp(buf, magic, 4)) {
 		fprintf(stderr, "%s : Couldn't find PWS3 magic string. Is this a Password Safe file?\n", filename);
 		exit(1);
 	}
-	count = fread(buf, 32, 1, fp);
-	assert(count == 1);
+	if (fread(buf, 32, 1, fp) != 1) {
+		fprintf(stderr, "Error: read failed.\n");
+		return;
+	}
 	iterations = fget32(fp);
-
 	printf("%s:$pwsafe$*3*", strip_suffixes(basename(filename), ext, 1));
 	print_hex(buf, 32);
 	printf("*%d*", iterations);
-	count = fread(buf, 32, 1, fp);
-	assert(count == 1);
+	if (fread(buf, 32, 1, fp) != 1) {
+		fprintf(stderr, "Error: read failed.\n");
+		return;
+	}
 	print_hex(buf,32);
 	printf("\n");
 

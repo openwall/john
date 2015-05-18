@@ -1,15 +1,14 @@
-/* Keccak-512 cracker patch for JtR. Hacked together during January of 2013
+/* HAS160-512 cracker patch for JtR. Hacked together during May, 2015
  * by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 2012 by Solar Designer
- * based on rawMD4_fmt.c code, with trivial changes by groszek.
+ * Thanks for RHash, http://www.randombit.net/has160.html and
+ * https://github.com/maciejczyzewski/retter for the code.
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_rawKeccak;
+extern struct fmt_main fmt_HAS160;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_rawKeccak);
+john_register_one(&fmt_HAS160);
 #else
 
 #include <string.h>
@@ -19,56 +18,38 @@ john_register_one(&fmt_rawKeccak);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "KeccakHash.h"
+#include "has160.h"
 
 #ifdef _OPENMP
 #define OMP_SCALE			2048
 #include <omp.h>
 #endif
-#include "memdbg.h"
 
-#define FORMAT_LABEL		"Raw-Keccak"
-#define FORMAT_NAME		""
-#if defined(__AVX__)
-#define ALGORITHM_NAME			"128/128 AVX"
-#elif defined(__XOP__)
-#define ALGORITHM_NAME			"128/128 XOP"
-#elif defined(__SSE4_1__)
-#define ALGORITHM_NAME			"128/128 SSE4.1"
-#elif defined(__SSSE3__)
-#define ALGORITHM_NAME			"128/128 SSSE3"
-#elif defined(__SSE2__)
-#define ALGORITHM_NAME			"128/128 SSE2"
-#else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
-#endif
+#define FORMAT_LABEL			"has-160"
+#define FORMAT_NAME			""
+#define ALGORITHM_NAME			"HAS-160 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		125
-#define CIPHERTEXT_LENGTH		128
-
-#define BINARY_SIZE			64
+#define CIPHERTEXT_LENGTH		40
+#define BINARY_SIZE			20
 #define SALT_SIZE			0
-
 #define BINARY_ALIGN			4
 #define SALT_ALIGN			1
-
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
 static struct fmt_tests tests[] = {
-	{"0eab42de4c3ceb9235fc91acffe746b29c29a8c366b7c60e4e67c466f36a4304c00fa9caf9d87976ba469bcbe06713b435f091ef2769fb160cdab33d3670680e", ""},
-	{"$keccak$d135bb84d0439dbac432247ee573a23ea7d3c9deb2a968eb31d47c4fb45f1ef4422d6c531b5b9bd6f449ebcc449ea94d0a8f05f62130fda612da53c79659f609", "The quick brown fox jumps over the lazy dog"},
-	{"$keccak$e4a7e8f5572f4853ef26a862f31687c249b1cd7922df2aac1f4348d8ceef944c74d1949e3465704a5f3f89fb53e0dcce3ea142c90af04c84cc7e548f144f8f0b", "abcd"},
+	{"307964ef34151d37c8047adec7ab50f4ff89762d", ""},
+	{"cb5d7efbca2f02e0fb7167cabb123af5795764e5", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"},
 	{NULL}
 };
 
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)
-    [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_32 (*crypt_out)[(BINARY_SIZE) / sizeof(ARCH_WORD_32)];
 
 static void init(struct fmt_main *self)
 {
@@ -80,12 +61,9 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_len = mem_calloc(self->params.max_keys_per_crypt,
-			sizeof(*saved_len));
-	saved_key = mem_calloc(self->params.max_keys_per_crypt,
-			sizeof(*saved_key));
-	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
-			sizeof(*crypt_out));
+	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_len));
+	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt, sizeof(*crypt_out));
 }
 
 static void done(void)
@@ -100,26 +78,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p, *q;
 
 	p = ciphertext;
-	if (!strncmp(p, "$keccak$", 8))
-		p += 8;
-
 	q = p;
+
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		q++;
 	return !*q && q - p == CIPHERTEXT_LENGTH;
-}
-
-static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
-{
-	static char out[8 + CIPHERTEXT_LENGTH + 1];
-
-	if (!strncmp(ciphertext, "$keccak$", 8))
-		ciphertext += 8;
-
-	memcpy(out, "$keccak$", 8);
-	memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH + 1);
-	strlwr(out + 8);
-	return out;
 }
 
 static void *get_binary(char *ciphertext)
@@ -130,7 +93,7 @@ static void *get_binary(char *ciphertext)
 
 	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
-	p = ciphertext + 8;
+	p = ciphertext;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
@@ -180,6 +143,7 @@ static void set_key(char *key, int index)
 	saved_len[index] = len;
 	if (len > PLAINTEXT_LENGTH)
 		len = saved_len[index] = PLAINTEXT_LENGTH;
+	saved_key[index][len] = 0;
 	memcpy(saved_key[index], key, len);
 }
 
@@ -198,12 +162,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index++)
 	{
-		Keccak_HashInstance hash;
-		Keccak_HashInitialize(&hash, 576, 1024, 512, 0x01);
-		Keccak_HashUpdate(&hash, (unsigned char*)saved_key[index], saved_len[index] * 8);
-		Keccak_HashFinal(&hash, (unsigned char*)crypt_out[index]);
-	}
+		has160_ctx ctx;
 
+		rhash_has160_init(&ctx);
+		rhash_has160_update(&ctx, (unsigned char*)saved_key[index], saved_len[index]);
+		rhash_has160_final(&ctx, (unsigned char*)crypt_out[index]);
+	}
 	return count;
 }
 
@@ -226,11 +190,11 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main fmt_rawKeccak = {
+struct fmt_main fmt_HAS160 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-		"Keccak 512 " ALGORITHM_NAME,
+		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		0,
@@ -245,7 +209,7 @@ struct fmt_main fmt_rawKeccak = {
 #endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -256,7 +220,7 @@ struct fmt_main fmt_rawKeccak = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		split,
+		fmt_default_split,
 		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
