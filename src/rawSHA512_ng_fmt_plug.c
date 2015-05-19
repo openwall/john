@@ -16,9 +16,7 @@ extern struct fmt_main fmt_rawSHA512_ng;
 john_register_one(&fmt_rawSHA512_ng);
 #else
 
-#if !FAST_FORMATS_OMP
-#undef _OPENMP
-#elif _OPENMP
+#if _OPENMP
 #include <omp.h>
 #if __XOP__
 #define OMP_SCALE                 768 /* AMD */
