@@ -37,7 +37,7 @@ john_register_one(&fmt_stribog_512);
 #define FORMAT_LABEL		"stribog"
 #define FORMAT_NAME		""
 
-#define ALGORITHM_NAME		"GOST R 34.11-2012 128/128 SSE4.1 4x"
+#define ALGORITHM_NAME		"GOST R 34.11-2012 128/128 SSE4.1 1x"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
