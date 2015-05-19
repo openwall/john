@@ -334,7 +334,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	}
 
 	// Ok, FIX the salt  ONLY if -regen-lost-salts=X was used.
-	if (options.regen_lost_salts)
+	if (options.regen_lost_salts && (crk_db->format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC)
 		crk_guess_fixup_salt(pw->source, *(char**)(salt->salt));
 
 	/* If we got this crack from a pot sync, don't report or count */
