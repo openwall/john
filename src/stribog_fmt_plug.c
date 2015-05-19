@@ -361,7 +361,7 @@ static char *get_key(int index)
 struct fmt_main fmt_stribog_256 = {
 	{
 		"Stribog-256",
-		"",
+		FORMAT_NAME,
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
@@ -425,7 +425,7 @@ struct fmt_main fmt_stribog_256 = {
 struct fmt_main fmt_stribog_512 = {
 	{
 		"Stribog-512",
-		"",
+		FORMAT_NAME,
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
