@@ -25,13 +25,16 @@ john_register_one(&fmt_pomelo);
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "pomelo"
-#define FORMAT_NAME             "POMELO"
+#define FORMAT_NAME             ""
 #define FORMAT_TAG              "$pomelo$"
 #define TAG_LENGTH              sizeof(FORMAT_TAG) - 1
-#if !defined(USE_GCC_ASM_IA32) && defined(USE_GCC_ASM_X64)
-#define ALGORITHM_NAME          "64/64"
+
+#if __SSE2__
+#define ALGORITHM_NAME          "POMELO 128/128 SSE2 1x"
+#elif !defined(USE_GCC_ASM_IA32) && defined(USE_GCC_ASM_X64)
+#define ALGORITHM_NAME          "POMELO 64/64"
 #else
-#define ALGORITHM_NAME          "32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "POMELO 32/" ARCH_BITS_STR
 #endif
 
 #define BENCHMARK_COMMENT       ""
