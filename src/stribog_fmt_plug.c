@@ -6,6 +6,10 @@
  * code. See "LICENSE.gost" for licensing details of the original code.
  */
 
+#include "arch.h"
+
+#if __SSE4_1__
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_stribog_256;
 extern struct fmt_main fmt_stribog_512;
@@ -31,13 +35,9 @@ john_register_one(&fmt_stribog_512);
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"stribog"
-#define FORMAT_NAME		"GOST R 34.11-2012 (Stribog)"
+#define FORMAT_NAME		""
 
-#if !defined(USE_GCC_ASM_IA32) && defined(USE_GCC_ASM_X64)
-#define ALGORITHM_NAME		"64/64"
-#else
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
-#endif
+#define ALGORITHM_NAME		"GOST R 34.11-2012 128/128 SSE4.1 4x"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -487,3 +487,5 @@ struct fmt_main fmt_stribog_512 = {
 };
 
 #endif /* plugin stanza */
+
+#endif /* __SSE4_1__ */

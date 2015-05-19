@@ -1,26 +1,30 @@
-#pragma GCC target ("sse4.1,mmx")
-
-#ifndef __MMX__
-#define __MMX__
-#endif
-
-#ifndef __SSE__
-#define __SSE__
-#endif
-
-#ifndef __SSE2__
-#define __SSE2__
-#endif
-
-#ifndef __SSE4_1__
-#define __SSE4_1__
-#endif
+#if __SSE4_1__
 
 #include <mmintrin.h>
 #include <emmintrin.h>
 #include <smmintrin.h>
+
 #include "gost3411-tables.h"
 #include "gost3411-2012-sse41.h"
+#include "arch.h"
+
+#if ARCH_BITS == 32
+#undef _mm_cvtsi64_si128
+#define _mm_cvtsi64_si128 my__mm_cvtsi64_si128
+
+static inline __m128i _mm_cvtsi64_si128(long long a) {
+	return _mm_set_epi32(0, 0, (unsigned int)(a >> 32), (unsigned int)a);
+}
+
+#undef _mm_insert_epi64
+#define _mm_insert_epi64 my__mm_insert_epi64
+
+static inline __m128i _mm_insert_epi64(__m128i a, uint64_t b, int c) {
+	c <<= 1;
+	a = _mm_insert_epi32(a, (unsigned int)b, c);
+	return _mm_insert_epi32(a, (unsigned int)(b >> 32), c + 1);
+}
+#endif
 
 static inline void add512(const union uint512_u* x, const union uint512_u* y, union uint512_u* r)
 {
@@ -362,3 +366,5 @@ void GOST34112012Final(void* ctx, unsigned char* digest)
 	memset(CTX, 0, sizeof(GOST34112012Context));
 	_mm_empty();
 }
+
+#endif /* __SSE4_1__ */
