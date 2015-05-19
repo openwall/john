@@ -13056,7 +13056,7 @@ case "$host_os" in
 fi
     ;;
 
-  linux*|cygwin*)
+  linux*)
     # For exposing fileno()
 
    for i in -D_POSIX_SOURCE; do
@@ -13092,9 +13092,7 @@ fi
 
 fi
     # For exposing aligned_alloc
-    case "$host_os" in
-        linux*)
-        if test "x$ac_cv_func_aligned_alloc" = xyes; then :
+    if test "x$ac_cv_func_aligned_alloc" = xyes; then :
 
    for i in -D_ISOC11_SOURCE; do
       jtr_list_add_dupe=0
@@ -13112,7 +13110,7 @@ fi
 
 else
   # For exposing posix_memalign()
-            if test "x$ac_cv_func_posix_memalign" = xyes; then :
+        if test "x$ac_cv_func_posix_memalign" = xyes; then :
 
    for i in -D_XOPEN_SOURCE=600; do
       jtr_list_add_dupe=0
@@ -13131,8 +13129,30 @@ else
 fi
 
 fi
-        ;;
-    esac
+    ;;
+
+  cygwin*)
+    # For exposing fileno().  NOTE, build fails if both _POSIX_SOURCE and _GNU_SOURCE used at same time.
+    #JTR_LIST_ADD(CFLAGS_EXTRA, [-D_POSIX_SOURCE])
+    # For exposing memmem()
+    if test "x$ac_cv_func_memmem" = xyes; then :
+
+   for i in -D_GNU_SOURCE; do
+      jtr_list_add_dupe=0
+      for j in $CFLAGS_EXTRA; do
+         if test "x$i" = "x$j"; then
+            jtr_list_add_dupe=1
+            break
+         fi
+      done
+      if test $jtr_list_add_dupe = 0; then
+         CFLAGS_EXTRA="$CFLAGS_EXTRA $i"
+         jtr_list_add_result="$jtr_list_add_result $i"
+      fi
+   done
+
+fi
+    # For exposing aligned_alloc
     ;;
 
   mingw*)
