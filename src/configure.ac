@@ -70,7 +70,7 @@ AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependenc
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
 # We define "--disable-FEATURE" when default is "auto".
 # MPI is not "auto" because its network usage might scare people:
-AC_ARG_ENABLE([openmp-for-fast-formats], [AC_HELP_STRING([--disable-openmp-for-fast-formats], [Disable OpenMP for fast formats])], [ompfast=$enableval], [ompfast=yes])
+AC_ARG_ENABLE([openmp-for-fast-formats], [AC_HELP_STRING([--enable-openmp-for-fast-formats], [Enable OpenMP for fast formats (usually a bad idea - use fork instead)])], [ompfast=$enableval], [ompfast=no])
 AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--enable-mpi], [Use OpenMPI])], [enable_mpi=$enableval], [enable_mpi=no])
 AC_ARG_ENABLE([rexgen], [AC_HELP_STRING([--enable-rexgen], [Use rexgen library if present])], [enable_rexgen=$enableval], [enable_rexgen=auto])
 AC_ARG_ENABLE([cuda], [AC_HELP_STRING([--disable-cuda], [Do not use CUDA])], [enable_cuda=$enableval], [enable_cuda=auto])

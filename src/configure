@@ -1386,8 +1386,9 @@ Optional Features:
   --disable-plugin-dependencies
                           Do not create best-effort Makefile dependencies for
                           plugins
-  --disable-openmp-for-fast-formats
-                          Disable OpenMP for fast formats
+  --enable-openmp-for-fast-formats
+                          Enable OpenMP for fast formats (usually a bad idea -
+                          use fork instead)
   --enable-mpi            Use OpenMPI
   --enable-rexgen         Use rexgen library if present
   --disable-cuda          Do not use CUDA
@@ -3528,7 +3529,7 @@ fi
 if test "${enable_openmp_for_fast_formats+set}" = set; then :
   enableval=$enable_openmp_for_fast_formats; ompfast=$enableval
 else
-  ompfast=yes
+  ompfast=no
 fi
 
 # Check whether --enable-mpi was given.
