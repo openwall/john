@@ -77,7 +77,7 @@ static void process_file(char * filename)
 		fclose(truecrypt_volume_file);
 		return;
 	}
-	fprintf(stderr, "%s : No truecrypt volume found", filename);
+	fprintf(stderr, "%s : No truecrypt volume found\n", filename);
 }
 
 int truecrypt_volume2john(int argc, char **argv)
