@@ -7724,7 +7724,7 @@ int text_in_dynamic_format_already(struct fmt_main *pFmt, char *ciphertext)
 	/* NOTE, it 'is' possible to get called here, without the private stuff being setup
 	  properly (in valid, etc).  So, we simply grab the static private stuff each time */
 	pPriv = pFmt->private.data;
-	if (!ciphertext || !pPriv || !pPriv->dynamic_WHICH_TYPE_SIG) return 0;
+	if (!ciphertext || !pPriv) return 0;
 	return !strncmp(ciphertext, pPriv->dynamic_WHICH_TYPE_SIG, strlen(pPriv->dynamic_WHICH_TYPE_SIG));
 }
 
