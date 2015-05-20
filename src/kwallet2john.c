@@ -89,7 +89,8 @@ static void process_file(const char *fname)
 	fseek(fp, 0, SEEK_SET);
 
 	if (fread(buf, KWMAGIC_LEN, 1, fp) != 1)
-		warn_exit("Error: read failed.");
+		warn_exit("%s: Error: read failed: %s.", fname,
+			strerror(errno));
 
 	if (memcmp(buf, KWMAGIC, KWMAGIC_LEN) != 0) {
 		fprintf(stderr, "%s : Not a KDE KWallet file!\n", fname);
@@ -98,7 +99,8 @@ static void process_file(const char *fname)
 
 	offset += KWMAGIC_LEN;
 	if (fread(buf, 4, 1, fp) != 1)
-		warn_exit("Error: read failed.");
+		warn_exit("%s: Error: read failed: %s.", fname,
+			strerror(errno));
 
 	offset += 4;
 
@@ -134,24 +136,24 @@ static void process_file(const char *fname)
 		uint32_t fsz;
 
 		if (fread(buf, 16, 1, fp) != 1)
-			warn_exit("Error: read failed.");
-
+			warn_exit("%s: Error: read failed: %s.", fname,
+				strerror(errno));
 		offset += 16;
 		fsz = fget32_(fp);
 		offset += 4;
 		for (j = 0; j < fsz; ++j) {
 			if (fread(buf, 16, 1, fp) != 1)
-				warn_exit("Error: read failed.");
-
+				warn_exit("%s: Error: read failed: %s.",
+					fname, strerror(errno));
 			offset += 16;
-
 		}
 	}
 
 	/* Read in the rest of the file. */
 	encrypted_size = size - offset;
 	if (fread(encrypted, encrypted_size, 1, fp) != 1)
-		warn_exit("Error: read failed.");
+		warn_exit("%s: Error: read failed: %s.",
+			fname, strerror(errno));
 
 	if ((encrypted_size % 8) != 0) {
 		fprintf(stderr, "%s : invalid file structure!\n", fname);
@@ -177,6 +179,7 @@ int kwallet2john(int argc, char **argv)
 		exit(-1);
 	}
 
+	errno = 0;
 	for (i = 1; i < argc; i++)
 		process_file(argv[i]);
 

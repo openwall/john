@@ -27,6 +27,7 @@ typedef unsigned char guchar;
 typedef unsigned int guint;
 typedef int gint;
 static int count;
+char *file_name;
 
 static void warn_exit(const char *fmt, ...)
 {
@@ -49,7 +50,8 @@ static uint32_t fget32_(FILE * fp)
 	uint32_t v;
 
 	if (fread(buf, 4, 1, fp) != 1)
-		warn_exit("Error: read failed.");
+		warn_exit("%s: Error: read failed: %s.", file_name,
+			strerror(errno));
 
 	v = buf[0] << 24;
 	v |= buf[1] << 16;
@@ -156,13 +158,14 @@ static void process_file(const char *fname)
 	unsigned char salt[8];
 	unsigned char *to_decrypt;
 
+	file_name = fname;
 	if (!(fp = fopen(fname, "rb"))) {
 		fprintf(stderr, "%s : %s\n", fname, strerror(errno));
 		return;
 	}
 	if (fread(buf, KEYRING_FILE_HEADER_LEN, 1, fp) != 1)
-		warn_exit("Error: read failed.");
-
+		warn_exit("%s: Error: read failed: %s.", file_name,
+			strerror(errno));
 
 	if (memcmp(buf, KEYRING_FILE_HEADER, KEYRING_FILE_HEADER_LEN) != 0) {
 		fprintf(stderr, "%s : Not a GNOME Keyring file!\n", fname);
@@ -225,7 +228,8 @@ static void process_file(const char *fname)
 
 	to_decrypt = (unsigned char *) mem_alloc(crypto_size);
 	if (fread(to_decrypt, crypto_size, 1, fp) != 1)
-		warn_exit("Error: read failed.");
+		warn_exit("%s: Error: read failed: %s.", file_name,
+			strerror(errno));
 
 	printf("%s:$keyring$", basename(fname));
 	print_hex(salt, 8);
@@ -253,6 +257,7 @@ int keyring2john(int argc, char **argv)
 {
 	int i = 1;
 
+	errno = 0;
 	if (argc < 2)
 		return usage();
 	for (; i < argc; i++)
