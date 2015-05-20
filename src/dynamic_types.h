@@ -5,13 +5,6 @@
 #include "autoconfig.h"
 #endif
 
-#if !FAST_FORMATS_OMP
-#ifdef _OPENMP
-#  define FORCE_THREAD_MD5_body
-#endif
-#undef _OPENMP
-#endif
-
 #ifndef DYNAMIC_DISABLED
 /*
  * This software was written by Jim Fougeron jfoug AT cox dot net

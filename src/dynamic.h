@@ -24,13 +24,6 @@
 #if !defined (__DYNAMIC___H)
 #define __DYNAMIC___H
 
-#if !FAST_FORMATS_OMP
-#ifdef _OPENMP
-#  define FORCE_THREAD_MD5_body
-#endif
-#undef _OPENMP
-#endif
-
 #include "arch.h"
 #ifndef DYNAMIC_DISABLED
 
