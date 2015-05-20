@@ -29,18 +29,14 @@
 #if AC_BUILT
 #include "autoconfig.h"
 #else
-#define HAVE_MMAP 1
+#include <sys/mman.h>
 #define HAVE_LIBGMP 1
-#define _GNU_SOURCE 1
+#define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
 #define __USE_MINGW_ANSI_STDIO 1
 #endif
 
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
-
-#ifndef sparc
-#define _POSIX_SOURCE /* for fileno(3) */
-#endif
 
 #include <stdio.h>
 #ifndef JTR_MODE
@@ -81,7 +77,7 @@
 #endif /* __CYGWIN */
 #endif /* _MSC_VER ... */
 
-#if HAVE_MMAP
+#if defined(HAVE_MMAP)
 #include <sys/mman.h>
 #endif
 
@@ -2360,7 +2356,7 @@ next_rule:
 #ifndef JTR_MODE
   return 0;
 #else
-#if HAVE_MMAP
+#if defined(HAVE_MMAP)
   if (mem_map)
     munmap(mem_map, file_len);
 #endif
