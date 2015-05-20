@@ -166,9 +166,11 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	version = fget32(fp);
 
 	if (fread(final_randomseed, 16, 1, fp) != 1)
-		warn_exit("Error: read failed.");
+		warn_exit("%s: Error: read failed: %s.", encryptedDatabase,
+			strerror(errno));
 	if (fread(enc_iv, 16, 1, fp) != 1)
-		warn_exit("Error: read failed.");
+		warn_exit("%s: Error: read failed: %s.", encryptedDatabase,
+			strerror(errno));
 
 	num_groups = fget32(fp);
 	num_entries = fget32(fp);
@@ -176,9 +178,11 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	(void)num_entries;
 
 	if (fread(contents_hash, 32, 1, fp) != 1)
-		warn_exit("Error: read failed.");
+		warn_exit("%s: Error: read failed: %s.", encryptedDatabase,
+			strerror(errno));
 	if (fread(transf_randomseed, 32, 1, fp) != 1)
-		warn_exit("Error: read failed.");
+		warn_exit("%s: Error: read failed: %s.", encryptedDatabase,
+			strerror(errno));
 
 	key_transf_rounds = fget32(fp);
 	/* Check if the database is supported */
@@ -226,7 +230,8 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 		printf("*1*%lld*", datasize);
 		fseek(fp, 124, SEEK_SET);
 		if (fread(buffer, datasize, 1, fp) != 1)
-			warn_exit("Error: read failed.");
+			warn_exit("%s: Error: read failed: %s.",
+				encryptedDatabase, strerror(errno));
 
 		print_hex(buffer, datasize);
 	}
@@ -239,7 +244,8 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	if (keyfile && sizeof(buffer) > filesize) {
 		printf("*1*%lld*", filesize); /* inline keyfile content */
 		if (fread(buffer, filesize, 1, kfp) != 1)
-			warn_exit("Error: read failed.");
+			warn_exit("%s: Error: read failed: %s.",
+				encryptedDatabase, strerror(errno));
 
 		print_hex(buffer, filesize);
 	}
@@ -414,6 +420,7 @@ int keepass2john(int argc, char **argv)
 {
 	int c;
 
+	errno = 0;
 	/* Parse command line */
 	while ((c = getopt(argc, argv, "i:k:")) != -1) {
 		switch (c) {
