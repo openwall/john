@@ -17,14 +17,17 @@
  *
  */
 
-#if !FAST_FORMATS_OMP
-#undef _OPENMP
-#endif
-
 #if AC_BUILT
 #include "autoconfig.h"
 #endif
 #ifndef DYNAMIC_DISABLED
+
+#if !FAST_FORMATS_OMP
+#ifdef _OPENMP
+#  define FORCE_THREAD_MD5_body
+#endif
+#undef _OPENMP
+#endif
 
 #include "openssl_local_overrides.h"
 

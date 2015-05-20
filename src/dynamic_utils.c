@@ -25,6 +25,10 @@
 
 #include <string.h>
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #if !FAST_FORMATS_OMP
 #ifdef _OPENMP
 #  define FORCE_THREAD_MD5_body
