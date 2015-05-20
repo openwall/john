@@ -155,19 +155,27 @@ typedef struct private_subformat_data
 
 #define OMP_SCALE 1
 
+// we use 13440 and 840 for the counts. This should give
+// us proper inter-hash work for all para from 1 to 7,
+// we were at 128 and 6144. These values did not give us
+// equal division for mixes where 3, 5, 6 or 7 (for 128)
+// and 5 or 7 for the 6144 value, if we tried to intermix
+// 2 'types'.  The new values are divisible by 5 and 7
+// we should also test the speed of using 6720
+// That value still gets us all para from 1 to 7
+#define OMP_MAX       13440
+#define NON_OMP_MAX   840
+
 #ifdef SIMD_COEF_32
 # define MIN_KEYS_PER_CRYPT	SIMD_COEF_32
 # ifdef _OPENMP
-// in openMP mode, we multiply everything by 24
-// in openMP mode, we multiply everything by 48
-// Now, we mult by 192x with OMP_SCALE=4
 #  if SIMD_COEF_32 >= 4
-#   define BLOCK_LOOPS		(6144/SIMD_COEF_32*OMP_SCALE)
+#   define BLOCK_LOOPS		(OMP_MAX/SIMD_COEF_32*OMP_SCALE)
 #  endif
-#else
+# else
 #  if SIMD_COEF_32 >= 4
-#   define BLOCK_LOOPS		(128/SIMD_COEF_32)
-# endif
+#   define BLOCK_LOOPS		(NON_OMP_MAX/SIMD_COEF_32)
+#  endif
 # endif
 # define LOOP_STR
 # if SIMD_COEF_32 >= 4
@@ -177,9 +185,9 @@ typedef struct private_subformat_data
 #   define BITS				"256/256"
 #  elif SIMD_COEF_32 == 4
 #   define BITS				"128/128"
-# elif SIMD_COEF_32 == 2
+#  elif SIMD_COEF_32 == 2
 #   define BITS				"64/64"
-#endif
+# endif
 #  ifdef MD5_SSE_PARA
 #   define ALGORITHM_NAME		BITS " " SIMD_TYPE  " " STRINGIZE(SIMD_COEF_32) "x" STRINGIZE(MD5_SSE_PARA)
 #   define BSD_BLKS (MD5_SSE_PARA)
@@ -207,9 +215,9 @@ typedef struct private_subformat_data
 # endif
 #else // !SIMD_COEF_32
 # ifdef _OPENMP
-#  define BLOCK_LOOPS			(6144*OMP_SCALE)
+#  define BLOCK_LOOPS			(OMP_MAX*OMP_SCALE)
 # else
-#  define BLOCK_LOOPS			128
+#  define BLOCK_LOOPS			NON_OMP_MAX
 # endif
 # define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 # define ALGORITHM_NAME_S		"32/" ARCH_BITS_STR
@@ -217,11 +225,11 @@ typedef struct private_subformat_data
 #endif
 
 #ifdef _OPENMP
-# define X86_BLOCK_LOOPS			(6144*OMP_SCALE)
-# define X86_BLOCK_LOOPSx2			(3072*OMP_SCALE)
+# define X86_BLOCK_LOOPS			(OMP_MAX*OMP_SCALE)
+# define X86_BLOCK_LOOPSx2			((OMP_MAX/2)*OMP_SCALE)
 #else
-# define X86_BLOCK_LOOPS			128
-# define X86_BLOCK_LOOPSx2			64
+# define X86_BLOCK_LOOPS			NON_OMP_MAX
+# define X86_BLOCK_LOOPSx2			(NON_OMP_MAX/2)
 #endif
 
 #define ALGORITHM_NAME_X86_S	ARCH_BITS_STR"/"ARCH_BITS_STR
