@@ -27,7 +27,7 @@ typedef unsigned char guchar;
 typedef unsigned int guint;
 typedef int gint;
 static int count;
-char *file_name;
+const char *file_name;
 
 static void warn_exit(const char *fmt, ...)
 {
