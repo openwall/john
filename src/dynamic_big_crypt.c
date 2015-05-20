@@ -17,6 +17,10 @@
  *
  */
 
+#if !FAST_FORMATS_OMP
+#undef _OPENMP
+#endif
+
 #if AC_BUILT
 #include "autoconfig.h"
 #endif
