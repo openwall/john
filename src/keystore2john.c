@@ -148,7 +148,7 @@ static void process_file(char *filename)
 			p = fgetc(fp);
 			length = fgetc(fp);
 
-			if (sizeof(buf) < length || fread(buf, length, 1, fp) != 1)
+			if (fread(buf, length, 1, fp) != 1)
 				warn_exit("%s: Error: read failed: %s.",
 					filename, strerror(errno));
 
@@ -174,8 +174,7 @@ static void process_file(char *filename)
 						if (p != 1 && p != 0)
 							warn_exit("Error: p=%d which should be 1 or 0.", p);
 						length = fgetc(fp);
-						if (sizeof(buf) < length ||
-							fread(buf, length, 1, fp) != 1)
+						if (fread(buf, length, 1, fp) != 1)
 							warn_exit("%s: Error: read failed: %s.",
 								filename, strerror(errno));
 					}
@@ -192,8 +191,7 @@ static void process_file(char *filename)
 			// Read the alias
 			p = fgetc(fp);
 			length = fgetc(fp);
-			if (sizeof(buf) < length ||
-				fread(buf, length, 1, fp) != 1)
+			if (fread(buf, length, 1, fp) != 1)
 				warn_exit("%s: Error: read failed: %s.",
 					filename, strerror(errno));
 
@@ -207,8 +205,7 @@ static void process_file(char *filename)
 				// read the certificate type
 				p = fgetc(fp);
 				length = fgetc(fp);
-				if (sizeof(buf) < length ||
-					fread(buf, length, 1, fp) != 1)
+				if (fread(buf, length, 1, fp) != 1)
 					warn_exit("%s: Error: read failed: %s.",
 						filename, strerror(errno));
 			}
