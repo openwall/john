@@ -253,7 +253,7 @@ void rhash_has160_final(has160_ctx *ctx, unsigned char* result)
   unsigned index = ((unsigned)ctx->length & 63) >> 2;
 
   /* pad message and run for last block */
-#ifdef ARCH_LITTLE_ENDIAN
+#if ARCH_LITTLE_ENDIAN
   ctx->message[index]   &= ~(0xFFFFFFFF << shift);
   ctx->message[index++] ^= 0x80 << shift;
 #else
