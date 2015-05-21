@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "jumbo.h"
 #include "pufferfish_itoa64.h"
 #include "pufferfish_common.h"
 #include "pufferfish_api.h"
