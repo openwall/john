@@ -84,7 +84,7 @@ static int check_fread(const size_t buf_size, const size_t size, const size_t nm
 	if (buf_size < size * nmemb) {
 		fprintf(stderr, "Error: check_fread(buf_size=%lu, size=%lu, nmemb=%lu) failed, "
 			"buf_size is smaller than size * nmemb.\n",
-			buf_size, size, nmemb);
+			(unsigned long)buf_size, (unsigned long)size, (unsigned long)nmemb);
 		return 0;
 	}
 	return 1;
