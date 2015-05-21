@@ -2,26 +2,34 @@ This version of John is UTF-8 and codepage aware. This means that unlike
 "core John", this version can recognize national vowels, lower or upper
 case characters, etc. in most common encodings.
 
-By default, nothing of this is enabled and John Jumbo works just like Solar's
-"core John" a.k.a "John proper". If you only care about 7-bit ASCII passwords,
-you can stop reading now and move on to next document.
-
-The traditional behavior, and what is still happening if you don't specify any
-encodings, is that John will assume ISO-8859-1 when converting plaintexts or
-salts to UTF-16 (this happens to be very fast), and assume ASCII in most
-other cases. The rules engine will accept 8-bit candidates as-is, but it will
-not upper/lower-case them or recognise letters etc. And some truncation or
-insert operation might split a multi-byte UTF-8 character in the middle,
+The traditional behavior was that John would assume ISO-8859-1 when converting
+plaintexts or salts to UTF-16 (this happens to be very fast), and assume ASCII
+in most other cases. The rules engine would accept 8-bit candidates as-is, but
+it would not upper/lower-case them or recognise letters etc. And some truncation
+or insert operations could split a multi-byte UTF-8 character in the middle,
 resulting in meaningless garbage. Nearly all other password crackers have these
 limitations.
 
+The new defaults (which can be changed in john.conf) are:
+  * Input (eg. wordlists, usernames etc) are assumed to be UTF-8.
+  * Output to screen, log and .pot file is UTF-8.
+  * Target encoding for LM is CP850 (and input will be converted accordingly).
+  * Internal encoding (eg. for rules processing) is ISO-8859-1. CP1252 is a
+    superset and slightly better (for example, it includes the Euro sign) but
+    is also a tad slower so is not made the default.
+
+For temporarily running "the old way", just give --enc=ascii. You will still
+get output to screen, log and .pot file in UTF-8 though, unless you change
+john.conf settings.
+
 For proper function, it's imperative that you let John know about what
-encodings are involved. For example, if your wordlist is encoded in
-UTF-8, you need to use the "--encoding=UTF-8" option (unless you have set
-that as default in john.conf). But you also need to know what encoding the
-hashes were made from - for example, LM hashes are always made from a legacy
-MS-DOS codepage like CP850. This can be specified by using the option
-"--target-encoding=CP850". John will convert to/from Unicode as needed.
+encodings are involved if they differ from defaults. For example, if your
+wordlist is encoded in ISO-8859-1, you need to use the "--encoding=iso-8859-1"
+option (unless you have set that as default in john.conf). But you also need to
+know what encoding the hashes were made from - for example, LM hashes are
+always made from a legacy MS-DOS codepage like CP437 or CP850. This can be
+specified by using the option eg. "--target-encoding=CP437". John will convert
+to/from Unicode as needed.
 
 Finally, there's the special case where both input (wordlist) and output (eg.
 hashes from a website) are UTF-8 but you want to use rules including eg. upper
@@ -33,14 +41,14 @@ this with a Unicode format like NT, it will silently be treated in another
 way internally for performance reasons but the outcome will be the same).
 
 Mask mode also honors --internal-encoding (or plain --encoding). For
-example, the mask ?l that normally is a placeholder for [a-z] will also
-include all lowercase Greek letters if you use CP737.
+example, the mask ?L is a placeholder for all lowercase Greek letters if you
+use CP737. If you instead use CP850, it'll be western-european ones.
 
 The limitation is if you use --target-encoding or --internal-encoding,
 the input encoding must be UTF-8. The recommended, and easiest, use is to
-un-comment all encoding parameters in john.conf and only use UTF-8 wordlists.
-This will work for most cases without too much impact on cracking speed
-and you will almost never have to give any command-line options.
+keep all wordlists encoded as UTF-8. This will work for most cases without
+too much impact on cracking speed and you will almost never have to give
+any command-line options.
 
 Some new reject rules and character classes are implemented, see doc/RULES.
 If you use rules without --internal-encoding, some wordlist rules may cut
@@ -57,27 +65,7 @@ formats because it hits performance and because the chance of it being used
 in the wild is pretty slim. Supply --enable-nt-full-unicode to configure when
 building if you need that support.
 
-Examples:
-1. LM hashes from Western Europe, using a UTF-8 wordlist:
-
-   ./john hashfile -form:lm -enc:utf8 -target:cp850 -wo:spanish.lst
-
-2. NT hashes, using a legacy Latin-1 wordlist. Since NT is a Unicode format,
-   you do not have to worry about target encoding at all - any input encoding
-   can be used:
-
-   ./john hashfile -form:nt -enc:8859-1 -wo:german.lst
-
-3. Using a UTF-8 wordlist with an internal encoding for rules processing:
-
-   ./john hashfile -enc:utf8 -int=CP1252 -wo:french.lst -ru
-
-4. Using mask mode to print all possible "Latin-1" words of length 4,
-   first letter upper case:
-
-   ./john -stdout -enc:utf8 -int=8859-1 -mask:?u?l?l?l
-
-5. Using the recommended john.conf settings mentioned above:
+Example using the now default john.conf settings:
 
    $ ../run/john hashfile -form:lm -single
    Using default input encoding: UTF-8
@@ -114,10 +102,3 @@ CP1250, CP1251, CP1252, CP1253, CP1254, CP1255, CP1256
 New encodings can be added with ease, using automated tools that rely on the
 Unicode Database (see Openwall wiki, or just post a request on john-users
 mailing list).
-
---
-
-These contributions to John are hereby placed in the public domain. In case
-that is not applicable, they are Copyright 2009-2014 by magnum and
-JimF and hereby released to the general public. Redistribution and use in
-source and binary forms, with or without modification, is permitted.
