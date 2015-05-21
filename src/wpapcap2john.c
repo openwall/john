@@ -28,7 +28,7 @@ static void DumpKey(int idx, int one_three, int bIsQOS);
 
 static uint32 start_t, start_u, cur_t, cur_u;
 static pcaprec_hdr_t pkt_hdr;
-static uint8 full_packet[65535];
+static uint8 *full_packet;
 static uint8 *packet;
 static int bROT;
 static WPA4way_t wpa[MAX_ESSIDS];
@@ -245,7 +245,7 @@ static void dump_any_unver() {
 		int i;
 		fprintf(stderr, "Dumping %d unverified keys, which were not verified\n", nunVer);
 		for (i = 0; i < nunVer; ++i) {
-			printf ("%s\n", unVerified[i]);
+			printf("%s\n", unVerified[i]);
 			free(unVerified[i]);
 		}
 	}
@@ -257,12 +257,14 @@ static int Process(FILE *in)
 	pcap_hdr_t main_hdr;
 
 	if (fread(&main_hdr, 1, sizeof(pcap_hdr_t), in) != sizeof(pcap_hdr_t)) {
-		fprintf(stderr, "%s: Error, could not read enough bytes to get a common 'main' pcap header\n", filename);
+		fprintf(stderr,
+			"%s: Error, could not read enough bytes to get a common 'main' pcap header\n",
+			filename);
 		return 0;
 	}
-	if (main_hdr.magic_number ==  0xa1b2c3d4)
+	if (main_hdr.magic_number == 0xa1b2c3d4)
 		bROT = 0;
-	else if (main_hdr.magic_number ==  0xd4c3b2a1)
+	else if (main_hdr.magic_number == 0xd4c3b2a1)
 		bROT = 1;
 	else {
 		if (convert_ivs(in)) {
@@ -327,6 +329,13 @@ static int GetNextPacket(FILE *in)
 	} else
 		cur_u = pkt_hdr.ts_usec-start_u;
 
+	free(full_packet);
+	full_packet = NULL;
+	full_packet = (uint8 *)malloc(pkt_hdr.incl_len);
+	if (NULL == full_packet) {
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		exit(EXIT_FAILURE);
+	}
 	read_size = fread(full_packet, 1, pkt_hdr.incl_len, in);
 	if (read_size < pkt_hdr.incl_len)
 		fprintf(stderr, "%s: truncated last packet\n", filename);
@@ -468,7 +477,7 @@ static void Handle4Way(int bIsQOS)
 {
 	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
 	int i, ess=-1;
-	uint8 orig_2[512];
+	uint8 *orig_2 = NULL;
 	uint8 *p = (uint8*)&packet[sizeof(ether_frame_hdr_t)];
 	ether_auto_802_1x_t *auth;
 	int msg = 0;
@@ -485,11 +494,16 @@ static void Handle4Way(int bIsQOS)
 			break;
 		}
 	}
-	if (ess==-1) return;
+	if (ess==-1) goto out;
 	if (wpa[ess].fully_cracked)
-		return;  // no reason to go on.
+		goto out;  // no reason to go on.
 
-	memcpy(orig_2, packet, pkt_hdr.orig_len);
+	orig_2 = (uint8 *)malloc(pkt_hdr.incl_len);
+	if (NULL == orig_2) {
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		exit(EXIT_FAILURE);
+	}
+	memcpy(orig_2, packet, pkt_hdr.incl_len);
 
 	// Ok, after pkt,  uint16 QOS control (should be 00 00)
 	if (bIsQOS)
@@ -513,7 +527,7 @@ static void Handle4Way(int bIsQOS)
 		if (auth->key_info.Secure) {
 			// msg = 4;
 			// is this useful?
-			return;
+			goto out;
 		}
 		else
 			msg = 2;
@@ -536,37 +550,38 @@ static void Handle4Way(int bIsQOS)
 
 	if (msg == 1) {
 		if (wpa[ess].packet1) free(wpa[ess].packet1);
-		wpa[ess].packet1 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
+		wpa[ess].packet1 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].packet1 == NULL) {
 			fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
 			exit(EXIT_FAILURE);
 		}
-		memcpy(wpa[ess].packet1, packet, pkt_hdr.orig_len);
+		memcpy(wpa[ess].packet1, packet, pkt_hdr.incl_len);
 		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
 		if (wpa[ess].orig_2)  free(wpa[ess].orig_2);   wpa[ess].orig_2 = NULL;
 		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
 	}
 	else if (msg == 2) {
 		// Some sanitiy checks
-		if (pkt_hdr.orig_len < sizeof(ether_frame_hdr_t) + (bIsQOS ? 10 : 8)) {
-			fprintf(stderr, "%s: header len %u, wanted to subtract %zu, skipping packet\n", filename, pkt_hdr.orig_len, sizeof(ether_frame_hdr_t) + (bIsQOS ? 10 : 8));
-			return;
+		if (pkt_hdr.incl_len < sizeof(ether_frame_hdr_t) + (bIsQOS ? 10 : 8)) {
+			fprintf(stderr, "%s: header len %u, wanted to subtract %zu, skipping packet\n",
+				filename, pkt_hdr.incl_len, sizeof(ether_frame_hdr_t) + (bIsQOS ? 10 : 8));
+			goto out;
 		}
 
 		// see if we have a msg1 that 'matches'.
 		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
-		wpa[ess].packet2 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
+		wpa[ess].packet2 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].packet2 == NULL) {
 			fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
 			exit(EXIT_FAILURE);
 		}
-		wpa[ess].orig_2  = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
+		wpa[ess].orig_2  = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].orig_2 == NULL) {
 			fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
 			exit(EXIT_FAILURE);
 		}
-		memcpy(wpa[ess].packet2, packet, pkt_hdr.orig_len);
-		memcpy(wpa[ess].orig_2, orig_2, pkt_hdr.orig_len);
+		memcpy(wpa[ess].packet2, packet, pkt_hdr.incl_len);
+		memcpy(wpa[ess].orig_2, orig_2, pkt_hdr.incl_len);
 
 		// This is canonical for any encapsulations
 		wpa[ess].eapol_sz = auth->length + 4;
@@ -587,12 +602,12 @@ static void Handle4Way(int bIsQOS)
 	}
 	else if (msg == 3) {
 		// see if we have a msg2 that 'matches',  which is 1 less than our replay count.
-		wpa[ess].packet3 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
+		wpa[ess].packet3 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].packet3 == NULL) {
 			fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
 			exit(EXIT_FAILURE);
 		}
-		memcpy(wpa[ess].packet3, packet, pkt_hdr.orig_len);
+		memcpy(wpa[ess].packet3, packet, pkt_hdr.incl_len);
 		if (wpa[ess].packet2) {
 			ether_auto_802_1x_t *auth3 = auth, *auth2;
 			p = (uint8*)wpa[ess].packet2;
@@ -615,7 +630,8 @@ static void Handle4Way(int bIsQOS)
 				// match the third's nonce and we are 100% sure.
 				// If we didn't see it, we are only 99% sure.
 				if (!wpa[ess].packet1 || !memcmp(auth1->wpa_nonce, auth3->wpa_nonce, 32)) {
-					fprintf (stderr, "\nKey2/Key3 hit (%s verified), for ESSID:%s (%s)\n", wpa[ess].packet1 ? "100%" : "99%", wpa[ess].essid, filename);
+					fprintf (stderr, "\nKey2/Key3 hit (%s verified), for ESSID:%s (%s)\n",
+						wpa[ess].packet1 ? "100%" : "99%", wpa[ess].essid, filename);
 					DumpKey(ess, 3, bIsQOS);
 					wpa[ess].fully_cracked = 1;
 				}
@@ -627,6 +643,9 @@ static void Handle4Way(int bIsQOS)
 		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
 		if (wpa[ess].orig_2)  free(wpa[ess].orig_2);   wpa[ess].orig_2 = NULL;
 	}
+
+out:
+	free(orig_2);
 }
 
 static void DumpKey(int ess, int one_three, int bIsQOS)
