@@ -333,7 +333,8 @@ static int GetNextPacket(FILE *in)
 	full_packet = NULL;
 	full_packet = (uint8 *)malloc(pkt_hdr.incl_len);
 	if (NULL == full_packet) {
-		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		fprintf(stderr, "%s:%d: malloc of %zu bytes failed\n",
+		        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 		exit(EXIT_FAILURE);
 	}
 	read_size = fread(full_packet, 1, pkt_hdr.incl_len, in);
@@ -500,7 +501,8 @@ static void Handle4Way(int bIsQOS)
 
 	orig_2 = (uint8 *)malloc(pkt_hdr.incl_len);
 	if (NULL == orig_2) {
-		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		fprintf(stderr, "%s:%d: malloc of %zu bytes failed\n",
+		        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 		exit(EXIT_FAILURE);
 	}
 	memcpy(orig_2, packet, pkt_hdr.incl_len);
@@ -552,7 +554,8 @@ static void Handle4Way(int bIsQOS)
 		if (wpa[ess].packet1) free(wpa[ess].packet1);
 		wpa[ess].packet1 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].packet1 == NULL) {
-			fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+			fprintf(stderr, "%s:%d: malloc of %zu bytes failed\n",
+			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 			exit(EXIT_FAILURE);
 		}
 		memcpy(wpa[ess].packet1, packet, pkt_hdr.incl_len);
@@ -572,12 +575,14 @@ static void Handle4Way(int bIsQOS)
 		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
 		wpa[ess].packet2 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].packet2 == NULL) {
-			fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+			fprintf(stderr, "%s:%d: malloc of %zu bytes failed\n",
+			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 			exit(EXIT_FAILURE);
 		}
 		wpa[ess].orig_2  = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].orig_2 == NULL) {
-			fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+			fprintf(stderr, "%s:%d: malloc of %zu bytes failed\n",
+			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 			exit(EXIT_FAILURE);
 		}
 		memcpy(wpa[ess].packet2, packet, pkt_hdr.incl_len);
@@ -604,7 +609,8 @@ static void Handle4Way(int bIsQOS)
 		// see if we have a msg2 that 'matches',  which is 1 less than our replay count.
 		wpa[ess].packet3 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].packet3 == NULL) {
-			fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+			fprintf(stderr, "%s:%d: malloc of %zu bytes failed\n",
+			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 			exit(EXIT_FAILURE);
 		}
 		memcpy(wpa[ess].packet3, packet, pkt_hdr.incl_len);
