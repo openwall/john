@@ -208,6 +208,13 @@ static int convert_ivs(FILE *f_in)
 			memcpy(hccap.nonce2, wivs2->anonce,32);
 			memcpy(hccap.keymic, wivs2->keymic, 16);
 			hccap.eapol_size = wivs2->eapol_size;
+
+			if (hccap.eapol_size > sizeof(((hccap_t*)(NULL))->eapol)) {
+				fprintf(stderr,
+				        "%s: eapol size %u (too large), skipping packet\n",
+				        filename, hccap.eapol_size);
+				return 1;
+			}
 			memcpy(hccap.eapol, wivs2->eapol, wivs2->eapol_size);
 
 			// print struct in base64 format
@@ -246,7 +253,7 @@ static void dump_any_unver() {
 		fprintf(stderr, "Dumping %d unverified keys, which were not verified\n", nunVer);
 		for (i = 0; i < nunVer; ++i) {
 			printf("%s\n", unVerified[i]);
-			free(unVerified[i]);
+			MEM_FREE(unVerified[i]);
 		}
 	}
 	nunVer = 0;
@@ -329,7 +336,7 @@ static int GetNextPacket(FILE *in)
 	} else
 		cur_u = pkt_hdr.ts_usec-start_u;
 
-	free(full_packet);
+	MEM_FREE(full_packet);
 	full_packet = NULL;
 	full_packet = (uint8 *)malloc(pkt_hdr.incl_len);
 	if (NULL == full_packet) {
@@ -551,7 +558,7 @@ static void Handle4Way(int bIsQOS)
 	// do not have valid 3 4's.  They 'may' be valid, but may also be a client with the wrong password.
 
 	if (msg == 1) {
-		if (wpa[ess].packet1) free(wpa[ess].packet1);
+		MEM_FREE(wpa[ess].packet1);
 		wpa[ess].packet1 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].packet1 == NULL) {
 			fprintf(stderr, "%s:%d: malloc of %zu bytes failed\n",
@@ -559,9 +566,9 @@ static void Handle4Way(int bIsQOS)
 			exit(EXIT_FAILURE);
 		}
 		memcpy(wpa[ess].packet1, packet, pkt_hdr.incl_len);
-		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
-		if (wpa[ess].orig_2)  free(wpa[ess].orig_2);   wpa[ess].orig_2 = NULL;
-		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
+		MEM_FREE(wpa[ess].packet2);
+		MEM_FREE(wpa[ess].orig_2);
+		MEM_FREE(wpa[ess].packet3);
 	}
 	else if (msg == 2) {
 		// Some sanitiy checks
@@ -572,7 +579,7 @@ static void Handle4Way(int bIsQOS)
 		}
 
 		// see if we have a msg1 that 'matches'.
-		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
+		MEM_FREE(wpa[ess].packet3);
 		wpa[ess].packet2 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].packet2 == NULL) {
 			fprintf(stderr, "%s:%d: malloc of %zu bytes failed\n",
@@ -590,6 +597,15 @@ static void Handle4Way(int bIsQOS)
 
 		// This is canonical for any encapsulations
 		wpa[ess].eapol_sz = auth->length + 4;
+
+		if (wpa[ess].eapol_sz > sizeof(((hccap_t*)(NULL))->eapol)) {
+			fprintf(stderr, "%s: eapol size %u (too large), skipping packet\n",
+			        filename, wpa[ess].eapol_sz);
+			wpa[ess].eapol_sz = 0;
+			MEM_FREE(wpa[ess].packet2);
+			MEM_FREE(wpa[ess].orig_2);
+			goto out;
+		}
 
 		if (wpa[ess].packet1 && ShowIncomplete) {
 			ether_auto_802_1x_t *auth2 = auth, *auth1;
@@ -644,14 +660,14 @@ static void Handle4Way(int bIsQOS)
 			}
 		}
 		// clear this, so we do not hit the same 3 packet and output exact same 2/3 combo.
-		if (wpa[ess].packet1) free(wpa[ess].packet1);  wpa[ess].packet1 = NULL;
-		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
-		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
-		if (wpa[ess].orig_2)  free(wpa[ess].orig_2);   wpa[ess].orig_2 = NULL;
+		MEM_FREE(wpa[ess].packet1);
+		MEM_FREE(wpa[ess].packet3);
+		MEM_FREE(wpa[ess].packet2);
+		MEM_FREE(wpa[ess].orig_2);
 	}
 
 out:
-	free(orig_2);
+	MEM_FREE(orig_2);
 }
 
 static void DumpKey(int ess, int one_three, int bIsQOS)
@@ -703,8 +719,8 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	p += sizeof(ether_frame_hdr_t);
 	auth2 = (ether_auto_802_1x_t*)p;
 	memset(auth2->wpa_keymic, 0, 16);
-	memcpy(hccap.eapol, auth2, wpa[ess].eapol_sz);
 	hccap.eapol_size = wpa[ess].eapol_sz;
+	memcpy(hccap.eapol, auth2, hccap.eapol_size);
 
 	w = (uint8 *)&hccap;
 	for (i = 36; i + 3 < sizeof(hccap_t); i += 3)
@@ -727,7 +743,7 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 		for (i = 0; i < nunVer; ++i) {
 			if (!strncmp(TmpKey, unVerified[i], search_len)) {
 				fprintf (stderr, "Key now verified\n");
-				free(unVerified[i]);
+				MEM_FREE(unVerified[i]);
 				unVerified[i] = unVerified[--nunVer];
 				break;
 			}
