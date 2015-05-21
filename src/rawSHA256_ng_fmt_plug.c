@@ -25,12 +25,12 @@ john_register_one(&fmt_rawSHA256_ng);
 #endif
 #endif
 
+#ifndef DEBUG
 // These compilers claim to be __GNUC__ but warn on gcc pragmas.
 #if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER
 #pragma GCC optimize 3
 #endif
-
-//#define DEBUG
+#endif
 
 #include <string.h>
 

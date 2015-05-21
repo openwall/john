@@ -25,9 +25,11 @@ john_register_one(&fmt_rawSHA512_ng);
 #endif
 #endif
 
+#ifndef DEBUG
 // These compilers claim to be __GNUC__ but warn on gcc pragmas.
 #if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER
 #pragma GCC optimize 3
+#endif
 #endif
 
 #include "stdint.h"
@@ -214,7 +216,7 @@ static void done(void)
 }
 
 
-static inline void alter_endianity_64(uint64_t *x, unsigned int size)
+static void alter_endianity_64(uint64_t *x, unsigned int size)
 {
     int i;
 
