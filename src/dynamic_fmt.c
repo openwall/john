@@ -100,14 +100,14 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #include "autoconfig.h"
 #endif
 
+#include "arch.h"
+
 #if !FAST_FORMATS_OMP
 #ifdef _OPENMP
 #  define FORCE_THREAD_MD5_body
 #endif
 #undef _OPENMP
 #endif
-
-#include "arch.h"
 
 #ifndef DYNAMIC_DISABLED
 
@@ -142,6 +142,13 @@ static unsigned int m_ompt;
 #include "dynamic_types.h"
 
 #include "memdbg.h"
+
+#if (defined (_OPENMP)||defined(FORCE_THREAD_MD5_body)) && defined (_MSC_VER)
+unsigned DES_bs_max_kpc, DES_bs_min_kpc, DES_bs_all_p;
+//void MD5_body_for_thread(int t, MD5_word x[15],MD5_word out[4]) { MD5_body(x,out); }
+#undef MD5_body
+extern void MD5_body(MD5_word x[15],MD5_word out[4]);
+#endif
 
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
