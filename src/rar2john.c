@@ -414,16 +414,14 @@ next_file_header:
 #ifdef DEBUG
 				dump_stuff_msg("UTF16 filename", FileNameW, strlen16(FileNameW) << 1);
 				fprintf(stderr, "OEM name:  %s\n", file_name);
-				utf16_to_utf8_r(file_name, 256, FileNameW);
 #endif
+				utf16_to_utf8_r(file_name, 256, FileNameW);
 				fprintf(stderr, "Unicode:   %s\n", file_name);
 			} else
 				fprintf(stderr, "UTF8 name: %s\n", file_name);
 		}
-#ifdef DEBUG
         else
 			fprintf(stderr, "file name: %s\n", file_name);
-#endif
 
 		/* We duplicate file name to the GECOS field, for single mode */
 		gecos_len += snprintf(&gecos[gecos_len], PATH_BUFFER_SIZE - 1, "%s ", (char*)file_name);
