@@ -166,12 +166,6 @@ eLargeOut_t *eLargeOut;
 
 
 #if ARCH_LITTLE_ENDIAN
-// MD5_go is SUPER slow on big endian. In the case of bigendian, we simply
-// fall back, and use OpenSSL MD5 calls, which are usually MUCH faster.
-#ifndef _OPENMP
-// NOTE, MD5_go is NOT thread safe.
-#define USE_MD5_Go
-#endif
 #define MD5_swap(x, y, count)
 #define MD5_swap2(a,b,c,d,e)
 #else
