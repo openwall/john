@@ -320,7 +320,7 @@ static void crypt_all_1(int count) {
 	}
 }
 static void crypt_all_256(int count) {
-	uint32_t idx;
+	int idx;
 #if defined(_OPENMP)
 #pragma omp parallel for default(none) private(idx) shared(count, sapH_cur_salt, saved_plain, crypt_key)
 #endif
@@ -392,7 +392,7 @@ static void crypt_all_256(int count) {
 	}
 }
 static void crypt_all_384(int count) {
-	uint32_t idx;
+	int idx;
 #if defined(_OPENMP)
 #pragma omp parallel for default(none) private(idx) shared(count, sapH_cur_salt, saved_plain, crypt_key)
 #endif
@@ -465,7 +465,7 @@ static void crypt_all_384(int count) {
 	}
 }
 static void crypt_all_512(int count) {
-	uint32_t idx;
+	int idx;
 #if defined(_OPENMP)
 #pragma omp parallel for default(none) private(idx) shared(count, sapH_cur_salt, saved_plain, crypt_key)
 #endif

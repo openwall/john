@@ -288,7 +288,7 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	unsigned int i;
+	int i;
 #ifdef SIMD_COEF_64
 	int inc = SIMD_COEF_64;
 #else
