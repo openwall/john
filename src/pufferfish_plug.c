@@ -2,6 +2,11 @@
    Authored by Jeremi Gosney, 2014
    Placed in the public domain.
  */
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_EVP_SHA512
 
 #include <stdio.h>
 #include <stdint.h>
@@ -313,3 +318,5 @@ void *pufferfish_custom ( const char *pass, size_t len_p, char *settings, unsign
 
     return out;
 }
+
+#endif /* HAVE_EVP_SHA512 */

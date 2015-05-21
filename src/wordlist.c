@@ -85,7 +85,11 @@
 #define _STR_VALUE(arg)         #arg
 #define STR_MACRO(n)            _STR_VALUE(n)
 
+#if defined(SIMD_COEF_32)
 #define VSCANSZ                 (SIMD_COEF_32 * 4)
+#else
+#define VSCANSZ                 0
+#endif
 
 static int dist_rules;
 

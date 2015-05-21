@@ -80,6 +80,7 @@ john_register_one(&fmt_SybaseASE);
 #define OMP_SCALE           512
 #endif // __MIC__
 #else
+#define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT  1
 #define OMP_SCALE           256
 #endif

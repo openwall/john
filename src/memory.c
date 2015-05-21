@@ -238,7 +238,11 @@ void *mem_alloc_align_func(size_t size, size_t align
 		pexit("aligned_alloc (%zu bytes)", size);
 #elif HAVE_MEMALIGN
 	/* Let's just pray this implementation can actually free it */
+#if defined(__sparc__) || defined(__sparc) || defined(sparc) || defined(__sparcv9)
+	if (!(ptr = memalign(align, size)))
+#else
 	if (!(ptr = memalign(&ptr, align, size)))
+#endif
 		pexit("memalign (%zu bytes)", size);
 #elif HAVE___MINGW_ALIGNED_MALLOC
 	if (!(ptr = __mingw_aligned_malloc(size, align)))

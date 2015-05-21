@@ -8,6 +8,12 @@
  * submitted algorithm. Designed by Jeremi M Gosney.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_EVP_SHA512
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_pufferfish;
 #elif FMT_REGISTERS_H
@@ -263,3 +269,5 @@ struct fmt_main fmt_pufferfish = {
 };
 
 #endif /* plugin stanza */
+
+#endif /* HAVE_EVP_SHA512 */

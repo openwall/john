@@ -85,6 +85,7 @@ john_register_one(&fmt_sunmd5);
 #define MIN_KEYS_PER_CRYPT  SIMD_COEF_32
 #define MAX_KEYS_PER_CRYPT  (16 * SIMD_COEF_32 * MD5_SSE_PARA)
 #else
+#define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 

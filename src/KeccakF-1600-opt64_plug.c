@@ -73,8 +73,8 @@ void KeccakF1600_StateInitialize(void *state)
 
 void KeccakF1600_StateXORBytesInLane(void *state, unsigned int lanePosition, const unsigned char *data, unsigned int offset, unsigned int length)
 {
-    UINT64 lane = ((UINT64*)data)[0];
 #if (PLATFORM_BYTE_ORDER == IS_LITTLE_ENDIAN)
+    UINT64 lane = ((UINT64*)data)[0];
     if (length == 0)
         return;
     lane <<= (8-length)*8;
@@ -118,7 +118,7 @@ void KeccakF1600_StateXORLanes(void *state, const unsigned char *data, unsigned 
         ((UINT64*)state)[i+0] ^= ((UINT64*)data)[i+0];
 #else
     unsigned int i;
-    UINT8 *curData = data;
+    UINT8 *curData = (UINT8*)data;
     for(i=0; i<laneCount; i++, curData+=8) {
         UINT64 lane = (UINT64)curData[0]
             | ((UINT64)curData[1] << 8)

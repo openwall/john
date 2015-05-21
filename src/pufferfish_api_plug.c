@@ -2,6 +2,12 @@
     Placed in the public domain.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_EVP_SHA512
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -135,3 +141,5 @@ int PHS ( void *out, size_t outlen, const void *in, size_t inlen, const void *sa
 
     return 0;
 }
+
+#endif /* HAVE_EVP_SHA512 */
