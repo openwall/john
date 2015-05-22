@@ -73,7 +73,6 @@ JOHN_OBJS = \
 	trip_fmt.o \
 	NT_fmt.o \
 	timer.o \
-	md5_go.o \
 	md5.o \
 	rc4.o \
 	hmacmd5.o \
@@ -402,8 +401,6 @@ math.o:	math.c arch.h math.h memdbg.h
 md4.o:	md4.c md4.h memdbg.h
 
 md5.o:	md5.c md5.h memdbg.h
-
-md5_go.o:	md5_go.c arch.h common.h md5_go.h memdbg.h
 
 md_helper.o:	md_helper.c
 
