@@ -165,7 +165,7 @@ static int cmp_all(void *binary, int count) {
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
+		if (!memcmp(binary, crypt_out[index], 4))
 			return 1;
 	return 0;
 }
