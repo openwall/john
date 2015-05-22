@@ -90,22 +90,24 @@
 #define CPU_FALLBACK_BINARY		"john-non-avx"
 #endif
 #define DES_BS_ASM			0
-#if 1
+#if __AVX2__
 #define DES_BS_VECTOR			8
 #if defined(JOHN_XOP) && defined(__GNUC__)
 /* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
 #define CPU_REQ_XOP
 #undef CPU_NAME
-#define CPU_NAME			"XOP"
+#define CPU_NAME			"XOP2"
 #ifdef CPU_FALLBACK_BINARY_DEFAULT
 #undef CPU_FALLBACK_BINARY
 #define CPU_FALLBACK_BINARY		"john-non-xop"
 #endif
 #undef DES_BS
 #define DES_BS				3
-#define DES_BS_ALGORITHM_NAME		"DES 256/256 XOP"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 XOP2"
 #else
-#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX"
+#undef CPU_NAME
+#define CPU_NAME			"AVX2"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX2"
 #endif
 #else
 #define DES_BS_VECTOR			4

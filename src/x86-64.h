@@ -128,7 +128,7 @@
 #define DES_BS_VECTOR_SIZE		8
 #define DES_BS_VECTOR			5
 #define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX-16 + 64/64"
-#elif 1
+#elif __AVX2__
 /* 256-bit as 1x256 */
 #define DES_BS_VECTOR			4
 #if defined(JOHN_XOP) && defined(__GNUC__)
@@ -137,6 +137,8 @@
 #define DES_BS				3
 #define DES_BS_ALGORITHM_NAME		"DES 256/256 XOP2-16"
 #else
+#undef CPU_NAME
+#define CPU_NAME			"AVX2"
 #define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX2-16"
 #endif
 #elif 0
