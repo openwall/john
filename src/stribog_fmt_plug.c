@@ -96,10 +96,15 @@ static void init(struct fmt_main *self)
 	if (!saved_key) {
 		// saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
 		saved_key = mem_alloc_tiny(self->params.max_keys_per_crypt * sizeof(*saved_key), MEM_ALIGN_SIMD);
-		crypt_out = mem_calloc(self->params.max_keys_per_crypt,	sizeof(*crypt_out));
 	}
+	if (!crypt_out)
+		crypt_out = mem_calloc(self->params.max_keys_per_crypt,	sizeof(*crypt_out));
 }
 
+static void done(void)
+{
+	MEM_FREE(crypt_out);
+}
 #define TAG256 "$stribog256$"
 #define TAG256_LENGTH strlen(TAG256)
 
@@ -384,7 +389,7 @@ struct fmt_main fmt_stribog_256 = {
 		stribog_256_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid_256,
@@ -448,7 +453,7 @@ struct fmt_main fmt_stribog_512 = {
 		stribog_512_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid_512,
