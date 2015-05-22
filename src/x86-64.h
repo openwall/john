@@ -128,16 +128,16 @@
 #define DES_BS_VECTOR_SIZE		8
 #define DES_BS_VECTOR			5
 #define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX-16 + 64/64"
-#elif 0
+#elif 1
 /* 256-bit as 1x256 */
 #define DES_BS_VECTOR			4
 #if defined(JOHN_XOP) && defined(__GNUC__)
 /* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
 #undef DES_BS
 #define DES_BS				3
-#define DES_BS_ALGORITHM_NAME		"DES 256/256 XOP-16"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 XOP2-16"
 #else
-#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX-16"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX2-16"
 #endif
 #elif 0
 /* 256-bit as 2x128 */
