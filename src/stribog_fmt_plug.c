@@ -46,7 +46,6 @@ john_register_one(&fmt_stribog_512);
 #define CIPHERTEXT512_LENGTH	64
 #define BINARY_SIZE_256		32
 #define BINARY_SIZE_512		64
-#define CMP_SIZE		32
 #define SALT_SIZE		0
 #define SALT_ALIGN		1
 #define BINARY_ALIGN		sizeof(ARCH_WORD_32)
@@ -329,14 +328,19 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], CMP_SIZE))
+		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;
 }
 
-static int cmp_one(void *binary, int index)
+static int cmp_one_256(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], CMP_SIZE);
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE_256);
+}
+
+static int cmp_one_512(void *binary, int index)
+{
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE_512);
 }
 
 static int cmp_exact(char *source, int index)
@@ -417,7 +421,7 @@ struct fmt_main fmt_stribog_256 = {
 			get_hash_6
 		},
 		cmp_all,
-		cmp_one,
+		cmp_one_256,
 		cmp_exact
 	}
 };
@@ -481,7 +485,7 @@ struct fmt_main fmt_stribog_512 = {
 			get_hash_6
 		},
 		cmp_all,
-		cmp_one,
+		cmp_one_512,
 		cmp_exact
 	}
 };
