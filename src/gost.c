@@ -483,22 +483,22 @@ void gost_init_table(void)
 /*
  * gost HMAC context setup
  */
-void john_gost_hmac_starts( gost_ctx *ctx, const unsigned char *key, size_t keylen )
+void john_gost_hmac_starts( gost_hmac_ctx *ctx, const unsigned char *key, size_t keylen )
 {
 	size_t i;
 	unsigned char sum[32];
 
 	if( keylen > 32 )
 	{
-		john_gost_init( ctx );
-		john_gost_update( ctx, key, keylen );
-		john_gost_final( ctx, sum );
+		john_gost_init( &ctx->ctx );
+		john_gost_update( &ctx->ctx, key, keylen );
+		john_gost_final( &ctx->ctx, sum );
 		keylen = 32;
 		key = sum;
 	}
 
-	memset( ctx->ipad, 0x36, 64 );
-	memset( ctx->opad, 0x5C, 64 );
+	memset( ctx->ipad, 0x36, 32 );
+	memset( ctx->opad, 0x5C, 32 );
 
 	for( i = 0; i < keylen; i++ )
 	{
@@ -506,30 +506,30 @@ void john_gost_hmac_starts( gost_ctx *ctx, const unsigned char *key, size_t keyl
 		ctx->opad[i] = (unsigned char)( ctx->opad[i] ^ key[i] );
 	}
 
-	john_gost_init( ctx );
-	john_gost_update( ctx, ctx->ipad, 64 );
+	john_gost_init( &ctx->ctx );
+	john_gost_update( &ctx->ctx, ctx->ipad, 32 );
 }
 
 /*
  * gost HMAC process buffer
  */
-void john_gost_hmac_update( gost_ctx *ctx, const unsigned char *input, size_t ilen )
+void john_gost_hmac_update( gost_hmac_ctx *ctx, const unsigned char *input, size_t ilen )
 {
-	john_gost_update( ctx, input, ilen );
+	john_gost_update( &ctx->ctx, input, ilen );
 }
 
 /*
  * gost HMAC final digest
  */
-void john_gost_hmac_finish( gost_ctx *ctx, unsigned char *output )
+void john_gost_hmac_finish( gost_hmac_ctx *ctx, unsigned char *output )
 {
 	unsigned char tmpbuf[32];
 
-	john_gost_final( ctx, tmpbuf );
-	john_gost_init( ctx );
-	john_gost_update( ctx, ctx->opad, 64 );
-	john_gost_update( ctx, tmpbuf, 32 );
-	john_gost_final( ctx, output );
+	john_gost_final( &ctx->ctx, tmpbuf );
+	john_gost_init( &ctx->ctx );
+	john_gost_update( &ctx->ctx, ctx->opad, 32 );
+	john_gost_update( &ctx->ctx, tmpbuf, 32 );
+	john_gost_final( &ctx->ctx, output );
 }
 
 /*
@@ -540,9 +540,7 @@ void john_gost_hmac_finish( gost_ctx *ctx, unsigned char *output )
  */
 void john_gost_hmac( const unsigned char *key, size_t keylen, const unsigned char *input, size_t ilen, unsigned char *output )
 {
-	gost_ctx ctx;
-
-	john_gost_init( &ctx );
+	gost_hmac_ctx ctx;
 
 	john_gost_hmac_starts( &ctx, key, keylen );
 	john_gost_hmac_update( &ctx, input, ilen );
