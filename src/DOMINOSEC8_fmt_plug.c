@@ -577,6 +577,9 @@ static void *get_binary(char *ciphertext)
 
 	decode((unsigned char*)ciphertext, (unsigned char*)&cipher_binary_struct);
 	memcpy(out, cipher_binary_struct.hash, BINARY_SIZE);
+#if !ARCH_LITTLE_ENDIAN
+	alter_endianity(out, 8);
+#endif
 	return (void*)out;
 }
 
@@ -712,7 +715,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pbkdf2_sha1(tmp_hash, 22, cur_salt->salt, 16, cur_salt->iterations, (unsigned char *)crypt_out_real[index+i], 8, 0);
 		}
 	}
-
 	keys_changed = salt_changed = 0;
 
 	return count;
