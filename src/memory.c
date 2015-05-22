@@ -117,6 +117,8 @@ void *mem_calloc_func(size_t count, size_t size
  * if -DDEBUG we turn mem_alloc_tiny() to essentially be just a malloc()
  * with additional alignment. The reason for this is it's way easier to
  * trace bugs that way.
+ * Also, with -DDEBUG or -DMEMDBG we always return exactly the requested
+ * alignment, in order to trigger bugs!
  */
 #ifdef DEBUG
 #undef  MEM_ALLOC_SIZE
@@ -133,6 +135,9 @@ void *mem_alloc_tiny_func(size_t size, size_t align
 	size_t mask;
 	char *p;
 
+#if defined(DEBUG) || defined(MEMDBG)
+	size += align;
+#endif
 #ifdef DEBUG
 	/*
 	 * We may be called with size zero, for example from ldr_load_pw_line()
@@ -164,6 +169,11 @@ void *mem_alloc_tiny_func(size_t size, size_t align
 				p -= (size_t)p & mask;
 				bufree -= need;
 				buffer = p + size;
+#if defined(DEBUG) || defined(MEMDBG)
+				/* Ensure alignment is no better than requested */
+				if (((size_t)p & ((mask << 1) + 1)) == 0)
+					p += align;
+#endif
 				return p;
 			}
 		}
@@ -188,6 +198,11 @@ void *mem_alloc_tiny_func(size_t size, size_t align
 	add_memory_link((void*)p);
 	p += mask;
 	p -= (size_t)p & mask;
+#if defined(DEBUG) || defined(MEMDBG)
+	/* Ensure alignment is no better than requested */
+	if (((size_t)p & ((mask << 1) + 1)) == 0)
+		p += align;
+#endif
 	return p;
 }
 
