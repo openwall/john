@@ -190,6 +190,7 @@ static void init(struct fmt_main *self)
 static void done(void)
 {
 	MEM_FREE(digest34);
+	MEM_FREE(crypt_out_real);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
 }
