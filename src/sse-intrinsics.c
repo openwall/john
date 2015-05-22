@@ -1283,31 +1283,41 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 #undef R
 #define R(x,x1,x2,x3)                           \
 {                                               \
-    tmp1 = vadd_epi32(s1(w[x1]), w[x2]);        \
-    tmp1 = vadd_epi32(w[x],  tmp1);             \
-    w[x] = vadd_epi32(s0(w[x3]), tmp1);         \
+    tmp1[i] = vadd_epi32(s1(w[x1]), w[x2]);     \
+    tmp1[i] = vadd_epi32(w[x],  tmp1[i]);       \
+    w[x] = vadd_epi32(s0(w[x3]), tmp1[i]);      \
 }
 
-#define SHA256_STEP0(a,b,c,d,e,f,g,h,x,K)       \
-{                                               \
-    tmp1 = vadd_epi32(h,    S1(e));             \
-    tmp1 = vadd_epi32(tmp1, Ch(e,f,g));         \
-    tmp1 = vadd_epi32(tmp1, vset1_epi32(K));    \
-    tmp1 = vadd_epi32(tmp1, w[x]);              \
-    tmp2 = vadd_epi32(S0(a),Maj(a,b,c));        \
-    d    = vadd_epi32(tmp1, d);                 \
-    h    = vadd_epi32(tmp1, tmp2);              \
+#define SHA256_PARA_DO(x) for (x = 0; x < SIMD_PARA_SHA256; ++x)
+
+#define SHA256_STEP0(a,b,c,d,e,f,g,h,x,K)                    \
+{                                                            \
+	SHA256_PARA_DO(i)                                        \
+	{                                                        \
+		w = _w[i].w;                                         \
+		tmp1[i] = vadd_epi32(h[i],    S1(e[i]));             \
+		tmp1[i] = vadd_epi32(tmp1[i], Ch(e[i],f[i],g[i]));   \
+		tmp1[i] = vadd_epi32(tmp1[i], vset1_epi32(K));       \
+		tmp1[i] = vadd_epi32(tmp1[i], w[x]);                 \
+		tmp2[i] = vadd_epi32(S0(a[i]),Maj(a[i],b[i],c[i]));  \
+		d[i]    = vadd_epi32(tmp1[i], d[i]);                 \
+		h[i]    = vadd_epi32(tmp1[i], tmp2[i]);              \
+	}                                                        \
 }
-#define SHA256_STEP_R(a,b,c,d,e,f,g,h, x,x1,x2,x3, K)   \
-{                                                       \
-    R(x,x1,x2,x3);                                      \
-    tmp1 = vadd_epi32(h,    S1(e));                     \
-    tmp1 = vadd_epi32(tmp1, Ch(e,f,g));                 \
-    tmp1 = vadd_epi32(tmp1, vset1_epi32(K));            \
-    tmp1 = vadd_epi32(tmp1, w[x]);                      \
-    tmp2 = vadd_epi32(S0(a),Maj(a,b,c));                \
-    d    = vadd_epi32(tmp1, d);                         \
-    h    = vadd_epi32(tmp1, tmp2);                      \
+#define SHA256_STEP_R(a,b,c,d,e,f,g,h, x,x1,x2,x3, K)        \
+{                                                            \
+	SHA256_PARA_DO(i)                                        \
+	{                                                        \
+		w = _w[i].w;                                         \
+		R(x,x1,x2,x3);                                       \
+		tmp1[i] = vadd_epi32(h[i],    S1(e[i]));             \
+		tmp1[i] = vadd_epi32(tmp1[i], Ch(e[i],f[i],g[i]));   \
+		tmp1[i] = vadd_epi32(tmp1[i], vset1_epi32(K));       \
+		tmp1[i] = vadd_epi32(tmp1[i], w[x]);                 \
+		tmp2[i] = vadd_epi32(S0(a[i]),Maj(a[i],b[i],c[i]));  \
+		d[i]    = vadd_epi32(tmp1[i], d[i]);                 \
+		h[i]    = vadd_epi32(tmp1[i], tmp2[i]);              \
+	}                                                        \
 }
 
 /*
@@ -1325,76 +1335,99 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
  */
 void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
-	vtype a, b, c, d, e, f, g, h;
+	vtype a[SIMD_PARA_SHA256],
+		  b[SIMD_PARA_SHA256],
+		  c[SIMD_PARA_SHA256],
+		  d[SIMD_PARA_SHA256],
+		  e[SIMD_PARA_SHA256],
+		  f[SIMD_PARA_SHA256],
+		  g[SIMD_PARA_SHA256],
+		  h[SIMD_PARA_SHA256];
 	union {
 		vtype w[16];
 		ARCH_WORD_32 p[16*sizeof(vtype)/sizeof(ARCH_WORD_32)];
 
-	}_w;
-	vtype tmp1, tmp2, *w=_w.w;
+	}_w[SIMD_PARA_SHA256];
+	vtype tmp1[SIMD_PARA_SHA256], 
+		  tmp2[SIMD_PARA_SHA256],
+		  *w = NULL;
 	ARCH_WORD_32 *saved_key=0;
 
-	unsigned int i;
+	unsigned int i, k;
 	if (SSEi_flags & SSEi_FLAT_IN) {
 
 #if __SSE4_1__ || __MIC__
 		saved_key = (ARCH_WORD_32*)data;
-		if (SSEi_flags & SSEi_4BUF_INPUT) {
-			for (i=0; i < 14; ++i) {
-				GATHER_4x(w[i], saved_key, i);
-				vswap32(w[i]);
+		SHA256_PARA_DO(k)
+		{
+			w = _w[k].w;
+			if (SSEi_flags & SSEi_4BUF_INPUT) {
+				for (i=0; i < 14; ++i) {
+					GATHER_4x(w[i], saved_key, i);
+					vswap32(w[i]);
+				}
+				GATHER_4x(w[14], saved_key, 14);
+				GATHER_4x(w[15], saved_key, 15);
+				saved_key += (VS32<<6);
+			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
+				for (i=0; i < 14; ++i) {
+					GATHER_2x(w[i], saved_key, i);
+					vswap32(w[i]);
+				}
+				GATHER_2x(w[14], saved_key, 14);
+				GATHER_2x(w[15], saved_key, 15);
+				saved_key += (VS32<<5);
+			} else {
+				for (i=0; i < 14; ++i) {
+					GATHER(w[i], saved_key, i);
+					vswap32(w[i]);
+				}
+				GATHER(w[14], saved_key, 14);
+				GATHER(w[15], saved_key, 15);
+				saved_key += (VS32<<4);
 			}
-			GATHER_4x(w[14], saved_key, 14);
-			GATHER_4x(w[15], saved_key, 15);
-		} else if (SSEi_flags & SSEi_2BUF_INPUT) {
-			for (i=0; i < 14; ++i) {
-				GATHER_2x(w[i], saved_key, i);
-				vswap32(w[i]);
+			if ( ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
+				 ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
+				 ((SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST) == SSEi_FLAT_RELOAD_SWAPLAST)) {
+				vswap32(w[14]);
+				vswap32(w[15]);
 			}
-			GATHER_2x(w[14], saved_key, 14);
-			GATHER_2x(w[15], saved_key, 15);
-		} else {
-			for (i=0; i < 14; ++i) {
-				GATHER(w[i], saved_key, i);
-				vswap32(w[i]);
-			}
-			GATHER(w[14], saved_key, 14);
-			GATHER(w[15], saved_key, 15);
-		}
-		if ( ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
-			 ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
-			 ((SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST) == SSEi_FLAT_RELOAD_SWAPLAST)) {
-			vswap32(w[14]);
-			vswap32(w[15]);
 		}
 #else
 		unsigned int j;
-		ARCH_WORD_32 *p = _w.p;
 		saved_key = (ARCH_WORD_32*)data;
-		if (SSEi_flags & SSEi_4BUF_INPUT) {
-			for (j=0; j < 16; j++)
-				for (i=0; i < VS32; i++)
-					*p++ = saved_key[(i<<6)+j];
-		} else if (SSEi_flags & SSEi_2BUF_INPUT) {
-			for (j=0; j < 16; j++)
-				for (i=0; i < VS32; i++)
-					*p++ = saved_key[(i<<5)+j];
-		} else {
-			for (j=0; j < 16; j++)
-				for (i=0; i < VS32; i++)
-					*p++ = saved_key[(i<<4)+j];
-		}
-		for (i=0; i < 14; i++)
-			vswap32(w[i]);
-		if ( ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
-			 ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
-			 ((SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST) == SSEi_FLAT_RELOAD_SWAPLAST)) {
-			vswap32(w[14]);
-			vswap32(w[15]);
+		SHA256_PARA_DO(k)
+		{
+			ARCH_WORD_32 *p = _w[k].p;
+			w = _w[k].w;
+			if (SSEi_flags & SSEi_4BUF_INPUT) {
+				for (j=0; j < 16; j++)
+					for (i=0; i < VS32; i++)
+						*p++ = saved_key[(i<<6)+j];
+				saved_key += (VS32<<6);
+			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
+				for (j=0; j < 16; j++)
+					for (i=0; i < VS32; i++)
+						*p++ = saved_key[(i<<5)+j];
+				saved_key += (VS32<<5);
+			} else {
+				for (j=0; j < 16; j++)
+					for (i=0; i < VS32; i++)
+						*p++ = saved_key[(i<<4)+j];
+				saved_key += (VS32<<4);
+			}
+			for (i=0; i < 14; i++)
+				vswap32(w[i]);
+			if ( ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
+				 ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
+				 ((SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST) == SSEi_FLAT_RELOAD_SWAPLAST)) {
+				vswap32(w[14]);
+				vswap32(w[15]);
+			}
 		}
 #endif
 	} else
-		memcpy(w, data, 16*sizeof(vtype));
+		memcpy(_w, data, 16*sizeof(vtype)*SIMD_PARA_SHA256);
 
 //	dump_stuff_shammx(w, 64, 0);
 
@@ -1402,49 +1435,59 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 	if (SSEi_flags & SSEi_RELOAD) {
 		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
 		{
-			i=0; // later if we do PARA, i will be used in the PARA_FOR loop
-			a = vload((vtype*)&reload_state[i*16*VS32+0*VS32]);
-			b = vload((vtype*)&reload_state[i*16*VS32+1*VS32]);
-			c = vload((vtype*)&reload_state[i*16*VS32+2*VS32]);
-			d = vload((vtype*)&reload_state[i*16*VS32+3*VS32]);
-			e = vload((vtype*)&reload_state[i*16*VS32+4*VS32]);
-			f = vload((vtype*)&reload_state[i*16*VS32+5*VS32]);
-			g = vload((vtype*)&reload_state[i*16*VS32+6*VS32]);
-			h = vload((vtype*)&reload_state[i*16*VS32+7*VS32]);
+			SHA256_PARA_DO(i)
+			{
+				a[i] = vload((vtype*)&reload_state[i*16*VS32+0*VS32]);
+				b[i] = vload((vtype*)&reload_state[i*16*VS32+1*VS32]);
+				c[i] = vload((vtype*)&reload_state[i*16*VS32+2*VS32]);
+				d[i] = vload((vtype*)&reload_state[i*16*VS32+3*VS32]);
+				e[i] = vload((vtype*)&reload_state[i*16*VS32+4*VS32]);
+				f[i] = vload((vtype*)&reload_state[i*16*VS32+5*VS32]);
+				g[i] = vload((vtype*)&reload_state[i*16*VS32+6*VS32]);
+				h[i] = vload((vtype*)&reload_state[i*16*VS32+7*VS32]);
+			}
 		}
 		else
 		{
-			i=0;
-			a = vload((vtype*)&reload_state[i*8*VS32+0*VS32]);
-			b = vload((vtype*)&reload_state[i*8*VS32+1*VS32]);
-			c = vload((vtype*)&reload_state[i*8*VS32+2*VS32]);
-			d = vload((vtype*)&reload_state[i*8*VS32+3*VS32]);
-			e = vload((vtype*)&reload_state[i*8*VS32+4*VS32]);
-			f = vload((vtype*)&reload_state[i*8*VS32+5*VS32]);
-			g = vload((vtype*)&reload_state[i*8*VS32+6*VS32]);
-			h = vload((vtype*)&reload_state[i*8*VS32+7*VS32]);
+			SHA256_PARA_DO(i)
+			{
+				a[i] = vload((vtype*)&reload_state[i*8*VS32+0*VS32]);
+				b[i] = vload((vtype*)&reload_state[i*8*VS32+1*VS32]);
+				c[i] = vload((vtype*)&reload_state[i*8*VS32+2*VS32]);
+				d[i] = vload((vtype*)&reload_state[i*8*VS32+3*VS32]);
+				e[i] = vload((vtype*)&reload_state[i*8*VS32+4*VS32]);
+				f[i] = vload((vtype*)&reload_state[i*8*VS32+5*VS32]);
+				g[i] = vload((vtype*)&reload_state[i*8*VS32+6*VS32]);
+				h[i] = vload((vtype*)&reload_state[i*8*VS32+7*VS32]);
+			}
 		}
 	} else {
 		if (SSEi_flags & SSEi_CRYPT_SHA224) {
-			/* SHA-224 IV */
-			a = vset1_epi32(0xc1059ed8);
-			b = vset1_epi32(0x367cd507);
-			c = vset1_epi32(0x3070dd17);
-			d = vset1_epi32(0xf70e5939);
-			e = vset1_epi32(0xffc00b31);
-			f = vset1_epi32(0x68581511);
-			g = vset1_epi32(0x64f98fa7);
-			h = vset1_epi32(0xbefa4fa4);
+			SHA256_PARA_DO(i)
+			{
+				/* SHA-224 IV */
+				a[i] = vset1_epi32(0xc1059ed8);
+				b[i] = vset1_epi32(0x367cd507);
+				c[i] = vset1_epi32(0x3070dd17);
+				d[i] = vset1_epi32(0xf70e5939);
+				e[i] = vset1_epi32(0xffc00b31);
+				f[i] = vset1_epi32(0x68581511);
+				g[i] = vset1_epi32(0x64f98fa7);
+				h[i] = vset1_epi32(0xbefa4fa4);
+			}
 		} else {
-			// SHA-256 IV */
-			a = vset1_epi32(0x6a09e667);
-			b = vset1_epi32(0xbb67ae85);
-			c = vset1_epi32(0x3c6ef372);
-			d = vset1_epi32(0xa54ff53a);
-			e = vset1_epi32(0x510e527f);
-			f = vset1_epi32(0x9b05688c);
-			g = vset1_epi32(0x1f83d9ab);
-			h = vset1_epi32(0x5be0cd19);
+			SHA256_PARA_DO(i)
+			{
+				// SHA-256 IV */
+				a[i] = vset1_epi32(0x6a09e667);
+				b[i] = vset1_epi32(0xbb67ae85);
+				c[i] = vset1_epi32(0x3c6ef372);
+				d[i] = vset1_epi32(0xa54ff53a);
+				e[i] = vset1_epi32(0x510e527f);
+				f[i] = vset1_epi32(0x9b05688c);
+				g[i] = vset1_epi32(0x1f83d9ab);
+				h[i] = vset1_epi32(0x5be0cd19);
+			}
 		}
 	}
 	SHA256_STEP0(a, b, c, d, e, f, g, h,  0, 0x428a2f98);
@@ -1518,88 +1561,100 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 	if (SSEi_flags & SSEi_RELOAD) {
 		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
 		{
-			i=0; // later if we do PARA, i will be used in the PARA_FOR loop
-			a = vadd_epi32(a,vload((vtype*)&reload_state[i*16*VS32+0*VS32]));
-			b = vadd_epi32(b,vload((vtype*)&reload_state[i*16*VS32+1*VS32]));
-			c = vadd_epi32(c,vload((vtype*)&reload_state[i*16*VS32+2*VS32]));
-			d = vadd_epi32(d,vload((vtype*)&reload_state[i*16*VS32+3*VS32]));
-			e = vadd_epi32(e,vload((vtype*)&reload_state[i*16*VS32+4*VS32]));
-			f = vadd_epi32(f,vload((vtype*)&reload_state[i*16*VS32+5*VS32]));
-			g = vadd_epi32(g,vload((vtype*)&reload_state[i*16*VS32+6*VS32]));
-			h = vadd_epi32(h,vload((vtype*)&reload_state[i*16*VS32+7*VS32]));
+			SHA256_PARA_DO(i)
+			{
+				a[i] = vadd_epi32(a[i],vload((vtype*)&reload_state[i*16*VS32+0*VS32]));
+				b[i] = vadd_epi32(b[i],vload((vtype*)&reload_state[i*16*VS32+1*VS32]));
+				c[i] = vadd_epi32(c[i],vload((vtype*)&reload_state[i*16*VS32+2*VS32]));
+				d[i] = vadd_epi32(d[i],vload((vtype*)&reload_state[i*16*VS32+3*VS32]));
+				e[i] = vadd_epi32(e[i],vload((vtype*)&reload_state[i*16*VS32+4*VS32]));
+				f[i] = vadd_epi32(f[i],vload((vtype*)&reload_state[i*16*VS32+5*VS32]));
+				g[i] = vadd_epi32(g[i],vload((vtype*)&reload_state[i*16*VS32+6*VS32]));
+				h[i] = vadd_epi32(h[i],vload((vtype*)&reload_state[i*16*VS32+7*VS32]));
+			}
 		}
 		else
 		{
-			i=0;
-			a = vadd_epi32(a,vload((vtype*)&reload_state[i*8*VS32+0*VS32]));
-			b = vadd_epi32(b,vload((vtype*)&reload_state[i*8*VS32+1*VS32]));
-			c = vadd_epi32(c,vload((vtype*)&reload_state[i*8*VS32+2*VS32]));
-			d = vadd_epi32(d,vload((vtype*)&reload_state[i*8*VS32+3*VS32]));
-			e = vadd_epi32(e,vload((vtype*)&reload_state[i*8*VS32+4*VS32]));
-			f = vadd_epi32(f,vload((vtype*)&reload_state[i*8*VS32+5*VS32]));
-			g = vadd_epi32(g,vload((vtype*)&reload_state[i*8*VS32+6*VS32]));
-			h = vadd_epi32(h,vload((vtype*)&reload_state[i*8*VS32+7*VS32]));
+			SHA256_PARA_DO(i)
+			{
+				a[i] = vadd_epi32(a[i],vload((vtype*)&reload_state[i*8*VS32+0*VS32]));
+				b[i] = vadd_epi32(b[i],vload((vtype*)&reload_state[i*8*VS32+1*VS32]));
+				c[i] = vadd_epi32(c[i],vload((vtype*)&reload_state[i*8*VS32+2*VS32]));
+				d[i] = vadd_epi32(d[i],vload((vtype*)&reload_state[i*8*VS32+3*VS32]));
+				e[i] = vadd_epi32(e[i],vload((vtype*)&reload_state[i*8*VS32+4*VS32]));
+				f[i] = vadd_epi32(f[i],vload((vtype*)&reload_state[i*8*VS32+5*VS32]));
+				g[i] = vadd_epi32(g[i],vload((vtype*)&reload_state[i*8*VS32+6*VS32]));
+				h[i] = vadd_epi32(h[i],vload((vtype*)&reload_state[i*8*VS32+7*VS32]));
+			}
 		}
 	} else if ((SSEi_flags & SSEi_SKIP_FINAL_ADD) == 0) {
 		if (SSEi_flags & SSEi_CRYPT_SHA224) {
-			/* SHA-224 IV */
-			a = vadd_epi32(a, vset1_epi32(0xc1059ed8));
-			b = vadd_epi32(b, vset1_epi32(0x367cd507));
-			c = vadd_epi32(c, vset1_epi32(0x3070dd17));
-			d = vadd_epi32(d, vset1_epi32(0xf70e5939));
-			e = vadd_epi32(e, vset1_epi32(0xffc00b31));
-			f = vadd_epi32(f, vset1_epi32(0x68581511));
-			g = vadd_epi32(g, vset1_epi32(0x64f98fa7));
-			h = vadd_epi32(h, vset1_epi32(0xbefa4fa4));
+			SHA256_PARA_DO(i)
+			{
+				/* SHA-224 IV */
+				a[i] = vadd_epi32(a[i], vset1_epi32(0xc1059ed8));
+				b[i] = vadd_epi32(b[i], vset1_epi32(0x367cd507));
+				c[i] = vadd_epi32(c[i], vset1_epi32(0x3070dd17));
+				d[i] = vadd_epi32(d[i], vset1_epi32(0xf70e5939));
+				e[i] = vadd_epi32(e[i], vset1_epi32(0xffc00b31));
+				f[i] = vadd_epi32(f[i], vset1_epi32(0x68581511));
+				g[i] = vadd_epi32(g[i], vset1_epi32(0x64f98fa7));
+				h[i] = vadd_epi32(h[i], vset1_epi32(0xbefa4fa4));
+			}
 		} else {
-			/* SHA-256 IV */
-			a = vadd_epi32(a, vset1_epi32(0x6a09e667));
-			b = vadd_epi32(b, vset1_epi32(0xbb67ae85));
-			c = vadd_epi32(c, vset1_epi32(0x3c6ef372));
-			d = vadd_epi32(d, vset1_epi32(0xa54ff53a));
-			e = vadd_epi32(e, vset1_epi32(0x510e527f));
-			f = vadd_epi32(f, vset1_epi32(0x9b05688c));
-			g = vadd_epi32(g, vset1_epi32(0x1f83d9ab));
-			h = vadd_epi32(h, vset1_epi32(0x5be0cd19));
+			SHA256_PARA_DO(i)
+			{
+				/* SHA-256 IV */
+				a[i] = vadd_epi32(a[i], vset1_epi32(0x6a09e667));
+				b[i] = vadd_epi32(b[i], vset1_epi32(0xbb67ae85));
+				c[i] = vadd_epi32(c[i], vset1_epi32(0x3c6ef372));
+				d[i] = vadd_epi32(d[i], vset1_epi32(0xa54ff53a));
+				e[i] = vadd_epi32(e[i], vset1_epi32(0x510e527f));
+				f[i] = vadd_epi32(f[i], vset1_epi32(0x9b05688c));
+				g[i] = vadd_epi32(g[i], vset1_epi32(0x1f83d9ab));
+				h[i] = vadd_epi32(h[i], vset1_epi32(0x5be0cd19));
+			}
 		}
 	}
 	if (SSEi_flags & SSEi_SWAP_FINAL) {
-		vswap32(a);
-		vswap32(b);
-		vswap32(c);
-		vswap32(d);
-		vswap32(e);
-		vswap32(f);
-		vswap32(g);
-		vswap32(h);
+		SHA256_PARA_DO(i)
+		{
+			vswap32(a[i]);
+			vswap32(b[i]);
+			vswap32(c[i]);
+			vswap32(d[i]);
+			vswap32(e[i]);
+			vswap32(f[i]);
+			vswap32(g[i]);
+			vswap32(h[i]);
+		}
 	}
 	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT) {
 		i=0;
-		//SHA256_PARA_DO(i)
+		SHA256_PARA_DO(i)
 		{
-			vstore((vtype*)&out[i*16*VS32+0*VS32], a);
-			vstore((vtype*)&out[i*16*VS32+1*VS32], b);
-			vstore((vtype*)&out[i*16*VS32+2*VS32], c);
-			vstore((vtype*)&out[i*16*VS32+3*VS32], d);
-			vstore((vtype*)&out[i*16*VS32+4*VS32], e);
-			vstore((vtype*)&out[i*16*VS32+5*VS32], f);
-			vstore((vtype*)&out[i*16*VS32+6*VS32], g);
-			vstore((vtype*)&out[i*16*VS32+7*VS32], h);
+			vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
+			vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
+			vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
+			vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
+			vstore((vtype*)&out[i*16*VS32+4*VS32], e[i]);
+			vstore((vtype*)&out[i*16*VS32+5*VS32], f[i]);
+			vstore((vtype*)&out[i*16*VS32+6*VS32], g[i]);
+			vstore((vtype*)&out[i*16*VS32+7*VS32], h[i]);
 		}
 	}
 	else
 	{
-		i=0;
-		//SHA256_PARA_DO(i)
+		SHA256_PARA_DO(i)
 		{
-			vstore((vtype*)&(out[i*8*VS32+0*VS32]), a);
-			vstore((vtype*)&(out[i*8*VS32+1*VS32]), b);
-			vstore((vtype*)&(out[i*8*VS32+2*VS32]), c);
-			vstore((vtype*)&(out[i*8*VS32+3*VS32]), d);
-			vstore((vtype*)&(out[i*8*VS32+4*VS32]), e);
-			vstore((vtype*)&(out[i*8*VS32+5*VS32]), f);
-			vstore((vtype*)&(out[i*8*VS32+6*VS32]), g);
-			vstore((vtype*)&(out[i*8*VS32+7*VS32]), h);
+			vstore((vtype*)&(out[i*8*VS32+0*VS32]), a[i]);
+			vstore((vtype*)&(out[i*8*VS32+1*VS32]), b[i]);
+			vstore((vtype*)&(out[i*8*VS32+2*VS32]), c[i]);
+			vstore((vtype*)&(out[i*8*VS32+3*VS32]), d[i]);
+			vstore((vtype*)&(out[i*8*VS32+4*VS32]), e[i]);
+			vstore((vtype*)&(out[i*8*VS32+5*VS32]), f[i]);
+			vstore((vtype*)&(out[i*8*VS32+6*VS32]), g[i]);
+			vstore((vtype*)&(out[i*8*VS32+7*VS32]), h[i]);
 		}
 	}
 
