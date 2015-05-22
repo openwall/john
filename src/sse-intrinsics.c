@@ -1758,11 +1758,12 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 		  tmp1[SIMD_PARA_SHA512], 
 		  tmp2[SIMD_PARA_SHA512];
 
-	SHA512_PARA_DO(k) {
-		if (SSEi_flags & SSEi_FLAT_IN) {
-
+	if (SSEi_flags & SSEi_FLAT_IN) {
+		ARCH_WORD_64 *_data = (ARCH_WORD_64*)data;
+		SHA512_PARA_DO(k)
+		{
 			if (SSEi_flags & SSEi_2BUF_INPUT) {
-				ARCH_WORD_64 (*saved_key)[32] = (ARCH_WORD_64(*)[32])data;
+				ARCH_WORD_64 (*saved_key)[32] = (ARCH_WORD_64(*)[32])_data;
 				for (i = 0; i < 14; i += 2) {
 					GATHER64(tmp1[k], saved_key, i);
 					GATHER64(tmp2[k], saved_key, i + 1);
@@ -1773,8 +1774,9 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 				}
 				GATHER64(tmp1[k], saved_key, 14);
 				GATHER64(tmp2[k], saved_key, 15);
+				_data += (VS64<<5);
 			} else {
-				ARCH_WORD_64 (*saved_key)[16] = (ARCH_WORD_64(*)[16])data;
+				ARCH_WORD_64 (*saved_key)[16] = (ARCH_WORD_64(*)[16])_data;
 				for (i = 0; i < 14; i += 2) {
 					GATHER64(tmp1[k], saved_key, i);
 					GATHER64(tmp2[k], saved_key, i + 1);
@@ -1785,6 +1787,7 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 				}
 				GATHER64(tmp1[k], saved_key, 14);
 				GATHER64(tmp2[k], saved_key, 15);
+				_data += (VS64<<4);
 			}
 			if ( ((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
 				 ((SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST) == SSEi_FLAT_RELOAD_SWAPLAST)) {
@@ -1793,9 +1796,10 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 			}
 			w[k][14] = tmp1[k];
 			w[k][15] = tmp2[k];
-		} else
-			memcpy(w[k], data, 16*sizeof(vtype));
-	}
+		}
+	} else
+		SHA512_PARA_DO(k) memcpy(w[k], data + k*16, 16*sizeof(vtype));
+
 
 	for (i = 16; i < 80; i++)
 		R(i);
