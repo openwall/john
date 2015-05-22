@@ -35,17 +35,11 @@ john_register_one(&fmt_PO);
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
-#include "md5_go.h"
+#include "md5.h"
 #include "memdbg.h"
 
 typedef ARCH_WORD_32 MD5_word;
 typedef MD5_word MD5_binary[4];
-#if ARCH_LITTLE_ENDIAN
-#define MD5_out MD5_out_go
-#else
-#define MD5_out MD5_bitswapped_out_go
-#endif
-extern MD5_binary MD5_out;
 
 #define FORMAT_LABEL			"po"
 #define FORMAT_NAME			"Post.Office"
@@ -76,6 +70,7 @@ static struct fmt_tests tests[] = {
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static int saved_key_len;
 static char po_buf[SALT_SIZE * 2 + 2 + PLAINTEXT_LENGTH + 128 /* MD5 scratch space */];
+static ARCH_WORD_32 MD5_out[4];
 
 static void po_init(struct fmt_main *self) {
 	/* Do nothing */
@@ -195,11 +190,15 @@ static void set_salt(char *salt)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	MD5_CTX ctx;
+
 	po_buf[32] = 'Y';
 	memcpy(po_buf + 33, saved_key, saved_key_len);
 	po_buf[saved_key_len + 33] = 247;
 	memcpy(po_buf + saved_key_len + 34, po_buf, 32);
-	MD5_Go((unsigned char *)po_buf, saved_key_len + 66);
+	MD5_Init(&ctx);
+	MD5_Update(&ctx, po_buf, saved_key_len+66);
+	MD5_Final((unsigned char*)MD5_out, &ctx);
 
 	return *pcount;
 }
