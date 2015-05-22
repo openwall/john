@@ -389,7 +389,7 @@ static int cmp_exact(char *source, int idx)
 	CRC32_t check_sum;
 #if DEBUG
 	static int cnt;
-	char fname[20];
+	char fname[64];
 	FILE *fp;
 #endif
 
@@ -443,7 +443,7 @@ static int cmp_exact(char *source, int idx)
 	if (!cmp_crc32s(&decr_header[256-64-4], ~check_sum))
 		return 0;
 #if DEBUG
-	sprintf(fname, "tc_decr_header-%04d.dat", cnt++);
+	snprintf(fname, sizeof(fname), "tc_decr_header-%04d.dat", cnt++);
 	fp = fopen(fname, "wb");
 	fwrite(decr_header, 1, 512-64, fp);
 	fclose(fp);
