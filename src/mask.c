@@ -1476,7 +1476,7 @@ static double get_progress(void)
 	if (cand_length)
 		try -= cand_length;
 
-	return 100.0 * try / (double)(mask_tot_cand / num_nodes);
+	return 100.0 * try / (double)((mask_tot_cand * mask_int_cand.num_int_cand) / num_nodes);
 }
 
 void mask_save_state(FILE *file)
