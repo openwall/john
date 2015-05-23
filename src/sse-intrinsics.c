@@ -1292,32 +1292,32 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 
 #define SHA256_STEP0(a,b,c,d,e,f,g,h,x,K)                    \
 {                                                            \
-	SHA256_PARA_DO(i)                                        \
-	{                                                        \
-		w = _w[i].w;                                         \
-		tmp1[i] = vadd_epi32(h[i],    S1(e[i]));             \
-		tmp1[i] = vadd_epi32(tmp1[i], Ch(e[i],f[i],g[i]));   \
-		tmp1[i] = vadd_epi32(tmp1[i], vset1_epi32(K));       \
-		tmp1[i] = vadd_epi32(tmp1[i], w[x]);                 \
-		tmp2[i] = vadd_epi32(S0(a[i]),Maj(a[i],b[i],c[i]));  \
-		d[i]    = vadd_epi32(tmp1[i], d[i]);                 \
-		h[i]    = vadd_epi32(tmp1[i], tmp2[i]);              \
-	}                                                        \
+    SHA256_PARA_DO(i)                                        \
+    {                                                        \
+        w = _w[i].w;                                         \
+        tmp1[i] = vadd_epi32(h[i],    S1(e[i]));             \
+        tmp1[i] = vadd_epi32(tmp1[i], Ch(e[i],f[i],g[i]));   \
+        tmp1[i] = vadd_epi32(tmp1[i], vset1_epi32(K));       \
+        tmp1[i] = vadd_epi32(tmp1[i], w[x]);                 \
+        tmp2[i] = vadd_epi32(S0(a[i]),Maj(a[i],b[i],c[i]));  \
+        d[i]    = vadd_epi32(tmp1[i], d[i]);                 \
+        h[i]    = vadd_epi32(tmp1[i], tmp2[i]);              \
+    }                                                        \
 }
 #define SHA256_STEP_R(a,b,c,d,e,f,g,h, x,x1,x2,x3, K)        \
 {                                                            \
-	SHA256_PARA_DO(i)                                        \
-	{                                                        \
-		w = _w[i].w;                                         \
-		R(x,x1,x2,x3);                                       \
-		tmp1[i] = vadd_epi32(h[i],    S1(e[i]));             \
-		tmp1[i] = vadd_epi32(tmp1[i], Ch(e[i],f[i],g[i]));   \
-		tmp1[i] = vadd_epi32(tmp1[i], vset1_epi32(K));       \
-		tmp1[i] = vadd_epi32(tmp1[i], w[x]);                 \
-		tmp2[i] = vadd_epi32(S0(a[i]),Maj(a[i],b[i],c[i]));  \
-		d[i]    = vadd_epi32(tmp1[i], d[i]);                 \
-		h[i]    = vadd_epi32(tmp1[i], tmp2[i]);              \
-	}                                                        \
+    SHA256_PARA_DO(i)                                        \
+    {                                                        \
+        w = _w[i].w;                                         \
+        R(x,x1,x2,x3);                                       \
+        tmp1[i] = vadd_epi32(h[i],    S1(e[i]));             \
+        tmp1[i] = vadd_epi32(tmp1[i], Ch(e[i],f[i],g[i]));   \
+        tmp1[i] = vadd_epi32(tmp1[i], vset1_epi32(K));       \
+        tmp1[i] = vadd_epi32(tmp1[i], w[x]);                 \
+        tmp2[i] = vadd_epi32(S0(a[i]),Maj(a[i],b[i],c[i]));  \
+        d[i]    = vadd_epi32(tmp1[i], d[i]);                 \
+        h[i]    = vadd_epi32(tmp1[i], tmp2[i]);              \
+    }                                                        \
 }
 
 /*
@@ -1719,26 +1719,26 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 #undef R
 #define R(t)                                                     \
 {                                                                \
-	SHA512_PARA_DO(k)                                            \
-	{                                                            \
-		tmp1[k] = vadd_epi64(s1(w[k][t -  2]), w[k][t - 7]);     \
-		tmp2[k] = vadd_epi64(s0(w[k][t - 15]), w[k][t - 16]);    \
-		w[k][t] = vadd_epi64(tmp1[k], tmp2[k]);                  \
-	}                                                            \
+    SHA512_PARA_DO(k)                                            \
+    {                                                            \
+        tmp1[k] = vadd_epi64(s1(w[k][t -  2]), w[k][t - 7]);     \
+        tmp2[k] = vadd_epi64(s0(w[k][t - 15]), w[k][t - 16]);    \
+        w[k][t] = vadd_epi64(tmp1[k], tmp2[k]);                  \
+    }                                                            \
 }
 
 #define SHA512_STEP(a,b,c,d,e,f,g,h,x,K)                        \
 {                                                               \
-	SHA512_PARA_DO(i)                                           \
-	{                                                           \
-		tmp1[i] = vadd_epi64(h[i],    w[i][x]);                 \
-		tmp2[i] = vadd_epi64(S1(e[i]),vset1_epi64x(K));         \
-		tmp1[i] = vadd_epi64(tmp1[i], Ch(e[i],f[i],g[i]));      \
-		tmp1[i] = vadd_epi64(tmp1[i], tmp2[i]);                 \
-		tmp2[i] = vadd_epi64(S0(a[i]),Maj(a[i],b[i],c[i]));     \
-		d[i]    = vadd_epi64(tmp1[i], d[i]);                    \
-		h[i]    = vadd_epi64(tmp1[i], tmp2[i]);                 \
-	}                                                           \
+    SHA512_PARA_DO(i)                                           \
+    {                                                           \
+        tmp1[i] = vadd_epi64(h[i],    w[i][x]);                 \
+        tmp2[i] = vadd_epi64(S1(e[i]),vset1_epi64x(K));         \
+        tmp1[i] = vadd_epi64(tmp1[i], Ch(e[i],f[i],g[i]));      \
+        tmp1[i] = vadd_epi64(tmp1[i], tmp2[i]);                 \
+        tmp2[i] = vadd_epi64(S0(a[i]),Maj(a[i],b[i],c[i]));     \
+        d[i]    = vadd_epi64(tmp1[i], d[i]);                    \
+        h[i]    = vadd_epi64(tmp1[i], tmp2[i]);                 \
+    }                                                           \
 }
 
 void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
