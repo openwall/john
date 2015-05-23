@@ -113,6 +113,15 @@ sub process_packet {
         }
 
         $iner_data = NetPacket::Ethernet::strip($packet);
+    } elsif ($linktype == 113) {
+        # LINUX_SLL "cooked capture"
+        $protocol = unpack("n", substr($packet, 14, 2));
+        if ($protocol == 0x0800) {
+            $iner_data = substr($packet, 16);
+        } else {
+            print STDERR "cooked capture with protocol $protocol not supported.\n";
+            return;
+        }
     } else {
         print STDERR "Link type $linktype not supported.\n" ;
         return ;
