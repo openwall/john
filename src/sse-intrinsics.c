@@ -1798,7 +1798,8 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 			w[k][15] = tmp2[k];
 		}
 	} else
-		SHA512_PARA_DO(k) memcpy(w[k], data + k*16, 16*sizeof(vtype));
+		//FIXME: something wrong here
+		SHA512_PARA_DO(i) memcpy(w[i], data + i*16, 16*sizeof(vtype));
 
 
 	for (i = 16; i < 80; i++)
