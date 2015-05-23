@@ -138,28 +138,26 @@ inline void cmp(uint gid,
 /* OpenCL kernel entry point. Copy key to be hashed from
  * global to local (thread) memory. Break the key into 16 32-bit (uint)
  * words. MD4 hash of a key is 128 bit (uint4). */
-__kernel void md4(__global const uint *keys,
-		  __global const uint *index,
-		 // __global uint *hashes,
-		  __global const uint *int_key_loc,
-		  __global const uint *int_keys,
-		  uint num_int_keys,
-		  __global const uint *loaded_hashes,
-		  uint num_loaded_hashes,
+__kernel void md4(__global uint *keys,
+		  __global uint *index,
+		  __global uint *int_key_loc,
+		  __global uint *int_keys,
+		  __global uint *loaded_hashes,
 		  volatile __global uint *out_hash,
 		  volatile __global uint *bitmap)
 {
 	uint gid = get_global_id(0);
 	uint W[16] = { 0 };
 	uint i;
-	//uint num_keys = get_global_size(0);
+
 	uint base = index[gid];
 	uint len = base & 63;
+	uint ikl = int_key_loc[gid];
 	uint hash[4];
 
 	if (!gid) {
 		out_hash[0] = 0;
-		for (i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
+		for (i = 0; i < (NUM_LOADED_HASHES - 1)/32 + 1; i++)
 			bitmap[i] = 0;
 	}
 
@@ -170,10 +168,9 @@ __kernel void md4(__global const uint *keys,
 	for (i = 0; i < (len+3)/4; i++)
 		W[i] = *keys++;
 
-	for (i = 0; i < num_int_keys; i++) {
+	for (i = 0; i < NUM_INT_KEYS; i++) {
 
-		if (num_int_keys > 1) {
-			uint ikl = int_key_loc[gid];
+		if (NUM_INT_KEYS > 1) {
 			PUTCHAR(W, (ikl & 0xff), (int_keys[i] & 0xff));
 			if ((1 < MASK_FMT_INT_PLHDR) && (ikl & 0xff00) != 0x8000)
 				PUTCHAR(W, ((ikl & 0xff00) >> 8), ((int_keys[i] & 0xff00) >> 8));
@@ -184,11 +181,6 @@ __kernel void md4(__global const uint *keys,
 		}
 
 		md4_encrypt(hash, W, len);
-		cmp(gid, i, num_loaded_hashes, out_hash, loaded_hashes, hash, bitmap);
-
-//		hashes[num_keys * i +gid] = hash[0];
-//		hashes[1 * num_keys * num_int_keys + num_keys * i + gid] = hash[1];
-//		hashes[2 * num_keys * num_int_keys + num_keys * i + gid] = hash[2];
-//		hashes[3 * num_keys * num_int_keys + num_keys * i + gid] = hash[3];
+		cmp(gid, i, NUM_LOADED_HASHES, out_hash, loaded_hashes, hash, bitmap);
 	}
 }

@@ -51,6 +51,7 @@ static cl_uint *saved_plain, *saved_idx, *saved_int_key_loc, *loaded_hashes = NU
 static unsigned int key_idx = 0;
 static unsigned int ref_ctr;
 static struct fmt_main *self;
+static char build_opts[500];
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
@@ -108,6 +109,17 @@ static size_t get_default_workgroup()
 	return 0;
 }
 
+static void set_kernel_args()
+{
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_int_key_loc), (void *) &buffer_int_key_loc), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_int_keys), (void *) &buffer_int_keys), "Error setting argument 4");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(buffer_loaded_hashes), (void *) &buffer_loaded_hashes), "Error setting argument 5");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_hash_ids), (void *) &buffer_hash_ids), "Error setting argument 6");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_bitmap), (void *) &buffer_bitmap), "Error setting argument 7");
+}
+
 static void create_clobj(size_t kpc, struct fmt_main *self)
 {
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * kpc, NULL, &ret_code);
@@ -148,15 +160,7 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	buffer_int_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 4 * mask_int_cand.num_int_cand, mask_int_cand.int_cand ? mask_int_cand.int_cand : (void *)&ref_ctr, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 2");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_int_key_loc), (void *) &buffer_int_key_loc), "Error setting argument 3");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_int_keys), (void *) &buffer_int_keys), "Error setting argument 4");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_uint), (void *) &(mask_int_cand.num_int_cand)), "Error setting argument 5");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_loaded_hashes), (void *) &buffer_loaded_hashes), "Error setting argument 6");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(cl_uint), (void *) &num_loaded_hashes), "Error setting argument 7");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_hash_ids), (void *) &buffer_hash_ids), "Error setting argument 8");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 8, sizeof(buffer_bitmap), (void *) &buffer_bitmap), "Error setting argument 9");
+	set_kernel_args();
 
 	ref_ctr++;
 }
@@ -193,16 +197,22 @@ static void done(void)
 	if (hash_ids)
 		MEM_FREE(hash_ids);
 }
-
-static void init(struct fmt_main *_self)
+static void init_kernel(unsigned int num_ld_hashes)
 {
-	opencl_init("$JOHN/kernels/md4_kernel.cl", gpu_id, NULL);
+	clReleaseKernel(crypt_kernel);
+	sprintf(build_opts, "-D NUM_LOADED_HASHES=%u -D NUM_INT_KEYS=%u", num_ld_hashes, mask_int_cand.num_int_cand);
+	opencl_build(gpu_id, build_opts, 0, NULL);
 	crypt_kernel = clCreateKernel(program[gpu_id], "md4", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
+}
+static void init(struct fmt_main *_self)
+{
 	self = _self;
 	num_loaded_hashes = 0;
 	mask_int_cand_target = 10000;
+
+	opencl_prepare_dev(gpu_id);
+	opencl_read_source("$JOHN/kernels/md4_kernel.cl");
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -362,7 +372,6 @@ static void load_hash(struct db_salt *salt) {
 	}
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_loaded_hashes, CL_TRUE, 0, 16 * num_loaded_hashes, loaded_hashes, 0, NULL, multi_profilingEvent[5]), "failed in clEnqueueWriteBuffer buffer_keys");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(cl_uint), (void *) &num_loaded_hashes), "Error setting argument 7");
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -382,8 +391,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueWriteBuffer buffer_int_key_loc");
 
-	if (salt != NULL && num_loaded_hashes != salt->count)
+	if (salt != NULL && num_loaded_hashes != salt->count) {
+		init_kernel(salt->count);
 		load_hash(salt);
+		set_kernel_args();
+	}
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueNDRangeKernel");
 
@@ -431,6 +443,7 @@ static void reset(struct db_main *db)
 
 		buffer_size = db->format->params.max_keys_per_crypt;
 	       	num_loaded_hashes = db->salts->count;
+		init_kernel(num_loaded_hashes);
 		create_clobj(buffer_size, NULL);
 		load_hash(db->salts);
 	}
@@ -449,6 +462,8 @@ static void reset(struct db_main *db)
 		while (tests[num_loaded_hashes].ciphertext != NULL)
 			num_loaded_hashes++;
 		hash_ids = (cl_uint*)mem_alloc((3 * num_loaded_hashes + 1) * 4);
+
+		init_kernel(num_loaded_hashes);
 
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
