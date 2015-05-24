@@ -266,7 +266,7 @@ struct fmt_main fmt_pbkdf2_hmac_md5 = {
 #if FMT_MAIN_VERSION > 11
 		{
 			iteration_count,
-		}
+		},
 #endif
 		fmt_default_source,
 		{
