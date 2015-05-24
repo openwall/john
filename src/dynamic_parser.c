@@ -67,6 +67,13 @@
 
 #include "arch.h"
 
+#if !FAST_FORMATS_OMP
+#ifdef _OPENMP
+# define FORCE_THREAD_MD5_body
+#endif
+#undef _OPENMP
+#endif
+
 #include "misc.h"
 #include "common.h"
 #include "formats.h"

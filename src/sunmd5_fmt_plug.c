@@ -85,6 +85,7 @@ john_register_one(&fmt_sunmd5);
 #define MIN_KEYS_PER_CRYPT  SIMD_COEF_32
 #define MAX_KEYS_PER_CRYPT  (16 * SIMD_COEF_32 * MD5_SSE_PARA)
 #else
+#define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
@@ -560,7 +561,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		 */
 
 		/* this is the 'first' sprintf(roundascii,"%d",round);  The rest are at the bottom of the loop */
-		strcpy(roundascii, "0");
+		/* some compilers dont allow strcpy inside OMP block with default(none) used */
+		//strcpy(roundascii, "0");
+		roundascii[0] = '0';
+		roundascii[1] = 0;
+
 		roundasciilen=1;
 
 		for (round = 0; round < maxrounds; round++) {
@@ -836,8 +841,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						++roundascii[--j];
 					} while (j > 0 && roundascii[j] == '9'+1);
 				}
-				if (!j && roundascii[0] == '9'+1)
-					roundasciilen = sprintf(roundascii, "%d", round+1);
+				if (!j && roundascii[0] == '9'+1) {
+					/* some compilers dont allow sprintf inside OMP block */
+					//roundasciilen = sprintf(roundascii, "%d", round+1);
+					roundascii[0] = '1';
+					roundascii[roundasciilen++] = '0';
+					roundascii[roundasciilen] = 0;
+				}
 			}
 		}
 	}

@@ -126,7 +126,8 @@ static void process_file(char *filename)
 			size, sizeof(data));
 	fseek(fp, 0, SEEK_SET);
 	if (fread(data, size, 1,  fp) != 1)
-		warn_exit("Error: read failed.");
+		warn_exit("%s: Error: read failed: %s.", filename,
+			strerror(errno));
 
 	fseek(fp, 0, SEEK_SET);
 
@@ -147,17 +148,21 @@ static void process_file(char *filename)
 			p = fgetc(fp);
 			length = fgetc(fp);
 
-			if (sizeof(buf) < length || fread(buf, length, 1, fp) != 1)
-				warn_exit("Error: read failed.");
+			if (fread(buf, length, 1, fp) != 1)
+				warn_exit("%s: Error: read failed: %s.",
+					filename, strerror(errno));
 
 			// Read the (entry creation) date
 			if (fread(buf, 8, 1, fp) != 1)
-				warn_exit("Error: read failed.");
+				warn_exit("%s: Error: read failed: %s.",
+					filename, strerror(errno));
 
 			// Read the key
 			keysize = fget32(fp);
-			if (sizeof(protectedPrivKey) < keysize || fread(protectedPrivKey, keysize, 1, fp) != 1)
-				warn_exit("Error: read failed.");
+			if (sizeof(protectedPrivKey) < keysize ||
+				fread(protectedPrivKey, keysize, 1, fp) != 1)
+				warn_exit("%s: Error: read failed: %s.",
+					filename, strerror(errno));
 
 			// read certificates
 			numOfCerts = fget32(fp);
@@ -169,13 +174,16 @@ static void process_file(char *filename)
 						if (p != 1 && p != 0)
 							warn_exit("Error: p=%d which should be 1 or 0.", p);
 						length = fgetc(fp);
-						if (sizeof(buf) < length || fread(buf, length, 1, fp) != 1)
-							warn_exit("Error: read failed.");
+						if (fread(buf, length, 1, fp) != 1)
+							warn_exit("%s: Error: read failed: %s.",
+								filename, strerror(errno));
 					}
 					// read certificate data
 					certsize = fget32(fp);
-					if (sizeof(certdata) < certsize || fread(certdata, certsize, 1, fp) != 1)
-						warn_exit("Error: read failed.");
+					if (sizeof(certdata) < certsize ||
+						fread(certdata, certsize, 1, fp) != 1)
+						warn_exit("%s: Error: read failed: %s.",
+							filename, strerror(errno));
 				}
 			}
 			// We can be sure now that numOfCerts of certs are read
@@ -183,24 +191,29 @@ static void process_file(char *filename)
 			// Read the alias
 			p = fgetc(fp);
 			length = fgetc(fp);
-			if (sizeof(buf) < length || fread(buf, length, 1, fp) != 1)
-				warn_exit("Error: read failed.");
+			if (fread(buf, length, 1, fp) != 1)
+				warn_exit("%s: Error: read failed: %s.",
+					filename, strerror(errno));
 
 			// Read the (entry creation) date
 			if (fread(buf, 8, 1, fp) != 1)
-				warn_exit("Error: read failed.");
+				warn_exit("%s: Error: read failed: %s.",
+					filename, strerror(errno));
 
 			// Read the trusted certificate
 			if (xVersion == 2) {
 				// read the certificate type
 				p = fgetc(fp);
 				length = fgetc(fp);
-				if (sizeof(buf) < length || fread(buf, length, 1, fp) != 1)
-					warn_exit("Error: read failed.");
+				if (fread(buf, length, 1, fp) != 1)
+					warn_exit("%s: Error: read failed: %s.",
+						filename, strerror(errno));
 			}
 			certsize = fget32(fp);
-			if (sizeof(certdata) < certsize || fread(certdata, certsize, 1, fp) != 1)
-				warn_exit("Error: read failed.");
+			if (sizeof(certdata) < certsize ||
+				fread(certdata, certsize, 1, fp) != 1)
+				warn_exit("%s: Error: read failed: %s.",
+					filename, strerror(errno));
 		} else {
 			fprintf(stderr, "Unrecognized keystore entry");
 			fclose(fp);
@@ -213,7 +226,8 @@ static void process_file(char *filename)
 
 	/* read hash */
 	if (fread(md, 20, 1, fp) != 1)
-		warn_exit("Error: read failed.");
+		warn_exit("%s: Error: read failed: %s.",
+			filename, strerror(errno));
 
 	bname = strip_suffixes(basename(filename), extension, 1);
 	printf("%s:$keystore$0$%d$", bname, pos);
@@ -229,11 +243,12 @@ bail:
 
 int keystore2john(int argc, char **argv)
 {
-        if (argc < 2) {
-                fprintf(stderr, "Usage: %s <.keystore file>\n", argv[0]);
-                exit(-1);
-        }
-        process_file(argv[1]);
+	if (argc < 2) {
+		fprintf(stderr, "Usage: %s <.keystore file>\n", argv[0]);
+		exit(-1);
+	}
+	errno = 0;
+	process_file(argv[1]);
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }

@@ -292,7 +292,7 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	unsigned int index = 0;
+	int index = 0;
 
 #ifdef _OPENMP
 #ifdef SIMD_COEF_64

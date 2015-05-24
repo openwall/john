@@ -359,6 +359,7 @@ typedef __m128i vtype;
 #define vunpacklo_epi64         _mm_unpacklo_epi64
 #define vxor                    _mm_xor_si128
 
+#if !_MSC_VER
 #if !__SSE4_1__ || __clang__
 static inline int vtestz_epi32(vtype __X)
 {
@@ -385,6 +386,7 @@ static inline int vtestz_epi32(vtype __X)
 	return ! vtestz(Y, M);
 }
 #endif /* !__SSE4_1__ || __clang__ */
+#endif /* !_MSC_VER */
 
 #define vtesteq_epi32(x, y)   \
     (0xffff != vmovemask_epi8(vcmpeq_epi32(vcmpeq_epi32(x, y), vsetzero())))
@@ -455,7 +457,11 @@ typedef __m64i vtype;
 
 /************************* COMMON STUFF BELOW *************************/
 
+#ifdef _MSC_VER
+#define MEM_ALIGN_SIMD			16
+#else
 #define MEM_ALIGN_SIMD          (SIMD_COEF_32 * 4)
+#endif
 
 #if !__XOP__ || __AVX2__ || __MIC__
 

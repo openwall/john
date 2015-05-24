@@ -31,14 +31,22 @@
  * the architectures/CPUs we support, yet our use of them does not require that
  * they be entirely correct.
  */
+#ifdef _MSC_VER
+#define MEM_ALIGN_CACHE			64
+#else
 #define MEM_ALIGN_CACHE			(ARCH_SIZE * 8)
+#endif
 #define MEM_ALIGN_PAGE			0x1000
 
 /*
  * SIMD buffers need to be aligned to register size
  */
 #if SIMD_COEF_32
+#ifdef _MSC_VER
+#define MEM_ALIGN_SIMD			16
+#else
 #define MEM_ALIGN_SIMD			(SIMD_COEF_32 * 4)
+#endif
 #else
 #define MEM_ALIGN_SIMD			(16)
 #endif

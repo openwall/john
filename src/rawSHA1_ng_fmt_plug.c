@@ -31,6 +31,14 @@ extern struct fmt_main fmt_sha1_ng;
 john_register_one(&fmt_sha1_ng);
 #else
 
+#ifndef DEBUG
+// These compilers claim to be __GNUC__ but warn on gcc pragmas.
+#if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER
+#pragma GCC optimize 3
+#pragma GCC optimize "-fprefetch-loop-arrays"
+#endif
+#endif
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE 1
 #endif
@@ -122,12 +130,6 @@ john_register_one(&fmt_sha1_ng);
     R2  = _mm_unpacklo_epi64(T2, T3);               \
     R3  = _mm_unpackhi_epi64(T2, T3);               \
 } while (false)
-#endif
-
-// These compilers claim to be __GNUC__ but warn on gcc pragmas.
-#if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER
-#pragma GCC optimize 3
-#pragma GCC optimize "-fprefetch-loop-arrays"
 #endif
 
 // M and N contain the first and last 128bits of a 512bit SHA-1 message block

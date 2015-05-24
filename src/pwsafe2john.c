@@ -50,7 +50,6 @@ static void print_hex(unsigned char *str, int len)
 static void process_file(const char *filename)
 {
 	FILE *fp;
-	int count;
 	unsigned char buf[32];
 	unsigned int iterations;
 	const char *ext[] = {".psafe3"};

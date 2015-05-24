@@ -69,20 +69,24 @@ case "$host_os" in
     AS_IF([test "x$CPU_BIT_STR" = x32], ASFLAGS="$ASFLAGS -DBSD")
     ;;
 
-  linux*|cygwin*)
+  linux*)
     # For exposing fileno()
     JTR_LIST_ADD(CFLAGS_EXTRA, [-D_POSIX_SOURCE])
     # For exposing memmem()
     AS_IF([test "x$ac_cv_func_memmem" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_GNU_SOURCE])])
     # For exposing aligned_alloc
-    case "$host_os" in
-        linux*)
-        AS_IF([test "x$ac_cv_func_aligned_alloc" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_ISOC11_SOURCE])],
-            # For exposing posix_memalign()
-            [AS_IF([test "x$ac_cv_func_posix_memalign" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_XOPEN_SOURCE=600])])]
-        )
-        ;;
-    esac
+    AS_IF([test "x$ac_cv_func_aligned_alloc" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_ISOC11_SOURCE])],
+        # For exposing posix_memalign()
+        [AS_IF([test "x$ac_cv_func_posix_memalign" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_XOPEN_SOURCE=600])])]
+    )
+    ;;
+
+  cygwin*)
+    # For exposing fileno().  NOTE, build fails if both _POSIX_SOURCE and _GNU_SOURCE used at same time.
+    #JTR_LIST_ADD(CFLAGS_EXTRA, [-D_POSIX_SOURCE])
+    # For exposing memmem()
+    AS_IF([test "x$ac_cv_func_memmem" = xyes], [JTR_LIST_ADD(CFLAGS_EXTRA, [-D_GNU_SOURCE])])
+    # For exposing aligned_alloc
     ;;
 
   mingw*)

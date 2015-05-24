@@ -52,7 +52,6 @@
 #endif
 #include <errno.h>
 #include <string.h>
-#include <assert.h>
 #if  (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
@@ -79,6 +78,17 @@ static int inline_thr = MAX_INLINE_SIZE;
 #define MAX_THR (LINE_BUFFER_SIZE/2 - PATH_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE*2)
 
 static int process_file5(const char *archive_name);
+
+static int check_fread(const size_t buf_size, const size_t size, const size_t nmemb)
+{
+	if (buf_size < size * nmemb) {
+		fprintf(stderr, "Error: check_fread(buf_size=%zu, size=%zu, nmemb=%zu) failed, "
+			"buf_size is smaller than size * nmemb.\n",
+			buf_size, size, nmemb);
+		return 0;
+	}
+	return 1;
+}
 
 /* Derived from unrar's encname.cpp */
 static void DecodeFileName(unsigned char *Name, unsigned char *EncName,
@@ -181,6 +191,7 @@ static void process_file(const char *archive_name)
 	strnzcpy(path, archive_name, sizeof(path));
 	base_aname = basename(path);
 	gecos[0] = 0;
+	errno = 0;
 
 	if (!(fp = fopen(archive_name, "rb"))) {
 		fprintf(stderr, "! %s: %s\n", archive_name, strerror(errno));
@@ -188,8 +199,12 @@ static void process_file(const char *archive_name)
 	}
 	/* marker block */
 	memset(marker_block, 0, 7);
-	count = fread(marker_block, 7, 1, fp);
-	assert(count == 1);
+	if (fread(marker_block, 7, 1, fp) != 1) {
+		fprintf(stderr, "%s: Error: read failed: %s.\n",
+			archive_name, strerror(errno));
+		goto err;
+	}
+
 	if (memcmp(marker_block, "\x52\x61\x72\x21\x1a\x07\x00", 7)) { /* handle SFX archives */
 		if (memcmp(marker_block, "MZ", 2) == 0) {
 			/* jump to "Rar!" signature */
@@ -223,9 +238,17 @@ static void process_file(const char *archive_name)
 	}
 
 	/* archive header block */
-	count = fread(archive_header_block, 13, 1, fp);
-	assert(count == 1);
-	assert(archive_header_block[2] == 0x73);
+	if (fread(archive_header_block, 13, 1, fp) != 1) {
+		fprintf(stderr, "%s: Error: read failed: %s.\n",
+			archive_name, strerror(errno));
+		goto err;
+	}
+	if (archive_header_block[2] != 0x73) {
+		fprintf(stderr, "%s: Error: archive_header_block[2] must be 0x73.\n",
+			archive_name);
+		goto err;
+	}
+
 	/* find encryption mode used (called type in output line format) */
 	archive_header_head_flags =
 	    archive_header_block[4] << 8 | archive_header_block[3];
@@ -252,7 +275,11 @@ next_file_header:
 		goto BailOut;
 	}
 
-	assert(count == 1);
+	if (count != 1) {
+		fprintf(stderr, "%s: Error: read failed: %s.\n",
+			archive_name, strerror(errno));
+		goto err;
+	}
 
 	if (type == 1 && file_header_block[2] == 0x7a) {
 #ifdef DEBUG
@@ -277,8 +304,12 @@ next_file_header:
 #endif
 		printf("%s:$RAR3$*%d*", base_aname, type);
 		jtr_fseek64(fp, -24, SEEK_END);
-		count = fread(buf, 24, 1, fp);
-		assert(count == 1);
+		if (fread(buf, 24, 1, fp) != 1) {
+			fprintf(stderr, "%s: Error: read failed: %s.\n",
+				archive_name, strerror(errno));
+			goto err;
+		}
+
 		for (i = 0; i < 8; i++) { /* salt */
 			printf("%c%c", itoa16[ARCH_INDEX(buf[i] >> 4)],
 			    itoa16[ARCH_INDEX(buf[i] & 0x0f)]);
@@ -328,16 +359,24 @@ next_file_header:
 #ifdef DEBUG
 			fprintf(stderr, "! HIGH_PACK_SIZE present\n");
 #endif
-			count = fread(rejbuf, 4, 1, fp);
-			assert(count == 1);
+			if (fread(rejbuf, 4, 1, fp) != 1) {
+				fprintf(stderr, "%s: Error: read failed: %s.\n",
+					archive_name, strerror(errno));
+				goto err;
+			}
+
 			ext_time_size -= 4;
 		}
 		if (file_header_head_flags & 0x100) {
 #ifdef DEBUG
 			fprintf(stderr, "! HIGH_UNP_SIZE present\n");
 #endif
-			count = fread(rejbuf, 4, 1, fp);
-			assert(count == 1);
+			if (fread(rejbuf, 4, 1, fp) != 1) {
+				fprintf(stderr, "%s: Error: read failed: %s.\n",
+					archive_name, strerror(errno));
+				goto err;
+			}
+
 			ext_time_size -= 4;
 		}
 		/* file name processing */
@@ -347,8 +386,15 @@ next_file_header:
 		fprintf(stderr, "file name size: %d bytes\n", file_name_size);
 #endif
 		memset(file_name, 0, sizeof(file_name));
-		count = fread(file_name, file_name_size, 1, fp);
-		assert(count == 1);
+
+		if (!check_fread(sizeof(file_name), file_name_size, 1))
+			goto err;
+		if (fread(file_name, file_name_size, 1, fp) != 1) {
+			fprintf(stderr, "%s: Error: read failed: %s.\n",
+				archive_name, strerror(errno));
+			goto err;
+		}
+
 		ext_time_size -= file_name_size;
 
 		/* If this flag is set, file_name contains some weird
@@ -368,16 +414,14 @@ next_file_header:
 #ifdef DEBUG
 				dump_stuff_msg("UTF16 filename", FileNameW, strlen16(FileNameW) << 1);
 				fprintf(stderr, "OEM name:  %s\n", file_name);
-				utf16_to_utf8_r(file_name, 256, FileNameW);
 #endif
+				utf16_to_utf8_r(file_name, 256, FileNameW);
 				fprintf(stderr, "Unicode:   %s\n", file_name);
 			} else
 				fprintf(stderr, "UTF8 name: %s\n", file_name);
 		}
-#ifdef DEBUG
         else
 			fprintf(stderr, "file name: %s\n", file_name);
-#endif
 
 		/* We duplicate file name to the GECOS field, for single mode */
 		gecos_len += snprintf(&gecos[gecos_len], PATH_BUFFER_SIZE - 1, "%s ", (char*)file_name);
@@ -385,8 +429,12 @@ next_file_header:
 		/* salt processing */
 		if (file_header_head_flags & 0x400) {
 			ext_time_size -= 8;
-			count = fread(salt, 8, 1, fp);
-			assert(count == 1);
+			if (fread(salt, 8, 1, fp) != 1) {
+				fprintf(stderr, "%s: Error: read failed: %s.\n",
+					archive_name, strerror(errno));
+				goto err;
+			}
+
 		}
 
 		/* EXT_TIME processing */
@@ -395,8 +443,15 @@ next_file_header:
 			fprintf(stderr, "! EXT_TIME present with size %d\n",
 			    ext_time_size);
 #endif
-			count = fread(rejbuf, ext_time_size, 1, fp);
-			assert(count == 1);
+
+			if (!check_fread(sizeof(rejbuf), ext_time_size, 1))
+				goto err;
+
+			if (fread(rejbuf, ext_time_size, 1, fp) != 1) {
+				fprintf(stderr, "%s: Error: read failed: %s.\n",
+					archive_name, strerror(errno));
+				goto err;
+			}
 		}
 
 		/* Skip solid files (first file is never solid)

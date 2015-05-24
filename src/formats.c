@@ -60,6 +60,15 @@ void fmt_init(struct fmt_main *format)
 		}
 #endif
 		format->methods.init(format);
+#ifndef BENCH_BUILD
+		/* NOTE, we have to grab these values (the first time), from after
+		   the format has been initialized for thin dynamic formats */
+		if (options.flags & FLG_LOOPTEST && orig_len == 0 && format->params.plaintext_length) {
+			orig_min = format->params.min_keys_per_crypt;
+			orig_max = format->params.max_keys_per_crypt;
+			orig_len = format->params.plaintext_length;
+		}
+#endif
 		format->private.initialized = 1;
 	}
 #ifndef BENCH_BUILD

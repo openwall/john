@@ -342,7 +342,7 @@ static void set_salt(void *salt) {
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	unsigned int index;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for

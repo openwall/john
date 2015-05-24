@@ -80,6 +80,7 @@ john_register_one(&fmt_SybaseASE);
 #define OMP_SCALE           512
 #endif // __MIC__
 #else
+#define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT  1
 #define OMP_SCALE           256
 #endif
@@ -300,7 +301,7 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	uint32_t index = 0;
+	int index = 0;
 
 #ifdef _OPENMP
 #ifndef SIMD_COEF_32
