@@ -92,13 +92,13 @@ void SSESHA1body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, uns
 #if SIMD_COEF_32 > 1
 
 #ifdef SIMD_COEF_32
-#define SHA256_ALGORITHM_NAME	BITS " " SIMD_TYPE " " STRINGIZE(SIMD_COEF_32)"x"
+#define SHA256_ALGORITHM_NAME	BITS " " SIMD_TYPE " " SHA256_N_STR
 void SSESHA256body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define SHA256_BUF_SIZ 16
 #endif
 
 #ifdef SIMD_COEF_64
-#define SHA512_ALGORITHM_NAME	BITS " " SIMD_TYPE " " STRINGIZE(SIMD_COEF_64)"x"
+#define SHA512_ALGORITHM_NAME	BITS " " SIMD_TYPE " " SHA512_N_STR
 void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, unsigned SSEi_flags);
 // ????  (16 long longs).
 #define SHA512_BUF_SIZ 16
