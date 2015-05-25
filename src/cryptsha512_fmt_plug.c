@@ -132,8 +132,8 @@ john_register_one(&fmt_cryptsha512);
 #define SALT_ALIGN			4
 
 #ifdef SIMD_COEF_64
-#define MIN_KEYS_PER_CRYPT		SIMD_COEF_64
-#define MAX_KEYS_PER_CRYPT		SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT		(SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT		(SIMD_COEF_64*SIMD_PARA_SHA512)
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -146,11 +146,7 @@ john_register_one(&fmt_cryptsha512);
 #define __CRYPTSHA512_CREATE_PROPER_TESTS_ARRAY__
 #include "cryptsha512_common.h"
 
-#ifndef SIMD_COEF_64
-#define BLKS 1
-#else
-#define BLKS SIMD_COEF_64
-#endif
+#define BLKS MAX_KEYS_PER_CRYPT
 
 /* This structure is 'pre-loaded' with the keyspace of all possible crypts which  */
 /* will be performed WITHIN the inner loop.  There are 8 possible buffers that    */
@@ -579,7 +575,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef SIMD_COEF_64
 	// group based upon size splits.
-	MixOrder = mem_calloc((count+6*SIMD_COEF_64), sizeof(int));
+	MixOrder = mem_calloc((count+6*MAX_KEYS_PER_CRYPT), sizeof(int));
 	{
 		static const int lens[17][6] = {
 			{0,24,48,88,89,90},  //  0 byte salt
@@ -644,7 +640,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		cryptloopstruct *crypt_struct;
 #ifdef SIMD_COEF_64
 		//JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 sse_out[64];
-		char tmp_sse_out[8*SIMD_COEF_64*8+MEM_ALIGN_SIMD];
+		char tmp_sse_out[8*MAX_KEYS_PER_CRYPT*8+MEM_ALIGN_SIMD];
 		ARCH_WORD_64 *sse_out;
 		sse_out = (ARCH_WORD_64 *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
 #endif
@@ -749,10 +745,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				break;
 			{
 				int j, k;
-				for (k = 0; k < SIMD_COEF_64; ++k) {
+				for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
 					ARCH_WORD_64 *o = (ARCH_WORD_64 *)crypt_struct->cptr[k][idx];
 					for (j = 0; j < 8; ++j)
-						*o++ = JOHNSWAP64(sse_out[j*SIMD_COEF_64+k]);
+						*o++ = JOHNSWAP64(sse_out[j*SIMD_COEF_64+(k&(SIMD_COEF_64-1))+k/SIMD_COEF_64*8*SIMD_COEF_64]);
 				}
 			}
 			if (++idx == 42)
@@ -760,10 +756,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		{
 			int j, k;
-			for (k = 0; k < SIMD_COEF_64; ++k) {
+			for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
 				ARCH_WORD_64 *o = (ARCH_WORD_64 *)crypt_out[MixOrder[index+k]];
 				for (j = 0; j < 8; ++j)
-					*o++ = JOHNSWAP64(sse_out[j*SIMD_COEF_64+k]);
+					*o++ = JOHNSWAP64(sse_out[j*SIMD_COEF_64+(k&(SIMD_COEF_64-1))+k/SIMD_COEF_64*8*SIMD_COEF_64]);
 			}
 		}
 #else
