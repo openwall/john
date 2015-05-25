@@ -282,8 +282,12 @@
 #endif
 #endif
 
+#ifndef SIMD_PARA_SHA256
 #define SIMD_PARA_SHA256 1
+#endif
+#ifndef SIMD_PARA_SHA512
 #define SIMD_PARA_SHA512 1
+#endif
 
 #define STR_VALUE(arg)			#arg
 #define PARA_TO_N(n)			STR_VALUE(n) "x"
