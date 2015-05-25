@@ -88,7 +88,6 @@ john_register_one(&fmt_cryptsha256);
 #include "arch.h"
 
 //#undef SIMD_COEF_32
-//#undef SIMD_COEF_32
 
 #include "sha2.h"
 
@@ -211,11 +210,10 @@ typedef struct cryptloopstruct_t {
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
-static int max_crypts;
 
 /* these 2 values are used in setup of the cryptloopstruct, AND to do our SHA256_Init() calls, in the inner loop */
 static const unsigned char padding[128] = { 0x80, 0 /* 0,0,0,0.... */ };
-#if !defined(JTR_INC_COMMON_CRYPTO_SHA2) && !defined (SIMD_COEF_64)
+#if !defined(JTR_INC_COMMON_CRYPTO_SHA2) && !defined (SIMD_COEF_32)
 static const ARCH_WORD_32 ctx_init[8] =
 	{0x6A09E667,0xBB67AE85,0x3C6EF372,0xA54FF53A,0x510E527F,0x9B05688C,0x1F83D9AB,0x5BE0CD19};
 #endif
@@ -229,6 +227,8 @@ static struct saltstruct {
 static void init(struct fmt_main *self)
 {
 	int omp_t = 1;
+	int max_crypts;
+
 #ifdef _OPENMP
 	omp_t = omp_get_max_threads();
 	omp_t *= OMP_SCALE;
@@ -623,7 +623,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				if (saved_len[index] >= lens[cur_salt->len][j] && saved_len[index] < lens[cur_salt->len][j+1])
 					MixOrder[tot_todo++] = index;
 			}
-			while (tot_todo & (SIMD_COEF_32-1))
+			while (tot_todo % MAX_KEYS_PER_CRYPT)
 				MixOrder[tot_todo++] = count;
 		}
 	}
@@ -761,7 +761,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				unsigned char *cp = crypt_struct->bufs[0][idx];
 				SSESHA256body((__m128i *)cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
 			}
-
 			if (cnt == cur_salt->rounds)
 				break;
 			{

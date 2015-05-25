@@ -67,7 +67,6 @@ john_register_one(&fmt_cryptsha512);
 
 #include "arch.h"
 
-//#undef SIMD_COEF_32
 //#undef SIMD_COEF_64
 
 #include "sha2.h"
@@ -191,7 +190,6 @@ typedef struct cryptloopstruct_t {
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
-static int max_crypts;
 
 /* these 2 values are used in setup of the cryptloopstruct, AND to do our SHA512_Init() calls, in the inner loop */
 static const unsigned char padding[256] = { 0x80, 0 /* 0,0,0,0.... */ };
@@ -209,6 +207,8 @@ static struct saltstruct {
 static void init(struct fmt_main *self)
 {
 	int omp_t = 1;
+	int max_crypts;
+
 #ifdef _OPENMP
 	omp_t = omp_get_max_threads();
 	omp_t *= OMP_SCALE;
@@ -603,7 +603,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				if (saved_len[index] >= lens[cur_salt->len][j] && saved_len[index] < lens[cur_salt->len][j+1])
 					MixOrder[tot_todo++] = index;
 			}
-			while (tot_todo & (SIMD_COEF_64-1))
+			while (tot_todo % MAX_KEYS_PER_CRYPT)
 				MixOrder[tot_todo++] = count;
 		}
 	}
@@ -845,6 +845,9 @@ static void *get_salt(char *ciphertext)
 
 	for (len = 0; ciphertext[len] != '$'; len++);
 
+	if (len > SALT_LENGTH)
+		len = SALT_LENGTH;
+
 	memcpy(out.salt, ciphertext, len);
 	out.len = len;
 	return &out;
@@ -869,6 +872,16 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+#if FMT_MAIN_VERSION > 11
+static unsigned int sha512crypt_iterations(void *salt)
+{
+	struct saltstruct *sha512crypt_salt;
+
+	sha512crypt_salt = salt;
+	return (unsigned int)sha512crypt_salt->rounds;
+}
+#endif
+
 // Public domain hash function by DJ Bernstein
 // We are hashing the entire struct
 static int salt_hash(void *salt)
@@ -882,17 +895,6 @@ static int salt_hash(void *salt)
 
 	return hash & (SALT_HASH_SIZE - 1);
 }
-
-#if FMT_MAIN_VERSION > 11
-/* iteration count as tunable cost parameter */
-static unsigned int sha512crypt_iterations(void *salt)
-{
-	struct saltstruct *sha512crypt_salt;
-
-	sha512crypt_salt = salt;
-	return (unsigned int)sha512crypt_salt->rounds;
-}
-#endif
 
 struct fmt_main fmt_cryptsha512 = {
 	{

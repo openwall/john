@@ -1633,7 +1633,6 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 		}
 	}
 	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT) {
-		i=0;
 		SHA256_PARA_DO(i)
 		{
 			vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
