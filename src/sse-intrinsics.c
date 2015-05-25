@@ -48,8 +48,11 @@ _inline __m128i _mm_set1_epi64x(long long a)
 }
 #endif
 
+#include "misc.h"
+#if !defined(DEBUG) && !defined(WITH_ASAN)
 #if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER
 #pragma GCC optimize 3
+#endif
 #endif
 
 /* Shorter names for use in index calculations */

@@ -31,7 +31,8 @@ extern struct fmt_main fmt_sha1_ng;
 john_register_one(&fmt_sha1_ng);
 #else
 
-#ifndef DEBUG
+#include "misc.h"
+#if !defined(DEBUG) && !defined(WITH_ASAN)
 // These compilers claim to be __GNUC__ but warn on gcc pragmas.
 #if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER
 #pragma GCC optimize 3
