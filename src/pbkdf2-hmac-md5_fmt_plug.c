@@ -21,7 +21,8 @@ john_register_one(&fmt_pbkdf2_hmac_md5);
 #include "formats.h"
 #include "johnswap.h"
 #include "stdint.h"
-#include "md5_plug.h"
+#include "md5.h"
+#include "hmacmd5.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
@@ -162,11 +163,6 @@ static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
-void PKCS5_PBKDF2_HMAC_MD5(unsigned char *password, size_t plen,
-    unsigned char *salt, size_t slen,
-    unsigned long iteration_count, unsigned long key_length,
-    unsigned char *output);
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
@@ -179,7 +175,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
-		PKCS5_PBKDF2_HMAC_MD5((unsigned char*)(saved_key[index]),
+		pkcs5_pbkdf2_md5((unsigned char*)(saved_key[index]),
 				strlen(saved_key[index]),
 				(unsigned char*)cur_salt->salt, cur_salt->length,
 				cur_salt->rounds, 16, (unsigned char*)crypt_out[index]);
