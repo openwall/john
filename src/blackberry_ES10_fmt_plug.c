@@ -64,8 +64,8 @@ john_register_one(&fmt_blackberry1);
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
 #ifdef SIMD_COEF_64
-#define MIN_KEYS_PER_CRYPT	SIMD_COEF_64
-#define MAX_KEYS_PER_CRYPT	SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT	(SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT	(SIMD_COEF_64*SIMD_PARA_SHA512)
 #else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1

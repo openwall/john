@@ -71,23 +71,8 @@ static int omp_t = 1;
 #define MAX_SALT_SIZE		24
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
-#ifdef SIMD_COEF_32
-// since we have a 'common' crypt_all() function, find 'max' of sha1/sha256/sha512, and that is the block size
-// crypt_all handles looping 'within' each OMP thread (or within the single thread if non OMP).
-#if SSE_GROUP_SZ_SHA1 > SSE_GROUP_SZ_SHA256 && SSE_GROUP_SZ_SHA1 > SSE_GROUP_SZ_SHA512
-#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
-#elif SSE_GROUP_SZ_SHA512 > SSE_GROUP_SZ_SHA256
-#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
-#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
-#else
-#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
-#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
-#endif
-#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
-#endif
 #define BASE64_ALPHABET	  \
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
@@ -123,6 +108,7 @@ static struct fmt_tests aixssha_tests512[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static unsigned int key_batch;
 
 static struct custom_salt {
 	int iterations;
@@ -132,6 +118,7 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
+	key_batch = self->params.max_keys_per_crypt;
 #ifdef _OPENMP
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
@@ -293,10 +280,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
+	for (index = 0; index < count; index += key_batch)
 	{
 		int j = index;
-		while (j < index + MAX_KEYS_PER_CRYPT) {
+		while (j < index + key_batch) {
 			if (cur_salt->type == 1) {
 #ifdef SSE_GROUP_SZ_SHA1
 				int lens[SSE_GROUP_SZ_SHA1], i;
@@ -428,8 +415,13 @@ struct fmt_main fmt_aixssha1 = {
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
+#ifdef SIMD_COEF_32
+		SSE_GROUP_SZ_SHA1,
+		SSE_GROUP_SZ_SHA1,
+#else
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+#endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{
@@ -496,8 +488,13 @@ struct fmt_main fmt_aixssha256 = {
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
+#ifdef SIMD_COEF_32
+		SSE_GROUP_SZ_SHA256,
+		SSE_GROUP_SZ_SHA256,
+#else
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+#endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{
@@ -564,8 +561,13 @@ struct fmt_main fmt_aixssha512 = {
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
+#ifdef SIMD_COEF_64
+		SSE_GROUP_SZ_SHA512,
+		SSE_GROUP_SZ_SHA512,
+#else
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+#endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{

@@ -41,8 +41,8 @@ john_register_one(&fmt_XSHA512);
 #define SALT_ALIGN			sizeof(ARCH_WORD_32)
 
 #ifdef SIMD_COEF_64
-#define MIN_KEYS_PER_CRYPT      SIMD_COEF_64
-#define MAX_KEYS_PER_CRYPT      SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		0x100

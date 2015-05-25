@@ -296,7 +296,7 @@ static void pbkdf2_sha512_sse(const unsigned char *K[SIMD_COEF_64], int KL[SIMD_
 			unsigned int k;
 			SSESHA512body(o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SSESHA512body(o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
-			// only xor first 16 bytes, since that is ALL this format uses
+			// only xor first 16 64-bit words
 			for (k = 0; k < SSE_GROUP_SZ_SHA512; k++) {
 				ARCH_WORD_64 *p = &o1[(k/SIMD_COEF_64)*SIMD_COEF_64*SHA512_BUF_SIZ + (k&(SIMD_COEF_64-1))];
 				for(j = 0; j < (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)); j++)

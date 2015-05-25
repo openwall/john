@@ -65,8 +65,8 @@ john_register_one(&fmt_rawSHA224);
 #define SALT_ALIGN				1
 
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT		SIMD_COEF_32
-#define MAX_KEYS_PER_CRYPT      SIMD_COEF_32
+#define MIN_KEYS_PER_CRYPT		(SIMD_COEF_32*SIMD_PARA_SHA256)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -82,8 +82,8 @@ static struct fmt_tests tests[] = {
 
 #ifdef SIMD_COEF_32
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA256_BUF_SIZ*SIMD_COEF_32*4 )
-static uint32_t (*saved_key)[SHA256_BUF_SIZ*SIMD_COEF_32];
-static uint32_t (*crypt_out)[8*SIMD_COEF_32];
+static uint32_t (*saved_key)[SHA256_BUF_SIZ*MAX_KEYS_PER_CRYPT];
+static uint32_t (*crypt_out)[8*MAX_KEYS_PER_CRYPT];
 #else
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -109,12 +109,8 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_out));
 #else
-	saved_key = mem_calloc_align(self->params.max_keys_per_crypt /
-	                             SIMD_COEF_32,
-	                             sizeof(*saved_key), MEM_ALIGN_SIMD);
-	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt /
-	                             SIMD_COEF_32,
-	                             sizeof(*crypt_out), MEM_ALIGN_SIMD);
+	saved_key = mem_calloc_align(omp_t, sizeof(*saved_key), MEM_ALIGN_SIMD);
+	crypt_out = mem_calloc_align(omp_t, sizeof(*crypt_out), MEM_ALIGN_SIMD);
 #endif
 }
 
@@ -270,14 +266,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 
 #ifdef _OPENMP
-#ifdef SIMD_COEF_32
-	int inc = SIMD_COEF_32;
-#else
-	int inc = 1;
-#endif
-
 #pragma omp parallel for
-	for (index = 0; index < count; index += inc)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
 #ifdef SIMD_COEF_32

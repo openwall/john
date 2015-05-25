@@ -56,8 +56,8 @@ john_register_one(&fmt_hmacSHA256);
 #define CIPHERTEXT_LENGTH		(SALT_LENGTH + 1 + BINARY_SIZE * 2)
 
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT      SIMD_COEF_32
-#define MAX_KEYS_PER_CRYPT      SIMD_COEF_32
+#define MIN_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
 #define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i) & (0xffffffff - 3)) * SIMD_COEF_32 + (3 - ((i) & 3)) + index/SIMD_COEF_32 * SHA256_BUF_SIZ * 4 * SIMD_COEF_32)
 #else
 #define MIN_KEYS_PER_CRYPT      1

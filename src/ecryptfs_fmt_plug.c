@@ -58,8 +58,8 @@ static int omp_t = 1;
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
 #ifdef SIMD_COEF_64
-#define MIN_KEYS_PER_CRYPT		SIMD_COEF_64
-#define MAX_KEYS_PER_CRYPT      SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT		(SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
 #define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64 *8 )
 #else
 #define MIN_KEYS_PER_CRYPT		1
@@ -212,14 +212,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_64
 		unsigned char tmpBuf[64];
 		unsigned int i;
-		unsigned char _IBuf[128*SIMD_COEF_64+MEM_ALIGN_SIMD], *keys;
+		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+MEM_ALIGN_SIMD], *keys;
 		ARCH_WORD_64 *keys64;
 
 		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 		keys64 = (ARCH_WORD_64*)keys;
-		memset(keys, 0, 128*SIMD_COEF_64);
+		memset(keys, 0, 128*MAX_KEYS_PER_CRYPT);
 
-		for (i = 0; i < SIMD_COEF_64; ++i) {
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, cur_salt->salt, ECRYPTFS_SALT_SIZE);
 			SHA512_Update(&ctx, saved_key[index+i], strlen(saved_key[index+i]));
@@ -233,7 +233,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (j = 1; j <= ECRYPTFS_DEFAULT_NUM_HASH_ITERATIONS; j++)
 			SSESHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 		// now marshal into crypt_out;
-		for (i = 0; i < SIMD_COEF_64; ++i) {
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(crypt_out[index+i]);
 			ARCH_WORD_64 *Iptr64 = &keys64[(i/SIMD_COEF_64)*SIMD_COEF_64*16 + (i%SIMD_COEF_64)];
 			for (j = 0; j < 8; ++j)

@@ -73,8 +73,8 @@ static int omp_t = 1;
 #define SALT_ALIGN              4
 
 #ifdef SIMD_COEF_64
-#define MIN_KEYS_PER_CRYPT      SIMD_COEF_64
-#define MAX_KEYS_PER_CRYPT      SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
 #else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -103,7 +103,7 @@ static struct fmt_tests tests[] = {
 static unsigned char cursalt[SALT_SIZE];
 #ifdef SIMD_COEF_64
 static ARCH_WORD_64 (*saved_key)[SHA512_BUF_SIZ];
-static ARCH_WORD_64 (*crypt_out)[8*SIMD_COEF_64];
+static ARCH_WORD_64 (*crypt_out)[8*MAX_KEYS_PER_CRYPT];
 static int max_keys;
 static int new_keys;
 #else
@@ -167,9 +167,7 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
 	                             sizeof(*saved_key),
 	                             MEM_ALIGN_SIMD);
-	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt /
-	                             SIMD_COEF_64,
-	                             sizeof(*crypt_out), MEM_ALIGN_SIMD);
+	crypt_out = mem_calloc_align(omp_t, sizeof(*crypt_out), MEM_ALIGN_SIMD);
 	max_keys = self->params.max_keys_per_crypt;
 #else
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
@@ -318,23 +316,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	unsigned int index = 0;
-#ifdef SIMD_COEF_64
-	const int inc = SIMD_COEF_64;
-#else
-	const int inc = 1;
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
 #if defined(_OPENMP) || PLAINTEXT_LENGTH > 1
-	for (index = 0; index < count; index += inc)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
 #ifdef SIMD_COEF_64
 		if (new_keys) {
 			int i;
-			for (i = 0; i < SIMD_COEF_64; i++) {
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
 				ARCH_WORD_64 *keybuffer = saved_key[index + i];
 				unsigned char *wucp = (unsigned char*)keybuffer;
 				int j, len = (keybuffer[15] >> 3) - SALT_SIZE;
@@ -346,7 +339,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				wucp[len + 4] = 0x80;
 			}
 		}
-		SSESHA512body(&saved_key[index], crypt_out[index/SIMD_COEF_64], NULL, SSEi_FLAT_IN);
+		SSESHA512body(&saved_key[index], crypt_out[index/MAX_KEYS_PER_CRYPT], NULL, SSEi_FLAT_IN);
 #else
 		SHA512_CTX ctx;
 		memcpy(saved_key[index]+saved_len[index], cursalt, SALT_SIZE);

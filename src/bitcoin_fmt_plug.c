@@ -65,8 +65,8 @@ static int omp_t = 1;
 #define SALT_ALIGN			sizeof(int)
 #define SALT_SIZE		sizeof(struct custom_salt)
 #ifdef SIMD_COEF_64
-#define MIN_KEYS_PER_CRYPT	SIMD_COEF_64
-#define MAX_KEYS_PER_CRYPT	SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT	(SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT	(SIMD_COEF_64*SIMD_PARA_SHA512)
 #else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -261,7 +261,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// the above alignment was crashing on OMP build on some 32 bit linux (compiler bug?? not aligning).
 		// so the alignment was done using raw buffer, and aligning at runtime to get 16 byte alignment.
 		// that works, and should cause no noticeable overhead differences.
-		char unaligned_buf[SIMD_COEF_64*SHA512_BUF_SIZ*sizeof(ARCH_WORD_64)+MEM_ALIGN_SIMD];
+		char unaligned_buf[MAX_KEYS_PER_CRYPT*SHA512_BUF_SIZ*sizeof(ARCH_WORD_64)+MEM_ALIGN_SIMD];
 		ARCH_WORD_64 *key_iv = (ARCH_WORD_64*)mem_align(unaligned_buf, MEM_ALIGN_SIMD);
 		JTR_ALIGN(8)  unsigned char hash1[SHA512_DIGEST_LENGTH];            // 512 bits
 		int index2;
@@ -278,17 +278,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// out the rest of the buffer, putting 512 (#bits) at the end.  Once this part of the buffer is set up, we never
 			// touch it again, for the rest of the crypt.  We simply overwrite the first half of this buffer, over and over
 			// again, with BE results of the prior hash.
-			key_iv[ SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64) * SIMD_COEF_64 + index2 ] = 0x8000000000000000ULL;
-			for (i = (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)+1) * SIMD_COEF_64 + index2; i < 15*SIMD_COEF_64; i += SIMD_COEF_64)
-				key_iv[i] = 0;
-			key_iv[15*SIMD_COEF_64 + index2] = (SHA512_DIGEST_LENGTH << 3);
+			key_iv[ SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64) * SIMD_COEF_64 + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64 ] = 0x8000000000000000ULL;
+			for (i = SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)+1; i < 15; i++)
+				key_iv[i*SIMD_COEF_64 + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64] = 0;
+			key_iv[15*SIMD_COEF_64 + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64] = (SHA512_DIGEST_LENGTH << 3);
 
 			// Now copy and convert hash1 from flat into SIMD_COEF_64 buffers.
 			for (i = 0; i < SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64); ++i) {
 #if COMMON_DIGEST_FOR_OPENSSL
-				key_iv[SIMD_COEF_64*i + index2] = sha_ctx.hash[i];  // this is in BE format
+				key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64] = sha_ctx.hash[i];  // this is in BE format
 #else
-				key_iv[SIMD_COEF_64*i + index2] = sha_ctx.h[i];
+				key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64] = sha_ctx.h[i];
 #endif
 			}
 		}
@@ -306,9 +306,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			// Copy and convert from SIMD_COEF_64 buffers back into flat buffers
 			for (i = 0; i < sizeof(key)/sizeof(ARCH_WORD_64); i++)  // the derived key
-				((ARCH_WORD_64 *)key)[i] = key_iv[SIMD_COEF_64*i + index2];
+				((ARCH_WORD_64 *)key)[i] = key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64];
 			for (i = 0; i < sizeof(iv)/sizeof(ARCH_WORD_64); i++)   // the derived iv
-				((ARCH_WORD_64 *)iv)[i]  = key_iv[SIMD_COEF_64*(sizeof(key)/sizeof(ARCH_WORD_64) + i) + index2];
+				((ARCH_WORD_64 *)iv)[i]  = key_iv[SIMD_COEF_64*(sizeof(key)/sizeof(ARCH_WORD_64) + i) + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64];
 
 			/* NOTE: write our code instead of using following high-level OpenSSL functions */
 			EVP_CIPHER_CTX_init(&ctx);

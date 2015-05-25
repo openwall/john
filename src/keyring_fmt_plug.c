@@ -24,7 +24,6 @@ john_register_one(&fmt_keyring);
 
 //#undef _OPENMP
 //#undef SIMD_COEF_32
-//#undef SIMD_COEF_32
 
 #include "misc.h"
 #include "common.h"
@@ -49,8 +48,8 @@ john_register_one(&fmt_keyring);
 #define BINARY_ALIGN		1
 #define SALT_ALIGN			sizeof(int)
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT SIMD_COEF_32
-#define MAX_KEYS_PER_CRYPT SIMD_COEF_32
+#define MIN_KEYS_PER_CRYPT (SIMD_COEF_32*SIMD_PARA_SHA256)
+#define MAX_KEYS_PER_CRYPT (SIMD_COEF_32*SIMD_PARA_SHA256)
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA256_BUF_SIZ*SIMD_COEF_32*4 )
 #else
 #define MIN_KEYS_PER_CRYPT	1
@@ -208,16 +207,16 @@ static void symkey_generate_simple(int index, unsigned char *salt, int n_salt, i
 								   unsigned char iv[MAX_KEYS_PER_CRYPT][32])
 {
 	SHA256_CTX ctx;
-	unsigned char digest[32], _IBuf[64*SIMD_COEF_32+MEM_ALIGN_SIMD], *keys;
+	unsigned char digest[32], _IBuf[64*MAX_KEYS_PER_CRYPT+MEM_ALIGN_SIMD], *keys;
 	uint32_t *keys32;
 	unsigned int i, j;
 
 	keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
-	memset(keys, 0, 64*SIMD_COEF_32);
+	memset(keys, 0, 64*MAX_KEYS_PER_CRYPT);
 	keys32 = (uint32_t*)keys;
 
 	// use oSSL to do first crypt, and marshal into SIMD buffers.
-	for (i = 0; i < SIMD_COEF_32; ++i) {
+	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, saved_key[index+i], strlen(saved_key[index+i]));
 		SHA256_Update(&ctx, salt, n_salt);
