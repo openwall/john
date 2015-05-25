@@ -1801,8 +1801,7 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 			w[k][15] = tmp2[k];
 		}
 	} else
-		//FIXME: something wrong here
-		SHA512_PARA_DO(i) memcpy(w[i], data + i*16, 16*sizeof(vtype));
+		memcpy(w, data, 16*sizeof(vtype)*SIMD_PARA_SHA512);
 
 
 	for (i = 16; i < 80; i++)
@@ -1813,14 +1812,14 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 		{
 			SHA512_PARA_DO(i)
 			{
-				a[i] = vload((vtype*)&reload_state[i*32*VS64+0*VS64]);
-				b[i] = vload((vtype*)&reload_state[i*32*VS64+1*VS64]);
-				c[i] = vload((vtype*)&reload_state[i*32*VS64+2*VS64]);
-				d[i] = vload((vtype*)&reload_state[i*32*VS64+3*VS64]);
-				e[i] = vload((vtype*)&reload_state[i*32*VS64+4*VS64]);
-				f[i] = vload((vtype*)&reload_state[i*32*VS64+5*VS64]);
-				g[i] = vload((vtype*)&reload_state[i*32*VS64+6*VS64]);
-				h[i] = vload((vtype*)&reload_state[i*32*VS64+7*VS64]);
+				a[i] = vload((vtype*)&reload_state[i*16*VS64+0*VS64]);
+				b[i] = vload((vtype*)&reload_state[i*16*VS64+1*VS64]);
+				c[i] = vload((vtype*)&reload_state[i*16*VS64+2*VS64]);
+				d[i] = vload((vtype*)&reload_state[i*16*VS64+3*VS64]);
+				e[i] = vload((vtype*)&reload_state[i*16*VS64+4*VS64]);
+				f[i] = vload((vtype*)&reload_state[i*16*VS64+5*VS64]);
+				g[i] = vload((vtype*)&reload_state[i*16*VS64+6*VS64]);
+				h[i] = vload((vtype*)&reload_state[i*16*VS64+7*VS64]);
 			}
 		}
 		else
@@ -1957,14 +1956,14 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 		{
 			SHA512_PARA_DO(i)
 			{
-				a[i] = vadd_epi64(a[i],vload((vtype*)&reload_state[i*32*VS64+0*VS64]));
-				b[i] = vadd_epi64(b[i],vload((vtype*)&reload_state[i*32*VS64+1*VS64]));
-				c[i] = vadd_epi64(c[i],vload((vtype*)&reload_state[i*32*VS64+2*VS64]));
-				d[i] = vadd_epi64(d[i],vload((vtype*)&reload_state[i*32*VS64+3*VS64]));
-				e[i] = vadd_epi64(e[i],vload((vtype*)&reload_state[i*32*VS64+4*VS64]));
-				f[i] = vadd_epi64(f[i],vload((vtype*)&reload_state[i*32*VS64+5*VS64]));
-				g[i] = vadd_epi64(g[i],vload((vtype*)&reload_state[i*32*VS64+6*VS64]));
-				h[i] = vadd_epi64(h[i],vload((vtype*)&reload_state[i*32*VS64+7*VS64]));
+				a[i] = vadd_epi64(a[i],vload((vtype*)&reload_state[i*16*VS64+0*VS64]));
+				b[i] = vadd_epi64(b[i],vload((vtype*)&reload_state[i*16*VS64+1*VS64]));
+				c[i] = vadd_epi64(c[i],vload((vtype*)&reload_state[i*16*VS64+2*VS64]));
+				d[i] = vadd_epi64(d[i],vload((vtype*)&reload_state[i*16*VS64+3*VS64]));
+				e[i] = vadd_epi64(e[i],vload((vtype*)&reload_state[i*16*VS64+4*VS64]));
+				f[i] = vadd_epi64(f[i],vload((vtype*)&reload_state[i*16*VS64+5*VS64]));
+				g[i] = vadd_epi64(g[i],vload((vtype*)&reload_state[i*16*VS64+6*VS64]));
+				h[i] = vadd_epi64(h[i],vload((vtype*)&reload_state[i*16*VS64+7*VS64]));
 			}
 		}
 		else
@@ -2029,14 +2028,14 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 	{
 		SHA512_PARA_DO(i)
 		{
-			vstore((vtype*)&out[i*32*VS64+0*VS64], a[i]);
-			vstore((vtype*)&out[i*32*VS64+1*VS64], b[i]);
-			vstore((vtype*)&out[i*32*VS64+2*VS64], c[i]);
-			vstore((vtype*)&out[i*32*VS64+3*VS64], d[i]);
-			vstore((vtype*)&out[i*32*VS64+4*VS64], e[i]);
-			vstore((vtype*)&out[i*32*VS64+5*VS64], f[i]);
-			vstore((vtype*)&out[i*32*VS64+6*VS64], g[i]);
-			vstore((vtype*)&out[i*32*VS64+7*VS64], h[i]);
+			vstore((vtype*)&out[i*16*VS64+0*VS64], a[i]);
+			vstore((vtype*)&out[i*16*VS64+1*VS64], b[i]);
+			vstore((vtype*)&out[i*16*VS64+2*VS64], c[i]);
+			vstore((vtype*)&out[i*16*VS64+3*VS64], d[i]);
+			vstore((vtype*)&out[i*16*VS64+4*VS64], e[i]);
+			vstore((vtype*)&out[i*16*VS64+5*VS64], f[i]);
+			vstore((vtype*)&out[i*16*VS64+6*VS64], g[i]);
+			vstore((vtype*)&out[i*16*VS64+7*VS64], h[i]);
 		}
 	}
 	else
