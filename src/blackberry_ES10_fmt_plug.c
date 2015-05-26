@@ -25,7 +25,6 @@ john_register_one(&fmt_blackberry1);
 #include "arch.h"
 
 //#undef _OPENMP
-//#undef SIMD_COEF_32
 //#undef SIMD_COEF_64
 //#undef SIMD_PARA_SHA512
 
@@ -53,7 +52,7 @@ john_register_one(&fmt_blackberry1);
 #define FORMAT_TAG_LENGTH	8
 #define FORMAT_LABEL 		"blackberry-es10"
 #define FORMAT_NAME 		""
-#define ALGORITHM_NAME 		"SHA-256 " SHA256_ALGORITHM_NAME
+#define ALGORITHM_NAME 		"SHA-512 " SHA512_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT	" (101x)"
 #define BENCHMARK_LENGTH	-1
@@ -209,7 +208,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA512_Update(&ctx, saved_key[index+i], strlen(saved_key[index+i]));
 			SHA512_Update(&ctx, cur_salt->salt, strlen((char*)cur_salt->salt));
 			SHA512_Final(tmpBuf, &ctx);
-			p64 = &keys64[i];
+			p64 = &keys64[i%SIMD_COEF_64+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
 			for (j = 0; j < 8; ++j)
 				p64[j*SIMD_COEF_64] = JOHNSWAP64(tmpBuf64[j]);
 			p64[8*SIMD_COEF_64] = 0x8000000000000000ULL;
