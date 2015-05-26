@@ -48,7 +48,6 @@ john_register_one(&fmt_mssql12);
 #include "sse-intrinsics.h"
 #include "memdbg.h"
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #ifdef SIMD_COEF_64
 #define OMP_SCALE               2048
@@ -79,6 +78,8 @@ static int omp_t = 1;
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #endif
+
+static int omp_t = MAX_KEYS_PER_CRYPT;
 
 #undef MIN
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
