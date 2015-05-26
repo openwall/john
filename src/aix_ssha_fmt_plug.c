@@ -273,15 +273,26 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int inc, index = 0;
+
+	switch(cur_salt->type) {
+	case 1:
+		inc = SSE_GROUP_SZ_SHA1;
+		break;
+	case 256:
+		inc = SSE_GROUP_SZ_SHA256;
+		break;
+	default:
+		inc = SSE_GROUP_SZ_SHA512;
+	}
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
+	for (index = 0; index < count; index += inc)
 	{
 		int j = index;
-		while (j < index + MAX_KEYS_PER_CRYPT) {
+		while (j < index + inc) {
 			if (cur_salt->type == 1) {
 #ifdef SSE_GROUP_SZ_SHA1
 				int lens[SSE_GROUP_SZ_SHA1], i;
@@ -337,7 +348,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				for (i = 0; i < SSE_GROUP_SZ_SHA512; ++i) {
 					lens[i] = strlen(saved_key[j]);
 					pin[i] = (unsigned char*)saved_key[j];
-					x.pout[i] = crypt_out[j/MAX_KEYS_PER_CRYPT];
+					x.pout[i] = crypt_out[j];
 					++j;
 				}
 				pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, &(x.poutc), BINARY_SIZE, 0);
