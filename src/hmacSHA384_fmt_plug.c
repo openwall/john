@@ -77,7 +77,7 @@ static struct fmt_tests tests[] = {
 static unsigned char *crypt_key;
 static unsigned char *ipad, *prep_ipad;
 static unsigned char *opad, *prep_opad;
-JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char cur_salt[SALT_LENGTH * 8 * SIMD_COEF_64];
+JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char cur_salt[SALT_LENGTH * 8 * MAX_KEYS_PER_CRYPT];
 static int bufsize;
 #else
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
@@ -336,19 +336,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	int inc = 1;
-#endif
-
-#ifdef SIMD_COEF_64
-	inc = SIMD_COEF_64;
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for (index = 0; index < count; index += inc)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
 #ifdef SIMD_COEF_64
@@ -369,10 +362,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		// NOTE, SSESHA384 will output 64 bytes. We need the first 48 (plus the 0x80 padding).
 		// so we are forced to 'clean' this crap up, before using the crypt as the input.
-		pclear = (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8];
-		for (i = 0; i < SIMD_COEF_64; i++) {
-			pclear[48*SIMD_COEF_64/8+i] = 0x8000000000000000ULL;
-			pclear[48*SIMD_COEF_64/8+i+SIMD_COEF_64] = 0;
+		pclear = (ARCH_WORD_64*)&crypt_key[index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64*8];
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+			pclear[48/8*SIMD_COEF_64+i/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64] = 0x8000000000000000ULL;
+			pclear[48/8*SIMD_COEF_64+i/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64+SIMD_COEF_64] = 0;
 		}
 		SSESHA512body(&crypt_key[index * SHA512_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&crypt_key[index * SHA512_BUF_SIZ * 8],
@@ -432,13 +425,13 @@ static void *get_salt(char *ciphertext)
 	memset(cur_salt, 0, sizeof(cur_salt));
 	while(((unsigned char*)salt)[total_len])
 	{
-		for (i = 0; i < SIMD_COEF_64; ++i)
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
 			cur_salt[GETPOS(total_len, i)] = ((unsigned char*)salt)[total_len];
 		++total_len;
 	}
-	for (i = 0; i < SIMD_COEF_64; ++i)
+	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
 		cur_salt[GETPOS(total_len, i)] = 0x80;
-	for (i = 0; i < SIMD_COEF_64; ++i)
+	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
 		((ARCH_WORD_64*)cur_salt)[15 * SIMD_COEF_64 + (i & (SIMD_COEF_64-1)) + (i/SIMD_COEF_64) * SHA512_BUF_SIZ * SIMD_COEF_64] = (total_len + 128) << 3;
 	return cur_salt;
 #else
