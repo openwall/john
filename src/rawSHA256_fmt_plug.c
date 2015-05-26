@@ -73,8 +73,8 @@ john_register_one(&fmt_rawSHA256);
 
 #ifdef SIMD_COEF_32
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA256_BUF_SIZ*SIMD_COEF_32*4 )
-static uint32_t (*saved_key)[SHA256_BUF_SIZ*SIMD_COEF_32];
-static uint32_t (*crypt_out)[8*SIMD_COEF_32];
+static uint32_t (*saved_key)[SHA256_BUF_SIZ*MAX_KEYS_PER_CRYPT];
+static uint32_t (*crypt_out)[8*MAX_KEYS_PER_CRYPT];
 #else
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -101,10 +101,10 @@ static void init(struct fmt_main *self)
 	                       sizeof(*crypt_out));
 #else
 	saved_key = mem_calloc_align(self->params.max_keys_per_crypt /
-	                             SIMD_COEF_32,
+	                             MAX_KEYS_PER_CRYPT,
 	                             sizeof(*saved_key), MEM_ALIGN_SIMD);
 	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt /
-	                             SIMD_COEF_32,
+	                             MAX_KEYS_PER_CRYPT,
 	                             sizeof(*crypt_out), MEM_ALIGN_SIMD);
 #endif
 }
@@ -215,18 +215,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 
 #ifdef _OPENMP
-#ifdef SIMD_COEF_32
-	int inc = SIMD_COEF_32;
-#else
-	int inc = 1;
-#endif
-
 #pragma omp parallel for
-	for (index = 0; index < count; index += inc)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
 #ifdef SIMD_COEF_32
-		SSESHA256body(&saved_key[index/SIMD_COEF_32], crypt_out[index/SIMD_COEF_32], NULL, SSEi_MIXED_IN);
+		SSESHA256body(&saved_key[index/MAX_KEYS_PER_CRYPT], crypt_out[index/MAX_KEYS_PER_CRYPT], NULL, SSEi_MIXED_IN);
 #else
 		SHA256_CTX ctx;
 		SHA256_Init(&ctx);
@@ -243,7 +237,7 @@ static int cmp_all(void *binary, int count)
 
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_32
-		if (((uint32_t *) binary)[0] == crypt_out[index/SIMD_COEF_32][index&(SIMD_COEF_32-1)])
+		if (((uint32_t *) binary)[0] == crypt_out[index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT])
 #else
 		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
 #endif
@@ -256,7 +250,7 @@ static int cmp_one(void *binary, int index)
 #ifdef SIMD_COEF_32
 	int i;
 	for (i = 0; i < BINARY_SIZE/4; i++)
-		if (((uint32_t *) binary)[i] != crypt_out[index/SIMD_COEF_32][(index&(SIMD_COEF_32-1))+i*SIMD_COEF_32])
+		if (((uint32_t *) binary)[i] != crypt_out[index/MAX_KEYS_PER_CRYPT][(index%MAX_KEYS_PER_CRYPT)+i*SIMD_COEF_32])
 			return 0;
 	return 1;
 #else
