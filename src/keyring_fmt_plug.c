@@ -50,7 +50,7 @@ john_register_one(&fmt_keyring);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT (SIMD_COEF_32*SIMD_PARA_SHA256)
 #define MAX_KEYS_PER_CRYPT (SIMD_COEF_32*SIMD_PARA_SHA256)
-#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA256_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
 #else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1

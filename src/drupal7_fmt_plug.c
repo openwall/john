@@ -57,7 +57,7 @@ john_register_one(&fmt_drupal7);
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
 #define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
-#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64*8 )
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -193,7 +193,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (j = 0; j < len; ++j)
 				keys[GETPOS(j+8, i)] = EncKey[index+i][j];
 			keys[GETPOS(j+8, i)] = 0x80;
-			keys64[15*SIMD_COEF_64+(i&(SIMD_COEF_64-1))+i/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64] = (len+8) << 3;
+			keys64[15*SIMD_COEF_64+(i&(SIMD_COEF_64-1))+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = (len+8) << 3;
 		}
 		SSESHA512body(keys, keys64, NULL, SSEi_MIXED_IN);
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
@@ -201,7 +201,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (j = 0; j < len; ++j)
 				keys[GETPOS(j+64, i)] = EncKey[index+i][j];
 			keys[GETPOS(j+64, i)] = 0x80;
-			keys64[15*SIMD_COEF_64+(i&(SIMD_COEF_64-1))+i/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64] = (len+64) << 3;
+			keys64[15*SIMD_COEF_64+(i&(SIMD_COEF_64-1))+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = (len+64) << 3;
 		}
 		do {
 			SSESHA512body(keys, keys64, NULL, SSEi_MIXED_IN);
@@ -210,7 +210,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			crypt = (ARCH_WORD_64*)crypt_key[index+i];
 			for (j = 0; j < 8; ++j)
-				crypt[j] = JOHNSWAP64(keys64[j*SIMD_COEF_64+(i&(SIMD_COEF_64-1))+i/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64]);
+				crypt[j] = JOHNSWAP64(keys64[j*SIMD_COEF_64+(i&(SIMD_COEF_64-1))+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64]);
 		}
 #else
 		SHA512_CTX ctx;

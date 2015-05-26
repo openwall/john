@@ -57,7 +57,7 @@ john_register_one(&fmt_office);
 #endif
 
 #ifdef SIMD_COEF_64
-#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64*8 )
+#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
 #define SHA512_LOOP_CNT (SIMD_COEF_64 * SIMD_PARA_SHA512)
 #else
 #define SHA512_LOOP_CNT 1

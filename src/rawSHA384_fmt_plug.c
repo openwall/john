@@ -83,8 +83,8 @@ static struct fmt_tests tests[] = {
 };
 
 #ifdef SIMD_COEF_64
-#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64*8 )
-static ARCH_WORD_64 (*saved_key)[SHA512_BUF_SIZ*SIMD_COEF_64];
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+static ARCH_WORD_64 (*saved_key)[SHA_BUF_SIZ*SIMD_COEF_64];
 static ARCH_WORD_64 (*crypt_out)[8*SIMD_COEF_64];
 #else
 static int (*saved_len);
@@ -196,7 +196,7 @@ static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 #ifdef SIMD_COEF_64
 static void set_key(char *key, int index) {
 	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)key;
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64];
+	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
 	ARCH_WORD_64 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_64 temp;
@@ -275,7 +275,7 @@ static char *get_key(int index) {
 	static char out[PLAINTEXT_LENGTH + 1];
 	char *wucp = (char*)saved_key;
 
-	s = ((ARCH_WORD_64 *)saved_key)[15*SIMD_COEF_64 + (index&(SIMD_COEF_64-1)) + index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64] >> 3;
+	s = ((ARCH_WORD_64 *)saved_key)[15*SIMD_COEF_64 + (index&(SIMD_COEF_64-1)) + index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] >> 3;
 	for(i=0;i<(unsigned)s;i++)
 		out[i] = wucp[ GETPOS(i, index) ];
 	out[i] = 0;

@@ -103,7 +103,7 @@ static struct fmt_tests tests[] = {
 
 static unsigned char cursalt[SALT_SIZE];
 #ifdef SIMD_COEF_64
-static ARCH_WORD_64 (*saved_key)[SHA512_BUF_SIZ];
+static ARCH_WORD_64 (*saved_key)[SHA_BUF_SIZ];
 static ARCH_WORD_64 (*crypt_out)[8*MAX_KEYS_PER_CRYPT];
 static int max_keys;
 static int new_keys;

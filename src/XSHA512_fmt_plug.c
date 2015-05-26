@@ -59,8 +59,8 @@ john_register_one(&fmt_XSHA512);
 #include "rawSHA512_common.h"
 
 #ifdef SIMD_COEF_64
-#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64*8 )
-static ARCH_WORD_64 (*saved_key)[SHA512_BUF_SIZ*MAX_KEYS_PER_CRYPT];
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+static ARCH_WORD_64 (*saved_key)[SHA_BUF_SIZ*MAX_KEYS_PER_CRYPT];
 static ARCH_WORD_64 (*crypt_out)[8*MAX_KEYS_PER_CRYPT];
 static int max_keys;
 #else
@@ -189,7 +189,7 @@ static void set_key(char *key, int index)
 	// this is because we already have 4 byte salt loaded into our saved_key.
 	// IF there are more bytes of password, we drop into the multi loader.
 	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)&(key[4]);
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64];
+	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
 	ARCH_WORD_64 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_64 temp;
@@ -275,7 +275,7 @@ static char *get_key(int index)
 	static unsigned char key[PLAINTEXT_LENGTH+1];
 	int i;
 	unsigned char *wucp = (unsigned char*)saved_key;
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64*)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA512_BUF_SIZ*SIMD_COEF_64];
+	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64*)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
 	int len = (keybuffer[15*SIMD_COEF_64] >> 3) - SALT_SIZE;
 
 	for (i = 0; i < len; ++i)
