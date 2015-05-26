@@ -283,15 +283,13 @@ static char *get_key(int index)
 static int cmp_all(void *binary, int count)
 {
 #ifdef SIMD_COEF_32
-	unsigned int x, y = 0;
+	unsigned int index;
 
-	for(; y < (unsigned int)(count + SIMD_COEF_32 - 1) / SIMD_COEF_32; y++)
-		for(x = 0; x < SIMD_COEF_32; x++)
-		{
-			// NOTE crypt_key is in input format (4 * SHA_BUF_SIZ * SIMD_COEF_32)
-			if(((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x + y * SIMD_COEF_32 * SHA_BUF_SIZ])
-				return 1;
-		}
+	for(index = 0; index < count; index++) {
+		// NOTE crypt_key is in input format (4 * SHA_BUF_SIZ * SIMD_COEF_32)
+		if(((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1))+index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32])
+			return 1;
+	}
 	return 0;
 #else
 	int index = 0;
@@ -354,7 +352,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// so we are forced to 'clean' this crap up, before using the crypt as the input.
 		pclear = (unsigned int*)&crypt_key[index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4];
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++)
-			pclear[28/4*SIMD_COEF_32+i/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = 0x80000000;
+			pclear[28/4*SIMD_COEF_32+(i&(SIMD_COEF_32-1))+i/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = 0x80000000;
 		SSESHA256body(&crypt_key[index * SHA_BUF_SIZ * 4],
 		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
 		            (unsigned int*)&prep_opad[index * BINARY_SIZE_256],
@@ -407,7 +405,6 @@ static void *get_salt(char *ciphertext)
 	static unsigned char salt[SALT_LENGTH+1];
 #ifdef SIMD_COEF_32
 	int i = 0;
-	int j;
 	unsigned total_len = 0;
 #endif
 	memset(salt, 0, sizeof(salt));
@@ -423,9 +420,6 @@ static void *get_salt(char *ciphertext)
 	}
 	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
 		cur_salt[GETPOS(total_len, i)] = 0x80;
-	for (j = total_len + 1; j < SALT_LENGTH; ++j)
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
-			cur_salt[GETPOS(j, i)] = 0;
 	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
 		((unsigned int*)cur_salt)[15 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * SHA_BUF_SIZ * SIMD_COEF_32] = (total_len + 64) << 3;
 	return cur_salt;

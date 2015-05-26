@@ -295,15 +295,13 @@ static char *get_key(int index)
 static int cmp_all(void *binary, int count)
 {
 #ifdef SIMD_COEF_32
-	unsigned int x, y = 0;
+	unsigned int index;
 
-	for(; y < (unsigned int)(count + SIMD_COEF_32 - 1) / SIMD_COEF_32; y++)
-		for(x = 0; x < SIMD_COEF_32; x++)
-		{
-			// NOTE crypt_key is in input format (4 * SHA_BUF_SIZ * SIMD_COEF_32)
-			if(((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x + y * SIMD_COEF_32 * SHA_BUF_SIZ])
-				return 1;
-		}
+	for(index = 0; index < count; index++) {
+		// NOTE crypt_key is in input format (4 * SHA_BUF_SIZ * SIMD_COEF_32)
+		if(((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1))+index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32])
+			return 1;
+	}
 	return 0;
 #else
 	int index = 0;

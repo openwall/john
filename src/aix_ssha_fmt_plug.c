@@ -108,7 +108,6 @@ static struct fmt_tests aixssha_tests512[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
-static unsigned int key_batch;
 
 static struct custom_salt {
 	int iterations;
@@ -118,7 +117,6 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-	key_batch = self->params.max_keys_per_crypt;
 #ifdef _OPENMP
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
@@ -128,7 +126,7 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
-	                self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int inline valid_common(char *ciphertext, struct fmt_main *self, int b64len, char *sig, int siglen)
@@ -280,10 +278,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += key_batch)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
 		int j = index;
-		while (j < index + key_batch) {
+		while (j < index + MAX_KEYS_PER_CRYPT) {
 			if (cur_salt->type == 1) {
 #ifdef SSE_GROUP_SZ_SHA1
 				int lens[SSE_GROUP_SZ_SHA1], i;
@@ -339,7 +337,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				for (i = 0; i < SSE_GROUP_SZ_SHA512; ++i) {
 					lens[i] = strlen(saved_key[j]);
 					pin[i] = (unsigned char*)saved_key[j];
-					x.pout[i] = crypt_out[j];
+					x.pout[i] = crypt_out[j/MAX_KEYS_PER_CRYPT];
 					++j;
 				}
 				pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, &(x.poutc), BINARY_SIZE, 0);

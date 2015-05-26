@@ -223,12 +223,15 @@ static void john_register_one(struct fmt_main *format)
 			if (!strstr(format->params.algorithm_name, "AVX2")) return;
 		}
 		else if (!strcasecmp(options.format, "sha2")) {
-			if (!strcasestr(format->params.algorithm_name, "sha2") &&
+			if (strstr(format->params.label, "-opencl") ||
+			    strstr(format->params.label, "-cuda") ||
+			    (!strcasestr(format->params.algorithm_name, "sha2") &&
 			    !strcasestr(format->params.algorithm_name, "sha38") &&
 			    !strcasestr(format->params.algorithm_name, "sha5") &&
 			    !strcasestr(format->params.algorithm_name, "sha-2") &&
 			    !strcasestr(format->params.algorithm_name, "sha-38") &&
-			    !strcasestr(format->params.algorithm_name, "sha-5")) return;
+			     !strcasestr(format->params.algorithm_name, "sha-5")))
+				return;
 		}
 		else if (!strcasecmp(options.format, "avx512")) {
 			if (!strstr(format->params.algorithm_name, "AVX512")

@@ -126,9 +126,9 @@ static void init(struct fmt_main *self)
 	clear_keys();
 #else
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	ipad = mem_calloc_tiny(sizeof(*ipad) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	opad = mem_calloc_tiny(sizeof(*opad) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	ipad = mem_calloc_tiny(sizeof(*opad) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	ipad_ctx = mem_calloc_tiny(sizeof(*opad_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	ipad_ctx = mem_calloc_tiny(sizeof(*ipad_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	opad_ctx = mem_calloc_tiny(sizeof(*opad_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #endif
 	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -291,15 +291,13 @@ static char *get_key(int index)
 static int cmp_all(void *binary, int count)
 {
 #ifdef SIMD_COEF_64
-	unsigned int x, y = 0;
+	unsigned int index;
 
-	for(; y < (unsigned int)(count + SIMD_COEF_64 - 1) / SIMD_COEF_64; y++)
-		for(x = 0; x < SIMD_COEF_64; x++)
-		{
-			// NOTE crypt_key is in input format (8 * SHA_BUF_SIZ * SIMD_COEF_64)
-			if(((ARCH_WORD_64*)binary)[0] == ((ARCH_WORD_64*)crypt_key)[x + y * SIMD_COEF_64 * SHA_BUF_SIZ])
-				return 1;
-		}
+	for(index = 0; index < count; index++) {
+		// NOTE crypt_key is in input format (8 * SHA_BUF_SIZ * SIMD_COEF_64)
+		if(((ARCH_WORD_64*)binary)[0] == ((ARCH_WORD_64*)crypt_key)[(index&(SIMD_COEF_64-1))+index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64])
+			return 1;
+	}
 	return 0;
 #else
 	int index = 0;
@@ -359,18 +357,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SSESHA512body(cur_salt,
 		            (ARCH_WORD_64*)&crypt_key[index * SHA_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&prep_ipad[index * BINARY_SIZE_512],
-		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|SSEi_CRYPT_SHA384);
 		// NOTE, SSESHA384 will output 64 bytes. We need the first 48 (plus the 0x80 padding).
 		// so we are forced to 'clean' this crap up, before using the crypt as the input.
 		pclear = (ARCH_WORD_64*)&crypt_key[index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8];
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
-			pclear[48/8*SIMD_COEF_64+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = 0x8000000000000000ULL;
-			pclear[48/8*SIMD_COEF_64+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64+SIMD_COEF_64] = 0;
+			pclear[48/8*SIMD_COEF_64+(i&(SIMD_COEF_64-1))+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = 0x8000000000000000ULL;
+			pclear[48/8*SIMD_COEF_64+(i&(SIMD_COEF_64-1))+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64+SIMD_COEF_64] = 0;
 		}
 		SSESHA512body(&crypt_key[index * SHA_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&crypt_key[index * SHA_BUF_SIZ * 8],
 		            (ARCH_WORD_64*)&prep_opad[index * BINARY_SIZE_512],
-		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|SSEi_CRYPT_SHA384);
 #else
 		SHA512_CTX ctx;
 
@@ -440,7 +438,7 @@ static void *get_salt(char *ciphertext)
 }
 
 #ifdef SIMD_COEF_64
-// NOTE crypt_key is in input format (4 * SHA_BUF_SIZ * SIMD_COEF_64)
+// NOTE crypt_key is in input format (8 * SHA_BUF_SIZ * SIMD_COEF_64)
 #define HASH_OFFSET (index & (SIMD_COEF_64 - 1)) + ((unsigned int)index / SIMD_COEF_64) * SIMD_COEF_64 * SHA_BUF_SIZ
 static int get_hash_0(int index) { return ((ARCH_WORD_64*)crypt_key)[HASH_OFFSET] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_64*)crypt_key)[HASH_OFFSET] & 0xff; }

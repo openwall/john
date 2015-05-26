@@ -47,20 +47,16 @@ john_register_one(&fmt_office);
 #define SALT_ALIGN	sizeof(int)
 #ifdef SIMD_COEF_32
 #define GETPOS_1(i, index)  ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
 #define SHA1_LOOP_CNT       (SIMD_COEF_32*SHA1_SSE_PARA)
-#define MIN_KEYS_PER_CRYPT  SHA1_LOOP_CNT
-#define MAX_KEYS_PER_CRYPT	SHA1_LOOP_CNT
+#define SHA512_LOOP_CNT     (SIMD_COEF_64 * SIMD_PARA_SHA512)
+#define MIN_KEYS_PER_CRYPT  (SIMD_COEF_32 * SHA1_SSE_PARA * SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT	(SIMD_COEF_32 * SHA1_SSE_PARA * SIMD_PARA_SHA512)
 #else
 #define SHA1_LOOP_CNT		1
+#define SHA512_LOOP_CNT 1
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
-#endif
-
-#ifdef SIMD_COEF_64
-#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-#define SHA512_LOOP_CNT (SIMD_COEF_64 * SIMD_PARA_SHA512)
-#else
-#define SHA512_LOOP_CNT 1
 #endif
 
 #undef MIN
@@ -455,14 +451,14 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 
 		// Iteration counter in first 4 bytes
 		for (j = 0; j < SHA512_LOOP_CNT; j++)
-			keys32[j * 2 + j/SIMD_COEF_64*32*SIMD_COEF_64 + 1] = i_be;
+			keys32[(j&(SIMD_COEF_64-1))*2 + j/SIMD_COEF_64*2*SHA_BUF_SIZ*SIMD_COEF_64 + 1] = i_be;
 
 		SSESHA512body(keys, crypt, NULL, SSEi_MIXED_IN);
 
 		// Then we output to 4 bytes past start of input buffer.
 		for (j = 0; j < SHA512_LOOP_CNT; j++) {
-			uint32_t *o = keys32 + 2 * j + j/SIMD_COEF_64*32*SIMD_COEF_64;
-			uint32_t *in = crypt32 + 2 * j + j/SIMD_COEF_64*16*SIMD_COEF_64;
+			uint32_t *o = keys32 + (j&(SIMD_COEF_64-1))*2 + j/SIMD_COEF_64*2*SHA_BUF_SIZ*SIMD_COEF_64;
+			uint32_t *in = crypt32 + (j&(SIMD_COEF_64-1))*2 + j/SIMD_COEF_64*2*8*SIMD_COEF_64;
 
 			for (k = 0; k < 8; k++) {
 				o[0] = in[1];

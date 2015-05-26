@@ -47,7 +47,7 @@ static int omp_t = 1;
 #define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG) - 1)
 #define FORMAT_LABEL 		"eCryptfs"
 #define FORMAT_NAME 		""
-#define ALGORITHM_NAME 		"SHA-512 " SHA512_ALGORITHM_NAME
+#define ALGORITHM_NAME 		"SHA512 " SHA512_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	" (65536x)"  // good luck with that!
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
