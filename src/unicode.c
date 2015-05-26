@@ -895,33 +895,16 @@ UTF8 *utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16 *source) {
 }
 
 void listEncodings(FILE *fd) {
-	fprintf(fd, "ASCII, UTF-8, ISO-8859-1 (or latin1)"
-	        ", ISO-8859-2"
-	        ", ISO-8859-7"
-	        ", ISO-8859-15"
-	        ", KOI8-R"
-	        ",\nCP437"
-	        ", CP720"
-	        ", CP737"
-	        ", CP850"
-	        ", CP852"
-	        ", CP858"
-	        ", CP866"
-	        ", CP868"
-	        ",\nCP1250"
-	        ", CP1251"
-	        ", CP1252"
-	        ", CP1253"
-	        ", CP1254"
-	        ", CP1255"
-	        ", CP1256"
-	        "\n");
+	fprintf(fd, "ASCII (or RAW), UTF-8, ISO-8859-1 (or Latin1 or ANSI),\n"
+	        "ISO-8859-2, ISO-8859-7, ISO-8859-15, KOI8-R,\n"
+	        "CP437, CP720, CP737, CP850, CP852, CP858, CP866, CP868,\n"
+	        "CP1250, CP1251, CP1252, CP1253, CP1254, CP1255, CP1256\n");
 }
 
 static char *enc_name[] = { "UNDEF", "ASCII", "CP437", "CP720", "CP737",
                             "CP850", "CP852", "CP858", "CP866", "CP868",
                             "CP1250", "CP1251", "CP1252", "CP1253", "CP1254",
-			    "CP1255", "CP1256", "ISO-8859-1",
+                            "CP1255", "CP1256", "ISO-8859-1",
                             "ISO-8859-2", "ISO-8859-7", "ISO-8859-15",
                             "KOI8-R", "UTF-8" };
 
@@ -938,7 +921,7 @@ char *cp_id2name(int encoding)
 static char *enc_macro[] = { "UNDEF", "ASCII", "CP437", "CP720", "CP737",
                              "CP850", "CP852", "CP858", "CP866", "CP868",
                              "CP1250", "CP1251", "CP1252", "CP1253", "CP1254",
-			     "CP1255", "CP1256", "ISO_8859_1",
+                             "CP1255", "CP1256", "ISO_8859_1",
                              "ISO_8859_2", "ISO_8859_7", "ISO_8859_15",
                              "KOI8_R", "UTF_8" };
 

@@ -69,20 +69,20 @@
 #define CP858           7
 #define CP866           8
 #define CP868           9
-#define CP1250          10
-#define CP1251          11
-#define CP1252          12
-#define CP1253          13
-#define CP1254          14
-#define CP1255          15
-#define CP1256          16
-#define ISO_8859_1      17
-#define ISO_8859_2      18
-#define ISO_8859_7      19
-#define ISO_8859_15     20
-#define KOI8_R          21
-#define UTF_8           22
-#define CP_ARRAY        23 /* always highest, may specify array sizes */
+#define CP1250         10
+#define CP1251         11
+#define CP1252         12
+#define CP1253         13
+#define CP1254         14
+#define CP1255         15
+#define CP1256         16
+#define ISO_8859_1     17
+#define ISO_8859_2     18
+#define ISO_8859_7     19
+#define ISO_8859_15    20
+#define KOI8_R         21
+#define UTF_8          22
+#define CP_ARRAY       23 /* always highest, may specify array sizes */
 
 #define CP_DOS          1
 #define CP_WIN          2
@@ -90,10 +90,10 @@
 
 #define CP_DOS_LO       2
 #define CP_DOS_HI       9
-#define CP_WIN_LO	10
-#define CP_WIN_HI	16
-#define CP_ISO_LO	17
-#define CP_ISO_HI	20
+#define CP_WIN_LO      10
+#define CP_WIN_HI      16
+#define CP_ISO_LO      17
+#define CP_ISO_HI      20
 
 /* Rexgen library header might have defined this (empty) */
 #ifdef UTF32

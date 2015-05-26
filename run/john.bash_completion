@@ -599,7 +599,7 @@ _john()
 			else
 				cmd="${first} --encoding=LIST"
 			fi
-			encodings=`${cmd} 2>&1|grep -v 'Supported encodings'|sed 's#[,)]##g'|sed 's#(or ##g'|tr A-Z a-z`
+			encodings=`${cmd} 2>&1|grep -v 'Supported encodings'|sed 's#[,()]##g; s#\bor ##g'|tr A-Z a-z`
 
 			if [[ "_${cur}" != "_" ]] ; then
 				# may be I should replace --encoding=8 with --encoding=iso-8 and try to complete that
