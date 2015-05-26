@@ -24,7 +24,6 @@ john_register_one(&fmt_pwsafe);
 #include "arch.h"
 
 //#undef SIMD_COEF_32
-//#undef SIMD_COEF_32
 
 #include "sha2.h"
 #include "misc.h"

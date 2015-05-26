@@ -60,8 +60,8 @@ static void _pbkdf2_sha512_load_hmac(const unsigned char *K, int KL, SHA512_CTX 
 static void _pbkdf2_sha512(const unsigned char *S, int SL, int R, ARCH_WORD_64 *out,
 	                     unsigned char loop, const SHA512_CTX *pIpad, const SHA512_CTX *pOpad) {
 	SHA512_CTX ctx;
-	unsigned char tmp_hash[SHA512_DIGEST_LENGTH];
 	unsigned i, j;
+	unsigned char tmp_hash[SHA512_DIGEST_LENGTH];
 
 	memcpy(&ctx, pIpad, sizeof(SHA512_CTX));
 	SHA512_Update(&ctx, S, SL);
@@ -110,7 +110,6 @@ static void _pbkdf2_sha512(const unsigned char *S, int SL, int R, ARCH_WORD_64 *
 		for(j = 0; j < SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64); j++)
 			out[j] ^= ((ARCH_WORD_64*)tmp_hash)[j];
 	}
-
 }
 
 static void pbkdf2_sha512(const unsigned char *K, int KL, unsigned char *S, int SL, int R, unsigned char *out, int outlen, int skip_bytes)
@@ -126,7 +125,6 @@ static void pbkdf2_sha512(const unsigned char *K, int KL, unsigned char *S, int 
 
 	loops = (skip_bytes + outlen + (SHA512_DIGEST_LENGTH-1)) / SHA512_DIGEST_LENGTH;
 	loop = skip_bytes / SHA512_DIGEST_LENGTH + 1;
-
 	while (loop <= loops) {
 		_pbkdf2_sha512(S,SL,R,tmp.x64,loop,&ipad,&opad);
 		for (i = skip_bytes%SHA512_DIGEST_LENGTH; i < SHA512_DIGEST_LENGTH && accum < outlen; i++) {
@@ -167,7 +165,7 @@ extern void sha512_final  (void *output, sha512_ctx *ctx);
 #if SIMD_PARA_SHA512
 #define SSE_GROUP_SZ_SHA512 (SIMD_COEF_64*SIMD_PARA_SHA512)
 #else
-#define SSE_GROUP_SZ_SHA512 SIMD_COEF_64
+#error No SIMD_PARA_SHA512 defined
 #endif
 
 static void _pbkdf2_sha512_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA512], int KL[SSE_GROUP_SZ_SHA512], SHA512_CTX pIpad[SSE_GROUP_SZ_SHA512], SHA512_CTX pOpad[SSE_GROUP_SZ_SHA512])
@@ -200,7 +198,7 @@ static void _pbkdf2_sha512_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA
 	}
 }
 
-static void pbkdf2_sha512_sse(const unsigned char *K[SIMD_COEF_64], int KL[SIMD_COEF_64], unsigned char *S, int SL, int R, unsigned char *out[SIMD_COEF_64], int outlen, int skip_bytes)
+static void pbkdf2_sha512_sse(const unsigned char *K[SSE_GROUP_SZ_SHA512], int KL[SSE_GROUP_SZ_SHA512], unsigned char *S, int SL, int R, unsigned char *out[SSE_GROUP_SZ_SHA512], int outlen, int skip_bytes)
 {
 	unsigned char tmp_hash[SHA512_DIGEST_LENGTH];
 	ARCH_WORD_64 *i1, *i2, *o1, *ptmp;
