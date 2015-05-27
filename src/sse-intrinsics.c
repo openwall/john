@@ -1800,8 +1800,10 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 			w[k][15] = tmp2[k];
 		}
 	} else
-		memcpy(w, data, 16*sizeof(vtype)*SIMD_PARA_SHA512);
+		SHA512_PARA_DO(i)
+			memcpy(w[i], &data[i * 16], 16 * sizeof(vtype));
 
+	//dump_stuff_shammx64_msg("\nindex 2", w, 128, 2);
 
 	for (i = 16; i < 80; i++)
 		R(i);
