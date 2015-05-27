@@ -17,6 +17,7 @@
 #ifdef __SSE2__
 
 #include <immintrin.h>
+#include "memory.h"
 #include "memdbg.h"
 
 #define ADD128(x,y)       _mm_add_epi64((x), (y))
@@ -116,7 +117,7 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
 
     //Step 1: Initialize the state S
     state_size = 1ULL << (13+m_cost);   // state size is 2**(13+m_cost) bytes
-    S = (__m128i *)malloc(state_size);
+    S = (__m128i *)mem_alloc_align(state_size,16);
     mask  = (1ULL << (8+m_cost)) - 1;   // mask is used for modulation: modulo size_size/32;
     mask1 = (1ULL << (9+m_cost)) - 1;   // mask is used for modulation: modulo size_size/16;
 
@@ -153,7 +154,7 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
     //Step 7: Generate the output
     memcpy(out, ((unsigned char*)S)+state_size-outlen, outlen);
     memset(S, 0, state_size);  // clear the memory
-    free(S);                   // free the memory
+    MEM_FREE(S);                   // free the memory
 
     return 0;
 }
@@ -282,7 +283,7 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
 
     //Step 1: Initialize the state S
     state_size = 1ULL << (13+m_cost);    // state size is 2**(13+m_cost) bytes
-    S = (unsigned long long *)malloc(state_size);
+    S = (unsigned long long *)mem_alloc_align(state_size, 16);
     mask  = (1ULL << (8+m_cost))  - 1;   // mask is used for modulation: modulo size_size/32;
     mask1 = (1ULL << (10+m_cost)) - 1;   // mask is used for modulation: modulo size_size/8;
 
@@ -319,7 +320,7 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
     //Step 7: Generate the output
     memcpy(out, ((unsigned char*)S)+state_size-outlen, outlen);
     memset(S, 0, state_size);  // clear the memory
-    free(S);          // free the memory
+    MEM_FREE(S);          // free the memory
 
     return 0;
 }
