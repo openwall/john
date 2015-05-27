@@ -394,4 +394,8 @@ char *strrev(char *str);
 extern size_t strnlen(const char *s, size_t max);
 #endif
 
+#if AC_BUILT && !HAVE_STRCASESTR
+char *strcasestr(const char *haystack, const char *needle);
+#endif
+
 #endif /* _JTR_JUMBO_H */

@@ -373,7 +373,7 @@ size_t strnlen(const char *s, size_t max) {
 char *strcasestr(const char *haystack, const char *needle) {
 	const char *H = haystack;
 	const char *N = needle;
-	char *fnd = 0;
+	const char *fnd = 0;
 	while (*N && *H) {
 		if (*N == *H) {
 			if (!fnd) fnd = H;
@@ -400,8 +400,8 @@ char *strcasestr(const char *haystack, const char *needle) {
 		++H;
 		fnd = 0;
 	}
-	if (! *N)
+	if (*N)
 		fnd = 0;
-	return fnd;
+	return (char*)fnd;
 }
 #endif
