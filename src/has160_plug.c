@@ -25,6 +25,7 @@
 #include <string.h>
 #include "gost.h" // yuck!
 #include "has160.h"
+#include "memdbg.h"
 
 /**
  * Initialize algorithm context before calculaing hash.
