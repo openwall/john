@@ -206,11 +206,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		do {
 			SSESHA512body(keys, keys64, NULL, SSEi_MIXED_IN);
 		} while (--Lcount);
+
 		// Ok, now marshal crypt back into flat mode
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			crypt = (ARCH_WORD_64*)crypt_key[index+i];
 			for (j = 0; j < 8; ++j)
-				crypt[j] = JOHNSWAP64(keys64[j*SIMD_COEF_64+(i&(SIMD_COEF_64-1))+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64]);
+				crypt[j] = JOHNSWAP64(keys64[j*SIMD_COEF_64+(i&(SIMD_COEF_64-1))+i/SIMD_COEF_64*8*SIMD_COEF_64]);
 		}
 #else
 		SHA512_CTX ctx;
