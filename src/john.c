@@ -1540,10 +1540,26 @@ static void john_done(void)
 	cleanup_tiny_memory();
 }
 
+//#define TEST_MEMDBG_LOGIC
+
 int main(int argc, char **argv)
 {
 	char *name;
 	unsigned int time;
+
+#ifdef TEST_MEMDBG_LOGIC
+	int i,j;
+	char *cp[260];
+	for (i = 1; i < 257; ++i) {
+		cp[i] = mem_alloc_align(43,i);
+		for (j = 0; j < 43; ++j)
+			cp[i][j] = 'x';
+		printf ("%03d offset %x  %x %x\n", i, cp[i], (unsigned)(cp[i])%i, (((unsigned)(cp[i]))/i)%i);
+	}
+	for (i = 1; i < 257; ++i)
+		MEM_FREE(cp[i]);
+	exit(0);
+#endif
 
 	sig_preinit(); // Mitigate race conditions
 #ifdef __DJGPP__
