@@ -84,8 +84,8 @@ static struct fmt_tests tests[] = {
 
 #ifdef SIMD_COEF_32
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
-static uint32_t (*saved_key)[SHA_BUF_SIZ*MAX_KEYS_PER_CRYPT];
-static uint32_t (*crypt_out)[8*MAX_KEYS_PER_CRYPT];
+static uint32_t (*saved_key);
+static uint32_t (*crypt_out);
 #else
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -109,8 +109,12 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_out));
 #else
-	saved_key = mem_calloc_align(omp_t, sizeof(*saved_key), MEM_ALIGN_SIMD);
-	crypt_out = mem_calloc_align(omp_t, sizeof(*crypt_out), MEM_ALIGN_SIMD);
+	saved_key = mem_calloc_align(self->params.max_keys_per_crypt * SHA_BUF_SIZ,
+	                             sizeof(*saved_key),
+	                             MEM_ALIGN_SIMD);
+	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt * 8,
+	                             sizeof(*crypt_out),
+	                             MEM_ALIGN_SIMD);
 #endif
 }
 
@@ -170,13 +174,14 @@ static void *get_binary(char *ciphertext)
 }
 
 #ifdef SIMD_COEF_32
-static int get_hash_0 (int index) { return crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT] & 0xf; }
-static int get_hash_1 (int index) { return crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT] & 0xff; }
-static int get_hash_2 (int index) { return crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT] & 0xfff; }
-static int get_hash_3 (int index) { return crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT] & 0xffff; }
-static int get_hash_4 (int index) { return crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT] & 0xfffff; }
-static int get_hash_5 (int index) { return crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT] & 0xffffff; }
-static int get_hash_6 (int index) { return crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT] & 0x7ffffff; }
+#define HASH_IDX (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32)
+static int get_hash_0 (int index) { return crypt_out[HASH_IDX] & 0xf; }
+static int get_hash_1 (int index) { return crypt_out[HASH_IDX] & 0xff; }
+static int get_hash_2 (int index) { return crypt_out[HASH_IDX] & 0xfff; }
+static int get_hash_3 (int index) { return crypt_out[HASH_IDX] & 0xffff; }
+static int get_hash_4 (int index) { return crypt_out[HASH_IDX] & 0xfffff; }
+static int get_hash_5 (int index) { return crypt_out[HASH_IDX] & 0xffffff; }
+static int get_hash_6 (int index) { return crypt_out[HASH_IDX] & 0x7ffffff; }
 #else
 static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
 static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
@@ -271,7 +276,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef SIMD_COEF_32
-		SSESHA256body(&saved_key[(unsigned int)index/MAX_KEYS_PER_CRYPT], crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT], NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA224);
+		SSESHA256body(&saved_key[(unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32],
+		              &crypt_out[(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32],
+		              NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA224);
 #else
 		SHA256_CTX ctx;
 		SHA224_Init(&ctx);
@@ -288,7 +295,7 @@ static int cmp_all(void *binary, int count)
 
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_32
-		if (((uint32_t *) binary)[0] == crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT])
+		if (((uint32_t *) binary)[0] == crypt_out[HASH_IDX])
 #else
 		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
 #endif
@@ -301,7 +308,7 @@ static int cmp_one(void *binary, int index)
 #ifdef SIMD_COEF_32
 	int i;
 	for (i = 0; i < BINARY_SIZE/4; i++)
-		if (((uint32_t *) binary)[i] != crypt_out[index/MAX_KEYS_PER_CRYPT][(index%MAX_KEYS_PER_CRYPT)+i*SIMD_COEF_32])
+		if (((uint32_t *) binary)[i] != crypt_out[HASH_IDX+i*SIMD_COEF_32])
 			return 0;
 	return 1;
 #else
