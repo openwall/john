@@ -113,12 +113,12 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 #ifdef SIMD_COEF_64
-	bufsize = sizeof(*opad) * self->params.max_keys_per_crypt * SHA_BUF_SIZ * 8;
+	bufsize = sizeof(ARCH_WORD_64) * self->params.max_keys_per_crypt * SHA_BUF_SIZ;
 	crypt_key = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
 	ipad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
 	opad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
-	prep_ipad = mem_calloc_tiny(sizeof(*prep_ipad) * self->params.max_keys_per_crypt * BINARY_SIZE_512, MEM_ALIGN_SIMD);
-	prep_opad = mem_calloc_tiny(sizeof(*prep_opad) * self->params.max_keys_per_crypt * BINARY_SIZE_512, MEM_ALIGN_SIMD);
+	prep_ipad = mem_calloc_tiny(self->params.max_keys_per_crypt * BINARY_SIZE_512, MEM_ALIGN_SIMD);
+	prep_opad = mem_calloc_tiny(self->params.max_keys_per_crypt * BINARY_SIZE_512, MEM_ALIGN_SIMD);
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
 		crypt_key[GETPOS(BINARY_SIZE, i)] = 0x80;
 		((ARCH_WORD_64*)crypt_key)[15 * SIMD_COEF_64 + (i & (SIMD_COEF_64-1)) + (i/SIMD_COEF_64) * SHA_BUF_SIZ * SIMD_COEF_64] = (BINARY_SIZE + PAD_SIZE) << 3;

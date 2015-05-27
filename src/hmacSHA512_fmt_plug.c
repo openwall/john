@@ -156,7 +156,7 @@ static void init(struct fmt_main *self)
 static void done(void)
 {
 	MEM_FREE(saved_plain);
-#ifdef SIMD_COEF_32
+#ifdef SIMD_COEF_64
 	MEM_FREE(prep_opad);
 	MEM_FREE(prep_ipad);
 #else

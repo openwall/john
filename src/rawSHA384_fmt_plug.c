@@ -84,13 +84,12 @@ static struct fmt_tests tests[] = {
 
 #ifdef SIMD_COEF_64
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-static ARCH_WORD_64 (*saved_key)[SHA_BUF_SIZ*MAX_KEYS_PER_CRYPT];
-static ARCH_WORD_64 (*crypt_out)[8*MAX_KEYS_PER_CRYPT];
+static ARCH_WORD_64 (*saved_key);
+static ARCH_WORD_64 (*crypt_out);
 #else
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)
-    [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 #endif
 
 static void init(struct fmt_main *self)
@@ -111,11 +110,9 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_out));
 #else
-	saved_key = mem_calloc_align(self->params.max_keys_per_crypt /
-	                             MAX_KEYS_PER_CRYPT,
+	saved_key = mem_calloc_align(self->params.max_keys_per_crypt * SHA_BUF_SIZ,
 	                             sizeof(*saved_key), MEM_ALIGN_SIMD);
-	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt /
-	                             MAX_KEYS_PER_CRYPT,
+	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt * 8,
 	                             sizeof(*crypt_out), MEM_ALIGN_SIMD);
 #endif
 }
@@ -167,7 +164,7 @@ static void *get_binary(char *ciphertext)
 	ciphertext += TAG_LENGTH;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] = atoi16[ARCH_INDEX(ciphertext[i*2])] * 16 +
-                 atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
+		         atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
 	}
 #ifdef SIMD_COEF_64
 	alter_endianity_to_BE64 (out, BINARY_SIZE/8);
@@ -176,13 +173,14 @@ static void *get_binary(char *ciphertext)
 }
 
 #ifdef SIMD_COEF_64
-static int get_hash_0 (int index) { return crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT] & 0xf; }
-static int get_hash_1 (int index) { return crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT] & 0xff; }
-static int get_hash_2 (int index) { return crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT] & 0xfff; }
-static int get_hash_3 (int index) { return crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT] & 0xffff; }
-static int get_hash_4 (int index) { return crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT] & 0xfffff; }
-static int get_hash_5 (int index) { return crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT] & 0xffffff; }
-static int get_hash_6 (int index) { return crypt_out[(unsigned int)index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT] & 0x7ffffff; }
+#define HASH_IDX (((unsigned int)index&(SIMD_COEF_64-1))+(unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64)
+static int get_hash_0 (int index) { return crypt_out[HASH_IDX] & 0xf; }
+static int get_hash_1 (int index) { return crypt_out[HASH_IDX] & 0xff; }
+static int get_hash_2 (int index) { return crypt_out[HASH_IDX] & 0xfff; }
+static int get_hash_3 (int index) { return crypt_out[HASH_IDX] & 0xffff; }
+static int get_hash_4 (int index) { return crypt_out[HASH_IDX] & 0xfffff; }
+static int get_hash_5 (int index) { return crypt_out[HASH_IDX] & 0xffffff; }
+static int get_hash_6 (int index) { return crypt_out[HASH_IDX] & 0x7ffffff; }
 #else
 static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
 static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
@@ -193,10 +191,11 @@ static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 #endif
 
+static void set_key(char *key, int index)
+{
 #ifdef SIMD_COEF_64
-static void set_key(char *key, int index) {
 	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)key;
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
+	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64*)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
 	ARCH_WORD_64 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_64 temp;
@@ -258,36 +257,33 @@ key_cleaning:
 		keybuf_word += SIMD_COEF_64;
 	}
 	keybuffer[15*SIMD_COEF_64] = len << 3;
-}
 #else
-static void set_key(char *key, int index)
-{
 	int len = strlen(key);
 	saved_len[index] = len;
+	if (len > PLAINTEXT_LENGTH)
+		len = saved_len[index] = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, len);
-}
 #endif
+}
 
+static char *get_key(int index)
+{
 #ifdef SIMD_COEF_64
-static char *get_key(int index) {
 	unsigned i;
 	ARCH_WORD_64 s;
 	static char out[PLAINTEXT_LENGTH + 1];
-	char *wucp = (char*)saved_key;
+	unsigned char *wucp = (unsigned char*)saved_key;
 
-	s = ((ARCH_WORD_64 *)saved_key)[15*SIMD_COEF_64 + (index&(SIMD_COEF_64-1)) + index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] >> 3;
-	for(i=0;i<(unsigned)s;i++)
+	s = ((ARCH_WORD_64*)saved_key)[15*SIMD_COEF_64 + (index&(SIMD_COEF_64-1)) + index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] >> 3;
+	for(i = 0; i < (unsigned)s; i++)
 		out[i] = wucp[ GETPOS(i, index) ];
 	out[i] = 0;
-	return out;
-}
+	return (char*) out;
 #else
-static char *get_key(int index)
-{
 	saved_key[index][saved_len[index]] = 0;
 	return saved_key[index];
-}
 #endif
+}
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -300,7 +296,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef SIMD_COEF_64
-		SSESHA512body(&saved_key[index/MAX_KEYS_PER_CRYPT], crypt_out[index/MAX_KEYS_PER_CRYPT], NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384);
+		SSESHA512body(&saved_key[index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64],
+		              &crypt_out[index/SIMD_COEF_64*8*SIMD_COEF_64],
+		              NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384);
 #else
 		SHA512_CTX ctx;
 		SHA384_Init(&ctx);
@@ -314,9 +312,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	unsigned int index;
+
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_64
-        if (((ARCH_WORD_64 *) binary)[0] == crypt_out[index/MAX_KEYS_PER_CRYPT][index%MAX_KEYS_PER_CRYPT])
+		if (((ARCH_WORD_64*) binary)[0] == crypt_out[HASH_IDX])
 #else
 		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
 #endif
@@ -327,10 +326,10 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_64
-    int i;
+	int i;
 	for (i = 0; i < BINARY_SIZE/sizeof(ARCH_WORD_64); i++)
-        if (((ARCH_WORD_64 *) binary)[i] != crypt_out[index/MAX_KEYS_PER_CRYPT][(index%MAX_KEYS_PER_CRYPT)+i*SIMD_COEF_64])
-            return 0;
+		if (((ARCH_WORD_64*) binary)[i] != crypt_out[HASH_IDX+i*SIMD_COEF_64])
+			return 0;
 	return 1;
 #else
 	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
