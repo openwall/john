@@ -1245,7 +1245,7 @@ static void john_init(char *name, int argc, char **argv)
 		if (options.config)
 		{
 			path_init_ex(options.config);
-			cfg_init(options.config, 1);
+			cfg_init(options.config, 0);
 			cfg_init(CFG_FULL_NAME, 1);
 			cfg_init(CFG_ALT_NAME, 0);
 		}
