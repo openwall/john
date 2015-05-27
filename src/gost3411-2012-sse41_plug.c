@@ -7,6 +7,7 @@
 #include "gost3411-tables.h"
 #include "gost3411-2012-sse41.h"
 #include "arch.h"
+#include "memdbg.h"
 
 #if ARCH_BITS == 32
 #undef _mm_cvtsi64_si128

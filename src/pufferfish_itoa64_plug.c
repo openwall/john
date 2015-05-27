@@ -1,5 +1,6 @@
 #include "pufferfish_common.h"
 #include "pufferfish_itoa64.h"
+#include "memdbg.h"
 
 int encode64 (char *dst, unsigned char *src, int size)
 {

@@ -217,6 +217,7 @@
 
 #include <stdio.h> // this sucks!
 #define Twofish_fatal( msg )      {puts(msg);}
+#include "memdbg.h"
 
 
 /*

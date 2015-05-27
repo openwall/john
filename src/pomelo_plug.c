@@ -11,11 +11,13 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "arch.h"
 
 #ifdef __SSE2__
 
 #include <immintrin.h>
+#include "memdbg.h"
 
 #define ADD128(x,y)       _mm_add_epi64((x), (y))
 #define XOR128(x,y)       _mm_xor_si128((x),(y))     /*XOR(x,y) = x ^ y, where x and y are two 128-bit word*/
@@ -169,9 +171,7 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
 // For the machine today, it is recommended that: 5 <= t_cost + m_cost <= 25;
 // one may use the parameters: m_cost = 15; t_cost = 0; (256 MegaByte memory)
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
+#include "memdbg.h"
 
 #define F0(i)  {               \
     i0 = ((i) - 0*4)  & mask1; \

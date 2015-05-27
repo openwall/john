@@ -14,6 +14,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #include <string.h>
 #include "KeccakSponge.h"
 #include "KeccakF-1600-interface.h"
+#include "memdbg.h"
 
 /* ---------------------------------------------------------------- */
 
