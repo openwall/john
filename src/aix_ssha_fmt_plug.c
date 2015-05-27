@@ -273,17 +273,24 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int inc, index = 0;
+	int inc=1, index = 0;
 
 	switch(cur_salt->type) {
 	case 1:
+#ifdef SSE_GROUP_SZ_SHA1
 		inc = SSE_GROUP_SZ_SHA1;
+#endif
 		break;
 	case 256:
+#ifdef SSE_GROUP_SZ_SHA256
 		inc = SSE_GROUP_SZ_SHA256;
+#endif
 		break;
 	default:
+#ifdef SSE_GROUP_SZ_SHA512
 		inc = SSE_GROUP_SZ_SHA512;
+#endif
+		break;
 	}
 
 #ifdef _OPENMP
