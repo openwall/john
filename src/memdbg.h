@@ -22,6 +22,7 @@
 #include <unistd.h>
 #endif
 #include <string.h>
+#include "memory.h"
 
 #if defined (MEMDBG_ON)
 

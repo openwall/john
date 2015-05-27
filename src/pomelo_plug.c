@@ -17,7 +17,6 @@
 #ifdef __SSE2__
 
 #include <immintrin.h>
-#include "memory.h"
 #include "memdbg.h"
 
 #define ADD128(x,y)       _mm_add_epi64((x), (y))
