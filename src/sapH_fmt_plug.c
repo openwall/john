@@ -78,6 +78,9 @@ john_register_one(&fmt_sapH);
 #define NBKEYS512 1
 #endif
 
+// the least common multiple of the NBKEYS* above
+#define NBKEYS (SIMD_COEF_32*SHA1_SSE_PARA*SIMD_PARA_SHA256*SIMD_PARA_SHA512)
+
 #include "sse-intrinsics.h"
 
 #define FORMAT_LABEL            "saph"
@@ -105,8 +108,8 @@ john_register_one(&fmt_sapH);
 
 /* NOTE, format is slow enough that endianity conversion is pointless. Just use flat buffers. */
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT		NBKEYS1
-#define MAX_KEYS_PER_CRYPT		NBKEYS1
+#define MIN_KEYS_PER_CRYPT		NBKEYS
+#define MAX_KEYS_PER_CRYPT		NBKEYS
 #define PLAINTEXT_LENGTH        23
 #else
 #define MIN_KEYS_PER_CRYPT		1
