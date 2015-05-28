@@ -72,8 +72,6 @@ john_register_one(&fmt_rawSHA224);
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
-static int omp_t = MAX_KEYS_PER_CRYPT;
-
 static struct fmt_tests tests[] = {
 	{"d63dc919e201d7bc4c825630d2cf25fdc93d4b2f0d46706d29038d01", "password"},
 	{"$SHA224$d63dc919e201d7bc4c825630d2cf25fdc93d4b2f0d46706d29038d01", "password"},
@@ -96,7 +94,7 @@ static ARCH_WORD_32 (*crypt_out)
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
+	int omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;

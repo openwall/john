@@ -71,8 +71,6 @@ john_register_one(&fmt_rawSHA256);
 #define MAX_KEYS_PER_CRYPT      1
 #endif
 
-static int omp_t = MAX_KEYS_PER_CRYPT;
-
 #ifdef SIMD_COEF_32
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
 static uint32_t (*saved_key);
@@ -87,7 +85,7 @@ static ARCH_WORD_32 (*crypt_out)
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
+	int omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;

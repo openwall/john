@@ -78,8 +78,6 @@ john_register_one(&fmt_mssql12);
 #define MAX_KEYS_PER_CRYPT      1
 #endif
 
-static int omp_t = MAX_KEYS_PER_CRYPT;
-
 #undef MIN
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 
@@ -158,7 +156,7 @@ static void set_key_enc(char *_key, int index);
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
+	int omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
