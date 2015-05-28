@@ -311,8 +311,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, &saved_salt, SALT_SIZE);
 #endif
-		SHA512_Update(&ctx, saved_key[i], saved_len[i]);
-		SHA512_Final((unsigned char *)(crypt_out[i]), &ctx);
+		SHA512_Update(&ctx, saved_key[index], saved_len[index]);
+		SHA512_Final((unsigned char *)(crypt_out[index]), &ctx);
 #endif
 	}
 	return count;
