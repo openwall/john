@@ -158,7 +158,7 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
     return 0;
 }
 
-#else
+#else /* #if __SSE2__ */
 
 // PHC submission:  POMELO v2
 // Designed by:     Hongjun Wu (Email: wuhongjun@gmail.com)
@@ -271,11 +271,11 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
 
 int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const void *salt, size_t saltlen, unsigned int t_cost, unsigned int m_cost)
 {
-    unsigned long long i,j,k,temp;
+	unsigned long long i, j, temp;
     unsigned long long i0,i1,i2,i3,i4;
     unsigned long long *S;
     unsigned long long random_number, index_global, index_local;
-    unsigned long long state_size, mask, mask1, mask2;
+    unsigned long long state_size, mask, mask1;
 
     //check the size of password, salt and output. Password is at most 256 bytes; the salt is at most 32 bytes.
     if (inlen > 256 || saltlen > 64 || outlen > 256 || inlen < 0 || saltlen < 0 || outlen < 0) return 1;
@@ -324,4 +324,4 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
     return 0;
 }
 
-#endif
+#endif /* __SSE2__ */

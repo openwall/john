@@ -222,15 +222,19 @@ static unsigned char mod5[0x100];
 
 static void init(struct fmt_main *self)
 {
-	int i, j, k;
-	int ngroups = 1;
+	int i;
+#ifdef SIMD_COEF_32
+	int j, k, ngroups = 1;
+#endif
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 
+#ifdef SIMD_COEF_32
 	ngroups = omp_t;
+#endif
 #endif
 
 #ifdef SIMD_COEF_32
@@ -533,9 +537,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #ifdef __INTEL_COMPILER
+#ifdef SIMD_COEF_32
 #pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data, input_buf, input_buf_big, out_buf, constant_phrase)
 #else
+#pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data, constant_phrase)
+#endif // SIMD_COEF_32
+#else
+#ifdef SIMD_COEF_32
 #pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data, input_buf, input_buf_big, out_buf)
+#else
+#pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data)
+#endif // SIMD_COEF_32
 #endif // __INTEL_COMPILER
 #endif // _OPENMP
 	for (group_idx = 0; group_idx < ngroups; ++group_idx) {
