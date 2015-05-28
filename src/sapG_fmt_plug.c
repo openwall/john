@@ -25,7 +25,7 @@ john_register_one(&fmt_sapG);
 #include "arch.h"
 
 #ifdef SIMD_COEF_32
-#define NBKEYS	(SIMD_COEF_32 * SHA1_SSE_PARA)
+#define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
 #include "sse-intrinsics.h"
 
@@ -300,9 +300,9 @@ static int cmp_all(void *binary, int count) {
 	unsigned int x,y=0;
 
 #ifdef _OPENMP
-	for(;y<SHA1_SSE_PARA*omp_t;y++)
+	for(;y<SIMD_PARA_SHA1*omp_t;y++)
 #else
-	for(;y<SHA1_SSE_PARA;y++)
+	for(;y<SIMD_PARA_SHA1;y++)
 #endif
 	for(x=0;x<SIMD_COEF_32;x++)
 	{
@@ -761,7 +761,7 @@ struct fmt_main fmt_sapG = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#if !defined(SIMD_COEF_32) || defined(SHA1_SSE_PARA)
+#if !defined(SIMD_COEF_32) || defined(SIMD_PARA_SHA1)
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_UTF8,

@@ -41,7 +41,7 @@ john_register_one(&fmt_rawMD5);
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
 #ifdef SIMD_COEF_32
-#define NBKEYS				(SIMD_COEF_32 * MD5_SSE_PARA)
+#define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_MD5)
 #endif
 
 #define BENCHMARK_COMMENT		""

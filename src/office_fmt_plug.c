@@ -48,10 +48,10 @@ john_register_one(&fmt_office);
 #ifdef SIMD_COEF_32
 #define GETPOS_1(i, index)  ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
 #define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-#define SHA1_LOOP_CNT       (SIMD_COEF_32*SHA1_SSE_PARA)
+#define SHA1_LOOP_CNT       (SIMD_COEF_32*SIMD_PARA_SHA1)
 #define SHA512_LOOP_CNT     (SIMD_COEF_64 * SIMD_PARA_SHA512)
-#define MIN_KEYS_PER_CRYPT  (SIMD_COEF_32 * SHA1_SSE_PARA * SIMD_PARA_SHA512)
-#define MAX_KEYS_PER_CRYPT	(SIMD_COEF_32 * SHA1_SSE_PARA * SIMD_PARA_SHA512)
+#define MIN_KEYS_PER_CRYPT  (SIMD_COEF_32 * SIMD_PARA_SHA1 * SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT	(SIMD_COEF_32 * SIMD_PARA_SHA1 * SIMD_PARA_SHA512)
 #else
 #define SHA1_LOOP_CNT		1
 #define SHA512_LOOP_CNT 1
@@ -205,7 +205,7 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 
 	// Finally, append "block" (0) to H(n)
 	// hashBuf = SHA1Hash(hashBuf, 0);
-	for (i = 0; i < SHA1_SSE_PARA; ++i)
+	for (i = 0; i < SIMD_PARA_SHA1; ++i)
 		memset(&keys[GETPOS_1(23,i*SIMD_COEF_32)], 0, 4*SIMD_COEF_32);
 	SSESHA1body(keys, keys32, NULL, SSEi_MIXED_IN);
 

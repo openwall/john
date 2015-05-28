@@ -34,7 +34,7 @@ john_register_one(&fmt_sapB);
 #define FORMAT_NAME			"SAP CODVN B (BCODE)"
 
 #ifdef SIMD_COEF_32
-#define NBKEYS				(SIMD_COEF_32 * MD5_SSE_PARA)
+#define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_MD5)
 #endif
 #include "sse-intrinsics.h"
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
@@ -280,9 +280,9 @@ static int cmp_all(void *binary, int count) {
 	unsigned int x,y=0;
 
 #ifdef _OPENMP
-	for(;y<MD5_SSE_PARA*omp_t;y++)
+	for(;y<SIMD_PARA_MD5*omp_t;y++)
 #else
-	for(;y<MD5_SSE_PARA;y++)
+	for(;y<SIMD_PARA_MD5;y++)
 #endif
 		for(x = 0; x < SIMD_COEF_32; x++)
 		{
@@ -516,7 +516,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SSEmd5body(&saved_key[t*NBKEYS*64],
 		           (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
 
-		for (i = 0; i < MD5_SSE_PARA; i++)
+		for (i = 0; i < SIMD_PARA_MD5; i++)
 			memset(&interm_key[t*64*NBKEYS+i*64*SIMD_COEF_32+32*SIMD_COEF_32], 0, 32*SIMD_COEF_32);
 
 		for (index = 0; index < NBKEYS; index++) {

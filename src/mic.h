@@ -58,9 +58,9 @@
 #define SIMD_COEF_32		16
 #define SIMD_COEF_64		8
 
-#define MD5_SSE_PARA		1
-#define MD4_SSE_PARA		6
-#define SHA1_SSE_PARA		1
+#define SIMD_PARA_MD4		6
+#define SIMD_PARA_MD5		1
+#define SIMD_PARA_SHA1		1
 #define SIMD_PARA_SHA256	1
 #define SIMD_PARA_SHA512	1
 
@@ -68,18 +68,18 @@
 #define PARA_TO_N(n)			STR_VALUE(n) "x"
 #define PARA_TO_MxN(m, n)		STR_VALUE(m) "x" STR_VALUE(n)
 
-#if MD4_SSE_PARA > 1
-#define MD4_N_STR			PARA_TO_MxN(SIMD_COEF_32, MD4_SSE_PARA)
+#if SIMD_PARA_MD4 > 1
+#define MD4_N_STR			PARA_TO_MxN(SIMD_COEF_32, SIMD_PARA_MD4)
 #else
 #define MD4_N_STR			PARA_TO_N(SIMD_COEF_32)
 #endif
-#if MD5_SSE_PARA > 1
-#define MD5_N_STR			PARA_TO_MxN(SIMD_COEF_32, MD5_SSE_PARA)
+#if SIMD_PARA_MD5 > 1
+#define MD5_N_STR			PARA_TO_MxN(SIMD_COEF_32, SIMD_PARA_MD5)
 #else
 #define MD5_N_STR			PARA_TO_N(SIMD_COEF_32)
 #endif
-#if SHA1_SSE_PARA > 1
-#define SHA1_N_STR			PARA_TO_MxN(SIMD_COEF_32, SHA1_SSE_PARA)
+#if SIMD_PARA_SHA1 > 1
+#define SHA1_N_STR			PARA_TO_MxN(SIMD_COEF_32, SIMD_PARA_SHA1)
 #else
 #define SHA1_N_STR			PARA_TO_N(SIMD_COEF_32)
 #endif

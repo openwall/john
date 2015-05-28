@@ -59,9 +59,9 @@ _inline __m128i _mm_set1_epi64x(long long a)
 #define VS32 SIMD_COEF_32
 #define VS64 SIMD_COEF_64
 
-#if MD5_SSE_PARA
-#define MD5_SSE_NUM_KEYS	(SIMD_COEF_32*MD5_SSE_PARA)
-#define MD5_PARA_DO(x)	for((x)=0;(x)<MD5_SSE_PARA;(x)++)
+#if SIMD_PARA_MD5
+#define MD5_SSE_NUM_KEYS	(SIMD_COEF_32*SIMD_PARA_MD5)
+#define MD5_PARA_DO(x)	for((x)=0;(x)<SIMD_PARA_MD5;(x)++)
 
 #define MD5_F(x,y,z) \
 	MD5_PARA_DO(i) tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
@@ -107,12 +107,12 @@ _inline __m128i _mm_set1_epi64x(long long a)
 void SSEmd5body(vtype* _data, unsigned int *out,
                 ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
-	vtype w[16*MD5_SSE_PARA];
-	vtype a[MD5_SSE_PARA];
-	vtype b[MD5_SSE_PARA];
-	vtype c[MD5_SSE_PARA];
-	vtype d[MD5_SSE_PARA];
-	vtype tmp[MD5_SSE_PARA];
+	vtype w[16*SIMD_PARA_MD5];
+	vtype a[SIMD_PARA_MD5];
+	vtype b[SIMD_PARA_MD5];
+	vtype c[SIMD_PARA_MD5];
+	vtype d[SIMD_PARA_MD5];
+	vtype tmp[SIMD_PARA_MD5];
 	vtype mask;
 	unsigned int i;
 	vtype *data;
@@ -592,11 +592,11 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 	dispatch(buffers, F, length, saltlen);
 	memcpy(out, F, MD5_SSE_NUM_KEYS*16);
 }
-#endif /* MD5_SSE_PARA */
+#endif /* SIMD_PARA_MD5 */
 
-#if MD4_SSE_PARA
-#define MD4_SSE_NUM_KEYS	(SIMD_COEF_32*MD4_SSE_PARA)
-#define MD4_PARA_DO(x)	for((x)=0;(x)<MD4_SSE_PARA;(x)++)
+#if SIMD_PARA_MD4
+#define MD4_SSE_NUM_KEYS	(SIMD_COEF_32*SIMD_PARA_MD4)
+#define MD4_PARA_DO(x)	for((x)=0;(x)<SIMD_PARA_MD4;(x)++)
 
 #define MD4_F(x,y,z) \
 	MD4_PARA_DO(i) tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
@@ -631,13 +631,13 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
                 unsigned SSEi_flags)
 {
-	vtype w[16*MD4_SSE_PARA];
-	vtype a[MD4_SSE_PARA];
-	vtype b[MD4_SSE_PARA];
-	vtype c[MD4_SSE_PARA];
-	vtype d[MD4_SSE_PARA];
-	vtype tmp[MD4_SSE_PARA];
-	vtype tmp2[MD4_SSE_PARA];
+	vtype w[16*SIMD_PARA_MD4];
+	vtype a[SIMD_PARA_MD4];
+	vtype b[SIMD_PARA_MD4];
+	vtype c[SIMD_PARA_MD4];
+	vtype d[SIMD_PARA_MD4];
+	vtype tmp[SIMD_PARA_MD4];
+	vtype tmp2[SIMD_PARA_MD4];
 	vtype	cst;
 	unsigned int i;
 	vtype *data;
@@ -841,11 +841,11 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	}
 }
 
-#endif /* MD4_SSE_PARA */
+#endif /* SIMD_PARA_MD4 */
 
-#if SHA1_SSE_PARA
-#define SHA1_SSE_NUM_KEYS	(SIMD_COEF_32*SHA1_SSE_PARA)
-#define SHA1_PARA_DO(x)		for((x)=0;(x)<SHA1_SSE_PARA;(x)++)
+#if SIMD_PARA_SHA1
+#define SHA1_SSE_NUM_KEYS	(SIMD_COEF_32*SIMD_PARA_SHA1)
+#define SHA1_PARA_DO(x)		for((x)=0;(x)<SIMD_PARA_SHA1;(x)++)
 
 #define SHA1_F(x,y,z) \
 	SHA1_PARA_DO(i) tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
@@ -953,16 +953,16 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
                  unsigned SSEi_flags)
 {
-	vtype w[16*SHA1_SSE_PARA];
-	vtype a[SHA1_SSE_PARA];
-	vtype b[SHA1_SSE_PARA];
-	vtype c[SHA1_SSE_PARA];
-	vtype d[SHA1_SSE_PARA];
-	vtype e[SHA1_SSE_PARA];
-	vtype tmp[SHA1_SSE_PARA];
-	vtype tmp2[SHA1_SSE_PARA];
-	vtype tmp3[SHA1_SSE_PARA];
-	vtype tmpR[SHA1_SSE_PARA*16];
+	vtype w[16*SIMD_PARA_SHA1];
+	vtype a[SIMD_PARA_SHA1];
+	vtype b[SIMD_PARA_SHA1];
+	vtype c[SIMD_PARA_SHA1];
+	vtype d[SIMD_PARA_SHA1];
+	vtype e[SIMD_PARA_SHA1];
+	vtype tmp[SIMD_PARA_SHA1];
+	vtype tmp2[SIMD_PARA_SHA1];
+	vtype tmp3[SIMD_PARA_SHA1];
+	vtype tmpR[SIMD_PARA_SHA1*16];
 	vtype	cst;
 	unsigned int i;
 	vtype *data;
@@ -1232,7 +1232,7 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 		}
 	}
 }
-#endif /* SHA1_SSE_PARA */
+#endif /* SIMD_PARA_SHA1 */
 
 
 #define S0(x)                                   \

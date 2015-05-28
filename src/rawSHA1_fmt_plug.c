@@ -42,7 +42,7 @@ john_register_one(&fmt_rawSHA1);
 #define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 #ifdef SIMD_COEF_32
-#define NBKEYS				(SIMD_COEF_32 * SHA1_SSE_PARA)
+#define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
 
 #define BENCHMARK_COMMENT		""

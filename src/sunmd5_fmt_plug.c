@@ -58,7 +58,7 @@ john_register_one(&fmt_sunmd5);
  * these 2 are for testing non-MMX mode. if we
  * undefine these 2, then we force build oSSL model.
  */
-//#undef MD5_SSE_PARA
+//#undef SIMD_PARA_MD5
 //#undef SIMD_COEF_32
 
 #ifndef MD5_CBLOCK
@@ -83,7 +83,7 @@ john_register_one(&fmt_sunmd5);
 
 #if SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SIMD_COEF_32
-#define MAX_KEYS_PER_CRYPT  (16 * SIMD_COEF_32 * MD5_SSE_PARA)
+#define MAX_KEYS_PER_CRYPT  (16 * SIMD_COEF_32 * SIMD_PARA_MD5)
 #else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT		1
@@ -115,8 +115,8 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-#ifdef MD5_SSE_PARA
-#define PARA MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
+#define PARA SIMD_PARA_MD5
 #else
 #define PARA 1
 #endif
@@ -645,7 +645,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				/*
 				 * we do not actually perform the work here. We run through all of the
 				 * keys we are working on, and figure out which ones need 'small' buffers
-				 * and which ones need large buffers. Then we can group them SIMD_COEF_32*MD5_SSE_PARA
+				 * and which ones need large buffers. Then we can group them SIMD_COEF_32*SIMD_PARA_MD5
 				 * at a time, later in the process.
 				 */
 				if (bit)

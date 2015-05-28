@@ -41,7 +41,7 @@ john_register_one(&fmt_rawMD5f);
 #include "memdbg.h"
 
 #ifdef SIMD_COEF_32
-#define NBKEYS                  (SIMD_COEF_32 * MD5_SSE_PARA)
+#define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_MD5)
 #define PLAINTEXT_LENGTH        55
 #define MIN_KEYS_PER_CRYPT      NBKEYS
 #define MAX_KEYS_PER_CRYPT      NBKEYS

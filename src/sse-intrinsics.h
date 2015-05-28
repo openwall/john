@@ -65,7 +65,7 @@
 #define BITS				"64/64"
 #endif
 
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 void md5cryptsse(unsigned char *buf, unsigned char *salt, char *out, unsigned int md5_type);
 void SSEmd5body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define MD5_ALGORITHM_NAME		BITS " " SIMD_TYPE " " MD5_N_STR
@@ -73,7 +73,7 @@ void SSEmd5body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsi
 #define MD5_ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #endif
 
-#ifdef MD4_SSE_PARA
+#ifdef SIMD_PARA_MD4
 //void SSEmd4body(__m128i* data, unsigned int *out, int init);
 void SSEmd4body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define MD4_ALGORITHM_NAME		BITS " " SIMD_TYPE " " MD4_N_STR
@@ -81,7 +81,7 @@ void SSEmd4body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsi
 #define MD4_ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #endif
 
-#ifdef SHA1_SSE_PARA
+#ifdef SIMD_PARA_SHA1
 void SSESHA1body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define SHA1_ALGORITHM_NAME		BITS " " SIMD_TYPE " " SHA1_N_STR
 #else

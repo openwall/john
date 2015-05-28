@@ -2,7 +2,7 @@
 gcc -v 2>&1 | tail -1
 echo ---------------------------------------
 for i in 1 2 3 4 5; do
-	CPPFLAGS="-DMD4_SSE_PARA=$i -DMD5_SSE_PARA=$i -DSHA1_SSE_PARA=$i -DSIMD_PARA_SHA256=$i -DSIMD_PARA_SHA512=$i"
+	CPPFLAGS="-DSIMD_PARA_MD4=$i -DSIMD_PARA_MD5=$i -DSIMD_PARA_SHA1=$i -DSIMD_PARA_SHA256=$i -DSIMD_PARA_SHA512=$i"
 	./configure CPPFLAGS="$CPPFLAGS" --disable-cuda --disable-opencl --enable-openmp-for-fast-formats >/dev/null || break
 	make -s clean || break
 	make -sj4 || break

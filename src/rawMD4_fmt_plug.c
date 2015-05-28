@@ -43,7 +43,7 @@ john_register_one(&fmt_rawMD4);
 #define ALGORITHM_NAME			"MD4 " MD4_ALGORITHM_NAME
 
 #ifdef SIMD_COEF_32
-#define NBKEYS				(SIMD_COEF_32 * MD4_SSE_PARA)
+#define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_MD4)
 #endif
 
 #define BENCHMARK_COMMENT		""

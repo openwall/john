@@ -414,7 +414,7 @@ void alter_endianity(void *_x, unsigned int size) {
 #endif
 }
 
-#if defined(SIMD_COEF_32) || defined(NT_X86_64) || defined (MD5_SSE_PARA) || defined (MD4_SSE_PARA) || defined (SHA1_SSE_PARA)
+#if defined(SIMD_COEF_32) || defined(NT_X86_64) || defined (SIMD_PARA_MD5) || defined (SIMD_PARA_MD4) || defined (SIMD_PARA_SHA1)
 #ifndef SIMD_COEF_32
 #define SIMD_COEF_32	4
 #endif
@@ -481,8 +481,8 @@ void dump_out_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, uns
 	dump_out_mmx(buf, size, index);
 }
 
-#if defined (MD5_SSE_PARA)
-#define GETPOSMPARA(i, index)	( (index&(SIMD_COEF_32-1))*4 + (((i)&(0xffffffff-3))%64)*SIMD_COEF_32 + (i/64)*SIMD_COEF_32*MD5_SSE_PARA*64 +    ((i)&3)  + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32  )
+#if defined (SIMD_PARA_MD5)
+#define GETPOSMPARA(i, index)	( (index&(SIMD_COEF_32-1))*4 + (((i)&(0xffffffff-3))%64)*SIMD_COEF_32 + (i/64)*SIMD_COEF_32*SIMD_PARA_MD5*64 +    ((i)&3)  + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32  )
 // multiple para blocks
 void dump_stuff_mpara_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;

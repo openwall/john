@@ -316,8 +316,8 @@ int large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, i
 /********************************************************************
  ****  Here are the MD5 functions (Now using 'common' interface)
  *******************************************************************/
-#ifdef MD5_SSE_PARA
-#define MD5_LOOPS (SIMD_COEF_32*MD5_SSE_PARA)
+#ifdef SIMD_PARA_MD5
+#define MD5_LOOPS (SIMD_COEF_32*SIMD_PARA_MD5)
 static const unsigned int MD5_inc = MD5_LOOPS;
 
 static inline uint32_t DoMD5_FixBufferLen32(unsigned char *input_buf, int total_len)
@@ -455,7 +455,7 @@ void DynamicFunc__MD5_crypt_input1_append_input2(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD5_inc) {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 		int len[MD5_LOOPS];
 		unsigned int j;
 		void *out[MD5_LOOPS];
@@ -493,7 +493,7 @@ void DynamicFunc__MD5_crypt_input2_append_input1(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD5_inc) {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 		int len[MD5_LOOPS];
 		unsigned int j;
 		void *out[MD5_LOOPS];
@@ -531,7 +531,7 @@ void DynamicFunc__MD5_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD5_inc) {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 		int len[MD5_LOOPS];
 		unsigned int j;
 		unsigned int x[MD5_LOOPS];
@@ -575,7 +575,7 @@ void DynamicFunc__MD5_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD5_inc) {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 		int len[MD5_LOOPS];
 		unsigned int j;
 		unsigned int x[MD5_LOOPS];
@@ -619,7 +619,7 @@ void DynamicFunc__MD5_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD5_inc) {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 		int len[MD5_LOOPS];
 		unsigned int j;
 		unsigned int x[MD5_LOOPS];
@@ -663,7 +663,7 @@ void DynamicFunc__MD5_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD5_inc) {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 		int len[MD5_LOOPS];
 		unsigned int j;
 		unsigned int x[MD5_LOOPS];
@@ -706,7 +706,7 @@ void DynamicFunc__MD5_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD5_inc) {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	int len[MD5_LOOPS];
 	unsigned int j;
 	for (j = 0; j < MD5_LOOPS; ++j)
@@ -735,7 +735,7 @@ void DynamicFunc__MD5_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD5_inc) {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	int len[MD5_LOOPS];
 	unsigned int j;
 	for (j = 0; j < MD5_LOOPS; ++j)
@@ -755,8 +755,8 @@ void DynamicFunc__MD5_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS)
 /********************************************************************
  ****  Here are the MD4 functions (Now using 'common' interface)
  *******************************************************************/
-#ifdef MD4_SSE_PARA
-#define MD4_LOOPS (SIMD_COEF_32*MD4_SSE_PARA)
+#ifdef SIMD_PARA_MD4
+#define MD4_LOOPS (SIMD_COEF_32*SIMD_PARA_MD4)
 static const unsigned int MD4_inc = MD4_LOOPS;
 
 static inline uint32_t DoMD4_FixBufferLen32(unsigned char *input_buf, int total_len)
@@ -883,7 +883,7 @@ void DynamicFunc__MD4_crypt_input1_append_input2(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD4_inc) {
-#ifdef MD4_SSE_PARA
+#ifdef SIMD_PARA_MD4
 		int len[MD4_LOOPS];
 		unsigned int j;
 		void *out[MD4_LOOPS];
@@ -921,7 +921,7 @@ void DynamicFunc__MD4_crypt_input2_append_input1(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD4_inc) {
-#ifdef MD4_SSE_PARA
+#ifdef SIMD_PARA_MD4
 		int len[MD4_LOOPS];
 		unsigned int j;
 		void *out[MD4_LOOPS];
@@ -959,7 +959,7 @@ void DynamicFunc__MD4_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD4_inc) {
-#ifdef MD4_SSE_PARA
+#ifdef SIMD_PARA_MD4
 		int len[MD4_LOOPS];
 		unsigned int j;
 		unsigned int x[MD4_LOOPS];
@@ -1003,7 +1003,7 @@ void DynamicFunc__MD4_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD4_inc) {
-#ifdef MD4_SSE_PARA
+#ifdef SIMD_PARA_MD4
 		int len[MD4_LOOPS];
 		unsigned int j;
 		unsigned int x[MD4_LOOPS];
@@ -1047,7 +1047,7 @@ void DynamicFunc__MD4_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD4_inc) {
-#ifdef MD4_SSE_PARA
+#ifdef SIMD_PARA_MD4
 		int len[MD4_LOOPS];
 		unsigned int j;
 		unsigned int x[MD4_LOOPS];
@@ -1091,7 +1091,7 @@ void DynamicFunc__MD4_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD4_inc) {
-#ifdef MD4_SSE_PARA
+#ifdef SIMD_PARA_MD4
 		int len[MD4_LOOPS];
 		unsigned int j;
 		unsigned int x[MD4_LOOPS];
@@ -1134,7 +1134,7 @@ void DynamicFunc__MD4_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD4_inc) {
-#ifdef MD4_SSE_PARA
+#ifdef SIMD_PARA_MD4
 	int len[MD4_LOOPS];
 	unsigned int j;
 	for (j = 0; j < MD4_LOOPS; ++j)
@@ -1163,7 +1163,7 @@ void DynamicFunc__MD4_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += MD4_inc) {
-#ifdef MD4_SSE_PARA
+#ifdef SIMD_PARA_MD4
 	int len[MD4_LOOPS];
 	unsigned int j;
 	for (j = 0; j < MD4_LOOPS; ++j)
@@ -1183,8 +1183,8 @@ void DynamicFunc__MD4_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS)
 /********************************************************************
  ****  Here are the SHA1 functions (Now using 'common' interface)
  *******************************************************************/
-#ifdef SHA1_SSE_PARA
-#define SHA1_LOOPS (SIMD_COEF_32*SHA1_SSE_PARA)
+#ifdef SIMD_PARA_SHA1
+#define SHA1_LOOPS (SIMD_COEF_32*SIMD_PARA_SHA1)
 static const unsigned int sha1_inc = SHA1_LOOPS;
 
 static inline uint32_t DoSHA1_FixBufferLen32(unsigned char *input_buf, int total_len)
@@ -1318,7 +1318,7 @@ void DynamicFunc__SHA1_crypt_input1_append_input2(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += sha1_inc) {
-#ifdef SHA1_SSE_PARA
+#ifdef SIMD_PARA_SHA1
 		int len[SHA1_LOOPS];
 		unsigned int j;
 		void *out[SHA1_LOOPS];
@@ -1356,7 +1356,7 @@ void DynamicFunc__SHA1_crypt_input2_append_input1(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += sha1_inc) {
-#ifdef SHA1_SSE_PARA
+#ifdef SIMD_PARA_SHA1
 		int len[SHA1_LOOPS];
 		unsigned int j;
 		void *out[SHA1_LOOPS];
@@ -1394,7 +1394,7 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += sha1_inc) {
-#ifdef SHA1_SSE_PARA
+#ifdef SIMD_PARA_SHA1
 		int len[SHA1_LOOPS];
 		unsigned int j;
 		unsigned int x[SHA1_LOOPS];
@@ -1438,7 +1438,7 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += sha1_inc) {
-#ifdef SHA1_SSE_PARA
+#ifdef SIMD_PARA_SHA1
 		int len[SHA1_LOOPS];
 		unsigned int j;
 		unsigned int x[SHA1_LOOPS];
@@ -1482,7 +1482,7 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += sha1_inc) {
-#ifdef SHA1_SSE_PARA
+#ifdef SIMD_PARA_SHA1
 		int len[SHA1_LOOPS];
 		unsigned int j;
 		unsigned int x[SHA1_LOOPS];
@@ -1526,7 +1526,7 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += sha1_inc) {
-#ifdef SHA1_SSE_PARA
+#ifdef SIMD_PARA_SHA1
 		int len[SHA1_LOOPS];
 		unsigned int j;
 		unsigned int x[SHA1_LOOPS];
@@ -1569,7 +1569,7 @@ void DynamicFunc__SHA1_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += sha1_inc) {
-#ifdef SHA1_SSE_PARA
+#ifdef SIMD_PARA_SHA1
 	int len[SHA1_LOOPS];
 	unsigned int j;
 	for (j = 0; j < SHA1_LOOPS; ++j)
@@ -1598,7 +1598,7 @@ void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 	for (; i < til; i += sha1_inc) {
-#ifdef SHA1_SSE_PARA
+#ifdef SIMD_PARA_SHA1
 	int len[SHA1_LOOPS];
 	unsigned int j;
 	for (j = 0; j < SHA1_LOOPS; ++j)

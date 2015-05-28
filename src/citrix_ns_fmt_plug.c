@@ -54,7 +54,7 @@ john_register_one(&fmt_ctrxns);
 #include "johnswap.h"
 
 #ifdef SIMD_COEF_32
-#define NBKEYS  (SIMD_COEF_32 * SHA1_SSE_PARA)
+#define NBKEYS  (SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
 #include "sse-intrinsics.h"
 #include "common.h"

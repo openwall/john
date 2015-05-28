@@ -18,7 +18,7 @@ john_register_one(&fmt_rawmd5uthick);
 #include "arch.h"
 
 #ifdef SIMD_COEF_32
-#define NBKEYS				(SIMD_COEF_32 * MD5_SSE_PARA)
+#define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_MD5)
 #endif
 #include "sse-intrinsics.h"
 
@@ -465,7 +465,7 @@ static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
 	unsigned int x,y=0;
 
-	for(;y<MD5_SSE_PARA*BLOCK_LOOPS;y++)
+	for(;y<SIMD_PARA_MD5*BLOCK_LOOPS;y++)
 		for(x=0;x<SIMD_COEF_32;x++)
 		{
 			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] )

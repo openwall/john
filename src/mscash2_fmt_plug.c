@@ -122,7 +122,7 @@ static struct fmt_tests tests[] = {
 #define ALGORITHM_NAME			"PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 
 #ifdef SIMD_COEF_32
-#define MS_NUM_KEYS			(SIMD_COEF_32*SHA1_SSE_PARA)
+#define MS_NUM_KEYS			(SIMD_COEF_32*SIMD_PARA_SHA1)
 // Ok, now we have our MMX/SSE2/intr buffer.
 // this version works properly for MMX, SSE2 (.S) and SSE2 intrinsic.
 #define GETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion

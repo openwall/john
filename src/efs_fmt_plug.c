@@ -44,7 +44,7 @@ john_register_one(&fmt_efs);
 #include "memdbg.h"
 
 #ifdef SIMD_COEF_32
-#define SHA1_BLK                (SHA1_SSE_PARA * SIMD_COEF_32)
+#define SHA1_BLK                (SIMD_PARA_SHA1 * SIMD_COEF_32)
 #endif
 
 #define FORMAT_LABEL            "EFS"
