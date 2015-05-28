@@ -1558,6 +1558,7 @@ int main(int argc, char **argv)
 	}
 	for (i = 1; i < 257; ++i)
 		MEM_FREE(cp[i]);
+	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	exit(0);
 #endif
 
