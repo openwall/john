@@ -246,6 +246,10 @@ static void set_key(char *key, int index)
 	UTF16 tmp[PLAINTEXT_LENGTH+1];
 	int len2, len = enc_to_utf16_be(tmp, PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
 	int idx1=index/MAX_KEYS_PER_CRYPT, idx2=index%MAX_KEYS_PER_CRYPT;
+
+	if (len < 0)
+		len = strlen16(tmp);
+
 	if (len > 32)
 		memcpy(prep_key[idx1][1][idx2], &tmp[32], (len-32)<<1);
 	len2 = len;
