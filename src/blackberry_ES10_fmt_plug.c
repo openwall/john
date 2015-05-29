@@ -50,7 +50,7 @@ john_register_one(&fmt_blackberry1);
 
 #define FORMAT_TAG 		"$bbes10$"
 #define FORMAT_TAG_LENGTH	8
-#define FORMAT_LABEL 		"blackberry-es10"
+#define FORMAT_LABEL 		"Blackberry-ES10"
 #define FORMAT_NAME 		""
 #define ALGORITHM_NAME 		"SHA-512 " SHA512_ALGORITHM_NAME
 
@@ -197,9 +197,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA512_CTX ctx;
 #ifdef SIMD_COEF_64
 		unsigned int i;
-		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+MEM_ALIGN_SIMD], *keys, tmpBuf[128];
+		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+MEM_ALIGN_CACHE],
+		              *keys, tmpBuf[128];
 		ARCH_WORD_64 *keys64, *tmpBuf64=(ARCH_WORD_64*)tmpBuf, *p64;
-		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
+		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
 		keys64 = (ARCH_WORD_64*)keys;
 		memset(keys, 0, 128*MAX_KEYS_PER_CRYPT);
 
@@ -214,17 +215,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			p64[8*SIMD_COEF_64] = 0x8000000000000000ULL;
 			p64[15*SIMD_COEF_64] = 0x200;
 		}
-		for (j = 0; j < 99; j++)
+		for (j = 0; j < 98; j++)
 			SSESHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
-		// now marshal into crypt_out;
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(crypt_out[index+i]);
-			ARCH_WORD_64 *Iptr64 = &keys64[((i/SIMD_COEF_64)*(SIMD_COEF_64*16)) + (i&(SIMD_COEF_64-1))];
-			for (j = 0; j < 8; ++j) {
-				Optr64[j] = JOHNSWAP64(*Iptr64);
-				Iptr64 += SIMD_COEF_64;
-			}
-		}
+		// Last one with FLAT_OUT
+		SSESHA512body(keys, (ARCH_WORD_64*)crypt_out[index], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
 #else
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, saved_key[index], strlen(saved_key[index]));
