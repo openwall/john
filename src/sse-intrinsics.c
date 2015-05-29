@@ -309,7 +309,25 @@ void SSEmd5body(vtype* _data, unsigned int *out,
 			}
 		}
 	}
-	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
+
+	if (SSEi_flags & SSEi_FLAT_OUT) {
+		MD5_PARA_DO(i)
+		{
+			uint32_t *o = (uint32_t*)&out[i*4*VS32];
+			uint32_t j, k;
+			vtype tmp[4];
+
+			vstore(&tmp[0], a[i]);
+			vstore(&tmp[1], b[i]);
+			vstore(&tmp[2], c[i]);
+			vstore(&tmp[3], d[i]);
+
+			for (j = 0; j < VS32; j++)
+				for (k = 0; k < 4; k++)
+					o[j*4+k] = ((uint32_t*)tmp)[k*VS32+j];
+		}
+	}
+	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		MD5_PARA_DO(i)
 		{
@@ -819,7 +837,25 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 			}
 		}
 	}
-	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
+
+	if (SSEi_flags & SSEi_FLAT_OUT) {
+		MD4_PARA_DO(i)
+		{
+			uint32_t *o = (uint32_t*)&out[i*4*VS32];
+			uint32_t j, k;
+			vtype tmp[4];
+
+			vstore(&tmp[0], a[i]);
+			vstore(&tmp[1], b[i]);
+			vstore(&tmp[2], c[i]);
+			vstore(&tmp[3], d[i]);
+
+			for (j = 0; j < VS32; j++)
+				for (k = 0; k < 4; k++)
+					o[j*4+k] = ((uint32_t*)tmp)[k*VS32+j];
+		}
+	}
+	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		MD4_PARA_DO(i)
 		{
@@ -1209,7 +1245,26 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 			}
 		}
 	}
-	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
+
+	if (SSEi_flags & SSEi_FLAT_OUT) {
+		SHA1_PARA_DO(i)
+		{
+			uint32_t *o = (uint32_t*)&out[i*5*VS32];
+			uint32_t j, k;
+			vtype tmp[5];
+
+			vstore(&tmp[0], vswap32(a[i]));
+			vstore(&tmp[1], vswap32(b[i]));
+			vstore(&tmp[2], vswap32(c[i]));
+			vstore(&tmp[3], vswap32(d[i]));
+			vstore(&tmp[4], vswap32(e[i]));
+
+			for (j = 0; j < VS32; j++)
+				for (k = 0; k < 5; k++)
+					o[j*5+k] = ((uint32_t*)tmp)[k*VS32+j];
+		}
+	}
+	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		SHA1_PARA_DO(i)
 		{
@@ -1619,20 +1674,29 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 			}
 		}
 	}
-	if (SSEi_flags & SSEi_SWAP_FINAL) {
+
+	if (SSEi_flags & SSEi_FLAT_OUT) {
 		SHA256_PARA_DO(i)
 		{
-			vswap32(a[i]);
-			vswap32(b[i]);
-			vswap32(c[i]);
-			vswap32(d[i]);
-			vswap32(e[i]);
-			vswap32(f[i]);
-			vswap32(g[i]);
-			vswap32(h[i]);
+			uint32_t *o = (uint32_t*)&out[i*8*VS32];
+			uint32_t j, k;
+			vtype tmp[8];
+
+			vstore(&tmp[0], vswap32(a[i]));
+			vstore(&tmp[1], vswap32(b[i]));
+			vstore(&tmp[2], vswap32(c[i]));
+			vstore(&tmp[3], vswap32(d[i]));
+			vstore(&tmp[4], vswap32(e[i]));
+			vstore(&tmp[5], vswap32(f[i]));
+			vstore(&tmp[6], vswap32(g[i]));
+			vstore(&tmp[7], vswap32(h[i]));
+
+			for (j = 0; j < VS32; j++)
+				for (k = 0; k < 8; k++)
+					o[j*8+k] = ((uint32_t*)tmp)[k*VS32+j];
 		}
 	}
-	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT) {
+	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT) {
 		SHA256_PARA_DO(i)
 		{
 			vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
@@ -2012,21 +2076,28 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 		}
 	}
 
-	if (SSEi_flags & SSEi_SWAP_FINAL) {
+	if (SSEi_flags & SSEi_FLAT_OUT) {
 		SHA512_PARA_DO(i)
 		{
-			vswap64(a[i]);
-			vswap64(b[i]);
-			vswap64(c[i]);
-			vswap64(d[i]);
-			vswap64(e[i]);
-			vswap64(f[i]);
-			vswap64(g[i]);
-			vswap64(h[i]);
+			uint64_t *o = (uint64_t*)&out[i*8*VS64];
+			uint64_t j, k;
+			vtype tmp[8];
+
+			vstore(&tmp[0], vswap64(a[i]));
+			vstore(&tmp[1], vswap64(b[i]));
+			vstore(&tmp[2], vswap64(c[i]));
+			vstore(&tmp[3], vswap64(d[i]));
+			vstore(&tmp[4], vswap64(e[i]));
+			vstore(&tmp[5], vswap64(f[i]));
+			vstore(&tmp[6], vswap64(g[i]));
+			vstore(&tmp[7], vswap64(h[i]));
+
+			for (j = 0; j < VS64; j++)
+				for (k = 0; k < 8; k++)
+					o[j*8+k] = ((uint64_t*)tmp)[k*VS64+j];
 		}
 	}
-
-	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
+	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		SHA512_PARA_DO(i)
 		{
