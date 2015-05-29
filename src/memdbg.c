@@ -87,9 +87,6 @@ void *MEMDBG_libc_calloc(size_t count, size_t size) {
  *  MEMFPOSTd == freed (deleted) memory.  Will only be set this way, and stored in the
  *               freed_memlist, if MEMDBG_EXTRA_CHECKS is set.
  */
-#define MEMFPOST   0xa5a5a5a5
-#define MEMFPOSTt  0xa555a5a5
-#define MEMFPOSTd  0x5a5a5a5a
 const char *cpMEMFPOST  = "\xa5\xa5\xa5\xa5";
 const char *cpMEMFPOSTd = "\x5a\x5a\x5a\x5a";
 const char *cpMEMFPOSTt = "\xa5\x55\xa5\xa5";
