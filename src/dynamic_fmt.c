@@ -61,11 +61,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
  *      in current setup (2 buffers), if buffersize is 260 bytes, vs 256 bytes.  I am sure this
  *      is due to page swapping, since this crosses 2 256 byte blocks.
  *
- *   3. Add SHA2 intrinsic code.  Also, make a 'plan' on how to do SSE code for the other
- *      large hash types (and get SHA1 working 'better').  NOTE there are OMP implications
- *      which make this harder.  Switching in/out of SSE buffers is very expensive.
- *
- *   4. optimize the SHA1 vs MD5 (sse).  Possibly keep SHA1 in SSE buffers, and have a
+ *   3. optimize the SHA1 vs MD5 (sse).  Possibly keep SHA1 in SSE buffers, and have a
  *      a method to switch the buffer into LE md5/4 sse buffer space.  Same may go for
  *      other BE 64 byte hashes.  There will be no way to switch back and forth 'easily'
  *      between 128 byte hashes, into 64 byte, unless they contain 55 characters or
@@ -83,14 +79,10 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
  *      performance IMPROVEMENTS on some formats.  The biggest benefit, is that this becomes
  *      OMP usable, and it reduces the code complexity a LOT, and makes writing scripts easier,
  *      with less internal knowledge of the strange way SHA1 worked before, to make an optimal
- *      speed format.  SHA224/256 have been done in SSE2. Only SHA384/512 left to do (DONE).
+ *      speed format.
  *
- *   5. Change regen-salts to be generic. Add the logic to dynamic_fmt.c proper, and change
+ *   4. Change regen-salts to be generic. Add the logic to dynamic_fmt.c proper, and change
  *      the fake-salts.c, and options so that 'generic' regen-salts can be done.
- *
- *   6. Make sure all big crypts list their crypt type in the algo name, and not MD5_BODY
- *
- *   7. Add big crypt md5/md4 and start to port the formats to use them.
  */
 
 #include <string.h>
