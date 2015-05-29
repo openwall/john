@@ -88,6 +88,7 @@ case "${host_cpu}_${CFLAGS}" in
       else
          case "${CPPFLAGS}_${CFLAGS}" in
            *-mno-sse2*) ;;
+           *-mno-mmx*) ;;
            *)
          AS_IF([test "y$CPU_STR" != "yx86_64"],
             [CC_ASM_OBJS="x86-64.o sse-intrinsics.o"])
