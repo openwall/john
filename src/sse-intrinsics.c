@@ -612,6 +612,7 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 }
 #endif /* SIMD_PARA_MD5 */
 
+
 #if SIMD_PARA_MD4
 #define MD4_SSE_NUM_KEYS	(SIMD_COEF_32*SIMD_PARA_MD4)
 #define MD4_PARA_DO(x)	for((x)=0;(x)<SIMD_PARA_MD4;(x)++)
@@ -878,6 +879,7 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 }
 
 #endif /* SIMD_PARA_MD4 */
+
 
 #if SIMD_PARA_SHA1
 #define SHA1_SSE_NUM_KEYS	(SIMD_COEF_32*SIMD_PARA_SHA1)
@@ -1289,7 +1291,9 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 }
 #endif /* SIMD_PARA_SHA1 */
 
+
 #if SIMD_PARA_SHA256
+
 #define S0(x)                                   \
 (                                               \
     vxor(                                       \
@@ -1726,9 +1730,10 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 
 }
 #endif /* SIMD_PARA_SHA256 */
-/* SHA-512 below */
+
 
 #if SIMD_PARA_SHA512
+
 #undef S0
 #define S0(x)                                   \
 (                                               \
@@ -2126,4 +2131,5 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 		}
 	}
 }
+
 #endif /* SIMD_PARA_SHA512 */

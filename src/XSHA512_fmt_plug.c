@@ -25,7 +25,7 @@ john_register_one(&fmt_XSHA512);
 #ifdef SIMD_COEF_64
 #define OMP_SCALE               4096
 #else
-#define OMP_SCALE               64
+#define OMP_SCALE               8192
 #endif
 #endif
 
