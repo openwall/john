@@ -27,7 +27,7 @@
 
 #include "memdbg.h"
 
-#if _MSC_VER && !_M_X64
+#if _MSC_VER && !_M_X64 && __SSE2__
 /* These are slow, but the F'n 32 bit compiler will not build these intrinsics.
    Only the 64-bit (Win64) MSVC compiler has these as intrinsics. These slow
    ones let me debug, and develop this code, and work, but use CPU */
@@ -1234,7 +1234,7 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 }
 #endif /* SIMD_PARA_SHA1 */
 
-
+#if SIMD_PARA_SHA256
 #define S0(x)                                   \
 (                                               \
     vxor(                                       \
@@ -1661,9 +1661,10 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 	}
 
 }
-
+#endif /* SIMD_PARA_SHA256 */
 /* SHA-512 below */
 
+#if SIMD_PARA_SHA512
 #undef S0
 #define S0(x)                                   \
 (                                               \
@@ -2054,3 +2055,4 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 		}
 	}
 }
+#endif /* SIMD_PARA_SHA512 */
