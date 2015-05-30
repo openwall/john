@@ -20,7 +20,7 @@
 #include "formats.h"
 #include "cryptmd5_common.h"
 
-#if defined(_OPENMP) && defined(MD5_SSE_PARA)
+#if defined(_OPENMP) && defined(SIMD_PARA_MD5)
 #define OMP_SCALE			4
 #include <omp.h>
 #endif
@@ -35,7 +35,7 @@
 #define PLAINTEXT_LENGTH		15
 #define CIPHERTEXT_LENGTH		22
 
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 #define BINARY_SIZE			16
 #else
 #define BINARY_SIZE			4
@@ -81,7 +81,7 @@ static struct fmt_tests tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 static unsigned char cursalt[SALT_SIZE];
 static int CryptType;
 static MD5_word (*sout);
@@ -91,7 +91,7 @@ static int omp_para = 1;
 static void init(struct fmt_main *self)
 {
 	MD5_std_init(self);
-#if defined(_OPENMP) && defined(MD5_SSE_PARA)
+#if defined(_OPENMP) && defined(SIMD_PARA_MD5)
 	omp_para = omp_get_max_threads();
 	if (omp_para < 1)
 		omp_para = 1;
@@ -105,7 +105,7 @@ static void init(struct fmt_main *self)
 
 	saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
 	                             sizeof(*saved_key), MEM_ALIGN_CACHE);
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	sout = mem_calloc(self->params.max_keys_per_crypt,
 	                  sizeof(*sout) * BINARY_SIZE);
 #endif
@@ -113,7 +113,7 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	MEM_FREE(sout);
 #endif
 	MEM_FREE(saved_key);
@@ -121,7 +121,7 @@ static void done(void)
 
 static int get_hash_0(int index)
 {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
@@ -134,7 +134,7 @@ static int get_hash_0(int index)
 
 static int get_hash_1(int index)
 {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
@@ -147,7 +147,7 @@ static int get_hash_1(int index)
 
 static int get_hash_2(int index)
 {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
@@ -160,7 +160,7 @@ static int get_hash_2(int index)
 
 static int get_hash_3(int index)
 {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
@@ -173,7 +173,7 @@ static int get_hash_3(int index)
 
 static int get_hash_4(int index)
 {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
@@ -186,7 +186,7 @@ static int get_hash_4(int index)
 
 static int get_hash_5(int index)
 {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
@@ -199,7 +199,7 @@ static int get_hash_5(int index)
 
 static int get_hash_6(int index)
 {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
@@ -232,7 +232,7 @@ static int salt_hash(void *salt)
 
 static void set_key(char *key, int index)
 {
-#ifndef MD5_SSE_PARA
+#ifndef SIMD_PARA_MD5
 	MD5_std_set_key(key, index);
 #endif
 
@@ -249,7 +249,7 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 #ifdef _OPENMP
 	int t;
 #pragma omp parallel for
@@ -266,10 +266,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	unsigned int x,y;
 
-	for(y=0;y<MD5_SSE_PARA*omp_para;y++) for(x=0;x<SIMD_COEF_32;x++)
+	for(y=0;y<SIMD_PARA_MD5*omp_para;y++) for(x=0;x<SIMD_COEF_32;x++)
 	{
 		if( ((MD5_word *)binary)[0] == ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] )
 			return 1;
@@ -295,7 +295,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
@@ -317,7 +317,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	return 1;
 #else
 	init_t();
@@ -328,7 +328,7 @@ static int cmp_exact(char *source, int index)
 
 static void set_salt(void *salt)
 {
-#ifdef MD5_SSE_PARA
+#ifdef SIMD_PARA_MD5
 	memcpy(cursalt, salt, SALT_SIZE);
 	CryptType = cursalt[8];
 	cursalt[8] = 0;
@@ -359,7 +359,7 @@ struct fmt_main fmt_MD5 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#if MD5_std_mt || defined(MD5_SSE_PARA)
+#if MD5_std_mt || defined(SIMD_PARA_MD5)
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT,

@@ -19,7 +19,7 @@ john_register_one(&fmt_mssql);
 #include "arch.h"
 
 #ifdef SIMD_COEF_32
-#define NBKEYS	(SIMD_COEF_32 * SHA1_SSE_PARA)
+#define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
 #include "sse-intrinsics.h"
 
@@ -240,7 +240,7 @@ static char *get_key(int index) {
 static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
 	unsigned int x,y=0;
-	for(;y<SHA1_SSE_PARA;y++)
+	for(;y<SIMD_PARA_SHA1;y++)
 	for(x=0;x<SIMD_COEF_32;x++)
 	{
 		if( ((unsigned int *)binary)[0] == ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5] )

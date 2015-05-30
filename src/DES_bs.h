@@ -81,7 +81,11 @@ extern DES_bs_vector DES_bs_P[64];
 
 #if defined(_OPENMP) && !DES_BS_ASM
 #define DES_bs_mt			1
+#if __AVX2__
+#define DES_bs_cpt			16
+#else
 #define DES_bs_cpt			32
+#endif
 #define DES_bs_mt_max			(DES_bs_cpt * 576)
 extern int DES_bs_min_kpc, DES_bs_max_kpc;
 extern int DES_bs_nt;

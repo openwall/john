@@ -33,7 +33,7 @@ john_register_one(&fmt_wpapsk);
 //#undef SIMD_COEF_32
 
 #ifdef SIMD_COEF_32
-#  define NBKEYS	(SIMD_COEF_32 * SHA1_SSE_PARA)
+#  define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #  ifdef _OPENMP
 #    include <omp.h>
 #  endif

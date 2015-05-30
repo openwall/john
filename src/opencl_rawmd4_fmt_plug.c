@@ -488,11 +488,8 @@ static void reset(struct db_main *db)
 
 		if (loaded_hashes)
 			MEM_FREE(loaded_hashes);
-		if (hash_ids)
-			 MEM_FREE(hash_ids);
 
 		loaded_hashes = (cl_uint*)mem_alloc(16 * num_loaded_hashes);
-		hash_ids = (cl_uint*)mem_alloc((3 * num_loaded_hashes + 1) * 4);
 
 		while (tests[i].ciphertext != NULL) {
 			ciphertext = split(tests[i].ciphertext, 0, &fmt_opencl_rawMD4);
@@ -505,6 +502,7 @@ static void reset(struct db_main *db)
 		}
 
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_loaded_hashes, CL_TRUE, 0, 16 * num_loaded_hashes, loaded_hashes, 0, NULL, multi_profilingEvent[5]), "failed in clEnqueueWriteBuffer buffer_keys");
+		hash_ids[0] = 0;
 	}
 }
 

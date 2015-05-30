@@ -164,3 +164,52 @@ void hmac_md5(const unsigned char *key, const unsigned char *data,
 		hmac_md5_update(data, data_len, &ctx);
 	hmac_md5_final(digest, &ctx);
 }
+
+#ifndef min
+#define min( a, b ) ( ((a) < (b)) ? (a) : (b) )
+#endif
+
+#define _MD5_DIGEST_LENGTH_ 16
+
+void pkcs5_pbkdf2_md5(unsigned char *password, size_t plen,
+    unsigned char *salt, size_t slen,
+    unsigned long iteration_count, unsigned long key_length,
+    unsigned char *output)
+{
+	unsigned char d1[_MD5_DIGEST_LENGTH_];
+	unsigned char work[_MD5_DIGEST_LENGTH_];
+	unsigned long counter = 1;
+	unsigned long generated_key_length = 0;
+	unsigned long bytes_to_write = 0;
+	unsigned char c[4];
+	unsigned long ic = 1;
+
+	HMACMD5Context ctx;
+
+	while (generated_key_length < key_length) {
+		c[0] = (counter >> 24) & 0xff;
+		c[1] = (counter >> 16) & 0xff;
+		c[2] = (counter >> 8) & 0xff;
+		c[3] = (counter >> 0) & 0xff;
+
+		hmac_md5_init_rfc2104(password, plen, &ctx);
+		hmac_md5_update(salt, slen, &ctx);
+		hmac_md5_update(c, 4, &ctx);
+		hmac_md5_final(d1, &ctx);
+		memcpy(work, d1, _MD5_DIGEST_LENGTH_);
+
+		for (ic = 1; ic < iteration_count; ic++) {
+			unsigned long i = 0;
+			hmac_md5_init_rfc2104(password, plen, &ctx);
+			hmac_md5_update(d1, _MD5_DIGEST_LENGTH_, &ctx);
+			hmac_md5_final(d1, &ctx);
+			for (i = 0; i < _MD5_DIGEST_LENGTH_; i++)
+				work[i] ^= d1[i];
+		}
+
+		bytes_to_write = min((key_length - generated_key_length), _MD5_DIGEST_LENGTH_);
+		memcpy(output + generated_key_length, work, bytes_to_write);
+		generated_key_length += bytes_to_write;
+		++counter;
+	}
+}

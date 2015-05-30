@@ -138,7 +138,7 @@ static void pbkdf2_sha1(const unsigned char *K, int KL, const unsigned char *S, 
 
 #if defined(SIMD_COEF_32) && !defined(OPENCL_FORMAT)
 
-#define SSE_GROUP_SZ_SHA1 (SIMD_COEF_32*SHA1_SSE_PARA)
+#define SSE_GROUP_SZ_SHA1 (SIMD_COEF_32*SIMD_PARA_SHA1)
 
 
 static void _pbkdf2_sha1_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SSE_GROUP_SZ_SHA1], SHA_CTX pIpad[SSE_GROUP_SZ_SHA1], SHA_CTX pOpad[SSE_GROUP_SZ_SHA1])

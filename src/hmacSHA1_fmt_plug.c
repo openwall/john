@@ -33,7 +33,7 @@ john_register_one(&fmt_hmacSHA1);
 #define FORMAT_NAME             ""
 
 #ifdef SIMD_COEF_32
-#define SHA1_N                  (SHA1_SSE_PARA * SIMD_COEF_32)
+#define SHA1_N                  (SIMD_PARA_SHA1 * SIMD_COEF_32)
 #endif
 
 #define ALGORITHM_NAME          "password is key, SHA1 " SHA1_ALGORITHM_NAME

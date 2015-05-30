@@ -17,6 +17,7 @@
 #include "pufferfish_itoa64.h"
 #include "pufferfish_api.h"
 #include "pufferfish.h"
+#include "memdbg.h"
 
 static void pf_init ( puf_ctx *ctx, const void *pass, size_t len_p, const void *salt, size_t len_s, unsigned int m_cost )
 {

@@ -16,7 +16,7 @@
 
 #include "arch.h"
 
-#if defined(SHA1_SSE_PARA)
+#if defined(SIMD_PARA_SHA1)
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rawSHA1_LI;
@@ -27,7 +27,7 @@ john_register_one(&fmt_rawSHA1_LI);
 #include <string.h>
 
 #ifdef SIMD_COEF_32
-#define NBKEYS	(SIMD_COEF_32 * SHA1_SSE_PARA)
+#define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
 #include "sse-intrinsics.h"
 
@@ -201,7 +201,7 @@ static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
 	unsigned int x,y=0;
 
-	for(;y<SHA1_SSE_PARA;y++)
+	for(;y<SIMD_PARA_SHA1;y++)
 	for(x=0;x<SIMD_COEF_32;x++)
 	{
 		if( ((ARCH_WORD_32*)binary)[1] == crypt_key[x+y*SIMD_COEF_32*5+SIMD_COEF_32] )
@@ -423,4 +423,4 @@ struct fmt_main fmt_rawSHA1_LI = {
 
 #endif /* plugin stanza */
 
-#endif /* defined(SHA1_SSE_PARA) && SHA1_SSE_PARA < 4 */
+#endif /* defined(SIMD_PARA_SHA1) && SIMD_PARA_SHA1 < 4 */

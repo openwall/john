@@ -87,11 +87,9 @@ void *MEMDBG_libc_calloc(size_t count, size_t size) {
  *  MEMFPOSTd == freed (deleted) memory.  Will only be set this way, and stored in the
  *               freed_memlist, if MEMDBG_EXTRA_CHECKS is set.
  */
-#define MEMFPOST   0xa5a5a5a5
-#define MEMFPOSTt  0xa555a5a5
-#define MEMFPOSTd  0x5a5a5a5a
 const char *cpMEMFPOST  = "\xa5\xa5\xa5\xa5";
 const char *cpMEMFPOSTd = "\x5a\x5a\x5a\x5a";
+const char *cpMEMFPOSTt = "\xa5\x55\xa5\xa5";
 
 /*
  * this structure will contain data that is butted RIGHT against
@@ -106,28 +104,21 @@ typedef struct _hdr2 {
 } MEMDBG_HDR2;
 
 /*
- *  This structure is carefully crafted. It contains exactly
- *  4 32 bit values (possibly 6 on non-aligned hw), and 4 pointers
- *  In the end, we should have alignment as good as we would
- *  get from the allocator. This puts our mdbg_fpst2 RIGHT against
- *  the start of the allocated block.  We later will put the
- *  HDR2 RIGHT against the tail end of the buffer.  This will
- *  allow us to catch a single byte over or underflow.
+ *  This structure is carefully crafted to keep it in proper alignment.
+ *  We later will put the HDR2 RIGHT against the head end and tail end
+ *  of the buffer.  This allows us to catch 1 byte over or underflow.
  */
 typedef struct _hdr {
 	struct _hdr *mdbg_next;
 	struct _hdr *mdbg_prev;
+/* points to just 'right' before allocated memory, for underflow catching */
+	MEMDBG_HDR2 *mdbg_hdr1;
 /* points to just 'right' after allocated memory, for overflow catching */
 	MEMDBG_HDR2 *mdbg_hdr2;
 	const char  *mdbg_file;
 	ARCH_WORD_32 mdbg_line;
 	ARCH_WORD_32 mdbg_cnt;
 	ARCH_WORD_32 mdbg_size;
-#if SIMD_COEF_32 > 4
-	char padding[((sizeof(vtype) - ((4 * sizeof(void*) - 4 * sizeof(ARCH_WORD_32)) & (sizeof(vtype) - 1)))) & (sizeof(vtype) - 1)];
-#endif
-/* this should be 'right' against the allocated block, for underflow catching */
-	ARCH_WORD_32 mdbg_fpst;
 } MEMDBG_HDR;
 
 static size_t   mem_size = 0;
@@ -143,10 +134,12 @@ static size_t			freed_mem_size = 0;
 static unsigned long	freed_cnt = 0;
 #endif
 
-#define RESERVE_SZ (sizeof(MEMDBG_HDR))
+#define RESERVE_SZ       (sizeof(MEMDBG_HDR) + sizeof(MEMDBG_HDR*) + 4 + 16)
+#define RESERVE_SZ_AL(a) (sizeof(MEMDBG_HDR) + sizeof(MEMDBG_HDR*) + 4 + 16 + a*2)
 
-#define CLIENT_2_HDR(a) ((MEMDBG_HDR *) (((char *) (a)) - RESERVE_SZ))
-#define HDR_2_CLIENT(a) ((void *) (((char *) (a)) + RESERVE_SZ))
+#define CLIENT_2_HDR_PTR(a) ((MEMDBG_HDR *) (((char *) ((unsigned long long)(((char *)a)-4-sizeof(MEMDBG_HDR*)) & ~0xF))))
+#define CLIENT_2_HDR(a)     ((MEMDBG_HDR *) (((char *) ((unsigned long long)(((char *)a)-4-sizeof(MEMDBG_HDR*)) & ~0xF))))->mdbg_next
+#define HDR_2_CLIENT(a)     ((void *) (((char*)((MEMDBG_HDR *) (a->mdbg_hdr1))) + 4))
 
 static void   mem_fence_post_err_fp    (void *, const char *, int, char *fp, int line);
 static void   mem_fence_post_err_ne_fp (void *, const char *, int, char *fp, int line);
@@ -221,9 +214,9 @@ void MemDbg_Display(FILE *fp) {
 	while (p != NULL) {
 		int bfreed = 0, bbad=0;
 		fprintf(fp, "%-5d : %-6d : %6llu : %s(%u)", idx++, p->mdbg_cnt, (unsigned long long)p->mdbg_size, p->mdbg_file, p->mdbg_line);
-		if (p->mdbg_fpst != MEMFPOST && p->mdbg_fpst != MEMFPOSTt) {
+		if (memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4) && memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTt, 4)) {
 			bbad=1;
-			if (p->mdbg_fpst == MEMFPOSTd) {
+			if (!memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTd, 4)) {
 				fprintf(fp, " INVALID ( freed already? )");
 				bfreed = 1;
 			}
@@ -293,10 +286,10 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 		fprintf(stderr, "MemDbg_Validate level 0 checking");
 	}
 	while (p) {
-		if (p->mdbg_fpst != MEMFPOST && p->mdbg_fpst != MEMFPOSTt) {
+		if (memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4) && memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTt, 4)) {
 			++cnt;
 			if (cnt < 100) {
-				if (p->mdbg_fpst == MEMFPOSTd)
+				if (!memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTd, 4))
 					fprintf(stderr, "\nDeleted memory still in chain\n");
 				else {
 					fprintf(stderr, "\nMemory buffer underwrite found! Will try to list what file/line allocated the buffer\n");
@@ -308,7 +301,7 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 		if (memcmp(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOST, 4)) {
 			++cnt;
 			if (cnt < 100) {
-				if (p->mdbg_fpst == MEMFPOSTd) {
+				if (!memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTd, 4)) {
 				} else {
 					fprintf(stderr, "\nMemory buffer overwrite found! Will try to list what file/line allocated the buffer\n");
 					mem_fence_post_err_ne(p, p->mdbg_file, p->mdbg_line);
@@ -349,7 +342,7 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 	if (bShowExMessages)
 		fprintf(stderr, "MemDbg_Validate level 1 checking");
 	while (p) {
-		if (p->mdbg_fpst != MEMFPOSTd) {
+		if (memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTd, 4)) {
 			++cnt;
 			if (cnt < 100)
 				fprintf(stderr, "\nFreed Memory buffer underwrite found! Will try to list what file/line allocated the buffer\n");
@@ -393,7 +386,7 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 	if (bShowExMessages)
 		fprintf(stderr, "MemDbg_Validate level 2 checking");
 	while (p) {
-		cp = ((unsigned char*)p)+RESERVE_SZ;
+		cp = (unsigned char*)HDR_2_CLIENT(p);
 		if (p->mdbg_size != p->mdbg_hdr2->mdbg_fpst - cp) {
 			fprintf(stderr, "\nFreed Memory buffer underwrite found (size var busted)! Will try to list what file/line allocated the buffer\n");
 			mem_fence_post_err_ne(p, p->mdbg_file, p->mdbg_line);
@@ -444,7 +437,7 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 	if (bShowExMessages)
 		fprintf(stderr, "MemDbg_Validate level 3 checking");
 	while (p) {
-		cp = ((unsigned char*)p)+RESERVE_SZ;
+		cp = (unsigned char*)HDR_2_CLIENT(p);
 		// in this deepest mode, we look at the ENTIRE buffer.  In deeper, we looked at first 8, so here, we just start from 8 and look forward.
 		for (i = 8; i < p->mdbg_size; ++i) {
 			if (*cp++ != 0xCD) {
@@ -550,11 +543,12 @@ void * MEMDBG_calloc(size_t count, size_t size, char *file, int line)
  */
 void * MEMDBG_alloc(size_t size, char *file, int line)
 {
-	MEMDBG_HDR      *p;
+	MEMDBG_HDR      *p, *p2;
 
 	if ( ((signed long long)mem_size) < 0)
 		fprintf(stderr, "MEMDBG_alloc %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 
+	// TODO: we have to compute proper size here.
 	p = (MEMDBG_HDR*)malloc(RESERVE_SZ + size + 4);
 #ifdef MEMDBG_EXTRA_CHECKS
 #ifdef _OPENMP
@@ -587,11 +581,14 @@ void * MEMDBG_alloc(size_t size, char *file, int line)
 			fprintf(stderr, "MEMDBG_alloc (end) %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 		return NULL;
 	}
-	p->mdbg_fpst = MEMFPOST;
+	p->mdbg_hdr1 = (MEMDBG_HDR2*)(((char*)p)+RESERVE_SZ-4);
+	p2 = CLIENT_2_HDR_PTR(p->mdbg_hdr1+4);
+	memcpy(p2, &p, sizeof(p));
+	memcpy(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4);
 	p->mdbg_size = size;
 	p->mdbg_file = file;
 	p->mdbg_line = line;
-	p->mdbg_hdr2 = (MEMDBG_HDR2*)(((char*)p)+RESERVE_SZ + size);
+	p->mdbg_hdr2 = (MEMDBG_HDR2*)(((char*)p->mdbg_hdr1)+4 + size);
 	memcpy(p->mdbg_hdr2, cpMEMFPOST, 4);
 #ifdef _OPENMP
 #pragma omp critical (memdbg_crit)
@@ -608,35 +605,6 @@ void * MEMDBG_alloc(size_t size, char *file, int line)
 	return HDR_2_CLIENT(p);
 }
 
-static void *_mem_alloc_align(size_t size, size_t align)
-{
-	void *ptr = NULL;
-#if HAVE_POSIX_MEMALIGN
-	if (posix_memalign(&ptr, align, size))
-		perror("posix_memalign");
-#elif HAVE_ALIGNED_ALLOC
-	/* According to the Linux man page, "size should be a multiple of
-	   alignment", whatever they mean with "should"... This does not
-	   make any sense whatsoever but we round it up to comply. */
-	size = ((size + (align - 1)) / align) * align;
-	if (!(ptr = aligned_alloc(align, size)))
-		perror("aligned_alloc");
-#elif HAVE_MEMALIGN
-	/* Let's just pray this implementation can actually free it */
-	if (!(ptr = memalign(&ptr, align, size)))
-		perror("memalign");
-#elif HAVE___MINGW_ALIGNED_MALLOC
-	if (!(ptr = __mingw_aligned_malloc(size, align)))
-		perror("__mingw_aligned_malloc");
-#elif HAVE__ALIGNED_MALLOC
-	if (!(ptr = _aligned_malloc(size, align)))
-		perror("_aligned_malloc");
-#else
-#error No suitable alligned alloc found, please report to john-dev mailing list (state your OS details).
-#endif
-	return ptr;
-}
-
 /*
  *  MEMDBG_alloc_align
  *  Allocate a memory block. makes a protected call to malloc(), allocating
@@ -644,22 +612,31 @@ static void *_mem_alloc_align(size_t size, size_t align)
  */
 void * MEMDBG_alloc_align(size_t size, int align, char *file, int line)
 {
-	MEMDBG_HDR      *p;
+	MEMDBG_HDR      *p, *p2;
+	char *p3;
 
 	if ( ((signed long long)mem_size) < 0)
 		fprintf(stderr, "MEMDBG_alloc_align %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 
-	p = (MEMDBG_HDR*)_mem_alloc_align(RESERVE_SZ + size + 4, align);
+	p = (MEMDBG_HDR*)malloc(RESERVE_SZ_AL(align) + size + 4);
 	if (!p) {
 		if ( ((signed long long)mem_size) < 0)
 			fprintf(stderr, "MEMDBG_alloc_align (end) %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 		return NULL;
 	}
-	p->mdbg_fpst = MEMFPOST;
+
+	p3 = ((char*)p)+RESERVE_SZ+align-1-4;
+	p3 -= ((size_t)p3)%align;
+	if ( (((size_t)p3)/align) % align == 0)
+		p3 += align;
+	p->mdbg_hdr1 = (MEMDBG_HDR2*)(p3-4);
+	p2 = CLIENT_2_HDR_PTR(p3);
+	memcpy(p2, &p, sizeof(p));
+	memcpy(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4);
 	p->mdbg_size = size;
 	p->mdbg_file = file;
 	p->mdbg_line = line;
-	p->mdbg_hdr2 = (MEMDBG_HDR2*)(((char*)p)+RESERVE_SZ + size);
+	p->mdbg_hdr2 = (MEMDBG_HDR2*)(p3 + size);
 	memcpy(p->mdbg_hdr2, cpMEMFPOST, 4);
 #ifdef _OPENMP
 #pragma omp critical (memdbg_crit)
@@ -704,9 +681,9 @@ MEMDBG_realloc(const void *ptr, size_t size, char *file, int line)
 #endif
 	{
 		p = CLIENT_2_HDR(ptr);
-		if (p->mdbg_fpst == MEMFPOSTt)
+		if (!memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTt, 4))
 			istiny = 1;
-		else if (p->mdbg_fpst != MEMFPOST)
+		else if (memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4))
 			err = 1;
 		else {
 			for (i = 0; i < 4; ++i)
@@ -716,7 +693,7 @@ MEMDBG_realloc(const void *ptr, size_t size, char *file, int line)
 				}
 		}
 		if (err) {
-			if (p->mdbg_fpst == MEMFPOSTd)
+			if (!memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTd, 4))
 				err = 2;
 			else {
 				for (i = 0; i < 4; ++i)
@@ -742,7 +719,7 @@ MEMDBG_realloc(const void *ptr, size_t size, char *file, int line)
 		MEMDBG_free(ptr, file, line);
 		return NULL;
 	}
-	p->mdbg_fpst = MEMFPOSTd;
+	memcpy(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTd, 4);
 	memcpy(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOSTd, 4);
 #ifdef _OPENMP
 #pragma omp critical (memdbg_crit)
@@ -774,8 +751,8 @@ MEMDBG_realloc(const void *ptr, size_t size, char *file, int line)
 		 * unless the client code frees the original pointer.  'undoing' the
 		 * MEMDBG_LIST_delete(p) keeps our code knowing this is a lost pointer.
 		 */
-		p->mdbg_fpst = MEMFPOST;
-		memcpy(p->mdbg_hdr2, cpMEMFPOST, 4);
+		memcpy(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4);
+		memcpy(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOST, 4);
 #ifdef _OPENMP
 #pragma omp critical (memdbg_crit)
 #endif
@@ -827,8 +804,8 @@ MEMDBG_realloc(const void *ptr, size_t size, char *file, int line)
 			* memory.  Thus we need to 'leave' the leak alone.
 			*/
 		p = CLIENT_2_HDR(ptr);	/* we have to get 'original' pointer again */
-		p->mdbg_fpst = MEMFPOST;
-		memcpy(p->mdbg_hdr2, cpMEMFPOST, 4);
+		memcpy(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4);
+		memcpy(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOST, 4);
 #ifdef _OPENMP
 #pragma omp critical (memdbg_crit)
 #endif
@@ -842,12 +819,12 @@ MEMDBG_realloc(const void *ptr, size_t size, char *file, int line)
 			MEMDBG_tag_mem_from_alloc_tiny(p);
 		return NULL;
 	}
-	p->mdbg_fpst = MEMFPOST;
+	memcpy(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4);
 	p->mdbg_size = size;
 	p->mdbg_file = file;
 	p->mdbg_line = line;
 	p->mdbg_hdr2 = (MEMDBG_HDR2*)(((char*)p)+RESERVE_SZ + size);
-	memcpy(p->mdbg_hdr2, cpMEMFPOST, 4);
+	memcpy(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOST, 4);
 #ifdef _OPENMP
 #pragma omp critical (memdbg_crit)
 #endif
@@ -887,7 +864,7 @@ char *MEMDBG_strdup(const char *str, char *file, int line)
 unsigned MEMDBG_get_cnt (const void *ptr, const char **err_msg) {
 	MEMDBG_HDR *p = CLIENT_2_HDR(ptr);
 	*err_msg = "valid memdbg block";
-	if (p->mdbg_fpst != MEMFPOSTt)
+	if (memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTt, 4))
 		*err_msg = "INVALID memdbg memory (possible underflow), mdbg_cnt returned may not be correct!";
 	return (unsigned)p->mdbg_cnt;
 }
@@ -899,7 +876,7 @@ unsigned MEMDBG_get_cnt (const void *ptr, const char **err_msg) {
 size_t MEMDBG_get_size(const void *ptr, const char **err_msg) {
 	MEMDBG_HDR *p = CLIENT_2_HDR(ptr);
 	*err_msg = "valid memdbg block";
-	if (p->mdbg_fpst != MEMFPOSTt)
+	if (memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTt, 4))
 		*err_msg = "INVALID memdbg memory (possible underflow), mdbg_size returned may not be correct!";
 	return p->mdbg_size;
 }
@@ -911,14 +888,14 @@ size_t MEMDBG_get_size(const void *ptr, const char **err_msg) {
 const char *MEMDBG_get_file(const void *ptr, const char **err_msg) {
 	MEMDBG_HDR *p = CLIENT_2_HDR(ptr);
 	*err_msg = "valid memdbg block";
-	if (p->mdbg_fpst != MEMFPOSTt)
+	if (memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTt, 4))
 		*err_msg = "INVALID memdbg memory (possible underflow), mdbg_file returned may not be correct!";
 	return p->mdbg_file;
 }
 unsigned MEMDBG_get_line(const void *ptr, const char **err_msg) {
 	MEMDBG_HDR *p = CLIENT_2_HDR(ptr);
 	*err_msg = "valid memdbg block";
-	if (p->mdbg_fpst != MEMFPOSTt)
+	if (memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTt, 4))
 		*err_msg = "INVALID memdbg memory (possible underflow), mdbg_line returned may not be correct!";
 	return (unsigned)p->mdbg_line;
 }
@@ -938,11 +915,11 @@ void MEMDBG_free(const void *ptr, char *file, int line)
 #endif
 	{
 		p = CLIENT_2_HDR(ptr);
-		if (p->mdbg_fpst == MEMFPOSTt)
+		if (!memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTt, 4))
 			mem_sizet -= p->mdbg_size;
-		else if (p->mdbg_fpst == MEMFPOST)
+		else if (!memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4))
 			mem_size -= p->mdbg_size;
-		else if (p->mdbg_fpst != MEMFPOST)
+		else if (memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTt, 4))
 			err = 1;
 		else {
 			for (i = 0; i < 4; ++i)
@@ -951,12 +928,18 @@ void MEMDBG_free(const void *ptr, char *file, int line)
 					break;
 				}
 		}
-		if (err && p->mdbg_fpst == MEMFPOSTd)
-			err = 2;
+		if (err) {
+			for (i = 0; i < 4; ++i)
+				if (((char*)(p->mdbg_hdr1->mdbg_fpst))[i] != cpMEMFPOST[i]) {
+					err = 2;
+					break;
+				}
+		}
 		MEMDBG_LIST_delete(p);
-		p->mdbg_fpst = MEMFPOSTd;
-		for (i = 0; i < 4; ++i)
+		for (i = 0; i < 4; ++i) {
 			((char*)(p->mdbg_hdr2->mdbg_fpst))[i] = cpMEMFPOSTd[i];
+			((char*)(p->mdbg_hdr1->mdbg_fpst))[i] = cpMEMFPOSTd[i];
+		}
 	}
 	if (err) {
 		if (err == 2)
@@ -997,7 +980,7 @@ static void   MEMDBG_FREEDLIST_add(MEMDBG_HDR *p)
 			freed_memlist->mdbg_prev = p;
 		freed_memlist = p;
 		/* Ok, now 'DEADBEEF' the original data buffer */
-		cp = ((unsigned char*)p)+RESERVE_SZ;
+		cp = (unsigned char*)HDR_2_CLIENT(p);
 		for (i = 0; i < p->mdbg_size; ++i)
 			*cp++ = 0xCD;
 	}
@@ -1037,7 +1020,7 @@ void MEMDBG_checkSnapshot_possible_exit_on_error(MEMDBG_HANDLE h, int exit_on_an
 
 	/* first step, walk allocation list, looking for leaks */
 	while (p) {
-		if (p->mdbg_cnt > h.alloc_cnt && p->mdbg_fpst == MEMFPOST) {
+		if (p->mdbg_cnt > h.alloc_cnt && !memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4)) {
 			leak = 1;
 			fprintf(stderr, "Mem leak: %llu bytes, alloc_num %d, file %s, line %d\n", (unsigned long long)p->mdbg_size, p->mdbg_cnt, p->mdbg_file, p->mdbg_line);
 		}
@@ -1057,8 +1040,8 @@ void MEMDBG_tag_mem_from_alloc_tiny(void *ptr) {
 #pragma omp critical (memdbg_crit)
 #endif
 	{
-		if (p->mdbg_fpst == MEMFPOST) {
-			p->mdbg_fpst = MEMFPOSTt;
+		if (!memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4)) {
+			memcpy(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTt, 4);
 			mem_size -= p->mdbg_size;
 			mem_sizet += p->mdbg_size;
 			if (mem_sizet > max_mem_sizet)

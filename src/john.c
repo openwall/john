@@ -222,6 +222,17 @@ static void john_register_one(struct fmt_main *format)
 		else if (!strcasecmp(options.format, "avx2")) {
 			if (!strstr(format->params.algorithm_name, "AVX2")) return;
 		}
+		else if (!strcasecmp(options.format, "sha2")) {
+			if (strstr(format->params.label, "-opencl") ||
+			    strstr(format->params.label, "-cuda") ||
+			    (!strcasestr(format->params.algorithm_name, "sha2") &&
+			    !strcasestr(format->params.algorithm_name, "sha38") &&
+			    !strcasestr(format->params.algorithm_name, "sha5") &&
+			    !strcasestr(format->params.algorithm_name, "sha-2") &&
+			    !strcasestr(format->params.algorithm_name, "sha-38") &&
+			     !strcasestr(format->params.algorithm_name, "sha-5")))
+				return;
+		}
 		else if (!strcasecmp(options.format, "avx512")) {
 			if (!strstr(format->params.algorithm_name, "AVX512")
 			    && (!strstr(format->params.algorithm_name, "MIC"))) return;
@@ -1234,7 +1245,7 @@ static void john_init(char *name, int argc, char **argv)
 		if (options.config)
 		{
 			path_init_ex(options.config);
-			cfg_init(options.config, 1);
+			cfg_init(options.config, 0);
 			cfg_init(CFG_FULL_NAME, 1);
 			cfg_init(CFG_ALT_NAME, 0);
 		}
@@ -1529,10 +1540,27 @@ static void john_done(void)
 	cleanup_tiny_memory();
 }
 
+//#define TEST_MEMDBG_LOGIC
+
 int main(int argc, char **argv)
 {
 	char *name;
 	unsigned int time;
+
+#ifdef TEST_MEMDBG_LOGIC
+	int i,j;
+	char *cp[260];
+	for (i = 1; i < 257; ++i) {
+		cp[i] = mem_alloc_align(43,i);
+		for (j = 0; j < 43; ++j)
+			cp[i][j] = 'x';
+		printf ("%03d offset %x  %x %x\n", i, cp[i], (unsigned)(cp[i])%i, (((unsigned)(cp[i]))/i)%i);
+	}
+	for (i = 1; i < 257; ++i)
+		MEM_FREE(cp[i]);
+	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
+	exit(0);
+#endif
 
 	sig_preinit(); // Mitigate race conditions
 #ifdef __DJGPP__

@@ -60,7 +60,7 @@ static unsigned int omp_t = 1;
 #define CIPHERTEXT_LENGTH		(1 + 4 + 1 + SALT_LENGTH * 2 + 1 + MD5_HEX_SIZE)
 
 #ifdef SIMD_COEF_32
-#define NBKEYS					(SIMD_COEF_32 * MD5_SSE_PARA)
+#define NBKEYS					(SIMD_COEF_32 * SIMD_PARA_MD5)
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
@@ -408,9 +408,9 @@ static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
 	unsigned int x,y=0;
 #ifdef _OPENMP
-	for(;y<MD5_SSE_PARA*omp_t;y++)
+	for(;y<SIMD_PARA_MD5*omp_t;y++)
 #else
-	for(;y<MD5_SSE_PARA;y++)
+	for(;y<SIMD_PARA_MD5;y++)
 #endif
 		for(x = 0; x < SIMD_COEF_32; x++)
 		{

@@ -63,6 +63,7 @@
 #include <openssl/des.h>
 
 #include "mdc2-JtR.h"
+#include "memdbg.h"
 
 #undef c2l
 #define c2l(c,l)	(l =((DES_LONG)(*((c)++)))    , \

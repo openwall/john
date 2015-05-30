@@ -34,7 +34,7 @@ john_register_one(&fmt_hmacMD5);
 #define FORMAT_NAME             ""
 
 #ifdef SIMD_COEF_32
-#define MD5_N                   (MD5_SSE_PARA * SIMD_COEF_32)
+#define MD5_N                   (SIMD_PARA_MD5 * SIMD_COEF_32)
 #endif
 
 #define ALGORITHM_NAME          "password is key, MD5 " MD5_ALGORITHM_NAME

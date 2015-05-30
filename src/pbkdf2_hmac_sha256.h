@@ -167,7 +167,7 @@ extern void sha256_final  (void *output, sha256_ctx *ctx);
 #if SIMD_PARA_SHA256
 #define SSE_GROUP_SZ_SHA256 (SIMD_COEF_32*SIMD_PARA_SHA256)
 #else
-#define SSE_GROUP_SZ_SHA256 SIMD_COEF_32
+#error No SIMD_PARA_SHA256 defined
 #endif
 
 static void _pbkdf2_sha256_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA256], int KL[SSE_GROUP_SZ_SHA256], SHA256_CTX pIpad[SSE_GROUP_SZ_SHA256], SHA256_CTX pOpad[SSE_GROUP_SZ_SHA256])
@@ -200,7 +200,7 @@ static void _pbkdf2_sha256_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA
 	}
 }
 
-static void pbkdf2_sha256_sse(const unsigned char *K[SIMD_COEF_32], int KL[SIMD_COEF_32], unsigned char *S, int SL, int R, unsigned char *out[SIMD_COEF_32], int outlen, int skip_bytes)
+static void pbkdf2_sha256_sse(const unsigned char *K[SSE_GROUP_SZ_SHA256], int KL[SSE_GROUP_SZ_SHA256], unsigned char *S, int SL, int R, unsigned char *out[SSE_GROUP_SZ_SHA256], int outlen, int skip_bytes)
 {
 	unsigned char tmp_hash[SHA256_DIGEST_LENGTH];
 	ARCH_WORD_32 *i1, *i2, *o1, *ptmp;
@@ -211,7 +211,7 @@ static void pbkdf2_sha256_sse(const unsigned char *K[SIMD_COEF_32], int KL[SIMD_
 	SHA256_CTX ipad[SSE_GROUP_SZ_SHA256], opad[SSE_GROUP_SZ_SHA256], ctx;
 
 	// sse_hash1 would need to be 'adjusted' for SHA256_PARA
-	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_hash1[SHA256_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_SHA256];
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_hash1[SHA_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_SHA256];
 	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt1[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256];
 	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt2[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256];
 	i1 = (ARCH_WORD_32*)sse_crypt1;
@@ -223,7 +223,7 @@ static void pbkdf2_sha256_sse(const unsigned char *K[SIMD_COEF_32], int KL[SIMD_
 	// part of the buffer is setup, we never touch it again, for the rest of the crypt.  We simply overwrite the first
 	// half of this buffer, over and over again, with BE results of the prior hash.
 	for (j = 0; j < SSE_GROUP_SZ_SHA256/SIMD_COEF_32; ++j) {
-		ptmp = &o1[j*SIMD_COEF_32*SHA256_BUF_SIZ];
+		ptmp = &o1[j*SIMD_COEF_32*SHA_BUF_SIZ];
 		for (i = 0; i < SIMD_COEF_32; ++i)
 			ptmp[ (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32))*SIMD_COEF_32 + (i&(SIMD_COEF_32-1))] = 0x80000000;
 		for (i = (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)+1)*SIMD_COEF_32; i < 15*SIMD_COEF_32; ++i)
@@ -280,7 +280,7 @@ static void pbkdf2_sha256_sse(const unsigned char *K[SIMD_COEF_32], int KL[SIMD_
 			// now convert this from flat into SIMD_COEF_32 buffers.
 			// Also, perform the 'first' ^= into the crypt buffer.  NOTE, we are doing that in BE format
 			// so we will need to 'undo' that in the end.
-			ptmp = &o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA256_BUF_SIZ+(j&(SIMD_COEF_32-1))];
+			ptmp = &o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))];
 			for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); ++i) {
 #if COMMON_DIGEST_FOR_OPENSSL
 				*ptmp = dgst[j][i] = ctx.hash[i];
@@ -296,9 +296,9 @@ static void pbkdf2_sha256_sse(const unsigned char *K[SIMD_COEF_32], int KL[SIMD_
 			unsigned int k;
 			SSESHA256body(o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SSESHA256body(o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
-			// only xor first 16 bytes, since that is ALL this format uses
+			// only xor first 16 words
 			for (k = 0; k < SSE_GROUP_SZ_SHA256; k++) {
-				ARCH_WORD_32 *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA256_BUF_SIZ + (k&(SIMD_COEF_32-1))];
+				ARCH_WORD_32 *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ + (k&(SIMD_COEF_32-1))];
 				for(j = 0; j < (SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++)
 					dgst[k][j] ^= p[(j*SIMD_COEF_32)];
 			}

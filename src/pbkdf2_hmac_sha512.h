@@ -60,8 +60,8 @@ static void _pbkdf2_sha512_load_hmac(const unsigned char *K, int KL, SHA512_CTX 
 static void _pbkdf2_sha512(const unsigned char *S, int SL, int R, ARCH_WORD_64 *out,
 	                     unsigned char loop, const SHA512_CTX *pIpad, const SHA512_CTX *pOpad) {
 	SHA512_CTX ctx;
-	unsigned char tmp_hash[SHA512_DIGEST_LENGTH];
 	unsigned i, j;
+	unsigned char tmp_hash[SHA512_DIGEST_LENGTH];
 
 	memcpy(&ctx, pIpad, sizeof(SHA512_CTX));
 	SHA512_Update(&ctx, S, SL);
@@ -110,7 +110,6 @@ static void _pbkdf2_sha512(const unsigned char *S, int SL, int R, ARCH_WORD_64 *
 		for(j = 0; j < SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64); j++)
 			out[j] ^= ((ARCH_WORD_64*)tmp_hash)[j];
 	}
-
 }
 
 static void pbkdf2_sha512(const unsigned char *K, int KL, unsigned char *S, int SL, int R, unsigned char *out, int outlen, int skip_bytes)
@@ -126,7 +125,6 @@ static void pbkdf2_sha512(const unsigned char *K, int KL, unsigned char *S, int 
 
 	loops = (skip_bytes + outlen + (SHA512_DIGEST_LENGTH-1)) / SHA512_DIGEST_LENGTH;
 	loop = skip_bytes / SHA512_DIGEST_LENGTH + 1;
-
 	while (loop <= loops) {
 		_pbkdf2_sha512(S,SL,R,tmp.x64,loop,&ipad,&opad);
 		for (i = skip_bytes%SHA512_DIGEST_LENGTH; i < SHA512_DIGEST_LENGTH && accum < outlen; i++) {
@@ -167,7 +165,7 @@ extern void sha512_final  (void *output, sha512_ctx *ctx);
 #if SIMD_PARA_SHA512
 #define SSE_GROUP_SZ_SHA512 (SIMD_COEF_64*SIMD_PARA_SHA512)
 #else
-#define SSE_GROUP_SZ_SHA512 SIMD_COEF_64
+#error No SIMD_PARA_SHA512 defined
 #endif
 
 static void _pbkdf2_sha512_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA512], int KL[SSE_GROUP_SZ_SHA512], SHA512_CTX pIpad[SSE_GROUP_SZ_SHA512], SHA512_CTX pOpad[SSE_GROUP_SZ_SHA512])
@@ -200,7 +198,7 @@ static void _pbkdf2_sha512_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA
 	}
 }
 
-static void pbkdf2_sha512_sse(const unsigned char *K[SIMD_COEF_64], int KL[SIMD_COEF_64], unsigned char *S, int SL, int R, unsigned char *out[SIMD_COEF_64], int outlen, int skip_bytes)
+static void pbkdf2_sha512_sse(const unsigned char *K[SSE_GROUP_SZ_SHA512], int KL[SSE_GROUP_SZ_SHA512], unsigned char *S, int SL, int R, unsigned char *out[SSE_GROUP_SZ_SHA512], int outlen, int skip_bytes)
 {
 	unsigned char tmp_hash[SHA512_DIGEST_LENGTH];
 	ARCH_WORD_64 *i1, *i2, *o1, *ptmp;
@@ -211,7 +209,7 @@ static void pbkdf2_sha512_sse(const unsigned char *K[SIMD_COEF_64], int KL[SIMD_
 	SHA512_CTX ipad[SSE_GROUP_SZ_SHA512], opad[SSE_GROUP_SZ_SHA512], ctx;
 
 	// sse_hash1 would need to be 'adjusted' for SHA512_PARA
-	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_hash1[SHA512_BUF_SIZ*sizeof(ARCH_WORD_64)*SSE_GROUP_SZ_SHA512];
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_hash1[SHA_BUF_SIZ*sizeof(ARCH_WORD_64)*SSE_GROUP_SZ_SHA512];
 	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt1[SHA512_DIGEST_LENGTH*SSE_GROUP_SZ_SHA512];
 	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt2[SHA512_DIGEST_LENGTH*SSE_GROUP_SZ_SHA512];
 	i1 = (ARCH_WORD_64*)sse_crypt1;
@@ -223,7 +221,7 @@ static void pbkdf2_sha512_sse(const unsigned char *K[SIMD_COEF_64], int KL[SIMD_
 	// part of the buffer is setup, we never touch it again, for the rest of the crypt.  We simply overwrite the first
 	// half of this buffer, over and over again, with BE results of the prior hash.
 	for (j = 0; j < SSE_GROUP_SZ_SHA512/SIMD_COEF_64; ++j) {
-		ptmp = &o1[j*SIMD_COEF_64*SHA512_BUF_SIZ];
+		ptmp = &o1[j*SIMD_COEF_64*SHA_BUF_SIZ];
 		for (i = 0; i < SIMD_COEF_64; ++i)
 			ptmp[ (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64))*SIMD_COEF_64 + (i&(SIMD_COEF_64-1))] = 0x8000000000000000ULL;
 		for (i = (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)+1)*SIMD_COEF_64; i < 15*SIMD_COEF_64; ++i)
@@ -280,7 +278,7 @@ static void pbkdf2_sha512_sse(const unsigned char *K[SIMD_COEF_64], int KL[SIMD_
 			// now convert this from flat into SIMD_COEF_64 buffers.
 			// Also, perform the 'first' ^= into the crypt buffer.  NOTE, we are doing that in BE format
 			// so we will need to 'undo' that in the end.
-			ptmp = &o1[(j/SIMD_COEF_64)*SIMD_COEF_64*SHA512_BUF_SIZ+(j&(SIMD_COEF_64-1))];
+			ptmp = &o1[(j/SIMD_COEF_64)*SIMD_COEF_64*SHA_BUF_SIZ+(j&(SIMD_COEF_64-1))];
 			for (i = 0; i < (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)); ++i) {
 #if COMMON_DIGEST_FOR_OPENSSL
 				*ptmp = dgst[j][i] = ctx.hash[i];
@@ -296,9 +294,9 @@ static void pbkdf2_sha512_sse(const unsigned char *K[SIMD_COEF_64], int KL[SIMD_
 			unsigned int k;
 			SSESHA512body(o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SSESHA512body(o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
-			// only xor first 16 bytes, since that is ALL this format uses
+			// only xor first 16 64-bit words
 			for (k = 0; k < SSE_GROUP_SZ_SHA512; k++) {
-				ARCH_WORD_64 *p = &o1[(k/SIMD_COEF_64)*SIMD_COEF_64*SHA512_BUF_SIZ + (k&(SIMD_COEF_64-1))];
+				ARCH_WORD_64 *p = &o1[(k/SIMD_COEF_64)*SIMD_COEF_64*SHA_BUF_SIZ + (k&(SIMD_COEF_64-1))];
 				for(j = 0; j < (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)); j++)
 					dgst[k][j] ^= p[j*SIMD_COEF_64];
 			}

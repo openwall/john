@@ -54,7 +54,7 @@ john_register_one(&fmt_SybaseASE);
 #endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL        "sybasease"
+#define FORMAT_LABEL        "SybaseASE"
 #define FORMAT_NAME         "Sybase ASE"
 
 #define ALGORITHM_NAME      "SHA256 " SHA256_ALGORITHM_NAME
@@ -117,15 +117,15 @@ static void init(struct fmt_main *self)
 	kpc = self->params.max_keys_per_crypt;
 
 	prep_key = mem_calloc_tiny(sizeof(*prep_key) *
-		self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+		self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
 	crypt_out = mem_alloc_tiny(sizeof(*crypt_out) *
-		self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+		self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
 
 	if (pers_opts.target_enc == UTF_8)
 		fmt_SybaseASE.params.plaintext_length = 125;
 	// will simply set SIMD stuff here, even if not 'used'
 #ifdef SIMD_COEF_32
-	NULL_LIMB = mem_calloc_tiny(64*MAX_KEYS_PER_CRYPT, MEM_ALIGN_SIMD);
+	NULL_LIMB = mem_calloc_tiny(64*MAX_KEYS_PER_CRYPT, MEM_ALIGN_CACHE);
 	last_len = mem_calloc_tiny(sizeof(*last_len)*self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	for (i = 0; i < kpc/MAX_KEYS_PER_CRYPT; ++i) {
 		int j;
@@ -246,6 +246,10 @@ static void set_key(char *key, int index)
 	UTF16 tmp[PLAINTEXT_LENGTH+1];
 	int len2, len = enc_to_utf16_be(tmp, PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
 	int idx1=index/MAX_KEYS_PER_CRYPT, idx2=index%MAX_KEYS_PER_CRYPT;
+
+	if (len < 0)
+		len = strlen16(tmp);
+
 	if (len > 32)
 		memcpy(prep_key[idx1][1][idx2], &tmp[32], (len-32)<<1);
 	len2 = len;
@@ -319,9 +323,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA256_Update(&ctx, prep_key[index], 518);
 		SHA256_Final((unsigned char *)crypt_out[index], &ctx);
 #else
-		unsigned char _OBuf[32*MAX_KEYS_PER_CRYPT+MEM_ALIGN_SIMD], *crypt;
-		uint32_t *crypt32, i, j;
-		crypt = (unsigned char*)mem_align(_OBuf, MEM_ALIGN_SIMD);
+		unsigned char _OBuf[32*MAX_KEYS_PER_CRYPT+MEM_ALIGN_CACHE], *crypt;
+		uint32_t *crypt32;
+		crypt = (unsigned char*)mem_align(_OBuf, MEM_ALIGN_CACHE);
 		crypt32 = (uint32_t*)crypt;
 
 		SSESHA256body(prep_key[index/MAX_KEYS_PER_CRYPT], crypt32, NULL, SSEi_FLAT_IN|SSEi_FLAT_RELOAD_SWAPLAST);
@@ -332,14 +336,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SSESHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
 		SSESHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
 		SSESHA256body(&(prep_key[index/MAX_KEYS_PER_CRYPT][2]), crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD|SSEi_FLAT_RELOAD_SWAPLAST);
-		SSESHA256body(&(prep_key[index/MAX_KEYS_PER_CRYPT][3]), crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
-		// now marshal into crypt_out;
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			uint32_t *Optr32 = (uint32_t*)(crypt_out[index+i]);
-			uint32_t *Iptr32 = &crypt32[(i/SIMD_COEF_32)*SIMD_COEF_32*8 + (i%SIMD_COEF_32)];
-			for (j = 0; j < 8; ++j)
-				Optr32[j] = JOHNSWAP(Iptr32[j*SIMD_COEF_32]);
-		}
+		// Last one with FLAT_OUT
+		SSESHA256body(&(prep_key[index/MAX_KEYS_PER_CRYPT][3]), crypt_out[index], crypt32, SSEi_FLAT_IN|SSEi_RELOAD|SSEi_FLAT_OUT);
 #endif
 	}
 	return count;

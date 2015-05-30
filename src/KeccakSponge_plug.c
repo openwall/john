@@ -14,6 +14,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #include <string.h>
 #include "KeccakSponge.h"
 #include "KeccakF-1600-interface.h"
+#include "memdbg.h"
 
 /* ---------------------------------------------------------------- */
 
@@ -94,7 +95,7 @@ int Keccak_SpongeAbsorb(Keccak_SpongeInstance *instance, const unsigned char *da
 
 int Keccak_SpongeAbsorbLastFewBits(Keccak_SpongeInstance *instance, unsigned char delimitedData)
 {
-    unsigned char delimitedData1[1];
+    unsigned char delimitedData1[8]; // allocate 8 bytes (instead of 1) to make ASan happy
     unsigned int rateInBytes = instance->rate/8;
 
     if (delimitedData == 0)

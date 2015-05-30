@@ -5,7 +5,7 @@ Fedora >= 21 cross-compiling instructions
 -------------
 
 $ sudo yum install mingw32-openssl mingw32-openssl-static \
-	mingw32-gcc mingw32-gcc-c++ -y
+	mingw32-gcc mingw32-gcc-c++ binutils -y
 
 $ ./configure --host=i686-w64-mingw32
 
@@ -16,8 +16,13 @@ $ make -j4
 
 $ sudo yum install mingw64-openssl mingw64-openssl-static \
 	mingw64-gcc mingw64-gcc-c++ mingw64-winpthreads-static \
-	mingw64-zlib-static mingw64-libgomp -y
+	mingw64-zlib-static mingw64-libgomp binutils -y
 
 $ ./configure --host=x86_64-w64-mingw32
 
 $ make -j4
+
+Notes
+-----
+
+Ubuntu (and similar systems) do not have a full MinGW environment.

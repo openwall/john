@@ -128,16 +128,18 @@
 #define DES_BS_VECTOR_SIZE		8
 #define DES_BS_VECTOR			5
 #define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX-16 + 64/64"
-#elif 0
+#elif __AVX2__
 /* 256-bit as 1x256 */
 #define DES_BS_VECTOR			4
 #if defined(JOHN_XOP) && defined(__GNUC__)
 /* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
 #undef DES_BS
 #define DES_BS				3
-#define DES_BS_ALGORITHM_NAME		"DES 256/256 XOP-16"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 XOP2-16"
 #else
-#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX-16"
+#undef CPU_NAME
+#define CPU_NAME			"AVX2"
+#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX2-16"
 #endif
 #elif 0
 /* 256-bit as 2x128 */
@@ -226,81 +228,95 @@
 #define SIMD_COEF_64 1
 #endif
 
-#ifndef MD5_SSE_PARA
+#ifndef SIMD_PARA_MD4
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
-#define MD5_SSE_PARA			3
+#define SIMD_PARA_MD4			3
 #elif defined(__clang__)
-#define MD5_SSE_PARA			5
+#define SIMD_PARA_MD4			4
 #elif defined(__llvm__)
-#define MD5_SSE_PARA			3
+#define SIMD_PARA_MD4			3
+#elif defined(__GNUC__) && GCC_VERSION < 40405	// 4.4.5
+#define SIMD_PARA_MD4			1
+#elif defined(__GNUC__) && GCC_VERSION < 40500	// 4.5.0
+#define SIMD_PARA_MD4			3
+#elif defined(__GNUC__) && (GCC_VERSION < 40600 || defined(__XOP__)) // 4.6.0
+#define SIMD_PARA_MD4			2
+#else
+#define SIMD_PARA_MD4			3
+#endif
+#endif
+
+#ifndef SIMD_PARA_MD5
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#define SIMD_PARA_MD5			3
+#elif defined(__clang__)
+#define SIMD_PARA_MD5			5
+#elif defined(__llvm__)
+#define SIMD_PARA_MD5			3
 #elif defined(__GNUC__) && GCC_VERSION == 30406	// 3.4.6
-#define MD5_SSE_PARA			3
+#define SIMD_PARA_MD5			3
 #elif defined(__GNUC__) && GCC_VERSION < 40405	// 4.4.5
-#define MD5_SSE_PARA			1
+#define SIMD_PARA_MD5			1
 #elif defined(__GNUC__) && GCC_VERSION < 40500	// 4.5.0
-#define MD5_SSE_PARA			3
+#define SIMD_PARA_MD5			3
 #elif defined(__GNUC__) && (GCC_VERSION < 40600 || defined(__XOP__)) // 4.6.0
-#define MD5_SSE_PARA			2
+#define SIMD_PARA_MD5			2
 #else
-#define MD5_SSE_PARA			3
+#define SIMD_PARA_MD5			3
 #endif
 #endif
 
-#ifndef MD4_SSE_PARA
+#ifndef SIMD_PARA_SHA1
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
-#define MD4_SSE_PARA			3
+#define SIMD_PARA_SHA1			1
 #elif defined(__clang__)
-#define MD4_SSE_PARA			4
+#define SIMD_PARA_SHA1			2
 #elif defined(__llvm__)
-#define MD4_SSE_PARA			3
-#elif defined(__GNUC__) && GCC_VERSION < 40405	// 4.4.5
-#define MD4_SSE_PARA			1
-#elif defined(__GNUC__) && GCC_VERSION < 40500	// 4.5.0
-#define MD4_SSE_PARA			3
-#elif defined(__GNUC__) && (GCC_VERSION < 40600 || defined(__XOP__)) // 4.6.0
-#define MD4_SSE_PARA			2
-#else
-#define MD4_SSE_PARA			3
-#endif
-#endif
-
-#ifndef SHA1_SSE_PARA
-#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
-#define SHA1_SSE_PARA			1
-#elif defined(__clang__)
-#define SHA1_SSE_PARA			2
-#elif defined(__llvm__)
-#define SHA1_SSE_PARA			2
+#define SIMD_PARA_SHA1			2
 #elif defined(__GNUC__) && GCC_VERSION < 40504	// 4.5.4
-#define SHA1_SSE_PARA			1
+#define SIMD_PARA_SHA1			1
 #elif !defined(__AVX__) && defined(__GNUC__) && GCC_VERSION > 40700 // 4.7.0
-#define SHA1_SSE_PARA			1
+#define SIMD_PARA_SHA1			1
 #else
-#define SHA1_SSE_PARA			2
+#define SIMD_PARA_SHA1			2
 #endif
 #endif
 
+#ifndef SIMD_PARA_SHA256
 #define SIMD_PARA_SHA256 1
+#endif
+#ifndef SIMD_PARA_SHA512
 #define SIMD_PARA_SHA512 1
+#endif
 
 #define STR_VALUE(arg)			#arg
 #define PARA_TO_N(n)			STR_VALUE(n) "x"
 #define PARA_TO_MxN(m, n)		STR_VALUE(m) "x" STR_VALUE(n)
 
-#if MD4_SSE_PARA > 1
-#define MD4_N_STR			PARA_TO_MxN(SIMD_COEF_32, MD4_SSE_PARA)
+#if SIMD_PARA_MD4 > 1
+#define MD4_N_STR			PARA_TO_MxN(SIMD_COEF_32, SIMD_PARA_MD4)
 #else
 #define MD4_N_STR			PARA_TO_N(SIMD_COEF_32)
 #endif
-#if MD5_SSE_PARA > 1
-#define MD5_N_STR			PARA_TO_MxN(SIMD_COEF_32, MD5_SSE_PARA)
+#if SIMD_PARA_MD5 > 1
+#define MD5_N_STR			PARA_TO_MxN(SIMD_COEF_32, SIMD_PARA_MD5)
 #else
 #define MD5_N_STR			PARA_TO_N(SIMD_COEF_32)
 #endif
-#if SHA1_SSE_PARA > 1
-#define SHA1_N_STR			PARA_TO_MxN(SIMD_COEF_32, SHA1_SSE_PARA)
+#if SIMD_PARA_SHA1 > 1
+#define SHA1_N_STR			PARA_TO_MxN(SIMD_COEF_32, SIMD_PARA_SHA1)
 #else
 #define SHA1_N_STR			PARA_TO_N(SIMD_COEF_32)
+#endif
+#if SIMD_PARA_SHA256 > 1
+#define SHA256_N_STR		PARA_TO_MxN(SIMD_COEF_32, SIMD_PARA_SHA256)
+#else
+#define SHA256_N_STR		PARA_TO_N(SIMD_COEF_32)
+#endif
+#if SIMD_PARA_SHA512 > 1
+#define SHA512_N_STR		PARA_TO_MxN(SIMD_COEF_64, SIMD_PARA_SHA512)
+#else
+#define SHA512_N_STR		PARA_TO_N(SIMD_COEF_64)
 #endif
 
 #define SHA_BUF_SIZ			16

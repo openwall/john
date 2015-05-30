@@ -1,4 +1,5 @@
 #include "gost3411-tables.h"
+#include "memdbg.h"
 
 ALIGN(16) const union uint512_u buffer0 = {{ 0, 0, 0, 0, 0, 0, 0, 0 }};
 

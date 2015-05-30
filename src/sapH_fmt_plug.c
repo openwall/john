@@ -30,7 +30,7 @@ john_register_one(&fmt_sapH);
 /* for now, undef this until I get OMP working, then start on SIMD */
 //#undef _OPENMP
 //#undef SIMD_COEF_32
-//#undef SHA1_SSE_PARA
+//#undef SIMD_PARA_SHA1
 //#undef SIMD_COEF_32
 //#undef SIMD_PARA_SHA256
 //#undef SIMD_COEF_64
@@ -54,14 +54,14 @@ john_register_one(&fmt_sapH);
 #endif
 
 /*
- * Assumption is made that SIMD_COEF_32*SHA1_SSE_PARA is >= than
+ * Assumption is made that SIMD_COEF_32*SIMD_PARA_SHA1 is >= than
  * SHA256_COEF*PARA and SHA512_COEF*PARA, and that these other 2
  * will evenly divide the SIMD_COEF_32*SHA1_SSRE_PARA value.
- * Works with current code. BUT if SHA1_SSE_PARA was 3 and
+ * Works with current code. BUT if SIMD_PARA_SHA1 was 3 and
  * SIMD_PARA_SHA256 was 2, then we would have problems.
  */
 #ifdef SIMD_COEF_32
-#define NBKEYS1	(SIMD_COEF_32 * SHA1_SSE_PARA)
+#define NBKEYS1	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #else
 #define NBKEYS1 1
 #endif
@@ -77,6 +77,9 @@ john_register_one(&fmt_sapH);
 #else
 #define NBKEYS512 1
 #endif
+
+// the least common multiple of the NBKEYS* above
+#define NBKEYS (SIMD_COEF_32*SIMD_PARA_SHA1*SIMD_PARA_SHA256*SIMD_PARA_SHA512)
 
 #include "sse-intrinsics.h"
 
@@ -105,8 +108,8 @@ john_register_one(&fmt_sapH);
 
 /* NOTE, format is slow enough that endianity conversion is pointless. Just use flat buffers. */
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT		NBKEYS1
-#define MAX_KEYS_PER_CRYPT		NBKEYS1
+#define MIN_KEYS_PER_CRYPT		NBKEYS
+#define MAX_KEYS_PER_CRYPT		NBKEYS
 #define PLAINTEXT_LENGTH        23
 #else
 #define MIN_KEYS_PER_CRYPT		1

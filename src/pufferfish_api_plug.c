@@ -20,6 +20,7 @@
 #include <openssl/sha.h>
 #include <openssl/hmac.h>
 #include "pufferfish.h"
+#include "memdbg.h"
 
 
 char *pf_gensalt ( const unsigned char *salt, size_t saltlen, unsigned int t_cost, unsigned int m_cost )

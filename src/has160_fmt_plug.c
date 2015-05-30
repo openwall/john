@@ -25,6 +25,8 @@ john_register_one(&fmt_HAS160);
 #include <omp.h>
 #endif
 
+#include "memdbg.h"
+
 #define FORMAT_LABEL			"has-160"
 #define FORMAT_NAME			""
 #define ALGORITHM_NAME			"HAS-160 32/" ARCH_BITS_STR

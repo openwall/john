@@ -82,7 +82,7 @@ john_register_one(&fmt_NETNTLM_new);
 #include "arch.h"
 #include "sse-intrinsics.h"
 #ifdef SIMD_COEF_32
-#define NBKEYS                  (SIMD_COEF_32 * MD4_SSE_PARA)
+#define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_MD4)
 #else
 #ifdef _OPENMP
 #define OMP_SCALE               4
@@ -1384,7 +1384,7 @@ struct fmt_main fmt_NETNTLM_new = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#if !defined(SIMD_COEF_32) || (defined(MD4_SSE_PARA) && defined(SSE_OMP))
+#if !defined(SIMD_COEF_32) || (defined(SIMD_PARA_MD4) && defined(SSE_OMP))
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,

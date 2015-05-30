@@ -28,7 +28,7 @@ CPPFLAGS = -E
 SORT = sort
 STRIP = strip
 MAKE_BEST_JTR = $(MAKE) -j1 -f Makefile.legacy
-MAKE_ORIG = +$(MAKE) -f Makefile.legacy -j$(J)
+MAKE_ORIG = $(MAKE) -f Makefile.legacy -j$(J)
 
 ## Uncomment the line below for MPI (can be used together with OMP as well)
 #CC = mpicc -DHAVE_MPI

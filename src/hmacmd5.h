@@ -40,4 +40,9 @@ extern void hmac_md5_init_K16(const unsigned char*, HMACMD5Context*);
 extern void hmac_md5_update(const unsigned char*, int, HMACMD5Context*);
 extern void hmac_md5_final(unsigned char*, HMACMD5Context*);
 extern void hmac_md5(const unsigned char *key, const unsigned char *data, int data_len, unsigned char *digest);
+
+void pkcs5_pbkdf2_md5(unsigned char *password, size_t plen,
+    unsigned char *salt, size_t slen,
+    unsigned long iteration_count, unsigned long key_length,
+    unsigned char *output);
 #endif /* _HMAC_MD5_H */

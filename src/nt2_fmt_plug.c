@@ -21,7 +21,7 @@ john_register_one(&fmt_NT2);
 #include "arch.h"
 
 #ifdef SIMD_COEF_32
-#define NBKEYS				(SIMD_COEF_32 * MD4_SSE_PARA)
+#define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_MD4)
 #endif
 #include "sse-intrinsics.h"
 

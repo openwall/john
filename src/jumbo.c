@@ -367,3 +367,41 @@ size_t strnlen(const char *s, size_t max) {
 	return(p - s);
 }
 #endif
+
+#if AC_BUILT && !HAVE_STRCASESTR
+/* not optimal, but good enough for how we use it */
+char *strcasestr(const char *haystack, const char *needle) {
+	const char *H = haystack;
+	const char *N = needle;
+	const char *fnd = 0;
+	while (*N && *H) {
+		if (*N == *H) {
+			if (!fnd) fnd = H;
+			++N;
+			++H;
+			continue;
+		}
+		if (islower(*N)) {
+			if (*N == tolower(*H)) {
+				if (!fnd) fnd = H;
+				++N;
+				++H;
+				continue;
+			}
+		} else if (isupper(*N)) {
+			if (*N == toupper(*H)) {
+				if (!fnd) fnd = H;
+				++N;
+				++H;
+				continue;
+			}
+		}
+		N = needle;
+		++H;
+		fnd = 0;
+	}
+	if (*N)
+		fnd = 0;
+	return (char*)fnd;
+}
+#endif
