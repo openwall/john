@@ -218,6 +218,13 @@ static void sig_install_abort(void)
 #endif
 
 #ifdef __CYGWIN__
+/*
+ * "If the HandlerRoutine parameter is NULL, [...] a FALSE value restores
+ * normal processing of CTRL+C input.  This attribute of ignoring or processing
+ * CTRL+C is inherited by child processes."  So restore normal processing here
+ * in case our parent (such as Johnny the GUI) had disabled it.
+ */
+	SetConsoleCtrlHandler(NULL, FALSE);
 	SetConsoleCtrlHandler(sig_handle_abort_ctrl, TRUE);
 #endif
 
