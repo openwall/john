@@ -532,9 +532,6 @@ static void john_init(char *name, int argc, char **argv)
 		john_omp_fallback(argv);
 #endif
 
-		fflush(stdout);
-		setvbuf(stdout, NULL, _IOLBF, 0);
-
 		path_init(argv);
 
 #if JOHN_SYSTEMWIDE
@@ -555,6 +552,11 @@ static void john_init(char *name, int argc, char **argv)
 	john_register_all(); /* maybe restricted to one format by options */
 	common_init();
 	sig_init();
+
+	if (!make_check && !(options.flags & (FLG_SHOW_CHK | FLG_STDOUT))) {
+		fflush(stdout);
+		setvbuf(stdout, NULL, _IOLBF, 0);
+	}
 
 	john_load();
 }

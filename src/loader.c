@@ -960,6 +960,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 /* If just one format was forced on the command line, insist on it */
 	if (!fmt_list->next && !format) return;
 
+/* DB_PLAINTEXTS is set when we --make-charset rather than --show */
 	show = !(db->options->flags & DB_PLAINTEXTS);
 
 	if (format) {
@@ -1044,11 +1045,5 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 void ldr_show_pw_file(struct db_main *db, char *name)
 {
-/* DB_PLAINTEXTS is set when we --make-charset rather than --show */
-	if (!(db->options->flags & DB_PLAINTEXTS)) {
-		fflush(stdout);
-		setvbuf(stdout, NULL, _IOFBF, 0);
-	}
-
 	read_file(db, name, RF_ALLOW_DIR, ldr_show_pw_line);
 }
