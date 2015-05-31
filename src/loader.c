@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2003,2005,2010-2012 by Solar Designer
+ * Copyright (c) 1996-2000,2003,2005,2010-2012,2015 by Solar Designer
  */
 
 #include <stdio.h>
@@ -1044,5 +1044,11 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 void ldr_show_pw_file(struct db_main *db, char *name)
 {
+/* DB_PLAINTEXTS is set when we --make-charset rather than --show */
+	if (!(db->options->flags & DB_PLAINTEXTS)) {
+		fflush(stdout);
+		setvbuf(stdout, NULL, _IOFBF, 0);
+	}
+
 	read_file(db, name, RF_ALLOW_DIR, ldr_show_pw_line);
 }
