@@ -34,7 +34,7 @@
 #include <dos.h>
 #endif
 
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 #include <windows.h>
 #endif
 
@@ -203,7 +203,7 @@ static void sig_handle_abort(int signum)
 	errno = saved_errno;
 }
 
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 static CALLBACK BOOL sig_handle_abort_ctrl(DWORD ctrltype)
 {
 	sig_handle_abort(SIGINT);
@@ -217,7 +217,7 @@ static void sig_install_abort(void)
 	setcbrk(1);
 #endif
 
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 	SetConsoleCtrlHandler(sig_handle_abort_ctrl, TRUE);
 #endif
 
@@ -233,7 +233,7 @@ static void sig_install_abort(void)
 
 static void sig_remove_abort(void)
 {
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 	SetConsoleCtrlHandler(sig_handle_abort_ctrl, FALSE);
 #endif
 

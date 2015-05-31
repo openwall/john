@@ -20,7 +20,7 @@
 static int use_yield = 0;
 #endif
 
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 extern int nice(int);
 #endif
 

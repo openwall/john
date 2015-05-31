@@ -151,7 +151,7 @@ static void john_omp_init(void)
 }
 
 #if OMP_FALLBACK
-#if defined(__DJGPP__) || defined(__CYGWIN32__)
+#if defined(__DJGPP__) || defined(__CYGWIN__)
 #error OMP_FALLBACK is incompatible with the current DOS and Win32 code
 #endif
 #define HAVE_JOHN_OMP_FALLBACK
@@ -494,7 +494,7 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 	if (!CPU_detect()) {
 #if CPU_REQ
 #if CPU_FALLBACK
-#if defined(__DJGPP__) || defined(__CYGWIN32__)
+#if defined(__DJGPP__) || defined(__CYGWIN__)
 #error CPU_FALLBACK is incompatible with the current DOS and Win32 code
 #endif
 		if (!make_check) {
@@ -680,7 +680,7 @@ int main(int argc, char **argv)
 		name = argv[0];
 #endif
 
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 	strlwr(name);
 	if (strlen(name) > 4 && !strcmp(name + strlen(name) - 4, ".exe"))
 		name[strlen(name) - 4] = 0;

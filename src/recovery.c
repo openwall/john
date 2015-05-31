@@ -25,10 +25,6 @@
 #include <errno.h>
 #include <string.h>
 
-#if defined(__CYGWIN32__) && !defined(__CYGWIN__)
-extern int ftruncate(int fd, size_t length);
-#endif
-
 #include "arch.h"
 #include "misc.h"
 #include "params.h"
@@ -123,7 +119,7 @@ void rec_save(void)
 	if (!rec_file) return;
 
 	if (fseek(rec_file, 0, SEEK_SET)) pexit("fseek");
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 	if (ftruncate(rec_fd, 0)) pexit("ftruncate");
 #endif
 
@@ -163,7 +159,7 @@ void rec_save(void)
 	if ((size = ftell(rec_file)) < 0) pexit("ftell");
 	if (fflush(rec_file)) pexit("fflush");
 	if (ftruncate(rec_fd, size)) pexit("ftruncate");
-#ifndef __CYGWIN32__
+#ifndef __CYGWIN__
 	if (!options.fork && fsync(rec_fd))
 		pexit("fsync");
 #endif

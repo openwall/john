@@ -23,13 +23,9 @@
 #define O_NONBLOCK			O_NDELAY
 #endif
 
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 #include <string.h>
 #include <sys/socket.h>
-#ifndef __CYGWIN__
-extern int tcgetattr(int fd, struct termios *termios_p);
-extern int tcsetattr(int fd, int actions, struct termios *termios_p);
-#endif
 #endif
 
 #include "tty.h"
@@ -58,7 +54,7 @@ void tty_init(int stdin_mode)
 
 	if ((fd = open("/dev/tty", O_RDONLY | O_NONBLOCK)) < 0) return;
 
-#ifndef __CYGWIN32__
+#ifndef __CYGWIN__
 	if (tcgetpgrp(fd) != getpid()) {
 		close(fd); return;
 	}
@@ -81,13 +77,13 @@ int tty_getchar(void)
 {
 #ifndef __DJGPP__
 	int c;
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 	fd_set set;
 	struct timeval tv;
 #endif
 
 	if (tty_fd >= 0) {
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 		FD_ZERO(&set); FD_SET(tty_fd, &set);
 		tv.tv_sec = 0; tv.tv_usec = 0;
 		if (select(tty_fd + 1, &set, NULL, NULL, &tv) <= 0)
