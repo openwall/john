@@ -42,10 +42,6 @@
 #include <errno.h>
 #include <string.h>
 
-#if defined(__CYGWIN32__) && !defined(__CYGWIN__)
-extern int ftruncate(int fd, size_t length);
-#endif
-
 #include "arch.h"
 #include "misc.h"
 #include "params.h"
@@ -233,7 +229,7 @@ void rec_save(void)
 	if (fseek(rec_file, 0, SEEK_SET)) pexit("fseek");
 #ifdef _MSC_VER
 	if (_write(fileno(rec_file), "", 0)) pexit("ftruncate");
-#elif __CYGWIN32__
+#elif __CYGWIN__
 	if (ftruncate(rec_fd, 0)) pexit("ftruncate");
 #endif
 

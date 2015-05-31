@@ -372,8 +372,8 @@ static void john_omp_init(void)
 }
 
 #if OMP_FALLBACK
-#if defined(__DJGPP__) || defined(__CYGWIN32__)
-#error OMP_FALLBACK is incompatible with the current DOS and Win32 code
+#if defined(__DJGPP__) || defined(__CYGWIN__)
+#error OMP_FALLBACK is incompatible with the current DOS and Windows code
 #endif
 #define HAVE_JOHN_OMP_FALLBACK
 static void john_omp_fallback(char **argv) {
@@ -1184,8 +1184,8 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 	if (!CPU_detect()) {
 #if CPU_REQ
 #if CPU_FALLBACK
-#if defined(__DJGPP__) || defined(__CYGWIN32__)
-#error CPU_FALLBACK is incompatible with the current DOS and Win32 code
+#if defined(__DJGPP__) || defined(__CYGWIN__)
+#error CPU_FALLBACK is incompatible with the current DOS and Windows code
 #endif
 		if (!make_check) {
 #define CPU_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" CPU_FALLBACK_BINARY
@@ -1276,6 +1276,11 @@ static void john_init(char *name, int argc, char **argv)
 	john_register_all(); /* maybe restricted to one format by options */
 	common_init();
 	sig_init();
+
+	if (!make_check && !(options.flags & (FLG_SHOW_CHK | FLG_STDOUT))) {
+		fflush(stdout);
+		setvbuf(stdout, NULL, _IOLBF, 0);
+	}
 
 	john_load();
 
@@ -1585,7 +1590,7 @@ int main(int argc, char **argv)
 		name = argv[0];
 #endif
 
-#if defined(__CYGWIN32__) || defined (__MINGW32__) || defined (_MSC_VER)
+#if defined(__CYGWIN__) || defined (__MINGW32__) || defined (_MSC_VER)
 	strlwr(name);
 	if (strlen(name) > 4 && !strcmp(name + strlen(name) - 4, ".exe"))
 		name[strlen(name) - 4] = 0;

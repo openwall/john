@@ -11,7 +11,7 @@
  */
 
 /*
- * Symlink emulation for Win32.
+ * Symlink emulation for Windows.
  */
 
 #include <string.h>

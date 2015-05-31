@@ -23,7 +23,7 @@
 
 #ifdef NEED_OS_TIMER
 
-#if defined(__CYGWIN32__) || defined(__BEOS__) || defined(__MINGW32__) || defined(_MSC_VER) /* || (defined(AMDAPPSDK) && defined(HAVE_OPENCL)) */
+#if defined(__CYGWIN__) || defined(__BEOS__) || defined(__MINGW32__) || defined(_MSC_VER)
 #define OS_TIMER			0
 #else
 #ifndef _XOPEN_SOURCE
@@ -66,7 +66,7 @@
 
 #ifdef NEED_OS_FORK
 
-#if defined(__DJGPP__) || defined(__CYGWIN32__) || defined(_MSC_VER) || defined(__MINGW32__)
+#if defined(__DJGPP__) || defined(__CYGWIN__) || defined(_MSC_VER) || defined(__MINGW32__)
 #define OS_FORK				0
 #else
 #define OS_FORK				1
