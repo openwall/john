@@ -152,7 +152,7 @@ static void john_omp_init(void)
 
 #if OMP_FALLBACK
 #if defined(__DJGPP__) || defined(__CYGWIN__)
-#error OMP_FALLBACK is incompatible with the current DOS and Win32 code
+#error OMP_FALLBACK is incompatible with the current DOS and Windows code
 #endif
 #define HAVE_JOHN_OMP_FALLBACK
 static void john_omp_fallback(char **argv) {
@@ -495,7 +495,7 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 #if CPU_REQ
 #if CPU_FALLBACK
 #if defined(__DJGPP__) || defined(__CYGWIN__)
-#error CPU_FALLBACK is incompatible with the current DOS and Win32 code
+#error CPU_FALLBACK is incompatible with the current DOS and Windows code
 #endif
 		if (!make_check) {
 #define CPU_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" CPU_FALLBACK_BINARY
