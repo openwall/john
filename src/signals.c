@@ -34,7 +34,7 @@
 #include <dos.h>
 #endif
 
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 #include <windows.h>
 #endif
 
@@ -203,7 +203,7 @@ static void sig_handle_abort(int signum)
 	errno = saved_errno;
 }
 
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 static CALLBACK BOOL sig_handle_abort_ctrl(DWORD ctrltype)
 {
 	sig_handle_abort(SIGINT);
@@ -217,7 +217,14 @@ static void sig_install_abort(void)
 	setcbrk(1);
 #endif
 
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
+/*
+ * "If the HandlerRoutine parameter is NULL, [...] a FALSE value restores
+ * normal processing of CTRL+C input.  This attribute of ignoring or processing
+ * CTRL+C is inherited by child processes."  So restore normal processing here
+ * in case our parent (such as Johnny the GUI) had disabled it.
+ */
+	SetConsoleCtrlHandler(NULL, FALSE);
 	SetConsoleCtrlHandler(sig_handle_abort_ctrl, TRUE);
 #endif
 
@@ -233,7 +240,7 @@ static void sig_install_abort(void)
 
 static void sig_remove_abort(void)
 {
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 	SetConsoleCtrlHandler(sig_handle_abort_ctrl, FALSE);
 #endif
 

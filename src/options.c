@@ -182,11 +182,24 @@ void opt_init(char *name, int argc, char **argv)
 	opt_check(opt_list, options.flags, argv);
 
 	if (options.session) {
-		if (strchr(options.session, '.')) {
+#if OS_FORK
+		char *p = strrchr(options.session, '.');
+		int bad = 0;
+		if (p) {
+			while (*++p) {
+				if (*p < '0' || *p > '9') {
+					bad = 0;
+					break;
+				}
+				bad = 1;
+			}
+		}
+		if (bad) {
 			fprintf(stderr,
-			    "Invalid session name: must not contain a dot\n");
+			    "Invalid session name: all-digits suffix\n");
 			error();
 		}
+#endif
 		rec_name = options.session;
 		rec_name_completed = 0;
 	}
