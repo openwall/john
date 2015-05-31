@@ -532,6 +532,9 @@ static void john_init(char *name, int argc, char **argv)
 		john_omp_fallback(argv);
 #endif
 
+		fflush(stdout);
+		setvbuf(stdout, NULL, _IOLBF, 0);
+
 		path_init(argv);
 
 #if JOHN_SYSTEMWIDE
