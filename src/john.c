@@ -1279,7 +1279,13 @@ static void john_init(char *name, int argc, char **argv)
 
 	if (!make_check && !(options.flags & (FLG_SHOW_CHK | FLG_STDOUT))) {
 		fflush(stdout);
+#ifdef _MSC_VER
+		/* VC allows 2<=len<=INT_MAX and be a power of 2. A debug build will
+		 * assert if len=0. Release fails setvbuf, but execution continues */
+		setvbuf(stdout, NULL, _IOLBF, 256);
+#else
 		setvbuf(stdout, NULL, _IOLBF, 0);
+#endif
 	}
 
 	john_load();
