@@ -1312,6 +1312,8 @@ next_rule:
 	if (name) {
 		if (!event_abort)
 			progress = 100;
+		else
+			progress = get_progress();
 
 		MEM_FREE(words);
 #ifdef HAVE_MMAP
