@@ -143,10 +143,9 @@ typedef __m512i vtype;
              vxor(vslli_epi32(vsrli_epi32(vslli_epi32(n, 8), 24), 8),       \
                   vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(n, 8), 24), 8),  \
                        vslli_epi32(n, 24))))
-#define vswap64(n) {                                \
-    n = vshuffle_epi32(n, _MM_SHUFFLE(2, 3, 0, 1)); \
-    vswap32(n);                                     \
-}
+#define vswap64(n)                                   \
+    (n = vshuffle_epi32(n, _MM_SHUFFLE(2, 3, 0, 1)), \
+     vswap32(n))
 #endif // __AVX512BW__
 
 // MIC lacks some intrinsics in AVX512F, thus needing emulation.
