@@ -26,7 +26,9 @@ john_register_one(&fmt_django_scrypt);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               1 // So slow a format, a multiplier is NOT needed
+#endif
 #endif
 #include "memdbg.h"
 

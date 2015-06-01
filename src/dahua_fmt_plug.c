@@ -21,9 +21,13 @@ john_register_one(&fmt_dahua);
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef __MIC__
+#ifndef OMP_SCALE
 #define OMP_SCALE 512
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE 32768		// tuned K8-dual HT
+#endif
 #endif
 #endif
 

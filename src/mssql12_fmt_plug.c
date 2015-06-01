@@ -49,9 +49,13 @@ john_register_one(&fmt_mssql12);
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef SIMD_COEF_64
+#ifndef OMP_SCALE
 #define OMP_SCALE               2048
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE               1024  // tuned K8-dual HT
+#endif
 #endif
 #endif
 

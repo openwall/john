@@ -17,7 +17,9 @@ john_register_one(&fmt_keyring);
 #include <errno.h>
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               64
+#endif
 #endif
 
 #include "arch.h"

@@ -36,7 +36,9 @@ static int omp_t = 1;
 // 4k  - 15093k
 // 8k  - 14935k
 // 16k - 14931k
+#ifndef OMP_SCALE
 #define OMP_SCALE  (1024*2)
+#endif
 #endif
 #include "memdbg.h"
 

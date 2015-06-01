@@ -25,7 +25,9 @@ john_register_one(&fmt_rar5);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               1 // tuned on core i7
+#endif
 #endif
 
 #include "arch.h"

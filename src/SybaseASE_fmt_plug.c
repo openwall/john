@@ -75,14 +75,20 @@ john_register_one(&fmt_SybaseASE);
 #define MIN_KEYS_PER_CRYPT  (SIMD_COEF_32*SIMD_PARA_SHA256)
 #define MAX_KEYS_PER_CRYPT	(SIMD_COEF_32*SIMD_PARA_SHA256)
 #ifdef __MIC__
+#ifndef OMP_SCALE
 #define OMP_SCALE           64
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE           512
+#endif
 #endif // __MIC__
 #else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT  1
+#ifndef OMP_SCALE
 #define OMP_SCALE           256
+#endif
 #endif
 
 static struct fmt_tests SybaseASE_tests[] = {

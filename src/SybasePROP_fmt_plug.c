@@ -32,7 +32,9 @@ john_register_one(&fmt_sybaseprop);
 
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE           2048 // xxx
+#endif
 static int omp_t = 1;
 #endif
 

@@ -38,7 +38,9 @@
 #include "misc.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               64
+#endif
 #endif
 #include "pdfcrack.h"
 #include "pdfparser.h"

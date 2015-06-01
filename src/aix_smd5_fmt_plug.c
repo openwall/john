@@ -19,7 +19,9 @@ john_register_one(&fmt_smd5);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               16 // tuned on i7 w/HT
+#endif
 #endif
 
 #include "md5.h"

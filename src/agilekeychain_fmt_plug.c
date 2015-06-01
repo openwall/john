@@ -31,7 +31,9 @@ john_register_one(&fmt_agile_keychain);
 #include <openssl/aes.h>
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               1 // tuned on core i7
+#endif
 #endif
 #include "memdbg.h"
 

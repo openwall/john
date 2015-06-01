@@ -85,7 +85,9 @@ john_register_one(&fmt_NETNTLM_new);
 #define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_MD4)
 #else
 #ifdef _OPENMP
+#ifndef OMP_SCALE
 #define OMP_SCALE               4
+#endif
 #include <omp.h>
 #endif
 #endif

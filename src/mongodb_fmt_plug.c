@@ -29,9 +29,13 @@ john_register_one(&fmt_mongodb);
 static int omp_t = 1;
 #include <omp.h>
 #ifdef __MIC__
+#ifndef OMP_SCALE
 #define OMP_SCALE               512
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE               16384	// Tuned on K8-dual HT
+#endif
 #endif
 #endif
 #include "memdbg.h"

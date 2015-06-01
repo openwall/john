@@ -45,7 +45,9 @@ john_register_one(&fmt_krb5pa);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               64
+#endif
 #endif
 #include "arch.h"
 #include "misc.h"

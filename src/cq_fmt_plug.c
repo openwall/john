@@ -15,7 +15,9 @@ john_register_one(&fmt_cq);
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE 256	// core i7 no HT
+#endif
 #endif
 
 #include "arch.h"

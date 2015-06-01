@@ -32,7 +32,9 @@ static int omp_t = 1;
 // 256 - 2204k *** set to this level
 // 512 - 2203k
 // 1k  - 2124k 
+#ifndef OMP_SCALE
 #define OMP_SCALE  256
+#endif
 #endif
 #include "memdbg.h"
 

@@ -25,7 +25,9 @@ john_register_one(&fmt_pbkdf2_hmac_md5);
 #include "hmacmd5.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               64
+#endif
 #endif
 #include "memdbg.h"
 

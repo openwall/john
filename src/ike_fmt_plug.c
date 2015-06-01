@@ -64,7 +64,9 @@ john_register_one(&fmt_ike);
 #include "ike-crack.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               16
+#endif
 static int omp_t = 1;
 #endif
 #include "memdbg.h"

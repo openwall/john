@@ -38,7 +38,9 @@ static int omp_t = 1;
 // 2k  - 14607k  11980k  ** this level chosen
 // 4k  - 14828k  10871k
 // 8k  - 14639k  10794k
+#ifndef OMP_SCALE
 #define OMP_SCALE  2048
+#endif
 #endif
 #include "memdbg.h"
 

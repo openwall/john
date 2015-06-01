@@ -41,7 +41,9 @@ john_register_one(&fmt_nk);
 //  64  8907k   ** this was chosen.
 // 128  8914k
 // 256  8810k
+#ifndef OMP_SCALE
 #define OMP_SCALE    64
+#endif
 #endif
 
 #include "memdbg.h"

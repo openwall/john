@@ -56,7 +56,9 @@ john_register_one(&fmt_truecrypt_whirlpool);
 #include "pbkdf2_hmac_whirlpool.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               1
+#endif
 #endif
 #include "memdbg.h"
 

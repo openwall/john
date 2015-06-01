@@ -61,7 +61,9 @@ john_register_one(&fmt_dmg);
 #include <openssl/hmac.h>
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               64
+#endif
 #endif
 
 #ifdef DMG_DEBUG

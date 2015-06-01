@@ -29,9 +29,13 @@ john_register_one(&fmt_hsrp);
 // 64k  - 12420k 6523k
 // 128k - 12220k 6741k
 #ifdef __MIC__
+#ifndef OMP_SCALE
 #define OMP_SCALE 8192
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE 32768
+#endif
 #endif
 #endif
 

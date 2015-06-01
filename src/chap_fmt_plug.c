@@ -34,9 +34,13 @@ john_register_one(&fmt_chap);
 static int omp_t = 1;
 #include <omp.h>
 #ifdef __MIC__
+#ifndef OMP_SCALE
 #define OMP_SCALE               2048
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE               65536 // core i7 no HT
+#endif
 #endif
 #endif
 #include "memdbg.h"

@@ -35,7 +35,9 @@ static int omp_t = 1;
 // 512 = 58573
 // 1024= 59464
 // 4096= 59244  > 1s -test=0
+#ifndef OMP_SCALE
 #define OMP_SCALE               128
+#endif
 #endif
 #include "memdbg.h"
 

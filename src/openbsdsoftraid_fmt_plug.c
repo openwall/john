@@ -36,7 +36,9 @@ john_register_one(&fmt_openbsd_softraid);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE                   1
+#endif
 #endif
 #include "memdbg.h"
 

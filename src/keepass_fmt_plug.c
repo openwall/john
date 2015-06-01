@@ -31,7 +31,9 @@ john_register_one(&fmt_KeePass);
 #include "twofish.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               1
+#endif
 #endif
 #include "memdbg.h"
 

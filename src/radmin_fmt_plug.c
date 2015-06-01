@@ -32,7 +32,9 @@ john_register_one(&fmt_radmin);
 //  32  12470K  ** this was chosen.
 //  64  12608k
 // 128  12508k
+#ifndef OMP_SCALE
 #define OMP_SCALE     32
+#endif
 #endif
 #include "memdbg.h"
 

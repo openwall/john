@@ -40,7 +40,9 @@ john_register_one(&fmt_DOMINOSEC);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               128
+#endif
 #endif
 #include "memdbg.h"
 

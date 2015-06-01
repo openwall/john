@@ -39,7 +39,9 @@ john_register_one(&fmt_gpg);
 
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               64
+#endif
 #endif
 
 #include "arch.h"

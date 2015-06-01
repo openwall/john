@@ -146,7 +146,9 @@ typedef struct private_subformat_data
 #endif
 } private_subformat_data;
 
+#ifndef OMP_SCALE
 #define OMP_SCALE 1
+#endif
 
 // we use 13440 and 1680 for the counts. This should give
 // us proper inter-hash work for all para from 1 to 7,

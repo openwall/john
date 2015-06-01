@@ -45,9 +45,13 @@ john_register_one(&fmt_krb5_18);
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef SIMD_COEF_32
+#ifndef OMP_SCALE
 #define OMP_SCALE               8
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE               32
+#endif
 #endif
 #endif
 #include "memdbg.h"

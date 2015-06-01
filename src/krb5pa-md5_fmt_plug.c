@@ -94,7 +94,9 @@ john_register_one(&fmt_mskrb5);
 #define MIN_KEYS_PER_CRYPT 1
 #define MAX_KEYS_PER_CRYPT 1
 
+#ifndef OMP_SCALE
 #define OMP_SCALE          1024
+#endif
 
 #define HEXCHARS           "0123456789abcdefABCDEF"
 

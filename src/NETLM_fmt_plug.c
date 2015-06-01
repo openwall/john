@@ -42,9 +42,13 @@ john_register_one(&fmt_NETLM);
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef __MIC__
+#ifndef OMP_SCALE
 #define OMP_SCALE            1024
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE            131072 // core i7 no HT
+#endif
 #endif // __MIC__
 #endif
 

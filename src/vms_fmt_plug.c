@@ -32,7 +32,9 @@ john_register_one(&fmt_VMS);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               1024 // Tuned on K8-Dual HT
+#endif
 #endif
 #include "memdbg.h"
 #ifndef UAI$M_PWDMIX

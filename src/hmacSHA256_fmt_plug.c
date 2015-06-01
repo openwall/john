@@ -26,9 +26,13 @@ john_register_one(&fmt_hmacSHA256);
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef SIMD_COEF_32
+#ifndef OMP_SCALE
 #define OMP_SCALE               2048 // scaled on scaled core i7-quad HT
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE               512 // scaled K8-dual HT
+#endif
 #endif
 #endif
 #include "memdbg.h"

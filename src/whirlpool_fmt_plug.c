@@ -35,7 +35,9 @@ john_register_one(&fmt_whirlpool);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               256
+#endif
 #endif
 #include "memdbg.h"
 
