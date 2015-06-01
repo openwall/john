@@ -1252,6 +1252,18 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 		SHA1_PARA_DO(i)
 		{
 			uint32_t *o = (uint32_t*)&out[i*5*VS32];
+#if __AVX512F__ || __MIC__
+			vtype idxs = vset_epi32(15*5,14*5,13*5,12*5,
+			                        11*5,10*5, 9*5, 8*5,
+			                         7*5, 6*5, 5*5, 4*5,
+			                         3*5, 2*5, 1*5, 0*5);
+
+			vscatter_epi32(o + 0, idxs, vswap32(a[i]), 4);
+			vscatter_epi32(o + 1, idxs, vswap32(b[i]), 4);
+			vscatter_epi32(o + 2, idxs, vswap32(c[i]), 4);
+			vscatter_epi32(o + 3, idxs, vswap32(d[i]), 4);
+			vscatter_epi32(o + 4, idxs, vswap32(e[i]), 4);
+#else
 			uint32_t j, k;
 			vtype tmp[5];
 
@@ -1264,6 +1276,7 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 			for (j = 0; j < VS32; j++)
 				for (k = 0; k < 5; k++)
 					o[j*5+k] = ((uint32_t*)tmp)[k*VS32+j];
+#endif
 		}
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
@@ -1683,6 +1696,21 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 		SHA256_PARA_DO(i)
 		{
 			uint32_t *o = (uint32_t*)&out[i*8*VS32];
+#if __AVX512F__ || __MIC__
+			vtype idxs = vset_epi32(15<<3,14<<3,13<<3,12<<3,
+			                        11<<3,10<<3, 9<<3, 8<<3,
+			                         7<<3, 6<<3, 5<<3, 4<<3,
+			                         3<<3, 2<<3, 1<<3, 0<<3);
+			
+			vscatter_epi32(o + 0, idxs, vswap32(a[i]), 4);
+			vscatter_epi32(o + 1, idxs, vswap32(b[i]), 4);
+			vscatter_epi32(o + 2, idxs, vswap32(c[i]), 4);
+			vscatter_epi32(o + 3, idxs, vswap32(d[i]), 4);
+			vscatter_epi32(o + 4, idxs, vswap32(e[i]), 4);
+			vscatter_epi32(o + 5, idxs, vswap32(f[i]), 4);
+			vscatter_epi32(o + 6, idxs, vswap32(g[i]), 4);
+			vscatter_epi32(o + 7, idxs, vswap32(h[i]), 4);
+#else                               
 			uint32_t j, k;
 			vtype tmp[8];
 
@@ -1698,6 +1726,7 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 			for (j = 0; j < VS32; j++)
 				for (k = 0; k < 8; k++)
 					o[j*8+k] = ((uint32_t*)tmp)[k*VS32+j];
+#endif
 		}
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT) {
@@ -2085,6 +2114,19 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 		SHA512_PARA_DO(i)
 		{
 			uint64_t *o = (uint64_t*)&out[i*8*VS64];
+#if __AVX512F__ || __MIC__
+			vtype idxs = vset_epi64x(7<<3, 6<<3, 5<<3, 4<<3,
+			                         3<<3, 2<<3, 1<<3, 0<<3);
+
+			vscatter_epi64(o + 0, idxs, vswap64(a[i]), 8);
+			vscatter_epi64(o + 1, idxs, vswap64(b[i]), 8);
+			vscatter_epi64(o + 2, idxs, vswap64(c[i]), 8);
+			vscatter_epi64(o + 3, idxs, vswap64(d[i]), 8);
+			vscatter_epi64(o + 4, idxs, vswap64(e[i]), 8);
+			vscatter_epi64(o + 5, idxs, vswap64(f[i]), 8);
+			vscatter_epi64(o + 6, idxs, vswap64(g[i]), 8);
+			vscatter_epi64(o + 7, idxs, vswap64(h[i]), 8);
+#else
 			uint64_t j, k;
 			vtype tmp[8];
 
@@ -2100,6 +2142,7 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 			for (j = 0; j < VS64; j++)
 				for (k = 0; k < 8; k++)
 					o[j*8+k] = ((uint64_t*)tmp)[k*VS64+j];
+#endif
 		}
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
