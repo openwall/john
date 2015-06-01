@@ -146,7 +146,11 @@ static int phps_valid(char *ciphertext, struct fmt_main *self)
 	i = strlen(ciphertext);
 
 	if (i != CIPHERTEXT_LENGTH) {
-		return pDynamic_6->methods.valid(ciphertext, pDynamic_6);
+		int val = pDynamic_6->methods.valid(ciphertext, pDynamic_6);
+		char *cp;
+		if (!val) return 0;
+		cp = strrchr(ciphertext, '$');
+		return cp && strlen(cp)==3;
 	}
 
 	if (strncmp(ciphertext, "$PHPS$", 6) != 0)
