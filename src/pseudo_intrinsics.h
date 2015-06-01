@@ -54,6 +54,8 @@ typedef __m512i vtype;
 #define vload(x)                _mm512_load_si512((void*)(x))
 #define vloadu(x)               _mm512_loadu_si512((void*)(x))
 #define vor                     _mm512_or_si512
+#define vscatter_epi32          _mm512_i32scatter_epi32
+#define vscatter_epi64          _mm512_i64scatter_epi64
 #define vset1_epi8              _mm512_set1_epi8
 #define vset1_epi32             _mm512_set1_epi32
 #define vset1_epi64x            _mm512_set1_epi64
