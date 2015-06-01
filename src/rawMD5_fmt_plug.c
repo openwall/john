@@ -31,7 +31,9 @@ john_register_one(&fmt_rawMD5);
 #define OMP_SCALE               256 // core i7
 #endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE				2048
+#endif
 #endif
 #include <omp.h>
 #endif

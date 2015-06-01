@@ -44,7 +44,9 @@ john_register_one(&fmt_blackberry1);
 // 128 - 82016  -test=0 is still almost instant.
 // 256 - 81753
 // 512 - 80537
+#ifndef OMP_SCALE
 #define OMP_SCALE		128
+#endif
 #endif
 #include "memdbg.h"
 

@@ -57,7 +57,9 @@ john_register_one(&fmt_pkzip);
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		64
+#ifndef OMP_SCALE
 #define OMP_SCALE			64
+#endif
 
 //#define ZIP_DEBUG 1
 //#define ZIP_DEBUG 2

@@ -32,7 +32,9 @@ john_register_one(&fmt_drupal7);
 
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE			8
+#endif
 #endif
 #include "memdbg.h"
 

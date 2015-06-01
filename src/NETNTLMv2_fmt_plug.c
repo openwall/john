@@ -87,7 +87,9 @@ john_register_one(&fmt_NETNTLMv2);
 // these may be altered in init() if running OMP
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#ifndef OMP_SCALE
 #define OMP_SCALE		3072
+#endif
 
 static struct fmt_tests tests[] = {
   {"", "password",                  {"USER1",                 "", "Domain",        "1122334455667788","5E4AB1BF243DCA304A00ADEF78DC38DF","0101000000000000BB50305495AACA01338BC7B090A62856000000000200120057004F0052004B00470052004F00550050000000000000000000"} },

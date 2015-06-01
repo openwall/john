@@ -73,7 +73,9 @@ john_register_one(&fmt_mscash2);
 
 #if defined (_OPENMP)
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE			8	// Tuned on Corei7 Quad-HT
+#endif
 #endif
 
 #include "memdbg.h"

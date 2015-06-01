@@ -56,9 +56,13 @@ john_register_one(&fmt_HDAA);
 #if defined(_OPENMP)
 static unsigned int omp_t = 1;
 #ifdef SIMD_COEF_32
+#ifndef OMP_SCALE
 #define OMP_SCALE			256
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE			64
+#endif
 #endif
 #endif
 

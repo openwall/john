@@ -21,7 +21,9 @@ john_register_one(&fmt_rawBLAKE2);
 #include <string.h>
 
 #ifdef _OPENMP
+#ifndef OMP_SCALE
 #define OMP_SCALE			2048
+#endif
 #include <omp.h>
 #endif
 #include "memdbg.h"

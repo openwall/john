@@ -85,7 +85,9 @@ john_register_one(&fmt_NETLMv2);
 // these may be altered in init() if running OMP
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#ifndef OMP_SCALE
 #define OMP_SCALE		1536
+#endif
 
 static struct fmt_tests tests[] = {
   {"", "1337adminPASS",         {"FOODOM\\Administrator", "", "",       "1122334455667788", "6F64C5C1E35F68DD80388C0F00F34406", "F0F3FF27037AA69F"} },
