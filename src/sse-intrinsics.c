@@ -946,31 +946,31 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
     tmp = vxor( data[i*16+t-3], data[i*16+t-8] );   \
     tmp = vxor( tmp, data[i*16+t-14] );             \
     tmp = vxor( tmp, data[i*16+t-16] );             \
-    tmpR[i*16+((t)&0xF)] = vroti_epi32(tmp, 1);
+    w[i*16+((t)&0xF)] = vroti_epi32(tmp, 1);
 
 #define SHA1_EXPAND2b(t)                                    \
-    tmp = vxor( tmpR[i*16+((t-3)&0xF)], data[i*16+t-8] );   \
+    tmp = vxor( w[i*16+((t-3)&0xF)], data[i*16+t-8] );   \
     tmp = vxor( tmp, data[i*16+t-14] );                     \
     tmp = vxor( tmp, data[i*16+t-16] );                     \
-    tmpR[i*16+((t)&0xF)] = vroti_epi32(tmp, 1);
+    w[i*16+((t)&0xF)] = vroti_epi32(tmp, 1);
 
 #define SHA1_EXPAND2c(t)                                            \
-    tmp = vxor( tmpR[i*16+((t-3)&0xF)], tmpR[i*16+((t-8)&0xF)] );   \
+    tmp = vxor( w[i*16+((t-3)&0xF)], w[i*16+((t-8)&0xF)] );   \
     tmp = vxor( tmp, data[i*16+t-14] );                             \
     tmp = vxor( tmp, data[i*16+t-16] );                             \
-    tmpR[i*16+((t)&0xF)] = vroti_epi32(tmp, 1);
+    w[i*16+((t)&0xF)] = vroti_epi32(tmp, 1);
 
 #define SHA1_EXPAND2d(t)                                            \
-    tmp = vxor( tmpR[i*16+((t-3)&0xF)], tmpR[i*16+((t-8)&0xF)] );   \
-    tmp = vxor( tmp, tmpR[i*16+((t-14)&0xF)] );                     \
+    tmp = vxor( w[i*16+((t-3)&0xF)], w[i*16+((t-8)&0xF)] );   \
+    tmp = vxor( tmp, w[i*16+((t-14)&0xF)] );                     \
     tmp = vxor( tmp, data[i*16+t-16] );                             \
-    tmpR[i*16+((t)&0xF)] = vroti_epi32(tmp, 1);
+    w[i*16+((t)&0xF)] = vroti_epi32(tmp, 1);
 
 #define SHA1_EXPAND2(t)                                             \
-    tmp = vxor( tmpR[i*16+((t-3)&0xF)], tmpR[i*16+((t-8)&0xF)] );   \
-    tmp = vxor( tmp, tmpR[i*16+((t-14)&0xF)] );                     \
-    tmp = vxor( tmp, tmpR[i*16+((t-16)&0xF)] );                     \
-    tmpR[i*16+((t)&0xF)] = vroti_epi32(tmp, 1);
+    tmp = vxor( w[i*16+((t-3)&0xF)], w[i*16+((t-8)&0xF)] );   \
+    tmp = vxor( tmp, w[i*16+((t-14)&0xF)] );                     \
+    tmp = vxor( tmp, w[i*16+((t-16)&0xF)] );                     \
+    w[i*16+((t)&0xF)] = vroti_epi32(tmp, 1);
 
 #define SHA1_ROUND2a(a,b,c,d,e,F,t)                 \
     SHA1_PARA_DO(i) {                               \
@@ -1022,7 +1022,7 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 
 #define SHA1_ROUND2(a,b,c,d,e,F,t)              \
     SHA1_PARA_DO(i) {                           \
-        tmp2 = tmpR[i*16+(t&0xF)];              \
+        tmp2 = w[i*16+(t&0xF)];              \
         SHA1_EXPAND2(t+16)                      \
         F(b,c,d)                                \
         e[i] = vadd_epi32( e[i], tmp );         \
@@ -1040,7 +1040,7 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
         tmp = vroti_epi32(a[i], 5);                     \
         e[i] = vadd_epi32( e[i], tmp );                 \
         e[i] = vadd_epi32( e[i], cst );                 \
-        e[i] = vadd_epi32( e[i], tmpR[i*16+(t&0xF)] );  \
+        e[i] = vadd_epi32( e[i], w[i*16+(t&0xF)] );  \
         b[i] = vroti_epi32(b[i], 30);                   \
     }
 
@@ -1054,7 +1054,6 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 	vtype d[SIMD_PARA_SHA1];
 	vtype e[SIMD_PARA_SHA1];
 	vtype tmp, tmp2;
-	vtype tmpR[SIMD_PARA_SHA1*16];
 	vtype	cst;
 	unsigned int i;
 	vtype *data;
