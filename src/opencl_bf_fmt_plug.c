@@ -44,7 +44,7 @@ john_register_one(&fmt_opencl_bf);
 #define MIN_KEYS_PER_CRYPT		DEFAULT_LWS
 #define MAX_KEYS_PER_CRYPT		BF_N
 
-// static struct fmt_tests BF_common_tests[] = {  // defined in BF_common_plug.c
+// static struct fmt_tests BF_common_tests[] = {  // defined in BF_common.c
 
 static char 	(*saved_key)[PLAINTEXT_LENGTH + 1] ;
 static char 	keys_mode ;

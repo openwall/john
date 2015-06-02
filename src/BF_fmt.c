@@ -38,7 +38,7 @@
 #define MIN_KEYS_PER_CRYPT		BF_Nmin
 #define MAX_KEYS_PER_CRYPT		BF_N
 
-// static struct fmt_tests BF_common_tests[] = {  // defined in BF_common_plug.c
+// static struct fmt_tests BF_common_tests[] = {  // defined in BF_common.c
 
 static char saved_key[BF_N][PLAINTEXT_LENGTH + 1];
 static char keys_mode;
