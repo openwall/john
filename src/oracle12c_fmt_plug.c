@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright (c) 2015, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
@@ -14,27 +14,34 @@ extern struct fmt_main fmt_oracle12c;
 john_register_one(&fmt_oracle12c);
 #else
 
-#include "arch.h"
 #include <openssl/sha.h>
 #include <string.h>
+
+#include "arch.h"
+//#undef SIMD_COEF_64
+//#undef SIMD_PARA_SHA512
 #include "misc.h"
 #include "memory.h"
 #include "common.h"
 #include "formats.h"
 #include "johnswap.h"
-#define PBKDF2_HMAC_SHA512_ALSO_INCLUDE_CTX
+#include "sha2.h"
 #include "pbkdf2_hmac_sha512.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               8 // XXX
+#define OMP_SCALE               1
 #endif
 #endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"Oracle12C"
 #define FORMAT_NAME		""
-#define ALGORITHM_NAME		"PBKDF2-SHA-512 " SHA512_ALGORITHM_NAME
+#ifdef SIMD_COEF_64
+#define ALGORITHM_NAME		"PBKDF2-SHA512 " SHA512_ALGORITHM_NAME
+#else
+#define ALGORITHM_NAME		"PBKDF2-SHA512 32/" ARCH_BITS_STR
+#endif
 #define PLAINTEXT_LENGTH	125 // XXX
 #define CIPHERTEXT_LENGTH	160
 #define SALT_SIZE		sizeof(struct custom_salt)
@@ -43,8 +50,13 @@ john_register_one(&fmt_oracle12c);
 #define BINARY_ALIGN		sizeof(ARCH_WORD_32)
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
+#ifdef SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT	(SIMD_COEF_64 * SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT	(SIMD_COEF_64 * SIMD_PARA_SHA512)
+#else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#endif
 #define FORMAT_TAG		"$oracle12c$"
 #define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG) - 1)
 
@@ -58,7 +70,11 @@ static struct custom_salt {
 	int saltlen;
 } *cur_salt;
 
+#ifdef SIMD_COEF_64
+static char (*saved_key)[SHA_BUF_SIZ*sizeof(ARCH_WORD_64)];
+#else
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+#endif
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static void init(struct fmt_main *self)
@@ -164,7 +180,7 @@ static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int i;
+	int index;
 	const int count = *pcount;
 
 #ifdef _OPENMP
@@ -172,15 +188,33 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 #endif
-	for (i = 0; i < count; i += MAX_KEYS_PER_CRYPT)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
 		SHA512_CTX ctx;
-		pbkdf2_sha512((const unsigned char*)saved_key[i], strlen(saved_key[i]), cur_salt->salt, cur_salt->saltlen, 4096, (unsigned char*)crypt_out[i], BINARY_SIZE, 0);
-
+#if SIMD_COEF_64
+		int lens[SSE_GROUP_SZ_SHA512], i;
+		unsigned char *pin[SSE_GROUP_SZ_SHA512];
+		union {
+			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA512];
+			unsigned char *poutc;
+		} x;
+		for (i = 0; i < SSE_GROUP_SZ_SHA512; ++i) {
+			lens[i] = strlen(saved_key[index+i]);
+			pin[i] = (unsigned char*)saved_key[index+i];
+			x.pout[i] = (ARCH_WORD_32*)(crypt_out[index+i]);
+		}
+		pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt,
+		                  cur_salt->saltlen, 4096, &(x.poutc), BINARY_SIZE, 0);
+#else
+		pbkdf2_sha512((const unsigned char*)saved_key[index],
+		              strlen(saved_key[index]), cur_salt->salt,
+		              cur_salt->saltlen, 4096,
+		              (unsigned char*)crypt_out[index], BINARY_SIZE, 0);
+#endif
 		SHA512_Init(&ctx);
-		SHA512_Update(&ctx, (unsigned char*)crypt_out[i], BINARY_SIZE);
-		SHA512_Update(&ctx, cur_salt->salt, 16); // AUTH_VFR_DATA. first 16 bytes
-		SHA512_Final((unsigned char*)crypt_out[i], &ctx);
+		SHA512_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);
+		SHA512_Update(&ctx, cur_salt->salt, 16); // AUTH_VFR_DATA first 16 bytes
+		SHA512_Final((unsigned char*)crypt_out[index], &ctx);
 	}
 	return count;
 }
