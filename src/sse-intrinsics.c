@@ -1861,27 +1861,25 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 #define SHA512_PARA_DO(x) for (x = 0; x < SIMD_PARA_SHA512; ++x)
 
 #undef R
-#define R(t)                                                    \
-{                                                               \
-    SHA512_PARA_DO(k)                                           \
-    {                                                           \
-        tmp1[k] = vadd_epi64(s1(w[k][t -  2]), w[k][t - 7]);    \
-        tmp2[k] = vadd_epi64(s0(w[k][t - 15]), w[k][t - 16]);   \
-        w[k][t] = vadd_epi64(tmp1[k], tmp2[k]);                 \
-    }                                                           \
+#define R(t)                                                        \
+{                                                                   \
+    tmp1[i] = vadd_epi64(s1(w[i][(t-2)&0xf]), w[i][(t-7)&0xf]);     \
+    tmp2[i] = vadd_epi64(s0(w[i][(t-15)&0xf]), w[i][(t-16)&0xf]);   \
+    w[i][(t)&0xf] = vadd_epi64(tmp1[i], tmp2[i]);                   \
 }
 
 #define SHA512_STEP(a,b,c,d,e,f,g,h,x,K)                    \
 {                                                           \
     SHA512_PARA_DO(i)                                       \
     {                                                       \
-        tmp1[i] = vadd_epi64(h[i],    w[i][x]);             \
+	    tmp1[i] = vadd_epi64(h[i],    w[i][(x)&0xf]);       \
         tmp2[i] = vadd_epi64(S1(e[i]),vset1_epi64x(K));     \
         tmp1[i] = vadd_epi64(tmp1[i], Ch(e[i],f[i],g[i]));  \
         tmp1[i] = vadd_epi64(tmp1[i], tmp2[i]);             \
         tmp2[i] = vadd_epi64(S0(a[i]),Maj(a[i],b[i],c[i])); \
         d[i]    = vadd_epi64(tmp1[i], d[i]);                \
         h[i]    = vadd_epi64(tmp1[i], tmp2[i]);             \
+        R(x+16);                                            \
     }                                                       \
 }
 
@@ -1898,7 +1896,7 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 		  f[SIMD_PARA_SHA512],
 		  g[SIMD_PARA_SHA512],
 		  h[SIMD_PARA_SHA512];
-	vtype w[SIMD_PARA_SHA512][80];
+	vtype w[SIMD_PARA_SHA512][16];
 	vtype tmp1[SIMD_PARA_SHA512], tmp2[SIMD_PARA_SHA512];
 
 	if (SSEi_flags & SSEi_FLAT_IN) {
@@ -1941,13 +1939,9 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 			w[k][15] = tmp2[k];
 		}
 	} else
-		SHA512_PARA_DO(i)
-			memcpy(w[i], &data[i * 16], 16 * sizeof(vtype));
+		memcpy(w, data, 16 * sizeof(vtype) * SIMD_PARA_SHA512);
 
 	//dump_stuff_shammx64_msg("\nindex 2", w, 128, 2);
-
-	for (i = 16; i < 80; i++)
-		R(i);
 
 	if (SSEi_flags & SSEi_RELOAD) {
 		if ((SSEi_flags & SSEi_RELOAD_INP_FMT)==SSEi_RELOAD_INP_FMT)
