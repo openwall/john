@@ -47,41 +47,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
  *      time it is written. THEN it is very important this ONLY be allowed when we KNOW
  *      the salt length ahead of time.
  *
- *   2. The flat buffer length is getting 'tight'.  Right now the buffer length is
- *      PLAINTEXT_LENGTH_X86+EX_BUF_LEN which is 124+136 == 260.  We currently have
- *      a couple of hashes that are 256 bytes long (sha512(sha512($p).sha512($p)) and
- *      the same for whirlpool. This does not give much room for growth.  But these buffers
- *      should not be made to be 'too' much larger than needed.  This is an issue that needs
- *      to be looked into.  NOTE, we might want to go to 3 input buffers.  That way, we
- *      could make input buffer 1 be 128 bytes, input buffer2 256 and input buffer3 be
- *      512.  This would allow us to use a smaller buffer (buffer1), IF 128 bytes is
- *      enough, and hopefully reduce working set. But then have a double length buffer
- *      and a new quad length buffer IF we need them (for large hashes if there are multiple
- *      appended hashes).  This may add a BUNCH of extra functions.  NOTE, I have seen slowdowns
- *      in current setup (2 buffers), if buffersize is 260 bytes, vs 256 bytes.  I am sure this
- *      is due to page swapping, since this crosses 2 256 byte blocks.
- *
- *   3. optimize the SHA1 vs MD5 (sse).  Possibly keep SHA1 in SSE buffers, and have a
- *      a method to switch the buffer into LE md5/4 sse buffer space.  Same may go for
- *      other BE 64 byte hashes.  There will be no way to switch back and forth 'easily'
- *      between 128 byte hashes, into 64 byte, unless they contain 55 characters or
- *      less.  Also, the length constrains on the 128 byte buffers is much less, for a
- *      single block crypt.  64 byte hashes, can do 55 passwords (8 needed for length + 1 for
- *      the 0x80).  128 byte hashes can do 111 byte passwords (16 needed for length + 1
- *      for 0x80).  But on large hashes, if we allow over 55 byte passwords, we lose ability
- *      to switch into 64 byte SSE hash space.  NOTE that md4/md5 are the same. sha1, sha224
- *      and sha256 are the same.  The size of ALL of these are the same, but they differ in
- *      endianity.  sha384, sha512 are the same, but they are 128 byte vs 64 byte per limb.
- *      NOTE, this has been totally changed, in design. SHA1 has been removed from the intermixed
- *      SIMD_COEF_32 buffers, and now only uses 'flat' buffers.  The mix to SIMD_COEF_32 code has been
- *      placed inside the SSE intrinsic body.  There has been a 10-15% slowdown on some formats
- *      (most notably the 'raw-sha1', but this is just the way it will be. There were some
- *      performance IMPROVEMENTS on some formats.  The biggest benefit, is that this becomes
- *      OMP usable, and it reduces the code complexity a LOT, and makes writing scripts easier,
- *      with less internal knowledge of the strange way SHA1 worked before, to make an optimal
- *      speed format.
- *
- *   4. Change regen-salts to be generic. Add the logic to dynamic_fmt.c proper, and change
+ *   2. Change regen-salts to be generic. Add the logic to dynamic_fmt.c proper, and change
  *      the fake-salts.c, and options so that 'generic' regen-salts can be done.
  */
 
@@ -137,7 +103,6 @@ static unsigned int m_ompt;
 
 #if (defined (_OPENMP)||defined(FORCE_THREAD_MD5_body)) && defined (_MSC_VER)
 unsigned DES_bs_max_kpc, DES_bs_min_kpc, DES_bs_all_p;
-//void MD5_body_for_thread(int t, MD5_word x[15],MD5_word out[4]) { MD5_body(x,out); }
 #undef MD5_body
 extern void MD5_body(MD5_word x[15],MD5_word out[4]);
 #endif
@@ -266,9 +231,11 @@ static int fld_lens[10];
 
 const char *dynamic_itoa16 = itoa16;
 
+#if !defined (_DEBUG)
 #define itoa16_w2 __Dynamic_itoa_w2
 #define itoa16_w2_u __Dynamic_itoa_w2_u
 #define itoa16_w2_l __Dynamic_itoa_w2_l
+#endif
 unsigned short itoa16_w2_u[256], itoa16_w2_l[256];
 unsigned short *itoa16_w2=itoa16_w2_l;
 
@@ -299,7 +266,9 @@ static char out[EFFECTIVE_MAX_LENGTH + 1];
 
 // This is the GLOBAL count of keys. ALL of the primitives which deal with a count
 // will read from this variable.
+#if !defined (_DEBUG)
 #define m_count m_Dynamic_Count
+#endif
 unsigned int m_count;
 
 // If we are run in 'specific' mode (say, -format=dynamic -subformat=dynamic_0, then we
@@ -317,7 +286,9 @@ static int dynamic_use_sse;
 // If set to 1, then do unicode conversion is many string setting functions.
 static int *md5_unicode_convert;
 
+#if !defined (_DEBUG)
 #define curdat Dynamic_curdat
+#endif
 private_subformat_data curdat;
 
 // Helper function that loads out 256 unsigned short array that does base-16 conversions

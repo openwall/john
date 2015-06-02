@@ -73,7 +73,9 @@
 
 #include "memdbg.h"
 
+#if !defined (_DEBUG)
 #define m_count m_Dynamic_Count
+#endif
 extern unsigned int m_count;
 
 #define eLargeOut dyna_eLargeOut
@@ -88,12 +90,16 @@ extern unsigned int *total_len2_X86;
 
 extern const char *dynamic_itoa16;
 
+#if !defined (_DEBUG)
 #define curdat Dynamic_curdat
+#endif
 extern private_subformat_data curdat;
 
+#if !defined (_DEBUG)
 #define itoa16_w2 __Dynamic_itoa_w2
 #define itoa16_w2_u __Dynamic_itoa_w2_u
 #define itoa16_w2_l __Dynamic_itoa_w2_l
+#endif
 extern unsigned short itoa16_w2_u[256], *itoa16_w2;
 
 static inline void eLargeOut_set(eLargeOut_t what, int tid)
