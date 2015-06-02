@@ -20,7 +20,9 @@ john_register_one(&fmt_pomelo);
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               512 // XXX
+#endif
 #endif
 #include "memdbg.h"
 

@@ -77,7 +77,9 @@ john_register_one(&fmt_ocl_rar);
 #ifdef _OPENMP
 #include <omp.h>
 #include <pthread.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE		32
+#endif
 static pthread_mutex_t *lockarray;
 #endif
 

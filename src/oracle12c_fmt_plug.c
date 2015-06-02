@@ -1,81 +1,95 @@
 /*
- * This software is Copyright (c) 2013 magnum and it is hereby released to
- * the general public under the following terms:
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted.
+ * This software is Copyright (c) 2015, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted.
+ *
+ * https://www.trustwave.com/Resources/SpiderLabs-Blog/Changes-in-Oracle-Database-12c-password-hashes/
+ *
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_pbkdf2_hmac_md5;
+extern struct fmt_main fmt_oracle12c;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_pbkdf2_hmac_md5);
+john_register_one(&fmt_oracle12c);
 #else
 
-#include <ctype.h>
+#include <openssl/sha.h>
 #include <string.h>
-#include <assert.h>
 
 #include "arch.h"
+//#undef SIMD_COEF_64
+//#undef SIMD_PARA_SHA512
 #include "misc.h"
+#include "memory.h"
 #include "common.h"
 #include "formats.h"
 #include "johnswap.h"
-#include "stdint.h"
-#include "md5.h"
-#include "hmacmd5.h"
+#include "sha2.h"
+#include "pbkdf2_hmac_sha512.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               64
+#define OMP_SCALE               1
 #endif
 #endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL            "pbkdf2-hmac-md5"
-#define FORMAT_NAME             ""
-#define FORMAT_TAG              "$pbkdf2-hmac-md5$"
-#define TAG_LEN                 (sizeof(FORMAT_TAG) - 1)
-#define ALGORITHM_NAME          "PBKDF2-HMAC-MD5 32/" ARCH_BITS_STR
-#define BINARY_SIZE             16
-#define BINARY_ALIGN            sizeof(ARCH_WORD_32)
-#define MAX_BINARY_SIZE         (4 * BINARY_SIZE)
-#define MAX_SALT_SIZE           64
-#define MAX_CIPHERTEXT_LENGTH   256 // XXX
-#define SALT_SIZE               sizeof(struct custom_salt)
-#define SALT_ALIGN              sizeof(ARCH_WORD_32)
+#define FORMAT_LABEL		"Oracle12C"
+#define FORMAT_NAME		""
+#ifdef SIMD_COEF_64
+#define ALGORITHM_NAME		"PBKDF2-SHA512 " SHA512_ALGORITHM_NAME
+#else
+#define ALGORITHM_NAME		"PBKDF2-SHA512 32/" ARCH_BITS_STR
+#endif
+#define PLAINTEXT_LENGTH	125 // XXX
+#define CIPHERTEXT_LENGTH	160
+#define SALT_SIZE		sizeof(struct custom_salt)
+#define SALT_ALIGN		sizeof(ARCH_WORD_32)
+#define BINARY_SIZE		64
+#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
-#define PLAINTEXT_LENGTH        125
-
-#define MIN(a,b)                (((a)<(b))?(a):(b))
-#define MAX(a,b)                (((a)>(b))?(a):(b))
+#ifdef SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT	(SIMD_COEF_64 * SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT	(SIMD_COEF_64 * SIMD_PARA_SHA512)
+#else
+#define MIN_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	1
+#endif
+#define FORMAT_TAG		"$oracle12c$"
+#define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG) - 1)
 
 static struct fmt_tests tests[] = {
-	{"$pbkdf2-hmac-md5$1$salt$f31afb6d931392daa5e3130f47f9a9b6", "password"},
+{"$oracle12c$e3243b98974159cc24fd2c9a8b30ba62e0e83b6ca2fc7c55177c3a7f82602e3bdd17ceb9b9091cf9dad672b8be961a9eac4d344bdba878edc5dcb5899f689ebd8dd1be3f67bff9813a464382381ab36b", "epsilon"},
 	{NULL}
 };
 
 static struct custom_salt {
-	unsigned int length;
-	unsigned int rounds;
-	char salt[MAX_SALT_SIZE];
+	unsigned char salt[16 + 22 + 1];
+	int saltlen;
 } *cur_salt;
 
+#ifdef SIMD_COEF_64
+static char (*saved_key)[SHA_BUF_SIZ*sizeof(ARCH_WORD_64)];
+#else
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+#endif
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int omp_t = omp_get_max_threads();
+	static int omp_t = 1;
+	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
-	crypt_out = mem_calloc(self->params.max_keys_per_crypt, sizeof(*crypt_out));
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+			sizeof(*saved_key));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+			sizeof(*crypt_out));
 }
 
 static void done(void)
@@ -88,10 +102,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext;
 
-	if (strncasecmp(ciphertext, FORMAT_TAG, TAG_LEN))
+	if (strncasecmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
 		return 0;
 
-	if (strlen(ciphertext) > MAX_CIPHERTEXT_LENGTH)
+	if (strlen(ciphertext) > (FORMAT_TAG_LENGTH + CIPHERTEXT_LENGTH))
 		return 0;
 
 	p = strrchr(ciphertext, '$');
@@ -99,7 +113,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	p = p + 1;
-	if (strlen(p) != BINARY_SIZE * 2)
+	if (strlen(p) != (BINARY_SIZE * 2 + 32))
 		return 0;
 
 	if (!ishex(p))
@@ -114,19 +128,18 @@ error:
 static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
-	char *p, *q;
-	int saltlen;
+	char *p;
+	int i;
 
 	memset(cs.salt, 0, sizeof(cs.salt));
 
-	p = ciphertext + TAG_LEN;
-	cs.rounds = atou(p);
-	p = strchr(p, '$') + 1;
-	q = strrchr(ciphertext, '$');
-	saltlen = q - p;
+	p = ciphertext + FORMAT_TAG_LENGTH + 2 * BINARY_SIZE;
+	// AUTH_VFR_DATA is variable, and 16 bytes in length
+	for(i = 0; i < 16; i++)
+		cs.salt[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
 
-	strncpy(cs.salt, p, saltlen);
-	cs.length = strlen(cs.salt);
+	strncpy((char*)cs.salt + 16, "AUTH_PBKDF2_SPEEDY_KEY", 22);  // add constant string to the salt
+	cs.saltlen = 16 + 22;
 
 	return (void *)&cs;
 }
@@ -134,14 +147,14 @@ static void *get_salt(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		unsigned char c[MAX_BINARY_SIZE];
+		unsigned char c[BINARY_SIZE];
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;
 	int i;
 	char *p;
 
-	p = strrchr(ciphertext, '$') + 1;
+	p = ciphertext + FORMAT_TAG_LENGTH;
 	for (i = 0; i < BINARY_SIZE && *p; i++) {
 		out[i] =
 			(atoi16[ARCH_INDEX(*p)] << 4) |
@@ -167,8 +180,8 @@ static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int index;
 	const int count = *pcount;
-	int index = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -177,10 +190,31 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
-		pkcs5_pbkdf2_md5((unsigned char*)(saved_key[index]),
-				strlen(saved_key[index]),
-				(unsigned char*)cur_salt->salt, cur_salt->length,
-				cur_salt->rounds, 16, (unsigned char*)crypt_out[index]);
+		SHA512_CTX ctx;
+#if SIMD_COEF_64
+		int lens[SSE_GROUP_SZ_SHA512], i;
+		unsigned char *pin[SSE_GROUP_SZ_SHA512];
+		union {
+			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA512];
+			unsigned char *poutc;
+		} x;
+		for (i = 0; i < SSE_GROUP_SZ_SHA512; ++i) {
+			lens[i] = strlen(saved_key[index+i]);
+			pin[i] = (unsigned char*)saved_key[index+i];
+			x.pout[i] = (ARCH_WORD_32*)(crypt_out[index+i]);
+		}
+		pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt,
+		                  cur_salt->saltlen, 4096, &(x.poutc), BINARY_SIZE, 0);
+#else
+		pbkdf2_sha512((const unsigned char*)saved_key[index],
+		              strlen(saved_key[index]), cur_salt->salt,
+		              cur_salt->saltlen, 4096,
+		              (unsigned char*)crypt_out[index], BINARY_SIZE, 0);
+#endif
+		SHA512_Init(&ctx);
+		SHA512_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);
+		SHA512_Update(&ctx, cur_salt->salt, 16); // AUTH_VFR_DATA first 16 bytes
+		SHA512_Final((unsigned char*)crypt_out[index], &ctx);
 	}
 	return count;
 }
@@ -220,17 +254,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-#if FMT_MAIN_VERSION > 11
-static unsigned int iteration_count(void *salt)
-{
-	struct custom_salt *my_salt;
-
-	my_salt = salt;
-	return (unsigned int) my_salt->rounds;
-}
-#endif
-
-struct fmt_main fmt_pbkdf2_hmac_md5 = {
+struct fmt_main fmt_oracle12c = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -247,9 +271,7 @@ struct fmt_main fmt_pbkdf2_hmac_md5 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
-		{
-			"iteration count",
-		},
+		{ NULL },
 #endif
 		tests
 	}, {
@@ -262,9 +284,7 @@ struct fmt_main fmt_pbkdf2_hmac_md5 = {
 		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 11
-		{
-			iteration_count,
-		},
+		{ NULL },
 #endif
 		fmt_default_source,
 		{

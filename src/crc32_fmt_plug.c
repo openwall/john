@@ -39,7 +39,9 @@ john_register_one(&fmt_crc32);
 
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE       64	// tuned on AMD-k8 dual-HT
+#endif
 #endif
 #include "memdbg.h"
 

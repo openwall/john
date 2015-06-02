@@ -120,7 +120,9 @@ john_register_one(&fmt_rar);
 #ifdef _OPENMP
 #include <omp.h>
 #include <pthread.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE		4
+#endif
 static pthread_mutex_t *lockarray;
 #endif
 

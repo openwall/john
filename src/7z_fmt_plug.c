@@ -48,7 +48,9 @@ john_register_one(&fmt_sevenzip);
 #define SALT_ALIGN		4
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#ifndef OMP_SCALE
 #define OMP_SCALE               1 // tuned on core i7
+#endif
 
 #define BIG_ENOUGH 		(8192 * 32)
 

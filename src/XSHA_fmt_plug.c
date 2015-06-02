@@ -21,7 +21,9 @@ john_register_one(&fmt_XSHA);
 #ifdef _OPENMP
 static unsigned int omp_t = 1;
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE			128
+#endif
 #endif
 #endif
 #include "sse-intrinsics.h"

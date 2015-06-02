@@ -19,7 +19,9 @@ john_register_one(&fmt_cryptsha1);
 
 #include <string.h>
 #ifdef _OPENMP
+#ifndef OMP_SCALE
 #define OMP_SCALE                   32 // tuned on core i7 w/ HT
+#endif
 #include <omp.h>
 #endif
 

@@ -25,7 +25,9 @@ john_register_one(&fmt_rawKeccak_256);
 #include "KeccakHash.h"
 
 #ifdef _OPENMP
+#ifndef OMP_SCALE
 #define OMP_SCALE			2048
+#endif
 #include <omp.h>
 #endif
 

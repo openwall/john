@@ -26,7 +26,9 @@ john_register_one(&fmt_s7);
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               2048
+#endif
 #endif
 #include "memdbg.h"
 

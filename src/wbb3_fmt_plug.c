@@ -36,7 +36,9 @@ john_register_one(&fmt_wbb3);
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               8 // tuned on core i7
+#endif
 #endif
 #include "memdbg.h"
 

@@ -49,7 +49,9 @@ john_register_one(&fmt_django);
 #include "pbkdf2_hmac_sha256.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               4 // tuned on core i7
+#endif
 static int omp_t = 1;
 #endif
 #include "memdbg.h"

@@ -81,7 +81,9 @@ john_register_one(&fmt_cryptsha512);
 #include "sse-intrinsics.h"
 
 #ifdef _OPENMP
+#ifndef OMP_SCALE
 #define OMP_SCALE			16
+#endif
 #include <omp.h>
 #endif
 

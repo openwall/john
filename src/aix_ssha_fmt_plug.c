@@ -33,7 +33,9 @@ john_register_one(&fmt_aixssha512);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               8 // Tuned on i7 w/HT for SHA-256
+#endif
 #endif
 #include "pbkdf2_hmac_sha1.h"
 #include "pbkdf2_hmac_sha256.h"

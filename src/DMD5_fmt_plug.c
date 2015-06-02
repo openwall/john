@@ -25,7 +25,9 @@ john_register_one(&fmt_DMD5);
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE 1024
+#endif
 #endif
 
 #include "arch.h"

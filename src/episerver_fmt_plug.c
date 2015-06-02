@@ -54,7 +54,9 @@ john_register_one(&fmt_episerver);
 #include "unicode.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               2048 // core i7 no HT
+#endif
 #endif
 #include "memdbg.h"
 

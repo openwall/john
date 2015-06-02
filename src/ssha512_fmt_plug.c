@@ -27,9 +27,13 @@ john_register_one(&fmt_saltedsha2);
 
 #ifdef _OPENMP
 #ifdef SIMD_COEF_64
+#ifndef OMP_SCALE
 #define OMP_SCALE               1024
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE				2048
+#endif
 #endif
 #include <omp.h>
 #endif

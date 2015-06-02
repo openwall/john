@@ -30,7 +30,9 @@ john_register_one(&fmt_stribog_512);
 #include "gost3411-2012-sse41.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               512 // XXX
+#endif
 #endif
 #include "memdbg.h"
 

@@ -32,7 +32,9 @@ john_register_one(&fmt_gost);
 #include "gost.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               512 // tuned K8-dual HT
+#endif
 #endif
 #include "memdbg.h"
 

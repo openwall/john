@@ -32,7 +32,9 @@ john_register_one(&fmt_sunmd5);
 
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE 2
+#endif
 #endif
 
 #include "arch.h"

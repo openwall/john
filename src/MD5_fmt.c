@@ -21,7 +21,9 @@
 #include "cryptmd5_common.h"
 
 #if defined(_OPENMP) && defined(SIMD_PARA_MD5)
+#ifndef OMP_SCALE
 #define OMP_SCALE			4
+#endif
 #include <omp.h>
 #endif
 #include "memdbg.h"

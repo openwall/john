@@ -43,9 +43,13 @@ john_register_one(&fmt_sapB);
 #include <omp.h>
 static unsigned int omp_t = 1;
 #ifdef SIMD_COEF_32
+#ifndef OMP_SCALE
 #define OMP_SCALE			512	// tuned on K8-dual HT.
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE			2048
+#endif
 #endif
 #endif
 

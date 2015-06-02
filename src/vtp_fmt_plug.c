@@ -25,7 +25,9 @@ john_register_one(&fmt_vtp);
 // 512 - 30.5k
 // 1k  - 28.5k
 // 2k  - 28.5k  (times wobble)
+#ifndef OMP_SCALE
 #define OMP_SCALE 256
+#endif
 #endif
 
 #include "arch.h"

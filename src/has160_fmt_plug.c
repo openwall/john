@@ -21,7 +21,9 @@ john_register_one(&fmt_HAS160);
 #include "has160.h"
 
 #ifdef _OPENMP
+#ifndef OMP_SCALE
 #define OMP_SCALE			2048
+#endif
 #include <omp.h>
 #endif
 

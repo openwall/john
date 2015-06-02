@@ -47,9 +47,13 @@ john_register_one(&fmt_sapH);
 #if defined(_OPENMP)
 #include <omp.h>
 #ifdef SIMD_COEF_32
+#ifndef OMP_SCALE
 #define OMP_SCALE			8
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE			64
+#endif
 #endif
 #endif
 

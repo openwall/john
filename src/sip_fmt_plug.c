@@ -34,7 +34,9 @@ static int omp_t = 1;
 //  32   8730K  ** this was chosen.
 //  64   8791k
 // 128   8908k
+#ifndef OMP_SCALE
 #define OMP_SCALE   32
+#endif
 #endif
 #include "memdbg.h"
 

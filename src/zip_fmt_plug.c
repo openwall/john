@@ -60,7 +60,9 @@ john_register_one(&fmt_zip);
 #include "dyna_salt.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               1	// Tuned on core i7
+#endif
 static int omp_t = 1;
 #endif
 #include "gladman_hmac.h"

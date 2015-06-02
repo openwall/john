@@ -37,7 +37,9 @@ john_register_one(&fmt_ecryptfs1);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               8 // XXX
+#endif
 #endif
 #include "memdbg.h"
 

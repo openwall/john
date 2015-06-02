@@ -58,7 +58,9 @@ john_register_one(&fmt_NT2);
 #ifdef SIMD_COEF_32
 #if defined(_OPENMP)
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE			512 // tuned for i7 w/o HT
+#endif
 #endif
 #define PLAINTEXT_LENGTH		27
 #define MIN_KEYS_PER_CRYPT		NBKEYS

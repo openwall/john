@@ -1,7 +1,7 @@
 /*
  * This file contains the core of a bitslice DES implementation for x86/MMX.
  * It is part of John the Ripper password cracker,
- * Copyright (c) 2000-2001,2005,2006,2008,2011,2012 by Solar Designer
+ * Copyright (c) 2000-2001,2005,2006,2008,2011,2012,2015 by Solar Designer
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.  (This is a heavily cut-down "BSD license".)
  *
@@ -644,13 +644,13 @@ DO_SPACE(nptr(48))
 	pandn %mm2,%mm1; \
 	movq %mm2,tmp_at(2); \
 	pandn %mm4,%mm2; \
-	movq %mm5,tmp_at(5); \
+	movq %mm3,tmp_at(3); \
 	pxor %mm3,%mm2; \
 	movq %mm4,tmp_at(4); \
-	movq %mm1,%mm5; \
-	movq %mm3,tmp_at(3); \
+	movq %mm1,%mm3; \
+	movq %mm5,tmp_at(5); \
 	movq %mm2,%mm4; \
-	movq %mm2,%mm3; \
+	movq %mm2,%mm5; \
 	pandn tmp_at(1),%mm4; \
 	pand %mm0,%mm2; \
 	pandn tmp_at(1),%mm7; \
@@ -660,49 +660,49 @@ DO_SPACE(nptr(48))
 	por %mm0,%mm4; \
 	movq %mm7,tmp_at(6); \
 	pand %mm4,%mm7; \
-	pxor pnot,%mm3; \
+	pxor pnot,%mm5; \
 	por %mm7,%mm2; \
-	pxor %mm7,%mm3; \
+	pxor %mm7,%mm5; \
 	pandn tmp_at(2),%mm4; \
 	movq tmp_at(5),%mm7; \
-	pxor %mm4,%mm3; \
+	pxor %mm4,%mm5; \
 	por %mm1,%mm7; \
-	pxor %mm3,%mm5; \
-	pxor %mm5,%mm7; \
-	pxor %mm0,%mm5; \
+	pxor %mm5,%mm3; \
+	pxor %mm3,%mm7; \
+	pxor %mm0,%mm3; \
 	pxor out2,%mm7; \
 	movq %mm7,out2; \
-	pxor tmp_at(1),%mm3; \
-	movq %mm5,%mm4; \
-	pand tmp_at(4),%mm5; \
-	pxor %mm3,%mm5; \
-	por tmp_at(3),%mm3; \
-	pxor %mm5,%mm6; \
-	pxor tmp_at(6),%mm3; \
-	pxor %mm2,%mm5; \
-	pxor %mm6,%mm3; \
-	por tmp_at(1),%mm5; \
-	pxor %mm3,%mm0; \
-	pxor %mm4,%mm5; \
+	pxor tmp_at(1),%mm5; \
+	movq %mm3,%mm4; \
+	pand tmp_at(4),%mm3; \
+	pxor %mm5,%mm3; \
+	por tmp_at(3),%mm5; \
+	pxor %mm3,%mm6; \
+	pxor tmp_at(6),%mm5; \
+	pxor %mm2,%mm3; \
+	pxor %mm6,%mm5; \
+	por tmp_at(1),%mm3; \
+	pxor %mm5,%mm0; \
+	pxor %mm4,%mm3; \
 	por tmp_at(3),%mm4; \
-	pxor tmp_at(4),%mm5; \
+	pxor tmp_at(4),%mm3; \
 	pand tmp_at(5),%mm2; \
-	pandn %mm5,%mm4; \
+	pandn %mm3,%mm4; \
 	pand tmp_at(5),%mm0; \
 	pxor %mm6,%mm0; \
 	por %mm1,%mm4; \
 	pxor out4,%mm0; \
-	pxor %mm4,%mm3; \
+	pxor %mm4,%mm5; \
 	pxor out3,%mm2; \
-	por tmp_at(5),%mm3; \
-	pxor out1,%mm3; \
-	pxor %mm5,%mm2; \
-	pxor %mm6,%mm3; \
+	por tmp_at(5),%mm5; \
+	pxor out1,%mm5; \
+	pxor %mm3,%mm2; \
+	pxor %mm6,%mm5; \
 	movq %mm0,out4; \
 	movq %mm2,out3; \
-	movq %mm3,out1
+	movq %mm5,out1
 
-#define zero				%mm0
+#define zero				%mm5
 
 #define DES_bs_clear_block_8(i) \
 	movq zero,B(i); \
@@ -772,7 +772,7 @@ DO_SPACE(nptr(48))
 	pxor K(k5),a5; \
 	pxor K(k6),a6
 
-#define xor_B_KS_p(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, b6, k6) \
+#define xor_B_KS_p_prefix(b1, k1, b2, k2, b3, k3, b4, k4, k6) \
 	movl k(k1),tmp1; \
 	movl k(k2),tmp2; \
 	movq B(b1),a1; \
@@ -784,13 +784,23 @@ DO_SPACE(nptr(48))
 	movq B(b3),a3; \
 	movq B(b4),a4; \
 	pxor (tmp1),a3; \
-	movl k(k5),tmp1; \
-	pxor (tmp2),a4; \
+	movl k(k6),tmp1; \
+	pxor (tmp2),a4
+
+#define xor_B_KS_p_suffix(b5, k5) \
+	movl k(k5),tmp2; \
 	movq B(b5),a5; \
-	movl k(k6),tmp2; \
+	pxor (tmp1),a6; \
+	pxor (tmp2),a5
+
+#define xor_B_KS_p(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, b6, k6) \
+	xor_B_KS_p_prefix(b1, k1, b2, k2, b3, k3, b4, k4, k6); \
 	movq B(b6),a6; \
-	pxor (tmp1),a5; \
-	pxor (tmp2),a6
+	xor_B_KS_p_suffix(b5, k5)
+
+#define xor_B_KS_p_special(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, k6) \
+	xor_B_KS_p_prefix(b1, k1, b2, k2, b3, k3, b4, k4, k6); \
+	xor_B_KS_p_suffix(b5, k5)
 
 #define mask01				tmp_at(15)
 
@@ -1360,7 +1370,7 @@ DES_bs_finalize_keys_LM_loop:
 	movq ones,B(63)
 	movl $8,rounds
 DES_bs_crypt_LM_loop:
-	xor_B_KS_p(31, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5)
+	xor_B_KS_p_special(31, 0, 0, 1, 1, 2, 2, 3, 3, 4, 5)
 	S1(B(40), B(48), B(54), B(62))
 	xor_B_KS_p(3, 6, 4, 7, 5, 8, 6, 9, 7, 10, 8, 11)
 	S2(B(44), B(59), B(33), B(49))
@@ -1376,7 +1386,7 @@ DES_bs_crypt_LM_loop:
 	S7(B(63), B(43), B(53), B(38))
 	xor_B_KS_p(27, 42, 28, 43, 29, 44, 30, 45, 31, 46, 0, 47)
 	S8(B(36), B(58), B(46), B(52))
-	xor_B_KS_p(63, 48, 32, 49, 33, 50, 34, 51, 35, 52, 36, 53)
+	xor_B_KS_p_special(63, 48, 32, 49, 33, 50, 34, 51, 35, 52, 53)
 	S1(B(8), B(16), B(22), B(30))
 	xor_B_KS_p(35, 54, 36, 55, 37, 56, 38, 57, 39, 58, 40, 59)
 	S2(B(12), B(27), B(1), B(17))

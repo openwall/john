@@ -19,9 +19,13 @@ john_register_one(&fmt_rawSHA256_ng);
 #if _OPENMP
 #include <omp.h>
 #if __XOP__
+#ifndef OMP_SCALE
 #define OMP_SCALE                 512 /* AMD */
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE                 512 /* Intel */
+#endif
 #endif
 #endif
 

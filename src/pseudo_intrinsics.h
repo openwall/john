@@ -54,6 +54,8 @@ typedef __m512i vtype;
 #define vload(x)                _mm512_load_si512((void*)(x))
 #define vloadu(x)               _mm512_loadu_si512((void*)(x))
 #define vor                     _mm512_or_si512
+#define vscatter_epi32          _mm512_i32scatter_epi32
+#define vscatter_epi64          _mm512_i64scatter_epi64
 #define vset1_epi8              _mm512_set1_epi8
 #define vset1_epi32             _mm512_set1_epi32
 #define vset1_epi64x            _mm512_set1_epi64
@@ -141,10 +143,9 @@ typedef __m512i vtype;
              vxor(vslli_epi32(vsrli_epi32(vslli_epi32(n, 8), 24), 8),       \
                   vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(n, 8), 24), 8),  \
                        vslli_epi32(n, 24))))
-#define vswap64(n) {                                \
-    n = vshuffle_epi32(n, _MM_SHUFFLE(2, 3, 0, 1)); \
-    vswap32(n);                                     \
-}
+#define vswap64(n)                                   \
+    (n = vshuffle_epi32(n, _MM_SHUFFLE(2, 3, 0, 1)), \
+     vswap32(n))
 #endif // __AVX512BW__
 
 // MIC lacks some intrinsics in AVX512F, thus needing emulation.
@@ -409,12 +410,12 @@ static inline int vtestz_epi32(vtype __X)
             vroti16_epi32(n,16), 8),                \
             vslli_epi16(vroti16_epi32(n,16), 8)))
 
-#define vswap64(n)                                          \
-  {                                                         \
-    n = vshufflehi_epi16(vshufflelo_epi16(n, 0xb1), 0xb1);  \
-    n = vxor(vslli_epi16(n, 8), vsrli_epi16(n, 8));         \
-    n = vshuffle_epi32(n, 0xb1);                            \
-  }
+#define vswap64(n)                                              \
+    (                                                           \
+        n = vshufflehi_epi16(vshufflelo_epi16(n, 0xb1), 0xb1),  \
+        n = vxor(vslli_epi16(n, 8), vsrli_epi16(n, 8)),         \
+        n = vshuffle_epi32(n, 0xb1);                            \
+    )
 
 #endif /* __SSSE3__ */
 

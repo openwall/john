@@ -75,9 +75,13 @@ john_register_one(&fmt_sha1_ng);
 #define SHA1_DIGEST_WORDS        5
 #define SHA1_PARALLEL_HASH     512 // This must be a multiple of max VWIDTH.
 #ifdef __MIC__
+#ifndef OMP_SCALE
 #define OMP_SCALE              128
+#endif
 #else
+#ifndef OMP_SCALE
 #define OMP_SCALE             2048 // Multiplier to hide OMP overhead
+#endif
 #endif
 
 #define X(X0, X2, X8, X13) do {                 \

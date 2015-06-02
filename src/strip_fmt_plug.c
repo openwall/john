@@ -27,7 +27,9 @@ john_register_one(&fmt_strip);
 #include "pbkdf2_hmac_sha1.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               4 // tuned on core i7
+#endif
 #endif
 #include "memdbg.h"
 

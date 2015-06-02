@@ -54,7 +54,9 @@ john_register_one(&fmt_openssl);
 #include "jumbo.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               8
+#endif
 #endif
 #include "memdbg.h"
 

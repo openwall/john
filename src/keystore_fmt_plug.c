@@ -30,7 +30,9 @@ john_register_one(&fmt_keystore);
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               64
+#endif
 #endif
 #include "memdbg.h"
 

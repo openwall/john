@@ -188,19 +188,22 @@ static int show_pwd(unsigned long long start)
 			i++;
 		pwd.len = 1;
 		pwd.level = proba1[pwd.password[0]];
-		if(show_pwd_r(&pwd, 1))
-			return 1;
-
-		if( (pwd.len >= gmin_len) && (pwd.level >= gmin_level) )
+		if (pwd.level <= gmax_level)
 		{
-			pass = (char*) pwd.password;
-			if (options.mask) {
-				if (do_mask_crack(pass))
-					return 1;
-			} else
-			if (!f_filter || ext_filter_body((char*)pwd.password, pass = pass_filtered))
-				if(crk_process_key(pass))
-					return 1;
+			if(show_pwd_r(&pwd, 1))
+				return 1;
+
+			if( (pwd.len >= gmin_len) && (pwd.level >= gmin_level) )
+			{
+				pass = (char*) pwd.password;
+				if (options.mask) {
+					if (do_mask_crack(pass))
+						return 1;
+				} else
+				if (!f_filter || ext_filter_body((char*)pwd.password, pass = pass_filtered))
+					if(crk_process_key(pass))
+						return 1;
+			}
 		}
 		gidx++;
 		i++;

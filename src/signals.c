@@ -244,7 +244,7 @@ static void sig_handle_abort(int signum)
 }
 
 #ifdef WIN32_SIGNAL_HANDLER
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 static CALLBACK BOOL sig_handle_abort_ctrl(DWORD ctrltype)
 #else
 static BOOL WINAPI sig_handle_abort_ctrl(DWORD ctrltype)
@@ -260,6 +260,12 @@ static void sig_install_abort(void)
 #ifdef __DJGPP__
 	setcbrk(1);
 #elif defined(WIN32_SIGNAL_HANDLER)
+/*
+ * "If the HandlerRoutine parameter is NULL, [...] a FALSE value restores
+ * normal processing of CTRL+C input.  This attribute of ignoring or processing
+ * CTRL+C is inherited by child processes."  So restore normal processing here
+ * in case our parent (such as Johnny the GUI) had disabled it.
+ */
 	SetConsoleCtrlHandler(sig_handle_abort_ctrl, TRUE);
 #endif
 

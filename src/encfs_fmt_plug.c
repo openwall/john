@@ -28,7 +28,9 @@ john_register_one(&fmt_encfs);
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE               1
+#endif
 #endif
 #include "common.h"
 #include "formats.h"

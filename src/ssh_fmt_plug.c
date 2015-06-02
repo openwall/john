@@ -32,7 +32,9 @@ john_register_one(&fmt_ssh);
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
 #define OMP_SCALE           64
+#endif
 #endif
 #include <string.h>
 #include "arch.h"
