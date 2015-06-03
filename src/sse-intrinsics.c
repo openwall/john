@@ -343,7 +343,7 @@ void SSEmd5body(vtype* _data, unsigned int *out,
 
 			for (j = 0; j < VS32; j++)
 				for (k = 0; k < 4; k++)
-					o[j*4+k] = ((uint32_t*)tmp)[k*VS32+j];
+					o[j*4+k] = ((uint32_t*)&tmp)[k*VS32+j];
 #endif
 		}
 	}
@@ -888,7 +888,7 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 
 			for (j = 0; j < VS32; j++)
 				for (k = 0; k < 4; k++)
-					o[j*4+k] = ((uint32_t*)tmp)[k*VS32+j];
+					o[j*4+k] = ((uint32_t*)&tmp)[k*VS32+j];
 #endif
 		}
 	}
@@ -1325,7 +1325,7 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 
 			for (j = 0; j < VS32; j++)
 				for (k = 0; k < 5; k++)
-					o[j*5+k] = ((uint32_t*)tmp)[k*VS32+j];
+					o[j*5+k] = ((uint32_t*)&tmp)[k*VS32+j];
 #endif
 		}
 	}
@@ -1747,7 +1747,7 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 
 			for (j = 0; j < VS32; j++)
 				for (k = 0; k < 8; k++)
-					o[j*8+k] = ((uint32_t*)tmp)[k*VS32+j];
+					o[j*8+k] = ((uint32_t*)&tmp)[k*VS32+j];
 #endif
 		}
 	}
@@ -2156,7 +2156,7 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 
 			for (j = 0; j < VS64; j++)
 				for (k = 0; k < 8; k++)
-					o[j*8+k] = ((uint64_t*)tmp)[k*VS64+j];
+					o[j*8+k] = ((uint64_t*)&tmp)[k*VS64+j];
 #endif
 		}
 	}
