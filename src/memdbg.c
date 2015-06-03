@@ -137,8 +137,8 @@ static unsigned long	freed_cnt = 0;
 #define RESERVE_SZ       (sizeof(MEMDBG_HDR) + sizeof(MEMDBG_HDR*) + 4 + 16)
 #define RESERVE_SZ_AL(a) (sizeof(MEMDBG_HDR) + sizeof(MEMDBG_HDR*) + 4 + 16 + a*2)
 
-#define CLIENT_2_HDR_PTR(a) ((MEMDBG_HDR *) (((char *) ((unsigned long long)(((char *)a)-4-sizeof(MEMDBG_HDR*)) & ~0xF))))
-#define CLIENT_2_HDR(a)     ((MEMDBG_HDR *) (((char *) ((unsigned long long)(((char *)a)-4-sizeof(MEMDBG_HDR*)) & ~0xF))))->mdbg_next
+#define CLIENT_2_HDR_PTR(a) ((MEMDBG_HDR *) (((char *) ((ARCH_WORD)(((char *)a)-4-sizeof(MEMDBG_HDR*)) & ~0xF))))
+#define CLIENT_2_HDR(a)     ((MEMDBG_HDR *) (((char *) ((ARCH_WORD)(((char *)a)-4-sizeof(MEMDBG_HDR*)) & ~0xF))))->mdbg_next
 #define HDR_2_CLIENT(a)     ((void *) (((char*)((MEMDBG_HDR *) (a->mdbg_hdr1))) + 4))
 
 static void   mem_fence_post_err_fp    (void *, const char *, int, char *fp, int line);
