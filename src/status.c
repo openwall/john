@@ -8,9 +8,6 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#ifdef _SCO_C_DIALECT
-#include <limits.h>
-#endif
 #include <stdio.h>
 #include <string.h>
 #include <time.h>

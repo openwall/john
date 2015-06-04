@@ -11,9 +11,6 @@
 #define NEED_OS_TIMER
 #include "os.h"
 
-#ifdef _SCO_C_DIALECT
-#include <limits.h>
-#endif
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
