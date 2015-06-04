@@ -92,7 +92,6 @@ JOHN_OBJS = \
 	dmg2john.o \
 	keepass2john.o \
 	keyring2john.o keystore2john.o \
-	truecrypt_volume2john.o \
 	hccap2john.o \
 	$(PLUGFORMATS_OBJS) \
 	dyna_salt.o dummy.o \
@@ -134,7 +133,7 @@ PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../ru
 	../run/pwsafe2john@EXE_EXT@ ../run/raw2dyna@EXE_EXT@ ../run/keepass2john@EXE_EXT@ ../run/pfx2john@EXE_EXT@ \
 	../run/keychain2john@EXE_EXT@ ../run/keyring2john@EXE_EXT@ ../run/kwallet2john@EXE_EXT@ \
 	../run/dmg2john@EXE_EXT@ ../run/putty2john@EXE_EXT@ ../run/uaf2john@EXE_EXT@ \
-	../run/truecrypt_volume2john@EXE_EXT@ ../run/keystore2john@EXE_EXT@ ../run/wpapcap2john@EXE_EXT@ \
+	../run/keystore2john@EXE_EXT@ ../run/wpapcap2john@EXE_EXT@ \
 	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/luks2john@EXE_EXT@ ../run/base64conv@EXE_EXT@
 
 WITH_PCAP = @HAVE_PCAP@
@@ -486,8 +485,6 @@ timer.o:	timer.c timer.h memdbg.h
 
 trip_fmt.o:	trip_fmt.c arch.h DES_std.h common.h formats.h DES_bs.h memdbg.h
 
-truecrypt_volume2john.o:	truecrypt_volume2john.c jumbo.h memdbg.h
-
 tty.o:	tty.c arch.h tty.h memdbg.h
 
 uaf2john.o:	uaf2john.c uaf_encode.h uaf_raw.h memdbg.h
@@ -636,10 +633,6 @@ aes/aes.a:
 	$(RM) ../run/base64conv
 	$(LN) john ../run/base64conv
 
-../run/truecrypt_volume2john: ../run/john
-	$(RM) ../run/truecrypt_volume2john
-	$(LN) john ../run/truecrypt_volume2john
-
 ../run/keystore2john: ../run/john
 	$(RM) ../run/keystore2john
 	$(LN) john ../run/keystore2john
@@ -727,10 +720,6 @@ aes/aes.a:
 ../run/base64conv.exe: symlink.c
 	$(CC) symlink.c -o ../run/base64conv.exe
 	$(STRIP) ../run/base64conv.exe
-
-../run/truecrypt_volume2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/truecrypt_volume2john.exe
-	$(STRIP) ../run/truecrypt_volume2john.exe
 
 ../run/keystore2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/keystore2john.exe
