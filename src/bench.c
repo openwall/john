@@ -8,17 +8,9 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#ifdef __ultrix__
-#define __POSIX
-#define _POSIX_SOURCE
-#endif
-
 #define NEED_OS_TIMER
 #include "os.h"
 
-#ifdef _SCO_C_DIALECT
-#include <limits.h>
-#endif
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>

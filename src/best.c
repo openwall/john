@@ -12,17 +12,9 @@
  * Benchmark to detect the best algorithm for a particular architecture.
  */
 
-#ifdef __ultrix__
-#define __POSIX
-#define _POSIX_SOURCE
-#endif
-
 #define NEED_OS_FORK
 #include "os.h"
 
-#ifdef _SCO_C_DIALECT
-#include <limits.h>
-#endif
 #include <stdio.h>
 #include <time.h>
 
