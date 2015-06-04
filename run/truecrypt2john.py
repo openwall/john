@@ -23,7 +23,7 @@ from os.path import basename
 import binascii
 
 
-def process_file(filename):
+def process_file(filename, keyfiles):
 
     try:
         f = open(filename, "rb")
@@ -37,17 +37,15 @@ def process_file(filename):
         sys.stderr.write("%s : Truecrypt volume file to short: Need at least 512 bytes\n", filename)
         return
 
-    sys.stdout.write("%s:truecrypt_RIPEMD_160$" % basename(filename))
-    sys.stdout.write(binascii.hexlify(header))
-    sys.stdout.write(":normal::::%s\n" % filename)
-
-    sys.stdout.write("%s:truecrypt_SHA_512$" % basename(filename))
-    sys.stdout.write(binascii.hexlify(header))
-    sys.stdout.write(":normal::::%s\n" % filename)
-
-    sys.stdout.write("%s:truecrypt_WHIRLPOOL$" % basename(filename))
-    sys.stdout.write(binascii.hexlify(header))
-    sys.stdout.write(":normal::::%s\n" % filename)
+    for tag in ["truecrypt_RIPEMD_160", "truecrypt_SHA_512", "truecrypt_WHIRLPOOL"]:
+        sys.stdout.write("%s:%s$" % (basename(filename), tag))
+        sys.stdout.write(binascii.hexlify(header))
+        if keyfiles:
+            nkeyfiles = len(keyfiles)
+            sys.stdout.write("$%d" % (nkeyfiles))
+            for keyfile in keyfiles:
+                sys.stdout.write("$%s" % keyfile)
+        sys.stdout.write(":normal::::%s\n" % filename)
 
     # try hidden volume if any
     f.seek(65536, 0)
@@ -58,17 +56,16 @@ def process_file(filename):
     if len(header) != 512:
         f.close()
         return
-    sys.stdout.write("%s:truecrypt_RIPEMD_160$" % basename(filename))
-    sys.stdout.write(binascii.hexlify(header))
-    sys.stdout.write(":hidden::::%s\n" % filename)
 
-    sys.stdout.write("%s:truecrypt_SHA_512$" % basename(filename))
-    sys.stdout.write(binascii.hexlify(header))
-    sys.stdout.write(":hidden::::%s\n" % filename)
-
-    sys.stdout.write("%s:truecrypt_WHIRLPOOL$" % basename(filename))
-    sys.stdout.write(binascii.hexlify(header))
-    sys.stdout.write(":hidden::::%s\n" % filename)
+    for tag in ["truecrypt_RIPEMD_160", "truecrypt_SHA_512", "truecrypt_WHIRLPOOL"]:
+        sys.stdout.write("%s:%s$" % (basename(filename), tag))
+        sys.stdout.write(binascii.hexlify(header))
+        if keyfiles:
+            nkeyfiles = len(keyfiles)
+            sys.stdout.write("$%d" % (nkeyfiles))
+            for keyfile in keyfiles:
+                sys.stdout.write("$%s" % keyfile)
+        sys.stdout.write(":hidden::::%s\n" % filename)
 
     f.close()
 
@@ -76,8 +73,11 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Error: No truecrypt volume file specified.\n")
         sys.stderr.write("\nUtility to import TrueCrypt volume to a format crackeable by John The Ripper\n")
-        sys.stderr.write("\nUsage: %s volume_filename > output_file\n" % sys.argv[0])
+        sys.stderr.write("\nUsage: %s volume_filename [keyfiles(s)]> output_file\n" % sys.argv[0])
         sys.exit(-1)
 
-    for i in range(1, len(sys.argv)):
-        process_file(sys.argv[i])
+    keyfiles = []
+    if len(sys.argv) > 2:
+        keyfiles = sys.argv[2:]
+
+    process_file(sys.argv[1], keyfiles)
