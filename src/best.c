@@ -12,11 +12,6 @@
  * Benchmark to detect the best algorithm for a particular architecture.
  */
 
-#ifdef __ultrix__
-#define __POSIX
-#define _POSIX_SOURCE
-#endif
-
 #define NEED_OS_FORK
 #include "os.h"
 

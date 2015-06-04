@@ -8,11 +8,6 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#ifdef __ultrix__
-#define __POSIX
-#define _POSIX_SOURCE
-#endif
-
 #define NEED_OS_TIMER
 #include "os.h"
 

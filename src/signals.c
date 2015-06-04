@@ -10,11 +10,6 @@
 
 #define _XOPEN_SOURCE 500 /* for setitimer(2) and siginterrupt(3) */
 
-#ifdef __ultrix__
-#define __POSIX
-#define _POSIX_SOURCE
-#endif
-
 #define NEED_OS_TIMER
 #define NEED_OS_FORK
 #include "os.h"
