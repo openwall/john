@@ -24,7 +24,7 @@ extern unsigned rhash_gost_sbox_cryptpro[4][256];
  * Initialize algorithm context before calculaing hash
  * with test parameters set.
  *
- * @param ctx context to initailize
+ * @param ctx context to initialize
  */
 void john_gost_init(gost_ctx *ctx)
 {
@@ -34,7 +34,7 @@ void john_gost_init(gost_ctx *ctx)
 /**
  * Initialize GOST algorithm context with CryptoPro parameter set.
  *
- * @param ctx context to initailize
+ * @param ctx context to initialize
  */
 void john_gost_cryptopro_init(gost_ctx *ctx)
 {
