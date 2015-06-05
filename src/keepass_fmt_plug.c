@@ -46,8 +46,13 @@ john_register_one(&fmt_KeePass);
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		MEM_ALIGN_NONE
 #define SALT_SIZE		sizeof(struct custom_salt)
-// salt align of 4 was crashing on sparc.  Probably due to the long long value.
+#if ARCH_ALLOWS_UNALIGNED
+// Avoid a compiler bug, see #1284
+#define SALT_ALIGN		1
+#else
+// salt align of 4 was crashing on sparc due to the long long value.
 #define SALT_ALIGN		sizeof(long long)
+#endif
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
