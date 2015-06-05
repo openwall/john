@@ -321,7 +321,7 @@ static const char *USAGE_BIG[] =
   "       --elem-cnt-max=NUM    Maximum number of elements per chain",
   "       --wl-dist-len         Calculate output length distribution from wordlist",
   "       --wl-max=NUM          Load only NUM words from input wordlist or use 0 to disable",
-  "  -c,  --dupe-check-disable  Disable dupes check for faster inital load",
+  "  -c,  --dupe-check-disable  Disable dupes check for faster initial load",
   "       --save-pos-disable    Save the position for later resume with -s",
   "",
   "* Resources:",

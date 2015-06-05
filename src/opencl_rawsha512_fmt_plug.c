@@ -70,7 +70,7 @@ static struct fmt_main *self;
 
 //Device (GPU) buffers
 //int_keys: mask to apply
-//loaded_hashes: buffer of binary hashes transfered/loaded to GPU
+//loaded_hashes: buffer of binary hashes transferred/loaded to GPU
 //hash_ids: information about how recover the cracked password
 //bitmap: a bitmap memory space.
 //int_key_loc: the position of the mask to apply.
@@ -79,8 +79,8 @@ static cl_mem buffer_int_keys, buffer_loaded_hashes, buffer_hash_ids,
 
 //Host buffers
 //saved_int_key_loc: the position of the mask to apply
-//num_loaded_hashes: number of binary hashes transfered/loaded to GPU
-//loaded_hashes: buffer of binary hashes transfered/loaded to GPU
+//num_loaded_hashes: number of binary hashes transferred/loaded to GPU
+//loaded_hashes: buffer of binary hashes transferred/loaded to GPU
 //hash_ids: information about how recover the cracked password
 static uint32_t * saved_int_key_loc, num_loaded_hashes, * hash_ids = NULL;
 static uint64_t * loaded_hashes = NULL;

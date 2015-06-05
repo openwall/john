@@ -150,7 +150,7 @@ bcrypt_pbkdf(const char *pass, size_t passlen, const uint8_t *salt, size_t saltl
 		}
 
 		/*
-		 * pbkdf2 deviation: ouput the key material non-linearly.
+		 * pbkdf2 deviation: output the key material non-linearly.
 		 */
 		amt = amt < keylen ? amt:keylen;
 		for (i = 0; i < amt; i++) {

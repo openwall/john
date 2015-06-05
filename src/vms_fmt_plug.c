@@ -244,7 +244,7 @@ struct fmt_main fmt_VMS = {
 		BENCHMARK_COMMENT,		/* .benchmark_comment */
 		BENCHMARK_LENGTH,		/* .benchmark_length (pwd break len) */
 		0,
-		PLAINTEXT_LENGTH,		/* .plaintext_lenght (max) */
+		PLAINTEXT_LENGTH,		/* .plaintext_length (max) */
 		BINARY_SIZE,			/* .binary_size (quadword) */
 		BINARY_ALIGN,
 		SALT_SIZE,			/* .salt_size (word) */

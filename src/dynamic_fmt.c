@@ -4447,7 +4447,7 @@ void DynamicFunc__PHPassCrypt(DYNA_OMP_PARAMS)
 
 	// final crypt is to the normal 'output' buffer, since john uses that to find 'hits'.
 #if !ARCH_LITTLE_ENDIAN
-	// we have to use this funtion, since we do not want to 'fixup' the
+	// we have to use this function, since we do not want to 'fixup' the
 	// end of the buffer again (it has been put into BE format already.
 	// Thus, simply use the raw_overwrite again, then swap the output that
 	// is found in the input buf to the output buf.
@@ -6721,7 +6721,7 @@ static int GCD (int a, int b)
 	return a;
 }
 
-// simple algorith for LCM is (a*b)/GCD(a,b)
+// simple algorithm for LCM is (a*b)/GCD(a,b)
 static int LCM(int a, int b)
 {
 	a/=GCD(a,b);

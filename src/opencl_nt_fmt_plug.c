@@ -234,7 +234,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int key_length_mul_4 = (((max_key_length+1) + 3)/4)*4;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	// Fill params. Copy only necesary data
+	// Fill params. Copy only necessary data
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys,
 		CL_TRUE, 0, key_length_mul_4 * global_work_size, saved_plain,
 		0, NULL, multi_profilingEvent[0]),

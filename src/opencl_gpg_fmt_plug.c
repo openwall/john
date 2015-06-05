@@ -90,14 +90,14 @@ enum {
 
 
 enum {
-	PKA_UNKOWN = 0,
+	PKA_UNKNOWN = 0,
 	PKA_RSA_ENCSIGN = 1,
 	PKA_DSA = 17,
 	PKA_EG = 20
 };
 
 enum {
-	CIPHER_UNKOWN = -1,
+	CIPHER_UNKNOWN = -1,
 	CIPHER_CAST5 = 3,
 	CIPHER_BLOWFISH = 4,
 	CIPHER_AES128 = 7,
@@ -108,7 +108,7 @@ enum {
 };
 
 enum {
-	HASH_UNKOWN = -1,
+	HASH_UNKNOWN = -1,
 	HASH_MD5 = 1,
 	HASH_SHA1 = 2,
 	HASH_RIPEMD160 = 3,

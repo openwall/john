@@ -102,7 +102,7 @@
 /// Invalid controller index passed
 #define ADL_ERR_INVALID_CONTROLLER_IDX		-6
 /// Invalid display index passed
-#define ADL_ERR_INVALID_DIPLAY_IDX		-7
+#define ADL_ERR_INVALID_DISPLAY_IDX		-7
 /// Function  not supported by the driver
 #define ADL_ERR_NOT_SUPPORTED			-8
 /// Null Pointer error
@@ -1020,7 +1020,7 @@ enum ADLPlatForm
 #define ADL_DL_THERMAL_FLAG_INTERRUPT    1
 #define ADL_DL_THERMAL_FLAG_FANCONTROL   2
 
-///\defgroup define_fanctrl Fan speed cotrol
+///\defgroup define_fanctrl Fan speed control
 /// Values for ADLFanSpeedInfo.iFlags
 // @{
 #define ADL_DL_FANCTRL_SUPPORTS_PERCENT_READ     1
@@ -1081,7 +1081,7 @@ enum ADLPlatForm
 #define ADL_DL_MODETIMING_STANDARD_GTF             0x00000002 // GFT Standard
 #define ADL_DL_MODETIMING_STANDARD_DMT             0x00000004 // DMT Standard
 #define ADL_DL_MODETIMING_STANDARD_CUSTOM          0x00000008 // User-defined standard
-#define ADL_DL_MODETIMING_STANDARD_DRIVER_DEFAULT  0x00000010 // Remove Mode from overriden list
+#define ADL_DL_MODETIMING_STANDARD_DRIVER_DEFAULT  0x00000010 // Remove Mode from overridden list
 #define ADL_DL_MODETIMING_STANDARD_CVT_RB		   0x00000020 // CVT-RB Standard
 // @}
 
@@ -1354,7 +1354,7 @@ typedef enum _ADLProfilePropertyType
 /// \defgroup define_adapter_crossdisplay_option
 /// Used in ADL_Adapter_CrossdisplayInfoX2_Set function to indicate cross display options.
 /// @{
-/// Checking if 3D application is runnning. If yes, not to do switch, return ADL_OK_WAIT; otherwise do switch.
+/// Checking if 3D application is running. If yes, not to do switch, return ADL_OK_WAIT; otherwise do switch.
 #define ADL_CROSSDISPLAY_OPTION_NONE			0
 /// Force switching without checking for running 3D applications
 #define ADL_CROSSDISPLAY_OPTION_FORCESWITCH		(1 << 0)

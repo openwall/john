@@ -24,7 +24,7 @@
  * v is the 'verifier' value (256 bit value).
  *
  * Added OMP.  Added 'default' oSSL BigNum exponentiation.
- * GMP exponentation (faster) is optional, and controled with HAVE_LIBGMP in autoconfig.h
+ * GMP exponentation (faster) is optional, and controlled with HAVE_LIBGMP in autoconfig.h
  *
  * NOTE, big fix required. The incoming binary may be 64 bytes OR LESS.  It
  * can also be 64 bytes (or less), and have left padded 0's.  We have to adjust
@@ -158,7 +158,7 @@ static void init(struct fmt_main *self)
 		mpz_init_set_str(pSRP_CTX[i].z_base, "47", 10);
 		mpz_init_set_str(pSRP_CTX[i].z_exp, "1", 10);
 		mpz_init(pSRP_CTX[i].z_rop);
-		// Now, properly initialzed mpz_exp, so it is 'large enough' to hold any SHA1 value
+		// Now, properly initialized mpz_exp, so it is 'large enough' to hold any SHA1 value
 		// we need to put into it. Then we simply need to copy in the data, and possibly set
 		// the limb count size.
 		mpz_mul_2exp(pSRP_CTX[i].z_exp, pSRP_CTX[i].z_exp, 159);

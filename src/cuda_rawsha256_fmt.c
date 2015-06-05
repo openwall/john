@@ -140,7 +140,7 @@ static void init(struct fmt_main *self)
 		    sizeof(SHA_HASH) * MAX_KEYS_PER_CRYPT);
 	} else {
 		overlap = 0;
-		//device does not support overlaping memcpy and kernel execution
+		//device does not support overlapping memcpy and kernel execution
 		inbuffer =
 			(sha256_password *) mem_calloc(MAX_KEYS_PER_CRYPT,
 			                               sizeof(sha256_password));

@@ -185,7 +185,7 @@ extern char *jtr_basename_r(const char *name, char *buf);
 #define basename(a) jtr_basename(a)
 
 /*
- * Removes suffixes frome src.
+ * Removes suffixes from src.
  */
 extern char *strip_suffixes(const char *src, const char *suffixes[], int count);
 

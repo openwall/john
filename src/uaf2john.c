@@ -311,7 +311,7 @@ static void process_file(char *infile)
 		rawf = (FILE *) 0;
 	}
 	if (!listf && !rawf) {
-		fprintf(stderr, "File open failue on '%s'\n", infile);
+		fprintf(stderr, "File open failure on '%s'\n", infile);
 		if (rawf) fclose(rawf);
 		return;
 	}
