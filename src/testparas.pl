@@ -29,7 +29,7 @@ foreach $i (1..5)
 	print "\n== Speeds for ${i}x interleaving (OMP_SCALE 1 except NT): ==\n";
 	foreach $j (qw(nt md5crypt pbkdf2-hmac-sha1 pbkdf2-hmac-sha256 pbkdf2-hmac-sha512))
 	{
-		$out = `../run/john -test -form:$j` or die;
+		$out = `../run/john -test=3 -form:$j` or die;
 		print $out;
 		$out =~ s/.*^Raw:\t(\d+K?).*/$1/ms;
 		$speed{$j."-omp"}{$i} = $out;
