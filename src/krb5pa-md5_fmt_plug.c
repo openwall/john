@@ -8,11 +8,16 @@
  * 2. krbng2john.py ~/capture.pdml > krb5.in
  * 3. Run john on krb5.in
  *
- * Legacy input format:
- * user:$mskrb5$user$realm$checksum$timestamp
+ * PA_DATA_ENC_TIMESTAMP = Checksum[16 bytes] . Enc_Timestamp[36 bytes]
+ *                          -> encode as:
+ *                         HexChecksum[32 chars], HexTimestamp[72 chars]
  *
- * New input format from krbpa2john.py (the above is still supported)
- * user:$krb5pa$etype$user$realm$salt$timestamp+checksum
+ * Legacy input format:
+ *   user:$mskrb5$user$realm$HexChecksum$HexTimestamp
+ *
+ * New input format from krbpa2john.py (the above is still supported),
+ * note the lack of a separator between HexTimestamp and HexChecksum:
+ *   user:$krb5pa$etype$user$realm$salt$HexTimestampHexChecksum
  *
  * user, realm and salt are unused in this format.
  *
