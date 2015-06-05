@@ -200,7 +200,7 @@ _Bool Packet_Reader_kick(struct Packet_Reader* self)
 		snprintf(buf, sizeof buf, "%s-%d", inet_ntoa(ip_header->ip_dst), ntohs(tcp->th_dport));
 		self->dest_addr_str = strdup(buf);
 
-		return true;	// sucessfully got a TCP packet of some kind (yay)
+		return true;	// successfully got a TCP packet of some kind (yay)
 	}
 
 	return false;		// all out of bits

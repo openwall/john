@@ -57,7 +57,7 @@ static inline void rr13(unsigned char *buf, int len) {
     tmp = (unsigned char *) mem_alloc(bytes);
     memcpy(tmp, buf, bytes);
     if(lbit) {
-        // pad final byte with inital bits
+        // pad final byte with initial bits
         tmp[bytes - 1] &= 0xff << (8 - lbit);
         for(i = lbit; i < 8; i += len)
             tmp[bytes - 1] |= buf[0] >> i;

@@ -150,7 +150,7 @@ void DynamicFunc__LargeHash_OUTMode_raw(DYNA_OMP_PARAMS)
  *****  These helper functions are used by all of the 'LARGE' hash functions.
  *****  These are used to convert an 'out' into the proper format, and writing
  *****  it to the buffer.  Currently we handle base-16, base-16u, base-64 and
- *****  raw buffer writting. These functions do not return any count of bytes
+ *****  raw buffer writing. These functions do not return any count of bytes
  *****  nor deal with things like overwrite/appending.  That has to be done in
  *****  the calling function.  The caller will get the pointers setup, then call
  *****  these helpers.  Then the caller will update any length values if needed

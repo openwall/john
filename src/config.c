@@ -497,7 +497,7 @@ static int cfg_process_directive_include_config(char *line, int number)
 	return 0;
 }
 
-// Handle a .directive line.  Curently only .include syntax is handled.
+// Handle a .directive line.  Currently only .include syntax is handled.
 static int cfg_process_directive(char *line, int number)
 {
 	if (!strncmp(line, ".include \"", 10) || !strncmp(line, ".include <", 10))

@@ -113,7 +113,7 @@ static int valid(char *ciphertext, struct fmt_main *self, int len)
 	return 1;
 }
 
-/* we need independant valids, since the $haval$ signature is the same */
+/* we need independent valids, since the $haval$ signature is the same */
 /* otherwise, if we have input with a mix of both types, then ALL of them */
 /* will validate, even though  only the ones of the proper type will actually */
 /* be tested.  If we had a singleton crypt function (which both 128-4 and */

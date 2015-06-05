@@ -16,7 +16,7 @@
  *
  * Format rewritten Dec, 2014, without use of -lkrb5, by JimF.  Now we use 'native' JtR
  * pbkdf2-hmac-sha1() and simple call to 2 AES limb encrypt for entire process. Very
- * simple, and 10x faster, and no obsure -lkrb5 dependancy
+ * simple, and 10x faster, and no obsure -lkrb5 dependency
  */
 
 #if AC_BUILT

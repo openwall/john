@@ -91,7 +91,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		    ((q - p) >> 1) > MAX_PLAINTEXT_LENGTH) {
 			warned = 2;
 			fprintf(stderr,
-			        "dummy password length %d > max. supported lengh %d\n",
+			        "dummy password length %d > max. supported length %d\n",
 				(int)((q - p) >> 1), MAX_PLAINTEXT_LENGTH);
 		}
 		else if (options.verbosity > 2 && warned == 0 &&

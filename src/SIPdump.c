@@ -460,7 +460,7 @@ static void parse_payload(const conn_t * connection,
 
 		/*
 		 * Add to connection table for further checks
-		 * (digest authentification line still missing)
+		 * (digest authentication line still missing)
 		 */
 
 		else if (!ret) {
@@ -763,7 +763,7 @@ static void manual_mode()
 
 	/* Get algorithm */
 	get_string_input(login.algorithm, sizeof(login.algorithm),
-	    "* Enter algoritm   : ");
+	    "* Enter algorithm   : ");
 	Toupper(login.algorithm, strlen(login.algorithm));
 
 	/* Get response hash */

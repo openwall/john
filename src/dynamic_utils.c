@@ -183,7 +183,7 @@ char *dynamic_FIX_SALT_TO_HEX(char *ciphertext) {
 		// ok, we are going to convert to a 'HEX'  The length is length of ciphertext, the null, the HEX$ and 2 bytes per char of salt string.
 		char *cpx, *cpNew = mem_alloc_tiny(strlen(ciphertext) + 1 + 4 + strlen(cp), MEM_ALIGN_NONE);
 		cpx = cpNew;
-		// put the hash, including first '$' into the ouput string, AND the starting HEX$
+		// put the hash, including first '$' into the output string, AND the starting HEX$
 		cpx += sprintf(cpNew, "%*.*sHEX$", (int)(cp-ciphertext), (int)(cp-ciphertext), ciphertext);
 		while (*cp)
 			cpx += sprintf(cpx, "%02x", (unsigned char)(*cp++));

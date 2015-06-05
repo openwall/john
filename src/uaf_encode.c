@@ -568,7 +568,7 @@ int uaf_test_password (
 }
 
 /*
- * Pull in hash function definition from an included file.  May be overriden
+ * Pull in hash function definition from an included file.  May be overridden
  * to allow alternate implentations.
  */
 #define UAF_INCLUDED_FROM_ENCODE 1

@@ -273,7 +273,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
  *
  * - p_default_value: the default step size (see step in opencl_find_best_gws).
  * - p_hash_loops: the number of loops performed by a split-kernel. Zero otherwise.
- *   For example: if you only transfer plaintext, compute the hash and tranfer hashes back,
+ *   For example: if you only transfer plaintext, compute the hash and transfer hashes back,
  *   the number is 3.
  * - p_split_events: A pointer to a 3 elements array containing the position order of
  *   events that process the main part of a split-kernel. NULL have to be used for non split-kernel.

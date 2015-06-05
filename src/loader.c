@@ -583,9 +583,9 @@ static int ldr_split_line(char **login, char **ciphertext,
 			check_field_separator(alt->params.label);
 			/* Canonical hash or hashes (like halves of LM) */
 			for (part = 0; part < valid; part++) {
-				char *splitted = alt->methods.split(prepared, part, alt);
-				printf("%c%s", fs, splitted);
-				check_field_separator(splitted);
+				char *split = alt->methods.split(prepared, part, alt);
+				printf("%c%s", fs, split);
+				check_field_separator(split);
 			}
 		} while ((alt = alt->next));
 		printf("%c%d%c\n", fs, bad_char, fs);
