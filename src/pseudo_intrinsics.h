@@ -414,7 +414,7 @@ static inline int vtestz_epi32(vtype __X)
     (                                                           \
         n = vshufflehi_epi16(vshufflelo_epi16(n, 0xb1), 0xb1),  \
         n = vxor(vslli_epi16(n, 8), vsrli_epi16(n, 8)),         \
-        n = vshuffle_epi32(n, 0xb1);                            \
+        n = vshuffle_epi32(n, 0xb1)                             \
     )
 
 #endif /* __SSSE3__ */

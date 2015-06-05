@@ -66,8 +66,8 @@ static struct fmt_tests tests[] = {
 };
 
 static struct custom_salt {
-	unsigned char salt[16 + 22 + 1];
 	int saltlen;
+	unsigned char salt[16 + 22 + 1];
 } *cur_salt;
 
 #ifdef SIMD_COEF_64
@@ -131,7 +131,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 
-	memset(cs.salt, 0, sizeof(cs.salt));
+	memset(&cs, 0, sizeof(cs));
 
 	p = ciphertext + FORMAT_TAG_LENGTH + 2 * BINARY_SIZE;
 	// AUTH_VFR_DATA is variable, and 16 bytes in length
@@ -210,6 +210,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		              strlen(saved_key[index]), cur_salt->salt,
 		              cur_salt->saltlen, 4096,
 		              (unsigned char*)crypt_out[index], BINARY_SIZE, 0);
+#if !ARCH_LITTLE_ENDIAN
+		alter_endianity_w64(crypt_out[index], BINARY_SIZE/8);
+#endif
 #endif
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);

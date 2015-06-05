@@ -372,6 +372,7 @@ static inline void bin2ascii(__m64 *conv, __m64 *src)
 		conv[(i++)] = _mm_add_pi32(l, u);
 		conv[(i++)] = _mm_add_pi32(r, v);
 	}
+	__asm__ __volatile__("emms");
 }
 
 #else
