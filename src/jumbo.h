@@ -280,16 +280,16 @@ extern long long atoll(const char *);
 extern char *strdup(const char *);
 extern char *strlwr(char *);
 extern char *strupr(char *);
-extern int _strnicmp(const char*, const char *, int);
+//extern int _strnicmp(const char*, const char *, int);
 extern int _strncmp(const char*, const char *);
-extern int _stricmp(const char*, const char *);
+//extern int _stricmp(const char*, const char *);
 extern FILE *fopen64(const char *, const char *);
 extern FILE *fdopen(int, const char *);
-extern int ftruncate(int, int);
+//extern int ftruncate(int, int);
 extern long long ftello64(FILE *);
 extern int fseeko64(FILE *, long long, int);
 extern int fileno(FILE *);
-extern int _exit(int);
+//extern int _exit(int);
 #define off64_t long long
 #undef __STRICT_ANSI__
 #include <sys/file.h>
