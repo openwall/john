@@ -760,7 +760,7 @@ aes/aes.a:
 	$(LD) $(LDFLAGS) wpapcap2john.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/wpapcap2john
 
 ../run/luks2john@EXE_EXT@: luks2john.o
-	$(LD) $(LDFLAGS) luks2john.o @OPENSSL_LIBS@ @MEMDBG_CFLAGS@ memdbg.o jumbo.o @OPENMP_CFLAGS@ -o ../run/luks2john
+	$(LD) $(LDFLAGS) luks2john.o @OPENSSL_LIBS@ @OPENMP_CFLAGS@ -o ../run/luks2john
 
 ../run/cprepair@EXE_EXT@: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
 	memdbg.h memdbg.c
