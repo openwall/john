@@ -48,6 +48,7 @@ m4_include([m4/jtr_local_conf.m4])
 AC_ARG_VAR([CFLAGS_EXTRA], [additional CFLAGS for -Woptions and other things, not used during ./configure but put in resulting Makefile])
 AC_ARG_VAR([YASM], [full pathname of yasm (for optional AES-NI support)])
 AC_ARG_VAR([AS], [full pathname of assembler to use])
+AC_ARG_VAR([AR], [full pathname of "ar" to use])
 AC_ARG_VAR([LD], [full pathname of linker to use])
 
 # Define Packages.
@@ -237,11 +238,12 @@ AC_PROG_CPP
 AC_PROG_MKDIR_P
 AC_CACHE_SAVE
 AC_PATH_PROG([SORT], [sort])
-AC_PATH_PROG([AR], [ar])
+# AC_PATH_PROG([AR], [ar])
 AC_PATH_PROG([FIND], [find])
 AC_PATH_PROG([PERL], [perl])
 AS_IF([test -z "$AS"], [AS="$CC"])
 AS_IF([test -z "$LD"], [LD="$CC"])
+AS_IF([test -z "$AR"], [AR=AC_PATH_PROG([AR], [ar])])
 
 # Check if we have this at all
 PKG_PROG_PKG_CONFIG

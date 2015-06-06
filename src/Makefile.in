@@ -19,6 +19,7 @@ PTHREAD_CC = @PTHREAD_CC@
 ifdef PTHREAD_CC
 CC = @PTHREAD_CC@
 endif
+AR = @AR@
 AS = @AS@
 LD = @LD@
 CPP = @CPP@
