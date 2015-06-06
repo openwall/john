@@ -25,12 +25,6 @@ try:
 except ImportError:
     sys.stderr.write("Please install scapy, http://www.secdev.org/projects/scapy/\n")
     sys.exit(-1)
-try:
-    from lxml import etree
-except ImportError:
-    sys.stderr.write("This program needs lxml libraries to run!\n")
-    sys.exit(1)
-import binascii
 
 VTP_DOMAIN_SIZE = 32
 
@@ -505,65 +499,6 @@ def pcap_parser_ntp(fname):
                 print "Unsupported hash of length %s found!" % len(data)
 
     f.close()
-
-
-def pcap_parser_krbpa(f):
-
-    xmlData = etree.parse(f)
-
-    messages = [e for e in xmlData.xpath('/pdml/packet/proto[@name="kerberos"]')]
-
-    state = None
-    encrypted_timestamp = None
-    etype = None
-    user = ''
-    salt = ''
-    got_etype = False
-
-    for msg in messages:
-        if msg.attrib['showname'] == "Kerberos AS-REQ":
-            if not state:
-                state = "AS-REQ"
-            elif state == "KRB-ERROR":
-                state = "AS-REQ2"
-                # actual request with encrypted timestamp
-                fields = msg.xpath(".//field")
-                for field in fields:
-                    if 'name' in field.attrib:
-                        if field.attrib['name'] == 'kerberos.PA_ENC_TIMESTAMP.encrypted':
-                            encrypted_timestamp = field.attrib['value']
-                        if field.attrib['name'] == 'kerberos.etype' and not got_etype:
-                            got_etype = True
-                            etype = field.attrib['show']
-
-        if msg.attrib['showname'] == "Kerberos KRB-ERROR":
-            if state == "AS-REQ" or state == "AS-REQ2":
-                state = "KRB-ERROR"
-            else:
-                pass
-                # print "Unkwown state! Please report this on john-users mailing list"
-            # note down the salt
-            fields = msg.xpath(".//field")
-            for field in fields:
-                if 'name' in field.attrib:
-                    if field.attrib['name'] == 'kerberos.etype_info2.salt':
-                        salt = field.attrib["value"]
-                    if field.attrib['name'] == 'kerberos.realm':
-                        realm = field.attrib['show']
-                    if field.attrib['name'] == 'kerberos.cname':
-                        user = field.attrib['showname'][25:]
-
-        if msg.attrib['showname'] == "Kerberos AS-REP" or state == "AS-REQ2":
-            # we might not have AS-REP packets
-            if state == "AS-REQ2":
-                if user == "":
-                    user = binascii.unhexlify(salt)
-                sys.stdout.write("%s:$krb5pa$%s$%s$%s$%s$%s\n" % (user,
-                                                                  etype, user, realm, binascii.unhexlify(salt),
-                                                                  encrypted_timestamp))
-                # reset state
-                state = None
-                got_etype = False
 
 
 def pcap_parser_isis(fname):
@@ -1064,11 +999,6 @@ if __name__ == "__main__":
             pass
         pcap_parser_rsvp(sys.argv[i])
         pcap_parser_ntp(sys.argv[i])
-        try:
-            pcap_parser_krbpa(sys.argv[i])
-        except:
-            # sys.stderr.write("krbpa could not handle input\n")
-            pass
         pcap_parser_isis(sys.argv[i])
         pcap_parser_hsrp(sys.argv[i])
         pcap_parser_hsrp_v2(sys.argv[i])
