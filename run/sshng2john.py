@@ -31,7 +31,7 @@ try:
 except ImportError:
     from md5 import md5 as MD5
 
-limited = False
+limited = True  # set to False for "development" mode!
 
 PY3 = sys.version_info[0] == 3
 if PY3:
@@ -127,6 +127,7 @@ class BER(object):
             out.append(x)
         return out
     decode_sequence = staticmethod(decode_sequence)
+
 
 class SSHException (Exception):
     """
@@ -224,6 +225,7 @@ class BadHostKeyException (SSHException):
 from binascii import hexlify, unhexlify
 import struct
 
+
 def inflate_long(s, always_positive=False):
     """turns a normalized byte string into a long-int
     (adapted from Crypto.Util.number)"""
@@ -292,7 +294,7 @@ def format_binary(data, prefix=''):
         x += 16
     if x < len(data):
         out.append(format_binary_line(data[x:]))
-    return [prefix + x for x in out]
+    return [prefix + y for y in out]
 
 
 def format_binary_line(data):
@@ -317,8 +319,6 @@ def safe_string(s):
         else:
             out += '%%%02X' % ord(c)
     return out
-
-# ''.join([['%%%02X' % ord(c), c][(ord(c) >= 32) and (ord(c) <= 127)] for c in s])
 
 
 def bit_length(n):
@@ -607,6 +607,9 @@ class PKey (object):
             tag = "RSA"
             self.type = 0
         elif "-----BEGIN OPENSSH PRIVATE KEY-----" in lines[0]:
+            # new private key format for OpenSSH (automatically enabled for
+            # keys using ed25519 signatures), ed25519 stuff is not supported
+            # yet!
             self.type = 2  # bcrypt pbkdf + aes-256-cbc
         else:
             self.type = 1
@@ -644,16 +647,16 @@ class PKey (object):
             sys.stderr.write("%s has no password!\n" % f.name)
             return None
         # encrypted keyfile: will need a password
-        if self.type !=2 and headers['proc-type'] != '4,ENCRYPTED':
+        if self.type != 2 and headers['proc-type'] != '4,ENCRYPTED':
             raise SSHException('Unknown private key structure "%s"' % headers['proc-type'])
         try:
             encryption_type, saltstr = headers['dek-info'].split(',')
         except:
-           if self.type != 2:
-               raise SSHException('Can\'t parse DEK-info in private key file')
-           else:
-               encryption_type = "AES-256-CBC"
-               saltstr = "fefe"
+            if self.type != 2:
+                raise SSHException('Can\'t parse DEK-info in private key file')
+            else:
+                encryption_type = "AES-256-CBC"
+                saltstr = "fefe"
         if encryption_type not in self._CIPHER_TABLE:
             raise SSHException('Unknown private key cipher "%s"' % encryption_type)
         # if no password was passed in, raise an exception pointing out that we need one
@@ -662,6 +665,7 @@ class PKey (object):
         cipher = self._CIPHER_TABLE[encryption_type]['cipher']
         keysize = self._CIPHER_TABLE[encryption_type]['keysize']
         mode = self._CIPHER_TABLE[encryption_type]['mode']
+        salt = unhexlify(saltstr)
         if self.type == 2:
             salt_offset = 47  # XXX is this fixed?
             salt_length = 16
