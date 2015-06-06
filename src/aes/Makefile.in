@@ -40,6 +40,7 @@ $(SUBDIRS):
 
 aes.a: $(SUBDIRS) aes.o
 	$(AR) -r $@ $(AESIN)
+	$(AR) -s $@
 
 default: aes.a
 all: aes.a
