@@ -139,7 +139,7 @@ JOHN_OBJS = \
 	pwsafe2john.o \
 	dmg2john.o \
 	keepass2john.o \
-	keyring2john.o keystore2john.o \
+	keyring2john.o \
 	hccap2john.o \
 	$(PLUGFORMATS_OBJS) \
 	dyna_salt.o dummy.o \
@@ -215,7 +215,7 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
 	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
 	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
-	../run/keystore2john ../run/wpapcap2john \
+	../run/wpapcap2john \
 	../run/gpg2john ../run/luks2john ../run/cprepair ../run/base64conv
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
@@ -2311,10 +2311,6 @@ john.com: john.asm
 
 ../run/luks2john: luks2john.o
 	$(LD) $(LDFLAGS) luks2john.o -s -lcrypto -lssl memdbg.o jumbo.o $(OMPFLAGS) -o ../run/luks2john
-
-../run/keystore2john: ../run/john
-	$(RM) ../run/keystore2john
-	ln -s john ../run/keystore2john
 
 ../run/cprepair: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
 	memdbg.h memdbg.c

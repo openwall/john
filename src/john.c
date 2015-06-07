@@ -168,7 +168,6 @@ extern int racf2john(int argc, char **argv);
 extern int pwsafe2john(int argc, char **argv);
 extern int dmg2john(int argc, char **argv);
 extern int putty2john(int argc, char **argv);
-extern int keystore2john(int argc, char **argv);
 
 int john_main_process = 1;
 #if OS_FORK
@@ -1686,11 +1685,6 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "pwsafe2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return pwsafe2john(argc, argv);
-	}
-
-	if (!strcmp(name, "keystore2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return keystore2john(argc, argv);
 	}
 
 	if (!strcmp(name, "gpg2john")) {

@@ -24,7 +24,6 @@ run/keepass2john
 run/kernels/
 run/keychain2john
 run/keyring2john
-run/keystore2john
 run/kwallet2john
 run/luks2john
 run/mkvcalcproba
