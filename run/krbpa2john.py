@@ -10,6 +10,11 @@
 # For extracting "TGS-REP (krb-tgs-rep)" hashes,
 # tshark -2 -r test.pcap -R "tcp.srcport==88 or udp.srcport==88" -T pdml >> data.pdml
 # ./run/krbpa2john.py data.pdml
+#
+# Tested on Ubuntu 14.04.2 LTS (Trusty Tahr)
+#
+# $ tshark -v
+# TShark 1.10.6 (v1.10.6 from master-1.10)
 
 import sys
 try:
@@ -37,6 +42,17 @@ def process_file(f):
         if isinstance(r, list):
             r  = r[0]
         message_type = r.attrib["show"]
+
+        # "kerberos.etype_info2.salt" value (salt) needs to be extracted
+        # from a different packet when etype is 17 or 18!
+        # if salt is empty, realm.user is used instead (in krb5pa-sha1_fmt_plug.c)
+        if message_type == "30":  # KRB-ERROR
+            r = msg.xpath('.//field[@name="kerberos.etype_info2.salt"]')
+            if r:
+                if isinstance(r, list):
+                    r  = r[0]
+                salt = binascii.unhexlify(r.attrib["value"])
+
         if message_type == "10":  # Kerberos AS-REQ
             # locate encrypted timestamp
             r = msg.xpath('.//field[@name="kerberos.padata"]//field[@name="kerberos.PA_ENC_TIMESTAMP.encrypted"]') or msg.xpath('.//field[@name="kerberos.padata"]//field[@name="kerberos.cipher"]')
@@ -69,13 +85,6 @@ def process_file(f):
                     r  = r[0]
                 user = r.attrib["show"]
 
-            # locate salt
-            r = msg.xpath('field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.etype_info2.salt"]')
-            if r:
-                if isinstance(r, list):
-                    r  = r[0]
-                salt = r.attrib["show"]
-
             if user == "":
                 user = binascii.unhexlify(salt)
 
@@ -84,12 +93,14 @@ def process_file(f):
             enc_timestamp = PA_DATA_ENC_TIMESTAMP[32:]
             if etype == "23":  # user:$krb5pa$etype$user$realm$salt$HexTimestampHexChecksum
                 sys.stdout.write("%s:$krb5pa$%s$%s$%s$%s$%s%s\n" % (user,
-                            etype, user, realm, binascii.unhexlify(salt),
+                            etype, user, realm, salt,
                             enc_timestamp,
                             checksum))
             else:
+                if not salt:
+                    sys.stderr.write("[-] Hash might be broken, etype != 23 and salt not found!\n")
                 sys.stdout.write("%s:$krb5pa$%s$%s$%s$%s$%s\n" % (user,
-                            etype, user, realm, binascii.unhexlify(salt),
+                            etype, user, realm, salt,
                             PA_DATA_ENC_TIMESTAMP))
 
     for msg in messages:  # WIP!
