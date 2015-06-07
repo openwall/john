@@ -30,10 +30,16 @@ def process_file(f):
     salt = ''
     realm = None
 
-    for msg in messages:
-        if msg.attrib['showname'] == "Kerberos AS-REQ":
+    for msg in messages:  # msg is of type "proto"
+        r = msg.xpath('.//field[@name="kerberos.msg_type"]') or msg.xpath('.//field[@name="kerberos.msg.type"]')
+        if not r:
+            continue
+        if isinstance(r, list):
+            r  = r[0]
+        message_type = r.attrib["show"]
+        if message_type == "10":  # Kerberos AS-REQ
             # locate encrypted timestamp
-            r = msg.xpath('field[@name="kerberos.padata"]//field[@name="kerberos.PA_ENC_TIMESTAMP.encrypted"]')
+            r = msg.xpath('.//field[@name="kerberos.padata"]//field[@name="kerberos.PA_ENC_TIMESTAMP.encrypted"]') or msg.xpath('.//field[@name="kerberos.padata"]//field[@name="kerberos.cipher"]')
             if not r:
                 continue
             if isinstance(r, list):
@@ -41,7 +47,7 @@ def process_file(f):
             PA_DATA_ENC_TIMESTAMP = r.attrib["value"]
 
             # locate etype
-            r = msg.xpath('field[@name="kerberos.padata"]//field[@name="kerberos.etype"]')
+            r = msg.xpath('.//field[@name="kerberos.padata"]//field[@name="kerberos.etype"]')
             if not r:
                 continue
             if isinstance(r, list):
@@ -49,7 +55,7 @@ def process_file(f):
             etype = r.attrib["show"]
 
             # locate realm
-            r = msg.xpath('field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.realm"]')
+            r = msg.xpath('.//field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.realm"]') or msg.xpath('.//field[@name="kerberos.req_body_element"]//field[@name="kerberos.realm"]')
             if not r:
                 continue
             if isinstance(r, list):
@@ -57,7 +63,7 @@ def process_file(f):
             realm = r.attrib["show"]
 
             # locate cname
-            r = msg.xpath('field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.name_string"]')
+            r = msg.xpath('.//field[@name="kerberos.req_body_element"]//field[@name="kerberos.KerberosString"]') or msg.xpath('.//field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.name_string"]')
             if r:
                 if isinstance(r, list):
                     r  = r[0]
