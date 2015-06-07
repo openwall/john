@@ -1,9 +1,14 @@
 #!/usr/bin/env python2
 
 # http://anonsvn.wireshark.org/wireshark/trunk/doc/README.xml-output
-# tshark -r AD-capture-2.pcapng -T pdml  > data.pdml
 #
+# For extracting "AS-REQ (krb-as-req)" hashes,
+# tshark -r AD-capture-2.pcapng -T pdml  > data.pdml
 # tshark -2 -r test.pcap -R "tcp.dstport==88 or udp.dstport==88" -T pdml >> data.pdml
+# ./run/krbpa2john.py data.pdml
+#
+# For extracting "TGS-REP (krb-tgs-rep)" hashes,
+# tshark -2 -r test.pcap -R "tcp.srcport==88 or udp.srcport==88" -T pdml >> data.pdml
 # ./run/krbpa2john.py data.pdml
 
 import sys
@@ -19,7 +24,7 @@ def process_file(f):
     xmlData = etree.parse(f)
 
     messages = [e for e in xmlData.xpath('/pdml/packet/proto[@name="kerberos"]')]
-    encrypted_timestamp = None
+    PA_DATA_ENC_TIMESTAMP = None
     etype = None
     user = ''
     salt = ''
@@ -27,6 +32,62 @@ def process_file(f):
 
     for msg in messages:
         if msg.attrib['showname'] == "Kerberos AS-REQ":
+            # locate encrypted timestamp
+            r = msg.xpath('field[@name="kerberos.padata"]//field[@name="kerberos.PA_ENC_TIMESTAMP.encrypted"]')
+            if not r:
+                continue
+            if isinstance(r, list):
+                r  = r[0]
+            PA_DATA_ENC_TIMESTAMP = r.attrib["value"]
+
+            # locate etype
+            r = msg.xpath('field[@name="kerberos.padata"]//field[@name="kerberos.etype"]')
+            if not r:
+                continue
+            if isinstance(r, list):
+                r  = r[0]
+            etype = r.attrib["show"]
+
+            # locate realm
+            r = msg.xpath('field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.realm"]')
+            if not r:
+                continue
+            if isinstance(r, list):
+                r  = r[0]
+            realm = r.attrib["show"]
+
+            # locate cname
+            r = msg.xpath('field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.name_string"]')
+            if r:
+                if isinstance(r, list):
+                    r  = r[0]
+                user = r.attrib["show"]
+
+            # locate salt
+            r = msg.xpath('field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.etype_info2.salt"]')
+            if r:
+                if isinstance(r, list):
+                    r  = r[0]
+                salt = r.attrib["show"]
+
+            if user == "":
+                user = binascii.unhexlify(salt)
+
+            # user, realm and salt are unused when etype is 23 ;)
+            checksum = PA_DATA_ENC_TIMESTAMP[0:32]
+            enc_timestamp = PA_DATA_ENC_TIMESTAMP[32:]
+            if etype == "23":  # user:$krb5pa$etype$user$realm$salt$HexTimestampHexChecksum
+                sys.stdout.write("%s:$krb5pa$%s$%s$%s$%s$%s%s\n" % (user,
+                            etype, user, realm, binascii.unhexlify(salt),
+                            enc_timestamp,
+                            checksum))
+            else:
+                sys.stdout.write("%s:$krb5pa$%s$%s$%s$%s$%s\n" % (user,
+                            etype, user, realm, binascii.unhexlify(salt),
+                            PA_DATA_ENC_TIMESTAMP))
+
+    for msg in messages:  # WIP!
+        if msg.attrib['showname'] == "Kerberos TGS-REP":  # kerberos.msg.type == 13
             # locate encrypted timestamp
             r = msg.xpath('field[@name="kerberos.padata"]//field[@name="kerberos.PA_ENC_TIMESTAMP.encrypted"]')
             if not r:
