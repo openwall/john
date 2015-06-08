@@ -142,6 +142,8 @@ __kernel void md4(__global uint *keys,
 		  __global uint *index,
 		  __global uint *int_key_loc,
 		  __global uint *int_keys,
+		  __global uint *offset_table,
+		  __global uint *hash_table,
 		  __global uint *loaded_hashes,
 		  volatile __global uint *out_hash,
 		  volatile __global uint *bitmap)
