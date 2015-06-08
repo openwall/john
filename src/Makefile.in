@@ -32,7 +32,7 @@ TR = tr
 SED = @SED@
 NULL = /dev/null
 SORT = @SORT@
-STRIP = strip
+STRIP = @STRIP@
 
 SHELL = /bin/sh
 VPATH = @srcdir@
