@@ -99,7 +99,7 @@ inline void md4_encrypt(__private uint *hash, __private uint *W, uint len)
 	STEP(H, hash[2], hash[3], hash[0], hash[1], W[7] + 0x6ed9eba1, 11);
 	STEP(H2, hash[1], hash[2], hash[3], hash[0], W[15] + 0x6ed9eba1, 15);
 }
-
+/*
 inline void cmp(uint gid,
 		uint iter,
 		uint num_hashes,
@@ -121,13 +121,61 @@ inline void cmp(uint gid,
 			(loaded_hashes[4 * j + 2] == hash[2]) && (loaded_hashes[4 * j + 3] == hash[3]);
 		if(t) {
 /* Prevent duplicate keys from cracking same hash */
-			if (!(atomic_or(&bitmap[j/32], (1U << (j % 32))) & (1U << (j % 32)))) {
+/*			if (!(atomic_or(&bitmap[j/32], (1U << (j % 32))) & (1U << (j % 32)))) {
 				t = atomic_inc(&output[0]);
 				output[1 + 3 * t] = gid;
 				output[2 + 3 * t] = iter;
 				output[3 + 3 * t] = j;
 			}
 
+		}
+	}
+}*/
+
+inline void cmp(uint gid,
+		uint iter,
+		__private uint *hash,
+		__global uint *hash_table,
+		__global uint *offset_table,
+		__global uint *return_hashes,
+		volatile __global uint *output,
+		volatile __global uint *bitmap) {
+	uint t, offset_table_index, hash_table_index;
+	unsigned long LO, HI, temp_lo, temp_hi;
+	unsigned long p;
+
+	hash[0] += 0x67452301;
+	hash[1] += 0xefcdab89;
+	hash[2] += 0x98badcfe;
+	hash[3] += 0x10325476;
+
+	HI = ((unsigned long)hash[3] << 32) | (unsigned long)hash[2];
+	LO = ((unsigned long)hash[1] << 32) | (unsigned long)hash[0];
+
+	p = (HI % OFFSET_TABLE_SIZE) * SHIFT64_OT_SZ;
+	p += LO % OFFSET_TABLE_SIZE;
+	p %= OFFSET_TABLE_SIZE;
+	offset_table_index = (unsigned int)p;
+
+	temp_lo = LO + (unsigned long)offset_table[offset_table_index];
+	//error: chances of overflow is extremely low.
+	temp_hi = HI;
+
+	p = (temp_hi % HASH_TABLE_SIZE) * SHIFT64_HT_SZ;
+	p += temp_lo % HASH_TABLE_SIZE;
+	p %= HASH_TABLE_SIZE;
+	hash_table_index = (unsigned int)p;
+
+	if (hash_table[hash_table_index] == hash[0]) {
+/* Prevent duplicate keys from cracking same hash */
+		if (!(atomic_or(&bitmap[hash_table_index/32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
+			t = atomic_inc(&output[0]);
+			output[1 + 3 * t] = gid;
+			output[2 + 3 * t] = iter;
+			output[3 + 3 * t] = hash_table_index;
+			return_hashes[3 * t] = hash[1];
+			return_hashes[3 * t + 1] = hash[2];
+			return_hashes[3 * t + 2] = hash[3];
 		}
 	}
 }
@@ -144,8 +192,8 @@ __kernel void md4(__global uint *keys,
 		  __global uint *int_keys,
 		  __global uint *offset_table,
 		  __global uint *hash_table,
-		  __global uint *loaded_hashes,
-		  volatile __global uint *out_hash,
+		  __global uint *return_hashes,
+		  volatile __global uint *out_hash_ids,
 		  volatile __global uint *bitmap)
 {
 	uint gid = get_global_id(0);
@@ -158,8 +206,8 @@ __kernel void md4(__global uint *keys,
 	uint hash[4];
 
 	if (!gid) {
-		out_hash[0] = 0;
-		for (i = 0; i < (NUM_LOADED_HASHES - 1)/32 + 1; i++)
+		out_hash_ids[0] = 0;
+		for (i = 0; i < (HASH_TABLE_SIZE - 1)/32 + 1; i++)
 			bitmap[i] = 0;
 	}
 
@@ -183,6 +231,6 @@ __kernel void md4(__global uint *keys,
 		}
 
 		md4_encrypt(hash, W, len);
-		cmp(gid, i, NUM_LOADED_HASHES, out_hash, loaded_hashes, hash, bitmap);
+		cmp(gid, i, hash, hash_table, offset_table, return_hashes, out_hash_ids, bitmap);
 	}
 }
