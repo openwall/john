@@ -6862,7 +6862,6 @@ $as_echo "no" >&6; }
 fi
 
 
-# AC_PATH_PROG([AR], [ar])
 # Extract the first word of "find", so it can be a program name with args.
 set dummy find; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -6950,7 +6949,7 @@ if test -z "$LD"; then :
   LD="$CC"
 fi
 if test -z "$AR"; then :
-  AR=# Extract the first word of "ar", so it can be a program name with args.
+  # Extract the first word of "ar", so it can be a program name with args.
 set dummy ar; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
@@ -6992,7 +6991,7 @@ fi
 
 fi
 if test -z "$STRIP"; then :
-  STRIP=# Extract the first word of "strip", so it can be a program name with args.
+  # Extract the first word of "strip", so it can be a program name with args.
 set dummy strip; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
