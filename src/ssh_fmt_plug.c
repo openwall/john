@@ -87,13 +87,21 @@ static struct fmt_tests ssh_tests[] = {
 
 struct fmt_main fmt_ssh;
 
+static void ssl_init() {
+	static int init=0;
+
+	/* OpenSSL init, cleanup part is left to OS */
+	if (!init) {
+		init = 1;
+		SSL_load_error_strings();
+		SSL_library_init();
+		OpenSSL_add_all_algorithms();
+	}
+}
+
 static void init(struct fmt_main *self)
 {
-	/* OpenSSL init, cleanup part is left to OS */
-	SSL_load_error_strings();
-	SSL_library_init();
-	OpenSSL_add_all_algorithms();
-
+	ssl_init();
 #if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
 	if (SSLeay() < 0x10000000) {
 		fprintf(stderr, "Warning: compiled against OpenSSL 1.0+, "
@@ -116,43 +124,6 @@ static void init(struct fmt_main *self)
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *ctcopy;
-	char *keeptr;
-	char *p;
-	int res;
-	int length;
-	if (strncmp(ciphertext, "$ssh2$", 6))
-		return 0;
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;
-	ctcopy += 6;
-	if ((p = strtokm(ctcopy, "*")) == NULL)	/* data */
-		goto err;
-	if (!ishex(p))
-		goto err;
-	length = strlen(p);
-
-	if ((p = strtokm(NULL, "*")) == NULL)	/* length */
-		goto err;
-	if (!ishex(p))
-		goto err;
-	res = atoi(p);
-
-	if(length != res * 2)
-		goto err;
-
-	p = strtokm(NULL, "*"); // type (optional)
-
-	MEM_FREE(keeptr);
-	return 1;
-
-err:
-	MEM_FREE(keeptr);
-	return 0;
 }
 
 #define M_do_cipher(ctx, out, in, inl) ctx->cipher->do_cipher(ctx, out, in, inl)
@@ -359,6 +330,46 @@ static void *get_salt(char *ciphertext)
 
 	memcpy(ptr, &psalt, sizeof(struct custom_salt*));
 	return (void*)ptr;
+}
+
+static int valid(char *ciphertext, struct fmt_main *self)
+{
+	char *ctcopy;
+	char *keeptr;
+	char *p;
+	int res;
+	int length;
+	if (strncmp(ciphertext, "$ssh2$", 6))
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 6;
+	if ((p = strtokm(ctcopy, "*")) == NULL)	/* data */
+		goto err;
+	if (!ishex(p))
+		goto err;
+	length = strlen(p);
+
+	if ((p = strtokm(NULL, "*")) == NULL)	/* length */
+		goto err;
+	if (!ishex(p))
+		goto err;
+	res = atoi(p);
+
+	if(length != res * 2)
+		goto err;
+
+	p = strtokm(NULL, "*"); // type (optional)
+
+	ssl_init();
+	if (!get_salt(ciphertext))
+		goto err;
+
+	MEM_FREE(keeptr);
+	return 1;
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void set_salt(void *salt)
