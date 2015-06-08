@@ -201,6 +201,8 @@ static void *get_salt(char *ciphertext)
 
 	// fill rest of the data
 	cs.vsp.domain_name_length = cs.salt[3];
+	if (cs.vsp.domain_name_length > sizeof(cs.vsp.domain_name))
+		cs.vsp.domain_name_length = sizeof(cs.vsp.domain_name);
 	memcpy(cs.vsp.domain_name, cs.salt + 4, cs.vsp.domain_name_length);
 	memcpy((unsigned char*)&cs.vsp.revision, cs.salt + 36, 4);
 	memcpy((unsigned char*)&cs.vsp.updater,  cs.salt + 36 + 4, 4);
