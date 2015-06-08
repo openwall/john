@@ -86,7 +86,8 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p = ciphertext;
+	char *ptr, *ctcopy, *keeptr;
+	size_t len;
 
 	if (strncasecmp(ciphertext, FORMAT_TAG, TAG_LEN))
 		return 0;
@@ -94,21 +95,33 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(ciphertext) > MAX_CIPHERTEXT_LENGTH)
 		return 0;
 
-	p = strrchr(ciphertext, '$');
-	if (!p)
-		return 0;
+	ciphertext += TAG_LEN;
 
-	p = p + 1;
-	if (strlen(p) != BINARY_SIZE * 2)
+	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
-
-	if (!ishex(p))
+	keeptr = ctcopy;
+	if (!(ptr = strtokm(ctcopy, "$")))
 		goto error;
-
+	if (!atou(ptr))
+		goto error;
+	if (!(ptr = strtokm(NULL, "$")))
+		goto error;
+	len = strlen(ptr); // salt hex length
+	if (len > 2 * MAX_SALT_SIZE || len & 1)
+		goto error;
+	if (!(ptr = strtokm(NULL, "$")))
+		goto error;
+	len = strlen(ptr); // binary length
+	if (len != BINARY_SIZE*2)
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	MEM_FREE(keeptr);
 	return 1;
-
 error:
+	MEM_FREE(keeptr);
 	return 0;
+
 }
 
 static void *get_salt(char *ciphertext)
