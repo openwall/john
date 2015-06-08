@@ -47,11 +47,17 @@ def process_file(f):
         # from a different packet when etype is 17 or 18!
         # if salt is empty, realm.user is used instead (in krb5pa-sha1_fmt_plug.c)
         if message_type == "30":  # KRB-ERROR
-            r = msg.xpath('.//field[@name="kerberos.etype_info2.salt"]') or msg.xpath('.//field[@name="kerberos.salt"]')
+            r = msg.xpath('.//field[@name="kerberos.etype_info2.salt"]') or msg.xpath('.//field[@name="kerberos.salt"]') or msg.xpath('.//field[@name="kerberos.etype_info.salt"]')
             if r:
                 if isinstance(r, list):
-                    r  = r[0]
-                salt = binascii.unhexlify(r.attrib["value"])
+                    # some of the entries might have "value" missing!
+                    for item in r:
+                        if "value" in item.attrib:
+                            try:
+                                salt = binascii.unhexlify(item.attrib["value"])
+                                break
+                            except:
+                                continue
 
         if message_type == "10":  # Kerberos AS-REQ
             # locate encrypted timestamp
