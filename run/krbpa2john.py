@@ -47,7 +47,7 @@ def process_file(f):
         # from a different packet when etype is 17 or 18!
         # if salt is empty, realm.user is used instead (in krb5pa-sha1_fmt_plug.c)
         if message_type == "30":  # KRB-ERROR
-            r = msg.xpath('.//field[@name="kerberos.etype_info2.salt"]')
+            r = msg.xpath('.//field[@name="kerberos.etype_info2.salt"]') or msg.xpath('.//field[@name="kerberos.salt"]')
             if r:
                 if isinstance(r, list):
                     r  = r[0]
