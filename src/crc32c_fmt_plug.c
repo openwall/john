@@ -65,11 +65,11 @@ john_register_one(&fmt_crc32c);
 #define MAX_KEYS_PER_CRYPT		8192 // per thread
 
 static struct fmt_tests tests[] = {
-	{"$crc32$00000000.98a61e94", "ripper"},
-	{"$crc32$00000000.d62b95de", "dummy"},
-//	{"$crc32$00000000.00000000", ""},         // this one ends up skewing the benchmark time, WAY too much.
-	{"$crc32$d62b95de.1439c9f9", "password"}, // this would be for file with contents:   'dummy'  and we want to find a password to append that is 'password'
-	{"$crc32$d62b95de.0d8cc5ee", "123456"},   // ripper123456
+	{"$crc32c$00000000.98a61e94", "ripper"},
+	{"$crc32c$00000000.d62b95de", "dummy"},
+//	{"$crc32c$00000000.00000000", ""},         // this one ends up skewing the benchmark time, WAY too much.
+	{"$crc32c$d62b95de.1439c9f9", "password"}, // this would be for file with contents:   'dummy'  and we want to find a password to append that is 'password'
+	{"$crc32c$d62b95de.0d8cc5ee", "123456"},   // ripper123456
 	{NULL}
 };
 
@@ -141,7 +141,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p, *q;
 	int i;
 
-	if (strncmp(ciphertext, "$crc32$", 7))
+	if (strncmp(ciphertext, "$crc32c$", 8))
 		return 0;
 
 	p = strrchr(ciphertext, '$');
@@ -149,8 +149,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!q || q-p != 9)
 		return 0;
 	for (i = 0; i < 8; ++i) {
-		int c1 = ARCH_INDEX(ciphertext[7+i]);
-		int c2 = ARCH_INDEX(ciphertext[16+i]);
+		int c1 = ARCH_INDEX(ciphertext[8+i]);
+		int c2 = ARCH_INDEX(ciphertext[17+i]);
 		if (atoi16[c1] == 0x7F || atoi16[c2] == 0x7F)
 			return 0;
 /* We don't support uppercase hex digits here, or else we'd need to implement
@@ -176,7 +176,7 @@ static void *get_binary(char *ciphertext)
 	static ARCH_WORD_32 *out;
 	if (!out)
 		out = mem_alloc_tiny(sizeof(ARCH_WORD_32), MEM_ALIGN_WORD);
-	sscanf(&ciphertext[16], "%x", out);
+	sscanf(&ciphertext[17], "%x", out);
 	// Performing the complement here, allows us to not have to complement
 	// at the end of each crypt_all call.
 	*out = ~(*out);
@@ -188,7 +188,7 @@ static void *get_salt(char *ciphertext)
 	static ARCH_WORD_32 *out;
 	if (!out)
 		out = mem_alloc_tiny(sizeof(ARCH_WORD_32), MEM_ALIGN_WORD);
-	sscanf(&ciphertext[7], "%x", out);
+	sscanf(&ciphertext[8], "%x", out);
 	// since we ask for the crc of a file, or zero, we need to complement here,
 	// to get it into 'proper' working order.
 	*out = ~(*out);
