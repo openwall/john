@@ -365,10 +365,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *keeptr;
 	char *p, *q;
 	unsigned char *buf;
-	int is_inlined;
+	int is_inlined, i, bestslot=0;
 	int res;
 	int afsize;
+	unsigned char *out;
+	struct custom_salt_LUKS cs;
+	uint64_t keybytes, stripes;
+	unsigned int bestiter = 0xFFFFFFFF;
 
+	out = (unsigned char*)&cs.myphdr;
 	if (strncmp(ciphertext, "$luks$", 6) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -390,9 +395,29 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!ishexlc(p))
 		goto err;
+	for (i = 0; i < res; i++) {
+		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	keybytes = john_ntohl(cs.myphdr.keyBytes);
+	for (i = 0; i < LUKS_NUMKEYS; i++) {
+			if ((john_ntohl(cs.myphdr.keyblock[i].passwordIterations) < bestiter)
+			&& (john_ntohl(cs.myphdr.keyblock[i].passwordIterations) > 1) &&
+			(john_ntohl(cs.myphdr.keyblock[i].active) == 0x00ac71f3)) {
+				bestslot = i;
+				bestiter =
+				john_ntohl(cs.myphdr.keyblock[i].passwordIterations);
+			}
+	}
+	stripes = john_ntohl(cs.myphdr.keyblock[bestslot].stripes);
+	if ( (uint64_t)(john_ntohl(cs.myphdr.keyBytes)*john_ntohl(cs.myphdr.keyblock[bestslot].stripes)) !=
+		keybytes*stripes)
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
 	res = atoi(p);
+	if (res != keybytes*stripes)
+		goto err;
 
 	if (is_inlined) {
 		if ((p = strtokm(NULL, "$")) == NULL)
@@ -469,11 +494,6 @@ static void *get_salt(char *ciphertext)
 	p = strtokm(NULL, "$");
 	res = atoi(p);
 
-	cs.afsize = af_sectors(john_ntohl(cs.myphdr.keyBytes),
-			john_ntohl(cs.myphdr.keyblock[cs.bestslot].stripes));
-
-	assert(res == cs.afsize);
-
 	if (is_inlined) {
 		p = strtokm(NULL, "$");
 		size = strlen(p) / 4 * 3 + 1;
@@ -496,6 +516,10 @@ static void *get_salt(char *ciphertext)
 				john_ntohl(cs.myphdr.keyblock[cnt].passwordIterations);
 			}
 	}
+	cs.afsize = af_sectors(john_ntohl(cs.myphdr.keyBytes),
+			john_ntohl(cs.myphdr.keyblock[cs.bestslot].stripes));
+	assert(res == cs.afsize);
+
 	MEM_FREE(keeptr);
 
 	psalt = (struct custom_salt_LUKS*)mem_alloc_tiny(sizeof(struct custom_salt_LUKS)+size, 4);
