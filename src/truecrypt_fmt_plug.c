@@ -43,7 +43,6 @@ john_register_one(&fmt_truecrypt_whirlpool);
 #else
 
 #include <openssl/aes.h>
-#include <assert.h>
 #include <string.h>
 #include "misc.h"
 #include "memory.h"
@@ -241,7 +240,7 @@ static void* get_salt(char *ciphertext)
 	static char buf[sizeof(struct cust_salt)+4];
 	struct cust_salt *s = (struct cust_salt *)mem_align(buf, 4);
 	unsigned int i;
-	char tpath[8192] = {0};
+	char tpath[PATH_BUFFER_SIZE] = {0};
 	char *p, *q;
 	int idx;
 	FILE *fp;
@@ -257,9 +256,9 @@ static void* get_salt(char *ciphertext)
 	} else if (!strncmp(ciphertext, TAG_SHA512, TAG_SHA512_LEN)) {
 		ciphertext += TAG_SHA512_LEN;
 		s->hash_type = IS_SHA512;
-/* #if SSE_GROUP_SZ_SHA512
+#if SSE_GROUP_SZ_SHA512
 		s->loop_inc = SSE_GROUP_SZ_SHA512;
-#endif */
+#endif
 	} else if (!strncmp(ciphertext, TAG_RIPEMD160, TAG_RIPEMD160_LEN)) {
 		ciphertext += TAG_RIPEMD160_LEN;
 		s->hash_type = IS_RIPEMD160;
@@ -298,11 +297,9 @@ static void* get_salt(char *ciphertext)
 		}
 		/* read this into keyfiles_data[idx] */
 		fp = fopen(tpath, "rb");
-		if (!fp) {
-			printf("%s", p);
-			perror ("Oops!");
-			assert(0);
-		}
+		if (!fp)
+			pexit("fopen %s", p);
+
 		fseek(fp, 0L, SEEK_END);
 		sz = ftell(fp);
 		fseek(fp, 0L, SEEK_SET);
@@ -381,14 +378,14 @@ int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles)
 	uint32_t crc;
 
 	if (pass_memsz < MAX_PASSSZ) {
-		assert(0);
+		error();
 	}
 
 	pl = strlen((char *)pass);
 	memset(pass+pl, 0, MAX_PASSSZ-pl);
 
 	if ((kpool = mem_calloc(1, KPOOL_SZ)) == NULL) {
-		assert(0);
+		error();
 	}
 
 	for (k = 0; k < nkeyfiles; k++) {
@@ -430,18 +427,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for(i = 0; i < count; i+=psalt->loop_inc)
 	{
 		unsigned char key[64];
+#if SSE_GROUP_SZ_SHA512
+		unsigned char Keys[SSE_GROUP_SZ_SHA512][64];
+#endif
 		int j;
 		int ksz = strlen((char *)key_buffer[i]);
-		strncpy((char*)key, (char*)key_buffer[i], 64);
 
-		/* process keyfile(s) */
-		if (psalt->nkeyfiles) {
-			apply_keyfiles(key, 64, psalt->nkeyfiles);
-			ksz = 64;
+#if SSE_GROUP_SZ_SHA512
+		if (psalt->hash_type != IS_SHA512)
+#endif
+		{
+			strncpy((char*)key, (char*)key_buffer[i], 64);
+
+			/* process keyfile(s) */
+			if (psalt->nkeyfiles) {
+				apply_keyfiles(key, 64, psalt->nkeyfiles);
+				ksz = 64;
+			}
 		}
 
-/* #if SSE_GROUP_SZ_SHA512
-		unsigned char Keys[SSE_GROUP_SZ_SHA512][64];
+#if SSE_GROUP_SZ_SHA512
 		if (psalt->hash_type == IS_SHA512) {
 			int lens[SSE_GROUP_SZ_SHA512];
 			unsigned char *pin[SSE_GROUP_SZ_SHA512];
@@ -451,16 +456,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			} x;
 			for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
 				lens[j] = strlen((char*)(key_buffer[i+j]));
+
+				/* process keyfile(s) */
+				if (psalt->nkeyfiles) {
+					apply_keyfiles(Keys[j], 64, psalt->nkeyfiles);
+					lens[j] = 64;
+				}
+
 				pin[j] = key_buffer[i+j];
 				x.pout[j] = Keys[j];
 			}
 			pbkdf2_sha512_sse((const unsigned char **)pin, lens, psalt->salt, 64, psalt->num_iterations, &(x.poutc), sizeof(key), 0);
 		}
-#else */
+#else
 		if (psalt->hash_type == IS_SHA512) {
 			pbkdf2_sha512((const unsigned char*)key, ksz, psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
 		}
-// #endif
+#endif
 		else if (psalt->hash_type == IS_RIPEMD160)
 			pbkdf2_ripemd160((const unsigned char*)key, ksz, psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
 		else
@@ -481,10 +493,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 #endif
 		for (j = 0; j < psalt->loop_inc; ++j) {
-/* #if SSE_GROUP_SZ_SHA512
+#if SSE_GROUP_SZ_SHA512
 			if (psalt->hash_type == IS_SHA512)
 				memcpy(key, Keys[j], sizeof(key));
-#endif */
+#endif
 			// Try to decrypt using AES
 			AES_256_XTS_first_sector(key, first_block_dec[i+j], psalt->bin, 16);
 		}
@@ -652,13 +664,13 @@ struct fmt_main fmt_truecrypt = {
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
-/* #if SSE_GROUP_SZ_SHA512
+#if SSE_GROUP_SZ_SHA512
 		SSE_GROUP_SZ_SHA512,
 		SSE_GROUP_SZ_SHA512,
-#else */
+#else
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-// #endif
+#endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{
