@@ -857,7 +857,10 @@ static void *get_salt(char *ciphertext)
 					case HASH_MD5:
 						cs.s2kfun = S2KSaltedMD5Generator;
 						break;
-					default: break;
+					default:
+						// WTF? (see valid_hash_algorithm() function)
+						cs.s2kfun = S2KSaltedSHA1Generator;
+						break;
 				}
 			}
 			break;
