@@ -255,16 +255,21 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			fprintf(stderr, "See https://github.com/magnumripper/JohnTheRipper/issues/1026\n");
 			error();
 		}
-		if ((p = strtokm(NULL, "*")) == NULL)	/* content size */
-			goto err;
-		contentsize = atoi(p);
-		if ((p = strtokm(NULL, "*")) == NULL)	/* content */
-			goto err;
-		res = strlen(p);
-		if (res != contentsize * 2)
-			goto err;
-		if (!ishex(p))
-			goto err;
+		if (res == 1) {
+			if ((p = strtokm(NULL, "*")) == NULL)	/* content size */
+				goto err;
+			contentsize = atoi(p);
+			if ((p = strtokm(NULL, "*")) == NULL)	/* content */
+				goto err;
+			res = strlen(p);
+			if (res != contentsize * 2)
+				goto err;
+			if (!ishex(p))
+				goto err;
+			p = strtokm(NULL, "*");
+			if (p)
+				goto err;
+		}
 		p = strtokm(NULL, "*");
 		if (p) {
 			// keyfile handling
