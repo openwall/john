@@ -457,6 +457,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
 				lens[j] = strlen((char*)(key_buffer[i+j]));
 
+				strncpy((char*)Keys[j], (char*)key_buffer[i+j], 64);
+
 				/* process keyfile(s) */
 				if (psalt->nkeyfiles) {
 					apply_keyfiles(Keys[j], 64, psalt->nkeyfiles);
