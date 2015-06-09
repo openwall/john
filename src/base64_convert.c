@@ -1127,7 +1127,7 @@ int base64_valid_length(const char *from, b64_convert_type from_t, unsigned flag
 /* used by base64conv 'main()' function */
 static int usage(char *name)
 {
-	fprintf(stderr, "Usage: %s [-l] [-i intype] [-o outtype] [-q] [-e] [-f flag] [data[data ...] | < stdin]\n"
+	fprintf(stderr, "Usage: %s [-l] [-i intype] [-o outtype] [-q] [-w] [-e] [-f flag] [data[data ...] | < stdin]\n"
 	        " - data must match input_type i.e. if hex, then data should be in hex\n"
 	        " - if data is not present, then base64conv will read data from std input)\n"
 	        " - if data read from stdin, max size of any line is 256k\n"
@@ -1135,6 +1135,10 @@ static int usage(char *name)
 	        "  -q will only output resultant string. No extra junk text\n"
 	        "  -e turns on buffer overwrite error checking logic\n"
 	        "  -l performs a 'length' test\n"
+			"\n"
+			"  -r ifname  process whole file ifname (this is the input file)\n"
+			"  -w ofname  The output filename for whole file processing\n"
+			"             NOTE, -r and -w have to be used as a pair\n"
 	        "\n"
 	        "Input/Output types:\n"
 	        "  raw      raw data byte\n"
@@ -1173,6 +1177,60 @@ static int handle_flag_type(const char *pflag) {
 	if (!strcasecmp(pflag, "MIME_DASH_UNDER"))  return flg_Base64_MIME_DASH_UNDER;
 
 	return 0;
+}
+
+static void do_convert_wholefile(char *fname, char *outfname, b64_convert_type in_t,
+                       b64_convert_type out_t, int quiet,
+                       int err_chk, int flags)
+{
+	char *po;
+	int i, len, in_len;
+	char *in_str;
+	FILE *fp;
+
+	fp = fopen(fname, "rb");
+	if (!fp) {
+		fprintf (stderr, "Error, could not find file [%s]\n", fname);
+		exit(-1);
+	}
+	fseek(fp, 0, SEEK_END);
+	in_len = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	if (in_len == 0)
+		return;
+	in_str = (char*)mem_calloc(1, in_len+4);
+	fread(in_str, 1, in_len, fp);
+	fclose(fp);
+	fp = fopen(outfname, "wb");
+
+	if (!quiet)
+		printf("%s  -->  %s", in_str, in_len ? "" : "\n");
+
+	po = (char*)mem_calloc(3, in_len+2);
+	if (err_chk)
+		memset(po, 2, in_len*3+6);
+	len=base64_convert(in_str, in_t, in_len, po, out_t, in_len*3, flags);
+	fwrite(po, 1, len, fp);
+	fclose(fp);
+	/* check for overwrite problems */
+	if (err_chk) {
+		int tot = in_len*3;
+		i=len;
+		if (po[i]) {
+			fprintf(stderr, "OverwriteLogic: Null byte missing\n");
+		}
+		for (++i; i < tot; ++i)
+		{
+			if (((unsigned char)po[i]) != 2) {
+				/* we ignore overwrites that are 1 or 2 bytes over.  The way the */
+				/* functions are written, we expect some 1 and 2 byte overflows, */
+				/* and the caller MUST be aware of that fact                     */
+				if (i-len > 2)
+					fprintf(stderr, "OverwriteLogic: byte %c (%02X) located at offset %d (%+d)\n", (unsigned char)po[i], (unsigned char)po[i], i, i-len);
+			}
+		}
+	}
+	MEM_FREE(po);
 }
 
 static void do_convert(char *in_str, b64_convert_type in_t,
@@ -1255,13 +1313,14 @@ void length_test() {
 int base64conv(int argc, char **argv) {
 	int c;
 	b64_convert_type in_t=e_b64_unk, out_t=e_b64_unk;
-	int quiet=0,err_chk=0,did_len_check=0;
+	int quiet=0,err_chk=0,did_len_check=0,wholefile=0;
+	char *fname=NULL, *outfname=NULL;
 	int flags=flg_Base64_NO_FLAGS;
 
 	/* Parse command line */
 	if (argc == 1)
 		return usage(argv[0]);
-	while ((c = getopt(argc, argv, "i:o:q!e!f:l!")) != -1) {
+	while ((c = getopt(argc, argv, "i:o:q!e!f:l!w:r:")) != -1) {
 		switch (c) {
 		case 'i':
 			in_t = str2convtype(optarg);
@@ -1287,6 +1346,14 @@ int base64conv(int argc, char **argv) {
 		case 'q':
 			quiet=1;
 			break;
+		case 'w':
+			wholefile=1;
+			outfname=optarg;
+			break;
+		case 'r':
+			wholefile=1;
+			fname=optarg;
+			break;
 		case 'e':
 			err_chk=1;
 			break;
@@ -1301,6 +1368,14 @@ int base64conv(int argc, char **argv) {
 	}
 	argc -= optind;
 	argv += optind;
+	if (wholefile) {
+		if (!fname || !outfname) {
+			fprintf(stderr, "Error, -r and -w have to be used as a pair\n");
+			exit(-1);
+		}
+		do_convert_wholefile(fname, outfname, in_t, out_t, quiet, err_chk, flags);
+		return 0;
+	}
 	if (!argc) {
 		// if we are out of params, then read from stdin
 		char *buf;
