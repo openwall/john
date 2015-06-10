@@ -1199,7 +1199,11 @@ static void do_convert_wholefile(char *fname, char *outfname, b64_convert_type i
 	if (in_len == 0)
 		return;
 	in_str = (char*)mem_calloc(1, in_len+4);
-	fread(in_str, 1, in_len, fp);
+	if (fread(in_str, 1, in_len, fp) != in_len) {
+		fprintf (stderr, "Error, reading file [%s]\n", fname);
+		fclose(fp);
+		exit(-1);
+	}
 	fclose(fp);
 	fp = fopen(outfname, "wb");
 
