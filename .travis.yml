@@ -3,48 +3,34 @@ branches:
   except:
     gh-pages
 compiler:
-- gcc
-- clang
+  - gcc
+  - clang
+env:
+  # Default build. Release.
+  # Debug build
+
 env:
   global:
-  # The next declration is the encrypted COVERITY_SCAN_TOKEN, created
-  #   via the "travis encrypt" command using the project repo's public key
-  - secure: FJ1/E5vVttd4+cFLQVdFt4rHNX28aGIvAWXduy6ZqQgZbfa0omsHcZXAq0t1qFz14ryTxEtxqY/aXw6OSG+t6a8OyrOi9jEdTIUpEDCyPvdZ299injPt1SiJRxzoDNo1CquwUE20y2pFOnTpVp6bIkH49o0oAxBijtb5fDj54KY=
-cache:
-  directories:
-  - "$HOME/mingw64"
-  - "$HOME/bin"
+   # The next declration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "FJ1/E5vVttd4+cFLQVdFt4rHNX28aGIvAWXduy6ZqQgZbfa0omsHcZXAq0t1qFz14ryTxEtxqY/aXw6OSG+t6a8OyrOi9jEdTIUpEDCyPvdZ299injPt1SiJRxzoDNo1CquwUE20y2pFOnTpVp6bIkH49o0oAxBijtb5fDj54KY="
+
 matrix:
   allow_failures:
 
 before_install:
-- sudo apt-get update -qq
-- sudo apt-get install -y aptitude
-- sudo aptitude install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper
-  libnet1-dev mingw-w64 gcc-mingw-w64 nsis rpm2cpio -y
-- export OMP_NUM_THREADS=4
-- export PATH="$HOME/bin:$PATH"
-- sudo umount /proc/sys/fs/binfmt_misc # stop wine from messing around!
+  - sudo apt-get update -qq
+  - sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev
+  - export OMP_NUM_THREADS=4
 script:
-- cd src && ./travis-cc.sh
+  - cd src && ./configure && make -sj4 check
+
 addons:
   coverity_scan:
     project:
-      name: magnumripper/JohnTheRipper
-      description: http://openwall.com/john
+      name: "magnumripper/JohnTheRipper"
+      description: "http://openwall.com/john"
     notification_email: john.magnum@hushmail.com
     build_command_prepend:
-    build_command: cd src && ./configure && make -sj4 check
+    build_command: "cd src && ./configure && make -sj4 check"
     branch_pattern: coverity_scan
-deploy:
-  skip_cleanup: true
-  provider: releases
-  api_key:
-    secure: IEbLhyjfipFOb4iakiUpcZpTeWF0Fz4uE6UTRGTvvmop+A4pKkUxPPdS5FfF8iHDecK9R2iFqLp3vgKhjdk//bv/tQxEt559Ix58LSPZlaFLEa/cBksOvixaIDifb/kUgZQC6htVkhnJZgK1FQ8P1JlDPjc6URqXN6O5hMNndk0=
-  file: "$HOME/JtR-MinGW.zip"
-  on:
-    repo: kholia/JohnTheRipper
-    branch: MinGW
-    tags: true
-    all_branches: true
-    condition: "$CC = gcc"
