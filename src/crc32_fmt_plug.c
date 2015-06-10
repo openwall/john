@@ -30,6 +30,9 @@ extern struct fmt_main fmt_crc32;
 john_register_one(&fmt_crc32);
 #else
 
+/* Uncomment to try out a non-SSE4.2 build */
+//#undef __SSE4_2__
+
 #include <string.h>
 
 #include "common.h"
@@ -40,15 +43,22 @@ john_register_one(&fmt_crc32);
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE       64	// tuned on AMD-k8 dual-HT
+#define OMP_SCALE       256	// tuned on core i7
 #endif
+#endif
+#if __SSE4_2__
+#include <nmmintrin.h>
 #endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"CRC32"
+#define FORMAT_LABELc			"crc32c"
 #define FORMAT_NAME			""
-#define ALGORITHM_NAME			"CRC32 32/" ARCH_BITS_STR
-
+#if __SSE4_2__
+#define ALGORITHM_NAME			"CRC32 32/" ARCH_BITS_STR " CRC-32C SSE4.2"
+#else
+#define ALGORITHM_NAME			"CRC32 32/" ARCH_BITS_STR " CRC-32C 32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
@@ -56,7 +66,7 @@ john_register_one(&fmt_crc32);
 
 #define BINARY_SIZE			4
 #define BINARY_ALIGN			4
-#define SALT_SIZE			4
+#define SALT_SIZE			5
 #define SALT_ALIGN			4
 
 #define MIN_KEYS_PER_CRYPT		1
@@ -68,15 +78,55 @@ static struct fmt_tests tests[] = {
 //	{"$crc32$00000000.00000000", ""},         // this one ends up skewing the benchmark time, WAY too much.
 	{"$crc32$4ff4f23f.ce6eb863", "password"}, // this would be for file with contents:   'dummy'  and we want to find a password to append that is 'password'
 	{"$crc32$fa455f6b.c59b2aeb", "123456"},   // ripper123456
+	{"$crc32c$00000000.98a61e94", "ripper"},
+	{"$crc32c$00000000.d62b95de", "dummy"},
+//	{"$crc32c$00000000.00000000", ""},         // this one ends up skewing the benchmark time, WAY too much.
+	{"$crc32c$d62b95de.1439c9f9", "password"}, // this would be for file with contents:   'dummy'  and we want to find a password to append that is 'password'
+	{"$crc32c$98a61e94.77f23179", "123456"},   // ripper123456
 	{NULL}
 };
 
+static struct fmt_main *pFmt;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crcs);
 static ARCH_WORD_32 crcsalt;
 
+/* Copied from Solar's crc32.[hc] that does standard CRC-32 */
+typedef ARCH_WORD_32 CRC32C_t;
+
+#define POLY 0x82F63B78 // CRC-32C
+//#define POLY 0xEDB88320 // normal CRC-32
+#define ALL1 0xFFFFFFFF
+
+static CRC32C_t table[256];
+static int bInit=0;
+
+static void CRC32C_Init(CRC32C_t *value)
+{
+	unsigned int index, bit;
+	CRC32C_t entry;
+
+	*value = ALL1;
+
+	if (bInit) return;
+	bInit = 1;
+	for (index = 0; index < 0x100; index++) {
+		entry = index;
+
+		for (bit = 0; bit < 8; bit++)
+		if (entry & 1) {
+			entry >>= 1;
+			entry ^= POLY;
+		} else
+			entry >>= 1;
+
+		table[index] = entry;
+	}
+}
+
 static void init(struct fmt_main *self)
 {
+	CRC32C_t dummy;
 #ifdef _OPENMP
 	int n = omp_get_max_threads();
 	if (n > 4) {
@@ -90,6 +140,9 @@ static void init(struct fmt_main *self)
 	                       sizeof(*saved_key));
 	crcs      = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crcs));
+
+	CRC32C_Init(&dummy);
+	pFmt = self;
 }
 
 static void done(void)
@@ -103,7 +156,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p, *q;
 	int i;
 
-	if (strncmp(ciphertext, "$crc32$", 7))
+	if (strncmp(ciphertext, "$crc32$", 7) && strncmp(ciphertext, "$crc32c$", 8))
 		return 0;
 
 	p = strrchr(ciphertext, '$');
@@ -111,8 +164,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!q || q-p != 9)
 		return 0;
 	for (i = 0; i < 8; ++i) {
-		int c1 = ARCH_INDEX(ciphertext[7+i]);
-		int c2 = ARCH_INDEX(ciphertext[16+i]);
+		int c1 = ARCH_INDEX(p[1+i]);
+		int c2 = ARCH_INDEX(p[10+i]);
 		if (atoi16[c1] == 0x7F || atoi16[c2] == 0x7F)
 			return 0;
 /* We don't support uppercase hex digits here, or else we'd need to implement
@@ -136,9 +189,11 @@ static int get_hash_6(int index) { return crcs[index] & 0x7ffffff; }
 static void *get_binary(char *ciphertext)
 {
 	static ARCH_WORD_32 *out;
+	char *p;
 	if (!out)
 		out = mem_alloc_tiny(sizeof(ARCH_WORD_32), MEM_ALIGN_WORD);
-	sscanf(&ciphertext[16], "%x", out);
+	p = strchr(ciphertext, '.');
+	sscanf(&p[1], "%x", out);
 	// Performing the complement here, allows us to not have to complement
 	// at the end of each crypt_all call.
 	*out = ~(*out);
@@ -148,12 +203,19 @@ static void *get_binary(char *ciphertext)
 static void *get_salt(char *ciphertext)
 {
 	static ARCH_WORD_32 *out;
+	char *cp;
+
 	if (!out)
-		out = mem_alloc_tiny(sizeof(ARCH_WORD_32), MEM_ALIGN_WORD);
-	sscanf(&ciphertext[7], "%x", out);
+		out = mem_alloc_tiny(sizeof(ARCH_WORD_32)*2, MEM_ALIGN_WORD);
+	cp = strrchr(ciphertext, '$');
+	sscanf(&cp[1], "%x", out);
 	// since we ask for the crc of a file, or zero, we need to complement here,
 	// to get it into 'proper' working order.
 	*out = ~(*out);
+	if (!strncmp(ciphertext, "$crc32$", 7))
+		((char*)out)[4] = 0;
+	else
+		((char*)out)[4] = 1;
 	return out;
 }
 
@@ -168,11 +230,6 @@ static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	return Buf;
 }
 #endif
-
-static void set_salt(void *salt)
-{
-	crcsalt = *((ARCH_WORD_32 *)salt);
-}
 
 static void set_key(char *key, int index)
 {
@@ -202,6 +259,39 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		crcs[i] = crc;
 	}
 	return count;
+}
+
+static int crypt_allc(int *pcount, struct db_salt *salt)
+{
+	const int count = *pcount;
+	int i;
+#ifdef _OPENMP
+#pragma omp parallel for private(i)
+#endif
+	for (i = 0; i < count; ++i) {
+		CRC32C_t crc = (CRC32C_t)crcsalt;
+		unsigned char *p = (unsigned char*)saved_key[i];
+#if __SSE4_2__
+		while (*p)
+			crc = _mm_crc32_u8(crc, *p++);
+#else
+		while (*p)
+			crc = (crc >> 8) ^ table[(crc ^ *p++) & 0xFF];
+#endif
+		crcs[i] = crc;
+		//printf("In: '%s' Out: %08x\n", saved_key[i], ~crc);
+	}
+	return count;
+}
+
+static void set_salt(void *salt)
+{
+	crcsalt = *((ARCH_WORD_32 *)salt);
+	if (((char*)salt)[4] == 0)
+		pFmt->methods.crypt_all = crypt_all;
+	else
+		pFmt->methods.crypt_all = crypt_allc;
+
 }
 
 static int cmp_all(void *binary, int count)
