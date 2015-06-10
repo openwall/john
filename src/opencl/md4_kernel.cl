@@ -120,7 +120,7 @@ inline void cmp(uint gid,
 		t = (loaded_hashes[4 * j] == hash[0]) && (loaded_hashes[4 * j + 1] == hash[1]) &&
 			(loaded_hashes[4 * j + 2] == hash[2]) && (loaded_hashes[4 * j + 3] == hash[3]);
 		if(t) {
-/* Prevent duplicate keys from cracking same hash */
+ Prevent duplicate keys from cracking same hash */
 /*			if (!(atomic_or(&bitmap[j/32], (1U << (j % 32))) & (1U << (j % 32)))) {
 				t = atomic_inc(&output[0]);
 				output[1 + 3 * t] = gid;
@@ -135,13 +135,14 @@ inline void cmp(uint gid,
 inline void cmp(uint gid,
 		uint iter,
 		__private uint *hash,
-		__global uint *hash_table,
+		__global uint *hash_table_0,
+		__global uint *hash_table_1,
 		__global uint *offset_table,
 		__global uint *return_hashes,
 		volatile __global uint *output,
 		volatile __global uint *bitmap) {
 	uint t, offset_table_index, hash_table_index;
-	unsigned long LO, HI, temp_lo, temp_hi;
+	unsigned long LO, HI;
 	unsigned long p;
 
 	hash[0] += 0x67452301;
@@ -157,17 +158,19 @@ inline void cmp(uint gid,
 	p %= OFFSET_TABLE_SIZE;
 	offset_table_index = (unsigned int)p;
 
-	temp_lo = LO + (unsigned long)offset_table[offset_table_index];
 	//error: chances of overflow is extremely low.
-	temp_hi = HI;
+	LO += (unsigned long)offset_table[offset_table_index];
 
-	p = (temp_hi % HASH_TABLE_SIZE) * SHIFT64_HT_SZ;
-	p += temp_lo % HASH_TABLE_SIZE;
+	p = (HI % HASH_TABLE_SIZE) * SHIFT64_HT_SZ;
+	p += LO % HASH_TABLE_SIZE;
 	p %= HASH_TABLE_SIZE;
 	hash_table_index = (unsigned int)p;
 
-	if (hash_table[hash_table_index] == hash[0]) {
-/* Prevent duplicate keys from cracking same hash */
+	if (hash_table_0[hash_table_index] == hash[0])
+	if (hash_table_1[hash_table_index] == hash[1])	{
+/*
+ * Prevent duplicate keys from cracking same hash
+ */
 		if (!(atomic_or(&bitmap[hash_table_index/32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
 			t = atomic_inc(&output[0]);
 			output[1 + 3 * t] = gid;
@@ -191,7 +194,8 @@ __kernel void md4(__global uint *keys,
 		  __global uint *int_key_loc,
 		  __global uint *int_keys,
 		  __global uint *offset_table,
-		  __global uint *hash_table,
+		  __global uint *hash_table_0,
+		  __global uint *hash_table_1,
 		  __global uint *return_hashes,
 		  volatile __global uint *out_hash_ids,
 		  volatile __global uint *bitmap)
@@ -231,6 +235,6 @@ __kernel void md4(__global uint *keys,
 		}
 
 		md4_encrypt(hash, W, len);
-		cmp(gid, i, hash, hash_table, offset_table, return_hashes, out_hash_ids, bitmap);
+		cmp(gid, i, hash, hash_table_0, hash_table_1, offset_table, return_hashes, out_hash_ids, bitmap);
 	}
 }
