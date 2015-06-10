@@ -300,10 +300,17 @@ static void* get_salt(char *ciphertext)
 		if (!fp)
 			pexit("fopen %s", p);
 
-		fseek(fp, 0L, SEEK_END);
+		if (fseek(fp, 0L, SEEK_END) == -1)
+			pexit("fseek");
+
 		sz = ftell(fp);
-		fseek(fp, 0L, SEEK_SET);
-		(void) fread(keyfiles_data[idx], 1, sz, fp);
+
+		if (fseek(fp, 0L, SEEK_SET) == -1)
+			pexit("fseek");
+
+		if (fread(keyfiles_data[idx], 1, sz, fp) != sz)
+			pexit("fread");
+
 		keyfiles_length[idx] = sz;
 		fclose(fp);
 	}
