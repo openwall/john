@@ -69,7 +69,7 @@ static struct fmt_tests tests[] = {
 	{"$crc32c$00000000.d62b95de", "dummy"},
 //	{"$crc32c$00000000.00000000", ""},         // this one ends up skewing the benchmark time, WAY too much.
 	{"$crc32c$d62b95de.1439c9f9", "password"}, // this would be for file with contents:   'dummy'  and we want to find a password to append that is 'password'
-	{"$crc32c$d62b95de.0d8cc5ee", "123456"},   // ripper123456
+	{"$crc32c$98a61e94.77f23179", "123456"},   // ripper123456
 	{NULL}
 };
 
