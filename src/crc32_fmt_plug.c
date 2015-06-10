@@ -99,17 +99,12 @@ typedef ARCH_WORD_32 CRC32C_t;
 #define ALL1 0xFFFFFFFF
 
 static CRC32C_t table[256];
-static int bInit=0;
 
-static void CRC32C_Init(CRC32C_t *value)
+static void CRC32C_tab_Init()
 {
 	unsigned int index, bit;
 	CRC32C_t entry;
 
-	*value = ALL1;
-
-	if (bInit) return;
-	bInit = 1;
 	for (index = 0; index < 0x100; index++) {
 		entry = index;
 
@@ -126,7 +121,6 @@ static void CRC32C_Init(CRC32C_t *value)
 
 static void init(struct fmt_main *self)
 {
-	CRC32C_t dummy;
 #ifdef _OPENMP
 	int n = omp_get_max_threads();
 	if (n > 4) {
@@ -141,7 +135,7 @@ static void init(struct fmt_main *self)
 	crcs      = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crcs));
 
-	CRC32C_Init(&dummy);
+	CRC32C_tab_Init();
 	pFmt = self;
 }
 
@@ -276,7 +270,7 @@ static int crypt_allc(int *pcount, struct db_salt *salt)
 			crc = _mm_crc32_u8(crc, *p++);
 #else
 		while (*p)
-			crc = (crc >> 8) ^ table[(crc ^ *p++) & 0xFF];
+			crc = table[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
 #endif
 		crcs[i] = crc;
 		//printf("In: '%s' Out: %08x\n", saved_key[i], ~crc);

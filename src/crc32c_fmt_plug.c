@@ -228,7 +228,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			crc = _mm_crc32_u8(crc, *p++);
 #else
 		while (*p)
-			crc = (crc >> 8) ^ table[(crc ^ *p++) & 0xFF];
+			crc = table[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
 #endif
 		crcs[i] = crc;
 		//printf("In: '%s' Out: %08x\n", saved_key[i], ~crc);
