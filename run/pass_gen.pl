@@ -3266,7 +3266,8 @@ sub dynamic_compile {
 			$dynamic_args==1013 && do {$fmt='md5($p.$s),usrname=md5_hex_salt';	last SWITCH; };
 			$dynamic_args==1014 && do {$fmt='md5($p.$s),saltlen=56';	last SWITCH; };
 			$dynamic_args==1015 && do {$fmt='md5(md5($p.$u).$s),saltlen=6,username';	last SWITCH; };
-			$dynamic_args==1016 && do {$fmt='md5($s.$p),saltlen=-64';	last SWITCH; };
+			$dynamic_args==1016 && do {$fmt='md5($p.$s),saltlen=-64';	last SWITCH; };
+			$dynamic_args==1017 && do {$fmt='md5($s.$p),saltlen=-64';	last SWITCH; };
 			$dynamic_args==1018 && do {$fmt='md5(sha1(sha1($p)))';	last SWITCH; };
 			$dynamic_args==1019 && do {$fmt='md5(sha1(sha1(md5($p))))';	last SWITCH; };
 			$dynamic_args==1020 && do {$fmt='md5(sha1(md5($p)))';	last SWITCH; };
@@ -3828,7 +3829,13 @@ sub dynamic_load_salt {
 		if ($gen_stype eq "tohex") { $gen_s=md5_hex($gen_s); }
 	} else {
 		if ($gen_stype eq "ashex") { $gen_s=randstr(32, \@chrHexLo); }
-		else { $gen_s=randstr($saltlen); }
+		else {
+			my $slen = $saltlen;
+			if ($slen < 0) {
+				$slen = int(rand($slen*-1));
+			}
+			$gen_s=randstr($slen);
+		}
 		$gen_soutput = $gen_s;
 		if ($gen_stype eq "tohex") { $gen_s=md5_hex($gen_s); }
 	}
