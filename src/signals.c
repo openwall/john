@@ -266,6 +266,7 @@ static void sig_install_abort(void)
  * CTRL+C is inherited by child processes."  So restore normal processing here
  * in case our parent (such as Johnny the GUI) had disabled it.
  */
+	SetConsoleCtrlHandler(NULL, FALSE);
 	SetConsoleCtrlHandler(sig_handle_abort_ctrl, TRUE);
 #endif
 
