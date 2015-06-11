@@ -127,6 +127,8 @@ static int valid(char *ciphertext, struct fmt_main *self, char *which)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
+	if (strlen(ptr) != 32)
+		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* encrypted verifier hash */
 		goto error;
 	if (!ishex(ptr))
