@@ -9,11 +9,12 @@
  */
 
 #ifdef HAVE_OPENCL
+#define FMT_STRUCT fmt_opencl_rawMD4
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_rawMD4;
+extern struct fmt_main FMT_STRUCT;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_rawMD4);
+john_register_one(&FMT_STRUCT);
 #else
 
 #include <string.h>
@@ -51,7 +52,6 @@ static cl_uint *saved_plain, *saved_idx, *saved_int_key_loc, *loaded_hashes = NU
 static unsigned int key_idx = 0;
 static unsigned int ref_ctr;
 static struct fmt_main *self;
-static char build_opts[500];
 
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
@@ -91,7 +91,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-struct fmt_main fmt_opencl_rawMD4;
+struct fmt_main FMT_STRUCT;
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
@@ -197,14 +197,18 @@ static void done(void)
 	if (hash_ids)
 		MEM_FREE(hash_ids);
 }
+
 static void init_kernel(unsigned int num_ld_hashes)
 {
+	static char build_opts[128];
+
 	clReleaseKernel(crypt_kernel);
 	sprintf(build_opts, "-D NUM_LOADED_HASHES=%u -D NUM_INT_KEYS=%u", num_ld_hashes, mask_int_cand.num_int_cand);
 	opencl_build(gpu_id, build_opts, 0, NULL);
 	crypt_kernel = clCreateKernel(program[gpu_id], "md4", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 }
+
 static void init(struct fmt_main *_self)
 {
 	self = _self;
@@ -338,7 +342,6 @@ static char *get_key(int index)
 	return out;
 }
 
-
 static void load_hash(struct db_salt *salt) {
 	unsigned int *bin, i;
 	struct db_password *pw;
@@ -442,7 +445,7 @@ static void reset(struct db_main *db)
 			release_clobj();
 
 		buffer_size = db->format->params.max_keys_per_crypt;
-	       	num_loaded_hashes = db->salts->count;
+		num_loaded_hashes = db->salts->count;
 		init_kernel(num_loaded_hashes);
 		create_clobj(buffer_size, NULL);
 		load_hash(db->salts);
@@ -492,7 +495,7 @@ static void reset(struct db_main *db)
 		loaded_hashes = (cl_uint*)mem_alloc(16 * num_loaded_hashes);
 
 		while (tests[i].ciphertext != NULL) {
-			ciphertext = split(tests[i].ciphertext, 0, &fmt_opencl_rawMD4);
+			ciphertext = split(tests[i].ciphertext, 0, &FMT_STRUCT);
 			binary = (unsigned int*)get_binary(ciphertext);
 			loaded_hashes[4 * i] = binary[0];
 			loaded_hashes[4 * i + 1] = binary[1];
@@ -506,7 +509,7 @@ static void reset(struct db_main *db)
 	}
 }
 
-struct fmt_main fmt_opencl_rawMD4 = {
+struct fmt_main FMT_STRUCT = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
