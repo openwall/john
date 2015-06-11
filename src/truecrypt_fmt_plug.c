@@ -371,10 +371,6 @@ static void AES_256_XTS_first_sector(const unsigned char *double_key,
 	}
 }
 
-// borrowed from https://github.com/bwalex/tc-play
-uint32_t crc32(const void *buf, size_t size);
-uint32_t crc32_intermediate(uint32_t crc, uint8_t d);
-
 int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles)
 {
 	int pl, k;
@@ -402,7 +398,7 @@ int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles)
 		crc = ~0U;
 
 		for (i = 0; i < kdata_sz; i++) {
-			crc = crc32_intermediate(crc, kdata[i]);
+			crc = jtr_crc32(crc, kdata[i]);
 			kpool[kpool_idx++] += (unsigned char)(crc >> 24);
 			kpool[kpool_idx++] += (unsigned char)(crc >> 16);
 			kpool[kpool_idx++] += (unsigned char)(crc >> 8);

@@ -733,9 +733,9 @@ static int get_next_decrypted_block(u8 *in, int sizeof_n, FILE *fp, u32 *inp_use
 	/* decrypt the data bytes (in place, in same buffer). Easy to do, only requires 1 temp character variable.  */
 	for (k = 0; k < new_bytes; ++k) {
 		C = PKZ_MULT(in[k],(*pkey2));
-		pkey0->u = pkzip_crc32 (pkey0->u, C);
+		pkey0->u = jtr_crc32 (pkey0->u, C);
 		pkey1->u = (pkey1->u + pkey0->c[KB1]) * 134775813 + 1;
-		pkey2->u = pkzip_crc32 (pkey2->u, pkey1->c[KB2]);
+		pkey2->u = jtr_crc32 (pkey2->u, pkey1->c[KB2]);
 		in[k] = C;
 	}
 	/* return the number of bytes we read from the file on this read */
@@ -792,9 +792,9 @@ static int cmp_exact_loadfile(int index)
 	b = salt->H[salt->full_zip_idx].h;
 	do {
 		C = PKZ_MULT(*b++,key2);
-		key0.u = pkzip_crc32 (key0.u, C);
+		key0.u = jtr_crc32 (key0.u, C);
 		key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-		key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+		key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 	}
 	while(--k);
 
@@ -810,7 +810,7 @@ static int cmp_exact_loadfile(int index)
         avail_in = get_next_decrypted_block(in, CHUNK, fp, &inp_used, &key0, &key1, &key2);
 		while (avail_in) {
 			for (k = 0; k < avail_in; ++k)
-				crc = pkzip_crc32(crc,in[k]);
+				crc = jtr_crc32(crc,in[k]);
 			avail_in = get_next_decrypted_block(in, CHUNK, fp, &inp_used, &key0, &key1, &key2);
 		}
 		fclose(fp);
@@ -856,7 +856,7 @@ static int cmp_exact_loadfile(int index)
             have = CHUNK - strm.avail_out;
 			/* now update our crc value */
 			for (k = 0; k < have; ++k)
-				crc = pkzip_crc32(crc,out[k]);
+				crc = jtr_crc32(crc,out[k]);
 			decomp_len += have;
         } while (strm.avail_out == 0);
 
@@ -901,26 +901,26 @@ static int cmp_exact(char *source, int index)
 		k=12;
 		do {
 			C = PKZ_MULT(*b++,key2);
-			key0.u = pkzip_crc32 (key0.u, C);
+			key0.u = jtr_crc32 (key0.u, C);
 			key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-			key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+			key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 		}
 		while(--k);
 		B = decrBuf;
 		k = salt->compLen-12;
 		do {
 			C = PKZ_MULT(*b++,key2);
-			key0.u = pkzip_crc32 (key0.u, C);
+			key0.u = jtr_crc32 (key0.u, C);
 			*B++ = C;
 			key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-			key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+			key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 		} while (--k);
 
 		if (salt->H[salt->full_zip_idx].compType == 0) {
 			// handle a stored blob (we do not have to decrypt it.
 			crc = 0xFFFFFFFF;
 			for (k = 0; k < salt->compLen-12; ++k)
-				crc = pkzip_crc32(crc,decrBuf[k]);
+				crc = jtr_crc32(crc,decrBuf[k]);
 			MEM_FREE(decrBuf);
 			return ~crc == salt->crc32;
 		}
@@ -948,7 +948,7 @@ static int cmp_exact(char *source, int index)
 
 		crc = 0xFFFFFFFF;
 		for (k = 0; k < strm.total_out; ++k)
-			crc = pkzip_crc32(crc,decompBuf[k]);
+			crc = jtr_crc32(crc,decompBuf[k]);
 		MEM_FREE(decompBuf);
 		MEM_FREE(decrBuf);
 		return ~crc == salt->crc32;
@@ -1362,9 +1362,9 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 			/* load the 'pwkey' one time, put it into the K12 array */
 			key0.u = 0x12345678UL; key1.u = 0x23456789UL; key2.u = 0x34567890UL;
 			do {
-				key0.u = pkzip_crc32 (key0.u, *p++);
+				key0.u = jtr_crc32 (key0.u, *p++);
 				key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-				key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+				key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 			} while (*p);
 			K12[idx*3] = key0.u, K12[idx*3+1] = key1.u, K12[idx*3+2] = key2.u;
 			goto SkipKeyLoadInit;
@@ -1386,9 +1386,9 @@ SkipKeyLoadInit:;
 			do
 			{
 				C = PKZ_MULT(*b++,key2);
-				key0.u = pkzip_crc32 (key0.u, C);
+				key0.u = jtr_crc32 (key0.u, C);
 				key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-				key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+				key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 			}
 			while(--k);
 
@@ -1406,9 +1406,9 @@ SkipKeyLoadInit:;
 #endif
 
 			// Now, update the key data (with that last byte.
-			key0.u = pkzip_crc32 (key0.u, C);
+			key0.u = jtr_crc32 (key0.u, C);
 			key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-			key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+			key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 
 			// Ok, we now have validated this checksum.  We need to 'do some' extra pkzip validation work.
 			// What we do here, is to decrypt a little data (possibly only 1 byte), and perform a single
@@ -1436,9 +1436,9 @@ SkipKeyLoadInit:;
 					SigChecked = 1;
 					curDecryBuf[0] = C;
 					for (; e < len;) {
-						key0.u = pkzip_crc32 (key0.u, curDecryBuf[e]);
+						key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 						key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-						key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+						key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 						curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 					}
 
@@ -1469,9 +1469,9 @@ SkipKeyLoadInit:;
 				// correct data is u16_1 == (u16_2^0xFFFF)
 				curDecryBuf[0] = C;
 				for (e = 0; e <= 4; ) {
-					key0.u = pkzip_crc32 (key0.u, curDecryBuf[e]);
+					key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 					key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-					key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+					key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 					curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 				}
 				v1 = curDecryBuf[1] | (((u16)curDecryBuf[2])<<8);
@@ -1486,9 +1486,9 @@ SkipKeyLoadInit:;
 						len = salt->H[cur_hash_idx].datlen-12;
 					SigChecked = 1;
 					for (; e < len;) {
-						key0.u = pkzip_crc32 (key0.u, curDecryBuf[e]);
+						key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 						key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-						key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+						key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 						curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 					}
 
@@ -1515,9 +1515,9 @@ SkipKeyLoadInit:;
 #endif
 					// we need 4 bytes, + 2, + 4 at most.
 					for (; e < 10;) {
-						key0.u = pkzip_crc32 (key0.u, curDecryBuf[e]);
+						key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 						key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-						key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+						key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 						curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 					}
 					if (!check_inflate_CODE2(curDecryBuf))
@@ -1536,9 +1536,9 @@ SkipKeyLoadInit:;
 					if (salt->H[cur_hash_idx].datlen-12 < til)
 						til = salt->H[cur_hash_idx].datlen-12;
 					for (; e < til;) {
-						key0.u = pkzip_crc32 (key0.u, curDecryBuf[e]);
+						key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 						key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-						key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+						key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 						curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 					}
 					if (!check_inflate_CODE1(curDecryBuf, til))
@@ -1555,9 +1555,9 @@ SkipKeyLoadInit:;
 				if (salt->H[cur_hash_idx].datlen-12 < til)
 					til = salt->H[cur_hash_idx].datlen-12;
 				for (; e < til;) {
-					key0.u = pkzip_crc32 (key0.u, curDecryBuf[e]);
+					key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 					key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-					key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+					key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 					curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 				}
 				strm.zalloc = Z_NULL; strm.zfree = Z_NULL; strm.opaque = Z_NULL; strm.next_in = Z_NULL;
@@ -1602,9 +1602,9 @@ SkipKeyLoadInit:;
 				u8 inflateBufTmp[1024];
 				if (salt->compLen > 240 && salt->H[cur_hash_idx].datlen >= 200) {
 					for (;e < 200;) {
-						key0.u = pkzip_crc32 (key0.u, curDecryBuf[e]);
+						key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 						key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-						key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+						key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 						curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 					}
 					strm.zalloc = Z_NULL; strm.zfree = Z_NULL; strm.opaque = Z_NULL; strm.next_in = Z_NULL;

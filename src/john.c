@@ -94,6 +94,7 @@ static int john_omp_threads_new;
 #include "dynamic.h"
 #include "fake_salts.h"
 #include "listconf.h"
+#include "crc32.h"
 #if HAVE_MPI
 #include "john-mpi.h"
 #endif
@@ -1616,6 +1617,9 @@ int main(int argc, char **argv)
 		--argc;
 	}
 #endif
+
+	/* put the crc table init here, so that tables are fully setup for any ancillary program */
+	CRC32_Init_tab();
 
 	if (!strcmp(name, "unshadow")) {
 		CPU_detect_or_fallback(argv, 0);

@@ -8,11 +8,7 @@ typedef unsigned char u8;
 typedef          char c8;
 typedef ARCH_WORD_32 u32;
 
-/* crc32 0xdebb20e3 table and supplementary functions.  */
-
-extern const u32 pkz_crc_32_tab[256];
-
-#define pkzip_crc32(crc,byte) (pkz_crc_32_tab[(u8)((crc)^(byte))] ^ ((crc) >> 8))
+#include "crc32.h"
 
 u32 fget32LE(FILE * fp);
 u16 fget16LE(FILE * fp);

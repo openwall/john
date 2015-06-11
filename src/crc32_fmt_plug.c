@@ -37,7 +37,7 @@ john_register_one(&fmt_crc32);
 
 #include "common.h"
 #include "formats.h"
-#include "pkzip.h"  // includes the 'inline' crc table.
+#include "crc32.h"
 #include "loader.h"
 
 #ifdef _OPENMP
@@ -46,18 +46,15 @@ john_register_one(&fmt_crc32);
 #define OMP_SCALE       256	// tuned on core i7
 #endif
 #endif
-#if __SSE4_2__
-#include <nmmintrin.h>
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"CRC32"
 #define FORMAT_LABELc			"crc32c"
 #define FORMAT_NAME			""
 #if __SSE4_2__
-#define ALGORITHM_NAME			"CRC32 32/" ARCH_BITS_STR " CRC-32C SSE4.2"
+#define ALGORITHM_NAME			"CRC32 32/" ARCH_BITS_STR " CRC-32C " CRC32_C_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME			"CRC32 32/" ARCH_BITS_STR " CRC-32C 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"CRC32 32/" ARCH_BITS_STR " CRC-32C " CRC32_C_ALGORITHM_NAME
 #endif
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -88,36 +85,8 @@ static struct fmt_tests tests[] = {
 
 static struct fmt_main *pFmt;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crcs);
-static ARCH_WORD_32 crcsalt;
-
-/* Copied from Solar's crc32.[hc] that does standard CRC-32 */
-typedef ARCH_WORD_32 CRC32C_t;
-
-#define POLY 0x82F63B78 // CRC-32C
-//#define POLY 0xEDB88320 // normal CRC-32
-#define ALL1 0xFFFFFFFF
-
-static CRC32C_t table[256];
-
-static void CRC32C_tab_Init()
-{
-	unsigned int index, bit;
-	CRC32C_t entry;
-
-	for (index = 0; index < 0x100; index++) {
-		entry = index;
-
-		for (bit = 0; bit < 8; bit++)
-		if (entry & 1) {
-			entry >>= 1;
-			entry ^= POLY;
-		} else
-			entry >>= 1;
-
-		table[index] = entry;
-	}
-}
+static CRC32_t (*crcs);
+static CRC32_t crcsalt;
 
 static void init(struct fmt_main *self)
 {
@@ -135,7 +104,7 @@ static void init(struct fmt_main *self)
 	crcs      = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crcs));
 
-	CRC32C_tab_Init();
+	CRC32_Init_tab();
 	pFmt = self;
 }
 
@@ -245,10 +214,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for private(i)
 #endif
 	for (i = 0; i < count; ++i) {
-		ARCH_WORD_32 crc = crcsalt;
+		CRC32_t crc = crcsalt;
 		unsigned char *p = (unsigned char*)saved_key[i];
 		while (*p)
-			crc = pkzip_crc32(crc, *p++);
+			crc = jtr_crc32(crc, *p++);
 		//crcs[i] = ~crc;
 		crcs[i] = crc;
 	}
@@ -263,15 +232,10 @@ static int crypt_allc(int *pcount, struct db_salt *salt)
 #pragma omp parallel for private(i)
 #endif
 	for (i = 0; i < count; ++i) {
-		CRC32C_t crc = (CRC32C_t)crcsalt;
+		CRC32_t crc = crcsalt;
 		unsigned char *p = (unsigned char*)saved_key[i];
-#if __SSE4_2__
 		while (*p)
-			crc = _mm_crc32_u8(crc, *p++);
-#else
-		while (*p)
-			crc = table[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
-#endif
+			crc = jtr_crc32c(crc, *p++);
 		crcs[i] = crc;
 		//printf("In: '%s' Out: %08x\n", saved_key[i], ~crc);
 	}

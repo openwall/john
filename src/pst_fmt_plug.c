@@ -21,7 +21,7 @@ john_register_one(&fmt_pst);
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
-#include "pkzip.h"  // includes the 'inline' crc table.
+#include "crc32.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef __MIC__
@@ -129,10 +129,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for private(i)
 #endif
 	for (i = 0; i < count; ++i) {
-		ARCH_WORD_32 crc = 0;
+		CRC32_t crc = 0;
 		unsigned char *p = (unsigned char*)saved_key[i];
 		while (*p)
-			crc = pkzip_crc32(crc, *p++);
+			crc = jtr_crc32(crc, *p++);
 		crypt_out[i] = crc;
 	}
 	return count;

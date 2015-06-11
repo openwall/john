@@ -39,4 +39,38 @@ extern void CRC32_Update(CRC32_t *value, void *data, unsigned int size);
  */
 extern void CRC32_Final(unsigned char *out, CRC32_t value);
 
+/*
+ * initialze the table function.  (Jumbo function)
+ */
+
+void CRC32_Init_tab();
+
+/*
+ * This is the data, so our macro can access it also. (jumbo only)
+ */
+extern CRC32_t JTR_CRC32_table[256];
+extern CRC32_t JTR_CRC32_tableC[256];
+
+/*
+ * This is the data, so our macro can access it also. (jumbo only)
+ */
+#define jtr_crc32(crc,byte) (JTR_CRC32_table[(unsigned char)((crc)^(byte))] ^ ((crc) >> 8))
+
+/*
+ * Function and macro for CRC-32C polynomial. (jumbo only)
+ * If using the function, then use the CRC32_Init() and CRC32_Update() function.
+ * just make sure to use either the CRC32_UpdateC() function or the jtr_crc32c() macro.
+ */
+extern void CRC32_UpdateC(CRC32_t *value, void *data, unsigned int size);
+#if __SSE4_2__
+#include <nmmintrin.h>
+#define jtr_crc32c(crc,byte) (_mm_crc32_u8(crc, byte))
+#define CRC32_C_ALGORITHM_NAME			"SSE4.2"
+#else
+#define jtr_crc32c(crc,byte) (JTR_CRC32_tableC[(unsigned char)((crc)^(byte))] ^ ((crc) >> 8))
+#define CRC32_C_ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#endif
+
+
+
 #endif
