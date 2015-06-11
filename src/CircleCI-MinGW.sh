@@ -55,4 +55,4 @@ zip -r /JohnTheRipper/JtR-MinGW.zip run/ doc/ README.md README README-jumbo
 
 # crazy testing!
 cd /JohnTheRipper/run
-/usr/bin/wine john.exe --test
+/usr/bin/wine john.exe --test=0
