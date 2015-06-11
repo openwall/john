@@ -49,13 +49,8 @@ john_register_one(&fmt_crc32);
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"CRC32"
-#define FORMAT_LABELc			"crc32c"
 #define FORMAT_NAME			""
-#if __SSE4_2__
 #define ALGORITHM_NAME			"CRC32 32/" ARCH_BITS_STR " CRC-32C " CRC32_C_ALGORITHM_NAME
-#else
-#define ALGORITHM_NAME			"CRC32 32/" ARCH_BITS_STR " CRC-32C " CRC32_C_ALGORITHM_NAME
-#endif
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
@@ -104,7 +99,6 @@ static void init(struct fmt_main *self)
 	crcs      = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crcs));
 
-	CRC32_Init_tab();
 	pFmt = self;
 }
 
@@ -218,7 +212,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char *p = (unsigned char*)saved_key[i];
 		while (*p)
 			crc = jtr_crc32(crc, *p++);
-		//crcs[i] = ~crc;
 		crcs[i] = crc;
 	}
 	return count;
