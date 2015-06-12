@@ -197,7 +197,7 @@ static void done(void)
 
 static void init_kernel(unsigned int num_ld_hashes)
 {
-	static char build_opts[128];
+	char build_opts[128];
 
 	clReleaseKernel(crypt_kernel);
 	sprintf(build_opts, "-D NUM_LOADED_HASHES=%u -D NUM_INT_KEYS=%u", num_ld_hashes, mask_int_cand.num_int_cand);
