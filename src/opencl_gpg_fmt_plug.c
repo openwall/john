@@ -463,7 +463,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!ishex(p))
 		goto err;
 	/* handle "SPEC_SIMPLE" correctly */
-	if (spec == 0) {
+	if ((spec != 0 || usage == 255))
+		;
+	else if (spec == 0) {
 		MEM_FREE(keeptr);
 		return 1;
 	}
