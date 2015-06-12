@@ -534,17 +534,24 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
-	if (buffer_loaded_hashes)
+	if (buffer_loaded_hashes) {
 		ret_code = clReleaseMemObject(buffer_loaded_hashes);
 		HANDLE_CLERROR(ret_code, "Error Releasing buffer_loaded_hashes");
+		buffer_loaded_hashes = NULL;
+	}
 
-	if (buffer_hash_ids)
+
+	if (buffer_hash_ids) {
 		ret_code = clReleaseMemObject(buffer_hash_ids);
 		HANDLE_CLERROR(ret_code, "Error Releasing buffer_hash_ids");
+		buffer_hash_ids = NULL;
+	}
 
-	if (buffer_bitmap)
+	if (buffer_bitmap) {
 		ret_code = clReleaseMemObject(buffer_bitmap);
 		HANDLE_CLERROR(ret_code, "Error Releasing buffer_bitmap");
+		buffer_bitmap = NULL;
+	}
 
 	if (loaded_hashes)
 		MEM_FREE(loaded_hashes);
