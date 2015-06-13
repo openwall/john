@@ -483,18 +483,18 @@ def pcap_parser_ntp(fname):
                 continue
             h = data
 
-            if length == 16:  # MD5 hash
+            if length == 16:  # md5($p.$s)
                 sys.stdout.write("%s:$dynamic_1016$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
-            elif length == 20:  # SHA1
-                print "SHA-1 support is missing currently!"
-            elif length == 28:
-                print "SHA-224 support is missing currently!"
-            elif length == 32:
-                print "SHA-256 support is missing currently!"
+            elif length == 20:  # sha1($p.$s)
+                sys.stdout.write("%s:$dynamic_1700$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+            elif length == 28:  # sha224($p.$s)
+                sys.stdout.write("%s:$dynamic_1701$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+            elif length == 32:  # sha256($p.$s)
+                sys.stdout.write("%s:$dynamic_1702$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
             elif length == 48:
-                print "SHA-384 support is missing currently!"
+                sys.stdout.write("%s:$dynamic_1703$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
             elif length == 64:
-                print "SHA-512 support is missing currently!"
+                sys.stdout.write("%s:$dynamic_1704$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
             else:
                 print "Unsupported hash of length %s found!" % len(data)
 
