@@ -25,10 +25,11 @@ typedef struct {
 	int num_int_cand;
 } mask_int_cand_ctx;
 
-extern void mask_calc_combination(cpu_mask_context *);
+extern void mask_calc_combination(cpu_mask_context *, int);
 extern int *mask_skip_ranges;
 extern int mask_max_skip_loc;
 extern int mask_int_cand_target;
+extern int is_static_gpu_mask;
 extern mask_int_cand_ctx mask_int_cand;
 
 #endif

@@ -132,23 +132,18 @@ inline void cmp(uint gid,
 	}
 }*/
 
-inline void cmp(uint gid,
+inline void cmp_final(uint gid,
 		uint iter,
 		__private uint *hash,
-		__global uint *hash_table_0,
-		__global uint *hash_table_1,
 		__global uint *offset_table,
+		__global uint *hash_table,
 		__global uint *return_hashes,
 		volatile __global uint *output,
-		volatile __global uint *bitmap) {
+		volatile __global uint *bitmap_dupe) {
+
 	uint t, offset_table_index, hash_table_index;
 	unsigned long LO, HI;
 	unsigned long p;
-
-	hash[0] += 0x67452301;
-	hash[1] += 0xefcdab89;
-	hash[2] += 0x98badcfe;
-	hash[3] += 0x10325476;
 
 	HI = ((unsigned long)hash[3] << 32) | (unsigned long)hash[2];
 	LO = ((unsigned long)hash[1] << 32) | (unsigned long)hash[0];
@@ -166,12 +161,13 @@ inline void cmp(uint gid,
 	p %= HASH_TABLE_SIZE;
 	hash_table_index = (unsigned int)p;
 
-	if (hash_table_0[hash_table_index] == hash[0])
-	if (hash_table_1[hash_table_index] == hash[1])	{
+	if (hash_table[hash_table_index] == hash[0])
+	if (hash_table[HASH_TABLE_SIZE + hash_table_index] == hash[1])
+	{
 /*
  * Prevent duplicate keys from cracking same hash
  */
-		if (!(atomic_or(&bitmap[hash_table_index/32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
+		if (!(atomic_or(&bitmap_dupe[hash_table_index/32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
 			t = atomic_inc(&output[0]);
 			output[1 + 3 * t] = gid;
 			output[2 + 3 * t] = iter;
@@ -183,6 +179,35 @@ inline void cmp(uint gid,
 	}
 }
 
+inline void cmp(uint gid,
+		uint iter,
+		__private uint *hash,
+		__local uint *bitmaps,
+		__global uint *offset_table,
+		__global uint *hash_table,
+		__global uint *return_hashes,
+		volatile __global uint *output,
+		volatile __global uint *bitmap_dupe) {
+	uint bitmap_index, tmp;
+
+	hash[0] += 0x67452301;
+	hash[1] += 0xefcdab89;
+	hash[2] += 0x98badcfe;
+	hash[3] += 0x10325476;
+
+	bitmap_index = hash[0] & (BITMAP_SIZE_BITS - 1);
+	tmp = (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[1] & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[2] & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 4) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[3] & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 3 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+
+	if (tmp)
+		cmp_final(gid, iter, hash, offset_table, hash_table, return_hashes, output, bitmap_dupe);
+}
+
 /* some constants used below are passed with -D */
 //#define KEY_LENGTH (MD4_PLAINTEXT_LENGTH + 1)
 
@@ -192,30 +217,64 @@ inline void cmp(uint gid,
 __kernel void md4(__global uint *keys,
 		  __global uint *index,
 		  __global uint *int_key_loc,
-		  __global uint *int_keys,
+		  constant uint *int_keys
+#if gpu_amd(DEVICE_INFO)
+		__attribute__((max_constant_size (NUM_INT_KEYS * 4)))
+#endif
+		 , __global uint *bitmaps,
 		  __global uint *offset_table,
-		  __global uint *hash_table_0,
-		  __global uint *hash_table_1,
+		  __global uint *hash_table,
 		  __global uint *return_hashes,
 		  volatile __global uint *out_hash_ids,
-		  volatile __global uint *bitmap)
+		  volatile __global uint *bitmap_dupe)
 {
-	uint gid = get_global_id(0);
-	uint W[16] = { 0 };
 	uint i;
-
+	uint lid = get_local_id(0);
+	uint lws = get_local_size(0);
+	uint gid = get_global_id(0);
 	uint base = index[gid];
+	uint W[16] = { 0 };
 	uint len = base & 63;
-	uint ikl = int_key_loc[gid];
 	uint hash[4];
 
-	if (!gid) {
-		out_hash_ids[0] = 0;
-		for (i = 0; i < (HASH_TABLE_SIZE - 1)/32 + 1; i++)
-			bitmap[i] = 0;
-	}
+#if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
+	uint ikl = int_key_loc[gid];
+	uint loc0 = ikl & 0xff;
+#if 1 < MASK_FMT_INT_PLHDR
+#if LOC_1 >= 0
+	uint loc1 = (ikl & 0xff00) >> 8;
+#endif
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+#if LOC_2 >= 0
+	uint loc2 = (ikl & 0xff0000) >> 16;
+#endif
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+#if LOC_3 >= 0
+	uint loc3 = (ikl & 0xff000000) >> 24;
+#endif
+#endif
+#endif
 
-	barrier(CLK_GLOBAL_MEM_FENCE);
+#if !IS_STATIC_GPU_MASK
+#define GPU_LOC_0 loc0
+#define GPU_LOC_1 loc1
+#define GPU_LOC_2 loc2
+#define GPU_LOC_3 loc3
+#else
+#define GPU_LOC_0 LOC_0
+#define GPU_LOC_1 LOC_1
+#define GPU_LOC_2 LOC_2
+#define GPU_LOC_3 LOC_3
+#endif
+
+	uint __local s_bitmaps[(BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS];
+
+	for(i = 0; i < (((BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS) / lws); i++)
+		s_bitmaps[i*lws + lid] = bitmaps[i*lws + lid];
+
+	barrier(CLK_LOCAL_MEM_FENCE);
 
 	keys += base >> 6;
 
@@ -223,18 +282,25 @@ __kernel void md4(__global uint *keys,
 		W[i] = *keys++;
 
 	for (i = 0; i < NUM_INT_KEYS; i++) {
-
-		if (NUM_INT_KEYS > 1) {
-			PUTCHAR(W, (ikl & 0xff), (int_keys[i] & 0xff));
-			if ((1 < MASK_FMT_INT_PLHDR) && (ikl & 0xff00) != 0x8000)
-				PUTCHAR(W, ((ikl & 0xff00) >> 8), ((int_keys[i] & 0xff00) >> 8));
-			if ((2 < MASK_FMT_INT_PLHDR) && (ikl & 0xff0000) != 0x800000)
-				PUTCHAR(W, ((ikl & 0xff0000) >> 16), ((int_keys[i] & 0xff0000) >> 16));
-			if ((3 < MASK_FMT_INT_PLHDR) && (ikl & 0xff000000) != 0x80000000)
-				PUTCHAR(W, ((ikl & 0xff000000) >> 24), ((int_keys[i] & 0xff000000) >> 24));
-		}
-
+#if NUM_INT_KEYS > 1
+		PUTCHAR(W, GPU_LOC_0, (int_keys[i] & 0xff));
+#if 1 < MASK_FMT_INT_PLHDR
+#if LOC_1 >= 0
+		PUTCHAR(W, GPU_LOC_1, ((int_keys[i] & 0xff00) >> 8));
+#endif
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+#if LOC_2 >= 0
+		PUTCHAR(W, GPU_LOC_2, ((int_keys[i] & 0xff0000) >> 16));
+#endif
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+#if LOC_3 >= 0
+		PUTCHAR(W, GPU_LOC_3, ((int_keys[i] & 0xff000000) >> 24));
+#endif
+#endif
+#endif
 		md4_encrypt(hash, W, len);
-		cmp(gid, i, hash, hash_table_0, hash_table_1, offset_table, return_hashes, out_hash_ids, bitmap);
+		cmp(gid, i, hash, s_bitmaps, offset_table, hash_table, return_hashes, out_hash_ids, bitmap_dupe);
 	}
 }
