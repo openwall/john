@@ -15,8 +15,17 @@
 #include "mt.h"
 #include "hash_types.h"
 
-#define BITMAP_TEST_OFF
 #define DEBUG
+
+#if _OPENMP > 201105
+#define MAYBE_PARALLEL_FOR _Pragma("omp for")
+#define MAYBE_ATOMIC_WRITE _Pragma("omp atomic write")
+#define MAYBE_ATOMIC_CAPTURE _Pragma("omp atomic capture")
+#else
+#define MAYBE_PARALLEL_FOR _Pragma("omp single")
+#define MAYBE_ATOMIC_WRITE
+#define MAYBE_ATOMIC_CAPTURE
+#endif
 
 typedef struct {
 	/* List of indexes linked to offset_data_idx */
@@ -61,7 +70,6 @@ static void alarm_handler(int sig)
 		fprintf(stderr, "\nProgress is too slow!! trying next table size.\n");
 	}
 }
-
 
 static unsigned int coprime_check(unsigned int m,unsigned int n)
 {
@@ -203,13 +211,13 @@ static void init_tables(unsigned int approx_offset_table_sz, unsigned int approx
 				max_collisions = offset_data[i].collisions;
 	      }
 #pragma omp barrier
-#pragma omp for
+MAYBE_PARALLEL_FOR
 	for (i = 0; i < num_loaded_hashes; i++) {
 		unsigned int iter;
 		offset_data_idx = modulo_op(loaded_hashes + i * binary_size_actual, offset_table_size, shift64_ot_sz, shift128_ot_sz);
-#pragma omp atomic write
+MAYBE_ATOMIC_WRITE
 		offset_data[offset_data_idx].offset_table_idx = offset_data_idx;
-#pragma omp atomic capture
+MAYBE_ATOMIC_CAPTURE
 		iter = offset_data[offset_data_idx].iter++;
 		offset_data[offset_data_idx].hash_location_list[iter] = i;
 	}
