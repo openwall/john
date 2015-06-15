@@ -215,11 +215,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)
 		goto err;
-	if (strlen(p) > SZ)
+	if (strlen(p) > SZ-1)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)
 		goto err;
-	if (strlen(p) > SZ)
+	if (strlen(p) > SZ-1)
 		goto err;
 	if ((p = strtokm(NULL, "*")))
 		goto err;
