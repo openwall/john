@@ -484,17 +484,17 @@ def pcap_parser_ntp(fname):
             h = data
 
             if length == 16:  # md5($p.$s)
-                sys.stdout.write("%s:$dynamic_1016$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+                sys.stdout.write("%s:$dynamic_2001$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
             elif length == 20:  # sha1($p.$s)
-                sys.stdout.write("%s:$dynamic_1700$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+                sys.stdout.write("%s:$dynamic_24$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
             elif length == 28:  # sha224($p.$s)
-                sys.stdout.write("%s:$dynamic_1701$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+                sys.stdout.write("%s:$dynamic_52$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
             elif length == 32:  # sha256($p.$s)
-                sys.stdout.write("%s:$dynamic_1702$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+                sys.stdout.write("%s:$dynamic_62$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
             elif length == 48:
-                sys.stdout.write("%s:$dynamic_1703$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+                sys.stdout.write("%s:$dynamic_72$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
             elif length == 64:
-                sys.stdout.write("%s:$dynamic_1704$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+                sys.stdout.write("%s:$dynamic_82$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
             else:
                 print "Unsupported hash of length %s found!" % len(data)
 
