@@ -99,38 +99,6 @@ inline void md4_encrypt(__private uint *hash, __private uint *W, uint len)
 	STEP(H, hash[2], hash[3], hash[0], hash[1], W[7] + 0x6ed9eba1, 11);
 	STEP(H2, hash[1], hash[2], hash[3], hash[0], W[15] + 0x6ed9eba1, 15);
 }
-/*
-inline void cmp(uint gid,
-		uint iter,
-		uint num_hashes,
-		volatile __global uint *output,
-		__global const uint *loaded_hashes,
-		__private uint *hash,
-		volatile __global uint *bitmap) {
-	uint t, j;
-
-	hash[0] += 0x67452301;
-	hash[1] += 0xefcdab89;
-	hash[2] += 0x98badcfe;
-	hash[3] += 0x10325476;
-
-	for (j = 0; j < num_hashes; j++) {
-		t = 0;
-
-		t = (loaded_hashes[4 * j] == hash[0]) && (loaded_hashes[4 * j + 1] == hash[1]) &&
-			(loaded_hashes[4 * j + 2] == hash[2]) && (loaded_hashes[4 * j + 3] == hash[3]);
-		if(t) {
- Prevent duplicate keys from cracking same hash */
-/*			if (!(atomic_or(&bitmap[j/32], (1U << (j % 32))) & (1U << (j % 32)))) {
-				t = atomic_inc(&output[0]);
-				output[1 + 3 * t] = gid;
-				output[2 + 3 * t] = iter;
-				output[3 + 3 * t] = j;
-			}
-
-		}
-	}
-}*/
 
 inline void cmp_final(uint gid,
 		uint iter,
@@ -182,27 +150,78 @@ inline void cmp_final(uint gid,
 inline void cmp(uint gid,
 		uint iter,
 		__private uint *hash,
-		__local uint *bitmaps,
+		__global uint *aux_bitmaps,
+#if USE_LOCAL_BITMAPS
+		__local
+#else
+		__global
+#endif
+		uint *bitmaps,
 		__global uint *offset_table,
 		__global uint *hash_table,
 		__global uint *return_hashes,
 		volatile __global uint *output,
 		volatile __global uint *bitmap_dupe) {
-	uint bitmap_index, tmp;
+	uint bitmap_index, tmp = 1;
 
 	hash[0] += 0x67452301;
 	hash[1] += 0xefcdab89;
 	hash[2] += 0x98badcfe;
 	hash[3] += 0x10325476;
 
+#ifdef USE_AUX_BITMAPS
+#if SELECT_AUX_CMP_STEPS > 2
+	bitmap_index = hash[3] & (AUX_BITMAP_SIZE_BITS - 1);
+	tmp &= (aux_bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[2] & (AUX_BITMAP_SIZE_BITS - 1);
+	tmp &= (aux_bitmaps[(AUX_BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[1] & (AUX_BITMAP_SIZE_BITS - 1);
+	tmp &= (aux_bitmaps[(AUX_BITMAP_SIZE_BITS >> 4) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[0] & (AUX_BITMAP_SIZE_BITS - 1);
+	tmp &= (aux_bitmaps[(AUX_BITMAP_SIZE_BITS >> 5) * 3 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+#else
+	bitmap_index = hash[3] & (AUX_BITMAP_SIZE_BITS - 1);
+	tmp &= (aux_bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[2] & (AUX_BITMAP_SIZE_BITS - 1);
+	tmp &= (aux_bitmaps[(AUX_BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+#endif
+#endif
+
+#if SELECT_CMP_STEPS > 4
 	bitmap_index = hash[0] & (BITMAP_SIZE_BITS - 1);
-	tmp = (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[1] & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = (hash[0] >> 16) & (BITMAP_SIZE_BITS - 1);
 	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[2] & (BITMAP_SIZE_BITS - 1);
+	bitmap_index = hash[1] & (BITMAP_SIZE_BITS - 1);
 	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 4) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[3] & (BITMAP_SIZE_BITS - 1);
+	bitmap_index = (hash[1] >> 16) & (BITMAP_SIZE_BITS - 1);
 	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 3 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[2] & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 3) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = (hash[2] >> 16) & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 5 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[3] & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 6 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = (hash[3] >> 16) & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 7 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+#elif SELECT_CMP_STEPS > 2
+	bitmap_index = hash[3] & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[2] & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[1] & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 4) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[0] & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 3 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+#elif SELECT_CMP_STEPS > 1
+	bitmap_index = hash[3] & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[2] & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+#else
+	bitmap_index = hash[0] & (BITMAP_SIZE_BITS - 1);
+	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
+#endif
 
 	if (tmp)
 		cmp_final(gid, iter, hash, offset_table, hash_table, return_hashes, output, bitmap_dupe);
@@ -221,7 +240,8 @@ __kernel void md4(__global uint *keys,
 #if gpu_amd(DEVICE_INFO)
 		__attribute__((max_constant_size (NUM_INT_KEYS * 4)))
 #endif
-		 , __global uint *bitmaps,
+		 , __global uint *aux_bitmaps,
+		  __global uint *bitmaps,
 		  __global uint *offset_table,
 		  __global uint *hash_table,
 		  __global uint *return_hashes,
@@ -269,12 +289,14 @@ __kernel void md4(__global uint *keys,
 #define GPU_LOC_3 LOC_3
 #endif
 
+#if USE_LOCAL_BITMAPS
 	uint __local s_bitmaps[(BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS];
 
 	for(i = 0; i < (((BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS) / lws); i++)
 		s_bitmaps[i*lws + lid] = bitmaps[i*lws + lid];
 
 	barrier(CLK_LOCAL_MEM_FENCE);
+#endif
 
 	keys += base >> 6;
 
@@ -301,6 +323,12 @@ __kernel void md4(__global uint *keys,
 #endif
 #endif
 		md4_encrypt(hash, W, len);
-		cmp(gid, i, hash, s_bitmaps, offset_table, hash_table, return_hashes, out_hash_ids, bitmap_dupe);
+		cmp(gid, i, hash, aux_bitmaps,
+#if USE_LOCAL_BITMAPS
+		    s_bitmaps
+#else
+		    bitmaps
+#endif
+		    , offset_table, hash_table, return_hashes, out_hash_ids, bitmap_dupe);
 	}
 }
