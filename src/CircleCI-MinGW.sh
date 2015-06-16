@@ -38,14 +38,11 @@ find $basepath | grep "dll$"
 
 cp "$basepath/libwinpthread-1.dll" ../run
 cp "$basepath/zlib1.dll" ../run
-cp "$basepath/libgomp-10.dll" ../run
 cp "$basepath/libgmp-10.dll" ../run
 cp "$basepath/libssl-10.dll" ../run
 cp "$basepath/libcrypto-10.dll" ../run
 cp "$basepath/libgomp-1.dll" ../run
 cp "$basepath/libgcc_s_seh-1.dll" ../run
-cp "$HOME/mingw64/ssleay32.dll" ../run
-cp "$HOME/mingw64/libeay32.dll" ../run
 
 find ../run
 
