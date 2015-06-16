@@ -139,6 +139,20 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &max_alloc_size_bytes, 0), "failed to get CL_DEVICE_MAX_MEM_ALLOC_SIZE");
 	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong), &cache_size_bytes, 0), "failed to get CL_DEVICE_GLOBAL_MEM_CACHE_SIZE");
 
+	if (max_alloc_size_bytes & (max_alloc_size_bytes - 1)) {
+		max_alloc_size_bytes--;
+		max_alloc_size_bytes |= max_alloc_size_bytes >> 1;
+		max_alloc_size_bytes |= max_alloc_size_bytes >> 2;
+		max_alloc_size_bytes |= max_alloc_size_bytes >> 4;
+		max_alloc_size_bytes |= max_alloc_size_bytes >> 8;
+		max_alloc_size_bytes |= max_alloc_size_bytes >> 16;
+		max_alloc_size_bytes |= max_alloc_size_bytes >> 32;
+		max_alloc_size_bytes++;
+		max_alloc_size_bytes >>= 1;
+	}
+	max_alloc_size_bytes >>= 1;
+	assert(!(max_alloc_size_bytes & (max_alloc_size_bytes - 1)));
+
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys");
 	saved_plain = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, BUFSIZE * kpc, 0, NULL, NULL, &ret_code);
@@ -208,7 +222,8 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(buffer_offset_table), "Error Releasing buffer_offset_table");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_hash_table), "Error Releasing buffer_hash_table");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Error Releasing buffer_bitmap_dupe");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_bitmaps), "Error Releasing buffer_bitmap_dupe");
+	HANDLE_CLERROR(clReleaseMemObject(buffer_bitmaps), "Error Releasing buffer_bitmap");
+	HANDLE_CLERROR(clReleaseMemObject(buffer_aux_bitmaps), "Error Releasing buffer_aux_bitmap");
 
 	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_idx), "Error Releasing pinned_saved_idx");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys");
@@ -428,10 +443,10 @@ static void prepare_table(struct db_salt *salt) {
 		bin = (unsigned int *)pw -> binary;
 		// Potential segfault if removed
 		if(bin != NULL) {
-			loaded_hashes[4*i] = bin[0];
-			loaded_hashes[4*i + 1] = bin[1];
-			loaded_hashes[4*i + 2] = bin[2];
-			loaded_hashes[4*i + 3] = bin[3];
+			loaded_hashes[4 * i] = bin[0];
+			loaded_hashes[4 * i + 1] = bin[1];
+			loaded_hashes[4 * i + 2] = bin[2];
+			loaded_hashes[4 * i + 3] = bin[3];
 			i++ ;
 		}
 	} while ((pw = pw -> next)) ;
@@ -647,9 +662,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueWriteBuffer buffer_int_key_loc");
 
-	HANDLE_CLERROR(clEnqueueFillBuffer(queue[gpu_id], buffer_hash_ids, &zero, sizeof(cl_uint), 0, sizeof(cl_uint), 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueFillBuffer buffer_hash_ids");
-
-	HANDLE_CLERROR(clEnqueueFillBuffer(queue[gpu_id], buffer_bitmap_dupe, &zero, sizeof(cl_uint), 0, sizeof(cl_uint) * ((hash_table_size - 1)/32 + 1), 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueFillBuffer buffer_bitmap_dupe");
+	if (get_device_version(gpu_id) >= 120) {
+		HANDLE_CLERROR(clEnqueueFillBuffer(queue[gpu_id], buffer_hash_ids, &zero, sizeof(cl_uint), 0, sizeof(cl_uint), 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueFillBuffer buffer_hash_ids");
+		HANDLE_CLERROR(clEnqueueFillBuffer(queue[gpu_id], buffer_bitmap_dupe, &zero, sizeof(cl_uint), 0, sizeof(cl_uint) * (hash_table_size/32 + 1), 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueFillBuffer buffer_bitmap_dupe");
+	}
 
 	if (salt != NULL && salt->count > 100 && (num_loaded_hashes - num_loaded_hashes / 10) > salt->count) {
 		size_t old_ot_sz_bytes, old_ht_sz_bytes;
