@@ -150,7 +150,6 @@ inline void cmp_final(uint gid,
 inline void cmp(uint gid,
 		uint iter,
 		__private uint *hash,
-		__global uint *aux_bitmaps,
 #if USE_LOCAL_BITMAPS
 		__local
 #else
@@ -168,24 +167,6 @@ inline void cmp(uint gid,
 	hash[1] += 0xefcdab89;
 	hash[2] += 0x98badcfe;
 	hash[3] += 0x10325476;
-
-#ifdef USE_AUX_BITMAPS
-#if SELECT_AUX_CMP_STEPS > 2
-	bitmap_index = hash[3] & (AUX_BITMAP_SIZE_BITS - 1);
-	tmp &= (aux_bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[2] & (AUX_BITMAP_SIZE_BITS - 1);
-	tmp &= (aux_bitmaps[(AUX_BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[1] & (AUX_BITMAP_SIZE_BITS - 1);
-	tmp &= (aux_bitmaps[(AUX_BITMAP_SIZE_BITS >> 4) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[0] & (AUX_BITMAP_SIZE_BITS - 1);
-	tmp &= (aux_bitmaps[(AUX_BITMAP_SIZE_BITS >> 5) * 3 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-#else
-	bitmap_index = hash[3] & (AUX_BITMAP_SIZE_BITS - 1);
-	tmp &= (aux_bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[2] & (AUX_BITMAP_SIZE_BITS - 1);
-	tmp &= (aux_bitmaps[(AUX_BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-#endif
-#endif
 
 #if SELECT_CMP_STEPS > 4
 	bitmap_index = hash[0] & (BITMAP_SIZE_BITS - 1);
@@ -219,7 +200,7 @@ inline void cmp(uint gid,
 	bitmap_index = hash[2] & (BITMAP_SIZE_BITS - 1);
 	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
 #else
-	bitmap_index = hash[0] & (BITMAP_SIZE_BITS - 1);
+	bitmap_index = hash[3] & BITMAP_SIZE_BITS_MINUS_ONE;
 	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
 #endif
 
@@ -240,8 +221,7 @@ __kernel void md4(__global uint *keys,
 #if gpu_amd(DEVICE_INFO)
 		__attribute__((max_constant_size (NUM_INT_KEYS * 4)))
 #endif
-		 , __global uint *aux_bitmaps,
-		  __global uint *bitmaps,
+		 , __global uint *bitmaps,
 		  __global uint *offset_table,
 		  __global uint *hash_table,
 		  __global uint *return_hashes,
@@ -332,7 +312,7 @@ __kernel void md4(__global uint *keys,
 #endif
 #endif
 		md4_encrypt(hash, W, len);
-		cmp(gid, i, hash, aux_bitmaps,
+		cmp(gid, i, hash,
 #if USE_LOCAL_BITMAPS
 		    s_bitmaps
 #else

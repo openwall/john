@@ -12,6 +12,8 @@
 #include <sys/time.h>
 #include <signal.h>
 #include <unistd.h>
+#include "misc.h"
+#include "memory.h"
 #include "mt.h"
 #include "hash_types.h"
 
@@ -85,8 +87,9 @@ static unsigned int coprime_check(unsigned int m,unsigned int n)
 static void release_all_lists()
 {
 	unsigned int i;
-	for (i = 0; i < offset_table_size; i++)
-		free(offset_data[i].hash_location_list);
+	for (i = 0; i < offset_table_size; i++) {
+		MEM_FREE(offset_data[i].hash_location_list);
+	}
 }
 
 static unsigned int modulo_op(void * hash, unsigned int N, uint64_t shift64, uint64_t shift128)
@@ -103,9 +106,9 @@ static unsigned int modulo_op(void * hash, unsigned int N, uint64_t shift64, uin
 /* Exploits the fact that sorting with a bucket is not essential. */
 static void in_place_bucket_sort(unsigned int num_buckets)
 {
-	unsigned int *histogram = (unsigned int*) malloc((num_buckets + 1) * sizeof(unsigned int));
-	unsigned int *histogram_empty = (unsigned int*) malloc((num_buckets + 1) * sizeof(unsigned int));
-	unsigned int *prefix_sum = (unsigned int*) malloc((num_buckets + 10) * sizeof(unsigned int));
+	unsigned int *histogram = (unsigned int*) mem_alloc((num_buckets + 1) * sizeof(unsigned int));
+	unsigned int *histogram_empty = (unsigned int*) mem_alloc((num_buckets + 1) * sizeof(unsigned int));
+	unsigned int *prefix_sum = (unsigned int*) mem_alloc((num_buckets + 10) * sizeof(unsigned int));
 	unsigned int i;
 
 	memset(histogram, 0, (num_buckets + 1) * sizeof(unsigned int));
@@ -138,9 +141,9 @@ static void in_place_bucket_sort(unsigned int num_buckets)
 		}
 	}
 
-	free(histogram);
-	free(histogram_empty);
-	free(prefix_sum);
+	MEM_FREE(histogram);
+	MEM_FREE(histogram_empty);
+	MEM_FREE(prefix_sum);
 }
 
 static void init_tables(unsigned int approx_offset_table_sz, unsigned int approx_hash_table_sz)
@@ -163,7 +166,7 @@ static void init_tables(unsigned int approx_offset_table_sz, unsigned int approx
 
 	if (hash_table_size > 0x7fffffff || offset_table_size > 0x7fffffff) {
 		fprintf(stderr, "Reduce the number of loaded hashes to < 0x7fffffff.\n");
-		exit(0);
+		error();
 	}
 
 	shift64_ht_sz = (((1ULL << 63) % hash_table_size) * 2) % hash_table_size;
@@ -175,10 +178,10 @@ static void init_tables(unsigned int approx_offset_table_sz, unsigned int approx
 	shift128 = (uint64_t)shift64_ot_sz * shift64_ot_sz;
 	shift128_ot_sz = shift128 % offset_table_size;
 
-	offset_table = (OFFSET_TABLE_WORD *) malloc(offset_table_size * sizeof(OFFSET_TABLE_WORD));
+	offset_table = (OFFSET_TABLE_WORD *) mem_alloc(offset_table_size * sizeof(OFFSET_TABLE_WORD));
 	total_memory_in_bytes += offset_table_size * sizeof(OFFSET_TABLE_WORD);
 
-	offset_data = (auxilliary_offset_data *) malloc(offset_table_size * sizeof(auxilliary_offset_data));
+	offset_data = (auxilliary_offset_data *) mem_alloc(offset_table_size * sizeof(auxilliary_offset_data));
 	total_memory_in_bytes += offset_table_size * sizeof(auxilliary_offset_data);
 
 	max_collisions = 0;
@@ -206,7 +209,7 @@ static void init_tables(unsigned int approx_offset_table_sz, unsigned int approx
 #pragma omp single
 	for (i = 0; i < offset_table_size; i++)
 	      if (offset_data[i].collisions) {
-			offset_data[i].hash_location_list = (unsigned int*) malloc(offset_data[i].collisions * sizeof(unsigned int));
+			offset_data[i].hash_location_list = (unsigned int*) mem_alloc(offset_data[i].collisions * sizeof(unsigned int));
 			if (offset_data[i].collisions > max_collisions)
 				max_collisions = offset_data[i].collisions;
 	      }
@@ -288,9 +291,9 @@ static unsigned int create_tables()
 	unsigned int bitmap = ((1ULL << (sizeof(OFFSET_TABLE_WORD) * 8)) - 1) & 0xFFFFFFFF;
 	unsigned int limit = bitmap % hash_table_size + 1;
 
-	unsigned int hash_table_idx, *store_hash_modulo_table_sz = (unsigned int *) malloc(offset_data[0].collisions * sizeof(unsigned int));
+	unsigned int hash_table_idx, *store_hash_modulo_table_sz = (unsigned int *) mem_alloc(offset_data[0].collisions * sizeof(unsigned int));
 	OFFSET_TABLE_WORD last_offset;
-	unsigned int *hash_table_idxs = (unsigned int*) malloc(offset_data[0].collisions * sizeof(unsigned int));
+	unsigned int *hash_table_idxs = (unsigned int*) mem_alloc(offset_data[0].collisions * sizeof(unsigned int));
 
 	unsigned int trigger;
 	long double done = 0;
@@ -406,8 +409,8 @@ static unsigned int create_tables()
 		i++;
 	}
 
-	free(hash_table_idxs);
-	free(store_hash_modulo_table_sz);
+	MEM_FREE(hash_table_idxs);
+	MEM_FREE(store_hash_modulo_table_sz);
 
 	return 1;
 }
@@ -523,17 +526,17 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 
 	if (sigaction(SIGALRM, NULL, &old_action) < 0) {
 		fprintf(stderr, "Error retriving signal info.\n");
-		exit(0);
+		error();
 	}
 
 	if (sigaction(SIGALRM, &new_action, NULL) < 0) {
 		fprintf(stderr, "Error setting new signal handler.\n");
-		exit(0);
+		error();
 	}
 
 	if (setitimer(ITIMER_REAL, NULL, &old_it) < 0){
 		fprintf(stderr, "Error retriving timer info.\n");
-		exit(0);
+		error();
 	}
 
 	inc_ht = 0.005;
@@ -582,7 +585,7 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 	num_loaded_hashes = remove_duplicates(num_ld_hashes, dupe_remove_ht_sz, verbosity);
 	if (!num_loaded_hashes) {
 		fprintf(stderr, "Failed to remove duplicates\n");
-		exit(0);
+		error();
 	}
 
 	multiplier_ht = 1.001097317;
@@ -604,12 +607,14 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 		if (verbosity > 0)
 			fprintf(stdout, "\n");
 		release_all_lists();
-		free(offset_data);
-		free(offset_table);
-		if (hash_type == 128)
-			free(hash_table_128);
-		else if (hash_type == 192)
-			free(hash_table_192);
+		MEM_FREE(offset_data);
+		MEM_FREE(offset_table);
+		if (hash_type == 128) {
+			MEM_FREE(hash_table_128);
+		}
+		else if (hash_type == 192) {
+			MEM_FREE(hash_table_192);
+		}
 
 		temp = next_prime(approx_offset_table_sz % 10);
 		approx_offset_table_sz /= 10;
@@ -628,7 +633,7 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 	} while(1);
 
 	release_all_lists();
-	free(offset_data);
+	MEM_FREE(offset_data);
 
 	*offset_table_ptr = offset_table;
 	*hash_table_sz_ptr = hash_table_size;
@@ -636,12 +641,12 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 
 	if (sigaction(SIGALRM, &old_action, NULL) < 0) {
 		fprintf(stderr, "Error restoring previous signal handler.\n");
-		exit(0);
+		error();
 	}
 
 	if (setitimer(ITIMER_REAL, &old_it, NULL) < 0){
 		fprintf(stderr, "Error restoring previous timer.\n");
-		exit(0);
+		error();
 	}
 
 	if (!test_tables(num_loaded_hashes, offset_table, offset_table_size, shift64_ot_sz, shift128_ot_sz, verbosity))
