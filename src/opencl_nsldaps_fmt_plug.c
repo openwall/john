@@ -175,26 +175,28 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 }
 
 static void release_clobj(void){
-    HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes,
-                                           outbuffer, 0,NULL,NULL),
-                   "Error Unmapping outbuffer");
-    HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys,
-                                           saved_plain, 0, NULL, NULL),
-                   "Error Unmapping saved_plain");
-    HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
+	if (outbuffer2) {
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes,
+		                                       outbuffer, 0,NULL,NULL),
+		               "Error Unmapping outbuffer");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys,
+		                                       saved_plain, 0, NULL, NULL),
+		               "Error Unmapping saved_plain");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-    HANDLE_CLERROR(clReleaseMemObject(buffer_keys),
-                   "Error Releasing buffer_keys");
-    HANDLE_CLERROR(clReleaseMemObject(buffer_out),
-                   "Error Releasing buffer_out");
-    HANDLE_CLERROR(clReleaseMemObject(mysalt),
-                   "Error Releasing mysalt");
-    HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys),
-                   "Error Releasing pinned_saved_keys");
-    HANDLE_CLERROR(clReleaseMemObject(pinned_partial_hashes),
-                   "Error Releasing pinned_partial_hashes");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_keys),
+		               "Error Releasing buffer_keys");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_out),
+		               "Error Releasing buffer_out");
+		HANDLE_CLERROR(clReleaseMemObject(mysalt),
+		               "Error Releasing mysalt");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys),
+		               "Error Releasing pinned_saved_keys");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_partial_hashes),
+		               "Error Releasing pinned_partial_hashes");
 
-    MEM_FREE(outbuffer2);
+		MEM_FREE(outbuffer2);
+	}
 }
 
 static void done(void)

@@ -195,23 +195,25 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, key, 0, NULL, NULL), "Error Unmapping key");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
+	if (crypt_key) {
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, key, 0, NULL, NULL), "Error Unmapping key");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-	HANDLE_CLERROR(clReleaseMemObject(pinned_key), "Release GPU buffer");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_key), "Release GPU buffer");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_len), "Release GPU buffer");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_salt), "Release GPU buffer");
-	HANDLE_CLERROR(clReleaseMemObject(cl_key), "Release GPU buffer");
-	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release GPU buffer");
-	HANDLE_CLERROR(clReleaseMemObject(cl_saved_len), "Release GPU buffer");
-	HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release GPU buffer");
-	HANDLE_CLERROR(clReleaseMemObject(cl_pwhash), "Release GPU buffer");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_key), "Release GPU buffer");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_key), "Release GPU buffer");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_len), "Release GPU buffer");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_salt), "Release GPU buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_key), "Release GPU buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release GPU buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_saved_len), "Release GPU buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release GPU buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_pwhash), "Release GPU buffer");
 
-	MEM_FREE(crypt_key);
+		MEM_FREE(crypt_key);
+	}
 }
 
 static void done(void)

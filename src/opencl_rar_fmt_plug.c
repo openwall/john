@@ -419,26 +419,28 @@ static size_t get_default_workgroup()
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_aes_key, aes_key, 0, NULL, NULL), "Error Unmapping aes_key");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_aes_iv, aes_iv, 0, NULL, NULL), "Error Unmapping aes_iv");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
+	if (cracked) {
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_aes_key, aes_key, 0, NULL, NULL), "Error Unmapping aes_key");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_aes_iv, aes_iv, 0, NULL, NULL), "Error Unmapping aes_iv");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-	HANDLE_CLERROR(clReleaseMemObject(cl_aes_key), "Release aes_key");
-	HANDLE_CLERROR(clReleaseMemObject(cl_aes_iv), "Release aes_iv");
-	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release saved_key");
-	HANDLE_CLERROR(clReleaseMemObject(cl_saved_len), "Release saved_len");
-	HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release salt");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_aes_key), "Release aes_key");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_aes_iv), "Release aes_iv");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_key), "Release saved_key");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_len), "Release saved_len");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_salt), "Release salt");
-	HANDLE_CLERROR(clReleaseMemObject(cl_OutputBuf), "Release OutputBuf");
+		HANDLE_CLERROR(clReleaseMemObject(cl_aes_key), "Release aes_key");
+		HANDLE_CLERROR(clReleaseMemObject(cl_aes_iv), "Release aes_iv");
+		HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release saved_key");
+		HANDLE_CLERROR(clReleaseMemObject(cl_saved_len), "Release saved_len");
+		HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release salt");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_aes_key), "Release aes_key");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_aes_iv), "Release aes_iv");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_key), "Release saved_key");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_len), "Release saved_len");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_salt), "Release salt");
+		HANDLE_CLERROR(clReleaseMemObject(cl_OutputBuf), "Release OutputBuf");
 
-	MEM_FREE(cracked);
+		MEM_FREE(cracked);
+	}
 }
 
 static void done(void)

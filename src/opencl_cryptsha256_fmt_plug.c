@@ -167,30 +167,34 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 static void release_clobj(void) {
 	cl_int ret_code;
 
-	ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes,
-			calculated_hash, 0, NULL, NULL);
-	HANDLE_CLERROR(ret_code, "Error Unmapping out_hashes");
+	if (work_buffer) {
+		ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes,
+		                                   calculated_hash, 0, NULL, NULL);
+		HANDLE_CLERROR(ret_code, "Error Unmapping out_hashes");
 
-	ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys,
-			plaintext, 0, NULL, NULL);
-	HANDLE_CLERROR(ret_code, "Error Unmapping saved_plain");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]),
-	               "Error releasing memory mappings");
+		ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys,
+		                                   plaintext, 0, NULL, NULL);
+		HANDLE_CLERROR(ret_code, "Error Unmapping saved_plain");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]),
+		               "Error releasing memory mappings");
 
-	ret_code = clReleaseMemObject(salt_buffer);
-	HANDLE_CLERROR(ret_code, "Error Releasing data_info");
-	ret_code = clReleaseMemObject(pass_buffer);
-	HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
-	ret_code = clReleaseMemObject(hash_buffer);
-	HANDLE_CLERROR(ret_code, "Error Releasing buffer_out");
-	ret_code = clReleaseMemObject(work_buffer);
-	HANDLE_CLERROR(ret_code, "Error Releasing work_out");
+		ret_code = clReleaseMemObject(salt_buffer);
+		HANDLE_CLERROR(ret_code, "Error Releasing data_info");
+		ret_code = clReleaseMemObject(pass_buffer);
+		HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
+		ret_code = clReleaseMemObject(hash_buffer);
+		HANDLE_CLERROR(ret_code, "Error Releasing buffer_out");
+		ret_code = clReleaseMemObject(work_buffer);
+		HANDLE_CLERROR(ret_code, "Error Releasing work_out");
 
-	ret_code = clReleaseMemObject(pinned_saved_keys);
-	HANDLE_CLERROR(ret_code, "Error Releasing pinned_saved_keys");
+		ret_code = clReleaseMemObject(pinned_saved_keys);
+		HANDLE_CLERROR(ret_code, "Error Releasing pinned_saved_keys");
 
-	ret_code = clReleaseMemObject(pinned_partial_hashes);
-	HANDLE_CLERROR(ret_code, "Error Releasing pinned_partial_hashes");
+		ret_code = clReleaseMemObject(pinned_partial_hashes);
+		HANDLE_CLERROR(ret_code, "Error Releasing pinned_partial_hashes");
+
+		work_buffer = NULL;
+	}
 }
 
 /* ------- Salt functions ------- */

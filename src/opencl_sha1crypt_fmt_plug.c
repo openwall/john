@@ -162,13 +162,15 @@ static size_t get_default_workgroup()
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
-	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+	if (host_crack) {
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
+		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
+		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
-	MEM_FREE(inbuffer);
-	MEM_FREE(host_crack);
+		MEM_FREE(inbuffer);
+		MEM_FREE(host_crack);
+	}
 }
 
 static void init(struct fmt_main *_self)

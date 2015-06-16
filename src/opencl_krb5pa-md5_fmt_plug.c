@@ -187,21 +187,25 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_salt, saltblob, 0, NULL, NULL), "Error Unmapping saltblob");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, output, 0, NULL, NULL), "Error Unmapping output");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
+	if (cl_nthash) {
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_salt, saltblob, 0, NULL, NULL), "Error Unmapping saltblob");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, output, 0, NULL, NULL), "Error Unmapping output");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-	HANDLE_CLERROR(clReleaseMemObject(pinned_salt), "Release pinned salt buffer");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_result), "Release pinned result buffer");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_key), "Release pinned key buffer");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_idx), "Release pinned index buffer");
-	HANDLE_CLERROR(clReleaseMemObject(cl_saltblob), "Release salt buffer");
-	HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release result buffer");
-	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release key buffer");
-	HANDLE_CLERROR(clReleaseMemObject(cl_saved_idx), "Release index buffer");
-	HANDLE_CLERROR(clReleaseMemObject(cl_nthash), "Release state buffer");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_salt), "Release pinned salt buffer");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_result), "Release pinned result buffer");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_key), "Release pinned key buffer");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_idx), "Release pinned index buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_saltblob), "Release salt buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release result buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release key buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_saved_idx), "Release index buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_nthash), "Release state buffer");
+
+		cl_nthash = NULL;
+	}
 }
 
 static void done(void)

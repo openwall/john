@@ -159,16 +159,19 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_in, inbuffer, 0, NULL, NULL), "Error Unmapping mem in");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_out, mic, 0, NULL, NULL), "Error Unmapping mem in");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
+	if (mem_state) {
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_in, inbuffer, 0, NULL, NULL), "Error Unmapping mem in");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_out, mic, 0, NULL, NULL), "Error Unmapping mem in");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-	HANDLE_CLERROR(clReleaseMemObject(pinned_in), "Release pinned_in");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_out), "Release pinned_out");
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release pinned_in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem_out");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem_salt");
-	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_in), "Release pinned_in");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_out), "Release pinned_out");
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release pinned_in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem_out");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem_salt");
+		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
+		mem_state = NULL;
+	}
 }
 
 static void done(void)

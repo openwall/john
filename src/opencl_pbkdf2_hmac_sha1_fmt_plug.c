@@ -176,13 +176,15 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem setting");
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+	if (inbuffer) {
+		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
+		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem setting");
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 
-	MEM_FREE(output);
-	MEM_FREE(inbuffer);
+		MEM_FREE(output);
+		MEM_FREE(inbuffer);
+	}
 }
 
 static void done(void)

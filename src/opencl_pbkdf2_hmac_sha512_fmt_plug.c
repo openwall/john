@@ -221,14 +221,16 @@ static void reset(struct db_main *db)
 
 static void release_clobj(void)
 {
-	MEM_FREE(host_pass);
-	MEM_FREE(host_salt);
-	MEM_FREE(host_crack);
+	if (host_pass) {
+		MEM_FREE(host_pass);
+		MEM_FREE(host_salt);
+		MEM_FREE(host_crack);
 
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
+		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
+	}
 }
 
 static void done(void)

@@ -131,13 +131,15 @@ static struct fmt_main *self;
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+	if (host_pass) {
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
+		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
-	MEM_FREE(host_pass);
-	MEM_FREE(host_hash);
-	MEM_FREE(host_salt);
+		MEM_FREE(host_pass);
+		MEM_FREE(host_hash);
+		MEM_FREE(host_salt);
+	}
 }
 
 static void done(void)

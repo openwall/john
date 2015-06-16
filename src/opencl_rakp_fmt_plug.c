@@ -201,14 +201,16 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	MEM_FREE(keys);
-	MEM_FREE(idx);
-	MEM_FREE(digest);
+	if (keys) {
+		HANDLE_CLERROR(clReleaseMemObject(digest_buffer), "Error releasing digest_buffer");
+		HANDLE_CLERROR(clReleaseMemObject(idx_buffer), "Error releasing idx_buffer");
+		HANDLE_CLERROR(clReleaseMemObject(keys_buffer), "Error releasing keys_buffer");
+		HANDLE_CLERROR(clReleaseMemObject(salt_buffer), "Error releasing salt_buffer");
 
-	HANDLE_CLERROR(clReleaseMemObject(salt_buffer), "Error releasing salt_buffer");
-	HANDLE_CLERROR(clReleaseMemObject(keys_buffer), "Error releasing keys_buffer");
-	HANDLE_CLERROR(clReleaseMemObject(idx_buffer), "Error releasing idx_buffer");
-	HANDLE_CLERROR(clReleaseMemObject(digest_buffer), "Error releasing digest_buffer");
+		MEM_FREE(digest);
+		MEM_FREE(idx);
+		MEM_FREE(keys);
+	}
 }
 
 static void done(void)
