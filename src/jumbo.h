@@ -352,9 +352,16 @@ extern int setenv(const char *name, const char *val, int overwrite);
 // Later versions of MSVC can handle %lld but some older
 // ones can only handle %I64d.  Easiest to simply use
 // %I64d then all versions of MSVC will handle it just fine
+// newer version of Mingw-64 from Fedora can NOT handle %I64 any more
+#if __MINGW64__
+#define LLu "%llu"
+#define LLd "%lld"
+#define LLx "%llx"
+#else
 #define LLu "%I64u"
 #define LLd "%I64d"
 #define LLx "%I64x"
+#endif
 #define Zu  "%u"
 #else
 #define LLu "%llu"
