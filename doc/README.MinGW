@@ -37,3 +37,4 @@ configure was not setting ar or strip properly. I have wine installed, so
 without the --build the configure was NOT thinking it was doing a cross
 compile. Also, the OPENSSL_LIBS had to be force listed for this cross
 compile to link right.
+
