@@ -153,6 +153,8 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	max_alloc_size_bytes >>= 1;
 	assert(!(max_alloc_size_bytes & (max_alloc_size_bytes - 1)));
 
+	if (!cache_size_bytes) cache_size_bytes = 1024;
+
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys");
 	saved_plain = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, BUFSIZE * kpc, 0, NULL, NULL, &ret_code);
@@ -547,7 +549,7 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 	fprintf(stdout, "Cache size:%u", cache_size_bytes);
 
 	if (num_loaded_hashes <= 5100) {
-		if (max_local_mem_sz_bytes >= 16384) {
+		if (0 && max_local_mem_sz_bytes >= 16384) {
 			bitmap_size_bits = 32 * 1024;
 			prepare_bitmap_4(bitmap_size_bits, &bitmaps);
 			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%u -D USE_LOCAL_BITMAPS=1", 4, bitmap_size_bits);
