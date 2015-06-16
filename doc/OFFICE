@@ -1,0 +1,6 @@
+To use John the Ripper on Office 2003 / 2007 / 2010 / 2013 files follow the
+steps below,
+
+1. Run office2john.py on password protected Office files.
+
+2. Run john on the output of office2john.py.

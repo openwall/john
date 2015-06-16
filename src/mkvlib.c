@@ -1,5 +1,5 @@
 /*
- * This software is Copyright © 2010 bartavelle, <bartavelle at bandecon.com>, and it is hereby released to the general public under the following terms:
+ * This software is Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>, and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  */
 
@@ -11,6 +11,8 @@
 #include "params.h"
 #include "memory.h"
 #include "mkvlib.h"
+#include "path.h"
+#include "memdbg.h"
 
 unsigned char * proba1;
 unsigned char * proba2;
@@ -162,11 +164,18 @@ void init_probatables(char * filename)
 	unsigned int k;
 	unsigned int nb_lignes;
 
-	fichier = fopen(filename, "r");
-	if(!fichier)
+	if (!(fichier = fopen(filename, "r")))
 	{
-		fprintf(stderr, "could not open %s\n", filename);
-		error();
+		static char fpath[PATH_BUFFER_SIZE] = "$JOHN/";
+
+		strcat(fpath, filename);
+		filename = path_expand(fpath);
+
+		if (!(fichier = fopen(filename, "r")))
+		{
+			fprintf(stderr, "could not open %s\n", filename);
+			error();
+		}
 	}
 
 	first = mem_alloc( sizeof(unsigned char) * 256 );
@@ -218,5 +227,3 @@ void init_probatables(char * filename)
 	for(i=1;i<256;i++)
 		stupidsort(&(charsorted[i*256]), &(proba2[i*256]), 256);
 }
-
-

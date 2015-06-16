@@ -1,6 +1,13 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002,2009 by Solar Designer
+ * Copyright (c) 1996-2002,2009,2013 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by magnum
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <stdio.h>
@@ -14,11 +21,10 @@
 #include "path.h"
 #include "memory.h"
 #include "config.h"
+#include "john.h"
 #include "logger.h"
-
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
+#include "external.h"
+#include "memdbg.h"
 
 char *cfg_name = NULL;
 static struct cfg_section *cfg_database = NULL;
@@ -38,10 +44,46 @@ static char *trim(char *s)
 	return s;
 }
 
+static void cfg_merge_local_section() {
+	struct cfg_section *parent;
+	struct cfg_param *p1, *p2;
+
+	if (!cfg_database) return;
+	if (strncmp(cfg_database->name, "local:", 6)) return;
+	if (!strncmp(cfg_database->name, "local:list.", 11)) return;
+	parent = cfg_get_section(&cfg_database->name[6], NULL);
+	if (!parent) return;
+	// now update the params in parent section
+	p1 = cfg_database->params;
+	while (p1) {
+		int found = 0;
+		p2 = parent->params;
+		while (p2) {
+			if (!strcmp(p1->name, p2->name)) {
+				found = 1;
+				p2->value = p1->value;
+				break;
+			}
+			p2 = p2->next;
+		}
+		if (!found) {
+			// add a new item. NOTE, fixes bug #767
+			// https://github.com/magnumripper/JohnTheRipper/issues/767
+			struct cfg_param *p3 = (struct cfg_param*)mem_alloc_tiny(sizeof(struct cfg_param), 1);
+			p3->next = parent->params;
+			p3->name = p1->name;
+			p3->value = p1->value;
+			parent->params = p3;
+		}
+		p1 = p1->next;
+	}
+}
 static void cfg_add_section(char *name)
 {
 	struct cfg_section *last;
 
+	// if the last section was a 'Local:" section, then merge it.
+	cfg_merge_local_section();
 	last = cfg_database;
 	cfg_database = mem_alloc_tiny(
 		sizeof(struct cfg_section), MEM_ALIGN_WORD);
@@ -123,11 +165,9 @@ static int cfg_process_line(char *line, int number)
 
 static void cfg_error(char *name, int number)
 {
-#ifdef HAVE_MPI
-	if (mpi_id == 0)
-#endif
-	fprintf(stderr, "Error in %s at line %d\n",
-		path_expand(name), number);
+	if (john_main_process)
+		fprintf(stderr, "Error in %s at line %d\n",
+		    path_expand(name), number);
 	error();
 }
 
@@ -157,9 +197,12 @@ void cfg_init(char *name, int allow_missing)
 	if (ferror(file)) pexit("fgets");
 
 	if (fclose(file)) pexit("fclose");
+
+	// merge final section (if it is a 'Local:" section)
+	cfg_merge_local_section();
 }
 
-static struct cfg_section *cfg_get_section(char *section, char *subsection)
+struct cfg_section *cfg_get_section(char *section, char *subsection)
 {
 	struct cfg_section *current;
 	char *p1, *p2;
@@ -195,6 +238,87 @@ struct cfg_list *cfg_get_list(char *section, char *subsection)
 	return NULL;
 }
 
+#ifndef BENCH_BUILD
+void cfg_print_section_names(int which)
+{
+	struct cfg_section *current;
+
+	if ((current = cfg_database))
+	do {
+		if ((which == 0) ||
+		    (which == 1 && current->params != NULL) ||
+		    (which == 2 && current->list != NULL))
+			printf("%s\n", current->name);
+	} while ((current = current->next));
+}
+
+int cfg_print_section_params(char *section, char *subsection)
+{
+	struct cfg_section *current;
+	struct cfg_param *param;
+	char *value;
+	int param_count = 0;
+
+	if ((current = cfg_get_section(section, subsection))) {
+		if((param = current->params))
+		do {
+			value = cfg_get_param(section, subsection, param->name);
+			if(!strcmp(param->value, value)) {
+				printf("%s = %s\n", param->name, param->value);
+				param_count++;
+			}
+		} while ((param = param-> next));
+		return param_count;
+	}
+	else return -1;
+
+}
+
+int cfg_print_section_list_lines(char *section, char *subsection)
+{
+	struct cfg_section *current;
+	struct cfg_line *line;
+	int line_count = 0;
+
+	if ((current = cfg_get_section(section, subsection))) {
+		if (current->list && (line = current->list->head))
+		do {
+			// we only want to see the line contents
+			// printf("%s-%d_%d:%s\n", line->cfg_name, line->id, line->number, line->data);
+			printf("%s\n", line->data);
+			line_count++;
+		} while((line = line->next));
+		return line_count;
+	}
+	else return -1;
+}
+
+int cfg_print_subsections(char *section, char *function, char *notfunction, int print_heading)
+{
+	int ret = 0;
+	struct cfg_section *current;
+	char *p1, *p2;
+
+	if ((current = cfg_database))
+	do {
+		p1 = current->name; p2 = section;
+		while (*p1 && *p1 == tolower((int)(unsigned char)*p2)) {
+			p1++; p2++;
+		}
+		if (*p1++ != ':') continue;
+		if (!*p1 || *p2) continue;
+		if (notfunction && ext_has_function(p1, notfunction))
+			continue;
+		if (!function || ext_has_function(p1, function)) {
+			if (ret == 0 && print_heading != 0)
+				printf("Subsections of [%s]:\n", section);
+			ret++;
+			printf("%s\n", p1);
+		}
+	} while ((current = current->next));
+	return ret;
+}
+#endif
 char *cfg_get_param(char *section, char *subsection, char *param)
 {
 	struct cfg_section *current_section;
@@ -280,8 +404,8 @@ static int cfg_process_directive_include_section(char *line, int number)
 #endif
 		return 1;
 	}
-	p = strtok(p, ":");
-	p2 = strtok(NULL, "");
+	p = strtokm(p, ":");
+	p2 = strtokm(NULL, "");
 	if (!p || !p2) {
 		fprintf(stderr, "ERROR, invalid .include line, can not find this section:  %s\n", line);
 #ifndef BENCH_BUILD
@@ -293,10 +417,13 @@ static int cfg_process_directive_include_section(char *line, int number)
 	strnzcpy(&Section[1], p2, 254);
 	if ((newsection = cfg_get_section(p, Section))) {
 		if (newsection->list) {
-			struct cfg_line *pLine = newsection->list->head;
-			while (pLine) {
-				cfg_add_line(pLine->data, number);
-				pLine = pLine->next;
+			// Must check cfg_database->list before cfg_add_line()
+			if (NULL != cfg_database->list) {
+				struct cfg_line *pLine = newsection->list->head;
+				while (pLine) {
+					cfg_add_line(pLine->data, number);
+					pLine = pLine->next;
+				}
 			}
 			return 0;
 		}
@@ -321,6 +448,8 @@ static int cfg_process_directive_include_config(char *line, int number)
 {
 	char *p, *p2, *saved_fname;
 	char Name[PATH_BUFFER_SIZE];
+	int allow_missing;
+
 	// Ok, we are including a file.
 	if (!strncmp(line, ".include \"", 10)) {
 		p = &line[10];
@@ -356,15 +485,19 @@ static int cfg_process_directive_include_config(char *line, int number)
 #endif
 		return 1;
 	}
+
+	/* We silently allow a missing john.local.conf */
+	allow_missing = !strcmp(Name, "$JOHN/john.local.conf");
+
 	saved_fname = cfg_name;
 	cfg_recursion++;
-	cfg_init(Name, 0);
+	cfg_init(Name, allow_missing);
 	cfg_recursion--;
 	cfg_name = saved_fname;
 	return 0;
 }
 
-// Handle a .directive line.  Curently only .include syntax is handled.
+// Handle a .directive line.  Currently only .include syntax is handled.
 static int cfg_process_directive(char *line, int number)
 {
 	if (!strncmp(line, ".include \"", 10) || !strncmp(line, ".include <", 10))

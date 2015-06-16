@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2005,2006,2011 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <stdio.h>
@@ -9,6 +14,7 @@
 #include "misc.h"
 #include "params.h"
 #include "memory.h"
+#include "memdbg.h"
 
 struct shadow_entry {
 	struct shadow_entry *next;

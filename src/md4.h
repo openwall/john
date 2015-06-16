@@ -8,10 +8,18 @@
  * See md4.c for more information.
  */
 
-#ifdef HAVE_OPENSSL
+#include "arch.h"
+
+#ifdef HAVE_LIBSSL
 #include <openssl/md4.h>
 #elif !defined(_MD4_H)
 #define _MD4_H
+
+#ifndef USING_ICC_S_FILE
+#define MD4_Init john_MD4_Init
+#define MD4_Update john_MD4_Update
+#define MD4_Final john_MD4_Final
+#endif
 
 /* Any 32-bit or wider unsigned integer data type will do */
 typedef unsigned int MD4_u32plus;
@@ -26,25 +34,5 @@ typedef struct {
 extern void MD4_Init(MD4_CTX *ctx);
 extern void MD4_Update(MD4_CTX *ctx, void *data, unsigned long size);
 extern void MD4_Final(unsigned char *result, MD4_CTX *ctx);
-
-/* Bartavelle's SSE/MMX asm functions */
-#if (MMX_COEF == 2)
-#ifdef _MSC_VER
-int __fastcall mdfourmmx_VC(unsigned char *out, unsigned char *in, int n);
-#define mdfourmmx mdfourmmx_VC
-#else
-extern int mdfourmmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
-#endif
-#endif
-
-#if (MMX_COEF == 4)
-#ifdef _MSC_VER
-int __fastcall mdfoursse2_VC(unsigned char *out, unsigned char *in, int n);
-#define mdfourmmx mdfoursse2_VC
-#else
-#define mdfourmmx mdfoursse2
-extern int mdfoursse2(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
-#endif
-#endif
 
 #endif

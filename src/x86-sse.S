@@ -1,7 +1,7 @@
 /*
  * This file contains the core of a bitslice DES implementation for x86/SSE2.
  * It is part of John the Ripper password cracker,
- * Copyright (c) 2000-2001,2005,2006,2008,2011 by Solar Designer
+ * Copyright (c) 2000-2001,2005,2006,2008,2011,2012,2015 by Solar Designer
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.  (This is a heavily cut-down "BSD license".)
  *
@@ -22,7 +22,10 @@
  * The effort has been sponsored by Rapid7: http://www.rapid7.com
  *
  * ...with changes in the jumbo patch, by Alain Espinosa (starting with a
- * comment further down this file).
+ * comment further down this file) and magnum.
+ *
+ * Addition of single DES encryption with no salt by Deepika Dutta Mishra
+ * <dipikadutta at gmail.com> in 2012, no rights reserved.
  */
 
 #include "arch.h"
@@ -54,6 +57,8 @@
 #define DES_bs_crypt			_DES_bs_crypt
 #define DES_bs_crypt_25			_DES_bs_crypt_25
 #define DES_bs_crypt_LM			_DES_bs_crypt_LM
+#define DES_bs_crypt_plain		_DES_bs_crypt_plain
+#define DES_bs_P			_DES_bs_P
 #endif
 
 #ifdef __sun
@@ -73,6 +78,11 @@
 #else
 .bss
 #endif
+
+.globl DES_bs_P
+DO_ALIGN(6)
+DES_bs_P:
+DO_SPACE(nvec(64))
 
 .globl DES_bs_all
 DO_ALIGN(6)
@@ -104,11 +114,10 @@ DO_SPACE(nptr(48))
 #define E(i)				DES_bs_all_E+nptr(i)
 #define B(i)				DES_bs_all_B+nvec(i)
 #define tmp_at(i)			DES_bs_all_tmp+nvec(i)
-
+#define P(i)				DES_bs_P+nvec(i)
 #define pnot				tmp_at(0)
 
-#define S1(out1, out2, out3, out4, extra) \
-	extra; \
+#define S1(out1, out2, out3, out4) \
 	movdqa %xmm0,tmp_at(1); \
 	movdqa %xmm5,%xmm7; \
 	movdqa %xmm4,tmp_at(4); \
@@ -189,8 +198,7 @@ DO_SPACE(nptr(48))
 	movdqa %xmm7,out2; \
 	movdqa %xmm4,out4
 
-#define S2(out1, out2, out3, out4, extra) \
-	extra; \
+#define S2(out1, out2, out3, out4) \
 	movdqa %xmm2,tmp_at(2); \
 	movdqa %xmm1,tmp_at(1); \
 	movdqa %xmm5,%xmm2; \
@@ -265,8 +273,7 @@ DO_SPACE(nptr(48))
 	movdqa %xmm6,out3; \
 	movdqa %xmm7,out4
 
-#define S3(out1, out2, out3, out4, extra) \
-	extra; \
+#define S3(out1, out2, out3, out4) \
 	movdqa %xmm0,tmp_at(1); \
 	movdqa %xmm1,tmp_at(2); \
 	movdqa %xmm0,%xmm7; \
@@ -343,8 +350,7 @@ DO_SPACE(nptr(48))
 	movdqa %xmm6,out1; \
 	movdqa %xmm0,out3
 
-#define S4(out1, out2, out3, out4, extra) \
-	extra; \
+#define S4(out1, out2, out3, out4) \
 	movdqa %xmm1,%xmm7; \
 	pxor %xmm2,%xmm0; \
 	por %xmm3,%xmm1; \
@@ -399,8 +405,7 @@ DO_SPACE(nptr(48))
 	pxor out4,%xmm0; \
 	movdqa %xmm0,out4
 
-#define S5(out1, out2, out3, out4, extra) \
-	extra; \
+#define S5(out1, out2, out3, out4) \
 	movdqa %xmm2,tmp_at(3); \
 	movdqa %xmm0,tmp_at(1); \
 	por %xmm0,%xmm2; \
@@ -480,8 +485,7 @@ DO_SPACE(nptr(48))
 	movdqa %xmm3,out2; \
 	movdqa %xmm6,out1
 
-#define S6(out1, out2, out3, out4, extra) \
-	extra; \
+#define S6(out1, out2, out3, out4) \
 	movdqa %xmm4,tmp_at(2); \
 	pxor %xmm1,%xmm4; \
 	movdqa %xmm5,tmp_at(3); \
@@ -561,8 +565,7 @@ DO_SPACE(nptr(48))
 	pxor %xmm1,%xmm4; \
 	movdqa %xmm4,out1
 
-#define S7(out1, out2, out3, out4, extra) \
-	extra; \
+#define S7(out1, out2, out3, out4) \
 	movdqa %xmm0,tmp_at(1); \
 	movdqa %xmm4,tmp_at(3); \
 	movdqa %xmm4,%xmm0; \
@@ -636,20 +639,19 @@ DO_SPACE(nptr(48))
 	pxor %xmm3,%xmm1; \
 	movdqa %xmm1,out2
 
-#define S8(out1, out2, out3, out4, extra) \
-	extra; \
+#define S8(out1, out2, out3, out4) \
 	movdqa %xmm2,%xmm7; \
 	movdqa %xmm1,tmp_at(1); \
 	pandn %xmm2,%xmm1; \
 	movdqa %xmm2,tmp_at(2); \
 	pandn %xmm4,%xmm2; \
-	movdqa %xmm5,tmp_at(5); \
+	movdqa %xmm3,tmp_at(3); \
 	pxor %xmm3,%xmm2; \
 	movdqa %xmm4,tmp_at(4); \
-	movdqa %xmm1,%xmm5; \
-	movdqa %xmm3,tmp_at(3); \
+	movdqa %xmm1,%xmm3; \
+	movdqa %xmm5,tmp_at(5); \
 	movdqa %xmm2,%xmm4; \
-	movdqa %xmm2,%xmm3; \
+	movdqa %xmm2,%xmm5; \
 	pandn tmp_at(1),%xmm4; \
 	pand %xmm0,%xmm2; \
 	pandn tmp_at(1),%xmm7; \
@@ -659,47 +661,47 @@ DO_SPACE(nptr(48))
 	por %xmm0,%xmm4; \
 	movdqa %xmm7,tmp_at(6); \
 	pand %xmm4,%xmm7; \
-	pxor pnot,%xmm3; \
+	pxor pnot,%xmm5; \
 	por %xmm7,%xmm2; \
-	pxor %xmm7,%xmm3; \
+	pxor %xmm7,%xmm5; \
 	pandn tmp_at(2),%xmm4; \
 	movdqa tmp_at(5),%xmm7; \
-	pxor %xmm4,%xmm3; \
+	pxor %xmm4,%xmm5; \
 	por %xmm1,%xmm7; \
-	pxor %xmm3,%xmm5; \
-	pxor %xmm5,%xmm7; \
-	pxor %xmm0,%xmm5; \
+	pxor %xmm5,%xmm3; \
+	pxor %xmm3,%xmm7; \
+	pxor %xmm0,%xmm3; \
 	pxor out2,%xmm7; \
 	movdqa %xmm7,out2; \
-	pxor tmp_at(1),%xmm3; \
-	movdqa %xmm5,%xmm4; \
-	pand tmp_at(4),%xmm5; \
-	pxor %xmm3,%xmm5; \
-	por tmp_at(3),%xmm3; \
-	pxor %xmm5,%xmm6; \
-	pxor tmp_at(6),%xmm3; \
-	pxor %xmm2,%xmm5; \
-	pxor %xmm6,%xmm3; \
-	por tmp_at(1),%xmm5; \
-	pxor %xmm3,%xmm0; \
-	pxor %xmm4,%xmm5; \
+	pxor tmp_at(1),%xmm5; \
+	movdqa %xmm3,%xmm4; \
+	pand tmp_at(4),%xmm3; \
+	pxor %xmm5,%xmm3; \
+	por tmp_at(3),%xmm5; \
+	pxor %xmm3,%xmm6; \
+	pxor tmp_at(6),%xmm5; \
+	pxor %xmm2,%xmm3; \
+	pxor %xmm6,%xmm5; \
+	por tmp_at(1),%xmm3; \
+	pxor %xmm5,%xmm0; \
+	pxor %xmm4,%xmm3; \
 	por tmp_at(3),%xmm4; \
-	pxor tmp_at(4),%xmm5; \
+	pxor tmp_at(4),%xmm3; \
 	pand tmp_at(5),%xmm2; \
-	pandn %xmm5,%xmm4; \
+	pandn %xmm3,%xmm4; \
 	pand tmp_at(5),%xmm0; \
 	pxor %xmm6,%xmm0; \
 	por %xmm1,%xmm4; \
 	pxor out4,%xmm0; \
-	pxor %xmm4,%xmm3; \
+	pxor %xmm4,%xmm5; \
 	pxor out3,%xmm2; \
-	por tmp_at(5),%xmm3; \
-	pxor out1,%xmm3; \
-	pxor %xmm5,%xmm2; \
-	pxor %xmm6,%xmm3; \
+	por tmp_at(5),%xmm5; \
+	pxor out1,%xmm5; \
+	pxor %xmm3,%xmm2; \
+	pxor %xmm6,%xmm5; \
 	movdqa %xmm0,out4; \
 	movdqa %xmm2,out3; \
-	movdqa %xmm3,out1
+	movdqa %xmm5,out1
 
 #define a1				%xmm0
 #define a2				%xmm1
@@ -708,7 +710,7 @@ DO_SPACE(nptr(48))
 #define a5				%xmm4
 #define a6				%xmm5
 
-#define zero				%xmm0
+#define zero				%xmm5
 
 #define DES_bs_clear_block_8(i) \
 	movdqa zero,B(i); \
@@ -734,12 +736,8 @@ DO_SPACE(nptr(48))
 #define K(i)				nvec(i)(k_ptr)
 #define k(i)				nptr(i)(k_ptr)
 
-#define a6_xor_ptr			%esi
-#define a6_p				pxor (a6_xor_ptr),a6
-#define a6_v(i)				pxor K(i),a6
-
 #define tmp1				%ecx
-#define tmp2				a6_xor_ptr
+#define tmp2				%esi
 
 #define xor_E(i) \
 	movl E(i),tmp1; \
@@ -756,11 +754,12 @@ DO_SPACE(nptr(48))
 	pxor (tmp2),a4; \
 	movl E(i + 4),tmp1; \
 	movdqa K(i + 4),a5; \
-	movl E(i + 5),a6_xor_ptr; \
+	movl E(i + 5),tmp2; \
 	movdqa K(i + 5),a6; \
-	pxor (tmp1),a5
+	pxor (tmp1),a5; \
+	pxor (tmp2),a6
 
-#define xor_B(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, b6) \
+#define xor_B(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, b6, k6) \
 	movdqa B(b1),a1; \
 	movdqa B(b2),a2; \
 	pxor K(k1),a1; \
@@ -771,9 +770,10 @@ DO_SPACE(nptr(48))
 	movdqa B(b5),a5; \
 	pxor K(k4),a4; \
 	movdqa B(b6),a6; \
-	pxor K(k5),a5
+	pxor K(k5),a5; \
+	pxor K(k6),a6
 
-#define xor_B_KS_p(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, b6, k6) \
+#define xor_B_KS_p_prefix(b1, k1, b2, k2, b3, k3, b4, k4, k6) \
 	movl k(k1),tmp1; \
 	movl k(k2),tmp2; \
 	movdqa B(b1),a1; \
@@ -785,12 +785,23 @@ DO_SPACE(nptr(48))
 	movdqa B(b3),a3; \
 	movdqa B(b4),a4; \
 	pxor (tmp1),a3; \
-	movl k(k5),tmp1; \
-	pxor (tmp2),a4; \
+	movl k(k6),tmp1; \
+	pxor (tmp2),a4
+
+#define xor_B_KS_p_suffix(b5, k5) \
+	movl k(k5),tmp2; \
 	movdqa B(b5),a5; \
-	movl k(k6),a6_xor_ptr; \
+	pxor (tmp1),a6; \
+	pxor (tmp2),a5
+
+#define xor_B_KS_p(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, b6, k6) \
+	xor_B_KS_p_prefix(b1, k1, b2, k2, b3, k3, b4, k4, k6); \
 	movdqa B(b6),a6; \
-	pxor (tmp1),a5
+	xor_B_KS_p_suffix(b5, k5)
+
+#define xor_B_KS_p_special(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, k6) \
+	xor_B_KS_p_prefix(b1, k1, b2, k2, b3, k3, b4, k4, k6); \
+	xor_B_KS_p_suffix(b5, k5)
 
 #define mask01				tmp_at(15)
 
@@ -1067,41 +1078,41 @@ DES_bs_crypt_body:
 	movl $8,rounds_and_swapped
 DES_bs_crypt_start:
 	xor_E(0)
-	S1(B(40), B(48), B(54), B(62), a6_p)
+	S1(B(40), B(48), B(54), B(62))
 	xor_E(6)
-	S2(B(44), B(59), B(33), B(49), a6_p)
+	S2(B(44), B(59), B(33), B(49))
 	xor_E(12)
-	S3(B(55), B(47), B(61), B(37), a6_p)
+	S3(B(55), B(47), B(61), B(37))
 	xor_E(18)
-	S4(B(57), B(51), B(41), B(32), a6_p)
+	S4(B(57), B(51), B(41), B(32))
 	xor_E(24)
-	S5(B(39), B(45), B(56), B(34), a6_p)
+	S5(B(39), B(45), B(56), B(34))
 	xor_E(30)
-	S6(B(35), B(60), B(42), B(50), a6_p)
+	S6(B(35), B(60), B(42), B(50))
 	xor_E(36)
-	S7(B(63), B(43), B(53), B(38), a6_p)
+	S7(B(63), B(43), B(53), B(38))
 	xor_E(42)
-	S8(B(36), B(58), B(46), B(52), a6_p)
+	S8(B(36), B(58), B(46), B(52))
 	cmpl $0x100,rounds_and_swapped
 	je DES_bs_crypt_next
 DES_bs_crypt_swap:
 	xor_E(48)
-	S1(B(8), B(16), B(22), B(30), a6_p)
+	S1(B(8), B(16), B(22), B(30))
 	xor_E(54)
-	S2(B(12), B(27), B(1), B(17), a6_p)
+	S2(B(12), B(27), B(1), B(17))
 	xor_E(60)
-	S3(B(23), B(15), B(29), B(5), a6_p)
+	S3(B(23), B(15), B(29), B(5))
 	xor_E(66)
-	S4(B(25), B(19), B(9), B(0), a6_p)
+	S4(B(25), B(19), B(9), B(0))
 	xor_E(72)
-	S5(B(7), B(13), B(24), B(2), a6_p)
+	S5(B(7), B(13), B(24), B(2))
 	xor_E(78)
-	S6(B(3), B(28), B(10), B(18), a6_p)
+	S6(B(3), B(28), B(10), B(18))
 	xor_E(84)
-	S7(B(31), B(11), B(21), B(6), a6_p)
+	S7(B(31), B(11), B(21), B(6))
 	xor_E(90)
 	addl $nvec(96),k_ptr
-	S8(B(4), B(26), B(14), B(20), a6_p)
+	S8(B(4), B(26), B(14), B(20))
 	decl rounds_and_swapped
 	jnz DES_bs_crypt_start
 	subl $nvec(0x300+48),k_ptr
@@ -1135,40 +1146,40 @@ DES_bs_crypt_25_body:
 	movl $25,iterations
 DES_bs_crypt_25_start:
 	xor_E(0)
-	S1(B(40), B(48), B(54), B(62), a6_p)
+	S1(B(40), B(48), B(54), B(62))
 	xor_E(6)
-	S2(B(44), B(59), B(33), B(49), a6_p)
-	xor_B(7, 12, 8, 13, 9, 14, 10, 15, 11, 16, 12)
-	S3(B(55), B(47), B(61), B(37), a6_v(17))
-	xor_B(11, 18, 12, 19, 13, 20, 14, 21, 15, 22, 16)
-	S4(B(57), B(51), B(41), B(32), a6_v(23))
+	S2(B(44), B(59), B(33), B(49))
+	xor_B(7, 12, 8, 13, 9, 14, 10, 15, 11, 16, 12, 17)
+	S3(B(55), B(47), B(61), B(37))
+	xor_B(11, 18, 12, 19, 13, 20, 14, 21, 15, 22, 16, 23)
+	S4(B(57), B(51), B(41), B(32))
 	xor_E(24)
-	S5(B(39), B(45), B(56), B(34), a6_p)
+	S5(B(39), B(45), B(56), B(34))
 	xor_E(30)
-	S6(B(35), B(60), B(42), B(50), a6_p)
-	xor_B(23, 36, 24, 37, 25, 38, 26, 39, 27, 40, 28)
-	S7(B(63), B(43), B(53), B(38), a6_v(41))
-	xor_B(27, 42, 28, 43, 29, 44, 30, 45, 31, 46, 0)
-	S8(B(36), B(58), B(46), B(52), a6_v(47))
+	S6(B(35), B(60), B(42), B(50))
+	xor_B(23, 36, 24, 37, 25, 38, 26, 39, 27, 40, 28, 41)
+	S7(B(63), B(43), B(53), B(38))
+	xor_B(27, 42, 28, 43, 29, 44, 30, 45, 31, 46, 0, 47)
+	S8(B(36), B(58), B(46), B(52))
 	cmpl $0x100,rounds_and_swapped
 	je DES_bs_crypt_25_next
 DES_bs_crypt_25_swap:
 	xor_E(48)
-	S1(B(8), B(16), B(22), B(30), a6_p)
+	S1(B(8), B(16), B(22), B(30))
 	xor_E(54)
-	S2(B(12), B(27), B(1), B(17), a6_p)
-	xor_B(39, 60, 40, 61, 41, 62, 42, 63, 43, 64, 44)
-	S3(B(23), B(15), B(29), B(5), a6_v(65))
-	xor_B(43, 66, 44, 67, 45, 68, 46, 69, 47, 70, 48)
-	S4(B(25), B(19), B(9), B(0), a6_v(71))
+	S2(B(12), B(27), B(1), B(17))
+	xor_B(39, 60, 40, 61, 41, 62, 42, 63, 43, 64, 44, 65)
+	S3(B(23), B(15), B(29), B(5))
+	xor_B(43, 66, 44, 67, 45, 68, 46, 69, 47, 70, 48, 71)
+	S4(B(25), B(19), B(9), B(0))
 	xor_E(72)
-	S5(B(7), B(13), B(24), B(2), a6_p)
+	S5(B(7), B(13), B(24), B(2))
 	xor_E(78)
-	S6(B(3), B(28), B(10), B(18), a6_p)
-	xor_B(55, 84, 56, 85, 57, 86, 58, 87, 59, 88, 60)
-	S7(B(31), B(11), B(21), B(6), a6_v(89))
-	xor_B(59, 90, 60, 91, 61, 92, 62, 93, 63, 94, 32)
-	S8(B(4), B(26), B(14), B(20), a6_v(95))
+	S6(B(3), B(28), B(10), B(18))
+	xor_B(55, 84, 56, 85, 57, 86, 58, 87, 59, 88, 60, 89)
+	S7(B(31), B(11), B(21), B(6))
+	xor_B(59, 90, 60, 91, 61, 92, 62, 93, 63, 94, 32, 95)
+	S8(B(4), B(26), B(14), B(20))
 	addl $nvec(96),k_ptr
 	decl rounds_and_swapped
 	jnz DES_bs_crypt_25_start
@@ -1351,6 +1362,193 @@ DES_bs_finalize_keys_LM_loop:
 	movdqa ones,B(63)
 	movl $8,rounds
 DES_bs_crypt_LM_loop:
+	xor_B_KS_p_special(31, 0, 0, 1, 1, 2, 2, 3, 3, 4, 5)
+	S1(B(40), B(48), B(54), B(62))
+	xor_B_KS_p(3, 6, 4, 7, 5, 8, 6, 9, 7, 10, 8, 11)
+	S2(B(44), B(59), B(33), B(49))
+	xor_B_KS_p(7, 12, 8, 13, 9, 14, 10, 15, 11, 16, 12, 17)
+	S3(B(55), B(47), B(61), B(37))
+	xor_B_KS_p(11, 18, 12, 19, 13, 20, 14, 21, 15, 22, 16, 23)
+	S4(B(57), B(51), B(41), B(32))
+	xor_B_KS_p(15, 24, 16, 25, 17, 26, 18, 27, 19, 28, 20, 29)
+	S5(B(39), B(45), B(56), B(34))
+	xor_B_KS_p(19, 30, 20, 31, 21, 32, 22, 33, 23, 34, 24, 35)
+	S6(B(35), B(60), B(42), B(50))
+	xor_B_KS_p(23, 36, 24, 37, 25, 38, 26, 39, 27, 40, 28, 41)
+	S7(B(63), B(43), B(53), B(38))
+	xor_B_KS_p(27, 42, 28, 43, 29, 44, 30, 45, 31, 46, 0, 47)
+	S8(B(36), B(58), B(46), B(52))
+	xor_B_KS_p_special(63, 48, 32, 49, 33, 50, 34, 51, 35, 52, 53)
+	S1(B(8), B(16), B(22), B(30))
+	xor_B_KS_p(35, 54, 36, 55, 37, 56, 38, 57, 39, 58, 40, 59)
+	S2(B(12), B(27), B(1), B(17))
+	xor_B_KS_p(39, 60, 40, 61, 41, 62, 42, 63, 43, 64, 44, 65)
+	S3(B(23), B(15), B(29), B(5))
+	xor_B_KS_p(43, 66, 44, 67, 45, 68, 46, 69, 47, 70, 48, 71)
+	S4(B(25), B(19), B(9), B(0))
+	xor_B_KS_p(47, 72, 48, 73, 49, 74, 50, 75, 51, 76, 52, 77)
+	S5(B(7), B(13), B(24), B(2))
+	xor_B_KS_p(51, 78, 52, 79, 53, 80, 54, 81, 55, 82, 56, 83)
+	S6(B(3), B(28), B(10), B(18))
+	xor_B_KS_p(55, 84, 56, 85, 57, 86, 58, 87, 59, 88, 60, 89)
+	S7(B(31), B(11), B(21), B(6))
+	xor_B_KS_p(59, 90, 60, 91, 61, 92, 62, 93, 63, 94, 32, 95)
+	addl $nptr(96),k_ptr
+	S8(B(4), B(26), B(14), B(20))
+	decl rounds
+	jnz DES_bs_crypt_LM_loop
+	movl 8(%esp),%eax
+	popl %esi
+	movl (%eax),%eax
+	ret
+
+#define rounds				%eax
+
+DO_ALIGN(6)
+.globl DES_bs_crypt_plain
+DES_bs_crypt_plain:
+	movl $DES_bs_all_xkeys,v_ptr
+	movl $DES_bs_all_K,k_ptr
+	movdqa P(0),%xmm4
+	movdqa %xmm4,B(0)
+	movdqa P(1),%xmm4
+	movdqa %xmm4,B(1)
+	movdqa P(2),%xmm4
+	movdqa %xmm4,B(2)
+	movdqa P(3),%xmm4
+	movdqa %xmm4,B(3)
+	movdqa P(4),%xmm4
+	movdqa %xmm4,B(4)
+	movdqa P(5),%xmm4
+	movdqa %xmm4,B(5)
+	movdqa P(6),%xmm4
+	movdqa %xmm4,B(6)
+	movdqa P(7),%xmm4
+	movdqa %xmm4,B(7)
+	movdqa P(8),%xmm4
+	movdqa %xmm4,B(8)
+	movdqa P(9),%xmm4
+	movdqa %xmm4,B(9)
+	movdqa P(10),%xmm4
+	movdqa %xmm4,B(10)
+	movdqa P(11),%xmm4
+	movdqa %xmm4,B(11)
+	movdqa P(12),%xmm4
+	movdqa %xmm4,B(12)
+	movdqa P(13),%xmm4
+	movdqa %xmm4,B(13)
+	movdqa P(14),%xmm4
+	movdqa %xmm4,B(14)
+	movdqa P(15),%xmm4
+	movdqa %xmm4,B(15)
+	movdqa P(16),%xmm4
+	movdqa %xmm4,B(16)
+	movdqa P(17),%xmm4
+	movdqa %xmm4,B(17)
+	movdqa P(18),%xmm4
+	movdqa %xmm4,B(18)
+	movdqa P(19),%xmm4
+	movdqa %xmm4,B(19)
+	movdqa P(20),%xmm4
+	movdqa %xmm4,B(20)
+	movdqa P(21),%xmm4
+	movdqa %xmm4,B(21)
+	movdqa P(22),%xmm4
+	movdqa %xmm4,B(22)
+	movdqa P(23),%xmm4
+	movdqa %xmm4,B(23)
+	movdqa P(24),%xmm4
+	movdqa %xmm4,B(24)
+	movdqa P(25),%xmm4
+	movdqa %xmm4,B(25)
+	movdqa P(26),%xmm4
+	movdqa %xmm4,B(26)
+	movdqa P(27),%xmm4
+	movdqa %xmm4,B(27)
+	movdqa P(28),%xmm4
+	movdqa %xmm4,B(28)
+	movdqa P(29),%xmm4
+	movdqa %xmm4,B(29)
+	movdqa P(30),%xmm4
+	movdqa %xmm4,B(30)
+	movdqa P(31),%xmm4
+	movdqa %xmm4,B(31)
+	movdqa P(32),%xmm4
+	movdqa %xmm4,B(32)
+	movdqa P(33),%xmm4
+	movdqa %xmm4,B(33)
+	movdqa P(34),%xmm4
+	movdqa %xmm4,B(34)
+	movdqa P(35),%xmm4
+	movdqa %xmm4,B(35)
+	movdqa P(36),%xmm4
+	movdqa %xmm4,B(36)
+	movdqa P(37),%xmm4
+	movdqa %xmm4,B(37)
+	movdqa P(38),%xmm4
+	movdqa %xmm4,B(38)
+	movdqa P(39),%xmm4
+	movdqa %xmm4,B(39)
+	movdqa P(40),%xmm4
+	movdqa %xmm4,B(40)
+	movdqa P(41),%xmm4
+	movdqa %xmm4,B(41)
+	movdqa P(42),%xmm4
+	movdqa %xmm4,B(42)
+	movdqa P(43),%xmm4
+	movdqa %xmm4,B(43)
+	movdqa P(44),%xmm4
+	movdqa %xmm4,B(44)
+	movdqa P(45),%xmm4
+	movdqa %xmm4,B(45)
+	movdqa P(46),%xmm4
+	movdqa %xmm4,B(46)
+	movdqa P(47),%xmm4
+	movdqa %xmm4,B(47)
+	movdqa P(48),%xmm4
+	movdqa %xmm4,B(48)
+	movdqa P(49),%xmm4
+	movdqa %xmm4,B(49)
+	movdqa P(50),%xmm4
+	movdqa %xmm4,B(50)
+	movdqa P(51),%xmm4
+	movdqa %xmm4,B(51)
+	movdqa P(52),%xmm4
+	movdqa %xmm4,B(52)
+	movdqa P(53),%xmm4
+	movdqa %xmm4,B(53)
+	movdqa P(54),%xmm4
+	movdqa %xmm4,B(54)
+	movdqa P(55),%xmm4
+	movdqa %xmm4,B(55)
+	movdqa P(56),%xmm4
+	movdqa %xmm4,B(56)
+	movdqa P(57),%xmm4
+	movdqa %xmm4,B(57)
+	movdqa P(58),%xmm4
+	movdqa %xmm4,B(58)
+	movdqa P(59),%xmm4
+	movdqa %xmm4,B(59)
+	movdqa P(60),%xmm4
+	movdqa %xmm4,B(60)
+	movdqa P(61),%xmm4
+	movdqa %xmm4,B(61)
+	movdqa P(62),%xmm4
+	movdqa %xmm4,B(62)
+	movdqa P(63),%xmm4
+	movdqa %xmm4,B(63)
+
+DES_bs_finalize_keys_plain_loop:
+	FINALIZE_NEXT_KEY_BITS_0_6
+	addl $nvec(7),k_ptr
+	addl $nvec(8),v_ptr
+	cmpl $DES_bs_all_K+nvec(56),k_ptr
+	jb DES_bs_finalize_keys_plain_loop
+	pushl %esi
+	movl $DES_bs_all_KS_p,k_ptr
+	movl $DES_bs_all_KS_v,v_ptr
+	movl $8,rounds
+DES_bs_crypt_plain_loop:
 	xor_B_KS_p(31, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5)
 	S1(B(40), B(48), B(54), B(62), a6_p)
 	xor_B_KS_p(3, 6, 4, 7, 5, 8, 6, 9, 7, 10, 8, 11)
@@ -1385,12 +1583,12 @@ DES_bs_crypt_LM_loop:
 	addl $nptr(96),k_ptr
 	S8(B(4), B(26), B(14), B(20), a6_p)
 	decl rounds
-	jnz DES_bs_crypt_LM_loop
+	jnz DES_bs_crypt_plain_loop
 	popl %esi
 	ret
 
-#endif
 
+#endif
 
 /* The following was written by Alain Espinosa <alainesp at gmail.com> in 2007.
  * No copyright is claimed, and the software is hereby placed in the public domain.
@@ -1644,6 +1842,8 @@ nt_crypt_all_sse2:
 	NT_CRYPT_BODY(7)
 
 	popa
+	movl 4(%esp),%eax
+	movl (%eax),%eax
 
 	ret
 

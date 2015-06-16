@@ -1,0 +1,543 @@
+This file describes the licensing status of various source files in
+john-1.7.9-jumbo-7.  It is not directly applicable to later versions.
+While many of these source files are now available under more relaxed
+terms than they were in 1.7.9-jumbo-7, some have had their licenses
+changed to be more restrictive (notably, the sha{256,512}crypt OpenCL
+kernels, as per Claudio's preference).
+
+john-1.7.9-jumbo-7:
+README                          N/A; Solar; symlink
+README-jumbo                    GPLv2; Solar; documentation; new file in jumbo, hereby placed under GPLv2
+doc                             various; various; directory
+run                             various; various; directory
+src                             various; various; directory
+
+john-1.7.9-jumbo-7/doc:
+BUGS                            GPLv2; Solar; documentation; new file in jumbo, hereby placed under GPLv2
+CHANGES                         GPLv2; Solar; documentation
+CHANGES-jumbo                   GPLv2; Solar; documentation; new file in jumbo, hereby placed under GPLv2
+CHANGES-jumbo.git               unclear; magnum et al.; documentation; git commit messages, might be under GPLv2 since many of the commits were to files available to the committers only under GPLv2, or might be public domain, or might be copyrighted and not licensed (need license then)
+CONFIG                          GPLv2; Solar et al.; documentation; additions in jumbo for "include" directive syntax, GPLv2 is implied since jumbo contributors were modifying the file by Solar available to them under GPLv2 only
+CONTACT                         GPLv2; Solar; documentation
+CREDITS                         GPLv2; Solar; documentation; contains some content beyond contributor names, so might be copyrightable
+CREDITS-jumbo                   N/A; Solar, magnum; documentation; contributor name lists only, not subject to copyright (until the file possibly gets other kinds of content added to it)
+DYNAMIC                         unclear; JimF; documentation, code; includes configuration samples, which arguably are "code"
+DYNAMIC_SCRIPTING               unclear; JimF; documentation, code; includes configuration samples, which arguably are "code"
+ENCODINGS                       public domain + cut-down BSD fallback; magnum, JimF; documentation; we should make it clearer whether the notice at the end of ENCODINGS applies to this documentation file itself or/and to the corresponding code (the current interpretation is that it applies to both), and to which specific pieces of code (source files, functions)
+EPi.patch.README                unclear; Johannes Gumbel; documentation; contributed for 1.7.2 by the author, so GPLv2 compatibility may be implied
+EXAMPLES                        GPLv2; Solar; documentation
+EXTERNAL                        GPLv2; Solar; documentation
+FAQ                             GPLv2; Solar; documentation
+HDAA_README                     unclear; unclear; documentation; brief usage example
+INSTALL                         GPLv2; Solar; documentation
+LICENSE                         N/A; Solar; documentation; copyright and license statement from core tree
+LICENSE.mpi                     N/A; Ryan Lim, John Anderson, AoZ, magnum; documentation; authorship and license statement for MPI support patch, says that the patch is "licensed under the same terms as John the Ripper itself", which implies GPLv2
+MARKOV                          unclear; bartavelle; documentation
+MODES                           GPLv2; Solar; documentation
+NETNTLM_README                  unclear; JoMo-Kun; documentation
+OFFICE                          unclear; Dhiru; documentation
+OPTIONS                         GPLv2; Solar, JimF, magnum; documentation; GPLv2 is implied since jumbo contributors were modifying the file by Solar available to them under GPLv2 only
+README                          GPLv2; Solar; documentation
+README-CUDA                     unclear; Lukas, myrice; documentation
+README.bash-completion          unclear; Frank; documentation
+README.mozilla                  unclear; Dhiru; documentation
+README.mpi                      GPLv2; Ryan Lim, AoZ, magnum; documentation; GPLv2 is implied per LICENSE.mpi
+README.opencl                   unclear; Samuele; documentation
+README.pwsafe                   unclear; Dhiru; documentation
+RULES                           GPLv2; Solar et al.; documentation; additions in jumbo for "include" directive syntax, GPLv2 is implied since jumbo contributors were modifying the file by Solar available to them under GPLv2 only
+SIPcrack-LICENSE                N/A; Martin J. Muench; documentation; Martin's copyright statement and 3-clause BSD license
+pass_gen.Manifest               public domain + cut-down BSD fallback; JimF, magnum; documentation; we should make it clearer whether the notice at the start of pass_gen.Manifest applies to this documentation file itself or/and to the corresponding code (the current interpretation is that it applies to both)
+pdfcrack_README                 GPLv2+; Henning Noren; documentation; GPLv2+ is per pdfcrack license, this file also says that parts of pdfcrack code are "copyright 1995-2006 Glyph & Cog, LLC" and that "PDF data structures, operators, and specification" are copyrighted by Adobe, however "data structures" are probably not subject to copyright, and pdfcrack (and thus JtR) probably does not include the rest
+pdfcrack_TODO                   GPLv2+; Henning Noren; documentation; GPLv2+ is per pdfcrack license
+
+john-1.7.9-jumbo-7/run:
+all.chr                         GPLv2; Solar; data
+alnum.chr                       GPLv2; Solar; data
+alpha.chr                       GPLv2; Solar; data
+benchmark-unify                 cut-down BSD; Frank, Solar; code
+cracf2john.py                   unclear; Dhiru; code
+dictionary.rfc2865              unclear; unclear; data; apparently taken from RFC 2865 as published by IETF, which probably implies a certain (non-)copyright status and license
+digits.chr                      GPLv2; Solar; data
+dumb16.conf                     cut-down BSD; magnum; code
+dumb32.conf                     cut-down BSD; magnum; code
+dynamic.conf                    unclear; JimF; code, documentation; includes configuration samples, which arguably are "code"
+genincstats.rb                  unclear; bartavelle; code
+john.bash_completion            cut-down BSD; Frank; code
+john.conf                       GPLv2; Solar et al.; code, data, documentation; GPLv2 is implied since jumbo contributors were modifying the file by Solar available to them under GPLv2 only
+lanman.chr                      GPLv2; Solar; data
+ldif2john.pl                    unclear; unclear; code
+lion2john-alt.pl                cut-down BSD; Jean-Michel Picod; code
+lion2john.pl                    cut-down BSD; Solar, JimF; code
+mailer                          GPLv2; Solar; code
+netntlm.pl                      public domain; JoMo-Kun; code
+netscreen.py                    unclear; unclear original author, changes are by Robert B. Harris and Brad Tilley; code
+odf2john.py                     unclear; Dhiru; code
+pass_gen.pl                     public domain + cut-down BSD fallback; JimF, magnum; code; the copyright notice and license are in doc/pass_gen.Manifest
+password.lst                    public domain; Solar; data; hereby placed into the public domain, and additionally it is unclear whether individual lists of words are subject to copyright (they might not be, for lack of creative content), although compilations (such as a collection of multiple word lists) could be copyrighted
+radius2john.pl                  cut-down BSD with slight language change; Didier ARENZANA; code; the license adds "as long as the original author is referenced", which is wording not found in BSD license
+relbench                        cut-down BSD; Solar, Frank; code
+sap2john.pl                     cut-down BSD; sap loverz (author, no copyright), magnum; code; says "Original code believed to be "(c) x7d8 sap loverz, public domain" (as noted in sapB_fmt_plug.c)", then places magnum's derived work (this Perl script) under cut-down BSD license
+sha-dump.pl                     unclear; unclear; code
+sha-test.pl                     unclear; unclear; code
+sipdump2john.py                 unclear; Dhiru; code
+stats                           unclear; bartavelle; data
+
+Regarding .chr and stats files: it is unclear whether statistics are
+subject to copyright (they might not be, for lack of creative content),
+although compilations could be copyrighted, and additionally
+availability of non-source data files only (not the original passwords,
+but only .chr files) might be in conflict with GPLv2.
+
+john-1.7.9-jumbo-7/src:
+AFS_fmt.c                       GPLv2; Solar; code
+BFEgg_fmt_plug.c                GPL; Sun-Zero; code; the comment says just "the GNU GPL" without clarifying which GPL version (JtR 1.6 had been released without clear indication of license, so a file introduced into the tree in 2002 was not automatically required to be compatible with GPLv2)
+BF_fmt.c                        GPLv2; Solar; code
+BF_std.c                        GPLv2; Solar; code
+BF_std.h                        GPLv2; Solar; code
+BSDI_fmt.c                      GPLv2; Solar; code
+DES_bs.c                        GPLv2; Solar; code
+DES_bs.h                        GPLv2; Solar; code
+DES_bs_b.c                      GPLv2; Solar; code
+DES_fmt.c                       GPLv2; Solar; code
+DES_std.c                       GPLv2; Solar; code
+DES_std.h                       GPLv2; Solar; code
+DMD5_fmt_plug.c                 unclear; regenrecht, magnum; code; magnum added "No rights reserved" for his changes to the code, but this might not be a sufficiently clear statement, and the copyright status and license of regenrecht's original version is unclear anyway (would have to be compatible with GPLv2 if the file was introduced by the author into JtR 1.7+ tree, but it is currently unclear whether it was originally contributed for pre-1.7 or 1.7+)
+DOMINOSEC_fmt_plug.c            unclear; regenrecht; code; no explicit license (same uncertainty as with regenrecht's original for DMD5_fmt_plug.c)
+EPI_fmt_plug.c                  unclear; Johannes Gumbel; code; contributed for 1.7.2 by the author, so GPLv2 compatibility may be implied
+HDAA_fmt_plug.c                 cut-down BSD; Romain Raboin, magnum; code
+IPB2_fmt_plug.c                 unclear; regenrecht; code; no explicit license (same uncertainty as with DOMINOSEC_fmt_plug.c)
+KRB4_fmt_plug.c                 3-clause BSD; Dug Song; code
+KRB4_std.h                      N/A; Dug Song; code; too minor for copyright
+KRB4_std_plug.c                 unclear; KTH Kerberos authors?; code; from OpenBSD tree, and in turn from KTH Kerberos tree - we should be able to find the copyright statement and license there
+KRB5_fmt_plug.c                 unclear; Dug Song, Nasko Oskov, KTH, MIT; code; Nasko did not include a license for his changes, the licenses for Heimdal project code may probably be found there
+KRB5_std.h                      unclear; Dug Song, Nasko Oskov, KTH, MIT; code; same issue as with KRB5_fmt_plug.c
+KRB5_std_plug.c                 unclear; Dug Song, Nasko Oskov, KTH, MIT; code; same issue as with KRB5_fmt_plug.c
+KeyDBCracker.c                  GPLv2+; Nagareshwar Y Talekar; code
+KeyDBCracker.h                  GPLv2+; Nagareshwar Y Talekar; code
+LM_fmt.c                        GPLv2; Solar; code
+MD5_fmt.c                       GPLv2; Solar, bartavelle; code; bartavelle's changes in jumbo add SIMD support and extra test vectors, the license is implied to be GPLv2 since the changes were added by the author into 1.7+ (even though sse-intrinsics.c is under cut-down BSD)
+MD5_std.c                       GPLv2; Solar; code
+MD5_std.h                       GPLv2; Solar, bartavelle; code; bartavelle's changes in jumbo add SIMD support, the license is implied to be GPLv2 since the changes were added by the author into 1.7+ (even though sse-intrinsics.c is under cut-down BSD)
+MSCHAPv2_fmt_plug.c             GPLv2; JoMo-Kun, magnum; code; there's a public domain statement by JoMo-Kun, but no statement by magnum, yet the license must be no more restrictive than GPLv2 because both authors directly contributed this code into 1.7+
+Makefile                        GPLv2; various; code; there are no copyright-worthy changes left from pre-1.7 contributions by other than Solar, and GPLv2 is implied for post-1.7 contributions made directly by their authors
+Makefile.dep                    N/A; none; empty
+NETLM_fmt_plug.c                GPLv2; JoMo-Kun, magnum; code; same issue as with MSCHAPv2_fmt_plug.c
+NETLMv2_fmt_plug.c              GPLv2; JoMo-Kun, magnum; code; same issue as with MSCHAPv2_fmt_plug.c
+NETNTLM_fmt_plug.c              GPLv2; JoMo-Kun, magnum; code; same issue as with MSCHAPv2_fmt_plug.c
+NETNTLMv2_fmt_plug.c            GPLv2; JoMo-Kun, magnum; code; same issue as with MSCHAPv2_fmt_plug.c
+NETSPLITLM_fmt_plug.c           public domain; DSK, JoMo-Kun, magnum; code; same statement by magnum as in MSCHAPv2_fmt_plug.c, but it is followed by "Code is in public domain" further in the same comment
+NS_fmt_plug.c                   public domain; Samuel Monux; code
+NT_fmt_plug.c                   public domain + cut-down BSD fallback; Alain, magnum; code
+PHPS_fmt_plug.c                 unclear; albert veli, regenrecht; code; contributed in 2007, so must be for 1.7+ and GPLv2 could be implied for that reason, but based on regenrecht's "salted IPB2 mode", which is of unclear licensing status (see IPB2_fmt_plug.c above)
+PO_fmt_plug.c                   unclear; David Luyer et al.; code; "This file adapted from other code in this project" with no clarification which other files were used, David's copyright notice is from 2005, which is pre-1.7
+SIPdump.c                       3-clause BSD; Martin J. Muench; code; comment refers to doc/SIPcrack-LICENSE
+SIPdump.h                       3-clause BSD; Martin J. Muench; code; comment refers to doc/SIPcrack-LICENSE
+SKEY_fmt.c                      3-clause BSD; Dug Song; code
+SybaseASE_fmt.c                 cut-down BSD; James Nobis, Dhiru, magnum; code; the licensing statement is slightly ambiguous as it relates to Dhiru's and magnum's changes (Dhiru and magnum need to add themselves to the list of copyright holders)
+UnicodeData.h                   public domain + cut-down BSD fallback; JimF; compile-time data; "manufactured from" UnicodeData.txt, which was presumably in the public domain (need to double-check), we might want to include the conversion code as a separate script (if we don't do that already), at least to be more obviously GPL-compatibile (must make available the source most appropriate for editing)
+XSHA512_fmt.c                   GPLv2; Solar; code; contains minor changes by others (too minor for copyright)
+XSHA_fmt_plug.c                 GPLv2; Solar, magnum; code; "Intrinsics support added by magnum 2011"
+alghmac.h                       MPL 1.1 or GPLv2+; Netscape; code; dual-licensed
+alpha.S                         GPLv2; Solar; code
+alpha.h                         GPLv2; Solar; code
+base64.c                        unclear; unclear; code; no copyright nor license statement on the file, it is unclear whether it was contributed by the author or by someone else, and when
+base64.h                        N/A; unclear; code; too minor for copyright
+batch.c                         GPLv2; Solar; code
+batch.h                         GPLv2; Solar; code
+bench.c                         GPLv2; Solar, JimF, magnum; code
+bench.h                         GPLv2; Solar; code
+best.c                          GPLv2; Solar; code
+best.sh                         GPLv2; Solar; code
+bf_tab.h                        N/A; unclear; compile-time data; not subject to copyright since the Blowfish S-boxes contain only digits of Pi
+blowfish.c                      public domain?; unclear, Sun-Zero; code; one comments says that "this entire module will remain public domain", but another says "ripped from eggdrop 1.3.28's source files" (were they public domain?) and "Modified by Sun-Zero" (in 2002) without clarifying whether the prior public domain comment applied to the file before or after Sun-Zero's modifications
+blowfish.h                      public domain; unclear; code; no explicit statement, but on one hand this is likely part of the public domain code referred to in blowfish.c and on the other data structure definitions are likely not copyrightable
+byteorder.h                     GPLv2+; Andrew Tridgell; code
+c3_fmt.c                        GPLv2; Solar, magnum; code; magnum added ability to benchmark other than descrypt hashes via this format
+calc_stat.c                     GPLv2; bartavelle; code; GPLv2 is implied since the author contributed this for 1.7+, but ideally we need explicit copyright and license statement, and one using cut-down BSD
+charset.c                       GPLv2; Solar; code; the changes in jumbo by other authors are very minor (support for building with MSVC, anything else?), so not subject to copyright
+charset.h                       GPLv2; Solar; code
+common-opencl.c                 GPLv2; unclear; code; was contributed by authors for 1.7+, hence GPLv2 is implied
+common-opencl.h                 GPLv2; unclear; code; was contributed by authors for 1.7+, hence GPLv2 is implied
+common.c                        GPLv2; Solar; code
+common.h                        GPLv2; Solar; code; the only change in jumbo is addition of is_aligned() macro, which is too minor for copyright
+common_opencl_pbkdf2.c          cut-down BSD; Sayantan; code
+common_opencl_pbkdf2.h          cut-down BSD; Sayantan; code
+compiler.c                      GPLv2; Solar; code
+compiler.h                      GPLv2; Solar; code
+config.c                        GPLv2; Solar, magnum; code; additions in jumbo for "include" directive support and printing of section names
+config.h                        GPLv2; Solar, magnum; code; additions in jumbo for "include" directive support and printing of s
+ection names
+cracker.c                       GPLv2; Solar, JimF, magnum?; code; jumbo adds UTF-8 support and regen_lost_salts
+cracker.h                       GPLv2; Solar; code
+crc32.c                         public domain; Solar; code
+crc32.h                         public domain; Solar; code
+crc32_fmt_plug.c                public domain + cut-down BSD fallback; JimF; code
+cryptsha256_fmt.c               cut-down BSD; magnum; code
+cryptsha512_fmt.c               cut-down BSD; magnum; code
+cuda                            cut-down BSD; various; directory
+cuda_common.h                   cut-down BSD; Lukas; code
+cuda_cryptmd5.h                 cut-down BSD; Lukas; code
+cuda_cryptmd5_fmt.c             cut-down BSD; Lukas; code
+cuda_cryptsha256.h              cut-down BSD; Lukas; code
+cuda_cryptsha256_fmt.c          cut-down BSD; Lukas; code
+cuda_cryptsha512.h              cut-down BSD; Lukas; code
+cuda_cryptsha512_fmt.c          cut-down BSD; Lukas; code
+cuda_mscash.h                   cut-down BSD; Lukas, Alain; code
+cuda_mscash2.h                  cut-down BSD; Lukas, S3nf; code
+cuda_mscash2_fmt.c              cut-down BSD; Lukas, S3nf; code
+cuda_mscash_fmt.c               cut-down BSD; Lukas, Alain; code
+cuda_phpass.h                   cut-down BSD; Lukas; code
+cuda_phpass_fmt.c               cut-down BSD; Lukas; code
+cuda_pwsafe.h                   cut-down BSD; Lukas; code
+cuda_pwsafe_fmt.c               cut-down BSD; Dhiru, Lukas; code; need to explicitly list Lukas as a copyright holder
+cuda_rawsha256.h                cut-down BSD; Lukas; code
+cuda_rawsha256_fmt.c            cut-down BSD; Lukas; code
+cuda_rawsha512.h                cut-down BSD; myrice; code
+cuda_rawsha512_fmt.c            cut-down BSD; myrice; code
+cuda_wpapsk.h                   cut-down BSD; Lukas; code
+cuda_wpapsk_fmt.c               cut-down BSD; Lukas; code
+cuda_xsha512.h                  cut-down BSD; myrice; code
+cuda_xsha512_fmt.c              cut-down BSD; Solar, myrice; code
+detect.c                        GPLv2; Solar; code; the check for compiler macros implying x86 has been expanded in jumbo by JimF, but this is too minor for copyright
+django_fmt.c                    cut-down BSD; Dhiru; code
+dragonfly3_fmt.c                cut-down BSD; magnum, code
+dragonfly4_fmt.c                cut-down BSD; magnum, code
+drupal7_fmt.c                   cut-down BSD; magnum, code
+dummy.c                         GPLv2; Solar; code
+dynamic.h                       public domain + cut-down BSD fallback; JimF; code
+dynamic_fmt.c                   public domain + cut-down BSD fallback; JimF; code
+dynamic_parser.c                public domain + cut-down BSD fallback; JimF; code
+dynamic_preloads.c              public domain + cut-down BSD fallback; JimF; code
+dynamic_utils.c                 public domain + cut-down BSD fallback; JimF; code
+encoding_data.h                 public domain + cut-down BSD fallback; JimF; compile-time data
+episerver_fmt.c                 cut-down BSD; Dhiru, JimF, magnum; code; we need explicit copyright statements from JimF and magnum
+external.c                      GPLv2; Solar, magnum; code; MPI support and ext_has_function() by magnum
+external.h                      GPLv2; Solar, magnum; code; ext_has_function() added by magnum
+fake_salts.c                    public domain + cut-down BSD fallback; JimF; code
+formats.c                       GPLv2; Solar, JimF, magnum; code; minor changes in jumbo for limiting max_keys_per_crypt (by magnum?) and for formats interface changes (by JimF), although the latter should be gone for 1.8+
+formats.h                       GPLv2; Solar, JimF; code; minor additions in jumbo for Unicode support and formats interface changes, although the latter should be gone for 1.8+
+genmkvpwd.c                     GPLv2; bartavelle; code; GPLv2 is implied since the author contributed this for 1.7+, but ideally we need explicit copyright and license statement, and one using cut-down BSD
+getopt.c                        GPLv2; Solar; code
+getopt.h                        GPLv2; Solar; code
+gladman_fileenc.h               3-clause BSD or GPL; Dr Brian Gladman; code; dual-licensed, but the version of GPL is not specified
+gladman_hmac.c                  3-clause BSD or GPL; Dr Brian Gladman; code; dual-licensed, but the version of GPL is not specified
+gladman_hmac.h                  3-clause BSD or GPL; Dr Brian Gladman; code; dual-licensed, but the version of GPL is not specified
+gladman_pwd2key.c               3-clause BSD or GPL; Dr Brian Gladman; code; dual-licensed, but the version of GPL is not specified
+gladman_pwd2key.h               3-clause BSD or GPL; Dr Brian Gladman; code; dual-licensed, but the version of GPL is not specified
+gladman_sha1.h                  N/A; unclear; too minor for copyright
+gost.h                          cut-down MIT?; Aleksey Kravchenko?; code; was taken from rhash, so is probably under cut-down MIT license just like gost_plug.c, but we need to double-check and include specific copyright and license, although data structures, etc. might not be subject to copyright
+gost_fmt_plug.c                 cut-down BSD; Dhiru, Sergey V., JimF; code
+gost_plug.c                     cut-down MIT; Aleksey Kravchenko; code; the cut-down MIT license is relaxed to the point of being copyright-only with no restrictions, similarly to how our cut-down BSD is
+hccap2john.c                    cut-down BSD; Lukas; code
+hmacMD5_fmt.c                   cut-down BSD; bartavelle, magnum; code
+hmacSHA1_fmt.c                  cut-down BSD; magnum, bartavelle; code
+hmacSHA224_fmt.c                cut-down BSD; magnum, bartavelle; code
+hmacSHA256_fmt.c                cut-down BSD; magnum, bartavelle; code
+hmacSHA384_fmt.c                cut-down BSD; magnum, bartavelle; code
+hmacSHA512_fmt.c                cut-down BSD; magnum, bartavelle; code
+hmacmd5.c                       GPLv2+; Luke Kenneth Casson Leighton, Andrew Tridgell; code
+hmacmd5.h                       GPLv2+; Luke Kenneth Casson Leighton, Andrew Tridgell; code
+hmailserver_fmt.c               cut-down BSD; James Nobis; code
+ia64.h                          GPLv2; Solar; code
+idle.c                          GPLv2; Solar; code; minor changes in jumbo (by JimF?) for building with MSVC and MinGW, too minor for copyright
+idle.h                          GPLv2; Solar; code
+inc.c                           GPLv2; Solar, JoMo-Kun, Ryan Lim, magnum; code; changes in jumbo include MPI support, progress indicator, special handling of NETLM and NETHALFLM (use the LanMan section by default)
+inc.h                           GPLv2; Solar; code
+john-mpi.c                      GPL; Ryan Lim, magnum?; code; no copyright and license statement on the file, but doc/LICENSE.mpi and doc/README.mpi apply, GPL version is unclear
+john-mpi.h                      GPL; Ryan Lim, magnum?; code; no copyright and license statement on the file, but doc/LICENSE.mpi and doc/README.mpi appl
+y, GPL version is unclear
+john.asm                        GPLv2; Solar; code
+john.c                          GPLv2; Solar, magnum, JimF, others?; code
+john.com                        GPLv2; Solar; code; compiled from john.asm
+johnswap.h                      GPLv2; JimF?; code; no copyright and license statement, but was contributed by the author(?) for 1.7+, so GPLv2 is implied
+keepass2john.c                  GPLv3+?; Dhiru, Karsten-Kai Koenig; code; Dhiru specified the license for his code as "GPL" without clarifying GPL version, "KeePass 2.x support is based on KeeCracker" and is under unclear license (unclear from the comment on this file), "KeePass 1.x support is based on kppy", which is under GPLv3+, and thus incompatible with JtR's licensing under GPLv2 - we might have to drop this file
+keepass_fmt.c                   cut-down BSD; Dhiru; code
+keychain2john.c                 cut-down BSD combined with another freeish license; Dhiru, Matt Johnston; code; the license by Matt says only "This code may be freely used and modified for any purpose", which unfortunately does not explicitly allow redistribution, let alone in binary and/or modified form - it would be nice to get that corrected (contact Matt or rewrite the code - in fact, it is so minor that there might not be much or any of the original code left already)
+keychain_fmt_plug.c             cut-down BSD combined with another freeish license; Dhiru, Matt Johnston; code; same licensing issue as above, and it is similarly unclear what if anything is left from Matt's original
+list.c                          GPLv2; Solar; code
+list.h                          GPLv2; Solar; code
+loader.c                        GPLv2; Solar, JimF, JoMo-Kun, others?; code
+loader.h                        GPLv2; Solar, JimF, others?; code
+logger.c                        GPLv2; Solar, JimF; code
+logger.h                        GPLv2; Solar, JimF; code
+lotus5_fmt_plug.c               unclear; Jeff Fay, bartavelle, Solar; code; the comment says "original work by Jeff Fay", but it is unclear whether that was in form of code that ended up in this source file or not, and when it was contributed to JtR (before or after 1.7)
+lowpbe.c                        MPL 1.1 or GPLv2+; Netscape; code; dual-licensed
+lowpbe.h                        MPL 1.1 or GPLv2+; Netscape; code; dual-licensed
+math.c                          GPLv2; Solar; code
+math.h                          GPLv2; Solar; code
+md4-mmx.S                       cut-down BSD; bartavelle; code
+md4.c                           public domain; Solar; code
+md4.h                           public domain; Solar; code; some function prototypes were added by bartavelle, but are too minor for copyright
+md4_gen_fmt_plug.c              GPLv2; Solar; code
+md5-mmx.S                       cut-down BSD; bartavelle; code
+md5.c                           public domain; Solar; code
+md5.h                           public domain; Solar; code; some function prototypes were added by bartavelle, but are too minor for copyright
+md5_eq.c                        unclear; Solar, David Luyer, Bucsay Balazs; code; modified from md5.c, which was public domain, but no clear notice was made as to whether David's and Bucsay's changes are also in the public domain
+md5_go.c                        unclear; Solar, David Luyer; code; modified from md5.c, which was public domain, but no clear notice was m
+ade as to whether David's changes are also in the public domain
+md5_go.h                        public domain; Solar, David Luyer; code; only trivial changes relative to md4.h
+mediawiki_fmt_plug.c            public domain + cut-down BSD fallback; JimF; code
+memory.c                        GPLv2; Solar, JimF?; code; the file does not specify who made the changes relative to core tree
+memory.h                        GPLv2; Solar, JimF?; code; the file does not specify who made the changes relative to core tree
+mips32.h                        GPLv2; Solar; code
+mips64.h                        GPLv2; Solar; code
+misc.c                          GPLv2; Solar; code; there are minor additions in jumbo: building with MSVC support (by JimF), MPI friendliness, addition of strupr() - these are probably too minor for copyright
+misc.h                          GPLv2; Solar; code; there are minor additions in jumbo: building with MSVC support (by JimF)
+mkv.c                           cut-down BSD; bartavelle; code; was the MPI support possibly added by magnum? the file doesn't specify that
+mkv.h                           cut-down BSD; bartavelle; code
+mkvcalcproba.c                  cut-down BSD; bartavelle; code
+mkvlib.c                        cut-down BSD; bartavelle; code
+mkvlib.h                        cut-down BSD; bartavelle; code
+mozilla2john.c                  unclear; Dhiru?; code; if this file was written from scratch specifically for JtR 1.7+, then GPLv2 is implied, but without a copyright statement it is unclear who its author is
+mozilla_des.c                   MPL 1.1 or GPLv2+; Nelson B. Bolyard; code; dual-licensed
+mozilla_des.h                   MPL 1.1 or GPLv2+; Nelson B. Bolyard; code; dual-licensed
+mozilla_fmt.c                   GPLv2+; Dhiru, Nagareshwar Y Talekar; code; Dhiru specified the license for his code as "GPL" without clarifying GPL version, but the code by Nagareshwar is GPLv2+, so perhaps this was assumed - yet it is unclear whether code by Nagareshwar is actually (still) in this source file, and it's better to clarify the license (and relax it to cut-down BSD if no GPL'ed code is used)
+mscash1_fmt_plug.c              public domain + cut-down BSD fallback; Alain, magnum; code
+mscash2_fmt_plug.c              public domain + cut-down BSD fallback; S3nf, magnum, JimF; code; need to clarify that JimF's changes fall under the same terms, need to clarify that "This module is based on [...] the HMAC-SHA1 implementation of the PolarSSL open source cryptagraphic library" is not meant literally or at least that there's no longer any code from PolarSSL in this file
+mskrb5_fmt_plug.c               cut-down BSD; magnum; code
+mssql-old_fmt_plug.c            cut-down BSD; bartavelle, magnum; code
+mssql05_fmt_plug.c              cut-down BSD or GPLv2?; bartavelle, Mathieu Perrin, magnum; code; the file uses our usual cut-down BSD license, but it also has "Modified by Mathieu Perrin (mathieu at tpfh.org) 09/06" with no license statement for Mathieu's changes (also 09/06 is inconsistent with bartavelle's copyright being 2010 only) - yet since even September 2006 (under worst possible interpretation) is JtR 1.7 days and all contributions were directly by their authors specifically for JtR, this implies no worse than GPLv2
+mysqlSHA1_fmt_plug.c            cut-down BSD or GPLv2?; Marti Raudsepp, magnum; code; there's no license specified for Marti, but it's a 2007 contribution, so 1.7+ and GPLv2, magnum's change is "Use of SSE2 intrinsics" and it is under cut-down BSD, possibly not leaving much of the original file left (the file is small)
+mysql_fmt_plug.c                GPLv2; Bucsay Balazs, Peter Kasza?, Solar; code; no explicit license and it is unclear if Peter contributed code or merely suggested that "Unbelievable good optimization", but since it's 2008 and contributions specifically for JtR 1.7+, GPLv2 is implied
+nonstd.c                        cut-down BSD; Solar; code
+nsldap_fmt_plug.c               unclear (maybe cut-down BSD); magnum; code; has cut-down BSD license on it, yet is "based on NSLDAP_fmt.c and rawSHA1_fmt.c", which might not (have been) compatible with that - how much is left from there, and who are the authors?
+nt2_fmt_plug.c                  cut-down BSD; magnum, bartavelle?; code; has cut-down BSD license on it, yet is "Losely based on rawSHA1, by bartavelle" (how loosely? if not as loosely as to obviously not be subject to bartavelle's copyright, then we'd better add such copyright statement and include bartavelle's work under same license - with permission, of course)
+odf_fmt_plug.c                  cut-down BSD; Dhiru; code
+office2john.c                   LGPL 2.1; Dhiru, Jody Goldberg; code
+office_fmt_plug.c               GPLv2; Dhiru; code; GPLv2 is implied due to this being direct contribution by the author into JtR 1.7+
+opencl                          various; various; directory
+opencl_bf_fmt.c                 cut-down BSD; Sayantan; code
+opencl_bf_std.c                 cut-down BSD or GPLv2; Sayantan; code; "Based on Solar Designer implementation of bf_std.c in jtr-v1.7.8", which means it'd have to be under GPLv2 currently - should re-release BF_std.c under relaxed terms publicly, so that Sayantan's derived work could also be under relaxed terms
+opencl_bf_std.h                 cut-down BSD; Sayantan; code
+opencl_cryptmd5_fmt.c           cut-down BSD; Lukas; code
+opencl_cryptsha512.h            cut-down BSD; Claudio, Lukas; code
+opencl_cryptsha512_fmt.c        GPLv2; Claudio, Samuele; code; GPL'ed per Samuele's preference
+opencl_mscash2_fmt.c            cut-down BSD; S3nf, Sayantan; code
+opencl_mysqlsha1_fmt.c          GPLv2; Samuele; code; GPL'ed per Samuele's preference
+opencl_nsldaps_fmt.c            GPLv2; Samuele; code; GPL'ed per Samuele's preference
+opencl_nt_fmt.c                 public domain + cut-down BSD fallback; Alain, Samuele; code
+opencl_phpass_fmt.c             cut-down BSD; Lukas; code
+opencl_pwsafe_fmt.c             cut-down BSD; Dhiru, Lukas; code; need explicit copyright statement from Lukas ("OpenCL port by Lukas Odzioba" is not enough as it does not clarify that the same terms apply to Lukas' changes)
+opencl_rar.h                    N/A; unclear; code; too minor for copyright
+opencl_rawmd4_fmt.c             GPLv2; unclear; code; file mentions that it's based on work by Solar and Alain, but does not specify its final author, nor does it provide a license, although GPLv2 is implied since this is direct contribution by its author to 1.7+
+opencl_rawmd5_fmt.c             GPLv2; unclear; code; same issue as opencl_rawmd4_fmt.c
+opencl_rawsha1_fmt.c            GPLv2; Samuele; code; GPL'ed per Samuele's preference
+opencl_rawsha512_fmt.c          cut-down BSD; myrice; code
+opencl_wpapsk_fmt.c             cut-down BSD?; Lukas; code; file has our cut-down BSD license, but also says "Code is based on  Aircrack-ng source", which is likely licensed under more restrictive terms, however the file doesn't appear to actually use much or anything from Aircrack-ng - need to check and correct the statement
+opencl_xsha512_fmt.c            cut-down BSD; Solar, myrice; code
+options.c                       GPLv2; Solar, JimF, magnum, others?; code
+options.h                       GPLv2; Solar, JimF, magnum, others?; code
+oracle11_fmt_plug.c             GPLv2; Alexandre Hamelin, magnum; code; no license statement for Alexandre's code, but instead a statement that it is "Based on saltSHA1 format source" (by whom? under what license?), "Intrinsics use" is by magnum and under cut-down BSD, yet for now we have to assume that GPLv2 is implied since this is a contribution to 1.7+ (in 2008)
+oracle_fmt_plug.c               unclear; bartavelle, magnum; code; no license statement for bartavelle's code (and it's 2004, so pre-1.7), "UTF-8 support" is by magnum and under cut-down BSD
+osc_fmt_plug.c                  GPLv2; JimF; code; no license statement, but it's a contribution by its author into 1.7+, so GPLv2 is implied
+pa-risc.h                       GPLv2; Solar; code
+para-best.c                     GPLv2; Solar, magnum; code; "This file made by magnum, based on best.c. No rights reserved" and the changes by magnum are very minor, so Solar can relicense this file
+para-best.pl                    cut-down BSD; magnum; code
+params.c                        GPLv2; Solar; code
+params.h                        GPLv2; Solar; code; there are some trivial changes by others, too trivial to be subject to copyright
+path.c                          GPLv2; Solar, JimF; code; jumbo adds JimF's MSVC and MinGW support code (DOS pathnames)
+path.h                          GPLv2; Solar, JimF?; code
+pdf2john.c                      GPLv2+; Henning Noren, Dhiru; code
+pdf_fmt.c                       GPLv2+; Henning Noren, Dhiru; code; does this file really use any of Henning's code? it doesn't appear to
+pdfcrack.c                      GPLv2+; Henning Noren, Glyph & Cog, LLC; code
+pdfcrack.h                      GPLv2+; Henning Noren; code
+pdfcrack_common.c               GPLv2+; Henning Noren; code
+pdfcrack_common.h               GPLv2+; Henning Noren; code
+pdfcrack_md5.c                  GPLv2+; Henning Noren, Glyph & Cog, LLC; code
+pdfcrack_md5.h                  GPLv2+; Henning Noren; code
+pdfcrack_rc4.c                  GPLv2+; Henning Noren; code
+pdfcrack_rc4.h                  GPLv2+; Henning Noren; code
+pdfparser.c                     GPLv2+; Henning Noren; code
+pdfparser.h                     GPLv2+; Henning Noren; code
+phpassMD5_fmt_plug.c            public domain + cut-down BSD fallback; JimF; code
+pixMD5_fmt_plug.c               cut-down BSD; bartavelle, JimF; code; the copyright statement on this file is bartavelle's, but "Converted to thin format, into $dynamic_19$ format" suggests that its content has been largely replaced by JimF - so we need JimF's copyright and license as well (or instead, if none of bartavelle's code is left)
+pkzip.h                         N/A; unclear; compile-time data, code; too minor for copyright: the file consists of the CRC-32 table (trivially computed) and data structure definitions, nevertheless it'd be nice to specify its origin, status, license if we could
+pkzip_fmt_plug.c                public domain + cut-down BSD fallback; JimF; code
+pkzip_inffixed.h                3-clause BSD; Jean-loup Gailly, Mark Adler; compile-time data
+plugin.c                        cut-down BSD; David Jones; code
+plugin.h                        N/A; David Jones?; code; too minor for copyright, nevertheless it'd be nice to specify its origin, status, license if we could
+ppc32.h                         GPLv2; Solar; code
+ppc32alt.h                      GPLv2; Solar; code
+ppc64.h                         GPLv2; Solar; code
+ppc64alt.h                      GPLv2; Solar; code
+pwsafe2john.c                   cut-down BSD; Dhiru; code
+pwsafe_fmt.c                    cut-down BSD; Dhiru; code
+racf2john.c                     cut-down BSD; Dhiru; code
+racf_fmt_plug.c                 cut-down BSD; Dhiru; code
+rar2john.c                      cut-down BSD; Dhiru, magnum; code
+rar_fmt.c                       cut-down BSD; Dhiru, magnum; code; uses public domain code by Alexander Roshal (lines 240 to 274 from crypt.cpp in unrarsrc-4.0.7)
+raw2dyna.c                      unclear; JimF; code; no copyright and license statement, standalone program, hence no implied license
+rawMD4_fmt_plug.c               GPLv2; Solar, magnum; code
+rawMD5_fmt_plug.c               cut-down BSD or GPLv2?; magnum; code; says "Raw-MD5 (thick) based on Raw-MD4 w/ mmx/sse/intrinsics", but the latter fell under GPLv2 because it was based on Solar's - need to relax license for rawMD4_fmt_plug.c by licensing both Solar's and magnum's changes to it as cut-down BSD
+rawSHA0_fmt.c                   cut-down BSD; magnum; code; "Based on Raw-SHA1"
+rawSHA1_fmt_plug.c              unclear; bartavelle, magnum; code; bartavelle's copyright statement is from 2004, which might not imply GPLv2, and no explicit license from magnum either
+rawSHA1_linkedIn_fmt_plug.c     unclear; bartavelle, magnum, JimF; code; similar to rawSHA1_fmt_plug.c, but JimF's contribution also lacks a license
+rawSHA1_ng_fmt.c                GPLv2+; Tavis Ormandy; code; GPL'ed per Tavis' preference
+rawSHA224_fmt.c                 GPLv2; Solar, groszek; code; GPLv2 is implied due to groszek basing this on Solar's code for 1.7+ and contributing to 1.7+
+rawSHA256_fmt.c                 GPLv2; Solar, groszek; code; GPLv2 is implied due to groszek basing this on Solar's code for 1.7+ and contributing to 1.7+
+rawSHA384_fmt.c                 GPLv2; Solar, groszek; code; GPLv2 is implied due to groszek basing this on Solar's code for 1.7+ and contributing to 1.7+
+rawSHA512_fmt.c                 GPLv2; Solar, groszek; code; GPLv2 is implied due to groszek basing this on Solar's code for 1.7+ and contributing to 1.7+
+rawmd5u_fmt_plug.c              cut-down BSD; magnum; code
+rc4.c                           public domain; magnum; code; "Put together by magnum in 2011. No Rights Reserved."
+rc4.h                           public domain; magnum; code; "Put together by magnum in 2011. No Rights Reserved."
+recovery.c                      GPLv2; Solar, JimF, magnum?; code; jumbo adds MPI support and changes for building with MSVC
+recovery.h                      GPLv2; Solar; code
+rpp.c                           GPLv2; Solar, magnum; code; jumbo adds support for \xNN
+rpp.h                           GPLv2; Solar; code
+rules.c                         GPLv2; Solar, magnum, JimF; code; jumbo adds character encodings support, elimination of duplicate rules, MPI support, and the '_' command
+rules.h                         GPLv2; Solar, magnum, JimF; code; jumbo adds elimination of duplicate rules
+salted_sha1_fmt_plug.c          cut-down BSD; bartavelle, magnum; code
+sapB_fmt_plug.c                 cut-down BSD; sap loverz, magnum; code; "(c) x7d8 sap loverz, public domain, btw" - "(c)" and "public domain" are mutually exclusive, need to correct that
+sapG_fmt_plug.c                 cut-down BSD; sap loverz, magnum; code; "(c) x7d8 sap loverz, public domain, btw" - "(c)" and "public domain" are mutually exclusive, need to correct that
+sboxes-s.c                      cut-down BSD; Solar; code
+sboxes.c                        N/A; Solar; too minor for copyright (wrapper only)
+sha.h                           N/A; unclear (maybe JimF, bartavelle); code; function prototypes only, likely too minor for copyright, nevertheless it'd be nice to specify its origin, status, license if we could
+sha1-mmx.S                      unclear; bartavelle?; code; no copyright and license statements
+sha1_gen_fmt_plug.c             GPLv2; Solar; code
+signals.c                       GPLv2; Solar, JimF, magnum; code; jumbo adds MPI support, time limit, ability to build with MSVC and MinGW
+signals.h                       GPLv2; Solar, JimF, magnum; code; jumbo adds MPI support, time limit, ability to build with MSVC and MinGW
+single.c                        GPLv2; Solar, JimF, magnum; code; jumbo adds MPI support, progress indicator
+single.h                        GPLv2; Solar; code
+sip_fmt_plug.c                  3-clause BSD; Dhiru, Martin J. Muench; code; comment refers to doc/SIPcrack-LICENSE; it is unclear if this file actually uses any of Martin's code or probably not
+sip_fmt_plug.h                  3-clause BSD; Martin J. Muench; code; comment refers to doc/SIPcrack-LICENSE
+sparc32.h                       GPLv2; Solar; code
+sparc64.h                       GPLv2; Solar; code
+sse-intrinsics-32.S             cut-down BSD; bartavelle, JimF, Solar; code; compiled from sse-intrinsics.c with icc
+sse-intrinsics-64.S             cut-down BSD; bartavelle, JimF, Solar; code; compiled from sse-intrinsics.c with icc
+sse-intrinsics.c                cut-down BSD; bartavelle, JimF, Solar; code; it is unclear from the comment whether JimF's and Solar's changes fall under the cut-down BSD license or are separate - need to add proper copyright statements to before the license
+sse-intrinsics.h                cut-down BSD; bartavelle; code; perhaps a mention that the SHA-1 additions are by JimF should be added (if this is true), along with his copyright statement
+sse2i_winfix.pl                 cut-down BSD?; magnum, JimF; code; "Based on a script by Jim Fougeron" without specifying the license for that script makes it unclear if magnum's cut-down BSD license truly applies to the entirety of this file
+ssh2john.c                      cut-down BSD; Dhiru; code
+ssh_fmt.c                       cut-down BSD; Dhiru; code
+stages_mmx_md5.S                N/A; bartavelle?; compile-time data; too minor for copyright, nevertheless it'd be nice to specify its origin, status, license if we could
+stages_sse2_md5.S               N/A; bartavelle?; compile-time data; too minor for copyright, nevertheless it'd be nice to specify its origin, status, license if we could
+status.c                        GPLv2; Solar, JimF, magnum; code; jumbo adds ETA indicator and MPI support
+status.h                        GPLv2; Solar; code; jumbo makes minor changes to function prototypes (too minor for added copyright)
+stdbool.h                       N/A; unclear; code; too minor for copyright
+stdint.h                        N/A; unclear; code; too minor for copyright
+symlink.c                       GPLv2; Solar; code; jumbo makes minor change for building with MSVC, by JimF
+tgtsnarf.c                      3-clause BSD; Dug Song; code
+timer.c                         public domain + cut-down BSD fallback; JimF; code
+timer.h                         public domain + cut-down BSD fallback; JimF; code
+times.h                         GPLv2; Solar; code
+trip_fmt.c                      GPLv2; Solar; code
+tty.c                           GPLv2; Solar; code; jumbo makes minor change for building with MSVC and MinGW, by JimF
+tty.h                           GPLv2; Solar; code
+unafs.c                         GPLv2; Solar; code
+undrop.c                        GPLv2; Sun-Zero; code; "This is a free software distributable under terms of the GNU GPL. See the file COPYING for details.", possible reuse of code from Eggdrop (GPL'ed?)
+unicode.c                       GPLv2+ and Unicode license; Andrew Tridgell, Jeremy Allison, unspecified others, Unicode, magnum; code; Unicode's freeish license is potentially GPL-incompatible (imposes an extra restriction - requires that their disclaimer be included with each copy - whereas the GPL doesn't permit extra restrictions)
+unicode.h                       Unicode license; Unicode; code
+unique.c                        cut-down BSD; Solar, JimF; code; jumbo adds many command-line options
+unrar.c                         unRAR license; Alexander L. Roshal, trog, magnum; code; the unRAR license may be GPL-incompatible (disallows "to re-create the RAR compression algorithm" and requires that "it is clearly stated in the documentation and source comments that the code may not be used to develop a RAR (WinRAR) compatible archiver"), so we may have to drop this
+unrar.h                         unRAR license; Alexander L. Roshal, trog, magnum; code; same issue as with unrar.c, but this file might be too minor for copyright
+unrarcmd.c                      unRAR license; Alexander L. Roshal, trog, magnum; code; same issue as with unrar.c, but this file might be too minor for copyright
+unrarcmd.h                      unRAR license; Alexander L. Roshal, trog, magnum; code; same issue as with unrar.c, but this file is too minor for copyright
+unrarfilter.c                   unRAR license; Alexander L. Roshal, trog, magnum; code; same issue as with unrar.c
+unrarfilter.h                   unRAR license; Alexander L. Roshal, trog, magnum; code; same issue as with unrar.c, but this file is too minor for copyright
+unrarhlp.c                      unRAR license; Alexander L. Roshal?, Sourcefire, magnum; code; same issue as with unrar.c, but this file might be too minor for copyright
+unrarhlp.h                      unRAR license; Alexander L. Roshal?, Sourcefire, magnum; code; same issue as with unrar.c, but this file is too minor for copyright
+unrarppm.c                      unRAR license; Alexander L. Roshal, trog, magnum; code; same issue as with unrar.c
+unrarppm.h                      unRAR license; Alexander L. Roshal, trog, magnum; code; same issue as with unrar.c, but this file might be too minor for copyright
+unrarvm.c                       unRAR license; Alexander L. Roshal, trog, magnum; code; same issue as with unrar.c
+unrarvm.h                       unRAR license; Alexander L. Roshal, trog, magnum; code; same issue as with unrar.c
+unshadow.c                      GPLv2; Solar; code
+unused                          various; various; directory
+vax.h                           GPLv2; Solar; code
+vnc_fmt_plug.c                  GPLv2; Dhiru, Jack Lloyd; code; GPL'ed because VNCcrack was, although doesn't use much (any?) code from it (and the data table is not copyrightable)
+vncpcap2john.cpp                GPLv2; Dhiru, Jack Lloyd; code; GPL'ed because VNCcrack was
+wbb3_fmt_plug.c                 cut-down BSD; Dhiru; code
+win32_memmap.c                  GPLv2; JimF?; code; no copyright and license statement, but GPLv2 is implied due to use from wordlist.c as contributed into 1.7+
+win32_memmap.h                  GPLv2; JimF?; code; no copyright and license statement, but GPLv2 is implied due to use from wordlist.c as contributed into 1.7+
+wordlist.c                      GPLv2; Solar, JimF, magnum; code; jumbo adds memory buffer, elimination of duplicates, loopback mode, MPI support, progress indicator
+wordlist.h                      GPLv2; Solar; code
+wpapsk.h                        cut-down BSD?; Lukas; code; file has our cut-down BSD license, but also says "Code is based on  Aircrack-ng source", which is likely licensed under more restrictive terms, however the file doesn't appear to actually use much or anything from Aircrack-ng - need to check and correct the statement
+wpapsk_fmt.c                    cut-down BSD?; Lukas; code; same issue as with wpapsk.h
+x86-64.S                        cut-down BSD; Solar, Alain; code; Solar's code is under cut-down BSD, Alain's is public domain + cut-down BSD fallback
+x86-64.h                        GPLv2; Solar; code; with trivial changes in jumbo by Alain, bartavelle, JimF, magnum
+x86-any.h                       GPLv2; Solar; code; with a trivial change in jumbo by JimF (MSVC build support)
+x86-mmx.S                       cut-down BSD; Solar; code
+x86-mmx.h                       GPLv2; Solar; code; with trivial changes in jumbo by bartavelle (MMX_COEF) and JimF (MSVC build support)
+x86-sse.S                       cut-down BSD; Solar, Alain; code; Solar's code is under cut-down BSD, Alain's is public domain + cut-down BSD fallback
+x86-sse.h                       GPLv2; Solar; code; with trivial changes in jumbo by Alain, bartavelle, JimF
+x86.S                           GPLv2; Solar; code
+zip2john.c                      cut-down BSD; Dhiru, JimF; code; the license for JimF's changes ("Updated in Aug 2011 by JimF") is unclear, need to make it explicit
+zip_fmt.c                       cut-down BSD; Dhiru; code
+
+john-1.7.9-jumbo-7/src/cuda:
+cryptmd5.cu                     cut-down BSD; Lukas; code
+cryptsha256.cu                  cut-down BSD; Lukas; code
+cryptsha512.cu                  cut-down BSD; Lukas; code
+cuda_common.cu                  cut-down BSD; Lukas; code
+cuda_common.cuh                 cut-down BSD; Lukas; code
+mscash.cu                       cut-down BSD; Lukas, Alain; code; "Based on Alain Espinosa implementation", which was public domain with cut-down BSD license fallback
+mscash2.cu                      cut-down BSD; Lukas, S3nf; code; "Based on S3nf implementation", which was public domain with cut-down BSD license fallback
+phpass.cu                       cut-down BSD; Lukas; code
+pwsafe.cu                       cut-down BSD; Lukas; code
+rawsha256.cu                    cut-down BSD; Lukas; code
+rawsha512.cu                    cut-down BSD; myrice; code
+wpapsk.cu                       cut-down BSD; Lukas; code
+xsha512.cu                      cut-down BSD; myrice; code
+
+john-1.7.9-jumbo-7/src/opencl:
+bf_kernel.cl                    cut-down BSD or GPLv2; Sayantan; code; "Based on Solar Designer implementation of bf_std.c in jtr-v1.7.8", which means it'd have to be under GPLv2 currently - should re-release BF_std.c under relaxed terms publicly, so that Sayantan's derived work could also be under relaxed terms
+cryptmd5_kernel.cl              cut-down BSD; Lukas; code
+cryptsha512_kernel_AMD.cl       cut-down BSD; Lukas, Claudio; code
+cryptsha512_kernel_CPU.cl       cut-down BSD; Lukas, Claudio; code
+cryptsha512_kernel_DEFAULT.cl   cut-down BSD; Lukas, Claudio; code
+cryptsha512_kernel_NVIDIA.cl    cut-down BSD; Lukas, Claudio; code
+md4_kernel.cl                   cut-down BSD; Dhiru, Solar; code
+md5_kernel.cl                   cut-down BSD; Dhiru, Solar; code
+msha_kernel.cl                  GPLv2; Samuele; code; GPL'ed per Samuele's preference
+nt_kernel.cl                    public domain + cut-down BSD fallback; Alain, Samuele; code
+pbkdf2_kernel.cl                cut-down BSD; Sayantan, S3nf; code; "Based on S3nf implementation", which was public domain with cut-down BSD license fallback
+phpass_kernel.cl                cut-down BSD; Lukas; code
+pwsafe_kernel.cl                cut-down BSD; Lukas; code
+rar_kernel.cl                   cut-down BSD; magnum; code
+sha1_kernel.cl                  GPLv2; Samuele; code; GPL'ed per Samuele's preference
+sha256_kernel.cl                GPLv2+; Dhiru, Christophe Devine, Southern Storm Software; code; GPL'ed because of reuse of a third-party SHA-256 implementation as base for Dhiru's port to OpenCL
+sha512_kernel.cl                cut-down BSD; myrice; code
+ssha_kernel.cl                  GPLv2; Samuele; code; GPL'ed per Samuele's preference
+wpapsk_kernel.cl                cut-down BSD; Lukas; code
+xsha512_kernel.cl               cut-down BSD; myrice; code
+
+john-1.7.9-jumbo-7/src/unused:
+00-key3.db
+01-key3.db
+CRACF.TXT
+ConvertUTF.c.original
+ConvertUTF.h.original
+MYSQL_fmt_plug.c
+NSLDAPS_fmt_plug.c
+NSLDAP_fmt_plug.c
+OPENLDAPS_fmt_plug.c
+PHPS_fmt_orig.c
+crc32-calculator.c
+crc32.py
+d3des.c
+d3des.h
+dsa_test.key
+epidump
+fmt_registers.orig.h
+keepassdump
+mozilladump
+mscash2_fmt_plug.c
+pdfdump
+phpassMD5_fmt_orig.c
+pixMD5_fmt_plug.c
+pwsafedump
+racfdump
+racfdump2
+rardump
+rarinfo.c
+rawMD5_thin_fmt_plug.c
+rawMD5unicode_fmt_plug.c
+rawmd5u_thin_fmt_plug.c
+rsa_test.key
+sipdump.txt
+sipdumpjohn.txt
+sshdump
+vnc-decoder.c
+vncdump
+x86-64.orig.S
+x86-sse.orig.S
+zipdump

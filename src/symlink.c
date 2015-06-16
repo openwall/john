@@ -3,10 +3,15 @@
  * Copyright (c) 1996-98 by Solar Designer
  *
  * ...with changes in the jumbo patch for MSC, by JimF.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*
- * Symlink emulation for Win32.
+ * Symlink emulation for Windows.
  */
 
 #include <string.h>
@@ -14,7 +19,7 @@
 
 #define MAIN_NAME			"john.exe"
 
-int main(int argc, char **argv)
+int main(int argc, const char **argv)
 {
 #if !defined (_MSC_VER)
 	char path[strlen(argv[0] ? argv[0] : "") + sizeof(MAIN_NAME)];

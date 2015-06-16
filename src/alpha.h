@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2000,2008 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*
@@ -10,6 +15,9 @@
 #ifndef _JOHN_ARCH_H
 #define _JOHN_ARCH_H
 
+#if AC_BUILT
+#include "autoconfig.h"
+#else
 #define ARCH_WORD			long
 #define ARCH_SIZE			8
 #define ARCH_BITS			64
@@ -17,11 +25,10 @@
 #define ARCH_BITS_STR			"64"
 #define ARCH_LITTLE_ENDIAN		1
 #define ARCH_INT_GT_32			0
+#endif
+
 #define ARCH_ALLOWS_UNALIGNED		0
 #define ARCH_INDEX(x)			((unsigned long)(unsigned char)(x))
-
-#define OS_TIMER			1
-#define OS_FLOCK			1
 
 #define CPU_DETECT			0
 

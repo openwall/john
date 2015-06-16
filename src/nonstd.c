@@ -27,7 +27,7 @@
 #endif
 
 #undef triop
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__i386__)) && !defined(__AVX__)
 #define triop 0
 #else
 #define triop 1

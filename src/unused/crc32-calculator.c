@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include "stdint.h"
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
@@ -23,6 +23,10 @@ static void process_file(const char *filename)
 
 	printf("file name : %s, file size : %ld, CRC32: ", filename, size);
 	unsigned char *buf = (unsigned char *) malloc(size);
+	if (buf == NULL) {
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		exit(EXIT_FAILURE);
+	}
 	long count = fread(buf, 1, size, fp);
 	assert(count == size);
 

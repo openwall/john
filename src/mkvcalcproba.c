@@ -1,31 +1,29 @@
 /*
- * This software is Copyright © 2010 bartavelle, <bartavelle at bandecon.com>, and it is hereby released to the general public under the following terms:
+ * This software is Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>, and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  */
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
-#if !defined (_MSC_VER)
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
-#else
+#endif
+#if _MSC_VER
 #pragma warning ( disable : 4244 )
 #endif
 #include <string.h>
-
-#if defined (__MINGW32__) || defined (_MSC_VER)
-// Later versions of MSVC can handle %lld but some older
-// ones can only handle %I64d.  Easiest to simply use
-// %I64d then all versions of MSVC will handle it just fine
-#define LLd "I64d"
-#else
-#define LLd "lld"
-#endif
 
 #define MAX_LVL_LEN 28
 #define MAX_LEN 7
 
 #include "params.h"
 #include "mkvlib.h"
+#include "memory.h"
+#include "jumbo.h"
+#include "memdbg.h"
 
 #define C2I(c) ((unsigned int)(unsigned char)(c))
 
@@ -46,16 +44,16 @@ int main(int argc, char * * argv)
 	unsigned int charset;
 	unsigned int nb_lignes;
 
-	if(argc!=3)
+	if(argc < 2 || argc > 3)
 	{
-		printf("Usage: %s statfile pwdfile\n", argv[0]);
+		printf("Usage: %s statfile [pwdfile]\n", argv[0]);
 		return -1;
 	}
 
 	fichier = fopen(argv[1], "r");
 	if(!fichier)
 	{
-		printf("could not open %s\n", argv[1]);
+		fprintf(stderr, "could not open %s\n", argv[1]);
 		return -1;
 	}
 
@@ -63,15 +61,30 @@ int main(int argc, char * * argv)
 	if(first == NULL)
 	{
 		perror("malloc first");
+		fclose(fichier);
 		return 3;
 	}
 
 	ligne = malloc(4096);
-	if(ligne == NULL) { perror("malloc ligne"); return 3; }
+	if(ligne == NULL) {
+		perror("malloc ligne");
+		fclose(fichier);
+		return 3;
+	}
 	proba2 = malloc(sizeof(unsigned char) * 256 * 256);
-	if(proba2 == NULL) { perror("malloc proba2"); return 3; }
+	if(proba2 == NULL) {
+		perror("malloc proba2");
+		free(ligne);
+		fclose(fichier);
+		return 3;
+	}
 	proba1 = malloc(sizeof(unsigned char) * 256 );
-	if(proba1 == NULL) { perror("malloc proba1"); return 3; }
+	if(proba1 == NULL) {
+		perror("malloc proba1");
+		free(ligne);
+		fclose(fichier);
+		return 3;
+	}
 	for(i=0;i<256*256;i++)
 		proba2[i] = UNK_STR;
 	for(i=0;i<256;i++)
@@ -131,14 +144,19 @@ int main(int argc, char * * argv)
 	fprintf(stderr, "%d lines parsed [%p]\n", nb_lignes, fichier);
 	fclose(fichier);
 
-	fichier = fopen(argv[2], "r");
-	if(!fichier)
-	{
-		printf("could not open %s\n", argv[2]);
-		return -1;
+	if (argc == 3) {
+		fichier = fopen(argv[2], "r");
+		if(!fichier)
+		{
+			fprintf(stderr, "could not open %s\n", argv[2]);
+			MEM_FREE(ligne);
+			return -1;
+		}
+		fprintf(stderr, "scanning password file ...\n");
+	} else {
+		fichier = stdin;
+		fprintf(stderr, "reading from stdin ...\n");
 	}
-
-	fprintf(stderr, "scanning password file ...\n");
 	while(fgets(ligne, 4096, fichier))
 	{
 		if (ligne[0] == 0)
@@ -170,7 +188,7 @@ int main(int argc, char * * argv)
 			i++;
 		}
 		if(index<8E18)
-			printf("\t%d\t%d\t%"LLd"\t%d\n",k,i,index,l);
+			printf("\t%d\t%d\t"LLd"\t%d\n",k,i,index,l);
 		else
 			printf("\t%d\t%d\t-\t%d\n",k,i,l);
 	}
@@ -178,14 +196,16 @@ int main(int argc, char * * argv)
 
 	fclose(fichier);
 
-	free(proba1);
-	free(proba2);
+	MEM_FREE(proba1);
+	MEM_FREE(proba2);
 
-	free(first);
+	MEM_FREE(first);
 
-	free(ligne);
+	MEM_FREE(ligne);
 
 	fprintf(stderr, "charsetsize = %d\n", charset);
+
+	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
 	return 0;
 }

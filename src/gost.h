@@ -1,0 +1,171 @@
+/* gost.h */
+#ifndef GOST_H
+#define GOST_H
+
+#include <stdlib.h>
+
+#include "arch.h"
+#include "stdint.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* if x86 compatible cpu */
+	// NOTE, we should get this from johnswap.h, but I have not done so 'yet'
+	// A lot (all??) of the swapping code should also come from johnswap.h
+#if !defined (CPU_X64) && !defined (CPU_IA32)
+#if defined(i386) || defined(__i386__) || defined(__i486__) || \
+	defined(__i586__) || defined(__i686__) || defined(__pentium__) || \
+	defined(__pentiumpro__) || defined(__pentium4__) || \
+	defined(__nocona__) || defined(prescott) || defined(__core2__) || \
+	defined(__k6__) || defined(__k8__) || defined(__athlon__) || \
+	defined(__amd64) || defined(__amd64__) || \
+	defined(__x86_64) || defined(__x86_64__) || defined(_M_IX86) || \
+	defined(_M_AMD64) || defined(_M_IA64) || defined(_M_X64)
+/* detect if x86-64 instruction set is supported */
+# if defined(_LP64) || defined(__LP64__) || defined(__x86_64) || \
+	defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X64)
+#  define CPU_X64
+# else
+#  define CPU_IA32
+# endif
+#endif
+#endif
+
+#if defined(__GNUC__) && defined(CPU_IA32) && !defined(RHASH_NO_ASM)
+# define USE_GCC_ASM_IA32
+#elif defined(__GNUC__) && defined(CPU_X64) && !defined(RHASH_NO_ASM)
+# define USE_GCC_ASM_X64
+#endif
+
+#define IS_ALIGNED_32(p) (0 == (3 & ((const char*)(p) - (const char*)0)))
+#define IS_ALIGNED_64(p) (0 == (7 & ((const char*)(p) - (const char*)0)))
+
+#if defined(_MSC_VER) || defined(__BORLANDC__)
+#define I64(x) x##ui64
+#else
+#define I64(x) x##LL
+#endif
+
+/* convert a hash flag to index */
+#if __GNUC__ >= 4 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4) /* GCC < 3.4 */
+# define rhash_ctz(x) __builtin_ctz(x)
+#else
+unsigned rhash_ctz(unsigned); /* define as function */
+#endif
+
+void rhash_u32_swap_copy(void* to, int index, const void* from, size_t length);
+void rhash_u64_swap_copy(void* to, int index, const void* from, size_t length);
+void rhash_u32_memswap(unsigned *p, int length_in_u32);
+
+/* define bswap_32 */
+#if defined(__GNUC__) && defined(CPU_IA32) && !defined(__i386__)
+/* for intel x86 CPU */
+static inline uint32_t bswap_32(uint32_t x) {
+	__asm("bswap\t%0" : "=r" (x) : "0" (x));
+	return x;
+}
+#elif defined(__GNUC__)  && (__GNUC__ >= 4) && (__GNUC__ > 4 || __GNUC_MINOR__ >= 3)
+/* for GCC >= 4.3 */
+# define bswap_32(x) __builtin_bswap32(x)
+#elif (_MSC_VER > 1300) && (defined(CPU_IA32) || defined(CPU_X64)) /* MS VC */
+# define bswap_32(x) _byteswap_ulong((unsigned long)x)
+#elif !defined(__STRICT_ANSI__)
+/* general bswap_32 definition.  Note, bswap_32 already defined as inline in GCC 3.4.4, but it sux. */
+static inline uint32_t _JtR_Swap_32(uint32_t x) {
+	x = ((x << 8) & 0xFF00FF00) | ((x >> 8) & 0x00FF00FF);
+	return (x >> 16) | (x << 16);
+}
+# define bswap_32(x) _JtR_Swap_32(x)
+#else
+#define bswap_32(x) ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
+	(((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
+#endif /* bswap_32 */
+
+#if defined(__GNUC__) && (__GNUC__ >= 4) && (__GNUC__ > 4 || __GNUC_MINOR__ >= 3)
+# define bswap_64(x) __builtin_bswap64(x)
+#elif (_MSC_VER > 1300) && (defined(CPU_IA32) || defined(CPU_X64)) /* MS VC */
+# define bswap_64(x) _byteswap_uint64((__int64)x)
+#elif !defined(__STRICT_ANSI__)
+/* general bswap_64 definition.  Note, bswap_64 already defined as inline in GCC 3.4.4, but it sux. */
+static inline uint64_t _JtR_Swap_64(uint64_t x) {
+	union {
+		uint64_t ll;
+		uint32_t l[2];
+	} w, r;
+	w.ll = x;
+	r.l[0] = bswap_32(w.l[1]);
+	r.l[1] = bswap_32(w.l[0]);
+	return r.ll;
+}
+# define bswap_64(x) _JtR_Swap_64(x)
+#else
+#error "bswap_64 unsupported"
+#endif
+
+#if !ARCH_LITTLE_ENDIAN
+# define be2me_32(x) (x)
+# define be2me_64(x) (x)
+# define le2me_32(x) bswap_32(x)
+# define le2me_64(x) bswap_64(x)
+
+# define be32_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
+# define le32_copy(to, index, from, length) rhash_u32_swap_copy((to), (index), (from), (length))
+# define be64_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
+# define le64_copy(to, index, from, length) rhash_u64_swap_copy((to), (index), (from), (length))
+#else /* !ARCH_LITTLE_ENDIAN */
+# define be2me_32(x) bswap_32(x)
+# define be2me_64(x) bswap_64(x)
+# define le2me_32(x) (x)
+# define le2me_64(x) (x)
+
+# define be32_copy(to, index, from, length) rhash_u32_swap_copy((to), (index), (from), (length))
+# define le32_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
+# define be64_copy(to, index, from, length) rhash_u64_swap_copy((to), (index), (from), (length))
+# define le64_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
+#endif /* !ARCH_LITTLE_ENDIAN */
+
+/* ROTL/ROTR macros rotate a 32/64-bit word left/right by n bits */
+#define ROTL32(dword, n) ((dword) << (n) ^ ((dword) >> (32 - (n))))
+#define ROTR32(dword, n) ((dword) >> (n) ^ ((dword) << (32 - (n))))
+#define ROTL64(qword, n) ((qword) << (n) ^ ((qword) >> (64 - (n))))
+#define ROTR64(qword, n) ((qword) >> (n) ^ ((qword) << (64 - (n))))
+
+#define gost_block_size 32
+#define gost_hash_length 32
+
+/* algorithm context */
+typedef struct gost_ctx {
+	unsigned hash[8];  /* algorithm 256-bit state */
+	unsigned sum[8];   /* sum of processed message blocks */
+	unsigned char message[gost_block_size]; /* 256-bit buffer for leftovers */
+	uint64_t length;   /* number of processed bytes */
+	unsigned cryptpro; /* boolean flag, the type of sbox to use */
+} gost_ctx;
+
+typedef struct gost_hmac_ctx {
+	unsigned char ipad[32];
+	unsigned char opad[32];
+	gost_ctx ctx;
+} gost_hmac_ctx;
+
+/* hash functions */
+
+void john_gost_init(gost_ctx *ctx);
+void john_gost_cryptopro_init(gost_ctx *ctx);
+void john_gost_update(gost_ctx *ctx, const unsigned char* msg, size_t size);
+void john_gost_final(gost_ctx *ctx, unsigned char result[32]);
+
+void john_gost_hmac_starts( gost_hmac_ctx *ctx, const unsigned char *key, size_t keylen );
+void john_gost_hmac_update( gost_hmac_ctx *ctx, const unsigned char *input, size_t ilen );
+void john_gost_hmac_finish( gost_hmac_ctx *ctx, unsigned char *output );
+void john_gost_hmac( const unsigned char *key, size_t keylen, const unsigned char *input, size_t ilen, unsigned char *output );
+
+void gost_init_table(void); /* initialize algorithm static data */
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
+
+#endif /* GOST_H */

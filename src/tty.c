@@ -3,8 +3,14 @@
  * Copyright (c) 1996-99,2003,2010 by Solar Designer
  *
  * ...with changes in the jumbo patch for mingw and MSC, by JimF.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#include "arch.h"
 #if defined (__MINGW32__) || defined (_MSC_VER)
 #include <conio.h>
 #else
@@ -12,8 +18,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#if !defined (_MSC_VER)
+#if !AC_BUILT || HAVE_TERMIOS_H
 #include <termios.h>
+#endif
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
 #include <stdlib.h>
@@ -25,17 +33,14 @@
 #define O_NONBLOCK			O_NDELAY
 #endif
 
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 #include <string.h>
 #include <sys/socket.h>
-#ifndef __CYGWIN__
-extern int tcgetattr(int fd, struct termios *termios_p);
-extern int tcsetattr(int fd, int actions, struct termios *termios_p);
-#endif
 #endif
 #endif /* !defined __MINGW32__ */
 
 #include "tty.h"
+#include "memdbg.h"
 
 #if !defined(__DJGPP__) && !defined(__MINGW32__) && !defined (_MSC_VER)
 static int tty_fd = -1;
@@ -61,7 +66,7 @@ void tty_init(int stdin_mode)
 
 	if ((fd = open("/dev/tty", O_RDONLY | O_NONBLOCK)) < 0) return;
 
-#ifndef __CYGWIN32__
+#ifndef __CYGWIN__
 	if (tcgetpgrp(fd) != getpid()) {
 		close(fd); return;
 	}
@@ -84,16 +89,18 @@ int tty_getchar(void)
 {
 #if !defined(__DJGPP__) && !defined(__MINGW32__) && !defined (_MSC_VER)
 	int c;
-#ifdef __CYGWIN32__
+#if defined (__NOT_NEEDED_ANY_MORE___) && defined (__CYGWIN__)
 	fd_set set;
 	struct timeval tv;
 #endif
 
 	if (tty_fd >= 0) {
-#ifdef __CYGWIN32__
+#if defined (__NOT_NEEDED_ANY_MORE___) && defined (__CYGWIN__)
+#error "Should NOT get here"
 		FD_ZERO(&set); FD_SET(tty_fd, &set);
 		tv.tv_sec = 0; tv.tv_usec = 0;
 		if (select(tty_fd + 1, &set, NULL, NULL, &tv) <= 0)
+		//if (!(select(tty_fd + 1, &set, NULL, NULL, &tv) && FD_ISSET(tty_fd, &set)))
 			return -1;
 #endif
 		c = 0;

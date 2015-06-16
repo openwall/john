@@ -10,7 +10,7 @@
  *
  *  The module contains code derived or copied from the Heimdal project.
  *
- *  Copyright (c) 1997-2000 Kungliga Tekniska Högskolan
+ *  Copyright (c) 1997-2000 Kungliga Tekniska HÃ¶gskolan
  *  (Royal Institute of Technology, Stockholm, Sweden).
  *  All rights reserved.
  *
@@ -30,10 +30,6 @@
 #define DES3_KEY_BITS           168
 #define DES3_KEY_BITS_BYTES     DES3_KEY_BITS/8
 #define DES3_KEY_SCHED_SIZE     (sizeof(DES_key_schedule) * 3)
-
-#ifndef sfree
-#define sfree(x, len) if (x) { /* memset(x, 0x00, len); */ free(x); }
-#endif
 
 #ifndef min
 #define min(A, B) ((A) < (B) ? (A): (B))

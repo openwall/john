@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2005,2009,2011 by Solar Designer
+ * Copyright (c) 1996-99,2005,2009,2011,2013 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*
@@ -15,12 +20,22 @@
 
 #if ARCH_INT_GT_32
 typedef unsigned short ARCH_WORD_32;
+typedef unsigned int ARCH_WORD_64;
 #else
 typedef unsigned int ARCH_WORD_32;
+typedef unsigned long long ARCH_WORD_64;
 #endif
 
+/* ONLY use this to check alignments of even power of 2 (2, 4, 8, 16, etc) byte counts (CNT).
+   The cast to void* MUST be done, due to C spec. http://stackoverflow.com/a/1898487 */
+#define is_aligned(PTR, CNT) ((((ARCH_WORD)(const void *)(PTR))&(CNT-1))==0)
+
 #ifdef __GNUC__
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
+#if __GNUC__ >= 5
+#define MAYBE_INLINE __attribute__((gnu_inline)) inline
+#elif __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7) || defined(__INTEL_COMPILER)
+#define MAYBE_INLINE __attribute__((always_inline)) inline
+#elif __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
 #define MAYBE_INLINE __attribute__((always_inline))
 #else
 #define MAYBE_INLINE __inline__
@@ -51,12 +66,34 @@ typedef unsigned int ARCH_WORD_32;
 /*
  * ASCII <-> binary conversion tables.
  */
-extern char itoa64[64], atoi64[0x100];
-extern char itoa16[16], atoi16[0x100];
+extern const char itoa64[64]; /* crypt(3) base64 - not MIME Base64! */
+extern char atoi64[0x100];
+extern const char itoa16[16];
+extern char atoi16[0x100];
+extern const char itoa16u[16]; // uppercase
 
 /*
  * Initializes the tables.
  */
 extern void common_init(void);
+
+/**************************************************************
+ * added 'common' helper functions for things used in valid() *
+ **************************************************************/
+
+/* is string full valid hex string */
+int ishex(char *q);
+/* is string full valid hex string (only upper case letters) */
+int ishexuc(char *q);
+/* is string full valid hex string (only lower case letters) */
+int ishexlc(char *q);
+/* length of hex. if non-hex chars found, then negative length of valid hex */
+int hexlen(char *q);
+/* is this a valid string for atoi() ONLY positive numbers are valid */
+int isdec(char *q);
+/* is this a valid string for atoi() */
+int isdec_negok(char *q);
+/* is this a valid string for atou()?  atou() func == sprintf("%x",&val) */
+int isdecu(char *q);
 
 #endif

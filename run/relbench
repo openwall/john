@@ -1,9 +1,12 @@
 #!/usr/bin/perl -w
 #
-# John the Ripper benchmark output comparison tool, revision 4
+# John the Ripper benchmark output comparison tool, revision 4.1
 # Copyright (c) 2011 Solar Designer
+# Enhancements for revision 4.1, copyright (c) 2012 Frank Dittrich
 # Redistribution and use in source and binary forms, with or without
-# modification, are permitted.  (This is a heavily cut-down "BSD license".)
+# modification, are permitted.
+# There's ABSOLUTELY NO WARRANTY, express or implied.
+# (This is a heavily cut-down "BSD license".)
 #
 # This is a Perl script to compare two "john --test" benchmark runs,
 # such as for different machines, "make" targets, C compilers,
@@ -25,24 +28,38 @@
 # values will tend to deviate from 0.0 and 1.0, respectively.
 #
 
-$warned = 0;
-
 sub parse
 {
 	chomp;
+	s/\r$//;  # strip CR for non-Windows
+	return if /^DONE/;
 	if (/^$/) {
 		undef $id;
 		undef $name;
 		undef $kind; undef $real; undef $virtual;
 		return;
 	}
+
+	if (/^(All|\d+ out of) \d+ (tests|formats)( have)? (passed self-tests|FAILED)/) {
+		($total) = /^All (\d+) (tests|formats)( have)? passed self-tests/;
+		if (!defined($total)) {
+			($failed, $total) =
+			    /^(\d+) out of (\d+) (tests|formats)( have)? FAILED/;
+		}
+		return;
+	}
+	return if /Benchmarking: .*\.\.\. FAILED/;
+
+	if (/^Speed for cost /) {
+		return;
+	}
 	my $ok = 0;
 	if (defined($name)) {
 		($kind, $real, $reals, $virtual, $virtuals) =
-		    /^([\w ]+):\s+([\d.]+)([KM]?) c\/s real, ([\d.]+)([KM]?) c\/s virtual$/;
+		    /^\t?([\w ]+):\s+([\d.]+)([KM]?) c\/s real, ([\d.]+)([KM]?) c\/s virtual$/;
 		if (!defined($virtual)) {
 			($kind, $real, $reals) =
-			    /^([\w ]+):\s+([\d.]+)([KM]?) c\/s$/;
+			    /^\t?([\w ]+):\s+([\d.]+)([KM]?) c\/s$/;
 			$virtual = $real; $virtuals = $reals;
 			print "Warning: some benchmark results are missing virtual (CPU) time data\n" unless ($warned);
 			$warned = 1;
@@ -57,40 +74,135 @@ sub parse
 			return;
 		}
 	} else {
-		($name) = /^Benchmarking: (.+) \[.*\].* DONE$/;
+		($name) = /^\t?Benchmarking: ([^\[]+) \[.*\].* (DONE|Warning:.*)$/;
 		$ok = defined($name);
 	}
 	print STDERR "Could not parse: $_\n" if (!$ok);
 }
 
-die "Usage: $0 BENCHMARK-FILE-1 BENCHMARK-FILE-2\n" if ($#ARGV != 1);
+sub sort_benchmarks
+{
+	local $_;
+	$_ = "$a";
+	($name_a, $number_a, $benchmark_a) = /^(.*[^\d])(\d+):(.*)$/;
+	if(!defined($number_a)) {
+		$number_a = -1;
+		($name_a, $benchmark_a) = /^(.*):(.*)$/;
+	}
+	$_ = "$b";
+	($name_b, $number_b, $benchmark_b) = /^(.*[^\d])(\d+):(.*)$/;
+	if(!defined($number_b)) {
+		$number_b = -1;
+		($name_b, $benchmark_b) = /^(.*):(.*)$/;
+	}
+	if ($name_a ne $name_b) { return $name_a cmp $name_b }
+	elsif ($number_a != $number_b) { return $number_a <=> $number_b }
+	elsif ($benchmark_b eq "Short") { return 1 }
+	else { return $benchmark_a cmp $benchmark_b }
+}
 
-open(B1, '<' . $ARGV[0]) || die "Could not open file: $ARGV[0] ($!)";
-open(B2, '<' . $ARGV[1]) || die "Could not open file: $ARGV[1] ($!)";
+die "Usage: $0 [-v] BENCHMARK-FILE-1 BENCHMARK-FILE-2\n" if ($#ARGV != 1 && ($#ARGV != 2 || $ARGV[0] ne '-v'));
 
+if ($#ARGV != 1) {
+	open(B1, '<' . $ARGV[1]) || die "Could not open file: $ARGV[1] ($!)";
+	open(B2, '<' . $ARGV[2]) || die "Could not open file: $ARGV[2] ($!)";
+	$verbose = 1;
+} else {
+	open(B1, '<' . $ARGV[0]) || die "Could not open file: $ARGV[0] ($!)";
+	open(B2, '<' . $ARGV[1]) || die "Could not open file: $ARGV[1] ($!)";
+	$verbose = 0;
+}
+ 
+$warned = 0;
+$onlyin1 = 0;
+$onlyin2 = 0;
+$name1 = "";
+$name2 = "";
+$namesonlyin1 = 0;
+$namesonlyin2 = 0;
+
+$failed = 0;
+$total = 0; 
 $_ = '';
 parse();
 while (<B1>) {
 	parse();
+	if (defined($name) && $name ne $name1) {
+		$name1 = $name;
+		if(defined($n1{$name1})) {
+			$n1{$name1} += 1;
+		}
+		else {
+			$n1{$name1} = 1;
+		}
+	}
 	next unless (defined($id));
-	$b1r{$id} = $real;
-	$b1v{$id} = $virtual;
-}
+	if(defined($b1r{$id})) {
+		print STDERR "More than one benchmark for $id in file 1\n";
+		if($real > $b1r{$id} || ($real == $b1r{$id} && $virtual > $b1v{$id})) {
+			$b1r{$id} = $real;
+			$b1v{$id} = $virtual;
+		}
+	} else {
+		$b1r{$id} = $real;
+		$b1v{$id} = $virtual;
+}	}
 close(B1);
+if($failed != 0) {
+	print "File 1: $failed out of $total tests have FAILED\n"
+}
 
+$failed = 0;
+$total = 0; 
 $_ = '';
 parse();
 while (<B2>) {
 	parse();
+	if (defined($name) && $name ne $name2) {
+		$name2 = $name;
+		if(defined($n2{$name2})) {
+			$n2{$name2} += 1;
+		}
+		else {
+			$n2{$name2} = 1;
+		}
+	}
 	next unless (defined($id));
-	$b2r{$id} = $real;
-	$b2v{$id} = $virtual;
+	if(defined($b2r{$id})) {
+		print STDERR "More than one benchmark for $id in file 2\n";
+		if($real > $b2r{$id} || ($real == $b2r{$id} && $virtual > $b2v{$id})) {
+			$b2r{$id} = $real;
+			$b2v{$id} = $virtual;
+		}
+	} else {
+		$b2r{$id} = $real;
+		$b2v{$id} = $virtual;
+	}
 }
 close(B2);
 
-foreach $id (keys %b1r) {
+if($failed != 0) {
+	print "File 2: $failed out of $total tests have FAILED\n"
+}
+
+foreach $name (keys %n1) {
+	if (!defined($n2{$name})) {
+		$namesonlyin1 += 1;
+		next;
+	}
+}
+
+foreach $name (keys %n2) {
+	if (!defined($n1{$name})) {
+		$namesonlyin1 += 1;
+		next;
+	}
+}
+ 
+foreach $id (sort sort_benchmarks keys %b1r) {
 	if (!defined($b2r{$id})) {
 		print "Only in file 1: $id\n";
+		$onlyin1 += 1;
 		next;
 	}
 }
@@ -98,9 +210,15 @@ foreach $id (keys %b1r) {
 $minr = $maxr = $minv = $maxv = -1.0;
 $mr = $mv = 1.0;
 $n = 0;
-foreach $id (keys %b2r) {
+foreach $id (sort sort_benchmarks keys %b2r) {
 	if (!defined($b1r{$id})) {
 		print "Only in file 2: $id\n";
+		$onlyin2 += 1;
+		next;
+	}
+}
+foreach $id (sort sort_benchmarks keys %b2r) {
+	if (!defined($b1r{$id})) {
 		next;
 	}
 	my $kr = $b2r{$id} / $b1r{$id};
@@ -114,8 +232,14 @@ foreach $id (keys %b2r) {
 	$mr *= $kr;
 	$mv *= $kv;
 	$n++;
+	if ($verbose == 1) {
+		printf "Ratio:\t%.5f real, %.5f virtual\t$id\n", $kr, $kv;
+	}
 }
-
+if ($onlyin1 != 0 && $onlyin2 != 0 && $namesonlyin1 != 0 && $namesonlyin2 != 0) {
+	print STDERR "Converting the two benchmark files using benchmark-unify might\n";
+	print STDERR "increase the number of benchmarks which can be compared\n";
+}
 print "Number of benchmarks:\t\t$n\n";
 exit unless ($n);
 

@@ -2,13 +2,21 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-99,2003 by Solar Designer
  *
- * ...with changes in the jumbo patch for MSC, by JimF.
+ * ...with changes in the jumbo patch, by JimF and magnum.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <stdio.h>
-#ifndef _MSC_VER
+#define NEED_OS_FORK
+#include "os.h"
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
-#else
+#endif
+#ifdef _MSC_VER
 #include <io.h>
 #pragma warning ( disable : 4996 )
 #endif
@@ -18,42 +26,45 @@
 #include <errno.h>
 
 #include "logger.h"
+#include "params.h"
+#include "misc.h"
+#include "options.h"
 
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
+#include "memdbg.h"
 
-void error(void)
+void real_error(char *file, int line)
 {
 #ifndef _JOHN_MISC_NO_LOG
-	log_event("Terminating on error");
+	log_event("Terminating on error, %s:%d", file, line);
 	log_done();
-#if defined(HAVE_MPI) && defined(JOHN_MPI_ABORT)
-	if (mpi_p > 1)
-		MPI_Abort(MPI_COMM_WORLD,1);
-#endif
 #endif
 
 	exit(1);
 }
 
-void pexit(char *format, ...)
+void real_pexit(char *file, int line, char *format, ...)
 {
 	va_list args;
 
-#ifndef _JOHN_MISC_NO_LOG
-#ifdef HAVE_MPI
+#if defined(HAVE_MPI) && !defined(_JOHN_MISC_NO_LOG)
 	if (mpi_p > 1)
-		fprintf(stderr, "Node %u@%s: ", mpi_id, mpi_name);
+		fprintf(stderr, "%u@%s: ", mpi_id + 1, mpi_name);
+	else
+#elif OS_FORK && !defined(_JOHN_MISC_NO_LOG)
+	if (options.fork)
+		fprintf(stderr, "%u: ", options.node_min);
 #endif
-#endif
+
 	va_start(args, format);
 	vfprintf(stderr, format, args);
 	va_end(args);
 
 	fprintf(stderr, ": %s\n", strerror(errno));
 
-	error();
+	real_error(file, line);
 }
 
 int write_loop(int fd, const char *buffer, int count)
@@ -119,10 +130,24 @@ char *strnzcpy(char *dst, const char *src, int size)
 
 	if (size)
 		while (--size)
-			if (!(*dptr++ = *src++)) break;
+			if (!(*dptr++ = *src++)) return dst;
 	*dptr = 0;
 
 	return dst;
+}
+
+int strnzcpyn(char *dst, const char *src, int size)
+{
+	char *dptr;
+	if (!size) return 0;
+
+	dptr = dst;
+
+	while (--size)
+		if (!(*dptr++ = *src++)) return (dptr-dst)-1;
+	*dptr = 0;
+
+	return (dptr-dst)-1;
 }
 
 char *strnzcat(char *dst, const char *src, int size)
@@ -142,31 +167,43 @@ char *strnzcat(char *dst, const char *src, int size)
 	return dst;
 }
 
-// NOTE there is an encoding-aware version in unicode.c: enc_strlwr(). That
-// one should be used for usernames, plaintexts etc in formats.
-#ifndef _MSC_VER
-char *strlwr(char *s)
+/*
+ * strtok code, BUT returns empty token "" for adjacent delmiters. It also
+ * returns leading and trailing tokens for leading and trailing delimiters
+ * (strtok strips them away and does not return them). Several other issues
+ * in strtok also impact this code
+ *  - static pointer, not thread safe
+ *  - mangled input string (requires a copy)
+ * These 'bugs' were left in, so that this function is a straight drop in for
+ * strtok, with the caveat of returning empty tokens for the 3 conditions.
+ * Other than not being able to properly remove multiple adjacent tokens in
+ * data such as arbitrary white space removal of text files, this is really
+ * is what strtok should have been written to do from the beginning (IMHO).
+ * A strtokm_r() should be trivial to write if we need thread safety, or need
+ * to have multiple strtokm calls working at the same time, by just passing
+ * in the *last pointer.
+ * JimF, March 2015.
+ */
+char *strtokm(char *s1, const char *delims)
 {
-	unsigned char *ptr = (unsigned char *)s;
+	static char *last = NULL;
+	char *endp;
 
-	while (*ptr)
-	if (*ptr >= 'A' && *ptr <= 'Z')
-		*ptr++ |= 0x20;
-	else
-		ptr++;
-
-	return s;
+	if (!s1)
+		s1 = last;
+	if (!s1 || *s1 == 0)
+		return last = NULL;
+	endp = strpbrk(s1, delims);
+	if (endp) {
+		*endp = '\0';
+		last = endp + 1;
+	} else
+		last = NULL;
+	return s1;
 }
-char *strupr(char *s)
-{
-	unsigned char *ptr = (unsigned char *)s;
 
-	while (*ptr)
-	if (*ptr >= 'a' && *ptr <= 'z')
-		*ptr++ ^= 0x20;
-	else
-		ptr++;
-
-	return s;
+unsigned atou(const char *src) {
+	unsigned val;
+	sscanf(src, "%u", &val);
+	return val;
 }
-#endif

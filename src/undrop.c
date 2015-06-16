@@ -9,10 +9,12 @@
 
 #include <stdio.h>
 #include <string.h>
-#if !defined (_MSC_VER)
+#include "os.h"
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
 
+#include "memdbg.h"
 
 #define USERFILE_HEADER "#4v:"
 #define USERNAME_LENGTH 11
@@ -35,7 +37,7 @@ int undrop(int argc, char *argv[]) {
 	printf("# userfile reading from stdin\n");
     } else {
         if ((userfile = fopen(argv[1], "rt")) == NULL) {
-    	        fprintf(stderr, "opening userfile\n");
+	        fprintf(stderr, "opening userfile\n");
 	        userfile = stdin;
         }
     }
@@ -46,6 +48,7 @@ int undrop(int argc, char *argv[]) {
 
     if (strncmp(t_line, USERFILE_HEADER, strlen(USERFILE_HEADER)) != 0) {
 	fprintf(stderr, "usefile format is wrong\n");
+	fclose(userfile);
 	return 1;
     } else {
 	printf("# userfile format OK\n\n");
@@ -65,7 +68,7 @@ int undrop(int argc, char *argv[]) {
 	}
 
 	if (strncmp(t_line, "--PASS +", 8) == 0) {
-	    sscanf(t_line, "--PASS %s", password);
+	    sscanf(t_line, "--PASS %12s", password);
 	    printf("%s:%s:::%s:\n", username, password, flags);
 	}
 	fflush(stdout);

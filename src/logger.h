@@ -3,6 +3,11 @@
  * Copyright (c) 1996-99,2003 by Solar Designer
  *
  * ...with field_sep introduced in the jumbo patch, by JimF.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*
@@ -21,7 +26,8 @@ extern void log_init(char *log_name, char *pot_name, char *session);
  * Prints a guessed password to stdout and logs it to john.pot (unless
  * ciphertext is NULL) and other related information to the log file.
  */
-extern void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain, char field_sep);
+extern void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
+                      char *store_plain, char field_sep, int index);
 
 /*
  * Logs an arbitrary event.
@@ -29,7 +35,7 @@ extern void log_guess(char *login, char *ciphertext, char *rep_plain, char *stor
  * The caller must make sure that any conversion specifiers in the
  * format string expand to no more than 500 characters.
  */
-extern void log_event(char *format, ...)
+extern void log_event(const char *format, ...)
 #ifdef __GNUC__
 	__attribute__ ((format (printf, 1, 2)));
 #else

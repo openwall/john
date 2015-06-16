@@ -18,41 +18,40 @@
  * It's a slight improvement over the old hash, but still not something a
  * reasonable DBMS would use for password storage.
  *
- * Use of SSE2 intrinsics added by magnum 2011, no rights reserved
+ * Use of SSE2 intrinsics: Copyright magnum 2012 and hereby released to the
+ * general public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, is permitted.
  *
  */
+
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_mysqlSHA1;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_mysqlSHA1);
+#else
 
 #include <string.h>
 
 #include "arch.h"
 
-#ifdef SHA1_SSE_PARA
-#define MMX_COEF	4
-#include "sse-intrinsics.h"
-#define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
-#elif MMX_COEF
-#define NBKEYS	MMX_COEF
+#ifdef SIMD_COEF_32
+#define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
+#include "sse-intrinsics.h"
 
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "sha.h"
+#include "johnswap.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"mysql-sha1"
-#define FORMAT_NAME			"MySQL 4.1 double-SHA-1"
+#define FORMAT_NAME			"MySQL 4.1+"
 
-#ifdef SHA1_SSE_PARA
-#define ALGORITHM_NAME			"SSE2i " SHA1_N_STR
-#elif defined(MMX_COEF) && MMX_COEF == 4
-#define ALGORITHM_NAME			"SSE2 4x"
-#elif defined(MMX_COEF) && MMX_COEF == 2
-#define ALGORITHM_NAME			"MMX 2x"
-#elif defined(MMX_COEF)
-#define ALGORITHM_NAME			"?"
-#else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
-#endif
+#define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -61,56 +60,49 @@
 #define CIPHERTEXT_LENGTH		41
 
 #define BINARY_SIZE			20
+#define BINARY_ALIGN			MEM_ALIGN_WORD
 #define SALT_SIZE			0
+#define SALT_ALIGN			MEM_ALIGN_NONE
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
+
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*4*MMX_COEF ) //for endianity conversion
-#define BYTESWAP(n) (	\
-                      (((n)&0x000000ff) << 24) |	\
-                      (((n)&0x0000ff00) << 8 ) |	\
-                      (((n)&0x00ff0000) >> 8 ) |	\
-                      (((n)&0xff000000) >> 24) )
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
+
 #else
+
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
+
 #endif
 
 static struct fmt_tests tests[] = {
 	{"*5AD8F88516BD021DD43F171E2C785C69F8E54ADB", "tere"},
-	{"*2C905879F74F28F8570989947D06A8429FB943E6", "verysecretpassword"},
+	{"*2c905879f74f28f8570989947d06a8429fb943e6", "verysecretpassword"},
 	{"*A8A397146B1A5F8C8CF26404668EFD762A1B7B82", "________________________________"},
 	{"*F9F1470004E888963FB466A5452C9CBD9DF6239C", "12345678123456781234567812345678"},
 	{"*97CF7A3ACBE0CA58D5391AC8377B5D9AC11D46D9", "' OR 1 /*'"},
 	{"*2470C0C06DEE42FD1618BB99005ADCA2EC9D1E19", "password"},
 	{"*7534F9EAEE5B69A586D1E9C1ACE3E3F9F6FCC446", "5"},
+	{"*be1bdec0aa74b4dcb079943e70528096cca985f8", ""},
+	{"*0D3CED9BEC10A777AEC23CCC353A8C08A633045E", "abc"},
+	{"*18E70DF2758EE4C0BD954910E5808A686BC38C6A", "VAwJsrUcrchdG9"},
+	{"*440F91919FD39C01A9BC5EDB6E1FE626D2BFBA2F", "lMUXgJFc2rNnn"},
+	{"*171A78FB2E228A08B74A70FE7401C807B234D6C9", "TkUDsVJC"},
+	{"*F7D70FD3341C2D268E98119ED2799185F9106F5C", "tVDZsHSG"},
 	{NULL}
 };
 
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 /* Cygwin would not guarantee the alignment if these were declared static */
 #define saved_key mysqlSHA1_saved_key
 #define crypt_key mysqlSHA1_crypt_key
 #define interm_key mysqlSHA1_interm_key
-#ifdef _MSC_VER
-__declspec(align(16)) char saved_key[80*4*NBKEYS];
-__declspec(align(16)) char crypt_key[BINARY_SIZE*NBKEYS];
-__declspec(align(16)) char interm_key[80*4*NBKEYS];
-#else
-char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
-char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
-char interm_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
-#endif
-#ifndef SHA1_SSE_PARA
-static unsigned long total_len;
-#if MMX_COEF > 2
-/* argument to shammx(); all intermediary plaintexts are 20 bytes long */
-#define TMPKEY_LENGTHS 0x14141414
-#else
-#define TMPKEY_LENGTHS 0x00140014
-#endif
-#endif
+
+JTR_ALIGN(MEM_ALIGN_SIMD) char saved_key[SHA_BUF_SIZ*4*NBKEYS];
+JTR_ALIGN(MEM_ALIGN_SIMD) char crypt_key[BINARY_SIZE*NBKEYS];
+JTR_ALIGN(MEM_ALIGN_SIMD) char interm_key[SHA_BUF_SIZ*4*NBKEYS];
 
 #else
 static char saved_key[PLAINTEXT_LENGTH + 1];
@@ -118,7 +110,7 @@ static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 static SHA_CTX ctx;
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
@@ -136,9 +128,18 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static void init(struct fmt_main *pFmt)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-#ifdef MMX_COEF
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	strnzcpy(out, ciphertext, sizeof(out));
+	strupr(out);
+	return out;
+}
+
+static void init(struct fmt_main *self)
+{
+#ifdef SIMD_COEF_32
 	int i;
 
 	/* input strings have to be terminated by 0x80. The input strings in
@@ -147,54 +148,63 @@ static void init(struct fmt_main *pFmt)
 	 */
 	for (i = 0; i < NBKEYS; i++) {
 		interm_key[GETPOS(20,i)] = 0x80;
-#ifdef SHA1_SSE_PARA
-		((unsigned int *)interm_key)[15*MMX_COEF + (i&3) + (i>>2)*80*MMX_COEF] = 20 << 3;
-#endif
+		((unsigned int *)interm_key)[15*SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = 20 << 3;
 	}
 #endif
 }
 
-static void set_key(char *key, int index) {
-#ifdef MMX_COEF
-	int i;
+static void set_key(char *key, int index)
+{
+#ifdef SIMD_COEF_32
+	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
+	ARCH_WORD_32 *keybuf_word = (ARCH_WORD_32*)&saved_key[GETPOS(3, index)];
+	unsigned int len;
+	ARCH_WORD_32 temp;
 
-	if (index==0)
-	{
-#ifdef SHA1_SSE_PARA
-		int j;
-		for (j=0; j<SHA1_SSE_PARA; j++)
-			memset(saved_key+j*4*80*MMX_COEF, 0, 56*MMX_COEF);
-#else
-		total_len = 0;
-		memset(saved_key, 0, 56*MMX_COEF);
-#endif
+	len = 0;
+	while((temp = *wkey++) & 0xff) {
+		if (!(temp & 0xff00))
+		{
+			*keybuf_word = JOHNSWAP((temp & 0xff) | (0x80 << 8));
+			len++;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff0000))
+		{
+			*keybuf_word = JOHNSWAP((temp & 0xffff) | (0x80 << 16));
+			len+=2;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff000000))
+		{
+			*keybuf_word = JOHNSWAP(temp | (0x80 << 24));
+			len+=3;
+			goto key_cleaning;
+		}
+		*keybuf_word = JOHNSWAP(temp);
+		len += 4;
+		keybuf_word += SIMD_COEF_32;
 	}
+	*keybuf_word = 0x80000000;
 
-	i = -1;
-	while (key[++i])
-		saved_key[GETPOS(i, index)] = key[i];
-
-#ifdef SHA1_SSE_PARA
-	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = i << 3;
-#else
-	total_len += i << ( ( (32/MMX_COEF) * index ) );
-#endif
-	saved_key[GETPOS(i, index)] = 0x80;
+key_cleaning:
+	keybuf_word += SIMD_COEF_32;
+	while(*keybuf_word) {
+		*keybuf_word = 0;
+		keybuf_word += SIMD_COEF_32;
+	}
+	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 #else
 	strnzcpy(saved_key, key, PLAINTEXT_LENGTH + 1);
 #endif
 }
 
 static char *get_key(int index) {
-#ifdef MMX_COEF
+#ifdef SIMD_COEF_32
 	static char out[PLAINTEXT_LENGTH+1];
 	unsigned int i, s;
 
-#ifdef SHA1_SSE_PARA
-	s = ((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3;
-#else
-	s = (total_len >> (((32 / MMX_COEF) * (index)))) & 0xff;
-#endif
+	s = ((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
 	for (i = 0; i < s; i++)
 		out[i] = saved_key[ GETPOS(i, index) ];
 	out[i] = 0;
@@ -204,35 +214,18 @@ static char *get_key(int index) {
 #endif
 }
 
-static int cmp_all(void *binary, int index) {
-#ifdef MMX_COEF
-#ifdef SHA1_SSE_PARA
+static int cmp_all(void *binary, int count) {
+#ifdef SIMD_COEF_32
 	unsigned int x,y=0;
 
-	for(;y<SHA1_SSE_PARA;y++)
-	for(x=0;x<MMX_COEF;x++)
+	for(;y<SIMD_PARA_SHA1;y++)
+	for(x=0;x<SIMD_COEF_32;x++)
 	{
-		if( ((unsigned int *)binary)[0] == ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] )
+		if( ((unsigned int*)binary)[0] ==
+		    ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5] )
 			return 1;
 	}
 	return 0;
-#else
-	int i=0;
-	while(i< (BINARY_SIZE/4) )
-	{
-		if (
-		    ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF])
-		    && ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1])
-#if (MMX_COEF > 3)
-		    && ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2])
-		    && ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3])
-#endif
-		    )
-			return 0;
-		i++;
-	}
-	return 1;
-#endif
 #else
 	return !memcmp(binary, crypt_key, BINARY_SIZE);
 #endif
@@ -243,56 +236,43 @@ static int cmp_exact(char *source, int index)
 	return (1);
 }
 
-static int cmp_one(void *binary, int index)
+static int cmp_one(void * binary, int index)
 {
-#ifdef MMX_COEF
-#if SHA1_SSE_PARA
+#ifdef SIMD_COEF_32
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(SIMD_COEF_32-1);
+	y = (unsigned int)index/SIMD_COEF_32;
 
-	if( ((unsigned int *)binary)[0] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] )
+	if( ((unsigned int*)binary)[0] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5] )
 		return 0;
-	if( ((unsigned int *)binary)[1] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+4] )
+	if( ((unsigned int*)binary)[1] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32*1] )
 		return 0;
-	if( ((unsigned int *)binary)[2] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+8] )
+	if( ((unsigned int*)binary)[2] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32*2] )
 		return 0;
-	if( ((unsigned int *)binary)[3] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+12] )
+	if( ((unsigned int*)binary)[3] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32*3] )
 		return 0;
-	if( ((unsigned int *)binary)[4] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+16] )
+	if( ((unsigned int*)binary)[4] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32*4] )
 		return 0;
 	return 1;
-#else
-	int i = 0;
-	for (i=0;i<(BINARY_SIZE/4);i++)
-		if ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+index] )
-			return 0;
-	return 1;
-#endif
 #else
 	return cmp_all(binary, index);
 #endif
 }
 
-static void crypt_all(int count) {
-#ifdef MMX_COEF
-#ifdef SHA1_SSE_PARA
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	const int count = *pcount;
+#ifdef SIMD_COEF_32
 	unsigned int i;
 
-	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, 0);
+	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
 
-	for (i = 0; i < SHA1_SSE_PARA; i++)
-		memcpy(&interm_key[i*80*4*MMX_COEF],
-		       &crypt_key[i*BINARY_SIZE*MMX_COEF],
-		       MMX_COEF*BINARY_SIZE);
+	for (i = 0; i < SIMD_PARA_SHA1; i++)
+		memcpy(&interm_key[i*SHA_BUF_SIZ*4*SIMD_COEF_32],
+		       &crypt_key[i*BINARY_SIZE*SIMD_COEF_32],
+		       SIMD_COEF_32*BINARY_SIZE);
 
-	SSESHA1body(interm_key, (unsigned int *)crypt_key, NULL, 0);
-
-#else
-	shammx_nofinalbyteswap((unsigned char *) crypt_key, (unsigned char *) saved_key, total_len);
-	memcpy(interm_key, crypt_key, MMX_COEF*BINARY_SIZE);
-	shammx((unsigned char *) crypt_key, (unsigned char *) interm_key, TMPKEY_LENGTHS);
-#endif
+	SSESHA1body(interm_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
 #else
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, (unsigned char *) saved_key, strlen(saved_key));
@@ -302,12 +282,16 @@ static void crypt_all(int count) {
 	SHA1_Update(&ctx, (unsigned char *) crypt_key, BINARY_SIZE);
 	SHA1_Final((unsigned char *) crypt_key, &ctx);
 #endif
+	return count;
 }
 
-static void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
-	static char realcipher[BINARY_SIZE];
+	static unsigned char *realcipher;
 	int i;
+
+	if (!realcipher)
+		realcipher = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
 	// ignore first character '*'
 	ciphertext += 1;
@@ -315,72 +299,61 @@ static void *binary(char *ciphertext)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 	}
-#ifdef SHA1_SSE_PARA
+#ifdef SIMD_COEF_32
 	alter_endianity((unsigned char *)realcipher, BINARY_SIZE);
 #endif
 	return (void *)realcipher;
 }
 
-static int binary_hash_0(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xF;
-}
-
-static int binary_hash_1(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFFFFF;
-}
-
-#ifdef SHA1_SSE_PARA
+#ifdef SIMD_COEF_32
 static int get_hash_0(int index)
 {
 	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xf;
+        x = index&(SIMD_COEF_32-1);
+        y = (unsigned int)index/SIMD_COEF_32;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xf;
 }
 static int get_hash_1(int index)
 {
 	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xff;
+        x = index&(SIMD_COEF_32-1);
+        y = (unsigned int)index/SIMD_COEF_32;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xff;
 }
 static int get_hash_2(int index)
 {
 	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xfff;
+        x = index&(SIMD_COEF_32-1);
+        y = (unsigned int)index/SIMD_COEF_32;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xfff;
 }
 static int get_hash_3(int index)
 {
 	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xffff;
+        x = index&(SIMD_COEF_32-1);
+        y = (unsigned int)index/SIMD_COEF_32;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xffff;
 }
 static int get_hash_4(int index)
 {
 	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xfffff;
+        x = index&(SIMD_COEF_32-1);
+        y = (unsigned int)index/SIMD_COEF_32;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xfffff;
+}
+static int get_hash_5(int index)
+{
+	unsigned int x,y;
+        x = index&(SIMD_COEF_32-1);
+        y = (unsigned int)index/SIMD_COEF_32;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0xffffff;
+}
+static int get_hash_6(int index)
+{
+	unsigned int x,y;
+        x = index&(SIMD_COEF_32-1);
+        y = (unsigned int)index/SIMD_COEF_32;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0x7ffffff;
 }
 #else
 static int get_hash_0(int index)
@@ -407,6 +380,16 @@ static int get_hash_4(int index)
 {
 	return ((ARCH_WORD_32 *)crypt_key)[index] & 0xFFFFF;
 }
+
+static int get_hash_5(int index)
+{
+	return ((ARCH_WORD_32 *)crypt_key)[index] & 0xFFFFFF;
+}
+
+static int get_hash_6(int index)
+{
+	return ((ARCH_WORD_32 *)crypt_key)[index] & 0x7FFFFFF;
+}
 #endif
 
 struct fmt_main fmt_mysqlSHA1 = {
@@ -416,28 +399,43 @@ struct fmt_main fmt_mysqlSHA1 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
-		binary,
+		split,
+		get_binary,
 		fmt_default_salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_default_source,
 		{
-			binary_hash_0,
-			binary_hash_1,
-			binary_hash_2,
-			binary_hash_3,
-			binary_hash_4
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		fmt_default_set_salt,
 		set_key,
 		get_key,
@@ -448,10 +446,14 @@ struct fmt_main fmt_mysqlSHA1 = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

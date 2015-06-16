@@ -12,15 +12,25 @@
  * http://openwall.info/wiki/people/solar/software/public-domain-source-code/md5
  */
 
+#if !defined(_MD5_H)
+#define _MD5_H
+
 /* Any 32-bit or wider unsigned integer data type will do */
-/* this needs to be defined no matter if building with HAVE_OPENSSL or not */
+/* this needs to be defined no matter if building with HAVE_LIBSSL or not */
 typedef unsigned int MD5_u32plus;
 
-#ifdef HAVE_OPENSSL
+#include "arch.h"
+
+#ifdef HAVE_LIBSSL
 #include <openssl/md5.h>
 
-#elif !defined(_MD5_H)
-#define _MD5_H
+#else
+
+#ifndef USING_ICC_S_FILE
+#define MD5_Init john_MD5_Init
+#define MD5_Update john_MD5_Update
+#define MD5_Final john_MD5_Final
+#endif
 
 typedef struct {
 	MD5_u32plus lo, hi;
@@ -33,33 +43,6 @@ extern void MD5_Init(MD5_CTX *ctx);
 extern void MD5_Update(MD5_CTX *ctx, void *data, unsigned long size);
 extern void MD5_PreFinal(MD5_CTX *ctx);
 extern void MD5_Final(unsigned char *result, MD5_CTX *ctx);
-#endif
+#endif /* HAVE_LIBSSL */
 
-/* Now, the MMX code is NOT dependant upon the HAVE_OPENSSL */
-
-#ifdef MMX_COEF
-#ifdef _MSC_VER
-/* NOTE, in VC, void __fastcall f(unsigned char *out, unsigned char *in, int n)
- * puts these registers:
- *  n   -> pushed on stack
- *  ECX -> out
- *  EDX -> in
- *  Thus to get into this code, we ECX -> EAX and get ECX from the stack (minus the return push)
- *  Also do a ret 4 after the emms in the mdfivemmx_noinit (to pop the push of eax)
- */
-int __fastcall mdfivemmx_VC(unsigned char *out, unsigned char *in, int n);
-int __fastcall mdfivemmx_nosizeupdate_VC(unsigned char *out, unsigned char *in, int n);
-int __fastcall mdfivemmx_noinit_sizeupdate_VC(unsigned char *out, unsigned char *in, int n);
-int __fastcall mdfivemmx_noinit_uniformsizeupdate_VC(unsigned char *out, unsigned char *in, int n);
-
-#define mdfivemmx mdfivemmx_VC
-#define mdfivemmx_nosizeupdate mdfivemmx_nosizeupdate_VC
-#define mdfivemmx_noinit_sizeupdate mdfivemmx_noinit_sizeupdate_VC
-#define mdfivemmx_noinit_uniformsizeupdate mdfivemmx_noinit_uniformsizeupdate_VC
-#else
-extern int mdfivemmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
-extern int mdfivemmx_nosizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
-extern int mdfivemmx_noinit_sizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
-extern int mdfivemmx_noinit_uniformsizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
-#endif
-#endif
+#endif /* _MD5_H */

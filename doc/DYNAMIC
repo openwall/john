@@ -12,6 +12,10 @@ md5($p.$s)   (Note, . is the concatenate operator, so $p.$s is
 sha1($p)     (Note, $p is password, and sha1 is the cipher).
 sha1(md5($p)) Here we first run md5 on password, then sha1 on the
               resultant 'hex' string.
+sha512($s.sha512($p.$s).$p)  This uses a couple of calls to sha512.
+              The intermedidate results are possible to be in
+              base-16 (or base-16 uppercase), base-64 (MIME), or
+              raw 64 bytes.
 ...
 
 Most of the above rules are php 'style' rules, but I think in php,
@@ -26,6 +30,30 @@ time, but those have been reserved.
 The format of the input file lines will be:
 
 userID:$dynamic_#$base_16_hash[$salt]
+
+Salts can contain some problematic characters. Some of these would be
+characters such as:  :  \r \n \ NULL, etc.  The : (colon) char is used
+by JtR as a field separator. If it exists in the salt, it will split
+the salt into multiple fields (i.e. wrong).  A carriage return or line
+feed, will cause the line to split, and JtR to not read it right.
+NULL bytes are a problem in any C file, using normal 'string' functions.
+The \ char, is used as a quoting char within dynamic, and can cause issues.
+One other recently found issue, is if the salt ends in ' ' or '\t' (space
+or tab), then if the dyna hash is placed on a line by itself (i.e. without
+a user: prepended), then jtr will trim the whitespace off. This is a known
+issue, and this is just a bad side effect of a known wanted behavior where
+the raw hash files are cleaned up during processing.
+DUE to all of these problems, dynamic has been expanded to take this as
+the salt:    $dyanamic_#$base_16_hash$HEX$hex_bytes_of_salt.  In this
+format, if the salt was 1234, then $HEX$31323334 would be the equivalent
+value.  This allows salts such as $\x0:\r\nBadSalt to actually be encoded.
+This salt CAN be used, if you use the representation:
+$HEX$003a0a0d42616453616c74.
+There is an application in ./run which can 'help' This is ./run/raw2dyna
+This process will convert files in the format of hashCsalt (c can be any char),
+into the proper $dynamic_#$hash$salt   It can also handle saltChash (if
+salt is a fixed size).  It also properly handle the problematic characters,
+and uses the $HEX$hex_salt method, if there are bad characters in the salt.
 
 There may be a 2nd salt added in the near future, but not sure how it
 will be implemented.
@@ -48,13 +76,14 @@ since vBulletin salts can contain that character.  However, the
 above dynamic_6 works for this document, since *.* salt does not
 have a ':'
 
-Expressions can be added to john.conf (john.ini) to allow an end
-user to add a new format type, without having to do ANY coding
-at all.  The end user would have to learn the $dynamic_n$
+Expressions can be added to john.conf (john.ini), dynamic.conf
+(included by john.conf) or john.local.conf to allow an end user
+to add a new format type, without having to do ANY coding at all.
+The end user would have to learn the $dynamic_n$
 primitives, and how the data is used (input data, key data,
 encryption data, etc).  Also, the user would have to build
 properly formatted SAMPLE test values (john requires this).
-For the full 'HOW TO USE' documentation, see the john.conf.
+For the full 'HOW TO USE' documentation, see the dynamic.conf.
 
 
 How to build the 'test' value is beyond the scope of this readme,
@@ -68,7 +97,27 @@ md5(5a105e8b9d40e1329780d62ea2265d8a5a105e8b9d40e1329780d62ea2265d8a)
 which equals 478b10974f15e7295883224fd286ccba
 so a proper 'test' line is:
 Test=$dynamic_1003$478b10974f15e7295883224fd286ccba:test1
-( as can be seen in john.conf for dynamic_1003 )
+( as can be seen in dynamic.conf for dynamic_1003 )
+
+To get a list of all dynamic formats, you can use
+
+./john --list=subformats
+
+This command will create output like this:
+
+Format = dynamic_0   type = dynamic_0: md5($p) (raw-md5)
+Format = dynamic_1   type = dynamic_1: md5($p.$s) (joomla)
+Format = dynamic_2   type = dynamic_2: md5(md5($p)) (e107)
+...
+Format = dynamic_32  type = dynamic_32: md4($p.$s)
+Format = dynamic_33  type = dynamic_33: md4(unicode($p))
+Format = dynamic_34  type = dynamic_34: md5(md4($p))
+UserFormat = dynamic_1001  type = dynamic_1001 md5(md5(md5(md5($p))))
+UserFormat = dynamic_1002  type = dynamic_1002 md5(md5(md5(md5(md5($p)))))
+UserFormat = dynamic_1003  type = dynamic_1003 md5(md5($p).md5($p))
+
+The "Format = ..." lines list builtin formats, the lines "UserFormat = ..."
+list user formats (or sample formats).
 
 The builtiin formats that john has right now are:
 
@@ -102,13 +151,125 @@ dynamic_23  | sha1(md5($p))           | No    | Requires a 40 byte hex number (v
 dynamic_24  | sha1($p.$s)             | Yes   | Requires a 40 byte hex number (valid sha1 input)
 dynamic_25  | sha1($s.$p)             | Yes   | Requires a 40 byte hex number (valid sha1 input)
 dynamic_26  | sha1($p) (raw-sha1)     | No    | Requires a 40 byte hex number (valid sha1 input)
-dynamic_27  } FreeBSD md5             | Yes   |
+dynamic_27  | FreeBSD md5             | Yes   |
 dynamic_28  | Apache MD5              | Yes   |
+dynamic_29  | md5(unicode($p))        | No    |
+dynamic_30  | md4($p) (raw-md4)       | No    |
+dynamic_31  | md4($s.$p)              | Yes   |
+dynamic_32  | md4($p.$s)              | Yes   |
+dynamic_33  | md4(unicode($p))        | No    |
+dynamic_34  | md5(md4($p))            | No    |
+dynamic_35  | sha1(uc($u).:.$p)       | Yes   | ManGOS
+dynamic_36  | sha1($u.:.$p)           | Yes   | ManGOS2
+dynamic_37  | sha1(lc($u).$p)         | Yes   | SMF
+dynamic_38  | sha1($s.sha1($s.sha1($p)))| Yes | Wolt3BB
+dynamic_39  | md5($s.pad_16($p))      | Yes   | Net-md5.  Long salt, passwords are 16 bytes, null padded for under 16 bytes
+dynamic_40  | sha1($s.pad_16($p))     | Yes   | Net-sha1.  Long salt, passwords are 16 bytes, null padded for under 16 bytes
+dynamic_50  | sha224($p)              | No    |
+dynamic_51  | sha224($s.$p)           | Yes   |
+dynamic_52  | sha224($p.$s)           | Yes   |
+dynamic_53  | sha224(sha224($p))      | No    |
+dynamic_54  | sha224(sha224_raw($p))  | No    |
+dynamic_55  | sha224(sha224($p).$s)   | Yes   |
+dynamic_56  | sha224($s.sha224($p))   | Yes   |
+dynamic_57  | sha224(sha224($s).sha224($p)) | Yes   |
+dynamic_58  | sha224(sha224($p).sha224($p)) | No    |
+dynamic_60  | sha256($p)              | No    |
+dynamic_61  | sha256($s.$p)           | Yes   |
+dynamic_62  | sha256($p.$s)           | Yes   |
+dynamic_63  | sha256(sha256($p))      | No    |
+dynamic_64  | sha256(sha256_raw($p))  | No    |
+dynamic_65  | sha256(sha256($p).$s)   | Yes   |
+dynamic_66  | sha256($s.sha256($p))   | Yes   |
+dynamic_67  | sha256(sha256($s).sha256($p)) | Yes   |
+dynamic_68  | sha256(sha256($p).sha256($p)) | No    |
+dynamic_70  | sha384($p)              | No    |
+dynamic_71  | sha384($s.$p)           | Yes   |
+dynamic_72  | sha384($p.$s)           | Yes   |
+dynamic_73  | sha384(sha384($p))      | No    |
+dynamic_74  | sha384(sha384_raw($p))  | No    |
+dynamic_75  | sha384(sha384($p).$s)   | Yes   |
+dynamic_76  | sha384($s.sha384($p))   | Yes   |
+dynamic_77  | sha384(sha384($s).sha384($p)) | Yes   |
+dynamic_78  | sha384(sha384($p).sha384($p)) | No    |
+dynamic_80  | sha512($p)              | No    |
+dynamic_81  | sha512($s.$p)           | Yes   |
+dynamic_82  | sha512($p.$s)           | Yes   |
+dynamic_83  | sha512(sha512($p))      | No    |
+dynamic_84  | sha512(sha512_raw($p))  | No    |
+dynamic_85  | sha512(sha512($p).$s)   | Yes   |
+dynamic_86  | sha512($s.sha512($p))   | Yes   |
+dynamic_87  | sha512(sha512($s).sha512($p)) | Yes   |
+dynamic_88  | sha512(sha512($p).sha512($p)) | No    |
+dynamic_90  | GOST($p)                | No    |
+dynamic_91  | GOST($s.$p)             | Yes   |
+dynamic_92  | GOST($p.$s)             | Yes   |
+dynamic_93  | GOST(GOST($p))          | No    |
+dynamic_94  | GOST(GOST_raw($p))      | No    |
+dynamic_95  | GOST(GOST($p).$s)       | Yes   |
+dynamic_96  | GOST($s.GOST($p))       | Yes   |
+dynamic_97  | GOST(GOST($s).GOST($p)) | Yes   |
+dynamic_98  | GOST(GOST($p).GOST($p)) | No    |
+dynamic_100 | WHIRLPOOL($p)           | No    |
+dynamic_101 | WHIRLPOOL($s.$p)        | Yes   |
+dynamic_102 | WHIRLPOOL($p.$s)        | Yes   |
+dynamic_103 | WHIRLPOOL(WHIRLPOOL($p))     | No    |
+dynamic_104 | WHIRLPOOL(WHIRLPOOL_raw($p)) | No    |
+dynamic_105 | WHIRLPOOL(WHIRLPOOL($p).$s)  | Yes   |
+dynamic_106 | WHIRLPOOL($s.WHIRLPOOL($p))  | Yes   |
+dynamic_107 | WHIRLPOOL(WHIRLPOOL($s).WHIRLPOOL($p)) | Yes   |
+dynamic_108 | WHIRLPOOL(WHIRLPOOL($p).WHIRLPOOL($p)) | No    |
+dynamic_110 | Tiger($p)                | No   |
+dynamic_111 | Tiger($s.$p)             | Yes  |
+dynamic_112 | Tiger($p.$s)             | Yes  |
+dynamic_113 | Tiger(Tiger($p))         | No   |
+dynamic_114 | Tiger(Tiger_raw($p))     | No   |
+dynamic_115 | Tiger(Tiger($p).$s)      | Yes  |
+dynamic_116 | Tiger($s.Tiger($p))      | Yes  |
+dynamic_117 | Tiger(Tiger($s).Tiger($p)) | Yes  |
+dynamic_118 | Tiger(Tiger($p).Tiger($p)) | No   |
+dynamic_120 | RIPEMD128($p)                | No   |
+dynamic_121 | RIPEMD128($s.$p)             | Yes  |
+dynamic_122 | RIPEMD128($p.$s)             | Yes  |
+dynamic_123 | RIPEMD128(RIPEMD128($p))         | No   |
+dynamic_124 | RIPEMD128(RIPEMD128_raw($p))     | No   |
+dynamic_125 | RIPEMD128(RIPEMD128($p).$s)      | Yes  |
+dynamic_126 | RIPEMD128($s.RIPEMD128($p))      | Yes  |
+dynamic_127 | RIPEMD128(RIPEMD128($s).RIPEMD128($p)) | Yes  |
+dynamic_128 | RIPEMD128(RIPEMD128($p).RIPEMD128($p)) | No   |
+dynamic_130 | RIPEMD160($p)                | No   |
+dynamic_131 | RIPEMD160($s.$p)             | Yes  |
+dynamic_132 | RIPEMD160($p.$s)             | Yes  |
+dynamic_133 | RIPEMD160(RIPEMD160($p))         | No   |
+dynamic_134 | RIPEMD160(RIPEMD160_raw($p))     | No   |
+dynamic_135 | RIPEMD160(RIPEMD160($p).$s)      | Yes  |
+dynamic_136 | RIPEMD160($s.RIPEMD160($p))      | Yes  |
+dynamic_137 | RIPEMD160(RIPEMD160($s).RIPEMD160($p)) | Yes  |
+dynamic_138 | RIPEMD160(RIPEMD160($p).RIPEMD160($p)) | No   |
+dynamic_140 | RIPEMD256($p)                | No   |
+dynamic_141 | RIPEMD256($s.$p)             | Yes  |
+dynamic_142 | RIPEMD256($p.$s)             | Yes  |
+dynamic_143 | RIPEMD256(RIPEMD256($p))         | No   |
+dynamic_144 | RIPEMD256(RIPEMD256_raw($p))     | No   |
+dynamic_145 | RIPEMD256(RIPEMD256($p).$s)      | Yes  |
+dynamic_146 | RIPEMD256($s.RIPEMD256($p))      | Yes  |
+dynamic_147 | RIPEMD256(RIPEMD256($s).RIPEMD256($p)) | Yes  |
+dynamic_148 | RIPEMD256(RIPEMD256($p).RIPEMD256($p)) | No   |
+dynamic_150 | RIPEMD320($p)                | No   |
+dynamic_151 | RIPEMD320($s.$p)             | Yes  |
+dynamic_152 | RIPEMD320($p.$s)             | Yes  |
+dynamic_153 | RIPEMD320(RIPEMD320($p))         | No   |
+dynamic_154 | RIPEMD320(RIPEMD320_raw($p))     | No   |
+dynamic_155 | RIPEMD320(RIPEMD320($p).$s)      | Yes  |
+dynamic_156 | RIPEMD320($s.RIPEMD320($p))      | Yes  |
+dynamic_157 | RIPEMD320(RIPEMD320($s).RIPEMD320($p)) | Yes  |
+dynamic_158 | RIPEMD320(RIPEMD320($p).RIPEMD320($p)) | No   |
+
 
 ........    | RESERVED                | UNK   |
 dynamic_999 | RESERVED                | UNK   |
 
-The 'samples' stored in john.conf (to be used as is, or as examples) are:
+The 'samples' stored in dynamic.conf (to be used as is, or as examples) are:
 
 dynamic_1001  md5(md5(md5(md5($p))))
 dynamic_1002  md5(md5(md5(md5(md5($p)))))
@@ -116,16 +277,38 @@ dynamic_1003  md5(md5($p).md5($p))
 dynamic_1004  md5(md5(md5(md5(md5(md5($p))))))
 dynamic_1005  md5(md5(md5(md5(md5(md5(md5($p)))))))
 dynamic_1006  md5(md5(md5(md5(md5(md5(md5(md5($p))))))))
-dynamic_1007  md5(md5($p).$s) [vBulletin]
-dynamic_1008  md5($p.$s) [joomla]
+dynamic_1007  md5(md5($p).$s) (vBulletin)
+dynamic_1008  md5($p.$s) (joomla)
+# and many other newer items, added from user requests.
+dynamic_1010  md5($p null_padded_to_len_100) RAdmin v2.x MD5
+dynamic_1011  md5($p.md5($s)) (WebEdition CMS)
+dynamic_1012  md5($p.md5($s)) (WebEdition CMS)  (much faster)
+dynamic_1013  md5($p.PMD5(username)) (WebEdition CMS)  (fast speed, but user name is stored in md5 hash format)
+dynamic_1014  md5($p.$s) (long salt)
+dynamic_1015  md5(md5($p.$u).$s)
+dynamic_1018  md5(sha1(sha1($pass)))
+dynamic_1019  md5(sha1(sha1(md5($pass))))
+dynamic_1020  md5(sha1(md5($pass)))
+dynamic_1021  md5(sha1(md5(sha1($pass))))
+dynamic_1022  md5(sha1(md5(sha1(md5($pass)))))
+dynamic_1023  sha1($pass) (first 32 bytes)
+dynamic_1024  sha1(md5($pass)) (first 32 bytes)
+dynamic_1025  sha1(md5(md5($pass))) (first 32 bytes)
+dynamic_1026  sha1(sha1($pass))) (first 32 bytes)
+dynamic_1027  sha1(sha1(sha1($pass)))) (first 32 bytes)
+dynamic_1028  sha1(sha1_raw($pass)) (first 32 bytes)
+dynamic_1029  sha256($pass) (first 32 bytes)
+dynamic_1030  Whirlpool($pass) (first 32 bytes)
+dynamic_1031  GOST($pass) (first 32 bytes)
+dynamic_1300  md5(md5_raw($pass))
+dynamic_1350  md5(md5($s.$p):$s)
 
 
-
-NOTE the documentation section of john.conf is listed here.  It shows
+NOTE the documentation section of dynamic.conf is listed here.  It shows
 how to setup dynamiceric functions (above 1000).  All of the primitives
 are defined, the data structures are defined, the expression, flags,
 saltlen, etc.  Following the 'howto use' section, are some working
-examples (this whole list is also found in john.conf).
+examples (this whole list is also found in dynamic.conf).
 
 ####################################################################
 ####################################################################
@@ -154,7 +337,7 @@ examples (this whole list is also found in john.conf).
 # fld0 to fld9 - data from fld1 to fld9 of the input file.
 #
 #   NOTE within the scratch work spaces (input1[] and input2[] arrays), we can only do things like append_keys
-#   append_salt or other things.  Thus, each work space keeps track of each array element (knowing it's contents),
+#   append_salt or other things.  Thus, each work space keeps track of each array element (knowing its contents),
 #   and keeps track of the length.  In the way the scripting works, we can clear them (sets lengths of all
 #   elements to 0, and 'might' clear out the actual memory).  We can append to them (keys, output conversions,
 #   salt, etc) or we can force set their length to 32 ('special' optimization used in conjunction with
@@ -296,12 +479,45 @@ examples (this whole list is also found in john.conf).
 #     SSE2 (or mmx) code, and thus, the SSE2/MMX builds can NOT be used
 #     to test that format.
 #
+#  Flag=MGF_FLAT_BUFFERS
+#     This is similar to MGF_NOTSSE2Safe in 'some' ways. It will cause
+#     dynamic to only use the flat buffers. However, it is used for
+#     large formats which HAVE SSE2 code.  These formats will use the
+#     the data from the flat buffers directly (even nulling them out
+#     and placing the # of bits into the right locations, and the 0x80
+#     trailing byte also).  So this tells dyna to store the data and
+#     intermediate flat, but use the special SSE2 code for this format
+#     that loads from flat.  Currently, all formats which has SIMD code
+#     have flat buffer behavior.  NOTE most (all except md5/md4 and some
+#     for sha1), ONLY have the flat buffer code.  These other 3 formats
+#     do have custom 'mixed' coding.
+#     One really nice thing about doing SIMD this way is the single limb
+#     limit has been removed.  The SIMD code is currently in MD4/5, SHA1,
+#     and 32 bit SHA2 (SHA224/SHA256). The SIMD code has not been done
+#     for the flat SHA384/SHA512 code yet.
+#
 #  Flag=MGF_INPBASE64
 #     If the hashes are in base-64 (such as phpass), then use this
 #     flag.  Note, the base 64 'format' used is that of phpass.  If there
 #     are other orderings, then this will not work.  I know of no formats
 #     in use, other than phpass (phpbb, wordpress, etc) which use base-64
-#     for md5.
+#     for md5.  This is actually the same format as CryptBS in base64conv
+#     utility.  This has been improved now. It should work for any standard
+#     length hash (from 16 bytes up to 64 bytes).  The only part of the
+#     hash that is base-64 decoded is within the binary hash value itself.
+#     dynamic does not handle base-64 decoding within any part of the salt.
+#
+#  Flag=MGF_INPBASE64b
+#     This is like the MGF_INPBASE64 flag, BUT the encoding is in BE format
+#     crypt.  This is the same as Crypt encoding in base64conv utility
+#
+#  Flag=MGF_INPBASE64m
+#     This is like the MGF_INPBASE64 flag, BUT the encoding is in MIME.
+#     This is the same as MIME encoding in base64conv utility. NOTE, the
+#     hash can end with optional '=' place holding characters. These will
+#     be stripped off, in the prepare/split functions, to canonicalize the
+#     value of the hash to be NON-equal padded.  But an input file can have
+#     the '=' padding or not (or even mixed) and still process properly.
 #
 #  Flag=MGF_INPBASE64_4x6
 #     If this flag is set, then the input will be base-64, where 4 bytes are
@@ -347,10 +563,6 @@ examples (this whole list is also found in john.conf).
 #     conversion mode, so that any initial key loading will also be
 #     done to the using unicode conversions.
 #
-#  Flag=MGF_HDAA_SALT
-#     Special salt loading for the HDAA format dynamic_21.
-#     Not useful for anything else.
-#
 #  MGF_FLD0, MGF_FLD1, MGF_FLD2, ... ,MGF_FLD9
 #     If any of the fields of the file are part of the format (and
 #     used within the script), then they either must be part of
@@ -358,14 +570,25 @@ examples (this whole list is also found in john.conf).
 #     If a field IS used, then you also MUST have the proper
 #     flag set, or the prepare function will NOT load it.
 #
-# MGF_SHA1_40_BYTE_FINISH
+# MGF_INPUT_20_BYTE
 #     Tell $dynamic$ that the 'final' crypt is an SHA1 (still experimental
-#     code, so 'caveat emptor' ).  What this will do, is cause john to
-#     only load hashes that are 40 hex digits (md5 is 32 hex digits).
-#     NOTE, when the 'final' crypt is done (in SHA1), it will only have
-#     the first 16 bytes compared against (vs the full 20 bytes which
+#     code, so 'caveat emptor' ).  What this will do, is cause john to only load
+#     hashes that are 20 binary bytes of input (40 hex digits md5 is 32 hex
+#     digits). NOTE, when the 'final' crypt is done (in SHA1), it will only
+#     have the first 16 bytes compared against (vs the full 20 bytes which
 #     sha1 generates).  This 'should' be more than adequate to know
 #     you have cracked the hash.
+# MGF_INPUT_24_BYTE
+# MGF_INPUT_28_BYTE
+# MGF_INPUT_32_BYTE
+# MGF_INPUT_40_BYTE
+# MGF_INPUT_48_BYTE
+# MGF_INPUT_64_BYTE
+#     These are similar to the 20 byte flag for the SHA1. NOTE, this
+#     means that dynamic will only look for valid input strings which
+#     are the appropriate length, based upon that final hash size.
+#     One off these flags MUST be used, on a format that is longer than
+#     the 16 byte MD5 (or md4) hash.
 #
 # MGF_INPBASE64a
 #     The binary input hash data format of the FreeBSD_MD5 and Apache_MD5.
@@ -410,6 +633,10 @@ examples (this whole list is also found in john.conf).
 #  DynamicFunc__append_keys
 #     append the array of keys to the array input1[]
 #
+#  DynamicFunc__append_keys_pad16
+#     append the array of keys to the array input1[], padding with nulls to 16 bytes, if input shorter.
+#     Needed for net-md5 and net-sha1 formats.
+#
 #  DynamicFunc__append_keys2
 #     append the array of keys to the array input2[]
 #
@@ -431,18 +658,30 @@ examples (this whole list is also found in john.conf).
 #  DynamicFunc__append_userid2
 #     appends the username into either input1 or input2 fields.
 #
-#  DynamicFunc__crypt
+#  DynamicFunc__crypt_md5
 #     performs a md5 on all elements of input1[] and places the results into output1[]  The output will be the
 #     16 byte BINARY blob of the 'raw' md5.
 #
-#  DynamicFunc__crypt2
-#     Same as DynamicFunc__crypt but this one works on input2[] -> output2[] arrays.
+#  DynamicFunc__crypt_md4
+#     same as DynamicFunc__crypt_md5, but uses the MD4 hash instead of md5.
 #
-#  DynamicFunc__crypt_in1_to_out2
+#  DynamicFunc__crypt2_md5
+#     Same as DynamicFunc__crypt_md5 but this one works on input2[] -> output2[] arrays.
+#
+#  DynamicFunc__crypt2_md4
+#     Same as DynamicFunc__crypt2_md4 but uses the MD4 hash instead of md5.
+#
+#  DynamicFunc__crypt_md5_in1_to_out2
 #     Takes the data from input1, performs the MD5 crypts, and stores this data into Output2
 #
-#  DynamicFunc__crypt_in2_to_out1
+#  DynamicFunc__crypt_md4_in1_to_out2
+#     Takes the data from input1, performs the MD4 crypts, and stores this data into Output2
+#
+#  DynamicFunc__crypt_md5_in2_to_out1
 #     Takes the data from input2, performs the MD5 crypts, and stores this data into Output1
+#
+#  DynamicFunc__crypt_md4_in2_to_out1
+#     Takes the data from input2, performs the MD4 crypts, and stores this data into Output1
 #
 #  DynamicFunc__append_from_last_output_as_base16
 #     Takes the 16 byte binary values from each output1[] array, and does a base-16 conversion, appending the
@@ -464,6 +703,12 @@ examples (this whole list is also found in john.conf).
 #
 #  DynamicFunc__append_input2_from_input
 #     Appends input1 to input2   input2 += input
+#
+#  DynamicFunc__append_input_from_input
+#     Appends input1 to input1   input1 += input2
+#
+#  DynamicFunc__append_input2_from_input2
+#     Appends input2 to input2   input2 += input2
 #
 #  DynamicFunc__append_from_last_output2_as_raw
 #     Appends the 'raw' output data from output2 to input1.  Length of input1 grows by 16 bytes.
@@ -510,24 +755,44 @@ examples (this whole list is also found in john.conf).
 #     Sets the length of each element of input1[] to 16.  In SSE2 mode, if the length of the input buffer
 #     was less than 16, then that 0x80 end of marker is removed, and a new one is 'added' at offset 16.
 #
+#  DynamicFunc__set_input_len_20
+#     Sets the length of each element of input1[] to 20.  In SSE2 mode, if the length of the input buffer
+#     was less than 20, then that 0x80 end of marker is removed, and a new one is 'added' at offset 20.
+#
 #  DynamicFunc__set_input2_len_16
 #     Sets the length of each element of input2[] to 16.
+#
+#  DynamicFunc__set_input2_len_20
+#     Sets the length of each element of input2[] to 20.
 #
 #  DynamicFunc__set_input_len_32
 #     Sets the length of each element of input1[] to 32.  This was designed as is used in conjunction with
 #     the funtion overwrite_from_last_output_as_base16_no_size_fix in mind, but would not
 #     be the 'only' reason to use it (but is the only reason I have at this time).  This function does NOT
-#     clean the input[] items prior to this.  Usually a call to clean_input would be required priot to
-#     calling this function, to make sure the buffer is 'clean'.
+#     clean the input[] items prior to this.  Usually a call to clean_input would be required prior to
+#     calling this function, to make sure the buffer is 'clean'.  A 0x80 is placed into offset 32
 #
 #  DynamicFunc__set_input2_len_32
 #     Same as DynamicFunc__set_input_len_32 but this one works on input2[] array.
+#
+#  DynamicFunc__set_input_len_40
+#     Sets the length of each element of input1[] to 30.  A 0x80 is placed into offset 40.  This would be
+#     the companion function to DynamicFunc__set_input_len_32, but useful for SHA1 hashes which would
+#     themselves output 40 bytes of hex.
+#
+#  DynamicFunc__set_input2_len_40
+#     Same as DynamicFunc__set_input_len_40 but this one works on input2[] array.
 #
 #  DynamicFunc__set_input_len_64
 #     Like the above function, but sets lengths to 64 bytes.  NOTE valid to use in SSE2 mode.
 #
 #  DynamicFunc__set_input2_len_64
 #     Same as DynamicFunc__set_input2_len_64 but this one works on input2[] array.
+#
+#  DynamicFunc__set_input_len_100
+#     Like the above function, but sets lengths to 100 bytes.  NOTE valid to use in SSE2 mode.
+#     This is a 'specialized' function for the RAdmin hash, and simply nulls out the buffer
+#     up to 100 bytes.
 #
 #  SSE 'switching' functions.  SSE is only valid for 54 byte or less input strings.
 #  This is due to optimizations which place a 'single' md5 limb restriction on the
@@ -536,6 +801,15 @@ examples (this whole list is also found in john.conf).
 #  to convert a buffer (or more).  The input buffers, and output buffers are NOT
 #  compatible between x86 and SSE2.  If possible, convert the output buffers, they
 #  are smaller, and faster (usually).
+#
+#  NOTE, proper usage of these functions CAN improve performance of some SHA1 processing
+#  putting the data into or out of 'flat' model. The SHA1 hash does have SSE code, however
+#  since it also requires BE layout for the data (vs LE for md5), a design choice was made
+#  to not store the BE sse buffers long term.  All crypting will determin IF sse sha1 code
+#  should be used, and if so, the crypt function will convert from flat into sse format.
+#  however, if the data already is in sse format, it has to be transformed into a format
+#  valid for ShA1.   Look at formats 1022 to 1031 for insite on how to best use these
+#  data conversion functions with SHA1.
 #
 #  DynamicFunc__SSEtoX86_switch_input1
 #    Copies the SSE Input1 buffer to x86 Input1.  Changes 'mode' to non-SSE for any
@@ -578,7 +852,7 @@ examples (this whole list is also found in john.conf).
 #    conversion is done.  If that switch was not used on the command line, then a
 #    simple ascii-to-unicode (which is simply appending a null byte after each byte
 #    of string).  The --encoding=utf8 conversion is considerably slower, but is required for
-#    many Unicode or utf8 systems.  NOTE, to honor the --encoding=utf8 swich, the
+#    many Unicode or utf8 systems.  NOTE, to honor the --encoding=utf8 switch, the
 #    format MUST use the MGF_UTF8 flag.
 #
 #  DynamicFunc__setmode_normal
@@ -634,12 +908,12 @@ examples (this whole list is also found in john.conf).
 #  DynamicFunc__append2_fld0  -- to -- DynamicFunc__append2_fld9
 #     Loads data from $$F0 to $$F9 (field 0 to field 9) into input buffer 2.
 #
-# DynamicFunc__SHA1_crypt_input1_append_input2_base16
-# DynamicFunc__SHA1_crypt_input2_append_input1_base16
-# DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16
-# DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16
-# DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16
-# DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16
+# DynamicFunc__SHA1_crypt_input1_append_input2_base16    **
+# DynamicFunc__SHA1_crypt_input2_append_input1_base16    **
+# DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16 **
+# DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16 **
+# DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16 **
+# DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16 **
 # DynamicFunc__SHA1_crypt_input1_to_output1_FINAL
 # DynamicFunc__SHA1_crypt_input2_to_output1_FINAL
 #    Currently 'experimental' addition of SHA1 into the md5() syntax.  Still much work to
@@ -647,33 +921,94 @@ examples (this whole list is also found in john.conf).
 #    md5(sha1(md5($p))) working (sort of works now, but again, still experimental).
 #    The 2 '_FINAL' functions should ONLY be used as the last call. This allows
 #    for support of sha1(sha1(m5($p).$s)) type hashes.  NOTE, if you use on of the
-#    *_FINAL calls, then you have to use the MGF_SHA1_40_BYTE_FINISH flag, and notes
+#    *_FINAL calls, then you have to use the MGF_INPUT_20_BYTE flag, and notes
 #    that only the first 16 bytes of the final hash are evaluated. Also, only 40 bytes
 #    long hex string hashes will be loaded (base-64? needed?).
 #    At this time, ALL sha1 is done in non-SSE code (x86, OpenSSL). Also note, that
 #    ALL output from the SHA1 functions is directly appended or overwritten, right into
 #    an input buffer.
 #
+#    **  NOTE, these functions are depricated.  They should not be used any more.
+#        The proper usage would be to set the output format (no setting is needed
+#        IF base-16 is wanted, as that will be default), and then to call the same
+#        named function primate, but that function name is minus the _base16 part.
+#        so DynamicFunc__SHA1_crypt_input1_append_input2 would be the proper function,
+#        instead of the depricated DynamicFunc__SHA1_crypt_input1_append_input2_base16
+#
+####################
+#
+# OTHER large hash functions (SHA2 hashes, GOST, WHIRLPOOL, Tiger, RIPEMD(128/160/256/512) currently)
+#
+####################
+#
+# These other large hash types, have been built like the SHA1 (listed above). They will have
+# the same 8 function primitives, and be named exactly the same as the SHA1, except they
+# will have the crypt in the function name.  The current hashes supported are:
+#     SHA224, SHA256, SHA384, SHA512, GOST, WHIRLPOOL.
+#     NOTE Whirlpool is ONLY supported in new versions of OpenSSL, so if the version of oSSL
+#     is not new enough, the whirlpool part of dynamic will NOT be compiled into JtR.
+#
+# Here is an example.  Listed will be the functions for SHA256.  NOTE all of the other types
+# will be exactly the same, just using different crypt values in the function names.
+#
+# DynamicFunc__SHA256_crypt_input1_append_input2
+# DynamicFunc__SHA256_crypt_input2_append_input1
+# DynamicFunc__SHA256_crypt_input1_overwrite_input1
+# DynamicFunc__SHA256_crypt_input2_overwrite_input2
+# DynamicFunc__SHA256_crypt_input1_overwrite_input2
+# DynamicFunc__SHA256_crypt_input2_overwrite_input1
+# DynamicFunc__SHA256_crypt_input1_to_output1_FINAL
+# DynamicFunc__SHA256_crypt_input2_to_output1_FINAL
+#
+# All of these 'large' hash functions, when used MUST end with either an MD5 or MD4 into
+# output1, OR by using one of the *_to_output1_FINAL calls.  The ONLY call actaully
+# has to be one of the *_to_output1_FINAL calls (if the format is a simple single
+# hash, such as SHA512($s.$p.$u)  In this case, we would simply load one of the input
+# variables with the salt, the password, and the userid, and then call a single
+# DynamicFunc__SHA256_crypt_input1_to_output1_FINAL to perform the crypt.
+#
+####################
+# Controlling the output of 'large' crypts.
+####################
+#
+# All of the 'large' crypts, have simple function primitives. These will perform the
+# crypt, and then write output to one of the 2 buffers. The output can be appeneded,
+# or overwritten.  The format this output is done in CAN be controlled. The output
+# formats are:  base-16  (0-9 and a-f), base-16 upcase (0-9 and A-F), base-64 (MIME)
+# base-64 with no 'trailing' '=' characters (the '=' is normally inserted for strings
+# that are not evenly divisible by 3). Also, 'RAW' hash value can be output.
+#
+# These are the 'helper' functions that affect large hash output.  Every call to crypt_all
+# will set base-16 to be the default output format.  These helper functions change this,
+# and once an output format it set, it 'stays' in that format, until set by another
+# helper, or at the next call to crypt_all (i.e. the format starts over again)
+#
+# DynamicFunc__LargeHash_OUTMode_base16
+# DynamicFunc__LargeHash_OUTMode_base16u
+# DynamicFunc__LargeHash_OUTMode_base64
+# DynamicFunc__LargeHash_OUTMode_base64_nte
+# DynamicFunc__LargeHash_OUTMode_raw
+#
 ####################
 #  These are special functions written SPECIFCALLY for usage by phpass code, in builtin
 #  function dynamic_17.  These are likely NOT useful.  However, they 'are' open to be used.
 ####################
 #
-#  DynamicFunc__crypt_to_input_raw
+#  DynamicFunc__crypt_md5_to_input_raw
 #     Used as 'first' step of phpass crypt.  it will put 16 binary bytes of md5 encryption
 #     into array1[].  It will write this to the beginning of the arrays (does not append), and
 #     when done, sets ALL lengths of array1[] to 16.  Once this function is called, the keys
 #     are appended (see spec for phpass encryption), which sets the length of input1[] elements
 #     to 16 + strlen(keys).  Then there is a loop that calls the next function.
 #
-#  DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
+#  DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
 #     This function will encrypt input1[] and drop the 16 bytes of MD5 binary right back over
 #     the first 16 bytes of input1[]  The length of each input1[] item is NOT touched, thus
 #     whatever the length was before is what it is now.
 #
-#  DynamicFunc__crypt_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE
+#  DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE
 #     This is the very first call.  It DOES set the length up properly. From that point on,
-#     the other (1000's) of calls are done using DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
+#     the other (1000's) of calls are done using DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
 #
 #  DynamicFunc__PHPassCrypt
 #     Special function for phpass, probably not useful in john.conf scripting
@@ -698,11 +1033,32 @@ examples (this whole list is also found in john.conf).
 #    with a single \ character).
 #    NOTE that HH MUST be uppercased for the A to F values, and the 'x'
 #    MUST be lowercase.
-#    NOTE, you MUST use \xHH.  So, to put a ASCII(1) value, you would
+#    NOTE, you MUST use \xHH.  So, to put an ASCII(1) value, you would
 #    use \x01  (not \x1 ).
 #    ALL conversions are done prior to the line being 'looked at' within
 #    the parser.
 #
+#    There are other specialized 'Test=' lines that may need to be used
+#    in certain situations.
+#
+#  TestU= allows placing a test case out, that will ONLY load if the encoding
+#    of utf8 is selected from command line.
+#
+#  TestA= allows placing a test case will will NEVER be loaded if encoding of
+#    utf8 is selected at command line (ASCII test case).
+#
+#  TestM= Allows placing a test case that will ONLY load if this is an MMX or
+#    SSE build.
+#
+#  TestD= Allows placing a test case that will ONLY load, if -DDEBUG build of
+#    JtR is done (for testing).  At this time, the REALLY long password hashes
+#    are being added with TestD=  so that the timing of the formats will not be 
+#    impacted, but so that a debugging build can be done, and the extra long
+#    test strings will still be there and be tested.
+#
+#  TestF= Allows placing a test case that will NEVER be loaded if this was an
+#    MMX or SSE build (Only load for 'flat' builds, like oSSL only).
+#   
 #################
 #
 # The testing line is simply of this format:
@@ -744,12 +1100,34 @@ examples (this whole list is also found in john.conf).
 #
 ####################################################################
 #
+#   SaltLenX86=# line   (Optional, but required IF the format needs it)
+#
+#################
+#
+#  This is almost never needed.  But if needed to have a different
+#  salt size on non-MMX/SSE builds, then this is how to do it.
+#
+####################################################################
+#
 #   MaxInputLen=# line   (Optional, but required IF the format needs it)
 #
 #################
 #
 #  If a format has a 'max' length of password (such as Cisco PIX has
-#  a max length of 16 byte PW), then this must be set.
+#  a max length of 16 byte PW), then this must be set.  If this is
+#  not set, then the format will have a max password allowed to be
+#  55-abs(saltlen)  (80-abs(saltlen) if not an SSE/MMX build)
+#
+####################################################################
+#
+#   MaxInputLenX86=# line   (Optional, but required IF the format needs it)
+#
+#################
+#
+#  Similar to the SaltLenX86, in that it allows a different password
+#  length to be force set in non-SSE builds.  So if a format should
+#  ONLY have 16 byte passwords, and no salt, then you would need
+#  to set MaxInputLen=16  and have a MaxInputLenX86=16 set also.
 #
 ####################################################################
 #
@@ -777,7 +1155,8 @@ examples (this whole list is also found in john.conf).
 ####################################################################
 ####################################################################
 #  Here are some additional 'test' formats.  To use these, simply
-#  cut them and place them at the bottom of john.ini (john.conf).
+#  cut them and place them under a new name at the bottom of
+#  dynamic.conf.
 #  These require john-1.7.7 jumbo2 + to work properly
 ####################################################################
 ####################################################################
@@ -802,7 +1181,7 @@ Func=DynamicFunc__append_input1_from_CONST1
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__append_input1_from_CONST2
 Func=DynamicFunc__append_salt
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1009$550c41c11bab48f9dbd8203ed313eef0$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:abc123
 Test=$dynamic_1009$0c78bdef7d5448105cfbbc9aaa490a44$550c41c11bab48f9dbd8203ed313eef0:abc123
 Test=$dynamic_1009$9be296cf73d2f548dae3cccafaff1dd9$82916963c701200625cba2acd40d6569:FRED
@@ -821,7 +1200,7 @@ Flag=MGF_NOTSSE2Safe
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__set_input_len_16
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1010$2KFQnbNIdI.2KYOU:cisco
 Test=$dynamic_1010$TRPEas6f/aa6JSPL:test1
 Test=$dynamic_1010$OMT6mXmAvGyzrCtp:test2
@@ -847,7 +1226,7 @@ Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__set_input_len_16
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1011$h3mJrcH0901pqX/m$alex:ripper
 Test=$dynamic_1011$3USUcOPFUiMCO4Jk$cisc:cisco
 Test=$dynamic_1011$lZt7HSIXw3.QP7.R$admc:CscFw-ITC!
@@ -916,537 +1295,537 @@ Flag=MGF_INPBASE64
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt_to_input_raw
+Func=DynamicFunc__crypt_md5_to_input_raw
 Func=DynamicFunc__append_keys
 # for type 7, we perform 512 crypts
 # 1 crypt here
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE
-# Now, perform 254 crypts
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE
+# Now, perform 512 crypts
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
 #8 done
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
 #16 done
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
 #32 done
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
 #64 done
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
 #128 done
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
 #256 done
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-#Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
-#Func=DynamicFunc__crypt_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+#Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
+#Func=DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
 #512 done, but we did not test last 2
 # last crypt (makes 512 crypts TOTAL).
 # This will FAIL for big endian machines.  We have special code
 # inside our phpass to correctly deal with this.  In this format
 # there is NO way to do that.  Sorry, It simply can not be done
 # right now on BE systems.
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1014$yhzfTrJXcouTpLleLSbnY/$aaaaaSXB:test1
 Test=$dynamic_1014$mwulIMWPGe6RPXG1/R8l50$12345678:thatsworking
 Test=$dynamic_1014$nfKm8qpXa88RVUjLgjY/u1$555555hh:test3
@@ -1462,7 +1841,7 @@ Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_userid
 Func=DynamicFunc__append_from_last_output2_to_input1_as_base16
 Func=DynamicFunc__append_salt
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1015$6093d5cb3e2f99d9110eb9c4bbca5f8c$aaaSXB$$Ujoeblow:test1
 Test=$dynamic_1015$6a2dc4a6637bc5c2488f27faeead8720$123456$$Uadmin:thatsworking
 Test=$dynamic_1015$63aea4b8fe491df8545cc0099ac668d4$5555hh$$Uralph:test3
@@ -1480,10 +1859,10 @@ Expression=md5(upper(md5($p)))
 # Flag needed here, is Salt.  There is no 'fixed' saltlen.
 Flag=MGF_KEYS_INPUT
 Flag=MGF_BASE_16_OUTPUT_UPCASE
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input2_kwik
 Func=DynamicFunc__append_from_last_output_to_input2_as_base16
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Test=$dynamic_1016$42b01e6aebac08b1d481990c77e93206:test1
 Test=$dynamic_1016$11d382887431b076d540c4d3e37fe89a:Thatsworking
 Test=$dynamic_1016$9ed1f40dffbb84dadc33138958e927b2:test3
@@ -1493,13 +1872,13 @@ Expression=md5(upper(md5(upper(md5($p)))))
 # Flag needed here, is Salt.  There is no 'fixed' saltlen.
 Flag=MGF_KEYS_INPUT
 Flag=MGF_BASE_16_OUTPUT_UPCASE
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input2_kwik
 Func=DynamicFunc__append_from_last_output_to_input2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2_kwik
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Test=$dynamic_1017$9D55D308E01806EF0227CF5A3AC90F4E:test1
 Test=$dynamic_1017$1E80483A2F51520646542CCDC657E476:Thatsworking
 Test=$dynamic_1017$0E8851B6B060F9A5A101F540C3E3D669:test3
@@ -1509,16 +1888,16 @@ Expression=md5(upper(md5(upper(md5(upper(md5($p)))))))
 # Flag needed here, is Salt.  There is no 'fixed' saltlen.
 Flag=MGF_KEYS_INPUT
 Flag=MGF_BASE_16_OUTPUT_UPCASE
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input2_kwik
 Func=DynamicFunc__append_from_last_output_to_input2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2_kwik
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2_kwik
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Test=$dynamic_1018$CDA798A1D3B4ED11BCA6C0A3D9747B9A:test1
 Test=$dynamic_1018$98D346A7C2079BC2D6F49882E4847CDB:Thatsworking
 Test=$dynamic_1018$82262EE9D6DF9E1138F602737A9F897E:test3
@@ -1529,16 +1908,16 @@ Expression=md5(md5(md5(md5($p))))
 # here is the optimized 'script' to perform the md5 4 times on itself
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_from_last_output_as_base16
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input_kwik
 Func=DynamicFunc__append_from_last_output_as_base16
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input_kwik
 Func=DynamicFunc__append_from_last_output_as_base16
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1021$57200e13b490d4ae47d5e19be026b057:test1
 Test=$dynamic_1021$c6cc44f9e7fb7efcde62ba2e627a49c6:thatsworking
 Test=$dynamic_1021$0ae9549604e539a249c1fa9f5e5fb73b:test3
@@ -1579,28 +1958,28 @@ Flag=MGF_SALTED
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 #C1 in Out    Inp, Inp2, Out2 free
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_salt
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 #C2 in Out    Inp, Inp2, Out2 free
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__append_from_last_output_as_base16
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 #C3 in Out    Inp, Inp2, Out2 free
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__append_from_last_output_as_base16
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 #C4 in Out    Inp, Inp2, Out2 free
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_from_last_output_as_base16
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 #C5 in Out    Inp, Inp2, Out2 free
 
 Func=DynamicFunc__SSEtoX86_switch_output1
@@ -1615,23 +1994,23 @@ Func=DynamicFunc__append_salt2
 ##Func=DynamicFunc__SSEtoX86_switch_input2
 Func=DynamicFunc__append_keys2
 ##Func=DynamicFunc__X86toSSE_switch_input2
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 
 #C5 in Inp - C6 in Out2   Out, Inp2 free
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys2
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 #C5 in Inp - C7 in Out2   Out, Inp2 free
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys2
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 #C5 in Inp - C8 in Out2   Out, Inp2 free
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_salt2
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 #C5 in Inp - C9 in Out2   Out, Inp2 free
 
 Func=DynamicFunc__SSEtoX86_switch_output2
@@ -1642,28 +2021,28 @@ Func=DynamicFunc__ToSSE
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys2
 Func=DynamicFunc__append_salt2
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 #C5.C9 in Inp - C10 in Out2   Out, Inp2 free
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys2
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 #C5.C9 in Inp - C11 in Out2   Out, Inp2 free
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_salt2
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 #C5.C9 in Inp - C12 in Out2   Out, Inp2 free
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_salt2
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 #C5.C9 in Inp - C13 in Out2   Out, Inp2 free
 
 Func=DynamicFunc__SSEtoX86_switch_output2
 Func=DynamicFunc__append_from_last_output2_to_input1_as_base16
 #C5.C9.C13 Inp[x86]          Out, Inp2, Out2 free
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 #Final answer in Out    Inp, Inp2, Out2 free
 Func=DynamicFunc__X86toSSE_switch_output1
 
@@ -1687,7 +2066,7 @@ Flag=MGF_NOTSSE2Safe
 #
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 #C1 in Out    Inp, Inp2, Out2 free
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_from_last_output_as_base16
@@ -1695,22 +2074,22 @@ Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys2
 Func=DynamicFunc__append_salt2
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 #C1 in Inp C2 in Out2    Free: Out, Inp2
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_salt2
 Func=DynamicFunc__append_keys2
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 #C1 in Inp C2 in Out2 C3 in Out1    Free: Inp2
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys2
 Func=DynamicFunc__append_from_last_output2_as_base16
 Func=DynamicFunc__append_from_last_output_to_input2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 #C1 in Inp C4 in Out2 Free: Out1, Inp2
 Func=DynamicFunc__append_from_last_output2_to_input1_as_base16
 #C1.C4 in Inp  Free: Out1, Inp2 Out2
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 #Result in Out1
 #
 Test=$dynamic_1023$529f4a3600b1ed4af606a5fbc80f58ee$aabbccdd:test1
@@ -1734,7 +2113,7 @@ SaltLen=8
 Expression=dynamic_1024: md5($p)
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1024$5a105e8b9d40e1329780d62ea2265d8a:test1
 Test=$dynamic_1024$8ad8757baa8564dc136c1e07507f4a98:test3
 Test=$dynamic_1024$abbd6ffd1e10de751a20f97436a50dde:ThisisWorking
@@ -1750,7 +2129,7 @@ Test=$dynamic_1024$778f5c751de2d5a32faf89626c786103:Junky3
 [List.Generic:dynamic_1025]
 Expression=dynamic_1025: md5($p)
 Flag=MGF_KEYS_INPUT
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1025$5a105e8b9d40e1329780d62ea2265d8a:test1
 Test=$dynamic_1025$8ad8757baa8564dc136c1e07507f4a98:test3
 Test=$dynamic_1025$900150983cd24fb0d6963f7d28e17f72:abc
@@ -1760,7 +2139,7 @@ Expression=dynamic_1030: md5($p.$p)
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1030$42b72f913c3201fc62660d512f5ac746:test1
 
 [List.Generic:dynamic_1031]
@@ -1770,7 +2149,7 @@ Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__SSEtoX86_switch_input1
 Func=DynamicFunc__ToSSE
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input_kwik
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__SSEtoX86_switch_input1
@@ -1781,7 +2160,7 @@ Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__SSEtoX86_switch_input1
 Func=DynamicFunc__ToSSE
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1031$a459f60614498dbdd9a79dcc9c538749$aabbccdd:test1
 
 [List.Generic:dynamic_1032]
@@ -1790,15 +2169,15 @@ Flag=MGF_SALTED
 Flag=MGF_NOTSSE2Safe
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys2
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_from_last_output2_to_input1_as_base16
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1032$042d1f15ed57929a2ac8ee4f0a924679$aabbccdd:test1
 
 
@@ -1809,12 +2188,12 @@ Flag=MGF_SALT_AS_HEX
 Flag=MGF_NOTSSE2Safe
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1042$042d1f15ed57929a2ac8ee4f0a924679$aabbccdd:test1
 
 
@@ -1827,7 +2206,7 @@ Flag=MGF_NOTSSE2Safe
 Func=DynamicFunc__overwrite_salt_to_input1_no_size_fix
 Func=DynamicFunc__set_input_len_64
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1052$042d1f15ed57929a2ac8ee4f0a924679$aabbccdd:test1
 
 [List.Generic:dynamic_1062]
@@ -1836,13 +2215,13 @@ Flag=MGF_SALTED
 Flag=MGF_SALT_AS_HEX
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__SSEtoX86_switch_output1
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__X86toSSE_switch_output1
 Test=$dynamic_1062$042d1f15ed57929a2ac8ee4f0a924679$aabbccdd:test1
 
@@ -1851,11 +2230,11 @@ Expression=dynamic_1033: md5(md5($p).$s)
 Flag=MGF_SALTED
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_salt
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1033$e9fb44106edf60419d26a10b5439d0c7$aabbccddeeff:test1
 SaltLen=12
 
@@ -1865,7 +2244,7 @@ Flag=MGF_SALTED
 Flag=MGF_KEYS_BASE16_IN1
 Func=DynamicFunc__set_input_len_32
 Func=DynamicFunc__append_salt
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1043$e9fb44106edf60419d26a10b5439d0c7$aabbccddeeff:test1
 SaltLen=12
 
@@ -1876,19 +2255,19 @@ Flag=MGF_SALTED
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__append_from_last_output_as_base16
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys2
 Func=DynamicFunc__append_from_last_output_to_input2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_from_last_output2_as_base16
 Func=DynamicFunc__append_salt2
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Test=$dynamic_1044$e4f0714e3e616ed7647dbd44aaff3c00$aabbccdd:test1
 
 
@@ -1905,12 +2284,12 @@ Expression=md5(md5($p).md5($p))
 #Flag=MGF_NOTSSE2Safe
 Flag=MGF_KEYS_INPUT
 # here is the optimized 'script' to perform hash 'like' IPB but salt replaced with password.
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__SSEtoX86_switch_output1
 Func=DynamicFunc__clean_input2_kwik
 Func=DynamicFunc__append_from_last_output_to_input2_as_base16
 Func=DynamicFunc__append_from_last_output_to_input2_as_base16
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Func=DynamicFunc__X86toSSE_switch_output1
 # These are test strings for this format.
 Test=$dynamic_1063$478b10974f15e7295883224fd286ccba:test1
@@ -1928,10 +2307,10 @@ Flag=MGF_SALTED2
 Flag=MGF_NOTSSE2Safe
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_2nd_salt
-Func=DynamicFunc__crypt_in1_to_out2
+Func=DynamicFunc__crypt_md5_in1_to_out2
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys2
@@ -1944,11 +2323,11 @@ Func=DynamicFunc__append_input2_from_CONST5
 Func=DynamicFunc__append_input2_from_CONST7
 Func=DynamicFunc__append_input2_from_CONST6
 Func=DynamicFunc__append_input2_from_CONST8
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_from_last_output2_to_input1_as_base16
 Func=DynamicFunc__append_input1_from_CONST2
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_5001$6d1a31e525633013d52bc065328ecd7c$aabbccdd$$2xszef:test1
 Test=$dynamic_5001$1ad6b42d7f22fcafbf9609c3efbea182$zzyyxxww$$2ER#^s:test3
 Test=$dynamic_5001$5eeeca352107c1b565af4a249a8452ee$01234567$$2hhhas:ThisisWorking
@@ -1970,11 +2349,11 @@ SaltLen=8
 [List.Generic:dynamic_5002]
 Expression=dynamic_5002: md5(md5($p))
 Flag=MGF_KEYS_INPUT
-Func=DynamicFunc__crypt_in1_to_out2
+Func=DynamicFunc__crypt_md5_in1_to_out2
 Func=DynamicFunc__SSEtoX86_switch_output2
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 #sFunc=DynamicFunc__X86toSsE_switch_output1
 Test=$dynamic_5002$418d89a45edadb8ce4da17e07f72536c:test1
 Test=$dynamic_5002$ccd3c4231a072b5e13856a2059d04fad:thatsworking
@@ -1985,42 +2364,42 @@ Expression=dynamic_5003: md5($c1.md5($c2.md5($c3.md5($c4.md5($c5.md5($c6.md5($c7
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_input2_from_CONST8
 Func=DynamicFunc__append_keys2
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_input2_from_CONST7
 Func=DynamicFunc__append_from_last_output2_as_base16
 Func=DynamicFunc__append_input2_from_CONST1
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_input2_from_CONST6
 Func=DynamicFunc__append_from_last_output2_as_base16
 Func=DynamicFunc__append_input2_from_CONST2
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_input2_from_CONST5
 Func=DynamicFunc__append_from_last_output2_as_base16
 Func=DynamicFunc__append_input2_from_CONST3
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_input2_from_CONST4
 Func=DynamicFunc__append_from_last_output2_as_base16
 Func=DynamicFunc__append_input2_from_CONST4
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_input2_from_CONST3
 Func=DynamicFunc__append_from_last_output2_as_base16
 Func=DynamicFunc__append_input2_from_CONST5
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_input2_from_CONST2
 Func=DynamicFunc__append_from_last_output2_as_base16
 Func=DynamicFunc__append_input2_from_CONST6
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_input2_from_CONST1
 Func=DynamicFunc__append_from_last_output2_as_base16
 Func=DynamicFunc__append_input2_from_CONST7
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Test=$dynamic_5003$116475e5dcb0f34933dad42ba23f1c5d:test1
 Test=$dynamic_5003$78a24cda1176ee0a361204ad523e84db:test3
 Test=$dynamic_5003$33dd28264da1606c681d883947e1dc69:ThisisWorking
@@ -2043,42 +2422,42 @@ Expression=dynamic_5004: md5($c1.md5($c2.md5($c3.md5($c4.md5($c5.md5($c6.md5($c7
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_input1_from_CONST8
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_input1_from_CONST7
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_input1_from_CONST1
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_input1_from_CONST6
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_input1_from_CONST2
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_input1_from_CONST5
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_input1_from_CONST3
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_input1_from_CONST4
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_input1_from_CONST4
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_input1_from_CONST3
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_input1_from_CONST5
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_input1_from_CONST2
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_input1_from_CONST6
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_input1_from_CONST1
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_input1_from_CONST7
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_5004$116475e5dcb0f34933dad42ba23f1c5d:test1
 Test=$dynamic_5004$78a24cda1176ee0a361204ad523e84db:test3
 Test=$dynamic_5004$33dd28264da1606c681d883947e1dc69:ThisisWorking
@@ -2103,45 +2482,45 @@ Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_input1_from_CONST8
 Func=DynamicFunc__append_input2_from_input
 Func=DynamicFunc__append_keys2
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_input2_from_CONST7
 Func=DynamicFunc__append_from_last_output_to_input2_as_base16
 Func=DynamicFunc__append_input2_from_CONST1
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_input2_from_CONST6
 Func=DynamicFunc__append_input_from_input2
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_input1_from_CONST2
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_input1_from_CONST5
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_input1_from_CONST3
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_input1_from_CONST4
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_input1_from_CONST4
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_input1_from_CONST3
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_input1_from_CONST5
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_input1_from_CONST2
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_input1_from_CONST6
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_input1_from_CONST1
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_input1_from_CONST7
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_5005$116475e5dcb0f34933dad42ba23f1c5d:test1
 Test=$dynamic_5005$78a24cda1176ee0a361204ad523e84db:test3
 Test=$dynamic_5005$33dd28264da1606c681d883947e1dc69:ThisisWorking
@@ -2167,13 +2546,13 @@ Flag=MGF_SALTED
 Flag=MGF_SALT_AS_HEX_TO_SALT2
 Func=DynamicFunc__clean_input
 #Func=DynamicFunc__append_salt
-#Func=DynamicFunc__crypt
+#Func=DynamicFunc__crypt_md5
 #Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 #Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_2nd_salt
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1053$94eead61c1c07bb832ff855dd6115702$aabbccdd:test1
 Test=$dynamic_1053$0c6253b0b82dc81bc5f5de0dcb59ee80$zzyyxxww:test3
 Test=$dynamic_1053$86d00c5383bbdaf1661d7729160766ed$01234567:ThisisWorking
@@ -2189,12 +2568,12 @@ Flag=MGF_SALTED
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__setmode_unicode
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__setmode_normal
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_from_last_output_as_base16
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1054$2e233d5102d2be03307ec5490075121d$aabbccdd:test1
 Test=$dynamic_1054$0474efd4022743c1113636fc1f34d88a$zzyyxxww:test3
 Test=$dynamic_1054$e3ab32d7db8521616781f13919bb17bc$01234567:ThisisWorking
@@ -2213,7 +2592,7 @@ Func=DynamicFunc__setmode_normal
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_from_last_output2_to_input1_as_base16
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1055$2e233d5102d2be03307ec5490075121d$aabbccdd:test1
 Test=$dynamic_1055$0474efd4022743c1113636fc1f34d88a$zzyyxxww:test3
 Test=$dynamic_1055$e3ab32d7db8521616781f13919bb17bc$01234567:ThisisWorking
@@ -2229,12 +2608,12 @@ Flag=MGF_SALTED
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__setmode_unicode
 Func=DynamicFunc__append_salt
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__setmode_normal
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1056$34ba9cf3d8f61e6eb21942feb1164261$aabbccdd:test1
 Test=$dynamic_1056$7b4fdbaab27929e18808c96e41b846f0$zzyyxxww:test3
 
@@ -2249,7 +2628,7 @@ Func=DynamicFunc__setmode_unicode
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__setmode_normal
 Func=DynamicFunc__append_salt
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1057$34ba9cf3d8f61e6eb21942feb1164261$aabbccdd:test1
 Test=$dynamic_1057$7b4fdbaab27929e18808c96e41b846f0$zzyyxxww:test3
 
@@ -2258,7 +2637,7 @@ Expression=dynamic_1058: md5(unicode($p))
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__setmode_unicode
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1058$16c47151c18ac087cd12b3a70746c790:test1
 Test=$dynamic_1058$537e738b1ac5551f65106368dc301ece:thatsworking
 Test=$dynamic_1058$849ee1b88b5d887bdb058180a666b450:test3
@@ -2269,48 +2648,13 @@ Func=DynamicFunc__clean_input
 Func=DynamicFunc__setmode_unicode
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__setmode_normal
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input2_kwik
 Func=DynamicFunc__append_from_last_output_to_input2_as_base16
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Test=$dynamic_1059$ef1b8ee3ad8690fd1678093588727529:test1
 Test=$dynamic_1059$18a7e5f289730525111f7b65cb223506:thatsworking
 Test=$dynamic_1059$01a0359d0cabbf49a0b0a8a941c7f5ab:test3
-
-
-
-##############################################################################
-# digest authentication scheme :
-#  h1 = md5(user:realm:password)
-#  h2 = md5(method:digestURI)
-#  response = h3 = md5(h1:nonce:nonceCount:ClientNonce:qop:h2)
-#
-# the 'special' salt sets 32space:nonce:nonceCount:ClientNonce:qop:h2
-# Also, this salt sets the first 5 bytes to be a growing text number,
-# so that salt_hash works properly.
-##############################################################################
-[List.Generic:dynamic_1060]
-Expression=dynamic_1060: HDAA )
-Flag=MGF_HDAA_SALT
-Flag=MGF_FLD2
-Flag=MGF_FLD3
-Flag=MGF_FLD4
-Flag=MGF_USERNAME
-Func=DynamicFunc__clean_input
-Func=DynamicFunc__append_userid
-Func=DynamicFunc__append_input1_from_CONST1
-Func=DynamicFunc__append_fld2
-Func=DynamicFunc__append_input1_from_CONST1
-Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
-Func=DynamicFunc__SSEtoX86_switch_output1
-Func=DynamicFunc__clean_input_kwik
-Func=DynamicFunc__append_salt
-Func=DynamicFunc__overwrite_from_last_output_as_base16_no_size_fix
-Func=DynamicFunc__crypt
-Test=$dynamic_1060$679066476e67b5c7c4e88f04be567f8b$8c12bd8f728afe56d45a0ce846b70e5a$$Uuser$$F2myrealm$$F3GET$/$$F400000001$4b61913cec32e2c9$auth:nocode
-Test=$dynamic_1060$faa6cb7d676e5b7c17fcbf966436aa0c$af32592775d27b1cd06356b3a0db9ddf$$Umoi$$F2myrealm$$F3GET$/$$F400000001$8e1d49754a25aea7$auth:kikou
-CONST1=:
 
 
 [List.Generic:dynamic_1090]
@@ -2320,17 +2664,17 @@ Flag=MGF_NOTSSE2Safe
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__append_salt
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_salt2
 Func=DynamicFunc__append_keys2
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_salt2
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys2
 Func=DynamicFunc__crypt_in2_to_out1
@@ -2338,44 +2682,44 @@ Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_from_last_output_to_input2_as_base16
 Func=DynamicFunc__append_salt2
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__append_from_last_output2_to_input1_as_base16
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys2
 Func=DynamicFunc__append_salt2
 Func=DynamicFunc__append_keys2
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys2
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_salt2
 Func=DynamicFunc__append_keys2
 Func=DynamicFunc__append_keys2
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_from_last_output_to_input2_as_base16
 Func=DynamicFunc__append_salt2
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__append_from_last_output2_to_input1_as_base16
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys2
 Func=DynamicFunc__append_salt2
 Func=DynamicFunc__append_salt2
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_salt2
 Func=DynamicFunc__append_keys2
 Func=DynamicFunc__append_from_last_output2_as_base16
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_salt2
 Func=DynamicFunc__append_keys2
 Func=DynamicFunc__append_salt2
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_salt2
 Func=DynamicFunc__append_keys2
@@ -2384,7 +2728,7 @@ Func=DynamicFunc__append_keys2
 Func=DynamicFunc__append_from_last_output2_as_base16
 Func=DynamicFunc__crypt_in2_to_out1
 Func=DynamicFunc__append_from_last_output_as_base16
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1090$e49995dd9328ba663e8839734aaef068$zRwIEOWX:hallo
 
 
@@ -2393,12 +2737,12 @@ Expression=dynamic_1061: md5($s.'-'.md5($p))
 Flag=MGF_SALTED
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_input1_from_CONST1
 Func=DynamicFunc__append_from_last_output_as_base16
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1061$7fc1aa71056429e9f773b2cde1106aee$salt1:test1
 Test=$dynamic_1061$abdb2b7fbc78abaf475d3a5bb48b48bc$2tlas:testword2
 CONST1=-
@@ -2409,9 +2753,9 @@ Expression=dynamic_1062: md5(sha1($p))
 Flag=MGF_StartInX86Mode
 Flag=MGF_KEYS_INPUT_BE_SAFE
 Func=DynamicFunc__clean_input2_kwik
-Func=DynamicFunc__SHA1_crypt_input1_append_input2_base16
+Func=DynamicFunc__SHA1_crypt_md5_input1_append_input2_base16
 Func=DynamicFunc__X86toSSE_switch_input2
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Test=$dynamic_1062$a7168f0f249e3add33da11a59e228a57:test1
 Test=$dynamic_1062$067dda3ad565339fffa61ba74fab0ba3:thatsworking
 Test=$dynamic_1062$71a1083be5c288da7e57b8c2bd7cbc96:test3
@@ -2420,12 +2764,12 @@ Test=$dynamic_1062$71a1083be5c288da7e57b8c2bd7cbc96:test3
 [List.Generic:dynamic_1063]
 Expression=dynamic_1063: sha1(md5($p))
 Flag=MGF_KEYS_INPUT
-Flag=MGF_SHA1_40_BYTE_FINISH
-Func=DynamicFunc__crypt
+Flag=MGF_INPUT_20_BYTE
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__SSEtoX86_switch_output1
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_from_last_output_to_input2_as_base16
-Func=DynamicFunc__SHA1_crypt_input2_to_output1_FINAL
+Func=DynamicFunc__SHA1_crypt_md5_input2_to_output1_FINAL
 Test=$dynamic_1063$81d84525eb1499d518cf3cb3efcbe1d11c4ccf25:test1
 Test=$dynamic_1063$6cd62e1767b65eec58d687de6d9c08a828018254:thatsworking
 Test=$dynamic_1063$7d653cf00d747a9fbab213b6c2b335cfe8199ff3:test3
@@ -2434,9 +2778,9 @@ Test=$dynamic_1063$7d653cf00d747a9fbab213b6c2b335cfe8199ff3:test3
 # sha1($p)
 [List.Generic:dynamic_1064]
 Expression=dynamic_1064: sha1($p)
-Flag=MGF_SHA1_40_BYTE_FINISH
-Flag=MGF_RAW_SHA1_INPUT
-Func=DynamicFunc__SHA1_crypt_input1_to_output1_FINAL
+Flag=MGF_INPUT_20_BYTE
+Flag=MGF_FLAT_BUFFERS
+Func=DynamicFunc__SHA1_crypt_md5_input1_to_output1_FINAL
 Test=$dynamic_1064$b444ac06613fc8d63795be9ad0beaf55011936ac:test1
 Test=$dynamic_1064$1068db2941b46d12f790df99d72fe8c2eb6d3aaf:thatsworking
 Test=$dynamic_1064$3ebfa301dc59196f18593c45e519287a23297589:test3
@@ -2447,16 +2791,16 @@ Flag=MGF_StartInX86Mode
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__SHA1_crypt_input1_append_input2_base16
+Func=DynamicFunc__SHA1_crypt_md5_input1_append_input2_base16
 Func=DynamicFunc__X86toSSE_switch_input2
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Func=DynamicFunc__SSEtoX86_switch_output1
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__clean_input2
-Func=DynamicFunc__SHA1_crypt_input1_append_input2_base16
+Func=DynamicFunc__SHA1_crypt_md5_input1_append_input2_base16
 Func=DynamicFunc__X86toSSE_switch_input2
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Test=$dynamic_1165$62f2dd3da9a39eea4314b846aaa02a3d:test1
 Test=$dynamic_1165$288f19a5a0967ef40d8e9ebfef79b0ea:thatsworking
 Test=$dynamic_1165$72a4064912ccaea4b982b3e9fc710cd7:test3
@@ -2465,11 +2809,11 @@ Test=$dynamic_1165$72a4064912ccaea4b982b3e9fc710cd7:test3
 Expression=dynamic_1066: sha1($p.$s)
 Flag=MGF_NOTSSE2Safe
 Flag=MGF_SALTED
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__append_salt
-Func=DynamicFunc__SHA1_crypt_input1_to_output1_FINAL
+Func=DynamicFunc__SHA1_crypt_md5_input1_to_output1_FINAL
 Test=$dynamic_1066$5a12479f0a8286a832288e1dc2ea9b2eda4e382d$sG:test1
 Test=$dynamic_1066$c72b6f1caddb158831cab0b08d29243ea20fc869$xxRW:thatsworking
 Test=$dynamic_1066$b966eff1aac95e92818a7c59326cce297b935eff$s3xx:test3
@@ -2478,11 +2822,11 @@ Test=$dynamic_1066$b966eff1aac95e92818a7c59326cce297b935eff$s3xx:test3
 Expression=dynamic_1067: sha1($s.$p)
 Flag=MGF_NOTSSE2Safe
 Flag=MGF_SALTED
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__SHA1_crypt_input1_to_output1_FINAL
+Func=DynamicFunc__SHA1_crypt_md5_input1_to_output1_FINAL
 Test=$dynamic_1067$f5266f29ff7f1ea6fc30085c8347fcf6a6e36e9c$sG:test1
 Test=$dynamic_1067$a34af873d9047541b4d76ceae7b391f0664ca99e$xxRW:thatsworking
 Test=$dynamic_1067$f0058038be0e821caa3031b463aed00fbe7e3beb$s3xx:test3
@@ -2490,12 +2834,12 @@ Test=$dynamic_1067$f0058038be0e821caa3031b463aed00fbe7e3beb$s3xx:test3
 [List.Generic:dynamic_1068]
 Expression=dynamic_1068: sha1(sha1($p))
 Flag=MGF_NOTSSE2Safe
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__SHA1_crypt_input1_append_input2_base16
-Func=DynamicFunc__SHA1_crypt_input2_to_output1_FINAL
+Func=DynamicFunc__SHA1_crypt_md5_input1_append_input2_base16
+Func=DynamicFunc__SHA1_crypt_md5_input2_to_output1_FINAL
 Test=$dynamic_1068$2a367cbb171d78d293f40fd7d1defb31e3fb1728:test1
 Test=$dynamic_1068$d3e0a4d2f3ec196a79ab2890c65144c20ff24ed8:thatsworking
 Test=$dynamic_1068$b13773cfee62f832cacb618b257feec972f30b13:test3
@@ -2503,13 +2847,13 @@ Test=$dynamic_1068$b13773cfee62f832cacb618b257feec972f30b13:test3
 [List.Generic:dynamic_1069]
 Expression=dynamic_1069: sha1(sha1($p))
 Flag=MGF_NOTSSE2Safe
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__SHA1_crypt_input1_append_input2_base16
-Func=DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16
-Func=DynamicFunc__SHA1_crypt_input2_to_output1_FINAL
+Func=DynamicFunc__SHA1_crypt_md5_input1_append_input2_base16
+Func=DynamicFunc__SHA1_crypt_md5_input2_overwrite_input2_base16
+Func=DynamicFunc__SHA1_crypt_md5_input2_to_output1_FINAL
 Test=$dynamic_1069$00aeb6dc5e6269a6b2f39728cd8a6812a644dae6:test1
 Test=$dynamic_1069$d60112917380bb0641f5d1a4ce8fb77e958452f7:thatsworking
 Test=$dynamic_1069$54e45916fb79f7be1c695828fdba44915b50751e:test3
@@ -2521,13 +2865,13 @@ Flag=MGF_KEYS_INPUT_BE_SAFE
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__SHA1_crypt_input1_append_input2_base16
 Func=DynamicFunc__X86toSSE_switch_input2
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Func=DynamicFunc__SSEtoX86_switch_output1
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_from_last_output_to_input2_as_base16
 Func=DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16
 Func=DynamicFunc__X86toSSE_switch_input2
-Func=DynamicFunc__crypt_in2_to_out1
+Func=DynamicFunc__crypt_md5_in2_to_out1
 Test=$dynamic_1065$62f2dd3da9a39eea4314b846aaa02a3d:test1
 Test=$dynamic_1065$288f19a5a0967ef40d8e9ebfef79b0ea:thatsworking
 Test=$dynamic_1065$72a4064912ccaea4b982b3e9fc710cd7:test3
@@ -2535,7 +2879,7 @@ Test=$dynamic_1065$72a4064912ccaea4b982b3e9fc710cd7:test3
 [List.Generic:dynamic_1070]
 Expression=dynamic_1070: sha1(upr($u).':'.$p)
 Flag=MGF_NOTSSE2Safe
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Flag=MGF_USERNAME_UPCASE
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__clean_input2
@@ -2558,7 +2902,7 @@ Flag=MGF_UTF8
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__setmode_unicode
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 TestU=$dynamic_1100$94a4e171de16580742c4d141e6607bf7:\xE2\x82\xAC
 TestU=$dynamic_1400$03c60810f0e54d16e826aca385d776c8:\xE2\x82\xAC\xE2\x82\xAC
 TestU=$dynamic_1100$2d554433d7cde7ec8d16aaf126c3be6b:\xE2\x82\xAC\xC3\xBC
@@ -2579,7 +2923,7 @@ Test=$dynamic_1100$537e738b1ac5551f65106368dc301ece:thatsworking
 ####################################################################
 [List.Generic:dynamic_1101]
 Expression=sha1(unicode($p))
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__setmode_unicode
 Func=DynamicFunc__append_keys
@@ -2595,7 +2939,7 @@ Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_input1_from_CONST1
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 CONST1=:asterisk:
 Test=$dynamic_1400$4a8e71480c5b1ef0a5d502a8eb98576a$1234:abcd
 
@@ -2606,13 +2950,13 @@ Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_userid
 Func=DynamicFunc__append_input1_from_CONST1
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 CONST1=:asterisk:
 Test=$dynamic_1401$4a8e71480c5b1ef0a5d502a8eb98576a:abcd:1234
 
 [List.Generic:dynamic_1403]
 Expression=dynamic_1403: sha1(upr($u).':'.$p)
-Flag=MGF_SHA1_40_BYTE_FINISH
+Flag=MGF_INPUT_20_BYTE
 Flag=MGF_USERNAME_UPCASE
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__clean_input2
@@ -2634,7 +2978,7 @@ Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_input1_from_CONST1
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1404$d097de40a351866a024e6ba9ce2595eb$f8sKST:TEST1
 Test=$dynamic_1404$496ff0193acd6b92f92f9a8e05d3f2f2$tVJ9Gu:TESTLONG
 Test=$dynamic_1404$67557c91c31c1803a9fd55454ca102fe$IIpTKQ:HAPPY

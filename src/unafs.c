@@ -1,11 +1,17 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1998,2005,2006 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <stdio.h>
 
 #include "misc.h"
+#include "memdbg.h"
 
 #define DB_ENTRY_SIZE			200
 

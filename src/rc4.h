@@ -33,7 +33,10 @@ typedef struct rc4_key
 	RC4_INT y;
 } RC4_KEY;
 
-extern void RC4(RC4_KEY *key, RC4_INT len, const unsigned char *indata, unsigned char *outdata);
-extern void RC4_set_key(RC4_KEY *key, RC4_INT len, const unsigned char *data);
+extern void RC4_set_key(RC4_KEY *ctx, RC4_INT len, const unsigned char *data);
+extern void RC4(RC4_KEY *ctx, RC4_INT len, const unsigned char *indata,
+                unsigned char *outdata);
+extern void RC4_single(void *key, int keylen, const unsigned char *in, int len,
+                       unsigned char *out);
 
 #endif /* HEADER_RC4_H */

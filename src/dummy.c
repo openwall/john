@@ -1,15 +1,24 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2011 by Solar Designer
+ * Copyright (c) 2011,2012 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <string.h>
 
 #include "common.h"
 #include "formats.h"
+#include "options.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"dummy"
-#define FORMAT_NAME			"dummy"
+#define FORMAT_TAG			"$dummy$"
+#define FORMAT_TAG_LEN			7
+#define FORMAT_NAME			""
 #define ALGORITHM_NAME			"N/A"
 
 #define BENCHMARK_COMMENT		""
@@ -17,6 +26,7 @@
 
 /* Max 125, but 95 typically produces fewer L1 data cache tag collisions */
 #define PLAINTEXT_LENGTH		95
+#define MAX_PLAINTEXT_LENGTH		(PLAINTEXT_BUFFER_SIZE - 3) // 125
 
 typedef struct {
 	ARCH_WORD_32 hash;
@@ -24,7 +34,9 @@ typedef struct {
 } dummy_binary;
 
 #define BINARY_SIZE			sizeof(dummy_binary)
+#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
 #define SALT_SIZE			0
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		(0x4000 / (PLAINTEXT_LENGTH + 1))
@@ -32,13 +44,16 @@ typedef struct {
 static struct fmt_tests tests[] = {
 	{"$dummy$64756d6d79", "dummy"},
 	{"$dummy$", ""},
+	{"$dummy$00", ""}, // note, NOT canonical
+	{"$dummy$0064756d6d79", ""}, // note, NOT canonical
 	{"$dummy$70617373776f7264", "password"},
 	{NULL}
 };
 
 static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
+static int warned = 0;
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q, c;
 
@@ -66,10 +81,51 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 /* We won't be able to crack passwords longer than PLAINTEXT_LENGTH.
  * Also, we rely on this check having been performed before decode(). */
-	if (((q - p) >> 1) > PLAINTEXT_LENGTH)
+	if (((q - p) >> 1) > PLAINTEXT_LENGTH) {
+		/*
+		 * Warn if the dummy hash is not supported due to the maximum
+		 * password length, but otherwise would be valid.
+		 * Would one warning for each invalid hash be better?
+		 */
+		if (options.verbosity > 2 && warned < 2 &&
+		    ((q - p) >> 1) > MAX_PLAINTEXT_LENGTH) {
+			warned = 2;
+			fprintf(stderr,
+			        "dummy password length %d > max. supported length %d\n",
+				(int)((q - p) >> 1), MAX_PLAINTEXT_LENGTH);
+		}
+		else if (options.verbosity > 2 && warned == 0 &&
+		         ((q - p) >> 1) > PLAINTEXT_LENGTH) {
+			warned = 1;
+			/*
+			 * Should a hint to recompile with adjusted PLAINTEXT_LENGTH
+			 * be added here? Or is dummy format only used by experts anyway?
+			 */
+			fprintf(stderr,
+			        "dummy password length %d > currently supported length %d\n",
+			        (int)((q - p) >> 1), PLAINTEXT_LENGTH);
+		}
 		return 0;
-
+	}
 	return 1;
+}
+
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	// canonical fix for any hash with embedded null.
+	char *cp;
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		return ciphertext;
+	cp = &ciphertext[FORMAT_TAG_LEN];
+	while (cp[0] && cp[1]) {
+		if (cp[0] == '0' && cp[1] == '0') {
+			char *cp2 = str_alloc_copy(ciphertext);
+			cp2[cp-ciphertext] = 0;
+			return cp2;
+		}
+		cp += 2;
+	}
+	return ciphertext;
 }
 
 static char *decode(char *ciphertext)
@@ -88,14 +144,7 @@ static char *decode(char *ciphertext)
 	return out;
 }
 
-#ifdef __GNUC__
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
-__attribute__((always_inline))
-#else
-__inline__
-#endif
-#endif
-static ARCH_WORD_32 string_hash(char *s)
+static MAYBE_INLINE ARCH_WORD_32 string_hash(char *s)
 {
 	ARCH_WORD_32 hash, extra;
 	char *p;
@@ -135,6 +184,7 @@ static void *binary(char *ciphertext)
 	static dummy_binary out;
 	char *decoded;
 
+	memset(&out, 0, sizeof(out));	/* Jumbo only */
 	decoded = decode(ciphertext);
 
 	out.hash = string_hash(decoded);
@@ -172,6 +222,16 @@ static int binary_hash_4(void *binary)
 	return ((dummy_binary *)binary)->hash & 0xfffff;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return ((dummy_binary *)binary)->hash & 0xffffff;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return ((dummy_binary *)binary)->hash & 0x7ffffff;
+}
+
 static int get_hash_0(int index)
 {
 	ARCH_WORD_32 hash = string_hash(saved_key[index]);
@@ -201,6 +261,16 @@ static int get_hash_4(int index)
 	return string_hash(saved_key[index]) & 0xfffff;
 }
 
+static int get_hash_5(int index)
+{
+	return string_hash(saved_key[index]) & 0xffffff;
+}
+
+static int get_hash_6(int index)
+{
+	return string_hash(saved_key[index]) & 0x7ffffff;
+}
+
 static void set_key(char *key, int index)
 {
 	char *p = saved_key[index];
@@ -213,8 +283,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	return *pcount;
 }
 
 static int cmp_all(void *binary, int count)
@@ -250,28 +321,43 @@ struct fmt_main fmt_dummy = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
 		tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		binary,
 		fmt_default_salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		fmt_default_set_salt,
 		set_key,
 		get_key,
@@ -282,7 +368,9 @@ struct fmt_main fmt_dummy = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

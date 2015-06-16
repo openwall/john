@@ -32,6 +32,12 @@
   ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_KRB4;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_KRB4);
+#else
+
 #include <string.h>
 #include <ctype.h>
 #include <openssl/des.h>
@@ -42,21 +48,24 @@
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#include "memdbg.h"
 
 #define TGT_LENGTH		16	/* 2 des_cblock's */
 
 #define FORMAT_LABEL		"krb4"
 #define FORMAT_NAME		"Kerberos v4 TGT"
-#define ALGORITHM_NAME		"krb4 DES"
+#define ALGORITHM_NAME		"DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		0
+#define BINARY_ALIGN		MEM_ALIGN_NONE
 #define SALT_SIZE		TGT_LENGTH + REALM_SZ
+#define SALT_ALIGN		MEM_ALIGN_NONE
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-static struct fmt_tests krb4_tests[] = {
+static struct fmt_tests tests[] = {
 	{"$af$UMICH.EDU$bb46613c503ad92e649d99d038efddb2", "w00w00"},
 	{"$af$UMICH.EDU$95cd4367d4828d117b745ed63b9229be", "asdfjkl;"},
 	{"$af$UMICH.EDU$000084efbde96969fd54d1a2ec8c287d", "hello!"},
@@ -91,38 +100,39 @@ static const unsigned char odd_parity[256]={
 
 static struct salt_st {
 	unsigned char		tgt[TGT_LENGTH];
-	char			realm[REALM_SZ];
+	char			realm[REALM_SZ+1];
 } *saved_salt;
 
 static struct key_st {
 	DES_cblock		key;
 	DES_key_schedule	sched;
-	char			string[PLAINTEXT_LENGTH];
+	char			string[PLAINTEXT_LENGTH + 1];
 } saved_key;
 
 
-static int
-krb4_valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p, *tgt;
+	char *tgt;
 
 	if (strncmp(ciphertext, "$k4$", 4) != 0 &&
 	    strncmp(ciphertext, "$af$", 4) != 0)
 		return 0;
+	ciphertext += 4;
+	tgt = strchr(ciphertext, '$');
 
-	tgt = strchr(ciphertext + 4, '$') + 1;
-
-	for (p = tgt; p && *p != '\0'; p++)
-		if (!isxdigit((int)*p)) return 0;
-
-	if (p - tgt != TGT_LENGTH * 2)
+	if (!tgt)
+		return 0;
+	if (tgt-ciphertext > REALM_SZ)
+		return 0;
+	++tgt;
+	if (!ishex(tgt)) return 0;
+	if (strlen(tgt) != TGT_LENGTH * 2)
 		return 0;
 
 	return 1;
 }
 
-static int
-hex_decode(char *src, unsigned char *dst, int outsize)
+static int hex_decode(char *src, unsigned char *dst, int outsize)
 {
 	char *p, *pe;
 	unsigned char *q, *qe, ch, cl;
@@ -147,12 +157,12 @@ hex_decode(char *src, unsigned char *dst, int outsize)
 	return (q - dst);
 }
 
-static void *
-krb4_salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static struct salt_st salt;
 	char *p;
 
+	memset(&salt, 0, sizeof(salt));
 	if (strncmp(ciphertext, "$af$", 4) == 0) {
 		ciphertext += 4;
 		p = strchr(ciphertext, '$');
@@ -170,37 +180,35 @@ krb4_salt(char *ciphertext)
 	return (&salt);
 }
 
-static void
-krb4_set_salt(void *salt)
+static void set_salt(void *salt)
 {
 	saved_salt = (struct salt_st *)salt;
 }
 
-static void
-krb4_set_key(char *key, int index)
+static void krb4_set_key(char *key, int index)
 {
-	if (saved_salt->realm[0] != '\0')
-		afs_string_to_key(key, saved_salt->realm, &saved_key.key);
-	else
-		des_string_to_key(key, &saved_key.key);
-
 	strnzcpy(saved_key.string, key, sizeof(saved_key.string));
 }
 
-static char *
-krb4_get_key(int index)
+static char *get_key(int index)
 {
 	return (saved_key.string);
 }
 
-static void
-krb4_crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	/* XXX - NOOP */
+	if (saved_salt->realm[0] != '\0')
+		afs_string_to_key(saved_key.string,
+		                  saved_salt->realm,
+		                  &saved_key.key);
+	else
+		DES_string_to_key(saved_key.string,
+		                  &saved_key.key);
+
+	return *pcount;
 }
 
-static int
-krb4_check_parity(DES_cblock *key)
+static int krb4_check_parity(DES_cblock *key)
 {
 	int i;
 
@@ -211,8 +219,7 @@ krb4_check_parity(DES_cblock *key)
 	return (1);
 }
 
-static int
-krb4_cmp_all(void *binary, int count)
+static int cmp_all(void *binary, int count)
 {
 	DES_cblock tmp;
 
@@ -225,8 +232,7 @@ krb4_cmp_all(void *binary, int count)
 	return (krb4_check_parity(&tmp));
 }
 
-static int
-krb4_cmp_one(void *binary, int count)
+static int cmp_one(void *binary, int count)
 {
 	unsigned char text[TGT_LENGTH];
 
@@ -237,10 +243,9 @@ krb4_cmp_one(void *binary, int count)
 	return (memcmp(text + 8, "krbtgt", 6) == 0);
 }
 
-static int
-krb4_cmp_exact(char *source, int index)
+static int cmp_exact(char *source, int index)
 {
-	return (1);	/* XXX - fallthrough from krb4_cmp_one() */
+	return (1);
 }
 
 struct fmt_main fmt_KRB4 = {
@@ -250,20 +255,32 @@ struct fmt_main fmt_KRB4 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-		krb4_tests
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
-		krb4_valid,
+		valid,
 		fmt_default_split,
 		fmt_default_binary,
-		krb4_salt,
+		get_salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_default_source,
 		{
 			fmt_default_binary_hash,
 			fmt_default_binary_hash,
@@ -272,11 +289,12 @@ struct fmt_main fmt_KRB4 = {
 			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
-		krb4_set_salt,
+		NULL,
+		set_salt,
 		krb4_set_key,
-		krb4_get_key,
+		get_key,
 		fmt_default_clear_keys,
-		krb4_crypt_all,
+		crypt_all,
 		{
 			fmt_default_get_hash,
 			fmt_default_get_hash,
@@ -284,8 +302,10 @@ struct fmt_main fmt_KRB4 = {
 			fmt_default_get_hash,
 			fmt_default_get_hash
 		},
-		krb4_cmp_all,
-		krb4_cmp_one,
-		krb4_cmp_exact
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

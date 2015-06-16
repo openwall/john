@@ -251,12 +251,14 @@ or:
 
 This will use the default "incremental" mode parameters, which are
 defined in the configuration file's section named either
-[Incremental:All] (for most hash types) or [Incremental:LanMan] (for
-Windows LM hashes).  By default, the [Incremental:All] parameters are
-set to use the full printable US-ASCII character set (95 characters) and
-to try all possible password lengths from 0 to 8.  [Incremental:LanMan]
-is similar, except that it takes advantage of LM hashes being
-case-insensitive and of their halves limited to 7 characters each.
+[Incremental:ASCII] (for most hash types) or [Incremental:LM_ASCII] (for
+Windows LM hashes).  By default, the [Incremental:ASCII] parameters are
+set to use the full printable ASCII character set (95 characters) and
+to try all possible password lengths from 0 to 13 (if the current hash
+type has a lower maximum password length, incremental mode's length
+limit is reduced accordingly).  [Incremental:LM_ASCII] is similar,
+except that it takes advantage of LM hashes being case-insensitive and
+of their halves being limited to 7 characters each.
 
 Don't expect "incremental" mode sessions to terminate in a reasonable
 time (unless all the passwords are weak and get cracked), read MODES for
@@ -264,10 +266,10 @@ an explanation of this.
 
 In some cases it is faster to use some other pre-defined incremental mode
 parameters and only crack simpler passwords, from a limited character
-set.  The following command will try 26 different characters only,
-passwords from "a" to "zzzzzzzz" (in an optimal order):
+set.  The following command will try 10 different characters only,
+passwords from "0" to "99999999999999999999" (in an optimal order):
 
-	john -i=alpha mypasswd
+	john -i=digits mypasswd
 
 Of course, you can use most of the additional features demonstrated
 above for wordlist mode with "incremental" mode as well.  For example,
@@ -303,17 +305,14 @@ If your "pot file" got large enough (or if you don't have any charset
 files at all), you might want to use it to generate a new set of main
 charset files:
 
-	john --make-charset=all.chr
-	john --make-charset=alnum.chr --external=filter_alnum
-	john --make-charset=alpha.chr --external=filter_alpha
-	john --make-charset=digits.chr --external=filter_digits
-	john --make-charset=lanman.chr --external=filter_lanman
+	makechr
 
-In the example above, John will overwrite the charset files with new
-ones that are based on your entire $JOHN/john.pot (John uses the entire
-"pot file" if you don't specify any password files).  Note that the word
-filters used here are pre-defined in the configuration file supplied
-with John, for your convenience.
+where "makechr" is a script that invokes "john --make-charset=..." with
+varying filenames, for all of the external mode word filters defined in
+the configuration file.  In this example, John will overwrite the
+charset files with new ones that are based on your entire $JOHN/john.pot
+(John uses the entire "pot file" if you don't specify any password
+files).
 
 8. Finally, you might want to e-mail all users with weak passwords to
 tell them to change their passwords.  (This is not always a good idea,
@@ -337,7 +336,7 @@ you just make a new "single crack" mode rule (see RULES for information
 on the syntax) and place it somewhere near the beginning:
 
 	[List.Rules:Single]
-	$?$!
+	Az"?!"
 
 Hint: if you want to temporarily disable all of the default rules, you
 can simply rename the section to something John doesn't use and define
@@ -361,8 +360,7 @@ the charset file only.  To make John try some more characters, add:
 
 These extra characters will then be added, but still considered the
 least probable.  If you want to make sure that, with your extra
-characters, John will try all the 95 printable US-ASCII characters, you
-can add:
+characters, John will try 95 different characters, you can add:
 
 	CharCount = 95
 
@@ -406,4 +404,4 @@ of comments in the default configuration file supplied with John.
 Please refer to EXTERNAL for information on the programming language
 used.
 
-$Owl: Owl/packages/john/john/doc/EXAMPLES,v 1.8 2009/12/25 16:59:31 solar Exp $
+$Owl$

@@ -1,8 +1,12 @@
+/*
+ * This is MIME Base64 (as opposed to crypt(3) encoding found in common.[ch])
+ */
 
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "memdbg.h"
 
 void base64_unmap(char *in_block) {
   int i;
@@ -32,12 +36,13 @@ void base64_unmap(char *in_block) {
       continue;
     }
 
-    if(*c == '=') {
-      *c = 0;
+    if (*c>='0' && *c<='9') {
+      *c -= '0';
+      *c += 52;
+      continue;
     }
-
-    *c -= '0';
-    *c += 52;
+    /* ignore trailing trash (if there were no '=' values */
+    *c = 0;
   }
 }
 
@@ -67,6 +72,8 @@ int base64_decode(char *in, int inlen, char *out) {
       ((temp[2]<<6) & 0xc0) | ((temp[3]   ) & 0x3f);
 
     out_block += 3;
+	if(in_block[3] == '=')
+      return 0;
     in_block += 4;
   }
 

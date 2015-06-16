@@ -32,16 +32,59 @@
 
  This is an implementation of RFC2898, which specifies key derivation from
  a password and a salt value.
-*/
 
+ Compile: gcc -DTEST gladman_pwd2key.c gladman_hmac.c -lcrypto */
+
+#include <stdio.h>
 #include <string.h>
-#include <memory.h>
+//#include <memory.h>
 #include "gladman_hmac.h"
+#include <math.h>
+#include "memdbg.h"
 
 #if defined(__cplusplus)
 extern "C"
 {
 #endif
+
+void pbkdf2_zip(const unsigned char pwd[],
+               unsigned int pwd_len,
+               const unsigned char salt[],
+               unsigned int salt_len,
+               unsigned int iter,
+               unsigned char key[],
+               unsigned int start_offset,
+               unsigned int key_len)
+{
+    unsigned int  i, j, k;
+    unsigned char uu[OUT_BLOCK_LENGTH], ux[OUT_BLOCK_LENGTH];
+    hmac_ctx c1[1];
+
+    int loops = ceil((start_offset + key_len) / 20.0);
+    for (i = floor(start_offset / 20.0) + 1; i <= loops; i++) {
+        uu[0] = (unsigned char)((i) >> 24);
+        uu[1] = (unsigned char)((i) >> 16);
+        uu[2] = (unsigned char)((i) >> 8);
+        uu[3] = (unsigned char)(i);
+
+        hmac_sha1_begin(c1);
+        hmac_sha1_key(pwd, pwd_len, c1);
+        hmac_sha1_data(salt, salt_len, c1);
+        hmac_sha1_data(uu, 4, c1);
+        hmac_sha1_end(uu, OUT_BLOCK_LENGTH, c1);
+
+        memcpy(ux, uu, OUT_BLOCK_LENGTH);
+        for (j = 1; j < iter; j++) {
+             hmac_sha1_begin(c1);
+             hmac_sha1_key(pwd, pwd_len, c1);
+             hmac_sha1_data(uu, OUT_BLOCK_LENGTH, c1);
+             hmac_sha1_end(uu, OUT_BLOCK_LENGTH, c1);
+                 for (k = 0; k < OUT_BLOCK_LENGTH; k++)
+                     ux[k] = ux[k] ^ uu[k];
+        }
+        memcpy(key, ux + (start_offset % OUT_BLOCK_LENGTH), 2);
+    }
+}
 
 void derive_key(const unsigned char pwd[],  /* the PASSWORD     */
                unsigned int pwd_len,        /* and its length   */
@@ -106,8 +149,6 @@ void derive_key(const unsigned char pwd[],  /* the PASSWORD     */
 
 #ifdef TEST
 
-#include <stdio.h>
-
 struct
 {   unsigned int    pwd_len;
     unsigned int    salt_len;
@@ -126,7 +167,13 @@ struct
         {   0x12, 0x34, 0x56, 0x78, 0x78, 0x56, 0x34, 0x12 },
         {   0xd1, 0xda, 0xa7, 0x86, 0x15, 0xf2, 0x87, 0xe6,
             0xa1, 0xc8, 0xb1, 0x20, 0xd7, 0x06, 0x2a, 0x49 } /* ... */
+    },
+    {   76, 8, 500, (unsigned char*)"All n-entities must communicate with other n-entities via n-1 entiteeheehees",
+        {   0x12, 0x34, 0x56, 0x78, 0x78, 0x56, 0x34, 0x12 },
+        {   0x6A, 0x89, 0x70, 0xBF, 0x68, 0xC9, 0x2C, 0xAE,
+            0xA8, 0x4A, 0x8D, 0xF2, 0x85, 0x10, 0x85, 0x86 } /* ... */
     }
+
 };
 
 int main()
@@ -134,7 +181,7 @@ int main()
     unsigned char   key[256];
 
     printf("\nTest of RFC2898 Password Based Key Derivation");
-    for(i = 0; i < 2; ++i)
+    for(i = 0; i < 3; ++i)
     {
         derive_key(tests[i].pwd, tests[i].pwd_len, tests[i].salt,
                     tests[i].salt_len, tests[i].it_count, key, key_len);

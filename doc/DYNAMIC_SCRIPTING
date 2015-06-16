@@ -46,8 +46,8 @@ The 'Data' and runtime information is this:
 
 Inside of the $dynamic$ format, there are 2 input buffers (actually ALL data
 is arrays of 128 of each buffer type).  There is input1 and input2 buffers.
-The main operations on these buffers is to clear them, and to append data,
-to build string which will later be md5 hashed.
+The main operations on these buffers are to clear them, to append data,
+and to build a string which will later be md5 hashed.
 
 There are also 2 output buffers.  These buffers will receive the md5 hashing
 from the 2 input buffers.  NOTE, when the format processing is complete, the
@@ -64,7 +64,7 @@ There are also 8 'constant' strings which can be used within a format.  A
 format such as md5-po has a couple of constants within it.
 
 There are also numerous optimization 'flags' which do special things when
-loading keys or salts, and there are numourous special 'optimization' primative
+loading keys or salts, and there are numerous special 'optimization' primitive
 functions within the format, for speedup of certain operations.
 
 **** Simple format building ****
@@ -84,7 +84,7 @@ Expression=dynamic_1030: md5($p.$p)
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1030$42b72f913c3201fc62660d512f5ac746:test1
 
 Here is the exact same format, with some comments added, describing the
@@ -119,7 +119,7 @@ Func=DynamicFunc__append_keys
 #
 #Step 4, final step performs md5 of $p.$p  This will properly leave the
 #results in output1
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 #
 #This is test string.  These ARE required. You can provide more than
 #one.  5 or 6 are best, to make sure the format is valid.
@@ -147,12 +147,12 @@ Expression=dynamic_1031: md5($s.md5($p).$p)
 Flag=MGF_SALTED
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1031$a459f60614498dbdd9a79dcc9c538749$aabbccdd:test1
 
 
@@ -163,15 +163,15 @@ Expression=dynamic_1032: md5(md5($s).md5($p).$p)
 Flag=MGF_SALTED
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input2
 Func=DynamicFunc__append_keys2
-Func=DynamicFunc__crypt2
+Func=DynamicFunc__crypt2_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_from_last_output2_to_input1_as_base16
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1032$042d1f15ed57929a2ac8ee4f0a924679$aabbccdd:test1
 
 Ok, now that these have been built, here are a few 'benchmarks' listing
@@ -179,16 +179,16 @@ that they are WORKING, and what speed they are working:
 
 Here is MinGW build 'x86'
 
-john_x86 -test -for=$dynamic$ -sub=dynamic_1030
+john_x86 -test -form=dynamic_1030
 Benchmarking: dynamic_1030: md5($p.$p) [128x1 (MD5_Go)]... DONE
 Raw:    3530K c/s
 
-john_x86 -test -for=$dynamic$ -sub=dynamic_1031
+john_x86 -test -form=dynamic_1031
 Benchmarking: dynamic_1031: md5($s.md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     1945K c/s
 Only one salt:  1890K c/s
 
-john_x86 -test -for=$dynamic$ -sub=dynamic_1032
+john_x86 -test -form=dynamic_1032
 Benchmarking: dynamic_1032: md5(md5($s).md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     1016K c/s
 Only one salt:  1031K c/s
@@ -196,26 +196,26 @@ Only one salt:  1031K c/s
 
 Here is MinGW build of SSE2
 
-john_sse2 -test -for=$dynamic$ -sub=dynamic_1030
+john_sse2 -test -form=dynamic_1030
 Benchmarking: dynamic_1030: md5($p.$p) SSE2 [SSE2 32x4 (.S)]... DONE
 Raw:    7250K c/s
 
-john_sse2 -test -for=$dynamic$ -sub=dynamic_1031
+john_sse2 -test -form=dynamic_1031
 Benchmarking: dynamic_1031: md5($s.md5($p).$p) SSE2 [SSE2 32x4 (.S)]... DONE
 Many salts:     5065K c/s
 Only one salt:  4436K c/s
 
-john_sse2 -test -for=$dynamic$ -sub=dynamic_1032
+john_sse2 -test -form=dynamic_1032
 Benchmarking: dynamic_1032: md5(md5($s).md5($p).$p) SSE2 [SSE2 32x4 (.S)]... FAILED (get_hash[0](0))
 
 
 Here is some timings to check against:
 
-john_x86 -test -for=$dynamic$ -sub=dynamic_0
+john_x86 -test -form=dynamic_0
 Benchmarking:  dynamic_0: md5($p)  (raw-md5)  [128x1 (MD5_Go)]... DONE
 Raw:    4005K c/s
 
-john_sse2 -test -for=$dynamic$ -sub=dynamic_0
+john_sse2 -test -form=dynamic_0
 Benchmarking:  dynamic_0: md5($p)  (raw-md5)  SSE2 [SSE2 32x4 (.S)]... DONE
 Raw:    10740K c/s
 
@@ -268,32 +268,32 @@ Flag=MGF_SALT_AS_HEX
 Flag=MGF_NOTSSE2Safe
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1042$042d1f15ed57929a2ac8ee4f0a924679$aabbccdd:test1
 
 Once the above changes have been done, here are the speeds:
 
-john_x86 -test=5 -for=$dynamic$ -sub=dynamic_1031
+john_x86 -test=5 -form=dynamic_1031
 Benchmarking: dynamic_1031: md5($s.md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     2007K c/s
 Only one salt:  1913K c/s
 
-john_x86 -test=5 -for=$dynamic$ -sub=dynamic_1032
+john_x86 -test=5 -form=dynamic_1032
 Benchmarking: dynamic_1032: md5(md5($s).md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     1052K c/s
 Only one salt:  1030K c/s
 
-john_x86 -test=5 -for=$dynamic$ -sub=dynamic_1042
+john_x86 -test=5 -form=dynamic_1042
 Benchmarking: dynamic_1042: md5(md5($s).md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     1420K c/s
 Only one salt:  1372K c/s
 
-john_sse2 -test=5 -for=$dynamic$ -sub=dynamic_1042
+john_sse2 -test=5 -form=dynamic_1042
 Benchmarking: dynamic_1042: md5(md5($s).md5($p).$p) SSE2 [128x1 (MD5_Go)]... DONE
 Many salts:     1416K c/s
 Only one salt:  1372K c/s
@@ -315,17 +315,17 @@ Flag=MGF_NOTSSE2Safe
 Func=DynamicFunc__overwrite_salt_to_input1_no_size_fix
 Func=DynamicFunc__set_input_len_64
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1052$042d1f15ed57929a2ac8ee4f0a924679$aabbccdd:test1
 
 Here are the benchmarks for the above format:
 
-john_x86 -test=5 -for=$dynamic$ -sub=dynamic_1052
+john_x86 -test=5 -form=dynamic_1052
 Benchmarking: dynamic_1052: md5(md5($s).md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     2251K c/s
 Only one salt:  1369K c/s
 
-john_sse2 -test=5 -for=$dynamic$ -sub=dynamic_1052
+john_sse2 -test=5 -form=dynamic_1052
 Benchmarking: dynamic_1052: md5(md5($s).md5($p).$p) SSE2 [128x1 (MD5_Go)]... DONE
 Many salts:     2251K c/s
 Only one salt:  1369K c/s
@@ -391,24 +391,24 @@ Flag=MGF_SALTED
 Flag=MGF_SALT_AS_HEX
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__SSEtoX86_switch_output1
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_salt
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__X86toSSE_switch_output1
 Test=$dynamic_1062$042d1f15ed57929a2ac8ee4f0a924679$aabbccdd:test1
 
-john_sse2 -test=5 -for=$dynamic$ -sub=dynamic_1062
+john_sse2 -test=5 -form=dynamic_1062
 Benchmarking: dynamic_1062: md5(md5($s).md5($p).$p) SSE2 [SSE2 32x4 (.S)]... DONE
 Many salts:     1792K c/s
 Only one salt:  1715K c/s
 
 So all in all, 1032, 1042, 1052, 1062 were all equivalent (1032 was not, since it fails in
 SSE2 builds, but that was 'fixed' in 1042).  They all run using differing sets of flags, differing
-sets of Function primatives, and have different runtime speeds.  However, in the end, they all
+sets of Function primitives, and have different runtime speeds.  However, in the end, they all
 
 
 
@@ -432,11 +432,11 @@ Expression=dynamic_1033: md5(md5($p).$s)
 Flag=MGF_SALTED
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_keys
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__clean_input
 Func=DynamicFunc__append_from_last_output_as_base16
 Func=DynamicFunc__append_salt
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1033$e9fb44106edf60419d26a10b5439d0c7$aabbccddeeff:test1
 SaltLen=12
 
@@ -462,7 +462,7 @@ Flag=MGF_SALTED
 Flag=MGF_KEYS_BASE16_IN1
 Func=DynamicFunc__set_input_len_32
 Func=DynamicFunc__append_salt
-Func=DynamicFunc__crypt
+Func=DynamicFunc__crypt_md5
 Test=$dynamic_1033$e9fb44106edf60419d26a10b5439d0c7$aabbccddeeff:test1
 SaltLen=12
 

@@ -1,0 +1,280 @@
+Direct code contributors to 1.7.9-jumbo-7 (since 1.7.9-jumbo-6), by
+commit count:
+
+magnum
+JimF
+Frank Dittrich
+Claudio Andre
+Dhiru Kholia
+Solar Designer
+Lukas Odzioba
+myrice (Dongdong Li)
+Sayantan Datta
+Knug Carl Gustf
+Vlatko Kosturjak
+Tavis Ormandy
+Pavel Semjanov
+Elijah [W&P]
+Erik Winkler
+
+1.7.9-jumbo-7 is a bugfix-mostly release.  We're deliberately not
+including support for new formats (even though we have plenty of those
+in development trees), except for a couple that slipped through
+(KeePass 2.x, RAdmin 2.x).
+
+High-level overview of the changes:
+* KeePass 2.x support (in addition to 1.x)  (Dhiru)
+* The dynamic formats support has been enhanced a little bit, and a new sample
+has been added to the default dynamic.conf (dynamic_1010 for RAdmin 2.x, which
+uses MD5 hashes of NUL-padded passwords)  (JimF, Solar)
+* GPU support under recent Mac OS X  (magnum, others)
+ - CUDA working, OpenCL partially working - see doc/BUGS for more detail
+* The first GPU (as opposed to possibly a CPU) is now found automatically
+when no specific OpenCL platform/device is requested  (magnum)
+* Bugfixes for GPU formats: mscash-cuda, pwsafe-cuda, pwsafe-opencl  (Lukas)
+* Bugfixes for GPU formats: raw-sha512-cuda, raw-sha512-opencl, xsha512-cuda,
+xsha512-opencl  (myrice)
+* Speedup for phpass-opencl, mscash2-cuda  (Lukas)
+* Speedup for mscash2-opencl  (Sayantan, Solar)
+* Corrected detection of different salts in mscash-cuda, mscash2-cuda,
+mscash2-opencl  (Solar)
+* Updated comments printed for some GPU formats (removed "unreliable" notices
+from formats that are now reliable, added "inefficient" notices to formats that
+exist primarily to support further development)  (magnum, Solar)
+* hccap2john bugfix (this program was non-working in jumbo-6)  (Solar)
+* pdf2john bugfix (this program was non-working in jumbo-6)  (JimF)
+* keychain2john integrated into build  (Solar)
+* Support for more varieties of PKZIP archives  (JimF)
+* Better early rejection for RAR (huge speedup at -p archives)  (magnum, Pavel)
+* RACF and VNC formats speedup  (Knug Carl Gustf)
+* SIP, WoltLab Burning Board 3 formats speedup for non-OpenMP builds  (Solar)
+* x86-64 SSE2+ interleave settings for LLVM and GCC 4.7+  (magnum)
+* Greater use of XOP in SHA-1 (now also in round 3)  (Sayantan, Solar)
+* The --list option's supported set of parameters has been extended (use
+"--list=help" to find out what's available)  (Frank, magnum)
+* \xNN escape sequence now works inside preprocessor ranges  (magnum)
+* More test vectors for various formats, including based on KoreLogic's CMIYC
+2012 challenges  (JimF, others)
+* Wordlist parsing bugfixes (in particular with CR chars)  (magnum, Solar, Guth)
+* Build failure fixes for many platforms/targets  (magnum, Solar, others)
+* Many other bugs fixed, fewer new bugs introduced, some code changes made,
+some documentation revisions made  (all)
+* doc/BUGS has been mostly rewritten to reflect the remaining issues  (Solar)
+* Minor updates and fixes to bash completion  (Frank)
+* Filter_Rot13 external mode sample  (Frank)
+* Many updates to pass_gen.pl  (JimF, magnum)
+* This changes overview has been compiled  (Solar)
+
+Direct code contributors to 1.7.9-jumbo-6 (since 1.7.9-jumbo-5), by
+commit count:
+
+magnum
+Dhiru Kholia
+Frank Dittrich
+JimF (Jim Fougeron)
+myrice (Dongdong Li)
+Claudio Andre
+Lukas Odzioba
+Solar Designer
+Sayantan Datta
+Samuele Giovanni Tonon
+Tavis Ormandy
+bartavelle (Simon Marechal)
+Sergey V
+bizonix
+Robert Veznaver
+Andras
+
+New non-hashes:
+* Mac OS X keychains [OpenMP]  (Dhiru)
+ - based on research from extractkeychain.py by Matt Johnston
+* KeePass 1.x files [OpenMP]  (Dhiru)
+ - keepass2john is based on ideas from kppy by Karsten-Kai Koenig
+   http://gitorious.org/kppy/kppy
+* Password Safe [OpenMP, CUDA, OpenCL]  (Dhiru, Lukas)
+* ODF files [OpenMP]  (Dhiru)
+* Office 2007/2010 documents [OpenMP]  (Dhiru)
+ - office2john is based on test-dump-msole.c by Jody Goldberg and
+ OoXmlCrypto.cs by Lyquidity Solutions Limited
+* Mozilla Firefox, Thunderbird, SeaMonkey master passwords [OpenMP]  (Dhiru)
+ - based on FireMaster and FireMasterLinux
+   http://code.google.com/p/rainbowsandpwnies/wiki/FiremasterLinux
+* RAR -p mode encrypted archives  (magnum)
+ - RAR -hp mode was supported previously, now both modes are
+
+New challenge/responses, MACs:
+* WPA-PSK [OpenMP, CUDA, OpenCL]  (Lukas, Solar)
+ - CPU code is loosely based on Aircrack-ng
+   http://www.aircrack-ng.org
+   http://openwall.info/wiki/john/WPA-PSK
+* VNC challenge/response authentication [OpenMP]  (Dhiru)
+ - based on VNCcrack by Jack Lloyd
+   http://www.randombit.net/code/vnccrack/
+* SIP challenge/response authentication [OpenMP]  (Dhiru)
+ - based on SIPcrack by Martin J. Muench
+* HMAC-SHA-1, HMAC-SHA-224, HMAC-SHA-256, HMAC-SHA-384, HMAC-SHA-512  (magnum)
+
+New hashes:
+* IBM RACF [OpenMP]  (Dhiru)
+ - thanks to Nigel Pentland (author of CRACF) and Main Framed for providing
+ algorithm details, sample code, sample RACF binary database, test vectors
+* sha512crypt (SHA-crypt) [OpenMP, CUDA, OpenCL]  (magnum, Lukas, Claudio)
+ - previously supported in 1.7.6+ only via "generic crypt(3)" interface
+* sha256crypt (SHA-crypt) [OpenMP, CUDA]  (magnum, Lukas)
+ - previously supported in 1.7.6+ only via "generic crypt(3)" interface
+* DragonFly BSD SHA-256 and SHA-512 based hashes [OpenMP]  (magnum)
+* Django 1.4 [OpenMP]  (Dhiru)
+* Drupal 7 $S$ phpass-like (based on SHA-512) [OpenMP]  (magnum)
+* WoltLab Burning Board 3 [OpenMP]  (Dhiru)
+* New EPiServer default (based on SHA-256) [OpenMP]  (Dhiru)
+* GOST R 34.11-94 [OpenMP]  (Dhiru, Sergey V, JimF)
+* MD4 support in "dynamic" hashes (user-configurable)  (JimF)
+ - previously, only MD5 and SHA-1 were supported in "dynamic"
+* Raw-SHA1-LinkedIn (raw SHA-1 with first 20 bits zeroed)  (JimF)
+
+Alternate implementations for previously supported hashes:
+* Faster raw SHA-1 (raw-sha1-ng, password length up to 15)  (Tavis)
+
+OpenMP support in new formats:
+* Mac OS X keychains  (Dhiru)
+* KeePass 1.x files  (Dhiru)
+* Password Safe  (Lukas)
+* ODF files  (Dhiru)
+* Office 2007/2010 documents  (Dhiru)
+* Mozilla Firefox, Thunderbird, SeaMonkey master passwords  (Dhiru)
+* WPA-PSK  (Solar)
+* VNC challenge/response authentication  (Dhiru)
+* SIP challenge/response authentication  (Dhiru)
+* IBM RACF  (Dhiru)
+* DragonFly BSD SHA-256 and SHA-512 based hashes  (magnum)
+* Django 1.4  (Dhiru)
+* Drupal 7 $S$ phpass-like (based on SHA-512)  (magnum)
+* WoltLab Burning Board 3  (Dhiru)
+* New EPiServer default (based on SHA-256)  (Dhiru)
+* GOST R 34.11-94  (Dhiru, JimF)
+
+OpenMP support for previously supported hashes that lacked it:
+* Mac OS X 10.4 - 10.6 salted SHA-1  (magnum)
+* DES-based tripcodes  (Solar)
+* Invision Power Board 2.x salted MD5  (magnum)
+* HTTP Digest access authentication MD5  (magnum)
+* MySQL (old)  (Solar)
+
+CUDA support for:
+* phpass MD5-based "portable hashes"  (Lukas)
+* md5crypt (FreeBSD-style MD5-based crypt(3) hashes)  (Lukas)
+* sha512crypt (glibc 2.7+ SHA-crypt)  (Lukas)
+* sha256crypt (glibc 2.7+ SHA-crypt)  (Lukas)
+* Password Safe  (Lukas)
+* WPA-PSK  (Lukas)
+* Raw SHA-224, raw SHA-256 [inefficient]  (Lukas)
+* MSCash (DCC) [not working reliably yet]  (Lukas)
+* MSCash2 (DCC2) [not working reliably yet]  (Lukas)
+* Raw SHA-512 [not working reliably yet]  (myrice)
+* Mac OS X 10.7 salted SHA-512 [not working reliably yet]  (myrice)
+ - we have already identified the problem with the above two, and a post
+ 1.7.9-jumbo-6 fix should be available shortly - please ask on john-users if
+ interested in trying it out
+
+OpenCL support for:
+* phpass MD5-based "portable hashes"  (Lukas)
+* md5crypt (FreeBSD-style MD5-based crypt(3) hashes)  (Lukas)
+* sha512crypt (glibc 2.7+ SHA-crypt)  (Claudio)
+ - suitable for NVIDIA cards, faster than the CUDA implementation above
+ http://openwall.info/wiki/john/OpenCL-SHA-512
+* bcrypt (OpenBSD-style Blowfish-based crypt(3) hashes)  (Sayantan)
+ - pre-configured for AMD Radeon HD 7970, will likely fail on others unless
+ WORK_GROUP_SIZE is adjusted in opencl_bf_std.h and opencl/bf_kernel.cl;
+ the achieved level of performance is CPU-like (bcrypt is known to be
+ somewhat GPU-unfriendly - a lot more than SHA-512)
+ http://openwall.info/wiki/john/GPU/bcrypt
+* MSCash2 (DCC2)  (Sayantan)
+ - with optional and experimental multi-GPU support as a compile-time hack
+ (even AMD+NVIDIA mix), by editing init() in opencl_mscash2_fmt.c
+* Password Safe  (Lukas)
+* WPA-PSK  (Lukas)
+* RAR  (magnum)
+* MySQL 4.1 double-SHA-1 [inefficient]  (Samuele)
+* Netscape LDAP salted SHA-1 (SSHA) [inefficient]  (Samuele)
+* NTLM [inefficient]  (Samuele)
+* Raw MD5 [inefficient]  (Dhiru, Samuele)
+* Raw SHA-1 [inefficient]  (Samuele)
+* Raw SHA-512 [not working properly yet]  (myrice)
+* Mac OS X 10.7 salted SHA-512 [not working properly yet]  (myrice)
+ - we have already identified the problem with the above two, and a post
+ 1.7.9-jumbo-6 fix should be available shortly - please ask on john-users if
+ interested in trying it out
+
+Several of these require byte-addressable store (any NVIDIA card, but
+only 5000 series or newer if AMD/ATI).  Also, OpenCL kernels for "slow"
+hashes/non-hashes (e.g. RAR) may cause "ASIC hang" on certain AMD/ATI
+cards with recent driver versions.  We'll try to address these issues in
+a future version.
+
+AMD XOP (Bulldozer) support added for:
+* Many hashes based on MD4, MD5, SHA-1  (Solar)
+
+Uses of SIMD (MMX assembly, SSE2/AVX/XOP intrinsics) added for:
+* Mac OS X 10.4 - 10.6 salted SHA-1  (magnum)
+* Invision Power Board 2.x salted MD5  (magnum)
+* HTTP Digest access authentication MD5  (magnum)
+* SAP CODVN B (BCODE) MD5  (magnum)
+* SAP CODVN F/G (PASSCODE) SHA-1  (magnum)
+* Oracle 11  (magnum)
+
+Other optimizations:
+* Reduced memory usage for raw-md4, raw-md5, raw-sha1, and nt2  (magnum)
+* Prefer CommonCrypto over OpenSSL on Mac OS X 10.7  (Dhiru)
+* New SSE2 intrinsics code for SHA-1  (JimF, magnum)
+* Smarter use of SSE2 and SSSE3 intrinsics (the latter only if enabled in the
+compiler at build time) to implement some bit rotates for MD5, SHA-1  (Solar)
+* Assorted optimizations for raw SHA-1 and HMAC-MD5  (magnum)
+* In RAR format, added inline storing of RAR data in JtR input file when the
+original file is small enough  (magnum)
+* Added use of the bitslice DES implementation for tripcodes  (Solar)
+* Raw-MD5-unicode made "thick" again (that is, not building upon "dynamic"),
+using much faster code  (magnum)
+* Assorted performance tweaks in "salted-sha1" (SSHA)  (magnum)
+* Added functions for larger hash tables to several formats  (magnum, Solar)
+
+Other assorted enhancements:
+* linux-*-gpu (both CUDA and OpenCL at once), linux-*-cuda, linux-*-opencl,
+macosx-x86-64-opencl make targets  (magnum et al.)
+* linux-*-native make targets (pass -march=native to gcc)  (magnum)
+* New option: --dupe-suppression (for wordlist mode)  (magnum)
+* New option: --loopback[=FILE] (implies --dupe-suppression)  (magnum)
+* New option: --max-run-time=N for graceful exit after N seconds  (magnum)
+* New option: --log-stderr  (magnum)
+* New option: --regenerate-lost-salts=N for cracking hashes where we do not
+have the salt and essentially need to crack it as well  (JimF)
+* New unlisted option: --list (for bash completion, GUI, etc.)  (magnum)
+* --list=[encodings|opencl-devices]  (magnum)
+* --list=cuda-devices  (Lukas)
+* --list=format-details  (Frank)
+* --list=subformats  (magnum)
+* New unlisted option: --length=N for reducing maximum plaintext length of a
+format, mostly for testing purposes  (magnum)
+* Enhanced parameter syntax for --markov: may refer to a configuration file
+section, may specify the start and/or end in percent of total  (Frank)
+* Make incremental mode restore ETA figures  (JimF)
+* In "dynamic", support NUL octets in constants  (JimF)
+* In "salted-sha1" (SSHA), support any salt length  (magnum)
+* Use comment and home directory fields from PWDUMP-style input  (magnum)
+* Sort the format names list in "john" usage output alphabetically  (magnum)
+* New john.conf options subsection "MPI"  (magnum)
+* New john.conf config item CrackStatus under Options:Jumbo  (magnum)
+* \xNN escape sequence to specify arbitrary characters in rules  (JimF)
+* New rule command _N to reject a word unless it is of length N  (JimF)
+* Extra wordlist rule sections: Extra, Single-Extra, Jumbo  (magnum)
+* Enhanced "Double" external mode sample  (JimF)
+* Source $JOHN/john.local.conf by default  (magnum)
+* Many format and algorithm names have been changed for consistency  (Solar)
+* When intrinsics are in use, the reported algorithm name now tells which ones
+(SSE2, AVX, or XOP)  (Solar)
+* benchmark-unify: a Perl script to unify benchmark output of different
+versions of JtR for use with relbench  (Frank)
+* Per-benchmark speed ratio output added to relbench  (Frank)
+* bash completion for JtR (to install: "sudo make bash-completion")  (Frank)
+* New program: raw2dyna (helper to convert raw hashes to "dynamic")  (JimF)
+* New program: pass_gen.pl (generates hashes from plaintexts)  (JimF, magnum)
+* Many code changes made, many bugs fixed, many new bugs introduced  (all)

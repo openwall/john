@@ -44,11 +44,63 @@
 #ifndef _CONVERTUTF_H
 #define _CONVERTUTF_H
 
+#include "options.h"
+#include "common.h"
+
 #ifdef _MSC_VER
+#undef inline
 #define inline _inline
 #endif
 
-typedef unsigned long UTF32;	/* at least 32 bits */
+/* Load the 'case-conversion' tables. */
+#define UNICODE_MS_OLD  1
+#define UNICODE_MS_NEW  2
+#define UNICODE_UNICODE 3
+
+/* Arbitrary CP-to-integer mapping, for switches, arrays etc. */
+#define AUTO           -1 /* try to auto-detect UTF-8 */
+#define CP_UNDEF        0
+#define ASCII           1
+#define CP437           2
+#define CP720           3
+#define CP737           4
+#define CP850           5
+#define CP852           6
+#define CP858           7
+#define CP866           8
+#define CP868           9
+#define CP1250         10
+#define CP1251         11
+#define CP1252         12
+#define CP1253         13
+#define CP1254         14
+#define CP1255         15
+#define CP1256         16
+#define ISO_8859_1     17
+#define ISO_8859_2     18
+#define ISO_8859_7     19
+#define ISO_8859_15    20
+#define KOI8_R         21
+#define UTF_8          22
+#define CP_ARRAY       23 /* always highest, may specify array sizes */
+
+#define CP_DOS          1
+#define CP_WIN          2
+#define CP_ISO          3
+
+#define CP_DOS_LO       2
+#define CP_DOS_HI       9
+#define CP_WIN_LO      10
+#define CP_WIN_HI      16
+#define CP_ISO_LO      17
+#define CP_ISO_HI      20
+
+/* Rexgen library header might have defined this (empty) */
+#ifdef UTF32
+#undef UTF32
+#endif
+
+typedef ARCH_WORD_32 UTF32;	/* at least 32 bits */
 typedef unsigned short UTF16;	/* at least 16 bits */
 typedef unsigned char UTF8;	/* typically 8 bits */
 
@@ -63,13 +115,39 @@ typedef unsigned char UTF8;	/* typically 8 bits */
 extern const UTF32 offsetsFromUTF8[];
 extern const char opt_trailingBytesUTF8[64];
 
-/* Convert UTF-8 to UTF-16LE */
-extern int utf8_to_utf16(UTF16 * target, unsigned int maxtargetlen,
-    const UTF8 * source, unsigned int sourcelen);
+/*
+ * Convert to UTF-16LE from UTF-8.
+ * 'maxtargetlen' is max. number of characters (as opposed to bytes) in output,
+ * eg. PLAINTEXT_LENGTH.
+ * 'sourcelen' can be strlen(source).
+ * Returns number of UTF16 characters (as opposed to bytes) of resulting
+ * output. If return is negative, eg. -32, it means 32 characters of INPUT were
+ * used and then we had to truncate. Either because we ran out of maxtargetlen,
+ * or because input was not valid after that point (eg. illegal UTF-8 sequence).
+ * To get the length of output in that case, use strlen16(target).
+ */
+extern int utf8_to_utf16(UTF16 *target, unsigned int maxtargetlen,
+                         const UTF8 *source, unsigned int sourcelen);
 
-/* Convert to UTF-16LE from UTF-8 or ISO-8859-1 (or any other 'valid' code page encoding) depending on --encoding=utf8 (or other) flag */
-extern int enc_to_utf16(UTF16 * dst, unsigned int maxdstlen, const UTF8 * src, unsigned int srclen);
-extern int enc_to_utf16_be(UTF16 * dst, unsigned int maxdstlen, const UTF8 * src, unsigned int srclen);
+/*
+ * Convert to UTF-16LE from whatever encoding is used (--encoding aware).
+ * 'maxdstlen' is max. number of characters (as opposed to bytes) in output,
+ * eg. PLAINTEXT_LENGTH.
+ * 'srclen' can be strlen(src).
+ * Returns number of UTF16 characters (as opposed to bytes) of resulting
+ * output. If return is negative, eg. -32, it means 32 characters of INPUT were
+ * used and then we had to truncate. Either because we ran out of maxdstlen, or
+ * because input was not valid after that point (eg. illegal UTF-8 sequence).
+ * To get the length of output in that case, use strlen16(dst).
+ */
+extern int enc_to_utf16(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
+                        unsigned int srclen);
+
+/*
+ * Convert to UTF-16BE, otherwise like above.
+ */
+extern int enc_to_utf16_be(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
+                           unsigned int srclen);
 
 /* Thread-safe conversion from codepage to UTF-8 */
 UTF8 * enc_to_utf8_r (char *src, UTF8* dst, int dstlen);
@@ -81,12 +159,16 @@ char * utf8_to_enc_r (UTF8 *src, char* dst, int dstlen);
 extern UTF8 * utf16_to_utf8 (const UTF16* source);
 extern UTF8 * utf16_to_utf8_r (UTF8 *dst, int dst_len, const UTF16* source);
 
-/* Convert back to UTF-8 or ISO-8859-1 depending on --encoding= flag
- * (for get_key without a saved_plain) */
+/* Convert back to UTF-8 or codepage (for get_key without a saved_plain)
+   from UTF-16LE (regardless of host architecture) */
 extern UTF8 * utf16_to_enc (const UTF16* source);
 extern UTF8 * utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16* source);
 
-/* These were in smbencrypt.c before: */
+// Even after initializing for UTF-8 we still have some codepage that
+// we can opt to convert to/from.
+extern char *utf16_to_cp (const UTF16* source);
+extern char *utf8_to_cp_r (char *src, char* dst, int dstlen);
+extern char *cp_to_utf8_r (char *src, char* dst, int dstlen);
 
 /* Return length (in characters) of a UTF-16 string */
 /* Number of octets is the result * sizeof(UTF16)  */
@@ -96,16 +178,14 @@ extern unsigned int strlen16(const UTF16 * str);
 /* Will return a "truncated" length if fed with invalid data. */
 extern unsigned int strlen8(const UTF8 *source);
 
+/* Check if a string is valid UTF-8 */
+extern int valid_utf8(const UTF8 *source);
+
 /* Create an NT hash from a ISO-8859 or UTF-8 string (--encoding= aware) */
 extern int E_md4hash(const UTF8 * passwd, unsigned int len, unsigned char *p16);
 
-/* Load the 'case-conversion' tables. */
-#define UNICODE_MS_OLD	1
-#define UNICODE_MS_NEW	2
-#define UNICODE_UNICODE	3
-
-extern void listEncodings(void);
-extern int initUnicode(int type);
+extern void listEncodings(FILE *stream);
+extern void initUnicode(int type);
 extern UTF16 ucs2_upcase[0x10000];   /* NOTE, for multi-char converts, we put a 1 into these */
 extern UTF16 ucs2_downcase[0x10000]; /* array. The 1 is not valid, just an indicator to check the multi-char */
 
@@ -131,10 +211,10 @@ extern int utf16_lc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src
 extern int utf16_uc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src_len);
 
 // Lowercase UTF-8 or codepage string
-extern int enc_lc(UTF8 *dst, unsigned dst_len, const UTF8 *src, unsigned src_len);
+extern int enc_lc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len);
 
 // Uppercase UTF-8 or codepage string
-extern int enc_uc(UTF8 *dst, unsigned dst_len, const UTF8 *src, unsigned src_len);
+extern int enc_uc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len);
 
 // Encoding-aware strlwr(): in-place lowercase of string
 extern char *enc_strlwr(char *s);
@@ -152,6 +232,14 @@ extern UTF8  CP_down[0x100];
 // Used by single.c and loader.c
 extern UTF8 CP_isLetter[0x100];
 extern UTF8 CP_isSeparator[0x100];
+
+// Conversion between encoding names and integer id
+extern int cp_name2id(char *encoding);
+extern char *cp_id2name(int encoding);
+extern char *cp_id2macro(int encoding);
+//
+// NOTE! Please read the comments in formats.h for FMT_UNICODE and FMT_UTF8
+//
 
 /* --------------------------------------------------------------------- */
 #endif				/* _CONVERTUTF_H */

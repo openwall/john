@@ -1,7 +1,7 @@
 #ifndef _G_SHA1_H
 #define _G_SHA1_H
 
-#include <openssl/sha.h>
+#include "sha.h"
 
 #define SHA1_BLOCK_SIZE  64
 #define SHA1_DIGEST_SIZE 20

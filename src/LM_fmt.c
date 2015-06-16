@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2010-2012 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <string.h>
@@ -11,9 +16,10 @@
 #include "DES_bs.h"
 #include "common.h"
 #include "formats.h"
+#include "memdbg.h"
 
-#define FORMAT_LABEL			"lm"
-#define FORMAT_NAME			"LM DES"
+#define FORMAT_LABEL			"LM"
+#define FORMAT_NAME			""
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -38,8 +44,10 @@ static struct fmt_tests tests[] = {
 
 #define ALGORITHM_NAME			DES_BS_ALGORITHM_NAME
 
-#define BINARY_SIZE			ARCH_SIZE
+#define BINARY_SIZE			(sizeof(ARCH_WORD_32) * 2)
+#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
 #define SALT_SIZE			0
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		DES_BS_DEPTH
 #define MAX_KEYS_PER_CRYPT		DES_BS_DEPTH
@@ -48,7 +56,7 @@ static struct fmt_tests tests[] = {
 struct fmt_main fmt_LM;
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	DES_bs_init(1, DES_bs_cpt);
 #if DES_bs_mt
@@ -57,7 +65,14 @@ static void init(struct fmt_main *pFmt)
 #endif
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static char *prepare(char *fields[10], struct fmt_main *self)
+{
+	if (fields[2] && strlen(fields[2]) == 32)
+		return fields[2];
+	return fields[1];
+}
+
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 	char lower[CIPHERTEXT_LENGTH - 16 + 1];
@@ -80,17 +95,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-// here to 'handle' the pwdump files:  user:gid:lmhash:ntlmhash:::
-// Note, we do NOT address the group id issues in the lm stuff, inside loader.
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
-{
-	if (!valid(split_fields[1], pFmt) &&
-	    split_fields[2] && valid(split_fields[2], pFmt))
-		return split_fields[2];
-	return split_fields[1];
-}
-
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[21];
 
@@ -116,54 +121,59 @@ static char *split(char *ciphertext, int index)
 	return out;
 }
 
-static void *get_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
 	return DES_bs_get_binary_LM(ciphertext + 4);
 }
 
+static char *source(char *source, void *binary)
+{
+	return split(DES_bs_get_source_LM(binary), 0, NULL);
+}
+
 static int binary_hash_0(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xF;
+	return *(ARCH_WORD_32 *)binary & 0xF;
 }
 
 static int binary_hash_1(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFF;
+	return *(ARCH_WORD_32 *)binary & 0xFF;
 }
 
 static int binary_hash_2(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFFF;
+	return *(ARCH_WORD_32 *)binary & 0xFFF;
 }
 
 static int binary_hash_3(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFFFF;
+	return *(ARCH_WORD_32 *)binary & 0xFFFF;
 }
 
 static int binary_hash_4(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFFFFF;
+	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
 }
 
 static int binary_hash_5(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFFFFFF;
+	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
 }
 
 static int binary_hash_6(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0x7FFFFFF;
+	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return DES_bs_cmp_one((ARCH_WORD *)binary, 32, index);
+	return DES_bs_cmp_one((ARCH_WORD_32 *)binary, 64, index);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return DES_bs_cmp_one(get_binary(source), 64, index);
+	return 1;
 }
 
 static char *get_key(int index)
@@ -192,23 +202,35 @@ struct fmt_main fmt_LM = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if DES_bs_mt
-		FMT_OMP |
+		FMT_OMP | FMT_OMP_BAD |
 #endif
 		FMT_8_BIT | FMT_BS | FMT_SPLIT_UNIFIES_CASE,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		split,
-		get_binary,
+		binary,
 		fmt_default_salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -219,6 +241,7 @@ struct fmt_main fmt_LM = {
 			binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		fmt_default_set_salt,
 		DES_bs_set_key_LM,
 		get_key,

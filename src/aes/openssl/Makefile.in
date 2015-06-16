@@ -1,0 +1,20 @@
+@SET_MAKE@
+CC = @CC@
+CXX = @CXX@
+AS = @CC@
+LD = @CC@
+CPP = @CC@
+CFLAGS = @CFLAGS@ @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@
+ASFLAGS = @ASFLAGS@ -c @EXTRA_AS_FLAGS@
+LDFLAGS = @LDFLAGS@ @OPENSSL_LIBS@
+
+ossl_aes.o: ossl_aes.c ossl_aes.h
+	$(CC) $(CFLAGS) -c ossl_aes.c -o $@
+
+default: ossl_aes.o
+all: ossl_aes.o
+
+clean:
+
+distclean: clean
+	$(RM) Makefile

@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2012 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <string.h>
@@ -8,6 +13,8 @@
 #include "arch.h"
 #include "common.h"
 #include "DES_std.h"
+#include "memdbg.h"
+#include "misc.h"
 
 #if ARCH_BITS >= 64
 
@@ -269,7 +276,8 @@ unsigned char DES_E[48] = {
 	27, 28, 29, 30, 31, 0
 };
 
-static unsigned char DES_IP[64] = {
+
+unsigned char DES_IP[64] = {
 	57, 49, 41, 33, 25, 17, 9, 1,
 	59, 51, 43, 35, 27, 19, 11, 3,
 	61, 53, 45, 37, 29, 21, 13, 5,
@@ -379,10 +387,10 @@ static void init_IP_E(void)
 		if (value & mask)
 #if ARCH_BITS >= 64
 			DES_IP_E[chunk][value] |=
-				(ARCH_WORD)1 << dst;
+				(unsigned ARCH_WORD)1 << dst;
 #else
 			DES_IP_E[chunk][value][dst >> 5] |=
-				(ARCH_WORD)1 << (dst & 0x1F);
+				(unsigned ARCH_WORD)1 << (dst & 0x1F);
 #endif
 	}
 }
@@ -404,10 +412,10 @@ static void init_C_FP(void)
 		if (value & mask)
 #if ARCH_BITS >= 64
 			DES_C_FP[chunk][value] |=
-				(ARCH_WORD)1 << dst;
+				(unsigned ARCH_WORD)1 << dst;
 #else
 			DES_C_FP[chunk][value][dst >> 5] |=
-				(ARCH_WORD)1 << (dst & 0x1F);
+				(unsigned ARCH_WORD)1 << (dst & 0x1F);
 #endif
 	}
 }
@@ -460,7 +468,7 @@ static void init_KS(void)
 	memcpy(DES_KS_current, DES_KS_table, sizeof(DES_KS));
 }
 
-void DES_std_init(struct fmt_main *pFmt)
+void DES_std_init(void)
 {
 	init_SPE();
 	init_IP_E();
@@ -611,7 +619,8 @@ void DES_raw_set_key(char *key)
 
 void DES_std_set_key(char *key)
 {
-	int i, j, k, l;
+	unsigned i, j;
+	int k, l;
 #if !DES_ASM
 	ARCH_WORD *value1, *value2;
 #endif
@@ -1081,8 +1090,24 @@ ARCH_WORD *DES_do_IP(ARCH_WORD in[2])
 	for (dst = 0; dst < 64; dst++) {
 		src = DES_IP[dst ^ 0x20];
 
-		if (in[src >> 5] & (1 << (src & 0x1F)))
-			out[dst >> 5] |= 1 << (dst & 0x1F);
+		if (in[src >> 5] & ((unsigned ARCH_WORD)1 << (src & 0x1F)))
+			out[dst >> 5] |= (unsigned ARCH_WORD)1 << (dst & 0x1F);
+	}
+
+	return out;
+}
+
+ARCH_WORD *DES_do_FP(ARCH_WORD in[2])
+{
+	static ARCH_WORD out[2];
+	int src, dst;
+
+	out[0] = out[1] = 0;
+	for (src = 0; src < 64; src++) {
+		dst = DES_IP[src ^ 0x20];
+
+		if (in[src >> 5] & ((unsigned ARCH_WORD)1 << (src & 0x1F)))
+			out[dst >> 5] |= (unsigned ARCH_WORD)1 << (dst & 0x1F);
 	}
 
 	return out;
@@ -1104,7 +1129,7 @@ ARCH_WORD *DES_raw_get_binary(char *ciphertext)
 
 		for (src = 0; src < 6; src++) {
 			if (value & mask)
-				block[dst >> 5] |= 1 << (dst & 0x1F);
+				block[dst >> 5] |= (unsigned ARCH_WORD)1 << (dst & 0x1F);
 			mask >>= 1;
 			dst++;
 		}

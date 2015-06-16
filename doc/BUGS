@@ -1,0 +1,67 @@
+	Known issues with using this release.
+
+If available, the autoconf script enables use of the option -march=native
+to gcc (or similar things for other systems). On a few systems (including
+Ubuntu 12.04 used with a modern CPU) this can result in, for example, AVX2
+instructions being emitted by gcc while the rest of the toolchain (in this
+case 'as') does not support it. It will end up with errors like "no such
+instruction: `vfmadd312sd ...". The workaround is to add the option
+"--disable-native-march" to configure, which will stop it from ever adding
+that compiler option.
+
+Not working on big-endian CPU architectures (disabled by autoconf):
+* OpenVMS
+
+Intel's OCL SDK 1.5 CPU driver has problems with some formats. Use a
+newer version of the SDK.
+
+All CUDA formats substantially benefit from compile-time tuning.
+README-CUDA includes some info on this.  In short, on GTX 400 series and
+newer NVIDIA cards, you'll likely want to change "-arch sm_10" to "-arch
+sm_20" or greater (as appropriate for your GPU) on the NVCC_FLAGS line
+in Makefile.  You'll also want to tune BLOCKS and THREADS for the
+specific format you're interested in.  These are typically specified in
+cuda_*.h files.  README-CUDA includes a handful of pre-tuned settings.
+It is not unusual to obtain e.g. a 3x speedup (compared to the generic
+defaults) with this sort of tuning.
+
+Even though wpapsk-cuda primarily use the GPU, it also does a (small,
+but not negligible) portion of the computation on CPU and thus it
+substantially benefits from OpenMP-enabled builds.  We intend to reduce
+its use of CPU in a future version. The OpenCL version does all
+computation on GPU.
+
+With GPU-enabled formats (and sometimes with OpenMP on CPU as well), the
+number of candidate passwords being tested concurrently can be very
+large (thousands).  When the format is of a "slow" type (such as an
+iterated hash) and the number of different salts is large, interrupting
+and restoring a session may result in a lot of work being re-done (many
+minutes or even hours).  It is easy to see if a given session is going
+to be affected by this or not: watch the range of candidate passwords
+being tested as included in the status line printed on a keypress.  If
+this range does not change for a long while, the session is going to be
+affected since interrupting and restoring it will retry the entire
+range, for all salts, including for salts that already had the range
+tested against them.
+
+"Single crack" mode is relatively inefficient with GPU-enabled formats
+(and sometimes with OpenMP on CPU as well), because it might not be able
+to produce enough candidate passwords per target salt to fully utilize a
+GPU, as well as because its ordering of candidate passwords from most
+likely to least likely is lost when the format is only able to test a
+large number of passwords concurrently (before proceeding to doing the
+same for another salt).  You may reasonably start with quick "single
+crack" mode runs on CPU (possibly without much use of OpenMP) and only
+after that proceed to using GPU-enabled formats (or with heavier use of
+OpenMP, beyond a few CPU cores), locking those runs to specific cracking
+modes other than "single crack". This limitation does not affect MPI.
+
+Some formats lack proper binary_hash() functions, resulting in duplicate
+hashes (if any) not being eliminated at loading and sometimes also in
+slower cracking (when the number of hashes per salt is large).  When
+this happens, the following message is printed:
+	Warning: excessive partial hash collisions detected
+	(cause: the "format" lacks proper binary_hash() function definitions)
+Known to be affected are: dominosec.
+Also theoretically present, but less likely to be triggered in practice,
+are similar issues in non-hash formats.

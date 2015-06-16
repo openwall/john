@@ -1,83 +1,172 @@
 BASIC USAGE
 The Markov mode is based from [1], tested and applied to "classical" password
 cracking in [2]. This mode similar to the "wordlist" mode because it will only
-crack a fixed quantity of passwords. Its parameters are:
+crack a fixed quantity of passwords.
 
---markov:LEVEL:START:END:LENGTH
+UTF-8 is handled pretty good. Supply the -p option to calc_stat, and use
+--encoding:utf8 when you run john. Some invalid candidates are generated but
+for fast formats it's cheaper to accept them than to try to filter them out.
+For slow formats, --external:filter_utf8 can be used to mute them.
+
+Specify the --markov option on the command line to use Markov mode.
+
+You can use any of these forms of the --markov option
+
+--markov[:LEVEL[:START[:END[:LENGTH]]]]
+--markov=MODE[:LEVEL[:START[:END[:LENGTH]]]]
 
 Where:
-* LEVEL is the "Markov level". This value is the maximum strength of passwords
-that are going to be cracked. When LEVEL increases, the quantity of passwords
-that are going to be tested increases exponentially.
-* START is the index of the first password that is going to be tested, starting
-with 0.
-* END is the index of the last password that is going to be tested. When it is
-set to 0, it will represent the last possible password.
-* LENGTH is the maximum length of the tested passwords.
+* MODE is a particular Markov mode corresponding to a config file section
+[Markov:MODE]. The Markov mode name is not case sensitive.
+If the mode name is not specified, the default mode as specified in section
+[Markov:Default] is used.
 
-using --markov:100:0:0:12 will let john check every password whose length is 12
-or less and whose "Markov strength" is 100 or less.
+* LEVEL is the "Markov level".
+It can be specified as MIN_LEVEL-MAX_LEVEL or as MAX_LEVEL.
+MAX_LEVEL determines the maximum strength of passwords that are going to be
+tried. When MAX_LEVEL increases, the quantity of passwords that are going
+to be tested increases exponentially.  NOTE, the level 'can' be an empty
+value (i.e. just ::).  If so, then the level will be pull in from the
+[Markov::MODE] section (the MkvLvl = xxx item)
+
+MIN_LEVEL determines the minimum strength of passwords that are generated.
+If LEVEL is 0 or not specified on the command line, the LEVEL interval is
+read from config variables in the [Markov:mode] section, or [Markov:Default]
+section. If MODE is not specified on the command line, see CONFIGURATION
+OPTIONS.
+
+* START is the index of the first password that is going to be tested, starting
+with 0.  NOTE, an 'empty' value is treated just like zero.  So these are equal:
+--markov:100:0:0:3-12 --markov:100:::3-12
+
+* END is the index of the last password that is going to be tested. When it is
+set to 0, it will represent the last possible password. Note, this can also
+be an 'empty' value, see above.
+
+* LENGTH determines the length of passwords generated. If LENGTH is 0 or not
+specified on the command line, the LENGTH interval is read from config
+variables in the [Markov:mode] section, or [Markov:Default] section. The
+-min-length and -max-length options deprecate the LENGTH parameter (and
+over-rides it).
+
+If MODE is not specified on the command line, see CONFIGURATION OPTIONS.
+
+Using "--markov:100 --max-len=12" will let john check every password whose
+length is 12 or less and whose "Markov strength" is 100 or less.
 
 
 SELECTING THE PARAMETERS
 The "LEVEL" parameter should be selected based on the desired maximum running
 time. In order to select the appropriate LEVEL, the following steps should be
 followed:
-1/ Run the -single and -wordlist modes of john, as they will find many passwords
-for a low price
-2/ Run john with a low markov level on the file, using the time utility. For
-example:
-*******************************************************************************
-time john -markov:180 test
-Loaded 156 password hashes with no different salts (NT LM DES [128/128 BS SSE2])
-Warning: MaxLen = 12 is too large for the current hash type, reduced to 7
-MKV start (lvl=180 len=7 pwd=30449568)
-guesses: 0  time: 0:00:00:10 99%  c/s: 475013K  trying:
 
-real    0m10.707s
-user    0m10.621s
-sys     0m0.012s
+1/ Run the -single and -wordlist modes of john, as they will find many passwords
+for a low price. Perhaps also -inc with a low -max-len that ends in minutes.
+
+2/ Run john for at least 10 seconds (the longer, the more correct measurement)
+on the file, for example using the -max-run-time=SECONDS option. For example:
 *******************************************************************************
-This means that john can test 2.8M (30449568/10.707) passwords / seconds. It
-should be noted that with salted passwords the cracking speed will increase with
-every cracked password. This number should be corrected based on the experience
-of the user.
-3/ Evaluate the quantity of passwords that could be cracked during the selected
-time. Using the previous example, a cracking time of 3 hours will lead to a
-quantity of passwords of 30714M passwords (30449568/10.707*3600*3).
-4/ Use the genmkpwd command to find the corresponding level. Using the previous
-example, with a maximum password length of 12 (stupid because LM has a maximum
-length of 7 ...):
+user@host:run$ ./john -markov -max-run=10 hashfile
+Loaded 128 password hashes with no different salts (nt, NT MD4 [128/128 X2 SSE2-16])
+Press 'q' or Ctrl-C to abort, almost any other key for status
+MKV start (stats=$JOHN/stats, lvl=200 len=12 pwd=259356431)
+0g 0:00:00:10 DONE (2013-05-30 23:37) 0g/s 24914Kp/s 24914Kc/s 3319MC/s }svi..}
+Session completed
 *******************************************************************************
-genmkvpwd stats 0 12
+This means that john can test 24.9M passwords / second (24914Kp/s) when
+attacking this very file. Since John version 1.8, this figure can be used
+directly, salts and dupes or not (earlier versions only showed what is now
+output as 3319MC/s and that is harder to use).
+
+3/ Evaluate the quantity of passwords that could be tried during the targeted
+time. Using the previous example, a targeted cracking time of 3 hours will lead
+to a quantity of 269 G passwords (24914000*3600*3) to test.
+
+4/ Use the genmkvpwd command to find the corresponding level. Using the
+previous example, with a maximum password length of 12:
+*******************************************************************************
+user@host:run$ ./genmkvpwd stats 0 12
 [...]
-lvl=245 (5904 Kb for nbparts) 26 G possible passwords (26528306250)
-lvl=246 (5928 Kb for nbparts) 29 G possible passwords (29373638087)
-lvl=247 (5952 Kb for nbparts) 32 G possible passwords (32524537496)
+lvl=267 (6968 KB for nbparts) 238 G possible passwords (238763065366)
+lvl=268 (6994 KB for nbparts) 264 G possible passwords (264314506579)
+lvl=269 (7020 KB for nbparts) 292 G possible passwords (292593173165)
 [...]
 *******************************************************************************
-Here, the selected level will be 246 (the higher level where the number of
-possible passwords is less than 30714M).
+Here, the selected level will be 268 (the highest level where the number of
+possible passwords is less than our targeted 269 G).
+
 5/ Run john:
 *******************************************************************************
-john -markov:246:0:0:12 test
+user@host:run$ ./john -markov:268 -max-len:12 hashfile
 *******************************************************************************
 
 
 DISTRIBUTING WORK
 The START and END parameter could be used to distribute work among many CPUs.
-The preferred method is to evaluate the combined cracking speed of all CPUs
+The old method is to evaluate the combined cracking speed of all CPUs
 (adding the step 2 result for every CPUs available) and follow the previous
-method.
-At step 5, share the cracking space among all CPUs, where is share is
-proportionnal with the CPU's cracking speed.
+method. At step 5, share the cracking space among all CPUs, where each share is
+proportional with the CPU's cracking speed. When using the new -node or -fork
+options (or MPI), this will happen automatically (well, not the adjustment for
+heterogenous speeds, but an even split).
+
+For example:
+./john -markov -node=3/4      will split the space in four parts and pick the
+                              third fourth for this session.
+./john -markov -fork=8        will split the space in eight parts and run one
+                              process for each. MPI works the same but can
+                              launch the job on remote hosts.
 
 
 CONFIGURATION OPTIONS
-New options are available in the john.conf file:
+Default options for values not specified on the command line are available
+in the john.conf file.
+Unlike previous john versions which required these values to be specified
+in the general [Options] section, starting from this version, these values
+have to be specified in the [Markov:Default] secion, if MODE has not been
+specified on the command line.
+Otherwise the Markov options have to be specified in a config file section
+[Markov:MODE].
+
+
+These are the values that can be specified:
+
 Statsfile - This is the path of the "stat" file.
-MkvLvl - the default level
-MkvMaxLen - the default length
+
+Specifying a Statsfile is mandatory for Markov mode, because the Statsfile
+cannot be specified as a command line parameter with --markov=<params>.
+
+MkvLvl - the default max. level
+
+MkvLvl should be specified, as a fallback for the maximum Markov level
+when using --markov or --markov=mode (without any additional parameters),
+or if the Markov level specified on the command line is 0.
+
+MkvMaxLen - the default max. length
+
+MkvMaxLen should also be specified, as a fallback for the maximum password
+length when using --markov or --markov=mode (without any additional
+parameters), --markov=<level> or --markov=mode:<level>, or similar options
+that don't include a value for the password length, or if the password length
+specified on the command line is 0.
+
+MkvMinLvl - the default min. level
+
+This value is used to determine the min. level if no Markov level was specified
+or if the Markov level specified on the command line was 0.
+(In other words, when the max. Markov level is read from the Markov mode
+section, the min. Markov level will be read from the Markov mode section as
+well.) If it is not found, the default min. Markov level will be 0.
+
+MkvMinLen - the default min. length
+
+This value is used to determine the min. length of passwords generated if no
+password length was specified or if the password length specified on the
+command line was 0.
+(In other words, when the max. password length is read from the Markov mode
+section, the min. password length will be read from the Markov mode section
+as well.)
+If it is not found, the default min. password length will be 0.
 
 
 WHAT IS THE STAT FILE?
@@ -85,7 +174,7 @@ The markov mode is based on statistical data from real passwords. This data is
 stored in the "stat" file. In order to generate a custom stat file, it is
 recommanded to use the new calc_stat command:
 
-./calc_stat "dictionnary file" stats
+user@host:run$ ./calc_stat <dictionary_file> stats
 
 
 MKVCALCPROBA USAGE
@@ -94,7 +183,7 @@ as input the "stat" file and a file with a single cracked password per line.
 Here is a sample output:
 
 *******************************************************************************
-./mkvcalcproba stats /tmp/passwordlist
+user@host:run$ ./mkvcalcproba stats /tmp/passwordlist
 test    33+16+28+20     97      4       40030907        45
 password        29+16+30+22+51+25+24+30 227     8       2698006565378672        177
 32'[[!  55+24+98+1000+23+29     1229    6       39949021871     1169

@@ -1,58 +1,104 @@
-This version of John is UTF-8 and codepage aware, using a new command line
-argument. In short, this means "my wordlists and input files are encoded in
-UTF-8" (or CP1252 etc). It does NOT mean you can feed John with eg. a UTF-8
-encoded wordlist when cracking LM. It DOES make John recognise national vowels,
-lower or upper case characters, etc. when specifying a codepage.
+This version of John is UTF-8 and codepage aware. This means that unlike
+"core John", this version can recognize national vowels, lower or upper
+case characters, etc. in most common encodings.
 
-Currently supported encodings: utf-8, iso-8859-1 (or ansi), iso-8859-7,
-iso-8859-15, koi8-r, cp437, cp737, cp850, cp858, cp866, cp1251, cp1252 and
-cp1253. New encodings can be added with ease, using automated tools that rely
-on the Unicode Database (see Openwall wiki).
+The traditional behavior was that John would assume ISO-8859-1 when converting
+plaintexts or salts to UTF-16 (this happens to be very fast), and assume ASCII
+in most other cases. The rules engine would accept 8-bit candidates as-is, but
+it would not upper/lower-case them or recognise letters etc. And some truncation
+or insert operations could split a multi-byte UTF-8 character in the middle,
+resulting in meaningless garbage. Nearly all other password crackers have these
+limitations.
 
+The new defaults (which can be changed in john.conf) are:
+  * Input (eg. wordlists, usernames etc) are assumed to be UTF-8.
+  * Output to screen, log and .pot file is UTF-8.
+  * Target encoding for LM is CP850 (and input will be converted accordingly).
+  * Internal encoding (eg. for rules processing) is ISO-8859-1. CP1252 is a
+    superset and slightly better (for example, it includes the Euro sign) but
+    is also a tad slower so is not made the default.
 
-Example usage:
-  john hashes.txt --wordlist:spanish.dic --encoding:iso-8859-1 --rules
+For temporarily running "the old way", just give --enc=ascii. You will still
+get output to screen, log and .pot file in UTF-8 though, unless you change
+john.conf settings.
 
+For proper function, it's imperative that you let John know about what
+encodings are involved if they differ from defaults. For example, if your
+wordlist is encoded in ISO-8859-1, you need to use the "--encoding=iso-8859-1"
+option (unless you have set that as default in john.conf). But you also need to
+know what encoding the hashes were made from - for example, LM hashes are
+always made from a legacy MS-DOS codepage like CP437 or CP850. This can be
+specified by using the option eg. "--target-encoding=CP437". John will convert
+to/from Unicode as needed.
 
-The behaviour is a little different depending on whether the format use Unicode
-(UTF-16 or UCS-2) internally or not.
+Finally, there's the special case where both input (wordlist) and output (eg.
+hashes from a website) are UTF-8 but you want to use rules including eg. upper
+or lower-casing non-ASCII characters. In this case you can use an intermediate
+encoding (--internal-encoding option) and pick some codepage that can
+shelter as much of the needed input as possible. For US/Western Europe, any
+"Latin-1" codepage will do fine, eg. CP850, ISO-8859-1 or CP1252 (if you do
+this with a Unicode format like NT, it will silently be treated in another
+way internally for performance reasons but the outcome will be the same).
 
- * For Unicode formats (eg. NT, mssql, etc), you can pick any of the encodings
-   and the input candidates will be properly converted to UTF-16.
+Mask mode also honors --internal-encoding (or plain --encoding). For
+example, the mask ?L is a placeholder for all lowercase Greek letters if you
+use CP737. If you instead use CP850, it'll be western-european ones.
 
- * For non-Unicode formats (eg. DES, LM, MD5 etc), no actual conversion will
-   be made so you need to use an encoding that matches what the hashes were
-   made from. But you should still tell John about it so it can handle national
-   characters properly.
-
-You can convert your wordlists from/to a large number of formats, using for
-example iconv(1). It may be a good idea to include the encoding in the filename,
-eg. "greek.8859-7.dict" or "rockyou.utf8.lst".
-
-You can also convert on the fly, example:
-$ iconv < greek.8859-7.dict -f iso-8859-7 -t cp737 | ./john -pipe -enc:cp737 ...
-
-The traditional behavior, and what is still happening if you don't specify an
-encoding, is that John will assume ISO-8859-1 when converting plaintexts or
-salts to UTF-16 (this also happens to be very fast), and assume ASCII in most
-other cases (it will use 8-bit candidates as-is, but not upper/lower-case them
-or recognise letters etc).
+The limitation is if you use --target-encoding or --internal-encoding,
+the input encoding must be UTF-8. The recommended, and easiest, use is to
+keep all wordlists encoded as UTF-8. This will work for most cases without
+too much impact on cracking speed and you will almost never have to give
+any command-line options.
 
 Some new reject rules and character classes are implemented, see doc/RULES.
-Note that UTF-8 is not handled well in rules. Some wordlist rules may cut
+If you use rules without --internal-encoding, some wordlist rules may cut
 UTF-8 multibyte sequences in the middle, resulting in garbage. You can reject
-such rules with -U to have them in use only when --encoding=utf8 is not used.
-
-Also, the recognition of non-ASCII characters for upper/lower-casing etc does
-not work with UTF-8 in Rules engine. Formats that internally uppercase
-it's plaintexts, like old MSSQL, will uppercase properly though.
+such rules with -U to have them in use only when UTF-8 is not used.
 
 Caveats:
-Beware of UTF-8 BOM's. They will cripple the first word in your wordlist.
+Beware of UTF-8 BOM's. They will cripple the first word in your wordlist or
+the first entry in your hashfile. Try to avoid using Windows tools that add
+them. This version does try to discard them though.
 
---
+Unicode beyond U+FFFF (4-byte UTF-8) is not supported by default for the NT
+formats because it hits performance and because the chance of it being used
+in the wild is pretty slim. Supply --enable-nt-full-unicode to configure when
+building if you need that support.
 
-These contributions to John are hereby placed in the public domain. In case
-that is not applicable, they are Copyright 2009, 2010, 2011 by magnum and
-JimF and hereby released to the general public. Redistribution and use in
-source and binary forms, with or without modification, is permitted.
+Example using the now default john.conf settings:
+
+   $ ../run/john hashfile -form:lm -single
+   Using default input encoding: UTF-8
+   Target encoding: CP850
+   Loaded 3 password hashes with no different salts (LM [DES 128/128 AVX-16])
+   Press 'q' or Ctrl-C to abort, almost any other key for status
+   GEN              (Kübelwagen:2)
+   KÜBELWA          (Kübelwagen:1)
+   MÜLLER           (Müller)
+   3g 0:00:00:00 DONE (2014-03-28 20:48) 300.0g/s 12800p/s 12800c/s 38400C/s
+   Warning: passwords printed above might be partial
+   Use the "--show" option to display all of the cracked passwords reliably
+   Session completed
+
+   $ ../run/john hashfile -form:nt -loopback
+   Rules engine using CP850 for Unicode
+   Loaded 2 password hashes with no different salts (NT [MD4 128/128 SSE2-16])
+   Assembling cracked LM halves for loopback
+   Loop-back mode: Reading candidates from pot file $JOHN/john.pot
+   Press 'q' or Ctrl-C to abort, almost any other key for status
+   Kübelwagen       (Kübelwagen)
+   müller           (Müller)
+   2g 0:00:00:00 DONE (2014-03-28 20:48) 200.0g/s 3200p/s 3200c/s 6400C/s
+   Use the "--show" option to display all of the cracked passwords reliably
+   Session completed
+
+
+Currently supported encodings:
+ASCII, UTF-8, KOI8-R,
+ISO-8859-1 (alias latin1), ISO-8859-2, ISO-8859-7, ISO-8859-15,
+CP437, CP720, CP737, CP850, CP852, CP858, CP866, CP868,
+CP1250, CP1251, CP1252, CP1253, CP1254, CP1255, CP1256
+
+New encodings can be added with ease, using automated tools that rely on the
+Unicode Database (see Openwall wiki, or just post a request on john-users
+mailing list).

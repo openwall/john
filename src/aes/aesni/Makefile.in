@@ -1,0 +1,24 @@
+@SET_MAKE@
+CC = @CC@
+ASM_DIR = asm/x$(AESNI_ARCH)
+IAES = $(ASM_DIR)/iaesx$(AESNI_ARCH).s
+RDTSC = $(ASM_DIR)/do_rdtsc.s
+YASM = @YASM@
+
+iaesx.o: $(IAES)
+	$(YASM) -D__@AESNI_OS@__ @YASM_OPTIONS@ $(IAES) -o $@
+
+rdtsc.o: $(RDTSC)
+	$(YASM) -D__@AESNI_OS@__ @YASM_OPTIONS@ $(RDTSC) -o $@
+
+aesni.o: iaes_asm_interface.h  iaesni.h  intel_aes.c
+	$(CC) $(CFLAGS) @CFLAGS_EXTRA@ -m@CPU_BIT_STR@ -c intel_aes.c -o $@
+
+all: iaesx.o rdtsc.o aesni.o
+
+default: all
+
+clean:
+
+distclean: clean
+	$(RM) Makefile

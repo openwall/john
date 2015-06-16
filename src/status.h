@@ -1,8 +1,13 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2006 by Solar Designer
+ * Copyright (c) 1996-2001,2006,2011,2013 by Solar Designer
  *
- * ...with changes in the jumbo patch, by JimF.
+ * ...with changes in the jumbo patch, by JimF and magnum.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*
@@ -16,20 +21,31 @@
 
 #include "math.h"
 
+#if CPU_REQ && defined(__GNUC__) && defined(__i386__)
+/* ETA reporting would be wrong when cracking some hash types at least on a
+ * Pentium 3 without this... */
+#define emms() \
+	__asm__ __volatile__("emms");
+#else
+#define emms()
+#endif
+
 /*
  * Current status.
  */
 struct status_main {
 	clock_t start_time;
 	unsigned int guess_count;
-	int64 crypts;
+	int64 combs, crypts, cands;
+	unsigned int combs_ehi;
+	int compat;
 	int pass;
 	int progress;
 };
 
 extern struct status_main status;
 
-extern int (*status_get_progress)(int *hundth);
+extern double (*status_get_progress)(void);
 
 /*
  * Elapsed time of previous sessions and excess ticks (if any), in seconds.
@@ -41,7 +57,7 @@ extern unsigned int status_restored_time;
  * fields to zero. Always initializes the get_progress() handler (can be
  * NULL).
  */
-extern void status_init(int (*get_progress)(int*), int start);
+extern void status_init(double (*get_progress)(void), int start);
 
 /*
  * Checks the number of ticks elapsed since start_time and moves some excess
@@ -53,9 +69,17 @@ extern void status_init(int (*get_progress)(int*), int start);
 extern void status_ticks_overflow_safety(void);
 
 /*
- * Updates the crypts count.
+ * Updates the combinations and crypts counters by adding the supplied numbers
+ * to them.
+ * Calls status_ticks_overflow_safety() once in a while.
  */
-extern void status_update_crypts(unsigned int count);
+extern void status_update_crypts(int64 *combs, unsigned int crypts);
+
+/*
+ * Updates the candidates counter by adding the supplied number to it.
+ * Calls status_ticks_overflow_safety() once in a while.
+ */
+extern void status_update_cands(unsigned int cands);
 
 /*
  * Returns the elapsed time in seconds.

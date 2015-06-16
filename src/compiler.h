@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2000 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*
@@ -79,5 +84,7 @@ extern void *c_lookup(char *name);
 	if (addr) \
 		c_execute_fast(addr)
 extern void c_execute_fast(void *addr);
+
+extern void c_cleanup();
 
 #endif

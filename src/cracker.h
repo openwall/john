@@ -11,6 +11,10 @@
 #define _JOHN_CRACKER_H
 
 #include "loader.h"
+#include "stdint.h"
+
+/* Our last read position in pot file (during crack) */
+extern int64_t crk_pot_pos;
 
 /*
  * Initializes the cracker for a password database (should not be empty).
@@ -47,4 +51,13 @@ extern char *crk_get_key2(void);
  */
 extern void crk_done(void);
 
+/*
+ * Check for and process new entries in pot file, written by other processes.
+ */
+extern int crk_reload_pot(void);
+
+/*
+ * Exported for stacked modes
+ */
+extern void (*crk_fix_state)(void);
 #endif

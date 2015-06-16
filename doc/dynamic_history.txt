@@ -1,0 +1,157 @@
+
+This was cut from the dynamic_fmt.c file, and placed here.
+I will STILL comment known issues, while I am working on the, within
+the dynamic_fmt.c file. But once done, they will get moved here.
+
+
+ * Generic MD5 hashes cracker
+ *
+ * It uses the openSSL md5 for x86, and MMX/SSE2 md5 from md5-mmx.S
+ *
+ *  TODO's
+ *    All done (right now)!
+
+ *
+ *  recently DONE's
+ *    1.  in the MMX/SSE2 builds, ALSO make sure native x86 (using OpenSSL), is built.
+ *        Then if the format is a NON-SSE safe format, link the functions to the non-x86 versions.
+ *        In x86 mode, we DO NOT need to have the SSE2 code, since it is not valid to call anyway.
+ *    2.  Add SSE Intrisic code.  MD5_PARA (as built by simon), IS now working.
+ *    3.  Start making 'thin' _fmt.c files for other 'formats'.
+ *          Easy formats:
+ *            DMD5               (Is a challenge/response, so may need to simply be 'redone'
+ *            MD5_apache_fmt.c   (DONE)
+ *            md5_fmt.c          (DONE)
+ *            HDAA_fmt.c         (DONE)
+ *            pixMD5_fmt.c       (DONE)
+ *            raw_md5_fmt.c      (DONE)
+ *            PO_fmt.c           (DONE)
+ *            phpassMD5_fmt.c    (DONE)
+ *            PHPS_fmt.c         (DONE)
+ *            IPB2_fmt.c         (DONE)
+ *    4.  Made 10 primitives which allow us to switch back and forth from SSE (1 MD5 buffer), to X86, multiple buffers. Thus, we
+ *        can write SSE formats, and when they overflow, switch to x86, perform the MD5, and switch back.  A good example is type
+ *        dynamic_13 md5(md5($p).md5($s))   Here, we preload $s, so it does not play a part in the runtime.  However, the
+ *        first md5($p) CAN be done in SSE mode. Then we switch to x86, and perform the MD5 of the 64 byte string.  This increases
+ *        throughput about 150%.
+ *    5.  Found and fixed a bug in the MMX string concatentation code.
+ *    6.  Generated a 'test-suite' format.
+ *    7.  Add in 'real' utf8 to unicode conversion.  Added MGF_UTF8, and set FMT_UTF8 and FMT_UNICODE into the format's structure
+ *        if this flag (or the uncode switch function), is used.
+ *    8.  Put some ability into the formats, so that test strings can be switched out in utf8 mode,
+ *        and so that any 8859-1 which would 'fail' in utf8 mode could be switched out. In the preloads, U= and A= are used at the
+ *        start of the cipher strings. In the john.conf, there are now Test= TestA= and TestU= for always use, using only if non-utf8
+ *        and use ONLY if utf8.  The TestA= and TestU= were documented.  A= and U= in the preload.c file are internal, and need
+ *        NO documentation to end users.
+ *    9.  Added raw-md5-unicode.
+ *   10.  max salt len not working (not a fixed size, just max len, i.e. saltlen = neg number).
+ *   11.  upcase of user name (currently only up/lo case we do), is not handled with code found in unicode.c.
+ *   12.  Allow upcasing and low casing of strings (like passwords).  Do this using unicode
+ *        upcasing from unicode.c
+ *   13.  Fix x86-64 'broken' formats. Right now, they 'work' but only with SSE turned off.
+ *        The broken formats are 12/13/21-26
+ *
+ * Only valid up to 54 bytes max string length (salts, rehashes,
+ * passwords, etc) if using SSE2.  96 byte keys (appended salts,
+ * keys, re-hashes, etc), if running under x86 mode.  NOTE some
+ * hashes will NOT run properly under SSE2.  A hash such as
+ * md5(md5($p).md5($s)) would fail under SSE2, since it always
+ * would need at least 64 bytes to complete but even md5($p) would
+ * fail in SSE2 if the password is over 54 bytes.  NOTE no run-time
+ * checks are made so if you provide data too large, it will not find
+ * the hash, and will 'overwrite' some of the hashes being worked on,
+ * and cause them to have invalid results. This is a bug that 'might'
+ * be worked on, but I do not want do slow the cracking down performing
+ * checks.
+ *
+ * This code has gone through a few iterations, and now is quite a bit
+ * more mature.  It has been designed with an array for keys (which
+ * is optionally used), a slot for the current salt, 2 arrays for
+ * input buffers (there is optional loading that loads keys directly
+ * into input buffer #1 as an optimization for certain formats), and
+ * a pair of arrays for crypt outputs.  The 'first' output buffer array
+ * is used to return the final results.  There is also 2 arrays of lengths
+ * of input buffers.  There are then 'primitive' functions. These can
+ * append keys, append salts, blank out keys, move from input 1 to input
+ * 2, crypt input 1 -> output 1, (or from 1->2 or 2->2 or 2->1, etc).
+ * There are functions that do base 16 conversions of the outputs back
+ * into inputs (O1->I1 in base 16, 1->2 2->2 2->1, etc).  There are
+ * functions that over write the start of an input buffer from outputs
+ * without 'adjusting' the lengths.  There are a few special functions
+ * to do phpass work.
+ *
+ * Then there are helper functions which allow another format to 'use'
+ * the generic MD5 code.  So, we can make a VERY thin raw-md5 (or phpass
+ * md5), where it simply has a format structure (which does not need to be
+ * 'heavily' filled out, and that format only needs to implement a few
+ * functions on its own.  It would need to implement init, valid, salt
+ * and binary.  Then there needs to be a 'conversion' function that
+ * converts from the 'native' format, into the native GENERIC format.
+ * Then, within the init function, that format would hook into the
+ * generic md5, by calling the dynamic_RESET_LINK() function, passing
+ * in its Format structure to have functions pointed into the md5 generic
+ * stuff.  The conversion function is likely very trivial. For phpass, we
+ * convert from
+ * $H$9aaaaaSXBjgypwqm.JsMssPLiS8YQ00
+ * to
+ * $dynamic_17$jgypwqm.JsMssPLiS8YQ00$9aaaaaSXB
+ *
+ *  Here is that convert function:
+ * static char *Convert(char *Buf, char *ciphertext) {
+ *    sprintf(Buf, "$dynamic_17$%s%10.10s", &ciphertext[3+8+1], &ciphertext[2]);
+ *    return Buf;
+ * }
+ *
+ *
+ * Generic MD5 can now be user expanded.  The first 1000 dynamic_# are
+ * reserved as 'built-in' functions for john. Above 1000 is free to use
+ * for anyone wanting to do so.  NO programming changes are needed to
+ * add a format. All that is needed is modifcations to john.conf.  There is
+ * FULL documentation about how to do this in doc/DYNAMIC.  There is
+ * no parser 'generation' logic.  A person would have to understand the
+ * primitive functions and how they work.  But the format can be added
+ * without a rebuild of john.  There are 7 (or 8) examples already done
+ * in john.conf at this time, which should make it pretty easy for someone
+ * wanting to do a new or obscure format.
+ *
+ * Recent additions / fixes
+ *
+ *   SSE2 intrinsics
+ *   Faster (double speed) for a couple formats
+ *   Addition of PO format (Native and using constants)
+ *   Addition of 8 'constant' fields'
+ *   In MD5_COEF builds, the not-SSE-safe formats now work (using x86 code)
+ *   MD5_go functions used (10% faster than OpenSSL).
+ *
+ * Renamed and changed from md5_gen* to dynamic*.  We handle MD5 and SHA1
+ * at the present time.  More crypt types 'may' be added later.
+ *
+ * Spring 2012:
+ * Added many new crypts.  SHA2 (sha224,256,384,512), GOST, WHIRLPOOL
+ *
+ * Summer 2012:
+ * Added (or changed) the larger hash output methods. Original code ONLY
+ * allowed lowercase base16 writing.  Now, after the crypt, the overwrite
+ * or append output can be done in:  base-16, base-16-uc, base-64 (MIME)
+ * base-64 with no trailing '=' chars, or raw.  Adding new output 'types'
+ * should be easy to do.  All of the original primitive dynamic functions
+ * have been kept (depricated), and new functions were added.  There are
+ * a few output format setters also added.  The default output format
+ * (at the start of crypt_all) is base-16, which is what it was before.
+ * however, the new code allows that to be changed, within a format.
+ *
+ * Winter 2013
+ * Added OMP support. Each thread gets a group of candidats, and walks
+ * each script step on its set of candidates. Thus many function had to
+ * be changed, to work from start to end range, instead of from 0 to count.
+ * Non omp still runs from 0 to count.
+ * added 4 'standard' functions for each large hash. Found some SERIOUS
+ * bugs in the original large hash functions.  Only appending base-16
+ * was working. The overwrite, and things like upcase, raw, base64, etc
+ * were NON functional.  The new functions test some of these items.
+ *
+ * Spring 2013
+ * Added many additional large formats:  Whirlpool for older oSSL versions.
+ * Tiger, RIPEMD (sizes 128, 160, 256, 320). The RIPEMD256/320 were in a
+ * JimF update to the ripemd_plug.c (SPH library source only did 128 and 160)
+ *

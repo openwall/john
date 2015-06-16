@@ -1,0 +1,18 @@
+Here's how to crack/check/audit SMTP's AUTH CRAM-MD5 exchanges with JtR:
+
+Capture an SMTP session with a sniffer.  You need traffic in both
+directions.  The client will send the "AUTH CRAM-MD5" command, the
+server will respond with a base64-encoded challenge, and the client will
+similarly provide a base64-encoded response.  You need the challenge and
+the response.
+
+The input format for JtR is:
+
+$cram_md5$<challenge>$<response>
+
+eg.
+
+$cram_md5$PG5vLXJlcGx5QGhhc2hjYXQubmV0Pg==$dXNlciA0NGVhZmQyMmZlNzY2NzBmNmIyODc5MDgxYTdmNWY3MQ==
+
+Now simply run "john" on the input file (no options are needed, the "format"
+should be autodetected).

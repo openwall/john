@@ -1,8 +1,16 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2000,2010 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
 #include <string.h>
 
 #include "misc.h"
@@ -16,7 +24,9 @@ static char *john_home_pathex = NULL;
 static int john_home_lengthex;
 
 #if JOHN_SYSTEMWIDE
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #include <errno.h>
 #include <pwd.h>
 #include <sys/types.h>
@@ -25,6 +35,8 @@ static int john_home_lengthex;
 static char *user_home_path = NULL;
 static int user_home_length;
 #endif
+
+#include "memdbg.h"
 
 void path_init(char **argv)
 {

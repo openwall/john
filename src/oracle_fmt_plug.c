@@ -1,9 +1,19 @@
 /*
- * Copyright (c) 2004 Simon Marechal
- * simon.marechal at thales-security.com
+ * This software is Copyright (c) 2004 bartavelle, <simon at banquise.net>, and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
  *
- * UTF-8 support by magnum 2011, no rights reserved
+ * UTF-8 support: Copyright magnum 2012 and hereby released to the general
+ * public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, is permitted.
  */
+
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_oracle;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_oracle);
+#else
 
 #include <string.h>
 #include <openssl/des.h>
@@ -13,10 +23,11 @@
 #include "common.h"
 #include "formats.h"
 #include "unicode.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"oracle"
-#define FORMAT_NAME			"Oracle"
-#define ALGORITHM_NAME			"oracle"
+#define FORMAT_NAME			"Oracle 10"
+#define ALGORITHM_NAME			"DES 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -24,7 +35,10 @@
 #define PLAINTEXT_LENGTH		120 // worst case UTF-8 is 40 characters of Unicode, that'll do
 
 #define BINARY_SIZE			8
-#define SALT_SIZE			(32 + 4)  // also contain the NULL
+#define BINARY_ALIGN			4
+#define MAX_USERNAME_LEN    30
+#define SALT_SIZE			(MAX_USERNAME_LEN*2 + 4)  // also contain the NULL
+#define SALT_ALIGN			2
 #define CIPHERTEXT_LENGTH		16
 
 #define MIN_KEYS_PER_CRYPT		1
@@ -32,7 +46,7 @@
 
 //#define DEBUG_ORACLE
 
-static struct fmt_tests oracle_tests[] = {
+static struct fmt_tests tests[] = {
 	{"O$SYSTEM#9EEDFA0AD26C6D52", "THALES" },
 	{"O$SIMON#4F8BC1809CB2AF77", "A"},
 	{"O$SIMON#183D72325548EF11", "THALES2" },
@@ -44,7 +58,7 @@ static struct fmt_tests oracle_tests[] = {
 	{"O$BOB#c0ee5107c9a080c1", "AZERTYUIOP" },
 	{"O$BOB#99e8b231d33772f9", "CANARDWC" },
 	{"O$BOB#da3224126a67c8ed", "COUCOU_COUCOU" },
-	{"O$BOB#ec8147abb3373d53", "LONG_MOT_DE_PASSE_OUI" },
+	{"O$bob#ec8147abb3373d53", "LONG_MOT_DE_PASSE_OUI" },
 
 	{"9EEDFA0AD26C6D52", "THALES",        {"SYSTEM"} },
 	{"4F8BC1809CB2AF77", "A",             {"SIMON"} },
@@ -81,7 +95,7 @@ static int salt_length;
 static int key_length;
 static char *plain_key;
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 	int l;
@@ -92,9 +106,14 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	 * 2 - it comes from memory, and has got O$ + salt + # + blah
 	 */
 
+	if (strlen(ciphertext) > CIPHERTEXT_LENGTH + MAX_USERNAME_LEN + 3)
+		return 0;
+
 	if (!memcmp(ciphertext, "O$", 2))
 	{
 		l = strlen(ciphertext) - CIPHERTEXT_LENGTH;
+		if (l <= 0)
+			return 0;
 		if(ciphertext[l-1]!='#')
 			return 0;
 	}
@@ -114,7 +133,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
 
@@ -124,10 +143,10 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 		return split_fields[1];
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
 	sprintf (cp, "O$%s#%s", split_fields[0], split_fields[1]);
-	if (valid(cp, pFmt))
+	if (valid(cp, self))
 	{
-		UTF8 tmp8[16*3+1];
-		UTF16 tmp16[17];
+		UTF8 tmp8[30*3+1];
+		UTF16 tmp16[31];
 		int utf8len, utf16len;
 
 		// we no longer need this.  It was just used for valid().   We will recompute
@@ -136,13 +155,13 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 		MEM_FREE(cp);
 
 		// Upcase user name, --encoding aware
-		utf8len = enc_uc(tmp8, 16*3, (unsigned char*)split_fields[0], strlen(split_fields[0]));
+		utf8len = enc_uc(tmp8, sizeof(tmp8), (unsigned char*)split_fields[0], strlen(split_fields[0]));
 
 		if (utf8len <= 0 && split_fields[0][0])
 			return split_fields[1];
 
-		// make sure this 'fits' into 16 unicode's
-		utf16len = enc_to_utf16(tmp16, 16, tmp8, utf8len);
+		// make sure this 'fits' into 30 unicode's
+		utf16len = enc_to_utf16(tmp16, 30, tmp8, utf8len);
 		if (utf16len <= 0)
 			return split_fields[1];
 
@@ -157,11 +176,22 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	return split_fields[1];
 }
 
-static void oracle_init(struct fmt_main *pFmt)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[2 + sizeof(cur_salt) + 1 + CIPHERTEXT_LENGTH];
+	char *cp;
+	strnzcpy(out, ciphertext, sizeof(out));
+	enc_strupper(&out[2]);
+	cp = strrchr(out, '#');
+	if (cp)
+		strlwr(cp);
+
+	return out;
+}
+
+static void init(struct fmt_main *self)
 {
 	unsigned char deskey[8];
-
-	initUnicode(UNICODE_UNICODE);
 
 	deskey[0] = 0x01;
 	deskey[1] = 0x23;
@@ -175,22 +205,20 @@ static void oracle_init(struct fmt_main *pFmt)
 	DES_set_key((DES_cblock *)deskey, &desschedule1);
 }
 
-static void oracle_set_salt(void *salt) {
+static void set_salt(void *salt) {
 	salt_length = ((unsigned short *)salt)[0];
 	memcpy(cur_salt, &((unsigned short *)salt)[1], salt_length);
 }
 
 static void oracle_set_key(char *key, int index) {
 	UTF16 cur_key_mixedcase[PLAINTEXT_LENGTH+1];
-#if ARCH_LITTLE_ENDIAN
 	UTF16 *c;
-#endif
 
 	plain_key = key;
 	// Can't use enc_to_utf16_be() because we need to do utf16_uc later
 	key_length = enc_to_utf16((UTF16 *)cur_key_mixedcase, PLAINTEXT_LENGTH, (unsigned char*)key, strlen(key));
 
-	if (key_length <= 0)
+	if (key_length < 0)
 		key_length = strlen16(cur_key_mixedcase);
 
 	// We convert and uppercase in one shot
@@ -200,12 +228,10 @@ static void oracle_set_key(char *key, int index) {
 	if (key_length < 0)
 		key_length *= -1;
 
-	// This must be byte-swapped on LE systems only (odd!?)
-#if ARCH_LITTLE_ENDIAN
+	// Now byte-swap to UTF16-BE
 	c = cur_key;
 	while((*c = *c << 8 | *c >> 8))
 		c++;
-#endif
 	key_length *= sizeof(UTF16);
 
 #ifdef DEBUG_ORACLE
@@ -213,17 +239,18 @@ static void oracle_set_key(char *key, int index) {
 #endif
 }
 
-static char *oracle_get_key(int index) {
+static char *get_key(int index) {
 	static UTF8 UC_Key[PLAINTEXT_LENGTH*3*3+1];
 	// Calling this will ONLY upcase characters 'valid' in the code page. There are MANY
 	// code pages which mssql WILL upcase the letter (in UCS-2), but there is no upper case value
 	// in the code page.  Thus we MUST keep the lower cased letter in this case.
-	enc_uc(UC_Key, PLAINTEXT_LENGTH*3*3, (UTF8*)plain_key, strlen(plain_key));
+	enc_uc(UC_Key, sizeof(UC_Key), (UTF8*)plain_key, strlen(plain_key));
 	return (char*)UC_Key;
 }
 
-static void oracle_crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	const int count = *pcount;
 	unsigned char buf[sizeof(cur_salt)];
 	unsigned int l;
 
@@ -245,9 +272,11 @@ static void oracle_crypt_all(int count)
 #ifdef DEBUG_ORACLE
 	dump_stuff_msg("  crypt_key ", (unsigned char*)&crypt_key[0], 8);
 #endif
+
+	return count;
 }
 
-static void * oracle_binary(char *ciphertext)
+static void * get_binary(char *ciphertext)
 {
 	static unsigned char *out3;
 	int l;
@@ -264,13 +293,14 @@ static void * oracle_binary(char *ciphertext)
 	return out3;
 }
 
-static void * oracle_get_salt(char * ciphertext)
+static void * get_salt(char * ciphertext)
 {
 	static UTF16 *out;
 	UTF8 salt[SALT_SIZE + 1];
 	int l;
 
 	if (!out) out = mem_alloc_tiny(SALT_SIZE+2, MEM_ALIGN_WORD);
+	memset(out, 0, SALT_SIZE+2);
 	l = 2;
 	while( ciphertext[l] && (ciphertext[l]!='#') )
 	{
@@ -280,10 +310,11 @@ static void * oracle_get_salt(char * ciphertext)
 	}
 	salt[l-2] = 0;
 
-	// we now upcase the user name in the prepare() function.
-	// So we are going back to 'simple' plain->utf16 convert only.
-	l = enc_to_utf16_be(&out[1], 16, (UTF8 *)salt, l-2);
-	if (l <= 0)
+	// Encoding-aware shift to upper-case
+	enc_strupper((char*)salt);
+
+	l = enc_to_utf16_be(&out[1], MAX_USERNAME_LEN, (UTF8 *)salt, l-2);
+	if (l < 0)
 		l = strlen16(&out[1]);
 
 	out[0] = (l<<1);
@@ -302,23 +333,21 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
-static int binary_hash0(void * binary) { return (((ARCH_WORD_32 *)binary)[0] & 0xf); }
-static int binary_hash1(void * binary) { return (((ARCH_WORD_32 *)binary)[0] & 0xff); }
-static int binary_hash2(void * binary) { return (((ARCH_WORD_32 *)binary)[0] & 0xfff); }
-static int binary_hash3(void * binary) { return (((ARCH_WORD_32 *)binary)[0] & 0xffff); }
-static int binary_hash4(void * binary) { return (((ARCH_WORD_32 *)binary)[0] & 0xfffff); }
+static int get_hash_0(int index) { return crypt_key[0] & 0xf; }
+static int get_hash_1(int index) { return crypt_key[0] & 0xff; }
+static int get_hash_2(int index) { return crypt_key[0] & 0xfff; }
+static int get_hash_3(int index) { return crypt_key[0] & 0xffff; }
+static int get_hash_4(int index) { return crypt_key[0] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_key[0] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_key[0] & 0x7ffffff; }
 
-static int get_hash0(int index) { return crypt_key[0] & 0xf; }
-static int get_hash1(int index) { return crypt_key[0] & 0xff; }
-static int get_hash2(int index) { return crypt_key[0] & 0xfff; }
-static int get_hash3(int index) { return crypt_key[0] & 0xffff; }
-static int get_hash4(int index) { return crypt_key[0] & 0xfffff; }
-
-static int oracle_cmp_all(void *binary, int index) {
+static int cmp_all(void *binary, int count)
+{
 	return !memcmp(binary, crypt_key, sizeof(crypt_key));
 }
 
-static int oracle_cmp_exact(char *source, int count) {
+static int cmp_exact(char *source, int index)
+{
 	return 1;
 }
 
@@ -329,42 +358,61 @@ struct fmt_main fmt_oracle = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_8_BIT | FMT_UNICODE | FMT_UTF8,
-		oracle_tests
+		FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		tests
 	}, {
-		oracle_init,
+		init,
+		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
-		fmt_default_split,
-		oracle_binary,
-		oracle_get_salt,
+		split,
+		get_binary,
+		get_salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_default_source,
 		{
-			binary_hash0,
-			binary_hash1,
-			binary_hash2,
-			binary_hash3,
-			binary_hash4
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		salt_hash,
-		oracle_set_salt,
+		NULL,
+		set_salt,
 		oracle_set_key,
-		oracle_get_key,
+		get_key,
 		fmt_default_clear_keys,
-		oracle_crypt_all,
+		crypt_all,
 		{
-			get_hash0,
-			get_hash1,
-			get_hash2,
-			get_hash3,
-			get_hash4
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
-		oracle_cmp_all,
-		oracle_cmp_all,
-		oracle_cmp_exact
+		cmp_all,
+		cmp_all,
+		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

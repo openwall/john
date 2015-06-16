@@ -17,7 +17,7 @@
  *    my $a =  substr $fields[5], 0, 1;
  *    my $b =  substr $fields[5], 1, 1;
  *    my $c =  substr $fields[5], 2, 1;
- *    printf "%s:\$IPB2\$%02x%02x%02x\$%s\n", $fields[1], ord($a), ord($b), ord($c), $fields[4];
+ *    printf "%s:\$PHPS\$%02x%02x%02x\$%s\n", $fields[1], ord($a), ord($b), ord($c), $fields[4];
  * }
  *
  * BUGS: Can't handle usernames with ':' in them.
@@ -30,14 +30,27 @@
  *
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+#ifndef DYNAMIC_DISABLED
+
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_PHPS;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_PHPS);
+#else
+
 #include <string.h>
 
 #include "common.h"
 #include "formats.h"
 #include "dynamic.h"
+#include "options.h"
+#include "memdbg.h"
 
-#define FORMAT_LABEL		"phps"
-#define FORMAT_NAME			"PHPS -- md5(md5($pass).$salt)"
+#define FORMAT_LABEL		"PHPS"
+#define FORMAT_NAME		"" /* md5(md5($pass).$salt) */
 
 #define ALGORITHM_NAME		"?" /* filled in by md5-gen */
 #define BENCHMARK_COMMENT	""
@@ -47,24 +60,29 @@
 #define MD5_HEX_SIZE		(MD5_BINARY_SIZE * 2)
 
 #define BINARY_SIZE			MD5_BINARY_SIZE
+#define BINARY_ALIGN		MEM_ALIGN_WORD
 
 #define SALT_SIZE			3
-#define PROCESSED_SALT_SIZE	SALT_SIZE
+#define DYNA_SALT_SIZE		(sizeof(char*))
+#define SALT_ALIGN			MEM_ALIGN_WORD
 
-#define PLAINTEXT_LENGTH	32
+// set PLAINTEXT_LENGTH to 0, so dyna will set this
+#define PLAINTEXT_LENGTH	0
 #define CIPHERTEXT_LENGTH	(1 + 4 + 1 + SALT_SIZE * 2 + 1 + MD5_HEX_SIZE)
-
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests phps_tests[] = {
 	{"$PHPS$433925$5d756853cd63acee76e6dcd6d3728447", "welcome"},
+	{"$PHPS$73616c$aba22b2ceb7c841473c03962b145feb3", "password"},
+	{"$PHPS$247824$ad14afbbf0e16d4ad8c8985263a3d051","test"},  // salt is $x$ (I want to test that a $ works)
 	{NULL}
 };
 
+extern struct options_main options;
+
 static char Conv_Buf[80];
-static struct fmt_main *pFmt_Dynamic_6;
-static void phps_init(struct fmt_main *pFmt);
+static struct fmt_main *pDynamic_6;
+static void phps_init(struct fmt_main *self);
+static void get_ptr();
 
 /* this function converts a 'native' phps signature string into a $dynamic_6$ syntax string */
 static char *Convert(char *Buf, char *ciphertext)
@@ -72,15 +90,15 @@ static char *Convert(char *Buf, char *ciphertext)
 	unsigned long val, i;
 	char *cp;
 
-	if (text_in_dynamic_format_already(pFmt_Dynamic_6, ciphertext))
+	if (text_in_dynamic_format_already(pDynamic_6, ciphertext))
 		return ciphertext;
 
 	cp = strchr(&ciphertext[7], '$');
 	if (!cp)
 		return "*";
 
-	sprintf(Buf, "$dynamic_6$%s$", &cp[1]);
-	for (i = 0; i < 3; ++i)
+	snprintf(Buf, sizeof(Conv_Buf) - SALT_SIZE, "$dynamic_6$%s$", &cp[1]);
+	for (i = 0; i < SALT_SIZE; ++i)
 	{
 		char bTmp[3];
 		bTmp[0] = ciphertext[6+i*2];
@@ -93,28 +111,52 @@ static char *Convert(char *Buf, char *ciphertext)
 	return Buf;
 }
 
-static char *our_split(char *ciphertext, int index)
+static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	return Convert(Conv_Buf, ciphertext);
+	if (!strncmp(ciphertext, "$dynamic_6$", 11)) {
+		// convert back into $PHPS$ format
+		static char Buf[128];
+		char *cp;
+		strcpy(Buf, "$PHPS$");
+		cp = strchr(&ciphertext[11], '$');
+		++cp;
+		if (!strncmp(cp, "HEX$", 4)) {
+			cp += 4;
+			strcat(Buf, cp);
+		} else {
+			int i, len = strlen(cp);
+			char *cp2 = &Buf[strlen(Buf)];
+			for (i = 0; i < len; ++i)
+				cp2 += sprintf(cp2, "%02x", *cp++);
+		}
+		strcat(Buf, "$");
+		sprintf(&Buf[strlen(Buf)], "%32.32s", &ciphertext[11]);
+		return Buf;
+	}
+	return ciphertext;
 }
 
-static int phps_valid(char *ciphertext, struct fmt_main *pFmt)
+static int phps_valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
-	if (!ciphertext || strlen(ciphertext) < CIPHERTEXT_LENGTH)
+	if (!ciphertext ) // || strlen(ciphertext) < CIPHERTEXT_LENGTH)
 		return 0;
 
-	if (!pFmt_Dynamic_6)
-		phps_init(pFmt);
+	get_ptr();
+	i = strlen(ciphertext);
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH) {
-		return pFmt_Dynamic_6->methods.valid(ciphertext, pFmt_Dynamic_6);
+	if (i != CIPHERTEXT_LENGTH) {
+		int val = pDynamic_6->methods.valid(ciphertext, pDynamic_6);
+		char *cp;
+		if (!val) return 0;
+		cp = strrchr(ciphertext, '$');
+		return cp && strlen(cp)==3;
 	}
 
 	if (strncmp(ciphertext, "$PHPS$", 6) != 0)
 		return 0;
 
- 	if (ciphertext[12] != '$')
+	if (ciphertext[12] != '$')
 		return 0;
 
 	for (i = 0;i < SALT_SIZE*2; ++i)
@@ -125,19 +167,19 @@ static int phps_valid(char *ciphertext, struct fmt_main *pFmt)
 		if (atoi16[ARCH_INDEX(ciphertext[i+6+1+SALT_SIZE*2])] == 0x7F)
 			return 0;
 
-	if (!pFmt_Dynamic_6)
-		phps_init(pFmt);
-	return pFmt_Dynamic_6->methods.valid(Convert(Conv_Buf, ciphertext), pFmt_Dynamic_6);
+	return pDynamic_6->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic_6);
 }
 
 
 static void * our_salt(char *ciphertext)
 {
-	return pFmt_Dynamic_6->methods.salt(Convert(Conv_Buf, ciphertext));
+	get_ptr();
+	return pDynamic_6->methods.salt(Convert(Conv_Buf, ciphertext));
 }
 static void * our_binary(char *ciphertext)
 {
-	return pFmt_Dynamic_6->methods.binary(Convert(Conv_Buf, ciphertext));
+	get_ptr();
+	return pDynamic_6->methods.binary(Convert(Conv_Buf, ciphertext));
 }
 
 struct fmt_main fmt_PHPS =
@@ -146,27 +188,44 @@ struct fmt_main fmt_PHPS =
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
-		PLAINTEXT_LENGTH, BINARY_SIZE, SALT_SIZE+1, 1, 1, FMT_CASE | FMT_8_BIT, phps_tests
+		0, PLAINTEXT_LENGTH, BINARY_SIZE, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		phps_tests
 	},
 	{
 		/*  All we setup here, is the pointer to valid, and the pointer to init */
 		/*  within the call to init, we will properly set this full object      */
 		phps_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
-		phps_valid
+		phps_valid,
+		our_split
 	}
 };
 
+static void link_funcs() {
+	fmt_PHPS.methods.salt   = our_salt;
+	fmt_PHPS.methods.binary = our_binary;
+	fmt_PHPS.methods.split = our_split;
+	fmt_PHPS.methods.prepare = fmt_default_prepare;
+}
 
-static void phps_init(struct fmt_main *pFmt)
+static void phps_init(struct fmt_main *self)
 {
-	if (pFmt->private.initialized == 0) {
-		pFmt_Dynamic_6 = dynamic_THIN_FORMAT_LINK(&fmt_PHPS, Convert(Conv_Buf, phps_tests[0].ciphertext), "phps");
-		fmt_PHPS.methods.salt   = our_salt;
-		fmt_PHPS.methods.binary = our_binary;
-		fmt_PHPS.methods.split = our_split;
-		fmt_PHPS.params.algorithm_name = pFmt_Dynamic_6->params.algorithm_name;
-		pFmt->private.initialized = 1;
+	if (self->private.initialized == 0) {
+		get_ptr();
+		pDynamic_6->methods.init(pDynamic_6);
+		self->private.initialized = 1;
+	}
+}
+
+static void get_ptr() {
+	if (!pDynamic_6) {
+		pDynamic_6 = dynamic_THIN_FORMAT_LINK(&fmt_PHPS, Convert(Conv_Buf, phps_tests[0].ciphertext), "phps", 0);
+		link_funcs();
 	}
 }
 
@@ -178,3 +237,7 @@ static void phps_init(struct fmt_main *pFmt)
  * indent-tabs-mode: t
  * End:
  */
+
+#endif /* plugin stanza */
+
+#endif /* DYNAMIC_DISABLED */

@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-98 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*
@@ -10,10 +15,12 @@
 #ifndef _JOHN_GETOPT_H
 #define _JOHN_GETOPT_H
 
+#include "common.h"
+
 /*
  * Option flags bitmask type.
  */
-typedef unsigned int opt_flags;
+typedef ARCH_WORD_64 opt_flags;
 
 /*
  * Supported options list entry, the list ends with a NULL name field.
@@ -39,6 +46,10 @@ struct opt_entry {
 
 /* Pointer to buffer where the parameter is to be stored */
 	void *param;
+
+/* Used to detect dupe options without a specific option flag. This is
+ * used only with FLG_NONE and OPT_REQ_PARAM. */
+	int param_set;
 };
 
 /*

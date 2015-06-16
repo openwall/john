@@ -1,9 +1,15 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-98,2010,2011 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include "params.h"
+#include "memdbg.h"
 
 int password_hash_sizes[PASSWORD_HASH_SIZES] = {
 	PASSWORD_HASH_SIZE_0,

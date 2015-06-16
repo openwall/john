@@ -2,6 +2,11 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2003,2006,2011 by Solar Designer
  *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
+ *
  * This implementation of FreeBSD-style MD5-based crypt(3) password hashing
  * supports passwords of up to 15 characters long only since this lets us use a
  * significantly faster algorithm. -- SD
@@ -23,9 +28,10 @@ static int salt_changed;
 #else
 MD5_std_combined CC_CACHE_ALIGN MD5_std_all;
 #endif
+#include "memdbg.h"
 
 #if !MD5_IMM
-static MD5_data MD5_data_init = {
+static const MD5_data MD5_data_init = {
 	{
 		0xd76aa477, 0xf8fa0bcc, 0xbcdb4dd9, 0xb18b7a77,
 		0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
@@ -240,7 +246,8 @@ static MD5_data MD5_data_init = {
  */
 #define F(x, y, z)			((z) ^ ((x) & ((y) ^ (z))))
 #define G(x, y, z)			((y) ^ ((z) & ((x) ^ (y))))
-#define H(x, y, z)			((x) ^ (y) ^ (z))
+#define H(x, y, z)			(((x) ^ (y)) ^ (z))
+#define H2(x, y, z)			((x) ^ ((y) ^ (z)))
 #define I(x, y, z)			((y) ^ ((x) | ~(z)))
 
 /*
@@ -269,6 +276,11 @@ static MD5_data MD5_data_init = {
 	ROTATE_LEFT ((a), (s)); \
 	(a) += (b);
 
+#define HH2(a, b, c, d, x, s, ac) \
+	(a) += H2 ((b), (c), (d)) + (x) + (ac); \
+	ROTATE_LEFT ((a), (s)); \
+	(a) += (b);
+
 #define II(a, b, c, d, x, s, ac) \
 	(a) += I ((b), (c), (d)) + (x) + (ac); \
 	ROTATE_LEFT ((a), (s)); \
@@ -276,7 +288,7 @@ static MD5_data MD5_data_init = {
 
 #endif
 
-static unsigned char PADDING[56] = {
+static const unsigned char PADDING[56] = {
 	0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
@@ -311,7 +323,7 @@ static unsigned char PADDING[56] = {
 #define prefix				MD5_std_all.prefix
 #define prelen				MD5_std_all.prelen
 
-void MD5_std_init(struct fmt_main *pFmt)
+void MD5_std_init(struct fmt_main *self)
 {
 	int index;
 	MD5_pool *current;
@@ -404,12 +416,15 @@ void MD5_std_set_salt(char *salt)
 	memcpy(pool[1].s, salt, pool[1].l.s = length);
 #endif
 
-	if (salt[8]) {
-		prefix = "$apr1$";
-		prelen = 6;
-	} else {
+	if (salt[8] == MD5_TYPE_STD) {
 		prefix = "$1$";
 		prelen = 3;
+	} else if (salt[8] == MD5_TYPE_APACHE) {
+		prefix = "$apr1$";
+		prelen = 6;
+	} else if (salt[8] == MD5_TYPE_AIX) {
+		prefix = "";
+		prelen = 0;
 	}
 }
 
@@ -533,22 +548,22 @@ MAYBE_INLINE_BODY void MD5_body(MD5_word x[15], MD5_word out[4])
 
 /* Round 3 */
 	HH (a, b, c, d, x[ 5], S31, AC33);		/* 33 */
-	HH (d, a, b, c, x[ 8], S32, AC34);		/* 34 */
+	HH2 (d, a, b, c, x[ 8], S32, AC34);		/* 34 */
 	HH (c, d, a, b, x[11], S33, AC35);		/* 35 */
-	HH (b, c, d, a, x[14], S34, AC36);		/* 36 */
+	HH2 (b, c, d, a, x[14], S34, AC36);		/* 36 */
 	HH (a, b, c, d, x[ 1], S31, AC37);		/* 37 */
-	HH (d, a, b, c, x[ 4], S32, AC38);		/* 38 */
+	HH2 (d, a, b, c, x[ 4], S32, AC38);		/* 38 */
 	HH (c, d, a, b, x[ 7], S33, AC39);		/* 39 */
-	HH (b, c, d, a, x[10], S34, AC40);		/* 40 */
+	HH2 (b, c, d, a, x[10], S34, AC40);		/* 40 */
 	HH (a, b, c, d, x[13], S31, AC41);		/* 41 */
-	HH (d, a, b, c, x[ 0], S32, AC42);		/* 42 */
+	HH2 (d, a, b, c, x[ 0], S32, AC42);		/* 42 */
 	HH (c, d, a, b, x[ 3], S33, AC43);		/* 43 */
-	HH (b, c, d, a, x[ 6], S34, AC44);		/* 44 */
+	HH2 (b, c, d, a, x[ 6], S34, AC44);		/* 44 */
 	HH (a, b, c, d, x[ 9], S31, AC45);		/* 45 */
-	HH (d, a, b, c, x[12], S32, AC46);		/* 46 */
+	HH2 (d, a, b, c, x[12], S32, AC46);		/* 46 */
 	c += H (d, a, b) + AC47;
 	ROTATE_LEFT (c, S33); c += d;			/* 47 */
-	HH (b, c, d, a, x[ 2], S34, AC48);		/* 48 */
+	HH2 (b, c, d, a, x[ 2], S34, AC48);		/* 48 */
 
 /* Round 4 */
 	II (a, b, c, d, x[ 0], S41, AC49);		/* 49 */
@@ -977,10 +992,17 @@ char *MD5_std_get_salt(char *ciphertext)
 	char *p, *q;
 	int i;
 
-	p = ciphertext + 3;
-	if ((out[8] = !strncmp(ciphertext, "$apr1$", 6)))
+	if (!strncmp(ciphertext, "$apr1$", 6)) {
+		out[8] = MD5_TYPE_APACHE;
 		p = ciphertext + 6;
-
+	} else
+	if (!strncmp(ciphertext, "{smd5}", 6)) {
+		out[8] = MD5_TYPE_AIX;
+		p = ciphertext + 6;
+	} else {
+		out[8] = MD5_TYPE_STD;
+		p = ciphertext + 3;
+	}
 	q = out;
 	for (i = 0; *p != '$' && i < 8; i++)
 		*q++ = *p++;
@@ -1011,7 +1033,8 @@ MD5_word *MD5_std_get_binary(char *ciphertext)
 	MD5_word value;
 
 	pos = ciphertext + 3;
-	if (!strncmp(ciphertext, "$apr1$", 6))
+	if (!strncmp(ciphertext, "$apr1$", 6) ||
+	    !strncmp(ciphertext, "{smd5}", 6))
 		pos = ciphertext + 6;
 
 	while (*pos++ != '$');
