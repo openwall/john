@@ -385,7 +385,7 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 				                       ": %s", rep_plain);
 			if (cfg_showcand)
 				count2 += (int)sprintf(log.ptr + count2,
-				                       " as candidate #%llu",
+				                       " as candidate #"LLu"",
 				                       ((unsigned long long)
 				                       status.cands.hi << 32) +
 				                       status.cands.lo + index + 1);

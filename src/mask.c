@@ -1483,15 +1483,15 @@ void mask_save_state(FILE *file)
 {
 	int i;
 
-	fprintf(file, "%llu\n", rec_cand + 1);
+	fprintf(file, ""LLu"\n", rec_cand + 1);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
 	if (options.force_minlength >= 0) {
 		fprintf(file, "%d\n", rec_len);
-		fprintf(file, "%llu\n", cand_length);
+		fprintf(file, ""LLu"\n", cand_length);
 	}
 	for (i = 0; i < rec_ctx.count; i++)
-		fprintf(file, "%hhu\n", rec_ctx.ranges[i].iter);
+		fprintf(file, "%u\n", (unsigned)rec_ctx.ranges[i].iter);
 }
 
 int mask_restore_state(FILE *file)
@@ -1501,7 +1501,7 @@ int mask_restore_state(FILE *file)
 	unsigned long long ull;
 	int fail = !(options.flags & FLG_MASK_STACKED);
 
-	if (fscanf(file, "%llu\n", &ull) == 1)
+	if (fscanf(file, ""LLu"\n", &ull) == 1)
 		cand = ull;
 	else
 		return fail;
@@ -1521,7 +1521,7 @@ int mask_restore_state(FILE *file)
 			restored_len = d;
 		else
 			return fail;
-		if (fscanf(file, "%llu\n", &ull) == 1)
+		if (fscanf(file, ""LLu"\n", &ull) == 1)
 			rec_cl = ull;
 		/* FIXME: enable the below at 2015-01-01 or later */
 		//else

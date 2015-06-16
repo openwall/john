@@ -407,7 +407,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = local_work_size ? ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : count / v_width;
 	scalar_gws = global_work_size * v_width;
 
-	//fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu kidx %u\n", __FUNCTION__, count, local_work_size, global_work_size, scalar_gws, key_idx);
+	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu" kidx %u\n", __FUNCTION__, count, local_work_size, global_work_size, scalar_gws, key_idx);
 
 	if (key_idx)
 		HANDLE_CLERROR(

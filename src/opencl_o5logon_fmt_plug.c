@@ -319,7 +319,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
         gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
-        //fprintf(stderr, "%s(%d) lws %zu gws %zu\n", __FUNCTION__, count, local_work_size, global_work_size);
+        //fprintf(stderr, "%s(%d) lws "Zu" gws "Zu"\n", __FUNCTION__, count, local_work_size, global_work_size);
 
 	if (key_idx)
         HANDLE_CLERROR(

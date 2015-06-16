@@ -477,7 +477,7 @@ static char * get_key(int index)
 	//TODO: ### remove me.
 	if (t > global_work_size) {
 		fprintf(stderr,
-			"Get key error! t: %d gws: %zd index: %d int_index: %d\n",
+			"Get key error! t: %d gws: "Zd" index: %d int_index: %d\n",
 			t, global_work_size, index, int_index);
 		t = 0;
 	}

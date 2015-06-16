@@ -72,7 +72,7 @@
 #if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
 #include "win32_memmap.h"
 #undef MEM_FREE
-#ifndef __CYGWIN__
+#if !defined(__CYGWIN__) && !defined(__MINGW64__)
 #include "mmap-windows.c"
 #endif /* __CYGWIN */
 #endif /* _MSC_VER ... */
@@ -448,7 +448,7 @@ static void check_realloc_elems (db_entry_t *db_entry)
 
     if (db_entry->elems_buf == NULL)
     {
-      fprintf (stderr, "Out of memory trying to allocate %zu bytes\n", (size_t) elems_alloc_new * sizeof (elem_t));
+      fprintf (stderr, "Out of memory trying to allocate "Zu" bytes\n", (size_t) elems_alloc_new * sizeof (elem_t));
 
 #ifndef JTR_MODE
       exit (-1);
@@ -475,7 +475,7 @@ static void check_realloc_chains (db_entry_t *db_entry)
 
     if (db_entry->chains_buf == NULL)
     {
-      fprintf (stderr, "Out of memory trying to allocate %zu bytes\n", (size_t) chains_alloc_new * sizeof (chain_t));
+      fprintf (stderr, "Out of memory trying to allocate "Zu" bytes\n", (size_t) chains_alloc_new * sizeof (chain_t));
 
 #ifndef JTR_MODE
       exit (-1);
@@ -841,10 +841,10 @@ static void save_state(FILE *file)
   mpz_t half; mpz_init(half);
 
   mpz_fdiv_r_2exp(half, rec_pos, 64); // lower 64 bits
-  fprintf(file, "%llu\n", (unsigned long long)mpz_get_ui(half));
+  fprintf(file, ""LLu"\n", (unsigned long long)mpz_get_ui(half));
 
   mpz_fdiv_q_2exp(half, rec_pos, 64); // upper 64 bits
-  fprintf(file, "%llu\n", (unsigned long long)mpz_get_ui(half));
+  fprintf(file, ""LLu"\n", (unsigned long long)mpz_get_ui(half));
 }
 
 static int restore_state(FILE *file)
@@ -852,11 +852,11 @@ static int restore_state(FILE *file)
   unsigned long long temp;
   mpz_t hi;
 
-  if (fscanf(file, "%llu\n", &temp) != 1)
+  if (fscanf(file, ""LLu"\n", &temp) != 1)
     return 1;
   mpz_set_ui(rec_pos, temp);
 
-  if (fscanf(file, "%llu\n", &temp) != 1)
+  if (fscanf(file, ""LLu"\n", &temp) != 1)
     return 1;
   mpz_init_set_ui(hi, temp);
   mpz_mul_2exp(hi, hi, 64); // hi = temp << 64
@@ -1519,7 +1519,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
       if (john_main_process && options.verbosity > 4)
         log_event("- Dupe suppression len %d: hash size %u, "
-                  "temporarily allocating %zu bytes", pw_len,
+                  "temporarily allocating "Zu" bytes", pw_len,
                   hash_size, sizeof(uniq_t) + hash_alloc * sizeof(uniq_data_t) +
                   hash_size * sizeof(u32));
     }
@@ -1863,9 +1863,9 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
               get_bits(&total_ks_cnt));
 
     if (dupe_check)
-      log_event("- Memory use for PRINCE: %zu bytes (peak %zu bytes)", tot_mem, uniq_mem + tot_mem);
+      log_event("- Memory use for PRINCE: "Zu" bytes (peak "Zu" bytes)", tot_mem, uniq_mem + tot_mem);
     else
-      log_event("- Memory use for PRINCE: %zu bytes", tot_mem);
+      log_event("- Memory use for PRINCE: "Zu" bytes", tot_mem);
   }
 
   mpf_set_z(count, total_ks_cnt);

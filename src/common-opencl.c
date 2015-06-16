@@ -980,7 +980,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name)
 		                                sizeof(size_t), &source_size, NULL), "error");
 
 		if (options.verbosity > 4)
-			fprintf(stderr, "binary size %zu\n", source_size);
+			fprintf(stderr, "binary size "Zu"\n", source_size);
 
 		source = mem_calloc(1, source_size);
 
@@ -1182,7 +1182,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 		numloops = 1;
 	else if (numloops > 10)
 		numloops = 10;
-	//fprintf(stderr, "%zu, %zu, time: %s, loops: %d\n", endTime,
+	//fprintf(stderr, ""Zu", "Zu", time: %s, loops: %d\n", endTime,
 	//  startTime, ns2string(endTime - startTime), numloops);
 
 	// Find minimum time
@@ -1228,7 +1228,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 			                                       CL_PROFILING_COMMAND_END,
 			                                       sizeof(cl_ulong), &endTime, NULL),
 			               "Failed to get profiling info");
-			//fprintf(stderr, "%zu, %zu, time: %s\n", endTime,
+			//fprintf(stderr, ""Zu", "Zu", time: %s\n", endTime,
 			//  startTime, ns2string(endTime-startTime));
 			sumStartTime += startTime;
 			sumEndTime += endTime;
@@ -1459,7 +1459,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		benchEvent[i] = NULL;
 
 	if (options.verbosity > 3)
-		fprintf(stderr, "Max local worksize %zd, ", group_size_limit);
+		fprintf(stderr, "Max local worksize "Zd", ", group_size_limit);
 
 	/* Formats supporting vectorizing should have a default max keys per
 	   crypt that is a multiple of 2 and of 3 */
@@ -1842,7 +1842,7 @@ void opencl_read_source(char *kernel_filename)
 	read_size = fread(kernel_source, sizeof(char), source_size, fp);
 	if (read_size != source_size)
 		fprintf(stderr,
-		        "Error reading source: expected %zu, got %zu bytes.\n",
+		        "Error reading source: expected "Zu", got "Zu" bytes.\n",
 		        source_size, read_size);
 	fclose(fp);
 	program_size = source_size;
@@ -2324,7 +2324,7 @@ static char *human_format(size_t size)
 		size /= 1024;
 		prefid++;
 	}
-	sprintf(ret, "%zd.%zd %cB", size, (size % 1024) / 100, pref[prefid]);
+	sprintf(ret, ""Zd"."Zd" %cB", size, (size % 1024) / 100, pref[prefid]);
 	return ret;
 }
 
@@ -2515,7 +2515,7 @@ void opencl_list_devices(void)
 			                      CL_DEVICE_PROFILING_TIMER_RESOLUTION,
 			                      sizeof(size_t), &z_entries, NULL);
 			if (ret == CL_SUCCESS && z_entries)
-				printf("\tProfiling timer res.:\t%zu ns\n", z_entries);
+				printf("\tProfiling timer res.:\t"Zu" ns\n", z_entries);
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &p_size, NULL);
 			printf("\tMax Work Group Size:\t%d\n", (int)p_size);
@@ -2525,7 +2525,7 @@ void opencl_list_devices(void)
 
 			long_entries = get_processors_count(sequence_nr);
 			if (ocl_device_list[sequence_nr].cores_per_MP > 1)
-				printf("\tStream processors:\t%llu "
+				printf("\tStream processors:\t"LLu" "
 				       " (%d x %d)\n",
 				       (unsigned long long)long_entries,
 				       entries, ocl_device_list[sequence_nr].cores_per_MP);
@@ -2533,14 +2533,14 @@ void opencl_list_devices(void)
 			ret = clGetDeviceInfo(devices[sequence_nr],
 			                      CL_DEVICE_WARP_SIZE_NV, sizeof(cl_uint), &long_entries, NULL);
 			if (ret == CL_SUCCESS)
-				printf("\tWarp size:\t\t%llu\n",
+				printf("\tWarp size:\t\t"LLu"\n",
 				       (unsigned long long)long_entries);
 
 			ret = clGetDeviceInfo(devices[sequence_nr],
 			                      CL_DEVICE_REGISTERS_PER_BLOCK_NV,
 			                      sizeof(cl_uint), &long_entries, NULL);
 			if (ret == CL_SUCCESS)
-				printf("\tMax. GPRs/work-group:\t%llu\n",
+				printf("\tMax. GPRs/work-group:\t"LLu"\n",
 				       (unsigned long long)long_entries);
 
 			if (gpu_nvidia(device_info[sequence_nr])) {

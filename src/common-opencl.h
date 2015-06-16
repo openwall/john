@@ -96,7 +96,7 @@ static inline cl_mem
 john_clCreateBuffer(int l, char *f, cl_context context, cl_mem_flags flags,
                     size_t size, void *host_ptr, cl_int *errcode_ret)
 {
-	fprintf(stderr, "allocating %zu bytes in line %d of %s\n", size, l, f);
+	fprintf(stderr, "allocating "Zu" bytes in line %d of %s\n", size, l, f);
 	return clCreateBuffer(context, flags, size, host_ptr, errcode_ret);
 }
 
