@@ -15,11 +15,6 @@
 #define _XOPEN_SOURCE 500 /* for setitimer(2) and siginterrupt(3) */
 #endif
 
-#ifdef __ultrix__
-#define __POSIX
-#define _POSIX_SOURCE
-#endif
-
 #define NEED_OS_TIMER
 #define NEED_OS_FORK
 #include "os.h"
@@ -31,9 +26,6 @@
 #include <windows.h>
 #endif
 
-#ifdef _SCO_C_DIALECT
-#include <limits.h>
-#endif
 #include <stdio.h>
 #if !AC_BUILT || HAVE_SYS_TIME_H
 #include <sys/time.h>

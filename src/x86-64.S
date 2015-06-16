@@ -1,7 +1,7 @@
 /*
  * This file contains the core of a bitslice DES implementation for x86-64/SSE2.
  * It is part of John the Ripper password cracker,
- * Copyright (c) 2000-2001,2005,2006,2008,2011,2012 by Solar Designer
+ * Copyright (c) 2000-2001,2005,2006,2008,2011,2012,2015 by Solar Designer
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.  (This is a heavily cut-down "BSD license".)
  *
@@ -682,21 +682,21 @@ DO_SPACE(nvec(64))
 	pandn %xmm8,%xmm9; \
 	movdqa %xmm5,%xmm15; \
 	pxor %xmm9,%xmm7; \
-	por %xmm1,%xmm5; \
+	por %xmm1,%xmm15; \
 	pxor %xmm7,%xmm6; \
-	pxor %xmm6,%xmm5; \
+	pxor %xmm6,%xmm15; \
 	pxor %xmm0,%xmm6; \
 	movdqa %xmm6,%xmm14; \
 	pxor %xmm13,%xmm7; \
 	pand %xmm4,%xmm6; \
-	pxor out2,%xmm5; \
+	pxor out2,%xmm15; \
 	pxor %xmm7,%xmm6; \
 	pxor %xmm6,%xmm12; \
-	movdqa %xmm5,out2; \
+	movdqa %xmm15,out2; \
 	pxor %xmm2,%xmm6; \
 	pxor %xmm4,%xmm14; \
 	por %xmm13,%xmm6; \
-	pand %xmm15,%xmm2; \
+	pand %xmm5,%xmm2; \
 	por %xmm3,%xmm7; \
 	pxor %xmm12,%xmm10; \
 	pxor %xmm10,%xmm7; \
@@ -704,21 +704,21 @@ DO_SPACE(nvec(64))
 	pxor %xmm6,%xmm2; \
 	pxor %xmm7,%xmm0; \
 	pandn %xmm10,%xmm3; \
-	pand %xmm15,%xmm0; \
+	pand %xmm5,%xmm0; \
 	pand %xmm3,%xmm6; \
 	pxor out3,%xmm2; \
 	pxor %xmm6,%xmm7; \
 	pxor %xmm1,%xmm7; \
 	pxor out4,%xmm0; \
 	movdqa %xmm2,out3; \
-	por %xmm15,%xmm7; \
-	pxor out1,%xmm7; \
+	por %xmm7,%xmm5; \
+	pxor out1,%xmm5; \
 	pxor %xmm12,%xmm0; \
-	pxor %xmm12,%xmm7; \
+	pxor %xmm12,%xmm5; \
 	movdqa %xmm0,out4; \
-	movdqa %xmm7,out1
+	movdqa %xmm5,out1
 
-#define zero				%xmm0
+#define zero				%xmm5
 
 #define DES_bs_clear_block_8(i) \
 	movdqa zero,B(i); \
@@ -788,9 +788,9 @@ DO_SPACE(nvec(64))
 	pxor K(k5),a5; \
 	pxor K(k6),a6
 
-#define xor_B_KS_p(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, b6, k6) \
-	mov k(k1),tmp1p; \
-	mov k(k2),tmp2p; \
+#define xor_B_KS_p_prefix(b1, k1, b2, k2, b3, k3, b4, k4, k6) \
+	mov k(k1),tmp1; \
+	mov k(k2),tmp2; \
 	movdqa B(b1),a1; \
 	movdqa B(b2),a2; \
 	pxor (tmp1),a1; \
@@ -800,13 +800,23 @@ DO_SPACE(nvec(64))
 	movdqa B(b3),a3; \
 	movdqa B(b4),a4; \
 	pxor (tmp1),a3; \
-	mov k(k5),tmp1p; \
-	pxor (tmp2),a4; \
+	mov k(k6),tmp1; \
+	pxor (tmp2),a4
+
+#define xor_B_KS_p_suffix(b5, k5) \
+	mov k(k5),tmp2; \
 	movdqa B(b5),a5; \
-	mov k(k6),tmp2p; \
+	pxor (tmp1),a6; \
+	pxor (tmp2),a5
+
+#define xor_B_KS_p(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, b6, k6) \
+	xor_B_KS_p_prefix(b1, k1, b2, k2, b3, k3, b4, k4, k6); \
 	movdqa B(b6),a6; \
-	pxor (tmp1),a5; \
-	pxor (tmp2),a6
+	xor_B_KS_p_suffix(b5, k5)
+
+#define xor_B_KS_p_special(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, k6) \
+	xor_B_KS_p_prefix(b1, k1, b2, k2, b3, k3, b4, k4, k6); \
+	xor_B_KS_p_suffix(b5, k5)
 
 #define mask01				tmp_at(8)
 #define mask02				tmp_at(9)
@@ -1393,7 +1403,7 @@ DES_bs_finalize_keys_LM_loop:
 	movdqa ones,B(63)
 	movl $8,rounds
 DES_bs_crypt_LM_loop:
-	xor_B_KS_p(31, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5)
+	xor_B_KS_p_special(31, 0, 0, 1, 1, 2, 2, 3, 3, 4, 5)
 	S1(B(40), B(48), B(54), B(62))
 	xor_B_KS_p(3, 6, 4, 7, 5, 8, 6, 9, 7, 10, 8, 11)
 	S2(B(44), B(59), B(33), B(49))
@@ -1409,7 +1419,7 @@ DES_bs_crypt_LM_loop:
 	S7(B(63), B(43), B(53), B(38))
 	xor_B_KS_p(27, 42, 28, 43, 29, 44, 30, 45, 31, 46, 0, 47)
 	S8(B(36), B(58), B(46), B(52))
-	xor_B_KS_p(63, 48, 32, 49, 33, 50, 34, 51, 35, 52, 36, 53)
+	xor_B_KS_p_special(63, 48, 32, 49, 33, 50, 34, 51, 35, 52, 53)
 	S1(B(8), B(16), B(22), B(30))
 	xor_B_KS_p(35, 54, 36, 55, 37, 56, 38, 57, 39, 58, 40, 59)
 	S2(B(12), B(27), B(1), B(17))
