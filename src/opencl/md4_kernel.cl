@@ -1,4 +1,5 @@
-/* MD4 OpenCL kernel based on Solar Designer's MD4 algorithm implementation at:
+/*
+ * MD4 OpenCL kernel based on Solar Designer's MD4 algorithm implementation at:
  * http://openwall.info/wiki/people/solar/software/public-domain-source-code/md4
  * This code is in public domain.
  *
@@ -11,7 +12,8 @@
  * Useful References:
  * 1  nt_opencl_kernel.c (written by Alain Espinosa <alainesp at gmail.com>)
  * 2. http://tools.ietf.org/html/rfc1320
- * 3. http://en.wikipedia.org/wiki/MD4  */
+ * 3. http://en.wikipedia.org/wiki/MD4
+ */
 
 #include "opencl_device_info.h"
 #define AMD_PUTCHAR_NOCAST

@@ -78,14 +78,15 @@ struct dsc$descriptor_s {
 
 #include "uaf_raw.h"
 #include "uaf_encode.h"
-#include <pthread.h>
 #include "memdbg.h"
 
 /*
  * Declare static globals that don't change once initialized as well as
  * pthread objects used to sychronize access and/or initialization.
  */
+#ifdef HAVE_PTHREADS
 static pthread_mutex_t uaf_static = PTHREAD_MUTEX_INITIALIZER;
+#endif
 static const char *enc_set =
 	"-ABCDEFGHIJKLMNOPQRTSUVWXYZ0123456789abcedfghijklmnopqrstuvwxyz+";
 static const char *r50_set = " ABCDEFGHIJKLMNOPQRSTUVWXYZ$._0123456789";
@@ -487,9 +488,11 @@ int uaf_getuai_info (
     return status;
 #else
     if ( uai_ctx == -1 ) {
+#ifdef HAVE_PTHREADS
         pthread_mutex_lock ( &uaf_static );	/* just to fool compiler */
 	uai_ctx = -2;
         pthread_mutex_unlock ( &uaf_static );
+#endif
     }
     return 0;			/* Non-VMS system, always fails */
 #endif
@@ -568,7 +571,7 @@ int uaf_test_password (
 }
 
 /*
- * Pull in hash function definition from an included file.  May be overriden
+ * Pull in hash function definition from an included file.  May be overridden
  * to allow alternate implentations.
  */
 #define UAF_INCLUDED_FROM_ENCODE 1

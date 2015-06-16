@@ -21,8 +21,8 @@
 
 inline void compare(
 	      const uint32_t iter,		//which candidates_number is this one
-	      const uint32_t num_loaded_hashes,	//number of password hashes transfered
-     __global const uint32_t * loaded_hashes,   //buffer of password hashes transfered
+	      const uint32_t num_loaded_hashes,	//number of password hashes transferred
+     __global const uint32_t * loaded_hashes,   //buffer of password hashes transferred
   volatile __global uint32_t * hash_id,		//information about how recover the cracked password
 	      const uint32_t * hash,		//the hash calculated by this kernel
   volatile __global uint32_t * bitmap) {
@@ -60,8 +60,8 @@ inline void compare(
 
 inline void compare_64(
 	      const uint32_t iter,		//which candidates_number is this one
-	      const uint32_t num_loaded_hashes,	//number of password hashes transfered
-     __global const uint64_t * loaded_hashes,   //buffer of password hashes transfered
+	      const uint32_t num_loaded_hashes,	//number of password hashes transferred
+     __global const uint64_t * loaded_hashes,   //buffer of password hashes transferred
   volatile __global uint32_t * hash_id,		//information about how recover the cracked password
 	      const uint64_t * hash,		//the hash calculated by this kernel
   volatile __global uint32_t * bitmap) {

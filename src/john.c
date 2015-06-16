@@ -94,6 +94,7 @@ static int john_omp_threads_new;
 #include "dynamic.h"
 #include "fake_salts.h"
 #include "listconf.h"
+#include "crc32.h"
 #if HAVE_MPI
 #include "john-mpi.h"
 #endif
@@ -168,7 +169,6 @@ extern int racf2john(int argc, char **argv);
 extern int pwsafe2john(int argc, char **argv);
 extern int dmg2john(int argc, char **argv);
 extern int putty2john(int argc, char **argv);
-extern int keystore2john(int argc, char **argv);
 
 int john_main_process = 1;
 #if OS_FORK
@@ -1164,7 +1164,7 @@ static void john_load(void)
 		if (options.fork)
 		{
 			/*
-			 * flush before forking, to avoid multple log entries
+			 * flush before forking, to avoid multiple log entries
 			 */
 			log_flush();
 			john_fork();
@@ -1618,6 +1618,9 @@ int main(int argc, char **argv)
 	}
 #endif
 
+	/* put the crc table init here, so that tables are fully setup for any ancillary program */
+	CRC32_Init_tab();
+
 	if (!strcmp(name, "unshadow")) {
 		CPU_detect_or_fallback(argv, 0);
 		return unshadow(argc, argv);
@@ -1686,11 +1689,6 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "pwsafe2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return pwsafe2john(argc, argv);
-	}
-
-	if (!strcmp(name, "keystore2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return keystore2john(argc, argv);
 	}
 
 	if (!strcmp(name, "gpg2john")) {

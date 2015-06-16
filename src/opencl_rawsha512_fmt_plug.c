@@ -70,7 +70,7 @@ static struct fmt_main *self;
 
 //Device (GPU) buffers
 //int_keys: mask to apply
-//loaded_hashes: buffer of binary hashes transfered/loaded to GPU
+//loaded_hashes: buffer of binary hashes transferred/loaded to GPU
 //hash_ids: information about how recover the cracked password
 //bitmap: a bitmap memory space.
 //int_key_loc: the position of the mask to apply.
@@ -79,8 +79,8 @@ static cl_mem buffer_int_keys, buffer_loaded_hashes, buffer_hash_ids,
 
 //Host buffers
 //saved_int_key_loc: the position of the mask to apply
-//num_loaded_hashes: number of binary hashes transfered/loaded to GPU
-//loaded_hashes: buffer of binary hashes transfered/loaded to GPU
+//num_loaded_hashes: number of binary hashes transferred/loaded to GPU
+//loaded_hashes: buffer of binary hashes transferred/loaded to GPU
 //hash_ids: information about how recover the cracked password
 static uint32_t * saved_int_key_loc, num_loaded_hashes, * hash_ids = NULL;
 static uint64_t * loaded_hashes = NULL;
@@ -534,17 +534,24 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
-	if (buffer_loaded_hashes)
+	if (buffer_loaded_hashes) {
 		ret_code = clReleaseMemObject(buffer_loaded_hashes);
 		HANDLE_CLERROR(ret_code, "Error Releasing buffer_loaded_hashes");
+		buffer_loaded_hashes = NULL;
+	}
 
-	if (buffer_hash_ids)
+
+	if (buffer_hash_ids) {
 		ret_code = clReleaseMemObject(buffer_hash_ids);
 		HANDLE_CLERROR(ret_code, "Error Releasing buffer_hash_ids");
+		buffer_hash_ids = NULL;
+	}
 
-	if (buffer_bitmap)
+	if (buffer_bitmap) {
 		ret_code = clReleaseMemObject(buffer_bitmap);
 		HANDLE_CLERROR(ret_code, "Error Releasing buffer_bitmap");
+		buffer_bitmap = NULL;
+	}
 
 	if (loaded_hashes)
 		MEM_FREE(loaded_hashes);

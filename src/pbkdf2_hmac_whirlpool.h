@@ -12,7 +12,7 @@
  * function, filling in all params.  This format is same as the EVP_digest
  * whirlpool algorithm within OpenSSL.  It uses a 64 byte opad/ipad even
  * though the hash base width is 128 bytes. This is unlike the other
- * PBKDF2 hashes I am familar with (sha1, sha256, sha512 and now ripemd160).
+ * PBKDF2 hashes I am familiar with (sha1, sha256, sha512 and now ripemd160).
  * each of those use i/opad the same length as the hash internal buffer
  * state. While the way done here in whirlpool sounds inferior, it actually
  * fixes one huge 'bug' there is in the PBKDF2 algorithm, namely that due to

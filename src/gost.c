@@ -24,7 +24,7 @@ extern unsigned rhash_gost_sbox_cryptpro[4][256];
  * Initialize algorithm context before calculaing hash
  * with test parameters set.
  *
- * @param ctx context to initalize
+ * @param ctx context to initialize
  */
 void john_gost_init(gost_ctx *ctx)
 {
@@ -34,7 +34,7 @@ void john_gost_init(gost_ctx *ctx)
 /**
  * Initialize GOST algorithm context with CryptoPro parameter set.
  *
- * @param ctx context to initalize
+ * @param ctx context to initialize
  */
 void john_gost_cryptopro_init(gost_ctx *ctx)
 {
@@ -444,7 +444,7 @@ static void rhash_gost_fill_sbox(unsigned out[4][256], const unsigned char src[8
 void gost_init_table(void)
 {
 	/* Test parameters set. Eight 4-bit S-Boxes defined by GOST R 34.10-94
-	 * standart for testing the hash function.
+	 * standard for testing the hash function.
 	 * Also given by RFC 4357 section 11.2 */
 	static const unsigned char sbox[8][16] = {
 		{  4, 10,  9,  2, 13,  8,  0, 14,  6, 11,  1, 12,  7, 15,  5,  3 },

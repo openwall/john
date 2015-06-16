@@ -520,7 +520,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-// "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/" varient
+// "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/" variant
 static void decode(unsigned char *ascii_cipher, unsigned char *binary)
 {
 	unsigned int out = 0, apsik = 0, loop;

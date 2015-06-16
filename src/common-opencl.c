@@ -811,6 +811,7 @@ void opencl_done()
 	opencl_v_width = 1;
 	fmt_base_name[0] = 0;
 	opencl_initialized = 0;
+	crypt_kernel = NULL;
 
 	gpu_device_list[0] = gpu_device_list[1] = -1;
 }

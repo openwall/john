@@ -65,11 +65,11 @@ For example, \x41 is "A" and \x09 is the code for TAB.
 
 Examples:
 
-Mask		custom mask / hybrid input	example output	num candidates
-pass						pass		1
-pw%d						pw3		10
-?w?d?d?d		password		password123	1000x
-?w?s?w			bozo			bozo#bozo	33x
-0x?1?1:?1?1:?1?1	-1=[0-9a-f]		0xde:ad:ca	16777216
-?3?l?l?l		-3=?l?u			Bozo, hobo	913952
-[Pp][Aa@][Ss5][Ss5][Ww][Oo0][Rr][Dd]		P@55w0rD	1296
+Mask            custom mask / hybrid input      example output  num candidates
+pass                                            pass            1
+pw?d                                            pw3             10
+?w?d?d?d                password                password123     1000x
+?w?s?w                  bozo                    bozo#bozo       33x
+0x?1?1:?1?1:?1?1        -1=[0-9a-f]             0xde:ad:ca      16777216
+?3?l?l?l                -3=?l?u                 Bozo, hobo      913952
+[Pp][Aa@][Ss5][Ss5][Ww][Oo0][Rr][Dd]            P@55w0rD        1296

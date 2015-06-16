@@ -19,6 +19,7 @@ PTHREAD_CC = @PTHREAD_CC@
 ifdef PTHREAD_CC
 CC = @PTHREAD_CC@
 endif
+AR = @AR@
 AS = @AS@
 LD = @LD@
 CPP = @CPP@
@@ -31,7 +32,7 @@ TR = tr
 SED = @SED@
 NULL = /dev/null
 SORT = @SORT@
-STRIP = strip
+STRIP = @STRIP@
 
 SHELL = /bin/sh
 VPATH = @srcdir@
@@ -91,7 +92,7 @@ JOHN_OBJS = \
 	pwsafe2john.o \
 	dmg2john.o \
 	keepass2john.o \
-	keyring2john.o keystore2john.o \
+	keyring2john.o \
 	hccap2john.o \
 	$(PLUGFORMATS_OBJS) \
 	dyna_salt.o dummy.o \
@@ -133,7 +134,7 @@ PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../ru
 	../run/pwsafe2john@EXE_EXT@ ../run/raw2dyna@EXE_EXT@ ../run/keepass2john@EXE_EXT@ ../run/pfx2john@EXE_EXT@ \
 	../run/keychain2john@EXE_EXT@ ../run/keyring2john@EXE_EXT@ ../run/kwallet2john@EXE_EXT@ \
 	../run/dmg2john@EXE_EXT@ ../run/putty2john@EXE_EXT@ ../run/uaf2john@EXE_EXT@ \
-	../run/keystore2john@EXE_EXT@ ../run/wpapcap2john@EXE_EXT@ \
+	../run/wpapcap2john@EXE_EXT@ \
 	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/luks2john@EXE_EXT@ ../run/base64conv@EXE_EXT@
 
 WITH_PCAP = @HAVE_PCAP@
@@ -378,8 +379,6 @@ keepass2john.o:	keepass2john.c autoconfig.h stdint.h missing_getopt.h jumbo.h pa
 keychain2john.o:	keychain2john.c stdint.h jumbo.h memdbg.h
 
 keyring2john.o:	keyring2john.c stdint.h memory.h jumbo.h memdbg.h
-
-keystore2john.o:	keystore2john.c stdint.h jumbo.h memdbg.h
 
 kwallet2john.o:	kwallet2john.c stdint.h jumbo.h memdbg.h
 
@@ -633,10 +632,6 @@ aes/aes.a:
 	$(RM) ../run/base64conv
 	$(LN) john ../run/base64conv
 
-../run/keystore2john: ../run/john
-	$(RM) ../run/keystore2john
-	$(LN) john ../run/keystore2john
-
 ../run/unique: ../run/john
 	$(RM) ../run/unique
 	$(LN) john ../run/unique
@@ -721,10 +716,6 @@ aes/aes.a:
 	$(CC) symlink.c -o ../run/base64conv.exe
 	$(STRIP) ../run/base64conv.exe
 
-../run/keystore2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/keystore2john.exe
-	$(STRIP) ../run/keystore2john.exe
-
 ../run/unique.exe: symlink.c
 	$(CC) symlink.c -o ../run/unique.exe
 	$(STRIP) ../run/unique.exe
@@ -759,7 +750,7 @@ aes/aes.a:
 	$(LD) $(LDFLAGS) wpapcap2john.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/wpapcap2john
 
 ../run/luks2john@EXE_EXT@: luks2john.o
-	$(LD) $(LDFLAGS) luks2john.o @OPENSSL_LIBS@ @MEMDBG_CFLAGS@ memdbg.o jumbo.o @OPENMP_CFLAGS@ -o ../run/luks2john
+	$(LD) $(LDFLAGS) luks2john.o @OPENSSL_LIBS@ @OPENMP_CFLAGS@ -o ../run/luks2john
 
 ../run/cprepair@EXE_EXT@: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
 	memdbg.h memdbg.c

@@ -2,6 +2,11 @@
 #
 # Final output is a table in GitHub Markdown format
 #
+# Usage: ./testparas.pl [seconds]
+#
+# ../run/john will run with -test=seconds or just -test depending
+# upon whether the seconds parameter is provided or not.
+#
 use strict;
 
 my $compiler = `gcc -v 2>&1 | tail -1` or die;
@@ -11,6 +16,8 @@ my ($i, $j, $k);
 my ($out, $sp);
 my %speed;
 my %best;
+my $test="first";
+my $john_build;
 
 print "This will take a while.\n";
 print "Initial configure...\n";
@@ -25,11 +32,20 @@ foreach $i (1..5)
 	print `make -sj4 CPPFLAGS="$CPPFLAGS" nt2_fmt_plug.o` or die;
 	$CPPFLAGS="-DSIMD_PARA_MD4=$i -DSIMD_PARA_MD5=$i -DSIMD_PARA_SHA1=$i -DSIMD_PARA_SHA256=$i -DSIMD_PARA_SHA512=$i -DOMP_SCALE=1";
 	print `make -sj4 CPPFLAGS="$CPPFLAGS"` or die;
-
+	if ($test eq "first") {
+		system ("../run/john >JohnUsage.Scr 2>&1");
+		open(FILE, "<JohnUsage.Scr") or die $!;
+		my @johnUsageScreen = <FILE>;
+		close(FILE);
+		unlink("JohnUsage.Scr");
+		$john_build = $johnUsageScreen[0];
+		$test="-test";
+		if ($ARGV[0] ne "") { $test="-test=$ARGV[0]"; }
+	}
 	print "\n== Speeds for ${i}x interleaving (OMP_SCALE 1 except NT): ==\n";
 	foreach $j (qw(nt md5crypt pbkdf2-hmac-sha1 pbkdf2-hmac-sha256 pbkdf2-hmac-sha512))
 	{
-		$out = `../run/john -test -form:$j` or die;
+		$out = `../run/john $test -form:$j` or die;
 		print $out;
 		$out =~ s/.*^Raw:\t(\d+K?).*/$1/ms;
 		$speed{$j."-omp"}{$i} = $out;
@@ -61,7 +77,9 @@ foreach $i (1..5)
 	}
 }
 
-print "\n", $compiler, "\n";
+print "\n$compiler";
+print "$john_build";
+print "running john with \'$test\' for each test\n\n";
 printf "%-22s |  %6d  |  %6d  |  %6d  |  %6d  |  %6d  |\n", "hash\\para", 1, 2, 3, 4, 5;
 print "-----------------------|----------|----------|----------|----------|----------|\n";
 foreach $j (qw(nt md5crypt pbkdf2-hmac-sha1 pbkdf2-hmac-sha256 pbkdf2-hmac-sha512))

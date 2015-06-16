@@ -278,7 +278,15 @@ escrypt_kdf(escrypt_local_t * local,
 		errno = EFBIG;
 		return -1;
 	}
+	if (N > UINT32_MAX) {
+		errno = EFBIG;
+		return -1;
+	}
 	if (((N & (N - 1)) != 0) || (N == 0)) {
+		errno = EINVAL;
+		return -1;
+	}
+	if (!r || !p) {
 		errno = EINVAL;
 		return -1;
 	}

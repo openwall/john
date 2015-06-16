@@ -23,20 +23,22 @@
 #include "crc32.h"
 #include "memdbg.h"
 
-#define POLY 0xEDB88320
-#define ALL1 0xFFFFFFFF
+#define POLY  0xEDB88320
+#define POLYC 0x82F63B78 // CRC-32C
+#define ALL1  0xFFFFFFFF
 
-static CRC32_t table[256];
+CRC32_t JTR_CRC32_table[256];
+CRC32_t JTR_CRC32_tableC[256];
 static int bInit=0;
-void CRC32_Init(CRC32_t *value)
+
+void CRC32_Init_tab()
 {
 	unsigned int index, bit;
 	CRC32_t entry;
 
-	*value = ALL1;
-
 	if (bInit) return;
 	bInit = 1;
+
 	for (index = 0; index < 0x100; index++) {
 		entry = index;
 
@@ -47,23 +49,35 @@ void CRC32_Init(CRC32_t *value)
 		} else
 			entry >>= 1;
 
-		table[index] = entry;
+		JTR_CRC32_table[index] = entry;
+	}
+	for (index = 0; index < 0x100; index++) {
+		entry = index;
+
+		for (bit = 0; bit < 8; bit++)
+		if (entry & 1) {
+			entry >>= 1;
+			entry ^= POLYC;
+		} else
+			entry >>= 1;
+
+		JTR_CRC32_tableC[index] = entry;
 	}
 }
 
-void CRC32_Update(CRC32_t *value, void *data, unsigned int size)
+void CRC32_Init(CRC32_t *value)
 {
-	unsigned char *ptr;
-	unsigned int count;
-	CRC32_t result;
+	*value = ALL1;
+}
 
-	result = *value;
-	ptr = data;
-	count = size;
+void CRC32_Update(CRC32_t *value, void *data, unsigned int count)
+{
+	unsigned char *ptr = (unsigned char*)data;
+	CRC32_t result = *value;
 
 	if (count)
 	do {
-		result = (result >> 8) ^ table[(result ^ *ptr++) & 0xFF];
+		result = JTR_CRC32_table[(result ^ *ptr++) & 0xFF] ^ (result >> 8);
 	} while (--count);
 
 	*value = result;
@@ -76,4 +90,17 @@ void CRC32_Final(unsigned char *out, CRC32_t value)
 	out[1] = value >> 8;
 	out[2] = value >> 16;
 	out[3] = value >> 24;
+}
+
+void CRC32_UpdateC(CRC32_t *value, void *data, unsigned int count)
+{
+	unsigned char *ptr = (unsigned char*)data;
+	CRC32_t result = *value;
+
+	if (count)
+	do {
+		result = JTR_CRC32_tableC[(result ^ *ptr++) & 0xFF] ^ (result >> 8);
+	} while (--count);
+
+	*value = result;
 }

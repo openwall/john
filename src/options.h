@@ -306,7 +306,7 @@ struct options_main {
 
 extern struct options_main options;
 
-/* "Persistant" options. Unlike the options struct above, this one is not
+/* "Persistent" options. Unlike the options struct above, this one is not
    reset by the children upon resuming a session. That behavior gave me
    gray hairs. */
 

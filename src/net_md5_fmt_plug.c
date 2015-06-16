@@ -165,7 +165,7 @@ static void *get_salt(char *ciphertext)
 
 	if (len < 230) {
 		// return our memset buffer (putting the dyna salt pointer into it).
-		// This keeps teh 'pre-cleaned salt() warning from hitting this format)
+		// This keeps the 'pre-cleaned salt() warning from hitting this format)
 		//return pDynamicFmt->methods.salt(Convert(Conv_Buf, orig_ct));
 		memcpy((char*)cs, pDynamicFmt->methods.salt(Convert(Conv_Buf, orig_ct)), pDynamicFmt->params.salt_size);
 		dyna_salt_seen=1;

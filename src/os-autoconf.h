@@ -49,7 +49,7 @@
 
 #ifdef NEED_OS_FLOCK
 
-#if defined (_MSC_VER)
+#if defined (_MSC_VER) || defined (__MINGW32__)
 #define OS_FLOCK			0
 #else
 #if defined(__APPLE__) && !defined(_DARWIN_C_SOURCE)

@@ -159,7 +159,7 @@ hex_decode(char *src, unsigned char *dst, int outsize)
 }
 
 // Since our test strings have 1 space as first delim, and 2 spaces as 2nd
-// delim, then it is NOT equivelant to use strtokm() vs strtok.
+// delim, then it is NOT equivalent to use strtokm() vs strtok.
 static void *
 skey_salt(char *ciphertext)
 {
@@ -191,7 +191,7 @@ skey_salt(char *ciphertext)
 }
 
 // Since our test strings have 1 space as first delim, and 2 spaces as 2nd
-// delim, then it is NOT equivelant to use strtokm() vs strtok.
+// delim, then it is NOT equivalent to use strtokm() vs strtok.
 static void *get_binary(char *ciphertext)
 {
 	static unsigned char *realcipher;

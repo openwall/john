@@ -99,9 +99,15 @@ static void *get_salt(char *ciphertext)
         return (void *)&cs;
 }
 
+int decode64 (unsigned char *dst, int size, char *src);
+int encode64 (char *dst, unsigned char *src, int size);
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext;
+	unsigned char buffer[129];
+	struct custom_salt cs;
+	int len, len2;
 
 	if (strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		return 0;
@@ -111,14 +117,25 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = strrchr(ciphertext, '$');
 	if (!p)
 		return 0;
+	len = p-ciphertext-TAG_LENGTH;
+	if (len > sizeof(cs.settings)-1 || len < 5)
+		return 0;
+	memcpy(cs.settings, &ciphertext[TAG_LENGTH], len);
+	cs.settings[len] = 0;
+	len2 = decode64(buffer, len, cs.settings);
+	buffer[len2] = 0;
+	encode64(cs.settings, buffer, strlen((char*)buffer));
+	if (strlen(cs.settings) != len)
+		return 0;
+
+	if (decode64(buffer, CIPHERTEXT_LENGTH, p+1) != BINARY_SIZE)
+		return 0;
 
 	if (strlen(p + 1) != CIPHERTEXT_LENGTH)
 		return 0;
 
 	return 1;
 }
-
-int decode64 (unsigned char *dst, int size, char *src);
 
 static void *get_binary(char *ciphertext)
 {

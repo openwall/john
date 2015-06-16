@@ -10,7 +10,52 @@
 
 Output password protected Java KeyStore files in JtR compatible format.
 
-For more details, see keystore2john.c file.
+Output Format: $keystore$target$data_length$data$hash$nkeys$keylength$keydata$keylength$keydata...
+
+Where,
+
+target == 0 if container password is to be cracked
+target == 1 if private key password(s) are to be cracked
+
+TODO:
+
+1. Private Keys can be encrypted with a password different from the container
+   password. Add support for cracking such keys.
+
+2. Add ability to select any key for cracking in case multiple keys are present.
+
+KEYSTORE FORMAT:
+
+Magic number (big-endian integer),
+Version of this file format (big-endian integer),
+
+Count (big-endian integer),
+followed by "count" instances of either:
+
+    {
+     tag=1 (big-endian integer),
+     alias (UTF string)
+     timestamp
+     encrypted private-key info according to PKCS #8
+         (integer length followed by encoding)
+     cert chain (integer count, then certs; for each cert,
+         integer length followed by encoding)
+    }
+
+or:
+
+    {
+     tag=2 (big-endian integer)
+     alias (UTF string)
+     timestamp
+     cert (integer length followed by encoding)
+    }
+
+ended by a keyed SHA1 hash (bytes only) of
+    { password + whitener + preceding body }
+
+See http://metastatic.org/source/JKS.java (implementation of the "JKS" key
+store) for more details.
 
 """
 

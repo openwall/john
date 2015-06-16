@@ -109,14 +109,14 @@ enum {
 
 
 enum {
-	PKA_UNKOWN = 0,
+	PKA_UNKNOWN = 0,
 	PKA_RSA_ENCSIGN = 1,
 	PKA_DSA = 17,
 	PKA_EG = 20
 };
 
 enum {
-	CIPHER_UNKOWN = -1,
+	CIPHER_UNKNOWN = -1,
 	CIPHER_CAST5 = 3,
 	CIPHER_BLOWFISH = 4,
 	CIPHER_AES128 = 7,
@@ -127,7 +127,7 @@ enum {
 };
 
 enum {
-	HASH_UNKOWN = -1,
+	HASH_UNKNOWN = -1,
 	HASH_MD5 = 1,
 	HASH_SHA1 = 2,
 	HASH_RIPEMD160 = 3,
@@ -363,7 +363,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!ishex(p))
 		goto err;
 	/* handle "SPEC_SIMPLE" correctly */
-	if (spec == 0) {
+	if ((spec != 0 || usage == 255))
+		;
+	else if (spec == 0) {
 		MEM_FREE(keeptr);
 		return 1;
 	}
@@ -855,7 +857,10 @@ static void *get_salt(char *ciphertext)
 					case HASH_MD5:
 						cs.s2kfun = S2KSaltedMD5Generator;
 						break;
-					default: break;
+					default:
+						// WTF? (see valid_hash_algorithm() function)
+						cs.s2kfun = S2KSaltedSHA1Generator;
+						break;
 				}
 			}
 			break;

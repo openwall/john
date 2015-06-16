@@ -87,7 +87,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #include "memory.h"
 #include "unicode.h"
 #include "johnswap.h"
-#include "pkzip.h"
+#include "crc32.h"
 #include "aligned.h"
 #include "fake_salts.h"
 #include "base64_convert.h"
@@ -1873,7 +1873,7 @@ static unsigned char *AddSaltHash(unsigned char *salt, unsigned int len, unsigne
 	return pRet;
 }
 
-static unsigned char *FindSaltHash(unsigned char *salt, unsigned int len, u32 crc)
+static unsigned char *FindSaltHash(unsigned char *salt, unsigned int len, CRC32_t crc)
 {
 	unsigned int idx = crc & DYNA_SALT_HASH_MOD;
 	dyna_salt_list_entry *p;
@@ -1896,12 +1896,12 @@ static unsigned char *FindSaltHash(unsigned char *salt, unsigned int len, u32 cr
 
 static unsigned char *HashSalt(unsigned char *salt, unsigned int len)
 {
-	u32 crc = 0xffffffff, i;
+	CRC32_t crc = 0xffffffff, i;
 	unsigned char *ret_hash;
 
 	// compute the hash.
 	for (i = 0; i < len; ++i)
-		crc = pkzip_crc32(crc,salt[i]);
+		crc = jtr_crc32(crc,salt[i]);
 	crc = ~crc;
 
 	ret_hash = FindSaltHash(salt, len, crc);
@@ -4447,7 +4447,7 @@ void DynamicFunc__PHPassCrypt(DYNA_OMP_PARAMS)
 
 	// final crypt is to the normal 'output' buffer, since john uses that to find 'hits'.
 #if !ARCH_LITTLE_ENDIAN
-	// we have to use this funtion, since we do not want to 'fixup' the
+	// we have to use this function, since we do not want to 'fixup' the
 	// end of the buffer again (it has been put into BE format already.
 	// Thus, simply use the raw_overwrite again, then swap the output that
 	// is found in the input buf to the output buf.
@@ -6721,7 +6721,7 @@ static int GCD (int a, int b)
 	return a;
 }
 
-// simple algorith for LCM is (a*b)/GCD(a,b)
+// simple algorithm for LCM is (a*b)/GCD(a,b)
 static int LCM(int a, int b)
 {
 	a/=GCD(a,b);

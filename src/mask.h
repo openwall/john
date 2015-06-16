@@ -45,7 +45,7 @@ typedef struct {
 	unsigned char count;
 	/*
 	 * Set to zero when the characters in the range are not consecutive,
-	 * otherwise start is set to the minumum value in range. Minimum
+	 * otherwise start is set to the minimum value in range. Minimum
 	 * value cannot be a null character which has a value zero.
 	 */
 	unsigned char start;

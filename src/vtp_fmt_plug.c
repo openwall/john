@@ -88,7 +88,7 @@ static  struct custom_salt {
 	unsigned char salt[2048];
 	int trailer_length;
 	int version;
-	unsigned char *trailer_data[64];
+	unsigned char trailer_data[64];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -143,6 +143,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) != res * 2)
 		goto err;
 	if (!ishex(p))
+		goto err;
+
+	if (((atoi16[ARCH_INDEX(p[6])]<<4)|atoi16[ARCH_INDEX(p[7])]) >
+		sizeof(cur_salt->vsp.domain_name))
 		goto err;
 
 	if ((p = strtokm(NULL, "$")) == NULL)  /* hash */
@@ -201,6 +205,8 @@ static void *get_salt(char *ciphertext)
 
 	// fill rest of the data
 	cs.vsp.domain_name_length = cs.salt[3];
+	if (cs.vsp.domain_name_length > sizeof(cs.vsp.domain_name))
+		cs.vsp.domain_name_length = sizeof(cs.vsp.domain_name);
 	memcpy(cs.vsp.domain_name, cs.salt + 4, cs.vsp.domain_name_length);
 	memcpy((unsigned char*)&cs.vsp.revision, cs.salt + 36, 4);
 	memcpy((unsigned char*)&cs.vsp.updater,  cs.salt + 36 + 4, 4);

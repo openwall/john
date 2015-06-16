@@ -108,14 +108,12 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy;
-	char *keeptr;
+	char _ctcopy[256], *ctcopy = _ctcopy;
 	char *p;
 	int res;
 	if (strncmp(ciphertext, "$wbb3$*", 7))
 		return 0;
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;
+	strnzcpy(ctcopy, ciphertext, 255);
 	ctcopy += 7;
 	p = strtokm(ctcopy, "*"); /* type */
 	if(!p)
@@ -136,11 +134,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if(!ishex(p))
 		goto err;
 
-	MEM_FREE(keeptr);
 	return 1;
 
 err:
-	MEM_FREE(keeptr);
 	return 0;
 }
 
