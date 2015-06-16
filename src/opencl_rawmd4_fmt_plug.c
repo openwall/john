@@ -549,7 +549,7 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 	fprintf(stdout, "Cache size:%u", cache_size_bytes);
 
 	if (num_loaded_hashes <= 5100) {
-		if (0 && max_local_mem_sz_bytes >= 16384) {
+		if (max_local_mem_sz_bytes >= 16384 && !amd_gcn_10(device_info[gpu_id])) {
 			bitmap_size_bits = 32 * 1024;
 			prepare_bitmap_4(bitmap_size_bits, &bitmaps);
 			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%u -D USE_LOCAL_BITMAPS=1", 4, bitmap_size_bits);
