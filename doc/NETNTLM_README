@@ -28,7 +28,7 @@ noted that these protocols may use the LM and NTLM password hashes stored on a
 system, but they are not the same thing. For an excellent in-depth discussion of
 the protocols see the Davenport paper entitled "The NTLM Authentication Protocol
 and Security Support Provider" [1]. For the purposes of this discussion, the key
-item of note is that the LMv1 and NTLMv1 protocols consist of a only a single
+item of note is that the LMv1 and NTLMv1 protocols consist of only a single
 server challenge. This allows an attacker to force a client into authenticating
 using a specific challenge and then attack that response using precomputed
 Rainbow Tables.

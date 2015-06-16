@@ -1,0 +1,28 @@
+# This ensures 'git shortlog' understands "different" committers as being
+# the same person
+#
+# Proper Name <commit@email.xx>
+# Proper Name <proper@email.xx> <commit@email.xx>
+#
+Claudio André <claudioandre.br@gmail.com>
+Claudio André <claudioandre.br@gmail.com> <claudio.andre@correios.net.br>
+Dhiru Kholia <dhiru@openwall.com>
+Dhiru Kholia <dhiru@openwall.com> <dhiru.kholia@gmail.com>
+Dhiru Kholia <dhiru@openwall.com> <dhiru@spotify.com>
+Frank Dittrich <frank.dittrich@mailbox.org> <frank_dittrich@hotmail.com>
+Frank Dittrich <frank.dittrich@mailbox.org> <fd@f18x64.localdomain>
+JimF <jfoug@cox.net>
+JimF <jfoug@cox.net> <jim.fougeron@1PQHGQ1.dtn.com>
+Lukas Odzioba <ukasz@openwall.net> <lukas.odzioba@gmail.com>
+Milen Rangelov <gat3way@gat3way.eu>
+Myrice <qqlddg@gmail.com> <myrice@myrice-laptop.(none)>
+Samuele <samu@linuxasylum.net>
+Sayantan Datta <std2048@gmail.com>
+Sayantan Datta <std2048@gmail.com> <sayantan@Box2.(none)>
+Sayantan Datta <std2048@gmail.com> <sayantan@Eden.(none)>
+Solar <solar@openwall.com>
+Solar <solar@openwall.com> <solar>
+Tavis Ormandy <taviso@cmpxchg8b.com> <taviso@redhat.(none)>
+Tavis Ormandy <taviso@cmpxchg8b.com> <you@example.com>
+bartavelle (Simon Marechal) <bartavelle@gmail.com>
+magnum <john.magnum@hushmail.com> <magnum>

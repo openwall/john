@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# This is a script to (re-)generate the .chr files using passwords in john.pot
+# and applying all of the defined external mode filters.  To speed it up on a
+# sufficiently large computer (RAM and CPUs), "&" may be added after the John
+# invocation (to run all of them in parallel).
+#
+# Copyright (c) 2013 by Solar Designer
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+# There's ABSOLUTELY NO WARRANTY, express or implied.
+# (This is a heavily cut-down "BSD license".)
+#
+
+# Look for John in the same directory with this script
+DIR="`echo "$0" | sed 's,/[^/]*$,,'`"
+
+sed -n 's/^\[List.External:Filter_\([A-Za-z_]\+\)\]$/\1/p' < john.conf |
+    while read CHR; do
+	CHR_LOWER="`echo -n $CHR | tr A-Z a-z`"
+	$DIR/john --make-charset=${CHR_LOWER}.chr --external=Filter_${CHR}
+done

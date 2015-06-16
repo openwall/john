@@ -1,0 +1,16 @@
+ASM_DIR = asm/x$(AESNI_ARCH)
+IAES = $(ASM_DIR)/iaesx$(AESNI_ARCH).s
+RDTSC = $(ASM_DIR)/do_rdtsc.s
+
+iaesx.o: $(IAES)
+	yasm -D__linux__ -g dwarf2 -f $(YASM_FORMAT) $(IAES) -o $@
+
+rdtsc.o: $(RDTSC)
+	yasm -D__linux__ -g dwarf2 -f $(YASM_FORMAT) $(RDTSC) -o $@
+
+aesni.o: iaes_asm_interface.h  iaesni.h  intel_aes.c
+	$(CC) $(CFLAGS) -c intel_aes.c -o $@
+
+all: iaesx.o rdtsc.o aesni.o
+
+default: all

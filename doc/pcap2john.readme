@@ -1,0 +1,239 @@
+This file contains all the prior copyright headers from the independent
+XXX2john.py PCAP conversion utilities.  These have all been combined into
+a single ./run/pcap2john.py, and all of the copyright statements placed
+here.
+
+This file should also contain information and help on how to use the tool,
+how to obtain the pcap input data, etc.  For now, I will simply provide a
+link to a large resource on git owned by Dhiru.
+
+https://github.com/kholia/my-pcaps/
+or a full zip: https://github.com/kholia/my-pcaps/archive/master.zip
+
+################################################################################
+# from bfd2john.py
+####
+# Parser for BFD authentication packets.
+#
+# This software is Copyright (c) 2014 Dhiru Kholia <dhiru at openwall.com>, and
+# it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+################################################################################
+
+################################################################################
+# from vtp2john.py
+####
+# Parser for VTP MD5 authentication packets.
+#
+# This software is Copyright (c) 2014 Alexey Lapitsky <lex at realisticgroup.com> and Dhiru Kholia <dhiru at
+# openwall.com>, and it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+#
+# Output Hash Format:
+#
+# $vtp$1/2/3$vlans_data_length$vlans_data$salt_length$salt$hash
+################################################################################
+
+################################################################################
+# from vrrp2john.py
+####
+# Cracker for VRRP authentication (cisco variant).
+#
+# Output Format,
+# packet_number:$vrrp$algo_type$salt$have_extra_salt$extra_salt$hash
+#
+# $ md5sum i86bi-linux-l3-ipbase-12.4.bin
+# 3e79a8010a4174dc316a55e6d1886f3c  i86bi-linux-l3-ipbase-12.4.bin
+#
+# $ md5sum i86bi-linux-l3-adventerprisek9-15.4.1T.bin
+# 2eabae17778316c49cbc80e8e81262f9  i86bi-linux-l3-adventerprisek9-15.4.1T.bin
+#
+# This software is Copyright (c) 2014 m3g9tr0n (Spiros Fraganastasis)
+# <spirosfr.1985 at gmail.com> and Dhiru Kholia <dhiru at openwall.com>, and it
+# is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+################################################################################
+
+################################################################################
+# from tcpmd5tojohn.py
+####
+# Cracker for "TCP MD5 Signatures", http://www.ietf.org/rfc/rfc2385.txt
+# Written by Dhiru Kholia <dhiru at openwall.com> in October 2013
+################################################################################
+
+################################################################################
+# from s7tojohn.py
+####
+# s7tojohn.py, parse .pcap files and output JtR compatible hashes.
+# Extended by Narendra Kangralkar <narendrakangralkar at gmail.com>
+# and Dhiru Kholia <dhiru at openwall.com>
+#
+# S7 protocol, is used for communication between Engineering Stations,
+# SCADA, HMI & PLC and can be protected by password.
+#
+# Original Authors: Alexander Timorin, Dmitry Sklyarov
+#
+# http://scadastrangelove.org
+#
+# __author__      = "Aleksandr Timorin"
+# __copyright__   = "Copyright 2013, Positive Technologies"
+# __license__     = "GNU GPL v3"
+# __version__     = "1.2"
+# __maintainer__  = "Aleksandr Timorin"
+# __email__       = "atimorin@gmail.com"
+# __status__      = "Development"
+#
+################################################################################
+
+################################################################################
+# from rsvp2john.py
+####
+# Based on http://tools.ietf.org/html/rfc2747 and some reversing.
+#
+# Output Format: packet_number:$rsvp$algo_type$salt$$hash
+#
+# This software is Copyright (c) 2014 Dhiru Kholia <dhiru at openwall.com>,
+# and it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+################################################################################
+
+################################################################################
+# from ntp2john.py
+####
+# NTP authentication parser.
+#
+# http://tools.ietf.org/html/rfc5905
+# http://tools.ietf.org/html/rfc1305
+# http://www.eecis.udel.edu/~mills/ntp/html/authentic.html
+#
+# This software is Copyright (c) 2014 Spiros Fraganastasis <spirosfr.1985 at
+# gmail.com> and Dhiru Kholia <dhiru at openwall.com>, and it is hereby
+# released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+################################################################################
+
+################################################################################
+# from krbpa2john.py
+####
+# http://anonsvn.wireshark.org/wireshark/trunk/doc/README.xml-output
+# tshark -r AD-capture-2.pcapng -T pdml  > ~/data.pdml
+# krbng2john data.pdml
+################################################################################
+
+################################################################################
+# from isis2john.py
+####
+# Parser for IS-IS MD5 authentication packets.
+#
+# This software is Copyright (c) 2014 Dhiru Kholia <dhiru at openwall.com>, and it is hereby released to the general
+# public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without modification, are permitted.
+################################################################################
+
+################################################################################
+# from hsrp2john.py
+####
+# Cracker for HSRP v2 MD5 authentication.
+#
+# http://www.rfc-editor.org/rfc/rfc1828.txt
+# https://www.ietf.org/rfc/rfc2281.txt
+# http://www.gotohack.org/2011/01/scapy-hsrp-md5-auth-dissecter-to.html
+# "i86bi-linux-l3-ipbase-12.4.bin" is fun ;)
+#
+# This is dedicated to Darya. You inspire me.
+
+# This software is Copyright (c) 2014 Dhiru Kholia <dhiru at openwall.com>, and
+# it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+################################################################################
+
+################################################################################
+# from glbp2john.py
+####
+# Cracker for GLBP authentication. Wireshark dissects GLBP messages pretty
+# nicely.
+#
+# Output Format,
+# packet_number:$glbp$algo_type$salt$have_extra_salt$extra_salt$hash
+#
+# $ md5sum i86bi-linux-l3-ipbase-12.4.bin  # GLBP TLV version 3.0
+# 3e79a8010a4174dc316a55e6d1886f3c  i86bi-linux-l3-ipbase-12.4.bin
+#
+# $ md5sum i86bi-linux-l3-adventerprisek9-15.4.1T.bin  # GLBP TLV version 2.0
+# 2eabae17778316c49cbc80e8e81262f9  i86bi-linux-l3-adventerprisek9-15.4.1T.bin
+#
+# This software is Copyright (c) 2014 Spiros Fraganastasis <spirosfr.1985 at
+# gmail.com> and Dhiru Kholia <dhiru at openwall.com>, and it is hereby
+# released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+################################################################################
+
+################################################################################
+# from gadu2john.py
+####
+# This software is Copyright (c) 2013 Lukas Odzioba <ukasz at openwall dot net>
+# and it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+#
+# output format:
+# gadu-gadu number:$dynamic_24$sha1(pass.salt)$HEX$salt$
+#
+# We could use user status description and client language in GECOS field, but
+# this is not currently supported.
+#
+# "GG32" "hash function" used by ancient clients is not supported.
+#
+# Tested on:
+#
+# ekg: 10.1.0.11070
+# kadu 0.12.3
+# pidgin 2.110.6
+#
+################################################################################
+
+################################################################################
+# from eigrp2john.py
+####
+# Cracker for EIGRP authentication (MD5 and SHA-256 variants). Currently, this script is very speculative!
+# http://tools.ietf.org/html/draft-savage-eigrp-02
+#
+# Wireshark dissects EIGRP messages pretty nicely.
+# http://c0decafe.de/svn/codename_loki/trunk/modules/module_eigrp.py is cool
+#
+# Output Format,
+# packet_number:$eigrp$algo_type$salt$have_extra_salt$extra_salt$hash
+#
+# $ md5sum i86bi-linux-l3-ipbase-12.4.bin  # EIGRP TLV version 3.0
+# 3e79a8010a4174dc316a55e6d1886f3c  i86bi-linux-l3-ipbase-12.4.bin
+#
+# $ md5sum i86bi-linux-l3-adventerprisek9-15.4.1T.bin  # EIGRP TLV version 2.0
+# 2eabae17778316c49cbc80e8e81262f9  i86bi-linux-l3-adventerprisek9-15.4.1T.bin
+#
+# "c3660-js-mz.124-11-T.image" uses EIGRP TLV version 1.2 and we can't crack
+# such hashes currently (for unknown reasons).
+#
+# This is dedicated to Darya. You inspire me.
+#
+# This software is Copyright (c) 2014 Dhiru Kholia <dhiru at openwall.com>, and
+# it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+################################################################################

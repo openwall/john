@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2000,2003 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <stdio.h>
@@ -10,9 +15,10 @@
 #include "memory.h"
 #include "list.h"
 #include "getopt.h"
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
+#include "john.h"
+#include "memdbg.h"
+
+#define FLG_ZERO			0x0
 
 static char *opt_errors[] = {
 	NULL,	/* No error */
@@ -22,6 +28,8 @@ static char *opt_errors[] = {
 	"Extra parameter for option",
 	"Invalid options combination or duplicate option"
 };
+
+static char *completed, *completed_param;
 
 static char *opt_find(struct opt_entry *list, char *opt,
 	struct opt_entry **entry)
@@ -44,9 +52,11 @@ static char *opt_find(struct opt_entry *list, char *opt,
 		do {
 			if (length <= strlen(list->name))
 			if (!strncmp(name, list->name, length)) {
-				if (!found)
+				if (!found) {
 					found = list;
-				else {
+					if (length == strlen(list->name))
+						break;
+				} else {
 					*entry = NULL;
 					return NULL;
 				}
@@ -54,7 +64,11 @@ static char *opt_find(struct opt_entry *list, char *opt,
 		} while ((++list)->name);
 
 		if ((*entry = found))
+		{
+			completed = found->name;
+			completed_param = param;
 			return param;
+		}
 		else
 			return NULL;
 	} else {
@@ -85,6 +99,8 @@ static int opt_process_one(struct opt_entry *list, opt_flags *flg, char *opt)
 	char *param;
 	struct opt_entry *entry;
 
+	completed = NULL;
+
 	param = opt_find(list, opt, &entry);
 	if (!entry) return OPT_ERROR_UNKNOWN;
 
@@ -100,6 +116,11 @@ static int opt_process_one(struct opt_entry *list, opt_flags *flg, char *opt)
 		} else
 		if (opt_process_param(param, entry->format, entry->param))
 			return OPT_ERROR_PARAM_INV;
+
+		/* Dupe checking without an option flag */
+		if (param && entry->flg_set == FLG_ZERO &&
+		    entry->req_clr & OPT_REQ_PARAM && entry->param_set++)
+			return OPT_ERROR_COMB;
 	} else
 	if (param) return OPT_ERROR_PARAM_EXT;
 
@@ -121,16 +142,20 @@ static int opt_check_one(struct opt_entry *list, opt_flags flg, char *opt)
 
 void opt_process(struct opt_entry *list, opt_flags *flg, char **argv)
 {
+	struct opt_entry *lp;
 	char **opt;
 	int res;
+
+	/* Clear Jumbo dupe-check in case we're resuming */
+	if ((lp = list))
+	while (lp->name)
+		lp++->param_set = 0;
 
 	if (*(opt = argv))
 	while (*++opt)
 	if ((res = opt_process_one(list, flg, *opt))) {
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "%s: \"%s\"\n", opt_errors[res], *opt);
+		if (john_main_process)
+			fprintf(stderr, "%s: \"%s\"\n", opt_errors[res], *opt);
 		error();
 	}
 }
@@ -141,12 +166,22 @@ void opt_check(struct opt_entry *list, opt_flags flg, char **argv)
 	int res;
 
 	if (*(opt = argv))
-	while (*++opt)
-	if ((res = opt_check_one(list, flg, *opt))) {
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "%s: \"%s\"\n", opt_errors[res], *opt);
-		error();
+	while (*++opt) {
+		if ((res = opt_check_one(list, flg, *opt))) {
+			if (john_main_process)
+				fprintf(stderr, "%s: \"%s\"\n",
+				        opt_errors[res], *opt);
+			error();
+		}
+		/* Alter **argv to reflect to full option names */
+		else if (*opt[0] == '-') {
+			int len = strlen(completed) + 2 + 1;
+			if (completed_param)
+				len += strlen(completed_param) + 1;
+			*opt = mem_alloc_tiny(len, MEM_ALIGN_NONE);
+			sprintf(*opt, "--%s%s%s", completed,
+			        completed_param ? "=" : "",
+			        completed_param ? completed_param : "");
+		}
 	}
 }

@@ -1,8 +1,7 @@
 	John the Ripper password cracker.
 
 John the Ripper is a fast password cracker, currently available for
-many flavors of Unix (11 are officially supported, not counting
-different architectures), Windows, DOS, BeOS, and OpenVMS (the latter
+many flavors of Unix, Windows, DOS, BeOS, and OpenVMS (the latter
 requires a contributed patch).  Its primary purpose is to detect weak
 Unix passwords.  Besides several crypt(3) password hash types most
 commonly found on various Unix flavors, supported out of the box are
@@ -40,12 +39,12 @@ To retrieve the cracked passwords, run:
 
 	john --show passwd
 
-While cracking, you can press any key for status, or Ctrl-C to abort
-the session saving its state to a file ($JOHN/john.rec by default).
-If you press Ctrl-C for a second time before John had a chance to
-handle your first Ctrl-C, John will abort immediately without saving.
-By default, the state is also saved every 10 minutes to permit for
-recovery in case of a crash.
+While cracking, you can press any key for status, or 'q' or Ctrl-C to
+abort the session saving its state to a file ($JOHN/john.rec by
+default).  If you press Ctrl-C for a second time before John had a
+chance to complete handling of your first Ctrl-C, John will abort
+immediately without saving.  By default, the state is also saved every
+10 minutes to permit for recovery in case of a crash.
 
 To continue an interrupted session, run:
 
@@ -57,8 +56,8 @@ examples you should refer to OPTIONS and EXAMPLES, respectively.
 
 Please note that "binary" (pre-compiled) distributions of John may
 include alternate executables instead of just "john".  You may need to
-choose the executable which fits your system best, e.g. "john-mmx" to
-take advantage of MMX acceleration.
+choose the executable that fits your system best, e.g. "john-omp" to
+take advantage of multiple CPUs and/or CPU cores.
 
 
 	Features and performance.
@@ -116,6 +115,23 @@ John.  Additionally, there are assembly language routines for several
 processor architectures, most importantly for x86-64 and x86 with SSE2.
 
 
+        Graphical User Interface (GUI).
+
+There is an official GUI for John the Ripper: Johnny.
+
+Despite the fact that Johnny is oriented onto core john, all basic
+functionality is supposed to work in all versions, even Jumbo. So,
+password could be loaded from file and cracked with different
+options.
+
+Johnny is a separate program, therefore, you need to have John the
+Ripper installed in order to use it.
+
+You could find more info about releases and Johnny on the wiki:
+
+  http://openwall.info/wiki/john/johnny
+
+
 	Documentation.
 
 The rest of documentation is located in separate files, listed here in
@@ -133,9 +149,10 @@ the recommended order of reading:
 * CONTACT (*) - how to contact the author or otherwise obtain support
 * CREDITS (*) - credits
 * LICENSE - copyrights and licensing terms
+* COPYING - GNU GPL version 2, as referenced by LICENSE above
 
 (*) most users can safely skip these.
 
 Happy reading!
 
-$Owl: Owl/packages/john/john/doc/README,v 1.22 2011/10/24 01:58:19 solar Exp $
+$Owl$

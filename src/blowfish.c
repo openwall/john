@@ -15,9 +15,13 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "blowfish.h"
 #include "bf_tab.h"		/* P-box P-array, S-box */
+#include "memory.h"
+#include "johnswap.h"
+#include "memdbg.h"
 
 /* #define S(x,i) (bf_S[i][x.w.byte##i]) */
 #define S0(x) (bf_S[0][x.w.byte0])
@@ -27,37 +31,7 @@
 #define bf_F(x) (((S0(x) + S1(x)) ^ S2(x)) + S3(x))
 #define ROUND(a,b,n) (a.word ^= bf_F(b) ^ bf_P[n])
 
-#include <time.h>
-
-#define USE_ALLOC
-/* keep a set of rotating P & S boxes */
-#ifdef USE_ALLOC
-static struct box_t {
-  UWORD_32bits *P;
-  UWORD_32bits **S;
-  char key[81];
-  char keybytes;
-} box;
-#endif
-
-#ifndef USE_ALLOC
-static UWORD_32bits bf_P[bf_N+2];
-static UWORD_32bits bf_S[4][256];
-#else
-static UWORD_32bits *bf_P;
-static UWORD_32bits **bf_S;
-#endif
-
-
-void blowfish_first_init(void) {
-#ifdef USE_ALLOC
-      box.P = NULL;
-      box.S = NULL;
-      box.key[0] = 0;
-#endif
-}
-
-static void blowfish_encipher(UWORD_32bits * xl, UWORD_32bits * xr)
+static void blowfish_encipher(UWORD_32bits *bf_P, UWORD_32bits bf_S[][256], UWORD_32bits * xl, UWORD_32bits * xr)
 {
   union aword Xl;
   union aword Xr;
@@ -88,45 +62,13 @@ static void blowfish_encipher(UWORD_32bits * xl, UWORD_32bits * xr)
   *xl = Xr.word;
 }
 
-static void blowfish_init(UBYTE_08bits * key, short keybytes)
+static void blowfish_init(UWORD_32bits bf_P[], UWORD_32bits (*bf_S)[256], UBYTE_08bits * key, short keybytes)
 {
   int i, j;
   UWORD_32bits data;
   UWORD_32bits datal;
   UWORD_32bits datar;
   union aword temp;
-
-  /* is buffer already allocated for this? */
-#ifdef USE_ALLOC
-  // this whole alloc block is really not needed!! It runs slower, and never really frees the last few blocks in the end.
-  // without the continual allocs, we run about 10% faster.  I am not sure why there are there.  It does not appear that the
-  // 'matched' happens very often.
-  if (box.P != NULL) {
-      if ((box.keybytes == keybytes) &&
-	  (!strncmp((char *) (box.key), (char *) key, keybytes))) {
-	/* match! */
-//		  printf("matched\n");
-	bf_P = box.P;
-	bf_S = box.S;
-	return;
-      }
-//	  printf ("Freed\n");
-        free(box.P);
-        for (i = 0; i < 4; i++)
-          free(box.S[i]);
-        free(box.S);
-  }
-  /* initialize new buffer */
-  /* uh... this is over 4k */
-  box.P = (UWORD_32bits *) malloc((bf_N + 2) * sizeof(UWORD_32bits));
-  box.S = (UWORD_32bits **) malloc(4 * sizeof(UWORD_32bits *));
-  for (i = 0; i < 4; i++)
-    box.S[i] = (UWORD_32bits *) malloc(256 * sizeof(UWORD_32bits));
-  bf_P = box.P;
-  bf_S = box.S;
-  box.keybytes = keybytes;
-  strncpy(box.key, (char *) key, keybytes);
-#endif
 
   /* robey: reset blowfish boxes to initial state */
   /* (i guess normally it just keeps scrambling them, but here it's
@@ -151,13 +93,13 @@ static void blowfish_init(UBYTE_08bits * key, short keybytes)
   datal = 0x00000000;
   datar = 0x00000000;
   for (i = 0; i < bf_N + 2; i += 2) {
-    blowfish_encipher(&datal, &datar);
+    blowfish_encipher(bf_P, bf_S, &datal, &datar);
     bf_P[i] = datal;
     bf_P[i + 1] = datar;
   }
   for (i = 0; i < 4; ++i) {
     for (j = 0; j < 256; j += 2) {
-      blowfish_encipher(&datal, &datar);
+      blowfish_encipher(bf_P, bf_S, &datal, &datar);
       bf_S[i][j] = datal;
       bf_S[i][j + 1] = datar;
     }
@@ -171,19 +113,29 @@ static void blowfish_init(UBYTE_08bits * key, short keybytes)
 #define SALT1  0xdeadd061
 #define SALT2  0x23f6b095
 
-/* convert 64-bit encrypted password to text for userfile */
-static char *base64 = "./0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
 static void blowfish_encrypt_pass(char *text, char *new)
 {
   UWORD_32bits left, right;
+  UWORD_32bits bf_S[4][256];
+  UWORD_32bits bf_P[bf_N+2];
+
+  blowfish_init(bf_P, bf_S, (UBYTE_08bits *) text, strlen(text));
+  left = SALT1;
+  right = SALT2;
+  blowfish_encipher(bf_P, bf_S, &left, &right);
+
+#if 1
+#if !ARCH_LITTLE_ENDIAN
+  left = JOHNSWAP(left);
+  right = JOHNSWAP(right);
+#endif
+  /* We lose one byte due to flawed base64 below */
+  memcpy(new, (unsigned char*)&right, 32/8);
+  memcpy(new + 32/8, (unsigned char*)&left, 32/8 - 1);
+#else
   int n;
   char *p;
 
-  blowfish_init((UBYTE_08bits *) text, strlen(text));
-  left = SALT1;
-  right = SALT2;
-  blowfish_encipher(&left, &right);
   p = new;
   *p++ = '+';			/* + means encrypted pass */
   n = 32;
@@ -199,4 +151,5 @@ static void blowfish_encrypt_pass(char *text, char *new)
     n -= 6;
   }
   *p = 0;
+#endif
 }

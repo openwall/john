@@ -1,0 +1,178 @@
+pass_gen.pl was written by Jim Fougeron and magnum in 2011. No copyright is
+claimed, and the software is hereby placed in the public domain. In case this
+attempt to disclaim copyright and place the software in the public domain is
+deemed null and void, then the software is Copyright (c) 2009 Jim Fougeron and
+it is hereby released to the general public under the following terms:
+
+This software may be modified, redistributed, and used for any purpose, in
+source and binary forms, with or without modification.
+
+
+Following is the pass_gen.pl version history prior to adding to the JtR tree:
+
+v1.22 Nov 4, 2014 JimF
+	Added scrypt and django-scrypt
+
+v1.21 Nov 3, 2014 JimF
+	Added Cisco4, Cisco8 and Cisco9 hashes  (raw-sha256, pbkdf2-sha256 and scrypt)
+	bug fix in LM encodings.
+	Some name normalizations (many actually)
+	Fixed salt smash bug in new pbkdf2 code.
+	New dependancy on Crypt::ScryptKDF
+
+v1.20 Sept 14, 2014 JimF
+	Added keychain password generation.
+	Added encoding processing (up case) for LANMan function.
+	Added encoding function for all words, passing them in as $_[1] to all hashing functions.
+		Now we just have to use $_[0] in the hashes which need them, always checking with
+		-genall testing each time.
+	des_setup_key reworked, so that all parity bits are forced to be 0.  Changed the & 255
+		to & 254.  The older method worked, but now we 'know' that we have our DES key setup
+		properly.
+	STDERR added to many print statements which are not outputting hash value.
+
+v1.19 Sept 8, 2014 JimF
+	Created all needed basic functions to eliminate the dependency on Authens::Passprase. Now
+		the only HUGE dependency, is on CryptX (Digest::Crypt).  That is a monster, but that
+		is the only place I could find the RipeMD functions, other than RipeMD160. So I have
+		Not been able to replace that ugly monster dependency yet.
+	changed -genall code a bit. Now, -nrgenall is the non-rand version. Did regression tests
+		of pass_gen, comparing it prior to Authen removal.  Code generates 100% same results,
+		once I changed original code to fix a bug or 2 (LM and mschapv2), and to generate
+		salts in the exact same way we do in the new code, for the removed Authens hashes.
+		The -genall code does do an srand, but only at start of run.  The -nrgenall does
+		an srand before building every random salt/string/user name.  It was done this way
+		so that if another hash was added, we could still regression test, and the others
+		should match, OR if we changed the lenght of a salt on a hash (or something similar).
+
+v1.18 Sept 6, 2014 JimF
+	Better output of usage text (line wrapping and such).
+	Added -genall and -rgenall (non-random and random generation of all hashes).
+
+v1.17 Sept 4, 2014  JimF
+	Added pad_md64() function to allow HSRP Authentication to be usable with Dynamic.
+	Created pp_pbkdf2 function, and replaced all usages of Crypt::PBKDF2 with this internal
+		function. It is at least as fast as Crypt::PBKDF2, and much simpler to use.
+
+v1.16 Jul 22, 2014  JimF
+	Added dyna formats from dynamic.conf to -tstall function.
+
+v1.15 Jun 30, 2014  JimF.
+	The outside 'length' function for --maxlength changed from length($s) to a new
+	specialized function. This new function when in -utf8 mode, will count any 4 byte
+	or larger utf8 chars as 2, since they will require 2 2 byte blocks to store, vs
+	a single 2 byte block.  In non-utf8 mode, this new length function simply uses length($s)
+
+These were untracked changes (between v1.14 and v1.15)
+	Added dyna 39/40 (net-md5/net-sha1) formats  (JimF June 18, 2014)
+	Added 4 SKEY formats  (JimF June 1, 2014)
+	Allow specified salts in hmacs  (JimF Apr 30, 2014)
+	Added osc and formspring hashes  (JimF Apr 29, 2014)
+	Added dynamic 2000* hashes  (JimF Apr 25, 2014)
+	Changed mscash2 to do allow non-standard iteration counts (magnum Oct 27, 2013)
+	Added -tstall to try to figure out which CPAN modules are not present. (JimF Oct 3, 2013)
+	Added rakp, and fixed bugs in HMAC generations.  (magnum (Oct 2, 2013)
+	Delay loading (using) of most crypts until they are needed.  (magnum Sept 20, 2013)
+	Added pbkdf2_hmac_sha512.  Added ability to set loop count for some formats. (JimF May 25, 2013)
+	Added scrypt/aix_ssha1/aix_ssha256/aix_ssha512 (JimF May 25, 2013)
+	Added ripemd128/160/256/320 formats and linked to dyna (JimF May 14, 2013)
+	Added tiger and haval256 formats and linked to dyna.  Added MANY missing large
+		format dyna hashes.  (JimF May 13, 2013)
+	Fixes to big hash functions (JimF April 19, 2013)
+	Allow utf-8 in salt (magnum Mar 26, 2013)
+	Added wpapsk (jimf Feb 6, 2013)
+	Changed utf8 to UTF-8 (magnum Dec, 13 2012)
+	Added comment about stopping due to hitting max count wanted (magnum, Sept 10, 2012)
+	Added sunmd5/wow_srp (JimF Aug 14, 2012)
+	Added dragonfly3_64/dragonfly4_64/pwsafe/django/drupal7/epi/episerver_sha1
+		episerver_sha256/hmailserver/ike/keepass/keychain/nukedclan/pfx/racf
+		radmin/rawsha0/sip/SybaseASE/vnc/wbb3/wpapsk/many dyna  (JimF July 30, 2012)
+	Added Dyna_27/28 (JimF July 12, 2012)
+	Added XSHA512 (JimF July 1, 2012)
+	Added sha256crypt/sha512crypt (JimF June 30, 2012)
+	Added rawsha224/gost/gost_cp/hmac_sha1/224/256/384/512 (JimF June 28, 2012)
+	more randomness in HDAA (magnum Jan 26, 2012)
+	salted_sha1, and fixed some base-64 bugs (magnum Jan 25, 2012)
+	Show usage() if no options listed. (magnum Jan 24, 2012)
+	Dragonfly BSD (magnum Jan 16, 2012)
+
+v1.14 Dec 21, 2011  magnum.  Added SHA-256/384/512 and dummy. I was planning to add SHA0 for
+	completeness, but it's not to be found on CPAN.
+
+v1.13 Oct 7, 2011  JimF.  Changed md5_gen to dynamic.  All strings, vars, function names, etc
+      were changed.  All output signatures were also changed
+	  Added Crc32 'format' to the test.  Uses CPAN String::CRC32 module.
+
+v1.12 Not sure, version info not updated.
+
+v1.11 Aug 1, 2011  JimF.  Changed args to get -codepage=CP so that any 'valid'
+      codepage can be used. NOTE, will likely ONLY work for unicode formats.
+
+	  Created 2 'new' formats.  These are oracle_no_upcase_change and mssql_no_upcase_change
+	  these will NOT do upcasing of passwords.  For this to work, the script requires
+	  that the input dictionary already be upcased in the PROPER codepage.  Also, there
+	  is a new command line switch -hiddencp=  This is to be used IN STEAD OF the -codepage=
+	  command line switch.  This is so that the input is done in raw, then later, within
+	  the 2 new formats, we can use Encode::decode() function to properly get the conversion
+	  into UTF16.  This is the ONLY way to deal with issues where there are letters which
+	  DO have casing in Unicode, but which DO NOT have casing withing the code pages.
+	  This change was REQUIRED to get mssql and oracle hashes that are 'proper' in -codepage=
+	  formats (well, in john, it's  -encoding=CP format).
+
+v1.10 July 13, 2011  JimF.  Set max username length on HDAA and md5_gen(21) to 20 bytes.
+      Added rawsha1-unicode.  Fixed so that md5_gen 'alone' will show md5_gen usage screen.
+	  Before, it required running md5_gen= to get the usage screen.  Added password 'case'
+	  forcing to md5-gen.  Fixed bug in md5-gen -pass=uni (was documented as -pw=uni)
+v1.09 July 12, 2011  magnum, added mscash2.  Jimf fixed issue when no param presented.
+      Added argsalt usage to many formats (inluding bf, bf requires 16 byte salt.)
+      Added bfx.  This is the 'broken' blowfish crypt.  It will output $2x$hash signature
+      Added '-nocomment' command line arg.
+      Changed the 'default' from 1320 to 1500
+      Added mediawiki.
+      Got test_suite 1.03 fully working (and working with this script).
+v1.08 May 27, 2011 magnum.  Working on adding -utf8 compatibility to this
+      script so it works properly with john's -utf8 and the wordfiles.
+      Also added  min and max PW length, and -ansi and raw, and max count.
+      May 29 magnum
+      Added L0phtcrack for NETHALFLM + NETLM + NTLM (non-ESS) hashes.
+      Changed netntlm to netntlm_ess, which ONLY produce ESS hashes.
+      Both L0phtcrack and netntlm_ess now output l0pthcrack format.
+      June 1, 2011 magnum
+      Added NETLMv2, NETNTLMv2, MSCHAPv2
+v1.07 May 24, 2011 JimF.  Added oracle, oracle11, HDAA, OpenSSHA, hash formats.
+      May 25 magnum Added NETNTLM, for now without ESS or L0phtcrack format
+v1.06 May 23, 2011 JimF.  Added mssql, and mysql
+v1.05 May 22, 2011 magnum
+      Added mskrb5. I used pack 'N' in hope that it will work on BE too
+      JimF  added rawmd5u (unicode). changed hmacmd5 to use _hmacmd5 (since
+      they were almost same function).
+v1.04 May 7, 2011 JimF
+      Added several 'base' md5_gen funtions that were missing.
+      Some bug fixes, such as nd_base64 function
+      Bug fixes found due to building of the test suite.  Some things
+      were not working, and now should be working.
+      Fixed some bug in the compiler (undefined symbols, and sha1()
+      was not working
+      Removed many of the 'predefined' md5_gen, and repalced with
+      a switch statement, that loads in a md5_gen string that can be
+      used properly by the compiler.  This reduced about 20 functions
+      down to a switch statment, and then forces more of the builtins
+      to use compiled code.  7,17,19,20,21,27,28 are the only ones left.
+v1.03 April 12, 2011 JimF.  Add optimizations.  Right now, only the
+      'salt_as_hex' optimizations are used.  Also ability to generate
+      just a single salt.  Added a debug=1 flag for md5_gen to dump out
+      the compiled pcode instructions.
+v1.02 April 6, 2011  JimF  md5 'generics' (where the format= is given, now
+      compiles to pcode, and runs that (similar to how md5_gen works in
+      in john.  This was about a 10x increase improvement for 'simple'
+      formats, and even more than this for rather complex ones.
+      The timings (on my system), for 570k line file:
+         md5_gen(2)  native (4s)  pcode (14s), interpreted (120s)
+         md5_gen(16)  native (57s)  pcode (88s), interpreted (unk)
+      - Added unicode conversion for user name, and passwords.
+         The conversion is utf8 to unicode.
+      - Added code so that if only 1 format is listed, just read from
+         the command line, and not 'slurp' entire stdin to replay it
+v1.01  April 5, 2011  JimF Added md5-gen formats, AND a parser for
+      non-standard md5_gen
+v1.00  April 4, 2011  JimF

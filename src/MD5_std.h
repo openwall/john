@@ -2,7 +2,12 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2000,2003,2011 by Solar Designer
  *
- * ...with changes in the jumbo patch, by bartavelle
+ * ...with changes in the jumbo patch, by bartavelle and magnum
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*
@@ -58,19 +63,13 @@ typedef struct {
 } MD5_data;
 #endif
 
-#if !defined(MD5_in_sse_intrinsics) && defined(__GNUC__) && \
-    (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 4)) && \
-    !defined(USING_ICC_S_FILE)
-#undef MD5_SSE_PARA
-#endif
-
-#ifdef MD5_SSE_PARA
-# ifndef MMX_COEF
-#  define MMX_COEF			4
+#ifdef SIMD_PARA_MD5
+# ifndef SIMD_COEF_32
+#  define SIMD_COEF_32			4
 # endif
-# define MD5_N				(MD5_SSE_PARA*MMX_COEF)
-# define MD5_ALGORITHM_NAME		"SSE2i " MD5_N_STR
+# define MD5_N				(SIMD_PARA_MD5*SIMD_COEF_32)
 #else
+# undef MD5_ALGORITHM_NAME
 # if MD5_X2
 #  define MD5_N				2
 #  define MD5_ALGORITHM_NAME		"32/" ARCH_BITS_STR " X2"
@@ -97,7 +96,7 @@ typedef struct {
 #if defined(_OPENMP) && !MD5_ASM
 #define MD5_std_mt			1
 #define MD5_std_cpt			128
-#define MD5_std_mt_max			(MD5_std_cpt * 24)
+#define MD5_std_mt_max			(MD5_std_cpt * 576)
 extern MD5_std_combined *MD5_std_all_p;
 extern int MD5_std_min_kpc, MD5_std_max_kpc;
 extern int MD5_std_nt;
@@ -141,12 +140,13 @@ extern MD5_std_combined MD5_std_all;
 // these 2 are still used by the 'para' function
 #define MD5_TYPE_APACHE 1
 #define MD5_TYPE_STD	2
+#define MD5_TYPE_AIX	3
 
 /*
  * Initializes the internal structures.
  */
 struct fmt_main;
-extern void MD5_std_init(struct fmt_main *pFmt);
+extern void MD5_std_init(struct fmt_main *self);
 
 /*
  * Sets a salt for MD5_std_crypt().

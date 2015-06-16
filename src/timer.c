@@ -3,7 +3,7 @@
  * in 2009. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright © 2009 Jim Fougeron
+ * null and void, then the software is Copyright (c) 2009 Jim Fougeron
  * and it is hereby released to the general public under the following
  * terms:
  *
@@ -17,6 +17,7 @@
 
 #include "timer.h"
 #include <stdio.h>
+#include "memdbg.h"
 
 double sm_HRTicksPerSec=0.0;	// HR Ticks per second
 int sm_fGotHRTicksPerSec=0;	// Set if we have got the above
@@ -36,13 +37,17 @@ void sTimer_sTimer (sTimer *t)
         // What's the lowest digit set non-zero in a clock() call
 		// That's a fair indication what the precision is likely to be.
 		// Note - this isn't actually used
-		clock_t heuristicTimeTest=clock();
+		int i;
 		sm_fGotHRTicksPerSec = 1;
-		if(heuristicTimeTest%10) sm_cPrecision = 1.0/CLOCKS_PER_SEC;
-		else if(heuristicTimeTest%100) sm_cPrecision = 10.0/CLOCKS_PER_SEC;
-		else if(heuristicTimeTest%1000) sm_cPrecision = 100.0/CLOCKS_PER_SEC;
-		else if(heuristicTimeTest%10000) sm_cPrecision = 1000.0/CLOCKS_PER_SEC;
-		else sm_cPrecision = 10000.0/CLOCKS_PER_SEC;
+		sm_cPrecision=0;
+		for (i = 0; i < 10; ++i) {
+			clock_t heuristicTimeTest=clock();
+			if(heuristicTimeTest%10) { sm_cPrecision = 1.0/CLOCKS_PER_SEC; break; }
+			else if(heuristicTimeTest%100) { if (sm_cPrecision == 0 || sm_cPrecision > 10.0/CLOCKS_PER_SEC) sm_cPrecision = 10.0/CLOCKS_PER_SEC; }
+			else if(heuristicTimeTest%1000) { if (sm_cPrecision == 0 || sm_cPrecision > 100.0/CLOCKS_PER_SEC) sm_cPrecision = 100.0/CLOCKS_PER_SEC;  }
+			else if(heuristicTimeTest%10000) { if (sm_cPrecision == 0 || sm_cPrecision > 1000.0/CLOCKS_PER_SEC) sm_cPrecision = 1000.0/CLOCKS_PER_SEC;  }
+			else { if (sm_cPrecision == 0 || sm_cPrecision > 10000.0/CLOCKS_PER_SEC) sm_cPrecision = 10000.0/CLOCKS_PER_SEC;  }
+		}
 
         // Find the claimed resolution of the high res timer
 		// Then find the most likely real rate by waiting for it to change.

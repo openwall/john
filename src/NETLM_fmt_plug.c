@@ -4,7 +4,7 @@
  * Written by JoMo-Kun <jmk at foofus.net> in 2007
  * and placed in the public domain.
  *
- * Performance and OMP fixes by magnum 2011, no rights reserved
+ * Performance and OMP fixes by magnum 2011
  *
  * This algorithm is designed for performing brute-force cracking of the LM
  * challenge/response pairs exchanged during network-based authentication
@@ -25,16 +25,31 @@
  * broadcasts, IE, Outlook, social engineering, ...).
  *
  * [1] http://davenport.sourceforge.net/ntlm.html#theLmResponse
- * [2] http://www.foofus.net/fizzgig/fgdump/
+ * [2] http://www.foofus.net/~fizzgig/fgdump/
  * [3] http://ettercap.sourceforge.net/
  * [4] http://www.oxid.it/cain.html
  * [5] http://www.foofus.net/jmk/smbchallenge.html
  *
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_NETLM;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_NETLM);
+#else
+
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
+#ifdef __MIC__
+#ifndef OMP_SCALE
+#define OMP_SCALE            1024
+#endif
+#else
+#ifndef OMP_SCALE
+#define OMP_SCALE            131072 // core i7 no HT
+#endif
+#endif // __MIC__
 #endif
 
 #include "misc.h"
@@ -44,43 +59,41 @@
 #include "unicode.h"
 
 #include <openssl/des.h>
+#include "memdbg.h"
 
 #ifndef uchar
 #define uchar unsigned char
 #endif
 
 #define FORMAT_LABEL         "netlm"
-#define FORMAT_NAME          "LM C/R DES"
-#define ALGORITHM_NAME       "netlm"
+#define FORMAT_NAME          "LM C/R"
+#define ALGORITHM_NAME       "DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     0
 #define PLAINTEXT_LENGTH     14
 #define PARTIAL_BINARY_SIZE  8
 #define BINARY_SIZE          24
+#define BINARY_ALIGN         4
 #define SALT_SIZE            8
+#define SALT_ALIGN           4
 #define CIPHERTEXT_LENGTH    48
 #define TOTAL_LENGTH         8 + 2 * SALT_SIZE + CIPHERTEXT_LENGTH
 
-// these may be altered in init() if running OMP
-// and that formula is subject to change
-#define MIN_KEYS_PER_CRYPT	    1
-#define THREAD_RATIO            256
-#ifdef _OPENMP
-#define MAX_KEYS_PER_CRYPT	    0x10000
-#else
-#define MAX_KEYS_PER_CRYPT	    THREAD_RATIO
-#endif
+#define MIN_KEYS_PER_CRYPT   1
+#define MAX_KEYS_PER_CRYPT   1
 
 static struct fmt_tests tests[] = {
-  {"$NETLM$1122334455667788$6E1EC36D3417CE9E09A4424309F116C4C991948DAEB4ADAD", "G3RG3P00!"},
+  {"", "G3RG3P00!",      {"User", "", "", "6E1EC36D3417CE9E09A4424309F116C4C991948DAEB4ADAD", "ntlm-hash", "1122334455667788"} },
   {"$NETLM$1122334455667788$16A7FDFE0CA109B937BFFB041F0E5B2D8B94A97D3FCA1A18", "HIYAGERGE"},
   {"$NETLM$1122334455667788$B3A1B87DBBD4DF3CFA296198DD390C2F4E2E93C5C07B1D8B", "MEDUSAFGDUMP12"},
   {"$NETLM$1122334455667788$0836F085B124F33895875FB1951905DD2F85252CC731BB25", "CORY21"},
 
-  {"", "G3RG3P00!",      {"User", "", "", "6E1EC36D3417CE9E09A4424309F116C4C991948DAEB4ADAD", "ntlm-hash", "1122334455667788"} },
+  {"$NETLM$1122334455667788$6E1EC36D3417CE9E09A4424309F116C4C991948DAEB4ADAD", "G3RG3P00!"},
   {"", "HIYAGERGE",      {"User", "", "", "16A7FDFE0CA109B937BFFB041F0E5B2D8B94A97D3FCA1A18", "ntlm-hash", "1122334455667788"} },
   {"", "MEDUSAFGDUMP12", {"User", "", "", "B3A1B87DBBD4DF3CFA296198DD390C2F4E2E93C5C07B1D8B", "ntlm-hash", "1122334455667788"} },
   {"", "CORY21",         {"User", "", "", "0836F085B124F33895875FB1951905DD2F85252CC731BB25", "ntlm-hash", "1122334455667788"} },
+  // repeat in exactly the same format that is used in john.pot (lower case hex)
+  {"$NETLM$1122334455667788$0836f085b124f33895875fb1951905dd2f85252cc731bb25", "CORY21"},
   {NULL}
 };
 
@@ -89,44 +102,49 @@ static uchar (*saved_plain)[PLAINTEXT_LENGTH + 1];
 static uchar (*output)[PARTIAL_BINARY_SIZE];
 static uchar *challenge;
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int n = MIN_KEYS_PER_CRYPT * omp_get_max_threads();
-	if (n < MIN_KEYS_PER_CRYPT)
-		n = MIN_KEYS_PER_CRYPT;
-	if (n > MAX_KEYS_PER_CRYPT)
-		n = MAX_KEYS_PER_CRYPT;
-	pFmt->params.min_keys_per_crypt = n;
-	n = n * n * ((n >> 1) + 1) * THREAD_RATIO;
-	if (n > MAX_KEYS_PER_CRYPT)
-		n = MAX_KEYS_PER_CRYPT;
-	pFmt->params.max_keys_per_crypt = n;
+	int omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	output = mem_calloc_tiny(sizeof(*output) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
+	                         sizeof(*saved_plain));
+	output = mem_calloc(self->params.max_keys_per_crypt, sizeof(*output));
 }
 
-static int netlm_valid(char *ciphertext, struct fmt_main *pFmt)
+static void done(void)
+{
+	MEM_FREE(output);
+	MEM_FREE(saved_plain);
+	MEM_FREE(saved_key);
+}
+
+static int valid(char *ciphertext, struct fmt_main *self)
 {
   char *pos;
 
-  if (strncmp(ciphertext, "$NETLM$", 5)!=0) return 0;
+  if (strncmp(ciphertext, "$NETLM$", 7)!=0) return 0;
+  if (strlen(ciphertext) < TOTAL_LENGTH) return 0;
   if (ciphertext[23] != '$') return 0;
 
   if (strncmp(&ciphertext[24 + 2 * SALT_SIZE],
               "00000000000000000000000000000000", 32) == 0)
 	  return 0; // This is NTLM ESS C/R
 
-  for (pos = &ciphertext[24]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+  for (pos = &ciphertext[24]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++)
+	  ;
     if (!*pos && pos - ciphertext - 24 == CIPHERTEXT_LENGTH)
       return 1;
     else
       return 0;
 }
 
-static char *netlm_prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
 	if (!strncmp(split_fields[1], "$NETLM$", 7))
@@ -141,34 +159,36 @@ static char *netlm_prepare(char *split_fields[10], struct fmt_main *pFmt)
 		return split_fields[1];
 
 	// this string suggests we have an improperly formatted NTLMv2
-	if (!strncmp(&split_fields[4][32], "0101000000000000", 16))
-		return split_fields[1];
+	if (strlen(split_fields[4]) > 31) {
+		if (!strncmp(&split_fields[4][32], "0101000000000000", 16))
+			return split_fields[1];
+	}
 
 	cp = mem_alloc(7+strlen(split_fields[3])+1+strlen(split_fields[5])+1);
 	sprintf(cp, "$NETLM$%s$%s", split_fields[5], split_fields[3]);
 
-	if (netlm_valid(cp,pFmt)) {
+	if (valid(cp,self)) {
 		char *cp2 = str_alloc_copy(cp);
-		free(cp);
+		MEM_FREE(cp);
 		return cp2;
 	}
-	free(cp);
+	MEM_FREE(cp);
 	return split_fields[1];
 }
 
 
-static char *netlm_split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
   static char out[TOTAL_LENGTH + 1];
 
   memset(out, 0, TOTAL_LENGTH + 1);
-  memcpy(&out, ciphertext, TOTAL_LENGTH);
+  memcpy(out, ciphertext, TOTAL_LENGTH);
   strlwr(&out[6]); /* Exclude: $NETLM$ */
 
   return out;
 }
 
-static void *netlm_get_binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
   static uchar *binary;
   int i;
@@ -201,37 +221,44 @@ static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
   DES_set_key(&key, ks);
 }
 
-static void netlm_crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	DES_key_schedule ks;
-	int i;
+	int i = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(i, ks) shared(count, output, challenge, saved_key)
 #endif
-	for(i=0; i<count; i++) {
-
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
+	for(i = 0; i < count; i++)
+#endif
+	{
 		/* Just do a partial binary, the first DES operation */
 		setup_des_key(saved_key[i], &ks);
-		DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)output[i], &ks, DES_ENCRYPT);
+		DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)output[i],
+		                &ks, DES_ENCRYPT);
 	}
+	return count;
 }
 
-static int netlm_cmp_all(void *binary, int count)
+static int cmp_all(void *binary, int count)
 {
-	int index;
+	int index = 0;
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for(index=0; index<count; index++)
+#endif
 		if (!memcmp(output[index], binary, PARTIAL_BINARY_SIZE))
 			return 1;
 	return 0;
 }
 
-static int netlm_cmp_one(void *binary, int index)
+static int cmp_one(void *binary, int index)
 {
 	return !memcmp(output[index], binary, PARTIAL_BINARY_SIZE);
 }
 
-static int netlm_cmp_exact(char *source, int index)
+static int cmp_exact(char *source, int index)
 {
 	DES_key_schedule ks;
 	uchar binary[BINARY_SIZE];
@@ -249,10 +276,10 @@ static int netlm_cmp_exact(char *source, int index)
 	setup_des_key(&saved_key[index][14], &ks);
 	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[16], &ks, DES_ENCRYPT);
 
-	return (!memcmp(binary, netlm_get_binary(source), BINARY_SIZE));
+	return (!memcmp(binary, get_binary(source), BINARY_SIZE));
 }
 
-static void *netlm_get_salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
   static unsigned char *binary_salt;
   int i;
@@ -266,7 +293,7 @@ static void *netlm_get_salt(char *ciphertext)
   return (void*)binary_salt;
 }
 
-static void netlm_set_salt(void *salt)
+static void set_salt(void *salt)
 {
 	challenge = salt;
 }
@@ -275,14 +302,12 @@ static void netlm_set_key(char *key, int index)
 {
 	const unsigned char magic[] = {0x4b, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25};
 	DES_key_schedule ks;
-	int i = 0;
 
 	strncpy((char *)saved_plain[index], key, sizeof(saved_plain[index]));
 	saved_plain[index][sizeof(saved_plain[index])-1] = 0;
 
 	/* Upper-case password */
-	for(; i<PLAINTEXT_LENGTH && saved_plain[index][i] != 0; i++)
-		saved_plain[index][i] = CP_up[saved_plain[index][i]];
+	enc_strupper((char*)saved_plain[index]);
 
 	/* Generate 16-byte LM hash */
 	setup_des_key(saved_plain[index], &ks);
@@ -293,7 +318,7 @@ static void netlm_set_key(char *key, int index)
 	/* NULL-padding the 16-byte LM hash to 21-bytes is done in cmp_exact */
 }
 
-static char *netlm_get_key(int index)
+static char *get_key(int index)
 {
 	return (char*)saved_plain[index];
 }
@@ -301,31 +326,6 @@ static char *netlm_get_key(int index)
 static int salt_hash(void *salt)
 {
 	return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1);
-}
-
-static int binary_hash_0(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xF;
-}
-
-static int binary_hash_1(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
 }
 
 static int get_hash_0(int index)
@@ -353,49 +353,78 @@ static int get_hash_4(int index)
 	return *(ARCH_WORD_32 *)output[index] & 0xFFFFF;
 }
 
+static int get_hash_5(int index)
+{
+	return *(ARCH_WORD_32 *)output[index] & 0xFFFFFF;
+}
+
+static int get_hash_6(int index)
+{
+	return *(ARCH_WORD_32 *)output[index] & 0x7FFFFFF;
+}
+
 struct fmt_main fmt_NETLM = {
-  {
-    FORMAT_LABEL,
-    FORMAT_NAME,
-    ALGORITHM_NAME,
-    BENCHMARK_COMMENT,
-    BENCHMARK_LENGTH,
-    PLAINTEXT_LENGTH,
-    BINARY_SIZE,
-    SALT_SIZE,
-    MIN_KEYS_PER_CRYPT,
-    MAX_KEYS_PER_CRYPT,
-    FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
-    tests
-  }, {
-    init,
-	netlm_prepare,
-    netlm_valid,
-    netlm_split,
-    netlm_get_binary,
-    netlm_get_salt,
-    {
-	    binary_hash_0,
-	    binary_hash_1,
-	    binary_hash_2,
-	    binary_hash_3,
-	    binary_hash_4
-    },
-    salt_hash,
-    netlm_set_salt,
-    netlm_set_key,
-    netlm_get_key,
-    fmt_default_clear_keys,
-    netlm_crypt_all,
-    {
-	    get_hash_0,
-	    get_hash_1,
-	    get_hash_2,
-	    get_hash_3,
-	    get_hash_4
-    },
-    netlm_cmp_all,
-    netlm_cmp_one,
-    netlm_cmp_exact
-  }
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		0,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		tests
+	}, {
+		init,
+		done,
+		fmt_default_reset,
+		prepare,
+		valid,
+		split,
+		get_binary,
+		get_salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_default_source,
+		{
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
+		},
+		salt_hash,
+		NULL,
+		set_salt,
+		netlm_set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };
+
+#endif /* plugin stanza */

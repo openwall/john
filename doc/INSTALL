@@ -21,24 +21,72 @@ John only.  If you have a binary distribution, then there's nothing
 for you to compile and you can start using John right away.
 
 
+	Requirements
+
+The Jumbo versions requires OpenSSL 0.9.7 or later. To get all functionality
+you need 1.0.1. For building, not only the run-time libs are needed but also
+"devel" stuff like header files. This is often a separate package, so eg.
+for Ubuntu you need "libssl-dev" as well as "libssl".
+
+A few helper tools need C++. Some helper tools are written in Python. A couple
+helper tools (vncpcap2john and SIPdump) need libpcap. A couple of formats need
+extra libraries in order to get included:
+
+	mozilla		libnss
+	krb5-18/23	libkrb5
+	wowsrp		libgmp (will build without it, but is slower then)
+
+Again, you also need eg. libnss-dev, libkrb5-dev and libgmp-dev in order to
+build.
+
+
 	Compiling the sources on a Unix-like system.
 
 Enter the directory into which you extracted the source code
-distribution of John.  Enter the "src" subdirectory and invoke "make"
-to obtain a list of operating systems for which specific support
-exists:
-
+distribution of John.  Enter the "src" subdirectory.
 	cd src
-	make
 
-Note the make target for your system and type:
+This version of Jumbo has autoconf - that is, it supports the very common
+chain of:
+	./configure && make
 
-	make clean SYSTEM
+Pass a CFLAGS variable in case you need to enable/disable compiler options
+different than default. For example, here's how to configure for just AVX
+on a host that is AVX2-capable (default is -march=native if your compiler
+supports it, that will enable all CPU features you've got):
 
-where SYSTEM is the appropriate make target.  Alternatively, if your
-system is not listed, use:
+    ./configure CFLAGS="-g -O2 -mno-avx2"
 
-	make clean generic
+Note that whenever you pass CFLAGS like this, the default "-g -O2" will go
+away, so add that too (like was done above).
+
+You might want to add "-s" to make, for suppressing normal output and just
+print warnings and errors. For a multi-core host you can also add eg. "-j4"
+for using 4 cores in parallel when building. This can be written together,
+as in:
+	./configure && make -sj4
+
+That -j option does not work well with the "clean" target so if you want to
+use that, do it separately:
+	./configure && make -s clean && make -sj4
+
+./configure should find and enable any extra stuff you have, including OMP,
+OpenCL, CUDA and extra libraries mentioned above. The only exception is MPI
+which needs the "--enable-mpi" option to be supplied to configure. If something
+is missing, it's likely installed in a non-standard location so you'd need to
+pass parameters:
+	./configure LDFLAGS=-L/opt/lib CFLAGS="-O2 -I/opt/include" && make
+
+NOTE! If you pass CFLAGS like above, you probably also want to add "-O2"
+since it (and "-g") will only be added automatically provided CFLAGS start
+out empty. This is a feature of the autoconf macros, not specific to JtR.
+
+If you have a broken pkg-config (eg. claiming there is no OpenSSL even though
+there is one) you can disable its use within configure:
+	./configure --disable-pkg-config
+
+You can also disable certain features you don't want, eg:
+	./configure --disable-openmp && make
 
 If everything goes well, this will create the executables for John and
 its related utilities under "../run/".  You can change directory to
@@ -67,4 +115,59 @@ Since Linux and *BSD distributions' packages of John typically use make
 targets other than "generic" and since they typically use gcc, they are
 usually not affected by this potential problem.
 
-$Owl: Owl/packages/john/john/doc/INSTALL,v 1.5 2010/05/27 13:37:48 solar Exp $
+
+	Optimal build on OS X (Jumbo specific)
+
+Using OS X, you can install Xcode (free) and then its "command line tools"
+and after that a normal build should work fine. However, using native
+gcc (which is really clang) results in suboptimal performance and some
+formats are disabled due to ancient OpenSSL.
+
+Here's how to make the best possible of your hardware. There are alternatives
+that probably work fine but these instructions are for "Homebrew":
+
+  1. Install Homebrew:
+	http://mxcl.github.io/homebrew/
+  2. Install Homebrew's gcc and openssl:
+	brew install gcc openssl
+	brew link --force openssl
+  3. Link whatever gcc version you got from Homebrew to just "gcc" in the
+     /usr/local/bin directory. This example is for gcc-4.9:
+        ln -s gcc-4.9 /usr/local/bin/gcc
+  4. Make sure /usr/local/bin preceeds /usr/bin in your $PATH
+
+Instead of #3 and #4 you could obviously pass parameters to autoconf, such as:
+
+	./configure CC=gcc-4.9
+
+After the above, you should be able to get an optimal build with AVX and/or
+whatever extra features your CPU has got.
+
+If you get weird problems including things like "error: unknown type name
+'dispatch_block_t'" on Yosemite, you might need to apply a patch for the
+system headers (at your own risk, as always, but backups are created). From
+John's "src" directory:
+
+  sudo patch -b -N -p0 < unused/Yosemite.patch
+
+If the patch does not apply, perhaps it was fixed already by a system update
+that did not exist at the time of this writing.
+
+NOTE: The above command will create backup files. If you ever want to restore
+everything as it were originally:
+
+  cd /usr/include/dispatch
+  sudo mv -vi object.h.orig object.h
+  sudo mv -vi queue.h.orig queue.h
+  cd -
+
+
+	CUDA on OS X
+
+Download CUDA from Nvidia and install it. If build errors out complaining
+about llvm-gcc not found, try this (Homebrew example):
+
+  brew install llvm-gcc-28
+  sudo ln -s /usr/local/Cellar/llvm-gcc28/2.8/bin/llvm-gcc /usr/bin/llvm-gcc-4.2
+
+After that you should be able to build with the default Makefile.

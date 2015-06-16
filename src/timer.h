@@ -3,7 +3,7 @@
  * in 2009. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright © 2009 Jim Fougeron
+ * null and void, then the software is Copyright (c) 2009 Jim Fougeron
  * and it is hereby released to the general public under the following
  * terms:
  *
@@ -19,16 +19,14 @@
 #define GOT_TIMER_H
 
 #include <time.h>
-#include <sys/timeb.h>
 
-#if defined (_MSC_VER) || defined (__MINGW32__)
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
+#include <sys/timeb.h> /* for ftime(), which is not used */
 #undef MEM_FREE
 #include <windows.h>
 #undef MEM_FREE
 typedef LARGE_INTEGER hr_timer;
-#if defined (_MSC_VER)
-#define inline _inline
-#endif
+
 #define HRZERO(X)				(X).HighPart = (X).LowPart = 0
 #define HRSETCURRENT(X)			QueryPerformanceCounter (&(X));
 #define HRGETTICKS(X)			((double)(X).HighPart*4294967296.0+(double)(X).LowPart)
@@ -68,10 +66,10 @@ double sTimer_GetSecs (sTimer *t);		// If timer is running returns elapsed;
 										// if stopped returns timed interval;
 										// if not started returns 0.0.
 
-extern double sm_HRTicksPerSec;	// HR Ticks per second
+extern double sm_HRTicksPerSec;	// HR Ticks per second (claimed)
 extern int sm_fGotHRTicksPerSec;	// Set if we have got the above
-extern double sm_hrPrecision;
-extern double sm_cPrecision;
+extern double sm_hrPrecision;	// HR Ticks per second (observed, best guess)
+extern double sm_cPrecision;	// clocks (ticks) per second (observed, best guess)
 
 //inline void sTimer_Start_noclear (sTimer *t)
 //{

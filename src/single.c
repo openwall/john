@@ -1,8 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004,2006,2010 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2006,2010,2012,2013 by Solar Designer
  *
- * ...with changes in the jumbo patch, by JimF.
+ * ...with changes in the jumbo patch, by magnum & JimF.
  */
 
 #include <stdio.h>
@@ -10,22 +10,25 @@
 
 #include "misc.h"
 #include "params.h"
+#include "common.h"
 #include "memory.h"
+#include "os.h" /* Needed for signals.h */
 #include "signals.h"
 #include "loader.h"
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "options.h"
 #include "rpp.h"
 #include "rules.h"
 #include "external.h"
 #include "cracker.h"
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
+#include "john.h"
 #include "unicode.h"
+#include "config.h"
+#include "memdbg.h"
 
-static int progress = 0;
+static double progress = 0;
 static int rec_rule;
 
 static struct db_main *single_db;
@@ -33,6 +36,8 @@ static int rule_number, rule_count;
 static int length, key_count;
 static struct db_keys *guessed_keys;
 static struct rpp_context *rule_ctx;
+
+static int words_pair_max;
 
 static void save_state(FILE *file)
 {
@@ -55,17 +60,12 @@ static int restore_state(FILE *file)
 	return restore_rule_number();
 }
 
-static int get_progress(int *hundth)
+static double get_progress(void)
 {
-	if (progress) {
-		if (hundth)
-			*hundth = 0;
-		return progress;
-	}
+	emms();
 
-	if (hundth)
-		*hundth = (rule_number * 10000 / (rule_count + 1)) % 100;
-	return rule_number * 100 / (rule_count + 1);
+	return progress ? progress :
+		(double)rule_number / (rule_count + 1) * 100.0;
 }
 
 static void single_alloc_keys(struct db_keys **keys)
@@ -80,7 +80,7 @@ static void single_alloc_keys(struct db_keys **keys)
 		(*keys)->hash = mem_alloc_tiny(hash_size, MEM_ALIGN_WORD);
 	}
 
-	(*keys)->count = 0;
+	(*keys)->count = (*keys)->count_from_guesses = 0;
 	(*keys)->ptr = (*keys)->buffer;
 	(*keys)->have_words = 1; /* assume yes; we'll see for real later */
 	(*keys)->rule = rule_number;
@@ -94,16 +94,33 @@ static void single_init(void)
 
 	log_event("Proceeding with \"single crack\" mode");
 
+	if ((words_pair_max = cfg_get_int(SECTION_OPTIONS, NULL,
+	                                  "SingleWordsPairMax")) < 0)
+		words_pair_max = SINGLE_WORDS_PAIR_MAX;
+
 	progress = 0;
 
 	length = single_db->format->params.plaintext_length;
+	if (options.force_maxlength && options.force_maxlength < length)
+		length = options.force_maxlength;
 	key_count = single_db->format->params.min_keys_per_crypt;
-	if (key_count < SINGLE_HASH_MIN) key_count = SINGLE_HASH_MIN;
+	if (key_count < SINGLE_HASH_MIN)
+		key_count = SINGLE_HASH_MIN;
+/*
+ * We use "short" for buffered key indices and "unsigned short" for buffered
+ * key offsets - make sure these don't overflow.
+ */
+	if (key_count > 0x8000)
+		key_count = 0x8000;
+	while (key_count > 0xffff / length + 1)
+		key_count >>= 1;
 
-	if (rpp_init(rule_ctx, single_db->options->activesinglerules)) {
-		log_event("! No \"single crack\" mode rules found");
-		fprintf(stderr, "No \"single crack\" mode rules found in %s\n",
-			cfg_name);
+	if (rpp_init(rule_ctx, pers_opts.activesinglerules)) {
+		log_event("! No \"%s\" mode rules found",
+		          pers_opts.activesinglerules);
+		if (john_main_process)
+			fprintf(stderr, "No \"%s\" mode rules found in %s\n",
+			        pers_opts.activesinglerules, cfg_name);
 		error();
 	}
 
@@ -113,16 +130,6 @@ static void single_init(void)
 
 	log_event("- %d preprocessed word mangling rules", rule_count);
 
-#ifdef HAVE_MPI
-	if (mpi_p > 1) {
-		log_event("MPI hack active: processsing 1/%d of rules, total %d for "
-		    "this node", mpi_p, (rule_count / mpi_p) +
-		    (rule_count % mpi_p > mpi_id ? 1 : 0));
-		if (mpi_id == 0) fprintf(stderr,"MPI: each node processing 1/%d of %d "
-		    "rules. (%seven split)\n",
-		    mpi_p, rule_count, rule_count % mpi_p ? "un" : "");
-	}
-#endif
 	status_init(get_progress, 0);
 
 	rec_restore_mode(restore_state);
@@ -146,7 +153,7 @@ static void single_init(void)
 	crk_init(single_db, NULL, guessed_keys);
 }
 
-static int single_key_hash(char *key)
+static MAYBE_INLINE int single_key_hash(char *key)
 {
 	unsigned int hash, extra, pos;
 
@@ -187,8 +194,11 @@ out:
 	return hash;
 }
 
-static int single_add_key(struct db_keys *keys, char *key)
+static int single_process_buffer(struct db_salt *salt);
+
+static int single_add_key(struct db_salt *salt, char *key, int is_from_guesses)
 {
+	struct db_keys *keys = salt->keys;
 	int index, new_hash, reuse_hash;
 	struct db_keys_hash_entry *entry;
 
@@ -226,7 +236,12 @@ static int single_add_key(struct db_keys *keys, char *key)
 	strnfcpy(keys->ptr, key, length);
 	keys->ptr += length;
 
-	return ++(keys->count) >= key_count;
+	keys->count_from_guesses += is_from_guesses;
+
+	if (++(keys->count) >= key_count)
+		return single_process_buffer(salt);
+
+	return 0;
 }
 
 static int single_process_buffer(struct db_salt *salt)
@@ -235,7 +250,8 @@ static int single_process_buffer(struct db_salt *salt)
 	struct db_keys *keys;
 	size_t size;
 
-	if (crk_process_salt(salt)) return 1;
+	if (crk_process_salt(salt))
+		return 1;
 
 /*
  * Flush the keys list (since we've just processed the keys), but not the hash
@@ -250,7 +266,7 @@ static int single_process_buffer(struct db_salt *salt)
  * password hash computations vs. the "overhead".
  */
 	keys = salt->keys;
-	keys->count = 0;
+	keys->count = keys->count_from_guesses = 0;
 	keys->ptr = keys->buffer;
 	keys->lock++;
 
@@ -263,11 +279,11 @@ static int single_process_buffer(struct db_salt *salt)
 		do {
 			current = single_db->salts;
 			do {
-				if (current == salt) continue;
-				if (!current->list) continue;
+				if (current == salt || !current->list)
+					continue;
 
-				if (single_add_key(current->keys, keys->ptr))
-				if (single_process_buffer(current)) return 1;
+				if (single_add_key(current, keys->ptr, 1))
+					return 1;
 			} while ((current = current->next));
 			keys->ptr += length;
 		} while (--keys->count);
@@ -277,7 +293,8 @@ static int single_process_buffer(struct db_salt *salt)
 
 	keys = salt->keys;
 	keys->lock--;
-	if (!keys->count && !keys->lock) keys->rule = rule_number;
+	if (!keys->count && !keys->lock)
+		keys->rule = rule_number;
 
 	return 0;
 }
@@ -285,7 +302,6 @@ static int single_process_buffer(struct db_salt *salt)
 static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	char *rule)
 {
-	struct db_keys *keys;
 	struct list_entry *first, *second;
 	int first_number, second_number;
 	char pair[RULE_WORD_SIZE];
@@ -295,20 +311,22 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	if (!(first = pw->words->head))
 		return -1;
 
-	keys = salt->keys;
-
 	first_number = 0;
 	do {
 		if ((key = rules_apply(first->data, rule, 0, NULL)))
 		if (ext_filter(key))
-		if (single_add_key(keys, key))
-		if (single_process_buffer(salt)) return 1;
-		if (!salt->list) return 2;
-		if (!pw->binary) return 0;
+		if (single_add_key(salt, key, 0))
+			return 1;
+		if (!salt->list)
+			return 2;
+		if (!pw->binary)
+			return 0;
 
-		if (++first_number > SINGLE_WORDS_PAIR_MAX) continue;
+		if (++first_number > words_pair_max)
+			continue;
 
-		if (!CP_isLetter[(unsigned char)first->data[0]]) continue;
+		if (!CP_isLetter[(unsigned char)first->data[0]])
+			continue;
 
 		second_number = 0;
 		second = pw->words->head;
@@ -321,10 +339,12 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 
 				if ((key = rules_apply(pair, rule, split, NULL)))
 				if (ext_filter(key))
-				if (single_add_key(keys, key))
-				if (single_process_buffer(salt)) return 1;
-				if (!salt->list) return 2;
-				if (!pw->binary) return 0;
+				if (single_add_key(salt, key, 0))
+					return 1;
+				if (!salt->list)
+					return 2;
+				if (!pw->binary)
+					return 0;
 			}
 
 			if (first->data[1]) {
@@ -334,12 +354,14 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 
 				if ((key = rules_apply(pair, rule, 1, NULL)))
 				if (ext_filter(key))
-				if (single_add_key(keys, key))
-				if (single_process_buffer(salt)) return 1;
-				if (!salt->list) return 2;
-				if (!pw->binary) return 0;
+				if (single_add_key(salt, key, 0))
+					return 1;
+				if (!salt->list)
+					return 2;
+				if (!pw->binary)
+					return 0;
 			}
-		} while (++second_number <= SINGLE_WORDS_PAIR_MAX &&
+		} while (++second_number <= words_pair_max &&
 			(second = second->next));
 	} while ((first = first->next));
 
@@ -382,14 +404,17 @@ next:
 	} while ((pw = pw->next));
 
 	if (keys->count && rule_number - keys->rule > (key_count << 1))
-		if (single_process_buffer(salt)) return 1;
+		if (single_process_buffer(salt))
+			return 1;
 
-	if (!keys->count) keys->rule = rule_number;
+	if (!keys->count)
+		keys->rule = rule_number;
 
 	if (!have_words) {
 		keys->have_words = 0;
 no_own_words:
-		if (keys->count && single_process_buffer(salt)) return 1;
+		if (keys->count && single_process_buffer(salt))
+			return 1;
 	}
 
 	return 0;
@@ -404,27 +429,34 @@ static void single_run(void)
 
 	saved_min = rec_rule;
 	while ((prerule = rpp_next(rule_ctx))) {
-#ifdef HAVE_MPI
-		// MPI distribution: leapfrog rules
-		if (rule_number % mpi_p != mpi_id) {
-			rule_number++;
-			continue;
+		if (options.node_count) {
+			int for_node = rule_number % options.node_count + 1;
+			if (for_node < options.node_min ||
+			    for_node > options.node_max) {
+				rule_number++;
+				continue;
+			}
 		}
-#endif
+
 		if (!(rule = rules_reject(prerule, 0, NULL, single_db))) {
+			if (options.verbosity > 2)
 			log_event("- Rule #%d: '%.100s' rejected",
 				++rule_number, prerule);
 			continue;
 		}
 
-		if (strcmp(prerule, rule))
-			log_event("- Rule #%d: '%.100s' accepted as '%s'",
+		if (strcmp(prerule, rule)) {
+			if (options.verbosity > 2)
+			log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
 				rule_number + 1, prerule, rule);
-		else
+		} else {
+			if (options.verbosity > 2)
 			log_event("- Rule #%d: '%.100s' accepted",
 				rule_number + 1, prerule);
+		}
 
 		if (saved_min != rec_rule) {
+			if (options.verbosity > 2)
 			log_event("- Oldest still in use is now rule #%d",
 				rec_rule + 1);
 			saved_min = rec_rule;
@@ -434,20 +466,29 @@ static void single_run(void)
 
 		min = rule_number;
 
-		salt = single_db->salts;
+		/* pot reload might have removed the salt */
+		if (!(salt = single_db->salts))
+			return;
 		do {
-			if (!salt->list) continue;
-			if (single_process_salt(salt, rule)) return;
-			if (!salt->keys->have_words) continue;
+			if (!salt->list)
+				continue;
+			if (single_process_salt(salt, rule))
+				return;
+			if (!salt->keys->have_words)
+				continue;
 			have_words = 1;
 			if (salt->keys->rule < min)
 				min = salt->keys->rule;
 		} while ((salt = salt->next));
 
+		if (event_reload && single_db->salts)
+			crk_reload_pot();
+
 		rec_rule = min;
 		rule_number++;
 
-		if (have_words) continue;
+		if (have_words)
+			continue;
 
 		log_event("- No information to base%s candidate passwords on",
 			rule_number > 1 ? " further" : "");
@@ -465,13 +506,15 @@ static void single_done(void)
 				"candidate passwords, if any");
 
 			do {
-				if (!salt->list) continue;
+				if (!salt->list)
+					continue;
 				if (salt->keys->count)
-				if (single_process_buffer(salt)) break;
+					if (single_process_buffer(salt))
+						break;
 			} while ((salt = salt->next));
 		}
 
-		progress = 100; // For reporting DONE when finished
+		progress = 100;
 	}
 
 	rec_done(event_abort || (status.pass && single_db->salts));
@@ -486,4 +529,5 @@ void do_single_crack(struct db_main *db)
 	single_init();
 	single_run();
 	single_done();
+	rule_ctx = NULL; /* Just for good measure */
 }

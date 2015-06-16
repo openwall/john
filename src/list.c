@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98 by Solar Designer
+ * Copyright (c) 1996-98,2013 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <stdio.h>
@@ -8,6 +13,7 @@
 
 #include "memory.h"
 #include "list.h"
+#include "memdbg.h"
 
 void list_init(struct list_main **list)
 {
@@ -22,8 +28,14 @@ void list_add(struct list_main *list, char *data)
 
 	entry = mem_alloc_tiny(sizeof(struct list_entry) + strlen(data),
 		MEM_ALIGN_WORD);
-	entry->next = NULL;
 	strcpy(entry->data, data);
+
+	list_add_link(list, entry);
+}
+
+void list_add_link(struct list_main *list, struct list_entry *entry)
+{
+	entry->next = NULL;
 
 	if (list->tail)
 		list->tail = list->tail->next = entry;
@@ -59,6 +71,7 @@ void list_add_unique(struct list_main *list, char *data)
 	list_add(list, data);
 }
 
+#if 0
 void list_del_next(struct list_main *list, struct list_entry *prev)
 {
 	if (prev) {
@@ -67,3 +80,4 @@ void list_del_next(struct list_main *list, struct list_entry *prev)
 		if (!(list->head = list->head->next)) list->tail = NULL;
 	list->count--;
 }
+#endif

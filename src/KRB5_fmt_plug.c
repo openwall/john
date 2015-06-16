@@ -10,7 +10,7 @@
  *
  *  The module contains code derived or copied from the Heimdal project.
  *
- *  Copyright (c) 1997-2000 Kungliga Tekniska Högskolan
+ *  Copyright (c) 1997-2000 Kungliga Tekniska HÃ¶gskolan
  *  (Royal Institute of Technology, Stockholm, Sweden).
  *  All rights reserved.
  *
@@ -20,11 +20,23 @@
  *
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_KRB5;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_KRB5);
+#else
+
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include <stdlib.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#if !AC_BUILT || HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
 #include <errno.h>
 
 #include <string.h>
@@ -37,9 +49,10 @@
 #include "formats.h"    // needed for format structs
 #include "memory.h"
 #include "KRB5_std.h"
+#include "memdbg.h"
 
 
-// defines                                                  // {{{
+// defines
 #define MAGIC_PREFIX        "$krb5$"
 #define MAX_REALM_LEN       64
 #define TGT_SIZE            228
@@ -48,47 +61,46 @@
 
 #define FORMAT_LABEL        "krb5"
 #define FORMAT_NAME         "Kerberos v5 TGT"
-#define ALGORITHM_NAME      "krb5 3DES (des3-cbc-sha1)"
+#define ALGORITHM_NAME      "3DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
 #define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         0
+#define BINARY_ALIGN        MEM_ALIGN_NONE
+#define SALT_SIZE           sizeof(struct salt)
+#define SALT_ALIGN          MEM_ALIGN_NONE
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
 /* This string is a bit too short - might give false positives */
 #define KRBTGT              "krbtgt"
-// }}}
 
 
 /**
- * structure to hold the self tests                             // {{{
+ * structure to hold the self tests
  */
-static struct fmt_tests    KRB5_fmt_tests[] = {
+static struct fmt_tests    fmt_tests[] = {
     {"$krb5$oskov$ACM.UIUC.EDU$4730d7249765615d6f3652321c4fb76d09fb9cd06faeb0c31b8737f9fdfcde4bd4259c31cb1dff25df39173b09abdff08373302d99ac09802a290915243d9f0ea0313fdedc7f8d1fae0d9df8f0ee6233818d317f03a72c2e77b480b2bc50d1ca14fba85133ea00e472c50dbc825291e2853bd60a969ddb69dae35b604b34ea2c2265a4ffc72e9fb811da17c7f2887ccb17e2f87cd1f6c28a9afc0c083a9356a9ee2a28d2e4a01fc7ea90cc8836b8e25650c3a1409b811d0bad42a59aa418143291d42d7b1e6cb5b1876a4cc758d721323a762e943f774630385c9faa68df6f3a94422f97", "p4ssW0rd"},
     {"$krb5$oskov$ACM.UIUC.EDU$6cba0316d38e31ba028f87394792baade516afdfd8c5a964b6a7677adbad7815d778b297beb238394aa97a4d495adb7c9b7298ba7c2a2062fb6c9a4297f12f83755060f4f58a1ea4c7026df585cdfa02372ad619ab1a4ec617ad23e76d6e37e36268d9aa0abcf83f11fa8092b4328c5e6c577f7ec6f1c1684d9c99a309eee1f5bd764c4158a2cf311cded8794b2de83131c3dc51303d5300e563a2b7a230eac67e85b4593e561bf6b88c77b82c729e7ba7f3d2f99b8dc85b07873e40335aff4647833a87681ee557fbd1ffa1a458a5673d1bd3c1587eceeabaebf4e44c24d9a8ac8c1d89", "Nask0Oskov"},
     {NULL}
 };
-// }}}
 
 /**
  * struct to save the salt into
  */
-struct salt {                                                       // {{{
+struct salt {
     char    realm[MAX_REALM_LEN];
     char    user[MAX_USER_LEN];
     char    tgt_ebin[TGT_SIZE];
     char    passwd[MAX_PASS_LEN];
 };
-#define SALT_SIZE           sizeof(struct salt)
-// }}}
 
-struct key {                                                        // {{{
+
+struct key {
     char    passwd[MAX_PASS_LEN];
     char    key[MAX_PASS_LEN];
     DES_key_schedule sched[3];
 };
-// }}}
 
 static struct salt *psalt = NULL;
 static struct key skey;
@@ -100,11 +112,11 @@ static char password[MAX_PASS_LEN];
 // initialization vector for des
 static DES_cblock ivec;
 
-krb5_key _krb5key;
-krb5_key *krb5key = &_krb5key;
+static krb5_key _krb5key;
+static krb5_key *krb5key = &_krb5key;
 
 /**
- * hex2bin           // {{{
+ * hex2bin
  */
 static char *hex2bin(char *src, unsigned char *dst, int outsize) {
     char *p, *pe;
@@ -129,13 +141,12 @@ static char *hex2bin(char *src, unsigned char *dst, int outsize) {
     }
     return p;
 }
-// }}}
 
 /**
- * krb5_decrypt_compare                                             // {{{
+ * krb5_decrypt_compare
  *
  */
-int krb5_decrypt_compare() {
+static int decrypt_compare() {
 /* TGT_SIZE is not a multiple of DES block size; add space for one extra
  * DES block to make sure the OpenSSL routines will not overwrite stack
  * space beyond the end of plain[] when they operate on whole DES blocks. */
@@ -165,17 +176,17 @@ int krb5_decrypt_compare() {
             }
     return 0;
 }
-// }}}
 
 /**
- * void * krb5_salt                                                 // {{{
+ * void * krb5_salt
  *
  */
-static void * krb5_salt(char *ciphertext) {
+static void * get_salt(char *ciphertext) {
     static struct salt salt;
     char *data = ciphertext, *p;
     int n;
 
+	memset(&salt, 0, sizeof(salt));
     // advance past the $krb5$ string - it was checked for in valid()
     data += strlen(MAGIC_PREFIX);
 
@@ -184,7 +195,7 @@ static void * krb5_salt(char *ciphertext) {
     if (!p)
 	return NULL;
     n = (p - data) + 1;
-    if (n >= sizeof(salt.user))
+    if (n <= 1 || n >= sizeof(salt.user))
 	return NULL;
     strnzcpy(salt.user, data, n);
     data = p + 1;
@@ -194,7 +205,7 @@ static void * krb5_salt(char *ciphertext) {
     if (!p)
 	return NULL;
     n = (p - data) + 1;
-    if (n >= sizeof(salt.realm))
+    if (n <= 1 || n >= sizeof(salt.realm))
 	return NULL;
     strnzcpy(salt.realm, data, n);
     data = p + 1;
@@ -206,32 +217,29 @@ static void * krb5_salt(char *ciphertext) {
 
     return &salt;
 }
-// }}}
 
 /**
- * int krb5_valid                                                   // {{{
+ * int valid
  *
  */
-static int krb5_valid(char *ciphertext, struct fmt_main *pFmt) {
+static int valid(char *ciphertext, struct fmt_main *self) {
 
-    if (strncmp(ciphertext, MAGIC_PREFIX, strlen(MAGIC_PREFIX)) != 0)
+    if (strncmp(ciphertext, MAGIC_PREFIX, sizeof(MAGIC_PREFIX) - 1) != 0)
         return 0;
 
-    return krb5_salt(ciphertext) ? 1 : 0;
+    return get_salt(ciphertext) ? 1 : 0;
 }
-// }}}
 
 /**
- * void krb5_set_salt                                               // {{{
+ * void set_salt
  *
  */
-static void krb5_set_salt(void *salt) {
+static void set_salt(void *salt) {
     psalt = (struct salt *) salt;
 }
-// }}}
 
 /**
- * void krb5_set_key                                                // {{{
+ * void krb5_set_key
  *
  */
 static void krb5_set_key(char *key, int index) {
@@ -241,121 +249,135 @@ static void krb5_set_key(char *key, int index) {
     strnzcpy(skey.passwd, key, sizeof(skey.passwd));
 
 }
-// }}}
 
 /**
- * char * krb5_get_key                                              // {{{
+ * char * get_key
  *
  */
-static char * krb5_get_key(int index) {
+static char * get_key(int index) {
     return skey.passwd;
 }
-// }}}
 
 /**
- * void krb5_crypt_all                                              // {{{
+ * void crypt_all
  *
  */
-static void krb5_crypt_all(int count) {
-    // do nothing
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	return *pcount;
 }
-// }}}
 
 /**
- * int krb5_cmp_all                                                 // {{{
+ * int cmp_all
  *
  */
-static int krb5_cmp_all(void *binary, int count) {
-    return krb5_decrypt_compare();
+static int cmp_all(void *binary, int count) {
+    return decrypt_compare();
 }
-// }}}
 
 /**
- * int krb5_cmp_one                                                 // {{{
+ * int cmp_one
  *
  */
-static int krb5_cmp_one(void *binary, int count) {
+static int cmp_one(void *binary, int count) {
 
-    return krb5_decrypt_compare();
+    return decrypt_compare();
 
 }
-// }}}
 
 /**
- * int krb5_cmp_exact                                               // {{{
+ * int cmp_exact
  *
  */
-static int krb5_cmp_exact(char *source, int index) {
+static int cmp_exact(char *source, int index)
+{
     return 1;
 }
-// }}}
 
 /**
- * void krb5_init                                                   // {{{
+ * void init
  *
  */
-static void krb5_init(struct fmt_main *pFmt) {
+static void init(struct fmt_main *self) {
 
     memset(&ivec, 0x00, sizeof(ivec));
     memset(&skey, 0x00, sizeof(skey));
     memset(krb5key, 0x00, sizeof(krb5_key));
 
-    krb5key->key = (char *) mem_alloc_tiny(DES3_KEY_SIZE, MEM_ALIGN_NONE);
-    krb5key->schedule = (char *) mem_alloc_tiny(DES3_KEY_SCHED_SIZE, MEM_ALIGN_WORD);
+    krb5key->key = (char *) mem_alloc(DES3_KEY_SIZE);
+    krb5key->schedule = (char *) mem_alloc(DES3_KEY_SCHED_SIZE);
     memset(krb5key->key, 0x00, DES3_KEY_SIZE);
     memset(krb5key->schedule, 0x00, DES3_KEY_SCHED_SIZE);
 
 }
-// }}}
+
+static void done(void)
+{
+	MEM_FREE(krb5key->schedule);
+	MEM_FREE(krb5key->key);
+}
 
 /**
- * fmt_main struct with KRB5 values                                     // {{{
+ * fmt_main struct with KRB5 values
  */
 struct fmt_main fmt_KRB5 = {
-    {
-        FORMAT_LABEL,
-        FORMAT_NAME,
-        ALGORITHM_NAME,
-        BENCHMARK_COMMENT,
-        BENCHMARK_LENGTH,
-        PLAINTEXT_LENGTH,
-        BINARY_SIZE,
-        SALT_SIZE,
-        MIN_KEYS_PER_CRYPT,
-        MAX_KEYS_PER_CRYPT,
-        FMT_CASE | FMT_8_BIT,
-        KRB5_fmt_tests
-    }, {
-        krb5_init,
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		0,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_tests
+	}, {
+		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
-        krb5_valid,
-        fmt_default_split,
-        fmt_default_binary,
-        krb5_salt,
-        {
-            fmt_default_binary_hash,
-            fmt_default_binary_hash,
-            fmt_default_binary_hash,
-            fmt_default_binary_hash,
-            fmt_default_binary_hash
-        },
-        fmt_default_salt_hash,
-        krb5_set_salt,
-        krb5_set_key,
-        krb5_get_key,
-	    fmt_default_clear_keys,
-        krb5_crypt_all,
-        {
-            fmt_default_get_hash,
-            fmt_default_get_hash,
-            fmt_default_get_hash,
-            fmt_default_get_hash,
-            fmt_default_get_hash
-        },
-        krb5_cmp_all,
-        krb5_cmp_one,
-        krb5_cmp_exact
-    }
+		valid,
+		fmt_default_split,
+		fmt_default_binary,
+		get_salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_default_source,
+		{
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash
+		},
+		fmt_default_salt_hash,
+		NULL,
+		set_salt,
+		krb5_set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };
-// }}}
 
+#endif /* plugin stanza */

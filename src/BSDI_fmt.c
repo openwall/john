@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2010-2012 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <string.h>
@@ -10,11 +15,16 @@
 #include "DES_std.h"
 #include "common.h"
 #include "formats.h"
+#if DES_BS
+#include "DES_bs.h"
+#endif
 
-#define FORMAT_LABEL			"bsdi"
-#define FORMAT_NAME			"BSDI DES"
+#include "memdbg.h"
 
-#define BENCHMARK_COMMENT		" (x725)"
+#define FORMAT_LABEL			"bsdicrypt"
+#define FORMAT_NAME			"BSDI crypt(3)"
+
+#define BENCHMARK_COMMENT		" (\"_J9..\", 725 iterations)"
 #define BENCHMARK_LENGTH		0
 
 #define PLAINTEXT_LENGTH		64
@@ -38,12 +48,12 @@ static struct fmt_tests tests[] = {
 
 #if DES_BS
 
-#include "DES_bs.h"
-
 #define ALGORITHM_NAME			DES_BS_ALGORITHM_NAME
 
-#define BINARY_SIZE			ARCH_SIZE
+#define BINARY_SIZE			sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
 #define SALT_SIZE			(ARCH_SIZE * 2)
+#define SALT_ALIGN			ARCH_SIZE
 
 #define MIN_KEYS_PER_CRYPT		DES_BS_DEPTH
 #define MAX_KEYS_PER_CRYPT		DES_BS_DEPTH
@@ -53,7 +63,9 @@ static struct fmt_tests tests[] = {
 #define ALGORITHM_NAME			DES_STD_ALGORITHM_NAME
 
 #define BINARY_SIZE			ARCH_SIZE
+#define BINARY_ALIGN			ARCH_SIZE
 #define SALT_SIZE			(ARCH_SIZE * 2)
+#define SALT_ALIGN			ARCH_SIZE
 
 #define MIN_KEYS_PER_CRYPT		4
 #define MAX_KEYS_PER_CRYPT		8
@@ -74,9 +86,9 @@ static struct {
 
 struct fmt_main fmt_BSDI;
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
-	DES_std_init(pFmt);
+	DES_std_init();
 
 #if DES_BS
 	DES_bs_init(0, (DES_bs_cpt + 28) / 29);
@@ -96,7 +108,7 @@ static void init(struct fmt_main *pFmt)
 	    MEM_ALIGN_CACHE);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
@@ -131,37 +143,37 @@ static void *salt(char *ciphertext)
 
 static int binary_hash_0(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xF;
+	return *(ARCH_WORD_32 *)binary & 0xF;
 }
 
 static int binary_hash_1(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFF;
+	return *(ARCH_WORD_32 *)binary & 0xFF;
 }
 
 static int binary_hash_2(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFFF;
+	return *(ARCH_WORD_32 *)binary & 0xFFF;
 }
 
 static int binary_hash_3(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFFFF;
+	return *(ARCH_WORD_32 *)binary & 0xFFFF;
 }
 
 static int binary_hash_4(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFFFFF;
+	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
 }
 
 static int binary_hash_5(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFFFFFF;
+	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
 }
 
 static int binary_hash_6(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0x7FFFFFF;
+	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
 }
 
 #define get_hash_0 DES_bs_get_hash_0
@@ -267,7 +279,8 @@ static void set_key(char *key, int index)
 		ptr -= 8;
 		for (word = 0; word < 2; word++)
 		for (pos = 0; pos < 4; pos++)
-			block[word] ^= (ARCH_WORD)*ptr++ << (1 + (pos << 3));
+			block[word] ^= (unsigned ARCH_WORD)(unsigned char)
+			    *ptr++ << (1 + (pos << 3));
 
 #if !DES_BS
 		if (current_salt)
@@ -311,14 +324,16 @@ static char *get_key(int index)
 
 #if DES_BS
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	const int count = *pcount;
 	DES_bs_crypt(saved_count, count);
+	return count;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return DES_bs_cmp_one((ARCH_WORD *)binary, 32, index);
+	return DES_bs_cmp_one((ARCH_WORD_32 *)binary, 32, index);
 }
 
 static int cmp_exact(char *source, int index)
@@ -328,8 +343,9 @@ static int cmp_exact(char *source, int index)
 
 #else
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 
 	if (current_salt != saved_salt)
@@ -340,6 +356,8 @@ static void crypt_all(int count)
 
 	for (index = 0; index < count; index++)
 		DES_std_crypt(buffer[index].KS, buffer[index].binary);
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -377,6 +395,14 @@ static int cmp_exact(char *source, int index)
 
 #endif
 
+
+#if FMT_MAIN_VERSION > 11
+static unsigned int iteration_count(void *salt)
+{
+	return (unsigned int) ((ARCH_WORD *)salt)[1];
+}
+#endif
+
 struct fmt_main fmt_BSDI = {
 	{
 		FORMAT_LABEL,
@@ -384,9 +410,12 @@ struct fmt_main fmt_BSDI = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if DES_BS && DES_bs_mt
@@ -397,9 +426,16 @@ struct fmt_main fmt_BSDI = {
 #else
 		FMT_CASE,
 #endif
+#if FMT_MAIN_VERSION > 11
+		{
+			"iteration count",
+		},
+#endif
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
@@ -410,6 +446,12 @@ struct fmt_main fmt_BSDI = {
 			DES_std_get_binary,
 #endif
 		salt,
+#if FMT_MAIN_VERSION > 11
+		{
+			iteration_count,
+		},
+#endif
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -420,6 +462,7 @@ struct fmt_main fmt_BSDI = {
 			binary_hash_6
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,

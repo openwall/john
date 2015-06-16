@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2003,2005,2011 by Solar Designer
+ * Copyright (c) 1996-2000,2003,2005,2011-2013,2015 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <stdio.h>
@@ -14,6 +19,7 @@
 #include "params.h"
 #include "memory.h"
 #include "compiler.h"
+#include "memdbg.h"
 
 #undef PRINT_INSNS
 
@@ -53,20 +59,20 @@ struct c_fixup {
 
 static int c_pass;
 
-static union c_insn *c_code_start;
+static union c_insn *c_code_start = NULL;
 static union c_insn *c_code_ptr;
 static union c_insn *c_pc;
 
-static c_int *c_data_start;
+static c_int *c_data_start = NULL;
 static c_int *c_data_ptr;
 
 static union c_insn c_stack[C_STACK_SIZE];
 static union c_insn *c_sp;
 
 static union c_insn *c_loop_start;
-static struct c_fixup *c_break_fixups;
+static struct c_fixup *c_break_fixups = NULL;
 
-static struct c_ident *c_funcs;
+static struct c_ident *c_funcs = NULL;
 
 static char c_unget_buffer[C_UNGET_SIZE];
 static int c_unget_count;
@@ -109,6 +115,9 @@ struct c_op {
 
 #ifdef __GNUC__
 static struct c_op c_ops[];
+#ifndef PRINT_INSNS
+static int c_ops_initialized = 0;
+#endif
 #else
 #ifdef PRINT_INSNS
 static struct c_op c_ops[52];
@@ -229,11 +238,13 @@ static c_int c_getint(char *token)
 	char *error;
 
 	if (token[0] == '\'') {
-		if ((value = c_getchar(1)) == '\'')
+		if ((value = (unsigned char)c_getchar(1)) == '\'')
 			c_errno = C_ERROR_UNEXPECTED;
 		else
-			if (value == '\\') value = c_getchar(1);
-		if (c_getchar(1) != '\'') c_errno = C_ERROR_UNEXPECTED;
+			if (value == '\\')
+				value = (unsigned char)c_getchar(1);
+		if (c_getchar(1) != '\'')
+			c_errno = C_ERROR_UNEXPECTED;
 	} else {
 		errno = 0;
 		l_value = strtol(token, &error, 0);
@@ -346,6 +357,16 @@ static void c_free_fixup(struct c_fixup *list, union c_insn *pc)
 		list = list->next;
 		MEM_FREE(current);
 	}
+}
+
+void c_cleanup() {
+	MEM_FREE(c_code_start);
+	MEM_FREE(c_data_start);
+	c_free_ident(c_funcs, NULL);
+	c_funcs = NULL;
+	c_pass = 0; /* Tell c_free_fixup() that we're just freeing memory */
+	c_free_fixup(c_break_fixups, NULL);
+	c_break_fixups = NULL;
 }
 
 static void (*c_op_return)(void);
@@ -814,14 +835,18 @@ int c_compile(int (*ext_getchar)(void), void (*ext_rewind)(void),
 	struct c_ident *externs)
 {
 #if defined(__GNUC__) && !defined(PRINT_INSNS)
-	c_execute_fast(NULL);
+	if (!c_ops_initialized)
+		c_execute_fast(NULL);
 #endif
 
 	c_ext_getchar = ext_getchar;
 	c_ext_rewind = ext_rewind;
 
-	c_code_start = NULL;
-	c_data_start = NULL;
+	MEM_FREE(c_code_start);
+	MEM_FREE(c_data_start);
+	c_free_ident(c_funcs, NULL);
+	c_pass = 0; /* Tell c_free_fixup() that we're just freeing memory */
+	c_free_fixup(c_break_fixups, NULL);
 
 	for (c_pass = 0; c_pass < 2; c_pass++) {
 		c_init();
@@ -840,6 +865,7 @@ int c_compile(int (*ext_getchar)(void), void (*ext_rewind)(void),
 
 		c_code_start = mem_alloc((size_t)c_code_ptr);
 		c_data_start = mem_alloc((size_t)c_data_ptr);
+		memset(c_data_start, 0, (size_t)c_data_ptr);
 	}
 
 	return c_errno;
@@ -857,6 +883,10 @@ void *c_lookup(char *name)
 
 void c_execute_fast(void *addr)
 {
+/*
+ * Push a NULL pc to the stack, so that when the VM function invokes
+ * c_f_op_return() it sets pc to NULL terminating the loop below.
+ */
 	c_stack[0].pc = NULL;
 	c_sp = &c_stack[2];
 
@@ -889,7 +919,14 @@ void c_execute_fast(void *addr)
 void c_execute_fast(void *addr)
 {
 	union c_insn *pc = addr;
-	union c_insn *sp = c_stack;
+/*
+ * We cache the top of stack value in imm.  We initially set sp to &c_stack[2]
+ * so that there's room for op_push_* to spill imm to stack even when there
+ * wasn't actually a previous top of stack value to cache (since we're at the
+ * top level).  It is simpler and quicker to let them do it than to treat this
+ * as a special case in the code.
+ */
+	union c_insn *sp = &c_stack[2];
 	c_int imm = 0;
 
 	static void *ops[] = {
@@ -939,7 +976,8 @@ void c_execute_fast(void *addr)
 #endif
 		int op = 0;
 
-		assert(c_op_return != &&op_return); /* Don't do this twice */
+		assert(!c_ops_initialized); /* Don't do this twice */
+		c_ops_initialized = 1;
 
 		c_op_return = &&op_return;
 		c_op_bz = &&op_bz;

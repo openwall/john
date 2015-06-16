@@ -6,13 +6,15 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
+ *
  * -v  (some debugging output
  * -inp=fname vs using stdin
  * -ex_file=FNAME       also unique's against this external file
  * -ex_file_only=FNAME  uniq against extern file, and assumes current file is
  *                      already unique, so does not unique it.
  * -cut=len  Trims each line to len, prior to unique. Also, any -ex_file=
- *           file has it's lines trimmed (to properly compare).
+ *           file has its lines trimmed (to properly compare).
  * -cut=LM   Trim each line to 7 bytes, and grab the next (up to) 7 bytes
  *           and upcase each.  Warning, if using -ex_file= make sure these
  *           files are 'proper' LM format (7 char and upcase).  No auto
@@ -23,11 +25,18 @@
  *           Each number doubles size.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#else
 #define _POSIX_SOURCE /* for fdopen(3) */
+#endif
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#if !AC_BUILT || HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
 #include <string.h>
 #ifdef _MSC_VER
 #include <io.h>
@@ -39,6 +48,8 @@
 #include "misc.h"
 #include "params.h"
 #include "memory.h"
+#include "jumbo.h"
+#include "memdbg.h"
 
 #define ENTRY_END_HASH			0xFFFFFFFF /* also hard-coded */
 #define ENTRY_END_LIST			0xFFFFFFFE

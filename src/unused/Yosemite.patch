@@ -1,0 +1,26 @@
+--- /usr/include/dispatch/object.h.orig	2014-09-09 22:53:42.000000000 +0200
++++ /usr/include/dispatch/object.h	2014-10-22 08:39:39.000000000 +0200
+@@ -140,7 +140,11 @@
+  * Instead, the block literal must be copied to the heap with the Block_copy()
+  * function or by sending it a -[copy] message.
+  */
++#if __clang__ || OS_OBJECT_USE_OBJC
+ typedef void (^dispatch_block_t)(void);
++#else
++typedef void (dispatch_block_t)(void);
++#endif
+
+ __BEGIN_DECLS
+
+--- /usr/include/dispatch/queue.h.orig	2014-09-09 22:53:42.000000000 +0200
++++ /usr/include/dispatch/queue.h	2014-10-22 08:44:08.000000000 +0200
+@@ -360,6 +360,9 @@
+
+ typedef long dispatch_queue_priority_t;
+
++#ifndef __has_include
++#define __has_include(x) 0
++#endif
+ /*!
+  * @typedef dispatch_qos_class_t
+  * Alias for qos_class_t type.

@@ -3,6 +3,12 @@
  * Copyright (c) 2010 by Solar Designer
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_md4_gen;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_md4_gen);
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -10,10 +16,11 @@
 #include "common.h"
 #include "formats.h"
 #include "md4.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"md4-gen"
 #define FORMAT_NAME			"Generic salted MD4"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"MD4 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -22,7 +29,9 @@
 #define CIPHERTEXT_LENGTH		32
 
 #define BINARY_SIZE			16
+#define BINARY_ALIGN			4
 #define SALT_SIZE			64 /* length + type + 62 chars */
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -34,12 +43,12 @@ static struct fmt_tests tests[] = {
 };
 
 static char saved_salt[SALT_SIZE];
-static int saved_key_length;
+static int saved_len;
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static MD4_CTX ctx;
 static ARCH_WORD_32 crypt_out[4];
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q;
 
@@ -62,22 +71,25 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned char out[BINARY_SIZE];
+	static union {
+		unsigned char u8[BINARY_SIZE];
+		ARCH_WORD_32 u32[BINARY_SIZE/4];
+	} out;
 	char *p;
 	int i;
 
 	p = strrchr(ciphertext, '$') + 1;
-	for (i = 0; i < sizeof(out); i++) {
-		out[i] =
+	for (i = 0; i < sizeof(out.u8); i++) {
+		out.u8[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
 
-	return out;
+	return out.u32;
 }
 
-static void *salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static unsigned char out[SALT_SIZE];
 	char *p;
@@ -91,41 +103,6 @@ static void *salt(char *ciphertext)
 	memcpy(out + 2, p, length);
 
 	return out;
-}
-
-static int binary_hash_0(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xF;
-}
-
-static int binary_hash_1(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
-}
-
-static int binary_hash_5(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
-}
-
-static int binary_hash_6(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
 }
 
 static int get_hash_0(int index)
@@ -190,29 +167,32 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	saved_key_length = strlen(key);
-	if (saved_key_length > PLAINTEXT_LENGTH)
-		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key, key, saved_key_length);
+	saved_len = strlen(key);
+	if (saved_len > PLAINTEXT_LENGTH)
+		saved_len = PLAINTEXT_LENGTH;
+	memcpy(saved_key, key, saved_len);
 }
 
 static char *get_key(int index)
 {
-	saved_key[saved_key_length] = 0;
+	saved_key[saved_len] = 0;
 	return saved_key;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	const int count = *pcount;
 	MD4_Init(&ctx);
 	if (saved_salt[1] == 'p') {
 		MD4_Update(&ctx, &saved_salt[2], (unsigned char)saved_salt[0]);
-		MD4_Update(&ctx, saved_key, saved_key_length);
+		MD4_Update(&ctx, saved_key, saved_len);
 	} else {
-		MD4_Update(&ctx, saved_key, saved_key_length);
+		MD4_Update(&ctx, saved_key, saved_len);
 		MD4_Update(&ctx, &saved_salt[2], (unsigned char)saved_salt[0]);
 	}
 	MD4_Final((unsigned char *)crypt_out, &ctx);
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -232,30 +212,43 @@ struct fmt_main fmt_md4_gen = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
 		tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
-		salt,
+		get_salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_default_source,
 		{
-			binary_hash_0,
-			binary_hash_1,
-			binary_hash_2,
-			binary_hash_3,
-			binary_hash_4,
-			binary_hash_5,
-			binary_hash_6
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,
@@ -275,3 +268,5 @@ struct fmt_main fmt_md4_gen = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

@@ -9,6 +9,8 @@
 #include "params.h"
 #include "config.h"
 #include "rpp.h"
+#include "common.h" /* for atoi16 */
+#include "memdbg.h"
 
 int rpp_init(struct rpp_context *ctx, char *subsection)
 {
@@ -84,6 +86,13 @@ static void rpp_process_rule(struct rpp_context *ctx)
 			}
 			/* fall through */
 		default:
+			/* (Jumbo) handle hex char */
+			if (c == 'x' && atoi16[*input] != 0x7f &&
+			    atoi16[input[1]] != 0x7f) {
+				*output++ =
+					((atoi16[*input]<<4)+atoi16[input[1]]);
+				input += 2;
+			} else
 			*output++ = c;
 		}
 		break;
@@ -107,19 +116,38 @@ static void rpp_process_rule(struct rpp_context *ctx)
 		while (*input && *input != ']')
 		switch (*input) {
 		case '\\':
+			/* (Jumbo) Handle start char as hex in range */
+			if (input[1] == 'x' && atoi16[input[2]] != 0x7F &&
+			    atoi16[input[3]] != 0x7F) {
+				rpp_add_char(range,
+				             c1 = ((atoi16[input[2]]<<4) +
+				                   atoi16[input[3]]));
+				input += 4;
+			} else
 			if (*++input) rpp_add_char(range, c1 = *input++);
 			break;
 
 		case '-':
 			if ((c2 = *++input)) {
 				input++;
+				/* (Jumbo) Handle end char as hex in range */
+				if (c2 == '\\') {
+					if (input[0] == 'x' &&
+					    atoi16[input[1]] != 0x7F &&
+					    atoi16[input[2]] != 0x7F) {
+						c2 = ((atoi16[input[1]]<<4) +
+						      atoi16[input[2]]);
+						input += 3;
+					}
+				}
 				if (c1 && range->count) {
 					if (c1 > c2)
 						for (c = c1 - 1; c >= c2; c--)
 							rpp_add_char(range, c);
 					else
-						for (c = c1 + 1; c <= c2; c++)
-							rpp_add_char(range, c);
+						/* Jumbo mod here */
+						for (c = c1; c < c2; c++)
+						     rpp_add_char(range, c + 1);
 				}
 			}
 			c1 = c2;

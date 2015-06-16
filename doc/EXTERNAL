@@ -29,7 +29,9 @@ The functions, if defined, should do the following with "word":
 * generate() should set "word" to the next word to be tried, or zero out
 "word[0]" when cracking is complete (this will cause John to terminate);
 
-* restore() should set global variables to continue from the "word".
+* restore() should set global variables to continue from the "word". If
+there are no global variables needing restoring, an empty stub function
+should be provided, or John will refuse to resume a session.
 
 You can use an external mode on its own or with some other cracking
 mode, in which case only init() and filter() will be used (and only
@@ -53,6 +55,21 @@ displayed (just like on a keypress), respectively.  These actions are
 taken after having tested at least all of the candidate passwords that
 were in external mode's "word" so far.  In other words, the actions may
 be delayed in order to process any buffered candidate passwords.
+
+From 1.7.9.5-jumbo-7 on, a third variable is defined: "cipher_limit".
+This variable is of type "int". It contains the maximum password length
+in bytes, either from the format definition or from --stdout[=LENGTH].
+This variable should not be changed by the external mode.
+Instead, it can be used to stop generating new candidates should the
+password length get larger than "cipher_limit".
+
+From 1.7.9-Jumbo-8 on, two new variables "req_minlen" (requested min.
+length), "req_maxlen" (requested max. length) were added, reflecting
+the --min-len=N and --max-len=N options. Also, a variable "session_start_time"
+was added that is equivalent of time(NULL) at start, ie. the current time
+expressed in seconds after Jan 1 1970. This variable is initialized once,
+not updated. Note: On a resume you will end up using a new value than was
+originally used.
 
 
 	The language.
@@ -87,4 +104,4 @@ functions);
 You can find some external mode examples in the default configuration
 file supplied with John.
 
-$Owl: Owl/packages/john/john/doc/EXTERNAL,v 1.3 2011/09/18 07:44:58 solar Exp $
+$Owl$

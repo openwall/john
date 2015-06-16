@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2008,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2008,2010-2013,2015 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <stdlib.h>
@@ -11,69 +16,29 @@
 #include "BF_std.h"
 #include "common.h"
 #include "formats.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+#include "memdbg.h"
 
-#define FORMAT_LABEL			"bf"
-#define FORMAT_NAME			"OpenBSD Blowfish"
+#define FORMAT_LABEL			"bcrypt"
+#define FORMAT_NAME			""
 
-#define BENCHMARK_COMMENT		" (x32)"
+#define BENCHMARK_COMMENT		" (\"$2a$05\", 32 iterations)"
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		72
-#define CIPHERTEXT_LENGTH		60
+//#define CIPHERTEXT_LENGTH		60 // in BF_commmon.h
 
 #define BINARY_SIZE			4
+#define BINARY_ALIGN			4
 #define SALT_SIZE			sizeof(BF_salt)
+#define SALT_ALIGN			4
 
 #define MIN_KEYS_PER_CRYPT		BF_Nmin
 #define MAX_KEYS_PER_CRYPT		BF_N
 
-static struct fmt_tests tests[] = {
-	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.E5YPO9kmyuRGyh0XouQYb4YMJKvyOeW",
-		"U*U"},
-	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.VGOzA784oUp/Z0DY336zx7pLYAy0lwK",
-		"U*U*"},
-	{"$2a$05$XXXXXXXXXXXXXXXXXXXXXOAcXxm9kjPGEMsLznoKqmqw7tc8WCx4a",
-		"U*U*U"},
-	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.7uG0VCzI2bS7j6ymqJi9CdcdxiRTWNy",
-		""},
-	{"$2a$05$abcdefghijklmnopqrstuu5s2v8.iXieOjg/.AySBTTZIIVFJeBui",
-		"0123456789abcdefghijklmnopqrstuvwxyz"
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-		"chars after 72 are ignored"},
-	{"$2x$05$/OK.fbVrR/bpIqNJ5ianF.CE5elHaaO4EbggVDjb8P19RukzXSM3e",
-		"\xa3"},
-	{"$2y$05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq",
-		"\xa3"},
-	{"$2x$05$6bNw2HLQYeqHYyBfLMsv/OiwqTymGIGzFsA4hOTWebfehXHNprcAS",
-		"\xd1\x91"},
-	{"$2x$05$6bNw2HLQYeqHYyBfLMsv/O9LIGgn8OMzuDoHfof8AQimSGfcSWxnS",
-		"\xd0\xc1\xd2\xcf\xcc\xd8"},
-	{"$2a$05$/OK.fbVrR/bpIqNJ5ianF.swQOIzjOiJ9GHEPuhEkvqrUyvWhEMx6",
-		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
-		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
-		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
-		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
-		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
-		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
-		"chars after 72 are ignored as usual"},
-	{"$2a$05$/OK.fbVrR/bpIqNJ5ianF.R9xrDjiycxMbQE2bp.vgqlYpW5wx2yy",
-		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
-		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
-		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
-		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
-		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
-		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"},
-	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.7uG0VCzI2bS7j6ymqJi9CdcdxiRTWNy",
-		""},
-	{"$2a$05$/OK.fbVrR/bpIqNJ5ianF.9tQZzcJfm3uj2NvJ/n5xkhpqLrMpWCe",
-		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
-		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
-		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
-		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
-		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
-		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"},
-	{NULL}
-};
+// static struct fmt_tests BF_common_tests[] = {  // defined in BF_common.c
 
 static char saved_key[BF_N][PLAINTEXT_LENGTH + 1];
 static char keys_mode;
@@ -81,12 +46,10 @@ static int sign_extension_bug;
 static BF_salt saved_salt;
 
 #ifdef _OPENMP
-#include <omp.h>
-
 struct fmt_main fmt_BF;
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int n = BF_Nmin * omp_get_max_threads(), max;
@@ -103,67 +66,6 @@ static void init(struct fmt_main *pFmt)
 
 	keys_mode = 'y';
 	sign_extension_bug = 0;
-}
-
-static int valid(char *ciphertext, struct fmt_main *pFmt)
-{
-	int rounds;
-	char *pos;
-
-	if (strncmp(ciphertext, "$2a$", 4) &&
-	    strncmp(ciphertext, "$2x$", 4) &&
-	    strncmp(ciphertext, "$2y$", 4))
-		return 0;
-
-	if (ciphertext[4] < '0' || ciphertext[4] > '9') return 0;
-	if (ciphertext[5] < '0' || ciphertext[5] > '9') return 0;
-	rounds = atoi(ciphertext + 4);
-	if (rounds < 4 || rounds > 31) return 0;
-
-	if (ciphertext[6] != '$') return 0;
-
-	for (pos = &ciphertext[7]; atoi64[ARCH_INDEX(*pos)] != 0x7F; pos++);
-	if (*pos || pos - ciphertext != CIPHERTEXT_LENGTH) return 0;
-
-	if (BF_atoi64[ARCH_INDEX(*(pos - 1))] & 3) return 0;
-	if (BF_atoi64[ARCH_INDEX(ciphertext[28])] & 0xF) return 0;
-
-	return 1;
-}
-
-static int binary_hash_0(void *binary)
-{
-	return *(BF_word *)binary & 0xF;
-}
-
-static int binary_hash_1(void *binary)
-{
-	return *(BF_word *)binary & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return *(BF_word *)binary & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return *(BF_word *)binary & 0xFFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return *(BF_word *)binary & 0xFFFFF;
-}
-
-static int binary_hash_5(void *binary)
-{
-	return *(BF_word *)binary & 0xFFFFFF;
-}
-
-static int binary_hash_6(void *binary)
-{
-	return *(BF_word *)binary & 0x7FFFFFF;
 }
 
 static int get_hash_0(int index)
@@ -223,8 +125,10 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	const int count = *pcount;
+
 	if (keys_mode != saved_salt.subtype) {
 		int i;
 
@@ -235,6 +139,8 @@ static void crypt_all(int count)
 	}
 
 	BF_std_crypt(&saved_salt, count);
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -265,7 +171,7 @@ static int cmp_exact(char *source, int index)
 	BF_std_crypt_exact(index);
 #endif
 
-	return !memcmp(BF_std_get_binary(source), BF_out[index],
+	return !memcmp(BF_common_get_binary(source), BF_out[index],
 	    sizeof(BF_binary));
 }
 
@@ -276,33 +182,50 @@ struct fmt_main fmt_BF = {
 		BF_ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if BF_mt > 1
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT,
-		tests
+#if FMT_MAIN_VERSION > 11
+		{
+			"iteration count",
+		},
+#endif
+		BF_common_tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
-		valid,
+		BF_common_valid,
 		fmt_default_split,
-		BF_std_get_binary,
-		BF_std_get_salt,
+		BF_common_get_binary,
+		BF_common_get_salt,
+#if FMT_MAIN_VERSION > 11
 		{
-			binary_hash_0,
-			binary_hash_1,
-			binary_hash_2,
-			binary_hash_3,
-			binary_hash_4,
-			binary_hash_5,
-			binary_hash_6
+			BF_common_iteration_count,
+		},
+#endif
+		fmt_default_source,
+		{
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,

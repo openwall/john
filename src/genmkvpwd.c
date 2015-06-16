@@ -1,8 +1,17 @@
+/*
+ * This software is Copyright (c) 2007 bartavelle, <simon at banquise.net>, and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ */
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
-#ifndef _MSC_VER
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
-#else
+#endif
+#if !AC_BUILT && _MSC_VER
 #define atoll _atoi64
 #endif
 #include <math.h>
@@ -10,6 +19,7 @@
 #include "params.h"
 #include "memory.h"
 #include "mkvlib.h"
+#include "memdbg.h"
 
 static void show_pwd_rnbs(struct s_pwd * pwd)
 {
@@ -182,10 +192,9 @@ int main(int argc, char * * argv)
 	struct s_pwd pwd;
 	struct s_pwd pwd2;
 
-	unsigned int max_lvl, max_len;
+	unsigned int max_lvl = 0, max_len;
 	unsigned long long start, end;
 
-	max_lvl = 0;
 	max_len = 0;
 	start = 0;
 	end = 0;
@@ -216,37 +225,41 @@ int main(int argc, char * * argv)
 			memset(nbparts, 0, 256*(max_lvl+1)*(max_len+1)*sizeof(long long));
 			nb_parts(0, 0, 0, max_lvl, max_len);
 			if(nbparts[0] > 1000000000)
-				printf("%lld G possible passwords (%lld)\n", nbparts[0] / 1000000000, nbparts[0]);
+				printf("%llu G possible passwords (%llu)\n", nbparts[0] / 1000000000, nbparts[0]);
 			else if(nbparts[0] > 10000000)
-				printf("%lld M possible passwords (%lld)\n", nbparts[0] / 1000000, nbparts[0]);
+				printf("%llu M possible passwords (%llu)\n", nbparts[0] / 1000000, nbparts[0]);
 			else if(nbparts[0] > 10000)
-				printf("%lld K possible passwords (%lld)\n", nbparts[0] / 1000, nbparts[0]);
+				printf("%llu K possible passwords (%llu)\n", nbparts[0] / 1000, nbparts[0]);
 			else
-				printf("%lld possible passwords\n", nbparts[0] );
-			free(nbparts);
+				printf("%llu possible passwords\n", nbparts[0] );
+			MEM_FREE(nbparts);
 		}
 		goto fin;
 	}
 
 	if(max_lvl==0)
 	{
-		for(max_lvl=100;max_lvl<400;max_lvl++)
+		for(max_lvl=100;max_lvl<=MAX_MKV_LVL;max_lvl++)
 		{
 			nbparts = mem_alloc(256*(max_lvl+1)*sizeof(long long)*(max_len+1));
 			printf("lvl=%u (%lu KB for nbparts) ", max_lvl, 256UL*(max_lvl+1)*(max_len+1)*sizeof(long long)/1024);
 			memset(nbparts, 0, 256*(max_lvl+1)*(max_len+1)*sizeof(long long));
 			nb_parts(0, 0, 0, max_lvl, max_len);
 			if(nbparts[0] > 1000000000)
-				printf("%lld G possible passwords (%lld)\n", nbparts[0] / 1000000000, nbparts[0]);
+				printf("%llu G possible passwords (%llu)\n", nbparts[0] / 1000000000, nbparts[0]);
 			else if(nbparts[0] > 10000000)
-				printf("%lld M possible passwords (%lld)\n", nbparts[0] / 1000000, nbparts[0]);
+				printf("%llu M possible passwords (%llu)\n", nbparts[0] / 1000000, nbparts[0]);
 			else if(nbparts[0] > 10000)
-				printf("%lld K possible passwords (%lld)\n", nbparts[0] / 1000, nbparts[0]);
+				printf("%llu K possible passwords (%llu)\n", nbparts[0] / 1000, nbparts[0]);
 			else
-				printf("%lld possible passwords\n", nbparts[0] );
-			free(nbparts);
+				printf("%llu possible passwords\n", nbparts[0] );
+			MEM_FREE(nbparts);
 		}
 		goto fin;
+	}
+	if(max_lvl>MAX_MKV_LVL) {
+		fprintf(stderr, "Warning: Level = %d is too large (max = %d)\n", max_lvl, MAX_MKV_LVL);
+		max_lvl = MAX_MKV_LVL;
 	}
 
 	nbparts = mem_alloc(256*(max_lvl+1)*sizeof(long long)*(max_len+1));
@@ -255,13 +268,13 @@ int main(int argc, char * * argv)
 
 	nb_parts(0, 0, 0, max_lvl, max_len);
 	if(nbparts[0] > 1000000000)
-		fprintf(stderr, "%lld G possible passwords (%lld)\n", nbparts[0] / 1000000000, nbparts[0]);
+		fprintf(stderr, "%llu G possible passwords (%llu)\n", nbparts[0] / 1000000000, nbparts[0]);
 	else if(nbparts[0] > 10000000)
-		fprintf(stderr, "%lld M possible passwords (%lld)\n", nbparts[0] / 1000000, nbparts[0]);
+		fprintf(stderr, "%llu M possible passwords (%llu)\n", nbparts[0] / 1000000, nbparts[0]);
 	else if(nbparts[0] > 10000)
-		fprintf(stderr, "%lld K possible passwords (%lld)\n", nbparts[0] / 1000, nbparts[0]);
+		fprintf(stderr, "%llu K possible passwords (%llu)\n", nbparts[0] / 1000, nbparts[0]);
 	else
-		fprintf(stderr, "%lld possible passwords\n", nbparts[0] );
+		fprintf(stderr, "%llu possible passwords\n", nbparts[0] );
 
 	if(end==0)
 		end = nbparts[0];
@@ -274,14 +287,15 @@ int main(int argc, char * * argv)
 	print_pwd(start, &pwd, max_lvl, max_len);
 	print_pwd(start, &pwd2, max_lvl, max_len);
 
-	fprintf(stderr, "starting with %s (%lld to %lld, %f%% of the scope)\n", pwd.password, start, end, 100*((float) end-start)/((float) nbparts[0]) );
+	fprintf(stderr, "starting with %s (%llu to %llu, %f%% of the scope)\n", pwd.password, start, end, 100*((float) end-start)/((float) nbparts[0]) );
 
 	show_pwd(start, end, max_lvl, max_len);
 
-	free(nbparts);
+	MEM_FREE(nbparts);
 fin:
-	free(proba1);
-	free(proba2);
-	free(first);
+	MEM_FREE(proba1);
+	MEM_FREE(proba2);
+	MEM_FREE(first);
+	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }

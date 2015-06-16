@@ -1,10 +1,20 @@
+/*
+ * This software is Copyright (c) 2007 bartavelle, <simon at banquise.net>, and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ */
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
-#if !defined (_MSC_VER)
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
 #include <math.h>
 #include <string.h>
+#include "memory.h"
+#include "memdbg.h"
 
 #define C2I(c) ((unsigned int)(unsigned char)(c))
 
@@ -28,7 +38,7 @@ int main(int argc, char * * argv)
 
 	if( (argc!=3) && (argc!=4) )
 	{
-		fprintf(stderr, "Usage: %s [-p] dictionnary_file statfile\n\t-p: do use non printable characters\n", argv[0]);
+		fprintf(stderr, "Usage: %s [-p] dictionary_file statfile\n\t-p: include non printable and 8-bit characters\n", argv[0]);
 		return -1;
 	}
 
@@ -36,7 +46,7 @@ int main(int argc, char * * argv)
 	{
 		if(strcmp(argv[1], "-p"))
 		{
-			fprintf(stderr, "Usage: %s [-p] dictionnary_file statfile\n\t-p: do use non printable characters\n", argv[0]);
+			fprintf(stderr, "Usage: %s [-p] dictionary_file statfile\n\t-p: include non printable and 8-bit characters\n", argv[0]);
 			return -1;
 		}
 		args = 1;
@@ -55,14 +65,28 @@ int main(int argc, char * * argv)
 		return -1;
 	}
 
-	first = malloc( sizeof(int) * 256 );
+	first = malloc( sizeof(unsigned int) * 256 );
+	if (first == NULL) {
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		exit(EXIT_FAILURE);
+	}
 
 	ligne = malloc(4096);
+	if (ligne == NULL) {
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		exit(EXIT_FAILURE);
+	}
 
-	proba2 = malloc(sizeof(unsigned int) * 256 * 256);
-	proba1 = malloc(sizeof(unsigned int) * 256 );
-	memset(proba2, 0, sizeof(unsigned int) * 256 * 256);
-	memset(proba1, 0, sizeof(unsigned int) * 256 );
+	proba2 = calloc(256 * 256, sizeof(unsigned int));
+	if (proba2 == NULL) {
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		exit(EXIT_FAILURE);
+	}
+	proba1 = calloc(256, sizeof(unsigned int));
+	if (proba1 == NULL) {
+		fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
+		exit(EXIT_FAILURE);
+	}
 
 	statfile = fopen(argv[2+args], "w");
 
@@ -80,25 +104,30 @@ int main(int argc, char * * argv)
 		for(i=0;ligne[i];i++)
 		{
 			np = 0;
-			if(C2I(ligne[i])<32)
-			{
-				if (!npflag) fprintf(stderr, "Warning, non printable character line %d : %s\n", nb_lignes, ligne);
-				np += 1;
+			if (!npflag) {
+				if(C2I(ligne[i])<32)
+				{
+					fprintf(stderr,
+					        "Warning, skipping non printable character 0x%02x line %d offset %d: %s\n",
+					        (unsigned char)ligne[i], nb_lignes, i, ligne);
+					np += 1;
+				}
+				if(C2I(ligne[i])>127)
+				{
+					fprintf(stderr,
+					        "Warning, skipping non-ASCII character 0x%02x line %d offset %d: %s\n",
+					        (unsigned char)ligne[i], nb_lignes, i, ligne);
+					np += 1;
+				}
+				if((i>0) && (C2I(ligne[i-1])<32))
+				{
+					np += 2;
+				}
+				if((i>0) && (C2I(ligne[i-1])>127))
+				{
+					np += 2;
+				}
 			}
-			if(C2I(ligne[i])>127)
-			{
-				fprintf(stderr, "Warning, non US ascii character line %d : %s\n", nb_lignes, ligne);
-				np += 1;
-			}
-			if((i>0) && (C2I(ligne[i-1])<32))
-			{
-				np += 2;
-			}
-			if((i>0) && (C2I(ligne[i-1])>127))
-			{
-				np += 2;
-			}
-
 			if( (i==0) && ((np == 0) || (npflag == 1)) )
 				proba1[C2I(ligne[0])]++;
 			if( (i>0) && ((np == 0) || (npflag == 1)) )
@@ -161,13 +190,15 @@ int main(int argc, char * * argv)
 
 	fclose(statfile);
 
-	free(proba1);
-	free(proba2);
+	MEM_FREE(proba1);
+	MEM_FREE(proba2);
 
-	free(first);
+	MEM_FREE(first);
 
-	free(ligne);
+	MEM_FREE(ligne);
 	fclose(fichier);
+
+	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
 	return 0;
 }

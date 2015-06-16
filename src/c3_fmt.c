@@ -1,22 +1,71 @@
 /*
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 2009-2011 by Solar Designer
- *
  * Generic crypt(3) support, as well as support for glibc's crypt_r(3) and
  * Solaris' MT-safe crypt(3C) with OpenMP parallelization.
+ *
+ * This file is part of John the Ripper password cracker,
+ * Copyright (c) 2009-2015 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_CRYPT
+
+/* if this comes after the #define crap below, there are often
+ * problems with strdup or other things not being defined. We
+ * move this block of includes to above the _XOPEN_* defines
+ */
+#if STRING_WITH_STRINGS
+#include <string.h>
+#include <strings.h>
+#elif HAVE_STRING_H
+#include <string.h>
+#elif HAVE_STRINGS_H
+#include <strings.h>
+#endif
+#if !AC_BUILT
+#include <string.h>
+#ifndef _MSC_VER
+#include <strings.h>
+#endif
+#undef _XOPEN_VERSION
+#undef _XOPEN_SOURCE
+#undef _XOPEN_SOURCE_EXTENDED
+#undef _GNU_SOURCE
+
 #define _XOPEN_SOURCE 4 /* for crypt(3) */
-#define _XOPEN_SOURCE_EXTENDED
+#define _XOPEN_SOURCE_EXTENDED 1 /* for OpenBSD */
 #define _XOPEN_VERSION 4
 #define _XPG4_2
-#define _GNU_SOURCE /* for crypt_r(3) */
-#include <string.h>
+#define _GNU_SOURCE 1 /* for crypt_r(3) */
+#include <stdio.h>
+
+#ifdef __CYGWIN__
+#include <crypt.h>
+#endif
 #if defined(_OPENMP) && defined(__GLIBC__)
 #include <crypt.h>
-#include <omp.h> /* for omp_get_thread_num() */
 #else
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
+#endif
+#endif
+
+#if HAVE_CRYPT_H
+#include <crypt.h>
+#endif
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
+#include <unistd.h>
+#endif
+#if defined(_OPENMP)
+#include <omp.h> /* for omp_get_thread_num() */
 #endif
 
 #include "options.h"
@@ -27,9 +76,11 @@
 #include "common.h"
 #include "formats.h"
 #include "loader.h"
+#include "john.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"crypt"
 #define FORMAT_NAME			"generic crypt(3)"
@@ -41,7 +92,9 @@
 #define PLAINTEXT_LENGTH		72
 
 #define BINARY_SIZE			128
+#define BINARY_ALIGN			1
 #define SALT_SIZE			BINARY_SIZE
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		96
 #define MAX_KEYS_PER_CRYPT		96
@@ -66,62 +119,143 @@ static char crypt_out[MAX_KEYS_PER_CRYPT][BINARY_SIZE];
 static struct crypt_data *crypt_data[MAX_THREADS];
 #endif
 
-struct fmt_main fmt_crypt;
-
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	if (options.subformat) {
-		if (strncmp(options.subformat, "md5", 4)==0) {
-			fmt_crypt.params.benchmark_comment = " MD5";
-			tests[0].ciphertext = "$1$dXc3I7Rw$ctlgjDdWJLMT.qwHsWhXR1";
-			tests[1].ciphertext = "$1$dXc3I7Rw$94JPyQc/eAgQ3MFMCoMF.0";
-			tests[2].ciphertext = "$1$dXc3I7Rw$is1mVIAEtAhIzSdfn5JOO0";
-			tests[3].ciphertext = "$1$eQT9Hwbt$XtuElNJD.eW5MN5UCWyTQ0";
-			tests[4].ciphertext = "$1$Eu.GHtia$CFkL/nE1BYTlEPiVx1VWX0";
-		} else if ((strncmp(options.subformat, "sha-256", 8)==0) ||
-		           (strncmp(options.subformat, "sha256", 7)==0)) {
-			fmt_crypt.params.benchmark_comment = " SHA-256 rounds=5000";
-			tests[0].ciphertext = "$5$LKO/Ute40T3FNF95$U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9";
-			tests[1].ciphertext = "$5$LKO/Ute40T3FNF95$fdgfoJEBoMajNxCv3Ru9LyQ0xZgv0OBMQoq80LQ/Qd.";
-			tests[2].ciphertext = "$5$LKO/Ute40T3FNF95$8Ry82xGnnPI/6HtFYnvPBTYgOL23sdMXn8C29aO.x/A";
-			tests[3].ciphertext = "$5$9mx1HkCz7G1xho50$O7V7YgleJKLUhcfk9pgzdh3RapEaWqMtEp9UUBAKIPA";
-			tests[4].ciphertext = "$5$kc7lRD1fpYg0g.IP$d7CMTcEqJyTXyeq8hTdu/jB/I6DGkoo62NXbHIR7S43";
-		} else if ((strncmp(options.subformat, "sha-512", 8)==0) ||
-	            (strncmp(options.subformat, "sha512", 7)==0)) {
-			fmt_crypt.params.benchmark_comment = " SHA-512 rounds=5000";
-			tests[0].ciphertext = "$6$LKO/Ute40T3FNF95$6S/6T2YuOIHY0N3XpLKABJ3soYcXD9mB7uVbtEZDj/LNscVhZoZ9DEH.sBciDrMsHOWOoASbNLTypH/5X26gN0";
-			tests[1].ciphertext = "$6$LKO/Ute40T3FNF95$wK80cNqkiAUzFuVGxW6eFe8J.fSVI65MD5yEm8EjYMaJuDrhwe5XXpHDJpwF/kY.afsUs1LlgQAaOapVNbggZ1";
-			tests[2].ciphertext = "$6$LKO/Ute40T3FNF95$YS81pp1uhOHTgKLhSMtQCr2cDiUiN03Ud3gyD4ameviK1Zqz.w3oXsMgO6LrqmIEcG3hiqaUqHi/WEE2zrZqa/";
-			tests[3].ciphertext = "$6$OmBOuxFYBZCYAadG$WCckkSZok9xhp4U1shIZEV7CCVwQUwMVea7L3A77th6SaE9jOPupEMJB.z0vIWCDiN9WLh2m9Oszrj5G.gt330";
-			tests[4].ciphertext = "$6$ojWH1AiTee9x1peC$QVEnTvRVlPRhcLQCk/HnHaZmlGAAjCfrAN0FtOsOnUk5K5Bn/9eLHHiRzrTzaIKjW9NTLNIBUCtNVOowWS2mN.";
-		} else if ((strncmp(options.subformat, "bf", 3)==0) ||
-	            (strncmp(options.subformat, "blowfish", 9)==0) ||
-	            (strncmp(options.subformat, "bcrypt", 7)==0)) {
-			fmt_crypt.params.benchmark_comment = " BF x32";
-			tests[0].ciphertext = "$2a$05$c92SVSfjeiCD6F2nAD6y0uBpJDjdRkt0EgeC4/31Rf2LUZbDRDE.O";
-			tests[1].ciphertext = "$2a$05$WY62Xk2TXZ7EvVDQ5fmjNu7b0GEzSzUXUh2cllxJwhtOeMtWV3Ujq";
-			tests[2].ciphertext = "$2a$05$Fa0iKV3E2SYVUlMknirWU.CFYGvJ67UwVKI1E2FP6XeLiZGcH3MJi";
-			tests[3].ciphertext = "$2a$05$.WRrXibc1zPgIdRXYfv.4uu6TD1KWf0VnHzq/0imhUhuxSxCyeBs2";
-			tests[4].ciphertext = "$2a$05$Otz9agnajgrAe0.kFVF9V.tzaStZ2s1s4ZWi/LY4sw2k/MTVFj/IO";
-		} else if (strncmp(options.subformat, "des", 4)) {
-			fprintf(stderr, "Subformat unknown to John. Currently supported: DES, MD5, BF, SHA-256, SHA-512\n\n");
+		int i;
+		char *salt = tests[0].ciphertext;
+#if defined(_OPENMP) && defined(__GLIBC__)
+		struct crypt_data data;
+
+		data.initialized = 0;
+#endif
+
+		/*
+		 * Allow
+		 * ./john --list=format-tests --format=crypt --subformat=md5crypt
+		 * in addition to
+		 * ./john --test --format=crypt --subformat=md5crypt
+		 *
+		 * That's why, don't require FLG_TEST_CHK to be set.
+		 */
+		if (options.flags & FLG_PASSWD) {
+			fprintf(stderr,
+			        "\n%s: --subformat option is only for --test or --list=format-tests\n", FORMAT_LABEL);
+			error();
+		}
+
+		if (!strcmp(options.subformat, "?")) {
+			fprintf(stderr, "Subformat may either be a verbatim salt, or: descrypt, md5crypt, bcrypt, sha256crypt, sha512crypt, sun-md5\n\n");
+			error();
+		} else if (!strcasecmp(options.subformat, "md5crypt") ||
+		    !strcasecmp(options.subformat, "md5")) {
+			static struct fmt_tests tests[] = {
+			{"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
+			{"$1$12345678$f8QoJuo0DpBRfQSD0vglc1", "12345678"},
+			{"$1$$qRPK7m23GJusamGpoGLby/", ""},
+			{NULL} };
+			self->params.tests = tests;
+			self->params.benchmark_comment = " MD5";
+			salt = "$1$dXc3I7Rw$";
+		} else if (!strcasecmp(options.subformat, "sunmd5") ||
+		    !strcasecmp(options.subformat, "sun-md5")) {
+			static struct fmt_tests tests[] = {
+			{"$md5$rounds=904$Vc3VgyFx44iS8.Yu$Scf90iLWN6O6mT9TA06NK/", "test"},
+			{"$md5$rounds=904$ZZZig8GS.S0pRNhc$dw5NMYJoxLlnFq4E.phLy.", "Don41dL33"},
+			{"$md5$rounds=904$zSuVTn567UJLv14u$q2n2ZBFwKg2tElFBIzUq/0", "J4ck!3Wood"},
+			{NULL} };
+			self->params.tests = tests;
+			self->params.benchmark_comment = " SunMD5";
+			salt = "$md5$rounds=904$Vc3VgyFx44iS8.Yu$dummy";
+		} else if ((!strcasecmp(options.subformat, "sha256crypt")) ||
+		           (!strcasecmp(options.subformat, "sha-256")) ||
+		           (!strcasecmp(options.subformat, "sha256"))) {
+			static struct fmt_tests tests[] = {
+			{"$5$LKO/Ute40T3FNF95$U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9", "U*U*U*U*"},
+			{"$5$LKO/Ute40T3FNF95$fdgfoJEBoMajNxCv3Ru9LyQ0xZgv0OBMQoq80LQ/Qd.", "U*U***U"},
+			{"$5$LKO/Ute40T3FNF95$8Ry82xGnnPI/6HtFYnvPBTYgOL23sdMXn8C29aO.x/A", "U*U***U*"},
+			{NULL} };
+			self->params.tests = tests;
+			self->params.benchmark_comment = " SHA-256 rounds=5000";
+			salt = "$5$LKO/Ute40T3FNF95$";
+		} else if ((!strcasecmp(options.subformat, "sha512crypt")) ||
+		           (!strcasecmp(options.subformat, "sha-512")) ||
+		           (!strcasecmp(options.subformat, "sha512"))) {
+			static struct fmt_tests tests[] = {
+			{"$6$LKO/Ute40T3FNF95$6S/6T2YuOIHY0N3XpLKABJ3soYcXD9mB7uVbtEZDj/LNscVhZoZ9DEH.sBciDrMsHOWOoASbNLTypH/5X26gN0", "U*U*U*U*"},
+			{"$6$LKO/Ute40T3FNF95$wK80cNqkiAUzFuVGxW6eFe8J.fSVI65MD5yEm8EjYMaJuDrhwe5XXpHDJpwF/kY.afsUs1LlgQAaOapVNbggZ1", "U*U***U"},
+			{"$6$LKO/Ute40T3FNF95$YS81pp1uhOHTgKLhSMtQCr2cDiUiN03Ud3gyD4ameviK1Zqz.w3oXsMgO6LrqmIEcG3hiqaUqHi/WEE2zrZqa/", "U*U***U*"},
+			{NULL} };
+			self->params.tests = tests;
+			self->params.benchmark_comment = " SHA-512 rounds=5000";
+			salt = "$6$LKO/Ute40T3FNF95$";
+		} else if ((!strcasecmp(options.subformat, "bf")) ||
+		           (!strcasecmp(options.subformat, "blowfish")) ||
+		           (!strcasecmp(options.subformat, "bcrypt"))) {
+			static struct fmt_tests tests[] = {
+			{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.E5YPO9kmyuRGyh0XouQYb4YMJKvyOeW","U*U"},
+			{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.VGOzA784oUp/Z0DY336zx7pLYAy0lwK","U*U*"},
+			{"$2a$05$XXXXXXXXXXXXXXXXXXXXXOAcXxm9kjPGEMsLznoKqmqw7tc8WCx4a","U*U*U"},
+			{NULL} };
+			self->params.tests = tests;
+			self->params.benchmark_comment = " BF x32";
+			salt = "$2a$05$AD6y0uWY62Xk2TXZ";
+		} else if (!strcasecmp(options.subformat, "descrypt") ||
+		           !strcasecmp(options.subformat, "des")) {
+			salt = "CC";
+		} else {
+			char *p = mem_alloc_tiny(strlen(options.subformat) + 2,
+			                         MEM_ALIGN_NONE);
+			strcpy(p, " ");
+			strcat(p, options.subformat);
+			self->params.benchmark_comment = p;
+			salt = options.subformat;
+			/* turn off many salts test, since we are not updating the */
+			/* params.tests structure data.                            */
+			self->params.benchmark_length = -1;
+		}
+		for (i = 0; i < 5; i++)
+		{
+			char *c;
+
+#if defined(_OPENMP) && defined(__GLIBC__)
+			c = crypt_r(tests[i].plaintext, salt, &data);
+#else
+			c = crypt(tests[i].plaintext, salt);
+#endif
+			if (c && strlen(c) >= 7)
+				tests[i].ciphertext = strdup(c);
+			else {
+				fprintf(stderr, "%s not supported on this system\n",
+				       options.subformat);
+				error();
+			}
+		}
+
+		if (strlen(tests[0].ciphertext) == 13 &&
+		    strcasecmp(options.subformat, "descrypt") &&
+		    strcasecmp(options.subformat, "des")) {
+			fprintf(stderr, "%s not supported on this system\n",
+			       options.subformat);
 			error();
 		}
 	}
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
-	int length, count_base64, id, pw_length;
+	int length, count_base64, count_base64_2, id, pw_length;
 	char pw[PLAINTEXT_LENGTH + 1], *new_ciphertext;
 /* We assume that these are zero-initialized */
 	static char sup_length[BINARY_SIZE], sup_id[0x80];
 
-	length = count_base64 = 0;
+	length = count_base64 = count_base64_2 = 0;
 	while (ciphertext[length]) {
-		if (atoi64[ARCH_INDEX(ciphertext[length])] != 0x7F &&
-		    (ciphertext[0] == '_' || length >= 2))
+		if (atoi64[ARCH_INDEX(ciphertext[length])] != 0x7F) {
 			count_base64++;
+			if (length >= 2)
+				count_base64_2++;
+		}
 		length++;
 	}
 
@@ -129,16 +263,19 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		return 0;
 
 	id = 0;
-	if (length == 13 && count_base64 == 11)
+	if (length == 13 && count_base64 == 13) /* valid salt */
 		id = 1;
 	else
-	if (length >= 13 &&
-	    count_base64 >= length - 2 && /* allow for invalid salt */
-	    (length - 2) % 11 == 0)
+	if (length == 13 && count_base64_2 == 11) /* invalid salt */
 		id = 2;
 	else
-	if (length == 20 && count_base64 == 19 && ciphertext[0] == '_')
+	if (length >= 13 &&
+	    count_base64_2 >= length - 2 && /* allow for invalid salt */
+	    (length - 2) % 11 == 0)
 		id = 3;
+	else
+	if (length == 20 && count_base64 == 19 && ciphertext[0] == '_')
+		id = 4;
 	else
 	if (ciphertext[0] == '$') {
 		id = (unsigned char)ciphertext[1];
@@ -186,7 +323,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	new_ciphertext = crypt(pw, ciphertext);
 #endif
 
-	if (strlen(new_ciphertext) == length &&
+	if (new_ciphertext && strlen(new_ciphertext) == length &&
 	    !strncmp(new_ciphertext, ciphertext, 2)) {
 		sup_length[length] = 1;
 		sup_id[id] = 1;
@@ -194,10 +331,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	}
 
 	if (id != 10 && !ldr_in_pot)
-#ifdef HAVE_MPI
-	if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Generic crypt(3) module: "
+	if (john_main_process)
+		fprintf(stderr, "Warning: "
 		    "hash encoding string length %d, type id %c%c\n"
 		    "appears to be unsupported on this system; "
 		    "will not load such hashes.\n",
@@ -255,6 +390,7 @@ static void *salt(char *ciphertext)
 		else
 		if (length == 60 &&
 		    (!strncmp(ciphertext, "$2a$", 4) ||
+		    !strncmp(ciphertext, "$2b$", 4) ||
 		    !strncmp(ciphertext, "$2x$", 4) ||
 		    !strncmp(ciphertext, "$2y$", 4)))
 			cut = 29;
@@ -390,12 +526,14 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	static int warned = 0;
+	int count = *pcount;
 	int index;
 
 #if defined(_OPENMP) && defined(__GLIBC__)
-#pragma omp parallel for default(none) private(index) shared(count, crypt_out, saved_key, saved_salt, crypt_data)
+#pragma omp parallel for default(none) private(index) shared(warned, count, crypt_out, saved_key, saved_salt, crypt_data, stderr)
 	for (index = 0; index < count; index++) {
 		char *hash;
 		int t = omp_get_thread_num();
@@ -423,6 +561,15 @@ static void crypt_all(int count)
 			memset(&data, 0, sizeof(data));
 			hash = crypt_r(saved_key[index], saved_salt, &data);
 		}
+		if (!hash) {
+#pragma omp critical
+			if (!warned) {
+				fprintf(stderr,
+				    "Warning: crypt_r() returned NULL\n");
+				warned = 1;
+			}
+			hash = "";
+		}
 		strnzcpy(crypt_out[index], hash, BINARY_SIZE);
 	}
 #else
@@ -434,14 +581,28 @@ static void crypt_all(int count)
  * modern hash types, the function is actually able to compute multiple hashes
  * in parallel by different threads (and the performance for some hash types is
  * reasonable).  Overall, this code is reasonable to use for SHA-crypt and
- * SunMD5 hashes, which are not yet supported by John natively.
+ * SunMD5 hashes, which are not yet supported by non-jumbo John natively.
  */
-#pragma omp parallel for default(none) private(index) shared(count, crypt_out, saved_key, saved_salt)
+#pragma omp parallel for /* default(none) private(index) shared(warned, count, crypt_out, saved_key, saved_salt, stderr) or __iob */
 #endif
-	for (index = 0; index < count; index++)
-		strnzcpy(crypt_out[index], crypt(saved_key[index], saved_salt),
-		    BINARY_SIZE);
+	for (index = 0; index < count; index++) {
+		char *hash = crypt(saved_key[index], saved_salt);
+		if (!hash) {
+#if defined(_OPENMP) && defined(__sun)
+#pragma omp critical
 #endif
+			if (!warned) {
+				fprintf(stderr,
+				    "Warning: crypt() returned NULL\n");
+				warned = 1;
+			}
+			hash = "";
+		}
+		strnzcpy(crypt_out[index], hash, BINARY_SIZE);
+	}
+#endif
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -464,6 +625,88 @@ static int cmp_exact(char *source, int index)
 {
 	return 1;
 }
+#if FMT_MAIN_VERSION > 11
+/*
+ * For generic crypt(3), the algorithm is returned as the first "tunable cost":
+ * 0: unknown (shouldn't happen
+ * 1: descrypt
+ * 2: md5crypt
+ * 3: sunmd5
+ * 4: bcrypt
+ * 5: sha256crypt
+ * 6: sha512crypt
+ * New subformats should be added to the end of the list.
+ * Otherwise, restored sessions might contine cracking different hashes
+ * if the (not yet implemented) option --cost= had been used
+ * when starting that session.
+ */
+static unsigned int c3_subformat_algorithm(void *salt)
+{
+	char *c3_salt;
+
+	c3_salt = salt;
+
+	if (!c3_salt[0] || !c3_salt[1] )
+		return 0;
+	if (!c3_salt[2])
+		return 1;
+	if (c3_salt[0] != '$')
+		return 0;
+	if (c3_salt[1] == '1')
+		return 2;
+	if (c3_salt[1] == 'm')
+		return 3;
+	if (c3_salt[1] == '2' && c3_salt[2] == 'a')
+		return 4;
+	if (c3_salt[1] == '5')
+		return 5;
+	if (c3_salt[1] == '6')
+		return 6;
+
+	return 0;
+}
+static unsigned int  c3_algorithm_specific_cost1(void *salt)
+{
+	unsigned int algorithm, rounds;
+	char *c3_salt;
+
+	c3_salt = salt;
+	algorithm =  c3_subformat_algorithm(salt);
+
+	if(algorithm < 3)
+		/* no tunable cost parameters */
+		return 1;
+
+	switch (algorithm) {
+		case 1:
+			// DES
+			return 25;
+		case 2:
+			// cryptmd5
+			return 1000;
+		case 3: // sun_md5
+			c3_salt = strstr(c3_salt, "rounds=");
+			if (!c3_salt) {
+				return 904+4096;	// default
+			}
+			sscanf(c3_salt, "rounds=%d", &rounds);
+			return rounds+4096;
+		case 4: // bf
+			c3_salt += 4;
+			sscanf(c3_salt, "%d", &rounds);
+			return rounds;
+		case 5:
+		case 6:
+			// sha256crypt and sha512crypt handled the same:  $x$rounds=xxxx$salt$hash  (or $x$salt$hash for 5000 round default);
+			c3_salt += 3;
+			if (strncmp(c3_salt, "rounds=", 7))
+				return 5000;	// default
+			sscanf(c3_salt, "rounds=%d", &rounds);
+			return rounds;
+	}
+	return 1;
+}
+#endif
 
 struct fmt_main fmt_crypt = {
 	{
@@ -472,20 +715,45 @@ struct fmt_main fmt_crypt = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
+#if FMT_MAIN_VERSION > 11
+		{
+			/*
+			 * use algorithm as first tunable cost:
+			 * (0: unknown)
+			 * descrypt, md5crypt, sunmd5, bcrypt, sha512crypt, sha256crypt
+			 */
+			"algorithm [1:descrypt 2:md5crypt 3:sunmd5 4:bcrypt 5:sha256crypt 6:sha512crypt]",
+			"algorithm specific iterations",
+		},
+#endif
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		salt,
+#if FMT_MAIN_VERSION > 11
+		{
+			c3_subformat_algorithm,
+#if 1
+			c3_algorithm_specific_cost1
+#endif
+		},
+#endif
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -496,6 +764,7 @@ struct fmt_main fmt_crypt = {
 			NULL
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,
@@ -515,3 +784,5 @@ struct fmt_main fmt_crypt = {
 		cmp_exact
 	}
 };
+
+#endif // HAVE_CRYPT

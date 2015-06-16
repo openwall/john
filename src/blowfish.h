@@ -11,9 +11,7 @@
 #define UBYTE_08bits  unsigned char
 #define UWORD_16bits  unsigned short
 
-#define SIZEOF_INT 4
-
-#if SIZEOF_INT==4
+#if !defined(SIZEOF_INT) || SIZEOF_INT==4
 #define UWORD_32bits  unsigned int
 #else
 #if SIZEOF_LONG==4

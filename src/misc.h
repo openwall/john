@@ -2,7 +2,12 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-99,2003 by Solar Designer
  *
- * ...with changes in the jumbo patch for MSC, by JimF.
+ * ...with changes in the jumbo patch, by JimF and magnum.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*
@@ -13,22 +18,54 @@
 #define _JOHN_MISC_H
 
 #include <stdio.h>
+#include "jumbo.h"
+
+#if !AC_BUILT
+# include <string.h>
+# ifndef _MSC_VER
+#  include <strings.h>
+# endif
+#else
+# include "autoconfig.h"
+# if STRING_WITH_STRINGS
+#  include <string.h>
+#  include <strings.h>
+# elif HAVE_STRING_H
+#  include <string.h>
+# elif HAVE_STRINGS_H
+#  include <strings.h>
+# endif
+#endif
+
+#ifdef _MSC_VER
+#undef inline
+#define inline static
+#endif
 
 /*
  * Exit on error. Logs the event, closes john.pot and the log file, and
  * terminates the process with non-zero exit status.
  */
-extern void error(void);
+extern void real_error(char *file, int line)
+#ifdef __GNUC__
+	__attribute__ ((__noreturn__));
+#else
+	;
+#endif
+
+#define error(...) real_error(__FILE__, __LINE__)
 
 /*
  * Similar to perror(), but supports formatted output, and calls error().
  */
-extern void pexit(char *format, ...)
+extern void real_pexit(char *file, int line, char *format, ...)
 #ifdef __GNUC__
-	__attribute__ ((format (printf, 1, 2)));
+	__attribute__ ((__noreturn__))
+	__attribute__ ((format (printf, 3, 4)));
 #else
 	;
 #endif
+#define pexit(...) real_pexit(__FILE__, __LINE__, __VA_ARGS__)
 
 /*
  * Attempts to write all the supplied data. Returns the number of bytes
@@ -55,25 +92,44 @@ extern char *strnfcpy(char *dst, const char *src, int size);
 extern char *strnzcpy(char *dst, const char *src, int size);
 
 /*
+ * Similar to the strnzcpy, but returns the length of the string.
+ */
+extern int strnzcpyn(char *dst, const char *src, int size);
+
+/*
  * Similar to strncat(), but total buffer size is supplied, and always NUL
  * terminates the string.
  */
 extern char *strnzcat(char *dst, const char *src, int size);
 
 /*
- * Converts a string to lowercase.
+ * Similar to atoi(), but properly handles unsigned int.  Do not use
+ * atoi() for unsigned data if the data can EVER be over MAX_INT.
  */
-#ifndef _MSC_VER
-extern char *strlwr(char *s);
-extern char *strupr(char *s);
+extern unsigned atou(const char *src);
+
+/*
+ * Similar to strtok(), but properly handles adjacent delmiters as
+ * empty strings.  strtok() in the CRTL merges adjacent delimiters
+ * and sort of 'skips' them. This one also returns 'empty' tokens
+ * for any leading or trailing delims. strtok() strips those off
+ * also.
+ */
+char *strtokm(char *s1, const char *delimit);
+
+#ifndef __has_feature
+# define __has_feature(x) 0
+#endif
+
+#if /* is ASAN enabled? */ \
+    __has_feature(address_sanitizer) /* Clang */ || \
+    defined(__SANITIZE_ADDRESS__)  /* GCC 4.8.x */
+  #define ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS \
+        __attribute__((no_address_safety_analysis)) \
+        __attribute__((noinline))
+  #define WITH_ASAN
 #else
-#define strlwr _strlwr
-#define strupr _strupr
-#define strdup _strdup
-#define strncasecmp _strnicmp
-#define strcasecmp _stricmp
-#pragma warning (disable : 4018 297 )
-#define inline _inline
+  #define ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS
 #endif
 
 #endif

@@ -14,8 +14,23 @@
  * Code is in public domain.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_NETHALFLM;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_NETHALFLM);
+#else
+
 #include <string.h>
 #ifdef _OPENMP
+#ifdef __MIC__
+#ifndef OMP_SCALE
+#define OMP_SCALE	2048
+#endif
+#else
+#ifndef OMP_SCALE
+#define OMP_SCALE	65536
+#endif
+#endif // __MIC__
 #include <omp.h>
 #endif
 
@@ -25,41 +40,39 @@
 #include "unicode.h"
 
 #include <openssl/des.h>
+#include "memdbg.h"
 
 #ifndef uchar
 #define uchar unsigned char
 #endif
 
 #define FORMAT_LABEL         "nethalflm"
-#define FORMAT_NAME          "HalfLM C/R DES"
-#define ALGORITHM_NAME       "nethalflm"
+#define FORMAT_NAME          "HalfLM C/R"
+#define ALGORITHM_NAME       "DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     0
 #define PLAINTEXT_LENGTH     7
 #define BINARY_SIZE          8
+#define BINARY_ALIGN         4
 #define SALT_SIZE            8
+#define SALT_ALIGN           4
 #define CIPHERTEXT_LENGTH    48
 #define TOTAL_LENGTH         12 + 2 * SALT_SIZE + CIPHERTEXT_LENGTH
 
 // these may be altered in init() if running OMP
-// and that formula is subject to change
 #define MIN_KEYS_PER_CRYPT	    1
-#define THREAD_RATIO            256
-#ifdef _OPENMP
-#define MAX_KEYS_PER_CRYPT	    0x10000
-#else
-#define MAX_KEYS_PER_CRYPT	    THREAD_RATIO
-#endif
+#define MAX_KEYS_PER_CRYPT	    1
 
 static struct fmt_tests tests[] = {
+  {"", "G3RG3P00!", {"domain\\username", "", "", "6E1EC36D3417CE9E09A4424309F116C4C991948DAEB4ADAD", "", "1122334455667788"} },
   {"$NETHALFLM$1122334455667788$6E1EC36D3417CE9E09A4424309F116C4C991948DAEB4ADAD", "G3RG3P00!"},
   {"$NETHALFLM$1122334455667788$6E1EC36D3417CE9E09A4424309F116C4C991948DAEB4ADAD", "G3RG3P0"},
   {"$NETHALFLM$1122334455667788$1354FD5ABF3B627B8B49587B8F2BBA0F9F6C5E420824E0A2", "ZEEEZ@1"},
 
-  {"", "G3RG3P00!", {"domain\\username", "", "", "6E1EC36D3417CE9E09A4424309F116C4C991948DAEB4ADAD", "", "1122334455667788"} },
   {"", "G3RG3P0",   {"domain\\username", "", "", "6E1EC36D3417CE9E09A4424309F116C4C991948DAEB4ADAD", "", "1122334455667788"} },
   {"", "ZEEEZ@1",   {"domain\\username", "", "", "1354FD5ABF3B627B8B49587B8F2BBA0F9F6C5E420824E0A2", "", "1122334455667788"} },
-
+  // repeat last hash in exactly the same format that is used in john.pot
+  {"$NETHALFLM$1122334455667788$1354fd5abf3b627b8b49587b8f2bba0f9f6c5e420824e0a2", "ZEEEZ@1"},
   {NULL}
 };
 
@@ -69,37 +82,44 @@ static uchar (*output)[BINARY_SIZE];
 static uchar *challenge;
 
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int n = MIN_KEYS_PER_CRYPT * omp_get_max_threads();
-	if (n < MIN_KEYS_PER_CRYPT)
-		n = MIN_KEYS_PER_CRYPT;
-	if (n > MAX_KEYS_PER_CRYPT)
-		n = MAX_KEYS_PER_CRYPT;
-	pFmt->params.min_keys_per_crypt = n;
-	n = n * n * ((n >> 1) + 1) * THREAD_RATIO;
-	if (n > MAX_KEYS_PER_CRYPT)
-		n = MAX_KEYS_PER_CRYPT;
-	pFmt->params.max_keys_per_crypt = n;
+	int omp_t = omp_get_max_threads();
+
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	saved_pre = mem_calloc_tiny(sizeof(*saved_pre) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	output = mem_calloc_tiny(sizeof(*output) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
+	                         sizeof(*saved_plain));
+	saved_pre = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_pre));
+	output = mem_calloc(self->params.max_keys_per_crypt,
+	                    sizeof(*output));
 }
 
-static int nethalflm_valid(char *ciphertext, struct fmt_main *pFmt)
+static void done(void)
+{
+	MEM_FREE(output);
+	MEM_FREE(saved_pre);
+	MEM_FREE(saved_plain);
+}
+
+static int valid(char *ciphertext, struct fmt_main *self)
 {
   char *pos;
 
   if (strncmp(ciphertext, "$NETHALFLM$", 11)!=0) return 0;
+  if (strlen(ciphertext) < TOTAL_LENGTH) return 0;
   if (ciphertext[27] != '$') return 0;
 
   if (strncmp(&ciphertext[28 + 2 * SALT_SIZE],
               "00000000000000000000000000000000", 32) == 0)
 	  return 0; // This is NTLM ESS C/R
 
-  for (pos = &ciphertext[28]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+  for (pos = &ciphertext[28]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++)
+	  ;
     if (!*pos && pos - ciphertext - 28 == CIPHERTEXT_LENGTH) {
 	    return 1;
     }
@@ -107,7 +127,7 @@ static int nethalflm_valid(char *ciphertext, struct fmt_main *pFmt)
       return 0;
 }
 
-static char *nethalflm_prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *tmp;
 
@@ -124,42 +144,47 @@ static char *nethalflm_prepare(char *split_fields[10], struct fmt_main *pFmt)
 		return split_fields[1];
 
 	// this string suggests we have an improperly formatted NTLMv2
-	if (!strncmp(&split_fields[4][32], "0101000000000000", 16))
-		return split_fields[1];
+	if (strlen(split_fields[4]) > 31) {
+		if (!strncmp(&split_fields[4][32], "0101000000000000", 16))
+			return split_fields[1];
+	}
 
 	tmp = (char *) mem_alloc(12 + strlen(split_fields[3]) + strlen(split_fields[5]) + 1);
 	sprintf(tmp, "$NETHALFLM$%s$%s", split_fields[5], split_fields[3]);
 
-	if (nethalflm_valid(tmp,pFmt)) {
+	if (valid(tmp,self)) {
 		char *cp2 = str_alloc_copy(tmp);
-		free(tmp);
+		MEM_FREE(tmp);
 		return cp2;
 	}
-	free(tmp);
+	MEM_FREE(tmp);
 	return split_fields[1];
 }
 
-static char *nethalflm_split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
   static char out[TOTAL_LENGTH + 1] = {0};
 
-  memcpy(&out, ciphertext, TOTAL_LENGTH);
+  memcpy(out, ciphertext, TOTAL_LENGTH);
   strlwr(&out[10]); /* Exclude: $NETHALFLM$ */
   return out;
 }
 
-static void *nethalflm_get_binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
-  static uchar binary[BINARY_SIZE];
-  int i;
+	static union {
+		unsigned char c[BINARY_SIZE];
+		ARCH_WORD_32 dummy;
+	} binary;
+	int i;
 
-  ciphertext+=28;
-  for (i=0; i<BINARY_SIZE; i++)
-  {
-    binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
-    binary[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
-  }
-  return binary;
+	ciphertext+=28;
+	for (i=0; i<BINARY_SIZE; i++)
+	{
+		binary.c[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
+		binary.c[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
+	}
+	return binary.c;
 }
 
 static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
@@ -178,8 +203,9 @@ static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
   DES_set_key(&key, ks);
 }
 
-static void nethalflm_crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	DES_key_schedule ks;
 	int i;
 
@@ -191,9 +217,10 @@ static void nethalflm_crypt_all(int count)
 		setup_des_key(saved_pre[i], &ks);
 		DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)output[i], &ks, DES_ENCRYPT);
 	}
+	return count;
 }
 
-static int nethalflm_cmp_all(void *binary, int count)
+static int cmp_all(void *binary, int count)
 {
 	int index;
 	for(index=0; index<count; index++)
@@ -202,51 +229,52 @@ static int nethalflm_cmp_all(void *binary, int count)
 	return 0;
 }
 
-static int nethalflm_cmp_one(void *binary, int index)
+static int cmp_one(void *binary, int index)
 {
 	return !memcmp(output[index], binary, BINARY_SIZE);
 }
 
-static int nethalflm_cmp_exact(char *source, int index)
+static int cmp_exact(char *source, int index)
 {
-	return !memcmp(output[index], nethalflm_get_binary(source), BINARY_SIZE);
+	return !memcmp(output[index], get_binary(source), BINARY_SIZE);
 }
 
-static void *nethalflm_get_salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
-  static unsigned char binary_salt[SALT_SIZE];
-  int i;
+	static union {
+		unsigned char c[SALT_SIZE];
+		ARCH_WORD_32 dummy;
+	} out;
+	int i;
 
-  ciphertext += 11;
-  for (i = 0; i < SALT_SIZE; ++i) {
-	  binary_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
-  }
-  return (void*)binary_salt;
+	ciphertext += 11;
+	for (i = 0; i < SALT_SIZE; ++i) {
+		out.c[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
+	}
+	return (void*)out.c;
 }
 
-static void nethalflm_set_salt(void *salt)
+static void set_salt(void *salt)
 {
 	challenge = salt;
 }
 
-static void nethalflm_set_key(char *key, int index)
+static void netsplitlm_set_key(char *key, int index)
 {
 	const unsigned char magic[] = {0x4b, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25};
 	DES_key_schedule ks;
-	int i = 0;
 
-	strncpy((char *)saved_plain[index], key, sizeof(saved_plain[index]));
+	strnzcpyn((char *)saved_plain[index], key, PLAINTEXT_LENGTH + 1);
 
 	/* Upper-case password */
-	for(; i<PLAINTEXT_LENGTH && saved_plain[index][i] != 0 ; i++)
-		saved_plain[index][i] = CP_up[saved_plain[index][i]];
+	enc_strupper((char *)saved_plain[index]);
 
 	/* Generate first 8-bytes of LM hash */
 	setup_des_key(saved_plain[index], &ks);
 	DES_ecb_encrypt((DES_cblock*)magic, (DES_cblock*)saved_pre[index], &ks, DES_ENCRYPT);
 }
 
-static char *nethalflm_get_key(int index)
+static char *get_key(int index)
 {
 	return (char *)saved_plain[index];
 }
@@ -254,31 +282,6 @@ static char *nethalflm_get_key(int index)
 static int salt_hash(void *salt)
 {
 	return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1);
-}
-
-static int binary_hash_0(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xF;
-}
-
-static int binary_hash_1(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
 }
 
 static int get_hash_0(int index)
@@ -306,49 +309,78 @@ static int get_hash_4(int index)
 	return *(ARCH_WORD_32 *)output[index] & 0xFFFFF;
 }
 
+static int get_hash_5(int index)
+{
+	return *(ARCH_WORD_32 *)output[index] & 0xFFFFFF;
+}
+
+static int get_hash_6(int index)
+{
+	return *(ARCH_WORD_32 *)output[index] & 0x7FFFFFF;
+}
+
 struct fmt_main fmt_NETHALFLM = {
-  {
-    FORMAT_LABEL,
-    FORMAT_NAME,
-    ALGORITHM_NAME,
-    BENCHMARK_COMMENT,
-    BENCHMARK_LENGTH,
-    PLAINTEXT_LENGTH,
-    BINARY_SIZE,
-    SALT_SIZE,
-    MIN_KEYS_PER_CRYPT,
-    MAX_KEYS_PER_CRYPT,
-    FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
-    tests
-  }, {
-    init,
-	nethalflm_prepare,
-    nethalflm_valid,
-    nethalflm_split,
-    nethalflm_get_binary,
-    nethalflm_get_salt,
-    {
-	    binary_hash_0,
-	    binary_hash_1,
-	    binary_hash_2,
-	    binary_hash_3,
-	    binary_hash_4
-    },
-    salt_hash,
-    nethalflm_set_salt,
-    nethalflm_set_key,
-    nethalflm_get_key,
-    fmt_default_clear_keys,
-    nethalflm_crypt_all,
-    {
-	    get_hash_0,
-	    get_hash_1,
-	    get_hash_2,
-	    get_hash_3,
-	    get_hash_4
-    },
-    nethalflm_cmp_all,
-    nethalflm_cmp_one,
-    nethalflm_cmp_exact
-  }
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		0,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		tests
+	}, {
+		init,
+		done,
+		fmt_default_reset,
+		prepare,
+		valid,
+		split,
+		get_binary,
+		get_salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_default_source,
+		{
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
+		},
+		salt_hash,
+		NULL,
+		set_salt,
+		netsplitlm_set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };
+
+#endif /* plugin stanza */

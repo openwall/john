@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2003,2006,2011 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*
@@ -26,6 +31,11 @@
 #define BF_body_generic     _BF_body_generic
 #define BF_current			_BF_current
 #define CPU_detect			_CPU_detect
+#endif
+
+#if MD5_ASM == 0
+#undef MD5_body
+#define MD5_body MD5_body_unused
 #endif
 
 /*

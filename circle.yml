@@ -1,0 +1,12 @@
+machine:
+  services:
+    - docker
+
+dependencies:
+  pre:
+    - docker pull dhiru/fedora
+    - docker run --name fedora -v /home/ubuntu/JohnTheRipper:/JohnTheRipper -i -t dhiru/fedora /JohnTheRipper/src/CircleCI-MinGW.sh
+
+general:
+  artifacts:
+    - /home/ubuntu/JohnTheRipper/JtR-MinGW.zip

@@ -1,6 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2012 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #include <string.h>
@@ -11,9 +16,10 @@
 #include "DES_std.h"
 #include "common.h"
 #include "formats.h"
+#include "memdbg.h"
 
-#define FORMAT_LABEL			"afs"
-#define FORMAT_NAME			"Kerberos AFS DES"
+#define FORMAT_LABEL			"AFS"
+#define FORMAT_NAME			"Kerberos AFS"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		8
@@ -36,7 +42,9 @@ static struct fmt_tests tests[] = {
 #define ALGORITHM_NAME			DES_STD_ALGORITHM_NAME
 
 #define BINARY_SIZE			(3 * ARCH_SIZE)
+#define BINARY_ALIGN			ARCH_SIZE
 #define SALT_SIZE			40
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		0x80
 #define MAX_KEYS_PER_CRYPT		0x100
@@ -90,14 +98,14 @@ static union {
 } AFS_long_KS;
 static DES_binary AFS_long_IV_binary;
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	ARCH_WORD_32 block[2];
 #if !ARCH_LITTLE_ENDIAN
 	ARCH_WORD_32 tmp;
 #endif
 
-	DES_std_init(pFmt);
+	DES_std_init();
 
 	AFS_salt_binary = DES_std_get_salt(AFS_SALT);
 
@@ -113,7 +121,7 @@ static void init(struct fmt_main *pFmt)
 	memcpy(AFS_long_IV_binary, DES_IV, sizeof(DES_binary));
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 	int index, count;
@@ -279,8 +287,9 @@ static char *get_key(int index)
 	return buffer[index].key;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	const int count = *pcount;
 	int index, pos, length;
 	char xor[8];
 	ARCH_WORD_32 space[(PLAINTEXT_LENGTH + SALT_SIZE + 8) / 4 + 1];
@@ -376,6 +385,8 @@ static void crypt_all(int count)
 		buffer[index].aligned.binary[0] = block[0] | 0x01010101;
 		buffer[index].aligned.binary[1] = block[1] | 0x01010101;
 	}
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -436,20 +447,32 @@ struct fmt_main fmt_AFS = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -460,6 +483,7 @@ struct fmt_main fmt_AFS = {
 			NULL
 		},
 		fmt_default_salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,

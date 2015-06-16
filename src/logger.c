@@ -1,19 +1,30 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004,2010 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2010,2013 by Solar Designer
  *
- * ...with changes in the jumbo patch for mingw and MSC and
- * introducing field_sep, by JimF.
+ * ...with changes in the jumbo patch, by JimF and magnum.
  *
- * ...and with even more changes in the jumbo patch for MPI support, by magnum.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE /* for fileno(3) and fsync(2) */
+#endif
+
+#define NEED_OS_FLOCK
+#include "os.h"
+
 #include <stdio.h>
-#ifndef _MSC_VER
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
+#if !AC_BUILT || HAVE_SYS_FILE_H
 #include <sys/file.h>
-#else
+#endif
+#if _MSC_VER
 #include <io.h>
 #pragma warning ( disable : 4996 )
 #define S_IRUSR _S_IREAD
@@ -21,13 +32,13 @@
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifndef _MSC_VER
-#include <sys/file.h>
-#endif
+#if (!AC_BUILT || HAVE_FCNTL_H)
 #include <fcntl.h>
+#endif
 #include <errno.h>
 #include <stdarg.h>
 #include <string.h>
+#include <signal.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -35,15 +46,21 @@
 #include "path.h"
 #include "memory.h"
 #include "status.h"
+#include "options.h"
 #include "config.h"
 #include "options.h"
 #include "unicode.h"
+#include "dynamic.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
+#include "cracker.h"
+#include "signals.h"
+#include "memdbg.h"
 
 static int cfg_beep;
 static int cfg_log_passwords;
+static int cfg_showcand;
 
 /*
  * Note: the file buffer is allocated as (size + LINE_BUFFER_SIZE) bytes
@@ -88,19 +105,90 @@ static void log_file_init(struct log_file *f, char *name, int size)
 static void log_file_flush(struct log_file *f)
 {
 	int count;
+	long int pos_b4 = 0;
+#if FCNTL_LOCKS
+	struct flock lock;
+#endif
 
 	if (f->fd < 0) return;
 
 	count = f->ptr - f->buffer;
 	if (count <= 0) return;
 
-#if defined(LOCK_EX) && OS_FLOCK
-	if (flock(f->fd, LOCK_EX)) pexit("flock");
+#if OS_FLOCK || FCNTL_LOCKS
+#ifdef LOCK_DEBUG
+	fprintf(stderr, "%s(%u): Locking %s...\n", __FUNCTION__, options.node_min, f->name);
 #endif
+#if FCNTL_LOCKS
+	memset(&lock, 0, sizeof(lock));
+	lock.l_type = F_WRLCK;
+	while (fcntl(f->fd, F_SETLKW, &lock)) {
+		if (errno != EINTR)
+			pexit("fcntl(F_WRLCK)");
+	}
+#else
+	while (flock(f->fd, LOCK_EX)) {
+		if (errno != EINTR)
+			pexit("flock(LOCK_EX)");
+	}
+#endif
+#ifdef LOCK_DEBUG
+	fprintf(stderr, "%s(%u): Locked %s exclusively\n", __FUNCTION__, options.node_min, f->name);
+#endif
+#endif
+
+	if (f == &pot) {
+		pos_b4 = (long int)lseek(f->fd, 0, SEEK_END);
+#if defined(LOCK_DEBUG)
+		fprintf(stderr, "%s(%u): writing %d at %ld, ending at %ld to file %s\n", __FUNCTION__, options.node_min, count, pos_b4, pos_b4+count, f->name);
+#endif
+	}
+
 	if (write_loop(f->fd, f->buffer, count) < 0) pexit("write");
 	f->ptr = f->buffer;
-#if defined(LOCK_EX) && OS_FLOCK
-	if (flock(f->fd, LOCK_UN)) pexit("flock");
+
+	if (f == &pot && pos_b4 == crk_pot_pos)
+		crk_pot_pos += count;
+
+#if OS_FLOCK || FCNTL_LOCKS
+#ifdef LOCK_DEBUG
+	fprintf(stderr, "%s(%u): Unlocking %s\n", __FUNCTION__, options.node_min, f->name);
+#endif
+#if FCNTL_LOCKS
+	lock.l_type = F_UNLCK;
+	fcntl(f->fd, F_SETLK, &lock);
+#else
+	if (flock(f->fd, LOCK_UN))
+		pexit("flock(LOCK_UN)");
+#endif
+#endif
+
+#ifdef SIGUSR2
+	/* We don't really send a sync trigger "at crack" but
+	   after it's actually written to the pot file. That is, now. */
+	if (f == &pot && !event_abort && options.reload_at_crack) {
+#ifdef HAVE_MPI
+		if (mpi_p > 1) {
+			int i;
+
+			for (i = 0; i < mpi_p; i++) {
+				if (i == mpi_id)
+					continue;
+				if (mpi_req[i] == NULL)
+					mpi_req[i] = mem_alloc_tiny(
+						sizeof(MPI_Request),
+						MEM_ALIGN_WORD);
+				else
+					if (*mpi_req[i] != MPI_REQUEST_NULL)
+						continue;
+				MPI_Isend("r", 1, MPI_CHAR, i, JOHN_MPI_RELOAD,
+				          MPI_COMM_WORLD, mpi_req[i]);
+			}
+		} else
+#endif
+		if (options.fork)
+			raise(SIGUSR2);
+	}
 #endif
 }
 
@@ -120,16 +208,19 @@ static void log_file_fsync(struct log_file *f)
 	if (f->fd < 0) return;
 
 	log_file_flush(f);
-#if !defined(__CYGWIN32__) && !defined(__MINGW32__) && !defined(_MSC_VER)
+#if HAVE_WINDOWS_H==0
 	if (fsync(f->fd)) pexit("fsync");
 #endif
 }
 
-static void log_file_done(struct log_file *f)
+static void log_file_done(struct log_file *f, int do_sync)
 {
 	if (f->fd < 0) return;
 
-	log_file_fsync(f);
+	if (do_sync)
+		log_file_fsync(f);
+	else
+		log_file_flush(f);
 	if (close(f->fd)) pexit("close");
 	f->fd = -1;
 
@@ -138,20 +229,29 @@ static void log_file_done(struct log_file *f)
 
 static int log_time(void)
 {
+	int count1, count2;
 	unsigned int time;
+
+	count1 = 0;
+#ifndef HAVE_MPI
+	if (options.fork) {
+#else
+	if (options.fork || mpi_p > 1) {
+#endif
+		count1 = (int)sprintf(log.ptr, "%u ", options.node_min);
+		if (count1 < 0)
+			return count1;
+	}
 
 	time = pot.fd >= 0 ? status_get_time() : status_restored_time;
 
-#ifdef HAVE_MPI
-	if (mpi_p > 1)
-		return (int)sprintf(log.ptr, "%u %u:%02u:%02u:%02u ", mpi_id,
-		    time / 86400, time % 86400 / 3600,
-		    time % 3600 / 60, time % 60);
-	else
-#endif
-	return (int)sprintf(log.ptr, "%u:%02u:%02u:%02u ",
-		time / 86400, time % 86400 / 3600,
-		time % 3600 / 60, time % 60);
+	count2 = (int)sprintf(log.ptr + count1, "%u:%02u:%02u:%02u ",
+	    time / 86400, time % 86400 / 3600,
+	    time % 3600 / 60, time % 60);
+	if (count2 < 0)
+		return count2;
+
+	return count1 + count2;
 }
 
 void log_init(char *log_name, char *pot_name, char *session)
@@ -173,39 +273,99 @@ void log_init(char *log_name, char *pot_name, char *session)
 
 	cfg_log_passwords = cfg_get_bool(SECTION_OPTIONS, NULL,
 	                                 "LogCrackedPasswords", 0);
+	cfg_showcand = cfg_get_bool(SECTION_OPTIONS, NULL,
+	                            "StatusShowCandidates", 0);
 
 	in_logger = 0;
 }
 
-void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain, char field_sep)
+static char *components(char *string, int len)
+{
+	static char out[16];
+	unsigned char *p = (unsigned char*)string;
+	unsigned char c;
+	int l, u, d, s, h;
+
+	l = u = d = s = h = 0;
+
+	while ((c = *p++)) {
+		if (c >= 'a' && c <= 'z')
+			l = 1;
+		else if (c >= 'A' && c <= 'Z')
+			u = 1;
+		else if (c >= '0' && c <= '9')
+			d = 1;
+		else if (c < 128)
+			s = 1;
+		else
+			h = 1;
+	}
+
+	sprintf(out, "L%d-%s%s%s%s%s", len, l ? "?l" : "", d ? "?d" : "",
+	        u ? "?u" : "", s ? "?s" : "", h ? "?h" : "");
+
+	return out;
+}
+
+void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
+               char *store_plain, char field_sep, int index)
 {
 	int count1, count2;
 	int len;
 	char spacer[] = "                ";
+	char *secret = "";
+	char uid_sep[2] = { 0 };
+	char *uid_out = "";
 
-	// This is because printf("%-16s") does not line up multibyte UTF-8.
-	// We need to count characters, not octets.
-	if (options.utf8 || options.report_utf8)
+/* This is because printf("%-16s") does not line up multibyte UTF-8.
+   We need to count characters, not octets. */
+	if (pers_opts.target_enc == UTF_8 || pers_opts.report_utf8)
 		len = strlen8((UTF8*)rep_plain);
 	else
 		len = strlen(rep_plain);
-	spacer[len > 16 ? 0 : 16 - len] = 0;
 
-#ifdef HAVE_MPI
-	// All but node 0 has stdout closed so we output to stderr
-	if (mpi_p > 1)
-		fprintf(stderr, "%s%s (%s)\n", rep_plain, spacer, login);
-	else
-#endif
-		printf("%s%s (%s)\n", rep_plain, spacer, login);
+	if (options.show_uid_on_crack && uid && *uid) {
+		uid_sep[0] = field_sep;
+		uid_out = uid;
+	}
+
+	if (options.verbosity > 1) {
+		if (options.secure) {
+			secret = components(rep_plain, len);
+			printf("%-16s (%s%s%s)\n",
+			       secret, login, uid_sep, uid_out);
+		} else {
+			spacer[len > 16 ? 0 : 16 - len] = 0;
+
+			printf("%s%s (%s%s%s)\n",
+			       rep_plain, spacer, login, uid_sep, uid_out);
+
+			if (options.fork)
+				fflush(stdout);
+		}
+	}
 
 	in_logger = 1;
 
-	if (pot.fd >= 0 && ciphertext &&
-	    strlen(ciphertext) + strlen(store_plain) <= LINE_BUFFER_SIZE - 3) {
-		count1 = (int)sprintf(pot.ptr,
-			"%s%c%s\n", ciphertext, field_sep, store_plain);
-		if (count1 > 0) pot.ptr += count1;
+	if (pot.fd >= 0 && ciphertext ) {
+#ifndef DYNAMIC_DISABLED
+		if (!strncmp(ciphertext, "$dynamic_", 9))
+			ciphertext = dynamic_FIX_SALT_TO_HEX(ciphertext);
+#endif
+		if (strlen(ciphertext) + strlen(store_plain) <= LINE_BUFFER_SIZE - 3) {
+			if (options.secure) {
+				secret = components(store_plain, len);
+				count1 = (int)sprintf(pot.ptr,
+				                      "%s%c%s\n",
+				                      ciphertext,
+				                      field_sep,
+				                      secret);
+			} else
+				count1 = (int)sprintf(pot.ptr,
+				                      "%s%c%s\n", ciphertext,
+				                      field_sep, store_plain);
+			if (count1 > 0) pot.ptr += count1;
+		}
 	}
 
 	if (log.fd >= 0 &&
@@ -213,12 +373,24 @@ void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain
 		count1 = log_time();
 		if (count1 > 0) {
 			log.ptr += count1;
+			count2 = (int)sprintf(log.ptr, "+ Cracked %s%s%s", login, uid_sep, uid_out);
+
+			if (options.secure) {
+				secret = components(rep_plain, len);
+				count2 += (int)sprintf(log.ptr + count2,
+				                       ": %s", secret);
+			} else
 			if (cfg_log_passwords)
-				count2 = (int)sprintf(log.ptr,
-				    "+ Cracked %s: %s\n", login, rep_plain);
-			else
-				count2 = (int)sprintf(log.ptr,
-				    "+ Cracked %s\n", login);
+				count2 += (int)sprintf(log.ptr + count2,
+				                       ": %s", rep_plain);
+			if (cfg_showcand)
+				count2 += (int)sprintf(log.ptr + count2,
+				                       " as candidate #%llu",
+				                       ((unsigned long long)
+				                       status.cands.hi << 32) +
+				                       status.cands.lo + index + 1);
+			count2 += (int)sprintf(log.ptr + count2, "\n");
+
 			if (count2 > 0)
 				log.ptr += count2;
 			else
@@ -239,10 +411,33 @@ void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain
 		write_loop(fileno(stderr), "\007", 1);
 }
 
-void log_event(char *format, ...)
+void log_event(const char *format, ...)
 {
 	va_list args;
 	int count1, count2;
+
+	if (options.flags & FLG_LOG_STDERR) {
+		unsigned int time;
+
+#ifndef HAVE_MPI
+		if (options.fork)
+#else
+		if (options.fork || mpi_p > 1)
+#endif
+			fprintf(stderr, "%u ", options.node_min);
+
+		time = pot.fd >= 0 ? status_get_time() : status_restored_time;
+
+		fprintf(stderr, "%u:%02u:%02u:%02u ",
+		        time / 86400, time % 86400 / 3600,
+		        time % 3600 / 60, time % 60);
+
+		va_start(args, format);
+		vfprintf(stderr, format, args);
+		va_end(args);
+		fprintf(stderr, "\n");
+		return;
+	}
 
 	if (log.fd < 0) return;
 
@@ -285,7 +480,10 @@ void log_flush(void)
 {
 	in_logger = 1;
 
-	log_file_fsync(&log);
+	if (options.fork)
+		log_file_flush(&log);
+	else
+		log_file_fsync(&log);
 	log_file_fsync(&pot);
 
 	in_logger = 0;
@@ -300,8 +498,8 @@ void log_done(void)
 	if (in_logger) return;
 	in_logger = 1;
 
-	log_file_done(&log);
-	log_file_done(&pot);
+	log_file_done(&log, !options.fork);
+	log_file_done(&pot, 1);
 
 	in_logger = 0;
 }

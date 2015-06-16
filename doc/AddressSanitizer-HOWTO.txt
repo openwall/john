@@ -1,0 +1,50 @@
+Building JtR with AddressSanitizer (or ASan)
+--------------------------------------------
+
+./configure --enable-asan
+
+make
+
+../run/john --test
+
+
+Disabling instrumentation of a particular function
+--------------------------------------------------
+Use "ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS" function attribute to disable
+instrumentation of a particular function.
+
+Current (Dec 2014) Supported build environments for ASan
+--------------------------------------------------------
+ASan is only supported under Linux or Apple environments, for Clang, and GCC 4.8 or
+newer. It is not supported (at the current time) under MinGW or Cygwin, although it
+will build on Cygwin's compiler, there simply is no supporting libasan.so library.
+
+Parsing output
+--------------
+$ wget http://llvm.org/klaus/compiler-rt/raw/release_35/lib/asan/scripts/asan_symbolize.py
+$ chmod +x asan_symbolize.py
+$ mv -vi asan_symbolize.py /usr/local/bin
+
+In a better world, this would have worked:
+$ export ASAN_SYMBOLIZER_PATH=/usr/local/bin/asan_symbolize.py
+
+...but we seem to need to paste the stack trace into asan_symbolize.py:
+
+$ ./asan_symbolize.py
+    #0 0xa094e6 (/home/fd/git/JtR/run/john+0xa094e6)
+    #1 0xa0a846 (/home/fd/git/JtR/run/john+0xa0a846)
+    #2 0x9ebb2f (/home/fd/git/JtR/run/john+0x9ebb2f)
+    #3 0x9edb08 (/home/fd/git/JtR/run/john+0x9edb08)
+    #4 0xa16555 (/home/fd/git/JtR/run/john+0xa16555)
+    #5 0xa179bf (/home/fd/git/JtR/run/john+0xa179bf)
+    #6 0x3bc2621d64 (/usr/lib64/libc-2.18.so+0x21d64)
+    #7 0x405df0 (/home/fd/git/JtR/run/john+0x405df0)
+llvm-symbolizer: for the -functions option: 'short' is invalid value for boolean argument! Try 0 or 1
+    #0 0xa094e6 in fmt_self_test_body /home/fd/git/JtR/src/formats.c:405
+    #1 0xa0a846 in fmt_self_test /home/fd/git/JtR/src/formats.c:611
+    #2 0x9ebb2f in benchmark_format /home/fd/git/JtR/src/bench.c:171
+    #3 0x9edb08 in benchmark_all /home/fd/git/JtR/src/bench.c:537 (discriminator 3)
+    #4 0xa16555 in john_run /home/fd/git/JtR/src/john.c:1282
+    #5 0xa179bf in main /home/fd/git/JtR/src/john.c:1651
+    #6 0x3bc2621d64 in ?? ??:0
+    #7 0x405df0 in _start ??:?

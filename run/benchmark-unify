@@ -1,0 +1,244 @@
+#!/usr/bin/perl -w
+#
+# John the Ripper benchmark output conversion tool, revision 1
+# Copyrigth (c) 2012, Frank Dittrich
+# Some code might be borrowed from the relbench script,
+# Copyright (2) 2011 Solar Designer, because the code has
+# originally been added as a patch to relbench.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.  (This is a heavily cut-down "BSD license".)
+#
+# The script is used to unify the benchmark (./john --test) output
+# of different John the Ripper versions (official or Jumbo)
+# so that the format names match those used in the newest (Jumbo) version.
+#
+# This allows to use two files with benchmark output to be used
+# with relbench.
+#
+# This Perl script reads "john --test" benchmark output from STDIN
+# and writes the converted benchmark output to STDOUT.
+#
+# You can either use
+#
+# ./john --test > benchmark-orig.txt
+#
+# ./benchmark-unify < benchmark-orig.txt > benchmark-converted.txt
+#
+# Or, you can use
+#
+# ./john --test | ./benchmark-unify > benchmark-converted.txt
+#
+# in case you don't need the original file
+#
+# If you want to create a file with benchmark output and see the
+# benchmark output on the screen while the benchmark runs, you can
+# also use
+#
+# ./john --test | ./benchmark-unify | tee benchmark-converted.txt
+#
+# Two of those converted benchmark output files can be used with
+# relbench, usually resulting in a higher number of matching
+# format names which allow to compare the benchmark results
+# of different benchmark runs.
+#
+
+sub parse
+{
+	chomp;
+	# john-1.7.6-jumbo-12 still used md5_gen(n) instead of dynamic_n
+	s/^Benchmarking: +md5_gen\(([0-9]+)\):? +/Benchmarking: dynamic_$1: /;
+	s/^(Benchmarking: dynamic_[0-9]+):? ([^[]+)\[/$1 [$2/;
+	($name,$end) = /^Benchmarking: ([^\[]*[^ ]) +(\[.*\].*)$/;
+	#print "name=[$name] end=[$end]\n";
+	if (defined($name) && defined($end)) {
+		$name =~ s/\s+/ /g;
+		$end =~ s/\s+/ /g;
+		if (defined($renamed{$name})) {
+			$name = $renamed{$name};
+		}
+		print "Benchmarking: $name $end\n";
+	}
+	else {
+		print "$_\n";
+	}
+}
+
+$_ = '';
+
+while(<DATA>) {
+	chomp;
+	($old_format, $new_format) = /^(.*)	(.*)$/;
+	if(defined($new_format) && defined($old_format)) {
+		# FIXME: Should I check that no format name appears
+		#        both as an old name and as a new name?
+		#        I don't want to map
+		#        old -> new -> even newer
+		#        or old -> new and new -> old
+		$renamed{$old_format} = $new_format;
+	}
+}
+
+$_ = '';
+
+while (<>) {
+	parse();
+}
+
+# Mapping old format names to new ones, separated by \t
+# old	new
+# Currently not mapped john-1.7.9-jumbo-5 format names:
+#
+# HMAC MD5	HMAC MD5
+# format name unchanged, but benchmark changed from Raw: to
+# Only one salt: / Many salts:
+#
+# ssh	SSH RSA/DSA
+# test vector has changed: (one 2048-bit RSA and one 1024-bit DSA key)
+#
+# For readability, please keep this list sorted by old format name
+# (ignoring case, so use sort -f or sort --ignore-case, please)
+__DATA__
+bf-opencl, OpenBSD Blowfish (x32)	bcrypt-opencl ("$2a$05", 32 iterations)
+BSDI DES (x725)	bsdicrypt, BSDI crypt(3) ("_J9..", 725 iterations)
+Cisco PIX MD5	pix-md5, Cisco PIX
+CRC-32	CRC32
+crypt-MD5	md5crypt, crypt(3) $1$
+DIGEST-MD5	dmd5, DIGEST-MD5 C/R
+DIGEST-MD5 C/R	dmd5, DIGEST-MD5 C/R
+Django PBKDF2-HMAC-SHA-256 (x10000)	Django (x10000)
+DragonFly BSD $3$ SHA-256 w/ bug, 32-bit	dragonfly3-32, DragonFly BSD $3$ w/ bug, 32-bit
+DragonFly BSD $3$ SHA-256 w/ bug, 64-bit	dragonfly3-64, DragonFly BSD $3$ w/ bug, 64-bit
+DragonFly BSD $4$ SHA-512 w/ bugs, 32-bit	dragonfly4-32, DragonFly BSD $4$ w/ bugs, 32-bit
+DragonFly BSD $4$ SHA-512 w/ bugs, 64-bit	dragonfly4-64, DragonFly BSD $4$ w/ bugs, 64-bit
+Drupal 7 $S$ SHA-512 (x16385)	Drupal7, $S$ (x16385)
+Eggdrop	bfegg, Eggdrop
+Eggdrop Blowfish	bfegg, Eggdrop
+EPiServer salted SHA-1/SHA-256	EPiServer
+EPiServer SID Hashes	EPI, EPiServer SID
+EPiServer SID salted SHA-1	EPI, EPiServer SID
+FreeBSD MD5	md5crypt, crypt(3) $1$
+generic crypt(3)	crypt, generic crypt(3)
+generic crypt(3) DES	crypt, generic crypt(3)
+Generic salted MD4	md4-gen, Generic salted MD4
+Generic salted SHA-1	sha1-gen, Generic salted SHA-1
+GOST R 34.11-94	gost, GOST R 34.11-94
+HalfLM C/R DES	nethalflm, HalfLM C/R
+HMAC MD5	HMAC-MD5
+HMAC SHA-1	HMAC-SHA1
+HMAC SHA-224	HMAC-SHA224
+HMAC SHA-256	HMAC-SHA256
+HMAC SHA-384	HMAC-SHA384
+HMAC SHA-512	HMAC-SHA512
+hmailserver	hMailServer
+hMailServer salted SHA-256	hMailServer
+HTTP Digest access authentication	hdaa, HTTP Digest access authentication
+HTTP Digest access authentication MD5	hdaa, HTTP Digest access authentication
+Invision Power Board 2.x salted MD5	ipb2, Invision Power Board 2.x
+IPB2 MD5	ipb2, Invision Power Board 2.x
+KeePass SHA-256 AES	KeePass
+Kerberos AFS DES	AFS, Kerberos AFS
+Kerberos v4 TGT	krb4, Kerberos v4 TGT
+Kerberos v4 TGT DES	krb4, Kerberos v4 TGT
+Kerberos v5 TGT	krb5, Kerberos v5 TGT
+Kerberos v5 TGT 3DES	krb5, Kerberos v5 TGT
+KRB5 aes256-cts-hmac-sha1-96	Kerberos 5 db etype 18 aes256-cts-hmac-sha1-96
+KRB5 arcfour-hmac	Kerberos 5 db etype 23 rc4-hmac
+LM C/R DES	netlm, LM C/R
+LM DES	LM
+LMv2 C/R MD4	netlmv2, LMv2 C/R
+LMv2 C/R MD4 HMAC-MD5	netlmv2, LMv2 C/R
+Lotus Notes/Domino 5	lotus5, Lotus Notes/Domino 5
+Lotus Notes/Domino 6 More Secure Internet Password	dominosec, Lotus Notes/Domino 6 More Secure Internet Password
+Lotus5	lotus5, Lotus Notes/Domino 5
+M$ Cache Hash	mscash, MS Cache Hash (DCC)
+M$ Cache Hash (DCC) MD4	mscash, MS Cache Hash (DCC)
+M$ Cache Hash 2 (DCC2)	mscash2, MS Cache Hash 2 (DCC2)
+M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1	mscash2, MS Cache Hash 2 (DCC2)
+M$ Cache Hash MD4	mscash, MS Cache Hash (DCC)
+Mac OS X 10.4 - 10.6 salted SHA-1	xsha, Mac OS X 10.4 - 10.6
+Mac OS X 10.7+ salted SHA-512	xsha512, Mac OS X 10.7
+Mac OS X Keychain PBKDF2-HMAC-SHA-1 3DES	keychain, Mac OS X Keychain
+md5(unicode($p))	Raw-MD5u
+MediaWiki -- md5($s.'-'.md5($p))	MediaWiki
+MediaWiki md5($s.'-'.md5($p))	MediaWiki
+More Secure Internet Password	Lotus Notes/Domino 6 More Secure Internet Password
+Mozilla SHA-1 3DES	Mozilla (key3.db) SHA-1 3DES
+MS Kerberos 5 AS-REQ Pre-Auth	krb5pa-md5, Kerberos 5 AS-REQ Pre-Auth etype 23
+MS Kerberos 5 AS-REQ Pre-Auth MD4 MD5 RC4	krb5pa-md5, Kerberos 5 AS-REQ Pre-Auth etype 23
+MS SQL 2005 SHA-1	mssql05, MS SQL 2005
+MS SQL SHA-1	mssql, MS SQL
+MS-SQL	mssql, MS SQL
+MS-SQL05	mssql05, MS SQL 2005
+MSCHAPv2 C/R MD4 DES	MSCHAPv2, C/R
+mschapv2-naive, MSCHAPv2 C/R	MSCHAPv2, C/R
+MySQL	mysql, MySQL pre-4.1
+MySQL 4.1 double-SHA-1	mysql-sha1, MySQL 4.1+
+MySQL 4.1+ double-SHA-1	mysql-sha1, MySQL 4.1+
+MySQL pre-4.1	mysql, MySQL pre-4.1
+MYSQL_fast	mysql, MySQL pre-4.1
+netntlm-naive, NTLMv1 C/R	netntlmv2, NTLMv2 C/R
+Netscape LDAP SHA	nsldap, Netscape LDAP {SHA}
+Netscape LDAP SHA-1	nsldap, Netscape LDAP {SHA}
+Netscreen MD5	md5ns, Netscreen
+NT MD4	NT
+NT v2	NT
+NT-old	NT
+NTLMv1 C/R MD4 DES	netntlm, NTLMv1 C/R
+NTLMv1 C/R MD4 DES (ESS MD5)	netntlm, NTLMv1 C/R
+NTLMv2 C/R MD4 HMAC-MD5	netntlmv2, NTLMv2 C/R
+ODF SHA-1 Blowfish	ODF
+ODF SHA-1 Blowfish / SHA-256 AES	ODF
+Office 2007/2010 (SHA-1) / 2013 (SHA-512), with AES	Office, 2007/2010 (SHA-1) / 2013 (SHA-512), with AES
+Office 2007/2010 SHA-1/AES	Office, 2007/2010 (SHA-1) / 2013 (SHA-512), with AES
+OpenBSD Blowfish (x32)	bcrypt ("$2a$05", 32 iterations)
+Oracle	oracle, Oracle 10
+Oracle 10 DES	oracle, Oracle 10
+Oracle 11g	oracle11, Oracle 11g
+Oracle 11g SHA-1	oracle11, Oracle 11g
+osCommerce md5($salt.$pass)	osc, osCommerce
+Password Safe SHA-256	pwsafe, Password Safe
+pdf	PDF
+PDF MD5 RC4	PDF
+PDF MD5 SHA-2 RC4 / AES	PDF
+PHPass MD5	phpass ($P$9)
+phpass MD5 ($P$9)	phpass ($P$9)
+PHPS -- md5(md5($pass).$salt)	PHPS
+PHPS md5(md5($pass).$salt)	PHPS
+PIX MD5	pix-md5, Cisco PIX
+pkzip	PKZIP
+Post.Office MD5	po, Post.Office
+RACF DES	RACF
+rar	rar, RAR3 (4 characters)
+RAR3 SHA-1 AES (4 characters)	rar, RAR3 (4 characters)
+Raw MD4	Raw-MD4
+Raw MD5	Raw-MD5
+Raw SHA	Raw-SHA, "SHA-0"
+Raw SHA-0	Raw-SHA, "SHA-0"
+Raw SHA-1	Raw-SHA1
+Raw SHA-1 LinkedIn	Raw-SHA1-Linkedin
+Raw SHA-224	Raw-SHA224
+Raw SHA-256	Raw-SHA256
+Raw SHA-384	Raw-SHA384
+Raw SHA-512	Raw-SHA512
+Raw-SHA256-ng	Raw-SHA256
+Raw-SHA512-ng	Raw-SHA512
+Salted SHA-1	Salted-SHA1
+SAP BCODE	sapb, SAP CODVN B (BCODE)
+SAP CODVN B (BCODE)	sapb, SAP CODVN B (BCODE)
+SAP CODVN F/G (PASSCODE)	sapg, SAP CODVN F/G (PASSCODE)
+SAP CODVN G (PASSCODE)	sapg, SAP CODVN F/G (PASSCODE)
+sha256crypt (rounds=5000)	sha256crypt, crypt(3) $5$ (rounds=5000)
+sha512crypt (rounds=5000)	sha512crypt, crypt(3) $6$ (rounds=5000)
+SIP MD5	SIP
+SSH RSA/DSA (one 2048-bit RSA and one 1024-bit DSA key)	SSH (one 2048-bit RSA and one 1024-bit DSA key)
+Sybase ASE salted SHA-256	sybasease, Sybase ASE
+sybasease	sybasease, Sybase ASE
+Traditional DES	descrypt, traditional crypt(3)
+Tripcode DES	tripcode
+VNC DES	VNC
+WinZip PBKDF2-HMAC-SHA-1	ZIP, WinZip
+WoltLab BB3 salted SHA-1	wbb3, WoltLab BB3
+WPA-PSK PBKDF2-HMAC-SHA-1	wpapsk, WPA/WPA2 PSK
+WPA/WPA2 PSK PBKDF2-HMAC-SHA-1	wpapsk, WPA/WPA2 PSK
+zip	ZIP, WinZip

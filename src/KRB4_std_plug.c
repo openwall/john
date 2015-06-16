@@ -13,12 +13,18 @@
  * service password database.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #ifdef KRB4_USE_SYSTEM_CRYPT
 #define _XOPEN_SOURCE 4 /* for crypt(3) */
 #define _XOPEN_SOURCE_EXTENDED
 #define _XOPEN_VERSION 4
 #define _XPG4_2
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #endif
 
 #include <stdio.h>
@@ -27,9 +33,10 @@
 #include <openssl/des.h>
 
 #include "KRB4_std.h"
+#include "memdbg.h"
 
 #ifndef des_fixup_key_parity
-#define des_fixup_key_parity	des_set_odd_parity
+#define des_fixup_key_parity	DES_set_odd_parity
 #endif
 
 static void
@@ -49,9 +56,6 @@ afs_cmu_StringToKey (char *str, char *cell, DES_cblock *key)
     char  password[8+1];	/* crypt is limited to 8 chars anyway */
     int   i;
     int   passlen;
-
-    memset(key, 0, sizeof(key));
-    memset(password, 0, sizeof(password));
 
     strncpy (password, cell, 8);
     password[8] = '\0';

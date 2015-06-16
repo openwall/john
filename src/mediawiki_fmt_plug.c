@@ -3,7 +3,7 @@
  * in 2011. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright © 2011 Jim Fougeron
+ * null and void, then the software is Copyright (c) 2011 Jim Fougeron
  * and it is hereby released to the general public under the following
  * terms:
  *
@@ -39,15 +39,27 @@ userName2:$B$107$dd494cb03ac1c5b8f8d2dddafca2f7a6:1552:0::emailaddress@gmail.com
  *
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+#ifndef DYNAMIC_DISABLED
+
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_mediawiki;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_mediawiki);
+#else
 
 #include <string.h>
 
 #include "common.h"
 #include "formats.h"
 #include "dynamic.h"
+#include "options.h"
+#include "memdbg.h"
 
-#define FORMAT_LABEL		"mediawiki"
-#define FORMAT_NAME			"MediaWiki -- md5($s.'-'.md5($p))"
+#define FORMAT_LABEL		"MediaWiki"
+#define FORMAT_NAME		"" /* md5($s.'-'.md5($p)) */
 
 #define ALGORITHM_NAME		"?" /* filled in by md5-gen */
 #define BENCHMARK_COMMENT	""
@@ -59,12 +71,12 @@ userName2:$B$107$dd494cb03ac1c5b8f8d2dddafca2f7a6:1552:0::emailaddress@gmail.com
 #define BINARY_SIZE			MD5_BINARY_SIZE
 
 #define SALT_SIZE			9
-#define PROCESSED_SALT_SIZE	SALT_SIZE
+// dynamic alignment
+#define BINARY_ALIGN		MEM_ALIGN_WORD
+#define SALT_ALIGN			MEM_ALIGN_WORD
 
-#define PLAINTEXT_LENGTH	32
-
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+// set PLAINTEXT_LENGTH to 0, so dyna will set this
+#define PLAINTEXT_LENGTH	0
 
 static struct fmt_tests mediawiki_tests[] = {
 	{"$B$113$de2874e33da25313d808d2a8cbf31485",      "qwerty"},
@@ -76,8 +88,9 @@ static struct fmt_tests mediawiki_tests[] = {
 };
 
 static char Conv_Buf[80];
-static struct fmt_main *pFmt_Dynamic_9;
-static void mediawiki_init(struct fmt_main *pFmt);
+static struct fmt_main *pDynamic_9;
+static void mediawiki_init(struct fmt_main *self);
+static void get_ptr();
 
 /* this function converts a 'native' mediawiki signature string into a Dynamic_9 syntax string */
 static char *Convert(char *Buf, char *ciphertext)
@@ -85,38 +98,57 @@ static char *Convert(char *Buf, char *ciphertext)
 	int i;
 	char *cp;
 
-	if (text_in_dynamic_format_already(pFmt_Dynamic_9, ciphertext))
+	if (text_in_dynamic_format_already(pDynamic_9, ciphertext))
 		return ciphertext;
 
+	if (strncmp(ciphertext, "$B$", 3))
+		return ciphertext;
 	cp = strchr(&ciphertext[3], '$');
 	if (!cp)
 		return "*";
-	i = sprintf(Buf, "$dynamic_9$%s$", &cp[1]);
+	i = snprintf(Buf, sizeof(Conv_Buf), "$dynamic_9$%s$", &cp[1]);
 	ciphertext += 3;
 	// now append salt, and the '-' char
-	while (*ciphertext != '$')
+	while (*ciphertext && i < sizeof(Conv_Buf) - 3 && *ciphertext != '$')
 		Buf[i++] = *ciphertext++;
-	Buf[i++] = '-';
-	Buf[i] = 0;
+	if (i < sizeof(Conv_Buf) - 2) {
+		Buf[i++] = '-';
+		Buf[i] = 0;
+	}
 	return Buf;
 }
 
-static char *our_split(char *ciphertext, int index)
+static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	return Convert(Conv_Buf, ciphertext);
+	// Convert from dyna_9 back into $B$ (only if last byte of salt is '-'
+	if (!strncmp(ciphertext, "$dynamic_9$", 11) && ciphertext[strlen(ciphertext)-1] == '-') {
+		static char Buf[128], *cp;
+		strcpy(Buf, "$B$");
+		cp = strrchr(ciphertext, '$');
+		if (cp && strlen(cp) < 65 && strlen(cp) > 2) {
+			strcat(Buf, &cp[1]);
+			Buf[strlen(Buf)-1] = '$';  // remove the '-' char, simply replace it with the '$'
+			sprintf(&Buf[strlen(Buf)], "%32.32s", &ciphertext[11]);
+			return Buf;
+		}
+	}
+	return ciphertext;
 }
 
-static int mediawiki_valid(char *ciphertext, struct fmt_main *pFmt)
+static int mediawiki_valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 	char *cp;
 
 	if (!ciphertext)
 		return 0;
-	if (!pFmt_Dynamic_9)
-		mediawiki_init(pFmt);
+	get_ptr();
+
+
+	i = strlen(ciphertext);
+
 	if (strncmp(ciphertext, "$B$", 3) != 0) {
-		return pFmt_Dynamic_9->methods.valid(ciphertext, pFmt_Dynamic_9);
+		return pDynamic_9->methods.valid(ciphertext, pDynamic_9);
 	}
 
 	cp = strchr(&ciphertext[3], '$');
@@ -128,17 +160,19 @@ static int mediawiki_valid(char *ciphertext, struct fmt_main *pFmt)
 		if (atoi16[ARCH_INDEX(cp[i])] == 0x7F)
 			return 0;
 
-	return pFmt_Dynamic_9->methods.valid(Convert(Conv_Buf, ciphertext), pFmt_Dynamic_9);
+	return pDynamic_9->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic_9);
 }
 
 
 static void * our_salt(char *ciphertext)
 {
-	return pFmt_Dynamic_9->methods.salt(Convert(Conv_Buf, ciphertext));
+	get_ptr();
+	return pDynamic_9->methods.salt(Convert(Conv_Buf, ciphertext));
 }
 static void * our_binary(char *ciphertext)
 {
-	return pFmt_Dynamic_9->methods.binary(Convert(Conv_Buf, ciphertext));
+	get_ptr();
+	return pDynamic_9->methods.binary(Convert(Conv_Buf, ciphertext));
 }
 
 struct fmt_main fmt_mediawiki =
@@ -147,27 +181,41 @@ struct fmt_main fmt_mediawiki =
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
-		PLAINTEXT_LENGTH, BINARY_SIZE, SALT_SIZE+1, 1, 1, FMT_CASE | FMT_8_BIT, mediawiki_tests
+		0, PLAINTEXT_LENGTH, BINARY_SIZE, BINARY_ALIGN, SALT_SIZE+1, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		mediawiki_tests
 	},
 	{
 		/*  All we setup here, is the pointer to valid, and the pointer to init */
 		/*  within the call to init, we will properly set this full object      */
 		mediawiki_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
-		mediawiki_valid
+		mediawiki_valid,
+		our_split
 	}
 };
 
-
-static void mediawiki_init(struct fmt_main *pFmt)
+static void mediawiki_init(struct fmt_main *self)
 {
-	if (pFmt->private.initialized == 0) {
-		pFmt_Dynamic_9 = dynamic_THIN_FORMAT_LINK(&fmt_mediawiki, Convert(Conv_Buf, mediawiki_tests[0].ciphertext), "mediawiki");
+	if (self->private.initialized == 0) {
+		get_ptr();
+		pDynamic_9->methods.init(pDynamic_9);
+		self->private.initialized = 1;
+	}
+}
+
+static void get_ptr() {
+	if (!pDynamic_9) {
+		pDynamic_9 = dynamic_THIN_FORMAT_LINK(&fmt_mediawiki, Convert(Conv_Buf, mediawiki_tests[0].ciphertext), "mediawiki", 0);
+		fmt_mediawiki.params.algorithm_name = pDynamic_9->params.algorithm_name;
 		fmt_mediawiki.methods.salt   = our_salt;
 		fmt_mediawiki.methods.binary = our_binary;
 		fmt_mediawiki.methods.split = our_split;
-		fmt_mediawiki.params.algorithm_name = pFmt_Dynamic_9->params.algorithm_name;
-		pFmt->private.initialized = 1;
+		fmt_mediawiki.methods.prepare = fmt_default_prepare;
 	}
 }
 
@@ -179,3 +227,7 @@ static void mediawiki_init(struct fmt_main *pFmt)
  * indent-tabs-mode: t
  * End:
  */
+
+#endif /* plugin stanza */
+
+#endif /* DYNAMIC_DISABLED */

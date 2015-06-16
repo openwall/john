@@ -29,18 +29,35 @@
   OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
   ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if !AC_BUILT || (HAVE_SYS_SOCKET_H && HAVE_NETINET_IN_H && HAVE_ARPA_INET_H && HAVE_NETDB_H)
 
 #include <sys/types.h>
 #include <sys/time.h>
+#if !AC_BUILT || HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
+#endif
+#if !AC_BUILT || HAVE_NETINET_IN_H
 #include <netinet/in.h>
+#endif
+#if !AC_BUILT || HAVE_ARPA_INET_H
 #include <arpa/inet.h>
+#endif
+#if !AC_BUILT || HAVE_NETDB_H
 #include <netdb.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
+#endif
 #include <string.h>
 #include <ctype.h>
+#include "memory.h"
+#include "memdbg.h"
 
 #define VERSION		"1.2"
 #define TGT_LENGTH	16
@@ -124,7 +141,7 @@ make_req(unsigned char *dst, char *user, char *realm)
   p += krb_put_string("krbtgt", p);		/* service name (krbtgt)*/
   p += krb_put_string(realm, p);		/* service instance (realm) */
 
-  free(pname);
+  MEM_FREE(pname);
 
   return (p - dst);
 }
@@ -228,7 +245,7 @@ upcase(char *string)
   char *p;
 
   for (p = string; *p != '\0'; p++)
-    *p = toupper(*p);
+    *p = toupper(((unsigned char)(*p)));
 
   return (string);
 }
@@ -276,3 +293,11 @@ main(int argc, char *argv[])
   }
   exit(0);
 }
+
+#else
+#include <stdio.h>
+int main() {
+	printf ("tgtsnarf could NOT be compiled on this system, due to lack of support libraries\n");
+	return 1;
+}
+#endif

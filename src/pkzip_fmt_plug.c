@@ -14,41 +14,51 @@
  *
  */
 
+#include "arch.h"
+#if HAVE_LIBZ
+
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_pkzip;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_pkzip);
+#else
+
 #include <string.h>
+#include <zlib.h>
 
 #include "common.h"
-#include "arch.h"
 #include "misc.h"
 #include "formats.h"
 #define USE_PKZIP_MAGIC 1
 #include "pkzip.h"
 
-#include "zlib.h"
 #include "pkzip_inffixed.h"  // This file is a data file, taken from zlib
+#include "loader.h"
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+#include "memdbg.h"
 
-#define FORMAT_LABEL			"pkzip"
-#define FORMAT_NAME				"pkzip"
-#define ALGORITHM_NAME			"N/A"
+#define FORMAT_LABEL			"PKZIP"
+#define FORMAT_NAME			""
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1000
 
 #define PLAINTEXT_LENGTH		31
 
-#define BINARY_SIZE				1
-#define SALT_SIZE				(sizeof(PKZ_SALT*))
+#define BINARY_SIZE			0
+#define BINARY_ALIGN			1
+
+#define SALT_SIZE			(sizeof(PKZ_SALT*))
+#define SALT_ALIGN			(sizeof(ARCH_WORD_32))
 
 #define MIN_KEYS_PER_CRYPT		1
-/* max keys allows 256 words per thread on a 16 thread OMP build */
-/* for non-OMP builds, we only want 64 keys */
-#ifdef _OPENMP
-#define MAX_KEYS_PER_CRYPT		(16*256)
-#else
 #define MAX_KEYS_PER_CRYPT		64
+#ifndef OMP_SCALE
+#define OMP_SCALE			64
 #endif
 
 //#define ZIP_DEBUG 1
@@ -71,7 +81,8 @@
 #endif
 
 /*
- *  format:  filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*DA]*$/pkzip$
+ * filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*DA]*$/pkzip$   (deprecated)
+ * filename:$pkzip2$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*TC*DA]*$/pkzip2$   (new format, with 2 checksums)
  *
  * All numeric and 'binary data' fields are stored in hex.
  *
@@ -89,6 +100,8 @@
  *     END OF 'optional' fields.
  *   CT  Compression type  (0 or 8)  0 is stored, 8 is imploded.
  *   DL  Length of the DA data.
+ *   CS  Checksum from crc32.
+ *   TC  Checksum from timestamp
  *   DA  This is the 'data'.  It will be hex data if DT==1 or 2. If DT==3, then it is a filename (name of the .zip file).
  * END of array items.
  * The format string will end with $/pkzip$
@@ -100,7 +113,6 @@
  *
  */
 static struct fmt_tests tests[] = {
-
 	/* compression of a perl file. We have the same password, same file used twice in a row (pkzip, 1 byte checksum).  NOTE, pkzip uses random IV, so both encrypted blobs are different */
 	{"\
 $pkzip$1*1*2*0*e4*1c5*eda7a8de*0*4c*8*e4*eda7*194883130e4c7419bd735c53dec36f0c4b6de6daefea0f507d67ff7256a49b5ea93ccfd9b12f2ee99053ee0b1c9e1c2b88aeaeb6bd4e60094a1ea118785d4ded6dae94\
@@ -125,7 +137,14 @@ $pkzip$3*1*1*0*8*24*4001*8986ec4d693e86c1a42c1bd2e6a994cb0b98507a6ec937fe0a41681
 57d9*2*0*e4*1c5*eda7a8de*0*4c*8*e4*eda7*89a792af804bf38e31fdccc8919a75ab6eb75d1fd6e7ecefa3c5b9c78c3d50d656f42e582af95882a38168a8493b2de5031bb8b39797463cb4769a955a2ba72abe48ee75b103\
 f93ef9984ae740559b9bd84cf848d693d86acabd84749853675fb1a79edd747867ef52f4ee82435af332d43f0d0bb056c49384d740523fa75b86a6d29a138da90a8de31dbfa89f2f6b0550c2b47c43d907395904453ddf42a665\
 b5f7662de170986f89d46d944b519e1db9d13d4254a6b0a5ac02b3cfdd468d7a4965e4af05699a920e6f3ddcedb57d956a6b2754835b14e174070ba6aec4882d581c9f30*$/pkzip$", "3!files"},
-
+	/* following are from CMIYC 2012 */
+	{"$pkzip$1*1*2*0*163*2b5*cd154083*0*26*8*163*cd15*d6b094794b40116a8b387c10159225d776f815b178186e51faf16fa981fddbffdfa22f6c6f32d2f81dab35e141f2899841991f3cb8d53f8ee1f1d85657f7c7a82ebb2d63182803c6beee00e0bf6c72edeeb1b00dc9f07f917bb8544cc0e96ca01503cd0fb6632c296cebe3fb9b64543925daae6b7ea95cfd27c42f6f3465e0ab2c812b9aeeb15209ce3b691f27ea43a7a77b89c2387e31c4775866a044b6da783af8ddb72784ccaff4d9a246db96484e865ea208ade290b0131b4d2dd21f172693e6b5c90f2eb9b67572b55874b6d3a78763212b248629e744c07871a6054e24ef74b6d779e44970e1619df223b4e5a72a189bef40682b62be6fb7f65e087ca6ee19d1ebfc259fa7e3d98f3cb99347689f8360294352accffb146edafa9e91afba1f119f95145738ac366b332743d4ff40d49fac42b8758c43b0af5b60b8a1c63338359ffbff432774f2c92de3f8c49bd4611e134db98e6a3f2cfb148d2b20f75abab6*$/pkzip$", "passwort"},
+	{"$pkzip$1*1*2*0*163*2b6*46abc149*0*28*8*163*46ab*0f539b23b761a347a329f362f7f1f0249515f000404c77ec0b0ffe06f29140e8fa3e8e5a6354e57f3252fae3d744212d4d425dc44389dd4450aa9a4f2f3c072bee39d6ac6662620812978f7ab166c66e1acb703602707ab2da96bb28033485ec192389f213e48eda8fc7d9dad1965b097fafebfda6703117db90e0295db9a653058cb28215c3245e6e0f6ad321065bf7b8cc5f66f6f2636e0d02ea35a6ba64bbf0191c308098fd836e278abbce7f10c3360a0a682663f59f92d9c2dcfc87cde2aae27ea18a14d2e4a0752b6b51e7a5c4c8c2bab88f4fb0aba27fb20e448655021bb3ac63752fdb01e6b7c99f9223f9e15d71eb1bd8e323f522fc3da467ff0aae1aa17824085d5d6f1cdfc9c7c689cd7cb057005d94ba691f388484cfb842c8775baac220a5490ed945c8b0414dbfc4589254b856aade49f1aa386db86e9fc87e6475b452bd72c5e2122df239f8c2fd462ca54c1a5bddac36918c5f5cf0cc94aa6ee820*$/pkzip$", "Credit11"},
+	{"$pkzip$1*1*2*0*163*2b6*46abc149*0*26*8*163*46ab*7ea9a6b07ddc9419439311702b4800e7e1f620b0ab8535c5aa3b14287063557b176cf87a800b8ee496643c0b54a77684929cc160869db4443edc44338294458f1b6c8f056abb0fa27a5e5099e19a07735ff73dc91c6b20b05c023b3ef019529f6f67584343ac6d86fa3d12113f3d374b047efe90e2a325c0901598f31f7fb2a31a615c51ea8435a97d07e0bd4d4afbd228231dbc5e60bf1116ce49d6ce2547b63a1b057f286401acb7c21afbb673f3e26bc1b2114ab0b581f039c2739c7dd0af92c986fc4831b6c294783f1abb0765cf754eada132df751cf94cad7f29bb2fec0c7c47a7177dea82644fc17b455ba2b4ded6d9a24e268fcc4545cae73b14ceca1b429d74d1ebb6947274d9b0dcfb2e1ac6f6b7cd2be8f6141c3295c0dbe25b65ff89feb62cb24bd5be33853b88b8ac839fdd295f71e17a7ae1f054e27ba5e60ca03c6601b85c3055601ce41a33127938440600aaa16cfdd31afaa909fd80afc8690aaf*$/pkzip$", "7J0rdan!!"},
+	/* CMIYC 2013 "pro" hard hash */
+	{"$pkzip$1*2*2*0*6b*73*8e687a5b*0*46*8*6b*0d9d*636fedc7a78a7f80cda8542441e71092d87d13da94c93848c230ea43fab5978759e506110b77bd4bc10c95bc909598a10adfd4febc0d42f3cd31e4fec848d6f49ab24bb915cf939fb1ce09326378bb8ecafde7d3fe06b6013628a779e017be0f0ad278a5b04e41807ae9fc*$/pkzip$", "c00rslit3!"},
+	/* http://corkami.googlecode.com/files/ChristmasGIFts.zip (fixed with 2 byte checksums from timestamp, using new $pkzip2$ type) */
+	{"$pkzip2$3*2*1*2*8*c0*7224*72f6*6195f9f3401076b22f006105c4323f7ac8bb8ebf8d570dc9c7f13ddacd8f071783f6bef08e09ce4f749af00178e56bc948ada1953a0263c706fd39e96bb46731f827a764c9d55945a89b952f0503747703d40ed4748a8e5c31cb7024366d0ef2b0eb4232e250d343416c12c7cbc15d41e01e986857d320fb6a2d23f4c44201c808be107912dbfe4586e3bf2c966d926073078b92a2a91568081daae85cbcddec75692485d0e89994634c71090271ac7b4a874ede424dafe1de795075d2916eae*1*6*8*c0*26ee*461b*944bebb405b5eab4322a9ce6f7030ace3d8ec776b0a989752cf29569acbdd1fb3f5bd5fe7e4775d71f9ba728bf6c17aad1516f3aebf096c26f0c40e19a042809074caa5ae22f06c7dcd1d8e3334243bca723d20875bd80c54944712562c4ff5fdb25be5f4eed04f75f79584bfd28f8b786dd82fd0ffc760893dac4025f301c2802b79b3cb6bbdf565ceb3190849afdf1f17688b8a65df7bc53bc83b01a15c375e34970ae080307638b763fb10783b18b5dec78d8dfac58f49e3c3be62d6d54f9*2*0*2a*1e*4a204eab*ce8*2c*0*2a*4a20*7235*6b6e1a8de47449a77e6f0d126b217d6b2b72227c0885f7dc10a2fb3e7cb0e611c5c219a78f98a9069f30*$/pkzip2$", "123456"},
 	{NULL}
 };
 
@@ -133,10 +152,10 @@ b5f7662de170986f89d46d944b519e1db9d13d4254a6b0a5ac02b3cfdd468d7a4965e4af05699a92
 /* perform the pkzip 'checksum' checking. If we do get a 'hit', then that pass &  */
 /* salt pair is checked fully within the cmp_exact, where it gets inflated  and   */
 /* checked (possibly also a 'sample TEXT record is done first, as a quick check   */
-static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
-static u32  K12[MAX_KEYS_PER_CRYPT*3];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static u32  *K12;
 static PKZ_SALT *salt;
-static u8 chk[MAX_KEYS_PER_CRYPT];
+static u8 *chk;
 static int dirty=1;
 #if USE_PKZIP_MAGIC
 static ZIP_SIGS SIGS[256];
@@ -151,47 +170,6 @@ inline u8 PKZ_MULT(u8 b, MY_WORD w) {u16 t = w.u|2; return b ^ (u8)(((u16)(t*(t^
 extern struct fmt_main fmt_pkzip;
 static const char *ValidateZipContents(FILE *in, long offset, u32 offex, int len, u32 crc);
 
-/* Similar to strtok, but written specifically for the format. */
-static u8 *GetFld(u8 *p, u8 **pRet) {
-	if (!p || *p==0) {
-		*pRet = (u8*)"";
-		return p;
-	}
-	if (p && *p && *p == '*') {
-		*pRet = (u8*)"";
-		return ++p;
-	}
-	*pRet = p;
-	while (*p && *p != '*')
-		++p;
-	if (*p)
-	  *p++ = 0;
-	return p;
-}
-
-static int is_hex_str(const u8 *cp) {
-	int len, i;
-
-	if (!cp)
-		return 1; /* empty is 'fine' */
-	len = strlen((c8*)cp);
-	for (i = 0; i < len; ++i) {
-		if (atoi16[ARCH_INDEX(cp[i])] == 0x7F)
-			return 0;
-	}
-	return 1;
-}
-
-unsigned get_hex_num(const u8 *cp) {
-	char b[3];
-	unsigned u;
-	b[0] = (c8)cp[0];
-	b[1] = (c8)cp[1];
-	b[2] = 0;
-	sscanf(b, "%x", &u);
-	return u;
-}
-
 /* Since the pkzip format textual representation is pretty complex, with multiple   */
 /* 'optional' sections, we have a VERY complete valid.  Valid will make SURE that   */
 /* the format is completely valid. Thus, there is little or no error checking later */
@@ -202,120 +180,139 @@ unsigned get_hex_num(const u8 *cp) {
 /*                                                                                   */
 /* NOTE, we may want to later make a 'prepare()' function, and do all file loading   */
 /* there, so that we have a 'complete' format line, with the zip data contained.     */
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
-	u8 *p, *cp;
-	int cnt, len, data_len;
+	u8 *p, *cp, *cpkeep;
+	int cnt, data_len, ret=0;
 	u32 crc;
 	FILE *in;
 	const char *sFailStr;
 	long offset;
 	u32 offex;
 	int type;
+	int complen = 0;
+	int type2 = 0;
 
-	if (strncmp(ciphertext, "$pkzip$", 6))
-		return 0;
+	if (strncmp(ciphertext, "$pkzip$", 7)) {
+		if (!strncmp(ciphertext, "$pkzip2$", 8))
+			type2 = 1;
+		else
+			return ret;
+	}
 
-	cp = (u8*)str_alloc_copy(ciphertext);
+	cpkeep = (u8*)strdup(ciphertext);
+	cp = cpkeep;
 
 	p = &cp[7];
-	p = GetFld(p, &cp);
-	if (!p || *p==0) {
+	if (type2)
+		++p;
+	p = pkz_GetFld(p, &cp);
+	if (!pkz_is_hex_str(cp)) {
 		sFailStr = "Out of data, reading count of hashes field"; goto Bail; }
 	sscanf((c8*)cp, "%x", &cnt);
 	if (cnt < 1 || cnt > MAX_PKZ_FILES) {
 		sFailStr = "Count of hashes field out of range"; goto Bail; }
-	p = GetFld(p, &cp);
-	if (!p || *p==0 || *cp < '1' || *cp > '2') {
+	p = pkz_GetFld(p, &cp);
+	if (cp[0] < '0' || cp[0] > '2' || cp[1]) {
 		sFailStr = "Number of valid hash bytes empty or out of range"; goto Bail; }
 
 	while (cnt--) {
-		p = GetFld(p, &cp);
-		if ( !p || *cp<'1' || *cp>'3') {
+		p = pkz_GetFld(p, &cp);
+		if (cp[0]<'1' || cp[0]>'3' || cp[1]) {
 			sFailStr = "Invalid data enumeration type"; goto Bail; }
-		type = *cp - '0';
-		p = GetFld(p, &cp);
-		if ( !p || !is_hex_str(cp)) {
+		type = cp[0] - '0';
+		p = pkz_GetFld(p, &cp);
+		if (!pkz_is_hex_str(cp)) {
 			sFailStr = "Invalid type enumeration"; goto Bail; }
 		if (type > 1) {
-			p = GetFld(p, &cp);
-			if ( !p || !cp[0] || !is_hex_str(cp)) {
+			p = pkz_GetFld(p, &cp);
+			if (!pkz_is_hex_str(cp)) {
 				sFailStr = "Invalid compressed length"; goto Bail; }
-			sscanf((c8*)cp, "%x", &len);
-			p = GetFld(p, &cp);
-			if ( !p || !cp[0] || !is_hex_str(cp)) {
+			sscanf((c8*)cp, "%x", &complen);
+			p = pkz_GetFld(p, &cp);
+			if (!pkz_is_hex_str(cp)) {
 				sFailStr = "Invalid data length value"; goto Bail; }
-			p = GetFld(p, &cp);
-			if ( !p || !cp[0] || !is_hex_str(cp)) {
+			p = pkz_GetFld(p, &cp);
+			if (!pkz_is_hex_str(cp)) {
 				sFailStr = "Invalid CRC value"; goto Bail; }
 			sscanf((c8*)cp, "%x", &crc);
-			p = GetFld(p, &cp);
-			if ( !p || !cp[0] || !is_hex_str(cp)) {
+			p = pkz_GetFld(p, &cp);
+			if (!pkz_is_hex_str(cp)) {
 				sFailStr = "Invalid offset length"; goto Bail; }
 			sscanf((c8*)cp, "%lx", &offset);
-			p = GetFld(p, &cp);
-			if ( !p || !cp[0] || !is_hex_str(cp)) {
+			p = pkz_GetFld(p, &cp);
+			if (!pkz_is_hex_str(cp)) {
 				sFailStr = "Invalid offset length"; goto Bail; }
 			sscanf((c8*)cp, "%x", &offex);
 		}
-		p = GetFld(p, &cp);
-		if ( !p || (*cp != '0' && *cp != '8')) {
+		p = pkz_GetFld(p, &cp);
+		if ((cp[0] != '0' && cp[0] != '8') || cp[1]) {
 			sFailStr = "Compression type enumeration"; goto Bail; }
-		p = GetFld(p, &cp);
-		if ( !p || !is_hex_str(cp)) {
-			sFailStr = "data length value"; goto Bail; }
+		p = pkz_GetFld(p, &cp);
+		if (!pkz_is_hex_str(cp)) {
+			sFailStr = "Invalid data length value"; goto Bail; }
 		sscanf((c8*)cp, "%x", &data_len);
-		p = GetFld(p, &cp);
-		if ( !p || !is_hex_str(cp) || strlen((c8*)cp) != 4) {
+		p = pkz_GetFld(p, &cp);
+		if (!pkz_is_hex_str(cp) || strlen((c8*)cp) != 4) {
 			sFailStr = "invalid checksum value"; goto Bail; }
-		p = GetFld(p, &cp);
-		if (type == 3) {
-			if ( !p || strlen((c8*)cp) != data_len) {
-				sFailStr = "invalid checksum value"; goto Bail; }
-			in = fopen((c8*)cp, "rb"); /* have to open in bin mode for OS's where this matters, DOS/Win32 */
-			if (!in) {
-				/* this error is listed, even if not in pkzip debugging mode. */
-				fprintf(stderr, "Error loading a pkzip hash line. The ZIP file '%s' could NOT be found\n", cp);
-				return 0;
-			}
-			sFailStr = ValidateZipContents(in, offset, offex, len, crc);
-			fclose(in);
-			if (*sFailStr) {
-				/* this error is listed, even if not in pkzip debugging mode. */
-				fprintf(stderr, "pkzip validation failed [%s] Hash is %s\n", sFailStr, ciphertext);
-				return 0;
+		if (type2) {
+			p = pkz_GetFld(p, &cp);
+			if (!pkz_is_hex_str(cp) || strlen((c8*)cp) != 4) {
+				sFailStr = "invalid checksum2 value"; goto Bail;}
+		}
+		p = pkz_GetFld(p, &cp);
+		if (type > 1) {
+			if (type == 3) {
+				if ( !p || strlen((c8*)cp) != data_len) {
+					sFailStr = "invalid checksum value"; goto Bail; }
+				in = fopen((c8*)cp, "rb"); /* have to open in bin mode for OS's where this matters, DOS/Win32 */
+				if (!in) {
+					/* this error is listed, even if not in pkzip debugging mode. */
+					/* But not if we're just reading old pot lines */
+					if (!ldr_in_pot)
+						fprintf(stderr, "Error loading a pkzip hash line. The ZIP file '%s' could NOT be found\n", cp);
+					return 0;
+				}
+				sFailStr = ValidateZipContents(in, offset, offex, complen, crc);
+				if (*sFailStr) {
+					/* this error is listed, even if not in pkzip debugging mode. */
+					fprintf(stderr, "pkzip validation failed [%s] Hash is %s\n", sFailStr, ciphertext);
+					fclose(in);
+					return 0;
+				}
+				fseek(in, offset+offex, SEEK_SET);
+				if (complen < 16*1024) {
+					/* simply load the whole blob */
+					unsigned char *tbuf = mem_alloc_tiny(complen, MEM_ALIGN_WORD);
+					if (fread(tbuf, 1, complen, in) != complen) {
+						fclose(in);
+						return 0;
+					}
+					data_len = complen;
+				}
+				fclose(in);
+			} else {
+				/* 'inline' data. */
+				if (complen != data_len) {
+					sFailStr = "length of full data does not match the salt len"; goto Bail; }
+				if (!pkz_is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
+					sFailStr = "invalid inline data"; goto Bail; }
 			}
 		} else {
-			if ( !p || !is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
-				sFailStr = "invalid checksum value"; goto Bail; }
-		}
+			if (!pkz_is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
+				sFailStr = "invalid partial data"; goto Bail; }
+                }
 	}
-	p = GetFld(p, &cp);
-	return !strcmp((c8*)cp, "$/pkzip$");
+	p = pkz_GetFld(p, &cp);
+	if (type2) ret = !strcmp((c8*)cp, "$/pkzip2$") && !*p;
+	else       ret = !strcmp((c8*)cp, "$/pkzip$") && !*p;
 
 Bail:;
 #ifdef ZIP_DEBUG
-	fprintf (stderr, "pkzip validation failed [%s]  Hash is %s\n", sFailStr, ciphertext);
+	if (!ret) fprintf (stderr, "pkzip validation failed [%s]  Hash is %s\n", sFailStr, ciphertext);
 #endif
-	return 0;
-}
-
-/* helper functions for reading binary data of known little endian */
-/* format from a file. Works whether BE or LE system.              */
-static u32 fget32(FILE * fp)
-{
-	u32 v = fgetc(fp);
-	v |= fgetc(fp) << 8;
-	v |= fgetc(fp) << 16;
-	v |= fgetc(fp) << 24;
-	return v;
-}
-
-static u16 fget16(FILE * fp)
-{
-	u16 v = fgetc(fp);
-	v |= fgetc(fp) << 8;
-	return v;
+	MEM_FREE(cpkeep);
+	return ret;
 }
 
 static const char *ValidateZipContents(FILE *fp, long offset, u32 offex, int _len, u32 _crc) {
@@ -326,21 +323,21 @@ static const char *ValidateZipContents(FILE *fp, long offset, u32 offex, int _le
 	if (fseek(fp, offset, SEEK_SET) != 0)
 		return "Not able to seek to specified offset in the .zip file, to read the zip blob data.";
 
-	id = fget32(fp);
+	id = fget32LE(fp);
 	if (id != 0x04034b50U)
 		return "Compressed zip file offset does not point to start of zip blob";
 
 	/* Ok, see if this IS the correct file blob. */
-	version = fget16(fp);
-	flags = fget16(fp);
-	method = fget16(fp);
-	modtm = fget16(fp);
-	moddt = fget16(fp);
-	crc = fget32(fp);
-	complen = fget32(fp);
-	uncomplen = fget32(fp);
-	namelen = fget16(fp);
-	exlen = fget16(fp);
+	version = fget16LE(fp);
+	flags = fget16LE(fp);
+	method = fget16LE(fp);
+	modtm = fget16LE(fp);
+	moddt = fget16LE(fp);
+	crc = fget32LE(fp);
+	complen = fget32LE(fp);
+	uncomplen = fget32LE(fp);
+	namelen = fget16LE(fp);
+	exlen = fget16LE(fp);
 
 	/* unused vars. */
 	(void)uncomplen;
@@ -358,9 +355,26 @@ static u8 *buf_copy (char *p, int len) {
 	memcpy(op, p, len);
 	return op;
 }
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
+#ifdef PKZIP_USE_MULT_TABLE
 	unsigned short n=0;
+#endif
+#ifdef _OPENMP
+	int omp_t;
+
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	K12 = mem_calloc_tiny(sizeof(*K12) * 3 *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	chk = mem_calloc_tiny(sizeof(*chk) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+
 	/*
 	 * Precompute the multiply mangling, within several parts of the hash. There is a pattern,
 	 * 64k entries long.  However the exact same value is produced 4 times in a row, every
@@ -374,17 +388,8 @@ static void init(struct fmt_main *pFmt)
 	 */
 #ifdef PKZIP_USE_MULT_TABLE
 	for (n = 0; n < 16384; n++)
-		mult_tab[n] = ((n*4+3) * (n*4+2) >> 8) & 0xff;
+		mult_tab[n] = (((unsigned)(n*4+3) * (n*4+2)) >> 8) & 0xff;
 #endif
-
-#ifdef _OPENMP
-	/* This can be tuned but it's tedious. */
-	n = omp_get_max_threads();
-	if (n*256 < MAX_KEYS_PER_CRYPT)
-		fmt_pkzip.params.max_keys_per_crypt = n*256;
-#endif
-	/* if not openmp and not use mult_tab, make sure we quiet the unused warning. */
-	(void)n;
 
 #if USE_PKZIP_MAGIC
 
@@ -394,6 +399,9 @@ static void init(struct fmt_main *pFmt)
 	// http://www.garykessler.net/library/file_sigs.html
 	// http://en.wikipedia.org/wiki/List_of_file_signatures
 	// http://toorcon.techpathways.com/uploads/headersig.txt
+	// 	not available, 2012-12-28)
+	// 	archive.org still has a version:
+	// 	http://web.archive.org/web/20110725085828/http://toorcon.techpathways.com/uploads/headersig.txt
 	// there are many more.
 
 //case 1: // DOC/XLS
@@ -476,63 +484,92 @@ static void init(struct fmt_main *pFmt)
 
 static void set_salt(void *_salt) {
 	salt = *((PKZ_SALT**)_salt);
+	if (salt->H[0].h && salt->H[1].h && salt->H[2].h)
+		return;
+	// we 'late' fixup the salt.
+	salt->H[0].h = &salt->zip_data[0];
+	salt->H[1].h = &salt->zip_data[1+salt->H[0].datlen];
+	salt->H[2].h = &salt->zip_data[2+salt->H[0].datlen+salt->H[1].datlen];
 }
 
 static void *get_salt(char *ciphertext)
 {
 	/* NOTE, almost NO error checking at all in this function.  Proper error checking done in valid() */
-	static unsigned char salt_p[8];
-	PKZ_SALT *salt;
+	static union alignment {
+		unsigned char c[8];
+		ARCH_WORD_32 a[1];
+	} a;
+	unsigned char *salt_p = a.c;
+	PKZ_SALT *salt, *psalt;
 	long offset=0;
+	char *H[3] = {0,0,0};
+	long ex_len[3] = {0,0,0};
 	u32 offex;
 	int i, j;
 	u8 *p, *cp, *cpalloc = (unsigned char*)mem_alloc(strlen(ciphertext)+1);
+	int type2 = 0;
 
 	/* Needs word align on REQ_ALIGN systems.  May crash otherwise (in the sscanf) */
-	salt = mem_alloc_tiny(sizeof(PKZ_SALT), MEM_ALIGN_WORD);
-	memcpy(salt_p, &salt, sizeof(salt));
-	memset(salt, 0, sizeof(PKZ_SALT));
+	salt = mem_calloc(1, sizeof(PKZ_SALT));
 
 	cp = cpalloc;
 	strcpy((c8*)cp, ciphertext);
+	if (!strncmp((c8*)cp, "$pkzip$", 7))
 	p = &cp[7];
-	p = GetFld(p, &cp);
+	else {
+		p = &cp[8];
+		type2 = 1;
+	}
+	p = pkz_GetFld(p, &cp);
 	sscanf((c8*)cp, "%x", &(salt->cnt));
-	p = GetFld(p, &cp);
+	p = pkz_GetFld(p, &cp);
 	sscanf((c8*)cp, "%x", &(salt->chk_bytes));
 	for(i = 0; i < salt->cnt; ++i) {
 		int data_enum;
-		p = GetFld(p, &cp);
+		p = pkz_GetFld(p, &cp);
 		data_enum = *cp - '0';
-		p = GetFld(p, &cp);
+		p = pkz_GetFld(p, &cp);
 #if USE_PKZIP_MAGIC
-		sscanf((c8*)cp, "%hhx", &(salt->H[i].magic));
+		{
+			// mingw can't handle %hhx.  Use 'normal' %x and assign back to uint_8 var
+			unsigned jnk;
+			sscanf((c8*)cp, "%x", &jnk);
+			salt->H[i].magic = (unsigned char)jnk;
+		}
 		salt->H[i].pSig = &SIGS[salt->H[i].magic];
 #endif
 
 		if (data_enum > 1) {
-			p = GetFld(p, &cp);
+			p = pkz_GetFld(p, &cp);
 			sscanf((c8*)cp, "%x", &(salt->compLen));
-			p = GetFld(p, &cp);
+			p = pkz_GetFld(p, &cp);
 			sscanf((c8*)cp, "%x", &(salt->deCompLen));
-			p = GetFld(p, &cp);
+			p = pkz_GetFld(p, &cp);
 			sscanf((c8*)cp, "%x", &(salt->crc32));
-			p = GetFld(p, &cp);
+			p = pkz_GetFld(p, &cp);
 			sscanf((c8*)cp, "%lx", &offset);
-			p = GetFld(p, &cp);
+			p = pkz_GetFld(p, &cp);
 			sscanf((c8*)cp, "%x", &offex);
 		}
-		p = GetFld(p, &cp);
+		p = pkz_GetFld(p, &cp);
 		sscanf((c8*)cp, "%x", &(salt->H[i].compType));
-		p = GetFld(p, &cp);
+		p = pkz_GetFld(p, &cp);
 		sscanf((c8*)cp, "%x", &(salt->H[i].datlen));
-		p = GetFld(p, &cp);
+		p = pkz_GetFld(p, &cp);
 
 		for (j = 0; j < 4; ++j) {
 			salt->H[i].c <<= 4;
 			salt->H[i].c |= atoi16[ARCH_INDEX(cp[j])];
 		}
-		p = GetFld(p, &cp);
+		if (type2) {
+			p = pkz_GetFld(p, &cp);
+			for (j = 0; j < 4; ++j) {
+				salt->H[i].c2 <<= 4;
+				salt->H[i].c2 |= atoi16[ARCH_INDEX(cp[j])];
+			}
+		} else
+			salt->H[i].c2 = salt->H[i].c; // fake out 2nd hash, by copying first hash
+		p = pkz_GetFld(p, &cp);
 		if (data_enum > 1) {
 			/* if 2 or 3, we have the FULL zip blob for decrypting. */
 			if (data_enum == 3) {
@@ -547,8 +584,9 @@ static void *get_salt(char *ciphertext)
 				fseek(fp, offset+offex, SEEK_SET);
 				if (salt->compLen < 16*1024) {
 					/* simply load the whole blob */
-					salt->H[i].h = mem_alloc_tiny(salt->compLen, MEM_ALIGN_WORD);
-					if (fread(salt->H[i].h, 1, salt->compLen, fp) != salt->compLen) {
+					ex_len[i] = salt->compLen;
+					H[i] = mem_alloc(salt->compLen);
+					if (fread(H[i], 1, salt->compLen, fp) != salt->compLen) {
 						fprintf (stderr, "Error reading zip file for pkzip data:  %s\n", cp);
 						fclose(fp);
 						MEM_FREE(cpalloc);
@@ -561,10 +599,11 @@ static void *get_salt(char *ciphertext)
 					/* Only load a small part (to be used in crypt_all), and set the filename in */
 					/* the salt->fname string, so that cmp_all can open the file, and buffered   */
 					/* read the zip data only when it 'needs' it.                                */
-					salt->fname = str_alloc_copy((c8*)cp);
+					strnzcpy(salt->fname, (const char *)cp, sizeof(salt->fname));
 					salt->offset = offset+offex;
-					salt->H[i].h = mem_alloc_tiny(384, MEM_ALIGN_WORD);
-					if (fread(salt->H[i].h, 1, 384, fp) != 384) {
+					ex_len[i] = 384;
+					H[i] = mem_alloc(384);
+					if (fread(H[i], 1, 384, fp) != 384) {
 						fprintf (stderr, "Error reading zip file for pkzip data:  %s\n", cp);
 						fclose(fp);
 						MEM_FREE(cpalloc);
@@ -574,14 +613,10 @@ static void *get_salt(char *ciphertext)
 					salt->H[i].datlen = 384;
 				}
 			} else {
-				/* 'inline' data. */
-				if (salt->compLen != salt->H[i].datlen) {
-					fprintf(stderr, "Error, length of full data does not match the salt len. %s\n", ciphertext);
-					return 0;
-				}
-				salt->H[i].h = mem_alloc_tiny(salt->compLen, MEM_ALIGN_WORD);
+				ex_len[i] = salt->compLen;
+				H[i] = mem_alloc(salt->compLen);
 				for (j = 0; j < salt->H[i].datlen; ++j)
-					salt->H[i].h[j] = (atoi16[ARCH_INDEX(cp[j*2])]<<4) + atoi16[ARCH_INDEX(cp[j*2+1])];
+					H[i][j] = (atoi16[ARCH_INDEX(cp[j*2])]<<4) + atoi16[ARCH_INDEX(cp[j*2+1])];
 			}
 
 			/* we also load this into the 'building' salt */
@@ -591,9 +626,10 @@ static void *get_salt(char *ciphertext)
 			salt->H[i].full_zip = 1;
 			salt->full_zip_idx = i;
 		} else {
-			salt->H[i].h = mem_alloc_tiny(salt->H[i].datlen, MEM_ALIGN_WORD);
+			ex_len[i] = salt->H[i].datlen;
+			H[i] = mem_alloc(salt->H[i].datlen);
 			for (j = 0; j < salt->H[i].datlen; ++j)
-				salt->H[i].h[j] = (atoi16[ARCH_INDEX(cp[j*2])]<<4) + atoi16[ARCH_INDEX(cp[j*2+1])];
+				H[i][j] = (atoi16[ARCH_INDEX(cp[j*2])]<<4) + atoi16[ARCH_INDEX(cp[j*2+1])];
 		}
 	}
 
@@ -624,17 +660,33 @@ static void *get_salt(char *ciphertext)
 			salt->H[i].magic = 0;	// remove any 'magic' logic from this hash.
 	}
 
+	psalt = mem_calloc(1, sizeof(PKZ_SALT) + ex_len[0]+ex_len[1]+ex_len[2]+2);
+	memcpy(psalt, salt, sizeof(*salt));
+	memcpy(psalt->zip_data, H[0], ex_len[0]);
+	MEM_FREE(H[0]);
+	if(salt->cnt > 1)
+		memcpy(psalt->zip_data+ex_len[0]+1, H[1], ex_len[1]);
+	MEM_FREE(H[1]);
+	if(salt->cnt > 2)
+		memcpy(psalt->zip_data+ex_len[0]+ex_len[1]+2, H[2], ex_len[2]);
+	MEM_FREE(H[2]);
+	MEM_FREE(salt);
+
+	psalt->dsalt.salt_alloc_needs_free = 1;  // we used mem_calloc, so JtR CAN free our pointer when done with them.
+	// NOTE, we need some way to close the BIO and EVP crap!!
+
+	// set the JtR core linkage stuff for this dyna_salt
+	memcpy(salt_p, &psalt, sizeof(psalt));
+	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(PKZ_SALT, cnt);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(PKZ_SALT, cnt, full_zip_idx, ex_len[0]+ex_len[1]+ex_len[2]+2);
 
 	return salt_p;
 }
 
-static int binary_hash0(void *binary) { return 1; }
-static int get_hash0(int index)       { return chk[index]; }
-
 static void set_key(char *key, int index)
 {
 	/* Keep the PW, so we can return it in get_key if asked to do so */
-	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH);
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 	dirty = 1;
 }
 
@@ -652,7 +704,7 @@ static int cmp_all(void *binary, int count)
 {
 	int i,j;
 	for (i=j=0; i<count; ++i)
-		j+=chk[i]; /* hopefully addition like this is faster then 'count' conditional if statments */
+		j+=chk[i]; /* hopefully addition like this is faster than 'count' conditional if statments */
 	return j;
 }
 
@@ -681,9 +733,9 @@ static int get_next_decrypted_block(u8 *in, int sizeof_n, FILE *fp, u32 *inp_use
 	/* decrypt the data bytes (in place, in same buffer). Easy to do, only requires 1 temp character variable.  */
 	for (k = 0; k < new_bytes; ++k) {
 		C = PKZ_MULT(in[k],(*pkey2));
-		pkey0->u = pkzip_crc32 (pkey0->u, C);
+		pkey0->u = jtr_crc32 (pkey0->u, C);
 		pkey1->u = (pkey1->u + pkey0->c[KB1]) * 134775813 + 1;
-		pkey2->u = pkzip_crc32 (pkey2->u, pkey1->c[KB2]);
+		pkey2->u = jtr_crc32 (pkey2->u, pkey1->c[KB2]);
 		in[k] = C;
 	}
 	/* return the number of bytes we read from the file on this read */
@@ -702,7 +754,8 @@ static int get_next_decrypted_block(u8 *in, int sizeof_n, FILE *fp, u32 *inp_use
  * this code is modifications made to the zpipe.c 'example' code from the zlib web site.
  */
 #define CHUNK (64*1024)
-static int cmp_exact_loadfile(int index) {
+static int cmp_exact_loadfile(int index)
+{
 
     int ret;
     u32 have, k;
@@ -739,9 +792,9 @@ static int cmp_exact_loadfile(int index) {
 	b = salt->H[salt->full_zip_idx].h;
 	do {
 		C = PKZ_MULT(*b++,key2);
-		key0.u = pkzip_crc32 (key0.u, C);
+		key0.u = jtr_crc32 (key0.u, C);
 		key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-		key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+		key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 	}
 	while(--k);
 
@@ -757,7 +810,7 @@ static int cmp_exact_loadfile(int index) {
         avail_in = get_next_decrypted_block(in, CHUNK, fp, &inp_used, &key0, &key1, &key2);
 		while (avail_in) {
 			for (k = 0; k < avail_in; ++k)
-				crc = pkzip_crc32(crc,in[k]);
+				crc = jtr_crc32(crc,in[k]);
 			avail_in = get_next_decrypted_block(in, CHUNK, fp, &inp_used, &key0, &key1, &key2);
 		}
 		fclose(fp);
@@ -803,7 +856,7 @@ static int cmp_exact_loadfile(int index) {
             have = CHUNK - strm.avail_out;
 			/* now update our crc value */
 			for (k = 0; k < have; ++k)
-				crc = pkzip_crc32(crc,out[k]);
+				crc = jtr_crc32(crc,out[k]);
 			decomp_len += have;
         } while (strm.avail_out == 0);
 
@@ -836,7 +889,7 @@ static int cmp_exact(char *source, int index)
 	fprintf(stderr, "FULL zip test being done. (pass=%s)\n", saved_key[index]);
 #endif
 
-	if (salt->fname == NULL) {
+	if (salt->fname[0] == 0) {
 		/* we have the whole zip blob in memory, simply allocate a decrypt buffer, decrypt
 		 * in one step, crc and be done with it. This is the 'trivial' type. */
 
@@ -848,26 +901,26 @@ static int cmp_exact(char *source, int index)
 		k=12;
 		do {
 			C = PKZ_MULT(*b++,key2);
-			key0.u = pkzip_crc32 (key0.u, C);
+			key0.u = jtr_crc32 (key0.u, C);
 			key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-			key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+			key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 		}
 		while(--k);
 		B = decrBuf;
 		k = salt->compLen-12;
 		do {
 			C = PKZ_MULT(*b++,key2);
-			key0.u = pkzip_crc32 (key0.u, C);
+			key0.u = jtr_crc32 (key0.u, C);
 			*B++ = C;
 			key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-			key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+			key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 		} while (--k);
 
 		if (salt->H[salt->full_zip_idx].compType == 0) {
 			// handle a stored blob (we do not have to decrypt it.
 			crc = 0xFFFFFFFF;
 			for (k = 0; k < salt->compLen-12; ++k)
-				crc = pkzip_crc32(crc,decrBuf[k]);
+				crc = jtr_crc32(crc,decrBuf[k]);
 			MEM_FREE(decrBuf);
 			return ~crc == salt->crc32;
 		}
@@ -895,14 +948,14 @@ static int cmp_exact(char *source, int index)
 
 		crc = 0xFFFFFFFF;
 		for (k = 0; k < strm.total_out; ++k)
-			crc = pkzip_crc32(crc,decompBuf[k]);
+			crc = jtr_crc32(crc,decompBuf[k]);
 		MEM_FREE(decompBuf);
 		MEM_FREE(decrBuf);
 		return ~crc == salt->crc32;
 	}
 	/* we have a stand alone function to handle this more complex method of
 	 * loading from file, decrypting, decompressing, and crc'ing the data
-	 * It is complex enough of a task, to have it's own function. */
+	 * It is complex enough of a task, to have its own function. */
 	return cmp_exact_loadfile(index);
 }
 
@@ -1031,13 +1084,6 @@ static int CheckSigs(const u8 *p, int len, ZIP_SIGS *pSig) {
 }
 #endif
 
-#ifdef __GNUC__
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
-__attribute__((always_inline))
-#else
-__inline__
-#endif
-#endif
 /* note, Buf is the 'full' decrypted zip buffer (len bytes long). It DOES contain the first 3 bits, which have already
  * been decoded, and have told us we had a code 2 (var table block)
  * all done without BITS(), PULLBYTE(), BITSNEEDED() macros.  We 'know' the data we need, and we know that we have
@@ -1045,7 +1091,7 @@ __inline__
  *
  * In testing, this function catches ALL bad decryptions, except about 1/300 to 1/350. So, it is not too bad.
  */
-static int check_inflate_CODE2(u8 *next) {
+MAYBE_INLINE static int check_inflate_CODE2(u8 *next) {
 	u32 bits, hold, thisget, have, i;
 	int left;
 	u32 ncode;
@@ -1121,18 +1167,11 @@ static int check_inflate_CODE2(u8 *next) {
 //static code const * const lcode = lenfix;
 //static code const * const dcode = distfix;
 
-#ifdef __GNUC__
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
-__attribute__((always_inline))
-#else
-__inline__
-#endif
-#endif
 /* This function handles inflate CODE type 1. This is a 'fixed' table code.  We set the fixed table, */
 /* and then inflate some data (without writing anything.  If we find any BAD lookback data, we can   */
 /* return a failure.  We have 24 bytes of inflate data, and this almost always is more than enough   */
 /* to turn up an error.  If we find we need more, we will do more than 24                            */
-static int check_inflate_CODE1(u8 *next, int left) {
+MAYBE_INLINE static int check_inflate_CODE1(u8 *next, int left) {
 	u32 whave = 0, op, bits, hold,len;
 	code here;
 
@@ -1188,7 +1227,7 @@ static int check_inflate_CODE1(u8 *next, int left) {
                 bits += 8;
             }
             here = distfix[hold & 0x1F];
-          dodist:
+//          dodist:
             op = (unsigned)(here.bits);
             hold >>= op;
             bits -= op;
@@ -1215,6 +1254,30 @@ static int check_inflate_CODE1(u8 *next, int left) {
 					return 0;  /*invalid distance too far back*/
                 hold >>= op;
                 bits -= op;
+
+				//***** start of patched code from Pavel Semjanov (see original code below)
+				whave += len;
+            }
+            else
+				return 0;		/*invalid distance code*/
+		}
+		else if (op & 32) {
+			// end of block [may present in short sequences, but only at the end.] NOTE, we need to find out if we EVER hit the end of a block, at only 24 bytes???
+			if (left == 0)
+				return 1;
+			return 0;
+		}
+		else {
+			return 0; // invalid literal/length code.
+		}
+		//***** End of patched code from Pavel
+	}
+}
+
+// original code block (for above), prior to patch from Pavel Semjanov [pavel@semjanov.com]
+// this code would be a direct drop in between the comments starting and stopping with //***** above
+// also the dodist label was commented out (no longer used).
+#if 0
 				whave += dist;
             }
             else if ((op & 64) == 0) {	/* 2nd level distance code */
@@ -1243,8 +1306,7 @@ static int check_inflate_CODE1(u8 *next, int left) {
 		else {
 			return 0; // invalid literal/length code.
 		}
-	}
-}
+#endif
 
 /*
  * Crypt_all simply performs the checksum .zip validatation of the data. It performs
@@ -1257,8 +1319,9 @@ static int check_inflate_CODE1(u8 *next, int left) {
  * not mean we have found the password.  Just that all hashes quick check checksums
  * for this password 'work'.
  */
-static void crypt_all(int _count)
+static int crypt_all(int *pcount, struct db_salt *_salt)
 {
+	const int _count = *pcount;
 	int idx;
 #if (ZIP_DEBUG==2)
 	static int CNT, FAILED, FAILED2;
@@ -1287,7 +1350,7 @@ static void crypt_all(int _count)
 		u8 curInfBuf[128];
 #endif
 		int k, SigChecked;
-		u16 e, v1, v2;
+		u16 e, e2, v1, v2;
 		z_stream strm;
 		int ret;
 
@@ -1299,9 +1362,9 @@ static void crypt_all(int _count)
 			/* load the 'pwkey' one time, put it into the K12 array */
 			key0.u = 0x12345678UL; key1.u = 0x23456789UL; key2.u = 0x34567890UL;
 			do {
-				key0.u = pkzip_crc32 (key0.u, *p++);
+				key0.u = jtr_crc32 (key0.u, *p++);
 				key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-				key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+				key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 			} while (*p);
 			K12[idx*3] = key0.u, K12[idx*3+1] = key1.u, K12[idx*3+2] = key2.u;
 			goto SkipKeyLoadInit;
@@ -1318,29 +1381,34 @@ SkipKeyLoadInit:;
 			b = salt->H[++cur_hash_idx].h;
 			k=11;
 			e = salt->H[cur_hash_idx].c;
+			e2 = salt->H[cur_hash_idx].c2;
 
 			do
 			{
 				C = PKZ_MULT(*b++,key2);
-				key0.u = pkzip_crc32 (key0.u, C);
+				key0.u = jtr_crc32 (key0.u, C);
 				key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-				key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+				key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 			}
 			while(--k);
 
 			/* if the hash is a 2 byte checksum type, then check that value first */
 			/* There is no reason to continue if this byte does not check out.  */
-			if (salt->chk_bytes == 2 && C != (e&0xFF))
+			if (salt->chk_bytes == 2 && C != (e&0xFF) && C != (e2&0xFF))
 				goto Failed_Bailout;
 
 			C = PKZ_MULT(*b++,key2);
-			if (C != (e>>8))
+#if 1
+			// https://github.com/magnumripper/JohnTheRipper/issues/467
+			// Fixed, JimF.  Added checksum test for crc32 and timestamp.
+			if (C != (e>>8) && C != (e2>>8))
 				goto Failed_Bailout;
+#endif
 
 			// Now, update the key data (with that last byte.
-			key0.u = pkzip_crc32 (key0.u, C);
+			key0.u = jtr_crc32 (key0.u, C);
 			key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-			key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+			key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 
 			// Ok, we now have validated this checksum.  We need to 'do some' extra pkzip validation work.
 			// What we do here, is to decrypt a little data (possibly only 1 byte), and perform a single
@@ -1354,9 +1422,6 @@ SkipKeyLoadInit:;
 			// First, we want to get the inflate CODE byte (the first one).
 
 			C = PKZ_MULT(*b++,key2);
-			// Ok, if this is a code 3, we are done.
-			if ( (C & 6) == 6)
-				goto Failed_Bailout;
 			SigChecked = 0;
 			if ( salt->H[cur_hash_idx].compType == 0) {
 				// handle a stored file.
@@ -1371,9 +1436,9 @@ SkipKeyLoadInit:;
 					SigChecked = 1;
 					curDecryBuf[0] = C;
 					for (; e < len;) {
-						key0.u = pkzip_crc32 (key0.u, curDecryBuf[e]);
+						key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 						key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-						key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+						key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 						curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 					}
 
@@ -1388,6 +1453,13 @@ SkipKeyLoadInit:;
 #endif
 				continue;
 			}
+#if 1
+			// https://github.com/magnumripper/JohnTheRipper/issues/467
+			// Ok, if this is a code 3, we are done.
+			// Code moved to after the check for stored type.  (FIXED)  This check was INVALID for a stored type file.
+			if ( (C & 6) == 6)
+				goto Failed_Bailout;
+#endif
 			if ( (C & 6) == 0) {
 				// Check that checksum2 is 0 or 1.  If not, I 'think' we can be done
 				if (C > 1)
@@ -1397,9 +1469,9 @@ SkipKeyLoadInit:;
 				// correct data is u16_1 == (u16_2^0xFFFF)
 				curDecryBuf[0] = C;
 				for (e = 0; e <= 4; ) {
-					key0.u = pkzip_crc32 (key0.u, curDecryBuf[e]);
+					key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 					key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-					key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+					key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 					curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 				}
 				v1 = curDecryBuf[1] | (((u16)curDecryBuf[2])<<8);
@@ -1414,9 +1486,9 @@ SkipKeyLoadInit:;
 						len = salt->H[cur_hash_idx].datlen-12;
 					SigChecked = 1;
 					for (; e < len;) {
-						key0.u = pkzip_crc32 (key0.u, curDecryBuf[e]);
+						key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 						key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-						key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+						key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 						curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 					}
 
@@ -1443,9 +1515,9 @@ SkipKeyLoadInit:;
 #endif
 					// we need 4 bytes, + 2, + 4 at most.
 					for (; e < 10;) {
-						key0.u = pkzip_crc32 (key0.u, curDecryBuf[e]);
+						key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 						key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-						key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+						key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 						curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 					}
 					if (!check_inflate_CODE2(curDecryBuf))
@@ -1464,9 +1536,9 @@ SkipKeyLoadInit:;
 					if (salt->H[cur_hash_idx].datlen-12 < til)
 						til = salt->H[cur_hash_idx].datlen-12;
 					for (; e < til;) {
-						key0.u = pkzip_crc32 (key0.u, curDecryBuf[e]);
+						key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 						key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-						key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+						key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 						curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 					}
 					if (!check_inflate_CODE1(curDecryBuf, til))
@@ -1483,9 +1555,9 @@ SkipKeyLoadInit:;
 				if (salt->H[cur_hash_idx].datlen-12 < til)
 					til = salt->H[cur_hash_idx].datlen-12;
 				for (; e < til;) {
-					key0.u = pkzip_crc32 (key0.u, curDecryBuf[e]);
+					key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 					key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-					key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+					key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 					curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 				}
 				strm.zalloc = Z_NULL; strm.zfree = Z_NULL; strm.opaque = Z_NULL; strm.next_in = Z_NULL;
@@ -1502,8 +1574,14 @@ SkipKeyLoadInit:;
 				ret = inflate(&strm, Z_SYNC_FLUSH);
 
 				inflateEnd(&strm);
-				if (ret != Z_OK)
+				if (ret != Z_OK) {
+					// we need to handle zips smaller than sizeof curInfBuf.  If we find a zip of this
+					// size, the return is Z_STREAM_END, BUT things are fine.
+					if (ret == Z_STREAM_END && salt->deCompLen == strm.total_out)
+						; // things are ok.
+					else
 					goto Failed_Bailout;
+				}
 				if (!strm.total_out)
 					goto Failed_Bailout;
 
@@ -1524,9 +1602,9 @@ SkipKeyLoadInit:;
 				u8 inflateBufTmp[1024];
 				if (salt->compLen > 240 && salt->H[cur_hash_idx].datlen >= 200) {
 					for (;e < 200;) {
-						key0.u = pkzip_crc32 (key0.u, curDecryBuf[e]);
+						key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 						key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-						key2.u = pkzip_crc32 (key2.u, key1.c[KB2]);
+						key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 						curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 					}
 					strm.zalloc = Z_NULL; strm.zfree = Z_NULL; strm.opaque = Z_NULL; strm.next_in = Z_NULL;
@@ -1545,11 +1623,7 @@ SkipKeyLoadInit:;
 
 					if (ret != Z_OK) {
 #if (ZIP_DEBUG==2)
-#ifdef _MSC_VER
 						fprintf(stderr, "fail=%d fail2=%d tot=%lld\n", ++FAILED, FAILED2, ((long long)CNT)*_count);
-#else
-						fprintf(stderr, "fail=%d fail2=%d tot=%lld\n", ++FAILED, FAILED2, ((long long)CNT)*_count);
-#endif
 #endif
 						goto Failed_Bailout;
 					}
@@ -1574,6 +1648,8 @@ Failed_Bailout: ;
 	/* clear the 'dirty' flag.  Then on multiple different salt calls, we will not have to */
 	/* encrypt the passwords again. They will have already been loaded in the K12[] array. */
 	dirty = 0;
+
+	return _count;
 }
 
 struct fmt_main fmt_pkzip = {
@@ -1583,42 +1659,50 @@ struct fmt_main fmt_pkzip = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_default_source,
 		{
-			binary_hash0,
-			NULL,
-			NULL,
-			NULL,
-			NULL
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash0,
-			NULL,
-			NULL,
-			NULL,
-			NULL
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */
+#endif /* HAVE_LIBZ */

@@ -10,7 +10,7 @@
  *
  *  The module contains code derived or copied from the Heimdal project.
  *
- *  Copyright (c) 1997-2000 Kungliga Tekniska Högskolan
+ *  Copyright (c) 1997-2000 Kungliga Tekniska HÃ¶gskolan
  *  (Royal Institute of Technology, Stockholm, Sweden).
  *  All rights reserved.
  *
@@ -26,6 +26,8 @@
 #include <stdio.h>
 
 #include "KRB5_std.h"
+#include "memory.h"
+#include "memdbg.h"
 
 #ifdef _MSC_VER
 #define inline _inline
@@ -47,21 +49,22 @@ static inline void rr13(unsigned char *buf, int len) {
     int bb;
     int b1, s1, b2, s2;
 
-    const int bits = 13 % len;
     const int lbit = len % 8;
 
     if(len == 0)
         return;
 
-    tmp = (unsigned char *) malloc(bytes);
+    tmp = (unsigned char *) mem_alloc(bytes);
     memcpy(tmp, buf, bytes);
     if(lbit) {
-        // pad final byte with inital bits
+        // pad final byte with initial bits
         tmp[bytes - 1] &= 0xff << (8 - lbit);
         for(i = lbit; i < 8; i += len)
             tmp[bytes - 1] |= buf[0] >> i;
     }
     for(i = 0; i < bytes; i++) {
+        const int bits = 13 % len;
+
         // calculate first bit position of this byte
         bb = 8 * i - bits;
         while(bb < 0)
@@ -78,7 +81,7 @@ static inline void rr13(unsigned char *buf, int len) {
         b2 = (b1 + 1) % bytes;
         buf[i] = (tmp[b1] << s1) | (tmp[b2] >> s2);
     }
-    free(tmp);
+    MEM_FREE(tmp);
 }
 // }}}
 
@@ -107,8 +110,8 @@ static inline void add1(unsigned char *a, unsigned char *b, size_t len) {
 static inline void _krb5_n_fold(const void *str, int len, void *key, int size) {
 
     int maxlen = 2 * max(size, len), l = 0;
-    unsigned char *tmp = (unsigned char *) malloc(maxlen);
-    unsigned char *buf = (unsigned char *) malloc(len);
+    unsigned char *tmp = (unsigned char *) mem_alloc(maxlen);
+    unsigned char *buf = (unsigned char *) mem_alloc(len);
 
     memcpy(buf, str, len);
     memset(key, 0, size);
@@ -124,8 +127,8 @@ static inline void _krb5_n_fold(const void *str, int len, void *key, int size) {
             memmove(tmp, tmp + size, l);
         }
     } while(l != 0);
-    sfree(buf, len);
-    sfree(tmp, maxlen);
+    MEM_FREE(buf);
+    MEM_FREE(tmp);
 }
 // }}}
 
@@ -182,11 +185,8 @@ static inline void derive_key(const void *constant, int len, krb5_key *krb5key) 
 
     if(DES3_BLOCK_SIZE * 8 < DES3_KEY_BITS || len != DES3_BLOCK_SIZE) {
         nblocks = (DES3_KEY_BITS + DES3_BLOCK_SIZE * 8 - 1) / (DES3_BLOCK_SIZE * 8);
-        k = (unsigned char *) malloc(nblocks * DES3_BLOCK_SIZE);
-        if(k == NULL) {
-            printf("malloc: out of memory\n");
-            exit(1);
-        }
+        k = (unsigned char *) mem_alloc(nblocks * DES3_BLOCK_SIZE);
+
         _krb5_n_fold(constant, len, k, DES3_BLOCK_SIZE);
         for(i = 0; i < nblocks; i++) {
             if(i > 0)
@@ -204,7 +204,7 @@ static inline void derive_key(const void *constant, int len, krb5_key *krb5key) 
     // keytype dependent post-processing
     DES3_postproc(k, nblocks * DES3_BLOCK_SIZE, krb5key);
 
-    sfree(k, nblocks * DES3_BLOCK_SIZE);
+    MEM_FREE(k);
 }
 // }}}
 
@@ -215,18 +215,14 @@ static inline void string_to_key_derived(const void *passwd, int len, krb5_key *
 
     unsigned char *tmp;
 
-    tmp = (unsigned char *) malloc(DES3_KEY_BITS_BYTES);
-    if(tmp == NULL) {
-        printf("malloc: out of memory\n");
-        // FIXME make it real return value if sometime this is needed
-        exit(1);
-    }
+    tmp = (unsigned char *) mem_alloc(DES3_KEY_BITS_BYTES);
+
     _krb5_n_fold(passwd, len, tmp, DES3_KEY_BITS_BYTES);
 
     DES3_postproc(tmp, DES3_KEY_BITS_BYTES, krb5key);
     derive_key("kerberos", strlen("kerberos"), krb5key);
 
-    sfree(tmp, DES3_KEY_BITS_BYTES);
+    MEM_FREE(tmp);
 }
 // }}}
 
@@ -259,10 +255,7 @@ void str2key(char *user, char *realm, char *passwd, krb5_key *krb5key) {
     int offset = 0;
     char *text;
 
-    text = (char*) malloc(strlen(user) + strlen(realm) + strlen(passwd));
-    if (text == NULL) {
-        return;
-    }
+    text = (char*) mem_alloc(strlen(user) + strlen(realm) + strlen(passwd));
 
     memset(krb5key->key, 0x00, DES3_KEY_SIZE);
     memset(krb5key->schedule, 0x00, DES3_KEY_SCHED_SIZE);
@@ -281,7 +274,6 @@ void str2key(char *user, char *realm, char *passwd, krb5_key *krb5key) {
     // derive key from key
     derive_key(derive_const, sizeof(derive_const), krb5key);
 
-    free(text);
+    MEM_FREE(text);
 }
 // }}}
-

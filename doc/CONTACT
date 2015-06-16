@@ -13,8 +13,13 @@ you're using (if applicable).  If you need to provide a binary file,
 place it on a private URL and post that, do not attach the file to your
 message.
 
-If you need to contact me privately, please e-mail me at the address
-below, but most messages should really be directed to the list instead.
+If you absolutely need to contact me (the original author of John the
+Ripper) privately, please e-mail me at:
+
+	Solar Designer <solar at openwall.com>
+
+although most messages should really be directed to the list instead
+(and you're more likely to receive a response if you write to the list).
 
 Please don't ask questions until you read the FAQ.
 
@@ -22,7 +27,4 @@ Commercial support for John the Ripper is available from Openwall:
 
 	http://www.openwall.com/services/
 
---
-Solar Designer <solar at openwall.com>
-
-$Owl: Owl/packages/john/john/doc/CONTACT,v 1.3 2006/01/02 05:00:42 solar Exp $
+$Owl$

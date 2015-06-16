@@ -11,6 +11,12 @@
  * hash = ibf_members_converge.converge_pass_hash
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_IPB2;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_IPB2);
+#else
+
 #include <string.h>
 
 #include "arch.h"
@@ -18,29 +24,58 @@
 #include "md5.h"
 #include "common.h"
 #include "formats.h"
+#include "sse-intrinsics.h"
 
-#define FORMAT_LABEL		"ipb2"
-#define FORMAT_NAME		"IPB2 MD5"
-#define ALGORITHM_NAME		"Invision Power Board 2.x salted MD5"
+#if defined(_OPENMP)
+#include <omp.h>
+static unsigned int omp_t = 1;
+#ifdef SIMD_COEF_32
+#ifndef OMP_SCALE
+#define OMP_SCALE			512  // Tuned K8-dual HT
+#endif
+#else
+#ifndef OMP_SCALE
+#define OMP_SCALE			256
+#endif
+#endif
+#else
+#define omp_t				1
+#endif
 
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#include "memdbg.h"
 
-#define MD5_BINARY_SIZE		16
-#define MD5_HEX_SIZE		(MD5_BINARY_SIZE * 2)
+#define FORMAT_LABEL			"ipb2"
+#define FORMAT_NAME			"Invision Power Board 2.x"
 
-#define BINARY_SIZE		MD5_BINARY_SIZE
+#define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
-#define SALT_SIZE		5
-#define PROCESSED_SALT_SIZE	MD5_HEX_SIZE
+#define BENCHMARK_COMMENT		""
+#define BENCHMARK_LENGTH		0
 
-#define PLAINTEXT_LENGTH	32
-#define CIPHERTEXT_LENGTH	(1 + 4 + 1 + SALT_SIZE * 2 + 1 + MD5_HEX_SIZE)
+#define BINARY_ALIGN			4
+#define BINARY_SIZE			16
+#define MD5_HEX_SIZE			(BINARY_SIZE * 2)
+#define SALT_SIZE			MD5_HEX_SIZE
+#define SALT_ALIGN			4
 
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define SALT_LENGTH			5
 
-static struct fmt_tests ipb2_tests[] = {
+#define PLAINTEXT_LENGTH		31
+#define CIPHERTEXT_LENGTH		(1 + 4 + 1 + SALT_LENGTH * 2 + 1 + MD5_HEX_SIZE)
+
+#ifdef SIMD_COEF_32
+#define NBKEYS					(SIMD_COEF_32 * SIMD_PARA_MD5)
+#define MIN_KEYS_PER_CRYPT		NBKEYS
+#define MAX_KEYS_PER_CRYPT		NBKEYS
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
+#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&12)*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32 )
+#else
+#define NBKEYS                  1
+#define MIN_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		1
+#endif
+
+static struct fmt_tests tests[] = {
 	{"$IPB2$2e75504633$d891f03a7327639bc632d62a7f302604", "welcome"},
 	{"$IPB2$735a213a4e$4f23de7bb115139660db5e953153f28a", "enter"},
 	{"$IPB2$5d75343455$de98ba8ca7bb16f43af05e9e4fb8afee", "matrix"},
@@ -48,7 +83,7 @@ static struct fmt_tests ipb2_tests[] = {
 	{NULL}
 };
 
-static char itoa16_shr_04[] =
+static const char itoa16_shr_04[] =
 	"0000000000000000"
 	"1111111111111111"
 	"2222222222222222"
@@ -66,7 +101,7 @@ static char itoa16_shr_04[] =
 	"eeeeeeeeeeeeeeee"
 	"ffffffffffffffff";
 
-static char itoa16_and_0f[] =
+static const char itoa16_and_0f[] =
 	"0123456789abcdef"
 	"0123456789abcdef"
 	"0123456789abcdef"
@@ -84,24 +119,86 @@ static char itoa16_and_0f[] =
 	"0123456789abcdef"
 	"0123456789abcdef";
 
-static MD5_CTX ctx;
-static char saved_key[PLAINTEXT_LENGTH + 1];
-static int saved_key_len;
-static char workspace[MD5_HEX_SIZE * 2];
-static ARCH_WORD_32 output[MD5_BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static char (*saved_plain)[PLAINTEXT_LENGTH + 1];
 
-static int ipb2_valid(char *ciphertext, struct fmt_main *pFmt)
+#if SIMD_COEF_32
+
+static unsigned char *saved_key;
+static unsigned char *key_buf;
+static unsigned char *empty_key;
+static unsigned char *crypt_key;
+static ARCH_WORD_32 *cur_salt;
+static int new_salt;
+static int new_key;
+
+#else
+
+static char (*saved_key)[2*MD5_HEX_SIZE];
+static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+
+#endif
+
+static void init(struct fmt_main *self)
 {
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
+#if SIMD_COEF_32
+	unsigned int i;
+#endif
+#if defined (_OPENMP)
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	// these 2 lines of change, allows the format to work with
+	// [Options] FormatBlockScaleTuneMultiplier= without other format change
+	omp_t *= self->params.max_keys_per_crypt;
+	omp_t /= NBKEYS;
+	self->params.max_keys_per_crypt = (omp_t*NBKEYS);
+#endif
+#if SIMD_COEF_32
+	key_buf   = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             64, MEM_ALIGN_SIMD);
+	empty_key = mem_calloc_align(64 * NBKEYS,
+	                             sizeof(empty_key), MEM_ALIGN_SIMD);
+	for (i = 0; i < NBKEYS; ++i) {
+		empty_key[GETPOS(0, i)] = 0x80;
+		((unsigned int*)empty_key)[14*SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32*16*SIMD_COEF_32] = (2 * MD5_HEX_SIZE)<<3;
+	}
+	crypt_key = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             BINARY_SIZE, MEM_ALIGN_SIMD);
+	saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             64, MEM_ALIGN_SIMD);
+#else
+	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_key));
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+#endif
+	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
+	                         sizeof(*saved_plain));
+}
+
+static void done(void)
+{
+	MEM_FREE(saved_plain);
+	MEM_FREE(saved_key);
+	MEM_FREE(crypt_key);
+#if SIMD_COEF_32
+	MEM_FREE(empty_key);
+	MEM_FREE(key_buf);
+#endif
+}
+
+static int valid(char *ciphertext, struct fmt_main *self)
+{
+	if (strncmp(ciphertext, "$IPB2$", 6) != 0)
 		return 0;
 
-	if (strncmp(ciphertext, "$IPB2$", 6) != 0)
+	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
 		return 0;
 
 	if (ciphertext[16] != '$')
 		return 0;
 
-	if (strspn(ciphertext+6, itoa16) != SALT_SIZE*2)
+	if (strspn(ciphertext+6, itoa16) != SALT_LENGTH*2)
 		return 0;
 
 	if (strspn(ciphertext+17, itoa16) != MD5_HEX_SIZE)
@@ -110,51 +207,62 @@ static int ipb2_valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static void *ipb2_binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
-	static unsigned char binary_cipher[BINARY_SIZE];
+	static ARCH_WORD_32 out[BINARY_SIZE/4];
+	unsigned char *binary_cipher = (unsigned char*)out;
 	int i;
 
 	ciphertext += 17;
-	for (i = 0; i < MD5_HEX_SIZE; ++i)
+	for (i = 0; i < BINARY_SIZE; ++i)
 		binary_cipher[i] =
 			(atoi16[ARCH_INDEX(ciphertext[i*2])] << 4)
 			+ atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 
-	return (void *)binary_cipher;
+	return (void*)out;
 }
 
-static void *ipb2_salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
-	static unsigned char binary_salt[SALT_SIZE];
-	static unsigned char salt_hash[MD5_BINARY_SIZE];
-	static unsigned char hex_salt[MD5_HEX_SIZE];
+	static ARCH_WORD_32 hex_salt[MD5_HEX_SIZE/4];
+	unsigned char binary_salt[SALT_LENGTH];
+	unsigned char salt_hash[BINARY_SIZE];
+	static MD5_CTX ctx;
 	int i;
 
 	ciphertext += 6;
-	for (i = 0; i < SALT_SIZE; ++i)
+	for (i = 0; i < SALT_LENGTH; ++i)
 		binary_salt[i] =
 			(atoi16[ARCH_INDEX(ciphertext[i*2])] << 4)
 			+ atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 
 	MD5_Init(&ctx);
-	MD5_Update(&ctx, binary_salt, SALT_SIZE);
+	MD5_Update(&ctx, binary_salt, SALT_LENGTH);
 	MD5_Final(salt_hash, &ctx);
 
-	for (i = 0; i < MD5_BINARY_SIZE; ++i) {
-		hex_salt[i*2] = itoa16[ARCH_INDEX(salt_hash[i] >> 4)];
-		hex_salt[i*2+1] = itoa16[ARCH_INDEX(salt_hash[i] & 0x0f)];
+	for (i = 0; i < BINARY_SIZE; ++i) {
+		((char*)hex_salt)[i*2] = itoa16[ARCH_INDEX(salt_hash[i] >> 4)];
+		((char*)hex_salt)[i*2+1] = itoa16[ARCH_INDEX(salt_hash[i] & 0x0f)];
 	}
 
 	return (void*)hex_salt;
 }
 
-static void ipb2_set_salt(void *salt)
+static void set_salt(void *salt)
 {
-	memcpy((char*)workspace, (char*)salt, PROCESSED_SALT_SIZE);
+#ifdef SIMD_COEF_32
+	cur_salt = salt;
+	new_salt = 1;
+#else
+	int index;
+
+	for (index = 0; index < omp_t * MAX_KEYS_PER_CRYPT; index++)
+		memcpy(saved_key[index], salt, MD5_HEX_SIZE);
+#endif
 }
 
-static int strnfcpy_count(char *dst, char *src, int size)
+#ifndef SIMD_COEF_32
+static inline int strnfcpy_count(char *dst, char *src, int size)
 {
 	char *dptr = dst, *sptr = src;
 	int count = size;
@@ -164,119 +272,203 @@ static int strnfcpy_count(char *dst, char *src, int size)
 
 	return size-count-1;
 }
+#endif
 
-static void ipb2_set_key(char *key, int index)
+static void set_key(char *key, int index)
 {
-	static unsigned char key_hash[MD5_BINARY_SIZE];
+#ifdef SIMD_COEF_32
+	strcpy(saved_plain[index], key);
+	new_key = 1;
+#else
+	unsigned char key_hash[BINARY_SIZE];
 	unsigned char *kh = key_hash;
-	unsigned char *workspace_ptr = (unsigned char *) (workspace + PROCESSED_SALT_SIZE);
+	unsigned char *key_ptr = (unsigned char*)saved_key[index] + MD5_HEX_SIZE;
 	unsigned char v;
-	int i;
+	int i, len;
+	MD5_CTX ctx;
 
-	saved_key_len = strnfcpy_count(saved_key, key, PLAINTEXT_LENGTH);
+	len = strnfcpy_count(saved_plain[index], key, PLAINTEXT_LENGTH);
 
 	MD5_Init(&ctx);
-	MD5_Update(&ctx, saved_key, saved_key_len);
+	MD5_Update(&ctx, key, len);
 	MD5_Final(key_hash, &ctx);
 
-	for (i = 0; i < MD5_BINARY_SIZE; ++i) {
+	for (i = 0; i < BINARY_SIZE; ++i) {
 		v = *kh++;
-		*workspace_ptr++ = itoa16_shr_04[ARCH_INDEX(v)];
-		*workspace_ptr++ = itoa16_and_0f[ARCH_INDEX(v)];
+		*key_ptr++ = itoa16_shr_04[ARCH_INDEX(v)];
+		*key_ptr++ = itoa16_and_0f[ARCH_INDEX(v)];
 	}
+#endif
 }
 
-static char *ipb2_get_key(int index)
+static char *get_key(int index)
 {
-	return saved_key;
+	return saved_plain[index];
 }
 
-static void ipb2_crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	MD5_Init(&ctx);
-	MD5_Update(&ctx, workspace, MD5_HEX_SIZE * 2);
-	MD5_Final((unsigned char *) output, &ctx);
+	const int count = *pcount;
+#ifdef SIMD_COEF_32
+#if defined(_OPENMP)
+	int t;
+#pragma omp parallel for
+	for (t = 0; t < omp_t; t++)
+#define ti (t*NBKEYS+index)
+#else
+#define t  0
+#define ti index
+#endif
+	{
+		unsigned int index, i;
+
+		if (new_salt)
+		for (index = 0; index < NBKEYS; index++) {
+			const ARCH_WORD_32 *sp = cur_salt;
+			ARCH_WORD_32 *kb = (ARCH_WORD_32*)&saved_key[GETPOS(0, ti)];
+
+			for (i = 0; i < MD5_HEX_SIZE / 4; i++, kb += SIMD_COEF_32)
+				*kb = *sp++;
+		}
+
+		if (new_key)
+		for (index = 0; index < NBKEYS; index++) {
+			const ARCH_WORD_32 *key = (ARCH_WORD_32*)saved_plain[ti];
+			ARCH_WORD_32 *kb = (ARCH_WORD_32*)&key_buf[GETPOS(0, ti)];
+			ARCH_WORD_32 *keybuffer = kb;
+			int len, temp;
+
+			len = 0;
+			while((unsigned char)(temp = *key++)) {
+				if (!(temp & 0xff00)) {
+					*kb = (unsigned char)temp | (0x80 << 8);
+					len++;
+					goto key_cleaning;
+				}
+				if (!(temp & 0xff0000)) {
+					*kb = (unsigned short)temp | (0x80 << 16);
+					len+=2;
+					goto key_cleaning;
+				}
+				if (!(temp & 0xff000000)) {
+					*kb = temp | (0x80 << 24);
+					len+=3;
+					goto key_cleaning;
+				}
+				*kb = temp;
+				len += 4;
+				kb += SIMD_COEF_32;
+			}
+			*kb = 0x00000080;
+
+key_cleaning:
+			kb += SIMD_COEF_32;
+			while(*kb) {
+				*kb = 0;
+				kb += SIMD_COEF_32;
+			}
+			keybuffer[14*SIMD_COEF_32] = len << 3;
+		}
+
+		SSEmd5body(&key_buf[t*NBKEYS*64], (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
+		for (index = 0; index < NBKEYS; index++) {
+			// Somehow when I optimised this it got faster in Valgrind but slower IRL
+			for (i = 0; i < BINARY_SIZE; i++) {
+				unsigned char v = crypt_key[GETOUTPOS(i, ti)];
+				saved_key[GETPOS(MD5_HEX_SIZE + 2 * i, ti)] = itoa16_shr_04[ARCH_INDEX(v)];
+				saved_key[GETPOS(MD5_HEX_SIZE + 2 * i + 1, ti)] = itoa16_and_0f[ARCH_INDEX(v)];
+			}
+		}
+
+		SSEmd5body(&saved_key[t*NBKEYS*64], (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
+		SSEmd5body(empty_key, (unsigned int*)&crypt_key[t*NBKEYS*16], (unsigned int*)&crypt_key[t*NBKEYS*16], SSEi_RELOAD|SSEi_MIXED_IN);
+	}
+	//dump_stuff_mmx_msg("\nfinal ", saved_key, 64, count-1);
+	//dump_out_mmx_msg("result", crypt_key, 16, count-1);
+	new_salt = new_key = 0;
+
+#else
+
+#ifdef _OPENMP
+	int index;
+#pragma omp parallel for
+	for (index = 0; index < count; index++)
+#else
+#define index	0
+#endif
+	{
+		MD5_CTX ctx;
+
+		MD5_Init(&ctx);
+		MD5_Update(&ctx, saved_key[index], MD5_HEX_SIZE * 2);
+		MD5_Final((unsigned char*)crypt_key[index], &ctx);
+	}
+#undef index
+#endif
+	return count;
 }
 
-static int ipb2_cmp_all(void *binary, int index)
-{
-	return !memcmp(binary, output, MD5_BINARY_SIZE);
+static int cmp_all(void *binary, int count) {
+#ifdef SIMD_COEF_32
+	unsigned int x,y=0;
+#ifdef _OPENMP
+	for(;y<SIMD_PARA_MD5*omp_t;y++)
+#else
+	for(;y<SIMD_PARA_MD5;y++)
+#endif
+		for(x = 0; x < SIMD_COEF_32; x++)
+		{
+			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[y*SIMD_COEF_32*4+x] )
+				return 1;
+		}
+	return 0;
+#else
+	int index;
+	for (index = 0; index < count; index++)
+		if (!memcmp(binary, crypt_key[index], BINARY_SIZE))
+			return 1;
+	return 0;
+#endif
 }
 
-static int ipb2_cmp_exact(char *source, int index)
+static int cmp_exact(char *source, int index)
 {
 	return 1;
 }
 
-static int binary_hash_0(void *binary)
+static int cmp_one(void * binary, int index)
 {
-	return *(ARCH_WORD_32*)binary & 0xF;
+#ifdef SIMD_COEF_32
+	unsigned int i,x,y;
+	x = index&(SIMD_COEF_32-1);
+	y = (unsigned int)index/SIMD_COEF_32;
+	for(i=0;i<(BINARY_SIZE/4);i++)
+		if ( ((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[y*SIMD_COEF_32*4+i*SIMD_COEF_32+x] )
+			return 0;
+	return 1;
+#else
+	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
+#endif
 }
 
-static int binary_hash_1(void *binary)
-{
-	return *(ARCH_WORD_32*)binary & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return *(ARCH_WORD_32*)binary & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return *(ARCH_WORD_32*)binary & 0xFFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return *(ARCH_WORD_32*)binary & 0xFFFFF;
-}
-
-static int binary_hash_5(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
-}
-
-static int binary_hash_6(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
-}
-
-static int get_hash_0(int index)
-{
-	return *output & 0xF;
-}
-
-static int get_hash_1(int index)
-{
-	return *output & 0xFF;
-}
-
-static int get_hash_2(int index)
-{
-	return *output & 0xFFF;
-}
-
-static int get_hash_3(int index)
-{
-	return *output & 0xFFFF;
-}
-
-static int get_hash_4(int index)
-{
-	return *output & 0xFFFFF;
-}
-
-static int get_hash_5(int index)
-{
-	return *output & 0xFFFFFF;
-}
-
-static int get_hash_6(int index)
-{
-	return *output & 0x7FFFFFF;
-}
+#ifdef SIMD_COEF_32
+#define HASH_OFFSET (index&(SIMD_COEF_32-1))+((unsigned int)index/SIMD_COEF_32)*SIMD_COEF_32*4
+static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xf; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xff; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xfff; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xffff; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0x7ffffff; }
+#else
+static int get_hash_0(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0xF; }
+static int get_hash_1(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0xFF; }
+static int get_hash_2(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0xFFF; }
+static int get_hash_3(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0xFFFF; }
+static int get_hash_4(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0xFFFFF; }
+static int get_hash_5(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0xFFFFFF; }
+static int get_hash_6(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0x7FFFFFF; }
+#endif
 
 static int salt_hash(void *salt)
 {
@@ -290,36 +482,49 @@ struct fmt_main fmt_IPB2 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		PROCESSED_SALT_SIZE,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
-		ipb2_tests
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		tests
 	},
 	{
-		fmt_default_init,
+		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
-		ipb2_valid,
+		valid,
 		fmt_default_split,
-		ipb2_binary,
-		ipb2_salt,
+		get_binary,
+		get_salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_default_source,
 		{
-			binary_hash_0,
-			binary_hash_1,
-			binary_hash_2,
-			binary_hash_3,
-			binary_hash_4,
-			binary_hash_5,
-			binary_hash_6
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		salt_hash,
-		ipb2_set_salt,
-		ipb2_set_key,
-		ipb2_get_key,
+		NULL,
+		set_salt,
+		set_key,
+		get_key,
 		fmt_default_clear_keys,
-		ipb2_crypt_all,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,
@@ -329,8 +534,10 @@ struct fmt_main fmt_IPB2 = {
 			get_hash_5,
 			get_hash_6
 		},
-		ipb2_cmp_all,
-		ipb2_cmp_all,
-		ipb2_cmp_exact
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

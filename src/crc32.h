@@ -1,9 +1,20 @@
 /*
  * This is a tiny implementation of CRC-32.
  *
- * Written by Solar Designer <solar at openwall.com> in 1998, revised in
- * 2005 for use in John the Ripper, and placed in the public domain.
- * There's absolutely no warranty.
+ * This software was written by Solar Designer in 1998 and revised in 2005.
+ * No copyright is claimed, and the software is hereby placed in the public
+ * domain.
+ * In case this attempt to disclaim copyright and place the software in the
+ * public domain is deemed null and void, then the software is
+ * Copyright (c) 1998,2005 by Solar Designer and it is hereby released to the
+ * general public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
+ *
+ * (This is a heavily cut-down "BSD license".)
  */
 
 #ifndef _JOHN_CRC32_H
@@ -27,5 +38,39 @@ extern void CRC32_Update(CRC32_t *value, void *data, unsigned int size);
  * little-endian.
  */
 extern void CRC32_Final(unsigned char *out, CRC32_t value);
+
+/*
+ * initialze the table function.  (Jumbo function)
+ */
+
+void CRC32_Init_tab();
+
+/*
+ * This is the data, so our macro can access it also. (jumbo only)
+ */
+extern CRC32_t JTR_CRC32_table[256];
+extern CRC32_t JTR_CRC32_tableC[256];
+
+/*
+ * This is the data, so our macro can access it also. (jumbo only)
+ */
+#define jtr_crc32(crc,byte) (JTR_CRC32_table[(unsigned char)((crc)^(byte))] ^ ((crc) >> 8))
+
+/*
+ * Function and macro for CRC-32C polynomial. (jumbo only)
+ * If using the function, then use the CRC32_Init() and CRC32_Update() function.
+ * just make sure to use either the CRC32_UpdateC() function or the jtr_crc32c() macro.
+ */
+extern void CRC32_UpdateC(CRC32_t *value, void *data, unsigned int size);
+#if __SSE4_2__
+#include <nmmintrin.h>
+#define jtr_crc32c(crc,byte) (_mm_crc32_u8(crc, byte))
+#define CRC32_C_ALGORITHM_NAME			"SSE4.2"
+#else
+#define jtr_crc32c(crc,byte) (JTR_CRC32_tableC[(unsigned char)((crc)^(byte))] ^ ((crc) >> 8))
+#define CRC32_C_ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#endif
+
+
 
 #endif

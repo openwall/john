@@ -1,0 +1,28 @@
+#
+# This is a stub Makefile. If you run ./configure you will get a real one.
+#
+generic: default
+
+help: default
+
+all: default
+
+install: default
+
+default:
+	@echo "A normal build is now \"./configure && make -s\"."
+	@echo
+	@exit 1
+
+# Unfortunately these does not work due to the @EXE_EXT@ shite
+#clean:
+#	$(MAKE) -f Makefile.in $@
+#
+#distclean:
+#	$(MAKE) -f Makefile.in $@
+
+# Better than nothing :-/
+clean:
+	rm -f *.o
+
+distclean: clean

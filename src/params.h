@@ -1,8 +1,13 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2011 by Solar Designer
+ * Copyright (c) 1996-2015 by Solar Designer
  *
  * ...with changes in the jumbo patch, by various authors
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*
@@ -12,14 +17,17 @@
 #ifndef _JOHN_PARAMS_H
 #define _JOHN_PARAMS_H
 
+#if !AC_BUILT || HAVE_LIMITS_H
 #include <limits.h>
+#endif
 
 #include "arch.h"
 
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.7.9-jumbo-4"
+#define JOHN_VERSION			"1.8.0.6-jumbo-1-bleeding"
+//#define JTR_RELEASE_BUILD
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
@@ -64,6 +72,8 @@
  * "$JOHN" is supposed to be expanded at runtime.  Please do not replace
  * it with a specific path, neither in this file nor in the default
  * john.conf, if at all possible.
+ *
+ * Please also note that there is a make target for bash-completion.
  */
 
 /*
@@ -100,14 +110,14 @@
 #define RECOVERY_V1			"REC1"
 #define RECOVERY_V2			"REC2"
 #define RECOVERY_V3			"REC3"
-#define RECOVERY_V			RECOVERY_V3
+#define RECOVERY_V4			"REC4"
+#define RECOVERY_V			RECOVERY_V4
 
 /*
  * Charset file format version string.
  */
-#define CHARSET_V1			"CHR1"
-#define CHARSET_V2			"CHR2"
-#define CHARSET_V			CHARSET_V2
+#define CHARSET_V3			"CHR3"
+#define CHARSET_V			CHARSET_V3
 
 /*
  * Timer interval in seconds.
@@ -138,20 +148,14 @@
 #define CFG_PRIVATE_FULL_NAME		JOHN_PRIVATE_HOME "/john.conf"
 #define CFG_PRIVATE_ALT_NAME		JOHN_PRIVATE_HOME "/john.ini"
 #define POT_NAME			JOHN_PRIVATE_HOME "/john.pot"
+#define SEC_POT_NAME			JOHN_PRIVATE_HOME "/secure.pot"
 #define LOG_NAME			JOHN_PRIVATE_HOME "/john.log"
-#ifdef HAVE_MPI
 #define RECOVERY_NAME			JOHN_PRIVATE_HOME "/john"
 #else
-#define RECOVERY_NAME			JOHN_PRIVATE_HOME "/john.rec"
-#endif /* HAVE_MPI */
-#else
 #define POT_NAME			"$JOHN/john.pot"
+#define SEC_POT_NAME			"$JOHN/secure.pot"
 #define LOG_NAME			"$JOHN/john.log"
-#ifdef HAVE_MPI
 #define RECOVERY_NAME			"$JOHN/john"
-#else
-#define RECOVERY_NAME			"$JOHN/john.rec"
-#endif /* HAVE_MPI */
 #endif
 #define LOG_SUFFIX			".log"
 #define RECOVERY_SUFFIX			".rec"
@@ -161,11 +165,16 @@
  * Configuration file section names.
  */
 #define SECTION_OPTIONS			"Options"
+#define SUBSECTION_MPI			":MPI"
 #define SECTION_RULES			"List.Rules:"
 #define SUBSECTION_SINGLE		"Single"
 #define SUBSECTION_WORDLIST		"Wordlist"
 #define SECTION_INC			"Incremental:"
 #define SECTION_EXT			"List.External:"
+#define SECTION_MARKOV			"Markov:"
+#define SECTION_PRINCE			"PRINCE"
+#define SECTION_DISABLED		"Disabled:"
+#define SUBSECTION_FORMATS		"Formats"
 
 /*
  * Number of different password hash table sizes.
@@ -196,21 +205,31 @@
 
 /*
  * Password hash table thresholds.  These are the counts of entries required
- * to enable the corresponding hash table size.
+ * to enable the corresponding bitmap size.  The corresponding hash table size
+ * may be smaller as determined by PASSWORD_HASH_SHR.
  */
 #define PASSWORD_HASH_THRESHOLD_0	3
-#define PASSWORD_HASH_THRESHOLD_1	PASSWORD_HASH_SIZE_0
-#define PASSWORD_HASH_THRESHOLD_2	(PASSWORD_HASH_SIZE_1 / 5)
-#define PASSWORD_HASH_THRESHOLD_3	(PASSWORD_HASH_SIZE_2 / 3)
-#define PASSWORD_HASH_THRESHOLD_4	(PASSWORD_HASH_SIZE_3 / 2)
-#define PASSWORD_HASH_THRESHOLD_5	PASSWORD_HASH_SIZE_4
-#define PASSWORD_HASH_THRESHOLD_6	(PASSWORD_HASH_SIZE_5 / 2)
+#define PASSWORD_HASH_THRESHOLD_1	3
+#define PASSWORD_HASH_THRESHOLD_2	(PASSWORD_HASH_SIZE_1 / 25)
+#define PASSWORD_HASH_THRESHOLD_3	(PASSWORD_HASH_SIZE_2 / 20)
+#define PASSWORD_HASH_THRESHOLD_4	(PASSWORD_HASH_SIZE_3 / 10)
+#define PASSWORD_HASH_THRESHOLD_5	(PASSWORD_HASH_SIZE_4 / 15)
+#define PASSWORD_HASH_THRESHOLD_6	(PASSWORD_HASH_SIZE_5 / 5)
 
 /*
  * Tables of the above values.
  */
 extern int password_hash_sizes[PASSWORD_HASH_SIZES];
 extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
+
+/*
+ * How much smaller should the hash tables be than bitmaps in terms of entry
+ * count.  Setting this to 0 will result in them having the same number of
+ * entries, 1 will make the hash tables twice smaller than bitmaps, etc.
+ * 5 or 6 will make them the same size in bytes on systems with 32-bit or
+ * 64-bit pointers, respectively.
+ */
+#define PASSWORD_HASH_SHR		2
 
 /*
  * Cracked password hash size, used while loading.
@@ -249,7 +268,7 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Maximum number of GECOS words per password to load.
  */
-#define LDR_WORDS_MAX			0x10
+#define LDR_WORDS_MAX			60
 
 /*
  * Maximum number of partial hash collisions in a db->password_hash[] bucket.
@@ -261,7 +280,7 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Maximum number of GECOS words to try in pairs.
  */
-#define SINGLE_WORDS_PAIR_MAX		4
+#define SINGLE_WORDS_PAIR_MAX		6
 
 /*
  * Charset parameters.
@@ -269,10 +288,9 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * Please note that changes to these parameters make your build of John
  * incompatible with charset files generated with other builds.
  */
-#define CHARSET_MIN			' '
-#define CHARSET_MAX			0x7E
-#define CHARSET_SIZE			(CHARSET_MAX - CHARSET_MIN + 1)
-#define CHARSET_LENGTH			8
+#define CHARSET_MIN			0x01
+#define CHARSET_MAX			0xff
+#define CHARSET_LENGTH			24
 
 /*
  * Compiler parameters.
@@ -285,9 +303,9 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define C_DATA_SIZE			0x8000000
 
 /*
- * Buffer size for rules.
+ * Buffer size for rules. This is 4x in jumbo, for \xhh notation.
  */
-#define RULE_BUFFER_SIZE		0x100
+#define RULE_BUFFER_SIZE		0x400
 
 /*
  * Maximum number of character ranges for rules.
@@ -308,7 +326,17 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Buffer size for fgets().
  */
-#define LINE_BUFFER_SIZE		0x4000
+#define LINE_BUFFER_SIZE		0x30000
+
+/*
+ * Default threshold for inlining files in rar2john, zip2john, etc.
+ * Data blobs larger than this will not be inlined. Note that this is
+ * original data size, eg. encoded size will be twice this if hex encoding
+ * is used, or 25% larger if using Base64. All tools should have an option
+ * to override this default but has to take care not to ever produce lines
+ * with a *total* length exceeding LINE_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE.
+ */
+#define MAX_INLINE_SIZE			0x400
 
 /*
  * john.pot and log file buffer sizes, can be zero.
@@ -328,5 +356,11 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /* Markov mode stuff */
 #define MAX_MKV_LVL 400
 #define MAX_MKV_LEN 30
+
+/* Default maximum size of wordlist memory buffer. */
+#define WORDLIST_BUFFER_DEFAULT		5000000
+
+/* Number of custom Mask placeholders */
+#define MAX_NUM_CUST_PLHDR 9
 
 #endif

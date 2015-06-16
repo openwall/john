@@ -30,27 +30,44 @@ Enables the "single crack" mode, using rules from the configuration
 file section [List.Rules:Single].  If --single=Single_2 then the rules
 from [List.Rules:Single_2] section would be used.
 
---wordlist=FILE			wordlist mode, read words from FILE,
+--wordlist[=FILE]		wordlist mode, read words from FILE,
 --stdin				or from stdin
 
-These are used to enable the wordlist mode.
+These are used to enable the wordlist mode. If FILE is not specified,
+the one defined in john.conf will be used.
+
+--dupe-suppression		suppress all duplicates from wordlist
+
+Normally, consecutive duplicates are ignored when reading a wordlist file.
+This switch enables full dupe suppression, using some memory and a little
+extra start-up time. This option implies preload regardless of file size,
+see the --mem-file-size option.
+
+--loopback[=FILE]		use a pot file as a wordlist
+
+This mode implies --dupe-suppression. This is a special variant of Wordlist
+mode. Parse the file as a .pot file, so only the actual password part of
+each line will be used. If FILE is not specified, the active .pot file will
+be used. This is very effective for applying rules to further permute words
+that has been successful, or without rules after a run using --salts in case
+the cracks are successful on other salts than the ones that has already been
+attacked.
 
 --encoding=NAME
 
 Input data in a character encoding other than the default 'raw'. See also
-doc/ENCODINGS.   --encoding=LIST gives a list of all handled encodings.
+doc/ENCODINGS.   --list=encodings gives a list of all handled encodings.
 
 --rules[=SECTION]		enable word mangling rules for wordlist mode
 
-Enables word mangling rules that are read from [List.Rules:Wordlist].
-If --rules=Wordlist_elite  was used, then [List.Rules:Wordlist_elite]
-would be the section used.
+Enables word mangling rules that are read from the specified section, which
+defaults to [List.Rules:Wordlist] if not given.
 
 --incremental[=MODE]		"incremental" mode [using section MODE]
 
 Enables the "incremental" mode, using the specified configuration file
-definition (section [Incremental:MODE], or [Incremental:All] by default
-except for LM hashes for which the default is [Incremental:LanMan]).
+definition (section [Incremental:MODE]).  If MODE is omitted, the
+default is "ASCII" for most hash types and "LM_ASCII" for LM hashes.
 
 --external=MODE			external mode or word filter
 
@@ -112,7 +129,7 @@ file format way).  =left is just that literal string "=left".
 Tests all of the compiled in hashing algorithms for proper operation and
 benchmarks them.  The "--format" option can be used to restrict this to
 a specific algorithm.  Using --test=0 will do a very quick self-test but
-will not produce usable speed figures.
+will not produce any speed figures.
 
 --users=[-]LOGIN|UID[,..]	[do not] load this (these) user(s)
 
@@ -132,7 +149,7 @@ not load accounts with a bad shell.  You can omit the path before a
 shell name, so "--shells=csh" will match both "/bin/csh" and
 "/usr/bin/csh", while "--shells=/bin/csh" will only match "/bin/csh".
 
---salts=[-]COUNT[:MAX]		load salts with[out] at least COUNT passwords
+--salts=[-]N[:MAX]		load salts with[out] at least N passwords
 
 This is a feature which allows to achieve better performance in some
 special cases.  For example, you can crack only some salts using
@@ -143,22 +160,149 @@ loaded where there are more than MAX salts.  This is so that if you
 have run --salts=25 and then later can run --salts=10:24 and none of
 the hashes that were already done from the --salts=25 will be re-done.
 
+--costs=[-]Cn[:Mn][,...]	load salts with[out] cost value Cn [to Mn]
+				for tunable cost parameters
+				(comma separated values/ranges per param.)
+
+The option --cost= can be used to crack only hashes with similar
+tunable costs, to avoid a slowdown caused by expensive cost parameter
+settings of some hashes if there are other hashes which are less
+expensive to compute.
+This feature allows you to focus on salts with lower cost values first.
+For formats with different tunable costs, you can specify a comma
+separated list of values/ranges.
+ --cost=-2 (cost of first cost parameter must be smaller than 2)
+ --cost=2,10:20 (cost of 1st parameter is >= 2, of 2nd between 10 and 20)
+ --cost=0,10:20 (first cost parameter ignored, 2nd between 10 and 20)
+ --cost=0,-3 (first cost parameter ignored, 2nd smaller than 3)
+Very few formats have more than one tunable cost parameter.
+(All saltless hashes and several salted hashes don't have tunable cost
+parameters. For these, a dummy cost of 1 is reported.)
+The --list=format-details and --list=format-all-details options will
+list the tunable cost parameters supported by a given format.
+
 --pot=NAME			pot filename to use
 
 By default, john will use john.pot.  This override allows using a different
 john.pot-like file (to start from, and to store any found password into).
 
+--save-memory=LEVEL		enable memory saving, at LEVEL 1..3
+
+You might need this option if you don't have enough memory or don't
+want John to affect other processes too much.  Level 1 tells John to
+not waste memory on login names; it is only supported when a cracking
+mode other than "single crack" is explicitly requested.  The only
+impact is that you won't see the login names while cracking.  Higher
+memory saving levels have a performance impact; you should probably
+avoid using them unless John doesn't work or gets into swap otherwise.
+
+--node=MIN[-MAX]/TOTAL		this node's number range out of TOTAL count
+
+This option is intended to allow for some trivial manually-configured
+parallel and distributed processing.  For example, to split the workload
+across two nodes (which could be machines, CPU cores, etc.), you'd
+specify "--node=1/2" on one invocation of John and "--node=2/2" on the
+other.  (If you do this on just one machine and with the same build of
+John, you will also need to specify different "--session" names for the
+two simultaneous invocations.)  The nodes are assumed to be same speed
+(if this is not the case, one will get ahead of the other and is likely
+to be done sooner, unless you're using a cracking mode and settings such
+that the session is not expected to ever "complete" - which is fine.)
+If your nodes are of very different speed, you may compensate for that
+by allocating ranges of node numbers to individual invocations.  For
+example, if you use OpenMP-enabled builds of John on two machines,
+OpenMP is supported (with good scalability) for the hash type you're
+cracking, and one of the machines has twice more of similar speed CPU
+cores than the other, then you may use "--node=1-2/3" on the twice
+bigger machine (let it be nodes 1 and 2 out of 3 nodes total) and
+"--node=3/3" on the smaller one.
+
+Efficiency of this approach to parallel processing, as currently
+implemented, varies by cracking mode and its settings (efficiency is
+higher for incremental mode and for wordlist mode with many rules, and
+lower for other cracking modes and for wordlist mode without rules or
+with few rules), hash type (efficiency is higher for slower to compute
+hashes), salt count (efficiency is higher for higher salt counts), and
+node count (efficiency is higher for lower node counts).  Scalability
+may be limited.  The highest node count you can reasonably use varies by
+cracking mode, its settings, hash type, and salt count.  With
+incremental mode, efficiency in terms of c/s rate is nearly perfect
+(there's essentially no overhead), but some nodes may currently receive
+too little work - and this problem is exacerbated by high node counts
+(such as 100 or more) and/or restrictive settings (such as MinLen and
+MaxLen set to the same value or to a narrow range, and/or a charset file
+with few characters being used).  With wordlist mode, for high
+efficiency the rule count (after preprocessor expansion) needs to be
+many times higher than node count, unless the p/s rate is low anyway
+(due to slow hash type and/or high salt count).
+
+Since there's no communication between the nodes, hashes successfully
+cracked by one node continue being cracked by other nodes.  This is
+mostly OK for saltless hash types or when there's just one salt (since
+the same number of hash computations is to be made anyway - namely, only
+one per candidate password tested), but it is a serious drawback when
+many different salts are present and their number could potentially be
+decreasing as some hashes get cracked.
+
+--fork=N			fork N processes
+
+This option is only available on Unix-like systems.  It is an easy way
+to make use of multiple CPUs or CPU cores - you simply specify the
+number of John processes that you'd like to run.  You may use "--fork"
+as an alternative to OpenMP, for formats currently lacking OpenMP
+support, or/and along with OpenMP (e.g., on a machine with 64 logical
+CPUs you might choose to run with "--fork=8" for 8 processes and use
+OpenMP to run 8 threads per process).
+
+You may use "--fork" along with "--node" to use multiple machines while
+also running multiple John processes per machine.  For example, to use
+two similar 8-core machines you may run "--fork=8 --node=1-8/16" on one
+of the machines and "--fork=8 --node=9-16/16" on the other.  For a more
+complicated example, if you have an 8-core machine and a 64-core machine
+with similar per-core performance, you could run an OpenMP-enabled build
+on both of them and use "--node=1/9" (without "--fork") on the first
+machine (8 threads in 1 process) and "--fork=8 --node=2-9/9" on the
+64-core machine (8 threads in 8 processes, for 64 threads total on this
+machine).  With the current implementation, the node numbers range
+assigned to each John invocation must match the "--fork" process count.
+
+When running with "--fork", multiple ".rec" files are created, which are
+then read back by "--status" and "--restore" if you use those options.
+Just like with other options, you must not specify "--fork" along with
+"--status" or "--restore", because these read the main (unnumbered)
+".rec" file first, which contains the right "--fork" option in it,
+resulting in further (numbered) ".rec" files being read as appropriate.
+
+Under the hood, "--fork" makes use of the same functionality that
+"--node" does, so the same efficiency and scalability limitations apply.
+Despite of those, "--fork" is often much more efficient than OpenMP -
+especially for fast to compute hash types (such as LM hashes), where
+OpenMP overhead is often unacceptable.
+
+Similarly to "--node", there's almost no communication between the
+processes with "--fork".  Hashes successfully cracked by one process
+continue being cracked by other processes.  Just like with "--node",
+this is mostly OK for saltless hash types or when there's just one salt,
+but it is a serious drawback when many different salts are present and
+their number could potentially be decreasing as some hashes get cracked.
+To have the cracked hashes (and possibly salts) removed from all
+processes, you may interrupt and restore the session once in a while.
+
 --format=NAME			force hash type NAME
 
-Allows you to override the hash type detection.  Currently, valid
-"format names" are DES, BSDI, MD5, BF, AFS, LM, and crypt (and many more
-are added with various patches).  You can use this option when you're
-starting a cracking session or along with one of: "--test", "--show",
-"--make-charset".  Note that John can't crack hashes of different types
-at the same time.  If you happen to get a password file that uses more
-than one hash type, then you have to invoke John once for each hash type
-and you need to use this option to make John crack hashes of types other
-than the one it would autodetect by default.
+Allows you to override the hash type detection.  As of John the Ripper
+version 1.8.0, valid "format names" are descrypt, bsdicrypt, md5crypt,
+bcrypt, LM, AFS, tripcode, dummy, and crypt (and many more are added in
+jumbo).  You can use this option when you're starting a cracking session
+or along with one of: "--test", "--show", "--make-charset".  Note that
+John can't crack hashes of different types at the same time.  If you
+happen to get a password file that uses more than one hash type, then
+you have to invoke John once for each hash type and you need to use this
+option to make John crack hashes of types other than the one it would
+autodetect by default. Mainly for test and list purposes (see --list=WHAT),
+you can use group aliases "dynamic", "cpu", "gpu", "opencl" and "cuda"
+as a format name, or use one wildcard, as in "--format=mysql-*",
+"--format=raw*ng" or "--format=*office".
 
 "--format=crypt" may or may not be supported in a given build of John.
 In default builds of John, this support is currently only included on
@@ -176,8 +320,8 @@ type may get detected unless you specify this option).
 
 When benchmarking "--format=crypt", it will default to benchmark DES.
 The "--subformat=TYPE" can be added for benchmarking other types, given
-they are supported by the system. Currently supported TYPEs are MD5, BF,
-SHA-256 and SHA-512.
+they are supported by the system. Currently supported TYPEs are
+md5crypt, bcrypt, sha256crypt and sha512crypt.
 
 "--format=crypt" is also a way to make John crack crypt(3) hashes of
 different types at the same time, but doing so results in poor
@@ -186,27 +330,16 @@ cracked) for hashes of the "faster" types (as compared to the "slower"
 ones loaded for cracking at the same time).  So you are advised to use
 separate invocations of John, one per hash type.
 
---subformat=LIST displays all the built-in dynamic formats, and exits
-
---save-memory=LEVEL		enable memory saving, at LEVEL 1..3
-
-You might need this option if you don't have enough memory or don't
-want John to affect other processes too much.  Level 1 tells John to
-not waste memory on login names; it is only supported when a cracking
-mode other than "single crack" is explicitly requested.  The only
-impact is that you won't see the login names while cracking.  Higher
-memory saving levels have a performance impact; you should probably
-avoid using them unless John doesn't work or gets into swap otherwise.
-
---mem-file-size=SIZE		max size of wordlist to preload into memory
+--mem-file-size=SIZE		max. size of wordlist to preload into memory
 
 One of the significant performance improvements for some builds of
 john, is preloading the wordlist file into memory, instead of reading
-line by line. This is especially true when running with a large list
-of --rules.  The default max size file is 5 million bytes.  Using this
-option allows making this larger.  A special value is --mem-file-size=0.
-This will force loading to memory regardless of file size.  NOTE if
---save-memory is used, then memory file processing is turned off.
+line by line. This is especially true when running with a large list of
+--rules. The default max size file is 5000000 bytes. Using this option
+allows making this larger.  A special value is --mem-file-size=0. This
+will force loading to memory regardless of file size (take care not to
+exceed your physical memory limits, or things will just run much slower).
+NOTE if --save-memory is used, preload will be disabled.
 
 --field-separator-char=c	Use 'c' instead of the char ':'
 
@@ -234,30 +367,163 @@ The one side effect, is that if john is aborted, and restarted, it
 may redo more tests.  Thus, the use of this option is only acceptable
 and desirable for fast hash types (e.g., raw MD5).
 
---nolog		            turns off john.log file
+--nolog				turns off john.log file
 
 This will turn off creation, or updating to the john.log file (which may
 have a different name if the --session=NAME flag was used.)  Often the
-logging is not wanted, and this log file can often become very large
+logging is not needed, and this log file can often become very large
 (such as working with many 'fast' rules on a fast format).  The log file
 is often used to check what work has been done, but if this will not be
 needed, and the log file is simply going to be deleted when done, then
 running in --nolog mode may be used.
 
---crack-status          show status line on every crack
+--log-stderr
+
+Log to screen (stderr) instead of to file.
+
+--bare-always-valid=C
+
+Normally, dynamic mode will only load hashes with tags in the input file (for
+example, $dynamic_0$368dc60082c8b47e697826b282b94e3d) or when a specific format
+is requested (eg. --format=dynamic_0). If C is 'Y' or 'y', then the dynamic
+format will always treat bare hashes as valid. You can permanently enable this
+option by editing john.conf and setting "DynamicAlwaysUseBareHashes".
+
+--crack-status			show status line on every crack
 
 This will automagically emit a status line at every cracked password. This is
 mostly for testing.
 
---mkpc=N                force min/max keys per crypt to N
+--progress-every=N		emit a status line every N seconds
 
-This option is for certain kinds of testing and is not mentioned in the usage
-blob. Many formats perform the crypts in batches of several (sometimes
-thousands or even tens of thousands) candidates. This option forces it down
-from the format's default. For most purposes, you would use 1. One good
-example is for studying which rules give most "hits": Without this options,
-you can't know for sure which rule produced a successful guess when analyzing
-the log file.
+This will automagically emit a status line every N seconds. This is mostly
+for testing.
+
+--mkpc=N			force min/max keys per crypt to N
+
+This option is for certain kinds of testing. There is a performance impact.
+Many formats perform the crypts in batches of several (sometimes thousands or
+even tens of thousands) candidates. This option forces it down from the
+format's default. For most purposes, you would use 1. One good example is for
+studying which rules give most "hits": Without this options, you can't know for
+sure which rule produced a successful guess when analyzing the log file.
+
+--min-length=N			force minimum candidate length
+--max-length=N			force maximum candidate length
+
+These options limit the length of candidates that will be tried. In wordlist
+mode (after applying rules, if any), a word that is not within the requested
+limits will be rejected (not truncated). Most other modes also honour these
+settings. For example, you can fully exhaust a short keyspace with incremental
+mode with eg. --max-len=4 and then start a longer session for the rest with
+--min-length=5, or use one core for lengths up to 8 and other cores for exact
+lengths of 9, 10 and so on.
+
+--max-run-time=N
+
+Gracefully exit after N seconds. If you resume it, it will run for another N
+seconds and exit again.
+
+--keep-guessing			search for alternative plaintexts
+
+Some formats has plaintext collisions. That means some (or many) different
+plaintexts will result in the same hash, so are equally valid. It may be due
+to a design flaw as in BFEgg, or due to limited binary size as in CRC-32 - or
+artificially limited keyspace as in Office formats before 2007 (a good sized
+key is truncated to 40-bit on purpose - thank you Microsoft). When this option
+is used a successful crack will not result in that hash being removed from
+further cracking, so you can use it to find alternative plaintexts.
+
+--reject-printable		reject printable binaries
+
+This esoteric option can be used to filter out many bogus hashes. It only works
+well with not to small binary sizes. Rejected hashes are printed (as text) to
+stderr. It may fail to work with some formats that eg. reverses steps. A good
+example of that is it does not work with NT format, but works fine with NT2.
+
+--verbosity=N			change verbosity
+
+Make John more verbose, or less verbose. Default level is 3. For example,
+level 2 will mute the extra messages (device, work sizes etc) printed by
+OpenCL formats and level 1 will mute printing of cracked passwords to screen.
+
+--skip-self-tests		skip self tests
+
+Tells John to skip self tests. Basic integrity checks will be done but hashes
+from test vectors will not be cracked. This option is useful to run many small
+attacks in a row against slow hashes. Usually it is not needed. It affects
+--test option: --skip-self-tests and --test together perform only benchmarks.
+
+--stress-test=N			continuous self-test
+
+This is exactly like --test or --test=N except it loops until aborted by user.
+It's mostly for debugging.
+
+--list=WHAT			list capabilities
+
+This option can be used to gain information about what rules, modes etc are
+available. Use --list=help for a list of valid arguments.
+If information about formats is requested, a --format=[NAME|CLASS] option
+can be used in addition to --list=WHAT.
+If an additional option --config=FILE
+
+--list=externals          list all external modes/filters
+--list=ext-modes          list external modes [has a generate()]
+--list=ext-filters        list external filters, including modes with a filter
+--list=ext-filters-only   list external filters [lacks a generate()]
+--list=formats            list all the supported formats in the sequence they
+                          are registered (this is also the sequence that will
+                          be used to identify the first format which detects
+                          a valid ciphertext (password hash) in the input file
+                          if john is started without the --format=NAME option)
+--list=format-details     list all the suported formats in the same sequence as
+                          with --list=formats, but with additional details
+                          (which might be more interesting for developers than
+                          for regular users), intended to be parsed automatically
+                          -format label
+                           this is to be used as NAME in --format=NAME
+                          -maximum supported password length in bytes
+                           for performance reasond, the maximum length
+                           supported by John the Ripper can be shorter than
+                           the maximum length supported by the application
+                           which uses this format
+                          -minimum keys per crypt
+                          -maximum keys per crypt
+                          -format flags
+                          -number of hard coded test cases for --test
+                          -algorithm name
+                          -format name
+                          -benchmark comment
+                          -benchmark length
+                          -binary size
+                          -salt size
+                          -example ciphertext
+                          (the individual columns are separated by [tab])
+--list=format-all-details list all the suported formats and their attributes
+                          in the same sequence as with --list=format-details,
+                          but in a more descriptive form readable by humans
+--list=format-methods[:WHICH]
+                          list all methods which are NOT default for each
+                          format.  If 'WHICH' is set, then this listing
+                          will ONLY be formats which have the 'WHICH' format
+                          overridden.
+--list=format-tests       list all format specific tests
+                          (format name, number, hash, password)
+                          If a format uses encoding specific tests, you can
+                          use --encoding=NAME as an additional option to see
+                          these encoding specific tests.
+                          If a ciphertext contains line feeds or the separator
+                          character (horizontal tab), just the format name and
+                          the test number are written. If the password contains
+                          line feeds, it will not be written.
+                          (A warning message is written to stderr in this case.)
+--list=subformats	  all the built-in dynamic formats, and exits
+                          (replaces the now deprecated --subformat=LIST)
+
+--regen-lost-salts=type:hash_sz:mask
+                          Finds passwords AND salts in a set of raw hashes.
+                          This function has been changed, and now is 'generic'.
+                          See the file Regen-Lost-Salts.txt for information.
 
 
 	Additional utilities (compiled/installed along with John).
@@ -334,5 +600,11 @@ with passwdqc, before you ask users to change their passwords - whether
 using this script or otherwise.  And you should edit the message inside
 the script before possibly using it.
 
-Based on (and modified in the jumbo patch):
-$Owl: Owl/packages/john/john/doc/OPTIONS,v 1.11 2011/11/20 00:51:35 solar Exp $
+	makechr
+
+This is a script to (re-)generate the .chr files using passwords in
+john.pot and applying all of the defined external mode filters.  To
+speed it up on a sufficiently large computer (RAM and CPUs), "&" may be
+added after the John invocation inside the script (to run all of them in
+parallel).
+

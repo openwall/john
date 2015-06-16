@@ -1,22 +1,19 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2000,2008,2011 by Solar Designer
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 /*
  * Architecture specific parameters detection program.
  */
 
-#define _XOPEN_SOURCE 500 /* for ITIMER_REAL */
-#include <sys/time.h>
-
-#ifdef ITIMER_REAL
-#define OS_TIMER
-#endif
-
-#define OS_FLOCK /* we also check for defined(LOCK_EX) on all uses anyway */
-
 #include <stdio.h>
+#include "memdbg.h"
 
 int main(int argc, char **argv)
 {
@@ -44,22 +41,22 @@ int main(int argc, char **argv)
 "#define ARCH_BITS_STR\t\t\t\"%d\"\n"
 "#define ARCH_LITTLE_ENDIAN\t\t%d\n"
 "#define ARCH_INT_GT_32\t\t\t%d\n"
+#if defined(i386) || defined(__i386__) || defined(__i486__) || \
+	defined(__i586__) || defined(__i686__) || defined(__pentium__) || \
+	defined(__pentiumpro__) || defined(__pentium4__) || \
+	defined(__nocona__) || defined(prescott) || defined(__core2__) || \
+	defined(__k6__) || defined(__k8__) || defined(__athlon__) || \
+	defined(__amd64) || defined(__amd64__) || \
+	defined(__x86_64) || defined(__x86_64__) || defined(_M_IX86) || \
+	defined(_M_AMD64) || defined(_M_IA64) || defined(_M_X64)
+"#define ARCH_ALLOWS_UNALIGNED\t\t1\n"
+#else
 "#define ARCH_ALLOWS_UNALIGNED\t\t0\n"
+#endif
 #ifdef __alpha__
 "#define ARCH_INDEX(x)\t\t\t((unsigned long)(unsigned char)(x))\n"
 #else
 "#define ARCH_INDEX(x)\t\t\t((unsigned int)(unsigned char)(x))\n"
-#endif
-"\n"
-#ifdef OS_TIMER
-"#define OS_TIMER\t\t\t1\n"
-#else
-"#define OS_TIMER\t\t\t0\n"
-#endif
-#ifdef OS_FLOCK
-"#define OS_FLOCK\t\t\t1\n"
-#else
-"#define OS_FLOCK\t\t\t0\n"
 #endif
 "\n",
 		(int)sizeof(long),
