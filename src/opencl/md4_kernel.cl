@@ -148,9 +148,8 @@ inline void cmp_final(uint gid,
 			output[1 + 3 * t] = gid;
 			output[2 + 3 * t] = iter;
 			output[3 + 3 * t] = hash_table_index;
-			return_hashes[3 * t] = hash[1];
-			return_hashes[3 * t + 1] = hash[2];
-			return_hashes[3 * t + 2] = hash[3];
+			return_hashes[2 * t] = hash[2];
+			return_hashes[2 * t + 1] = hash[3];
 		}
 	}
 }

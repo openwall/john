@@ -187,7 +187,7 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	buffer_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(cl_uint) * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_key_loc");
 
-	buffer_return_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, 3 * sizeof(cl_uint) * num_loaded_hashes, NULL, &ret_code);
+	buffer_return_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, 2 * sizeof(cl_uint) * num_loaded_hashes, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_return_hashes");
 
 	buffer_hash_ids = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (3 * num_loaded_hashes + 1) * sizeof(cl_uint), NULL, &ret_code);
@@ -693,6 +693,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	static int zero;
+
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
@@ -756,7 +757,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	if (hash_ids[0]) {
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_return_hashes, CL_TRUE, 0, 3 * sizeof(cl_uint) * hash_ids[0], loaded_hashes, 0, NULL, multi_profilingEvent[6]), "failed in reading data back hash_ids");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_return_hashes, CL_TRUE, 0, 2 * sizeof(cl_uint) * hash_ids[0], loaded_hashes, 0, NULL, multi_profilingEvent[6]), "failed in reading data back hash_ids");
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (3 * num_loaded_hashes + 1) * sizeof(cl_uint), hash_ids, 0, NULL, multi_profilingEvent[6]), "failed in reading data back hash_ids");
 	}
 
@@ -780,11 +781,9 @@ static int cmp_exact(char *source, int index)
 {
 	unsigned int *t = (unsigned int *) get_binary(source);
 
-	if (t[1] != loaded_hashes[3 * index])
+	if (t[2] != loaded_hashes[2 * index])
 		return 0;
-	if (t[2] != loaded_hashes[3 * index + 1])
-		return 0;
-	if (t[3] != loaded_hashes[3 * index + 2])
+	if (t[3] != loaded_hashes[2 * index + 1])
 		return 0;
 	return 1;
 }
@@ -863,7 +862,7 @@ static void reset(struct db_main *db)
 			fprintf(stdout, "Using Mask Mode with internal "
 			        "candidate generation%s", flag ? "" : "\n");
 			if (flag) {
-				self->params.max_keys_per_crypt /= 256;
+				self->params.max_keys_per_crypt /= 64;
 				fprintf(stdout,
 				        ", global worksize(GWS) set to %d\n",
 				        self->params.max_keys_per_crypt);
