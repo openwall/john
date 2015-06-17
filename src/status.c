@@ -344,7 +344,7 @@ static void status_print_cracking(double percent)
 		unsigned long long cands =
 			((unsigned long long) status.cands.hi << 32) +
 			status.cands.lo;
-		sprintf(sc, " %llup", cands);
+		sprintf(sc, " "LLu"p", cands);
 	}
 
 	eta_string = status_get_ETA(percent, time);

@@ -212,7 +212,7 @@ int fseeko64 (FILE* fp, int64_t offset, int whence) {
 		/* I could find no _filelengthi64, _filelength64, etc. */
 		GetFileSizeEx((HANDLE)_get_osfhandle(fileno(fp)), (PLARGE_INTEGER)&size);
 		pos = (fpos_t) (size + offset);
-		//fprintf(stderr, "size = %lld\n", size);
+		//fprintf(stderr, "size = "LLd"\n", size);
 	}
 	else if (whence == SEEK_SET)
 		pos = (fpos_t) offset;
@@ -318,7 +318,7 @@ char *strupr(char *s)
 #if NEED_ATOLL_NATIVE
 long long atoll(const char *s) {
 	long long l;
-	sscanf(s, "%lld", &l);
+	sscanf(s, LLd, &l);
 	return l;
 }
 #endif

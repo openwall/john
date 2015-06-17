@@ -172,7 +172,7 @@ static int hash_plugin_parse_hash(char *filename)
 	if (afsize < inline_thr) {
 		BIO *bio, *b64;
 		fprintf(stderr, "Generating inlined hash!\n");
-		printf("$luks$1$%zu$", sizeof(myphdr));
+		printf("$luks$1$"Zu"$", sizeof(myphdr));
 		print_hex((unsigned char *)&myphdr, sizeof(myphdr));
 		printf("$%d$", afsize);
 		/* base-64 encode cipherbuf */
@@ -196,7 +196,7 @@ static int hash_plugin_parse_hash(char *filename)
 	else {
 		FILE *fp = jtr_fopen("dump", "wb");  // XXX make me unpredictable!
 		fprintf(stderr, "Generating inlined hash with attached dump!\n");
-		printf("$luks$0$%zu$", sizeof(myphdr));
+		printf("$luks$0$"Zu"$", sizeof(myphdr));
 		print_hex((unsigned char *)&myphdr, sizeof(myphdr));
 		printf("$%d$", afsize);
 

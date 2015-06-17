@@ -221,7 +221,7 @@ static void find_best_gws(struct fmt_main *fmt)
 	opencl_DES_bs_cracked_hashes = NULL;
 
 	if (options.verbosity > 2)
-		fprintf(stderr, "Local worksize (LWS) %zu, Global worksize (GWS) %zu\n", local_work_size, count * local_work_size);
+		fprintf(stderr, "Local worksize (LWS) "Zu", Global worksize (GWS) "Zu"\n", local_work_size, count * local_work_size);
 }
 
 static void build_salt(WORD salt)
@@ -374,7 +374,7 @@ static void select_device(struct fmt_main *fmt)
 		find_best_gws(fmt);
 	else {
 		if (options.verbosity > 2)
-			fprintf(stderr, "Local worksize (LWS) %zu, Global worksize (GWS) %zu\n", local_work_size, global_work_size);
+			fprintf(stderr, "Local worksize (LWS) "Zu", Global worksize (GWS) "Zu"\n", local_work_size, global_work_size);
 		fmt -> params.max_keys_per_crypt = global_work_size * DES_BS_DEPTH;
 		fmt -> params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
 	}

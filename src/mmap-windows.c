@@ -82,7 +82,7 @@ static void *mmap(void *start, size_t length, int prot, int flags, int fd, off_t
 	if (h == NULL) {
         /* we will log this at some time, once I know PROPER fixes */
 		DWORD x = GetLastError();
-		fprintf(stderr, "Error, CreateFileMapping failed, Error code %x\n", x);
+		fprintf(stderr, "Error, CreateFileMapping failed, Error code %x\n", (unsigned)x);
 		return 0;
 	}
 
@@ -100,7 +100,7 @@ static void *mmap(void *start, size_t length, int prot, int flags, int fd, off_t
 	if (ret == NULL)  {
 		/* we will log this at some time, once I know PROPER fixes */
 		DWORD x = GetLastError();
-		fprintf(stderr, "Error, MapViewOfFile failed, Error code %x\n", x);
+		fprintf(stderr, "Error, MapViewOfFile failed, Error code %x\n", (unsigned)x);
 		CloseHandle(h);
 		ret = 0;
 	}

@@ -112,7 +112,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	               "Error setting kernel argument");
 
 #if 0
-	fprintf(stderr, "%s(%zu) kpc %zu\n", __FUNCTION__, gws, kpc);
+	fprintf(stderr, "%s("Zu") kpc "Zu"\n", __FUNCTION__, gws, kpc);
 #endif
 	key_buf_size = PLAINTEXT_LENGTH * kpc;
 	inbuffer = mem_calloc(1, key_buf_size);
@@ -276,7 +276,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	scalar_gws = global_work_size * v_width;
 
 #if 0
-	fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu\n", __FUNCTION__,
+	fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu"\n", __FUNCTION__,
 	        *pcount, local_work_size, global_work_size, scalar_gws);
 #endif
 	/// Run kernels, no iterations for fast enumeration
@@ -303,7 +303,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size;
 	scalar_gws = global_work_size * v_width;
 #if 0
-	fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu\n", __FUNCTION__,
+	fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu"\n", __FUNCTION__,
 	        count, local_work_size, global_work_size, scalar_gws);
 #endif
 	/// Copy data to gpu

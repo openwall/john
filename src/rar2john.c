@@ -82,7 +82,7 @@ static int process_file5(const char *archive_name);
 static int check_fread(const size_t buf_size, const size_t size, const size_t nmemb)
 {
 	if (buf_size < size * nmemb) {
-		fprintf(stderr, "Error: check_fread(buf_size=%zu, size=%zu, nmemb=%zu) failed, "
+		fprintf(stderr, "Error: check_fread(buf_size="Zu", size="Zu", nmemb="Zu") failed, "
 			"buf_size is smaller than size * nmemb.\n",
 			buf_size, size, nmemb);
 		return 0;
@@ -347,7 +347,7 @@ next_file_header:
 			(file_header_block[14] << 24);
 #ifdef DEBUG
 		fprintf(stderr,
-		        "! HEAD_SIZE: %d, PACK_SIZE: %llu, UNP_SIZE: %llu\n",
+		        "! HEAD_SIZE: %d, PACK_SIZE: "LLu", UNP_SIZE: "LLu"\n",
 		        file_header_head_size,
 		        (unsigned long long)file_header_pack_size,
 		        (unsigned long long)file_header_unp_size);
@@ -523,7 +523,7 @@ next_file_header:
 		/* fp is at ciphertext location */
 		pos = ftell(fp);
 
-		best_len += sprintf(&best[best_len], "*%llu*%llu*",
+		best_len += sprintf(&best[best_len], "*"LLu"*"LLu"*",
 		        (unsigned long long)file_header_pack_size,
 		        (unsigned long long)file_header_unp_size);
 

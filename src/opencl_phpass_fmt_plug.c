@@ -340,7 +340,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = local_work_size ? (((count + 7) / 8) + local_work_size - 1) / local_work_size * local_work_size : (count + 7 / 8);
 
 #ifdef _PHPASS_DEBUG
-	printf("crypt_all(%d) gws %zu\n", count, global_work_size);
+	printf("crypt_all(%d) gws "Zu"\n", count, global_work_size);
 #endif
 	// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,

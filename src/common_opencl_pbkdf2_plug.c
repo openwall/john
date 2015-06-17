@@ -305,7 +305,7 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 			globalObj[jtrUniqDevNo].lws /= 2;
 
 		if (options.verbosity > 3)
-			fprintf(stderr, "Local worksize (LWS) forced to %zu\n", globalObj[jtrUniqDevNo].lws);
+			fprintf(stderr, "Local worksize (LWS) forced to "Zu"\n", globalObj[jtrUniqDevNo].lws);
 
 		globalObj[jtrUniqDevNo].exec_time_inv = 1;
 	}
@@ -315,7 +315,7 @@ size_t 	select_device(int jtrUniqDevNo, struct fmt_main *fmt) {
 
 	else {
 		if (options.verbosity > 3)
-			fprintf(stderr, "Global worksize (GWS) forced to %zu\n", global_work_size);
+			fprintf(stderr, "Global worksize (GWS) forced to "Zu"\n", global_work_size);
 
 		fmt -> params.max_keys_per_crypt = global_work_size;
 		fmt -> params.min_keys_per_crypt = max_lws();

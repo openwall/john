@@ -202,10 +202,10 @@ void MemDbg_Display(FILE *fp) {
 
 	fprintf(fp, "\n------------------------------\n");
 	fprintf(fp, "MEMDBG: allocation information (display):\n");
-	fprintf(fp, "   current normal alloc mem (leaks)%llu  max normal mem allocated: %llu\n", (unsigned long long)mem_size, (unsigned long long)max_mem_size);
-	fprintf(fp, "   current 'tiny' alloc mem (leaks)%llu  max  tiny  mem allocated: %llu\n", (unsigned long long)mem_sizet, (unsigned long long)max_mem_sizet);
+	fprintf(fp, "   current normal alloc mem (leaks)"LLu"  max normal mem allocated: "LLu"\n", (unsigned long long)mem_size, (unsigned long long)max_mem_size);
+	fprintf(fp, "   current 'tiny' alloc mem (leaks)"LLu"  max  tiny  mem allocated: "LLu"\n", (unsigned long long)mem_sizet, (unsigned long long)max_mem_sizet);
 #ifdef MEMDBG_EXTRA_CHECKS
-	fprintf(fp, "  Freed mem size: %llu (freed cnt: %lu)", (unsigned long long)freed_mem_size, freed_cnt);
+	fprintf(fp, "  Freed mem size: "LLu" (freed cnt: %lu)", (unsigned long long)freed_mem_size, freed_cnt);
 #endif
 	fprintf(fp, "\n");
 	fprintf(fp, "Index : alloc# :   Size : File(Line)  [first 20 bytes, or size of bytes]\n");
@@ -530,7 +530,7 @@ void * MEMDBG_calloc(size_t count, size_t size, char *file, int line)
 	char *p;
 	size *= count;
 	if ( ((signed long long)mem_size) < 0)
-		fprintf(stderr, "MEMDBG_calloc %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
+		fprintf(stderr, "MEMDBG_calloc "LLd" %s:%d  mem:"LLd"\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 	p = (char*)MEMDBG_alloc(size,file,line);
 	memset(p, 0, size);
 	return p;
@@ -546,7 +546,7 @@ void * MEMDBG_alloc(size_t size, char *file, int line)
 	MEMDBG_HDR      *p, *p2;
 
 	if ( ((signed long long)mem_size) < 0)
-		fprintf(stderr, "MEMDBG_alloc %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
+		fprintf(stderr, "MEMDBG_alloc "LLd" %s:%d  mem:"LLd"\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 
 	// TODO: we have to compute proper size here.
 	p = (MEMDBG_HDR*)malloc(RESERVE_SZ + size + 4);
@@ -578,7 +578,7 @@ void * MEMDBG_alloc(size_t size, char *file, int line)
 #endif
 	if (!p) {
 		if ( ((signed long long)mem_size) < 0)
-			fprintf(stderr, "MEMDBG_alloc (end) %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
+			fprintf(stderr, "MEMDBG_alloc (end) "LLd" %s:%d  mem:"LLd"\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 		return NULL;
 	}
 	p->mdbg_hdr1 = (MEMDBG_HDR2*)(((char*)p)+RESERVE_SZ-4);
@@ -601,7 +601,7 @@ void * MEMDBG_alloc(size_t size, char *file, int line)
 		MEMDBG_LIST_add(p);
 	}
 	if ( ((signed long long)mem_size) < 0)
-		fprintf(stderr, "MEMDBG_alloc (end) %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
+		fprintf(stderr, "MEMDBG_alloc (end) "LLd" %s:%d  mem:"LLd"\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 	return HDR_2_CLIENT(p);
 }
 
@@ -616,12 +616,12 @@ void * MEMDBG_alloc_align(size_t size, int align, char *file, int line)
 	char *p3;
 
 	if ( ((signed long long)mem_size) < 0)
-		fprintf(stderr, "MEMDBG_alloc_align %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
+		fprintf(stderr, "MEMDBG_alloc_align "LLd" %s:%d  mem:"LLd"\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 
 	p = (MEMDBG_HDR*)malloc(RESERVE_SZ_AL(align) + size + 4);
 	if (!p) {
 		if ( ((signed long long)mem_size) < 0)
-			fprintf(stderr, "MEMDBG_alloc_align (end) %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
+			fprintf(stderr, "MEMDBG_alloc_align (end) "LLd" %s:%d  mem:"LLd"\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 		return NULL;
 	}
 
@@ -649,7 +649,7 @@ void * MEMDBG_alloc_align(size_t size, int align, char *file, int line)
 		MEMDBG_LIST_add(p);
 	}
 	if ( ((signed long long)mem_size) < 0)
-		fprintf(stderr, "MEMDBG_alloc_align (end) %lld %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
+		fprintf(stderr, "MEMDBG_alloc_align (end) "LLd" %s:%d  mem:"LLd"\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 	return HDR_2_CLIENT(p);
 }
 
@@ -670,7 +670,7 @@ MEMDBG_realloc(const void *ptr, size_t size, char *file, int line)
 	int err=0, i;
 
 	if ( ((signed long long)mem_size) < 0)
-		fprintf(stderr, "MEMDBG_realloc(%lld) %s:%d  mem:%lld\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
+		fprintf(stderr, "MEMDBG_realloc("LLd") %s:%d  mem:"LLd"\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
 
 	/* if ptr is null, this function works just like alloc, so simply use alloc */
 	if (!ptr)
@@ -849,7 +849,7 @@ char *MEMDBG_strdup(const char *str, char *file, int line)
 {
 	char * s;
 	if ( ((signed long long)mem_size) < 0)
-		fprintf(stderr, "MEMDBG_strdup(%ld) %s:%d  mem:%lld\n", (long)strlen(str), file, line, (unsigned long long)mem_size);
+		fprintf(stderr, "MEMDBG_strdup(%ld) %s:%d  mem:"LLd"\n", (long)strlen(str), file, line, (unsigned long long)mem_size);
 	s = (char*)MEMDBG_alloc(strlen(str)+1, file, line);
 	if (s != NULL)
 		strcpy(s, str);
@@ -954,7 +954,7 @@ void MEMDBG_free(const void *ptr, char *file, int line)
 	MEMDBG_FREEDLIST_add(p);
 #endif
 	if ( ((signed long long)mem_size) < 0)
-		fprintf(stderr, "MEMDBG_free (end) %s:%d  mem:%lld\n", file, line, (unsigned long long)mem_size);
+		fprintf(stderr, "MEMDBG_free (end) %s:%d  mem:"LLd"\n", file, line, (unsigned long long)mem_size);
 }
 
 #ifdef MEMDBG_EXTRA_CHECKS
@@ -1022,7 +1022,7 @@ void MEMDBG_checkSnapshot_possible_exit_on_error(MEMDBG_HANDLE h, int exit_on_an
 	while (p) {
 		if (p->mdbg_cnt > h.alloc_cnt && !memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4)) {
 			leak = 1;
-			fprintf(stderr, "Mem leak: %llu bytes, alloc_num %d, file %s, line %d\n", (unsigned long long)p->mdbg_size, p->mdbg_cnt, p->mdbg_file, p->mdbg_line);
+			fprintf(stderr, "Mem leak: "LLu" bytes, alloc_num %d, file %s, line %d\n", (unsigned long long)p->mdbg_size, p->mdbg_cnt, p->mdbg_file, p->mdbg_line);
 		}
 		p = p->mdbg_next;
 	}
