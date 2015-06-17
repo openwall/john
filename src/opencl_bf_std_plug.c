@@ -192,7 +192,7 @@ void BF_select_device(struct fmt_main *fmt) {
 	}
 	else {
 		snprintf(buildopts, sizeof(buildopts),
-		         "-DWORK_GROUP_SIZE=%zu", local_work_size);
+		         "-DWORK_GROUP_SIZE="Zu, local_work_size);
 		opencl_init("$JOHN/kernels/bf_kernel.cl",
 		            gpu_id, buildopts);
 	}

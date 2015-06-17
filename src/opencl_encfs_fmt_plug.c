@@ -365,7 +365,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	scalar_gws = global_work_size * v_width;
 
 #if 0
-	fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu kpc %d/%d\n", __FUNCTION__, *pcount, local_work_size, global_work_size, scalar_gws, me->params.min_keys_per_crypt, me->params.max_keys_per_crypt);
+	fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu" kpc %d/%d\n", __FUNCTION__, *pcount, local_work_size, global_work_size, scalar_gws, me->params.min_keys_per_crypt, me->params.max_keys_per_crypt);
 #endif
 
 	/// Copy data to gpu

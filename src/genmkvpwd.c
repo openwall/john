@@ -225,13 +225,13 @@ int main(int argc, char * * argv)
 			memset(nbparts, 0, 256*(max_lvl+1)*(max_len+1)*sizeof(long long));
 			nb_parts(0, 0, 0, max_lvl, max_len);
 			if(nbparts[0] > 1000000000)
-				printf("%llu G possible passwords (%llu)\n", nbparts[0] / 1000000000, nbparts[0]);
+				printf(""LLu" G possible passwords ("LLu")\n", nbparts[0] / 1000000000, nbparts[0]);
 			else if(nbparts[0] > 10000000)
-				printf("%llu M possible passwords (%llu)\n", nbparts[0] / 1000000, nbparts[0]);
+				printf(""LLu" M possible passwords ("LLu")\n", nbparts[0] / 1000000, nbparts[0]);
 			else if(nbparts[0] > 10000)
-				printf("%llu K possible passwords (%llu)\n", nbparts[0] / 1000, nbparts[0]);
+				printf(""LLu" K possible passwords ("LLu")\n", nbparts[0] / 1000, nbparts[0]);
 			else
-				printf("%llu possible passwords\n", nbparts[0] );
+				printf(""LLu" possible passwords\n", nbparts[0] );
 			MEM_FREE(nbparts);
 		}
 		goto fin;
@@ -246,13 +246,13 @@ int main(int argc, char * * argv)
 			memset(nbparts, 0, 256*(max_lvl+1)*(max_len+1)*sizeof(long long));
 			nb_parts(0, 0, 0, max_lvl, max_len);
 			if(nbparts[0] > 1000000000)
-				printf("%llu G possible passwords (%llu)\n", nbparts[0] / 1000000000, nbparts[0]);
+				printf(""LLu" G possible passwords ("LLu")\n", nbparts[0] / 1000000000, nbparts[0]);
 			else if(nbparts[0] > 10000000)
-				printf("%llu M possible passwords (%llu)\n", nbparts[0] / 1000000, nbparts[0]);
+				printf(""LLu" M possible passwords ("LLu")\n", nbparts[0] / 1000000, nbparts[0]);
 			else if(nbparts[0] > 10000)
-				printf("%llu K possible passwords (%llu)\n", nbparts[0] / 1000, nbparts[0]);
+				printf(""LLu" K possible passwords ("LLu")\n", nbparts[0] / 1000, nbparts[0]);
 			else
-				printf("%llu possible passwords\n", nbparts[0] );
+				printf(""LLu" possible passwords\n", nbparts[0] );
 			MEM_FREE(nbparts);
 		}
 		goto fin;
@@ -268,13 +268,13 @@ int main(int argc, char * * argv)
 
 	nb_parts(0, 0, 0, max_lvl, max_len);
 	if(nbparts[0] > 1000000000)
-		fprintf(stderr, "%llu G possible passwords (%llu)\n", nbparts[0] / 1000000000, nbparts[0]);
+		fprintf(stderr, ""LLu" G possible passwords ("LLu")\n", nbparts[0] / 1000000000, nbparts[0]);
 	else if(nbparts[0] > 10000000)
-		fprintf(stderr, "%llu M possible passwords (%llu)\n", nbparts[0] / 1000000, nbparts[0]);
+		fprintf(stderr, ""LLu" M possible passwords ("LLu")\n", nbparts[0] / 1000000, nbparts[0]);
 	else if(nbparts[0] > 10000)
-		fprintf(stderr, "%llu K possible passwords (%llu)\n", nbparts[0] / 1000, nbparts[0]);
+		fprintf(stderr, ""LLu" K possible passwords ("LLu")\n", nbparts[0] / 1000, nbparts[0]);
 	else
-		fprintf(stderr, "%llu possible passwords\n", nbparts[0] );
+		fprintf(stderr, ""LLu" possible passwords\n", nbparts[0] );
 
 	if(end==0)
 		end = nbparts[0];
@@ -287,7 +287,7 @@ int main(int argc, char * * argv)
 	print_pwd(start, &pwd, max_lvl, max_len);
 	print_pwd(start, &pwd2, max_lvl, max_len);
 
-	fprintf(stderr, "starting with %s (%llu to %llu, %f%% of the scope)\n", pwd.password, start, end, 100*((float) end-start)/((float) nbparts[0]) );
+	fprintf(stderr, "starting with %s ("LLu" to "LLu", %f%% of the scope)\n", pwd.password, start, end, 100*((float) end-start)/((float) nbparts[0]) );
 
 	show_pwd(start, end, max_lvl, max_len);
 

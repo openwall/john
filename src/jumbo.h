@@ -348,7 +348,7 @@ extern int vc_fixed_snprintf(char *Dest, size_t max_cnt, const char *Fmt, ...);
 extern int setenv(const char *name, const char *val, int overwrite);
 #endif
 
-#if __MINGW32__ || __MINGW64__ || _MSC_VER
+#if (__MINGW32__ && !__MINGW64__) || _MSC_VER
 // Later versions of MSVC can handle %lld but some older
 // ones can only handle %I64d.  Easiest to simply use
 // %I64d then all versions of MSVC will handle it just fine
@@ -356,11 +356,13 @@ extern int setenv(const char *name, const char *val, int overwrite);
 #define LLd "%I64d"
 #define LLx "%I64x"
 #define Zu  "%u"
+#define Zd  "%d"
 #else
 #define LLu "%llu"
 #define LLd "%lld"
 #define LLx "%llx"
 #define Zu  "%zu"
+#define Zd  "%zd"
 #endif
 
 #if (AC_BUILT && !HAVE_STRREV) ||(!AC_BUILT && !_MSC_VER)

@@ -423,7 +423,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	/* Don't do more than requested */
 	global_work_size = (count + lws - 1) / lws * lws;
 
-	//fprintf(stderr, "%s(%d) lws %zu gws %zu kidx %u m %d k %d\n", __FUNCTION__, count, lws, global_work_size, key_idx, m, new_keys);
+	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" kidx %u m %d k %d\n", __FUNCTION__, count, lws, global_work_size, key_idx, m, new_keys);
 
 	if (new_keys) {
 		/* Self-test kludge */

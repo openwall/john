@@ -62,7 +62,7 @@ john_register_one(&fmt_rar);
 #endif
 #if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
 #include "win32_memmap.h"
-#ifndef __CYGWIN__
+#if !defined(__CYGWIN__) && !defined(__MINGW64__)
 #include "mmap-windows.c"
 #elif defined HAVE_MMAP
 #include <sys/mman.h>
@@ -354,7 +354,7 @@ static void *get_salt(char *ciphertext)
 				error();
 			}
 #ifdef DEBUG
-			fprintf(stderr, "RAR mmap() len %llu offset 0\n",
+			fprintf(stderr, "RAR mmap() len "LLu" offset 0\n",
 			        pos + psalt->pack_size);
 #endif
 			psalt->blob = mmap(NULL, pos + psalt->pack_size,
@@ -377,7 +377,7 @@ static void *get_salt(char *ciphertext)
 			jtr_fseek64(fp, pos, SEEK_SET);
 			count = fread(psalt->raw_data, 1, psalt->pack_size, fp);
 			if (count != psalt->pack_size) {
-				fprintf(stderr, "Error loading file from archive '%s', expected %llu bytes, got %zu. Archive possibly damaged.\n", archive_name, psalt->pack_size, count);
+				fprintf(stderr, "Error loading file from archive '%s', expected "LLu" bytes, got "Zu". Archive possibly damaged.\n", archive_name, psalt->pack_size, count);
 				error();
 			}
 			psalt->blob = psalt->raw_data;
