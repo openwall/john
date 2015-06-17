@@ -6,6 +6,8 @@
  * Based on paper 'Perfect Spatial Hashing' by Lefebvre & Hoppe
  */
 
+#ifdef HAVE_OPENCL
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -664,3 +666,5 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 	if (a[0].collisions == b[0].collisions) return 0;
 	return 1;
 }*/
+
+#endif

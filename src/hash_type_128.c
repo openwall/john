@@ -4,6 +4,8 @@
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  */
 
+#ifdef HAVE_OPENCL
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "memory.h"
@@ -438,3 +440,4 @@ unsigned int remove_duplicates_128(unsigned int num_loaded_hashes, unsigned int 
 
 	return (num_unique_hashes + 1);
 }
+#endif
