@@ -36,6 +36,12 @@
 	(a) += f((b), (c), (d)) + (x); \
 	(a) = rotate((a), (uint)(s))
 
+#if BITMAP_SIZE_BITS_LESS_ONE < 0xffffffff
+#define BITMAP_SIZE_BITS (BITMAP_SIZE_BITS_LESS_ONE + 1)
+#else
+/*undefined, cause error.*/
+#endif
+
 inline void md4_encrypt(__private uint *hash, __private uint *W, uint len)
 {
 
@@ -202,7 +208,7 @@ inline void cmp(uint gid,
 	bitmap_index = hash[2] & (BITMAP_SIZE_BITS - 1);
 	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
 #else
-	bitmap_index = hash[3] & BITMAP_SIZE_BITS_MINUS_ONE;
+	bitmap_index = hash[3] & BITMAP_SIZE_BITS_LESS_ONE;
 	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
 #endif
 
