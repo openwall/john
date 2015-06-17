@@ -2152,7 +2152,18 @@ cl_uint get_processor_family(int sequential_id)
 				return DEV_AMD_VLIW5;
 
 		} else {
-			/*
+
+			if (strstr(dname, "Capeverde") ||
+			        strstr(dname, "Oland") || strstr(dname, "Hainan") ||
+			        strstr(dname, "Pitcairn") || strstr(dname, "Tahiti"))
+				return DEV_AMD_GCN_10; //AMD Radeon GCN 1.0
+
+			else if (strstr(dname, "Bonaire") || strstr(dname, "Hawaii"))
+				return DEV_AMD_GCN_11; //AMD Radeon GCN 1.1
+
+			else if (strstr(dname, "Tonga"))
+				return DEV_AMD_GCN_12; //AMD Radeon GCN 1.2
+			 /*
 			 * Graphics IP v6:
 			 *   - Cape Verde, Hainan, Oland, Pitcairn, Tahiti
 			 * Graphics IP v7:
@@ -2160,7 +2171,7 @@ cl_uint get_processor_family(int sequential_id)
 			 * Graphics IP v8:
 			 *   - Iceland
 			 */
-			return DEV_AMD_GCN;
+			return DEV_UNKNOWN;
 		}
 	}
 	return DEV_UNKNOWN;

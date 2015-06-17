@@ -9,16 +9,19 @@
  */
 
 #include "mask_ext.h"
+#include "options.h"
 #include "memory.h"
 #include "memdbg.h"
 
 int *mask_skip_ranges = NULL;
 int mask_max_skip_loc = -1;
 int mask_int_cand_target = 0;
+int is_static_gpu_mask = 0;
 mask_int_cand_ctx mask_int_cand = {NULL, NULL, 1};
 
 static void combination_util(int *data, int start, int end, int index,
-                             int r, cpu_mask_context *ptr, int *delta) {
+                             int r, cpu_mask_context *ptr, int *delta)
+{
 	int i;
 
 	if (index == r) {
@@ -47,7 +50,8 @@ static void combination_util(int *data, int start, int end, int index,
 	}
 }
 
-static void generate_int_keys(cpu_mask_context *ptr) {
+static void generate_int_keys(cpu_mask_context *ptr)
+{
 	int i, repeat = 1, modulo;
 
 #define fill_cand(t) \
@@ -85,7 +89,20 @@ static void generate_int_keys(cpu_mask_context *ptr) {
 #undef cond
 }
 
-void mask_calc_combination(cpu_mask_context *ptr) {
+static void check_static_gpu_mask(int max_static_range)
+{	unsigned int i;
+	is_static_gpu_mask = 1;
+
+	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
+		if (max_static_range <= mask_skip_ranges[i]) {
+			is_static_gpu_mask = 0;
+			break;
+		}
+
+	is_static_gpu_mask |= !(options.flags & FLG_MASK_STACKED);
+}
+
+void mask_calc_combination(cpu_mask_context *ptr, int max_static_range) {
 	int *data, i, n;
 	int delta_to_target = 0x7fffffff;
 
@@ -125,6 +142,8 @@ void mask_calc_combination(cpu_mask_context *ptr) {
 			mem_alloc(mask_int_cand.num_int_cand * sizeof(mask_char4));
 		generate_int_keys(ptr);
 	}
+
+	check_static_gpu_mask(max_static_range);
 
 	/*for (i = 0; i < mask_int_cand.num_int_cand && mask_int_cand.int_cand; i++)
 		fprintf(stderr, "%c%c%c%c\n", mask_int_cand.int_cand[i].x[0], mask_int_cand.int_cand[i].x[1], mask_int_cand.int_cand[i].x[2], mask_int_cand.int_cand[i].x[3]);*/
