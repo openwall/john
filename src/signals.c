@@ -456,6 +456,7 @@ static void sig_remove_timer(void)
 	signal(SIGALRM, SIG_DFL);
 }
 
+#ifdef SIGUSR1
 static void sig_handle_status(int signum)
 {
 	/* We currently disable --fork for Cygwin in os.h due to problems
@@ -478,6 +479,7 @@ static void sig_handle_status(int signum)
 	sig_install(sig_handle_status, signum);
 #endif
 }
+#endif
 
 #ifndef BENCH_BUILD
 #ifdef SIGUSR2

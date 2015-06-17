@@ -46,7 +46,7 @@
 #if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
 #include "win32_memmap.h"
 #undef MEM_FREE
-#if !defined(__CYGWIN__) && !defined(__MINGW64)
+#if !defined(__CYGWIN__) && !defined(__MINGW64__)
 #include "mmap-windows.c"
 #endif /* __CYGWIN */
 #endif /* _MSC_VER ... */
