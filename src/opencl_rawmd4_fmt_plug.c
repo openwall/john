@@ -563,19 +563,19 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 		if (amd_gcn_10(device_info[gpu_id]) || amd_vliw4(device_info[gpu_id])) {
 			bitmap_size_bits = 512 * 1024;
 			prepare_bitmap_4(bitmap_size_bits, &bitmaps);
-			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%lu -D USE_LOCAL_BITMAPS=0", 2, bitmap_size_bits);
+			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS="LLu" -D USE_LOCAL_BITMAPS=0", 2, (unsigned long long)bitmap_size_bits);
 			bitmap_size_bits *= 2;
 		}
 		else if (amd_gcn_11(device_info[gpu_id]) || max_local_mem_sz_bytes < 16384) {
 			bitmap_size_bits = 256 * 1024;
 			prepare_bitmap_4(bitmap_size_bits, &bitmaps);
-			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%lu -D USE_LOCAL_BITMAPS=0", 2, bitmap_size_bits);
+			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS="LLu" -D USE_LOCAL_BITMAPS=0", 2, (unsigned long long)bitmap_size_bits);
 			bitmap_size_bits *= 2;
 		}
 		else {
 			bitmap_size_bits = 32 * 1024;
 			prepare_bitmap_4(bitmap_size_bits, &bitmaps);
-			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%lu -D USE_LOCAL_BITMAPS=1", 4, bitmap_size_bits);
+			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS="LLu" -D USE_LOCAL_BITMAPS=1", 4, (unsigned long long)bitmap_size_bits);
 			bitmap_size_bits *= 4;
 		}
 	}
@@ -583,19 +583,19 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 		if (amd_gcn_10(device_info[gpu_id]) || amd_vliw4(device_info[gpu_id])) {
 			bitmap_size_bits = 512 * 1024;
 			prepare_bitmap_4(bitmap_size_bits, &bitmaps);
-			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%lu -D USE_LOCAL_BITMAPS=0", 2, bitmap_size_bits);
+			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS="LLu" -D USE_LOCAL_BITMAPS=0", 2, (unsigned long long)bitmap_size_bits);
 			bitmap_size_bits *= 2;
 		}
 		else if (amd_gcn_11(device_info[gpu_id]) || max_local_mem_sz_bytes < 32768) {
 			bitmap_size_bits = 256 * 1024;
 			prepare_bitmap_4(bitmap_size_bits, &bitmaps);
-			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%lu -D USE_LOCAL_BITMAPS=0", 2, bitmap_size_bits);
+			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS="LLu" -D USE_LOCAL_BITMAPS=0", 2, (unsigned long long)bitmap_size_bits);
 			bitmap_size_bits *= 2;
 		}
 		else {
 			bitmap_size_bits = 64 * 1024;
 			prepare_bitmap_4(bitmap_size_bits, &bitmaps);
-			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%lu -D USE_LOCAL_BITMAPS=1", 4, bitmap_size_bits);
+			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS="LLu" -D USE_LOCAL_BITMAPS=1", 4, (unsigned long long)bitmap_size_bits);
 			bitmap_size_bits *= 4;
 		}
 	}
@@ -603,58 +603,58 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 		if (amd_gcn_10(device_info[gpu_id])) {
 			bitmap_size_bits = 1024 * 1024;
 			prepare_bitmap_4(bitmap_size_bits, &bitmaps);
-			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%lu -D USE_LOCAL_BITMAPS=0", 2, bitmap_size_bits);
+			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS="LLu" -D USE_LOCAL_BITMAPS=0", 2, (unsigned long long)bitmap_size_bits);
 			bitmap_size_bits *= 2;
 		}
 		else if (amd_gcn_11(device_info[gpu_id]) || max_local_mem_sz_bytes < 32768) {
 			bitmap_size_bits = 512 * 1024;
 			prepare_bitmap_4(bitmap_size_bits, &bitmaps);
-			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%lu -D USE_LOCAL_BITMAPS=0", 2, bitmap_size_bits);
+			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS="LLu" -D USE_LOCAL_BITMAPS=0", 2, (unsigned long long)bitmap_size_bits);
 			bitmap_size_bits *= 2;
 		}
 		else if (amd_vliw4(device_info[gpu_id])) {
 			bitmap_size_bits = 256 * 1024;
 			prepare_bitmap_4(bitmap_size_bits, &bitmaps);
-			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%lu -D USE_LOCAL_BITMAPS=0", 4, bitmap_size_bits);
+			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS="LLu" -D USE_LOCAL_BITMAPS=0", 4, (unsigned long long)bitmap_size_bits);
 			bitmap_size_bits *= 4;
 		}
 		else {
 			bitmap_size_bits = 32 * 1024;
 			prepare_bitmap_8(bitmap_size_bits, &bitmaps);
-			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%lu -D USE_LOCAL_BITMAPS=1", 8, bitmap_size_bits);
+			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS="LLu" -D USE_LOCAL_BITMAPS=1", 8, (unsigned long long)bitmap_size_bits);
 			bitmap_size_bits *= 8;
 		}
 	}
 	else if (num_loaded_hashes <= 250100) {
 			bitmap_size_bits = 2048 * 1024;
 			prepare_bitmap_4(bitmap_size_bits, &bitmaps);
-			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%lu -D USE_LOCAL_BITMAPS=0", 2, bitmap_size_bits);
+			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS="LLu" -D USE_LOCAL_BITMAPS=0", 2, (unsigned long long)bitmap_size_bits);
 			bitmap_size_bits *= 2;
 	}
 	else if (num_loaded_hashes <= 1100100) {
 		if (!amd_gcn_11(device_info[gpu_id])) {
 			bitmap_size_bits = 4096 * 1024;
 			prepare_bitmap_4(bitmap_size_bits, &bitmaps);
-			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%lu -D USE_LOCAL_BITMAPS=0", 2, bitmap_size_bits);
+			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS="LLu" -D USE_LOCAL_BITMAPS=0", 2, (unsigned long long)bitmap_size_bits);
 			bitmap_size_bits *= 2;
 		}
 		else {
 			bitmap_size_bits = 2048 * 1024;
 			prepare_bitmap_4(bitmap_size_bits, &bitmaps);
-			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS=%lu -D USE_LOCAL_BITMAPS=0", 2, bitmap_size_bits);
+			sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS="LLu" -D USE_LOCAL_BITMAPS=0", 2, (unsigned long long)bitmap_size_bits);
 			bitmap_size_bits *= 2;
 		}
 	}
 	else if (num_loaded_hashes <= 1500100) {
 		bitmap_size_bits = 4096 * 1024 * 2;
 		prepare_bitmap_1(bitmap_size_bits, &bitmaps);
-		sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS_MINUS_ONE=%lu -D USE_LOCAL_BITMAPS=0", 1, bitmap_size_bits - 1);
+		sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS_MINUS_ONE="LLu" -D USE_LOCAL_BITMAPS=0", 1, (unsigned long long)bitmap_size_bits - 1);
 		bitmap_size_bits *= 1;
 	}
 	else if (num_loaded_hashes <= 2700100) {
 		bitmap_size_bits = 4096 * 1024 * 2 * 2;
 		prepare_bitmap_1(bitmap_size_bits, &bitmaps);
-		sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS_MINUS_ONE=%lu -D USE_LOCAL_BITMAPS=0", 1, bitmap_size_bits - 1);
+		sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS_MINUS_ONE="LLu" -D USE_LOCAL_BITMAPS=0", 1, (unsigned long long)bitmap_size_bits - 1);
 		bitmap_size_bits *= 1;
 	}
 	else {
@@ -667,7 +667,7 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 		if ((bitmap_size_bits >> 3) > buf_sz) bitmap_size_bits = buf_sz << 3;
 		assert(!(bitmap_size_bits & (bitmap_size_bits - 1)));
 		prepare_bitmap_1(bitmap_size_bits, &bitmaps);
-		sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS_MINUS_ONE=%lu -D USE_LOCAL_BITMAPS=0", 1, bitmap_size_bits - 1);
+		sprintf(kernel_params, "-D SELECT_CMP_STEPS=%u -D BITMAP_SIZE_BITS_MINUS_ONE="LLu" -D USE_LOCAL_BITMAPS=0", 1, (unsigned long long)bitmap_size_bits - 1);
 	}
 	return kernel_params;
 }
