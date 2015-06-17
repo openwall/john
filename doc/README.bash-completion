@@ -594,7 +594,7 @@ $ ./john --show[tab]
 just lists the possible completions like this:
 
 $ ./john --show
---show       --show=LEFT
+--show       --show=
 
 To add a file name, you'll first have to add the space, to separate
 the file name from the option name.
@@ -611,12 +611,15 @@ $ ./john --show=
 
 Completion of --option= does not depend on the value of  __john_completion.
 
-Since there is just one possible value for --show=,
-$ ./john --show=[tab]
-will become
-$ ./john --show=LEFT
+$ ./john --show=[tab][tab]
+left   types
 
-(A space character will be added after "--show=LEFT".)
+Since there is just one possible value for --show=l,
+$ ./john --show=l[tab]
+will become
+$ ./john --show=left
+
+(A space character will be added after "--show=left".)
 
 So, if you prefer to hit the [tab] key instead of typing '=',
 you might want to add this line to your ~/.bashrc file:

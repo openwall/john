@@ -329,7 +329,7 @@ JOHN_USAGE_REGEX \
 "--session=NAME            give a new session the NAME\n" \
 "--status[=NAME]           print status of a session [called NAME]\n" \
 "--make-charset=FILE       make a charset file. It will be overwritten\n" \
-"--show[=LEFT]             show cracked passwords [if =LEFT, then uncracked]\n" \
+"--show[=left]             show cracked passwords [if =left, then uncracked]\n" \
 "--test[=TIME]             run tests and benchmarks for TIME seconds each\n" \
 "--users=[-]LOGIN|UID[,..] [do not] load this (these) user(s) only\n" \
 "--groups=[-]GID[,..]      load users [not] of this (these) group(s) only\n" \
