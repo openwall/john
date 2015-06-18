@@ -46,7 +46,7 @@ john_register_one(&FMT_STRUCT);
 #define SALT_SIZE           0
 #define SALT_ALIGN          1
 
-#define FORMAT_TAG          "$MD5$"
+#define FORMAT_TAG          "$dynamic_0$"
 #define TAG_LENGTH          (sizeof(FORMAT_TAG) - 1)
 
 static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_int_key_loc;
@@ -822,7 +822,7 @@ static void reset(struct db_main *db)
 		loaded_hashes = (cl_uint*)mem_alloc(16 * num_loaded_hashes);
 
 		while (tests[i].ciphertext != NULL) {
-			ciphertext = split(tests[i].ciphertext, 0, &fmt_opencl_rawMD5);
+			ciphertext = split(tests[i].ciphertext, 0, &FMT_STRUCT);
 			binary = (unsigned int*)get_binary(ciphertext);
 			loaded_hashes[4 * i] = binary[0];
 			loaded_hashes[4 * i + 1] = binary[1];

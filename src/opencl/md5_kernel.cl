@@ -1,7 +1,6 @@
 /*
- * MD4 OpenCL kernel based on Solar Designer's MD4 algorithm implementation at:
- * http://openwall.info/wiki/people/solar/software/public-domain-source-code/md4
- * This code is in public domain.
+ * MD5 OpenCL kernel based on Solar Designer's MD5 algorithm implementation at:
+ * http://openwall.info/wiki/people/solar/software/public-domain-source-code/md5
  *
  * This software is Copyright (c) 2010, Dhiru Kholia <dhiru.kholia at gmail.com>
  * and Copyright (c) 2012, magnum
@@ -11,9 +10,10 @@
  * are permitted.
  *
  * Useful References:
- * 1  nt_opencl_kernel.c (written by Alain Espinosa <alainesp at gmail.com>)
- * 2. http://tools.ietf.org/html/rfc1320
- * 3. http://en.wikipedia.org/wiki/MD4
+ * 1. CUDA MD5 Hashing Experiments, http://majuric.org/software/cudamd5/
+ * 2. oclcrack, http://sghctoma.extra.hu/index.php?p=entry&id=11
+ * 3. http://people.eku.edu/styere/Encrypt/JS-MD5.html
+ * 4. http://en.wikipedia.org/wiki/MD5#Algorithm
  */
 
 #include "opencl_device_info.h"
@@ -234,11 +234,11 @@ inline void cmp(uint gid,
 }
 
 /* some constants used below are passed with -D */
-//#define KEY_LENGTH (MD4_PLAINTEXT_LENGTH + 1)
+//#define KEY_LENGTH (MD5_PLAINTEXT_LENGTH + 1)
 
 /* OpenCL kernel entry point. Copy key to be hashed from
  * global to local (thread) memory. Break the key into 16 32-bit (uint)
- * words. MD4 hash of a key is 128 bit (uint4). */
+ * words. MD5 hash of a key is 128 bit (uint4). */
 __kernel void md5(__global uint *keys,
 		  __global uint *index,
 		  __global uint *int_key_loc,
