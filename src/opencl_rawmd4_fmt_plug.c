@@ -586,12 +586,12 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 		"failed to get CL_DEVICE_LOCAL_MEM_SIZE.");
 
 	if (num_loaded_hashes <= 5100) {
-		if (0 && (amd_gcn_10(device_info[gpu_id]) ||
-			amd_vliw4(device_info[gpu_id])))
+		if (amd_gcn_10(device_info[gpu_id]) ||
+			amd_vliw4(device_info[gpu_id]))
 			bitmap_size_bits = 512 * 1024;
 
-		else if (0 && (amd_gcn_11(device_info[gpu_id]) ||
-			max_local_mem_sz_bytes < 16384))
+		else if (amd_gcn_11(device_info[gpu_id]) ||
+			max_local_mem_sz_bytes < 16384)
 			bitmap_size_bits = 256 * 1024;
 
 		else {
@@ -602,12 +602,12 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 	}
 
 	else if (num_loaded_hashes <= 10100) {
-		if (0 && (amd_gcn_10(device_info[gpu_id]) ||
-			amd_vliw4(device_info[gpu_id])))
+		if (amd_gcn_10(device_info[gpu_id]) ||
+			amd_vliw4(device_info[gpu_id]))
 			bitmap_size_bits = 512 * 1024;
 
-		else if (0 && (amd_gcn_11(device_info[gpu_id]) ||
-			max_local_mem_sz_bytes < 32768))
+		else if (amd_gcn_11(device_info[gpu_id]) ||
+			max_local_mem_sz_bytes < 32768)
 			bitmap_size_bits = 256 * 1024;
 
 		else {
@@ -618,14 +618,14 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 	}
 
 	else if (num_loaded_hashes <= 20100) {
-		if (0 && amd_gcn_10(device_info[gpu_id]))
+		if (amd_gcn_10(device_info[gpu_id]))
 			bitmap_size_bits = 1024 * 1024;
 
-		else if (0 && (amd_gcn_11(device_info[gpu_id]) ||
-			max_local_mem_sz_bytes < 32768))
+		else if (amd_gcn_11(device_info[gpu_id]) ||
+			max_local_mem_sz_bytes < 32768)
 			bitmap_size_bits = 512 * 1024;
 
-		else if (0 && amd_vliw4(device_info[gpu_id])) {
+		else if (amd_vliw4(device_info[gpu_id])) {
 			bitmap_size_bits = 256 * 1024;
 			cmp_steps = 4;
 		}
