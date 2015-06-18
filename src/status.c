@@ -187,6 +187,9 @@ static char *status_get_cps(char *buffer, int64 *c, unsigned int c_ehi)
 		cps.lo = 0;
 	}
 
+	if (cps.hi > 232830 || (cps.hi == 232830 && cps.lo >= 2764472320U))
+		sprintf(buffer, "%uT", div64by32lo(&cps, 1000000000) / 1000);
+	else
 	if (cps.hi > 232 || (cps.hi == 232 && cps.lo >= 3567587328U))
 		sprintf(buffer, "%uG", div64by32lo(&cps, 1000000000));
 	else
