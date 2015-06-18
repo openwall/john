@@ -16,7 +16,7 @@ $ make -j4
 
 $ sudo yum install mingw64-openssl mingw64-openssl-static \
 	mingw64-gcc mingw64-gcc-c++ mingw64-winpthreads-static \
-	mingw64-zlib-static mingw64-libgomp binutils -y
+	mingw64-zlib-static mingw64-libgomp mingw64-binutils -y
 
 $ ./configure --host=x86_64-w64-mingw32
 
