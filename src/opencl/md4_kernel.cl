@@ -45,10 +45,6 @@
 
 inline void md4_encrypt(__private uint *hash, __private uint *W, uint len)
 {
-
-	PUTCHAR(W, len, 0x80);
-	W[14] = len << 3;
-
 	hash[0] = 0x67452301;
 	hash[1] = 0xefcdab89;
 	hash[2] = 0x98badcfe;
@@ -299,6 +295,10 @@ __kernel void md4(__global uint *keys,
 
 	for (i = 0; i < (len+3)/4; i++)
 		W[i] = *keys++;
+
+
+	PUTCHAR(W, len, 0x80);
+	W[14] = len << 3;
 
 	for (i = 0; i < NUM_INT_KEYS; i++) {
 #if NUM_INT_KEYS > 1
