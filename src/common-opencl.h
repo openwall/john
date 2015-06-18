@@ -34,7 +34,7 @@
 #include "opencl_device_info.h"
 
 #define MAX_PLATFORMS   8
-#define MAX_EVENTS 8
+#define MAX_EVENTS      0x3f
 #define SUBSECTION_OPENCL   ":OpenCL"
 #define MAX_OCLINFO_STRING_LEN  2048
 
