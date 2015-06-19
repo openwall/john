@@ -28,7 +28,7 @@ export PATH="$HOME/bin:$PATH"
 # echo -1 > /proc/sys/fs/binfmt_misc/status
 # umount /proc/sys/fs/binfmt_misc
 
-mingw64 ./configure OPENSSL_LIBS="-lssl -lcrypto" --host=x86_64-w64-mingw32
+mingw64 ./configure --host=x86_64-w64-mingw32
 mingw64 make -sj4
 mv ../run/john ../run/john.exe
 
