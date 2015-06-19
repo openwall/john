@@ -188,14 +188,14 @@ void MD4_Update(MD4_CTX *ctx, void *data, unsigned long size)
 		free = 64 - used;
 
 		if (size < free) {
-			memcpy(&ctx->Buffer[used], data, size);
+			memcpy(&ctx->buffer[used], data, size);
 			return;
 		}
 
-		memcpy(&ctx->Buffer[used], data, free);
+		memcpy(&ctx->buffer[used], data, free);
 		data = (unsigned char *)data + free;
 		size -= free;
-		body(ctx, ctx->Buffer, 64);
+		body(ctx, ctx->buffer, 64);
 	}
 
 	if (size >= 64) {
@@ -203,7 +203,7 @@ void MD4_Update(MD4_CTX *ctx, void *data, unsigned long size)
 		size &= 0x3f;
 	}
 
-	memcpy(ctx->Buffer, data, size);
+	memcpy(ctx->buffer, data, size);
 }
 
 void MD4_Final(unsigned char *result, MD4_CTX *ctx)
@@ -212,30 +212,30 @@ void MD4_Final(unsigned char *result, MD4_CTX *ctx)
 
 	used = ctx->lo & 0x3f;
 
-	ctx->Buffer[used++] = 0x80;
+	ctx->buffer[used++] = 0x80;
 
 	free = 64 - used;
 
 	if (free < 8) {
-		memset(&ctx->Buffer[used], 0, free);
-		body(ctx, ctx->Buffer, 64);
+		memset(&ctx->buffer[used], 0, free);
+		body(ctx, ctx->buffer, 64);
 		used = 0;
 		free = 64;
 	}
 
-	memset(&ctx->Buffer[used], 0, free - 8);
+	memset(&ctx->buffer[used], 0, free - 8);
 
 	ctx->lo <<= 3;
-	ctx->Buffer[56] = ctx->lo;
-	ctx->Buffer[57] = ctx->lo >> 8;
-	ctx->Buffer[58] = ctx->lo >> 16;
-	ctx->Buffer[59] = ctx->lo >> 24;
-	ctx->Buffer[60] = ctx->hi;
-	ctx->Buffer[61] = ctx->hi >> 8;
-	ctx->Buffer[62] = ctx->hi >> 16;
-	ctx->Buffer[63] = ctx->hi >> 24;
+	ctx->buffer[56] = ctx->lo;
+	ctx->buffer[57] = ctx->lo >> 8;
+	ctx->buffer[58] = ctx->lo >> 16;
+	ctx->buffer[59] = ctx->lo >> 24;
+	ctx->buffer[60] = ctx->hi;
+	ctx->buffer[61] = ctx->hi >> 8;
+	ctx->buffer[62] = ctx->hi >> 16;
+	ctx->buffer[63] = ctx->hi >> 24;
 
-	body(ctx, ctx->Buffer, 64);
+	body(ctx, ctx->buffer, 64);
 
 	result[0] = ctx->A;
 	result[1] = ctx->A >> 8;
