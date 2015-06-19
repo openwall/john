@@ -12,6 +12,14 @@
 #include "stdint.h"
 #include "sse-intrinsics.h"
 
+#ifndef MD5_DIGEST_LENGTH
+#define MD5_DIGEST_LENGTH 16
+#endif
+
+#ifndef MD5_CBLOCK
+#define MD5_CBLOCK 64
+#endif
+
 #define MD5_BUF_SIZ 16
 
 #ifdef PBKDF1_LOGIC
@@ -159,7 +167,7 @@ static void _pbkdf2_md5_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_MD5], 
 static void pbkdf2_md5_sse(const unsigned char *K[SSE_GROUP_SZ_MD5], int KL[SSE_GROUP_SZ_MD5], const unsigned char *S, int SL, int R, unsigned char *out[SSE_GROUP_SZ_MD5], int outlen, int skip_bytes)
 {
 	unsigned char tmp_hash[MD5_DIGEST_LENGTH];
-	ARCH_WORD_32 *i1, *i2, *o1, *ptmp;
+	ARCH_WORD_32 *i1, *i2, *o1, *ptmp, *ptmp2;
 	unsigned int i, j;
 	ARCH_WORD_32 dgst[SSE_GROUP_SZ_MD5][MD5_DIGEST_LENGTH/sizeof(ARCH_WORD_32)];
 	int loops, accum=0;
@@ -196,16 +204,18 @@ static void pbkdf2_md5_sse(const unsigned char *K[SSE_GROUP_SZ_MD5], int KL[SSE_
 	_pbkdf2_md5_sse_load_hmac(K, KL, ipad, opad);
 	for (j = 0; j < SSE_GROUP_SZ_MD5; ++j) {
 		ptmp = &i1[(j/SIMD_COEF_32)*SIMD_COEF_32*(MD5_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(SIMD_COEF_32-1))];
-		ptmp[0]          = ipad[j].A;
-		ptmp[SIMD_COEF_32]   = ipad[j].B;
-		ptmp[SIMD_COEF_32*2] = ipad[j].C;
-		ptmp[SIMD_COEF_32*3] = ipad[j].D;
+		ptmp2 = (ARCH_WORD_32*)(&ipad[j]);
+		ptmp[0]          = ptmp2[0]; //ipad[j].A;
+		ptmp[SIMD_COEF_32]   = ptmp2[1]; //ipad[j].B;
+		ptmp[SIMD_COEF_32*2] = ptmp2[2]; //ipad[j].C;
+		ptmp[SIMD_COEF_32*3] = ptmp2[3]; //ipad[j].D;
 
 		ptmp = &i2[(j/SIMD_COEF_32)*SIMD_COEF_32*(MD5_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(SIMD_COEF_32-1))];
-		ptmp[0]          = opad[j].A;
-		ptmp[SIMD_COEF_32]   = opad[j].B;
-		ptmp[SIMD_COEF_32*2] = opad[j].C;
-		ptmp[SIMD_COEF_32*3] = opad[j].D;
+		ptmp2 = (ARCH_WORD_32*)(&opad[j]);
+		ptmp[0]          = ptmp2[0]; //opad[j].A;
+		ptmp[SIMD_COEF_32]   = ptmp2[1]; //opad[j].B;
+		ptmp[SIMD_COEF_32*2] = ptmp2[2]; //opad[j].C;
+		ptmp[SIMD_COEF_32*3] = ptmp2[3]; //opad[j].D;
 	}
 
 	loops = (skip_bytes + outlen + (MD5_DIGEST_LENGTH-1)) / MD5_DIGEST_LENGTH;
