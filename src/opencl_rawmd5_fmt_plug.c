@@ -19,6 +19,7 @@ john_register_one(&FMT_STRUCT);
 #else
 
 #include <string.h>
+#include <assert.h>
 
 #include "arch.h"
 #include "params.h"
@@ -30,7 +31,6 @@ john_register_one(&FMT_STRUCT);
 #include "options.h"
 #include "mask_ext.h"
 #include "interface.h"
-#include "assert.h"
 
 #define PLAINTEXT_LENGTH    55 /* Max. is 55 with current kernel */
 #define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)

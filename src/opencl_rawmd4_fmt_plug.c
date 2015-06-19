@@ -19,6 +19,7 @@ john_register_one(&FMT_STRUCT);
 #else
 
 #include <string.h>
+#include <assert.h>
 
 #include "arch.h"
 #include "params.h"
@@ -30,7 +31,6 @@ john_register_one(&FMT_STRUCT);
 #include "options.h"
 #include "mask_ext.h"
 #include "interface.h"
-#include "assert.h"
 
 #define PLAINTEXT_LENGTH    55 /* Max. is 55 with current kernel */
 #define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)
@@ -827,7 +827,7 @@ static void reset(struct db_main *db)
 		loaded_hashes = (cl_uint*)mem_alloc(16 * num_loaded_hashes);
 
 		while (tests[i].ciphertext != NULL) {
-			ciphertext = split(tests[i].ciphertext, 0, &fmt_opencl_rawMD4);
+			ciphertext = split(tests[i].ciphertext, 0, &FMT_STRUCT);
 			binary = (unsigned int*)get_binary(ciphertext);
 			loaded_hashes[4 * i] = binary[0];
 			loaded_hashes[4 * i + 1] = binary[1];
