@@ -40,7 +40,7 @@ typedef struct {
 } MD5_CTX;
 
 extern void MD5_Init(MD5_CTX *ctx);
-extern void MD5_Update(MD5_CTX *ctx, void *data, unsigned long size);
+extern void MD5_Update(MD5_CTX *ctx, const void *data, unsigned long size);
 extern void MD5_PreFinal(MD5_CTX *ctx);
 extern void MD5_Final(unsigned char *result, MD5_CTX *ctx);
 #endif /* HAVE_LIBSSL */

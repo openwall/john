@@ -172,7 +172,7 @@ void MD4_Init(MD4_CTX *ctx)
 	ctx->hi = 0;
 }
 
-void MD4_Update(MD4_CTX *ctx, void *data, unsigned long size)
+void MD4_Update(MD4_CTX *ctx, const void *data, unsigned long size)
 {
 	MD4_u32plus saved_lo;
 	unsigned long used, free;
