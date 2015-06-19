@@ -244,10 +244,11 @@ static void pbkdf2_md5_sse(const unsigned char *K[SSE_GROUP_SZ_MD5], int KL[SSE_
 			// now convert this from flat into SIMD_COEF_32 buffers.
 			// Also, perform the 'first' ^= into the crypt buffer.
 			ptmp = &o1[(j/SIMD_COEF_32)*SIMD_COEF_32*MD5_BUF_SIZ+(j&(SIMD_COEF_32-1))];
-			ptmp[0]           = dgst[j][0] = ctx.A;
-			ptmp[SIMD_COEF_32]    = dgst[j][1] = ctx.B;
-			ptmp[SIMD_COEF_32*2]  = dgst[j][2] = ctx.C;
-			ptmp[SIMD_COEF_32*3]  = dgst[j][3] = ctx.D;
+			ptmp2 = (ARCH_WORD_32*)(&ctx);
+			ptmp[0]           = dgst[j][0] =  ptmp2[0]; //ctx.A;
+			ptmp[SIMD_COEF_32]    = dgst[j][1] =  ptmp2[1]; //ctx.B;
+			ptmp[SIMD_COEF_32*2]  = dgst[j][2] =  ptmp2[2]; //ctx.C;
+			ptmp[SIMD_COEF_32*3]  = dgst[j][3] =  ptmp2[3]; //ctx.D;
 		}
 
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.
