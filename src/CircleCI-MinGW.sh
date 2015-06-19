@@ -31,7 +31,7 @@ export PATH="$HOME/bin:$PATH"
 mingw64 ./configure OPENSSL_LIBS="-lssl -lcrypto" --host=x86_64-w64-mingw32
 
 echo FOR NOW, we dump files
-cat config.log
+# cat config.log
 echo End of file dump
 
 mingw64 make -sj4
