@@ -12,6 +12,8 @@
 #include "stdint.h"
 #include "sse-intrinsics.h"
 
+#define MD5_BUF_SIZ 16
+
 #ifdef PBKDF1_LOGIC
 #define pbkdf2_md5 pbkdf1_md5
 #define pbkdf2_md5_sse pbkdf1_md5_sse
@@ -179,12 +181,12 @@ static void pbkdf2_md5_sse(const unsigned char *K[SSE_GROUP_SZ_MD5], int KL[SSE_
 	for (j = 0; j < SSE_GROUP_SZ_MD5/SIMD_COEF_32; ++j) {
 		ptmp = &o1[j*SIMD_COEF_32*MD5_BUF_SIZ];
 		for (i = 0; i < SIMD_COEF_32; ++i)
-			ptmp[ (MD5_DIGEST_LENGTH/sizeof(ARCH_WORD_32))*SIMD_COEF_32 + (i&(SIMD_COEF_32-1))] = 0x80000000;
+			ptmp[ (MD5_DIGEST_LENGTH/sizeof(ARCH_WORD_32))*SIMD_COEF_32 + (i&(SIMD_COEF_32-1))] = 0x80;
 		for (i = (MD5_DIGEST_LENGTH/sizeof(ARCH_WORD_32)+1)*SIMD_COEF_32; i < 14*SIMD_COEF_32; ++i)
 			ptmp[i] = 0;
 		for (i = 0; i < SIMD_COEF_32; ++i) {
-			ptmp[14*SIMD_COEF_32 + (i&(SIMD_COEF_32-1))] = ((64+MD5_DIGEST_LENGTH)<<3); // all encrypts are 64+16 bytes.
-			ptmp[15*SIMD_COEF_32 + (i&(SIMD_COEF_32-1))] = 0;
+			ptmp[14*SIMD_COEF_32 + i] = ((64+MD5_DIGEST_LENGTH)<<3); // all encrypts are 64+16 bytes.
+			ptmp[15*SIMD_COEF_32 + i] = 0;
 		}
 	}
 
@@ -194,16 +196,16 @@ static void pbkdf2_md5_sse(const unsigned char *K[SSE_GROUP_SZ_MD5], int KL[SSE_
 	_pbkdf2_md5_sse_load_hmac(K, KL, ipad, opad);
 	for (j = 0; j < SSE_GROUP_SZ_MD5; ++j) {
 		ptmp = &i1[(j/SIMD_COEF_32)*SIMD_COEF_32*(MD5_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(SIMD_COEF_32-1))];
-		ptmp[0]          = ipad[j].h0;
-		ptmp[SIMD_COEF_32]   = ipad[j].h1;
-		ptmp[SIMD_COEF_32*2] = ipad[j].h2;
-		ptmp[SIMD_COEF_32*3] = ipad[j].h3;
+		ptmp[0]          = ipad[j].A;
+		ptmp[SIMD_COEF_32]   = ipad[j].B;
+		ptmp[SIMD_COEF_32*2] = ipad[j].C;
+		ptmp[SIMD_COEF_32*3] = ipad[j].D;
 
 		ptmp = &i2[(j/SIMD_COEF_32)*SIMD_COEF_32*(MD5_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(SIMD_COEF_32-1))];
-		ptmp[0]          = opad[j].h0;
-		ptmp[SIMD_COEF_32]   = opad[j].h1;
-		ptmp[SIMD_COEF_32*2] = opad[j].h2;
-		ptmp[SIMD_COEF_32*3] = opad[j].h3;
+		ptmp[0]          = opad[j].A;
+		ptmp[SIMD_COEF_32]   = opad[j].B;
+		ptmp[SIMD_COEF_32*2] = opad[j].C;
+		ptmp[SIMD_COEF_32*3] = opad[j].D;
 	}
 
 	loops = (skip_bytes + outlen + (MD5_DIGEST_LENGTH-1)) / MD5_DIGEST_LENGTH;
@@ -220,8 +222,8 @@ static void pbkdf2_md5_sse(const unsigned char *K[SSE_GROUP_SZ_MD5], int KL[SSE_
 			// number appended to the salt. The first roung (64 byte pw), and
 			// we simply append the first number (0001)
 #if !defined (PBKDF1_LOGIC)
-			MD5_Update(&ctx, &loop, 1);
 			MD5_Update(&ctx, "\x0\x0\x0", 3);
+			MD5_Update(&ctx, &loop, 1);
 #endif
 			MD5_Final(tmp_hash, &ctx);
 
@@ -232,16 +234,16 @@ static void pbkdf2_md5_sse(const unsigned char *K[SSE_GROUP_SZ_MD5], int KL[SSE_
 			// now convert this from flat into SIMD_COEF_32 buffers.
 			// Also, perform the 'first' ^= into the crypt buffer.
 			ptmp = &o1[(j/SIMD_COEF_32)*SIMD_COEF_32*MD5_BUF_SIZ+(j&(SIMD_COEF_32-1))];
-			ptmp[0]           = dgst[j][0] = ctx.h0;
-			ptmp[SIMD_COEF_32]    = dgst[j][1] = ctx.h1;
-			ptmp[SIMD_COEF_32*2]  = dgst[j][2] = ctx.h2;
-			ptmp[SIMD_COEF_32*3]  = dgst[j][3] = ctx.h3;
+			ptmp[0]           = dgst[j][0] = ctx.A;
+			ptmp[SIMD_COEF_32]    = dgst[j][1] = ctx.B;
+			ptmp[SIMD_COEF_32*2]  = dgst[j][2] = ctx.C;
+			ptmp[SIMD_COEF_32*3]  = dgst[j][3] = ctx.D;
 		}
 
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.
 		for(i = 1; i < R; i++) {
-			SSEMD5body((unsigned char*)o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
-			SSEMD5body((unsigned char*)o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+			SSEmd5body((unsigned char*)o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+			SSEmd5body((unsigned char*)o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #if !defined (PBKDF1_LOGIC)
 			for (k = 0; k < SSE_GROUP_SZ_MD5; k++) {
 				unsigned *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*MD5_BUF_SIZ + (k&(SIMD_COEF_32-1))];

@@ -16,17 +16,18 @@ john_register_one(&fmt_pbkdf2_hmac_md5);
 #include <assert.h>
 
 #include "arch.h"
+
+//#undef SIMD_COEF_32
+
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
-#include "johnswap.h"
 #include "stdint.h"
-#include "md5.h"
-#include "hmacmd5.h"
+#include "pbkdf2_hmac_md5.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               64
+#define OMP_SCALE               256
 #endif
 #endif
 #include "memdbg.h"
@@ -35,7 +36,11 @@ john_register_one(&fmt_pbkdf2_hmac_md5);
 #define FORMAT_NAME             ""
 #define FORMAT_TAG              "$pbkdf2-hmac-md5$"
 #define TAG_LEN                 (sizeof(FORMAT_TAG) - 1)
-#define ALGORITHM_NAME          "PBKDF2-HMAC-MD5 32/" ARCH_BITS_STR
+#ifdef SIMD_COEF_32
+#define ALGORITHM_NAME          "PBKDF2-MD5 " MD5_ALGORITHM_NAME
+#else
+#define ALGORITHM_NAME          "PBKDF2-MD5 32/" ARCH_BITS_STR
+#endif
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define MAX_BINARY_SIZE         (4 * BINARY_SIZE)
@@ -45,15 +50,22 @@ john_register_one(&fmt_pbkdf2_hmac_md5);
 #define SALT_ALIGN              sizeof(ARCH_WORD_32)
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
+#if SIMD_COEF_32
+#define MIN_KEYS_PER_CRYPT      (SIMD_COEF_32 * SIMD_PARA_MD5)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32 * SIMD_PARA_MD5)
+#else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
+#endif
 #define PLAINTEXT_LENGTH        125
 
 #define MIN(a,b)                (((a)<(b))?(a):(b))
 #define MAX(a,b)                (((a)>(b))?(a):(b))
 
 static struct fmt_tests tests[] = {
-	{"$pbkdf2-hmac-md5$1$salt$f31afb6d931392daa5e3130f47f9a9b6", "password"},
+//	{"$pbkdf2-hmac-md5$1000$38333335343433323338$f445d6d0ed5cbe9fc12c03ea9530c1c6", "hashcat"},
+//	{"$pbkdf2-hmac-md5$1000$38333335343433323338$f445d6d0ed5cbe9fc12c03ea9530c1c6f79e7886a6af1552b40f3704a8b87847", "hashcat"},
+	{"$pbkdf2-hmac-md5$1$73616c74$f31afb6d931392daa5e3130f47f9a9b6", "password"},
 	{NULL}
 };
 
@@ -88,8 +100,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
 	size_t len;
+	char *delim;
 
-	if (strncasecmp(ciphertext, FORMAT_TAG, TAG_LEN))
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LEN))
 		return 0;
 
 	if (strlen(ciphertext) > MAX_CIPHERTEXT_LENGTH)
@@ -97,22 +110,26 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	ciphertext += TAG_LEN;
 
+	delim = strchr(ciphertext, '.') ? "." : "$";
+
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	if (!(ptr = strtokm(ctcopy, "$")))
+	if (!(ptr = strtokm(ctcopy, delim)))
 		goto error;
-	if (!atou(ptr))
+	if (!atoi(ptr))
 		goto error;
-	if (!(ptr = strtokm(NULL, "$")))
+	if (!(ptr = strtokm(NULL, delim)))
 		goto error;
 	len = strlen(ptr); // salt hex length
 	if (len > 2 * MAX_SALT_SIZE || len & 1)
 		goto error;
-	if (!(ptr = strtokm(NULL, "$")))
+	if (!ishex(ptr))
 		goto error;
-	len = strlen(ptr); // binary length
-	if (len != BINARY_SIZE*2)
+	if (!(ptr = strtokm(NULL, delim)))
+		goto error;
+	len = strlen(ptr); // binary hex length
+	if (len < BINARY_SIZE || len > MAX_BINARY_SIZE || len & 1)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
@@ -121,27 +138,32 @@ static int valid(char *ciphertext, struct fmt_main *self)
 error:
 	MEM_FREE(keeptr);
 	return 0;
-
 }
 
 static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
-	char *p, *q;
+	char *p;
 	int saltlen;
+	char delim;
 
+	if (!strncmp(ciphertext, FORMAT_TAG, sizeof(FORMAT_TAG) - 1))
+		ciphertext += sizeof(FORMAT_TAG) - 1;
+	cs.rounds = atoi(ciphertext);
+	delim = strchr(ciphertext, '.') ? '.' : '$';
+	ciphertext = strchr(ciphertext, delim) + 1;
+	p = strchr(ciphertext, delim);
+	saltlen = 0;
 	memset(cs.salt, 0, sizeof(cs.salt));
+	while (ciphertext < p) {        /** extract salt **/
+		cs.salt[saltlen++] =
+			atoi16[ARCH_INDEX(ciphertext[0])] * 16 +
+			atoi16[ARCH_INDEX(ciphertext[1])];
+		ciphertext += 2;
+	}
+	cs.length = saltlen;
 
-	p = ciphertext + TAG_LEN;
-	cs.rounds = atou(p);
-	p = strchr(p, '$') + 1;
-	q = strrchr(ciphertext, '$');
-	saltlen = q - p;
-
-	strncpy(cs.salt, p, saltlen);
-	cs.length = strlen(cs.salt);
-
-	return (void *)&cs;
+	return (void*)&cs;
 }
 
 static void *get_binary(char *ciphertext)
@@ -186,14 +208,31 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-#endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
-		pkcs5_pbkdf2_md5((unsigned char*)(saved_key[index]),
-				strlen(saved_key[index]),
-				(unsigned char*)cur_salt->salt, cur_salt->length,
-				cur_salt->rounds, 16, (unsigned char*)crypt_out[index]);
+#if SIMD_COEF_32
+		int lens[SSE_GROUP_SZ_MD5], i;
+		unsigned char *pin[SSE_GROUP_SZ_MD5];
+		union {
+			ARCH_WORD_32 *pout[SSE_GROUP_SZ_MD5];
+			unsigned char *poutc;
+		} x;
+		for (i = 0; i < SSE_GROUP_SZ_MD5; ++i) {
+			lens[i] = strlen(saved_key[index+i]);
+			pin[i] = (unsigned char*)saved_key[index+i];
+			x.pout[i] = crypt_out[index+i];
+		}
+		pbkdf2_md5_sse((const unsigned char **)pin, lens,
+		               (unsigned char*)cur_salt->salt, cur_salt->length,
+		               cur_salt->rounds, &(x.poutc),
+		               BINARY_SIZE, 0);
+#else
+		pbkdf2_md5((unsigned char*)(saved_key[index]),
+		           strlen(saved_key[index]),
+		           (unsigned char*)cur_salt->salt, cur_salt->length,
+		           cur_salt->rounds, (unsigned char*)crypt_out[index],
+		           BINARY_SIZE, 0);
+#endif
 	}
 	return count;
 }
