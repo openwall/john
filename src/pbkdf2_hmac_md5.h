@@ -204,29 +204,15 @@ static void pbkdf2_md5_sse(const unsigned char *K[SSE_GROUP_SZ_MD5], int KL[SSE_
 	_pbkdf2_md5_sse_load_hmac(K, KL, ipad, opad);
 	for (j = 0; j < SSE_GROUP_SZ_MD5; ++j) {
 		ptmp = &i1[(j/SIMD_COEF_32)*SIMD_COEF_32*(MD5_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(SIMD_COEF_32-1))];
-#if HAVE_LIBSSL
 		ptmp[0]          = ipad[j].A;
 		ptmp[SIMD_COEF_32]   = ipad[j].B;
 		ptmp[SIMD_COEF_32*2] = ipad[j].C;
 		ptmp[SIMD_COEF_32*3] = ipad[j].D;
-#else
-		ptmp[0]          = ipad[j].a;
-		ptmp[SIMD_COEF_32]   = ipad[j].b;
-		ptmp[SIMD_COEF_32*2] = ipad[j].c;
-		ptmp[SIMD_COEF_32*3] = ipad[j].d;
-#endif
 		ptmp = &i2[(j/SIMD_COEF_32)*SIMD_COEF_32*(MD5_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(SIMD_COEF_32-1))];
-#if HAVE_LIBSSL
 		ptmp[0]          = opad[j].A;
 		ptmp[SIMD_COEF_32]   = opad[j].B;
 		ptmp[SIMD_COEF_32*2] = opad[j].C;
 		ptmp[SIMD_COEF_32*3] = opad[j].D;
-#else
-		ptmp[0]          = opad[j].a;
-		ptmp[SIMD_COEF_32]   = opad[j].b;
-		ptmp[SIMD_COEF_32*2] = opad[j].c;
-		ptmp[SIMD_COEF_32*3] = opad[j].d;
-#endif
 	}
 
 	loops = (skip_bytes + outlen + (MD5_DIGEST_LENGTH-1)) / MD5_DIGEST_LENGTH;
@@ -255,17 +241,10 @@ static void pbkdf2_md5_sse(const unsigned char *K[SSE_GROUP_SZ_MD5], int KL[SSE_
 			// now convert this from flat into SIMD_COEF_32 buffers.
 			// Also, perform the 'first' ^= into the crypt buffer.
 			ptmp = &o1[(j/SIMD_COEF_32)*SIMD_COEF_32*MD5_BUF_SIZ+(j&(SIMD_COEF_32-1))];
-#if HAVE_LIBSSL
 			ptmp[0]           = dgst[j][0] = ctx.A;
 			ptmp[SIMD_COEF_32]    = dgst[j][1] = ctx.B;
 			ptmp[SIMD_COEF_32*2]  = dgst[j][2] = ctx.C;
 			ptmp[SIMD_COEF_32*3]  = dgst[j][3] = ctx.D;
-#else
-			ptmp[0]           = dgst[j][0] = ctx.a;
-			ptmp[SIMD_COEF_32]    = dgst[j][1] = ctx.b;
-			ptmp[SIMD_COEF_32*2]  = dgst[j][2] = ctx.c;
-			ptmp[SIMD_COEF_32*3]  = dgst[j][3] = ctx.d;
-#endif
 		}
 
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.

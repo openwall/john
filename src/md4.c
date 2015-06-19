@@ -59,13 +59,13 @@
 	SET(n)
 #else
 #define SET(n) \
-	(ctx->block[(n)] = \
+	(ctx->Block[(n)] = \
 	(MD4_u32plus)ptr[(n) * 4] | \
 	((MD4_u32plus)ptr[(n) * 4 + 1] << 8) | \
 	((MD4_u32plus)ptr[(n) * 4 + 2] << 16) | \
 	((MD4_u32plus)ptr[(n) * 4 + 3] << 24))
 #define GET(n) \
-	(ctx->block[(n)])
+	(ctx->Block[(n)])
 #endif
 
 /*
@@ -80,10 +80,10 @@ static void *body(MD4_CTX *ctx, void *data, unsigned long size)
 
 	ptr = data;
 
-	a = ctx->a;
-	b = ctx->b;
-	c = ctx->c;
-	d = ctx->d;
+	a = ctx->A;
+	b = ctx->B;
+	c = ctx->C;
+	d = ctx->D;
 
 	do {
 		saved_a = a;
@@ -153,26 +153,26 @@ static void *body(MD4_CTX *ctx, void *data, unsigned long size)
 		ptr += 64;
 	} while (size -= 64);
 
-	ctx->a = a;
-	ctx->b = b;
-	ctx->c = c;
-	ctx->d = d;
+	ctx->A = a;
+	ctx->B = b;
+	ctx->C = c;
+	ctx->D = d;
 
 	return ptr;
 }
 
 void MD4_Init(MD4_CTX *ctx)
 {
-	ctx->a = 0x67452301;
-	ctx->b = 0xefcdab89;
-	ctx->c = 0x98badcfe;
-	ctx->d = 0x10325476;
+	ctx->A = 0x67452301;
+	ctx->B = 0xefcdab89;
+	ctx->C = 0x98badcfe;
+	ctx->D = 0x10325476;
 
 	ctx->lo = 0;
 	ctx->hi = 0;
 }
 
-void MD4_Update(MD4_CTX *ctx, const void *data, unsigned long size)
+void MD4_Update(MD4_CTX *ctx, void *data, unsigned long size)
 {
 	MD4_u32plus saved_lo;
 	unsigned long used, free;
@@ -188,14 +188,14 @@ void MD4_Update(MD4_CTX *ctx, const void *data, unsigned long size)
 		free = 64 - used;
 
 		if (size < free) {
-			memcpy(&ctx->buffer[used], data, size);
+			memcpy(&ctx->Buffer[used], data, size);
 			return;
 		}
 
-		memcpy(&ctx->buffer[used], data, free);
+		memcpy(&ctx->Buffer[used], data, free);
 		data = (unsigned char *)data + free;
 		size -= free;
-		body(ctx, ctx->buffer, 64);
+		body(ctx, ctx->Buffer, 64);
 	}
 
 	if (size >= 64) {
@@ -203,7 +203,7 @@ void MD4_Update(MD4_CTX *ctx, const void *data, unsigned long size)
 		size &= 0x3f;
 	}
 
-	memcpy(ctx->buffer, data, size);
+	memcpy(ctx->Buffer, data, size);
 }
 
 void MD4_Final(unsigned char *result, MD4_CTX *ctx)
@@ -212,47 +212,47 @@ void MD4_Final(unsigned char *result, MD4_CTX *ctx)
 
 	used = ctx->lo & 0x3f;
 
-	ctx->buffer[used++] = 0x80;
+	ctx->Buffer[used++] = 0x80;
 
 	free = 64 - used;
 
 	if (free < 8) {
-		memset(&ctx->buffer[used], 0, free);
-		body(ctx, ctx->buffer, 64);
+		memset(&ctx->Buffer[used], 0, free);
+		body(ctx, ctx->Buffer, 64);
 		used = 0;
 		free = 64;
 	}
 
-	memset(&ctx->buffer[used], 0, free - 8);
+	memset(&ctx->Buffer[used], 0, free - 8);
 
 	ctx->lo <<= 3;
-	ctx->buffer[56] = ctx->lo;
-	ctx->buffer[57] = ctx->lo >> 8;
-	ctx->buffer[58] = ctx->lo >> 16;
-	ctx->buffer[59] = ctx->lo >> 24;
-	ctx->buffer[60] = ctx->hi;
-	ctx->buffer[61] = ctx->hi >> 8;
-	ctx->buffer[62] = ctx->hi >> 16;
-	ctx->buffer[63] = ctx->hi >> 24;
+	ctx->Buffer[56] = ctx->lo;
+	ctx->Buffer[57] = ctx->lo >> 8;
+	ctx->Buffer[58] = ctx->lo >> 16;
+	ctx->Buffer[59] = ctx->lo >> 24;
+	ctx->Buffer[60] = ctx->hi;
+	ctx->Buffer[61] = ctx->hi >> 8;
+	ctx->Buffer[62] = ctx->hi >> 16;
+	ctx->Buffer[63] = ctx->hi >> 24;
 
-	body(ctx, ctx->buffer, 64);
+	body(ctx, ctx->Buffer, 64);
 
-	result[0] = ctx->a;
-	result[1] = ctx->a >> 8;
-	result[2] = ctx->a >> 16;
-	result[3] = ctx->a >> 24;
-	result[4] = ctx->b;
-	result[5] = ctx->b >> 8;
-	result[6] = ctx->b >> 16;
-	result[7] = ctx->b >> 24;
-	result[8] = ctx->c;
-	result[9] = ctx->c >> 8;
-	result[10] = ctx->c >> 16;
-	result[11] = ctx->c >> 24;
-	result[12] = ctx->d;
-	result[13] = ctx->d >> 8;
-	result[14] = ctx->d >> 16;
-	result[15] = ctx->d >> 24;
+	result[0] = ctx->A;
+	result[1] = ctx->A >> 8;
+	result[2] = ctx->A >> 16;
+	result[3] = ctx->A >> 24;
+	result[4] = ctx->B;
+	result[5] = ctx->B >> 8;
+	result[6] = ctx->B >> 16;
+	result[7] = ctx->B >> 24;
+	result[8] = ctx->C;
+	result[9] = ctx->C >> 8;
+	result[10] = ctx->C >> 16;
+	result[11] = ctx->C >> 24;
+	result[12] = ctx->D;
+	result[13] = ctx->D >> 8;
+	result[14] = ctx->D >> 16;
+	result[15] = ctx->D >> 24;
 
 #if 0
 	memset(ctx, 0, sizeof(*ctx));
