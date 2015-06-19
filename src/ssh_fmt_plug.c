@@ -238,6 +238,8 @@ static void *get_salt(char *ciphertext)
 
 	psalt = (struct custom_salt*)mem_calloc(1, sizeof(struct custom_salt));
 	memset(psalt, 0, sizeof(struct custom_salt));
+	pk.type = 0;
+	pk.save_type = 0;
 
 	if (!ptr) ptr = mem_alloc_tiny(sizeof(struct custom_salt*),sizeof(struct custom_salt*));
 	if (!copy || !encoded_data) {

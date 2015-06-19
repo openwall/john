@@ -1697,6 +1697,10 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     chain_t chain_buf_new;
 
     chain_buf_new.buf = buf;
+#ifdef JTR_MODE
+    chain_buf_new.ks_pos = 0;
+    chain_buf_new.ks_cnt = 0;
+#endif
 
     for (u32 chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
     {
