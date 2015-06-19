@@ -115,6 +115,8 @@ extern void MD5_body(MD5_word x[15],MD5_word out[4]);
 static struct fmt_main fmt_Dynamic;
 static struct fmt_main *pFmts;
 static int nFmts;
+static int nLocalFmts;
+static struct fmt_main *pLocalFmts;
 static int force_md5_ctx;
 static void dynamic_RESET(struct fmt_main *fmt);
 
@@ -7438,6 +7440,14 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	return 1;
 }
 
+struct fmt_main *dynamic_Register_local_format() {
+	int num=nLocalFmts++;
+	if (!pLocalFmts)
+		pLocalFmts = mem_calloc_tiny(1000*sizeof(struct fmt_main), 16);
+	LoadOneFormat(num+6000, &(pLocalFmts[num]));
+	return &(pLocalFmts[num]);
+}
+
 int dynamic_Register_formats(struct fmt_main **ptr)
 {
 	int count, i, idx, single=-1, wildcard = 0;
@@ -7500,6 +7510,11 @@ static struct fmt_main *dynamic_Get_fmt_main(int which)
 		private_subformat_data *pPriv = pFmts[i].private.data;
 		if (!strcmp(pPriv->dynamic_WHICH_TYPE_SIG, label))
 			return &pFmts[i];
+	}
+	for (i = 0; i < nLocalFmts; ++i) {
+		private_subformat_data *pPriv = pLocalFmts[i].private.data;
+		if (!strcmp(pPriv->dynamic_WHICH_TYPE_SIG, label))
+			return &pLocalFmts[i];
 	}
 	return NULL;
 }
