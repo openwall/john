@@ -145,6 +145,7 @@ static int phps_valid(char *ciphertext, struct fmt_main *self)
 	if (!ciphertext ) // || strlen(ciphertext) < CIPHERTEXT_LENGTH)
 		return 0;
 
+	get_ptr();
 	if (strncmp(ciphertext, "$PHPS$", 6) != 0)
 		return 0;
 
@@ -216,7 +217,7 @@ static void phps_init(struct fmt_main *self)
 
 static void get_ptr() {
 	if (!pDynamic) {
-		dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS("Expression=md5($s.md5($p).$s) (PW > 55 or salt > 11 bytes)\n"
+		dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS("Expression=md5(md5($p).$s)\n"
                                                 "Flag=MGF_SALTED\n"
                                                 "Flag=MGF_KEYS_BASE16_IN1\n"
                                                 "SaltLen=3\n"

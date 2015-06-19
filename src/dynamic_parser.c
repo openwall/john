@@ -1032,9 +1032,6 @@ static int Count_Items(char *Key)
 
 struct fmt_main *dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS(const char *Script, int *type, struct fmt_main *pFmt)
 {
-	char tmp = options.loader.field_sep_char;
-	int nFmtNum;
-
 	nPreloadCnt = 0;
 	nFuncCnt = 0;
 
