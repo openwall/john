@@ -9204,7 +9204,7 @@ $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
 fi
 else
-   if test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x"; then :
+   if test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}$cross_compiling" != "xno"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking supplied paths for OpenSSL" >&5
 $as_echo_n "checking supplied paths for OpenSSL... " >&6; }
 
@@ -9224,7 +9224,7 @@ $as_echo_n "checking supplied paths for OpenSSL... " >&6; }
 
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $OPENSSL_CFLAGS $OPENSSL_LIBS" >&5
 $as_echo "$OPENSSL_CFLAGS $OPENSSL_LIBS" >&6; }
-elif test "x$cross_compiling" = xno; then :
+      if test "x$cross_compiling" = xno; then
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for OpenSSL" >&5
 $as_echo_n "checking additional paths for OpenSSL... " >&6; }
@@ -9293,6 +9293,7 @@ fi
    jtr_list_add_result=""
 
 
+	   fi
       ac_fn_c_check_header_mongrel "$LINENO" "openssl/opensslv.h" "ac_cv_header_openssl_opensslv_h" "$ac_includes_default"
 if test "x$ac_cv_header_openssl_opensslv_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
