@@ -74,8 +74,37 @@ inline uint SWAP32(uint x)
 	( \
 		temp = W[(t -  3) & 0x0F] ^ W[(t - 8) & 0x0F] ^ \
 		W[(t - 14) & 0x0F] ^ W[ t      & 0x0F], \
-		( W[t & 0x0F] = S(temp, 1) ) \
+		( r[t & 0x0F] = S(temp, 1) ) \
 		)
+
+#define Ro1(t)	  \
+	( \
+		temp = r[(t -  3) & 0x0F] ^ W[(t - 8) & 0x0F] ^ \
+		W[(t - 14) & 0x0F] ^ W[ t      & 0x0F], \
+		( r[t & 0x0F] = S(temp, 1) ) \
+		)
+#define Ro2(t)	  \
+	( \
+		temp = r[(t -  3) & 0x0F] ^ r[(t - 8) & 0x0F] ^ \
+		W[(t - 14) & 0x0F] ^ W[ t      & 0x0F], \
+		( r[t & 0x0F] = S(temp, 1) ) \
+		)
+
+#define Ro3(t)	  \
+	( \
+		temp = r[(t -  3) & 0x0F] ^ r[(t - 8) & 0x0F] ^ \
+		r[(t - 14) & 0x0F] ^ W[ t      & 0x0F], \
+		( r[t & 0x0F] = S(temp, 1) ) \
+		)
+
+#define Rr(t)	  \
+	( \
+		temp = r[(t -  3) & 0x0F] ^ r[(t - 8) & 0x0F] ^ \
+		r[(t - 14) & 0x0F] ^ r[ t      & 0x0F], \
+		( r[t & 0x0F] = S(temp, 1) ) \
+		)
+
+
 
 #define R2(t)	  \
 	( \
@@ -128,67 +157,67 @@ inline uint SWAP32(uint x)
 	P1(E, A, B, C, D, R(16)); \
 	P1(D, E, A, B, C, R(17)); \
 	P1(C, D, E, A, B, R(18)); \
-	P1(B, C, D, E, A, R(19)); \
-	P2(A, B, C, D, E, R(20)); \
-	P2(E, A, B, C, D, R(21)); \
-	P2(D, E, A, B, C, R(22)); \
-	P2(C, D, E, A, B, R(23)); \
-	P2(B, C, D, E, A, R(24)); \
-	P2(A, B, C, D, E, R(25)); \
-	P2(E, A, B, C, D, R(26)); \
-	P2(D, E, A, B, C, R(27)); \
-	P2(C, D, E, A, B, R(28)); \
-	P2(B, C, D, E, A, R(29)); \
-	P2(A, B, C, D, E, R(30)); \
-	P2(E, A, B, C, D, R(31)); \
-	P2(D, E, A, B, C, R(32)); \
-	P2(C, D, E, A, B, R(33)); \
-	P2(B, C, D, E, A, R(34)); \
-	P2(A, B, C, D, E, R(35)); \
-	P2(E, A, B, C, D, R(36)); \
-	P2(D, E, A, B, C, R(37)); \
-	P2(C, D, E, A, B, R(38)); \
-	P2(B, C, D, E, A, R(39)); \
-	P3(A, B, C, D, E, R(40)); \
-	P3(E, A, B, C, D, R(41)); \
-	P3(D, E, A, B, C, R(42)); \
-	P3(C, D, E, A, B, R(43)); \
-	P3(B, C, D, E, A, R(44)); \
-	P3(A, B, C, D, E, R(45)); \
-	P3(E, A, B, C, D, R(46)); \
-	P3(D, E, A, B, C, R(47)); \
-	P3(C, D, E, A, B, R(48)); \
-	P3(B, C, D, E, A, R(49)); \
-	P3(A, B, C, D, E, R(50)); \
-	P3(E, A, B, C, D, R(51)); \
-	P3(D, E, A, B, C, R(52)); \
-	P3(C, D, E, A, B, R(53)); \
-	P3(B, C, D, E, A, R(54)); \
-	P3(A, B, C, D, E, R(55)); \
-	P3(E, A, B, C, D, R(56)); \
-	P3(D, E, A, B, C, R(57)); \
-	P3(C, D, E, A, B, R(58)); \
-	P3(B, C, D, E, A, R(59)); \
-	P4(A, B, C, D, E, R(60)); \
-	P4(E, A, B, C, D, R(61)); \
-	P4(D, E, A, B, C, R(62)); \
-	P4(C, D, E, A, B, R(63)); \
-	P4(B, C, D, E, A, R(64)); \
-	P4(A, B, C, D, E, R(65)); \
-	P4(E, A, B, C, D, R(66)); \
-	P4(D, E, A, B, C, R(67)); \
-	P4(C, D, E, A, B, R(68)); \
-	P4(B, C, D, E, A, R(69)); \
-	P4(A, B, C, D, E, R(70)); \
-	P4(E, A, B, C, D, R(71)); \
-	P4(D, E, A, B, C, R(72)); \
-	P4(C, D, E, A, B, R(73)); \
-	P4(B, C, D, E, A, R(74)); \
-	P4(A, B, C, D, E, R(75)); \
-	P4(E, A, B, C, D, R(76)); \
-	P4(D, E, A, B, C, R(77)); \
-	P4(C, D, E, A, B, R(78)); \
-	P4(B, C, D, E, A, R(79));
+	P1(B, C, D, E, A, Ro1(19)); \
+	P2(A, B, C, D, E, Ro1(20)); \
+	P2(E, A, B, C, D, Ro1(21)); \
+	P2(D, E, A, B, C, Ro1(22)); \
+	P2(C, D, E, A, B, Ro1(23)); \
+	P2(B, C, D, E, A, Ro2(24)); \
+	P2(A, B, C, D, E, Ro2(25)); \
+	P2(E, A, B, C, D, Ro2(26)); \
+	P2(D, E, A, B, C, Ro2(27)); \
+	P2(C, D, E, A, B, Ro2(28)); \
+	P2(B, C, D, E, A, Ro2(29)); \
+	P2(A, B, C, D, E, Ro3(30)); \
+	P2(E, A, B, C, D, Ro3(31)); \
+	P2(D, E, A, B, C, Rr(32)); \
+	P2(C, D, E, A, B, Rr(33)); \
+	P2(B, C, D, E, A, Rr(34)); \
+	P2(A, B, C, D, E, Rr(35)); \
+	P2(E, A, B, C, D, Rr(36)); \
+	P2(D, E, A, B, C, Rr(37)); \
+	P2(C, D, E, A, B, Rr(38)); \
+	P2(B, C, D, E, A, Rr(39)); \
+	P3(A, B, C, D, E, Rr(40)); \
+	P3(E, A, B, C, D, Rr(41)); \
+	P3(D, E, A, B, C, Rr(42)); \
+	P3(C, D, E, A, B, Rr(43)); \
+	P3(B, C, D, E, A, Rr(44)); \
+	P3(A, B, C, D, E, Rr(45)); \
+	P3(E, A, B, C, D, Rr(46)); \
+	P3(D, E, A, B, C, Rr(47)); \
+	P3(C, D, E, A, B, Rr(48)); \
+	P3(B, C, D, E, A, Rr(49)); \
+	P3(A, B, C, D, E, Rr(50)); \
+	P3(E, A, B, C, D, Rr(51)); \
+	P3(D, E, A, B, C, Rr(52)); \
+	P3(C, D, E, A, B, Rr(53)); \
+	P3(B, C, D, E, A, Rr(54)); \
+	P3(A, B, C, D, E, Rr(55)); \
+	P3(E, A, B, C, D, Rr(56)); \
+	P3(D, E, A, B, C, Rr(57)); \
+	P3(C, D, E, A, B, Rr(58)); \
+	P3(B, C, D, E, A, Rr(59)); \
+	P4(A, B, C, D, E, Rr(60)); \
+	P4(E, A, B, C, D, Rr(61)); \
+	P4(D, E, A, B, C, Rr(62)); \
+	P4(C, D, E, A, B, Rr(63)); \
+	P4(B, C, D, E, A, Rr(64)); \
+	P4(A, B, C, D, E, Rr(65)); \
+	P4(E, A, B, C, D, Rr(66)); \
+	P4(D, E, A, B, C, Rr(67)); \
+	P4(C, D, E, A, B, Rr(68)); \
+	P4(B, C, D, E, A, Rr(69)); \
+	P4(A, B, C, D, E, Rr(70)); \
+	P4(E, A, B, C, D, Rr(71)); \
+	P4(D, E, A, B, C, Rr(72)); \
+	P4(C, D, E, A, B, Rr(73)); \
+	P4(B, C, D, E, A, Rr(74)); \
+	P4(A, B, C, D, E, Rr(75)); \
+	P4(E, A, B, C, D, Rr(76)); \
+	P4(D, E, A, B, C, Rr(77)); \
+	P4(C, D, E, A, B, Rr(78)); \
+	P4(B, C, D, E, A, Rr(79));
 
 #define sha1_init(o) {	  \
 		o[0] = INIT_A; \
@@ -347,7 +376,7 @@ __kernel void sha1(__global uint *keys,
 	uint temp, A, B, C, D, E;
 	uint len = base & 63;
 	uint hash[5];
-	uint restore[16] = {0};
+	uint r[16] = {0};
 
 #if __OPENCL_VERSION__ < 120
 	if (!gid) {
@@ -406,28 +435,6 @@ __kernel void sha1(__global uint *keys,
 
 	PUTCHAR_BE(W, len, 0x80);
 	W[15] = len << 3;
-/*
-#if NUM_INT_KEYS > 1
-	uint recover0 = W[GPU_LOC_0 >> 2];
-#if 1 < MASK_FMT_INT_PLHDR
-#if LOC_1 >= 0
-	uint recover1 = W[GPU_LOC_1 >> 2];
-#endif
-#endif
-#if 2 < MASK_FMT_INT_PLHDR
-#if LOC_2 >= 0
-	uint recover2 = W[GPU_LOC_2 >> 2];
-#endif
-#endif
-#if 3 < MASK_FMT_INT_PLHDR
-#if LOC_3 >= 0
-	uint recover3 = W[GPU_LOC_3 >> 2];
-#endif
-#endif
-#endif	*/
-	int j;
-	for (j = 0; j < 16; j++)
-		restore[j] = W[j];
 
 	for (i = 0; i < NUM_INT_KEYS; i++) {
 #if NUM_INT_KEYS > 1
@@ -449,35 +456,9 @@ __kernel void sha1(__global uint *keys,
 #endif
 #endif
 #endif
-		int x = W[0];
 		sha1_init(hash);
 		sha1_block(W, hash);
-		if (W[0] != x)
-			printf("NOT COOL");
-/*
-#if NUM_INT_KEYS > 1
-	W[0] = recover0;
-#if 1 < MASK_FMT_INT_PLHDR
-#if LOC_1 >= 0
-	W[1] = recover1;
-#endif
-#endif
-#if 2 < MASK_FMT_INT_PLHDR
-#if LOC_2 >= 0
-	W[2] = recover2;
-#endif
-#endif
-#if 3 < MASK_FMT_INT_PLHDR
-#if LOC_3 >= 0
-	W[3] = recover3;
-#endif
-#endif
-#endif		*/
-	  for (j = 0; j < 14; j++)
-		 W[j] = restore[j];
-	  W[14] = restore[14];
-	  W[15] = restore[15];
-
+		
 		cmp(gid, i, hash,
 #if USE_LOCAL_BITMAPS
 		    s_bitmaps
