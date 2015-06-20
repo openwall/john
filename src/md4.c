@@ -72,9 +72,9 @@
  * This processes one or more 64-byte data blocks, but does NOT update
  * the bit counters.  There are no alignment requirements.
  */
-static void *body(MD4_CTX *ctx, const void *data, unsigned long size)
+static const void *body(MD4_CTX *ctx, const void *data, unsigned long size)
 {
-	unsigned char *ptr;
+	unsigned const char *ptr;
 	MD4_u32plus a, b, c, d;
 	MD4_u32plus saved_a, saved_b, saved_c, saved_d;
 
