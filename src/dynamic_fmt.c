@@ -1516,9 +1516,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			if (curdat.using_flat_buffers_sse2_ok) {
 				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1) {
 #ifdef _OPENMP
-					DynamicFunc__MD5_crypt_input2_overwrite_input1(0,m_count,0);
+					if (curdat.base16_to_input1_sha1)
+						DynamicFunc__SHA1_crypt_input2_overwrite_input1(0,m_count, 0);
+					else if (curdat.base16_to_input1_sha256)
+						DynamicFunc__SHA256_crypt_input2_overwrite_input1(0,m_count, 0);
+					else
+						DynamicFunc__MD5_crypt_input2_overwrite_input1(0,m_count,0);
 #else
-					DynamicFunc__MD5_crypt_input2_overwrite_input1();
+					if (curdat.base16_to_input1_sha1)
+						DynamicFunc__SHA1_crypt_input2_overwrite_input1();
+					else if (curdat.base16_to_input1_sha256)
+						DynamicFunc__SHA256_crypt_input2_overwrite_input1();
+					else
+						DynamicFunc__MD5_crypt_input2_overwrite_input1();
 #endif
 				} else if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32) {
 					unsigned int i;
@@ -7059,7 +7069,10 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 	curdat.store_keys_normal_but_precompute_md5_to_output2 = !!(Setup->startFlags&MGF_KEYS_CRYPT_IN2);
 
-	curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1 = !!(Setup->startFlags&MGF_KEYS_BASE16_IN1);
+	curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1 = !!(Setup->startFlags&(MGF_KEYS_BASE16_IN1|MGF_KEYS_BASE16_IN1_SHA1|MGF_KEYS_BASE16_IN1_SHA256));
+	curdat.base16_to_input1_sha1 = !!(Setup->startFlags&MGF_KEYS_BASE16_IN1_SHA1);
+	curdat.base16_to_input1_sha256 = !!(Setup->startFlags&MGF_KEYS_BASE16_IN1_SHA256);
+
 	if (!!(Setup->startFlags&MGF_KEYS_BASE16_X86_IN1)) {
 		curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1=2;
 	}

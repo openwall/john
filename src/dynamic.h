@@ -113,8 +113,8 @@ typedef struct DYNAMIC_Constants_t
 // the unicode_b4_crypt does a unicode convert, prior to crypt_in2, base16-in1, etc.  It can NOT be used with KEYS_INPUT.
 #define MGF_KEYS_UNICODE_B4_CRYPT        0x00001000
 #define MGF_SOURCE                       0x00002000
-// open                                  0x00004000
-// open                                  0x00008000
+#define MGF_KEYS_BASE16_IN1_SHA1         0x00004000
+#define MGF_KEYS_BASE16_IN1_SHA256       0x00008000
 // open                                  0x00010000
 // open                                  0x00020000
 // open                                  0x00040000
