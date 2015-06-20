@@ -316,8 +316,6 @@ compiler.o:	compiler.c arch.h params.h memory.h compiler.h memdbg.h
 
 config.o:	config.c misc.h params.h path.h memory.h config.h john.h logger.h external.h memdbg.h
 
-cprepair.o:	cprepair.c autoconfig.h unicode.h memdbg.h
-
 cracker.o:	cracker.c os.h arch.h misc.h math.h params.h memory.h signals.h idle.h formats.h dyna_salt.h loader.h logger.h status.h recovery.h external.h options.h mask.h unicode.h john.h fake_salts.h john-mpi.h path.h jumbo.h common-gpu.h memdbg.h
 
 crc32.o:	crc32.c memory.h crc32.h memdbg.h
@@ -752,10 +750,8 @@ aes/aes.a:
 ../run/luks2john@EXE_EXT@: luks2john.o
 	$(LD) $(LDFLAGS) luks2john.o @OPENSSL_LIBS@ @OPENMP_CFLAGS@ -o ../run/luks2john
 
-../run/cprepair@EXE_EXT@: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
-	memdbg.h memdbg.c
-	$(CC) -DAC_BUILT -Wall -O3 @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c \
-	misc.c memdbg.c -o ../run/cprepair
+../run/cprepair@EXE_EXT@: cprepair.c autoconfig.h unicode.c unicode.h options.h misc.h misc.c memdbg.h memdbg.c
+	$(CC) -DAC_BUILT -Wall -O3 @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ -DNOT_JOHN -D_JOHN_MISC_NO_LOG $(CPPFLAGS) cprepair.c unicode.c misc.c memdbg.c -o ../run/cprepair
 
 ../run/tgtsnarf@EXE_EXT@: tgtsnarf.o
 	$(LD) tgtsnarf.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @OPENMP_CFLAGS@ -o ../run/tgtsnarf
