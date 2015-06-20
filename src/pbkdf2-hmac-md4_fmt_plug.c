@@ -1,15 +1,14 @@
 /*
- * This software is Copyright (c) 2015 Dhiru and magnum
- * and it is hereby released to
+ * This software is Copyright (c) 2015 magnum and it is hereby released to
  * the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_pbkdf2_hmac_md5;
+extern struct fmt_main fmt_pbkdf2_hmac_md4;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_pbkdf2_hmac_md5);
+john_register_one(&fmt_pbkdf2_hmac_md4);
 #else
 
 #include <ctype.h>
@@ -24,7 +23,7 @@ john_register_one(&fmt_pbkdf2_hmac_md5);
 #include "common.h"
 #include "formats.h"
 #include "stdint.h"
-#include "pbkdf2_hmac_md5.h"
+#include "pbkdf2_hmac_md4.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -33,14 +32,14 @@ john_register_one(&fmt_pbkdf2_hmac_md5);
 #endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL            "PBKDF2-HMAC-MD5"
+#define FORMAT_LABEL            "PBKDF2-HMAC-MD4"
 #define FORMAT_NAME             ""
-#define FORMAT_TAG              "$pbkdf2-hmac-md5$"
+#define FORMAT_TAG              "$pbkdf2-hmac-md4$"
 #define TAG_LEN                 (sizeof(FORMAT_TAG) - 1)
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME          "PBKDF2-MD5 " MD5_ALGORITHM_NAME
+#define ALGORITHM_NAME          "PBKDF2-MD4 " MD4_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME          "PBKDF2-MD5 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "PBKDF2-MD4 32/" ARCH_BITS_STR
 #endif
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
@@ -52,8 +51,8 @@ john_register_one(&fmt_pbkdf2_hmac_md5);
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #if SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT      (SIMD_COEF_32 * SIMD_PARA_MD5)
-#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32 * SIMD_PARA_MD5)
+#define MIN_KEYS_PER_CRYPT      (SIMD_COEF_32 * SIMD_PARA_MD4)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32 * SIMD_PARA_MD4)
 #else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -64,9 +63,9 @@ john_register_one(&fmt_pbkdf2_hmac_md5);
 #define MAX(a,b)                (((a)>(b))?(a):(b))
 
 static struct fmt_tests tests[] = {
-	{"$pbkdf2-hmac-md5$1000$38333335343433323338$f445d6d0ed5cbe9fc12c03ea9530c1c6", "hashcat"},
-	{"$pbkdf2-hmac-md5$1000$38333335343433323338$f445d6d0ed5cbe9fc12c03ea9530c1c6f79e7886a6af1552b40f3704a8b87847", "hashcat"},
-	{"$pbkdf2-hmac-md5$1$73616c74$f31afb6d931392daa5e3130f47f9a9b6", "password"},
+	{"$pbkdf2-hmac-md4$1000$6d61676e756d$32ebfcea201e61cc498948916a213459", "magnum"},
+	{"$pbkdf2-hmac-md4$1000$6d61676e756d$32ebfcea201e61cc498948916a213459c259c7b0a8ce9473368665f0808dcde1", "magnum"},
+	{"$pbkdf2-hmac-md4$1$73616c74$1857f69412150bca4542581d0f9e7fd1", "password"},
 	{NULL}
 };
 
@@ -212,23 +211,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
 #if SIMD_COEF_32
-		int lens[SSE_GROUP_SZ_MD5], i;
-		unsigned char *pin[SSE_GROUP_SZ_MD5];
+		int lens[SSE_GROUP_SZ_MD4], i;
+		unsigned char *pin[SSE_GROUP_SZ_MD4];
 		union {
-			ARCH_WORD_32 *pout[SSE_GROUP_SZ_MD5];
+			ARCH_WORD_32 *pout[SSE_GROUP_SZ_MD4];
 			unsigned char *poutc;
 		} x;
-		for (i = 0; i < SSE_GROUP_SZ_MD5; ++i) {
+		for (i = 0; i < SSE_GROUP_SZ_MD4; ++i) {
 			lens[i] = strlen(saved_key[index+i]);
 			pin[i] = (unsigned char*)saved_key[index+i];
 			x.pout[i] = crypt_out[index+i];
 		}
-		pbkdf2_md5_sse((const unsigned char **)pin, lens,
+		pbkdf2_md4_sse((const unsigned char **)pin, lens,
 		               (unsigned char*)cur_salt->salt, cur_salt->length,
 		               cur_salt->rounds, &(x.poutc),
 		               BINARY_SIZE, 0);
 #else
-		pbkdf2_md5((unsigned char*)(saved_key[index]),
+		pbkdf2_md4((unsigned char*)(saved_key[index]),
 		           strlen(saved_key[index]),
 		           (unsigned char*)cur_salt->salt, cur_salt->length,
 		           cur_salt->rounds, (unsigned char*)crypt_out[index],
@@ -283,7 +282,7 @@ static unsigned int iteration_count(void *salt)
 }
 #endif
 
-struct fmt_main fmt_pbkdf2_hmac_md5 = {
+struct fmt_main fmt_pbkdf2_hmac_md4 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
