@@ -1,32 +1,9 @@
 /*
- * PHPS_fmt.c
+ * PHPS_fmt.c  (in thin fully self describing format)
  *
  * Salted PHP on the form (php-code): $hash = MD5(MD5($pass).$salt);
- * Based on salted IPB2 mode (by regenrecht at o2.pl).
  *
- * albert veli gmail com, 2007
- *
- * Convert hashes to the form username:$PHPS$salt$hash
- * For instance, if the pw file has the form
- * 1234<::>luser<::>luser@hotmail.com<::><::>1ea46bf1f5167b63d12bd47c8873050e<::>C9%
- * it can be converted to the wanted form with the following perl script:
- *
- * #!/usr/bin/perl -w
- * while (<>) {
- *    my @fields = split(/<::>/, $_);
- *    my $a =  substr $fields[5], 0, 1;
- *    my $b =  substr $fields[5], 1, 1;
- *    my $c =  substr $fields[5], 2, 1;
- *    printf "%s:\$PHPS\$%02x%02x%02x\$%s\n", $fields[1], ord($a), ord($b), ord($c), $fields[4];
- * }
- *
- * BUGS: Can't handle usernames with ':' in them.
- *
- * NOTE the new code 'hooks' into the generic MD5 code.  The 'Convert' call
- * changes the data from the PHPS format, into $dynamic_6$ format, and then
- * linkes to the MD5-GEN functions.  MD5-GENERIC and 'linkage' by Jim Fougeron.
- * the 'original' PHPS_fmt.c is saved into PHPS_fmt_orig.c   If you want the
- * original code, simply replace this file with that PHPS_fmt_orig.c file.
+ * this file is being setup as a 'how-to' template.
  *
  */
 
@@ -46,20 +23,16 @@ john_register_one(&fmt_PHPS2);
 #include "common.h"
 #include "formats.h"
 #include "dynamic.h"
-#include "options.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"PHPS2"
-#define FORMAT_NAME		"" /* md5(md5($pass).$salt) */
+#define FORMAT_NAME			"" /* md5(md5($pass).$salt) */
 
-#define ALGORITHM_NAME		"?" /* filled in by md5-gen */
+#define ALGORITHM_NAME		"?" /* filled in by dynamic */
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
 
-#define MD5_BINARY_SIZE		16
-#define MD5_HEX_SIZE		(MD5_BINARY_SIZE * 2)
-
-#define BINARY_SIZE			MD5_BINARY_SIZE
+#define BINARY_SIZE			16
 #define BINARY_ALIGN		MEM_ALIGN_WORD
 
 #define SALT_SIZE			3
@@ -70,6 +43,19 @@ john_register_one(&fmt_PHPS2);
 #define PLAINTEXT_LENGTH	0
 #define CIPHERTEXT_LENGTH	(1 + 4 + 1 + SALT_SIZE * 2 + 1 + MD5_HEX_SIZE)
 
+static char *dyna_script =
+	"Expression=md5(md5($p).$s)\n"
+    "Flag=MGF_SALTED\n"
+	"Flag=MGF_KEYS_BASE16_IN1\n"
+	"SaltLen=3\n"
+	"MaxInputLenX86=110\n"
+	"MaxInputLen=55\n"
+	"Func=DynamicFunc__set_input_len_32\n"
+	"Func=DynamicFunc__append_salt\n"
+	"Func=DynamicFunc__crypt_md5\n"
+	"Test=$PHPS$433925$5d756853cd63acee76e6dcd6d3728447:welcome\n"
+	"Test=$PHPS$73616c$aba22b2ceb7c841473c03962b145feb3:password\n"
+	"Test=$PHPS$247824$ad14afbbf0e16d4ad8c8985263a3d051:test\n";  // salt is $x$ (I want to test that a $ works)
 static struct fmt_tests phps_tests[] = {
 	{"$PHPS$433925$5d756853cd63acee76e6dcd6d3728447", "welcome"},
 	{"$PHPS$73616c$aba22b2ceb7c841473c03962b145feb3", "password"},
@@ -77,18 +63,16 @@ static struct fmt_tests phps_tests[] = {
 	{NULL}
 };
 
-extern struct options_main options;
-
 static char Conv_Buf[80];
-int dyna_type;
-char dyna_hash_type[24];
-int dyna_hash_type_len;
+static int dyna_type;
+static char dyna_hash_type[24];
+static int dyna_hash_type_len;
 static struct fmt_main *pDynamic;
 static void phps_init(struct fmt_main *self);
 static void get_ptr();
 
 /* this function converts a 'native' phps signature string into a $dynamic_6$ syntax string */
-static char *Convert(char *Buf, char *ciphertext)
+static char *Convert(char *Buf, char *ciphertext, int in_load)
 {
 	unsigned long val, i;
 	char *cp;
@@ -100,7 +84,10 @@ static char *Convert(char *Buf, char *ciphertext)
 	if (!cp)
 		return "*";
 
-	snprintf(Buf, sizeof(Conv_Buf) - SALT_SIZE, "%s%s$", dyna_hash_type, &cp[1]);
+	if (in_load)
+		snprintf(Buf, sizeof(Conv_Buf) - SALT_SIZE, "$dynamic_6xxx$%s$", &cp[1]);
+	else
+		snprintf(Buf, sizeof(Conv_Buf) - SALT_SIZE, "%s%s$", dyna_hash_type, &cp[1]);
 	for (i = 0; i < SALT_SIZE; ++i)
 	{
 		char bTmp[3];
@@ -156,23 +143,23 @@ static int phps_valid(char *ciphertext, struct fmt_main *self)
 		if (atoi16[ARCH_INDEX(ciphertext[i+6])] == 0x7F)
 			return 0;
 
-	for (i = 0;i < MD5_HEX_SIZE; ++i)
+	for (i = 0;i < BINARY_SIZE*2; ++i)
 		if (atoi16[ARCH_INDEX(ciphertext[i+6+1+SALT_SIZE*2])] == 0x7F)
 			return 0;
 
-	return pDynamic->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic);
+	return pDynamic->methods.valid(Convert(Conv_Buf, ciphertext, 0), pDynamic);
 }
 
 
 static void * our_salt(char *ciphertext)
 {
 	get_ptr();
-	return pDynamic->methods.salt(Convert(Conv_Buf, ciphertext));
+	return pDynamic->methods.salt(Convert(Conv_Buf, ciphertext, 0));
 }
 static void * our_binary(char *ciphertext)
 {
 	get_ptr();
-	return pDynamic->methods.binary(Convert(Conv_Buf, ciphertext));
+	return pDynamic->methods.binary(Convert(Conv_Buf, ciphertext, 0));
 }
 
 struct fmt_main fmt_PHPS2 =
@@ -217,36 +204,14 @@ static void phps_init(struct fmt_main *self)
 
 static void get_ptr() {
 	if (!pDynamic) {
-		dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS("Expression=md5(md5($p).$s)\n"
-                                                "Flag=MGF_SALTED\n"
-                                                "Flag=MGF_KEYS_BASE16_IN1\n"
-                                                "SaltLen=3\n"
-                                                "MaxInputLenX86=110\n"
-                                                "MaxInputLen=55\n"
-                                                "Func=DynamicFunc__set_input_len_32\n"
-                                                "Func=DynamicFunc__append_salt\n"
-                                                "Func=DynamicFunc__crypt_md5\n"
-                                                "Test=$dynamic_6xxx$5d756853cd63acee76e6dcd6d3728447$HEX$433925:welcome\n"
-                                                "Test=$dynamic_6xxx$aba22b2ceb7c841473c03962b145feb3$HEX$73616c:password\n"
-												"Test=$dynamic_6xxx$ad14afbbf0e16d4ad8c8985263a3d051$HEX$247824:test\n",
-                                                &dyna_type, &fmt_PHPS2);
-
+		dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS(dyna_script, &dyna_type, &fmt_PHPS2, Convert);
 		sprintf (dyna_hash_type, "$dynamic_%d$", dyna_type);
 		dyna_hash_type_len = strlen(dyna_hash_type);
 
-		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_PHPS2, Convert(Conv_Buf, phps_tests[0].ciphertext), "phps", 0);
+		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_PHPS2, Convert(Conv_Buf, phps_tests[0].ciphertext, 0), "phps", 0);
 		link_funcs();
 	}
 }
-
-/**
- * GNU Emacs settings: K&R with 1 tab indent.
- * Local Variables:
- * c-file-style: "k&r"
- * c-basic-offset: 8
- * indent-tabs-mode: t
- * End:
- */
 
 #endif /* plugin stanza */
 

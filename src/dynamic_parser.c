@@ -604,6 +604,7 @@ static char SetupName[128], SetupNameID[128];
 static struct cfg_list *gen_source;
 static int ngen_source;
 static char *cp_local_source;
+static char *(*Thin_Convert)(char *Buf, char *ciphertext, int in_load);
 
 extern struct options_main options;
 
@@ -691,6 +692,11 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 		char *cp;
 		cp = convert_old_name_if_needed(&Line[5]);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].ciphertext), cp);
+		if (pSetup->pPreloads[nPreloadCnt].ciphertext && Thin_Convert &&
+			strncmp(pSetup->pPreloads[nPreloadCnt].ciphertext, "$dynamic_", 9)) {
+				static char Buf[1024];
+				pSetup->pPreloads[nPreloadCnt].ciphertext = Thin_Convert(Buf, pSetup->pPreloads[nPreloadCnt].ciphertext, 1);
+		}
 		if (!strncmp(pSetup->pPreloads[nPreloadCnt].ciphertext, "$dynamic_6xxx$", 14)) {
 			memmove(pSetup->pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName));
 		}
@@ -1030,13 +1036,15 @@ static int Count_Items(char *Key)
 	return Cnt;
 }
 
-struct fmt_main *dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS(const char *Script, int *type, struct fmt_main *pFmt)
+struct fmt_main *dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS(const char *Script, int *type, struct fmt_main *pFmt, char *(*Convert)(char *Buf, char *ciphertext, int in_load))
 {
 	nPreloadCnt = 0;
 	nFuncCnt = 0;
 
 	cp_local_source = str_alloc_copy((char*)Script);
+	Thin_Convert = Convert;
 	pFmt = dynamic_Register_local_format();
+	Thin_Convert = NULL;
 	sscanf(pFmt->params.tests[0].ciphertext, "$dynamic_%d",type);
 	return pFmt;
 }
