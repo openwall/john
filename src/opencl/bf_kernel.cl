@@ -6,7 +6,7 @@
  */
 #include "opencl_device_info.h"
 
-#if gpu_nvidia(DEVICE_INFO)
+#if nvidia_sm_5x(DEVICE_INFO)
 #define MAYBE_LOCAL	   	__private
 #else
 #define MAYBE_LOCAL	   	__local
