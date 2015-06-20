@@ -77,7 +77,9 @@ foreach $i (1..5)
 
 print "\n$compiler";
 print "$john_build";
-print "running john with \'$test\' for each test\n\n";
+if ($test ne "-test") {
+	print "running john with \'$test\' for each test\n\n";
+}
 printf "%-10s |  %6d  |  %6d  |  %6d  |  %6d  |  %6d  |\n", "hash\\para", 1, 2, 3, 4, 5;
 print "-----------|----------|----------|----------|----------|----------|\n";
 foreach $j (qw(md4 md5 sha1 sha256 sha512))
