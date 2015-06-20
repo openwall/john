@@ -16,17 +16,6 @@
 #define AMD_PUTCHAR_NOCAST
 #include "opencl_misc.h"
 #include "opencl_mask.h"
-#define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
-/*
-#if gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
-inline uint SWAP32(uint x)
-{
-	x = rotate(x, 16U);
-	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
-}
-#else
-#define SWAP32(a)	(as_uint(as_uchar4(a).wzyx))
-#endif*/
 
 #define INIT_A			0x67452301
 #define INIT_B			0xefcdab89
@@ -458,7 +447,7 @@ __kernel void sha1(__global uint *keys,
 #endif
 		sha1_init(hash);
 		sha1_block(W, hash);
-		
+
 		cmp(gid, i, hash,
 #if USE_LOCAL_BITMAPS
 		    s_bitmaps

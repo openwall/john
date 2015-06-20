@@ -34,7 +34,7 @@ john_register_one(&FMT_STRUCT);
 
 #define FORMAT_LABEL			"Raw-SHA1-opencl"
 #define FORMAT_NAME			""
-#define ALGORITHM_NAME			"SHA1 OpenCL (inefficient, development use only)"
+#define ALGORITHM_NAME			"SHA1 OpenCL"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
