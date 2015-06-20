@@ -92,6 +92,7 @@ static cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
 #define STEP			0
 #define SEED			256
 
+#undef MIN
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.

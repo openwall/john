@@ -46,7 +46,9 @@
 
 #define LOG_SIZE 1024*16
 
+#undef MIN
 #define MIN(a, b)       (((a) > (b)) ? (b) : (a))
+#undef MAX
 #define MAX(a, b)       (((a) > (b)) ? (a) : (b))
 
 // If we are a release build, only output OpenCL build log if

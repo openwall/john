@@ -117,6 +117,7 @@ static cl_kernel sevenzip_init;
 #define cracked_size (sizeof(*cracked) * global_work_size)
 static struct fmt_main *self;
 
+#undef MIN
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 
 #define HASH_LOOPS	4096

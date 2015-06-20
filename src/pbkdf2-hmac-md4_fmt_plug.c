@@ -59,7 +59,9 @@ john_register_one(&fmt_pbkdf2_hmac_md4);
 #endif
 #define PLAINTEXT_LENGTH        125
 
+#undef MIN
 #define MIN(a,b)                (((a)<(b))?(a):(b))
+#undef MAX
 #define MAX(a,b)                (((a)>(b))?(a):(b))
 
 static struct fmt_tests tests[] = {

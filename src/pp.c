@@ -168,7 +168,9 @@ static char *mem_map, *map_pos, *map_end;
 
 #define ENTRY_END_HASH   0xFFFFFFFF
 
+#undef MIN
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#undef MAX
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 
 typedef uint8_t  u8;

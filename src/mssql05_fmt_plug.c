@@ -60,6 +60,7 @@ john_register_one(&fmt_mssql05);
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
+#undef MIN
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 
 static struct fmt_tests tests[] = {

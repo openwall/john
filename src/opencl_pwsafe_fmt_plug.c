@@ -32,6 +32,7 @@ john_register_one(&fmt_opencl_pwsafe);
 
 #define uint8_t                         unsigned char
 #define uint32_t                        unsigned int
+#undef MIN
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
 #define FORMAT_LABEL            "pwsafe-opencl"

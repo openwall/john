@@ -77,7 +77,9 @@ static int omp_t = 1;
 #define PAD_SIZE                128
 #define PLAINTEXT_LENGTH        125
 
+#undef MIN
 #define MIN(a,b)                (((a)<(b))?(a):(b))
+#undef MAX
 #define MAX(a,b)                (((a)>(b))?(a):(b))
 
 static struct fmt_tests tests[] = {

@@ -57,7 +57,9 @@ static const char * warn[] = {
 	"xfer: ",  "xfer: ",  ", crypt: ",  ", xfer: "
 };
 
+#undef MIN
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#undef MAX
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 typedef struct {

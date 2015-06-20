@@ -16,7 +16,9 @@
 #define KEYS_PER_GPU            THREADS*BLOCKS
 #define KEYS_PER_CRYPT          KEYS_PER_GPU*GPUS
 
+#undef MIN
 #define MIN(a,b) (((a)<(b))?(a):(b))
+#undef MAX
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #define rol(x,n) ((x << n) | (x >> (32-n)))
 #define ror(x,n) ((x >> n) | (x << (32-n)))

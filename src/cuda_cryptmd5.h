@@ -13,7 +13,9 @@
 #define uint32_t unsigned int
 #define uint8_t unsigned char
 
+#undef MIN
 #define MIN(a,b) ((a)<(b)?(a):(b))
+#undef MAX
 #define MAX(a,b) ((a)>(b)?(a):(b))
 
 #define BLOCKS			56*3

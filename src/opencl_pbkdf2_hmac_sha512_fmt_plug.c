@@ -53,6 +53,7 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 #define SPLIT_KERNEL_NAME	"pbkdf2_sha512_loop"
 #define CONFIG_NAME             "pbkdf2_sha512"
 
+#undef MIN
 #define MIN(a,b)		(((a)<(b))?(a):(b))
 #define HASH_LOOPS		250
 #define ITERATIONS		10000

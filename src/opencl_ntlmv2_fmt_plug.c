@@ -56,7 +56,9 @@ john_register_one(&fmt_opencl_NTLMv2);
 #define CIPHERTEXT_LENGTH       32 /* hex chars */
 #define TOTAL_LENGTH            (12 + 3 * SALT_MAX_LENGTH + 1 + SERVER_CHALL_LENGTH + 1 + CLIENT_CHALL_LENGTH_MAX + 1 + CIPHERTEXT_LENGTH + 1)
 
+#undef MIN
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
+#undef MAX
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
 /* these will be altered in init() depending on GPU */

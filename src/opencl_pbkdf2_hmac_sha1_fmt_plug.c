@@ -60,7 +60,9 @@ john_register_one(&fmt_ocl_pbkdf2_sha1);
 #define uint16_t		unsigned short
 #define uint32_t		unsigned int
 
+#undef MIN
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#undef MAX
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 /* This handles all widths */

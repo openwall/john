@@ -93,7 +93,9 @@ static const char * warn[] = {
 };
 
 // Inline functions used by some code
+#undef MIN
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
+#undef MAX
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
 // Maximum UINT32s used by plaintext being SHA1'd

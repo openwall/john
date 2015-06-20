@@ -100,7 +100,9 @@ static struct fmt_main *self;
 
 static size_t insize, outsize, settingsize;
 
+#undef MIN
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
+#undef MAX
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
 #define STEP			0

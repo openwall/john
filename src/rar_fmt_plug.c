@@ -107,7 +107,9 @@ john_register_one(&fmt_rar);
 
 #define ROUNDS			0x40000
 
+#undef MIN
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#undef MAX
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 /* The reason we want to bump OMP_SCALE in this case is to even out the

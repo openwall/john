@@ -49,7 +49,9 @@ static struct fmt_main *self;
 
 #define OCL_CONFIG		"wpapsk"
 
+#undef MIN
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#undef MAX
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 /* This handles all sizes */

@@ -62,7 +62,9 @@ john_register_one(&fmt_ocl_rar5);
 #define KERNEL_NAME		"pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME	"pbkdf2_sha256_loop"
 
+#undef MIN
 #define MIN(a, b)		(((a) < (b)) ? (a) : (b))
+#undef MAX
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 #define HASH_LOOPS		(3*13*29) // factors 3, 13, 29, 29
 #define ITERATIONS		(32800 - 1)
