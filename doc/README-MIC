@@ -15,7 +15,7 @@ need to build them for MIC by yourself.
 These libraries are:
     Zlib (libz)
     GMP (libgmp)
-    LibreSSL (libssl & libcrypto)
+    OpenSSL/LibreSSL (libssl & libcrypto)
 
 They can be downloaded from their websites. But building them requires some 
 effort, and only the mentioned versions are guaranteed to work.  
@@ -30,6 +30,14 @@ $ make && make install
 Build GMP (version 6.0.0a):
 $ cd */gmp-6.0.0
 $ ./configure CC="icc -mmic" --host=k1om --prefix=$MIC
+$ make && make install
+
+OpenSSL and LibreSSL offer almost the same functionality, you can use either one
+as convenient.
+
+Build OpenSSL (version 1.0.2a)
+$ cd */openssl-1.0.2a
+$ ./Configure linux-x86_64-icc -mmic no-asm shared --prefix=$MIC
 $ make && make install
 
 Build LibreSSL (version 2.1.6):
