@@ -1,7 +1,8 @@
 /*
  * Copyright (c) 2011 Samuele Giovanni Tonon
  * samu at linuxasylum dot net
- * and Copyright (c) 2012, magnum
+ * Copyright (c) 2012, magnum
+ * and Copyright (c) 2015, Sayantan Datta <sdatta@openwall.com>
  * This program comes with ABSOLUTELY NO WARRANTY; express or
  * implied .
  * This is free software, and you are welcome to redistribute it
