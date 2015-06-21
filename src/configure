@@ -9204,7 +9204,7 @@ $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
 fi
 else
-   if test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}$cross_compiling" != "xno"; then :
+   if test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x" -o "x$cross_compiling" = "xyes" -o "x$enable_native_tests" = xno -o "x$PKG_CONFIG" = xno; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking supplied paths for OpenSSL" >&5
 $as_echo_n "checking supplied paths for OpenSSL... " >&6; }
 
@@ -9222,6 +9222,11 @@ $as_echo_n "checking supplied paths for OpenSSL... " >&6; }
       fi
    done
 
+      if test "x$cross_compiling" = "xyes" -a "x$OPENSSL_LIBS" = "x"; then
+        OPENSSL_LIBS="-lssl -lcrypto"
+        fi
+      LIBS_ORIG="$LIBS"
+      LIBS="$LIBS $OPENSSL_LIBS"
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $OPENSSL_CFLAGS $OPENSSL_LIBS" >&5
 $as_echo "$OPENSSL_CFLAGS $OPENSSL_LIBS" >&6; }
       if test "x$cross_compiling" = xno; then
@@ -9392,6 +9397,7 @@ See \`config.log' for more details" "$LINENO" 5; }
 
 fi
 
+	  LIBS="$LIBS_ORIG"
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
