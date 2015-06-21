@@ -2249,16 +2249,13 @@ int get_platform_vendor_id(int platform_id)
 int get_device_version(int sequential_id)
 {
 	char dname[MAX_OCLINFO_STRING_LEN];
+	unsigned int major, minor;
 
 	clGetDeviceInfo(devices[sequential_id], CL_DEVICE_VERSION,
 	                MAX_OCLINFO_STRING_LEN, dname, NULL);
 
-	if (strstr(dname, "1.0"))
-		return 100;
-	if (strstr(dname, "1.1"))
-		return 110;
-	if (strstr(dname, "1.2"))
-		return 120;
+	if (sscanf(dname, "OpenCL %u.%u", &major, &minor) == 2)
+		return major * 100 + minor * 10;
 
 	return DEV_UNKNOWN;
 }
