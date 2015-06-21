@@ -61,7 +61,7 @@ static unsigned int hash_table_size, offset_table_size, shift64_ht_sz, shift64_o
 static cl_ulong bitmap_size_bits = 0;
 
 static unsigned int key_idx = 0;
-static unsigned int ref_ctr;
+static unsigned int ref_ctr, ocl_ver;
 static struct fmt_main *self;
 
 #undef MIN
@@ -289,6 +289,8 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 				ranges[mask_skip_ranges[i]].pos;
 		else
 			static_gpu_locations[i] = -1;
+
+	ocl_ver = get_device_version(gpu_id);
 
 	sprintf(build_opts, "-D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u"
 		" -D SHIFT64_OT_SZ=%u -D SHIFT64_HT_SZ=%u -D NUM_LOADED_HASHES=%u"
@@ -721,7 +723,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (!is_static_gpu_mask)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
 
-	if (get_device_version(gpu_id) >= 120) {
+	if (ocl_ver >= 120) {
 		zero = 0;
 		HANDLE_CLERROR(clEnqueueFillBuffer(queue[gpu_id], buffer_hash_ids, &zero, sizeof(cl_uint), 0, sizeof(cl_uint), 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueFillBuffer buffer_hash_ids.");
 		HANDLE_CLERROR(clEnqueueFillBuffer(queue[gpu_id], buffer_bitmap_dupe, &zero, sizeof(cl_uint), 0, sizeof(cl_uint) * (hash_table_size/32 + 1), 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueFillBuffer buffer_bitmap_dupe.");
