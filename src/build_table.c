@@ -21,7 +21,7 @@
 
 #define DEBUG
 
-#if _OPENMP > 201105
+#if _OPENMP > 201107
 #define MAYBE_PARALLEL_FOR _Pragma("omp for")
 #define MAYBE_ATOMIC_WRITE _Pragma("omp atomic write")
 #define MAYBE_ATOMIC_CAPTURE _Pragma("omp atomic capture")
