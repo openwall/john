@@ -300,6 +300,10 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 
 	ocl_ver = get_device_version(gpu_id);
 
+	/* Driver bug workaround for OSX and GT650M, see #1459 */
+	if (ocl_ver == 120 && platform_apple(platform_id) && gpu_nvidia(gpu_id))
+		ocl_ver = 110;
+
 	sprintf(build_opts, "-D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u"
 		" -D SHIFT64_OT_SZ=%u -D SHIFT64_HT_SZ=%u -D SHIFT128_OT_SZ=%u"
 		" -D SHIFT128_HT_SZ=%u -D NUM_LOADED_HASHES=%u"

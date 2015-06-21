@@ -368,7 +368,7 @@ __kernel void sha1(__global uint *keys,
 	uint hash[5];
 	uint r[16] = {0};
 
-#if __OPENCL_VERSION__ < 120
+#if __OPENCL_VERSION__ < 120 || (APPLE && gpu_nvidia(DEVICE_INFO))
 	if (!gid) {
 		out_hash_ids[0] = 0;
 		for (i = 0; i < HASH_TABLE_SIZE/32 + 1; i++)
