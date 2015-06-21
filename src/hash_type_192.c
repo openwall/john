@@ -42,7 +42,7 @@ inline uint192_t add192(uint192_t a, unsigned int b)
 
 void allocate_ht_192(unsigned int num_loaded_hashes, unsigned int verbosity)
 {
-	int i;
+	unsigned int i;
 
 	if (posix_memalign((void **)&hash_table_192, 32, 6 * hash_table_size * sizeof(unsigned int))) {
 		fprintf(stderr, "Couldn't allocate memory!!\n");
@@ -247,7 +247,7 @@ static void remove_duplicates_final(unsigned int num_loaded_hashes, unsigned int
 						set_zero(k);
 						break;
 					}
-				if (j == iter && iter < hash_table[idx].collisions - 1)
+				if (j == iter && iter < (unsigned int)hash_table[idx].collisions - 1)
 					hash_location_list[hash_table[idx].idx_hash_loc_list][iter++] = k;
 			}
 			hash_table[idx].iter = iter;
@@ -420,7 +420,8 @@ unsigned int remove_duplicates_192(unsigned int num_loaded_hashes, unsigned int 
 
 	}
 #endif
-	for (i = num_loaded_hashes - 1; i >= 0; i--)
+	num_unique_hashes = 0;
+	for (i = num_loaded_hashes - 1; (int)i >= 0; i--)
 		if (check_non_zero(i)) {
 			num_unique_hashes = i;
 			break;
@@ -432,7 +433,7 @@ unsigned int remove_duplicates_192(unsigned int num_loaded_hashes, unsigned int 
 			loaded_hashes_192[i] = loaded_hashes_192[num_unique_hashes];
 			set_zero(num_unique_hashes);
 			num_unique_hashes--;
-			for (j = num_unique_hashes; j >= 0; j--)
+			for (j = num_unique_hashes; (int)j >= 0; j--)
 				if (check_non_zero(j)) {
 					num_unique_hashes = j;
 					break;
