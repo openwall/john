@@ -1379,6 +1379,10 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			                                       NULL), "Failed in clGetEventProfilingInfo II");
 		}
 
+		/* Work around OSX bug with HD4000 driver */
+		if (endTime == 0)
+			endTime = startTime;
+
 		if ((split_events) && (i == split_events[0] ||
 		                       i == split_events[1] || i == split_events[2])) {
 			looptime += (endTime - startTime);
