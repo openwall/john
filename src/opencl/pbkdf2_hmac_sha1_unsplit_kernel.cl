@@ -136,16 +136,16 @@ inline void hmac_sha1(__private uint * output,
 
 inline void big_hmac_sha1(__private uint * input, uint inputlen,
     __private uint * ipad_state,
-    __private uint * opad_state, __private uint * tmp_out, int iterations)
+    __private uint * opad_state, __private uint * tmp_out, uint iterations)
 {
-	int i, lo;
-	uint temp, W[16];
-	uint A, B, C, D, E;
+	uint i;
+	uint W[16];
 
 	for (i = 0; i < 5; i++)
 		W[i] = input[i];
 
-	for (lo = 1; lo < iterations; lo++) {
+	for (i = 1; i < iterations; i++) {
+		uint A, B, C, D, E, temp;
 
 		A = ipad_state[0];
 		B = ipad_state[1];

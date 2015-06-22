@@ -8,16 +8,7 @@
  */
 
 #include "opencl_device_info.h"
-
-#if gpu_amd(DEVICE_INFO)
-#define USE_BITSELECT
-#endif
-
-#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
-#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
-#else
-#define PUTCHAR(buf, index, val) ((uchar*)(buf))[index] = (val)
-#endif
+#include "opencl_misc.h"
 
 #define ROTATE_LEFT(x, s) rotate(x, (uint)s)
 
