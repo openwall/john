@@ -855,7 +855,8 @@ __constant ulong K[] = {
 	0x5fcb6fab3ad6faecUL, 0x6c44198c4a475817UL
 };
 
-#if 0
+#if APPLE && gpu_nvidia(DEVICE_INFO)
+/* Bug workaround for OSX nvidia 10.2.7 310.41.25f01 */
 #define ror64(x, n)       ((x >> n) | (x << (64 - n)))
 #else
 #define ror64(x, n)       rotate(x, (ulong)(64 - n))

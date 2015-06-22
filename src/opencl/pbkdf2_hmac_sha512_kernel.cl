@@ -142,12 +142,12 @@ __kernel void pbkdf2_sha512_loop(__global state_t *state,
                                  __global crack_t *out)
 {
 	uint idx = get_global_id(0);
-	uint i, round, rounds = state[idx].rounds;
+	uint i, rounds = state[idx].rounds;
+	uint r = MIN(rounds, HASH_LOOPS);
 	ulong W[16];
 	ulong ipad_state[8];
 	ulong opad_state[8];
 	ulong tmp_out[8];
-	ulong A, B, C, D, E, F, G, H, t;
 
 	for (i = 0; i < 8; i++) {
 		W[i] = state[idx].W[i];
@@ -156,7 +156,8 @@ __kernel void pbkdf2_sha512_loop(__global state_t *state,
 		tmp_out[i] = state[idx].hash[i];
 	}
 
-	for (round = 0; round < MIN(rounds,HASH_LOOPS); round++) {
+	for (i = 0; i < r; i++) {
+		ulong A, B, C, D, E, F, G, H, t;
 
 		A = ipad_state[0];
 		B = ipad_state[1];
