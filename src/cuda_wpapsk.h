@@ -6,6 +6,7 @@
 #ifndef _CUDA_WPAPSK_H
 #define _CUDA_WPAPSK_H
 #include "wpapsk.h"
+#include "common.h"
 
 
 #define THREADS			64	//set at least 256 on fermi
@@ -15,10 +16,6 @@
 #define MIN_KEYS_PER_CRYPT	THREADS
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
-#undef MAX
-#define MAX(x,y)		((x) > (y) ? (x) : (y))
-#undef MIN
-#define MIN(x,y)		((x) < (y) ? (x) : (y))
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 

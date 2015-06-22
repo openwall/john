@@ -104,11 +104,6 @@ static cl_mem pinned_key, pinned_idx, pinned_result;
 static cl_kernel oldoffice_utf16, oldoffice_md5, oldoffice_sha1;
 static struct fmt_main *self;
 
-#undef MIN
-#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
-
 #define STEP			0
 #define SEED			1024
 

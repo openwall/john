@@ -53,11 +53,6 @@ john_register_one(&fmt_opencl_encfs);
 #define BINARY_ALIGN		MEM_ALIGN_WORD
 #define SALT_ALIGN			MEM_ALIGN_WORD
 
-#undef MIN
-#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
-
 /* This handles all widths */
 #define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + ((index) / v_width) * 64 * v_width)
 

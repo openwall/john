@@ -60,9 +60,6 @@ john_register_one(&fmt_mssql05);
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
-#undef MIN
-#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
-
 static struct fmt_tests tests[] = {
 	{"0x01004086CEB6BF932BC4151A1AF1F13CD17301D70816A8886908", "toto"},
 	{"0x01004086CEB60ED526885801C23B366965586A43D3DEAC6DD3FD", "titi"},

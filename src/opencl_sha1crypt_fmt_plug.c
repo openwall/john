@@ -64,10 +64,6 @@ john_register_one(&fmt_ocl_cryptsha1);
 #define STEP			0
 #define SEED			128
 
-#undef MIN
-#define MIN(a, b)		(((a) < (b)) ? (a) : (b))
-#undef MAX
-#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 #define ITERATIONS		(64000*2+2)
 
 /* This handles all widths */

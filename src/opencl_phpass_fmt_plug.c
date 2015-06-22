@@ -112,11 +112,6 @@ static cl_mem mem_in, mem_out, mem_setting;
 static size_t insize, outsize, settingsize;
 static struct fmt_main *self;
 
-#undef MIN
-#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
-
 #define STEP			0
 #define SEED			256
 

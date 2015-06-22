@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include "stdint.h"
+#include "common.h"
 #include "jumbo.h"
 #include "memdbg.h"
 
@@ -30,8 +31,6 @@
 #define KWALLET_HASH_SHA1               0
 #define KWALLET_HASH_MD5                1	/* unsupported */
 #define N 				128
-#undef MIN
-#define MIN(x,y) ((x) < (y) ? (x) : (y))
 
 static unsigned char encrypted[0x10000];
 static long encrypted_size;

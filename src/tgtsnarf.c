@@ -58,13 +58,11 @@
 #include <ctype.h>
 #include "memory.h"
 #include "memdbg.h"
+#include "common.h"
+
 
 #define VERSION		"1.2"
 #define TGT_LENGTH	16
-
-#ifndef MIN
-#define MIN(a,b)	(((a)<(b))?(a):(b))
-#endif
 
 typedef struct ktext_st {
   unsigned int length;

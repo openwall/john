@@ -44,10 +44,6 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 #define KERNEL_NAME		"pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME	"pbkdf2_sha256_loop"
 
-#undef MIN
-#define MIN(a, b)		(((a) < (b)) ? (a) : (b))
-#undef MAX
-#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 #define HASH_LOOPS		(13*71) // factors 13, 13, 71
 #define ITERATIONS		12000
 
