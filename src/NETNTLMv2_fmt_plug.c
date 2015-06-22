@@ -221,7 +221,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 	/* DOMAIN\USER: -or- USER::DOMAIN: */
 	if ((tmp = strstr(login, "\\")) != NULL) {
-		identity = (char *) mem_alloc(strlen(login));
+		identity = (char *) mem_alloc(strlen(login)*2 + 1);
 		strcpy(identity, tmp + 1);
 
 		/* Upper-Case Username - Not Domain */
@@ -230,7 +230,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		strncat(identity, login, tmp - login);
 	}
 	else {
-		identity = (char *) mem_alloc(strlen(login) + strlen(uid) + 1);
+		identity = (char *) mem_alloc(strlen(login)*2 + strlen(uid) + 1);
 		strcpy(identity, login);
 
 		enc_strupper((char *)identity);
