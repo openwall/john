@@ -221,41 +221,43 @@ static void release_clobj(void)
 {
 	cl_int ret_code;
 
-	ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_plaintext,
-			plaintext, 0, NULL, NULL);
-	HANDLE_CLERROR(ret_code, "Error Unmapping keys");
-	ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_idx,
-			saved_idx, 0, NULL, NULL);
-	HANDLE_CLERROR(ret_code, "Error Unmapping indexes");
-	ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_int_key_loc,
-			saved_int_key_loc, 0, NULL, NULL);
-	HANDLE_CLERROR(ret_code, "Error Unmapping key locations");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]),
-	               "Error releasing memory mappings");
+	if (ref_counter) {
+		ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_plaintext,
+		                                   plaintext, 0, NULL, NULL);
+		HANDLE_CLERROR(ret_code, "Error Unmapping keys");
+		ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_idx,
+		                                   saved_idx, 0, NULL, NULL);
+		HANDLE_CLERROR(ret_code, "Error Unmapping indexes");
+		ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_int_key_loc,
+		                                   saved_int_key_loc, 0, NULL, NULL);
+		HANDLE_CLERROR(ret_code, "Error Unmapping key locations");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]),
+		               "Error releasing memory mappings");
 
-	ret_code = clReleaseMemObject(pass_buffer);
-	HANDLE_CLERROR(ret_code, "Error Releasing pass_buffer");
-	ret_code = clReleaseMemObject(idx_buffer);
-	HANDLE_CLERROR(ret_code, "Error Releasing idx_buffer");
+		ret_code = clReleaseMemObject(pass_buffer);
+		HANDLE_CLERROR(ret_code, "Error Releasing pass_buffer");
+		ret_code = clReleaseMemObject(idx_buffer);
+		HANDLE_CLERROR(ret_code, "Error Releasing idx_buffer");
 
-	ret_code = clReleaseMemObject(buffer_loaded_hashes);
-	HANDLE_CLERROR(ret_code, "Error Releasing buffer_loaded_hashes");
-	ret_code = clReleaseMemObject(buffer_hash_ids);
-	HANDLE_CLERROR(ret_code, "Error Releasing buffer_hash_ids");
-	ret_code = clReleaseMemObject(buffer_bitmap);
-	HANDLE_CLERROR(ret_code, "Error Releasing buffer_bitmap");
-	ret_code = clReleaseMemObject(buffer_int_key_loc);
-	HANDLE_CLERROR(ret_code, "Error Releasing buffer_int_key_loc");
-	ret_code = clReleaseMemObject(buffer_int_keys);
-	HANDLE_CLERROR(ret_code, "Error Releasing buffer_int_keys");
-	ret_code = clReleaseMemObject(pinned_plaintext);
-	HANDLE_CLERROR(ret_code, "Error Releasing pinned_plaintext");
-	ret_code = clReleaseMemObject(pinned_saved_idx);
-	HANDLE_CLERROR(ret_code, "Error Releasing pinned_saved_idx");
-	ret_code = clReleaseMemObject(pinned_int_key_loc);
-	HANDLE_CLERROR(ret_code, "Error Releasing pinned_int_key_loc");
+		ret_code = clReleaseMemObject(buffer_loaded_hashes);
+		HANDLE_CLERROR(ret_code, "Error Releasing buffer_loaded_hashes");
+		ret_code = clReleaseMemObject(buffer_hash_ids);
+		HANDLE_CLERROR(ret_code, "Error Releasing buffer_hash_ids");
+		ret_code = clReleaseMemObject(buffer_bitmap);
+		HANDLE_CLERROR(ret_code, "Error Releasing buffer_bitmap");
+		ret_code = clReleaseMemObject(buffer_int_key_loc);
+		HANDLE_CLERROR(ret_code, "Error Releasing buffer_int_key_loc");
+		ret_code = clReleaseMemObject(buffer_int_keys);
+		HANDLE_CLERROR(ret_code, "Error Releasing buffer_int_keys");
+		ret_code = clReleaseMemObject(pinned_plaintext);
+		HANDLE_CLERROR(ret_code, "Error Releasing pinned_plaintext");
+		ret_code = clReleaseMemObject(pinned_saved_idx);
+		HANDLE_CLERROR(ret_code, "Error Releasing pinned_saved_idx");
+		ret_code = clReleaseMemObject(pinned_int_key_loc);
+		HANDLE_CLERROR(ret_code, "Error Releasing pinned_int_key_loc");
 
-	ref_counter--;
+		ref_counter--;
+	}
 }
 
 /* ------- Key functions ------- */
@@ -407,7 +409,7 @@ static char * get_key(int index)
 	//TODO: ### remove me.
 	if (t > global_work_size) {
 		fprintf(stderr,
-			"Get key error! t: %d gws: %zd index: %d int_index: %d\n",
+			"Get key error! t: %d gws: "Zd" index: %d int_index: %d\n",
 			t, global_work_size, index, int_index);
 		t = 0;
 	}

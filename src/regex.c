@@ -91,6 +91,9 @@ void SetupAlpha(const char *regex_alpha)
 	rexgen_alphabets[(unsigned char)('{')] = str_alloc_copy("(\\{)");
 	rexgen_alphabets[(unsigned char)('}')] = str_alloc_copy("(\\})");
 	rexgen_alphabets[(unsigned char)('|')] = str_alloc_copy("(\\|)");
+	rexgen_alphabets[(unsigned char)('.')] = str_alloc_copy("(\\.)");
+	rexgen_alphabets[(unsigned char)('?')] = str_alloc_copy("(\\?)");
+	rexgen_alphabets[(unsigned char)('\\')] = str_alloc_copy("(\\\\)");
 	// Now add the replacements from john.conf file.
 	if ((list = cfg_get_list("list.rexgen.alpha", (char*) (&regex_alpha[5])))) {
 		struct cfg_line *x = list->head;

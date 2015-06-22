@@ -134,7 +134,9 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 #define ITERATIONS		0x40000
 #define HASH_LOOPS		0x04000 // Fixed, do not change
 
+#undef MIN
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#undef MAX
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 static int omp_t = 1;
@@ -419,26 +421,28 @@ static size_t get_default_workgroup()
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_aes_key, aes_key, 0, NULL, NULL), "Error Unmapping aes_key");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_aes_iv, aes_iv, 0, NULL, NULL), "Error Unmapping aes_iv");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
+	if (cracked) {
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_aes_key, aes_key, 0, NULL, NULL), "Error Unmapping aes_key");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_aes_iv, aes_iv, 0, NULL, NULL), "Error Unmapping aes_iv");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-	HANDLE_CLERROR(clReleaseMemObject(cl_aes_key), "Release aes_key");
-	HANDLE_CLERROR(clReleaseMemObject(cl_aes_iv), "Release aes_iv");
-	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release saved_key");
-	HANDLE_CLERROR(clReleaseMemObject(cl_saved_len), "Release saved_len");
-	HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release salt");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_aes_key), "Release aes_key");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_aes_iv), "Release aes_iv");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_key), "Release saved_key");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_len), "Release saved_len");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_salt), "Release salt");
-	HANDLE_CLERROR(clReleaseMemObject(cl_OutputBuf), "Release OutputBuf");
+		HANDLE_CLERROR(clReleaseMemObject(cl_aes_key), "Release aes_key");
+		HANDLE_CLERROR(clReleaseMemObject(cl_aes_iv), "Release aes_iv");
+		HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release saved_key");
+		HANDLE_CLERROR(clReleaseMemObject(cl_saved_len), "Release saved_len");
+		HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release salt");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_aes_key), "Release aes_key");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_aes_iv), "Release aes_iv");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_key), "Release saved_key");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_len), "Release saved_len");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_salt), "Release salt");
+		HANDLE_CLERROR(clReleaseMemObject(cl_OutputBuf), "Release OutputBuf");
 
-	MEM_FREE(cracked);
+		MEM_FREE(cracked);
+	}
 }
 
 static void done(void)
@@ -549,7 +553,7 @@ static void *get_salt(char *ciphertext)
 				error();
 			}
 #ifdef RAR_DEBUG
-			fprintf(stderr, "RAR mmap() len %llu offset 0\n",
+			fprintf(stderr, "RAR mmap() len "LLu" offset 0\n",
 			        pos + psalt->pack_size);
 #endif
 			psalt->blob = mmap(NULL, pos + psalt->pack_size,
@@ -572,7 +576,7 @@ static void *get_salt(char *ciphertext)
 			jtr_fseek64(fp, pos, SEEK_SET);
 			count = fread(psalt->raw_data, 1, psalt->pack_size, fp);
 			if (count != psalt->pack_size) {
-				fprintf(stderr, "Error loading file from archive '%s', expected %llu bytes, got %zu. Archive possibly damaged.\n", archive_name, psalt->pack_size, count);
+				fprintf(stderr, "Error loading file from archive '%s', expected "LLu" bytes, got "Zu". Archive possibly damaged.\n", archive_name, psalt->pack_size, count);
 				error();
 			}
 			psalt->blob = psalt->raw_data;

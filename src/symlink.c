@@ -19,7 +19,7 @@
 
 #define MAIN_NAME			"john.exe"
 
-int main(int argc, const char **argv)
+int main(int argc, char * const *argv)
 {
 #if !defined (_MSC_VER)
 	char path[strlen(argv[0] ? argv[0] : "") + sizeof(MAIN_NAME)];

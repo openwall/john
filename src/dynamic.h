@@ -113,8 +113,8 @@ typedef struct DYNAMIC_Constants_t
 // the unicode_b4_crypt does a unicode convert, prior to crypt_in2, base16-in1, etc.  It can NOT be used with KEYS_INPUT.
 #define MGF_KEYS_UNICODE_B4_CRYPT        0x00001000
 #define MGF_SOURCE                       0x00002000
-// open                                  0x00004000
-// open                                  0x00008000
+#define MGF_KEYS_BASE16_IN1_SHA1         0x00004000
+#define MGF_KEYS_BASE16_IN1_SHA256       0x00008000
 // open                                  0x00010000
 // open                                  0x00020000
 // open                                  0x00040000
@@ -164,6 +164,7 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 int text_in_dynamic_format_already(struct fmt_main *pFmt, char *ciphertext);
 
 int dynamic_Register_formats(struct fmt_main **ptr);
+struct fmt_main * dynamic_Register_local_format();
 
 int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt);
 char *dynamic_PRELOAD_SIGNATURE(int cnt);
@@ -176,6 +177,7 @@ char *dynamic_FIX_SALT_TO_HEX(char *ciphertext);
 // Here are the 'parser' functions (i.e. user built stuff in john.conf)
 int  dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt);
 char *dynamic_LOAD_PARSER_SIGNATURE(int which);
+struct fmt_main *dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS(const char *Script, int *type, struct fmt_main *pFmt,  char *(*Convert)(char *Buf, char *ciphertext, int in_load));
 
 // extern demange.  Turns \xF7 into 1 char.  Turns \x1BCA into "esc C A" string (3 bytes).  Turns abc\\123 into abc\123, etc.
 // NOTE, return the length here.  Since we may have this line:  \x1BCA\x00\x01  we have an embedded NULL.  Thus strlen type

@@ -40,7 +40,7 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 #define FORMAT_LABEL            "PBKDF2-HMAC-SHA256"
 #define FORMAT_NAME		""
 
-#define BENCHMARK_COMMENT	", rounds=12000"
+#define BENCHMARK_COMMENT	""
 
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
@@ -80,10 +80,14 @@ static int omp_t = 1;
 #define PAD_SIZE                128
 #define PLAINTEXT_LENGTH        125
 
+#undef MIN
 #define MIN(a,b)                (((a)<(b))?(a):(b))
+#undef MAX
 #define MAX(a,b)                (((a)>(b))?(a):(b))
 
 static struct fmt_tests tests[] = {
+	{"$pbkdf2-sha256$1000$a0dhTGhwMXUxZ1BOblkzNg$twzYxQMX.zUZtX6ajJFUKfJzyKXKi4xjnObm6kJ8.U0", "magnum"},
+	{"$pbkdf2-sha256$1000$WEI2ZTVJcWdTZ3JQQjVnMA$6n1V7Ffm1tsB4q7uk4mi8z5Sco.fL28pScSSc5Qr27Y", "Ripper"},
 	{"$pbkdf2-sha256$12000$2NtbSwkhRChF6D3nvJfSGg$OEWLc4keep8Vx3S/WnXgsfalb9q0RQdS1s05LfalSG4", ""},
 	{"$pbkdf2-sha256$12000$fK8VAoDQuvees5ayVkpp7Q$xfzKAoBR/Iaa68tjn.O8KfGxV.zdidcqEeDoTFvDz2A", "1"},
 	{"$pbkdf2-sha256$12000$GoMQYsxZ6/0fo5QyhtAaAw$xQ9L6toKn0q245SIZKoYjCu/Fy15hwGme9.08hBde1w", "12"},

@@ -92,6 +92,7 @@ static cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
 #define STEP			0
 #define SEED			256
 
+#undef MIN
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
@@ -164,12 +165,14 @@ static void release_clobj(void)
 {
 	const char * err_msg = "Release Memory Object FAILED.";
 
-	HANDLE_CLERROR(clReleaseMemObject(cl_tx_keys), err_msg);
-	HANDLE_CLERROR(clReleaseMemObject(cl_tx_binary), err_msg);
-	HANDLE_CLERROR(clReleaseMemObject(cl_magic_table), err_msg);
+	if (crypt_key) {
+		HANDLE_CLERROR(clReleaseMemObject(cl_tx_keys), err_msg);
+		HANDLE_CLERROR(clReleaseMemObject(cl_tx_binary), err_msg);
+		HANDLE_CLERROR(clReleaseMemObject(cl_magic_table), err_msg);
 
-	MEM_FREE(saved_key);
-	MEM_FREE(crypt_key);
+		MEM_FREE(saved_key);
+		MEM_FREE(crypt_key);
+	}
 }
 
 static void init(struct fmt_main *_self)

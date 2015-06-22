@@ -323,8 +323,6 @@ default:
 	@echo "solaris-x86-mmx-gcc      Solaris, x86 with MMX, gcc"
 	@echo "solaris-x86-any-cc       Solaris, x86, cc"
 	@echo "solaris-x86-any-gcc      Solaris, x86, gcc"
-	@echo "sco-x86-any-gcc          SCO, x86, gcc"
-	@echo "sco-x86-any-cc           SCO, x86, cc"
 	@echo "tru64-alpha              Tru64 (Digital UNIX, OSF/1), Alpha"
 	@echo "aix-ppc32                AIX, PowerPC 32-bit"
 	@echo "macosx-x86-64            Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2"
@@ -1331,34 +1329,6 @@ solaris-x86-any-gcc:
 solaris-x86.o: x86.S
 	$(CPP) $(CPPFLAGS) -P -DDUMBAS x86.S | $(TR) \; \\n > tmp.s
 	$(AS) $(ASFLAGS) tmp.s -o solaris-x86.o
-	$(RM) tmp.s
-
-sco-x86-any-gcc:
-	$(RM) arch.h
-	ln -s x86-any.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		SHELL=/bin/sh \
-		JOHN_OBJS="$(JOHN_OBJS) sco-x86.o"
-
-sco-x86-any-cc:
-	$(RM) arch.h
-	ln -s x86-any.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		SHELL=/bin/sh \
-		JOHN_OBJS="$(JOHN_OBJS) sco-x86.o" \
-		CC=cc \
-		CFLAGS="-c -b elf -O3" \
-		ASFLAGS="-c -b elf $(JOHN_ASFLAGS)" \
-		OPT_NORMAL="-K loop_unroll,no_inline" \
-		OPT_INLINE="-K inline"
-
-# SCO is even worse than Solaris x86
-sco-x86.o: x86.S
-	$(CPP) $(CPPFLAGS) -DDUMBAS x86.S | \
-		$(TR) \; \\n | $(SED) 's/\([%.]\) /\1/g' > tmp.s
-	$(AS) $(ASFLAGS) tmp.s -o sco-x86.o
 	$(RM) tmp.s
 
 tru64-alpha:

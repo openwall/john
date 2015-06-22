@@ -33,6 +33,7 @@
 		#undef  snprintf
 	#endif
   #include <librexgen/c/librexgen.h>
+  #include <librexgen/c/iterator.h>
 	#if defined(_WIN32)
 		/* librexgen fux this up for Win32 builds. We have coded JtR to use sprintf_s, and not _snprintf. They ARE different */
 		#undef  snprintf

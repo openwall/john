@@ -104,6 +104,8 @@ typedef struct private_subformat_data
 	int store_keys_normal_but_precompute_md5_to_output2;
 	int store_keys_normal_but_precompute_md5_to_output2_base16_to_input1;
 	int store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32;
+	int base16_to_input1_sha1;
+	int base16_to_input1_sha256;
 	int using_flat_buffers_sse2_ok;
 	int dynamic_salt_as_hex;
 	int force_md5_ctx;

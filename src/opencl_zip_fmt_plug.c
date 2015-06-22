@@ -119,7 +119,9 @@ static struct fmt_main *self;
 
 static size_t insize, outsize, settingsize;
 
+#undef MIN
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
+#undef MAX
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
 #define STEP			0
@@ -186,13 +188,15 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+	if (crypt_key) {
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
+		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
-	MEM_FREE(crypt_key);
-	MEM_FREE(inbuffer);
-	MEM_FREE(outbuffer);
+		MEM_FREE(crypt_key);
+		MEM_FREE(inbuffer);
+		MEM_FREE(outbuffer);
+	}
 }
 
 static void done(void)

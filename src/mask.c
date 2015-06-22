@@ -1483,15 +1483,15 @@ void mask_save_state(FILE *file)
 {
 	int i;
 
-	fprintf(file, "%llu\n", rec_cand + 1);
+	fprintf(file, ""LLu"\n", rec_cand + 1);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
 	if (options.force_minlength >= 0) {
 		fprintf(file, "%d\n", rec_len);
-		fprintf(file, "%llu\n", cand_length);
+		fprintf(file, ""LLu"\n", cand_length);
 	}
 	for (i = 0; i < rec_ctx.count; i++)
-		fprintf(file, "%hhu\n", rec_ctx.ranges[i].iter);
+		fprintf(file, "%u\n", (unsigned)rec_ctx.ranges[i].iter);
 }
 
 int mask_restore_state(FILE *file)
@@ -1501,7 +1501,7 @@ int mask_restore_state(FILE *file)
 	unsigned long long ull;
 	int fail = !(options.flags & FLG_MASK_STACKED);
 
-	if (fscanf(file, "%llu\n", &ull) == 1)
+	if (fscanf(file, ""LLu"\n", &ull) == 1)
 		cand = ull;
 	else
 		return fail;
@@ -1521,7 +1521,7 @@ int mask_restore_state(FILE *file)
 			restored_len = d;
 		else
 			return fail;
-		if (fscanf(file, "%llu\n", &ull) == 1)
+		if (fscanf(file, ""LLu"\n", &ull) == 1)
 			rec_cl = ull;
 		/* FIXME: enable the below at 2015-01-01 or later */
 		//else
@@ -1648,7 +1648,7 @@ char *stretch_mask(char *mask, parsed_ctx *parsed_mask)
  */
 void mask_init(struct db_main *db, char *unprocessed_mask)
 {
-	int i;
+	int i, max_static_range;
 
 	fmt_maxlen = db->format->params.plaintext_length;
 	max_keylen = options.force_maxlength ?
@@ -1749,15 +1749,17 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		error();
 	}
 
-	i = 0; mask_add_len = 0; mask_num_qw = 0;
+	i = 0; mask_add_len = 0; mask_num_qw = 0; max_static_range = 0;
 	while (i < strlen(mask)) {
 		int t;
 		if ((t = search_stack(&parsed_mask, i))) {
 			mask_add_len++;
 			i = t + 1;
+			if (!mask_num_qw)
+				max_static_range++;
 		}
 		else if (mask[i] == '\\') {
-			i+=2;
+			i += 2;
 			mask_add_len++;
 		}
 		else if (i + 1 < strlen(mask) && mask[i] == '?' &&
@@ -1834,7 +1836,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 #endif
 	init_cpu_mask(mask, &parsed_mask, &cpu_mask_ctx, db);
 
-	mask_calc_combination(&cpu_mask_ctx);
+	mask_calc_combination(&cpu_mask_ctx, max_static_range);
 
 /*	fprintf(stderr, "MASK_FMT_INT_PLHDRs:");
 	for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges; i++)

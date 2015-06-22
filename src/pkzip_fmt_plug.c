@@ -1623,7 +1623,7 @@ SkipKeyLoadInit:;
 
 					if (ret != Z_OK) {
 #if (ZIP_DEBUG==2)
-						fprintf(stderr, "fail=%d fail2=%d tot=%lld\n", ++FAILED, FAILED2, ((long long)CNT)*_count);
+						fprintf(stderr, "fail=%d fail2=%d tot="LLd"\n", ++FAILED, FAILED2, ((long long)CNT)*_count);
 #endif
 						goto Failed_Bailout;
 					}

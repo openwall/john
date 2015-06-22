@@ -3292,6 +3292,9 @@ sub dynamic_compile {
 			$dynamic_args==1502 && do {$fmt='sha1(sha1($p).$s),saltlen=-32';	last SWITCH; };
 			$dynamic_args==1503 && do {$fmt='sha256(sha256($p).$s),saltlen=64';	last SWITCH; };
 			$dynamic_args==1504 && do {$fmt='sha1($s.$p.$s)';	last SWITCH; };
+			$dynamic_args==1505 && do {$fmt='md5($p.$s.md5($p.$s)),saltlen=-64';	last SWITCH; };
+			$dynamic_args==1506 && do {$fmt='md5($u.$c1.$p),const1=:XDB:,usrname=true';	last SWITCH; };
+			$dynamic_args==1588 && do {$fmt='SHA256($s.SHA1($p)),saltlen=64,salt=asHEX64';	last SWITCH; };
 			$dynamic_args==2000 && do {$fmt='md5($p)';					last SWITCH; };
 			$dynamic_args==2001 && do {$fmt='md5($p.$s),saltlen=32';	last SWITCH; };
 			$dynamic_args==2002 && do {$fmt='md5(md5($p))';				last SWITCH; };
@@ -3829,6 +3832,8 @@ sub dynamic_load_salt {
 		if ($gen_stype eq "tohex") { $gen_s=md5_hex($gen_s); }
 	} else {
 		if ($gen_stype eq "ashex") { $gen_s=randstr(32, \@chrHexLo); }
+		elsif ($gen_stype eq "asHEX") { $gen_s=uc randstr(32, \@chrHexLo); }
+		elsif ($gen_stype eq "asHEX64") { $gen_s=uc randstr(64, \@chrHexLo); }
 		else {
 			my $slen = $saltlen;
 			if ($slen < 0) {

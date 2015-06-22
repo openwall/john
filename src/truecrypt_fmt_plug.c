@@ -169,6 +169,7 @@ static void done(void)
 	MEM_FREE(first_block_dec);
 	MEM_FREE(key_buffer);
 	MEM_FREE(keyfiles_data);
+	MEM_FREE(keyfiles_length);
 }
 
 static int valid(char* ciphertext, int pos)

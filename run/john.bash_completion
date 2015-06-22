@@ -151,7 +151,7 @@ _john()
 #	with --list=hidden-options.
 #
 #	All options:
-	options="`{ ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; ${first} --list=hidden-options 2>/dev/null|sed -n -e 's#^\(--[a-z-]*\(\[\)\?=\?\).*$#\1#' -e '/--/ p'; } | sort -u`"
+	options="`{ ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; ${first} --list=hidden-options 2>/dev/null|sed -n -e 's#^\(--[a-z-]*\(\[\)\?=\?\).*$#\1#' -e '/--/ p'; } | sort -u|grep -v -- '--show='`"
 
 	if [[ "_${options}" == "_--stdin" && "_${__john_binary}" != "_" ]] ; then
 		# No options and hidden options with ${first}, but a previous
@@ -559,12 +559,12 @@ _john()
 			return 0
 			;;
 		--show)
-			COMPREPLY=( $(compgen -W "--show --show=LEFT" -- ${cur}) )
+			COMPREPLY=( $(compgen -W "--show --show=" -- ${cur}) )
 			return 0
 			;;
-		--show=?([Ll]|[Ll][Ee]|[Ll][Ee][Ff]|[Ll][Ee][Ff][Tt]))
-			cur=`echo ${cur#*[=:]} | tr a-z A-Z`
-			COMPREPLY=( $(compgen -W "LEFT" -- ${cur}) )
+		--show=?([Ll]|[Ll][Ee]|[Ll][Ee][Ff]|[Ll][Ee][Ff][Tt]|[Tt]|[Tt][Yy]|[Tt][Yy][Pp]|[Tt][Yy]|[Tt][Yy][Pp][Ee]|[Tt][Yy]|[Tt][Yy][Pp][Ee][Ss]))
+			cur=`echo ${cur#*[=:]} | tr A-Z a-z`
+			COMPREPLY=( $(compgen -W "left types" -- ${cur}) )
 			return 0
 			;;
 		--users=?(-)+(L|U)*|--groups=+(-|G)*|--shells=+(-|S)*|--salts=+(-|C)*)

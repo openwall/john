@@ -125,7 +125,7 @@ static int convert_ivs(FILE *f_in)
 
 	while (pos < length) {
 		if (fread(&ivs2, 1, sizeof(struct ivs2_pkthdr), f_in) != sizeof(struct ivs2_pkthdr)) {
-			fprintf(stderr, "%s: Error reading header at pos %zu of %zu\n", filename, pos, length);
+			fprintf(stderr, "%s: Error reading header at pos "Zu" of "Zu"\n", filename, pos, length);
 			return 1;
 		}
 
@@ -133,12 +133,12 @@ static int convert_ivs(FILE *f_in)
 
 		pktlen = (unsigned int)ivs2.len;
 		if (pktlen+pos > length) {
-			fprintf(stderr, "%s: Invalid packet length %u at %zu\n", filename, pktlen, pos-sizeof(struct ivs2_pkthdr));
+			fprintf(stderr, "%s: Invalid packet length %u at "Zu"\n", filename, pktlen, pos-sizeof(struct ivs2_pkthdr));
 			return 1;
 		}
 
 		if (fread(&buffer, 1, pktlen, f_in) != pktlen) {
-			fprintf(stderr, "%s: Error reading data (%u) at pos %zu of %zu\n", filename, pktlen, pos, length);
+			fprintf(stderr, "%s: Error reading data (%u) at pos "Zu" of "Zu"\n", filename, pktlen, pos, length);
 			return 1;
 		}
 
@@ -340,7 +340,7 @@ static int GetNextPacket(FILE *in)
 	full_packet = NULL;
 	full_packet = (uint8 *)malloc(pkt_hdr.incl_len);
 	if (NULL == full_packet) {
-		fprintf(stderr, "%s:%d: malloc of %zu bytes failed\n",
+		fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 		        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 		exit(EXIT_FAILURE);
 	}
@@ -508,7 +508,7 @@ static void Handle4Way(int bIsQOS)
 
 	orig_2 = (uint8 *)malloc(pkt_hdr.incl_len);
 	if (NULL == orig_2) {
-		fprintf(stderr, "%s:%d: malloc of %zu bytes failed\n",
+		fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 		        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 		exit(EXIT_FAILURE);
 	}
@@ -561,7 +561,7 @@ static void Handle4Way(int bIsQOS)
 		MEM_FREE(wpa[ess].packet1);
 		wpa[ess].packet1 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].packet1 == NULL) {
-			fprintf(stderr, "%s:%d: malloc of %zu bytes failed\n",
+			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 			exit(EXIT_FAILURE);
 		}
@@ -573,7 +573,7 @@ static void Handle4Way(int bIsQOS)
 	else if (msg == 2) {
 		// Some sanitiy checks
 		if (pkt_hdr.incl_len < sizeof(ether_frame_hdr_t) + (bIsQOS ? 10 : 8)) {
-			fprintf(stderr, "%s: header len %u, wanted to subtract %zu, skipping packet\n",
+			fprintf(stderr, "%s: header len %u, wanted to subtract "Zu", skipping packet\n",
 				filename, pkt_hdr.incl_len, sizeof(ether_frame_hdr_t) + (bIsQOS ? 10 : 8));
 			goto out;
 		}
@@ -582,13 +582,13 @@ static void Handle4Way(int bIsQOS)
 		MEM_FREE(wpa[ess].packet3);
 		wpa[ess].packet2 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].packet2 == NULL) {
-			fprintf(stderr, "%s:%d: malloc of %zu bytes failed\n",
+			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 			exit(EXIT_FAILURE);
 		}
 		wpa[ess].orig_2  = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].orig_2 == NULL) {
-			fprintf(stderr, "%s:%d: malloc of %zu bytes failed\n",
+			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 			exit(EXIT_FAILURE);
 		}
@@ -625,7 +625,7 @@ static void Handle4Way(int bIsQOS)
 		// see if we have a msg2 that 'matches',  which is 1 less than our replay count.
 		wpa[ess].packet3 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].packet3 == NULL) {
-			fprintf(stderr, "%s:%d: malloc of %zu bytes failed\n",
+			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 			exit(EXIT_FAILURE);
 		}

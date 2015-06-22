@@ -43,6 +43,7 @@
 #include "options.h"
 #include "unicode.h"
 #include "dynamic.h"
+#include "dynamic_types.h"
 #include "config.h"
 
 #if HAVE_LIBGMP
@@ -648,7 +649,24 @@ void listconf_parse_late(void)
 			printf(" False positives possible            %s\n", (format->params.flags & FMT_NOT_EXACT) ? "yes" : "no");
 			printf(" Uses a bitslice implementation      %s\n", (format->params.flags & FMT_BS) ? "yes" : "no");
 			printf(" The split() method unifies case     %s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
-			printf(" A $dynamic$ format                  %s\n", (format->params.flags & FMT_DYNAMIC) ? "yes" : "no");
+
+			if (format->params.flags & FMT_DYNAMIC) {
+				private_subformat_data *p = (private_subformat_data *)format->private.data;
+#if SIMD_COEF_32
+				if (p->pSetup->flags & MGF_FLAT_BUFFERS)
+					printf(" A $dynamic$ format                  yes (Flat buffer SIMD)\n");
+				else {
+					if (p->pSetup->flags & MGF_NOTSSE2Safe)
+					printf(" A $dynamic$ format                  yes (No SIMD)\n");
+					else
+					printf(" A $dynamic$ format                  yes (Interleaved SIMD)\n");
+				}
+#else
+				printf(" A $dynamic$ format                  yes\n");
+#endif
+			} else
+				printf(" A $dynamic$ format                  no\n");
+
 			printf(" A dynamic sized salt                %s\n", (format->params.flags & FMT_DYNA_SALT) ? "yes" : "no");
 #ifdef _OPENMP
 			printf(" Parallelized with OpenMP            %s\n", (format->params.flags & FMT_OMP) ? "yes" : "no");

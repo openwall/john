@@ -110,11 +110,14 @@ extern void MD5_body(MD5_word x[15],MD5_word out[4]);
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 
+#undef MIN
 #define MIN(a, b)    (((a) < (b)) ? (a) : (b))
 
 static struct fmt_main fmt_Dynamic;
 static struct fmt_main *pFmts;
 static int nFmts;
+static int nLocalFmts;
+static struct fmt_main *pLocalFmts;
 static int force_md5_ctx;
 static void dynamic_RESET(struct fmt_main *fmt);
 
@@ -1514,9 +1517,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			if (curdat.using_flat_buffers_sse2_ok) {
 				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1) {
 #ifdef _OPENMP
-					DynamicFunc__MD5_crypt_input2_overwrite_input1(0,m_count,0);
+					if (curdat.base16_to_input1_sha1)
+						DynamicFunc__SHA1_crypt_input2_overwrite_input1(0,m_count, 0);
+					else if (curdat.base16_to_input1_sha256)
+						DynamicFunc__SHA256_crypt_input2_overwrite_input1(0,m_count, 0);
+					else
+						DynamicFunc__MD5_crypt_input2_overwrite_input1(0,m_count,0);
 #else
-					DynamicFunc__MD5_crypt_input2_overwrite_input1();
+					if (curdat.base16_to_input1_sha1)
+						DynamicFunc__SHA1_crypt_input2_overwrite_input1();
+					else if (curdat.base16_to_input1_sha256)
+						DynamicFunc__SHA256_crypt_input2_overwrite_input1();
+					else
+						DynamicFunc__MD5_crypt_input2_overwrite_input1();
 #endif
 				} else if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32) {
 					unsigned int i;
@@ -7057,7 +7070,10 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 	curdat.store_keys_normal_but_precompute_md5_to_output2 = !!(Setup->startFlags&MGF_KEYS_CRYPT_IN2);
 
-	curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1 = !!(Setup->startFlags&MGF_KEYS_BASE16_IN1);
+	curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1 = !!(Setup->startFlags&(MGF_KEYS_BASE16_IN1|MGF_KEYS_BASE16_IN1_SHA1|MGF_KEYS_BASE16_IN1_SHA256));
+	curdat.base16_to_input1_sha1 = !!(Setup->startFlags&MGF_KEYS_BASE16_IN1_SHA1);
+	curdat.base16_to_input1_sha256 = !!(Setup->startFlags&MGF_KEYS_BASE16_IN1_SHA256);
+
 	if (!!(Setup->startFlags&MGF_KEYS_BASE16_X86_IN1)) {
 		curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1=2;
 	}
@@ -7438,6 +7454,14 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	return 1;
 }
 
+struct fmt_main *dynamic_Register_local_format() {
+	int num=nLocalFmts++;
+	if (!pLocalFmts)
+		pLocalFmts = mem_calloc_tiny(1000*sizeof(struct fmt_main), 16);
+	LoadOneFormat(num+6000, &(pLocalFmts[num]));
+	return &(pLocalFmts[num]);
+}
+
 int dynamic_Register_formats(struct fmt_main **ptr)
 {
 	int count, i, idx, single=-1, wildcard = 0;
@@ -7500,6 +7524,11 @@ static struct fmt_main *dynamic_Get_fmt_main(int which)
 		private_subformat_data *pPriv = pFmts[i].private.data;
 		if (!strcmp(pPriv->dynamic_WHICH_TYPE_SIG, label))
 			return &pFmts[i];
+	}
+	for (i = 0; i < nLocalFmts; ++i) {
+		private_subformat_data *pPriv = pLocalFmts[i].private.data;
+		if (!strcmp(pPriv->dynamic_WHICH_TYPE_SIG, label))
+			return &pLocalFmts[i];
 	}
 	return NULL;
 }

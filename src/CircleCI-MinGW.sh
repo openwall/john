@@ -21,14 +21,14 @@ exec "$@"
 EOF
 chmod u+x $HOME/bin/mingw64
 
-cd /JohnTheRipper/src
+cd /base/JohnTheRipper/src
 export PATH="$HOME/bin:$PATH"
 
 # stop wine from messing around, during the build phase
 # echo -1 > /proc/sys/fs/binfmt_misc/status
 # umount /proc/sys/fs/binfmt_misc
 
-mingw64 ./configure OPENSSL_LIBS="-lssl -lcrypto" --host=x86_64-w64-mingw32
+mingw64 ./configure --host=x86_64-w64-mingw32
 mingw64 make -sj4
 mv ../run/john ../run/john.exe
 
@@ -48,8 +48,10 @@ find ../run
 
 v=`git rev-parse --short HEAD`
 cd ..
-zip -r /JohnTheRipper/JtR-MinGW.zip run/ doc/ README.md README README-jumbo
+mkdir /base/builds
+zip -r /base/builds/JtR-MinGW-${v}.zip run/ doc/ README.md README README-jumbo
 
 # crazy testing!
-cd /JohnTheRipper/run
+cd /base/JohnTheRipper/run
+export WINEDEBUG=-all  # suppress wine warnings
 /usr/bin/wine john.exe --test=0

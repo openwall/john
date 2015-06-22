@@ -117,6 +117,7 @@ static struct fmt_main *self;
 //OpenCL variables
 static cl_mem pinned_saved_keys, pinned_bbbs, buffer_out, buffer_keys;
 
+#undef MIN
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 
 #define STEP			0
@@ -183,17 +184,18 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	clEnqueueUnmapMemObject(queue[gpu_id], pinned_bbbs, bbbs, 0, NULL, NULL);
-	clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
-	HANDLE_CLERROR(clFinish(queue[gpu_id]),
-	               "Error releasing memory mappings");
+	if (res_hashes) {
+		clEnqueueUnmapMemObject(queue[gpu_id], pinned_bbbs, bbbs, 0, NULL, NULL);
+		clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-        HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Release mem setting");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_bbbs), "Release mem out");
-        HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Release mem out");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Release mem in");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Release mem setting");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_bbbs), "Release mem out");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Release mem out");
 
-	MEM_FREE(res_hashes);
+		MEM_FREE(res_hashes);
+	}
 }
 
 static void done(void)

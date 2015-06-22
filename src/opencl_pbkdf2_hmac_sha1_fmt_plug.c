@@ -8,9 +8,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_ocl_pbkdf1_sha1;
+extern struct fmt_main fmt_ocl_pbkdf2_sha1;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_ocl_pbkdf1_sha1);
+john_register_one(&fmt_ocl_pbkdf2_sha1);
 #else
 
 #include <ctype.h>
@@ -60,7 +60,9 @@ john_register_one(&fmt_ocl_pbkdf1_sha1);
 #define uint16_t		unsigned short
 #define uint32_t		unsigned int
 
+#undef MIN
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#undef MAX
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 /* This handles all widths */
@@ -176,13 +178,15 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem setting");
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+	if (inbuffer) {
+		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
+		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem setting");
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 
-	MEM_FREE(output);
-	MEM_FREE(inbuffer);
+		MEM_FREE(output);
+		MEM_FREE(inbuffer);
+	}
 }
 
 static void done(void)
@@ -479,7 +483,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	scalar_gws = global_work_size * v_width;
 
 #if 0
-	fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu kpc %d/%d\n", __FUNCTION__, *pcount, local_work_size, global_work_size, scalar_gws, me->params.min_keys_per_crypt, me->params.max_keys_per_crypt);
+	fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu" kpc %d/%d\n", __FUNCTION__, *pcount, local_work_size, global_work_size, scalar_gws, me->params.min_keys_per_crypt, me->params.max_keys_per_crypt);
 #endif
 
 	/// Copy data to gpu
@@ -603,7 +607,7 @@ static unsigned int iteration_count(void *salt)
 }
 #endif
 
-struct fmt_main fmt_ocl_pbkdf1_sha1 = {
+struct fmt_main fmt_ocl_pbkdf2_sha1 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

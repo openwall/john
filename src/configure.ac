@@ -395,21 +395,28 @@ AS_IF([test "x$with_openssl" != xno],
 	    AC_MSG_FAILURE([JtR requires OpenSSL and OpenSSL-devel being installed. Install if not installed.
 Try using --disable-pkg-config and possibly helping configure find oSSL by providing hints in CFLAGS and LDFLAGS],1))
 else
-   AS_IF([test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x"],
+   AS_IF([test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x" -o "x$cross_compiling" = "xyes" -o "x$enable_native_tests" = xno -o "x$PKG_CONFIG" = xno],
       [AC_MSG_CHECKING([supplied paths for OpenSSL])]
       [JTR_LIST_ADD(CFLAGS, [$OPENSSL_CFLAGS])]
-      [AC_MSG_RESULT([$OPENSSL_CFLAGS $OPENSSL_LIBS])],
-      [test "x$cross_compiling" = xno],
-      [JTR_SET_NORMAL_SSL_INCLUDES([/usr/local/ssl])]
+      [if test "x$cross_compiling" = "xyes" -a "x$OPENSSL_LIBS" = "x"; then
+        OPENSSL_LIBS="-lssl -lcrypto"
+        fi]
+      LIBS_ORIG="$LIBS"
+      LIBS="$LIBS $OPENSSL_LIBS"
+      [AC_MSG_RESULT([$OPENSSL_CFLAGS $OPENSSL_LIBS])]
+      [if test "x$cross_compiling" = xno; then
+         JTR_SET_NORMAL_SSL_INCLUDES([/usr/local/ssl])
+	   fi]
       [AC_CHECK_HEADER([openssl/opensslv.h],
-	 [AC_CHECK_LIB([ssl],[SSL_library_init],
+	   [AC_CHECK_LIB([ssl],[SSL_library_init],
 	    [AC_CHECK_LIB([crypto],[MD5_Update],
 	       [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
 	       [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
 		  [OPENSSL_LIBS="-lssl -lcrypto"],
 	       [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
 	    [AC_MSG_FAILURE(JtR requires libssl being installed,1)]
-	 )],
+	   )
+	  LIBS="$LIBS_ORIG"],
 	 [AC_MSG_FAILURE(JtR requires OpenSSL headers being installed,1)]
       )]
    )

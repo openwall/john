@@ -53,6 +53,7 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 #define SPLIT_KERNEL_NAME	"pbkdf2_sha512_loop"
 #define CONFIG_NAME             "pbkdf2_sha512"
 
+#undef MIN
 #define MIN(a,b)		(((a)<(b))?(a):(b))
 #define HASH_LOOPS		250
 #define ITERATIONS		10000
@@ -221,14 +222,16 @@ static void reset(struct db_main *db)
 
 static void release_clobj(void)
 {
-	MEM_FREE(host_pass);
-	MEM_FREE(host_salt);
-	MEM_FREE(host_crack);
+	if (host_pass) {
+		MEM_FREE(host_pass);
+		MEM_FREE(host_salt);
+		MEM_FREE(host_crack);
 
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
+		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
+	}
 }
 
 static void done(void)

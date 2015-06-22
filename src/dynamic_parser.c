@@ -576,6 +576,8 @@ static Dynamic_Str_Flag_t Dynamic_Str_sFlag[] =  {
 	{ "MGF_KEYS_INPUT",                   MGF_KEYS_INPUT },
 	{ "MGF_KEYS_CRYPT_IN2",               MGF_KEYS_CRYPT_IN2 },
 	{ "MGF_KEYS_BASE16_IN1",              MGF_KEYS_BASE16_IN1 },
+	{ "MGF_KEYS_BASE16_IN1_SHA1",         MGF_KEYS_BASE16_IN1_SHA1 },
+	{ "MGF_KEYS_BASE16_IN1_SHA256",       MGF_KEYS_BASE16_IN1_SHA256 },
 	{ "MGF_KEYS_BASE16_X86_IN1",          MGF_KEYS_BASE16_X86_IN1 },
 	{ "MGF_KEYS_BASE16_IN1_Offset32",     MGF_KEYS_BASE16_IN1_Offset32 },
 	{ "MGF_KEYS_BASE16_X86_IN1_Offset32", MGF_KEYS_BASE16_X86_IN1_Offset32 },
@@ -602,17 +604,54 @@ static int nPreloadCnt;
 static int nFuncCnt;
 static char SetupName[128], SetupNameID[128];
 static struct cfg_list *gen_source;
+static int ngen_source;
+static char *cp_local_source;
+static char *(*Thin_Convert)(char *Buf, char *ciphertext, int in_load);
 
 extern struct options_main options;
 
+static void add_line(char *cp) {
+	struct cfg_line *pln, *p;
+
+	pln = mem_calloc_tiny(sizeof(struct cfg_line), sizeof(struct cfg_line*));
+	if (gen_source->head == NULL)
+		gen_source->head = pln;
+	p = gen_source->head;
+	while (p->next)
+		p = p->next;
+	if (pln != p)
+		p->next = pln;
+	pln->data = str_alloc_copy(cp);
+}
+static void load_script_from_string(int which) {
+	char *cp;
+	if (ngen_source == which)
+		return;
+	gen_source = NULL;
+	if (!cp_local_source || !strlen(cp_local_source))
+		return;
+	cp = strtok(cp_local_source, "\n");
+	if (!cp)
+		return;
+	gen_source = mem_calloc_tiny(sizeof(struct cfg_list), sizeof(struct cfg_list*));
+	while (cp) {
+		add_line(cp);
+		cp = strtok(NULL, "\n");
+	}
+}
 static int load_config(int which) {
 	char SubSection[32];
-	sprintf(SubSection, ":dynamic_%d", which);
+	if (which >= 6000) {
+		load_script_from_string(which);
+	} else {
+		ngen_source = 0;
+		sprintf(SubSection, ":dynamic_%d", which);
 
-	gen_source = cfg_get_list("list.generic", SubSection);
-	if (!gen_source) {
-		sprintf(SubSection, ":md5_gen(%d)", which);
 		gen_source = cfg_get_list("list.generic", SubSection);
+		if (!gen_source) {
+			sprintf(SubSection, ":md5_gen(%d)", which);
+			gen_source = cfg_get_list("list.generic", SubSection);
+		}
 	}
 	return !!gen_source;
 }
@@ -655,6 +694,14 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 		char *cp;
 		cp = convert_old_name_if_needed(&Line[5]);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].ciphertext), cp);
+		if (pSetup->pPreloads[nPreloadCnt].ciphertext && Thin_Convert &&
+			strncmp(pSetup->pPreloads[nPreloadCnt].ciphertext, "$dynamic_", 9)) {
+				static char Buf[1024];
+				pSetup->pPreloads[nPreloadCnt].ciphertext = Thin_Convert(Buf, pSetup->pPreloads[nPreloadCnt].ciphertext, 1);
+		}
+		if (!strncmp(pSetup->pPreloads[nPreloadCnt].ciphertext, "$dynamic_6xxx$", 14)) {
+			memmove(pSetup->pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName));
+		}
 		if (!pSetup->pPreloads[nPreloadCnt].ciphertext ||
 			strncmp(pSetup->pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName)))
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
@@ -991,16 +1038,31 @@ static int Count_Items(char *Key)
 	return Cnt;
 }
 
+struct fmt_main *dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS(const char *Script, int *type, struct fmt_main *pFmt, char *(*Convert)(char *Buf, char *ciphertext, int in_load))
+{
+	nPreloadCnt = 0;
+	nFuncCnt = 0;
+
+	cp_local_source = str_alloc_copy((char*)Script);
+	Thin_Convert = Convert;
+	pFmt = dynamic_Register_local_format();
+	Thin_Convert = NULL;
+	sscanf(pFmt->params.tests[0].ciphertext, "$dynamic_%d",type);
+	return pFmt;
+}
+
 int dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt)
 {
 	int ret, cnt;
 	struct cfg_line *gen_line;
+	char tmp = options.loader.field_sep_char;
 
 	nPreloadCnt = 0;
 	nFuncCnt = 0;
 
 	pSetup = mem_calloc_tiny(sizeof(DYNAMIC_Setup), MEM_ALIGN_NONE);
 
+	options.loader.field_sep_char = ':';
 	if (!dynamic_LOAD_PARSER_SIGNATURE(which))
 	{
 		if (john_main_process)
@@ -1067,6 +1129,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt)
 
 	ret = dynamic_SETUP(pSetup, pFmt);
 
+	options.loader.field_sep_char = tmp;
 	return ret;
 }
 

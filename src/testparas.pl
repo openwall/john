@@ -27,10 +27,8 @@ print "Initial build...\n";
 
 foreach $i (1..5)
 {
-	print `rm -f sse-intrinsics.o nt2_fmt_plug.o MD5_*o pbkdf2*fmt*o dynamic*o ../run/john` or die;
-	my $CPPFLAGS="-DSIMD_PARA_MD4=$i -DSIMD_PARA_MD5=$i -DSIMD_PARA_SHA1=$i -DSIMD_PARA_SHA256=$i -DSIMD_PARA_SHA512=$i";
-	print `make -sj4 CPPFLAGS="$CPPFLAGS" nt2_fmt_plug.o` or die;
-	$CPPFLAGS="-DSIMD_PARA_MD4=$i -DSIMD_PARA_MD5=$i -DSIMD_PARA_SHA1=$i -DSIMD_PARA_SHA256=$i -DSIMD_PARA_SHA512=$i -DOMP_SCALE=1";
+	print `rm -f sse-intrinsics.o pbkdf2*fmt*o dynamic*o ../run/john` or die;
+	my $CPPFLAGS="-DSIMD_PARA_MD4=$i -DSIMD_PARA_MD5=$i -DSIMD_PARA_SHA1=$i -DSIMD_PARA_SHA256=$i -DSIMD_PARA_SHA512=$i -DOMP_SCALE=1";
 	print `make -sj4 CPPFLAGS="$CPPFLAGS"` or die;
 	if ($test eq "first") {
 		system ("../run/john >JohnUsage.Scr 2>&1");
@@ -42,10 +40,10 @@ foreach $i (1..5)
 		$test="-test";
 		if ($ARGV[0] ne "") { $test="-test=$ARGV[0]"; }
 	}
-	print "\n== Speeds for ${i}x interleaving (OMP_SCALE 1 except NT): ==\n";
-	foreach $j (qw(nt md5crypt pbkdf2-hmac-sha1 pbkdf2-hmac-sha256 pbkdf2-hmac-sha512))
+	print "\n== Speeds for ${i}x interleaving (OMP_SCALE 1): ==\n";
+	foreach $j (qw(md4 md5 sha1 sha256 sha512))
 	{
-		$out = `../run/john $test -form:$j` or die;
+		$out = `../run/john $test -form:pbkdf2-hmac-$j` or die;
 		print $out;
 		$out =~ s/.*^Raw:\t(\d+K?).*/$1/ms;
 		$speed{$j."-omp"}{$i} = $out;
@@ -57,13 +55,13 @@ foreach $i (1..5)
 			$best{$j."-omp"}{"para"} = $i;
 		}
 	}
-	print `rm nt2_fmt_plug.o MD5_*o pbkdf2*fmt*o dynamic_fmt.o ../run/john` or die;
+	print `rm pbkdf2*fmt*o ../run/john` or die;
 	$CPPFLAGS="-DSIMD_PARA_MD4=$i -DSIMD_PARA_MD5=$i -DSIMD_PARA_SHA1=$i -DSIMD_PARA_SHA256=$i -DSIMD_PARA_SHA512=$i -U_OPENMP";
 	print `make -sj4 CPPFLAGS="$CPPFLAGS"` or die;
 	print "\n===== Speeds for ${i}x interleaving (no OMP): =====\n";
-	foreach $j (qw(nt md5crypt pbkdf2-hmac-sha1 pbkdf2-hmac-sha256 pbkdf2-hmac-sha512))
+	foreach $j (qw(md4 md5 sha1 sha256 sha512))
 	{
-		$out = `../run/john -test -form:$j` or die;
+		$out = `../run/john -test -form:pbkdf2-hmac-$j` or die;
 		print $out;
 		$out =~ s/.*^Raw:\t(\d+K?).*/$1/ms;
 		$speed{$j}{$i} = $out;
@@ -79,14 +77,16 @@ foreach $i (1..5)
 
 print "\n$compiler";
 print "$john_build";
-print "running john with \'$test\' for each test\n\n";
-printf "%-22s |  %6d  |  %6d  |  %6d  |  %6d  |  %6d  |\n", "hash\\para", 1, 2, 3, 4, 5;
-print "-----------------------|----------|----------|----------|----------|----------|\n";
-foreach $j (qw(nt md5crypt pbkdf2-hmac-sha1 pbkdf2-hmac-sha256 pbkdf2-hmac-sha512))
+if ($test ne "-test") {
+	print "running john with \'$test\' for each test\n\n";
+}
+printf "%-10s |  %6d  |  %6d  |  %6d  |  %6d  |  %6d  |\n", "hash\\para", 1, 2, 3, 4, 5;
+print "-----------|----------|----------|----------|----------|----------|\n";
+foreach $j (qw(md4 md5 sha1 sha256 sha512))
 {
 	foreach $k ("", "-omp")
 	{
-		printf "%-22s |", $j.$k;
+		printf "%-10s |", $j.$k;
 		foreach $i (1..5)
 		{
 			if ($best{$j.$k}{"para"} == $i)

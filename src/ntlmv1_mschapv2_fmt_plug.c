@@ -109,6 +109,7 @@ extern volatile int bench_running;
 #ifndef uchar
 #define uchar unsigned char
 #endif
+#undef MIN
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
 
 #define CHAP_FORMAT_LABEL       "MSCHAPv2"

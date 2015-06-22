@@ -62,6 +62,14 @@ int idle_requested(struct fmt_main *format)
 	if ((format->params.flags & FMT_OMP) && omp_get_max_threads() > 1)
 		return 0;
 #endif
+#ifdef HAVE_OPENCL
+	if (strstr(format->params.label, "-opencl"))
+		return 0;
+#endif
+#ifdef HAVE_CUDA
+	if (strstr(format->params.label, "-cuda"))
+		return 0;
+#endif
 
 	return 1;
 }

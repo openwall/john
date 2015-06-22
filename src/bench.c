@@ -17,17 +17,9 @@
 #define SIGALRM SIGFPE
 #endif
 
-#ifdef __ultrix__
-#define __POSIX
-#define _POSIX_SOURCE
-#endif
-
 #define NEED_OS_TIMER
 #include "os.h"
 
-#ifdef _SCO_C_DIALECT
-#include <limits.h>
-#endif
 #include <stdio.h>
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
@@ -458,20 +450,20 @@ void benchmark_cps(int64 *crypts, clock_t time, char *buffer)
 	cps /= time;
 
 	if (cps >= 1000000000000ULL)
-		sprintf(buffer, "%lluG", cps / 1000000000ULL);
+		sprintf(buffer, ""LLu"G", cps / 1000000000ULL);
 	if (cps >= 1000000000)
-		sprintf(buffer, "%lluM", cps / 1000000);
+		sprintf(buffer, ""LLu"M", cps / 1000000);
 	else
 	if (cps >= 1000000)
-		sprintf(buffer, "%lluK", cps / 1000);
+		sprintf(buffer, ""LLu"K", cps / 1000);
 	else
 	if (cps >= 100)
-		sprintf(buffer, "%llu", cps);
+		sprintf(buffer, ""LLu"", cps);
 	else {
 		cps = ((unsigned long long)crypts->hi << 32) + crypts->lo;
 		cps *= clk_tck * 10;
 		cps /= time;
-		sprintf(buffer, "%llu.%llu", cps / 10, cps % 10);
+		sprintf(buffer, ""LLu"."LLu"", cps / 10, cps % 10);
 	}
 }
 

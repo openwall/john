@@ -219,7 +219,7 @@ static struct opt_entry opt_list[] = {
 	{"mem-file-size", FLG_ZERO, 0,
 		FLG_WORDLIST_CHK, (FLG_DUPESUPP | FLG_SAVEMEM |
 		FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM),
-		"%zu", &options.max_wordfile_memory},
+		Zu, &options.max_wordfile_memory},
 	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, 0,
 		FLG_SAVEMEM | FLG_STDIN_CHK | FLG_PIPE_CHK},
 	{"fix-state-delay", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
@@ -329,7 +329,7 @@ JOHN_USAGE_REGEX \
 "--session=NAME            give a new session the NAME\n" \
 "--status[=NAME]           print status of a session [called NAME]\n" \
 "--make-charset=FILE       make a charset file. It will be overwritten\n" \
-"--show[=LEFT]             show cracked passwords [if =LEFT, then uncracked]\n" \
+"--show[=left]             show cracked passwords [if =left, then uncracked]\n" \
 "--test[=TIME]             run tests and benchmarks for TIME seconds each\n" \
 "--users=[-]LOGIN|UID[,..] [do not] load this (these) user(s) only\n" \
 "--groups=[-]GID[,..]      load users [not] of this (these) group(s) only\n" \

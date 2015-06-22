@@ -62,7 +62,9 @@ john_register_one(&fmt_ocl_rar5);
 #define KERNEL_NAME		"pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME	"pbkdf2_sha256_loop"
 
+#undef MIN
 #define MIN(a, b)		(((a) < (b)) ? (a) : (b))
+#undef MAX
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 #define HASH_LOOPS		(3*13*29) // factors 3, 13, 29, 29
 #define ITERATIONS		(32800 - 1)
@@ -176,16 +178,18 @@ static size_t get_default_workgroup()
 
 static void release_clobj(void)
 {
-	MEM_FREE(crypt_out);
+	if (crypt_out) {
+		MEM_FREE(crypt_out);
 
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
+		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 
-	MEM_FREE(host_pass);
-	MEM_FREE(host_salt);
-	MEM_FREE(host_crack);
+		MEM_FREE(host_pass);
+		MEM_FREE(host_salt);
+		MEM_FREE(host_crack);
+	}
 }
 
 static void init(struct fmt_main *_self)

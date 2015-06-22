@@ -10,14 +10,6 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#ifdef __ultrix__
-#define __POSIX
-#define _POSIX_SOURCE
-#endif
-
-#ifdef _SCO_C_DIALECT
-#include <limits.h>
-#endif
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -195,6 +187,9 @@ static char *status_get_cps(char *buffer, int64 *c, unsigned int c_ehi)
 		cps.lo = 0;
 	}
 
+	if (cps.hi > 232830 || (cps.hi == 232830 && cps.lo >= 2764472320U))
+		sprintf(buffer, "%uT", div64by32lo(&cps, 1000000000) / 1000);
+	else
 	if (cps.hi > 232 || (cps.hi == 232 && cps.lo >= 3567587328U))
 		sprintf(buffer, "%uG", div64by32lo(&cps, 1000000000));
 	else
@@ -352,7 +347,7 @@ static void status_print_cracking(double percent)
 		unsigned long long cands =
 			((unsigned long long) status.cands.hi << 32) +
 			status.cands.lo;
-		sprintf(sc, " %llup", cands);
+		sprintf(sc, " "LLu"p", cands);
 	}
 
 	eta_string = status_get_ETA(percent, time);

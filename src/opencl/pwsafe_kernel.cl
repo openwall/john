@@ -19,11 +19,11 @@
 
 #define uint8_t                         uchar
 #define uint32_t                        uint
-#define ror(x,n) rotate(x, (uint)n)
-#define Sigma0(x) ((ror(x,30))  ^ (ror(x,19)) ^ (ror(x,10)))
-#define Sigma1(x) ((ror(x,26))  ^ (ror(x,21)) ^ (ror(x,7)))
-#define sigma0(x) ((ror(x,25))  ^ (ror(x,14)) ^ (x>>3))
-#define sigma1(x) ((ror(x,15)) ^ (ror(x,13)) ^ (x>>10))
+#define ror(x,n) rotate(x, 32U-n)
+#define Sigma0(x) ((ror(x, 2))  ^ (ror(x, 13)) ^ (ror(x, 22)))
+#define Sigma1(x) ((ror(x, 6))  ^ (ror(x, 11)) ^ (ror(x, 25)))
+#define sigma0(x) ((ror(x, 7))  ^ (ror(x, 18)) ^ (x >> 3))
+#define sigma1(x) ((ror(x, 17)) ^ (ror(x, 19)) ^ (x >> 10))
 # define SWAP32(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 

@@ -64,7 +64,9 @@ john_register_one(&fmt_ocl_cryptsha1);
 #define STEP			0
 #define SEED			128
 
+#undef MIN
 #define MIN(a, b)		(((a) < (b)) ? (a) : (b))
+#undef MAX
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 #define ITERATIONS		(64000*2+2)
 
@@ -112,7 +114,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	               "Error setting kernel argument");
 
 #if 0
-	fprintf(stderr, "%s(%zu) kpc %zu\n", __FUNCTION__, gws, kpc);
+	fprintf(stderr, "%s("Zu") kpc "Zu"\n", __FUNCTION__, gws, kpc);
 #endif
 	key_buf_size = PLAINTEXT_LENGTH * kpc;
 	inbuffer = mem_calloc(1, key_buf_size);
@@ -162,13 +164,15 @@ static size_t get_default_workgroup()
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
-	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+	if (host_crack) {
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
+		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
+		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
-	MEM_FREE(inbuffer);
-	MEM_FREE(host_crack);
+		MEM_FREE(inbuffer);
+		MEM_FREE(host_crack);
+	}
 }
 
 static void init(struct fmt_main *_self)
@@ -274,7 +278,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	scalar_gws = global_work_size * v_width;
 
 #if 0
-	fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu\n", __FUNCTION__,
+	fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu"\n", __FUNCTION__,
 	        *pcount, local_work_size, global_work_size, scalar_gws);
 #endif
 	/// Run kernels, no iterations for fast enumeration
@@ -301,7 +305,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size;
 	scalar_gws = global_work_size * v_width;
 #if 0
-	fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu\n", __FUNCTION__,
+	fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu"\n", __FUNCTION__,
 	        count, local_work_size, global_work_size, scalar_gws);
 #endif
 	/// Copy data to gpu

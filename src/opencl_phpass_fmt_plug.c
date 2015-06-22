@@ -114,7 +114,9 @@ static cl_mem mem_in, mem_out, mem_setting;
 static size_t insize, outsize, settingsize;
 static struct fmt_main *self;
 
+#undef MIN
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
+#undef MAX
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
 #define STEP			0
@@ -183,12 +185,14 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+	if (outbuffer) {
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
+		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
-	MEM_FREE(inbuffer);
-	MEM_FREE(outbuffer);
+		MEM_FREE(inbuffer);
+		MEM_FREE(outbuffer);
+	}
 }
 
 static void done(void)
@@ -338,7 +342,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = local_work_size ? (((count + 7) / 8) + local_work_size - 1) / local_work_size * local_work_size : (count + 7 / 8);
 
 #ifdef _PHPASS_DEBUG
-	printf("crypt_all(%d) gws %zu\n", count, global_work_size);
+	printf("crypt_all(%d) gws "Zu"\n", count, global_work_size);
 #endif
 	// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,

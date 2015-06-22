@@ -46,7 +46,7 @@
 #if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
 #include "win32_memmap.h"
 #undef MEM_FREE
-#ifndef __CYGWIN__
+#if !defined(__CYGWIN__) && !defined(__MINGW64__)
 #include "mmap-windows.c"
 #endif /* __CYGWIN */
 #endif /* _MSC_VER ... */
@@ -372,7 +372,7 @@ static double get_progress(void)
 		}
 	}
 #if 0
-	fprintf(stderr, "rule %d/%d mask %llu pos %llu/%llu\n",
+	fprintf(stderr, "rule %d/%d mask "LLu" pos "LLu"/"LLu"\n",
 	        rule_number, rule_count, mask_mult, pos, size);
 #endif
 	return (100.0 * ((rule_number * size * mask_mult) + pos * mask_mult) /

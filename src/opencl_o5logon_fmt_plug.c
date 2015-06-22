@@ -93,7 +93,9 @@ static const char * warn[] = {
 };
 
 // Inline functions used by some code
+#undef MIN
 #define MIN(a, b)               (((a) > (b)) ? (b) : (a))
+#undef MAX
 #define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
 // Maximum UINT32s used by plaintext being SHA1'd
@@ -166,22 +168,23 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 }
 
 static void release_clobj(void){
-        HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_sha1_hashes, sha1_hashes, 0,NULL,NULL), "Error Unmapping sha1_hashes");
-        HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Unmapping saved_plain");
-        HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]),
-	               "Error releasing memory mappings");
+	if (cracked) {
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_sha1_hashes, sha1_hashes, 0,NULL,NULL), "Error Unmapping sha1_hashes");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Unmapping saved_plain");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-        HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys");
-        HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Error Releasing buffer_idx");
-        HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Error Releasing buffer_out");
-	HANDLE_CLERROR(clReleaseMemObject(salt_buffer), "Error Releasing salt_buffer");
-        HANDLE_CLERROR(clReleaseMemObject(pinned_saved_idx), "Error Releasing pinned_saved_idx");
-        HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys");
-        HANDLE_CLERROR(clReleaseMemObject(pinned_sha1_hashes), "Error Releasing pinned_sha1_hashes");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Error Releasing buffer_idx");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Error Releasing buffer_out");
+		HANDLE_CLERROR(clReleaseMemObject(salt_buffer), "Error Releasing salt_buffer");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_idx), "Error Releasing pinned_saved_idx");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_sha1_hashes), "Error Releasing pinned_sha1_hashes");
 
-        MEM_FREE(res_hashes);
-        MEM_FREE(cracked);
+		MEM_FREE(res_hashes);
+		MEM_FREE(cracked);
+	}
 }
 
 static void done(void)
@@ -318,7 +321,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
         gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
-        //fprintf(stderr, "%s(%d) lws %zu gws %zu\n", __FUNCTION__, count, local_work_size, global_work_size);
+        //fprintf(stderr, "%s(%d) lws "Zu" gws "Zu"\n", __FUNCTION__, count, local_work_size, global_work_size);
 
 	if (key_idx)
         HANDLE_CLERROR(

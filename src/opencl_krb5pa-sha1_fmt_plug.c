@@ -78,7 +78,9 @@ john_register_one(&fmt_opencl_krb5pa_sha1);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
+#undef MIN
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#undef MAX
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 /* This handles all sizes */
@@ -212,18 +214,20 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_in, inbuffer, 0, NULL, NULL), "Error Unmapping mem in");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_out, output, 0, NULL, NULL), "Error Unmapping mem in");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
+	if (crypt_out) {
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_in, inbuffer, 0, NULL, NULL), "Error Unmapping mem in");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_out, output, 0, NULL, NULL), "Error Unmapping mem in");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-	HANDLE_CLERROR(clReleaseMemObject(pinned_in), "Release pinned_in");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_out), "Release pinned_out");
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release pinned_in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem_out");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem_salt");
-	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_in), "Release pinned_in");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_out), "Release pinned_out");
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release pinned_in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem_out");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem_salt");
+		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 
-	MEM_FREE(crypt_out);
+		MEM_FREE(crypt_out);
+	}
 }
 
 static void done(void)
@@ -783,7 +787,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	scalar_gws = global_work_size * v_width;
 
 #if 0
-	fprintf(stderr, "%s(%d) lws %zu gws %zu sgws %zu kpc %d/%d\n", __FUNCTION__, *pcount, local_work_size, global_work_size, scalar_gws, me->params.min_keys_per_crypt, me->params.max_keys_per_crypt);
+	fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu" kpc %d/%d\n", __FUNCTION__, *pcount, local_work_size, global_work_size, scalar_gws, me->params.min_keys_per_crypt, me->params.max_keys_per_crypt);
 #endif
 
 	/// Copy data to gpu

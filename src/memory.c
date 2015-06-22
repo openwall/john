@@ -89,7 +89,7 @@ void *mem_alloc_func(size_t size
 	res = malloc(size);
 #endif
 	if (!res) {
-		fprintf(stderr, "mem_alloc(): %s trying to allocate %zd bytes\n", strerror(ENOMEM), size);
+		fprintf(stderr, "mem_alloc(): %s trying to allocate "Zd" bytes\n", strerror(ENOMEM), size);
 		error();
 	}
 
@@ -243,14 +243,14 @@ void *mem_alloc_align_func(size_t size, size_t align
 	ptr = (char*) MEMDBG_alloc_align(size, align, file, line);
 #elif HAVE_POSIX_MEMALIGN
 	if (posix_memalign(&ptr, align, size))
-		pexit("posix_memalign (%zu bytes)", size);
+		pexit("posix_memalign ("Zu" bytes)", size);
 #elif HAVE_ALIGNED_ALLOC
 	/* According to the Linux man page, "size should be a multiple of
 	   alignment", whatever they mean with "should"... This does not
 	   make any sense whatsoever but we round it up to comply. */
 	size = ((size + (align - 1)) / align) * align;
 	if (!(ptr = aligned_alloc(align, size)))
-		pexit("aligned_alloc (%zu bytes)", size);
+		pexit("aligned_alloc ("Zu" bytes)", size);
 #elif HAVE_MEMALIGN
 	/* Let's just pray this implementation can actually free it */
 #if defined(__sparc__) || defined(__sparc) || defined(sparc) || defined(__sparcv9)
@@ -258,13 +258,13 @@ void *mem_alloc_align_func(size_t size, size_t align
 #else
 	if (!(ptr = memalign(&ptr, align, size)))
 #endif
-		pexit("memalign (%zu bytes)", size);
+		pexit("memalign ("Zu" bytes)", size);
 #elif HAVE___MINGW_ALIGNED_MALLOC
 	if (!(ptr = __mingw_aligned_malloc(size, align)))
-		pexit("__mingw_aligned_malloc (%zu bytes)", size);
+		pexit("__mingw_aligned_malloc (%u bytes)", (unsigned)size);
 #elif HAVE__ALIGNED_MALLOC
 	if (!(ptr = _aligned_malloc(size, align)))
-		pexit("_aligned_malloc (%zu bytes)", size);
+		pexit("_aligned_malloc ("Zu" bytes)", size);
 
 #elif AC_BUILT
 #error No suitable alligned alloc found, please report to john-dev mailing list (state your OS details).
@@ -273,10 +273,10 @@ void *mem_alloc_align_func(size_t size, size_t align
 #elif _ISOC11_SOURCE
 	size = ((size + (align - 1)) / align) * align;
 	if (!(ptr = aligned_alloc(align, size)))
-		pexit("aligned_alloc (%zu bytes)", size);
+		pexit("aligned_alloc ("Zu" bytes)", size);
 #else
 	if (posix_memalign(&ptr, align, size))
-		pexit("posix_memalign (%zu bytes)", size);
+		pexit("posix_memalign ("Zu" bytes)", size);
 #endif
 	return ptr;
 }
