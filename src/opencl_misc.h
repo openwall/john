@@ -40,9 +40,9 @@ typedef long int64_t;
 #endif
 
 #if !gpu_nvidia(DEVICE_INFO) || nvidia_sm_5x(DEVICE_INFO)
-#define USE_BITSELECT
+#define USE_BITSELECT 1
 #elif gpu_nvidia(DEVICE_INFO)
-#define OLD_NVIDIA
+#define OLD_NVIDIA 1
 #endif
 
 #define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
@@ -55,17 +55,17 @@ typedef long int64_t;
 #else
 #define MAYBE_VECTOR_UINT	uint
 #define MAYBE_VECTOR_ULONG	ulong
-#define SCALAR
+#define SCALAR 1
 #endif
 
 /* Workaround for problem seen with 9600GT */
-#ifdef OLD_NVIDIA
+#if OLD_NVIDIA
 #define MAYBE_CONSTANT	__global const
 #else
 #define MAYBE_CONSTANT	__constant
 #endif
 
-#ifdef USE_BITSELECT
+#if USE_BITSELECT
 inline uint SWAP32(uint x)
 {
 	return bitselect(rotate(x, 24U), rotate(x, 8U), 0x00FF00FFU);
@@ -105,7 +105,7 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 
 #if gpu_nvidia(DEVICE_INFO)
 // Faster on nvidia, no difference on AMD
-#ifdef __ENDIAN_LITTLE__
+#if __ENDIAN_LITTLE__
 #define GET_UINT32BE(n, b, i)	(n) = SWAP32(((uint*)(b))[(i) >> 2])
 #define PUT_UINT32BE(n, b, i)	((uint*)(b))[(i) >> 2] = SWAP32(n)
 #else

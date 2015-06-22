@@ -14,17 +14,6 @@
 #include "opencl_misc.h"
 #include "opencl_sha2.h"
 
-#define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
-#define VECTOR(x, y)		CONCAT(x, y)
-
-/* host code may pass -DV_WIDTH=2 or some other width */
-#if defined(V_WIDTH) && V_WIDTH > 1
-#define MAYBE_VECTOR_ULONG	VECTOR(ulong, V_WIDTH)
-#else
-#define MAYBE_VECTOR_ULONG	ulong
-#define SCALAR
-#endif
-
 /* Office 2010/2013 */
 __constant ulong InputBlockKey = 0xfea7d2763b4b9e79UL;
 __constant ulong ValueBlockKey = 0xd7aa0f6d3061344eUL;
