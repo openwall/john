@@ -196,11 +196,6 @@ static struct fmt_tests dmg_tests[] = {
 	{NULL}
 };
 
-#undef MIN
-#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
-
 #define STEP			0
 #define SEED			256
 

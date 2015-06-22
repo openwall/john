@@ -12,6 +12,7 @@
 #ifndef OPENCL_SHA2_COMMON_H
 #define	OPENCL_SHA2_COMMON_H
 #include "stdint.h"
+#include "common.h"
 
 // Start documenting AMD OpenCL bugs.
 #if amd_vliw5(DEVICE_INFO)
@@ -35,12 +36,6 @@
     /// ----------------------
     ///#define AMD_STUPID_BUG_3
 #endif
-
-//Functions.
-#undef MAX
-#undef MIN
-#define MAX(x,y)                ((x) > (y) ? (x) : (y))
-#define MIN(x,y)                ((x) < (y) ? (x) : (y))
 
 /* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
 #define GETCHAR(buf, index) ((buf)[(index)])

@@ -77,11 +77,6 @@ static int omp_t = 1;
 #define PAD_SIZE                128
 #define PLAINTEXT_LENGTH        125
 
-#undef MIN
-#define MIN(a,b)                (((a)<(b))?(a):(b))
-#undef MAX
-#define MAX(a,b)                (((a)>(b))?(a):(b))
-
 static struct fmt_tests tests[] = {
 	{"$pbkdf2-hmac-sha512$1000.6b635263736c70346869307a304b5276.80cf814855f2299103a6084366e41d7e14f9894b05ed77fa19881d28f06cde18da9ab44972cd00496843371ce922c70e64f3862b036b59b581fe32fc4408fe49", "magnum"},
 	{"$pbkdf2-hmac-sha512$1000.55636d4344326e537236437677674a46.e7a60f0cf216c40b31cc6fc34d6a0093c978bbb49d6934dbca286b63fe28473bd3683917807173aef122e5a6bc5c7b4178ed6225f414c994df46013754a52177", "Ripper"},

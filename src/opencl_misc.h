@@ -21,17 +21,13 @@
 #define _OPENCL_MISC_H
 
 #include "opencl_device_info.h"
+#include "common.h"
 
 #if !gpu_nvidia(DEVICE_INFO) || nvidia_sm_5x(DEVICE_INFO)
 #define USE_BITSELECT
 #elif gpu_nvidia(DEVICE_INFO)
 #define OLD_NVIDIA
 #endif
-
-#undef MIN
-#define MIN(a, b)		(((a) < (b)) ? (a) : (b))
-#undef MAX
-#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 #define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
 #define VECTOR(x, y)		CONCAT(x, y)

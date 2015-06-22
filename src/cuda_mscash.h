@@ -9,6 +9,7 @@
 #define _MSCASH_H
 
 #include "stdint.h"
+#include "common.h"
 
 #define THREADS			256
 #define BLOCKS			42
@@ -22,10 +23,6 @@
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
-#undef MAX
-#define MAX(x,y)		((x) > (y) ? (x) : (y))
-#undef MIN
-#define MIN(x,y)		((x) < (y) ? (x) : (y))
 #define SHOW(x)			(printf("%s = %08x\n",#x,(x)))
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))

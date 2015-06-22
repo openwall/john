@@ -55,11 +55,6 @@ john_register_one(&fmt_opencl_office2010);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#undef MIN
-#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
-
 static struct fmt_tests tests[] = {
 	/* 2010-Default_myhovercraftisfullofeels_.docx */
 	{"$office$*2010*100000*128*16*213aefcafd9f9188e78c1936cbb05a44*d5fc7691292ab6daf7903b9a8f8c8441*46bfac7fb87cd43bd0ab54ebc21c120df5fab7e6f11375e79ee044e663641d5e", "myhovercraftisfullofeels"},

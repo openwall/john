@@ -110,9 +110,6 @@ extern void MD5_body(MD5_word x[15],MD5_word out[4]);
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 
-#undef MIN
-#define MIN(a, b)    (((a) < (b)) ? (a) : (b))
-
 static struct fmt_main fmt_Dynamic;
 static struct fmt_main *pFmts;
 static int nFmts;

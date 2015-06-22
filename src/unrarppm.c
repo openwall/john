@@ -27,11 +27,8 @@
 
 #include "unrar.h"
 #include "unrarppm.h"
+#include "common.h"
 #include "memdbg.h"
-
-#ifndef MAX
-#define MAX(a,b)	(((a) > (b)) ? (a) : (b))
-#endif
 
 #ifdef RAR_HIGH_DEBUG
 #define rar_dbgmsg printf

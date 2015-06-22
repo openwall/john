@@ -49,11 +49,6 @@ static struct fmt_main *self;
 
 #define OCL_CONFIG		"wpapsk"
 
-#undef MIN
-#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
-
 /* This handles all sizes */
 #define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + ((index) / v_width) * 64 * v_width)
 /* This is faster but can't handle size 3 */

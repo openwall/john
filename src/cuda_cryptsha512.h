@@ -15,10 +15,6 @@
 
 #define KEYS_PER_CRYPT BLOCKS*THREADS
 
-#undef MAX
-#define MAX(x,y) ((x) > (y) ? (x) : (y))
-#undef MIN
-#define MIN(x,y) ((x) < (y) ? (x) : (y))
 #define SALT_LEN_MAX 16
 #define ROUNDS_DEFAULT 5000
 #define ROUNDS_MIN 1	/* Drepper has it as 1000 */

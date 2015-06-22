@@ -31,9 +31,6 @@ john_register_one(&fmt_opencl_pwsafe);
 #include "common-opencl.h"
 #include "memory.h"
 
-#undef MIN
-#define MIN(a,b) (((a)<(b))?(a):(b))
-
 #define FORMAT_LABEL            "pwsafe-opencl"
 #define FORMAT_NAME             "Password Safe"
 #define ALGORITHM_NAME          "SHA256 OpenCL"

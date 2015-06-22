@@ -64,11 +64,6 @@ static unsigned int key_idx = 0;
 static unsigned int ref_ctr, ocl_ver;
 static struct fmt_main *self;
 
-#undef MIN
-#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
-
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 

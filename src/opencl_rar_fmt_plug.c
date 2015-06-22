@@ -134,11 +134,6 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 #define ITERATIONS		0x40000
 #define HASH_LOOPS		0x04000 // Fixed, do not change
 
-#undef MIN
-#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
-
 static int omp_t = 1;
 static unsigned char *saved_salt;
 static unsigned char *saved_key;

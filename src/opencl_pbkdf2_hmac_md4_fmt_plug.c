@@ -54,11 +54,6 @@ john_register_one(&fmt_ocl_pbkdf2_md4);
 #define FORMAT_TAG              "$pbkdf2-hmac-md4$"
 #define TAG_LEN                 (sizeof(FORMAT_TAG) - 1)
 
-#undef MIN
-#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
-
 /* This handles all widths */
 #define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + ((i) & 3) + ((index) / v_width) * PLAINTEXT_LENGTH * v_width)
 

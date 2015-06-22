@@ -82,11 +82,6 @@ static unsigned int v_width = 1;	/* Vector width of kernel */
 static int partial_output;
 static struct fmt_main *self;
 
-#undef MIN
-#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
-
 static int crypt_all(int *pcount, struct db_salt *_salt);
 
 //This file contains auto-tuning routine(s). Have to included after other definitions.

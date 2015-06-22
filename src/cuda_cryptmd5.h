@@ -10,11 +10,6 @@
 #include <stdbool.h>
 #include "common.h"
 
-#undef MIN
-#define MIN(a,b) ((a)<(b)?(a):(b))
-#undef MAX
-#define MAX(a,b) ((a)>(b)?(a):(b))
-
 #define BLOCKS			56*3
 #define THREADS 		128
 #define KEYS_PER_CRYPT		BLOCKS*THREADS
