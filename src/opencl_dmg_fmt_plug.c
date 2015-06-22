@@ -40,6 +40,7 @@ john_register_one(&fmt_opencl_dmg);
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
+#include "stdint.h"
 #include "options.h"
 #include "jumbo.h"
 #include "common-opencl.h"
@@ -62,10 +63,6 @@ john_register_one(&fmt_opencl_dmg);
 		((((unsigned long)(n) & 0xFF00)) << 8) | \
 		((((unsigned long)(n) & 0xFF0000)) >> 8) | \
 		((((unsigned long)(n) & 0xFF000000)) >> 24))
-
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned int
 
 #ifdef DMG_DEBUG
 	extern volatile int bench_running;

@@ -23,6 +23,7 @@ john_register_one(&fmt_opencl_NSLDAPS);
 #include "params.h"
 #include "formats.h"
 #include "common.h"
+#include "stdint.h"
 #include "config.h"
 #include "options.h"
 #include "sha.h"
@@ -48,10 +49,6 @@ john_register_one(&fmt_opencl_NSLDAPS);
 
 #define MIN_KEYS_PER_CRYPT              1
 #define MAX_KEYS_PER_CRYPT		1
-
-#ifndef uint32_t
-#define uint32_t unsigned int
-#endif
 
 typedef struct {
 	uint32_t h0, h1, h2, h3, h4;

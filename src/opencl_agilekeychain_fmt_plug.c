@@ -30,6 +30,7 @@ john_register_one(&fmt_opencl_agilekeychain);
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
+#include "stdint.h"
 #include "misc.h"
 #include "common-opencl.h"
 #include "options.h"
@@ -48,10 +49,6 @@ john_register_one(&fmt_opencl_agilekeychain);
 #define SALT_ALIGN		MEM_ALIGN_WORD
 #define SALTLEN			8
 #define CTLEN			1040
-
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		ARCH_WORD_32
 
 typedef struct {
 	uint32_t length;

@@ -20,6 +20,7 @@ john_register_one(&fmt_ocl_pbkdf2_md5);
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
+#include "stdint.h"
 #include "formats.h"
 #include "base64_convert.h"
 #include "stdint.h"
@@ -52,10 +53,6 @@ john_register_one(&fmt_ocl_pbkdf2_md5);
 
 #define FORMAT_TAG              "$pbkdf2-hmac-md5$"
 #define TAG_LEN                 (sizeof(FORMAT_TAG) - 1)
-
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned int
 
 #undef MIN
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))

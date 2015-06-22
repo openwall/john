@@ -7,8 +7,7 @@
 #ifndef _CUDA_PWSAFE_H
 #define _CUDA_PWSAFE_H
 #include "common.h"
-#define uint8_t                 unsigned char
-#define uint32_t                unsigned int
+#include "stdint.h"
 
 #define GPUS                    1
 #define THREADS                 128

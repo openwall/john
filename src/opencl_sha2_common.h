@@ -11,15 +11,7 @@
 
 #ifndef OPENCL_SHA2_COMMON_H
 #define	OPENCL_SHA2_COMMON_H
-
-// Type names definition.
-// NOTE: long is always 64-bit in OpenCL, and long long is 128 bit.
-#ifdef _OPENCL_COMPILER
-	#define uint8_t  unsigned char
-	#define uint16_t unsigned short
-	#define uint32_t unsigned int
-	#define uint64_t unsigned long
-#endif
+#include "stdint.h"
 
 // Start documenting AMD OpenCL bugs.
 #if amd_vliw5(DEVICE_INFO)

@@ -19,6 +19,7 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 #include "arch.h"
 #include "base64_convert.h"
 #include "common.h"
+#include "stdint.h"
 #include "formats.h"
 #include "options.h"
 #include "common-opencl.h"
@@ -32,9 +33,6 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 
 #define BINARY_ALIGN		4
 #define SALT_ALIGN		1
-
-#define uint8_t			unsigned char
-#define uint32_t		unsigned int
 
 #define PLAINTEXT_LENGTH	55
 #define SALT_LENGTH		50

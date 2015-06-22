@@ -24,6 +24,7 @@ john_register_one(&fmt_opencl_odf);
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
+#include "stdint.h"
 #include "misc.h"
 #include "options.h"
 #include "common.h"
@@ -42,11 +43,6 @@ john_register_one(&fmt_opencl_odf);
 #define SALT_SIZE		sizeof(odf_cpu_salt)
 #define BINARY_ALIGN		MEM_ALIGN_WORD
 #define SALT_ALIGN		MEM_ALIGN_WORD
-
-
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned int
 
 typedef struct {
 	uint32_t length;
