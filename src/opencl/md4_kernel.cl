@@ -212,6 +212,8 @@ inline void cmp(uint gid,
 		cmp_final(gid, iter, hash, offset_table, hash_table, return_hashes, output, bitmap_dupe);
 }
 
+#define USE_CONST_CACHE \
+	((CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4)) && (!IS_STATIC_GPU_MASK))
 /* some constants used below are passed with -D */
 //#define KEY_LENGTH (MD4_PLAINTEXT_LENGTH + 1)
 
@@ -221,8 +223,13 @@ inline void cmp(uint gid,
 __kernel void md4(__global uint *keys,
 		  __global uint *index,
 		  __global uint *int_key_loc,
-		  constant uint *int_keys
-#if gpu_amd(DEVICE_INFO)
+#if USE_CONST_CACHE
+		  constant
+#else
+		  __global
+#endif
+		  uint *int_keys
+#if USE_CONST_CACHE && gpu_amd(DEVICE_INFO)
 		__attribute__((max_constant_size (NUM_INT_KEYS * 4)))
 #endif
 		 , __global uint *bitmaps,
