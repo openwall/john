@@ -161,9 +161,7 @@ static void *get_salt(char *ciphertext)
 	ctcopy += 9;	/* skip over "$django$*" */
 	p = strtokm(ctcopy, "*");
 	cs.type = atoi(p);
-	p = strtokm(NULL, "*");
-	/* break up 'p' */
-	strtokm(p, "$");
+	strtokm(NULL, "$");
 	t = strtokm(NULL, "$");
 	cs.iterations = atoi(t);
 	t = strtokm(NULL, "$");
