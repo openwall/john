@@ -21,7 +21,23 @@
 #define _OPENCL_MISC_H
 
 #include "opencl_device_info.h"
-#include "common.h"
+
+/* Note: long is *always* 64-bit in OpenCL */
+typedef uchar uint8_t;
+typedef char int8_t;
+typedef ushort uint16_t;
+typedef short int16_t;
+typedef uint uint32_t;
+typedef int int32_t;
+typedef ulong uint64_t;
+typedef long int64_t;
+
+#ifndef MIN
+#define MIN(a,b) ((a)<(b)?(a):(b))
+#endif
+#ifndef MAX
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#endif
 
 #if !gpu_nvidia(DEVICE_INFO) || nvidia_sm_5x(DEVICE_INFO)
 #define USE_BITSELECT

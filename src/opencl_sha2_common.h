@@ -11,8 +11,15 @@
 
 #ifndef OPENCL_SHA2_COMMON_H
 #define	OPENCL_SHA2_COMMON_H
-#include "stdint.h"
-#include "common.h"
+
+// Type names definition.
+// NOTE: long is always 64-bit in OpenCL, and long long is 128 bit.
+#ifdef _OPENCL_COMPILER
+	#define uint8_t  unsigned char
+	#define uint16_t unsigned short
+	#define uint32_t unsigned int
+	#define uint64_t unsigned long
+#endif
 
 // Start documenting AMD OpenCL bugs.
 #if amd_vliw5(DEVICE_INFO)
@@ -36,6 +43,12 @@
     /// ----------------------
     ///#define AMD_STUPID_BUG_3
 #endif
+
+//Functions.
+#undef MAX
+#undef MIN
+#define MAX(x,y)                ((x) > (y) ? (x) : (y))
+#define MIN(x,y)                ((x) < (y) ? (x) : (y))
 
 /* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
 #define GETCHAR(buf, index) ((buf)[(index)])
