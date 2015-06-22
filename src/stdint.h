@@ -1,8 +1,11 @@
 #if !defined(_STDINT_H) && !defined(_STDINT_H_)
 
+#if !defined(_OPENCL_COMPILER)
 #include "arch.h"
-#if (AC_BUILT && defined (HAVE_STDINT_H)) ||	\
-	(!AC_BUILT && (defined(__STDC__) || defined(__STDC_VERSION__)))
+#endif
+
+#if !defined(_OPENCL_COMPILER) && ((AC_BUILT && defined (HAVE_STDINT_H)) ||	\
+	(!AC_BUILT && (defined(__STDC__) || defined(__STDC_VERSION__))))
 #include <stdint.h>
 #else
 #define _STDINT_H 1
@@ -23,7 +26,11 @@ typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
 typedef int int32_t;
+#ifdef _OPENCL_COMPILER
+typedef unsigned long uint64_t;
+#else
 typedef unsigned long long uint64_t;
+#endif
 
 #if defined(SIZEOF_SIZE_T) && !defined(SIZE_MAX)
 #if SIZEOF_SIZE_T == 8

@@ -26,6 +26,7 @@ john_register_one(&fmt_ocl_rar5);
 #include "misc.h"
 #include "arch.h"
 #include "common.h"
+#include "stdint.h"
 #include "formats.h"
 #include "options.h"
 #include "common-opencl.h"
@@ -51,9 +52,6 @@ john_register_one(&fmt_ocl_rar5);
 
 #define BINARY_ALIGN		4
 #define SALT_ALIGN		1
-
-#define uint8_t			unsigned char
-#define uint32_t		unsigned int
 
 #define PLAINTEXT_LENGTH	55
 #define BINARY_SIZE		SIZE_PSWCHECK

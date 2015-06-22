@@ -17,12 +17,10 @@ john_register_one(&fmt_opencl_phpass);
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
+#include "stdint.h"
 #include "misc.h"
 #include "options.h"
 #include "common-opencl.h"
-
-#define uint32_t                unsigned int
-#define uint8_t                 unsigned char
 
 #define FORMAT_LABEL            "phpass-opencl"
 #define FORMAT_NAME             ""

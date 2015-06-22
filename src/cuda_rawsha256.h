@@ -7,9 +7,7 @@
 #ifndef _SHA256_H
 #define _SHA256_H
 
-#ifndef uint32_t
-  #define uint32_t unsigned int
-#endif
+#include "stdint.h"
 
 #define rol(x,n) ((x << n) | (x >> (32-n)))
 #define ror(x,n) ((x >> n) | (x << (32-n)))

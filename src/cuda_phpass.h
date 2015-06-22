@@ -6,8 +6,7 @@
 #ifndef _PHPASS_H
 #define _PHPASS_H
 #include "common.h"
-#define uint8_t 			unsigned char
-#define uint32_t 			unsigned int
+#include "stdint.h"
 
 #define ROTATE_LEFT(x, s) 		((x << s) | (x >> (32 - s)))
 #define BLOCKS 				126

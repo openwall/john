@@ -7,9 +7,7 @@
 #ifndef _MSCASH2_H
 #define _MSCASH2_H
 
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned int
+#include "stdint.h"
 
 #define THREADS			128//set at least 256 on fermi
 #define BLOCKS			14

@@ -16,9 +16,6 @@
 
 #define KEYS_PER_CRYPT BLOCKS*THREADS
 
-#define uint32_t unsigned int
-#define uint8_t unsigned char
-
 #define rol(x,n) ((x << n) | (x >> (32-n)))
 #define ror(x,n) ((x >> n) | (x << (32-n)))
 #define Ch(x,y,z) ((x & y) ^ ( (~x) & z))

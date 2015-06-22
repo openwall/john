@@ -82,25 +82,10 @@
 #include "encoding_data.h"
 #include "misc.h"
 #include "config.h"
+#include "stdint.h"
 #include "md4.h"
 #include "john.h"
 #include "memdbg.h"
-
-#if !defined(uint16) && !defined(HAVE_UINT16_FROM_RPC_RPC_H)
-#if (SIZEOF_SHORT == 4)
-#define uint16 __ERROR___CANNOT_DETERMINE_TYPE_FOR_INT16;
-#else /* SIZEOF_SHORT != 4 */
-#define uint16 unsigned short
-#endif /* SIZEOF_SHORT != 4 */
-#endif
-
-#if !defined(int16) && !defined(HAVE_INT16_FROM_RPC_RPC_H)
-#if (SIZEOF_SHORT == 4)
-#define int16 __ERROR___CANNOT_DETERMINE_TYPE_FOR_INT16;
-#else /* SIZEOF_SHORT != 4 */
-#define int16 short
-#endif /* SIZEOF_SHORT != 4 */
-#endif
 
 UTF16 ucs2_upcase[0x10000];
 UTF16 ucs2_downcase[0x10000];

@@ -26,6 +26,7 @@ john_register_one(&fmt_opencl_rakp);
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
+#include "stdint.h"
 #include "formats.h"
 #include "sha.h"
 #include "johnswap.h"
@@ -68,10 +69,6 @@ john_register_one(&fmt_opencl_rakp);
 static const char * warn[] = {
         "pass xfer: ",  ", index xfer: ",  ", crypt: ",  ", result xfer: "
 };
-
-#ifndef uint32_t
-#define uint32_t unsigned int
-#endif
 
 static unsigned char salt_storage[SALT_STORAGE_SIZE];
 
