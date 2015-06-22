@@ -279,6 +279,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 	char build_opts[5000];
 	int i;
 	uint64_t shift128;
+	cl_ulong const_cache_size;
 
 	clReleaseKernel(crypt_kernel);
 
@@ -304,10 +305,13 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 	if (ocl_ver == 120 && platform_apple(platform_id) && gpu_nvidia(gpu_id))
 		ocl_ver = 110;
 
+	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
+
 	sprintf(build_opts, "-D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u"
 		" -D SHIFT64_OT_SZ=%u -D SHIFT64_HT_SZ=%u -D SHIFT128_OT_SZ=%u"
 		" -D SHIFT128_HT_SZ=%u -D NUM_LOADED_HASHES=%u"
-		" -D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d -D LOC_0=%d"
+		" -D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d"
+		" -D CONST_CACHE_SIZE=%llu -D LOC_0=%d"
 #if 1 < MASK_FMT_INT_PLHDR
 	" -D LOC_1=%d "
 #endif
@@ -320,7 +324,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 	, offset_table_size, hash_table_size, shift64_ot_sz, shift64_ht_sz,
 	shift128_ot_sz, shift128_ht_sz, num_ld_hashes,
 	mask_int_cand.num_int_cand, bitmap_para, is_static_gpu_mask,
-	static_gpu_locations[0]
+	(unsigned long long)const_cache_size, static_gpu_locations[0]
 #if 1 < MASK_FMT_INT_PLHDR
 	, static_gpu_locations[1]
 #endif
@@ -331,6 +335,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 	, static_gpu_locations[3]
 #endif
 	);
+	
 	opencl_build(gpu_id, build_opts, 0, NULL);
 	crypt_kernel = clCreateKernel(program[gpu_id], "sha1", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
