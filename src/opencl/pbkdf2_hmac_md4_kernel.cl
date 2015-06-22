@@ -140,7 +140,6 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 {
 	uint gid = get_global_id(0);
 	uint i, j;
-	MAYBE_VECTOR_UINT a, b, c, d;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT ipad[4];
 	MAYBE_VECTOR_UINT opad[4];
@@ -162,6 +161,8 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 		state_out[i] = state[gid].out[i];
 
 	for (j = 0; j < iterations; j++) {
+		MAYBE_VECTOR_UINT a, b, c, d;
+
 		for (i = 0; i < 4; i++)
 			output[i] = ipad[i];
 		W[4] = 0x80;

@@ -59,7 +59,6 @@ __attribute__((vec_type_hint(MAYBE_VECTOR_ULONG)))
 void HashLoop(__global MAYBE_VECTOR_ULONG *pwhash)
 {
 	uint i, j;
-	MAYBE_VECTOR_ULONG block[16];
 	MAYBE_VECTOR_ULONG output[8];
 	uint gid = get_global_id(0);
 #ifdef SCALAR
@@ -75,6 +74,8 @@ void HashLoop(__global MAYBE_VECTOR_ULONG *pwhash)
 	 * We avoid byte-swapping back and forth */
 	for (j = 0; j < HASH_LOOPS; j++)
 	{
+		MAYBE_VECTOR_ULONG block[16];
+
 		block[0] = ((ulong)SWAP32(base + j) << 32) | (output[0] >> 32);
 		for (i = 1; i < 8; i++)
 			block[i] = (output[i - 1] << 32) | (output[i] >> 32);

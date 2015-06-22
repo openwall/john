@@ -13,9 +13,6 @@
 #include "opencl_misc.h"
 #include "opencl_sha1.h"
 
-#define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
-#define VECTOR(x, y)		CONCAT(x, y)
-
 /* Office 2010/2013 */
 __constant uint InputBlockKey[] = { 0xfea7d276, 0x3b4b9e79 };
 __constant uint ValueBlockKey[] = { 0xd7aa0f6d, 0x3061344e };
@@ -71,9 +68,7 @@ __attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
 void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
 {
 	uint i, j;
-	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 	uint gid = get_global_id(0);
 #ifdef SCALAR
 	uint base = pwhash[gid * 6 + 5];
@@ -88,6 +83,9 @@ void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
 	 * We avoid byte-swapping back and forth */
 	for (j = 0; j < HASH_LOOPS; j++)
 	{
+		MAYBE_VECTOR_UINT W[16];
+		MAYBE_VECTOR_UINT A, B, C, D, E, temp;
+
 		W[0] = SWAP32(base + j);
 		for (i = 1; i < 6; i++)
 			W[i] = output[i - 1];

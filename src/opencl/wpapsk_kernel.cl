@@ -126,7 +126,6 @@ void wpapsk_loop(__global MAYBE_VECTOR_UINT *state)
 	uint gid = get_global_id(0);
 	uint gws = get_global_size(0);
 	uint i, j;
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp, a, b, c, d, e;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
@@ -141,6 +140,8 @@ void wpapsk_loop(__global MAYBE_VECTOR_UINT *state)
 	}
 
 	for (j = 0; j < HASH_LOOPS; j++) {
+		MAYBE_VECTOR_UINT A, B, C, D, E, temp, a, b, c, d, e;
+
 		for (i = 0; i < 5; i++)
 			output[i] = ipad[i];
 		W[5] = 0x80000000;

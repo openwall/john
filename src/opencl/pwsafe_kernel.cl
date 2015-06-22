@@ -5,11 +5,9 @@
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
 #include "opencl_device_info.h"
+#include "opencl_misc.h"
 
-#if gpu_amd(DEVICE_INFO)
-#define USE_BITSELECT
-#endif
-#ifdef USE_BITSELECT
+#if USE_BITSELECT
 #define Ch(x,y,z) (bitselect(z,y,x))
 #define Maj(x,y,z) (bitselect(y, x,(z^y)))
 #else
@@ -17,15 +15,12 @@
 #define Maj(x, y, z) ((y & z) | (x & (y | z)))
 #endif
 
-#define uint8_t                         uchar
-#define uint32_t                        uint
 #define ror(x,n) rotate(x, 32U-n)
+
 #define Sigma0(x) ((ror(x, 2))  ^ (ror(x, 13)) ^ (ror(x, 22)))
 #define Sigma1(x) ((ror(x, 6))  ^ (ror(x, 11)) ^ (ror(x, 25)))
 #define sigma0(x) ((ror(x, 7))  ^ (ror(x, 18)) ^ (x >> 3))
 #define sigma1(x) ((ror(x, 17)) ^ (ror(x, 19)) ^ (x >> 10))
-# define SWAP32(n) \
-    (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
 #define R1(a, b, c, d, e, f, g, h, ac) \
 		h += Sigma1(e) + Ch(e,f,g) + ac; \
