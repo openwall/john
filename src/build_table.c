@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include "misc.h"
 #include "memory.h"
+#include "memdbg.h"
 #include "mt.h"
 #include "hash_types.h"
 
