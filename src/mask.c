@@ -1874,13 +1874,6 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 void mask_done()
 {
-	MEM_FREE(template_key);
-	MEM_FREE(template_key_offsets);
-	if (!mask_skip_ranges)
-		MEM_FREE(mask_skip_ranges);
-	if (!mask_int_cand.int_cand)
-		MEM_FREE(mask_int_cand.int_cand);
-
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		if (parsed_mask.parse_ok &&
 		    options.force_maxlength > 0)
@@ -1898,6 +1891,15 @@ void mask_done()
 
 		rec_done(event_abort);
 	}
+
+	MEM_FREE(template_key);
+	MEM_FREE(template_key_offsets);
+	if (mask_skip_ranges)
+		MEM_FREE(mask_skip_ranges);
+	if (mask_int_cand.int_cand)
+		MEM_FREE(mask_int_cand.int_cand);
+	mask_skip_ranges = NULL;
+	mask_int_cand.int_cand = NULL;
 }
 
 int do_mask_crack(const char *key)

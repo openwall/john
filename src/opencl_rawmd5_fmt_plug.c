@@ -274,7 +274,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 	char build_opts[5000];
 	int i;
 	cl_ulong const_cache_size;
-	
+
 	clReleaseKernel(crypt_kernel);
 
 	shift64_ht_sz = (((1ULL << 63) % hash_table_size) * 2) % hash_table_size;
@@ -452,7 +452,7 @@ static char *get_key(int index)
 		out[i] = *key++;
 	out[i] = 0;
 
-	if (mask_int_cand.num_int_cand > 1) {
+	if (mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
 		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
 			if (is_static_gpu_mask)
 				out[static_gpu_locations[i]] =
@@ -464,7 +464,6 @@ static char *get_key(int index)
 
 	return out;
 }
-
 static void prepare_table(struct db_salt *salt) {
 	unsigned int *bin, i;
 	struct db_password *pw;
