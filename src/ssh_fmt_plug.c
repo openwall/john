@@ -339,6 +339,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
+	char *dummy_salt;
 	int res;
 	int length;
 	if (strncmp(ciphertext, "$ssh2$", 6))
@@ -364,9 +365,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = strtokm(NULL, "*"); // type (optional)
 
 	ssl_init();
-	if (!get_salt(ciphertext))
+	if (!(dummy_salt = (get_salt(ciphertext))))
 		goto err;
-
+	dyna_salt_remove(dummy_salt);
 	MEM_FREE(keeptr);
 	return 1;
 err:
