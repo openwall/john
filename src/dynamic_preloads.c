@@ -563,7 +563,7 @@ static struct fmt_tests _Preloads_12[] =
 //dynamic_13 --> md5(md5($p).md5($s))
 static DYNAMIC_primitive_funcp _Funcs_13[] =
 {
-	//MGF_KEYS_BASE16_X86_IN1
+	//MGF_KEYS_BASE16_IN1
 	//MGF_SALT_AS_HEX
 	//MGF_FLAT_BUFFERS   MUCH faster using flat buffers
 	DynamicFunc__set_input_len_32,
@@ -1319,10 +1319,10 @@ static DYNAMIC_primitive_funcp _Funcs_55[] =
 	//MGF_INPUT_28_BYTE
 	//MGF_FLAT_BUFFERS
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__SHA224_crypt_input1_overwrite_input2,
-	DynamicFunc__append_salt2,
-	DynamicFunc__SHA224_crypt_input2_to_output1_FINAL,
+	//MGF_KEYS_BASE16_IN1_SHA224
+	DynamicFunc__set_input_len_56,
+	DynamicFunc__append_salt,
+	DynamicFunc__SHA224_crypt_input1_to_output1_FINAL,
 	NULL
 };
 static struct fmt_tests _Preloads_55[] =
@@ -1340,10 +1340,10 @@ static DYNAMIC_primitive_funcp _Funcs_56[] =
 	//MGF_INPUT_28_BYTE
 	//MGF_FLAT_BUFFERS
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
+	//MGF_KEYS_BASE16_IN1_SHA224
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
-	DynamicFunc__SHA224_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__SHA224_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -1361,12 +1361,11 @@ static DYNAMIC_primitive_funcp _Funcs_57[] =
 {
 	//MGF_INPUT_28_BYTE
 	//MGF_FLAT_BUFFERS
-	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__clean_input2,
+	//MGF_SALTED_AS_HEX_SHA224
+	//MGF_KEYS_BASE16_IN1_SHA224
+	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
-	DynamicFunc__SHA224_crypt_input2_overwrite_input2,
-	DynamicFunc__SHA224_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__SHA224_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -1509,10 +1508,10 @@ static DYNAMIC_primitive_funcp _Funcs_65[] =
 	//MGF_INPUT_32_BYTE
 	//MGF_FLAT_BUFFERS
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__SHA256_crypt_input1_overwrite_input2,
-	DynamicFunc__append_salt2,
-	DynamicFunc__SHA256_crypt_input2_to_output1_FINAL,
+	//MGF_KEYS_BASE16_IN1_SHA256
+	DynamicFunc__set_input_len_64,
+	DynamicFunc__append_salt,
+	DynamicFunc__SHA256_crypt_input1_to_output1_FINAL,
 	NULL
 };
 static struct fmt_tests _Preloads_65[] =
@@ -1531,10 +1530,10 @@ static DYNAMIC_primitive_funcp _Funcs_66[] =
 	//MGF_INPUT_32_BYTE
 	//MGF_FLAT_BUFFERS
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
+	//MGF_KEYS_BASE16_IN1_SHA256
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
-	DynamicFunc__SHA256_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__SHA256_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -1552,12 +1551,11 @@ static DYNAMIC_primitive_funcp _Funcs_67[] =
 {
 	//MGF_INPUT_32_BYTE
 	//MGF_FLAT_BUFFERS
-	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__clean_input2,
+	//MGF_SALTED_AS_HEX_SHA256
+	//MGF_KEYS_BASE16_IN1_SHA256
+	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
-	DynamicFunc__SHA256_crypt_input2_overwrite_input2,
-	DynamicFunc__SHA256_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__SHA256_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -1699,10 +1697,10 @@ static DYNAMIC_primitive_funcp _Funcs_75[] =
 	//MGF_INPUT_48_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__SHA384_crypt_input1_overwrite_input2,
-	DynamicFunc__append_salt2,
-	DynamicFunc__SHA384_crypt_input2_to_output1_FINAL,
+	//MGF_KEYS_BASE16_IN1_SHA384
+	DynamicFunc__set_input_len_96,
+	DynamicFunc__append_salt,
+	DynamicFunc__SHA384_crypt_input1_to_output1_FINAL,
 	NULL
 };
 static struct fmt_tests _Preloads_75[] =
@@ -1720,10 +1718,10 @@ static DYNAMIC_primitive_funcp _Funcs_76[] =
 	//MGF_INPUT_48_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
+	//MGF_KEYS_BASE16_IN1_SHA384
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
-	DynamicFunc__SHA384_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__SHA384_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -1741,12 +1739,11 @@ static DYNAMIC_primitive_funcp _Funcs_77[] =
 {
 	//MGF_INPUT_48_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__clean_input2,
+	//MGF_SALTED_AS_HEX_SHA384
+	//MGF_KEYS_BASE16_IN1_SHA384
+	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
-	DynamicFunc__SHA384_crypt_input2_overwrite_input2,
-	DynamicFunc__SHA384_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__SHA384_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -1888,10 +1885,9 @@ static DYNAMIC_primitive_funcp _Funcs_85[] =
 	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__SHA512_crypt_input1_overwrite_input2,
-	DynamicFunc__append_salt2,
-	DynamicFunc__SHA512_crypt_input2_to_output1_FINAL,
+	//MGF_KEYS_BASE16_IN1_SHA512
+	DynamicFunc__append_salt,
+	DynamicFunc__SHA512_crypt_input1_to_output1_FINAL,
 	NULL
 };
 static struct fmt_tests _Preloads_85[] =
@@ -1909,10 +1905,10 @@ static DYNAMIC_primitive_funcp _Funcs_86[] =
 	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
+	//MGF_KEYS_BASE16_IN1_SHA512
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
-	DynamicFunc__SHA512_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__SHA512_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -1931,12 +1927,11 @@ static DYNAMIC_primitive_funcp _Funcs_87[] =
 {
 	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__clean_input2,
+	//MGF_SALTED_AS_HEX_SHA512
+	//MGF_KEYS_BASE16_IN1_SHA512
+	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
-	DynamicFunc__SHA512_crypt_input2_overwrite_input2,
-	DynamicFunc__SHA512_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__SHA512_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -2079,10 +2074,10 @@ static DYNAMIC_primitive_funcp _Funcs_95[] =
 	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__GOST_crypt_input1_overwrite_input2,
-	DynamicFunc__append_salt2,
-	DynamicFunc__GOST_crypt_input2_to_output1_FINAL,
+	//MGF_KEYS_BASE16_IN1_GOST
+	DynamicFunc__set_input_len_64,
+	DynamicFunc__append_salt,
+	DynamicFunc__GOST_crypt_input1_to_output1_FINAL,
 	NULL
 };
 static struct fmt_tests _Preloads_95[] =
@@ -2100,10 +2095,10 @@ static DYNAMIC_primitive_funcp _Funcs_96[] =
 	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
+	//MGF_KEYS_BASE16_IN1_GOST
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
-	DynamicFunc__GOST_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__GOST_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -2121,12 +2116,11 @@ static DYNAMIC_primitive_funcp _Funcs_97[] =
 {
 	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED
+	//MGF_SALTED_AS_HEX_GOST
 	//MGF_KEYS_IN_INPUT
-	DynamicFunc__clean_input2,
+	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
-	DynamicFunc__GOST_crypt_input2_overwrite_input2,
-	DynamicFunc__GOST_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__GOST_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -2269,10 +2263,10 @@ static DYNAMIC_primitive_funcp _Funcs_105[] =
 	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2,
-	DynamicFunc__append_salt2,
-	DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL,
+	//MGF_KEYS_BASE16_IN1_WHIRLPOOL
+	DynamicFunc__set_input_len_128,
+	DynamicFunc__append_salt,
+	DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL,
 	NULL
 };
 static struct fmt_tests _Preloads_105[] =
@@ -2290,10 +2284,10 @@ static DYNAMIC_primitive_funcp _Funcs_106[] =
 	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
+	//MGF_KEYS_BASE16_IN1_WHIRLPOOL
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
-	DynamicFunc__WHIRLPOOL_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -2311,12 +2305,11 @@ static DYNAMIC_primitive_funcp _Funcs_107[] =
 {
 	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__clean_input2,
+	//MGF_SALTED_AS_HEX_WHIRLPOOL
+	//MGF_KEYS_BASE16_IN1_WHIRLPOOL
+	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
-	DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2,
-	DynamicFunc__WHIRLPOOL_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -2459,10 +2452,10 @@ static DYNAMIC_primitive_funcp _Funcs_115[] =
 	//MGF_INPUT_24_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__Tiger_crypt_input1_overwrite_input2,
-	DynamicFunc__append_salt2,
-	DynamicFunc__Tiger_crypt_input2_to_output1_FINAL,
+	//MGF_KEYS_BASE16_IN1_TIGER
+	DynamicFunc__set_input_len_48,
+	DynamicFunc__append_salt,
+	DynamicFunc__Tiger_crypt_input1_to_output1_FINAL,
 	NULL
 };
 static struct fmt_tests _Preloads_115[] =
@@ -2480,10 +2473,10 @@ static DYNAMIC_primitive_funcp _Funcs_116[] =
 	//MGF_INPUT_24_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
+	//MGF_KEYS_BASE16_IN1_TIGER
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
-	DynamicFunc__Tiger_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__Tiger_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -2501,12 +2494,11 @@ static DYNAMIC_primitive_funcp _Funcs_117[] =
 {
 	//MGF_INPUT_24_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__clean_input2,
+	//MGF_SALTED_AS_HEX_TIGER
+	//MGF_KEYS_BASE16_IN1_TIGER
+	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
-	DynamicFunc__Tiger_crypt_input2_overwrite_input2,
-	DynamicFunc__Tiger_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__Tiger_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -2643,10 +2635,10 @@ static DYNAMIC_primitive_funcp _Funcs_125[] =
 {
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2,
-	DynamicFunc__append_salt2,
-	DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL,
+	//MGF_KEYS_BASE16_IN1_RIPEMD128
+	DynamicFunc__set_input_len_32,
+	DynamicFunc__append_salt,
+	DynamicFunc__RIPEMD128_crypt_input1_to_output1_FINAL,
 	NULL
 };
 static struct fmt_tests _Preloads_125[] =
@@ -2663,10 +2655,10 @@ static DYNAMIC_primitive_funcp _Funcs_126[] =
 {
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
+	//MGF_KEYS_BASE16_IN1_RIPEMD128
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
-	DynamicFunc__RIPEMD128_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -2683,12 +2675,11 @@ MTL({"$dynamic_126$88d20140423054e77686e7dd35a1a086$12345678901234567890", "1234
 static DYNAMIC_primitive_funcp _Funcs_127[] =
 {
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__clean_input2,
+	//MGF_SALTED_AS_HEX_RIPEMD128
+	//MGF_KEYS_BASE16_IN1_RIPEMD128
+	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
-	DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2,
-	DynamicFunc__RIPEMD128_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -2830,10 +2821,10 @@ static DYNAMIC_primitive_funcp _Funcs_135[] =
 	//MGF_INPUT_20_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2,
-	DynamicFunc__append_salt2,
-	DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL,
+	///MGF_KEYS_BASE16_IN1_RIPEMD160
+	DynamicFunc__set_input_len_40,
+	DynamicFunc__append_salt,
+	DynamicFunc__RIPEMD160_crypt_input1_to_output1_FINAL,
 	NULL
 };
 static struct fmt_tests _Preloads_135[] =
@@ -2851,10 +2842,10 @@ static DYNAMIC_primitive_funcp _Funcs_136[] =
 	//MGF_INPUT_20_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
+	//MGF_KEYS_BASE16_IN1_RIPEMD160
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
-	DynamicFunc__RIPEMD160_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -2872,12 +2863,11 @@ static DYNAMIC_primitive_funcp _Funcs_137[] =
 {
 	//MGF_INPUT_20_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__clean_input2,
+	//MGF_SALTED_AS_HEX_RIPEMD160
+	//MGF_KEYS_BASE16_IN1_RIPEMD160
+	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
-	DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2,
-	DynamicFunc__RIPEMD160_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -3016,10 +3006,10 @@ static DYNAMIC_primitive_funcp _Funcs_145[] =
 	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2,
-	DynamicFunc__append_salt2,
-	DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL,
+	//MGF_KEYS_BASE16_IN1_RIPEMD256
+	DynamicFunc__set_input_len_64,
+	DynamicFunc__append_salt,
+	DynamicFunc__RIPEMD256_crypt_input1_to_output1_FINAL,
 	NULL
 };
 static struct fmt_tests _Preloads_145[] =
@@ -3037,10 +3027,10 @@ static DYNAMIC_primitive_funcp _Funcs_146[] =
 	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
+	//MGF_KEYS_BASE16_IN1_RIPEMD256
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
-	DynamicFunc__RIPEMD256_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -3058,12 +3048,11 @@ static DYNAMIC_primitive_funcp _Funcs_147[] =
 {
 	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__clean_input2,
+	//MGF_SALTED_AS_HEX_RIPEMD256
+	//MGF_KEYS_BASE16_IN1_RIPEMD256
+	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
-	DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2,
-	DynamicFunc__RIPEMD256_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -3208,10 +3197,10 @@ static DYNAMIC_primitive_funcp _Funcs_155[] =
 	//MGF_INPUT_40_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2,
-	DynamicFunc__append_salt2,
-	DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL,
+	//MGF_KEYS_BASE16_IN1_RIPEMD256
+	DynamicFunc__set_input_len_80,
+	DynamicFunc__append_salt,
+	DynamicFunc__RIPEMD320_crypt_input1_to_output1_FINAL,
 	NULL
 };
 static struct fmt_tests _Preloads_155[] =
@@ -3229,10 +3218,10 @@ static DYNAMIC_primitive_funcp _Funcs_156[] =
 	//MGF_INPUT_40_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
+	//MGF_KEYS_BASE16_IN1_RIPEMD256
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
-	DynamicFunc__RIPEMD320_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -3250,12 +3239,11 @@ static DYNAMIC_primitive_funcp _Funcs_157[] =
 {
 	//MGF_INPUT_40_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED
-	//MGF_KEYS_IN_INPUT
-	DynamicFunc__clean_input2,
+	//MGF_SALTED_AS_HEX_RIPEMD320
+	//MGF_KEYS_BASE16_IN1_RIPEMD256
+	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
-	DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2,
-	DynamicFunc__RIPEMD320_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input,
 	DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL,
 	NULL
 };
@@ -3370,9 +3358,9 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_52: sha224($p.$s)",               _Funcs_52,_Preloads_52,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_28_BYTE, -64, 110, 110 },
 	{ "dynamic_53: sha224(sha224($p))",          _Funcs_53,_Preloads_53,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE },
 	{ "dynamic_54: sha224(sha224_raw($p))",      _Funcs_54,_Preloads_54,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE },
-	{ "dynamic_55: sha224(sha224($p).$s)",       _Funcs_55,_Preloads_55,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE, -64, 110, 110 },
-	{ "dynamic_56: sha224($s.sha224($p))",       _Funcs_56,_Preloads_56,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE, -64, 110, 110 },
-	{ "dynamic_57: sha224(sha224($s).sha224($p))",_Funcs_57,_Preloads_57,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE, -64, 110, 110 },
+	{ "dynamic_55: sha224(sha224($p).$s)",       _Funcs_55,_Preloads_55,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_SHA224|MGF_INPUT_28_BYTE, -64, 110, 110 },
+	{ "dynamic_56: sha224($s.sha224($p))",       _Funcs_56,_Preloads_56,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_SHA224|MGF_INPUT_28_BYTE, -64, 110, 110 },
+	{ "dynamic_57: sha224(sha224($s).sha224($p))",_Funcs_57,_Preloads_57,_ConstDefault, MGF_SALT_AS_HEX_SHA224|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_SHA224|MGF_INPUT_28_BYTE, -64, 110, 110 },
 	{ "dynamic_58: sha224(sha224($p).sha224($p))",_Funcs_58,_Preloads_58,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_28_BYTE },
 	// Try to group sha256 here (from dyna-60 to dyna-69)
 	{ "dynamic_60: sha256($p)",                  _Funcs_60,_Preloads_60,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE|MGF_POOR_OMP },
@@ -3380,9 +3368,9 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_62: sha256($p.$s)",               _Funcs_62,_Preloads_62,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_32_BYTE, -64, 110, 110 },
 	{ "dynamic_63: sha256(sha256($p))",          _Funcs_63,_Preloads_63,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
 	{ "dynamic_64: sha256(sha256_raw($p))",      _Funcs_64,_Preloads_64,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
-	{ "dynamic_65: sha256(sha256($p).$s)",       _Funcs_65,_Preloads_65,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -64, 110, 110 },
-	{ "dynamic_66: sha256($s.sha256($p))",       _Funcs_66,_Preloads_66,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -64, 110, 110 },
-	{ "dynamic_67: sha256(sha256($s).sha256($p))",_Funcs_67,_Preloads_67,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -64, 110, 110 },
+	{ "dynamic_65: sha256(sha256($p).$s)",       _Funcs_65,_Preloads_65,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_SHA256|MGF_INPUT_32_BYTE, -64, 110, 110 },
+	{ "dynamic_66: sha256($s.sha256($p))",       _Funcs_66,_Preloads_66,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_SHA256|MGF_INPUT_32_BYTE, -64, 110, 110 },
+	{ "dynamic_67: sha256(sha256($s).sha256($p))",_Funcs_67,_Preloads_67,_ConstDefault, MGF_SALT_AS_HEX_SHA256|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_SHA256|MGF_INPUT_32_BYTE, -64, 110, 110 },
 	{ "dynamic_68: sha256(sha256($p).sha256($p))",_Funcs_68,_Preloads_68,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
 	// Try to group sha384 here (from dyna-70 to dyna-79)
 	{ "dynamic_70: sha384($p)",                  _Funcs_70,_Preloads_70,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_48_BYTE },
@@ -3390,9 +3378,9 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_72: sha384($p.$s)",               _Funcs_72,_Preloads_72,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_48_BYTE, -64, 110, 110 },
 	{ "dynamic_73: sha384(sha384($p))",          _Funcs_73,_Preloads_73,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_48_BYTE },
 	{ "dynamic_74: sha384(sha384_raw($p))",      _Funcs_74,_Preloads_74,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_48_BYTE },
-	{ "dynamic_75: sha384(sha384($p).$s)",       _Funcs_75,_Preloads_75,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_48_BYTE, -64, 110, 110 },
-	{ "dynamic_76: sha384($s.sha384($p))",       _Funcs_76,_Preloads_76,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_48_BYTE, -64, 110, 110 },
-	{ "dynamic_77: sha384(sha384($s).sha384($p))",_Funcs_77,_Preloads_77,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_48_BYTE, -64, 110, 110 },
+	{ "dynamic_75: sha384(sha384($p).$s)",       _Funcs_75,_Preloads_75,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_SHA384|MGF_INPUT_48_BYTE, -64, 110, 110 },
+	{ "dynamic_76: sha384($s.sha384($p))",       _Funcs_76,_Preloads_76,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_SHA384|MGF_INPUT_48_BYTE, -64, 110, 110 },
+	{ "dynamic_77: sha384(sha384($s).sha384($p))",_Funcs_77,_Preloads_77,_ConstDefault, MGF_SALT_AS_HEX_SHA384|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_SHA384|MGF_INPUT_48_BYTE, -64, 110, 110 },
 	{ "dynamic_78: sha384(sha384($p).sha384($p))",_Funcs_78,_Preloads_78,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_48_BYTE },
 	// Try to group sha512 here (from dyna-80 to dyna-89)
 	{ "dynamic_80: sha512($p)",                  _Funcs_80,_Preloads_80,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE },
@@ -3400,10 +3388,10 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_82: sha512($p.$s)",               _Funcs_82,_Preloads_82,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_64_BYTE, -64, 110, 110 },
 	{ "dynamic_83: sha512(sha512($p))",          _Funcs_83,_Preloads_83,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE },
 	{ "dynamic_84: sha512(sha512_raw($p))",      _Funcs_84,_Preloads_84,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE },
-	{ "dynamic_85: sha512(sha512($p).$s)",       _Funcs_85,_Preloads_85,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -64, 110, 110 },
-	{ "dynamic_86: sha512($s.sha512($p))",       _Funcs_86,_Preloads_86,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -64, 110, 110 },
+	{ "dynamic_85: sha512(sha512($p).$s)",       _Funcs_85,_Preloads_85,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_SHA512|MGF_INPUT_64_BYTE, -64, 110, 110 },
+	{ "dynamic_86: sha512($s.sha512($p))",       _Funcs_86,_Preloads_86,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_SHA512|MGF_INPUT_64_BYTE, -64, 110, 110 },
 #ifndef SIMD_COEF_64
-	{ "dynamic_87: sha512(sha512($s).sha512($p))",_Funcs_87,_Preloads_87,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -64, 110, 110 },
+	{ "dynamic_87: sha512(sha512($s).sha512($p))",_Funcs_87,_Preloads_87,_ConstDefault, MGF_SALT_AS_HEX_SHA512|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_SHA512|MGF_INPUT_64_BYTE, -64, 110, 110 },
 	{ "dynamic_88: sha512(sha512($p).sha512($p))",_Funcs_88,_Preloads_88,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE },
 #endif
 	// Try to group GOST here (from dyna-90 to dyna-99)
@@ -3412,9 +3400,9 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_92: GOST($p.$s)",                 _Funcs_92,_Preloads_92,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE, -64, 110, 110 },
 	{ "dynamic_93: GOST(GOST($p))",              _Funcs_93,_Preloads_93,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
 	{ "dynamic_94: GOST(GOST_raw($p))",          _Funcs_94,_Preloads_94,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
-	{ "dynamic_95: GOST(GOST($p).$s)",           _Funcs_95,_Preloads_95,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -64, 110, 110 },
-	{ "dynamic_96: GOST($s.GOST($p))",           _Funcs_96,_Preloads_96,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -64, 110, 110 },
-	{ "dynamic_97: GOST(GOST($s).GOST($p))",     _Funcs_97,_Preloads_97,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -64, 110, 110 },
+	{ "dynamic_95: GOST(GOST($p).$s)",           _Funcs_95,_Preloads_95,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_GOST|MGF_INPUT_32_BYTE, -64, 110, 110 },
+	{ "dynamic_96: GOST($s.GOST($p))",           _Funcs_96,_Preloads_96,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_GOST|MGF_INPUT_32_BYTE, -64, 110, 110 },
+	{ "dynamic_97: GOST(GOST($s).GOST($p))",     _Funcs_97,_Preloads_97,_ConstDefault, MGF_SALT_AS_HEX_GOST|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_GOST|MGF_INPUT_32_BYTE, -64, 110, 110 },
 	{ "dynamic_98: GOST(GOST($p).GOST($p))",     _Funcs_98,_Preloads_98,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
 	// Try to group WHIRLPOOL here (from dyna-100 to dyna-109)
 	{ "dynamic_100: WHIRLPOOL($p)",              _Funcs_100,_Preloads_100,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE },
@@ -3422,9 +3410,9 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_102: WHIRLPOOL($p.$s)",           _Funcs_102,_Preloads_102,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_64_BYTE, -64, 110, 110 },
 	{ "dynamic_103: WHIRLPOOL(WHIRLPOOL($p))",   _Funcs_103,_Preloads_103,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE },
 	{ "dynamic_104: WHIRLPOOL(WHIRLPOOL_raw($p))",_Funcs_104,_Preloads_104,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE },
-	{ "dynamic_105: WHIRLPOOL(WHIRLPOOL($p).$s)",_Funcs_105,_Preloads_105,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -64, 110, 110 },
-	{ "dynamic_106: WHIRLPOOL($s.WHIRLPOOL($p))",_Funcs_106,_Preloads_106,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -64, 110, 110 },
-	{ "dynamic_107: WHIRLPOOL(WHIRLPOOL($s).WHIRLPOOL($p))",_Funcs_107,_Preloads_107,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE, -64, 110, 110 },
+	{ "dynamic_105: WHIRLPOOL(WHIRLPOOL($p).$s)",_Funcs_105,_Preloads_105,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_WHIRLPOOL|MGF_INPUT_64_BYTE, -64, 110, 110 },
+	{ "dynamic_106: WHIRLPOOL($s.WHIRLPOOL($p))",_Funcs_106,_Preloads_106,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_WHIRLPOOL|MGF_INPUT_64_BYTE, -64, 110, 110 },
+	{ "dynamic_107: WHIRLPOOL(WHIRLPOOL($s).WHIRLPOOL($p))",_Funcs_107,_Preloads_107,_ConstDefault, MGF_SALT_AS_HEX_WHIRLPOOL|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_WHIRLPOOL|MGF_INPUT_64_BYTE, -64, 110, 110 },
 	{ "dynamic_108: WHIRLPOOL(WHIRLPOOL($p).WHIRLPOOL($p))",_Funcs_108,_Preloads_108,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_64_BYTE },
 	// Try to group Tiger here (from dyna-110 to dyna-119)
 	{ "dynamic_110: Tiger($p)",                  _Funcs_110,_Preloads_110,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE },
@@ -3432,9 +3420,9 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_112: Tiger($p.$s)",               _Funcs_112,_Preloads_112,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_24_BYTE, -64, 110, 110 },
 	{ "dynamic_113: Tiger(Tiger($p))",           _Funcs_113,_Preloads_113,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE },
 	{ "dynamic_114: Tiger(Tiger_raw($p))",       _Funcs_114,_Preloads_114,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE },
-	{ "dynamic_115: Tiger(Tiger($p).$s)",        _Funcs_115,_Preloads_115,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE, -64, 110, 110 },
-	{ "dynamic_116: Tiger($s.Tiger($p))",        _Funcs_116,_Preloads_116,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE, -64, 110, 110 },
-	{ "dynamic_117: Tiger(Tiger($s).Tiger($p))", _Funcs_117,_Preloads_117,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE, -64, 110, 110 },
+	{ "dynamic_115: Tiger(Tiger($p).$s)",        _Funcs_115,_Preloads_115,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_TIGER|MGF_INPUT_24_BYTE, -64, 110, 110 },
+	{ "dynamic_116: Tiger($s.Tiger($p))",        _Funcs_116,_Preloads_116,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_TIGER|MGF_INPUT_24_BYTE, -64, 110, 110 },
+	{ "dynamic_117: Tiger(Tiger($s).Tiger($p))", _Funcs_117,_Preloads_117,_ConstDefault, MGF_SALT_AS_HEX_TIGER|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_TIGER|MGF_INPUT_24_BYTE, -64, 110, 110 },
 	{ "dynamic_118: Tiger(Tiger($p).Tiger($p))", _Funcs_118,_Preloads_118,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE },
 	// Try to group RIPEMD128 here (from dyna-120 to dyna-129)
 	{ "dynamic_120: RIPEMD128($p)",                  _Funcs_120,_Preloads_120,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT },
@@ -3442,9 +3430,9 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_122: RIPEMD128($p.$s)",               _Funcs_122,_Preloads_122,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_NO_FLAG, -64, 110, 110 },
 	{ "dynamic_123: RIPEMD128(RIPEMD128($p))",           _Funcs_123,_Preloads_123,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_NO_FLAG },
 	{ "dynamic_124: RIPEMD128(RIPEMD128_raw($p))",       _Funcs_124,_Preloads_124,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_NO_FLAG },
-	{ "dynamic_125: RIPEMD128(RIPEMD128($p).$s)",        _Funcs_125,_Preloads_125,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_NO_FLAG, -64, 110, 110 },
-	{ "dynamic_126: RIPEMD128($s.RIPEMD128($p))",        _Funcs_126,_Preloads_126,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_NO_FLAG, -64, 110, 110 },
-	{ "dynamic_127: RIPEMD128(RIPEMD128($s).RIPEMD128($p))", _Funcs_127,_Preloads_127,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_NO_FLAG, -64, 110, 110 },
+	{ "dynamic_125: RIPEMD128(RIPEMD128($p).$s)",        _Funcs_125,_Preloads_125,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_RIPEMD128|MGF_NO_FLAG, -64, 110, 110 },
+	{ "dynamic_126: RIPEMD128($s.RIPEMD128($p))",        _Funcs_126,_Preloads_126,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_RIPEMD128|MGF_NO_FLAG, -64, 110, 110 },
+	{ "dynamic_127: RIPEMD128(RIPEMD128($s).RIPEMD128($p))", _Funcs_127,_Preloads_127,_ConstDefault, MGF_SALT_AS_HEX_RIPEMD128|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_RIPEMD128|MGF_NO_FLAG, -64, 110, 110 },
 	{ "dynamic_128: RIPEMD128(RIPEMD128($p).RIPEMD128($p))", _Funcs_128,_Preloads_128,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_NO_FLAG },
 	// Try to group RIPEMD160 here (from dyna-130 to dyna-139)
 	{ "dynamic_130: RIPEMD160($p)",                  _Funcs_130,_Preloads_130,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_20_BYTE },
@@ -3452,9 +3440,9 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_132: RIPEMD160($p.$s)",               _Funcs_132,_Preloads_132,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_20_BYTE, -64, 110, 110 },
 	{ "dynamic_133: RIPEMD160(RIPEMD160($p))",           _Funcs_133,_Preloads_133,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_20_BYTE },
 	{ "dynamic_134: RIPEMD160(RIPEMD160_raw($p))",       _Funcs_134,_Preloads_134,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_20_BYTE },
-	{ "dynamic_135: RIPEMD160(RIPEMD160($p).$s)",        _Funcs_135,_Preloads_135,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_20_BYTE, -64, 110, 110 },
-	{ "dynamic_136: RIPEMD160($s.RIPEMD160($p))",        _Funcs_136,_Preloads_136,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_20_BYTE, -64, 110, 110 },
-	{ "dynamic_137: RIPEMD160(RIPEMD160($s).RIPEMD160($p))", _Funcs_137,_Preloads_137,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_20_BYTE, -64, 110, 110 },
+	{ "dynamic_135: RIPEMD160(RIPEMD160($p).$s)",        _Funcs_135,_Preloads_135,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_RIPEMD160|MGF_INPUT_20_BYTE, -64, 110, 110 },
+	{ "dynamic_136: RIPEMD160($s.RIPEMD160($p))",        _Funcs_136,_Preloads_136,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_RIPEMD160|MGF_INPUT_20_BYTE, -64, 110, 110 },
+	{ "dynamic_137: RIPEMD160(RIPEMD160($s).RIPEMD160($p))", _Funcs_137,_Preloads_137,_ConstDefault, MGF_SALT_AS_HEX_RIPEMD160|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_RIPEMD160|MGF_INPUT_20_BYTE, -64, 110, 110 },
 	{ "dynamic_138: RIPEMD160(RIPEMD160($p).RIPEMD160($p))", _Funcs_138,_Preloads_138,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_20_BYTE },
 	// Try to group RIPEMD256 here (from dyna-140 to dyna-149)
 	{ "dynamic_140: RIPEMD256($p)",                  _Funcs_140,_Preloads_140,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
@@ -3462,9 +3450,9 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_142: RIPEMD256($p.$s)",               _Funcs_142,_Preloads_142,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE, -64, 110, 110 },
 	{ "dynamic_143: RIPEMD256(RIPEMD256($p))",           _Funcs_143,_Preloads_143,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
 	{ "dynamic_144: RIPEMD256(RIPEMD256_raw($p))",       _Funcs_144,_Preloads_144,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
-	{ "dynamic_145: RIPEMD256(RIPEMD256($p).$s)",        _Funcs_145,_Preloads_145,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -64, 110, 110 },
-	{ "dynamic_146: RIPEMD256($s.RIPEMD256($p))",        _Funcs_146,_Preloads_146,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -64, 110, 110 },
-	{ "dynamic_147: RIPEMD256(RIPEMD256($s).RIPEMD256($p))", _Funcs_147,_Preloads_147,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE, -64, 110, 110 },
+	{ "dynamic_145: RIPEMD256(RIPEMD256($p).$s)",        _Funcs_145,_Preloads_145,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_RIPEMD256|MGF_INPUT_32_BYTE, -64, 110, 110 },
+	{ "dynamic_146: RIPEMD256($s.RIPEMD256($p))",        _Funcs_146,_Preloads_146,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_RIPEMD256|MGF_INPUT_32_BYTE, -64, 110, 110 },
+	{ "dynamic_147: RIPEMD256(RIPEMD256($s).RIPEMD256($p))", _Funcs_147,_Preloads_147,_ConstDefault, MGF_SALT_AS_HEX_RIPEMD256|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_RIPEMD256|MGF_INPUT_32_BYTE, -64, 110, 110 },
 	{ "dynamic_148: RIPEMD256(RIPEMD256($p).RIPEMD256($p))", _Funcs_148,_Preloads_148,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
 	// Try to group RIPEMD320 here (from dyna-150 to dyna-159)
 	{ "dynamic_150: RIPEMD320($p)",                  _Funcs_150,_Preloads_150,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_40_BYTE },
@@ -3472,9 +3460,9 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_152: RIPEMD320($p.$s)",               _Funcs_152,_Preloads_152,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_40_BYTE, -64, 110, 110 },
 	{ "dynamic_153: RIPEMD320(RIPEMD320($p))",           _Funcs_153,_Preloads_153,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_40_BYTE },
 	{ "dynamic_154: RIPEMD320(RIPEMD320_raw($p))",       _Funcs_154,_Preloads_154,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_40_BYTE },
-	{ "dynamic_155: RIPEMD320(RIPEMD320($p).$s)",        _Funcs_155,_Preloads_155,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_40_BYTE, -64, 110, 110 },
-	{ "dynamic_156: RIPEMD320($s.RIPEMD320($p))",        _Funcs_156,_Preloads_156,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_40_BYTE, -64, 110, 110 },
-	{ "dynamic_157: RIPEMD320(RIPEMD320($s).RIPEMD320($p))", _Funcs_157,_Preloads_157,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_40_BYTE, -64, 110, 110 },
+	{ "dynamic_155: RIPEMD320(RIPEMD320($p).$s)",        _Funcs_155,_Preloads_155,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_RIPEMD320|MGF_INPUT_40_BYTE, -64, 110, 110 },
+	{ "dynamic_156: RIPEMD320($s.RIPEMD320($p))",        _Funcs_156,_Preloads_156,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_RIPEMD320|MGF_INPUT_40_BYTE, -64, 110, 110 },
+	{ "dynamic_157: RIPEMD320(RIPEMD320($s).RIPEMD320($p))", _Funcs_157,_Preloads_157,_ConstDefault, MGF_SALT_AS_HEX_RIPEMD320|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_RIPEMD320|MGF_INPUT_40_BYTE, -64, 110, 110 },
 	{ "dynamic_158: RIPEMD320(RIPEMD320($p).RIPEMD320($p))", _Funcs_158,_Preloads_158,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_40_BYTE },
 };
 
