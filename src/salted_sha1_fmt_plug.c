@@ -181,16 +181,20 @@ static void * get_binary(char *ciphertext) {
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	int len;
+	int len, len2;
+	char *p;
 
 	if (strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH))
 		return 0;
 	ciphertext += NSLDAP_MAGIC_LENGTH;
 
-	len = strspn(ciphertext, BASE64_ALPHABET);
-	if (len < (BINARY_SIZE+1+2)/3*4-2)
+	len = strlen(ciphertext);
+	len2 = (len + 3) / 4 * 3 - BINARY_SIZE;
+	p = &ciphertext[len];
+	while (*--p == '=')
+		len2--;
+	if (len2 < 1 || (len2+3)/4*3 > MAX_SALT_LEN)
 		return 0;
-
 	len = strspn(ciphertext, BASE64_ALPHABET "=");
 	if (len != strlen(ciphertext))
 		return 0;
