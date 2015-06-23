@@ -683,9 +683,14 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 		bitmap_size_bits = 4096 * 4096;
 		get_power_of_two(mult);
 		bitmap_size_bits *= mult;
-		HANDLE_CLERROR(clGetMemObjectInfo(buffer_bitmaps, CL_MEM_SIZE,
-			sizeof(size_t), &buf_sz, NULL),
-			"failed to query buffer_bitmaps.");
+		buf_sz = get_max_mem_alloc_size(gpu_id);
+		if (buf_sz & (buf_sz - 1)) {
+			get_power_of_two(buf_sz);
+			buf_sz >>= 1;
+		}
+		if (buf_sz >= 536870912)
+			buf_sz = 536870912;
+		assert(!(buf_sz & (buf_sz - 1)));
 		if ((bitmap_size_bits >> 3) > buf_sz)
 			bitmap_size_bits = buf_sz << 3;
 		assert(!(bitmap_size_bits & (bitmap_size_bits - 1)));
