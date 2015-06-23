@@ -330,7 +330,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 	, static_gpu_locations[3]
 #endif
 	);
-	
+
 	opencl_build(gpu_id, build_opts, 0, NULL);
 	crypt_kernel = clCreateKernel(program[gpu_id], "sha1", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
@@ -470,7 +470,7 @@ static char *get_key(int index)
 		out[i] = *key++;
 	out[i] = 0;
 
-	if (mask_int_cand.num_int_cand > 1) {
+	if (mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
 		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
 			if (is_static_gpu_mask)
 				out[static_gpu_locations[i]] =
