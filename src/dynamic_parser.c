@@ -98,7 +98,6 @@ typedef struct Dynamic_Str_Flag_t
 	uint64_t flag_bit;
 } Dynamic_Str_Flag_t;
 
-
 static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__clean_input",  DynamicFunc__clean_input },
 	{ "DynamicFunc__clean_input_kwik", DynamicFunc__clean_input_kwik },
@@ -125,6 +124,7 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix", DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix },
 	{ "DynamicFunc__append_from_last_output_to_input2_as_base16", DynamicFunc__append_from_last_output_to_input2_as_base16 },
 	{ "DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix", DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix },
+	{ "DynamicFunc__overwrite_from_last_output2_to_input2_as_base16_no_size_fix", DynamicFunc__overwrite_from_last_output2_to_input2_as_base16_no_size_fix },
 	{ "DynamicFunc__append_from_last_output2_to_input1_as_base16", DynamicFunc__append_from_last_output2_to_input1_as_base16 },
 	{ "DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix", DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix },
 	{ "DynamicFunc__append_salt2", DynamicFunc__append_salt2 },
