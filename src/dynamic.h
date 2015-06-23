@@ -50,6 +50,25 @@ typedef struct DYNAMIC_Constants_t
 	char *Const;
 } DYNAMIC_Constants;
 
+// NOTE, these defines do NOT go into dynamic_parser.c.  They are not 'used'
+// as flags. They are defines making the type enumerations easier to read.
+// These come into play for things like MGF_SALT_AS_HEX_* and
+// MGF_KEYS_BASE16_IN1_* types
+#define MGF__MD5	     0x00
+#define MGF__MD4	     0x01
+#define MGF__SHA1        0x02
+#define MGF__SHA224      0x03
+#define MGF__SHA256      0x04
+#define MGF__SHA384      0x05
+#define MGF__SHA512      0x06
+#define MGF__GOST        0x07
+#define MGF__WHIRLPOOL   0x08
+#define MGF__TIGER       0x09
+#define MGF__RIPEMD128   0x0A
+#define MGF__RIPEMD160   0x0B
+#define MGF__RIPEMD256   0x0C
+#define MGF__RIPEMD320   0x0D
+
 // These are the 'flags' that specify certain characterstics of the format.
 // Things like salted, not sse2, and special 'loading' of the keys.
 #define MGF_NO_FLAG                  0x00000000
@@ -62,7 +81,24 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_USERNAME_LOCASE         (0x00000040|MGF_USERNAME)
 // MGF_INPBASE64 uses e_b64_cryptBS from base64_convert.h
 #define MGF_INPBASE64		         0x00000080
-#define MGF_SALT_AS_HEX		        (0x00000100|MGF_SALTED)
+#define MGF_SALT_AS_HEX		        (0x00000100|MGF_SALTED)   // deprecated (use the _MD5 version)
+// for salt_as_hex for other formats, we do this:  (flag>>56)
+// Then 00 is md5, 01 is md4, 02 is SHA1, etc
+// NOTE, all top 8 bits of the flags are reserved, and should NOT be used for flags.
+#define MGF_SALT_AS_HEX_MD5	        (0x0000000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_MD4	        (0x0100000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_SHA1        (0x0200000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_SHA224      (0x0300000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_SHA256      (0x0400000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_SHA384      (0x0500000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_SHA512      (0x0600000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_GOST        (0x0700000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_WHIRLPOOL   (0x0800000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_TIGER       (0x0900000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_RIPEMD128   (0x0A00000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_RIPEMD160   (0x0B00000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_RIPEMD256   (0x0C00000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_RIPEMD320   (0x0D00000000000100ULL|MGF_SALTED)
 #define MGF_INPBASE64_4x6			 0x00000200
 #define MGF_StartInX86Mode           0x00000400
 #define MGF_SALT_AS_HEX_TO_SALT2    (0x00000800|MGF_SALTED)
@@ -97,10 +133,46 @@ typedef struct DYNAMIC_Constants_t
 // If high bit of flags is set, then at least ONE of these flags has been used
 #define MGF_KEYS_INPUT                   0x00000001
 #define MGF_KEYS_CRYPT_IN2               0x00000002
-#define MGF_KEYS_BASE16_IN1              0x00000004
-#define MGF_KEYS_BASE16_IN1_Offset32     0x00000008
-#define MGF_KEYS_BASE16_X86_IN1          0x00000010
-#define MGF_KEYS_BASE16_X86_IN1_Offset32 0x00000020
+// for salt_as_hex for other formats, we do this:  (flag>>56)
+// Then 00 is md5, 01 is md4, 02 is SHA1, etc
+// NOTE, all top 8 bits of the flags are reserved, and should NOT be used for flags.
+#define MGF_KEYS_BASE16_IN1              0x00000004   // deprecated (use the _MD5 version)
+#define MGF_KEYS_BASE16_IN1_MD5          0x0000000000000004ULL
+#define MGF_KEYS_BASE16_IN1_MD4	         0x0100000000000004ULL
+#define MGF_KEYS_BASE16_IN1_SHA1         0x0200000000000004ULL
+#define MGF_KEYS_BASE16_IN1_SHA224       0x0300000000000004ULL
+#define MGF_KEYS_BASE16_IN1_SHA256       0x0400000000000004ULL
+#define MGF_KEYS_BASE16_IN1_SHA384       0x0500000000000004ULL
+#define MGF_KEYS_BASE16_IN1_SHA512       0x0600000000000004ULL
+#define MGF_KEYS_BASE16_IN1_GOST         0x0700000000000004ULL
+#define MGF_KEYS_BASE16_IN1_WHIRLPOOL    0x0800000000000004ULL
+#define MGF_KEYS_BASE16_IN1_TIGER        0x0900000000000004ULL
+#define MGF_KEYS_BASE16_IN1_RIPEMD128    0x0A00000000000004ULL
+#define MGF_KEYS_BASE16_IN1_RIPEMD160    0x0B00000000000004ULL
+#define MGF_KEYS_BASE16_IN1_RIPEMD256    0x0C00000000000004ULL
+#define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
+
+#define MGF_KEYS_BASE16_IN1_Offset32         0x00000008   // deprecated (use the _MD5 version)
+#define MGF_KEYS_BASE16_IN1_Offset_MD5       0x0000000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_MD4       0x0100000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_SHA1      0x0200000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_SHA224    0x0300000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_SHA256    0x0400000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_SHA384    0x0500000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_SHA512    0x0600000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_GOST      0x0700000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_WHIRLPOOL 0x0800000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_TIGER     0x0900000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD128 0x0A00000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD160 0x0B00000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD256 0x0C00000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD320 0x0D00000000000008ULL
+
+//#define MGF_KEYS_BASE16_X86_IN1          0x00000010
+//  Open                                   0x00000010
+//#define MGF_KEYS_BASE16_X86_IN1_Offset32 0x00000020
+//  Open                                   0x00000020
+
 #define MGF_PHPassSetup                  0x00000040
 #define MGF_POSetup                      0x00000080
 #define MGF_POOR_OMP                     0x00000100
@@ -113,8 +185,8 @@ typedef struct DYNAMIC_Constants_t
 // the unicode_b4_crypt does a unicode convert, prior to crypt_in2, base16-in1, etc.  It can NOT be used with KEYS_INPUT.
 #define MGF_KEYS_UNICODE_B4_CRYPT        0x00001000
 #define MGF_SOURCE                       0x00002000
-#define MGF_KEYS_BASE16_IN1_SHA1         0x00004000
-#define MGF_KEYS_BASE16_IN1_SHA256       0x00008000
+// open                                  0x00004000
+// open                                  0x00008000
 // open                                  0x00010000
 // open                                  0x00020000
 // open                                  0x00040000
@@ -141,8 +213,8 @@ typedef struct DYNAMIC_Setup_t
 	DYNAMIC_primitive_funcp *pFuncs;
 	struct fmt_tests *pPreloads;
 	DYNAMIC_Constants *pConstants;
-	unsigned flags;
-	unsigned startFlags;
+	uint64_t flags;
+	uint64_t startFlags;
 	int SaltLen;			// these are SSE lengths
 	int MaxInputLen;		// SSE length.  If 0, then set to 55-abs(SaltLen)
 	int MaxInputLenX86;		// if zero, then use PW len set to 110-abs(SaltLen) (or 110-abs(SaltLenX86), if it is not 0)
@@ -209,6 +281,34 @@ extern void DynamicFunc__set_input_len_32(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input_len_40(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input_len_64(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input_len_100(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_20(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_32(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_40(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_64(DYNA_OMP_PARAMS);
+
+extern void DynamicFunc__set_input_len_24(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_28(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_48(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_56(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_80(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_96(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_112(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_128(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_160(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_192(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_256(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_24(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_28(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_48(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_56(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_80(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_96(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_112(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_128(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_160(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_192(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_256(DYNA_OMP_PARAMS);
 
 extern void DynamicFunc__clean_input2(DYNA_OMP_PARAMS);
 extern void DynamicFunc__clean_input2_kwik(DYNA_OMP_PARAMS);
@@ -223,11 +323,6 @@ extern void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_
 extern void DynamicFunc__append_from_last_output2_to_input1_as_base16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix(DYNA_OMP_PARAMS);
 extern void DynamicFunc__append_salt2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__set_input2_len_16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__set_input2_len_20(DYNA_OMP_PARAMS);
-extern void DynamicFunc__set_input2_len_32(DYNA_OMP_PARAMS);
-extern void DynamicFunc__set_input2_len_40(DYNA_OMP_PARAMS);
-extern void DynamicFunc__set_input2_len_64(DYNA_OMP_PARAMS);
 
 extern void DynamicFunc__append_from_last_output2_as_raw(DYNA_OMP_PARAMS);
 extern void DynamicFunc__append2_from_last_output2_as_raw(DYNA_OMP_PARAMS);
