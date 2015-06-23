@@ -272,9 +272,10 @@ static struct fmt_tests _Preloads_1[] =
 static DYNAMIC_primitive_funcp _Funcs_2[] =
 {
 	//MGF_KEYS_INPUT
+	//MGF_SET_INP2LEN32
 	DynamicFunc__crypt_md5,
 	DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix,
-	DynamicFunc__set_input2_len_32,
+//	DynamicFunc__set_input2_len_32,
 
 	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
@@ -296,13 +297,14 @@ static struct fmt_tests _Preloads_2[] =
 static DYNAMIC_primitive_funcp _Funcs_3[] =
 {
 	//MGF_KEYS_INPUT
+	//MGF_SET_INP2LEN32
 	DynamicFunc__crypt_md5,
 	DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix,
-	DynamicFunc__set_input2_len_32,
+//	DynamicFunc__set_input2_len_32,
 
 	DynamicFunc__crypt2_md5,
 	DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix,
-	DynamicFunc__set_input2_len_32,
+//	DynamicFunc__set_input2_len_32,
 
 	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
@@ -545,7 +547,7 @@ static DYNAMIC_primitive_funcp _Funcs_12[] =
 	//MGF_SALTED
 	//MGF_SALT_AS_HEX
 	//MGF_FLAT_BUFFERS  MUCH faster using flat buffers
-	//MGF_KEYS_BASE16_IN1_Offset32
+	//MGF_KEYS_BASE16_IN1_Offset_MD5
 	DynamicFunc__overwrite_salt_to_input1_no_size_fix,
 	DynamicFunc__set_input_len_64,
 	DynamicFunc__MD5_crypt_input1_to_output1_FINAL,
@@ -1023,7 +1025,7 @@ static DYNAMIC_primitive_funcp _Funcs_34[] =
 	//DynamicFunc__clean_input2_kwik,
 	//DynamicFunc__append_from_last_output_to_input2_as_base16,
 	DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix,
-	DynamicFunc__set_input2_len_32,
+//	DynamicFunc__set_input2_len_32,
 	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
 };
@@ -3308,7 +3310,7 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_10: md5($s.md5($s.$p))",         _Funcs_10,_Preloads_10,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -23 },
 	{ "dynamic_11: md5($s.md5($p.$s))",         _Funcs_11,_Preloads_11,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -23 },
 
-	{ "dynamic_12: md5(md5($s).md5($p)) (IPB)", _Funcs_12,_Preloads_12,_ConstDefault, MGF_SALTED|MGF_SALT_AS_HEX|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_Offset32, -32, 110, 110 },
+	{ "dynamic_12: md5(md5($s).md5($p)) (IPB)", _Funcs_12,_Preloads_12,_ConstDefault, MGF_SALTED|MGF_SALT_AS_HEX|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_Offset_MD5, -32, 110, 110 },
 	{ "dynamic_13: md5(md5($p).md5($s))",       _Funcs_13,_Preloads_13,_ConstDefault, MGF_SALTED|MGF_SALT_AS_HEX|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1, -32, 110, 110 },
 #if defined (SIMD_COEF_32)
 	{ "dynamic_14: md5($s.md5($p).$s)",         _Funcs_14,_Preloads_14,_ConstDefault, MGF_SALTED,MGF_KEYS_CRYPT_IN2, -11, 55, 80, -24 },

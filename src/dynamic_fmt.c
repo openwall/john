@@ -6076,6 +6076,47 @@ void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix(DYN
 	}
 }
 
+void DynamicFunc__overwrite_from_last_output2_to_input2_as_base16_no_size_fix(DYNA_OMP_PARAMS)
+{
+	unsigned int i, til,j;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse==1) {
+		unsigned int idx;
+		for (; i < til; ++i)
+		{
+			idx = ( ((unsigned int)i)/SIMD_COEF_32);
+			__SSE_overwrite_output_base16_to_input(input_buf2[idx].w, crypt_key2[idx].c, i&(SIMD_COEF_32-1));
+		}
+		return;
+	}
+#endif
+	j = i;
+	for (; j < til; ++j)
+	{
+		unsigned char *cpo, *cpi;
+		/* MD5_word *w; */
+#if MD5_X2
+		if (j&1)
+			{cpo = input_buf2_X86[j>>MD5_X2].x2.B2; cpi = crypt_key2_X86[j>>MD5_X2].x2.B2; /* w=input_buf2_X86[j>>MD5_X2].x2.w2; */}
+		else
+#endif
+			{cpo = input_buf2_X86[j>>MD5_X2].x1.B; cpi = crypt_key2_X86[j>>MD5_X2].x1.B; /* w=input_buf2_X86[j>>MD5_X2].x1.w; */ }
+		for (i = 0; i < 16; ++i, ++cpi)
+		{
+			*cpo++ = dynamic_itoa16[*cpi>>4];
+			*cpo++ = dynamic_itoa16[*cpi&0xF];
+		}
+		//MD5_swap(w,w,4);
+	}
+}
+
 /**************************************************************
  * DYNAMIC primitive helper function
  * overwrites start of input2 from the output2 data using base-16
