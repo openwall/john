@@ -42,9 +42,13 @@ john_register_one(&fmt_vnc);
 static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
+#ifdef __MIC__
+#define OMP_SCALE               32
+#else
 #define OMP_SCALE               1024 // tuned on core i7
-#endif
-#endif
+#endif // __MIC__
+#endif // OMP_SCALE
+#endif // _OPENMP
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"VNC"

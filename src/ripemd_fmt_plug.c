@@ -39,9 +39,13 @@ static int omp_t = 1;
 // 4k  - 14828k  10871k
 // 8k  - 14639k  10794k
 #ifndef OMP_SCALE
+#ifdef __MIC__
+#define OMP_SCALE  64
+#else
 #define OMP_SCALE  2048
-#endif
-#endif
+#endif // __MIC__
+#endif // OMP_SCALE
+#endif // _OPENMP
 #include "memdbg.h"
 
 #define FORMAT_TAG		"$ripemd$"
