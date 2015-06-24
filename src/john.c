@@ -92,6 +92,7 @@ static int john_omp_threads_new;
 #include "external.h"
 #include "batch.h"
 #include "dynamic.h"
+#include "dynamic_compiler.h"
 #include "fake_salts.h"
 #include "listconf.h"
 #include "crc32.h"
@@ -271,8 +272,16 @@ static void john_register_one(struct fmt_main *format)
 			if ( (format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) return;
 		}
 #endif
-		else if (strcasecmp(options.format, format->params.label))
-			return;
+		else if (strcasecmp(options.format, format->params.label)) {
+			if (!strncasecmp(options.format, "@dynamic=", 9) && !strcasecmp(format->params.label, "@dynamic=")) {
+				DC_HANDLE H;
+				if (!dynamic_compile(options.format, &H))
+					dynamic_assign_script_to_format(H);
+				else
+					return;
+			} else
+				return;
+		}
 	}
 
 	fmt_register(format);

@@ -8195,11 +8195,12 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	return 1;
 }
 
-struct fmt_main *dynamic_Register_local_format() {
+struct fmt_main *dynamic_Register_local_format(int *type) {
 	int num=nLocalFmts++;
 	if (!pLocalFmts)
 		pLocalFmts = mem_calloc_tiny(1000*sizeof(struct fmt_main), 16);
 	LoadOneFormat(num+6000, &(pLocalFmts[num]));
+	*type = num+6000;
 	return &(pLocalFmts[num]);
 }
 

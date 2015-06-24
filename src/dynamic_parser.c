@@ -1107,9 +1107,8 @@ struct fmt_main *dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS(const char *Script, int
 
 	cp_local_source = str_alloc_copy((char*)Script);
 	Thin_Convert = Convert;
-	pFmt = dynamic_Register_local_format();
+	pFmt = dynamic_Register_local_format(type);
 	Thin_Convert = NULL;
-	sscanf(pFmt->params.tests[0].ciphertext, "$dynamic_%d",type);
 	return pFmt;
 }
 

@@ -236,7 +236,7 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 int text_in_dynamic_format_already(struct fmt_main *pFmt, char *ciphertext);
 
 int dynamic_Register_formats(struct fmt_main **ptr);
-struct fmt_main * dynamic_Register_local_format();
+struct fmt_main * dynamic_Register_local_format(int *);
 
 int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt);
 char *dynamic_PRELOAD_SIGNATURE(int cnt);
