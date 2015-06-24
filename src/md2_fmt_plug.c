@@ -37,9 +37,13 @@ static int omp_t = 1;
 // 8k  - 680k
 // 16k - 650k
 #ifndef OMP_SCALE
+#ifdef __MIC__
+#define OMP_SCALE  32
+#else
 #define OMP_SCALE  (1024)
-#endif
-#endif
+#endif // __MIC__
+#endif // OMP_SCALE
+#endif // _OPENMP
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"MD2"
