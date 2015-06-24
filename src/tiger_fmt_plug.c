@@ -37,9 +37,13 @@ static int omp_t = 1;
 // 8k  - 14935k
 // 16k - 14931k
 #ifndef OMP_SCALE
+#ifdef __MIC__
+#define OMP_SCALE  128
+#else
 #define OMP_SCALE  (1024*2)
-#endif
-#endif
+#endif // __MIC__
+#endif // OMP_SCALE
+#endif // _OPENMP
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"Tiger"

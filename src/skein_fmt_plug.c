@@ -38,9 +38,13 @@ static int omp_t = 1;
 // 2k  - 8804k  8610k
 // 4k  - 8688k  8648k
 #ifndef OMP_SCALE
+#ifdef __MIC__
+#define OMP_SCALE  64
+#else
 #define OMP_SCALE  1024
-#endif
-#endif
+#endif // __MIC__
+#endif // OMP_SCALE
+#endif // _OPENMP
 #include "memdbg.h"
 
 // Skein-256 or Skein-512 are the real format labels.

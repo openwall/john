@@ -7680,9 +7680,6 @@ CFLAGS="$CFLAGS_BACKUP"
   m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
   mic) ARCH_LINK=mic.h endian=little
 
-# missing flags when configuring for MIC
-LIBS="-lssl -lcrypto $LIBS"
-
 # specific optimization flags for MIC
 CPU_BEST_FLAGS="-no-opt-prefetch $CPU_BEST_FLAGS"
 

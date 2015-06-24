@@ -57,9 +57,13 @@ john_register_one(&fmt_truecrypt_whirlpool);
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
+#ifdef __MIC__
+#define OMP_SCALE               4
+#else
 #define OMP_SCALE               1
-#endif
-#endif
+#endif // __MIC__
+#endif // OMP_SCALE
+#endif // _OPENMP
 #include "memdbg.h"
 
 /* 64 is the actual maximum used by Truecrypt software as of version 7.1a */

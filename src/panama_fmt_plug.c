@@ -33,9 +33,13 @@ static int omp_t = 1;
 // 512 - 2203k
 // 1k  - 2124k 
 #ifndef OMP_SCALE
+#ifdef __MIC__
+#define OMP_SCALE  8
+#else
 #define OMP_SCALE  256
-#endif
-#endif
+#endif // __MIC__
+#endif // OMP_SCALE
+#endif // _OPENMP
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"Panama"

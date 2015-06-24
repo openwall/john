@@ -26,9 +26,13 @@ john_register_one(&fmt_vtp);
 // 1k  - 28.5k
 // 2k  - 28.5k  (times wobble)
 #ifndef OMP_SCALE
+#ifdef __MIC__
+#define OMP_SCALE 4096
+#else
 #define OMP_SCALE 256
-#endif
-#endif
+#endif // __MIC__
+#endif // OMP_SCALE
+#endif // _OPENMP
 
 #include "arch.h"
 #include "md5.h"
