@@ -205,18 +205,22 @@ void init_probatables(char * filename)
 		ligne[strlen(ligne)-1] = 0; // chop
 		if( sscanf(ligne, "%d=proba1[%d]", &i, &j) == 2 )
 		{
-			if(i>UNK_STR)
-				i = UNK_STR;
+			if(i > UNK_STR || j > UNK_STR)
+				goto error;
 			proba1[j] = i;
 		}
-		if( sscanf(ligne, "%d=proba2[%d*256+%d]", &i, &j, &k) == 3 )
+		else if( sscanf(ligne, "%d=proba2[%d*256+%d]", &i, &j, &k) == 3 )
 		{
-			if(i>UNK_STR)
-				i = UNK_STR;
+			if(i>UNK_STR || j > UNK_STR || k > UNK_STR)
+				goto error;
 			if( (first[j]>k) && (i<UNK_STR))
 				first[j] = k;
 			proba2[j*256+k] = i;
 
+		}
+		else
+		{
+			goto error;
 		}
 		nb_lignes++;
 	}
@@ -226,4 +230,11 @@ void init_probatables(char * filename)
 	stupidsort(charsorted, proba1, 256);
 	for(i=1;i<256;i++)
 		stupidsort(&(charsorted[i*256]), &(proba2[i*256]), 256);
+	return;
+
+error:
+	MEM_FREE(ligne);
+	fclose(fichier);
+	fprintf(stderr, "%s is not a Markov stats file\n", filename);
+	error();
 }
