@@ -67,5 +67,6 @@ src/memdbg_defines.h
 src/para-bench
 src/stamp-h1
 src/Unicode
+src/version.h
 
 test/

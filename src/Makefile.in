@@ -42,6 +42,11 @@ top_srcdir = @top_srcdir@
 srcdir = @srcdir@
 prefix = @prefix@
 
+JTR_GIT_VERSION = \"$(shell git describe --tags --dirty=+ 2>/dev/null)\"
+ifeq ($(JTR_GIT_VERSION), \"\")
+JTR_GIT_VERSION = JOHN_VERSION
+endif
+
 # CUDA settings. See output of "nvcc -h"
 NVCC_FLAGS = -c -Xptxas -v -fmad=true
 
@@ -382,7 +387,13 @@ kwallet2john.o:	kwallet2john.c stdint.h jumbo.h memdbg.h
 
 list.o:	list.c memory.h list.h memdbg.h
 
-listconf.o:	listconf.c autoconfig.h arch.h jumbo.h params.h path.h formats.h options.h unicode.h dynamic.h config.h regex.h john_build_rule.h common-opencl.h memdbg.h
+version.h: find_version
+
+find_version:
+	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
+	diff >/dev/null -Nq version.h.new version.h && rm version.h.new || mv version.h.new version.h
+
+listconf.o:	version.h listconf.c autoconfig.h arch.h jumbo.h params.h path.h formats.h options.h unicode.h dynamic.h config.h regex.h john_build_rule.h common-opencl.h memdbg.h
 
 loader.o:	loader.c autoconfig.h jumbo.h os.h arch.h misc.h params.h path.h memory.h list.h signals.h formats.h dyna_salt.h loader.h options.h config.h unicode.h dynamic.h fake_salts.h john.h cracker.h config.h logger.h memdbg.h
 
@@ -527,7 +538,7 @@ zip2john.o:	zip2john.c common.h jumbo.h formats.h stdint.h pkzip.h missing_getop
 
 SUBDIRS = aes
 
-.PHONY: subdirs $(SUBDIRS)
+.PHONY: subdirs $(SUBDIRS) find_version
 
 subdirs: $(SUBDIRS)
 
