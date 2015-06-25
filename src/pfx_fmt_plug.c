@@ -154,7 +154,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	BIO_write(bp, decoded, len);
 	if(!(p12 = d2i_PKCS12_bio(bp, NULL)))
 		goto err;
-
+	PKCS12_free(p12);
 	if (bp)	BIO_free(bp);
 	MEM_FREE(decoded);
 	MEM_FREE(keeptr);
@@ -205,6 +205,10 @@ static void *get_salt(char *ciphertext)
 	}
 	/* save custom_salt information */
 	memcpy(&(psalt->pfx), p12, sizeof(PKCS12));
+
+	/* we can NOT release memory here, or the function will not work */
+	//PKCS12_free(p12);
+
 	BIO_free(bp);
 	MEM_FREE(decoded_data);
 	MEM_FREE(keeptr);
