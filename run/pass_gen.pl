@@ -3056,7 +3056,6 @@ sub dynamic_28 { # Apache MD5
 	return "\$dynamic_28\$".substr($h,15)."\$$salt";
 }
 sub dynamic_compile {
-	require Digest::Haval256;
 	my $dynamic_args = $_[0];
 	if (length($dynamic_args) == 0) {
 		print STDERR "usage: $0 [-h|-?] HashType ... [ < wordfile ]\n";
@@ -3322,7 +3321,6 @@ sub dynamic_compile {
 	return "dynamic_run_compiled_pcode";
 }
 sub do_dynamic_GetToken {
-	require Digest::Haval256;
 	# parses next token.
 	# the token is placed on the gen_toks array as the 'new' token.
 	#  the return is the rest of the string (not tokenized yet)
