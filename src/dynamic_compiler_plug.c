@@ -23,9 +23,8 @@
 #include "crc32.h"
 #include "dynamic_compiler.h"
 
-typedef struct DC_list DC_list;
 typedef struct DC_list {
-	DC_list *next;
+	struct DC_list *next;
 	DC_struct *value;
 } DC_list;
 
