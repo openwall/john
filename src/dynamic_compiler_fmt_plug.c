@@ -1,4 +1,15 @@
 /*
+ * This software was written by Jim Fougeron jfoug AT cox dot net
+ * in 2015. No copyright is claimed, and the software is hereby
+ * placed in the public domain. In case this attempt to disclaim
+ * copyright and place the software in the public domain is deemed
+ * null and void, then the software is Copyright (c) 2015 Jim Fougeron
+ * and it is hereby released to the general public under the following
+ * terms:
+ *
+ * This software may be modified, redistributed, and used for any
+ * purpose, in source and binary forms, with or without modification.
+
  * dynamic_compiler_fmt.c  (in thin fully self describing format)
  *
  * This can be 'any' valid expresion which dynamic_compiler can handle

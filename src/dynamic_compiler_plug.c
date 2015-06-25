@@ -1,6 +1,6 @@
 /*
  * This software was written by Jim Fougeron jfoug AT cox dot net
- * in 205. No copyright is claimed, and the software is hereby
+ * in 2015. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
  * null and void, then the software is Copyright (c) 2015 Jim Fougeron
