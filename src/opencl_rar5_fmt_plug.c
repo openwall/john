@@ -26,6 +26,7 @@ john_register_one(&fmt_ocl_rar5);
 #include "misc.h"
 #include "arch.h"
 #include "common.h"
+#include "stdint.h"
 #include "formats.h"
 #include "options.h"
 #include "common-opencl.h"
@@ -52,9 +53,6 @@ john_register_one(&fmt_ocl_rar5);
 #define BINARY_ALIGN		4
 #define SALT_ALIGN		1
 
-#define uint8_t			unsigned char
-#define uint32_t		unsigned int
-
 #define PLAINTEXT_LENGTH	55
 #define BINARY_SIZE		SIZE_PSWCHECK
 #define SALT_SIZE		sizeof(struct custom_salt)
@@ -62,10 +60,6 @@ john_register_one(&fmt_ocl_rar5);
 #define KERNEL_NAME		"pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME	"pbkdf2_sha256_loop"
 
-#undef MIN
-#define MIN(a, b)		(((a) < (b)) ? (a) : (b))
-#undef MAX
-#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 #define HASH_LOOPS		(3*13*29) // factors 3, 13, 29, 29
 #define ITERATIONS		(32800 - 1)
 

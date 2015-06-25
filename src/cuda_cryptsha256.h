@@ -16,9 +16,6 @@
 
 #define KEYS_PER_CRYPT BLOCKS*THREADS
 
-#define uint32_t unsigned int
-#define uint8_t unsigned char
-
 #define rol(x,n) ((x << n) | (x >> (32-n)))
 #define ror(x,n) ((x >> n) | (x << (32-n)))
 #define Ch(x,y,z) ((x & y) ^ ( (~x) & z))
@@ -28,10 +25,6 @@
 #define sigma0(x) ((ror(x,7))  ^ (ror(x,18)) ^(x>>3))
 #define sigma1(x) ((ror(x,17)) ^ (ror(x,19)) ^(x>>10))
 
-#undef MAX
-#define MAX(x,y) ((x) > (y) ? (x) : (y))
-#undef MIN
-#define MIN(x,y) ((x) < (y) ? (x) : (y))
 #define SHOW(x) printf("%s = %08x\n",#x,(x))
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))

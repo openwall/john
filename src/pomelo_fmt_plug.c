@@ -89,18 +89,25 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext;
+	char Buf[256];
 
 	if (strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		return 0;
 
 	p += TAG_LENGTH;
+	strnzcpy(Buf, p, sizeof(Buf));
 
-	p = strrchr(p, '$');
-	if (!p)
+	p = strtokm(Buf, "$");
+	if (!p || !isdec(p))
 		return 0;
-
-	p = p + 1;
-	if (strlen(p) != CIPHERTEXT_LENGTH)
+	p = strtokm(NULL, "$");
+	if (!p || !isdec(p))
+		return 0;
+	p = strtokm(NULL, "$");
+	if (!p || strlen(p) >= sizeof(cur_salt->salt))
+		return 0;
+	p = strtokm(NULL, "$");
+	if (!p || strlen(p) != CIPHERTEXT_LENGTH)
 		return 0;
 
 	while(*p)

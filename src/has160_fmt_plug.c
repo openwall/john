@@ -22,10 +22,14 @@ john_register_one(&fmt_HAS160);
 
 #ifdef _OPENMP
 #ifndef OMP_SCALE
+#ifdef __MIC__
+#define OMP_SCALE           64
+#else
 #define OMP_SCALE			2048
-#endif
+#endif // __MIC__
+#endif // OMP_SCALE
 #include <omp.h>
-#endif
+#endif // _OPENMP
 
 #include "memdbg.h"
 

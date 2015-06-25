@@ -47,7 +47,7 @@ void dyna_salt_remove_fp(void *p, char *fname, int line)
 void dyna_salt_remove_fp(void *p)
 #endif
 {
-	if (p && (format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
+	if (p && format && (format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
 		dyna_salt_john_core *p1 = *((dyna_salt_john_core**)p);
 		if (p1 && p1->dyna_salt.salt_alloc_needs_free == 1) {
 #ifdef DYNA_SALT_DEBUG

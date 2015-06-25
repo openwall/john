@@ -55,11 +55,6 @@ john_register_one(&fmt_opencl_office2013);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#undef MIN
-#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
-
 static struct fmt_tests tests[] = {
 	/* 2013-openwall.pptx */
 	{"$office$*2013*100000*256*16*9b12805dd6d56f46d07315153f3ecb9c*c5a4a167b51faa6629f6a4caf0b4baa8*87397e0659b2a6fff90291f8e6d6d0018b750b792fefed77001edbafba7769cd", "openwall"},

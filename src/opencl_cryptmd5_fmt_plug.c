@@ -24,12 +24,10 @@ john_register_one(&fmt_opencl_cryptMD5);
 #include "misc.h"
 #include "path.h"
 #include "config.h"
+#include "stdint.h"
 #include "common-opencl.h"
 #include "options.h"
 #include "cryptmd5_common.h"
-
-#define uint32_t unsigned int
-#define uint8_t unsigned char
 
 #define PLAINTEXT_LENGTH	15 /* max. due to optimizations */
 

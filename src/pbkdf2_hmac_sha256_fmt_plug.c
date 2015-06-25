@@ -80,11 +80,6 @@ static int omp_t = 1;
 #define PAD_SIZE                128
 #define PLAINTEXT_LENGTH        125
 
-#undef MIN
-#define MIN(a,b)                (((a)<(b))?(a):(b))
-#undef MAX
-#define MAX(a,b)                (((a)>(b))?(a):(b))
-
 static struct fmt_tests tests[] = {
 	{"$pbkdf2-sha256$1000$a0dhTGhwMXUxZ1BOblkzNg$twzYxQMX.zUZtX6ajJFUKfJzyKXKi4xjnObm6kJ8.U0", "magnum"},
 	{"$pbkdf2-sha256$1000$WEI2ZTVJcWdTZ3JQQjVnMA$6n1V7Ffm1tsB4q7uk4mi8z5Sco.fL28pScSSc5Qr27Y", "Ripper"},

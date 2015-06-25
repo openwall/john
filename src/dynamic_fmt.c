@@ -84,6 +84,10 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #include "config.h"
 #include "sha.h"
 #include "gost.h"
+#include "sph_haval.h"
+#include "sph_ripemd.h"
+#include "sph_tiger.h"
+#include "sph_whirlpool.h"
 #include "memory.h"
 #include "unicode.h"
 #include "johnswap.h"
@@ -91,6 +95,17 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #include "aligned.h"
 #include "fake_salts.h"
 #include "base64_convert.h"
+
+#if (AC_BUILT && HAVE_WHIRLPOOL) ||	  \
+   (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
+#include <openssl/whrlpool.h>
+#else
+// on my 32 bit cygwin builds, this code is about 4x slower than the oSSL code.
+#define WHIRLPOOL_CTX             sph_whirlpool_context
+#define WHIRLPOOL_Init(a)         sph_whirlpool_init(a)
+#define WHIRLPOOL_Update(a,b,c)   sph_whirlpool(a,b,c)
+#define WHIRLPOOL_Final(a,b)      sph_whirlpool_close(b,a)
+#endif
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -109,9 +124,6 @@ extern void MD5_body(MD5_word x[15],MD5_word out[4]);
 
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
-
-#undef MIN
-#define MIN(a, b)    (((a) < (b)) ? (a) : (b))
 
 static struct fmt_main fmt_Dynamic;
 static struct fmt_main *pFmts;
@@ -1514,22 +1526,72 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			__nonMP_DynamicFunc__append_keys2();
 			__nonMP_md5_unicode_convert(0);
 
-			if (curdat.using_flat_buffers_sse2_ok) {
+			//if (curdat.using_flat_buffers_sse2_ok) {
+			if (curdat.dynamic_use_sse == 0) {
 				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1) {
 #ifdef _OPENMP
-					if (curdat.base16_to_input1_sha1)
-						DynamicFunc__SHA1_crypt_input2_overwrite_input1(0,m_count, 0);
-					else if (curdat.base16_to_input1_sha256)
-						DynamicFunc__SHA256_crypt_input2_overwrite_input1(0,m_count, 0);
-					else
-						DynamicFunc__MD5_crypt_input2_overwrite_input1(0,m_count,0);
+					switch(curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type) {
+						case MGF__MD5:
+							DynamicFunc__MD5_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__MD4:
+							DynamicFunc__MD4_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__SHA1:
+							DynamicFunc__SHA1_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__SHA224:
+							DynamicFunc__SHA224_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__SHA256:
+							DynamicFunc__SHA256_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__SHA384:
+							DynamicFunc__SHA384_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__SHA512:
+							DynamicFunc__SHA512_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__GOST:
+							DynamicFunc__GOST_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__WHIRLPOOL:
+							DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__TIGER:
+							DynamicFunc__Tiger_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__RIPEMD128:
+							DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__RIPEMD160:
+							DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__RIPEMD256:
+							DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__RIPEMD320:
+							DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1(0,m_count,0); break;
+					}
+
 #else
-					if (curdat.base16_to_input1_sha1)
-						DynamicFunc__SHA1_crypt_input2_overwrite_input1();
-					else if (curdat.base16_to_input1_sha256)
-						DynamicFunc__SHA256_crypt_input2_overwrite_input1();
-					else
-						DynamicFunc__MD5_crypt_input2_overwrite_input1();
+					switch(curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type) {
+						case MGF__MD5:
+							DynamicFunc__MD5_crypt_input2_overwrite_input1(); break;
+						case MGF__MD4:
+							DynamicFunc__MD4_crypt_input2_overwrite_input1(); break;
+						case MGF__SHA1:
+							DynamicFunc__SHA1_crypt_input2_overwrite_input1(); break;
+						case MGF__SHA224:
+							DynamicFunc__SHA224_crypt_input2_overwrite_input1(); break;
+						case MGF__SHA256:
+							DynamicFunc__SHA256_crypt_input2_overwrite_input1(); break;
+						case MGF__SHA384:
+							DynamicFunc__SHA384_crypt_input2_overwrite_input1(); break;
+						case MGF__SHA512:
+							DynamicFunc__SHA512_crypt_input2_overwrite_input1(); break;
+						case MGF__GOST:
+							DynamicFunc__GOST_crypt_input2_overwrite_input1(); break;
+						case MGF__WHIRLPOOL:
+							DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1(); break;
+						case MGF__TIGER:
+							DynamicFunc__Tiger_crypt_input2_overwrite_input1(); break;
+						case MGF__RIPEMD128:
+							DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1(); break;
+						case MGF__RIPEMD160:
+							DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1(); break;
+						case MGF__RIPEMD256:
+							DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1(); break;
+						case MGF__RIPEMD320:
+							DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1(); break;
+					}
 #endif
 				} else if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32) {
 					unsigned int i;
@@ -1540,6 +1602,71 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 					DynamicFunc__MD5_crypt_input2_append_input1();
 #endif
+#ifdef _OPENMP
+					switch(curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type) {
+						case MGF__MD5:
+							total_len_X86[i] = 32; DynamicFunc__MD5_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__MD4:
+							total_len_X86[i] = 32; DynamicFunc__MD4_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__SHA1:
+							total_len_X86[i] = 40; DynamicFunc__SHA1_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__SHA224:
+							total_len_X86[i] = 56; DynamicFunc__SHA224_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__SHA256:
+							total_len_X86[i] = 64; DynamicFunc__SHA256_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__SHA384:
+							total_len_X86[i] = 96; DynamicFunc__SHA384_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__SHA512:
+							total_len_X86[i] = 128; DynamicFunc__SHA512_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__GOST:
+							total_len_X86[i] = 64; DynamicFunc__GOST_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__WHIRLPOOL:
+							total_len_X86[i] = 128; DynamicFunc__WHIRLPOOL_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__TIGER:
+							total_len_X86[i] = 48; DynamicFunc__Tiger_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__RIPEMD128:
+							total_len_X86[i] = 32; DynamicFunc__RIPEMD128_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__RIPEMD160:
+							total_len_X86[i] = 40; DynamicFunc__RIPEMD160_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__RIPEMD256:
+							total_len_X86[i] = 64; DynamicFunc__RIPEMD256_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__RIPEMD320:
+							total_len_X86[i] = 80; DynamicFunc__RIPEMD320_crypt_input2_append_input1(0,m_count,0); break;
+					}
+
+#else
+					switch(curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type) {
+						case MGF__MD5:
+							total_len_X86[i] = 32; DynamicFunc__MD5_crypt_input2_append_input1(); break;
+						case MGF__MD4:
+							total_len_X86[i] = 32; DynamicFunc__MD4_crypt_input2_append_input1(); break;
+						case MGF__SHA1:
+							total_len_X86[i] = 40; DynamicFunc__SHA1_crypt_input2_append_input1(); break;
+						case MGF__SHA224:
+							total_len_X86[i] = 56; DynamicFunc__SHA224_crypt_input2_append_input1(); break;
+						case MGF__SHA256:
+							total_len_X86[i] = 64; DynamicFunc__SHA256_crypt_input2_append_input1(); break;
+						case MGF__SHA384:
+							total_len_X86[i] = 96; DynamicFunc__SHA384_crypt_input2_append_input1(); break;
+						case MGF__SHA512:
+							total_len_X86[i] = 128; DynamicFunc__SHA512_crypt_input2_append_input1(); break;
+						case MGF__GOST:
+							total_len_X86[i] = 64; DynamicFunc__GOST_crypt_input2_append_input1(); break;
+						case MGF__WHIRLPOOL:
+							total_len_X86[i] = 128; DynamicFunc__WHIRLPOOL_crypt_input2_append_input1(); break;
+						case MGF__TIGER:
+							total_len_X86[i] = 48; DynamicFunc__Tiger_crypt_input2_append_input1(); break;
+						case MGF__RIPEMD128:
+							total_len_X86[i] = 32; DynamicFunc__RIPEMD128_crypt_input2_append_input1(); break;
+						case MGF__RIPEMD160:
+							total_len_X86[i] = 40; DynamicFunc__RIPEMD160_crypt_input2_append_input1(); break;
+						case MGF__RIPEMD256:
+							total_len_X86[i] = 64; DynamicFunc__RIPEMD256_crypt_input2_append_input1(); break;
+						case MGF__RIPEMD320:
+							total_len_X86[i] = 80; DynamicFunc__RIPEMD320_crypt_input2_append_input1(); break;
+					}
+#endif
+
 				} else {
 					// calls 'old' code (ossl, sorry :(   We should FIND and remove any format
 					// written this way, if it is
@@ -2135,43 +2262,177 @@ static void *get_salt(char *ciphertext)
 
 	if (curdat.dynamic_salt_as_hex)
 	{
-		// Do not 'worry' about SSE/MMX,  Only do 'generic' md5.  This is ONLY done
-		// at the start of the run.  We will NEVER see this run, once john starts.
-		MD5_CTX ctx;
-		unsigned char Buf[16];
-		unsigned char *cpo, *cpi, i;
+		unsigned char Buf[128];
 		unsigned int slen=strlen(Salt);
-		MD5_Init(&ctx);
-		if (curdat.dynamic_salt_as_hex & 0x100)
-		{
-			char *s2 = mem_alloc(slen*2+1);
-			for (i = 0; i < slen; ++i)
+		switch (curdat.dynamic_salt_as_hex_format_type) {
+			case MGF__MD5:
 			{
-				s2[i<<1] = Salt[i];
-				s2[(i<<1)+1] = 0;
+				// Do not 'worry' about SSE/MMX,  Only do 'generic' md5.  This is ONLY done
+				// at the start of the run.  We will NEVER see this run, once john starts.
+				MD5_CTX ctx;
+				int i;
+				char *cpo;
+				MD5_Init(&ctx);
+				if (curdat.dynamic_salt_as_hex & 0x100)
+				{
+					char *s2 = mem_alloc(slen*2+1);
+					for (i = 0; i < slen; ++i)
+					{
+						s2[i<<1] = Salt[i];
+						s2[(i<<1)+1] = 0;
+					}
+					MD5_Update(&ctx, s2, slen*2);
+					MEM_FREE(s2);
+				}
+				else
+					MD5_Update(&ctx, Salt, slen);
+				MD5_Final(Buf, &ctx);
+				if ( (curdat.dynamic_salt_as_hex&3) == 2) {
+					strcat(Salt, "$$2");
+					cpo = &Salt[slen+3];
+				}
+				else {
+					cpo = Salt;
+					memset(Salt, 0, SALT_SIZE+1);
+				}
+				base64_convert(Buf, e_b64_raw, 16, cpo, e_b64_hex, SALT_SIZE, 0);
+				break;
 			}
-			MD5_Update(&ctx, s2, slen*2);
-			MEM_FREE(s2);
+			case MGF__MD4:
+			{
+				MD4_CTX ctx;
+				MD4_Init(&ctx);
+				MD4_Update(&ctx, Salt, slen);
+				MD4_Final(Buf, &ctx);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 16, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			case MGF__SHA1:
+			{
+				SHA_CTX ctx;
+				SHA1_Init(&ctx);
+				SHA1_Update(&ctx, Salt, slen);
+				SHA1_Final(Buf, &ctx);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 20, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			case MGF__SHA224:
+			{
+				SHA256_CTX ctx;
+				SHA224_Init(&ctx);
+				SHA224_Update(&ctx, Salt, slen);
+				SHA224_Final(Buf, &ctx);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 28, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			case MGF__SHA256:
+			{
+				SHA256_CTX ctx;
+				SHA256_Init(&ctx);
+				SHA256_Update(&ctx, Salt, slen);
+				SHA256_Final(Buf, &ctx);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			case MGF__SHA384:
+			{
+				SHA512_CTX ctx;
+				SHA384_Init(&ctx);
+				SHA384_Update(&ctx, Salt, slen);
+				SHA384_Final(Buf, &ctx);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 48, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			case MGF__SHA512:
+			{
+				SHA512_CTX ctx;
+				SHA512_Init(&ctx);
+				SHA512_Update(&ctx, Salt, slen);
+				SHA512_Final(Buf, &ctx);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 64, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			case MGF__GOST:
+			{
+				gost_ctx ctx;
+				john_gost_init(&ctx);
+				john_gost_update(&ctx, (const unsigned char*)Salt, slen);
+				john_gost_final(&ctx, (unsigned char*)Buf);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			case MGF__WHIRLPOOL:
+			{
+				WHIRLPOOL_CTX ctx;
+				WHIRLPOOL_Init(&ctx);
+				WHIRLPOOL_Update(&ctx, (const unsigned char*)Salt, slen);
+				WHIRLPOOL_Final(Buf, &ctx);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 64, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			case MGF__TIGER:
+			{
+				sph_tiger_context ctx;
+				sph_tiger_init(&ctx);
+				sph_tiger(&ctx, (const unsigned char*)Salt, slen);
+				sph_tiger_close(&ctx, Buf);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 24, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			case MGF__RIPEMD128:
+			{
+				sph_ripemd128_context ctx;
+				sph_ripemd128_init(&ctx);
+				sph_ripemd128(&ctx, (const unsigned char*)Salt, slen);
+				sph_ripemd128_close(&ctx, Buf);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 16, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			case MGF__RIPEMD160:
+			{
+				sph_ripemd160_context ctx;
+				sph_ripemd160_init(&ctx);
+				sph_ripemd160(&ctx, (const unsigned char*)Salt, slen);
+				sph_ripemd160_close(&ctx, Buf);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 20, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			case MGF__RIPEMD256:
+			{
+				sph_ripemd256_context ctx;
+				sph_ripemd256_init(&ctx);
+				sph_ripemd256(&ctx, (const unsigned char*)Salt, slen);
+				sph_ripemd256_close(&ctx, Buf);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			case MGF__RIPEMD320:
+			{
+				sph_ripemd320_context ctx;
+				sph_ripemd320_init(&ctx);
+				sph_ripemd320(&ctx, (const unsigned char*)Salt, slen);
+				sph_ripemd320_close(&ctx, Buf);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 40, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			default:
+			{
+				error("Invalid dynamic flags seen.  Data type not yet defined\n");
+			}
 		}
-		else
-			MD5_Update(&ctx, Salt, slen);
-		MD5_Final(Buf, &ctx);
-		if ( (curdat.dynamic_salt_as_hex&3) == 2) {
-			strcat(Salt, "$$2");
-			cpo = (unsigned char *)&Salt[slen+3];
-		}
-		else {
-			cpo = (unsigned char*)Salt;
-			memset(Salt, 0, SALT_SIZE+1);
-		}
-		cpi = Buf;
-		for (i = 0; i < 16; ++i)
-		{
-			*cpo++ = dynamic_itoa16[(*cpi)>>4];
-			*cpo++ = dynamic_itoa16[(*cpi)&0xF];
-			++cpi;
-		}
-		*cpo = 0;
 	}
 
 	the_real_len = salt_external_to_internal_convert((unsigned char*)Salt, (unsigned char*)saltIntBuf);
@@ -4085,6 +4346,448 @@ void DynamicFunc__set_input_len_100(DYNA_OMP_PARAMS)
 	}
 }
 
+
+void DynamicFunc__set_input_len_24(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_24 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len_X86[j] = 24;
+}
+
+void DynamicFunc__set_input_len_28(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_28 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len_X86[j] = 28;
+}
+
+void DynamicFunc__set_input_len_48(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_48 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len_X86[j] = 48;
+}
+
+void DynamicFunc__set_input_len_56(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_56 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len_X86[j] = 56;
+}
+
+void DynamicFunc__set_input_len_80(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_80 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len_X86[j] = 80;
+}
+
+void DynamicFunc__set_input_len_96(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_96 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len_X86[j] = 96;
+}
+
+void DynamicFunc__set_input_len_112(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_112 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len_X86[j] = 112;
+}
+
+void DynamicFunc__set_input_len_128(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_128 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len_X86[j] = 128;
+}
+
+void DynamicFunc__set_input_len_160(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_160 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len_X86[j] = 160;
+}
+
+void DynamicFunc__set_input_len_192(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_192 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len_X86[j] = 192;
+}
+
+void DynamicFunc__set_input_len_256(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_256 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len_X86[j] = 256;
+}
+
+void DynamicFunc__set_input2_len_24(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_24 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len2_X86[j] = 24;
+}
+
+void DynamicFunc__set_input2_len_28(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_28 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len2_X86[j] = 28;
+}
+
+void DynamicFunc__set_input2_len_48(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_48 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len2_X86[j] = 48;
+}
+
+void DynamicFunc__set_input2_len_56(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_56 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len2_X86[j] = 56;
+}
+
+void DynamicFunc__set_input2_len_80(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_80 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len2_X86[j] = 80;
+}
+
+void DynamicFunc__set_input2_len_96(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_96 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len2_X86[j] = 96;
+}
+
+void DynamicFunc__set_input2_len_112(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_112 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len2_X86[j] = 112;
+}
+
+void DynamicFunc__set_input2_len_128(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_128 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len2_X86[j] = 128;
+}
+
+void DynamicFunc__set_input2_len_160(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_160 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len2_X86[j] = 160;
+}
+
+void DynamicFunc__set_input2_len_192(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_192 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len2_X86[j] = 192;
+}
+
+void DynamicFunc__set_input2_len_256(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse == 1) {
+		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_256 in SSE2/MMX mode\n");
+		error();
+	}
+#endif
+	for (; j < til; ++j)
+		total_len2_X86[j] = 256;
+}
+
+
 /**************************************************************
  * DYNAMIC primitive helper function
  * Appends the salt to the end of the input variables, and
@@ -5364,6 +6067,47 @@ void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix(DYN
 		else
 #endif
 			{cpo = input_buf2_X86[j>>MD5_X2].x1.B; cpi = crypt_key_X86[j>>MD5_X2].x1.B; /* w=input_buf_X86[j>>MD5_X2].x1.w; */ }
+		for (i = 0; i < 16; ++i, ++cpi)
+		{
+			*cpo++ = dynamic_itoa16[*cpi>>4];
+			*cpo++ = dynamic_itoa16[*cpi&0xF];
+		}
+		//MD5_swap(w,w,4);
+	}
+}
+
+void DynamicFunc__overwrite_from_last_output2_to_input2_as_base16_no_size_fix(DYNA_OMP_PARAMS)
+{
+	unsigned int i, til,j;
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+#ifdef SIMD_COEF_32
+	if (dynamic_use_sse==1) {
+		unsigned int idx;
+		for (; i < til; ++i)
+		{
+			idx = ( ((unsigned int)i)/SIMD_COEF_32);
+			__SSE_overwrite_output_base16_to_input(input_buf2[idx].w, crypt_key2[idx].c, i&(SIMD_COEF_32-1));
+		}
+		return;
+	}
+#endif
+	j = i;
+	for (; j < til; ++j)
+	{
+		unsigned char *cpo, *cpi;
+		/* MD5_word *w; */
+#if MD5_X2
+		if (j&1)
+			{cpo = input_buf2_X86[j>>MD5_X2].x2.B2; cpi = crypt_key2_X86[j>>MD5_X2].x2.B2; /* w=input_buf2_X86[j>>MD5_X2].x2.w2; */}
+		else
+#endif
+			{cpo = input_buf2_X86[j>>MD5_X2].x1.B; cpi = crypt_key2_X86[j>>MD5_X2].x1.B; /* w=input_buf2_X86[j>>MD5_X2].x1.w; */ }
 		for (i = 0; i < 16; ++i, ++cpi)
 		{
 			*cpo++ = dynamic_itoa16[*cpi>>4];
@@ -6842,6 +7586,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 	curdat.dynamic_base64_inout = 0;
 	curdat.dynamic_salt_as_hex = 0;
+	curdat.dynamic_salt_as_hex_format_type = 0;
 	curdat.force_md5_ctx = 0;
 	curdat.nUserName = 0;
 	curdat.nPassCase = 1;
@@ -6979,8 +7724,10 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->params.flags &= (~FMT_CASE);
 	}
 
-	if ( (Setup->flags & MGF_SALT_AS_HEX) == MGF_SALT_AS_HEX)
+	if ( (Setup->flags & MGF_SALT_AS_HEX) == MGF_SALT_AS_HEX) {
 		curdat.dynamic_salt_as_hex = 1;
+		curdat.dynamic_salt_as_hex_format_type = Setup->flags >> 56;
+	}
 	if ( (Setup->flags & MGF_SALT_AS_HEX_TO_SALT2) == MGF_SALT_AS_HEX_TO_SALT2) {
 		curdat.dynamic_salt_as_hex = 2;
 		if (curdat.b2Salts)
@@ -7071,22 +7818,16 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	curdat.store_keys_normal_but_precompute_md5_to_output2 = !!(Setup->startFlags&MGF_KEYS_CRYPT_IN2);
 
 	curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1 = !!(Setup->startFlags&(MGF_KEYS_BASE16_IN1|MGF_KEYS_BASE16_IN1_SHA1|MGF_KEYS_BASE16_IN1_SHA256));
-	curdat.base16_to_input1_sha1 = !!(Setup->startFlags&MGF_KEYS_BASE16_IN1_SHA1);
-	curdat.base16_to_input1_sha256 = !!(Setup->startFlags&MGF_KEYS_BASE16_IN1_SHA256);
 
-	if (!!(Setup->startFlags&MGF_KEYS_BASE16_X86_IN1)) {
-		curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1=2;
-	}
 	if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1)
 		curdat.store_keys_normal_but_precompute_md5_to_output2 = 1;
 
 	curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32 = !!(Setup->startFlags&MGF_KEYS_BASE16_IN1_Offset32);
-	if (!!(Setup->startFlags&MGF_KEYS_BASE16_X86_IN1_Offset32))
-		curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32=2;
 	if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32)
 	{
 		curdat.store_keys_normal_but_precompute_md5_to_output2 = 1;
 	}
+	curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type = Setup->startFlags>>56;
 
 	if (Setup->startFlags&MGF_PHPassSetup)
 	{
@@ -7454,11 +8195,12 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	return 1;
 }
 
-struct fmt_main *dynamic_Register_local_format() {
+struct fmt_main *dynamic_Register_local_format(int *type) {
 	int num=nLocalFmts++;
 	if (!pLocalFmts)
 		pLocalFmts = mem_calloc_tiny(1000*sizeof(struct fmt_main), 16);
 	LoadOneFormat(num+6000, &(pLocalFmts[num]));
+	*type = num+6000;
 	return &(pLocalFmts[num]);
 }
 

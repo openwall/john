@@ -197,7 +197,7 @@ void amd_probe(void)
 		return;
 
 	if (iNumberAdapters > 0) {
-		lpAdapterInfo = (LPAdapterInfo)malloc(sizeof(AdapterInfo) * iNumberAdapters);
+		lpAdapterInfo = (LPAdapterInfo)mem_alloc(sizeof(AdapterInfo) * iNumberAdapters);
 		memset(lpAdapterInfo,'\0', sizeof(AdapterInfo) * iNumberAdapters);
 
 		ADL_Adapter_AdapterInfo_Get(lpAdapterInfo, sizeof(AdapterInfo) * iNumberAdapters);

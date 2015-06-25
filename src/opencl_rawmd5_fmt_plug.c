@@ -64,11 +64,6 @@ static unsigned int key_idx = 0;
 static unsigned int ref_ctr, ocl_ver;
 static struct fmt_main *self;
 
-#undef MIN
-#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
-
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
@@ -278,6 +273,8 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 {
 	char build_opts[5000];
 	int i;
+	cl_ulong const_cache_size;
+
 	clReleaseKernel(crypt_kernel);
 
 	shift64_ht_sz = (((1ULL << 63) % hash_table_size) * 2) % hash_table_size;
@@ -296,9 +293,12 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 	if (ocl_ver == 120 && platform_apple(platform_id) && gpu_nvidia(gpu_id))
 		ocl_ver = 110;
 
+	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
+
 	sprintf(build_opts, "-D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u"
 		" -D SHIFT64_OT_SZ=%u -D SHIFT64_HT_SZ=%u -D NUM_LOADED_HASHES=%u"
-		" -D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d -D LOC_0=%d"
+		" -D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d"
+		" -D CONST_CACHE_SIZE=%llu -D LOC_0=%d"
 #if 1 < MASK_FMT_INT_PLHDR
 	" -D LOC_1=%d "
 #endif
@@ -310,7 +310,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 #endif
 	, offset_table_size, hash_table_size, shift64_ot_sz, shift64_ht_sz,
 	num_ld_hashes, mask_int_cand.num_int_cand, bitmap_para, is_static_gpu_mask,
-	static_gpu_locations[0]
+	(unsigned long long)const_cache_size, static_gpu_locations[0]
 #if 1 < MASK_FMT_INT_PLHDR
 	, static_gpu_locations[1]
 #endif
@@ -321,6 +321,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 	, static_gpu_locations[3]
 #endif
 	);
+
 	opencl_build(gpu_id, build_opts, 0, NULL);
 	crypt_kernel = clCreateKernel(program[gpu_id], "md5", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
@@ -451,7 +452,7 @@ static char *get_key(int index)
 		out[i] = *key++;
 	out[i] = 0;
 
-	if (mask_int_cand.num_int_cand > 1) {
+	if (mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
 		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
 			if (is_static_gpu_mask)
 				out[static_gpu_locations[i]] =
@@ -463,7 +464,6 @@ static char *get_key(int index)
 
 	return out;
 }
-
 static void prepare_table(struct db_salt *salt) {
 	unsigned int *bin, i;
 	struct db_password *pw;
@@ -679,9 +679,14 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 		bitmap_size_bits = 4096 * 4096;
 		get_power_of_two(mult);
 		bitmap_size_bits *= mult;
-		HANDLE_CLERROR(clGetMemObjectInfo(buffer_bitmaps, CL_MEM_SIZE,
-			sizeof(size_t), &buf_sz, NULL),
-			"failed to query buffer_bitmaps.");
+		buf_sz = get_max_mem_alloc_size(gpu_id);
+		if (buf_sz & (buf_sz - 1)) {
+			get_power_of_two(buf_sz);
+			buf_sz >>= 1;
+		}
+		if (buf_sz >= 536870912)
+			buf_sz = 536870912;
+		assert(!(buf_sz & (buf_sz - 1)));
 		if ((bitmap_size_bits >> 3) > buf_sz)
 			bitmap_size_bits = buf_sz << 3;
 		assert(!(bitmap_size_bits & (bitmap_size_bits - 1)));

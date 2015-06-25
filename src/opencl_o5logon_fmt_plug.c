@@ -92,12 +92,6 @@ static const char * warn[] = {
         "pass xfer: ",  ", index xfer: ",  ", crypt: ",  ", result xfer: "
 };
 
-// Inline functions used by some code
-#undef MIN
-#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
-
 // Maximum UINT32s used by plaintext being SHA1'd
 #define BUFSIZE                         ((PLAINTEXT_LENGTH+3)/4*4)
 

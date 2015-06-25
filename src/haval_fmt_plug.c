@@ -38,9 +38,13 @@ static int omp_t = 1;
 // 2k  10081k  8427k
 // 4k  10551k  8893k
 #ifndef OMP_SCALE
+#ifdef __MIC__
+#define OMP_SCALE  64
+#else
 #define OMP_SCALE  1024
-#endif
-#endif
+#endif // __MIC__
+#endif // OMP_SCALE
+#endif // _OPENMP
 #include "memdbg.h"
 
 #define FORMAT_TAG		"$haval$"

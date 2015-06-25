@@ -10,14 +10,6 @@
 #include <stdbool.h>
 #include "common.h"
 
-#define uint32_t unsigned int
-#define uint8_t unsigned char
-
-#undef MIN
-#define MIN(a,b) ((a)<(b)?(a):(b))
-#undef MAX
-#define MAX(a,b) ((a)>(b)?(a):(b))
-
 #define BLOCKS			56*3
 #define THREADS 		128
 #define KEYS_PER_CRYPT		BLOCKS*THREADS

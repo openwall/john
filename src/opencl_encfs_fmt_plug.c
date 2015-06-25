@@ -30,6 +30,7 @@ john_register_one(&fmt_opencl_encfs);
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
+#include "stdint.h"
 #include "encfs_common.h"
 #include "options.h"
 #include "misc.h"
@@ -51,15 +52,6 @@ john_register_one(&fmt_opencl_encfs);
 #define SALT_SIZE		sizeof(*cur_salt)
 #define BINARY_ALIGN		MEM_ALIGN_WORD
 #define SALT_ALIGN			MEM_ALIGN_WORD
-
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned int
-
-#undef MIN
-#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 /* This handles all widths */
 #define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + ((index) / v_width) * 64 * v_width)

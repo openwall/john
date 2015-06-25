@@ -147,7 +147,6 @@ __kernel void pbkdf2_sha256_loop(__global state_t *state,
 	uint ipad_state[8];
 	uint opad_state[8];
 	uint tmp_out[8];
-	uint A, B, C, D, E, F, G, H, t;
 
 	for (i = 0; i < 8; i++) {
 		W[i] = state[idx].W[i];
@@ -157,6 +156,7 @@ __kernel void pbkdf2_sha256_loop(__global state_t *state,
 	}
 
 	for (round = 0; round < MIN(rounds,HASH_LOOPS); round++) {
+		uint A, B, C, D, E, F, G, H, t;
 
 		A = ipad_state[0];
 		B = ipad_state[1];

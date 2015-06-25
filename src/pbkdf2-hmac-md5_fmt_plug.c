@@ -60,11 +60,6 @@ john_register_one(&fmt_pbkdf2_hmac_md5);
 #endif
 #define PLAINTEXT_LENGTH        125
 
-#undef MIN
-#define MIN(a,b)                (((a)<(b))?(a):(b))
-#undef MAX
-#define MAX(a,b)                (((a)>(b))?(a):(b))
-
 static struct fmt_tests tests[] = {
 	{"$pbkdf2-hmac-md5$1000$38333335343433323338$f445d6d0ed5cbe9fc12c03ea9530c1c6", "hashcat"},
 	{"$pbkdf2-hmac-md5$1000$38333335343433323338$f445d6d0ed5cbe9fc12c03ea9530c1c6f79e7886a6af1552b40f3704a8b87847", "hashcat"},

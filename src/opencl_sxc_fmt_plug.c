@@ -25,6 +25,7 @@ john_register_one(&fmt_opencl_sxc);
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
+#include "stdint.h"
 #include "misc.h"
 #include "options.h"
 #include "common.h"
@@ -43,10 +44,6 @@ john_register_one(&fmt_opencl_sxc);
 #define SALT_SIZE		sizeof(sxc_cpu_salt)
 #define BINARY_ALIGN		MEM_ALIGN_WORD
 #define SALT_ALIGN		MEM_ALIGN_WORD
-
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned int
 
 typedef struct {
 	uint32_t length;
@@ -99,11 +96,6 @@ static cl_mem mem_in, mem_out, mem_setting;
 static struct fmt_main *self;
 
 static size_t insize, outsize, settingsize;
-
-#undef MIN
-#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
 #define STEP			0
 #define SEED			256

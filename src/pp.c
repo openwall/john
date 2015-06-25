@@ -144,6 +144,14 @@ char *prince_skip_str;
 char *prince_limit_str;
 
 static char *mem_map, *map_pos, *map_end;
+
+#else
+
+#undef MIN
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#undef MAX
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+
 #endif
 
 #define IN_LEN_MIN    1
@@ -167,11 +175,6 @@ static char *mem_map, *map_pos, *map_end;
 #define ALLOC_NEW_DUPES  0x100000
 
 #define ENTRY_END_HASH   0xFFFFFFFF
-
-#undef MIN
-#define MIN(a,b) (((a) < (b)) ? (a) : (b))
-#undef MAX
-#define MAX(a,b) (((a) > (b)) ? (a) : (b))
 
 typedef uint8_t  u8;
 typedef uint16_t u16;

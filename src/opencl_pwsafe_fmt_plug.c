@@ -24,16 +24,12 @@ john_register_one(&fmt_opencl_pwsafe);
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
+#include "stdint.h"
 #include "formats.h"
 #include "params.h"
 #include "options.h"
 #include "common-opencl.h"
 #include "memory.h"
-
-#define uint8_t                         unsigned char
-#define uint32_t                        unsigned int
-#undef MIN
-#define MIN(a,b) (((a)<(b))?(a):(b))
 
 #define FORMAT_LABEL            "pwsafe-opencl"
 #define FORMAT_NAME             "Password Safe"

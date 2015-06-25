@@ -95,9 +95,8 @@ typedef struct Dynamic_Predicate_t
 typedef struct Dynamic_Str_Flag_t
 {
 	char *name;
-	unsigned flag_bit;
+	uint64_t flag_bit;
 } Dynamic_Str_Flag_t;
-
 
 static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__clean_input",  DynamicFunc__clean_input },
@@ -125,6 +124,7 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix", DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix },
 	{ "DynamicFunc__append_from_last_output_to_input2_as_base16", DynamicFunc__append_from_last_output_to_input2_as_base16 },
 	{ "DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix", DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix },
+	{ "DynamicFunc__overwrite_from_last_output2_to_input2_as_base16_no_size_fix", DynamicFunc__overwrite_from_last_output2_to_input2_as_base16_no_size_fix },
 	{ "DynamicFunc__append_from_last_output2_to_input1_as_base16", DynamicFunc__append_from_last_output2_to_input1_as_base16 },
 	{ "DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix", DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix },
 	{ "DynamicFunc__append_salt2", DynamicFunc__append_salt2 },
@@ -155,11 +155,35 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__set_input2_len_20", DynamicFunc__set_input2_len_20},
 	{ "DynamicFunc__set_input_len_32", DynamicFunc__set_input_len_32 },
 	{ "DynamicFunc__set_input2_len_32", DynamicFunc__set_input2_len_32 },
+	{ "DynamicFunc__set_input_len_24", DynamicFunc__set_input_len_24 },
+	{ "DynamicFunc__set_input2_len_24", DynamicFunc__set_input2_len_24 },
+	{ "DynamicFunc__set_input_len_28", DynamicFunc__set_input_len_28 },
+	{ "DynamicFunc__set_input2_len_28", DynamicFunc__set_input2_len_28 },
 	{ "DynamicFunc__set_input_len_40", DynamicFunc__set_input_len_40 },
 	{ "DynamicFunc__set_input2_len_40", DynamicFunc__set_input2_len_40 },
+	{ "DynamicFunc__set_input_len_48", DynamicFunc__set_input_len_48 },
+	{ "DynamicFunc__set_input_2len_48", DynamicFunc__set_input2_len_48 },
+	{ "DynamicFunc__set_input_len_56", DynamicFunc__set_input_len_56 },
+	{ "DynamicFunc__set_input2_len_56", DynamicFunc__set_input2_len_56 },
 	{ "DynamicFunc__set_input_len_64", DynamicFunc__set_input_len_64 },
 	{ "DynamicFunc__set_input2_len_64", DynamicFunc__set_input2_len_64 },
+	{ "DynamicFunc__set_input_len_80", DynamicFunc__set_input_len_80 },
+	{ "DynamicFunc__set_input_2len_80", DynamicFunc__set_input2_len_80 },
+	{ "DynamicFunc__set_input_len_96", DynamicFunc__set_input_len_96 },
+	{ "DynamicFunc__set_input_2len_96", DynamicFunc__set_input2_len_96 },
+
 	{ "DynamicFunc__set_input_len_100", DynamicFunc__set_input_len_100 },
+
+	{ "DynamicFunc__set_input_len_112", DynamicFunc__set_input_len_112 },
+	{ "DynamicFunc__set_input_2len_112", DynamicFunc__set_input2_len_112 },
+	{ "DynamicFunc__set_input_len_128", DynamicFunc__set_input_len_128 },
+	{ "DynamicFunc__set_input_2len_128", DynamicFunc__set_input2_len_128 },
+	{ "DynamicFunc__set_input_len_160", DynamicFunc__set_input_len_160 },
+	{ "DynamicFunc__set_input_2len_160", DynamicFunc__set_input2_len_160 },
+	{ "DynamicFunc__set_input_len_192", DynamicFunc__set_input_len_192 },
+	{ "DynamicFunc__set_input_2len_192", DynamicFunc__set_input2_len_192 },
+	{ "DynamicFunc__set_input_len_256", DynamicFunc__set_input_len_256 },
+	{ "DynamicFunc__set_input_2len_256", DynamicFunc__set_input2_len_256 },
 	{ "DynamicFunc__overwrite_salt_to_input1_no_size_fix", DynamicFunc__overwrite_salt_to_input1_no_size_fix },
 	{ "DynamicFunc__overwrite_salt_to_input2_no_size_fix", DynamicFunc__overwrite_salt_to_input2_no_size_fix },
 	{ "DynamicFunc__append_input1_from_CONST1", DynamicFunc__append_input1_from_CONST1 },
@@ -550,8 +574,22 @@ static Dynamic_Str_Flag_t Dynamic_Str_Flag[] =  {
 	{ "MGF_INPBASE64b",                   MGF_INPBASE64b },
 	{ "MGF_INPBASE64m",                   MGF_INPBASE64m },
 	{ "MGF_INPBASE64a",                   MGF_INPBASE64a },
-	{ "MGF_SALT_AS_HEX",                  MGF_SALT_AS_HEX },
+	{ "MGF_SALT_AS_HEX",                  MGF_SALT_AS_HEX },  // Deprecated (use the _MD5 version.
 	{ "MFG_SALT_AS_HEX",                  MGF_SALT_AS_HEX },  // Deprecated misspelling
+	{ "MGF_SALT_AS_HEX_MD5",              MGF_SALT_AS_HEX_MD5 },
+	{ "MGF_SALT_AS_HEX_MD4",              MGF_SALT_AS_HEX_MD4 },
+	{ "MGF_SALT_AS_HEX_SHA1",			  MGF_SALT_AS_HEX_SHA1 },
+	{ "MGF_SALT_AS_HEX_SHA224",			  MGF_SALT_AS_HEX_SHA224 },
+	{ "MGF_SALT_AS_HEX_SHA256",			  MGF_SALT_AS_HEX_SHA256 },
+	{ "MGF_SALT_AS_HEX_SHA384",			  MGF_SALT_AS_HEX_SHA384 },
+	{ "MGF_SALT_AS_HEX_SHA512",			  MGF_SALT_AS_HEX_SHA512 },
+	{ "MGF_SALT_AS_HEX_GOST",			  MGF_SALT_AS_HEX_GOST },
+	{ "MGF_SALT_AS_HEX_WHIRLPOOL",		  MGF_SALT_AS_HEX_WHIRLPOOL },
+	{ "MGF_SALT_AS_HEX_TIGER",			  MGF_SALT_AS_HEX_TIGER },
+	{ "MGF_SALT_AS_HEX_RIPEMD128",		  MGF_SALT_AS_HEX_RIPEMD128 },
+	{ "MGF_SALT_AS_HEX_RIPEMD160",		  MGF_SALT_AS_HEX_RIPEMD160 },
+	{ "MGF_SALT_AS_HEX_RIPEMD256",		  MGF_SALT_AS_HEX_RIPEMD256 },
+	{ "MGF_SALT_AS_HEX_RIPEMD320",		  MGF_SALT_AS_HEX_RIPEMD320 },
 	{ "MGF_SALT_AS_HEX_TO_SALT2",         MGF_SALT_AS_HEX_TO_SALT2 },
 	{ "MGF_INPBASE64_4x6",				  MGF_INPBASE64_4x6 },
 	{ "MGF_SALT_UNICODE_B4_CRYPT",        MGF_SALT_UNICODE_B4_CRYPT },
@@ -573,20 +611,44 @@ static Dynamic_Str_Flag_t Dynamic_Str_Flag[] =  {
 	{ NULL, 0 }};
 
 static Dynamic_Str_Flag_t Dynamic_Str_sFlag[] =  {
-	{ "MGF_KEYS_INPUT",                   MGF_KEYS_INPUT },
-	{ "MGF_KEYS_CRYPT_IN2",               MGF_KEYS_CRYPT_IN2 },
-	{ "MGF_KEYS_BASE16_IN1",              MGF_KEYS_BASE16_IN1 },
-	{ "MGF_KEYS_BASE16_IN1_SHA1",         MGF_KEYS_BASE16_IN1_SHA1 },
-	{ "MGF_KEYS_BASE16_IN1_SHA256",       MGF_KEYS_BASE16_IN1_SHA256 },
-	{ "MGF_KEYS_BASE16_X86_IN1",          MGF_KEYS_BASE16_X86_IN1 },
-	{ "MGF_KEYS_BASE16_IN1_Offset32",     MGF_KEYS_BASE16_IN1_Offset32 },
-	{ "MGF_KEYS_BASE16_X86_IN1_Offset32", MGF_KEYS_BASE16_X86_IN1_Offset32 },
-	{ "MGF_KEYS_UNICODE_B4_CRYPT",        MGF_KEYS_UNICODE_B4_CRYPT },
-	{ "MGF_PHPassSetup",                  MGF_PHPassSetup },
-	{ "MGF_POSetup",                      MGF_POSetup },
-	{ "MGF_POOR_OMP",                     MGF_POOR_OMP },
-	{ "MGF_FreeBSDMD5Setup",              MGF_FreeBSDMD5Setup },
-	{ "MGF_RAW_SHA1_INPUT",               MGF_RAW_SHA1_INPUT },
+	{ "MGF_KEYS_INPUT",                       MGF_KEYS_INPUT },
+	{ "MGF_KEYS_CRYPT_IN2",                   MGF_KEYS_CRYPT_IN2 },
+	{ "MGF_KEYS_BASE16_IN1",                  MGF_KEYS_BASE16_IN1 }, // deprecated (use the _MD5 version)
+	{ "MGF_KEYS_BASE16_IN1_MD5",              MGF_KEYS_BASE16_IN1_MD5, },
+	{ "MGF_KEYS_BASE16_IN1_MD4",              MGF_KEYS_BASE16_IN1_MD4, },
+	{ "MGF_KEYS_BASE16_IN1_SHA1",             MGF_KEYS_BASE16_IN1_SHA1, },
+	{ "MGF_KEYS_BASE16_IN1_SHA224",           MGF_KEYS_BASE16_IN1_SHA224, },
+	{ "MGF_KEYS_BASE16_IN1_SHA256",           MGF_KEYS_BASE16_IN1_SHA256, },
+	{ "MGF_KEYS_BASE16_IN1_SHA384",           MGF_KEYS_BASE16_IN1_SHA384, },
+	{ "MGF_KEYS_BASE16_IN1_SHA512",           MGF_KEYS_BASE16_IN1_SHA512, },
+	{ "MGF_KEYS_BASE16_IN1_GOST",             MGF_KEYS_BASE16_IN1_GOST, },
+	{ "MGF_KEYS_BASE16_IN1_WHIRLPOOL",        MGF_KEYS_BASE16_IN1_WHIRLPOOL, },
+	{ "MGF_KEYS_BASE16_IN1_TIGER",            MGF_KEYS_BASE16_IN1_TIGER, },
+	{ "MGF_KEYS_BASE16_IN1_RIPEMD128",        MGF_KEYS_BASE16_IN1_RIPEMD128, },
+	{ "MGF_KEYS_BASE16_IN1_RIPEMD160",        MGF_KEYS_BASE16_IN1_RIPEMD160, },
+	{ "MGF_KEYS_BASE16_IN1_RIPEMD256",        MGF_KEYS_BASE16_IN1_RIPEMD256, },
+	{ "MGF_KEYS_BASE16_IN1_RIPEMD320",        MGF_KEYS_BASE16_IN1_RIPEMD320, },
+	{ "MGF_KEYS_BASE16_IN1_Offset32",         MGF_KEYS_BASE16_IN1_Offset32 },  // deprecated (use the _MD5 version)
+	{ "MGF_KEYS_BASE16_IN1_Offset_MD5",       MGF_KEYS_BASE16_IN1_Offset_MD5, },
+	{ "MGF_KEYS_BASE16_IN1_Offset_MD4",       MGF_KEYS_BASE16_IN1_Offset_MD4, },
+	{ "MGF_KEYS_BASE16_IN1_Offset_SHA1",      MGF_KEYS_BASE16_IN1_Offset_SHA1, },
+	{ "MGF_KEYS_BASE16_IN1_Offset_SHA224",    MGF_KEYS_BASE16_IN1_Offset_SHA224, },
+	{ "MGF_KEYS_BASE16_IN1_Offset_SHA256",    MGF_KEYS_BASE16_IN1_Offset_SHA256, },
+	{ "MGF_KEYS_BASE16_IN1_Offset_SHA384",    MGF_KEYS_BASE16_IN1_Offset_SHA384, },
+	{ "MGF_KEYS_BASE16_IN1_Offset_SHA512",    MGF_KEYS_BASE16_IN1_Offset_SHA512, },
+	{ "MGF_KEYS_BASE16_IN1_Offset_GOST",      MGF_KEYS_BASE16_IN1_Offset_GOST, },
+	{ "MGF_KEYS_BASE16_IN1_Offset_WHIRLPOOL", MGF_KEYS_BASE16_IN1_Offset_WHIRLPOOL, },
+	{ "MGF_KEYS_BASE16_IN1_Offset_TIGER",     MGF_KEYS_BASE16_IN1_Offset_TIGER, },
+	{ "MGF_KEYS_BASE16_IN1_Offset_RIPEMD128", MGF_KEYS_BASE16_IN1_Offset_RIPEMD128, },
+	{ "MGF_KEYS_BASE16_IN1_Offset_RIPEMD160", MGF_KEYS_BASE16_IN1_Offset_RIPEMD160, },
+	{ "MGF_KEYS_BASE16_IN1_Offset_RIPEMD256", MGF_KEYS_BASE16_IN1_Offset_RIPEMD256, },
+	{ "MGF_KEYS_BASE16_IN1_Offset_RIPEMD320", MGF_KEYS_BASE16_IN1_Offset_RIPEMD320, },
+	{ "MGF_KEYS_UNICODE_B4_CRYPT",            MGF_KEYS_UNICODE_B4_CRYPT },
+	{ "MGF_PHPassSetup",                      MGF_PHPassSetup },
+	{ "MGF_POSetup",                          MGF_POSetup },
+	{ "MGF_POOR_OMP",                         MGF_POOR_OMP },
+	{ "MGF_FreeBSDMD5Setup",                  MGF_FreeBSDMD5Setup },
+	{ "MGF_RAW_SHA1_INPUT",                   MGF_RAW_SHA1_INPUT },
 	{ "MGF_KEYS_INPUT_BE_SAFE",           MGF_KEYS_INPUT_BE_SAFE },  // big endian safe, i.e. the input will NEVER get swapped.  Only SHA1 is 'safe'.
 	{ "MGF_SET_INP2LEN32",                MGF_SET_INP2LEN32 }, // this sets the input2 lens (in SSE2) to 32 bytes long, but only in init() call
 	{ "MGF_SOURCE",                       MGF_SOURCE },
@@ -1045,9 +1107,8 @@ struct fmt_main *dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS(const char *Script, int
 
 	cp_local_source = str_alloc_copy((char*)Script);
 	Thin_Convert = Convert;
-	pFmt = dynamic_Register_local_format();
+	pFmt = dynamic_Register_local_format(type);
 	Thin_Convert = NULL;
-	sscanf(pFmt->params.tests[0].ciphertext, "$dynamic_%d",type);
 	return pFmt;
 }
 

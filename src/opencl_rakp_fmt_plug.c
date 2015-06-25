@@ -26,6 +26,7 @@ john_register_one(&fmt_opencl_rakp);
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
+#include "stdint.h"
 #include "formats.h"
 #include "sha.h"
 #include "johnswap.h"
@@ -69,10 +70,6 @@ static const char * warn[] = {
         "pass xfer: ",  ", index xfer: ",  ", crypt: ",  ", result xfer: "
 };
 
-#ifndef uint32_t
-#define uint32_t unsigned int
-#endif
-
 static unsigned char salt_storage[SALT_STORAGE_SIZE];
 
 static cl_mem salt_buffer, keys_buffer, idx_buffer, digest_buffer;
@@ -84,11 +81,6 @@ static unsigned int key_idx = 0;
 static unsigned int v_width = 1;	/* Vector width of kernel */
 static int partial_output;
 static struct fmt_main *self;
-
-#undef MIN
-#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
 

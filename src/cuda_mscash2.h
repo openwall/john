@@ -7,9 +7,8 @@
 #ifndef _MSCASH2_H
 #define _MSCASH2_H
 
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned int
+#include "stdint.h"
+#include "common.h"
 
 #define THREADS			128//set at least 256 on fermi
 #define BLOCKS			14
@@ -22,10 +21,6 @@
 #define MIN_KEYS_PER_CRYPT	THREADS
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
-#undef MAX
-#define MAX(x,y)		((x) > (y) ? (x) : (y))
-#undef MIN
-#define MIN(x,y)		((x) < (y) ? (x) : (y))
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 

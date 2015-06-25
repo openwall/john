@@ -23,6 +23,7 @@ john_register_one(&fmt_opencl_keychain);
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
+#include "stdint.h"
 #include "misc.h"
 #include "options.h"
 #include "common-opencl.h"
@@ -45,10 +46,6 @@ john_register_one(&fmt_opencl_keychain);
 #define SALTLEN 20
 #define IVLEN 8
 #define CTLEN 48
-
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		ARCH_WORD_32
 
 typedef struct {
 	uint32_t length;
@@ -93,11 +90,6 @@ static keychain_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
 
 size_t insize, outsize, settingsize, cracked_size;
-
-#undef MIN
-#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
 #define STEP			0
 #define SEED			256

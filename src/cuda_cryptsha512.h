@@ -10,23 +10,11 @@
 #include "stdint.h"
 #include <stdbool.h>
 
-#ifdef __APPLE__
-#include "stdint.h"
-#else
-#define uint8_t  unsigned char
-#define uint32_t unsigned int
-#define uint64_t unsigned long long int
-#endif
-
 #define BLOCKS 14
 #define THREADS 128//set 256 on fermi
 
 #define KEYS_PER_CRYPT BLOCKS*THREADS
 
-#undef MAX
-#define MAX(x,y) ((x) > (y) ? (x) : (y))
-#undef MIN
-#define MIN(x,y) ((x) < (y) ? (x) : (y))
 #define SALT_LEN_MAX 16
 #define ROUNDS_DEFAULT 5000
 #define ROUNDS_MIN 1	/* Drepper has it as 1000 */

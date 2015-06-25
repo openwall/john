@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #endif
 #include "memory.h"
+#include "stdint.h"
 #include "jumbo.h"
 #include "memdbg.h"
 #if _MSC_VER
@@ -115,8 +116,7 @@
 #define SSH_CIPHER_3DES		3
 #define SSH_CIPHER_BLOWFISH	6
 
-typedef unsigned int uint32;
-typedef uint32 word32;
+typedef uint32_t word32;
 
 struct ssh2_userkey {
     const struct ssh_signkey *alg;     /* the key algorithm */

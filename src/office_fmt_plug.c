@@ -61,9 +61,6 @@ john_register_one(&fmt_office);
 #define MAX_KEYS_PER_CRYPT	1
 #endif
 
-#undef MIN
-#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
-
 static struct fmt_tests office_tests[] = {
 	{"$office$*2007*20*128*16*8b2c9e8c878844fc842012273be4bea8*aa862168b80d8c45c852696a8bb499eb*a413507fabe2d87606595f987f679ff4b5b4c2cd", "Password"},
 	/* 2007-Default_myhovercraftisfullofeels_.docx */

@@ -68,11 +68,6 @@ john_register_one(&fmt_pbkdf2_hmac_sha1);
 #define PAD_SIZE                64
 #define PLAINTEXT_LENGTH        125
 
-#undef MIN
-#define MIN(a,b)                (((a)<(b))?(a):(b))
-#undef MAX
-#define MAX(a,b)                (((a)>(b))?(a):(b))
-
 static struct fmt_tests tests[] = {
 	{"$pbkdf2-hmac-sha1$1000.fd11cde0.27de197171e6d49fc5f55c9ef06c0d8751cd7250", "3956"},
 	{"$pbkdf2-hmac-sha1$1000.6926d45e.231c561018a4cee662df7cd4a8206701c5806af9", "1234"},

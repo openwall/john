@@ -15,8 +15,19 @@
 #ifndef _JOHN_COMMON_H
 #define _JOHN_COMMON_H
 
+#if !defined(_OPENCL_COMPILER)
 #include "arch.h"
 #include "memory.h"
+#endif
+
+#ifndef MAX
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#endif
+#ifndef MIN
+#define MIN(a,b) ((a)<(b)?(a):(b))
+#endif
+
+#if !defined(_OPENCL_COMPILER)
 
 #if ARCH_INT_GT_32
 typedef unsigned short ARCH_WORD_32;
@@ -95,5 +106,7 @@ int isdec(char *q);
 int isdec_negok(char *q);
 /* is this a valid string for atou()?  atou() func == sprintf("%x",&val) */
 int isdecu(char *q);
+
+#endif
 
 #endif

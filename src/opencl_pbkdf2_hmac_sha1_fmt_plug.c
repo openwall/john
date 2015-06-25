@@ -20,6 +20,7 @@ john_register_one(&fmt_ocl_pbkdf2_sha1);
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
+#include "stdint.h"
 #include "formats.h"
 #include "johnswap.h"
 #include "base64_convert.h"
@@ -55,15 +56,6 @@ john_register_one(&fmt_ocl_pbkdf2_sha1);
 #define PKCS5S2_TAG             "{PKCS5S2}"
 #define PK5K2_TAG               "$p5k2$"
 #define TAG_LEN                 (sizeof(FORMAT_TAG) - 1)
-
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned int
-
-#undef MIN
-#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 /* This handles all widths */
 #define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + ((index) / v_width) * PLAINTEXT_LENGTH * v_width)

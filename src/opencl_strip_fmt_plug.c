@@ -26,6 +26,7 @@ john_register_one(&fmt_opencl_strip);
 #include "formats.h"
 #include "options.h"
 #include "common.h"
+#include "stdint.h"
 #include "misc.h"
 #include "common-opencl.h"
 
@@ -41,11 +42,6 @@ john_register_one(&fmt_opencl_strip);
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define BINARY_ALIGN		1
 #define SALT_ALIGN			MEM_ALIGN_WORD
-
-
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		ARCH_WORD_32
 
 #define ITERATIONS		4000
 #define FILE_HEADER_SZ 16
@@ -94,11 +90,6 @@ static cl_mem mem_in, mem_out, mem_setting;
 static struct fmt_main *self;
 
 static size_t insize, outsize, settingsize, cracked_size;
-
-#undef MIN
-#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
 #define STEP			0
 #define SEED			256

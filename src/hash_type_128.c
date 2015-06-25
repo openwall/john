@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "memory.h"
+#include "memdbg.h"
 #include "misc.h"
 #include "hash_types.h"
 
@@ -42,7 +43,8 @@ void allocate_ht_128(unsigned int num_loaded_hashes, unsigned int verbosity)
 {
 	unsigned int i;
 
-	if (posix_memalign((void **)&hash_table_128, 16, 4 * hash_table_size * sizeof(unsigned int))) {
+	hash_table_128 = mem_alloc_align(4 * hash_table_size * sizeof(unsigned int), 16);
+	if (hash_table_128 == NULL) {
 		fprintf(stderr, "Couldn't allocate memory!!\n");
 		error();
 	}

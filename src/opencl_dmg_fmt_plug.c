@@ -40,6 +40,7 @@ john_register_one(&fmt_opencl_dmg);
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
+#include "stdint.h"
 #include "options.h"
 #include "jumbo.h"
 #include "common-opencl.h"
@@ -62,10 +63,6 @@ john_register_one(&fmt_opencl_dmg);
 		((((unsigned long)(n) & 0xFF00)) << 8) | \
 		((((unsigned long)(n) & 0xFF0000)) >> 8) | \
 		((((unsigned long)(n) & 0xFF000000)) >> 24))
-
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned int
 
 #ifdef DMG_DEBUG
 	extern volatile int bench_running;
@@ -198,11 +195,6 @@ static struct fmt_tests dmg_tests[] = {
 	 "5a1edb6f294a0ceebefc3cb54db814cf91fe450ed4c71d0b4091a1fc7474", "goodjob"},
 	{NULL}
 };
-
-#undef MIN
-#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
 #define STEP			0
 #define SEED			256

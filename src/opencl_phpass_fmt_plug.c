@@ -17,12 +17,10 @@ john_register_one(&fmt_opencl_phpass);
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
+#include "stdint.h"
 #include "misc.h"
 #include "options.h"
 #include "common-opencl.h"
-
-#define uint32_t                unsigned int
-#define uint8_t                 unsigned char
 
 #define FORMAT_LABEL            "phpass-opencl"
 #define FORMAT_NAME             ""
@@ -113,11 +111,6 @@ static cl_int cl_error;
 static cl_mem mem_in, mem_out, mem_setting;
 static size_t insize, outsize, settingsize;
 static struct fmt_main *self;
-
-#undef MIN
-#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
 
 #define STEP			0
 #define SEED			256

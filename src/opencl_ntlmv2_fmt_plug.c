@@ -56,11 +56,6 @@ john_register_one(&fmt_opencl_NTLMv2);
 #define CIPHERTEXT_LENGTH       32 /* hex chars */
 #define TOTAL_LENGTH            (12 + 3 * SALT_MAX_LENGTH + 1 + SERVER_CHALL_LENGTH + 1 + CLIENT_CHALL_LENGTH_MAX + 1 + CIPHERTEXT_LENGTH + 1)
 
-#undef MIN
-#define MIN(a, b)               (((a) > (b)) ? (b) : (a))
-#undef MAX
-#define MAX(a, b)               (((a) > (b)) ? (a) : (b))
-
 /* these will be altered in init() depending on GPU */
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -419,7 +414,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 	/* DOMAIN\USER: -or- USER::DOMAIN: */
 	if ((tmp = strstr(login, "\\")) != NULL) {
-		identity = (char *) mem_alloc(strlen(login));
+		identity = (char *) mem_alloc(strlen(login)*2 + 1);
 		strcpy(identity, tmp + 1);
 
 		/* Upper-Case Username - Not Domain */
@@ -428,7 +423,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		strncat(identity, login, tmp - login);
 	}
 	else {
-		identity = (char *) mem_alloc(strlen(login) + strlen(uid) + 1);
+		identity = (char *) mem_alloc(strlen(login)*2 + strlen(uid) + 1);
 		strcpy(identity, login);
 
 		enc_strupper(identity);

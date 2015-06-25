@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include "misc.h"
 #include "memory.h"
+#include "memdbg.h"
 #include "hash_types.h"
 
 uint192_t *loaded_hashes_192 = NULL;
@@ -44,7 +45,8 @@ void allocate_ht_192(unsigned int num_loaded_hashes, unsigned int verbosity)
 {
 	unsigned int i;
 
-	if (posix_memalign((void **)&hash_table_192, 32, 6 * hash_table_size * sizeof(unsigned int))) {
+	hash_table_192 = mem_alloc_align(6 * hash_table_size * sizeof(unsigned int), 32);
+	if (hash_table_192 == NULL) {
 		fprintf(stderr, "Couldn't allocate memory!!\n");
 		error();
 	}
