@@ -47,8 +47,8 @@
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #include "prince.h"
 #endif
-#include "listconf.h"
 #include "version.h"
+#include "listconf.h" /* must be included after version.h */
 #include "memdbg.h"
 
 struct options_main options;

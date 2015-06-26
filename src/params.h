@@ -27,7 +27,14 @@
  * John's version number.
  */
 #define JOHN_VERSION			"1.8.0.6-jumbo-1-bleeding"
-//#define JTR_RELEASE_BUILD
+
+/*
+ * Define this for release tarballs after updating the string above.
+ * It affects the version reporting (will be the string above and never
+ * a Git hash) as well as some other details. Eg. it mutes output of
+ * OpenCL run-time build log unless the build failed.
+ */
+//#define JTR_RELEASE_BUILD 1
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:

@@ -46,6 +46,11 @@
 #define _STR_VALUE(arg)			#arg
 #define STR_MACRO(n)			_STR_VALUE(n)
 
+#if JTR_RELEASE_BUILD
+#undef JTR_GIT_VERSION
+#define JTR_GIT_VERSION JOHN_VERSION
+#endif
+
 /* Suboptions that can be used before full initialization, like --list=help */
 void listconf_parse_early(void);
 

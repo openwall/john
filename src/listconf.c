@@ -73,8 +73,8 @@ extern void cuda_device_list();
 #if HAVE_OPENCL
 #include "common-opencl.h"
 #endif
-#include "listconf.h"
 #include "version.h"
+#include "listconf.h" /* must be included after version.h */
 #include "memdbg.h"
 
 /*
