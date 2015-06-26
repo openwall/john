@@ -915,18 +915,19 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 		                                  SUBSECTION_OPENCL, "GlobalBuildOpts")))
 			global_opts = OPENCLBUILDOPTIONS;
 
-	sprintf(include, "-I %s %s %s%s%s%d %s %s %s", path_expand(pathname),
+	sprintf(include, "-I %s %s %s%s%s%d %s -D_OPENCL_COMPILER %s",
+	        path_expand(pathname),
 	        global_opts,
 #ifdef __APPLE__
-	        "-DAPPLE ",
+	        "-D__APPLE__ ",
 #else
 	        gpu_nvidia(device_info[sequential_id]) ? "-cl-nv-verbose " : "",
 #endif
-	        get_device_type(sequential_id) == CL_DEVICE_TYPE_CPU ?
-	        "-DDEVICE_IS_CPU " : "",
+	        get_device_type(sequential_id) == CL_DEVICE_TYPE_CPU ? "-D__CPU__ "
+	        : get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU ? "-D__GPU__ " : "",
 	        "-DDEVICE_INFO=", device_info[sequential_id],
-	        "-D_OPENCL_COMPILER",
-	        opencl_driver_ver(sequential_id), opts ? opts : "");
+	        opencl_driver_ver(sequential_id),
+	        opts ? opts : "");
 
 	if (options.verbosity > 3)
 		fprintf(stderr, "Options used: %s\n", include);

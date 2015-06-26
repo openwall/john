@@ -28,9 +28,6 @@ typedef unsigned WORD vtype;
 #if gpu_nvidia(DEVICE_INFO)
 #define _NV
 #endif
-#if cpu(DEVICE_INFO)
-#define _CPU
-#endif
 
 #define vxorf(a, b) 					\
 	((a) ^ (b))
@@ -51,7 +48,7 @@ typedef unsigned WORD vtype;
 #define vshl1(dst, src) 				\
 	vshl((dst), (src), 1)
 
-#if defined(_NV)||defined(_CPU)
+#if defined(_NV) || __CPU__
 #define vsel(dst, a, b, c) 				\
 	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
 #else
@@ -59,7 +56,7 @@ typedef unsigned WORD vtype;
 	(dst) = bitselect((a),(b),(c))
 #endif
 
-#if defined(_NV) || defined(_CPU)
+#if defined(_NV) || __CPU__
 #include "opencl_sboxes.h"
 #else
 #include "opencl_sboxes-s.h"
