@@ -1195,6 +1195,7 @@ static int check(unsigned char *keydata, int ks)
 			RSA_secret_key rsa;
 			if (strlen(str) != blen * 2) { /* verifier 2 */
 				OPENSSL_free(str);
+				BN_free(b);
 				return 0;
 			}
 			OPENSSL_free(str);
