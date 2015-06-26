@@ -14,8 +14,6 @@
  * existing dynamic format.
  */
 
-#define WITH_MAIN
-
 #include "arch.h"
 #include "common.h"
 #include "stdint.h"
