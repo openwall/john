@@ -393,7 +393,7 @@ find_version:
 	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
 	diff >/dev/null -Nq version.h.new version.h && rm version.h.new || mv version.h.new version.h
 
-listconf.o:	version.h listconf.c autoconfig.h arch.h jumbo.h params.h path.h formats.h options.h unicode.h dynamic.h config.h regex.h john_build_rule.h common-opencl.h memdbg.h
+listconf.o:	version.h listconf.c autoconfig.h arch.h jumbo.h params.h path.h formats.h options.h unicode.h dynamic.h config.h regex.h john_build_rule.h common-opencl.h memdbg.h | find_version
 
 loader.o:	loader.c autoconfig.h jumbo.h os.h arch.h misc.h params.h path.h memory.h list.h signals.h formats.h dyna_salt.h loader.h options.h config.h unicode.h dynamic.h fake_salts.h john.h cracker.h config.h logger.h memdbg.h
 
@@ -972,7 +972,7 @@ distclean: clean
 		config.log autoconfig-stamp-h autoconfig-stamp-h-in stamp-h1
 	$(LN) Makefile.stub Makefile
 	$(RM) arch.h
-	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
+	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h version.h
 
 install: default shell-completion
 	@echo Stripping executables.
