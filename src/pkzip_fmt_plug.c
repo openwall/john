@@ -15,6 +15,9 @@
  */
 
 #include "arch.h"
+#if !AC_BUILT
+#define HAVE_LIBZ 1 /* legacy build has -lz in LDFLAGS */
+#endif
 #if HAVE_LIBZ
 
 #if FMT_EXTERNS_H
