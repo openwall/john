@@ -2413,7 +2413,7 @@ clean:
 	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin
 	$(RM) detect bench para-bench generic.h arch.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~
-	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
+	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h version.h version.h.new
 	$(CP) $(NULL) Makefile.dep
 	+$(MAKE_ORIG) -C aes clean
 	+$(MAKE_ORIG) -C escrypt clean
