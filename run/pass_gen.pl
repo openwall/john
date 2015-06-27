@@ -3320,6 +3320,10 @@ sub dynamic_compile {
 	#return the name of the function to run the compiled pcode.
 	return "dynamic_run_compiled_pcode";
 }
+sub dyna_addtok {
+	push(@gen_toks, $_[0]);
+	return $_[1];
+}
 sub do_dynamic_GetToken {
 	# parses next token.
 	# the token is placed on the gen_toks array as the 'new' token.
@@ -3327,151 +3331,138 @@ sub do_dynamic_GetToken {
 	# if there is an error, then "tok_bad" (X) is pushed on to the top of the gen_toks array.
 	$gen_lastTokIsFunc = 0;
 	my $exprStr = $_[0];
-	if (!defined($exprStr) || length($exprStr) == 0) { push(@gen_toks, "X"); return $exprStr; }
+	if (!defined($exprStr) || length($exprStr) == 0) { return dyna_addtok("X", $exprStr); }
 	my $stmp = substr($exprStr, 0, 1);
- 	if ($stmp eq ".") { push(@gen_toks, "."); return substr($exprStr, 1); }
-	if ($stmp eq "(") { push(@gen_toks, "("); return substr($exprStr, 1); }
-	if ($stmp eq ")") { push(@gen_toks, ")"); return substr($exprStr, 1); }
+ 	if ($stmp eq "." || $stmp eq "(" || $stmp eq ")") {
+		return dyna_addtok(substr($exprStr, 0, 1), substr($exprStr, 1));
+	}
 	if ($stmp eq '$') {
 		$stmp = substr($exprStr, 0, 2);
-		if ($stmp eq '$p') { push(@gen_toks, "p"); return substr($exprStr, 2); }
-		if ($stmp eq '$u') { push(@gen_toks, "u"); return substr($exprStr, 2); }
+		if ($stmp eq '$p' || $stmp eq '$u') { return dyna_addtok(substr($exprStr,1,1)), substr($exprStr, 2); }
 		if ($stmp eq '$s') {
-			if (substr($exprStr, 0, 3) eq '$s2')
-			{
-				push(@gen_toks, "S");
-				return substr($exprStr, 3);
-			}
-			push(@gen_toks, "s");
-			return substr($exprStr, 2);
+			if (substr($exprStr, 0, 3) eq '$s2') { return dyna_addtok("S"), substr($exprStr, 3); }
+			return dyna_addtok("s"), substr($exprStr, 2);
 		}
-		if ($stmp ne '$c') { push(@gen_toks, "X"); return $exprStr; }
+		if ($stmp ne '$c') { return dyna_addtok("X", $exprStr); }
 		$stmp = substr($exprStr, 2, 1);
-		if ($stmp eq "1") { push(@gen_toks, "1"); if (!defined($gen_c[0])) {print STDERR "\$c1 found, but no constant1 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "2") { push(@gen_toks, "2"); if (!defined($gen_c[1])) {print STDERR "\$c2 found, but no constant2 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "3") { push(@gen_toks, "3"); if (!defined($gen_c[2])) {print STDERR "\$c3 found, but no constant3 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "4") { push(@gen_toks, "4"); if (!defined($gen_c[3])) {print STDERR "\$c4 found, but no constant4 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "5") { push(@gen_toks, "5"); if (!defined($gen_c[4])) {print STDERR "\$c5 found, but no constant5 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "6") { push(@gen_toks, "6"); if (!defined($gen_c[5])) {print STDERR "\$c6 found, but no constant6 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "7") { push(@gen_toks, "7"); if (!defined($gen_c[6])) {print STDERR "\$c7 found, but no constant7 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "8") { push(@gen_toks, "8"); if (!defined($gen_c[7])) {print STDERR "\$c8 found, but no constant8 loaded\n"; die; } return substr($exprStr, 3); }
-		if ($stmp eq "9") { push(@gen_toks, "9"); if (!defined($gen_c[8])) {print STDERR "\$c9 found, but no constant9 loaded\n"; die; } return substr($exprStr, 3); }
-		push(@gen_toks, "X");
-		return $exprStr;
+		if ($stmp < 1 || $stmp > 9) {  return dyna_addtok("X", $exprStr); }
+		my $sRet = o_dynamic_AddToken($stmp, $exprStr);
+		if (!defined($gen_c[$stmp])) {print STDERR "\$c$stmp found, but no constant$stmp loaded\n"; die; }
+		return $sRet;
 	}
 
 	$gen_lastTokIsFunc=2; # a func, but can NOT be the 'outside' function.
-	if (substr($exprStr, 0, 7) eq "md5_raw")    { push(@gen_toks, "f5r");   return substr($exprStr, 7); }
-	if (substr($exprStr, 0, 8) eq "sha1_raw")   { push(@gen_toks, "f1r");   return substr($exprStr, 8); }
-	if (substr($exprStr, 0, 7) eq "md4_raw")    { push(@gen_toks, "f4r");   return substr($exprStr, 7); }
-	if (substr($exprStr, 0,10) eq "sha224_raw") { push(@gen_toks, "f224r"); return substr($exprStr,10); }
-	if (substr($exprStr, 0,10) eq "sha256_raw") { push(@gen_toks, "f256r"); return substr($exprStr,10); }
-	if (substr($exprStr, 0,10) eq "sha384_raw") { push(@gen_toks, "f384r"); return substr($exprStr,10); }
-	if (substr($exprStr, 0,10) eq "sha512_raw") { push(@gen_toks, "f512r"); return substr($exprStr,10); }
-	if (substr($exprStr, 0, 8) eq "gost_raw")   { push(@gen_toks, "fgostr");return substr($exprStr, 8); }
-	if (substr($exprStr, 0,13) eq "whirlpool_raw") { push(@gen_toks, "fwrlpr");return substr($exprStr, 13); }
-	if (substr($exprStr, 0, 9) eq "tiger_raw")     { push(@gen_toks, "ftigr"); return substr($exprStr, 9); }
-	if (substr($exprStr, 0,13) eq "ripemd128_raw") { push(@gen_toks, "frip128r"); return substr($exprStr,13); }
-	if (substr($exprStr, 0,13) eq "ripemd160_raw") { push(@gen_toks, "frip160r"); return substr($exprStr,13); }
-	if (substr($exprStr, 0,13) eq "ripemd256_raw") { push(@gen_toks, "frip256r"); return substr($exprStr,13); }
-	if (substr($exprStr, 0,13) eq "ripemd320_raw") { push(@gen_toks, "frip320r"); return substr($exprStr,13); }
-	if (substr($exprStr, 0,12) eq "haval256_raw")  { push(@gen_toks, "fhavr"); return substr($exprStr,12); }
-	if (substr($exprStr, 0,5)  eq "pad16")         { push(@gen_toks, "fpad16"); return substr($exprStr,5); }
-	if (substr($exprStr, 0,5)  eq "pad20")         { push(@gen_toks, "fpad20"); return substr($exprStr,5); }
-	if (substr($exprStr, 0,6)  eq "pad100")        { push(@gen_toks, "fpad100"); return substr($exprStr,6); }
-	if (substr($exprStr, 0,7)  eq "padmd64")       { push(@gen_toks, "fpadmd64"); return substr($exprStr,7); }
-	if (substr($exprStr, 0,5)  eq "utf16")         { push(@gen_toks, "futf16"); return substr($exprStr,5); }
-	if (substr($exprStr, 0,7)  eq "utf16be")       { push(@gen_toks, "futf16be"); return substr($exprStr,7); }
+	if (substr($exprStr, 0, 7) eq "md5_raw")    { return dyna_addtok("f5r", substr($exprStr, 7)); }
+	if (substr($exprStr, 0, 8) eq "sha1_raw")   { return dyna_addtok("f1r", substr($exprStr, 8)); }
+	if (substr($exprStr, 0, 7) eq "md4_raw")    { return dyna_addtok("f4r", substr($exprStr, 7)); }
+	if (substr($exprStr, 0,10) eq "sha224_raw") { return dyna_addtok("f224r", substr($exprStr,10)); }
+	if (substr($exprStr, 0,10) eq "sha256_raw") { return dyna_addtok("f256r", substr($exprStr,10)); }
+	if (substr($exprStr, 0,10) eq "sha384_raw") { return dyna_addtok("f384r", substr($exprStr,10)); }
+	if (substr($exprStr, 0,10) eq "sha512_raw") { return dyna_addtok("f512r", substr($exprStr,10)); }
+	if (substr($exprStr, 0, 8) eq "gost_raw")   { return dyna_addtok("fgostr",substr($exprStr, 8)); }
+	if (substr($exprStr, 0,13) eq "whirlpool_raw") { return dyna_addtok("fwrlpr", substr($exprStr, 13)); }
+	if (substr($exprStr, 0, 9) eq "tiger_raw")     { return dyna_addtok("ftigr", substr($exprStr, 9)); }
+	if (substr($exprStr, 0,13) eq "ripemd128_raw") { return dyna_addtok("frip128r", substr($exprStr,13)); }
+	if (substr($exprStr, 0,13) eq "ripemd160_raw") { return dyna_addtok("frip160r", substr($exprStr,13)); }
+	if (substr($exprStr, 0,13) eq "ripemd256_raw") { return dyna_addtok("frip256r", substr($exprStr,13)); }
+	if (substr($exprStr, 0,13) eq "ripemd320_raw") { return dyna_addtok("frip320r", substr($exprStr,13)); }
+	if (substr($exprStr, 0,12) eq "haval256_raw")  { return dyna_addtok("fhavr", substr($exprStr,12)); }
+	if (substr($exprStr, 0,5)  eq "pad16")         { return dyna_addtok("fpad16", substr($exprStr,5)); }
+	if (substr($exprStr, 0,5)  eq "pad20")         { return dyna_addtok("fpad20", substr($exprStr,5)); }
+	if (substr($exprStr, 0,6)  eq "pad100")        { return dyna_addtok("fpad100", substr($exprStr,6)); }
+	if (substr($exprStr, 0,7)  eq "padmd64")       { return dyna_addtok("fpadmd64", substr($exprStr,7)); }
+	if (substr($exprStr, 0,7)  eq "utf16be")       { return dyna_addtok("futf16be", substr($exprStr,7)); }
+	if (substr($exprStr, 0,5)  eq "utf16")         { return dyna_addtok("futf16", substr($exprStr,5)); }
 
 	$gen_lastTokIsFunc=1;
 	$stmp = uc substr($exprStr, 0, 3);
 	if ($stmp eq "MD5") {
-		if (substr($exprStr, 0, 7) eq "md5_64e") { push(@gen_toks, "f5e"); return substr($exprStr, 7); }
-		if (substr($exprStr, 0, 6) eq "md5_64")  { push(@gen_toks, "f56"); return substr($exprStr, 6); }
+		if (substr($exprStr, 0, 7) eq "md5_64e") { return dyna_addtok("f5e", substr($exprStr, 7)); }
+		if (substr($exprStr, 0, 6) eq "md5_64")  { return dyna_addtok("f56", substr($exprStr, 6)); }
 		#md5_40 is used by dyna_1401, which is md5, but pads (with 0's) to 20 bytes, not 16
-		if (substr($exprStr, 0, 6) eq "md5_40")  { push(@gen_toks, "f54"); return substr($exprStr, 6); }
-		if (substr($exprStr, 0, 4) eq "md5u")    { push(@gen_toks, "f5u"); return substr($exprStr, 4); }
-		if (substr($exprStr, 0, 3) eq "md5")     { push(@gen_toks, "f5h"); return substr($exprStr, 3); }
-		if (substr($exprStr, 0, 3) eq "MD5")     { push(@gen_toks, "f5H"); return substr($exprStr, 3); }
+		if (substr($exprStr, 0, 6) eq "md5_40")  { return dyna_addtok("f54", substr($exprStr, 6)); }
+		if (substr($exprStr, 0, 4) eq "md5u")    { return dyna_addtok("f5u", substr($exprStr, 4)); }
+		if (substr($exprStr, 0, 3) eq "md5")     { return dyna_addtok("f5h", substr($exprStr, 3)); }
+		if (substr($exprStr, 0, 3) eq "MD5")     { return dyna_addtok("f5H", substr($exprStr, 3)); }
 	} elsif ($stmp eq "SHA") {
-		if (substr($exprStr, 0, 8) eq "sha1_64e")  { push(@gen_toks, "f1e");   return substr($exprStr, 8); }
-		if (substr($exprStr, 0, 7) eq "sha1_64")   { push(@gen_toks, "f16");   return substr($exprStr, 7); }
-		if (substr($exprStr, 0, 5) eq "sha1u")     { push(@gen_toks, "f1u");   return substr($exprStr, 5); }
-		if (substr($exprStr, 0, 4) eq "SHA1")      { push(@gen_toks, "f1H");   return substr($exprStr, 4); }
-		if (substr($exprStr, 0, 4) eq "sha1")      { push(@gen_toks, "f1h");   return substr($exprStr, 4); }
-		if (substr($exprStr, 0,10) eq "sha224_64e"){ push(@gen_toks, "f224e"); return substr($exprStr, 10); }
-		if (substr($exprStr, 0, 9) eq "sha224_64") { push(@gen_toks, "f2246"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0, 7) eq "sha224u")   { push(@gen_toks, "f224u"); return substr($exprStr, 7); }
-		if (substr($exprStr, 0, 6) eq "SHA224")    { push(@gen_toks, "f224H"); return substr($exprStr, 6); }
-		if (substr($exprStr, 0, 6) eq "sha224")    { push(@gen_toks, "f224h"); return substr($exprStr, 6); }
-		if (substr($exprStr, 0,10) eq "sha256_64e"){ push(@gen_toks, "f256e"); return substr($exprStr, 10); }
-		if (substr($exprStr, 0, 9) eq "sha256_64") { push(@gen_toks, "f2566"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0, 7) eq "sha256u")   { push(@gen_toks, "f256u"); return substr($exprStr, 7); }
-		if (substr($exprStr, 0, 6) eq "SHA256")    { push(@gen_toks, "f256H"); return substr($exprStr, 6); }
-		if (substr($exprStr, 0, 6) eq "sha256")    { push(@gen_toks, "f256h"); return substr($exprStr, 6); }
-		if (substr($exprStr, 0,10) eq "sha384_64e"){ push(@gen_toks, "f384e"); return substr($exprStr, 10); }
-		if (substr($exprStr, 0, 9) eq "sha384_64") { push(@gen_toks, "f3846"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0, 7) eq "sha384u")   { push(@gen_toks, "f384u"); return substr($exprStr, 7); }
-		if (substr($exprStr, 0, 6) eq "SHA384")    { push(@gen_toks, "f384H"); return substr($exprStr, 6); }
-		if (substr($exprStr, 0, 6) eq "sha384")    { push(@gen_toks, "f384h"); return substr($exprStr, 6); }
-		if (substr($exprStr, 0,10) eq "sha512_64e"){ push(@gen_toks, "f512e"); return substr($exprStr, 10); }
-		if (substr($exprStr, 0, 9) eq "sha512_64") { push(@gen_toks, "f5126"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0, 7) eq "sha512u")   { push(@gen_toks, "f512u"); return substr($exprStr, 7); }
-		if (substr($exprStr, 0, 6) eq "SHA512")    { push(@gen_toks, "f512H"); return substr($exprStr, 6); }
-		if (substr($exprStr, 0, 6) eq "sha512")    { push(@gen_toks, "f512h"); return substr($exprStr, 6); }
+		if (substr($exprStr, 0, 8) eq "sha1_64e")  { return dyna_addtok("f1e", substr($exprStr, 8)); }
+		if (substr($exprStr, 0, 7) eq "sha1_64")   { return dyna_addtok("f16", substr($exprStr, 7)); }
+		if (substr($exprStr, 0, 5) eq "sha1u")     { return dyna_addtok("f1u", substr($exprStr, 5)); }
+		if (substr($exprStr, 0, 4) eq "SHA1")      { return dyna_addtok("f1H", substr($exprStr, 4)); }
+		if (substr($exprStr, 0, 4) eq "sha1")      { return dyna_addtok("f1h", substr($exprStr, 4)); }
+		if (substr($exprStr, 0,10) eq "sha224_64e"){ return dyna_addtok("f224e", substr($exprStr, 10)); }
+		if (substr($exprStr, 0, 9) eq "sha224_64") { return dyna_addtok("f2246", substr($exprStr, 9)); }
+		if (substr($exprStr, 0, 7) eq "sha224u")   { return dyna_addtok("f224u", substr($exprStr, 7)); }
+		if (substr($exprStr, 0, 6) eq "SHA224")    { return dyna_addtok("f224H", substr($exprStr, 6)); }
+		if (substr($exprStr, 0, 6) eq "sha224")    { return dyna_addtok("f224h", substr($exprStr, 6)); }
+		if (substr($exprStr, 0,10) eq "sha256_64e"){ return dyna_addtok("f256e", substr($exprStr, 10)); }
+		if (substr($exprStr, 0, 9) eq "sha256_64") { return dyna_addtok("f2566", substr($exprStr, 9)); }
+		if (substr($exprStr, 0, 7) eq "sha256u")   { return dyna_addtok("f256u", substr($exprStr, 7)); }
+		if (substr($exprStr, 0, 6) eq "SHA256")    { return dyna_addtok("f256H", substr($exprStr, 6)); }
+		if (substr($exprStr, 0, 6) eq "sha256")    { return dyna_addtok("f256h", substr($exprStr, 6)); }
+		if (substr($exprStr, 0,10) eq "sha384_64e"){ return dyna_addtok("f384e", substr($exprStr, 10)); }
+		if (substr($exprStr, 0, 9) eq "sha384_64") { return dyna_addtok("f3846", substr($exprStr, 9)); }
+		if (substr($exprStr, 0, 7) eq "sha384u")   { return dyna_addtok("f384u", substr($exprStr, 7)); }
+		if (substr($exprStr, 0, 6) eq "SHA384")    { return dyna_addtok("f384H", substr($exprStr, 6)); }
+		if (substr($exprStr, 0, 6) eq "sha384")    { return dyna_addtok("f384h", substr($exprStr, 6)); }
+		if (substr($exprStr, 0,10) eq "sha512_64e"){ return dyna_addtok("f512e", substr($exprStr, 10)); }
+		if (substr($exprStr, 0, 9) eq "sha512_64") { return dyna_addtok("f5126", substr($exprStr, 9)); }
+		if (substr($exprStr, 0, 7) eq "sha512u")   { return dyna_addtok("f512u", substr($exprStr, 7)); }
+		if (substr($exprStr, 0, 6) eq "SHA512")    { return dyna_addtok("f512H", substr($exprStr, 6)); }
+		if (substr($exprStr, 0, 6) eq "sha512")    { return dyna_addtok("f512h", substr($exprStr, 6)); }
 	} elsif ($stmp eq "MD4") {
-		if (substr($exprStr, 0, 7) eq "md4_64e")   { push(@gen_toks, "f4e"); return substr($exprStr, 7); }
-		if (substr($exprStr, 0, 6) eq "md4_64")    { push(@gen_toks, "f46"); return substr($exprStr, 6); }
-		if (substr($exprStr, 0, 4) eq "md4u")      { push(@gen_toks, "f4u"); return substr($exprStr, 4); }
-		if (substr($exprStr, 0, 3) eq "md4")       { push(@gen_toks, "f4h"); return substr($exprStr, 3); }
-		if (substr($exprStr, 0, 3) eq "MD4")       { push(@gen_toks, "f4H"); return substr($exprStr, 3); }
+		if (substr($exprStr, 0, 7) eq "md4_64e")   { return dyna_addtok("f4e", substr($exprStr, 7)); }
+		if (substr($exprStr, 0, 6) eq "md4_64")    { return dyna_addtok("f46", substr($exprStr, 6)); }
+		if (substr($exprStr, 0, 4) eq "md4u")      { return dyna_addtok("f4u", substr($exprStr, 4)); }
+		if (substr($exprStr, 0, 3) eq "md4")       { return dyna_addtok("f4h", substr($exprStr, 3)); }
+		if (substr($exprStr, 0, 3) eq "MD4")       { return dyna_addtok("f4H", substr($exprStr, 3)); }
 	} elsif ($stmp eq "GOS") {
-		if (substr($exprStr, 0, 8) eq "gost_64e")  { push(@gen_toks, "fgoste"); return substr($exprStr, 8); }
-		if (substr($exprStr, 0, 7) eq "gost_64")   { push(@gen_toks, "fgost6"); return substr($exprStr, 7); }
-		if (substr($exprStr, 0, 5) eq "gostu")     { push(@gen_toks, "fgostu"); return substr($exprStr, 6); }
-		if (substr($exprStr, 0, 4) eq "GOST")      { push(@gen_toks, "fgostH"); return substr($exprStr, 4); }
-		if (substr($exprStr, 0, 4) eq "gost")      { push(@gen_toks, "fgosth"); return substr($exprStr, 4); }
+		if (substr($exprStr, 0, 8) eq "gost_64e")  { return dyna_addtok("fgoste", substr($exprStr, 8)); }
+		if (substr($exprStr, 0, 7) eq "gost_64")   { return dyna_addtok("fgost6", substr($exprStr, 7)); }
+		if (substr($exprStr, 0, 5) eq "gostu")     { return dyna_addtok("fgostu", substr($exprStr, 6)); }
+		if (substr($exprStr, 0, 4) eq "GOST")      { return dyna_addtok("fgostH", substr($exprStr, 4)); }
+		if (substr($exprStr, 0, 4) eq "gost")      { return dyna_addtok("fgosth", substr($exprStr, 4)); }
 	} elsif ($stmp eq "WHI") {
-		if (substr($exprStr, 0,13) eq "whirlpool_64e")  { push(@gen_toks, "fwrlpe"); return substr($exprStr, 13); }
-		if (substr($exprStr, 0,12) eq "whirlpool_64")   { push(@gen_toks, "fwrlp6"); return substr($exprStr, 12); }
-		if (substr($exprStr, 0,10) eq "whirlpoolu")     { push(@gen_toks, "fwrlpu"); return substr($exprStr, 10); }
-		if (substr($exprStr, 0, 9) eq "WHIRLPOOL")      { push(@gen_toks, "fwrlpH"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0, 9) eq "whirlpool")      { push(@gen_toks, "fwrlph"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0,13) eq "whirlpool_64e")  { return dyna_addtok("fwrlpe", substr($exprStr, 13)); }
+		if (substr($exprStr, 0,12) eq "whirlpool_64")   { return dyna_addtok("fwrlp6", substr($exprStr, 12)); }
+		if (substr($exprStr, 0,10) eq "whirlpoolu")     { return dyna_addtok("fwrlpu", substr($exprStr, 10)); }
+		if (substr($exprStr, 0, 9) eq "WHIRLPOOL")      { return dyna_addtok("fwrlpH", substr($exprStr, 9)); }
+		if (substr($exprStr, 0, 9) eq "whirlpool")      { return dyna_addtok("fwrlph", substr($exprStr, 9)); }
 	} elsif ($stmp eq "TIG") {
-		if (substr($exprStr, 0, 9) eq "tiger_64e")  { push(@gen_toks, "ftige"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0, 8) eq "tiger_64")   { push(@gen_toks, "ftig6"); return substr($exprStr, 8); }
-		if (substr($exprStr, 0, 6) eq "tigeru")     { push(@gen_toks, "ftigu"); return substr($exprStr, 6); }
-		if (substr($exprStr, 0, 5) eq "TIGER")      { push(@gen_toks, "ftigH"); return substr($exprStr, 5); }
-		if (substr($exprStr, 0, 5) eq "tiger")      { push(@gen_toks, "ftigh"); return substr($exprStr, 5); }
+		if (substr($exprStr, 0, 9) eq "tiger_64e")  { return dyna_addtok("ftige", substr($exprStr, 9)); }
+		if (substr($exprStr, 0, 8) eq "tiger_64")   { return dyna_addtok("ftig6", substr($exprStr, 8)); }
+		if (substr($exprStr, 0, 6) eq "tigeru")     { return dyna_addtok("ftigu", substr($exprStr, 6)); }
+		if (substr($exprStr, 0, 5) eq "TIGER")      { return dyna_addtok("ftigH", substr($exprStr, 5)); }
+		if (substr($exprStr, 0, 5) eq "tiger")      { return dyna_addtok("ftigh", substr($exprStr, 5)); }
 	} elsif ($stmp eq "RIP") {
-		if (substr($exprStr, 0,13) eq "ripemd128_64e")  { push(@gen_toks, "frip128e"); return substr($exprStr,13); }
-		if (substr($exprStr, 0,12) eq "ripemd128_64")   { push(@gen_toks, "frip1286"); return substr($exprStr,12); }
-		if (substr($exprStr, 0,10) eq "ripemd128u")     { push(@gen_toks, "frip128u"); return substr($exprStr,10); }
-		if (substr($exprStr, 0, 9) eq "RIPEMD129")      { push(@gen_toks, "frip128H"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0, 9) eq "ripemd128")      { push(@gen_toks, "frip128h"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0,13) eq "ripemd160_64e")  { push(@gen_toks, "frip160e"); return substr($exprStr,13); }
-		if (substr($exprStr, 0,12) eq "ripemd160_64")   { push(@gen_toks, "frip1606"); return substr($exprStr,12); }
-		if (substr($exprStr, 0,10) eq "ripemd160u")     { push(@gen_toks, "frip160u"); return substr($exprStr,10); }
-		if (substr($exprStr, 0, 9) eq "RIPEMD160")      { push(@gen_toks, "frip160H"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0, 9) eq "ripemd160")      { push(@gen_toks, "frip160h"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0,13) eq "ripemd256_64e")  { push(@gen_toks, "frip256e"); return substr($exprStr,13); }
-		if (substr($exprStr, 0,12) eq "ripemd256_64")   { push(@gen_toks, "frip2566"); return substr($exprStr,12); }
-		if (substr($exprStr, 0,10) eq "ripemd256u")     { push(@gen_toks, "frip256u"); return substr($exprStr,10); }
-		if (substr($exprStr, 0, 9) eq "RIPEMD129")      { push(@gen_toks, "frip256H"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0, 9) eq "ripemd256")      { push(@gen_toks, "frip256h"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0,13) eq "ripemd320_64e")  { push(@gen_toks, "frip320e"); return substr($exprStr,13); }
-		if (substr($exprStr, 0,12) eq "ripemd320_64")   { push(@gen_toks, "frip3206"); return substr($exprStr,12); }
-		if (substr($exprStr, 0,10) eq "ripemd320u")     { push(@gen_toks, "frip320u"); return substr($exprStr,10); }
-		if (substr($exprStr, 0, 9) eq "RIPEMD129")      { push(@gen_toks, "frip320H"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0, 9) eq "ripemd320")      { push(@gen_toks, "frip320h"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0,13) eq "ripemd128_64e")  { return dyna_addtok("frip128e", substr($exprStr,13)); }
+		if (substr($exprStr, 0,12) eq "ripemd128_64")   { return dyna_addtok("frip1286", substr($exprStr,12)); }
+		if (substr($exprStr, 0,10) eq "ripemd128u")     { return dyna_addtok("frip128u", substr($exprStr,10)); }
+		if (substr($exprStr, 0, 9) eq "RIPEMD129")      { return dyna_addtok("frip128H", substr($exprStr, 9)); }
+		if (substr($exprStr, 0, 9) eq "ripemd128")      { return dyna_addtok("frip128h", substr($exprStr, 9)); }
+		if (substr($exprStr, 0,13) eq "ripemd160_64e")  { return dyna_addtok("frip160e", substr($exprStr,13)); }
+		if (substr($exprStr, 0,12) eq "ripemd160_64")   { return dyna_addtok("frip1606", substr($exprStr,12)); }
+		if (substr($exprStr, 0,10) eq "ripemd160u")     { return dyna_addtok("frip160u", substr($exprStr,10)); }
+		if (substr($exprStr, 0, 9) eq "RIPEMD160")      { return dyna_addtok("frip160H", substr($exprStr, 9)); }
+		if (substr($exprStr, 0, 9) eq "ripemd160")      { return dyna_addtok("frip160h", substr($exprStr, 9)); }
+		if (substr($exprStr, 0,13) eq "ripemd256_64e")  { return dyna_addtok("frip256e", substr($exprStr,13)); }
+		if (substr($exprStr, 0,12) eq "ripemd256_64")   { return dyna_addtok("frip2566", substr($exprStr,12)); }
+		if (substr($exprStr, 0,10) eq "ripemd256u")     { return dyna_addtok("frip256u", substr($exprStr,10)); }
+		if (substr($exprStr, 0, 9) eq "RIPEMD129")      { return dyna_addtok("frip256H", substr($exprStr, 9)); }
+		if (substr($exprStr, 0, 9) eq "ripemd256")      { return dyna_addtok("frip256h", substr($exprStr, 9)); }
+		if (substr($exprStr, 0,13) eq "ripemd320_64e")  { return dyna_addtok("frip320e", substr($exprStr,13)); }
+		if (substr($exprStr, 0,12) eq "ripemd320_64")   { return dyna_addtok("frip3206", substr($exprStr,12)); }
+		if (substr($exprStr, 0,10) eq "ripemd320u")     { return dyna_addtok("frip320u", substr($exprStr,10)); }
+		if (substr($exprStr, 0, 9) eq "RIPEMD129")      { return dyna_addtok("frip320H", substr($exprStr, 9)); }
+		if (substr($exprStr, 0, 9) eq "ripemd320")      { return dyna_addtok("frip320h", substr($exprStr, 9)); }
 	} elsif ($stmp eq "HAV") {
-		if (substr($exprStr, 0,12) eq "haval256_64e")  { push(@gen_toks, "fhave"); return substr($exprStr,12); }
-		if (substr($exprStr, 0,11) eq "haval256_64")   { push(@gen_toks, "fhav6"); return substr($exprStr,11); }
-		if (substr($exprStr, 0, 9) eq "haval256u")     { push(@gen_toks, "fhavu"); return substr($exprStr, 9); }
-		if (substr($exprStr, 0, 8) eq "HAVEL256")      { push(@gen_toks, "fhavH"); return substr($exprStr, 8); }
-		if (substr($exprStr, 0, 8) eq "haval256")      { push(@gen_toks, "fhavh"); return substr($exprStr, 8); }
+		if (substr($exprStr, 0,12) eq "haval256_64e")  { return dyna_addtok("fhave", substr($exprStr,12)); }
+		if (substr($exprStr, 0,11) eq "haval256_64")   { return dyna_addtok("fhav6", substr($exprStr,11)); }
+		if (substr($exprStr, 0, 9) eq "haval256u")     { return dyna_addtok("fhavu", substr($exprStr, 9)); }
+		if (substr($exprStr, 0, 8) eq "HAVEL256")      { return dyna_addtok("fhavH", substr($exprStr, 8)); }
+		if (substr($exprStr, 0, 8) eq "haval256")      { return dyna_addtok("fhavh", substr($exprStr, 8)); }
 	} elsif ($stmp eq "TRU") {
-		if (substr($exprStr, 0,7) eq "trunc32")  { push(@gen_toks, "ftr32"); return substr($exprStr, 7); }
+		if (substr($exprStr, 0,7) eq "trunc32")  { return dyna_addtok("ftr32", substr($exprStr, 7)); }
 	}
 
 	$gen_lastTokIsFunc=0;
