@@ -616,8 +616,8 @@ void listconf_parse_late(void)
 			printf(" The split() method unifies case     %s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
 
 			if (format->params.flags & FMT_DYNAMIC) {
-				private_subformat_data *p = (private_subformat_data *)format->private.data;
 #if SIMD_COEF_32
+				private_subformat_data *p = (private_subformat_data *)format->private.data;
 				if (p->pSetup->flags & MGF_FLAT_BUFFERS)
 					printf(" A $dynamic$ format                  yes (Flat buffer SIMD)\n");
 				else {
