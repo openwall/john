@@ -19,6 +19,7 @@
 #if AC_BUILT
 #include "autoconfig.h"
 #else
+#define _GNU_SOURCE 1 /* for strcasestr */
 #ifdef __SIZEOF_INT128__
 #define HAVE___INT128 1
 #endif
