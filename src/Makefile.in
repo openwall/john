@@ -973,7 +973,7 @@ distclean: clean
 		config.log autoconfig-stamp-h autoconfig-stamp-h-in stamp-h1
 	$(LN) Makefile.stub Makefile
 	$(RM) arch.h
-	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h version.h
+	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h version.h version.h.new
 
 install: default shell-completion
 	@echo Stripping executables.

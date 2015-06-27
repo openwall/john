@@ -68,5 +68,6 @@ src/para-bench
 src/stamp-h1
 src/Unicode
 src/version.h
+src/version.h.new
 
 test/
