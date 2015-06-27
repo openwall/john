@@ -328,8 +328,6 @@ crc32.o:	crc32.c memory.h crc32.h memdbg.h
 
 cryptmd5_common.o:	cryptmd5_common.c arch.h misc.h common.h formats.h cryptmd5_common.h
 
-detect.o:	detect.c memdbg.h
-
 dmg2john.o:	dmg2john.c autoconfig.h stdint.h gladman_fileenc.h filevault.h misc.h jumbo.h memdbg.h
 
 dummy.o:	dummy.c common.h formats.h memdbg.h
