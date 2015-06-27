@@ -12,6 +12,11 @@
  *    Redistribution and use in source and binary forms, with or without
  *    modifications, are permitted. */
 
+#if !AC_BUILT
+#if __GNUC__ && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#define ARCH_LITTLE_ENDIAN 1
+#endif
+#endif
 #if FMT_EXTERNS_H
 #if ARCH_LITTLE_ENDIAN
 extern struct fmt_main fmt_VMS;
