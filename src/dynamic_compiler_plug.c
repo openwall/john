@@ -28,6 +28,11 @@ typedef struct DC_list {
 	DC_struct *value;
 } DC_list;
 
+const char *dyna_script="Expression=dynamic=md5($p)\nFlag=MGF_KEYS_INPUT\nFunc=DynamicFunc__crypt_md5\nTest=@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72:abc";
+const char *dyna_signature="@dynamic=md5($p)@";
+const char *dyna_one_line = "@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72";
+int dyna_sig_len = 17;
+
 static DC_list *pList;
 static DC_struct *pLastFind;
 
@@ -133,6 +138,17 @@ static void add_checksum_list(DC_HANDLE pHand) {
 	p = mem_calloc_tiny(sizeof(DC_list), sizeof(void*));
 	p->next = pList->next;
 	pList->next = p;
+}
+
+int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt) {
+	if (!((DC_struct*)H) || ((DC_struct*)H)->magic != DC_MAGIC)
+		return -1;
+	dyna_script = ((DC_struct*)H)->pScript;
+	dyna_signature = ((DC_struct*)H)->pSignature;
+	dyna_one_line = ((DC_struct*)H)->pOneLine;
+	dyna_sig_len = strlen(dyna_signature);
+	((DC_struct*)H)->pFmt = pFmt;
+	return 0;
 }
 
 #ifdef WITH_MAIN

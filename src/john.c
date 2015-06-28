@@ -274,11 +274,12 @@ static void john_register_one(struct fmt_main *format)
 		}
 #endif
 		else if (strcasecmp(options.format, format->params.label)) {
-			if (!strncasecmp(options.format, "@dynamic=", 9) && !strcasecmp(format->params.label, "@dynamic=")) {
+			if (!strncasecmp(options.format, "dynamic=", 8) && !strcasecmp(format->params.label, "dynamic=")) {
 				DC_HANDLE H;
-				if (!dynamic_compile(options.format, &H))
-					dynamic_assign_script_to_format(H);
-				else
+				if (!dynamic_compile(options.format, &H)) {
+					if (dynamic_assign_script_to_format(H, format))
+						return;
+				} else
 					return;
 			} else
 				return;

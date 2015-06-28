@@ -22,7 +22,7 @@ typedef void *DC_HANDLE;
 extern int dynamic_compile(const char *expr, DC_HANDLE *pH);
 extern int dynamic_load(DC_HANDLE H);
 extern int dynamic_print_script(DC_HANDLE H);
-extern int dynamic_assign_script_to_format(DC_HANDLE H);
+extern int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt);
 
 #define DC_MAGIC 0x654d7baf
 
@@ -32,6 +32,7 @@ typedef struct DC_struct {
 	uint32_t crc32; // hash of pExpr
 	struct fmt_main *pFmt;
 	const char *pExpr;
+	const char *pExtraParams;
 	const char *pScript;
 	const char *pSignature;
 	const char *pOneLine;

@@ -37,7 +37,7 @@ john_register_one(&fmt_CompiledDynamic);
 #include "dynamic_compiler.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"@dynamic="
+#define FORMAT_LABEL		"dynamic="
 #define FORMAT_NAME			""
 
 #define ALGORITHM_NAME		"?"
@@ -49,10 +49,10 @@ john_register_one(&fmt_CompiledDynamic);
 #define DYNA_SALT_SIZE		(sizeof(char*))
 #define SALT_ALIGN			MEM_ALIGN_WORD
 
-static const char *dyna_script="Expression=md5($p)\nFlag=MGF_KEYS_INPUT\nFunc=DynamicFunc__crypt_md5\nTest=@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72:abc";
-static const char *dyna_signature="@dynamic=md5($p)@";
-static const char *dyna_one_line = "@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72";
-static int dyna_sig_len = 17;
+extern const char *dyna_script;
+extern const char *dyna_signature;
+extern const char *dyna_one_line;
+extern int dyna_sig_len;
 
 static struct fmt_tests tests[] = {
 	{"@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72", "abc"},
@@ -92,11 +92,21 @@ static char *Convert(char *Buf, char *ciphertext, int in_load)
 
 static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	if (strncmp(ciphertext, dyna_signature, dyna_sig_len)) {
+	extern int ldr_in_pot;
+	if (strncmp(ciphertext, "@dynamic=", 9) && strncmp(ciphertext, dyna_signature, dyna_sig_len)) {
 		// convert back into @dynamic@ format
-//		static char Buf[512];
-//		sprintf(Buf, "%s%s", dyna_signature, ciphertext);
-//		ciphertext = Buf;
+		static char Buf[512];
+		sprintf(Buf, "%s%s", dyna_signature, ciphertext);
+		ciphertext = Buf;
+	}
+	if (ldr_in_pot == 1 && !strncmp(ciphertext, "@dynamic=", 9)) {
+		static char Buf[512], Buf2[512];
+		char *cp = strchr(&ciphertext[1], '@');
+		if (cp) {
+			strcpy(Buf, &cp[1]);
+			sprintf(Buf2, "%s%s", dyna_signature, Buf);
+			ciphertext = Buf2;
+		}
 	}
 	return ciphertext;
 }
@@ -175,16 +185,6 @@ static void get_ptr() {
 		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_CompiledDynamic, Convert(Conv_Buf, (char*)dyna_one_line, 0), "@dynamic=", 0);
 		link_funcs();
 	}
-}
-
-int dynamic_assign_script_to_format(DC_HANDLE H) {
-	if (!((DC_struct*)H) || ((DC_struct*)H)->magic != DC_MAGIC)
-		return -1;
-	dyna_script = ((DC_struct*)H)->pScript;
-	dyna_signature = ((DC_struct*)H)->pSignature;
-	dyna_one_line = ((DC_struct*)H)->pOneLine;
-	dyna_sig_len = strlen(dyna_signature);
-	return 0;
 }
 
 #endif /* plugin stanza */
