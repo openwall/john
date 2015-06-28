@@ -18,6 +18,7 @@ CPP = $(CC)
 CP = cp
 CP_PRESERVE = cp -p
 LN = ln -f -s
+MV = mv -f
 RM = rm -f
 MKDIR = mkdir -p
 GREP = grep
@@ -29,6 +30,11 @@ SORT = sort
 STRIP = strip
 MAKE_BEST_JTR = $(MAKE) -j1 -f Makefile.legacy
 MAKE_ORIG = $(MAKE) -f Makefile.legacy -j$(J)
+
+JTR_GIT_VERSION = \"$(shell git describe --tags --dirty=+ 2>/dev/null)\"
+ifeq ($(JTR_GIT_VERSION), \"\")
+JTR_GIT_VERSION = JOHN_VERSION
+endif
 
 ## Uncomment the line below for MPI (can be used together with OMP as well)
 #CC = mpicc -DHAVE_MPI
@@ -54,7 +60,7 @@ OMPFLAGS =
 ifndef RELEASE_BLD
 HAVE_LIBGMP = `find 2>&1 /usr/include /usr/local/include -name "gmp.h" | grep -q "gmp.h" && echo -DHAVE_LIBGMP`
 GMP_LDFLAGS = `find 2>&1 /usr/include /usr/local/include -name "gmp.h" | grep -q "gmp.h" && echo -lgmp`
-REXGEN_FLAGS = `find 2>&1 /usr/include/librexgen/api/c /usr/local/include/librexgen/api/c -name "librexgen.h" | grep -q "librexgen.h" && echo -DHAVE_LIBREXGEN=1`
+REXGEN_FLAGS = `find 2>&1 /usr/include/librexgen/c /usr/local/include/librexgen/c -name "librexgen.h" | grep -q "librexgen.h" && echo -DHAVE_LIBREXGEN=1`
 REXGEN_LDFLAGS = `find 2>&1 /usr/lib/ /usr/local/lib/ -name "liblibrexgen*.a" | grep -q "liblibrexgen" && echo -llibrexgen`
 REXGEN_LDFLAGS += `find 2>&1 /usr/lib/ /usr/local/lib/ -name "librexgen*.a" -o -name "librexgen*.so" -o -name "librexgen*.dylib" | grep -q "librexgen" && echo -lrexgen`
 endif
@@ -208,7 +214,7 @@ BENCH_PARA_DEPEND = \
 GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o
 
-PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
+PROJ = find_version ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/ssh2john ../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/hccap2john \
@@ -217,7 +223,7 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
 	../run/wpapcap2john \
 	../run/gpg2john ../run/luks2john ../run/cprepair ../run/base64conv
-PROJ_DOS = ../run/john.bin ../run/john.com \
+PROJ_DOS = find_version ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
 	../run/ssh2john.com ../run/rar2john.com ../run/zip2john \
@@ -226,7 +232,7 @@ PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/keychain2john.com ../run/keyring2john.com ../run/kwallet2john.com \
 	../run/dmg2john.com ../run/putty2john.com john.local.conf \
 	../run/gpg2john.com
-PROJ_WIN32 = ../run/john.exe \
+PROJ_WIN32 = find_version ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
@@ -236,7 +242,7 @@ PROJ_WIN32 = ../run/john.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
 	../run/kwallet2john.exe ../run/dmg2john.exe ../run/putty2john.exe \
 	john.local.conf ../run/gpg2john.exe ../run/base64conv.exe
-PROJ_WIN32_MINGW = ../run/john-mingw.exe \
+PROJ_WIN32_MINGW = find_version ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
@@ -1613,7 +1619,7 @@ john-macosx-x86-64:
 		ASFLAGS="$(ASFLAGS) -arch x86_64 -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -arch x86_64 -m64" \
 		LDFLAGS="$(LDFLAGS) -arch x86_64 -m64"
-	mv ../run/john john-macosx-x86-64
+	$(MV) ../run/john john-macosx-x86-64
 
 john-macosx-x86:
 	$(RM) *.o
@@ -1624,7 +1630,7 @@ john-macosx-x86:
 		ASFLAGS="$(ASFLAGS) -arch i386 -m32 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -arch i386 -m32 -D_DARWIN_C_SOURCE" \
 		LDFLAGS="$(LDFLAGS) -arch i386 -m32"
-	mv ../run/john john-macosx-x86
+	$(MV) ../run/john john-macosx-x86
 
 john-macosx-ppc:
 	$(RM) *.o
@@ -1636,7 +1642,7 @@ john-macosx-ppc:
 		LDFLAGS="$(LDFLAGS) -arch ppc" \
 		OPT_NORMAL="-fast -mcpu=7450" \
 		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000 -faltivec -maltivec"
-	mv ../run/john john-macosx-ppc
+	$(MV) ../run/john john-macosx-ppc
 
 macosx-universal: john-macosx-x86-64 john-macosx-x86 john-macosx-ppc
 	lipo -create john-macosx-x86-64 john-macosx-x86 john-macosx-ppc \
@@ -1990,9 +1996,19 @@ cuda_rawsha512.o: cuda_rawsha512.h cuda/rawsha512.cu cuda_common.o
 cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) pwsafe.cu -o ../cuda_pwsafe.o
 
+listconf.o: version.h listconf.h listconf.c
+
+options.o: version.h options.c
+
+version.h: find_version
+
+find_version:
+	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
+	diff >/dev/null -Nq version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
+
 SUBDIRS = aes
 
-.PHONY: subdirs $(SUBDIRS)
+.PHONY: subdirs $(SUBDIRS) find_version
 
 subdirs: $(SUBDIRS)
 
@@ -2398,7 +2414,7 @@ clean:
 	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin
 	$(RM) detect bench para-bench generic.h arch.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~
-	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
+	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h version.h version.h.new
 	$(CP) $(NULL) Makefile.dep
 	+$(MAKE_ORIG) -C aes clean
 	+$(MAKE_ORIG) -C escrypt clean
@@ -2466,6 +2482,6 @@ sse-intrinsics-32.S:
 	$(LN) x86-sse.h arch.h
 	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
 	perl sse2i_winfix.pl sse-intrinsics-32.S sse-intrinsics-win32.S
-	mv sse-intrinsics-win32.S sse-intrinsics-32.S
+	$(MV) sse-intrinsics-win32.S sse-intrinsics-32.S
 
 include Makefile.dep

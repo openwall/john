@@ -11,6 +11,7 @@
 #include <stdlib.h>
 
 #include "wpapcap2john.h"
+#include "jumbo.h"
 #include "memdbg.h"
 
 /*

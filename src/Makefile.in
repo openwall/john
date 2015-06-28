@@ -26,6 +26,7 @@ CPP = @CPP@
 CP = cp
 CP_PRESERVE = cp -p
 LN = @LN_S@
+MV = mv -f
 RM = rm -f
 MKDIR = @MKDIR_P@
 TR = tr
@@ -41,6 +42,11 @@ subdirs = aes escrypt
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
 prefix = @prefix@
+
+JTR_GIT_VERSION = \"$(shell git describe --tags --dirty=+ 2>/dev/null)\"
+ifeq ($(JTR_GIT_VERSION), \"\")
+JTR_GIT_VERSION = JOHN_VERSION
+endif
 
 # CUDA settings. See output of "nvcc -h"
 NVCC_FLAGS = -c -Xptxas -v -fmad=true
@@ -178,6 +184,7 @@ endif
 #
 #########################################################
 default:
+	$(MAKE) find_version
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@" \
 		AESNI_ARCH=@AESNI_ARCH@
@@ -322,8 +329,6 @@ crc32.o:	crc32.c memory.h crc32.h memdbg.h
 
 cryptmd5_common.o:	cryptmd5_common.c arch.h misc.h common.h formats.h cryptmd5_common.h
 
-detect.o:	detect.c memdbg.h
-
 dmg2john.o:	dmg2john.c autoconfig.h stdint.h gladman_fileenc.h filevault.h misc.h jumbo.h memdbg.h
 
 dummy.o:	dummy.c common.h formats.h memdbg.h
@@ -382,7 +387,13 @@ kwallet2john.o:	kwallet2john.c stdint.h jumbo.h memdbg.h
 
 list.o:	list.c memory.h list.h memdbg.h
 
-listconf.o:	listconf.c autoconfig.h arch.h jumbo.h params.h path.h formats.h options.h unicode.h dynamic.h config.h regex.h john_build_rule.h common-opencl.h memdbg.h
+version.h: find_version
+
+find_version:
+	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
+	diff >/dev/null -Nq version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
+
+listconf.o:	version.h listconf.h listconf.c autoconfig.h arch.h jumbo.h params.h path.h formats.h options.h unicode.h dynamic.h config.h regex.h john_build_rule.h common-opencl.h memdbg.h
 
 loader.o:	loader.c autoconfig.h jumbo.h os.h arch.h misc.h params.h path.h memory.h list.h signals.h formats.h dyna_salt.h loader.h options.h config.h unicode.h dynamic.h fake_salts.h john.h cracker.h config.h logger.h memdbg.h
 
@@ -422,7 +433,7 @@ NT_fmt.o:	NT_fmt.c arch.h misc.h memory.h common.h formats.h options.h unicode.h
 
 opencl_autotune.o:	opencl_autotune.c common-opencl.h memdbg.h
 
-options.o:	options.c os.h arch.h misc.h params.h memory.h list.h loader.h logger.h status.h recovery.h options.h bench.h external.h john.h dynamic.h unicode.h fake_salts.h regex.h john-mpi.h common-opencl.h prince.h memdbg.h john_build_rule.h
+options.o:	version.h listconf.h options.c os.h arch.h misc.h params.h memory.h list.h loader.h logger.h status.h recovery.h options.h bench.h external.h john.h dynamic.h unicode.h fake_salts.h regex.h john-mpi.h common-opencl.h prince.h memdbg.h john_build_rule.h
 
 para-best.o:	para-best.c math.h params.h common.h formats.h bench.h memdbg.h
 
@@ -527,7 +538,7 @@ zip2john.o:	zip2john.c common.h jumbo.h formats.h stdint.h pkzip.h missing_getop
 
 SUBDIRS = aes
 
-.PHONY: subdirs $(SUBDIRS)
+.PHONY: subdirs $(SUBDIRS) find_version
 
 subdirs: $(SUBDIRS)
 
@@ -892,7 +903,7 @@ sse-intrinsics-32.S:
 	$(LN) -f x86-sse.h arch.h
 	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE -Wall
 	perl sse2i_winfix.pl sse-intrinsics-32.S sse-intrinsics-win32.S
-	mv sse-intrinsics-win32.S sse-intrinsics-32.S
+	$(MV) sse-intrinsics-win32.S sse-intrinsics-32.S
 
 #######################################################################
 ## NOTE, auto re-building configure will ONLY happen IF the user has ##
@@ -961,7 +972,7 @@ distclean: clean
 		config.log autoconfig-stamp-h autoconfig-stamp-h-in stamp-h1
 	$(LN) Makefile.stub Makefile
 	$(RM) arch.h
-	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
+	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h version.h version.h.new
 
 install: default shell-completion
 	@echo Stripping executables.

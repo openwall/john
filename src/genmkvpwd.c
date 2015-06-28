@@ -16,6 +16,8 @@
 #endif
 #include <math.h>
 #include <string.h>
+
+#include "jumbo.h"
 #include "params.h"
 #include "memory.h"
 #include "mkvlib.h"

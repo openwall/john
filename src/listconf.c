@@ -73,41 +73,9 @@ extern void cuda_device_list();
 #if HAVE_OPENCL
 #include "common-opencl.h"
 #endif
+#include "version.h"
+#include "listconf.h" /* must be included after version.h */
 #include "memdbg.h"
-
-#if HAVE_MPI
-#ifdef _OPENMP
-#define _MP_VERSION " MPI + OMP"
-#else
-#define _MP_VERSION " MPI"
-#endif
-#else
-#ifdef _OPENMP
-#define _MP_VERSION "_omp"
-#else
-#define _MP_VERSION ""
-#endif
-#endif
-#ifdef DEBUG
-#define DEBUG_STRING "_dbg"
-#else
-#define DEBUG_STRING ""
-#endif
-#ifdef WITH_ASAN
-#define ASAN_STRING "_asan"
-#else
-#define ASAN_STRING ""
-#endif
-#if defined(MEMDBG_ON) && defined(MEMDBG_EXTRA_CHECKS)
-#define MEMDBG_STRING "_memdbg-ex"
-#elif defined(MEMDBG_ON)
-#define MEMDBG_STRING "_memdbg"
-#else
-#define MEMDBG_STRING ""
-#endif
-
-#define _STR_VALUE(arg)			#arg
-#define STR_MACRO(n)			_STR_VALUE(n)
 
 /*
  * FIXME: Should all the listconf_list_*() functions get an additional stream
@@ -160,11 +128,8 @@ static void listconf_list_build_info(void)
 #ifdef __GNU_MP_VERSION
 	int gmp_major, gmp_minor, gmp_patchlevel;
 #endif
-	puts("Version: " JOHN_VERSION _MP_VERSION DEBUG_STRING MEMDBG_STRING ASAN_STRING);
-	puts("Build: " JOHN_BLD);
-#ifdef __TIMESTAMP__
-	puts("Time stamp: " __TIMESTAMP__);
-#endif
+	puts("Version: " JTR_GIT_VERSION);
+	puts("Build: " JOHN_BLD _MP_VERSION DEBUG_STRING MEMDBG_STRING ASAN_STRING);
 	printf("Arch: %d-bit %s\n", ARCH_BITS,
 	       ARCH_LITTLE_ENDIAN ? "LE" : "BE");
 #if JOHN_SYSTEMWIDE
@@ -651,8 +616,8 @@ void listconf_parse_late(void)
 			printf(" The split() method unifies case     %s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
 
 			if (format->params.flags & FMT_DYNAMIC) {
-				private_subformat_data *p = (private_subformat_data *)format->private.data;
 #if SIMD_COEF_32
+				private_subformat_data *p = (private_subformat_data *)format->private.data;
 				if (p->pSetup->flags & MGF_FLAT_BUFFERS)
 					printf(" A $dynamic$ format                  yes (Flat buffer SIMD)\n");
 				else {

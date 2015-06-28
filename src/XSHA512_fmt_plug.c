@@ -86,10 +86,11 @@ static void init(struct fmt_main *self)
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
-#else
-	int omp_t = 1;
 #endif
 #ifdef SIMD_COEF_64
+#ifndef _OPENMP
+	int omp_t = 1;
+#endif
 	saved_key = mem_calloc_align(omp_t, sizeof(*saved_key), MEM_ALIGN_SIMD);
 	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt,
 	                             8 * sizeof(ARCH_WORD_64), MEM_ALIGN_SIMD);

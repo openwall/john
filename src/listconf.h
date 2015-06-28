@@ -9,6 +9,48 @@
 #ifndef _JOHN_LISTCONF_H
 #define _JOHN_LISTCONF_H
 
+#if HAVE_MPI
+#ifdef _OPENMP
+#define _MP_VERSION " MPI + OMP"
+#else
+#define _MP_VERSION " MPI"
+#endif
+#else
+#ifdef _OPENMP
+#define _MP_VERSION " OMP"
+#else
+#define _MP_VERSION ""
+#endif
+#endif
+
+#ifdef DEBUG
+#define DEBUG_STRING " debug"
+#else
+#define DEBUG_STRING ""
+#endif
+
+#ifdef WITH_ASAN
+#define ASAN_STRING " ASan"
+#else
+#define ASAN_STRING ""
+#endif
+
+#if defined(MEMDBG_ON) && defined(MEMDBG_EXTRA_CHECKS)
+#define MEMDBG_STRING " memdbg-ex"
+#elif defined(MEMDBG_ON)
+#define MEMDBG_STRING " memdbg"
+#else
+#define MEMDBG_STRING ""
+#endif
+
+#define _STR_VALUE(arg)			#arg
+#define STR_MACRO(n)			_STR_VALUE(n)
+
+#if JTR_RELEASE_BUILD
+#undef JTR_GIT_VERSION
+#define JTR_GIT_VERSION JOHN_VERSION
+#endif
+
 /* Suboptions that can be used before full initialization, like --list=help */
 void listconf_parse_early(void);
 

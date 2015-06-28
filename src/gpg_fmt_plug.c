@@ -1195,6 +1195,7 @@ static int check(unsigned char *keydata, int ks)
 			RSA_secret_key rsa;
 			if (strlen(str) != blen * 2) { /* verifier 2 */
 				OPENSSL_free(str);
+				BN_free(b);
 				return 0;
 			}
 			OPENSSL_free(str);
@@ -1237,6 +1238,8 @@ static int check(unsigned char *keydata, int ks)
 				rsa.p = BN_bin2bn(cur_salt->p, cur_salt->pl, NULL);
 				rsa.q = BN_bin2bn(cur_salt->q, cur_salt->ql, NULL);
 
+				// b is not used.  So we must free it, or we have a leak.
+				BN_free(b);
 				ret = check_rsa_secret_key(&rsa);
 				if (ret != 0)
 					return 0;

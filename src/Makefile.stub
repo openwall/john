@@ -1,6 +1,9 @@
 #
 # This is a stub Makefile. If you run ./configure you will get a real one.
 #
+
+RM = rm -f
+
 generic: default
 
 help: default
@@ -23,6 +26,6 @@ default:
 
 # Better than nothing :-/
 clean:
-	rm -f *.o
+	$(RM) *.o
 
 distclean: clean

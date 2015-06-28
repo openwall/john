@@ -17,6 +17,7 @@
 #include "autoconfig.h"
 #else
 #ifndef sparc
+#undef _POSIX_SOURCE
 #define _POSIX_SOURCE /* for fileno(3) */
 #endif
 #endif
