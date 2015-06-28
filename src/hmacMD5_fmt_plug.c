@@ -172,6 +172,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		int len;
 		char *d, *o = out;
 
+		memset(out, 0, sizeof(out));
 		p += 10;
 		if (!(d = strchr(p, '$')))
 			return split_fields[1];
