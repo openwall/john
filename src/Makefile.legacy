@@ -18,6 +18,7 @@ CPP = $(CC)
 CP = cp
 CP_PRESERVE = cp -p
 LN = ln -f -s
+MV = mv -f
 RM = rm -f
 MKDIR = mkdir -p
 GREP = grep
@@ -1618,7 +1619,7 @@ john-macosx-x86-64:
 		ASFLAGS="$(ASFLAGS) -arch x86_64 -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -arch x86_64 -m64" \
 		LDFLAGS="$(LDFLAGS) -arch x86_64 -m64"
-	mv ../run/john john-macosx-x86-64
+	$(MV) ../run/john john-macosx-x86-64
 
 john-macosx-x86:
 	$(RM) *.o
@@ -1629,7 +1630,7 @@ john-macosx-x86:
 		ASFLAGS="$(ASFLAGS) -arch i386 -m32 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -arch i386 -m32 -D_DARWIN_C_SOURCE" \
 		LDFLAGS="$(LDFLAGS) -arch i386 -m32"
-	mv ../run/john john-macosx-x86
+	$(MV) ../run/john john-macosx-x86
 
 john-macosx-ppc:
 	$(RM) *.o
@@ -1641,7 +1642,7 @@ john-macosx-ppc:
 		LDFLAGS="$(LDFLAGS) -arch ppc" \
 		OPT_NORMAL="-fast -mcpu=7450" \
 		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000 -faltivec -maltivec"
-	mv ../run/john john-macosx-ppc
+	$(MV) ../run/john john-macosx-ppc
 
 macosx-universal: john-macosx-x86-64 john-macosx-x86 john-macosx-ppc
 	lipo -create john-macosx-x86-64 john-macosx-x86 john-macosx-ppc \
@@ -2003,7 +2004,7 @@ version.h: find_version
 
 find_version:
 	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
-	diff >/dev/null -Nq version.h.new version.h && rm version.h.new || mv version.h.new version.h
+	diff >/dev/null -Nq version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
 
 SUBDIRS = aes
 
@@ -2481,6 +2482,6 @@ sse-intrinsics-32.S:
 	$(LN) x86-sse.h arch.h
 	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
 	perl sse2i_winfix.pl sse-intrinsics-32.S sse-intrinsics-win32.S
-	mv sse-intrinsics-win32.S sse-intrinsics-32.S
+	$(MV) sse-intrinsics-win32.S sse-intrinsics-32.S
 
 include Makefile.dep

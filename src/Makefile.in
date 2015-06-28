@@ -26,6 +26,7 @@ CPP = @CPP@
 CP = cp
 CP_PRESERVE = cp -p
 LN = @LN_S@
+MV = mv -f
 RM = rm -f
 MKDIR = @MKDIR_P@
 TR = tr
@@ -390,7 +391,7 @@ version.h: find_version
 
 find_version:
 	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
-	diff >/dev/null -Nq version.h.new version.h && rm version.h.new || mv version.h.new version.h
+	diff >/dev/null -Nq version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
 
 listconf.o:	version.h listconf.h listconf.c autoconfig.h arch.h jumbo.h params.h path.h formats.h options.h unicode.h dynamic.h config.h regex.h john_build_rule.h common-opencl.h memdbg.h
 
@@ -902,7 +903,7 @@ sse-intrinsics-32.S:
 	$(LN) -f x86-sse.h arch.h
 	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE -Wall
 	perl sse2i_winfix.pl sse-intrinsics-32.S sse-intrinsics-win32.S
-	mv sse-intrinsics-win32.S sse-intrinsics-32.S
+	$(MV) sse-intrinsics-win32.S sse-intrinsics-32.S
 
 #######################################################################
 ## NOTE, auto re-building configure will ONLY happen IF the user has ##

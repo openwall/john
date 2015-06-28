@@ -46,8 +46,8 @@ default: aes.a
 all: aes.a
 
 clean:
-	$(FIND) . -name \*.a -exec rm {} \;
-	$(FIND) . -name \*.o -exec rm {} \;
+	$(FIND) . -name \*.a -exec $(RM) {} \;
+	$(FIND) . -name \*.o -exec $(RM) {} \;
 
 distclean: clean
 	$(RM) Makefile
