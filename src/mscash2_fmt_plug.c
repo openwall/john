@@ -305,6 +305,7 @@ char *mscash2_prepare(char *split_fields[10], struct fmt_main *self)
 			MEM_FREE(cp);
 			return cipher;
 		}
+		MEM_FREE(cp);
 		return split_fields[1];
 	}
 	if (!split_fields[0])
