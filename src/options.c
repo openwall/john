@@ -43,6 +43,8 @@
 #endif
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
+#undef _GNU_SOURCE
+#define _GNU_SOURCE 1 /* for strcasestr in legacy opencl builds */
 #endif
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #include "prince.h"
