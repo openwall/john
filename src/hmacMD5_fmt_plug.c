@@ -173,6 +173,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		char *d, *o = out;
 
 		p += 10;
+		memset(out, 0, sizeof(out));
 		if (!(d = strchr(p, '$')))
 			return split_fields[1];
 		len = base64_convert(p, e_b64_mime, (int)(d - p - 1),
@@ -193,6 +194,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		if (!(p = strchr(o, ' ')))
 			return split_fields[1];
 		p++;
+		if (p-o >= len)
+			return split_fields[1];
 		memmove(o, p, len - (p - o) + 1);
 		if (strlen(o) == BINARY_SIZE * 2)
 			return out;
