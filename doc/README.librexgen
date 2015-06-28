@@ -74,22 +74,27 @@ then all of the regular expressions will be performed on this word.
 ------------------------------------------------
 --- Obtaining, building, installing rexgen.  ---
 ------------------------------------------------
-First off, you must obtain and install rexgen library.  This currently is not
-the easiest thing to build. It can be found here:
+First off, you must obtain and install rexgen library.
+It can be found here:
 
-https://code.google.com/p/rexgen/
+https://github.com/teeshop/rexgen
 
-svn checkout http://rexgen.googlecode.com/svn/trunk/ rexgen-read-only
+git clone --recursive https://github.com/teeshop/rexgen.git
+
 
 Once you download it, it requires a cmake environment, along with flex and
 bison to be installed and working.  To build, see instructions on this page:
 
-https://code.google.com/p/rexgen/wiki/QuickStart   Simply put:
-   cd rexgen-read-only/src/librexgen
-   cmake ..
-   make install
+https://github.com/teeshop/rexgen/blob/master/README.md
 
-If no errors (especially from cmake), librexgen should be installed.
+Instead of just running ./install.sh, you can first run ./build.sh
+as a regular user and then just run ./install.sh as root.
+
+cd rexgen/src
+./build.sh
+sudo ./install.sh
+
+If there are no errors (especially from cmake), librexgen should be installed.
 
 To test:
 rexgen '[0-2]password[A-C]'
