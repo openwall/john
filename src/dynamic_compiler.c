@@ -835,7 +835,7 @@ static int parse_expression(DC_struct *p) {
 		strupr(tmp);
 		comp_add_script_line("Flag=MGF_SALT_AS_HEX_%s\n", tmp);
 		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||strcmp(tmp,"RIPEMD128")) salt_hex_len=32;
-		if (!strcmp(tmp,"SHA1")||strcmp(tmp,"RIPEMD160")) salt_hex_len=40;
+		if (!strcmp(tmp,"SHA1")||!strcmp(tmp,"RIPEMD160")) salt_hex_len=40;
 		if (!strcmp(tmp,"TIGER")) salt_hex_len=48;
 		if (!strcmp(tmp,"SHA224")) salt_hex_len=56;
 		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")) salt_hex_len=64;
