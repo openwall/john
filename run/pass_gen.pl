@@ -3419,7 +3419,7 @@ sub do_dynamic_GetToken {
 	} elsif ($stmp eq "GOS") {
 		if (substr($exprStr, 0, 8) eq "gost_64e")  { return dyna_addtok("fgoste", substr($exprStr, 8)); }
 		if (substr($exprStr, 0, 7) eq "gost_64")   { return dyna_addtok("fgost6", substr($exprStr, 7)); }
-		if (substr($exprStr, 0, 5) eq "gostu")     { return dyna_addtok("fgostu", substr($exprStr, 6)); }
+		if (substr($exprStr, 0, 5) eq "gostu")     { return dyna_addtok("fgostu", substr($exprStr, 5)); }
 		if (substr($exprStr, 0, 4) eq "GOST")      { return dyna_addtok("fgostH", substr($exprStr, 4)); }
 		if (substr($exprStr, 0, 4) eq "gost")      { return dyna_addtok("fgosth", substr($exprStr, 4)); }
 	} elsif ($stmp eq "WHI") {
