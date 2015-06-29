@@ -31,11 +31,13 @@ typedef struct DC_struct {
 	uint32_t magic;
 	uint32_t crc32; // hash of pExpr
 	struct fmt_main *pFmt;
-	const char *pExpr;
-	const char *pExtraParams;
-	const char *pScript;
-	const char *pSignature;
-	const char *pOneLine;
+	char *pExpr;
+	char *pExtraParams;
+	char *pScript;
+	char *pSignature;
+	char *pLine1;
+	char *pLine2;
+	char *pLine3;
 } DC_struct;
 
 #endif // __DYNAMIC_COMPILER_H__

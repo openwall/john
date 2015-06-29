@@ -51,11 +51,15 @@ john_register_one(&fmt_CompiledDynamic);
 
 extern const char *dyna_script;
 extern const char *dyna_signature;
-extern const char *dyna_one_line;
+extern const char *dyna_line1;
+extern const char *dyna_line2;
+extern const char *dyna_line3;
 extern int dyna_sig_len;
 
 static struct fmt_tests tests[] = {
 	{"@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72", "abc"},
+	{"@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785", "john"},
+	{"@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb", "passweird"},
 	{NULL},
 };
 
@@ -164,7 +168,9 @@ static void link_funcs() {
 	fmt_CompiledDynamic.methods.binary = our_binary;
 	fmt_CompiledDynamic.methods.split = our_split;
 	fmt_CompiledDynamic.methods.prepare = fmt_default_prepare;
-	fmt_CompiledDynamic.params.tests[0].ciphertext = (char*)dyna_one_line;
+	fmt_CompiledDynamic.params.tests[0].ciphertext = (char*)dyna_line1;
+	fmt_CompiledDynamic.params.tests[1].ciphertext = (char*)dyna_line2;
+	fmt_CompiledDynamic.params.tests[2].ciphertext = (char*)dyna_line3;
 }
 
 static void our_init(struct fmt_main *self)
@@ -182,7 +188,7 @@ static void get_ptr() {
 		sprintf (dyna_hash_type, "$dynamic_%d$", dyna_type);
 		dyna_hash_type_len = strlen(dyna_hash_type);
 
-		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_CompiledDynamic, Convert(Conv_Buf, (char*)dyna_one_line, 0), "@dynamic=", 0);
+		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_CompiledDynamic, Convert(Conv_Buf, (char*)dyna_line1, 0), "@dynamic=", 0);
 		link_funcs();
 	}
 }
