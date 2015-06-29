@@ -129,7 +129,7 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 		return Buf;
 	}
 	if (!strncmp(fields[1], PK5K2_TAG, 6)) {
-		char tmps[140+4], tmph[70+4], *cp, *cp2;
+		char tmps[160+4], tmph[160+4], *cp, *cp2;
 		unsigned iter=0;
 		// salt was listed as 1024 bytes max. But our max salt size is 64 bytes (~90 base64 bytes).
 		if (strlen(fields[1]) > 128) return fields[1];
@@ -139,6 +139,7 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 		cp += 6;
 		while (*cp && *cp != '$') {
 			iter *= 0x10;
+			if (atoi16[ARCH_INDEX(*cp)] == 0x7f) return fields[1];
 			iter += atoi16[ARCH_INDEX(*cp)];
 			++cp;
 		}
@@ -147,8 +148,10 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 		cp2 = strchr(cp, '$');
 		if (!cp2) return fields[1];
 		base64_convert(cp, e_b64_mime, cp2-cp, tmps, e_b64_hex, sizeof(tmps), flg_Base64_MIME_DASH_UNDER);
+		if (strlen(tmps) > 64) return fields[1];
 		++cp2;
 		base64_convert(cp2, e_b64_mime, strlen(cp2), tmph, e_b64_hex, sizeof(tmph), flg_Base64_MIME_DASH_UNDER);
+		if (strlen(tmph) != 40) return fields[1];
 		sprintf(Buf, "$pbkdf2-hmac-Sha1$%d.%s.%s", iter, tmps, tmph);
 		return Buf;
 	}
