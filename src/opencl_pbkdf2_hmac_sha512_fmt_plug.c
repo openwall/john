@@ -254,8 +254,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 	if (!(ptr = strtokm(ctcopy, ".")))
 		goto error;
-	if (strlen(ptr) >= 10)
-		goto error;
 	if (!isdecu(ptr))
 		goto error;
 	if (!(ptr = strtokm(NULL, ".")))
@@ -271,6 +269,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (len < BINARY_SIZE || len > MAX_BINARY_SIZE || len & 1)
 		goto error;
 	if (!ishex(ptr))
+		goto error;
+	ptr = strtokm(NULL, ".");
+	if (ptr)
 		goto error;
 	MEM_FREE(keeptr);
 	return 1;
@@ -299,7 +300,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		return split_fields[1];
 
 	strcpy(out, FORMAT_TAG);
-	strncat(out, &split_fields[1][i], sizeof(out) - 1);
+	strnzcpy(&out[sizeof(FORMAT_TAG)-1], &split_fields[1][i], sizeof(out)-(sizeof(FORMAT_TAG)));
 
 	if (!strncmp(split_fields[1], FORMAT_TAG2, sizeof(FORMAT_TAG2) - 1))
 		for (i = sizeof(FORMAT_TAG); out[i]; i++)
