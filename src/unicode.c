@@ -389,6 +389,7 @@ inline
 int enc_to_utf16(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
                  unsigned int srclen)
 {
+#ifndef UNICODE_NO_OPTIONS
 	if (pers_opts.target_enc != UTF_8) {
 		int i, trunclen = (int)srclen;
 		if (trunclen > maxdstlen)
@@ -409,8 +410,11 @@ int enc_to_utf16(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
 		else
 			return i;
 	} else {		// Convert from UTF-8
+#endif
 		return utf8_to_utf16(dst, maxdstlen, src, srclen);
+#ifndef UNICODE_NO_OPTIONS
 	}
+#endif
 }
 
 static inline int cp_to_utf16(UTF16 *dst, unsigned int maxdstlen,
@@ -445,6 +449,7 @@ inline
 #endif
 int enc_to_utf16_be(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
                     unsigned int srclen) {
+#ifndef UNICODE_NO_OPTIONS
 	if (pers_opts.target_enc != UTF_8) {
 		int i, trunclen = (int)srclen;
 		if (trunclen > maxdstlen)
@@ -464,8 +469,11 @@ int enc_to_utf16_be(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
 		else
 			return i;
 	} else {		// Convert from UTF-8
+#endif
 		return utf8_to_utf16_be(dst, maxdstlen, src, srclen);
+#ifndef UNICODE_NO_OPTIONS
 	}
+#endif
 }
 
 // Strlen of UTF-16 (in 16-bit words, not octets)
@@ -873,10 +881,14 @@ UTF8 *utf16_to_enc (const UTF16 *source) {
 
 // Thread-safe version
 UTF8 *utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16 *source) {
+#ifndef UNICODE_NO_OPTIONS
 	if (pers_opts.target_enc == UTF_8)
+#endif
 		return utf16_to_utf8_r(dst, dst_len, source);
+#ifndef UNICODE_NO_OPTIONS
 	else
 		return utf16_to_cp_r(dst, dst_len, source);
+#endif
 }
 
 void listEncodings(FILE *fd) {
@@ -1032,6 +1044,8 @@ int cp_class(int encoding)
 
 /* Load the 'case-conversion' and other translation tables. */
 void initUnicode(int type) {
+
+#ifndef UNICODE_NO_OPTIONS
 	unsigned i;
 	unsigned char *cpU, *cpL, *Sep, *Letter;
 	unsigned char *pos;
@@ -1521,7 +1535,7 @@ void initUnicode(int type) {
 		CP_up[0xAA] = 0xAA;
 		CP_down[0x91] = 0x91;
 	}
-
+#endif
 	return;
 }
 
@@ -1626,6 +1640,7 @@ int enc_lc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len) {
 	UTF16 tmp16[512+1], tmp16l[512+1]; // yes, short, but this is 'long enough' for john.
 	int utf16len, i;
 
+#ifndef UNICODE_NO_OPTIONS
 	if (pers_opts.target_enc != UTF_8) {
 		if (dst_bufsize <= src_len)
 			src_len = dst_bufsize - 1;
@@ -1635,6 +1650,7 @@ int enc_lc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len) {
 		*dst = 0;
 		return src_len;
 	}
+#endif
 	utf16len = utf8_to_utf16(tmp16, 512, src, src_len);
 	if (utf16len <= 0)
 		goto lcFallback;
@@ -1663,6 +1679,7 @@ int enc_uc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len) {
 	UTF16 tmp16[512+1], tmp16u[512+1]; // 'long enough' for john.
 	int utf16len, i;
 
+#ifndef UNICODE_NO_OPTIONS
 	if (pers_opts.target_enc != UTF_8) {
 		int len;
 		if (dst_bufsize <= src_len)
@@ -1693,6 +1710,7 @@ int enc_uc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len) {
 		*dst = 0;
 		return len;
 	}
+#endif
 
 	utf16len = utf8_to_utf16(tmp16, 512, src, src_len);
 	if (utf16len <= 0)
