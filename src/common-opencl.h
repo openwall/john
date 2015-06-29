@@ -114,7 +114,7 @@ typedef struct {
 	int device_info;
 	int cores_per_MP;
 	hw_bus pci_info;
-} ocl_device_detais;
+} ocl_device_details;
 
 /* Common OpenCL variables */
 extern int platform_id;

@@ -104,7 +104,7 @@ cl_event *profilingEvent, *firstEvent, *lastEvent;
 cl_event *multi_profilingEvent[MAX_EVENTS];
 
 int device_info[MAX_GPU_DEVICES];
-static ocl_device_detais ocl_device_list[MAX_GPU_DEVICES];
+static ocl_device_details ocl_device_list[MAX_GPU_DEVICES];
 
 void opencl_process_event(void)
 {
@@ -468,6 +468,14 @@ static int start_opencl_device(int sequential_id, int *err_type)
 		temp_dev_id[sequential_id] =
 		    id2adl(ocl_device_list[sequential_id].pci_info);
 		dev_get_temp[sequential_id] = adl_lib ? amd_get_temp : NULL;
+
+		if (sequential_id > 0 &&
+		    temp_dev_id[sequential_id] == temp_dev_id[sequential_id - 1]) {
+			/* Kludge for 7990 > 14.9. We hates AMD. */
+			ocl_device_list[sequential_id].pci_info.bus++;
+			temp_dev_id[sequential_id] =
+				id2adl(ocl_device_list[sequential_id].pci_info);
+		}
 	} else {
 		temp_dev_id[sequential_id] = sequential_id;
 		dev_get_temp[sequential_id] = NULL;
