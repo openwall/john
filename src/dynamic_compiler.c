@@ -987,30 +987,52 @@ static int parse_expression(DC_struct *p) {
 								comp_add_script_line("Func=DynamicFunc__MD5_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
 							else if (!strncasecmp(pCode[i], "f4", 2))
 								comp_add_script_line("Func=DynamicFunc__MD4_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "f1", 2))
+							else if (!strncasecmp(pCode[i], "f1", 2)) {
 								comp_add_script_line("Func=DynamicFunc__SHA1_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "f224", 4))
+								comp_add_script_line("Flag=MGF_INPUT_20_BYTE\n");
+							}
+							else if (!strncasecmp(pCode[i], "f224", 4)) {
 								comp_add_script_line("Func=DynamicFunc__SHA224_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "f256", 4))
+								comp_add_script_line("Flag=MGF_INPUT_28_BYTE\n");
+							}
+							else if (!strncasecmp(pCode[i], "f256", 4)) {
 								comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "f384", 4))
+								comp_add_script_line("Flag=MGF_INPUT_32_BYTE\n");
+							}
+							else if (!strncasecmp(pCode[i], "f384", 4)) {
 								comp_add_script_line("Func=DynamicFunc__SHA384_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "f512", 4))
+								comp_add_script_line("Flag=MGF_INPUT_48_BYTE\n");
+							}
+							else if (!strncasecmp(pCode[i], "f512", 4)) {
 								comp_add_script_line("Func=DynamicFunc__SHA512_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "fgost", 5))
+								comp_add_script_line("Flag=MGF_INPUT_64_BYTE\n");
+							}
+							else if (!strncasecmp(pCode[i], "fgost", 5)) {
 								comp_add_script_line("Func=DynamicFunc__GOST_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "ftig", 4))
+								comp_add_script_line("Flag=MGF_INPUT_32_BYTE\n");
+							}
+							else if (!strncasecmp(pCode[i], "ftig", 4)) {
 								comp_add_script_line("Func=DynamicFunc__Tiger_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "fwrl", 4))
+								comp_add_script_line("Flag=MGF_INPUT_24_BYTE\n");
+							}
+							else if (!strncasecmp(pCode[i], "fwrl", 4)) {
 								comp_add_script_line("Func=DynamicFunc__WHIRLPOOL_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+								comp_add_script_line("Flag=MGF_INPUT_64_BYTE\n");
+							}
 							else if (!strncasecmp(pCode[i], "frip128", 7))
 								comp_add_script_line("Func=DynamicFunc__RIPEMD128_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "frip160", 7))
+							else if (!strncasecmp(pCode[i], "frip160", 7)) {
 								comp_add_script_line("Func=DynamicFunc__RIPEMD160_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "frip256", 7))
+								comp_add_script_line("Flag=MGF_INPUT_20_BYTE\n");
+							}
+							else if (!strncasecmp(pCode[i], "frip256", 7)) {
 								comp_add_script_line("Func=DynamicFunc__RIPEMD256_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "frip320", 7))
+								comp_add_script_line("Flag=MGF_INPUT_32_BYTE\n");
+							}
+							else if (!strncasecmp(pCode[i], "frip320", 7)) {
 								comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+								comp_add_script_line("Flag=MGF_INPUT_40_BYTE\n");
+							}
 						} else {
 							if (!strncasecmp(pCode[i], "f5", 2))
 								comp_add_script_line("Func=DynamicFunc__MD5_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
