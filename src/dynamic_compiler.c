@@ -75,12 +75,33 @@
 #include "formats.h"
 #include "list.h"
 #include "crc32.h"
+#include "johnswap.h"
 #include "dynamic_compiler.h"
 #include "base64_convert.h"
-#include "memdbg.h"
 #include "md5.h"
 #include "md4.h"
 #include "sha2.h"
+#include "gost.h"
+// this one is going to be harder.  only haval_256_5 is implemented in CPAN perl, making genation of test cases harder.
+// Also, there are 15 different hashes in this 'family'.
+//#include "sph_haval.h"
+
+#include "sph_ripemd.h"
+#include "sph_tiger.h"
+#include "sph_whirlpool.h"
+
+#if (AC_BUILT && HAVE_WHIRLPOOL) ||	  \
+   (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
+#include <openssl/whrlpool.h>
+#else
+// on my 32 bit cygwin builds, this code is about 4x slower than the oSSL code.
+#define WHIRLPOOL_CTX             sph_whirlpool_context
+#define WHIRLPOOL_Init(a)         sph_whirlpool_init(a)
+#define WHIRLPOOL_Update(a,b,c)   sph_whirlpool(a,b,c)
+#define WHIRLPOOL_Final(a,b)      sph_whirlpool_close(b,a)
+#endif
+
+#include "memdbg.h"
 
 typedef struct DC_list {
 	struct DC_list *next;
@@ -195,6 +216,20 @@ void sha384_hex()   { SHA512_CTX c; SHA384_Init(&c); SHA384_Update(&c, h, strlen
 void sha384_base64(){ SHA512_CTX c; SHA384_Init(&c); SHA384_Update(&c, h, strlen(h)); SHA384_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,48,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv);}
 void sha512_hex()   { SHA512_CTX c; SHA512_Init(&c); SHA512_Update(&c, h, strlen(h)); SHA512_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv);}
 void sha512_base64(){ SHA512_CTX c; SHA512_Init(&c); SHA512_Update(&c, h, strlen(h)); SHA512_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv);}
+void whirlpool_hex()   { WHIRLPOOL_CTX c; WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, h, strlen(h)); WHIRLPOOL_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv);}
+void whirlpool_base64(){ WHIRLPOOL_CTX c; WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, h, strlen(h)); WHIRLPOOL_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv);}
+void tiger_hex()   { sph_tiger_context c; sph_tiger_init(&c); sph_tiger(&c, h, strlen(h)); sph_tiger_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,24,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv);}
+void tiger_base64(){ sph_tiger_context c; sph_tiger_init(&c); sph_tiger(&c, h, strlen(h)); sph_tiger_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,24,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv);}
+void gost_hex()   { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, strlen(h)); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,24,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv);}
+void gost_base64(){ gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, strlen(h)); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,24,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv);}
+void ripemd128_hex()   { sph_ripemd128_context c; sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)h, strlen(h)); sph_ripemd128_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv);}
+void ripemd128_base64(){ sph_ripemd128_context c; sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)h, strlen(h)); sph_ripemd128_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv);}
+void ripemd160_hex()   { sph_ripemd160_context c; sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)h, strlen(h)); sph_ripemd160_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv);}
+void ripemd160_base64(){ sph_ripemd160_context c; sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)h, strlen(h)); sph_ripemd160_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv);}
+void ripemd256_hex()   { sph_ripemd256_context c; sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)h, strlen(h)); sph_ripemd256_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv);}
+void ripemd256_base64(){ sph_ripemd256_context c; sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)h, strlen(h)); sph_ripemd256_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv);}
+void ripemd320_hex()   { sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, strlen(h)); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv);}
+void ripemd320_base64(){ sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, strlen(h)); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv);}
 
 void fpNull(){}
 void dynamic_push()   { char *p = mem_calloc(260, 1); MEM_FREE(gen_Stack[ngen_Stack]); gen_Stack[ngen_Stack++] = p; ngen_Stack_max++; }
@@ -215,8 +250,8 @@ void dynamic_app_6()  { strcat(gen_Stack[ngen_Stack-1], Const[6]); }
 void dynamic_app_7()  { strcat(gen_Stack[ngen_Stack-1], Const[7]); }
 void dynamic_app_8()  { strcat(gen_Stack[ngen_Stack-1], Const[8]); }
 void dynamic_app_9()  { strcat(gen_Stack[ngen_Stack-1], Const[9]); }
-//void dynamic_ftr32  { $h = pop @gen_Stack; $h = substr($h,0,32);  strcat(gen_Stack[ngen_Stack-1], h);  }
-/////void dynamic_f54    { $h = pop @gen_Stack; $h = md5_hex(h)."00000000";	 strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_ftr32  { $h = gen_Stack[--ngen_Stack]; substr($h,0,32);  strcat(gen_Stack[ngen_Stack-1], h);  }
+/////void dynamic_f54    { $h = gen_Stack[--ngen_Stack]; md5_hex(h)."00000000";	 strcat(gen_Stack[ngen_Stack-1], h);  }
 void dynamic_f5h()    { h = gen_Stack[--ngen_Stack]; md5_hex();  strcat(gen_Stack[ngen_Stack-1], h);  }
 void dynamic_f1h()    { h = gen_Stack[--ngen_Stack]; sha1_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
 void dynamic_f4h()    { h = gen_Stack[--ngen_Stack]; md4_hex();  strcat(gen_Stack[ngen_Stack-1], h);  }
@@ -259,54 +294,54 @@ void dynamic_f5126()  { h = gen_Stack[--ngen_Stack]; sha512_base64(); strcat(gen
 void dynamic_f512e()  { h = gen_Stack[--ngen_Stack]; sha512_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
 //void dynamic_f512u()  { h = gen_Stack[--ngen_Stack]; sha512_hex(encode("UTF-16LE",$h)); strcat(gen_Stack[ngen_Stack-1], h);  }
 //void dynamic_f512r()  { h = gen_Stack[--ngen_Stack]; sha512(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_fgosth() { h = gen_Stack[--ngen_Stack]; gost_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_fgostH() { h = gen_Stack[--ngen_Stack]; uc gost_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_fgost6() { h = gen_Stack[--ngen_Stack]; gost_base64(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_fgoste() { h = gen_Stack[--ngen_Stack]; gost_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_fgosth() { h = gen_Stack[--ngen_Stack]; gost_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_fgostH() { h = gen_Stack[--ngen_Stack]; gost_hex(); strupr(h); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_fgost6() { h = gen_Stack[--ngen_Stack]; gost_base64(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_fgoste() { h = gen_Stack[--ngen_Stack]; gost_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
 //void dynamic_fgostu() { h = gen_Stack[--ngen_Stack]; gost_hex(encode("UTF-16LE",$h)); strcat(gen_Stack[ngen_Stack-1], h);  }
 //void dynamic_fgostr() { h = gen_Stack[--ngen_Stack]; gost(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_fwrlph() { h = gen_Stack[--ngen_Stack]; whirlpool_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_fwrlpH() { h = gen_Stack[--ngen_Stack]; uc whirlpool_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_fwrlp6() { h = gen_Stack[--ngen_Stack]; whirlpool_base64(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_fwrlpe() { h = gen_Stack[--ngen_Stack]; whirlpool_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_fwrlph() { h = gen_Stack[--ngen_Stack]; whirlpool_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_fwrlpH() { h = gen_Stack[--ngen_Stack]; whirlpool_hex(); strupr(h); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_fwrlp6() { h = gen_Stack[--ngen_Stack]; whirlpool_base64(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_fwrlpe() { h = gen_Stack[--ngen_Stack]; whirlpool_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
 //void dynamic_fwrlpu() { h = gen_Stack[--ngen_Stack]; whirlpool_hex(encode("UTF-16LE",$h)); strcat(gen_Stack[ngen_Stack-1], h);  }
 //void dynamic_fwrlpr() { h = gen_Stack[--ngen_Stack]; whirlpool(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_ftigh()  { h = gen_Stack[--ngen_Stack]; tiger_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_ftigH()  { h = gen_Stack[--ngen_Stack]; uc tiger_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_ftig6()  { h = gen_Stack[--ngen_Stack]; tiger_base64(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_ftige()  { h = gen_Stack[--ngen_Stack]; tiger_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_ftigh()  { h = gen_Stack[--ngen_Stack]; tiger_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_ftigH()  { h = gen_Stack[--ngen_Stack]; tiger_hex(); strupr(h); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_ftig6()  { h = gen_Stack[--ngen_Stack]; tiger_base64(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_ftige()  { h = gen_Stack[--ngen_Stack]; tiger_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
 //void dynamic_ftigu()  { h = gen_Stack[--ngen_Stack]; tiger_hex(encode("UTF-16LE",$h)); strcat(gen_Stack[ngen_Stack-1], h);  }
 //void dynamic_ftigr()  { h = gen_Stack[--ngen_Stack]; tiger(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip128h()  { h = pop @gen_Stack; $h = ripemd128_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip128H()  { h = pop @gen_Stack; $h = uc ripemd128_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip1286()  { h = pop @gen_Stack; $h = ripemd128_base64(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip128e()  { h = pop @gen_Stack; $h = ripemd128_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip128u()  { h = pop @gen_Stack; $h = ripemd128_hex(encode("UTF-16LE",$h)); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip128r()  { h = pop @gen_Stack; $h = ripemd128(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip160h()  { h = pop @gen_Stack; $h = ripemd160_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip160H()  { h = pop @gen_Stack; $h = uc ripemd160_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip1606()  { h = pop @gen_Stack; $h = ripemd160_base64(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip160e()  { h = pop @gen_Stack; $h = ripemd160_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip160u()  { h = pop @gen_Stack; $h = ripemd160_hex(encode("UTF-16LE",$h)); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip160r()  { h = pop @gen_Stack; $h = ripemd160(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip256h()  { h = pop @gen_Stack; $h = ripemd256_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip256H()  { h = pop @gen_Stack; $h = uc ripemd256_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip2566()  { h = pop @gen_Stack; $h = ripemd256_base64(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip256e()  { h = pop @gen_Stack; $h = ripemd256_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip256u()  { h = pop @gen_Stack; $h = ripemd256_hex(encode("UTF-16LE",$h)); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip256r()  { h = pop @gen_Stack; $h = ripemd256(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip320h()  { h = pop @gen_Stack; $h = ripemd320_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip320H()  { h = pop @gen_Stack; $h = uc ripemd320_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip3206()  { h = pop @gen_Stack; $h = ripemd320_base64(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip320e()  { h = pop @gen_Stack; $h = ripemd320_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip320u()  { h = pop @gen_Stack; $h = ripemd320_hex(encode("UTF-16LE",$h)); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_frip320r()  { h = pop @gen_Stack; $h = ripemd320(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_fpad16() { h = gen_Stack[--ngen_Stack]; $h = pad16(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_fpad20() { h = gen_Stack[--ngen_Stack]; $h = pad20(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_fpad100(){ h = gen_Stack[--ngen_Stack]; $h = pad100(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_fpadmd64() { h = gen_Stack[--ngen_Stack]; $h = pad_md64(); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_futf16()  { h = gen_Stack[--ngen_Stack]; $h = encode("UTF-16LE",$h); strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_futf16be(){ h = gen_Stack[--ngen_Stack]; $h = encode("UTF-16BE",$h); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip128h()  { h = gen_Stack[--ngen_Stack]; ripemd128_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip128H()  { h = gen_Stack[--ngen_Stack]; ripemd128_hex(); strupr(h); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip1286()  { h = gen_Stack[--ngen_Stack]; ripemd128_base64(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip128e()  { h = gen_Stack[--ngen_Stack]; ripemd128_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_frip128u()  { h = gen_Stack[--ngen_Stack]; ripemd128_hex(encode("UTF-16LE",$h)); strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_frip128r()  { h = gen_Stack[--ngen_Stack]; ripemd128(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip160h()  { h = gen_Stack[--ngen_Stack]; ripemd160_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip160H()  { h = gen_Stack[--ngen_Stack]; ripemd160_hex(); strupr(h); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip1606()  { h = gen_Stack[--ngen_Stack]; ripemd160_base64(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip160e()  { h = gen_Stack[--ngen_Stack]; ripemd160_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_frip160u()  { h = gen_Stack[--ngen_Stack]; ripemd160_hex(encode("UTF-16LE",$h)); strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_frip160r()  { h = gen_Stack[--ngen_Stack]; ripemd160(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip256h()  { h = gen_Stack[--ngen_Stack]; ripemd256_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip256H()  { h = gen_Stack[--ngen_Stack]; ripemd256_hex(); strupr(h); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip2566()  { h = gen_Stack[--ngen_Stack]; ripemd256_base64(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip256e()  { h = gen_Stack[--ngen_Stack]; ripemd256_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_frip256u()  { h = gen_Stack[--ngen_Stack]; ripemd256_hex(encode("UTF-16LE",$h)); strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_frip256r()  { h = gen_Stack[--ngen_Stack]; ripemd256(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip320h()  { h = gen_Stack[--ngen_Stack]; ripemd320_hex(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip320H()  { h = gen_Stack[--ngen_Stack]; ripemd320_hex(); strupr(h); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip3206()  { h = gen_Stack[--ngen_Stack]; ripemd320_base64(); strcat(gen_Stack[ngen_Stack-1], h);  }
+void dynamic_frip320e()  { h = gen_Stack[--ngen_Stack]; ripemd320_base64(); while (strlen(h)%4) { strcat(h,"="); } strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_frip320u()  { h = gen_Stack[--ngen_Stack]; ripemd320_hex(encode("UTF-16LE",$h)); strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_frip320r()  { h = gen_Stack[--ngen_Stack]; ripemd320(); strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_fpad16() { h = gen_Stack[--ngen_Stack]; pad16(); strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_fpad20() { h = gen_Stack[--ngen_Stack]; pad20(); strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_fpad100(){ h = gen_Stack[--ngen_Stack]; pad100(); strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_fpadmd64() { h = gen_Stack[--ngen_Stack]; pad_md64(); strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_futf16()  { h = gen_Stack[--ngen_Stack]; encode("UTF-16LE",$h); strcat(gen_Stack[ngen_Stack-1], h);  }
+//void dynamic_futf16be(){ h = gen_Stack[--ngen_Stack]; encode("UTF-16BE",$h); strcat(gen_Stack[ngen_Stack-1], h);  }
 
 static void init_static_data() {
 	int i;
@@ -469,62 +504,62 @@ static const char *comp_get_symbol(const char *pInput) {
 		if (!strncmp(pInput, "sha512", 6)) { return comp_push_sym("f512h", dynamic_f512h, pInput+6); }
 		if (!strncmp(pInput, "SHA512", 6)) { return comp_push_sym("f512H", dynamic_f512H, pInput+6); }
 	}
-	//if (!strncasecmp(pInput, "gost", 4)) {
+	if (!strncasecmp(pInput, "gost", 4)) {
 	//	if (!strncmp(pInput, "gostu", 5)) { return comp_push_sym("fgostu", pInput+5); }
 	//	if (!strncmp(pInput, "gost_raw", 8)) { LastTokIsFunc = 2; return comp_push_sym("fgostr", pInput+8); }
-	//	if (!strncmp(pInput, "gost_64e", 8)) { return comp_push_sym("fgoste", pInput+8); }
-	//	if (!strncmp(pInput, "gost_64", 7)) { return comp_push_sym("fgost6", pInput+7); }
-	//	if (!strncmp(pInput, "gost", 4)) { return comp_push_sym("fgosth", pInput+4); }
-	//	if (!strncmp(pInput, "GOST", 4)) { return comp_push_sym("fgostH", pInput+4); }
-	//}
-	//if (!strncasecmp(pInput, "tiger", 5)) {
+		if (!strncmp(pInput, "gost_64e", 8)) { return comp_push_sym("fgoste", dynamic_fgoste, pInput+8); }
+		if (!strncmp(pInput, "gost_64", 7)) { return comp_push_sym("fgost6", dynamic_fgost6, pInput+7); }
+		if (!strncmp(pInput, "gost", 4)) { return comp_push_sym("fgosth", dynamic_fgosth, pInput+4); }
+		if (!strncmp(pInput, "GOST", 4)) { return comp_push_sym("fgostH", dynamic_fgostH, pInput+4); }
+	}
+	if (!strncasecmp(pInput, "tiger", 5)) {
 	//	if (!strncmp(pInput, "tigeru", 6)) { return comp_push_sym("ftigu", pInput+6); }
 	//	if (!strncmp(pInput, "tiger_raw", 9)) { LastTokIsFunc = 2; return comp_push_sym("ftigr", pInput+9); }
-	//	if (!strncmp(pInput, "tiger_64e", 9)) { return comp_push_sym("ftige", pInput+9); }
-	//	if (!strncmp(pInput, "tiger_64", 8)) { return comp_push_sym("ftig6", pInput+8); }
-	//	if (!strncmp(pInput, "tiger", 5)) { return comp_push_sym("ftigh", pInput+5); }
-	//	if (!strncmp(pInput, "TIGER", 5)) { return comp_push_sym("ftigH", pInput+5); }
-	//}
-	//if (!strncasecmp(pInput, "whirlpool", 9)) {
+		if (!strncmp(pInput, "tiger_64e", 9)) { return comp_push_sym("ftige", dynamic_ftige, pInput+9); }
+		if (!strncmp(pInput, "tiger_64", 8)) { return comp_push_sym("ftig6", dynamic_ftig6, pInput+8); }
+		if (!strncmp(pInput, "tiger", 5)) { return comp_push_sym("ftigh", dynamic_ftigh, pInput+5); }
+		if (!strncmp(pInput, "TIGER", 5)) { return comp_push_sym("ftigH", dynamic_ftigH, pInput+5); }
+	}
+	if (!strncasecmp(pInput, "whirlpool", 9)) {
 	//	if (!strncmp(pInput, "whirlpoolu", 10)) { return comp_push_sym("fwrlpu", pInput+10); }
 	//	if (!strncmp(pInput, "whirlpool_raw", 13)) { LastTokIsFunc = 2; return comp_push_sym("fwrlpr", pInput+13); }
-	//	if (!strncmp(pInput, "whirlpool_64e", 13)) { return comp_push_sym("fwrlpe", pInput+13); }
-	//	if (!strncmp(pInput, "whirlpool_64", 12)) { return comp_push_sym("fwrlp6", pInput+12); }
-	//	if (!strncmp(pInput, "whirlpool", 9)) { return comp_push_sym("fwrlph", pInput+9); }
-	//	if (!strncmp(pInput, "WHIRLPOOL", 9)) { return comp_push_sym("fwrlpH", pInput+9); }
-	//}
-	//if (!strncasecmp(pInput, "ripemd128", 9)) {
+		if (!strncmp(pInput, "whirlpool_64e", 13)) { return comp_push_sym("fwrlpe", dynamic_fwrlpe, pInput+13); }
+		if (!strncmp(pInput, "whirlpool_64", 12)) { return comp_push_sym("fwrlp6", dynamic_fwrlp6, pInput+12); }
+		if (!strncmp(pInput, "whirlpool", 9)) { return comp_push_sym("fwrlph", dynamic_fwrlph, pInput+9); }
+		if (!strncmp(pInput, "WHIRLPOOL", 9)) { return comp_push_sym("fwrlpH", dynamic_fwrlpH, pInput+9); }
+	}
+	if (!strncasecmp(pInput, "ripemd128", 9)) {
 	//	if (!strncmp(pInput, "ripemd128u", 10)) { return comp_push_sym("frip128u", pInput+10); }
 	//	if (!strncmp(pInput, "ripemd128_raw", 13)) { LastTokIsFunc = 2; return comp_push_sym("frip128r", pInput+13); }
-	//	if (!strncmp(pInput, "ripemd128_64e", 13)) { return comp_push_sym("frip128e", pInput+13); }
-	//	if (!strncmp(pInput, "ripemd128_64", 12)) { return comp_push_sym("frip1286", pInput+12); }
-	//	if (!strncmp(pInput, "ripemd128", 9)) { return comp_push_sym("frip128h", pInput+9); }
-	//	if (!strncmp(pInput, "RIPEMD128", 9)) { return comp_push_sym("frip128H", pInput+9); }
-	//}
-	//if (!strncasecmp(pInput, "ripemd160", 9)) {
+		if (!strncmp(pInput, "ripemd128_64e", 13)) { return comp_push_sym("frip128e", dynamic_frip128e, pInput+13); }
+		if (!strncmp(pInput, "ripemd128_64", 12)) { return comp_push_sym("frip1286", dynamic_frip1286, pInput+12); }
+		if (!strncmp(pInput, "ripemd128", 9)) { return comp_push_sym("frip128h", dynamic_frip128h, pInput+9); }
+		if (!strncmp(pInput, "RIPEMD128", 9)) { return comp_push_sym("frip128H", dynamic_frip128H, pInput+9); }
+	}
+	if (!strncasecmp(pInput, "ripemd160", 9)) {
 	//	if (!strncmp(pInput, "ripemd160u", 10)) { return comp_push_sym("frip160u", pInput+10); }
 	//	if (!strncmp(pInput, "ripemd160_raw", 13)) { LastTokIsFunc = 2; return comp_push_sym("frip160r", pInput+13); }
-	//	if (!strncmp(pInput, "ripemd160_64e", 13)) { return comp_push_sym("frip160e", pInput+13); }
-	//	if (!strncmp(pInput, "ripemd160_64", 12)) { return comp_push_sym("frip1606", pInput+12); }
-	//	if (!strncmp(pInput, "ripemd160", 9)) { return comp_push_sym("frip160h", pInput+9); }
-	//	if (!strncmp(pInput, "RIPEMD160", 9)) { return comp_push_sym("frip160H", pInput+9); }
-	//}
-	//if (!strncasecmp(pInput, "ripemd256", 9)) {
+		if (!strncmp(pInput, "ripemd160_64e", 13)) { return comp_push_sym("frip160e", dynamic_frip160e, pInput+13); }
+		if (!strncmp(pInput, "ripemd160_64", 12)) { return comp_push_sym("frip1606", dynamic_frip1606, pInput+12); }
+		if (!strncmp(pInput, "ripemd160", 9)) { return comp_push_sym("frip160h", dynamic_frip160h, pInput+9); }
+		if (!strncmp(pInput, "RIPEMD160", 9)) { return comp_push_sym("frip160H", dynamic_frip160H, pInput+9); }
+	}
+	if (!strncasecmp(pInput, "ripemd256", 9)) {
 	//	if (!strncmp(pInput, "ripemd256u", 10)) { return comp_push_sym("frip256u", pInput+10); }
 	//	if (!strncmp(pInput, "ripemd256_raw", 13)) { LastTokIsFunc = 2; return comp_push_sym("frip256r", pInput+13); }
-	//	if (!strncmp(pInput, "ripemd256_64e", 13)) { return comp_push_sym("frip256e", pInput+13); }
-	//	if (!strncmp(pInput, "ripemd256_64", 12)) { return comp_push_sym("frip2566", pInput+12); }
-	//	if (!strncmp(pInput, "ripemd256", 9)) { return comp_push_sym("frip256h", pInput+9); }
-	//	if (!strncmp(pInput, "RIPEMD256", 9)) { return comp_push_sym("frip256H", pInput+9); }
-	//}
-	//if (!strncasecmp(pInput, "ripemd320", 9)) {
+		if (!strncmp(pInput, "ripemd256_64e", 13)) { return comp_push_sym("frip256e", dynamic_frip256e, pInput+13); }
+		if (!strncmp(pInput, "ripemd256_64", 12)) { return comp_push_sym("frip2566", dynamic_frip2566, pInput+12); }
+		if (!strncmp(pInput, "ripemd256", 9)) { return comp_push_sym("frip256h", dynamic_frip256h, pInput+9); }
+		if (!strncmp(pInput, "RIPEMD256", 9)) { return comp_push_sym("frip256H", dynamic_frip256H, pInput+9); }
+	}
+	if (!strncasecmp(pInput, "ripemd320", 9)) {
 	//	if (!strncmp(pInput, "ripemd320u", 10)) { return comp_push_sym("frip320u", pInput+10); }
 	//	if (!strncmp(pInput, "ripemd320_raw", 13)) { LastTokIsFunc = 2; return comp_push_sym("frip320r", pInput+13); }
-	//	if (!strncmp(pInput, "ripemd320_64e", 13)) { return comp_push_sym("frip320e", pInput+13); }
-	//	if (!strncmp(pInput, "ripemd320_64", 12)) { return comp_push_sym("frip3206", pInput+12); }
-	//	if (!strncmp(pInput, "ripemd320", 9)) { return comp_push_sym("frip320h", pInput+9); }
-	//	if (!strncmp(pInput, "RIPEMD320", 9)) { return comp_push_sym("frip320H", pInput+9); }
-	//}
+		if (!strncmp(pInput, "ripemd320_64e", 13)) { return comp_push_sym("frip320e", dynamic_frip320e, pInput+13); }
+		if (!strncmp(pInput, "ripemd320_64", 12)) { return comp_push_sym("frip3206", dynamic_frip3206, pInput+12); }
+		if (!strncmp(pInput, "ripemd320", 9)) { return comp_push_sym("frip320h", dynamic_frip320h, pInput+9); }
+		if (!strncmp(pInput, "RIPEMD320", 9)) { return comp_push_sym("frip320H", dynamic_frip320H, pInput+9); }
+	}
 	LastTokIsFunc=2;
 	//if (!strncmp(pInput, "pad16", 5)) return comp_push_sym("Fpad16", dynamic_fpad16, pInput+5);
 	//if (!strncmp(pInput, "pad20", 5)) return comp_push_sym("Fpad20", dynamic_fpad20, pInput+5);
@@ -789,6 +824,12 @@ static void build_test_string(DC_struct *p, char **pLine) {
 		else if (!strcmp(tmp, "SHA256")) sha256_hex();
 		else if (!strcmp(tmp, "SHA384")) sha384_hex();
 		else if (!strcmp(tmp, "SHA512")) sha512_hex();
+		else if (!strcmp(tmp, "WHIRLPOOL")) whirlpool_hex();
+		else if (!strcmp(tmp, "TIGER")) tiger_hex();
+		else if (!strcmp(tmp, "RIPEMD128")) ripemd128_hex();
+		else if (!strcmp(tmp, "RIPEMD160")) ripemd160_hex();
+		else if (!strcmp(tmp, "RIPEMD256")) ripemd256_hex();
+		else if (!strcmp(tmp, "RIPEMD320")) ripemd320_hex();
 	}
 	for (i = 0; i < nCode; ++i)
 		fpCode[i]();
