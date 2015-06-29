@@ -400,7 +400,7 @@ static const char *comp_get_symbol(const char *pInput) {
 			case 'u': return comp_push_sym("u", fpNull, pInput+2);
 			case 's': if (pInput[2] == '2') return comp_push_sym("S", fpNull, pInput+3);
 					  return comp_push_sym("s", fpNull, pInput+2);
-			case 'c': if (pInput[2] > '9' || pInput[2] < '1') 
+			case 'c': if (pInput[2] > '9' || pInput[2] < '1')
 						  return comp_push_sym("X", fpNull, pInput);
 					  if (Const[pInput[2]-'0'] == NULL) {
 						  fprintf(stderr, "Error, a c%c found in expression, but the data for this const was not provided\n", pInput[2]);
@@ -870,9 +870,10 @@ static int parse_expression(DC_struct *p) {
 	{
 		int x, j, last_push;
 		//int inp2_used=0;
-		int salt_len=32;
+		int salt_len=-32;
 		int max_inp_len=110, len_comp;
-		int inp1_clean = 0; //, inp2_clean = 0;
+		int inp1_clean = 0;
+		int use_inp1 = 1, use_inp1_again=0;
 		int inp_cnt=0, ex_cnt=0, salt_cnt=0, hash_cnt=0;
 
 		if (salt_hex_len)
@@ -881,6 +882,8 @@ static int parse_expression(DC_struct *p) {
 			// if salt_len from command line, add it:
 			comp_add_script_line("SaltLen=%d\n", salt_len);
 		}
+		if (salt_len < 0)
+			salt_len *= -1;
 		if (!keys_as_input) {
 			comp_add_script_line("Func=DynamicFunc__clean_input_kwik\n");
 			inp1_clean = 1;
@@ -900,25 +903,34 @@ static int parse_expression(DC_struct *p) {
 				for (j = i-1; j>=0; --j) {
 					if (pCode[j][0] == 'p') { // push
 						last_push = j;
+						use_inp1_again = 0;
 						inp_cnt=0, ex_cnt=0, salt_cnt=0, hash_cnt=0;
 						for (x = j+1; x < i; ++x) {
 							if (!strcmp(pCode[x], "app_p")) {
-								comp_add_script_line("Func=DynamicFunc__append_keys\n"); ++inp_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_keys%s\n", use_inp1?"":"2"); ++inp_cnt; }
 							else if (!strcmp(pCode[x], "app_s")) {
-								comp_add_script_line("Func=DynamicFunc__append_salt\n"); ++salt_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_salt%s\n", use_inp1?"":"2"); ++salt_cnt; }
 							else if (!strcmp(pCode[x], "app_u")) {
-								comp_add_script_line("Func=DynamicFunc__append_userid\n"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_userid%s\n", use_inp1?"":"2"); ++ex_cnt; }
 							else if (!strcmp(pCode[x], "app_s2")) {
-								comp_add_script_line("Func=DynamicFunc__append_2nd_salt\n"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_2nd_salt%s\n", use_inp1?"":"2"); ++ex_cnt; }
 							else if (!strcmp(pCode[x], "app_sh")) {
-								comp_add_script_line("Func=DynamicFunc__append_salt\n"); ++salt_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_salt%s\n", use_inp1?"":"2"); ++salt_cnt; }
 							else if (!strncmp(pCode[x], "IN2", 3)) {
-								comp_add_script_line("Func=DynamicFunc__append_input_from_input2\n"); ++hash_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input2\n", use_inp1?"":"2"); ++hash_cnt; }
 							else if (!strncmp(pCode[x], "IN1", 3)) {
-								comp_add_script_line("Func=DynamicFunc__append_input_from_input\n"); ++hash_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input\n", use_inp1?"":"2"); ++hash_cnt; }
+
 							*pCode[x] = 'X';
 						}
-						strcpy(pCode[last_push], "IN2");
+						if (!last_push || pCode[last_push-1][0] == 'p')
+							pCode[last_push][0] = 'X';
+						else {
+							strcpy(pCode[last_push], "IN2");
+							inp1_clean=0;
+							use_inp1_again = 1;
+						}
+
 						// Ok, the only thing we can control is salt_len (if not in hex_as_salt), and inp_len
 						// all we worry about is inp_len.  256 bytes is MAX.
 						len_comp = ex_cnt*24;
@@ -928,78 +940,82 @@ static int parse_expression(DC_struct *p) {
 						if (len_comp > 256) {
 							max_inp_len -= (len_comp-256+(inp_cnt-1))/inp_cnt;
 						}
-					}
-				}
-				if (!pCode[i+1] || !pCode[i+1][0]) {
-					// final hash
-					if (!strncasecmp(pCode[i], "f5", 2))
-						comp_add_script_line("Func=DynamicFunc__MD5_crypt_input1_to_output1_FINAL\n");
-					else if (!strncasecmp(pCode[i], "f4", 2))
-						comp_add_script_line("Func=DynamicFunc__MD4_crypt_input1_to_output1_FINAL\n");
-					else if (!strncasecmp(pCode[i], "f1", 2))
-						comp_add_script_line("Func=DynamicFunc__SHA1_crypt_input1_to_output1_FINAL\n");
-					else if (!strncasecmp(pCode[i], "f224", 4))
-						comp_add_script_line("Func=DynamicFunc__SHA224_crypt_input1_to_output1_FINAL\n");
-					else if (!strncasecmp(pCode[i], "f256", 4))
-						comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input1_to_output1_FINAL\n");
-					else if (!strncasecmp(pCode[i], "f384", 4))
-						comp_add_script_line("Func=DynamicFunc__SHA384_crypt_input1_to_output1_FINAL\n");
-					else if (!strncasecmp(pCode[i], "f512", 4))
-						comp_add_script_line("Func=DynamicFunc__SHA512_crypt_input1_to_output1_FINAL\n");
-					else if (!strncasecmp(pCode[i], "fgost", 5))
-						comp_add_script_line("Func=DynamicFunc__GOST_crypt_input1_to_output1_FINAL\n");
-					else if (!strncasecmp(pCode[i], "ftig", 4))
-						comp_add_script_line("Func=DynamicFunc__Tiger_crypt_input1_to_output1_FINAL\n");
-					else if (!strncasecmp(pCode[i], "fwrl", 4))
-						comp_add_script_line("Func=DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL\n");
-					else if (!strncasecmp(pCode[i], "frip128", 7))
-						comp_add_script_line("Func=DynamicFunc__RIPEMD128_crypt_input1_to_output1_FINAL\n");
-					else if (!strncasecmp(pCode[i], "frip160", 7))
-						comp_add_script_line("Func=DynamicFunc__RIPEMD160_crypt_input1_to_output1_FINAL\n");
-					else if (!strncasecmp(pCode[i], "frip256", 7))
-						comp_add_script_line("Func=DynamicFunc__RIPEMD256_crypt_input1_to_output1_FINAL\n");
-					else if (!strncasecmp(pCode[i], "frip320", 7))
-						comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input1_to_output1_FINAL\n");
-				} else {
-					if (!strncasecmp(pCode[i], "f5", 2))
-						comp_add_script_line("Func=DynamicFunc__MD5_crypt_input1_overwrite_input2\n");
-					else if (!strncasecmp(pCode[i], "f4", 2))
-						comp_add_script_line("Func=DynamicFunc__MD4_crypt_input1_overwrite_input2\n");
-					else if (!strncasecmp(pCode[i], "f1", 2))
-						comp_add_script_line("Func=DynamicFunc__SHA1_crypt_input1_overwrite_input2\n");
-					else if (!strncasecmp(pCode[i], "f224", 4))
-						comp_add_script_line("Func=DynamicFunc__SHA224_crypt_input1_overwrite_input2\n");
-					else if (!strncasecmp(pCode[i], "f256", 4))
-						comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input1_overwrite_input2n");
-					else if (!strncasecmp(pCode[i], "f384", 4))
-						comp_add_script_line("Func=DynamicFunc__SHA384_crypt_input1_overwrite_input2\n");
-					else if (!strncasecmp(pCode[i], "f512", 4))
-						comp_add_script_line("Func=DynamicFunc__SHA512_crypt_input1_overwrite_input2\n");
-					else if (!strncasecmp(pCode[i], "fgost", 5))
-						comp_add_script_line("Func=DynamicFunc__GOST_crypt_input1_overwrite_input2\n");
-					else if (!strncasecmp(pCode[i], "ftig", 4))
-						comp_add_script_line("Func=DynamicFunc__Tiger_crypt_input1_overwrite_input2\n");
-					else if (!strncasecmp(pCode[i], "fwrl", 4))
-						comp_add_script_line("Func=DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2\n");
-					else if (!strncasecmp(pCode[i], "frip128", 7))
-						comp_add_script_line("Func=DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2\n");
-					else if (!strncasecmp(pCode[i], "frip160", 7))
-						comp_add_script_line("Func=DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2\n");
-					else if (!strncasecmp(pCode[i], "frip256", 7))
-						comp_add_script_line("Func=DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2\n");
-					else if (!strncasecmp(pCode[i], "frip320", 7))
-						comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2\n");
-					else if (!strcasecmp(pCode[i], "pad16"))
-						comp_add_script_line("Func=DynamicFunc__append_keys_pad16\n");
-					else if (!strcasecmp(pCode[i], "pad20"))
-						comp_add_script_line("Func=DynamicFunc__append_keys_pad20\n");
-					else if (!strcasecmp(pCode[i], "pad100"))
-						comp_add_script_line("Func=DynamicFunc__set_input_len_100\n");
-					//else if (!strcasecmp(pCode[i], "padm64"))  // in pass_gen.pl, but not in dynamic_fmt.c yet.  HSRP uses this, but that is a thick format.
-					//	comp_add_script_line("Func=DynamicFunc__append_keys_pad16\n");
+						if (!pCode[i+1] || !pCode[i+1][0]) {
+							// final hash
+							if (!strncasecmp(pCode[i], "f5", 2))
+								comp_add_script_line("Func=DynamicFunc__MD5_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "f4", 2))
+								comp_add_script_line("Func=DynamicFunc__MD4_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "f1", 2))
+								comp_add_script_line("Func=DynamicFunc__SHA1_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "f224", 4))
+								comp_add_script_line("Func=DynamicFunc__SHA224_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "f256", 4))
+								comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "f384", 4))
+								comp_add_script_line("Func=DynamicFunc__SHA384_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "f512", 4))
+								comp_add_script_line("Func=DynamicFunc__SHA512_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "fgost", 5))
+								comp_add_script_line("Func=DynamicFunc__GOST_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "ftig", 4))
+								comp_add_script_line("Func=DynamicFunc__Tiger_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "fwrl", 4))
+								comp_add_script_line("Func=DynamicFunc__WHIRLPOOL_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "frip128", 7))
+								comp_add_script_line("Func=DynamicFunc__RIPEMD128_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "frip160", 7))
+								comp_add_script_line("Func=DynamicFunc__RIPEMD160_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "frip256", 7))
+								comp_add_script_line("Func=DynamicFunc__RIPEMD256_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "frip320", 7))
+								comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+						} else {
+							if (!strncasecmp(pCode[i], "f5", 2))
+								comp_add_script_line("Func=DynamicFunc__MD5_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "f4", 2))
+								comp_add_script_line("Func=DynamicFunc__MD4_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "f1", 2))
+								comp_add_script_line("Func=DynamicFunc__SHA1_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "f224", 4))
+								comp_add_script_line("Func=DynamicFunc__SHA224_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "f256", 4))
+								comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_overwrite_input2n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "f384", 4))
+								comp_add_script_line("Func=DynamicFunc__SHA384_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "f512", 4))
+								comp_add_script_line("Func=DynamicFunc__SHA512_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "fgost", 5))
+								comp_add_script_line("Func=DynamicFunc__GOST_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "ftig", 4))
+								comp_add_script_line("Func=DynamicFunc__Tiger_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "fwrl", 4))
+								comp_add_script_line("Func=DynamicFunc__WHIRLPOOL_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "frip128", 7))
+								comp_add_script_line("Func=DynamicFunc__RIPEMD128_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "frip160", 7))
+								comp_add_script_line("Func=DynamicFunc__RIPEMD160_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "frip256", 7))
+								comp_add_script_line("Func=DynamicFunc__RIPEMD256_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "frip320", 7))
+								comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+							else if (!strcasecmp(pCode[i], "pad16"))
+								comp_add_script_line("Func=DynamicFunc__append_keys_pad16\n");
+							else if (!strcasecmp(pCode[i], "pad20"))
+								comp_add_script_line("Func=DynamicFunc__append_keys_pad20\n");
+							else if (!strcasecmp(pCode[i], "pad100"))
+								comp_add_script_line("Func=DynamicFunc__set_input_len_100\n");
+							//else if (!strcasecmp(pCode[i], "padm64"))  // in pass_gen.pl, but not in dynamic_fmt.c yet.  HSRP uses this, but that is a thick format.
+							//	comp_add_script_line("Func=DynamicFunc__append_keys_pad16\n");
 
-					else if (!strcasecmp(pCode[i], "utf16be") || !strcasecmp(pCode[i], "utf16"))
-						comp_add_script_line("Func=DynamicFunc__setmode_normal\n");
+							else if (!strcasecmp(pCode[i], "utf16be") || !strcasecmp(pCode[i], "utf16"))
+								comp_add_script_line("Func=DynamicFunc__setmode_normal\n");
+							use_inp1=0;
+							if (use_inp1_again)
+								use_inp1 = 1;
+						}
+						break;
+					}
 				}
 				pCode[i][0] = 'X';
 			}
