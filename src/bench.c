@@ -526,7 +526,14 @@ AGAIN:
 	total = failed = 0;
 #ifdef WITH_ASAN
 	if (benchmark_time)
+#ifdef WITH_UBSAN
+	puts("NOTE: This is an ASan+UbSan debug build, speed will be lower than normal");
+#else
 	puts("NOTE: This is an ASan debug build, speed will be lower than normal");
+#endif
+#elif WITH_UBSAN
+	if (benchmark_time)
+	puts("NOTE: This is an UbSan debug build, speed will be lower than normal");
 #elif defined(DEBUG)
 	if (benchmark_time)
 	puts("NOTE: This is a -DDEBUG build, speed may be lower than normal");
