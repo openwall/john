@@ -320,6 +320,8 @@ case "$host_cpu" in
   mips64*) ARCH_LINK=mips64.h endian=big ;;
   mips*) ARCH_LINK=mips32.h endian=big ;;
   pdp*) ARCH_LINK=autoconf_arch.h endian=little ;;
+  powerpc64le) ARCH_LINK=ppc64.h endian=little ;;
+  powerpc64*) ARCH_LINK=ppc64.h endian=big ;;
   powerpcle) ARCH_LINK=ppc32.h endian=little ;;
   powerpc*) ARCH_LINK=ppc32.h endian=big ;;
   sparc64) ARCH_LINK=sparc64.h endian=big ;;
