@@ -93,6 +93,9 @@ static void _pbkdf2_sha1(const unsigned char *S, int SL, int R, ARCH_WORD_32 *ou
 		SHA1_Update(&ctx, tmp_hash, SHA_DIGEST_LENGTH);
 		SHA1_Final(tmp_hash, &ctx);
 #if !defined (PBKDF1_LOGIC)
+#ifdef __MIC__
+#pragma novector
+#endif
 		for(j = 0; j < SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32); j++) {
 			out[j] ^= ((ARCH_WORD_32*)tmp_hash)[j];
 #if defined (EFS_CRAP_LOGIC)
