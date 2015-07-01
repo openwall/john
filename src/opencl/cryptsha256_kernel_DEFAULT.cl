@@ -13,7 +13,7 @@
 
 #include "opencl_cryptsha256.h"
 
-#if cpu(DEVICE_INFO)
+#if __CPU__
     #define UNROLL
     #define FAST
 #endif

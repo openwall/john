@@ -58,7 +58,7 @@ typedef struct {
     uint32_t                    total;
     uint32_t                    buflen;
     buffer_32                   buffer[16];     //512 bits
-#if cpu(DEVICE_INFO)
+#if __CPU__
     uint64_t                    safety_trail;   //To avoid memory override
 #endif
 } sha256_ctx;

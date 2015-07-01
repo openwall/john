@@ -217,6 +217,9 @@ void amd_probe(void)
 			gpu_device_bus[amd].device = adapterInfo.iDeviceNumber;
 			gpu_device_bus[amd].function = adapterInfo.iFunctionNumber;
 
+#if OCL_DEBUG
+			printf("amd %u adl %u hardware id %02x:%02x.%x\n", amd, adl_id, gpu_device_bus[amd].bus, gpu_device_bus[amd].device,gpu_device_bus[amd].function);
+#endif
 			memset(gpu_device_bus[amd].busId, '\0', sizeof(gpu_device_bus[amd].busId));
 			sprintf(gpu_device_bus[amd].busId, "%02x:%02x.%x", gpu_device_bus[amd].bus,
 				gpu_device_bus[amd].device,gpu_device_bus[amd].function);

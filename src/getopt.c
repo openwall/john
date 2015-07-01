@@ -43,6 +43,9 @@ static char *opt_find(struct opt_entry *list, char *opt,
 		if (!(param = strchr(name, '=')))
 			param = strchr(name, ':');
 		if (param) {
+			char *c = strchr(name, ':');
+			if (c && param > c)
+				param = c;
 			length = param - name;
 			if (!*++param) param = NULL;
 		} else

@@ -104,7 +104,7 @@ cl_event *profilingEvent, *firstEvent, *lastEvent;
 cl_event *multi_profilingEvent[MAX_EVENTS];
 
 int device_info[MAX_GPU_DEVICES];
-static ocl_device_detais ocl_device_list[MAX_GPU_DEVICES];
+static ocl_device_details ocl_device_list[MAX_GPU_DEVICES];
 
 void opencl_process_event(void)
 {
@@ -468,6 +468,14 @@ static int start_opencl_device(int sequential_id, int *err_type)
 		temp_dev_id[sequential_id] =
 		    id2adl(ocl_device_list[sequential_id].pci_info);
 		dev_get_temp[sequential_id] = adl_lib ? amd_get_temp : NULL;
+
+		if (sequential_id > 0 &&
+		    temp_dev_id[sequential_id] == temp_dev_id[sequential_id - 1]) {
+			/* Kludge for 7990 > 14.9. We hates AMD. */
+			ocl_device_list[sequential_id].pci_info.bus++;
+			temp_dev_id[sequential_id] =
+				id2adl(ocl_device_list[sequential_id].pci_info);
+		}
 	} else {
 		temp_dev_id[sequential_id] = sequential_id;
 		dev_get_temp[sequential_id] = NULL;
@@ -907,18 +915,19 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 		                                  SUBSECTION_OPENCL, "GlobalBuildOpts")))
 			global_opts = OPENCLBUILDOPTIONS;
 
-	sprintf(include, "-I %s %s %s%s%s%d %s %s %s", path_expand(pathname),
+	sprintf(include, "-I %s %s %s%s%s%d %s -D_OPENCL_COMPILER %s",
+	        path_expand(pathname),
 	        global_opts,
 #ifdef __APPLE__
-	        "-DAPPLE ",
+	        "-D__APPLE__ ",
 #else
 	        gpu_nvidia(device_info[sequential_id]) ? "-cl-nv-verbose " : "",
 #endif
-	        get_device_type(sequential_id) == CL_DEVICE_TYPE_CPU ?
-	        "-DDEVICE_IS_CPU " : "",
+	        get_device_type(sequential_id) == CL_DEVICE_TYPE_CPU ? "-D__CPU__ "
+	        : get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU ? "-D__GPU__ " : "",
 	        "-DDEVICE_INFO=", device_info[sequential_id],
-	        "-D_OPENCL_COMPILER",
-	        opencl_driver_ver(sequential_id), opts ? opts : "");
+	        opencl_driver_ver(sequential_id),
+	        opts ? opts : "");
 
 	if (options.verbosity > 3)
 		fprintf(stderr, "Options used: %s\n", include);

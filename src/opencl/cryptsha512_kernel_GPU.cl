@@ -13,7 +13,7 @@
 
 #include "opencl_cryptsha512.h"
 
-#if gpu(DEVICE_INFO)
+#if __GPU__
     #define VECTOR_USAGE
 #endif
 

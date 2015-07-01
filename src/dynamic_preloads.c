@@ -1136,7 +1136,7 @@ MTL({"$dynamic_37$398a2ef658dc374790261e6aa8e09f09586e786b$$Ujohn", "12345678901
 };
 
 //$ ./pass_gen.pl  'dynamic=num=38,format=sha1($s.sha1($s.sha1($p))),salt=ashex,saltlen=32'
-//dynamic_38 --> sha1($salt.sha1($salt.sha1($pass)))
+//dynamic_38 --> sha1($s.sha1($s.sha1($p)))
 static DYNAMIC_primitive_funcp _Funcs_38[] =
 {
 	//MGF_INPUT_20_BYTE
