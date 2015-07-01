@@ -268,6 +268,22 @@ static void listconf_list_build_info(void)
 	if (DebuggingOptions != cpdbg) {
 		printf("Built with these debugging options\n%s\n", DebuggingOptions);
 	}
+#ifdef SIMD_COEF_32
+	printf("SIMD_COEF_32     = %d\n", SIMD_COEF_32);
+	printf("SIMD_PARA_MD4    = %d\n", SIMD_PARA_MD4);
+	printf("SIMD_PARA_MD5    = %d\n", SIMD_PARA_MD5);
+	printf("SIMD_PARA_SHA1   = %d\n", SIMD_PARA_SHA1);
+	printf("SIMD_PARA_SHA256 = %d\n", SIMD_PARA_SHA256);
+#endif
+#ifdef SIMD_COEF_64
+	printf("SIMD_COEF_64     = %d\n", SIMD_COEF_64);
+	printf("SIMD_PARA_SHA512 = %d\n", SIMD_PARA_SHA512);
+#endif
+	printf("BlowFish X#      = %d\n", BF_X2);
+	printf("BlowFish asm     = %s\n", BF_ASM?"yes":"no");
+	printf("MD5 X#           = %d\n", MD5_X2);
+	printf("MD5 asm          = %s\n", MD5_ASM?"yes":"no");
+	printf("MD5 imm          = %s\n", MD5_IMM?"yes":"no");
 }
 
 void listconf_parse_early(void)
