@@ -65,6 +65,63 @@
  *     optimize          If set, performs optimizations
  *     optimize2         If set, performs 2nd level of optimizations.
  *
+ *****************************************************************
+ *     TODO:
+ *****************************************************************
+ *   Handle #define MGF_KEYS_INPUT                   0x00000001
+#define MGF_KEYS_CRYPT_IN2               0x00000002
+// for salt_as_hex for other formats, we do this:  (flag>>56)
+// Then 00 is md5, 01 is md4, 02 is SHA1, etc
+// NOTE, all top 8 bits of the flags are reserved, and should NOT be used for flags.
+#define MGF_KEYS_BASE16_IN1              0x00000004   // deprecated (use the _MD5 version)
+#define MGF_KEYS_BASE16_IN1_MD5          0x0000000000000004ULL
+#define MGF_KEYS_BASE16_IN1_MD4	         0x0100000000000004ULL
+#define MGF_KEYS_BASE16_IN1_SHA1         0x0200000000000004ULL
+#define MGF_KEYS_BASE16_IN1_SHA224       0x0300000000000004ULL
+#define MGF_KEYS_BASE16_IN1_SHA256       0x0400000000000004ULL
+#define MGF_KEYS_BASE16_IN1_SHA384       0x0500000000000004ULL
+#define MGF_KEYS_BASE16_IN1_SHA512       0x0600000000000004ULL
+#define MGF_KEYS_BASE16_IN1_GOST         0x0700000000000004ULL
+#define MGF_KEYS_BASE16_IN1_WHIRLPOOL    0x0800000000000004ULL
+#define MGF_KEYS_BASE16_IN1_TIGER        0x0900000000000004ULL
+#define MGF_KEYS_BASE16_IN1_RIPEMD128    0x0A00000000000004ULL
+#define MGF_KEYS_BASE16_IN1_RIPEMD160    0x0B00000000000004ULL
+#define MGF_KEYS_BASE16_IN1_RIPEMD256    0x0C00000000000004ULL
+#define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
+
+#define MGF_KEYS_BASE16_IN1_Offset32         0x00000008   // deprecated (use the _MD5 version)
+#define MGF_KEYS_BASE16_IN1_Offset_MD5       0x0000000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_MD4       0x0100000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_SHA1      0x0200000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_SHA224    0x0300000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_SHA256    0x0400000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_SHA384    0x0500000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_SHA512    0x0600000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_GOST      0x0700000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_WHIRLPOOL 0x0800000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_TIGER     0x0900000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD128 0x0A00000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD160 0x0B00000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD256 0x0C00000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD320 0x0D00000000000008ULL
+
+if outter hash is md5_b64 (or b64e) then use this flag
+#define MGF_INPBASE64m               0x02000000
+// MGF_INPBASE64 uses e_b64_cryptBS from base64_convert.h chang b64e to b64c
+#define MGF_INPBASE64		         0x00000080
+if any utf16 used, set this flag??
+#define MGF_UTF8                     0x04000000
+
+#define MGF_PASSWORD_UPCASE          0x08000000
+#define MGF_PASSWORD_LOCASE          0x10000000
+
+if outter hash is upcase
+#define MGF_BASE_16_OUTPUT_UPCASE    0x00002000
+
+Remove all md5u() types.  Replace with a utf16() function.
+
+#define MGF_USERNAME_UPCASE         (0x00000020|MGF_USERNAME)
+#define MGF_USERNAME_LOCASE         (0x00000040|MGF_USERNAME)
  */
 
 #include "arch.h"
@@ -104,15 +161,15 @@
 
 #include "memdbg.h"
 
-static int gost_init=0;
+static int gost_init = 0;
 
 typedef struct DC_list {
 	struct DC_list *next;
 	DC_struct *value;
 } DC_list;
 
-const char *dyna_script="Expression=dynamic=md5($p)\nFlag=MGF_KEYS_INPUT\nFunc=DynamicFunc__crypt_md5\nTest=@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72:abc";
-const char *dyna_signature="@dynamic=md5($p)@";
+const char *dyna_script = "Expression=dynamic=md5($p)\nFlag=MGF_KEYS_INPUT\nFunc=DynamicFunc__crypt_md5\nTest=@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72:abc";
+const char *dyna_signature = "@dynamic=md5($p)@";
 const char *dyna_line1 = "@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72";
 const char *dyna_line2 = "@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785";
 const char *dyna_line3 = "@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb";
@@ -203,7 +260,7 @@ static int keys_as_input;
 static char *gen_Stack[1024];
 static int ngen_Stack, ngen_Stack_max;
 static char *h;
-static int nSaltLen=-32;
+static int nSaltLen = -32;
 static char gen_s[260], gen_s2[16], gen_u[16], gen_pw[16], gen_pwlc[16], gen_pwuc[16], gen_conv[260];
 
 void md5_hex()    { MD5_CTX c; MD5_Init(&c); MD5_Update(&c, h, strlen(h)); MD5_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv);}
@@ -583,14 +640,14 @@ static const char *comp_get_symbol(const char *pInput) {
 		if (!strncmp(pInput, "ripemd320", 9)) { return comp_push_sym("frip320h", dynamic_frip320h, pInput+9); }
 		if (!strncmp(pInput, "RIPEMD320", 9)) { return comp_push_sym("frip320H", dynamic_frip320H, pInput+9); }
 	}
-	LastTokIsFunc=2;
+	LastTokIsFunc = 2;
 	//if (!strncmp(pInput, "pad16", 5)) return comp_push_sym("Fpad16", dynamic_fpad16, pInput+5);
 	//if (!strncmp(pInput, "pad20", 5)) return comp_push_sym("Fpad20", dynamic_fpad20, pInput+5);
 	//if (!strncmp(pInput, "pad100", 6)) return comp_push_sym("Fpad100", dynamic_fpad100, pInput+6);
 	//if (!strncmp(pInput, "padm64", 6)) return comp_push_sym("Fpadm64", dynamic_fpadmd64, pInput+6);
 	//if (!strncmp(pInput, "utf16be", 7)) return comp_push_sym("Futf16be", dynamic_futf16, pInput+7);
 	//if (!strncmp(pInput, "utf16", 5)) return comp_push_sym("Futf16", dynamic_futf16be, pInput+5);
-	LastTokIsFunc=0;
+	LastTokIsFunc = 0;
 	return comp_push_sym("X", fpNull, pInput);
 }
 
@@ -615,7 +672,7 @@ char *comp_optimize_expression(const char *pExpr) {
 	 * Look for crypt($s) optimziation. At this time, we do not look for SALT_AS_HEX_TO_SALT2 variant.
 	 */
 	p = strstr(pBuf, "($s)");
-	n1=0;
+	n1 = 0;
 	while (p) {
 		++n1;
 		p = strstr(&p[1], "($s)");
@@ -739,7 +796,7 @@ static void comp_do_parse(int cur, int curend) {
 			continue;
 		}
 		if (strlen(curTok)>1 && (*curTok == 'f' || *curTok == 'F')) {
-			int tail, count=1;
+			int tail, count = 1;
 			// find the closing ')' for this function.
 			++cur; // skip the function name.  Now cur should point to the ( symbol
 			tail = cur;
@@ -882,7 +939,7 @@ static void build_test_string(DC_struct *p, char **pLine) {
 static int parse_expression(DC_struct *p) {
 	int i, len;
 	char *pExpr, *pScr;
-	int salt_hex_len=0;
+	int salt_hex_len = 0;
 	init_static_data();
 	// first handle the extra strings
 	if (handle_extra_params(p))
@@ -902,14 +959,14 @@ static int parse_expression(DC_struct *p) {
 		*cp = 0;
 		strupr(tmp);
 		comp_add_script_line("Flag=MGF_SALT_AS_HEX_%s\n", tmp);
-		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||strcmp(tmp,"RIPEMD128")) salt_hex_len=32;
-		if (!strcmp(tmp,"SHA1")||!strcmp(tmp,"RIPEMD160")) salt_hex_len=40;
-		if (!strcmp(tmp,"TIGER")) salt_hex_len=48;
-		if (!strcmp(tmp,"SHA224")) salt_hex_len=56;
-		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")) salt_hex_len=64;
-		if (!strcmp(tmp,"RIPEMD320")) salt_hex_len=80;
-		if (!strcmp(tmp,"SHA384")) salt_hex_len=96;
-		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")) salt_hex_len=128;
+		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||strcmp(tmp,"RIPEMD128")) salt_hex_len = 32;
+		if (!strcmp(tmp,"SHA1")||!strcmp(tmp,"RIPEMD160")) salt_hex_len = 40;
+		if (!strcmp(tmp,"TIGER")) salt_hex_len = 48;
+		if (!strcmp(tmp,"SHA224")) salt_hex_len = 56;
+		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")) salt_hex_len = 64;
+		if (!strcmp(tmp,"RIPEMD320")) salt_hex_len = 80;
+		if (!strcmp(tmp,"SHA384")) salt_hex_len = 96;
+		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")) salt_hex_len = 128;
 	}
 	if (bNeedS) comp_add_script_line("Flag=MGF_SALTED\n");
 	if (bNeedS2) comp_add_script_line("Flag=MGF_SALTED2\n");
@@ -937,23 +994,21 @@ static int parse_expression(DC_struct *p) {
 	// Ok now run the script
 	{
 		int x, j, last_push;
-		//int inp2_used=0;
-		int salt_len=-32;
-		int in_unicode=0;
-		int append_mode=0;
-		int max_inp_len=110, len_comp;
+		//int inp2_used = 0;
+		int salt_len = nSaltLen ? nSaltLen : -32;
+		int in_unicode = 0;
+		int append_mode = 0;
+		int max_inp_len = 110, len_comp;
 		int inp1_clean = 0;
-		int use_inp1 = 1, use_inp1_again=0;
-		int inp_cnt=0, ex_cnt=0, salt_cnt=0, hash_cnt=0;
+		int use_inp1 = 1, use_inp1_again = 0;
+		int inp_cnt = 0, ex_cnt = 0, salt_cnt = 0, hash_cnt = 0;
 
 		if (bNeedS) {
+			comp_add_script_line("SaltLen=%d\n", salt_len);
 			if (salt_hex_len)
-				salt_len=salt_hex_len;
-			else {
-				// if salt_len from command line, add it:
-				comp_add_script_line("SaltLen=%d\n", salt_len);
-			}
-		}
+				salt_len = salt_hex_len;
+		} else
+			salt_len = 0;
 		if (salt_len < 0)
 			salt_len *= -1;
 		if (!keys_as_input) {
@@ -970,22 +1025,22 @@ static int parse_expression(DC_struct *p) {
 				if (pCode[i][strlen(pCode[i])-1] == 'u') {
 					if (!in_unicode)
 						comp_add_script_line("Func=DynamicFunc__setmode_unicode\n");
-					in_unicode=1;
+					in_unicode = 1;
 				} else {
 					if (in_unicode)
 						comp_add_script_line("Func=DynamicFunc__setmode_normal\n");
-					in_unicode=0;
+					in_unicode = 0;
 				}
 				if (!strcasecmp(pCode[i], "utf16be") || !strcasecmp(pCode[i], "utf16"))
 					// NOTE, utf16be not handled.
 					comp_add_script_line("Func=DynamicFunc__setmode_unicode\n");
 
 				// Found next function.  Now back up and load the data
-				for (j = i-1; j>=0; --j) {
+				for (j = i-1; j >= 0; --j) {
 					if (pCode[j][0] == 'p') { // push
 						last_push = j;
 						use_inp1_again = 0;
-						inp_cnt=0, ex_cnt=0, salt_cnt=0, hash_cnt=0;
+						inp_cnt = 0, ex_cnt = 0, salt_cnt = 0, hash_cnt = 0;
 						for (x = j+1; x < i; ++x) {
 							if (!strcmp(pCode[x], "app_p")) {
 								comp_add_script_line("Func=DynamicFunc__append_keys%s\n", use_inp1?"":"2"); ++inp_cnt; }
@@ -1008,7 +1063,7 @@ static int parse_expression(DC_struct *p) {
 							pCode[last_push][0] = 'X';
 						else {
 							strcpy(pCode[last_push], "IN2");
-							inp1_clean=0;
+							inp1_clean = 0;
 							use_inp1_again = 1;
 						}
 
@@ -1144,13 +1199,13 @@ static int parse_expression(DC_struct *p) {
 
 							else if (!strcasecmp(pCode[i], "utf16be") || !strcasecmp(pCode[i], "utf16"))
 								comp_add_script_line("Func=DynamicFunc__setmode_normal\n");
-							use_inp1=append_mode=0;
+							use_inp1 = append_mode = 0;
 							if (use_inp1_again)
 								use_inp1 = 1;
 							if (pCode[i+1] && pCode[i+1][0] == 'p') {
 								inp1_clean = 0;
-								append_mode=1;
-								use_inp1=1;
+								append_mode = 1;
+								use_inp1 = 1;
 							}
 						}
 						break;
