@@ -5917,22 +5917,16 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
    fi
    LDFLAGS=${LDFLAGS_BAK}
 fi
-  CFLAGS="$ac_saved_cflags"
-  ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
    # if user requested  UbSan, make sure we can properly build/link with it.
    # FIXME: for now, exclude -fsanitize=alignment on all architectures, not just x86
 if test "x$ubsan" = xyes ; then
    CFLAGS_EX=""
    LDFLAGS_BAK=${LDFLAGS}
-  if test "1" = 1; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error --param=max-vartrack-size=0" >&5
-$as_echo_n "checking if $CC supports -fsanitize=undefined... " >&6; }
-  fi
+     if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error" >&5
+$as_echo_n "checking if $CC supports -DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error... " >&6; }
+fi
   ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -5940,7 +5934,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   ac_saved_cflags="$CFLAGS"
-  CFLAGS="-Werror -DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error --param=max-vartrack-size=0"
+  CFLAGS="-Werror -DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error"
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -5957,7 +5951,8 @@ if ac_fn_c_try_link "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX="$CFLAGS_EX -DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error --param=max-vartrack-size=0"
+      CFLAGS_EX="$CFLAGS_EX -DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error"
+
 else
   if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
@@ -5965,7 +5960,8 @@ $as_echo "no" >&6; }
 fi
 
 fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
   CFLAGS="$ac_saved_cflags"
   ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -5973,6 +5969,13 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+
+   if test "x${CFLAGS_EX}" = x ; then
+      ubsan=no
+   else
+      LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
+   fi
+   LDFLAGS=${LDFLAGS_BAK}
 fi
 
    # now fill out CFLAGS
@@ -6068,7 +6071,8 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-if test "x$asan" = xyes || "x$ubsan" = xyes; then
+
+if test "x$asan" = xyes || test "x$ubsan" = xyes ; then
      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fno-omit-frame-pointer" >&5
 $as_echo_n "checking if $CC supports -fno-omit-frame-pointer... " >&6; }
@@ -13529,10 +13533,10 @@ if test "x$asan" = xyes ; then
 fi
 
 if test "x$ubsan" = xyes ; then
-  CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
-  CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
-  CFLAGS="-g $O_DEBUG -DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error --param=max-vartrack-size=0 $CFLAGS"
-  LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
+   CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
+   CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
+   CFLAGS="-g $O_DEBUG -DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error --param=max-vartrack-size=0 $CFLAGS"
+   LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
 fi
 
 #add ARCH_LITTLE_ENDIAN to command line, IF we know it is big or little

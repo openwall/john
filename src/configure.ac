@@ -221,7 +221,7 @@ fi
    CFLAGS_EX=""
    JTR_FLAG_CHECK([-Wall], 1)
    JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
-if test "x$asan" = xyes || "x$ubsan" = xyes ; then
+if test "x$asan" = xyes || test "x$ubsan" = xyes ; then
    JTR_FLAG_CHECK([-fno-omit-frame-pointer], 1)
 else
    JTR_FLAG_CHECK([-fomit-frame-pointer], 1)
