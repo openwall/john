@@ -42,11 +42,130 @@
 	#define ELEM_3 0
 #endif
 
-__kernel void nt_crypt(const __global uint *keys , __global uint *output)
+inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_size) {
+	uint tmp;
+
+	/* Round 1 */
+	hash[0] = 0xFFFFFFFF	+ nt_buffer[0]; hash[0]=rotate(hash[0], 3u);
+	hash[3] = INIT_D+(INIT_C ^ (hash[0] & 0x77777777))   + nt_buffer[1]; hash[3]=rotate(hash[3], 7u);
+	hash[2] = INIT_C+(INIT_B ^ (hash[3] & (hash[0] ^ INIT_B))) + nt_buffer[2]; hash[2]=rotate(hash[2], 11u);
+	hash[1] = INIT_B + (hash[0] ^ (hash[2] & (hash[3] ^ hash[0])))		 + nt_buffer[3]; hash[1]=rotate(hash[1], 19u);
+
+#ifdef USE_BITSELECT
+
+	hash[0] += bitselect(hash[3], hash[2], hash[1]) + nt_buffer[4] ; hash[0] = rotate(hash[0], 3u);
+	hash[3] += bitselect(hash[2], hash[1], hash[0]) + nt_buffer[5] ; hash[3] = rotate(hash[3], 7u);
+	hash[2] += bitselect(hash[1], hash[0], hash[3]) + nt_buffer[6] ; hash[2] = rotate(hash[2], 11u);
+	hash[1] += bitselect(hash[0], hash[3], hash[2]) + nt_buffer[7] ; hash[1] = rotate(hash[1], 19u);
+
+	hash[0] += bitselect(hash[3], hash[2], hash[1]) + nt_buffer[8] ; hash[0] = rotate(hash[0], 3u);
+	hash[3] += bitselect(hash[2], hash[1], hash[0]) + nt_buffer[9] ; hash[3] = rotate(hash[3], 7u);
+	hash[2] += bitselect(hash[1], hash[0], hash[3]) + nt_buffer[10]; hash[2] = rotate(hash[2], 11u);
+	hash[1] += bitselect(hash[0], hash[3], hash[2]) + nt_buffer[11]; hash[1] = rotate(hash[1], 19u);
+
+	hash[0] += bitselect(hash[3], hash[2], hash[1])                ; hash[0] = rotate(hash[0], 3u);
+	hash[3] += bitselect(hash[2], hash[1], hash[0])                ; hash[3] = rotate(hash[3], 7u);
+	hash[2] += bitselect(hash[1], hash[0], hash[3]) + md4_size     ; hash[2] = rotate(hash[2], 11u);
+	hash[1] += bitselect(hash[0], hash[3], hash[2])                ; hash[1] = rotate(hash[1], 19u);
+
+#else
+
+	hash[0] += (hash[3] ^ (hash[1] & (hash[2] ^ hash[3])))  +  nt_buffer[4] ; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += (hash[2] ^ (hash[0] & (hash[1] ^ hash[2])))  +  nt_buffer[5] ; hash[3] = rotate(hash[3] , 7u );
+	hash[2] += (hash[1] ^ (hash[3] & (hash[0] ^ hash[1])))  +  nt_buffer[6] ; hash[2] = rotate(hash[2] , 11u);
+	hash[1] += (hash[0] ^ (hash[2] & (hash[3] ^ hash[0])))  +  nt_buffer[7] ; hash[1] = rotate(hash[1] , 19u);
+
+	hash[0] += (hash[3] ^ (hash[1] & (hash[2] ^ hash[3])))  +  nt_buffer[8] ; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += (hash[2] ^ (hash[0] & (hash[1] ^ hash[2])))  +  nt_buffer[9] ; hash[3] = rotate(hash[3] , 7u );
+	hash[2] += (hash[1] ^ (hash[3] & (hash[0] ^ hash[1])))  +  nt_buffer[10]; hash[2] = rotate(hash[2] , 11u);
+	hash[1] += (hash[0] ^ (hash[2] & (hash[3] ^ hash[0])))  +  nt_buffer[11]; hash[1] = rotate(hash[1] , 19u);
+
+	hash[0] += (hash[3] ^ (hash[1] & (hash[2] ^ hash[3])))                  ; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += (hash[2] ^ (hash[0] & (hash[1] ^ hash[2])))                  ; hash[3] = rotate(hash[3] , 7u );
+	hash[2] += (hash[1] ^ (hash[3] & (hash[0] ^ hash[1])))  +    md4_size   ; hash[2] = rotate(hash[2] , 11u);
+	hash[1] += (hash[0] ^ (hash[2] & (hash[3] ^ hash[0])))                  ; hash[1] = rotate(hash[1] , 19u);
+
+#endif
+
+	/* Round 2 */
+
+#ifdef USE_BITSELECT
+
+	hash[0] += bitselect(bitselect(hash[1], hash[2], hash[3]), bitselect(hash[3], hash[1], hash[2]), hash[1]) + nt_buffer[0] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += bitselect(bitselect(hash[0], hash[1], hash[2]), bitselect(hash[2], hash[0], hash[1]), hash[0]) + nt_buffer[4] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
+	hash[2] += bitselect(bitselect(hash[3], hash[0], hash[1]), bitselect(hash[1], hash[3], hash[0]), hash[3]) + nt_buffer[8] + SQRT_2; hash[2] = rotate(hash[2] , 9u );
+	hash[1] += bitselect(bitselect(hash[2], hash[3], hash[0]), bitselect(hash[0], hash[2], hash[3]), hash[2]) +                SQRT_2; hash[1] = rotate(hash[1] , 13u);
+
+	hash[0] += bitselect(bitselect(hash[1], hash[2], hash[3]), bitselect(hash[3], hash[1], hash[2]), hash[1]) + nt_buffer[1] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += bitselect(bitselect(hash[0], hash[1], hash[2]), bitselect(hash[2], hash[0], hash[1]), hash[0]) + nt_buffer[5] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
+	hash[2] += bitselect(bitselect(hash[3], hash[0], hash[1]), bitselect(hash[1], hash[3], hash[0]), hash[3]) + nt_buffer[9] + SQRT_2; hash[2] = rotate(hash[2] , 9u );
+	hash[1] += bitselect(bitselect(hash[2], hash[3], hash[0]), bitselect(hash[0], hash[2], hash[3]), hash[2]) +                SQRT_2; hash[1] = rotate(hash[1] , 13u );
+
+	hash[0] += bitselect(bitselect(hash[1], hash[2], hash[3]), bitselect(hash[3], hash[1], hash[2]), hash[1]) + nt_buffer[2] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += bitselect(bitselect(hash[0], hash[1], hash[2]), bitselect(hash[2], hash[0], hash[1]), hash[0]) + nt_buffer[6] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
+	hash[2] += bitselect(bitselect(hash[3], hash[0], hash[1]), bitselect(hash[1], hash[3], hash[0]), hash[3]) + nt_buffer[10]+ SQRT_2; hash[2] = rotate(hash[2] , 9u );
+	hash[1] += bitselect(bitselect(hash[2], hash[3], hash[0]), bitselect(hash[0], hash[2], hash[3]), hash[2]) + md4_size     + SQRT_2; hash[1] = rotate(hash[1] , 13u );
+
+	hash[0] += bitselect(bitselect(hash[1], hash[2], hash[3]), bitselect(hash[3], hash[1], hash[2]), hash[1]) + nt_buffer[3] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += bitselect(bitselect(hash[0], hash[1], hash[2]), bitselect(hash[2], hash[0], hash[1]), hash[0]) + nt_buffer[7] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
+	hash[2] += bitselect(bitselect(hash[3], hash[0], hash[1]), bitselect(hash[1], hash[3], hash[0]), hash[3]) + nt_buffer[11]+ SQRT_2; hash[2] = rotate(hash[2] , 9u );
+	hash[1] += bitselect(bitselect(hash[2], hash[3], hash[0]), bitselect(hash[0], hash[2], hash[3]), hash[2]) +                SQRT_2; hash[1] = rotate(hash[1] , 13u );
+
+#else
+
+	hash[0] += ((hash[1] & (hash[2] | hash[3])) | (hash[2] & hash[3])) + nt_buffer[0] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += ((hash[0] & (hash[1] | hash[2])) | (hash[1] & hash[2])) + nt_buffer[4] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
+	hash[2] += ((hash[3] & (hash[0] | hash[1])) | (hash[0] & hash[1])) + nt_buffer[8] + SQRT_2; hash[2] = rotate(hash[2] , 9u );
+	hash[1] += ((hash[2] & (hash[3] | hash[0])) | (hash[3] & hash[0]))                + SQRT_2; hash[1] = rotate(hash[1] , 13u);
+
+	hash[0] += ((hash[1] & (hash[2] | hash[3])) | (hash[2] & hash[3])) + nt_buffer[1] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += ((hash[0] & (hash[1] | hash[2])) | (hash[1] & hash[2])) + nt_buffer[5] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
+	hash[2] += ((hash[3] & (hash[0] | hash[1])) | (hash[0] & hash[1])) + nt_buffer[9] + SQRT_2; hash[2] = rotate(hash[2] , 9u );
+	hash[1] += ((hash[2] & (hash[3] | hash[0])) | (hash[3] & hash[0]))                + SQRT_2; hash[1] = rotate(hash[1] , 13u);
+
+	hash[0] += ((hash[1] & (hash[2] | hash[3])) | (hash[2] & hash[3])) + nt_buffer[2] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += ((hash[0] & (hash[1] | hash[2])) | (hash[1] & hash[2])) + nt_buffer[6] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
+	hash[2] += ((hash[3] & (hash[0] | hash[1])) | (hash[0] & hash[1])) + nt_buffer[10]+ SQRT_2; hash[2] = rotate(hash[2] , 9u );
+	hash[1] += ((hash[2] & (hash[3] | hash[0])) | (hash[3] & hash[0])) +   md4_size   + SQRT_2; hash[1] = rotate(hash[1] , 13u);
+
+	hash[0] += ((hash[1] & (hash[2] | hash[3])) | (hash[2] & hash[3])) + nt_buffer[3] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += ((hash[0] & (hash[1] | hash[2])) | (hash[1] & hash[2])) + nt_buffer[7] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
+	hash[2] += ((hash[3] & (hash[0] | hash[1])) | (hash[0] & hash[1])) + nt_buffer[11]+ SQRT_2; hash[2] = rotate(hash[2] , 9u );
+	hash[1] += ((hash[2] & (hash[3] | hash[0])) | (hash[3] & hash[0]))                + SQRT_2; hash[1] = rotate(hash[1] , 13u);
+
+#endif
+
+	/* Round 3 */
+	hash[0] += (hash[3] ^ hash[2] ^ hash[1]) + nt_buffer[0]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += (hash[2] ^ hash[1] ^ hash[0]) + nt_buffer[8]  + SQRT_3; hash[3] = rotate(hash[3] , 9u );
+	hash[2] += (hash[1] ^ hash[0] ^ hash[3]) + nt_buffer[4]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
+	hash[1] += (hash[0] ^ hash[3] ^ hash[2])                 + SQRT_3; hash[1] = rotate(hash[1] , 15u);
+
+	hash[0] += (hash[3] ^ hash[2] ^ hash[1]) + nt_buffer[2]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += (hash[2] ^ hash[1] ^ hash[0]) + nt_buffer[10] + SQRT_3; hash[3] = rotate(hash[3] , 9u );
+	hash[2] += (hash[1] ^ hash[0] ^ hash[3]) + nt_buffer[6]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
+	hash[1] += (hash[0] ^ hash[3] ^ hash[2]) +   md4_size    + SQRT_3; hash[1] = rotate(hash[1] , 15u);
+
+	hash[0] += (hash[3] ^ hash[2] ^ hash[1]) + nt_buffer[1]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += (hash[2] ^ hash[1] ^ hash[0]) + nt_buffer[9]  + SQRT_3; hash[3] = rotate(hash[3] , 9u );
+	hash[2] += (hash[1] ^ hash[0] ^ hash[3]) + nt_buffer[5]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
+	//It is better to calculate this remining steps that access global memory
+	hash[1] += (hash[0] ^ hash[3] ^ hash[2]) ;
+	tmp = hash[1];
+	tmp += SQRT_3; tmp = rotate(tmp , 15u);
+
+	hash[0] += (tmp ^ hash[2] ^ hash[3]) + nt_buffer[3]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += (hash[0] ^ tmp ^ hash[2]) + nt_buffer[11] + SQRT_3; hash[3] = rotate(hash[3] , 9u );
+	hash[2] += (hash[3] ^ hash[0] ^ tmp) + nt_buffer[7]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
+
+}
+
+__kernel void nt(const __global uint *keys , __global uint *output)
 {
 	uint i = get_global_id(0);
 	//Max Size 27-4 = 23 for a better use of registers
 	uint nt_buffer[12];
+	uint hash[4];
 
 	//set key-------------------------------------------------------------------------
 	uint nt_index = 0;
@@ -103,78 +222,11 @@ __kernel void nt_crypt(const __global uint *keys , __global uint *output)
 	md4_size = md4_size << 4;
 	//end set key--------------------------------------------------------------------------
 
-	uint a;
-	uint b;
-	uint c;
-	uint d;
-
-	/* Round 1 */
-	a = 		0xFFFFFFFF					 + nt_buffer[0]; a=rotate(a, 3u);
-	d = INIT_D+(INIT_C ^ (a & 0x77777777))   + nt_buffer[1]; d=rotate(d, 7u);
-	c = INIT_C+(INIT_B ^ (d & (a ^ INIT_B))) + nt_buffer[2]; c=rotate(c, 11u);
-	b = INIT_B + (a ^ (c & (d ^ a)))		 + nt_buffer[3]; b=rotate(b, 19u);
-
-	a += (d ^ (b & (c ^ d)))  +  nt_buffer[4] ; a = rotate(a , 3u );
-	d += (c ^ (a & (b ^ c)))  +  nt_buffer[5] ; d = rotate(d , 7u );
-	c += (b ^ (d & (a ^ b)))  +  nt_buffer[6] ; c = rotate(c , 11u);
-	b += (a ^ (c & (d ^ a)))  +  nt_buffer[7] ; b = rotate(b , 19u);
-
-	a += (d ^ (b & (c ^ d)))  +  nt_buffer[8] ; a = rotate(a , 3u );
-	d += (c ^ (a & (b ^ c)))  +  nt_buffer[9] ; d = rotate(d , 7u );
-	c += (b ^ (d & (a ^ b)))  +  nt_buffer[10]; c = rotate(c , 11u);
-	b += (a ^ (c & (d ^ a)))  +  nt_buffer[11]; b = rotate(b , 19u);
-
-	a += (d ^ (b & (c ^ d)))                  ; a = rotate(a , 3u );
-	d += (c ^ (a & (b ^ c)))                  ; d = rotate(d , 7u );
-	c += (b ^ (d & (a ^ b)))  +    md4_size   ; c = rotate(c , 11u);
-	b += (a ^ (c & (d ^ a)))                  ; b = rotate(b , 19u);
-
-	/* Round 2 */
-	a += ((b & (c | d)) | (c & d)) + nt_buffer[0] + SQRT_2; a = rotate(a , 3u );
-	d += ((a & (b | c)) | (b & c)) + nt_buffer[4] + SQRT_2; d = rotate(d , 5u );
-	c += ((d & (a | b)) | (a & b)) + nt_buffer[8] + SQRT_2; c = rotate(c , 9u );
-	b += ((c & (d | a)) | (d & a))                + SQRT_2; b = rotate(b , 13u);
-
-	a += ((b & (c | d)) | (c & d)) + nt_buffer[1] + SQRT_2; a = rotate(a , 3u );
-	d += ((a & (b | c)) | (b & c)) + nt_buffer[5] + SQRT_2; d = rotate(d , 5u );
-	c += ((d & (a | b)) | (a & b)) + nt_buffer[9] + SQRT_2; c = rotate(c , 9u );
-	b += ((c & (d | a)) | (d & a))                + SQRT_2; b = rotate(b , 13u);
-
-	a += ((b & (c | d)) | (c & d)) + nt_buffer[2] + SQRT_2; a = rotate(a , 3u );
-	d += ((a & (b | c)) | (b & c)) + nt_buffer[6] + SQRT_2; d = rotate(d , 5u );
-	c += ((d & (a | b)) | (a & b)) + nt_buffer[10]+ SQRT_2; c = rotate(c , 9u );
-	b += ((c & (d | a)) | (d & a)) +   md4_size   + SQRT_2; b = rotate(b , 13u);
-
-	a += ((b & (c | d)) | (c & d)) + nt_buffer[3] + SQRT_2; a = rotate(a , 3u );
-	d += ((a & (b | c)) | (b & c)) + nt_buffer[7] + SQRT_2; d = rotate(d , 5u );
-	c += ((d & (a | b)) | (a & b)) + nt_buffer[11]+ SQRT_2; c = rotate(c , 9u );
-	b += ((c & (d | a)) | (d & a))                + SQRT_2; b = rotate(b , 13u);
-
-	/* Round 3 */
-	a += (d ^ (c ^ b)) + nt_buffer[0]  + SQRT_3; a = rotate(a , 3u );
-	d += ((c ^ b) ^ a) + nt_buffer[8]  + SQRT_3; d = rotate(d , 9u );
-	c += (b ^ (a ^ d)) + nt_buffer[4]  + SQRT_3; c = rotate(c , 11u);
-	b += ((a ^ d) ^ c)                 + SQRT_3; b = rotate(b , 15u);
-
-	a += (d ^ (c ^ b)) + nt_buffer[2]  + SQRT_3; a = rotate(a , 3u );
-	d += ((c ^ b) ^ a) + nt_buffer[10] + SQRT_3; d = rotate(d , 9u );
-	c += (b ^ (a ^ d)) + nt_buffer[6]  + SQRT_3; c = rotate(c , 11u);
-	b += ((a ^ d) ^ c) +   md4_size    + SQRT_3; b = rotate(b , 15u);
-
-	a += (d ^ (c ^ b)) + nt_buffer[1]  + SQRT_3; a = rotate(a , 3u );
-	d += ((c ^ b) ^ a) + nt_buffer[9]  + SQRT_3; d = rotate(d , 9u );
-	c += (b ^ (a ^ d)) + nt_buffer[5]  + SQRT_3; c = rotate(c , 11u);
-	//It is better to calculate this remining steps that access global memory
-	b += ((a ^ d) ^ c) ;
-	output[i] = b;//Coalescing write
-	b+= SQRT_3; b = rotate(b , 15u);
-
-	a += ((b ^ c) ^ d) + nt_buffer[3]  + SQRT_3; a = rotate(a , 3u );
-	d += (a ^ (b ^ c)) + nt_buffer[11] + SQRT_3; d = rotate(d , 9u );
-	c += (d ^ a ^ b) + nt_buffer[7]  + SQRT_3; c = rotate(c , 11u);
+	nt_crypt(hash, nt_buffer, md4_size);
 
 	//Coalescing writes
-	output[1*num_keys+i] = a;
-	output[2*num_keys+i] = c;
-	output[3*num_keys+i] = d;
+	output[i] = hash[1];
+	output[1*num_keys+i] = hash[0];
+	output[2*num_keys+i] = hash[2];
+	output[3*num_keys+i] = hash[3];
 }

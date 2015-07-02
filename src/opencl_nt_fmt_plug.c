@@ -209,7 +209,7 @@ static void init(struct fmt_main *_self)
 
 	opencl_init("$JOHN/kernels/nt_kernel.cl", gpu_id, NULL);
 
-	crypt_kernel = clCreateKernel( program[gpu_id], "nt_crypt", &ret_code );
+	crypt_kernel = clCreateKernel( program[gpu_id], "nt", &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating kernel");
 }
 
