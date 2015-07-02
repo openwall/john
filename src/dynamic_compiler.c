@@ -273,7 +273,8 @@ static int ngen_Stack, ngen_Stack_max;
 static char *h;
 static int h_len;
 static int nSaltLen = -32;
-static char gen_s[260], gen_s2[16], gen_u[16], gen_pw[16], gen_pwlc[16], gen_pwuc[16], gen_conv[260];
+static char gen_s[260], gen_s2[16], gen_u[16], gen_pw[16], gen_conv[260];
+// static char gen_pwlc[16], gen_pwuc[16];
 
 /*
  * These are the 'low level' primative functions ported from pass_gen.pl.
@@ -354,10 +355,6 @@ static void dyna_helper_pre() {
 	h = gen_Stack[--ngen_Stack];
 	h_len = gen_Stack_len[ngen_Stack];
 }
-static void dyna_helper_pre_no_pop() {
-	h = gen_Stack[ngen_Stack-1];
-	h_len = gen_Stack_len[ngen_Stack-1];
-}
 static void dyna_helper_post(int len) {
 	// like dyna_helper_append but always works with the h variable.
 	// this one is for binary data, so we have to pass the length in.
@@ -378,13 +375,13 @@ static void dyna_helper_poststr() {
 static void fpNull(){}
 static void dynamic_push()   { char *p = mem_calloc(260, 1); MEM_FREE(gen_Stack[ngen_Stack]); gen_Stack_len[ngen_Stack] = 0; gen_Stack[ngen_Stack++] = p; ngen_Stack_max++; }
 //static void dynamic_pop    { return pop @gen_Stack; }  # not really needed.
-static void dynamic_app_s()  { dyna_helper_append(gen_s);    }
+//static void dynamic_app_s()  { dyna_helper_append(gen_s);    }
 static void dynamic_app_sh() { dyna_helper_append(gen_s);    } //md5_hex($gen_s); }
 static void dynamic_app_S()  { dyna_helper_append(gen_s2);   }
 static void dynamic_app_u()  { dyna_helper_append(gen_u);    }
 static void dynamic_app_p()  { dyna_helper_append(gen_pw);   }
-static void dynamic_app_pU() { dyna_helper_append(gen_pwuc); }
-static void dynamic_app_pL() { dyna_helper_append(gen_pwlc); }
+//static void dynamic_app_pU() { dyna_helper_append(gen_pwuc); }
+//static void dynamic_app_pL() { dyna_helper_append(gen_pwlc); }
 static void dynamic_app_1()  { dyna_helper_append(Const[1]); }
 static void dynamic_app_2()  { dyna_helper_append(Const[2]); }
 static void dynamic_app_3()  { dyna_helper_append(Const[3]); }
@@ -671,8 +668,8 @@ static const char *comp_get_symbol(const char *pInput) {
 		if (!strncmp(pInput, "RIPEMD160", 9)) { return comp_push_sym("frip160H", dynamic_frip160H, pInput+9); }
 	}
 	if (!strncasecmp(pInput, "ripemd256", 9)) {
-		if (!strncmp(pInput, "ripemd256_raw", 13)) { LastTokIsFunc = 2; return comp_push_sym("frip256r", dynamic_frip160r, pInput+13); }
-		if (!strncmp(pInput, "ripemd256_64c", 13)) { return comp_push_sym("frip256c", dynamic_frip160c, pInput+13); }
+		if (!strncmp(pInput, "ripemd256_raw", 13)) { LastTokIsFunc = 2; return comp_push_sym("frip256r", dynamic_frip256r, pInput+13); }
+		if (!strncmp(pInput, "ripemd256_64c", 13)) { return comp_push_sym("frip256c", dynamic_frip256c, pInput+13); }
 		if (!strncmp(pInput, "ripemd256_64", 12)) { return comp_push_sym("frip2566", dynamic_frip2566, pInput+12); }
 		if (!strncmp(pInput, "ripemd256", 9)) { return comp_push_sym("frip256h", dynamic_frip256h, pInput+9); }
 		if (!strncmp(pInput, "RIPEMD256", 9)) { return comp_push_sym("frip256H", dynamic_frip256H, pInput+9); }
