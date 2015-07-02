@@ -3077,12 +3077,9 @@ sub dynamic_compile {
 		print STDERR "        Added \$s2 (if 2nd salt is defined),\n";
 		print STDERR "        Added \$c1 to \$c9 for constants (must be defined in const#= values)\n";
 		print STDERR "        Added \$u if user name (normal, upper/lower case or unicode convert)\n";
-		print STDERR "        Handle utf16 and utf16-be for items. So md5(utf16(\$p)) and md5u(\$p) are same\n";
+		print STDERR "        Handle utf16() and utf16be() for items. So md5(utf16(\$p)) gives md5 of unicode password\n";
 		print STDERR "        Handle md5, sha1, md4 sha2 (sha224,sha256,sha384,sha512) gost whirlpool tiger and haval crypts.\n";
 		print STDERR "        Handle MD5, SHA1, MD4 SHA2 (all uc(sha2) types) GOST WHILRPOOL TIGER HAVAL which output hex in uppercase.\n";
-		print STDERR "        Handle md5u, sha1u md4u, sha2*u gostu whirlpoolu tigeru havalu which encode to UTF16LE.\n";
-		print STDERR "          prior to hashing. Warning, be careful with md5u and usrname=uni,\n";
-		print STDERR "          they will 'clash'\n";
 		print STDERR "        Handle md5_64, sha1_64, md4_64, sha2*_64 gost_64 whirlpool_64 tiger_64 haval_64 which output in\n";
 		print STDERR "          'mime-standard' base-64 which is \"A-Za-z0-9+/\"\n";
 		print STDERR "        Handle md5_64c, sha1_64c, md4_64c, sha2*_64c gost_64c, whirlpool_64c which output in\n";
@@ -3135,11 +3132,11 @@ sub dynamic_compile {
 			$dynamic_args==24 && do {$fmt='sha1($p.$s)';				last SWITCH; };
 			$dynamic_args==25 && do {$fmt='sha1($s.$p)';				last SWITCH; };
 			$dynamic_args==26 && do {$fmt='sha1($p)';					last SWITCH; };
-			$dynamic_args==29 && do {$fmt='md5u($p)';					last SWITCH; };
+			$dynamic_args==29 && do {$fmt='md5(utf16($p))';				last SWITCH; };
 			$dynamic_args==30 && do {$fmt='md4($p)';					last SWITCH; };
 			$dynamic_args==31 && do {$fmt='md4($s.$p)';					last SWITCH; };
 			$dynamic_args==32 && do {$fmt='md4($p.$s)';					last SWITCH; };
-			$dynamic_args==33 && do {$fmt='md4u($p)';					last SWITCH; };
+			$dynamic_args==33 && do {$fmt='md4(utf16($p))';				last SWITCH; };
 			$dynamic_args==34 && do {$fmt='md5(md4($p))';				last SWITCH; };
 			$dynamic_args==35 && do {$fmt='sha1($u.$c1.$p),usrname=uc,const1=:';	last SWITCH; };
 			$dynamic_args==36 && do {$fmt='sha1($u.$c1.$p),usrname=true,const1=:';	last SWITCH; };
@@ -3285,7 +3282,7 @@ sub dynamic_compile {
 			$dynamic_args==1033 && do {$fmt='sha1_64(utf16($p).$s)';	last SWITCH; };
 			$dynamic_args==1300 && do {$fmt='md5(md5_raw($p))';	last SWITCH; };
 			$dynamic_args==1350 && do {$fmt='md5(md5($s.$p).$c1.$s),saltlen=2,const1=:';	last SWITCH; };
-			$dynamic_args==1400 && do {$fmt='sha1u($p)';	last SWITCH; };
+			$dynamic_args==1400 && do {$fmt='sha1(utf16($p))';	last SWITCH; };
 			$dynamic_args==1401 && do {$fmt='md5_40($u.$c1.$p),const1='."\n".'skyper'."\n,usrname=true";	last SWITCH; };
 			$dynamic_args==1501 && do {$fmt='sha1($s.sha1($p)),saltlen=32';	last SWITCH; };
 			$dynamic_args==1502 && do {$fmt='sha1(sha1($p).$s),saltlen=-32';	last SWITCH; };
@@ -3338,16 +3335,16 @@ sub do_dynamic_GetToken {
 	}
 	if ($stmp eq '$') {
 		$stmp = substr($exprStr, 0, 2);
-		if ($stmp eq '$p' || $stmp eq '$u') { return dyna_addtok(substr($exprStr,1,1)), substr($exprStr, 2); }
+		if ($stmp eq '$p' || $stmp eq '$u') { return dyna_addtok(substr($exprStr,1,1), substr($exprStr, 2)); }
 		if ($stmp eq '$s') {
-			if (substr($exprStr, 0, 3) eq '$s2') { return dyna_addtok("S"), substr($exprStr, 3); }
-			return dyna_addtok("s"), substr($exprStr, 2);
+			if (substr($exprStr, 0, 3) eq '$s2') { return dyna_addtok("S", substr($exprStr, 3)); }
+			return dyna_addtok("s", substr($exprStr, 2));
 		}
 		if ($stmp ne '$c') { return dyna_addtok("X", $exprStr); }
 		$stmp = substr($exprStr, 2, 1);
 		if ($stmp < 1 || $stmp > 9) {  return dyna_addtok("X", $exprStr); }
-		my $sRet = o_dynamic_AddToken($stmp, $exprStr);
-		if (!defined($gen_c[$stmp])) {print STDERR "\$c$stmp found, but no constant$stmp loaded\n"; die; }
+		my $sRet = dyna_addtok($stmp, substr($exprStr, 3));
+		if (!defined($gen_c[$stmp-1])) {print STDERR "\$c$stmp found, but no const$stmp loaded\n"; die; }
 		return $sRet;
 	}
 
@@ -3381,84 +3378,69 @@ sub do_dynamic_GetToken {
 		if (substr($exprStr, 0, 6) eq "md5_64")  { return dyna_addtok("f56", substr($exprStr, 6)); }
 		#md5_40 is used by dyna_1401, which is md5, but pads (with 0's) to 20 bytes, not 16
 		if (substr($exprStr, 0, 6) eq "md5_40")  { return dyna_addtok("f54", substr($exprStr, 6)); }
-		if (substr($exprStr, 0, 4) eq "md5u")    { return dyna_addtok("f5u", substr($exprStr, 4)); }
 		if (substr($exprStr, 0, 3) eq "md5")     { return dyna_addtok("f5h", substr($exprStr, 3)); }
 		if (substr($exprStr, 0, 3) eq "MD5")     { return dyna_addtok("f5H", substr($exprStr, 3)); }
 	} elsif ($stmp eq "SHA") {
 		if (substr($exprStr, 0, 8) eq "sha1_64c")  { return dyna_addtok("f1c", substr($exprStr, 8)); }
 		if (substr($exprStr, 0, 7) eq "sha1_64")   { return dyna_addtok("f16", substr($exprStr, 7)); }
-		if (substr($exprStr, 0, 5) eq "sha1u")     { return dyna_addtok("f1u", substr($exprStr, 5)); }
 		if (substr($exprStr, 0, 4) eq "SHA1")      { return dyna_addtok("f1H", substr($exprStr, 4)); }
 		if (substr($exprStr, 0, 4) eq "sha1")      { return dyna_addtok("f1h", substr($exprStr, 4)); }
 		if (substr($exprStr, 0,10) eq "sha224_64c"){ return dyna_addtok("f224c", substr($exprStr, 10)); }
 		if (substr($exprStr, 0, 9) eq "sha224_64") { return dyna_addtok("f2246", substr($exprStr, 9)); }
-		if (substr($exprStr, 0, 7) eq "sha224u")   { return dyna_addtok("f224u", substr($exprStr, 7)); }
 		if (substr($exprStr, 0, 6) eq "SHA224")    { return dyna_addtok("f224H", substr($exprStr, 6)); }
 		if (substr($exprStr, 0, 6) eq "sha224")    { return dyna_addtok("f224h", substr($exprStr, 6)); }
 		if (substr($exprStr, 0,10) eq "sha256_64c"){ return dyna_addtok("f256c", substr($exprStr, 10)); }
 		if (substr($exprStr, 0, 9) eq "sha256_64") { return dyna_addtok("f2566", substr($exprStr, 9)); }
-		if (substr($exprStr, 0, 7) eq "sha256u")   { return dyna_addtok("f256u", substr($exprStr, 7)); }
 		if (substr($exprStr, 0, 6) eq "SHA256")    { return dyna_addtok("f256H", substr($exprStr, 6)); }
 		if (substr($exprStr, 0, 6) eq "sha256")    { return dyna_addtok("f256h", substr($exprStr, 6)); }
 		if (substr($exprStr, 0,10) eq "sha384_64c"){ return dyna_addtok("f384c", substr($exprStr, 10)); }
 		if (substr($exprStr, 0, 9) eq "sha384_64") { return dyna_addtok("f3846", substr($exprStr, 9)); }
-		if (substr($exprStr, 0, 7) eq "sha384u")   { return dyna_addtok("f384u", substr($exprStr, 7)); }
 		if (substr($exprStr, 0, 6) eq "SHA384")    { return dyna_addtok("f384H", substr($exprStr, 6)); }
 		if (substr($exprStr, 0, 6) eq "sha384")    { return dyna_addtok("f384h", substr($exprStr, 6)); }
 		if (substr($exprStr, 0,10) eq "sha512_64c"){ return dyna_addtok("f512c", substr($exprStr, 10)); }
 		if (substr($exprStr, 0, 9) eq "sha512_64") { return dyna_addtok("f5126", substr($exprStr, 9)); }
-		if (substr($exprStr, 0, 7) eq "sha512u")   { return dyna_addtok("f512u", substr($exprStr, 7)); }
 		if (substr($exprStr, 0, 6) eq "SHA512")    { return dyna_addtok("f512H", substr($exprStr, 6)); }
 		if (substr($exprStr, 0, 6) eq "sha512")    { return dyna_addtok("f512h", substr($exprStr, 6)); }
 	} elsif ($stmp eq "MD4") {
 		if (substr($exprStr, 0, 7) eq "md4_64c")   { return dyna_addtok("f4c", substr($exprStr, 7)); }
 		if (substr($exprStr, 0, 6) eq "md4_64")    { return dyna_addtok("f46", substr($exprStr, 6)); }
-		if (substr($exprStr, 0, 4) eq "md4u")      { return dyna_addtok("f4u", substr($exprStr, 4)); }
 		if (substr($exprStr, 0, 3) eq "md4")       { return dyna_addtok("f4h", substr($exprStr, 3)); }
 		if (substr($exprStr, 0, 3) eq "MD4")       { return dyna_addtok("f4H", substr($exprStr, 3)); }
 	} elsif ($stmp eq "GOS") {
 		if (substr($exprStr, 0, 8) eq "gost_64c")  { return dyna_addtok("fgostc", substr($exprStr, 8)); }
 		if (substr($exprStr, 0, 7) eq "gost_64")   { return dyna_addtok("fgost6", substr($exprStr, 7)); }
-		if (substr($exprStr, 0, 5) eq "gostu")     { return dyna_addtok("fgostu", substr($exprStr, 5)); }
 		if (substr($exprStr, 0, 4) eq "GOST")      { return dyna_addtok("fgostH", substr($exprStr, 4)); }
 		if (substr($exprStr, 0, 4) eq "gost")      { return dyna_addtok("fgosth", substr($exprStr, 4)); }
 	} elsif ($stmp eq "WHI") {
 		if (substr($exprStr, 0,13) eq "whirlpool_64c")  { return dyna_addtok("fwrlpc", substr($exprStr, 13)); }
 		if (substr($exprStr, 0,12) eq "whirlpool_64")   { return dyna_addtok("fwrlp6", substr($exprStr, 12)); }
-		if (substr($exprStr, 0,10) eq "whirlpoolu")     { return dyna_addtok("fwrlpu", substr($exprStr, 10)); }
 		if (substr($exprStr, 0, 9) eq "WHIRLPOOL")      { return dyna_addtok("fwrlpH", substr($exprStr, 9)); }
 		if (substr($exprStr, 0, 9) eq "whirlpool")      { return dyna_addtok("fwrlph", substr($exprStr, 9)); }
 	} elsif ($stmp eq "TIG") {
 		if (substr($exprStr, 0, 9) eq "tiger_64c")  { return dyna_addtok("ftigc", substr($exprStr, 9)); }
 		if (substr($exprStr, 0, 8) eq "tiger_64")   { return dyna_addtok("ftig6", substr($exprStr, 8)); }
-		if (substr($exprStr, 0, 6) eq "tigeru")     { return dyna_addtok("ftigu", substr($exprStr, 6)); }
 		if (substr($exprStr, 0, 5) eq "TIGER")      { return dyna_addtok("ftigH", substr($exprStr, 5)); }
 		if (substr($exprStr, 0, 5) eq "tiger")      { return dyna_addtok("ftigh", substr($exprStr, 5)); }
 	} elsif ($stmp eq "RIP") {
 		if (substr($exprStr, 0,13) eq "ripemd128_64c")  { return dyna_addtok("frip128c", substr($exprStr,13)); }
 		if (substr($exprStr, 0,12) eq "ripemd128_64")   { return dyna_addtok("frip1286", substr($exprStr,12)); }
-		if (substr($exprStr, 0,10) eq "ripemd128u")     { return dyna_addtok("frip128u", substr($exprStr,10)); }
 		if (substr($exprStr, 0, 9) eq "RIPEMD129")      { return dyna_addtok("frip128H", substr($exprStr, 9)); }
 		if (substr($exprStr, 0, 9) eq "ripemd128")      { return dyna_addtok("frip128h", substr($exprStr, 9)); }
 		if (substr($exprStr, 0,13) eq "ripemd160_64c")  { return dyna_addtok("frip160c", substr($exprStr,13)); }
 		if (substr($exprStr, 0,12) eq "ripemd160_64")   { return dyna_addtok("frip1606", substr($exprStr,12)); }
-		if (substr($exprStr, 0,10) eq "ripemd160u")     { return dyna_addtok("frip160u", substr($exprStr,10)); }
 		if (substr($exprStr, 0, 9) eq "RIPEMD160")      { return dyna_addtok("frip160H", substr($exprStr, 9)); }
 		if (substr($exprStr, 0, 9) eq "ripemd160")      { return dyna_addtok("frip160h", substr($exprStr, 9)); }
 		if (substr($exprStr, 0,13) eq "ripemd256_64c")  { return dyna_addtok("frip256c", substr($exprStr,13)); }
 		if (substr($exprStr, 0,12) eq "ripemd256_64")   { return dyna_addtok("frip2566", substr($exprStr,12)); }
-		if (substr($exprStr, 0,10) eq "ripemd256u")     { return dyna_addtok("frip256u", substr($exprStr,10)); }
 		if (substr($exprStr, 0, 9) eq "RIPEMD129")      { return dyna_addtok("frip256H", substr($exprStr, 9)); }
 		if (substr($exprStr, 0, 9) eq "ripemd256")      { return dyna_addtok("frip256h", substr($exprStr, 9)); }
 		if (substr($exprStr, 0,13) eq "ripemd320_64c")  { return dyna_addtok("frip320c", substr($exprStr,13)); }
 		if (substr($exprStr, 0,12) eq "ripemd320_64")   { return dyna_addtok("frip3206", substr($exprStr,12)); }
-		if (substr($exprStr, 0,10) eq "ripemd320u")     { return dyna_addtok("frip320u", substr($exprStr,10)); }
 		if (substr($exprStr, 0, 9) eq "RIPEMD129")      { return dyna_addtok("frip320H", substr($exprStr, 9)); }
 		if (substr($exprStr, 0, 9) eq "ripemd320")      { return dyna_addtok("frip320h", substr($exprStr, 9)); }
 	} elsif ($stmp eq "HAV") {
 		if (substr($exprStr, 0,12) eq "haval256_64c")  { return dyna_addtok("fhavc", substr($exprStr,12)); }
 		if (substr($exprStr, 0,11) eq "haval256_64")   { return dyna_addtok("fhav6", substr($exprStr,11)); }
-		if (substr($exprStr, 0, 9) eq "haval256u")     { return dyna_addtok("fhavu", substr($exprStr, 9)); }
 		if (substr($exprStr, 0, 8) eq "HAVEL256")      { return dyna_addtok("fhavH", substr($exprStr, 8)); }
 		if (substr($exprStr, 0, 8) eq "haval256")      { return dyna_addtok("fhavh", substr($exprStr, 8)); }
 	} elsif ($stmp eq "TRU") {
@@ -3890,9 +3872,6 @@ sub dynamic_f5c    { $h = pop @gen_Stack; $h = base64_wpa(md5($h));  $gen_Stack[
 # we can use base64i to get cryptBS layout
 sub dynamic_f1c    { $h = pop @gen_Stack; $h = base64_wpa(sha1($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f4c    { $h = pop @gen_Stack; $h = base64_wpa(md4($h));  $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_f5u    { $h = pop @gen_Stack; $h = md5_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_f1u    { $h = pop @gen_Stack; $h = sha1_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_f4u    { $h = pop @gen_Stack; $h = md4_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f5r    { $h = pop @gen_Stack; $h = md5($h);  $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f1r    { $h = pop @gen_Stack; $h = sha1($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f4r    { $h = pop @gen_Stack; $h = md4($h);  $gen_Stack[@gen_Stack-1] .= $h; return $h; }
@@ -3900,73 +3879,61 @@ sub dynamic_f224h  { $h = pop @gen_Stack; $h = sha224_hex($h); $gen_Stack[@gen_S
 sub dynamic_f224H  { $h = pop @gen_Stack; $h = uc sha224_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f2246  { $h = pop @gen_Stack; $h = sha224_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f224c  { $h = pop @gen_Stack; $h = base64_wpa(sha224($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_f224u  { $h = pop @gen_Stack; $h = sha224_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f224r  { $h = pop @gen_Stack; $h = sha224($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f256h  { $h = pop @gen_Stack; $h = sha256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f256H  { $h = pop @gen_Stack; $h = uc sha256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f2566  { $h = pop @gen_Stack; $h = sha256_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f256c  { $h = pop @gen_Stack; $h = base64_wpa(sha256($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_f256u  { $h = pop @gen_Stack; $h = sha256_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f256r  { $h = pop @gen_Stack; $h = sha256($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f384h  { $h = pop @gen_Stack; $h = sha384_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f384H  { $h = pop @gen_Stack; $h = uc sha384_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f3846  { $h = pop @gen_Stack; $h = sha384_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f384c  { $h = pop @gen_Stack; $h = base64_wpa(sha384($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_f384u  { $h = pop @gen_Stack; $h = sha384_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f384r  { $h = pop @gen_Stack; $h = sha384($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f512h  { $h = pop @gen_Stack; $h = sha512_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f512H  { $h = pop @gen_Stack; $h = uc sha512_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f5126  { $h = pop @gen_Stack; $h = sha512_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f512c  { $h = pop @gen_Stack; $h = base64_wpa(sha512($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_f512u  { $h = pop @gen_Stack; $h = sha512_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f512r  { $h = pop @gen_Stack; $h = sha512($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fgosth { require Digest::GOST; import Digest::GOST qw(gost gost_hex gost_base64); $h = pop @gen_Stack; $h = gost_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fgostH { require Digest::GOST; import Digest::GOST qw(gost gost_hex gost_base64); $h = pop @gen_Stack; $h = uc gost_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fgost6 { require Digest::GOST; import Digest::GOST qw(gost gost_hex gost_base64); $h = pop @gen_Stack; $h = gost_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fgostc { require Digest::GOST; import Digest::GOST qw(gost gost_hex gost_base64); $h = pop @gen_Stack; $h = base64_wpa(gost($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fgostu { require Digest::GOST; import Digest::GOST qw(gost gost_hex gost_base64); $h = pop @gen_Stack; $h = gost_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fgostr { require Digest::GOST; import Digest::GOST qw(gost gost_hex gost_base64); $h = pop @gen_Stack; $h = gost($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fwrlph { $h = pop @gen_Stack; $h = whirlpool_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fwrlpH { $h = pop @gen_Stack; $h = uc whirlpool_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fwrlp6 { $h = pop @gen_Stack; $h = whirlpool_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fwrlpc { $h = pop @gen_Stack; $h = base64_wpa(whirlpool($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fwrlpu { $h = pop @gen_Stack; $h = whirlpool_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fwrlpr { $h = pop @gen_Stack; $h = whirlpool($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_ftigh  { $h = pop @gen_Stack; $h = tiger_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_ftigH  { $h = pop @gen_Stack; $h = uc tiger_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_ftig6  { $h = pop @gen_Stack; $h = tiger_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_ftigc  { $h = pop @gen_Stack; $h = base64_wpa(tiger($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_ftigu  { $h = pop @gen_Stack; $h = tiger_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_ftigr  { $h = pop @gen_Stack; $h = tiger($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip128h  { $h = pop @gen_Stack; $h = ripemd128_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip128H  { $h = pop @gen_Stack; $h = uc ripemd128_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip1286  { $h = pop @gen_Stack; $h = ripemd128_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip128c  { $h = pop @gen_Stack; $h = base64_wpa(ripemd128($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_frip128u  { $h = pop @gen_Stack; $h = ripemd128_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip128r  { $h = pop @gen_Stack; $h = ripemd128($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip160h  { $h = pop @gen_Stack; $h = ripemd160_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip160H  { $h = pop @gen_Stack; $h = uc ripemd160_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip1606  { $h = pop @gen_Stack; $h = ripemd160_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip160c  { $h = pop @gen_Stack; $h = base64_wpa(ripemd160($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_frip160u  { $h = pop @gen_Stack; $h = ripemd160_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip160r  { $h = pop @gen_Stack; $h = ripemd160($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip256h  { $h = pop @gen_Stack; $h = ripemd256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip256H  { $h = pop @gen_Stack; $h = uc ripemd256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip2566  { $h = pop @gen_Stack; $h = ripemd256_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip256c  { $h = pop @gen_Stack; $h = base64_wpa(ripemd256($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_frip256u  { $h = pop @gen_Stack; $h = ripemd256_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip256r  { $h = pop @gen_Stack; $h = ripemd256($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip320h  { $h = pop @gen_Stack; $h = ripemd320_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip320H  { $h = pop @gen_Stack; $h = uc ripemd320_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip3206  { $h = pop @gen_Stack; $h = ripemd320_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip320c  { $h = pop @gen_Stack; $h = base64_wpa(ripemd320($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_frip320u  { $h = pop @gen_Stack; $h = ripemd320_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_frip320r  { $h = pop @gen_Stack; $h = ripemd320($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fhavh  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fhavH  { require Digest::Haval256; $h = pop @gen_Stack; $h = uc haval256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fhav6  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fhavc  { require Digest::Haval256; $h = pop @gen_Stack; $h = base64_wpa(haval256($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
-sub dynamic_fhavu  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fhavr  { require Digest::Haval256; $h = pop @gen_Stack; $h = haval256($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fpad16 { $h = pop @gen_Stack; $h = pad16($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fpad20 { $h = pop @gen_Stack; $h = pad20($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
