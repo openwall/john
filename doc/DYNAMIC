@@ -291,15 +291,15 @@ dynamic_1019  md5(sha1(sha1(md5($pass))))
 dynamic_1020  md5(sha1(md5($pass)))
 dynamic_1021  md5(sha1(md5(sha1($pass))))
 dynamic_1022  md5(sha1(md5(sha1(md5($pass)))))
-dynamic_1023  sha1($pass) (first 32 bytes)
-dynamic_1024  sha1(md5($pass)) (first 32 bytes)
-dynamic_1025  sha1(md5(md5($pass))) (first 32 bytes)
-dynamic_1026  sha1(sha1($pass))) (first 32 bytes)
-dynamic_1027  sha1(sha1(sha1($pass)))) (first 32 bytes)
-dynamic_1028  sha1(sha1_raw($pass)) (first 32 bytes)
-dynamic_1029  sha256($pass) (first 32 bytes)
-dynamic_1030  Whirlpool($pass) (first 32 bytes)
-dynamic_1031  GOST($pass) (first 32 bytes)
+dynamic_1023  sha1($pass) (hash truncated to length 32)
+dynamic_1024  sha1(md5($pass)) (hash truncated to length 32)
+dynamic_1025  sha1(md5(md5($pass))) (hash truncated to length 32)
+dynamic_1026  sha1(sha1($pass))) (hash truncated to length 32)
+dynamic_1027  sha1(sha1(sha1($pass)))) (hash truncated to length 32)
+dynamic_1028  sha1(sha1_raw($pass)) (hash truncated to length 32)
+dynamic_1029  sha256($pass) (hash truncated to length 32)
+dynamic_1030  Whirlpool($pass) (hash truncated to length 32)
+dynamic_1031  GOST($pass) (hash truncated to length 32)
 dynamic_1300  md5(md5_raw($pass))
 dynamic_1350  md5(md5($s.$p):$s)
 
@@ -1052,13 +1052,13 @@ examples (this whole list is also found in dynamic.conf).
 #
 #  TestD= Allows placing a test case that will ONLY load, if -DDEBUG build of
 #    JtR is done (for testing).  At this time, the REALLY long password hashes
-#    are being added with TestD=  so that the timing of the formats will not be 
+#    are being added with TestD=  so that the timing of the formats will not be
 #    impacted, but so that a debugging build can be done, and the extra long
 #    test strings will still be there and be tested.
 #
 #  TestF= Allows placing a test case that will NEVER be loaded if this was an
 #    MMX or SSE build (Only load for 'flat' builds, like oSSL only).
-#   
+#
 #################
 #
 # The testing line is simply of this format:
