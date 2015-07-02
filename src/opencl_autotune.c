@@ -9,6 +9,8 @@
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
+#ifdef HAVE_OPENCL
+
 #include "common-opencl.h"
 #include "memdbg.h"
 
@@ -93,3 +95,5 @@ void autotune_find_best_gws(int sequential_id, unsigned int rounds, int step,
 	//Call the default function.
 	opencl_find_best_gws(step, max_run_time, sequential_id, rounds);
 }
+
+#endif

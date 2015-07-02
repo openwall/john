@@ -13,6 +13,8 @@
  *    modifications, are permitted.
  */
 
+#ifdef HAVE_OPENCL
+
 #define _BSD_SOURCE 1           // setenv()
 #define _DEFAULT_SOURCE 1       // setenv()
 #define NEED_OS_TIMER
@@ -2614,3 +2616,4 @@ void opencl_list_devices(void)
 
 #undef LOG_SIZE
 #undef SRC_SIZE
+#endif

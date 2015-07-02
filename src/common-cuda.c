@@ -6,6 +6,9 @@
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted.
 */
+
+#ifdef HAVE_CUDA
+
 #include <ctype.h>
 
 #include "cuda_common.h"
@@ -82,3 +85,5 @@ void cuda_done(void)
 	if (nvml_lib)
 		nvmlShutdown();
 }
+
+#endif
