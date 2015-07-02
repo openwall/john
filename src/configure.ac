@@ -67,6 +67,7 @@ AC_ARG_WITH(flock, [AS_HELP_STRING([--with-flock],[use flock() file locking inst
 AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory debugging (safe level)])], [memdbg=$enableval], [memdbg=no])
 AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSanitizer])], [asan=$enableval], [asan=no])
 AC_ARG_ENABLE([ubsan], [AS_HELP_STRING([--enable-ubsan], [* Build with UndefinedBehaviorSanitizer])], [ubsan=$enableval], [ubsan=no])
+AC_ARG_ENABLE([tsan], [AS_HELP_STRING([--enable-tsan], [* Build with ThreadSanitizer])], [tsan=$enableval], [tsan=no])
 AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependencies], [Do not create best-effort Makefile dependencies for plugins])], [plug_deps=$enableval], [plug_deps=yes])
 
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
@@ -217,11 +218,26 @@ if test "x$ubsan" = xyes ; then
    LDFLAGS=${LDFLAGS_BAK}
 fi
 
+# if user requested  TSan, make sure we can properly build/link with it.
+# TSan cannot be combined with ASan
+if test "x$tsan" = xyes ; then
+   CFLAGS_EX=""
+   LDFLAGS_BAK=${LDFLAGS}
+   JTR_FLAG_CHECK_LINK([-DWITH_TSAN -fsanitize=thread], 1)
+   if test "x${CFLAGS_EX}" = x ; then
+      tsan=no
+   else
+      LDFLAGS="-fsanitize=thread $LDFLAGS"
+   fi
+   LDFLAGS=${LDFLAGS_BAK}
+fi
+
+
    # now fill out CFLAGS
    CFLAGS_EX=""
    JTR_FLAG_CHECK([-Wall], 1)
    JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
-if test "x$asan" = xyes || test "x$ubsan" = xyes ; then
+if test "x$asan" = xyes || test "x$ubsan" = xyes || test "x$tsan" = xyes; then
    JTR_FLAG_CHECK([-fno-omit-frame-pointer], 1)
 else
    JTR_FLAG_CHECK([-fomit-frame-pointer], 1)
@@ -775,6 +791,13 @@ if test "x$ubsan" = xyes ; then
    LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
 fi
 
+if test "x$tsan" = xyes ; then
+   CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
+   CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
+   CFLAGS="-g $O_DEBUG -DWITH_TSAN -fsanitize=thread $CFLAGS"
+   LDFLAGS="-fsanitize=thread $LDFLAGS"
+fi
+
 #add ARCH_LITTLE_ENDIAN to command line, IF we know it is big or little
 if test "x$endian" = "xbig"; then
    CFLAGS="$CFLAGS -DARCH_LITTLE_ENDIAN=0"
@@ -968,6 +991,12 @@ else
    ubsan="disabled"
 fi
 
+if test "x$tsan" = xyes ; then
+   tsan="enabled"
+else
+   tsan="disabled"
+fi
+
 if test "x$enable_int128" = xno; then
    have_int128=disabled
 elif test "x$ac_cv_type_int128" = xyes ||
@@ -1009,6 +1038,7 @@ Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ............ ${memdbg_settings}
 AddressSanitizer ("ASan") ................... ${asan}
 UndefinedBehaviorSanitizer ("UbSan") ........ ${ubsan}
+ThreadSanitizer ("TSan)" .................... ${tsan}
 
 Install missing libraries to get any needed features that were omitted.
 
