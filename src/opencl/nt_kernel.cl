@@ -157,67 +157,36 @@ inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_s
 	hash[0] += (tmp ^ hash[2] ^ hash[3]) + nt_buffer[3]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += (hash[0] ^ tmp ^ hash[2]) + nt_buffer[11] + SQRT_3; hash[3] = rotate(hash[3] , 9u );
 	hash[2] += (hash[3] ^ hash[0] ^ tmp) + nt_buffer[7]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
-
 }
 
-__kernel void nt(const __global uint *keys , __global uint *output)
+inline void prepare_key(__global uint * key, int length, uint * nt_buffer)
 {
-	uint i = get_global_id(0);
+	uint i = 0, nt_index, keychars;
+	nt_index = 0;
+	for (i = 0; i < (length + 3)/ 4; i++) {
+		keychars = key[i];
+		nt_buffer[nt_index++] = (keychars & 0xFF) | (((keychars >> 8) & 0xFF) << 16);
+		nt_buffer[nt_index++] = ((keychars >> 16) & 0xFF) | ((keychars >> 24) << 16);
+	}
+	nt_index = length >> 1;
+	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
+	nt_buffer[nt_index + 1] = 0;
+}
+
+__kernel void nt(__global uint *keys,   __global uint *index, __global uint *output)
+{
+	uint gid = get_global_id(0);
 	//Max Size 27-4 = 23 for a better use of registers
-	uint nt_buffer[12];
+	uint nt_buffer[12] = {0};
+	uint base = index[gid];
 	uint hash[4];
 
-	//set key-------------------------------------------------------------------------
-	uint nt_index = 0;
-	uint md4_size = 0;
+	uint md4_size = base & 63;
+	keys += base >> 6;
+	prepare_key(keys, md4_size, nt_buffer);
+
 
 	uint num_keys = get_global_size(0);
-	uint key_chars = keys[i];//Coalescing access to global memory
-	uint cache_key = GET_CHAR(key_chars,ELEM_0);
-	//Extract 4 chars by cycle
-	int jump = 0;
-	while(cache_key)
-	{
-		md4_size++;
-		uint temp = GET_CHAR(key_chars,ELEM_1);
-		nt_buffer[nt_index] = ((temp ? temp : 0x80) << 16) | cache_key;
-
-		if(!temp) {
-			jump = 1;
-			break;
-		}
-
-		md4_size++;
-		nt_index++;
-		cache_key = GET_CHAR(key_chars,ELEM_2);
-
-		//Repeat for a 4 bytes read
-		if(!cache_key)
-			break;
-
-		md4_size++;
-		temp = GET_CHAR(key_chars,ELEM_3);
-		nt_buffer[nt_index] = ((temp ? temp : 0x80) << 16) | cache_key;
-
-		if(!temp) {
-			jump = 1;
-			break;
-		}
-
-		md4_size++;
-		nt_index++;
-
-		key_chars = keys[(md4_size>>2)*num_keys+i];//Coalescing access to global memory
-		cache_key = GET_CHAR(key_chars,ELEM_0);
-	}
-
-	if(!jump)
-		nt_buffer[nt_index] = 0x80;
-
-//key_cleaning:
-	nt_index++;
-	for(;nt_index < 12; nt_index++)
-		nt_buffer[nt_index] = 0;
 
 	md4_size = md4_size << 4;
 	//end set key--------------------------------------------------------------------------
@@ -225,8 +194,8 @@ __kernel void nt(const __global uint *keys , __global uint *output)
 	nt_crypt(hash, nt_buffer, md4_size);
 
 	//Coalescing writes
-	output[i] = hash[1];
-	output[1*num_keys+i] = hash[0];
-	output[2*num_keys+i] = hash[2];
-	output[3*num_keys+i] = hash[3];
+	output[gid] = hash[1];
+	output[1*num_keys+gid] = hash[0];
+	output[2*num_keys+gid] = hash[2];
+	output[3*num_keys+gid] = hash[3];
 }

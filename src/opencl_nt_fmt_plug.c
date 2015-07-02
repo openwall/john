@@ -42,6 +42,7 @@ john_register_one(&fmt_opencl_NT);
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	23
+#define BUFSIZE                 ((PLAINTEXT_LENGTH+3)/4*4)
 #define CIPHERTEXT_LENGTH	32
 #define BINARY_SIZE		16
 #define BINARY_ALIGN		MEM_ALIGN_WORD
@@ -109,13 +110,13 @@ static int have_full_hashes;
 
 static cl_uint *bbbs;
 static cl_uint *res_hashes;
-static char *saved_plain;
+static cl_uint *saved_plain, *saved_idx;
 static int max_key_length = 0;
-static char get_key_saved[PLAINTEXT_LENGTH+1];
+static uint key_idx = 0;
 static struct fmt_main *self;
 
 //OpenCL variables
-static cl_mem pinned_saved_keys, pinned_bbbs, buffer_out, buffer_keys;
+static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_bbbs, buffer_out, buffer_keys, buffer_idx;
 
 #define STEP			0
 #define SEED			(128*1024)
@@ -152,20 +153,29 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	int argIndex = 0;
 
-	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH+1)*gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
-	pinned_bbbs = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,4*gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
+	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys.");
+	saved_plain = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, BUFSIZE * gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain.");
+
+	pinned_saved_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_idx.");
+	saved_idx = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx.");
 
 	res_hashes = mem_alloc(sizeof(cl_uint) * 3 * gws);
-	saved_plain = (char*) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, (PLAINTEXT_LENGTH+1)*gws, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code,"Error mapping page-locked memory");
+
+	pinned_bbbs = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,4*gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
 	bbbs = (cl_uint*)clEnqueueMapBuffer(queue[gpu_id], pinned_bbbs , CL_TRUE, CL_MAP_READ, 0, 4*gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,"Error mapping page-locked memory");
 
 	// Create and set arguments
-	buffer_keys = clCreateBuffer( context[gpu_id], CL_MEM_READ_ONLY,(PLAINTEXT_LENGTH+1)*gws, NULL, &ret_code );
-	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
+	buffer_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, BUFSIZE * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_keys.");
+	buffer_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_idx.");
+
 	buffer_out  = clCreateBuffer( context[gpu_id], CL_MEM_WRITE_ONLY , 4*4*gws, NULL, &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
 
@@ -173,8 +183,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, argIndex++, sizeof(buffer_keys), (void*) &buffer_keys),
 		"Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, argIndex++, sizeof(buffer_out ), (void*) &buffer_out ),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, argIndex++, sizeof(buffer_idx), (void*) &buffer_idx),
 		"Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, argIndex++, sizeof(buffer_out ), (void*) &buffer_out ),
+		"Error setting argument 2");
 
 	global_work_size = gws;
 }
@@ -230,14 +242,18 @@ static void reset(struct db_main *db)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int key_length_mul_4 = (((max_key_length+1) + 3)/4)*4;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
+	if (key_idx)
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys.");
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * global_work_size, saved_idx, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx.");
+
 	// Fill params. Copy only necessary data
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys,
+	/*HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys,
 		CL_TRUE, 0, key_length_mul_4 * global_work_size, saved_plain,
 		0, NULL, multi_profilingEvent[0]),
-		"failed in clEnqueWriteBuffer buffer_keys");
+		"failed in clEnqueWriteBuffer buffer_keys");*/
 
 	// Execute method
 	clEnqueueNDRangeKernel( queue[gpu_id], crypt_kernel, 1, NULL,
@@ -400,34 +416,42 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void set_key(char *key, int index)
+static void set_key(char *_key, int index)
 {
-	int length = -1;
+	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
+	int len = strlen(_key);
 
-	do {
-		length++;
-		//Save keys in a coalescing friendly way
-		saved_plain[(length/4)*global_work_size*4+index*4+length%4] = key[length];
+	saved_idx[index] = (key_idx << 6) | len;
+
+	while (len > 4) {
+		saved_plain[key_idx++] = *key++;
+		len -= 4;
 	}
-	while(key[length]);
-	//Calculate max key length of this chunk
-	if (length > max_key_length)
-		max_key_length = length;
+	if (len)
+		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
 }
+
 static char *get_key(int index)
 {
-	int length = -1;
+	static char out[PLAINTEXT_LENGTH + 1];
+	int i, len;
+	char *key;
 
-	do
-	{
-		length++;
-		//Decode saved key
-		get_key_saved[length] = saved_plain[(length/4)*global_work_size*4+index*4+length%4];
-	}
-	while(get_key_saved[length]);
+	len = saved_idx[index] & 63;
+	key = (char*)&saved_plain[saved_idx[index] >> 6];
 
-	return get_key_saved;
+	for (i = 0; i < len; i++)
+		out[i] = *key++;
+	out[i] = 0;
+
+	return out;
 }
+
+static void clear_keys(void)
+{
+	key_idx = 0;
+}
+
 
 struct fmt_main fmt_opencl_NT = {
 	{
@@ -476,7 +500,7 @@ struct fmt_main fmt_opencl_NT = {
 		fmt_default_set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
