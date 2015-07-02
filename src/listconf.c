@@ -274,6 +274,10 @@ static void listconf_list_build_info(void)
 #ifdef WITH_UBSAN
 	cpdbg += sprintf(cpdbg, "\tUbSan (Undefined Behavior Sanitizer debugging)\n");
 #endif
+#ifdef WITH_TSAN
+        cpdbg += sprintf(cpdbg, "\tTSan (Thread Sanitizer debugging)\n");
+#endif
+
 	if (DebuggingOptions != cpdbg) {
 		printf("Built with these debugging options\n%s\n", DebuggingOptions);
 	}
