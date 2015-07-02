@@ -1032,6 +1032,7 @@ Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ............ ${memdbg_settings}
 AddressSanitizer ("ASan") ................... ${asan}
 UndefinedBehaviorSanitizer ("UbSan") ........ ${ubsan}
+ThreadSanitizer ("TSan") .................... ${tsan}
 
 Install missing libraries to get any needed features that were omitted.
 
