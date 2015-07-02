@@ -524,7 +524,7 @@ int benchmark_all(void)
 AGAIN:
 #endif
 	total = failed = 0;
-#if defined(WITH_ASAN) || defined(WITH_UBSAN) || defined(DEBUG)
+#if defined(WITH_ASAN) || defined(WITH_UBSAN) || defined(WITH_TSAN) || defined(DEBUG)
 	if (benchmark_time)
 		puts("NOTE: This is a debug build, speed will be lower than normal");
 #endif

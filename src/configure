@@ -756,6 +756,7 @@ with_flock
 enable_memdbg
 enable_asan
 enable_ubsan
+enable_tsan
 enable_plugin_dependencies
 enable_openmp_for_fast_formats
 enable_mpi
@@ -1387,6 +1388,7 @@ Optional Features:
   --enable-memdbg         Enable memdbg memory debugging (safe level)
   --enable-asan           * Build with AddressSanitizer
   --enable-ubsan          * Build with UndefinedBehaviorSanitizer
+  --enable-tsan           * Build with ThreadSanitizer
   --disable-plugin-dependencies
                           Do not create best-effort Makefile dependencies for
                           plugins
@@ -3525,6 +3527,13 @@ if test "${enable_ubsan+set}" = set; then :
   enableval=$enable_ubsan; ubsan=$enableval
 else
   ubsan=no
+fi
+
+# Check whether --enable-tsan was given.
+if test "${enable_tsan+set}" = set; then :
+  enableval=$enable_tsan; tsan=$enableval
+else
+  tsan=no
 fi
 
 # Check whether --enable-plugin-dependencies was given.
@@ -5978,6 +5987,67 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
    LDFLAGS=${LDFLAGS_BAK}
 fi
 
+# if user requested  TSan, make sure we can properly build/link with it.
+# TSan cannot be combined with ASan
+if test "x$tsan" = xyes ; then
+   CFLAGS_EX=""
+   LDFLAGS_BAK=${LDFLAGS}
+     if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -DWITH_TSAN -fsanitize=thread" >&5
+$as_echo_n "checking if $CC supports -DWITH_TSAN -fsanitize=thread... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror -DWITH_TSAN -fsanitize=thread"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX -DWITH_TSAN -fsanitize=thread"
+
+else
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+   if test "x${CFLAGS_EX}" = x ; then
+      tsan=no
+   else
+      LDFLAGS="-fsanitize=thread $LDFLAGS"
+   fi
+   LDFLAGS=${LDFLAGS_BAK}
+fi
+
+
    # now fill out CFLAGS
    CFLAGS_EX=""
      if test "1" = 1; then :
@@ -6072,7 +6142,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-if test "x$asan" = xyes || test "x$ubsan" = xyes ; then
+if test "x$asan" = xyes || test "x$ubsan" = xyes || test "x$tsan" = xyes; then
      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fno-omit-frame-pointer" >&5
 $as_echo_n "checking if $CC supports -fno-omit-frame-pointer... " >&6; }
@@ -13539,6 +13609,13 @@ if test "x$ubsan" = xyes ; then
    LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
 fi
 
+if test "x$tsan" = xyes ; then
+   CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
+   CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
+   CFLAGS="-g $O_DEBUG -DWITH_TSAN -fsanitize=thread $CFLAGS"
+   LDFLAGS="-fsanitize=thread $LDFLAGS"
+fi
+
 #add ARCH_LITTLE_ENDIAN to command line, IF we know it is big or little
 if test "x$endian" = "xbig"; then
    CFLAGS="$CFLAGS -DARCH_LITTLE_ENDIAN=0"
@@ -15160,6 +15237,12 @@ else
    ubsan="disabled"
 fi
 
+if test "x$tsan" = xyes ; then
+   tsan="enabled"
+else
+   tsan="disabled"
+fi
+
 if test "x$enable_int128" = xno; then
    have_int128=disabled
 elif test "x$ac_cv_type_int128" = xyes ||
@@ -15200,6 +15283,7 @@ Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ............ ${memdbg_settings}
 AddressSanitizer ("ASan") ................... ${asan}
 UndefinedBehaviorSanitizer ("UbSan") ........ ${ubsan}
+ThreadSanitizer ("TSan)" .................... ${tsan}
 
 Install missing libraries to get any needed features that were omitted.
 
