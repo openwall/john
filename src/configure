@@ -15237,6 +15237,12 @@ else
    ubsan="disabled"
 fi
 
+if test "x$tsan" = xyes ; then
+   tsan="enabled"
+else
+   tsan="disabled"
+fi
+
 if test "x$enable_int128" = xno; then
    have_int128=disabled
 elif test "x$ac_cv_type_int128" = xyes ||
