@@ -35,6 +35,12 @@
 #define ASAN_STRING ""
 #endif
 
+#ifdef WITH_UBSAN
+#define UBSAN_STRING " UbSan"
+#else
+#define UBSAN_STRING ""
+#endif
+
 #if defined(MEMDBG_ON) && defined(MEMDBG_EXTRA_CHECKS)
 #define MEMDBG_STRING " memdbg-ex"
 #elif defined(MEMDBG_ON)
