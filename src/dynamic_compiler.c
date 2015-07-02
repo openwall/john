@@ -280,105 +280,91 @@ static char gen_s[260], gen_s2[16], gen_u[16], gen_pw[16], gen_pwlc[16], gen_pwu
  * These do the md5($p) stuff (hex, HEX, unicode, base64, etc), for all hash
  * types, and for other functions.
  */
-void md5_hex()          { MD5_CTX c; MD5_Init(&c); MD5_Update(&c, h, h_len); MD5_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void md5_hexu()         { MD5_CTX c; int len; len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); MD5_Init(&c); MD5_Update(&c, gen_conv, len*2); MD5_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void md4_hex()          { MD4_CTX c; MD4_Init(&c); MD4_Update(&c, h, h_len); MD4_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void md4_hexu()         { MD4_CTX c; int len; len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); MD4_Init(&c); MD4_Update(&c, gen_conv, len*2); MD4_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void sha1_hex()         { SHA_CTX c; SHA1_Init(&c); SHA1_Update(&c, h, h_len); SHA1_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void sha1_hexu()        { SHA_CTX c; int len; len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); SHA1_Init(&c); SHA1_Update(&c, gen_conv, len*2); SHA1_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void md5_base64()       { MD5_CTX c; MD5_Init(&c); MD5_Update(&c, h, h_len); MD5_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-void md4_base64()       { MD4_CTX c; MD4_Init(&c); MD4_Update(&c, h, h_len); MD4_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-void sha1_base64()      { SHA_CTX c; SHA1_Init(&c); SHA1_Update(&c, h, h_len); SHA1_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-void md5_base64c()      { MD5_CTX c; MD5_Init(&c); MD5_Update(&c, h, h_len); MD5_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-void md4_base64c()      { MD4_CTX c; MD4_Init(&c); MD4_Update(&c, h, h_len); MD4_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-void sha1_base64c()     { SHA_CTX c; SHA1_Init(&c); SHA1_Update(&c, h, h_len); SHA1_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-void md5_raw()          { MD5_CTX c; MD5_Init(&c); MD5_Update(&c, h, h_len); MD5_Final((unsigned char*)h, &c);    }
-void sha1_raw()         { MD4_CTX c; MD4_Init(&c); MD4_Update(&c, h, h_len); MD4_Final((unsigned char*)h, &c);    }
-void md4_raw()          { SHA_CTX c; SHA1_Init(&c); SHA1_Update(&c, h, h_len); SHA1_Final((unsigned char*)h, &c); }
-void sha224_hex()       { SHA256_CTX c; SHA224_Init(&c); SHA224_Update(&c, h, h_len); SHA224_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,28,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void sha224_base64()    { SHA256_CTX c; SHA224_Init(&c); SHA224_Update(&c, h, h_len); SHA224_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,28,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-void sha224_base64c()   { SHA256_CTX c; SHA224_Init(&c); SHA224_Update(&c, h, h_len); SHA224_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,28,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-void sha224_hexu()      { SHA256_CTX c; int len; len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); SHA224_Init(&c); SHA224_Update(&c, gen_conv, len*2); SHA224_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,28,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void sha256_hex()       { SHA256_CTX c; SHA256_Init(&c); SHA256_Update(&c, h, h_len); SHA256_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void sha256_base64()    { SHA256_CTX c; SHA256_Init(&c); SHA256_Update(&c, h, h_len); SHA256_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-void sha256_base64c()   { SHA256_CTX c; SHA256_Init(&c); SHA256_Update(&c, h, h_len); SHA256_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-void sha256_hexu()      { SHA256_CTX c; int len; len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); SHA256_Init(&c); SHA256_Update(&c, gen_conv, len*2); SHA256_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void sha384_hex()       { SHA512_CTX c; SHA384_Init(&c); SHA384_Update(&c, h, h_len); SHA384_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,48,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void sha384_base64()    { SHA512_CTX c; SHA384_Init(&c); SHA384_Update(&c, h, h_len); SHA384_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,48,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-void sha384_base64c()   { SHA512_CTX c; SHA384_Init(&c); SHA384_Update(&c, h, h_len); SHA384_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,48,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-void sha384_hexu()      { SHA512_CTX c; int len; len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); SHA384_Init(&c); SHA384_Update(&c, gen_conv, len*2); SHA384_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,48,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void sha512_hex()       { SHA512_CTX c; SHA512_Init(&c); SHA512_Update(&c, h, h_len); SHA512_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void sha512_base64()    { SHA512_CTX c; SHA512_Init(&c); SHA512_Update(&c, h, h_len); SHA512_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-void sha512_base64c()   { SHA512_CTX c; SHA512_Init(&c); SHA512_Update(&c, h, h_len); SHA512_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-void sha512_hexu()      { SHA512_CTX c; int len; len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); SHA512_Init(&c); SHA512_Update(&c, gen_conv, len*2); SHA512_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void sha224_raw()       { SHA256_CTX c; SHA224_Init(&c); SHA224_Update(&c, h, h_len); SHA224_Final((unsigned char*)h, &c); }
-void sha256_raw()       { SHA256_CTX c; SHA256_Init(&c); SHA256_Update(&c, h, h_len); SHA256_Final((unsigned char*)h, &c); }
-void sha384_raw()       { SHA512_CTX c; SHA384_Init(&c); SHA384_Update(&c, h, h_len); SHA384_Final((unsigned char*)h, &c); }
-void sha512_raw()       { SHA512_CTX c; SHA512_Init(&c); SHA512_Update(&c, h, h_len); SHA512_Final((unsigned char*)h, &c); }
-void whirlpool_hex()    { WHIRLPOOL_CTX c; WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, h, h_len); WHIRLPOOL_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void whirlpool_base64() { WHIRLPOOL_CTX c; WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, h, h_len); WHIRLPOOL_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-void whirlpool_base64c(){ WHIRLPOOL_CTX c; WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, h, h_len); WHIRLPOOL_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-void whirlpool_hexu()   { WHIRLPOOL_CTX c; int len; len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, gen_conv, len*2); WHIRLPOOL_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void whirlpool_raw()    { WHIRLPOOL_CTX c; WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, h, h_len); WHIRLPOOL_Final((unsigned char*)h, &c); }
-void tiger_hex()        { sph_tiger_context c; sph_tiger_init(&c); sph_tiger(&c, h, h_len); sph_tiger_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,24,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void tiger_base64()     { sph_tiger_context c; sph_tiger_init(&c); sph_tiger(&c, h, h_len); sph_tiger_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,24,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-void tiger_base64c()    { sph_tiger_context c; sph_tiger_init(&c); sph_tiger(&c, h, h_len); sph_tiger_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,24,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-void tiger_hexu()       { sph_tiger_context c; int len; len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); sph_tiger_init(&c); sph_tiger(&c, gen_conv, len*2); sph_tiger_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,24,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void tiger_raw()        { sph_tiger_context c; sph_tiger_init(&c); sph_tiger(&c, h, h_len); sph_tiger_close(&c, (unsigned char*)h); }
-void gost_hex()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void gost_base64()      { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-void gost_base64c()     { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-void gost_hexu()        { gost_ctx c; int len; len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); john_gost_init(&c); john_gost_update(&c, (unsigned char*)gen_conv, len*2); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void gost_raw()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); }
-void ripemd128_hex()    { sph_ripemd128_context c; sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)h, h_len); sph_ripemd128_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void ripemd128_base64() { sph_ripemd128_context c; sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)h, h_len); sph_ripemd128_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-void ripemd128_base64c(){ sph_ripemd128_context c; sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)h, h_len); sph_ripemd128_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-void ripemd128_hexu()   { sph_ripemd128_context c; int len; len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)gen_conv, len*2); sph_ripemd128_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void ripemd128_raw()    { sph_ripemd128_context c; sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)h, h_len); sph_ripemd128_close(&c, (unsigned char*)h); }
-void ripemd160_hex()    { sph_ripemd160_context c; sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)h, h_len); sph_ripemd160_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void ripemd160_base64() { sph_ripemd160_context c; sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)h, h_len); sph_ripemd160_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-void ripemd160_base64c(){ sph_ripemd160_context c; sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)h, h_len); sph_ripemd160_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-void ripemd160_hexu()   { sph_ripemd160_context c; int len; len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)gen_conv, len*2); sph_ripemd160_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void ripemd160_raw()    { sph_ripemd160_context c; sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)h, h_len); sph_ripemd160_close(&c, (unsigned char*)h); }
-void ripemd256_hex()    { sph_ripemd256_context c; sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)h, h_len); sph_ripemd256_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void ripemd256_base64() { sph_ripemd256_context c; sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)h, h_len); sph_ripemd256_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-void ripemd256_base64c(){ sph_ripemd256_context c; sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)h, h_len); sph_ripemd256_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-void ripemd256_hexu()   { sph_ripemd256_context c; int len; len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)gen_conv, len*2); sph_ripemd256_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void ripemd256_raw()    { sph_ripemd256_context c; sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)h, h_len); sph_ripemd256_close(&c, (unsigned char*)h); }
-void ripemd320_hex()    { sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void ripemd320_base64() { sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-void ripemd320_base64c(){ sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-void ripemd320_hexu()   { sph_ripemd320_context c; int len; len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)gen_conv, len*2); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-void ripemd320_raw()    { sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); }
-int encode_le()         { int len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
-int pad16()             { memset(gen_conv, 0, 16); strncpy(gen_conv, h, 16); memcpy(h, gen_conv, 16); return 16; }
-int pad20()             { memset(gen_conv, 0, 20); strncpy(gen_conv, h, 20); memcpy(h, gen_conv, 20); return 20; }
-int pad100()            { memset(gen_conv, 0, 100); strncpy(gen_conv, h, 100); memcpy(h, gen_conv, 100); return 100; }
+static void md5_hex()          { MD5_CTX c; MD5_Init(&c); MD5_Update(&c, h, h_len); MD5_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void md4_hex()          { MD4_CTX c; MD4_Init(&c); MD4_Update(&c, h, h_len); MD4_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void sha1_hex()         { SHA_CTX c; SHA1_Init(&c); SHA1_Update(&c, h, h_len); SHA1_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void md5_base64()       { MD5_CTX c; MD5_Init(&c); MD5_Update(&c, h, h_len); MD5_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void md4_base64()       { MD4_CTX c; MD4_Init(&c); MD4_Update(&c, h, h_len); MD4_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void sha1_base64()      { SHA_CTX c; SHA1_Init(&c); SHA1_Update(&c, h, h_len); SHA1_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void md5_base64c()      { MD5_CTX c; MD5_Init(&c); MD5_Update(&c, h, h_len); MD5_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void md4_base64c()      { MD4_CTX c; MD4_Init(&c); MD4_Update(&c, h, h_len); MD4_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void sha1_base64c()     { SHA_CTX c; SHA1_Init(&c); SHA1_Update(&c, h, h_len); SHA1_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void md5_raw()          { MD5_CTX c; MD5_Init(&c); MD5_Update(&c, h, h_len); MD5_Final((unsigned char*)h, &c);    }
+static void sha1_raw()         { MD4_CTX c; MD4_Init(&c); MD4_Update(&c, h, h_len); MD4_Final((unsigned char*)h, &c);    }
+static void md4_raw()          { SHA_CTX c; SHA1_Init(&c); SHA1_Update(&c, h, h_len); SHA1_Final((unsigned char*)h, &c); }
+static void sha224_hex()       { SHA256_CTX c; SHA224_Init(&c); SHA224_Update(&c, h, h_len); SHA224_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,28,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void sha224_base64()    { SHA256_CTX c; SHA224_Init(&c); SHA224_Update(&c, h, h_len); SHA224_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,28,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void sha224_base64c()   { SHA256_CTX c; SHA224_Init(&c); SHA224_Update(&c, h, h_len); SHA224_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,28,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void sha256_hex()       { SHA256_CTX c; SHA256_Init(&c); SHA256_Update(&c, h, h_len); SHA256_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void sha256_base64()    { SHA256_CTX c; SHA256_Init(&c); SHA256_Update(&c, h, h_len); SHA256_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void sha256_base64c()   { SHA256_CTX c; SHA256_Init(&c); SHA256_Update(&c, h, h_len); SHA256_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void sha384_hex()       { SHA512_CTX c; SHA384_Init(&c); SHA384_Update(&c, h, h_len); SHA384_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,48,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void sha384_base64()    { SHA512_CTX c; SHA384_Init(&c); SHA384_Update(&c, h, h_len); SHA384_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,48,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void sha384_base64c()   { SHA512_CTX c; SHA384_Init(&c); SHA384_Update(&c, h, h_len); SHA384_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,48,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void sha512_hex()       { SHA512_CTX c; SHA512_Init(&c); SHA512_Update(&c, h, h_len); SHA512_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void sha512_base64()    { SHA512_CTX c; SHA512_Init(&c); SHA512_Update(&c, h, h_len); SHA512_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void sha512_base64c()   { SHA512_CTX c; SHA512_Init(&c); SHA512_Update(&c, h, h_len); SHA512_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void sha224_raw()       { SHA256_CTX c; SHA224_Init(&c); SHA224_Update(&c, h, h_len); SHA224_Final((unsigned char*)h, &c); }
+static void sha256_raw()       { SHA256_CTX c; SHA256_Init(&c); SHA256_Update(&c, h, h_len); SHA256_Final((unsigned char*)h, &c); }
+static void sha384_raw()       { SHA512_CTX c; SHA384_Init(&c); SHA384_Update(&c, h, h_len); SHA384_Final((unsigned char*)h, &c); }
+static void sha512_raw()       { SHA512_CTX c; SHA512_Init(&c); SHA512_Update(&c, h, h_len); SHA512_Final((unsigned char*)h, &c); }
+static void whirlpool_hex()    { WHIRLPOOL_CTX c; WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, h, h_len); WHIRLPOOL_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void whirlpool_base64() { WHIRLPOOL_CTX c; WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, h, h_len); WHIRLPOOL_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void whirlpool_base64c(){ WHIRLPOOL_CTX c; WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, h, h_len); WHIRLPOOL_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void whirlpool_raw()    { WHIRLPOOL_CTX c; WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, h, h_len); WHIRLPOOL_Final((unsigned char*)h, &c); }
+static void tiger_hex()        { sph_tiger_context c; sph_tiger_init(&c); sph_tiger(&c, h, h_len); sph_tiger_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,24,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void tiger_base64()     { sph_tiger_context c; sph_tiger_init(&c); sph_tiger(&c, h, h_len); sph_tiger_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,24,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void tiger_base64c()    { sph_tiger_context c; sph_tiger_init(&c); sph_tiger(&c, h, h_len); sph_tiger_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,24,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void tiger_raw()        { sph_tiger_context c; sph_tiger_init(&c); sph_tiger(&c, h, h_len); sph_tiger_close(&c, (unsigned char*)h); }
+static void gost_hex()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void gost_base64()      { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void gost_base64c()     { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void gost_raw()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); }
+static void ripemd128_hex()    { sph_ripemd128_context c; sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)h, h_len); sph_ripemd128_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void ripemd128_base64() { sph_ripemd128_context c; sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)h, h_len); sph_ripemd128_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void ripemd128_base64c(){ sph_ripemd128_context c; sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)h, h_len); sph_ripemd128_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void ripemd128_raw()    { sph_ripemd128_context c; sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)h, h_len); sph_ripemd128_close(&c, (unsigned char*)h); }
+static void ripemd160_hex()    { sph_ripemd160_context c; sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)h, h_len); sph_ripemd160_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void ripemd160_base64() { sph_ripemd160_context c; sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)h, h_len); sph_ripemd160_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void ripemd160_base64c(){ sph_ripemd160_context c; sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)h, h_len); sph_ripemd160_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void ripemd160_raw()    { sph_ripemd160_context c; sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)h, h_len); sph_ripemd160_close(&c, (unsigned char*)h); }
+static void ripemd256_hex()    { sph_ripemd256_context c; sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)h, h_len); sph_ripemd256_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void ripemd256_base64() { sph_ripemd256_context c; sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)h, h_len); sph_ripemd256_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void ripemd256_base64c(){ sph_ripemd256_context c; sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)h, h_len); sph_ripemd256_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void ripemd256_raw()    { sph_ripemd256_context c; sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)h, h_len); sph_ripemd256_close(&c, (unsigned char*)h); }
+static void ripemd320_hex()    { sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void ripemd320_base64() { sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void ripemd320_base64c(){ sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void ripemd320_raw()    { sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); }
+static int encode_le()         { int len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
+static int pad16()             { memset(gen_conv, 0, 16); strncpy(gen_conv, h, 16); memcpy(h, gen_conv, 16); return 16; }
+static int pad20()             { memset(gen_conv, 0, 20); strncpy(gen_conv, h, 20); memcpy(h, gen_conv, 20); return 20; }
+static int pad100()            { memset(gen_conv, 0, 100); strncpy(gen_conv, h, 100); memcpy(h, gen_conv, 100); return 100; }
 // TODO:
 //int encode_be() { int len = enc_to_utf16_be((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len); return len; }
 
 /*
  * helper functions, to reduce the size of our dynamic_*() functions
  */
-void dyna_helper_append(const char *v) {
+static void dyna_helper_append(const char *v) {
 	memcpy(&gen_Stack[ngen_Stack-1][gen_Stack_len[ngen_Stack-1]], v, strlen(v));
 	gen_Stack_len[ngen_Stack-1] += strlen(v);
 }
-void dyna_helper_pre() {
+static void dyna_helper_pre() {
 	h = gen_Stack[--ngen_Stack];
 	h_len = gen_Stack_len[ngen_Stack];
 }
-void dyna_helper_pre_no_pop() {
+static void dyna_helper_pre_no_pop() {
 	h = gen_Stack[ngen_Stack-1];
 	h_len = gen_Stack_len[ngen_Stack-1];
 }
-void dyna_helper_post(int len) {
+static void dyna_helper_post(int len) {
 	// like dyna_helper_append but always works with the h variable.
 	// this one is for binary data, so we have to pass the length in.
 	memcpy(&gen_Stack[ngen_Stack-1][gen_Stack_len[ngen_Stack-1]], h, len);
 	gen_Stack_len[ngen_Stack-1] += len;
 }
-void dyna_helper_poststr() {
+static void dyna_helper_poststr() {
 	// like dyna_helper_append but always works with the h variable.
 	int len = strlen(h);
 	memcpy(&gen_Stack[ngen_Stack-1][gen_Stack_len[ngen_Stack-1]], h, len);
@@ -389,103 +375,103 @@ void dyna_helper_poststr() {
  * these are the functions called by the script. They may do all the work
  * themselves, or may also use the low level primatives for hashing.
  */
-void fpNull(){}
-void dynamic_push()   { char *p = mem_calloc(260, 1); MEM_FREE(gen_Stack[ngen_Stack]); gen_Stack_len[ngen_Stack] = 0; gen_Stack[ngen_Stack++] = p; ngen_Stack_max++; }
-//void dynamic_pop    { return pop @gen_Stack; }  # not really needed.
-void dynamic_app_s()  { dyna_helper_append(gen_s);    }
-void dynamic_app_sh() { dyna_helper_append(gen_s);    } //md5_hex($gen_s); }
-void dynamic_app_S()  { dyna_helper_append(gen_s2);   }
-void dynamic_app_u()  { dyna_helper_append(gen_u);    }
-void dynamic_app_p()  { dyna_helper_append(gen_pw);   }
-void dynamic_app_pU() { dyna_helper_append(gen_pwuc); }
-void dynamic_app_pL() { dyna_helper_append(gen_pwlc); }
-void dynamic_app_1()  { dyna_helper_append(Const[1]); }
-void dynamic_app_2()  { dyna_helper_append(Const[2]); }
-void dynamic_app_3()  { dyna_helper_append(Const[3]); }
-void dynamic_app_4()  { dyna_helper_append(Const[4]); }
-void dynamic_app_5()  { dyna_helper_append(Const[5]); }
-void dynamic_app_6()  { dyna_helper_append(Const[6]); }
-void dynamic_app_7()  { dyna_helper_append(Const[7]); }
-void dynamic_app_8()  { dyna_helper_append(Const[8]); }
-void dynamic_app_9()  { dyna_helper_append(Const[9]); }
-//void dynamic_ftr32  { $h = gen_Stack[--ngen_Stack]; substr($h,0,32);  strcat(gen_Stack[ngen_Stack-1], h);  }
-//void dynamic_f54    { $h = gen_Stack[--ngen_Stack]; md5_hex(h)."00000000";	 strcat(gen_Stack[ngen_Stack-1], h);  }
+static void fpNull(){}
+static void dynamic_push()   { char *p = mem_calloc(260, 1); MEM_FREE(gen_Stack[ngen_Stack]); gen_Stack_len[ngen_Stack] = 0; gen_Stack[ngen_Stack++] = p; ngen_Stack_max++; }
+//static void dynamic_pop    { return pop @gen_Stack; }  # not really needed.
+static void dynamic_app_s()  { dyna_helper_append(gen_s);    }
+static void dynamic_app_sh() { dyna_helper_append(gen_s);    } //md5_hex($gen_s); }
+static void dynamic_app_S()  { dyna_helper_append(gen_s2);   }
+static void dynamic_app_u()  { dyna_helper_append(gen_u);    }
+static void dynamic_app_p()  { dyna_helper_append(gen_pw);   }
+static void dynamic_app_pU() { dyna_helper_append(gen_pwuc); }
+static void dynamic_app_pL() { dyna_helper_append(gen_pwlc); }
+static void dynamic_app_1()  { dyna_helper_append(Const[1]); }
+static void dynamic_app_2()  { dyna_helper_append(Const[2]); }
+static void dynamic_app_3()  { dyna_helper_append(Const[3]); }
+static void dynamic_app_4()  { dyna_helper_append(Const[4]); }
+static void dynamic_app_5()  { dyna_helper_append(Const[5]); }
+static void dynamic_app_6()  { dyna_helper_append(Const[6]); }
+static void dynamic_app_7()  { dyna_helper_append(Const[7]); }
+static void dynamic_app_8()  { dyna_helper_append(Const[8]); }
+static void dynamic_app_9()  { dyna_helper_append(Const[9]); }
+//static void dynamic_ftr32  { $h = gen_Stack[--ngen_Stack]; substr($h,0,32);  strcat(gen_Stack[ngen_Stack-1], h);  }
+//static void dynamic_f54    { $h = gen_Stack[--ngen_Stack]; md5_hex(h)."00000000";	 strcat(gen_Stack[ngen_Stack-1], h);  }
 
-void dynamic_f5h()    { dyna_helper_pre(); md5_hex();               dyna_helper_poststr(); }
-void dynamic_f1h()    { dyna_helper_pre(); sha1_hex();              dyna_helper_poststr(); }
-void dynamic_f4h()    { dyna_helper_pre(); md4_hex();               dyna_helper_poststr(); }
-void dynamic_f5H()    { dyna_helper_pre(); md5_hex(); strupr(h);    dyna_helper_poststr(); }
-void dynamic_f1H()    { dyna_helper_pre(); sha1_hex(); strupr(h);   dyna_helper_poststr(); }
-void dynamic_f4H()    { dyna_helper_pre(); md4_hex();  strupr(h);   dyna_helper_poststr(); }
-void dynamic_f56()    { dyna_helper_pre(); md5_base64();	        dyna_helper_poststr(); }
-void dynamic_f16()    { dyna_helper_pre(); sha1_base64();           dyna_helper_poststr(); }
-void dynamic_f46()    { dyna_helper_pre(); md4_base64();            dyna_helper_poststr(); }
-void dynamic_f5c()    { dyna_helper_pre(); md5_base64c();           dyna_helper_poststr(); }
-void dynamic_f1c()    { dyna_helper_pre(); sha1_base64c();          dyna_helper_poststr(); }
-void dynamic_f4c()    { dyna_helper_pre(); md4_base64c();           dyna_helper_poststr(); }
-void dynamic_f5r()    { dyna_helper_pre(); md5_raw();               dyna_helper_post(16); }
-void dynamic_f1r()    { dyna_helper_pre(); sha1_raw();              dyna_helper_post(20); }
-void dynamic_f4r()    { dyna_helper_pre(); md4_raw();               dyna_helper_post(16); }
-void dynamic_f224h()  { dyna_helper_pre(); sha224_hex();            dyna_helper_poststr(); }
-void dynamic_f224H()  { dyna_helper_pre(); sha224_hex(); strupr(h); dyna_helper_poststr(); }
-void dynamic_f2246()  { dyna_helper_pre(); sha224_base64();         dyna_helper_poststr(); }
-void dynamic_f224c()  { dyna_helper_pre(); sha224_base64c();        dyna_helper_poststr(); }
-void dynamic_f224r()  { dyna_helper_pre(); sha224_raw();            dyna_helper_post(28); }
-void dynamic_f256h()  { dyna_helper_pre(); sha256_hex();            dyna_helper_poststr(); }
-void dynamic_f256H()  { dyna_helper_pre(); sha256_hex(); strupr(h); dyna_helper_poststr(); }
-void dynamic_f2566()  { dyna_helper_pre(); sha256_base64();         dyna_helper_poststr(); }
-void dynamic_f256c()  { dyna_helper_pre(); sha256_base64c();        dyna_helper_poststr(); }
-void dynamic_f256r()  { dyna_helper_pre(); sha256_raw();            dyna_helper_post(32); }
-void dynamic_f384h()  { dyna_helper_pre(); sha384_hex();            dyna_helper_poststr(); }
-void dynamic_f384H()  { dyna_helper_pre(); sha384_hex(); strupr(h); dyna_helper_poststr(); }
-void dynamic_f3846()  { dyna_helper_pre(); sha384_base64();         dyna_helper_poststr(); }
-void dynamic_f384c()  { dyna_helper_pre(); sha384_base64c();        dyna_helper_poststr(); }
-void dynamic_f384r()  { dyna_helper_pre(); sha384_raw();            dyna_helper_post(48); }
-void dynamic_f512h()  { dyna_helper_pre(); sha512_hex();            dyna_helper_poststr(); }
-void dynamic_f512H()  { dyna_helper_pre(); sha512_hex(); strupr(h); dyna_helper_poststr(); }
-void dynamic_f5126()  { dyna_helper_pre(); sha512_base64();         dyna_helper_poststr(); }
-void dynamic_f512c()  { dyna_helper_pre(); sha512_base64c();        dyna_helper_poststr(); }
-void dynamic_f512r()  { dyna_helper_pre(); sha512_raw();            dyna_helper_post(64); }
-void dynamic_fgosth() { dyna_helper_pre(); gost_hex();              dyna_helper_poststr(); }
-void dynamic_fgostH() { dyna_helper_pre(); gost_hex(); strupr(h);   dyna_helper_poststr(); }
-void dynamic_fgost6() { dyna_helper_pre(); gost_base64();           dyna_helper_poststr(); }
-void dynamic_fgostc() { dyna_helper_pre(); gost_base64c();          dyna_helper_poststr(); }
-void dynamic_fgostr() { dyna_helper_pre(); gost_raw();              dyna_helper_post(32); }
-void dynamic_fwrlph() { dyna_helper_pre(); whirlpool_hex();            dyna_helper_poststr(); }
-void dynamic_fwrlpH() { dyna_helper_pre(); whirlpool_hex(); strupr(h); dyna_helper_poststr(); }
-void dynamic_fwrlp6() { dyna_helper_pre(); whirlpool_base64();         dyna_helper_poststr(); }
-void dynamic_fwrlpc() { dyna_helper_pre(); whirlpool_base64c();        dyna_helper_poststr(); }
-void dynamic_fwrlpr() { dyna_helper_pre(); whirlpool_raw();            dyna_helper_post(64); }
-void dynamic_ftigh()  { dyna_helper_pre(); tiger_hex();             dyna_helper_poststr(); }
-void dynamic_ftigH()  { dyna_helper_pre(); tiger_hex(); strupr(h);  dyna_helper_poststr(); }
-void dynamic_ftig6()  { dyna_helper_pre(); tiger_base64();          dyna_helper_poststr(); }
-void dynamic_ftigc()  { dyna_helper_pre(); tiger_base64c();         dyna_helper_poststr(); }
-void dynamic_ftigr()  { dyna_helper_pre(); tiger_raw();             dyna_helper_post(24); }
-void dynamic_frip128h()  { dyna_helper_pre(); ripemd128_hex();            dyna_helper_poststr(); }
-void dynamic_frip128H()  { dyna_helper_pre(); ripemd128_hex(); strupr(h); dyna_helper_poststr(); }
-void dynamic_frip1286()  { dyna_helper_pre(); ripemd128_base64();         dyna_helper_poststr(); }
-void dynamic_frip128c()  { dyna_helper_pre(); ripemd128_base64c();        dyna_helper_poststr(); }
-void dynamic_frip128r()  { dyna_helper_pre(); ripemd128_raw();            dyna_helper_post(16); }
-void dynamic_frip160h()  { dyna_helper_pre(); ripemd160_hex();            dyna_helper_poststr(); }
-void dynamic_frip160H()  { dyna_helper_pre(); ripemd160_hex(); strupr(h); dyna_helper_poststr(); }
-void dynamic_frip1606()  { dyna_helper_pre(); ripemd160_base64();         dyna_helper_poststr(); }
-void dynamic_frip160c()  { dyna_helper_pre(); ripemd160_base64c();        dyna_helper_poststr(); }
-void dynamic_frip160r()  { dyna_helper_pre(); ripemd160_raw();            dyna_helper_post(20); }
-void dynamic_frip256h()  { dyna_helper_pre(); ripemd256_hex();            dyna_helper_poststr(); }
-void dynamic_frip256H()  { dyna_helper_pre(); ripemd256_hex(); strupr(h); dyna_helper_poststr(); }
-void dynamic_frip2566()  { dyna_helper_pre(); ripemd256_base64();         dyna_helper_poststr(); }
-void dynamic_frip256c()  { dyna_helper_pre(); ripemd256_base64c();        dyna_helper_poststr(); }
-void dynamic_frip256r()  { dyna_helper_pre(); ripemd256_raw();            dyna_helper_post(32); }
-void dynamic_frip320h()  { dyna_helper_pre(); ripemd320_hex();            dyna_helper_poststr(); }
-void dynamic_frip320H()  { dyna_helper_pre(); ripemd320_hex(); strupr(h); dyna_helper_poststr(); }
-void dynamic_frip3206()  { dyna_helper_pre(); ripemd320_base64();         dyna_helper_poststr(); }
-void dynamic_frip320c()  { dyna_helper_pre(); ripemd320_base64c();        dyna_helper_poststr(); }
-void dynamic_frip320r()  { dyna_helper_pre(); ripemd320_raw();            dyna_helper_post(40); }
-void dynamic_fpad16()    { dyna_helper_pre();                             dyna_helper_post(pad16()); }
-void dynamic_fpad20()    { dyna_helper_pre();                             dyna_helper_post(pad20()); }
-void dynamic_fpad100()   { dyna_helper_pre();                             dyna_helper_post(pad100()); }
-void dynamic_futf16()    { dyna_helper_pre();                             dyna_helper_post(encode_le()); }
-//void dynamic_futf16be()  { dyna_helper_pre();                             dyna_helper_post(encode_be()); }
+static void dynamic_f5h()    { dyna_helper_pre(); md5_hex();               dyna_helper_poststr(); }
+static void dynamic_f1h()    { dyna_helper_pre(); sha1_hex();              dyna_helper_poststr(); }
+static void dynamic_f4h()    { dyna_helper_pre(); md4_hex();               dyna_helper_poststr(); }
+static void dynamic_f5H()    { dyna_helper_pre(); md5_hex(); strupr(h);    dyna_helper_poststr(); }
+static void dynamic_f1H()    { dyna_helper_pre(); sha1_hex(); strupr(h);   dyna_helper_poststr(); }
+static void dynamic_f4H()    { dyna_helper_pre(); md4_hex();  strupr(h);   dyna_helper_poststr(); }
+static void dynamic_f56()    { dyna_helper_pre(); md5_base64();	        dyna_helper_poststr(); }
+static void dynamic_f16()    { dyna_helper_pre(); sha1_base64();           dyna_helper_poststr(); }
+static void dynamic_f46()    { dyna_helper_pre(); md4_base64();            dyna_helper_poststr(); }
+static void dynamic_f5c()    { dyna_helper_pre(); md5_base64c();           dyna_helper_poststr(); }
+static void dynamic_f1c()    { dyna_helper_pre(); sha1_base64c();          dyna_helper_poststr(); }
+static void dynamic_f4c()    { dyna_helper_pre(); md4_base64c();           dyna_helper_poststr(); }
+static void dynamic_f5r()    { dyna_helper_pre(); md5_raw();               dyna_helper_post(16); }
+static void dynamic_f1r()    { dyna_helper_pre(); sha1_raw();              dyna_helper_post(20); }
+static void dynamic_f4r()    { dyna_helper_pre(); md4_raw();               dyna_helper_post(16); }
+static void dynamic_f224h()  { dyna_helper_pre(); sha224_hex();            dyna_helper_poststr(); }
+static void dynamic_f224H()  { dyna_helper_pre(); sha224_hex(); strupr(h); dyna_helper_poststr(); }
+static void dynamic_f2246()  { dyna_helper_pre(); sha224_base64();         dyna_helper_poststr(); }
+static void dynamic_f224c()  { dyna_helper_pre(); sha224_base64c();        dyna_helper_poststr(); }
+static void dynamic_f224r()  { dyna_helper_pre(); sha224_raw();            dyna_helper_post(28); }
+static void dynamic_f256h()  { dyna_helper_pre(); sha256_hex();            dyna_helper_poststr(); }
+static void dynamic_f256H()  { dyna_helper_pre(); sha256_hex(); strupr(h); dyna_helper_poststr(); }
+static void dynamic_f2566()  { dyna_helper_pre(); sha256_base64();         dyna_helper_poststr(); }
+static void dynamic_f256c()  { dyna_helper_pre(); sha256_base64c();        dyna_helper_poststr(); }
+static void dynamic_f256r()  { dyna_helper_pre(); sha256_raw();            dyna_helper_post(32); }
+static void dynamic_f384h()  { dyna_helper_pre(); sha384_hex();            dyna_helper_poststr(); }
+static void dynamic_f384H()  { dyna_helper_pre(); sha384_hex(); strupr(h); dyna_helper_poststr(); }
+static void dynamic_f3846()  { dyna_helper_pre(); sha384_base64();         dyna_helper_poststr(); }
+static void dynamic_f384c()  { dyna_helper_pre(); sha384_base64c();        dyna_helper_poststr(); }
+static void dynamic_f384r()  { dyna_helper_pre(); sha384_raw();            dyna_helper_post(48); }
+static void dynamic_f512h()  { dyna_helper_pre(); sha512_hex();            dyna_helper_poststr(); }
+static void dynamic_f512H()  { dyna_helper_pre(); sha512_hex(); strupr(h); dyna_helper_poststr(); }
+static void dynamic_f5126()  { dyna_helper_pre(); sha512_base64();         dyna_helper_poststr(); }
+static void dynamic_f512c()  { dyna_helper_pre(); sha512_base64c();        dyna_helper_poststr(); }
+static void dynamic_f512r()  { dyna_helper_pre(); sha512_raw();            dyna_helper_post(64); }
+static void dynamic_fgosth() { dyna_helper_pre(); gost_hex();              dyna_helper_poststr(); }
+static void dynamic_fgostH() { dyna_helper_pre(); gost_hex(); strupr(h);   dyna_helper_poststr(); }
+static void dynamic_fgost6() { dyna_helper_pre(); gost_base64();           dyna_helper_poststr(); }
+static void dynamic_fgostc() { dyna_helper_pre(); gost_base64c();          dyna_helper_poststr(); }
+static void dynamic_fgostr() { dyna_helper_pre(); gost_raw();              dyna_helper_post(32); }
+static void dynamic_fwrlph() { dyna_helper_pre(); whirlpool_hex();            dyna_helper_poststr(); }
+static void dynamic_fwrlpH() { dyna_helper_pre(); whirlpool_hex(); strupr(h); dyna_helper_poststr(); }
+static void dynamic_fwrlp6() { dyna_helper_pre(); whirlpool_base64();         dyna_helper_poststr(); }
+static void dynamic_fwrlpc() { dyna_helper_pre(); whirlpool_base64c();        dyna_helper_poststr(); }
+static void dynamic_fwrlpr() { dyna_helper_pre(); whirlpool_raw();            dyna_helper_post(64); }
+static void dynamic_ftigh()  { dyna_helper_pre(); tiger_hex();             dyna_helper_poststr(); }
+static void dynamic_ftigH()  { dyna_helper_pre(); tiger_hex(); strupr(h);  dyna_helper_poststr(); }
+static void dynamic_ftig6()  { dyna_helper_pre(); tiger_base64();          dyna_helper_poststr(); }
+static void dynamic_ftigc()  { dyna_helper_pre(); tiger_base64c();         dyna_helper_poststr(); }
+static void dynamic_ftigr()  { dyna_helper_pre(); tiger_raw();             dyna_helper_post(24); }
+static void dynamic_frip128h()  { dyna_helper_pre(); ripemd128_hex();            dyna_helper_poststr(); }
+static void dynamic_frip128H()  { dyna_helper_pre(); ripemd128_hex(); strupr(h); dyna_helper_poststr(); }
+static void dynamic_frip1286()  { dyna_helper_pre(); ripemd128_base64();         dyna_helper_poststr(); }
+static void dynamic_frip128c()  { dyna_helper_pre(); ripemd128_base64c();        dyna_helper_poststr(); }
+static void dynamic_frip128r()  { dyna_helper_pre(); ripemd128_raw();            dyna_helper_post(16); }
+static void dynamic_frip160h()  { dyna_helper_pre(); ripemd160_hex();            dyna_helper_poststr(); }
+static void dynamic_frip160H()  { dyna_helper_pre(); ripemd160_hex(); strupr(h); dyna_helper_poststr(); }
+static void dynamic_frip1606()  { dyna_helper_pre(); ripemd160_base64();         dyna_helper_poststr(); }
+static void dynamic_frip160c()  { dyna_helper_pre(); ripemd160_base64c();        dyna_helper_poststr(); }
+static void dynamic_frip160r()  { dyna_helper_pre(); ripemd160_raw();            dyna_helper_post(20); }
+static void dynamic_frip256h()  { dyna_helper_pre(); ripemd256_hex();            dyna_helper_poststr(); }
+static void dynamic_frip256H()  { dyna_helper_pre(); ripemd256_hex(); strupr(h); dyna_helper_poststr(); }
+static void dynamic_frip2566()  { dyna_helper_pre(); ripemd256_base64();         dyna_helper_poststr(); }
+static void dynamic_frip256c()  { dyna_helper_pre(); ripemd256_base64c();        dyna_helper_poststr(); }
+static void dynamic_frip256r()  { dyna_helper_pre(); ripemd256_raw();            dyna_helper_post(32); }
+static void dynamic_frip320h()  { dyna_helper_pre(); ripemd320_hex();            dyna_helper_poststr(); }
+static void dynamic_frip320H()  { dyna_helper_pre(); ripemd320_hex(); strupr(h); dyna_helper_poststr(); }
+static void dynamic_frip3206()  { dyna_helper_pre(); ripemd320_base64();         dyna_helper_poststr(); }
+static void dynamic_frip320c()  { dyna_helper_pre(); ripemd320_base64c();        dyna_helper_poststr(); }
+static void dynamic_frip320r()  { dyna_helper_pre(); ripemd320_raw();            dyna_helper_post(40); }
+static void dynamic_fpad16()    { dyna_helper_pre();                             dyna_helper_post(pad16()); }
+static void dynamic_fpad20()    { dyna_helper_pre();                             dyna_helper_post(pad20()); }
+static void dynamic_fpad100()   { dyna_helper_pre();                             dyna_helper_post(pad100()); }
+static void dynamic_futf16()    { dyna_helper_pre();                             dyna_helper_post(encode_le()); }
+//static void dynamic_futf16be()  { dyna_helper_pre();                             dyna_helper_post(encode_be()); }
 
 
 static void init_static_data() {
@@ -708,7 +694,7 @@ static const char *comp_get_symbol(const char *pInput) {
 	return comp_push_sym("X", fpNull, pInput);
 }
 
-void comp_lexi_error(DC_struct *p, const char *pInput, char *msg) {
+static void comp_lexi_error(DC_struct *p, const char *pInput, char *msg) {
 	int n;
 	fprintf(stderr, "Dyna expression syntax error around this part of expression\n");
 	fprintf(stderr, "%s\n", p->pExpr);
@@ -720,7 +706,7 @@ void comp_lexi_error(DC_struct *p, const char *pInput, char *msg) {
 	else fprintf(stderr, "%s\n", msg);
 	error("exiting now");
 }
-char *comp_optimize_expression(const char *pExpr) {
+static char *comp_optimize_expression(const char *pExpr) {
 	char *pBuf = (char*)mem_alloc(strlen(pExpr)+1), *p, *p2;
 	int n1, n2;
 	strcpy(pBuf, pExpr);
@@ -895,7 +881,7 @@ static void comp_do_parse(int cur, int curend) {
 	}
 }
 
-void comp_add_script_line(const char *fmt, ...) {
+static void comp_add_script_line(const char *fmt, ...) {
 	//static char *pScriptLines[1024];
 	//static int nScriptLines;
 	va_list va;
@@ -926,7 +912,7 @@ void comp_add_script_line(const char *fmt, ...) {
 	++nScriptLines;
 }
 
-char *rand_str(int len) {
+static char *rand_str(int len) {
 	static char tmp[256];
 	const char *alpha = "0123456789abcdef";
 	char *cp = tmp;
