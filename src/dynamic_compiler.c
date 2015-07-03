@@ -946,6 +946,7 @@ static void build_test_string(DC_struct *p, char **pLine) {
 		*cp = 0;
 		strupr(tmp);
 		h = gen_s;
+		h_len = strlen(h);
 		if (!strcmp(tmp, "MD5")) md5_hex();
 		else if (!strcmp(tmp, "MD4")) md4_hex();
 		else if (!strcmp(tmp, "SHA1")) sha1_hex();
