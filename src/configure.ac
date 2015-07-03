@@ -66,6 +66,7 @@ AC_ARG_WITH(flock, [AS_HELP_STRING([--with-flock],[use flock() file locking inst
 
 AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory debugging (safe level)])], [memdbg=$enableval], [memdbg=no])
 AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSanitizer])], [asan=$enableval], [asan=no])
+AC_ARG_ENABLE([ubsan], [AS_HELP_STRING([--enable-ubsan], [* Build with UndefinedBehaviorSanitizer])], [ubsan=$enableval], [ubsan=no])
 AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependencies], [Do not create best-effort Makefile dependencies for plugins])], [plug_deps=$enableval], [plug_deps=yes])
 
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
@@ -174,7 +175,7 @@ AS_IF([test "x$JTR_FLAG_CHECK_WORKS" = xyes],
    JTR_FLAG_CHECK([-finline-functions], 1)
    AC_SUBST([OPT_INLINE_FLAGS],["${CFLAGS_EX}"])
 
-   # pick -Og or -O1 for debug targets (applies to ASan too)
+   # pick -Og or -O1 for debug targets (applies to ASan/UbSan too)
    CFLAGS_EX=""
    JTR_FLAG_CHECK([-Og], 1)
    if test "x${CFLAGS_EX}" != x ; then
@@ -202,11 +203,25 @@ if test "x$asan" = xyes ; then
    LDFLAGS=${LDFLAGS_BAK}
 fi
 
+   # if user requested  UbSan, make sure we can properly build/link with it.
+   # FIXME: for now, exclude -fsanitize=alignment on all architectures, not just x86
+if test "x$ubsan" = xyes ; then
+   CFLAGS_EX=""
+   LDFLAGS_BAK=${LDFLAGS}
+   JTR_FLAG_CHECK_LINK([-DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error], 1)
+   if test "x${CFLAGS_EX}" = x ; then
+      ubsan=no
+   else
+      LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
+   fi
+   LDFLAGS=${LDFLAGS_BAK}
+fi
+
    # now fill out CFLAGS
    CFLAGS_EX=""
    JTR_FLAG_CHECK([-Wall], 1)
    JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
-if test "x$asan" = xyes ; then
+if test "x$asan" = xyes || test "x$ubsan" = xyes ; then
    JTR_FLAG_CHECK([-fno-omit-frame-pointer], 1)
 else
    JTR_FLAG_CHECK([-fomit-frame-pointer], 1)
@@ -320,6 +335,8 @@ case "$host_cpu" in
   mips64*) ARCH_LINK=mips64.h endian=big ;;
   mips*) ARCH_LINK=mips32.h endian=big ;;
   pdp*) ARCH_LINK=autoconf_arch.h endian=little ;;
+  powerpc64le) ARCH_LINK=ppc64.h endian=little ;;
+  powerpc64*) ARCH_LINK=ppc64.h endian=big ;;
   powerpcle) ARCH_LINK=ppc32.h endian=little ;;
   powerpc*) ARCH_LINK=ppc32.h endian=big ;;
   sparc64) ARCH_LINK=sparc64.h endian=big ;;
@@ -751,6 +768,13 @@ if test "x$asan" = xyes ; then
    LDFLAGS="-fsanitize=address $LDFLAGS"
 fi
 
+if test "x$ubsan" = xyes ; then
+   CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
+   CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
+   CFLAGS="-g $O_DEBUG -DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error --param=max-vartrack-size=0 $CFLAGS"
+   LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
+fi
+
 #add ARCH_LITTLE_ENDIAN to command line, IF we know it is big or little
 if test "x$endian" = "xbig"; then
    CFLAGS="$CFLAGS -DARCH_LITTLE_ENDIAN=0"
@@ -938,6 +962,12 @@ else
    asan="disabled"
 fi
 
+if test "x$ubsan" = xyes ; then
+   ubsan="enabled"
+else
+   ubsan="disabled"
+fi
+
 if test "x$enable_int128" = xno; then
    have_int128=disabled
 elif test "x$ac_cv_type_int128" = xyes ||
@@ -978,6 +1008,7 @@ Memory map (share/page large files) ......... ${using_mmap}
 Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ............ ${memdbg_settings}
 AddressSanitizer ("ASan") ................... ${asan}
+UndefinedBehaviorSanitizer ("UbSan") ........ ${ubsan}
 
 Install missing libraries to get any needed features that were omitted.
 

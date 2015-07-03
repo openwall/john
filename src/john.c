@@ -296,7 +296,11 @@ static void john_register_all(void)
 	struct fmt_main *selfs;
 #endif
 
-	if (options.format) strlwr(options.format);
+	if (options.format) {
+		// The case of the expression for this format is VERY important to keep
+		if (strncmp(options.format, "dynamic=", 8))
+			strlwr(options.format);
+	}
 
 	john_register_one(&fmt_DES);
 	john_register_one(&fmt_BSDI);

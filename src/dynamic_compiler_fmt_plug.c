@@ -96,22 +96,7 @@ static char *Convert(char *Buf, char *ciphertext, int in_load)
 
 static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	extern int ldr_in_pot;
-	if (strncmp(ciphertext, "@dynamic=", 9) && strncmp(ciphertext, dyna_signature, dyna_sig_len)) {
-		// convert back into @dynamic@ format
-		static char Buf[512];
-		sprintf(Buf, "%s%s", dyna_signature, ciphertext);
-		ciphertext = Buf;
-	}
-	if (ldr_in_pot == 1 && !strncmp(ciphertext, "@dynamic=", 9)) {
-		static char Buf[512], Buf2[512];
-		char *cp = strchr(&ciphertext[1], '@');
-		if (cp) {
-			strcpy(Buf, &cp[1]);
-			sprintf(Buf2, "%s%s", dyna_signature, Buf);
-			ciphertext = Buf2;
-		}
-	}
+	ciphertext = dynamic_compile_split(ciphertext);
 	return ciphertext;
 }
 
@@ -187,7 +172,6 @@ static void get_ptr() {
 		dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS(dyna_script, &dyna_type, &fmt_CompiledDynamic, Convert);
 		sprintf (dyna_hash_type, "$dynamic_%d$", dyna_type);
 		dyna_hash_type_len = strlen(dyna_hash_type);
-
 		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_CompiledDynamic, Convert(Conv_Buf, (char*)dyna_line1, 0), "@dynamic=", 0);
 		link_funcs();
 	}

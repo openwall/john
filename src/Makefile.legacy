@@ -28,8 +28,7 @@ NULL = /dev/null
 CPPFLAGS = -E
 SORT = sort
 STRIP = strip
-MAKE_BEST_JTR = $(MAKE) -j1 -f Makefile.legacy
-MAKE_ORIG = $(MAKE) -f Makefile.legacy -j$(J)
+MAKE_ORIG = +$(MAKE) -f Makefile.legacy
 
 JTR_GIT_VERSION = \"$(shell git describe --tags --dirty=+ 2>/dev/null)\"
 ifeq ($(JTR_GIT_VERSION), \"\")
@@ -1920,7 +1919,7 @@ generic.h:
 	$(RM) arch.h
 	$(CC) $(CFLAGS) detect.c
 	$(LD) detect.o $(LDFLAGS) -o detect
-	./best.sh "$(MAKE_BEST_JTR)" \
+	./best.sh "$(MAKE) -f Makefile.legacy" \
 		"$(BENCH_DES_OBJS_DEPEND)" \
 		"$(BENCH_DES_BS_OBJS_DEPEND)" \
 		"$(BENCH_MD5_OBJS_DEPEND)" \

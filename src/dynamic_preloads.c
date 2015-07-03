@@ -93,11 +93,11 @@
 //dynamic_26 --> sha1($p)                  // MGF_RAW_SHA1_INPUT
  // REMOVED! DEPRICATED //dynamic_27 --> FreeBSD MD5
  // REMOVED! DEPRICATED //dynamic_28 --> Apache MD5
-//dynamic_29 --> md5(unicode($p))			// raw-md5-unicode
+//dynamic_29 --> md5(utf16($p))			// raw-md5-unicode
 //dynamic_30 --> md4($p)                    // raw-md4
 //dynamic_31 --> md4($s.$p)
 //dynamic_32 --> md4($p.$s)
-//dynamic_33 --> md4(unicode($p))			// NT
+//dynamic_33 --> md4(utf16($p))			// NT
 //dynamic_34 --> md5(md4($p))
 //dynamic_35 -->sha1(uc($u).:.$p) (ManGOS)
 //dynamic_36 -->sha1($u.:.$p) (ManGOS2)
@@ -902,7 +902,7 @@ MTL({"$dynamic_26$e4227954acdafb57977d7dc8a19570959176fb72", "123456789012345678
 //dynamic_27 --> FreeBSD MD5
 //dynamic_28 --> Apache MD5
 
-//dynamic_29 --> raw-md5-unicode  md5(unicode($p))
+//dynamic_29 --> raw-md5-unicode  md5(utf16($p))
 static DYNAMIC_primitive_funcp _Funcs_29[] =
 {
 	//MGF_UTF8
@@ -995,7 +995,7 @@ static struct fmt_tests _Preloads_32[] =
 #endif
 	{NULL}
 };
-//dynamic_33 --> md4(unicode($p))			// NT
+//dynamic_33 --> md4(utf16($p))			// NT
 static DYNAMIC_primitive_funcp _Funcs_33[] =
 {
 	//MGF_UTF8
@@ -3341,11 +3341,11 @@ static DYNAMIC_Setup Setups[] =
 // Dyna 27/28 have been removed, Spring of 2013.  These dyna numbers should NOT be reused for any purpose.
 //dynamic_27 --> FreeBSD MD5
 //dynamic_28 --> Apache MD5
-	{ "dynamic_29: md5(unicode($p))",           _Funcs_29,_Preloads_29,_ConstDefault, MGF_UTF8, MGF_POOR_OMP, 0, 27, 40 }, // if we are in utf8 mode, we triple this in the init() call
+	{ "dynamic_29: md5(utf16($p))",             _Funcs_29,_Preloads_29,_ConstDefault, MGF_UTF8, MGF_POOR_OMP, 0, 27, 40 }, // if we are in utf8 mode, we triple this in the init() call
 	{ "dynamic_30: md4($p) (raw-md4)",          _Funcs_30,_Preloads_30,_ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT|MGF_POOR_OMP },
 	{ "dynamic_31: md4($s.$p)",                 _Funcs_31,_Preloads_31,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -24 },
 	{ "dynamic_32: md4($p.$s)",                 _Funcs_32,_Preloads_32,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -24 },
-	{ "dynamic_33: md4(unicode($p))",           _Funcs_33,_Preloads_33,_ConstDefault, MGF_UTF8, MGF_POOR_OMP, 0, 27, 40 }, // if we are in utf8 mode, we triple this in the init() call
+	{ "dynamic_33: md4(utf16($p))",             _Funcs_33,_Preloads_33,_ConstDefault, MGF_UTF8, MGF_POOR_OMP, 0, 27, 40 }, // if we are in utf8 mode, we triple this in the init() call
 	{ "dynamic_34: md5(md4($p))",               _Funcs_34,_Preloads_34,_ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT|MGF_SET_INP2LEN32|MGF_POOR_OMP },
 	{ "dynamic_35: sha1(uc($u).:.$p) (ManGOS)", _Funcs_35,_Preloads_35,_Const_35,     MGF_FLAT_BUFFERS|MGF_USERNAME_UPCASE, MGF_INPUT_20_BYTE, -64, 110, 110 },
 	{ "dynamic_36: sha1($u.:.$p) (ManGOS2)",    _Funcs_36,_Preloads_36,_Const_36,     MGF_FLAT_BUFFERS|MGF_USERNAME, MGF_INPUT_20_BYTE, -64, 110, 110 },

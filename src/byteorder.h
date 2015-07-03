@@ -48,8 +48,8 @@ CAREFUL_ALIGNMENT=0 on those processors as well.
 
 Ok, now to the macros themselves. I'll take a simple example, say we
 want to extract a 2 byte integer from a SMB packet and put it into a
-type called uint16 that is in the local machines byte order, and you
-want to do it with only the assumption that uint16 is _at_least_ 16
+type called uint16_t that is in the local machines byte order, and you
+want to do it with only the assumption that uint16_t is _at_least_ 16
 bits long (this last condition is very important for architectures
 that don't have any int types that are 2 bytes long)
 
@@ -59,10 +59,10 @@ You do this:
 #define PVAL(buf,pos) ((unsigned)CVAL(buf,pos))
 #define SVAL(buf,pos) (PVAL(buf,pos)|PVAL(buf,(pos)+1)<<8)
 
-then to extract a uint16 value at offset 25 in a buffer you do this:
+then to extract a uint16_t value at offset 25 in a buffer you do this:
 
 char *buffer = foo_bar();
-uint16 xx = SVAL(buffer,25);
+uint16_t xx = SVAL(buffer,25);
 
 We are using the byteoder independence of the ANSI C bitshifts to do
 the work. A good optimising compiler should turn this into efficient
@@ -143,48 +143,48 @@ it also defines lots of intermediate macros, just ignore those :-)
 #define IVAL(buf,pos) (SVAL(buf,pos)|SVAL(buf,(pos)+2)<<16)
 #define SSVALX(buf,pos,val) (CVAL(buf,pos)=(val)&0xFF,CVAL(buf,pos+1)=(val)>>8)
 #define SIVALX(buf,pos,val) (SSVALX(buf,pos,val&0xFFFF),SSVALX(buf,pos+2,val>>16))
-#define SVALS(buf,pos) ((int16)SVAL(buf,pos))
-#define IVALS(buf,pos) ((int32)IVAL(buf,pos))
-#define SSVAL(buf,pos,val) SSVALX((buf),(pos),((uint16)(val)))
-#define SIVAL(buf,pos,val) SIVALX((buf),(pos),((uint32)(val)))
-#define SSVALS(buf,pos,val) SSVALX((buf),(pos),((int16)(val)))
-#define SIVALS(buf,pos,val) SIVALX((buf),(pos),((int32)(val)))
+#define SVALS(buf,pos) ((int16_t)SVAL(buf,pos))
+#define IVALS(buf,pos) ((int32_t)IVAL(buf,pos))
+#define SSVAL(buf,pos,val) SSVALX((buf),(pos),((uint16_t)(val)))
+#define SIVAL(buf,pos,val) SIVALX((buf),(pos),((uint32_t)(val)))
+#define SSVALS(buf,pos,val) SSVALX((buf),(pos),((int16_t)(val)))
+#define SIVALS(buf,pos,val) SIVALX((buf),(pos),((int32_t)(val)))
 
 #else /* CAREFUL_ALIGNMENT */
 
 /* this handles things for architectures like the 386 that can handle
    alignment errors */
 /*
-   WARNING: This section is dependent on the length of int16 and int32
+   WARNING: This section is dependent on the length of int16_t and int32_t
    being correct
 */
 
 /* get single value from an SMB buffer */
-#define SVAL(buf,pos) (*(const uint16 *)((const char *)(buf) + (pos)))
-#define IVAL(buf,pos) (*(const uint32 *)((const char *)(buf) + (pos)))
-#define SVALS(buf,pos) (*(const int16 *)((const char *)(buf) + (pos)))
-#define IVALS(buf,pos) (*(const int32 *)((const char *)(buf) + (pos)))
+#define SVAL(buf,pos) (*(const uint16_t *)((const char *)(buf) + (pos)))
+#define IVAL(buf,pos) (*(const uint32_t *)((const char *)(buf) + (pos)))
+#define SVALS(buf,pos) (*(const int16_t *)((const char *)(buf) + (pos)))
+#define IVALS(buf,pos) (*(const int32_t *)((const char *)(buf) + (pos)))
 
 /* store single value in an SMB buffer */
-#define SVALMOD(buf,pos) (*(uint16 *)((char *)(buf) + (pos)))
-#define IVALMOD(buf,pos) (*(uint32 *)((char *)(buf) + (pos)))
-#define SVALSMOD(buf,pos) (*(int16 *)((char *)(buf) + (pos)))
-#define IVALSMOD(buf,pos) (*(int32 *)((char *)(buf) + (pos)))
+#define SVALMOD(buf,pos) (*(uint16_t *)((char *)(buf) + (pos)))
+#define IVALMOD(buf,pos) (*(uint32_t *)((char *)(buf) + (pos)))
+#define SVALSMOD(buf,pos) (*(int16_t *)((char *)(buf) + (pos)))
+#define IVALSMOD(buf,pos) (*(int32_t *)((char *)(buf) + (pos)))
 
-#define SSVAL(buf,pos,val) SVALMOD(buf,pos)=((uint16)(val))
-#define SIVAL(buf,pos,val) IVALMOD(buf,pos)=((uint32)(val))
-#define SSVALS(buf,pos,val) SVALSMOD(buf,pos)=((int16)(val))
-#define SIVALS(buf,pos,val) IVALSMOD(buf,pos)=((int32)(val))
+#define SSVAL(buf,pos,val) SVALMOD(buf,pos)=((uint16_t)(val))
+#define SIVAL(buf,pos,val) IVALMOD(buf,pos)=((uint32_t)(val))
+#define SSVALS(buf,pos,val) SVALSMOD(buf,pos)=((int16_t)(val))
+#define SIVALS(buf,pos,val) IVALSMOD(buf,pos)=((int32_t)(val))
 
 #endif /* CAREFUL_ALIGNMENT */
 
 /* macros for reading / writing arrays */
 
 #define SMBMACRO(macro,buf,pos,val,len,size) \
-{ uint32 l; for (l = 0; l < (uint32)(len); l++) (val)[l] = macro((buf), (pos) + (size)*l); }
+{ uint32_t l; for (l = 0; l < (uint32_t)(len); l++) (val)[l] = macro((buf), (pos) + (size)*l); }
 
 #define SSMBMACRO(macro,buf,pos,val,len,size) \
-{ uint32 l; for (l = 0; l < (uint32)(len); l++) macro((buf), (pos) + (size)*l, (val)[l]); }
+{ uint32_t l; for (l = 0; l < (uint32_t)(len); l++) macro((buf), (pos) + (size)*l, (val)[l]); }
 
 /* reads multiple data from an SMB buffer */
 #define PCVAL(buf,pos,val,len) SMBMACRO(CVAL,buf,pos,val,len,1)
@@ -233,7 +233,7 @@ it also defines lots of intermediate macros, just ignore those :-)
 	DEBUG(5,("%s%04x %s: ", \
              tab_depth(depth), base,string)); \
     if (charmode) print_asc(5, (unsigned char*)(outbuf), (len)); else \
-	{ uint32 idx; for (idx = 0; idx < len; idx++) { DEBUG(5,("%02x ", (outbuf)[idx])); } } \
+	{ uint32_t idx; for (idx = 0; idx < len; idx++) { DEBUG(5,("%02x ", (outbuf)[idx])); } } \
 	DEBUG(5,("\n")); }
 
 #define DBG_RW_PSVAL(charmode,string,depth,base,read,big_endian,inbuf,outbuf,len) \
@@ -241,7 +241,7 @@ it also defines lots of intermediate macros, just ignore those :-)
 	DEBUG(5,("%s%04x %s: ", \
              tab_depth(depth), base,string)); \
     if (charmode) print_asc(5, (unsigned char*)(outbuf), 2*(len)); else \
-	{ uint32 idx; for (idx = 0; idx < len; idx++) { DEBUG(5,("%04x ", (outbuf)[idx])); } } \
+	{ uint32_t idx; for (idx = 0; idx < len; idx++) { DEBUG(5,("%04x ", (outbuf)[idx])); } } \
 	DEBUG(5,("\n")); }
 
 #define DBG_RW_PIVAL(charmode,string,depth,base,read,big_endian,inbuf,outbuf,len) \
@@ -249,7 +249,7 @@ it also defines lots of intermediate macros, just ignore those :-)
 	DEBUG(5,("%s%04x %s: ", \
              tab_depth(depth), base,string)); \
     if (charmode) print_asc(5, (unsigned char*)(outbuf), 4*(len)); else \
-	{ uint32 idx; for (idx = 0; idx < len; idx++) { DEBUG(5,("%08x ", (outbuf)[idx])); } } \
+	{ uint32_t idx; for (idx = 0; idx < len; idx++) { DEBUG(5,("%08x ", (outbuf)[idx])); } } \
 	DEBUG(5,("\n")); }
 
 #define DBG_RW_CVAL(string,depth,base,read,inbuf,outbuf) \
