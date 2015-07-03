@@ -1006,7 +1006,7 @@ static void build_test_string(DC_struct *p, char **pLine) {
 		strcat(*pLine, gen_u);
 	}
 	if (bNeedS2) {
-		strcat(*pLine, "$$S2");
+		strcat(*pLine, "$$2");
 		strcat(*pLine, gen_s2);
 	}
 	comp_add_script_line("Test=%s:%s\n", *pLine, gen_pw);
