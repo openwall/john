@@ -103,8 +103,8 @@
 //dynamic_36 -->sha1($u.:.$p) (ManGOS2)
 //dynamic_37 -->sha1(lc($u).$p) (SMF)
 //dynamic_38 -->sha1($s.sha1($s.sha1($p))) (Wolt3BB)
-//dynamic_39 -->md5($s.pad_16($p))      (Net-md5 passed password, long salts)
-//dynamic_40 -->sha1($s.pad_20($p))     (Net-sha1 passed password, long salts)
+//dynamic_39 -->md5($s.pad16($p))      (Net-md5 passed password, long salts)
+//dynamic_40 -->sha1($s.pad20($p))     (Net-sha1 passed password, long salts)
 	// Try to group sha224 here (from dyna-50 to dyna-59)
 //dynamic_50 -->sha224($p)
 //dynamic_51 -->sha224($s.$p)
@@ -1164,7 +1164,7 @@ MTL({"$dynamic_38$465bdbb99f9ede3a0a85d1773ceb693ceca10629$123456789012345678901
 
 
 //$ ./pass_gen.pl  'dynamic=39'
-//dynamic_39 -->md5($s.pad_16($p))      (Net-md5 passed password, long salts)
+//dynamic_39 -->md5($s.pad16($p))      (Net-md5 passed password, long salts)
 static DYNAMIC_primitive_funcp _Funcs_39[] =
 {
 	//MGF_SALTED
@@ -1188,7 +1188,7 @@ static struct fmt_tests _Preloads_39[] =
 };
 
 //$ ./pass_gen.pl  'dynamic=40'
-//dynamic_40 -->sha1($s.pad_20($p))     (Net-sha1 passed password, long salts)
+//dynamic_40 -->sha1($s.pad20($p))     (Net-sha1 passed password, long salts)
 static DYNAMIC_primitive_funcp _Funcs_40[] =
 {
 	//MGF_INPUT_20_BYTE

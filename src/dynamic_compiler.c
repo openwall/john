@@ -341,9 +341,9 @@ static void ripemd320_base64() { sph_ripemd320_context c; sph_ripemd320_init(&c)
 static void ripemd320_base64c(){ sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
 static void ripemd320_raw()    { sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); }
 static int encode_le()         { int len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
-static int pad16()             { memset(gen_conv, 0, 16); strncpy(gen_conv, h, 16); memcpy(h, gen_conv, 16); return 16; }
-static int pad20()             { memset(gen_conv, 0, 20); strncpy(gen_conv, h, 20); memcpy(h, gen_conv, 20); return 20; }
-static int pad100()            { memset(gen_conv, 0, 100); strncpy(gen_conv, h, 100); memcpy(h, gen_conv, 100); return 100; }
+static char *pad16()           { memset(gen_conv, 0, 16); strncpy(gen_conv, gen_pw, 16); return gen_conv; }
+static char *pad20()           { memset(gen_conv, 0, 20); strncpy(gen_conv, gen_pw, 20); return gen_conv; }
+static char *pad100()          { memset(gen_conv, 0, 100); strncpy(gen_conv, gen_pw, 100); return gen_conv; }
 // TODO:
 //int encode_be() { int len = enc_to_utf16_be((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len); return len; }
 
@@ -353,6 +353,10 @@ static int pad100()            { memset(gen_conv, 0, 100); strncpy(gen_conv, h, 
 static void dyna_helper_append(const char *v) {
 	memcpy(&gen_Stack[ngen_Stack-1][gen_Stack_len[ngen_Stack-1]], v, strlen(v));
 	gen_Stack_len[ngen_Stack-1] += strlen(v);
+}
+static void dyna_helper_appendn(const char *v, int len) {
+	memcpy(&gen_Stack[ngen_Stack-1][gen_Stack_len[ngen_Stack-1]], v, len);
+	gen_Stack_len[ngen_Stack-1] += len;
 }
 static void dyna_helper_pre() {
 	h = gen_Stack[--ngen_Stack];
@@ -383,6 +387,10 @@ static void dynamic_app_sh() { dyna_helper_append(gen_s);    } //md5_hex($gen_s)
 static void dynamic_app_S()  { dyna_helper_append(gen_s2);   }
 static void dynamic_app_u()  { dyna_helper_append(gen_u);    }
 static void dynamic_app_p()  { dyna_helper_append(gen_pw);   }
+static void dynamic_pad16()  { dyna_helper_appendn(pad16(), 16);  }
+static void dynamic_pad20()  { dyna_helper_appendn(pad20(), 20);  }
+static void dynamic_pad100() { dyna_helper_appendn(pad100(), 100); }
+
 //static void dynamic_app_pU() { dyna_helper_append(gen_pwuc); }
 //static void dynamic_app_pL() { dyna_helper_append(gen_pwlc); }
 static void dynamic_app_1()  { dyna_helper_append(Const[1]); }
@@ -467,9 +475,6 @@ static void dynamic_frip320H()  { dyna_helper_pre(); ripemd320_hex(); strupr(h);
 static void dynamic_frip3206()  { dyna_helper_pre(); ripemd320_base64();         dyna_helper_poststr(); }
 static void dynamic_frip320c()  { dyna_helper_pre(); ripemd320_base64c();        dyna_helper_poststr(); }
 static void dynamic_frip320r()  { dyna_helper_pre(); ripemd320_raw();            dyna_helper_post(40); }
-static void dynamic_fpad16()    { dyna_helper_pre();                             dyna_helper_post(pad16()); }
-static void dynamic_fpad20()    { dyna_helper_pre();                             dyna_helper_post(pad20()); }
-static void dynamic_fpad100()   { dyna_helper_pre();                             dyna_helper_post(pad100()); }
 static void dynamic_futf16()    { dyna_helper_pre();                             dyna_helper_post(encode_le()); }
 //static void dynamic_futf16be()  { dyna_helper_pre();                             dyna_helper_post(encode_be()); }
 
@@ -545,7 +550,9 @@ static int handle_extra_params(DC_struct *ptr) {
 		compile_debug = 1;
 
 	if ( (cp = get_param(ptr->pExtraParams, "saltlen")) != NULL) {
-		nSaltLen = atoi(cp);
+		nSaltLen = atoi(&cp[1]);
+		if (nSaltLen > 200)
+			error("Max salt len allowed is 200 bytes\n");
 	}
 	return 0;
 }
@@ -684,10 +691,11 @@ static const char *comp_get_symbol(const char *pInput) {
 		if (!strncmp(pInput, "ripemd320", 9)) { return comp_push_sym("frip320h", dynamic_frip320h, pInput+9); }
 		if (!strncmp(pInput, "RIPEMD320", 9)) { return comp_push_sym("frip320H", dynamic_frip320H, pInput+9); }
 	}
+	LastTokIsFunc = 0;
+	if (!strncmp(pInput, "pad16($p)", 9))   return comp_push_sym("pad16", dynamic_pad16, pInput+9);
+	if (!strncmp(pInput, "pad20($p)", 9))   return comp_push_sym("pad20", dynamic_pad20, pInput+9);
+	if (!strncmp(pInput, "pad100($p)", 10))  return comp_push_sym("pad100", dynamic_pad100, pInput+10);
 	LastTokIsFunc = 2;
-	if (!strncmp(pInput, "pad16", 5))   return comp_push_sym("fpad16", dynamic_fpad16, pInput+5);
-	if (!strncmp(pInput, "pad20", 5))   return comp_push_sym("fpad20", dynamic_fpad20, pInput+5);
-	if (!strncmp(pInput, "pad100", 6))  return comp_push_sym("fpad100", dynamic_fpad100, pInput+6);
 	//if (!strncmp(pInput, "utf16be", 7)) return comp_push_sym("futf16be", dynamic_futf16be, pInput+7);
 	if (!strncmp(pInput, "utf16", 5))   return comp_push_sym("futf16", dynamic_futf16, pInput+5);
 	LastTokIsFunc = 0;
@@ -865,7 +873,18 @@ static void comp_do_parse(int cur, int curend) {
 					push_pcode("app_sh", dynamic_app_sh);
 				bNeedS = 1;
 				continue;
-			case 'p': push_pcode("app_p", dynamic_app_p); continue;
+			case 'p':
+			{
+				if (!strcmp(curTok, "p"))
+					push_pcode("app_p", dynamic_app_p);
+				else if (!strcmp(curTok, "pad16"))
+					push_pcode("pad16", dynamic_pad16);
+				else if (!strcmp(curTok, "pad20"))
+					push_pcode("pad20", dynamic_pad20);
+				else if (!strcmp(curTok, "pad100"))
+					push_pcode("pad100", dynamic_pad100);
+				continue;
+			}
 			case 'S': push_pcode("app_s2", dynamic_app_S); bNeedS2 = 1; continue;
 			case 'u': push_pcode("app_u", dynamic_app_u); bNeedU = 1; continue;
 			case '1': push_pcode("app_1", dynamic_app_1); continue;
@@ -929,7 +948,7 @@ static char *rand_str(int len) {
 // Ported from pass_gen.pl dynamic_run_compiled_pcode() function.
 static void build_test_string(DC_struct *p, char **pLine) {
 	int i;
-	char salt[48];
+	char salt[260];
 	dynamic_push();
 	*gen_s = 0;
 	if (bNeedS) {
@@ -937,6 +956,12 @@ static void build_test_string(DC_struct *p, char **pLine) {
 			strcpy(gen_s, rand_str(nSaltLen));
 		else
 			strcpy(gen_s, rand_str(8));
+	}
+	if (bNeedU) {
+		strcpy(gen_u, rand_str(8));
+	}
+	if (bNeedS2) {
+		strcpy(gen_s2, rand_str(8));
 	}
 	strcpy(salt, gen_s);
 	if (salt_as_hex_type) {
@@ -975,6 +1000,14 @@ static void build_test_string(DC_struct *p, char **pLine) {
 	if (bNeedS) {
 		strcat(*pLine, "$");
 		strcat(*pLine, salt);
+	}
+	if (bNeedU) {
+		strcat(*pLine, "$$U");
+		strcat(*pLine, gen_u);
+	}
+	if (bNeedS2) {
+		strcat(*pLine, "$$S2");
+		strcat(*pLine, gen_s2);
 	}
 	comp_add_script_line("Test=%s:%s\n", *pLine, gen_pw);
 	for (i = 0; i < ngen_Stack_max; ++i)
@@ -1044,7 +1077,7 @@ static int parse_expression(DC_struct *p) {
 		int salt_len = nSaltLen ? nSaltLen : -32;
 		int in_unicode = 0;
 		int append_mode = 0;
-		int max_inp_len = 110, len_comp;
+		int max_inp_len = 110, len_comp = 0;
 		int inp1_clean = 0;
 		int use_inp1 = 1, use_inp1_again = 0;
 		int inp_cnt = 0, ex_cnt = 0, salt_cnt = 0, hash_cnt = 0, flag_utf16 = 0;
@@ -1087,27 +1120,13 @@ static int parse_expression(DC_struct *p) {
 
 				// Found next function.  Now back up and load the data
 				for (j = i - 1; j >= 0; --j) {
-					if (pCode[j][0] == 'p') { // push
+					if (!strcmp(pCode[j], "push")) { // push
 						last_push = j;
 						use_inp1_again = 0;
 						inp_cnt = 0, ex_cnt = 0, salt_cnt = 0, hash_cnt = 0;
 						for (x = j+1; x < i; ++x) {
 							if (!strcmp(pCode[x], "app_p")) {
-								int written = 0;
-								if (pCode[x+1]) {
-									if (!strcmp(pCode[x+1], "fpad16")) {
-										comp_add_script_line("Func=DynamicFunc__append_keys_pad16\n");
-										written = 1;
-									}
-									else if (!strcmp(pCode[x+1], "fpad20")) {
-										comp_add_script_line("Func=DynamicFunc__append_keys_pad20\n");
-										written = 1;
-									}
-								}
-								if (!written)
-									comp_add_script_line("Func=DynamicFunc__append_keys%s\n", use_inp1?"":"2");
-								++inp_cnt;
-							}
+								comp_add_script_line("Func=DynamicFunc__append_keys%s\n", use_inp1?"":"2"); ++inp_cnt; }
 							else if (!strcmp(pCode[x], "app_s")) {
 								comp_add_script_line("Func=DynamicFunc__append_salt%s\n", use_inp1?"":"2"); ++salt_cnt; }
 							else if (!strcmp(pCode[x], "app_u")) {
@@ -1138,6 +1157,12 @@ static int parse_expression(DC_struct *p) {
 								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input2\n", use_inp1?"":"2"); ++hash_cnt; }
 							else if (!strncmp(pCode[x], "IN1", 3)) {
 								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input\n", use_inp1?"":"2"); ++hash_cnt; }
+							else if (!strcmp(pCode[x], "pad16")) {
+								comp_add_script_line("Func=DynamicFunc__append_keys_pad16\n"); ++hash_cnt; }
+							else if (!strcmp(pCode[x], "pad20")) {
+								comp_add_script_line("Func=DynamicFunc__append_keys_pad20\n"); ++hash_cnt; }
+							else if (!strcmp(pCode[x], "pad100")) {
+								comp_add_script_line("Func=DynamicFunc__set_input_len_100\n"); len_comp += 100; }
 
 							*pCode[x] = 'X';
 						}
@@ -1151,13 +1176,14 @@ static int parse_expression(DC_struct *p) {
 
 						// Ok, the only thing we can control is salt_len (if not in hex_as_salt), and inp_len
 						// all we worry about is inp_len.  256 bytes is MAX.
-						len_comp = ex_cnt*24;
+						len_comp += ex_cnt*24;
 						len_comp += inp_cnt*max_inp_len;
 						len_comp += salt_cnt*salt_len;
 						// add in hash_cnt*whatever_size_hash is.
 						if (len_comp > 256) {
 							max_inp_len -= (len_comp-256+(inp_cnt-1))/inp_cnt;
 						}
+						len_comp = 0;
 						if (!pCode[i+1] || !pCode[i+1][0]) {
 							// final hash
 							char endch = pCode[i][strlen(pCode[i])-1];
@@ -1284,8 +1310,6 @@ static int parse_expression(DC_struct *p) {
 										use_inp1_again = 1;
 								}
 							}
-							if (!strcmp(pCode[i], "fpad100"))
-								comp_add_script_line("Func=DynamicFunc__set_input_len_100\n");
 							use_inp1 = append_mode = 0;
 							if (use_inp1_again)
 								use_inp1 = 1;
@@ -1459,8 +1483,8 @@ char *dynamic_compile_prepare(char *fld1) {
 				case 36: cpExpr = "sha1($u.$c1.$p),c1=:"; break;
 				case 37: cpExpr = "sha1(lc($u).$p)"; break;
 				case 38: cpExpr = "sha1($s.sha1($s.sha1($p)))"; break;
-				case 39: cpExpr = "md5($s.pad_16($p))"; break;
-				case 40: cpExpr = "sha1($s.pad_20($p))"; break;
+				case 39: cpExpr = "md5($s.pad16($p)),saltlen=-120"; break;
+				case 40: cpExpr = "sha1($s.pad20($p)),saltlen=-120"; break;
 				//case 30: cpExpr = ""; break;
 				//case 30: cpExpr = ""; break;
 				//case 30: cpExpr = ""; break;
