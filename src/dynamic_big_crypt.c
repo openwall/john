@@ -42,9 +42,6 @@
 #include "md4.h"
 #include "stdint.h"
 #include "gost.h"
-// this one is going to be harder.  only haval_256_5 is implemented in CPAN perl, making genation of test cases harder.
-// Also, there are 15 different hashes in this 'family'.
-#include "sph_haval.h"
 
 #include "sph_ripemd.h"
 #include "sph_tiger.h"
