@@ -2150,6 +2150,13 @@ static unsigned int salt_external_to_internal_convert(unsigned char *extern_salt
 	if (nuserid) {
 		*Buffer++ = nuserid;
 		memcpy((char*)Buffer, (char*)userid, nuserid);
+		if (curdat.nUserName==2) {
+			Buffer[nuserid] = 0;
+			strupr((char*)Buffer);
+		} else if (curdat.nUserName==2) {
+			Buffer[nuserid] = 0;
+			strlwr((char*)Buffer);
+		}
 		Buffer += nuserid;
 		bit_array &= ~2;
 		if (!bit_array)

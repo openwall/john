@@ -267,7 +267,7 @@ static char *pScriptLines[1024];
 static int nScriptLines;
 static int nSyms;
 static int LastTokIsFunc;
-static int bNeedS, bNeedS2, bNeedU;
+static int bNeedS, bNeedS2, bNeedU, bNeedUlc, bNeedUuc;
 static char *salt_as_hex_type;
 static int keys_as_input;
 static char *gen_Stack[1024];
@@ -276,7 +276,7 @@ static int ngen_Stack, ngen_Stack_max;
 static char *h;
 static int h_len;
 static int nSaltLen = -32;
-static char gen_s[260], gen_s2[16], gen_u[16], gen_pw[16], gen_conv[260];
+static char gen_s[260], gen_s2[16], gen_u[16], gen_uuc[16], gen_ulc[16], gen_pw[16], gen_conv[260];
 // static char gen_pwlc[16], gen_pwuc[16];
 
 /*
@@ -386,6 +386,8 @@ static void dynamic_push()   { char *p = mem_calloc(260, 1); MEM_FREE(gen_Stack[
 static void dynamic_app_sh() { dyna_helper_append(gen_s);    } //md5_hex($gen_s); }
 static void dynamic_app_S()  { dyna_helper_append(gen_s2);   }
 static void dynamic_app_u()  { dyna_helper_append(gen_u);    }
+static void dynamic_app_u_lc()  { dyna_helper_append(gen_ulc);    }
+static void dynamic_app_u_uc()  { dyna_helper_append(gen_uuc);    }
 static void dynamic_app_p()  { dyna_helper_append(gen_pw);   }
 static void dynamic_pad16()  { dyna_helper_appendn(pad16(), 16);  }
 static void dynamic_pad20()  { dyna_helper_appendn(pad20(), 20);  }
@@ -482,15 +484,19 @@ static void dynamic_futf16()    { dyna_helper_pre();                            
 static void init_static_data() {
 	int i;
 	nConst = 0;
-	for (i = 0; i < nSyms; ++i)
+	for (i = 0; i < nSyms; ++i) {
 		MEM_FREE(SymTab[i]);
+		fpSymTab[i] = NULL;
+	}
 	for (i = 1; i < 10; ++i) {
 		if (Const[i])
 			free((char*)(Const[i]));
 		Const[i] = NULL;
 	}
-	for (i = 0; i < nCode; ++i)
+	for (i = 0; i < nCode; ++i) {
 		MEM_FREE(pCode[i]);
+		fpCode[i] = NULL;
+	}
 	for (i = 0; i < nScriptLines; ++i)
 		MEM_FREE(pScriptLines[1]);
 	for (i = 0; i < ngen_Stack; ++i) {
@@ -503,8 +509,18 @@ static void init_static_data() {
 	nScriptLines = 0;
 	LastTokIsFunc = 0;
 	keys_as_input = 0;
-	bNeedS = bNeedS2 = bNeedU = 0;
+	bNeedS = bNeedS2 = bNeedU = bNeedUlc = bNeedUuc = compile_debug = 0;
 	MEM_FREE(salt_as_hex_type);
+	h = NULL;
+	h_len = 0;
+	nSaltLen = -32;
+	memset(gen_s, 0, sizeof(gen_s));
+	memset(gen_s2, 0, sizeof(gen_s2));
+	memset(gen_u, 0, sizeof(gen_u));
+	memset(gen_uuc, 0, sizeof(gen_uuc));
+	memset(gen_ulc, 0, sizeof(gen_ulc));
+	memset(gen_pw, 0, sizeof(gen_pw));
+	memset(gen_conv, 0, sizeof(gen_conv));
 }
 static const char *get_param(const char *p, const char *what) {
 	const char *cp;
@@ -695,6 +711,8 @@ static const char *comp_get_symbol(const char *pInput) {
 	if (!strncmp(pInput, "pad16($p)", 9))   return comp_push_sym("pad16", dynamic_pad16, pInput+9);
 	if (!strncmp(pInput, "pad20($p)", 9))   return comp_push_sym("pad20", dynamic_pad20, pInput+9);
 	if (!strncmp(pInput, "pad100($p)", 10))  return comp_push_sym("pad100", dynamic_pad100, pInput+10);
+	if (!strncmp(pInput, "lc($u)", 6)) return comp_push_sym("u_lc", fpNull, pInput+6);
+	if (!strncmp(pInput, "uc($u)", 6)) return comp_push_sym("u_uc", fpNull, pInput+6);
 	LastTokIsFunc = 2;
 	//if (!strncmp(pInput, "utf16be", 7)) return comp_push_sym("futf16be", dynamic_futf16be, pInput+7);
 	if (!strncmp(pInput, "utf16", 5))   return comp_push_sym("futf16", dynamic_futf16, pInput+5);
@@ -886,7 +904,20 @@ static void comp_do_parse(int cur, int curend) {
 				continue;
 			}
 			case 'S': push_pcode("app_s2", dynamic_app_S); bNeedS2 = 1; continue;
-			case 'u': push_pcode("app_u", dynamic_app_u); bNeedU = 1; continue;
+			case 'u':
+			{
+				bNeedU = 1;
+				if (!strcmp(curTok, "u"))
+					push_pcode("app_u", dynamic_app_u);
+				else if (!strcmp(curTok, "u_lc")) {
+					bNeedUlc = 1;
+					push_pcode("app_u_lc", dynamic_app_u_lc);
+				} else if (!strcmp(curTok, "u_uc")) {
+					bNeedUuc = 1;
+					push_pcode("app_u_uc", dynamic_app_u_uc);
+				}
+				continue;
+			}
 			case '1': push_pcode("app_1", dynamic_app_1); continue;
 			case '2': push_pcode("app_2", dynamic_app_2); continue;
 			case '3': push_pcode("app_3", dynamic_app_3); continue;
@@ -959,6 +990,10 @@ static void build_test_string(DC_struct *p, char **pLine) {
 	}
 	if (bNeedU) {
 		strcpy(gen_u, rand_str(8));
+		strcpy(gen_ulc, gen_u);
+		strlwr(gen_ulc);
+		strcpy(gen_uuc, gen_u);
+		strupr(gen_uuc);
 	}
 	if (bNeedS2) {
 		strcpy(gen_s2, rand_str(8));
@@ -1049,7 +1084,14 @@ static int parse_expression(DC_struct *p) {
 	}
 	if (bNeedS) comp_add_script_line("Flag=MGF_SALTED\n");
 	if (bNeedS2) comp_add_script_line("Flag=MGF_SALTED2\n");
-	if (bNeedU) comp_add_script_line("Flag=MGF_USERNAME\n");
+	if (bNeedU) {
+		if (bNeedUuc)
+			comp_add_script_line("Flag=MGF_USERNAME_UPCASE\n");
+		else if (bNeedUlc)
+			comp_add_script_line("Flag=MGF_USERNAME_LOCASE\n");
+		else
+			comp_add_script_line("Flag=MGF_USERNAME\n");
+	}
 	for (i = 1; i < 10; ++i) {
 		if (Const[i]) {
 			comp_add_script_line("Const%d=%s\n", i, Const[i]);
@@ -1129,7 +1171,7 @@ static int parse_expression(DC_struct *p) {
 								comp_add_script_line("Func=DynamicFunc__append_keys%s\n", use_inp1?"":"2"); ++inp_cnt; }
 							else if (!strcmp(pCode[x], "app_s")) {
 								comp_add_script_line("Func=DynamicFunc__append_salt%s\n", use_inp1?"":"2"); ++salt_cnt; }
-							else if (!strcmp(pCode[x], "app_u")) {
+							else if (!strncmp(pCode[x], "app_u", 5)) {
 								comp_add_script_line("Func=DynamicFunc__append_userid%s\n", use_inp1?"":"2"); ++ex_cnt; }
 							else if (!strcmp(pCode[x], "app_s2")) {
 								comp_add_script_line("Func=DynamicFunc__append_2nd_salt%s\n", use_inp1?"":"2"); ++ex_cnt; }

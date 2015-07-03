@@ -1062,7 +1062,7 @@ static struct fmt_tests _Preloads_35[] =
 	{"$dynamic_35$9afbe0bf4e1f24e7e2d9df322b3b284037ac6e19$$UU1","thatsworking"},
 	// repeat previous hash in exactly the same format that is used for john.pot
 	{"$dynamic_35$9afbe0bf4e1f24e7e2d9df322b3b284037ac6e19$HEX$24555531","thatsworking"},
-	{"$dynamic_35$e01ff7a245202eb8b62a653473f078f6a71b5559$$UNINECHARS","test3"},
+	{"$dynamic_35$e01ff7a245202eb8b62a653473f078f6a71b5559$$UNINECHaRS","test3"},
 	{"$dynamic_35$a12c6e0d8a4bcabb7f588456cbd20eac3332724d","test1",        {"ELEV__CHARS"}},
 	{"$dynamic_35$9afbe0bf4e1f24e7e2d9df322b3b284037ac6e19","thatsworking", {"U1"}},
 	{"$dynamic_35$e01ff7a245202eb8b62a653473f078f6a71b5559","test3",        {"NINECHARS"}},
@@ -3350,7 +3350,7 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_34: md5(md4($p))",               _Funcs_34,_Preloads_34,_ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT|MGF_SET_INP2LEN32|MGF_POOR_OMP },
 	{ "dynamic_35: sha1(uc($u).:.$p) (ManGOS)", _Funcs_35,_Preloads_35,_Const_35,     MGF_FLAT_BUFFERS|MGF_USERNAME_UPCASE, MGF_INPUT_20_BYTE, -64, 110, 110 },
 	{ "dynamic_36: sha1($u.:.$p) (ManGOS2)",    _Funcs_36,_Preloads_36,_Const_36,     MGF_FLAT_BUFFERS|MGF_USERNAME, MGF_INPUT_20_BYTE, -64, 110, 110 },
-	{ "dynamic_37: sha1(lc($u).$p) (SMF)",      _Funcs_37,_Preloads_37,_ConstDefault,MGF_FLAT_BUFFERS| MGF_USERNAME, MGF_INPUT_20_BYTE, -64, 110, 110 },
+	{ "dynamic_37: sha1(lc($u).$p) (SMF)",      _Funcs_37,_Preloads_37,_ConstDefault,MGF_FLAT_BUFFERS| MGF_USERNAME_LOCASE, MGF_INPUT_20_BYTE, -64, 110, 110 },
 	{ "dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_20_BYTE, -64, 110, 110 },
 	{ "dynamic_39: md5($s.pad16($p)) (net-md5)",  _Funcs_39,_Preloads_39,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_NO_FLAG, -230, 16, 16 },
 	{ "dynamic_40: sha1($s.pad20($p)) (net-sha1)",  _Funcs_40,_Preloads_40,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_20_BYTE, -230, 20, 20 },
