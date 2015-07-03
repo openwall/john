@@ -1596,7 +1596,7 @@ static DYNAMIC_primitive_funcp _Funcs_70[] =
 {
 	//MGF_KEYS_INPUT
 	//MGF_INPUT_48_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	DynamicFunc__SHA384_crypt_input1_to_output1_FINAL,
 	NULL
 };
@@ -1614,7 +1614,7 @@ static DYNAMIC_primitive_funcp _Funcs_71[] =
 {
 	//MGF_INPUT_48_BYTE
 	//MGF_SALTED
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	DynamicFunc__clean_input,
 	DynamicFunc__append_salt,
 	DynamicFunc__append_keys,
@@ -1635,7 +1635,7 @@ static DYNAMIC_primitive_funcp _Funcs_72[] =
 {
 	//MGF_INPUT_48_BYTE
 	//MGF_SALTED
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
 	DynamicFunc__append_salt,
@@ -1654,7 +1654,7 @@ MTL({"$dynamic_72$1335f3a1f6ab2377626104b8d44240cda5007038649c213123f9396da561bd
 static DYNAMIC_primitive_funcp _Funcs_73[] =
 {
 	//MGF_INPUT_48_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_KEYS_IN_INPUT
 
 	//DynamicFunc__clean_input2,
@@ -1677,7 +1677,7 @@ MTL({"$dynamic_73$9e189929de1bcb799b5f7e05a22519802ec5c8f7a9b7bfba8a2595ed60b9c9
 static DYNAMIC_primitive_funcp _Funcs_74[] =
 {
 	//MGF_INPUT_48_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__LargeHash_OUTMode_raw,
 	DynamicFunc__SHA384_crypt_input1_overwrite_input2,
@@ -1697,7 +1697,7 @@ MTL({"$dynamic_74$53b669f5196c753fa5d5a4f47ef29ef51187282ecd9cf66a46a84e3069d456
 static DYNAMIC_primitive_funcp _Funcs_75[] =
 {
 	//MGF_INPUT_48_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_SALTED
 	//MGF_KEYS_BASE16_IN1_SHA384
 	DynamicFunc__set_input_len_96,
@@ -1718,7 +1718,7 @@ MTL({"$dynamic_75$e426d3a4379f33151256f4cd6f599b548ccf48db6863b286827ff6bb30a7d8
 static DYNAMIC_primitive_funcp _Funcs_76[] =
 {
 	//MGF_INPUT_48_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_SALTED
 	//MGF_KEYS_BASE16_IN1_SHA384
 	DynamicFunc__clean_input2,
@@ -1740,7 +1740,7 @@ MTL({"$dynamic_76$a977ec504a3ca5263fcc89755e4f9c5c1789ac7f86db1e8b89078882ccdef6
 static DYNAMIC_primitive_funcp _Funcs_77[] =
 {
 	//MGF_INPUT_48_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_SALTED_AS_HEX_SHA384
 	//MGF_KEYS_BASE16_IN1_SHA384
 	DynamicFunc__clean_input2_kwik,
@@ -1762,7 +1762,7 @@ MTL({"$dynamic_77$85d10001dfa0bf76ebe23c11fdd423ba166f5974fdec7ba1cac2b8bb13e7df
 static DYNAMIC_primitive_funcp _Funcs_78[] =
 {
 	//MGF_INPUT_48_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__SHA384_crypt_input1_append_input2,
@@ -1784,7 +1784,7 @@ static DYNAMIC_primitive_funcp _Funcs_80[] =
 {
 	//MGF_KEYS_INPUT
 	//MGF_INPUT_64_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	DynamicFunc__SHA512_crypt_input1_to_output1_FINAL,
 	NULL
 };
@@ -1802,7 +1802,7 @@ static DYNAMIC_primitive_funcp _Funcs_81[] =
 {
 	//MGF_INPUT_64_BYTE
 	//MGF_SALTED
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	DynamicFunc__clean_input,
 	DynamicFunc__append_salt,
 	DynamicFunc__append_keys,
@@ -1823,7 +1823,7 @@ static DYNAMIC_primitive_funcp _Funcs_82[] =
 {
 	//MGF_INPUT_64_BYTE
 	//MGF_SALTED
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
 	DynamicFunc__append_salt,
@@ -1842,7 +1842,7 @@ MTL({"$dynamic_82$767b68910d853970a83200bec78ad8c45cf2ba8d2a6d3cb73c4c12c95c3dc6
 static DYNAMIC_primitive_funcp _Funcs_83[] =
 {
 	//MGF_INPUT_64_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_KEYS_IN_INPUT
 
 	//DynamicFunc__clean_input2,
@@ -1865,7 +1865,7 @@ MTL({"$dynamic_83$d531d9558d29f908dfa18fc9e4ed266e7e976b57af87fe6aa1e3a0e2922afe
 static DYNAMIC_primitive_funcp _Funcs_84[] =
 {
 	//MGF_INPUT_64_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__LargeHash_OUTMode_raw,
 	DynamicFunc__SHA512_crypt_input1_overwrite_input2,
@@ -1885,9 +1885,10 @@ MTL({"$dynamic_84$592419e9c5b56f1aee6cc03e5c5a3ea7bae17f71e42a67f584424798db45e6
 static DYNAMIC_primitive_funcp _Funcs_85[] =
 {
 	//MGF_INPUT_64_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_SALTED
 	//MGF_KEYS_BASE16_IN1_SHA512
+	DynamicFunc__set_input_len_128,
 	DynamicFunc__append_salt,
 	DynamicFunc__SHA512_crypt_input1_to_output1_FINAL,
 	NULL
@@ -1905,7 +1906,7 @@ MTL({"$dynamic_85$6502c0e21305cfff28829a3bdbab3fc1d82b516f7bf1a06b40dffdbd8bac88
 static DYNAMIC_primitive_funcp _Funcs_86[] =
 {
 	//MGF_INPUT_64_BYTE
-	//MGF_NOTSSE2Safe
+	//MGF_FLAT_BUFFERS
 	//MGF_SALTED
 	//MGF_KEYS_BASE16_IN1_SHA512
 	DynamicFunc__clean_input2,
