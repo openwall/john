@@ -99,6 +99,11 @@ static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 	ciphertext = dynamic_compile_split(ciphertext);
 	return ciphertext;
 }
+static char *our_prepare(char **fields, struct fmt_main *self)
+{
+	char *ciphertext = dynamic_compile_prepare(fields[1]);
+	return ciphertext;
+}
 
 static int our_valid(char *ciphertext, struct fmt_main *self)
 {
@@ -142,7 +147,7 @@ struct fmt_main fmt_CompiledDynamic =
 		our_init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		our_prepare,
 		our_valid,
 		our_split
 	}
@@ -152,7 +157,7 @@ static void link_funcs() {
 	fmt_CompiledDynamic.methods.salt   = our_salt;
 	fmt_CompiledDynamic.methods.binary = our_binary;
 	fmt_CompiledDynamic.methods.split = our_split;
-	fmt_CompiledDynamic.methods.prepare = fmt_default_prepare;
+	fmt_CompiledDynamic.methods.prepare = our_prepare;
 	fmt_CompiledDynamic.params.tests[0].ciphertext = (char*)dyna_line1;
 	fmt_CompiledDynamic.params.tests[1].ciphertext = (char*)dyna_line2;
 	fmt_CompiledDynamic.params.tests[2].ciphertext = (char*)dyna_line3;

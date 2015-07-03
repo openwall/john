@@ -114,6 +114,9 @@ if outter hash is upcase
 #define MGF_USERNAME_UPCASE         (0x00000020|MGF_USERNAME)
 #define MGF_USERNAME_LOCASE         (0x00000040|MGF_USERNAME)
 
+Figure out how to better hook in dynamic= so that we can use this in other
+situations than ONLY working if -format=dynamic=expr is used.
+
 DONE // MGF_INPBASE64b uses e_b64_crypt from base64_convert.h
 DONE #define MGF_INPBASE64b		         0x00004000
 DONE if outter hash is md5_b64 (or b64e) then use this flag
@@ -1380,9 +1383,98 @@ static void add_checksum_list(DC_HANDLE pHand) {
 	pList->next = p;
 }
 
+static char *convert_old_dyna_to_new(char *in, char *out, char *expr) {
+	char *cp = strchr(&in[1], '$');
+	if (!cp)
+		return in;
+	++cp;
+	sprintf(out, "@dynamic=%s@%s", expr, cp);
+	return out;
+}
+
+char *dynamic_compile_prepare(char *fld1) {
+	if (!strncmp(fld1, "$dynamic_", 9)) {
+		int num;
+		static char Buf[512], tmp1[64];
+		if (sscanf(fld1, "$dynamic_%d$", &num) == 1) {
+			char *cpExpr=0;
+			if (num >= 50 && num < 160) {
+				char *type = 0;
+				switch (num/10) {
+					case 5: type="sha224"; break; // 50-59
+					case 6: type="sha256"; break; // 60-69, etc
+					case 7: type="sha384"; break;
+					case 8: type="sha512"; break;
+					case 9: type="gost"; break;
+					case 10: type="whirlpool"; break;
+					case 11: type="tiger"; break;
+					case 12: type="ripemd128"; break;
+					case 13: type="ripemd160"; break;
+					case 14: type="ripemd256"; break;
+					case 15: type="ripemd320"; break;
+				}
+				switch(num%10) {
+					case 0: sprintf(tmp1, "%s($p)", type); break;
+					case 1: sprintf(tmp1, "%s($s.$p)", type); break;
+					case 2: sprintf(tmp1, "%s($p.$s)", type); break;
+					case 3: sprintf(tmp1, "%s(%s($p))", type, type); break;
+					case 4: sprintf(tmp1, "%s(%s_raw($p))", type, type); break;
+					case 5: sprintf(tmp1, "%s(%s($p).$s)", type, type); break;
+					case 6: sprintf(tmp1, "%s($s.%s($p))", type, type); break;
+					case 7: sprintf(tmp1, "%s(%s($s).%s($p))", type, type, type); break;
+					case 8: sprintf(tmp1, "%s(%s($p).%s($p))", type, type, type); break;
+				}
+				cpExpr = tmp1;
+			} else
+			switch(num) {
+				case 0: cpExpr = "md5($p)"; break;
+				case 1: cpExpr = "md5($p.$s)"; break;
+				case 2: cpExpr = "md5(md5($p))"; break;
+				case 3: cpExpr = "md5(md5(md5($p)))"; break;
+				case 4: cpExpr = "md5($s.$p)"; break;
+				case 5: cpExpr = "md5($s.$p.$s)"; break;
+				case 6: cpExpr = "md5(md5($p).$s)"; break;
+				case 8: cpExpr = "md5(md5($s).$p)"; break;
+				case 9: cpExpr = "md5($s.md5($p))"; break;
+				case 10: cpExpr = "md5($s.md5($s.$p))"; break;
+				case 11: cpExpr = "md5($s.md5($p.$s))"; break;
+				case 12: cpExpr = "md5(md5($s).md5($p))"; break;
+				case 13: cpExpr = "md5(md5($p).md5($s))"; break;
+				case 14: cpExpr = "md5($s.md5($p).$s)"; break;
+				case 15: cpExpr = "md5($u.md5($p).$s)"; break;
+				case 16: cpExpr = "md5(md5(md5($p).$s).$s2)"; break;
+				case 22: cpExpr = "md5(sha1($p))"; break;
+				case 23: cpExpr = "sha1(md5($p))"; break;
+				case 24: cpExpr = "sha1($p.$s)"; break;
+				case 25: cpExpr = "sha1($s.$p)"; break;
+				case 26: cpExpr = "sha1($p)"; break;
+				case 29: cpExpr = "md5(utf16($p))"; break;
+				case 30: cpExpr = "md4($p)"; break;
+				case 31: cpExpr = "md4($s.$p)"; break;
+				case 32: cpExpr = "md4($p.$s)"; break;
+				case 33: cpExpr = "md4(utf16($p))"; break;
+				case 34: cpExpr = "md5(md4($p))"; break;
+				case 35: cpExpr = "sha1(uc($u).$c1.$p),c1=:"; break;
+				case 36: cpExpr = "sha1($u.$c1.$p),c1=:"; break;
+				case 37: cpExpr = "sha1(lc($u).$p)"; break;
+				case 38: cpExpr = "sha1($s.sha1($s.sha1($p)))"; break;
+				case 39: cpExpr = "md5($s.pad_16($p))"; break;
+				case 40: cpExpr = "sha1($s.pad_20($p))"; break;
+				//case 30: cpExpr = ""; break;
+				//case 30: cpExpr = ""; break;
+				//case 30: cpExpr = ""; break;
+			}
+			if (cpExpr)
+				fld1 = convert_old_dyna_to_new(fld1, Buf, cpExpr);
+		}
+	}
+	return fld1;
+}
 char *dynamic_compile_split(char *ct) {
 	extern int ldr_in_pot;
-	if (strncmp(ct, "@dynamic=", 9) && strncmp(ct, dyna_signature, dyna_sig_len)) {
+	if (strncmp(ct, "dynamic_", 8)) {
+		return dynamic_compile_prepare(ct);
+	} else if (strncmp(ct, "@dynamic=", 9) && strncmp(ct, dyna_signature, dyna_sig_len)) {
 		// convert back into dynamic= format
 		static char Buf[512];
 		sprintf(Buf, "%s%s", dyna_signature, ct);
