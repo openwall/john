@@ -333,7 +333,6 @@ static inline uint32_t DoMD5_FixBufferLen32(unsigned char *input_buf, int total_
 	if (total_len % 64 > 55)
 		++ret;
 	input_buf[total_len] = 0x80;
-
 	cp = &(input_buf[total_len+1]);
 	i = total_len+1;
 	// first, get us to an even 32 bit boundary.
@@ -773,11 +772,14 @@ static inline uint32_t DoMD4_FixBufferLen32(unsigned char *input_buf, int total_
 	input_buf[total_len] = 0x80;
 	cp = &(input_buf[total_len+1]);
 	i = total_len+1;
+	// first, get us to an even 32 bit boundary.
 	while (i&3) {
 		*cp++ = 0;
 		++i;
 	}
+	// now switch to uint_32's
 	p = (uint32_t *)cp;
+	// this is how many 32 bit words max we will clean.
 	i = ((ret<<6)-i)/4;
 	while (i--) {
 		*p++ = 0;
@@ -785,7 +787,7 @@ static inline uint32_t DoMD4_FixBufferLen32(unsigned char *input_buf, int total_
 		break;
 	}
 	p = (uint32_t *)input_buf;
-	p[(ret*16)-1] = (total_len<<3);
+	p[(ret*16)-2] = (total_len<<3);
 	return ret;
 }
 
@@ -869,7 +871,12 @@ static void DoMD4_crypt(void *in, int ilen, void *out, unsigned int *tot_len, in
 	MD4_Init(&ctx);
 	MD4_Update(&ctx, in, ilen);
 	MD4_Final(crypt_out, &ctx);
-	*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 16, tid);
+	if (eLargeOut[0] == eBase16) {
+		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
+		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 16);
+		*tot_len += 32;
+	} else
+		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 16, tid);
 }
 #endif
 
