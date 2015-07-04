@@ -934,12 +934,13 @@ static void comp_do_parse(int cur, int curend) {
 static void comp_add_script_line(const char *fmt, ...) {
 	//static char *pScriptLines[1024];
 	//static int nScriptLines;
-	va_list va;
+	va_list va, va_orig;
 	int len, len2;
 
 	len = strlen(fmt)*2;
 	pScriptLines[nScriptLines] = mem_alloc(len+1);
 	va_start(va, fmt);
+	va_copy(va_orig, va);
 	len2 = vsnprintf(pScriptLines[nScriptLines], len, fmt, va);
 #ifdef _MSC_VER  // we should find out about MinGW here!!
 	pScriptLines[nScriptLines][len] = 0;
@@ -947,6 +948,7 @@ static void comp_add_script_line(const char *fmt, ...) {
 		MEM_FREE(pScriptLines[nScriptLines]);
 		len *= 2;
 		pScriptLines[nScriptLines] = mem_alloc(len+1);
+		va_copy(va, va_orig);
 		len2 = vsnprintf(pScriptLines[nScriptLines], len, fmt, va);
 		pScriptLines[nScriptLines][len] = 0;
 	}
@@ -955,6 +957,7 @@ static void comp_add_script_line(const char *fmt, ...) {
 		MEM_FREE(pScriptLines[nScriptLines]);
 		len = len2+1;
 		pScriptLines[nScriptLines] = mem_alloc(len+1);
+		va_copy(va, va_orig);
 		vsnprintf(pScriptLines[nScriptLines], len, fmt, va);
 	}
 #endif
