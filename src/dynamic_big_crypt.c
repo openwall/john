@@ -332,9 +332,8 @@ static inline uint32_t DoMD5_FixBufferLen32(unsigned char *input_buf, int total_
 
 	if (total_len % 64 > 55)
 		++ret;
-	input_buf[total_len] = 0x80;
-	cp = &(input_buf[total_len+1]);
-	i = total_len+1;
+	cp = &(input_buf[total_len]);
+	i = total_len;
 	// first, get us to an even 32 bit boundary.
 	while (i&3) {
 		*cp++ = 0;
@@ -350,7 +349,9 @@ static inline uint32_t DoMD5_FixBufferLen32(unsigned char *input_buf, int total_
 			break;
 	}
 
+	input_buf[total_len] = 0x80;
 	p = (uint32_t *)input_buf;
+	p[(ret*16)-1] = 0;
 	p[(ret*16)-2] = (total_len<<3);
 	return ret;
 }
@@ -550,7 +551,7 @@ void DynamicFunc__MD5_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS)
 		}
 		DoMD5_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
 		for (j = 0; j < MD5_LOOPS; ++j)
-			total_len_X86[i+j] = 32;
+			total_len_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
 		#if (MD5_X2)
@@ -594,7 +595,7 @@ void DynamicFunc__MD5_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS)
 		}
 		DoMD5_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
 		for (j = 0; j < MD5_LOOPS; ++j)
-			total_len2_X86[i+j] = 32;
+			total_len2_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
 		#if (MD5_X2)
@@ -638,7 +639,7 @@ void DynamicFunc__MD5_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS)
 		}
 		DoMD5_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
 		for (j = 0; j < MD5_LOOPS; ++j)
-			total_len_X86[i+j] = 32;
+			total_len_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
 		#if (MD5_X2)
@@ -682,7 +683,7 @@ void DynamicFunc__MD5_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS)
 		}
 		DoMD5_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
 		for (j = 0; j < MD5_LOOPS; ++j)
-			total_len2_X86[i+j] = 32;
+			total_len2_X86[i+j] = x[j];
 #else
 		unsigned int x = 0;
 		#if (MD5_X2)
@@ -769,9 +770,8 @@ static inline uint32_t DoMD4_FixBufferLen32(unsigned char *input_buf, int total_
 	uint32_t ret = (total_len / 64) + 1;
 	if (total_len % 64 > 55)
 		++ret;
-	input_buf[total_len] = 0x80;
-	cp = &(input_buf[total_len+1]);
-	i = total_len+1;
+	cp = &(input_buf[total_len]);
+	i = total_len;
 	// first, get us to an even 32 bit boundary.
 	while (i&3) {
 		*cp++ = 0;
@@ -786,7 +786,9 @@ static inline uint32_t DoMD4_FixBufferLen32(unsigned char *input_buf, int total_
 		if (!p[0] && !p[1])
 		break;
 	}
+	input_buf[total_len] = 0x80;
 	p = (uint32_t *)input_buf;
+	p[(ret*16)-1] = 0;
 	p[(ret*16)-2] = (total_len<<3);
 	return ret;
 }
@@ -1203,27 +1205,29 @@ static inline uint32_t DoSHA1_FixBufferLen32(unsigned char *input_buf, int total
 	unsigned char *cp;
 	unsigned int i;
 	uint32_t ret = (total_len / 64) + 1;
+
 	if (total_len % 64 > 55)
 		++ret;
-	input_buf[total_len] = 0x80;
-	//p = (uint32_t *)&(input_buf[total_len+1]);
-	//while (*p && p < (uint32_t *)&input_buf[(ret<<6)-4])
-	//	*p++ = 0;
-	cp = &(input_buf[total_len+1]);
-	i = total_len+1;
+	cp = &(input_buf[total_len]);
+	i = total_len;
+	// first, get us to an even 32 bit boundary.
 	while (i&3) {
 		*cp++ = 0;
 		++i;
 	}
+	// now switch to uint_32's
 	p = (uint32_t *)cp;
+	// this is how many 32 bit words max we will clean.
 	i = ((ret<<6)-i)/4;
 	while (i--) {
 		*p++ = 0;
 		if (!p[0] && !p[1])
 		break;
 	}
+	input_buf[total_len] = 0x80;
 	p = (uint32_t *)input_buf;
 	p[(ret*16)-1] = JOHNSWAP(total_len<<3);
+	p[(ret*16)-2] = 0;
 	return ret;
 }
 
@@ -1305,13 +1309,17 @@ static void DoSHA1_crypt_f(void *in, int len, void *out)
 
 static void DoSHA1_crypt(void *in, int ilen, void *out, unsigned int *tot_len, int tid)
 {
-	union xx { unsigned char u[20]; ARCH_WORD_32 a[20/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u;
+	unsigned char crypt_out[20];
 	SHA_CTX ctx;
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, in, ilen);
 	SHA1_Final(crypt_out, &ctx);
-	*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 20, tid);
+	if (eLargeOut[0] == eBase16) {
+		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
+		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 20);
+		*tot_len += 40;
+	} else
+		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 20, tid);
 }
 #endif
 
@@ -1638,30 +1646,29 @@ static inline uint32_t DoSHA256_FixBufferLen32(unsigned char *input_buf, int tot
 	unsigned char *cp;
 	unsigned int i;
 	uint32_t ret = (total_len / 64) + 1;
+
 	if (total_len % 64 > 55)
 		++ret;
-//	if (ret > 4) {
-//		fprintf (stderr, "\n\n!!!Overflow  total_len=%d  input_buf=%*.*s !!!\n\n", total_len, total_len, total_len, input_buf);
-//	}
-	input_buf[total_len] = 0x80;
-	//p = (uint32_t *)&(input_buf[total_len+1]);
-	//while (*p && p < (uint32_t *)&input_buf[(ret<<6)-4])
-	//	*p++ = 0;
-	cp = &(input_buf[total_len+1]);
-	i = total_len+1;
+	cp = &(input_buf[total_len]);
+	i = total_len;
+	// first, get us to an even 32 bit boundary.
 	while (i&3) {
 		*cp++ = 0;
 		++i;
 	}
+	// now switch to uint_32's
 	p = (uint32_t *)cp;
+	// this is how many 32 bit words max we will clean.
 	i = ((ret<<6)-i)/4;
 	while (i--) {
 		*p++ = 0;
 		if (!p[0] && !p[1])
 		break;
 	}
+	input_buf[total_len] = 0x80;
 	p = (uint32_t *)input_buf;
 	p[(ret*16)-1] = JOHNSWAP(total_len<<3);
+	p[(ret*16)-2] = 0;
 	return ret;
 }
 
@@ -1712,8 +1719,9 @@ static void DoSHA256_crypt_sse(void *in, int ilen[SHA256_LOOPS], void *out[SHA25
 		bMore = 0;
 		for (i = 0; i < SHA256_LOOPS; ++i) {
 			if (cnt == loops[i]) {
+				unsigned int offx = ((i/SIMD_COEF_32)*8*SIMD_COEF_32)+(i&(SIMD_COEF_32-1));
 				for (j = 0; j < 8; ++j) {
-					y.a[j] =JOHNSWAP(a[(j*SIMD_COEF_32)+(i&(SIMD_COEF_32-1))+i/SIMD_COEF_32*8*SIMD_COEF_32]);
+					y.a[j] =JOHNSWAP(a[(j*SIMD_COEF_32)+offx]);
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), isSHA256?32:28, tid);
 			} else if (cnt < loops[i])
@@ -1743,8 +1751,7 @@ static void DoSHA256_crypt_f(void *in, int len, void *out, int isSHA256)
 
 static void DoSHA256_crypt(void *in, int ilen, void *out, unsigned int *tot_len, int isSHA256, int tid)
 {
-	union xx { unsigned char u[32]; ARCH_WORD_32 a[32/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u;
+	unsigned char crypt_out[32];
 	SHA256_CTX ctx;
 	if (isSHA256)
 		SHA256_Init(&ctx);
@@ -1752,7 +1759,12 @@ static void DoSHA256_crypt(void *in, int ilen, void *out, unsigned int *tot_len,
 		SHA224_Init(&ctx);
 	SHA256_Update(&ctx, in, ilen);
 	SHA256_Final(crypt_out, &ctx);
-	*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), isSHA256?32:28, tid);
+	if (eLargeOut[0] == eBase16) {
+		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
+		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), isSHA256?32:28);
+		*tot_len += isSHA256?64:56;
+	} else
+		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), isSHA256?32:28, tid);
 }
 #endif
 
@@ -2389,28 +2401,38 @@ static inline uint32_t DoSHA512_FixBufferLen64(unsigned char *input_buf, int tot
 	unsigned char *cp;
 	unsigned int i;
 	unsigned int ret = (total_len / 128) + 1;
+
 	if (total_len % 128 > 111)
 		++ret;
-//	if (ret > 2) {
-//		fprintf (stderr, "\n\n!!!Overflow  total_len=%d  input_buf=%*.*s !!!\n\n", total_len, total_len, total_len, input_buf);
-//	}
-	input_buf[total_len] = 0x80;
-	//p = (uint64_t *)&(input_buf[total_len+1]);
-	//while (*p && p < (uint64_t *)&input_buf[(ret<<7)-8])
-	//	*p++ = 0;
-	cp = &(input_buf[total_len+1]);
-	i = total_len+1;
+	cp = &(input_buf[total_len]);
+	i = total_len;
+	// first, get us to an even 64 bit boundary.
 	while (i&7) {
 		*cp++ = 0;
 		++i;
 	}
+	// now switch to uint_64's
 	p = (uint64_t *)cp;
+	// this is how many 64 bit words max we will clean.
 	i = ((ret<<7)-i)/8;
 	while (i--) {
 		*p++ = 0;
 		if (!p[0] && !p[1])
-		break;
+			break;
 	}
+	if ( ( ((unsigned char*)p)-input_buf) < 56) {
+		((uint64_t *)input_buf)[7] = 0;
+	}
+	if ( ( ((unsigned char*)p)-input_buf) < 56) {
+		p = &(((uint64_t *)input_buf)[8]);
+		i = 24; // 256 bytes - 64 bytes (for first 32 bit MD buffer) / 8 bytes per uint64_t
+		while (i--) {
+			*p++ = 0;
+			if (!p[0] && !p[1])
+				break;
+		}
+	}
+	input_buf[total_len] = 0x80;
 	p = (uint64_t *)input_buf;
 	p[(ret*16)-1] = JOHNSWAP64(total_len<<3);
 	return ret;
