@@ -118,12 +118,17 @@ static int our_valid(char *ciphertext, struct fmt_main *self)
 }
 
 
-static void * our_salt(char *ciphertext)
+static void *our_salt(char *ciphertext)
 {
 	get_ptr();
 	return pDynamic->methods.salt(Convert(Conv_Buf, ciphertext, 0));
 }
-static void * our_binary(char *ciphertext)
+static void our_done(void)
+{
+	dynamic_compile_done();
+	pDynamic->methods.done();
+}
+static void *our_binary(char *ciphertext)
 {
 	get_ptr();
 	return pDynamic->methods.binary(Convert(Conv_Buf, ciphertext, 0));
@@ -145,7 +150,7 @@ struct fmt_main fmt_CompiledDynamic =
 		/*  All we setup here, is the pointer to valid, and the pointer to init */
 		/*  within the call to init, we will properly set this full object      */
 		our_init,
-		fmt_default_done,
+		our_done,
 		fmt_default_reset,
 		our_prepare,
 		our_valid,
@@ -158,6 +163,7 @@ static void link_funcs() {
 	fmt_CompiledDynamic.methods.binary = our_binary;
 	fmt_CompiledDynamic.methods.split = our_split;
 	fmt_CompiledDynamic.methods.prepare = our_prepare;
+	fmt_CompiledDynamic.methods.done = our_done;
 	fmt_CompiledDynamic.params.tests[0].ciphertext = (char*)dyna_line1;
 	fmt_CompiledDynamic.params.tests[1].ciphertext = (char*)dyna_line2;
 	fmt_CompiledDynamic.params.tests[2].ciphertext = (char*)dyna_line3;

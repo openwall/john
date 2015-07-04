@@ -111,11 +111,12 @@ if any utf16 used, set this flag??
 if outter hash is upcase
 #define MGF_BASE_16_OUTPUT_UPCASE    0x00002000
 
-#define MGF_USERNAME_UPCASE         (0x00000020|MGF_USERNAME)
-#define MGF_USERNAME_LOCASE         (0x00000040|MGF_USERNAME)
-
 Figure out how to better hook in dynamic= so that we can use this in other
 situations than ONLY working if -format=dynamic=expr is used.
+
+Right now, all handles are allocated 'tiny'.  Change that so that we
+do normal alloc/calloc, keep a list of all handles ever allocated, and
+then upon void dynamic_compile_done() free up all memory from that list.
 
 DONE // MGF_INPBASE64b uses e_b64_crypt from base64_convert.h
 DONE #define MGF_INPBASE64b		         0x00004000
@@ -123,6 +124,8 @@ DONE if outter hash is md5_b64 (or b64e) then use this flag
 DONE #define MGF_INPBASE64m               0x02000000
 DONE #define MGF_UTF8                     0x04000000
 DONE Remove all md5u() types.  Replace with a utf16() function.
+DONE #define MGF_USERNAME_UPCASE         (0x00000020|MGF_USERNAME)
+DONE #define MGF_USERNAME_LOCASE         (0x00000040|MGF_USERNAME)
 
  */
 
@@ -488,9 +491,11 @@ static void init_static_data() {
 		MEM_FREE(SymTab[i]);
 		fpSymTab[i] = NULL;
 	}
-	for (i = 1; i < 10; ++i) {
-		if (Const[i])
-			free((char*)(Const[i]));
+	for (i = 0; i < 10; ++i) {
+		if (Const[i]) {
+			char *p = (char*)Const[i];
+			MEM_FREE(p);
+		}
 		Const[i] = NULL;
 	}
 	for (i = 0; i < nCode; ++i) {
@@ -498,7 +503,7 @@ static void init_static_data() {
 		fpCode[i] = NULL;
 	}
 	for (i = 0; i < nScriptLines; ++i)
-		MEM_FREE(pScriptLines[1]);
+		MEM_FREE(pScriptLines[i]);
 	for (i = 0; i < ngen_Stack; ++i) {
 		MEM_FREE(gen_Stack[i]);
 		gen_Stack_len[i] = 0;
@@ -934,13 +939,12 @@ static void comp_do_parse(int cur, int curend) {
 static void comp_add_script_line(const char *fmt, ...) {
 	//static char *pScriptLines[1024];
 	//static int nScriptLines;
-	va_list va, va_orig;
+	va_list va;
 	int len, len2;
 
 	len = strlen(fmt)*2;
 	pScriptLines[nScriptLines] = mem_alloc(len+1);
 	va_start(va, fmt);
-	va_copy(va_orig, va);
 	len2 = vsnprintf(pScriptLines[nScriptLines], len, fmt, va);
 #ifdef _MSC_VER  // we should find out about MinGW here!!
 	pScriptLines[nScriptLines][len] = 0;
@@ -948,7 +952,8 @@ static void comp_add_script_line(const char *fmt, ...) {
 		MEM_FREE(pScriptLines[nScriptLines]);
 		len *= 2;
 		pScriptLines[nScriptLines] = mem_alloc(len+1);
-		va_copy(va, va_orig);
+		va_end(va);
+		va_start(va, fmt);
 		len2 = vsnprintf(pScriptLines[nScriptLines], len, fmt, va);
 		pScriptLines[nScriptLines][len] = 0;
 	}
@@ -957,7 +962,8 @@ static void comp_add_script_line(const char *fmt, ...) {
 		MEM_FREE(pScriptLines[nScriptLines]);
 		len = len2+1;
 		pScriptLines[nScriptLines] = mem_alloc(len+1);
-		va_copy(va, va_orig);
+		va_end(va);
+		va_start(va, fmt);
 		vsnprintf(pScriptLines[nScriptLines], len, fmt, va);
 	}
 #endif
@@ -1033,7 +1039,7 @@ static void build_test_string(DC_struct *p, char **pLine) {
 	//if ($gen_needs2 > 0) { if (!defined($gen_stype) || $gen_stype ne "toS2hex") {$ret .= "\$\$2$gen_s2";} }
 	//return $ret;
 	MEM_FREE(*pLine);
-	*pLine = mem_alloc(strlen(p->pExpr)+strlen(salt)+strlen(gen_Stack[0])+24);
+	*pLine = mem_alloc_tiny(strlen(p->pExpr)+strlen(salt)+strlen(gen_Stack[0])+24, 1);
 	sprintf(*pLine, "@dynamic=%s@%s", p->pExpr,  gen_Stack[0]);
 	if (bNeedS) {
 		strcat(*pLine, "$");
@@ -1237,7 +1243,11 @@ static int parse_expression(DC_struct *p) {
 							} else if (endch == '6') {
 								comp_add_script_line("Flag=MGF_INPBASE64m\n");
 							}
-							if (!strncasecmp(pCode[i], "f5", 2))
+							// check for sha512 has to happen before md5, since both start with f5
+							if (!strncasecmp(pCode[i], "f512", 4)) {
+								comp_add_script_line("Func=DynamicFunc__SHA512_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+								comp_add_script_line("Flag=MGF_INPUT_64_BYTE\n");
+							} else if (!strncasecmp(pCode[i], "f5", 2))
 								comp_add_script_line("Func=DynamicFunc__MD5_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
 							else if (!strncasecmp(pCode[i], "f4", 2))
 								comp_add_script_line("Func=DynamicFunc__MD4_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
@@ -1256,10 +1266,6 @@ static int parse_expression(DC_struct *p) {
 							else if (!strncasecmp(pCode[i], "f384", 4)) {
 								comp_add_script_line("Func=DynamicFunc__SHA384_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
 								comp_add_script_line("Flag=MGF_INPUT_48_BYTE\n");
-							}
-							else if (!strncasecmp(pCode[i], "f512", 4)) {
-								comp_add_script_line("Func=DynamicFunc__SHA512_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-								comp_add_script_line("Flag=MGF_INPUT_64_BYTE\n");
 							}
 							else if (!strncasecmp(pCode[i], "fgost", 5)) {
 								comp_add_script_line("Func=DynamicFunc__GOST_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
@@ -1289,7 +1295,10 @@ static int parse_expression(DC_struct *p) {
 							}
 						} else {
 							if (append_mode) {
-								if (!strncasecmp(pCode[i], "f5", 2))
+								// check for sha512 has to happen before md5, since both start with f5
+								if (!strncasecmp(pCode[i], "f512", 4))
+									comp_add_script_line("Func=DynamicFunc__SHA512_crypt_input%s_append_input2\n", use_inp1?"1":"2");
+								else if (!strncasecmp(pCode[i], "f5", 2))
 									comp_add_script_line("Func=DynamicFunc__MD5_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f4", 2))
 									comp_add_script_line("Func=DynamicFunc__MD4_crypt_input%s_append_input2\n", use_inp1?"1":"2");
@@ -1301,8 +1310,6 @@ static int parse_expression(DC_struct *p) {
 									comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_append_input2n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f384", 4))
 									comp_add_script_line("Func=DynamicFunc__SHA384_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f512", 4))
-									comp_add_script_line("Func=DynamicFunc__SHA512_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "fgost", 5))
 									comp_add_script_line("Func=DynamicFunc__GOST_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "ftig", 4))
@@ -1322,7 +1329,10 @@ static int parse_expression(DC_struct *p) {
 										use_inp1_again = 1;
 								}
 						} else {
-								if (!strncasecmp(pCode[i], "f5", 2))
+								// check for sha512 has to happen before md5, since both start with f5
+								if (!strncasecmp(pCode[i], "f512", 4))
+									comp_add_script_line("Func=DynamicFunc__SHA512_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+								else if (!strncasecmp(pCode[i], "f5", 2))
 									comp_add_script_line("Func=DynamicFunc__MD5_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f4", 2))
 									comp_add_script_line("Func=DynamicFunc__MD4_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
@@ -1334,8 +1344,6 @@ static int parse_expression(DC_struct *p) {
 									comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_overwrite_input2n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f384", 4))
 									comp_add_script_line("Func=DynamicFunc__SHA384_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f512", 4))
-									comp_add_script_line("Func=DynamicFunc__SHA512_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "fgost", 5))
 									comp_add_script_line("Func=DynamicFunc__GOST_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "ftig", 4))
@@ -1379,7 +1387,7 @@ static int parse_expression(DC_struct *p) {
 	len = i = 0;
 	for (i = 0; i < nScriptLines; ++i)
 		len += strlen(pScriptLines[i]);
-	pScr = mem_alloc(len+1);
+	pScr = mem_alloc_tiny(len+1,1);
 	*pScr = 0;
 	for (i = 0; i < nScriptLines; ++i)
 		strcat(pScr, pScriptLines[i]);
@@ -1403,7 +1411,7 @@ static DC_HANDLE do_compile(const char *expr, uint32_t crc32) {
 		gost_init = 1;
 	}
 
-	p = mem_calloc(sizeof(DC_struct), sizeof(void*));
+	p = mem_calloc_tiny(sizeof(DC_struct), sizeof(void*));
 	p->magic = ~DC_MAGIC;
 	if (strncmp(expr, "dynamic=", 8))
 		return p;
@@ -1577,7 +1585,9 @@ int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt) {
 	((DC_struct*)H)->pFmt = pFmt;
 	return 0;
 }
-
+void dynamic_compile_done() {
+	init_static_data(); /* this will free all allocated crap */
+}
 #ifdef WITH_MAIN
 int ldr_in_pot = 0;
 int main(int argc, char **argv) {
