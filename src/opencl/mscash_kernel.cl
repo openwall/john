@@ -1,19 +1,8 @@
 /*
- * MD4 OpenCL kernel based on Solar Designer's MD4 algorithm implementation at:
- * http://openwall.info/wiki/people/solar/software/public-domain-source-code/md4
- * This code is in public domain.
- *
- * This software is Copyright (c) 2010, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2012, magnum
- * and Copyright (c) 2015, Sayantan Datta <std2048@gmail.com>
+ * This software is Copyright (c) 2015, Sayantan Datta <sdatta@openwall.com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
- *
- * Useful References:
- * 1  nt_opencl_kernel.c (written by Alain Espinosa <alainesp at gmail.com>)
- * 2. http://tools.ietf.org/html/rfc1320
- * 3. http://en.wikipedia.org/wiki/MD4
  */
 
 #include "opencl_device_info.h"
@@ -35,7 +24,7 @@
 #define SQRT_2			0x5a827999
 #define SQRT_3			0x6ed9eba1
 
-inline void md4_crypt(__private uint *hash, __private uint *nt_buffer)
+inline void md4_crypt_a(__private uint *hash, __private uint *nt_buffer)
 {
 	unsigned int a = INIT_A;
 	unsigned int b = INIT_B;
@@ -151,6 +140,130 @@ inline void md4_crypt(__private uint *hash, __private uint *nt_buffer)
 	c += (b ^ a ^ d) + nt_buffer[7] + SQRT_3;
 	c = (c << 11) | (c >> 21);
 	b += (a ^ d ^ c) + nt_buffer[15] + SQRT_3;
+	b = (b << 15) | (b >> 17);
+
+	hash[0] = a + INIT_A;
+	hash[1] = b + INIT_B;
+	hash[2] = c + INIT_C;
+	hash[3] = d + INIT_D;
+}
+
+inline void md4_crypt_b(__private uint *hash, constant uint *salt)
+{
+	unsigned int a = INIT_A;
+	unsigned int b = INIT_B;
+	unsigned int c = INIT_C;
+	unsigned int d = INIT_D;
+
+	/* Round 1 */
+	a += (d ^ (b & (c ^ d))) + hash[0];
+	a = (a << 3) | (a >> 29);
+	d += (c ^ (a & (b ^ c))) + hash[1];
+	d = (d << 7) | (d >> 25);
+	c += (b ^ (d & (a ^ b))) + hash[2];
+	c = (c << 11) | (c >> 21);
+	b += (a ^ (c & (d ^ a))) + hash[3];
+	b = (b << 19) | (b >> 13);
+
+	a += (d ^ (b & (c ^ d))) + salt[0];
+	a = (a << 3) | (a >> 29);
+	d += (c ^ (a & (b ^ c))) + salt[1];
+	d = (d << 7) | (d >> 25);
+	c += (b ^ (d & (a ^ b))) + salt[2];
+	c = (c << 11) | (c >> 21);
+	b += (a ^ (c & (d ^ a))) + salt[3];
+	b = (b << 19) | (b >> 13);
+
+	a += (d ^ (b & (c ^ d))) + salt[4];
+	a = (a << 3) | (a >> 29);
+	d += (c ^ (a & (b ^ c))) + salt[5];
+	d = (d << 7) | (d >> 25);
+	c += (b ^ (d & (a ^ b))) + salt[6];
+	c = (c << 11) | (c >> 21);
+	b += (a ^ (c & (d ^ a))) + salt[7];
+	b = (b << 19) | (b >> 13);
+
+	a += (d ^ (b & (c ^ d))) + salt[8];
+	a = (a << 3) | (a >> 29);
+	d += (c ^ (a & (b ^ c))) + salt[9];
+	d = (d << 7) | (d >> 25);
+	c += (b ^ (d & (a ^ b))) + salt[10];
+	c = (c << 11) | (c >> 21);
+	b += (a ^ (c & (d ^ a))) + salt[11];
+	b = (b << 19) | (b >> 13);
+
+	/* Round 2 */
+	a += ((b & (c | d)) | (c & d)) + hash[0] + SQRT_2;
+	a = (a << 3) | (a >> 29);
+	d += ((a & (b | c)) | (b & c)) + salt[0] + SQRT_2;
+	d = (d << 5) | (d >> 27);
+	c += ((d & (a | b)) | (a & b)) + salt[4] + SQRT_2;
+	c = (c << 9) | (c >> 23);
+	b += ((c & (d | a)) | (d & a)) + salt[8] + SQRT_2;
+	b = (b << 13) | (b >> 19);
+
+	a += ((b & (c | d)) | (c & d)) + hash[1] + SQRT_2;
+	a = (a << 3) | (a >> 29);
+	d += ((a & (b | c)) | (b & c)) + salt[1] + SQRT_2;
+	d = (d << 5) | (d >> 27);
+	c += ((d & (a | b)) | (a & b)) + salt[5] + SQRT_2;
+	c = (c << 9) | (c >> 23);
+	b += ((c & (d | a)) | (d & a)) + salt[9] + SQRT_2;
+	b = (b << 13) | (b >> 19);
+
+	a += ((b & (c | d)) | (c & d)) + hash[2] + SQRT_2;
+	a = (a << 3) | (a >> 29);
+	d += ((a & (b | c)) | (b & c)) + salt[2] + SQRT_2;
+	d = (d << 5) | (d >> 27);
+	c += ((d & (a | b)) | (a & b)) + salt[6] + SQRT_2;
+	c = (c << 9) | (c >> 23);
+	b += ((c & (d | a)) | (d & a)) + salt[10] + SQRT_2;
+	b = (b << 13) | (b >> 19);
+
+	a += ((b & (c | d)) | (c & d)) + hash[3] + SQRT_2;
+	a = (a << 3) | (a >> 29);
+	d += ((a & (b | c)) | (b & c)) + salt[3] + SQRT_2;
+	d = (d << 5) | (d >> 27);
+	c += ((d & (a | b)) | (a & b)) + salt[7] + SQRT_2;
+	c = (c << 9) | (c >> 23);
+	b += ((c & (d | a)) | (d & a)) + salt[11] + SQRT_2;
+	b = (b << 13) | (b >> 19);
+
+	/* Round 3 */
+	a += (d ^ c ^ b) + hash[0] + SQRT_3;
+	a = (a << 3) | (a >> 29);
+	d += (c ^ b ^ a) + salt[4] + SQRT_3;
+	d = (d << 9) | (d >> 23);
+	c += (b ^ a ^ d) + salt[0] + SQRT_3;
+	c = (c << 11) | (c >> 21);
+	b += (a ^ d ^ c) + salt[8] + SQRT_3;
+	b = (b << 15) | (b >> 17);
+
+	a += (d ^ c ^ b) + hash[2] + SQRT_3;
+	a = (a << 3) | (a >> 29);
+	d += (c ^ b ^ a) + salt[6] + SQRT_3;
+	d = (d << 9) | (d >> 23);
+	c += (b ^ a ^ d) + salt[2] + SQRT_3;
+	c = (c << 11) | (c >> 21);
+	b += (a ^ d ^ c) + salt[10] + SQRT_3;
+	b = (b << 15) | (b >> 17);
+
+	a += (d ^ c ^ b) + hash[1] + SQRT_3;
+	a = (a << 3) | (a >> 29);
+	d += (c ^ b ^ a) + salt[5] + SQRT_3;
+	d = (d << 9) | (d >> 23);
+	c += (b ^ a ^ d) + salt[1] + SQRT_3;
+	c = (c << 11) | (c >> 21);
+	b += (a ^ d ^ c) + salt[9] + SQRT_3;
+	b = (b << 15) | (b >> 17);
+
+	a += (d ^ c ^ b) + hash[3] + SQRT_3;
+	a = (a << 3) | (a >> 29);
+	d += (c ^ b ^ a) + salt[7] + SQRT_3;
+	d = (d << 9) | (d >> 23);
+	c += (b ^ a ^ d) + salt[3] + SQRT_3;
+	c = (c << 11) | (c >> 21);
+	b += (a ^ d ^ c) + salt[11] + SQRT_3;
 	b = (b << 15) | (b >> 17);
 
 	hash[0] = a + INIT_A;
@@ -276,7 +389,7 @@ inline void cmp(uint gid,
 }
 
 #define USE_CONST_CACHE \
-	((CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4)) && (!IS_STATIC_GPU_MASK))
+	((CONST_CACHE_SIZE >= ((NUM_INT_KEYS + 12) * 4)) && (!IS_STATIC_GPU_MASK))
 /* some constants used below are passed with -D */
 //#define KEY_LENGTH (MD4_PLAINTEXT_LENGTH + 1)
 
@@ -285,8 +398,11 @@ inline void cmp(uint gid,
  * words. MD4 hash of a key is 128 bit (uint4). */
 __kernel void mscash(__global uint *keys,
 		  __global uint *index,
-		  __global uint *salt,
-		  __global uint *int_key_loc,
+		  constant uint *salt
+#if gpu_amd(DEVICE_INFO)
+		__attribute__((max_constant_size(12 * sizeof(uint))))
+#endif
+		  , __global uint *int_key_loc,
 #if USE_CONST_CACHE
 		  constant
 #else
@@ -308,9 +424,9 @@ __kernel void mscash(__global uint *keys,
 	uint lws = get_local_size(0);
 	uint gid = get_global_id(0);
 	uint base = index[gid];
-	uint W[16] = { 0 };
+	uint nt_buffer[16] = { 0 };
 	uint len = base & 63;
-	uint hash[4];
+	uint hash[4] = {0};
 
 #if __OPENCL_VERSION__ < 120 || (__APPLE__ && gpu_nvidia(DEVICE_INFO))
 	if (!gid) {
@@ -361,47 +477,31 @@ __kernel void mscash(__global uint *keys,
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 #endif
-
 	keys += base >> 6;
-	prepare_key(keys, len, W);
+	prepare_key(keys, len, nt_buffer);
 
 	for (i = 0; i < NUM_INT_KEYS; i++) {
 #if NUM_INT_KEYS > 1
-		PUTCHAR(W, GPU_LOC_0, (int_keys[i] & 0xff));
+		PUTSHORT(nt_buffer, GPU_LOC_0, (int_keys[i] & 0xff));
 #if 1 < MASK_FMT_INT_PLHDR
 #if LOC_1 >= 0
-		PUTCHAR(W, GPU_LOC_1, ((int_keys[i] & 0xff00) >> 8));
+		PUTSHORT(nt_buffer, GPU_LOC_1, ((int_keys[i] & 0xff00) >> 8));
 #endif
 #endif
 #if 2 < MASK_FMT_INT_PLHDR
 #if LOC_2 >= 0
-		PUTCHAR(W, GPU_LOC_2, ((int_keys[i] & 0xff0000) >> 16));
+		PUTSHORT(nt_buffer, GPU_LOC_2, ((int_keys[i] & 0xff0000) >> 16));
 #endif
 #endif
 #if 3 < MASK_FMT_INT_PLHDR
 #if LOC_3 >= 0
-		PUTCHAR(W, GPU_LOC_3, ((int_keys[i] & 0xff000000) >> 24));
+		PUTSHORT(nt_buffer, GPU_LOC_3, ((int_keys[i] & 0xff000000) >> 24));
 #endif
 #endif
 #endif
-		md4_crypt(hash, W);
-		W[0] = hash[0];
-		W[1] = hash[1];
-		W[2] = hash[2];
-		W[3] = hash[3];
-		W[4] = salt[0];
-		W[5] = salt[1];
-		W[6] = salt[2];
-		W[7] = salt[3];
-		W[8] = salt[4];
-		W[9] = salt[5];
-		W[10] = salt[6];
-		W[11] = salt[7];
-		W[12] = salt[8];
-		W[13] = salt[9];
-		W[14] = salt[10];
-		W[15] = salt[11];
-		md4_crypt(hash, W);
+		md4_crypt_a(hash, nt_buffer);
+		md4_crypt_b(hash, salt);
+
 		cmp(gid, i, hash,
 #if USE_LOCAL_BITMAPS
 		    s_bitmaps
@@ -409,5 +509,6 @@ __kernel void mscash(__global uint *keys,
 		    bitmaps
 #endif
 		    , offset_table, hash_table, return_hashes, out_hash_ids, bitmap_dupe);
+
 	}
 }
