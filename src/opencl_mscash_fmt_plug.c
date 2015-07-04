@@ -1,16 +1,12 @@
 /*
- * MD4 OpenCL code is based on Alain Espinosa's OpenCL patches.
- *
- * This software is Copyright (c) 2010, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2012, magnum
- * and Copyright (c) 2015, Sayantan Datta <std2048@gmail.com>
+ * This software is Copyright (c) 2015, Sayantan Datta <std2048@gmail.com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
 
 #ifdef HAVE_OPENCL
-#define FMT_STRUCT fmt_opencl_rawMD4
+#define FMT_STRUCT fmt_opencl_mscash
 
 #if FMT_EXTERNS_H
 extern struct fmt_main FMT_STRUCT;
@@ -29,25 +25,24 @@ john_register_one(&FMT_STRUCT);
 #include "common-opencl.h"
 #include "config.h"
 #include "options.h"
+#include "unicode.h"
 #include "mask_ext.h"
 #include "interface.h"
 
-#define PLAINTEXT_LENGTH    55 /* Max. is 55 with current kernel */
+#define PLAINTEXT_LENGTH    27 /* Max. is 55 with current kernel */
 #define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)
-#define FORMAT_LABEL        "Raw-MD4-opencl"
-#define FORMAT_NAME         ""
+#define FORMAT_LABEL	    "mscash-opencl"
+#define FORMAT_NAME	    "M$ Cache Hash"
 #define ALGORITHM_NAME      "MD4 OpenCL"
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
-#define CIPHERTEXT_LENGTH   32
+#define CIPHERTEXT_LENGTH   (2 + 19*3 + 1 + 32)
 #define DIGEST_SIZE         16
 #define BINARY_SIZE         16
-#define BINARY_ALIGN        1
-#define SALT_SIZE           0
-#define SALT_ALIGN          1
-
-#define FORMAT_TAG          "$MD4$"
-#define TAG_LENGTH          (sizeof(FORMAT_TAG) - 1)
+#define BINARY_ALIGN        sizeof(unsigned int)
+#define SALT_LENGTH	    19
+#define SALT_SIZE	    (12 * sizeof(unsigned int))
+#define SALT_ALIGN          sizeof(unsigned int)
 
 static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_int_key_loc;
 static cl_mem buffer_keys, buffer_idx, buffer_int_keys, buffer_int_key_loc;
@@ -60,15 +55,23 @@ static cl_uint *loaded_hashes = NULL, num_loaded_hashes, *hash_ids = NULL, *bitm
 static unsigned int hash_table_size, offset_table_size, shift64_ht_sz, shift64_ot_sz;
 static cl_ulong bitmap_size_bits = 0;
 
+static cl_mem buffer_salt;
+
 static unsigned int key_idx = 0;
 static unsigned int ref_ctr, ocl_ver;
 static struct fmt_main *self;
+
+static char mscash_prefix[] = "M$";
+
 
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
 #define STEP                    0
 #define SEED                    1024
+
+#define SWAP(n) \
+    (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
 #define get_power_of_two(v)	\
 {				\
@@ -95,21 +98,17 @@ static int crypt_all(int *pcount, struct db_salt *_salt);
 #include "memdbg.h"
 
 static struct fmt_tests tests[] = {
-	{"8a9d093f14f8701df17732b2bb182c74", "password"},
-	{FORMAT_TAG "6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
-	{"6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
-	{FORMAT_TAG "31d6cfe0d16ae931b73c59d7e0c089c0", "" },
-	{FORMAT_TAG "934eb897904769085af8101ad9dabca2", "John the ripper" },
-	{FORMAT_TAG "cafbb81fb64d9dd286bc851c4c6e0d21", "lolcode" },
-	{FORMAT_TAG "585028aa0f794af812ee3be8804eb14a", "123456" },
-	{FORMAT_TAG "23580e2a459f7ea40f9efa148b63cafb", "12345" },
-	{FORMAT_TAG "2ae523785d0caf4d2fb557c12016185c", "123456789" },
-	{FORMAT_TAG "f3e80e83b29b778bc092bf8a7c6907fe", "iloveyou" },
-	{FORMAT_TAG "4d10a268a303379f224d8852f2d13f11", "princess" },
-	{FORMAT_TAG "bf75555ca19051f694224f2f5e0b219d", "1234567" },
-	{FORMAT_TAG "41f92cf74e3d2c3ba79183629a929915", "rockyou" },
-	{FORMAT_TAG "012d73e0fab8d26e0f4d65e36077511e", "12345678" },
-	{FORMAT_TAG "0ceb1fd260c35bd50005341532748de6", "abc123" },
+	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2"},
+	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
+	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
+	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
+	{"176a4c2bd45ac73687676c2f09045353", "", {"root"}},	// nullstring password
+	{"M$test3#14dd041848e12fc48c0aa7a416a4a00c", "test3"},
+	{"M$test4#b945d24866af4b01a6d89b9d932a153c", "test4"},
+	{"64cd29e36a8431a2b111378564a10631", "test1", {"TEST1"}},	// salt is lowercased before hashing
+	{"290efa10307e36a79b3eebf2a6b29455", "okolada", {"nineteen_characters"}},	// max salt length
+	{"ab60bdb4493822b175486810ac2abe63", "test2", {"test2"}},
+	{"b945d24866af4b01a6d89b9d932a153c", "test4", {"test4"}},
 	{NULL}
 };
 
@@ -135,14 +134,15 @@ static void set_kernel_args()
 {
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 1.");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 2.");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_int_key_loc), (void *) &buffer_int_key_loc), "Error setting argument 3.");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_int_keys), (void *) &buffer_int_keys), "Error setting argument 4.");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(buffer_bitmaps), (void *) &buffer_bitmaps), "Error setting argument 5.");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_offset_table), (void *) &buffer_offset_table), "Error setting argument 6.");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_hash_table), (void *) &buffer_hash_table), "Error setting argument 7.");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_return_hashes), (void *) &buffer_return_hashes), "Error setting argument 8.");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 8, sizeof(buffer_hash_ids), (void *) &buffer_hash_ids), "Error setting argument 9.");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 9, sizeof(buffer_bitmap_dupe), (void *) &buffer_bitmap_dupe), "Error setting argument 10.");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_salt), (void *) &buffer_salt), "Error setting argument 3.");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_int_key_loc), (void *) &buffer_int_key_loc), "Error setting argument 4.");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(buffer_int_keys), (void *) &buffer_int_keys), "Error setting argument 5.");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_bitmaps), (void *) &buffer_bitmaps), "Error setting argument 6.");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_offset_table), (void *) &buffer_offset_table), "Error setting argument 7.");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_hash_table), (void *) &buffer_hash_table), "Error setting argument 8.");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 8, sizeof(buffer_return_hashes), (void *) &buffer_return_hashes), "Error setting argument 9.");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 9, sizeof(buffer_hash_ids), (void *) &buffer_hash_ids), "Error setting argument 10.");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 10, sizeof(buffer_bitmap_dupe), (void *) &buffer_bitmap_dupe), "Error setting argument 11.");
 }
 
 static void create_clobj(size_t kpc, struct fmt_main *self)
@@ -190,6 +190,9 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	buffer_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_idx.");
 
+	buffer_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 12 * sizeof(cl_uint), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_salt.");
+
 	buffer_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(cl_uint) * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_key_loc.");
 
@@ -234,6 +237,7 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing mappings.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Error Releasing buffer_idx.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_salt), "Error Releasing buffer_salt.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_key_loc), "Error Releasing buffer_int_key_loc.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_return_hashes), "Error Releasing buffer_return_hashes.");
@@ -326,7 +330,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 	);
 
 	opencl_build(gpu_id, build_opts, 0, NULL);
-	crypt_kernel = clCreateKernel(program[gpu_id], "md4", &ret_code);
+	crypt_kernel = clCreateKernel(program[gpu_id], "mscash", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 }
 
@@ -338,49 +342,107 @@ static void init(struct fmt_main *_self)
 
 	opencl_prepare_dev(gpu_id);
 
-	opencl_read_source("$JOHN/kernels/md4_kernel.cl");
+	opencl_read_source("$JOHN/kernels/mscash_kernel.cl");
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p, *q;
-
-	p = ciphertext;
-	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		p += TAG_LENGTH;
-
-	q = p;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
-		if (*q >= 'A' && *q <= 'F') /* support lowercase only */
+	char *hash, *p;
+	if (strncmp(ciphertext, mscash_prefix, strlen(mscash_prefix)) != 0)
+		return 0;
+	hash = p = strrchr(ciphertext, '#') + 1;
+	while (*p)
+		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
 			return 0;
-		q++;
-	}
-	return !*q && q - p == CIPHERTEXT_LENGTH;
+	return p - hash == 32;
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
-
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		return ciphertext;
-
-	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
+	static char out[CIPHERTEXT_LENGTH + 1];
+	int i = 0;
+	for (; i < CIPHERTEXT_LENGTH && ciphertext[i]; i++)
+		out[i] = ciphertext[i];
+	out[i] = 0;
+	// lowercase salt as well as hash, encoding-aware
+	enc_strlwr(&out[6]);
 	return out;
 }
 
-static void *get_binary(char *ciphertext)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
-	static unsigned char out[DIGEST_SIZE];
-	char *p;
-	int i;
-	p = ciphertext + TAG_LENGTH;
-	for (i = 0; i < sizeof(out); i++) {
-		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
-		p += 2;
+	char *cp;
+	if (!strncmp(split_fields[1], "M$", 2) && valid(split_fields[1], self))
+		return split_fields[1];
+	if (!split_fields[0])
+		return split_fields[1];
+	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
+	sprintf(cp, "M$%s#%s", split_fields[0], split_fields[1]);
+	if (valid(cp, self)) {
+		char *cipher = str_alloc_copy(cp);
+		MEM_FREE(cp);
+		return cipher;
 	}
-	return out;
+	MEM_FREE(cp);
+	return split_fields[1];
+}
+
+static void *binary(char *ciphertext)
+{
+	static unsigned int binary[4];
+	char *hash = strrchr(ciphertext, '#') + 1;
+	int i;
+	for (i = 0; i < 4; i++) {
+		sscanf(hash + (8 * i), "%08x", &binary[i]);
+		binary[i] = SWAP(binary[i]);
+	}
+	return binary;
+}
+
+void prepare_login(unsigned int * login, int length,
+    unsigned int * nt_buffer)
+{
+	int i = 0, nt_index, keychars;;
+	for (i = 0; i < 12; i++)
+		nt_buffer[i] = 0;
+
+	nt_index = 0;
+	for (i = 0; i < (length + 4)/ 4; i++) {
+		keychars = login[i];
+		nt_buffer[nt_index++] = (keychars & 0xFF) | (((keychars >> 8) & 0xFF) << 16);
+		nt_buffer[nt_index++] = ((keychars >> 16) & 0xFF) | ((keychars >> 24) << 16);
+	}
+	nt_index = (length >> 1);
+	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
+	nt_buffer[nt_index + 1] = 0;
+	nt_buffer[10] = (length << 4) + 128;
+}
+
+static void *salt(char *ciphertext)
+{
+	static union {
+		char csalt[SALT_LENGTH + 1];
+		unsigned int  isalt[(SALT_LENGTH + 4)/4];
+	} salt;
+	static unsigned int final_salt[12];
+	char *pos = ciphertext + strlen(mscash_prefix);
+	int length = 0;
+	memset(&salt, 0, sizeof(salt));
+	while (*pos != '#') {
+		if (length == SALT_LENGTH)
+			return NULL;
+		salt.csalt[length++] = *pos++;
+	}
+	salt.csalt[length] = 0;
+	enc_strlwr(salt.csalt);
+	prepare_login(salt.isalt, length, final_salt);
+	return &final_salt;
+}
+
+/* Used during self-test. */
+static void set_salt(void *salt)
+{
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_salt, CL_TRUE, 0, 12 * sizeof(cl_uint), salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_salt.");
 }
 
 static int get_hash_0(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & 0xf; }
@@ -467,7 +529,7 @@ static char *get_key(int index)
 
 	return out;
 }
-
+/*
 static void prepare_table(struct db_salt *salt) {
 	unsigned int *bin, i;
 	struct db_password *pw;
@@ -497,6 +559,62 @@ static void prepare_table(struct db_salt *salt) {
 	} while ((pw = pw -> next)) ;
 
 	if(i != (salt->count)) {
+		fprintf(stderr,
+			"Something went wrong while preparing hashes..Exiting..\n");
+		error();
+	}
+
+	num_loaded_hashes = create_perfect_hash_table(128, (void *)loaded_hashes,
+				num_loaded_hashes,
+			        &offset_table,
+			        &offset_table_size,
+			        &hash_table_size, 0);
+
+	if (!num_loaded_hashes) {
+		MEM_FREE(hash_table_128);
+		MEM_FREE(offset_table);
+		fprintf(stderr, "Failed to create Hash Table for cracking.\n");
+		error();
+	}
+}*/
+
+static void prepare_table(struct db_main *db)
+{
+	struct db_salt *salt;
+	unsigned int i, *bin;
+
+	num_loaded_hashes = 0;
+	salt = db->salts;
+	do {
+		num_loaded_hashes += salt->count;
+	} while((salt = salt->next));
+
+	MEM_FREE(loaded_hashes);
+	MEM_FREE(hash_ids);
+	MEM_FREE(offset_table);
+	MEM_FREE(hash_table_128);
+
+	loaded_hashes = (cl_uint*) mem_alloc(4 * num_loaded_hashes * sizeof(cl_uint));
+	hash_ids = (cl_uint*) mem_alloc((3 * num_loaded_hashes + 1) * sizeof(cl_uint));
+
+	i = 0;
+	salt = db->salts;
+	do {
+		struct db_password *pw = salt->list;
+		do {
+			bin = (unsigned int *)pw->binary;
+			// Potential segfault if removed
+			if(bin != NULL) {
+				loaded_hashes[4 * i] = bin[0];
+				loaded_hashes[4 * i + 1] = bin[1];
+				loaded_hashes[4 * i + 2] = bin[2];
+				loaded_hashes[4 * i + 3] = bin[3];
+				i++;
+			}
+		} while ((pw = pw -> next)) ;
+	} while((salt = salt->next));
+
+	if(i != num_loaded_hashes) {
 		fprintf(stderr,
 			"Something went wrong while preparing hashes..Exiting..\n");
 		error();
@@ -744,40 +862,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 #endif
 
-	if (salt != NULL && salt->count > 100 &&
-		(num_loaded_hashes - num_loaded_hashes / 10) > salt->count) {
-		size_t old_ot_sz_bytes, old_ht_sz_bytes;
-		prepare_table(salt);
-		init_kernel(salt->count, select_bitmap(salt->count));
-
-		HANDLE_CLERROR(clGetMemObjectInfo(buffer_offset_table, CL_MEM_SIZE, sizeof(size_t), &old_ot_sz_bytes, NULL), "failed to query buffer_offset_table.");
-
-		if (old_ot_sz_bytes < offset_table_size *
-			sizeof(OFFSET_TABLE_WORD)) {
-			HANDLE_CLERROR(clReleaseMemObject(buffer_offset_table), "Error Releasing buffer_offset_table.");
-
-			buffer_offset_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, offset_table_size * sizeof(OFFSET_TABLE_WORD), NULL, &ret_code);
-			HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_offset_table.");
-		}
-
-		HANDLE_CLERROR(clGetMemObjectInfo(buffer_hash_table, CL_MEM_SIZE, sizeof(size_t), &old_ht_sz_bytes, NULL), "failed to query buffer_hash_table.");
-
-		if (old_ht_sz_bytes < hash_table_size * sizeof(cl_uint) * 2) {
-			HANDLE_CLERROR(clReleaseMemObject(buffer_hash_table), "Error Releasing buffer_hash_table.");
-			HANDLE_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Error Releasing buffer_bitmap_dupe.");
-
-			buffer_bitmap_dupe = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (hash_table_size/32 + 1) * sizeof(cl_uint), NULL, &ret_code);
-			HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_bitmap_dupe.");
-			buffer_hash_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, hash_table_size * sizeof(cl_uint) * 2, NULL, &ret_code);
-			HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_table.");
-		}
-
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps, CL_TRUE, 0, (bitmap_size_bits >> 3), bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps.");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_128, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
-		set_kernel_args();
-	}
-
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[5]), "failed in clEnqueueNDRangeKernel");
 
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), hash_ids, 0, NULL, multi_profilingEvent[6]), "failed in reading back num cracked hashes.");
@@ -810,7 +894,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	unsigned int *t = (unsigned int *) get_binary(source);
+	unsigned int *t = (unsigned int *) binary(source);
 
 	if (t[2] != loaded_hashes[2 * index])
 		return 0;
@@ -828,7 +912,7 @@ static void reset(struct db_main *db)
 
 		buffer_size = db->format->params.max_keys_per_crypt;
 		num_loaded_hashes = db->salts->count;
-		prepare_table(db->salts);
+		prepare_table(db);
 		init_kernel(num_loaded_hashes, select_bitmap(num_loaded_hashes));
 		create_clobj(buffer_size, NULL);
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps, CL_TRUE, 0, (size_t)(bitmap_size_bits >> 3), bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps.");
@@ -836,7 +920,7 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_128, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
 	}
 	else {
-		unsigned int *binary, i = 0;
+		unsigned int *binary_hash, i = 0;
 		char *ciphertext;
 		size_t gws_limit;
 		unsigned int flag;
@@ -853,12 +937,15 @@ static void reset(struct db_main *db)
 		loaded_hashes = (cl_uint*)mem_alloc(16 * num_loaded_hashes);
 
 		while (tests[i].ciphertext != NULL) {
-			ciphertext = split(tests[i].ciphertext, 0, &FMT_STRUCT);
-			binary = (unsigned int*)get_binary(ciphertext);
-			loaded_hashes[4 * i] = binary[0];
-			loaded_hashes[4 * i + 1] = binary[1];
-			loaded_hashes[4 * i + 2] = binary[2];
-			loaded_hashes[4 * i + 3] = binary[3];
+			char **fields = tests[i].fields;
+			if (!fields[1])
+				fields[1] = tests[i].ciphertext;
+			ciphertext = split(prepare(fields, &FMT_STRUCT), 0, &FMT_STRUCT);
+			binary_hash = (unsigned int*)binary(ciphertext);
+			loaded_hashes[4 * i] = binary_hash[0];
+			loaded_hashes[4 * i + 1] = binary_hash[1];
+			loaded_hashes[4 * i + 2] = binary_hash[2];
+			loaded_hashes[4 * i + 3] = binary_hash[3];
 			i++;
 		}
 
@@ -921,7 +1008,7 @@ struct fmt_main FMT_STRUCT = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -930,11 +1017,11 @@ struct fmt_main FMT_STRUCT = {
 		init,
 		done,
 		reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		split,
-		get_binary,
-		fmt_default_salt,
+		binary,
+		salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -950,7 +1037,7 @@ struct fmt_main FMT_STRUCT = {
 		},
 		fmt_default_salt_hash,
 		NULL,
-		fmt_default_set_salt,
+		set_salt,
 		set_key,
 		get_key,
 		clear_keys,

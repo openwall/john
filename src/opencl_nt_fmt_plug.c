@@ -526,7 +526,7 @@ static char *get_key(int index)
 	char *key;
 
 	if (hash_ids == NULL || hash_ids[0] == 0 ||
-	    index > hash_ids[0] || hash_ids[0] > num_loaded_hashes) {
+	    index >= hash_ids[0] || hash_ids[0] > num_loaded_hashes) {
 		t = index;
 		int_index = 0;
 	}
