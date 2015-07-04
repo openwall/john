@@ -1363,7 +1363,7 @@ static DYNAMIC_primitive_funcp _Funcs_57[] =
 {
 	//MGF_INPUT_28_BYTE
 	//MGF_FLAT_BUFFERS
-	//MGF_SALTED_AS_HEX_SHA224
+	//MGF_SALT_AS_HEX_SHA224
 	//MGF_KEYS_BASE16_IN1_SHA224
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
@@ -1553,7 +1553,7 @@ static DYNAMIC_primitive_funcp _Funcs_67[] =
 {
 	//MGF_INPUT_32_BYTE
 	//MGF_FLAT_BUFFERS
-	//MGF_SALTED_AS_HEX_SHA256
+	//MGF_SALT_AS_HEX_SHA256
 	//MGF_KEYS_BASE16_IN1_SHA256
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
@@ -1741,7 +1741,7 @@ static DYNAMIC_primitive_funcp _Funcs_77[] =
 {
 	//MGF_INPUT_48_BYTE
 	//MGF_FLAT_BUFFERS
-	//MGF_SALTED_AS_HEX_SHA384
+	//MGF_SALT_AS_HEX_SHA384
 	//MGF_KEYS_BASE16_IN1_SHA384
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
@@ -1930,7 +1930,7 @@ static DYNAMIC_primitive_funcp _Funcs_87[] =
 {
 	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED_AS_HEX_SHA512
+	//MGF_SALT_AS_HEX_SHA512
 	//MGF_KEYS_BASE16_IN1_SHA512
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
@@ -2119,7 +2119,7 @@ static DYNAMIC_primitive_funcp _Funcs_97[] =
 {
 	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED_AS_HEX_GOST
+	//MGF_SALT_AS_HEX_GOST
 	//MGF_KEYS_IN_INPUT
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
@@ -2308,7 +2308,7 @@ static DYNAMIC_primitive_funcp _Funcs_107[] =
 {
 	//MGF_INPUT_64_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED_AS_HEX_WHIRLPOOL
+	//MGF_SALT_AS_HEX_WHIRLPOOL
 	//MGF_KEYS_BASE16_IN1_WHIRLPOOL
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
@@ -2497,7 +2497,7 @@ static DYNAMIC_primitive_funcp _Funcs_117[] =
 {
 	//MGF_INPUT_24_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED_AS_HEX_TIGER
+	//MGF_SALT_AS_HEX_TIGER
 	//MGF_KEYS_BASE16_IN1_TIGER
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
@@ -2678,7 +2678,7 @@ MTL({"$dynamic_126$88d20140423054e77686e7dd35a1a086$12345678901234567890", "1234
 static DYNAMIC_primitive_funcp _Funcs_127[] =
 {
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED_AS_HEX_RIPEMD128
+	//MGF_SALT_AS_HEX_RIPEMD128
 	//MGF_KEYS_BASE16_IN1_RIPEMD128
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
@@ -2866,7 +2866,7 @@ static DYNAMIC_primitive_funcp _Funcs_137[] =
 {
 	//MGF_INPUT_20_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED_AS_HEX_RIPEMD160
+	//MGF_SALT_AS_HEX_RIPEMD160
 	//MGF_KEYS_BASE16_IN1_RIPEMD160
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
@@ -3051,7 +3051,7 @@ static DYNAMIC_primitive_funcp _Funcs_147[] =
 {
 	//MGF_INPUT_32_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED_AS_HEX_RIPEMD256
+	//MGF_SALT_AS_HEX_RIPEMD256
 	//MGF_KEYS_BASE16_IN1_RIPEMD256
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
@@ -3242,7 +3242,7 @@ static DYNAMIC_primitive_funcp _Funcs_157[] =
 {
 	//MGF_INPUT_40_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALTED_AS_HEX_RIPEMD320
+	//MGF_SALT_AS_HEX_RIPEMD320
 	//MGF_KEYS_BASE16_IN1_RIPEMD256
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
