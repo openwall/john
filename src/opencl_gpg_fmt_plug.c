@@ -81,6 +81,7 @@ typedef struct {
 
 static int *cracked;
 static int any_cracked;
+static int warn_once = 1;
 
 enum {
 	SPEC_SIMPLE = 0,
@@ -370,7 +371,7 @@ static int valid_hash_algorithm(int hash_algorithm, int spec)
 {
 	if(spec == SPEC_SIMPLE || spec == SPEC_SALTED)
 #if 1
-		goto print_warn;
+		goto print_warn_once;
 #else
 		switch(hash_algorithm) {
 			case HASH_SHA1: return 1;
@@ -390,9 +391,12 @@ static int valid_hash_algorithm(int hash_algorithm, int spec)
 			case HASH_SHA512: return 1;
 #endif
 		}
-print_warn:
-	fprintf(stderr, "[-] gpg-opencl currently only supports keys using iterated salted SHA1\n");
-
+print_warn_once:
+	if(warn_once) {
+		fprintf(stderr,
+		        "[-] gpg-opencl currently only supports keys using iterated salted SHA1\n");
+		warn_once = 0;
+	}
 	return 0;
 }
 
