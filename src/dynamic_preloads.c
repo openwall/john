@@ -620,6 +620,7 @@ static struct fmt_tests _Preloads_14[] =
 //dynamic_15 --> md5($u.md5($p).$s)
 static DYNAMIC_primitive_funcp _Funcs_15[] =
 {
+	// MGF_SALTED|MGF_USERNAME|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_userid2,
 	DynamicFunc__append_input2_from_input,
@@ -651,6 +652,7 @@ static struct fmt_tests _Preloads_15[] =
 //dynamic_16 --> md5(md5(md5($p).$s).$s2)
 static DYNAMIC_primitive_funcp _Funcs_16[] =
 {
+	// MGF_SALTED|MGF_SALTED2|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_input2_from_input,
 	DynamicFunc__append_salt2,
