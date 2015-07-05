@@ -138,6 +138,7 @@ DONE #define MGF_USERNAME_LOCASE         (0x00000040|MGF_USERNAME)
 #include "list.h"
 #include "crc32.h"
 #include "johnswap.h"
+#include "dynamic.h"
 #include "dynamic_compiler.h"
 #include "base64_convert.h"
 #include "md5.h"
@@ -259,7 +260,7 @@ static char *find_the_extra_params(const char *expr) {
 #define ARRAY_COUNT(a) (sizeof(a)/sizeof(a[0]))
 typedef void (*fpSYM)();
 static int nConst;
-static const char *Const[10];
+static const char *Const[9];
 static int compile_debug;
 static char *SymTab[1024];
 static fpSYM fpSymTab[1024];
@@ -398,15 +399,14 @@ static void dynamic_pad100() { dyna_helper_appendn(pad100(), 100); }
 
 //static void dynamic_app_pU() { dyna_helper_append(gen_pwuc); }
 //static void dynamic_app_pL() { dyna_helper_append(gen_pwlc); }
-static void dynamic_app_1()  { dyna_helper_append(Const[1]); }
-static void dynamic_app_2()  { dyna_helper_append(Const[2]); }
-static void dynamic_app_3()  { dyna_helper_append(Const[3]); }
-static void dynamic_app_4()  { dyna_helper_append(Const[4]); }
-static void dynamic_app_5()  { dyna_helper_append(Const[5]); }
-static void dynamic_app_6()  { dyna_helper_append(Const[6]); }
-static void dynamic_app_7()  { dyna_helper_append(Const[7]); }
-static void dynamic_app_8()  { dyna_helper_append(Const[8]); }
-static void dynamic_app_9()  { dyna_helper_append(Const[9]); }
+static void dynamic_app_1()  { dyna_helper_append(dynamic_Demangle((char*)Const[1],NULL)); }
+static void dynamic_app_2()  { dyna_helper_append(dynamic_Demangle((char*)Const[2],NULL)); }
+static void dynamic_app_3()  { dyna_helper_append(dynamic_Demangle((char*)Const[3],NULL)); }
+static void dynamic_app_4()  { dyna_helper_append(dynamic_Demangle((char*)Const[4],NULL)); }
+static void dynamic_app_5()  { dyna_helper_append(dynamic_Demangle((char*)Const[5],NULL)); }
+static void dynamic_app_6()  { dyna_helper_append(dynamic_Demangle((char*)Const[6],NULL)); }
+static void dynamic_app_7()  { dyna_helper_append(dynamic_Demangle((char*)Const[7],NULL)); }
+static void dynamic_app_8()  { dyna_helper_append(dynamic_Demangle((char*)Const[8],NULL)); }
 //static void dynamic_ftr32  { $h = gen_Stack[--ngen_Stack]; substr($h,0,32);  strcat(gen_Stack[ngen_Stack-1], h);  }
 //static void dynamic_f54    { $h = gen_Stack[--ngen_Stack]; md5_hex(h)."00000000";	 strcat(gen_Stack[ngen_Stack-1], h);  }
 
@@ -491,7 +491,7 @@ static void init_static_data() {
 		MEM_FREE(SymTab[i]);
 		fpSymTab[i] = NULL;
 	}
-	for (i = 0; i < 10; ++i) {
+	for (i = 0; i < 9; ++i) {
 		if (Const[i]) {
 			char *p = (char*)Const[i];
 			MEM_FREE(p);
@@ -558,12 +558,16 @@ static int handle_extra_params(DC_struct *ptr) {
 		return 0;
 
 	// Find any 'const' values that have been provided.
-	for (i = 1; i < 10; ++i) {
+	for (i = 1; i < 9; ++i) {
+		char *cp2;
 		sprintf(cx, "c%d=", i);
 		cp = get_param(ptr->pExtraParams, cx);
 		if (!cp)
 			break;
-		Const[++nConst] = cp;
+
+		cp2 = mem_alloc(strlen(cp)+1);
+		strcpy(cp2, cp);
+		Const[++nConst] = cp2;
 	}
 
 	// Find any other values here.
@@ -601,7 +605,7 @@ static const char *comp_get_symbol(const char *pInput) {
 			case 'u': return comp_push_sym("u", fpNull, pInput+2);
 			case 's': if (pInput[2] == '2') return comp_push_sym("S", fpNull, pInput+3);
 					  return comp_push_sym("s", fpNull, pInput+2);
-			case 'c': if (pInput[2] > '9' || pInput[2] < '1')
+			case 'c': if (pInput[2] > '8' || pInput[2] < '1')
 						  return comp_push_sym("X", fpNull, pInput);
 					  if (Const[pInput[2]-'0'] == NULL) {
 						  fprintf(stderr, "Error, a c%c found in expression, but the data for this const was not provided\n", pInput[2]);
@@ -931,7 +935,6 @@ static void comp_do_parse(int cur, int curend) {
 			case '6': push_pcode("app_6", dynamic_app_6); continue;
 			case '7': push_pcode("app_7", dynamic_app_7); continue;
 			case '8': push_pcode("app_8", dynamic_app_8); continue;
-			case '9': push_pcode("app_9", dynamic_app_9); continue;
 		}
 	}
 }
@@ -1101,7 +1104,7 @@ static int parse_expression(DC_struct *p) {
 		else
 			comp_add_script_line("Flag=MGF_USERNAME\n");
 	}
-	for (i = 1; i < 10; ++i) {
+	for (i = 1; i < 9; ++i) {
 		if (Const[i]) {
 			comp_add_script_line("Const%d=%s\n", i, Const[i]);
 		} else
@@ -1202,8 +1205,6 @@ static int parse_expression(DC_struct *p) {
 								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST7\n", use_inp1?"1":"2"); ++ex_cnt; }
 							else if (!strcmp(pCode[x], "app_8")) {
 								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST8\n", use_inp1?"1":"2"); ++ex_cnt; }
-							else if (!strcmp(pCode[x], "app_9")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST9\n", use_inp1?"1":"2"); ++ex_cnt; }
 							else if (!strncmp(pCode[x], "IN2", 3)) {
 								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input2\n", use_inp1?"":"2"); ++hash_cnt; }
 							else if (!strncmp(pCode[x], "IN1", 3)) {
@@ -1378,10 +1379,8 @@ static int parse_expression(DC_struct *p) {
 				pCode[i][0] = 'X';
 			}
 		}
-		if (max_inp_len < 110) {
-			comp_add_script_line("MaxInputLenX86=%d\n",max_inp_len);
-			comp_add_script_line("MaxInputLen=%d\n",max_inp_len);
-		}
+		comp_add_script_line("MaxInputLenX86=%d\n",max_inp_len);
+		comp_add_script_line("MaxInputLen=%d\n",max_inp_len);
 	}
 
 	len = i = 0;
@@ -1404,6 +1403,7 @@ static int parse_expression(DC_struct *p) {
 static DC_HANDLE do_compile(const char *expr, uint32_t crc32) {
 	DC_struct *p;
 	char *cp;
+	const char *cp2;
 	int len;
 
 	if (!gost_init) {
@@ -1420,9 +1420,28 @@ static DC_HANDLE do_compile(const char *expr, uint32_t crc32) {
 	p->pExpr = str_alloc_copy(find_the_expression(expr));
 	p->pExtraParams = str_alloc_copy(find_the_extra_params(expr));
 	len = strlen(expr)+3;
+	// start of hexify code for : convert into \x3a
+	cp = strchr(expr, ':');
+	if (cp)
+		do {
+			cp = strchr(&cp[1], ':');
+			len += 3;	// \x3a is 3 bytes longer than :
+		} while (cp);
 	cp = mem_calloc_tiny(len, 1);
-	snprintf(cp, len, "@%s@", expr);
 	p->pSignature = cp;
+	//snprintf(cp, len, "@%s@", expr); /* switch ':' into \x3a in result */
+	cp2 = expr;
+	*cp++ = '@';
+	while (*cp2) {
+		if (*cp2 == ':') {
+			strcpy(cp, "\\x3a"); // copy the literal string \x3a to the output
+			++cp2;
+			cp += 4;
+		} else
+			*cp++ = *cp2++;
+	}
+	*cp++ = '@';
+	*cp = 0;
 	if (parse_expression(p)) {
 		return p;
 	}
@@ -1532,8 +1551,8 @@ char *dynamic_compile_prepare(char *fld1) {
 				case 32: cpExpr = "md4($p.$s)"; break;
 				case 33: cpExpr = "md4(utf16($p))"; break;
 				case 34: cpExpr = "md5(md4($p))"; break;
-				case 35: cpExpr = "sha1(uc($u).$c1.$p),c1=:"; break;
-				case 36: cpExpr = "sha1($u.$c1.$p),c1=:"; break;
+				case 35: cpExpr = "sha1(uc($u).$c1.$p),c1=\\x3a"; break;
+				case 36: cpExpr = "sha1($u.$c1.$p),c1=\\x3a"; break;
 				case 37: cpExpr = "sha1(lc($u).$p)"; break;
 				case 38: cpExpr = "sha1($s.sha1($s.sha1($p)))"; break;
 				case 39: cpExpr = "md5($s.pad16($p)),saltlen=-120"; break;
