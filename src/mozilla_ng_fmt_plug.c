@@ -113,52 +113,62 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	++p;
 	if ((p = strtokm(p, "*")) == NULL) /* version */
 		goto err;
+	if(!isdec(p))
+		goto err;
 	res = atoi(p);
 	if (res != 3)  /* we only know about this particular version */
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* local_salt_length */
 		goto err;
+	if(!isdec(p))
+		goto err;
 	res = atoi(p);
-	if (res > 20)
+	if (res > 20 || res < 0)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* nnLen (we ignore nnlen) */
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* local_salt */
 		goto err;
-	if (strlen(p) != res * 2)
+	if (strlen(p) /2 != res)
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* oidDatalen */
 		goto err;
+	if(!isdec(p))
+		goto err;
 	res = atoi(p);
-	if (res > 20)
+	if (res > 20 || res < 0)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* oidData */
 		goto err;
-	if (strlen(p) != res * 2)
+	if (strlen(p) / 2 != res)
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* password_check_length */
 		goto err;
+	if(!isdec(p))
+		goto err;
 	res = atoi(p);
-	if (res > 20)
+	if (res > 20 || res < 0)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* password_check */
 		goto err;
-	if (strlen(p) != res * 2)
+	if (strlen(p) / 2 != res)
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* global_salt_length */
 		goto err;
+	if(!isdec(p))
+		goto err;
 	res = atoi(p);
-	if (res > 20)
+	if (res > 20 || res < 0)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* global_salt */
 		goto err;
-	if (strlen(p) != res * 2)
+	if (strlen(p) / 2 != res)
 		goto err;
 	if (!ishex(p))
 		goto err;
