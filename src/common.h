@@ -94,6 +94,8 @@ extern void common_init(void);
 
 /* is string full valid hex string */
 int ishex(char *q);
+/* Same as ishex(), BUT will still return true for an odd length string */
+int ishex_oddOK(char *q);
 /* is string full valid hex string (only upper case letters) */
 int ishexuc(char *q);
 /* is string full valid hex string (only lower case letters) */

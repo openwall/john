@@ -58,8 +58,17 @@ int ishex(char *q)
 	char *p=q;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		++q;
-	return !*q && ((p-q))&1;
+	return !*q && !(((q-p))&1);
 }
+int ishex_oddOK(char *q)
+{
+	// Sometimes it is 'ok' to have odd length hex.  Usually not.  If odd is
+	// allowed, then the format will have to properly handle odd length.
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		++q;
+	return !*q;
+}
+
 int ishexuc(char *q)
 {
 	char *p=q;
@@ -67,7 +76,7 @@ int ishexuc(char *q)
 		if (*q >= 'a' && *q <= 'f') return 0;
 		++q;
 	}
-	return !*q && ((p-q))&1;
+	return !*q && !(((p-q))&1);
 }
 int ishexlc(char *q)
 {
@@ -76,7 +85,7 @@ int ishexlc(char *q)
 		if (*q >= 'A' && *q <= 'F') return 0;
 		++q;
 	}
-	return !*q && ((p-q))&1;
+	return !*q && !(((p-q))&1);
 }
 /*
  * if full string is HEX, then return is positive. If there is something

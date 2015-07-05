@@ -154,6 +154,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "$")) == NULL) /* data length */
 		goto err;
 	len = atoi(p);
+	if (len < 0)
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* unpacksize */
 		goto err;
 	if (!isdec(p))	/* no way to validate, other than atoi() works for it */
