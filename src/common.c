@@ -55,38 +55,47 @@ void common_init(void)
 
 int ishex(char *q)
 {
+	char *p=q;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		++q;
-	return !*q;
+	return !*q && ((p-q))&1;
 }
 int ishexuc(char *q)
 {
+	char *p=q;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
 		if (*q >= 'a' && *q <= 'f') return 0;
 		++q;
 	}
-	return !*q;
+	return !*q && ((p-q))&1;
 }
 int ishexlc(char *q)
 {
+	char *p=q;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
 		if (*q >= 'A' && *q <= 'F') return 0;
 		++q;
 	}
-	return !*q;
+	return !*q && ((p-q))&1;
 }
 /*
  * if full string is HEX, then return is positive. If there is something
  * other than hex characters, then the return is negative but is the length
  * of 'valid' hex characters that start the string.
+ *
+ * NOTE, if the length is odd, then the 'full' length will not be returned.
+ * the length returned will be length-1 since it would not be proper to try
+ * to hex convert the last odd byte.
  */
 int hexlen(char *q)
 {
 	char *s = q;
 	size_t len = strlen(q);
+	if (len&1) --len;
 
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		++q;
+	if ((size_t)(q - s)&1) --q;
 	return (len == (size_t)(q - s)) ? (int)(q - s) : -1 - (int)(q - s);
 }
 int isdec(char *q)
