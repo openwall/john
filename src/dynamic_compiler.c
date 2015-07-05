@@ -1308,7 +1308,7 @@ static int parse_expression(DC_struct *p) {
 								else if (!strncasecmp(pCode[i], "f224", 4))
 									comp_add_script_line("Func=DynamicFunc__SHA224_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f256", 4))
-									comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_append_input2n", use_inp1?"1":"2");
+									comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f384", 4))
 									comp_add_script_line("Func=DynamicFunc__SHA384_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "fgost", 5))
@@ -1342,7 +1342,7 @@ static int parse_expression(DC_struct *p) {
 								else if (!strncasecmp(pCode[i], "f224", 4))
 									comp_add_script_line("Func=DynamicFunc__SHA224_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f256", 4))
-									comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_overwrite_input2n", use_inp1?"1":"2");
+									comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f384", 4))
 									comp_add_script_line("Func=DynamicFunc__SHA384_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "fgost", 5))
@@ -1480,19 +1480,20 @@ static void add_checksum_list(DC_HANDLE pHand) {
 	pList->next = p;
 }
 
-static char *convert_old_dyna_to_new(char *in, char *out, char *expr) {
+static char *convert_old_dyna_to_new(char *in, char *out, int outsize, char *expr) {
 	char *cp = strchr(&in[1], '$');
 	if (!cp)
 		return in;
 	++cp;
-	sprintf(out, "@dynamic=%s@%s", expr, cp);
+	snprintf(out, outsize-1, "@dynamic=%s@%s", expr, cp);
+	out[outsize-1] = 0;
 	return out;
 }
 
 char *dynamic_compile_prepare(char *fld1) {
 	if (!strncmp(fld1, "$dynamic_", 9)) {
 		int num;
-		static char Buf[512], tmp1[64];
+		static char Buf[1024], tmp1[64];
 		if (sscanf(fld1, "$dynamic_%d$", &num) == 1) {
 			char *cpExpr=0;
 			if (num >= 50 && num < 160) {
@@ -1562,7 +1563,7 @@ char *dynamic_compile_prepare(char *fld1) {
 				//case 30: cpExpr = ""; break;
 			}
 			if (cpExpr)
-				fld1 = convert_old_dyna_to_new(fld1, Buf, cpExpr);
+				fld1 = convert_old_dyna_to_new(fld1, Buf, sizeof(Buf), cpExpr);
 		}
 	}
 	return fld1;
