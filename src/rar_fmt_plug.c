@@ -134,8 +134,6 @@ static unpack_data_t (*unpack_data);
 static unsigned int *saved_len;
 static unsigned char *aes_key;
 static unsigned char *aes_iv;
-static int warn_once_pack_size = 1;
-static int warn_once_unp_size = 1;
 
 typedef struct {
 	dyna_salt dsalt; /* must be first. allows dyna_salt to work */
@@ -506,6 +504,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if (!(ptr = strtokm(NULL, "*"))) /* pack_size */
 			goto error;
 		if (strlen(ptr) > 12) { // pack_size > 1 TB? Really?
+			static int warn_once_pack_size = 1;
 			if (warn_once_pack_size) {
 				fprintf(stderr, "pack_size > 1TB not supported (%s)\n", FORMAT_NAME);
 				warn_once_pack_size = 0;
@@ -517,6 +516,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if (!(ptr = strtokm(NULL, "*"))) /* unp_size */
 			goto error;
 		if (strlen(ptr) > 12) {
+			static int warn_once_unp_size = 1;
 			if (warn_once_unp_size) {
 				fprintf(stderr, "unp_size > 1TB not supported (%s)\n", FORMAT_NAME);
 				warn_once_unp_size = 0;

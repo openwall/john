@@ -81,7 +81,6 @@ typedef struct {
 
 static int *cracked;
 static int any_cracked;
-static int warn_once = 1;
 
 enum {
 	SPEC_SIMPLE = 0,
@@ -369,6 +368,8 @@ static int valid_cipher_algorithm(int cipher_algorithm)
 
 static int valid_hash_algorithm(int hash_algorithm, int spec)
 {
+	static int warn_once = 1;
+
 	if(spec == SPEC_SIMPLE || spec == SPEC_SALTED)
 #if 1
 		goto print_warn_once;
