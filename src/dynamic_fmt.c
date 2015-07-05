@@ -3759,8 +3759,8 @@ void DynamicFunc__append_keys_pad16(DYNA_OMP_PARAMS)
 			unsigned int bf_ptr = total_len[idx][idx_mod];
 			saved_key[j][saved_key_len[j]] = 0; // so strncpy 'works'
 			if (saved_key_len[j] < 16) {
-				char buf[17];
-				strncpy(buf, saved_key[j], 17);
+				char buf[24];
+				strncpy(buf, saved_key[j], 18);
 				total_len[idx][idx_mod] += 16;
 				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)buf,16,bf_ptr,1);
 			} else {
@@ -3802,8 +3802,8 @@ void DynamicFunc__append_keys_pad20(DYNA_OMP_PARAMS)
 			unsigned int bf_ptr = total_len[idx][idx_mod];
 			saved_key[j][saved_key_len[j]] = 0; // so strncpy 'works'
 			if (saved_key_len[j] < 20) {
-				char buf[21];
-				strncpy(buf, saved_key[j], 21);
+				char buf[28];
+				strncpy(buf, saved_key[j], 22);
 				total_len[idx][idx_mod] += 20;
 				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)buf,20,bf_ptr,1);
 			} else {
@@ -8205,9 +8205,20 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 
 struct fmt_main *dynamic_Register_local_format(int *type) {
 	int num=nLocalFmts++;
+	private_subformat_data keep;
 	if (!pLocalFmts)
 		pLocalFmts = mem_calloc_tiny(1000*sizeof(struct fmt_main), 16);
+
+	/* since these are loaded LATE in the process, init() has been called
+	 * and we HAVE to preserve the already loaded setup. This will happen
+	 * if we run a crack, but do not specify a specific dyna format
+	 */
+	memcpy(&keep, &curdat, sizeof(private_subformat_data));
 	LoadOneFormat(num+6000, &(pLocalFmts[num]));
+	memcpy(&curdat, &keep, sizeof(private_subformat_data));
+	dynamic_use_sse = curdat.dynamic_use_sse;
+	force_md5_ctx = curdat.force_md5_ctx;
+
 	*type = num+6000;
 	return &(pLocalFmts[num]);
 }
