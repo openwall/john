@@ -234,8 +234,8 @@ inline void cmp(uint gid,
 }
 
 #define USE_CONST_CACHE \
-	((CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4)) && (!IS_STATIC_GPU_MASK))
-	
+	(CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4))
+
 /* some constants used below are passed with -D */
 //#define KEY_LENGTH (MD5_PLAINTEXT_LENGTH + 1)
 

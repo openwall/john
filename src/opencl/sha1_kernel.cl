@@ -344,7 +344,7 @@ inline void cmp(uint gid,
 }
 
 #define USE_CONST_CACHE \
-	((CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4)) && (!IS_STATIC_GPU_MASK))
+	(CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4))
 
 __kernel void sha1(__global uint *keys,
 		  __global uint *index,
