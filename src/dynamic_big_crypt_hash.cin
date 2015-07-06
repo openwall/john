@@ -417,5 +417,3 @@ void DynamicFunc__#{HASH}_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS)
 #endif  // defined SIMD_PARA_#{PARAHASH}
 	}
 }
-
-#endif
