@@ -101,7 +101,7 @@ static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 }
 static char *our_prepare(char **fields, struct fmt_main *self)
 {
-	char *ciphertext = dynamic_compile_prepare(fields[1]);
+	char *ciphertext = dynamic_compile_prepare(fields[0], fields[1]);
 	return ciphertext;
 }
 

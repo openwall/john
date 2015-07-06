@@ -1086,7 +1086,7 @@ static struct fmt_tests _Preloads_35[] =
 	{"$dynamic_35$9afbe0bf4e1f24e7e2d9df322b3b284037ac6e19$$UU1","thatsworking"},
 	// repeat previous hash in exactly the same format that is used for john.pot
 	{"$dynamic_35$9afbe0bf4e1f24e7e2d9df322b3b284037ac6e19$HEX$24555531","thatsworking"},
-	{"$dynamic_35$e01ff7a245202eb8b62a653473f078f6a71b5559$$UNINECHaRS","test3"},
+	{"$dynamic_35$e01ff7a245202eb8b62a653473f078f6a71b5559$$UNINECHARS","test3"},
 	{"$dynamic_35$a12c6e0d8a4bcabb7f588456cbd20eac3332724d","test1",        {"ELEV__CHARS"}},
 	{"$dynamic_35$9afbe0bf4e1f24e7e2d9df322b3b284037ac6e19","thatsworking", {"U1"}},
 	{"$dynamic_35$e01ff7a245202eb8b62a653473f078f6a71b5559","test3",        {"NINECHARS"}},

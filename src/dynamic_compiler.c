@@ -1308,6 +1308,8 @@ static int parse_expression(DC_struct *p) {
 								comp_add_script_line("Func=DynamicFunc__MD5_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
 							else if (!strncasecmp(pCode[i], "f4", 2))
 								comp_add_script_line("Func=DynamicFunc__MD4_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+							else if (!strncasecmp(pCode[i], "f128_4", 6))
+								comp_add_script_line("Func=DynamicFunc__HAVAL128_4_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
 							else if (!strncasecmp(pCode[i], "f1", 2)) {
 								comp_add_script_line("Func=DynamicFunc__SHA1_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
 								comp_add_script_line("Flag=MGF_INPUT_20_BYTE\n");
@@ -1354,8 +1356,6 @@ static int parse_expression(DC_struct *p) {
 								comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
 								comp_add_script_line("Flag=MGF_INPUT_40_BYTE\n");
 							}
-							else if (!strncasecmp(pCode[i], "f128_4", 6))
-								comp_add_script_line("Func=DynamicFunc__HAVAL128_4_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
 						} else {
 							if (append_mode) {
 								// check for sha512 has to happen before md5, since both start with f5
@@ -1365,6 +1365,8 @@ static int parse_expression(DC_struct *p) {
 									comp_add_script_line("Func=DynamicFunc__MD5_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f4", 2))
 									comp_add_script_line("Func=DynamicFunc__MD4_crypt_input%s_append_input2\n", use_inp1?"1":"2");
+								else if (!strncasecmp(pCode[i], "f128_4", 6))
+									comp_add_script_line("Func=DynamicFunc__HAVAL128_4_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f1", 2))
 									comp_add_script_line("Func=DynamicFunc__SHA1_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f224", 4))
@@ -1389,8 +1391,6 @@ static int parse_expression(DC_struct *p) {
 									comp_add_script_line("Func=DynamicFunc__RIPEMD256_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "frip320", 7))
 									comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f128_4", 6))
-									comp_add_script_line("Func=DynamicFunc__HAVAL128_4_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;
@@ -1403,6 +1403,8 @@ static int parse_expression(DC_struct *p) {
 									comp_add_script_line("Func=DynamicFunc__MD5_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f4", 2))
 									comp_add_script_line("Func=DynamicFunc__MD4_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+								else if (!strncasecmp(pCode[i], "f128_4", 6))
+									comp_add_script_line("Func=DynamicFunc__HAVAL128_4_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f1", 2))
 									comp_add_script_line("Func=DynamicFunc__SHA1_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f224", 4))
@@ -1427,8 +1429,6 @@ static int parse_expression(DC_struct *p) {
 									comp_add_script_line("Func=DynamicFunc__RIPEMD256_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "frip320", 7))
 									comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f128_4", 6))
-									comp_add_script_line("Func=DynamicFunc__HAVAL128_4_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;
@@ -1550,23 +1550,67 @@ static void add_checksum_list(DC_HANDLE pHand) {
 	pList->next = p;
 }
 
-static char *convert_old_dyna_to_new(char *in, char *out, int outsize, char *expr) {
+static char *convert_old_dyna_to_new(char *fld0, char *in, char *out, int outsize, char *expr) {
 	char *cp = strchr(&in[1], '$');
 	if (!cp)
 		return in;
 	++cp;
 	snprintf(out, outsize-1, "@dynamic=%s@%s", expr, cp);
 	out[outsize-1] = 0;
+	if (strstr(expr, "$u") && !strstr(out, "$$U")) {
+		strcat (out, "$$U");
+		strcat (out, fld0);
+	}
 	return out;
 }
 
-char *dynamic_compile_prepare(char *fld1) {
+char *dynamic_compile_prepare(char *fld0, char *fld1) {
 	if (!strncmp(fld1, "$dynamic_", 9)) {
 		int num;
 		static char Buf[1024], tmp1[64];
+		if (strlen(fld1) > 490)
+			return fld1;
+		if (strstr(fld1, "$HEX$")) {
+			char *cpBuilding=fld1;
+			char *cp, *cpo;
+			int bGood=1;
+			static char ct[512];
+
+			strcpy(ct, cpBuilding);
+			cp = strstr(ct, "$HEX$");
+			cpo = cp;
+			*cpo++ = *cp;
+			cp += 5;
+			while (*cp && bGood) {
+				if (*cp == '0' && cp[1] == '0') {
+					bGood = 0;
+					break;
+				}
+				if (atoi16[ARCH_INDEX(*cp)] != 0x7f && atoi16[ARCH_INDEX(cp[1])] != 0x7f) {
+					*cpo++ = atoi16[ARCH_INDEX(*cp)]*16 + atoi16[ARCH_INDEX(cp[1])];
+					*cpo = 0;
+					cp += 2;
+				} else if (*cp == '$') {
+					while (*cp && strncmp(cp, "$HEX$", 5)) {
+						*cpo++ = *cp++;
+					}
+					*cpo = 0;
+					if (!strncmp(cp, "$HEX$", 5)) {
+						*cpo++ = *cp;
+						cp += 5;
+					}
+				} else {
+					return fld1;
+				}
+			}
+			if (bGood)
+				cpBuilding = ct;
+			// if we came into $HEX$ removal, then cpBuilding will always be shorter
+			fld1 = cpBuilding;
+		}
 		if (sscanf(fld1, "$dynamic_%d$", &num) == 1) {
 			char *cpExpr=0;
-			if (num >= 50 && num < 160) {
+			if (num >= 50 && num < 1000) {
 				char *type = 0;
 				switch (num/10) {
 					case 5: type="sha224"; break; // 50-59
@@ -1583,18 +1627,20 @@ char *dynamic_compile_prepare(char *fld1) {
 					case 16: type="haval256_3"; break;
 					case 17: type="haval128_4"; break;
 				}
-				switch(num%10) {
-					case 0: sprintf(tmp1, "%s($p)", type); break;
-					case 1: sprintf(tmp1, "%s($s.$p)", type); break;
-					case 2: sprintf(tmp1, "%s($p.$s)", type); break;
-					case 3: sprintf(tmp1, "%s(%s($p))", type, type); break;
-					case 4: sprintf(tmp1, "%s(%s_raw($p))", type, type); break;
-					case 5: sprintf(tmp1, "%s(%s($p).$s)", type, type); break;
-					case 6: sprintf(tmp1, "%s($s.%s($p))", type, type); break;
-					case 7: sprintf(tmp1, "%s(%s($s).%s($p))", type, type, type); break;
-					case 8: sprintf(tmp1, "%s(%s($p).%s($p))", type, type, type); break;
+				if (type) {
+					switch(num%10) {
+						case 0: sprintf(tmp1, "%s($p)", type); break;
+						case 1: sprintf(tmp1, "%s($s.$p)", type); break;
+						case 2: sprintf(tmp1, "%s($p.$s)", type); break;
+						case 3: sprintf(tmp1, "%s(%s($p))", type, type); break;
+						case 4: sprintf(tmp1, "%s(%s_raw($p))", type, type); break;
+						case 5: sprintf(tmp1, "%s(%s($p).$s)", type, type); break;
+						case 6: sprintf(tmp1, "%s($s.%s($p))", type, type); break;
+						case 7: sprintf(tmp1, "%s(%s($s).%s($p))", type, type, type); break;
+						case 8: sprintf(tmp1, "%s(%s($p).%s($p))", type, type, type); break;
+					}
+					cpExpr = tmp1;
 				}
-				cpExpr = tmp1;
 			} else
 			switch(num) {
 				case 0: cpExpr = "md5($p)"; break;
@@ -1635,7 +1681,7 @@ char *dynamic_compile_prepare(char *fld1) {
 				//case 30: cpExpr = ""; break;
 			}
 			if (cpExpr)
-				fld1 = convert_old_dyna_to_new(fld1, Buf, sizeof(Buf), cpExpr);
+				fld1 = convert_old_dyna_to_new(fld0, fld1, Buf, sizeof(Buf), cpExpr);
 		}
 	}
 	return fld1;
@@ -1643,7 +1689,7 @@ char *dynamic_compile_prepare(char *fld1) {
 char *dynamic_compile_split(char *ct) {
 	extern int ldr_in_pot;
 	if (strncmp(ct, "dynamic_", 8)) {
-		return dynamic_compile_prepare(ct);
+		return dynamic_compile_prepare("", ct);
 	} else if (strncmp(ct, "@dynamic=", 9) && strncmp(ct, dyna_signature, dyna_sig_len)) {
 		// convert back into dynamic= format
 		static char Buf[512];
