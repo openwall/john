@@ -18,12 +18,20 @@ my %speed;
 my %best;
 my $test="first";
 my $john_build;
+my $gomp_stuff = "";
 
 print "This will take a while.\n";
 print "Initial configure...\n";
-print `./configure --disable-cuda --disable-opencl --enable-openmp-for-fast-formats >/dev/null` or die;
+print `./configure --disable-cuda --disable-opencl >/dev/null` or die;
 print `make -s clean` or die;
 print "Initial build...\n";
+
+if (defined $ENV{OMP_NUM_THREADS}) {
+	$gomp_stuff .= "OMP_NUM_THREADS=" . $ENV{OMP_NUM_THREADS} . " ";
+}
+if (defined $ENV{GOMP_CPU_AFFINITY}) {
+	$gomp_stuff .= "GOMP_CPU_AFFINITY=" . $ENV{GOMP_CPU_AFFINITY};
+}
 
 foreach $i (1..5)
 {
@@ -79,6 +87,9 @@ print "\n$compiler";
 print "$john_build";
 if ($test ne "-test") {
 	print "running john with \'$test\' for each test\n";
+}
+if ($gomp_stuff) {
+	print "$gomp_stuff\n";
 }
 printf "\n%-10s |  %6d  |  %6d  |  %6d  |  %6d  |  %6d  |\n", "hash\\para", 1, 2, 3, 4, 5;
 print "-----------|----------|----------|----------|----------|----------|\n";
