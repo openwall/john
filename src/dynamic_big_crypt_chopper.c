@@ -50,12 +50,14 @@ int main(int argc, char **argv) {
 		}
 	}
 	// now read stdin, and modify, and write to stdout
-	fgets(Line, sizeof(Line), stdin);
+	if (!fgets(Line, sizeof(Line), stdin))
+		return 0;
 	while (!feof(stdin)) {
 		detok();
 		if (in_defined())
 			printf("%s\n", tmpLine);
-		fgets(Line, sizeof(Line), stdin);
+		if (!fgets(Line, sizeof(Line), stdin))
+			return 0;
 	}
 }
 
