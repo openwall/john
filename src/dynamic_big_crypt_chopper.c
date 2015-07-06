@@ -59,6 +59,7 @@ int main(int argc, char **argv) {
 		if (!fgets(Line, sizeof(Line), stdin))
 			return 0;
 	}
+	return 0;
 }
 
 // removes all the #{token} and replaces with value
