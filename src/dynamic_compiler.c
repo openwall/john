@@ -146,13 +146,14 @@ DONE #define MGF_USERNAME_LOCASE         (0x00000040|MGF_USERNAME)
 #include "sha2.h"
 #include "gost.h"
 #include "unicode.h"
-// this one is going to be harder.  only haval_256_5 is implemented in CPAN perl, making genation of test cases harder.
+// this one is going to be harder.  only haval_256_5 is implemented in CPAN perl, making generation of test cases harder.
 // Also, there are 15 different hashes in this 'family'.
 //#include "sph_haval.h"
 
 #include "sph_ripemd.h"
 #include "sph_tiger.h"
 #include "sph_whirlpool.h"
+#include "sph_haval.h"
 
 #if (AC_BUILT && HAVE_WHIRLPOOL) ||	  \
    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
@@ -344,6 +345,14 @@ static void ripemd320_hex()    { sph_ripemd320_context c; sph_ripemd320_init(&c)
 static void ripemd320_base64() { sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
 static void ripemd320_base64c(){ sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
 static void ripemd320_raw()    { sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); }
+static void haval256_3_hex()    { sph_haval256_3_context c; sph_haval256_3_init(&c); sph_haval256_3(&c, (unsigned char*)h, h_len); sph_haval256_3_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void haval256_3_base64() { sph_haval256_3_context c; sph_haval256_3_init(&c); sph_haval256_3(&c, (unsigned char*)h, h_len); sph_haval256_3_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void haval256_3_base64c(){ sph_haval256_3_context c; sph_haval256_3_init(&c); sph_haval256_3(&c, (unsigned char*)h, h_len); sph_haval256_3_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void haval256_3_raw()    { sph_haval256_3_context c; sph_haval256_3_init(&c); sph_haval256_3(&c, (unsigned char*)h, h_len); sph_haval256_3_close(&c, (unsigned char*)h); }
+static void haval128_4_hex()    { sph_haval128_4_context c; sph_haval128_4_init(&c); sph_haval128_4(&c, (unsigned char*)h, h_len); sph_haval128_4_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
+static void haval128_4_base64() { sph_haval128_4_context c; sph_haval128_4_init(&c); sph_haval128_4(&c, (unsigned char*)h, h_len); sph_haval128_4_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
+static void haval128_4_base64c(){ sph_haval128_4_context c; sph_haval128_4_init(&c); sph_haval128_4(&c, (unsigned char*)h, h_len); sph_haval128_4_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void haval128_4_raw()    { sph_haval128_4_context c; sph_haval128_4_init(&c); sph_haval128_4(&c, (unsigned char*)h, h_len); sph_haval128_4_close(&c, (unsigned char*)h); }
 static int encode_le()         { int len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
 static char *pad16()           { memset(gen_conv, 0, 16); strncpy(gen_conv, gen_pw, 16); return gen_conv; }
 static char *pad20()           { memset(gen_conv, 0, 20); strncpy(gen_conv, gen_pw, 20); return gen_conv; }
@@ -480,6 +489,17 @@ static void dynamic_frip320H()  { dyna_helper_pre(); ripemd320_hex(); strupr(h);
 static void dynamic_frip3206()  { dyna_helper_pre(); ripemd320_base64();         dyna_helper_poststr(); }
 static void dynamic_frip320c()  { dyna_helper_pre(); ripemd320_base64c();        dyna_helper_poststr(); }
 static void dynamic_frip320r()  { dyna_helper_pre(); ripemd320_raw();            dyna_helper_post(40); }
+static void dynamic_f256_3h()   { dyna_helper_pre(); haval256_3_hex();            dyna_helper_poststr(); }
+static void dynamic_f256_3H()   { dyna_helper_pre(); haval256_3_hex(); strupr(h); dyna_helper_poststr(); }
+static void dynamic_f256_36()   { dyna_helper_pre(); haval256_3_base64();         dyna_helper_poststr(); }
+static void dynamic_f256_3c()   { dyna_helper_pre(); haval256_3_base64c();        dyna_helper_poststr(); }
+static void dynamic_f256_3r()   { dyna_helper_pre(); haval256_3_raw();            dyna_helper_post(32); }
+static void dynamic_f128_4h()   { dyna_helper_pre(); haval128_4_hex();            dyna_helper_poststr(); }
+static void dynamic_f128_4H()   { dyna_helper_pre(); haval128_4_hex(); strupr(h); dyna_helper_poststr(); }
+static void dynamic_f128_46()   { dyna_helper_pre(); haval128_4_base64();         dyna_helper_poststr(); }
+static void dynamic_f128_4c()   { dyna_helper_pre(); haval128_4_base64c();        dyna_helper_poststr(); }
+static void dynamic_f128_4r()   { dyna_helper_pre(); haval128_4_raw();            dyna_helper_post(16); }
+
 static void dynamic_futf16()    { dyna_helper_pre();                             dyna_helper_post(encode_le()); }
 //static void dynamic_futf16be()  { dyna_helper_pre();                             dyna_helper_post(encode_be()); }
 
@@ -716,6 +736,20 @@ static const char *comp_get_symbol(const char *pInput) {
 		if (!strncmp(pInput, "ripemd320", 9)) { return comp_push_sym("frip320h", dynamic_frip320h, pInput+9); }
 		if (!strncmp(pInput, "RIPEMD320", 9)) { return comp_push_sym("frip320H", dynamic_frip320H, pInput+9); }
 	}
+	if (!strncasecmp(pInput, "haval256_3", 10)) {
+		if (!strncmp(pInput, "haval256_3_raw", 14)) { LastTokIsFunc = 2; return comp_push_sym("f256_3r", dynamic_f256_3r, pInput+14); }
+		if (!strncmp(pInput, "haval256_3_64c", 14)) { return comp_push_sym("f256_3c", dynamic_f256_3c, pInput+14); }
+		if (!strncmp(pInput, "haval256_3_64", 13)) { return comp_push_sym("f256_36", dynamic_f256_36, pInput+13); }
+		if (!strncmp(pInput, "haval256_3", 10)) { return comp_push_sym("f256_3h", dynamic_f256_3h, pInput+10); }
+		if (!strncmp(pInput, "HAVAL256_3", 10)) { return comp_push_sym("f256_3H", dynamic_f256_3H, pInput+10); }
+	}
+	if (!strncasecmp(pInput, "haval128_4", 10)) {
+		if (!strncmp(pInput, "haval128_4_raw", 14)) { LastTokIsFunc = 2; return comp_push_sym("f128_4r", dynamic_f128_4r, pInput+14); }
+		if (!strncmp(pInput, "haval128_4_64c", 14)) { return comp_push_sym("f128_4c", dynamic_f128_4c, pInput+14); }
+		if (!strncmp(pInput, "haval128_4_64", 13)) { return comp_push_sym("f128_46", dynamic_f128_46, pInput+13); }
+		if (!strncmp(pInput, "haval128_4", 10)) { return comp_push_sym("f128_4h", dynamic_f128_4h, pInput+10); }
+		if (!strncmp(pInput, "HAVAL128_4", 10)) { return comp_push_sym("f128_4H", dynamic_f128_4H, pInput+10); }
+	}
 	LastTokIsFunc = 0;
 	if (!strncmp(pInput, "pad16($p)", 9))   return comp_push_sym("pad16", dynamic_pad16, pInput+9);
 	if (!strncmp(pInput, "pad20($p)", 9))   return comp_push_sym("pad20", dynamic_pad20, pInput+9);
@@ -760,7 +794,8 @@ static char *comp_optimize_expression(const char *pExpr) {
 		char cpType[48];
 		p = strstr(pBuf, "($s)");
 		--p;
-		while (isalnum(ARCH_INDEX(*p))) --p;
+		while (*p != '.' && *p != '(')
+			--p;
 		p2 = cpType;
 		++p;
 		while (p[-1] != ')' && p2-cpType < sizeof(cpType)-1)
@@ -1028,10 +1063,13 @@ static void build_test_string(DC_struct *p, char **pLine) {
 		else if (!strcmp(tmp, "SHA512")) sha512_hex();
 		else if (!strcmp(tmp, "WHIRLPOOL")) whirlpool_hex();
 		else if (!strcmp(tmp, "TIGER")) tiger_hex();
+		else if (!strcmp(tmp, "GOST")) gost_hex();
 		else if (!strcmp(tmp, "RIPEMD128")) ripemd128_hex();
 		else if (!strcmp(tmp, "RIPEMD160")) ripemd160_hex();
 		else if (!strcmp(tmp, "RIPEMD256")) ripemd256_hex();
 		else if (!strcmp(tmp, "RIPEMD320")) ripemd320_hex();
+		else if (!strcmp(tmp, "HAVAL256_3")) haval256_3_hex();
+		else if (!strcmp(tmp, "HAVAL128_4")) haval128_4_hex();
 	}
 	for (i = 0; i < nCode; ++i)
 		fpCode[i]();
@@ -1085,11 +1123,11 @@ static int parse_expression(DC_struct *p) {
 		*cp = 0;
 		strupr(tmp);
 		comp_add_script_line("Flag=MGF_SALT_AS_HEX_%s\n", tmp);
-		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||strcmp(tmp,"RIPEMD128")) salt_hex_len = 32;
+		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||strcmp(tmp,"RIPEMD128")||!strcmp(tmp,"HAVAL_128_4")) salt_hex_len = 32;
 		if (!strcmp(tmp,"SHA1")||!strcmp(tmp,"RIPEMD160")) salt_hex_len = 40;
 		if (!strcmp(tmp,"TIGER")) salt_hex_len = 48;
 		if (!strcmp(tmp,"SHA224")) salt_hex_len = 56;
-		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")) salt_hex_len = 64;
+		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")||!strcmp(tmp,"HAVAL_256_3")) salt_hex_len = 64;
 		if (!strcmp(tmp,"RIPEMD320")) salt_hex_len = 80;
 		if (!strcmp(tmp,"SHA384")) salt_hex_len = 96;
 		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")) salt_hex_len = 128;
@@ -1129,7 +1167,7 @@ static int parse_expression(DC_struct *p) {
 		int x, j, last_push;
 		//int inp2_used = 0;
 		int salt_len = nSaltLen ? nSaltLen : -32;
-		int in_unicode = 0;
+		int in_unicode = 0, out_raw = 0, out_64 = 0, out_16u = 0;
 		int append_mode = 0;
 		int max_inp_len = 110, len_comp = 0;
 		int inp1_clean = 0;
@@ -1165,11 +1203,29 @@ static int parse_expression(DC_struct *p) {
 						comp_add_script_line("Flag=MGF_UTF8\n");
 						flag_utf16 = 1;
 					}
+				} else if ((pCode[i][0] == 'f' || pCode[i][0] == 'F') && pCode[i][strlen(pCode[i])-1] == 'r') {
+					if (!out_raw) {
+						out_raw = 1;
+						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_raw\n");
+					}
+				} else if ((pCode[i][0] == 'f' || pCode[i][0] == 'F') && pCode[i][1]>='A' && pCode[i][1] <= 'Z') {
+					if (!out_16u) {
+						out_16u = 1;
+						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base16u\n");
+					}
+				} else if ((pCode[i][0] == 'f' || pCode[i][0] == 'F') && pCode[i][strlen(pCode[i])-1] == '6') {
+					if (!out_64) {
+						out_64 = 1;
+						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base64\n");
+					}
 				} else {
 					// if final hash, then dont clear the mode to normal
-					if (in_unicode && !(!pCode[i+1] || !pCode[i+1][0]))
+					if ( in_unicode && !(!pCode[i+1] || !pCode[i+1][0]))
 						comp_add_script_line("Func=DynamicFunc__setmode_normal\n");
 					in_unicode = 0;
+					if ( (out_raw||out_64||out_16u) && !(!pCode[i+1] || !pCode[i+1][0]))
+						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base16\n");
+					out_raw = out_64 = out_16u = 0;
 				}
 
 				// Found next function.  Now back up and load the data
@@ -1260,6 +1316,10 @@ static int parse_expression(DC_struct *p) {
 								comp_add_script_line("Func=DynamicFunc__SHA224_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
 								comp_add_script_line("Flag=MGF_INPUT_28_BYTE\n");
 							}
+							else if (!strncasecmp(pCode[i], "f256_3", 6)) {
+								comp_add_script_line("Func=DynamicFunc__HAVAL256_3_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
+								comp_add_script_line("Flag=MGF_INPUT_32_BYTE\n");
+							}
 							else if (!strncasecmp(pCode[i], "f256", 4)) {
 								comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
 								comp_add_script_line("Flag=MGF_INPUT_32_BYTE\n");
@@ -1294,6 +1354,8 @@ static int parse_expression(DC_struct *p) {
 								comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
 								comp_add_script_line("Flag=MGF_INPUT_40_BYTE\n");
 							}
+							else if (!strncasecmp(pCode[i], "f128_4", 6))
+								comp_add_script_line("Func=DynamicFunc__HAVAL128_4_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
 						} else {
 							if (append_mode) {
 								// check for sha512 has to happen before md5, since both start with f5
@@ -1307,6 +1369,8 @@ static int parse_expression(DC_struct *p) {
 									comp_add_script_line("Func=DynamicFunc__SHA1_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f224", 4))
 									comp_add_script_line("Func=DynamicFunc__SHA224_crypt_input%s_append_input2\n", use_inp1?"1":"2");
+								else if (!strncasecmp(pCode[i], "f256_3", 6))
+									comp_add_script_line("Func=DynamicFunc__HAVAL256_3_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f256", 4))
 									comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f384", 4))
@@ -1324,7 +1388,9 @@ static int parse_expression(DC_struct *p) {
 								else if (!strncasecmp(pCode[i], "frip256", 7))
 									comp_add_script_line("Func=DynamicFunc__RIPEMD256_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "frip320", 7))
-									comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+									comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input%s_append_input2\n", use_inp1?"1":"2");
+								else if (!strncasecmp(pCode[i], "f128_4", 6))
+									comp_add_script_line("Func=DynamicFunc__HAVAL128_4_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 								else {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;
@@ -1341,6 +1407,8 @@ static int parse_expression(DC_struct *p) {
 									comp_add_script_line("Func=DynamicFunc__SHA1_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f224", 4))
 									comp_add_script_line("Func=DynamicFunc__SHA224_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+								else if (!strncasecmp(pCode[i], "f256_3", 6))
+									comp_add_script_line("Func=DynamicFunc__HAVAL256_3_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f256", 4))
 									comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "f384", 4))
@@ -1359,6 +1427,8 @@ static int parse_expression(DC_struct *p) {
 									comp_add_script_line("Func=DynamicFunc__RIPEMD256_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else if (!strncasecmp(pCode[i], "frip320", 7))
 									comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+								else if (!strncasecmp(pCode[i], "f128_4", 6))
+									comp_add_script_line("Func=DynamicFunc__HAVAL128_4_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 								else {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;
@@ -1510,6 +1580,8 @@ char *dynamic_compile_prepare(char *fld1) {
 					case 13: type="ripemd160"; break;
 					case 14: type="ripemd256"; break;
 					case 15: type="ripemd320"; break;
+					case 16: type="haval256_3"; break;
+					case 17: type="haval128_4"; break;
 				}
 				switch(num%10) {
 					case 0: sprintf(tmp1, "%s($p)", type); break;
