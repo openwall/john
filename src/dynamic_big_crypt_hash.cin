@@ -1,0 +1,421 @@
+
+
+/********************************************************************
+ ****  Here are the #{HASH} functions (Now using 'common' interface)
+ ****  This code generated from dynamic_big_crypt_hash.cxx.
+ ****  DO NOT edit the code in this generated file!!! It will be
+ ****  regenerated at ./configure time.
+ *******************************************************************/
+#ifdef SIMD_PARA_#{PARAHASH}
+#define #{HASH}_LOOPS (SIMD_COEF_#{BITS}*SIMD_PARA_#{PARAHASH})
+static const unsigned int #{HASH}_inc = #{HASH}_LOOPS;
+
+static void Do#{HASH}_crypt_f_sse(void *in, int len[#{HASH}_LOOPS], void *out)
+{
+	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_#{BITS} a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(ARCH_WORD_#{BITS})];
+	unsigned int i, j, loops[#{HASH}_LOOPS], bMore, cnt;
+	unsigned char *cp = (unsigned char*)in;
+	for (i = 0; i < #{HASH}_LOOPS; ++i) {
+		loops[i] = Do_FixBufferLen#{BITS}(cp, len[i], #{BE_HASH});
+		cp += 64*4;
+	}
+	cp = (unsigned char*)in;
+	bMore = 1;
+	cnt = 1;
+	while (bMore) {
+		#{SSEBody}(cp, a, a, SSEi_FLAT_IN#{SSEFLAGS}|SSEi_#{SSE_LIMBS}BUF_INPUT_FIRST_BLK|(cnt==1?0:SSEi_RELOAD));
+		bMore = 0;
+		for (i = 0; i < #{HASH}_LOOPS; ++i) {
+			if (cnt == loops[i]) {
+				unsigned int offx = ((i/SIMD_COEF_#{BITS})*(#{BIN_SZ}/sizeof(ARCH_WORD_#{BITS}))*SIMD_COEF_#{BITS})+(i&(SIMD_COEF_#{BITS}-1));
+				// only 16 bytes in the 'final'
+				for (j = 0; j < 16/sizeof(ARCH_WORD_#{BITS}); ++j) {
+					((ARCH_WORD_#{BITS}*)out)[(i*#{SSE_LIMBS})+j] = #{JSWAPH}a[(j*SIMD_COEF_#{BITS})+offx]#{JSWAPT}
+				}
+			} else if (cnt < loops[i])
+				bMore = 1;
+		}
+		cp += #{BITS}*2;
+		++cnt;
+	}
+}
+
+static void Do#{HASH}_crypt_sse(void *in, int ilen[#{HASH}_LOOPS], void *out[#{HASH}_LOOPS], unsigned int *tot_len, int tid)
+{
+	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_#{BITS} a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(ARCH_WORD_#{BITS})];
+	union yy { unsigned char u[#{BIN_SZ}]; ARCH_WORD_#{BITS} a[#{BIN_SZ}/sizeof(ARCH_WORD_#{BITS})]; } y;
+	unsigned int i, j, loops[#{HASH}_LOOPS], bMore, cnt;
+	unsigned char *cp = (unsigned char*)in;
+	for (i = 0; i < #{HASH}_LOOPS; ++i) {
+		loops[i] = Do_FixBufferLen#{BITS}(cp, ilen[i], #{BE_HASH});
+		cp += 64*4;
+	}
+	cp = (unsigned char*)in;
+	bMore = 1;
+	cnt = 1;
+	while (bMore) {
+		#{SSEBody}(cp, a, a, SSEi_FLAT_IN#{SSEFLAGS}|SSEi_#{SSE_LIMBS}BUF_INPUT_FIRST_BLK|(cnt==1?0:SSEi_RELOAD));
+		bMore = 0;
+		for (i = 0; i < #{HASH}_LOOPS; ++i) {
+			if (cnt == loops[i]) {
+				unsigned int offx = ((i/SIMD_COEF_#{BITS})*#{BIN_SZ}/sizeof(ARCH_WORD_#{BITS})*SIMD_COEF_#{BITS})+(i&(SIMD_COEF_#{BITS}-1));
+				for (j = 0; j < #{BIN_SZ}/sizeof(ARCH_WORD_#{BITS}); ++j) {
+					y.a[j] = #{JSWAPH}a[(j*SIMD_COEF_#{BITS})+offx]#{JSWAPT}
+				}
+				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), #{BIN_REAL_SZ}, tid);
+			} else if (cnt < loops[i])
+				bMore = 1;
+		}
+		cp += #{BITS}*2;
+		++cnt;
+	}
+}
+
+#else  // defined SIMD_PARA_#{PARAHASH}
+#define #{HASH}_LOOPS 1
+static const unsigned int #{HASH}_inc = 1;
+
+static void inline Do#{HASH}_crypt_f(void *in, int len, void *out)
+{
+#ifdef TRUNC_TO16
+	union xx { unsigned char u[#{BIN_SZ}]; ARCH_WORD_#{BITS} a[#{BIN_SZ}/sizeof(ARCH_WORD_#{BITS})]; } u;
+	unsigned char *crypt_out=u.u;
+#else  // defined TRUNC_TO16
+	unsigned char *crypt_out=(unsigned char*)out;
+#endif  // defined TRUNC_TO16
+	#{HASH_CTX} ctx;
+	#{HASH_Init}(&ctx);
+	#{HASH_Update}(&ctx, in, len);
+	#{HASH_Final}(crypt_out, &ctx);
+#ifdef TRUNC_TO16
+	memcpy(out, crypt_out, 16);
+#endif  // defined TRUNC_TO16
+}
+
+static void inline Do#{HASH}_crypt(void *in, int ilen, void *out, unsigned int *tot_len, int tid)
+{
+	unsigned char crypt_out[#{BIN_SZ}];
+	#{HASH_CTX} ctx;
+	#{HASH_Init}(&ctx);
+	#{HASH_Update}(&ctx, in, ilen);
+	#{HASH_Final}(crypt_out, &ctx);
+	if (eLargeOut[0] == eBase16) {
+		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
+		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), #{BIN_REAL_SZ});
+		*tot_len += #{BIN_REAL_SZ}*2;
+	} else
+		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), #{BIN_REAL_SZ}, tid);
+}
+#endif  // defined SIMD_PARA_#{PARAHASH}
+
+void DynamicFunc__#{HASH}_crypt_input1_append_input2(DYNA_OMP_PARAMS)
+{
+	unsigned int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	unsigned int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += #{HASH}_inc) {
+#ifdef SIMD_PARA_#{PARAHASH}
+		int len[#{HASH}_LOOPS];
+		unsigned int j;
+		void *out[#{HASH}_LOOPS];
+		for (j = 0; j < #{HASH}_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+		}
+		Do#{HASH}_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, &(total_len2_X86[i]), tid);
+#else  // defined SIMD_PARA_#{PARAHASH}
+		#if (MD5_X2)
+		if (i & 1)
+			Do#{HASH}_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &(total_len2_X86[i]), tid);
+		else
+		#endif
+		Do#{HASH}_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &(total_len2_X86[i]), tid);
+#endif  // defined SIMD_PARA_#{PARAHASH}
+	}
+}
+
+void DynamicFunc__#{HASH}_crypt_input2_append_input1(DYNA_OMP_PARAMS)
+{
+	unsigned int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	unsigned int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += #{HASH}_inc) {
+#ifdef SIMD_PARA_#{PARAHASH}
+		int len[#{HASH}_LOOPS];
+		unsigned int j;
+		void *out[#{HASH}_LOOPS];
+		for (j = 0; j < #{HASH}_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+		}
+		Do#{HASH}_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, &(total_len_X86[i]), tid);
+#else  // defined SIMD_PARA_#{PARAHASH}
+		#if (MD5_X2)
+		if (i & 1)
+			Do#{HASH}_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &(total_len_X86[i]), tid);
+		else
+		#endif
+		Do#{HASH}_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+#endif  // defined SIMD_PARA_#{PARAHASH}
+	}
+}
+
+void DynamicFunc__#{HASH}_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS)
+{
+	unsigned int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	unsigned int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += #{HASH}_inc) {
+#ifdef SIMD_PARA_#{PARAHASH}
+		int len[#{HASH}_LOOPS];
+		unsigned int j;
+		unsigned int x[#{HASH}_LOOPS];
+		void *out[#{HASH}_LOOPS];
+		for (j = 0; j < #{HASH}_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
+		}
+		Do#{HASH}_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+		for (j = 0; j < #{HASH}_LOOPS; ++j)
+			total_len_X86[i+j] = x[j];
+#else  // defined SIMD_PARA_#{PARAHASH}
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			Do#{HASH}_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		Do#{HASH}_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+		total_len_X86[i] = x;
+#endif  // defined SIMD_PARA_#{PARAHASH}
+	}
+}
+
+void DynamicFunc__#{HASH}_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS)
+{
+	unsigned int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	unsigned int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += #{HASH}_inc) {
+#ifdef SIMD_PARA_#{PARAHASH}
+		int len[#{HASH}_LOOPS];
+		unsigned int j;
+		unsigned int x[#{HASH}_LOOPS];
+		void *out[#{HASH}_LOOPS];
+		for (j = 0; j < #{HASH}_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
+		}
+		Do#{HASH}_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+		for (j = 0; j < #{HASH}_LOOPS; ++j)
+			total_len2_X86[i+j] = x[j];
+#else  // defined SIMD_PARA_#{PARAHASH}
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			Do#{HASH}_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		Do#{HASH}_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+		total_len2_X86[i] = x;
+#endif  // defined SIMD_PARA_#{PARAHASH}
+	}
+}
+
+void DynamicFunc__#{HASH}_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS)
+{
+	unsigned int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	unsigned int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += #{HASH}_inc) {
+#ifdef SIMD_PARA_#{PARAHASH}
+		int len[#{HASH}_LOOPS];
+		unsigned int j;
+		unsigned int x[#{HASH}_LOOPS];
+		void *out[#{HASH}_LOOPS];
+		for (j = 0; j < #{HASH}_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
+		}
+		Do#{HASH}_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+		for (j = 0; j < #{HASH}_LOOPS; ++j)
+			total_len_X86[i+j] = x[j];
+#else  // defined SIMD_PARA_#{PARAHASH}
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			Do#{HASH}_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		Do#{HASH}_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+		total_len_X86[i] = x;
+#endif  // defined SIMD_PARA_#{PARAHASH}
+	}
+}
+
+void DynamicFunc__#{HASH}_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS)
+{
+	unsigned int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	unsigned int tid=0;
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += #{HASH}_inc) {
+#ifdef SIMD_PARA_#{PARAHASH}
+		int len[#{HASH}_LOOPS];
+		unsigned int j;
+		unsigned int x[#{HASH}_LOOPS];
+		void *out[#{HASH}_LOOPS];
+		for (j = 0; j < #{HASH}_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = 0;
+		}
+		Do#{HASH}_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+		for (j = 0; j < #{HASH}_LOOPS; ++j)
+			total_len2_X86[i+j] = x[j];
+#else  // defined SIMD_PARA_#{PARAHASH}
+		unsigned int x = 0;
+		#if (MD5_X2)
+		if (i & 1)
+			Do#{HASH}_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		Do#{HASH}_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+		total_len2_X86[i] = x;
+#endif  // defined SIMD_PARA_#{PARAHASH}
+	}
+}
+
+void DynamicFunc__#{HASH}_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS)
+{
+	unsigned int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += #{HASH}_inc) {
+#ifdef SIMD_PARA_#{PARAHASH}
+	int len[#{HASH}_LOOPS];
+	unsigned int j;
+	for (j = 0; j < #{HASH}_LOOPS; ++j)
+		len[j] = total_len_X86[i+j];
+	Do#{HASH}_crypt_f_sse(input_buf_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b);
+#else  // defined SIMD_PARA_#{PARAHASH}
+	#if (MD5_X2)
+		if (i & 1)
+			Do#{HASH}_crypt_f(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], crypt_key_X86[i>>MD5_X2].x2.b2);
+		else
+	#endif
+		Do#{HASH}_crypt_f(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], crypt_key_X86[i>>MD5_X2].x1.b);
+#endif  // defined SIMD_PARA_#{PARAHASH}
+	}
+}
+
+void DynamicFunc__#{HASH}_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS)
+{
+	unsigned int i, til;
+
+#ifdef _OPENMP
+	i = first;
+	til = last;
+#else
+	i = 0;
+	til = m_count;
+#endif
+	for (; i < til; i += #{HASH}_inc) {
+#ifdef SIMD_PARA_#{PARAHASH}
+	int len[#{HASH}_LOOPS];
+	unsigned int j;
+	for (j = 0; j < #{HASH}_LOOPS; ++j)
+		len[j] = total_len2_X86[i+j];
+	Do#{HASH}_crypt_f_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, crypt_key_X86[i>>MD5_X2].x1.b);
+#else  // defined SIMD_PARA_#{PARAHASH}
+	#if (MD5_X2)
+		if (i & 1)
+			Do#{HASH}_crypt_f(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], crypt_key_X86[i>>MD5_X2].x2.b2);
+		else
+	#endif
+		Do#{HASH}_crypt_f(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], crypt_key_X86[i>>MD5_X2].x1.b);
+#endif  // defined SIMD_PARA_#{PARAHASH}
+	}
+}
+
+#endif
