@@ -70,4 +70,4 @@ mv xxx dynamic_big_crypt.c
 rm -f dynamic_big_crypt_chopper
 rm -f dynamic_big_crypt_chopper.exe
 
-exit 1
+exit 0
