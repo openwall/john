@@ -38,7 +38,7 @@ foreach $i (1..5)
 		unlink("JohnUsage.Scr");
 		$john_build = $johnUsageScreen[0];
 		$test="-test";
-		if ($ARGV[0] ne "") { $test="-test=$ARGV[0]"; }
+		if (defined($ARGV[0]) && $ARGV[0] ne "") { $test="-test=$ARGV[0]"; }
 	}
 	print "\n== Speeds for ${i}x interleaving (OMP_SCALE 1): ==\n";
 	foreach $j (qw(md4 md5 sha1 sha256 sha512))
@@ -78,9 +78,9 @@ foreach $i (1..5)
 print "\n$compiler";
 print "$john_build";
 if ($test ne "-test") {
-	print "running john with \'$test\' for each test\n\n";
+	print "running john with \'$test\' for each test\n";
 }
-printf "%-10s |  %6d  |  %6d  |  %6d  |  %6d  |  %6d  |\n", "hash\\para", 1, 2, 3, 4, 5;
+printf "\n%-10s |  %6d  |  %6d  |  %6d  |  %6d  |  %6d  |\n", "hash\\para", 1, 2, 3, 4, 5;
 print "-----------|----------|----------|----------|----------|----------|\n";
 foreach $j (qw(md4 md5 sha1 sha256 sha512))
 {
