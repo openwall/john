@@ -24,32 +24,42 @@ int encfs_common_valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 7;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* key size */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	res = atoi(p);
 	if (res < 128 || res > MAX_KEYLENGTH*8)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
 		goto err;
+	if (!isdecu(p))
+		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* cipher */
+		goto err;
+	if (!isdecu(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt length */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	res = atoi(p);
-	if (res > 40)
+	if (res > 40 || res < 0)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if (res * 2 != strlen(p))
+	if (res != strlen(p) / 2)
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data length */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	res = atoi(p);
-	if (res > 128)
+	if (res > 128 || res < 0)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data */
 		goto err;
-	if (res * 2 != strlen(p))
+	if (res != strlen(p) / 2)
 		goto err;
 	if (!ishex(p))
 		goto err;
