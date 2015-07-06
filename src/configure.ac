@@ -87,9 +87,6 @@ AC_ARG_ENABLE([experimental-code], [AC_HELP_STRING([--enable-experimental-code],
 
 ####### Actual tests start here #######
 
-echo "configure: creating ./dynamic_big_crypt.c"
-echo `./dynamic_big_crypt_generator.sh`
-
 # Assert that we don't have a stray GNUmakefile left in the tree :-(
 if test -f GNU?akefile; then
    AC_MSG_ERROR([Stray GNUmakefile (or GNUMakefile) detected. Please remove it])
@@ -868,6 +865,9 @@ fi
 if test "`echo cuda_*_fmt_plug.c`" != "cuda_*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H cuda_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 fi
+
+echo "configure: creating ./dynamic_big_crypt.c"
+echo `./dynamic_big_crypt_generator.sh`
 
 ########################################################
 # Creates ./run/john.local.conf but ONLY if it does not
