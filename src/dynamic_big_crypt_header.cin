@@ -72,6 +72,10 @@
 #include "sph_tiger.h"
 #define sph_tiger_close(a,b) sph_tiger_close(b,a)
 
+#include "sph_haval.h"
+#define sph_haval256_3_close(a,b) sph_haval256_3_close(b,a)
+#define sph_haval128_4_close(a,b) sph_haval128_4_close(b,a)
+
 #if (AC_BUILT && HAVE_WHIRLPOOL) ||	  \
    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
 #include <openssl/whrlpool.h>

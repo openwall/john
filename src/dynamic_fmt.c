@@ -1559,8 +1559,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 							DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1(0,m_count,0); break;
 						case MGF__RIPEMD320:
 							DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__HAVAL256_3:
+							DynamicFunc__HAVAL256_3_crypt_input2_overwrite_input1(0,m_count,0); break;
+						case MGF__HAVAL128_4:
+							DynamicFunc__HAVAL128_4_crypt_input2_overwrite_input1(0,m_count,0); break;
 					}
-
 #else
 					switch(curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type) {
 						case MGF__MD5:
@@ -1591,6 +1594,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 							DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1(); break;
 						case MGF__RIPEMD320:
 							DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1(); break;
+						case MGF__HAVAL256_3:
+							DynamicFunc__HAVAL256_3_crypt_input2_overwrite_input1(); break;
+						case MGF__HAVAL128_4:
+							DynamicFunc__HAVAL128_4_crypt_input2_overwrite_input1(); break;
 					}
 #endif
 				} else if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32) {
@@ -1632,8 +1639,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 							total_len_X86[i] = 64; DynamicFunc__RIPEMD256_crypt_input2_append_input1(0,m_count,0); break;
 						case MGF__RIPEMD320:
 							total_len_X86[i] = 80; DynamicFunc__RIPEMD320_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__HAVAL256_3:
+							total_len_X86[i] = 64; DynamicFunc__HAVAL256_3_crypt_input2_append_input1(0,m_count,0); break;
+						case MGF__HAVAL128_4:
+							total_len_X86[i] = 32; DynamicFunc__HAVAL128_4_crypt_input2_append_input1(0,m_count,0); break;
 					}
-
 #else
 					switch(curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type) {
 						case MGF__MD5:
@@ -1664,6 +1674,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 							total_len_X86[i] = 64; DynamicFunc__RIPEMD256_crypt_input2_append_input1(); break;
 						case MGF__RIPEMD320:
 							total_len_X86[i] = 80; DynamicFunc__RIPEMD320_crypt_input2_append_input1(); break;
+						case MGF__HAVAL256_3:
+							total_len_X86[i] = 64; DynamicFunc__HAVAL256_3_crypt_input2_append_input1(); break;
+						case MGF__HAVAL128_4:
+							total_len_X86[i] = 32; DynamicFunc__HAVAL128_4_crypt_input2_append_input1(); break;
 					}
 #endif
 
@@ -2433,6 +2447,26 @@ static void *get_salt(char *ciphertext)
 				sph_ripemd320_close(&ctx, Buf);
 				memset(Salt, 0, SALT_SIZE+1);
 				base64_convert(Buf, e_b64_raw, 40, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			case MGF__HAVAL256_3:
+			{
+				sph_haval256_3_context ctx;
+				sph_haval256_3_init(&ctx);
+				sph_haval256_3(&ctx, (const unsigned char*)Salt, slen);
+				sph_haval256_3_close(&ctx, Buf);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
+				break;
+			}
+			case MGF__HAVAL128_4:
+			{
+				sph_haval128_4_context ctx;
+				sph_haval128_4_init(&ctx);
+				sph_haval128_4(&ctx, (const unsigned char*)Salt, slen);
+				sph_haval128_4_close(&ctx, Buf);
+				memset(Salt, 0, SALT_SIZE+1);
+				base64_convert(Buf, e_b64_raw, 16, Salt, e_b64_hex, SALT_SIZE, 0);
 				break;
 			}
 			default:
@@ -7452,6 +7486,28 @@ static int isRIPEMDFunc(DYNAMIC_primitive_funcp p)
 		return 1;
 	return 0;
 }
+static int isHAVALFunc(DYNAMIC_primitive_funcp p)
+{
+	if (p==DynamicFunc__HAVAL256_3_crypt_input1_append_input2    ||
+		p==DynamicFunc__HAVAL256_3_crypt_input2_append_input1    ||
+		p==DynamicFunc__HAVAL256_3_crypt_input1_overwrite_input1 ||
+		p==DynamicFunc__HAVAL256_3_crypt_input2_overwrite_input2 ||
+		p==DynamicFunc__HAVAL256_3_crypt_input1_overwrite_input2 ||
+		p==DynamicFunc__HAVAL256_3_crypt_input2_overwrite_input1 ||
+		p==DynamicFunc__HAVAL256_3_crypt_input1_to_output1_FINAL ||
+		p==DynamicFunc__HAVAL256_3_crypt_input2_to_output1_FINAL)
+		return 1;
+	if (p==DynamicFunc__HAVAL128_4_crypt_input1_append_input2    ||
+		p==DynamicFunc__HAVAL128_4_crypt_input2_append_input1    ||
+		p==DynamicFunc__HAVAL128_4_crypt_input1_overwrite_input1 ||
+		p==DynamicFunc__HAVAL128_4_crypt_input2_overwrite_input2 ||
+		p==DynamicFunc__HAVAL128_4_crypt_input1_overwrite_input2 ||
+		p==DynamicFunc__HAVAL128_4_crypt_input2_overwrite_input1 ||
+		p==DynamicFunc__HAVAL128_4_crypt_input1_to_output1_FINAL ||
+		p==DynamicFunc__HAVAL128_4_crypt_input2_to_output1_FINAL)
+		return 1;
+	return 0;
+}
 
 static int isLargeHashFinalFunc(DYNAMIC_primitive_funcp p)
 {
@@ -7466,7 +7522,9 @@ static int isLargeHashFinalFunc(DYNAMIC_primitive_funcp p)
 		p==DynamicFunc__RIPEMD128_crypt_input1_to_output1_FINAL || p==DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL ||
 		p==DynamicFunc__RIPEMD160_crypt_input1_to_output1_FINAL || p==DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL ||
 		p==DynamicFunc__RIPEMD256_crypt_input1_to_output1_FINAL || p==DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL ||
-		p==DynamicFunc__RIPEMD320_crypt_input1_to_output1_FINAL || p==DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL
+		p==DynamicFunc__RIPEMD320_crypt_input1_to_output1_FINAL || p==DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL ||
+		p==DynamicFunc__HAVAL256_3_crypt_input1_to_output1_FINAL || p==DynamicFunc__HAVAL256_3_crypt_input2_to_output1_FINAL ||
+		p==DynamicFunc__HAVAL128_4_crypt_input1_to_output1_FINAL || p==DynamicFunc__HAVAL128_4_crypt_input2_to_output1_FINAL
 		)
 		return 1;
 	return 0;
@@ -8054,6 +8112,12 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 						pFmt->params.algorithm_name = ALGORITHM_NAME_RIPEMD;
 					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
 						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_RIPEMD;
+				}
+				if (isHAVALFunc(pFuncs[x])) {
+					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
+						pFmt->params.algorithm_name = ALGORITHM_NAME_HAVAL;
+					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
+						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_HAVAL;
 				}
 			}
 			if (isLargeHashFinalFunc(curdat.dynamic_FUNCTIONS[j-1]))

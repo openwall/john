@@ -268,6 +268,10 @@ typedef struct private_subformat_data
 #define ALGORITHM_NAME_RIPEMD     "32/"ARCH_BITS_STR " sph_ripmd"
 #define ALGORITHM_NAME_X86_RIPEMD "32/"ARCH_BITS_STR " sph_ripmd"
 
+#define ALGORITHM_NAME_HAVAL     "32/"ARCH_BITS_STR " sph_haval"
+#define ALGORITHM_NAME_X86_HAVAL "32/"ARCH_BITS_STR " sph_haval"
+
+
 #ifndef SIMD_COEF_32
 //static MD5_OUT tmpOut;
 #endif

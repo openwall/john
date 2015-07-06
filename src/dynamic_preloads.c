@@ -216,6 +216,28 @@
 //dynamic_157 -->RIPEMD320(RIPEMD320($s).RIPEMD320($p))
 //dynamic_158 -->RIPEMD320(RIPEMD320($p).RIPEMD320($p))
 
+	// Try to group HAVAL256_3 here (from dyna-160 to dyna-169)
+//dynamic_160 -->HAVAL256_3($p)
+//dynamic_161 -->HAVAL256_3($s.$p)
+//dynamic_162 -->HAVAL256_3($p.$s)
+//dynamic_163 -->HAVAL256_3(HAVAL256_3($p))
+//dynamic_164 -->HAVAL256_3(HAVAL256_3_raw($p))
+//dynamic_165 -->HAVAL256_3(HAVAL256_3($p).$s)
+//dynamic_166 -->HAVAL256_3($s.HAVAL256_3($p))
+//dynamic_167 -->HAVAL256_3(HAVAL256_3($s).HAVAL256_3($p))
+//dynamic_168 -->HAVAL256_3(HAVAL256_3($p).HAVAL256_3($p))
+
+	// Try to group HAVAL128_4 here (from dyna-170 to dyna-179)
+//dynamic_170 -->HAVAL128_4($p)
+//dynamic_171 -->HAVAL128_4($s.$p)
+//dynamic_172 -->HAVAL128_4($p.$s)
+//dynamic_173 -->HAVAL128_4(HAVAL128_4($p))
+//dynamic_174 -->HAVAL128_4(HAVAL128_4_raw($p))
+//dynamic_175 -->HAVAL128_4(HAVAL128_4($p).$s)
+//dynamic_176 -->HAVAL128_4(HAVAL128_4320($p))
+//dynamic_177 -->HAVAL128_4(HAVAL128_4($s).HAVAL128_4($p))
+//dynamic_178 -->HAVAL128_4(HAVAL128_4($p).HAVAL128_4($p))
+
 
 static DYNAMIC_primitive_funcp _Funcs_0[] =
 {
@@ -3282,6 +3304,362 @@ MTL({"$dynamic_158$958cce2e5b7f406366b444c6f5827655cb647a91b1fdcd31a38d276cdc791
 	{NULL}
 };
 
+//	dynamic_160: HAVAL256_3($p)
+static DYNAMIC_primitive_funcp _Funcs_160[] =
+{
+	//MGF_KEYS_INPUT
+	//MGF_INPUT_32_BYTE
+	//MGF_NOTSSE2Safe
+	DynamicFunc__HAVAL256_3_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_160[] =
+{
+	{"$dynamic_160$8699f1e3384d05b2a84b032693e2b6f46df85a13a50d93808d6874bb8fb9e86c", "abc"},
+	{"$dynamic_160$cd43bec91c50e5f781fc50a78a3e9c8c48b407fa35a20c972178d63867dbe158", "john"},
+	{"$dynamic_160$5aa9c913463f82260071629c8ac2c54d73b3af016ffd8e8ce128558d909fab06", "passweird"},
+	{NULL}
+};
+
+
+//	dynamic_161: HAVAL256_3($s.$p)
+static DYNAMIC_primitive_funcp _Funcs_161[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_salt,
+	DynamicFunc__append_keys,
+	DynamicFunc__HAVAL256_3_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_161[] =
+{
+	{"$dynamic_161$d88ce7c22723f03048651eb11532b6c3eebfe75c35170ac78ff92a96d2d13a43$df694488","abc"},
+	{"$dynamic_161$1214ee5bdfe191bb4646a9ba2d2f06729a284c8629b4230cd7971c0d050279e2$87ffb1c9","john"},
+	{"$dynamic_161$07ed4d927977e51508f18a2d076e6c0c355a06c95839a10fd41d173427e280f0$a69c5744","passweird"},
+	{NULL}
+};
+
+//	dynamic_162: HAVAL256_3($p.$s)
+static DYNAMIC_primitive_funcp _Funcs_162[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_keys,
+	DynamicFunc__append_salt,
+	DynamicFunc__HAVAL256_3_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_162[] =
+{
+	{"$dynamic_162$e16d4e17be7b7a464fd6626e4d1cffb8c9c086c9b161351e781e5fad4d919797$df694488","abc"},
+	{"$dynamic_162$2b71da4387c1e21390771ec86407fb40956c24324b134b4aaaea9d6393580bbd$87ffb1c9","john"},
+	{"$dynamic_162$ff551fafcbc593cd95f46032d0543d05d530e469ed29c42b41f3423528b67ac0$a69c5744", "passweird"},
+	{NULL}
+};
+
+//	dynamic_163: HAVAL256_3(HAVAL256_3($p))
+static DYNAMIC_primitive_funcp _Funcs_163[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+
+	//DynamicFunc__clean_input2,
+	//DynamicFunc__HAVAL256_3_crypt_input1_append_input2,
+	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
+	DynamicFunc__HAVAL256_3_crypt_input1_overwrite_input2,
+	DynamicFunc__HAVAL256_3_crypt_input2_to_output1_FINAL,
+	NULL
+};
+
+static struct fmt_tests _Preloads_163[] =
+{
+	{"$dynamic_163$429656f0520831021234f2a0dc89f69c6b3d06a3a87be580ae71083a304ade95","abc"},
+	{"$dynamic_163$62186e67d559afe791a2ca2a64b7f79252e09bfe3420299ae3aaefc9beb34bca","john"},
+	{"$dynamic_163$faa04f807fa7b7c3ed1b78bf2b5bff377092dbfba72264cf956ed5ee570d7ffb", "passweird"},
+	{NULL}
+};
+
+//	dynamic_164: HAVAL256_3(HAVAL256_3_raw($p))
+static DYNAMIC_primitive_funcp _Funcs_164[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__LargeHash_OUTMode_raw,
+	DynamicFunc__HAVAL256_3_crypt_input1_overwrite_input2,
+	DynamicFunc__HAVAL256_3_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_164[] =
+{
+	{"$dynamic_164$11afae5e0bb14d19b5ce7ec0294094180813f32c67ec05e08f3bbd1bde1a0734","abc"},
+	{"$dynamic_164$a0d0b62d21c26b620296a3c7415598debd9bda213cf25b219f4ce7ce131cf6b3","john"},
+	{"$dynamic_164$c7bf7c1a0f5945caa35dc3aa59c5d2fc3d11e8e4155668cf8dfffce71a754645", "passweird"},
+	{NULL}
+};
+
+//	dynamic_165: HAVAL256_3(HAVAL256_3($p).$s)
+static DYNAMIC_primitive_funcp _Funcs_165[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_BASE16_IN1_HAVAL256_3
+	DynamicFunc__set_input_len_64,
+	DynamicFunc__append_salt,
+	DynamicFunc__HAVAL256_3_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_165[] =
+{
+	{"$dynamic_165$fdd2f8b69df3ccca55c0363c37615cdffa4459d19f1e6589bb09923078b98e6c$df694488","abc"},
+	{"$dynamic_165$d27cb72ad9751273d85fc6da00269b84229c51fe7652714cd24606285f3573ed$87ffb1c9","john"},
+	{"$dynamic_165$e0ecccdda77f4356357375ec1121a03bae904b506ad62d6a35a2c93625b25dbf$a69c5744", "passweird"},
+	{NULL}
+};
+
+//	dynamic_166: HAVAL256_3($s.HAVAL256_3($p))
+static DYNAMIC_primitive_funcp _Funcs_166[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_BASE16_IN1_HAVAL256_3
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__append_input2_from_input,
+	DynamicFunc__HAVAL256_3_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_166[] =
+{
+	{"$dynamic_166$85c1325e176910abd6702db984b52bcb56ca86b0abcac651966be74f3a590b7e$df694488","abc"},
+	{"$dynamic_166$43eecd730333bf89842ee180c95936359bada40c31b019dbafd50759c8374bdf$87ffb1c9","john"},
+	{"$dynamic_166$7d4d34a5cd2f784d3a75fa441073da58233150612c2a0d03a10d98fad9cfee0c$a69c5744", "passweird"},
+	{NULL}
+};
+
+//	dynamic_167: HAVAL256_3(HAVAL256_3($s).HAVAL256_3($p))
+static DYNAMIC_primitive_funcp _Funcs_167[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_SALT_AS_HEX_HAVAL256_3
+	//MGF_KEYS_BASE16_IN1_HAVAL256_3
+	DynamicFunc__clean_input2_kwik,
+	DynamicFunc__append_salt2,
+	DynamicFunc__append_input2_from_input,
+	DynamicFunc__HAVAL256_3_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_167[] =
+{
+	{"$dynamic_167$58878414f360aa7f2f730c17a85ec990823365893d44db99ba606df6e05e2407$df694488","abc"},
+	{"$dynamic_167$311089e096173ca6bab586d1e086cebb1a0194d7d85bc13cafbb04eae51a7b5d$87ffb1c9","john"},
+	{"$dynamic_167$2d86a025b93d6e0067c4a95a92bafe5cd5b9d84d6ca47c7e574ba77408a1f486$a69c5744", "passweird"},
+	{NULL}
+};
+
+//	dynamic_168: HAVAL256_3(HAVAL256_3($p).HAVAL256_3($p))
+static DYNAMIC_primitive_funcp _Funcs_168[] =
+{
+	//MGF_INPUT_32_BYTE
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2_kwik,
+	DynamicFunc__HAVAL256_3_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input2,
+	DynamicFunc__HAVAL256_3_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_168[] =
+{
+	{"$dynamic_168$19bbd8d1586a31243f37d46efc93b0fb6a378f3fdabd661f2704b1b78c15e0f2","abc"},
+	{"$dynamic_168$632e99e04780cd36c5c972eb4a125da6010364f3e12c9c1fbbf09b2836a26500","john"},
+	{"$dynamic_168$d0c97e0568d450e116013cfb42d735377ed0eda62a8c7a9a9d7d58e5b6a31b0a", "passweird"},
+	{NULL}
+};
+
+//	dynamic_170: HAVAL256_3($p)
+static DYNAMIC_primitive_funcp _Funcs_170[] =
+{
+	//MGF_KEYS_INPUT
+	//MGF_NOTSSE2Safe
+	DynamicFunc__HAVAL128_4_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_170[] =
+{
+	{"$dynamic_170$6f2132867c9648419adcd5013e532fa2","abc"},
+	{"$dynamic_170$c98232b4ae6e7ef3235e838387111f23","john"},
+	{"$dynamic_170$50683b38df349781b2ef29e7720eb730", "passweird"},
+	{NULL}
+};
+
+
+//	dynamic_171: HAVAL128_4($s.$p)
+static DYNAMIC_primitive_funcp _Funcs_171[] =
+{
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_salt,
+	DynamicFunc__append_keys,
+	DynamicFunc__HAVAL128_4_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_171[] =
+{
+	{"$dynamic_171$3bc6aac2553caa51bfa8674406459556$df694488","abc"},
+	{"$dynamic_171$e9c40fd2fdd3f89f97e7da1f678bf458$87ffb1c9","john"},
+	{"$dynamic_171$b140955710c85a13beb4928160502342$a69c5744", "passweird"},
+	{NULL}
+};
+
+//	dynamic_172: HAVAL128_4($p.$s)
+static DYNAMIC_primitive_funcp _Funcs_172[] =
+{
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_keys,
+	DynamicFunc__append_salt,
+	DynamicFunc__HAVAL128_4_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_172[] =
+{
+	{"$dynamic_172$399520a08a985ebd2d30ad1752139c56$df694488","abc"},
+	{"$dynamic_172$4e5dbde369a3737bf3fbd4649c17afb6$87ffb1c9","john"},
+	{"$dynamic_172$5a439e462f461215f50fbbf4a6b9efa2$a69c5744", "passweird"},
+	{NULL}
+};
+
+//	dynamic_173: HAVAL128_4(HAVAL128_4($p))
+static DYNAMIC_primitive_funcp _Funcs_173[] =
+{
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+
+	//DynamicFunc__clean_input2,
+	//DynamicFunc__HAVAL128_4_crypt_input1_append_input2,
+	// both appand and overwrite tested.  Since we have a fixed size, overwrite, with no clean2 works fine and faster.
+	DynamicFunc__HAVAL128_4_crypt_input1_overwrite_input2,
+	DynamicFunc__HAVAL128_4_crypt_input2_to_output1_FINAL,
+	NULL
+};
+
+static struct fmt_tests _Preloads_173[] =
+{
+	{"$dynamic_173$f07d5524c4b58959fb7c0891889ec561","abc"},
+	{"$dynamic_173$d4ef284b366191827d2901f002d60545","john"},
+	{"$dynamic_173$c37e0c3ff5661e373796519a03ae6a1e", "passweird"},
+	{NULL}
+};
+
+//	dynamic_174: HAVAL128_4(HAVAL128_4_raw($p))
+static DYNAMIC_primitive_funcp _Funcs_174[] =
+{
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__LargeHash_OUTMode_raw,
+	DynamicFunc__HAVAL128_4_crypt_input1_overwrite_input2,
+	DynamicFunc__HAVAL128_4_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_174[] =
+{
+	{"$dynamic_174$c5f26f9bc7a2aefb52b172a8586af176","abc"},
+	{"$dynamic_174$6c4e23a10022719cbb4713135d2176b1","john"},
+	{"$dynamic_174$1c250b7bd52bc22121208be6f96c34f9", "passweird"},
+	{NULL}
+};
+
+//	dynamic_175: HAVAL128_4(HAVAL128_4($p).$s)
+static DYNAMIC_primitive_funcp _Funcs_175[] =
+{
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_BASE16_IN1_HAVAL128_4
+	DynamicFunc__set_input_len_32,
+	DynamicFunc__append_salt,
+	DynamicFunc__HAVAL128_4_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_175[] =
+{
+	{"$dynamic_175$ef45befc5c1a0f56980ac58b3021a7a0$df694488","abc"},
+	{"$dynamic_175$5eec7bcdfb9a839c110e6cf7145b65d1$87ffb1c9","john"},
+	{"$dynamic_175$39bae3fa63c0fa13e9eb74dc814acaf3$a69c5744", "passweird"},
+	{NULL}
+};
+
+//	dynamic_176: HAVAL128_4($s.HAVAL128_4($p))
+static DYNAMIC_primitive_funcp _Funcs_176[] =
+{
+	//MGF_NOTSSE2Safe
+	//MGF_SALTED
+	//MGF_KEYS_BASE16_IN1_HAVAL128_4
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_salt2,
+	DynamicFunc__append_input2_from_input,
+	DynamicFunc__HAVAL128_4_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_176[] =
+{
+	{"$dynamic_176$efc56640ad653804164f389bde02599d$df694488","abc"},
+	{"$dynamic_176$8c71f208a1cf9a16b2364621f25adf26$87ffb1c9","john"},
+	{"$dynamic_176$14efa78c97a39d89b83d6a334cfd148a$a69c5744", "passweird"},
+	{NULL}
+};
+
+//	dynamic_177: HAVAL128_4(HAVAL128_4($s).HAVAL128_4($p))
+static DYNAMIC_primitive_funcp _Funcs_177[] =
+{
+	//MGF_NOTSSE2Safe
+	//MGF_SALT_AS_HEX_HAVAL128_4
+	//MGF_KEYS_BASE16_IN1_HAVAL128_4
+	DynamicFunc__clean_input2_kwik,
+	DynamicFunc__append_salt2,
+	DynamicFunc__append_input2_from_input,
+	DynamicFunc__HAVAL128_4_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_177[] =
+{
+	{"$dynamic_177$58a48fb6620179caba15829ea5c163f0$df694488","abc"},
+	{"$dynamic_177$a9bb2639c74dad248559f8b059fdb635$87ffb1c9","john"},
+	{"$dynamic_177$db837189bb1679630b7f715de0c337aa$a69c5744", "passweird"},
+	{NULL}
+};
+
+//	dynamic_178: HAVAL128_4(HAVAL128_4($p).HAVAL128_4($p))
+static DYNAMIC_primitive_funcp _Funcs_178[] =
+{
+	//MGF_NOTSSE2Safe
+	//MGF_KEYS_IN_INPUT
+	DynamicFunc__clean_input2_kwik,
+	DynamicFunc__HAVAL128_4_crypt_input1_append_input2,
+	DynamicFunc__append_input2_from_input2,
+	DynamicFunc__HAVAL128_4_crypt_input2_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_178[] =
+{
+	{"$dynamic_178$62b29ab7545a0f2577768a49006f3ba4","abc"},
+	{"$dynamic_178$f8c04843e043a6a074dc497561992c30","john"},
+	{"$dynamic_178$33107cad7f3931c7ac8c6c137dd772fb", "passweird"},
+	{NULL}
+};
+
 // Here is a 'dummy' constant array. This will be 'linked' to any dynamic format that does not have any constants.
 static DYNAMIC_Constants _ConstDefault[] =
 {
@@ -3469,6 +3847,27 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_156: RIPEMD320($s.RIPEMD320($p))",        _Funcs_156,_Preloads_156,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_RIPEMD320|MGF_INPUT_40_BYTE, -64, 110, 110 },
 	{ "dynamic_157: RIPEMD320(RIPEMD320($s).RIPEMD320($p))", _Funcs_157,_Preloads_157,_ConstDefault, MGF_SALT_AS_HEX_RIPEMD320|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_RIPEMD320|MGF_INPUT_40_BYTE, -64, 110, 110 },
 	{ "dynamic_158: RIPEMD320(RIPEMD320($p).RIPEMD320($p))", _Funcs_158,_Preloads_158,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_40_BYTE },
+
+	// Try to group HAVAL256_3 here (from dyna-160 to dyna-169)
+	{ "dynamic_160: HAVAL256_3($p)",                  _Funcs_160,_Preloads_160,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
+	{ "dynamic_161: HAVAL256_3($s.$p)",               _Funcs_161,_Preloads_161,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE, -64, 110, 110 },
+	{ "dynamic_162: HAVAL256_3($p.$s)",               _Funcs_162,_Preloads_162,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_32_BYTE, -64, 110, 110 },
+	{ "dynamic_163: HAVAL256_3(HAVAL256_3($p))",           _Funcs_163,_Preloads_163,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
+	{ "dynamic_164: HAVAL256_3(HAVAL256_3_raw($p))",       _Funcs_164,_Preloads_164,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
+	{ "dynamic_165: HAVAL256_3(HAVAL256_3($p).$s)",        _Funcs_165,_Preloads_165,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_HAVAL256_3|MGF_INPUT_32_BYTE, -64, 110, 110 },
+	{ "dynamic_166: HAVAL256_3($s.HAVAL256_3($p))",        _Funcs_166,_Preloads_166,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_HAVAL256_3|MGF_INPUT_32_BYTE, -64, 110, 110 },
+	{ "dynamic_167: HAVAL256_3(HAVAL256_3($s).HAVAL256_3($p))", _Funcs_167,_Preloads_167,_ConstDefault, MGF_SALT_AS_HEX_HAVAL256_3|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_HAVAL256_3|MGF_INPUT_32_BYTE, -64, 110, 110 },
+	{ "dynamic_168: HAVAL256_3(HAVAL256_3($p).HAVAL256_3($p))", _Funcs_168,_Preloads_168,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_32_BYTE },
+	// Try to group HAVAL128_4 here (from dyna-170 to dyna-179)
+	{ "dynamic_170: HAVAL128_4($p)",                  _Funcs_170,_Preloads_170,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT },
+	{ "dynamic_171: HAVAL128_4($s.$p)",               _Funcs_171,_Preloads_171,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_NO_FLAG, -64, 110, 110 },
+	{ "dynamic_172: HAVAL128_4($p.$s)",               _Funcs_172,_Preloads_172,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_NO_FLAG, -64, 110, 110 },
+	{ "dynamic_173: HAVAL128_4(HAVAL128_4($p))",           _Funcs_173,_Preloads_173,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT },
+	{ "dynamic_174: HAVAL128_4(HAVAL128_4_raw($p))",       _Funcs_174,_Preloads_174,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT },
+	{ "dynamic_175: HAVAL128_4(HAVAL128_4($p).$s)",        _Funcs_175,_Preloads_175,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_HAVAL128_4, -64, 110, 110 },
+	{ "dynamic_176: HAVAL128_4($s.HAVAL128_4($p))",        _Funcs_176,_Preloads_176,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_HAVAL128_4, -64, 110, 110 },
+	{ "dynamic_177: HAVAL128_4(HAVAL128_4($s).HAVAL128_4($p))", _Funcs_177,_Preloads_177,_ConstDefault, MGF_SALT_AS_HEX_HAVAL128_4|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_HAVAL128_4, -64, 110, 110 },
+	{ "dynamic_178: HAVAL128_4(HAVAL128_4($p).HAVAL128_4($p))", _Funcs_178,_Preloads_178,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT },
 };
 
 char *dynamic_PRELOAD_SIGNATURE(int cnt)

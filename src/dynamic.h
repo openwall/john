@@ -54,8 +54,8 @@ typedef struct DYNAMIC_Constants_t
 // as flags. They are defines making the type enumerations easier to read.
 // These come into play for things like MGF_SALT_AS_HEX_* and
 // MGF_KEYS_BASE16_IN1_* types
-#define MGF__MD5	     0x00
-#define MGF__MD4	     0x01
+#define MGF__MD5         0x00
+#define MGF__MD4         0x01
 #define MGF__SHA1        0x02
 #define MGF__SHA224      0x03
 #define MGF__SHA256      0x04
@@ -68,6 +68,8 @@ typedef struct DYNAMIC_Constants_t
 #define MGF__RIPEMD160   0x0B
 #define MGF__RIPEMD256   0x0C
 #define MGF__RIPEMD320   0x0D
+#define MGF__HAVAL256_3  0X0E
+#define MGF__HAVAL128_4  0X0F
 
 // These are the 'flags' that specify certain characterstics of the format.
 // Things like salted, not sse2, and special 'loading' of the keys.
@@ -80,8 +82,8 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_USERNAME_UPCASE         (0x00000020|MGF_USERNAME)
 #define MGF_USERNAME_LOCASE         (0x00000040|MGF_USERNAME)
 // MGF_INPBASE64 uses e_b64_cryptBS from base64_convert.h
-#define MGF_INPBASE64		         0x00000080
-#define MGF_SALT_AS_HEX		        (0x00000100|MGF_SALTED)   // deprecated (use the _MD5 version)
+#define MGF_INPBASE64                0x00000080
+#define MGF_SALT_AS_HEX             (0x00000100|MGF_SALTED)   // deprecated (use the _MD5 version)
 // for salt_as_hex for other formats, we do this:  (flag>>56)
 // Then 00 is md5, 01 is md4, 02 is SHA1, etc
 // NOTE, all top 8 bits of the flags are reserved, and should NOT be used for flags.
@@ -99,13 +101,15 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_SALT_AS_HEX_RIPEMD160   (0x0B00000000000100ULL|MGF_SALTED)
 #define MGF_SALT_AS_HEX_RIPEMD256   (0x0C00000000000100ULL|MGF_SALTED)
 #define MGF_SALT_AS_HEX_RIPEMD320   (0x0D00000000000100ULL|MGF_SALTED)
-#define MGF_INPBASE64_4x6			 0x00000200
+#define MGF_SALT_AS_HEX_HAVAL256_3  (0x0E00000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_HAVAL128_4  (0x0F00000000000100ULL|MGF_SALTED)
+#define MGF_INPBASE64_4x6            0x00000200
 #define MGF_StartInX86Mode           0x00000400
 #define MGF_SALT_AS_HEX_TO_SALT2    (0x00000800|MGF_SALTED)
 #define MGF_SALT_UNICODE_B4_CRYPT   (0x00001000|MGF_SALTED)
 #define MGF_BASE_16_OUTPUT_UPCASE    0x00002000
 // MGF_INPBASE64b uses e_b64_crypt from base64_convert.h
-#define MGF_INPBASE64b		         0x00004000
+#define MGF_INPBASE64b               0x00004000
 #define MGF_FLDx_BIT                 0x00008000
 #define MGF_FLD0                    (0x00008000|MGF_SALTED)
 #define MGF_FLD1                    (0x00010000|MGF_SALTED)
@@ -138,7 +142,7 @@ typedef struct DYNAMIC_Constants_t
 // NOTE, all top 8 bits of the flags are reserved, and should NOT be used for flags.
 #define MGF_KEYS_BASE16_IN1              0x00000004   // deprecated (use the _MD5 version)
 #define MGF_KEYS_BASE16_IN1_MD5          0x0000000000000004ULL
-#define MGF_KEYS_BASE16_IN1_MD4	         0x0100000000000004ULL
+#define MGF_KEYS_BASE16_IN1_MD4          0x0100000000000004ULL
 #define MGF_KEYS_BASE16_IN1_SHA1         0x0200000000000004ULL
 #define MGF_KEYS_BASE16_IN1_SHA224       0x0300000000000004ULL
 #define MGF_KEYS_BASE16_IN1_SHA256       0x0400000000000004ULL
@@ -151,6 +155,8 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_KEYS_BASE16_IN1_RIPEMD160    0x0B00000000000004ULL
 #define MGF_KEYS_BASE16_IN1_RIPEMD256    0x0C00000000000004ULL
 #define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
+#define MGF_KEYS_BASE16_IN1_HAVAL256_3   0x0E00000000000004ULL
+#define MGF_KEYS_BASE16_IN1_HAVAL128_4   0x0F00000000000004ULL
 
 #define MGF_KEYS_BASE16_IN1_Offset32         0x00000008   // deprecated (use the _MD5 version)
 #define MGF_KEYS_BASE16_IN1_Offset_MD5       0x0000000000000008ULL
@@ -167,6 +173,8 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_KEYS_BASE16_IN1_Offset_RIPEMD160 0x0B00000000000008ULL
 #define MGF_KEYS_BASE16_IN1_Offset_RIPEMD256 0x0C00000000000008ULL
 #define MGF_KEYS_BASE16_IN1_Offset_RIPEMD320 0x0D00000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL256_3 0x0E00000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL128_4 0x0F00000000000008ULL
 
 //#define MGF_KEYS_BASE16_X86_IN1          0x00000010
 //  Open                                   0x00000010
@@ -215,10 +223,10 @@ typedef struct DYNAMIC_Setup_t
 	DYNAMIC_Constants *pConstants;
 	uint64_t flags;
 	uint64_t startFlags;
-	int SaltLen;			// these are SSE lengths
-	int MaxInputLen;		// SSE length.  If 0, then set to 55-abs(SaltLen)
-	int MaxInputLenX86;		// if zero, then use PW len set to 110-abs(SaltLen) (or 110-abs(SaltLenX86), if it is not 0)
-	int SaltLenX86;			// if zero, then use salt len of SSE
+	int SaltLen;            // these are SSE lengths
+	int MaxInputLen;        // SSE length.  If 0, then set to 55-abs(SaltLen)
+	int MaxInputLenX86;     // if zero, then use PW len set to 110-abs(SaltLen) (or 110-abs(SaltLenX86), if it is not 0)
+	int SaltLenX86;         // if zero, then use salt len of SSE
 } DYNAMIC_Setup;
 
 /* See dynamic_fmt.c for description */
@@ -546,6 +554,23 @@ extern void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS
 extern void DynamicFunc__RIPEMD320_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
 extern void DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
 
+extern void DynamicFunc__HAVAL256_3_crypt_input1_append_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__HAVAL256_3_crypt_input2_append_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__HAVAL256_3_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__HAVAL256_3_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__HAVAL256_3_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__HAVAL256_3_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__HAVAL256_3_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
+extern void DynamicFunc__HAVAL256_3_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
+
+extern void DynamicFunc__HAVAL128_4_crypt_input1_append_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__HAVAL128_4_crypt_input2_append_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__HAVAL128_4_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__HAVAL128_4_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__HAVAL128_4_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
+extern void DynamicFunc__HAVAL128_4_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
+extern void DynamicFunc__HAVAL128_4_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
+extern void DynamicFunc__HAVAL128_4_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
 
 // These 3 dump the raw crypt back into input (only at the head of it).
 // they are for phpass, wordpress, etc.
