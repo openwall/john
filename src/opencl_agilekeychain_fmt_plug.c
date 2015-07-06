@@ -221,27 +221,39 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 15;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* nkeys */
 		goto err;
-	if(atoi(p) > 2)
+	if (!isdec(p))
+		goto err;
+	if (atoi(p) > 2 || atoi(p) < 0)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt length */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	saltlen = atoi(p);
-	if(saltlen > SALTLEN)
+	if(saltlen > SALTLEN || saltlen < 0)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if(strlen(p) != saltlen * 2)
 		goto err;
+	if(!ishex(p))
+		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ct length */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	ctlen = atoi(p);
-	if (ctlen > CTLEN)
+	if (ctlen > CTLEN || ctlen < 0)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
 	if(strlen(p) != ctlen * 2)
+		goto err;
+	if(!ishex(p))
 		goto err;
 
 	MEM_FREE(keeptr);
