@@ -33,6 +33,8 @@ int in_defined();
 
 int main(int argc, char **argv) {
 	int i;
+	if (argc == 2 && !strcmp(argv[1], "TEST"))
+		return 0;
 	for (i = 1; i < argc; ++i) {
 		if (!strncmp(argv[i], "DEFINED=", 8)) {
 			defined[ndefined] = malloc(strlen(argv[i])-6);
@@ -51,13 +53,13 @@ int main(int argc, char **argv) {
 	}
 	// now read stdin, and modify, and write to stdout
 	if (!fgets(Line, sizeof(Line), stdin))
-		return 0;
+		return 1;
 	while (!feof(stdin)) {
 		detok();
 		if (in_defined())
 			printf("%s\n", tmpLine);
 		if (!fgets(Line, sizeof(Line), stdin))
-			return 0;
+			break;
 	}
 	return 0;
 }

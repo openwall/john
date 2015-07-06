@@ -7,7 +7,12 @@
 # and removes sections that should be 'undefined'. It will
 # use command line to be told how to edit the file, and it
 # uses the specially crafted dynamic_big_crypt_hash.cin file.
-gcc -O dynamic_big_crypt_chopper.c -o dynamic_big_crypt_chopper
+# if we can not build this exe, or run it, then we MUST bail,
+# and the makefile will copy a prebuilt version for us.
+rm -f dynamic_big_crypt_chopper
+rm -f dynamic_big_crypt_chopper.exe
+gcc -O dynamic_big_crypt_chopper.c -o dynamic_big_crypt_chopper || exit 1
+./dynamic_big_crypt_chopper TEST || exit 1
 
 # first timestamp the file generation.
 echo "/*" > xxx
