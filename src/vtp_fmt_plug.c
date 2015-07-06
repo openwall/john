@@ -125,26 +125,32 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if ((p = strtokm(p, "$")) == NULL) /* version */
 		goto err;
+	if(!isdec(p))
+		goto err;
 	res = atoi(p);
 	if (res != 1  && res != 2)  // VTP version 3 support is pending
-		goto err;
+		goto err; // FIXME: fprintf(stderr, ... for version 3?
 
 	if ((p = strtokm(NULL, "$")) == NULL)  /* vlans len */
+		goto err;
+	if(!isdec(p))
 		goto err;
 	res = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)  /* vlans data */
 		goto err;
-	if (strlen(p) != res * 2)
+	if (strlen(p) / 2 != res)
 		goto err;
 	if (!ishex(p))
 		goto err;
 
 	if ((p = strtokm(NULL, "$")) == NULL)  /* salt len */
 		goto err;
+	if(!isdec(p))
+		goto err;
 	res = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)  /* salt */
 		goto err;
-	if (strlen(p) != res * 2)
+	if (strlen(p) / 2 != res)
 		goto err;
 	if (!ishex(p))
 		goto err;
