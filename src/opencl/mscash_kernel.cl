@@ -280,6 +280,7 @@ inline void prepare_key(__global uint * key, int length, uint * nt_buffer)
 	nt_buffer[nt_index + 1] = 0;
 	nt_buffer[14] = length << 4;
 }
+
 inline void cmp_final(uint gid,
 		uint iter,
 		__private uint *hash,
@@ -330,12 +331,7 @@ inline void cmp_final(uint gid,
 inline void cmp(uint gid,
 		uint iter,
 		__private uint *hash,
-#if USE_LOCAL_BITMAPS
-		__local
-#else
-		__global
-#endif
-		uint *bitmaps,
+		__global uint *bitmaps,
 		uint bitmap_sz_bits,
 		uint bitmap_sz_bits_less_one,
 		__global uint *offset_table,
@@ -346,41 +342,10 @@ inline void cmp(uint gid,
 		volatile __global uint *bitmap_dupe) {
 	uint bitmap_index, tmp = 1;
 
-#if SELECT_CMP_STEPS > 4
-	bitmap_index = hash[0] & bitmap_sz_bits_less_one;
-	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = (hash[0] >> 16) & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(bitmap_sz_bits >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[1] & bitmap_sz_bits_less_one;
-	tmp &= (bitmaps[(bitmap_sz_bits >> 4) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = (hash[1] >> 16) & bitmap_sz_bits_less_one;
-	tmp &= (bitmaps[(bitmap_sz_bits >> 5) * 3 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[2] & bitmap_sz_bits_less_one;
-	tmp &= (bitmaps[(bitmap_sz_bits >> 3) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = (hash[2] >> 16) & bitmap_sz_bits_less_one;
-	tmp &= (bitmaps[(bitmap_sz_bits >> 5) * 5 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[3] & bitmap_sz_bits_less_one;
-	tmp &= (bitmaps[(bitmap_sz_bits >> 5) * 6 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = (hash[3] >> 16) & bitmap_sz_bits_less_one;
-	tmp &= (bitmaps[(bitmap_sz_bits >> 5) * 7 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-#elif SELECT_CMP_STEPS > 2
 	bitmap_index = hash[3] & bitmap_sz_bits_less_one;
 	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
 	bitmap_index = hash[2] & bitmap_sz_bits_less_one;
 	tmp &= (bitmaps[(bitmap_sz_bits >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[1] & bitmap_sz_bits_less_one;
-	tmp &= (bitmaps[(bitmap_sz_bits >> 4) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[0] & bitmap_sz_bits_less_one;
-	tmp &= (bitmaps[(bitmap_sz_bits >> 5) * 3 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-#elif SELECT_CMP_STEPS > 1
-	bitmap_index = hash[3] & bitmap_sz_bits_less_one;
-	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[2] & bitmap_sz_bits_less_one;
-	tmp &= (bitmaps[(bitmap_sz_bits >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-#else
-	bitmap_index = hash[3] & bitmap_sz_bits_less_one;
-	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-#endif
 
 	if (tmp)
 		cmp_final(gid, iter, hash, offset_table, hash_table, salt, return_hashes, output, bitmap_dupe);
@@ -418,8 +383,6 @@ __kernel void mscash(__global uint *keys,
 		  volatile __global uint *bitmap_dupe)
 {
 	uint i;
-	uint lid = get_local_id(0);
-	uint lws = get_local_size(0);
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint nt_buffer[16] = { 0 };
@@ -469,14 +432,6 @@ __kernel void mscash(__global uint *keys,
 #define GPU_LOC_3 LOC_3
 #endif
 
-#if USE_LOCAL_BITMAPS
-	uint __local s_bitmaps[(bitmap_sz_bits >> 5) * SELECT_CMP_STEPS];
-
-	for(i = 0; i < (((bitmap_sz_bits >> 5) * SELECT_CMP_STEPS) / lws); i++)
-		s_bitmaps[i*lws + lid] = bitmaps[i*lws + lid];
-
-	barrier(CLK_LOCAL_MEM_FENCE);
-#endif
 	keys += base >> 6;
 	prepare_key(keys, len, nt_buffer);
 
@@ -502,13 +457,7 @@ __kernel void mscash(__global uint *keys,
 		md4_crypt_a(hash, nt_buffer);
 		md4_crypt_b(hash, salt);
 
-		cmp(gid, i, hash,
-#if USE_LOCAL_BITMAPS
-		    s_bitmaps
-#else
-		    bitmaps
-#endif
-		    , bitmap_sz_bits, bitmap_sz_bits_less_one,
+		cmp(gid, i, hash, bitmaps, bitmap_sz_bits, bitmap_sz_bits_less_one,
 		    offset_table, hash_table, salt, return_hashes, out_hash_ids, bitmap_dupe);
 
 	}

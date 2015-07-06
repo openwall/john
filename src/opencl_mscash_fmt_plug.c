@@ -275,7 +275,7 @@ static void done(void)
 		MEM_FREE(hash_table_128);
 }
 
-static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
+static void init_kernel(unsigned int num_ld_hashes)
 {
 	char build_opts[5000];
 	int i;
@@ -301,7 +301,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 
 	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
 
-	sprintf(build_opts, "-D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d"
+	sprintf(build_opts, "-D NUM_INT_KEYS=%u -D IS_STATIC_GPU_MASK=%d"
 		" -D CONST_CACHE_SIZE=%llu -D LOC_0=%d"
 #if 1 < MASK_FMT_INT_PLHDR
 	" -D LOC_1=%d "
@@ -312,7 +312,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 #if 3 < MASK_FMT_INT_PLHDR
 	"-D LOC_3=%d"
 #endif
-	, mask_int_cand.num_int_cand, bitmap_para, is_static_gpu_mask,
+	, mask_int_cand.num_int_cand, is_static_gpu_mask,
 	(unsigned long long)const_cache_size, static_gpu_locations[0]
 #if 1 < MASK_FMT_INT_PLHDR
 	, static_gpu_locations[1]
@@ -525,54 +525,6 @@ static char *get_key(int index)
 
 	return out;
 }
-/*
-static void prepare_table(struct db_salt *salt) {
-	unsigned int *bin, i;
-	struct db_password *pw;
-
-	num_loaded_hashes = (salt->count);
-
-	MEM_FREE(loaded_hashes);
-	MEM_FREE(hash_ids);
-	MEM_FREE(offset_table);
-	MEM_FREE(hash_table_128);
-
-	loaded_hashes = (cl_uint*) mem_alloc(4 * num_loaded_hashes * sizeof(cl_uint));
-	hash_ids = (cl_uint*) mem_alloc((3 * num_loaded_hashes + 1) * sizeof(cl_uint));
-
-	pw = salt -> list;
-	i = 0;
-	do {
-		bin = (unsigned int *)pw -> binary;
-		// Potential segfault if removed
-		if(bin != NULL) {
-			loaded_hashes[4 * i] = bin[0];
-			loaded_hashes[4 * i + 1] = bin[1];
-			loaded_hashes[4 * i + 2] = bin[2];
-			loaded_hashes[4 * i + 3] = bin[3];
-			i++ ;
-		}
-	} while ((pw = pw -> next)) ;
-
-	if(i != (salt->count)) {
-		fprintf(stderr,
-			"Something went wrong while preparing hashes..Exiting..\n");
-		error();
-	}
-
-	num_loaded_hashes = create_perfect_hash_table(128, (void *)loaded_hashes,
-				num_loaded_hashes,
-			        &offset_table,
-			        &offset_table_size,
-			        &hash_table_size, 0);
-
-	if (!num_loaded_hashes) {
-		MEM_FREE(hash_table_128);
-		MEM_FREE(offset_table);
-		fprintf(stderr, "Failed to create Hash Table for cracking.\n");
-		error();
-	}
-}*/
 
 static void prepare_table(struct db_main *db)
 {
@@ -631,48 +583,6 @@ static void prepare_table(struct db_main *db)
 }
 
 /* Use only for smaller bitmaps < 16MB */
-static void prepare_bitmap_8(cl_ulong bmp_sz, cl_uint **bitmap_ptr)
-{
-	unsigned int i;
-	MEM_FREE(*bitmap_ptr);
-	*bitmap_ptr = (cl_uint*) mem_calloc((bmp_sz >> 2), sizeof(cl_uint));
-
-	for (i = 0; i < num_loaded_hashes; i++) {
-		unsigned int bmp_idx =
-			(loaded_hashes[4 * i] & 0x0000ffff) & (bmp_sz - 1);
-		(*bitmap_ptr)[bmp_idx >> 5] |= (1U << (bmp_idx & 31));
-
-		bmp_idx = (loaded_hashes[4 * i] >> 16) & (bmp_sz - 1);
-		(*bitmap_ptr)[(bmp_sz >> 5) + (bmp_idx >> 5)] |=
-			(1U << (bmp_idx & 31));
-
-		bmp_idx = (loaded_hashes[4 * i + 1] & 0x0000ffff) & (bmp_sz - 1);
-		(*bitmap_ptr)[(bmp_sz >> 4) + (bmp_idx >> 5)] |=
-			(1U << (bmp_idx & 31));
-
-		bmp_idx = (loaded_hashes[4 * i + 1] >> 16) & (bmp_sz - 1);
-		(*bitmap_ptr)[(bmp_sz >> 5) * 3 + (bmp_idx >> 5)] |=
-			(1U << (bmp_idx & 31));
-
-		bmp_idx = (loaded_hashes[4 * i + 2] & 0x0000ffff) & (bmp_sz - 1);
-		(*bitmap_ptr)[(bmp_sz >> 3) + (bmp_idx >> 5)] |=
-			(1U << (bmp_idx & 31));
-
-		bmp_idx = (loaded_hashes[4 * i + 2] >> 16) & (bmp_sz - 1);
-		(*bitmap_ptr)[(bmp_sz >> 5) * 5 + (bmp_idx >> 5)] |=
-			(1U << (bmp_idx & 31));
-
-		bmp_idx = (loaded_hashes[4 * i + 3] & 0x0000ffff) & (bmp_sz - 1);
-		(*bitmap_ptr)[(bmp_sz >> 5) * 6 + (bmp_idx >> 5)] |=
-			(1U << (bmp_idx & 31));
-
-		bmp_idx = (loaded_hashes[4 * i + 3] >> 16) & (bmp_sz - 1);
-		(*bitmap_ptr)[(bmp_sz >> 5) * 7 + (bmp_idx >> 5)] |=
-			(1U << (bmp_idx & 31));
-	}
-}
-
-/* Use only for smaller bitmaps < 16MB */
 static void prepare_bitmap_4(cl_ulong bmp_sz, cl_uint **bitmap_ptr)
 {
 	unsigned int i;
@@ -708,11 +618,10 @@ static void prepare_bitmap_1(cl_ulong bmp_sz, cl_uint **bitmap_ptr)
 		(*bitmap_ptr)[bmp_idx >> 5] |= (1U << (bmp_idx & 31));
 	}
 }
-static uint cmp_steps = 2;
-static char* select_bitmap(unsigned int num_ld_hashes)
-{	static char kernel_params[200];
+
+static void select_bitmap(unsigned int num_ld_hashes)
+{
 	cl_ulong max_local_mem_sz_bytes = 0;
-	unsigned int use_local = 0;
 
 	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_LOCAL_MEM_SIZE,
 		sizeof(cl_ulong), &max_local_mem_sz_bytes, 0),
@@ -723,15 +632,8 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 			amd_vliw4(device_info[gpu_id]))
 			bitmap_size_bits = 512 * 1024;
 
-		else if (amd_gcn_11(device_info[gpu_id]) ||
-			max_local_mem_sz_bytes < 16384)
+		else
 			bitmap_size_bits = 256 * 1024;
-
-		else {
-			bitmap_size_bits = 32 * 1024;
-			cmp_steps = 4;
-			use_local = 1;
-		}
 	}
 
 	else if (num_loaded_hashes <= 10100) {
@@ -739,35 +641,19 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 			amd_vliw4(device_info[gpu_id]))
 			bitmap_size_bits = 512 * 1024;
 
-		else if (amd_gcn_11(device_info[gpu_id]) ||
-			max_local_mem_sz_bytes < 32768)
+		else
 			bitmap_size_bits = 256 * 1024;
 
-		else {
-			bitmap_size_bits = 64 * 1024;
-			cmp_steps = 4;
-			use_local = 1;
-		}
 	}
 
 	else if (num_loaded_hashes <= 20100) {
-		if (amd_gcn_10(device_info[gpu_id]))
+		if (amd_gcn_10(device_info[gpu_id]) ||
+			amd_vliw4(device_info[gpu_id]))
 			bitmap_size_bits = 1024 * 1024;
 
-		else if (amd_gcn_11(device_info[gpu_id]) ||
-			max_local_mem_sz_bytes < 32768)
+		else
 			bitmap_size_bits = 512 * 1024;
 
-		else if (amd_vliw4(device_info[gpu_id])) {
-			bitmap_size_bits = 256 * 1024;
-			cmp_steps = 4;
-		}
-
-		else {
-			bitmap_size_bits = 32 * 1024;
-			cmp_steps = 8;
-			use_local = 1;
-		}
 	}
 
 	else if (num_loaded_hashes <= 250100)
@@ -781,53 +667,7 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 			bitmap_size_bits = 2048 * 1024;
 	}
 
-	else if (num_loaded_hashes <= 1500100) {
-		bitmap_size_bits = 4096 * 1024 * 2;
-		cmp_steps = 1;
-	}
-
-	else if (num_loaded_hashes <= 2700100) {
-		bitmap_size_bits = 4096 * 1024 * 2 * 2;
-		cmp_steps = 1;
-	}
-
-	else {
-		cl_ulong mult = num_loaded_hashes / 2700100;
-		cl_ulong buf_sz;
-		bitmap_size_bits = 4096 * 4096;
-		get_power_of_two(mult);
-		bitmap_size_bits *= mult;
-		buf_sz = get_max_mem_alloc_size(gpu_id);
-		if (buf_sz & (buf_sz - 1)) {
-			get_power_of_two(buf_sz);
-			buf_sz >>= 1;
-		}
-		if (buf_sz >= 536870912)
-			buf_sz = 536870912;
-		assert(!(buf_sz & (buf_sz - 1)));
-		if ((bitmap_size_bits >> 3) > buf_sz)
-			bitmap_size_bits = buf_sz << 3;
-		assert(!(bitmap_size_bits & (bitmap_size_bits - 1)));
-		cmp_steps = 1;
-	}
-
-	if (cmp_steps == 1)
-		prepare_bitmap_1(bitmap_size_bits, &bitmaps);
-
-	else if (cmp_steps <= 4)
-		prepare_bitmap_4(bitmap_size_bits, &bitmaps);
-
-	else
-		prepare_bitmap_8(bitmap_size_bits, &bitmaps);
-
-	sprintf(kernel_params,
-		"-D SELECT_CMP_STEPS=%u"
-		" -D USE_LOCAL_BITMAPS=%u",
-		cmp_steps, use_local);
-
-	bitmap_size_bits *= cmp_steps;
-
-	return kernel_params;
+	prepare_bitmap_4(bitmap_size_bits, &bitmaps);
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -909,15 +749,16 @@ static void reset(struct db_main *db)
 		buffer_size = db->format->params.max_keys_per_crypt;
 		num_loaded_hashes = db->salts->count;
 		prepare_table(db);
-		init_kernel(num_loaded_hashes, select_bitmap(num_loaded_hashes));
+		select_bitmap(num_loaded_hashes);
+		init_kernel(num_loaded_hashes);
 		create_clobj(buffer_size, NULL);
-		salt_params[0] = bitmap_size_bits / cmp_steps - 1;
+		salt_params[0] = bitmap_size_bits - 1;
 		salt_params[1] = offset_table_size;
 		salt_params[2] = hash_table_size;
 		salt_params[3] = shift64_ot_sz;
 		salt_params[4] = shift64_ht_sz;
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_salt_test, CL_TRUE, 12 * sizeof(cl_uint), 5 * sizeof(cl_uint), salt_params, 0, NULL, NULL), "failed in clEnqueueWriteBuffer(salt_params) buffer_salt_test.");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps_test, CL_TRUE, 0, (size_t)(bitmap_size_bits >> 3), bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps_test.");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps_test, CL_TRUE, 0, (size_t)(bitmap_size_bits >> 3) * 2, bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps_test.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table_test, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table_test.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table_test, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_128, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table_test.");
 	}
@@ -967,7 +808,8 @@ static void reset(struct db_main *db)
 
 		hash_ids = (cl_uint*)mem_alloc((3 * num_loaded_hashes + 1) * sizeof(cl_uint));
 
-		init_kernel(num_loaded_hashes, select_bitmap(num_loaded_hashes));
+		select_bitmap(num_loaded_hashes);
+		init_kernel(num_loaded_hashes);
 
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
@@ -989,13 +831,13 @@ static void reset(struct db_main *db)
 				        self->params.max_keys_per_crypt);
 			}
 		}
-		salt_params[0] = bitmap_size_bits / cmp_steps - 1;
+		salt_params[0] = bitmap_size_bits - 1;
 		salt_params[1] = offset_table_size;
 		salt_params[2] = hash_table_size;
 		salt_params[3] = shift64_ot_sz;
 		salt_params[4] = shift64_ht_sz;
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_salt_test, CL_TRUE, 12 * sizeof(cl_uint), 5 * sizeof(cl_uint), salt_params, 0, NULL, NULL), "failed in clEnqueueWriteBuffer(salt_params) buffer_salt_test.");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps_test, CL_TRUE, 0, (bitmap_size_bits >> 3), bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps_test.");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps_test, CL_TRUE, 0, (bitmap_size_bits >> 3) * 2, bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps_test.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table_test, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table_test.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table_test, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_128, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table_test.");
 		hash_ids[0] = 0;
