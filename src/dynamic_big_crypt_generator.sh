@@ -7,7 +7,9 @@
 # and removes sections that should be 'undefined'. It will
 # use command line to be told how to edit the file, and it
 # uses the specially crafted dynamic_big_crypt_hash.cin file.
-
+if [ "x$CC" = "x" ] ; then
+export CC="gcc -O"
+fi
 $CC dynamic_big_crypt_chopper.c -o dynamic_big_crypt_chopper
 
 # first timestamp the file generation.

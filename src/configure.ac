@@ -867,7 +867,7 @@ if test "`echo cuda_*_fmt_plug.c`" != "cuda_*_fmt_plug.c"; then
 fi
 
 echo "configure: creating ./dynamic_big_crypt.c"
-CC="${CC}" ./dynamic_big_crypt_generator.sh
+./dynamic_big_crypt_generator.sh
 
 ########################################################
 # Creates ./run/john.local.conf but ONLY if it does not
