@@ -77,6 +77,11 @@ typedef struct {
 extern void mask_init(struct db_main *db, char *unprocessed_mask);
 
 /*
+ * Initialize cracker database.
+ */
+extern void mask_crk_init(struct db_main *db);
+
+/*
  * Runs the mask mode cracker.
  */
 extern int do_mask_crack(const char *key);

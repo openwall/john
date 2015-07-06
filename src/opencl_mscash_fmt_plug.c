@@ -16,6 +16,7 @@ john_register_one(&FMT_STRUCT);
 
 #include <string.h>
 #include <assert.h>
+#include <sys/time.h>
 
 #include "arch.h"
 #include "params.h"
@@ -61,6 +62,8 @@ static cl_ulong bitmap_size_bits = 0;
 static unsigned int key_idx = 0;
 static unsigned int ocl_ver;
 static struct fmt_main *self;
+
+static int tune_gws = 0, tune_lws = 0;
 
 static char mscash_prefix[] = "M$";
 
@@ -288,6 +291,11 @@ static void init(struct fmt_main *_self)
 	opencl_prepare_dev(gpu_id);
 
 	opencl_read_source("$JOHN/kernels/mscash_kernel.cl");
+	opencl_get_user_preferences(FORMAT_LABEL);
+	if (!local_work_size)
+		tune_lws = 1;
+	if (!global_work_size)
+		tune_gws = 1;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -721,6 +729,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
+	fprintf(stderr, "Pcount :%d\n", count);
+
 	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
 	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand%d\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx, mask_int_cand.num_int_cand);
@@ -792,6 +802,119 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+static void auto_tune(struct db_main *db, int tune_gws, int tune_lws)
+{
+	size_t gws_limit = 262144;
+	size_t lws_limit = 256;
+	long double kernel_run_ms = 400;
+
+	size_t gws_init = 131072;
+	size_t lws_init = 32;
+
+	struct timeval startc, endc;
+	long double time_ms, old_time_ms;
+	size_t pcount = gws_init, count, i;
+	char key[PLAINTEXT_LENGTH + 1];
+	unsigned int salt[SALT_SIZE/sizeof(unsigned int)];
+
+	memset(key, 0xF5, PLAINTEXT_LENGTH);
+	memset(salt, 0x35, (SALT_SIZE));
+	key[PLAINTEXT_LENGTH] = 0;
+
+	if (tune_gws) {
+		create_clobj_kpc(pcount);
+		set_kernel_args_kpc();
+		for (i = 0; i < pcount; i++)
+			set_key(key, i);
+		gettimeofday(&startc, NULL);
+		if (db)
+			crypt_all((int *)&pcount, db->salts);
+		else {
+			set_salt(salt);
+			crypt_all((int *)&pcount, NULL);
+		}
+		gettimeofday(&endc, NULL);
+		time_ms = (long double)(endc.tv_sec - startc.tv_sec) * 1000.000 + (long double)(endc.tv_usec - startc.tv_usec) / 1000.000;
+		count = (size_t)((kernel_run_ms / time_ms) * (long double)gws_init);
+		get_power_of_two(count);
+	}
+
+	if (tune_gws && tune_lws)
+		release_clobj_kpc();
+
+	if (tune_lws) {
+
+		count = tune_gws ? count : global_work_size;
+		create_clobj_kpc(count);
+		set_kernel_args_kpc();
+		pcount = count;
+		clear_keys();
+		for (i = 0; i < pcount; i++)
+			set_key(key, i);
+		local_work_size = lws_init;
+		gettimeofday(&startc, NULL);
+		if (db)
+			crypt_all((int *)&pcount, db->salts);
+		else {
+			set_salt(salt);
+			crypt_all((int *)&pcount, NULL);
+		}
+		gettimeofday(&endc, NULL);
+		old_time_ms = (long double)(endc.tv_sec - startc.tv_sec) * 1000.000 + (long double)(endc.tv_usec - startc.tv_usec) / 1000.000;
+		local_work_size = 2 * lws_init;
+
+		while (local_work_size <= lws_limit) {
+		  fprintf(stderr, "LOOP ENTRY\n");
+			gettimeofday(&startc, NULL);
+			pcount = count;
+			if (db)
+				crypt_all((int *)&pcount, db->salts);
+			else {
+				set_salt(salt);
+				crypt_all((int *)&pcount, NULL);
+			}
+			gettimeofday(&endc, NULL);
+			time_ms = (long double)(endc.tv_sec - startc.tv_sec) * 1000.000 + (long double)(endc.tv_usec - startc.tv_usec) / 1000.000;
+			if (old_time_ms < time_ms) {
+				local_work_size /= 2;
+				fprintf(stderr, "LOOP EXIT0\n");
+				break;
+			}
+			old_time_ms = time_ms;
+			local_work_size *= 2;
+			fprintf(stderr, "LOOP EXIT1\n");
+		}
+
+		if (local_work_size > lws_limit)
+			local_work_size = lws_limit;
+	}
+
+	if (tune_gws && tune_lws) {
+		if (old_time_ms > kernel_run_ms) {
+			count /= 2;
+		}
+		else {
+			count = (size_t)((kernel_run_ms / old_time_ms) * (long double)count);
+			get_power_of_two(count);
+		}
+	}
+
+	if (tune_gws) {
+		if (count > gws_limit)
+			count = gws_limit;
+		release_clobj_kpc();
+		create_clobj_kpc(count);
+		set_kernel_args_kpc();
+	}
+
+
+	if (!tune_gws)
+		count = global_work_size;
+	fprintf(stderr, "BINGO %d %d\n", local_work_size, count);
+	self->params.max_keys_per_crypt = count;
+	fprintf(stderr, "KPC set: %d LWS set: %d", count, local_work_size);
+}
+
 static void reset(struct db_main *db)
 {	unsigned int salt_params[5];
 	if (db) {
@@ -803,16 +926,17 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmaps_test), "Error Releasing buffer_bitmap_test.");
 
 		release_clobj();
+		release_clobj_kpc();
 
-		buffer_size = db->format->params.max_keys_per_crypt;
 		prepare_table(db);
-
 		init_kernel();
-		create_clobj_kpc(buffer_size);
+
 		create_clobj();
 		set_kernel_args();
-		set_kernel_args_kpc();
+
+		auto_tune(db, tune_gws, tune_lws);
 		self_test = 0;
+
 	}
 	else {
 		unsigned int *binary_hash, i = 0;
@@ -820,7 +944,6 @@ static void reset(struct db_main *db)
 		size_t gws_limit;
 		unsigned int flag;
 		static unsigned int hash_table_size, offset_table_size, shift64_ht_sz, shift64_ot_sz;
-
 
 		opencl_get_user_preferences(FORMAT_LABEL);
 		flag = (options.flags & FLG_MASK_CHK) && !global_work_size;
@@ -891,17 +1014,13 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_table_test.");
 
 		create_clobj();
-		create_clobj_kpc(4194304);
-
 		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_salt_test), (void *) &buffer_salt_test), "Error setting argument 3.");
 		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_bitmaps_test), (void *) &buffer_bitmaps_test), "Error setting argument 6.");
 		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_offset_table_test), (void *) &buffer_offset_table_test), "Error setting argument 7.");
 		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_hash_table_test), (void *) &buffer_hash_table_test), "Error setting argument 8.");
 		set_kernel_args();
-		set_kernel_args_kpc();
-		global_work_size = self->params.max_keys_per_crypt = 4194304;
 
-		if (options.flags & FLG_MASK_CHK) {
+/*		if (options.flags & FLG_MASK_CHK) {
 			fprintf(stdout, "Using Mask Mode with internal "
 			        "candidate generation%s", flag ? "" : "\n");
 			if (flag) {
@@ -910,8 +1029,7 @@ static void reset(struct db_main *db)
 				        ", global worksize(GWS) set to %d\n",
 				        self->params.max_keys_per_crypt);
 			}
-		}
-
+		}*/
 
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_salt_test, CL_TRUE, 12 * sizeof(cl_uint), 5 * sizeof(cl_uint), salt_params, 0, NULL, NULL), "failed in clEnqueueWriteBuffer(salt_params) buffer_salt_test.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps_test, CL_TRUE, 0, (bitmap_size_bits >> 3) * 2, bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps_test.");
@@ -919,6 +1037,7 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table_test, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_tables[current_salt], 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table_test.");
 		hash_ids[0] = 0;
 		MEM_FREE(offset_table);
+		auto_tune(db, tune_gws, tune_lws);
 	}
 }
 
