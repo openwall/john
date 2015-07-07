@@ -129,6 +129,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if ((p = strtokm(p, "$")) == NULL)
 		goto err;
+	if (!isdec(p))
+		goto err;
 	res = atoi(p);
 
 	if (res != 2 && res != 3)  // MD5 hashes + HMAC-SHA256 hashes
@@ -143,8 +145,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
+	if (!isdec(p))
+		goto err;
 	res = atoi(p);
-	if (p[1] || res > 1)
+	if (res < 0 || res > 1)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	// salt2 (or a junk field)
 		goto err;
