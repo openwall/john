@@ -546,7 +546,7 @@ static void prepare_bitmap_4(cl_ulong bmp_sz, cl_uint **bitmap_ptr, uint num_loa
 			(1U << (bmp_idx & 31));
 	}
 }
-
+/*
 static void prepare_bitmap_1(cl_ulong bmp_sz, cl_uint **bitmap_ptr, uint num_loaded_hashes)
 {
 	unsigned int i;
@@ -557,7 +557,7 @@ static void prepare_bitmap_1(cl_ulong bmp_sz, cl_uint **bitmap_ptr, uint num_loa
 		unsigned int bmp_idx = loaded_hashes[4 * i + 3] & (bmp_sz - 1);
 		(*bitmap_ptr)[bmp_idx >> 5] |= (1U << (bmp_idx & 31));
 	}
-}
+}*/
 
 static void select_bitmap(unsigned int num_loaded_hashes)
 {
@@ -613,7 +613,6 @@ static void select_bitmap(unsigned int num_loaded_hashes)
 static void prepare_table(struct db_main *db)
 {
 	struct db_salt *salt;
-	unsigned int k;
 
 	max_num_loaded_hashes = 0;
 	max_hash_table_size = 1;
@@ -714,7 +713,6 @@ static void prepare_table(struct db_main *db)
 
 	} while((salt = salt->next));
 }
-
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -950,8 +948,6 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 static void reset(struct db_main *db)
 {
 	if (db) {
-		size_t buffer_size;
-
 		HANDLE_CLERROR(clReleaseMemObject(buffer_salt_test), "Error Releasing buffer_salt_test.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_offset_table_test), "Error Releasing buffer_offset_table_test.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_table_test), "Error Releasing buffer_hash_table_test.");
