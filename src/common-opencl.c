@@ -921,7 +921,7 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	        path_expand(pathname),
 	        global_opts,
 #ifdef __APPLE__
-	        "-D__APPLE__ ",
+	        "-D__OS_X__ ",
 #else
 	        gpu_nvidia(device_info[sequential_id]) ? "-cl-nv-verbose " : "",
 #endif

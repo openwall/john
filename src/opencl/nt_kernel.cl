@@ -312,7 +312,7 @@ __kernel void nt(__global uint *keys,
 	uint md4_size = base & 63;
 	uint hash[4];
 
-#if __OPENCL_VERSION__ < 120 || (__APPLE__ && gpu_nvidia(DEVICE_INFO))
+#if __OPENCL_VERSION__ < 120 || (__OS_X__ && gpu_nvidia(DEVICE_INFO))
 	if (!gid) {
 		out_hash_ids[0] = 0;
 		for (i = 0; i < HASH_TABLE_SIZE/32 + 1; i++)

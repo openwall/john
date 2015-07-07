@@ -422,7 +422,7 @@ __kernel void RarHashLoop(
 		PUTCHAR_BE(tempin, pwlen + 8, round & 255);
 		PUTCHAR_BE(tempin, pwlen + 9, (round >> 8) & 255);
 
-#ifdef __APPLE__
+#ifdef __OS_X__
 		/* This is the weirdest workaround. Using sha1_final()
 		   works perfectly fine in the RarFinal() subkernel below. */
 		PUTCHAR_BE(tempin, pwlen + 11, 0x80);
