@@ -73,8 +73,21 @@
 #define sph_tiger_close(a,b) sph_tiger_close(b,a)
 
 #include "sph_haval.h"
-#define sph_haval256_3_close(a,b) sph_haval256_3_close(b,a)
+#define sph_haval128_3_close(a,b) sph_haval128_3_close(b,a)
 #define sph_haval128_4_close(a,b) sph_haval128_4_close(b,a)
+#define sph_haval128_5_close(a,b) sph_haval128_5_close(b,a)
+#define sph_haval160_3_close(a,b) sph_haval160_3_close(b,a)
+#define sph_haval160_4_close(a,b) sph_haval160_4_close(b,a)
+#define sph_haval160_5_close(a,b) sph_haval160_5_close(b,a)
+#define sph_haval192_3_close(a,b) sph_haval192_3_close(b,a)
+#define sph_haval192_4_close(a,b) sph_haval192_4_close(b,a)
+#define sph_haval192_5_close(a,b) sph_haval192_5_close(b,a)
+#define sph_haval224_3_close(a,b) sph_haval224_3_close(b,a)
+#define sph_haval224_4_close(a,b) sph_haval224_4_close(b,a)
+#define sph_haval224_5_close(a,b) sph_haval224_5_close(b,a)
+#define sph_haval256_3_close(a,b) sph_haval256_3_close(b,a)
+#define sph_haval256_4_close(a,b) sph_haval256_4_close(b,a)
+#define sph_haval256_5_close(a,b) sph_haval256_5_close(b,a)
 
 #if (AC_BUILT && HAVE_WHIRLPOOL) ||	  \
    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)

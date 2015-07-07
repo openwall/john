@@ -184,6 +184,12 @@ const char *dyna_line2 = "@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785";
 const char *dyna_line3 = "@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb";
 int dyna_sig_len = 17;
 
+extern char *dynamic_Demangle(char*,int *);
+
+#ifdef WITH_MAIN
+int GEN_BIG=0;
+#endif
+
 static DC_list *pList;
 static DC_struct *pLastFind;
 
@@ -361,6 +367,7 @@ static void dynamic_pad16()  { dyna_helper_appendn(pad16(), 16);  }
 static void dynamic_pad20()  { dyna_helper_appendn(pad20(), 20);  }
 static void dynamic_pad100() { dyna_helper_appendn(pad100(), 100); }
 //static void dynamic_pop    { return pop @gen_Stack; }  # not really needed.
+
 #define APP_FUNC(TY,VAL) static void dynamic_app_##TY (){dyna_helper_append(VAL);}
 APP_FUNC(sh,gen_s) /*APP_FUNC(s,gen_s)*/ APP_FUNC(S,gen_s2) APP_FUNC(u,gen_u) APP_FUNC(u_lc,gen_ulc)
 APP_FUNC(u_uc,gen_uuc) APP_FUNC(p,gen_pw) /* APP_FUNC(pU,gen_pwuc) APP_FUNC(pL,gen_pwlc) */
@@ -666,6 +673,7 @@ static int comp_do_lexi(DC_struct *p, const char *pInput) {
 				if (!paren) {
 					// expression is VALID and syntax check successful
 #ifdef WITH_MAIN
+					if (!GEN_BIG)
 					printf ("The expression checks out as valid\n");
 #endif
 					return nSyms;
@@ -1118,11 +1126,11 @@ static int parse_expression(DC_struct *p) {
 							ELSEIF(Tiger,ftig,4,24)
 							ELSEIF(WHIRLPOOL,fwrl,4,64)
 							ELSEIF(RIPEMD128,frip128,7,0) ELSEIF(RIPEMD160,frip160,7,20) ELSEIF(RIPEMD256,frip256,7,32) ELSEIF(RIPEMD320,frip320,7,40)
-							ELSEIF(HAVAL128_3,fhav128_3,6,0)  ELSEIF(HAVAL128_4,fhav128_4,6,0)  ELSEIF(HAVAL128_5,fhav128_5,6,0)
-							ELSEIF(HAVAL160_3,fhav160_3,6,20) ELSEIF(HAVAL160_4,fhav160_4,6,20) ELSEIF(HAVAL160_5,fhav160_5,6,20)
-							ELSEIF(HAVAL192_3,fhav192_3,6,24) ELSEIF(HAVAL192_4,fhav192_4,6,24) ELSEIF(HAVAL192_5,fhav192_5,6,24)
-							ELSEIF(HAVAL224_3,fhav224_3,6,28) ELSEIF(HAVAL224_4,fhav224_4,6,28) ELSEIF(HAVAL224_5,fhav224_5,6,28)
-							ELSEIF(HAVAL256_3,fhav256_3,6,32) ELSEIF(HAVAL256_4,fhav256_4,6,32) ELSEIF(HAVAL256_5,fhav256_5,6,32)
+							ELSEIF(HAVAL128_3,fhav128_3,9,0)  ELSEIF(HAVAL128_4,fhav128_4,9,0)  ELSEIF(HAVAL128_5,fhav128_5,9,0)
+							ELSEIF(HAVAL160_3,fhav160_3,9,20) ELSEIF(HAVAL160_4,fhav160_4,9,20) ELSEIF(HAVAL160_5,fhav160_5,9,20)
+							ELSEIF(HAVAL192_3,fhav192_3,9,24) ELSEIF(HAVAL192_4,fhav192_4,9,24) ELSEIF(HAVAL192_5,fhav192_5,9,24)
+							ELSEIF(HAVAL224_3,fhav224_3,9,28) ELSEIF(HAVAL224_4,fhav224_4,9,28) ELSEIF(HAVAL224_5,fhav224_5,9,28)
+							ELSEIF(HAVAL256_3,fhav256_3,9,32) ELSEIF(HAVAL256_4,fhav256_4,9,32) ELSEIF(HAVAL256_5,fhav256_5,9,32)
 						} else {
 							if (append_mode) {
 #undef IF
@@ -1139,11 +1147,11 @@ static int parse_expression(DC_struct *p) {
 								ELSEIF(Tiger,ftig,4)
 								ELSEIF(WHIRLPOOL,fwrl,4)
 								ELSEIF(RIPEMD128,frip128,7) ELSEIF(RIPEMD160,frip160,7) ELSEIF(RIPEMD256,frip256,7) ELSEIF(RIPEMD320,frip320,7)
-								ELSEIF(HAVAL128_3,fhav128_3,6) ELSEIF(HAVAL128_4,fhav128_4,6) ELSEIF(HAVAL128_5,fhav128_5,6)
-								ELSEIF(HAVAL160_3,fhav160_3,6) ELSEIF(HAVAL160_4,fhav160_4,6) ELSEIF(HAVAL160_5,fhav160_5,6)
-								ELSEIF(HAVAL192_3,fhav192_3,6) ELSEIF(HAVAL192_4,fhav192_4,6) ELSEIF(HAVAL192_5,fhav192_5,6)
-								ELSEIF(HAVAL224_3,fhav224_3,6) ELSEIF(HAVAL224_4,fhav224_4,6) ELSEIF(HAVAL224_5,fhav224_5,6)
-								ELSEIF(HAVAL256_3,fhav256_3,6) ELSEIF(HAVAL256_4,fhav256_4,6) ELSEIF(HAVAL256_5,fhav256_5,6)
+								ELSEIF(HAVAL128_3,fhav128_3,9) ELSEIF(HAVAL128_4,fhav128_4,9) ELSEIF(HAVAL128_5,fhav128_5,9)
+								ELSEIF(HAVAL160_3,fhav160_3,9) ELSEIF(HAVAL160_4,fhav160_4,9) ELSEIF(HAVAL160_5,fhav160_5,9)
+								ELSEIF(HAVAL192_3,fhav192_3,9) ELSEIF(HAVAL192_4,fhav192_4,9) ELSEIF(HAVAL192_5,fhav192_5,9)
+								ELSEIF(HAVAL224_3,fhav224_3,9) ELSEIF(HAVAL224_4,fhav224_4,9) ELSEIF(HAVAL224_5,fhav224_5,9)
+								ELSEIF(HAVAL256_3,fhav256_3,9) ELSEIF(HAVAL256_4,fhav256_4,9) ELSEIF(HAVAL256_5,fhav256_5,9)
 								else {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;
@@ -1163,11 +1171,11 @@ static int parse_expression(DC_struct *p) {
 								ELSEIF(Tiger,ftig,4)
 								ELSEIF(WHIRLPOOL,fwrl,4)
 								ELSEIF(RIPEMD128,frip128,7) ELSEIF(RIPEMD160,frip160,7) ELSEIF(RIPEMD256,frip256,7) ELSEIF(RIPEMD320,frip320,7)
-								ELSEIF(HAVAL128_3,fhav128_3,6) ELSEIF(HAVAL128_4,fhav128_4,6) ELSEIF(HAVAL128_5,fhav128_5,6)
-								ELSEIF(HAVAL160_3,fhav160_3,6) ELSEIF(HAVAL160_4,fhav160_4,6) ELSEIF(HAVAL160_5,fhav160_5,6)
-								ELSEIF(HAVAL192_3,fhav192_3,6) ELSEIF(HAVAL192_4,fhav192_4,6) ELSEIF(HAVAL192_5,fhav192_5,6)
-								ELSEIF(HAVAL224_3,fhav224_3,6) ELSEIF(HAVAL224_4,fhav224_4,6) ELSEIF(HAVAL224_5,fhav224_5,6)
-								ELSEIF(HAVAL256_3,fhav256_3,6) ELSEIF(HAVAL256_4,fhav256_4,6) ELSEIF(HAVAL256_5,fhav256_5,6)
+								ELSEIF(HAVAL128_3,fhav128_3,9) ELSEIF(HAVAL128_4,fhav128_4,9) ELSEIF(HAVAL128_5,fhav128_5,9)
+								ELSEIF(HAVAL160_3,fhav160_3,9) ELSEIF(HAVAL160_4,fhav160_4,9) ELSEIF(HAVAL160_5,fhav160_5,9)
+								ELSEIF(HAVAL192_3,fhav192_3,9) ELSEIF(HAVAL192_4,fhav192_4,9) ELSEIF(HAVAL192_5,fhav192_5,9)
+								ELSEIF(HAVAL224_3,fhav224_3,9) ELSEIF(HAVAL224_4,fhav224_4,9) ELSEIF(HAVAL224_5,fhav224_5,9)
+								ELSEIF(HAVAL256_3,fhav256_3,9) ELSEIF(HAVAL256_4,fhav256_4,9) ELSEIF(HAVAL256_5,fhav256_5,9)
 								else {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;
@@ -1270,15 +1278,15 @@ static uint32_t compute_checksum(const char *expr) {
 }
 
 static DC_HANDLE find_checksum(uint32_t crc32) {
-	DC_list *p;
+//	DC_list *p;
 	if (!pList)
 		pList = mem_calloc_tiny(sizeof(DC_list), sizeof(void*));
-	p = pList->next;
-	while (p) {
-		if (p->value->crc32 == crc32)
-			return p->value;
-		p = p->next;
-	}
+	//p = pList->next;
+	//while (p) {
+	//	if (p->value->crc32 == crc32)
+	//		return p->value;
+	//	p = p->next;
+	//}
 	return 0;
 }
 
@@ -1363,8 +1371,21 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 					case 13: type="ripemd160"; break;
 					case 14: type="ripemd256"; break;
 					case 15: type="ripemd320"; break;
-					case 16: type="haval256_3"; break;
+					case 16: type="haval128_3"; break;
 					case 17: type="haval128_4"; break;
+					case 18: type="haval128_5"; break;
+					case 19: type="haval160_3"; break;
+					case 20: type="haval160_4"; break;
+					case 21: type="haval160_5"; break;
+					case 22: type="haval192_3"; break;
+					case 23: type="haval192_4"; break;
+					case 24: type="haval192_5"; break;
+					case 25: type="haval224_3"; break;
+					case 26: type="haval224_4"; break;
+					case 27: type="haval224_5"; break;
+					case 28: type="haval256_3"; break;
+					case 29: type="haval256_4"; break;
+					case 30: type="haval256_5"; break;
 				}
 				if (type) {
 					switch(num%10) {
@@ -1467,30 +1488,93 @@ void dynamic_compile_done() {
 }
 #ifdef WITH_MAIN
 int ldr_in_pot = 0;
+
+/*****************************************************************************
+ * these functions were missing from dynamic_utils.c, so I simply add dummy
+ * functions here.  I needed to access dynamic_Demangle() from that file,
+ * but there was other baggage along for the ride. When built with WITH_MAIN
+ * we use no other code from dynamic_utils.c, so these stubs are safe.
+ ****************************************************************************/
+int dynamic_IS_VALID(int i, int force) {return 0;}
+char *dynamic_LOAD_PARSER_SIGNATURE(int which) {return 0;}
+void cfg_init(char *name, int allow_missing) {}
+int cfg_get_bool(char *section, char *subsection, char *param, int def) {return 0;}
+char *dynamic_PRELOAD_SIGNATURE(int cnt) {return 0;}
+/* END of missing functions from dynamic_utils.c */
+
+int big_gen_one(int Num, char *cpExpr) {
+	DC_HANDLE p;
+	DC_struct *p2;
+	int ret;
+
+	ret = dynamic_compile(cpExpr, &p);
+	p2 = (DC_struct *)p;
+	if (ret || !p2->pScript) return !!printf ("Error, null script variable in type %d\n", Num);
+	printf ("static struct fmt_tests _Preloads_%d[] = {\n", Num);
+	printf ("    {\"$dynamic_%d$%s\",\"abc\"},\n",Num, strchr(&(p2->pLine1[1]), '@')+1);
+	printf ("    {\"$dynamic_%d$%s\",\"john\"},\n",Num, strchr(&(p2->pLine2[1]), '@')+1);
+	printf ("    {\"$dynamic_%d$%s\",\"passweird\"},\n",Num, strchr(&(p2->pLine3[1]), '@')+1);
+	printf ("    {NULL}};\n");
+	return 0;
+}
+int big_gen(char *cpType, char *cpNum) {
+	int Num = atoi(cpNum)*10;
+	char szExpr[128];
+	char cpTypeU[64];
+
+	GEN_BIG=1;
+	strcpy(cpTypeU, cpType);
+	strupr(cpTypeU);
+	printf ("/*** Large hash group for %s dynamic_%d to dynamic_%d ***/\n", cpType, Num, Num+8);
+	printf ("DYNA_PRE_DEFINE_LARGE_HASH(%s,%s)\n", cpTypeU, cpNum);
+
+	sprintf(szExpr, "dynamic=%s($p)", cpType); //160
+	if (big_gen_one(Num++, szExpr)) return 1;
+	sprintf(szExpr, "dynamic=%s($s.$p)", cpType); //161
+	if (big_gen_one(Num++, szExpr)) return 1;
+	sprintf(szExpr, "dynamic=%s($p.$s)", cpType); //162
+	if (big_gen_one(Num++, szExpr)) return 1;
+	sprintf(szExpr, "dynamic=%s(%s($p))", cpType, cpType); //163
+	if (big_gen_one(Num++, szExpr)) return 1;
+	sprintf(szExpr, "dynamic=%s(%s_raw($p))", cpType, cpType); //164
+	if (big_gen_one(Num++, szExpr)) return 1;
+	sprintf(szExpr, "dynamic=%s(%s($p).$s)", cpType, cpType); //165
+	if (big_gen_one(Num++, szExpr)) return 1;
+	sprintf(szExpr, "dynamic=%s($s.%s($p))", cpType, cpType); //166
+	if (big_gen_one(Num++, szExpr)) return 1;
+	sprintf(szExpr, "dynamic=%s(%s($s).%s($p))", cpType, cpType, cpType); //167
+	if (big_gen_one(Num++, szExpr)) return 1;
+	sprintf(szExpr, "dynamic=%s(%s($p).%s($p))", cpType, cpType, cpType); //168
+	if (big_gen_one(Num++, szExpr)) return 1;
+
+	return 0;
+}
 int main(int argc, char **argv) {
-		DC_HANDLE p;
-		DC_struct *p2;
-		int ret;
+	DC_HANDLE p;
+	DC_struct *p2;
+	int ret;
 
-		CRC32_Init_tab();
-		compile_debug = 1;
-		printf("processing this expression: %s\n\n", argv[1]);
-		ret = dynamic_compile(argv[1], &p);
-		p2 = (DC_struct *)p;
-		if (ret || !p2->pScript) return !!printf ("Error, null script variable\n");
+	CRC32_Init_tab();
+	compile_debug = 1;
+	if (argc == 4 && !strcmp(argv[1], "BIG_GEN"))
+		return big_gen(argv[2], argv[3]);
+	printf("processing this expression: %s\n\n", argv[1]);
+	ret = dynamic_compile(argv[1], &p);
+	p2 = (DC_struct *)p;
+	if (ret || !p2->pScript) return !!printf ("Error, null script variable\n");
 
-		printf("Script:\n-------------\n%s\n\n", p2->pScript);
-		printf("Expression:  %s\n", p2->pExpr);
-		printf("ExtraParams: %s\n", p2->pExtraParams);
-		printf("Signature:   %s\n", p2->pSignature);
-		printf("Test Line:   %s\n", p2->pLine1);
-		printf("Test Line:   %s\n", p2->pLine2);
-		printf("Test Line:   %s\n", p2->pLine3);
-		printf("crc32:       %08x\n", p2->crc32);
-		if (nConst) {
-			int i;
-			for (i = 1; i <= nConst; ++i)
-				printf("Const%d:      %s\n", i, Const[i]);
-		}
+	printf("Script:\n-------------\n%s\n\n", p2->pScript);
+	printf("Expression:  %s\n", p2->pExpr);
+	printf("ExtraParams: %s\n", p2->pExtraParams);
+	printf("Signature:   %s\n", p2->pSignature);
+	printf("Test Line:   %s\n", p2->pLine1);
+	printf("Test Line:   %s\n", p2->pLine2);
+	printf("Test Line:   %s\n", p2->pLine3);
+	printf("crc32:       %08x\n", p2->crc32);
+	if (nConst) {
+		int i;
+		for (i = 1; i <= nConst; ++i)
+			printf("Const%d:      %s\n", i, Const[i]);
+	}
 }
 #endif
