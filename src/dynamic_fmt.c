@@ -2220,6 +2220,12 @@ static void *get_salt(char *ciphertext)
 		unsigned int slen=strlen(Salt);
 		switch (curdat.dynamic_salt_as_hex_format_type) {
 			//  TODO:  Come up with some way to put these into a CASE(HASH) #define
+
+#define SPH_CASE(H,F,S)  case MGF__##H: {sph_##F##_context c;sph_##F##_init(&c);sph_##F(&c,(const unsigned char*)Salt,slen);sph_##F##_close(&c,Buf); \
+				memset(Salt,0,SALT_SIZE+1);base64_convert(Buf,e_b64_raw,S,Salt,e_b64_hex,SALT_SIZE, 0);break; }
+#define OSSL_CASE(H,C,S)  case MGF__##H: {C##_CTX c;H##_Init(&c);H##_Update(&c,Salt,slen);H##_Final(Buf,&c); \
+				memset(Salt,0,SALT_SIZE+1);base64_convert(Buf,e_b64_raw,S,Salt,e_b64_hex,SALT_SIZE, 0);break; }
+
 			case MGF__MD5:
 			{
 				// Do not 'worry' about SSE/MMX,  Only do 'generic' md5.  This is ONLY done
@@ -2253,66 +2259,13 @@ static void *get_salt(char *ciphertext)
 				base64_convert(Buf, e_b64_raw, 16, cpo, e_b64_hex, SALT_SIZE, 0);
 				break;
 			}
-			case MGF__MD4:
-			{
-				MD4_CTX ctx;
-				MD4_Init(&ctx);
-				MD4_Update(&ctx, Salt, slen);
-				MD4_Final(Buf, &ctx);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 16, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__SHA1:
-			{
-				SHA_CTX ctx;
-				SHA1_Init(&ctx);
-				SHA1_Update(&ctx, Salt, slen);
-				SHA1_Final(Buf, &ctx);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 20, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__SHA224:
-			{
-				SHA256_CTX ctx;
-				SHA224_Init(&ctx);
-				SHA224_Update(&ctx, Salt, slen);
-				SHA224_Final(Buf, &ctx);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 28, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__SHA256:
-			{
-				SHA256_CTX ctx;
-				SHA256_Init(&ctx);
-				SHA256_Update(&ctx, Salt, slen);
-				SHA256_Final(Buf, &ctx);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__SHA384:
-			{
-				SHA512_CTX ctx;
-				SHA384_Init(&ctx);
-				SHA384_Update(&ctx, Salt, slen);
-				SHA384_Final(Buf, &ctx);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 48, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__SHA512:
-			{
-				SHA512_CTX ctx;
-				SHA512_Init(&ctx);
-				SHA512_Update(&ctx, Salt, slen);
-				SHA512_Final(Buf, &ctx);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 64, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
+			OSSL_CASE(MD4,MD4,16)
+			OSSL_CASE(SHA1,SHA,20)
+			OSSL_CASE(SHA224,SHA256,28)
+			OSSL_CASE(SHA256,SHA256,32)
+			OSSL_CASE(SHA384,SHA512,48)
+			OSSL_CASE(SHA512,SHA512,64)
+			OSSL_CASE(WHIRLPOOL,WHIRLPOOL,64)
 			case MGF__GOST:
 			{
 				gost_ctx ctx;
@@ -2323,216 +2276,26 @@ static void *get_salt(char *ciphertext)
 				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
 				break;
 			}
-			case MGF__WHIRLPOOL:
-			{
-				WHIRLPOOL_CTX ctx;
-				WHIRLPOOL_Init(&ctx);
-				WHIRLPOOL_Update(&ctx, (const unsigned char*)Salt, slen);
-				WHIRLPOOL_Final(Buf, &ctx);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 64, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__Tiger:
-			{
-				sph_tiger_context ctx;
-				sph_tiger_init(&ctx);
-				sph_tiger(&ctx, (const unsigned char*)Salt, slen);
-				sph_tiger_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 24, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__RIPEMD128:
-			{
-				sph_ripemd128_context ctx;
-				sph_ripemd128_init(&ctx);
-				sph_ripemd128(&ctx, (const unsigned char*)Salt, slen);
-				sph_ripemd128_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 16, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__RIPEMD160:
-			{
-				sph_ripemd160_context ctx;
-				sph_ripemd160_init(&ctx);
-				sph_ripemd160(&ctx, (const unsigned char*)Salt, slen);
-				sph_ripemd160_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 20, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__RIPEMD256:
-			{
-				sph_ripemd256_context ctx;
-				sph_ripemd256_init(&ctx);
-				sph_ripemd256(&ctx, (const unsigned char*)Salt, slen);
-				sph_ripemd256_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__RIPEMD320:
-			{
-				sph_ripemd320_context ctx;
-				sph_ripemd320_init(&ctx);
-				sph_ripemd320(&ctx, (const unsigned char*)Salt, slen);
-				sph_ripemd320_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 40, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL128_3:
-			{
-				sph_haval128_3_context ctx;
-				sph_haval128_3_init(&ctx);
-				sph_haval128_3(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval128_3_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL128_4:
-			{
-				sph_haval128_4_context ctx;
-				sph_haval128_4_init(&ctx);
-				sph_haval128_4(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval128_4_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 16, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL128_5:
-			{
-				sph_haval128_5_context ctx;
-				sph_haval128_5_init(&ctx);
-				sph_haval128_5(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval128_5_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL160_3:
-			{
-				sph_haval160_3_context ctx;
-				sph_haval160_3_init(&ctx);
-				sph_haval160_3(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval160_3_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL160_4:
-			{
-				sph_haval160_4_context ctx;
-				sph_haval160_4_init(&ctx);
-				sph_haval160_4(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval160_4_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 16, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL160_5:
-			{
-				sph_haval160_5_context ctx;
-				sph_haval160_5_init(&ctx);
-				sph_haval160_5(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval160_5_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL192_3:
-			{
-				sph_haval192_3_context ctx;
-				sph_haval192_3_init(&ctx);
-				sph_haval192_3(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval192_3_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL192_4:
-			{
-				sph_haval192_4_context ctx;
-				sph_haval192_4_init(&ctx);
-				sph_haval192_4(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval192_4_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 16, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL192_5:
-			{
-				sph_haval192_5_context ctx;
-				sph_haval192_5_init(&ctx);
-				sph_haval192_5(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval192_5_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL224_3:
-			{
-				sph_haval224_3_context ctx;
-				sph_haval224_3_init(&ctx);
-				sph_haval224_3(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval224_3_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL224_4:
-			{
-				sph_haval224_4_context ctx;
-				sph_haval224_4_init(&ctx);
-				sph_haval224_4(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval224_4_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 16, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL224_5:
-			{
-				sph_haval224_5_context ctx;
-				sph_haval224_5_init(&ctx);
-				sph_haval224_5(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval224_5_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL256_3:
-			{
-				sph_haval256_3_context ctx;
-				sph_haval256_3_init(&ctx);
-				sph_haval256_3(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval256_3_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL256_4:
-			{
-				sph_haval256_4_context ctx;
-				sph_haval256_4_init(&ctx);
-				sph_haval256_4(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval256_4_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 16, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__HAVAL256_5:
-			{
-				sph_haval256_5_context ctx;
-				sph_haval256_5_init(&ctx);
-				sph_haval256_5(&ctx, (const unsigned char*)Salt, slen);
-				sph_haval256_5_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
+			SPH_CASE(Tiger,tiger,24)
+			SPH_CASE(RIPEMD128,ripemd128,16)
+			SPH_CASE(RIPEMD160,ripemd160,20)
+			SPH_CASE(RIPEMD256,ripemd256,32)
+			SPH_CASE(RIPEMD320,ripemd320,40)
+			SPH_CASE(HAVAL128_3,haval128_3,16)
+			SPH_CASE(HAVAL128_4,haval128_4,16)
+			SPH_CASE(HAVAL128_5,haval128_5,16)
+			SPH_CASE(HAVAL160_3,haval160_3,20)
+			SPH_CASE(HAVAL160_4,haval160_4,20)
+			SPH_CASE(HAVAL160_5,haval160_5,20)
+			SPH_CASE(HAVAL192_3,haval192_3,24)
+			SPH_CASE(HAVAL192_4,haval192_4,24)
+			SPH_CASE(HAVAL192_5,haval192_5,24)
+			SPH_CASE(HAVAL224_3,haval224_3,28)
+			SPH_CASE(HAVAL224_4,haval224_4,28)
+			SPH_CASE(HAVAL224_5,haval224_5,28)
+			SPH_CASE(HAVAL256_3,haval256_3,32)
+			SPH_CASE(HAVAL256_4,haval256_4,32)
+			SPH_CASE(HAVAL256_5,haval256_5,32)
 			default:
 			{
 				error("Invalid dynamic flags seen.  Data type not yet defined\n");
