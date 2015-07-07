@@ -123,6 +123,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* type */
 		goto err;
 	/* type must be 1 */
+	if (!isdec(p))
+		goto err;
 	if (atoi(p) != 1)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* algorithm */
@@ -131,7 +133,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* iterations */
 		goto err;
-	if (!isdec(p))
+	if (!isdec(p) || atoi(p) < 0) // FIXME: what about iterations == 0?
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
