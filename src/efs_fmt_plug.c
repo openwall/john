@@ -138,7 +138,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += TAG_LENGTH;
 	if ((p = strtokm(ctcopy, "$")) == NULL)  /* version number */
 		goto err;
-	if(!isdec(p))
+	if(!isdec(p) || atoi(p) < 0)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* SID */
 		goto err;
@@ -152,7 +152,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* iterations */
 		goto err;
-	if(!isdec(p))
+	if(!isdec(p) || atoi(p) < 0) // FIXME: iterations == 0 allowed?
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* data */
 		goto err;
