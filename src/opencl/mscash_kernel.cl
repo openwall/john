@@ -266,7 +266,7 @@ inline void md4_crypt_b(__private uint *hash, constant uint *salt)
 	hash[3] = d + INIT_D;
 }
 
-inline void prepare_key(__global uint * key, int length, uint * nt_buffer)
+inline void prepare_key(__global uint * key, uint length, uint * nt_buffer)
 {
 	uint i = 0, nt_index, keychars;
 	nt_index = 0;
@@ -333,7 +333,6 @@ inline void cmp(uint gid,
 		__private uint *hash,
 		__global uint *bitmaps,
 		uint bitmap_sz_bits,
-		uint bitmap_sz_bits_less_one,
 		__global uint *offset_table,
 		__global uint *hash_table,
 		constant uint *salt,
@@ -342,9 +341,9 @@ inline void cmp(uint gid,
 		volatile __global uint *bitmap_dupe) {
 	uint bitmap_index, tmp = 1;
 
-	bitmap_index = hash[3] & bitmap_sz_bits_less_one;
+	bitmap_index = hash[3] & salt[12];
 	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[2] & bitmap_sz_bits_less_one;
+	bitmap_index = hash[2] & salt[12];
 	tmp &= (bitmaps[(bitmap_sz_bits >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
 
 	if (tmp)
@@ -388,8 +387,7 @@ __kernel void mscash(__global uint *keys,
 	uint nt_buffer[16] = { 0 };
 	uint len = base & 63;
 	uint hash[4] = {0};
-	uint bitmap_sz_bits_less_one = salt[12];
-	uint bitmap_sz_bits = bitmap_sz_bits_less_one + 1;
+	uint bitmap_sz_bits = salt[12] + 1;
 
 #if __OPENCL_VERSION__ < 120 || (__APPLE__ && gpu_nvidia(DEVICE_INFO))
 	if (!gid) {
@@ -457,8 +455,8 @@ __kernel void mscash(__global uint *keys,
 		md4_crypt_a(hash, nt_buffer);
 		md4_crypt_b(hash, salt);
 
-		cmp(gid, i, hash, bitmaps, bitmap_sz_bits, bitmap_sz_bits_less_one,
-		    offset_table, hash_table, salt, return_hashes, out_hash_ids, bitmap_dupe);
+		cmp(gid, i, hash, bitmaps, bitmap_sz_bits, offset_table, hash_table,
+		    salt, return_hashes, out_hash_ids, bitmap_dupe);
 
 	}
 }
