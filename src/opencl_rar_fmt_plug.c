@@ -696,7 +696,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 7;
 	if (!(ptr = strtokm(ctcopy, "*"))) /* -p or -h mode */
 		goto error;
-	if (hexlen(ptr) != 1)
+	if (strlen(ptr) != 1 || !isdec(ptr))
 		goto error;
 	mode = atoi(ptr);
 	if (mode < 0 || mode > 1)
@@ -744,7 +744,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto error;
 		if (!(ptr = strtokm(NULL, "*"))) /* inlined */
 			goto error;
-		if (hexlen(ptr) != 1)
+		if (strlen(ptr) != 1 || !isdec(ptr))
 			goto error;
 		inlined = atoi(ptr);
 		if (inlined < 0 || inlined > 1)
