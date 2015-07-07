@@ -85,6 +85,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!get_integer(p, &len))
 		goto err;
+	if (atoi(p) < 0)
+		goto err;
 	if (len > 24 || len < 0) // CRYPT5_KDF_LG2_COUNT_MAX
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // AES IV
