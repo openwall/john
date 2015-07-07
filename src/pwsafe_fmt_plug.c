@@ -109,7 +109,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 9;		/* skip over "$pwsafe$*" */
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* version */
 		goto err;
-	if (atoi(p) == 0)
+	if (!isdec(p))
+		goto err;
+	if (atoi(p) <= 0)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
@@ -119,7 +121,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
 		goto err;
-	if (atoi(p) == 0)
+	if (!isdec(p))
+		goto err;
+	if (atoi(p) <= 0)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
