@@ -1867,9 +1867,13 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 		rec_restore_mode(mask_restore_state);
 		rec_init(db, mask_save_state);
-
-		crk_init(db, mask_fix_state, NULL);
 	}
+}
+
+void mask_crk_init(struct db_main *db)
+{
+	if (!(options.flags & FLG_MASK_STACKED))
+		crk_init(db, mask_fix_state, NULL);
 }
 
 void mask_done()

@@ -1445,6 +1445,9 @@ static void john_run(void)
 		if (trigger_reset)
 			database.format->methods.reset(&database);
 
+		if (options.flags & FLG_MASK_CHK)
+			mask_crk_init(&database);
+
 		if (options.flags & FLG_SINGLE_CHK)
 			do_single_crack(&database);
 		else
