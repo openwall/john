@@ -176,27 +176,45 @@ static void create_clobj()
 
 static void release_clobj_kpc(void)
 {
-	if (pinned_saved_keys) {
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Unmapping saved_plain.");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys.");
-	}
-	else
-		MEM_FREE(saved_plain);
+	if (buffer_keys) {
+		if (pinned_saved_keys) {
+			HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Unmapping saved_plain.");
+			HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys.");
+		}
+		else
+			MEM_FREE(saved_plain);
 
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx.");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_int_key_loc, saved_int_key_loc, 0, NULL, NULL), "Error Unmapping saved_int_key_loc.");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing mappings.");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_idx), "Error Releasing pinned_saved_idx.");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_int_key_loc), "Error Releasing pinned_int_key_loc.");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys.");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Error Releasing buffer_idx.");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_int_key_loc), "Error Releasing buffer_int_key_loc.");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx.");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_int_key_loc, saved_int_key_loc, 0, NULL, NULL), "Error Unmapping saved_int_key_loc.");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing mappings.");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_idx), "Error Releasing pinned_saved_idx.");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_int_key_loc), "Error Releasing pinned_int_key_loc.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Error Releasing buffer_idx.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_int_key_loc), "Error Releasing buffer_int_key_loc.");
+		buffer_keys = 0;
+	}
 }
+
+static void release_clobj_test(void)
+{
+	if (buffer_salt_test) {
+		HANDLE_CLERROR(clReleaseMemObject(buffer_salt_test), "Error Releasing buffer_salt_test.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_offset_table_test), "Error Releasing buffer_offset_table_test.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_table_test), "Error Releasing buffer_hash_table_test.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmaps_test), "Error Releasing buffer_bitmap_test.");
+		buffer_salt_test = 0;
+	}
+}
+
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys.");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_return_hashes), "Error Releasing buffer_return_hashes.");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Error Releasing buffer_bitmap_dupe.");
+	if (buffer_int_keys) {
+		HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_return_hashes), "Error Releasing buffer_return_hashes.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Error Releasing buffer_bitmap_dupe.");
+		buffer_int_keys = 0;
+	}
 }
 
 static void release_salt_buffers()
@@ -206,6 +224,7 @@ static void release_salt_buffers()
 		k = 0;
 		while (hash_tables[k]) {
 			MEM_FREE(hash_tables[k]);
+			hash_tables[k] = 0;
 			k++;
 		}
 		MEM_FREE(hash_tables);
@@ -215,6 +234,7 @@ static void release_salt_buffers()
 		k = 0;
 		while (buffer_offset_tables[k]) {
 			clReleaseMemObject(buffer_offset_tables[k]);
+			buffer_offset_tables[k] = 0;
 			k++;
 		}
 		MEM_FREE(buffer_offset_tables);
@@ -224,6 +244,7 @@ static void release_salt_buffers()
 		k = 0;
 		while (buffer_hash_tables[k]) {
 			clReleaseMemObject(buffer_hash_tables[k]);
+			buffer_hash_tables[k] = 0;
 			k++;
 		}
 		MEM_FREE(buffer_hash_tables);
@@ -233,6 +254,7 @@ static void release_salt_buffers()
 		k = 0;
 		while (buffer_bitmaps[k]) {
 			clReleaseMemObject(buffer_bitmaps[k]);
+			buffer_bitmaps[k] = 0;
 			k++;
 		}
 		MEM_FREE(buffer_bitmaps);
@@ -242,6 +264,7 @@ static void release_salt_buffers()
 		k = 0;
 		while (buffer_salts[k]) {
 			clReleaseMemObject(buffer_salts[k]);
+			buffer_salts[k] = 0;
 			k++;
 		}
 		MEM_FREE(buffer_salts);
@@ -251,18 +274,13 @@ static void release_salt_buffers()
 
 static void done(void)
 {
-	HANDLE_CLERROR(clReleaseMemObject(buffer_salt_test), "Error Releasing buffer_salt_test.");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_offset_table_test), "Error Releasing buffer_offset_table_test.");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_hash_table_test), "Error Releasing buffer_hash_table_test.");
-	HANDLE_CLERROR(clReleaseMemObject(buffer_bitmaps_test), "Error Releasing buffer_bitmap_test.");
-
+	release_clobj_test();
 	release_clobj();
 	release_clobj_kpc();
 
 	if (crypt_kernel) {
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel.");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program.");
-
 		crypt_kernel = NULL;
 	}
 
@@ -941,18 +959,14 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	}
 
 	self->params.max_keys_per_crypt = global_work_size;
-	fprintf(stdout, "%s GWS: %zu, LWS: %zu\n", db ? "Craking" : "Self test",
+	fprintf(stdout, "%s GWS: %zu, LWS: %zu\n", db ? "Cracking" : "Self test",
 			global_work_size, local_work_size);
 }
 
 static void reset(struct db_main *db)
 {
 	if (db) {
-		HANDLE_CLERROR(clReleaseMemObject(buffer_salt_test), "Error Releasing buffer_salt_test.");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_offset_table_test), "Error Releasing buffer_offset_table_test.");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_table_test), "Error Releasing buffer_hash_table_test.");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmaps_test), "Error Releasing buffer_bitmap_test.");
-
+		release_clobj_test();
 		release_clobj();
 		release_clobj_kpc();
 
