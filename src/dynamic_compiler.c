@@ -79,7 +79,7 @@
 #define MGF_KEYS_BASE16_IN1_SHA512       0x0600000000000004ULL
 #define MGF_KEYS_BASE16_IN1_GOST         0x0700000000000004ULL
 #define MGF_KEYS_BASE16_IN1_WHIRLPOOL    0x0800000000000004ULL
-#define MGF_KEYS_BASE16_IN1_TIGER        0x0900000000000004ULL
+#define MGF_KEYS_BASE16_IN1_Tiger        0x0900000000000004ULL
 #define MGF_KEYS_BASE16_IN1_RIPEMD128    0x0A00000000000004ULL
 #define MGF_KEYS_BASE16_IN1_RIPEMD160    0x0B00000000000004ULL
 #define MGF_KEYS_BASE16_IN1_RIPEMD256    0x0C00000000000004ULL
@@ -95,11 +95,13 @@
 #define MGF_KEYS_BASE16_IN1_Offset_SHA512    0x0600000000000008ULL
 #define MGF_KEYS_BASE16_IN1_Offset_GOST      0x0700000000000008ULL
 #define MGF_KEYS_BASE16_IN1_Offset_WHIRLPOOL 0x0800000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_TIGER     0x0900000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_Tiger     0x0900000000000008ULL
 #define MGF_KEYS_BASE16_IN1_Offset_RIPEMD128 0x0A00000000000008ULL
 #define MGF_KEYS_BASE16_IN1_Offset_RIPEMD160 0x0B00000000000008ULL
 #define MGF_KEYS_BASE16_IN1_Offset_RIPEMD256 0x0C00000000000008ULL
 #define MGF_KEYS_BASE16_IN1_Offset_RIPEMD320 0x0D00000000000008ULL
+
+BENCHMARK_FLAG  (for raw hashes, etc).
 
 // MGF_INPBASE64 uses e_b64_cryptBS from base64_convert.h chang b64e to b64c
 #define MGF_INPBASE64		         0x00000080
@@ -224,14 +226,6 @@ int dynamic_compile(const char *expr, DC_HANDLE *p) {
 	return 0;
 }
 
-int dynamic_load(DC_HANDLE p) {
-	return 0;
-}
-
-int dynamic_print_script(DC_HANDLE p) {
-	return 0;
-}
-
 static char *find_the_expression(const char *expr) {
 	static char buf[512];
 	char *cp;
@@ -288,71 +282,40 @@ static char gen_s[260], gen_s2[16], gen_u[16], gen_uuc[16], gen_ulc[16], gen_pw[
  * These are the 'low level' primative functions ported from pass_gen.pl.
  * These do the md5($p) stuff (hex, HEX, unicode, base64, etc), for all hash
  * types, and for other functions.
+ * now done using macros (makes source smaller and easier to maintain). NOTE
+ * it is not very debuggable, but that really should not matter.' I would rather
+ * have working prototypes like this, then simply add 1 line to get a NEW full
+ * set of properly working functions.
  */
-static void md5_hex()          { MD5_CTX c; MD5_Init(&c); MD5_Update(&c, h, h_len); MD5_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void md4_hex()          { MD4_CTX c; MD4_Init(&c); MD4_Update(&c, h, h_len); MD4_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void sha1_hex()         { SHA_CTX c; SHA1_Init(&c); SHA1_Update(&c, h, h_len); SHA1_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void md5_base64()       { MD5_CTX c; MD5_Init(&c); MD5_Update(&c, h, h_len); MD5_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void md4_base64()       { MD4_CTX c; MD4_Init(&c); MD4_Update(&c, h, h_len); MD4_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void sha1_base64()      { SHA_CTX c; SHA1_Init(&c); SHA1_Update(&c, h, h_len); SHA1_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void md5_base64c()      { MD5_CTX c; MD5_Init(&c); MD5_Update(&c, h, h_len); MD5_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void md4_base64c()      { MD4_CTX c; MD4_Init(&c); MD4_Update(&c, h, h_len); MD4_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void sha1_base64c()     { SHA_CTX c; SHA1_Init(&c); SHA1_Update(&c, h, h_len); SHA1_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void md5_raw()          { MD5_CTX c; MD5_Init(&c); MD5_Update(&c, h, h_len); MD5_Final((unsigned char*)h, &c);    }
-static void sha1_raw()         { MD4_CTX c; MD4_Init(&c); MD4_Update(&c, h, h_len); MD4_Final((unsigned char*)h, &c);    }
-static void md4_raw()          { SHA_CTX c; SHA1_Init(&c); SHA1_Update(&c, h, h_len); SHA1_Final((unsigned char*)h, &c); }
-static void sha224_hex()       { SHA256_CTX c; SHA224_Init(&c); SHA224_Update(&c, h, h_len); SHA224_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,28,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void sha224_base64()    { SHA256_CTX c; SHA224_Init(&c); SHA224_Update(&c, h, h_len); SHA224_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,28,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void sha224_base64c()   { SHA256_CTX c; SHA224_Init(&c); SHA224_Update(&c, h, h_len); SHA224_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,28,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void sha256_hex()       { SHA256_CTX c; SHA256_Init(&c); SHA256_Update(&c, h, h_len); SHA256_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void sha256_base64()    { SHA256_CTX c; SHA256_Init(&c); SHA256_Update(&c, h, h_len); SHA256_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void sha256_base64c()   { SHA256_CTX c; SHA256_Init(&c); SHA256_Update(&c, h, h_len); SHA256_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void sha384_hex()       { SHA512_CTX c; SHA384_Init(&c); SHA384_Update(&c, h, h_len); SHA384_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,48,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void sha384_base64()    { SHA512_CTX c; SHA384_Init(&c); SHA384_Update(&c, h, h_len); SHA384_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,48,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void sha384_base64c()   { SHA512_CTX c; SHA384_Init(&c); SHA384_Update(&c, h, h_len); SHA384_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,48,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void sha512_hex()       { SHA512_CTX c; SHA512_Init(&c); SHA512_Update(&c, h, h_len); SHA512_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void sha512_base64()    { SHA512_CTX c; SHA512_Init(&c); SHA512_Update(&c, h, h_len); SHA512_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void sha512_base64c()   { SHA512_CTX c; SHA512_Init(&c); SHA512_Update(&c, h, h_len); SHA512_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void sha224_raw()       { SHA256_CTX c; SHA224_Init(&c); SHA224_Update(&c, h, h_len); SHA224_Final((unsigned char*)h, &c); }
-static void sha256_raw()       { SHA256_CTX c; SHA256_Init(&c); SHA256_Update(&c, h, h_len); SHA256_Final((unsigned char*)h, &c); }
-static void sha384_raw()       { SHA512_CTX c; SHA384_Init(&c); SHA384_Update(&c, h, h_len); SHA384_Final((unsigned char*)h, &c); }
-static void sha512_raw()       { SHA512_CTX c; SHA512_Init(&c); SHA512_Update(&c, h, h_len); SHA512_Final((unsigned char*)h, &c); }
-static void whirlpool_hex()    { WHIRLPOOL_CTX c; WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, h, h_len); WHIRLPOOL_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void whirlpool_base64() { WHIRLPOOL_CTX c; WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, h, h_len); WHIRLPOOL_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void whirlpool_base64c(){ WHIRLPOOL_CTX c; WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, h, h_len); WHIRLPOOL_Final((unsigned char*)h, &c); base64_convert(h,e_b64_raw,64,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void whirlpool_raw()    { WHIRLPOOL_CTX c; WHIRLPOOL_Init(&c); WHIRLPOOL_Update(&c, h, h_len); WHIRLPOOL_Final((unsigned char*)h, &c); }
-static void tiger_hex()        { sph_tiger_context c; sph_tiger_init(&c); sph_tiger(&c, h, h_len); sph_tiger_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,24,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void tiger_base64()     { sph_tiger_context c; sph_tiger_init(&c); sph_tiger(&c, h, h_len); sph_tiger_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,24,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void tiger_base64c()    { sph_tiger_context c; sph_tiger_init(&c); sph_tiger(&c, h, h_len); sph_tiger_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,24,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void tiger_raw()        { sph_tiger_context c; sph_tiger_init(&c); sph_tiger(&c, h, h_len); sph_tiger_close(&c, (unsigned char*)h); }
+#define OSSL_FUNC(N,TT,T,L) \
+static void N##_hex()    {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); } \
+static void N##_base64() {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); } \
+static void N##_base64c(){TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); } \
+static void N##_raw()    {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); }
+OSSL_FUNC(md5,MD5,MD5,16)
+OSSL_FUNC(md4,MD4,MD4,16)
+OSSL_FUNC(sha1,SHA,SHA1,20)
+OSSL_FUNC(sha224,SHA256,SHA224,28)
+OSSL_FUNC(sha256,SHA256,SHA256,32)
+OSSL_FUNC(sha384,SHA512,SHA384,48)
+OSSL_FUNC(sha512,SHA512,SHA512,64)
+OSSL_FUNC(whirlpool,WHIRLPOOL,WHIRLPOOL,64)
 static void gost_hex()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
 static void gost_base64()      { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
 static void gost_base64c()     { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
 static void gost_raw()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); }
-static void ripemd128_hex()    { sph_ripemd128_context c; sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)h, h_len); sph_ripemd128_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void ripemd128_base64() { sph_ripemd128_context c; sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)h, h_len); sph_ripemd128_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void ripemd128_base64c(){ sph_ripemd128_context c; sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)h, h_len); sph_ripemd128_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void ripemd128_raw()    { sph_ripemd128_context c; sph_ripemd128_init(&c); sph_ripemd128(&c, (unsigned char*)h, h_len); sph_ripemd128_close(&c, (unsigned char*)h); }
-static void ripemd160_hex()    { sph_ripemd160_context c; sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)h, h_len); sph_ripemd160_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void ripemd160_base64() { sph_ripemd160_context c; sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)h, h_len); sph_ripemd160_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void ripemd160_base64c(){ sph_ripemd160_context c; sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)h, h_len); sph_ripemd160_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,20,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void ripemd160_raw()    { sph_ripemd160_context c; sph_ripemd160_init(&c); sph_ripemd160(&c, (unsigned char*)h, h_len); sph_ripemd160_close(&c, (unsigned char*)h); }
-static void ripemd256_hex()    { sph_ripemd256_context c; sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)h, h_len); sph_ripemd256_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void ripemd256_base64() { sph_ripemd256_context c; sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)h, h_len); sph_ripemd256_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void ripemd256_base64c(){ sph_ripemd256_context c; sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)h, h_len); sph_ripemd256_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void ripemd256_raw()    { sph_ripemd256_context c; sph_ripemd256_init(&c); sph_ripemd256(&c, (unsigned char*)h, h_len); sph_ripemd256_close(&c, (unsigned char*)h); }
-static void ripemd320_hex()    { sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void ripemd320_base64() { sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void ripemd320_base64c(){ sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,40,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void ripemd320_raw()    { sph_ripemd320_context c; sph_ripemd320_init(&c); sph_ripemd320(&c, (unsigned char*)h, h_len); sph_ripemd320_close(&c, (unsigned char*)h); }
-static void haval256_3_hex()    { sph_haval256_3_context c; sph_haval256_3_init(&c); sph_haval256_3(&c, (unsigned char*)h, h_len); sph_haval256_3_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void haval256_3_base64() { sph_haval256_3_context c; sph_haval256_3_init(&c); sph_haval256_3(&c, (unsigned char*)h, h_len); sph_haval256_3_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void haval256_3_base64c(){ sph_haval256_3_context c; sph_haval256_3_init(&c); sph_haval256_3(&c, (unsigned char*)h, h_len); sph_haval256_3_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void haval256_3_raw()    { sph_haval256_3_context c; sph_haval256_3_init(&c); sph_haval256_3(&c, (unsigned char*)h, h_len); sph_haval256_3_close(&c, (unsigned char*)h); }
-static void haval128_4_hex()    { sph_haval128_4_context c; sph_haval128_4_init(&c); sph_haval128_4(&c, (unsigned char*)h, h_len); sph_haval128_4_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void haval128_4_base64() { sph_haval128_4_context c; sph_haval128_4_init(&c); sph_haval128_4(&c, (unsigned char*)h, h_len); sph_haval128_4_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void haval128_4_base64c(){ sph_haval128_4_context c; sph_haval128_4_init(&c); sph_haval128_4(&c, (unsigned char*)h, h_len); sph_haval128_4_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,16,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
-static void haval128_4_raw()    { sph_haval128_4_context c; sph_haval128_4_init(&c); sph_haval128_4(&c, (unsigned char*)h, h_len); sph_haval128_4_close(&c, (unsigned char*)h); }
+#define SPH_FUNC(T,L) \
+static void T##_hex()    { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); } \
+static void T##_base64() { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); } \
+static void T##_base64c(){ sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); } \
+static void T##_raw()    { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); }
+SPH_FUNC(tiger,24)
+SPH_FUNC(ripemd128,16)  SPH_FUNC(ripemd160,20)  SPH_FUNC(ripemd256,32) SPH_FUNC(ripemd320,40)
+SPH_FUNC(haval128_3,16) SPH_FUNC(haval128_4,16) SPH_FUNC(haval128_5,16)
+SPH_FUNC(haval160_3,20) SPH_FUNC(haval160_4,20) SPH_FUNC(haval160_5,20)
+SPH_FUNC(haval192_3,24) SPH_FUNC(haval192_4,24) SPH_FUNC(haval192_5,24)
+SPH_FUNC(haval224_3,28) SPH_FUNC(haval224_4,28) SPH_FUNC(haval224_5,28)
+SPH_FUNC(haval256_3,32) SPH_FUNC(haval256_4,32) SPH_FUNC(haval256_5,32)
 static int encode_le()         { int len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
 static char *pad16()           { memset(gen_conv, 0, 16); strncpy(gen_conv, gen_pw, 16); return gen_conv; }
 static char *pad20()           { memset(gen_conv, 0, 20); strncpy(gen_conv, gen_pw, 20); return gen_conv; }
@@ -394,111 +357,33 @@ static void dyna_helper_poststr() {
  */
 static void fpNull(){}
 static void dynamic_push()   { char *p = mem_calloc(260, 1); MEM_FREE(gen_Stack[ngen_Stack]); gen_Stack_len[ngen_Stack] = 0; gen_Stack[ngen_Stack++] = p; ngen_Stack_max++; }
-//static void dynamic_pop    { return pop @gen_Stack; }  # not really needed.
-//static void dynamic_app_s()  { dyna_helper_append(gen_s);    }
-static void dynamic_app_sh() { dyna_helper_append(gen_s);    } //md5_hex($gen_s); }
-static void dynamic_app_S()  { dyna_helper_append(gen_s2);   }
-static void dynamic_app_u()  { dyna_helper_append(gen_u);    }
-static void dynamic_app_u_lc()  { dyna_helper_append(gen_ulc);    }
-static void dynamic_app_u_uc()  { dyna_helper_append(gen_uuc);    }
-static void dynamic_app_p()  { dyna_helper_append(gen_pw);   }
 static void dynamic_pad16()  { dyna_helper_appendn(pad16(), 16);  }
 static void dynamic_pad20()  { dyna_helper_appendn(pad20(), 20);  }
 static void dynamic_pad100() { dyna_helper_appendn(pad100(), 100); }
-
-//static void dynamic_app_pU() { dyna_helper_append(gen_pwuc); }
-//static void dynamic_app_pL() { dyna_helper_append(gen_pwlc); }
-static void dynamic_app_1()  { dyna_helper_append(dynamic_Demangle((char*)Const[1],NULL)); }
-static void dynamic_app_2()  { dyna_helper_append(dynamic_Demangle((char*)Const[2],NULL)); }
-static void dynamic_app_3()  { dyna_helper_append(dynamic_Demangle((char*)Const[3],NULL)); }
-static void dynamic_app_4()  { dyna_helper_append(dynamic_Demangle((char*)Const[4],NULL)); }
-static void dynamic_app_5()  { dyna_helper_append(dynamic_Demangle((char*)Const[5],NULL)); }
-static void dynamic_app_6()  { dyna_helper_append(dynamic_Demangle((char*)Const[6],NULL)); }
-static void dynamic_app_7()  { dyna_helper_append(dynamic_Demangle((char*)Const[7],NULL)); }
-static void dynamic_app_8()  { dyna_helper_append(dynamic_Demangle((char*)Const[8],NULL)); }
+//static void dynamic_pop    { return pop @gen_Stack; }  # not really needed.
+#define APP_FUNC(TY,VAL) static void dynamic_app_##TY (){dyna_helper_append(VAL);}
+APP_FUNC(sh,gen_s) /*APP_FUNC(s,gen_s)*/ APP_FUNC(S,gen_s2) APP_FUNC(u,gen_u) APP_FUNC(u_lc,gen_ulc)
+APP_FUNC(u_uc,gen_uuc) APP_FUNC(p,gen_pw) /* APP_FUNC(pU,gen_pwuc) APP_FUNC(pL,gen_pwlc) */
+#define APP_CFUNC(N) static void dynamic_app_##N (){dyna_helper_append(dynamic_Demangle((char*)Const[N],NULL));}
+APP_CFUNC(1) APP_CFUNC(2) APP_CFUNC(3) APP_CFUNC(4) APP_CFUNC(5) APP_CFUNC(6) APP_CFUNC(7) APP_CFUNC(8)
 //static void dynamic_ftr32  { $h = gen_Stack[--ngen_Stack]; substr($h,0,32);  strcat(gen_Stack[ngen_Stack-1], h);  }
 //static void dynamic_f54    { $h = gen_Stack[--ngen_Stack]; md5_hex(h)."00000000";	 strcat(gen_Stack[ngen_Stack-1], h);  }
 
-static void dynamic_f5h()    { dyna_helper_pre(); md5_hex();               dyna_helper_poststr(); }
-static void dynamic_f1h()    { dyna_helper_pre(); sha1_hex();              dyna_helper_poststr(); }
-static void dynamic_f4h()    { dyna_helper_pre(); md4_hex();               dyna_helper_poststr(); }
-static void dynamic_f5H()    { dyna_helper_pre(); md5_hex(); strupr(h);    dyna_helper_poststr(); }
-static void dynamic_f1H()    { dyna_helper_pre(); sha1_hex(); strupr(h);   dyna_helper_poststr(); }
-static void dynamic_f4H()    { dyna_helper_pre(); md4_hex();  strupr(h);   dyna_helper_poststr(); }
-static void dynamic_f56()    { dyna_helper_pre(); md5_base64();	        dyna_helper_poststr(); }
-static void dynamic_f16()    { dyna_helper_pre(); sha1_base64();           dyna_helper_poststr(); }
-static void dynamic_f46()    { dyna_helper_pre(); md4_base64();            dyna_helper_poststr(); }
-static void dynamic_f5c()    { dyna_helper_pre(); md5_base64c();           dyna_helper_poststr(); }
-static void dynamic_f1c()    { dyna_helper_pre(); sha1_base64c();          dyna_helper_poststr(); }
-static void dynamic_f4c()    { dyna_helper_pre(); md4_base64c();           dyna_helper_poststr(); }
-static void dynamic_f5r()    { dyna_helper_pre(); md5_raw();               dyna_helper_post(16); }
-static void dynamic_f1r()    { dyna_helper_pre(); sha1_raw();              dyna_helper_post(20); }
-static void dynamic_f4r()    { dyna_helper_pre(); md4_raw();               dyna_helper_post(16); }
-static void dynamic_f224h()  { dyna_helper_pre(); sha224_hex();            dyna_helper_poststr(); }
-static void dynamic_f224H()  { dyna_helper_pre(); sha224_hex(); strupr(h); dyna_helper_poststr(); }
-static void dynamic_f2246()  { dyna_helper_pre(); sha224_base64();         dyna_helper_poststr(); }
-static void dynamic_f224c()  { dyna_helper_pre(); sha224_base64c();        dyna_helper_poststr(); }
-static void dynamic_f224r()  { dyna_helper_pre(); sha224_raw();            dyna_helper_post(28); }
-static void dynamic_f256h()  { dyna_helper_pre(); sha256_hex();            dyna_helper_poststr(); }
-static void dynamic_f256H()  { dyna_helper_pre(); sha256_hex(); strupr(h); dyna_helper_poststr(); }
-static void dynamic_f2566()  { dyna_helper_pre(); sha256_base64();         dyna_helper_poststr(); }
-static void dynamic_f256c()  { dyna_helper_pre(); sha256_base64c();        dyna_helper_poststr(); }
-static void dynamic_f256r()  { dyna_helper_pre(); sha256_raw();            dyna_helper_post(32); }
-static void dynamic_f384h()  { dyna_helper_pre(); sha384_hex();            dyna_helper_poststr(); }
-static void dynamic_f384H()  { dyna_helper_pre(); sha384_hex(); strupr(h); dyna_helper_poststr(); }
-static void dynamic_f3846()  { dyna_helper_pre(); sha384_base64();         dyna_helper_poststr(); }
-static void dynamic_f384c()  { dyna_helper_pre(); sha384_base64c();        dyna_helper_poststr(); }
-static void dynamic_f384r()  { dyna_helper_pre(); sha384_raw();            dyna_helper_post(48); }
-static void dynamic_f512h()  { dyna_helper_pre(); sha512_hex();            dyna_helper_poststr(); }
-static void dynamic_f512H()  { dyna_helper_pre(); sha512_hex(); strupr(h); dyna_helper_poststr(); }
-static void dynamic_f5126()  { dyna_helper_pre(); sha512_base64();         dyna_helper_poststr(); }
-static void dynamic_f512c()  { dyna_helper_pre(); sha512_base64c();        dyna_helper_poststr(); }
-static void dynamic_f512r()  { dyna_helper_pre(); sha512_raw();            dyna_helper_post(64); }
-static void dynamic_fgosth() { dyna_helper_pre(); gost_hex();              dyna_helper_poststr(); }
-static void dynamic_fgostH() { dyna_helper_pre(); gost_hex(); strupr(h);   dyna_helper_poststr(); }
-static void dynamic_fgost6() { dyna_helper_pre(); gost_base64();           dyna_helper_poststr(); }
-static void dynamic_fgostc() { dyna_helper_pre(); gost_base64c();          dyna_helper_poststr(); }
-static void dynamic_fgostr() { dyna_helper_pre(); gost_raw();              dyna_helper_post(32); }
-static void dynamic_fwrlph() { dyna_helper_pre(); whirlpool_hex();            dyna_helper_poststr(); }
-static void dynamic_fwrlpH() { dyna_helper_pre(); whirlpool_hex(); strupr(h); dyna_helper_poststr(); }
-static void dynamic_fwrlp6() { dyna_helper_pre(); whirlpool_base64();         dyna_helper_poststr(); }
-static void dynamic_fwrlpc() { dyna_helper_pre(); whirlpool_base64c();        dyna_helper_poststr(); }
-static void dynamic_fwrlpr() { dyna_helper_pre(); whirlpool_raw();            dyna_helper_post(64); }
-static void dynamic_ftigh()  { dyna_helper_pre(); tiger_hex();             dyna_helper_poststr(); }
-static void dynamic_ftigH()  { dyna_helper_pre(); tiger_hex(); strupr(h);  dyna_helper_poststr(); }
-static void dynamic_ftig6()  { dyna_helper_pre(); tiger_base64();          dyna_helper_poststr(); }
-static void dynamic_ftigc()  { dyna_helper_pre(); tiger_base64c();         dyna_helper_poststr(); }
-static void dynamic_ftigr()  { dyna_helper_pre(); tiger_raw();             dyna_helper_post(24); }
-static void dynamic_frip128h()  { dyna_helper_pre(); ripemd128_hex();            dyna_helper_poststr(); }
-static void dynamic_frip128H()  { dyna_helper_pre(); ripemd128_hex(); strupr(h); dyna_helper_poststr(); }
-static void dynamic_frip1286()  { dyna_helper_pre(); ripemd128_base64();         dyna_helper_poststr(); }
-static void dynamic_frip128c()  { dyna_helper_pre(); ripemd128_base64c();        dyna_helper_poststr(); }
-static void dynamic_frip128r()  { dyna_helper_pre(); ripemd128_raw();            dyna_helper_post(16); }
-static void dynamic_frip160h()  { dyna_helper_pre(); ripemd160_hex();            dyna_helper_poststr(); }
-static void dynamic_frip160H()  { dyna_helper_pre(); ripemd160_hex(); strupr(h); dyna_helper_poststr(); }
-static void dynamic_frip1606()  { dyna_helper_pre(); ripemd160_base64();         dyna_helper_poststr(); }
-static void dynamic_frip160c()  { dyna_helper_pre(); ripemd160_base64c();        dyna_helper_poststr(); }
-static void dynamic_frip160r()  { dyna_helper_pre(); ripemd160_raw();            dyna_helper_post(20); }
-static void dynamic_frip256h()  { dyna_helper_pre(); ripemd256_hex();            dyna_helper_poststr(); }
-static void dynamic_frip256H()  { dyna_helper_pre(); ripemd256_hex(); strupr(h); dyna_helper_poststr(); }
-static void dynamic_frip2566()  { dyna_helper_pre(); ripemd256_base64();         dyna_helper_poststr(); }
-static void dynamic_frip256c()  { dyna_helper_pre(); ripemd256_base64c();        dyna_helper_poststr(); }
-static void dynamic_frip256r()  { dyna_helper_pre(); ripemd256_raw();            dyna_helper_post(32); }
-static void dynamic_frip320h()  { dyna_helper_pre(); ripemd320_hex();            dyna_helper_poststr(); }
-static void dynamic_frip320H()  { dyna_helper_pre(); ripemd320_hex(); strupr(h); dyna_helper_poststr(); }
-static void dynamic_frip3206()  { dyna_helper_pre(); ripemd320_base64();         dyna_helper_poststr(); }
-static void dynamic_frip320c()  { dyna_helper_pre(); ripemd320_base64c();        dyna_helper_poststr(); }
-static void dynamic_frip320r()  { dyna_helper_pre(); ripemd320_raw();            dyna_helper_post(40); }
-static void dynamic_f256_3h()   { dyna_helper_pre(); haval256_3_hex();            dyna_helper_poststr(); }
-static void dynamic_f256_3H()   { dyna_helper_pre(); haval256_3_hex(); strupr(h); dyna_helper_poststr(); }
-static void dynamic_f256_36()   { dyna_helper_pre(); haval256_3_base64();         dyna_helper_poststr(); }
-static void dynamic_f256_3c()   { dyna_helper_pre(); haval256_3_base64c();        dyna_helper_poststr(); }
-static void dynamic_f256_3r()   { dyna_helper_pre(); haval256_3_raw();            dyna_helper_post(32); }
-static void dynamic_f128_4h()   { dyna_helper_pre(); haval128_4_hex();            dyna_helper_poststr(); }
-static void dynamic_f128_4H()   { dyna_helper_pre(); haval128_4_hex(); strupr(h); dyna_helper_poststr(); }
-static void dynamic_f128_46()   { dyna_helper_pre(); haval128_4_base64();         dyna_helper_poststr(); }
-static void dynamic_f128_4c()   { dyna_helper_pre(); haval128_4_base64c();        dyna_helper_poststr(); }
-static void dynamic_f128_4r()   { dyna_helper_pre(); haval128_4_raw();            dyna_helper_post(16); }
+#define LEXI_FUNC(N,T,L) \
+	static void dynamic_f##N##h()    { dyna_helper_pre(); T##_hex();               dyna_helper_poststr(); } \
+	static void dynamic_f##N##H()    { dyna_helper_pre(); T##_hex(); strupr(h);    dyna_helper_poststr(); } \
+	static void dynamic_f##N##6()    { dyna_helper_pre(); T##_base64();	           dyna_helper_poststr(); } \
+	static void dynamic_f##N##c()    { dyna_helper_pre(); T##_base64c();           dyna_helper_poststr(); } \
+	static void dynamic_f##N##r()    { dyna_helper_pre(); T##_raw();               dyna_helper_post(L); }
+LEXI_FUNC(5,md5,16)       LEXI_FUNC(4,md4,16)          LEXI_FUNC(1,sha1,20)
+LEXI_FUNC(224,sha224,28)  LEXI_FUNC(256,sha256,32)     LEXI_FUNC(384,sha384,48)  LEXI_FUNC(512,sha512,64)
+LEXI_FUNC(gost,gost,28)   LEXI_FUNC(tig,tiger,24)      LEXI_FUNC(wrlp,whirlpool,64)
+LEXI_FUNC(rip128,ripemd128,16) LEXI_FUNC(rip160,ripemd160,20) LEXI_FUNC(rip256,ripemd256,32) LEXI_FUNC(rip320,ripemd320,40)
+LEXI_FUNC(hav128_3,haval128_3,16) LEXI_FUNC(hav128_4,haval128_4,16) LEXI_FUNC(hav128_5,haval128_5,16)
+LEXI_FUNC(hav160_3,haval160_3,20) LEXI_FUNC(hav160_4,haval160_4,20) LEXI_FUNC(hav160_5,haval160_5,20)
+LEXI_FUNC(hav192_3,haval192_3,24) LEXI_FUNC(hav192_4,haval192_4,24) LEXI_FUNC(hav192_5,haval192_5,24)
+LEXI_FUNC(hav224_3,haval224_3,28) LEXI_FUNC(hav224_4,haval224_4,28) LEXI_FUNC(hav224_5,haval224_5,28)
+LEXI_FUNC(hav256_3,haval256_3,32) LEXI_FUNC(hav256_4,haval256_4,32) LEXI_FUNC(hav256_5,haval256_5,32)
 
 static void dynamic_futf16()    { dyna_helper_pre();                             dyna_helper_post(encode_le()); }
 //static void dynamic_futf16be()  { dyna_helper_pre();                             dyna_helper_post(encode_be()); }
@@ -610,6 +495,15 @@ static const char *comp_push_sym(const char *p, fpSYM fpsym, const char *pRet) {
 	}
 	return pRet;
 }
+
+#define LOOKUP_IF_BLK(T,U,S,F,L) \
+	if (!strncasecmp(pInput, #T, 3)) { \
+		if (!strncmp(pInput, #T"_raw", L+4)) { LastTokIsFunc = 2; return comp_push_sym("f"#S"r", dynamic_f##F##r, pInput+(L+4)); } \
+		if (!strncmp(pInput, #T"_64c", L+4)) { return comp_push_sym("f"#S"c", dynamic_f##F##c, pInput+(L+4)); } \
+		if (!strncmp(pInput, #T"_64", L+3)) { return comp_push_sym("f"#S"6", dynamic_f##F##6, pInput+(L+3)); } \
+		if (!strncmp(pInput, #T, L)) { return comp_push_sym("f"#S"h", dynamic_f##F##h, pInput+L); } \
+		if (!strncmp(pInput, #U, L)) { return comp_push_sym("f"#S"H", dynamic_f##F##H, pInput+L); } }
+
 static const char *comp_get_symbol(const char *pInput) {
 	// This function will grab the next valid symbol, and returns
 	// the location just past this symbol.
@@ -637,119 +531,26 @@ static const char *comp_get_symbol(const char *pInput) {
 		}
 	}
 	// these are functions, BUT can not be used for 'outter' function (i.e. not the final hash)
+	// Note this may 'look' small, but it is a large IF block, once the macro's expand
 	LastTokIsFunc = 1;
-	if (!strncasecmp(pInput, "md5", 3)) {
-		if (!strncmp(pInput, "md5_raw", 7)) { LastTokIsFunc = 2; return comp_push_sym("f5r", dynamic_f5r, pInput+7); }
-		if (!strncmp(pInput, "md5_64c", 7)) { return comp_push_sym("f5c", dynamic_f5c, pInput+7); }
-		if (!strncmp(pInput, "md5_64", 6)) { return comp_push_sym("f56", dynamic_f56, pInput+6); }
-		if (!strncmp(pInput, "md5", 3)) { return comp_push_sym("f5h", dynamic_f5h, pInput+3); }
-		if (!strncmp(pInput, "MD5", 3)) { return comp_push_sym("f5H", dynamic_f5H, pInput+3); }
-	}
-	if (!strncasecmp(pInput, "md4", 3)) {
-		if (!strncmp(pInput, "md4_raw", 7)) { LastTokIsFunc = 2; return comp_push_sym("f4r", dynamic_f4r, pInput+7); }
-		if (!strncmp(pInput, "md4_64c", 7)) { return comp_push_sym("f4c", dynamic_f4c, pInput+7); }
-		if (!strncmp(pInput, "md4_64", 6)) { return comp_push_sym("f46", dynamic_f46, pInput+6); }
-		if (!strncmp(pInput, "md4", 3)) { return comp_push_sym("f4h", dynamic_f4h, pInput+3); }
-		if (!strncmp(pInput, "MD4", 3)) { return comp_push_sym("f4H", dynamic_f4H, pInput+3); }
-	}
-	if (!strncasecmp(pInput, "sha1", 4)) {
-		if (!strncmp(pInput, "sha1_raw", 8)) { LastTokIsFunc = 2; return comp_push_sym("f1r", dynamic_f1r, pInput+8); }
-		if (!strncmp(pInput, "sha1_64c", 8)) { return comp_push_sym("f1c", dynamic_f1c, pInput+8); }
-		if (!strncmp(pInput, "sha1_64", 7)) { return comp_push_sym("f16", dynamic_f16, pInput+7); }
-		if (!strncmp(pInput, "sha1", 4)) { return comp_push_sym("f1h", dynamic_f1h, pInput+4); }
-		if (!strncmp(pInput, "SHA1", 4)) { return comp_push_sym("f1H", dynamic_f1H, pInput+4); }
-	}
-	if (!strncasecmp(pInput, "sha224", 6)) {
-		if (!strncmp(pInput, "sha224_raw", 10)) { LastTokIsFunc = 2; return comp_push_sym("f224r", dynamic_f224r, pInput+10); }
-		if (!strncmp(pInput, "sha224_64c", 10)) { return comp_push_sym("f224c", dynamic_f224c, pInput+10); }
-		if (!strncmp(pInput, "sha224_64", 9)) { return comp_push_sym("f2246", dynamic_f2246, pInput+9); }
-		if (!strncmp(pInput, "sha224", 6)) { return comp_push_sym("f224h", dynamic_f224h, pInput+6); }
-		if (!strncmp(pInput, "SHA224", 6)) { return comp_push_sym("f224H", dynamic_f224H, pInput+6); }
-	}
-	if (!strncasecmp(pInput, "sha256", 6)) {
-		if (!strncmp(pInput, "sha256_raw", 10)) { LastTokIsFunc = 2; return comp_push_sym("f256r", dynamic_f256r, pInput+10); }
-		if (!strncmp(pInput, "sha256_64c", 10)) { return comp_push_sym("f256c", dynamic_f256c, pInput+10); }
-		if (!strncmp(pInput, "sha256_64", 9)) { return comp_push_sym("f2566", dynamic_f2566, pInput+9); }
-		if (!strncmp(pInput, "sha256", 6)) { return comp_push_sym("f256h", dynamic_f256h, pInput+6); }
-		if (!strncmp(pInput, "SHA256", 6)) { return comp_push_sym("f256H", dynamic_f256H, pInput+6); }
-	}
-	if (!strncasecmp(pInput, "sha384", 6)) {
-		if (!strncmp(pInput, "sha384_raw", 10)) { LastTokIsFunc = 2; return comp_push_sym("f384r", dynamic_f384r, pInput+10); }
-		if (!strncmp(pInput, "sha384_64c", 10)) { return comp_push_sym("f384c", dynamic_f384c, pInput+10); }
-		if (!strncmp(pInput, "sha384_64", 9)) { return comp_push_sym("f3846", dynamic_f3846, pInput+9); }
-		if (!strncmp(pInput, "sha384", 6)) { return comp_push_sym("f384h", dynamic_f384h, pInput+6); }
-		if (!strncmp(pInput, "SHA384", 6)) { return comp_push_sym("f384H", dynamic_f384H, pInput+6); }
-	}
-	if (!strncasecmp(pInput, "sha512", 6)) {
-		if (!strncmp(pInput, "sha512_raw", 10)) { LastTokIsFunc = 2; return comp_push_sym("f512r", dynamic_f512r, pInput+10); }
-		if (!strncmp(pInput, "sha512_64c", 10)) { return comp_push_sym("f512c", dynamic_f512c, pInput+10); }
-		if (!strncmp(pInput, "sha512_64", 9)) { return comp_push_sym("f5126", dynamic_f5126, pInput+9); }
-		if (!strncmp(pInput, "sha512", 6)) { return comp_push_sym("f512h", dynamic_f512h, pInput+6); }
-		if (!strncmp(pInput, "SHA512", 6)) { return comp_push_sym("f512H", dynamic_f512H, pInput+6); }
-	}
-	if (!strncasecmp(pInput, "gost", 4)) {
-		if (!strncmp(pInput, "gost_raw", 8)) { LastTokIsFunc = 2; return comp_push_sym("fgostr", dynamic_fgostr, pInput+8); }
-		if (!strncmp(pInput, "gost_64c", 8)) { return comp_push_sym("fgostc", dynamic_fgostc, pInput+8); }
-		if (!strncmp(pInput, "gost_64", 7)) { return comp_push_sym("fgost6", dynamic_fgost6, pInput+7); }
-		if (!strncmp(pInput, "gost", 4)) { return comp_push_sym("fgosth", dynamic_fgosth, pInput+4); }
-		if (!strncmp(pInput, "GOST", 4)) { return comp_push_sym("fgostH", dynamic_fgostH, pInput+4); }
-	}
-	if (!strncasecmp(pInput, "tiger", 5)) {
-		if (!strncmp(pInput, "tiger_raw", 9)) { LastTokIsFunc = 2; return comp_push_sym("ftigr", dynamic_ftigr, pInput+9); }
-		if (!strncmp(pInput, "tiger_64c", 9)) { return comp_push_sym("ftigc", dynamic_ftigc, pInput+9); }
-		if (!strncmp(pInput, "tiger_64", 8)) { return comp_push_sym("ftig6", dynamic_ftig6, pInput+8); }
-		if (!strncmp(pInput, "tiger", 5)) { return comp_push_sym("ftigh", dynamic_ftigh, pInput+5); }
-		if (!strncmp(pInput, "TIGER", 5)) { return comp_push_sym("ftigH", dynamic_ftigH, pInput+5); }
-	}
-	if (!strncasecmp(pInput, "whirlpool", 9)) {
-		if (!strncmp(pInput, "whirlpool_raw", 13)) { LastTokIsFunc = 2; return comp_push_sym("fwrlpr", dynamic_fwrlpr, pInput+13); }
-		if (!strncmp(pInput, "whirlpool_64c", 13)) { return comp_push_sym("fwrlpc", dynamic_fwrlpc, pInput+13); }
-		if (!strncmp(pInput, "whirlpool_64", 12)) { return comp_push_sym("fwrlp6", dynamic_fwrlp6, pInput+12); }
-		if (!strncmp(pInput, "whirlpool", 9)) { return comp_push_sym("fwrlph", dynamic_fwrlph, pInput+9); }
-		if (!strncmp(pInput, "WHIRLPOOL", 9)) { return comp_push_sym("fwrlpH", dynamic_fwrlpH, pInput+9); }
-	}
-	if (!strncasecmp(pInput, "ripemd128", 9)) {
-		if (!strncmp(pInput, "ripemd128_raw", 13)) { LastTokIsFunc = 2; return comp_push_sym("frip128r", dynamic_frip128r, pInput+13); }
-		if (!strncmp(pInput, "ripemd128_64c", 13)) { return comp_push_sym("frip128c", dynamic_frip128c, pInput+13); }
-		if (!strncmp(pInput, "ripemd128_64", 12)) { return comp_push_sym("frip1286", dynamic_frip1286, pInput+12); }
-		if (!strncmp(pInput, "ripemd128", 9)) { return comp_push_sym("frip128h", dynamic_frip128h, pInput+9); }
-		if (!strncmp(pInput, "RIPEMD128", 9)) { return comp_push_sym("frip128H", dynamic_frip128H, pInput+9); }
-	}
-	if (!strncasecmp(pInput, "ripemd160", 9)) {
-		if (!strncmp(pInput, "ripemd160_raw", 13)) { LastTokIsFunc = 2; return comp_push_sym("frip160r", dynamic_frip160r, pInput+13); }
-		if (!strncmp(pInput, "ripemd160_64c", 13)) { return comp_push_sym("frip160c", dynamic_frip160c, pInput+13); }
-		if (!strncmp(pInput, "ripemd160_64", 12)) { return comp_push_sym("frip1606", dynamic_frip1606, pInput+12); }
-		if (!strncmp(pInput, "ripemd160", 9)) { return comp_push_sym("frip160h", dynamic_frip160h, pInput+9); }
-		if (!strncmp(pInput, "RIPEMD160", 9)) { return comp_push_sym("frip160H", dynamic_frip160H, pInput+9); }
-	}
-	if (!strncasecmp(pInput, "ripemd256", 9)) {
-		if (!strncmp(pInput, "ripemd256_raw", 13)) { LastTokIsFunc = 2; return comp_push_sym("frip256r", dynamic_frip256r, pInput+13); }
-		if (!strncmp(pInput, "ripemd256_64c", 13)) { return comp_push_sym("frip256c", dynamic_frip256c, pInput+13); }
-		if (!strncmp(pInput, "ripemd256_64", 12)) { return comp_push_sym("frip2566", dynamic_frip2566, pInput+12); }
-		if (!strncmp(pInput, "ripemd256", 9)) { return comp_push_sym("frip256h", dynamic_frip256h, pInput+9); }
-		if (!strncmp(pInput, "RIPEMD256", 9)) { return comp_push_sym("frip256H", dynamic_frip256H, pInput+9); }
-	}
-	if (!strncasecmp(pInput, "ripemd320", 9)) {
-		if (!strncmp(pInput, "ripemd320_raw", 13)) { LastTokIsFunc = 2; return comp_push_sym("frip320r", dynamic_frip320r, pInput+13); }
-		if (!strncmp(pInput, "ripemd320_64c", 13)) { return comp_push_sym("frip320c", dynamic_frip320c, pInput+13); }
-		if (!strncmp(pInput, "ripemd320_64", 12)) { return comp_push_sym("frip3206", dynamic_frip3206, pInput+12); }
-		if (!strncmp(pInput, "ripemd320", 9)) { return comp_push_sym("frip320h", dynamic_frip320h, pInput+9); }
-		if (!strncmp(pInput, "RIPEMD320", 9)) { return comp_push_sym("frip320H", dynamic_frip320H, pInput+9); }
-	}
-	if (!strncasecmp(pInput, "haval256_3", 10)) {
-		if (!strncmp(pInput, "haval256_3_raw", 14)) { LastTokIsFunc = 2; return comp_push_sym("f256_3r", dynamic_f256_3r, pInput+14); }
-		if (!strncmp(pInput, "haval256_3_64c", 14)) { return comp_push_sym("f256_3c", dynamic_f256_3c, pInput+14); }
-		if (!strncmp(pInput, "haval256_3_64", 13)) { return comp_push_sym("f256_36", dynamic_f256_36, pInput+13); }
-		if (!strncmp(pInput, "haval256_3", 10)) { return comp_push_sym("f256_3h", dynamic_f256_3h, pInput+10); }
-		if (!strncmp(pInput, "HAVAL256_3", 10)) { return comp_push_sym("f256_3H", dynamic_f256_3H, pInput+10); }
-	}
-	if (!strncasecmp(pInput, "haval128_4", 10)) {
-		if (!strncmp(pInput, "haval128_4_raw", 14)) { LastTokIsFunc = 2; return comp_push_sym("f128_4r", dynamic_f128_4r, pInput+14); }
-		if (!strncmp(pInput, "haval128_4_64c", 14)) { return comp_push_sym("f128_4c", dynamic_f128_4c, pInput+14); }
-		if (!strncmp(pInput, "haval128_4_64", 13)) { return comp_push_sym("f128_46", dynamic_f128_46, pInput+13); }
-		if (!strncmp(pInput, "haval128_4", 10)) { return comp_push_sym("f128_4h", dynamic_f128_4h, pInput+10); }
-		if (!strncmp(pInput, "HAVAL128_4", 10)) { return comp_push_sym("f128_4H", dynamic_f128_4H, pInput+10); }
-	}
+	LOOKUP_IF_BLK(md5,MD5,5,5,3)
+	LOOKUP_IF_BLK(md4,MD4,4,4,3)
+	LOOKUP_IF_BLK(sha1,SHA1,1,1,4)
+	LOOKUP_IF_BLK(sha224,SHA224,224,224,6)
+	LOOKUP_IF_BLK(sha256,SHA256,256,256,6)
+	LOOKUP_IF_BLK(sha384,SHA384,384,384,6)
+	LOOKUP_IF_BLK(sha512,SHA512,512,512,6)
+	LOOKUP_IF_BLK(gost,GOST,gost,gost,4)
+	LOOKUP_IF_BLK(tiger,TIGER,tig,tig,5)
+	LOOKUP_IF_BLK(whirlpool,WHIRLPOOL,wrlp,wrlp,9)
+	LOOKUP_IF_BLK(ripemd128,RIPEMD128,rip128,rip128,9) 	LOOKUP_IF_BLK(ripemd160,RIPEMD160,rip160,rip160,9)
+	LOOKUP_IF_BLK(ripemd256,RIPEMD256,rip256,rip256,9)	LOOKUP_IF_BLK(ripemd320,RIPEMD320,rip320,rip320,9)
+	LOOKUP_IF_BLK(haval128_3,HAVAL128_3,hav128_3,hav128_3,10) LOOKUP_IF_BLK(haval128_4,HAVAL128_4,hav128_4,hav128_4,10) LOOKUP_IF_BLK(haval128_5,HAVAL128_5,hav128_5,hav128_5,10)
+	LOOKUP_IF_BLK(haval160_3,HAVAL160_3,hav160_3,hav160_3,10) LOOKUP_IF_BLK(haval160_4,HAVAL160_4,hav160_4,hav160_4,10) LOOKUP_IF_BLK(haval160_5,HAVAL160_5,hav160_5,hav160_5,10)
+	LOOKUP_IF_BLK(haval192_3,HAVAL192_3,hav192_3,hav192_3,10) LOOKUP_IF_BLK(haval192_4,HAVAL192_4,hav192_4,hav192_4,10) LOOKUP_IF_BLK(haval192_5,HAVAL192_5,hav192_5,hav192_5,10)
+	LOOKUP_IF_BLK(haval224_3,HAVAL224_3,hav224_3,hav224_3,10) LOOKUP_IF_BLK(haval224_4,HAVAL224_4,hav224_4,hav224_4,10) LOOKUP_IF_BLK(haval224_5,HAVAL224_5,hav224_5,hav224_5,10)
+	LOOKUP_IF_BLK(haval256_3,HAVAL256_3,hav256_3,hav256_3,10) LOOKUP_IF_BLK(haval256_4,HAVAL256_4,hav256_4,hav256_4,10) LOOKUP_IF_BLK(haval256_5,HAVAL256_5,hav256_5,hav256_5,10)
+
 	LastTokIsFunc = 0;
 	if (!strncmp(pInput, "pad16($p)", 9))   return comp_push_sym("pad16", dynamic_pad16, pInput+9);
 	if (!strncmp(pInput, "pad20($p)", 9))   return comp_push_sym("pad20", dynamic_pad20, pInput+9);
@@ -1054,22 +855,20 @@ static void build_test_string(DC_struct *p, char **pLine) {
 		strupr(tmp);
 		h = gen_s;
 		h_len = strlen(h);
-		if (!strcmp(tmp, "MD5")) md5_hex();
-		else if (!strcmp(tmp, "MD4")) md4_hex();
-		else if (!strcmp(tmp, "SHA1")) sha1_hex();
-		else if (!strcmp(tmp, "SHA224")) sha224_hex();
-		else if (!strcmp(tmp, "SHA256")) sha256_hex();
-		else if (!strcmp(tmp, "SHA384")) sha384_hex();
-		else if (!strcmp(tmp, "SHA512")) sha512_hex();
-		else if (!strcmp(tmp, "WHIRLPOOL")) whirlpool_hex();
-		else if (!strcmp(tmp, "TIGER")) tiger_hex();
-		else if (!strcmp(tmp, "GOST")) gost_hex();
-		else if (!strcmp(tmp, "RIPEMD128")) ripemd128_hex();
-		else if (!strcmp(tmp, "RIPEMD160")) ripemd160_hex();
-		else if (!strcmp(tmp, "RIPEMD256")) ripemd256_hex();
-		else if (!strcmp(tmp, "RIPEMD320")) ripemd320_hex();
-		else if (!strcmp(tmp, "HAVAL256_3")) haval256_3_hex();
-		else if (!strcmp(tmp, "HAVAL128_4")) haval128_4_hex();
+#undef IF
+#define IF(T,F) if (!strcmp(tmp, #T)) F##_hex()
+#undef ELSEIF
+#define ELSEIF(T,F) else if (!strcmp(tmp, #T)) F##_hex()
+
+		IF(MD5,md5); ELSEIF(MD4,md4); ELSEIF(SHA1,sha1); ELSEIF(SHA224,sha224); ELSEIF(SHA256,sha256); ELSEIF(SHA384,sha384); ELSEIF(SHA512,sha512);
+		ELSEIF(WHIRLPOOL,whirlpool); ELSEIF(TIGER,tiger); ELSEIF(GOST,gost);
+		ELSEIF(RIPEMD128,ripemd128); ELSEIF(RIPEMD160,ripemd160); ELSEIF(RIPEMD256,ripemd256); ELSEIF(RIPEMD320,ripemd320);
+		ELSEIF(HAVAL128_3,haval128_3); ELSEIF(HAVAL128_4,haval128_4); ELSEIF(HAVAL128_5,haval128_5);
+		ELSEIF(HAVAL160_3,haval160_3); ELSEIF(HAVAL160_4,haval160_4); ELSEIF(HAVAL160_5,haval160_5);
+		ELSEIF(HAVAL192_3,haval192_3); ELSEIF(HAVAL192_4,haval192_4); ELSEIF(HAVAL192_5,haval192_5);
+		ELSEIF(HAVAL224_3,haval224_3); ELSEIF(HAVAL224_4,haval224_4); ELSEIF(HAVAL224_5,haval224_5);
+		ELSEIF(HAVAL256_3,haval256_3); ELSEIF(HAVAL256_4,haval256_4); ELSEIF(HAVAL256_5,haval256_5);
+		else { error("ERROR in dyna-parser. Have salt_as_hex_type set, but do not KNOW this type of hash\n"); }
 	}
 	for (i = 0; i < nCode; ++i)
 		fpCode[i]();
@@ -1123,11 +922,11 @@ static int parse_expression(DC_struct *p) {
 		*cp = 0;
 		strupr(tmp);
 		comp_add_script_line("Flag=MGF_SALT_AS_HEX_%s\n", tmp);
-		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||strcmp(tmp,"RIPEMD128")||!strcmp(tmp,"HAVAL_128_4")) salt_hex_len = 32;
-		if (!strcmp(tmp,"SHA1")||!strcmp(tmp,"RIPEMD160")) salt_hex_len = 40;
-		if (!strcmp(tmp,"TIGER")) salt_hex_len = 48;
-		if (!strcmp(tmp,"SHA224")) salt_hex_len = 56;
-		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")||!strcmp(tmp,"HAVAL_256_3")) salt_hex_len = 64;
+		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||strcmp(tmp,"RIPEMD128")||!strncmp(tmp,"HAVAL_128", 9)) salt_hex_len = 32;
+		if (!strcmp(tmp,"SHA1")||!strcmp(tmp,"RIPEMD160")||!strncmp(tmp,"HAVAL_160", 9)) salt_hex_len = 40;
+		if (!strcmp(tmp,"TIGER")||!strncmp(tmp,"HAVAL_192", 9)) salt_hex_len = 48;
+		if (!strcmp(tmp,"SHA224")||!strncmp(tmp,"HAVAL_224", 9)) salt_hex_len = 56;
+		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")||!strncmp(tmp,"HAVAL_256",9)) salt_hex_len = 64;
 		if (!strcmp(tmp,"RIPEMD320")) salt_hex_len = 80;
 		if (!strcmp(tmp,"SHA384")) salt_hex_len = 96;
 		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")) salt_hex_len = 128;
@@ -1301,134 +1100,74 @@ static int parse_expression(DC_struct *p) {
 								comp_add_script_line("Flag=MGF_INPBASE64m\n");
 							}
 							// check for sha512 has to happen before md5, since both start with f5
-							if (!strncasecmp(pCode[i], "f512", 4)) {
-								comp_add_script_line("Func=DynamicFunc__SHA512_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-								comp_add_script_line("Flag=MGF_INPUT_64_BYTE\n");
-							} else if (!strncasecmp(pCode[i], "f5", 2))
-								comp_add_script_line("Func=DynamicFunc__MD5_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "f4", 2))
-								comp_add_script_line("Func=DynamicFunc__MD4_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "f128_4", 6))
-								comp_add_script_line("Func=DynamicFunc__HAVAL128_4_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "f1", 2)) {
-								comp_add_script_line("Func=DynamicFunc__SHA1_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-								comp_add_script_line("Flag=MGF_INPUT_20_BYTE\n");
-							}
-							else if (!strncasecmp(pCode[i], "f224", 4)) {
-								comp_add_script_line("Func=DynamicFunc__SHA224_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-								comp_add_script_line("Flag=MGF_INPUT_28_BYTE\n");
-							}
-							else if (!strncasecmp(pCode[i], "f256_3", 6)) {
-								comp_add_script_line("Func=DynamicFunc__HAVAL256_3_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-								comp_add_script_line("Flag=MGF_INPUT_32_BYTE\n");
-							}
-							else if (!strncasecmp(pCode[i], "f256", 4)) {
-								comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-								comp_add_script_line("Flag=MGF_INPUT_32_BYTE\n");
-							}
-							else if (!strncasecmp(pCode[i], "f384", 4)) {
-								comp_add_script_line("Func=DynamicFunc__SHA384_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-								comp_add_script_line("Flag=MGF_INPUT_48_BYTE\n");
-							}
-							else if (!strncasecmp(pCode[i], "fgost", 5)) {
-								comp_add_script_line("Func=DynamicFunc__GOST_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-								comp_add_script_line("Flag=MGF_INPUT_32_BYTE\n");
-							}
-							else if (!strncasecmp(pCode[i], "ftig", 4)) {
-								comp_add_script_line("Func=DynamicFunc__Tiger_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-								comp_add_script_line("Flag=MGF_INPUT_24_BYTE\n");
-							}
-							else if (!strncasecmp(pCode[i], "fwrl", 4)) {
-								comp_add_script_line("Func=DynamicFunc__WHIRLPOOL_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-								comp_add_script_line("Flag=MGF_INPUT_64_BYTE\n");
-							}
-							else if (!strncasecmp(pCode[i], "frip128", 7))
-								comp_add_script_line("Func=DynamicFunc__RIPEMD128_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-							else if (!strncasecmp(pCode[i], "frip160", 7)) {
-								comp_add_script_line("Func=DynamicFunc__RIPEMD160_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-								comp_add_script_line("Flag=MGF_INPUT_20_BYTE\n");
-							}
-							else if (!strncasecmp(pCode[i], "frip256", 7)) {
-								comp_add_script_line("Func=DynamicFunc__RIPEMD256_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-								comp_add_script_line("Flag=MGF_INPUT_32_BYTE\n");
-							}
-							else if (!strncasecmp(pCode[i], "frip320", 7)) {
-								comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2");
-								comp_add_script_line("Flag=MGF_INPUT_40_BYTE\n");
-							}
+#undef IF
+#undef ELSEIF
+#define IF(C,T,L,F) if (!strncasecmp(pCode[i], #T, L)) { \
+	comp_add_script_line("Func=DynamicFunc__"#C"_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
+	if(F) comp_add_script_line("Flag=MGF_INPUT_"#F"_BYTE\n"); }
+#define ELSEIF(C,T,L,F) else if (!strncasecmp(pCode[i], #T, L)) { \
+	comp_add_script_line("Func=DynamicFunc__"#C"_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
+	if(F) comp_add_script_line("Flag=MGF_INPUT_"#F"_BYTE\n"); }
+
+							IF(SHA512,f512,4,64)
+							ELSEIF(MD5,f5,2,0)
+							ELSEIF(MD4,f4,2,0)
+							ELSEIF(SHA1,f1,2,20)
+							ELSEIF(SHA224,f224,4,28) ELSEIF(SHA256,f256,4,32) ELSEIF(SHA384,f384,4,48) ELSEIF(SHA512,f512,4,64)
+							ELSEIF(GOST,fgost,5,32)
+							ELSEIF(Tiger,ftig,4,24)
+							ELSEIF(WHIRLPOOL,fwrl,4,64)
+							ELSEIF(RIPEMD128,frip128,7,0) ELSEIF(RIPEMD160,frip160,7,20) ELSEIF(RIPEMD256,frip256,7,32) ELSEIF(RIPEMD320,frip320,7,40)
+							ELSEIF(HAVAL128_3,fhav128_3,6,0)  ELSEIF(HAVAL128_4,fhav128_4,6,0)  ELSEIF(HAVAL128_5,fhav128_5,6,0)
+							ELSEIF(HAVAL160_3,fhav160_3,6,20) ELSEIF(HAVAL160_4,fhav160_4,6,20) ELSEIF(HAVAL160_5,fhav160_5,6,20)
+							ELSEIF(HAVAL192_3,fhav192_3,6,24) ELSEIF(HAVAL192_4,fhav192_4,6,24) ELSEIF(HAVAL192_5,fhav192_5,6,24)
+							ELSEIF(HAVAL224_3,fhav224_3,6,28) ELSEIF(HAVAL224_4,fhav224_4,6,28) ELSEIF(HAVAL224_5,fhav224_5,6,28)
+							ELSEIF(HAVAL256_3,fhav256_3,6,32) ELSEIF(HAVAL256_4,fhav256_4,6,32) ELSEIF(HAVAL256_5,fhav256_5,6,32)
 						} else {
 							if (append_mode) {
-								// check for sha512 has to happen before md5, since both start with f5
-								if (!strncasecmp(pCode[i], "f512", 4))
-									comp_add_script_line("Func=DynamicFunc__SHA512_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f5", 2))
-									comp_add_script_line("Func=DynamicFunc__MD5_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f4", 2))
-									comp_add_script_line("Func=DynamicFunc__MD4_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f128_4", 6))
-									comp_add_script_line("Func=DynamicFunc__HAVAL128_4_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f1", 2))
-									comp_add_script_line("Func=DynamicFunc__SHA1_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f224", 4))
-									comp_add_script_line("Func=DynamicFunc__SHA224_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f256_3", 6))
-									comp_add_script_line("Func=DynamicFunc__HAVAL256_3_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f256", 4))
-									comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f384", 4))
-									comp_add_script_line("Func=DynamicFunc__SHA384_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "fgost", 5))
-									comp_add_script_line("Func=DynamicFunc__GOST_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "ftig", 4))
-									comp_add_script_line("Func=DynamicFunc__Tiger_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "fwrl", 4))
-									comp_add_script_line("Func=DynamicFunc__WHIRLPOOL_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "frip128", 7))
-									comp_add_script_line("Func=DynamicFunc__RIPEMD128_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "frip160", 7))
-									comp_add_script_line("Func=DynamicFunc__RIPEMD160_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "frip256", 7))
-									comp_add_script_line("Func=DynamicFunc__RIPEMD256_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "frip320", 7))
-									comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input%s_append_input2\n", use_inp1?"1":"2");
+#undef IF
+#undef ELSEIF
+#define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__"#C"_crypt_input%s_append_input2\n", use_inp1?"1":"2");
+#define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__"#C"_crypt_input%s_append_input2\n", use_inp1?"1":"2");
+
+								IF(SHA512,f512,4)
+								ELSEIF(MD5,f5,2)
+								ELSEIF(MD4,f4,2)
+								ELSEIF(SHA1,f1,2)
+								ELSEIF(SHA224,f224,4) ELSEIF(SHA256,f256,4) ELSEIF(SHA384,f384,4) ELSEIF(SHA512,f512,4)
+								ELSEIF(GOST,fgost,5)
+								ELSEIF(Tiger,ftig,4)
+								ELSEIF(WHIRLPOOL,fwrl,4)
+								ELSEIF(RIPEMD128,frip128,7) ELSEIF(RIPEMD160,frip160,7) ELSEIF(RIPEMD256,frip256,7) ELSEIF(RIPEMD320,frip320,7)
+								ELSEIF(HAVAL128_3,fhav128_3,6) ELSEIF(HAVAL128_4,fhav128_4,6) ELSEIF(HAVAL128_5,fhav128_5,6)
+								ELSEIF(HAVAL160_3,fhav160_3,6) ELSEIF(HAVAL160_4,fhav160_4,6) ELSEIF(HAVAL160_5,fhav160_5,6)
+								ELSEIF(HAVAL192_3,fhav192_3,6) ELSEIF(HAVAL192_4,fhav192_4,6) ELSEIF(HAVAL192_5,fhav192_5,6)
+								ELSEIF(HAVAL224_3,fhav224_3,6) ELSEIF(HAVAL224_4,fhav224_4,6) ELSEIF(HAVAL224_5,fhav224_5,6)
+								ELSEIF(HAVAL256_3,fhav256_3,6) ELSEIF(HAVAL256_4,fhav256_4,6) ELSEIF(HAVAL256_5,fhav256_5,6)
 								else {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;
 								}
 						} else {
-								// check for sha512 has to happen before md5, since both start with f5
-								if (!strncasecmp(pCode[i], "f512", 4))
-									comp_add_script_line("Func=DynamicFunc__SHA512_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f5", 2))
-									comp_add_script_line("Func=DynamicFunc__MD5_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f4", 2))
-									comp_add_script_line("Func=DynamicFunc__MD4_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f128_4", 6))
-									comp_add_script_line("Func=DynamicFunc__HAVAL128_4_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f1", 2))
-									comp_add_script_line("Func=DynamicFunc__SHA1_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f224", 4))
-									comp_add_script_line("Func=DynamicFunc__SHA224_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f256_3", 6))
-									comp_add_script_line("Func=DynamicFunc__HAVAL256_3_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f256", 4))
-									comp_add_script_line("Func=DynamicFunc__SHA256_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "f384", 4))
-									comp_add_script_line("Func=DynamicFunc__SHA384_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "fgost", 5))
-									comp_add_script_line("Func=DynamicFunc__GOST_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "ftig", 4))
-									comp_add_script_line("Func=DynamicFunc__Tiger_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "fwrl", 4))
-									comp_add_script_line("Func=DynamicFunc__WHIRLPOOL_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "frip128", 7))
-									comp_add_script_line("Func=DynamicFunc__RIPEMD128_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "frip160", 7))
-									comp_add_script_line("Func=DynamicFunc__RIPEMD160_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "frip256", 7))
-									comp_add_script_line("Func=DynamicFunc__RIPEMD256_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-								else if (!strncasecmp(pCode[i], "frip320", 7))
-									comp_add_script_line("Func=DynamicFunc__RIPEMD320_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+#undef IF
+#undef ELSEIF
+#define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__"#C"_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+#define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__"#C"_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+
+								IF(SHA512,f512,4)
+								ELSEIF(MD5,f5,2)
+								ELSEIF(MD4,f4,2)
+								ELSEIF(SHA1,f1,2)
+								ELSEIF(SHA224,f224,4) ELSEIF(SHA256,f256,4) ELSEIF(SHA384,f384,4) ELSEIF(SHA512,f512,4)
+								ELSEIF(GOST,fgost,5)
+								ELSEIF(Tiger,ftig,4)
+								ELSEIF(WHIRLPOOL,fwrl,4)
+								ELSEIF(RIPEMD128,frip128,7) ELSEIF(RIPEMD160,frip160,7) ELSEIF(RIPEMD256,frip256,7) ELSEIF(RIPEMD320,frip320,7)
+								ELSEIF(HAVAL128_3,fhav128_3,6) ELSEIF(HAVAL128_4,fhav128_4,6) ELSEIF(HAVAL128_5,fhav128_5,6)
+								ELSEIF(HAVAL160_3,fhav160_3,6) ELSEIF(HAVAL160_4,fhav160_4,6) ELSEIF(HAVAL160_5,fhav160_5,6)
+								ELSEIF(HAVAL192_3,fhav192_3,6) ELSEIF(HAVAL192_4,fhav192_4,6) ELSEIF(HAVAL192_5,fhav192_5,6)
+								ELSEIF(HAVAL224_3,fhav224_3,6) ELSEIF(HAVAL224_4,fhav224_4,6) ELSEIF(HAVAL224_5,fhav224_5,6)
+								ELSEIF(HAVAL256_3,fhav256_3,6) ELSEIF(HAVAL256_4,fhav256_4,6) ELSEIF(HAVAL256_5,fhav256_5,6)
 								else {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;

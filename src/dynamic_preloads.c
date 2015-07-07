@@ -819,7 +819,8 @@ static DYNAMIC_primitive_funcp _Funcs_22[] =
 	//MGF_StartInX86Mode
 	//MGF_KEYS_INPUT
 	DynamicFunc__clean_input2_kwik,
-	DynamicFunc__SHA1_crypt_input1_append_input2_base16,
+	DynamicFunc__LargeHash_OUTMode_base16,
+	DynamicFunc__SHA1_crypt_input1_append_input2,
 	DynamicFunc__X86toSSE_switch_input2,
 	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
@@ -2479,7 +2480,7 @@ static DYNAMIC_primitive_funcp _Funcs_115[] =
 	//MGF_INPUT_24_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_BASE16_IN1_TIGER
+	//MGF_KEYS_BASE16_IN1_Tiger
 	DynamicFunc__set_input_len_48,
 	DynamicFunc__append_salt,
 	DynamicFunc__Tiger_crypt_input1_to_output1_FINAL,
@@ -2500,7 +2501,7 @@ static DYNAMIC_primitive_funcp _Funcs_116[] =
 	//MGF_INPUT_24_BYTE
 	//MGF_NOTSSE2Safe
 	//MGF_SALTED
-	//MGF_KEYS_BASE16_IN1_TIGER
+	//MGF_KEYS_BASE16_IN1_Tiger
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
 	DynamicFunc__append_input2_from_input,
@@ -2521,8 +2522,8 @@ static DYNAMIC_primitive_funcp _Funcs_117[] =
 {
 	//MGF_INPUT_24_BYTE
 	//MGF_NOTSSE2Safe
-	//MGF_SALT_AS_HEX_TIGER
-	//MGF_KEYS_BASE16_IN1_TIGER
+	//MGF_SALT_AS_HEX_Tiger
+	//MGF_KEYS_BASE16_IN1_Tiger
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
 	DynamicFunc__append_input2_from_input,
@@ -3803,9 +3804,9 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_112: Tiger($p.$s)",               _Funcs_112,_Preloads_112,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_INPUT_24_BYTE, -64, 110, 110 },
 	{ "dynamic_113: Tiger(Tiger($p))",           _Funcs_113,_Preloads_113,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE },
 	{ "dynamic_114: Tiger(Tiger_raw($p))",       _Funcs_114,_Preloads_114,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE },
-	{ "dynamic_115: Tiger(Tiger($p).$s)",        _Funcs_115,_Preloads_115,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_TIGER|MGF_INPUT_24_BYTE, -64, 110, 110 },
-	{ "dynamic_116: Tiger($s.Tiger($p))",        _Funcs_116,_Preloads_116,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_TIGER|MGF_INPUT_24_BYTE, -64, 110, 110 },
-	{ "dynamic_117: Tiger(Tiger($s).Tiger($p))", _Funcs_117,_Preloads_117,_ConstDefault, MGF_SALT_AS_HEX_TIGER|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_TIGER|MGF_INPUT_24_BYTE, -64, 110, 110 },
+	{ "dynamic_115: Tiger(Tiger($p).$s)",        _Funcs_115,_Preloads_115,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_Tiger|MGF_INPUT_24_BYTE, -64, 110, 110 },
+	{ "dynamic_116: Tiger($s.Tiger($p))",        _Funcs_116,_Preloads_116,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_Tiger|MGF_INPUT_24_BYTE, -64, 110, 110 },
+	{ "dynamic_117: Tiger(Tiger($s).Tiger($p))", _Funcs_117,_Preloads_117,_ConstDefault, MGF_SALT_AS_HEX_Tiger|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1_Tiger|MGF_INPUT_24_BYTE, -64, 110, 110 },
 	{ "dynamic_118: Tiger(Tiger($p).Tiger($p))", _Funcs_118,_Preloads_118,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT|MGF_INPUT_24_BYTE },
 	// Try to group RIPEMD128 here (from dyna-120 to dyna-129)
 	{ "dynamic_120: RIPEMD128($p)",                  _Funcs_120,_Preloads_120,_ConstDefault, MGF_NOTSSE2Safe, MGF_KEYS_INPUT },

@@ -63,13 +63,26 @@ typedef struct DYNAMIC_Constants_t
 #define MGF__SHA512      0x06
 #define MGF__GOST        0x07
 #define MGF__WHIRLPOOL   0x08
-#define MGF__TIGER       0x09
+#define MGF__Tiger       0x09
 #define MGF__RIPEMD128   0x0A
 #define MGF__RIPEMD160   0x0B
 #define MGF__RIPEMD256   0x0C
 #define MGF__RIPEMD320   0x0D
-#define MGF__HAVAL256_3  0X0E
-#define MGF__HAVAL128_4  0X0F
+#define MGF__HAVAL128_3  0x0E
+#define MGF__HAVAL128_4  0x0F
+#define MGF__HAVAL128_5  0x10
+#define MGF__HAVAL160_3  0x11
+#define MGF__HAVAL160_4  0x12
+#define MGF__HAVAL160_5  0x13
+#define MGF__HAVAL192_3  0x14
+#define MGF__HAVAL192_4  0x15
+#define MGF__HAVAL192_5  0x16
+#define MGF__HAVAL224_3  0x17
+#define MGF__HAVAL224_4  0x18
+#define MGF__HAVAL224_5  0x19
+#define MGF__HAVAL256_3  0x1A
+#define MGF__HAVAL256_4  0x1B
+#define MGF__HAVAL256_5  0x1C
 
 // These are the 'flags' that specify certain characterstics of the format.
 // Things like salted, not sse2, and special 'loading' of the keys.
@@ -87,22 +100,36 @@ typedef struct DYNAMIC_Constants_t
 // for salt_as_hex for other formats, we do this:  (flag>>56)
 // Then 00 is md5, 01 is md4, 02 is SHA1, etc
 // NOTE, all top 8 bits of the flags are reserved, and should NOT be used for flags.
-#define MGF_SALT_AS_HEX_MD5	        (0x0000000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_MD4	        (0x0100000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_SHA1        (0x0200000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_SHA224      (0x0300000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_SHA256      (0x0400000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_SHA384      (0x0500000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_SHA512      (0x0600000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_GOST        (0x0700000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_WHIRLPOOL   (0x0800000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_TIGER       (0x0900000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_RIPEMD128   (0x0A00000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_RIPEMD160   (0x0B00000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_RIPEMD256   (0x0C00000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_RIPEMD320   (0x0D00000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_HAVAL256_3  (0x0E00000000000100ULL|MGF_SALTED)
-#define MGF_SALT_AS_HEX_HAVAL128_4  (0x0F00000000000100ULL|MGF_SALTED)
+#define MGF_SALT_AS_HEX_MD5	        ((((ARCH_WORD_64)MGF__MD5       )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_MD4	        ((((ARCH_WORD_64)MGF__MD4       )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_SHA1        ((((ARCH_WORD_64)MGF__SHA1      )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_SHA224      ((((ARCH_WORD_64)MGF__SHA224    )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_SHA256      ((((ARCH_WORD_64)MGF__SHA256    )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_SHA384      ((((ARCH_WORD_64)MGF__SHA384    )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_SHA512      ((((ARCH_WORD_64)MGF__SHA512    )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_GOST        ((((ARCH_WORD_64)MGF__GOST      )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_WHIRLPOOL   ((((ARCH_WORD_64)MGF__WHIRLPOOL )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_Tiger       ((((ARCH_WORD_64)MGF__Tiger     )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_RIPEMD128   ((((ARCH_WORD_64)MGF__RIPEMD128 )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_RIPEMD160   ((((ARCH_WORD_64)MGF__RIPEMD160 )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_RIPEMD256   ((((ARCH_WORD_64)MGF__RIPEMD256 )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_RIPEMD320   ((((ARCH_WORD_64)MGF__RIPEMD320 )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL128_3  ((((ARCH_WORD_64)MGF__HAVAL128_3)<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL128_4  ((((ARCH_WORD_64)MGF__HAVAL128_4)<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL128_5  ((((ARCH_WORD_64)MGF__HAVAL128_5)<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL160_3  ((((ARCH_WORD_64)MGF__HAVAL160_3)<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL160_4  ((((ARCH_WORD_64)MGF__HAVAL160_4)<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL160_5  ((((ARCH_WORD_64)MGF__HAVAL160_5)<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL192_3  ((((ARCH_WORD_64)MGF__HAVAL192_3)<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL192_4  ((((ARCH_WORD_64)MGF__HAVAL192_4)<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL192_5  ((((ARCH_WORD_64)MGF__HAVAL192_5)<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL224_3  ((((ARCH_WORD_64)MGF__HAVAL224_3)<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL224_4  ((((ARCH_WORD_64)MGF__HAVAL224_4)<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL224_5  ((((ARCH_WORD_64)MGF__HAVAL224_5)<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL256_3  ((((ARCH_WORD_64)MGF__HAVAL256_3)<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL256_4  ((((ARCH_WORD_64)MGF__HAVAL256_4)<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_HAVAL256_5  ((((ARCH_WORD_64)MGF__HAVAL256_5)<<56)|MGF_SALT_AS_HEX)
+
 #define MGF_INPBASE64_4x6            0x00000200
 #define MGF_StartInX86Mode           0x00000400
 #define MGF_SALT_AS_HEX_TO_SALT2    (0x00000800|MGF_SALTED)
@@ -141,40 +168,71 @@ typedef struct DYNAMIC_Constants_t
 // Then 00 is md5, 01 is md4, 02 is SHA1, etc
 // NOTE, all top 8 bits of the flags are reserved, and should NOT be used for flags.
 #define MGF_KEYS_BASE16_IN1              0x00000004   // deprecated (use the _MD5 version)
-#define MGF_KEYS_BASE16_IN1_MD5          0x0000000000000004ULL
-#define MGF_KEYS_BASE16_IN1_MD4          0x0100000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA1         0x0200000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA224       0x0300000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA256       0x0400000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA384       0x0500000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA512       0x0600000000000004ULL
-#define MGF_KEYS_BASE16_IN1_GOST         0x0700000000000004ULL
-#define MGF_KEYS_BASE16_IN1_WHIRLPOOL    0x0800000000000004ULL
-#define MGF_KEYS_BASE16_IN1_TIGER        0x0900000000000004ULL
-#define MGF_KEYS_BASE16_IN1_RIPEMD128    0x0A00000000000004ULL
-#define MGF_KEYS_BASE16_IN1_RIPEMD160    0x0B00000000000004ULL
-#define MGF_KEYS_BASE16_IN1_RIPEMD256    0x0C00000000000004ULL
-#define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
-#define MGF_KEYS_BASE16_IN1_HAVAL256_3   0x0E00000000000004ULL
-#define MGF_KEYS_BASE16_IN1_HAVAL128_4   0x0F00000000000004ULL
+#define MGF_KEYS_BASE16_IN1_MD5         ((((ARCH_WORD_64)MGF__MD5       )<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_MD4         ((((ARCH_WORD_64)MGF__MD4       )<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_SHA1        ((((ARCH_WORD_64)MGF__SHA1      )<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_SHA224      ((((ARCH_WORD_64)MGF__SHA224    )<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_SHA256      ((((ARCH_WORD_64)MGF__SHA256    )<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_SHA384      ((((ARCH_WORD_64)MGF__SHA384    )<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_SHA512      ((((ARCH_WORD_64)MGF__SHA512    )<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_GOST        ((((ARCH_WORD_64)MGF__GOST      )<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_WHIRLPOOL   ((((ARCH_WORD_64)MGF__WHIRLPOOL )<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_Tiger       ((((ARCH_WORD_64)MGF__Tiger     )<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_RIPEMD128   ((((ARCH_WORD_64)MGF__RIPEMD128 )<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_RIPEMD160   ((((ARCH_WORD_64)MGF__RIPEMD160 )<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_RIPEMD256   ((((ARCH_WORD_64)MGF__RIPEMD256 )<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_RIPEMD320   ((((ARCH_WORD_64)MGF__RIPEMD320 )<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL128_3  ((((ARCH_WORD_64)MGF__HAVAL128_3)<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL128_4  ((((ARCH_WORD_64)MGF__HAVAL128_4)<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL128_5  ((((ARCH_WORD_64)MGF__HAVAL128_5)<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL160_3  ((((ARCH_WORD_64)MGF__HAVAL160_3)<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL160_4  ((((ARCH_WORD_64)MGF__HAVAL160_4)<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL160_5  ((((ARCH_WORD_64)MGF__HAVAL160_5)<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL192_3  ((((ARCH_WORD_64)MGF__HAVAL192_3)<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL192_4  ((((ARCH_WORD_64)MGF__HAVAL192_4)<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL192_5  ((((ARCH_WORD_64)MGF__HAVAL192_5)<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL224_3  ((((ARCH_WORD_64)MGF__HAVAL224_3)<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL224_4  ((((ARCH_WORD_64)MGF__HAVAL224_4)<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL224_5  ((((ARCH_WORD_64)MGF__HAVAL224_5)<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL256_3  ((((ARCH_WORD_64)MGF__HAVAL256_3)<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL256_4  ((((ARCH_WORD_64)MGF__HAVAL256_4)<<56)|MGF_KEYS_BASE16_IN1)
+#define MGF_KEYS_BASE16_IN1_HAVAL256_5  ((((ARCH_WORD_64)MGF__HAVAL256_5)<<56)|MGF_KEYS_BASE16_IN1)
+
+
+
+
 
 #define MGF_KEYS_BASE16_IN1_Offset32         0x00000008   // deprecated (use the _MD5 version)
-#define MGF_KEYS_BASE16_IN1_Offset_MD5       0x0000000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_MD4       0x0100000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_SHA1      0x0200000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_SHA224    0x0300000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_SHA256    0x0400000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_SHA384    0x0500000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_SHA512    0x0600000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_GOST      0x0700000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_WHIRLPOOL 0x0800000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_TIGER     0x0900000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD128 0x0A00000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD160 0x0B00000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD256 0x0C00000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD320 0x0D00000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_HAVAL256_3 0x0E00000000000008ULL
-#define MGF_KEYS_BASE16_IN1_Offset_HAVAL128_4 0x0F00000000000008ULL
+#define MGF_KEYS_BASE16_IN1_Offset_MD5        ((((ARCH_WORD_64)MGF__MD5       )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_MD4        ((((ARCH_WORD_64)MGF__MD4       )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_SHA1       ((((ARCH_WORD_64)MGF__SHA1      )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_SHA224     ((((ARCH_WORD_64)MGF__SHA224    )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_SHA256     ((((ARCH_WORD_64)MGF__SHA256    )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_SHA384     ((((ARCH_WORD_64)MGF__SHA384    )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_SHA512     ((((ARCH_WORD_64)MGF__SHA512    )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_GOST       ((((ARCH_WORD_64)MGF__GOST      )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_WHIRLPOOL  ((((ARCH_WORD_64)MGF__WHIRLPOOL )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_Tiger      ((((ARCH_WORD_64)MGF__Tiger     )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD128  ((((ARCH_WORD_64)MGF__RIPEMD128 )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD160  ((((ARCH_WORD_64)MGF__RIPEMD160 )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD256  ((((ARCH_WORD_64)MGF__RIPEMD256 )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_RIPEMD320  ((((ARCH_WORD_64)MGF__RIPEMD320 )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL128_3 ((((ARCH_WORD_64)MGF__HAVAL128_3)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL128_4 ((((ARCH_WORD_64)MGF__HAVAL128_4)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL128_5 ((((ARCH_WORD_64)MGF__HAVAL128_5)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL160_3 ((((ARCH_WORD_64)MGF__HAVAL160_3)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL160_4 ((((ARCH_WORD_64)MGF__HAVAL160_4)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL160_5 ((((ARCH_WORD_64)MGF__HAVAL160_5)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL192_3 ((((ARCH_WORD_64)MGF__HAVAL192_3)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL192_4 ((((ARCH_WORD_64)MGF__HAVAL192_4)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL192_5 ((((ARCH_WORD_64)MGF__HAVAL192_5)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL224_3 ((((ARCH_WORD_64)MGF__HAVAL224_3)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL224_4 ((((ARCH_WORD_64)MGF__HAVAL224_4)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL224_5 ((((ARCH_WORD_64)MGF__HAVAL224_5)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL256_3 ((((ARCH_WORD_64)MGF__HAVAL256_3)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL256_4 ((((ARCH_WORD_64)MGF__HAVAL256_4)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+#define MGF_KEYS_BASE16_IN1_Offset_HAVAL256_5 ((((ARCH_WORD_64)MGF__HAVAL256_5)<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+
 
 //#define MGF_KEYS_BASE16_X86_IN1          0x00000010
 //  Open                                   0x00000010
@@ -428,149 +486,45 @@ extern void DynamicFunc__LargeHash_OUTMode_base64(DYNA_OMP_PARAMS);
 extern void DynamicFunc__LargeHash_OUTMode_base64_nte(DYNA_OMP_PARAMS); // no trailing = chars, for non length%3 !=0
 extern void DynamicFunc__LargeHash_OUTMode_raw(DYNA_OMP_PARAMS);
 
-extern void DynamicFunc__SHA1_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA1_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA1_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA1_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA1_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA1_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA1_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
+#define LARGE_HASH_FUNCTION_DECLARAION(HASH) \
+	extern void DynamicFunc__##HASH##_crypt_input1_append_input2(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input2_append_input1(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS)
 
-extern void DynamicFunc__SHA224_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA224_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA224_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA224_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA224_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA224_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA224_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA224_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-
-extern void DynamicFunc__SHA256_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA256_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA256_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA256_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA256_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA256_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA256_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-
-extern void DynamicFunc__SHA384_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA384_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA384_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA384_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA384_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA384_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA384_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA384_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-
-extern void DynamicFunc__SHA512_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA512_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA512_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA512_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA512_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA512_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA512_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA512_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-
-extern void DynamicFunc__GOST_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__GOST_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__GOST_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__GOST_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__GOST_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__GOST_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__GOST_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__GOST_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-
-extern void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-
-extern void DynamicFunc__Tiger_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__Tiger_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__Tiger_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__Tiger_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__Tiger_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__Tiger_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__Tiger_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__Tiger_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-
-extern void DynamicFunc__MD5_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD5_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD5_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD5_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD5_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD5_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD5_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD5_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-
-extern void DynamicFunc__MD4_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD4_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD4_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD4_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD4_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD4_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD4_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD4_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-
-extern void DynamicFunc__RIPEMD128_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD128_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD128_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-
-extern void DynamicFunc__RIPEMD160_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD160_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD160_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD160_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-
-extern void DynamicFunc__RIPEMD256_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD256_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD256_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD256_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-
-extern void DynamicFunc__RIPEMD320_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD320_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD320_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-
-extern void DynamicFunc__HAVAL256_3_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__HAVAL256_3_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__HAVAL256_3_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__HAVAL256_3_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__HAVAL256_3_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__HAVAL256_3_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__HAVAL256_3_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__HAVAL256_3_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
-
-extern void DynamicFunc__HAVAL128_4_crypt_input1_append_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__HAVAL128_4_crypt_input2_append_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__HAVAL128_4_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__HAVAL128_4_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__HAVAL128_4_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS);
-extern void DynamicFunc__HAVAL128_4_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS);
-extern void DynamicFunc__HAVAL128_4_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS);
-extern void DynamicFunc__HAVAL128_4_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS);
+LARGE_HASH_FUNCTION_DECLARAION(MD5);
+LARGE_HASH_FUNCTION_DECLARAION(MD4);
+LARGE_HASH_FUNCTION_DECLARAION(SHA1);
+LARGE_HASH_FUNCTION_DECLARAION(SHA224);
+LARGE_HASH_FUNCTION_DECLARAION(SHA256);
+LARGE_HASH_FUNCTION_DECLARAION(SHA384);
+LARGE_HASH_FUNCTION_DECLARAION(SHA512);
+LARGE_HASH_FUNCTION_DECLARAION(GOST);
+LARGE_HASH_FUNCTION_DECLARAION(WHIRLPOOL);
+LARGE_HASH_FUNCTION_DECLARAION(Tiger);
+LARGE_HASH_FUNCTION_DECLARAION(RIPEMD128);
+LARGE_HASH_FUNCTION_DECLARAION(RIPEMD160);
+LARGE_HASH_FUNCTION_DECLARAION(RIPEMD256);
+LARGE_HASH_FUNCTION_DECLARAION(RIPEMD320);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL128_3);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL128_4);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL128_5);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL160_3);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL160_4);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL160_5);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL192_3);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL192_4);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL192_5);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL224_3);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL224_4);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL224_5);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL256_3);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL256_4);
+LARGE_HASH_FUNCTION_DECLARAION(HAVAL256_5);
 
 // These 3 dump the raw crypt back into input (only at the head of it).
 // they are for phpass, wordpress, etc.
@@ -600,94 +554,6 @@ extern void DynamicFunc__InitialLoadKeysToInput(DYNA_OMP_PARAMS);
 extern void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2(DYNA_OMP_PARAMS);
 extern void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1(DYNA_OMP_PARAMS);
 extern void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1_offset32(DYNA_OMP_PARAMS);
-
-
-// These are actually NOW depricated.  We have left 'thin' version in dynamic_fmt.c
-// that call the 2 'thick' functions needed. However, These should NOT be used any more.
-extern void DynamicFunc__SHA1_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA1_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA224_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA224_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA224_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA224_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA224_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA224_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA256_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA256_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA256_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA256_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA256_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA256_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA384_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA384_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA384_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA384_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA384_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA384_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA512_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA512_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA512_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA512_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA512_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__SHA512_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__GOST_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__GOST_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__GOST_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__GOST_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__GOST_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__GOST_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__Tiger_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__Tiger_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__Tiger_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__Tiger_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__Tiger_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__Tiger_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD128_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD128_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD160_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD160_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD160_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD256_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD256_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD256_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD320_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD320_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD5_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD5_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD5_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD5_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD5_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD5_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD4_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD4_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD4_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD4_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD4_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS);
-extern void DynamicFunc__MD4_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS);
 
 #endif /* DYNAMIC_DISABLED */
 

@@ -20,8 +20,6 @@
 typedef void *DC_HANDLE;
 
 extern int dynamic_compile(const char *expr, DC_HANDLE *pH);
-extern int dynamic_load(DC_HANDLE H);
-extern int dynamic_print_script(DC_HANDLE H);
 extern int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt);
 extern char *dynamic_compile_split(char *inp);
 extern char *dynamic_compile_prepare(char *fld0, char *fld1);
