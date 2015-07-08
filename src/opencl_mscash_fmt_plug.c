@@ -966,7 +966,9 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 
 static void reset(struct db_main *db)
 {
-	if (db) {
+	static int initialized;
+
+	if (initialized) {
 		release_clobj_test();
 		release_clobj();
 		release_clobj_kpc();
@@ -1058,6 +1060,8 @@ static void reset(struct db_main *db)
 		MEM_FREE(offset_table);
 		MEM_FREE(bitmaps);
 		auto_tune(db, 50);
+
+		initialized++;
 	}
 }
 
