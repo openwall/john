@@ -21,6 +21,7 @@ john_register_one(&FMT_STRUCT);
 
 #include <string.h>
 #include <assert.h>
+#include <sys/time.h>
 
 #include "arch.h"
 #include "params.h"
@@ -69,14 +70,11 @@ static unsigned int hash_table_size, offset_table_size, shift64_ht_sz, shift64_o
 static cl_ulong bitmap_size_bits = 0;
 
 static unsigned int key_idx = 0;
-static unsigned int ref_ctr, ocl_ver;
+static unsigned int ocl_ver;
 static struct fmt_main *self;
 
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-
-#define STEP                    0
-#define SEED                    1024
 
 #define get_power_of_two(v)	\
 {				\
@@ -90,16 +88,8 @@ static struct fmt_main *self;
 	v++;			\
 }
 
-static const char * warn[] = {
-	"pass xfer: ", ", index xfer: ", ", key_loc xfer: ",
-	 ", fill_buffer_0: ", ", fill_buffer_1: ", ", crypt: ",
-	 ", num_cracked xfer: ", ", result xfer: ", ", result_data xfer: "
-};
-
 static int crypt_all(int *pcount, struct db_salt *_salt);
 
-//This file contains auto-tuning routine(s). It has to be included after formats definitions.
-#include "opencl-autotune.h"
 #include "memdbg.h"
 
 static struct fmt_tests tests[] = {
@@ -112,27 +102,15 @@ static struct fmt_tests tests[] = {
 
 struct fmt_main FMT_STRUCT;
 
-/* ------- Helper functions ------- */
-static size_t get_task_max_work_group_size()
-{
-	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
-}
-
-static size_t get_task_max_size()
-{
-	return 0;
-}
-
-static size_t get_default_workgroup()
-{
-	return 0;
-}
-
-static void set_kernel_args()
+static void set_kernel_args_kpc()
 {
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 1.");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 2.");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_int_key_loc), (void *) &buffer_int_key_loc), "Error setting argument 3.");
+}
+
+static void set_kernel_args()
+{
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_int_keys), (void *) &buffer_int_keys), "Error setting argument 4.");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(buffer_bitmaps), (void *) &buffer_bitmaps), "Error setting argument 5.");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_offset_table), (void *) &buffer_offset_table), "Error setting argument 6.");
@@ -142,23 +120,8 @@ static void set_kernel_args()
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 9, sizeof(buffer_bitmap_dupe), (void *) &buffer_bitmap_dupe), "Error setting argument 10.");
 }
 
-static void create_clobj(size_t kpc, struct fmt_main *self)
+static void create_clobj_kpc(size_t kpc)
 {
-	cl_ulong max_alloc_size_bytes = 0;
-	cl_ulong cache_size_bytes = 0;
-
-	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &max_alloc_size_bytes, 0), "failed to get CL_DEVICE_MAX_MEM_ALLOC_SIZE.");
-	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong), &cache_size_bytes, 0), "failed to get CL_DEVICE_GLOBAL_MEM_CACHE_SIZE.");
-
-	if (max_alloc_size_bytes & (max_alloc_size_bytes - 1)) {
-		get_power_of_two(max_alloc_size_bytes);
-		max_alloc_size_bytes >>= 1;
-	}
-	if (max_alloc_size_bytes >= 536870912) max_alloc_size_bytes = 536870912;
-	assert(!(max_alloc_size_bytes & (max_alloc_size_bytes - 1)));
-
-	if (!cache_size_bytes) cache_size_bytes = 1024;
-
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * kpc, NULL, &ret_code);
 	if (ret_code != CL_SUCCESS) {
 		saved_plain = (cl_uint *) mem_alloc(BUFSIZE * kpc);
@@ -189,6 +152,25 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 
 	buffer_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(cl_uint) * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_key_loc.");
+}
+
+static void create_clobj(void)
+{
+	cl_ulong max_alloc_size_bytes = 0;
+	cl_ulong cache_size_bytes = 0;
+	cl_uint dummy = 0;
+
+	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &max_alloc_size_bytes, 0), "failed to get CL_DEVICE_MAX_MEM_ALLOC_SIZE.");
+	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong), &cache_size_bytes, 0), "failed to get CL_DEVICE_GLOBAL_MEM_CACHE_SIZE.");
+
+	if (max_alloc_size_bytes & (max_alloc_size_bytes - 1)) {
+		get_power_of_two(max_alloc_size_bytes);
+		max_alloc_size_bytes >>= 1;
+	}
+	if (max_alloc_size_bytes >= 536870912) max_alloc_size_bytes = 536870912;
+	assert(!(max_alloc_size_bytes & (max_alloc_size_bytes - 1)));
+
+	if (!cache_size_bytes) cache_size_bytes = 1024;
 
 	buffer_return_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, 2 * sizeof(cl_uint) * num_loaded_hashes, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_return_hashes.");
@@ -202,8 +184,8 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	buffer_bitmaps = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, max_alloc_size_bytes, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_bitmaps.");
 
-	//ref_ctr is used as dummy parameter
-	buffer_int_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 4 * mask_int_cand.num_int_cand, mask_int_cand.int_cand ? mask_int_cand.int_cand : (void *)&ref_ctr, &ret_code);
+	//dummy is used as dummy parameter
+	buffer_int_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 4 * mask_int_cand.num_int_cand, mask_int_cand.int_cand ? mask_int_cand.int_cand : (void *)&dummy, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys.");
 
 	buffer_offset_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, offset_table_size * sizeof(OFFSET_TABLE_WORD), NULL, &ret_code);
@@ -211,15 +193,11 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 
 	buffer_hash_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, hash_table_size * sizeof(unsigned int) * 2, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_table.");
-
-	set_kernel_args();
-
-	ref_ctr++;
 }
 
-static void release_clobj(void)
+static void release_clobj_kpc(void)
 {
-	if (ref_ctr) {
+	if (buffer_idx) {
 		if (pinned_saved_keys) {
 			HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Unmapping saved_plain.");
 			HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys.");
@@ -232,22 +210,28 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Error Releasing buffer_idx.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_key_loc), "Error Releasing buffer_int_key_loc.");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_idx), "Error Releasing pinned_saved_idx.");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_int_key_loc), "Error Releasing pinned_int_key_loc.");
+		buffer_idx = 0;
+	}
+}
+
+static void release_clobj(void)
+{
+	if (buffer_offset_table) {
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_return_hashes), "Error Releasing buffer_return_hashes.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_offset_table), "Error Releasing buffer_offset_table.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_table), "Error Releasing buffer_hash_table.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Error Releasing buffer_bitmap_dupe.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmaps), "Error Releasing buffer_bitmap.");
-
-		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_idx), "Error Releasing pinned_saved_idx.");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_int_key_loc), "Error Releasing pinned_int_key_loc.");
-
-		ref_ctr--;
+		buffer_offset_table = 0;
 	}
 }
 
 static void done(void)
 {
+	release_clobj_kpc();
 	release_clobj();
 
 	if (crypt_kernel) {
@@ -265,7 +249,7 @@ static void done(void)
 		MEM_FREE(bitmaps);
 	if (offset_table)
 		MEM_FREE(offset_table);
-	if (hash_table_192)
+	if (hash_table_128)
 		MEM_FREE(hash_table_192);
 }
 
@@ -836,35 +820,200 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+static void auto_tune(struct db_main *db, long double kernel_run_ms)
+{
+	size_t gws_limit, gws_init;
+	size_t lws_limit, lws_init;
+
+	struct timeval startc, endc;
+	long double time_ms = 0, old_time_ms = 0;
+
+	size_t pcount, count;
+	size_t i;
+
+	int tune_gws, tune_lws;
+
+	char key[PLAINTEXT_LENGTH + 1];
+
+	memset(key, 0xF5, PLAINTEXT_LENGTH);
+	key[PLAINTEXT_LENGTH] = 0;
+
+	gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
+			get_max_mem_alloc_size(gpu_id) / BUFSIZE);
+	get_power_of_two(gws_limit);
+	if (gws_limit > MIN((0xf << 22) * 4 / BUFSIZE,
+		get_max_mem_alloc_size(gpu_id) / BUFSIZE))
+		gws_limit >>= 1;
+
+	lws_limit = get_kernel_max_lws(gpu_id, crypt_kernel);
+
+	lws_init = get_kernel_preferred_multiple(gpu_id, crypt_kernel);
+
+	if (gpu_amd(device_info[gpu_id]))
+		gws_init = gws_limit >> 6;
+	else if (gpu_nvidia(device_info[gpu_id]))
+		gws_init = gws_limit >> 8;
+	else
+		gws_init = 1024;
+
+	if (gws_init > gws_limit)
+		gws_init = gws_limit;
+	if (gws_init < lws_init)
+		lws_init = gws_init;
+
+	local_work_size = 0;
+	global_work_size = 0;
+	tune_gws = 1;
+	tune_lws = 1;
+	opencl_get_user_preferences(FORMAT_LABEL);
+	if (local_work_size) {
+		tune_lws = 0;
+		if (local_work_size & (local_work_size - 1))
+			get_power_of_two(local_work_size);
+		if (local_work_size > lws_limit)
+			local_work_size = lws_limit;
+	}
+	if (global_work_size)
+		tune_gws = 0;
+
+#if 0
+	 fprintf(stderr, "lws_init:%zu lws_limit:%zu"
+			 " gws_init:%zu gws_limit:%zu\n",
+			  lws_init, lws_limit, gws_init,
+			  gws_limit);
+#endif
+	/* Auto tune start.*/
+	pcount = gws_init;
+	count = 0;
+#define calc_ms(start, end)	\
+		((long double)(end.tv_sec - start.tv_sec) * 1000.000 + \
+			(long double)(end.tv_usec - start.tv_usec) / 1000.000)
+	if (tune_gws) {
+		create_clobj_kpc(pcount);
+		set_kernel_args_kpc();
+		for (i = 0; i < pcount; i++)
+			set_key(key, i);
+		gettimeofday(&startc, NULL);
+		crypt_all((int *)&pcount, NULL);
+		gettimeofday(&endc, NULL);
+		time_ms = calc_ms(startc, endc);
+		count = (size_t)((kernel_run_ms / time_ms) * (long double)gws_init);
+		get_power_of_two(count);
+	}
+
+	if (tune_gws && tune_lws)
+		release_clobj_kpc();
+
+	if (tune_lws) {
+		count = tune_gws ? count : global_work_size;
+		create_clobj_kpc(count);
+		set_kernel_args_kpc();
+		pcount = count;
+		clear_keys();
+		for (i = 0; i < pcount; i++)
+			set_key(key, i);
+		local_work_size = lws_init;
+		gettimeofday(&startc, NULL);
+		crypt_all((int *)&pcount, NULL);
+		gettimeofday(&endc, NULL);
+		old_time_ms = calc_ms(startc, endc);
+		local_work_size = 2 * lws_init;
+
+		while (local_work_size <= lws_limit) {
+			gettimeofday(&startc, NULL);
+			pcount = count;
+			crypt_all((int *)&pcount, NULL);
+			gettimeofday(&endc, NULL);
+			time_ms = calc_ms(startc, endc);
+			if (old_time_ms < time_ms) {
+				local_work_size /= 2;
+				break;
+			}
+			old_time_ms = time_ms;
+			local_work_size *= 2;
+		}
+
+		if (local_work_size > lws_limit)
+			local_work_size = lws_limit;
+	}
+
+	if (tune_gws && tune_lws) {
+		if (old_time_ms > kernel_run_ms) {
+			count /= 2;
+		}
+		else {
+			count = (size_t)((kernel_run_ms / old_time_ms) * (long double)count);
+			get_power_of_two(count);
+		}
+	}
+
+	if (tune_gws) {
+		if (count > gws_limit)
+			count = gws_limit;
+		release_clobj_kpc();
+		create_clobj_kpc(count);
+		set_kernel_args_kpc();
+		global_work_size = count;
+	}
+
+	if (!tune_gws && !tune_lws) {
+		create_clobj_kpc(global_work_size);
+		set_kernel_args_kpc();
+	}
+	/* Auto tune finish.*/
+
+	if (global_work_size % local_work_size) {
+		global_work_size = GET_MULTIPLE_OR_BIGGER(global_work_size, local_work_size);
+		get_power_of_two(global_work_size);
+		release_clobj_kpc();
+		if (global_work_size > gws_limit)
+			global_work_size = gws_limit;
+		create_clobj_kpc(global_work_size);
+		set_kernel_args_kpc();
+	}
+	if (global_work_size > gws_limit) {
+		release_clobj_kpc();
+		global_work_size = gws_limit;
+		create_clobj_kpc(global_work_size);
+		set_kernel_args_kpc();
+	}
+
+	assert(!(local_work_size & (local_work_size -1)));
+	assert(!(global_work_size % local_work_size));
+	assert(local_work_size <= lws_limit);
+	assert(global_work_size <= gws_limit);
+
+	self->params.max_keys_per_crypt = global_work_size;
+	if (options.verbosity > 3)
+	fprintf(stdout, "%s GWS: %zu, LWS: %zu\n", db ? "Cracking" : "Self test",
+			global_work_size, local_work_size);
+#undef calc_ms
+}
+
 static void reset(struct db_main *db)
 {
 	static int initialized;
 
 	if (initialized) {
-		size_t buffer_size;
-		if (ref_ctr > 0)
-			release_clobj();
+		release_clobj();
+		release_clobj_kpc();
 
-		buffer_size = db->format->params.max_keys_per_crypt;
 		num_loaded_hashes = db->salts->count;
 		prepare_table(db->salts);
 		init_kernel(num_loaded_hashes, select_bitmap(num_loaded_hashes));
-		create_clobj(buffer_size, NULL);
+
+		create_clobj();
+		set_kernel_args();
+
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps, CL_TRUE, 0, (size_t)(bitmap_size_bits >> 3), bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_192, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
+
+		auto_tune(db, 300);
 	}
 	else {
 		unsigned int *binary, i = 0;
 		char *ciphertext;
-		size_t gws_limit;
-		unsigned int flag;
-
-		opencl_get_user_preferences(FORMAT_LABEL);
-		flag = (options.flags & FLG_MASK_CHK) && !global_work_size;
-
-		gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
-		                get_max_mem_alloc_size(gpu_id) / BUFSIZE);
 
 		while (tests[num_loaded_hashes].ciphertext != NULL)
 			num_loaded_hashes++;
@@ -900,29 +1049,14 @@ static void reset(struct db_main *db)
 
 		init_kernel(num_loaded_hashes, select_bitmap(num_loaded_hashes));
 
-		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
-		                       create_clobj, release_clobj,
-		                       2 * BUFSIZE, gws_limit);
+		create_clobj();
+		set_kernel_args();
 
-		//Auto tune execution from shared/included code.
-		autotune_run(self, 1, gws_limit,
-		             (cpu(device_info[gpu_id]) ?
-		              500000000ULL : 1000000000ULL));
-
-		if (options.flags & FLG_MASK_CHK) {
-			fprintf(stdout, "Using Mask Mode with internal "
-			        "candidate generation%s", flag ? "" : "\n");
-			if (flag) {
-				self->params.max_keys_per_crypt /= 64;
-				fprintf(stdout,
-				        ", global worksize(GWS) set to %d\n",
-				        self->params.max_keys_per_crypt);
-			}
-		}
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps, CL_TRUE, 0, (bitmap_size_bits >> 3), bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_192, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
+
+		auto_tune(NULL, 50);
 		hash_ids[0] = 0;
 
 		initialized++;

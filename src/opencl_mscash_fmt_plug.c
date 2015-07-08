@@ -624,6 +624,7 @@ static void select_bitmap(unsigned int num_loaded_hashes)
 		else
 			bitmap_size_bits = 2048 * 1024;
 	}
+	assert(num_loaded_hashes <= 1100100);
 
 	prepare_bitmap_4(bitmap_size_bits, &bitmaps, num_loaded_hashes);
 }
@@ -814,7 +815,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	size_t lws_limit, lws_init;
 
 	struct timeval startc, endc;
-	long double time_ms, old_time_ms;
+	long double time_ms = 0, old_time_ms = 0;
 
 	size_t pcount, count;
 	size_t i;
@@ -875,7 +876,9 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	/* Auto tune start.*/
 	pcount = gws_init;
 	count = 0;
-
+#define calc_ms(start, end)	\
+		((long double)(end.tv_sec - start.tv_sec) * 1000.000 + \
+			(long double)(end.tv_usec - start.tv_usec) / 1000.000)
 	if (tune_gws) {
 		create_clobj_kpc(pcount);
 		set_kernel_args_kpc();
@@ -889,7 +892,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 			crypt_all((int *)&pcount, NULL);
 		}
 		gettimeofday(&endc, NULL);
-		time_ms = (long double)(endc.tv_sec - startc.tv_sec) * 1000.000 + (long double)(endc.tv_usec - startc.tv_usec) / 1000.000;
+		time_ms = calc_ms(startc, endc);
 		count = (size_t)((kernel_run_ms / time_ms) * (long double)gws_init);
 		get_power_of_two(count);
 	}
@@ -914,7 +917,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 			crypt_all((int *)&pcount, NULL);
 		}
 		gettimeofday(&endc, NULL);
-		old_time_ms = (long double)(endc.tv_sec - startc.tv_sec) * 1000.000 + (long double)(endc.tv_usec - startc.tv_usec) / 1000.000;
+		old_time_ms = calc_ms(startc, endc);
 		local_work_size = 2 * lws_init;
 
 		while (local_work_size <= lws_limit) {
@@ -927,7 +930,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 				crypt_all((int *)&pcount, NULL);
 			}
 			gettimeofday(&endc, NULL);
-			time_ms = (long double)(endc.tv_sec - startc.tv_sec) * 1000.000 + (long double)(endc.tv_usec - startc.tv_usec) / 1000.000;
+			time_ms = calc_ms(startc, endc);
 			if (old_time_ms < time_ms) {
 				local_work_size /= 2;
 				break;
@@ -990,6 +993,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	if (options.verbosity > 3)
 	fprintf(stdout, "%s GWS: %zu, LWS: %zu\n", db ? "Cracking" : "Self test",
 			global_work_size, local_work_size);
+#undef calc_ms
 }
 
 static void reset(struct db_main *db)
@@ -1087,7 +1091,7 @@ static void reset(struct db_main *db)
 		hash_ids[0] = 0;
 		MEM_FREE(offset_table);
 		MEM_FREE(bitmaps);
-		auto_tune(db, 50);
+		auto_tune(NULL, 50);
 
 		initialized++;
 	}
