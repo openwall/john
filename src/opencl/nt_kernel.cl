@@ -155,7 +155,7 @@ inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_s
 	hash[2] += (hash[3] ^ hash[0] ^ tmp) + nt_buffer[7]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
 }
 
-inline void prepare_key(__global uint * key, int length, uint * nt_buffer)
+inline void prepare_key(__global uint * key, uint length, uint * nt_buffer)
 {
 	uint i = 0, nt_index, keychars;
 	nt_index = 0;
