@@ -220,7 +220,7 @@ static void find_best_gws(struct fmt_main *fmt)
 	cmp_out = NULL;
 	opencl_DES_bs_cracked_hashes = NULL;
 
-	if (options.verbosity > 2)
+	if (options.verbosity > 3)
 		fprintf(stderr, "Local worksize (LWS) "Zu", Global worksize (GWS) "Zu"\n", local_work_size, count * local_work_size);
 }
 

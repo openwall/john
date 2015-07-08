@@ -235,7 +235,7 @@ static void find_best_gws(struct fmt_main *fmt)
 
 	save_binary = 1;
 
-	if (options.verbosity > 2)
+	if (options.verbosity > 3)
 		fprintf(stderr, "Local worksize (LWS) "Zu", Global worksize (GWS) "Zu"\n", local_work_size, count * local_work_size);
 }
 
