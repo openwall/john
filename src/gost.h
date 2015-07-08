@@ -100,6 +100,7 @@ static inline uint64_t _JtR_Swap_64(uint64_t x) {
 	r.l[1] = bswap_32(w.l[0]);
 	return r.ll;
 }
+#undef bswap_64
 # define bswap_64(x) _JtR_Swap_64(x)
 #else
 #error "bswap_64 unsupported"
