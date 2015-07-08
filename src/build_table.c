@@ -232,8 +232,8 @@ static void init_tables(unsigned int approx_offset_table_sz, unsigned int approx
 	      }
 #if _OPENMP
 #pragma omp barrier
-#endif
 MAYBE_PARALLEL_FOR
+#endif
 	for (i = 0; i < num_loaded_hashes; i++) {
 		unsigned int iter;
 		offset_data_idx = modulo_op(loaded_hashes + i * binary_size_actual, offset_table_size, shift64_ot_sz, shift128_ot_sz);
