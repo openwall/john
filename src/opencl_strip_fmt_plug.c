@@ -252,7 +252,7 @@ static void *get_salt(char *ciphertext)
 			cs->data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(keeptr);
-	return (void *)&cs;
+	return (void *)cs;
 }
 
 static void set_salt(void *salt)
