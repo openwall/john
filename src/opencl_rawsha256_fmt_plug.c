@@ -267,7 +267,7 @@ static void reset(struct db_main *db)
 	offset_idx = 0;
 	key_idx = 0;
 
-	if (!autotuned) {
+	if (!ref_counter) {
 		size_t gws_limit;
 		unsigned int flag;
 
