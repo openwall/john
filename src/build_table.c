@@ -20,7 +20,7 @@
 #include "mt.h"
 #include "hash_types.h"
 
-#define DEBUG
+//#define DEBUG
 
 #if _OPENMP > 201107
 #define MAYBE_PARALLEL_FOR _Pragma("omp for")
