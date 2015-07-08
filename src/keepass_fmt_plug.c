@@ -204,18 +204,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 10;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* version */
 		goto err;
-	if (strlen(p) != 1)
+	if (!isdec(p))
 		goto err;
 	version = atoi(p);
 	if (version != 1 && version != 2)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* rounds */
 		goto err;
-	if (strlen(p) > 10)
+	if (!isdec(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* offset */
 		goto err;
-	if (strlen(p) > 10)
+	if (!isdec(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* final random seed */
 		goto err;
@@ -248,6 +248,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (version == 1) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* inline flag */
 			goto err;
+		if(!isdec(p))
+			goto err;
 		res = atoi(p);
 		if (res != 1 && res != 2) {
 			fprintf(stderr, "[!] Support for non-inlined data is currently missing from the " \
@@ -258,11 +260,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if (res == 1) {
 			if ((p = strtokm(NULL, "*")) == NULL)	/* content size */
 				goto err;
+			if (!isdec(p))
+				goto err;
 			contentsize = atoi(p);
 			if ((p = strtokm(NULL, "*")) == NULL)	/* content */
 				goto err;
 			res = strlen(p);
-			if (res != contentsize * 2)
+			if (res / 2 != contentsize)
 				goto err;
 			if (!ishex(p))
 				goto err;
@@ -274,6 +278,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if (p) {
 			// keyfile handling
 			if ((p = strtokm(NULL, "*")) == NULL)
+				goto err;
+			if (!ishex(p))
 				goto err;
 			res = strlen(p);
 			if ((p = strtokm(NULL, "*")) == NULL)
