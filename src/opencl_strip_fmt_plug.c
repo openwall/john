@@ -238,14 +238,18 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
-	static struct custom_salt cs;
+	static struct custom_salt *cs;
+
+	if (!cs)
+		cs = mem_alloc_tiny(sizeof(struct custom_salt), 4);
+
 	ctcopy += 7+1;	/* skip over "$strip$" and first '*' */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < 16; i++)
-			cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			cs->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 		for (; i < 1024; i++)
-			cs.data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			cs->data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(keeptr);
 	return (void *)&cs;
