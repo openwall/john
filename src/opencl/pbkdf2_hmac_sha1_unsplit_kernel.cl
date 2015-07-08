@@ -28,10 +28,10 @@ typedef struct {
 } pbkdf2_hash;
 
 typedef struct {
-	uchar length;
-	uchar salt[SALTLEN];
 	uint iterations;
 	uint outlen;
+	uchar length;
+	uchar salt[SALTLEN];
 } pbkdf2_salt;
 
 inline void preproc(__global const uchar * key, uint keylen,

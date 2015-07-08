@@ -143,7 +143,6 @@ static void set_salt(void *salt)
 }
 
 /* verify validity of page */
-
 static int verify_page(unsigned char *page1)
 {
 	uint32_t pageSize;
@@ -173,7 +172,6 @@ static int verify_page(unsigned char *page1)
 	}
 	return 0;
 }
-
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {

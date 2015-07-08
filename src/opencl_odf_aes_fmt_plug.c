@@ -51,10 +51,10 @@ typedef struct {
 } odf_hash;
 
 typedef struct {
-	uint8_t length;
-	uint8_t salt[64];
 	uint32_t iterations;
 	uint32_t outlen;
+	uint8_t length;
+	uint8_t salt[64];
 } odf_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -486,7 +486,7 @@ struct fmt_main fmt_opencl_odf_aes = {
 		BINARY_SIZE,
 		4,
 		SALT_SIZE,
-		1,
+		4,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

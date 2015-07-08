@@ -42,7 +42,7 @@ john_register_one(&fmt_opencl_odf);
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(odf_cpu_salt)
 #define BINARY_ALIGN		MEM_ALIGN_WORD
-#define SALT_ALIGN		MEM_ALIGN_WORD
+#define SALT_ALIGN		4
 
 typedef struct {
 	uint32_t length;
@@ -54,10 +54,10 @@ typedef struct {
 } odf_hash;
 
 typedef struct {
-	uint8_t length;
-	uint8_t salt[64];
 	uint32_t iterations;
 	uint32_t outlen;
+	uint8_t length;
+	uint8_t salt[64];
 } odf_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];

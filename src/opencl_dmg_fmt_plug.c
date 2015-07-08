@@ -78,10 +78,10 @@ typedef struct {
 } dmg_hash;
 
 typedef struct {
-	uint8_t length;
-	uint8_t salt[20];
 	int iterations;
 	int outlen;
+	uint8_t length;
+	uint8_t salt[20];
 } dmg_salt;
 
 static int *cracked;

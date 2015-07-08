@@ -42,7 +42,7 @@ john_register_one(&fmt_opencl_keychain);
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(*salt_struct)
 #define BINARY_ALIGN		MEM_ALIGN_WORD
-#define SALT_ALIGN		MEM_ALIGN_WORD
+#define SALT_ALIGN		4
 #define SALTLEN 20
 #define IVLEN 8
 #define CTLEN 48
@@ -57,10 +57,10 @@ typedef struct {
 } keychain_hash;
 
 typedef struct {
-	uint8_t  length;
-	uint8_t  salt[SALTLEN];
 	uint32_t iterations;
 	uint32_t outlen;
+	uint8_t  length;
+	uint8_t  salt[SALTLEN];
 } keychain_salt;
 
 static int *cracked;

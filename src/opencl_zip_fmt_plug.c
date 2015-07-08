@@ -48,7 +48,7 @@ john_register_one(&fmt_opencl_zip);
 #define BINARY_ALIGN		MEM_ALIGN_NONE
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(my_salt*)
-#define SALT_ALIGN		sizeof(my_salt*)
+#define SALT_ALIGN		4
 
 #define FORMAT_TAG		"$zip2$"
 #define FORMAT_CLOSE_TAG	"$/zip2$"
@@ -64,10 +64,10 @@ typedef struct {
 } zip_hash;
 
 typedef struct {
-	uint8_t length;
-	uint8_t salt[64];
 	int     iterations;
 	int     outlen;
+	uint8_t length;
+	uint8_t salt[64];
 } zip_salt;
 
 /* From gladman_fileenc.h */

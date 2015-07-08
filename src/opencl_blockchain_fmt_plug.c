@@ -48,7 +48,7 @@ john_register_one(&fmt_opencl_blockchain);
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define BINARY_ALIGN		MEM_ALIGN_WORD
-#define SALT_ALIGN			MEM_ALIGN_WORD
+#define SALT_ALIGN			4
 #define BIG_ENOUGH 		(8192 * 32)
 // increase me (in multiples of 16) to increase the decrypted and search area
 #define SAFETY_FACTOR 		160
@@ -63,10 +63,10 @@ typedef struct {
 } blockchain_hash;
 
 typedef struct {
-	uint8_t length;
-	uint8_t salt[16];
 	int iterations;
 	int outlen;
+	uint8_t length;
+	uint8_t salt[16];
 } blockchain_salt;
 
 static int *cracked;

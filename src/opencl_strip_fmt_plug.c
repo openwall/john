@@ -41,7 +41,7 @@ john_register_one(&fmt_opencl_strip);
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define BINARY_ALIGN		1
-#define SALT_ALIGN			MEM_ALIGN_WORD
+#define SALT_ALIGN			4
 
 #define ITERATIONS		4000
 #define FILE_HEADER_SZ 16
@@ -68,10 +68,10 @@ typedef struct {
 } strip_hash;
 
 typedef struct {
-	uint8_t length;
-	uint8_t salt[20];
 	int iterations;
 	int outlen;
+	uint8_t length;
+	uint8_t salt[20];
 } strip_salt;
 
 static int *cracked;
@@ -212,7 +212,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
-	if (strncmp(ciphertext, "$strip$", 7))
+	if (strncmp(ciphertext, "$strip$*", 8))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
