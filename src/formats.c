@@ -175,7 +175,7 @@ static char *longcand(struct fmt_main *format, int index, int ml)
 }
 
 static char *fmt_self_test_body(struct fmt_main *format,
-    void *binary_copy, void *salt_copy)
+    void *binary_copy, void *salt_copy, struct db_main *db)
 {
 	static char s_size[100];
 	struct fmt_tests *current;
@@ -212,7 +212,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (options.flags & FLG_NOTESTS) {
 		fmt_init(format);
 		dyna_salt_init(format);
-		format->methods.reset(NULL);
+		format->methods.reset(db);
 		format->private.initialized = 2;
 		format->methods.clear_keys();
 		return NULL;
@@ -292,7 +292,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		ml /= 3;
 #endif
 
-	format->methods.reset(NULL);
+	format->methods.reset(db);
 	dyna_salt_init(format);
 
 	if ((format->methods.split == fmt_default_split) &&
@@ -701,7 +701,7 @@ static void *alloc_binary(void **alloc, size_t size, size_t align)
 	return p;
 }
 
-char *fmt_self_test(struct fmt_main *format)
+char *fmt_self_test(struct fmt_main *format, struct db_main *db)
 {
 	char *retval;
 	void *binary_alloc, *salt_alloc;
@@ -716,7 +716,7 @@ char *fmt_self_test(struct fmt_main *format)
 	 * while self-test is running. */
 	bench_running = 1;
 
-	retval = fmt_self_test_body(format, binary_copy, salt_copy);
+	retval = fmt_self_test_body(format, binary_copy, salt_copy, db);
 
 	bench_running = 0;
 

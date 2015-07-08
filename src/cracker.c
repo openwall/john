@@ -144,7 +144,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
  * from john.c, and we don't want to mess with the format's state).
  */
 	if (db->loaded && db->format->methods.reset == fmt_default_reset)
-	if ((where = fmt_self_test(db->format))) {
+	if ((where = fmt_self_test(db->format, db))) {
 		log_event("! Self test failed (%s)", where);
 		fprintf(stderr, "Self test failed (%s)\n", where);
 		error();

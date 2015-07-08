@@ -350,7 +350,7 @@ extern void fmt_all_done(void);
  * Tests the format's methods for correct operation. Returns NULL on
  * success, method name on error.
  */
-extern char *fmt_self_test(struct fmt_main *format);
+extern char *fmt_self_test(struct fmt_main *format, struct db_main *db);
 
 /*
  * Default methods.
