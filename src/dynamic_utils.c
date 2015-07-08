@@ -63,7 +63,8 @@ void dynamic_DISPLAY_ALL_FORMATS()
 		cp = strchr(Type, ':');
 		if (cp) *cp = 0;
 #ifndef DEBUG
-		if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, Type, 0) && !strcasecmp(options.format, "dynamic-all"))
+		if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, Type, 0) &&
+		    (!options.format || strcasecmp(options.format, "dynamic-all")))
 			continue;
 #endif
 		printf ("Format = %s%s  type = %s\n", Type, strlen(Type)<10?" ":"", sz);

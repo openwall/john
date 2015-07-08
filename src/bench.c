@@ -551,7 +551,8 @@ AGAIN:
 				// in debug mode, we 'allow' dyna
 			} else
 #else
-			if (options.format && !strcasecmp(options.format, "dynamic-all")&&(format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
+			if ((options.format && !strcasecmp(options.format, "dynamic-all")&&(format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) ||
+			    (options.listconf && !strcasecmp(options.listconf, "subformats"))) {
 				// allow dyna if '-format=dynamic-all' was selected
 			} else
 

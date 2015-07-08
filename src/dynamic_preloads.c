@@ -2711,7 +2711,8 @@ int dynamic_IS_VALID(int i, int force)
 	if (i < 0 || i >= 5000)
 		return -1;
 #ifndef DEBUG
-	if (!force && cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, Type, 0) && !strcasecmp(options.format, "dynamic-all"))
+	if (!force && cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, Type, 0) &&
+	    (!options.format || strcasecmp(options.format, "dynamic-all")))
 		return 0;
 #endif
 	if (i < 1000) {
