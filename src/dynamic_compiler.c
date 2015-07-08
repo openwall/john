@@ -158,6 +158,9 @@ DONE #define MGF_USERNAME_LOCASE         (0x00000040|MGF_USERNAME)
 #include "sph_tiger.h"
 #include "sph_whirlpool.h"
 #include "sph_haval.h"
+#include "sph_md2.h"
+#include "sph_panama.h"
+#include "sph_skein.h"
 
 #if (AC_BUILT && HAVE_WHIRLPOOL) ||	  \
    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
@@ -324,6 +327,9 @@ SPH_FUNC(haval160_3,20) SPH_FUNC(haval160_4,20) SPH_FUNC(haval160_5,20)
 SPH_FUNC(haval192_3,24) SPH_FUNC(haval192_4,24) SPH_FUNC(haval192_5,24)
 SPH_FUNC(haval224_3,28) SPH_FUNC(haval224_4,28) SPH_FUNC(haval224_5,28)
 SPH_FUNC(haval256_3,32) SPH_FUNC(haval256_4,32) SPH_FUNC(haval256_5,32)
+SPH_FUNC(md2,16) SPH_FUNC(panama,32)
+SPH_FUNC(skein224,28) SPH_FUNC(skein256,32) SPH_FUNC(skein384,48) SPH_FUNC(skein512,64)
+
 static int encode_le()         { int len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
 static char *pad16()           { memset(gen_conv, 0, 16); strncpy(gen_conv, gen_pw, 16); return gen_conv; }
 static char *pad20()           { memset(gen_conv, 0, 20); strncpy(gen_conv, gen_pw, 20); return gen_conv; }
@@ -393,6 +399,8 @@ LEXI_FUNC(hav160_3,haval160_3,20) LEXI_FUNC(hav160_4,haval160_4,20) LEXI_FUNC(ha
 LEXI_FUNC(hav192_3,haval192_3,24) LEXI_FUNC(hav192_4,haval192_4,24) LEXI_FUNC(hav192_5,haval192_5,24)
 LEXI_FUNC(hav224_3,haval224_3,28) LEXI_FUNC(hav224_4,haval224_4,28) LEXI_FUNC(hav224_5,haval224_5,28)
 LEXI_FUNC(hav256_3,haval256_3,32) LEXI_FUNC(hav256_4,haval256_4,32) LEXI_FUNC(hav256_5,haval256_5,32)
+LEXI_FUNC(md2,md2,16) LEXI_FUNC(pan,panama,32)
+LEXI_FUNC(skn224,skein224,28) LEXI_FUNC(skn256,skein256,32) LEXI_FUNC(skn384,skein384,48) LEXI_FUNC(skn512,skein512,64)
 
 static void dynamic_futf16()    { dyna_helper_pre();                             dyna_helper_post(encode_le()); }
 //static void dynamic_futf16be()  { dyna_helper_pre();                             dyna_helper_post(encode_be()); }
@@ -506,7 +514,7 @@ static const char *comp_push_sym(const char *p, fpSYM fpsym, const char *pRet) {
 }
 
 #define LOOKUP_IF_BLK(T,U,S,F,L) \
-	if (!strncasecmp(pInput, #T, 3)) { \
+	if (!strncasecmp(pInput, #T, L)) { \
 		if (!strncmp(pInput, #T"_raw", L+4)) { LastTokIsFunc = 2; return comp_push_sym("f"#S"r", dynamic_f##F##r, pInput+(L+4)); } \
 		if (!strncmp(pInput, #T"_64c", L+4)) { return comp_push_sym("f"#S"c", dynamic_f##F##c, pInput+(L+4)); } \
 		if (!strncmp(pInput, #T"_64", L+3)) { return comp_push_sym("f"#S"6", dynamic_f##F##6, pInput+(L+3)); } \
@@ -559,6 +567,9 @@ static const char *comp_get_symbol(const char *pInput) {
 	LOOKUP_IF_BLK(haval192_3,HAVAL192_3,hav192_3,hav192_3,10) LOOKUP_IF_BLK(haval192_4,HAVAL192_4,hav192_4,hav192_4,10) LOOKUP_IF_BLK(haval192_5,HAVAL192_5,hav192_5,hav192_5,10)
 	LOOKUP_IF_BLK(haval224_3,HAVAL224_3,hav224_3,hav224_3,10) LOOKUP_IF_BLK(haval224_4,HAVAL224_4,hav224_4,hav224_4,10) LOOKUP_IF_BLK(haval224_5,HAVAL224_5,hav224_5,hav224_5,10)
 	LOOKUP_IF_BLK(haval256_3,HAVAL256_3,hav256_3,hav256_3,10) LOOKUP_IF_BLK(haval256_4,HAVAL256_4,hav256_4,hav256_4,10) LOOKUP_IF_BLK(haval256_5,HAVAL256_5,hav256_5,hav256_5,10)
+	LOOKUP_IF_BLK(md2,MD2,md2,md2,3) LOOKUP_IF_BLK(panama,PANAMA,pan,pan,6)
+	LOOKUP_IF_BLK(skein224,SKEIN224,skn224,skn224,8) LOOKUP_IF_BLK(skein256,SKEIN256,skn256,skn256,8)
+	LOOKUP_IF_BLK(skein384,SKEIN384,skn384,skn384,8) LOOKUP_IF_BLK(skein512,SKEIN512,skn512,skn512,8)
 
 	LastTokIsFunc = 0;
 	if (!strncmp(pInput, "pad16($p)", 9))   return comp_push_sym("pad16", dynamic_pad16, pInput+9);
@@ -878,6 +889,10 @@ static void build_test_string(DC_struct *p, char **pLine) {
 		ELSEIF(HAVAL192_3,haval192_3); ELSEIF(HAVAL192_4,haval192_4); ELSEIF(HAVAL192_5,haval192_5);
 		ELSEIF(HAVAL224_3,haval224_3); ELSEIF(HAVAL224_4,haval224_4); ELSEIF(HAVAL224_5,haval224_5);
 		ELSEIF(HAVAL256_3,haval256_3); ELSEIF(HAVAL256_4,haval256_4); ELSEIF(HAVAL256_5,haval256_5);
+		ELSEIF(MD2,md2); ELSEIF(PANAMA,panama);
+		ELSEIF(SKEIN224,skein224); ELSEIF(SKEIN256,skein256);
+		ELSEIF(SKEIN384,skein384); ELSEIF(SKEIN512,skein512);
+
 		else { error("ERROR in dyna-parser. Have salt_as_hex_type set, but do not KNOW this type of hash\n"); }
 	}
 	for (i = 0; i < nCode; ++i)
@@ -1133,6 +1148,9 @@ static int parse_expression(DC_struct *p) {
 							ELSEIF(HAVAL192_3,fhav192_3,9,24) ELSEIF(HAVAL192_4,fhav192_4,9,24) ELSEIF(HAVAL192_5,fhav192_5,9,24)
 							ELSEIF(HAVAL224_3,fhav224_3,9,28) ELSEIF(HAVAL224_4,fhav224_4,9,28) ELSEIF(HAVAL224_5,fhav224_5,9,28)
 							ELSEIF(HAVAL256_3,fhav256_3,9,32) ELSEIF(HAVAL256_4,fhav256_4,9,32) ELSEIF(HAVAL256_5,fhav256_5,9,32)
+							ELSEIF(MD2,fmd2,4,0) ELSEIF(PANAMA,fpan,4,32)
+							ELSEIF(SKEIN224,fskn224,7,28) ELSEIF(SKEIN256,fskn256,7,32)
+							ELSEIF(SKEIN384,fskn384,7,48) ELSEIF(SKEIN512,fskn512,7,64)
 						} else {
 							if (append_mode) {
 #undef IF
@@ -1154,6 +1172,9 @@ static int parse_expression(DC_struct *p) {
 								ELSEIF(HAVAL192_3,fhav192_3,9) ELSEIF(HAVAL192_4,fhav192_4,9) ELSEIF(HAVAL192_5,fhav192_5,9)
 								ELSEIF(HAVAL224_3,fhav224_3,9) ELSEIF(HAVAL224_4,fhav224_4,9) ELSEIF(HAVAL224_5,fhav224_5,9)
 								ELSEIF(HAVAL256_3,fhav256_3,9) ELSEIF(HAVAL256_4,fhav256_4,9) ELSEIF(HAVAL256_5,fhav256_5,9)
+								ELSEIF(MD2,fmd2,4) ELSEIF(PANAMA,fpan,4)
+								ELSEIF(SKEIN224,fskn224,7) ELSEIF(SKEIN256,fskn256,7)
+								ELSEIF(SKEIN384,fskn384,7) ELSEIF(SKEIN512,fskn512,7)
 								else {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;
@@ -1178,6 +1199,9 @@ static int parse_expression(DC_struct *p) {
 								ELSEIF(HAVAL192_3,fhav192_3,9) ELSEIF(HAVAL192_4,fhav192_4,9) ELSEIF(HAVAL192_5,fhav192_5,9)
 								ELSEIF(HAVAL224_3,fhav224_3,9) ELSEIF(HAVAL224_4,fhav224_4,9) ELSEIF(HAVAL224_5,fhav224_5,9)
 								ELSEIF(HAVAL256_3,fhav256_3,9) ELSEIF(HAVAL256_4,fhav256_4,9) ELSEIF(HAVAL256_5,fhav256_5,9)
+								ELSEIF(MD2,fmd2,4) ELSEIF(PANAMA,fpan,4)
+								ELSEIF(SKEIN224,fskn224,7) ELSEIF(SKEIN256,fskn256,7)
+								ELSEIF(SKEIN384,fskn384,7) ELSEIF(SKEIN512,fskn512,7)
 								else {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;
@@ -1388,6 +1412,12 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 					case 28: type="haval256_3"; break;
 					case 29: type="haval256_4"; break;
 					case 30: type="haval256_5"; break;
+					case 31: type="md2"; break;
+					case 32: type="panama"; break;
+					case 33: type="skein224"; break;
+					case 34: type="skein256"; break;
+					case 35: type="skein384"; break;
+					case 36: type="skein512"; break;
 				}
 				if (type) {
 					switch(num%10) {
@@ -1520,17 +1550,22 @@ int big_gen_one(int Num, char *cpExpr) {
 	return 0;
 }
 int big_gen(char *cpType, char *cpNum) {
-	int Num = atoi(cpNum)*10;
+	int Num = atoi(cpNum)*10, ret;
 	char szExpr[128];
 	char cpTypeU[64];
+	DC_HANDLE p;
 
 	GEN_BIG=1;
 	strcpy(cpTypeU, cpType);
 	strupr(cpTypeU);
-	printf ("/*** Large hash group for %s dynamic_%d to dynamic_%d ***/\n", cpType, Num, Num+8);
-	printf ("DYNA_PRE_DEFINE_LARGE_HASH(%s,%s)\n", cpTypeU, cpNum);
 
 	sprintf(szExpr, "dynamic=%s($p)", cpType); //160
+	ret = dynamic_compile(szExpr, &p);
+	if (ret) return 1;
+
+	printf ("/*** Large hash group for %s dynamic_%d to dynamic_%d ***/\n", cpType, Num, Num+8);
+	printf ("DYNA_PRE_DEFINE_LARGE_HASH(%s,%s,%d)\n", cpTypeU, cpNum, strlen(gen_conv)); // gen_conv still holds the last hash from the simple hash($p) expression.
+
 	if (big_gen_one(Num++, szExpr)) return 1;
 	sprintf(szExpr, "dynamic=%s($s.$p)", cpType); //161
 	if (big_gen_one(Num++, szExpr)) return 1;

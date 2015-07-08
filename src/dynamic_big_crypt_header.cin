@@ -89,6 +89,18 @@
 #define sph_haval256_4_close(a,b) sph_haval256_4_close(b,a)
 #define sph_haval256_5_close(a,b) sph_haval256_5_close(b,a)
 
+#include "sph_md2.h"
+#define sph_md2_close(a,b) sph_md2_close(b,a)
+
+#include "sph_panama.h"
+#define sph_panama_close(a,b) sph_panama_close(b,a)
+
+#include "sph_skein.h"
+#define sph_skein224_close(a,b) sph_skein224_close(b,a)
+#define sph_skein256_close(a,b) sph_skein256_close(b,a)
+#define sph_skein384_close(a,b) sph_skein384_close(b,a)
+#define sph_skein512_close(a,b) sph_skein512_close(b,a)
+
 #if (AC_BUILT && HAVE_WHIRLPOOL) ||	  \
    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
 #include <openssl/whrlpool.h>

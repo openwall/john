@@ -87,6 +87,9 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #include "sph_haval.h"
 #include "sph_ripemd.h"
 #include "sph_tiger.h"
+#include "sph_md2.h"
+#include "sph_panama.h"
+#include "sph_skein.h"
 #include "sph_whirlpool.h"
 #include "memory.h"
 #include "unicode.h"
@@ -1565,6 +1568,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						CASE(HAVAL256_3);
 						CASE(HAVAL256_4);
 						CASE(HAVAL256_5);
+						CASE(MD2);
+						CASE(PANAMA);
+						CASE(SKEIN224);
+						CASE(SKEIN256);
+						CASE(SKEIN384);
+						CASE(SKEIN512);
 					}
 				} else if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32) {
 					unsigned int i;
@@ -1612,6 +1621,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						CASE(HAVAL256_3);
 						CASE(HAVAL256_4);
 						CASE(HAVAL256_5);
+						CASE(MD2);
+						CASE(PANAMA);
+						CASE(SKEIN224);
+						CASE(SKEIN256);
+						CASE(SKEIN384);
+						CASE(SKEIN512);
 					}
 				} else {
 					// calls 'old' code (ossl, sorry :(   We should FIND and remove any format
@@ -2296,6 +2311,13 @@ static void *get_salt(char *ciphertext)
 			SPH_CASE(HAVAL256_3,haval256_3,32)
 			SPH_CASE(HAVAL256_4,haval256_4,32)
 			SPH_CASE(HAVAL256_5,haval256_5,32)
+			SPH_CASE(MD2,md2,16);
+			SPH_CASE(PANAMA,panama,32);
+			SPH_CASE(SKEIN224,skein224,28);
+			SPH_CASE(SKEIN256,skein256,32);
+			SPH_CASE(SKEIN384,skein384,48);
+			SPH_CASE(SKEIN512,skein512,64);
+
 			default:
 			{
 				error("Invalid dynamic flags seen.  Data type not yet defined\n");
@@ -7080,60 +7102,54 @@ static int isMD5Func(DYNAMIC_primitive_funcp p)
 #endif
 #endif
 
-static int isSHA1Func(DYNAMIC_primitive_funcp p)
-{
+static int isSHA1Func(DYNAMIC_primitive_funcp p) {
 	RETURN_TRUE_IF_BIG_FUNC(SHA1);
 	return 0;
 }
-
-static int isSHA2_256Func(DYNAMIC_primitive_funcp p)
-{
-	RETURN_TRUE_IF_BIG_FUNC(SHA224);
-	RETURN_TRUE_IF_BIG_FUNC(SHA224);
+static int isSHA2_256Func(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(SHA224); RETURN_TRUE_IF_BIG_FUNC(SHA256);
 	return 0;
 }
-
-static int isSHA2_512Func(DYNAMIC_primitive_funcp p)
-{
-	RETURN_TRUE_IF_BIG_FUNC(SHA384);
-	RETURN_TRUE_IF_BIG_FUNC(SHA512);
+static int isSHA2_512Func(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(SHA384); RETURN_TRUE_IF_BIG_FUNC(SHA512);
 	return 0;
 }
-
-static int isGOSTFunc(DYNAMIC_primitive_funcp p)
-{
+static int isGOSTFunc(DYNAMIC_primitive_funcp p) {
 	RETURN_TRUE_IF_BIG_FUNC(GOST);
 	return 0;
 }
-
-static int isTigerFunc(DYNAMIC_primitive_funcp p)
-{
+static int isTigerFunc(DYNAMIC_primitive_funcp p) {
 	RETURN_TRUE_IF_BIG_FUNC(Tiger);
 	return 0;
 }
-
-static int isWHIRLFunc(DYNAMIC_primitive_funcp p)
-{
+static int isWHIRLFunc(DYNAMIC_primitive_funcp p) {
 	RETURN_TRUE_IF_BIG_FUNC(WHIRLPOOL);
 	return 0;
 }
-
-static int isRIPEMDFunc(DYNAMIC_primitive_funcp p)
-{
-	RETURN_TRUE_IF_BIG_FUNC(RIPEMD128);
-	RETURN_TRUE_IF_BIG_FUNC(RIPEMD160);
-	RETURN_TRUE_IF_BIG_FUNC(RIPEMD256);
-	RETURN_TRUE_IF_BIG_FUNC(RIPEMD320);
+static int isRIPEMDFunc(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(RIPEMD128); RETURN_TRUE_IF_BIG_FUNC(RIPEMD160);
+	RETURN_TRUE_IF_BIG_FUNC(RIPEMD256); RETURN_TRUE_IF_BIG_FUNC(RIPEMD320);
 	return 0;
 }
-
-static int isHAVALFunc(DYNAMIC_primitive_funcp p)
-{
+static int isHAVALFunc(DYNAMIC_primitive_funcp p) {
 	RETURN_TRUE_IF_BIG_FUNC(HAVAL128_3); RETURN_TRUE_IF_BIG_FUNC(HAVAL128_4); RETURN_TRUE_IF_BIG_FUNC(HAVAL128_5);
 	RETURN_TRUE_IF_BIG_FUNC(HAVAL160_3); RETURN_TRUE_IF_BIG_FUNC(HAVAL160_4); RETURN_TRUE_IF_BIG_FUNC(HAVAL160_5);
 	RETURN_TRUE_IF_BIG_FUNC(HAVAL192_3); RETURN_TRUE_IF_BIG_FUNC(HAVAL192_4); RETURN_TRUE_IF_BIG_FUNC(HAVAL192_5);
 	RETURN_TRUE_IF_BIG_FUNC(HAVAL224_3); RETURN_TRUE_IF_BIG_FUNC(HAVAL224_4); RETURN_TRUE_IF_BIG_FUNC(HAVAL224_5);
 	RETURN_TRUE_IF_BIG_FUNC(HAVAL256_3); RETURN_TRUE_IF_BIG_FUNC(HAVAL256_4); RETURN_TRUE_IF_BIG_FUNC(HAVAL256_5);
+	return 0;
+}
+static int isMD2Func(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(MD2);
+	return 0;
+}
+static int isPANAMAFunc(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(PANAMA);
+	return 0;
+}
+static int isSKEINFunc(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(SKEIN224); RETURN_TRUE_IF_BIG_FUNC(SKEIN256);
+	RETURN_TRUE_IF_BIG_FUNC(SKEIN384); RETURN_TRUE_IF_BIG_FUNC(SKEIN512);
 	return 0;
 }
 
@@ -7146,7 +7162,8 @@ static int isLargeHashFinalFunc(DYNAMIC_primitive_funcp p)
 		IF(RIPEMD160)||IF(RIPEMD256)||IF(RIPEMD320)||
 		IF(HAVAL128_3)||IF(HAVAL128_4)||IF(HAVAL128_5)||IF(HAVAL160_3)||IF(HAVAL160_4)||IF(HAVAL160_5)||
 		IF(HAVAL192_3)||IF(HAVAL192_4)||IF(HAVAL192_5)||IF(HAVAL224_3)||IF(HAVAL224_4)||IF(HAVAL224_5)||
-		IF(HAVAL256_3)||IF(HAVAL256_4)||IF(HAVAL256_5))
+		IF(HAVAL256_3)||IF(HAVAL256_4)||IF(HAVAL256_5)||IF(MD2)||IF(PANAMA)||IF(SKEIN224)||IF(SKEIN256)||
+		IF(SKEIN384)||IF(SKEIN512))
 		return 1;
 	return 0;
 }
@@ -7678,16 +7695,15 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 			// Ok, if we have made it here, the function is 'currently' still valid.  Load this pointer into our array of pointers.
 			pFuncs = ConvertFuncs(Setup->pFuncs[i], &cnt2);
+
+#define IS_FUNC_NAME(H,N) if(is##H##Func(pFuncs[x])){ if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME)) pFmt->params.algorithm_name = ALGORITHM_NAME_##N; \
+			else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86)) 	pFmt->params.algorithm_name = ALGORITHM_NAME_X86_##N; }
+
 			for (x = 0; x < cnt2; ++x) {
 				curdat.dynamic_FUNCTIONS[j++] = pFuncs[x];
 				if (pFuncs[x] == DynamicFunc__setmode_unicode)
 					pFmt->params.flags |= FMT_UNICODE;
-				if (isSHA1Func(pFuncs[x])) {
-					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_S;
-					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_S;
-				}
+				IS_FUNC_NAME(SHA1,S)
 				if (isSHA2_256Func(pFuncs[x])) {
 #ifdef SIMD_COEF_32
 					if (curdat.using_flat_buffers_sse2_ok)
@@ -7704,42 +7720,15 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 #endif
 						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_S2_512;
 				}
-				if (isMD4Func(pFuncs[x])) {
-					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_4;
-					else if(!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_4;
-				}
-				if (isWHIRLFunc(pFuncs[x])) {
-					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_WP2;
-					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_WP2;
-				}
-				if (isGOSTFunc(pFuncs[x])) {
-					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_GST2;
-					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_GST2;
-				}
-				if (isTigerFunc(pFuncs[x])) {
-					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_TGR;
-					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_TGR;
-				}
-				if (isRIPEMDFunc(pFuncs[x])) {
-					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_RIPEMD;
-					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_RIPEMD;
-				}
-				if (isHAVALFunc(pFuncs[x])) {
-					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_HAVAL;
-					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_HAVAL;
-				}
+				IS_FUNC_NAME(MD4,4)
+				IS_FUNC_NAME(WHIRL,WP2)
+				IS_FUNC_NAME(GOST,GST2)
+				IS_FUNC_NAME(Tiger,TGR)
+				IS_FUNC_NAME(RIPEMD,RIPEMD)
+				IS_FUNC_NAME(HAVAL,HAVAL)
+				IS_FUNC_NAME(MD2,MD2)
+				IS_FUNC_NAME(PANAMA,PANAMA)
+				IS_FUNC_NAME(SKEIN,SKEIN)
 			}
 			if (isLargeHashFinalFunc(curdat.dynamic_FUNCTIONS[j-1]))
 			{

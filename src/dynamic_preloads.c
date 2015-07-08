@@ -140,19 +140,25 @@
 //dynamic_150 -->RIPEMD320($p)
 //dynamic_160 -->HAVAL128_3($p)
 //dynamic_170 -->HAVAL128_4($p)
-//dynamic_180 -->HAVAL128_4($p)
+//dynamic_180 -->HAVAL128_5($p)
 //dynamic_190 -->HAVAL160_3($p)
 //dynamic_200 -->HAVAL160_4($p)
-//dynamic_210 -->HAVAL160_4($p)
+//dynamic_210 -->HAVAL160_5($p)
 //dynamic_220 -->HAVAL192_3($p)
 //dynamic_230 -->HAVAL192_4($p)
-//dynamic_240 -->HAVAL192_4($p)
+//dynamic_240 -->HAVAL192_5($p)
 //dynamic_250 -->HAVAL224_3($p)
 //dynamic_260 -->HAVAL224_4($p)
-//dynamic_270 -->HAVAL224_4($p)
+//dynamic_270 -->HAVAL224_5($p)
 //dynamic_280 -->HAVAL256_3($p)
 //dynamic_290 -->HAVAL256_4($p)
-//dynamic_300 -->HAVAL256_4($p)
+//dynamic_300 -->HAVAL256_5($p)
+//dynamic_310 -->MD2($p)
+//dynamic_320 -->PANAMA($p)
+//dynamic_330 -->SKEIN224($p)
+//dynamic_340 -->SKEIN256($p)
+//dynamic_350 -->SKEIN384($p)
+//dynamic_360 -->SKEIN512($p)
 
 #define DYNA_PRE_DEFINE_LARGE_HASH(H,N,HS) \
 	static DYNAMIC_primitive_funcp _Funcs_##N##0[] = { DynamicFunc__##H##_crypt_input1_to_output1_FINAL, NULL }; \
@@ -2528,6 +2534,293 @@ static struct fmt_tests _Preloads_308[] = {
     {"$dynamic_308$7de20406c1cecdf31ba4b2869f93e6881a428fc378a12c38f98f25baa5992853","passweird"},
     {NULL}};
 
+/*** Large hash group for md2 dynamic_310 to dynamic_318 ***/
+DYNA_PRE_DEFINE_LARGE_HASH(MD2,31,32)
+static struct fmt_tests _Preloads_310[] = {
+    {"$dynamic_310$da853b0d3f88d99b30283a69e6ded6bb","abc"},
+    {"$dynamic_310$8b2daae3b7faa890168cf89d37ac1145","john"},
+    {"$dynamic_310$4c92ac300da7abac2ae3e5dfa72747b9","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_311[] = {
+    {"$dynamic_311$201ab10fdfaebcaf9d413421ffddff71$93e41c6e","abc"},
+    {"$dynamic_311$74036b09c14e9f6c6d2960f03413fdba$20911b9b","john"},
+    {"$dynamic_311$15cda5c4267071dc4b90f3d78f1999b9$36bc7ce9","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_312[] = {
+    {"$dynamic_312$fcfd934bb9e5fceb79fd23c4b4acca70$4edc677e","abc"},
+    {"$dynamic_312$50c6484b828686f11b23539689f3d289$32d83bb6","john"},
+    {"$dynamic_312$5beec103932e8562085d35ab99664b7f$f3ad985f","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_313[] = {
+    {"$dynamic_313$d0a46dadd25a94feb62b13bd28b9796d","abc"},
+    {"$dynamic_313$3841353c3e20178634a57a1202005582","john"},
+    {"$dynamic_313$23ce7c2b464fb4fe2d3c08b9d0702bfc","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_314[] = {
+    {"$dynamic_314$fad5f475815318232a96748d18de92ed","abc"},
+    {"$dynamic_314$af77e3e193c146ee432ec3901c73ea14","john"},
+    {"$dynamic_314$ffb4b5ada8c59277c22b65237c434f99","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_315[] = {
+    {"$dynamic_315$f9becab53308a164972a3834397f09bd$d4bc655b","abc"},
+    {"$dynamic_315$7fada1e90a9c81b70acbf4d15d23b16b$3d9acbe2","john"},
+    {"$dynamic_315$af55679c0aa3967e76a7fd2a720497cc$0a0e086d","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_316[] = {
+    {"$dynamic_316$731ca636968eada78a5417e2e4c2c55a$2926ed9c","abc"},
+    {"$dynamic_316$6e53368b83dc6ec4500d6fda832d675c$df424060","john"},
+    {"$dynamic_316$b0b2070bdd0ad08dfe6506e309ec8db0$b4072b12","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_317[] = {
+    {"$dynamic_317$a62b2e66f91173d123862667d531af41$621d1bfa","abc"},
+    {"$dynamic_317$eaf4a6e8f5a85228e6655ac5f3fbb6f1$0a9292d9","john"},
+    {"$dynamic_317$d4136ff1a6d3c101c6e2083240dff5d0$c0e59590","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_318[] = {
+    {"$dynamic_318$b47f97846f2881e024eadd13d6071a3a","abc"},
+    {"$dynamic_318$20a39b672ce1bb7c9a5fc7012a09ff64","john"},
+    {"$dynamic_318$c7f378fbd3eb87940ebdb545b008116a","passweird"},
+    {NULL}};
+
+/*** Large hash group for panama dynamic_320 to dynamic_328 ***/
+DYNA_PRE_DEFINE_LARGE_HASH(PANAMA,32,64)
+static struct fmt_tests _Preloads_320[] = {
+    {"$dynamic_320$a2a70386b81fb918be17f00ff3e3b376a0462c4dc2eec7f2c63202c8874c037d","abc"},
+    {"$dynamic_320$017686a23c4af3b9c074888ec76f893945d541cd17ee8011b2bd0ee2d581db34","john"},
+    {"$dynamic_320$3919248ab4c8dea4843663c532db9823169a71d03b0f918082c9f53748dea1e8","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_321[] = {
+    {"$dynamic_321$eb30e869f289cc6afa5e9e5717135669512cb7161892a6ccbea2a2fd6e7a041f$93e41c6e","abc"},
+    {"$dynamic_321$097d55bfee109333db2b1204890251ca034bb6fb953a7628dd7ece142d8c677c$20911b9b","john"},
+    {"$dynamic_321$5602de363742b73ac0815672bacf161e5baf772b1c7e1ca210a2bdaa83c25782$36bc7ce9","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_322[] = {
+    {"$dynamic_322$a3d04ccfdb8c1b34b1dd4532610398242876b8d56180e352d00e60b12179433f$4edc677e","abc"},
+    {"$dynamic_322$9960f81ed812d012dafffeb9ae771238cd803625489b01128d7b4380df1ebe44$32d83bb6","john"},
+    {"$dynamic_322$d725c50ddfadd68cf1d3cb95d8ce9a16b19689c372fa0439a27025b0bffa8344$f3ad985f","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_323[] = {
+    {"$dynamic_323$053ae91a95d18c8434bdd6994a17760017985af325ba4cc7dff6966dc8e145b8","abc"},
+    {"$dynamic_323$d2235719502f655badee66a5034de4bb5b1cc2e607dca022bed7904b7bc66ee8","john"},
+    {"$dynamic_323$b41349532b0e1bb09f04d5e110c716cbbf1bccecd79297b0da1536fe96cb8e88","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_324[] = {
+    {"$dynamic_324$63588871552b21f15ef16f78f551e2be1bff2bd2847884da0d0bc2b419931e31","abc"},
+    {"$dynamic_324$0ab23a46b2744696756512100dc6c6428a861dbc58cb093e055df0b817ac48a8","john"},
+    {"$dynamic_324$a11099fed51a5389f996f39950df9a61982ce2e41cd1ae924c0375a9da02dbd5","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_325[] = {
+    {"$dynamic_325$8c629db146934f8e64a33401e278862caf2970e31305964ad0eab19debc85be0$d4bc655b","abc"},
+    {"$dynamic_325$6f76e56e34daabfa2062cf66e10e5b1378ba25801cebeba04a4d19077494d4b7$3d9acbe2","john"},
+    {"$dynamic_325$50e3e96a23bf46ba68cab9256f3568dd76941b8566cb874fd9eb8b6b06ff7b71$0a0e086d","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_326[] = {
+    {"$dynamic_326$d1ecdfc2b8706c4de3fa0836676d38bffd26651760bdcc7887980e1433abb7bc$2926ed9c","abc"},
+    {"$dynamic_326$01396cc960f08de0effb6ef9d92b6a2e4a83504578998e4b0d6ca0b996cd2ac0$df424060","john"},
+    {"$dynamic_326$bd540a932cc8a96c1740be1527cac93adf24206d97e5d04f2c52d0ee06352d9d$b4072b12","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_327[] = {
+    {"$dynamic_327$7f13e55a564f648ef7236afd696ab8758cb48fd1d5db9fae06ddf59583c34a54$621d1bfa","abc"},
+    {"$dynamic_327$294402122a5203d5d9d60302e2ee6a0e70ab4140837e908f9bd141e4d6527a4e$0a9292d9","john"},
+    {"$dynamic_327$fad704b5a091c67e2f732d3bc8e0452cf7708fd295f523b0ecf0d1a549cffe17$c0e59590","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_328[] = {
+    {"$dynamic_328$d2d5257417b423434fe5889cca489bf62059724b0efd75a6fca54250d5041a01","abc"},
+    {"$dynamic_328$713c5dbe92054cdb5834c6106557285bb085b13d3659bf06cd1e2155037ac600","john"},
+    {"$dynamic_328$61b426e79d5c9eec7dc2198ff41bd15e6c50e395e4d8564bec4d3cfd8d96e555","passweird"},
+    {NULL}};
+
+/*** Large hash group for skein224 dynamic_330 to dynamic_338 ***/
+DYNA_PRE_DEFINE_LARGE_HASH(SKEIN224,33,56)
+static struct fmt_tests _Preloads_330[] = {
+    {"$dynamic_330$0c71f7dda7e1fb752544c93e821c2a0a1f991a694db5f60fd48de904","abc"},
+    {"$dynamic_330$0ee22811766234259bcc3086f5a43d004f32e475ad83e4d5d1fe7d81","john"},
+    {"$dynamic_330$e86f1c07ea58725fbe43f60d93675836fb368fe7b11840bb967e6963","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_331[] = {
+    {"$dynamic_331$51716e8a1fa9b815e3970d7371af36d89c6b2737d0fbedea072dc93d$93e41c6e","abc"},
+    {"$dynamic_331$d5ecf9f782d05ec8d8288d0ff2ae63af75ea67258abca774159303b8$20911b9b","john"},
+    {"$dynamic_331$fcf85f2311a464f8825667d3aabedf1881aa1631d3eb3990e55a6fdd$36bc7ce9","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_332[] = {
+    {"$dynamic_332$4e328fd97d54b5f693cb9887c9b0204ca41cc93e2788d7c918c4f6e8$4edc677e","abc"},
+    {"$dynamic_332$271e6dac536a807a510af4a98a02a47093dbdefefd702bd3e4765e8f$32d83bb6","john"},
+    {"$dynamic_332$74aa239f542a89ab9cbd94eb3cd23ee2fea7314472e3a969d7a770c1$f3ad985f","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_333[] = {
+    {"$dynamic_333$b4da8bc772b8fc9df3fa4aa10f6519f82dcefdd7f3bde8f3d05fb4f9","abc"},
+    {"$dynamic_333$bebeaaf7d99657c6194178e1222bac6d32814a2922749c48d38aa885","john"},
+    {"$dynamic_333$76d82d9ea349ca65d96cb56ca11222599e152d02d5b9200a2a8d1013","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_334[] = {
+    {"$dynamic_334$b07543ab3b03089af70ae0a9cb5bc4fe61a2ca19c35e67692c31072d","abc"},
+    {"$dynamic_334$f91893ee6bf4d96df59373f1c98aed00aec148317bee028ff5172198","john"},
+    {"$dynamic_334$1ed4a50c24e9b552ae6b2d2c4423fde4557b7807b769e2a21d049f01","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_335[] = {
+    {"$dynamic_335$1a892e23754d48115ce91ed5385b0ac21ffdad2d0ced54db3545e96b$d4bc655b","abc"},
+    {"$dynamic_335$3bd6ca426396b0fff497ae6cb8ae435f5955cf8b32796a06e6820c20$3d9acbe2","john"},
+    {"$dynamic_335$cb5ad0cbb8bfc2ba875732cb274eafc27d79cf7ae16afdb2ba53736f$0a0e086d","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_336[] = {
+    {"$dynamic_336$67def28813361c534a6fe2ee07975b34af1afba7585470ea44401fe2$2926ed9c","abc"},
+    {"$dynamic_336$f451a55edae507d1d093409c2758c97d10b5cacfbc09f923ae9ebc68$df424060","john"},
+    {"$dynamic_336$0a9c7c9ddc850ef4e975d4168dcee2143ef6799dced5ef274c16cdfa$b4072b12","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_337[] = {
+    {"$dynamic_337$af98852dfdb711b1749805674c9371c4382b61a14758774113e135b5$621d1bfa","abc"},
+    {"$dynamic_337$5886d40137a589800cbe65e48912e90a7d71de9b013b5c7ba59ac395$0a9292d9","john"},
+    {"$dynamic_337$69d1b151a3c22f3b376e00f7bd951afc4cea0908ca946baf24427e6f$c0e59590","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_338[] = {
+    {"$dynamic_338$a6ff151f176173c2b1d842efed347ae9dcdf649543639e269875435e","abc"},
+    {"$dynamic_338$58eb69c4050158ba334fc63fb743983088e490d578846cafc67011f7","john"},
+    {"$dynamic_338$bcbdf76a99d93a7cb7a1f1a4cb014dda759cf7bc1306af0c4109bc35","passweird"},
+    {NULL}};
+
+/*** Large hash group for skein256 dynamic_340 to dynamic_348 ***/
+DYNA_PRE_DEFINE_LARGE_HASH(SKEIN256,34,64)
+static struct fmt_tests _Preloads_340[] = {
+    {"$dynamic_340$0977b339c3c85927071805584d5460d8f20da8389bbe97c59b1cfac291fe9527","abc"},
+    {"$dynamic_340$8adf4f8a6fabd34384c661e6c0f91efe9750a18ec6c4d02bcaf05b8246a10dcc","john"},
+    {"$dynamic_340$f2bf66b04f3e3e234d59f8126e52ba60baf2b0bca9aff437d87a6cf3675fe41a","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_341[] = {
+    {"$dynamic_341$0175249ca6a8dc0fa3508ea4acf24f55d76aee9cbeb1dfce805a512b5f720c32$93e41c6e","abc"},
+    {"$dynamic_341$6e523217af0435673aad98480bb48f5ecf4210568bd5ddb8bbc6649a38a018e6$20911b9b","john"},
+    {"$dynamic_341$fd7786d4569c163128623b148ba6ca0a28f85ae86e9ff1ee6afb8f2da5a58dfc$36bc7ce9","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_342[] = {
+    {"$dynamic_342$df366c0cd0b05807df0ea15bd22714a21e91c7e16798d7bc65819dc30027e579$4edc677e","abc"},
+    {"$dynamic_342$d2d249a9e35fd310f7847355a8a805345855eb508e61c58291c6a9d180640402$32d83bb6","john"},
+    {"$dynamic_342$e0ececb8e19b16743347b531936aa4328196312f6570dae1845f1adac9b3f8df$f3ad985f","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_343[] = {
+    {"$dynamic_343$b7e95a973ee079c765b76192a76270f5f272ce7f0874f2adcebb741b3ae78a19","abc"},
+    {"$dynamic_343$58d10a9a049610e822f85d13e609e7cb08950e48c1fba47f2dabe61630accf9c","john"},
+    {"$dynamic_343$e4ad91bde0bb3ba6e2d148f9a50ea7f9b41eb2c725ac4010f94f0d2d9a90c7f9","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_344[] = {
+    {"$dynamic_344$9bf9d0760c6b7b1c3865055590dbade8b8e06d75feeb1f851ca4d228be2f6416","abc"},
+    {"$dynamic_344$e3cc7a46027087f1b32d9daad3b6d581c15192963d9c4fe12f862aac894d1b74","john"},
+    {"$dynamic_344$db01fd692f5c983577397a32a1a6a733289b1f0a191f5d03946a1848efca70c9","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_345[] = {
+    {"$dynamic_345$7e566eb5627fd15a501439f39180f812d291612e37212fe27941327a511a80a6$d4bc655b","abc"},
+    {"$dynamic_345$0bc38db13f8f27fc2b00d4637ea859e336a61548494a84dc0577dcbeb7868640$3d9acbe2","john"},
+    {"$dynamic_345$c850e795e945278c18f0d135f1486d667a669fc69714a26ffa5bb310487a1003$0a0e086d","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_346[] = {
+    {"$dynamic_346$63483eace39579bc02414485ae267e8d3bc4c6a18358b386fa010047f8a116ab$2926ed9c","abc"},
+    {"$dynamic_346$88cc1f39a1c4b6c09796270d126cd78d3b08fafbfbec17591ff23b819eefe33e$df424060","john"},
+    {"$dynamic_346$fa256c95bd5f5724597664bf543f28d4871ecfe81ff14081b785a1d8a2769691$b4072b12","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_347[] = {
+    {"$dynamic_347$a233b796c3f7810583115b8cf283029993891d676ef210097cfa87714487ac96$621d1bfa","abc"},
+    {"$dynamic_347$c44250d607b6160c631f87a8dfad7efa0f292ca5b7f8350fa8bc8f3d2c63bcec$0a9292d9","john"},
+    {"$dynamic_347$f1387805c89f250dc55e4e08e3aade9942b5b10771687721926e0bd9ce41fca4$c0e59590","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_348[] = {
+    {"$dynamic_348$8098fee181523f103d0675c9f207148b6a0d739925dc4a8c1718197f68e14b28","abc"},
+    {"$dynamic_348$42feee6365f76dec4de2e7dfa62261add28813e523959402fc3687158e32dc27","john"},
+    {"$dynamic_348$1eb77fa3bdf4f46ac23858752fd1e631fa64ce48afef9de38a9fd6bf7e6510eb","passweird"},
+    {NULL}};
+
+/*** Large hash group for skein384 dynamic_350 to dynamic_358 ***/
+DYNA_PRE_DEFINE_LARGE_HASH(SKEIN384,35,96)
+static struct fmt_tests _Preloads_350[] = {
+    {"$dynamic_350$b4329745321c8f6b788a04526dad856b4a87f510ee496b743f61b048209fc3261c1ebbb8a35040a7ff58c34378c4536c","abc"},
+    {"$dynamic_350$a76de4157d3f7bf373566973c75845e7397bfe98856531186f50759c3b226fa982a42aebf60e3b2afb5d6e03d601d44a","john"},
+    {"$dynamic_350$40fce4b7fa45f29c4737771e6dc26508edfca01f65f6afd589178f9991d9f7dd90da3d18d77c849faf6e9949dc54c141","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_351[] = {
+    {"$dynamic_351$11bef39dc2a4251024b43c125082f74dbc72e1a2e95fc8e8091ebd1398a8758839eb521495cad2b95b6f2c896771731d$93e41c6e","abc"},
+    {"$dynamic_351$e52b73cce582df4f9e517eea1397e4a06363b1a4b089fcbdae45a81d306bf4879e30e4aa104528e643804063e6b1e9bf$20911b9b","john"},
+    {"$dynamic_351$17ee66fc76d40028b003af1e0b750a95173e57d14a6d02107e538128fc0344183f3c8f5b00088de3d48506badc1150c4$36bc7ce9","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_352[] = {
+    {"$dynamic_352$b08f64b3a3ab3d5303b0f19ee42dfbf86eb4fd79957b088b9cdc7d98b964ff40f26565bd8c313db3cc1750187f230475$4edc677e","abc"},
+    {"$dynamic_352$97b7854e9cdac36b322e081ebb51eefc0c07beb4f84f36b838ec4b71864a10d92e3bbdf8edc89c65ddeeb2f71a511398$32d83bb6","john"},
+    {"$dynamic_352$3d2c4be7f4f3ac48e6239a5f20f8cd673943a23642b047f30776eb4151b699997404acd074f675b37818e1cae9a109ed$f3ad985f","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_353[] = {
+    {"$dynamic_353$6abd3c1d1662aec380d4327ad445d899929ccdc1a3d722877fe5eb428684afef4e57280bd688fe66ff248024f9cdfca2","abc"},
+    {"$dynamic_353$3a4ee0fd505dcd6d8d258b3729b59c901f72d70639c0020817f61b427dcb68792a19c049db4a8d4734e442ccd275a995","john"},
+    {"$dynamic_353$ca90a0d690ec3a556bd938c8a83886c444829d5ef6d9a2d9931f7e99b30a64c740fae57e12bc5456ae05040594b0defa","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_354[] = {
+    {"$dynamic_354$aa12c875f5ec957ff6b0460080458d2b9b31e9c1beb77e2c7497c5ce763ccec4386932494c761b2e2705d2497dc28efa","abc"},
+    {"$dynamic_354$4b845d7e7890d40119d44f597a8c7317a2a3a248305537746c5f4ce6f8262537ccb74d03176c95df4bcba7218cda7891","john"},
+    {"$dynamic_354$bbd949217db03512660aa0849ec7acab93405c4e9582eae5469aa0327120d21e4b1705fd75ef88e23a0475244ef4f197","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_355[] = {
+    {"$dynamic_355$45117441009fe83568cdc671c08072ca4f926f75ca575799272627125c082000ab5fe10218e2c92039e19503d4cf2fba$d4bc655b","abc"},
+    {"$dynamic_355$5845a7d4fd0f08f9f7835057b0e3dfbbe77a0f75f8e1478b44d916018bbea34aa2a1c984bc8bd7bb6bf1d12c5729d34c$3d9acbe2","john"},
+    {"$dynamic_355$0f411c5c4fb0b249cc151407ead710eeb5348c22b5fa3199bbe2ae8ca7640da72c95c0d24ec9c92bb5083b027d209a57$0a0e086d","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_356[] = {
+    {"$dynamic_356$def45cfda1d49f1b76708aaa3bd4011da9f5467779356a152f29eefa137157349e0302835c3014378c2d928864d80c50$2926ed9c","abc"},
+    {"$dynamic_356$6a364fc2835d7378ffcc8f7d65ab56bc7eec150e686105adfe671097eed15797f51e7617d704cb27ffd79563c95bbca6$df424060","john"},
+    {"$dynamic_356$31595e31e454c2ba456d66681b64ace605fba2fff6d24ac4ef3e2729b210551aa56f16b5cd01771102d58e1d2b813307$b4072b12","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_357[] = {
+    {"$dynamic_357$c31e9c22a468869eb3779cdc07e1aa035e2228562a09225dab6f5c356864cdde51bd3e9f89e146b3be51c5f0f6b2c7dd$621d1bfa","abc"},
+    {"$dynamic_357$35517136ff5c65c085daf7bbd2523e59e1b9e1c412c369076e08ae79624eb57cb15df0e3dbb620ccd8463ef7c69c1eea$0a9292d9","john"},
+    {"$dynamic_357$0d01613f50b857c5ed3181c577567f66f8a2db21d0c172c312dd042fb15dcb5bde3526b281ef563b6766a76d4aeff809$c0e59590","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_358[] = {
+    {"$dynamic_358$3dc891be7783afb77f538b783267d71a8dc3aec25b3475ea1ffd1b370abb9a53159cf36ada8a5d247c99e9e3940aad82","abc"},
+    {"$dynamic_358$a8d3dbfa2ad67be122d6b97ef6bad469fb899db92a16d26da1b2f6ea6bc51a07871a825e8ab3aaca2ea8b170b4aeedcb","john"},
+    {"$dynamic_358$5745788e3eb79c6f6b6f1df48a540a75266cbf7497a0732f22611882e4f22b5358dc604375ec553d1920c94b3322ff74","passweird"},
+    {NULL}};
+
+/*** Large hash group for skein512 dynamic_360 to dynamic_368 ***/
+DYNA_PRE_DEFINE_LARGE_HASH(SKEIN512,36,128)
+static struct fmt_tests _Preloads_360[] = {
+    {"$dynamic_360$8f5dd9ec798152668e35129496b029a960c9a9b88662f7f9482f110b31f9f93893ecfb25c009baad9e46737197d5630379816a886aa05526d3a70df272d96e75","abc"},
+    {"$dynamic_360$a2f4cbc67def0c97b3b47deeab86e116293db0220ad9953064d40fc4aeabf243d41040efb4e02b4b4883ae19b5c40129926cb5282ad450e1267f126de40224b7","john"},
+    {"$dynamic_360$88fcd3b1d6b019c74b8853798b1fa7a1b92314748b79d4a8cf822646104b4aefedb7af721ec07bf1302df031411af55bda48d2177a69537f3e0bfb5d2fb1d656","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_361[] = {
+    {"$dynamic_361$de0cdac782c94e8fb0bfa1a1e37881af89bbba100bc0d6b05a79f322115bd5b4c499b372c1405d185e723f3fa7a9be5462922800b67a78fff571a9d805e15c25$93e41c6e","abc"},
+    {"$dynamic_361$fbf7a2c648e0f86d008586a20fb93d7b837688300bdfa7b8b7af8ae63f8d32fb14e81fb7341d9cb68c85d9712b8775a18f28910e5499ba0ad425b2962d2eedfc$20911b9b","john"},
+    {"$dynamic_361$bbd516b7ae0199d5e123541242a5f424f10b01b744f99873255ee7bc0e2e03ca372786c7b3c822d54a30b1d662c7aef2debadde756680869c68b6dc54e946ae2$36bc7ce9","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_362[] = {
+    {"$dynamic_362$a218baac56167e067eda090215bd9818f13d9d06ac6f5f9edcfcf021059eaeb3fd10ddd3680071b1184bf9bbd83efeb5fede3ee97c21afd249b069929ccb5694$4edc677e","abc"},
+    {"$dynamic_362$891a51c2fe34be54fc97e8f009e3c37ac243f24572ecbd2d6631a979fd4a14dbe21b3ae8ec3fed658cf387b64d7a69d3ec9f74f44056ea9f63f2919610f0b4ae$32d83bb6","john"},
+    {"$dynamic_362$c4fcd52ed072f74fa39eff1820162c48ad0ccf2b8eb0ec79a632c1d841e39792a6b86fae4fb18cb9bda99d180423b3748e156f87dcb80e9dcbe93159974c6eca$f3ad985f","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_363[] = {
+    {"$dynamic_363$6011f8f10461d74660410453a128b28de21fdce13522e465cc7e26ce510290ff7cf48be989aa4c711af73f2be61decfd970206891c065314170c7ffa3a40511d","abc"},
+    {"$dynamic_363$7da2cd6e212bcac60f3cb8034afbe99441556248edd476ed9d1c5c545fdb4b282b5125b452c17976876902186a0bffb328e45b3c03780b7a7006d187e536cef0","john"},
+    {"$dynamic_363$c755ad8b117d07565e49093aefe1ea5cbb280d1b7e1233dc76b67d28e32761b8dc27cc1866ee33782ae13a3a11cb2e1789d6971536c2c31d5a64ac4103409c80","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_364[] = {
+    {"$dynamic_364$75cea5c7289168210eb105921b13f5cb499952b3aa2d35c09520667e2e18a45a713aff316acbd892bd0ca30725d087c4a2ce2b64f3b5552ff35b4f45d1caedc1","abc"},
+    {"$dynamic_364$9056543c9822504c64f6063a6ca2980fcabfb36d197fa10fef855e7bf7e366793ab17fffd4e8c484a58df2ec2f70b87f9d3224931f05030d20cdf03cfc05b928","john"},
+    {"$dynamic_364$53dc4a45f20be108a5a84a0de2795a7b32860501b92517bb19d516cf407ab4906c581b9cb6726e74b0c666b77a64bf3341d44cfdacf1e0f517a0b9894c09115c","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_365[] = {
+    {"$dynamic_365$d6ec9f2a4d6110000338ee8a35b4234f9d093351b19eebe17b0302a6f70f814d3a8d06af86946240ea1ba980b51ede33834185f6ba2f7df4bc8a0819f4532efd$d4bc655b","abc"},
+    {"$dynamic_365$6e53cbbb333e6222ccab83285e7d8d2fc2a155531a3e2abe057d8befe2bc3fa44d2d30296ff48ab39ba4471c2934fb8314d9dbcb51487c1573439534420838c8$3d9acbe2","john"},
+    {"$dynamic_365$ff649ab3257f4e44fea8a6dfe1ff8ff48a8467a564eae74d107fff539a53a3e34ec893559b58badbb2253c7f3d8f85b8cfc7cdfc748927552fe0b19aea7ce34c$0a0e086d","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_366[] = {
+    {"$dynamic_366$cef0c4a13c8aa3101fe103d0ce3c18899b5285bfb88c2259d9dd8fe635fe6c31baf97918a3e15468b3d02bded77c802cf557d4c50ad279238bdbb4e2e78827a2$2926ed9c","abc"},
+    {"$dynamic_366$6f986de865a5f984d4b9b9f43ca7a503be504668e24855f772e04d7dca26af944ea2b3da87461a99bc4445fac6711c505c97ca22a89cfe7fb4a58ab4b2daaba4$df424060","john"},
+    {"$dynamic_366$076053f2397aa3fa7c87e76ebd3cfcd79668a038273c61ec2a914e2fe9c72bbe72c568cade34318f9db5d69bc59e6d6a4a6c07fe101523135205b9a8d5c46837$b4072b12","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_367[] = {
+    {"$dynamic_367$d7c9b1e057b079b2838f8ba429b3f8a08b18d9dd3f4cebfbc07d029f1145f8b60315e138b6e3dc6b3dcd8e003bbe8c7c0e6ab44d890c1b28b669958d2e53cf19$621d1bfa","abc"},
+    {"$dynamic_367$949085cd3471def796242af6313a21c0c980f93db1905321634f813276d77d1a3b7364269f33fb8306f50582b6707ddf91646babea5f0612f00cc69e729b3c26$0a9292d9","john"},
+    {"$dynamic_367$0950b405c04ac09e98edf9bb5487b20ccaef9847f574ca2970f5b152dc4e848248ef2f505d15474ec17d9a350e44e8cf580bfc9f56e441ef31749cc939fea148$c0e59590","passweird"},
+    {NULL}};
+static struct fmt_tests _Preloads_368[] = {
+    {"$dynamic_368$97419b932e4f31425a14c6b4246a5f55238f532bde9051997b1602c6997c3195f55f936451d83295a0922bbc6b65976ca7a1b56708956f1d114050ba9569c55c","abc"},
+    {"$dynamic_368$ac159f594c2a8551300ba142918d1bd00b1c6ed1805de16ac5dc0008a8614e056c504c44fbaff8f4cad80705923eb416c92345c0b7f3d084a39c3ebe8609705e","john"},
+    {"$dynamic_368$adc4ba0c2266513b97222409c04d00acb7e77b7cfc2b518218a5b7c49451cb0e8bc35951809b1bd116ffcaece3fcfc3d7ea04f7fb7e4bac92216702acb324b18","passweird"},
+    {NULL}};
 
 // Here is a 'dummy' constant array. This will be 'linked' to any dynamic format that does not have any constants.
 static DYNAMIC_Constants _ConstDefault[] =
@@ -2664,6 +2957,12 @@ static DYNAMIC_Setup Setups[] =
 	SETUP_LARGE_HASH(HAVAL256_3,MGF_KEYS_BASE16_IN1_HAVAL256_3,MGF_SALT_AS_HEX_HAVAL256_3,28,MGF_INPUT_32_BYTE)
 	SETUP_LARGE_HASH(HAVAL256_4,MGF_KEYS_BASE16_IN1_HAVAL256_4,MGF_SALT_AS_HEX_HAVAL256_4,29,MGF_INPUT_32_BYTE)
 	SETUP_LARGE_HASH(HAVAL256_5,MGF_KEYS_BASE16_IN1_HAVAL256_5,MGF_SALT_AS_HEX_HAVAL256_5,30,MGF_INPUT_32_BYTE)
+	SETUP_LARGE_HASH(MD2,       MGF_KEYS_BASE16_IN1_MD2,       MGF_SALT_AS_HEX_MD2,       31,0)
+	SETUP_LARGE_HASH(PANAMA,    MGF_KEYS_BASE16_IN1_PANAMA,    MGF_SALT_AS_HEX_PANAMA,    32,MGF_INPUT_32_BYTE)
+	SETUP_LARGE_HASH(SKEIN224,  MGF_KEYS_BASE16_IN1_SKEIN224,  MGF_SALT_AS_HEX_SKEIN224,  33,MGF_INPUT_28_BYTE)
+	SETUP_LARGE_HASH(SKEIN256,  MGF_KEYS_BASE16_IN1_SKEIN256,  MGF_SALT_AS_HEX_SKEIN256,  34,MGF_INPUT_32_BYTE)
+	SETUP_LARGE_HASH(SKEIN384,  MGF_KEYS_BASE16_IN1_SKEIN384,  MGF_SALT_AS_HEX_SKEIN384,  35,MGF_INPUT_48_BYTE)
+	SETUP_LARGE_HASH(SKEIN512,  MGF_KEYS_BASE16_IN1_SKEIN512,  MGF_SALT_AS_HEX_SKEIN512,  36,MGF_INPUT_64_BYTE)
 };
 
 char *dynamic_PRELOAD_SIGNATURE(int cnt)
