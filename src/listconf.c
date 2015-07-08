@@ -624,6 +624,7 @@ void listconf_parse_late(void)
 			printf(" Uses a bitslice implementation      %s\n", (format->params.flags & FMT_BS) ? "yes" : "no");
 			printf(" The split() method unifies case     %s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
 
+#ifndef DYNAMIC_DISABLED
 			if (format->params.flags & FMT_DYNAMIC) {
 #if SIMD_COEF_32
 				private_subformat_data *p = (private_subformat_data *)format->private.data;
@@ -640,7 +641,7 @@ void listconf_parse_late(void)
 #endif
 			} else
 				printf(" A $dynamic$ format                  no\n");
-
+#endif
 			printf(" A dynamic sized salt                %s\n", (format->params.flags & FMT_DYNA_SALT) ? "yes" : "no");
 #ifdef _OPENMP
 			printf(" Parallelized with OpenMP            %s\n", (format->params.flags & FMT_OMP) ? "yes" : "no");

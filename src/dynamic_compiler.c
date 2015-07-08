@@ -132,6 +132,8 @@ DONE #define MGF_USERNAME_LOCASE         (0x00000040|MGF_USERNAME)
  */
 
 #include "arch.h"
+
+#ifndef DYNAMIC_DISABLED
 #include <ctype.h>
 #include <stdarg.h>
 #include "common.h"
@@ -1578,3 +1580,5 @@ int main(int argc, char **argv) {
 	}
 }
 #endif
+
+#endif /* DYNAMIC_DISABLED */

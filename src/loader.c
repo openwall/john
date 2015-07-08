@@ -477,11 +477,13 @@ static int ldr_split_line(char **login, char **ciphertext,
 		 * empty login. */
 		/* Flag: no fields contain \n or field separator. */
 		int bad_char = 0;
+#ifndef DYNAMIC_DISABLED
 		int bare_always_valid = 0;
 		if ((options.dynamic_bare_hashes_always_valid == 'Y')
 		    || (options.dynamic_bare_hashes_always_valid != 'N'
 			&& cfg_get_bool(SECTION_OPTIONS, NULL, "DynamicAlwaysUseBareHashes", 1)))
 			bare_always_valid = 1;
+#endif
 		/* We output 1 or 0, so 0 and 1 are bad field separators. */
 		if (fs == '0' || fs == '1')
 			bad_char = 1;
@@ -553,8 +555,10 @@ static int ldr_split_line(char **login, char **ciphertext,
 			int is_dynamic = ((alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC);
 /* We enforce DynamicAlwaysUseBareHashes for each format. By default
  * dynamics do that only if a bare hash occurs on the first line. */
+#ifndef DYNAMIC_DISABLED
 			if (bare_always_valid)
 				dynamic_allow_rawhash_fixup = 1;
+#endif
 			/* We don't skip generic crypt. */
 			/* Format disabled in john.conf */
 			if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,

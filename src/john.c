@@ -273,6 +273,7 @@ static void john_register_one(struct fmt_main *format)
 			if ( (format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) return;
 		}
 #endif
+#ifndef DYNAMIC_DISABLED
 		else if (strcasecmp(options.format, format->params.label)) {
 			if (!strncasecmp(options.format, "dynamic=", 8) && !strcasecmp(format->params.label, "dynamic=")) {
 				DC_HANDLE H;
@@ -284,6 +285,7 @@ static void john_register_one(struct fmt_main *format)
 			} else
 				return;
 		}
+#endif
 	}
 
 	fmt_register(format);
