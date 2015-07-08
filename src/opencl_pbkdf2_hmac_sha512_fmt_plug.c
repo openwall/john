@@ -28,7 +28,7 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 #include "johnswap.h"
 
 #define NUUL NULL
-#define FORMAT_LABEL		"pbkdf2-hmac-sha512-opencl"
+#define FORMAT_LABEL		"PBKDF2-HMAC-SHA512-opencl"
 #define FORMAT_NAME		    "GRUB2 / OS X 10.8+"
 #define ALGORITHM_NAME		"PBKDF2-SHA512 OpenCL"
 
