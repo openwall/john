@@ -43,6 +43,7 @@
 #include "formats.h"
 #include "md5.h"
 #include "dynamic.h"
+#include "options.h"
 #include "config.h"
 #include "memdbg.h"
 
@@ -163,6 +164,15 @@
 	static DYNAMIC_primitive_funcp _Funcs_##N##6[] = { DynamicFunc__clean_input2, DynamicFunc__append_salt2, DynamicFunc__append_input2_from_input, DynamicFunc__##H##_crypt_input2_to_output1_FINAL, NULL }; \
 	static DYNAMIC_primitive_funcp _Funcs_##N##7[] = { DynamicFunc__clean_input2_kwik, DynamicFunc__append_salt2, DynamicFunc__append_input2_from_input, DynamicFunc__##H##_crypt_input2_to_output1_FINAL, NULL }; \
 	static DYNAMIC_primitive_funcp _Funcs_##N##8[] = { DynamicFunc__clean_input2_kwik, DynamicFunc__##H##_crypt_input1_append_input2, DynamicFunc__append_input2_from_input2, DynamicFunc__##H##_crypt_input2_to_output1_FINAL, NULL };
+
+#define DYNA_PRE_DEFINE_LARGE_HASH_SKIP_78(H,N,HS) \
+	static DYNAMIC_primitive_funcp _Funcs_##N##0[] = { DynamicFunc__##H##_crypt_input1_to_output1_FINAL, NULL }; \
+	static DYNAMIC_primitive_funcp _Funcs_##N##1[] = { DynamicFunc__clean_input, DynamicFunc__append_salt, DynamicFunc__append_keys, DynamicFunc__##H##_crypt_input1_to_output1_FINAL, NULL }; \
+	static DYNAMIC_primitive_funcp _Funcs_##N##2[] = { DynamicFunc__clean_input, DynamicFunc__append_keys, DynamicFunc__append_salt, DynamicFunc__##H##_crypt_input1_to_output1_FINAL, NULL }; \
+	static DYNAMIC_primitive_funcp _Funcs_##N##3[] = { DynamicFunc__##H##_crypt_input1_overwrite_input2, DynamicFunc__##H##_crypt_input2_to_output1_FINAL, NULL }; \
+	static DYNAMIC_primitive_funcp _Funcs_##N##4[] = { DynamicFunc__LargeHash_OUTMode_raw, DynamicFunc__##H##_crypt_input1_overwrite_input2, DynamicFunc__##H##_crypt_input2_to_output1_FINAL, NULL }; \
+	static DYNAMIC_primitive_funcp _Funcs_##N##5[] = { DynamicFunc__set_input_len_##HS , DynamicFunc__append_salt, DynamicFunc__##H##_crypt_input1_to_output1_FINAL, NULL }; \
+	static DYNAMIC_primitive_funcp _Funcs_##N##6[] = { DynamicFunc__clean_input2, DynamicFunc__append_salt2, DynamicFunc__append_input2_from_input, DynamicFunc__##H##_crypt_input2_to_output1_FINAL, NULL };
 
 static DYNAMIC_primitive_funcp _Funcs_0[] =
 {
@@ -1336,7 +1346,11 @@ MTL({"$dynamic_78$a8c7c7d4f9824f21b1567c76cdfcde81013ca2d7e497043d0ecab87db1e0fe
 	{NULL}};
 
 /*** Large hash group for sha512 dynamic_80 to dynamic_88 ***/
+#ifndef SIMD_COEF_64
 DYNA_PRE_DEFINE_LARGE_HASH(SHA512,8,128)
+#else
+DYNA_PRE_DEFINE_LARGE_HASH_SKIP_78(SHA512,8,128)
+#endif
 static struct fmt_tests _Preloads_80[] = {
 	{"$dynamic_80$b16ed7d24b3ecbd4164dcdad374e08c0ab7518aa07f9d3683f34c2b3c67a15830268cb4a56c1ff6f54c8e54a795f5b87c08668b51f82d0093f7baee7d2981181","test1"},
 	{"$dynamic_80$05c1a41bc43fc4cebfeadbf3eab9b159ccb32887af0d87bfd4b71a51775444d0b4b332a50c4ca9bb9c6da6d5e22cc12e94bd095d6de60be563c3fd3077406d1a","thatsworking"},
@@ -2697,7 +2711,7 @@ int dynamic_IS_VALID(int i, int force)
 	if (i < 0 || i >= 5000)
 		return -1;
 #ifndef DEBUG
-	if (!force && cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, Type, 0))
+	if (!force && cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, Type, 0) && !strcasecmp(options.format, "dynamic-all"))
 		return 0;
 #endif
 	if (i < 1000) {

@@ -559,7 +559,10 @@ static int ldr_split_line(char **login, char **ciphertext,
 			/* Format disabled in john.conf */
 			if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
 			                 alt->params.label, 0)) {
-				disabled = 1;
+				if (!strcasecmp(options.format, "dynamic-all")&&(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
+					// allow dyna if '-format=dynamic-all' was selected
+				} else
+					disabled = 1;
 			}
 			/* prepared is not equal to *ciphertext for nt in pwdump format */
 			prepared = alt->methods.prepare(fields, alt);
@@ -624,6 +627,10 @@ static int ldr_split_line(char **login, char **ciphertext,
 				if ((alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
 					// in debug mode, we 'allow' dyna
 				} else
+#else
+				if (!strcasecmp(options.format, "dynamic-all")&&(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
+					// allow dyna if '-format=dynamic-all' was selected
+				} else
 #endif
 				continue;
 			}
@@ -670,6 +677,11 @@ static int ldr_split_line(char **login, char **ciphertext,
 			if ((alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
 				// in debug mode, we 'allow' dyna
 			} else
+#else
+			if (!strcasecmp(options.format, "dynamic-all")&&(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
+				// allow dyna if '-format=dynamic-all' was selected
+			} else
+
 #endif
 			continue;
 		}

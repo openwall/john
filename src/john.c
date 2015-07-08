@@ -214,7 +214,7 @@ static void john_register_one(struct fmt_main *format)
 					return;
 			}
 		}
-		else if (!strcasecmp(options.format, "dynamic")) {
+		else if (!strcasecmp(options.format, "dynamic")||!strcasecmp(options.format, "dynamic-all")) {
 			if ( (format->params.flags & FMT_DYNAMIC) == 0) return;
 		}
 		else if (!strcasecmp(options.format, "avx")) {
