@@ -18,7 +18,8 @@ cat <<_EOF >>xxx
  *
  * **DO NOT** edit any portion of this .c file. ANY change
  * made to this file WILL BE LOST, the next time the
- * ./configure script is run.
+ * 'make distclean' is run, or whenever the 'base' files
+ * which generate this file are modified.
  *
  * If bugs are found, then they must be fixed in the file(s)
  * of dynamic_big_crypt_header.cin, which is the 'common'
@@ -27,10 +28,10 @@ cat <<_EOF >>xxx
  * dynamic_big_crypt_hash.cin   This second file is
  * a 100% common file.  Each of the hashes we have, MUST
  * be able to be run from this file, after it is run
- * through the dynamic_big_crypt_chopper filter program
+ * through the dynamic_big_crypt_chopper.pl filter program
  * which was built specifically for this task. The
  * existing command line arguments which run
- * dynamic_big_crypt_chopper are in the shell script
+ * dynamic_big_crypt_chopper.pl are in the shell script
  * dynamic_big_crypt_generator.sh which is the script
  * what actually generated THIS file.
  */
