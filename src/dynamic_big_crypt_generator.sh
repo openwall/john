@@ -3,7 +3,7 @@
 #  This script generates the source file dynamic_big_crypt.c
 #
 
-#rm -f dynamic_big_crypt.c
+rm -f dynamic_big_crypt.c
 perl ./dynamic_big_crypt_chopper.pl TEST || exit 1
 
 # first timestamp the file generation.
