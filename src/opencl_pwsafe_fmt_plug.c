@@ -206,7 +206,7 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
 		//Initialize openCL tuning (library) for this format.
 		self->methods.crypt_all = crypt_all_benchmark;
 		opencl_init_auto_setup(SEED, ROUNDS_DEFAULT/8, split_events,

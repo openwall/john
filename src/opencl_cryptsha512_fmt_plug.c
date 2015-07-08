@@ -368,7 +368,7 @@ static void init(struct fmt_main *_self) {
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
 		int default_value = 0;
 
 		if (gpu_amd(source_in_use))

@@ -838,7 +838,9 @@ static int cmp_exact(char *source, int index)
 
 static void reset(struct db_main *db)
 {
-	if (db) {
+	static int initialized;
+
+	if (initialized) {
 		size_t buffer_size;
 		if (ref_ctr > 0)
 			release_clobj();
@@ -922,6 +924,8 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_192, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
 		hash_ids[0] = 0;
+
+		initialized++;
 	}
 }
 

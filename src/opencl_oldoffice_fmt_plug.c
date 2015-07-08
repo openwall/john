@@ -243,7 +243,7 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
 		size_t gws_limit = 4 << 20;
 
 		// Initialize openCL tuning (library) for this format.

@@ -204,7 +204,7 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
 		size_t gws_limit;
 
 		// Current key_idx can only hold 26 bits of offset so
