@@ -270,7 +270,7 @@ __kernel void md5(__global uint *keys,
 	uint len = base & 63;
 	uint hash[4];
 
-#if __OPENCL_VERSION__ < 120 || (__OS_X__ && gpu_nvidia(DEVICE_INFO))
+#if FORCE_OCL_110 || __OPENCL_VERSION__ < 120 || (__OS_X__ && gpu_nvidia(DEVICE_INFO))
 	if (!gid) {
 		out_hash_ids[0] = 0;
 		for (i = 0; i < HASH_TABLE_SIZE/32 + 1; i++)

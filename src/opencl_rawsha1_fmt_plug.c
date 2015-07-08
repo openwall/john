@@ -278,7 +278,11 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 		else
 			static_gpu_locations[i] = -1;
 
+#if CL_VERSION_1_2
 	ocl_ver = get_device_version(gpu_id);
+#else
+	ocl_ver = 110;
+#endif
 
 	/* Driver bug workaround for OSX and GT650M, see #1459 */
 	if (ocl_ver == 120 && platform_apple(platform_id) && gpu_nvidia(gpu_id))
@@ -291,6 +295,9 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 		" -D SHIFT128_HT_SZ=%u -D NUM_LOADED_HASHES=%u"
 		" -D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d"
 		" -D CONST_CACHE_SIZE=%llu -D LOC_0=%d"
+#if !CL_VERSION_1_2
+		" -DFORCE_OCL_110"
+#endif
 #if 1 < MASK_FMT_INT_PLHDR
 	" -D LOC_1=%d "
 #endif

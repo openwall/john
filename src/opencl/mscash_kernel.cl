@@ -389,7 +389,7 @@ __kernel void mscash(__global uint *keys,
 	uint hash[4] = {0};
 	uint bitmap_sz_bits = salt[12] + 1;
 
-#if __OPENCL_VERSION__ < 120 || (__OS_X__ && gpu_nvidia(DEVICE_INFO))
+#if FORCE_OCL_110 || __OPENCL_VERSION__ < 120 || (__OS_X__ && gpu_nvidia(DEVICE_INFO))
 	if (!gid) {
 		out_hash_ids[0] = 0;
 		for (i = 0; i < salt[14]/32 + 1; i++)
