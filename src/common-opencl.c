@@ -876,6 +876,7 @@ void opencl_get_user_preferences(char *format)
 
 static void dev_init(int sequential_id)
 {
+	static int printed[MAX_GPU_DEVICES];
 	char device_name[MAX_OCLINFO_STRING_LEN];
 	cl_int ret_code;
 	int len;
@@ -892,7 +893,7 @@ static void dev_init(int sequential_id)
 			len--;
 		opencl_log[len] = '\0';
 
-		if (options.verbosity >= 2 && !(options.flags & FLG_SHOW_CHK))
+		if (options.verbosity >= 2 && !printed[sequential_id]++)
 			fprintf(stderr, "Device %d: %s [%s]\n",
 			        sequential_id, device_name, opencl_log);
 	} else {
@@ -902,7 +903,7 @@ static void dev_init(int sequential_id)
 		while (*dname == ' ')
 			dname++;
 
-		if (options.verbosity >= 2)
+		if (options.verbosity >= 2 && !printed[sequential_id]++)
 			fprintf(stderr, "Device %d: %s\n", sequential_id, dname);
 	}
 }

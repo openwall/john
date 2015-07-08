@@ -376,7 +376,7 @@ static void select_device(struct fmt_main *fmt)
 	if (!global_work_size)
 		find_best_gws(fmt);
 	else {
-		if (options.verbosity > 2)
+		if (options.verbosity > 3)
 			fprintf(stderr, "Local worksize (LWS) "Zu", Global worksize (GWS) "Zu"\n", local_work_size, global_work_size);
 		fmt -> params.max_keys_per_crypt = global_work_size * DES_BS_DEPTH;
 		fmt -> params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
