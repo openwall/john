@@ -792,6 +792,7 @@ unrarppm.o: unrarppm.c
 	$(AS) $(ASFLAGS) $*.S
 
 check: default
+	../run/john --list=build-info
 	../run/john --test=0 --verbosity=2
 
 depend:
