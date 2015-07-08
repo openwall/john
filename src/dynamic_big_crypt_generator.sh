@@ -11,6 +11,7 @@
 # and the makefile will copy a prebuilt version for us.
 rm -f dynamic_big_crypt_chopper
 rm -f dynamic_big_crypt_chopper.exe
+rm -f dynamic_big_crypt.c
 gcc -O dynamic_big_crypt_chopper.c -o dynamic_big_crypt_chopper || exit 1
 ./dynamic_big_crypt_chopper TEST || exit 1
 

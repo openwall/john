@@ -866,9 +866,6 @@ if test "`echo cuda_*_fmt_plug.c`" != "cuda_*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H cuda_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 fi
 
-echo "configure: creating ./dynamic_big_crypt.c"
-echo `./dynamic_big_crypt_generator.sh`
-
 ########################################################
 # Creates ./run/john.local.conf but ONLY if it does not
 # exist. The file will have a valid comment section, and

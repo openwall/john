@@ -1998,6 +1998,8 @@ cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
 
 listconf.o: version.h listconf.h listconf.c
 
+dynamic_big_crypt.o: unused/dynamic_big_crypt.c
+
 options.o: version.h options.c
 
 version.h: find_version
