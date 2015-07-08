@@ -43,7 +43,7 @@ john_register_one(&fmt_opencl_sxc);
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(sxc_cpu_salt)
 #define BINARY_ALIGN		MEM_ALIGN_WORD
-#define SALT_ALIGN		MEM_ALIGN_WORD
+#define SALT_ALIGN		4
 
 typedef struct {
 	uint32_t length;
@@ -55,10 +55,10 @@ typedef struct {
 } sxc_hash;
 
 typedef struct {
-	uint8_t length;
-	uint8_t salt[32];
 	uint32_t iterations;
 	uint32_t outlen;
+	uint8_t length;
+	uint8_t salt[32];
 } sxc_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -220,7 +220,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *keeptr;
 	char *p;
 	int res;
-	if (strncmp(ciphertext, "$sxc$", 5))
+	if (strncmp(ciphertext, "$sxc$*", 6))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
@@ -289,7 +289,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if (strtokm(NULL, "*") != NULL)          /* the end */
+	if (strtokm(NULL, "*") != NULL)	        /* the end */
 		goto err;
 
 	MEM_FREE(keeptr);
