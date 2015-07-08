@@ -824,16 +824,6 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	char key[PLAINTEXT_LENGTH + 1];
 	unsigned int salt[SALT_SIZE/sizeof(unsigned int)];
 
-	local_work_size = 0;
-	global_work_size = 0;
-	tune_gws = 0;
-	tune_lws = 0;
-	opencl_get_user_preferences(FORMAT_LABEL);
-	if (!local_work_size)
-		tune_lws = 1;
-	if (!global_work_size)
-		tune_gws = 1;
-
 	memset(key, 0xF5, PLAINTEXT_LENGTH);
 	memset(salt, 0x35, (SALT_SIZE));
 	key[PLAINTEXT_LENGTH] = 0;
@@ -861,12 +851,28 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	if (gws_init < lws_init)
 		lws_init = gws_init;
 
+	local_work_size = 0;
+	global_work_size = 0;
+	tune_gws = 1;
+	tune_lws = 1;
+	opencl_get_user_preferences(FORMAT_LABEL);
+	if (local_work_size) {
+		tune_lws = 0;
+		if (local_work_size & (local_work_size - 1))
+			get_power_of_two(local_work_size);
+		if (local_work_size > lws_limit)
+			local_work_size = lws_limit;
+	}
+	if (global_work_size)
+		tune_gws = 0;
+
 #if 0
 	 fprintf(stderr, "lws_init:%zu lws_limit:%zu"
 			 " gws_init:%zu gws_limit:%zu\n",
 			  lws_init, lws_limit, gws_init,
 			  gws_limit);
 #endif
+	/* Auto tune start.*/
 	pcount = gws_init;
 	count = 0;
 
@@ -957,6 +963,28 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 		create_clobj_kpc(global_work_size);
 		set_kernel_args_kpc();
 	}
+	/* Auto tune finish.*/
+
+	if (global_work_size % local_work_size) {
+		global_work_size = GET_MULTIPLE_OR_BIGGER(global_work_size, local_work_size);
+		get_power_of_two(global_work_size);
+		release_clobj_kpc();
+		if (global_work_size > gws_limit)
+			global_work_size = gws_limit;
+		create_clobj_kpc(global_work_size);
+		set_kernel_args_kpc();
+	}
+	if (global_work_size > gws_limit) {
+		release_clobj_kpc();
+		global_work_size = gws_limit;
+		create_clobj_kpc(global_work_size);
+		set_kernel_args_kpc();
+	}
+
+	assert(!(local_work_size & (local_work_size -1)));
+	assert(!(global_work_size % local_work_size));
+	assert(local_work_size <= lws_limit);
+	assert(global_work_size <= gws_limit);
 
 	self->params.max_keys_per_crypt = global_work_size;
 	if (options.verbosity > 3)
