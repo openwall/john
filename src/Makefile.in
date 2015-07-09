@@ -794,9 +794,15 @@ unrarppm.o: unrarppm.c
 .S.o:
 	$(AS) $(ASFLAGS) $*.S
 
+# For jumbo, --make_check fails for the first thin format that is linked
+# to a dynamic format in a config file, so we deviate from core here.
+# The --verbosity can be reduced to 2 and the --list=opencl-devices
+# can be removed once we figured out the causes of failed OpenCL self tests
+# on Travis
 check: default
 	../run/john --list=build-info
-	../run/john --test=0 --verbosity=2
+	../run/john --list=opencl-devices --verbosity=5 || true
+	../run/john --test=0 --verbosity=5
 
 depend:
 	makedepend -fMakefile.dep -Y *.c 2>> /dev/null
