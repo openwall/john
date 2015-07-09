@@ -85,8 +85,8 @@ static cl_mem buffer_int_keys, buffer_loaded_hashes, buffer_hash_ids,
 static uint32_t * saved_int_key_loc, num_loaded_hashes, * hash_ids = NULL;
 static uint64_t * loaded_hashes = NULL;
 
-//ref_counter: a reference counter of the openCL objetcts (expect to be 0 or 1)
-static unsigned ref_counter = 0;
+//ocl_initialized: a reference counter of the openCL objetcts (expect to be 0 or 1)
+static unsigned ocl_initialized = 0;
 
 //Used to control partial key transfers.
 static uint32_t key_idx = 0;
@@ -241,7 +241,7 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 		(void *) &(mask_int_cand.num_int_cand)), "Error setting argument 5");
 
 	//Indicates that the OpenCL objetcs are initialized.
-	ref_counter++;
+	ocl_initialized++;
 
 	//Assure buffers have no "trash data".
 	memset(plaintext, '\0', BUFFER_SIZE * gws);
@@ -253,7 +253,7 @@ static void release_clobj(void)
 {
 	cl_int ret_code;
 
-	if (ref_counter) {
+	if (ocl_initialized) {
 		ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_plaintext,
 		                                   plaintext, 0, NULL, NULL);
 		HANDLE_CLERROR(ret_code, "Error Unmapping keys");
@@ -284,7 +284,7 @@ static void release_clobj(void)
 		ret_code = clReleaseMemObject(pinned_int_key_loc);
 		HANDLE_CLERROR(ret_code, "Error Releasing pinned_int_key_loc");
 
-		ref_counter--;
+		ocl_initialized--;
 	}
 }
 
@@ -335,20 +335,42 @@ static void reset(struct db_main *db)
 	offset_idx = 0;
 	key_idx = 0;
 
-	if (!ref_counter) {
+	if (!autotuned) {
 		size_t gws_limit;
 		unsigned int flag;
+                char * task = "$JOHN/kernels/sha512_kernel.cl";
 
-		// Auto-tune / Benckmark / Self-test.
-		gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
-		                get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
+                opencl_prepare_dev(gpu_id);
+                opencl_build_kernel(task, gpu_id, NULL, 1);
+
+                /* Read LWS/GWS prefs from config or environment */
+                opencl_get_user_preferences(FORMAT_LABEL);
+
+                // create kernel(s) to execute
+                prepare_kernel = clCreateKernel(program[gpu_id], "kernel_prepare", &ret_code);
+                HANDLE_CLERROR(ret_code,
+                        "Error creating kernel_prepare. Double-check kernel name?");
+
+                if (salted_format)
+                        crypt_kernel = clCreateKernel(program[gpu_id],
+                                "kernel_crypt_xsha", &ret_code);
+                else
+                        crypt_kernel = clCreateKernel(program[gpu_id],
+                                "kernel_crypt_raw", &ret_code);
+                HANDLE_CLERROR(ret_code,
+                        "Error creating kernel. Double-check kernel name?");
 
 		//Mask initialization
 		flag = (options.flags & FLG_MASK_CHK) && !global_work_size;
 
-		for (num_loaded_hashes = 0; self->params.tests[num_loaded_hashes].ciphertext;)
+		for (num_loaded_hashes = 0;
+		     self->params.tests[num_loaded_hashes].ciphertext;)
 			num_loaded_hashes++;
 		create_mask_buffers();
+
+		// Auto-tune / Benckmark / Self-test.
+		gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
+		                get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
 
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL,
@@ -381,7 +403,7 @@ static void reset(struct db_main *db)
 		num_loaded_hashes = db->salts->count;
 
 		//Cracking
-		if (ref_counter > 0)
+		if (ocl_initialized > 0)
 			release_clobj();
 
 		create_clobj(global_work_size, self);
@@ -484,7 +506,7 @@ static char * get_key(int index)
 	memcpy(ret, ((char *) &plaintext[saved_idx[t] >> 6]), PLAINTEXT_LENGTH);
 	ret[saved_idx[t] & 63] = '\0';
 
-	if (mask_int_cand.num_int_cand > 1) {
+	if (mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
 
 		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
 			ret[(saved_int_key_loc[t]& (0xff << (i * 8))) >> (i * 8)] =
@@ -498,27 +520,9 @@ static char * get_key(int index)
 /* ------- Initialization  ------- */
 static void init(struct fmt_main *_self)
 {
-	char * task = "$JOHN/kernels/sha512_kernel.cl";
-
 	self = _self;
 
-	opencl_prepare_dev(gpu_id);
-	opencl_build_kernel(task, gpu_id, NULL, 1);
-
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(FORMAT_LABEL);
-
-	// create kernel(s) to execute
-	prepare_kernel = clCreateKernel(program[gpu_id], "kernel_prepare", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel_prepare. Double-check kernel name?");
-
-	if (salted_format)
-		crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt_xsha", &ret_code);
-	else
-		crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt_raw", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
-	mask_int_cand_target = 10000;
+	mask_int_cand_target = 20000;
 }
 
 
@@ -542,7 +546,6 @@ static void done(void)
 		buffer_loaded_hashes = NULL;
 	}
 
-
 	if (buffer_hash_ids) {
 		ret_code = clReleaseMemObject(buffer_hash_ids);
 		HANDLE_CLERROR(ret_code, "Error Releasing buffer_hash_ids");
@@ -555,11 +558,15 @@ static void done(void)
 		buffer_bitmap = NULL;
 	}
 
-	if (loaded_hashes)
+	if (loaded_hashes) {
 		MEM_FREE(loaded_hashes);
-
-	if (hash_ids)
+                loaded_hashes = NULL;
+        }
+        
+	if (hash_ids) {
 		MEM_FREE(hash_ids);
+                hash_ids = NULL;
+        }
 }
 
 /* ------- Send hashes to crack (binary) to GPU ------- */
