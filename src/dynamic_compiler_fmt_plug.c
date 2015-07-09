@@ -164,6 +164,7 @@ static void link_funcs() {
 	cp = strrchr(fmt_CompiledDynamic.params.algorithm_name, ')');
 	if (cp) {
 		fmt_CompiledDynamic.params.label = fmt_CompiledDynamic.params.algorithm_name;
+		++cp;
 		*cp++ = 0;
 		if (*cp  == ' ') ++cp;
 		fmt_CompiledDynamic.params.algorithm_name = cp;
