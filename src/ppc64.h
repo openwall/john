@@ -52,4 +52,21 @@
 #define BF_SCALE			0
 #define BF_X2				0
 
+#define SIMD_COEF_32		4
+#define SIMD_COEF_64		2
+
+#define SIMD_PARA_MD4		1
+#define SIMD_PARA_MD5		1
+#define SIMD_PARA_SHA1		1
+#define SIMD_PARA_SHA256	1
+#define SIMD_PARA_SHA512	1
+
+#define MD4_N_STR			"4x"
+#define MD5_N_STR			"4x"
+#define SHA1_N_STR			"4x"
+#define SHA256_N_STR		"4x"
+#define SHA512_N_STR		"4x"
+
+#define SHA_BUF_SIZ			16
+
 #endif
