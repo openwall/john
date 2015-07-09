@@ -526,7 +526,8 @@ def open_wallet(walletfile, writable=False):
         flags = DB_THREAD | DB_TYPEOPEN
         try:
                 r = db.open(walletfile, "main", DB_BTREE, flags)
-        except DBError:
+        except DBError as e:
+                logging.error("{0}:{1}".format(e[0], e[1]))
                 r = True
 
         if r is not None:
