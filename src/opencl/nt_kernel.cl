@@ -166,7 +166,6 @@ inline void prepare_key(__global uint * key, uint length, uint * nt_buffer)
 	}
 	nt_index = length >> 1;
 	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
-	nt_buffer[nt_index + 1] = 0;
 }
 
 inline void cmp_final(uint gid,
