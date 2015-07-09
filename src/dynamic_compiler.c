@@ -1057,7 +1057,7 @@ static int parse_expression(DC_struct *p) {
 						out_raw = 1;
 						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_raw\n");
 					}
-				} else if ((pCode[i][0] == 'f' || pCode[i][0] == 'F') && pCode[i][1]>='A' && pCode[i][1] <= 'Z') {
+				} else if ((pCode[i][0] == 'f' || pCode[i][0] == 'F') && pCode[i][strlen(pCode[i])-1] == 'H') {
 					if (!out_16u) {
 						out_16u = 1;
 						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base16u\n");
