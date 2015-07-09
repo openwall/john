@@ -103,7 +103,7 @@ static const char * warn[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	return autotune_get_task_max_work_group_size(CL_FALSE, 0, crypt_kernel);
 }
 
 static size_t get_task_max_size()
@@ -180,6 +180,10 @@ static void init(struct fmt_main *_self)
 
 	crypt_kernel = clCreateKernel(program[gpu_id], "lotus5", &err);
 	HANDLE_CLERROR(err, "Create kernel FAILED.");
+
+	/* Just suppress a compiler warning!! */
+	if (0)
+		autotune_run(NULL, 0, 0, 0);
 }
 
 static void reset(struct db_main *db)
@@ -191,7 +195,7 @@ static void reset(struct db_main *db)
 		                       2 * KEY_SIZE_IN_BYTES, 0);
 
 		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, 0, 1000);
+		autotune_run_extra(self, 1, 0, 1000, CL_TRUE);
 	}
 }
 

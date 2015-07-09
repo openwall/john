@@ -6,11 +6,19 @@
  */
 
 #include "opencl_lotus5_fmt.h"
+#include "opencl_device_info.h"
+
+#if cpu(DEVICE_INFO)
+#define MAYBE_CONSTANT constant
+#define CPU_DEVICE
+#else
+#define MAYBE_CONSTANT __local
+#endif
 
 inline void
 lotus_transform_password (__private unsigned int *i1,
 			  __private unsigned int *o1,
-			  __local unsigned int *lotus_magic_table) {
+			  MAYBE_CONSTANT unsigned int *lotus_magic_table) {
 	unsigned int p1;
 	int i;
 
@@ -27,9 +35,8 @@ lotus_transform_password (__private unsigned int *i1,
 }
 
 /* The mixing function: perturbs the first three rows of the matrix*/
-
 inline void
-lotus_mix (__private unsigned int *m1, __local unsigned int *lotus_magic_table) {
+lotus_mix (__private unsigned int *m1, MAYBE_CONSTANT unsigned int *lotus_magic_table) {
 	int i, j, k;
 	unsigned int p1;
 
@@ -53,14 +60,18 @@ lotus_mix (__private unsigned int *m1, __local unsigned int *lotus_magic_table) 
 
 __kernel void
 lotus5(__global unsigned int * i_saved_key,
-       __global unsigned int * magic_table,
-       __global unsigned int * crypt_key) {
+       constant unsigned int * magic_table
+#if gpu_amd(DEVICE_INFO)
+	__attribute__((max_constant_size(256 * sizeof(unsigned int))))
+#endif
+       , __global unsigned int * crypt_key) {
 
 	unsigned int index = get_global_id(0);
 	unsigned int m32[16];
 	int password_length;
 
-	__local unsigned int lotus_magic_table[256];
+#if !cpu(DEVICE_INFO)
+	__local unsigned int s_magic_table[256];
 
 	{
 		size_t local_work_dim = get_local_size(0);
@@ -68,8 +79,9 @@ lotus5(__global unsigned int * i_saved_key,
 		size_t offset;
 
 		for (offset = lid; offset < 256; offset += local_work_dim)
-			lotus_magic_table[offset] = magic_table[offset];
+			s_magic_table[offset] = magic_table[offset];
 	}
+#endif
 
 	m32[0] = m32[1] = m32[2] = m32[3] = 0;
 	m32[4] = m32[5] = m32[6] = m32[7] = 0;
@@ -99,9 +111,21 @@ lotus5(__global unsigned int * i_saved_key,
 	m32[10] = m32[6] ^= i_saved_key[index * KEY_SIZE_IN_ARCH_WORD_32 + 2];
 	m32[11] = m32[7] ^= i_saved_key[index * KEY_SIZE_IN_ARCH_WORD_32 + 3];
 
-	lotus_transform_password(m32 + 4, m32 + 12, lotus_magic_table);
+	lotus_transform_password(m32 + 4, m32 + 12,
+#if cpu(DEVICE_INFO)
+		magic_table
+#else
+		s_magic_table
+#endif
+	);
 
-	lotus_mix(m32, lotus_magic_table);
+	lotus_mix(m32,
+#if cpu(DEVICE_INFO)
+		magic_table
+#else
+		s_magic_table
+#endif
+	);
 
 	m32[4] = m32[12];
 	m32[5] = m32[13];
@@ -113,7 +137,13 @@ lotus5(__global unsigned int * i_saved_key,
 	m32[10] = m32[2]^ m32[6];
 	m32[11] = m32[3] ^ m32[7];
 
-	lotus_mix(m32, lotus_magic_table);
+	lotus_mix(m32,
+#if cpu(DEVICE_INFO)
+		magic_table
+#else
+		s_magic_table
+#endif
+	);
 
 	crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] = m32[0];
 	crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32 + 1] = m32[1];
