@@ -115,10 +115,10 @@ void SSEmd5body(vtype* _data, unsigned int *out,
                 ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
 	vtype w[16*SIMD_PARA_MD5];
-	volatile vtype a[SIMD_PARA_MD5];
-	volatile vtype b[SIMD_PARA_MD5];
-	volatile vtype c[SIMD_PARA_MD5];
-	volatile vtype d[SIMD_PARA_MD5];
+	vtype a[SIMD_PARA_MD5];
+	vtype b[SIMD_PARA_MD5];
+	vtype c[SIMD_PARA_MD5];
+	vtype d[SIMD_PARA_MD5];
 	vtype tmp[SIMD_PARA_MD5];
 	vtype tmp2[SIMD_PARA_MD5];
 	vtype mask;
@@ -1889,7 +1889,7 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 {                                                           \
     SHA512_PARA_DO(i)                                       \
     {                                                       \
-	    tmp1[i] = vadd_epi64(h[i],    w[i][(x)&0xf]);       \
+        tmp1[i] = vadd_epi64(h[i],    w[i][(x)&0xf]);       \
         tmp2[i] = vadd_epi64(S1(e[i]),vset1_epi64x(K));     \
         tmp1[i] = vadd_epi64(tmp1[i], Ch(e[i],f[i],g[i]));  \
         tmp1[i] = vadd_epi64(tmp1[i], tmp2[i]);             \

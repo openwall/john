@@ -92,24 +92,28 @@ void SSESHA1body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, uns
 #endif
 
 // we use the 'outter' SIMD_COEF_32 wrapper, as the flag for SHA256/SHA512.  FIX_ME!!
+#if SIMD_COEF_32 > 1
 
 #ifdef SIMD_COEF_32
 #define SHA256_ALGORITHM_NAME	BITS " " SIMD_TYPE " " SHA256_N_STR
 void SSESHA256body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
-#elif ARCH_BITS >= 64
-#define SHA256_ALGORITHM_NAME                 "64/" ARCH_BITS_STR " " SHA2_LIB
-#else
-#define SHA256_ALGORITHM_NAME                 "32/" ARCH_BITS_STR " " SHA2_LIB
-#endif // SIMD_COEF_64
+#endif
 
 #ifdef SIMD_COEF_64
 #define SHA512_ALGORITHM_NAME	BITS " " SIMD_TYPE " " SHA512_N_STR
 void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, unsigned SSEi_flags);
-#elif ARCH_BITS >= 64
+#endif
+
+#else
+#if ARCH_BITS >= 64
+#define SHA256_ALGORITHM_NAME                 "64/" ARCH_BITS_STR " " SHA2_LIB
 #define SHA512_ALGORITHM_NAME                 "64/" ARCH_BITS_STR " " SHA2_LIB
 #else
+#define SHA256_ALGORITHM_NAME                 "32/" ARCH_BITS_STR " " SHA2_LIB
 #define SHA512_ALGORITHM_NAME                 "32/" ARCH_BITS_STR " " SHA2_LIB
-#endif // SIMD_COEF_64
+#endif
+
+#endif
 
 #undef vtype /* void */
 
