@@ -215,12 +215,16 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(GenerateSHA1pwhash), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(Generate2007key), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(GenerateSHA1pwhash), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(Generate2007key), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 static void clear_keys(void)
@@ -259,11 +263,11 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *_self)
 {
-	char build_opts[64];
 	static char valgo[32] = "";
 
 	self = _self;
 
+	opencl_prepare_dev(gpu_id);
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
 		/* Run vectorized kernel */
@@ -272,22 +276,6 @@ static void init(struct fmt_main *_self)
 		self->params.algorithm_name = valgo;
 	}
 
-	snprintf(build_opts, sizeof(build_opts),
-	         "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u -DV_WIDTH=%u",
-	         HASH_LOOPS,
-	         UNICODE_LENGTH,
-	         v_width);
-	opencl_init("$JOHN/kernels/office2007_kernel.cl", gpu_id,
-	            build_opts);
-
-	// create kernel to execute
-	GenerateSHA1pwhash = clCreateKernel(program[gpu_id], "GenerateSHA1pwhash", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	crypt_kernel = clCreateKernel(program[gpu_id], "HashLoop", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	Generate2007key = clCreateKernel(program[gpu_id], "Generate2007key", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 }
@@ -295,6 +283,24 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
+		char build_opts[64];
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u -DV_WIDTH=%u",
+		         HASH_LOOPS,
+		         UNICODE_LENGTH,
+		         v_width);
+		opencl_init("$JOHN/kernels/office2007_kernel.cl", gpu_id,
+		            build_opts);
+
+		// create kernel to execute
+		GenerateSHA1pwhash = clCreateKernel(program[gpu_id], "GenerateSHA1pwhash", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+		crypt_kernel = clCreateKernel(program[gpu_id], "HashLoop", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+		Generate2007key = clCreateKernel(program[gpu_id], "Generate2007key", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
 		                       3, self, create_clobj, release_clobj,

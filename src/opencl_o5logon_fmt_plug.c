@@ -183,10 +183,14 @@ static void release_clobj(void){
 
 static void done(void)
 {
-        release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-        HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-        HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 /* ---- End OpenCL Modifications ---- */
@@ -195,17 +199,13 @@ static void init(struct fmt_main *_self)
 {
 /* ---- Start OpenCL Modifications ---- */
 
-        self = _self;
+	self = _self;
+
+	opencl_prepare_dev(gpu_id);
 
 	aesFunc = get_AES_dec192_CBC();
 
 	cracked = NULL;
-
-        opencl_init("$JOHN/kernels/o5logon_kernel.cl", gpu_id, NULL);
-
-        // create kernel to execute
-        crypt_kernel = clCreateKernel(program[gpu_id], "o5logon_kernel", &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 /* ---- End OpenCL Modifications ---- */
 }
@@ -214,6 +214,12 @@ static void reset(struct db_main *db)
 {
 	if (!autotuned) {
 		size_t gws_limit;
+
+		opencl_init("$JOHN/kernels/o5logon_kernel.cl", gpu_id, NULL);
+
+		// create kernel to execute
+		crypt_kernel = clCreateKernel(program[gpu_id], "o5logon_kernel", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 		// Current key_idx can only hold 26 bits of offset so
 		// we can't reliably use a GWS higher than 4M or so.

@@ -183,22 +183,25 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(pbkdf2_init), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(pbkdf2_loop), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(pbkdf2_final), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(pbkdf2_init), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(pbkdf2_loop), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(pbkdf2_final), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 static void init(struct fmt_main *_self)
 {
-	char build_opts[64];
 	static char valgo[sizeof(ALGORITHM_NAME) + 8] = "";
 
 	self = _self;
 
-	opencl_preinit();
+	opencl_prepare_dev(gpu_id);
 	/* VLIW5 does better with just 2x vectors due to GPR pressure */
 	if (!options.v_width && amd_vliw5(device_info[gpu_id]))
 		v_width = 2;
@@ -211,24 +214,26 @@ static void init(struct fmt_main *_self)
 		         ALGORITHM_NAME " %ux", v_width);
 		self->params.algorithm_name = valgo;
 	}
-
-	snprintf(build_opts, sizeof(build_opts),
-	         "-DHASH_LOOPS=%u -DOUTLEN=%u "
-	         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
-	         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, v_width);
-	opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_kernel.cl", gpu_id, build_opts);
-
-	pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel");
-	crypt_kernel = pbkdf2_loop = clCreateKernel(program[gpu_id], "pbkdf2_loop", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel");
-	pbkdf2_final = clCreateKernel(program[gpu_id], "pbkdf2_final", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel");
 }
 
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
+		char build_opts[64];
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-DHASH_LOOPS=%u -DOUTLEN=%u "
+		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
+		         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, v_width);
+		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_kernel.cl", gpu_id, build_opts);
+
+		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel");
+		crypt_kernel = pbkdf2_loop = clCreateKernel(program[gpu_id], "pbkdf2_loop", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel");
+		pbkdf2_final = clCreateKernel(program[gpu_id], "pbkdf2_final", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel");
+
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 2*HASH_LOOPS, split_events, warn,
 		                       2, self, create_clobj, release_clobj,

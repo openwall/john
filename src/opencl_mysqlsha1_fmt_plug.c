@@ -155,10 +155,14 @@ static void release_clobj(void){
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *self){
@@ -189,23 +193,23 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 static void init(struct fmt_main *_self)
 {
-	char build_opts[64];
-
 	self = _self;
-
-	snprintf(build_opts, sizeof(build_opts),
-	        "-DPLAINTEXT_LENGTH=%u", PLAINTEXT_LENGTH);
-	opencl_init("$JOHN/kernels/msha_kernel.cl", gpu_id, build_opts);
-
-	// create kernel to execute
-	crypt_kernel = clCreateKernel(program[gpu_id], "mysqlsha1_crypt_kernel", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+	opencl_prepare_dev(gpu_id);
 }
 
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
 		size_t gws_limit;
+		char build_opts[64];
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-DPLAINTEXT_LENGTH=%u", PLAINTEXT_LENGTH);
+		opencl_init("$JOHN/kernels/msha_kernel.cl", gpu_id, build_opts);
+
+		// create kernel to execute
+		crypt_kernel = clCreateKernel(program[gpu_id], "mysqlsha1_crypt_kernel", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 		// Current key_idx can only hold 26 bits of offset so
 		// we can't reliably use a GWS higher than 4M or so.

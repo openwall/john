@@ -201,28 +201,29 @@ static void release_clobj(void)
 
 static void init(struct fmt_main *_self)
 {
-	char build_opts[64];
-
 	self = _self;
-
-        snprintf(build_opts, sizeof(build_opts),
-                 "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u",
-                 HASH_LOOPS, PLAINTEXT_LENGTH);
-        opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_kernel.cl",
-            gpu_id, build_opts);
-
-	crypt_kernel =
-	    clCreateKernel(program[gpu_id], KERNEL_NAME, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error creating crypt kernel");
-
-	split_kernel =
-	    clCreateKernel(program[gpu_id], SPLIT_KERNEL_NAME, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error creating split kernel");
+	opencl_prepare_dev(gpu_id);
 }
 
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
+		char build_opts[64];
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u",
+		         HASH_LOOPS, PLAINTEXT_LENGTH);
+		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_kernel.cl",
+		            gpu_id, build_opts);
+
+		crypt_kernel =
+			clCreateKernel(program[gpu_id], KERNEL_NAME, &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating crypt kernel");
+
+		split_kernel =
+			clCreateKernel(program[gpu_id], SPLIT_KERNEL_NAME, &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating split kernel");
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
 		                       2, self, create_clobj, release_clobj,
@@ -239,11 +240,15 @@ static void reset(struct db_main *db)
 
 static void done(void)
 {
-	release_clobj();
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel 1");
-	HANDLE_CLERROR(clReleaseKernel(split_kernel), "Release kernel 2");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
-	    "Release Program");
+	if (autotuned) {
+		release_clobj();
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel 1");
+		HANDLE_CLERROR(clReleaseKernel(split_kernel), "Release kernel 2");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
+		               "Release Program");
+
+		autotuned--;
+	}
 }
 
 static char *prepare(char *fields[10], struct fmt_main *self)

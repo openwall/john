@@ -266,14 +266,18 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(RarInit), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(RarFinal), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(RarInit), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(RarFinal), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
-	MEM_FREE(unpack_data);
+		MEM_FREE(unpack_data);
+
+		autotuned--;
+	}
 }
 
 static void clear_keys(void)
@@ -283,20 +287,9 @@ static void clear_keys(void)
 
 static void init(struct fmt_main *_self)
 {
-	char build_opts[64];
-
 	self = _self;
 
-	snprintf(build_opts, sizeof(build_opts), "-DPLAINTEXT_LENGTH=%u", PLAINTEXT_LENGTH);
-	opencl_init("$JOHN/kernels/rar_kernel.cl", gpu_id, build_opts);
-
-	// create kernels to execute
-	RarInit = clCreateKernel(program[gpu_id], "RarInit", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	crypt_kernel = clCreateKernel(program[gpu_id], "RarHashLoop", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	RarFinal = clCreateKernel(program[gpu_id], "RarFinal", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+	opencl_prepare_dev(gpu_id);
 
 #ifdef DEBUG
 	self->params.benchmark_comment = " (1-16 characters)";
@@ -337,6 +330,19 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
+		char build_opts[64];
+
+		snprintf(build_opts, sizeof(build_opts), "-DPLAINTEXT_LENGTH=%u", PLAINTEXT_LENGTH);
+		opencl_init("$JOHN/kernels/rar_kernel.cl", gpu_id, build_opts);
+
+		// create kernels to execute
+		RarInit = clCreateKernel(program[gpu_id], "RarInit", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+		crypt_kernel = clCreateKernel(program[gpu_id], "RarHashLoop", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+		RarFinal = clCreateKernel(program[gpu_id], "RarFinal", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
 		                       warn, 3, self,

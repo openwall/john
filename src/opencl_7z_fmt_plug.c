@@ -214,11 +214,15 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(sevenzip_init), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(sevenzip_init), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt);
@@ -227,25 +231,11 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 static void init(struct fmt_main *_self)
 {
 	CRC32_t crc;
-	char build_opts[64];
-	cl_int cl_error;
 
 	self = _self;
+	opencl_prepare_dev(gpu_id);
 
 	CRC32_Init(&crc);
-	snprintf(build_opts, sizeof(build_opts),
-	         "-DPLAINTEXT_LENGTH=%d -DHASH_LOOPS=%d",
-	         PLAINTEXT_LENGTH, HASH_LOOPS);
-	opencl_init("$JOHN/kernels/7z_kernel.cl",
-	                gpu_id, build_opts);
-
-	sevenzip_init = clCreateKernel(program[gpu_id], "sevenzip_init",
-	                               &cl_error);
-	HANDLE_CLERROR(cl_error, "Error creating kernel");
-
-	crypt_kernel = clCreateKernel(program[gpu_id], "sevenzip_crypt",
-	                              &cl_error);
-	HANDLE_CLERROR(cl_error, "Error creating kernel");
 
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
@@ -254,6 +244,23 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
+		char build_opts[64];
+		cl_int cl_error;
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-DPLAINTEXT_LENGTH=%d -DHASH_LOOPS=%d",
+		         PLAINTEXT_LENGTH, HASH_LOOPS);
+		opencl_init("$JOHN/kernels/7z_kernel.cl",
+		            gpu_id, build_opts);
+
+		sevenzip_init = clCreateKernel(program[gpu_id], "sevenzip_init",
+		                               &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+
+		crypt_kernel = clCreateKernel(program[gpu_id], "sevenzip_crypt",
+		                              &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
 		                       warn, 2, self,

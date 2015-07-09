@@ -198,30 +198,35 @@ static void release_clobj(void){
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
-static void fmt_ssha_init(struct fmt_main *_self)
+static void init(struct fmt_main *_self)
 {
-	char build_opts[64];
-
 	self = _self;
-
-	snprintf(build_opts, sizeof(build_opts),
-	         "-DPLAINTEXT_LENGTH=%d", PLAINTEXT_LENGTH);
-	opencl_init("$JOHN/kernels/ssha_kernel.cl", gpu_id, build_opts);
-
-	// create kernel to execute
-	crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+	opencl_prepare_dev(gpu_id);
 }
 
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
+		char build_opts[64];
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-DPLAINTEXT_LENGTH=%d", PLAINTEXT_LENGTH);
+		opencl_init("$JOHN/kernels/ssha_kernel.cl", gpu_id, build_opts);
+
+		// create kernel to execute
+		crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 1, NULL, warn,
 		                       1, self, create_clobj, release_clobj,
@@ -388,7 +393,7 @@ struct fmt_main fmt_opencl_NSLDAPS = {
 #endif
 		tests
 	}, {
-		fmt_ssha_init,
+		init,
 		done,
 		reset,
 		fmt_default_prepare,

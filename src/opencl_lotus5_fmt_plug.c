@@ -175,20 +175,21 @@ static void release_clobj(void)
 static void init(struct fmt_main *_self)
 {
 	self = _self;
-
-	opencl_init("$JOHN/kernels/lotus5_kernel.cl", gpu_id, NULL);
-
-	crypt_kernel = clCreateKernel(program[gpu_id], "lotus5", &err);
-	HANDLE_CLERROR(err, "Create kernel FAILED.");
-
-	/* Just suppress a compiler warning!! */
-	if (0)
-		autotune_run(NULL, 0, 0, 0);
+	opencl_prepare_dev(gpu_id);
 }
 
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
+		opencl_init("$JOHN/kernels/lotus5_kernel.cl", gpu_id, NULL);
+
+		crypt_kernel = clCreateKernel(program[gpu_id], "lotus5", &err);
+		HANDLE_CLERROR(err, "Create kernel FAILED.");
+
+		/* Just suppress a compiler warning!! */
+		if (0)
+			autotune_run(NULL, 0, 0, 0);
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
 		                       create_clobj, release_clobj,
@@ -201,11 +202,15 @@ static void reset(struct db_main *db)
 
 static void done(void)
 {
-	release_clobj();
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel),
-		       "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
-		       "Release Program");
+	if (autotuned) {
+		release_clobj();
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel),
+		               "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
+		               "Release Program");
+
+		autotuned--;
+	}
 }
 
 /*Utility function to convert hex to bin */

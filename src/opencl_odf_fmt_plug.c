@@ -177,33 +177,38 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 static void init(struct fmt_main *_self)
 {
-	char build_opts[64];
-
 	self = _self;
-
-	snprintf(build_opts, sizeof(build_opts),
-	         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
-	         (int)sizeof(inbuffer->v),
-	         (int)sizeof(currentsalt.salt),
-	         (int)sizeof(outbuffer->v));
-	opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
-	                gpu_id, build_opts);
-
-	crypt_kernel = clCreateKernel(program[gpu_id], "derive_key", &cl_error);
-	HANDLE_CLERROR(cl_error, "Error creating kernel");
+	opencl_prepare_dev(gpu_id);
 }
 
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
+		char build_opts[64];
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
+		         (int)sizeof(inbuffer->v),
+		         (int)sizeof(currentsalt.salt),
+		         (int)sizeof(outbuffer->v));
+		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
+		            gpu_id, build_opts);
+
+		crypt_kernel = clCreateKernel(program[gpu_id], "derive_key", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1,
 		                       self, create_clobj, release_clobj,
