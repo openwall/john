@@ -389,15 +389,6 @@ __kernel void mscash(__global uint *keys,
 	uint hash[4] = {0};
 	uint bitmap_sz_bits = salt[12] + 1;
 
-#if FORCE_OCL_110 || __OPENCL_VERSION__ < 120 || (__OS_X__ && gpu_nvidia(DEVICE_INFO))
-	if (!gid) {
-		out_hash_ids[0] = 0;
-		for (i = 0; i < salt[14]/32 + 1; i++)
-			bitmap_dupe[i] = 0;
-	}
-	barrier(CLK_GLOBAL_MEM_FENCE);
-#endif
-
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
 	uint ikl = int_key_loc[gid];
 	uint loc0 = ikl & 0xff;

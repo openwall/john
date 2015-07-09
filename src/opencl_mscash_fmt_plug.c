@@ -60,8 +60,8 @@ static cl_uint *loaded_hashes = NULL, max_num_loaded_hashes, *hash_ids = NULL, *
 static cl_ulong bitmap_size_bits = 0;
 
 static unsigned int key_idx = 0;
-static unsigned int ocl_ver;
 static struct fmt_main *self;
+static cl_uint *zero_buffer;
 
 static char mscash_prefix[] = "M$";
 
@@ -160,18 +160,23 @@ static void create_clobj_kpc(size_t kpc)
 static void create_clobj()
 {
 	unsigned int dummy = 0;
+
+	zero_buffer = (cl_uint *) mem_calloc(max_hash_table_size/32 + 1, sizeof(cl_uint));
+
 	buffer_return_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, 2 * sizeof(cl_uint) * max_num_loaded_hashes, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_return_hashes.");
 
 	buffer_hash_ids = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (3 * max_num_loaded_hashes + 1) * sizeof(cl_uint), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_buffer_hash_ids.");
 
-	buffer_bitmap_dupe = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (max_hash_table_size/32 + 1) * sizeof(cl_uint), NULL, &ret_code);
+	buffer_bitmap_dupe = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, (max_hash_table_size/32 + 1) * sizeof(cl_uint), zero_buffer, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_bitmap_dupe.");
 
 	//ref_ctr is used as dummy parameter
 	buffer_int_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 4 * mask_int_cand.num_int_cand, mask_int_cand.int_cand ? mask_int_cand.int_cand : (void *)&dummy, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys.");
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
 }
 
 static void release_clobj_kpc(void)
@@ -213,6 +218,8 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_return_hashes), "Error Releasing buffer_return_hashes.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Error Releasing buffer_bitmap_dupe.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_ids), "Error Releasing buffer_hash_ids.");
+		MEM_FREE(zero_buffer);
 		buffer_int_keys = 0;
 	}
 }
@@ -306,23 +313,10 @@ static void init_kernel(void)
 		else
 			static_gpu_locations[i] = -1;
 
-#if CL_VERSION_1_2
-	ocl_ver = get_device_version(gpu_id);
-#else
-	ocl_ver = 110;
-#endif
-
-	/* Driver bug workaround for OSX and GT650M, see #1459 */
-	if (ocl_ver == 120 && platform_apple(platform_id) && gpu_nvidia(gpu_id))
-		ocl_ver = 110;
-
 	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
 
 	sprintf(build_opts, "-D NUM_INT_KEYS=%u -D IS_STATIC_GPU_MASK=%d"
 		" -D CONST_CACHE_SIZE=%llu -D LOC_0=%d"
-#if !CL_VERSION_1_2
-		" -DFORCE_OCL_110"
-#endif
 #if 1 < MASK_FMT_INT_PLHDR
 	" -D LOC_1=%d "
 #endif
@@ -752,21 +746,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// copy keys to the device
 	if (key_idx)
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys.");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_keys.");
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * global_work_size, saved_idx, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx.");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * global_work_size, saved_idx, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_idx.");
 
 	if (!is_static_gpu_mask)
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
 
-#if CL_VERSION_1_2
-	if (ocl_ver >= 120) {
-		static int zero = 0;
-
-		HANDLE_CLERROR(clEnqueueFillBuffer(queue[gpu_id], buffer_hash_ids, &zero, sizeof(cl_uint), 0, sizeof(cl_uint), 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueFillBuffer buffer_hash_ids.");
-		HANDLE_CLERROR(clEnqueueFillBuffer(queue[gpu_id], buffer_bitmap_dupe, &zero, sizeof(cl_uint), 0, sizeof(cl_uint) * (max_hash_table_size/32 + 1), 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueFillBuffer buffer_bitmap_dupe.");
-	}
-#endif
 	if (salt) {
 		current_salt = salt->sequential_id;
 		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_salts[current_salt]), (void *) &buffer_salts[current_salt]), "Error setting argument 3.");
@@ -775,9 +761,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_hash_tables[current_salt]), (void *) &buffer_hash_tables[current_salt]), "Error setting argument 8.");
 	}
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[5]), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), hash_ids, 0, NULL, multi_profilingEvent[6]), "failed in reading back num cracked hashes.");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), hash_ids, 0, NULL, NULL), "failed in reading back num cracked hashes.");
 
 	if (hash_ids[0] > max_num_loaded_hashes) {
 		fprintf(stderr, "Error, crypt_all kernel.\n");
@@ -785,8 +771,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	if (hash_ids[0]) {
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_return_hashes, CL_TRUE, 0, 2 * sizeof(cl_uint) * hash_ids[0], loaded_hashes, 0, NULL, multi_profilingEvent[7]), "failed in reading back return_hashes.");
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (3 * hash_ids[0] + 1) * sizeof(cl_uint), hash_ids, 0, NULL, multi_profilingEvent[8]), "failed in reading data back hash_ids.");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_return_hashes, CL_TRUE, 0, 2 * sizeof(cl_uint) * hash_ids[0], loaded_hashes, 0, NULL, NULL), "failed in reading back return_hashes.");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (3 * hash_ids[0] + 1) * sizeof(cl_uint), hash_ids, 0, NULL, NULL), "failed in reading data back hash_ids.");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmap_dupe, CL_TRUE, 0, (max_hash_table_size/32 + 1) * sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmap_dupe.");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
 	}
 
 	*pcount *=  mask_int_cand.num_int_cand;

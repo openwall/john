@@ -248,15 +248,6 @@ __kernel void md4(__global uint *keys,
 	uint len = base & 63;
 	uint hash[4];
 
-#if FORCE_OCL_110 || __OPENCL_VERSION__ < 120 || (__OS_X__ && gpu_nvidia(DEVICE_INFO))
-	if (!gid) {
-		out_hash_ids[0] = 0;
-		for (i = 0; i < HASH_TABLE_SIZE/32 + 1; i++)
-			bitmap_dupe[i] = 0;
-	}
-	barrier(CLK_GLOBAL_MEM_FENCE);
-#endif
-
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
 	uint ikl = int_key_loc[gid];
 	uint loc0 = ikl & 0xff;
