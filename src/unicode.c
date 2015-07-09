@@ -104,8 +104,10 @@ UTF16 CP_to_Unicode[0x100];
 static UTF8 CP_from_Unicode[0x10000];
 UTF8 CP_up[0x100];
 UTF8 CP_down[0x100];
+#ifndef UNICODE_NO_OPTIONS
 static int UnicodeType = -1;
 static int UnicodeInited = 0;
+#endif
 
 /*
  * This is used by single.c for determining that a character is a letter
