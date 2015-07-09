@@ -26,6 +26,21 @@ john_register_one(&fmt_rawSHA1);
 #undef _OPENMP
 #endif
 
+//#undef SIMD_COEF_32
+//#undef SIMD_PARA_SHA1
+
+/*
+ * Only effective for SIMD.
+ * Undef to disable reversing steps for benchmarking.
+ */
+#define REVERSE_STEPS
+
+#define INIT_A 0x67452301
+#define INIT_B 0xefcdab89
+#define INIT_C 0x98badcfe
+#define INIT_D 0x10325476
+#define INIT_E 0xC3D2E1F0
+
 #ifdef _OPENMP
 #ifdef SIMD_COEF_32
 #ifndef OMP_SCALE
@@ -251,11 +266,9 @@ static char *get_key(int index) {
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned char *realcipher;
+	static ARCH_WORD_32 out[DIGEST_SIZE / 4];
+	unsigned char *realcipher = (unsigned char*)out;
 	int i;
-
-	if (!realcipher)
-		realcipher = mem_alloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
 	ciphertext += TAG_LENGTH;
 
@@ -265,9 +278,21 @@ static void *get_binary(char *ciphertext)
 	}
 #ifdef SIMD_COEF_32
 	alter_endianity(realcipher, DIGEST_SIZE);
+#ifdef REVERSE_STEPS
+	out[0] -= INIT_A;
+	out[1] -= INIT_B;
+	out[2] -= INIT_C;
+	out[3] -= INIT_D;
+	out[4] -= INIT_E;
+#endif
 #endif
 	return (void*)realcipher;
 }
+
+#ifndef REVERSE_STEPS
+#undef SSEi_REVERSE_STEPS
+#define SSEi_REVERSE_STEPS 0
+#endif
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -282,7 +307,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #if SIMD_COEF_32
-		SSESHA1body(saved_key[index], crypt_key[index], NULL, SSEi_MIXED_IN);
+		SSESHA1body(saved_key[index], crypt_key[index], NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
 #else
 		SHA_CTX ctx;
 		SHA1_Init( &ctx );
@@ -326,19 +351,30 @@ static int cmp_exact(char *source, int index)
 static char *source(char *source, void *binary)
 {
 	static char Buf[CIPHERTEXT_LENGTH + 1];
-	unsigned char realcipher[BINARY_SIZE];
+	ARCH_WORD_32 out[BINARY_SIZE / 4];
+	unsigned char *realcipher = (unsigned char*)out;
 	unsigned char *cpi;
 	char *cpo;
 	int i;
 
 	memcpy(realcipher, binary, BINARY_SIZE);
-#ifdef SIMD_COEF_32
-	alter_endianity(realcipher, BINARY_SIZE);
-#endif
 	strcpy(Buf, FORMAT_TAG);
 	cpo = &Buf[TAG_LENGTH];
 
+#if defined(SIMD_COEF_32) && defined(REVERSE_STEPS)
+	out[0] += INIT_A;
+	out[1] += INIT_B;
+	out[2] += INIT_C;
+	out[3] += INIT_D;
+	out[4] += INIT_E;
+	cpi = (unsigned char*)out;
+#else
 	cpi = realcipher;
+#endif
+
+#ifdef SIMD_COEF_32
+	alter_endianity(realcipher, BINARY_SIZE);
+#endif
 
 	for (i = 0; i < BINARY_SIZE; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
