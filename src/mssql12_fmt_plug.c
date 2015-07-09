@@ -380,7 +380,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 out[SHA_BUF_SIZ];
+	static ARCH_WORD_64 out[SHA_BUF_SIZ];
 	char *realcipher = (char*)out;
 	int i;
 
