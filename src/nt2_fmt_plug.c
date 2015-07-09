@@ -35,6 +35,9 @@ john_register_one(&fmt_NT2);
 #include "johnswap.h"
 #include "memdbg.h"
 
+/* Only effective for SIMD */
+#define REVERSE_STEPS
+
 #define FORMAT_LABEL			"NT"
 #define FORMAT_NAME			""
 
@@ -281,6 +284,13 @@ static void *get_binary(char *ciphertext)
 		out[i]=JOHNSWAP(temp);
 #endif
 	}
+#if defined(SIMD_COEF_32) && defined(REVERSE_STEPS)
+	/* A very modest reversing of steps ;-) */
+	out[0] -= 0x67452301;
+	out[1] -= 0xefcdab89;
+	out[2] -= 0x98badcfe;
+	out[3] -= 0x10325476;
+#endif
 //	dump_stuff_msg("binary", out, 16);
 	return out;
 }
@@ -555,18 +565,18 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 #ifdef SIMD_COEF_32
+	unsigned int i = 0;
 #ifdef _OPENMP
-	unsigned int i;
-
 	const unsigned int count = (*pcount + NBKEYS - 1) / NBKEYS;
-#ifdef _OPENMP
+
 #pragma omp parallel for
-#endif
 	for (i = 0; i < count; i++)
-		SSEmd4body(&saved_key[i*NBKEYS*64], (unsigned int*)&crypt_key[i*NBKEYS*DIGEST_SIZE], NULL, SSEi_MIXED_IN);
-#else
-	SSEmd4body(saved_key, (ARCH_WORD_32*)crypt_key, NULL, SSEi_MIXED_IN);
 #endif
+		SSEmd4body(&saved_key[i*NBKEYS*64], (unsigned int*)&crypt_key[i*NBKEYS*DIGEST_SIZE], NULL,
+#ifdef REVERSE_STEPS
+		           SSEi_SKIP_FINAL_ADD |
+#endif
+		           SSEi_MIXED_IN);
 
 #else
 	MD4_Init( &ctx );
@@ -702,10 +712,22 @@ static char *source(char *source, void *binary)
 	char *cpo;
 	int i;
 
+#if defined(SIMD_COEF_32) && defined(REVERSE_STEPS)
+	int o[4];
+
+	/* Undo the reversing of steps */
+	o[0] = ((int*)binary)[0] + 0x67452301;
+	o[1] = ((int*)binary)[1] + 0xefcdab89;
+	o[2] = ((int*)binary)[2] + 0x98badcfe;
+	o[3] = ((int*)binary)[3] + 0x10325476;
+
+	cpi = (unsigned char*)o;
+#else
+	cpi = (unsigned char*)binary;
+#endif
+
 	strcpy(Buf, "$NT$");
 	cpo = &Buf[4];
-
-	cpi = (unsigned char*)(binary);
 
 	for (i = 0; i < 16; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];

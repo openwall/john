@@ -286,12 +286,15 @@ void SSEmd5body(vtype* _data, unsigned int *out,
 
 	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
-		MD5_PARA_DO(i)
+		if ((SSEi_flags & SSEi_SKIP_FINAL_ADD) == 0)
 		{
-			a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
-			b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
-			c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
-			d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
+			MD5_PARA_DO(i)
+			{
+				a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
+				b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
+				c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
+				d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
+			}
 		}
 	}
 	else
@@ -834,12 +837,15 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 
 	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
-		MD4_PARA_DO(i)
+		if ((SSEi_flags & SSEi_SKIP_FINAL_ADD) == 0)
 		{
-			a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
-			b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
-			c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
-			d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
+			MD4_PARA_DO(i)
+			{
+				a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
+				b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
+				c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
+				d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
+			}
 		}
 	}
 	else
@@ -1269,13 +1275,16 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 
 	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
-		SHA1_PARA_DO(i)
+		if ((SSEi_flags & SSEi_SKIP_FINAL_ADD) == 0)
 		{
-			a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
-			b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
-			c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
-			d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
-			e[i] = vadd_epi32(e[i], vset1_epi32(0xC3D2E1F0));
+			SHA1_PARA_DO(i)
+			{
+				a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
+				b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
+				c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
+				d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
+				e[i] = vadd_epi32(e[i], vset1_epi32(0xC3D2E1F0));
+			}
 		}
 	}
 	else
