@@ -38,6 +38,7 @@ m4_include([m4/ax_lang_compiler_ms.m4])
 m4_include([m4/ax_check_gnu_make.m4])
 m4_include([m4/jtr_x86_logic.m4])
 m4_include([m4/jtr_mic_logic.m4])
+m4_include([m4/jtr_ppc_logic.m4])
 m4_include([m4/jtr_arm_logic.m4])
 m4_include([m4/jtr_generic_logic.m4])
 m4_include([m4/jtr_systems_specific_logic.m4])
@@ -335,7 +336,9 @@ case "$host_cpu" in
   mips64*) ARCH_LINK=mips64.h endian=big ;;
   mips*) ARCH_LINK=mips32.h endian=big ;;
   pdp*) ARCH_LINK=autoconf_arch.h endian=little ;;
-  powerpc64le) ARCH_LINK=ppc64.h endian=little ;;
+  powerpc64le) ARCH_LINK=ppc64.h endian=little 
+	           JTR_PPC_SPECIAL_LOGIC
+	           ;;
   powerpc64*) ARCH_LINK=ppc64.h endian=big ;;
   powerpcle) ARCH_LINK=ppc32.h endian=little ;;
   powerpc*) ARCH_LINK=ppc32.h endian=big ;;

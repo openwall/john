@@ -115,10 +115,10 @@ void SSEmd5body(vtype* _data, unsigned int *out,
                 ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
 	vtype w[16*SIMD_PARA_MD5];
-	vtype a[SIMD_PARA_MD5];
-	vtype b[SIMD_PARA_MD5];
-	vtype c[SIMD_PARA_MD5];
-	vtype d[SIMD_PARA_MD5];
+	volatile vtype a[SIMD_PARA_MD5];
+	volatile vtype b[SIMD_PARA_MD5];
+	volatile vtype c[SIMD_PARA_MD5];
+	volatile vtype d[SIMD_PARA_MD5];
 	vtype tmp[SIMD_PARA_MD5];
 	vtype tmp2[SIMD_PARA_MD5];
 	vtype mask;
@@ -1906,13 +1906,13 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 	unsigned int i, k;
 
 	vtype a[SIMD_PARA_SHA512],
-		  b[SIMD_PARA_SHA512],
-		  c[SIMD_PARA_SHA512],
-		  d[SIMD_PARA_SHA512],
-		  e[SIMD_PARA_SHA512],
-		  f[SIMD_PARA_SHA512],
-		  g[SIMD_PARA_SHA512],
-		  h[SIMD_PARA_SHA512];
+	      b[SIMD_PARA_SHA512],
+	      c[SIMD_PARA_SHA512],
+	      d[SIMD_PARA_SHA512],
+	      e[SIMD_PARA_SHA512],
+	      f[SIMD_PARA_SHA512],
+	      g[SIMD_PARA_SHA512],
+	      h[SIMD_PARA_SHA512];
 	vtype w[SIMD_PARA_SHA512][16];
 	vtype tmp1[SIMD_PARA_SHA512], tmp2[SIMD_PARA_SHA512];
 

@@ -111,6 +111,9 @@ case "${host_cpu}_${CFLAGS}" in
    mic*)
       [CC_ASM_OBJS="sse-intrinsics.o"]
       ;;
+   powerpc64le*)
+      [CC_ASM_OBJS="sse-intrinsics.o"]
+      ;;
    alpha*dec*)
       [CC_ASM_OBJS="digipaq-alpha.o"]
       ;;
