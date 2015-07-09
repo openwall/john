@@ -152,13 +152,13 @@ static int is_aligned(void *p, size_t align)
 		format->methods.set_key(buf_key, index); \
 	}
 
-#define MAXLABEL        "MAXLENGTH" /* must be upper-case ASCII chars only */
-#define MAXLABEL_SIMD   "0X80_IS_NOT_EOW\x80" /* Catch a common bug */
+#define MAXLABEL        "3133731337" /* must be non-letter ASCII chars only */
+#define MAXLABEL_SIMD   "80808080\x80" /* Catch a common bug */
 static char *longcand(struct fmt_main *format, int index, int ml)
 {
 	static char out[PLAINTEXT_BUFFER_SIZE];
 
-	memset(out, 'A' + (index % 23), ml);
+	memset(out, '!' + (index & 31), ml);
 	if (!(format->params.flags & FMT_8_BIT) ||
 #ifndef BENCH_BUILD
 	    !(format->params.flags & FMT_CASE) || pers_opts.target_enc == UTF_8
