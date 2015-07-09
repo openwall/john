@@ -668,8 +668,10 @@ static int cmp_exact(char *source, int index)
 	binary[2] += INIT_C;
 	binary[3] += INIT_D;
 #endif
-#endif
 	return !memcmp(binary, crypt_key, DIGEST_SIZE);
+#else
+	return 1;
+#endif
 }
 
 #ifdef SIMD_COEF_32
