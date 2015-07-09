@@ -1893,7 +1893,7 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 {                                                           \
     SHA512_PARA_DO(i)                                       \
     {                                                       \
-	    tmp1[i] = vadd_epi64(h[i],    w[i][(x)&0xf]);       \
+        tmp1[i] = vadd_epi64(h[i],    w[i][(x)&0xf]);       \
         tmp2[i] = vadd_epi64(S1(e[i]),vset1_epi64x(K));     \
         tmp1[i] = vadd_epi64(tmp1[i], Ch(e[i],f[i],g[i]));  \
         tmp1[i] = vadd_epi64(tmp1[i], tmp2[i]);             \
@@ -1910,13 +1910,13 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 	unsigned int i, k;
 
 	vtype a[SIMD_PARA_SHA512],
-		  b[SIMD_PARA_SHA512],
-		  c[SIMD_PARA_SHA512],
-		  d[SIMD_PARA_SHA512],
-		  e[SIMD_PARA_SHA512],
-		  f[SIMD_PARA_SHA512],
-		  g[SIMD_PARA_SHA512],
-		  h[SIMD_PARA_SHA512];
+	      b[SIMD_PARA_SHA512],
+	      c[SIMD_PARA_SHA512],
+	      d[SIMD_PARA_SHA512],
+	      e[SIMD_PARA_SHA512],
+	      f[SIMD_PARA_SHA512],
+	      g[SIMD_PARA_SHA512],
+	      h[SIMD_PARA_SHA512];
 	vtype w[SIMD_PARA_SHA512][16];
 	vtype tmp1[SIMD_PARA_SHA512], tmp2[SIMD_PARA_SHA512];
 

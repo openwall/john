@@ -1,7 +1,7 @@
 dnl Redistribution and use in source or binary forms, with or without
 dnl modification, are permitted.
 dnl
-dnl This file contains compiler and linker flags specifically for MIC.
+dnl This file contains compiler flags specifically for MIC.
 
 AC_DEFUN([JTR_MIC_SPECIAL_LOGIC], [
 # specific optimization flags for MIC

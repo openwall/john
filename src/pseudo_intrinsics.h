@@ -34,8 +34,84 @@
 #include "stdint.h"
 #include "common.h" /* for is_aligned() */
 
+/*************************** AltiVec (Power) ***************************/
+#ifdef __ALTIVEC__
+#include <altivec.h>
+#include "int128.h"
+
+typedef vector unsigned int vtype32;
+typedef vector unsigned long vtype64;
+typedef union {
+	uint128_t i;
+	vtype32 v32;
+	vtype64 v64;
+	uint32_t s32[SIMD_COEF_32];
+	uint64_t s64[SIMD_COEF_64];
+} vtype;
+
+#define vadd_epi32(x, y)        (vtype)vec_add((x).v32, (y).v32)
+#define vadd_epi64(x, y)		(vtype)vec_add((x).v64, (y).v64)
+#define vand(x, y)              (vtype)vec_and((x).v32, (y).v32)
+#define vandnot(x, y)			vnor(vand(x, y), vand(x, y))
+#define vcmov(y, z, x)			(vtype)vec_sel((z).v32, (y).v32, (x).v32)
+#define vload(m)                (vtype)(vtype32)vec_ld(0, (uint32_t*)(m))
+#define vnor(x, y)              (vtype)vec_nor((x).v32, (y).v32)
+#define vor(x, y)               (vtype)vec_or((x).v32, (y).v32)
+#define vset1_epi32(x)			vset_epi32(x, x, x, x)         
+#define vset1_epi64x(x)			vset_epi64x(x, x)
+#define vset_epi32(x3,x2,x1,x0) (vtype)(vtype32){x0, x1, x2, x3}
+#define vset_epi64x(x1,x0)     	(vtype)(vtype64){x0, x1}
+#define vslli_epi32(x, i)       (vtype)vec_sl((x).v32, (vset1_epi32(i)).v32)
+#define vsrli_epi32(x, i)       (vtype)vec_sr((x).v32, (vset1_epi32(i)).v32)
+#define vstore(m, x)            vec_st((x).v32, 0, (uint32_t*)(m))
+#define vxor(x, y)              (vtype)vec_xor((x).v32, (y).v32)
+
+#define vtestz_epi32(x)         ((x).i == 0)
+#define vtesteq_epi32(x, y)     ((x).i == (y).i)
+
+#define vswap32(x) \
+	x = vxor(vsrli_epi32(x, 24),                                            \
+			 vxor(vslli_epi32(vsrli_epi32(vslli_epi32(x, 8), 24), 8),       \
+				  vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(x, 8), 24), 8),  \
+					   vslli_epi32(x, 24))))
+#define vswap64(x) \
+	    (x = vxor(vsrli_epi64(x, 32), vslli_epi64(x, 32)), vswap32(x))
+
+#define GATHER64(x,y,z)     { x = vset_epi64x (y[1][z], y[0][z]); }
+
+// inefficient emulations
+static inline vtype vslli_epi64(vtype x, int i)
+{
+	int k;
+	for (k = 0; k < SIMD_COEF_64; ++k)
+		x.s64[k] <<= i;
+	return x;
+}
+
+static inline vtype vsrli_epi64(vtype x, int i)
+{
+	int k;
+	for (k = 0; k < SIMD_COEF_64; ++k)
+		x.s64[k] >>= i;
+	return x;
+}
+
+static inline vtype vloadu(const void *addr)
+{
+	char buf[16];
+	return is_aligned(addr, 16) ? vload(addr) :
+	                              (memcpy(buf, addr, 16), vload(buf));
+}
+
+static inline void vstoreu(void *addr, vtype v)
+{
+	char buf[16];
+	is_aligned(addr, 16) ? vstore(addr, v) :
+	                       (vstore(buf, v), memcpy(addr, buf, 16));
+}
+
 /*************************** AVX512 and MIC ***************************/
-#if __AVX512F__ || __MIC__
+#elif __AVX512F__ || __MIC__
 #include <immintrin.h>
 
 typedef __m512i vtype;
@@ -490,7 +566,7 @@ typedef __m64i vtype;
      vxor(vslli_epi64a((a), (s)), vsrli_epi64((a), 64 - (s))))
 
 // Specialized ROTL16 for SSE4.1 and lower (MD5)
-#if __AVX__ || __MIC__
+#if __AVX__ || __MIC__ || __ALTIVEC__
 #define vroti16_epi32(a,s) vroti_epi32(a, 16)
 
 #elif __SSSE3__
