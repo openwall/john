@@ -18,6 +18,21 @@ john_register_one(&fmt_mssql);
 
 #include "arch.h"
 
+//#undef SIMD_COEF_32
+//#undef SIMD_PARA_SHA1
+
+/*
+ * Only effective for SIMD.
+ * Undef to disable reversing steps for benchmarking.
+ */
+#define REVERSE_STEPS
+
+#define INIT_A 0x67452301
+#define INIT_B 0xefcdab89
+#define INIT_C 0x98badcfe
+#define INIT_D 0x10325476
+#define INIT_E 0xC3D2E1F0
+
 #ifdef SIMD_COEF_32
 #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
@@ -276,6 +291,11 @@ static int cmp_one(void * binary, int index)
 #endif
 }
 
+#ifndef REVERSE_STEPS
+#undef SSEi_REVERSE_STEPS
+#define SSEi_REVERSE_STEPS 0
+#endif
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
@@ -288,7 +308,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for(i=0;i<SALT_SIZE;i++)
 			saved_key[GETPOS((len+i), index)] = cursalt[i];
 	}
-	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
+	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
 #else
 	SHA_CTX ctx;
 	memcpy(saved_key+key_length*2, cursalt, SALT_SIZE);
@@ -302,10 +322,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void * get_binary(char *ciphertext)
 {
-	static char *realcipher;
+	static ARCH_WORD_32 out[SHA_BUF_SIZ];
+	char *realcipher = (char*)out;
 	int i;
-
-	if(!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
 	for(i=0;i<BINARY_SIZE;i++)
 	{
@@ -313,6 +332,13 @@ static void * get_binary(char *ciphertext)
 	}
 #ifdef SIMD_COEF_32
 	alter_endianity((unsigned char *)realcipher, BINARY_SIZE);
+#ifdef REVERSE_STEPS
+	out[0] -= INIT_A;
+	out[1] -= INIT_B;
+	out[2] -= INIT_C;
+	out[3] -= INIT_D;
+	out[4] -= INIT_E;
+#endif
 #endif
 	return (void *)realcipher;
 }
