@@ -286,7 +286,7 @@ void SSEmd5body(vtype* _data, unsigned int *out,
 
 	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
-		if ((SSEi_flags & SSEi_SKIP_FINAL_ADD) == 0)
+		if ((SSEi_flags & SSEi_REVERSE_STEPS) == 0)
 		{
 			MD5_PARA_DO(i)
 			{
@@ -678,6 +678,13 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
         a[i] = vroti_epi32( a[i], (s) );            \
     }
 
+#define MD4_REV_STEP(f, a, b, c, d, x, t, s)        \
+    MD4_PARA_DO(i) {                                \
+        f((b),(c),(d))                              \
+        a[i] = vadd_epi32( a[i], tmp[i] );          \
+        a[i] = vadd_epi32( a[i], data[i*16+x] );    \
+    }
+
 void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
                 unsigned SSEi_flags)
 {
@@ -828,24 +835,34 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	MD4_STEP(MD4_H, a, b, c, d, 1, cst, 3)
 	MD4_STEP(MD4_H2, d, a, b, c, 9, cst, 9)
 	MD4_STEP(MD4_H, c, d, a, b, 5, cst, 11)
+
+	if ((SSEi_flags & SSEi_REVERSE_STEPS))
+	{
+		MD4_REV_STEP(MD4_H2, b, c, d, a, 13, cst, 15)
+		MD4_PARA_DO(i)
+		{
+			vstore((vtype*)&out[i*4*VS32+0*VS32], a[i]);
+			vstore((vtype*)&out[i*4*VS32+1*VS32], b[i]);
+			vstore((vtype*)&out[i*4*VS32+2*VS32], c[i]);
+			vstore((vtype*)&out[i*4*VS32+3*VS32], d[i]);
+		}
+		return;
+	}
+
 	MD4_STEP(MD4_H2, b, c, d, a, 13, cst, 15)
 	MD4_STEP(MD4_H, a, b, c, d, 3, cst, 3)
 	MD4_STEP(MD4_H2, d, a, b, c, 11, cst, 9)
 	MD4_STEP(MD4_H, c, d, a, b, 7, cst, 11)
 	MD4_STEP(MD4_H2, b, c, d, a, 15, cst, 15)
 
-
 	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
-		if ((SSEi_flags & SSEi_SKIP_FINAL_ADD) == 0)
+		MD4_PARA_DO(i)
 		{
-			MD4_PARA_DO(i)
-			{
-				a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
-				b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
-				c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
-				d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
-			}
+			a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
+			b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
+			c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
+			d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
 		}
 	}
 	else
@@ -1275,7 +1292,7 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 
 	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
-		if ((SSEi_flags & SSEi_SKIP_FINAL_ADD) == 0)
+		if ((SSEi_flags & SSEi_REVERSE_STEPS) == 0)
 		{
 			SHA1_PARA_DO(i)
 			{
@@ -1702,7 +1719,7 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 				h[i] = vadd_epi32(h[i],vload((vtype*)&reload_state[i*8*VS32+7*VS32]));
 			}
 		}
-	} else if ((SSEi_flags & SSEi_SKIP_FINAL_ADD) == 0) {
+	} else if ((SSEi_flags & SSEi_REVERSE_STEPS) == 0) {
 		if (SSEi_flags & SSEi_CRYPT_SHA224) {
 			SHA256_PARA_DO(i)
 			{
@@ -2116,7 +2133,7 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 				h[i] = vadd_epi64(h[i],vload((vtype*)&reload_state[i*8*VS64+7*VS64]));
 			}
 		}
-	} else if ((SSEi_flags & SSEi_SKIP_FINAL_ADD) == 0) {
+	} else if ((SSEi_flags & SSEi_REVERSE_STEPS) == 0) {
 		if (SSEi_flags & SSEi_CRYPT_SHA384) {
 			SHA512_PARA_DO(i)
 			{
