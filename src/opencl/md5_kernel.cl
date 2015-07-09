@@ -262,8 +262,6 @@ __kernel void md5(__global uint *keys,
 		  volatile __global uint *bitmap_dupe)
 {
 	uint i;
-	uint lid = get_local_id(0);
-	uint lws = get_local_size(0);
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint W[16] = { 0 };
@@ -303,6 +301,8 @@ __kernel void md5(__global uint *keys,
 #endif
 
 #if USE_LOCAL_BITMAPS
+	uint lid = get_local_id(0);
+	uint lws = get_local_size(0);
 	uint __local s_bitmaps[(BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS];
 
 	for(i = 0; i < (((BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS) / lws); i++)
