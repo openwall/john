@@ -280,21 +280,28 @@ void SSEmd5body(vtype* _data, unsigned int *out,
 	MD5_STEP(MD5_I, c, d, a, b, 6, 0xa3014314, 15)
 	MD5_STEP(MD5_I, b, c, d, a, 13, 0x4e0811a1, 21)
 	MD5_STEP(MD5_I, a, b, c, d, 4, 0xf7537e82, 6)
+
+	if (SSEi_flags & SSEi_REVERSE_STEPS)
+	{
+		MD5_PARA_DO(i)
+		{
+			vstore((vtype*)&out[i*4*VS32+0*VS32], a[i]);
+		}
+		return;
+	}
+
 	MD5_STEP(MD5_I, d, a, b, c, 11, 0xbd3af235, 10)
 	MD5_STEP(MD5_I, c, d, a, b, 2, 0x2ad7d2bb, 15)
 	MD5_STEP(MD5_I, b, c, d, a, 9, 0xeb86d391, 21)
 
 	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
-		if ((SSEi_flags & SSEi_REVERSE_STEPS) == 0)
+		MD5_PARA_DO(i)
 		{
-			MD5_PARA_DO(i)
-			{
-				a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
-				b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
-				c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
-				d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
-			}
+			a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
+			b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
+			c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
+			d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
 		}
 	}
 	else
