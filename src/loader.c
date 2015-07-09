@@ -563,7 +563,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 			/* Format disabled in john.conf */
 			if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
 			                 alt->params.label, 0)) {
-				if (!strcasecmp(options.format, "dynamic-all")&&(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
+				if (options.format && !strcasecmp(options.format, "dynamic-all") &&
+					(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
 					// allow dyna if '-format=dynamic-all' was selected
 				} else
 					disabled = 1;
@@ -632,7 +633,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 					// in debug mode, we 'allow' dyna
 				} else
 #else
-				if (!strcasecmp(options.format, "dynamic-all")&&(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
+				if (options.format && !strcasecmp(options.format, "dynamic-all") &&
+					(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
 					// allow dyna if '-format=dynamic-all' was selected
 				} else
 #endif
@@ -682,7 +684,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 				// in debug mode, we 'allow' dyna
 			} else
 #else
-			if (!strcasecmp(options.format, "dynamic-all")&&(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
+			if (options.format && !strcasecmp(options.format, "dynamic-all") &&
+				(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
 				// allow dyna if '-format=dynamic-all' was selected
 			} else
 
