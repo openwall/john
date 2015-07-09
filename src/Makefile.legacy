@@ -2366,8 +2366,10 @@ unrarppm.o: unrarppm.c
 .s.o:
 	$(AS) $(ASFLAGS) $*.S
 
+# For jumbo, --make_check fails for the first thin format that is linked
+# to a dynamic format in a config file, so we deviate from core here.
 check:
-	../run/john --make_check
+	../run/john --test=0 --verbosity=2
 
 depend:
 	makedepend -fMakefile.dep -Y *.c 2>> /dev/null
