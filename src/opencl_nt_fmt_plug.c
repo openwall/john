@@ -687,7 +687,8 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 			bitmap_size_bits = 512 * 1024;
 
 		else if (amd_gcn_11(device_info[gpu_id]) ||
-			max_local_mem_sz_bytes < 16384)
+			max_local_mem_sz_bytes < 16384 ||
+			cpu(device_info[gpu_id]))
 			bitmap_size_bits = 256 * 1024;
 
 		else {
@@ -703,7 +704,8 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 			bitmap_size_bits = 512 * 1024;
 
 		else if (amd_gcn_11(device_info[gpu_id]) ||
-			max_local_mem_sz_bytes < 32768)
+			max_local_mem_sz_bytes < 32768 ||
+			cpu(device_info[gpu_id]))
 			bitmap_size_bits = 256 * 1024;
 
 		else {
@@ -721,7 +723,8 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 			max_local_mem_sz_bytes < 32768)
 			bitmap_size_bits = 512 * 1024;
 
-		else if (amd_vliw4(device_info[gpu_id])) {
+		else if (amd_vliw4(device_info[gpu_id]) ||
+			cpu(device_info[gpu_id])) {
 			bitmap_size_bits = 256 * 1024;
 			cmp_steps = 4;
 		}
