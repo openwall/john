@@ -99,14 +99,14 @@ typedef struct Dynamic_Str_Flag_t
 } Dynamic_Str_Flag_t;
 
 #define LARGE_HASH_FUNCS(HASH) \
-	{ "DynamicFunc__"#HASH"_crypt_input1_append_input2", DynamicFunc__##HASH##_crypt_input1_append_input2 }, \
-	{ "DynamicFunc__"#HASH"_crypt_input2_append_input1", DynamicFunc__##HASH##_crypt_input2_append_input1 }, \
-	{ "DynamicFunc__"#HASH"_crypt_input1_overwrite_input1", DynamicFunc__##HASH##_crypt_input1_overwrite_input1 }, \
-	{ "DynamicFunc__"#HASH"_crypt_input2_overwrite_input2", DynamicFunc__##HASH##_crypt_input2_overwrite_input2 }, \
-	{ "DynamicFunc__"#HASH"_crypt_input1_overwrite_input2", DynamicFunc__##HASH##_crypt_input1_overwrite_input2 }, \
-	{ "DynamicFunc__"#HASH"_crypt_input2_overwrite_input1", DynamicFunc__##HASH##_crypt_input2_overwrite_input1 }, \
-	{ "DynamicFunc__"#HASH"_crypt_input1_to_output1_FINAL", DynamicFunc__##HASH##_crypt_input1_to_output1_FINAL }, \
-	{ "DynamicFunc__"#HASH"_crypt_input2_to_output1_FINAL", DynamicFunc__##HASH##_crypt_input2_to_output1_FINAL },
+	{ "DynamicFunc__" #HASH "_crypt_input1_append_input2", DynamicFunc__##HASH##_crypt_input1_append_input2 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input2_append_input1", DynamicFunc__##HASH##_crypt_input2_append_input1 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input1_overwrite_input1", DynamicFunc__##HASH##_crypt_input1_overwrite_input1 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input2_overwrite_input2", DynamicFunc__##HASH##_crypt_input2_overwrite_input2 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input1_overwrite_input2", DynamicFunc__##HASH##_crypt_input1_overwrite_input2 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input2_overwrite_input1", DynamicFunc__##HASH##_crypt_input2_overwrite_input1 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input1_to_output1_FINAL", DynamicFunc__##HASH##_crypt_input1_to_output1_FINAL }, \
+	{ "DynamicFunc__" #HASH "_crypt_input2_to_output1_FINAL", DynamicFunc__##HASH##_crypt_input2_to_output1_FINAL },
 
 static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__clean_input",  DynamicFunc__clean_input },
@@ -297,7 +297,7 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 
 
 #define SALT_AS_HEX_FLAG(HASH) \
-	{ "MGF_SALT_AS_HEX_"#HASH,             MGF_SALT_AS_HEX_##HASH },
+	{ "MGF_SALT_AS_HEX_" #HASH,             MGF_SALT_AS_HEX_##HASH },
 
 static Dynamic_Str_Flag_t Dynamic_Str_Flag[] =  {
 	{ "MGF_NOTSSE2Safe",                  MGF_NOTSSE2Safe },
@@ -372,8 +372,8 @@ static Dynamic_Str_Flag_t Dynamic_Str_Flag[] =  {
 	{ NULL, 0 }};
 
 #define SALT_AS_HEX_FLAG2(HASH) \
-	{ "MGF_KEYS_BASE16_IN1_"#HASH,              MGF_KEYS_BASE16_IN1_##HASH }, \
-	{ "MGF_KEYS_BASE16_IN1_Offset_"#HASH,       MGF_KEYS_BASE16_IN1_Offset_##HASH },
+	{ "MGF_KEYS_BASE16_IN1_" #HASH,              MGF_KEYS_BASE16_IN1_##HASH }, \
+	{ "MGF_KEYS_BASE16_IN1_Offset_" #HASH,       MGF_KEYS_BASE16_IN1_Offset_##HASH },
 
 static Dynamic_Str_Flag_t Dynamic_Str_sFlag[] =  {
 	{ "MGF_KEYS_INPUT",                       MGF_KEYS_INPUT },

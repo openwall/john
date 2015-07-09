@@ -64,7 +64,11 @@
  *****************************************************************
  *     TODO:
  *****************************************************************
- *   Handle #define MGF_KEYS_INPUT                   0x00000001
+
+ add new logic for ^  (exponentiation)
+
+ Handle:
+#define MGF_KEYS_INPUT                   0x00000001
 #define MGF_KEYS_CRYPT_IN2               0x00000002
 // for salt_as_hex for other formats, we do this:  (flag>>56)
 // Then 00 is md5, 01 is md4, 02 is SHA1, etc
@@ -107,18 +111,15 @@ BENCHMARK_FLAG  (for raw hashes, etc).
 #define MGF_INPBASE64		         0x00000080
 if any utf16 used, set this flag??
 
-#define MGF_PASSWORD_UPCASE          0x08000000
-#define MGF_PASSWORD_LOCASE          0x10000000
-
-if outter hash is upcase
-#define MGF_BASE_16_OUTPUT_UPCASE    0x00002000
-
 Figure out how to better hook in dynamic= so that we can use this in other
 situations than ONLY working if -format=dynamic=expr is used.
 
 Right now, all handles are allocated 'tiny'.  Change that so that we
 do normal alloc/calloc, keep a list of all handles ever allocated, and
 then upon void dynamic_compile_done() free up all memory from that list.
+
+$p and or uc($p) or lc($p) MUST be the only way $p is shown. If uc($p) then ALL must be uc, etc.
+Same goes for $u.  NOTE, the lexi works this way. I just need to document it.
 
 DONE // MGF_INPBASE64b uses e_b64_crypt from base64_convert.h
 DONE #define MGF_INPBASE64b		         0x00004000
@@ -128,6 +129,9 @@ DONE #define MGF_UTF8                     0x04000000
 DONE Remove all md5u() types.  Replace with a utf16() function.
 DONE #define MGF_USERNAME_UPCASE         (0x00000020|MGF_USERNAME)
 DONE #define MGF_USERNAME_LOCASE         (0x00000040|MGF_USERNAME)
+DONE #define MGF_PASSWORD_UPCASE          0x08000000
+DONE #define MGF_PASSWORD_LOCASE          0x10000000
+DONE #define MGF_BASE_16_OUTPUT_UPCASE    0x00002000
 
  */
 
@@ -277,7 +281,7 @@ static char *pScriptLines[1024];
 static int nScriptLines;
 static int nSyms;
 static int LastTokIsFunc;
-static int bNeedS, bNeedS2, bNeedU, bNeedUlc, bNeedUuc, bNeedPlc, bNeedPuc;
+static int bNeedS, bNeedS2, bNeedU, bNeedUlc, bNeedUuc, bNeedPlc, bNeedPuc, bNeedUC, bNeedPC;
 static char *salt_as_hex_type;
 static int keys_as_input;
 static char *gen_Stack[1024];
@@ -436,7 +440,7 @@ static void init_static_data() {
 	nScriptLines = 0;
 	LastTokIsFunc = 0;
 	keys_as_input = 0;
-	bNeedS = bNeedS2 = bNeedU = bNeedUlc = bNeedUuc = bNeedPlc = bNeedPuc = compile_debug = 0;
+	bNeedS = bNeedS2 = bNeedU = bNeedUlc = bNeedUuc = bNeedPlc = bNeedPuc = bNeedUC = bNeedPC = compile_debug = 0;
 	MEM_FREE(salt_as_hex_type);
 	h = NULL;
 	h_len = 0;
@@ -517,11 +521,11 @@ static const char *comp_push_sym(const char *p, fpSYM fpsym, const char *pRet) {
 
 #define LOOKUP_IF_BLK(T,U,S,F,L) \
 	if (!strncasecmp(pInput, #T, L)) { \
-		if (!strncmp(pInput, #T"_raw(", L+5)) { LastTokIsFunc = 2; return comp_push_sym("f"#S"r", dynamic_f##F##r, pInput+(L+4)); } \
-		if (!strncmp(pInput, #T"_64c(", L+5)) { return comp_push_sym("f"#S"c", dynamic_f##F##c, pInput+(L+4)); } \
-		if (!strncmp(pInput, #T"_64(", L+4)) { return comp_push_sym("f"#S"6", dynamic_f##F##6, pInput+(L+3)); } \
-		if (!strncmp(pInput, #T"(", L+1)) { return comp_push_sym("f"#S"h", dynamic_f##F##h, pInput+L); } \
-		if (!strncmp(pInput, #U"(", L+1)) { return comp_push_sym("f"#S"H", dynamic_f##F##H, pInput+L); } }
+		if (!strncmp(pInput, #T "_raw(", L+5)) { LastTokIsFunc = 2; return comp_push_sym("f" #S "r", dynamic_f##F##r, pInput+(L+4)); } \
+		if (!strncmp(pInput, #T "_64c(", L+5)) { return comp_push_sym("f" #S "c", dynamic_f##F##c, pInput+(L+4)); } \
+		if (!strncmp(pInput, #T "_64(", L+4)) { return comp_push_sym("f" #S "6", dynamic_f##F##6, pInput+(L+3)); } \
+		if (!strncmp(pInput, #T "(", L+1)) { return comp_push_sym("f" #S "h", dynamic_f##F##h, pInput+L); } \
+		if (!strncmp(pInput, #U "(", L+1)) { return comp_push_sym("f" #S "H", dynamic_f##F##H, pInput+L); } }
 
 static const char *comp_get_symbol(const char *pInput) {
 	// This function will grab the next valid symbol, and returns
@@ -534,8 +538,8 @@ static const char *comp_get_symbol(const char *pInput) {
 	if (*pInput == ')') return comp_push_sym(")", fpNull, pInput+1);
 	if (*pInput == '$') {
 		switch(pInput[1]) {
-			case 'p': return comp_push_sym("p", fpNull, pInput+2);
-			case 'u': return comp_push_sym("u", fpNull, pInput+2);
+			case 'p': { if (bNeedPC>1) return comp_push_sym("X", fpNull, pInput); bNeedPC=-1; return comp_push_sym("p", fpNull, pInput+2); }
+			case 'u': { bNeedU=1; if (bNeedUC>0) return comp_push_sym("X", fpNull, pInput); bNeedUC=-1; return comp_push_sym("u", fpNull, pInput+2); }
 			case 's': if (pInput[2] == '2') return comp_push_sym("S", fpNull, pInput+3);
 					  return comp_push_sym("s", fpNull, pInput+2);
 			case 'c': if (pInput[2] > '8' || pInput[2] < '1')
@@ -577,10 +581,10 @@ static const char *comp_get_symbol(const char *pInput) {
 	if (!strncmp(pInput, "pad16($p)", 9))   return comp_push_sym("pad16", dynamic_pad16, pInput+9);
 	if (!strncmp(pInput, "pad20($p)", 9))   return comp_push_sym("pad20", dynamic_pad20, pInput+9);
 	if (!strncmp(pInput, "pad100($p)", 10))  return comp_push_sym("pad100", dynamic_pad100, pInput+10);
-	if (!strncmp(pInput, "lc($u)", 6)) return comp_push_sym("u_lc", fpNull, pInput+6);
-	if (!strncmp(pInput, "uc($u)", 6)) return comp_push_sym("u_uc", fpNull, pInput+6);
-	if (!strncmp(pInput, "lc($p)", 6)) return comp_push_sym("p_lc", fpNull, pInput+6);
-	if (!strncmp(pInput, "uc($p)", 6)) return comp_push_sym("p_uc", fpNull, pInput+6);
+	if (!strncmp(pInput, "lc($u)", 6)) { if (bNeedUC&&bNeedUC!=1) return comp_push_sym("X", fpNull, pInput); bNeedU=bNeedUC=1; return comp_push_sym("u_lc", fpNull, pInput+6); }
+	if (!strncmp(pInput, "uc($u)", 6)) { if (bNeedUC&&bNeedUC!=2) return comp_push_sym("X", fpNull, pInput); bNeedU=bNeedUC=2; return comp_push_sym("u_uc", fpNull, pInput+6); }
+	if (!strncmp(pInput, "lc($p)", 6)) { if (bNeedPC&&bNeedPC!=1) return comp_push_sym("X", fpNull, pInput); bNeedPC=1; return comp_push_sym("p_lc", fpNull, pInput+6); }
+	if (!strncmp(pInput, "uc($p)", 6)) { if (bNeedPC&&bNeedPC!=2) return comp_push_sym("X", fpNull, pInput); bNeedPC=2; return comp_push_sym("p_uc", fpNull, pInput+6); }
 	LastTokIsFunc = 2;
 	//if (!strncmp(pInput, "utf16be", 7)) return comp_push_sym("futf16be", dynamic_futf16be, pInput+7);
 	if (!strncmp(pInput, "utf16(", 6))   return comp_push_sym("futf16", dynamic_futf16, pInput+5);
@@ -1144,16 +1148,18 @@ static int parse_expression(DC_struct *p) {
 								comp_add_script_line("Flag=MGF_INPBASE64b\n");
 							} else if (endch == '6') {
 								comp_add_script_line("Flag=MGF_INPBASE64m\n");
+							} else if (endch == 'H') {
+								comp_add_script_line("Flag=MGF_BASE_16_OUTPUT_UPCASE\n");
 							}
 							// check for sha512 has to happen before md5, since both start with f5
 #undef IF
 #undef ELSEIF
 #define IF(C,T,L,F) if (!strncasecmp(pCode[i], #T, L)) { \
-	comp_add_script_line("Func=DynamicFunc__"#C"_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
-	if(F) comp_add_script_line("Flag=MGF_INPUT_"#F"_BYTE\n"); }
+	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
+	if(F) comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); }
 #define ELSEIF(C,T,L,F) else if (!strncasecmp(pCode[i], #T, L)) { \
-	comp_add_script_line("Func=DynamicFunc__"#C"_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
-	if(F) comp_add_script_line("Flag=MGF_INPUT_"#F"_BYTE\n"); }
+	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
+	if(F) comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); }
 
 							IF(SHA512,f512,4,64)
 							ELSEIF(MD5,f5,2,0)
@@ -1176,8 +1182,8 @@ static int parse_expression(DC_struct *p) {
 							if (append_mode) {
 #undef IF
 #undef ELSEIF
-#define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__"#C"_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-#define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__"#C"_crypt_input%s_append_input2\n", use_inp1?"1":"2");
+#define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_append_input2\n", use_inp1?"1":"2");
+#define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_append_input2\n", use_inp1?"1":"2");
 
 								IF(SHA512,f512,4)
 								ELSEIF(MD5,f5,2)
@@ -1203,8 +1209,8 @@ static int parse_expression(DC_struct *p) {
 						} else {
 #undef IF
 #undef ELSEIF
-#define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__"#C"_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-#define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__"#C"_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+#define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+#define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
 
 								IF(SHA512,f512,4)
 								ELSEIF(MD5,f5,2)
