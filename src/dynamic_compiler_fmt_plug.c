@@ -35,12 +35,12 @@ john_register_one(&fmt_CompiledDynamic);
 #include "formats.h"
 #include "dynamic.h"
 #include "dynamic_compiler.h"
+#include "dynamic_types.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"dynamic="
 #define FORMAT_NAME			""
 
-#define ALGORITHM_NAME		"?"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
 
@@ -159,6 +159,15 @@ struct fmt_main fmt_CompiledDynamic =
 };
 
 static void link_funcs() {
+	char *cp;
+	private_subformat_data *pPriv = fmt_CompiledDynamic.private.data;
+	cp = strrchr(fmt_CompiledDynamic.params.algorithm_name, ')');
+	if (cp) {
+		fmt_CompiledDynamic.params.label = fmt_CompiledDynamic.params.algorithm_name;
+		*cp++ = 0;
+		if (*cp  == ' ') ++cp;
+		fmt_CompiledDynamic.params.algorithm_name = cp;
+	}
 	fmt_CompiledDynamic.methods.salt   = our_salt;
 	fmt_CompiledDynamic.methods.binary = our_binary;
 	fmt_CompiledDynamic.methods.split = our_split;
@@ -167,6 +176,15 @@ static void link_funcs() {
 	fmt_CompiledDynamic.params.tests[0].ciphertext = (char*)dyna_line1;
 	fmt_CompiledDynamic.params.tests[1].ciphertext = (char*)dyna_line2;
 	fmt_CompiledDynamic.params.tests[2].ciphertext = (char*)dyna_line3;
+	if ((pPriv->pSetup->flags&MGF_PASSWORD_UPCASE)==MGF_PASSWORD_UPCASE) {
+		tests[0].plaintext = "ABC";
+		tests[1].plaintext = "JOHN";
+		tests[2].plaintext= "PASSWEIRD";
+	} else {
+		tests[0].plaintext = "abc";
+		tests[1].plaintext = "john";
+		tests[2].plaintext= "passweird";
+	}
 }
 
 static void our_init(struct fmt_main *self)

@@ -933,6 +933,8 @@ static void build_test_string(DC_struct *p, char **pLine) {
 		strcat(*pLine, "$$2");
 		strcat(*pLine, gen_s2);
 	}
+	if (bNeedPuc) strupr(gen_pw);
+	else if (bNeedPlc) strlwr(gen_pw);
 	comp_add_script_line("Test=%s:%s\n", *pLine, gen_pw);
 	for (i = 0; i < ngen_Stack_max; ++i)
 		MEM_FREE(gen_Stack[i]);
@@ -1078,7 +1080,7 @@ static int parse_expression(DC_struct *p) {
 						use_inp1_again = 0;
 						inp_cnt = 0, ex_cnt = 0, salt_cnt = 0, hash_cnt = 0;
 						for (x = j+1; x < i; ++x) {
-							if (!strcmp(pCode[x], "app_p")) {
+							if (!strncmp(pCode[x], "app_p", 5)) {
 								comp_add_script_line("Func=DynamicFunc__append_keys%s\n", use_inp1?"":"2"); ++inp_cnt; }
 							else if (!strcmp(pCode[x], "app_s")) {
 								comp_add_script_line("Func=DynamicFunc__append_salt%s\n", use_inp1?"":"2"); ++salt_cnt; }
