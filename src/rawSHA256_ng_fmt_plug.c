@@ -32,7 +32,7 @@ john_register_one(&fmt_rawSHA256_ng);
 #include "misc.h"
 #if !defined(DEBUG) && !defined(WITH_ASAN)
 // These compilers claim to be __GNUC__ but warn on gcc pragmas.
-#if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER
+#if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER && !__ALTIVEC__
 #pragma GCC optimize 3
 #endif
 #endif

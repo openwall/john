@@ -8,7 +8,7 @@
  */
 
 #include "arch.h"
-#if SIMD_COEF_32
+#if SIMD_COEF_32 && !__ALTIVEC__
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rawSHA512_ng;
