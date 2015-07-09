@@ -841,10 +841,7 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 		MD4_REV_STEP(MD4_H2, b, c, d, a, 13, cst, 15)
 		MD4_PARA_DO(i)
 		{
-			vstore((vtype*)&out[i*4*VS32+0*VS32], a[i]);
 			vstore((vtype*)&out[i*4*VS32+1*VS32], b[i]);
-			vstore((vtype*)&out[i*4*VS32+2*VS32], c[i]);
-			vstore((vtype*)&out[i*4*VS32+3*VS32], d[i]);
 		}
 		return;
 	}
