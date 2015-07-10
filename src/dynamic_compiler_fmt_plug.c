@@ -175,6 +175,10 @@ static void link_funcs() {
 	fmt_CompiledDynamic.params.tests[0].ciphertext = (char*)dyna_line1;
 	fmt_CompiledDynamic.params.tests[1].ciphertext = (char*)dyna_line2;
 	fmt_CompiledDynamic.params.tests[2].ciphertext = (char*)dyna_line3;
+	if ((pPriv->pSetup->flags&MGF_SALTED)!=MGF_SALTED)
+		fmt_CompiledDynamic.params.benchmark_length = -1;
+	else
+		fmt_CompiledDynamic.params.benchmark_length = 0;
 	if ((pPriv->pSetup->flags&MGF_PASSWORD_UPCASE)==MGF_PASSWORD_UPCASE) {
 		tests[0].plaintext = "ABC";
 		tests[1].plaintext = "JOHN";
