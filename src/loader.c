@@ -1097,7 +1097,7 @@ static void ldr_init_sqid(struct db_main *db)
 	struct db_salt *current;
 	int ctr = 0;
 
-	current = db->salts;
+	if ((current = db->salts))
 	do {
 		current->sequential_id = ctr++;
 	} while ((current = current->next));
