@@ -1081,7 +1081,7 @@ static void ldr_init_salts(struct db_main *db)
 		*tail = current;
 		ctr = 0;
 		do {
-			current -> sequential_id = ctr++;
+			ctr++;
 			tail = &current->next;
 		} while ((current = current->next));
 #ifdef DEBUG_HASH
@@ -1089,6 +1089,18 @@ static void ldr_init_salts(struct db_main *db)
 			printf("salt hash %08x, %d salts\n", hash, ctr);
 #endif
 	}
+}
+
+/* Compute sequential_id. */
+static void ldr_init_sqid(struct db_main *db)
+{
+	struct db_salt *current;
+	int ctr = 0;
+
+	current = db->salts;
+	do {
+		current->sequential_id = ctr++;
+	} while ((current = current->next));
 }
 
 /* #define DEBUG_SALT_SORT */
@@ -1548,6 +1560,8 @@ void ldr_fix_database(struct db_main *db)
 	ldr_sort_salts(db);
 
 	ldr_init_hash(db);
+
+	ldr_init_sqid(db);
 
 	db->loaded = 1;
 
