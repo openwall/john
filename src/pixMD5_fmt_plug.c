@@ -27,7 +27,7 @@ john_register_one(&fmt_pixMD5);
 #define FORMAT_NAME		"Cisco PIX"
 #define ALGORITHM_NAME		"?" /* filled in by md5-gen */
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		-1
 
 // set PLAINTEXT_LENGTH to 0, so dyna will set this  (note, 16 was right, but just let dyna set it)
 #define PLAINTEXT_LENGTH		0
