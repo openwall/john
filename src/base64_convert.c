@@ -1115,7 +1115,7 @@ int base64_valid_length(const char *from, b64_convert_type from_t, unsigned flag
 		default:
 			return ERR_base64_unk_from_type;
 	}
-	if (len && from[-1] && (flags&flg_Base64_RET_NEG_IF_NOT_PURE) == flg_Base64_RET_NEG_IF_NOT_PURE)
+	if (len && *from && (flags&flg_Base64_RET_NEG_IF_NOT_PURE) == flg_Base64_RET_NEG_IF_NOT_PURE)
 		return -len;
 	return len;
 }
