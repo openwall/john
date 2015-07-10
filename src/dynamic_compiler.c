@@ -551,7 +551,7 @@ static const char *comp_get_symbol(const char *pInput) {
 		int i=1;
 		// number. Can follow a ^, like    md5_raw($p)^5   ==  md5(md5(md5(md5(md5($p)))))
 		*TmpBuf = '^';
-		if (!isdigit(pInput[1]))
+		if (!isdigit(ARCH_INDEX(pInput[1])))
 			return comp_push_sym("X", fpNull, pInput+1);
 		while (i < 10 && isdigit(ARCH_INDEX(pInput[i])))
 			++i;

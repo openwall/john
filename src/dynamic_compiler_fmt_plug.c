@@ -18,9 +18,7 @@
  *
  */
 
-#if AC_BUILT
-#include "autoconfig.h"
-#endif
+#include "arch.h"
 #ifndef DYNAMIC_DISABLED
 
 #if FMT_EXTERNS_H
