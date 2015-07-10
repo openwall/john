@@ -518,6 +518,15 @@ void listconf_parse_late(void)
 		setenv("BLOCKS", "1", 0);
 		setenv("THREADS", "1", 0);
 #endif
+
+#if 0
+		puts("label\tmaxlen\tmin/\tmaxkpc\tflags\tntests\talgorithm_name\tformat_name\tbench comment\tbench len\tbin size\tsalt size"
+#if FMT_MAIN_VERSION > 11
+		     "\tcosts"
+#endif
+		     "\tminlen");
+#endif
+
 		format = fmt_list;
 		do {
 			int ntests = 0;
