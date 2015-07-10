@@ -16,6 +16,7 @@ run/calc_stat
 run/cprepair
 run/custom.chr
 run/dmg2john
+run/dynacomptest
 run/genmkvpwd
 run/gpg2john
 run/hccap2john
