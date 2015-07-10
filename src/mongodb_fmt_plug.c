@@ -106,6 +106,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (!(ptr = strtokm(ctcopy, "$"))) /* type */
 		goto error;
+	if (!isdec(ptr))
+		goto error;
 	type = atoi(ptr);
 	if (type != 0 && type != 1)
 		goto error;
