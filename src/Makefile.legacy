@@ -125,6 +125,7 @@ JOHN_OBJS = \
 	LM_fmt.o \
 	trip_fmt.o \
 	NT_fmt.o \
+	whirlpool.o haval.o skein.o md2.o panama.o \
 	timer.o \
 	md5.o \
 	rc4.o \
