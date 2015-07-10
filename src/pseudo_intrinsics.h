@@ -130,9 +130,9 @@ typedef __m512i vtype;
 #define vscatter_epi64          _mm512_i64scatter_epi64
 #define vset1_epi8              _mm512_set1_epi8
 #define vset1_epi32             _mm512_set1_epi32
-#define vset1_epi64            _mm512_set1_epi64
+#define vset1_epi64             _mm512_set1_epi64
 #define vset_epi32              _mm512_set_epi32
-#define vset_epi64             _mm512_set_epi64
+#define vset_epi64              _mm512_set_epi64
 #define vsetzero                _mm512_setzero_si512
 #define vshuffle_epi32          _mm512_shuffle_epi32
 #define vslli_epi32             _mm512_slli_epi32
@@ -267,9 +267,9 @@ typedef __m256i vtype;
 #define vpermute4x64_epi64      _mm256_permute4x64_epi64
 #define vset1_epi8              _mm256_set1_epi8
 #define vset1_epi32             _mm256_set1_epi32
-#define vset1_epi64            _mm256_set1_epi64
+#define vset1_epi64             _mm256_set1_epi64
 #define vset_epi32              _mm256_set_epi32
-#define vset_epi64             _mm256_set_epi64
+#define vset_epi64              _mm256_set_epi64
 #define vsetzero                _mm256_setzero_si256
 #define vshuffle_epi8           _mm256_shuffle_epi8
 #define vshuffle_epi32          _mm256_shuffle_epi32
@@ -409,8 +409,8 @@ typedef __m128i vtype;
 #define vset_epi32              _mm_set_epi32
 #define vset1_epi8              _mm_set1_epi8
 #define vset1_epi32             _mm_set1_epi32
-#define vset1_epi64             _mm_set1_epi64
-#define vset_epi64              _mm_set_epi64
+#define vset1_epi64             _mm_set1_epi64x
+#define vset_epi64              _mm_set_epi64x
 #define vsetzero                _mm_setzero_si128
 #if __SSSE3__
 #define vshuffle_epi8           _mm_shuffle_epi8
