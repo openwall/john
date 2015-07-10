@@ -32,7 +32,7 @@ john_register_one(&fmt_rawSHA256_ng);
 #include "misc.h"
 #if !defined(DEBUG) && !defined(WITH_ASAN)
 // These compilers claim to be __GNUC__ but warn on gcc pragmas.
-#if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER && !__ALTIVEC__
+#if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER
 #pragma GCC optimize 3
 #endif
 #endif
@@ -52,6 +52,8 @@ john_register_one(&fmt_rawSHA256_ng);
 #define SIMD_TYPE                 "512/512 AVX512 16x"
 #elif __AVX2__
 #define SIMD_TYPE                 "256/256 AVX2 8x"
+#elif __ALTIVEC__
+#define SIMD_TYPE                 "128/128 AltiVec 4x"
 #elif __XOP__
 #define SIMD_TYPE                 "128/128 XOP 4x"
 #elif __SSE4_1__

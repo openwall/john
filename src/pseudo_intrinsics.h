@@ -50,24 +50,34 @@ typedef union {
 } vtype;
 
 #define vadd_epi32(x, y)        (vtype)vec_add((x).v32, (y).v32)
-#define vadd_epi64(x, y)		(vtype)vec_add((x).v64, (y).v64)
+#define vadd_epi64(x, y)        (vtype)vec_add((x).v64, (y).v64)
 #define vand(x, y)              (vtype)vec_and((x).v32, (y).v32)
-#define vandnot(x, y)			vnor(vand(x, y), vand(x, y))
-#define vcmov(y, z, x)			(vtype)vec_sel((z).v32, (y).v32, (x).v32)
+#define vandnot(x, y)           (vtype)vec_andc((y).v32, (x).v32)
+#define vcmov(y, z, x)          (vtype)vec_sel((z).v32, (y).v32, (x).v32)
 #define vload(m)                (vtype)(vtype32)vec_ld(0, (uint32_t*)(m))
-#define vnor(x, y)              (vtype)vec_nor((x).v32, (y).v32)
 #define vor(x, y)               (vtype)vec_or((x).v32, (y).v32)
-#define vset1_epi32(x)			vset_epi32(x, x, x, x)         
-#define vset1_epi64x(x)			vset_epi64x(x, x)
+#define vset1_epi32(x)          vset_epi32(x, x, x, x)         
+#define vset1_epi64x(x)         vset_epi64x(x, x)
 #define vset_epi32(x3,x2,x1,x0) (vtype)(vtype32){x0, x1, x2, x3}
-#define vset_epi64x(x1,x0)     	(vtype)(vtype64){x0, x1}
+#define vset_epi64x(x1,x0)      (vtype)(vtype64){x0, x1}
 #define vslli_epi32(x, i)       (vtype)vec_sl((x).v32, (vset1_epi32(i)).v32)
 #define vsrli_epi32(x, i)       (vtype)vec_sr((x).v32, (vset1_epi32(i)).v32)
 #define vstore(m, x)            vec_st((x).v32, 0, (uint32_t*)(m))
+#define vsub_epi32(x, y)        (vtype)vec_sub((x).v32, (y).v32)
+#define vunpackhi_epi32(x, y)   (vtype)vec_mergel((x).v32, (y).v32)
+#define vunpackhi_epi64(x, y)   (vtype)(vtype64)vec_mergel((vector long)(x).v64, (vector long)(y).v64)
+#define vunpacklo_epi32(x, y)   (vtype)vec_mergeh((x).v32, (y).v32)
+#define vunpacklo_epi64(x, y)   (vtype)(vtype64)vec_mergeh((vector long)(x).v64, (vector long)(y).v64)
 #define vxor(x, y)              (vtype)vec_xor((x).v32, (y).v32)
 
-#define vtestz_epi32(x)         ((x).i == 0)
-#define vtesteq_epi32(x, y)     ((x).i == (y).i)
+static inline int vtestz_epi32(vtype x)
+{
+	int i, result = 0;
+	for (i = 0; i < SIMD_COEF_32; ++i)
+		result |= !x.s32[i];
+	return result;
+}
+#define vtesteq_epi32(x, y)     vtestz_epi32((vtype)vsub_epi32(x, y))
 
 #define vswap32(x) \
 	x = vxor(vsrli_epi32(x, 24),                                            \

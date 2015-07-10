@@ -8,7 +8,7 @@
  */
 
 #include "arch.h"
-#if SIMD_COEF_32 && !__ALTIVEC__
+#if SIMD_COEF_32
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rawSHA512_ng;
@@ -52,6 +52,8 @@ john_register_one(&fmt_rawSHA512_ng);
 #define SIMD_TYPE                 "512/512 AVX512 8x"
 #elif __AVX2__
 #define SIMD_TYPE                 "256/256 AVX2 4x"
+#elif __ALTIVEC__
+#define SIMD_TYPE                 "128/128 AltiVec 2x"
 #elif __XOP__
 #define SIMD_TYPE                 "128/128 XOP 2x"
 #elif __SSSE3__
