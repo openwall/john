@@ -108,6 +108,11 @@ int isdec(char *q);
 int isdec_negok(char *q);
 /* is this a valid string for atou()?  atou() func == sprintf("%x",&val) */
 int isdecu(char *q);
+/* provides the length of the base64 string.  See base64_convert.c for that
+ * function. If the string is not 'pure', then the return is -1*length */
+int base64_mime_len(char *q);
+int base64_crypt_len(char *q);
+int base64_mime_du_len(char *q);  /* mime, -_ instead of +/ */
 
 #endif
 

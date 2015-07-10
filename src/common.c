@@ -14,6 +14,7 @@
 #include "common.h"
 #include "memdbg.h"
 #include "misc.h"
+#include "base64_convert.h"
 
 /* This is the base64 that is used in crypt(3). It differs from MIME Base64
    and the latter can be found in base64.[ch] */
@@ -127,4 +128,15 @@ int isdecu(char *q)
 	unsigned int x = atou(q);
 	sprintf(buf, "%u", x);
 	return !strcmp(q,buf);
+}
+/* provides the length of the base64 string.  See base64_convert.c for that
+ * function. If the string is not 'pure', then the return is -1*length */
+int base64_mime_len(char *q) {
+	return base64_valid_length(q, e_b64_mime, flg_Base64_RET_NEG_IF_NOT_PURE);
+}
+int base64_crypt_len(char *q) {
+	return base64_valid_length(q, e_b64_crypt, flg_Base64_RET_NEG_IF_NOT_PURE);
+}
+int base64_mime_du_len(char *q) {
+	return base64_valid_length(q, e_b64_mime, flg_Base64_RET_NEG_IF_NOT_PURE|flg_Base64_MIME_DASH_UNDER);
 }
