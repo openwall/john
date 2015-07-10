@@ -118,6 +118,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = strtokm(ctcopy, "*"); /* type */
 	if(!p)
 		goto err;
+	if(!isdec(p))
+		goto err;
 	res = atoi(p);
 	if (res != 1)
 		goto err;
