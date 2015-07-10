@@ -228,7 +228,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!isdec(p))
 		goto err;
-	if (atoi(p) > 2 || atoi(p) < 0)
+	if (atoi(p) > 2)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
 		goto err;
@@ -239,7 +239,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	saltlen = atoi(p);
-	if(saltlen > SALTLEN || saltlen < 0)
+	if(saltlen > SALTLEN)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
@@ -252,7 +252,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	ctlen = atoi(p);
-	if (ctlen > CTLEN || ctlen < 0)
+	if (ctlen > CTLEN)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;

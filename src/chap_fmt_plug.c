@@ -105,7 +105,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* id */
 		goto err;
 	if (!isdec(p))
-		goto err; // FIXME: id < 0 allowed?
+		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* challenge */
 		goto err;
 	if (strlen(p) > 64)

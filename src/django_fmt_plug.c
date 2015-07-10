@@ -133,7 +133,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* iterations */
 		goto err;
-	if (!isdec(p) || atoi(p) < 0) // FIXME: what about iterations == 0?
+	if (!isdec(p)) // FIXME: what about iterations == 0?
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;

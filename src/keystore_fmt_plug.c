@@ -120,8 +120,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto bail;
 	v = atoi(p);
-	if (v < 0)
-		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto bail;
 	if (strlen(p) / 2 != v)
@@ -142,7 +140,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto bail;
 	v = atoi(p);
-	if (v > SZ || v < 0)
+	if (v > SZ)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) /* key data */
 		goto bail;

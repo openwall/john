@@ -156,7 +156,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if (res > 4096 || res < 0)
+	if (res > 4096)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* public_blob */
 		goto err;
@@ -169,7 +169,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if (res > 4096 || res < 0)
+	if (res > 4096)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* private_blob */
 		goto err;

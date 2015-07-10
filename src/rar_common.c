@@ -364,7 +364,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(ptr) != 1 || !isdec(ptr))
 		goto error;
 	mode = atoi(ptr);
-	if (mode < 0 || mode > 1)
+	if (mode > 1)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* salt */
 		goto error;
@@ -412,7 +412,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if (strlen(ptr) != 1 || !isdec(ptr))
 			goto error;
 		inlined = atoi(ptr);
-		if (inlined < 0 || inlined > 1)
+		if (inlined > 1)
 			goto error;
 		if (!(ptr = strtokm(NULL, "*"))) /* pack_size / archive_name */
 			goto error;

@@ -123,7 +123,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if(!isdec(p))
 		goto err;
 	res = atoi(p);
-	if (res > 20 || res < 0)
+	if (res > 20)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* nnLen (we ignore nnlen) */
 		goto err;
@@ -138,7 +138,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if(!isdec(p))
 		goto err;
 	res = atoi(p);
-	if (res > 20 || res < 0)
+	if (res > 20)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* oidData */
 		goto err;
@@ -151,7 +151,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if(!isdec(p))
 		goto err;
 	res = atoi(p);
-	if (res > 20 || res < 0)
+	if (res > 20)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* password_check */
 		goto err;
@@ -164,7 +164,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if(!isdec(p))
 		goto err;
 	res = atoi(p);
-	if (res > 20 || res < 0)
+	if (res > 20)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* global_salt */
 		goto err;

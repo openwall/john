@@ -126,8 +126,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	cipher = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt len */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	len = atoi(p);
-	if (len > 16 || len < 0)
+	if (len > 16)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
@@ -140,8 +142,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
-	if (len < 0)
-		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* ciphertext */
 		goto err;
 	if (strlen(p) / 2 != len)
@@ -149,13 +149,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!ishex(p))
 		goto err;
 	if (cipher == 2) {
-		int rounds;
 		if ((p = strtokm(NULL, "$")) == NULL)	/* rounds */
 			goto err;
 		if (!isdec(p))
-			goto err;
-		rounds = atoi(p);
-		if (rounds < 0)
 			goto err;
 	}
 	MEM_FREE(keeptr);

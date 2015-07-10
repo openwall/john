@@ -148,7 +148,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if (res < 0 || res > 1)
+	if (res > 1)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	// salt2 (or a junk field)
 		goto err;

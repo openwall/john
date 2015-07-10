@@ -232,13 +232,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(ctcopy, "$")) == NULL)
 		goto err;
 	if (!strcmp(p, "v2")) {
-		int iter;
 		if ((p = strtokm(NULL, "$")) == NULL)
 			goto err;
 		if (!isdec(p))
-			goto err;
-		iter = atoi(p);
-		if (iter < 0)
 			goto err;
 		if ((p = strtokm(NULL, "$")) == NULL)
 			goto err;
@@ -246,7 +242,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
-	if(len > BIG_ENOUGH || len <= 0)
+	if(len > BIG_ENOUGH || !len)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;

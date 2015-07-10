@@ -303,7 +303,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
-	if (len > 16 || len < 0) /* salt length */
+	if (len > 16) /* salt length */
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* salt */
 		goto err;
@@ -314,7 +314,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
-	if (len < 0 || len > 16) /* iv length */
+	if (len > 16) /* iv length */
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* iv */
 		goto err;
@@ -331,8 +331,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if(!isdec(p))
 		goto err;
 	len = atoi(p);
-	if (len < 0)
-		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* unpacksize */
 		goto err;
 	if (!isdec(p))	/* no way to validate, other than atoi() works for it */

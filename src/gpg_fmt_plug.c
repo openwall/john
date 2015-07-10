@@ -317,11 +317,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if (res > BIG_ENOUGH * 2 || res < 0)
+	if (res > BIG_ENOUGH * 2)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* bits */
 		goto err;
-	if (!isdec(p)) // FIXME: bits <= 0 allowed?
+	if (!isdec(p)) // FIXME: bits == 0 allowed?
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data */
 		goto err;
@@ -377,9 +377,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 	if ((p = strtokm(NULL, "*")) == NULL)	/* count */
 		goto err;
-	if (!isdec(p))
+	if (!isdec(p)) // FIXME: count == 0 allowed?
 		goto err;
-	res = atoi(p); // FIXME: count <= 0 allowed?
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != SALT_LENGTH * 2)
@@ -415,7 +414,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if (!isdec(p))
 			goto err;
 		res = atoi(p);
-		if (res > BIG_ENOUGH * 2 || res < 0)
+		if (res > BIG_ENOUGH * 2)
 			goto err; // FIXME: warn if BIG_ENOUGH isn't big enough?
 		if ((p = strtokm(NULL, "*")) == NULL)
 			goto err;

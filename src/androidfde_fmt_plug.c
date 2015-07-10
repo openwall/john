@@ -143,7 +143,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	saltlen = atoi(p);
-	if (saltlen > 16 || saltlen < 0)			/* saltlen */
+	if (saltlen > 16)			/* saltlen */
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
@@ -156,7 +156,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	keysize = atoi(p);
-	if (keysize > 64 || keysize < 0)
+	if (keysize > 64)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* key */
 		goto err;

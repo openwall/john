@@ -258,7 +258,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if(!isdec(p))
 			goto err;
 		res = atoi(p);
-		if (res > 20 || res < 0)
+		if (res > 20)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 			goto err;
@@ -271,7 +271,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if(!isdec(p))
 			goto err;
 		res = atoi(p);
-		if (atoi(p) > 32 || res < 0)
+		if (atoi(p) > 32)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 			goto err;
@@ -284,7 +284,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if(!isdec(p))
 			goto err;
 		res = atoi(p);
-		if (res > 128 || res < 0)
+		if (res > 128)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* encrypted keyblob */
 			goto err;
@@ -326,7 +326,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if(!isdec(p))
 			goto err;
 		res = atoi(p);
-		if (res > 20 || res < 0)
+		if (res > 20)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 			goto err;
@@ -339,7 +339,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if(!isdec(p))
 			goto err;
 		res = atoi(p);
-		if (res > 296 || res < 0)
+		if (res > 296)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* wrapped_aes_key  */
 			goto err;
@@ -352,7 +352,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if(!isdec(p))
 			goto err;
 		res = atoi(p);
-		if (res > 300 || res < 0)
+		if (res > 300)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* hmac_sha1_key */
 			goto err;
