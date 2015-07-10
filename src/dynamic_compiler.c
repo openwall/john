@@ -249,6 +249,8 @@ static char *find_the_expression(const char *expr) {
 	strnzcpy(buf, &expr[8], sizeof(buf));
 	cp = strrchr(buf, ')');
 	if (!cp) return "";
+	while (cp[1] && cp[1] != ',')
+		++cp;
 	cp[1] = 0;
 	return buf;
 }
@@ -276,7 +278,7 @@ static char *SymTab[1024];
 static fpSYM fpSymTab[1024];
 static char *pCode[1024];
 static fpSYM fpCode[1024];
-static int nCode;
+static int nCode, nCurCode;
 static char *pScriptLines[1024];
 static int nScriptLines;
 static int nSyms;
@@ -408,7 +410,16 @@ LEXI_FUNC(skn224,skein224,28) LEXI_FUNC(skn256,skein256,32) LEXI_FUNC(skn384,ske
 
 static void dynamic_futf16()    { dyna_helper_pre();                             dyna_helper_post(encode_le()); }
 //static void dynamic_futf16be()  { dyna_helper_pre();                             dyna_helper_post(encode_be()); }
-
+static void dynamic_exp() {
+	int i, j;
+	j = atoi(&pCode[nCurCode][1]);
+	for (i = 1; i < j; ++i) {
+		gen_Stack_len[ngen_Stack] = gen_Stack_len[ngen_Stack-1];
+		gen_Stack_len[ngen_Stack-1] = 0;
+		++ngen_Stack;
+		fpCode[nCurCode-1]();
+	}
+}
 
 static void init_static_data() {
 	int i;
@@ -435,7 +446,7 @@ static void init_static_data() {
 		gen_Stack_len[i] = 0;
 	}
 	ngen_Stack = ngen_Stack_max = 0;
-	nCode = 0;
+	nCode = nCurCode = 0;
 	nSyms = 0;
 	nScriptLines = 0;
 	LastTokIsFunc = 0;
@@ -536,6 +547,18 @@ static const char *comp_get_symbol(const char *pInput) {
 	if (*pInput == '.') return comp_push_sym(".", fpNull, pInput+1);
 	if (*pInput == '(') return comp_push_sym("(", fpNull, pInput+1);
 	if (*pInput == ')') return comp_push_sym(")", fpNull, pInput+1);
+	if (*pInput == '^') {
+		int i=1;
+		// number. Can follow a ^, like    md5_raw($p)^5   ==  md5(md5(md5(md5(md5($p)))))
+		*TmpBuf = '^';
+		if (!isdigit(pInput[1]))
+			return comp_push_sym("X", fpNull, pInput+1);
+		while (i < 10 && isdigit(ARCH_INDEX(pInput[i])))
+			++i;
+		memcpy(&TmpBuf[1], &pInput[1], i-1);
+		TmpBuf[i]=0;
+		return comp_push_sym(TmpBuf, fpNull, pInput+i);
+	}
 	if (*pInput == '$') {
 		switch(pInput[1]) {
 			case 'p': { if (bNeedPC>1) return comp_push_sym("X", fpNull, pInput); bNeedPC=-1; return comp_push_sym("p", fpNull, pInput+2); }
@@ -683,14 +706,14 @@ static int comp_do_lexi(DC_struct *p, const char *pInput) {
 		}
 		if (SymTab[nSyms-1][0] == '(') {
 			pInput = comp_get_symbol(pInput);
-			if (SymTab[nSyms-1][0] == 'X' || SymTab[nSyms-1][0] == '.' || SymTab[nSyms-1][0] == '(' || SymTab[nSyms-1][0] == ')')
+			if (SymTab[nSyms-1][0] == 'X' || SymTab[nSyms-1][0] == '.' || SymTab[nSyms-1][0] == '(' || SymTab[nSyms-1][0] == ')' || SymTab[nSyms-1][0] == '^')
 				comp_lexi_error(p, pInput, "Invalid token following a ( character");
 			++paren;
 			continue;
 		}
 		if (SymTab[nSyms-1][0] == ')') {
 			--paren;
-			if (*pInput == 0) {
+			if (*pInput == 0 && *pInput != '^') {
 				if (!paren) {
 					// expression is VALID and syntax check successful
 #ifdef WITH_MAIN
@@ -701,21 +724,42 @@ static int comp_do_lexi(DC_struct *p, const char *pInput) {
 				}
 				comp_lexi_error(p, pInput, "Not enough ) characters at end of expression");
 			}
-			if (paren == 0)
+			if (paren == 0 && *pInput != '^')
 				comp_lexi_error(p, pInput, "Reached the matching ) to the initial ( and there is still more expression left");
 			pInput = comp_get_symbol(pInput);
-			if (!(SymTab[nSyms-1][0] == '.' || SymTab[nSyms-1][0] == ')'))
+			// only . ) or ^ are valid to follow a )
+			if (!(SymTab[nSyms-1][0] == '.' || SymTab[nSyms-1][0] == ')' || SymTab[nSyms-1][0] == '^'))
 				comp_lexi_error(p, pInput, "The only things valid to follow a ) char are a . or a )");
+			continue;
+		}
+		if (SymTab[nSyms-1][0] == '^') {
+			if (*pInput == 0) {
+				if (!paren) {
+					// expression is VALID and syntax check successful
+#ifdef WITH_MAIN
+					if (!GEN_BIG)
+						printf ("The expression checks out as valid\n");
+#endif
+					return nSyms;
+				}
+				comp_lexi_error(p, pInput, "Not enough ) characters at end of expression");
+			}
+			pInput = comp_get_symbol(pInput);
+			// only a . or ) are valid
+			if (SymTab[nSyms-1][0] != '.' && SymTab[nSyms-1][0] != ')')
+				comp_lexi_error(p, pInput, "The only things valid to follow a ^# is a . )");
 			continue;
 		}
 		if (SymTab[nSyms-1][0] == '.') {
 			pInput = comp_get_symbol(pInput);
-			if (SymTab[nSyms-1][0] == 'X' || SymTab[nSyms-1][0] == '.' || SymTab[nSyms-1][0] == '(' || SymTab[nSyms-1][0] == ')')
+			// any unknown, or a: . ( ) ^  are not valid to follow a .
+			if (SymTab[nSyms-1][0] == 'X' || SymTab[nSyms-1][0] == '.' || SymTab[nSyms-1][0] == '(' || SymTab[nSyms-1][0] == ')' || SymTab[nSyms-1][0] == '^')
 				comp_lexi_error(p, pInput, "Invalid token following the . character");
 			continue;
 		}
 		// some string op
 		pInput = comp_get_symbol(pInput);
+		// The only thing that can follow a string op is a . or a )
 		if (!(SymTab[nSyms-1][0] == '.' || SymTab[nSyms-1][0] == ')'))
 			comp_lexi_error(p, pInput, "The only things valid to follow a string type are a . or a )");
 	}
@@ -736,6 +780,11 @@ static void comp_do_parse(int cur, int curend) {
 		fpcurTok = fpSymTab[cur];
 		if (*curTok == '.') {
 			++cur;
+			continue;
+		}
+		if (*curTok == '^') {
+			push_pcode(curTok, dynamic_exp);
+			curTok = SymTab[++cur];
 			continue;
 		}
 		if (strlen(curTok)>1 && (*curTok == 'f' || *curTok == 'F')) {
@@ -914,8 +963,8 @@ static void build_test_string(DC_struct *p, char **pLine) {
 
 		else { error("ERROR in dyna-parser. Have salt_as_hex_type set, but do not KNOW this type of hash\n"); }
 	}
-	for (i = 0; i < nCode; ++i)
-		fpCode[i]();
+	for (nCurCode = 0; nCurCode < nCode; ++nCurCode)
+		fpCode[nCurCode]();
 	//my $ret = "";
 	//if ($gen_needu == 1) { $ret .= "\$dynamic_$gen_num\$$h"; }
 	//else { $ret .= "\$dynamic_$gen_num\$$h"; }
@@ -1019,7 +1068,7 @@ static int parse_expression(DC_struct *p) {
 		int in_unicode = 0, out_raw = 0, out_64 = 0, out_16u = 0;
 		int append_mode = 0;
 		int max_inp_len = 110, len_comp = 0;
-		int inp1_clean = 0;
+		int inp1_clean = 0, exponent = -1;
 		int use_inp1 = 1, use_inp1_again = 0;
 		int inp_cnt = 0, ex_cnt = 0, salt_cnt = 0, hash_cnt = 0, flag_utf16 = 0;
 
@@ -1076,10 +1125,9 @@ static int parse_expression(DC_struct *p) {
 						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base16\n");
 					out_raw = out_64 = out_16u = 0;
 				}
-
 				// Found next function.  Now back up and load the data
 				for (j = i - 1; j >= 0; --j) {
-					if (!strcmp(pCode[j], "push")) { // push
+					if (!strcmp(pCode[j], "push") || (exponent >= 0 && !strcmp(pCode[j], "Xush"))) { // push
 						last_push = j;
 						use_inp1_again = 0;
 						inp_cnt = 0, ex_cnt = 0, salt_cnt = 0, hash_cnt = 0;
@@ -1246,7 +1294,24 @@ static int parse_expression(DC_struct *p) {
 						break;
 					}
 				}
-				pCode[i][0] = 'X';
+				if (i==nCode-1 || pCode[i+1][0] != '^')
+					pCode[i][0] = 'X';
+				else {
+					if (exponent < 1)
+						exponent = atoi(&pCode[i+1][1])-2;
+					else
+						--exponent;
+					if (!exponent) {
+						int k;
+						MEM_FREE(pCode[i+1]);
+						for (k = i+1; k < nCode; ++k) {
+							pCode[k] = pCode[k+1];
+							fpCode[k] = fpCode[k+1];
+						}
+						--nCode;
+					}
+					--i;
+				}
 			}
 		}
 		comp_add_script_line("MaxInputLenX86=%d\n",max_inp_len);
