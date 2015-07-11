@@ -24,7 +24,7 @@ john_register_one(&fmt_opencl_mscash2);
 #include "md4.h"
 #include "sha.h"
 #include "unicode.h"
-#include "common_opencl_pbkdf2.h"
+#include "opencl_mscash2_helper_plug.h"
 #include "loader.h"
 #include "config.h"
 #include "memdbg.h"
@@ -36,8 +36,6 @@ john_register_one(&fmt_opencl_mscash2);
 #define SQRT_2                      0x5a827999
 #define SQRT_3                      0x6ed9eba1
 
-
-#define FORMAT_LABEL	           "mscash2-opencl"
 #define FORMAT_NAME		   "MS Cache Hash 2 (DCC2)"
 #define KERNEL_NAME		   "PBKDF2"
 #define ALGORITHM_NAME		   "PBKDF2-SHA1 OpenCL"
@@ -45,6 +43,9 @@ john_register_one(&fmt_opencl_mscash2);
 #define BENCHMARK_LENGTH	  -1
 #define MSCASH2_PREFIX            "$DCC2$"
 #define MAX_PLAINTEXT_LENGTH      125
+
+#define MAX_KEYS_PER_CRYPT        1
+#define MIN_KEYS_PER_CRYPT        1
 
 #define BINARY_SIZE               4
 #define BINARY_ALIGN              4
@@ -103,22 +104,28 @@ static void init(struct fmt_main *self) {
 	//Prepare OpenCL environment.
 	opencl_preinit();
 
-	///Allocate memory
-	key_host = mem_calloc(self -> params.max_keys_per_crypt, sizeof(*key_host)) ;
-	dcc_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
-	dcc2_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
-	hmac_sha1_out  = (cl_uint*)mem_alloc(5 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
-
-	memset(dcc_hash_host, 0, 4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
-	memset(dcc2_hash_host, 0, 4 * sizeof(cl_uint) * MAX_KEYS_PER_CRYPT) ;
-
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(FORMAT_LABEL);
 
-	for( i=0; i < get_number_of_devices_in_use(); i++)
-		select_device(gpu_device_list[i], self) ;
+	initNumDevices();
 
-	dcc2_warning() ;
+	self->params.max_keys_per_crypt = 0;
+
+	for( i=0; i < get_number_of_devices_in_use(); i++)
+		self->params.max_keys_per_crypt += selectDevice(gpu_device_list[i], self);
+
+	///Allocate memory
+	key_host = mem_calloc(self -> params.max_keys_per_crypt, sizeof(*key_host)) ;
+	dcc_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt) ;
+	dcc2_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt) ;
+	hmac_sha1_out  = (cl_uint*)mem_alloc(5 * sizeof(cl_uint) * self -> params.max_keys_per_crypt) ;
+
+	memset(dcc_hash_host, 0, 4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt) ;
+	memset(dcc2_hash_host, 0, 4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt) ;
+
+
+
+	//dcc2_warning() ;
 
 	if (pers_opts.target_enc == UTF_8) {
 		self->params.plaintext_length *= 3;
@@ -165,7 +172,7 @@ static void done(void) {
 	MEM_FREE(dcc_hash_host) ;
 	MEM_FREE(key_host) ;
 	MEM_FREE(hmac_sha1_out);
-	clean_all_buffer() ;
+	releaseAll();
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -271,7 +278,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	struct timeval startc, endc, startg, endg ;
 	gettimeofday(&startc, NULL) ;
 #endif
-	UTF16 salt_host[MAX_SALT_LENGTH + 1];
+	UTF16 salt_host[SALT_BUFFER_SIZE >> 1];
 
 	memset(salt_host, 0, sizeof(salt_host));
 
@@ -293,7 +300,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	gettimeofday(&startg, NULL) ;
 #endif
 	///defined in common_opencl_pbkdf2.c. Details provided in common_opencl_pbkdf2.h
-	pbkdf2_divide_work(dcc_hash_host, (cl_uint*)salt_host, salt_len, currentsalt.iter_cnt, dcc2_hash_host, hmac_sha1_out, count) ;
+	dcc2_execute(dcc_hash_host, hmac_sha1_out, (cl_uint*)salt_host, salt_len, currentsalt.iter_cnt, dcc2_hash_host, count) ;
 
 #ifdef _DEBUG
 	gettimeofday(&endg, NULL);

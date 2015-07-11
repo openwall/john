@@ -1,0 +1,515 @@
+#include <sys/time.h>
+
+#include "opencl_mscash2_helper_plug.h"
+#include "assert.h"
+#include "options.h"
+
+#define MAX_DEVICE_PER_PLATFORM 	16
+#define PADDING				1024
+
+#define getPowerOfTwo(v)	\
+{				\
+	v--;			\
+	v |= v >> 1;		\
+	v |= v >> 2;		\
+	v |= v >> 4;		\
+	v |= v >> 8;		\
+	v |= v >> 16;		\
+	v |= v >> 32;		\
+	v++;			\
+}
+
+typedef struct {
+	unsigned int 	istate[5];
+	unsigned int 	ostate[5];
+	unsigned int 	buf[5];
+	unsigned int 	out[4];
+} devIterTempSz;
+
+typedef struct {
+	cl_mem bufferDccHashes;
+	cl_mem bufferSha1Hashes;
+	cl_mem bufferSalt;
+	cl_mem bufferDcc2Hashes;
+	cl_mem bufferIterTemp;
+} deviceBuffer;
+
+typedef struct {
+	cl_kernel devKernel[4];
+	size_t devLws;
+	size_t devGws;
+	unsigned int devInUse;
+} deviceParam;
+
+static deviceBuffer *devBuffer = NULL;
+static deviceParam *devParam = NULL;
+static cl_event *events = NULL;
+static unsigned int eventCtr = 0;
+static unsigned int maxActiveDevices = 0;
+
+void initNumDevices(void)
+{
+	devBuffer = (deviceBuffer *) mem_alloc(MAX_DEVICE_PER_PLATFORM * MAX_PLATFORMS * sizeof(deviceBuffer));
+	devParam = (deviceParam *) mem_calloc(MAX_DEVICE_PER_PLATFORM * MAX_PLATFORMS, sizeof(deviceParam));
+	events = (cl_event *) mem_alloc(MAX_DEVICE_PER_PLATFORM * MAX_PLATFORMS * sizeof(cl_event));
+}
+
+static void createDevObjGws(size_t gws, int jtrUniqDevId)
+{
+	devBuffer[jtrUniqDevId].bufferDccHashes = clCreateBuffer(context[jtrUniqDevId], CL_MEM_READ_ONLY, 4 * (gws + PADDING) * sizeof(cl_uint), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Failed allocating bufferDccHashes.");
+
+	devBuffer[jtrUniqDevId].bufferDcc2Hashes = clCreateBuffer(context[jtrUniqDevId], CL_MEM_WRITE_ONLY, 4 * (gws + PADDING) * sizeof(cl_uint), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Failed allocating bufferDcc2Hashes.");
+
+	devBuffer[jtrUniqDevId].bufferIterTemp = clCreateBuffer(context[jtrUniqDevId], CL_MEM_READ_WRITE, (gws + PADDING) * sizeof(devIterTempSz), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Failed allocating bufferIterTemp.");
+
+	devBuffer[jtrUniqDevId].bufferSha1Hashes = clCreateBuffer(context[jtrUniqDevId], CL_MEM_READ_WRITE, 5 * (gws + PADDING) * sizeof(cl_uint), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Failed allocating bufferSha1Hashes.");
+
+	HANDLE_CLERROR(clSetKernelArg(devParam[jtrUniqDevId].devKernel[0], 0, sizeof(cl_mem), &devBuffer[jtrUniqDevId].bufferDccHashes), "Set Kernel 0 Arg 0 :FAILED");
+	HANDLE_CLERROR(clSetKernelArg(devParam[jtrUniqDevId].devKernel[0], 3, sizeof(cl_mem), &devBuffer[jtrUniqDevId].bufferIterTemp), "Set Kernel 0 Arg 3 :FAILED");
+	HANDLE_CLERROR(clSetKernelArg(devParam[jtrUniqDevId].devKernel[1], 0, sizeof(cl_mem), &devBuffer[jtrUniqDevId].bufferDccHashes), "Set Kernel 1 Arg 0 :FAILED");
+	HANDLE_CLERROR(clSetKernelArg(devParam[jtrUniqDevId].devKernel[1], 1, sizeof(cl_mem), &devBuffer[jtrUniqDevId].bufferIterTemp), "Set Kernel 1 Arg 1 :FAILED");
+	HANDLE_CLERROR(clSetKernelArg(devParam[jtrUniqDevId].devKernel[1], 2, sizeof(cl_mem), &devBuffer[jtrUniqDevId].bufferSha1Hashes), "Set Kernel 1 Arg 2 :FAILED");
+	HANDLE_CLERROR(clSetKernelArg(devParam[jtrUniqDevId].devKernel[2], 0, sizeof(cl_mem), &devBuffer[jtrUniqDevId].bufferIterTemp), "Set Kernel 2 Arg 0 :FAILED");
+	HANDLE_CLERROR(clSetKernelArg(devParam[jtrUniqDevId].devKernel[3], 0, sizeof(cl_mem), &devBuffer[jtrUniqDevId].bufferIterTemp), "Set Kernel 3 Arg 0 :FAILED");
+	HANDLE_CLERROR(clSetKernelArg(devParam[jtrUniqDevId].devKernel[3], 1, sizeof(cl_mem), &devBuffer[jtrUniqDevId].bufferDcc2Hashes), "Set Kernel 3 Arg 1 :FAILED");
+}
+
+static void releaseDevObjGws(int jtrUniqDevId)
+{
+	if (devBuffer[jtrUniqDevId].bufferIterTemp) {
+		HANDLE_CLERROR(clReleaseMemObject(devBuffer[jtrUniqDevId].bufferDccHashes), "Failed releasing bufferDccHashes.");
+		HANDLE_CLERROR(clReleaseMemObject(devBuffer[jtrUniqDevId].bufferDcc2Hashes), "Failed releasing bufferDcc2Hashes.");
+		HANDLE_CLERROR(clReleaseMemObject(devBuffer[jtrUniqDevId].bufferIterTemp), "Failed releasing bufferIterTemp.");
+		HANDLE_CLERROR(clReleaseMemObject(devBuffer[jtrUniqDevId].bufferSha1Hashes), "Failed releasing bufferSha1Hashes.");
+		devBuffer[jtrUniqDevId].bufferIterTemp = 0;
+	}
+}
+
+static void createDevObj(int jtrUniqDevId)
+{
+	devBuffer[jtrUniqDevId].bufferSalt = clCreateBuffer(context[jtrUniqDevId], CL_MEM_READ_ONLY, SALT_BUFFER_SIZE, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Failed allocating bufferSalt.");
+
+	HANDLE_CLERROR(clSetKernelArg(devParam[jtrUniqDevId].devKernel[0], 1, sizeof(cl_mem), &devBuffer[jtrUniqDevId].bufferSalt), "Set Kernel 0 Arg 1 :FAILED");
+}
+
+static void releaseDevObj(int jtrUniqDevId)
+{
+	if (devBuffer[jtrUniqDevId].bufferSalt) {
+		HANDLE_CLERROR(clReleaseMemObject(devBuffer[jtrUniqDevId].bufferSalt), "Failed releasing bufferSalt.");
+		devBuffer[jtrUniqDevId].bufferSalt = 0;
+	}
+}
+
+void releaseAll()
+{
+	int 	i;
+
+	for (i = 0; i < get_number_of_devices_in_use(); i++) {
+		releaseDevObjGws(gpu_device_list[i]);
+		releaseDevObj(gpu_device_list[i]);
+		HANDLE_CLERROR(clReleaseKernel(devParam[gpu_device_list[i]].devKernel[0]), "Error releasing kernel pbkdf2_preprocess_short");
+		HANDLE_CLERROR(clReleaseKernel(devParam[gpu_device_list[i]].devKernel[1]), "Error releasing kernel pbkdf2_preprocess_long");
+		HANDLE_CLERROR(clReleaseKernel(devParam[gpu_device_list[i]].devKernel[2]), "Error releasing kernel pbkdf2_iter");
+		HANDLE_CLERROR(clReleaseKernel(devParam[gpu_device_list[i]].devKernel[3]), "Error releasing kernel pbkdf2_postprocess");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_device_list[i]]), "Error releasing Program");
+	 }
+
+	 MEM_FREE(events);
+	 MEM_FREE(devBuffer);
+	 MEM_FREE(devParam);
+}
+
+static size_t findLwsLimit(int jtrUniqDevId)
+{
+	size_t minLws[4] = { 0 };
+
+	minLws[0] = get_kernel_max_lws(jtrUniqDevId, devParam[jtrUniqDevId].devKernel[0]);
+	minLws[1] = get_kernel_max_lws(jtrUniqDevId, devParam[jtrUniqDevId].devKernel[1]);
+	minLws[2] = get_kernel_max_lws(jtrUniqDevId, devParam[jtrUniqDevId].devKernel[2]);
+	minLws[3] = get_kernel_max_lws(jtrUniqDevId, devParam[jtrUniqDevId].devKernel[3]);
+
+	if (minLws[0] > minLws[1])
+		minLws[0] = minLws[1];
+	if (minLws[2] > minLws[3])
+		minLws[2] = minLws[3];
+	if (minLws[0] > minLws[2])
+		minLws[0] = minLws[2];
+
+	return minLws[0];
+}
+
+static size_t preferredLwsSize(int jtrUniqDevId)
+{
+	size_t minLws[4] = { 0 };
+
+	minLws[0] = get_kernel_preferred_multiple(jtrUniqDevId, devParam[jtrUniqDevId].devKernel[0]);
+	minLws[1] = get_kernel_preferred_multiple(jtrUniqDevId, devParam[jtrUniqDevId].devKernel[1]);
+	minLws[2] = get_kernel_preferred_multiple(jtrUniqDevId, devParam[jtrUniqDevId].devKernel[2]);
+	minLws[3] = get_kernel_preferred_multiple(jtrUniqDevId, devParam[jtrUniqDevId].devKernel[3]);
+
+	if (minLws[0] > minLws[1])
+		minLws[0] = minLws[1];
+	if (minLws[2] > minLws[3])
+		minLws[2] = minLws[3];
+	if (minLws[0] > minLws[2])
+		minLws[0] = minLws[2];
+
+	return minLws[0];
+}
+
+static void execKernel(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint *hostSalt, cl_uint saltlen, unsigned int iterCount, cl_uint *hostDcc2Hashes, cl_uint keyCount, int jtrUniqDevId, cl_command_queue cmdQueue)
+{
+	size_t 		N = keyCount, *M = devParam[jtrUniqDevId].devLws ? &devParam[jtrUniqDevId].devLws : NULL;
+	unsigned int 	i, itrCntKrnl = ITERATION_COUNT_PER_CALL;
+
+	N = devParam[jtrUniqDevId].devLws ? (keyCount + devParam[jtrUniqDevId].devLws - 1) / devParam[jtrUniqDevId].devLws * devParam[jtrUniqDevId].devLws : keyCount;
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdQueue, devBuffer[jtrUniqDevId].bufferDccHashes, CL_FALSE, 0, 4 * keyCount * sizeof(cl_uint), hostDccHashes, 0, NULL, NULL ), "Failed in clEnqueueWriteBuffer bufferDccHashes.");
+	if(saltlen > 22)
+		HANDLE_CLERROR(clEnqueueWriteBuffer(cmdQueue, devBuffer[jtrUniqDevId].bufferSha1Hashes, CL_FALSE, 0, 5 * keyCount * sizeof(cl_uint), hostSha1Hashes, 0, NULL, NULL ), "Failed in clEnqueueWriteBuffer bufferSha1Hashes.");
+	else
+	      HANDLE_CLERROR(clSetKernelArg(devParam[jtrUniqDevId].devKernel[0], 2, sizeof(cl_uint), &saltlen), "Set Kernel 0 Arg 2 :FAILED");
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdQueue, devBuffer[jtrUniqDevId].bufferSalt, CL_FALSE, 0, SALT_BUFFER_SIZE, hostSalt, 0, NULL, NULL ), "Failed in clEnqueueWriteBuffer bufferSalt.");
+
+	if(saltlen < 23)
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(cmdQueue, devParam[jtrUniqDevId].devKernel[0], 1, NULL, &N, M, 0, NULL, NULL), "Failed in clEnqueueNDRangeKernel devKernel[0].");
+	else
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(cmdQueue, devParam[jtrUniqDevId].devKernel[1], 1, NULL, &N, M, 0, NULL, NULL), "Failed in clEnqueueNDRangeKernel devKernel[1].");
+
+	for (i = 0; i < iterCount - 1; i += itrCntKrnl ) {
+		if (i + itrCntKrnl >= iterCount)
+			itrCntKrnl = iterCount - i - 1;
+
+		HANDLE_CLERROR(clSetKernelArg(devParam[jtrUniqDevId].devKernel[2], 1, sizeof(cl_uint), &itrCntKrnl), "Set Kernel 1 Arg 1 :FAILED");
+
+		M = devParam[jtrUniqDevId].devLws ? &devParam[jtrUniqDevId].devLws : NULL;
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(cmdQueue, devParam[jtrUniqDevId].devKernel[2], 1, NULL, &N, M, 0, NULL, NULL), "Failed in clEnqueueNDRangeKernel devKernel[2].");
+
+		opencl_process_event();
+	}
+
+	M = devParam[jtrUniqDevId].devLws ? &devParam[jtrUniqDevId].devLws : NULL;
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(cmdQueue, devParam[jtrUniqDevId].devKernel[3], 1, NULL, &N, M, 0, NULL, &events[eventCtr]), "Failed in clEnqueueNDRangeKernel devKernel[2].");
+
+        eventCtr++;
+}
+
+static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
+{
+	size_t gwsLimit, gwsInit;
+	size_t lwsLimit, lwsInit;
+
+	struct timeval startc, endc;
+	long double timeMs = 0, oldTimeMs = 0;
+
+	size_t pcount, count;
+
+	int tuneGws, tuneLws;
+
+	cl_uint *hostDccHashes, *hostSalt, *hostDcc2Hashes;
+
+	gwsLimit = get_max_mem_alloc_size(jtrUniqDevId) / sizeof(devIterTempSz);
+	getPowerOfTwo(gwsLimit);
+	if (gwsLimit > get_max_mem_alloc_size(jtrUniqDevId) / sizeof(devIterTempSz))
+		gwsLimit >>= 1;
+
+	lwsLimit = findLwsLimit(jtrUniqDevId);
+	lwsInit = preferredLwsSize(jtrUniqDevId);
+
+	if (gpu_amd(device_info[jtrUniqDevId]))
+		gwsInit = gwsLimit >> 6;
+	else if (gpu_nvidia(device_info[jtrUniqDevId]))
+		gwsInit = gwsLimit >> 7;
+	else
+		gwsInit = 256;
+
+	if (gwsInit > gwsLimit)
+		gwsInit = gwsLimit;
+	if (gwsInit < lwsInit)
+		lwsInit = gwsInit;
+
+	local_work_size = 0;
+	global_work_size = 0;
+	tuneGws = 1;
+	tuneLws = 1;
+	opencl_get_user_preferences(FORMAT_LABEL);
+	if (local_work_size) {
+		tuneLws = 0;
+		if (local_work_size & (local_work_size - 1))
+			getPowerOfTwo(local_work_size);
+		if (local_work_size > lwsLimit)
+			local_work_size = lwsLimit;
+	}
+	if (global_work_size)
+		tuneGws = 0;
+
+	devParam[jtrUniqDevId].devLws = local_work_size;
+	devParam[jtrUniqDevId].devGws = global_work_size;
+
+#if 0
+	 fprintf(stderr, "lwsInit:%zu lwsLimit:%zu"
+			 " gwsInit:%zu gwsLimit:%zu\n",
+			  lwsInit, lwsLimit, gwsInit,
+			  gwsLimit);
+#endif
+	/* Auto tune start.*/
+	pcount = gwsInit;
+	count = 0;
+#define calcMs(start, end)	\
+		((long double)(end.tv_sec - start.tv_sec) * 1000.000 + \
+			(long double)(end.tv_usec - start.tv_usec) / 1000.000)
+	if (tuneGws) {
+		createDevObjGws(pcount, jtrUniqDevId);
+		hostDccHashes = (cl_uint *) mem_alloc(pcount * sizeof(cl_uint) * 4);
+		hostDcc2Hashes = (cl_uint *) mem_calloc(pcount * 4, sizeof(cl_uint));
+		hostSalt = (cl_uint *) mem_alloc(SALT_BUFFER_SIZE);
+		memset(hostDccHashes, 0x5F, pcount * sizeof(cl_uint) * 4);
+		memset(hostSalt, 0x2B, SALT_BUFFER_SIZE);
+
+		gettimeofday(&startc, NULL);
+		eventCtr = 0;
+		execKernel(hostDccHashes, NULL, hostSalt, 20, 10240, hostDcc2Hashes, pcount, jtrUniqDevId, queue[jtrUniqDevId]);
+		HANDLE_CLERROR(clFinish(queue[jtrUniqDevId]), "Finish Error");
+		gettimeofday(&endc, NULL);
+
+		timeMs = calcMs(startc, endc);
+
+		count = (size_t)((kernelRunMs / timeMs) * (long double)gwsInit);
+		getPowerOfTwo(count);
+
+		MEM_FREE(hostDccHashes);
+		MEM_FREE(hostDcc2Hashes);
+		MEM_FREE(hostSalt);
+	}
+
+	if (tuneGws && tuneLws)
+		releaseDevObjGws(jtrUniqDevId);
+
+	if (tuneLws) {
+		count = tuneGws ? count : devParam[jtrUniqDevId].devGws;
+
+		createDevObjGws(count, jtrUniqDevId);
+		pcount = count;
+		hostDccHashes = (cl_uint *) mem_alloc(pcount * sizeof(cl_uint) * 4);
+		hostDcc2Hashes = (cl_uint *) mem_calloc(pcount * 4, sizeof(cl_uint));
+		hostSalt = (cl_uint *) mem_alloc(SALT_BUFFER_SIZE);
+		memset(hostDccHashes, 0x5F, pcount * sizeof(cl_uint) * 4);
+		memset(hostSalt, 0x2B, SALT_BUFFER_SIZE);
+
+		devParam[jtrUniqDevId].devLws = lwsInit;
+
+		gettimeofday(&startc, NULL);
+		eventCtr = 0;
+		execKernel(hostDccHashes, NULL, hostSalt, 20, 10240, hostDcc2Hashes, pcount, jtrUniqDevId, queue[jtrUniqDevId]);
+		HANDLE_CLERROR(clFinish(queue[jtrUniqDevId]), "Finish Error");
+		gettimeofday(&endc, NULL);
+
+		oldTimeMs = calcMs(startc, endc);
+		devParam[jtrUniqDevId].devLws = 2 * lwsInit;
+
+		while (devParam[jtrUniqDevId].devLws <= lwsLimit) {
+			gettimeofday(&startc, NULL);
+			pcount = count;
+			eventCtr = 0;
+			execKernel(hostDccHashes, NULL, hostSalt, 20, 10240, hostDcc2Hashes, pcount, jtrUniqDevId, queue[jtrUniqDevId]);
+			HANDLE_CLERROR(clFinish(queue[jtrUniqDevId]), "Finish Error");
+			gettimeofday(&endc, NULL);
+
+			timeMs = calcMs(startc, endc);
+
+			if (oldTimeMs < timeMs) {
+				devParam[jtrUniqDevId].devLws /= 2;
+				break;
+			}
+
+			oldTimeMs = timeMs;
+			devParam[jtrUniqDevId].devLws *= 2;
+		}
+
+		if (devParam[jtrUniqDevId].devLws > lwsLimit)
+			devParam[jtrUniqDevId].devLws = lwsLimit;
+
+		MEM_FREE(hostDccHashes);
+		MEM_FREE(hostDcc2Hashes);
+		MEM_FREE(hostSalt);
+	}
+
+	if (tuneGws && tuneLws) {
+		if (oldTimeMs > kernelRunMs) {
+			count /= 2;
+		}
+		else {
+			count = (size_t)((kernelRunMs / oldTimeMs) * (long double)count);
+			getPowerOfTwo(count);
+		}
+	}
+
+	if (tuneGws) {
+		if (count > gwsLimit)
+			count = gwsLimit;
+		releaseDevObjGws(jtrUniqDevId);
+		createDevObjGws(count, jtrUniqDevId);
+		devParam[jtrUniqDevId].devGws = count;
+	}
+
+	if (!tuneGws && !tuneLws)
+		createDevObjGws(devParam[jtrUniqDevId].devGws, jtrUniqDevId);
+
+	/* Auto tune finish.*/
+
+	if (devParam[jtrUniqDevId].devGws % devParam[jtrUniqDevId].devLws) {
+		devParam[jtrUniqDevId].devGws = GET_MULTIPLE_OR_BIGGER(devParam[jtrUniqDevId].devGws, devParam[jtrUniqDevId].devLws);
+		getPowerOfTwo(devParam[jtrUniqDevId].devGws);
+		releaseDevObjGws(jtrUniqDevId);
+		if (devParam[jtrUniqDevId].devGws > gwsLimit)
+			devParam[jtrUniqDevId].devGws = gwsLimit;
+		createDevObjGws(devParam[jtrUniqDevId].devGws, jtrUniqDevId);
+	}
+
+	if (devParam[jtrUniqDevId].devGws > gwsLimit) {
+		releaseDevObjGws(jtrUniqDevId);
+		devParam[jtrUniqDevId].devGws = gwsLimit;
+		createDevObjGws(devParam[jtrUniqDevId].devGws, jtrUniqDevId);
+	}
+
+	assert(!(devParam[jtrUniqDevId].devLws & (devParam[jtrUniqDevId].devLws -1)));
+	assert(!(devParam[jtrUniqDevId].devGws % devParam[jtrUniqDevId].devLws));
+	assert(devParam[jtrUniqDevId].devLws <= lwsLimit);
+	assert(devParam[jtrUniqDevId].devGws <= gwsLimit);
+	assert(devParam[jtrUniqDevId].devLws <= PADDING);
+
+	if (options.verbosity > 3)
+	fprintf(stdout, "Device %d  GWS: %zu, LWS: %zu\n", jtrUniqDevId,
+			devParam[jtrUniqDevId].devGws, devParam[jtrUniqDevId].devLws);
+#undef calcMs
+
+	return devParam[jtrUniqDevId].devGws;
+}
+
+size_t selectDevice(int jtrUniqDevId, struct fmt_main *self)
+{
+	char buildOpts[300];
+
+	assert(jtrUniqDevId < MAX_DEVICE_PER_PLATFORM * MAX_PLATFORMS);
+
+	sprintf(buildOpts, "-D SALT_BUFFER_SIZE=%lu", SALT_BUFFER_SIZE);
+	opencl_init("$JOHN/kernels/pbkdf2_kernel.cl", jtrUniqDevId, buildOpts);
+
+	devParam[jtrUniqDevId].devKernel[0] = clCreateKernel(program[jtrUniqDevId], "pbkdf2_preprocess_short", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel pbkdf2_preprocess_short.");
+
+	devParam[jtrUniqDevId].devKernel[1] = clCreateKernel(program[jtrUniqDevId], "pbkdf2_preprocess_long", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel pbkdf2_preprocess_long.");
+
+	devParam[jtrUniqDevId].devKernel[2] = clCreateKernel(program[jtrUniqDevId], "pbkdf2_iter", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel pbkdf2_iter.");
+
+	devParam[jtrUniqDevId].devKernel[3] = clCreateKernel(program[jtrUniqDevId], "pbkdf2_postprocess", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel pbkdf2_postprocess.");
+
+	createDevObj(jtrUniqDevId);
+
+	maxActiveDevices++;
+
+	return autoTune(jtrUniqDevId, 750);
+}
+
+void dcc2_execute(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint *hostSalt, cl_uint saltlen, cl_uint iterCount, cl_uint *hostDcc2Hashes, cl_uint numKeys)
+{
+	int 		i;
+	unsigned int 	workPart, workOffset = 0;
+	cl_int 		ret;
+
+#ifdef  _DEBUG
+	struct timeval startc, endc;
+#endif
+
+	eventCtr = 0;
+	memset(hostDcc2Hashes, 0, numKeys * sizeof(cl_uint));
+
+	///Divide memory and work
+	for (i = 0; i < maxActiveDevices; ++i) {
+		if (i == maxActiveDevices - 1)
+			workPart = numKeys - workOffset;
+		else
+			workPart = devParam[gpu_device_list[i]].devGws;
+
+		if ((int)workPart <= 0)
+			workPart = devParam[gpu_device_list[i]].devLws;
+
+#ifdef  _DEBUG
+		gettimeofday(&startc, NULL) ;
+		fprintf(stderr, "Work Offset:%d  Work Part Size:%d Event No:%d",workOffset,workPart,event_ctr);
+#endif
+
+		///call to execKernel()
+		execKernel(hostDccHashes + 4 * workOffset, hostSha1Hashes + 5 * workOffset, hostSalt, saltlen, iterCount, hostDcc2Hashes + 4 * workOffset, workPart, gpu_device_list[i], queue[gpu_device_list[i]]);
+		workOffset += workPart;
+
+#ifdef  _DEBUG
+		gettimeofday(&endc, NULL);
+		fprintf(stderr, "GPU enqueue time:%f\n",(endc.tv_sec - startc.tv_sec) + (double)(endc.tv_usec - startc.tv_usec) / 1000000.000) ;
+#endif
+	}
+
+	///Synchronize all kernels
+	for (i = maxActiveDevices - 1; i >= 0; --i)
+		HANDLE_CLERROR(clFlush(queue[gpu_device_list[i]]), "Flush Error");
+
+	for (i = 0; i < maxActiveDevices; ++i) {
+		while (1) {
+			HANDLE_CLERROR(clGetEventInfo(events[i], CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &ret, NULL), "Error in Get Event Info");
+			if ((ret) == CL_COMPLETE)
+				break;
+#ifdef  _DEBUG
+			 printf("%d%d ", ret, i);
+#endif
+		}
+	}
+
+	eventCtr = workPart = workOffset = 0;
+
+	///Read results back from all kernels
+	for (i = 0; i < maxActiveDevices; ++i) {
+		if (i == maxActiveDevices - 1)
+			workPart = numKeys - workOffset;
+
+		else
+			workPart = devParam[gpu_device_list[i]].devGws;
+
+		if ((int)workPart <= 0)
+			workPart = devParam[gpu_device_list[i]].devLws;
+
+#ifdef  _DEBUG
+		gettimeofday(&startc, NULL) ;
+		fprintf(stderr, "Work Offset:%d  Work Part Size:%d Event No:%d",workOffset,workPart,event_ctr);
+#endif
+
+		///Read results back from device
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_device_list[i]],
+					devBuffer[gpu_device_list[i]].bufferDcc2Hashes,
+						CL_FALSE, 0,
+						4 * workPart * sizeof(cl_uint),
+						hostDcc2Hashes + 4 * workOffset,
+						0,
+						NULL,
+						NULL), "Write :FAILED");
+			workOffset += workPart;
+
+#ifdef  _DEBUG
+			gettimeofday(&endc, NULL);
+			fprintf(stderr, "GPU enqueue time:%f\n",(endc.tv_sec - startc.tv_sec) + (double)(endc.tv_usec - startc.tv_usec) / 1000000.000) ;
+#endif
+			HANDLE_CLERROR(clReleaseEvent(events[i]), "Error releasing events[i].");
+		}
+
+	for (i = 0; i < maxActiveDevices; ++i)
+		HANDLE_CLERROR(clFinish(queue[gpu_device_list[i]]), "Finish Error");
+
+}

@@ -5,6 +5,7 @@
 * Based on S3nf implementation http://openwall.info/wiki/john/MSCash2
 * Modified to support salts upto 19 characters. Bug in orginal code allowed only upto 8 characters.
 */
+#include "opencl_device_info.h"
 
 #ifdef cl_nv_pragma_unroll
 #define NVIDIA
@@ -536,12 +537,6 @@ inline void hmac_sha1(__private uint *istate, __private uint *ostate, __private 
 	A[3] += ostate[3] ;
 	A[4] += ostate[4] ;
 
-        //PUT_WORD_32_BE(A[0], buf, 0) ;
-	//PUT_WORD_32_BE(A[1], buf, 1) ;
-	//PUT_WORD_32_BE(A[2], buf, 2) ;
-	//PUT_WORD_32_BE(A[3], buf, 3) ;
-	//PUT_WORD_32_BE(A[4], buf, 4) ;
-
 	buf[0] = A[0];
 	buf[1] = A[1];
 	buf[2] = A[2];
@@ -550,66 +545,61 @@ inline void hmac_sha1(__private uint *istate, __private uint *ostate, __private 
 }
 
 #define init_preprocess() 					\
-	int id = get_global_id(0) ;				\
+	int id = get_global_id(0);				\
 								\
-	int i, j ;						\
+	int i, j;						\
 								\
-	unsigned int pass[4] ;					\
+	unsigned int pass[4];					\
 								\
 	unsigned int istate[5], ostate[5];			\
 								\
 	unsigned int ipad[16] = { IPAD, IPAD, IPAD, IPAD,	\
 				  IPAD, IPAD, IPAD, IPAD,	\
 				  IPAD, IPAD, IPAD, IPAD,	\
-				  IPAD, IPAD, IPAD, IPAD } ;	\
+				  IPAD, IPAD, IPAD, IPAD };	\
 	unsigned int opad[16] = { OPAD, OPAD, OPAD, OPAD,	\
 				  OPAD, OPAD, OPAD, OPAD,	\
 				  OPAD, OPAD, OPAD, OPAD,	\
-				  OPAD, OPAD, OPAD, OPAD } ;	\
+				  OPAD, OPAD, OPAD, OPAD };	\
 								\
-	i = 4 * id ;						\
-        pass[0] = pass_global[i++] ;				\
-        pass[1] = pass_global[i++] ;				\
-        pass[2] = pass_global[i++] ;				\
-	pass[3] = pass_global[i] ;				\
+	i = 4 * id;						\
+        pass[0] = dccHahses[i++];				\
+        pass[1] = dccHahses[i++];				\
+        pass[2] = dccHahses[i++];				\
+	pass[3] = dccHahses[i];				\
 								\
 	for (j = 0; j < 4; j++) {				\
-		ipad[j] = ipad[j] ^ pass[j] ;			\
-		opad[j] = opad[j] ^ pass[j] ;			\
+		ipad[j] = ipad[j] ^ pass[j];			\
+		opad[j] = opad[j] ^ pass[j];			\
 	}							\
 								\
-	sha1_pad(ipad, istate) ;				\
-	sha1_pad(opad, ostate) ;
+	sha1_pad(ipad, istate);				\
+	sha1_pad(opad, ostate);
 
 #define IPAD	0x36363636
 #define OPAD 	0x5C5C5C5C
 
 __kernel
-void pbkdf2_preprocess_short(	const __global unsigned int *pass_global,
-				const __global unsigned int *salt,
-				int usrlen,
+void pbkdf2_preprocess_short(	const __global unsigned int *dccHahses,
+				constant unsigned int *salt
+#if gpu_amd(DEVICE_INFO)
+	__attribute__((max_constant_size(SALT_BUFFER_SIZE)))
+#endif
+				, int usrlen,
 				__global temp_buf *tmp	)
 {
-	int lid = get_local_id(0);
-
 	init_preprocess();
-
-	__local unsigned int salt_local[40] ;
-	if (lid == 0)
-		for (i = 0; i <= usrlen / 2; ++i)
-			salt_local[i] = salt[i] ;
-	barrier(CLK_LOCAL_MEM_FENCE) ;
 
 	unsigned int buf[16] = { 0 } ;
 
 	if (usrlen & 1) {
 		for (i = 0; i <= usrlen >> 1; i++)
-			buf[i] = salt_local[i] ;
+			buf[i] = salt[i] ;
 			buf[(usrlen >> 1) + 1] = 0x01 << 8 ;
 	}
 	else {
 		for (i = 0; i < usrlen >> 1; i++)
-			buf[i] = salt_local[i] ;
+			buf[i] = salt[i] ;
 		buf[usrlen >> 1] = 0x01 << 24 ;
 	}
 
@@ -641,20 +631,20 @@ void pbkdf2_preprocess_short(	const __global unsigned int *pass_global,
 }
 
 __kernel
-void pbkdf2_preprocess_long(	const __global unsigned int *pass_global,
+void pbkdf2_preprocess_long(	const __global unsigned int *dccHahses,
 				__global temp_buf *tmp,
-				__global unsigned int *hmac_sha1_out) {
+				__global unsigned int *sha1Hashes) {
 
 	init_preprocess();
 
 	unsigned int out[5];
 
 	i = id * 5;
-	out[0] = hmac_sha1_out[i++] ;
-	out[1] = hmac_sha1_out[i++] ;
-	out[2] = hmac_sha1_out[i++] ;
-	out[3] = hmac_sha1_out[i++] ;
-	out[4] = hmac_sha1_out[i] ;
+	out[0] = sha1Hashes[i++];
+	out[1] = sha1Hashes[i++];
+	out[2] = sha1Hashes[i++];
+	out[3] = sha1Hashes[i++];
+	out[4] = sha1Hashes[i];
 
 	GET_WORD_32_BE(out[0], out, 0);
 	GET_WORD_32_BE(out[1], out, 1);
@@ -686,94 +676,95 @@ void pbkdf2_preprocess_long(	const __global unsigned int *pass_global,
 __kernel
 void pbkdf2_iter(__global temp_buf *tmp,
 		uint itr_count ) {
-	uint id = get_global_id(0) ;
-	uint i ;
-	uint istate[5], ostate[5], buf[5], out[4] ;
-	uint A[5], W[16] ;
+	uint id = get_global_id(0);
+	uint i;
+	uint istate[5], ostate[5], buf[5], out[4];
+	uint A[5], W[16];
 
 	for (i = 0; i< 5; i++) {
-		istate[i] = tmp[id].istate[i] ;
-		ostate[i] = tmp[id].ostate[i] ;
-		buf[i]    = tmp[id].buf[i] ;
-		if (i < 4)
-			out[i] = tmp[id].out[i] ;
+		istate[i] = tmp[id].istate[i];
+		ostate[i] = tmp[id].ostate[i];
+		buf[i]    = tmp[id].buf[i];
 	}
+
+	out[0] = tmp[id].out[0];
+	out[1] = tmp[id].out[1];
+	out[2] = tmp[id].out[2];
+	out[3] = tmp[id].out[3];
 
 	for (i = 0; i < itr_count; i++) {
-		W[0] = buf[0] ;
-		W[1] = buf[1] ;
-		W[2] = buf[2] ;
-		W[3] = buf[3] ;
-		W[4] = buf[4] ;
-		W[5] = 0x80000000 ;
-		W[6] = 0 ;
-		W[7] = 0 ;
-		W[8] = 0 ;
-		W[9] = 0 ;
-		W[10] = 0 ;
-		W[11] = 0 ;
-		W[12] = 0 ;
-		W[13] = 0 ;
-		W[14] = 0 ;
-		W[15] = 0x2A0 ;
+		W[0] = buf[0];
+		W[1] = buf[1];
+		W[2] = buf[2];
+		W[3] = buf[3];
+		W[4] = buf[4];
+		W[5] = 0x80000000;
+		W[6] = 0;
+		W[7] = 0;
+		W[8] = 0;
+		W[9] = 0;
+		W[10] = 0;
+		W[11] = 0;
+		W[12] = 0;
+		W[13] = 0;
+		W[14] = 0;
+		W[15] = 0x2A0;
 
-		A[0] = istate[0] ;
-		A[1] = istate[1] ;
-		A[2] = istate[2] ;
-		A[3] = istate[3] ;
-		A[4] = istate[4] ;
+		A[0] = istate[0];
+		A[1] = istate[1];
+		A[2] = istate[2];
+		A[3] = istate[3];
+		A[4] = istate[4];
 
-		SHA1_digest(A, W) ;
+		SHA1_digest(A, W);
 
-		W[0] = A[0] + istate[0] ;
-		W[1] = A[1] + istate[1] ;
-		W[2] = A[2] + istate[2] ;
-		W[3] = A[3] + istate[3] ;
-		W[4] = A[4] + istate[4] ;
-		W[5] = 0x80000000 ;
-		W[6] = 0 ;
-		W[7] = 0 ;
-		W[8] = 0 ;
-		W[9] = 0 ;
-		W[10] = 0 ;
-		W[11] = 0 ;
-		W[12] = 0 ;
-		W[13] = 0 ;
-		W[14] = 0 ;
-		W[15] = 0x2A0 ;
+		W[0] = A[0] + istate[0];
+		W[1] = A[1] + istate[1];
+		W[2] = A[2] + istate[2];
+		W[3] = A[3] + istate[3];
+		W[4] = A[4] + istate[4];
+		W[5] = 0x80000000;
+		W[6] = 0;
+		W[7] = 0;
+		W[8] = 0;
+		W[9] = 0;
+		W[10] = 0;
+		W[11] = 0;
+		W[12] = 0;
+		W[13] = 0;
+		W[14] = 0;
+		W[15] = 0x2A0;
 
-		A[0] = ostate[0] ;
-		A[1] = ostate[1] ;
-		A[2] = ostate[2] ;
-		A[3] = ostate[3] ;
-		A[4] = ostate[4] ;
+		A[0] = ostate[0];
+		A[1] = ostate[1];
+		A[2] = ostate[2];
+		A[3] = ostate[3];
+		A[4] = ostate[4];
 
-		SHA1_digest(A, W) ;
+		SHA1_digest(A, W);
 
-		buf[0] = A[0] + ostate[0] ;
-		buf[1] = A[1] + ostate[1] ;
-		buf[2] = A[2] + ostate[2] ;
-		buf[3] = A[3] + ostate[3] ;
-		buf[4] = A[4] + ostate[4] ;
+		buf[0] = A[0] + ostate[0];
+		buf[1] = A[1] + ostate[1];
+		buf[2] = A[2] + ostate[2];
+		buf[3] = A[3] + ostate[3];
+		buf[4] = A[4] + ostate[4];
 
-		out[0] ^= buf[0] ;
-		out[1] ^= buf[1] ;
-		out[2] ^= buf[2] ;
-		out[3] ^= buf[3] ;
+		out[0] ^= buf[0];
+		out[1] ^= buf[1];
+		out[2] ^= buf[2];
+		out[3] ^= buf[3];
 	}
 
+	tmp[id].buf[0] = buf[0];
+	tmp[id].buf[1] = buf[1];
+	tmp[id].buf[2] = buf[2];
+	tmp[id].buf[3] = buf[3];
+	tmp[id].buf[4] = buf[4];
 
-	for (i = 0; i< 5; i++) {
-		tmp[id].istate[i] = istate[i] ;
-		tmp[id].ostate[i] = ostate[i] ;
-		tmp[id].buf[i]    = buf[i] ;
-		//tmp[id].A[i]      = A[i] ;
-		if (i < 4)
-			tmp[id].out[i] = out[i] ;
-	}
-
-    //	for (i= 0; i < 16; i++)
-    //  	tmp[id].W[i] = W[i] ;
+	tmp[id].out[0] = out[0];
+	tmp[id].out[1] = out[1];
+	tmp[id].out[2] = out[2];
+	tmp[id].out[3] = out[3];
 }
 
 __kernel
