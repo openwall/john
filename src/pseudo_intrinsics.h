@@ -54,9 +54,9 @@ typedef union {
 #define vcmov(y, z, x)          (vtype)vec_sel((z).v32, (y).v32, (x).v32)
 #define vload(m)                (vtype)(vtype32)vec_ld(0, (uint32_t*)(m))
 #define vor(x, y)               (vtype)vec_or((x).v32, (y).v32)
-#define vroti_epi32(x, i)		(vtype)vec_rl((x).v32, (vset1_epi32(i)).v32)
-#define vroti_epi64(x, i)		(vtype)vec_rl((x).v64, (vset1_epi64(i)).v64)
-#define vroti16_epi32			vroti_epi32
+#define vroti_epi32(x, i)       (vtype)vec_rl((x).v32, (vset1_epi32(i)).v32)
+#define vroti_epi64(x, i)       (vtype)vec_rl((x).v64, (vset1_epi64(i)).v64)
+#define vroti16_epi32           vroti_epi32
 #define vset1_epi32(x)          vset_epi32(x, x, x, x)         
 #define vset1_epi64(x)          vset_epi64(x, x)
 #define vset_epi32(x3,x2,x1,x0) (vtype)(vtype32){x0, x1, x2, x3}
@@ -84,11 +84,11 @@ static inline int vtestz_epi32(vtype x)
 
 #define vswap32(x) \
 	x = vxor(vsrli_epi32(x, 24),                                            \
-			 vxor(vslli_epi32(vsrli_epi32(vslli_epi32(x, 8), 24), 8),       \
-				  vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(x, 8), 24), 8),  \
-					   vslli_epi32(x, 24))))
+	         vxor(vslli_epi32(vsrli_epi32(vslli_epi32(x, 8), 24), 8),       \
+	              vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(x, 8), 24), 8),  \
+                       vslli_epi32(x, 24))))
 #define vswap64(x) \
-	    (x = vxor(vsrli_epi64(x, 32), vslli_epi64(x, 32)), vswap32(x))
+	(x = vxor(vsrli_epi64(x, 32), vslli_epi64(x, 32)), vswap32(x))
 
 #define GATHER64(x,y,z)     { x = vset_epi64 (y[1][z], y[0][z]); }
 
