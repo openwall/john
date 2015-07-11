@@ -173,7 +173,7 @@ static unsigned char *hex2data(const char *string, size_t * data_len)
  *	This function is based on the code from the RFC 2104 appendix.
  *
  *	We use #ifdef to select either the OpenSSL MD5 functions or the
- *	built-in MD5 functions depending on whether HAVE_OPENSSL is defined.
+ *	built-in MD5 functions depending on whether HAVE_LIBSSL is defined.
  *	This is faster that calling OpenSSL "HMAC" directly.
  */
 static inline unsigned char *hmac_md5(unsigned char *text,
@@ -255,7 +255,7 @@ static inline unsigned char *hmac_md5(unsigned char *text,
  *	This function is based on the code from the RFC 2104 appendix.
  *
  *	We use #ifdef to select either the OpenSSL SHA1 functions or the
- *	built-in SHA1 functions depending on whether HAVE_OPENSSL is defined.
+ *	built-in SHA1 functions depending on whether HAVE_LIBSSL is defined.
  *	This is faster that calling OpenSSL "HMAC" directly.
  */
 static inline unsigned char *hmac_sha1(const unsigned char *text,
