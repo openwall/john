@@ -267,9 +267,9 @@ typedef __m256i vtype;
 #define vpermute4x64_epi64      _mm256_permute4x64_epi64
 #define vset1_epi8              _mm256_set1_epi8
 #define vset1_epi32             _mm256_set1_epi32
-#define vset1_epi64             _mm256_set1_epi64
+#define vset1_epi64             _mm256_set1_epi64x
 #define vset_epi32              _mm256_set_epi32
-#define vset_epi64              _mm256_set_epi64
+#define vset_epi64              _mm256_set_epi64x
 #define vsetzero                _mm256_setzero_si256
 #define vshuffle_epi8           _mm256_shuffle_epi8
 #define vshuffle_epi32          _mm256_shuffle_epi32
