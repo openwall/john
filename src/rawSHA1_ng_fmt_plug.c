@@ -23,7 +23,7 @@
 //
 
 #include "arch.h"
-#if defined(SIMD_COEF_32) && (SIMD_COEF_32 < 16 || ARCH_BITS >= 64) && !_MSC_VER && !__ALTIVEC__
+#if defined(SIMD_COEF_32) && (SIMD_COEF_32 < 16 || ARCH_BITS >= 64) && !_MSC_VER
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_sha1_ng;
@@ -124,16 +124,16 @@ john_register_one(&fmt_sha1_ng);
 
 #if SIMD_COEF_32 == 4
 // Not used for AVX2 and better, which has gather instructions.
-#define _MM_TRANSPOSE4_EPI32(R0, R1, R2, R3) do {   \
-    __m128i T0, T1, T2, T3;                         \
-    T0  = _mm_unpacklo_epi32(R0, R1);               \
-    T1  = _mm_unpacklo_epi32(R2, R3);               \
-    T2  = _mm_unpackhi_epi32(R0, R1);               \
-    T3  = _mm_unpackhi_epi32(R2, R3);               \
-    R0  = _mm_unpacklo_epi64(T0, T1);               \
-    R1  = _mm_unpackhi_epi64(T0, T1);               \
-    R2  = _mm_unpacklo_epi64(T2, T3);               \
-    R3  = _mm_unpackhi_epi64(T2, T3);               \
+#define _MM_TRANSPOSE4_EPI32(R0, R1, R2, R3) do {\
+    vtype T0, T1, T2, T3;                        \
+    T0  = vunpacklo_epi32(R0, R1);               \
+    T1  = vunpacklo_epi32(R2, R3);               \
+    T2  = vunpackhi_epi32(R0, R1);               \
+    T3  = vunpackhi_epi32(R2, R3);               \
+    R0  = vunpacklo_epi64(T0, T1);               \
+    R1  = vunpackhi_epi64(T0, T1);               \
+    R2  = vunpacklo_epi64(T2, T3);               \
+    R3  = vunpackhi_epi64(T2, T3);               \
 } while (false)
 #endif
 
@@ -197,11 +197,14 @@ static inline uint32_t __attribute__((const)) rotateleft(uint32_t value, uint8_t
 	register uint32_t result;
 #if (__MINGW32__ || __MINGW64__) && __STRICT_ANSI__
 	result = _rotl(value, count); //((value<<count)|((ARCH_WORD_32)value>>(32-count)));
-#else
+#elif __i386__ || __x86_64__
 	asm("rol    %%cl, %0"
 	    : "=r" (result)
 	    : "0"  (value),
 	      "c"  (count));
+#else
+	// assume count <= 32
+	result = (value << count) | (value >> (32 - count));
 #endif
 	return result;
 }
@@ -214,10 +217,12 @@ static inline uint32_t __attribute__((const)) bswap32(uint32_t value)
 	register uint32_t result;
 #if (__MINGW32__ || __MINGW64__) && __STRICT_ANSI__
 	result = _byteswap_ulong(value);
-#else
+#elif __i386 || __x86_64__
 	asm("bswap %0"
 		: "=r" (result)
 		: "0" (value));
+#else
+	result = (value << 24) | ((value << 8) & 0xFF0000) | (value >> 24) | ((value >> 8) & 0xFF00);
 #endif
 	return result;
 }
@@ -334,12 +339,12 @@ static char *sha1_fmt_split(char *ciphertext, int index, struct fmt_main *self)
 // doesn't require it to be 16 byte aligned (although that would be nice).
 static void sha1_fmt_set_key(char *key, int index)
 {
-	vtype  Z   = vsetzero();
+	vtype  Z   = vset1_epi32(0);
 	vtype  X   = vloadu(key);
 	vtype  B;
 
 	// First, find the length of the key by scanning for a zero byte.
-#if (__AVX512F__ && !__AVX512BW__) || __MIC__
+#if (__AVX512F__ && !__AVX512BW__) || __MIC__ || __ALTIVEC__
 	uint32_t len = strlen(key);
 #else
 	// FIXME: even uint64_t won't be long enough for AVX-1024
@@ -610,10 +615,10 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 		R1(W[5],  A, B, C, D, E);                          // 5
 		R1(W[6],  E, A, B, C, D);
 #else
-		R1(W[3],  C, D, E, A, B); W[4]  = vsetzero();
-		R1(W[4],  B, C, D, E, A); W[5]  = vsetzero();
-		R1(W[5],  A, B, C, D, E); W[6]  = vsetzero();      // 5
-		R1(W[6],  E, A, B, C, D); W[7]  = vsetzero();
+		R1(W[3],  C, D, E, A, B); W[4]  = vset1_epi32(0);
+		R1(W[4],  B, C, D, E, A); W[5]  = vset1_epi32(0);
+		R1(W[5],  A, B, C, D, E); W[6]  = vset1_epi32(0);      // 5
+		R1(W[6],  E, A, B, C, D); W[7]  = vset1_epi32(0);
 #endif
 #if VWIDTH > 8
 		R1(W[7],  D, E, A, B, C);
@@ -625,13 +630,13 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 		R1(W[13], C, D, E, A, B);
 		R1(W[14], B, C, D, E, A);
 #else
-		R1(W[7],  D, E, A, B, C); W[8]  = vsetzero();
-		R1(W[8],  C, D, E, A, B); W[9]  = vsetzero();
-		R1(W[9],  B, C, D, E, A); W[10] = vsetzero();
-		R1(W[10], A, B, C, D, E); W[11] = vsetzero();      // 10
-		R1(W[11], E, A, B, C, D); W[12] = vsetzero();
-		R1(W[12], D, E, A, B, C); W[13] = vsetzero();
-		R1(W[13], C, D, E, A, B); W[14] = vsetzero();
+		R1(W[7],  D, E, A, B, C); W[8]  = vset1_epi32(0);
+		R1(W[8],  C, D, E, A, B); W[9]  = vset1_epi32(0);
+		R1(W[9],  B, C, D, E, A); W[10] = vset1_epi32(0);
+		R1(W[10], A, B, C, D, E); W[11] = vset1_epi32(0);      // 10
+		R1(W[11], E, A, B, C, D); W[12] = vset1_epi32(0);
+		R1(W[12], D, E, A, B, C); W[13] = vset1_epi32(0);
+		R1(W[13], C, D, E, A, B); W[14] = vset1_epi32(0);
 		R1(W[14], B, C, D, E, A);
 #endif
 
@@ -856,7 +861,9 @@ struct fmt_main fmt_sha1_ng = {
 #else
 		.format_name        = "(pwlen <= 15)",
 		.algorithm_name     = "SHA1 128/128 "
-#if __XOP__
+#if __ALTIVEC__
+		"AltiVec"
+#elif __XOP__
 		"XOP"
 #elif __AVX__
 		"AVX"
