@@ -1,3 +1,11 @@
+/*
+ * This software is Copyright (c) 2015 Sayantan Datta <stdatta at openwall dot com>
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
+#ifdef HAVE_OPENCL
+
 #include "common-opencl.h"
 
 #define FORMAT_LABEL	           "mscash2-opencl"
@@ -13,3 +21,5 @@ extern void initNumDevices(void);
 extern size_t selectDevice(int jtrUniqDevId, struct fmt_main *self);
 extern void releaseAll(void);
 extern void dcc2_execute(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint *hostSalt, cl_uint saltlen, cl_uint iterCount, cl_uint *hostDcc2Hashes, cl_uint numKeys);
+
+#endif

@@ -3,8 +3,9 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
- * Based on S3nf implementation http://openwall.info/wiki/john/MSCash2
  */
+#ifdef HAVE_OPENCL
+
 #include <sys/time.h>
 #include <assert.h>
 
@@ -520,3 +521,5 @@ void dcc2_execute(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint *host
 		HANDLE_CLERROR(clFinish(queue[gpu_device_list[i]]), "Finish Error");
 
 }
+
+#endif
