@@ -1,7 +1,14 @@
+/*
+ * This software is Copyright (c) 2015 Sayantan Datta <stdatta at openwall dot com>
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ * Based on S3nf implementation http://openwall.info/wiki/john/MSCash2
+ */
 #include <sys/time.h>
+#include <assert.h>
 
 #include "opencl_mscash2_helper_plug.h"
-#include "assert.h"
 #include "options.h"
 
 #define MAX_DEVICE_PER_PLATFORM 	16
