@@ -301,30 +301,31 @@ static void build_kernel(char * task) {
 }
 
 static void init(struct fmt_main *_self) {
-	char * tmp_value;
-	char * task = "$JOHN/kernels/cryptsha256_kernel_DEFAULT.cl";
 
 	self = _self;
-
-	opencl_prepare_dev(gpu_id);
-	source_in_use = device_info[gpu_id];
-
-	if ((tmp_value = getenv("_TYPE")))
-		source_in_use = atoi(tmp_value);
-
-	if (_USE_GPU_SOURCE)
-		task = "$JOHN/kernels/cryptsha256_kernel_GPU.cl";
-
-	build_kernel(task);
-
-	if (source_in_use != device_info[gpu_id])
-		fprintf(stderr, "Selected runtime id %d, source (%s)\n",
-		        source_in_use, task);
 }
 
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
+                char * tmp_value;
+                char * task = "$JOHN/kernels/cryptsha256_kernel_DEFAULT.cl";
+
+                opencl_prepare_dev(gpu_id);
+                source_in_use = device_info[gpu_id];
+
+                if ((tmp_value = getenv("_TYPE")))
+                        source_in_use = atoi(tmp_value);
+
+                if (_USE_GPU_SOURCE)
+                        task = "$JOHN/kernels/cryptsha256_kernel_GPU.cl";
+
+                build_kernel(task);
+
+                if (source_in_use != device_info[gpu_id])
+                        fprintf(stderr, "Selected runtime id %d, source (%s)\n",
+                                source_in_use, task);
+            
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS,
 		                       ((_SPLIT_KERNEL_IN_USE) ?
