@@ -409,8 +409,13 @@ typedef __m128i vtype;
 #define vset_epi32              _mm_set_epi32
 #define vset1_epi8              _mm_set1_epi8
 #define vset1_epi32             _mm_set1_epi32
+#ifndef _MSC_VER
 #define vset1_epi64             _mm_set1_epi64x
 #define vset_epi64              _mm_set_epi64x
+#else
+#define vset1_epi64             _mm_set1_epi64
+#define vset_epi64              _mm_set_epi64
+#endif
 #define vsetzero                _mm_setzero_si128
 #if __SSSE3__
 #define vshuffle_epi8           _mm_shuffle_epi8
