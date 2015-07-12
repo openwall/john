@@ -359,7 +359,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *hash, *p;
 	if (strncmp(ciphertext, mscash_prefix, strlen(mscash_prefix)) != 0)
 		return 0;
-	hash = p = strrchr(ciphertext, '#') + 1;
+	hash = p = strrchr(ciphertext, '#');
+	if (!p)
+		return 0;
+	p++;
+	hash++;
 	while (*p)
 		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
 			return 0;
