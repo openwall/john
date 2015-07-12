@@ -210,17 +210,23 @@ static void execKernel(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint 
 
 static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 {
-	size_t gwsLimit, gwsInit;
+	size_t gwsLimit, gwsInit, gwsRound;
 	size_t lwsLimit, lwsInit;
 
 	struct timeval startc, endc;
-	long double timeMs = 0, oldTimeMs = 0;
+	long double timeMs = 0, minTimeMs = 0;
 
 	size_t pcount, count;
 
 	int tuneGws, tuneLws;
 
 	cl_uint *hostDccHashes, *hostSalt, *hostDcc2Hashes;
+
+	unsigned int i;
+	unsigned int a = 0xffaabbcc;
+	unsigned int b = 0xbbccaaee;
+	unsigned int c = 0xccffbbdd;
+	unsigned int d = 0xff123456;
 
 	gwsLimit = get_max_mem_alloc_size
 		   (jtrUniqDevId) / sizeof(devIterTempSz);
@@ -233,12 +239,17 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 	lwsLimit = findLwsLimit(jtrUniqDevId);
 	lwsInit = preferredLwsSize(jtrUniqDevId);
 
-	if (gpu_amd(device_info[jtrUniqDevId]))
-		gwsInit = gwsLimit >> 6;
-	else if (gpu_nvidia(device_info[jtrUniqDevId]))
-		gwsInit = gwsLimit >> 7;
-	else
+	gwsInit = 1024;
+	gwsRound = 8192;
+	if (cpu(device_info[jtrUniqDevId])) {
 		gwsInit = 256;
+		gwsRound = 64;
+		if (lwsLimit > 8)
+			lwsLimit = 8;
+		if (lwsInit > 8)
+			lwsInit = 8;
+		assert(lwsInit <= lwsLimit);
+	}
 
 	if (gwsInit > gwsLimit)
 		gwsInit = gwsLimit;
@@ -280,7 +291,12 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 		hostDccHashes = (cl_uint *) mem_alloc(pcount * sizeof(cl_uint) * 4);
 		hostDcc2Hashes = (cl_uint *) mem_calloc(pcount * 4, sizeof(cl_uint));
 		hostSalt = (cl_uint *) mem_alloc(SALT_BUFFER_SIZE);
-		memset(hostDccHashes, 0x5F, pcount * sizeof(cl_uint) * 4);
+		for (i = 0; i < pcount; i++) {
+			hostDccHashes[i * 4] = a++;
+			hostDccHashes[i * 4 + 1] = a + b++;
+			hostDccHashes[i * 4 + 2] = c++;
+			hostDccHashes[i * 4 + 3] = c + d++;
+		}
 		memset(hostSalt, 0x2B, SALT_BUFFER_SIZE);
 
 		gettimeofday(&startc, NULL);
@@ -290,9 +306,36 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 		gettimeofday(&endc, NULL);
 
 		timeMs = calcMs(startc, endc);
-
 		count = (size_t)((kernelRunMs / timeMs) * (long double)gwsInit);
-		count = GET_MULTIPLE_OR_BIGGER(count, devParam[jtrUniqDevId].devLws);
+		count = GET_MULTIPLE_OR_BIGGER(count, gwsRound);
+
+		MEM_FREE(hostDccHashes);
+		MEM_FREE(hostDcc2Hashes);
+		MEM_FREE(hostSalt);
+		releaseDevObjGws(jtrUniqDevId);
+
+		pcount = count;
+		createDevObjGws(pcount, jtrUniqDevId);
+		hostDccHashes = (cl_uint *) mem_alloc(pcount * sizeof(cl_uint) * 4);
+		hostDcc2Hashes = (cl_uint *) mem_calloc(pcount * 4, sizeof(cl_uint));
+		hostSalt = (cl_uint *) mem_alloc(SALT_BUFFER_SIZE);
+		for (i = 0; i < pcount; i++) {
+			hostDccHashes[i * 4] = a++;
+			hostDccHashes[i * 4 + 1] = a + b++;
+			hostDccHashes[i * 4 + 2] = c++;
+			hostDccHashes[i * 4 + 3] = c + d++;
+		}
+		memset(hostSalt, 0x2B, SALT_BUFFER_SIZE);
+
+		gettimeofday(&startc, NULL);
+		eventCtr = 0;
+		execKernel(hostDccHashes, NULL, hostSalt, 20, 10240, hostDcc2Hashes, pcount, jtrUniqDevId, queue[jtrUniqDevId]);
+		HANDLE_CLERROR(clFinish(queue[jtrUniqDevId]), "Finish Error");
+		gettimeofday(&endc, NULL);
+
+		timeMs = calcMs(startc, endc);
+		count = (size_t)((kernelRunMs / timeMs) * (long double)count);
+		count = GET_MULTIPLE_OR_BIGGER(count, gwsRound);
 
 		MEM_FREE(hostDccHashes);
 		MEM_FREE(hostDcc2Hashes);
@@ -303,6 +346,7 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 		releaseDevObjGws(jtrUniqDevId);
 
 	if (tuneLws) {
+		size_t bestLws;
 		count = tuneGws ? count : devParam[jtrUniqDevId].devGws;
 
 		createDevObjGws(count, jtrUniqDevId);
@@ -310,7 +354,12 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 		hostDccHashes = (cl_uint *) mem_alloc(pcount * sizeof(cl_uint) * 4);
 		hostDcc2Hashes = (cl_uint *) mem_calloc(pcount * 4, sizeof(cl_uint));
 		hostSalt = (cl_uint *) mem_alloc(SALT_BUFFER_SIZE);
-		memset(hostDccHashes, 0x5F, pcount * sizeof(cl_uint) * 4);
+		for (i = 0; i < pcount; i++) {
+			hostDccHashes[i * 4] = a++;
+			hostDccHashes[i * 4 + 1] = a + b++;
+			hostDccHashes[i * 4 + 2] = c++;
+			hostDccHashes[i * 4 + 3] = c + d++;
+		}
 		memset(hostSalt, 0x2B, SALT_BUFFER_SIZE);
 
 		devParam[jtrUniqDevId].devLws = lwsInit;
@@ -321,10 +370,20 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 		HANDLE_CLERROR(clFinish(queue[jtrUniqDevId]), "Finish Error");
 		gettimeofday(&endc, NULL);
 
-		oldTimeMs = calcMs(startc, endc);
+		timeMs = calcMs(startc, endc);
+
+		minTimeMs = timeMs;
+		bestLws = devParam[jtrUniqDevId].devLws;
+
 		devParam[jtrUniqDevId].devLws = 2 * lwsInit;
 
 		while (devParam[jtrUniqDevId].devLws <= lwsLimit) {
+			for (i = 0; i < pcount; i++) {
+				hostDccHashes[i * 4] = a++;
+				hostDccHashes[i * 4 + 1] = a + b++;
+				hostDccHashes[i * 4 + 2] = c++;
+				hostDccHashes[i * 4 + 3] = c + d++;
+			}
 			gettimeofday(&startc, NULL);
 			pcount = count;
 			eventCtr = 0;
@@ -334,14 +393,15 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 
 			timeMs = calcMs(startc, endc);
 
-			if (oldTimeMs < timeMs) {
-				devParam[jtrUniqDevId].devLws /= 2;
-				break;
+			if (minTimeMs > timeMs) {
+				minTimeMs = timeMs;
+				bestLws = devParam[jtrUniqDevId].devLws;
 			}
 
-			oldTimeMs = timeMs;
 			devParam[jtrUniqDevId].devLws *= 2;
 		}
+
+		devParam[jtrUniqDevId].devLws = bestLws;
 
 		if (devParam[jtrUniqDevId].devLws > lwsLimit)
 			devParam[jtrUniqDevId].devLws = lwsLimit;
@@ -352,13 +412,8 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 	}
 
 	if (tuneGws && tuneLws) {
-		if (oldTimeMs > kernelRunMs) {
-			count /= 2;
-		}
-		else {
-			count = (size_t)((kernelRunMs / oldTimeMs) * (long double)count);
-			count = GET_MULTIPLE_OR_BIGGER(count, devParam[jtrUniqDevId].devLws);
-		}
+		count = (size_t)((kernelRunMs / minTimeMs) * (long double)count);
+		count = GET_MULTIPLE_OR_BIGGER(count, gwsRound);
 	}
 
 	if (tuneGws) {
@@ -371,11 +426,10 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 
 	if (!tuneGws && !tuneLws)
 		createDevObjGws(devParam[jtrUniqDevId].devGws, jtrUniqDevId);
-
 	/* Auto tune finish.*/
 
-	if (devParam[jtrUniqDevId].devGws % devParam[jtrUniqDevId].devLws) {
-		devParam[jtrUniqDevId].devGws = GET_MULTIPLE_OR_BIGGER(devParam[jtrUniqDevId].devGws, devParam[jtrUniqDevId].devLws);
+	if (devParam[jtrUniqDevId].devGws % gwsRound) {
+		devParam[jtrUniqDevId].devGws = GET_MULTIPLE_OR_BIGGER(devParam[jtrUniqDevId].devGws, gwsRound);
 		releaseDevObjGws(jtrUniqDevId);
 		if (devParam[jtrUniqDevId].devGws > gwsLimit)
 			devParam[jtrUniqDevId].devGws = gwsLimit;
@@ -389,7 +443,8 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 	}
 
 	assert(!(devParam[jtrUniqDevId].devLws & (devParam[jtrUniqDevId].devLws -1)));
-	assert(!(devParam[jtrUniqDevId].devGws % devParam[jtrUniqDevId].devLws));
+	assert(!(gwsRound & (devParam[jtrUniqDevId].devLws - 1)));
+	assert(!(devParam[jtrUniqDevId].devGws % gwsRound));
 	assert(devParam[jtrUniqDevId].devLws <= lwsLimit);
 	assert(devParam[jtrUniqDevId].devGws <= gwsLimit);
 	assert(devParam[jtrUniqDevId].devLws <= PADDING);
@@ -397,8 +452,8 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 	if (options.verbosity > 3)
 	fprintf(stdout, "Device %d  GWS: %zu, LWS: %zu\n", jtrUniqDevId,
 			devParam[jtrUniqDevId].devGws, devParam[jtrUniqDevId].devLws);
-#undef calcMs
 
+#undef calcMs
 	return devParam[jtrUniqDevId].devGws;
 }
 
@@ -427,7 +482,7 @@ size_t selectDevice(int jtrUniqDevId, struct fmt_main *self)
 
 	maxActiveDevices++;
 
-	return autoTune(jtrUniqDevId, 750);
+	return autoTune(jtrUniqDevId, 1000);
 }
 
 void dcc2Execute(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint *hostSalt, cl_uint saltlen, cl_uint iterCount, cl_uint *hostDcc2Hashes, cl_uint numKeys)
@@ -452,10 +507,12 @@ void dcc2Execute(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint *hostS
 
 		if ((int)workPart <= 0)
 			workPart = devParam[gpu_device_list[i]].devLws;
-
 #ifdef  _DEBUG
 		gettimeofday(&startc, NULL) ;
 		fprintf(stderr, "Work Offset:%d  Work Part Size:%d Event No:%d",workOffset,workPart,event_ctr);
+
+		if (workPart != devParam[gpu_device_list[i]].devGws)
+			fprintf(stderr, "Deficit: %d %zu\n",  gpu_device_list[i], devParam[gpu_device_list[i]].devGws - workPart);
 #endif
 
 		///call to execKernel()
@@ -498,7 +555,7 @@ void dcc2Execute(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint *hostS
 
 #ifdef  _DEBUG
 		gettimeofday(&startc, NULL) ;
-		fprintf(stderr, "Work Offset:%d  Work Part Size:%d Event No:%d",workOffset,workPart,event_ctr);
+		fprintf(stderr, "Work Offset:%d  Work Part Size:%d Event No:%d",workOffset,workPart,eventCtr);
 #endif
 
 		///Read results back from device
