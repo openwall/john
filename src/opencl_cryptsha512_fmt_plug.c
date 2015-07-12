@@ -370,7 +370,7 @@ static void reset(struct db_main *db)
                 if (source_in_use != device_info[gpu_id])
                         fprintf(stderr, "Selected runtime id %d, source (%s)\n",
                                 source_in_use, task);
-        
+
 		if (gpu_amd(source_in_use))
 			default_value = get_processors_count(gpu_id);
 		else if (gpu_intel(source_in_use))
@@ -399,15 +399,19 @@ static void reset(struct db_main *db)
 }
 
 static void done(void) {
-	release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+        if (autotuned) {
+                release_clobj();
 
-	if (_SPLIT_KERNEL_IN_USE) {
-		HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
-		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
-	}
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+                HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+
+                if (_SPLIT_KERNEL_IN_USE) {
+                        HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
+                        HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
+                }
+                HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+                autotuned = 0;
+        }
 }
 
 /* ------- Compare functins ------- */

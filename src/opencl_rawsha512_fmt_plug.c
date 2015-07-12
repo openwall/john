@@ -518,54 +518,62 @@ static char * get_key(int index)
 }
 
 /* ------- Initialization  ------- */
-static void init(struct fmt_main *_self)
+static void init_common(struct fmt_main *_self)
 {
 	self = _self;
-
 	mask_int_cand_target = 20000;
+}
+
+static void init(struct fmt_main *_self)
+{
+	salted_format = 0;
+	init_common(_self);
 }
 
 
 static void init_x(struct fmt_main * _self)
 {
 	salted_format = 1;
-	init(_self);
+	init_common(_self);
 }
 
 static void done(void)
 {
-	release_clobj();
+        if (autotuned) {
+                release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+                HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+                HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
+                HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
-	if (buffer_loaded_hashes) {
-		ret_code = clReleaseMemObject(buffer_loaded_hashes);
-		HANDLE_CLERROR(ret_code, "Error Releasing buffer_loaded_hashes");
-		buffer_loaded_hashes = NULL;
-	}
+                if (buffer_loaded_hashes) {
+                        ret_code = clReleaseMemObject(buffer_loaded_hashes);
+                        HANDLE_CLERROR(ret_code, "Error Releasing buffer_loaded_hashes");
+                        buffer_loaded_hashes = NULL;
+                }
 
-	if (buffer_hash_ids) {
-		ret_code = clReleaseMemObject(buffer_hash_ids);
-		HANDLE_CLERROR(ret_code, "Error Releasing buffer_hash_ids");
-		buffer_hash_ids = NULL;
-	}
+                if (buffer_hash_ids) {
+                        ret_code = clReleaseMemObject(buffer_hash_ids);
+                        HANDLE_CLERROR(ret_code, "Error Releasing buffer_hash_ids");
+                        buffer_hash_ids = NULL;
+                }
 
-	if (buffer_bitmap) {
-		ret_code = clReleaseMemObject(buffer_bitmap);
-		HANDLE_CLERROR(ret_code, "Error Releasing buffer_bitmap");
-		buffer_bitmap = NULL;
-	}
+                if (buffer_bitmap) {
+                        ret_code = clReleaseMemObject(buffer_bitmap);
+                        HANDLE_CLERROR(ret_code, "Error Releasing buffer_bitmap");
+                        buffer_bitmap = NULL;
+                }
 
-	if (loaded_hashes) {
-		MEM_FREE(loaded_hashes);
-                loaded_hashes = NULL;
-        }
-        
-	if (hash_ids) {
-		MEM_FREE(hash_ids);
-                hash_ids = NULL;
+                if (loaded_hashes) {
+                        MEM_FREE(loaded_hashes);
+                        loaded_hashes = NULL;
+                }
+
+                if (hash_ids) {
+                        MEM_FREE(hash_ids);
+                        hash_ids = NULL;
+                }
+                autotuned = 0;
         }
 }
 

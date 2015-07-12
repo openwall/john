@@ -111,10 +111,10 @@ static void create_mask_buffers()
 {
 	if (loaded_hashes)
 		MEM_FREE(loaded_hashes);
-        
+
 	if (hash_ids)
 		 MEM_FREE(hash_ids);
-        
+
 	if (buffer_loaded_hashes)
 		clReleaseMemObject(buffer_loaded_hashes);
 
@@ -138,7 +138,7 @@ static void create_mask_buffers()
 
 	loaded_hashes = (cl_uint *) mem_alloc(BINARY_SIZE * num_loaded_hashes);
 	hash_ids = (cl_uint *) mem_alloc((num_loaded_hashes + 1) * 3 * sizeof(uint32_t));
-        
+
 	//Set prepare kernel arguments
 	HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_uint),
 		(void *) &num_loaded_hashes), "Error setting argument 0");
@@ -147,7 +147,7 @@ static void create_mask_buffers()
 	HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(buffer_bitmap),
 		(void *) &buffer_bitmap), "Error setting argument 2");
 
-	//Set crypt kernel arguments           
+	//Set crypt kernel arguments
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(cl_uint),
 		(void *) &num_loaded_hashes), "Error setting argument 5");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_loaded_hashes),
@@ -156,7 +156,7 @@ static void create_mask_buffers()
 		(void *) &buffer_hash_ids), "Error setting argument 7");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 8, sizeof(buffer_bitmap),
 		(void *) &buffer_bitmap), "Error setting argument 8");
-        
+
 }
 
 static void create_clobj(size_t gws, struct fmt_main *self)
@@ -445,7 +445,7 @@ static char * get_key(int index)
 			ret[(saved_int_key_loc[t]& (0xff << (i * 8))) >> (i * 8)] =
 				mask_int_cand.int_cand[int_index].x[i];
 	}
-     
+
 	return ret;
 }
 
@@ -459,38 +459,41 @@ static void init(struct fmt_main *_self)
 
 static void done(void)
 {
-	release_clobj();
+        if (autotuned) {
+                release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+                HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+                HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
+                HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
-	if (buffer_loaded_hashes) {
-		ret_code = clReleaseMemObject(buffer_loaded_hashes);
-		HANDLE_CLERROR(ret_code, "Error Releasing buffer_loaded_hashes");
-		buffer_loaded_hashes = NULL;
-	}
+                if (buffer_loaded_hashes) {
+                        ret_code = clReleaseMemObject(buffer_loaded_hashes);
+                        HANDLE_CLERROR(ret_code, "Error Releasing buffer_loaded_hashes");
+                        buffer_loaded_hashes = NULL;
+                }
 
-	if (buffer_hash_ids) {
-		ret_code = clReleaseMemObject(buffer_hash_ids);
-		HANDLE_CLERROR(ret_code, "Error Releasing buffer_hash_ids");
-		buffer_hash_ids = NULL;
-	}
+                if (buffer_hash_ids) {
+                        ret_code = clReleaseMemObject(buffer_hash_ids);
+                        HANDLE_CLERROR(ret_code, "Error Releasing buffer_hash_ids");
+                        buffer_hash_ids = NULL;
+                }
 
-	if (buffer_bitmap) {
-		ret_code = clReleaseMemObject(buffer_bitmap);
-		HANDLE_CLERROR(ret_code, "Error Releasing buffer_bitmap");
-		buffer_bitmap = NULL;
-	}
+                if (buffer_bitmap) {
+                        ret_code = clReleaseMemObject(buffer_bitmap);
+                        HANDLE_CLERROR(ret_code, "Error Releasing buffer_bitmap");
+                        buffer_bitmap = NULL;
+                }
 
-	if (loaded_hashes) {
-		MEM_FREE(loaded_hashes);
-                loaded_hashes = NULL;
-        }
-        
-	if (hash_ids) {
-		MEM_FREE(hash_ids);
-                hash_ids = NULL;
+                if (loaded_hashes) {
+                        MEM_FREE(loaded_hashes);
+                        loaded_hashes = NULL;
+                }
+
+                if (hash_ids) {
+                        MEM_FREE(hash_ids);
+                        hash_ids = NULL;
+                }
+                autotuned = 0;
         }
 }
 
