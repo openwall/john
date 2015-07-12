@@ -792,7 +792,7 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 
 
 /* Round 1 */
-	cst = vset1_epi32(0);
+	cst = vsetzero();
 	MD4_STEP(MD4_F, a, b, c, d, 0, cst, 3)
 	MD4_STEP(MD4_F, d, a, b, c, 1, cst, 7)
 	MD4_STEP(MD4_F, c, d, a, b, 2, cst, 11)
