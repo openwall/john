@@ -872,6 +872,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	private_subformat_data *pPriv = pFmt->private.data;
 	char Tmp[80];
 	int i;
+	int trim_u=0;
 
 	char *cpBuilding=split_fields[1];
 
@@ -925,7 +926,18 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	}
 	// At this point, max length of cpBuilding is 491 (if it was a md5_gen signature)
 
+	// allow a raw hash, if there is a $u but no salt
+	if (pPriv->nUserName && strlen(split_fields[0]) && !strchr(cpBuilding, '$') && strcmp(split_fields[0], "?")) {
+		static char ct[496];
+		strcpy(ct, cpBuilding);
+		strcat(ct, "$$U");
+		cpBuilding = ct;
+		trim_u=1;
+	}
+
 	cpBuilding = FixupIfNeeded(cpBuilding, pPriv);
+	if (trim_u)
+		cpBuilding[strlen(cpBuilding)-3] = 0;
 
 	// at this point max length is still < 512.  491 + strlen($dynamic_xxxxx$) is 506
 
