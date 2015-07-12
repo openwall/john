@@ -202,7 +202,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdecu(cp))
 		goto err;
 
-	if ((cp = strtokm(NULL, " ")) == NULL)
+	// we want the entire rest of the line here, to mime compare.
+	if ((cp = strtokm(NULL, "")) == NULL)
 		goto err;
 	if (strlen(cp) != base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ|flg_Base64_MIME_TRAIL_EQ_CNT))
 		return 0;
