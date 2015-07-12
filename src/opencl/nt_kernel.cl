@@ -155,7 +155,7 @@ inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_s
 	hash[2] += (hash[3] ^ hash[0] ^ tmp) + nt_buffer[7]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
 }
 
-inline void prepare_key(__global uint * key, int length, uint * nt_buffer)
+inline void prepare_key(__global uint * key, uint length, uint * nt_buffer)
 {
 	uint i = 0, nt_index, keychars;
 	nt_index = 0;
@@ -166,7 +166,6 @@ inline void prepare_key(__global uint * key, int length, uint * nt_buffer)
 	}
 	nt_index = length >> 1;
 	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
-	nt_buffer[nt_index + 1] = 0;
 }
 
 inline void cmp_final(uint gid,
@@ -277,7 +276,7 @@ inline void cmp(uint gid,
 }
 
 #define USE_CONST_CACHE \
-	((CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4)) && (!IS_STATIC_GPU_MASK))
+	(CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4))
 /* some constants used below are passed with -D */
 //#define KEY_LENGTH (MD4_PLAINTEXT_LENGTH + 1)
 
@@ -304,22 +303,11 @@ __kernel void nt(__global uint *keys,
 		  volatile __global uint *bitmap_dupe)
 {
 	uint i;
-	uint lid = get_local_id(0);
-	uint lws = get_local_size(0);
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint nt_buffer[12] = { 0 };
 	uint md4_size = base & 63;
 	uint hash[4];
-
-#if __OPENCL_VERSION__ < 120 || (__APPLE__ && gpu_nvidia(DEVICE_INFO))
-	if (!gid) {
-		out_hash_ids[0] = 0;
-		for (i = 0; i < HASH_TABLE_SIZE/32 + 1; i++)
-			bitmap_dupe[i] = 0;
-	}
-	barrier(CLK_GLOBAL_MEM_FENCE);
-#endif
 
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
 	uint ikl = int_key_loc[gid];
@@ -354,6 +342,8 @@ __kernel void nt(__global uint *keys,
 #endif
 
 #if USE_LOCAL_BITMAPS
+	uint lid = get_local_id(0);
+	uint lws = get_local_size(0);
 	uint __local s_bitmaps[(BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS];
 
 	for(i = 0; i < (((BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS) / lws); i++)

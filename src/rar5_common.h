@@ -42,7 +42,7 @@ static struct custom_salt {
 	//unsigned char iv[32];
 } *cur_salt;
 
-static int get_integer(char *int_str, int *output)
+static int get_integer(char *int_str, int *output) // FIXME: replace by isdec() + atoi()?
 {
 	char *endptr;
 	long val;
@@ -73,31 +73,39 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!get_integer(p, &len))
 		goto err;
-	if(len > 32)
+	if (len > 32 || len < 0)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // salt
 		goto err;
 	if (strlen(p) != len * 2)
 		goto err;
+	if (!ishex(p))
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // iterations (in log2)
 		goto err;
 	if (!get_integer(p, &len))
 		goto err;
-	if(len > 24) // CRYPT5_KDF_LG2_COUNT_MAX
+	if (atoi(p) < 0)
+		goto err;
+	if (len > 24 || len < 0) // CRYPT5_KDF_LG2_COUNT_MAX
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // AES IV
 		goto err;
 	if (strlen(p) != SIZE_INITV * 2)
 		goto err;
+	if (!ishex(p))
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // pswcheck len (redundant)
 		goto err;
 	if (!get_integer(p, &len))
 		goto err;
-	if(len != BINARY_SIZE)
+	if (len != BINARY_SIZE)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // pswcheck
 		goto err;
-	if(strlen(p) != BINARY_SIZE * 2)
+	if (strlen(p) != BINARY_SIZE * 2)
+		goto err;
+	if (!ishex(p))
 		goto err;
 
 	MEM_FREE(keeptr);

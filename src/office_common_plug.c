@@ -114,6 +114,7 @@ static int valid(char *ciphertext, struct fmt_main *self, char *which)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* salt size */
 		goto error;
+	if (!isdec(ptr)) goto error;
 	res = atoi(ptr);
 	if (res != 16) /* can we handle other values? */
 		goto error;

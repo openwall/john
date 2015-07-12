@@ -204,11 +204,15 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(ntlmv2_nthash), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(ntlmv2_nthash), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 /*
@@ -284,11 +288,11 @@ static void set_salt(void *salt)
 
 static void init(struct fmt_main *_self)
 {
-	char build_opts[96];
 	static char valgo[32] = "";
 
 	self = _self;
 
+	opencl_prepare_dev(gpu_id);
 	if ((v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_int))) > 1) {
 		/* Run vectorized kernel */
@@ -299,23 +303,24 @@ static void init(struct fmt_main *_self)
 
 	if (pers_opts.target_enc == UTF_8)
 		max_len = self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
-
-	snprintf(build_opts, sizeof(build_opts),
-	        "-D%s -DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
-	         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH, v_width);
-	opencl_init("$JOHN/kernels/ntlmv2_kernel.cl", gpu_id, build_opts);
-
-	/* create kernels to execute */
-	ntlmv2_nthash = clCreateKernel(program[gpu_id], "ntlmv2_nthash", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	crypt_kernel = clCreateKernel(program[gpu_id], "ntlmv2_final", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 }
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
 		size_t gws_limit;
+		char build_opts[96];
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-D%s -DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
+		         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH, v_width);
+		opencl_init("$JOHN/kernels/ntlmv2_kernel.cl", gpu_id, build_opts);
+
+		/* create kernels to execute */
+		ntlmv2_nthash = clCreateKernel(program[gpu_id], "ntlmv2_nthash", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+		crypt_kernel = clCreateKernel(program[gpu_id], "ntlmv2_final", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 		gws_limit = (4 << 20) / v_width;
 

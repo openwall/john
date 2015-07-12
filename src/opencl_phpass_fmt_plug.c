@@ -190,10 +190,14 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 static void set_key(char *key, int index)
@@ -220,16 +224,17 @@ static char *get_key(int index)
 static void init(struct fmt_main *_self)
 {
 	self = _self;
-
-	opencl_init("$JOHN/kernels/phpass_kernel.cl", gpu_id, NULL);
-
-	crypt_kernel = clCreateKernel(program[gpu_id], "phpass", &cl_error);
-	HANDLE_CLERROR(cl_error, "Error creating kernel");
+	opencl_prepare_dev(gpu_id);
 }
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
+		opencl_init("$JOHN/kernels/phpass_kernel.cl", gpu_id, NULL);
+
+		crypt_kernel = clCreateKernel(program[gpu_id], "phpass", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1,
 		                       self, create_clobj, release_clobj,

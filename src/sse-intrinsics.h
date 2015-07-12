@@ -27,7 +27,10 @@
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 
-#if __MIC__
+#if __ALTIVEC__
+#undef SIMD_TYPE
+#define SIMD_TYPE            "AltiVec"
+#elif __MIC__
 #undef SIMD_TYPE
 #define SIMD_TYPE            "MIC"
 #elif __AVX512__

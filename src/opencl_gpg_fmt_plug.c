@@ -316,23 +316,24 @@ static uint32_t keySize(char algorithm)
 
 static void init(struct fmt_main *_self)
 {
-	char build_opts[64];
-
 	self = _self;
-
-	snprintf(build_opts, sizeof(build_opts),
-	         "-DPLAINTEXT_LENGTH=%d -DSALT_LENGTH=%d",
-	         PLAINTEXT_LENGTH, SALT_LENGTH);
-	opencl_init("$JOHN/kernels/gpg_kernel.cl",
-	                gpu_id, build_opts);
-
-	crypt_kernel = clCreateKernel(program[gpu_id], "gpg", &cl_error);
-	HANDLE_CLERROR(cl_error, "Error creating kernel");
+	opencl_prepare_dev(gpu_id);
 }
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
+		char build_opts[64];
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-DPLAINTEXT_LENGTH=%d -DSALT_LENGTH=%d",
+		         PLAINTEXT_LENGTH, SALT_LENGTH);
+		opencl_init("$JOHN/kernels/gpg_kernel.cl",
+		            gpu_id, build_opts);
+
+		crypt_kernel = clCreateKernel(program[gpu_id], "gpg", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
 		                       create_clobj, release_clobj,
@@ -345,10 +346,14 @@ static void reset(struct db_main *db)
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 static int valid_cipher_algorithm(int cipher_algorithm)
@@ -368,9 +373,11 @@ static int valid_cipher_algorithm(int cipher_algorithm)
 
 static int valid_hash_algorithm(int hash_algorithm, int spec)
 {
+	static int warn_once = 1;
+
 	if(spec == SPEC_SIMPLE || spec == SPEC_SALTED)
 #if 1
-		goto print_warn;
+		goto print_warn_once;
 #else
 		switch(hash_algorithm) {
 			case HASH_SHA1: return 1;
@@ -390,9 +397,12 @@ static int valid_hash_algorithm(int hash_algorithm, int spec)
 			case HASH_SHA512: return 1;
 #endif
 		}
-print_warn:
-	fprintf(stderr, "[-] gpg-opencl currently only supports keys using iterated salted SHA1\n");
-
+print_warn_once:
+	if(warn_once) {
+		fprintf(stderr,
+		        "[-] gpg-opencl currently only supports keys using iterated salted SHA1\n");
+		warn_once = 0;
+	}
 	return 0;
 }
 
@@ -408,8 +418,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 6;	/* skip over "$gpg$" marker and '*' */
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* algorithm */
 		goto err;
-	algorithm = atoi(p);
+	if (!isdec(p))
+		goto err;
+	algorithm = atoi(p); // FIXME: which values are valid?
 	if ((p = strtokm(NULL, "*")) == NULL)	/* datalen */
+		goto err;
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if (res > BIG_ENOUGH * 2)
@@ -420,37 +434,39 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data */
 		goto err;
-	if (strlen(p) != res * 2)
+	if (strlen(p) / 2 != res)
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* spec */
 		goto err;
-	spec = atoi(p);
 	if (!isdec(p))
 		goto err;
+	spec = atoi(p);
 	if ((p = strtokm(NULL, "*")) == NULL)	/* usage */
 		goto err;
-	usage = atoi(p);
 	if (!isdec(p))
 		goto err;
+	usage = atoi(p);
 	if(usage != 0 && usage != 254 && usage != 255 && usage != 1)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash_algorithm */
 		goto err;
-	res = atoi(p);
 	if (!isdec(p))
 		goto err;
+	res = atoi(p);
 	if(!valid_hash_algorithm(res, spec))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* cipher_algorithm */
 		goto err;
-	res = atoi(p);
 	if (!isdec(p))
 		goto err;
+	res = atoi(p);
 	if(!valid_cipher_algorithm(res))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ivlen */
+		goto err;
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if (res != 8 && res != 16)
@@ -470,9 +486,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 	if ((p = strtokm(NULL, "*")) == NULL)	/* count */
 		goto err;
-	if (!isdec(p))
+	if (!isdec(p)) // FIXME: count == 0 allowed?
 		goto err;
-	res = atoi(p);
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != SALT_LENGTH * 2)
@@ -497,6 +512,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		/* gpg --homedir . --s2k-cipher-algo 3des --simple-sk-checksum --gen-key */
 #if 1
 		ex_flds = 0; /* do NOT handle p at this time.  Cause the hash to be invalid. */
+		goto err; // FIXME: warn that OpenCL implementation doesn't support this?
 #else
 		ex_flds = 1; /* handle p */
 #endif
@@ -509,9 +525,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	for (j = 0; j < ex_flds; ++j) {  /* handle extra p, q, g, y fields */
 		if (!p) /* check for null p */
 			goto err;
+		if (!isdec(p))
+			goto err;
 		res = atoi(p);
 		if (res > BIG_ENOUGH * 2)
-			goto err;
+			goto err; // FIXME: warn if BIG_ENOUGH isn't big enough?
 		if ((p = strtokm(NULL, "*")) == NULL)
 			goto err;
 		if (strlen(p) != res * 2) /* validates res is a valid int */

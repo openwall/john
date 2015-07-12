@@ -309,49 +309,55 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 6;	/* skip over "$gpg$" marker and '*' */
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* algorithm */
 		goto err;
-	algorithm = atoi(p);
+	if (!isdec(p))
+		goto err;
+	algorithm = atoi(p); // FIXME: which values are valid?
 	if ((p = strtokm(NULL, "*")) == NULL)	/* datalen */
+		goto err;
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if (res > BIG_ENOUGH * 2)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* bits */
 		goto err;
-	if (!isdec(p))
+	if (!isdec(p)) // FIXME: bits == 0 allowed?
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data */
 		goto err;
-	if (strlen(p) != res * 2)
+	if (strlen(p) / 2 != res)
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* spec */
 		goto err;
-	spec = atoi(p);
 	if (!isdec(p))
 		goto err;
+	spec = atoi(p);
 	if ((p = strtokm(NULL, "*")) == NULL)	/* usage */
 		goto err;
-	usage = atoi(p);
 	if (!isdec(p))
 		goto err;
+	usage = atoi(p);
 	if(usage != 0 && usage != 254 && usage != 255 && usage != 1)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash_algorithm */
 		goto err;
-	res = atoi(p);
 	if (!isdec(p))
 		goto err;
+	res = atoi(p);
 	if(!valid_hash_algorithm(res, spec))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* cipher_algorithm */
 		goto err;
-	res = atoi(p);
 	if (!isdec(p))
 		goto err;
+	res = atoi(p);
 	if(!valid_cipher_algorithm(res))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ivlen */
+		goto err;
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if (res != 8 && res != 16)
@@ -371,9 +377,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 	if ((p = strtokm(NULL, "*")) == NULL)	/* count */
 		goto err;
-	if (!isdec(p))
+	if (!isdec(p)) // FIXME: count == 0 allowed?
 		goto err;
-	res = atoi(p);
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != SALT_LENGTH * 2)
@@ -406,9 +411,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	for (j = 0; j < ex_flds; ++j) {  /* handle extra p, q, g, y fields */
 		if (!p) /* check for null p */
 			goto err;
+		if (!isdec(p))
+			goto err;
 		res = atoi(p);
 		if (res > BIG_ENOUGH * 2)
-			goto err;
+			goto err; // FIXME: warn if BIG_ENOUGH isn't big enough?
 		if ((p = strtokm(NULL, "*")) == NULL)
 			goto err;
 		if (strlen(p) != res * 2) /* validates res is a valid int */

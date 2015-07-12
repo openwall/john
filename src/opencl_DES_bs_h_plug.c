@@ -68,8 +68,9 @@ static void clean_all_buffers()
 static void reset(struct db_main *db)
 {
 	const char* errMsg = "Release Memory Object :Failed";
+	static int initialized;
 
-	if (db) {
+	if (initialized) {
 		int i;
 
 		MEM_FREE(loaded_hash);
@@ -157,6 +158,8 @@ static void reset(struct db_main *db)
 			loaded_hash[i + num_loaded_hashes] = binary[1];
 			i++;
 			//fprintf(stderr, "C:%s B:%d %d\n", ciphertext, binary[0], i == num_loaded_hashes );
+
+			initialized++;
 		}
 
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], loaded_hash_gpu, CL_TRUE, 0, num_loaded_hashes * sizeof(int) * 2, loaded_hash, 0, NULL, NULL ), "Failed Copy data to gpu");
@@ -235,7 +238,7 @@ static void find_best_gws(struct fmt_main *fmt)
 
 	save_binary = 1;
 
-	if (options.verbosity > 2)
+	if (options.verbosity > 3)
 		fprintf(stderr, "Local worksize (LWS) "Zu", Global worksize (GWS) "Zu"\n", local_work_size, count * local_work_size);
 }
 
@@ -383,7 +386,7 @@ static void select_device(struct fmt_main *fmt)
 	if (!global_work_size)
 		find_best_gws(fmt);
 	else {
-		if (options.verbosity > 2)
+		if (options.verbosity > 3)
 			fprintf(stderr, "Local worksize (LWS) "Zu", Global worksize (GWS) "Zu"\n", local_work_size, global_work_size);
 		fmt -> params.max_keys_per_crypt = global_work_size * DES_BS_DEPTH;
 		fmt -> params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;

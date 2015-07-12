@@ -335,23 +335,13 @@ static void reset(struct db_main *db)
 	offset_idx = 0;
 	key_idx = 0;
 
-	if (db) {
-	       	num_loaded_hashes = db->salts->count;
-
-		//Cracking
-		if (ref_counter > 0)
-			release_clobj();
-
-		create_clobj(global_work_size, self);
-		load_hash(db->salts);
-
-	} else {
-	    	size_t gws_limit;
+	if (!ref_counter) {
+		size_t gws_limit;
 		unsigned int flag;
 
-	    	// Auto-tune / Benckmark / Self-test.
+		// Auto-tune / Benckmark / Self-test.
 		gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
-				get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
+		                get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
 
 		//Mask initialization
 		flag = (options.flags & FLG_MASK_CHK) && !global_work_size;
@@ -362,19 +352,19 @@ static void reset(struct db_main *db)
 
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL,
-			warn, 1, self, create_clobj, release_clobj,
-			2 * BUFFER_SIZE, gws_limit);
+		                       warn, 1, self, create_clobj, release_clobj,
+		                       2 * BUFFER_SIZE, gws_limit);
 
 		//Auto tune execution from shared/included code.
 		autotune_run(self, 1, gws_limit,
-			(cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
+		             (cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
 
 		load_hash(NULL);
 
 		if (options.flags & FLG_MASK_CHK) {
 			fprintf(stdout,
-				"Using Mask Mode with internal candidate generation%s",
-				flag ? "" : "\n");
+			        "Using Mask Mode with internal candidate generation%s",
+			        flag ? "" : "\n");
 
 			if (flag) {
 				self->params.max_keys_per_crypt /= 256;
@@ -382,10 +372,20 @@ static void reset(struct db_main *db)
 				if (self->params.max_keys_per_crypt < 1)
 					self->params.max_keys_per_crypt = 1;
 
-					fprintf(stdout, ", global worksize(GWS) set to %d\n",
-						self->params.max_keys_per_crypt);
+				fprintf(stdout, ", global worksize(GWS) set to %d\n",
+				        self->params.max_keys_per_crypt);
 			}
 		}
+	}
+	else {
+		num_loaded_hashes = db->salts->count;
+
+		//Cracking
+		if (ref_counter > 0)
+			release_clobj();
+
+		create_clobj(global_work_size, self);
+		load_hash(db->salts);
 	}
 }
 

@@ -152,7 +152,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* iterations */
 		goto err;
-	if(!isdec(p))
+	if(!isdec(p)) // FIXME: iterations == 0 allowed?
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* data */
 		goto err;

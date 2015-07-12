@@ -79,6 +79,7 @@ JOHN_OBJS = \
 	LM_fmt.o \
 	trip_fmt.o \
 	NT_fmt.o \
+	whirlpool.o haval.o skein.o md2.o panama.o \
 	timer.o \
 	md5.o \
 	rc4.o \
@@ -135,7 +136,7 @@ GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o
 
 PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../run/unique@EXE_EXT@ ../run/undrop@EXE_EXT@ \
-	../run/ssh2john@EXE_EXT@ ../run/rar2john@EXE_EXT@ ../run/zip2john@EXE_EXT@ \
+	../run/ssh2john@EXE_EXT@ ../run/rar2john@EXE_EXT@ ../run/zip2john@EXE_EXT@ ../run/dynacomptest@EXE_EXT@ \
 	../run/genmkvpwd@EXE_EXT@ ../run/mkvcalcproba@EXE_EXT@ ../run/calc_stat@EXE_EXT@ \
 	../run/tgtsnarf@EXE_EXT@ ../run/racf2john@EXE_EXT@ ../run/hccap2john@EXE_EXT@ \
 	../run/pwsafe2john@EXE_EXT@ ../run/raw2dyna@EXE_EXT@ ../run/keepass2john@EXE_EXT@ ../run/pfx2john@EXE_EXT@ \
@@ -215,6 +216,10 @@ memdbg_ex:
 
 help:
 	@echo "The 'older' fat makefile can be done with make --file=Makefile.legacy [target]"
+
+dynamic_big_crypt.c: dynamic_big_crypt_hash.cin dynamic_big_crypt_header.cin dynamic_big_crypt_generator.sh dynamic_big_crypt_chopper.pl unused/dynamic_big_crypt.c
+	$(shell ./dynamic_big_crypt_generator.sh)
+	@if [ ! -e dynamic_big_crypt.c ] ; then $(CP_PRESERVE) unused/dynamic_big_crypt.c dynamic_big_crypt.c ; fi
 
 # Digital/Compaq's cc and make use the .S suffix for a different purpose...
 digipaq-alpha.o: alpha.S
@@ -431,6 +436,18 @@ mmap-windows.o:	mmap-windows.c memdbg.h
 nonstd.o:	nonstd.c
 
 NT_fmt.o:	NT_fmt.c arch.h misc.h memory.h common.h formats.h options.h unicode.h aligned.h johnswap.h memdbg.h
+
+whirlpool.o:	whirlpool.c sph_whirlpool.h memdbg.h md_helper.c md_helper.c md_helper.c
+
+haval.o:	haval.c arch.h sph_haval.h memdbg.h haval_helper.c haval_helper.c haval_helper.c
+
+skein.o:	skein.c sph_skein.h memdbg.h
+
+md2.o:	md2.c sph_md2.h memdbg.h
+
+panama.o:	panama.c sph_panama.h memdbg.h
+
+skein.o:        skein.c sph_skein.h memdbg.h
 
 opencl_autotune.o:	opencl_autotune.c common-opencl.h memdbg.h
 
@@ -759,6 +776,9 @@ aes/aes.a:
 ../run/wpapcap2john@EXE_EXT@: wpapcap2john.o
 	$(LD) $(LDFLAGS) wpapcap2john.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/wpapcap2john
 
+../run/dynacomptest@EXE_EXT@: dynamic_compiler.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o
+	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@  @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ -DWITH_MAIN -D_JOHN_MISC_NO_LOG -DUNICODE_NO_OPTIONS @MEMDBG_CFLAGS@ dynamic_compiler.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o $(LDFLAGS)  @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@  -o ../run/dynacomptest
+
 ../run/luks2john@EXE_EXT@: luks2john.o
 	$(LD) $(LDFLAGS) luks2john.o @OPENSSL_LIBS@ @OPENMP_CFLAGS@ -o ../run/luks2john
 
@@ -787,7 +807,10 @@ unrarppm.o: unrarppm.c
 .S.o:
 	$(AS) $(ASFLAGS) $*.S
 
+# For jumbo, --make_check fails for the first thin format that is linked
+# to a dynamic format in a config file, so we deviate from core here.
 check: default
+	../run/john --list=build-info
 	../run/john --test=0 --verbosity=2
 
 depend:
@@ -973,7 +996,7 @@ distclean: clean
 		config.log autoconfig-stamp-h autoconfig-stamp-h-in stamp-h1
 	$(LN) Makefile.stub Makefile
 	$(RM) arch.h
-	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h version.h version.h.new
+	$(RM) fmt_registers.h fmt_externs.h dynamic_big_crypt.c john_build_rule.h version.h version.h.new
 
 install: default shell-completion
 	@echo Stripping executables.

@@ -208,43 +208,48 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(oldoffice_utf16), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(oldoffice_md5), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(oldoffice_sha1), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(oldoffice_utf16), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(oldoffice_md5), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(oldoffice_sha1), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 static void init(struct fmt_main *_self)
 {
-	char build_opts[96];
-
 	self = _self;
+
+	opencl_prepare_dev(gpu_id);
 
 	if (pers_opts.target_enc == UTF_8)
 		max_len = self->params.plaintext_length =
 			MIN(125, 3 * PLAINTEXT_LENGTH);
-
-	snprintf(build_opts, sizeof(build_opts),
-	        "-D%s -DPLAINTEXT_LENGTH=%u",
-	         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH);
-	opencl_init("$JOHN/kernels/oldoffice_kernel.cl", gpu_id, build_opts);
-
-	/* create kernels to execute */
-	oldoffice_utf16 = clCreateKernel(program[gpu_id], "oldoffice_utf16", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	crypt_kernel = oldoffice_md5 =
-		clCreateKernel(program[gpu_id], "oldoffice_md5", &ret_code);
-	oldoffice_sha1 =
-		clCreateKernel(program[gpu_id], "oldoffice_sha1", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 }
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
 		size_t gws_limit = 4 << 20;
+		char build_opts[96];
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-D%s -DPLAINTEXT_LENGTH=%u",
+		         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH);
+		opencl_init("$JOHN/kernels/oldoffice_kernel.cl", gpu_id, build_opts);
+
+		/* create kernels to execute */
+		oldoffice_utf16 = clCreateKernel(program[gpu_id], "oldoffice_utf16", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+		crypt_kernel = oldoffice_md5 =
+			clCreateKernel(program[gpu_id], "oldoffice_md5", &ret_code);
+		oldoffice_sha1 =
+			clCreateKernel(program[gpu_id], "oldoffice_sha1", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 3,

@@ -28,7 +28,7 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 #include "johnswap.h"
 
 #define NUUL NULL
-#define FORMAT_LABEL		"pbkdf2-hmac-sha512-opencl"
+#define FORMAT_LABEL		"PBKDF2-HMAC-SHA512-opencl"
 #define FORMAT_NAME		    "GRUB2 / OS X 10.8+"
 #define ALGORITHM_NAME		"PBKDF2-SHA512 OpenCL"
 
@@ -182,28 +182,29 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 static void init(struct fmt_main *_self)
 {
-	char build_opts[128];
-
 	self = _self;
-
-	snprintf(build_opts, sizeof(build_opts),
-	         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%d -DMAX_SALT_SIZE=%d",
-	         HASH_LOOPS, PLAINTEXT_LENGTH, MAX_SALT_SIZE);
-
-	opencl_init("$JOHN/kernels/pbkdf2_hmac_sha512_kernel.cl",
-	            gpu_id, build_opts);
-
-	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error creating kernel");
-
-	split_kernel =
-	    clCreateKernel(program[gpu_id], SPLIT_KERNEL_NAME, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error creating split kernel");
+	opencl_prepare_dev(gpu_id);
 }
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
+		char build_opts[128];
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%d -DMAX_SALT_SIZE=%d",
+		         HASH_LOOPS, PLAINTEXT_LENGTH, MAX_SALT_SIZE);
+
+		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha512_kernel.cl",
+		            gpu_id, build_opts);
+
+		crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+
+		split_kernel =
+			clCreateKernel(program[gpu_id], SPLIT_KERNEL_NAME, &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating split kernel");
+
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
 		                       2, self, create_clobj, release_clobj,
@@ -234,9 +235,13 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	release_clobj();
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+	if (autotuned) {
+		release_clobj();
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

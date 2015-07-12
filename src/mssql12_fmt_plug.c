@@ -35,6 +35,22 @@ john_register_one(&fmt_mssql12);
 
 //#undef _OPENMP
 //#undef SIMD_COEF_64
+//#undef SIMD_PARA_SHA512
+
+/*
+ * Only effective for SIMD.
+ * Undef to disable reversing steps for benchmarking.
+ */
+#define REVERSE_STEPS
+
+#define INIT_A 0x6a09e667f3bcc908ULL
+#define INIT_B 0xbb67ae8584caa73bULL
+#define INIT_C 0x3c6ef372fe94f82bULL
+#define INIT_D 0xa54ff53a5f1d36f1ULL
+#define INIT_E 0x510e527fade682d1ULL
+#define INIT_F 0x9b05688c2b3e6c1fULL
+#define INIT_G 0x1f83d9abfb41bd6bULL
+#define INIT_H 0x5be0cd19137e2179ULL
 
 #include "misc.h"
 #include "params.h"
@@ -80,6 +96,10 @@ john_register_one(&fmt_mssql12);
 #else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
+#endif
+
+#ifndef SHA_BUF_SIZ
+#define SHA_BUF_SIZ             16
 #endif
 
 static struct fmt_tests tests[] = {
@@ -315,6 +335,11 @@ static int cmp_one(void *binary, int index)
 #endif
 }
 
+#ifndef REVERSE_STEPS
+#undef SSEi_REVERSE_STEPS
+#define SSEi_REVERSE_STEPS 0
+#endif
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
@@ -342,7 +367,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				wucp[len + 4] = 0x80;
 			}
 		}
-		SSESHA512body(&saved_key[index], &crypt_out[HASH_IDX], NULL, SSEi_FLAT_IN);
+		SSESHA512body(&saved_key[index], &crypt_out[HASH_IDX], NULL, SSEi_REVERSE_STEPS | SSEi_FLAT_IN);
 #else
 		SHA512_CTX ctx;
 		memcpy(saved_key[index]+saved_len[index], cursalt, SALT_SIZE);
@@ -359,11 +384,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void *get_binary(char *ciphertext)
 {
-	static char *realcipher;
+	static ARCH_WORD_64 out[SHA_BUF_SIZ];
+	char *realcipher = (char*)out;
 	int i;
-
-	if (!realcipher)
-		realcipher = mem_alloc_tiny(BINARY_SIZE, BINARY_ALIGN);
 
 	for (i = 0;i<BINARY_SIZE;i++)
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2+14])]*16 +
@@ -371,6 +394,16 @@ static void *get_binary(char *ciphertext)
 
 #ifdef SIMD_COEF_64
 	alter_endianity_to_BE64 (realcipher, BINARY_SIZE/8);
+#ifdef REVERSE_STEPS
+	out[0] -= INIT_A;
+	out[1] -= INIT_B;
+	out[2] -= INIT_C;
+	out[3] -= INIT_D;
+	out[4] -= INIT_E;
+	out[5] -= INIT_F;
+	out[6] -= INIT_G;
+	out[7] -= INIT_H;
+#endif
 #endif
 	return (void *)realcipher;
 }

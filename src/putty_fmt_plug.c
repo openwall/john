@@ -121,20 +121,28 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 7;
 	if ((p = strtokm(ctcopy, "*")) == NULL) /* cipher */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	res = atoi(p);
 	if(res != 1) /* check cipher type */
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* cipher block length*/
+		goto err;
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if(res != 16) /* check cipher block length */
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* is_mac */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	res = atoi(p);
 	if(res != 0 && res != 1)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* old_fmt */
+		goto err;
+	if (!isdec(p))
 		goto err;
 	is_old_fmt = atoi(p);
 	if(is_old_fmt != 0 && is_old_fmt!= 1)
@@ -145,6 +153,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* public_blob_len */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	res = atoi(p);
 	if (res > 4096)
 		goto err;
@@ -152,7 +162,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
+	if (!ishex(p))
+		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* private_blob_len */
+		goto err;
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if (res > 4096)
@@ -160,6 +174,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "*")) == NULL)	/* private_blob */
 		goto err;
 	if (strlen(p) != res * 2)
+		goto err;
+	if (!ishex(p))
 		goto err;
 	if (!is_old_fmt) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* alg */

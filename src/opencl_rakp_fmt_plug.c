@@ -209,20 +209,23 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Error releasing kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing program");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Error releasing kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing program");
+
+		autotuned--;
+	}
 }
 
 static void init(struct fmt_main *_self)
 {
-	char build_opts[64];
 	static char valgo[48] = "";
 
 	self = _self;
 
-	opencl_preinit();
+	opencl_prepare_dev(gpu_id);
 	/* VLIW5 does better with just 2x vectors due to GPR pressure */
 	if (!options.v_width && amd_vliw5(device_info[gpu_id]))
 		v_width = 2;
@@ -235,18 +238,20 @@ static void init(struct fmt_main *_self)
 		         ALGORITHM_NAME " %ux", v_width);
 		self->params.algorithm_name = valgo;
 	}
-	snprintf(build_opts, sizeof(build_opts), "-DV_WIDTH=%u", v_width);
-	opencl_init("$JOHN/kernels/rakp_kernel.cl", gpu_id, build_opts);
-
-	// create kernel to execute
-	crypt_kernel = clCreateKernel(program[gpu_id], "rakp_kernel", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel");
 }
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
 		size_t gws_limit;
+		char build_opts[64];
+
+		snprintf(build_opts, sizeof(build_opts), "-DV_WIDTH=%u", v_width);
+		opencl_init("$JOHN/kernels/rakp_kernel.cl", gpu_id, build_opts);
+
+		// create kernel to execute
+		crypt_kernel = clCreateKernel(program[gpu_id], "rakp_kernel", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel");
 
 		// Current key_idx can only hold 26 bits of offset so
 		// we can't reliably use a GWS higher than 4M or so.

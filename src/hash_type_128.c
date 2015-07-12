@@ -107,9 +107,13 @@ int test_tables_128(unsigned int num_loaded_hashes, OFFSET_TABLE_WORD *offset_ta
 	if (verbosity > 1)
 		fprintf(stdout, "\nTesting Tables...");
 
+#if _OPENMP
 #pragma omp parallel private(i, hash_table_idx, hash)
+#endif
 	{
+#if _OPENMP
 #pragma omp for
+#endif
 		for (i = 0; i < num_loaded_hashes; i++) {
 			hash = loaded_hashes_128[i];
 			hash_table_idx =
@@ -117,7 +121,9 @@ int test_tables_128(unsigned int num_loaded_hashes, OFFSET_TABLE_WORD *offset_ta
 					(unsigned int)offset_table[
 					modulo128_31b(hash,
 					offset_table_size, shift64_ot_sz)]);
+#if _OPENMP
 #pragma omp atomic
+#endif
 			hash_table_collisions[hash_table_idx]++;
 
 			if (error && (hash_table_128[hash_table_idx] != (unsigned int)(hash.LO64 & 0xffffffff)  ||
@@ -130,11 +136,15 @@ int test_tables_128(unsigned int num_loaded_hashes, OFFSET_TABLE_WORD *offset_ta
 			}
 
 		}
+#if _OPENMP
 #pragma omp single
+#endif
 		for (hash_table_idx = 0; hash_table_idx < hash_table_size; hash_table_idx++)
 			if (zero_check_ht_128(hash_table_idx))
 				count++;
+#if _OPENMP
 #pragma omp barrier
+#endif
 	}
 
 /* Suppress unused variable warning. */
@@ -288,31 +298,49 @@ unsigned int remove_duplicates_128(unsigned int num_loaded_hashes, unsigned int 
 
 	hash_table = (hash_table_data *) mem_alloc(hash_table_size * sizeof(hash_table_data));
 	collisions = (COLLISION_DTYPE *) mem_calloc(hash_table_size, sizeof(COLLISION_DTYPE));
+#if _OPENMP
 #pragma omp parallel private(i)
+#endif
 {
+#if _OPENMP
 #pragma omp for
+#endif
 	for (i = 0; i < num_loaded_hashes; i++) {
 		unsigned int idx = loaded_hashes_128[i].LO64 & (hash_table_size - 1);
+#if _OPENMP
 #pragma omp atomic
+#endif
 		collisions[idx]++;
 	}
 
 	counter = 0;
+#if _OPENMP
 #pragma omp barrier
+#endif
 
+#if _OPENMP
 #pragma omp for
+#endif
 	for (i = 0; i < hash_table_size; i++) {
 		 hash_table[i].collisions = collisions[i];
 		 hash_table[i].iter = 0;
 		 if (hash_table[i].collisions > 4)
+#if _OPENMP
 #pragma omp atomic
+#endif
 			 counter += (hash_table[i].collisions - 3);
 	}
+#if _OPENMP
 #pragma omp barrier
+#endif
 
+#if _OPENMP
 #pragma omp sections
+#endif
 {
+#if _OPENMP
 #pragma omp section
+#endif
 {
 	for (i = 0; i < num_loaded_hashes; i++) {
 		unsigned int idx = loaded_hashes_128[i].LO64 & (hash_table_size - 1);
@@ -328,7 +356,9 @@ unsigned int remove_duplicates_128(unsigned int num_loaded_hashes, unsigned int 
 	}
 }
 
+#if _OPENMP
 #pragma omp section
+#endif
 {
 	rehash_list = (unsigned int *) mem_alloc(counter * sizeof(unsigned int));
 	counter = 0;

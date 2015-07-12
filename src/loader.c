@@ -477,11 +477,13 @@ static int ldr_split_line(char **login, char **ciphertext,
 		 * empty login. */
 		/* Flag: no fields contain \n or field separator. */
 		int bad_char = 0;
+#ifndef DYNAMIC_DISABLED
 		int bare_always_valid = 0;
 		if ((options.dynamic_bare_hashes_always_valid == 'Y')
 		    || (options.dynamic_bare_hashes_always_valid != 'N'
 			&& cfg_get_bool(SECTION_OPTIONS, NULL, "DynamicAlwaysUseBareHashes", 1)))
 			bare_always_valid = 1;
+#endif
 		/* We output 1 or 0, so 0 and 1 are bad field separators. */
 		if (fs == '0' || fs == '1')
 			bad_char = 1;
@@ -553,13 +555,19 @@ static int ldr_split_line(char **login, char **ciphertext,
 			int is_dynamic = ((alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC);
 /* We enforce DynamicAlwaysUseBareHashes for each format. By default
  * dynamics do that only if a bare hash occurs on the first line. */
+#ifndef DYNAMIC_DISABLED
 			if (bare_always_valid)
 				dynamic_allow_rawhash_fixup = 1;
+#endif
 			/* We don't skip generic crypt. */
 			/* Format disabled in john.conf */
 			if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
 			                 alt->params.label, 0)) {
-				disabled = 1;
+				if (options.format && !strcasecmp(options.format, "dynamic-all") &&
+					(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
+					// allow dyna if '-format=dynamic-all' was selected
+				} else
+					disabled = 1;
 			}
 			/* prepared is not equal to *ciphertext for nt in pwdump format */
 			prepared = alt->methods.prepare(fields, alt);
@@ -624,6 +632,11 @@ static int ldr_split_line(char **login, char **ciphertext,
 				if ((alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
 					// in debug mode, we 'allow' dyna
 				} else
+#else
+				if (options.format && !strcasecmp(options.format, "dynamic-all") &&
+					(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
+					// allow dyna if '-format=dynamic-all' was selected
+				} else
 #endif
 				continue;
 			}
@@ -670,6 +683,12 @@ static int ldr_split_line(char **login, char **ciphertext,
 			if ((alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
 				// in debug mode, we 'allow' dyna
 			} else
+#else
+			if (options.format && !strcasecmp(options.format, "dynamic-all") &&
+				(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
+				// allow dyna if '-format=dynamic-all' was selected
+			} else
+
 #endif
 			continue;
 		}
@@ -1062,7 +1081,7 @@ static void ldr_init_salts(struct db_main *db)
 		*tail = current;
 		ctr = 0;
 		do {
-			current -> sequential_id = ctr++;
+			ctr++;
 			tail = &current->next;
 		} while ((current = current->next));
 #ifdef DEBUG_HASH
@@ -1070,6 +1089,18 @@ static void ldr_init_salts(struct db_main *db)
 			printf("salt hash %08x, %d salts\n", hash, ctr);
 #endif
 	}
+}
+
+/* Compute sequential_id. */
+static void ldr_init_sqid(struct db_main *db)
+{
+	struct db_salt *current;
+	int ctr = 0;
+
+	if ((current = db->salts))
+	do {
+		current->sequential_id = ctr++;
+	} while ((current = current->next));
 }
 
 /* #define DEBUG_SALT_SORT */
@@ -1529,6 +1560,8 @@ void ldr_fix_database(struct db_main *db)
 	ldr_sort_salts(db);
 
 	ldr_init_hash(db);
+
+	ldr_init_sqid(db);
 
 	db->loaded = 1;
 

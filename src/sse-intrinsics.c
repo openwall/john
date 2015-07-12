@@ -31,7 +31,9 @@
 /* These are slow, but the F'n 32 bit compiler will not build these intrinsics.
    Only the 64-bit (Win64) MSVC compiler has these as intrinsics. These slow
    ones let me debug, and develop this code, and work, but use CPU */
-_inline __m128i _mm_set_epi64x(long long a, long long b)
+#define _mm_set_epi64 __mm_set_epi64
+#define _mm_set1_epi64 __mm_set1_epi64
+_inline __m128i _mm_set_epi64(long long a, long long b)
 {
 	__m128i x;
 
@@ -39,13 +41,15 @@ _inline __m128i _mm_set_epi64x(long long a, long long b)
 	x.m128i_i64[1] = a;
 	return x;
 }
-_inline __m128i _mm_set1_epi64x(long long a)
+_inline __m128i _mm_set1_epi64(long long a)
 {
 	__m128i x;
 
 	x.m128i_i64[0] = x.m128i_i64[1] = a;
 	return x;
 }
+#define vset1_epi64x(x)         vset_epi64x(x, x)
+#define vset_epi64x(x1,x0)      (vtype)(vtype64){x0, x1}
 #endif
 
 #include "misc.h"
@@ -280,6 +284,16 @@ void SSEmd5body(vtype* _data, unsigned int *out,
 	MD5_STEP(MD5_I, c, d, a, b, 6, 0xa3014314, 15)
 	MD5_STEP(MD5_I, b, c, d, a, 13, 0x4e0811a1, 21)
 	MD5_STEP(MD5_I, a, b, c, d, 4, 0xf7537e82, 6)
+
+	if (SSEi_flags & SSEi_REVERSE_STEPS)
+	{
+		MD5_PARA_DO(i)
+		{
+			vstore((vtype*)&out[i*4*VS32+0*VS32], a[i]);
+		}
+		return;
+	}
+
 	MD5_STEP(MD5_I, d, a, b, c, 11, 0xbd3af235, 10)
 	MD5_STEP(MD5_I, c, d, a, b, 2, 0x2ad7d2bb, 15)
 	MD5_STEP(MD5_I, b, c, d, a, 9, 0xeb86d391, 21)
@@ -675,6 +689,13 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
         a[i] = vroti_epi32( a[i], (s) );            \
     }
 
+#define MD4_REV_STEP(f, a, b, c, d, x, t, s)        \
+    MD4_PARA_DO(i) {                                \
+        f((b),(c),(d))                              \
+        a[i] = vadd_epi32( a[i], tmp[i] );          \
+        a[i] = vadd_epi32( a[i], data[i*16+x] );    \
+    }
+
 void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
                 unsigned SSEi_flags)
 {
@@ -775,7 +796,7 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 
 
 /* Round 1 */
-	cst = vset1_epi32(0);
+	cst = vsetzero();
 	MD4_STEP(MD4_F, a, b, c, d, 0, cst, 3)
 	MD4_STEP(MD4_F, d, a, b, c, 1, cst, 7)
 	MD4_STEP(MD4_F, c, d, a, b, 2, cst, 11)
@@ -825,12 +846,22 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	MD4_STEP(MD4_H, a, b, c, d, 1, cst, 3)
 	MD4_STEP(MD4_H2, d, a, b, c, 9, cst, 9)
 	MD4_STEP(MD4_H, c, d, a, b, 5, cst, 11)
+
+	if ((SSEi_flags & SSEi_REVERSE_STEPS))
+	{
+		MD4_REV_STEP(MD4_H2, b, c, d, a, 13, cst, 15)
+		MD4_PARA_DO(i)
+		{
+			vstore((vtype*)&out[i*4*VS32+1*VS32], b[i]);
+		}
+		return;
+	}
+
 	MD4_STEP(MD4_H2, b, c, d, a, 13, cst, 15)
 	MD4_STEP(MD4_H, a, b, c, d, 3, cst, 3)
 	MD4_STEP(MD4_H2, d, a, b, c, 11, cst, 9)
 	MD4_STEP(MD4_H, c, d, a, b, 7, cst, 11)
 	MD4_STEP(MD4_H2, b, c, d, a, 15, cst, 15)
-
 
 	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
@@ -1269,13 +1300,16 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 
 	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
-		SHA1_PARA_DO(i)
+		if ((SSEi_flags & SSEi_REVERSE_STEPS) == 0)
 		{
-			a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
-			b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
-			c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
-			d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
-			e[i] = vadd_epi32(e[i], vset1_epi32(0xC3D2E1F0));
+			SHA1_PARA_DO(i)
+			{
+				a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
+				b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
+				c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
+				d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
+				e[i] = vadd_epi32(e[i], vset1_epi32(0xC3D2E1F0));
+			}
 		}
 	}
 	else
@@ -1693,7 +1727,7 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 				h[i] = vadd_epi32(h[i],vload((vtype*)&reload_state[i*8*VS32+7*VS32]));
 			}
 		}
-	} else if ((SSEi_flags & SSEi_SKIP_FINAL_ADD) == 0) {
+	} else if ((SSEi_flags & SSEi_REVERSE_STEPS) == 0) {
 		if (SSEi_flags & SSEi_CRYPT_SHA224) {
 			SHA256_PARA_DO(i)
 			{
@@ -1863,8 +1897,8 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
 {                                                           \
     SHA512_PARA_DO(i)                                       \
     {                                                       \
-	    tmp1[i] = vadd_epi64(h[i],    w[i][(x)&0xf]);       \
-        tmp2[i] = vadd_epi64(S1(e[i]),vset1_epi64x(K));     \
+        tmp1[i] = vadd_epi64(h[i],    w[i][(x)&0xf]);       \
+        tmp2[i] = vadd_epi64(S1(e[i]),vset1_epi64(K));      \
         tmp1[i] = vadd_epi64(tmp1[i], Ch(e[i],f[i],g[i]));  \
         tmp1[i] = vadd_epi64(tmp1[i], tmp2[i]);             \
         tmp2[i] = vadd_epi64(S0(a[i]),Maj(a[i],b[i],c[i])); \
@@ -1880,13 +1914,13 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 	unsigned int i, k;
 
 	vtype a[SIMD_PARA_SHA512],
-		  b[SIMD_PARA_SHA512],
-		  c[SIMD_PARA_SHA512],
-		  d[SIMD_PARA_SHA512],
-		  e[SIMD_PARA_SHA512],
-		  f[SIMD_PARA_SHA512],
-		  g[SIMD_PARA_SHA512],
-		  h[SIMD_PARA_SHA512];
+	      b[SIMD_PARA_SHA512],
+	      c[SIMD_PARA_SHA512],
+	      d[SIMD_PARA_SHA512],
+	      e[SIMD_PARA_SHA512],
+	      f[SIMD_PARA_SHA512],
+	      g[SIMD_PARA_SHA512],
+	      h[SIMD_PARA_SHA512];
 	vtype w[SIMD_PARA_SHA512][16];
 	vtype tmp1[SIMD_PARA_SHA512], tmp2[SIMD_PARA_SHA512];
 
@@ -1968,27 +2002,27 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 			SHA512_PARA_DO(i)
 			{
 				/* SHA-384 IV */
-				a[i] = vset1_epi64x(0xcbbb9d5dc1059ed8ULL);
-				b[i] = vset1_epi64x(0x629a292a367cd507ULL);
-				c[i] = vset1_epi64x(0x9159015a3070dd17ULL);
-				d[i] = vset1_epi64x(0x152fecd8f70e5939ULL);
-				e[i] = vset1_epi64x(0x67332667ffc00b31ULL);
-				f[i] = vset1_epi64x(0x8eb44a8768581511ULL);
-				g[i] = vset1_epi64x(0xdb0c2e0d64f98fa7ULL);
-				h[i] = vset1_epi64x(0x47b5481dbefa4fa4ULL);
+				a[i] = vset1_epi64(0xcbbb9d5dc1059ed8ULL);
+				b[i] = vset1_epi64(0x629a292a367cd507ULL);
+				c[i] = vset1_epi64(0x9159015a3070dd17ULL);
+				d[i] = vset1_epi64(0x152fecd8f70e5939ULL);
+				e[i] = vset1_epi64(0x67332667ffc00b31ULL);
+				f[i] = vset1_epi64(0x8eb44a8768581511ULL);
+				g[i] = vset1_epi64(0xdb0c2e0d64f98fa7ULL);
+				h[i] = vset1_epi64(0x47b5481dbefa4fa4ULL);
 			}
 		} else {
 			SHA512_PARA_DO(i)
 			{
 				/* SHA-512 IV */
-				a[i] = vset1_epi64x(0x6a09e667f3bcc908ULL);
-				b[i] = vset1_epi64x(0xbb67ae8584caa73bULL);
-				c[i] = vset1_epi64x(0x3c6ef372fe94f82bULL);
-				d[i] = vset1_epi64x(0xa54ff53a5f1d36f1ULL);
-				e[i] = vset1_epi64x(0x510e527fade682d1ULL);
-				f[i] = vset1_epi64x(0x9b05688c2b3e6c1fULL);
-				g[i] = vset1_epi64x(0x1f83d9abfb41bd6bULL);
-				h[i] = vset1_epi64x(0x5be0cd19137e2179ULL);
+				a[i] = vset1_epi64(0x6a09e667f3bcc908ULL);
+				b[i] = vset1_epi64(0xbb67ae8584caa73bULL);
+				c[i] = vset1_epi64(0x3c6ef372fe94f82bULL);
+				d[i] = vset1_epi64(0xa54ff53a5f1d36f1ULL);
+				e[i] = vset1_epi64(0x510e527fade682d1ULL);
+				f[i] = vset1_epi64(0x9b05688c2b3e6c1fULL);
+				g[i] = vset1_epi64(0x1f83d9abfb41bd6bULL);
+				h[i] = vset1_epi64(0x5be0cd19137e2179ULL);
 			}
 		}
 	}
@@ -2107,32 +2141,32 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 				h[i] = vadd_epi64(h[i],vload((vtype*)&reload_state[i*8*VS64+7*VS64]));
 			}
 		}
-	} else if ((SSEi_flags & SSEi_SKIP_FINAL_ADD) == 0) {
+	} else if ((SSEi_flags & SSEi_REVERSE_STEPS) == 0) {
 		if (SSEi_flags & SSEi_CRYPT_SHA384) {
 			SHA512_PARA_DO(i)
 			{
 				/* SHA-384 IV */
-				a[i] = vadd_epi64(a[i], vset1_epi64x(0xcbbb9d5dc1059ed8ULL));
-				b[i] = vadd_epi64(b[i], vset1_epi64x(0x629a292a367cd507ULL));
-				c[i] = vadd_epi64(c[i], vset1_epi64x(0x9159015a3070dd17ULL));
-				d[i] = vadd_epi64(d[i], vset1_epi64x(0x152fecd8f70e5939ULL));
-				e[i] = vadd_epi64(e[i], vset1_epi64x(0x67332667ffc00b31ULL));
-				f[i] = vadd_epi64(f[i], vset1_epi64x(0x8eb44a8768581511ULL));
-				g[i] = vadd_epi64(g[i], vset1_epi64x(0xdb0c2e0d64f98fa7ULL));
-				h[i] = vadd_epi64(h[i], vset1_epi64x(0x47b5481dbefa4fa4ULL));
+				a[i] = vadd_epi64(a[i], vset1_epi64(0xcbbb9d5dc1059ed8ULL));
+				b[i] = vadd_epi64(b[i], vset1_epi64(0x629a292a367cd507ULL));
+				c[i] = vadd_epi64(c[i], vset1_epi64(0x9159015a3070dd17ULL));
+				d[i] = vadd_epi64(d[i], vset1_epi64(0x152fecd8f70e5939ULL));
+				e[i] = vadd_epi64(e[i], vset1_epi64(0x67332667ffc00b31ULL));
+				f[i] = vadd_epi64(f[i], vset1_epi64(0x8eb44a8768581511ULL));
+				g[i] = vadd_epi64(g[i], vset1_epi64(0xdb0c2e0d64f98fa7ULL));
+				h[i] = vadd_epi64(h[i], vset1_epi64(0x47b5481dbefa4fa4ULL));
 			}
 		} else {
 			SHA512_PARA_DO(i)
 			{
 				/* SHA-512 IV */
-				a[i] = vadd_epi64(a[i], vset1_epi64x(0x6a09e667f3bcc908ULL));
-				b[i] = vadd_epi64(b[i], vset1_epi64x(0xbb67ae8584caa73bULL));
-				c[i] = vadd_epi64(c[i], vset1_epi64x(0x3c6ef372fe94f82bULL));
-				d[i] = vadd_epi64(d[i], vset1_epi64x(0xa54ff53a5f1d36f1ULL));
-				e[i] = vadd_epi64(e[i], vset1_epi64x(0x510e527fade682d1ULL));
-				f[i] = vadd_epi64(f[i], vset1_epi64x(0x9b05688c2b3e6c1fULL));
-				g[i] = vadd_epi64(g[i], vset1_epi64x(0x1f83d9abfb41bd6bULL));
-				h[i] = vadd_epi64(h[i], vset1_epi64x(0x5be0cd19137e2179ULL));
+				a[i] = vadd_epi64(a[i], vset1_epi64(0x6a09e667f3bcc908ULL));
+				b[i] = vadd_epi64(b[i], vset1_epi64(0xbb67ae8584caa73bULL));
+				c[i] = vadd_epi64(c[i], vset1_epi64(0x3c6ef372fe94f82bULL));
+				d[i] = vadd_epi64(d[i], vset1_epi64(0xa54ff53a5f1d36f1ULL));
+				e[i] = vadd_epi64(e[i], vset1_epi64(0x510e527fade682d1ULL));
+				f[i] = vadd_epi64(f[i], vset1_epi64(0x9b05688c2b3e6c1fULL));
+				g[i] = vadd_epi64(g[i], vset1_epi64(0x1f83d9abfb41bd6bULL));
+				h[i] = vadd_epi64(h[i], vset1_epi64(0x5be0cd19137e2179ULL));
 			}
 		}
 	}
@@ -2142,8 +2176,8 @@ void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 		{
 			uint64_t *o = (uint64_t*)&out[i*8*VS64];
 #if __AVX512F__ || __MIC__
-			vtype idxs = vset_epi64x(7<<3, 6<<3, 5<<3, 4<<3,
-			                         3<<3, 2<<3, 1<<3, 0<<3);
+			vtype idxs = vset_epi64(7<<3, 6<<3, 5<<3, 4<<3,
+			                        3<<3, 2<<3, 1<<3, 0<<3);
 
 			vscatter_epi64(o + 0, idxs, vswap64(a[i]), 8);
 			vscatter_epi64(o + 1, idxs, vswap64(b[i]), 8);

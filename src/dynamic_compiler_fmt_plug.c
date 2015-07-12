@@ -18,9 +18,7 @@
  *
  */
 
-#if AC_BUILT
-#include "autoconfig.h"
-#endif
+#include "arch.h"
 #ifndef DYNAMIC_DISABLED
 
 #if FMT_EXTERNS_H
@@ -35,12 +33,12 @@ john_register_one(&fmt_CompiledDynamic);
 #include "formats.h"
 #include "dynamic.h"
 #include "dynamic_compiler.h"
+#include "dynamic_types.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"dynamic="
 #define FORMAT_NAME			""
 
-#define ALGORITHM_NAME		"?"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
 
@@ -99,6 +97,11 @@ static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 	ciphertext = dynamic_compile_split(ciphertext);
 	return ciphertext;
 }
+static char *our_prepare(char **fields, struct fmt_main *self)
+{
+	char *ciphertext = dynamic_compile_prepare(fields[0], fields[1]);
+	return ciphertext;
+}
 
 static int our_valid(char *ciphertext, struct fmt_main *self)
 {
@@ -113,12 +116,17 @@ static int our_valid(char *ciphertext, struct fmt_main *self)
 }
 
 
-static void * our_salt(char *ciphertext)
+static void *our_salt(char *ciphertext)
 {
 	get_ptr();
 	return pDynamic->methods.salt(Convert(Conv_Buf, ciphertext, 0));
 }
-static void * our_binary(char *ciphertext)
+static void our_done(void)
+{
+	dynamic_compile_done();
+	pDynamic->methods.done();
+}
+static void *our_binary(char *ciphertext)
 {
 	get_ptr();
 	return pDynamic->methods.binary(Convert(Conv_Buf, ciphertext, 0));
@@ -140,22 +148,51 @@ struct fmt_main fmt_CompiledDynamic =
 		/*  All we setup here, is the pointer to valid, and the pointer to init */
 		/*  within the call to init, we will properly set this full object      */
 		our_init,
-		fmt_default_done,
+		our_done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		our_prepare,
 		our_valid,
 		our_split
 	}
 };
 
 static void link_funcs() {
+	char *cp;
+	private_subformat_data *pPriv = fmt_CompiledDynamic.private.data;
+	cp = strrchr(fmt_CompiledDynamic.params.algorithm_name, ')');
+	if (cp) {
+		fmt_CompiledDynamic.params.label = fmt_CompiledDynamic.params.algorithm_name;
+		++cp;
+		if (*cp == '^')
+		{
+			while (*cp != ' ')
+				++cp;
+		}
+		*cp++ = 0;
+		if (*cp  == ' ') ++cp;
+		fmt_CompiledDynamic.params.algorithm_name = cp;
+	}
 	fmt_CompiledDynamic.methods.salt   = our_salt;
 	fmt_CompiledDynamic.methods.binary = our_binary;
 	fmt_CompiledDynamic.methods.split = our_split;
-	fmt_CompiledDynamic.methods.prepare = fmt_default_prepare;
+	fmt_CompiledDynamic.methods.prepare = our_prepare;
+	fmt_CompiledDynamic.methods.done = our_done;
 	fmt_CompiledDynamic.params.tests[0].ciphertext = (char*)dyna_line1;
 	fmt_CompiledDynamic.params.tests[1].ciphertext = (char*)dyna_line2;
 	fmt_CompiledDynamic.params.tests[2].ciphertext = (char*)dyna_line3;
+	if ((pPriv->pSetup->flags&MGF_SALTED)!=MGF_SALTED)
+		fmt_CompiledDynamic.params.benchmark_length = -1;
+	else
+		fmt_CompiledDynamic.params.benchmark_length = 0;
+	if ((pPriv->pSetup->flags&MGF_PASSWORD_UPCASE)==MGF_PASSWORD_UPCASE) {
+		tests[0].plaintext = "ABC";
+		tests[1].plaintext = "JOHN";
+		tests[2].plaintext= "PASSWEIRD";
+	} else {
+		tests[0].plaintext = "abc";
+		tests[1].plaintext = "john";
+		tests[2].plaintext= "passweird";
+	}
 }
 
 static void our_init(struct fmt_main *self)

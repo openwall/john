@@ -93,7 +93,7 @@ AMDAPP = -DAMDAPPSDK
 OCLROOT = $(ATISTREAMSDKROOT)
 endif
 
-CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(REXGEN_FLAGS) $(HAVE_LIBGMP) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
+CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include -DHAVE_LIBSSL $(REXGEN_FLAGS) $(HAVE_LIBGMP) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
@@ -125,6 +125,7 @@ JOHN_OBJS = \
 	LM_fmt.o \
 	trip_fmt.o \
 	NT_fmt.o \
+	whirlpool.o haval.o skein.o md2.o panama.o \
 	timer.o \
 	md5.o \
 	rc4.o \
@@ -1928,19 +1929,19 @@ generic.h:
 testpara:
 	$(LN) x86-64.h arch.h
 	perl ./para-best.pl "$(CC)" "$(MAKE_ORIG)" \
-		"$(BENCH_PARA_DEPEND)" "-msse2 -DHAVE_OPENSSL" 64
+		"$(BENCH_PARA_DEPEND)" "-msse2 -DHAVE_LIBSSL" 64
 
 testpara-native:
 	$(LN) x86-64.h arch.h
 	perl ./para-best.pl "$(CC)" "$(MAKE_ORIG)" \
-		"$(BENCH_PARA_DEPEND)" "-march=native -DHAVE_OPENSSL" 64
+		"$(BENCH_PARA_DEPEND)" "-march=native -DHAVE_LIBSSL" 64
 
 testpara32:
 	$(LN) x86-sse.h arch.h
-	CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_OPENSSL" \
+	CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_LIBSSL" \
 	ASFLAGS="$(ASFLAGS) -m32 -msse2" \
 	perl ./para-best.pl "$(CC)" "$(MAKE_ORIG)" \
-		"$(BENCH_PARA_DEPEND)" "-m32 -msse2 -DHAVE_OPENSSL" 32
+		"$(BENCH_PARA_DEPEND)" "-m32 -msse2 -DHAVE_LIBSSL" 32
 
 bench: $(BENCH_OBJS)
 	$(LD) $(BENCH_OBJS) $(LDFLAGS) -o bench
@@ -1997,6 +1998,13 @@ cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) pwsafe.cu -o ../cuda_pwsafe.o
 
 listconf.o: version.h listconf.h listconf.c
+
+dynamic_big_crypt.c: dynamic_big_crypt_hash.cin dynamic_big_crypt_header.cin dynamic_big_crypt_generator.sh dynamic_big_crypt_chopper.pl unused/dynamic_big_crypt.c
+	$(shell ./dynamic_big_crypt_generator.sh)
+	@if [ ! -e dynamic_big_crypt.c ] ; then $(CP_PRESERVE) unused/dynamic_big_crypt.c dynamic_big_crypt.c ; fi
+
+dynamic_big_crypt.o:	dynamic_big_crypt.c arch.h misc.h common.h formats.h sha.h sha2.h md5.h md4.h stdint.h gost.h sph_haval.h sph_ripemd.h sph_tiger.h sph_whirlpool.h dynamic.h johnswap.h sse-intrinsics.h dynamic_types.h memdbg.h
+
 
 options.o: version.h options.c
 
@@ -2359,8 +2367,10 @@ unrarppm.o: unrarppm.c
 .s.o:
 	$(AS) $(ASFLAGS) $*.S
 
+# For jumbo, --make_check fails for the first thin format that is linked
+# to a dynamic format in a config file, so we deviate from core here.
 check:
-	../run/john --make_check
+	../run/john --test=0 --verbosity=2
 
 depend:
 	makedepend -fMakefile.dep -Y *.c 2>> /dev/null
@@ -2414,7 +2424,7 @@ clean:
 	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin
 	$(RM) detect bench para-bench generic.h arch.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~
-	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h version.h version.h.new
+	$(RM) dynamic_big_crypt.c fmt_registers.h fmt_externs.h john_build_rule.h version.h version.h.new
 	$(CP) $(NULL) Makefile.dep
 	+$(MAKE_ORIG) -C aes clean
 	+$(MAKE_ORIG) -C escrypt clean

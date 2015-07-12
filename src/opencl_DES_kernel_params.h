@@ -15,7 +15,8 @@ typedef unsigned WORD vtype;
  * "fast goto" version.
  */
 #if nvidia_sm_5x(DEVICE_INFO) || gpu_intel(DEVICE_INFO) ||	  \
-	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1573 && !defined(__Tahiti__))
+	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1573 && !defined(__Tahiti__)) || \
+	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1702)
 //#warning Using 'safe goto' kernel
 #define SAFE_GOTO
 #else

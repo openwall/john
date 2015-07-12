@@ -124,13 +124,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) > 2)
 		goto err;
+	if (!isdec(p))
+		goto err;
 	NumCyclesPower = atoi(p);
-	if (NumCyclesPower > 24 || NumCyclesPower < 1)
+	if (NumCyclesPower > 24)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* salt length */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	len = atoi(p);
-	if(len > 16 || len < 0) /* salt length */
+	if (len > 16) /* salt length */
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* salt */
 		goto err;
@@ -138,20 +142,24 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) > 2)
 		goto err;
+	if (!isdec(p))
+		goto err;
 	len = atoi(p);
-	if(len < 0 || len > 16) /* iv length */
+	if (len > 16) /* iv length */
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* iv */
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if (strlen(p) > len*2 && strcmp(p+len*2, "0000000000000000"))
+	if (strlen(p) / 2 > len && strcmp(p+len*2, "0000000000000000"))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* crc */
 		goto err;
 	if (!isdecu(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* data length */
+		goto err;
+	if(!isdec(p))
 		goto err;
 	len = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* unpacksize */
@@ -160,7 +168,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* data */
 		goto err;
-	if (strlen(p) != len * 2)	/* validates data_len atoi() */
+	if (strlen(p) / 2 != len)	/* validates data_len atoi() */
+		goto err;
+	if (!ishex(p))
 		goto err;
 
 	MEM_FREE(keeptr);

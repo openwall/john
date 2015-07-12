@@ -344,7 +344,7 @@ inline void cmp(uint gid,
 }
 
 #define USE_CONST_CACHE \
-	((CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4)) && (!IS_STATIC_GPU_MASK))
+	(CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4))
 
 __kernel void sha1(__global uint *keys,
 		  __global uint *index,
@@ -366,8 +366,6 @@ __kernel void sha1(__global uint *keys,
 		  volatile __global uint *bitmap_dupe)
 {
 	uint i;
-	uint lid = get_local_id(0);
-	uint lws = get_local_size(0);
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint W[16] = { 0 };
@@ -375,15 +373,6 @@ __kernel void sha1(__global uint *keys,
 	uint len = base & 63;
 	uint hash[5];
 	uint r[16] = {0};
-
-#if __OPENCL_VERSION__ < 120 || (__APPLE__ && gpu_nvidia(DEVICE_INFO))
-	if (!gid) {
-		out_hash_ids[0] = 0;
-		for (i = 0; i < HASH_TABLE_SIZE/32 + 1; i++)
-			bitmap_dupe[i] = 0;
-	}
-	barrier(CLK_GLOBAL_MEM_FENCE);
-#endif
 
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
 	uint ikl = int_key_loc[gid];
@@ -418,6 +407,8 @@ __kernel void sha1(__global uint *keys,
 #endif
 
 #if USE_LOCAL_BITMAPS
+	uint lid = get_local_id(0);
+	uint lws = get_local_size(0);
 	uint __local s_bitmaps[(BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS];
 
 	for(i = 0; i < (((BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS) / lws); i++)

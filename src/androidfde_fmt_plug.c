@@ -140,25 +140,35 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += TAG_LENGTH;
 	if ((p = strtokm(ctcopy, "$")) == NULL)
 		goto err;
+	if (!isdec(p))
+		goto err;
 	saltlen = atoi(p);
-	if(saltlen > 16)			/* saltlen */
+	if (saltlen > 16)			/* saltlen */
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
+		goto err;
+	if (!ishex(p))
 		goto err;
 	if (strlen(p) != saltlen * 2)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* keysize */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	keysize = atoi(p);
-	if(keysize > 64)
+	if (keysize > 64)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* key */
 		goto err;
 	if(strlen(p) != keysize * 2)
 		goto err;
+	if (!ishex(p))
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* data */
 		goto err;
-	if(strlen(p) != 512 * 3 * 2)
+	if (strlen(p) != 512 * 3 * 2)
+		goto err;
+	if (!ishex(p))
 		goto err;
 
 	MEM_FREE(keeptr);

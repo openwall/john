@@ -381,21 +381,24 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 6;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* is_inlined */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	is_inlined = atoi(p);
 
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
-	res = atoi(p);
-	afsize = res;
-	if (res != sizeof(struct luks_phdr))
+	if (!isdec(p))
+		goto err;
+	afsize = atoi(p);
+	if (afsize != sizeof(struct luks_phdr))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
-	if (res * 2 != strlen(p))
+	if (afsize != strlen(p) / 2)
 		goto err;
 	if (!ishexlc(p))
 		goto err;
-	for (i = 0; i < res; i++) {
+	for (i = 0; i < afsize; i++) {
 		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
@@ -414,6 +417,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		keybytes*stripes)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)
+		goto err;
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if (res != keybytes*stripes)

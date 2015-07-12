@@ -207,20 +207,24 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(krb5pa_md5_nthash), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(krb5pa_md5_nthash), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 static void *get_salt(char *ciphertext);
 
 static void init(struct fmt_main *_self)
 {
-	char build_opts[64];
-
 	self = _self;
+
+	opencl_prepare_dev(gpu_id);
 
 	if (pers_opts.target_enc == UTF_8) {
 		max_len = self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
@@ -239,22 +243,24 @@ static void init(struct fmt_main *_self)
 			tests[2].ciphertext = "$mskrb5$$$057cd5cb706b3de18e059912b1f057e3$fe2e561bd4e42767e972835ea99f08582ba526e62a6a2b6f61364e30aca7c6631929d427";
 		}
 	}
-
-	snprintf(build_opts, sizeof(build_opts),
-	         "-D%s -DPLAINTEXT_LENGTH=%u",
-	         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH);
-	opencl_init("$JOHN/kernels/krb5pa-md5_kernel.cl", gpu_id, build_opts);
-
-	/* create kernels to execute */
-	krb5pa_md5_nthash = clCreateKernel(program[gpu_id], "krb5pa_md5_nthash", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	crypt_kernel = clCreateKernel(program[gpu_id], "krb5pa_md5_final", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 }
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
+		char build_opts[64];
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-D%s -DPLAINTEXT_LENGTH=%u",
+		         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH);
+		opencl_init("$JOHN/kernels/krb5pa-md5_kernel.cl", gpu_id, build_opts);
+
+		/* create kernels to execute */
+		krb5pa_md5_nthash = clCreateKernel(program[gpu_id], "krb5pa_md5_nthash", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+		crypt_kernel = clCreateKernel(program[gpu_id], "krb5pa_md5_final", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 2, self,
 		                       create_clobj, release_clobj,

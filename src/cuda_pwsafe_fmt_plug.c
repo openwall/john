@@ -92,7 +92,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 9;		/* skip over "$pwsafe$*" */
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* version */
 		goto err;
-	if (atoi(p) == 0)
+	if (!isdec(p))
+		goto err;
+	if (!atoi(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
@@ -102,7 +104,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
 		goto err;
-	if (atoi(p) == 0)
+	if (!isdec(p))
+		goto err;
+	if (!atoi(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
@@ -119,31 +123,35 @@ err:
 
 static void *get_salt(char *ciphertext)
 {
-        char *ctcopy = strdup(ciphertext);
-        char *keeptr = ctcopy;
-        char *p;
-        int i;
-        pwsafe_salt *salt_struct =
-            mem_alloc_tiny(sizeof(pwsafe_salt), MEM_ALIGN_WORD);
-	ctcopy += 9;            /* skip over "$pwsafe$*" */
-        p = strtokm(ctcopy, "*");
-        salt_struct->version = atoi(p);
-        p = strtokm(NULL, "*");
-        for (i = 0; i < 32; i++)
-                salt_struct->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-                    + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-        p = strtokm(NULL, "*");
-        salt_struct->iterations = (unsigned int) atoi(p);
-        p = strtokm(NULL, "*");
-        for (i = 0; i < 32; i++)
-                salt_struct->hash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-                    + atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	char *p;
+	int i;
+	static pwsafe_salt *salt_struct;
 
-        MEM_FREE(keeptr);
+	if (!salt_struct)
+		salt_struct = mem_alloc(sizeof(pwsafe_salt));
+
+	memset(salt_struct, 0, sizeof(pwsafe_salt));
+	ctcopy += 9;            /* skip over "$pwsafe$*" */
+	p = strtokm(ctcopy, "*");
+	salt_struct->version = atoi(p);
+	p = strtokm(NULL, "*");
+	for (i = 0; i < 32; i++)
+		salt_struct->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	p = strtokm(NULL, "*");
+	salt_struct->iterations = (unsigned int) atoi(p);
+	p = strtokm(NULL, "*");
+	for (i = 0; i < 32; i++)
+		salt_struct->hash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+
+	MEM_FREE(keeptr);
 
 	alter_endianity(salt_struct->hash, 32);
 
-        return (void *) salt_struct;
+	return (void *) salt_struct;
 }
 
 static void set_salt(void *salt)

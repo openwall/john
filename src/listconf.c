@@ -130,7 +130,7 @@ static void listconf_list_build_info(void)
 	int gmp_major, gmp_minor, gmp_patchlevel;
 #endif
 	puts("Version: " JTR_GIT_VERSION);
-	puts("Build: " JOHN_BLD _MP_VERSION DEBUG_STRING MEMDBG_STRING ASAN_STRING);
+	puts("Build: " JOHN_BLD _MP_VERSION DEBUG_STRING MEMDBG_STRING ASAN_STRING UBSAN_STRING);
 #ifdef SIMD_COEF_32
 	printf("SIMD: %s, interleaving: MD4:%d MD5:%d SHA1:%d SHA256:%d SHA512:%d\n",
 	       SIMD_TYPE,
@@ -518,6 +518,15 @@ void listconf_parse_late(void)
 		setenv("BLOCKS", "1", 0);
 		setenv("THREADS", "1", 0);
 #endif
+
+#if 0
+		puts("label\tmaxlen\tmin/\tmaxkpc\tflags\tntests\talgorithm_name\tformat_name\tbench comment\tbench len\tbin size\tsalt size"
+#if FMT_MAIN_VERSION > 11
+		     "\tcosts"
+#endif
+		     "\tminlen");
+#endif
+
 		format = fmt_list;
 		do {
 			int ntests = 0;
@@ -624,6 +633,7 @@ void listconf_parse_late(void)
 			printf(" Uses a bitslice implementation      %s\n", (format->params.flags & FMT_BS) ? "yes" : "no");
 			printf(" The split() method unifies case     %s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
 
+#ifndef DYNAMIC_DISABLED
 			if (format->params.flags & FMT_DYNAMIC) {
 #if SIMD_COEF_32
 				private_subformat_data *p = (private_subformat_data *)format->private.data;
@@ -640,7 +650,7 @@ void listconf_parse_late(void)
 #endif
 			} else
 				printf(" A $dynamic$ format                  no\n");
-
+#endif
 			printf(" A dynamic sized salt                %s\n", (format->params.flags & FMT_DYNA_SALT) ? "yes" : "no");
 #ifdef _OPENMP
 			printf(" Parallelized with OpenMP            %s\n", (format->params.flags & FMT_OMP) ? "yes" : "no");

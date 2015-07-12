@@ -20,7 +20,7 @@ matrix:
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev
+  - sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev fglrx-dev opencl-headers
   - export OMP_NUM_THREADS=4
 script:
   - cd src && ./configure && make -sj4 check

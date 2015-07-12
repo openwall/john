@@ -247,10 +247,10 @@ static void *get_salt(char *ciphertext)
 		error();
 	}
 
-	filelength = atoi(strtokm(NULL, "*"));
+	filelength = atou(strtokm(NULL, "*"));
 	t = strtokm(NULL, "*");
 	if (t)
-		psalt->type = atoi(t);
+		psalt->type = atou(t);
 	encoded_data += 6;	/* skip over "$ssh2$ marker */
 	decoded_data = (char *) mem_alloc(filelength + 1);
 	for (i = 0; i < filelength; i++)
@@ -355,9 +355,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if ((p = strtokm(NULL, "*")) == NULL)	/* length */
 		goto err;
-	if (!ishex(p))
+	if (!isdecu(p))
 		goto err;
-	res = atoi(p);
+	res = atou(p);
 
 	if(length != res * 2)
 		goto err;

@@ -87,6 +87,9 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #include "sph_haval.h"
 #include "sph_ripemd.h"
 #include "sph_tiger.h"
+#include "sph_md2.h"
+#include "sph_panama.h"
+#include "sph_skein.h"
 #include "sph_whirlpool.h"
 #include "memory.h"
 #include "unicode.h"
@@ -869,6 +872,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	private_subformat_data *pPriv = pFmt->private.data;
 	char Tmp[80];
 	int i;
+	int trim_u=0;
 
 	char *cpBuilding=split_fields[1];
 
@@ -922,7 +926,18 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	}
 	// At this point, max length of cpBuilding is 491 (if it was a md5_gen signature)
 
+	// allow a raw hash, if there is a $u but no salt
+	if (pPriv->nUserName && strlen(split_fields[0]) && !strchr(cpBuilding, '$') && strcmp(split_fields[0], "?")) {
+		static char ct[496];
+		strcpy(ct, cpBuilding);
+		strcat(ct, "$$U");
+		cpBuilding = ct;
+		trim_u=1;
+	}
+
 	cpBuilding = FixupIfNeeded(cpBuilding, pPriv);
+	if (trim_u)
+		cpBuilding[strlen(cpBuilding)-3] = 0;
 
 	// at this point max length is still < 512.  491 + strlen($dynamic_xxxxx$) is 506
 
@@ -1530,69 +1545,48 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			if (curdat.dynamic_use_sse == 0) {
 				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1) {
 #ifdef _OPENMP
-					switch(curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type) {
-						case MGF__MD5:
-							DynamicFunc__MD5_crypt_input2_overwrite_input1(0,m_count,0); break;
-						case MGF__MD4:
-							DynamicFunc__MD4_crypt_input2_overwrite_input1(0,m_count,0); break;
-						case MGF__SHA1:
-							DynamicFunc__SHA1_crypt_input2_overwrite_input1(0,m_count,0); break;
-						case MGF__SHA224:
-							DynamicFunc__SHA224_crypt_input2_overwrite_input1(0,m_count,0); break;
-						case MGF__SHA256:
-							DynamicFunc__SHA256_crypt_input2_overwrite_input1(0,m_count,0); break;
-						case MGF__SHA384:
-							DynamicFunc__SHA384_crypt_input2_overwrite_input1(0,m_count,0); break;
-						case MGF__SHA512:
-							DynamicFunc__SHA512_crypt_input2_overwrite_input1(0,m_count,0); break;
-						case MGF__GOST:
-							DynamicFunc__GOST_crypt_input2_overwrite_input1(0,m_count,0); break;
-						case MGF__WHIRLPOOL:
-							DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1(0,m_count,0); break;
-						case MGF__TIGER:
-							DynamicFunc__Tiger_crypt_input2_overwrite_input1(0,m_count,0); break;
-						case MGF__RIPEMD128:
-							DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1(0,m_count,0); break;
-						case MGF__RIPEMD160:
-							DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1(0,m_count,0); break;
-						case MGF__RIPEMD256:
-							DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1(0,m_count,0); break;
-						case MGF__RIPEMD320:
-							DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1(0,m_count,0); break;
-					}
-
+#define CASE(H) case MGF__##H: DynamicFunc__##H##_crypt_input2_overwrite_input1(0,m_count,0); break
 #else
-					switch(curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type) {
-						case MGF__MD5:
-							DynamicFunc__MD5_crypt_input2_overwrite_input1(); break;
-						case MGF__MD4:
-							DynamicFunc__MD4_crypt_input2_overwrite_input1(); break;
-						case MGF__SHA1:
-							DynamicFunc__SHA1_crypt_input2_overwrite_input1(); break;
-						case MGF__SHA224:
-							DynamicFunc__SHA224_crypt_input2_overwrite_input1(); break;
-						case MGF__SHA256:
-							DynamicFunc__SHA256_crypt_input2_overwrite_input1(); break;
-						case MGF__SHA384:
-							DynamicFunc__SHA384_crypt_input2_overwrite_input1(); break;
-						case MGF__SHA512:
-							DynamicFunc__SHA512_crypt_input2_overwrite_input1(); break;
-						case MGF__GOST:
-							DynamicFunc__GOST_crypt_input2_overwrite_input1(); break;
-						case MGF__WHIRLPOOL:
-							DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1(); break;
-						case MGF__TIGER:
-							DynamicFunc__Tiger_crypt_input2_overwrite_input1(); break;
-						case MGF__RIPEMD128:
-							DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1(); break;
-						case MGF__RIPEMD160:
-							DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1(); break;
-						case MGF__RIPEMD256:
-							DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1(); break;
-						case MGF__RIPEMD320:
-							DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1(); break;
-					}
+#define CASE(H) case MGF__##H: DynamicFunc__##H##_crypt_input2_overwrite_input1(); break
 #endif
+					switch(curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type)
+					{
+						CASE(MD5);
+						CASE(MD4);
+						CASE(SHA1);
+						CASE(SHA224);
+						CASE(SHA256);
+						CASE(SHA384);
+						CASE(SHA512);
+						CASE(GOST);
+						CASE(WHIRLPOOL);
+						CASE(Tiger);
+						CASE(RIPEMD128);
+						CASE(RIPEMD160);
+						CASE(RIPEMD256);
+						CASE(RIPEMD320);
+						CASE(HAVAL128_3);
+						CASE(HAVAL128_4);
+						CASE(HAVAL128_5);
+						CASE(HAVAL160_3);
+						CASE(HAVAL160_4);
+						CASE(HAVAL160_5);
+						CASE(HAVAL192_3);
+						CASE(HAVAL192_4);
+						CASE(HAVAL192_5);
+						CASE(HAVAL224_3);
+						CASE(HAVAL224_4);
+						CASE(HAVAL224_5);
+						CASE(HAVAL256_3);
+						CASE(HAVAL256_4);
+						CASE(HAVAL256_5);
+						CASE(MD2);
+						CASE(PANAMA);
+						CASE(SKEIN224);
+						CASE(SKEIN256);
+						CASE(SKEIN384);
+						CASE(SKEIN512);
+					}
 				} else if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32) {
 					unsigned int i;
 					for (i = 0; i < m_count; ++i)
@@ -1602,71 +1596,50 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 					DynamicFunc__MD5_crypt_input2_append_input1();
 #endif
+#undef CASE
 #ifdef _OPENMP
-					switch(curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type) {
-						case MGF__MD5:
-							total_len_X86[i] = 32; DynamicFunc__MD5_crypt_input2_append_input1(0,m_count,0); break;
-						case MGF__MD4:
-							total_len_X86[i] = 32; DynamicFunc__MD4_crypt_input2_append_input1(0,m_count,0); break;
-						case MGF__SHA1:
-							total_len_X86[i] = 40; DynamicFunc__SHA1_crypt_input2_append_input1(0,m_count,0); break;
-						case MGF__SHA224:
-							total_len_X86[i] = 56; DynamicFunc__SHA224_crypt_input2_append_input1(0,m_count,0); break;
-						case MGF__SHA256:
-							total_len_X86[i] = 64; DynamicFunc__SHA256_crypt_input2_append_input1(0,m_count,0); break;
-						case MGF__SHA384:
-							total_len_X86[i] = 96; DynamicFunc__SHA384_crypt_input2_append_input1(0,m_count,0); break;
-						case MGF__SHA512:
-							total_len_X86[i] = 128; DynamicFunc__SHA512_crypt_input2_append_input1(0,m_count,0); break;
-						case MGF__GOST:
-							total_len_X86[i] = 64; DynamicFunc__GOST_crypt_input2_append_input1(0,m_count,0); break;
-						case MGF__WHIRLPOOL:
-							total_len_X86[i] = 128; DynamicFunc__WHIRLPOOL_crypt_input2_append_input1(0,m_count,0); break;
-						case MGF__TIGER:
-							total_len_X86[i] = 48; DynamicFunc__Tiger_crypt_input2_append_input1(0,m_count,0); break;
-						case MGF__RIPEMD128:
-							total_len_X86[i] = 32; DynamicFunc__RIPEMD128_crypt_input2_append_input1(0,m_count,0); break;
-						case MGF__RIPEMD160:
-							total_len_X86[i] = 40; DynamicFunc__RIPEMD160_crypt_input2_append_input1(0,m_count,0); break;
-						case MGF__RIPEMD256:
-							total_len_X86[i] = 64; DynamicFunc__RIPEMD256_crypt_input2_append_input1(0,m_count,0); break;
-						case MGF__RIPEMD320:
-							total_len_X86[i] = 80; DynamicFunc__RIPEMD320_crypt_input2_append_input1(0,m_count,0); break;
-					}
-
+#define CASE(H) case MGF__##H: total_len_X86[i] = 32; DynamicFunc__##H##_crypt_input2_append_input1(0,m_count,0); break
 #else
-					switch(curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type) {
-						case MGF__MD5:
-							total_len_X86[i] = 32; DynamicFunc__MD5_crypt_input2_append_input1(); break;
-						case MGF__MD4:
-							total_len_X86[i] = 32; DynamicFunc__MD4_crypt_input2_append_input1(); break;
-						case MGF__SHA1:
-							total_len_X86[i] = 40; DynamicFunc__SHA1_crypt_input2_append_input1(); break;
-						case MGF__SHA224:
-							total_len_X86[i] = 56; DynamicFunc__SHA224_crypt_input2_append_input1(); break;
-						case MGF__SHA256:
-							total_len_X86[i] = 64; DynamicFunc__SHA256_crypt_input2_append_input1(); break;
-						case MGF__SHA384:
-							total_len_X86[i] = 96; DynamicFunc__SHA384_crypt_input2_append_input1(); break;
-						case MGF__SHA512:
-							total_len_X86[i] = 128; DynamicFunc__SHA512_crypt_input2_append_input1(); break;
-						case MGF__GOST:
-							total_len_X86[i] = 64; DynamicFunc__GOST_crypt_input2_append_input1(); break;
-						case MGF__WHIRLPOOL:
-							total_len_X86[i] = 128; DynamicFunc__WHIRLPOOL_crypt_input2_append_input1(); break;
-						case MGF__TIGER:
-							total_len_X86[i] = 48; DynamicFunc__Tiger_crypt_input2_append_input1(); break;
-						case MGF__RIPEMD128:
-							total_len_X86[i] = 32; DynamicFunc__RIPEMD128_crypt_input2_append_input1(); break;
-						case MGF__RIPEMD160:
-							total_len_X86[i] = 40; DynamicFunc__RIPEMD160_crypt_input2_append_input1(); break;
-						case MGF__RIPEMD256:
-							total_len_X86[i] = 64; DynamicFunc__RIPEMD256_crypt_input2_append_input1(); break;
-						case MGF__RIPEMD320:
-							total_len_X86[i] = 80; DynamicFunc__RIPEMD320_crypt_input2_append_input1(); break;
-					}
+#define CASE(H) case MGF__##H: total_len_X86[i] = 32; DynamicFunc__##H##_crypt_input2_append_input1(); break
 #endif
 
+					switch(curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type) {
+						CASE(MD5);
+						CASE(MD4);
+						CASE(SHA1);
+						CASE(SHA224);
+						CASE(SHA256);
+						CASE(SHA384);
+						CASE(SHA512);
+						CASE(GOST);
+						CASE(WHIRLPOOL);
+						CASE(Tiger);
+						CASE(RIPEMD128);
+						CASE(RIPEMD160);
+						CASE(RIPEMD256);
+						CASE(RIPEMD320);
+						CASE(HAVAL128_3);
+						CASE(HAVAL128_4);
+						CASE(HAVAL128_5);
+						CASE(HAVAL160_3);
+						CASE(HAVAL160_4);
+						CASE(HAVAL160_5);
+						CASE(HAVAL192_3);
+						CASE(HAVAL192_4);
+						CASE(HAVAL192_5);
+						CASE(HAVAL224_3);
+						CASE(HAVAL224_4);
+						CASE(HAVAL224_5);
+						CASE(HAVAL256_3);
+						CASE(HAVAL256_4);
+						CASE(HAVAL256_5);
+						CASE(MD2);
+						CASE(PANAMA);
+						CASE(SKEIN224);
+						CASE(SKEIN256);
+						CASE(SKEIN384);
+						CASE(SKEIN512);
+					}
 				} else {
 					// calls 'old' code (ossl, sorry :(   We should FIND and remove any format
 					// written this way, if it is
@@ -1749,6 +1722,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		(*(curdat.dynamic_FUNCTIONS[i]))();
 #if 0
 		// Dump state (for debugging help)
+		if (i==0) printf("\npassword=%.*s\n", saved_key_len[0], saved_key[0]);
 		printf ("\nState after function: %s\n", dynamic_Find_Function_Name(curdat.dynamic_FUNCTIONS[i]));
 		// dump input 1
 #ifdef SIMD_COEF_32
@@ -2072,7 +2046,7 @@ static unsigned int salt_external_to_internal_convert(unsigned char *extern_salt
 	// the any order has 1 exception of salt_data MUST be first.  So if we get $$2salt2, then we know there is no salt-1 value.
 	unsigned char *salt2=0, *userid=0, *Flds[10];
 	int i, nsalt2=0, nuserid=0, nFlds[10]={0,0,0,0,0,0,0,0,0,0};
-	unsigned char len = strlen((char*)extern_salt), bit;
+	unsigned int len = strlen((char*)extern_salt), bit;
 	unsigned int bit_array=0;
 	unsigned int the_real_len = 6;  // 2 bytes base-8 length, and 4 bytes base-8 bitmap.
 
@@ -2150,6 +2124,13 @@ static unsigned int salt_external_to_internal_convert(unsigned char *extern_salt
 	if (nuserid) {
 		*Buffer++ = nuserid;
 		memcpy((char*)Buffer, (char*)userid, nuserid);
+		if (curdat.nUserName==2) {
+			Buffer[nuserid] = 0;
+			strupr((char*)Buffer);
+		} else if (curdat.nUserName==2) {
+			Buffer[nuserid] = 0;
+			strlwr((char*)Buffer);
+		}
 		Buffer += nuserid;
 		bit_array &= ~2;
 		if (!bit_array)
@@ -2265,6 +2246,13 @@ static void *get_salt(char *ciphertext)
 		unsigned char Buf[128];
 		unsigned int slen=strlen(Salt);
 		switch (curdat.dynamic_salt_as_hex_format_type) {
+			//  TODO:  Come up with some way to put these into a CASE(HASH) #define
+
+#define SPH_CASE(H,F,S)  case MGF__##H: {sph_##F##_context c;sph_##F##_init(&c);sph_##F(&c,(const unsigned char*)Salt,slen);sph_##F##_close(&c,Buf); \
+				memset(Salt,0,SALT_SIZE+1);base64_convert(Buf,e_b64_raw,S,Salt,e_b64_hex,SALT_SIZE, 0);break; }
+#define OSSL_CASE(H,C,S)  case MGF__##H: {C##_CTX c;H##_Init(&c);H##_Update(&c,Salt,slen);H##_Final(Buf,&c); \
+				memset(Salt,0,SALT_SIZE+1);base64_convert(Buf,e_b64_raw,S,Salt,e_b64_hex,SALT_SIZE, 0);break; }
+
 			case MGF__MD5:
 			{
 				// Do not 'worry' about SSE/MMX,  Only do 'generic' md5.  This is ONLY done
@@ -2298,66 +2286,13 @@ static void *get_salt(char *ciphertext)
 				base64_convert(Buf, e_b64_raw, 16, cpo, e_b64_hex, SALT_SIZE, 0);
 				break;
 			}
-			case MGF__MD4:
-			{
-				MD4_CTX ctx;
-				MD4_Init(&ctx);
-				MD4_Update(&ctx, Salt, slen);
-				MD4_Final(Buf, &ctx);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 16, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__SHA1:
-			{
-				SHA_CTX ctx;
-				SHA1_Init(&ctx);
-				SHA1_Update(&ctx, Salt, slen);
-				SHA1_Final(Buf, &ctx);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 20, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__SHA224:
-			{
-				SHA256_CTX ctx;
-				SHA224_Init(&ctx);
-				SHA224_Update(&ctx, Salt, slen);
-				SHA224_Final(Buf, &ctx);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 28, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__SHA256:
-			{
-				SHA256_CTX ctx;
-				SHA256_Init(&ctx);
-				SHA256_Update(&ctx, Salt, slen);
-				SHA256_Final(Buf, &ctx);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__SHA384:
-			{
-				SHA512_CTX ctx;
-				SHA384_Init(&ctx);
-				SHA384_Update(&ctx, Salt, slen);
-				SHA384_Final(Buf, &ctx);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 48, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__SHA512:
-			{
-				SHA512_CTX ctx;
-				SHA512_Init(&ctx);
-				SHA512_Update(&ctx, Salt, slen);
-				SHA512_Final(Buf, &ctx);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 64, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
+			OSSL_CASE(MD4,MD4,16)
+			OSSL_CASE(SHA1,SHA,20)
+			OSSL_CASE(SHA224,SHA256,28)
+			OSSL_CASE(SHA256,SHA256,32)
+			OSSL_CASE(SHA384,SHA512,48)
+			OSSL_CASE(SHA512,SHA512,64)
+			OSSL_CASE(WHIRLPOOL,WHIRLPOOL,64)
 			case MGF__GOST:
 			{
 				gost_ctx ctx;
@@ -2368,66 +2303,33 @@ static void *get_salt(char *ciphertext)
 				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
 				break;
 			}
-			case MGF__WHIRLPOOL:
-			{
-				WHIRLPOOL_CTX ctx;
-				WHIRLPOOL_Init(&ctx);
-				WHIRLPOOL_Update(&ctx, (const unsigned char*)Salt, slen);
-				WHIRLPOOL_Final(Buf, &ctx);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 64, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__TIGER:
-			{
-				sph_tiger_context ctx;
-				sph_tiger_init(&ctx);
-				sph_tiger(&ctx, (const unsigned char*)Salt, slen);
-				sph_tiger_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 24, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__RIPEMD128:
-			{
-				sph_ripemd128_context ctx;
-				sph_ripemd128_init(&ctx);
-				sph_ripemd128(&ctx, (const unsigned char*)Salt, slen);
-				sph_ripemd128_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 16, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__RIPEMD160:
-			{
-				sph_ripemd160_context ctx;
-				sph_ripemd160_init(&ctx);
-				sph_ripemd160(&ctx, (const unsigned char*)Salt, slen);
-				sph_ripemd160_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 20, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__RIPEMD256:
-			{
-				sph_ripemd256_context ctx;
-				sph_ripemd256_init(&ctx);
-				sph_ripemd256(&ctx, (const unsigned char*)Salt, slen);
-				sph_ripemd256_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
-			case MGF__RIPEMD320:
-			{
-				sph_ripemd320_context ctx;
-				sph_ripemd320_init(&ctx);
-				sph_ripemd320(&ctx, (const unsigned char*)Salt, slen);
-				sph_ripemd320_close(&ctx, Buf);
-				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 40, Salt, e_b64_hex, SALT_SIZE, 0);
-				break;
-			}
+			SPH_CASE(Tiger,tiger,24)
+			SPH_CASE(RIPEMD128,ripemd128,16)
+			SPH_CASE(RIPEMD160,ripemd160,20)
+			SPH_CASE(RIPEMD256,ripemd256,32)
+			SPH_CASE(RIPEMD320,ripemd320,40)
+			SPH_CASE(HAVAL128_3,haval128_3,16)
+			SPH_CASE(HAVAL128_4,haval128_4,16)
+			SPH_CASE(HAVAL128_5,haval128_5,16)
+			SPH_CASE(HAVAL160_3,haval160_3,20)
+			SPH_CASE(HAVAL160_4,haval160_4,20)
+			SPH_CASE(HAVAL160_5,haval160_5,20)
+			SPH_CASE(HAVAL192_3,haval192_3,24)
+			SPH_CASE(HAVAL192_4,haval192_4,24)
+			SPH_CASE(HAVAL192_5,haval192_5,24)
+			SPH_CASE(HAVAL224_3,haval224_3,28)
+			SPH_CASE(HAVAL224_4,haval224_4,28)
+			SPH_CASE(HAVAL224_5,haval224_5,28)
+			SPH_CASE(HAVAL256_3,haval256_3,32)
+			SPH_CASE(HAVAL256_4,haval256_4,32)
+			SPH_CASE(HAVAL256_5,haval256_5,32)
+			SPH_CASE(MD2,md2,16);
+			SPH_CASE(PANAMA,panama,32);
+			SPH_CASE(SKEIN224,skein224,28);
+			SPH_CASE(SKEIN256,skein256,32);
+			SPH_CASE(SKEIN384,skein384,48);
+			SPH_CASE(SKEIN512,skein512,64);
+
 			default:
 			{
 				error("Invalid dynamic flags seen.  Data type not yet defined\n");
@@ -3752,8 +3654,8 @@ void DynamicFunc__append_keys_pad16(DYNA_OMP_PARAMS)
 			unsigned int bf_ptr = total_len[idx][idx_mod];
 			saved_key[j][saved_key_len[j]] = 0; // so strncpy 'works'
 			if (saved_key_len[j] < 16) {
-				char buf[17];
-				strncpy(buf, saved_key[j], 17);
+				char buf[24];
+				strncpy(buf, saved_key[j], 18);
 				total_len[idx][idx_mod] += 16;
 				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)buf,16,bf_ptr,1);
 			} else {
@@ -3795,8 +3697,8 @@ void DynamicFunc__append_keys_pad20(DYNA_OMP_PARAMS)
 			unsigned int bf_ptr = total_len[idx][idx_mod];
 			saved_key[j][saved_key_len[j]] = 0; // so strncpy 'works'
 			if (saved_key_len[j] < 20) {
-				char buf[21];
-				strncpy(buf, saved_key[j], 21);
+				char buf[28];
+				strncpy(buf, saved_key[j], 22);
 				total_len[idx][idx_mod] += 20;
 				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)buf,20,bf_ptr,1);
 			} else {
@@ -7081,93 +6983,6 @@ void DynamicFunc__base16_convert_upcase(DYNA_OMP_PARAMS)
 	itoa16_w2=itoa16_w2_u;
 }
 
-/* These are the 'older' singular functions. These SHOULD be viewed as depricated.  They still work, but should not be used */
-/* NOTE, any new larger hash crypts, will NOT have this *_base16() functions.                                               */
-void DynamicFunc__SHA1_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)		{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA1_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA1_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)		{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA1_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA1_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA1_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA1_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA1_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA224_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA224_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA224_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA224_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA224_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA224_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA224_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA224_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA224_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA224_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA224_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA224_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA256_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA256_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA256_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA256_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA256_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA256_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA256_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA256_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA256_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA256_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA256_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA384_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA384_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA384_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA384_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA384_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA384_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA384_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA384_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA384_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA384_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA384_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA384_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA512_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA512_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA512_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA512_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA512_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA512_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA512_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA512_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA512_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA512_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__SHA512_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__SHA512_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__GOST_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)		{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__GOST_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__GOST_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)		{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__GOST_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__GOST_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__GOST_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__GOST_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__GOST_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__GOST_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__GOST_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__GOST_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__GOST_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__WHIRLPOOL_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__WHIRLPOOL_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__Tiger_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__Tiger_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__Tiger_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__Tiger_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__Tiger_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__Tiger_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__Tiger_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__Tiger_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__Tiger_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__Tiger_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__Tiger_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__Tiger_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD128_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD128_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD128_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD128_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD160_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD160_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD160_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD160_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD160_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD160_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD256_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD256_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD256_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD256_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD256_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD256_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD320_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD320_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS)	{ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__MD5_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);     DynamicFunc__MD5_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__MD5_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); 	   DynamicFunc__MD5_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__MD5_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD5_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__MD5_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD5_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__MD5_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD5_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__MD5_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD5_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__MD4_crypt_input1_append_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); 	   DynamicFunc__MD4_crypt_input1_append_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__MD4_crypt_input2_append_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd); 	   DynamicFunc__MD4_crypt_input2_append_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__MD4_crypt_input1_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD4_crypt_input1_overwrite_input1(DYNA_OMP_PARAMSd); }
-void DynamicFunc__MD4_crypt_input2_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD4_crypt_input2_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__MD4_crypt_input1_overwrite_input2_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD4_crypt_input1_overwrite_input2(DYNA_OMP_PARAMSd); }
-void DynamicFunc__MD4_crypt_input2_overwrite_input1_base16(DYNA_OMP_PARAMS){ DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMSd);  DynamicFunc__MD4_crypt_input2_overwrite_input1(DYNA_OMP_PARAMSd); }
-
 /**************************************************************
  * DEPRICATED functions. These are the older pseudo functions
  * which we now have flags for.  We keep them, so that we can
@@ -7221,12 +7036,12 @@ static DYNAMIC_primitive_funcp *ConvertFuncs(DYNAMIC_primitive_funcp p, unsigned
 	/*  LOOK INTO THIS!!!!! This may not be valid, now that SHA1 is handled 100% outside of the SSE2 code.
 	    But I am not sure just WTF this is supposed to do anyway, since not LE should be using CTX only??? */
 #if !ARCH_LITTLE_ENDIAN
-	if (p==DynamicFunc__SHA1_crypt_input1_append_input2_base16    || p==DynamicFunc__SHA1_crypt_input1_append_input2    ||
-		p==DynamicFunc__SHA1_crypt_input2_append_input1_base16    || p==DynamicFunc__SHA1_crypt_input2_append_input1    ||
-		p==DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__SHA1_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__SHA1_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__SHA1_crypt_input1_overwrite_input2 ||
-		p==DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__SHA1_crypt_input2_overwrite_input1 ||
+	if (/*p==DynamicFunc__SHA1_crypt_input1_append_input2_base16    ||*/ p==DynamicFunc__SHA1_crypt_input1_append_input2    ||
+		/*p==DynamicFunc__SHA1_crypt_input2_append_input1_base16    ||*/ p==DynamicFunc__SHA1_crypt_input2_append_input1    ||
+		/*p==DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16 ||*/ p==DynamicFunc__SHA1_crypt_input1_overwrite_input1 ||
+		/*p==DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16 ||*/ p==DynamicFunc__SHA1_crypt_input2_overwrite_input2 ||
+		/*p==DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16 ||*/ p==DynamicFunc__SHA1_crypt_input1_overwrite_input2 ||
+		/*p==DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16 ||*/ p==DynamicFunc__SHA1_crypt_input2_overwrite_input1 ||
 		p==DynamicFunc__SHA1_crypt_input1_to_output1_FINAL        ||
 		p==DynamicFunc__SHA1_crypt_input2_to_output1_FINAL)
 		curdat.force_md5_ctx = 0;
@@ -7255,18 +7070,20 @@ static int isBadOMPFunc(DYNAMIC_primitive_funcp p)
 }
 #endif
 
+#define RETURN_TRUE_IF_BIG_FUNC(H) if(p==DynamicFunc__##H##_crypt_input1_append_input2 || \
+		p==DynamicFunc__##H##_crypt_input2_append_input1    || \
+		p==DynamicFunc__##H##_crypt_input1_overwrite_input1 || \
+		p==DynamicFunc__##H##_crypt_input2_overwrite_input2 || \
+		p==DynamicFunc__##H##_crypt_input1_overwrite_input2 || \
+		p==DynamicFunc__##H##_crypt_input2_overwrite_input1 || \
+		p==DynamicFunc__##H##_crypt_input1_to_output1_FINAL || \
+		p==DynamicFunc__##H##_crypt_input2_to_output1_FINAL) \
+		return 1
+
 static int isMD4Func(DYNAMIC_primitive_funcp p)
 {
 	// handle flats
-	if (p==DynamicFunc__MD4_crypt_input1_append_input2_base16    || p==DynamicFunc__MD4_crypt_input1_append_input2    ||
-		p==DynamicFunc__MD4_crypt_input2_append_input1_base16    || p==DynamicFunc__MD4_crypt_input2_append_input1    ||
-		p==DynamicFunc__MD4_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__MD4_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__MD4_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__MD4_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__MD4_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__MD4_crypt_input1_overwrite_input2 ||
-		p==DynamicFunc__MD4_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__MD4_crypt_input2_overwrite_input1 ||
-		p==DynamicFunc__MD4_crypt_input1_to_output1_FINAL        ||
-		p==DynamicFunc__MD4_crypt_input2_to_output1_FINAL)
-		return 1;
+	RETURN_TRUE_IF_BIG_FUNC(MD4);
 	// handle older mmx_coef variants
 	if (p==DynamicFunc__crypt_md4    || p==DynamicFunc__crypt_md4_in1_to_out2    ||
 		p==DynamicFunc__crypt2_md4   || p==DynamicFunc__crypt_md4_in2_to_out1)
@@ -7281,15 +7098,7 @@ static int isMD4Func(DYNAMIC_primitive_funcp p)
 static int isMD5Func(DYNAMIC_primitive_funcp p)
 {
 	// handle flats
-	if (p==DynamicFunc__MD5_crypt_input1_append_input2_base16    || p==DynamicFunc__MD5_crypt_input1_append_input2    ||
-		p==DynamicFunc__MD5_crypt_input2_append_input1_base16    || p==DynamicFunc__MD5_crypt_input2_append_input1    ||
-		p==DynamicFunc__MD5_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__MD5_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__MD5_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__MD5_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__MD5_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__MD5_crypt_input1_overwrite_input2 ||
-		p==DynamicFunc__MD5_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__MD5_crypt_input2_overwrite_input1 ||
-		p==DynamicFunc__MD5_crypt_input1_to_output1_FINAL        ||
-		p==DynamicFunc__MD5_crypt_input2_to_output1_FINAL)
-		return 1;
+	RETURN_TRUE_IF_BIG_FUNC(MD5);
 	// handle older mmx_coef variants
 	if (p==DynamicFunc__crypt_md5                || p==DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1      ||
 		p==DynamicFunc__crypt_md5_in1_to_out2    || p==DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2                       ||
@@ -7305,162 +7114,68 @@ static int isMD5Func(DYNAMIC_primitive_funcp p)
 #endif
 #endif
 
-static int isSHA1Func(DYNAMIC_primitive_funcp p)
-{
-	if (p==DynamicFunc__SHA1_crypt_input1_append_input2_base16    || p==DynamicFunc__SHA1_crypt_input1_append_input2    ||
-		p==DynamicFunc__SHA1_crypt_input2_append_input1_base16    || p==DynamicFunc__SHA1_crypt_input2_append_input1    ||
-		p==DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__SHA1_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__SHA1_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__SHA1_crypt_input1_overwrite_input2 ||
-		p==DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__SHA1_crypt_input2_overwrite_input1 ||
-		p==DynamicFunc__SHA1_crypt_input1_to_output1_FINAL        ||
-		p==DynamicFunc__SHA1_crypt_input2_to_output1_FINAL)
-		return 1;
+static int isSHA1Func(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(SHA1);
 	return 0;
 }
-
-static int isSHA2_256Func(DYNAMIC_primitive_funcp p)
-{
-	if (p==DynamicFunc__SHA224_crypt_input1_append_input2_base16    || p==DynamicFunc__SHA224_crypt_input1_append_input2    ||
-		p==DynamicFunc__SHA224_crypt_input2_append_input1_base16    || p==DynamicFunc__SHA224_crypt_input2_append_input1    ||
-		p==DynamicFunc__SHA224_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__SHA224_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__SHA224_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__SHA224_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__SHA224_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__SHA224_crypt_input2_overwrite_input2 ||
- 		p==DynamicFunc__SHA224_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__SHA224_crypt_input2_overwrite_input1 ||
-		p==DynamicFunc__SHA224_crypt_input1_to_output1_FINAL ||
-		p==DynamicFunc__SHA224_crypt_input2_to_output1_FINAL ||
-		p==DynamicFunc__SHA256_crypt_input1_append_input2_base16    || p==DynamicFunc__SHA256_crypt_input1_append_input2    ||
-		p==DynamicFunc__SHA256_crypt_input2_append_input1_base16    || p==DynamicFunc__SHA256_crypt_input2_append_input1    ||
-		p==DynamicFunc__SHA256_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__SHA256_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__SHA256_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__SHA256_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__SHA256_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__SHA256_crypt_input1_overwrite_input2 ||
-		p==DynamicFunc__SHA256_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__SHA256_crypt_input2_overwrite_input1 ||
-		p==DynamicFunc__SHA256_crypt_input1_to_output1_FINAL ||
-		p==DynamicFunc__SHA256_crypt_input2_to_output1_FINAL)
-		return 1;
+static int isSHA2_256Func(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(SHA224); RETURN_TRUE_IF_BIG_FUNC(SHA256);
 	return 0;
 }
-
-static int isSHA2_512Func(DYNAMIC_primitive_funcp p)
-{
-	if (p==DynamicFunc__SHA384_crypt_input1_append_input2_base16    || p==DynamicFunc__SHA384_crypt_input1_append_input2    ||
-		p==DynamicFunc__SHA384_crypt_input2_append_input1_base16    || p==DynamicFunc__SHA384_crypt_input2_append_input1    ||
-		p==DynamicFunc__SHA384_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__SHA384_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__SHA384_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__SHA384_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__SHA384_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__SHA384_crypt_input1_overwrite_input2 ||
-		p==DynamicFunc__SHA384_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__SHA384_crypt_input2_overwrite_input1 ||
-		p==DynamicFunc__SHA384_crypt_input1_to_output1_FINAL ||
-		p==DynamicFunc__SHA384_crypt_input2_to_output1_FINAL ||
-		p==DynamicFunc__SHA512_crypt_input1_append_input2_base16    || p==DynamicFunc__SHA512_crypt_input1_append_input2    ||
-		p==DynamicFunc__SHA512_crypt_input2_append_input1_base16    || p==DynamicFunc__SHA512_crypt_input2_append_input1    ||
-		p==DynamicFunc__SHA512_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__SHA512_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__SHA512_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__SHA512_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__SHA512_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__SHA512_crypt_input1_overwrite_input2 ||
-		p==DynamicFunc__SHA512_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__SHA512_crypt_input2_overwrite_input1 ||
-		p==DynamicFunc__SHA512_crypt_input1_to_output1_FINAL ||
-		p==DynamicFunc__SHA512_crypt_input2_to_output1_FINAL)
-		return 1;
+static int isSHA2_512Func(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(SHA384); RETURN_TRUE_IF_BIG_FUNC(SHA512);
 	return 0;
 }
-
-static int isGOSTFunc(DYNAMIC_primitive_funcp p)
-{
-	if (p==DynamicFunc__GOST_crypt_input1_append_input2_base16    || p==DynamicFunc__GOST_crypt_input1_append_input2    ||
-		p==DynamicFunc__GOST_crypt_input2_append_input1_base16    || p==DynamicFunc__GOST_crypt_input2_append_input1    ||
-		p==DynamicFunc__GOST_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__GOST_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__GOST_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__GOST_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__GOST_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__GOST_crypt_input1_overwrite_input2 ||
-		p==DynamicFunc__GOST_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__GOST_crypt_input2_overwrite_input1 ||
-		p==DynamicFunc__GOST_crypt_input1_to_output1_FINAL ||
-		p==DynamicFunc__GOST_crypt_input2_to_output1_FINAL)
-		return 1;
+static int isGOSTFunc(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(GOST);
 	return 0;
 }
-
-static int isTigerFunc(DYNAMIC_primitive_funcp p)
-{
-	if (p==DynamicFunc__Tiger_crypt_input1_append_input2_base16    || p==DynamicFunc__Tiger_crypt_input1_append_input2    ||
-		p==DynamicFunc__Tiger_crypt_input2_append_input1_base16    || p==DynamicFunc__Tiger_crypt_input2_append_input1    ||
-		p==DynamicFunc__Tiger_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__Tiger_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__Tiger_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__Tiger_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__Tiger_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__Tiger_crypt_input1_overwrite_input2 ||
-		p==DynamicFunc__Tiger_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__Tiger_crypt_input2_overwrite_input1 ||
-		p==DynamicFunc__Tiger_crypt_input1_to_output1_FINAL ||
-		p==DynamicFunc__Tiger_crypt_input2_to_output1_FINAL)
-		return 1;
+static int isTigerFunc(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(Tiger);
 	return 0;
 }
-
-static int isWHIRLFunc(DYNAMIC_primitive_funcp p)
-{
-	if (p==DynamicFunc__WHIRLPOOL_crypt_input1_append_input2_base16    || p==DynamicFunc__WHIRLPOOL_crypt_input1_append_input2    ||
-		p==DynamicFunc__WHIRLPOOL_crypt_input2_append_input1_base16    || p==DynamicFunc__WHIRLPOOL_crypt_input2_append_input1    ||
-		p==DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2 ||
-		p==DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1 ||
-		p==DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL ||
-		p==DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL)
-		return 1;
+static int isWHIRLFunc(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(WHIRLPOOL);
 	return 0;
 }
-
-static int isRIPEMDFunc(DYNAMIC_primitive_funcp p)
-{
-	if (p==DynamicFunc__RIPEMD128_crypt_input1_append_input2_base16    || p==DynamicFunc__RIPEMD128_crypt_input1_append_input2    ||
-		p==DynamicFunc__RIPEMD128_crypt_input2_append_input1_base16    || p==DynamicFunc__RIPEMD128_crypt_input2_append_input1    ||
-		p==DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__RIPEMD128_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__RIPEMD128_crypt_input1_overwrite_input2 ||
-		p==DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__RIPEMD128_crypt_input2_overwrite_input1 ||
-		p==DynamicFunc__RIPEMD128_crypt_input1_to_output1_FINAL ||
-		p==DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL)
-		return 1;
-	if (p==DynamicFunc__RIPEMD160_crypt_input1_append_input2_base16    || p==DynamicFunc__RIPEMD160_crypt_input1_append_input2    ||
-		p==DynamicFunc__RIPEMD160_crypt_input2_append_input1_base16    || p==DynamicFunc__RIPEMD160_crypt_input2_append_input1    ||
-		p==DynamicFunc__RIPEMD160_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__RIPEMD160_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__RIPEMD160_crypt_input1_overwrite_input2 ||
-		p==DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__RIPEMD160_crypt_input2_overwrite_input1 ||
-		p==DynamicFunc__RIPEMD160_crypt_input1_to_output1_FINAL ||
-		p==DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL)
-		return 1;
-	if (p==DynamicFunc__RIPEMD256_crypt_input1_append_input2_base16    || p==DynamicFunc__RIPEMD256_crypt_input1_append_input2    ||
-		p==DynamicFunc__RIPEMD256_crypt_input2_append_input1_base16    || p==DynamicFunc__RIPEMD256_crypt_input2_append_input1    ||
-		p==DynamicFunc__RIPEMD256_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__RIPEMD256_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__RIPEMD256_crypt_input1_overwrite_input2 ||
-		p==DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__RIPEMD256_crypt_input2_overwrite_input1 ||
-		p==DynamicFunc__RIPEMD256_crypt_input1_to_output1_FINAL ||
-		p==DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL)
-		return 1;
-	if (p==DynamicFunc__RIPEMD320_crypt_input1_append_input2_base16    || p==DynamicFunc__RIPEMD320_crypt_input1_append_input2    ||
-		p==DynamicFunc__RIPEMD320_crypt_input2_append_input1_base16    || p==DynamicFunc__RIPEMD320_crypt_input2_append_input1    ||
-		p==DynamicFunc__RIPEMD320_crypt_input1_overwrite_input1_base16 || p==DynamicFunc__RIPEMD320_crypt_input1_overwrite_input1 ||
-		p==DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2_base16 || p==DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2 ||
-		p==DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2_base16 || p==DynamicFunc__RIPEMD320_crypt_input1_overwrite_input2 ||
-		p==DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1_base16 || p==DynamicFunc__RIPEMD320_crypt_input2_overwrite_input1 ||
-		p==DynamicFunc__RIPEMD320_crypt_input1_to_output1_FINAL ||
-		p==DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL)
-		return 1;
+static int isRIPEMDFunc(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(RIPEMD128); RETURN_TRUE_IF_BIG_FUNC(RIPEMD160);
+	RETURN_TRUE_IF_BIG_FUNC(RIPEMD256); RETURN_TRUE_IF_BIG_FUNC(RIPEMD320);
+	return 0;
+}
+static int isHAVALFunc(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(HAVAL128_3); RETURN_TRUE_IF_BIG_FUNC(HAVAL128_4); RETURN_TRUE_IF_BIG_FUNC(HAVAL128_5);
+	RETURN_TRUE_IF_BIG_FUNC(HAVAL160_3); RETURN_TRUE_IF_BIG_FUNC(HAVAL160_4); RETURN_TRUE_IF_BIG_FUNC(HAVAL160_5);
+	RETURN_TRUE_IF_BIG_FUNC(HAVAL192_3); RETURN_TRUE_IF_BIG_FUNC(HAVAL192_4); RETURN_TRUE_IF_BIG_FUNC(HAVAL192_5);
+	RETURN_TRUE_IF_BIG_FUNC(HAVAL224_3); RETURN_TRUE_IF_BIG_FUNC(HAVAL224_4); RETURN_TRUE_IF_BIG_FUNC(HAVAL224_5);
+	RETURN_TRUE_IF_BIG_FUNC(HAVAL256_3); RETURN_TRUE_IF_BIG_FUNC(HAVAL256_4); RETURN_TRUE_IF_BIG_FUNC(HAVAL256_5);
+	return 0;
+}
+static int isMD2Func(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(MD2);
+	return 0;
+}
+static int isPANAMAFunc(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(PANAMA);
+	return 0;
+}
+static int isSKEINFunc(DYNAMIC_primitive_funcp p) {
+	RETURN_TRUE_IF_BIG_FUNC(SKEIN224); RETURN_TRUE_IF_BIG_FUNC(SKEIN256);
+	RETURN_TRUE_IF_BIG_FUNC(SKEIN384); RETURN_TRUE_IF_BIG_FUNC(SKEIN512);
 	return 0;
 }
 
 static int isLargeHashFinalFunc(DYNAMIC_primitive_funcp p)
 {
-	if (p==DynamicFunc__SHA1_crypt_input1_to_output1_FINAL      || p==DynamicFunc__SHA1_crypt_input2_to_output1_FINAL      ||
-		p==DynamicFunc__SHA224_crypt_input1_to_output1_FINAL    || p==DynamicFunc__SHA224_crypt_input2_to_output1_FINAL    ||
-		p==DynamicFunc__SHA256_crypt_input1_to_output1_FINAL    || p==DynamicFunc__SHA256_crypt_input2_to_output1_FINAL    ||
-		p==DynamicFunc__SHA384_crypt_input1_to_output1_FINAL    || p==DynamicFunc__SHA384_crypt_input2_to_output1_FINAL    ||
-		p==DynamicFunc__SHA512_crypt_input1_to_output1_FINAL    || p==DynamicFunc__SHA512_crypt_input2_to_output1_FINAL    ||
-		p==DynamicFunc__GOST_crypt_input1_to_output1_FINAL      || p==DynamicFunc__GOST_crypt_input2_to_output1_FINAL      ||
-		p==DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL || p==DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL ||
-		p==DynamicFunc__Tiger_crypt_input1_to_output1_FINAL     || p==DynamicFunc__Tiger_crypt_input2_to_output1_FINAL     ||
-		p==DynamicFunc__RIPEMD128_crypt_input1_to_output1_FINAL || p==DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL ||
-		p==DynamicFunc__RIPEMD160_crypt_input1_to_output1_FINAL || p==DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL ||
-		p==DynamicFunc__RIPEMD256_crypt_input1_to_output1_FINAL || p==DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL ||
-		p==DynamicFunc__RIPEMD320_crypt_input1_to_output1_FINAL || p==DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL
-		)
+#undef IF
+#define IF(H) p==DynamicFunc__##H##_crypt_input1_to_output1_FINAL||p==DynamicFunc__##H##_crypt_input2_to_output1_FINAL
+
+	if (IF(SHA1)||IF(SHA224)||IF(SHA256)||IF(SHA384)||IF(SHA512)||IF(GOST)||IF(WHIRLPOOL)||IF(Tiger)||IF(RIPEMD128)||
+		IF(RIPEMD160)||IF(RIPEMD256)||IF(RIPEMD320)||
+		IF(HAVAL128_3)||IF(HAVAL128_4)||IF(HAVAL128_5)||IF(HAVAL160_3)||IF(HAVAL160_4)||IF(HAVAL160_5)||
+		IF(HAVAL192_3)||IF(HAVAL192_4)||IF(HAVAL192_5)||IF(HAVAL224_3)||IF(HAVAL224_4)||IF(HAVAL224_5)||
+		IF(HAVAL256_3)||IF(HAVAL256_4)||IF(HAVAL256_5)||IF(MD2)||IF(PANAMA)||IF(SKEIN224)||IF(SKEIN256)||
+		IF(SKEIN384)||IF(SKEIN512))
 		return 1;
 	return 0;
 }
@@ -7992,16 +7707,15 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 			// Ok, if we have made it here, the function is 'currently' still valid.  Load this pointer into our array of pointers.
 			pFuncs = ConvertFuncs(Setup->pFuncs[i], &cnt2);
+
+#define IS_FUNC_NAME(H,N) if(is##H##Func(pFuncs[x])){ if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME)) pFmt->params.algorithm_name = ALGORITHM_NAME_##N; \
+			else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86)) 	pFmt->params.algorithm_name = ALGORITHM_NAME_X86_##N; }
+
 			for (x = 0; x < cnt2; ++x) {
 				curdat.dynamic_FUNCTIONS[j++] = pFuncs[x];
 				if (pFuncs[x] == DynamicFunc__setmode_unicode)
 					pFmt->params.flags |= FMT_UNICODE;
-				if (isSHA1Func(pFuncs[x])) {
-					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_S;
-					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_S;
-				}
+				IS_FUNC_NAME(SHA1,S)
 				if (isSHA2_256Func(pFuncs[x])) {
 #ifdef SIMD_COEF_32
 					if (curdat.using_flat_buffers_sse2_ok)
@@ -8018,36 +7732,15 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 #endif
 						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_S2_512;
 				}
-				if (isMD4Func(pFuncs[x])) {
-					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_4;
-					else if(!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_4;
-				}
-				if (isWHIRLFunc(pFuncs[x])) {
-					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_WP2;
-					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_WP2;
-				}
-				if (isGOSTFunc(pFuncs[x])) {
-					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_GST2;
-					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_GST2;
-				}
-				if (isTigerFunc(pFuncs[x])) {
-					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_TGR;
-					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_TGR;
-				}
-				if (isRIPEMDFunc(pFuncs[x])) {
-					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_RIPEMD;
-					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
-						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_RIPEMD;
-				}
+				IS_FUNC_NAME(MD4,4)
+				IS_FUNC_NAME(WHIRL,WP2)
+				IS_FUNC_NAME(GOST,GST2)
+				IS_FUNC_NAME(Tiger,TGR)
+				IS_FUNC_NAME(RIPEMD,RIPEMD)
+				IS_FUNC_NAME(HAVAL,HAVAL)
+				IS_FUNC_NAME(MD2,MD2)
+				IS_FUNC_NAME(PANAMA,PANAMA)
+				IS_FUNC_NAME(SKEIN,SKEIN)
 			}
 			if (isLargeHashFinalFunc(curdat.dynamic_FUNCTIONS[j-1]))
 			{
@@ -8071,7 +7764,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		struct fmt_tests *pfx = mem_alloc_tiny(ARRAY_COUNT(dynamic_tests) * sizeof (struct fmt_tests), MEM_ALIGN_WORD);
 		memset(pfx, 0, ARRAY_COUNT(dynamic_tests) * sizeof (struct fmt_tests));
 
-		for (i = 0; cnt < ARRAY_COUNT(dynamic_tests) -1; ++i, ++cnt)
+		for (i = 0; cnt < ARRAY_COUNT(dynamic_tests) -1; ++i)
 		{
 			if (Setup->pPreloads[i].ciphertext == NULL) {
 				if (Setup->startFlags&MGF_PHPassSetup)
@@ -8097,6 +7790,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 			pfx[cnt].fields[1] = pfx[cnt].ciphertext;
 			for (j = 2; j < 10; ++j)
 				pfx[cnt].fields[j] = Setup->pPreloads[i].fields[j]  ? str_alloc_copy(Setup->pPreloads[i].fields[j]) : "";
+			++cnt;
 		}
 		pfx[cnt].ciphertext = NULL;
 		pfx[cnt].plaintext = NULL;
@@ -8197,9 +7891,20 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 
 struct fmt_main *dynamic_Register_local_format(int *type) {
 	int num=nLocalFmts++;
+	private_subformat_data keep;
 	if (!pLocalFmts)
 		pLocalFmts = mem_calloc_tiny(1000*sizeof(struct fmt_main), 16);
+
+	/* since these are loaded LATE in the process, init() has been called
+	 * and we HAVE to preserve the already loaded setup. This will happen
+	 * if we run a crack, but do not specify a specific dyna format
+	 */
+	memcpy(&keep, &curdat, sizeof(private_subformat_data));
 	LoadOneFormat(num+6000, &(pLocalFmts[num]));
+	memcpy(&curdat, &keep, sizeof(private_subformat_data));
+	dynamic_use_sse = curdat.dynamic_use_sse;
+	force_md5_ctx = curdat.force_md5_ctx;
+
 	*type = num+6000;
 	return &(pLocalFmts[num]);
 }

@@ -46,9 +46,9 @@
  * SSEi_OUTPUT_AS_INP_FMT
  * Write final output using 'INPUT' format. Will not matter unless PARA > 1
  *
- * SSEi_SKIP_FINAL_ADD
- * Do not do "a = a + init". Only valid if not doing reload, and if format did
- * "out[0] -= init" in binary().
+ * SSEi_REVERSE_STEPS
+ * Reverse some steps, at minimum the "a = a + init". Only valid if not doing
+ * reload, and if format does corresponding things in binary() et. al.
  *
  * SSEi_2BUF_INPUT
  * Input array is 2x in size, for a possible max input of 64+55 (119) bytes.
@@ -89,7 +89,7 @@ typedef enum {
 	SSEi_RELOAD               = 0x8,
 	SSEi_RELOAD_INP_FMT       = 0x10 | 0x8,
 	SSEi_OUTPUT_AS_INP_FMT    = 0x20,
-	SSEi_SKIP_FINAL_ADD       = 0x40,
+	SSEi_REVERSE_STEPS        = 0x40,
 	SSEi_2BUF_INPUT           = 0x80,
 	SSEi_2BUF_INPUT_FIRST_BLK = 0x100 | 0x80,
 	SSEi_4BUF_INPUT           = 0x200,

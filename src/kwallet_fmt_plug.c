@@ -102,12 +102,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 9;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* ctlen */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	res = atoi(p);
 	if (!res)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* ct */
 		goto err;
-	if(strlen(p) != res * 2)
+	if(strlen(p) / 2 != res)
+		goto err;
+	if (!ishex(p))
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;

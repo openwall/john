@@ -103,7 +103,7 @@ static const char * warn[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	return autotune_get_task_max_work_group_size(CL_FALSE, 0, crypt_kernel);
 }
 
 static size_t get_task_max_size()
@@ -175,33 +175,42 @@ static void release_clobj(void)
 static void init(struct fmt_main *_self)
 {
 	self = _self;
-
-	opencl_init("$JOHN/kernels/lotus5_kernel.cl", gpu_id, NULL);
-
-	crypt_kernel = clCreateKernel(program[gpu_id], "lotus5", &err);
-	HANDLE_CLERROR(err, "Create kernel FAILED.");
+	opencl_prepare_dev(gpu_id);
 }
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
+		opencl_init("$JOHN/kernels/lotus5_kernel.cl", gpu_id, NULL);
+
+		crypt_kernel = clCreateKernel(program[gpu_id], "lotus5", &err);
+		HANDLE_CLERROR(err, "Create kernel FAILED.");
+
+		/* Just suppress a compiler warning!! */
+		if (0)
+			autotune_run(NULL, 0, 0, 0);
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
 		                       create_clobj, release_clobj,
 		                       2 * KEY_SIZE_IN_BYTES, 0);
 
 		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, 0, 1000);
+		autotune_run_extra(self, 1, 0, 1000, CL_TRUE);
 	}
 }
 
 static void done(void)
 {
-	release_clobj();
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel),
-		       "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
-		       "Release Program");
+	if (autotuned) {
+		release_clobj();
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel),
+		               "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
+		               "Release Program");
+
+		autotuned--;
+	}
 }
 
 /*Utility function to convert hex to bin */

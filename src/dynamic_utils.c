@@ -44,6 +44,9 @@
 #include "config.h"
 #include "md5.h"
 #include "dynamic.h"
+#ifndef UNICODE_NO_OPTIONS
+#include "options.h"
+#endif
 #include "memdbg.h"
 
 #ifndef DYNAMIC_DISABLED
@@ -61,8 +64,9 @@ void dynamic_DISPLAY_ALL_FORMATS()
 		Type[13] = 0;
 		cp = strchr(Type, ':');
 		if (cp) *cp = 0;
-#ifndef DEBUG
-		if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, Type, 0))
+#if !defined (DEBUG) && !defined (UNICODE_NO_OPTIONS)
+		if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, Type, 0) &&
+		    (!options.format || strcasecmp(options.format, "dynamic-all")))
 			continue;
 #endif
 		printf ("Format = %s%s  type = %s\n", Type, strlen(Type)<10?" ":"", sz);

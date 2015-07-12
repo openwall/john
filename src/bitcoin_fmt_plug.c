@@ -143,6 +143,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if ((p = strtokm(ctcopy, "$")) == NULL) /* cry_master_length (of the hex string) */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	res = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* cry_master */
 		goto err;
@@ -151,6 +153,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!ishex(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* cry_salt_length (length of hex string) */
+		goto err;
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* cry_salt */
@@ -163,7 +167,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!isdec(p))
 		goto err;
+	res = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* ckey_length (of hex) */
+		goto err;
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* ckey */
@@ -173,6 +180,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!ishex(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* public_key_length */
+		goto err;
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* public_key */

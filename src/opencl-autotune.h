@@ -32,6 +32,9 @@ static size_t get_task_max_work_group_size();
 static void create_clobj(size_t gws, struct fmt_main * self);
 static void release_clobj(void);
 
+/* Keeps track of whether we already tuned */
+static int autotuned;
+
 /* ------- Externals ------- */
 /* Can be used to select a 'good' default gws size */
 size_t autotune_get_task_max_size(int multiplier, int keys_per_core_cpu,
@@ -85,13 +88,25 @@ static void find_best_gws(struct fmt_main * self, int sequential_id, unsigned in
 	create_clobj(global_work_size, self);
 }
 
+#define get_power_of_two(v)	\
+{				\
+	v--;			\
+	v |= v >> 1;		\
+	v |= v >> 2;		\
+	v |= v >> 4;		\
+	v |= v >> 8;		\
+	v |= v >> 16;		\
+	v |= v >> 32;		\
+	v++;			\
+}
+
 /* --
   This function does the common part of auto-tune adjustments,
   preparation and execution. It is shared code to be inserted
   in each format file.
 -- */
-static void autotune_run(struct fmt_main * self, unsigned int rounds,
-	size_t gws_limit, unsigned long long int max_run_time)
+static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
+	size_t gws_limit, unsigned long long int max_run_time, cl_uint lws_is_power_of_two)
 {
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(FORMAT_LABEL);
@@ -110,6 +125,9 @@ static void autotune_run(struct fmt_main * self, unsigned int rounds,
 		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size, 64);
 	else if (global_work_size)
 		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size, local_work_size);
+
+	if (lws_is_power_of_two && local_work_size & (local_work_size - 1))
+		  get_power_of_two(local_work_size);
 
 	/* Ensure local_work_size is not oversized */
 	if (local_work_size > get_task_max_work_group_size())
@@ -136,6 +154,16 @@ static void autotune_run(struct fmt_main * self, unsigned int rounds,
 
 	self->params.min_keys_per_crypt = local_work_size * opencl_v_width;
 	self->params.max_keys_per_crypt = global_work_size * opencl_v_width;
+
+	autotuned++;
 }
 
+static void autotune_run(struct fmt_main * self, unsigned int rounds,
+	size_t gws_limit, unsigned long long int max_run_time)
+{
+	return autotune_run_extra(self, rounds, gws_limit, max_run_time, CL_FALSE);
+}
+
+
+#undef get_power_of_two
 #endif  /* _COMMON_TUNE_H */

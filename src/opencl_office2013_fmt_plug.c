@@ -217,12 +217,16 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(GenerateSHA512pwhash), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(Generate2013key), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(GenerateSHA512pwhash), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(Generate2013key), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 static void clear_keys(void)
@@ -262,12 +266,11 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *_self)
 {
-	char build_opts[64];
 	static char valgo[32] = "";
 
 	self = _self;
 
-	opencl_preinit();
+	opencl_prepare_dev(gpu_id);
 	/* VLIW5 can't take the register pressure from vectorizing this.
 	   Well it can, and it does get faster but only at a GWS that will
 	   give a total time for crypt_all() of > 30 seconds. */
@@ -280,29 +283,31 @@ static void init(struct fmt_main *_self)
 		self->params.algorithm_name = valgo;
 	}
 
-	snprintf(build_opts, sizeof(build_opts),
-	         "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u -DV_WIDTH=%u",
-	         HASH_LOOPS,
-	         UNICODE_LENGTH,
-	         v_width);
-	opencl_init("$JOHN/kernels/office2013_kernel.cl", gpu_id,
-	            build_opts);
-
-	// Create kernels to execute
-	GenerateSHA512pwhash = clCreateKernel(program[gpu_id], "GenerateSHA512pwhash", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	crypt_kernel = clCreateKernel(program[gpu_id], "HashLoop", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	Generate2013key = clCreateKernel(program[gpu_id], "Generate2013key", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 }
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
+		char build_opts[64];
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u -DV_WIDTH=%u",
+		         HASH_LOOPS,
+		         UNICODE_LENGTH,
+		         v_width);
+		opencl_init("$JOHN/kernels/office2013_kernel.cl", gpu_id,
+		            build_opts);
+
+		// Create kernels to execute
+		GenerateSHA512pwhash = clCreateKernel(program[gpu_id], "GenerateSHA512pwhash", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+		crypt_kernel = clCreateKernel(program[gpu_id], "HashLoop", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+		Generate2013key = clCreateKernel(program[gpu_id], "Generate2013key", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
 		                       3, self, create_clobj, release_clobj,

@@ -240,7 +240,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	if (!(current = format->params.tests) || !current->ciphertext)
 		return "FAILED (no data)";
 #endif
-	if ((where = fmt_self_test(format))) {
+	if ((where = fmt_self_test(format, NULL))) {
 		sprintf(s_error, "FAILED (%s)\n", where);
 		return s_error;
 	}
@@ -550,6 +550,12 @@ AGAIN:
 			if ((format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
 				// in debug mode, we 'allow' dyna
 			} else
+#else
+			if ((options.format && !strcasecmp(options.format, "dynamic-all")&&(format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) ||
+			    (options.listconf && !strcasecmp(options.listconf, "subformats"))) {
+				// allow dyna if '-format=dynamic-all' was selected
+			} else
+
 #endif
 			continue;
 		}

@@ -59,13 +59,13 @@
 	SET(n)
 #else
 #define SET(n) \
-	(ctx->Block[(n)] = \
+	(ctx->block[(n)] = \
 	(MD4_u32plus)ptr[(n) * 4] | \
 	((MD4_u32plus)ptr[(n) * 4 + 1] << 8) | \
 	((MD4_u32plus)ptr[(n) * 4 + 2] << 16) | \
 	((MD4_u32plus)ptr[(n) * 4 + 3] << 24))
 #define GET(n) \
-	(ctx->Block[(n)])
+	(ctx->block[(n)])
 #endif
 
 /*

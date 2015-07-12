@@ -124,6 +124,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if ((p = strtokm(NULL, "$")) == NULL)
 			goto err;
 	}
+	if (!isdec(p))
+		goto err;
 	len = atoi(p);
 	if(len > BIG_ENOUGH || !len)
 		goto err;

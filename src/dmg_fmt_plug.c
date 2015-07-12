@@ -255,45 +255,64 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (headerver == 2) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt len */
 			goto err;
+		if(!isdec(p))
+			goto err;
 		res = atoi(p);
 		if (res > 20)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 			goto err;
-		if (strlen(p) != res * 2)
+		if (strlen(p) / 2 != res)
+			goto err;
+		if(!ishex(p))
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* ivlen */
+			goto err;
+		if(!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (atoi(p) > 32)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 			goto err;
-		if (strlen(p) != res * 2)
+		if (strlen(p) / 2 != res)
+			goto err;
+		if(!ishex(p))
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* encrypted_keyblob_size */
+			goto err;
+		if(!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (res > 128)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* encrypted keyblob */
 			goto err;
-		if (strlen(p) != res * 2)
+		if (strlen(p) / 2 != res)
+			goto err;
+		if(!ishex(p))
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* chunk number */
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* data_size */
 			goto err;
+		if(!isdec(p))
+			goto err;
 		res = atoi(p);
 		if ((p = strtokm(NULL, "*")) == NULL)	/* chunk */
 			goto err;
-		if (strlen(p) != res * 2)
+		if (strlen(p) / 2 != res)
+			goto err;
+		if(!ishex(p))
 			goto err;
 		if (res > 8192)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* scp */
 			goto err;
+		if(!isdec(p))
+			goto err;
 		res = atoi(p);
+		/* FIXME: which values are allowed here? */
 		if (res == 1) {
 			if ((p = strtokm(NULL, "*")) == NULL)	/* zchunk */
 				goto err;
@@ -304,30 +323,40 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	else if (headerver == 1) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt len */
 			goto err;
+		if(!isdec(p))
+			goto err;
 		res = atoi(p);
 		if (res > 20)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 			goto err;
-		if (strlen(p) != res * 2)
+		if (strlen(p) / 2 != res)
+			goto err;
+		if(!ishex(p))
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* len_wrapped_aes_key */
+			goto err;
+		if(!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (res > 296)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* wrapped_aes_key  */
 			goto err;
-		if (strlen(p) != res * 2)
+		if (strlen(p) / 2 != res)
+			goto err;
+		if (!ishex(p))
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* len_hmac_sha1_key */
+			goto err;
+		if(!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (res > 300)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* hmac_sha1_key */
 			goto err;
-		if (strlen(p) != res * 2)
+		if (strlen(p) / 2 != res)
 			goto err;
 	}
 	else

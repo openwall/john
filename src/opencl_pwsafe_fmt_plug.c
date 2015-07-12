@@ -141,12 +141,16 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(init_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(finish_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(init_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(finish_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 static void pwsafe_set_key(char *key, int index)
@@ -191,22 +195,23 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 static void init(struct fmt_main *_self)
 {
 	self = _self;
-
-	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", gpu_id, NULL);
-
-	init_kernel = clCreateKernel(program[gpu_id], KERNEL_INIT_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while creating init kernel");
-
-	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_RUN_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while creating crypt kernel");
-
-	finish_kernel = clCreateKernel(program[gpu_id], KERNEL_FINISH_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while creating finish kernel");
+	opencl_prepare_dev(gpu_id);
 }
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
+		opencl_init("$JOHN/kernels/pwsafe_kernel.cl", gpu_id, NULL);
+
+		init_kernel = clCreateKernel(program[gpu_id], KERNEL_INIT_NAME, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error while creating init kernel");
+
+		crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_RUN_NAME, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error while creating crypt kernel");
+
+		finish_kernel = clCreateKernel(program[gpu_id], KERNEL_FINISH_NAME, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error while creating finish kernel");
+
 		//Initialize openCL tuning (library) for this format.
 		self->methods.crypt_all = crypt_all_benchmark;
 		opencl_init_auto_setup(SEED, ROUNDS_DEFAULT/8, split_events,
@@ -234,7 +239,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 9;		/* skip over "$pwsafe$*" */
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* version */
 		goto err;
-	if (atoi(p) == 0)
+	if (!isdec(p))
+		goto err;
+	if (!atoi(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
@@ -244,7 +251,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
 		goto err;
-	if (atoi(p) == 0)
+	if (!isdec(p))
+		goto err;
+	if (!atoi(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;

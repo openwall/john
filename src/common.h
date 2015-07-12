@@ -94,6 +94,8 @@ extern void common_init(void);
 
 /* is string full valid hex string */
 int ishex(char *q);
+/* Same as ishex(), BUT will still return true for an odd length string */
+int ishex_oddOK(char *q);
 /* is string full valid hex string (only upper case letters) */
 int ishexuc(char *q);
 /* is string full valid hex string (only lower case letters) */
@@ -106,6 +108,11 @@ int isdec(char *q);
 int isdec_negok(char *q);
 /* is this a valid string for atou()?  atou() func == sprintf("%x",&val) */
 int isdecu(char *q);
+/* provides the length of the base64 string.  See base64_convert.c for that
+ * function. If the string is not 'pure', then the return is -1*length */
+int base64_mime_len(char *q);
+int base64_crypt_len(char *q);
+int base64_mime_du_len(char *q);  /* mime, -_ instead of +/ */
 
 #endif
 

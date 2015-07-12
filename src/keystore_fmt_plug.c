@@ -110,31 +110,43 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 10;
 	if ((p = strtokm(ctcopy, "$")) == NULL)
 		goto bail;
+	if (!isdec(p))
+		goto bail;
 	target = atoi(p);
 	if (target != 1 && target != 0)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto bail;
+	if (!isdec(p))
+		goto bail;
 	v = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto bail;
-	if (strlen(p) != v * 2)
+	if (strlen(p) / 2 != v)
+		goto bail;
+	if (!ishex(p))
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) /* hash */
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) /* number of keys */
+		goto bail;
+	if (!isdec(p))
 		goto bail;
 	/* currently we support only 1 key */
 	if(atoi(p) != 1)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) /* key length */
 		goto bail;
+	if (!isdec(p))
+		goto bail;
 	v = atoi(p);
 	if (v > SZ)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) /* key data */
 		goto bail;
-	if (strlen(p) != v * 2)
+	if (strlen(p) / 2 != v)
+		goto bail;
+	if (!ishex(p))
 		goto bail;
 	MEM_FREE(keeptr);
 	return 1;

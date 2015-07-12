@@ -87,7 +87,6 @@ static int valid(char* ciphertext, struct fmt_main *self)
 {
 	char *ctcopy;
 	char *keeptr;
-	int i;
 	char *p;
 
 	if (strncmp(ciphertext, "$openbsd-softraid$", 18) != 0)
@@ -99,20 +98,25 @@ static int valid(char* ciphertext, struct fmt_main *self)
 
 	if ((p = strtokm(ctcopy, "$")) == NULL)
 		goto err;
-	i = atoi(p);
-	if (i < 0)                /* iterations */
+	if (!isdec(p))            /* iterations */
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
 	if (strlen(p) != 2 * 128) /* salt */
 		goto err;
+	if (!ishex(p))
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
 	if (strlen(p) != 2 * 32 * 64) /* masked keys */
 		goto err;
+	if (!ishex(p))
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
 	if (strlen(p) != 2 * BINARY_SIZE) /* HMAC-SHA1 */
+		goto err;
+	if (!ishex(p))
 		goto err;
 
 	MEM_FREE(keeptr);

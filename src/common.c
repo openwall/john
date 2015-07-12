@@ -14,6 +14,7 @@
 #include "common.h"
 #include "memdbg.h"
 #include "misc.h"
+#include "base64_convert.h"
 
 /* This is the base64 that is used in crypt(3). It differs from MIME Base64
    and the latter can be found in base64.[ch] */
@@ -55,38 +56,56 @@ void common_init(void)
 
 int ishex(char *q)
 {
+	char *p=q;
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		++q;
+	return !*q && !(((q-p))&1);
+}
+int ishex_oddOK(char *q)
+{
+	// Sometimes it is 'ok' to have odd length hex.  Usually not.  If odd is
+	// allowed, then the format will have to properly handle odd length.
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	return !*q;
 }
+
 int ishexuc(char *q)
 {
+	char *p=q;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
 		if (*q >= 'a' && *q <= 'f') return 0;
 		++q;
 	}
-	return !*q;
+	return !*q && !(((p-q))&1);
 }
 int ishexlc(char *q)
 {
+	char *p=q;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
 		if (*q >= 'A' && *q <= 'F') return 0;
 		++q;
 	}
-	return !*q;
+	return !*q && !(((p-q))&1);
 }
 /*
  * if full string is HEX, then return is positive. If there is something
  * other than hex characters, then the return is negative but is the length
  * of 'valid' hex characters that start the string.
+ *
+ * NOTE, if the length is odd, then the 'full' length will not be returned.
+ * the length returned will be length-1 since it would not be proper to try
+ * to hex convert the last odd byte.
  */
 int hexlen(char *q)
 {
 	char *s = q;
 	size_t len = strlen(q);
+	if (len&1) --len;
 
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		++q;
+	if ((size_t)(q - s)&1) --q;
 	return (len == (size_t)(q - s)) ? (int)(q - s) : -1 - (int)(q - s);
 }
 int isdec(char *q)
@@ -109,4 +128,15 @@ int isdecu(char *q)
 	unsigned int x = atou(q);
 	sprintf(buf, "%u", x);
 	return !strcmp(q,buf);
+}
+/* provides the length of the base64 string.  See base64_convert.c for that
+ * function. If the string is not 'pure', then the return is -1*length */
+int base64_mime_len(char *q) {
+	return base64_valid_length(q, e_b64_mime, flg_Base64_RET_NEG_IF_NOT_PURE);
+}
+int base64_crypt_len(char *q) {
+	return base64_valid_length(q, e_b64_crypt, flg_Base64_RET_NEG_IF_NOT_PURE);
+}
+int base64_mime_du_len(char *q) {
+	return base64_valid_length(q, e_b64_mime, flg_Base64_RET_NEG_IF_NOT_PURE|flg_Base64_MIME_DASH_UNDER);
 }

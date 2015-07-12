@@ -214,7 +214,7 @@ static void john_register_one(struct fmt_main *format)
 					return;
 			}
 		}
-		else if (!strcasecmp(options.format, "dynamic")) {
+		else if (!strcasecmp(options.format, "dynamic")||!strcasecmp(options.format, "dynamic-all")) {
 			if ( (format->params.flags & FMT_DYNAMIC) == 0) return;
 		}
 		else if (!strcasecmp(options.format, "avx")) {
@@ -273,6 +273,7 @@ static void john_register_one(struct fmt_main *format)
 			if ( (format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) return;
 		}
 #endif
+#ifndef DYNAMIC_DISABLED
 		else if (strcasecmp(options.format, format->params.label)) {
 			if (!strncasecmp(options.format, "dynamic=", 8) && !strcasecmp(format->params.label, "dynamic=")) {
 				DC_HANDLE H;
@@ -284,6 +285,7 @@ static void john_register_one(struct fmt_main *format)
 			} else
 				return;
 		}
+#endif
 	}
 
 	fmt_register(format);
@@ -1387,7 +1389,7 @@ static void john_run(void)
 		}
 
 		if (!(options.flags & FLG_STDOUT)) {
-			char *where = fmt_self_test(database.format);
+			char *where = fmt_self_test(database.format, &database);
 			if (where) {
 				fprintf(stderr, "Self test failed (%s)\n",
 				    where);
@@ -1444,6 +1446,9 @@ static void john_run(void)
 
 		if (trigger_reset)
 			database.format->methods.reset(&database);
+
+		if (options.flags & FLG_MASK_CHK)
+			mask_crk_init(&database);
 
 		if (options.flags & FLG_SINGLE_CHK)
 			do_single_crack(&database);

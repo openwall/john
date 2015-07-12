@@ -132,12 +132,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 15;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* salt length */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	len = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if(strlen(p) != len * 2)	/* validates salt_len also */
+	if (strlen(p) / 2 != len)	/* validates salt_len also */
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* iterations */
 		goto err;
@@ -145,12 +147,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* masterkey length */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	len = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)	/* masterkey */
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if(strlen(p) != len * 2)	/* validates masterkey_len also */
+	if (strlen(p) / 2 != len)	/* validates masterkey_len also */
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* plaintext length */
 		goto err;
@@ -158,47 +162,55 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* iv length */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	len = atoi(p);
-	if(len > IVLEN || len < 0)
+	if (len > IVLEN)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* iv */
 		goto err;
-	if(strlen(p) != len * 2)	/* validates iv_len */
+	if (strlen(p) / 2 != len)	/* validates iv_len */
 		goto err;
 	if (!ishex(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* cryptext length */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	len = atoi(p);
-	if (len > CTLEN || len < 0)
+	if (len > CTLEN)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* cryptext */
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if(strlen(p) != len * 2)	/* validates cryptext_len */
+	if (strlen(p) / 2 != len)	/* validates cryptext_len */
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* expectedhmac length */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	len = atoi(p);
-	if (len > EHMLEN || len < 0)
+	if (len > EHMLEN)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* expectedhmac */
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if(strlen(p) != len * 2)	/* validates expectedhmac_len */
+	if (strlen(p) / 2 != len)	/* validates expectedhmac_len */
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* hmacdata length */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	len = atoi(p);
-	if (len > CTLEN || len < 0)
+	if (len > CTLEN)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* hmacdata */
 		goto err;
 	if (!ishex(p))
 		goto err;
-	if(strlen(p) != len * 2)	/* validates hmacdata_len */
+	if (strlen(p) / 2 != len)	/* validates hmacdata_len */
 		goto err;
 
 	MEM_FREE(keeptr);

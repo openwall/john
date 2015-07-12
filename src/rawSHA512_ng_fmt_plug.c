@@ -52,6 +52,8 @@ john_register_one(&fmt_rawSHA512_ng);
 #define SIMD_TYPE                 "512/512 AVX512 8x"
 #elif __AVX2__
 #define SIMD_TYPE                 "256/256 AVX2 4x"
+#elif __ALTIVEC__
+#define SIMD_TYPE                 "128/128 AltiVec 2x"
 #elif __XOP__
 #define SIMD_TYPE                 "128/128 XOP 2x"
 #elif __SSSE3__
@@ -84,13 +86,13 @@ john_register_one(&fmt_rawSHA512_ng);
 
 #if _MSC_VER && !_M_X64
 // 32 bit VC does NOT define these intrinsics :((((
-_inline __m128i _mm_set_epi64x(uint64_t a, uint64_t b) {
+_inline __m128i _mm_set_epi64(uint64_t a, uint64_t b) {
 	__m128i x;
 	x.m128i_u64[0] = b;
 	x.m128i_u64[1] = a;
 	return x;
 }
-_inline __m128i _mm_set1_epi64x(uint64_t a) {
+_inline __m128i _mm_set1_epi64(uint64_t a) {
 	__m128i x;
 	x.m128i_u64[0] = a;
 	x.m128i_u64[1] = a;
@@ -101,24 +103,24 @@ _inline __m128i _mm_set1_epi64x(uint64_t a) {
 #undef GATHER /* This one is not like the shared ones in pseudo_intrinsics.h */
 
 #if __AVX512F__ || __MIC__
-#define GATHER(x,y,z)                                                     \
-{                                                                         \
-    x = vset_epi64x(y[index + 7][z], y[index + 6][z],                     \
-                    y[index + 5][z], y[index + 4][z],                     \
-                    y[index + 3][z], y[index + 2][z],                     \
-                    y[index + 1][z], y[index + 0][z]);                    \
+#define GATHER(x,y,z)                                                    \
+{                                                                        \
+    x = vset_epi64(y[index + 7][z], y[index + 6][z],                     \
+                   y[index + 5][z], y[index + 4][z],                     \
+                   y[index + 3][z], y[index + 2][z],                     \
+                   y[index + 1][z], y[index + 0][z]);                    \
 }
 
 #elif __AVX2__
-#define GATHER(x,y,z)                                                     \
-{                                                                         \
-    x = vset_epi64x(y[index + 3][z], y[index + 2][z],                     \
-                    y[index + 1][z], y[index    ][z]);                    \
+#define GATHER(x,y,z)                                                    \
+{                                                                        \
+    x = vset_epi64(y[index + 3][z], y[index + 2][z],                     \
+                   y[index + 1][z], y[index    ][z]);                    \
 }
 #else
-#define GATHER(x,y,z)                                                     \
-{                                                                         \
-    x = vset_epi64x(y[index + 1][z], y[index    ][z]);                    \
+#define GATHER(x,y,z)                                                    \
+{                                                                        \
+    x = vset_epi64(y[index + 1][z], y[index    ][z]);                    \
 }
 #endif
 
@@ -180,7 +182,7 @@ _inline __m128i _mm_set1_epi64x(uint64_t a) {
 #define SHA512_STEP(a,b,c,d,e,f,g,h,x,K)                                  \
 {                                                                         \
     tmp1 = vadd_epi64(h,    w[x]);                                        \
-    tmp2 = vadd_epi64(S1(e),vset1_epi64x(K));                             \
+    tmp2 = vadd_epi64(S1(e),vset1_epi64(K));                              \
     tmp1 = vadd_epi64(tmp1, Ch(e,f,g));                                   \
     tmp1 = vadd_epi64(tmp1, tmp2);                                        \
     tmp2 = vadd_epi64(S0(a),Maj(a,b,c));                                  \
@@ -362,14 +364,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
         GATHER(w[15], saved_key, 15);
         for (i = 16; i < 80; i++) R(i);
 
-        a = vset1_epi64x(0x6a09e667f3bcc908ULL);
-        b = vset1_epi64x(0xbb67ae8584caa73bULL);
-        c = vset1_epi64x(0x3c6ef372fe94f82bULL);
-        d = vset1_epi64x(0xa54ff53a5f1d36f1ULL);
-        e = vset1_epi64x(0x510e527fade682d1ULL);
-        f = vset1_epi64x(0x9b05688c2b3e6c1fULL);
-        g = vset1_epi64x(0x1f83d9abfb41bd6bULL);
-        h = vset1_epi64x(0x5be0cd19137e2179ULL);
+        a = vset1_epi64(0x6a09e667f3bcc908ULL);
+        b = vset1_epi64(0xbb67ae8584caa73bULL);
+        c = vset1_epi64(0x3c6ef372fe94f82bULL);
+        d = vset1_epi64(0xa54ff53a5f1d36f1ULL);
+        e = vset1_epi64(0x510e527fade682d1ULL);
+        f = vset1_epi64(0x9b05688c2b3e6c1fULL);
+        g = vset1_epi64(0x1f83d9abfb41bd6bULL);
+        h = vset1_epi64(0x5be0cd19137e2179ULL);
 
         SHA512_STEP(a, b, c, d, e, f, g, h,  0, 0x428a2f98d728ae22ULL);
         SHA512_STEP(h, a, b, c, d, e, f, g,  1, 0x7137449123ef65cdULL);

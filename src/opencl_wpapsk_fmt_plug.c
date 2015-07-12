@@ -173,15 +173,19 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(wpapsk_init), "Release Kernel");
-	HANDLE_CLERROR(clReleaseKernel(wpapsk_loop), "Release Kernel");
-	HANDLE_CLERROR(clReleaseKernel(wpapsk_pass2), "Release Kernel");
-	HANDLE_CLERROR(clReleaseKernel(wpapsk_final_md5), "Release Kernel");
-	HANDLE_CLERROR(clReleaseKernel(wpapsk_final_sha1), "Release Kernel");
+		HANDLE_CLERROR(clReleaseKernel(wpapsk_init), "Release Kernel");
+		HANDLE_CLERROR(clReleaseKernel(wpapsk_loop), "Release Kernel");
+		HANDLE_CLERROR(clReleaseKernel(wpapsk_pass2), "Release Kernel");
+		HANDLE_CLERROR(clReleaseKernel(wpapsk_final_md5), "Release Kernel");
+		HANDLE_CLERROR(clReleaseKernel(wpapsk_final_sha1), "Release Kernel");
 
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+
+		autotuned--;
+	}
 }
 
 static void clear_keys(void) {
@@ -215,13 +219,11 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *_self)
 {
-	char *custom_opts;
-	char build_opts[256];
 	static char valgo[32] = "";
 
 	self = _self;
 
-	opencl_preinit();
+	opencl_prepare_dev(gpu_id);
 	/* VLIW5 does better with just 2x vectors due to GPR pressure */
 	if (!options.v_width && amd_vliw5(device_info[gpu_id]))
 		v_width = 2;
@@ -234,37 +236,40 @@ static void init(struct fmt_main *_self)
 		         ALGORITHM_NAME " %ux", v_width);
 		self->params.algorithm_name = valgo;
 	}
-
-	if (!(custom_opts = getenv(OCL_CONFIG "_BuildOpts")))
-		custom_opts = cfg_get_param(SECTION_OPTIONS,
-		                            SUBSECTION_OPENCL,
-		                            OCL_CONFIG "_BuildOpts");
-
-	snprintf(build_opts, sizeof(build_opts),
-	         "%s%s-DHASH_LOOPS=%u -DITERATIONS=%u "
-	         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
-	         custom_opts ? custom_opts : "",
-	         custom_opts ? " " : "",
-	         HASH_LOOPS, ITERATIONS,
-	         PLAINTEXT_LENGTH, v_width);
-	opencl_init("$JOHN/kernels/wpapsk_kernel.cl", gpu_id, build_opts);
-
-	// create kernels to execute
-	crypt_kernel = wpapsk_init = clCreateKernel(program[gpu_id], "wpapsk_init", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel");
-	wpapsk_loop = clCreateKernel(program[gpu_id], "wpapsk_loop", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel");
-	wpapsk_pass2 = clCreateKernel(program[gpu_id], "wpapsk_pass2", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel");
-	wpapsk_final_md5 = clCreateKernel(program[gpu_id], "wpapsk_final_md5", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel");
-	wpapsk_final_sha1 = clCreateKernel(program[gpu_id], "wpapsk_final_sha1", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel");
 }
 
 static void reset(struct db_main *db)
 {
-	if (!db) {
+	if (!autotuned) {
+		char *custom_opts;
+		char build_opts[256];
+
+		if (!(custom_opts = getenv(OCL_CONFIG "_BuildOpts")))
+			custom_opts = cfg_get_param(SECTION_OPTIONS,
+			                            SUBSECTION_OPENCL,
+			                            OCL_CONFIG "_BuildOpts");
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "%s%s-DHASH_LOOPS=%u -DITERATIONS=%u "
+		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
+		         custom_opts ? custom_opts : "",
+		         custom_opts ? " " : "",
+		         HASH_LOOPS, ITERATIONS,
+		         PLAINTEXT_LENGTH, v_width);
+		opencl_init("$JOHN/kernels/wpapsk_kernel.cl", gpu_id, build_opts);
+
+		// create kernels to execute
+		crypt_kernel = wpapsk_init = clCreateKernel(program[gpu_id], "wpapsk_init", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel");
+		wpapsk_loop = clCreateKernel(program[gpu_id], "wpapsk_loop", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel");
+		wpapsk_pass2 = clCreateKernel(program[gpu_id], "wpapsk_pass2", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel");
+		wpapsk_final_md5 = clCreateKernel(program[gpu_id], "wpapsk_final_md5", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel");
+		wpapsk_final_sha1 = clCreateKernel(program[gpu_id], "wpapsk_final_sha1", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel");
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 2 * HASH_LOOPS, split_events,
 		                       warn, 2, self,

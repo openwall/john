@@ -54,4 +54,5 @@ zip -r /base/builds/JtR-MinGW-${v}.zip run/ doc/ README.md README README-jumbo
 # crazy testing!
 cd /base/JohnTheRipper/run
 export WINEDEBUG=-all  # suppress wine warnings
+/usr/bin/wine john.exe --list=build-info
 /usr/bin/wine john.exe --test=0

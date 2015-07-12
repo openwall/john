@@ -77,6 +77,7 @@ static inline uint32_t _JtR_Swap_32(uint32_t x) {
 	x = ((x << 8) & 0xFF00FF00) | ((x >> 8) & 0x00FF00FF);
 	return (x >> 16) | (x << 16);
 }
+#undef bswap_32
 # define bswap_32(x) _JtR_Swap_32(x)
 #else
 #define bswap_32(x) ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
@@ -99,6 +100,7 @@ static inline uint64_t _JtR_Swap_64(uint64_t x) {
 	r.l[1] = bswap_32(w.l[0]);
 	return r.ll;
 }
+#undef bswap_64
 # define bswap_64(x) _JtR_Swap_64(x)
 #else
 #error "bswap_64 unsupported"
