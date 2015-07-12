@@ -208,18 +208,53 @@ static DC_HANDLE do_compile(const char *expr, uint32_t crc32);
 static void add_checksum_list(DC_HANDLE pHand);
 
 // TODO
-static char *dynamic_expr_normalize(char *ct) {
-//	if (!strncmp(ct, "@dynamic=", 9)) {
-//		static char Buf[512];
-//		char *cp = Buf;
-//		strcpy(Buf, ct);
-//		ct = Buf;
-//	}
-	return ct;
+static char *dynamic_expr_normalize(const char *ct) {
+	// normalize $pass -> $p
+	//           $salt -> $s
+	//           $user -> $u
+	//           $username -> $u
+	//           unicode( -> utf16(
+	if (/*!strncmp(ct, "@dynamic=", 9) &&*/ (strstr(ct, "$pass") || strstr(ct, "$salt") || strstr(ct, "$user"))) {
+		static char Buf[512];
+		char *cp = Buf;
+		strcpy(Buf, ct);
+		ct = Buf;
+		cp = Buf;
+		while (*cp) {
+			int cnt=0;
+			while (*cp && *cp != '$' && *cp != 'u')
+				++cp;
+			if (*cp) {
+				if (!strncmp(cp, "$pass", 5))
+					cnt = 3;
+				else if (!strncmp(cp, "$salt", 5))
+					cnt = 3;
+				else if (!strncmp(cp, "$username", 9))
+					cnt = 7;
+				else if (!strncmp(cp, "$user", 5))
+					cnt = 3;
+				else if (!strncmp(cp, "unicode(", 8)) {
+					memcpy(cp, "utf16", 5);
+					cp += 3;
+					cnt = 2;
+				}
+			}
+			cp += 2;;
+			if (cnt) {
+				char *cp2 = cp;
+				while (cp2[cnt]) {
+					*cp2 = cp2[cnt];
+					++cp2;
+				}
+				*cp2 = 0;
+			}
+		}
+	}
+	return (char*)ct;
 }
 
 int dynamic_compile(const char *expr, DC_HANDLE *p) {
-	uint32_t crc32 = compute_checksum(expr);
+	uint32_t crc32 = compute_checksum(dynamic_expr_normalize(expr));
 	DC_HANDLE pHand;
 	if (pLastFind && pLastFind->crc32 == crc32) {
 		*p = (DC_HANDLE)pLastFind;
@@ -252,7 +287,8 @@ static char *find_the_expression(const char *expr) {
 	while (cp[1] && cp[1] != ',')
 		++cp;
 	cp[1] = 0;
-	return buf;
+	cp = dynamic_expr_normalize(buf);
+	return cp;
 }
 static char *find_the_extra_params(const char *expr) {
 	static char buf[512];
@@ -1430,9 +1466,10 @@ static char *convert_old_dyna_to_new(char *fld0, char *in, char *out, int outsiz
 }
 
 char *dynamic_compile_prepare(char *fld0, char *fld1) {
+	static char Buf[1024], tmp1[64];
+	char *cpExpr=0;
 	if (!strncmp(fld1, "$dynamic_", 9)) {
 		int num;
-		static char Buf[1024], tmp1[64];
 		if (strlen(fld1) > 490)
 			return fld1;
 		if (strstr(fld1, "$HEX$")) {
@@ -1474,7 +1511,6 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 			fld1 = cpBuilding;
 		}
 		if (sscanf(fld1, "$dynamic_%d$", &num) == 1) {
-			char *cpExpr=0;
 			if (num >= 50 && num < 1000) {
 				char *type = 0;
 				switch (num/10) {
@@ -1568,6 +1604,8 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 				fld1 = convert_old_dyna_to_new(fld0, fld1, Buf, sizeof(Buf), cpExpr);
 		}
 	}
+	else if (!strncmp(fld1, "@dynamic=", 9))
+		fld1 = dynamic_expr_normalize(fld1);
 	return fld1;
 }
 char *dynamic_compile_split(char *ct) {
