@@ -222,9 +222,12 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 
 	cl_uint *hostDccHashes, *hostSalt, *hostDcc2Hashes;
 
-	gwsLimit = get_max_mem_alloc_size(jtrUniqDevId) / sizeof(devIterTempSz);
+	gwsLimit = get_max_mem_alloc_size
+		   (jtrUniqDevId) / sizeof(devIterTempSz);
 	getPowerOfTwo(gwsLimit);
-	if (gwsLimit > get_max_mem_alloc_size(jtrUniqDevId) / sizeof(devIterTempSz))
+	if (gwsLimit + PADDING >
+		get_max_mem_alloc_size
+		(jtrUniqDevId) / sizeof(devIterTempSz))
 		gwsLimit >>= 1;
 
 	lwsLimit = findLwsLimit(jtrUniqDevId);
@@ -289,7 +292,7 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 		timeMs = calcMs(startc, endc);
 
 		count = (size_t)((kernelRunMs / timeMs) * (long double)gwsInit);
-		getPowerOfTwo(count);
+		count = GET_MULTIPLE_OR_BIGGER(count, devParam[jtrUniqDevId].devLws);
 
 		MEM_FREE(hostDccHashes);
 		MEM_FREE(hostDcc2Hashes);
@@ -354,7 +357,7 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 		}
 		else {
 			count = (size_t)((kernelRunMs / oldTimeMs) * (long double)count);
-			getPowerOfTwo(count);
+			count = GET_MULTIPLE_OR_BIGGER(count, devParam[jtrUniqDevId].devLws);
 		}
 	}
 
@@ -373,7 +376,6 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 
 	if (devParam[jtrUniqDevId].devGws % devParam[jtrUniqDevId].devLws) {
 		devParam[jtrUniqDevId].devGws = GET_MULTIPLE_OR_BIGGER(devParam[jtrUniqDevId].devGws, devParam[jtrUniqDevId].devLws);
-		getPowerOfTwo(devParam[jtrUniqDevId].devGws);
 		releaseDevObjGws(jtrUniqDevId);
 		if (devParam[jtrUniqDevId].devGws > gwsLimit)
 			devParam[jtrUniqDevId].devGws = gwsLimit;
@@ -428,7 +430,7 @@ size_t selectDevice(int jtrUniqDevId, struct fmt_main *self)
 	return autoTune(jtrUniqDevId, 750);
 }
 
-void dcc2_execute(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint *hostSalt, cl_uint saltlen, cl_uint iterCount, cl_uint *hostDcc2Hashes, cl_uint numKeys)
+void dcc2Execute(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint *hostSalt, cl_uint saltlen, cl_uint iterCount, cl_uint *hostDcc2Hashes, cl_uint numKeys)
 {
 	int 		i;
 	unsigned int 	workPart, workOffset = 0;

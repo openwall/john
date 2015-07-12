@@ -299,8 +299,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _DEBUG
 	gettimeofday(&startg, NULL) ;
 #endif
-	///defined in common_opencl_pbkdf2.c. Details provided in common_opencl_pbkdf2.h
-	dcc2_execute(dcc_hash_host, hmac_sha1_out, (cl_uint*)salt_host, salt_len, currentsalt.iter_cnt, dcc2_hash_host, count) ;
+	///defined in opencl_mscash2_helper_plug.c. Details provided in opencl_mscash2_helper_plug.h
+	dcc2Execute(dcc_hash_host, hmac_sha1_out, (cl_uint*)salt_host, salt_len, currentsalt.iter_cnt, dcc2_hash_host, count) ;
 
 #ifdef _DEBUG
 	gettimeofday(&endg, NULL);

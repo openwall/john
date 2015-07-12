@@ -17,9 +17,26 @@
 #define MAX_SALT_LENGTH           	128
 #define SALT_BUFFER_SIZE		((((MAX_SALT_LENGTH + 1) << 1) + sizeof(cl_uint)) / sizeof(cl_uint) * sizeof(cl_uint))
 
+/*
+ * Initialize host side buffer for all devices.
+ */
 extern void initNumDevices(void);
+
+/*
+ * selectDevice(int jtrUniqDevNo,struct fmt_main *fmt)
+ * jtrUniqDevNo:Each device is assigned a unqiue number by john.
+ * Returns optimal global work size for selected device/
+ */
 extern size_t selectDevice(int jtrUniqDevId, struct fmt_main *self);
+
+/*
+ * Release various host/device buffers.
+ */
 extern void releaseAll(void);
-extern void dcc2_execute(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint *hostSalt, cl_uint saltlen, cl_uint iterCount, cl_uint *hostDcc2Hashes, cl_uint numKeys);
+
+/*
+ *  Enque kernels and synchronize multiple devices.
+ */
+extern void dcc2Execute(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint *hostSalt, cl_uint saltlen, cl_uint iterCount, cl_uint *hostDcc2Hashes, cl_uint numKeys);
 
 #endif
