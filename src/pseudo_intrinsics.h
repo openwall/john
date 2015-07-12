@@ -61,6 +61,7 @@ typedef union {
 #define vset1_epi64(x)          vset_epi64(x, x)
 #define vset_epi32(x3,x2,x1,x0) (vtype)(vtype32){x0, x1, x2, x3}
 #define vset_epi64(x1,x0)       (vtype)(vtype64){x0, x1}
+#define vsetzero()              vset1_epi32(0)
 #define vslli_epi32(x, i)       (vtype)vec_sl((x).v32, (vset1_epi32(i)).v32)
 #define vslli_epi64(x, i)       (vtype)vec_sl((x).v64, (vset1_epi64(i)).v64)
 #define vsrli_epi32(x, i)       (vtype)vec_sr((x).v32, (vset1_epi32(i)).v32)
@@ -73,14 +74,8 @@ typedef union {
 #define vunpacklo_epi64(x, y)   (vtype)(vtype64)vec_mergeh((vector long)(x).v64, (vector long)(y).v64)
 #define vxor(x, y)              (vtype)vec_xor((x).v32, (y).v32)
 
-static inline int vtestz_epi32(vtype x)
-{
-	int i, result = 0;
-	for (i = 0; i < SIMD_COEF_32; ++i)
-		result |= !x.s32[i];
-	return result;
-}
-#define vtesteq_epi32(x, y)     vtestz_epi32((vtype)vsub_epi32(x, y))
+#define vtesteq_epi32(x, y)     vec_any_eq((x).v32, (y).v32)
+#define vtestz_epi32(x)         vtesteq_epi32(x, vsetzero())
 
 #define vswap32(x) \
 	x = vxor(vsrli_epi32(x, 24),                                            \
@@ -94,16 +89,16 @@ static inline int vtestz_epi32(vtype x)
 
 static inline vtype vloadu(const void *addr)
 {
-	char buf[16];
-	return is_aligned(addr, 16) ? vload(addr) :
-	                              (memcpy(buf, addr, 16), vload(buf));
+	char JTR_ALIGN(MEM_ALIGN_SIMD) buf[MEM_ALIGN_SIMD];
+	return is_aligned(addr, MEM_ALIGN_SIMD) ?
+		vload(addr) : (memcpy(buf, addr, MEM_ALIGN_SIMD), vload(buf));
 }
 
 static inline void vstoreu(void *addr, vtype v)
 {
-	char buf[16];
-	is_aligned(addr, 16) ? vstore(addr, v) :
-	                       (vstore(buf, v), memcpy(addr, buf, 16));
+	char JTR_ALIGN(MEM_ALIGN_SIMD) buf[MEM_ALIGN_SIMD];
+	is_aligned(addr, MEM_ALIGN_SIMD) ?
+		vstore(addr, v) : (vstore(buf, v), memcpy(addr, buf, MEM_ALIGN_SIMD));
 }
 
 /*************************** AVX512 and MIC ***************************/
@@ -147,8 +142,8 @@ typedef __m512i vtype;
 #define vunpacklo_epi64         _mm512_unpacklo_epi64
 #define vxor                    _mm512_xor_si512
 
+#define vtesteq_epi32(x, y)     _mm512_cmp_epi32_mask(x, y, _MM_CMPINT_EQ)
 #define vtestz_epi32(n)         !_mm512_min_epu32(n)
-#define vtesteq_epi32(x, y)     (int)_mm512_cmp_epi32_mask(x, y, _MM_CMPINT_EQ)
 
 #define GATHER_4x(x, y, z)                               \
 {                                                        \
@@ -289,6 +284,9 @@ typedef __m256i vtype;
 #define vunpacklo_epi64         _mm256_unpacklo_epi64
 #define vxor                    _mm256_xor_si256
 
+#define vtesteq_epi32(x, y)     vmovemask_epi8(vcmpeq_epi32(x, y))
+#define vtestz_epi32(x)         vtesteq_epi32(x, vsetzero())
+
 #define swap_endian_mask                                                \
     _mm256_set_epi32(0x1c1d1e1f, 0x18191a1b, 0x14151617, 0x10111213,    \
                      0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203)
@@ -302,39 +300,6 @@ typedef __m256i vtype;
 
 #define vswap64(n)                              \
     (n = vshuffle_epi8(n, swap_endian64_mask))
-
-#if __clang__
-static inline int vtestz_epi32(vtype __X)
-{
-	uint32_t JTR_ALIGN(SIMD_COEF_32 * 4) words[4];
-	vstore(words, __X);
-	return !words[0] || !words[1] || !words[2] || !words[3];
-}
-#else
-// This is a modified SSE2 port of Algorithm 6-2 from "Hackers Delight" by
-// Henry Warren, ISBN 0-201-91465-4. Returns non-zero if any double word in X
-// is zero using a branchless algorithm. -- taviso.
-#if !__INTEL_COMPILER && !__llvm__
-// This intrinsic is not always available in GCC, so define it here.
-static inline int vtestz(vtype __M, vtype __V)
-{
-	return __builtin_ia32_ptestz256((__v4di)__M, (__v4di)__V);
-}
-#endif
-static inline int vtestz_epi32(vtype __X)
-{
-	vtype M = vcmpeq_epi32(__X, __X);
-	vtype Z = vsrli_epi32(M, 1);
-	vtype Y = vandnot(vor(vor(vadd_epi32(vand(__X, Z), Z), __X), Z), M);
-	return ! vtestz(Y, M);
-}
-#endif /* __clang__ */
-
-#define vtesteq_epi32(x, y)                                         \
-(                                                                   \
-    0xffffffff != vmovemask_epi8(vcmpeq_epi32(vcmpeq_epi32(x, y),   \
-                                              vsetzero()))          \
-)
 
 #define GATHER_4x(x, y, z)                           \
 {                                                    \
@@ -358,7 +323,7 @@ static inline int vtestz_epi32(vtype __X)
 #define GATHER64(x, y, z)                                         \
 {                                                                 \
     uint64_t stride = sizeof(*y);                                 \
-    vtype indices = vset_epi64(3*stride, 2*stride, 1*stride, 0); \
+    vtype indices = vset_epi64(3*stride, 2*stride, 1*stride, 0);  \
     x = vgather_epi64(&y[0][z], indices, 1);                      \
 }
 
@@ -437,37 +402,8 @@ typedef __m128i vtype;
 #define vunpacklo_epi64         _mm_unpacklo_epi64
 #define vxor                    _mm_xor_si128
 
-#if !_MSC_VER
-#if !__SSE4_1__ || __clang__
-static inline int vtestz_epi32(vtype __X)
-{
-	uint32_t JTR_ALIGN(SIMD_COEF_32 * 4) words[4];
-	vstore(words, __X);
-	return !words[0] || !words[1] || !words[2] || !words[3];
-}
-#else
-// This is a modified SSE2 port of Algorithm 6-2 from "Hackers Delight" by
-// Henry Warren, ISBN 0-201-91465-4. Returns non-zero if any double word in X
-// is zero using a branchless algorithm. -- taviso.
-#if !__INTEL_COMPILER && !__llvm__
-// This intrinsic is not always available in GCC, so define it here.
-static inline int vtestz(vtype __M, vtype __V)
-{
-	return __builtin_ia32_ptestz128((__v2di)__M, (__v2di)__V);
-}
-#endif
-static inline int vtestz_epi32(vtype __X)
-{
-	vtype M = vcmpeq_epi32(__X, __X);
-	vtype Z = vsrli_epi32(M, 1);
-	vtype Y = vandnot(vor(vor(vadd_epi32(vand(__X, Z), Z), __X), Z), M);
-	return ! vtestz(Y, M);
-}
-#endif /* !__SSE4_1__ || __clang__ */
-#endif /* !_MSC_VER */
-
-#define vtesteq_epi32(x, y)   \
-    (0xffff != vmovemask_epi8(vcmpeq_epi32(vcmpeq_epi32(x, y), vsetzero())))
+#define vtesteq_epi32(x, y)     vmovemask_epi8(vcmpeq_epi32(x, y))
+#define vtestz_epi32(x)         vtesteq_epi32(x, vsetzero())
 
 #if __SSSE3__
 

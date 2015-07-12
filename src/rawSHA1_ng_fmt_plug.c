@@ -339,7 +339,7 @@ static char *sha1_fmt_split(char *ciphertext, int index, struct fmt_main *self)
 // doesn't require it to be 16 byte aligned (although that would be nice).
 static void sha1_fmt_set_key(char *key, int index)
 {
-	vtype  Z   = vset1_epi32(0);
+	vtype  Z   = vsetzero();
 	vtype  X   = vloadu(key);
 	vtype  B;
 
@@ -615,10 +615,10 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 		R1(W[5],  A, B, C, D, E);                          // 5
 		R1(W[6],  E, A, B, C, D);
 #else
-		R1(W[3],  C, D, E, A, B); W[4]  = vset1_epi32(0);
-		R1(W[4],  B, C, D, E, A); W[5]  = vset1_epi32(0);
-		R1(W[5],  A, B, C, D, E); W[6]  = vset1_epi32(0);      // 5
-		R1(W[6],  E, A, B, C, D); W[7]  = vset1_epi32(0);
+		R1(W[3],  C, D, E, A, B); W[4]  = vsetzero();
+		R1(W[4],  B, C, D, E, A); W[5]  = vsetzero();
+		R1(W[5],  A, B, C, D, E); W[6]  = vsetzero();      // 5
+		R1(W[6],  E, A, B, C, D); W[7]  = vsetzero();
 #endif
 #if VWIDTH > 8
 		R1(W[7],  D, E, A, B, C);
@@ -630,13 +630,13 @@ static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 		R1(W[13], C, D, E, A, B);
 		R1(W[14], B, C, D, E, A);
 #else
-		R1(W[7],  D, E, A, B, C); W[8]  = vset1_epi32(0);
-		R1(W[8],  C, D, E, A, B); W[9]  = vset1_epi32(0);
-		R1(W[9],  B, C, D, E, A); W[10] = vset1_epi32(0);
-		R1(W[10], A, B, C, D, E); W[11] = vset1_epi32(0);      // 10
-		R1(W[11], E, A, B, C, D); W[12] = vset1_epi32(0);
-		R1(W[12], D, E, A, B, C); W[13] = vset1_epi32(0);
-		R1(W[13], C, D, E, A, B); W[14] = vset1_epi32(0);
+		R1(W[7],  D, E, A, B, C); W[8]  = vsetzero();
+		R1(W[8],  C, D, E, A, B); W[9]  = vsetzero();
+		R1(W[9],  B, C, D, E, A); W[10] = vsetzero();
+		R1(W[10], A, B, C, D, E); W[11] = vsetzero();      // 10
+		R1(W[11], E, A, B, C, D); W[12] = vsetzero();
+		R1(W[12], D, E, A, B, C); W[13] = vsetzero();
+		R1(W[13], C, D, E, A, B); W[14] = vsetzero();
 		R1(W[14], B, C, D, E, A);
 #endif
 
