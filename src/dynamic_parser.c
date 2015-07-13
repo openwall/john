@@ -893,7 +893,9 @@ int dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt)
 	nPreloadCnt = 0;
 	nFuncCnt = 0;
 
-	pSetup = mem_calloc_tiny(sizeof(DYNAMIC_Setup), MEM_ALIGN_NONE);
+	// since we switched flags to this size, we need to align to 64 bit,
+	// or we crash on !ALLOW_UNALIGNED
+	pSetup = mem_calloc_tiny(sizeof(DYNAMIC_Setup), sizeof(uint64_t));
 
 	options.loader.field_sep_char = ':';
 	if (!dynamic_LOAD_PARSER_SIGNATURE(which))
