@@ -95,12 +95,8 @@ JOHN_OBJS = \
 	rar2john.o \
 	zip2john.o pkzip.o gladman_hmac.o gladman_pwd2key.o \
 	racf2john.o \
-	keychain2john.o \
-	kwallet2john.o \
-	pwsafe2john.o \
 	dmg2john.o \
 	keepass2john.o \
-	keyring2john.o \
 	hccap2john.o \
 	$(PLUGFORMATS_OBJS) \
 	dyna_salt.o dummy.o \
@@ -139,8 +135,7 @@ PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../ru
 	../run/ssh2john@EXE_EXT@ ../run/rar2john@EXE_EXT@ ../run/zip2john@EXE_EXT@ ../run/dynacomptest@EXE_EXT@ \
 	../run/genmkvpwd@EXE_EXT@ ../run/mkvcalcproba@EXE_EXT@ ../run/calc_stat@EXE_EXT@ \
 	../run/tgtsnarf@EXE_EXT@ ../run/racf2john@EXE_EXT@ ../run/hccap2john@EXE_EXT@ \
-	../run/pwsafe2john@EXE_EXT@ ../run/raw2dyna@EXE_EXT@ ../run/keepass2john@EXE_EXT@ ../run/pfx2john@EXE_EXT@ \
-	../run/keychain2john@EXE_EXT@ ../run/keyring2john@EXE_EXT@ ../run/kwallet2john@EXE_EXT@ \
+	../run/raw2dyna@EXE_EXT@ ../run/pfx2john@EXE_EXT@  ../run/keepass2john@EXE_EXT@ \
 	../run/dmg2john@EXE_EXT@ ../run/putty2john@EXE_EXT@ ../run/uaf2john@EXE_EXT@ \
 	../run/wpapcap2john@EXE_EXT@ \
 	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/luks2john@EXE_EXT@ ../run/base64conv@EXE_EXT@
@@ -385,12 +380,6 @@ jumbo.o:	jumbo.c jumbo.h params.h memory.h memdbg.h
 
 keepass2john.o:	keepass2john.c autoconfig.h stdint.h missing_getopt.h jumbo.h params.h memory.h memdbg.h
 
-keychain2john.o:	keychain2john.c stdint.h jumbo.h memdbg.h
-
-keyring2john.o:	keyring2john.c stdint.h memory.h jumbo.h memdbg.h
-
-kwallet2john.o:	kwallet2john.c stdint.h jumbo.h memdbg.h
-
 list.o:	list.c memory.h list.h memdbg.h
 
 version.h: find_version
@@ -464,8 +453,6 @@ pfx2john.o:	pfx2john.c jumbo.h common.h arch.h params.h memdbg.h
 pkzip.o:	pkzip.c arch.h misc.h common.h memory.h formats.h pkzip.h memdbg.h
 
 putty2john.o:	putty2john.c autoconfig.h memory.h jumbo.h memdbg.h
-
-pwsafe2john.o:	pwsafe2john.c stdint.h jumbo.h memdbg.h
 
 racf2john.o:	racf2john.c autoconfig.h jumbo.h memory.h memdbg.h
 
@@ -615,10 +602,6 @@ aes/aes.a:
 	$(RM) ../run/keepass2john
 	$(LN) john ../run/keepass2john
 
-../run/keyring2john: ../run/john
-	$(RM) ../run/keyring2john
-	$(LN) john ../run/keyring2john
-
 ../run/zip2john: ../run/john
 	$(RM) ../run/zip2john
 	$(LN) john ../run/zip2john
@@ -634,18 +617,6 @@ aes/aes.a:
 ../run/racf2john: ../run/john
 	$(RM) ../run/racf2john
 	$(LN) john ../run/racf2john
-
-../run/keychain2john: ../run/john
-	$(RM) ../run/keychain2john
-	$(LN) john ../run/keychain2john
-
-../run/kwallet2john: ../run/john
-	$(RM) ../run/kwallet2john
-	$(LN) john ../run/kwallet2john
-
-../run/pwsafe2john: ../run/john
-	$(RM) ../run/pwsafe2john
-	$(LN) john ../run/pwsafe2john
 
 ../run/dmg2john: ../run/john
 	$(RM) ../run/dmg2john
@@ -699,10 +670,6 @@ aes/aes.a:
 	$(CC) symlink.c -o ../run/keepass2john.exe
 	$(STRIP) ../run/keepass2john.exe
 
-../run/keyring2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/keyring2john.exe
-	$(STRIP) ../run/keyring2john.exe
-
 ../run/zip2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/zip2john.exe
 	$(STRIP) ../run/zip2john.exe
@@ -718,18 +685,6 @@ aes/aes.a:
 ../run/racf2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/racf2john.exe
 	$(STRIP) ../run/racf2john.exe
-
-../run/keychain2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/keychain2john.exe
-	$(STRIP) ../run/keychain2john.exe
-
-../run/kwallet2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/kwallet2john.exe
-	$(STRIP) ../run/kwallet2john.exe
-
-../run/pwsafe2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/pwsafe2john.exe
-	$(STRIP) ../run/pwsafe2john.exe
 
 ../run/dmg2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/dmg2john.exe
