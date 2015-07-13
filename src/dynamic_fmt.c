@@ -83,6 +83,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #include "options.h"
 #include "config.h"
 #include "sha.h"
+#include "sha2.h"
 #include "gost.h"
 #include "sph_haval.h"
 #include "sph_ripemd.h"

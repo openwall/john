@@ -151,6 +151,7 @@ DONE #define MGF_BASE_16_OUTPUT_UPCASE    0x00002000
 #include "base64_convert.h"
 #include "md5.h"
 #include "md4.h"
+#include "sha.h"
 #include "sha2.h"
 #include "gost.h"
 #include "unicode.h"

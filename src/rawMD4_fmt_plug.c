@@ -21,6 +21,7 @@ john_register_one(&fmt_rawMD4);
 
 #include "md4.h"
 #include "common.h"
+#include "johnswap.h"
 #include "formats.h"
 
 #if !FAST_FORMATS_OMP

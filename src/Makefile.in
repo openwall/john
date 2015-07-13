@@ -776,8 +776,8 @@ aes/aes.a:
 ../run/wpapcap2john@EXE_EXT@: wpapcap2john.o
 	$(LD) $(LDFLAGS) wpapcap2john.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/wpapcap2john
 
-../run/dynacomptest@EXE_EXT@: dynamic_compiler.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o
-	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@  @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ -DWITH_MAIN -D_JOHN_MISC_NO_LOG -DUNICODE_NO_OPTIONS @MEMDBG_CFLAGS@ dynamic_compiler.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o $(LDFLAGS)  @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@  -o ../run/dynacomptest
+../run/dynacomptest@EXE_EXT@: dynamic_compiler.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o
+	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@  @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ -DWITH_MAIN -D_JOHN_MISC_NO_LOG -DUNICODE_NO_OPTIONS @MEMDBG_CFLAGS@ dynamic_compiler.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o $(LDFLAGS)  @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@  -o ../run/dynacomptest
 
 ../run/luks2john@EXE_EXT@: luks2john.o
 	$(LD) $(LDFLAGS) luks2john.o @OPENSSL_LIBS@ @OPENMP_CFLAGS@ -o ../run/luks2john
