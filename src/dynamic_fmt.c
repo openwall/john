@@ -1942,6 +1942,7 @@ static int get_hash_6(int index)
 
 typedef struct dyna_salt_list_entry {
 	struct dyna_salt_list_entry *next;
+	unsigned len;
 	unsigned char *salt;
 } dyna_salt_list_entry;
 typedef struct {
@@ -1972,6 +1973,7 @@ static unsigned char *AddSaltHash(unsigned char *salt, unsigned int len, unsigne
 	pRet = pNextSaltDataBuf;
 	pSaltHashDataNext->salt = pNextSaltDataBuf;
 	memcpy(pSaltHashDataNext->salt, salt, len);
+	pSaltHashDataNext->len = len;
 	pNextSaltDataBuf += len;
 	nSaltDataBuf -= len;
 
@@ -2000,7 +2002,7 @@ static unsigned char *FindSaltHash(unsigned char *salt, unsigned int len, CRC32_
 	// Ok, we have some salts in this hash list.  Now walk the list, searching for an EQUAL salt.
 	p = SaltHashTab[idx].List.head;
 	while (p) {
-		if (!memcmp((char*)salt, (char*)p->salt, len)) {
+		if (len == p->len && !memcmp((char*)salt, (char*)p->salt, len)) {
 			return p->salt;  // found it!  return this one, so we do not allocate another.
 		}
 		p = p->next;
