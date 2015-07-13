@@ -206,12 +206,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((cp = strtokm(NULL, "")) == NULL)
 		goto err;
 	if (strlen(cp) != base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ|flg_Base64_MIME_TRAIL_EQ_CNT))
-		return 0;
+		goto err;
 	len = base64_convert(cp, e_b64_mime, strlen(cp), tmp, e_b64_raw,
 	                     MAX_BINARY_SIZE+SALT_LENGTH, flg_Base64_MIME_TRAIL_EQ);
 	len -= hash_len;
 	if (len < 1 || len > SALT_LENGTH)
-		return 0;
+		goto err;
 
 	MEM_FREE(keeptr);
 	return 1;
