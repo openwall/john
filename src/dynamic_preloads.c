@@ -238,7 +238,13 @@ static DYNAMIC_primitive_funcp _Funcs_2[] =
 	//MGF_SET_INP2LEN32
 	DynamicFunc__crypt_md5,
 	DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix,
-//	DynamicFunc__set_input2_len_32,
+#if !ARCH_LITTLE_ENDIAN
+	// Not sure WHY this is needed in BE systems, BUT it is???
+	// it does do a memset on last part of buffer, but 'why' is that needed???
+	// we should have a fixed length of 32 bytes set, so not sure why we need
+	// to continue to clear on these formats.
+	DynamicFunc__set_input2_len_32,
+#endif
 
 	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
@@ -248,6 +254,7 @@ static struct fmt_tests _Preloads_2[] =
 	{"$dynamic_2$418d89a45edadb8ce4da17e07f72536c","test1"},
 	{"$dynamic_2$ccd3c4231a072b5e13856a2059d04fad","thatsworking"},
 	{"$dynamic_2$9992295627e7e7162bdf77f14734acf8","test3"},
+	{"$dynamic_2$74be16979710d4c4e7c6647856088456",""},
 #ifdef DEBUG
 	{"$dynamic_2$4da0b552b078998f671795b925aed4ae","1234567890123456789012345678901234567890123456789012345"},
   #ifndef SIMD_COEF_32
@@ -263,12 +270,14 @@ static DYNAMIC_primitive_funcp _Funcs_3[] =
 	//MGF_SET_INP2LEN32
 	DynamicFunc__crypt_md5,
 	DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix,
-//	DynamicFunc__set_input2_len_32,
-
+#if !ARCH_LITTLE_ENDIAN
+	DynamicFunc__set_input2_len_32,
+#endif
 	DynamicFunc__crypt2_md5,
 	DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix,
-//	DynamicFunc__set_input2_len_32,
-
+#if !ARCH_LITTLE_ENDIAN
+	DynamicFunc__set_input2_len_32,
+#endif
 	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
 };
@@ -991,7 +1000,9 @@ static DYNAMIC_primitive_funcp _Funcs_34[] =
 	//DynamicFunc__clean_input2_kwik,
 	//DynamicFunc__append_from_last_output_to_input2_as_base16,
 	DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix,
-//	DynamicFunc__set_input2_len_32,
+#if !ARCH_LITTLE_ENDIAN
+	DynamicFunc__set_input2_len_32,
+#endif
 	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
 };
