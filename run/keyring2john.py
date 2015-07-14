@@ -27,52 +27,59 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+
 class GnomeKeyring_Parser():
     offset = 0
     keyring = ''
     KEYRING_FILE = ''
-    def __init__(self,KEYRING_FILE):
-        KEYRING_FILE_HEADER="GnomeKeyring\n\r\0\n"
+
+    def __init__(self, KEYRING_FILE):
+        KEYRING_FILE_HEADER = "GnomeKeyring\n\r\0\n"
         self.KEYRING_FILE = KEYRING_FILE
-        self.keyring = open(KEYRING_FILE,'r').read()
+        self.keyring = open(KEYRING_FILE, 'rb').read()
         if self.keyring.find(KEYRING_FILE_HEADER) != 0:
-            raise Exception ('Un-supported GNOME Keyring file!')
-    def read_keyring(self,length):
+            raise Exception('Un-supported GNOME Keyring file!')
+
+    def read_keyring(self, length):
         value = self.keyring[:length]
         self.keyring = self.keyring[length:]
         self.offset += length
         return value
+
     def parse_keyring(self):
-        self.read_keyring(16) # Keyring header
-        version = self.read_keyring(2) # version
-        crypto = self.read_keyring(1) # crypto
-        hash_t = self.read_keyring(1) # hash_t
-        name_length = self.read_keyring(4) # name_length
-        name_length = int(name_length.encode('hex'),16)
+        self.read_keyring(16)  # Keyring header
+        version = self.read_keyring(2)  # version
+        crypto = self.read_keyring(1)  # crypto
+        hash_t = self.read_keyring(1)  # hash_t
+        name_length = self.read_keyring(4)  # name_length
+        name_length = int(name_length.encode('hex'), 16)
         name = self.read_keyring(name_length)
         ctime = self.read_keyring(8)
         mtime = self.read_keyring(8)
         flags = self.read_keyring(4)
         lock_timeout = self.read_keyring(4)
         iterations = self.read_keyring(4)
-        iterations = int(iterations.encode('hex'),16)
+        iterations = int(iterations.encode('hex'), 16)
         salt = self.read_keyring(8)
         salt = salt.encode('hex')
         reserved = self.read_keyring(16)
         num_items = self.read_keyring(8)
-        num_items = int(num_items.encode('hex'),16)
+        num_items = int(num_items.encode('hex'), 16)
         hash_value = self.read_keyring(16)
         hash_value = hash_value.encode('hex')
         crypto_size = len(hash_value)/2
-        return self.KEYRING_FILE + ':$keyring$' + salt +'*'+str(iterations)+'*'+str(crypto_size)+'*0*'+hash_value
+
+        return self.KEYRING_FILE + ':$keyring$' + \
+            salt + '*' + str(iterations) + '*' + \
+            str(crypto_size) + '*0*' + hash_value
 
 
+# common functions to interface with all2john.py
 
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description='keyring2john.py -> convert Gnome Keyring files to john format.')
-    parser.add_argument('KEYRING_FILE', help='Input Gnome Keyring file')
-    args=parser.parse_args()
-    Parser = GnomeKeyring_Parser(args.KEYRING_FILE)
-    print Parser.parse_keyring()
+def description():
+    return "Convert GNOME Keyring files to john format."
 
+
+def parse(f):
+    p = GnomeKeyring_Parser(f)
+    return p.parse_keyring()

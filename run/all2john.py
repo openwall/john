@@ -791,7 +791,7 @@ def pcap_parser_gadu(pcapfile):
     try:
         packets = rdpcap(pcapfile)
     except:
-        sys.stderr.write("%s is not a .pcap file\n" % pcapfile)
+        # sys.stderr.write("%s is not a .pcap file\n" % pcapfile)
         return
 
     ports = [8074]
@@ -984,25 +984,78 @@ if __name__ == "__main__":
         sys.exit(-1)
 
     for i in range(1, len(sys.argv)):
-        pcap_parser_bfd(sys.argv[i])
+        try:
+            pcap_parser_bfd(sys.argv[i])
+        except:
+            pass
         try:
             pcap_parser_vtp(sys.argv[i])
         except:
             # sys.stderr.write("vtp could not handle input\n")
             pass
-        pcap_parser_vrrp(sys.argv[i])
-        pcap_parser_tcpmd5(sys.argv[i])
+
+        try:
+            pcap_parser_vrrp(sys.argv[i])
+        except:
+            pass
+
+        try:
+            pcap_parser_tcpmd5(sys.argv[i])
+        except:
+            pass
+
         try:
             pcap_parser_s7(sys.argv[i])
         except:
             # sys.stderr.write("s7 could not handle input\n")
             pass
-        pcap_parser_rsvp(sys.argv[i])
-        pcap_parser_ntp(sys.argv[i])
-        pcap_parser_isis(sys.argv[i])
-        pcap_parser_hsrp(sys.argv[i])
-        pcap_parser_hsrp_v2(sys.argv[i])
-        pcap_parser_glbp(sys.argv[i])
-        pcap_parser_gadu(sys.argv[i])
-        pcap_parser_eigrp(sys.argv[i])
-        pcap_parser_tgsrep(sys.argv[i])
+
+        try:
+            pcap_parser_rsvp(sys.argv[i])
+        except:
+            pass
+
+        try:
+            pcap_parser_ntp(sys.argv[i])
+        except:
+            pass
+
+        try:
+            pcap_parser_isis(sys.argv[i])
+        except:
+            pass
+
+        try:
+            pcap_parser_hsrp(sys.argv[i])
+        except:
+            pass
+
+        try:
+            pcap_parser_hsrp_v2(sys.argv[i])
+        except:
+            pass
+
+        try:
+            pcap_parser_glbp(sys.argv[i])
+        except:
+            pass
+
+        try:
+            pcap_parser_gadu(sys.argv[i])
+        except:
+            pass
+
+        try:
+            pcap_parser_eigrp(sys.argv[i])
+        except:
+            pass
+
+
+        try:
+            pcap_parser_tgsrep(sys.argv[i])
+        except:
+            pass
+
+        # XXX add auto-discovery of 2john tools
+        import keyring2john
+        print keyring2john.parse(sys.argv[i])
