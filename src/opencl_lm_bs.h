@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
+ * This software is Copyright (c) 2015 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  * Based on Solar LMigner implementation of LM_bs_b.c in jtr-v1.7.9
@@ -102,5 +102,6 @@ extern int opencl_LM_bs_cmp_one_b(WORD *binary, int count, int index);
 extern char *opencl_LM_bs_get_source_LM(WORD *raw);
 extern WORD *opencl_get_binary_LM(char *ciphertext);
 extern void opencl_LM_bs_set_key(char *key, int index);
+extern void opencl_lm_init_index(void);
 
 #endif

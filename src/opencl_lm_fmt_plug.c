@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
+ * This software is Copyright (c) 2015 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  * Based on Solar Designer implementation of DES_fmt.c in jtr-v1.7.9
@@ -63,23 +63,20 @@ static void init(struct fmt_main *pFmt)
 
 	opencl_LM_bs_b_register_functions(pFmt);
 
-	// Check if specific LWS/GWS was requested
-	opencl_get_user_preferences(FORMAT_LABEL);
 
 	opencl_LM_bs_init_global_variables();
 
-	if (local_work_size & (local_work_size - 1)) {
+	opencl_prepare_dev(gpu_id);
+
+	/*if (local_work_size & (local_work_size - 1)) {
 		if (local_work_size < 4) local_work_size = 4;
 		else if (local_work_size < 8) local_work_size = 8;
 		else if (local_work_size < 16) local_work_size = 16;
 		else if (local_work_size < 32) local_work_size = 32;
 		else local_work_size = WORK_GROUP_SIZE;
-	}
+	}*/
 
-	for (i = 0; i < MULTIPLIER; i++)
-		opencl_LM_bs_init(i);
-
-	opencl_LM_bs_select_device(pFmt);
+	//opencl_LM_bs_select_device(pFmt);
 }
 
 static char *prepare(char *fields[10], struct fmt_main *self)

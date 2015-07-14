@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
+ * This software is Copyright (c) 2015 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -9,10 +9,8 @@
 #include "opencl_lm_kernel_params.h"
 
 #ifndef RV7xx
-#define x(p) vxorf(B[ index96[p]], _local_K[_local_index768[p + k] + local_offset_K])
 #define y(p, q) vxorf(B[p]       , _local_K[_local_index768[q + k] + local_offset_K])
 #else
-#define x(p) vxorf(B[index96[p] ], _local_K[index768[p + k] + local_offset_K])
 #define y(p, q) vxorf(B[p]       , _local_K[index768[q + k] + local_offset_K])
 #endif
 
@@ -98,35 +96,6 @@ inline void lm_loop(__private vtype *B,
 			k += 96;
 		} while(--rounds);
 }
-#ifdef _CPU
-#define loop_body()\
-		H1();\
-		if (rounds_and_swapped == 0x100) goto next;\
-		H2();\
-		k += 96;\
-		rounds_and_swapped--;\
-		H1();\
-		if (rounds_and_swapped == 0x100) goto next;\
-		H2();\
-		k += 96;\
-		rounds_and_swapped--;\
-                barrier(CLK_LOCAL_MEM_FENCE);
-#elif defined(_NV)
-#define loop_body()\
-		H1();\
-		if (rounds_and_swapped == 0x100) goto next;\
-		H2();\
-		k += 96;\
-		rounds_and_swapped--;\
-		barrier(CLK_LOCAL_MEM_FENCE);
-#else
-#define loop_body()\
-		H1();\
-		if (rounds_and_swapped == 0x100) goto next;\
-		H2();\
-		k += 96;\
-		rounds_and_swapped--;
-#endif
 
 __kernel void lm_bs( constant uint *index768
 #if gpu_amd(DEVICE_INFO)
@@ -156,13 +125,6 @@ __kernel void lm_bs( constant uint *index768
 
 		int i;
 
-		if (!section) {
-			hash_ids[0] = 0;
-			for (i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
-				bitmap[i] = 0;
-		}
-		barrier(CLK_GLOBAL_MEM_FENCE);
-
 		for (i = 0; i < 56; i++)
 			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
 
@@ -185,5 +147,4 @@ __kernel void lm_bs( constant uint *index768
 		lm_loop(B, _local_K, _local_index768, index768, local_offset_K);
 
 		cmp(B, binary, num_loaded_hashes, hash_ids, bitmap, B_global, section);
-
 }

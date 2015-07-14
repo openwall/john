@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
+ * This software is Copyright (c) 2015 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
@@ -78,7 +78,7 @@ static unsigned char opencl_LM_PC2[48] = {
 	45, 41, 49, 35, 28, 31
 };
 
-static void init_index()
+void opencl_lm_init_index()
 {
 	int p,q,s,t ;
 	int round, index, bit;
@@ -106,9 +106,6 @@ static void init_index()
 void opencl_LM_bs_init(int block)
 {
 	int index, c;
-
-	if (block == 0)
-		init_index();
 
 	for (index = 0; index < LM_BS_DEPTH; index++)
 		opencl_LM_bs_all[block].pxkeys[index] =
