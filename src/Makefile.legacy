@@ -141,12 +141,8 @@ JOHN_OBJS = \
 	rar2john.o \
 	zip2john.o pkzip.o gladman_hmac.o gladman_pwd2key.o \
 	racf2john.o \
-	keychain2john.o \
-	kwallet2john.o \
-	pwsafe2john.o \
 	dmg2john.o \
 	keepass2john.o \
-	keyring2john.o \
 	hccap2john.o \
 	$(PLUGFORMATS_OBJS) \
 	dyna_salt.o dummy.o \
@@ -220,7 +216,6 @@ PROJ = find_version ../run/john ../run/unshadow ../run/unafs ../run/unique ../ru
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/hccap2john \
 	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
-	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
 	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
 	../run/wpapcap2john \
 	../run/gpg2john ../run/luks2john ../run/cprepair ../run/base64conv
@@ -229,8 +224,7 @@ PROJ_DOS = find_version ../run/john.bin ../run/john.com \
 	../run/undrop.com \
 	../run/ssh2john.com ../run/rar2john.com ../run/zip2john \
 	../run/racf2john.com ../run/hccap2john.com \
-	../run/pwsafe2john.com ../run/keepass2john.com ../run/pfx2john.com \
-	../run/keychain2john.com ../run/keyring2john.com ../run/kwallet2john.com \
+	../run/keepass2john.com ../run/pfx2john.com \
 	../run/dmg2john.com ../run/putty2john.com john.local.conf \
 	../run/gpg2john.com
 PROJ_WIN32 = find_version ../run/john.exe \
@@ -239,8 +233,8 @@ PROJ_WIN32 = find_version ../run/john.exe \
 	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/hccap2john.exe \
-	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
-	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
+	../run/raw2dyna.exe ../run/keepass2john.exe \
+	../run/pfx2john.exe \
 	../run/kwallet2john.exe ../run/dmg2john.exe ../run/putty2john.exe \
 	john.local.conf ../run/gpg2john.exe ../run/base64conv.exe
 PROJ_WIN32_MINGW = find_version ../run/john-mingw.exe \
@@ -249,8 +243,8 @@ PROJ_WIN32_MINGW = find_version ../run/john-mingw.exe \
 	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/hccap2john.exe \
-	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
-	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
+	../run/raw2dyna.exe ../run/keepass2john.exe \
+	../run/pfx2john.exe \
 	../run/kwallet2john.exe ../run/putty2john.exe john.local.conf \
 	../run/gpg2john.exe ../run/base64conv.exe
 PROJ_PCAP = ../run/SIPdump ../run/vncpcap2john
@@ -2054,10 +2048,6 @@ $(SUBDIRS):
 	$(RM) ../run/keepass2john
 	ln -s john ../run/keepass2john
 
-../run/keyring2john: ../run/john
-	$(RM) ../run/keyring2john
-	ln -s john ../run/keyring2john
-
 ../run/zip2john: ../run/john
 	$(RM) ../run/zip2john
 	ln -s john ../run/zip2john
@@ -2073,18 +2063,6 @@ $(SUBDIRS):
 ../run/racf2john: ../run/john
 	$(RM) ../run/racf2john
 	ln -s john ../run/racf2john
-
-../run/keychain2john: ../run/john
-	$(RM) ../run/keychain2john
-	ln -s john ../run/keychain2john
-
-../run/kwallet2john: ../run/john
-	$(RM) ../run/kwallet2john
-	ln -s john ../run/kwallet2john
-
-../run/pwsafe2john: ../run/john
-	$(RM) ../run/pwsafe2john
-	ln -s john ../run/pwsafe2john
 
 ../run/dmg2john: ../run/john
 	$(RM) ../run/dmg2john
@@ -2131,23 +2109,11 @@ $(SUBDIRS):
 ../run/keepass2john.com: john.com
 	copy john.com ..\run\keepass2john.com
 
-../run/keyring2john.com: john.com
-	copy john.com ..\run\keyring2john.com
-
 ../run/rar2john.com: john.com
 	copy john.com ..\run\rar2john.com
 
 ../run/racf2john.com: john.com
 	copy john.com ..\run\racf2john.com
-
-../run/keychain2john.com: john.com
-	copy john.com ..\run\keychain2john.com
-
-../run/kwallet2john.com: john.com
-	copy john.com ..\run\kwallet2john.com
-
-../run/pwsafe2john.com: john.com
-	copy john.com ..\run\pwsafe2john.com
 
 ../run/dmg2john.com: john.com
 	copy john.com ..\run\dmg2john.com
@@ -2219,10 +2185,6 @@ john.com: john.asm
 	$(CC) symlink.c -o ../run/keepass2john.exe
 	$(STRIP) ../run/keepass2john.exe
 
-../run/keyring2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/keyring2john.exe
-	$(STRIP) ../run/keyring2john.exe
-
 ../run/rar2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/rar2john.exe
 	$(STRIP) ../run/rar2john.exe
@@ -2230,18 +2192,6 @@ john.com: john.asm
 ../run/racf2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/racf2john.exe
 	$(STRIP) ../run/racf2john.exe
-
-../run/keychain2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/keychain2john.exe
-	$(STRIP) ../run/keychain2john.exe
-
-../run/kwallet2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/kwallet2john.exe
-	$(STRIP) ../run/kwallet2john.exe
-
-../run/pwsafe2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/pwsafe2john.exe
-	$(STRIP) ../run/pwsafe2john.exe
 
 ../run/dmg2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/dmg2john.exe
