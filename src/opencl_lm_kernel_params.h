@@ -64,9 +64,9 @@ typedef unsigned WORD vtype;
 #endif
 
 #define vst_private(dst, ofs, src) 			\
-	*((__private vtype *)((__private LM_bs_vector *)&(dst) + (ofs))) = (src)
+	*((__private vtype *)((__private lm_vector *)&(dst) + (ofs))) = (src)
 
-#define LM_bs_clear_block_8(j) 			\
+#define lm_clear_block_8(j) 			\
 	vst_private(B[j] , 0, zero); 			\
 	vst_private(B[j] , 1, zero); 			\
 	vst_private(B[j] , 2, zero); 			\
@@ -76,30 +76,29 @@ typedef unsigned WORD vtype;
 	vst_private(B[j] , 6, zero); 			\
 	vst_private(B[j] , 7, zero);
 
-#define LM_bs_clear_block 				\
-	LM_bs_clear_block_8(0); 			\
-	LM_bs_clear_block_8(8); 			\
-	LM_bs_clear_block_8(16); 			\
-	LM_bs_clear_block_8(24); 			\
-	LM_bs_clear_block_8(32); 			\
-	LM_bs_clear_block_8(40); 			\
-	LM_bs_clear_block_8(48); 			\
-	LM_bs_clear_block_8(56);
+#define lm_clear_block 				\
+	lm_clear_block_8(0); 			\
+	lm_clear_block_8(8); 			\
+	lm_clear_block_8(16); 			\
+	lm_clear_block_8(24); 			\
+	lm_clear_block_8(32); 			\
+	lm_clear_block_8(40); 			\
+	lm_clear_block_8(48); 			\
+	lm_clear_block_8(56);
 
-inline void cmp( __private unsigned LM_bs_vector *B,
+inline void cmp( __private unsigned lm_vector *B,
 	  __global int *binary,
-	  int num_loaded_hash,
 	  volatile __global uint *output,
 	  volatile __global uint *bitmap,
-	  __global LM_bs_vector *B_global,
+	  __global lm_vector *B_global,
 	  int section) {
 
 	int value[2] , mask, i, bit;
 
-	for(i = 0; i < num_loaded_hash; i++) {
+	for(i = 0; i < NUM_LOADED_HASHES; i++) {
 
 		value[0] = binary[i];
-		value[1] = binary[i + num_loaded_hash];
+		value[1] = binary[i + NUM_LOADED_HASHES];
 
 		mask = B[0] ^ -(value[0] & 1);
 
@@ -117,7 +116,7 @@ inline void cmp( __private unsigned LM_bs_vector *B,
 				output[1 + 2 * mask] = section;
 				output[2 + 2 * mask] = 0;
 				for (bit = 0; bit < 64; bit++)
-					B_global[mask * 64 + bit] = (LM_bs_vector)B[bit];
+					B_global[mask * 64 + bit] = (lm_vector)B[bit];
 
 			}
 		}

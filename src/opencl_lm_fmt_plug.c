@@ -8,9 +8,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_LM;
+extern struct fmt_main fmt_opencl_lm;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_LM);
+john_register_one(&fmt_opencl_lm);
 #else
 
 #include <string.h>
@@ -19,7 +19,7 @@ john_register_one(&fmt_opencl_LM);
 #include "common.h"
 #include "formats.h"
 #include "config.h"
-#include "opencl_lm_bs.h"
+#include "opencl_lm.h"
 #include "opencl_lm_hst_dev_shared.h"
 #include "memdbg.h"
 
@@ -46,7 +46,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-#define ALGORITHM_NAME			LM_BS_OPENCL_ALGORITHM_NAME
+#define ALGORITHM_NAME			LM_OPENCL_ALGORITHM_NAME
 
 #define BINARY_SIZE			(2 * sizeof(WORD))
 #define BINARY_ALIGN			sizeof(WORD)
@@ -54,17 +54,14 @@ static struct fmt_tests tests[] = {
 #define SALT_ALIGN			1
 
 
-void (*opencl_LM_bs_init_global_variables)(void);
-void (*opencl_LM_bs_select_device)(struct fmt_main *);
+void (*opencl_lm_init_global_variables)(void);
+void (*opencl_lm_select_device)(struct fmt_main *);
 
 static void init(struct fmt_main *pFmt)
 {
-	unsigned int i;
+	opencl_lm_b_register_functions(pFmt);
 
-	opencl_LM_bs_b_register_functions(pFmt);
-
-
-	opencl_LM_bs_init_global_variables();
+	opencl_lm_init_global_variables();
 
 	opencl_prepare_dev(gpu_id);
 
@@ -137,12 +134,12 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 static void *binary(char *ciphertext)
 {
-	return opencl_get_binary_LM(ciphertext + 4);
+	return opencl_lm_get_binary(ciphertext + 4);
 }
 
 static char *source(char *source, void *binary)
 {
-	return split(opencl_LM_bs_get_source_LM(binary), 0, NULL);
+	return split(opencl_lm_get_source(binary), 0, NULL);
 }
 
 static int binary_hash_0(void *binary)
@@ -180,13 +177,13 @@ static int binary_hash_6(void *binary)
 	return *(unsigned WORD *)binary & 0x7FFFFFF;
 }
 
-#define get_hash_0 opencl_LM_bs_get_hash_0
-#define get_hash_1 opencl_LM_bs_get_hash_1
-#define get_hash_2 opencl_LM_bs_get_hash_2
-#define get_hash_3 opencl_LM_bs_get_hash_3
-#define get_hash_4 opencl_LM_bs_get_hash_4
-#define get_hash_5 opencl_LM_bs_get_hash_5
-#define get_hash_6 opencl_LM_bs_get_hash_6
+#define get_hash_0 opencl_lm_get_hash_0
+#define get_hash_1 opencl_lm_get_hash_1
+#define get_hash_2 opencl_lm_get_hash_2
+#define get_hash_3 opencl_lm_get_hash_3
+#define get_hash_4 opencl_lm_get_hash_4
+#define get_hash_5 opencl_lm_get_hash_5
+#define get_hash_6 opencl_lm_get_hash_6
 
 static int cmp_all(WORD *binary, int count)
 {
@@ -195,15 +192,15 @@ static int cmp_all(WORD *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return opencl_LM_bs_cmp_one_b((WORD*)binary, 32, index);
+	return opencl_lm_cmp_one_b((WORD*)binary, 32, index);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return opencl_LM_bs_cmp_one_b(binary(source), 64, index);
+	return opencl_lm_cmp_one_b(binary(source), 64, index);
 }
 
-struct fmt_main fmt_opencl_LM = {
+struct fmt_main fmt_opencl_lm = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -248,7 +245,7 @@ struct fmt_main fmt_opencl_LM = {
 		fmt_default_salt_hash,
 		NULL,
 		fmt_default_set_salt,
-		opencl_LM_bs_set_key,
+		opencl_lm_set_key,
 		NULL,
 		fmt_default_clear_keys,
 		NULL,

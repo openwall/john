@@ -11,20 +11,14 @@
 
 #include "arch.h"
 #include "common.h"
-#include "opencl_lm_bs.h"
+#include "opencl_lm.h"
 #include "opencl_lm_hst_dev_shared.h"
 #include "unicode.h"
 #include "memdbg.h"
 
-#define DEPTH
-#define START
-#define init_depth()
-#define for_each_depth()
-
-opencl_LM_bs_combined *opencl_LM_bs_all;
-opencl_LM_bs_transfer *opencl_LM_bs_keys;
-int opencl_LM_bs_keys_changed = 1;
-LM_bs_vector *opencl_LM_bs_cracked_hashes;
+opencl_lm_combined *opencl_lm_all;
+opencl_lm_transfer *opencl_lm_keys;
+lm_vector *opencl_lm_cracked_hashes;
 
 static unsigned char LM_KP[56] = {
 	1, 2, 3, 4, 5, 6, 7,
@@ -97,76 +91,76 @@ void opencl_lm_init_index()
 			bit -= bit >> 3;
 			bit = 55 - bit;
 			bit = LM_KP[bit];
-			opencl_LM_bs_index768[t++] = bit;
+			opencl_lm_index768[t++] = bit;
 		}
 	}
 
+	for (p = 0; p < 0x100; p++)
+		opencl_lm_u[p] = CP_up[p];
+
 }
 
-void opencl_LM_bs_init(int block)
+void opencl_lm_init(int block)
 {
-	int index, c;
+	int index;
 
-	for (index = 0; index < LM_BS_DEPTH; index++)
-		opencl_LM_bs_all[block].pxkeys[index] =
-			&opencl_LM_bs_keys[block].xkeys.c[0][index & 7][index >> 3];
-
-	for (c = 0; c < 0x100; c++)
-		opencl_LM_u[c] = CP_up[c];
+	for (index = 0; index < LM_DEPTH; index++)
+		opencl_lm_all[block].pxkeys[index] =
+			&opencl_lm_keys[block].xkeys.c[0][index & 7][index >> 3];
 }
 
-void opencl_LM_bs_set_key(char *key, int index)
+void opencl_lm_set_key(char *key, int index)
 {
 	unsigned long c;
 	unsigned char *dst;
 	unsigned int section, key_index;
 
-	section = index / LM_BS_DEPTH;
-	key_index = index % LM_BS_DEPTH;
-	dst = opencl_LM_bs_all[section].pxkeys[key_index];
+	section = index >> LM_LOG_DEPTH;
+	key_index = index & (LM_DEPTH - 1);
+	dst = opencl_lm_all[section].pxkeys[key_index];
 
 	c = (unsigned char)key[0];
 	if (!c) goto fill7;
-	*dst = opencl_LM_u[c];
+	*dst = opencl_lm_u[c];
 	c = (unsigned char)key[1];
 	if (!c) goto fill6;
-	*(dst + sizeof(LM_bs_vector) * 8) = opencl_LM_u[c];
+	*(dst + sizeof(lm_vector) * 8) = opencl_lm_u[c];
 	c = (unsigned char)key[2];
 	if (!c) goto fill5;
-	*(dst + sizeof(LM_bs_vector) * 8 * 2) = opencl_LM_u[c];
+	*(dst + sizeof(lm_vector) * 8 * 2) = opencl_lm_u[c];
 	c = (unsigned char)key[3];
 	if (!c) goto fill4;
-	*(dst + sizeof(LM_bs_vector) * 8 * 3) = opencl_LM_u[c];
+	*(dst + sizeof(lm_vector) * 8 * 3) = opencl_lm_u[c];
 	c = (unsigned char)key[4];
 	if (!c) goto fill3;
-	*(dst + sizeof(LM_bs_vector) * 8 * 4) = opencl_LM_u[c];
+	*(dst + sizeof(lm_vector) * 8 * 4) = opencl_lm_u[c];
 	c = (unsigned char)key[5];
 	if (!c) goto fill2;
-	*(dst + sizeof(LM_bs_vector) * 8 * 5) = opencl_LM_u[c];
+	*(dst + sizeof(lm_vector) * 8 * 5) = opencl_lm_u[c];
 	c = (unsigned char)key[6];
-	*(dst + sizeof(LM_bs_vector) * 8 * 6) = opencl_LM_u[c];
+	*(dst + sizeof(lm_vector) * 8 * 6) = opencl_lm_u[c];
 	return;
 fill7:
 	dst[0] = 0;
 fill6:
-	dst[sizeof(LM_bs_vector) * 8] = 0;
+	dst[sizeof(lm_vector) * 8] = 0;
 fill5:
-	dst[sizeof(LM_bs_vector) * 8 * 2] = 0;
+	dst[sizeof(lm_vector) * 8 * 2] = 0;
 fill4:
-	dst[sizeof(LM_bs_vector) * 8 * 3] = 0;
+	dst[sizeof(lm_vector) * 8 * 3] = 0;
 fill3:
-	dst[sizeof(LM_bs_vector) * 8 * 4] = 0;
+	dst[sizeof(lm_vector) * 8 * 4] = 0;
 fill2:
-	dst[sizeof(LM_bs_vector) * 8 * 5] = 0;
-	dst[sizeof(LM_bs_vector) * 8 * 6] = 0;
+	dst[sizeof(lm_vector) * 8 * 5] = 0;
+	dst[sizeof(lm_vector) * 8 * 6] = 0;
 }
 
-static WORD *LM_bs_get_binary_raw(WORD *raw, int count)
+static WORD *lm_get_binary_raw(WORD *raw, int count)
 {
 	static WORD out[2];
 
 /* For odd iteration counts, swap L and R here instead of doing it one
- * more time in LM_bs_crypt(). */
+ * more time in lm_crypt(). */
 	count &= 1;
 	out[count] = raw[0];
 	out[count ^ 1] = raw[1];
@@ -174,7 +168,7 @@ static WORD *LM_bs_get_binary_raw(WORD *raw, int count)
 	return out;
 }
 
-static WORD *opencl_LM_do_IP(WORD in[2])
+static WORD *opencl_lm_do_IP(WORD in[2])
 {
 	static WORD out[2];
 	int src, dst;
@@ -190,7 +184,7 @@ static WORD *opencl_LM_do_IP(WORD in[2])
 	return out;
 }
 
-WORD *opencl_get_binary_LM(char *ciphertext)
+WORD *opencl_lm_get_binary(char *ciphertext)
 {
 	WORD block[2], value;
 	int l, h;
@@ -204,10 +198,10 @@ WORD *opencl_get_binary_LM(char *ciphertext)
 		block[index >> 3] |= value << ((index << 2) & 0x18);
 	}
 
-	return LM_bs_get_binary_raw(opencl_LM_do_IP(block), 1);
+	return lm_get_binary_raw(opencl_lm_do_IP(block), 1);
 }
 
-static WORD *opencl_LM_do_FP(WORD in[2])
+static WORD *opencl_lm_do_FP(WORD in[2])
 {
 	static WORD out[2];
 	int src, dst;
@@ -223,7 +217,7 @@ static WORD *opencl_LM_do_FP(WORD in[2])
 	return out;
 }
 
-char *opencl_LM_bs_get_source_LM(WORD *raw)
+char *opencl_lm_get_source(WORD *raw)
 {
 	static char out[17];
 	char *p;
@@ -234,7 +228,7 @@ char *opencl_LM_bs_get_source_LM(WORD *raw)
 	swapped[0] = raw[1];
 	swapped[1] = raw[0];
 
-	block = opencl_LM_do_FP(swapped);
+	block = opencl_lm_do_FP(swapped);
 
 	p = out;
 	for (index = 0; index < 16; index += 2) {
@@ -249,19 +243,19 @@ char *opencl_LM_bs_get_source_LM(WORD *raw)
 	return out;
 }
 
-int opencl_LM_bs_cmp_one_b(WORD *binary, int count, int index)
+int opencl_lm_cmp_one_b(WORD *binary, int count, int index)
 {
 	int bit;
-	LM_bs_vector *b;
+	lm_vector *b;
 	int depth;
 	unsigned int section;
 
-	section = index >> LM_BS_LOG2;
-	index &= (LM_BS_DEPTH - 1);
+	section = index >> LM_LOG_DEPTH;
+	index &= (LM_DEPTH - 1);
 	depth = index >> 3;
 	index &= 7;
 
-	b = (LM_bs_vector *)((unsigned char *)&opencl_LM_bs_cracked_hashes[section * 64] + depth);
+	b = (lm_vector *)((unsigned char *)&opencl_lm_cracked_hashes[section * 64] + depth);
 
 #define GET_BIT \
 	((unsigned WORD)*(unsigned char *)&b[0] >> index)
@@ -277,31 +271,24 @@ int opencl_LM_bs_cmp_one_b(WORD *binary, int count, int index)
 	return 1;
 }
 
-static MAYBE_INLINE int LM_bs_get_hash(int index, int count)
+static MAYBE_INLINE int lm_get_hash(int index, int count)
 {
 	int result;
-	LM_bs_vector *b;
-	unsigned int sector;
+	lm_vector *b;
+	unsigned int section;
 
-	sector = index>>LM_BS_LOG2;
-	index &= (LM_BS_DEPTH-1);
+	section = index >> LM_LOG_DEPTH;
+	index &= (LM_DEPTH - 1);
 #if ARCH_LITTLE_ENDIAN
-/*
- * This is merely an optimization.  Nothing will break if this check for
- * little-endian archs is removed, even if the arch is in fact little-endian.
- */
-	init_depth();
-	//b = (LM_bs_vector *)&opencl_LM_bs_all[sector].opencl_LM_bs_cracked_hashes[0] DEPTH;
-	b = (LM_bs_vector *)&opencl_LM_bs_cracked_hashes[sector * 64] DEPTH;
+	b = (lm_vector *)&opencl_lm_cracked_hashes[section * 64];
 #define GET_BIT(bit) \
-	(((unsigned WORD)b[(bit)] START >> index) & 1)
+	(((unsigned WORD)b[(bit)] >> index) & 1)
 #else
 	depth = index >> 3;
 	index &= 7;
-	//b = (LM_bs_vector *)((unsigned char *)&opencl_LM_bs_all[sector].opencl_LM_bs_cracked_hashes[0] START + depth);
-	b = (LM_bs_vector *)((unsigned char *)&opencl_LM_bs_cracked_hashes[sector * 64] START + depth);
+	b = (lm_vector *)((unsigned char *)&opencl_lm_cracked_hashes[sector * 64] + depth);
 #define GET_BIT(bit) \
-	(((unsigned int)*(unsigned char *)&b[(bit)] START >> index) & 1)
+	(((unsigned int)*(unsigned char *)&b[(bit)] >> index) & 1)
 #endif
 #define MOVE_BIT(bit) \
 	(GET_BIT(bit) << (bit))
@@ -352,39 +339,39 @@ static MAYBE_INLINE int LM_bs_get_hash(int index, int count)
 	return result;
 }
 
-int opencl_LM_bs_get_hash_0(int index)
+int opencl_lm_get_hash_0(int index)
 {
-	return LM_bs_get_hash(index, 4);
+	return lm_get_hash(index, 4);
 }
 
-int opencl_LM_bs_get_hash_1(int index)
+int opencl_lm_get_hash_1(int index)
 {
-	return LM_bs_get_hash(index, 8);
+	return lm_get_hash(index, 8);
 }
 
-int opencl_LM_bs_get_hash_2(int index)
+int opencl_lm_get_hash_2(int index)
 {
-	return LM_bs_get_hash(index, 12);
+	return lm_get_hash(index, 12);
 }
 
-int opencl_LM_bs_get_hash_3(int index)
+int opencl_lm_get_hash_3(int index)
 {
-	return LM_bs_get_hash(index, 16);
+	return lm_get_hash(index, 16);
 }
 
-int opencl_LM_bs_get_hash_4(int index)
+int opencl_lm_get_hash_4(int index)
 {
-	return LM_bs_get_hash(index, 20);
+	return lm_get_hash(index, 20);
 }
 
-int opencl_LM_bs_get_hash_5(int index)
+int opencl_lm_get_hash_5(int index)
 {
-	return LM_bs_get_hash(index, 24);
+	return lm_get_hash(index, 24);
 }
 
-int opencl_LM_bs_get_hash_6(int index)
+int opencl_lm_get_hash_6(int index)
 {
-	return LM_bs_get_hash(index, 27);
+	return lm_get_hash(index, 27);
 }
 
 #endif /* HAVE_OPENCL */

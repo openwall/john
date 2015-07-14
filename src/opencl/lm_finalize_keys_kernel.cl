@@ -77,7 +77,7 @@
 	kvand_shl_or(va, v6, m, 6); 			\
 	kvand_shl_or(vb, v7, m, 7); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += global_work_size; 						\
+	kp += gws; 					\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_1g { 			\
@@ -91,7 +91,7 @@
 	kvand_shl_or(va, v6, m, 5); 			\
 	kvand_shl_or(vb, v7, m, 6); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += global_work_size; 						\
+	kp += gws; 					\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_2g { 			\
@@ -105,7 +105,7 @@
 	kvand_shl_or(va, v6, m, 4); 			\
 	kvand_shl_or(vb, v7, m, 5); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += global_work_size; 						\
+	kp += gws; 					\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_3g { 			\
@@ -119,7 +119,7 @@
 	kvand_shl_or(va, v6, m, 3); 			\
 	kvand_shl_or(vb, v7, m, 4); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += global_work_size; 						\
+	kp += gws; 					\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_4g { 			\
@@ -133,7 +133,7 @@
 	kvand_shl_or(va, v6, m, 2); 			\
 	kvand_shl_or(vb, v7, m, 3); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += global_work_size; 						\
+	kp += gws; 					\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_5g { 			\
@@ -147,7 +147,7 @@
 	kvand_shl1_or(va, v6, m); 			\
 	kvand_shl_or(vb, v7, m, 2); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += global_work_size; 						\
+	kp += gws; 					\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_6g { 			\
@@ -161,7 +161,7 @@
 	kvand_or(va, v6, m); 				\
 	kvand_shl1_or(vb, v7, m); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += global_work_size; 						\
+	kp += gws; 					\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_7g { 			\
@@ -175,20 +175,20 @@
 	kvand_shr_or(va, v6, m, 1); 			\
 	kvand_or(vb, v7, m); 				\
 	kvor(kp[0], va, vb); 				\
-	kp += global_work_size;				\
+	kp += gws;				\
 }
 
-__kernel void lm_bs_finalize_keys(__global opencl_LM_bs_transfer *LM_bs_all,
-				   __global LM_bs_vector *K) {
+__kernel void lm_bs_finalize_keys(__global opencl_lm_transfer *lm_raw_keys,
+				   __global lm_vector *lm_keys) {
 
 	int section = get_global_id(0);
-	int global_work_size = get_global_size(0);
-	__global LM_bs_vector *kp = (__global LM_bs_vector *)&K[section];
+	int gws = get_global_size(0);
+	__global lm_vector *kp = (__global lm_vector *)&lm_keys[section];
 
 	int ic ;
 	for (ic = 0; ic < 7; ic++) {
-		MAYBE_GLOBAL LM_bs_vector *vp =
-		    (MAYBE_GLOBAL LM_bs_vector *)&LM_bs_all[section].xkeys.v[ic][0] ;
+		MAYBE_GLOBAL lm_vector *vp =
+		    (MAYBE_GLOBAL lm_vector *)&lm_raw_keys[section].xkeys.v[ic][0] ;
 		LOAD_V
 		FINALIZE_NEXT_KEY_BIT_0g
 		FINALIZE_NEXT_KEY_BIT_1g

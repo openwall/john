@@ -9,9 +9,9 @@
 #include "opencl_lm_kernel_params.h"
 
 #ifndef RV7xx
-#define y(p, q) vxorf(B[p]       , _local_K[_local_index768[q + k] + local_offset_K])
+#define y(p, q) vxorf(B[p]       , s_lm_key[s_key_idx[q + k] + s_key_offset])
 #else
-#define y(p, q) vxorf(B[p]       , _local_K[index768[q + k] + local_offset_K])
+#define y(p, q) vxorf(B[p]       , s_lm_key[lm_key_idx[q + k] + s_key_offset])
 #endif
 
 #define H1()\
@@ -66,7 +66,7 @@
 	y(62, 93), y(63, 94), y(32, 95),\
 	B, 4, 26, 14, 20);
 
-#define LM_bs_set_block_8(b, i, v0, v1, v2, v3, v4, v5, v6, v7) \
+#define lm_set_block_8(b, i, v0, v1, v2, v3, v4, v5, v6, v7) \
 	{ \
 		b[i] = v0; \
 		b[i + 1] = v1; \
@@ -83,10 +83,10 @@
 #define vones (~(vtype)0)
 
 inline void lm_loop(__private vtype *B,
-	      __local LM_bs_vector *_local_K,
-	      __local ushort *_local_index768,
-	      constant uint *index768,
-	      unsigned int local_offset_K) {
+	      __local lm_vector *s_lm_key,
+	      __local ushort *s_key_idx,
+	      constant uint *lm_key_idx,
+	      unsigned int s_key_offset) {
 
 		int k = 0, rounds = 8;
 
@@ -97,54 +97,53 @@ inline void lm_loop(__private vtype *B,
 		} while(--rounds);
 }
 
-__kernel void lm_bs( constant uint *index768
+__kernel void lm_bs( constant uint *lm_key_idx
 #if gpu_amd(DEVICE_INFO)
                            __attribute__((max_constant_size(3072)))
 #endif
-			   ,__global LM_bs_vector *K,
-                           __global LM_bs_vector *B_global,
+			   ,__global lm_vector *K,
+                           __global lm_vector *B_global,
                            __global int *binary,
-                           int num_loaded_hashes,
                            volatile __global uint *hash_ids,
-			   volatile __global uint *bitmap)
+			   volatile __global uint *bitmap_dupe)
 {
 
-		unsigned int section = get_global_id(0), local_offset_K;
-		unsigned int local_id = get_local_id(0);
-		unsigned int global_work_size = get_global_size(0);
-		unsigned int local_work_size = get_local_size(0);
+		unsigned int section = get_global_id(0), s_key_offset;
+		unsigned int lid = get_local_id(0);
+		unsigned int gws = get_global_size(0);
+		unsigned int lws = get_local_size(0);
 
-		local_offset_K  = 56 * local_id;
+		s_key_offset  = 56 * lid;
 
 		vtype B[64];
 
-		__local LM_bs_vector _local_K[56 * WORK_GROUP_SIZE] ;
+		__local lm_vector s_lm_key[56 * WORK_GROUP_SIZE] ;
 #ifndef RV7xx
-		__local ushort _local_index768[768] ;
+		__local ushort s_key_idx[768] ;
 #endif
 
 		int i;
 
 		for (i = 0; i < 56; i++)
-			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
+			s_lm_key[lid * 56 + i] = K[section + i * gws];
 
 #ifndef RV7xx
-		for (i = 0; i < 768; i += local_work_size)
-			_local_index768[local_id + i] = index768[local_id + i];
+		for (i = 0; i < 768; i += lws)
+			s_key_idx[lid + i] = lm_key_idx[lid + i];
 #endif
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		vtype z = vzero, o = vones;
-		LM_bs_set_block_8(B, 0, z, z, z, z, z, z, z, z);
-		LM_bs_set_block_8(B, 8, o, o, o, z, o, z, z, z);
-		LM_bs_set_block_8(B, 16, z, z, z, z, z, z, z, o);
-		LM_bs_set_block_8(B, 24, z, z, o, z, z, o, o, o);
-		LM_bs_set_block_8(B, 32, z, z, z, o, z, o, o, o);
-		LM_bs_set_block_8(B, 40, z, z, z, z, z, o, z, z);
-		LM_bs_set_block_8(B, 48, o, o, z, z, z, z, o, z);
-		LM_bs_set_block_8(B, 56, o, z, o, z, o, o, o, o);
+		lm_set_block_8(B, 0, z, z, z, z, z, z, z, z);
+		lm_set_block_8(B, 8, o, o, o, z, o, z, z, z);
+		lm_set_block_8(B, 16, z, z, z, z, z, z, z, o);
+		lm_set_block_8(B, 24, z, z, o, z, z, o, o, o);
+		lm_set_block_8(B, 32, z, z, z, o, z, o, o, o);
+		lm_set_block_8(B, 40, z, z, z, z, z, o, z, z);
+		lm_set_block_8(B, 48, o, o, z, z, z, z, o, z);
+		lm_set_block_8(B, 56, o, z, o, z, o, o, o, o);
 
-		lm_loop(B, _local_K, _local_index768, index768, local_offset_K);
+		lm_loop(B, s_lm_key, s_key_idx, lm_key_idx, s_key_offset);
 
-		cmp(B, binary, num_loaded_hashes, hash_ids, bitmap, B_global, section);
+		cmp(B, binary, hash_ids, bitmap_dupe, B_global, section);
 }
