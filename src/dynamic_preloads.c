@@ -349,7 +349,7 @@ static DYNAMIC_primitive_funcp _Funcs_6[] =
 {
 	//MGF_KEYS_BASE16_IN1
 #if ARCH_LITTLE_ENDIAN
-	DynamicFunc__set_input_len_32,
+	DynamicFunc__set_input_len_32_cleartop,
 	DynamicFunc__append_salt,
 	DynamicFunc__crypt_md5,
 #else
@@ -381,7 +381,7 @@ static DYNAMIC_primitive_funcp _Funcs_7[] =
 {
 	//MGF_KEYS_BASE16_IN1
 #if ARCH_LITTLE_ENDIAN
-	DynamicFunc__set_input_len_32,
+	DynamicFunc__set_input_len_32_cleartop,
 	DynamicFunc__append_salt,
 	DynamicFunc__crypt_md5,
 	NULL

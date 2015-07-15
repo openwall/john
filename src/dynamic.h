@@ -361,6 +361,7 @@ extern void DynamicFunc__append_salt(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input_len_16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input_len_20(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input_len_32(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input_len_32_cleartop(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input_len_40(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input_len_64(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input_len_100(DYNA_OMP_PARAMS);
