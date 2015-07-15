@@ -278,7 +278,7 @@ static void remove_duplicates_final(unsigned int num_loaded_hashes, unsigned int
 unsigned int remove_duplicates_192(unsigned int num_loaded_hashes, unsigned int hash_table_size, unsigned int verbosity)
 {
 	unsigned int i, num_unique_hashes, *rehash_list, counter;
-#define COLLISION_DTYPE unsigned short
+#define COLLISION_DTYPE unsigned int
 	COLLISION_DTYPE *collisions;
 	typedef struct {
 		unsigned int store_loc1;
