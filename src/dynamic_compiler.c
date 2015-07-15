@@ -252,6 +252,12 @@ static char *dynamic_expr_normalize(const char *ct) {
 			}
 		}
 	}
+	//
+	// TODO:  put in this order:  expression,c1=,c2=,...,cn=,passcase=,saltlen=,pass=uni,salt=,usrname=,debug,optimize,optimize2
+	// NOTE,  we only crc up to the 'passcase=' part.  Everything after that should not be used to 'distinguish' the format hash
+	//        between hashes.  NOTE, it may still cause valid to not 'load' for testing some hashes, but these still should
+	//        be loaded from the .pot file to cross off items.
+	//
 	return (char*)ct;
 }
 
@@ -1606,13 +1612,11 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 				fld1 = convert_old_dyna_to_new(fld0, fld1, Buf, sizeof(Buf), cpExpr);
 		}
 	}
-	else if (!strncmp(fld1, "@dynamic=", 9))
-		fld1 = dynamic_expr_normalize(fld1);
 	else if (strstr(options_format, "$u") && fld0 && *fld0 && !strstr(fld1, "$$U")) {
 		snprintf(Buf, sizeof(Buf), "%s$$U%s", fld1, fld0);
-		fld1 = dynamic_expr_normalize(Buf);
+		fld1 = Buf;
 	}
-	return fld1;
+	return dynamic_expr_normalize(fld1);
 }
 char *dynamic_compile_split(char *ct) {
 	extern int ldr_in_pot;
