@@ -4019,41 +4019,24 @@ void DynamicFunc__set_input_len_32(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef SIMD_COEF_32
-	if (dynamic_use_sse==1) {
-		j /= SIMD_COEF_32;
-		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
-		for (; j < til; ++j)
-		{
-			unsigned int k;
-			for (k = 0; k < SIMD_COEF_32; ++k) {
-				input_buf[j].c[GETPOS(32, k&(SIMD_COEF_32-1))] = 0x80;
-				total_len[j][k] = 32;
-			}
-		}
-		return;
-	}
-#endif
 	for (; j < til; ++j)
-	{
 		total_len_X86[j] = 32;
-#if !ARCH_LITTLE_ENDIAN
-#if MD5_X2
-		if (j&1) {
-			//MD5_swap(input_buf_X86[j>>MD5_X2].x2.w2, input_buf_X86[j>>MD5_X2].x2.w2, 8);
-			memset(&(input_buf_X86[j>>MD5_X2].x2.B2[32]), 0, 24);
-		}
-		else
-#endif
-		{
-			//MD5_swap(input_buf_X86[j>>MD5_X2].x1.w, input_buf_X86[j>>MD5_X2].x1.w, 8);
-			memset(&(input_buf_X86[j>>MD5_X2].x1.B[32]), 0, 24);
-		}
-#endif
-	}
 }
 
 void DynamicFunc__set_input2_len_32(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+	for (; j < til; ++j)
+		total_len2_X86[j] = 32;
+}
+void DynamicFunc__set_input2_len_32_cleartop(DYNA_OMP_PARAMS)
 {
 	unsigned int j, til;
 #ifdef _OPENMP
@@ -4107,39 +4090,25 @@ void DynamicFunc__set_input_len_40(DYNA_OMP_PARAMS)
 	j = 0;
 	til = m_count;
 #endif
-#ifdef SIMD_COEF_32
-	if (dynamic_use_sse==1) {
-		j /= SIMD_COEF_32;
-		til = (til+SIMD_COEF_32-1)/SIMD_COEF_32;
-		for (; j < til; ++j)
-		{
-			unsigned int k;
-			for (k = 0; k < SIMD_COEF_32; ++k) {
-				input_buf[j].c[GETPOS(40, k&(SIMD_COEF_32-1))] = 0x80;
-				total_len[j][k] = 40;
-			}
-		}
-		return;
-	}
-#endif
 	for (; j < til; ++j)
-	{
 		total_len_X86[j] = 40;
-#if !ARCH_LITTLE_ENDIAN
-#if MD5_X2
-		if (j&1) {
-			memset(&(input_buf_X86[j>>MD5_X2].x2.B2[40]), 0, 16);
-		}
-		else
-#endif
-		{
-			memset(&(input_buf_X86[j>>MD5_X2].x1.B[40]), 0, 16);
-		}
-#endif
-	}
 }
 
 void DynamicFunc__set_input2_len_40(DYNA_OMP_PARAMS)
+{
+	unsigned int j, til;
+#ifdef _OPENMP
+	til = last;
+	j = first;
+#else
+	j = 0;
+	til = m_count;
+#endif
+	for (; j < til; ++j)
+		total_len2_X86[j] = 40;
+}
+
+void DynamicFunc__set_input2_len_40_cleartop(DYNA_OMP_PARAMS)
 {
 	unsigned int j, til;
 #ifdef _OPENMP

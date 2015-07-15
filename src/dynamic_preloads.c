@@ -243,7 +243,7 @@ static DYNAMIC_primitive_funcp _Funcs_2[] =
 	// it does do a memset on last part of buffer, but 'why' is that needed???
 	// we should have a fixed length of 32 bytes set, so not sure why we need
 	// to continue to clear on these formats.
-	DynamicFunc__set_input2_len_32,
+	DynamicFunc__set_input2_len_32_cleartop,
 #endif
 
 	DynamicFunc__crypt_md5_in2_to_out1,
@@ -271,12 +271,12 @@ static DYNAMIC_primitive_funcp _Funcs_3[] =
 	DynamicFunc__crypt_md5,
 	DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix,
 #if !ARCH_LITTLE_ENDIAN
-	DynamicFunc__set_input2_len_32,
+	DynamicFunc__set_input2_len_32_cleartop,
 #endif
 	DynamicFunc__crypt2_md5,
 	DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix,
 #if !ARCH_LITTLE_ENDIAN
-	DynamicFunc__set_input2_len_32,
+	DynamicFunc__set_input2_len_32_cleartop,
 #endif
 	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
@@ -1001,7 +1001,7 @@ static DYNAMIC_primitive_funcp _Funcs_34[] =
 	//DynamicFunc__append_from_last_output_to_input2_as_base16,
 	DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix,
 #if !ARCH_LITTLE_ENDIAN
-	DynamicFunc__set_input2_len_32,
+	DynamicFunc__set_input2_len_32_cleartop,
 #endif
 	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL

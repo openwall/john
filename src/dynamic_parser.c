@@ -171,6 +171,8 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__set_input2_len_28", DynamicFunc__set_input2_len_28 },
 	{ "DynamicFunc__set_input_len_40", DynamicFunc__set_input_len_40 },
 	{ "DynamicFunc__set_input2_len_40", DynamicFunc__set_input2_len_40 },
+	{ "DynamicFunc__set_input2_len_32_cleartop", DynamicFunc__set_input2_len_32_cleartop },
+	{ "DynamicFunc__set_input2_len_40_cleartop", DynamicFunc__set_input2_len_40_cleartop },
 	{ "DynamicFunc__set_input_len_48", DynamicFunc__set_input_len_48 },
 	{ "DynamicFunc__set_input_2len_48", DynamicFunc__set_input2_len_48 },
 	{ "DynamicFunc__set_input_len_56", DynamicFunc__set_input_len_56 },

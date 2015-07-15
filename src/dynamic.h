@@ -366,8 +366,10 @@ extern void DynamicFunc__set_input_len_64(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input_len_100(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input2_len_16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input2_len_20(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_32_cleartop(DYNA_OMP_PARAMS); // needed on BE systems for mdx(mdx(mdx($p))) type functions.
 extern void DynamicFunc__set_input2_len_32(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input2_len_40(DYNA_OMP_PARAMS);
+extern void DynamicFunc__set_input2_len_40_cleartop(DYNA_OMP_PARAMS); // needed on BE systems for sha1(sha1(sha1($p))) type functions.
 extern void DynamicFunc__set_input2_len_64(DYNA_OMP_PARAMS);
 
 extern void DynamicFunc__set_input_len_24(DYNA_OMP_PARAMS);
