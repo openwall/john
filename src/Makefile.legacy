@@ -215,7 +215,7 @@ PROJ = find_version ../run/john ../run/unshadow ../run/unafs ../run/unique ../ru
 	../run/ssh2john ../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/hccap2john \
-	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
+	../run/raw2dyna ../run/keepass2john ../run/pfx2john \
 	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
 	../run/wpapcap2john \
 	../run/gpg2john ../run/luks2john ../run/cprepair ../run/base64conv
