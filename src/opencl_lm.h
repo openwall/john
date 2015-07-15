@@ -23,7 +23,7 @@
 
 #define lm_vector			WORD
 
-#define MULTIPLIER                      (WORK_GROUP_SIZE * 256)
+#define MULTIPLIER                      (64 * 256)
 #define PLAINTEXT_LENGTH		7
 
 #define MIN_KEYS_PER_CRYPT		(LM_DEPTH * MULTIPLIER)

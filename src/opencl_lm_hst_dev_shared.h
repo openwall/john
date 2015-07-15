@@ -1,7 +1,6 @@
 #ifndef _OPENCL_LM_HST_DEV_SHARED_H
 #define _OPENCL_LM_HST_DEV_SHARED_H
 
-#define WORK_GROUP_SIZE		64
 #define HARDCODE_SALT 		0
 #define FULL_UNROLL		0
 

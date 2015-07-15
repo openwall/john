@@ -8,10 +8,10 @@
 
 #include "opencl_lm_kernel_params.h"
 
-#ifndef RV7xx
-#define y(p, q) vxorf(B[p]       , s_lm_key[s_key_idx[q + k] + s_key_offset])
+#if WORK_GROUP_SIZE
+#define y(p, q) vxorf(B[p], lm_key[lm_key_idx[q + k] + s_key_offset])
 #else
-#define y(p, q) vxorf(B[p]       , s_lm_key[lm_key_idx[q + k] + s_key_offset])
+#define y(p, q) vxorf(B[p], lm_key[lm_key_idx[q + k] * gws + section])
 #endif
 
 #define H1()\
@@ -83,10 +83,23 @@
 #define vones (~(vtype)0)
 
 inline void lm_loop(__private vtype *B,
-	      __local lm_vector *s_lm_key,
-	      __local ushort *s_key_idx,
-	      constant uint *lm_key_idx,
-	      unsigned int s_key_offset) {
+#if WORK_GROUP_SIZE
+		__local lm_vector *lm_key,
+#else
+		__global lm_vector *lm_key,
+#endif
+#if USE_LOCAL_MEM
+		__local ushort *lm_key_idx,
+#else
+		constant uint *lm_key_idx,
+#endif
+#if WORK_GROUP_SIZE
+		unsigned int s_key_offset
+#else
+		unsigned int gws,
+		unsigned int section
+#endif
+		) {
 
 		int k = 0, rounds = 8;
 
@@ -101,38 +114,38 @@ __kernel void lm_bs( constant uint *lm_key_idx
 #if gpu_amd(DEVICE_INFO)
                            __attribute__((max_constant_size(3072)))
 #endif
-			   ,__global lm_vector *K,
+			   ,__global lm_vector *lm_key,
                            __global lm_vector *B_global,
                            __global int *binary,
                            volatile __global uint *hash_ids,
 			   volatile __global uint *bitmap_dupe)
 {
 
-		unsigned int section = get_global_id(0), s_key_offset;
-		unsigned int lid = get_local_id(0);
+		unsigned int section = get_global_id(0);
 		unsigned int gws = get_global_size(0);
-		unsigned int lws = get_local_size(0);
-
-		s_key_offset  = 56 * lid;
 
 		vtype B[64];
 
-		__local lm_vector s_lm_key[56 * WORK_GROUP_SIZE] ;
-#ifndef RV7xx
-		__local ushort s_key_idx[768] ;
+#if USE_LOCAL_MEM || WORK_GROUP_SIZE
+		int i;
+		unsigned int lid = get_local_id(0);
 #endif
 
-		int i;
-
+#if WORK_GROUP_SIZE
+		unsigned int s_key_offset  = 56 * lid;
+		__local lm_vector s_lm_key[56 * WORK_GROUP_SIZE];
 		for (i = 0; i < 56; i++)
-			s_lm_key[lid * 56 + i] = K[section + i * gws];
-
-#ifndef RV7xx
+			s_lm_key[lid * 56 + i] = lm_key[section + i * gws];
+#endif
+#if USE_LOCAL_MEM
+		__local ushort s_key_idx[768];
+		unsigned int lws= get_local_size(0);
 		for (i = 0; i < 768; i += lws)
 			s_key_idx[lid + i] = lm_key_idx[lid + i];
 #endif
+#if USE_LOCAL_MEM || WORK_GROUP_SIZE
 		barrier(CLK_LOCAL_MEM_FENCE);
-
+#endif
 		vtype z = vzero, o = vones;
 		lm_set_block_8(B, 0, z, z, z, z, z, z, z, z);
 		lm_set_block_8(B, 8, o, o, o, z, o, z, z, z);
@@ -143,7 +156,24 @@ __kernel void lm_bs( constant uint *lm_key_idx
 		lm_set_block_8(B, 48, o, o, z, z, z, z, o, z);
 		lm_set_block_8(B, 56, o, z, o, z, o, o, o, o);
 
-		lm_loop(B, s_lm_key, s_key_idx, lm_key_idx, s_key_offset);
+		lm_loop(B,
+#if WORK_GROUP_SIZE
+		s_lm_key,
+#else
+		lm_key,
+#endif
+#if USE_LOCAL_MEM
+		s_key_idx,
+#else
+		lm_key_idx,
+#endif
+#if WORK_GROUP_SIZE
+		s_key_offset
+#else
+		gws,
+		section
+#endif
+		);
 
 		cmp(B, binary, hash_ids, bitmap_dupe, B_global, section);
 }
