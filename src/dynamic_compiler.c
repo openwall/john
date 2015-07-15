@@ -1616,7 +1616,7 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 		if (*fld1 == '@')
 			snprintf(Buf, sizeof(Buf), "%s$$U%s", fld1, fld0);
 		else
-			snprintf(Buf, sizeof(Buf), "@%s@%s$$U%s", options.format, fld1, fld0);
+			snprintf(Buf, sizeof(Buf), "@%s@%s$$U%s", options_format, fld1, fld0);
 		fld1 = Buf;
 	}
 	return dynamic_expr_normalize(fld1);
