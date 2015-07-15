@@ -114,5 +114,9 @@ sub in_defined {
 			}
 		}
 	}
+	# if there are ANY undefined items in the stack, then we ARE undefined
+	for (my $x = $nstack-1; $x >= 0; --$x) {
+		if ($define_stack[$x] == 0) {return 0;}
+	}
 	return $define_stack[$nstack-1];
 }

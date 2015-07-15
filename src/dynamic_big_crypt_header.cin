@@ -285,7 +285,7 @@ static inline unsigned char *base64_out_buf(unsigned char *cpi, unsigned char *c
 	return cpo;
 }
 
-int large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int tid)
+int inline large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int tid)
 {
 	unsigned char *cpo2=cpo;
 	switch(eLargeOut_get(tid)) {
