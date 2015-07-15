@@ -1612,11 +1612,8 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 				fld1 = convert_old_dyna_to_new(fld0, fld1, Buf, sizeof(Buf), cpExpr);
 		}
 	}
-	//else if (!strncmp(fld1, "@dynamic=", 9))
-	//	fld1 = dynamic_expr_normalize(fld1);
 	else if (strstr(options_format, "$u") && fld0 && *fld0 && !strstr(fld1, "$$U")) {
 		snprintf(Buf, sizeof(Buf), "%s$$U%s", fld1, fld0);
-		//fld1 = dynamic_expr_normalize(Buf);
 		fld1 = Buf;
 	}
 	return dynamic_expr_normalize(fld1);
