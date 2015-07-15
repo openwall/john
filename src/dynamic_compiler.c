@@ -181,7 +181,7 @@ DONE #define MGF_BASE_16_OUTPUT_UPCASE    0x00002000
 #include "memdbg.h"
 
 static int gost_init = 0;
-const char *options_format;
+const char *options_format="";
 
 typedef struct DC_list {
 	struct DC_list *next;
@@ -1612,13 +1612,14 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 				fld1 = convert_old_dyna_to_new(fld0, fld1, Buf, sizeof(Buf), cpExpr);
 		}
 	}
-	else if (!strncmp(fld1, "@dynamic=", 9))
-		fld1 = dynamic_expr_normalize(fld1);
+	//else if (!strncmp(fld1, "@dynamic=", 9))
+	//	fld1 = dynamic_expr_normalize(fld1);
 	else if (strstr(options_format, "$u") && fld0 && *fld0 && !strstr(fld1, "$$U")) {
 		snprintf(Buf, sizeof(Buf), "%s$$U%s", fld1, fld0);
-		fld1 = dynamic_expr_normalize(Buf);
+		//fld1 = dynamic_expr_normalize(Buf);
+		fld1 = Buf;
 	}
-	return fld1;
+	return dynamic_expr_normalize(fld1);
 }
 char *dynamic_compile_split(char *ct) {
 	extern int ldr_in_pot;
