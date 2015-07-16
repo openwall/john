@@ -29,7 +29,6 @@
 #define MIN_KEYS_PER_CRYPT		(LM_DEPTH * MULTIPLIER)
 #define MAX_KEYS_PER_CRYPT		(LM_DEPTH * MULTIPLIER)
 
-#define GWS_CONFIG		        "lm_GWS"
 #define FORMAT_LABEL			"lm-opencl"
 
 #define	MAX_DEVICES_PER_PLATFORM	10

@@ -299,8 +299,8 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run_ms)
 {
 	unsigned int full_unroll = 0;
-	unsigned int use_local_mem = 0;
-	unsigned int force_global_keys = 0;
+	unsigned int use_local_mem = 1;
+	unsigned int force_global_keys = 1;
 	unsigned int gws_tune_flag = 1;
 	unsigned int lws_tune_flag = 1;
 
@@ -311,6 +311,24 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 
 	char key[PLAINTEXT_LENGTH + 1] = "alterit";
 
+	if (cpu(device_info[gpu_id])) {
+		force_global_keys = 1;
+		use_local_mem = 0;
+		full_unroll = 0;
+		kernel_run_ms = 5;
+	}
+	else if (gpu(device_info[gpu_id])) {
+		force_global_keys = 0;
+		use_local_mem = 1;
+		full_unroll = 0;
+	}
+	else {
+		force_global_keys = 1;
+		use_local_mem = 0;
+		full_unroll = 0;
+		kernel_run_ms = 40;
+	}
+
 	local_work_size = 0;
 	global_work_size = 0;
 	gws_tune_flag = 1;
@@ -318,8 +336,12 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 	opencl_get_user_preferences(FORMAT_LABEL);
 	if (global_work_size)
 		gws_tune_flag = 0;
-	if (local_work_size)
+	if (local_work_size) {
 		lws_tune_flag = 0;
+		if (local_work_size & (local_work_size - 1)) {
+			get_power_of_two(local_work_size);
+		}
+	}
 
 	s_mem_limited_lws = find_smem_lws_limit(
 			full_unroll, use_local_mem, force_global_keys);
@@ -332,41 +354,56 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 		init_kernels(num_loaded_hashes, 0, use_local_mem && s_mem_limited_lws);
 		set_kernel_args();
 
-		gws_tune(1024, kernel_run_ms, gws_tune_flag);
+		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag);
+		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag);
 
 		lws_limit = get_kernel_max_lws(gpu_id, krnl[gpu_id][0]);
-		if (gpu(device_info[gpu_id]) && lws_limit >= 32)
-			local_work_size = 32;
-		else
-			local_work_size = get_kernel_preferred_multiple(gpu_id, krnl[gpu_id][0]);
+
+		if (lws_tune_flag) {
+			if (gpu(device_info[gpu_id]) && lws_limit >= 32)
+				local_work_size = 32;
+			else
+				local_work_size = get_kernel_preferred_multiple(gpu_id, krnl[gpu_id][0]);
+		}
+		if (local_work_size > lws_limit)
+			local_work_size = lws_limit;
+
 		assert(local_work_size <= lws_limit);
 
-		time_ms = 0;
-		best_time_ms = 999999.00;
-		best_lws = local_work_size;
-		while (local_work_size <= lws_limit) {
-			int pcount, i;
-			for (i = 0; i < (global_work_size << LM_LOG_DEPTH); i++) {
-				key[i & 3] = i & 255;
-				key[(i & 3) + 3] = i ^ 0x3F;
-				opencl_lm_set_key(key, i);
-			}
-			gettimeofday(&startc, NULL);
-			pcount = (int)(global_work_size << LM_LOG_DEPTH);
-			lm_crypt((int *)&pcount, NULL);
-			gettimeofday(&endc, NULL);
+		if (lws_tune_flag) {
+			time_ms = 0;
+			best_time_ms = 999999.00;
+			best_lws = local_work_size;
+			while (local_work_size <= lws_limit) {
+				int pcount, i;
+				for (i = 0; i < (global_work_size << LM_LOG_DEPTH); i++) {
+					key[i & 3] = i & 255;
+					key[(i & 3) + 3] = i ^ 0x3F;
+					opencl_lm_set_key(key, i);
+				}
+				gettimeofday(&startc, NULL);
+				pcount = (int)(global_work_size << LM_LOG_DEPTH);
+				lm_crypt((int *)&pcount, NULL);
+				gettimeofday(&endc, NULL);
 
-			time_ms = calc_ms(startc, endc);
+				time_ms = calc_ms(startc, endc);
 
-			if (time_ms < best_time_ms) {
-				best_lws = local_work_size;
-				best_time_ms = time_ms;
+				if (time_ms < best_time_ms) {
+					best_lws = local_work_size;
+					best_time_ms = time_ms;
+				}
+#if 0
+	fprintf(stdout, "GWS: %zu, LWS: %zu, Limit_smem:%zu, Limit_kernel:%zu,"
+		"Current time:%Lf, Best time:%Lf\n",
+ 		global_work_size, local_work_size, s_mem_limited_lws,
+		get_kernel_max_lws(gpu_id, krnl[gpu_id][0]), time_ms,
+		best_time_ms);
+#endif
+				local_work_size *= 2;
 			}
-			local_work_size *= 2;
+			local_work_size = best_lws;
+			gws_tune(global_work_size, kernel_run_ms, gws_tune_flag);
 		}
-
-		local_work_size = best_lws;
-		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag);
 	}
 
 	else {
@@ -392,7 +429,8 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 			warp_size = 1;
 			fprintf(stderr, "Possible auto_tune fail!!.\n");
 		}
-		local_work_size = warp_size;
+		if (lws_tune_flag)
+			local_work_size = warp_size;
 		if (local_work_size > s_mem_limited_lws)
 			local_work_size = s_mem_limited_lws;
 
@@ -408,67 +446,67 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 		set_kernel_args();
 		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag);
 		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag);
-		best_time_ms = 999999.00;
-		best_lws = local_work_size;
 
-		while (local_work_size <= s_mem_limited_lws) {
-			int pcount, i;
+		if (lws_tune_flag) {
+			best_time_ms = 999999.00;
+			best_lws = local_work_size;
+			while (local_work_size <= s_mem_limited_lws) {
+				int pcount, i;
+				release_kernels();
+				init_kernels(num_loaded_hashes, local_work_size, use_local_mem);
+				set_kernel_args();
+				set_kernel_args_gws();
+
+				for (i = 0; i < (global_work_size << LM_LOG_DEPTH); i++) {
+					key[i & 3] = i & 255;
+					key[(i & 3) + 3] = i ^ 0x3E;
+					opencl_lm_set_key(key, i);
+				}
+
+				gettimeofday(&startc, NULL);
+				pcount = (int)(global_work_size << LM_LOG_DEPTH);
+				lm_crypt((int *)&pcount, NULL);
+				gettimeofday(&endc, NULL);
+				time_ms = calc_ms(startc, endc);
+
+				if (time_ms < best_time_ms && local_work_size <= get_kernel_max_lws(gpu_id, krnl[gpu_id][0])) {
+					best_lws = local_work_size;
+					best_time_ms = time_ms;
+				}
+#if 0
+	fprintf(stdout, "GWS: %zu, LWS: %zu, Limit_smem:%zu, Limit_kernel:%zu,"
+		"Current time:%Lf, Best time:%Lf\n",
+ 		global_work_size, local_work_size, s_mem_limited_lws,
+		get_kernel_max_lws(gpu_id, krnl[gpu_id][0]), time_ms,
+		best_time_ms);
+#endif
+				if (gpu(device_info[gpu_id])) {
+					if (local_work_size < 16)
+						local_work_size = 16;
+					else if (local_work_size < 32)
+						local_work_size = 32;
+					else if (local_work_size < 64)
+						local_work_size = 64;
+					else if (local_work_size < 96)
+						local_work_size = 96;
+					else if (local_work_size < 128)
+						local_work_size = 128;
+					else
+						local_work_size += warp_size;
+				}
+				else
+					local_work_size *= 2;
+			}
+			local_work_size = best_lws;
 			release_kernels();
 			init_kernels(num_loaded_hashes, local_work_size, use_local_mem);
 			set_kernel_args();
-			set_kernel_args_gws();
-
-			for (i = 0; i < (global_work_size << LM_LOG_DEPTH); i++) {
-				key[i & 3] = i & 255;
-				key[(i & 3) + 3] = i ^ 0x3E;
-				opencl_lm_set_key(key, i);
-			}
-			gettimeofday(&startc, NULL);
-			pcount = (int)(global_work_size << LM_LOG_DEPTH);
-			lm_crypt((int *)&pcount, NULL);
-			gettimeofday(&endc, NULL);
-			time_ms = calc_ms(startc, endc);
-
-			if (time_ms < best_time_ms && local_work_size <= get_kernel_max_lws(gpu_id, krnl[gpu_id][0])) {
-				best_lws = local_work_size;
-				best_time_ms = time_ms;
-			}
-#if 1
-	fprintf(stdout, "GWS: %zu, LWS: %zu, Limit_smem:%zu, Limit_kernel:%zu,"
-			"Current time:%Lf, Best time:%Lf\n",
- 			global_work_size, local_work_size, s_mem_limited_lws,
-			get_kernel_max_lws(gpu_id, krnl[gpu_id][0]), time_ms,
-			best_time_ms);
-#endif
-			if (gpu(device_info[gpu_id])) {
-				if (local_work_size < 16)
-					local_work_size = 16;
-				else if (local_work_size < 32)
-					local_work_size = 32;
-				else if (local_work_size < 64)
-					local_work_size = 64;
-				else if (local_work_size < 96)
-					local_work_size = 96;
-				else if (local_work_size < 128)
-					local_work_size = 128;
-				else
-					local_work_size += warp_size;
-
-			}
-			else
-				local_work_size *= 2;
+			gws_tune(global_work_size, kernel_run_ms, gws_tune_flag);
 		}
-
-		local_work_size = best_lws;
-
-		release_kernels();
-		init_kernels(num_loaded_hashes, local_work_size, use_local_mem);
-		set_kernel_args();
-		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag);
 	}
 
 	fprintf(stdout, "GWS: %zu, LWS: %zu\n",
-			global_work_size, local_work_size);
+		global_work_size, local_work_size);
 }
 
 static void reset(struct db_main *db)
@@ -501,12 +539,8 @@ static void reset(struct db_main *db)
 		} while ((pw = pw -> next));
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_loaded_hashes, CL_TRUE, 0, num_loaded_hashes * sizeof(int) * 2, loaded_hashes, 0, NULL, NULL ), "Failed Copy data to gpu");
 
-		init_kernels(num_loaded_hashes, 64, 0);
-
-		set_kernel_args();
-
-		create_buffer_gws(MULTIPLIER);
-		set_kernel_args_gws();
+		auto_tune_all(num_loaded_hashes, 300);
+		num_set_keys = fmt_opencl_lm.params.max_keys_per_crypt;
 	}
 	else {
 		int i, *binary;
