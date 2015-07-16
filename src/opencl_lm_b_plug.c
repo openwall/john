@@ -174,7 +174,7 @@ static size_t find_smem_lws_limit(unsigned int full_unroll, unsigned int use_loc
 {
 	cl_ulong s_mem_sz = get_local_memory_size(gpu_id);
 	size_t expected_lws_limit;
-	size_t warp_size;
+	cl_uint warp_size;
 
 	if (force_global_keys) {
 		if (s_mem_sz > 768 * sizeof(cl_short))
@@ -189,16 +189,16 @@ static size_t find_smem_lws_limit(unsigned int full_unroll, unsigned int use_loc
 	if (gpu_amd(device_info[gpu_id])) {
 		HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id],
 		CL_DEVICE_WAVEFRONT_WIDTH_AMD,
-		sizeof(size_t), &warp_size, 0),
+		sizeof(cl_uint), &warp_size, 0),
 		"failed to get CL_DEVICE_WAVEFRONT_WIDTH_AMD.");
 		assert(warp_size == 64);
 	}
 	else if (gpu_nvidia(device_info[gpu_id])) {
 		HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id],
 		CL_DEVICE_WARP_SIZE_NV,
-		sizeof(size_t), &warp_size, 0),
+		sizeof(cl_uint), &warp_size, 0),
 		"failed to get CL_DEVICE_WARP_SIZE_NV.");
-		assert(warp_size == 32);
+		assert(warp_size >= 32);
 	}
 	else
 		return 0;
@@ -345,6 +345,12 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 
 	s_mem_limited_lws = find_smem_lws_limit(
 			full_unroll, use_local_mem, force_global_keys);
+#if 0
+	fprintf(stdout, "Limit_smem:%zu, Full_unroll_flag:%u,"
+		"Use_local_mem:%u, Force_global_keys:%u\n",
+ 		s_mem_limited_lws, full_unroll, use_local_mem,
+		force_global_keys);
+#endif
 
 	if (s_mem_limited_lws == 0x800000 || !s_mem_limited_lws) {
 		long double best_time_ms;
@@ -408,12 +414,13 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 
 	else {
 		long double best_time_ms;
-		size_t best_lws, warp_size;
+		size_t best_lws;
+		cl_uint warp_size;
 
 		if (gpu_amd(device_info[gpu_id])) {
 			HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id],
 				CL_DEVICE_WAVEFRONT_WIDTH_AMD,
-				sizeof(size_t), &warp_size, 0),
+				sizeof(cl_uint), &warp_size, 0),
 				"failed to get CL_DEVICE_WAVEFRONT_WIDTH_AMD.");
 			assert(warp_size == 64);
 		}
@@ -421,7 +428,7 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 		else if (gpu_nvidia(device_info[gpu_id])) {
 			HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id],
 				CL_DEVICE_WARP_SIZE_NV,
-				sizeof(size_t), &warp_size, 0),
+				sizeof(cl_uint), &warp_size, 0),
 				"failed to get CL_DEVICE_WARP_SIZE_NV.");
 			assert(warp_size == 32);
 		}
