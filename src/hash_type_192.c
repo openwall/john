@@ -184,7 +184,7 @@ int test_tables_192(unsigned int num_loaded_hashes, OFFSET_TABLE_WORD *offset_ta
 static void remove_duplicates_final(unsigned int num_loaded_hashes, unsigned int hash_table_size, unsigned int *rehash_list)
 {
 	unsigned int i, **hash_location_list, counter;
-#define COLLISION_DTYPE unsigned short
+#define COLLISION_DTYPE unsigned int
 	COLLISION_DTYPE *collisions;
 	typedef struct {
 		unsigned int store_loc1;
@@ -284,7 +284,6 @@ unsigned int remove_duplicates_192(unsigned int num_loaded_hashes, unsigned int 
 		unsigned int store_loc1;
 		unsigned int store_loc2;
 		unsigned int store_loc3;
-		COLLISION_DTYPE  collisions;
 		COLLISION_DTYPE iter;
 
 	} hash_table_data;
@@ -325,13 +324,12 @@ unsigned int remove_duplicates_192(unsigned int num_loaded_hashes, unsigned int 
 #pragma omp for
 #endif
 	for (i = 0; i < hash_table_size; i++) {
-		 hash_table[i].collisions = collisions[i];
-		 hash_table[i].iter = 0;
-		 if (hash_table[i].collisions > 4)
+		  hash_table[i].iter = 0;
+		 if (collisions[i] > 4)
 #if _OPENMP
 #pragma omp atomic
 #endif
-			 counter += (hash_table[i].collisions - 3);
+			 counter += (collisions[i] - 3);
 	}
 #if _OPENMP
 #pragma omp barrier
@@ -415,7 +413,7 @@ unsigned int remove_duplicates_192(unsigned int num_loaded_hashes, unsigned int 
 				    check_equal(hash_table[idx].store_loc3, i))
 					set_zero(i);
 				else {
-					if (hash_table[idx].collisions > 4)
+					if (collisions[idx] > 4)
 						rehash_list[counter++] = i;
 				}
 			}
