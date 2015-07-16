@@ -187,18 +187,14 @@ static size_t find_smem_lws_limit(unsigned int full_unroll, unsigned int use_loc
 		return 0;
 
 	if (gpu_amd(device_info[gpu_id])) {
-		HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id],
-		CL_DEVICE_WAVEFRONT_WIDTH_AMD,
-		sizeof(cl_uint), &warp_size, 0),
-		"failed to get CL_DEVICE_WAVEFRONT_WIDTH_AMD.");
-		assert(warp_size == 64);
+		if (clGetDeviceInfo(devices[gpu_id], CL_DEVICE_WAVEFRONT_WIDTH_AMD,
+		                    sizeof(cl_uint), &warp_size, 0) != CL_SUCCESS)
+			warp_size = 64;
 	}
 	else if (gpu_nvidia(device_info[gpu_id])) {
-		HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id],
-		CL_DEVICE_WARP_SIZE_NV,
-		sizeof(cl_uint), &warp_size, 0),
-		"failed to get CL_DEVICE_WARP_SIZE_NV.");
-		assert(warp_size == 32);
+		if (clGetDeviceInfo(devices[gpu_id], CL_DEVICE_WARP_SIZE_NV,
+		                    sizeof(cl_uint), &warp_size, 0) != CL_SUCCESS)
+			warp_size = 32;
 	}
 	else
 		return 0;
@@ -418,19 +414,14 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 		cl_uint warp_size;
 
 		if (gpu_amd(device_info[gpu_id])) {
-			HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id],
-				CL_DEVICE_WAVEFRONT_WIDTH_AMD,
-				sizeof(cl_uint), &warp_size, 0),
-				"failed to get CL_DEVICE_WAVEFRONT_WIDTH_AMD.");
-			assert(warp_size == 64);
+			if (clGetDeviceInfo(devices[gpu_id], CL_DEVICE_WAVEFRONT_WIDTH_AMD,
+			                    sizeof(cl_uint), &warp_size, 0) != CL_SUCCESS)
+				warp_size = 64;
 		}
-
 		else if (gpu_nvidia(device_info[gpu_id])) {
-			HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id],
-				CL_DEVICE_WARP_SIZE_NV,
-				sizeof(cl_uint), &warp_size, 0),
-				"failed to get CL_DEVICE_WARP_SIZE_NV.");
-			assert(warp_size == 32);
+			if (clGetDeviceInfo(devices[gpu_id], CL_DEVICE_WARP_SIZE_NV,
+			                    sizeof(cl_uint), &warp_size, 0) != CL_SUCCESS)
+				warp_size = 32;
 		}
 		else {
 			warp_size = 1;

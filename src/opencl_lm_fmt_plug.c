@@ -23,10 +23,10 @@ john_register_one(&fmt_opencl_lm);
 #include "opencl_lm_hst_dev_shared.h"
 #include "memdbg.h"
 
-#define FORMAT_NAME			"traditional crypt(3)"
+#define FORMAT_NAME			""
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		-1
 
 #define CIPHERTEXT_LENGTH		32
 
