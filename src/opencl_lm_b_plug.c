@@ -513,7 +513,7 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 			gws_tune(global_work_size, kernel_run_ms, gws_tune_flag);
 		}
 	}
-
+	if (options.verbosity > 3)
 	fprintf(stdout, "GWS: %zu, LWS: %zu\n",
 		global_work_size, local_work_size);
 }
