@@ -141,7 +141,7 @@ __kernel void lm_bs( constant uint *lm_key_idx
 		__local ushort s_key_idx[768];
 		unsigned int lws= get_local_size(0);
 		for (i = 0; i < 768; i += lws)
-			s_key_idx[lid + i] = lm_key_idx[lid + i];
+			s_key_idx[(lid + i) % 768] = lm_key_idx[(lid + i) % 768];
 #endif
 #if USE_LOCAL_MEM || WORK_GROUP_SIZE
 		barrier(CLK_LOCAL_MEM_FENCE);

@@ -33,7 +33,7 @@ static cl_kernel **krnl = NULL;
 static cl_int err;
 static cl_mem buffer_lm_key_idx, buffer_raw_keys, buffer_lm_keys, buffer_return_hashes, buffer_hash_ids, buffer_loaded_hashes, buffer_bitmap_dupe;
 static int *loaded_hashes = NULL;
-static unsigned int num_loaded_hashes, *hash_ids = NULL, num_set_keys, *zero_buffer = NULL;
+static unsigned int num_loaded_hashes, *hash_ids = NULL, *zero_buffer = NULL;
 static size_t current_gws = 0;
 
 static int lm_crypt(int *pcount, struct db_salt *salt);
@@ -198,7 +198,7 @@ static size_t find_smem_lws_limit(unsigned int full_unroll, unsigned int use_loc
 		CL_DEVICE_WARP_SIZE_NV,
 		sizeof(cl_uint), &warp_size, 0),
 		"failed to get CL_DEVICE_WARP_SIZE_NV.");
-		assert(warp_size >= 32);
+		assert(warp_size == 32);
 	}
 	else
 		return 0;
@@ -476,7 +476,9 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 				gettimeofday(&endc, NULL);
 				time_ms = calc_ms(startc, endc);
 
-				if (time_ms < best_time_ms && local_work_size <= get_kernel_max_lws(gpu_id, krnl[gpu_id][0])) {
+				if (time_ms < best_time_ms &&
+				  local_work_size <= get_kernel_max_lws(
+				    gpu_id, krnl[gpu_id][0])) {
 					best_lws = local_work_size;
 					best_time_ms = time_ms;
 				}
@@ -547,7 +549,6 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_loaded_hashes, CL_TRUE, 0, num_loaded_hashes * sizeof(int) * 2, loaded_hashes, 0, NULL, NULL ), "Failed Copy data to gpu");
 
 		auto_tune_all(num_loaded_hashes, 300);
-		num_set_keys = fmt_opencl_lm.params.max_keys_per_crypt;
 	}
 	else {
 		int i, *binary;
@@ -573,7 +574,6 @@ static void reset(struct db_main *db)
 
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_loaded_hashes, CL_TRUE, 0, num_loaded_hashes * sizeof(int) * 2, loaded_hashes, 0, NULL, NULL ), "Failed Copy data to gpu");
 		auto_tune_all(num_loaded_hashes, 300);
-		num_set_keys = fmt_opencl_lm.params.max_keys_per_crypt;
 
 		hash_ids[0] = 0;
 		initialized++;
@@ -587,59 +587,6 @@ static void init_global_variables()
 	krnl = (cl_kernel **) mem_calloc(MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM, sizeof(cl_kernel *));
 	for (i = 0; i < MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM; i++)
 		krnl[i] = (cl_kernel *) mem_calloc(2, sizeof(cl_kernel));
-}
-
-static void select_device(struct fmt_main *fmt)
-{
-	//if (!local_work_size)
-	//	local_work_size = WORK_GROUP_SIZE;
-
-	/* Cap LWS at kernel limit */
-	if (local_work_size > 64)
-		local_work_size = 64;
-
-	if (local_work_size >
-	    get_kernel_max_lws(gpu_id, krnl[gpu_id][0]))
-		local_work_size =
-			get_kernel_max_lws(gpu_id, krnl[gpu_id][0]);
-
-	if (local_work_size >
-	    get_kernel_max_lws(gpu_id, krnl[gpu_id][1]))
-		local_work_size =
-			get_kernel_max_lws(gpu_id, krnl[gpu_id][1]);
-
-	/* Cludge for buggy AMD CPU driver */
-	if (cpu(device_info[gpu_id]) &&
-	    get_platform_vendor_id(get_platform_id(gpu_id)) == DEV_AMD)
-		local_work_size = 1;
-
-	/* Cludge for old buggy Intel driver */
-	if (cpu(device_info[gpu_id]) &&
-	    get_platform_vendor_id(get_platform_id(gpu_id)) == DEV_INTEL) {
-		char dev_ver[MAX_OCLINFO_STRING_LEN];
-
-		clGetDeviceInfo(devices[gpu_id], CL_DEVICE_VERSION,
-		                MAX_OCLINFO_STRING_LEN, dev_ver, NULL);
-		if (strstr(dev_ver, "Build 15293.6649"))
-			local_work_size = 1;
-	}
-
-	/* ...but ensure GWS is still a multiple of LWS */
-	global_work_size = ((global_work_size + local_work_size - 1) /
-	                    local_work_size) * local_work_size;
-
-
-
-
-	/*if (!global_work_size)
-		find_best_gws(fmt);
-	else {
-		if (options.verbosity > 3)
-			fprintf(stderr, "Local worksize (LWS) "Zu", Global worksize (GWS) "Zu"\n", local_work_size, global_work_size);
-		fmt -> params.max_keys_per_crypt = global_work_size * LM_BS_DEPTH;
-		fmt -> params.min_keys_per_crypt = local_work_size * LM_BS_DEPTH;
-	}*/
-	num_set_keys = fmt -> params.max_keys_per_crypt;
 }
 
 static char *get_key(int index)
@@ -669,6 +616,11 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Write FAILED\n");
 
+	if (hash_ids[0] > num_loaded_hashes) {
+		fprintf(stderr, "Error, crypt_all kernel.\n");
+		error();
+	}
+
 	if (hash_ids[0]) {
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (2 * num_loaded_hashes + 1) * sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Write FAILED\n");
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_return_hashes, CL_TRUE, 0, hash_ids[0] * 64 * sizeof(lm_vector), opencl_lm_cracked_hashes, 0, NULL, NULL), "Write FAILED\n");
@@ -687,6 +639,5 @@ void opencl_lm_b_register_functions(struct fmt_main *fmt)
 	fmt->methods.crypt_all = &lm_crypt;
 
 	opencl_lm_init_global_variables = &init_global_variables;
-	opencl_lm_select_device = &select_device;
 }
 #endif /* HAVE_OPENCL */

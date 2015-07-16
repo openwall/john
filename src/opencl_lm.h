@@ -45,19 +45,17 @@
 	else								\
 		section = hash_ids[2 * (index >> LM_LOG_DEPTH) + 1];	\
 									\
-	if (section > ((num_set_keys + LM_DEPTH - 1) >> LM_LOG_DEPTH) ) {	\
-		fprintf(stderr, "Get key error! %d %d\n", section,	\
-			num_set_keys);					\
+	if (section > global_work_size ) {				\
+		fprintf(stderr, "Get key error! %u %zu\n", section,	\
+			global_work_size);				\
 		section = 0;						\
-		if (num_set_keys)					\
-			error();					\
 	}								\
 	block  = index & (LM_DEPTH - 1);				\
 									\
 	src = opencl_lm_all[section].pxkeys[block];			\
 	dst = out;							\
 	while (dst < &out[PLAINTEXT_LENGTH] && (*dst = *src)) {		\
-		src += sizeof(lm_vector) * 8;			\
+		src += sizeof(lm_vector) * 8;				\
 		dst++;							\
 	}								\
 	*dst = 0;							\
@@ -87,8 +85,6 @@ extern lm_vector *opencl_lm_cracked_hashes;
 extern void opencl_lm_b_register_functions(struct fmt_main *);
 
 extern void (*opencl_lm_init_global_variables)(void);
-extern void (*opencl_lm_select_device)(struct fmt_main *);
-
 
 extern int opencl_lm_get_hash_0(int index);
 extern int opencl_lm_get_hash_1(int index);

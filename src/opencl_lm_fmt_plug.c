@@ -54,25 +54,12 @@ static struct fmt_tests tests[] = {
 
 
 void (*opencl_lm_init_global_variables)(void);
-void (*opencl_lm_select_device)(struct fmt_main *);
 
 static void init(struct fmt_main *pFmt)
 {
 	opencl_lm_b_register_functions(pFmt);
-
 	opencl_lm_init_global_variables();
-
 	opencl_prepare_dev(gpu_id);
-
-	/*if (local_work_size & (local_work_size - 1)) {
-		if (local_work_size < 4) local_work_size = 4;
-		else if (local_work_size < 8) local_work_size = 8;
-		else if (local_work_size < 16) local_work_size = 16;
-		else if (local_work_size < 32) local_work_size = 32;
-		else local_work_size = WORK_GROUP_SIZE;
-	}*/
-
-	//opencl_LM_bs_select_device(pFmt);
 }
 
 static char *prepare(char *fields[10], struct fmt_main *self)
