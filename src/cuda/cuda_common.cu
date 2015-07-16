@@ -76,6 +76,7 @@ void cuda_device_list()
 {
 	int i, devices;
 	cudaError_t ret;
+	int version;
 
 	ret = cudaGetDeviceCount(&devices);
 	if (ret == cudaErrorNoDevice) {
@@ -86,6 +87,12 @@ void cuda_device_list()
 		puts("Error: The installed NVIDIA CUDA driver is older than the CUDA runtime library.\nThis is not a supported configuration. Update your display driver.\n");
 		exit(1);
 	}
+	if (cudaRuntimeGetVersion(&version) == cudaSuccess)
+		printf("CUDA runtime version %d.%d\n",
+		       version / 1000, (version % 100) / 10);
+	if (cudaDriverGetVersion(&version) == cudaSuccess)
+		printf("CUDA driver version %d.%d\n",
+		       version / 1000, (version % 100) / 10);
 
 	printf("%d CUDA device%s found:\n", devices, devices > 1 ? "s" : "");
 	nvidia_probe();
