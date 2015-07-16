@@ -325,6 +325,7 @@ static fpSYM fpCode[1024];
 static int nCode, nCurCode;
 static char *pScriptLines[1024];
 static int nScriptLines;
+static int outer_hash_len;
 static int nSyms;
 static int LastTokIsFunc;
 static int bNeedS, bNeedS2, bNeedU, bNeedUlc, bNeedUuc, bNeedPlc, bNeedPuc, bNeedUC, bNeedPC;
@@ -495,6 +496,7 @@ static void init_static_data() {
 	nScriptLines = 0;
 	LastTokIsFunc = 0;
 	keys_as_input = 0;
+	outer_hash_len = 0;
 	bNeedS = bNeedS2 = bNeedU = bNeedUlc = bNeedUuc = bNeedPlc = bNeedPuc = bNeedUC = bNeedPC = compile_debug = 0;
 	MEM_FREE(salt_as_hex_type);
 	h = NULL;
@@ -1248,10 +1250,10 @@ static int parse_expression(DC_struct *p) {
 #undef ELSEIF
 #define IF(C,T,L,F) if (!strncasecmp(pCode[i], #T, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
-	if(F) comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); }
+	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
 #define ELSEIF(C,T,L,F) else if (!strncasecmp(pCode[i], #T, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
-	if(F) comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); }
+	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
 
 							IF(SHA512,f512,4,64)
 							ELSEIF(MD5,f5,2,0)
@@ -1473,6 +1475,16 @@ static char *convert_old_dyna_to_new(char *fld0, char *in, char *out, int outsiz
 	return out;
 }
 
+int looks_like_bare_hash(const char *fld1) {
+	// look for hex string with 'optional' '$' for salt.
+	int len = base64_valid_length(fld1, e_b64_hex, 0);
+	if (len == (outer_hash_len<<1)) {
+		// check salt flag
+		return 1;
+	}
+	return 0;
+}
+
 char *dynamic_compile_prepare(char *fld0, char *fld1) {
 	static char Buf[1024], tmp1[64];
 	char *cpExpr=0;
@@ -1612,11 +1624,20 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 				fld1 = convert_old_dyna_to_new(fld0, fld1, Buf, sizeof(Buf), cpExpr);
 		}
 	}
+	// NOTE, we probably could have used dyna_signature at this point, vs creating this options_format item.
 	else if (strstr(options_format, "$u") && fld0 && *fld0 && !strstr(fld1, "$$U")) {
+		char buf2[sizeof(Buf)];
+		// note that Buf may already be fld1, so do not printf into Buf from here on!!
 		if (*fld1 == '@')
-			snprintf(Buf, sizeof(Buf), "%s$$U%s", fld1, fld0);
+			snprintf(buf2, sizeof(buf2), "%s$$U%s", fld1, fld0);
 		else
-			snprintf(Buf, sizeof(Buf), "@%s@%s$$U%s", options_format, fld1, fld0);
+			snprintf(buf2, sizeof(buf2), "@%s@%s$$U%s", options_format, fld1, fld0);
+		strcpy(Buf, buf2);
+		fld1 = Buf;
+	} else if (strncmp(fld1, "@dynamic=", 9) && looks_like_bare_hash(fld1)) {
+		char buf2[sizeof(Buf)];
+		snprintf(buf2, sizeof(buf2), "%s%s", dyna_signature, fld1);
+		strcpy(Buf, buf2);
 		fld1 = Buf;
 	}
 	return dynamic_expr_normalize(fld1);
