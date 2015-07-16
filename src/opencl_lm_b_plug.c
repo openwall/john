@@ -237,7 +237,7 @@ static size_t find_smem_lws_limit(unsigned int full_unroll, unsigned int use_loc
 			(long double)(end.tv_usec - start.tv_usec) / 1000.000)
 
 /* Sets global_work_size and max_keys_per_crypt. */
-static void gws_tune(size_t gws_init, long double kernel_run_ms)
+static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_flag)
 {
 	unsigned int i;
 	char key[PLAINTEXT_LENGTH + 1] = "alterit";
@@ -256,28 +256,33 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms)
 	}
 	assert(gws_limit > PADDING);
 	assert(!(gws_limit & (gws_limit - 1)));
-	global_work_size = gws_init;
+
+	if (gws_tune_flag)
+		global_work_size = gws_init;
 
 	if (global_work_size > gws_limit)
 		global_work_size = gws_limit;
 
-	release_buffer_gws();
-	create_buffer_gws(global_work_size);
-	set_kernel_args_gws();
+	if (gws_tune_flag) {
+		release_buffer_gws();
+		create_buffer_gws(global_work_size);
+		set_kernel_args_gws();
 
-	for (i = 0; i < (global_work_size << LM_LOG_DEPTH); i++) {
-		key[i & 3] = i & 255;
-		key[(i & 3) + 3] = i ^ 0x3E;
-		opencl_lm_set_key(key, i);
+		for (i = 0; i < (global_work_size << LM_LOG_DEPTH); i++) {
+			key[i & 3] = i & 255;
+			key[(i & 3) + 3] = i ^ 0x3E;
+			opencl_lm_set_key(key, i);
+		}
+
+		gettimeofday(&startc, NULL);
+		pcount = (int)(global_work_size << LM_LOG_DEPTH);
+		lm_crypt((int *)&pcount, NULL);
+		gettimeofday(&endc, NULL);
+
+		time_ms = calc_ms(startc, endc);
+		global_work_size = (size_t)((kernel_run_ms / time_ms) * (long double)global_work_size);
 	}
 
-	gettimeofday(&startc, NULL);
-	pcount = (int)(global_work_size << LM_LOG_DEPTH);
-	lm_crypt((int *)&pcount, NULL);
-	gettimeofday(&endc, NULL);
-
-	time_ms = calc_ms(startc, endc);
-	global_work_size = (size_t)((kernel_run_ms / time_ms) * (long double)global_work_size);
 	get_power_of_two(global_work_size);
 
 	if (global_work_size > gws_limit)
@@ -296,6 +301,8 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 	unsigned int full_unroll = 0;
 	unsigned int use_local_mem = 0;
 	unsigned int force_global_keys = 0;
+	unsigned int gws_tune_flag = 1;
+	unsigned int lws_tune_flag = 1;
 
 	size_t s_mem_limited_lws;
 
@@ -303,6 +310,16 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 	long double time_ms = 0;
 
 	char key[PLAINTEXT_LENGTH + 1] = "alterit";
+
+	local_work_size = 0;
+	global_work_size = 0;
+	gws_tune_flag = 1;
+	lws_tune_flag = 1;
+	opencl_get_user_preferences(FORMAT_LABEL);
+	if (global_work_size)
+		gws_tune_flag = 0;
+	if (local_work_size)
+		lws_tune_flag = 0;
 
 	s_mem_limited_lws = find_smem_lws_limit(
 			full_unroll, use_local_mem, force_global_keys);
@@ -315,7 +332,7 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 		init_kernels(num_loaded_hashes, 0, use_local_mem && s_mem_limited_lws);
 		set_kernel_args();
 
-		gws_tune(1024, kernel_run_ms);
+		gws_tune(1024, kernel_run_ms, gws_tune_flag);
 
 		lws_limit = get_kernel_max_lws(gpu_id, krnl[gpu_id][0]);
 		if (gpu(device_info[gpu_id]) && lws_limit >= 32)
@@ -349,7 +366,7 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 		}
 
 		local_work_size = best_lws;
-		gws_tune(global_work_size, kernel_run_ms);
+		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag);
 	}
 
 	else {
@@ -389,7 +406,8 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 		}
 
 		set_kernel_args();
-		gws_tune(1024, 2 * kernel_run_ms);
+		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag);
+		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag);
 		best_time_ms = 999999.00;
 		best_lws = local_work_size;
 
@@ -446,7 +464,7 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 		release_kernels();
 		init_kernels(num_loaded_hashes, local_work_size, use_local_mem);
 		set_kernel_args();
-		gws_tune(global_work_size, kernel_run_ms);
+		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag);
 	}
 
 	fprintf(stdout, "GWS: %zu, LWS: %zu\n",
