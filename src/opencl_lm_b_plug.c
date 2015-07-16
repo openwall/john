@@ -16,6 +16,7 @@
 #include "opencl_lm_hst_dev_shared.h"
 #include "memdbg.h"
 
+#define PADDING 	2048
 #define get_power_of_two(v)	\
 {				\
 	v--;			\
@@ -33,6 +34,7 @@ static cl_int err;
 static cl_mem buffer_lm_key_idx, buffer_raw_keys, buffer_lm_keys, buffer_return_hashes, buffer_hash_ids, buffer_loaded_hashes, buffer_bitmap_dupe;
 static int *loaded_hashes = NULL;
 static unsigned int num_loaded_hashes, *hash_ids = NULL, num_set_keys, *zero_buffer = NULL;
+static size_t current_gws = 0;
 
 static int lm_crypt(int *pcount, struct db_salt *salt);
 
@@ -40,16 +42,16 @@ static void create_buffer_gws(size_t gws)
 {
 	unsigned int i;
 
-	opencl_lm_all = (opencl_lm_combined*) mem_alloc (gws * sizeof(opencl_lm_combined));
-	opencl_lm_keys = (opencl_lm_transfer*) mem_alloc (gws * sizeof(opencl_lm_transfer));
+	opencl_lm_all = (opencl_lm_combined*) mem_alloc ((gws + PADDING)* sizeof(opencl_lm_combined));
+	opencl_lm_keys = (opencl_lm_transfer*) mem_alloc ((gws + PADDING)* sizeof(opencl_lm_transfer));
 
-	buffer_raw_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, gws * sizeof(opencl_lm_transfer), NULL, &ret_code);
+	buffer_raw_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, (gws + PADDING) * sizeof(opencl_lm_transfer), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating buffer_raw_keys.");
 
-	buffer_lm_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, gws * sizeof(lm_vector) * 56, NULL, &ret_code);
+	buffer_lm_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (gws + PADDING) * sizeof(lm_vector) * 56, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating buffer_lm_keys.");
 
-	for (i = 0; i < gws; i++)
+	for (i = 0; i < (gws + PADDING); i++)
 		opencl_lm_init(i);
 }
 
@@ -245,28 +247,37 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms)
 	int pcount;
 
 	size_t gws_limit = get_max_mem_alloc_size(gpu_id) / sizeof(opencl_lm_transfer);
+	if (gws_limit > PADDING)
+		gws_limit -= PADDING;
+
 	if (gws_limit & (gws_limit - 1)) {
 		get_power_of_two(gws_limit);
 		gws_limit >>= 1;
 	}
+	assert(gws_limit > PADDING);
+	assert(!(gws_limit & (gws_limit - 1)));
+	global_work_size = gws_init;
+
+	if (global_work_size > gws_limit)
+		global_work_size = gws_limit;
 
 	release_buffer_gws();
-	create_buffer_gws(gws_init);
+	create_buffer_gws(global_work_size);
 	set_kernel_args_gws();
 
-	for (i = 0; i < (gws_init << LM_LOG_DEPTH); i++) {
+	for (i = 0; i < (global_work_size << LM_LOG_DEPTH); i++) {
 		key[i & 3] = i & 255;
-		key[(i & 3) + 3] = key[i] ^ 0x3E;
+		key[(i & 3) + 3] = i ^ 0x3E;
 		opencl_lm_set_key(key, i);
 	}
 
 	gettimeofday(&startc, NULL);
-	pcount = (int)(gws_init << LM_LOG_DEPTH);
+	pcount = (int)(global_work_size << LM_LOG_DEPTH);
 	lm_crypt((int *)&pcount, NULL);
 	gettimeofday(&endc, NULL);
 
 	time_ms = calc_ms(startc, endc);
-	global_work_size = (size_t)((kernel_run_ms / time_ms) * (long double)gws_init);
+	global_work_size = (size_t)((kernel_run_ms / time_ms) * (long double)global_work_size);
 	get_power_of_two(global_work_size);
 
 	if (global_work_size > gws_limit)
@@ -320,7 +331,7 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 			int pcount, i;
 			for (i = 0; i < (global_work_size << LM_LOG_DEPTH); i++) {
 				key[i & 3] = i & 255;
-				key[(i & 3) + 3] = key[i] ^ 0x3E;
+				key[(i & 3) + 3] = i ^ 0x3F;
 				opencl_lm_set_key(key, i);
 			}
 			gettimeofday(&startc, NULL);
@@ -378,14 +389,12 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 		}
 
 		set_kernel_args();
-		gws_tune(1024, kernel_run_ms);
-
+		gws_tune(1024, 2 * kernel_run_ms);
 		best_time_ms = 999999.00;
 		best_lws = local_work_size;
 
 		while (local_work_size <= s_mem_limited_lws) {
 			int pcount, i;
-
 			release_kernels();
 			init_kernels(num_loaded_hashes, local_work_size, use_local_mem);
 			set_kernel_args();
@@ -393,20 +402,26 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 
 			for (i = 0; i < (global_work_size << LM_LOG_DEPTH); i++) {
 				key[i & 3] = i & 255;
-				key[(i & 3) + 3] = key[i] ^ 0x3E;
+				key[(i & 3) + 3] = i ^ 0x3E;
 				opencl_lm_set_key(key, i);
 			}
 			gettimeofday(&startc, NULL);
 			pcount = (int)(global_work_size << LM_LOG_DEPTH);
 			lm_crypt((int *)&pcount, NULL);
 			gettimeofday(&endc, NULL);
-
 			time_ms = calc_ms(startc, endc);
 
 			if (time_ms < best_time_ms && local_work_size <= get_kernel_max_lws(gpu_id, krnl[gpu_id][0])) {
 				best_lws = local_work_size;
 				best_time_ms = time_ms;
 			}
+#if 1
+	fprintf(stdout, "GWS: %zu, LWS: %zu, Limit_smem:%zu, Limit_kernel:%zu,"
+			"Current time:%Lf, Best time:%Lf\n",
+ 			global_work_size, local_work_size, s_mem_limited_lws,
+			get_kernel_max_lws(gpu_id, krnl[gpu_id][0]), time_ms,
+			best_time_ms);
+#endif
 			if (gpu(device_info[gpu_id])) {
 				if (local_work_size < 16)
 					local_work_size = 16;
@@ -433,6 +448,9 @@ static void auto_tune_all(unsigned int num_loaded_hashes, long double kernel_run
 		set_kernel_args();
 		gws_tune(global_work_size, kernel_run_ms);
 	}
+
+	fprintf(stdout, "GWS: %zu, LWS: %zu\n",
+			global_work_size, local_work_size);
 }
 
 static void reset(struct db_main *db)
@@ -495,17 +513,8 @@ static void reset(struct db_main *db)
 		}
 
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_loaded_hashes, CL_TRUE, 0, num_loaded_hashes * sizeof(int) * 2, loaded_hashes, 0, NULL, NULL ), "Failed Copy data to gpu");
-		init_kernels(num_loaded_hashes, 64, 1);
-
-		set_kernel_args();
-
-		create_buffer_gws(MULTIPLIER);
-		set_kernel_args_gws();
-
-		global_work_size = MULTIPLIER;
-		local_work_size = 64;
-		num_set_keys = fmt_opencl_lm.params.max_keys_per_crypt = (64 << LM_LOG_DEPTH);
-		fmt_opencl_lm.params.min_keys_per_crypt = (64 << LM_LOG_DEPTH);
+		auto_tune_all(num_loaded_hashes, 300);
+		num_set_keys = fmt_opencl_lm.params.max_keys_per_crypt;
 
 		hash_ids[0] = 0;
 		initialized++;
@@ -584,17 +593,16 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 	cl_event evnt;
 	const int count = (*pcount + LM_DEPTH - 1) >> LM_LOG_DEPTH;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
-	size_t gws;
-	gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
+	current_gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
-	assert(gws <= global_work_size);
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, gws * sizeof(opencl_lm_transfer), opencl_lm_keys, 0, NULL, NULL ), "Failed Copy data to gpu");
-	err = clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id][1], 1, NULL, &gws, lws, 0, NULL, &evnt);
+	assert(current_gws <= global_work_size + PADDING);
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, current_gws * sizeof(opencl_lm_transfer), opencl_lm_keys, 0, NULL, NULL ), "Failed Copy data to gpu");
+	err = clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id][1], 1, NULL, &current_gws, lws, 0, NULL, &evnt);
 	HANDLE_CLERROR(err, "Enque Kernel Failed");
 	clWaitForEvents(1, &evnt);
 	clReleaseEvent(evnt);
 
-	err = clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id][0], 1, NULL, &gws, lws, 0, NULL, &evnt);
+	err = clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id][0], 1, NULL, &current_gws, lws, 0, NULL, &evnt);
 	HANDLE_CLERROR(err, "Enque Kernel Failed");
 
 	clWaitForEvents(1, &evnt);
