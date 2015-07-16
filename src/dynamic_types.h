@@ -149,25 +149,19 @@ typedef struct private_subformat_data
 } private_subformat_data;
 
 #ifndef OMP_SCALE
-#define OMP_SCALE 1
+#define OMP_SCALE 2
 #endif
 
-// we use 13440 and 6720 for the counts. This should give
-// us proper inter-hash work for all para from 1 to 7,
-// we were at 128 and 6144. These values did not give us
-// equal division for mixes where 3, 5, 6 or 7 (for 128)
-// and 5 or 7 for the 6144 value, if we tried to intermix
-// 2 'types'.  The new values are divisible by 5 and 7
-// we should also test the speed of using 6720
-// That value still gets us all para from 1 to 7
-#define OMP_MAX       13440
-#define NON_OMP_MAX   6720
+
+// This value still gets us all para from 1 to 7
+#define NON_OMP_MAX   (SIMD_COEF_32*3*4*5*7)
+#define OMP_MAX       (NON_OMP_MAX*OMP_SCALE)
 
 #ifdef SIMD_COEF_32
 # define MIN_KEYS_PER_CRYPT	SIMD_COEF_32
 # ifdef _OPENMP
 #  if SIMD_COEF_32 >= 4
-#   define BLOCK_LOOPS		(OMP_MAX/SIMD_COEF_32*OMP_SCALE)
+#   define BLOCK_LOOPS		((OMP_MAX/SIMD_COEF_32)*OMP_SCALE)
 #  endif
 # else
 #  if SIMD_COEF_32 >= 4
