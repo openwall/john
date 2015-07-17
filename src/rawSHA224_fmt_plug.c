@@ -28,6 +28,22 @@ john_register_one(&fmt_rawSHA224);
 #include "johnswap.h"
 #include "formats.h"
 #include "sse-intrinsics.h"
+
+/*
+ * Only effective for SIMD.
+ * Undef to disable reversing steps for benchmarking.
+ */
+#define REVERSE_STEPS
+
+#define INIT_A 0xc1059ed8
+#define INIT_B 0x367cd507
+#define INIT_C 0x3070dd17
+#define INIT_D 0xf70e5939
+#define INIT_E 0xffc00b31
+#define INIT_F 0x68581511
+#define INIT_G 0x64f98fa7
+#define INIT_H 0xbefa4fa4
+
 #ifdef _OPENMP
 #ifdef SIMD_COEF_32
 #ifndef OMP_SCALE
@@ -158,19 +174,36 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned char *out;
+	static unsigned int *outw;
+	unsigned char *out;
+	char *p;
 	int i;
 
-	if (!out)
-		out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+	if (!outw)
+		outw = mem_calloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
-	ciphertext += TAG_LENGTH;
+	out = (unsigned char*)outw;
+
+	p = ciphertext + TAG_LENGTH;
 	for (i = 0; i < BINARY_SIZE; i++) {
-		out[i] = atoi16[ARCH_INDEX(ciphertext[i*2])] * 16 +
-			atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
+		out[i] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				 atoi16[ARCH_INDEX(p[1])];
+		p += 2;
 	}
+
 #ifdef SIMD_COEF_32
 	alter_endianity (out, BINARY_SIZE);
+#ifdef REVERSE_STEPS
+	outw[0] -= INIT_A;
+	outw[1] -= INIT_B;
+	outw[2] -= INIT_C;
+	outw[3] -= INIT_D;
+	outw[4] -= INIT_E;
+	outw[5] -= INIT_F;
+	outw[6] -= INIT_G;
+	outw[7] -= INIT_H;
+#endif
 #endif
 	return out;
 }
@@ -267,6 +300,11 @@ static char *get_key(int index)
 }
 #endif
 
+#ifndef REVERSE_STEPS
+#undef SSEi_REVERSE_STEPS
+#define SSEi_REVERSE_STEPS 0
+#endif
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
@@ -280,7 +318,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_32
 		SSESHA256body(&saved_key[(unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32],
 		              &crypt_out[(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32],
-		              NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA224);
+		              NULL, SSEi_REVERSE_STEPS|SSEi_MIXED_IN|SSEi_CRYPT_SHA224);
 #else
 		SHA256_CTX ctx;
 		SHA224_Init(&ctx);

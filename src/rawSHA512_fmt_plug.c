@@ -28,6 +28,21 @@ john_register_one(&fmt_raw0_SHA512);
 #include "johnswap.h"
 #include "formats.h"
 
+/*
+ * Only effective for SIMD.
+ * Undef to disable reversing steps for benchmarking.
+ */
+#define REVERSE_STEPS
+
+#define INIT_A 0x6a09e667f3bcc908ULL
+#define INIT_B 0xbb67ae8584caa73bULL
+#define INIT_C 0x3c6ef372fe94f82bULL
+#define INIT_D 0xa54ff53a5f1d36f1ULL
+#define INIT_E 0x510e527fade682d1ULL
+#define INIT_F 0x9b05688c2b3e6c1fULL
+#define INIT_G 0x1f83d9abfb41bd6bULL
+#define INIT_H 0x5be0cd19137e2179ULL
+
 #ifdef _OPENMP
 #ifdef SIMD_COEF_64
 #ifndef OMP_SCALE
@@ -115,7 +130,41 @@ static void done(void)
 #endif
 }
 
+void *binary(char *ciphertext)
+{
+	static ARCH_WORD_64 *outw;
+	unsigned char *out;
+	char *p;
+	int i;
 
+	if (!outw)
+		outw = mem_calloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+
+	out = (unsigned char*)outw;
+
+	p = ciphertext + TAG_LENGTH;
+	for (i = 0; i < BINARY_SIZE; i++) {
+		out[i] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				 atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+
+#ifdef SIMD_COEF_64
+	alter_endianity_to_BE64(out, BINARY_SIZE/8);
+#ifdef REVERSE_STEPS
+	outw[0] -= INIT_A;
+	outw[1] -= INIT_B;
+	outw[2] -= INIT_C;
+	outw[3] -= INIT_D;
+	outw[4] -= INIT_E;
+	outw[5] -= INIT_F;
+	outw[6] -= INIT_G;
+	outw[7] -= INIT_H;
+#endif
+#endif
+	return out;
+}
 
 #ifdef SIMD_COEF_64
 #define HASH_IDX (((unsigned int)index&(SIMD_COEF_64-1))+(unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64)
@@ -230,6 +279,11 @@ static char *get_key(int index)
 #endif
 }
 
+#ifndef REVERSE_STEPS
+#undef SSEi_REVERSE_STEPS
+#define SSEi_REVERSE_STEPS 0
+#endif
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
@@ -243,7 +297,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_64
 		SSESHA512body(&saved_key[index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64],
 		              &crypt_out[index/SIMD_COEF_64*8*SIMD_COEF_64],
-		              NULL, SSEi_MIXED_IN);
+		              NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
 #else
 		SHA512_CTX ctx;
 		SHA512_Init(&ctx);
@@ -316,7 +370,7 @@ struct fmt_main fmt_raw0_SHA512 = {
 		fmt_default_prepare,
 		sha512_common_valid,
 		sha512_common_split,
-		sha512_common_binary,
+		binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
