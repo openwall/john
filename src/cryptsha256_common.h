@@ -106,17 +106,6 @@ static struct fmt_tests tests[] = {
 	{"$5$saltstring$5B8vYYiY.CVt1RlTTf8KbXBH3hsxY/GNooZaBBGWEc5", "Hello world!"},
 	{"$5$V8UMZ8/8.j$GGzeGHZy60318qdLiocMj7DddCnfr7jIcLMDIRy9Tr0", "password"},
 
-	// For the CPU implementation, this 35 char PW 'should' work, in 1 & 2 buffer code, but it changes the
-	// benchmark timings, so has been removed.  Uncomment, test your build, then re-comment it.
-	//{"$5$mTfUlwguIR0Gp2ed$nX5lzmEGAZQ.1.CcncGnSq/lxSF7t1P.YkVlljQfOC2", "01234567890123456789012345678901234"},
-
-	// For the OpenCL/CPU implementation, this 24 char PW 'should' work
-	//{"$5$fnJDgbSMK0ZQbj2j$xuV9QTbDdySL1tZxYKCL2OZRvR9G4acRXe1md0UbPmA", "123456789012345678901234"},
-
-	// For the all implementations, this 15 char PW 'should' work
-	//{"$5$saltstring$VxW44bFDcvixlQoTE4E.k5c8v1w0fGMyZ4tn8nGcWn0", "abcdefghijklmno"},
-
-
 #ifdef DEBUG
 #if PLAINTEXT_LENGTH > 35
 	{"$5$aewWTiO8RzEz5FBF$CZ3I.vdWF4omQXMQOv1g3XarjhH0wwR29Jwzt6/gvV/", "012345678901234567890123456789012345"},

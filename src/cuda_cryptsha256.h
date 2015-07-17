@@ -40,8 +40,8 @@ typedef struct {
 } sha256_ctx;
 
 typedef struct {
-	unsigned char saltlen;
 	uint32_t rounds;
+	unsigned char saltlen;
 	char salt[SALT_LEN_MAX + 1];
 } crypt_sha256_salt;
 
