@@ -68,7 +68,9 @@ static struct fmt_tests tests[] = {
 };
 
 static int (*saved_len);
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+// the Keccak function can read up to next even 8 byte offset.
+// making the buffer larger avoid reading past end of buffer
+static char (*saved_key)[(((PLAINTEXT_LENGTH+1)+7)/8)*8];
 static ARCH_WORD_32 (*crypt_out)
     [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
 
