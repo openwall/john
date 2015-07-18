@@ -212,6 +212,7 @@ static void add_checksum_list(DC_HANDLE pHand);
 // TODO
 static char *dynamic_expr_normalize(const char *ct) {
 	// normalize $pass -> $p
+	//           $password -> $p
 	//           $salt -> $s
 	//           $user -> $u
 	//           $username -> $u
@@ -227,7 +228,9 @@ static char *dynamic_expr_normalize(const char *ct) {
 			while (*cp && *cp != '$' && *cp != 'u')
 				++cp;
 			if (*cp) {
-				if (!strncmp(cp, "$pass", 5))
+				if (!strncmp(cp, "$password", 9))
+					cnt = 7;
+				else if (!strncmp(cp, "$pass", 5))
 					cnt = 3;
 				else if (!strncmp(cp, "$salt", 5))
 					cnt = 3;
