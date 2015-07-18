@@ -16,8 +16,6 @@
 
 #include "arch.h"
 
-#if defined(SIMD_PARA_SHA1)
-
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rawSHA1_LI;
 #elif FMT_REGISTERS_H
@@ -452,5 +450,3 @@ struct fmt_main fmt_rawSHA1_LI = {
 };
 
 #endif /* plugin stanza */
-
-#endif /* defined(SIMD_PARA_SHA1) && SIMD_PARA_SHA1 < 4 */
