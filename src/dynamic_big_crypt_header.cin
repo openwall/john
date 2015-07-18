@@ -330,7 +330,7 @@ static inline uint32_t Do_FixBufferLen32(unsigned char *input_buf, int total_len
 	// now switch to uint_32's
 	p = (uint32_t *)cp;
 	// this is how many 32 bit words max we will clean.
-	i = ((ret<<6)-i)/4;
+	i = ((ret<<6)-i)/4-2;
 	while (i--) {
 		*p++ = 0;
 		if (!p[0] && !p[1])
@@ -367,18 +367,25 @@ static inline uint32_t Do_FixBufferLen64(unsigned char *input_buf, int total_len
 	// now switch to uint_64's
 	p = (uint64_t *)cp;
 	// this is how many 64 bit words max we will clean.
-	i = ((ret<<7)-i)/8;
+	i = ((ret<<7)-i)/8-2;
 	while (i--) {
 		*p++ = 0;
 		if (!p[0] && !p[1])
 			break;
 	}
 	if ( ( ((unsigned char*)p)-input_buf) < 56) {
-		((uint64_t *)input_buf)[7] = 0;
-	}
-	if ( ( ((unsigned char*)p)-input_buf) < 56) {
-		p = &(((uint64_t *)input_buf)[8]);
-		i = 24; // 256 bytes - 64 bytes (for first 32 bit MD buffer) / 8 bytes per uint64_t
+		p = &(((uint64_t *)input_buf)[7]);
+		*p++ = 0;
+		i = 22; // 256 bytes - 64 bytes (for first 64 byte MD buffer) / 8 bytes per uint64_t - 2 (-2 is last 16 bytes of 256 buffer)
+		while (i--) {
+			*p++ = 0;
+			if (!p[0] && !p[1])
+				break;
+		}
+	} else if ( ( ((unsigned char*)p)-input_buf) > 128 && ( ((unsigned char*)p)-input_buf) < 184) {
+		p = &(((uint64_t *)input_buf)[23]);
+		*p++ = 0;
+		i = 6; // 256 bytes - 192 bytes (for first 3-32 byte MD buffers) / 8 bytes per uint64_t - 2 (-2 is last 16 bytes of 256 buffer)
 		while (i--) {
 			*p++ = 0;
 			if (!p[0] && !p[1])
