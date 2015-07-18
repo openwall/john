@@ -1063,14 +1063,14 @@ static int parse_expression(DC_struct *p) {
 		*cp = 0;
 		strupr(tmp);
 		comp_add_script_line("Flag=MGF_SALT_AS_HEX_%s\n", tmp);
-		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||strcmp(tmp,"RIPEMD128")||!strncmp(tmp,"HAVAL_128", 9)) salt_hex_len = 32;
+		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||strcmp(tmp,"RIPEMD128")||!strncmp(tmp,"HAVAL_128", 9)||!strcmp(tmp,"MD2")) salt_hex_len = 32;
 		if (!strcmp(tmp,"SHA1")||!strcmp(tmp,"RIPEMD160")||!strncmp(tmp,"HAVAL_160", 9)) salt_hex_len = 40;
 		if (!strcmp(tmp,"TIGER")||!strncmp(tmp,"HAVAL_192", 9)) salt_hex_len = 48;
-		if (!strcmp(tmp,"SHA224")||!strncmp(tmp,"HAVAL_224", 9)) salt_hex_len = 56;
-		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")||!strncmp(tmp,"HAVAL_256",9)) salt_hex_len = 64;
+		if (!strcmp(tmp,"SHA224")||!strncmp(tmp,"HAVAL_224", 9)||!strcmp(tmp,"SKEIN224")) salt_hex_len = 56;
+		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")||!strncmp(tmp,"HAVAL_256",9)||!strcmp(tmp,"PANAMA")||!strcmp(tmp,"SKEIN256")) salt_hex_len = 64;
 		if (!strcmp(tmp,"RIPEMD320")) salt_hex_len = 80;
-		if (!strcmp(tmp,"SHA384")) salt_hex_len = 96;
-		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")) salt_hex_len = 128;
+		if (!strcmp(tmp,"SHA384")||!strcmp(tmp,"SKEIN384")) salt_hex_len = 96;
+		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")||!strcmp(tmp,"SKEIN512")) salt_hex_len = 128;
 	}
 	if (bNeedS) comp_add_script_line("Flag=MGF_SALTED\n");
 	if (bNeedS2) comp_add_script_line("Flag=MGF_SALTED2\n");
@@ -1648,6 +1648,7 @@ char *dynamic_compile_split(char *ct) {
 		return dynamic_compile_prepare("", ct);
 	} else if (strncmp(ct, "@dynamic=", 9) && strncmp(ct, dyna_signature, dyna_sig_len)) {
 		// convert back into dynamic= format
+		// Note we should probably ONLY do this on 'raw' hashes!
 		static char Buf[512];
 		sprintf(Buf, "%s%s", dyna_signature, ct);
 		ct = Buf;
