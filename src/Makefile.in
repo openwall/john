@@ -768,6 +768,7 @@ unrarppm.o: unrarppm.c
 check: default
 	../run/john --list=build-info
 	../run/john --test=0 --verbosity=2
+	../run/john --test=0 --verbosity=2 --format=dynamic-all
 
 depend:
 	makedepend -fMakefile.dep -Y *.c 2>> /dev/null
