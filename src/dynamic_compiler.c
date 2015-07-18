@@ -323,8 +323,10 @@ static const char *Const[9];
 static int compile_debug;
 static char *SymTab[1024];
 static fpSYM fpSymTab[1024];
+static int nSymTabLen[1024];
 static char *pCode[1024];
 static fpSYM fpCode[1024];
+static int nLenCode[1024];
 static int nCode, nCurCode;
 static char *pScriptLines[1024];
 static int nScriptLines;
@@ -475,6 +477,7 @@ static void init_static_data() {
 	for (i = 0; i < nSyms; ++i) {
 		MEM_FREE(SymTab[i]);
 		fpSymTab[i] = NULL;
+		nSymTabLen[i] = 0;
 	}
 	for (i = 0; i < 9; ++i) {
 		if (Const[i]) {
@@ -486,6 +489,7 @@ static void init_static_data() {
 	for (i = 0; i < nCode; ++i) {
 		MEM_FREE(pCode[i]);
 		fpCode[i] = NULL;
+		nLenCode[i] = 0;
 	}
 	for (i = 0; i < nScriptLines; ++i)
 		MEM_FREE(pScriptLines[i]);
@@ -570,98 +574,99 @@ static int handle_extra_params(DC_struct *ptr) {
 	return 0;
 }
 
-static const char *comp_push_sym(const char *p, fpSYM fpsym, const char *pRet) {
+static const char *comp_push_sym(const char *p, fpSYM fpsym, const char *pRet, int len) {
 	if (nSyms < ARRAY_COUNT(SymTab)) {
 		SymTab[nSyms] = mem_alloc(strlen(p)+1);
 		fpSymTab[nSyms] = fpsym;
+		nSymTabLen[nSyms] = len;
 		strcpy(SymTab[nSyms++], p);
 	}
 	return pRet;
 }
 
-#define LOOKUP_IF_BLK(T,U,S,F,L) \
+#define LOOKUP_IF_BLK(T,U,S,F,L,LL) \
 	if (!strncasecmp(pInput, #T, L)) { \
-		if (!strncmp(pInput, #T "_raw(", L+5)) { LastTokIsFunc = 2; return comp_push_sym("f" #S "r", dynamic_f##F##r, pInput+(L+4)); } \
-		if (!strncmp(pInput, #T "_64c(", L+5)) { return comp_push_sym("f" #S "c", dynamic_f##F##c, pInput+(L+4)); } \
-		if (!strncmp(pInput, #T "_64(", L+4)) { return comp_push_sym("f" #S "6", dynamic_f##F##6, pInput+(L+3)); } \
-		if (!strncmp(pInput, #T "(", L+1)) { return comp_push_sym("f" #S "h", dynamic_f##F##h, pInput+L); } \
-		if (!strncmp(pInput, #U "(", L+1)) { return comp_push_sym("f" #S "H", dynamic_f##F##H, pInput+L); } }
+		if (!strncmp(pInput, #T "_raw(", L+5)) { LastTokIsFunc = 2; return comp_push_sym("f" #S "r", dynamic_f##F##r, pInput+(L+4), LL); } \
+		if (!strncmp(pInput, #T "_64c(", L+5)) { return comp_push_sym("f" #S "c", dynamic_f##F##c, pInput+(L+4), LL); } \
+		if (!strncmp(pInput, #T "_64(", L+4)) { return comp_push_sym("f" #S "6", dynamic_f##F##6, pInput+(L+3), LL); } \
+		if (!strncmp(pInput, #T "(", L+1)) { return comp_push_sym("f" #S "h", dynamic_f##F##h, pInput+L, LL); } \
+		if (!strncmp(pInput, #U "(", L+1)) { return comp_push_sym("f" #S "H", dynamic_f##F##H, pInput+L, LL); } }
 
 static const char *comp_get_symbol(const char *pInput) {
 	// This function will grab the next valid symbol, and returns
 	// the location just past this symbol.
 	char TmpBuf[64];
 	LastTokIsFunc = 0;
-	if (!pInput || *pInput == 0) return comp_push_sym("X", fpNull, pInput);
-	if (*pInput == '.') return comp_push_sym(".", fpNull, pInput+1);
-	if (*pInput == '(') return comp_push_sym("(", fpNull, pInput+1);
-	if (*pInput == ')') return comp_push_sym(")", fpNull, pInput+1);
+	if (!pInput || *pInput == 0) return comp_push_sym("X", fpNull, pInput, 0);
+	if (*pInput == '.') return comp_push_sym(".", fpNull, pInput+1, 0);
+	if (*pInput == '(') return comp_push_sym("(", fpNull, pInput+1, 0);
+	if (*pInput == ')') return comp_push_sym(")", fpNull, pInput+1, 0);
 	if (*pInput == '^') {
 		int i=1;
 		// number. Can follow a ^, like    md5_raw($p)^5   ==  md5(md5(md5(md5(md5($p)))))
 		*TmpBuf = '^';
 		if (!isdigit(ARCH_INDEX(pInput[1])))
-			return comp_push_sym("X", fpNull, pInput+1);
+			return comp_push_sym("X", fpNull, pInput+1, 0);
 		while (i < 10 && isdigit(ARCH_INDEX(pInput[i])))
 			++i;
 		memcpy(&TmpBuf[1], &pInput[1], i-1);
 		TmpBuf[i]=0;
-		return comp_push_sym(TmpBuf, fpNull, pInput+i);
+		return comp_push_sym(TmpBuf, fpNull, pInput+i, 0);
 	}
 	if (*pInput == '$') {
 		switch(pInput[1]) {
-			case 'p': { if (bNeedPC>1) return comp_push_sym("X", fpNull, pInput); bNeedPC=-1; return comp_push_sym("p", fpNull, pInput+2); }
-			case 'u': { bNeedU=1; if (bNeedUC>0) return comp_push_sym("X", fpNull, pInput); bNeedUC=-1; return comp_push_sym("u", fpNull, pInput+2); }
-			case 's': if (pInput[2] == '2') return comp_push_sym("S", fpNull, pInput+3);
-					  return comp_push_sym("s", fpNull, pInput+2);
+			case 'p': { if (bNeedPC>1) return comp_push_sym("X", fpNull, pInput, 0); bNeedPC=-1; return comp_push_sym("p", fpNull, pInput+2, 0); }
+			case 'u': { bNeedU=1; if (bNeedUC>0) return comp_push_sym("X", fpNull, pInput, 0); bNeedUC=-1; return comp_push_sym("u", fpNull, pInput+2, 0); }
+			case 's': if (pInput[2] == '2') return comp_push_sym("S", fpNull, pInput+3, 0);
+					  return comp_push_sym("s", fpNull, pInput+2, 0);
 			case 'c': if (pInput[2] > '8' || pInput[2] < '1')
-						  return comp_push_sym("X", fpNull, pInput);
+						  return comp_push_sym("X", fpNull, pInput, 0);
 					  if (Const[pInput[2]-'0'] == NULL) {
 						  fprintf(stderr, "Error, a c%c found in expression, but the data for this const was not provided\n", pInput[2]);
-						  return comp_push_sym("X", fpNull, pInput);
+						  return comp_push_sym("X", fpNull, pInput, 0);
 					  }
 					  TmpBuf[0] = pInput[2];
 					  TmpBuf[1] = 0;
-					  return comp_push_sym(TmpBuf, fpNull, pInput+3);
+					  return comp_push_sym(TmpBuf, fpNull, pInput+3, 0);
 		}
 	}
 	// these are functions, BUT can not be used for 'outter' function (i.e. not the final hash)
 	// Note this may 'look' small, but it is a large IF block, once the macro's expand
 	LastTokIsFunc = 1;
-	LOOKUP_IF_BLK(md5,MD5,5,5,3)
-	LOOKUP_IF_BLK(md4,MD4,4,4,3)
-	LOOKUP_IF_BLK(sha1,SHA1,1,1,4)
-	LOOKUP_IF_BLK(sha224,SHA224,224,224,6)
-	LOOKUP_IF_BLK(sha256,SHA256,256,256,6)
-	LOOKUP_IF_BLK(sha384,SHA384,384,384,6)
-	LOOKUP_IF_BLK(sha512,SHA512,512,512,6)
-	LOOKUP_IF_BLK(gost,GOST,gost,gost,4)
-	LOOKUP_IF_BLK(tiger,TIGER,tig,tig,5)
-	LOOKUP_IF_BLK(whirlpool,WHIRLPOOL,wrlp,wrlp,9)
-	LOOKUP_IF_BLK(ripemd128,RIPEMD128,rip128,rip128,9) 	LOOKUP_IF_BLK(ripemd160,RIPEMD160,rip160,rip160,9)
-	LOOKUP_IF_BLK(ripemd256,RIPEMD256,rip256,rip256,9)	LOOKUP_IF_BLK(ripemd320,RIPEMD320,rip320,rip320,9)
-	LOOKUP_IF_BLK(haval128_3,HAVAL128_3,hav128_3,hav128_3,10) LOOKUP_IF_BLK(haval128_4,HAVAL128_4,hav128_4,hav128_4,10) LOOKUP_IF_BLK(haval128_5,HAVAL128_5,hav128_5,hav128_5,10)
-	LOOKUP_IF_BLK(haval160_3,HAVAL160_3,hav160_3,hav160_3,10) LOOKUP_IF_BLK(haval160_4,HAVAL160_4,hav160_4,hav160_4,10) LOOKUP_IF_BLK(haval160_5,HAVAL160_5,hav160_5,hav160_5,10)
-	LOOKUP_IF_BLK(haval192_3,HAVAL192_3,hav192_3,hav192_3,10) LOOKUP_IF_BLK(haval192_4,HAVAL192_4,hav192_4,hav192_4,10) LOOKUP_IF_BLK(haval192_5,HAVAL192_5,hav192_5,hav192_5,10)
-	LOOKUP_IF_BLK(haval224_3,HAVAL224_3,hav224_3,hav224_3,10) LOOKUP_IF_BLK(haval224_4,HAVAL224_4,hav224_4,hav224_4,10) LOOKUP_IF_BLK(haval224_5,HAVAL224_5,hav224_5,hav224_5,10)
-	LOOKUP_IF_BLK(haval256_3,HAVAL256_3,hav256_3,hav256_3,10) LOOKUP_IF_BLK(haval256_4,HAVAL256_4,hav256_4,hav256_4,10) LOOKUP_IF_BLK(haval256_5,HAVAL256_5,hav256_5,hav256_5,10)
-	LOOKUP_IF_BLK(md2,MD2,md2,md2,3) LOOKUP_IF_BLK(panama,PANAMA,pan,pan,6)
-	LOOKUP_IF_BLK(skein224,SKEIN224,skn224,skn224,8) LOOKUP_IF_BLK(skein256,SKEIN256,skn256,skn256,8)
-	LOOKUP_IF_BLK(skein384,SKEIN384,skn384,skn384,8) LOOKUP_IF_BLK(skein512,SKEIN512,skn512,skn512,8)
+	LOOKUP_IF_BLK(md5,MD5,5,5,3,16)
+	LOOKUP_IF_BLK(md4,MD4,4,4,3,16)
+	LOOKUP_IF_BLK(sha1,SHA1,1,1,4,20)
+	LOOKUP_IF_BLK(sha224,SHA224,224,224,6,28)
+	LOOKUP_IF_BLK(sha256,SHA256,256,256,6,32)
+	LOOKUP_IF_BLK(sha384,SHA384,384,384,6,48)
+	LOOKUP_IF_BLK(sha512,SHA512,512,512,6,64)
+	LOOKUP_IF_BLK(gost,GOST,gost,gost,4,32)
+	LOOKUP_IF_BLK(tiger,TIGER,tig,tig,5,24)
+	LOOKUP_IF_BLK(whirlpool,WHIRLPOOL,wrlp,wrlp,9,64)
+	LOOKUP_IF_BLK(ripemd128,RIPEMD128,rip128,rip128,9,16) 	LOOKUP_IF_BLK(ripemd160,RIPEMD160,rip160,rip160,9,20)
+	LOOKUP_IF_BLK(ripemd256,RIPEMD256,rip256,rip256,9,32)	LOOKUP_IF_BLK(ripemd320,RIPEMD320,rip320,rip320,9,40)
+	LOOKUP_IF_BLK(haval128_3,HAVAL128_3,hav128_3,hav128_3,10,16) LOOKUP_IF_BLK(haval128_4,HAVAL128_4,hav128_4,hav128_4,10,16) LOOKUP_IF_BLK(haval128_5,HAVAL128_5,hav128_5,hav128_5,10,16)
+	LOOKUP_IF_BLK(haval160_3,HAVAL160_3,hav160_3,hav160_3,10,20) LOOKUP_IF_BLK(haval160_4,HAVAL160_4,hav160_4,hav160_4,10,20) LOOKUP_IF_BLK(haval160_5,HAVAL160_5,hav160_5,hav160_5,10,20)
+	LOOKUP_IF_BLK(haval192_3,HAVAL192_3,hav192_3,hav192_3,10,24) LOOKUP_IF_BLK(haval192_4,HAVAL192_4,hav192_4,hav192_4,10,24) LOOKUP_IF_BLK(haval192_5,HAVAL192_5,hav192_5,hav192_5,10,24)
+	LOOKUP_IF_BLK(haval224_3,HAVAL224_3,hav224_3,hav224_3,10,28) LOOKUP_IF_BLK(haval224_4,HAVAL224_4,hav224_4,hav224_4,10,28) LOOKUP_IF_BLK(haval224_5,HAVAL224_5,hav224_5,hav224_5,10,28)
+	LOOKUP_IF_BLK(haval256_3,HAVAL256_3,hav256_3,hav256_3,10,32) LOOKUP_IF_BLK(haval256_4,HAVAL256_4,hav256_4,hav256_4,10,32) LOOKUP_IF_BLK(haval256_5,HAVAL256_5,hav256_5,hav256_5,10,32)
+	LOOKUP_IF_BLK(md2,MD2,md2,md2,3,16) LOOKUP_IF_BLK(panama,PANAMA,pan,pan,6,32)
+	LOOKUP_IF_BLK(skein224,SKEIN224,skn224,skn224,8,28) LOOKUP_IF_BLK(skein256,SKEIN256,skn256,skn256,8,32)
+	LOOKUP_IF_BLK(skein384,SKEIN384,skn384,skn384,8,48) LOOKUP_IF_BLK(skein512,SKEIN512,skn512,skn512,8,64)
 
 	LastTokIsFunc = 0;
-	if (!strncmp(pInput, "pad16($p)", 9))   return comp_push_sym("pad16", dynamic_pad16, pInput+9);
-	if (!strncmp(pInput, "pad20($p)", 9))   return comp_push_sym("pad20", dynamic_pad20, pInput+9);
-	if (!strncmp(pInput, "pad100($p)", 10))  return comp_push_sym("pad100", dynamic_pad100, pInput+10);
-	if (!strncmp(pInput, "lc($u)", 6)) { if (bNeedUC&&bNeedUC!=1) return comp_push_sym("X", fpNull, pInput); bNeedU=bNeedUC=1; return comp_push_sym("u_lc", fpNull, pInput+6); }
-	if (!strncmp(pInput, "uc($u)", 6)) { if (bNeedUC&&bNeedUC!=2) return comp_push_sym("X", fpNull, pInput); bNeedU=bNeedUC=2; return comp_push_sym("u_uc", fpNull, pInput+6); }
-	if (!strncmp(pInput, "lc($p)", 6)) { if (bNeedPC&&bNeedPC!=1) return comp_push_sym("X", fpNull, pInput); bNeedPC=1; return comp_push_sym("p_lc", fpNull, pInput+6); }
-	if (!strncmp(pInput, "uc($p)", 6)) { if (bNeedPC&&bNeedPC!=2) return comp_push_sym("X", fpNull, pInput); bNeedPC=2; return comp_push_sym("p_uc", fpNull, pInput+6); }
+	if (!strncmp(pInput, "pad16($p)", 9))   return comp_push_sym("pad16", dynamic_pad16, pInput+9, 0);
+	if (!strncmp(pInput, "pad20($p)", 9))   return comp_push_sym("pad20", dynamic_pad20, pInput+9, 0);
+	if (!strncmp(pInput, "pad100($p)", 10))  return comp_push_sym("pad100", dynamic_pad100, pInput+10, 0);
+	if (!strncmp(pInput, "lc($u)", 6)) { if (bNeedUC&&bNeedUC!=1) return comp_push_sym("X", fpNull, pInput, 0); bNeedU=bNeedUC=1; return comp_push_sym("u_lc", fpNull, pInput+6, 0); }
+	if (!strncmp(pInput, "uc($u)", 6)) { if (bNeedUC&&bNeedUC!=2) return comp_push_sym("X", fpNull, pInput, 0); bNeedU=bNeedUC=2; return comp_push_sym("u_uc", fpNull, pInput+6, 0); }
+	if (!strncmp(pInput, "lc($p)", 6)) { if (bNeedPC&&bNeedPC!=1) return comp_push_sym("X", fpNull, pInput, 0); bNeedPC=1; return comp_push_sym("p_lc", fpNull, pInput+6, 0); }
+	if (!strncmp(pInput, "uc($p)", 6)) { if (bNeedPC&&bNeedPC!=2) return comp_push_sym("X", fpNull, pInput, 0); bNeedPC=2; return comp_push_sym("p_uc", fpNull, pInput+6, 0); }
 	LastTokIsFunc = 2;
 	//if (!strncmp(pInput, "utf16be", 7)) return comp_push_sym("futf16be", dynamic_futf16be, pInput+7);
-	if (!strncmp(pInput, "utf16(", 6))   return comp_push_sym("futf16", dynamic_futf16, pInput+5);
+	if (!strncmp(pInput, "utf16(", 6))   return comp_push_sym("futf16", dynamic_futf16, pInput+5, 0);
 	LastTokIsFunc = 0;
-	return comp_push_sym("X", fpNull, pInput);
+	return comp_push_sym("X", fpNull, pInput, 0);
 }
 
 static void comp_lexi_error(DC_struct *p, const char *pInput, char *msg) {
@@ -814,25 +819,28 @@ static int comp_do_lexi(DC_struct *p, const char *pInput) {
 	}
 	return 0;
 }
-static void push_pcode(const char *v, fpSYM _fpSym) {
+static void push_pcode(const char *v, fpSYM _fpSym, int len) {
 	pCode[nCode] = mem_alloc(strlen(v)+1);
 	fpCode[nCode] = _fpSym;
+	nLenCode[nCode] = len;
 	strcpy(pCode[nCode++], v);
 }
 
 static void comp_do_parse(int cur, int curend) {
 	char *curTok;
 	fpSYM fpcurTok;
+	int curTokLen;
 	if (SymTab[cur][0] == '(' && SymTab[curend][0] == ')') {++cur; --curend; }
 	while (cur <= curend) {
 		curTok = SymTab[cur];
 		fpcurTok = fpSymTab[cur];
+		curTokLen = nSymTabLen[cur];
 		if (*curTok == '.') {
 			++cur;
 			continue;
 		}
 		if (*curTok == '^') {
-			push_pcode(curTok, dynamic_exp);
+			push_pcode(curTok, dynamic_exp, 0);
 			curTok = SymTab[++cur];
 			continue;
 		}
@@ -847,12 +855,12 @@ static void comp_do_parse(int cur, int curend) {
 				if (SymTab[tail][0] == ')') --count;
 			}
 			// output code
-			push_pcode("push", dynamic_push);
+			push_pcode("push", dynamic_push, 0);
 			//. recursion
 			comp_do_parse(cur, tail);
 			cur = tail+1;
 			// now output right code to do the crypt;
-			push_pcode(curTok, fpcurTok);
+			push_pcode(curTok, fpcurTok, curTokLen);
 			continue;
 		}
 		++cur;
@@ -860,51 +868,51 @@ static void comp_do_parse(int cur, int curend) {
 			case 's':
 				//if (!strcmp(gen_stype, "tohex")) push_pcode("app_sh");
 				//else
-					push_pcode("app_sh", dynamic_app_sh);
+					push_pcode("app_sh", dynamic_app_sh, 0);
 				bNeedS = 1;
 				continue;
 			case 'p':
 			{
 				if (!strcmp(curTok, "p"))
-					push_pcode("app_p", dynamic_app_p);
+					push_pcode("app_p", dynamic_app_p, 0);
 				else if (!strcmp(curTok, "pad16"))
-					push_pcode("pad16", dynamic_pad16);
+					push_pcode("pad16", dynamic_pad16, 0);
 				else if (!strcmp(curTok, "pad20"))
-					push_pcode("pad20", dynamic_pad20);
+					push_pcode("pad20", dynamic_pad20, 0);
 				else if (!strcmp(curTok, "pad100"))
-					push_pcode("pad100", dynamic_pad100);
+					push_pcode("pad100", dynamic_pad100, 0);
 				else if (!strcmp(curTok, "p_lc")) {
 					bNeedPlc = 1;
-					push_pcode("app_p_lc", dynamic_app_p_lc);
+					push_pcode("app_p_lc", dynamic_app_p_lc, 0);
 				} else if (!strcmp(curTok, "p_uc")) {
 					bNeedPuc = 1;
-					push_pcode("app_p_uc", dynamic_app_p_uc);
+					push_pcode("app_p_uc", dynamic_app_p_uc, 0);
 				}
 				continue;
 			}
-			case 'S': push_pcode("app_s2", dynamic_app_S); bNeedS2 = 1; continue;
+			case 'S': push_pcode("app_s2", dynamic_app_S, 0); bNeedS2 = 1; continue;
 			case 'u':
 			{
 				bNeedU = 1;
 				if (!strcmp(curTok, "u"))
-					push_pcode("app_u", dynamic_app_u);
+					push_pcode("app_u", dynamic_app_u, 0);
 				else if (!strcmp(curTok, "u_lc")) {
 					bNeedUlc = 1;
-					push_pcode("app_u_lc", dynamic_app_u_lc);
+					push_pcode("app_u_lc", dynamic_app_u_lc, 0);
 				} else if (!strcmp(curTok, "u_uc")) {
 					bNeedUuc = 1;
-					push_pcode("app_u_uc", dynamic_app_u_uc);
+					push_pcode("app_u_uc", dynamic_app_u_uc, 0);
 				}
 				continue;
 			}
-			case '1': push_pcode("app_1", dynamic_app_1); continue;
-			case '2': push_pcode("app_2", dynamic_app_2); continue;
-			case '3': push_pcode("app_3", dynamic_app_3); continue;
-			case '4': push_pcode("app_4", dynamic_app_4); continue;
-			case '5': push_pcode("app_5", dynamic_app_5); continue;
-			case '6': push_pcode("app_6", dynamic_app_6); continue;
-			case '7': push_pcode("app_7", dynamic_app_7); continue;
-			case '8': push_pcode("app_8", dynamic_app_8); continue;
+			case '1': push_pcode("app_1", dynamic_app_1, 0); continue;
+			case '2': push_pcode("app_2", dynamic_app_2, 0); continue;
+			case '3': push_pcode("app_3", dynamic_app_3, 0); continue;
+			case '4': push_pcode("app_4", dynamic_app_4, 0); continue;
+			case '5': push_pcode("app_5", dynamic_app_5, 0); continue;
+			case '6': push_pcode("app_6", dynamic_app_6, 0); continue;
+			case '7': push_pcode("app_7", dynamic_app_7, 0); continue;
+			case '8': push_pcode("app_8", dynamic_app_8, 0); continue;
 		}
 	}
 }
@@ -1043,6 +1051,14 @@ static void build_test_string(DC_struct *p, char **pLine) {
 	ngen_Stack = ngen_Stack_max = 0;
 }
 
+int b64_len (int rawlen) {
+	// this is the formula for mime with trailing = values. It always jumps up
+	// an even 4 bytes, when we cross a base64 block threashold. Even though
+	// this may return a slightly larger string size than the actual string
+	// we put into the buffer, this function is safe. It may simply make
+	// MAX_PLAINTEXT_LENGTH a byte or 2 shorter than it possibly could be.
+	return (((((rawlen+2)/3)*4)+3)/4)*4;
+}
 static int parse_expression(DC_struct *p) {
 	int i, len;
 	char *pExpr, *pScr;
@@ -1058,7 +1074,8 @@ static int parse_expression(DC_struct *p) {
 	MEM_FREE(pExpr);
 
 	// Ok, now 'build' the script
-	comp_add_script_line("Expression=dynamic=%s\nFlag=MGF_FLAT_BUFFERS\n", p->pExpr);
+	comp_add_script_line("Expression=dynamic=%s\n", p->pExpr);
+	comp_add_script_line("Flag=MGF_FLAT_BUFFERS\n");
 	if (salt_as_hex_type) {
 		char tmp[64], *cp;
 		strcpy(tmp, salt_as_hex_type);
@@ -1234,8 +1251,23 @@ static int parse_expression(DC_struct *p) {
 						len_comp += inp_cnt*max_inp_len;
 						len_comp += salt_cnt*salt_len;
 						// add in hash_cnt*whatever_size_hash is.
-						if (len_comp > 256) {
-							max_inp_len -= (len_comp-256+(inp_cnt-1))/inp_cnt;
+						if (!strncasecmp(pCode[i], "f512", 4 ) || !strncasecmp(pCode[i], "f384", 4)) {
+							// the only 64 bit SIMD hashes we have right now. are sha284 and sha512
+							if (len_comp > 239) {
+								max_inp_len -= (len_comp-239+(inp_cnt-1))/inp_cnt;
+							}
+						} else if (!strncasecmp(pCode[i], "f5", 2 ) || !strncasecmp(pCode[i], "f4", 2) ||
+							       !strncasecmp(pCode[i], "f1", 2) || !strncasecmp(pCode[i], "f224", 4 ) ||
+								   !strncasecmp(pCode[i], "f256", 4)) {
+							// the only 32 bit SIMD hashes we have right now. are sha284 and sha512
+							if (len_comp > 247) {
+								max_inp_len -= (len_comp-247+(inp_cnt-1))/inp_cnt;
+							}
+						} else {
+							// non SIMD code can use full 256 byte buffers.
+							if (len_comp > 256) {
+								max_inp_len -= (len_comp-256+(inp_cnt-1))/inp_cnt;
+							}
 						}
 						len_comp = 0;
 						if (!pCode[i+1] || !pCode[i+1][0]) {
@@ -1279,8 +1311,22 @@ static int parse_expression(DC_struct *p) {
 							if (append_mode) {
 #undef IF
 #undef ELSEIF
-#define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-#define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_append_input2\n", use_inp1?"1":"2");
+#define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) \
+	{ \
+		char type = pCode[i][strlen(pCode[i])-1]; \
+		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_append_input2\n", use_inp1?"1":"2"); \
+		if (type=='r') { len_comp += nLenCode[i]; } \
+		else if (type=='c'||type=='6') { len_comp += b64_len(nLenCode[i]); } \
+		else { len_comp += nLenCode[i]*2; } \
+	}
+#define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) \
+	{ \
+		char type = pCode[i][strlen(pCode[i])-1]; \
+		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_append_input2\n", use_inp1?"1":"2"); \
+		if (type=='r') { len_comp += nLenCode[i]; } \
+		else if (type=='c'||type=='6') { len_comp += b64_len(nLenCode[i]); } \
+		else { len_comp += nLenCode[i]*2; } \
+	}
 
 								IF(SHA512,f512,4)
 								ELSEIF(MD5,f5,2)
@@ -1303,11 +1349,25 @@ static int parse_expression(DC_struct *p) {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;
 								}
-						} else {
+						} else { // overwrite mode.
 #undef IF
 #undef ELSEIF
-#define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-#define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
+#define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) \
+	{ \
+		char type = pCode[i][strlen(pCode[i])-1]; \
+		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2"); \
+		if (type=='r') { len_comp = nLenCode[i]; } \
+		else if (type=='c'||type=='6') { len_comp = b64_len(nLenCode[i]); } \
+		else { len_comp = nLenCode[i]*2; } \
+	}
+#define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) \
+	{ \
+		char type = pCode[i][strlen(pCode[i])-1]; \
+		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2"); \
+		if (type=='r') { len_comp = nLenCode[i]; } \
+		else if (type=='c'||type=='6') { len_comp = b64_len(nLenCode[i]); } \
+		else { len_comp = nLenCode[i]*2; } \
+	}
 
 								IF(SHA512,f512,4)
 								ELSEIF(MD5,f5,2)
