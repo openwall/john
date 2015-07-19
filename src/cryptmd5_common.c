@@ -1,4 +1,4 @@
-/* 
+/*
  * cryptmd5 cracker patch for JtR, common code. 2014 by JimF
  * This file takes replicated but common code, shared between the CPU
  * and the GPU formats, and places it into one common location

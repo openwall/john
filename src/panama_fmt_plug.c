@@ -31,7 +31,7 @@ static int omp_t = 1;
 // 128 - 2099k
 // 256 - 2204k *** set to this level
 // 512 - 2203k
-// 1k  - 2124k 
+// 1k  - 2124k
 #ifndef OMP_SCALE
 #ifdef __MIC__
 #define OMP_SCALE  8

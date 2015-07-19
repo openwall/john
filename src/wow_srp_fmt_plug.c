@@ -334,7 +334,7 @@ static void *get_salt(char *ciphertext)
 	p = strchr(&ciphertext[WOWSIGLEN], '$') + 1;
 
 	// We need to know if this is odd length or not.
-	while (atoi16[ARCH_INDEX(*p++)] != 0x7f) 
+	while (atoi16[ARCH_INDEX(*p++)] != 0x7f)
 		length++;
 	p = strchr(&ciphertext[WOWSIGLEN], '$') + 1;
 
