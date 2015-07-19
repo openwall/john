@@ -87,7 +87,7 @@ JOHN_OBJS = \
 	base64.o base64_convert.o \
 	md4.o sha2.o \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
-	dynamic_compiler.o \
+	dynamic_compiler.o dynamic_compiler_lib.o \
 	ripemd.o tiger.o \
 	ssh2john.o \
 	pfx2john.o \

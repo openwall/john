@@ -270,13 +270,13 @@ static char *dynamic_expr_normalize(const char *ct) {
 
 int dynamic_compile(const char *expr, DC_HANDLE *p) {
 	uint32_t crc32 = compute_checksum(dynamic_expr_normalize(expr));
-	DC_HANDLE pHand;
+	DC_HANDLE pHand=0;
 	if (pLastFind && pLastFind->crc32 == crc32) {
 		*p = (DC_HANDLE)pLastFind;
 		return 0;
 	}
-
-	pHand = find_checksum(crc32);
+	pHand = dynamic_compile_library(expr, crc32);
+	if (!pHand) pHand = find_checksum(crc32);
 	if (pHand) {
 		*p = pHand;
 		pLastFind = (DC_struct*)pHand;
@@ -1117,11 +1117,6 @@ static int parse_expression(DC_struct *p) {
 			break;
 	}
 
-	if (compile_debug) {
-		for (i = 0; i <nCode; ++i)
-			printf ("%s\n", pCode[i]);
-	}
-
 	// Build test strings.
 	strcpy(gen_pw, "abc");
 	build_test_string(p, &p->pLine1);
@@ -1129,6 +1124,18 @@ static int parse_expression(DC_struct *p) {
 	build_test_string(p, &p->pLine2);
 	strcpy(gen_pw, "passweird");
 	build_test_string(p, &p->pLine3);
+
+	if (compile_debug) {
+		printf("\ncrc32 = %08X\n", p->crc32);
+		printf("pExpr=%s\n", p->pExpr);
+		printf("extraParams=%s\n", p->pExtraParams);
+		printf("signature=%s\n", p->pSignature);
+		printf("line1=%s\n", p->pLine1);
+		printf("line2=%s\n", p->pLine2);
+		printf("line3=%s\n", p->pLine3);
+		for (i = 0; i <nCode; ++i)
+			printf ("%s\n", pCode[i]);
+	}
 
 	// Ok now run the script
 	{
@@ -1567,6 +1574,8 @@ static uint32_t compute_checksum(const char *expr) {
 	uint32_t crc32 = 0xffffffff;
 	/* we should 'normalize' the expression 'first' */
 	while (*expr) {
+		if (*expr == ',' && expr[1] != 'c')
+			break;
 		crc32 = jtr_crc32(crc32,*expr);
 		++expr;
 	}
