@@ -70,7 +70,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #ifndef DYNAMIC_DISABLED
 
 #ifdef SIMD_COEF_32
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #endif
 
 #include "misc.h"
@@ -4968,12 +4968,12 @@ void DynamicFunc__crypt_md5(DYNA_OMP_PARAMS)
 		i /= SIMD_COEF_32;
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += SIMD_PARA_MD5) {
-				SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
+				SIMDmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			}
 		} else {
 			for (; i < til; i += SIMD_PARA_MD5) {
 				SSE_Intrinsics_LoadLens_md5(0, i);
-				SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
+				SIMDmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			}
 		}
 		return;
@@ -5010,12 +5010,12 @@ void DynamicFunc__crypt_md4(DYNA_OMP_PARAMS)
 		i /= SIMD_COEF_32;
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += SIMD_PARA_MD4) {
-				SSEmd4body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
+				SIMDmd4body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			}
 		} else {
 			for (; i < til; i += SIMD_PARA_MD4) {
 				SSE_Intrinsics_LoadLens_md4(0, i);
-				SSEmd4body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
+				SIMDmd4body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			}
 		}
 		return;
@@ -5203,7 +5203,7 @@ void DynamicFunc__crypt2_md5(DYNA_OMP_PARAMS)
 		i /= SIMD_COEF_32;
 		for (; i < til; i += SIMD_PARA_MD5) {
 			SSE_Intrinsics_LoadLens_md5(1, i);
-			SSEmd5body(input_buf2[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
+			SIMDmd5body(input_buf2[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 		}
 		return;
 	}
@@ -5239,7 +5239,7 @@ void DynamicFunc__crypt2_md4(DYNA_OMP_PARAMS)
 		i /= SIMD_COEF_32;
 		for (; i < til; i += SIMD_PARA_MD4) {
 			SSE_Intrinsics_LoadLens_md4(1, i);
-			SSEmd4body(input_buf2[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
+			SIMDmd4body(input_buf2[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 		}
 		return;
 	}
@@ -5281,12 +5281,12 @@ void DynamicFunc__crypt_md5_in1_to_out2(DYNA_OMP_PARAMS)
 		i /= SIMD_COEF_32;
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += SIMD_PARA_MD5) {
-				SSEmd5body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
+				SIMDmd5body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 			}
 		} else {
 			for (; i < til; i += SIMD_PARA_MD5) {
 				SSE_Intrinsics_LoadLens_md5(0, i);
-				SSEmd5body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
+				SIMDmd5body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 			}
 		}
 		return;
@@ -5323,12 +5323,12 @@ void DynamicFunc__crypt_md4_in1_to_out2(DYNA_OMP_PARAMS)
 		i /= SIMD_COEF_32;
 		if (curdat.store_keys_in_input) {
 			for (; i < til; i += SIMD_PARA_MD4) {
-				SSEmd4body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
+				SIMDmd4body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 			}
 		} else {
 			for (; i < til; i += SIMD_PARA_MD4) {
 				SSE_Intrinsics_LoadLens_md4(0, i);
-				SSEmd4body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
+				SIMDmd4body(input_buf[i].c, crypt_key2[i].w, NULL, SSEi_MIXED_IN);
 			}
 		}
 		return;
@@ -5372,7 +5372,7 @@ void DynamicFunc__crypt_md5_in2_to_out1(DYNA_OMP_PARAMS)
 		for (; i < til; i += SIMD_PARA_MD5)
 		{
 			SSE_Intrinsics_LoadLens_md5(1, i);
-			SSEmd5body(input_buf2[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
+			SIMDmd5body(input_buf2[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			//dump_stuff_mmx_msg("DynamicFunc__crypt_md5_in2_to_out1", input_buf2[i].c,64,m_count-1);
 		}
 		return;
@@ -5410,7 +5410,7 @@ void DynamicFunc__crypt_md4_in2_to_out1(DYNA_OMP_PARAMS)
 		for (; i < til; i += SIMD_PARA_MD4)
 		{
 			SSE_Intrinsics_LoadLens_md4(1, i);
-			SSEmd4body(input_buf2[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
+			SIMDmd4body(input_buf2[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 		}
 		return;
 	}
@@ -5453,7 +5453,7 @@ void DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMS)
 			// NOTE, since crypt_key array is 16 bytes each, and input_buf is 64 bytes
 			// each, and we are doing 3 at a time, we can NOT directly write to the
 			// input buff, but have to use the crypt_key buffer, and then memcpy when done.
-			SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
+			SIMDmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			for (j = 0; j < SIMD_PARA_MD5; ++j)
 			{
 				memset(input_buf[i+j].c, 0, sizeof(input_buf[0]));
@@ -5503,7 +5503,7 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE(DYNA_
 			// NOTE, since crypt_key array is 16 bytes each, and input_buf is 64 bytes
 			// each, and we are doing 3 at a time, we can NOT directly write to the
 			// input buff, but have to use the crypt_key buffer, and then memcpy when done.
-			SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
+			SIMDmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			for (j = 0; j < SIMD_PARA_MD5; ++j)
 				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*SIMD_COEF_32);
 		}
@@ -5545,7 +5545,7 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMS)
 			// NOTE, since crypt_key array is 16 bytes each, and input_buf is 64 bytes
 			// each, and we are doing 3 at a time, we can NOT directly write to the
 			// input buff, but have to use the crypt_key buffer, and then memcpy when done.
-			SSEmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
+			SIMDmd5body(input_buf[i].c, crypt_key[i].w, NULL, SSEi_MIXED_IN);
 			for (j = 0; j < SIMD_PARA_MD5; ++j)
 				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*SIMD_COEF_32);
 		}

@@ -19,7 +19,7 @@
 #include "sha2.h"
 #include "stdint.h"
 #include "johnswap.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #ifndef SHA512_CBLOCK
 #define SHA512_CBLOCK 128
@@ -292,8 +292,8 @@ static void pbkdf2_sha512_sse(const unsigned char *K[SSE_GROUP_SZ_SHA512], int K
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.
 		for(i = 1; i < R; i++) {
 			unsigned int k;
-			SSESHA512body(o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
-			SSESHA512body(o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+			SIMDSHA512body(o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+			SIMDSHA512body(o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			// only xor first 16 64-bit words
 			for (k = 0; k < SSE_GROUP_SZ_SHA512; k++) {
 				ARCH_WORD_64 *p = &o1[(k/SIMD_COEF_64)*SIMD_COEF_64*SHA_BUF_SIZ + (k&(SIMD_COEF_64-1))];

@@ -48,7 +48,7 @@ john_register_one(&fmt_sunmd5);
 #include "loader.h"
 #include "memory.h"
 #include "md5.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "memdbg.h"
 
 #ifdef _MSC_VER
@@ -717,7 +717,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					po[COEF+COEF] = pi[2];
 					po[COEF+COEF+COEF] = pi[3];
 				}
-				SSEmd5body(input_buf[group_idx], (unsigned int *)out_buf[group_idx], NULL, SSEi_MIXED_IN);
+				SIMDmd5body(input_buf[group_idx], (unsigned int *)out_buf[group_idx], NULL, SSEi_MIXED_IN);
 				/*
 				 * we convert from COEF back to flat. since this data will later be used
 				 * in non linear order, there is no gain trying to keep it in COEF order
@@ -811,9 +811,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					po[COEF+COEF] = pi[2];
 					po[COEF+COEF+COEF] = pi[3];
 				}
-				SSEmd5body(input_buf_big[group_idx][0], (unsigned int *)out_buf[group_idx], NULL, SSEi_MIXED_IN);
+				SIMDmd5body(input_buf_big[group_idx][0], (unsigned int *)out_buf[group_idx], NULL, SSEi_MIXED_IN);
 				for (j = 1; j < 25; ++j)
-					SSEmd5body(input_buf_big[group_idx][j], (unsigned int *)out_buf[group_idx], (unsigned int *)out_buf[group_idx], SSEi_RELOAD|SSEi_MIXED_IN);
+					SIMDmd5body(input_buf_big[group_idx][j], (unsigned int *)out_buf[group_idx], (unsigned int *)out_buf[group_idx], SSEi_RELOAD|SSEi_MIXED_IN);
 
 				for (j = 0; j < BLK_CNT && zb0 < nbig; ++j) {
 					ARCH_WORD_32 *pi, *po;

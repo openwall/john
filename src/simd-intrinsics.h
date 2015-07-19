@@ -2,7 +2,7 @@
  * This software is Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>, and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  *
- * Some modifications, Jim Fougeron, 2013.  Licensing rights listed in accompanying sse-intrinsics.c file.
+ * Some modifications, Jim Fougeron, 2013.  Licensing rights listed in accompanying simd-intrinsics.c file.
  */
 
 #if !defined (__JTR_SSE_INTRINSICS_H__)
@@ -16,7 +16,7 @@
 
 #include "common.h"
 #include "pseudo_intrinsics.h"
-#include "sse-intrinsics-load-flags.h"
+#include "simd-intrinsics-load-flags.h"
 #include "aligned.h"
 
 #ifndef _EMMINTRIN_H_INCLUDED
@@ -70,22 +70,22 @@
 
 #ifdef SIMD_PARA_MD5
 void md5cryptsse(unsigned char *buf, unsigned char *salt, char *out, unsigned int md5_type);
-void SSEmd5body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
+void SIMDmd5body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define MD5_ALGORITHM_NAME		BITS " " SIMD_TYPE " " MD5_N_STR
 #else
 #define MD5_ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #endif
 
 #ifdef SIMD_PARA_MD4
-//void SSEmd4body(__m128i* data, unsigned int *out, int init);
-void SSEmd4body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
+//void SIMDmd4body(__m128i* data, unsigned int *out, int init);
+void SIMDmd4body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define MD4_ALGORITHM_NAME		BITS " " SIMD_TYPE " " MD4_N_STR
 #else
 #define MD4_ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #endif
 
 #ifdef SIMD_PARA_SHA1
-void SSESHA1body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
+void SIMDSHA1body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #define SHA1_ALGORITHM_NAME		BITS " " SIMD_TYPE " " SHA1_N_STR
 #else
 #define SHA1_ALGORITHM_NAME		"32/" ARCH_BITS_STR
@@ -96,12 +96,12 @@ void SSESHA1body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, uns
 
 #ifdef SIMD_COEF_32
 #define SHA256_ALGORITHM_NAME	BITS " " SIMD_TYPE " " SHA256_N_STR
-void SSESHA256body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
+void SIMDSHA256body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 #endif
 
 #ifdef SIMD_COEF_64
 #define SHA512_ALGORITHM_NAME	BITS " " SIMD_TYPE " " SHA512_N_STR
-void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, unsigned SSEi_flags);
+void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, unsigned SSEi_flags);
 #endif
 
 #else

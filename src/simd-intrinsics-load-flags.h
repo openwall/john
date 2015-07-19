@@ -12,7 +12,7 @@
 
 /***************************************************************
  * WARNING!!!! any changes to these numbers requires a new
- * build of sse-intrinsics-32.S and sse-intrinsics-64.S
+ * build of simd-intrinsics-32.S and simd-intrinsics-64.S
  ***************************************************************/
 
 /*

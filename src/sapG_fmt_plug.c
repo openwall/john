@@ -27,7 +27,7 @@ john_register_one(&fmt_sapG);
 #ifdef SIMD_COEF_32
 #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #include "misc.h"
 #include "common.h"
@@ -518,12 +518,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			crypt_len[index] = len;
 		}
 
-		SSESHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&crypt_key[t*20*NBKEYS], NULL, SSEi_MIXED_IN);
+		SIMDSHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&crypt_key[t*20*NBKEYS], NULL, SSEi_MIXED_IN);
 
 		// Do another and possibly a third limb
 		memcpy(&interm_crypt[t*20*NBKEYS], &crypt_key[t*20*NBKEYS], 20*NBKEYS);
 		for (i = 1; i < (((longest + 8) >> 6) + 1); i++) {
-			SSESHA1body(&saved_key[i][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], SSEi_MIXED_IN|SSEi_RELOAD);
+			SIMDSHA1body(&saved_key[i][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], SSEi_MIXED_IN|SSEi_RELOAD);
 			// Copy any output that is done now
 			for (index = 0; index < NBKEYS; index++)
 				if (((crypt_len[index] + 8) >> 6) == i)
@@ -578,7 +578,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			((unsigned int*)saved_key[(len+8)>>6])[15*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + ti/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 		}
 
-		SSESHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], NULL, SSEi_MIXED_IN);
+		SIMDSHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], NULL, SSEi_MIXED_IN);
 
 		// Typically, no or very few crypts are done at this point so this is faster than to memcpy the lot
 		for (index = 0; index < NBKEYS; index++)
@@ -587,7 +587,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		// Do another and possibly a third, fourth and fifth limb
 		for (i = 1; i < (((longest + 8) >> 6) + 1); i++) {
-			SSESHA1body(&saved_key[i][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], SSEi_MIXED_IN|SSEi_RELOAD);
+			SIMDSHA1body(&saved_key[i][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], SSEi_MIXED_IN|SSEi_RELOAD);
 			// Copy any output that is done now
 			for (index = 0; index < NBKEYS; index++)
 				if (((crypt_len[index] + 8) >> 6) == i)

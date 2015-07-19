@@ -41,7 +41,7 @@ john_register_one(&fmt_rawMD5f);
 #include <omp.h>
 #endif
 #include "pseudo_intrinsics.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "memdbg.h"
 
 #ifdef SIMD_COEF_32
@@ -233,7 +233,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #if SIMD_COEF_32
-		SSEmd5body(saved_key[index], crypt_key[index/NBKEYS], NULL, SSEi_FLAT_IN);
+		SIMDmd5body(saved_key[index], crypt_key[index/NBKEYS], NULL, SSEi_FLAT_IN);
 #else
 		MD5_CTX ctx;
 		MD5_Init(&ctx);

@@ -168,12 +168,12 @@ endif
 #   ** DONE $(LN) x86-sse.h arch.h or $(LN) x86-64 arch.h
 # for now, in my testing, this is hard coded to x86-32.h
 # NOTE, we also need to add extra .o file's some how.
-#  ** DONE x86-64.o sse-intrinsics.o for 64 bit
-#  ** DONE x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o  for 32 bit:
+#  ** DONE x86-64.o simd-intrinsics.o for 64 bit
+#  ** DONE x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o simd-intrinsics.o  for 32 bit:
 #
 # for ssexi builds:
-# x86-64.o sse-intrinsics-64.o for 64 bit
-# x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o  for 32 bit:
+# x86-64.o simd-intrinsics-64.o for 64 bit
+# x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o simd-intrinsics-32.o  for 32 bit:
 #   and add -DUSING_ICC_S_FILE to CFLAGS
 #
 #  also need to figure out -DUNDERSCORES and add to ASFLAGS
@@ -288,7 +288,7 @@ DES_std.o:	DES_std.c arch.h common.h DES_std.h memdbg.h misc.h
 
 LM_fmt.o:	LM_fmt.c arch.h misc.h memory.h DES_bs.h common.h formats.h memdbg.h
 
-MD5_fmt.o:	MD5_fmt.c arch.h misc.h sse-intrinsics.h MD5_std.h common.h formats.h memdbg.h
+MD5_fmt.o:	MD5_fmt.c arch.h misc.h simd-intrinsics.h MD5_std.h common.h formats.h memdbg.h
 
 MD5_std.o:	MD5_std.c arch.h common.h MD5_std.h memdbg.h
 
@@ -336,9 +336,9 @@ dummy.o:	dummy.c common.h formats.h memdbg.h
 
 dyna_salt.o:	dyna_salt.c formats.h memory.h dyna_salt.h memdbg.h
 
-dynamic_big_crypt.o:	dynamic_big_crypt.c arch.h openssl_local_overrides.h misc.h common.h formats.h sha.h sha2.h md5.h md4.h stdint.h gost.h sph_haval.h sph_ripemd.h sph_tiger.h sph_whirlpool.h dynamic.h johnswap.h sse-intrinsics.h dynamic_types.h memdbg.h
+dynamic_big_crypt.o:	dynamic_big_crypt.c arch.h openssl_local_overrides.h misc.h common.h formats.h sha.h sha2.h md5.h md4.h stdint.h gost.h sph_haval.h sph_ripemd.h sph_tiger.h sph_whirlpool.h dynamic.h johnswap.h simd-intrinsics.h dynamic_types.h memdbg.h
 
-dynamic_fmt.o:	dynamic_fmt.c arch.h sse-intrinsics.h misc.h common.h formats.h params.h md5.h md4.h dynamic.h options.h config.h sha.h gost.h memory.h unicode.h johnswap.h pkzip.h aligned.h fake_salts.h dynamic_types.h memdbg.h
+dynamic_fmt.o:	dynamic_fmt.c arch.h simd-intrinsics.h misc.h common.h formats.h params.h md5.h md4.h dynamic.h options.h config.h sha.h gost.h memory.h unicode.h johnswap.h pkzip.h aligned.h fake_salts.h dynamic_types.h memdbg.h
 
 dynamic_parser.o:	dynamic_parser.c arch.h misc.h common.h formats.h config.h md5.h options.h john.h unicode.h dynamic.h memdbg.h
 
@@ -484,7 +484,7 @@ signals.o:	signals.c os.h arch.h misc.h params.h tty.h options.h config.h bench.
 
 single.o:	single.c misc.h params.h common.h memory.h os.h signals.h loader.h logger.h status.h recovery.h options.h rpp.h rules.h external.h cracker.h john.h unicode.h config.h memdbg.h
 
-sse-intrinsics.o:	sse-intrinsics.c pseudo_intrinsics.h arch.h memory.h md5.h MD5_std.h stdint.h johnswap.h sse-intrinsics-load-flags.h aligned.h memdbg.h
+simd-intrinsics.o:	simd-intrinsics.c pseudo_intrinsics.h arch.h memory.h md5.h MD5_std.h stdint.h johnswap.h simd-intrinsics-load-flags.h aligned.h memdbg.h
 
 ssh2john.o:	ssh2john.c jumbo.h common.h arch.h params.h memdbg.h
 
@@ -868,23 +868,23 @@ charsets: ../run/ascii.chr ../run/alpha.chr ../run/lowernum.chr ../run/uppernum.
 	../run/john -make-charset=../run/utf8.chr -pot:rockyou.utf8.24.pot
 
 
-# For the time being, icc builds a better sse-intrinsics.S but this may
-# change over time. NOTE that sse-intrinsics.S is never re-built unless you
+# For the time being, icc builds a better simd-intrinsics.S but this may
+# change over time. NOTE that simd-intrinsics.S is never re-built unless you
 # manually do a "make intrinsics".
-intrinsics: clean-intrinsics sse-intrinsics-64.S sse-intrinsics-32.S
+intrinsics: clean-intrinsics simd-intrinsics-64.S simd-intrinsics-32.S
 
 clean-intrinsics:
-	$(RM) sse-intrinsics-64.S sse-intrinsics-32.S sse-intrinsics-win32.S
+	$(RM) simd-intrinsics-64.S simd-intrinsics-32.S simd-intrinsics-win32.S
 
-sse-intrinsics-64.S:
+simd-intrinsics-64.S:
 	$(LN) -f x86-64.h arch.h
-	icc -S -o sse-intrinsics-64.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE -Wall
+	icc -S -o simd-intrinsics-64.S simd-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE -Wall
 
-sse-intrinsics-32.S:
+simd-intrinsics-32.S:
 	$(LN) -f x86-sse.h arch.h
-	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE -Wall
-	perl sse2i_winfix.pl sse-intrinsics-32.S sse-intrinsics-win32.S
-	$(MV) sse-intrinsics-win32.S sse-intrinsics-32.S
+	icc -m32 -S -o simd-intrinsics-32.S simd-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE -Wall
+	perl sse2i_winfix.pl simd-intrinsics-32.S simd-intrinsics-win32.S
+	$(MV) simd-intrinsics-win32.S simd-intrinsics-32.S
 
 #######################################################################
 ## NOTE, auto re-building configure will ONLY happen IF the user has ##

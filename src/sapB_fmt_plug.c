@@ -36,7 +36,7 @@ john_register_one(&fmt_sapB);
 #ifdef SIMD_COEF_32
 #define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_MD5)
 #endif
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
 #if defined(_OPENMP)
@@ -517,7 +517,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			clean_pos[ti] = len + cur_salt->l;
 		}
 
-		SSEmd5body(&saved_key[t*NBKEYS*64],
+		SIMDmd5body(&saved_key[t*NBKEYS*64],
 		           (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
 
 		for (i = 0; i < SIMD_PARA_MD5; i++)
@@ -547,7 +547,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			((unsigned int *)interm_key)[14*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + (unsigned int)ti/SIMD_COEF_32*16*SIMD_COEF_32] = sum20 << 3;
 		}
 
-		SSEmd5body(&interm_key[t*NBKEYS*64],
+		SIMDmd5body(&interm_key[t*NBKEYS*64],
 		           (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
 
 		for (index = 0; index < NBKEYS; index++) {

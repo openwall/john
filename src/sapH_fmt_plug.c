@@ -85,7 +85,7 @@ john_register_one(&fmt_sapH);
 // the least common multiple of the NBKEYS* above
 #define NBKEYS (SIMD_COEF_32*SIMD_PARA_SHA1*SIMD_PARA_SHA256*SIMD_PARA_SHA512)
 
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #define FORMAT_LABEL            "saph"
 #define FORMAT_NAME             "SAP CODVN H (PWDSALTEDHASH)"
@@ -304,7 +304,7 @@ static void crypt_all_1(int count) {
 		}
 		for (i = 1; i < sapH_cur_salt->iter; ++i) {
 			uint32_t k;
-			SSESHA1body(keys, crypt32, NULL, SSEi_FLAT_IN);
+			SIMDSHA1body(keys, crypt32, NULL, SSEi_FLAT_IN);
 			for (k = 0; k < NBKEYS1; ++k) {
 				uint32_t *pcrypt = &crypt32[ ((k/SIMD_COEF_32)*(SIMD_COEF_32*5)) + (k&(SIMD_COEF_32-1))];
 				uint32_t *Icp32 = (uint32_t *)(&keys[(k<<6)+offs[k]]);
@@ -376,7 +376,7 @@ static void crypt_all_256(int count) {
 		}
 		for (i = 1; i < sapH_cur_salt->iter; ++i) {
 			uint32_t k;
-			SSESHA256body(keys, crypt32, NULL, SSEi_FLAT_IN);
+			SIMDSHA256body(keys, crypt32, NULL, SSEi_FLAT_IN);
 			for (k = 0; k < NBKEYS256; ++k) {
 				uint32_t *pcrypt = &crypt32[ ((k/SIMD_COEF_32)*(SIMD_COEF_32*8)) + (k&(SIMD_COEF_32-1))];
 				uint32_t *Icp32 = (uint32_t *)(&keys[(k<<6)+offs[k]]);
@@ -449,7 +449,7 @@ static void crypt_all_384(int count) {
 		}
 		for (i = 1; i < sapH_cur_salt->iter; ++i) {
 			uint32_t k;
-			SSESHA512body(keys, crypt64, NULL, SSEi_FLAT_IN|SSEi_CRYPT_SHA384);
+			SIMDSHA512body(keys, crypt64, NULL, SSEi_FLAT_IN|SSEi_CRYPT_SHA384);
 			for (k = 0; k < NBKEYS512; ++k) {
 				ARCH_WORD_64 *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
 				ARCH_WORD_64 *Icp64 = (ARCH_WORD_64 *)(&keys[(k<<7)+offs[k]]);
@@ -521,7 +521,7 @@ static void crypt_all_512(int count) {
 		}
 		for (i = 1; i < sapH_cur_salt->iter; ++i) {
 			uint32_t k;
-			SSESHA512body(keys, crypt64, NULL, SSEi_FLAT_IN);
+			SIMDSHA512body(keys, crypt64, NULL, SSEi_FLAT_IN);
 			for (k = 0; k < NBKEYS512; ++k) {
 				ARCH_WORD_64 *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
 				ARCH_WORD_64 *Icp64 = (ARCH_WORD_64 *)(&keys[(k<<7)+offs[k]]);

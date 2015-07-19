@@ -33,7 +33,7 @@ john_register_one(&fmt_efs);
 #include "unicode.h"
 #include "sha.h"
 #include "gladman_hmac.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #define EFS_CRAP_LOGIC
 #include "pbkdf2_hmac_sha1.h"
 #include <openssl/des.h>

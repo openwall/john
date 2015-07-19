@@ -56,7 +56,7 @@ john_register_one(&fmt_rawMD4);
 #endif
 #include <omp.h>
 #endif
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-MD4"
@@ -321,7 +321,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #if SIMD_COEF_32
-		SSEmd4body(saved_key[index], crypt_key[index], NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
+		SIMDmd4body(saved_key[index], crypt_key[index], NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
 #else
 		MD4_CTX ctx;
 		MD4_Init(&ctx);

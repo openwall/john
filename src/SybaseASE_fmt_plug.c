@@ -48,7 +48,7 @@ john_register_one(&fmt_SybaseASE);
 #include "options.h"
 #include "unicode.h"
 #include "johnswap.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -334,16 +334,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		crypt = (unsigned char*)mem_align(_OBuf, MEM_ALIGN_CACHE);
 		crypt32 = (uint32_t*)crypt;
 
-		SSESHA256body(prep_key[index/MAX_KEYS_PER_CRYPT], crypt32, NULL, SSEi_FLAT_IN|SSEi_FLAT_RELOAD_SWAPLAST);
-		SSESHA256body(&(prep_key[index/MAX_KEYS_PER_CRYPT][1]), crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD|SSEi_FLAT_RELOAD_SWAPLAST);
-		SSESHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
-		SSESHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
-		SSESHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
-		SSESHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
-		SSESHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
-		SSESHA256body(&(prep_key[index/MAX_KEYS_PER_CRYPT][2]), crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD|SSEi_FLAT_RELOAD_SWAPLAST);
+		SIMDSHA256body(prep_key[index/MAX_KEYS_PER_CRYPT], crypt32, NULL, SSEi_FLAT_IN|SSEi_FLAT_RELOAD_SWAPLAST);
+		SIMDSHA256body(&(prep_key[index/MAX_KEYS_PER_CRYPT][1]), crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD|SSEi_FLAT_RELOAD_SWAPLAST);
+		SIMDSHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
+		SIMDSHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
+		SIMDSHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
+		SIMDSHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
+		SIMDSHA256body(NULL_LIMB, crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD);
+		SIMDSHA256body(&(prep_key[index/MAX_KEYS_PER_CRYPT][2]), crypt32, crypt32, SSEi_FLAT_IN|SSEi_RELOAD|SSEi_FLAT_RELOAD_SWAPLAST);
 		// Last one with FLAT_OUT
-		SSESHA256body(&(prep_key[index/MAX_KEYS_PER_CRYPT][3]), crypt_out[index], crypt32, SSEi_FLAT_IN|SSEi_RELOAD|SSEi_FLAT_OUT);
+		SIMDSHA256body(&(prep_key[index/MAX_KEYS_PER_CRYPT][3]), crypt_out[index], crypt32, SSEi_FLAT_IN|SSEi_RELOAD|SSEi_FLAT_OUT);
 #endif
 	}
 	return count;

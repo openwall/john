@@ -80,7 +80,7 @@ john_register_one(&fmt_NETNTLM_new);
 #include <openssl/des.h>
 
 #include "arch.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #ifdef SIMD_COEF_32
 #define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_MD4)
 #else
@@ -1130,10 +1130,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 		for (i = 0; i < BLOCK_LOOPS; i++)
-			SSEmd4body(&saved_key[i * NBKEYS * 64],
+			SIMDmd4body(&saved_key[i * NBKEYS * 64],
 			           (unsigned int*)&nthash[i * NBKEYS * 16], NULL, SSEi_MIXED_IN);
 #else
-		SSEmd4body(saved_key, (unsigned int*)nthash, 1);
+		SIMDmd4body(saved_key, (unsigned int*)nthash, 1);
 #endif
 		if (use_bitmap)
 			for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++) {

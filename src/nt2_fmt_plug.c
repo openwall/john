@@ -6,7 +6,7 @@
  * source and binary forms, with or without modification, are permitted.
  *
  * Losely based on rawSHA1, by bartavelle
- * and is also using his mmx/sse2/sse-intrinsics functions
+ * and is also using his mmx/sse2/simd-intrinsics functions
  *
  */
 
@@ -48,7 +48,7 @@ john_register_one(&fmt_NT2);
 #include "unicode.h"
 #include "memory.h"
 #include "johnswap.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"NT"
@@ -594,7 +594,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 	for (i = 0; i < count; i++)
 #endif
-		SSEmd4body(&saved_key[i*NBKEYS*64], (unsigned int*)&crypt_key[i*NBKEYS*DIGEST_SIZE], NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
+		SIMDmd4body(&saved_key[i*NBKEYS*64], (unsigned int*)&crypt_key[i*NBKEYS*DIGEST_SIZE], NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
 
 #else
 	MD4_Init( &ctx );

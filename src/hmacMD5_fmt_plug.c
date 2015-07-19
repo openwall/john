@@ -28,7 +28,7 @@ john_register_one(&fmt_hmacMD5);
 #include "formats.h"
 #include "md5.h"
 #include "aligned.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "base64_convert.h"
 #include "memdbg.h"
 
@@ -391,18 +391,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 #ifdef SIMD_COEF_32
 		if (new_keys) {
-			SSEmd5body(&ipad[index * PAD_SIZE],
+			SIMDmd5body(&ipad[index * PAD_SIZE],
 			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN);
-			SSEmd5body(&opad[index * PAD_SIZE],
+			SIMDmd5body(&opad[index * PAD_SIZE],
 			            (unsigned int*)&prep_opad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN);
 		}
-		SSEmd5body(cur_salt,
+		SIMDmd5body(cur_salt,
 		            (unsigned int*)&crypt_key[index * PAD_SIZE],
 		            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
-		SSEmd5body(&crypt_key[index * PAD_SIZE],
+		SIMDmd5body(&crypt_key[index * PAD_SIZE],
 		            (unsigned int*)&crypt_key[index * PAD_SIZE],
 		            (unsigned int*)&prep_opad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
