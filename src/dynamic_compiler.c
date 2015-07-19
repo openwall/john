@@ -1133,14 +1133,14 @@ static int parse_expression(DC_struct *p) {
 	// Ok now run the script
 	{
 		int x, j, last_push;
-		//int inp2_used = 0;
 		int salt_len = nSaltLen ? nSaltLen : -32;
-		int in_unicode = 0, out_raw = 0, out_64 = 0, out_16u = 0;
-		int append_mode = 0;
-		int max_inp_len = 110, len_comp = 0;
-		int inp1_clean = 0, exponent = -1;
+		int in_unicode = 0, out_raw = 0, out_64 = 0, out_16u = 0, flag_utf16 = 0;
+		int append_mode = 0, append_mode2 = 0;
+		int max_inp_len = 110, len_comp = 0, len_comp2 = 0;
+		int inp2_clean = 1, inp1_clean = 0, exponent = -1;
 		int use_inp1 = 1, use_inp1_again = 0;
-		int inp_cnt = 0, ex_cnt = 0, salt_cnt = 0, hash_cnt = 0, flag_utf16 = 0;
+		int inp_cnt = 0, ex_cnt = 0, salt_cnt = 0;
+		int inp_cnt2 = 0, ex_cnt2 = 0, salt_cnt2 = 0;
 
 		if (bNeedS) {
 			comp_add_script_line("SaltLen=%d\n", salt_len);
@@ -1153,6 +1153,8 @@ static int parse_expression(DC_struct *p) {
 		if (!keys_as_input) {
 			comp_add_script_line("Func=DynamicFunc__clean_input_kwik\n");
 			inp1_clean = 1;
+			inp_cnt = ex_cnt = salt_cnt = 0;
+			len_comp = 0;
 		}
 		for (i = 0; i < nCode; ++i) {
 			if (pCode[i][0] == 'f' || pCode[i][0] == 'F') {
@@ -1160,6 +1162,8 @@ static int parse_expression(DC_struct *p) {
 				if (!inp1_clean && !keys_as_input) {
 					comp_add_script_line("Func=DynamicFunc__clean_input_kwik\n");
 					inp1_clean = 1;
+					inp_cnt = ex_cnt = salt_cnt = 0;
+					len_comp = 0;
 				}
 				//if (!strcasecmp(pCode[i], "futf16be") || !strcasecmp(pCode[i], "futf16")) {
 				if (!strcasecmp(pCode[i], "futf16")) {
@@ -1200,44 +1204,43 @@ static int parse_expression(DC_struct *p) {
 					if (!strcmp(pCode[j], "push") || (exponent >= 0 && !strcmp(pCode[j], "Xush"))) { // push
 						last_push = j;
 						use_inp1_again = 0;
-						inp_cnt = 0, ex_cnt = 0, salt_cnt = 0, hash_cnt = 0;
 						for (x = j+1; x < i; ++x) {
 							if (!strncmp(pCode[x], "app_p", 5)) {
-								comp_add_script_line("Func=DynamicFunc__append_keys%s\n", use_inp1?"":"2"); ++inp_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_keys%s\n", use_inp1?"":"2"); use_inp1 ? ++inp_cnt : ++inp_cnt2; }
 							else if (!strcmp(pCode[x], "app_s")) {
-								comp_add_script_line("Func=DynamicFunc__append_salt%s\n", use_inp1?"":"2"); ++salt_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_salt%s\n", use_inp1?"":"2"); use_inp1 ? ++salt_cnt : ++salt_cnt2; }
 							else if (!strncmp(pCode[x], "app_u", 5)) {
-								comp_add_script_line("Func=DynamicFunc__append_userid%s\n", use_inp1?"":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_userid%s\n", use_inp1?"":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_s2")) {
-								comp_add_script_line("Func=DynamicFunc__append_2nd_salt%s\n", use_inp1?"":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_2nd_salt%s\n", use_inp1?"":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_sh")) {
-								comp_add_script_line("Func=DynamicFunc__append_salt%s\n", use_inp1?"":"2"); ++salt_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_salt%s\n", use_inp1?"":"2"); use_inp1 ? ++salt_cnt : ++salt_cnt2; }
 							else if (!strcmp(pCode[x], "app_1")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST1\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST1\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_2")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST2\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST2\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_3")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST3\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST3\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_4")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST4\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST4\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_5")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST5\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST5\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_6")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST6\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST6\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_7")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST7\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST7\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_8")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST8\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST8\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strncmp(pCode[x], "IN2", 3)) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input2\n", use_inp1?"":"2"); ++hash_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input2\n", use_inp1?"":"2"); if (use_inp1) { len_comp+=len_comp2; ex_cnt+=ex_cnt2; inp_cnt+=inp_cnt2; salt_cnt+=salt_cnt2;} else { len_comp2<<=1; ex_cnt2<<=1; inp_cnt2<<=1; salt_cnt2<<=1; } }
 							else if (!strncmp(pCode[x], "IN1", 3)) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input\n", use_inp1?"":"2"); ++hash_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input\n", use_inp1?"":"2"); if (use_inp1) { len_comp<<=1; ex_cnt<<=1; inp_cnt<<=1; salt_cnt<<=1; } else { len_comp2+=len_comp; ex_cnt2+=ex_cnt; inp_cnt2+=inp_cnt; salt_cnt2+=salt_cnt; } }
 							else if (!strcmp(pCode[x], "pad16")) {
-								comp_add_script_line("Func=DynamicFunc__append_keys_pad16\n"); ++hash_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_keys_pad16\n"); if(use_inp1) len_comp += 16; else len_comp2 += 16; }
 							else if (!strcmp(pCode[x], "pad20")) {
-								comp_add_script_line("Func=DynamicFunc__append_keys_pad20\n"); ++hash_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_keys_pad20\n"); if(use_inp1) len_comp += 20; else len_comp2 += 20; }
 							else if (!strcmp(pCode[x], "pad100")) {
-								comp_add_script_line("Func=DynamicFunc__set_input_len_100\n"); len_comp += 100; }
+								comp_add_script_line("Func=DynamicFunc__set_input_len_100\n"); if(use_inp1) len_comp += 100; else len_comp2 += 100; }
 
 							*pCode[x] = 'X';
 						}
@@ -1251,29 +1254,85 @@ static int parse_expression(DC_struct *p) {
 
 						// Ok, the only thing we can control is salt_len (if not in hex_as_salt), and inp_len
 						// all we worry about is inp_len.  256 bytes is MAX.
-						len_comp += ex_cnt*24;
-						len_comp += inp_cnt*max_inp_len;
-						len_comp += salt_cnt*salt_len;
-						// add in hash_cnt*whatever_size_hash is.
-						if (!strncasecmp(pCode[i], "f512", 4 ) || !strncasecmp(pCode[i], "f384", 4)) {
-							// the only 64 bit SIMD hashes we have right now. are sha284 and sha512
-							if (len_comp > 239) {
-								max_inp_len -= (len_comp-239+(inp_cnt-1))/inp_cnt;
+						if (use_inp1) {
+							len_comp += ex_cnt*24;
+							len_comp += inp_cnt*max_inp_len;
+							len_comp += salt_cnt*salt_len;
+							// add in hash_cnt*whatever_size_hash is.
+							if (!strncasecmp(pCode[i], "f512", 4 ) || !strncasecmp(pCode[i], "f384", 4)) {
+								// the only 64 bit SIMD hashes we have right now. are sha284 and sha512
+								if (len_comp > 239) {
+									if (inp_cnt) max_inp_len -= (len_comp-239+(inp_cnt-1))/inp_cnt;
+									else max_inp_len = (239-len_comp);
+									if (max_inp_len <= 0) {
+										errno = ERANGE;
+										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
+									}
+								}
+							} else if (!strncasecmp(pCode[i], "f5", 2 ) || !strncasecmp(pCode[i], "f4", 2) ||
+									   !strncasecmp(pCode[i], "f1", 2) || !strncasecmp(pCode[i], "f224", 4 ) ||
+									   !strncasecmp(pCode[i], "f256", 4)) {
+								// the only 32 bit SIMD hashes we have right now. are sha284 and sha512
+								if (len_comp > 247) {
+									if (inp_cnt) max_inp_len -= (len_comp-247+(inp_cnt-1))/inp_cnt;
+									else max_inp_len = (247-len_comp);
+									if (max_inp_len <= 0) {
+										errno = ERANGE;
+										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
+									}
+								}
+							} else {
+								// non SIMD code can use full 256 byte buffers.
+								if (len_comp > 256) {
+									if (inp_cnt) max_inp_len -= (len_comp-256+(inp_cnt-1))/inp_cnt;
+									else max_inp_len = (256-len_comp);
+									if (max_inp_len <= 0) {
+										errno = ERANGE;
+										pexit("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
+									}
+								}
 							}
-						} else if (!strncasecmp(pCode[i], "f5", 2 ) || !strncasecmp(pCode[i], "f4", 2) ||
-							       !strncasecmp(pCode[i], "f1", 2) || !strncasecmp(pCode[i], "f224", 4 ) ||
-								   !strncasecmp(pCode[i], "f256", 4)) {
-							// the only 32 bit SIMD hashes we have right now. are sha284 and sha512
-							if (len_comp > 247) {
-								max_inp_len -= (len_comp-247+(inp_cnt-1))/inp_cnt;
-							}
+							len_comp = 0;
 						} else {
-							// non SIMD code can use full 256 byte buffers.
-							if (len_comp > 256) {
-								max_inp_len -= (len_comp-256+(inp_cnt-1))/inp_cnt;
+							len_comp2 += ex_cnt2*24;
+							len_comp2 += inp_cnt2*max_inp_len;
+							len_comp2 += salt_cnt2*salt_len;
+							// add in hash_cnt*whatever_size_hash is.
+							if (!strncasecmp(pCode[i], "f512", 4 ) || !strncasecmp(pCode[i], "f384", 4)) {
+								// the only 64 bit SIMD hashes we have right now. are sha284 and sha512
+								if (len_comp > 239) {
+									if (inp_cnt2) max_inp_len -= (len_comp2-239+(inp_cnt2-1))/inp_cnt2;
+									else max_inp_len = (239-len_comp2);
+									if (max_inp_len <= 0) {
+										errno = ERANGE;
+										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
+									}
+								}
+							} else if (!strncasecmp(pCode[i], "f5", 2 ) || !strncasecmp(pCode[i], "f4", 2) ||
+									   !strncasecmp(pCode[i], "f1", 2) || !strncasecmp(pCode[i], "f224", 4 ) ||
+									   !strncasecmp(pCode[i], "f256", 4)) {
+								// the only 32 bit SIMD hashes we have right now. are sha284 and sha512
+								if (len_comp2 > 247) {
+									if (inp_cnt2) max_inp_len -= (len_comp2-247+(inp_cnt2-1))/inp_cnt2;
+									else  max_inp_len = (247-len_comp2);
+									if (max_inp_len <= 0) {
+										errno = ERANGE;
+										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
+									}
+								}
+							} else {
+								// non SIMD code can use full 256 byte buffers.
+								if (len_comp2 > 256) {
+									if (inp_cnt2) max_inp_len -= (len_comp2-256+(inp_cnt2-1))/inp_cnt2;
+									else max_inp_len = (256-len_comp2);
+									if (max_inp_len <= 0) {
+										errno = ERANGE;
+										pexit("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
+									}
+								}
 							}
+							len_comp2 = 0;
 						}
-						len_comp = 0;
 						if (!pCode[i+1] || !pCode[i+1][0]) {
 							// final hash
 							char endch = pCode[i][strlen(pCode[i])-1];
@@ -1289,10 +1348,10 @@ static int parse_expression(DC_struct *p) {
 #undef ELSEIF
 #define IF(C,T,L,F) if (!strncasecmp(pCode[i], #T, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
-	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
+	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; inp2_clean=0; }
 #define ELSEIF(C,T,L,F) else if (!strncasecmp(pCode[i], #T, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
-	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
+	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16;  inp2_clean=0; }
 
 							IF(SHA512,f512,4,64)
 							ELSEIF(MD5,f5,2,0)
@@ -1312,24 +1371,26 @@ static int parse_expression(DC_struct *p) {
 							ELSEIF(SKEIN224,fskn224,7,28) ELSEIF(SKEIN256,fskn256,7,32)
 							ELSEIF(SKEIN384,fskn384,7,48) ELSEIF(SKEIN512,fskn512,7,64)
 						} else {
-							if (append_mode) {
+							if (append_mode2) {
 #undef IF
 #undef ELSEIF
 #define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) \
 	{ \
 		char type = pCode[i][strlen(pCode[i])-1]; \
 		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_append_input2\n", use_inp1?"1":"2"); \
-		if (type=='r') { len_comp += nLenCode[i]; } \
-		else if (type=='c'||type=='6') { len_comp += b64_len(nLenCode[i]); } \
-		else { len_comp += nLenCode[i]*2; } \
+		if (type=='r') { len_comp2 += nLenCode[i]; } \
+		else if (type=='c'||type=='6') { len_comp2 += b64_len(nLenCode[i]); } \
+		else { len_comp2 += nLenCode[i]*2; } \
+		inp2_clean=0; \
 	}
 #define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) \
 	{ \
 		char type = pCode[i][strlen(pCode[i])-1]; \
 		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_append_input2\n", use_inp1?"1":"2"); \
-		if (type=='r') { len_comp += nLenCode[i]; } \
-		else if (type=='c'||type=='6') { len_comp += b64_len(nLenCode[i]); } \
-		else { len_comp += nLenCode[i]*2; } \
+		if (type=='r') { len_comp2 += nLenCode[i]; } \
+		else if (type=='c'||type=='6') { len_comp2 += b64_len(nLenCode[i]); } \
+		else { len_comp2 += nLenCode[i]*2; } \
+		inp2_clean=0; \
 	}
 
 								IF(SHA512,f512,4)
@@ -1360,17 +1421,19 @@ static int parse_expression(DC_struct *p) {
 	{ \
 		char type = pCode[i][strlen(pCode[i])-1]; \
 		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2"); \
-		if (type=='r') { len_comp = nLenCode[i]; } \
-		else if (type=='c'||type=='6') { len_comp = b64_len(nLenCode[i]); } \
-		else { len_comp = nLenCode[i]*2; } \
+		if (type=='r') { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 = nLenCode[i]; } \
+		else if (type=='c'||type=='6') { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 += b64_len(nLenCode[i]); } \
+		else { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 = nLenCode[i]*2; } \
+		inp2_clean=0; append_mode2 = 1; \
 	}
 #define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) \
 	{ \
 		char type = pCode[i][strlen(pCode[i])-1]; \
 		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2"); \
-		if (type=='r') { len_comp = nLenCode[i]; } \
-		else if (type=='c'||type=='6') { len_comp = b64_len(nLenCode[i]); } \
-		else { len_comp = nLenCode[i]*2; } \
+		if (type=='r') { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 = nLenCode[i]; } \
+		else if (type=='c'||type=='6') { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 += b64_len(nLenCode[i]); } \
+		else { inp_cnt2 = ex_cnt2 = salt_cnt2 =0; len_comp2 = nLenCode[i]*2; } \
+		inp2_clean=0; append_mode2 = 1; \
 	}
 								IF(SHA512,f512,4)
 								ELSEIF(MD5,f5,2)

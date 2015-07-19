@@ -90,7 +90,7 @@ do_test 36 'sha1($u.$c1.$p),c1=\x3a'         $1
 do_test 37 'sha1(lc($u).$p)'                 $1
 do_test 38 'sha1($s.sha1($s.sha1($p)))'      $1
 do_test 39 'md5($s.pad16($p)),saltlen=-231'  $1
-do_test 40 'sha1($s.pad20($p)),saltlen=-231' $1
+do_test 40 'sha1($s.pad20($p)),saltlen=-227' $1
 
 large_hash_set 50 sha224         $1
 large_hash_set 60 sha256         $1
