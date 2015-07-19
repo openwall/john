@@ -268,6 +268,19 @@ static char *dynamic_expr_normalize(const char *ct) {
 	return (char*)ct;
 }
 
+static void dump_HANDLE(void *_p) {
+	DC_struct *p = (DC_struct*)_p;
+	printf("\ncrc32 = %08X\n", p->crc32);
+	printf("pExpr=%s\n", p->pExpr);
+	printf("extraParams=%s\n", p->pExtraParams);
+	printf("signature=%s\n", p->pSignature);
+	printf("line1=%s\n", p->pLine1);
+	printf("line2=%s\n", p->pLine2);
+	printf("line3=%s\n", p->pLine3);
+	printf("%s\n", p->pScript);
+	exit(0);
+}
+
 int dynamic_compile(const char *expr, DC_HANDLE *p) {
 	uint32_t crc32 = compute_checksum(dynamic_expr_normalize(expr));
 	DC_HANDLE pHand=0;
@@ -275,8 +288,13 @@ int dynamic_compile(const char *expr, DC_HANDLE *p) {
 		*p = (DC_HANDLE)pLastFind;
 		return 0;
 	}
-	if (!strstr(expr, ",nolib"))
+	if (!strstr(expr, ",nolib")) {
 		pHand = dynamic_compile_library(expr, crc32);
+		if (pHand && strstr(expr, ",debug")) {
+			printf ("Code from dynamic_compiler_lib.c\n");
+			dump_HANDLE(pHand);
+		}
+	}
 	if (!pHand)
 		pHand = find_checksum(crc32);
 	if (pHand) {
@@ -1119,6 +1137,11 @@ static int parse_expression(DC_struct *p) {
 			break;
 	}
 
+	// we have to dump these items here.  The current code generator smashes them.
+	if (compile_debug)
+		for (i = 0; i <nCode; ++i)
+			printf ("%s\n", pCode[i]);
+
 	// Build test strings.
 	strcpy(gen_pw, "abc");
 	build_test_string(p, &p->pLine1);
@@ -1126,18 +1149,6 @@ static int parse_expression(DC_struct *p) {
 	build_test_string(p, &p->pLine2);
 	strcpy(gen_pw, "passweird");
 	build_test_string(p, &p->pLine3);
-
-	if (compile_debug) {
-		printf("\ncrc32 = %08X\n", p->crc32);
-		printf("pExpr=%s\n", p->pExpr);
-		printf("extraParams=%s\n", p->pExtraParams);
-		printf("signature=%s\n", p->pSignature);
-		printf("line1=%s\n", p->pLine1);
-		printf("line2=%s\n", p->pLine2);
-		printf("line3=%s\n", p->pLine3);
-		for (i = 0; i <nCode; ++i)
-			printf ("%s\n", pCode[i]);
-	}
 
 	// Ok now run the script
 	{
@@ -1513,11 +1524,8 @@ static int parse_expression(DC_struct *p) {
 		pScr += strlen(pScr);
 	}
 
-
-	if (compile_debug) {
-		printf("%s\n", p->pScript);
-		exit(0);
-	}
+	if (compile_debug)
+		dump_HANDLE(p);
 
 	return 0;
 }
