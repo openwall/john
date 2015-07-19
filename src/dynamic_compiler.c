@@ -275,8 +275,10 @@ int dynamic_compile(const char *expr, DC_HANDLE *p) {
 		*p = (DC_HANDLE)pLastFind;
 		return 0;
 	}
-	pHand = dynamic_compile_library(expr, crc32);
-	if (!pHand) pHand = find_checksum(crc32);
+	if (!strstr(expr, ",nolib"))
+		pHand = dynamic_compile_library(expr, crc32);
+	if (!pHand)
+		pHand = find_checksum(crc32);
 	if (pHand) {
 		*p = pHand;
 		pLastFind = (DC_struct*)pHand;
