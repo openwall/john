@@ -10,6 +10,11 @@
 #    ./dyna-compile-tst.sh  # expr   (runs a single test for dyna_# with expr)
 ##############################################################################
 
+typeset -i GOOD
+typeset -i FAIL
+GOOD=0
+FAIL=0
+
 function do_test()
 {
   ../run/john --list=format-tests --format=dynamic_$1 | cut -f 3 > dct-in
@@ -22,9 +27,11 @@ function do_test()
     VAL=`../run/john dct-in -w=dct-in.dic -format=dynamic="$2" 2> /dev/null | tail -1`
     if [ "x$VAL" != 'xNo password hashes left to crack (see FAQ)' ]
     then
-      echo "FAILURE!!!  $2"
+      echo "FAILURE!!! $1 -> $2"
+      let FAIL=$FAIL+1
     else
-      echo "Success $1 -\> $2"
+      echo "Success    $1 -> $2"
+      let GOOD=$GOOD+1
     fi
   fi
   rm -f dct-in dct-in.dic
@@ -117,3 +124,10 @@ large_hash_set 330 skein224      $1
 large_hash_set 340 skein256      $1
 large_hash_set 350 skein384      $1
 large_hash_set 360 skein512      $1
+
+echo ""
+if [ $FAIL -eq 0 ] ; then echo -n "ALL tests successful. " ; else echo "THERE WERE $FAIL FAILURES!" ; fi
+echo "There were $GOOD tests completed"
+echo ""
+
+exit $FAIL

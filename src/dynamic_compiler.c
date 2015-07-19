@@ -261,6 +261,10 @@ static char *dynamic_expr_normalize(const char *ct) {
 	//        between hashes.  NOTE, it may still cause valid to not 'load' for testing some hashes, but these still should
 	//        be loaded from the .pot file to cross off items.
 	//
+	/* normalize when it comes to constants:  md5($c1.$p.$c2),c1=x,c2=x  and  md5($c1.$p.$c1),c1=x  are the same.
+	   Also md5($c2.$p.$c1),c1=x,c2=y  and  md5($c1.$p.$c2),c1=y,c2=x are the same.
+	   The normalizer will have to address these, and put them into cannonical layout
+	*/
 	return (char*)ct;
 }
 
@@ -448,7 +452,7 @@ APP_CFUNC(1) APP_CFUNC(2) APP_CFUNC(3) APP_CFUNC(4) APP_CFUNC(5) APP_CFUNC(6) AP
 	static void dynamic_f##N##r()    { dyna_helper_pre(); T##_raw();               dyna_helper_post(L); }
 LEXI_FUNC(5,md5,16)       LEXI_FUNC(4,md4,16)          LEXI_FUNC(1,sha1,20)
 LEXI_FUNC(224,sha224,28)  LEXI_FUNC(256,sha256,32)     LEXI_FUNC(384,sha384,48)  LEXI_FUNC(512,sha512,64)
-LEXI_FUNC(gost,gost,28)   LEXI_FUNC(tig,tiger,24)      LEXI_FUNC(wrlp,whirlpool,64)
+LEXI_FUNC(gost,gost,32)   LEXI_FUNC(tig,tiger,24)      LEXI_FUNC(wrlp,whirlpool,64)
 LEXI_FUNC(rip128,ripemd128,16) LEXI_FUNC(rip160,ripemd160,20) LEXI_FUNC(rip256,ripemd256,32) LEXI_FUNC(rip320,ripemd320,40)
 LEXI_FUNC(hav128_3,haval128_3,16) LEXI_FUNC(hav128_4,haval128_4,16) LEXI_FUNC(hav128_5,haval128_5,16)
 LEXI_FUNC(hav160_3,haval160_3,20) LEXI_FUNC(hav160_4,haval160_4,20) LEXI_FUNC(hav160_5,haval160_5,20)
@@ -939,7 +943,7 @@ static void comp_add_script_line(const char *fmt, ...) {
 		pScriptLines[nScriptLines][len] = 0;
 	}
 #else
-	if (len2 > len) {
+	if (len2 >= len) {
 		MEM_FREE(pScriptLines[nScriptLines]);
 		len = len2+1;
 		pScriptLines[nScriptLines] = mem_alloc(len+1);
@@ -1368,7 +1372,6 @@ static int parse_expression(DC_struct *p) {
 		else if (type=='c'||type=='6') { len_comp = b64_len(nLenCode[i]); } \
 		else { len_comp = nLenCode[i]*2; } \
 	}
-
 								IF(SHA512,f512,4)
 								ELSEIF(MD5,f5,2)
 								ELSEIF(MD4,f4,2)
@@ -1432,9 +1435,12 @@ static int parse_expression(DC_struct *p) {
 		len += strlen(pScriptLines[i]);
 	pScr = mem_alloc_tiny(len+1,1);
 	*pScr = 0;
-	for (i = 0; i < nScriptLines; ++i)
-		strcat(pScr, pScriptLines[i]);
 	p->pScript = pScr;
+	for (i = 0; i < nScriptLines; ++i) {
+		strcpy(pScr, pScriptLines[i]);
+		pScr += strlen(pScr);
+	}
+
 
 	if (compile_debug) {
 		printf("%s\n", p->pScript);
