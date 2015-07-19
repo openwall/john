@@ -20,7 +20,7 @@ john_register_one(&fmt_rawmd5uthick);
 #ifdef SIMD_COEF_32
 #define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_MD5)
 #endif
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #include "md5.h"
 #include "misc.h"
@@ -516,9 +516,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (i = 0; i < BLOCK_LOOPS; i++)
-		SSEmd5body(&saved_key[i*NBKEYS*64], (unsigned int*)&crypt_key[i*NBKEYS*BINARY_SIZE], NULL, SSEi_MIXED_IN);
+		SIMDmd5body(&saved_key[i*NBKEYS*64], (unsigned int*)&crypt_key[i*NBKEYS*BINARY_SIZE], NULL, SSEi_MIXED_IN);
 #else
-	SSEmd5body(saved_key, (unsigned int*)crypt_key, NULL, SSEi_MIXED_IN);
+	SIMDmd5body(saved_key, (unsigned int*)crypt_key, NULL, SSEi_MIXED_IN);
 #endif
 #else
 	MD5_Init( &ctx );

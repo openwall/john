@@ -51,7 +51,7 @@
 #include "stdint.h"
 #include "dynamic.h"
 #include "johnswap.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "dynamic_types.h"
 
 /*

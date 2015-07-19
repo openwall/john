@@ -27,7 +27,7 @@ john_register_one(&fmt_rawSHA224);
 #include "common.h"
 #include "johnswap.h"
 #include "formats.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 /*
  * Only effective for SIMD.
@@ -316,7 +316,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef SIMD_COEF_32
-		SSESHA256body(&saved_key[(unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32],
+		SIMDSHA256body(&saved_key[(unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32],
 		              &crypt_out[(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32],
 		              NULL, SSEi_REVERSE_STEPS|SSEi_MIXED_IN|SSEi_CRYPT_SHA224);
 #else

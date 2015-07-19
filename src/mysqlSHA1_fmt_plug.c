@@ -39,7 +39,7 @@ john_register_one(&fmt_mysqlSHA1);
 #ifdef SIMD_COEF_32
 #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #include "misc.h"
 #include "common.h"
@@ -265,14 +265,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_32
 	unsigned int i;
 
-	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
+	SIMDSHA1body(saved_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
 
 	for (i = 0; i < SIMD_PARA_SHA1; i++)
 		memcpy(&interm_key[i*SHA_BUF_SIZ*4*SIMD_COEF_32],
 		       &crypt_key[i*BINARY_SIZE*SIMD_COEF_32],
 		       SIMD_COEF_32*BINARY_SIZE);
 
-	SSESHA1body(interm_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
+	SIMDSHA1body(interm_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
 #else
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, (unsigned char *) saved_key, strlen(saved_key));

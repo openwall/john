@@ -34,7 +34,7 @@ john_register_one(&fmt_FGT);
 
 #include "sha.h"
 #include "base64.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef __MIC__

@@ -37,7 +37,7 @@ john_register_one(&fmt_mssql05);
 #ifdef SIMD_COEF_32
 #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #include "misc.h"
 #include "params.h"
@@ -497,7 +497,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for(i=0;i<SALT_SIZE;i++)
 			saved_key[GETPOS((len+i), index)] = cursalt[i];
 	}
-	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
+	SIMDSHA1body(saved_key, (unsigned int *)crypt_key, NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
 #else
 	SHA_CTX ctx;
 	memcpy(saved_key+key_length, cursalt, SALT_SIZE);

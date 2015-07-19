@@ -26,7 +26,7 @@ static unsigned int omp_t = 1;
 #endif
 #endif
 #endif
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #include "params.h"
 #include "common.h"
@@ -357,7 +357,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned int j;
 		for (j=0; j < NBKEYS; j++)
 			in[(j&(SIMD_COEF_32-1)) + j/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = cur_salt;
-		SSESHA1body(in, out, NULL, SSEi_MIXED_IN);
+		SIMDSHA1body(in, out, NULL, SSEi_MIXED_IN);
 #if defined(_OPENMP)
 	}
 #endif

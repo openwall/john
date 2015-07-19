@@ -60,7 +60,7 @@ john_register_one(&fmt_ctrxns);
 #ifdef SIMD_COEF_32
 #define NBKEYS  (SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "common.h"
 #include "sha.h"
 #include "memdbg.h"	// Must be last included header
@@ -340,7 +340,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef SIMD_COEF_32
-		SSESHA1body(saved_key[index], (unsigned int*)crypt_key[index], NULL, SSEi_MIXED_IN);
+		SIMDSHA1body(saved_key[index], (unsigned int*)crypt_key[index], NULL, SSEi_MIXED_IN);
 #else
 		SHA_CTX ctx;
 

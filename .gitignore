@@ -8,6 +8,7 @@
 *.rej
 *~
 *.exe
+*.dSYM
 
 Makefile
 

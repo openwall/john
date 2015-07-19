@@ -19,7 +19,7 @@ john_register_one(&fmt_nsldap);
 #ifdef SIMD_COEF_32
 #define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #include "johnswap.h"
 #include "misc.h"
@@ -223,7 +223,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 
 #ifdef SIMD_COEF_32
-	SSESHA1body(saved_key, (ARCH_WORD_32*)crypt_key, NULL, SSEi_MIXED_IN);
+	SIMDSHA1body(saved_key, (ARCH_WORD_32*)crypt_key, NULL, SSEi_MIXED_IN);
 #else
 	SHA_CTX ctx;
 	SHA1_Init( &ctx );

@@ -14,7 +14,7 @@
 
 #include "arch.h"
 #include "misc.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "MD5_std.h"
 #include "common.h"
 #include "formats.h"

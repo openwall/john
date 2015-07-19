@@ -40,7 +40,7 @@ john_register_one(&fmt_keyring);
 #include "sha2.h"
 #include <openssl/aes.h>
 #include "johnswap.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"keyring"
@@ -236,7 +236,7 @@ static void symkey_generate_simple(int index, unsigned char *salt, int n_salt, i
 
 	// the 'simple' inner loop in SIMD.
 	for (i = 1; i < iterations; ++i)
-		SSESHA256body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+		SIMDSHA256body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 
 	// marshal data back into flat buffers.
 	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {

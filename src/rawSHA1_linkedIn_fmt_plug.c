@@ -27,7 +27,7 @@ john_register_one(&fmt_rawSHA1_LI);
 #ifdef SIMD_COEF_32
 #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #include "misc.h"
 #include "common.h"
@@ -270,7 +270,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
   // get plaintext input in saved_key put it into ciphertext crypt_key
 #ifdef SIMD_COEF_32
-	SSESHA1body(saved_key, crypt_key, NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
+	SIMDSHA1body(saved_key, crypt_key, NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
 #else
 	SHA1_Init( &ctx );
 	SHA1_Update( &ctx, (unsigned char *) saved_key, strlen( saved_key ) );

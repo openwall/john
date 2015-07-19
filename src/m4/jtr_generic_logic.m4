@@ -84,14 +84,14 @@ case "${host_cpu}_${CFLAGS}" in
    x86_64_*)
       if test "x$with_icc_asm" = "xyes"; then
          JTR_LIST_ADD(CFLAGS, [-DUSING_ICC_S_FILE])
-         [CC_ASM_OBJS="x86-64.o sse-intrinsics-64.o"]
+         [CC_ASM_OBJS="x86-64.o simd-intrinsics-64.o"]
       else
          case "${CPPFLAGS}_${CFLAGS}" in
            *-mno-sse2*) ;;
            *-mno-mmx*) ;;
            *)
          AS_IF([test "y$CPU_STR" != "yx86_64"],
-            [CC_ASM_OBJS="x86-64.o sse-intrinsics.o"])
+            [CC_ASM_OBJS="x86-64.o simd-intrinsics.o"])
          ;;
          esac
       fi
@@ -103,16 +103,16 @@ case "${host_cpu}_${CFLAGS}" in
         [CC_ASM_OBJS="x86.o x86-mmx.o"]
       elif test "x$with_icc_asm" = "xyes"; then
         JTR_LIST_ADD(CFLAGS, [-DUSING_ICC_S_FILE])
-        [CC_ASM_OBJS="x86.o x86-sse.o sse-intrinsics-32.o"]
+        [CC_ASM_OBJS="x86.o x86-sse.o simd-intrinsics-32.o"]
       else
-        [CC_ASM_OBJS="x86.o x86-sse.o sse-intrinsics.o"]
+        [CC_ASM_OBJS="x86.o x86-sse.o simd-intrinsics.o"]
       fi
    ;;
    mic*)
-      [CC_ASM_OBJS="sse-intrinsics.o"]
+      [CC_ASM_OBJS="simd-intrinsics.o"]
       ;;
    powerpc64le*)
-      [CC_ASM_OBJS="sse-intrinsics.o"]
+      [CC_ASM_OBJS="simd-intrinsics.o"]
       ;;
    alpha*dec*)
       [CC_ASM_OBJS="digipaq-alpha.o"]

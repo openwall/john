@@ -21,7 +21,7 @@ john_register_one(&fmt_hmacSHA224);
 #include "common.h"
 #include "formats.h"
 #include "johnswap.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -341,14 +341,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_32
 		unsigned int i, *pclear;
 		if (new_keys) {
-			SSESHA256body(&ipad[index * SHA_BUF_SIZ * 4],
+			SIMDSHA256body(&ipad[index * SHA_BUF_SIZ * 4],
 			            (unsigned int*)&prep_ipad[index * BINARY_SIZE_256],
 			            NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA224);
-			SSESHA256body(&opad[index * SHA_BUF_SIZ * 4],
+			SIMDSHA256body(&opad[index * SHA_BUF_SIZ * 4],
 			            (unsigned int*)&prep_opad[index * BINARY_SIZE_256],
 			            NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA224);
 		}
-		SSESHA256body(cur_salt,
+		SIMDSHA256body(cur_salt,
 		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
 		            (unsigned int*)&prep_ipad[index * BINARY_SIZE_256],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|SSEi_CRYPT_SHA224);
@@ -357,7 +357,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pclear = (unsigned int*)&crypt_key[index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4];
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++)
 			pclear[28/4*SIMD_COEF_32+(i&(SIMD_COEF_32-1))+i/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = 0x80000000;
-		SSESHA256body(&crypt_key[index * SHA_BUF_SIZ * 4],
+		SIMDSHA256body(&crypt_key[index * SHA_BUF_SIZ * 4],
 		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
 		            (unsigned int*)&prep_opad[index * BINARY_SIZE_256],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|SSEi_CRYPT_SHA224);

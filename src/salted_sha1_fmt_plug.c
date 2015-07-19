@@ -26,7 +26,7 @@ john_register_one(&fmt_saltedsha);
 #ifdef SIMD_COEF_32
 #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #include "common.h"
 
@@ -361,7 +361,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		for(i=0;i<NBKEYS;i++)
 			set_onesalt(i+index);
-		SSESHA1body(saved_key[index/NBKEYS], crypt_key[index/NBKEYS], NULL, SSEi_MIXED_IN);
+		SIMDSHA1body(saved_key[index/NBKEYS], crypt_key[index/NBKEYS], NULL, SSEi_MIXED_IN);
 #else
 		SHA_CTX ctx;
 		SHA1_Init( &ctx );

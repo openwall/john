@@ -27,7 +27,7 @@
 #include "arch.h"
 #ifndef DYNAMIC_DISABLED
 
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include <openssl/opensslv.h>
 
 #ifdef _OPENMP
