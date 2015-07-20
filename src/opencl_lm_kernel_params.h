@@ -86,56 +86,54 @@ typedef unsigned WORD vtype;
 	lm_clear_block_8(48); 			\
 	lm_clear_block_8(56);
 
-#define GET_HASH_0(hash, x, k)			\
-	for (bit = 0; bit < k; bit++)		\
+#define GET_HASH_0(hash, x, k, bits)			\
+	for (bit = bits; bit < k; bit++)		\
 		hash |= ((((uint)B[bit]) >> x) & 1) << bit;
 
-#define GET_HASH_1(hash, x, k)   		\
-	for (bit = 0; bit < k; bit++)		\
+#define GET_HASH_1(hash, x, k, bits)   			\
+	for (bit = bits; bit < k; bit++)		\
 		hash |= ((((uint)B[32 + bit]) >> x) & 1) << bit;
+
+inline void cmp_final(__private unsigned int *binary,
+		      __global unsigned int *offset_table,
+		      __global unsigned int *hash_table,
+		      volatile __global uint *output,
+		      volatile __global uint *bitmap,
+		      unsigned int depth,
+		      unsigned int section)
+{
+	unsigned long hash;
+	unsigned int hash_table_index, t;
+
+	hash = ((unsigned long)binary[1] << 32) | (unsigned long)binary[0];
+	hash += (unsigned long)offset_table[hash % OFFSET_TABLE_SIZE];
+	hash_table_index = hash % HASH_TABLE_SIZE;
+
+	if (hash_table[hash_table_index + HASH_TABLE_SIZE] == binary[1])
+	if (hash_table[hash_table_index] == binary[0])
+	if (!(atomic_or(&bitmap[hash_table_index/32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
+		t = atomic_inc(&output[0]);
+		output[1 + 3 * t] = (section * 32) + depth;
+		output[2 + 3 * t] = 0;
+		output[3 + 3 * t] = hash_table_index;
+	}
+
+}
 
 inline void cmp( __private unsigned lm_vector *B,
 		 __global unsigned int *offset_table,
 		 __global unsigned int *hash_table,
-	  __global int *binary,
-	  volatile __global uint *output,
-	  volatile __global uint *bitmap,
-	  __global lm_vector *B_global,
-	  int section) {
+		 volatile __global uint *output,
+		 volatile __global uint *bitmap,
+		 int section) {
 
-	unsigned int value[2] , mask, i, bit;
-	unsigned long hash, p;
-	unsigned int offset_table_index, hash_table_index;
-	mask = 0;
+	unsigned int value[2] , i, bit;
+
 	for (i = 0; i < 32; i++){
 		value[0] = 0;
 		value[1] = 0;
-		GET_HASH_0(value[0], i, 32);
-		GET_HASH_1(value[1], i, 32);
-
-		hash = ((unsigned long)value[1] << 32) | (unsigned long)value[0];
-
-		offset_table_index = hash % OFFSET_TABLE_SIZE;
-		hash += (unsigned long)offset_table[offset_table_index];
-		hash_table_index = hash % HASH_TABLE_SIZE;
-
-
-		mask = (hash_table[hash_table_index] == value[0] &&
-		hash_table[hash_table_index + HASH_TABLE_SIZE] == value[1]);
-
-		if (mask) {
-
-		if (!(atomic_or(&bitmap[hash_table_index/32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
-			mask = atomic_inc(&output[0]);
-			output[1 + 3 * mask] = (section * 32) + i;
-			output[2 + 3 * mask] = 0;
-			output[3 + 3 * mask] = hash_table_index;
-		}
+		GET_HASH_0(value[0], i, 32, 0);
+		GET_HASH_1(value[1], i, 32, 0);
+		cmp_final(value, offset_table, hash_table, output, bitmap, i, section);
 	}
-
-
-	}
-
-
-
 }

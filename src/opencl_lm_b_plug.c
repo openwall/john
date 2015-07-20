@@ -32,7 +32,7 @@
 
 static cl_kernel **krnl = NULL;
 static cl_int err;
-static cl_mem buffer_lm_key_idx, buffer_raw_keys, buffer_lm_keys, buffer_return_hashes, buffer_hash_ids, buffer_loaded_hashes, buffer_bitmap_dupe, buffer_hash_table, buffer_offset_table;
+static cl_mem buffer_lm_key_idx, buffer_raw_keys, buffer_lm_keys, buffer_hash_ids, buffer_bitmap_dupe, buffer_hash_table, buffer_offset_table;
 static int *loaded_hashes = NULL;
 static unsigned int num_loaded_hashes, *hash_ids = NULL, *zero_buffer = NULL;
 static size_t current_gws = 0;
@@ -81,7 +81,6 @@ static void release_buffer_gws()
 static void create_buffer(unsigned int num_loaded_hashes, unsigned int ot_size, unsigned int ht_size)
 {
 	hash_ids     = (unsigned int *) mem_calloc (3 * num_loaded_hashes + 1, sizeof(unsigned int));
-	opencl_lm_cracked_hashes = (lm_vector*) mem_alloc (num_loaded_hashes * 64 * sizeof(lm_vector));
 	zero_buffer = (unsigned int *) mem_calloc (((ht_size - 1) / 32 + 1), sizeof(unsigned int));
 
 	opencl_lm_init_index();
@@ -94,12 +93,6 @@ static void create_buffer(unsigned int num_loaded_hashes, unsigned int ot_size, 
 
 	buffer_hash_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ht_size * sizeof(unsigned int) * 2, hash_table_64, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_table.");
-
-	buffer_loaded_hashes = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, num_loaded_hashes * sizeof(int) * 2, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Failed creating buffer_loaded_hashes.");
-
-	buffer_return_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, 64 * num_loaded_hashes * sizeof(lm_vector), NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Failed creating buffer_return_hashes.");
 
 	buffer_hash_ids = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (3 * num_loaded_hashes + 1) * sizeof(unsigned int), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating buffer_hash_ids.");
@@ -115,25 +108,20 @@ static void set_kernel_args()
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 0, sizeof(cl_mem), &buffer_lm_key_idx), "Failed setting kernel argument 0, kernel 0.");
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 2, sizeof(cl_mem), &buffer_offset_table), "Failed setting kernel argument 2, kernel 0.");
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 3, sizeof(cl_mem), &buffer_hash_table), "Failed setting kernel argument 3, kernel 0.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 4, sizeof(cl_mem), &buffer_return_hashes), "Failed setting kernel argument 4, kernel 0.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 5, sizeof(cl_mem), &buffer_loaded_hashes), "Failed setting kernel argument 5, kernel 0.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 6, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument 6, kernel 0.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 7, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument 7, kernel 0.");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 4, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument 4, kernel 0.");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 5, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument 5, kernel 0.");
 }
 
 static void release_buffer()
 {
-	if (buffer_return_hashes) {
+	if (buffer_bitmap_dupe) {
 		MEM_FREE(loaded_hashes);
 		MEM_FREE(hash_ids);
-		MEM_FREE(opencl_lm_cracked_hashes);
 		MEM_FREE(zero_buffer);
 		HANDLE_CLERROR(clReleaseMemObject(buffer_lm_key_idx), "Error releasing buffer_lm_key_idx");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_loaded_hashes), "Error releasing buffer_loaded_hashes.");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_return_hashes), "Error releasing buffer_return_hashes.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_ids), "Error releasing buffer_hash_ids.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Error releasing buffer_bitmap_dupe.");
-		buffer_return_hashes = 0;
+		buffer_bitmap_dupe = 0;
 	}
 }
 
@@ -300,6 +288,8 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 	create_buffer_gws(global_work_size);
 	set_kernel_args_gws();
 
+	/* for hash_ids[3*x + 1], 27 bits for storing gid and 5 bits for bs depth. */
+	assert(global_work_size <= ((1U << 28) - 1));
 	fmt_opencl_lm.params.max_keys_per_crypt = global_work_size << LM_LOG_DEPTH;
 	fmt_opencl_lm.params.min_keys_per_crypt = LM_DEPTH;
 }
@@ -577,8 +567,6 @@ static void reset(struct db_main *db)
 		prepare_table(salt);
 		create_buffer(num_loaded_hashes, offset_table_size, hash_table_size);
 
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_loaded_hashes, CL_TRUE, 0, num_loaded_hashes * sizeof(int) * 2, loaded_hashes, 0, NULL, NULL ), "Failed Copy data to gpu");
-
 		auto_tune_all(num_loaded_hashes, 300);
 	}
 	else {
@@ -600,7 +588,7 @@ static void reset(struct db_main *db)
 			loaded_hashes[2 * i] = binary[0];
 			loaded_hashes[2 * i + 1] = binary[1];
 			i++;
-			fprintf(stderr, "C:%s B:%d %d %d\n", ciphertext, binary[0], binary[1], i == num_loaded_hashes );
+			//fprintf(stderr, "C:%s B:%d %d %d\n", ciphertext, binary[0], binary[1], i == num_loaded_hashes );
 		}
 
 		num_loaded_hashes = create_perfect_hash_table(64, (void *)loaded_hashes,
@@ -617,8 +605,6 @@ static void reset(struct db_main *db)
 		}
 
 		create_buffer(num_loaded_hashes, offset_table_size, hash_table_size);
-		fprintf(stderr, "OT:%u HT:%u\n", offset_table_size, hash_table_size);
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_loaded_hashes, CL_TRUE, 0, num_loaded_hashes * sizeof(int) * 2, loaded_hashes, 0, NULL, NULL ), "Failed Copy data to gpu");
 		auto_tune_all(num_loaded_hashes, 300);
 
 		hash_ids[0] = 0;
@@ -669,7 +655,6 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 
 	if (hash_ids[0]) {
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (3 * hash_ids[0] + 1) * sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Write FAILED\n");
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_return_hashes, CL_TRUE, 0, hash_ids[0] * 64 * sizeof(lm_vector), opencl_lm_cracked_hashes, 0, NULL, NULL), "Write FAILED\n");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmap_dupe, CL_TRUE, 0, ((hash_table_size - 1)/32 + 1) * sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmap_dupe.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
 	}
@@ -723,7 +708,7 @@ static int cmp_exact(char *source, int index)
 {
 	int *binary = opencl_lm_get_binary(source + 4);
 
-	if (binary[0] == hash_table_64[hash_ids[3 + 3 * index]])
+	if (binary[1] == hash_table_64[hash_ids[3 + 3 * index] + hash_table_size])
 		return 1;
 	return 0;
 }

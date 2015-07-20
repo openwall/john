@@ -83,8 +83,6 @@ struct fmt_main fmt_opencl_lm;
 
 extern opencl_lm_combined *opencl_lm_all;
 extern opencl_lm_transfer *opencl_lm_keys;
-extern int opencl_lm_keys_changed;
-extern lm_vector *opencl_lm_cracked_hashes;
 
 extern void opencl_lm_b_register_functions(struct fmt_main *);
 
@@ -98,7 +96,6 @@ extern int opencl_lm_get_hash_4(int index);
 extern int opencl_lm_get_hash_5(int index);
 extern int opencl_lm_get_hash_6(int index);
 extern void opencl_lm_init(int block);
-extern int opencl_lm_cmp_one_b(WORD *binary, int count, int index);
 extern char *opencl_lm_get_source(WORD *raw);
 extern WORD *opencl_lm_get_binary(char *ciphertext);
 extern void opencl_lm_set_key(char *key, int index);
