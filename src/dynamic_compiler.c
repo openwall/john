@@ -277,16 +277,67 @@ static char *dynamic_expr_normalize(const char *ct) {
 	return (char*)ct;
 }
 
+static void DumpParts(char *part, char *cp) {
+	int len = strlen(part);
+	cp = strtok(cp, "\n");
+	while (cp) {
+		if (!strncmp(cp, part, len))
+			printf ("%s\n", cp);
+		cp = strtok(NULL, "\n");
+	}
+}
+
+static void DumpParts2(char *part, char *cp, char *comment) {
+	int len = strlen(part), first = 1;
+	cp = strtok(cp, "\n");
+	while (cp) {
+		if (!strncmp(cp, part, len)) {
+			if (first)
+				printf("%s\n", comment);
+			printf ("%s\n", cp);
+			first = 0;
+		}
+		cp = strtok(NULL, "\n");
+	}
+}
+
 static void dump_HANDLE(void *_p) {
 	DC_struct *p = (DC_struct*)_p;
+	char *cp;
 	printf("\ncrc32 = %08X\n", p->crc32);
 	printf("pExpr=%s\n", p->pExpr);
 	printf("extraParams=%s\n", p->pExtraParams);
 	printf("signature=%s\n", p->pSignature);
 	printf("line1=%s\n", p->pLine1);
 	printf("line2=%s\n", p->pLine2);
-	printf("line3=%s\n", p->pLine3);
-	printf("%s\n", p->pScript);
+	printf("line3=%s\n\n", p->pLine3);
+
+	// Now print out a nicely commented script, and put it back into order.
+	// order does not matter for the dyna-parser, BUT putting in good form
+	// will help anyone wanting to learn how to properly code in the dyna
+	// script language.
+	printf ("##############################################################\n");
+	printf ("#  Dynamic script for expression %s%s%s\n", p->pExpr, p->pExtraParams&&p->pExtraParams[0]?",":"", p->pExtraParams);
+	printf ("##############################################################\n");
+	cp = str_alloc_copy(p->pScript);
+	DumpParts("Expression", cp);
+	cp = str_alloc_copy(p->pScript);
+	printf ("#  Flags for this format\n");
+	DumpParts("Flag=", cp);
+	cp = str_alloc_copy(p->pScript);
+	printf ("#  Lengths used in this format\n");
+	DumpParts("SaltLen=", cp);
+	cp = str_alloc_copy(p->pScript);
+	DumpParts("MaxInput", cp);
+	cp = str_alloc_copy(p->pScript);
+	printf ("#  The functions in the script\n");
+	DumpParts("Func=", cp);
+	cp = str_alloc_copy(p->pScript);
+	DumpParts2("Const", cp, "#  Constants used by this format");
+	cp = str_alloc_copy(p->pScript);
+	printf ("#  The test hashes that validate this script\n");
+	DumpParts("Test", cp);
+
 	exit(0);
 }
 
