@@ -11,7 +11,18 @@
 #include "os.h"
 
 #include <sys/stat.h>
+
+#if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
+#include "win32_memmap.h"
+#undef MEM_FREE
+#if !defined(__CYGWIN__) && !defined(__MINGW64__)
+#include "mmap-windows.c"
+#endif /* __CYGWIN */
+#endif /* _MSC_VER ... */
+
+#if defined(HAVE_MMAP)
 #include <sys/mman.h>
+#endif
 
 #include "config.h"
 #include "john.h"
@@ -40,7 +51,7 @@ static FILE *s_file; // Status file which is ./fuzz_status/'format->params.label
 extern int pristine_gecos;
 
 // used for memory map of file
-static char *mem_map, *map_pos, *map_end;
+static char *map_pos, *map_end;
 
 static char *mgetl()
 {
@@ -72,7 +83,7 @@ static char *mgetl()
 static void fuzz_init_dictionary()
 {
 	FILE *file;
-	char *line;
+	char *line, *mem_map;
 	struct FuzzDic *last_fd, *pfd;
 	int64_t file_len = 0;
 
@@ -117,6 +128,10 @@ static void fuzz_init_dictionary()
 		last_fd->next = pfd;
 		last_fd = pfd;
 	}
+
+	if (mem_map)
+		munmap(mem_map, file_len);
+	map_pos = map_end = NULL;
 
 	if (ferror(file)) pexit("fgets");
 
