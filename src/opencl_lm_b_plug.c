@@ -668,13 +668,64 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 	}
 
 	if (hash_ids[0]) {
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (3 * num_loaded_hashes + 1) * sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Write FAILED\n");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (3 * hash_ids[0] + 1) * sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Write FAILED\n");
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_return_hashes, CL_TRUE, 0, hash_ids[0] * 64 * sizeof(lm_vector), opencl_lm_cracked_hashes, 0, NULL, NULL), "Write FAILED\n");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmap_dupe, CL_TRUE, 0, ((hash_table_size - 1)/32 + 1) * sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmap_dupe.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
 	}
 
-	return 32 * hash_ids[0];
+	return hash_ids[0];
+}
+
+int opencl_lm_get_hash_0(int index)
+{
+	return hash_table_64[hash_ids[3 + 3 * index]] & 0xf;
+}
+
+int opencl_lm_get_hash_1(int index)
+{
+	return hash_table_64[hash_ids[3 + 3 * index]] & 0xff;
+}
+
+int opencl_lm_get_hash_2(int index)
+{
+	return hash_table_64[hash_ids[3 + 3 * index]] & 0xfff;
+}
+
+int opencl_lm_get_hash_3(int index)
+{
+	return hash_table_64[hash_ids[3 + 3 * index]] & 0xffff;
+}
+
+int opencl_lm_get_hash_4(int index)
+{
+	return hash_table_64[hash_ids[3 + 3 * index]] & 0xfffff;
+}
+
+int opencl_lm_get_hash_5(int index)
+{
+	return hash_table_64[hash_ids[3 + 3 * index]] & 0xffffff;
+}
+
+int opencl_lm_get_hash_6(int index)
+{
+	return hash_table_64[hash_ids[3 + 3 * index]] & 0x7ffffff;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	if (((int *)binary)[0] == hash_table_64[hash_ids[3 + 3 * index]])
+		return 1;
+	return 0;
+}
+
+static int cmp_exact(char *source, int index)
+{
+	int *binary = opencl_lm_get_binary(source + 4);
+
+	if (binary[0] == hash_table_64[hash_ids[3 + 3 * index]])
+		return 1;
+	return 0;
 }
 
 void opencl_lm_b_register_functions(struct fmt_main *fmt)
@@ -683,7 +734,8 @@ void opencl_lm_b_register_functions(struct fmt_main *fmt)
 	fmt->methods.reset = &reset;
 	fmt->methods.get_key = &get_key;
 	fmt->methods.crypt_all = &lm_crypt;
-
+	fmt->methods.cmp_exact = cmp_exact;
+	fmt->methods.cmp_one = cmp_one;
 	opencl_lm_init_global_variables = &init_global_variables;
 }
 #endif /* HAVE_OPENCL */

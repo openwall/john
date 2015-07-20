@@ -127,11 +127,9 @@ inline void cmp( __private unsigned lm_vector *B,
 
 		if (!(atomic_or(&bitmap[hash_table_index/32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
 			mask = atomic_inc(&output[0]);
-			output[1 + 2 * mask] = section;
-			output[2 + 2 * mask] = 0;
-			for (bit = 0; bit < 64; bit++)
-				B_global[mask * 64 + bit] = (lm_vector)B[bit];
-
+			output[1 + 3 * mask] = (section * 32) + i;
+			output[2 + 3 * mask] = 0;
+			output[3 + 3 * mask] = hash_table_index;
 		}
 	}
 

@@ -40,17 +40,21 @@
 	char *dst;							\
 									\
 	if (hash_ids == NULL || hash_ids[0] == 0 ||			\
-	    index > 32 * hash_ids[0] || hash_ids[0] > num_loaded_hashes)\
-		section = index >> LM_LOG_DEPTH;			\
-	else								\
-		section = hash_ids[2 * (index >> LM_LOG_DEPTH) + 1];	\
+	    index > hash_ids[0] || hash_ids[0] > num_loaded_hashes) {	\
+		section = 0;						\
+		block = 0;						\
+	}								\
+	else {								\
+		section = hash_ids[3 * index + 1] / 32;			\
+		block  = hash_ids[3 * index + 1] & 31;			\
+	}								\
 									\
 	if (section > global_work_size ) {				\
 		fprintf(stderr, "Get key error! %u %zu\n", section,	\
 			global_work_size);				\
 		section = 0;						\
+		block = 0;						\
 	}								\
-	block  = index & (LM_DEPTH - 1);				\
 									\
 	src = opencl_lm_all[section].pxkeys[block];			\
 	dst = out;							\

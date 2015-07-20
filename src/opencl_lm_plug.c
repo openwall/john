@@ -338,7 +338,7 @@ static MAYBE_INLINE int lm_get_hash(int index, int count)
 
 	return result;
 }
-
+/*
 int opencl_lm_get_hash_0(int index)
 {
 	return lm_get_hash(index, 4);
@@ -372,6 +372,6 @@ int opencl_lm_get_hash_5(int index)
 int opencl_lm_get_hash_6(int index)
 {
 	return lm_get_hash(index, 27);
-}
+}*/
 
 #endif /* HAVE_OPENCL */

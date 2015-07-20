@@ -176,16 +176,6 @@ static int cmp_all(WORD *binary, int count)
 	return 1;
 }
 
-static int cmp_one(void *binary, int index)
-{
-	return opencl_lm_cmp_one_b((WORD*)binary, 32, index);
-}
-
-static int cmp_exact(char *source, int index)
-{
-	return opencl_lm_cmp_one_b(binary(source), 64, index);
-}
-
 struct fmt_main fmt_opencl_lm = {
 	{
 		FORMAT_LABEL,
@@ -245,8 +235,8 @@ struct fmt_main fmt_opencl_lm = {
 			get_hash_6
 		},
 		(int (*)(void *, int))cmp_all,
-		cmp_one,
-		cmp_exact
+		NULL,
+		NULL
 	}
 };
 
