@@ -50,32 +50,23 @@ static FILE *s_file; // Status file which is ./fuzz_status/'format->params.label
 
 extern int pristine_gecos;
 
-// used for memory map of file
-static char *map_pos, *map_end;
+static char *file_pos, *file_end;
 
-static char *mgetl()
+static char *get_line()
 {
 	char *new_line, *line_start;
 
-	line_start = map_pos;
-	while (map_pos < map_end && *map_pos != '\n') {
-		map_pos++;
-	}
+	line_start = file_pos;
+	while (file_pos < file_end && *file_pos != '\n')
+		file_pos++;
 
-	if (map_pos == map_end)
+	if (file_pos == file_end)
 		return NULL;
-	map_pos++;
+	file_pos++;
 
-	new_line = malloc(map_pos - line_start);
-
-	if (!new_line) {
-		fprintf(stderr, "%s:%d: malloc of %ld bytes failed\n",
-		        __FILE__, __LINE__, map_pos - line_start);
-		error();
-	}
-
-	strncpy(new_line, line_start, map_pos - line_start);
-	new_line[map_pos - line_start - 1] = 0;
+	new_line = mem_alloc(file_pos - line_start);
+	strncpy(new_line, line_start, file_pos - line_start);
+	new_line[file_pos - line_start - 1] = 0;
 
 	return new_line;
 }
@@ -83,9 +74,14 @@ static char *mgetl()
 static void fuzz_init_dictionary()
 {
 	FILE *file;
-	char *line, *mem_map;
+	char *line;
 	struct FuzzDic *last_fd, *pfd;
 	int64_t file_len = 0;
+#ifdef HAVE_MMAP
+	char *mem_map;
+#else
+	char *file_start;
+#endif
 
 	if (!options.fuzz_dic)
 		return;
@@ -103,6 +99,7 @@ static void fuzz_init_dictionary()
 		error();
 	}
 
+#ifdef HAVE_MMAP
 	mem_map = MAP_FAILED;
 	if (file_len < ((1LL)<<32))
 		mem_map = mmap(NULL, file_len, PROT_READ, MAP_SHARED,
@@ -113,15 +110,25 @@ static void fuzz_init_dictionary()
 		        strerror(errno));
 		error();
 	} else {
-		map_pos = mem_map;
-		map_end = mem_map + file_len;
+		file_pos = mem_map;
+		file_end = mem_map + file_len;
 	}
+#else
+	file_pos = file_start = mem_alloc(file_len);
+	file_end = file_start + file_len;
+	if (fread(file_pos, 1, (size_t)file_len, file) != file_len) {
+		if (ferror(file))
+			pexit("fread");
+		fprintf(stderr, "fread: Unexpected EOF\n");
+		error();
+	}
+#endif
 
 	rfd = mem_alloc(sizeof(struct FuzzDic));
 	rfd->next = NULL;
 	last_fd = rfd;
 
-	while ((line = mgetl()) != NULL) {
+	while ((line = get_line()) != NULL) {
 		pfd = mem_alloc(sizeof(struct FuzzDic));
 		pfd->next = NULL;
 		pfd->value = line;
@@ -129,9 +136,13 @@ static void fuzz_init_dictionary()
 		last_fd = pfd;
 	}
 
+#ifdef HAVE_MMAP
 	if (mem_map)
 		munmap(mem_map, file_len);
-	map_pos = map_end = NULL;
+#else
+	MEM_FREE(file_start);
+#endif
+	file_pos = file_end = NULL;
 
 	if (ferror(file)) pexit("fgets");
 
