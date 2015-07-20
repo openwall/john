@@ -154,7 +154,11 @@ typedef struct private_subformat_data
 
 
 // This value still gets us all para from 1 to 7
+#ifdef SIMD_COEF_32
 #define NON_OMP_MAX   (SIMD_COEF_32*3*4*5*7)
+#else
+#define NON_OMP_MAX   1
+#endif
 #define OMP_MAX       (NON_OMP_MAX*OMP_SCALE)
 
 #ifdef SIMD_COEF_32
