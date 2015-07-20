@@ -92,6 +92,14 @@
 #define FLG_TEST_CHK			0x00400000
 #define FLG_TEST_SET \
 	(FLG_TEST_CHK | FLG_CRACKING_SUP | FLG_ACTION)
+/* Perform a fuzzing */
+#define FLG_FUZZ_CHK			0x08000000
+#define FLG_FUZZ_SET \
+	(FLG_FUZZ_CHK | FLG_CRACKING_SUP | FLG_ACTION)
+/* Dump fuzzed hashes */
+#define FLG_FUZZ_DUMP_CHK		0x40000000
+#define FLG_FUZZ_DUMP_SET \
+	(FLG_FUZZ_DUMP_CHK | FLG_CRACKING_SUP | FLG_ACTION)
 /* Passwords per salt requested */
 #define FLG_SALTS			0x01000000
 /* Ciphertext format forced */
@@ -202,6 +210,12 @@ struct options_main {
 
 /* Incremental mode name or charset file name */
 	char *charset;
+
+/* Fuzz dictionary file name */
+	char *fuzz_dic;
+
+/* Fuzz dump hashes between from and to */
+	char *fuzz_dump;
 
 /* Mask mode's mask */
 	char *mask;

@@ -68,7 +68,7 @@ int ldr_in_pot = 0;
 #define SPLFLEN(f)	(fields[f][0] ? fields[f+1] - fields[f] - 1 : 0)
 
 static char *no_username = "?";
-static int pristine_gecos;
+int pristine_gecos;
 
 /* There should be legislation against adding a BOM to UTF-8 */
 static char *skip_bom(char *string)
@@ -301,7 +301,7 @@ static void ldr_set_encoding(struct fmt_main *format)
 
 	/* john.conf alternative for --internal-encoding */
 	if (options.flags &
-	    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
+	    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK | FLG_FUZZ_CHK))
 	if ((!pers_opts.target_enc || pers_opts.target_enc == UTF_8) &&
 	    !pers_opts.internal_enc) {
 		if (!(pers_opts.internal_enc =
@@ -614,8 +614,15 @@ static int ldr_split_line(char **login, char **ciphertext,
 
 		if (valid) {
 			*ciphertext = prepared;
+			if (options.flags & FLG_FUZZ_CHK) {
+				ldr_set_encoding(*format);
+				fmt_init(*format);
+			}
 			return valid;
 		}
+
+		if (options.flags & FLG_FUZZ_CHK)
+			return valid;
 
 		ldr_set_encoding(*format);
 
@@ -801,11 +808,12 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 	return words;
 }
 
-static void ldr_load_pw_line(struct db_main *db, char *line)
+void ldr_load_pw_line(struct db_main *db, char *line)
 {
 	static int skip_dupe_checking = 0;
 	struct fmt_main *format;
-	int index, count;
+	int index, count, warn, flags;
+	char *line_sb;
 	char *login, *ciphertext, *gecos, *home, *uid;
 	char *piece;
 	void *binary, *salt;
@@ -818,8 +826,42 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	int i;
 #endif
 
+	line_sb = line;
+	if (options.flags & FLG_FUZZ_CHK) {
+		pers_opts.target_enc = 0;
+		pers_opts.internal_enc = 0;
+
+		warn = cfg_get_bool(SECTION_OPTIONS, NULL, "WarnEncoding", 0);
+		flags = RF_ALLOW_DIR;
+
+		if (!john_main_process)
+			warn = 0;
+
+		line_sb = skip_bom(line);
+		if (warn) {
+			char *u8check;
+
+			if (!(flags & RF_ALLOW_MISSING) ||
+			    !(u8check =
+			      strchr(line_sb, options.loader.field_sep_char)))
+				u8check = line_sb;
+
+			if (((flags & RF_ALLOW_MISSING) &&
+			     pers_opts.store_utf8) ||
+			    ((flags & RF_ALLOW_DIR) &&
+			     pers_opts.input_enc == UTF_8)) {
+				if (!valid_utf8((UTF8*)u8check))
+					warn = 0;
+			} else if (pers_opts.input_enc != UTF_8 &&
+			           (line_sb != line ||
+			            valid_utf8((UTF8*)u8check) > 1)) {
+				warn = 0;
+			}
+		}
+	}
+
 	count = ldr_split_line(&login, &ciphertext, &gecos, &home, &uid,
-		NULL, &db->format, db->options, line);
+		NULL, &db->format, db->options, line_sb);
 	if (count <= 0) return;
 	if (count >= 2) db->options->flags |= DB_SPLIT;
 
