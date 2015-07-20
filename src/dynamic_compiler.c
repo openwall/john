@@ -64,6 +64,14 @@
  *****************************************************************
  *     TODO:
  *****************************************************************
+ *
+ *  The big_hash speed tests done with 100's (whirlpool).  All others
+ *  should be similar, EXCEPT hashes using SIMD.  They should each be
+ *  looked at.
+ *
+ *  Optimal big_hash speeds:   *00, *01, *02, *03, *04
+ *  Non optimal big_hash:      *05, *06, *07, *08
+ *****************************************************************
 
  add new logic for ^  (exponentiation)
 
@@ -1397,7 +1405,7 @@ static int parse_expression(DC_struct *p) {
 #define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) \
 	{ \
 		char type = pCode[i][strlen(pCode[i])-1]; \
-		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_append_input2\n", use_inp1?"1":"2"); \
+		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_%s_input2\n", use_inp1?"1":"2", use_inp1?"append":"overwrite"); \
 		if (type=='r') { len_comp2 += nLenCode[i]; } \
 		else if (type=='c'||type=='6') { len_comp2 += b64_len(nLenCode[i]); } \
 		else { len_comp2 += nLenCode[i]*2; } \
@@ -1406,7 +1414,7 @@ static int parse_expression(DC_struct *p) {
 #define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) \
 	{ \
 		char type = pCode[i][strlen(pCode[i])-1]; \
-		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_append_input2\n", use_inp1?"1":"2"); \
+		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_%s_input2\n", use_inp1?"1":"2", use_inp1?"append":"overwrite"); \
 		if (type=='r') { len_comp2 += nLenCode[i]; } \
 		else if (type=='c'||type=='6') { len_comp2 += b64_len(nLenCode[i]); } \
 		else { len_comp2 += nLenCode[i]*2; } \

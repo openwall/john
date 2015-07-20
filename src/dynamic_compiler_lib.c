@@ -27,6 +27,45 @@
 
 #include "memdbg.h"
 
+typedef struct LIB_struct {
+	int nlegacy_types;
+	int legacy_types[10];
+	DC_struct code;
+}LIB_struct;
+
+static LIB_struct lib[] = {
+	// might want to add a extra param of ,MaxInputLen=55 ??
+	{ 1, {0}, {DC_MAGIC, 0x09ABB6B4, NULL, "dynamic=md5($p)", "", "Expression=dynamic=md5($p)\nFlag=MGF_KEYS_INPUT\nFunc=DynamicFunc__crypt_md5\nMaxInputLenX86=110\nMaxInputLen=55\nTest=@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72:abc\nTest=@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785:john\nTest=@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb:passweird", "@dynamic=md5($p)@", "@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72", "@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785","@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb"} },
+#if ARCH_LITTLE_ENDIAN
+	{ 1, {6}, {DC_MAGIC, 0x49FD36B6, NULL, "dynamic=md5(md5($p).$s)", "", "Expression=dynamic=md5(md5($p).$s)\nSaltLen=-23\nFlag=MGF_KEYS_BASE16_IN1\nFlag=MGF_SALTED\nTest=@dynamic=md5(md5($p).$s)@9c4f5b8c75fbabfd2f139ab34fb9da48$df694488:abc\nTest=@dynamic=md5(md5($p).$s)@bba77a29ae019330fc2794fb989526cc$87ffb1c9:john\nTest=@dynamic=md5(md5($p).$s)@59a41226b09eaab88854047448cef789$a69c5744:passweird\nSaltLen=-23\nFunc=DynamicFunc__set_input_len_32_cleartop\nFunc=DynamicFunc__append_salt\nFunc=DynamicFunc__crypt_md5\nMaxInputLenX86=110\nMaxInputLen=55", "@dynamic=md5(md5($p).$s)@", "@dynamic=md5(md5($p).$s)@9c4f5b8c75fbabfd2f139ab34fb9da48$df694488", "@dynamic=md5(md5($p).$s)@bba77a29ae019330fc2794fb989526cc$87ffb1c9","@dynamic=md5(md5($p).$s)@59a41226b09eaab88854047448cef789$a69c5744"} },
+#else
+	{ 1, {6}, {DC_MAGIC, 0x49FD36B6, NULL, "dynamic=md5(md5($p).$s)", "", "Expression=dynamic=md5(md5($p).$s)\nSaltLen=-23\nFlag=MGF_KEYS_BASE16_IN1\nFlag=MGF_SALTED\nTest=@dynamic=md5(md5($p).$s)@9c4f5b8c75fbabfd2f139ab34fb9da48$df694488:abc\nTest=@dynamic=md5(md5($p).$s)@bba77a29ae019330fc2794fb989526cc$87ffb1c9:john\nTest=@dynamic=md5(md5($p).$s)@59a41226b09eaab88854047448cef789$a69c5744:passweird\nSaltLen=-23\nFunc=DynamicFunc__clean_input2\nFunc=DynamicFunc__append_input2_from_input\nFunc=DynamicFunc__append_salt2\nFunc=DynamicFunc__crypt_md5_in2_to_out1\nMaxInputLenX86=110\nMaxInputLen=55", "@dynamic=md5(md5($p).$s)@", "@dynamic=md5(md5($p).$s)@9c4f5b8c75fbabfd2f139ab34fb9da48$df694488", "@dynamic=md5(md5($p).$s)@bba77a29ae019330fc2794fb989526cc$87ffb1c9","@dynamic=md5(md5($p).$s)@59a41226b09eaab88854047448cef789$a69c5744"} },
+#endif
+#if defined (SIMD_COEF_32)
+	{ 1, {9}, {DC_MAGIC, 0x0CC08FA8, NULL, "dynamic=md5($s.md5($p))", "", "Expression=dynamic=md5($s.md5($p))\nFlag=MGF_KEYS_BASE16_IN1\nFlag=MGF_SALTED\nTest=@dynamic=md5($s.md5($p))@4ac7a233c22986bf46c0ba86ab4e3093$df694488:abc\nTest=@dynamic=md5($s.md5($p))@1eb3946ca63041050350452764f43a04$87ffb1c9:john\nTest=@dynamic=md5($s.md5($p))@5a42d38d303330a82b3b1bc4da60c76f$a69c5744:passweird\nSaltLen=-23\nFunc=DynamicFunc__clean_input\nFunc=DynamicFunc__append_salt\nFunc=DynamicFunc__append_from_last_output2_to_input1_as_base16\nFunc=DynamicFunc__crypt_md5\nMaxInputLenX86=110\nMaxInputLen=55", "@dynamic=md5($s.md5($p))@", "@dynamic=md5($s.md5($p))@4ac7a233c22986bf46c0ba86ab4e3093$df694488", "@dynamic=md5($s.md5($p))@1eb3946ca63041050350452764f43a04$87ffb1c9","@dynamic=md5($s.md5($p))@5a42d38d303330a82b3b1bc4da60c76f$a69c5744"} },
+#else
+	{ 1, {9}, {DC_MAGIC, 0x0CC08FA8, NULL, "dynamic=md5($s.md5($p))", "", "Expression=dynamic=md5($s.md5($p))\nFlag=MGF_KEYS_BASE16_IN1\nFlag=MGF_SALTED\nTest=@dynamic=md5($s.md5($p))@4ac7a233c22986bf46c0ba86ab4e3093$df694488:abc\nTest=@dynamic=md5($s.md5($p))@1eb3946ca63041050350452764f43a04$87ffb1c9:john\nTest=@dynamic=md5($s.md5($p))@5a42d38d303330a82b3b1bc4da60c76f$a69c5744:passweird\nSaltLen=-23\nFunc=DynamicFunc__clean_input2\nFunc=DynamicFunc__append_salt2\nFunc=DynamicFunc__append_input2_from_input\nFunc=DynamicFunc__crypt_md5_in2_to_out1\nMaxInputLenX86=110\nMaxInputLen=55", "@dynamic=md5($s.md5($p))@", "@dynamic=md5($s.md5($p))@4ac7a233c22986bf46c0ba86ab4e3093$df694488", "@dynamic=md5($s.md5($p))@1eb3946ca63041050350452764f43a04$87ffb1c9","@dynamic=md5($s.md5($p))@5a42d38d303330a82b3b1bc4da60c76f$a69c5744"} },
+#endif
+#if ARCH_LITTLE_ENDIAN
+	{ 1, {2}, {DC_MAGIC, 0x840226DA, NULL, "dynamic=md5(md5($p))", "", "Expression=dynamic=md5(md5($p))\nFlag=MGF_KEYS_INPUT\nFlag=MGF_SET_INP2LEN32\nTest=@dynamic=md5(md5($p))@ec0405c5aef93e771cd80e0db180b88b:abc\nTest=@dynamic=md5(md5($p))@5111a834f08cb69faccade1084c8617f:john\nTest=@dynamic=md5(md5($p))@36a8d53b3a2326a1f0d452a26966ec82:passweird\nFunc=DynamicFunc__crypt_md5\nFunc=DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix\nFunc=DynamicFunc__crypt_md5_in2_to_out1\nMaxInputLenX86=110\nMaxInputLen=55", "@dynamic=md5(md5($p))@", "@dynamic=md5(md5($p))@ec0405c5aef93e771cd80e0db180b88b", "@dynamic=md5(md5($p))@5111a834f08cb69faccade1084c8617f","@dynamic=md5(md5($p))@36a8d53b3a2326a1f0d452a26966ec82"} },
+#else
+	{ 1, {2}, {DC_MAGIC, 0x840226DA, NULL, "dynamic=md5(md5($p))", "", "Expression=dynamic=md5(md5($p))\nFlag=MGF_KEYS_INPUT\nFlag=MGF_SET_INP2LEN32\nTest=@dynamic=md5(md5($p))@ec0405c5aef93e771cd80e0db180b88b:abc\nTest=@dynamic=md5(md5($p))@5111a834f08cb69faccade1084c8617f:john\nTest=@dynamic=md5(md5($p))@36a8d53b3a2326a1f0d452a26966ec82:passweird\nFunc=DynamicFunc__crypt_md5\nFunc=DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix\nFunc=DynamicFunc__set_input2_len_32_cleartop\nFunc=DynamicFunc__crypt_md5_in2_to_out1\nMaxInputLenX86=110\nMaxInputLen=55", "@dynamic=md5(md5($p))@", "@dynamic=md5(md5($p))@ec0405c5aef93e771cd80e0db180b88b", "@dynamic=md5(md5($p))@5111a834f08cb69faccade1084c8617f","@dynamic=md5(md5($p))@36a8d53b3a2326a1f0d452a26966ec82"} },
+#endif
+#if ARCH_LITTLE_ENDIAN
+	{ 1, {3}, {DC_MAGIC, 0x9583E219, NULL, "dynamic=md5(md5(md5($p)))", "", "Expression=dynamic=md5(md5(md5($p)))\nFlag=MGF_KEYS_INPUT\nFlag=MGF_SET_INP2LEN32\nTest=@dynamic=md5(md5(md5($p)))@beeac7b932b2d5e23b905c5e6aa5614d:abc\nTest=@dynamic=md5(md5(md5($p)))@e0d1f3b96585ebafa8e49b51b73e51d1:john\nTest=@dynamic=md5(md5(md5($p)))@4e99f555ec1d2139802d9b0834e2a2bd:passweird\nFunc=DynamicFunc__crypt_md5\nFunc=DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix\nFunc=DynamicFunc__crypt2_md5\nFunc=DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix\nFunc=DynamicFunc__crypt_md5_in2_to_out1\nMaxInputLenX86=110\nMaxInputLen=55\n", "@dynamic=md5(md5(md5($p)))@", "@dynamic=md5(md5(md5($p)))@beeac7b932b2d5e23b905c5e6aa5614d","@dynamic=md5(md5(md5($p)))@e0d1f3b96585ebafa8e49b51b73e51d1","@dynamic=md5(md5(md5($p)))@4e99f555ec1d2139802d9b0834e2a2bd"} },
+#else
+	{ 1, {3}, {DC_MAGIC, 0x9583E219, NULL, "dynamic=md5(md5(md5($p)))", "", "Expression=dynamic=md5(md5(md5($p)))\nFlag=MGF_KEYS_INPUT\nFlag=MGF_SET_INP2LEN32\nTest=@dynamic=md5(md5(md5($p)))@beeac7b932b2d5e23b905c5e6aa5614d:abc\nTest=@dynamic=md5(md5(md5($p)))@e0d1f3b96585ebafa8e49b51b73e51d1:john\nTest=@dynamic=md5(md5(md5($p)))@4e99f555ec1d2139802d9b0834e2a2bd:passweird\nFunc=DynamicFunc__crypt_md5\nFunc=DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix\nFunc=DynamicFunc__set_input2_len_32_cleartop\nFunc=DynamicFunc__crypt2_md5\nFunc=DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix\nFunc=DynamicFunc__set_input2_len_32_cleartop\nFunc=DynamicFunc__crypt_md5_in2_to_out1\nMaxInputLenX86=110\nMaxInputLen=55\n", "@dynamic=md5(md5(md5($p)))@", "@dynamic=md5(md5(md5($p)))@beeac7b932b2d5e23b905c5e6aa5614d","@dynamic=md5(md5(md5($p)))@e0d1f3b96585ebafa8e49b51b73e51d1","@dynamic=md5(md5(md5($p)))@4e99f555ec1d2139802d9b0834e2a2bd"} },
+#endif
+#if defined (SIMD_COEF_32)
+	{ 1, {14}, {DC_MAGIC, 0x14272E3C, NULL, "dynamic=md5($s.md5($p).$s)", "", "Expression=dynamic=md5($s.md5($p).$s)\nFlag=MGF_KEYS_CRYPT_IN2\nFlag=MGF_SALTED\nTest=@dynamic=md5($s.md5($p).$s)@7326756adc36bbbbe45429a3c37f545f$df694488:abc\nTest=@dynamic=md5($s.md5($p).$s)@694322b9b83447ba07317e4551be214d$87ffb1c9:john\nTest=@dynamic=md5($s.md5($p).$s)@af66cec476219779e4a91a2d99f5baa8$a69c5744:passweird\nSaltLen=-11\nFunc=DynamicFunc__clean_input\nFunc=DynamicFunc__append_salt\nFunc=DynamicFunc__append_from_last_output2_to_input1_as_base16\nFunc=DynamicFunc__append_salt\nFunc=DynamicFunc__crypt_md5\nMaxInputLenX86=110\nMaxInputLen=55\n", "@dynamic=md5($s.md5($p).$s)@", "@dynamic=md5($s.md5($p).$s)@7326756adc36bbbbe45429a3c37f545f$df694488","@dynamic=md5($s.md5($p).$s)@694322b9b83447ba07317e4551be214d$87ffb1c9","@dynamic=md5($s.md5($p).$s)@af66cec476219779e4a91a2d99f5baa8$a69c5744"} },
+#else
+	{ 1, {14}, {DC_MAGIC, 0x14272E3C, NULL, "dynamic=md5($s.md5($p).$s)", "", "Expression=dynamic=md5($s.md5($p).$s)\nFlag=MGF_KEYS_BASE16_IN1\nFlag=MGF_SALTED\nTest=@dynamic=md5($s.md5($p).$s)@7326756adc36bbbbe45429a3c37f545f$df694488:abc\nTest=@dynamic=md5($s.md5($p).$s)@694322b9b83447ba07317e4551be214d$87ffb1c9:john\nTest=@dynamic=md5($s.md5($p).$s)@af66cec476219779e4a91a2d99f5baa8$a69c5744:passweird\nSaltLen=-24\nFunc=DynamicFunc__clean_input\nFunc=DynamicFunc__append_salt\nFunc=DynamicFunc__append_from_last_output2_to_input1_as_base16\nFunc=DynamicFunc__append_salt\nFunc=DynamicFunc__crypt_md5\nMaxInputLenX86=110\nMaxInputLen=110\n", "@dynamic=md5($s.md5($p).$s)@", "@dynamic=md5($s.md5($p).$s)@7326756adc36bbbbe45429a3c37f545f$df694488","@dynamic=md5($s.md5($p).$s)@694322b9b83447ba07317e4551be214d$87ffb1c9","@dynamic=md5($s.md5($p).$s)@af66cec476219779e4a91a2d99f5baa8$a69c5744"} },
+#endif
+	{ 1, {15}, {DC_MAGIC, 0xB4C2F1E1, NULL, "dynamic=md5($u.md5($p).$s)", "", "Expression=dynamic=md5($u.md5($p).$s)\nFlag=MGF_FLAT_BUFFERS\nFlag=MGF_SALTED\nFlag=MGF_USERNAME\nFlag=MGF_KEYS_BASE16_IN1\nTest=@dynamic=md5($u.md5($p).$s)@7b59795313273b8140b902a9e6f2ce21$df694488$$U87ffb1c9:abc\nTest=@dynamic=md5($u.md5($p).$s)@6b6caa2274bcf02a72332cce52fa353c$a69c5744$$U4f58497b:john\nTest=@dynamic=md5($u.md5($p).$s)@8d9f0f655927662e4612b1ba189f62f4$e0b88e64$$U35644f9d:passweird\nSaltLen=-32\nFunc=DynamicFunc__clean_input2_kwik\nFunc=DynamicFunc__append_userid2\nFunc=DynamicFunc__append_input2_from_input\nFunc=DynamicFunc__append_salt2\nFunc=DynamicFunc__MD5_crypt_input2_to_output1_FINAL\nMaxInputLenX86=110\nMaxInputLen=110\n", "@dynamic=md5($u.md5($p).$s)@", "@dynamic=md5($u.md5($p).$s)@7b59795313273b8140b902a9e6f2ce21$df694488$$U87ffb1c9","@dynamic=md5($u.md5($p).$s)@6b6caa2274bcf02a72332cce52fa353c$a69c5744$$U4f58497b","@dynamic=md5($u.md5($p).$s)@8d9f0f655927662e4612b1ba189f62f4$e0b88e64$$U35644f9d"} },
+
+	{ 0, {0}, {0} }
+};
+
 /* typedef struct DC_struct {
 	uint32_t magic;
 	uint32_t crc32; // hash of pExpr
@@ -40,17 +79,6 @@
 	char *pLine3;
 } DC_struct;
 */
-typedef struct LIB_struct {
-	int nlegacy_types;
-	int legacy_types[10];
-	DC_struct code;
-}LIB_struct;
-
-static LIB_struct lib[] = {
-	// might want to add a extra param of ,MaxInputLen=55 ??
-	{ 1, {0}, {DC_MAGIC, 0x09ABB6B4, NULL, "dynamic=md5($p)", "", "Expression=dynamic=md5($p)\nFlag=MGF_KEYS_INPUT\nFunc=DynamicFunc__crypt_md5\nMaxInputLenX86=110\nMaxInputLen=55\nTest=@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72:abc\nTest=@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785:john\nTest=@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb:passweird", "@dynamic=md5($p)@", "@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72", "@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785","@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb"} },
-	{ 0, {0}, {0} }
-};
 
 char *copy_str(const char *_p) {
 	char *p;
