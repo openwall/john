@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/ksh
 #
 ##############################################################################
 # tests dynamic_compiler code against legacy dynamic_# hashes, pulling data
@@ -15,8 +15,7 @@ typeset -i FAIL
 GOOD=0
 FAIL=0
 
-function do_test()
-{
+function do_test {
   ../run/john --list=format-tests --format=dynamic_$1 | cut -f 3 > dct-in
   ../run/john --list=format-tests --format=dynamic_$1 | cut -f 4 > dct-in.dic
   if [ "x$3" = "xSHOW" ]
@@ -37,8 +36,7 @@ function do_test()
   rm -f dct-in dct-in.dic
 }
 
-function large_hash_set()
-{
+function large_hash_set {
   typeset -i NUM
   NUM=$1         ; do_test $NUM   "$2(\$p)"                $3
   let NUM=$NUM+1 ; do_test $NUM   "$2(\$s.\$p)"            $3
