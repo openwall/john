@@ -69,8 +69,8 @@
  *  should be similar, EXCEPT hashes using SIMD.  They should each be
  *  looked at.
  *
- *  Optimal big_hash speeds:   *00, *01, *02, *03, *04
- *  Non optimal big_hash:      *05, *06, *07, *08
+ *  Optimal big_hash speeds:   *00, *01, *02, *03, *04, *05, *06, *07, *08 (all big hashes!)
+ *  Fixed!! Non optimal big_hash:      *05, *06, *07, *08
  *****************************************************************
 
  add new logic for ^  (exponentiation)
@@ -78,25 +78,10 @@
  Handle:
 #define MGF_KEYS_INPUT                   0x00000001
 #define MGF_KEYS_CRYPT_IN2               0x00000002
+
 // for salt_as_hex for other formats, we do this:  (flag>>56)
 // Then 00 is md5, 01 is md4, 02 is SHA1, etc
 // NOTE, all top 8 bits of the flags are reserved, and should NOT be used for flags.
-#define MGF_KEYS_BASE16_IN1              0x00000004   // deprecated (use the _MD5 version)
-#define MGF_KEYS_BASE16_IN1_MD5          0x0000000000000004ULL
-#define MGF_KEYS_BASE16_IN1_MD4	         0x0100000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA1         0x0200000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA224       0x0300000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA256       0x0400000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA384       0x0500000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA512       0x0600000000000004ULL
-#define MGF_KEYS_BASE16_IN1_GOST         0x0700000000000004ULL
-#define MGF_KEYS_BASE16_IN1_WHIRLPOOL    0x0800000000000004ULL
-#define MGF_KEYS_BASE16_IN1_Tiger        0x0900000000000004ULL
-#define MGF_KEYS_BASE16_IN1_RIPEMD128    0x0A00000000000004ULL
-#define MGF_KEYS_BASE16_IN1_RIPEMD160    0x0B00000000000004ULL
-#define MGF_KEYS_BASE16_IN1_RIPEMD256    0x0C00000000000004ULL
-#define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
-
 #define MGF_KEYS_BASE16_IN1_Offset32         0x00000008   // deprecated (use the _MD5 version)
 #define MGF_KEYS_BASE16_IN1_Offset_MD5       0x0000000000000008ULL
 #define MGF_KEYS_BASE16_IN1_Offset_MD4       0x0100000000000008ULL
@@ -140,6 +125,22 @@ DONE #define MGF_USERNAME_LOCASE         (0x00000040|MGF_USERNAME)
 DONE #define MGF_PASSWORD_UPCASE          0x08000000
 DONE #define MGF_PASSWORD_LOCASE          0x10000000
 DONE #define MGF_BASE_16_OUTPUT_UPCASE    0x00002000
+
+DONE: #define MGF_KEYS_BASE16_IN1              0x00000004   // deprecated (use the _MD5 version)
+DONE: #define MGF_KEYS_BASE16_IN1_MD5          0x0000000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_MD4	       0x0100000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_SHA1         0x0200000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_SHA224       0x0300000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_SHA256       0x0400000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_SHA384       0x0500000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_SHA512       0x0600000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_GOST         0x0700000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_WHIRLPOOL    0x0800000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_Tiger        0x0900000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD128    0x0A00000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD160    0x0B00000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD256    0x0C00000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
 
  */
 
@@ -366,7 +367,8 @@ static int outer_hash_len;
 static int nSyms;
 static int LastTokIsFunc;
 static int bNeedS, bNeedS2, bNeedU, bNeedUlc, bNeedUuc, bNeedPlc, bNeedPuc, bNeedUC, bNeedPC;
-static char *salt_as_hex_type;
+static char *salt_as_hex_type, *keys_base16_in1_type;
+static int bOffsetHashIn1; // for hash(hash(p).....) type hashes.
 static int keys_as_input;
 static char *gen_Stack[1024];
 static int gen_Stack_len[1024];
@@ -536,8 +538,11 @@ static void init_static_data() {
 	LastTokIsFunc = 0;
 	keys_as_input = 0;
 	outer_hash_len = 0;
-	bNeedS = bNeedS2 = bNeedU = bNeedUlc = bNeedUuc = bNeedPlc = bNeedPuc = bNeedUC = bNeedPC = compile_debug = 0;
+	bNeedS = bNeedS2 = bNeedU = bNeedUlc = bNeedUuc = bNeedPlc = bNeedPuc = bNeedUC = bNeedPC = 0;
+	compile_debug = 0;
 	MEM_FREE(salt_as_hex_type);
+	MEM_FREE(keys_base16_in1_type);
+	bOffsetHashIn1=0;
 	h = NULL;
 	h_len = 0;
 	nSaltLen = -32;
@@ -773,6 +778,65 @@ static char *comp_optimize_expression(const char *pExpr) {
 	 * End of SALT_AS_HEX optimization
 	 */
 
+	/*
+	 * Look for MGF_KEYS_BASE16_IN1 optimization  1 level deep, except any hash($p), and have hash($p)
+	 */
+	p = strstr(pBuf, "($p)");
+	n1 = 0;
+	while (p) {
+		++n1;
+		p = strstr(&p[1], "($p)");
+	}
+	if (n1) {
+		// make sure they are all the same crypt type
+		char cpType[48];
+		p = strstr(pBuf, "($p)");
+		--p;
+		while (*p != '.' && *p != '(')
+			--p;
+		p2 = cpType;
+		++p;
+		while (p[-1] != ')' && p2-cpType < sizeof(cpType)-1)
+			*p2++ = *p++;
+		*p2 = 0;
+		if (islower(ARCH_INDEX(*cpType)) && !strstr(cpType, "_raw") && !strstr(cpType, "_b64") && strncmp(cpType, "utf", 3) && strncmp(cpType, "pad", 3) && strncmp(cpType, "lc(", 3) && strncmp(cpType, "uc(", 3)) {
+			p = strstr(pBuf, cpType);
+			n2 = 0;
+			while (p) {
+				++n2;
+				p = strstr(&p[1], cpType);
+			}
+			if (n1 == n2) {
+				// ok, make sure no other expressions (we do not have input buffers to handle them.
+				// NOTE, we 'could' handle salt as hex, but they should have been cleared already,
+				// and only $s are left. We 'also' could handle an expression (even semi complex)
+				// if it is the FIRST thing. SO md5(md5($p.$s.$u).md5($p).$s) we can still use this
+				// optimization, because we can build our md5($p.$s.$u) in buffer2, then crypt over
+				// writing buffer 2, then do the appends.  We may not add this on the very first
+				// iteration of this optimization.
+
+				// simple check, count '('.  It should be 1 more than n1.
+				n2 = 0;
+				p = strchr(pBuf, '(');
+				while (p) {
+					++n2;
+					p = strchr(&p[1], '(');
+				}
+				if (n1 == n2-1) {
+					// we can MGF_KEYS_BASE16_IN1
+					keys_base16_in1_type = mem_alloc(strlen(cpType)+1);
+					strcpy(keys_base16_in1_type, cpType);
+					// see if this is a bOffsetHashIn1 type.
+					if (n1 == 1) {
+						p = strchr(pExpr, '(');
+						++p;
+						if (!strncmp(p, cpType, strlen(cpType)))
+							bOffsetHashIn1=1;
+					}
+				}
+			}
+		}
+	}
 	/*
 	 * Look for common sub-expressions  we handle crypt($p), crypt($s.$p) crypt($p.$s)
 	 */
@@ -1083,7 +1147,84 @@ static void build_test_string(DC_struct *p, char **pLine) {
 	ngen_Stack = ngen_Stack_max = 0;
 }
 
-int b64_len (int rawlen) {
+static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex_len, int keys_hex_len) {
+	// ok, for this type, we simply walk the expression, parsing it again. We 'know' this
+	// is a simple expression.
+	int len = strlen(keys_base16_in1_type), i, side=2;
+	char *p = strchr(pExpr, '('), *pScr;
+	*p++ = 0;
+	if (bOffsetHashIn1) {
+		side = 1;
+		comp_add_script_line("Func=DynamicFunc__set_input_len_%d\n", keys_hex_len);
+	} else {
+		comp_add_script_line("Func=DynamicFunc__clean_input2_kwik\n");
+	}
+	while (*p) {
+		if (*p == '$') {
+			++p;
+			if (*p == 's') {
+				++p;
+				if (*p == '2')    { ++p; comp_add_script_line("Func=DynamicFunc__append_2nd_salt%s\n", side==2?"2":""); }
+				else                     comp_add_script_line("Func=DynamicFunc__append_salt%s\n", side==2?"2":"");
+			} else if (*p == 'p') { ++p; comp_add_script_line("Func=DynamicFunc__append_keys%s\n", side==2?"2":"");
+			} else if (*p == 'u') { ++p; comp_add_script_line("Func=DynamicFunc__append_userid%s\n", side==2?"2":"");
+			} else if (*p == 'c') { ++p; comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST%c\n", side, *p++);
+			}
+		} else if (!strncmp(p, keys_base16_in1_type, len)) {
+			p += len;
+			if (!bOffsetHashIn1)
+				comp_add_script_line("Func=DynamicFunc__append_input2_from_input\n");
+		} else if (*p == '.')
+			++p;
+		else if (*p == ')' && p[1] == 0) {
+			++p;
+		} else {
+			pexit ("compile_keys_base16_in1_type() : Error parsing %s, we got to %s\n", _p->pExpr, p);
+		}
+	}
+#undef IF
+#undef ELSEIF
+#define IF(C,L,F) if (!strncasecmp(pExpr, #C, L)) { \
+	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%d_to_output1_FINAL\n",side); \
+	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); } }
+#define ELSEIF(C,L,F) else if (!strncasecmp(pExpr, #C, L)) { \
+	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%d_to_output1_FINAL\n",side); \
+	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); } }
+
+	// now compute just what hash function was used.
+	IF(MD5,3,0) ELSEIF(MD4,3,0) ELSEIF(SHA1,4,20)
+	ELSEIF(SHA224,6,28) ELSEIF(SHA256,6,32) ELSEIF(SHA384,6,48) ELSEIF(SHA512,6,64)
+	ELSEIF(GOST,4,32) ELSEIF(Tiger,5,24) ELSEIF(WHIRLPOOL,9,64)
+	ELSEIF(RIPEMD128,9,0) ELSEIF(RIPEMD160,9,20) ELSEIF(RIPEMD256,9,32) ELSEIF(RIPEMD320,9,40)
+	ELSEIF(HAVAL128_3,10, 0) ELSEIF(HAVAL128_4,10, 0) ELSEIF(HAVAL128_5,10, 0)
+	ELSEIF(HAVAL160_3,10,20) ELSEIF(HAVAL160_4,10,20) ELSEIF(HAVAL160_5,10,20)
+	ELSEIF(HAVAL192_3,10,24) ELSEIF(HAVAL192_4,10,24) ELSEIF(HAVAL192_5,10,24)
+	ELSEIF(HAVAL224_3,10,28) ELSEIF(HAVAL224_4,10,28) ELSEIF(HAVAL224_5,10,28)
+	ELSEIF(HAVAL256_3,10,32) ELSEIF(HAVAL256_4,10,32) ELSEIF(HAVAL256_5,10,32)
+	ELSEIF(MD2,3,0) ELSEIF(PANAMA,6,32)
+	ELSEIF(SKEIN224,8,28) ELSEIF(SKEIN256,8,32)
+	ELSEIF(SKEIN384,8,48) ELSEIF(SKEIN512,8,64)
+	comp_add_script_line("MaxInputLenX86=110\n");
+	comp_add_script_line("MaxInputLen=110\n");
+
+	len = i = 0;
+	for (i = 0; i < nScriptLines; ++i)
+		len += strlen(pScriptLines[i]);
+	pScr = mem_alloc_tiny(len+1,1);
+	*pScr = 0;
+	_p->pScript = pScr;
+	for (i = 0; i < nScriptLines; ++i) {
+		strcpy(pScr, pScriptLines[i]);
+		pScr += strlen(pScr);
+	}
+
+	if (compile_debug)
+		dump_HANDLE(_p);
+	MEM_FREE(pExpr);
+	return 0;
+}
+
+static int b64_len (int rawlen) {
 	// this is the formula for mime with trailing = values. It always jumps up
 	// an even 4 bytes, when we cross a base64 block threashold. Even though
 	// this may return a slightly larger string size than the actual string
@@ -1095,6 +1236,7 @@ static int parse_expression(DC_struct *p) {
 	int i, len;
 	char *pExpr, *pScr;
 	int salt_hex_len = 0;
+	int keys_hex_len = 0;
 	init_static_data();
 	// first handle the extra strings
 	if (handle_extra_params(p))
@@ -1103,7 +1245,6 @@ static int parse_expression(DC_struct *p) {
 	if (!comp_do_lexi(p, pExpr))
 		return 1;
 	comp_do_parse(0, nSyms-1);
-	MEM_FREE(pExpr);
 
 	// Ok, now 'build' the script
 	comp_add_script_line("Expression=dynamic=%s\n", p->pExpr);
@@ -1123,6 +1264,22 @@ static int parse_expression(DC_struct *p) {
 		if (!strcmp(tmp,"RIPEMD320")) salt_hex_len = 80;
 		if (!strcmp(tmp,"SHA384")||!strcmp(tmp,"SKEIN384")) salt_hex_len = 96;
 		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")||!strcmp(tmp,"SKEIN512")) salt_hex_len = 128;
+	}
+	if (keys_base16_in1_type) {
+		char tmp[64], *cp;
+		strcpy(tmp, keys_base16_in1_type);
+		cp = strchr(tmp, '(');
+		*cp = 0;
+		strupr(tmp);
+		comp_add_script_line("Flag=MGF_KEYS_BASE16_IN1_%s\n", tmp);
+		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||strcmp(tmp,"RIPEMD128")||!strncmp(tmp,"HAVAL_128", 9)||!strcmp(tmp,"MD2")) keys_hex_len = 32;
+		if (!strcmp(tmp,"SHA1")||!strcmp(tmp,"RIPEMD160")||!strncmp(tmp,"HAVAL_160", 9)) keys_hex_len = 40;
+		if (!strcmp(tmp,"TIGER")||!strncmp(tmp,"HAVAL_192", 9)) keys_hex_len = 48;
+		if (!strcmp(tmp,"SHA224")||!strncmp(tmp,"HAVAL_224", 9)||!strcmp(tmp,"SKEIN224")) keys_hex_len = 56;
+		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")||!strncmp(tmp,"HAVAL_256",9)||!strcmp(tmp,"PANAMA")||!strcmp(tmp,"SKEIN256")) keys_hex_len = 64;
+		if (!strcmp(tmp,"RIPEMD320")) keys_hex_len = 80;
+		if (!strcmp(tmp,"SHA384")||!strcmp(tmp,"SKEIN384")) keys_hex_len = 96;
+		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")||!strcmp(tmp,"SKEIN512")) keys_hex_len = 128;
 	}
 	if (bNeedS) comp_add_script_line("Flag=MGF_SALTED\n");
 	if (bNeedS2) comp_add_script_line("Flag=MGF_SALTED2\n");
@@ -1158,6 +1315,10 @@ static int parse_expression(DC_struct *p) {
 	strcpy(gen_pw, "passweird");
 	build_test_string(p, &p->pLine3);
 
+	if (keys_base16_in1_type)
+		return compile_keys_base16_in1_type(pExpr, p, salt_hex_len, keys_hex_len);
+	MEM_FREE(pExpr);
+
 	// Ok now run the script
 	{
 		int x, j, last_push;
@@ -1165,7 +1326,7 @@ static int parse_expression(DC_struct *p) {
 		int in_unicode = 0, out_raw = 0, out_64 = 0, out_16u = 0, flag_utf16 = 0;
 		int append_mode = 0, append_mode2 = 0;
 		int max_inp_len = 110, len_comp = 0, len_comp2 = 0;
-		int inp2_clean = 1, inp1_clean = 0, exponent = -1;
+		int inp1_clean = 0, exponent = -1;
 		int use_inp1 = 1, use_inp1_again = 0;
 		int inp_cnt = 0, ex_cnt = 0, salt_cnt = 0;
 		int inp_cnt2 = 0, ex_cnt2 = 0, salt_cnt2 = 0;
@@ -1376,16 +1537,16 @@ static int parse_expression(DC_struct *p) {
 #undef ELSEIF
 #define IF(C,T,L,F) if (!strncasecmp(pCode[i], #T, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
-	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; inp2_clean=0; }
+	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
 #define ELSEIF(C,T,L,F) else if (!strncasecmp(pCode[i], #T, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
-	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16;  inp2_clean=0; }
+	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
 
 							IF(SHA512,f512,4,64)
 							ELSEIF(MD5,f5,2,0)
 							ELSEIF(MD4,f4,2,0)
 							ELSEIF(SHA1,f1,2,20)
-							ELSEIF(SHA224,f224,4,28) ELSEIF(SHA256,f256,4,32) ELSEIF(SHA384,f384,4,48) ELSEIF(SHA512,f512,4,64)
+							ELSEIF(SHA224,f224,4,28) ELSEIF(SHA256,f256,4,32) ELSEIF(SHA384,f384,4,48)
 							ELSEIF(GOST,fgost,5,32)
 							ELSEIF(Tiger,ftig,4,24)
 							ELSEIF(WHIRLPOOL,fwrl,4,64)
@@ -1409,7 +1570,6 @@ static int parse_expression(DC_struct *p) {
 		if (type=='r') { len_comp2 += nLenCode[i]; } \
 		else if (type=='c'||type=='6') { len_comp2 += b64_len(nLenCode[i]); } \
 		else { len_comp2 += nLenCode[i]*2; } \
-		inp2_clean=0; \
 	}
 #define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) \
 	{ \
@@ -1418,14 +1578,12 @@ static int parse_expression(DC_struct *p) {
 		if (type=='r') { len_comp2 += nLenCode[i]; } \
 		else if (type=='c'||type=='6') { len_comp2 += b64_len(nLenCode[i]); } \
 		else { len_comp2 += nLenCode[i]*2; } \
-		inp2_clean=0; \
 	}
-
 								IF(SHA512,f512,4)
 								ELSEIF(MD5,f5,2)
 								ELSEIF(MD4,f4,2)
 								ELSEIF(SHA1,f1,2)
-								ELSEIF(SHA224,f224,4) ELSEIF(SHA256,f256,4) ELSEIF(SHA384,f384,4) ELSEIF(SHA512,f512,4)
+								ELSEIF(SHA224,f224,4) ELSEIF(SHA256,f256,4) ELSEIF(SHA384,f384,4)
 								ELSEIF(GOST,fgost,5)
 								ELSEIF(Tiger,ftig,4)
 								ELSEIF(WHIRLPOOL,fwrl,4)
@@ -1452,7 +1610,7 @@ static int parse_expression(DC_struct *p) {
 		if (type=='r') { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 = nLenCode[i]; } \
 		else if (type=='c'||type=='6') { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 += b64_len(nLenCode[i]); } \
 		else { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 = nLenCode[i]*2; } \
-		inp2_clean=0; append_mode2 = 1; \
+		append_mode2 = 1; \
 	}
 #define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) \
 	{ \
@@ -1461,13 +1619,13 @@ static int parse_expression(DC_struct *p) {
 		if (type=='r') { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 = nLenCode[i]; } \
 		else if (type=='c'||type=='6') { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 += b64_len(nLenCode[i]); } \
 		else { inp_cnt2 = ex_cnt2 = salt_cnt2 =0; len_comp2 = nLenCode[i]*2; } \
-		inp2_clean=0; append_mode2 = 1; \
+		append_mode2 = 1; \
 	}
 								IF(SHA512,f512,4)
 								ELSEIF(MD5,f5,2)
 								ELSEIF(MD4,f4,2)
 								ELSEIF(SHA1,f1,2)
-								ELSEIF(SHA224,f224,4) ELSEIF(SHA256,f256,4) ELSEIF(SHA384,f384,4) ELSEIF(SHA512,f512,4)
+								ELSEIF(SHA224,f224,4) ELSEIF(SHA256,f256,4) ELSEIF(SHA384,f384,4)
 								ELSEIF(GOST,fgost,5)
 								ELSEIF(Tiger,ftig,4)
 								ELSEIF(WHIRLPOOL,fwrl,4)
