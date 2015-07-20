@@ -31,7 +31,7 @@ john_register_one(&FMT_STRUCT);
 #include "config.h"
 #include "options.h"
 #include "mask_ext.h"
-#include "interface.h"
+#include "bt_interface.h"
 
 #define PLAINTEXT_LENGTH    55 /* Max. is 55 with current kernel */
 #define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)

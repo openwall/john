@@ -102,11 +102,11 @@ JOHN_OBJS = \
 	dyna_salt.o dummy.o \
 	gost.o \
 	common-gpu.o \
-	batch.o bench.o build_table.o charset.o common.o compiler.o config.o cracker.o \
-	crc32.o external.o formats.o getopt.o hash_type_128.o hash_type_192.o idle.o inc.o john.o list.o \
-	loader.o logger.o mask.o mask_ext.o math.o memory.o misc.o options.o \
-	params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
-	tty.o twister.o wordlist.o \
+	batch.o bench.o bt.o charset.o common.o compiler.o config.o cracker.o \
+	crc32.o external.o formats.o getopt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o \
+	idle.o inc.o john.o list.o loader.o logger.o mask.o mask_ext.o math.o memory.o misc.o \
+	options.o params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
+	tty.o bt_twister.o wordlist.o \
 	mkv.o mkvlib.o \
 	listconf.o \
 	fake_salts.o \
