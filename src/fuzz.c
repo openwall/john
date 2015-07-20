@@ -20,6 +20,10 @@
 #endif /* __CYGWIN */
 #endif /* _MSC_VER ... */
 
+#ifndef __linux__
+#include <io.h> /* mingW _mkdir */
+#endif
+
 #if defined(HAVE_MMAP)
 #include <sys/mman.h>
 #endif
