@@ -115,6 +115,8 @@ __kernel void lm_bs( constant uint *lm_key_idx
                            __attribute__((max_constant_size(3072)))
 #endif
 			   ,__global lm_vector *lm_key,
+			    __global unsigned int *offset_table,
+			    __global unsigned int *hash_table,
                            __global lm_vector *B_global,
                            __global int *binary,
                            volatile __global uint *hash_ids,
@@ -175,5 +177,5 @@ __kernel void lm_bs( constant uint *lm_key_idx
 #endif
 		);
 
-		cmp(B, binary, hash_ids, bitmap_dupe, B_global, section);
+		cmp(B, offset_table, hash_table, binary, hash_ids, bitmap_dupe, B_global, section);
 }

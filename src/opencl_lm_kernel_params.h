@@ -86,39 +86,58 @@ typedef unsigned WORD vtype;
 	lm_clear_block_8(48); 			\
 	lm_clear_block_8(56);
 
+#define GET_HASH_0(hash, x, k)			\
+	for (bit = 0; bit < k; bit++)		\
+		hash |= ((((uint)B[bit]) >> x) & 1) << bit;
+
+#define GET_HASH_1(hash, x, k)   		\
+	for (bit = 0; bit < k; bit++)		\
+		hash |= ((((uint)B[32 + bit]) >> x) & 1) << bit;
+
 inline void cmp( __private unsigned lm_vector *B,
+		 __global unsigned int *offset_table,
+		 __global unsigned int *hash_table,
 	  __global int *binary,
 	  volatile __global uint *output,
 	  volatile __global uint *bitmap,
 	  __global lm_vector *B_global,
 	  int section) {
 
-	int value[2] , mask, i, bit;
+	unsigned int value[2] , mask, i, bit;
+	unsigned long hash, p;
+	unsigned int offset_table_index, hash_table_index;
+	mask = 0;
+	for (i = 0; i < 32; i++){
+		value[0] = 0;
+		value[1] = 0;
+		GET_HASH_0(value[0], i, 32);
+		GET_HASH_1(value[1], i, 32);
 
-	for(i = 0; i < NUM_LOADED_HASHES; i++) {
+		hash = ((unsigned long)value[1] << 32) | (unsigned long)value[0];
 
-		value[0] = binary[i];
-		value[1] = binary[i + NUM_LOADED_HASHES];
+		offset_table_index = hash % OFFSET_TABLE_SIZE;
+		hash += (unsigned long)offset_table[offset_table_index];
+		hash_table_index = hash % HASH_TABLE_SIZE;
 
-		mask = B[0] ^ -(value[0] & 1);
 
-		for (bit = 1; bit < 32; bit++)
-			mask |= B[bit] ^ -((value[0] >> bit) & 1);
+		mask = (hash_table[hash_table_index] == value[0] &&
+		hash_table[hash_table_index + HASH_TABLE_SIZE] == value[1]);
 
-		for (; bit < 64; bit += 2) {
-			mask |= B[bit] ^ -((value[1] >> (bit & 0x1F)) & 1);
-			mask |= B[bit + 1] ^ -((value[1] >> ((bit + 1) & 0x1F)) & 1);
-		}
+		if (mask) {
 
-		if (mask != ~(int)0) {
-			if (!(atomic_or(&bitmap[i/32], (1U << (i % 32))) & (1U << (i % 32)))) {
-				mask = atomic_inc(&output[0]);
-				output[1 + 2 * mask] = section;
-				output[2 + 2 * mask] = 0;
-				for (bit = 0; bit < 64; bit++)
-					B_global[mask * 64 + bit] = (lm_vector)B[bit];
+		if (!(atomic_or(&bitmap[hash_table_index/32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
+			mask = atomic_inc(&output[0]);
+			output[1 + 2 * mask] = section;
+			output[2 + 2 * mask] = 0;
+			for (bit = 0; bit < 64; bit++)
+				B_global[mask * 64 + bit] = (lm_vector)B[bit];
 
-			}
 		}
 	}
+
+
+	}
+
+
+
 }
