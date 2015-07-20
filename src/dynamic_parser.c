@@ -384,7 +384,7 @@ static Dynamic_Str_Flag_t Dynamic_Str_sFlag[] =  {
 	{ "MGF_KEYS_CRYPT_IN2",                   MGF_KEYS_CRYPT_IN2 },
 	{ "MGF_KEYS_BASE16_IN1",                  MGF_KEYS_BASE16_IN1 }, // deprecated (use the _MD5 version)
 	{ "MGF_KEYS_BASE16_IN1_Offset32",         MGF_KEYS_BASE16_IN1_Offset32 },  // deprecated (use the _MD5 version)
-	SALT_AS_HEX_FLAG(MD5)
+	SALT_AS_HEX_FLAG2(MD5)
 	SALT_AS_HEX_FLAG2(MD4)
 	SALT_AS_HEX_FLAG2(SHA1)
 	SALT_AS_HEX_FLAG2(SHA224)
@@ -394,6 +394,7 @@ static Dynamic_Str_Flag_t Dynamic_Str_sFlag[] =  {
 	SALT_AS_HEX_FLAG2(GOST)
 	SALT_AS_HEX_FLAG2(WHIRLPOOL)
 	SALT_AS_HEX_FLAG2(Tiger)
+	SALT_AS_HEX_FLAG2(TIGER)
 	SALT_AS_HEX_FLAG2(RIPEMD128)
 	SALT_AS_HEX_FLAG2(RIPEMD160)
 	SALT_AS_HEX_FLAG2(RIPEMD256)
