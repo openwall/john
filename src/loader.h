@@ -256,6 +256,11 @@ extern int ldr_in_pot;
 extern void ldr_init_database(struct db_main *db, struct db_options *options);
 
 /*
+ * Loads a line into the database.
+ */
+extern void ldr_load_pw_line(struct db_main *db, char *line);
+
+/*
  * Loads a password file into the database.
  */
 extern void ldr_load_pw_file(struct db_main *db, char *name);

@@ -103,7 +103,7 @@ JOHN_OBJS = \
 	gost.o \
 	common-gpu.o \
 	batch.o bench.o build_table.o charset.o common.o compiler.o config.o cracker.o \
-	crc32.o external.o formats.o getopt.o hash_type_128.o hash_type_192.o idle.o inc.o john.o list.o \
+	crc32.o external.o formats.o fuzz.o getopt.o hash_type_128.o hash_type_192.o idle.o inc.o john.o list.o \
 	loader.o logger.o mask.o mask_ext.o math.o memory.o misc.o options.o \
 	params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
 	tty.o twister.o wordlist.o \
@@ -351,6 +351,8 @@ external.o:	external.c misc.h params.h os.h signals.h compiler.h loader.h logger
 fake_salts.o:	fake_salts.c config.h john.h memory.h options.h fake_salts.h memdbg.h
 
 formats.o:	formats.c params.h memory.h formats.h dyna_salt.h misc.h unicode.h options.h loader.h common-opencl.h cuda_common.h memdbg.h
+
+fuzz.o:	fuzz.h fuzz.c
 
 genmkvpwd.o:	genmkvpwd.c autoconfig.h params.h memory.h mkvlib.h memdbg.h
 
