@@ -38,7 +38,7 @@
 
 // ----8<------8<---- AUTO-GENERATED DATA BELOW THIS POINT ----8<------8<----
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 //  ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ
 
@@ -65,7 +65,7 @@ static const UTF16 ISO_8859_1_to_unicode_high128[] = {
 #define CHARS_UPPER_ISO_8859_1 \
 	"\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD8\xD9\xDA\xDB\xDC\xDD\xDE"
 
-// 
+//
 #define CHARS_UP_ONLY_ISO_8859_1
 
 // ²³¹¼½¾
@@ -95,7 +95,7 @@ static const UTF16 ISO_8859_1_to_unicode_high128[] = {
 // ªµºÇÐÑÝÞßçðñýþÿ
 #define CHARS_CONSONANTS_ISO_8859_1 "\xAA\xB5\xBA\xC7\xD0\xD1\xDD\xDE\xDF\xE7\xF0\xF1\xFD\xFE\xFF"
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 //  Ą˘Ł¤ĽŚ§¨ŠŞŤŹ­ŽŻ°ą˛ł´ľśˇ¸šşťź˝žżŔÁÂĂÄĹĆÇČÉĘËĚÍÎĎĐŃŇÓÔŐÖ×ŘŮÚŰÜÝŢßŕáâăäĺćçčéęëěíîďđńňóôőö÷řůúűüýţ˙
 
@@ -122,13 +122,13 @@ static const UTF16 ISO_8859_2_to_unicode_high128[] = {
 #define CHARS_UPPER_ISO_8859_2 \
 	"\xA1\xA3\xA5\xA6\xA9\xAA\xAB\xAC\xAE\xAF\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD8\xD9\xDA\xDB\xDC\xDD\xDE"
 
-// 
+//
 #define CHARS_UP_ONLY_ISO_8859_2
 
-// 
+//
 #define CHARS_DIGITS_ISO_8859_2 ""
 
-// 
+//
 #define CHARS_PUNCTUATION_ISO_8859_2
 
 // ˘¤§¨­°˛´ˇ¸˝×÷˙
@@ -153,7 +153,7 @@ static const UTF16 ISO_8859_2_to_unicode_high128[] = {
 #define CHARS_CONSONANTS_ISO_8859_2 \
 	"\xA3\xA5\xA6\xA9\xAA\xAB\xAC\xAE\xAF\xB3\xB5\xB6\xB9\xBA\xBB\xBC\xBE\xBF\xC0\xC5\xC6\xC7\xC8\xCF\xD0\xD1\xD2\xD8\xDD\xDE\xDF\xE0\xE5\xE6\xE7\xE8\xEF\xF0\xF1\xF2\xF8\xFD\xFE"
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 //  ‘’£€₯¦§¨©ͺ«¬­�―°±²³΄΅Ά·ΈΉΊ»Ό½ΎΏΐΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡ�ΣΤΥΦΧΨΩΪΫάέήίΰαβγδεζηθικλμνξοπρςστυφχψωϊϋόύώ�
 
@@ -181,7 +181,7 @@ static const UTF16 ISO_8859_7_to_unicode_high128[] = {
 #define CHARS_UPPER_ISO_8859_7 \
 	"\xB6\xB8\xB9\xBA\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD3\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDA\xDB\xBC\xBE\xBF"
 
-// 
+//
 #define CHARS_UP_ONLY_ISO_8859_7
 
 // ²³½
@@ -212,7 +212,7 @@ static const UTF16 ISO_8859_7_to_unicode_high128[] = {
 #define CHARS_CONSONANTS_ISO_8859_7 \
 	"\xC2\xC3\xC4\xC6\xC8\xCA\xCB\xCC\xCD\xCE\xD0\xD1\xD3\xD4\xD6\xD7\xD8\xE2\xE3\xE4\xE6\xE8\xEA\xEB\xEC\xED\xEE\xF0\xF1\xF2\xF3\xF4\xF6\xF7\xF8"
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 //  ¡¢£€¥Š§š©ª«¬­®¯°±²³Žµ¶·ž¹º»ŒœŸ¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ
 
@@ -239,7 +239,7 @@ static const UTF16 ISO_8859_15_to_unicode_high128[] = {
 #define CHARS_UPPER_ISO_8859_15 \
 	"\xA6\xB4\xBC\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD8\xD9\xDA\xDB\xDC\xDD\xDE\xBE"
 
-// 
+//
 #define CHARS_UP_ONLY_ISO_8859_15
 
 // ²³¹
@@ -269,7 +269,7 @@ static const UTF16 ISO_8859_15_to_unicode_high128[] = {
 // ŠšªŽµžºŸÇÐÑÝÞßçðñýþÿ
 #define CHARS_CONSONANTS_ISO_8859_15 "\xA6\xA8\xAA\xB4\xB5\xB8\xBA\xBE\xC7\xD0\xD1\xDD\xDE\xDF\xE7\xF0\xF1\xFD\xFE\xFF"
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 // ─│┌┐└┘├┤┬┴┼▀▄█▌▐░▒▓⌠■∙√≈≤≥ ⌡°²·÷═║╒ё╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡Ё╢╣╤╥╦╧╨╩╪╫╬©юабцдефгхийклмнопярстужвьызшэщчъЮАБЦДЕФГХИЙКЛМНОПЯРСТУЖВЬЫЗШЭЩЧЪ
 
@@ -288,14 +288,14 @@ static const UTF16 KOI8_R_to_unicode_high128[] = {
 #define CHARS_LOWER_KOI8_R \
 	"\xA3\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDA\xDB\xDC\xDD\xDE\xDF"
 
-// 
+//
 #define CHARS_LOW_ONLY_KOI8_R
 
 // ЁЮАБЦДЕФГХИЙКЛМНОПЯРСТУЖВЬЫЗШЭЩЧЪ
 #define CHARS_UPPER_KOI8_R \
 	"\xB3\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF0\xF1\xF2\xF3\xF4\xF5\xF6\xF7\xF8\xF9\xFA\xFB\xFC\xFD\xFE\xFF"
 
-// 
+//
 #define CHARS_UP_ONLY_KOI8_R
 
 // ²
@@ -326,7 +326,7 @@ static const UTF16 KOI8_R_to_unicode_high128[] = {
 #define CHARS_CONSONANTS_KOI8_R \
 	"\xC2\xC3\xC4\xC6\xC7\xC8\xCB\xCC\xCD\xCE\xD0\xD2\xD3\xD4\xD6\xD7\xD8\xDA\xDB\xDD\xDE\xDF\xE2\xE3\xE4\xE6\xE7\xE8\xEB\xEC\xED\xEE\xF0\xF2\xF3\xF4\xF6\xF7\xF8\xFA\xFB\xFD\xFE\xFF"
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 // ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ 
 
@@ -352,7 +352,7 @@ static const UTF16 CP437_to_unicode_high128[] = {
 // ÜÉÄÅÇÆÖÑΣΦ
 #define CHARS_UPPER_CP437 "\x9A\x90\x8E\x8F\x80\x92\x99\xA5\xE4\xE8"
 
-// 
+//
 #define CHARS_UP_ONLY_CP437
 
 // ½¼²
@@ -382,7 +382,7 @@ static const UTF16 CP437_to_unicode_high128[] = {
 // ÇçÿƒñÑªºßΓπΣσµτΦΘδφ
 #define CHARS_CONSONANTS_CP437 "\x80\x87\x98\x9F\xA4\xA5\xA6\xA7\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9\xEB\xED"
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 //
 
@@ -455,14 +455,14 @@ static const UTF16 CP737_to_unicode_high128[] = {
 #define CHARS_LOWER_CP737 \
 	"\x98\x99\x9A\x9B\x9C\x9D\x9E\x9F\xA0\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8\xA9\xAA\xAB\xAC\xAD\xAE\xAF\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9"
 
-// 
+//
 #define CHARS_LOW_ONLY_CP737
 
 // ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΣΤΥΦΧΨΩΆΈΉΪΊΌΎΫΏ
 #define CHARS_UPPER_CP737 \
 	"\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8A\x8B\x8C\x8D\x8E\x8F\x90\x91\x91\x92\x93\x94\x95\x96\x97\xEA\xEB\xEC\xF4\xED\xEE\xEF\xF5\xF0"
 
-// 
+//
 #define CHARS_UP_ONLY_CP737
 
 // ²
@@ -493,7 +493,7 @@ static const UTF16 CP737_to_unicode_high128[] = {
 #define CHARS_CONSONANTS_CP737 \
 	"\x81\x82\x83\x85\x87\x89\x8A\x8B\x8C\x8D\x8F\x90\x91\x92\x94\x95\x96\x99\x9A\x9B\x9D\x9F\xA1\xA2\xA3\xA4\xA5\xA7\xA8\xA9\xAA\xAB\xAD\xAE\xAF"
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 // ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜø£Ø×ƒáíóúñÑªº¿®¬½¼¡«»░▒▓│┤ÁÂÀ©╣║╗╝¢¥┐└┴┬├─┼ãÃ╚╔╩╦╠═╬¤ðÐÊËÈıÍÎÏ┘┌█▄¦Ì▀ÓßÔÒõÕµþÞÚÛÙýÝ¯´­±‗¾¶§÷¸°¨·¹³²■ 
 
@@ -521,7 +521,7 @@ static const UTF16 CP850_to_unicode_high128[] = {
 #define CHARS_UPPER_CP850 \
 	"\x9A\x90\xB6\x8E\xB7\x8F\x80\xD2\xD3\xD4\xD8\xD7\xDE\x92\xE2\x99\xE3\xEA\xEB\x9D\xB5\xD6\xE0\xE9\xA5\xC7\xD1\xE5\xE8\xED"
 
-// 
+//
 #define CHARS_UP_ONLY_CP850
 
 // ½¼¾¹³²
@@ -551,7 +551,7 @@ static const UTF16 CP850_to_unicode_high128[] = {
 // ÇçÿƒñÑªºðÐßµþÞýÝ
 #define CHARS_CONSONANTS_CP850 "\x80\x87\x98\x9F\xA4\xA5\xA6\xA7\xD0\xD1\xE1\xE6\xE7\xE8\xEC\xED"
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 // ÇüéâäůćçłëŐőîŹÄĆÉĹĺôöĽľŚśÖÜŤťŁ×čáíóúĄąŽžĘę¬źČş«»░▒▓│┤ÁÂĚŞ╣║╗╝Żż┐└┴┬├─┼Ăă╚╔╩╦╠═╬¤đĐĎËďŇÍÎě┘┌█▄ŢŮ▀ÓßÔŃńňŠšŔÚŕŰýÝţ´­˝˛ˇ˘§÷¸°¨˙űŘř■ 
 
@@ -578,10 +578,10 @@ static const UTF16 CP852_to_unicode_high128[] = {
 #define CHARS_UPPER_CP852 \
 	"\x9A\x90\xB6\x8E\xDE\x8F\x80\x9D\xD3\x8A\xD7\x91\xE2\x99\x95\x97\x9B\xAC\xB5\xD6\xE0\xE9\xA4\xA6\xA8\x8D\xB8\xBD\xC6\xD1\xD2\xB7\xE3\xD5\xE6\xE8\xED\xDD\xEB\xFC"
 
-// 
+//
 #define CHARS_UP_ONLY_CP852
 
-// 
+//
 #define CHARS_DIGITS_CP852 ""
 
 // «»
@@ -609,7 +609,7 @@ static const UTF16 CP852_to_unicode_high128[] = {
 #define CHARS_CONSONANTS_CP852 \
 	"\x80\x86\x87\x88\x8D\x8F\x91\x92\x95\x96\x97\x98\x9B\x9C\x9D\x9F\xA6\xA7\xAB\xAC\xAD\xB8\xBD\xBE\xD0\xD1\xD2\xD4\xD5\xDD\xE1\xE3\xE4\xE5\xE6\xE7\xE8\xEA\xEC\xED\xEE\xFC\xFD"
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 // ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜø£Ø×ƒáíóúñÑªº¿®¬½¼¡«»░▒▓│┤ÁÂÀ©╣║╗╝¢¥┐└┴┬├─┼ãÃ╚╔╩╦╠═╬¤ðÐÊËÈ€ÍÎÏ┘┌█▄¦Ì▀ÓßÔÒõÕµþÞÚÛÙýÝ¯´­±‗¾¶§÷¸°¨·¹³²■ 
 
@@ -636,7 +636,7 @@ static const UTF16 CP858_to_unicode_high128[] = {
 #define CHARS_UPPER_CP858 \
 	"\x9A\x90\xB6\x8E\xB7\x8F\x80\xD2\xD3\xD4\xD8\xD7\xDE\x92\xE2\x99\xE3\xEA\xEB\x9D\xB5\xD6\xE0\xE9\xA5\xC7\xD1\xE5\xE8\xED"
 
-// 
+//
 #define CHARS_UP_ONLY_CP858
 
 // ½¼¾¹³²
@@ -666,7 +666,7 @@ static const UTF16 CP858_to_unicode_high128[] = {
 // ÇçÿƒñÑªºðÐßµþÞýÝ
 #define CHARS_CONSONANTS_CP858 "\x80\x87\x98\x9F\xA4\xA5\xA6\xA7\xD0\xD1\xE1\xE6\xE7\xE8\xEC\xED"
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 // АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмноп░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀рстуфхцчшщъыьэюяЁёЄєЇїЎў°∙·√№¤■ 
 
@@ -685,17 +685,17 @@ static const UTF16 CP866_to_unicode_high128[] = {
 #define CHARS_LOWER_CP866 \
 	"\xA0\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8\xA9\xAA\xAB\xAC\xAD\xAE\xAF\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF1\xF3\xF5\xF7"
 
-// 
+//
 #define CHARS_LOW_ONLY_CP866
 
 // АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯЁЄЇЎ
 #define CHARS_UPPER_CP866 \
 	"\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8A\x8B\x8C\x8D\x8E\x8F\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9A\x9B\x9C\x9D\x9E\x9F\xF0\xF2\xF4\xF6"
 
-// 
+//
 #define CHARS_UP_ONLY_CP866
 
-// 
+//
 #define CHARS_DIGITS_CP866 ""
 
 // ·
@@ -723,7 +723,7 @@ static const UTF16 CP866_to_unicode_high128[] = {
 #define CHARS_CONSONANTS_CP866 \
 	"\x81\x82\x83\x84\x86\x87\x8A\x8B\x8C\x8D\x8F\x90\x91\x92\x94\x95\x96\x97\x98\x99\x9A\x9C\xA1\xA2\xA3\xA4\xA6\xA7\xAA\xAB\xAC\xAD\xAF\xE0\xE1\xE2\xE4\xE5\xE6\xE7\xE8\xE9\xEA\xEC"
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 // ٠١٢٣٤٥٦٧٨٩،؛؟آاﺎبﺑپةتﺗثﺛجﺟحﺣخﺧدذرزسﺳش«»ﺷص░▒▓│┤ﺻضﺿط╣║╗╝ظع┐└┴┬├─┼ﻊﻋ╚╔╩╦╠═╬ﻌغﻎﻏﻐفﻓقﻗﻚ┘┌█▀ﻛ▄لﻞﻠمﻣنﻧوء­ّﹽ■ 
 
@@ -798,10 +798,10 @@ static const UTF16 CP1250_to_unicode_high128[] = {
 #define CHARS_UPPER_CP1250 \
 	"\x8A\x8C\x8D\x8E\x8F\xA3\xA5\xAA\xBC\xAF\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD8\xD9\xDA\xDB\xDC\xDD\xDE"
 
-// 
+//
 #define CHARS_UP_ONLY_CP1250
 
-// 
+//
 #define CHARS_DIGITS_CP1250 ""
 
 // ‚„…†‡‰‹‘’“”•–—›«·»
@@ -829,7 +829,7 @@ static const UTF16 CP1250_to_unicode_high128[] = {
 #define CHARS_CONSONANTS_CP1250 \
 	"\x8A\x8C\x8D\x8E\x8F\x9A\x9C\x9D\x9E\x9F\xA3\xAA\xAF\xB3\xB5\xBA\xBC\xBE\xBF\xC0\xC5\xC6\xC7\xC8\xCF\xD0\xD1\xD2\xD8\xDD\xDE\xDF\xE0\xE5\xE6\xE7\xE8\xEF\xF0\xF1\xF2\xF8\xFD\xFE"
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 // ЂЃ‚ѓ„…†‡€‰Љ‹ЊЌЋЏђ‘’“”•–—�™љ›њќћџ ЎўЈ¤Ґ¦§Ё©Є«¬­®Ї°±Ііґµ¶·ё№є»јЅѕїАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя
 
@@ -855,10 +855,10 @@ static const UTF16 CP1251_to_unicode_high128[] = {
 #define CHARS_UPPER_CP1251 \
 	"\x81\x80\x8A\x8C\x8D\x8E\x8F\xA1\xB2\xA5\xA8\xAA\xA3\xBD\xAF\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDA\xDB\xDC\xDD\xDE\xDF"
 
-// 
+//
 #define CHARS_UP_ONLY_CP1251
 
-// 
+//
 #define CHARS_DIGITS_CP1251 ""
 
 // ‚„…†‡‰‹‘’“”•–—›«·»
@@ -885,7 +885,7 @@ static const UTF16 CP1251_to_unicode_high128[] = {
 #define CHARS_CONSONANTS_CP1251 \
 	"\x80\x81\x83\x8A\x8C\x8D\x8E\x8F\x90\x9A\x9C\x9D\x9E\x9F\xA3\xA5\xB4\xB5\xBC\xBD\xBE\xC1\xC2\xC3\xC4\xC6\xC7\xCA\xCB\xCC\xCD\xCF\xD0\xD1\xD2\xD4\xD5\xD6\xD7\xD8\xD9\xDA\xDC\xE1\xE2\xE3\xE4\xE6\xE7\xEA\xEB\xEC\xED\xEF\xF0\xF1\xF2\xF4\xF5\xF6\xF7\xF8\xF9\xFA\xFC"
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 // €�‚ƒ„…†‡ˆ‰Š‹Œ�Ž��‘’“”•–—˜™š›œ�žŸ ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ
 
@@ -912,7 +912,7 @@ static const UTF16 CP1252_to_unicode_high128[] = {
 #define CHARS_UPPER_CP1252 \
 	"\x8A\x8C\x8E\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD8\xD9\xDA\xDB\xDC\xDD\xDE\x9F"
 
-// 
+//
 #define CHARS_UP_ONLY_CP1252
 
 // ²³¹¼½¾
@@ -943,7 +943,7 @@ static const UTF16 CP1252_to_unicode_high128[] = {
 #define CHARS_CONSONANTS_CP1252 \
 	"\x83\x8A\x8E\x9A\x9E\x9F\xAA\xB5\xBA\xC7\xD0\xD1\xDD\xDE\xDF\xE7\xF0\xF1\xFD\xFE\xFF"
 
-// 8               9               A               B               C               D               E               F               
+// 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
 // €�‚ƒ„…†‡�‰�‹�����‘’“”•–—�™�›���� ΅Ά£¤¥¦§¨©�«¬­®―°±²³΄µ¶·ΈΉΊ»Ό½ΎΏΐΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡ�ΣΤΥΦΧΨΩΪΫάέήίΰαβγδεζηθικλμνξοπρςστυφχψωϊϋόύώ�
 
@@ -971,7 +971,7 @@ static const UTF16 CP1253_to_unicode_high128[] = {
 #define CHARS_UPPER_CP1253 \
 	"\xCC\xA2\xB8\xB9\xBA\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD3\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDA\xDB\xBC\xBE\xBF"
 
-// 
+//
 #define CHARS_UP_ONLY_CP1253
 
 // ²³½

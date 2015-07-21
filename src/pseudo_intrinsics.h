@@ -57,7 +57,7 @@ typedef union {
 #define vroti_epi32(x, i)       (vtype)vec_rl((x).v32, (vset1_epi32(i)).v32)
 #define vroti_epi64(x, i)       (vtype)vec_rl((x).v64, (vset1_epi64(i)).v64)
 #define vroti16_epi32           vroti_epi32
-#define vset1_epi32(x)          vset_epi32(x, x, x, x)         
+#define vset1_epi32(x)          vset_epi32(x, x, x, x)
 #define vset1_epi64(x)          vset_epi64(x, x)
 #define vset_epi32(x3,x2,x1,x0) (vtype)(vtype32){x0, x1, x2, x3}
 #define vset_epi64(x1,x0)       (vtype)(vtype64){x0, x1}
