@@ -80,7 +80,6 @@
 // for salt_as_hex for other formats, we do this:  (flag>>56)
 // Then 00 is md5, 01 is md4, 02 is SHA1, etc
 // NOTE, all top 8 bits of the flags are reserved, and should NOT be used for flags.
-#define MGF_KEYS_BASE16_IN1_Offset32         0x00000008   // deprecated (use the _MD5 version)
 #define MGF_KEYS_BASE16_IN1_Offset_MD5       0x0000000000000008ULL
 #define MGF_KEYS_BASE16_IN1_Offset_MD4       0x0100000000000008ULL
 #define MGF_KEYS_BASE16_IN1_Offset_SHA1      0x0200000000000008ULL
@@ -200,7 +199,7 @@ const char *dyna_line3 = "@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb";
 const char *options_format="";
 
 static int dyna_sig_len = 17;
-static int OLvL;
+static int OLvL = 2;
 static int gost_init = 0;
 
 extern char *dynamic_Demangle(char*,int *);
@@ -774,6 +773,38 @@ static void comp_lexi_error(DC_struct *p, const char *pInput, char *msg) {
 	else fprintf(stderr, "%s\n", msg);
 	error("exiting now");
 }
+static char *comp_optimize_script(char *pScr) {
+	/*
+	 * in this function, we optimize out certain key issues.  We add the MGF_KEYS_IN1 if we can, and remove
+	 * the clean/key_load.   Also, if there is a trailing copy of input2 to input just to crypt_final from 1,
+	 * then we fix that.
+	 */
+	char *cp = strstr(pScr, "Func=");
+	if (!cp)
+		return pScr;
+
+	/* this code is WRONG and needs work!!! */
+	if (!strncmp(cp, "Func=DynamicFunc__clean_input_kwik\nFunc=DynamicFunc__append_keys\n", 64)) {
+		char *cp2 = mem_alloc_tiny(strlen(pScr), 1);
+		snprintf(cp2, strlen(pScr), "%*.*sFlag=MGF_KEYS_INPUT%s", (int)(cp-pScr), (int)(cp-pScr), pScr, &cp[64]);
+		// now make sure there are no other append_keys, or cleans.
+		// I think this is all that we need to know, but there may be other things to look for.
+		// we may not want to set this flag if we 'use'
+		if (!strstr(cp2, "DynamicFunc__clean_input\n") && !strstr(cp2, "DynamicFunc__clean_input_kwik\n") &&
+		    !strstr(cp2, "DynamicFunc__append_keys\n") && !strstr(cp2, "DynamicFunc__clean_input_full\n") &&
+		    !strstr(cp2, "DynamicFunc__append_salt\n") && !strstr(cp2, "DynamicFunc__append_salt\n") &&
+		    !strstr(cp2, "DynamicFunc__append_input1") && !strstr(cp2, "DynamicFunc__append_2nd_salt\n") &&
+		    !strstr(cp2, "DynamicFunc__append_userid\n") && !strstr(cp2, "DynamicFunc__append_keys_pad") &&
+		    !strstr(cp2, "DynamicFunc__overwrite_keys\n") &&
+		    !strstr(cp2, "DynamicFunc__overwrite_salt\n") &&   !strstr(cp2, "DynamicFunc__overwrite_salt\n") &&
+		    !strstr(cp2, "DynamicFunc__overwrite_input1") &&   !strstr(cp2, "DynamicFunc__overwrite_2nd_salt\n") &&
+		    !strstr(cp2, "DynamicFunc__overwrite_userid\n") && !strstr(cp2, "DynamicFunc__overwrite_keys_pad")
+			)
+			pScr = cp2;
+	}
+
+	return pScr;
+}
 static char *comp_optimize_expression(const char *pExpr) {
 	char *pBuf = (char*)mem_alloc(strlen(pExpr)+1), *p, *p2;
 	int n1, n2;
@@ -839,6 +870,8 @@ SkipSaltCheck:;
 
 	/*
 	 * Look for MGF_KEYS_BASE16_IN1 optimization  1 level deep, except any hash($p), and have hash($p)
+	 * also eliminate things from this optimization such as  md5(md5($p)) or md5(sha1($p))  Those are
+	 * faster done in other methods.
 	 */
 	p = strstr(pBuf, "($p)");
 	n1 = 0;
@@ -883,16 +916,28 @@ SkipSaltCheck:;
 					++n2;
 					p = strchr(&p[1], '(');
 				}
+				// if the ONLY thing is hash($p), then do not use this optimzation.
 				if (n1 == n2-1) {
-					// we can MGF_KEYS_BASE16_IN1
-					keys_base16_in1_type = mem_alloc(strlen(cpType)+1);
-					strcpy(keys_base16_in1_type, cpType);
-					// see if this is a bOffsetHashIn1 type.
-					if (n1 == 1) {
-						p = strchr(pExpr, '(');
-						++p;
-						if (!strncmp(p, cpType, strlen(cpType)))
-							bOffsetHashIn1=1;
+					// Make SURE there is something 'more' than just hash($p).  If not, we
+					// have code that is FASTER than using this optimization, so let this
+					// one NOT be optimized in this way.
+					n1 = 0;
+					p = strchr(pBuf, '$');
+					while (p) {
+						++n1;
+						p = strchr(&p[1], '$');
+					}
+					if (n1 > 1) {
+						// we can MGF_KEYS_BASE16_IN1
+						keys_base16_in1_type = mem_alloc(strlen(cpType)+1);
+						strcpy(keys_base16_in1_type, cpType);
+						// see if this is a bOffsetHashIn1 type.
+						if (n1 == 1) {
+							p = strchr(pExpr, '(');
+							++p;
+							if (!strncmp(p, cpType, strlen(cpType)))
+								bOffsetHashIn1=1;
+						}
 					}
 				}
 			}
@@ -1764,6 +1809,8 @@ static int parse_expression(DC_struct *p) {
 		strcpy(pScr, pScriptLines[i]);
 		pScr += strlen(pScr);
 	}
+	if (OLvL>1)
+		p->pScript = comp_optimize_script(p->pScript);
 
 	if (compile_debug)
 		dump_HANDLE(p);

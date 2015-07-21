@@ -775,6 +775,14 @@ static DYNAMIC_primitive_funcp _Funcs_22[] =
 	DynamicFunc__X86toSSE_switch_input2,
 	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
+
+	// This may be faster.  Found with the dyna compiler, optimizer.
+//Flag=MGF_FLAT_BUFFERS
+//Flag=MGF_KEYS_INPUT
+//MaxInputLenX86=110
+//MaxInputLen=110
+//Func=DynamicFunc__SHA1_crypt_input1_overwrite_input2
+//Func=DynamicFunc__MD5_crypt_input2_to_output1_FINAL
 };
 static struct fmt_tests _Preloads_22[] =
 {
