@@ -23,6 +23,10 @@
  *       or extension found, then simply editing the prototype code and
  *       rerunning configure will get all hashes fixed, or updated.
  *
+ *  NOTE All other sections of code that need 'hand edited' in the dynamic
+ *       set of files, when adding a new hash type can be found by searching
+ *       for this string:   LARGE_HASH_EDIT_POINT
+ *
  ****************************************************************************/
 
 #if AC_BUILT

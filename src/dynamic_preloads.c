@@ -159,6 +159,7 @@
 //dynamic_340 -->SKEIN256($p)
 //dynamic_350 -->SKEIN384($p)
 //dynamic_360 -->SKEIN512($p)
+// LARGE_HASH_EDIT_POINT
 
 #define DYNA_PRE_DEFINE_LARGE_HASH(H,N,HS) \
 	static DYNAMIC_primitive_funcp _Funcs_##N##0[] = { DynamicFunc__##H##_crypt_input1_to_output1_FINAL, NULL }; \
@@ -2833,6 +2834,8 @@ static struct fmt_tests _Preloads_368[] = {
     {"$dynamic_368$adc4ba0c2266513b97222409c04d00acb7e77b7cfc2b518218a5b7c49451cb0e8bc35951809b1bd116ffcaece3fcfc3d7ea04f7fb7e4bac92216702acb324b18","passweird"},
     {NULL}};
 
+// LARGE_HASH_EDIT_POINT
+
 // Here is a 'dummy' constant array. This will be 'linked' to any dynamic format that does not have any constants.
 static DYNAMIC_Constants _ConstDefault[] =
 {
@@ -2974,6 +2977,7 @@ static DYNAMIC_Setup Setups[] =
 	SETUP_LARGE_HASH(SKEIN256,  MGF_KEYS_BASE16_IN1_SKEIN256,  MGF_SALT_AS_HEX_SKEIN256,  34,MGF_INPUT_32_BYTE)
 	SETUP_LARGE_HASH(SKEIN384,  MGF_KEYS_BASE16_IN1_SKEIN384,  MGF_SALT_AS_HEX_SKEIN384,  35,MGF_INPUT_48_BYTE)
 	SETUP_LARGE_HASH(SKEIN512,  MGF_KEYS_BASE16_IN1_SKEIN512,  MGF_SALT_AS_HEX_SKEIN512,  36,MGF_INPUT_64_BYTE)
+	// LARGE_HASH_EDIT_POINT
 };
 
 char *dynamic_PRELOAD_SIGNATURE(int cnt)

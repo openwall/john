@@ -89,6 +89,7 @@ typedef struct DYNAMIC_Constants_t
 #define MGF__SKEIN256    0x20
 #define MGF__SKEIN384    0x21
 #define MGF__SKEIN512    0x22
+// LARGE_HASH_EDIT_POINT
 
 // These are the 'flags' that specify certain characterstics of the format.
 // Things like salted, not sse2, and special 'loading' of the keys.
@@ -142,6 +143,8 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_SALT_AS_HEX_SKEIN256    ((((ARCH_WORD_64)MGF__SKEIN256  )<<56)|MGF_SALT_AS_HEX)
 #define MGF_SALT_AS_HEX_SKEIN384    ((((ARCH_WORD_64)MGF__SKEIN384  )<<56)|MGF_SALT_AS_HEX)
 #define MGF_SALT_AS_HEX_SKEIN512    ((((ARCH_WORD_64)MGF__SKEIN512  )<<56)|MGF_SALT_AS_HEX)
+// LARGE_HASH_EDIT_POINT
+
 #define MGF_INPBASE64_4x6            0x00000200
 #define MGF_StartInX86Mode           0x00000400
 #define MGF_SALT_AS_HEX_TO_SALT2    (0x00000800|MGF_SALTED)
@@ -253,6 +256,7 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_KEYS_BASE16_IN1_Offset_SKEIN256   ((((ARCH_WORD_64)MGF__SKEIN256  )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
 #define MGF_KEYS_BASE16_IN1_Offset_SKEIN384   ((((ARCH_WORD_64)MGF__SKEIN384  )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
 #define MGF_KEYS_BASE16_IN1_Offset_SKEIN512   ((((ARCH_WORD_64)MGF__SKEIN512  )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
+// LARGE_HASH_EDIT_POINT
 
 //#define MGF_KEYS_BASE16_X86_IN1          0x00000010
 //  Open                                   0x00000010
@@ -554,6 +558,7 @@ LARGE_HASH_FUNCTION_DECLARAION(SKEIN224);
 LARGE_HASH_FUNCTION_DECLARAION(SKEIN256);
 LARGE_HASH_FUNCTION_DECLARAION(SKEIN384);
 LARGE_HASH_FUNCTION_DECLARAION(SKEIN512);
+// LARGE_HASH_EDIT_POINT
 
 // These 3 dump the raw crypt back into input (only at the head of it).
 // they are for phpass, wordpress, etc.

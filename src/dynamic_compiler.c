@@ -450,6 +450,8 @@ OSSL_FUNC(sha256,SHA256,SHA256,32)
 OSSL_FUNC(sha384,SHA512,SHA384,48)
 OSSL_FUNC(sha512,SHA512,SHA512,64)
 OSSL_FUNC(whirlpool,WHIRLPOOL,WHIRLPOOL,64)
+// LARGE_HASH_EDIT_POINT
+
 static void gost_hex()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
 static void gost_base64()      { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
 static void gost_base64c()     { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
@@ -468,6 +470,7 @@ SPH_FUNC(haval224_3,28) SPH_FUNC(haval224_4,28) SPH_FUNC(haval224_5,28)
 SPH_FUNC(haval256_3,32) SPH_FUNC(haval256_4,32) SPH_FUNC(haval256_5,32)
 SPH_FUNC(md2,16) SPH_FUNC(panama,32)
 SPH_FUNC(skein224,28) SPH_FUNC(skein256,32) SPH_FUNC(skein384,48) SPH_FUNC(skein512,64)
+// LARGE_HASH_EDIT_POINT
 
 static int encode_le()         { int len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
 static char *pad16()           { memset(gen_conv, 0, 16); strncpy(gen_conv, gen_pw, 16); return gen_conv; }
@@ -742,6 +745,7 @@ static const char *comp_get_symbol(const char *pInput) {
 	LOOKUP_IF_BLK(md2,MD2,md2,md2,3,16) LOOKUP_IF_BLK(panama,PANAMA,pan,pan,6,32)
 	LOOKUP_IF_BLK(skein224,SKEIN224,skn224,skn224,8,28) LOOKUP_IF_BLK(skein256,SKEIN256,skn256,skn256,8,32)
 	LOOKUP_IF_BLK(skein384,SKEIN384,skn384,skn384,8,48) LOOKUP_IF_BLK(skein512,SKEIN512,skn512,skn512,8,64)
+	// LARGE_HASH_EDIT_POINT
 
 	LastTokIsFunc = 0;
 	if (!strncmp(pInput, "pad16($p)", 9))   return comp_push_sym("pad16", dynamic_pad16, pInput+9, 0);
@@ -1171,6 +1175,7 @@ static void build_test_string(DC_struct *p, char **pLine) {
 		ELSEIF(MD2,md2); ELSEIF(PANAMA,panama);
 		ELSEIF(SKEIN224,skein224); ELSEIF(SKEIN256,skein256);
 		ELSEIF(SKEIN384,skein384); ELSEIF(SKEIN512,skein512);
+		// LARGE_HASH_EDIT_POINT
 
 		else { error("ERROR in dyna-parser. Have salt_as_hex_type set, but do not KNOW this type of hash\n"); }
 	}
@@ -1262,6 +1267,7 @@ static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex
 	ELSEIF(MD2,3,0) ELSEIF(PANAMA,6,32)
 	ELSEIF(SKEIN224,8,28) ELSEIF(SKEIN256,8,32)
 	ELSEIF(SKEIN384,8,48) ELSEIF(SKEIN512,8,64)
+	// LARGE_HASH_EDIT_POINT
 	comp_add_script_line("MaxInputLenX86=110\n");
 	comp_add_script_line("MaxInputLen=110\n");
 
@@ -1328,6 +1334,7 @@ static int parse_expression(DC_struct *p) {
 		if (!strcmp(tmp,"RIPEMD320")) salt_hex_len = 80;
 		if (!strcmp(tmp,"SHA384")||!strcmp(tmp,"SKEIN384")) salt_hex_len = 96;
 		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")||!strcmp(tmp,"SKEIN512")) salt_hex_len = 128;
+		// LARGE_HASH_EDIT_POINT
 	}
 	if (keys_base16_in1_type) {
 		char tmp[64], *cp;
@@ -1344,6 +1351,7 @@ static int parse_expression(DC_struct *p) {
 		if (!strcmp(tmp,"RIPEMD320")) keys_hex_len = 80;
 		if (!strcmp(tmp,"SHA384")||!strcmp(tmp,"SKEIN384")) keys_hex_len = 96;
 		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")||!strcmp(tmp,"SKEIN512")) keys_hex_len = 128;
+		// LARGE_HASH_EDIT_POINT
 	}
 	if (bNeedS) comp_add_script_line("Flag=MGF_SALTED\n");
 	if (bNeedS2) comp_add_script_line("Flag=MGF_SALTED2\n");
@@ -1623,6 +1631,7 @@ static int parse_expression(DC_struct *p) {
 							ELSEIF(MD2,fmd2,4,0) ELSEIF(PANAMA,fpan,4,32)
 							ELSEIF(SKEIN224,fskn224,7,28) ELSEIF(SKEIN256,fskn256,7,32)
 							ELSEIF(SKEIN384,fskn384,7,48) ELSEIF(SKEIN512,fskn512,7,64)
+							// LARGE_HASH_EDIT_POINT
 						} else {
 							if (append_mode2) {
 #undef IF
@@ -1660,6 +1669,7 @@ static int parse_expression(DC_struct *p) {
 								ELSEIF(MD2,fmd2,4) ELSEIF(PANAMA,fpan,4)
 								ELSEIF(SKEIN224,fskn224,7) ELSEIF(SKEIN256,fskn256,7)
 								ELSEIF(SKEIN384,fskn384,7) ELSEIF(SKEIN512,fskn512,7)
+								// LARGE_HASH_EDIT_POINT
 								else {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;
@@ -1702,6 +1712,7 @@ static int parse_expression(DC_struct *p) {
 								ELSEIF(MD2,fmd2,4) ELSEIF(PANAMA,fpan,4)
 								ELSEIF(SKEIN224,fskn224,7) ELSEIF(SKEIN256,fskn256,7)
 								ELSEIF(SKEIN384,fskn384,7) ELSEIF(SKEIN512,fskn512,7)
+								// LARGE_HASH_EDIT_POINT
 								else {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;

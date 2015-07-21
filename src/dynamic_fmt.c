@@ -1587,6 +1587,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						CASE(SKEIN256);
 						CASE(SKEIN384);
 						CASE(SKEIN512);
+						// LARGE_HASH_EDIT_POINT
 					}
 				} else if (curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1_offsetX) {
 					unsigned int i;
@@ -1635,6 +1636,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						CASE(SKEIN256);
 						CASE(SKEIN384);
 						CASE(SKEIN512);
+						// LARGE_HASH_EDIT_POINT
 					}
 				} else {
 					// calls 'old' code (ossl, sorry :(   We should FIND and remove any format
@@ -2315,6 +2317,7 @@ static void *get_salt(char *ciphertext)
 			SPH_CASE(SKEIN256,skein256,32);
 			SPH_CASE(SKEIN384,skein384,48);
 			SPH_CASE(SKEIN512,skein512,64);
+			// LARGE_HASH_EDIT_POINT
 
 			default:
 			{
@@ -7186,6 +7189,7 @@ static int isSKEINFunc(DYNAMIC_primitive_funcp p) {
 	RETURN_TRUE_IF_BIG_FUNC(SKEIN384); RETURN_TRUE_IF_BIG_FUNC(SKEIN512);
 	return 0;
 }
+// LARGE_HASH_EDIT_POINT  (Add a new IsXXXFunc() type function)
 
 static int isLargeHashFinalFunc(DYNAMIC_primitive_funcp p)
 {
@@ -7198,6 +7202,7 @@ static int isLargeHashFinalFunc(DYNAMIC_primitive_funcp p)
 		IF(HAVAL192_3)||IF(HAVAL192_4)||IF(HAVAL192_5)||IF(HAVAL224_3)||IF(HAVAL224_4)||IF(HAVAL224_5)||
 		IF(HAVAL256_3)||IF(HAVAL256_4)||IF(HAVAL256_5)||IF(MD2)||IF(PANAMA)||IF(SKEIN224)||IF(SKEIN256)||
 		IF(SKEIN384)||IF(SKEIN512))
+		// LARGE_HASH_EDIT_POINT
 		return 1;
 	return 0;
 }
@@ -7571,6 +7576,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	IF_CDOFF32(HAVAL128_4,32); IF_CDOFF32(HAVAL160_4,40); IF_CDOFF32(HAVAL192_4,48); IF_CDOFF32(HAVAL224_4,56); IF_CDOFF32(HAVAL256_4,64);
 	IF_CDOFF32(HAVAL128_5,32); IF_CDOFF32(HAVAL160_5,40); IF_CDOFF32(HAVAL192_5,48); IF_CDOFF32(HAVAL224_5,56); IF_CDOFF32(HAVAL256_5,64);
 	IF_CDOFF32(SKEIN224,56); IF_CDOFF32(SKEIN256,64); IF_CDOFF32(SKEIN384,96); IF_CDOFF32(SKEIN512,128);
+	// LARGE_HASH_EDIT_POINT
 
 	if (curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1_offsetX)
 	{
@@ -7775,6 +7781,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 				IS_FUNC_NAME(MD2,MD2)
 				IS_FUNC_NAME(PANAMA,PANAMA)
 				IS_FUNC_NAME(SKEIN,SKEIN)
+				// LARGE_HASH_EDIT_POINT  (MUST match the just added a new IsXXXFunc() type function)
 			}
 			if (isLargeHashFinalFunc(curdat.dynamic_FUNCTIONS[j-1]))
 			{

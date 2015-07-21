@@ -41,6 +41,13 @@ _EOF
 # append the header (which starts with a #ifndef DYNAMIC_DISABLED
 cat dynamic_big_crypt_header.cin >> xxx
 
+##############################################################################
+# NOTE, when a new hash type is added, be SURE to search the dynamic .c files
+# for the string:
+#   LARGE_HASH_EDIT_POINT
+# and update the code to properly integrate the new large hash.
+##############################################################################
+
 # now generate a section for each hash
 perl ./dynamic_big_crypt_chopper.pl BITS=32 HASH=MD5        PARAHASH=MD5        BIN_SZ=16 BIN_REAL_SZ=16 BE_HASH=0 JSWAPH=' '           JSWAPT=';'   HASH_CTX=MD5_CTX                HASH_Init=MD5_Init            HASH_Update=MD5_Update       HASH_Final=MD5_Final            SSEBody=SIMDmd5body    SSE_LIMBS=4 SSEFLAGS=' '                    UNDEFINED=TRUNC_TO16                                < dynamic_big_crypt_hash.cin  >> xxx
 perl ./dynamic_big_crypt_chopper.pl BITS=32 HASH=MD4        PARAHASH=MD4        BIN_SZ=16 BIN_REAL_SZ=16 BE_HASH=0 JSWAPH=' '           JSWAPT=';'   HASH_CTX=MD4_CTX                HASH_Init=MD4_Init            HASH_Update=MD4_Update       HASH_Final=MD4_Final            SSEBody=SIMDmd4body    SSE_LIMBS=4 SSEFLAGS=' '                    UNDEFINED=TRUNC_TO16                                < dynamic_big_crypt_hash.cin  >> xxx
@@ -77,6 +84,7 @@ perl ./dynamic_big_crypt_chopper.pl BITS=32 HASH=SKEIN224   PARAHASH=SKEIN224   
 perl ./dynamic_big_crypt_chopper.pl BITS=32 HASH=SKEIN256   PARAHASH=SKEIN256   BIN_SZ=64 BIN_REAL_SZ=32 BE_HASH=0 JSWAPH=' '           JSWAPT=';'   HASH_CTX=sph_skein256_context   HASH_Init=sph_skein256_init   HASH_Update=sph_skein256     HASH_Final=sph_skein256_close   SSEBody=' '           SSE_LIMBS=0 SSEFLAGS=' '                      DEFINED=TRUNC_TO16 UNDEFINED=SIMD_PARA_SKEIN256   < dynamic_big_crypt_hash.cin  >> xxx
 perl ./dynamic_big_crypt_chopper.pl BITS=32 HASH=SKEIN384   PARAHASH=SKEIN384   BIN_SZ=64 BIN_REAL_SZ=48 BE_HASH=0 JSWAPH=' '           JSWAPT=';'   HASH_CTX=sph_skein384_context   HASH_Init=sph_skein384_init   HASH_Update=sph_skein384     HASH_Final=sph_skein384_close   SSEBody=' '           SSE_LIMBS=0 SSEFLAGS=' '                      DEFINED=TRUNC_TO16 UNDEFINED=SIMD_PARA_SKEIN384   < dynamic_big_crypt_hash.cin  >> xxx
 perl ./dynamic_big_crypt_chopper.pl BITS=32 HASH=SKEIN512   PARAHASH=SKEIN512   BIN_SZ=64 BIN_REAL_SZ=64 BE_HASH=0 JSWAPH=' '           JSWAPT=';'   HASH_CTX=sph_skein512_context   HASH_Init=sph_skein512_init   HASH_Update=sph_skein512     HASH_Final=sph_skein512_close   SSEBody=' '           SSE_LIMBS=0 SSEFLAGS=' '                      DEFINED=TRUNC_TO16 UNDEFINED=SIMD_PARA_SKEIN512   < dynamic_big_crypt_hash.cin  >> xxx
+# LARGE_HASH_EDIT_POINT
 
 # now we close out the #define DYNAMIC_DISABLED started at the very top
 # of dynamic_big_crypt_header.cin
