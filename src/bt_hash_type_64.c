@@ -81,18 +81,23 @@ int test_tables_64(unsigned int num_loaded_hashes, OFFSET_TABLE_WORD *offset_tab
 
 	if (verbosity > 1)
 		fprintf(stdout, "\nTesting Tables...");
-
+#if _OPENMP
 #pragma omp parallel private(i, hash_table_idx, hash)
+#endif
 	{
+#if _OPENMP
 #pragma omp for
-		for (i = 0; i < num_loaded_hashes; i++) {
+#endif
+	for (i = 0; i < num_loaded_hashes; i++) {
 			hash = loaded_hashes_64[i];
 			hash_table_idx =
 				calc_ht_idx_64(i,
 					(unsigned int)offset_table[
 					modulo64_31b(hash,
 					offset_table_size)]);
+#if _OPENMP
 #pragma omp atomic
+#endif
 			hash_table_collisions[hash_table_idx]++;
 
 			if (error && (hash_table_64[hash_table_idx] != (unsigned int)(hash & 0xffffffff)  ||
@@ -103,11 +108,15 @@ int test_tables_64(unsigned int num_loaded_hashes, OFFSET_TABLE_WORD *offset_tab
 			}
 
 		}
+#if _OPENMP
 #pragma omp single
+#endif
 		for (hash_table_idx = 0; hash_table_idx < hash_table_size; hash_table_idx++)
 			if (zero_check_ht_64(hash_table_idx))
 				count++;
+#if _OPENMP
 #pragma omp barrier
+#endif
 	}
 
 /* Suppress unused variable warning. */
@@ -269,30 +278,46 @@ unsigned int remove_duplicates_64(unsigned int num_loaded_hashes, unsigned int h
 	if (bt_calloc((void **)&collisions, hash_table_size, sizeof(COLLISION_DTYPE)))
 		bt_error("Failed to allocate memory: collisions.");
 
+#if _OPENMP
 #pragma omp parallel private(i)
+#endif
 {
+#if _OPENMP
 #pragma omp for
+#endif
 	for (i = 0; i < num_loaded_hashes; i++) {
 		unsigned int idx = loaded_hashes_64[i] & (hash_table_size - 1);
+#if _OPENMP
 #pragma omp atomic
+#endif
 		collisions[idx]++;
 	}
 
 	counter = 0;
+#if _OPENMP
 #pragma omp barrier
+#endif
 
+#if _OPENMP
 #pragma omp for
+#endif
 	for (i = 0; i < hash_table_size; i++) {
 		hash_table[i].iter = 0;
 		if (collisions[i] > 4)
+#if _OPENMP
 #pragma omp atomic
+#endif
 			 counter += (collisions[i] - 3);
 	}
+#if _OPENMP
 #pragma omp barrier
 
 #pragma omp sections
+#endif
 {
+#if _OPENMP
 #pragma omp section
+#endif
 {
 	for (i = 0; i < num_loaded_hashes; i++) {
 		unsigned int idx = loaded_hashes_64[i] & (hash_table_size - 1);
@@ -308,7 +333,9 @@ unsigned int remove_duplicates_64(unsigned int num_loaded_hashes, unsigned int h
 	}
 }
 
+#if _OPENMP
 #pragma omp section
+#endif
 {
 	if (bt_malloc((void **)&rehash_list, counter * sizeof(unsigned int)))
 		bt_error("Failed to allocate memory: rehash_list.");
