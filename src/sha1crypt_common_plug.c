@@ -50,7 +50,7 @@ int sha1crypt_common_valid(char * ciphertext, struct fmt_main * self) {
 		goto err;
 	if (strlen(p) > CHECKSUM_LENGTH || strlen(p) != base64_valid_length(p, e_b64_crypt, 0))
 		goto err;
-	
+
 	if (strtokm(NULL, "$"))
 		goto err;
 

@@ -71,7 +71,7 @@ static LIB_struct lib[] = {
 char *copy_str(const char *_p) {
 	char *p;
 	if (!_p)
-		return mem_calloc(1,1);		
+		return mem_calloc(1,1);
 	p = mem_alloc(strlen(_p)+1);
 	strcpy(p,_p);
 	return p;

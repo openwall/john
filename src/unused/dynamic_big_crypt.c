@@ -23,7 +23,7 @@
  * dynamic_big_crypt_generator.sh which is the script
  * what actually generated THIS file.
  */
- 
+
 /*****************************************************************************
  * This software was written by Jim Fougeron jfoug AT cox dot net
  * in 2013-2115. No copyright is claimed, and the software is hereby

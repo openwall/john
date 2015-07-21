@@ -21,7 +21,7 @@
 static void *dlopen(const char *filename, int flag) {
 	// Ok, we have to translate this into LoadLibrary
 	return LoadLibrary(filename);
-	
+
 }
 static void *dlsym(void *handle, const char *symbol) {
 	return GetProcAddress((HANDLE)handle, symbol);
