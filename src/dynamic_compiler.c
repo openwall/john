@@ -58,8 +58,7 @@
  *     usrname=          (true), lc, uc, uni
  *     saltlen=#         This sets the length of the salt
  *     debug             If this is set, then JtR will output the script and other data and exit.
- *     optimize          If set, performs optimizations
- *     optimize2         If set, performs 2nd level of optimizations.
+ *     O=n               Optimize. Can be levels are 0, 1, 2
  *
  *****************************************************************
  *     TODO:
@@ -70,7 +69,6 @@
  *  looked at.
  *
  *  Optimal big_hash speeds:   *00, *01, *02, *03, *04, *05, *06, *07, *08 (all big hashes!)
- *  Fixed!! Non optimal big_hash:      *05, *06, *07, *08
  *****************************************************************
 
  add new logic for ^  (exponentiation)
@@ -189,9 +187,6 @@ DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
 
 #include "memdbg.h"
 
-static int gost_init = 0;
-const char *options_format="";
-
 typedef struct DC_list {
 	struct DC_list *next;
 	DC_struct *value;
@@ -202,7 +197,11 @@ const char *dyna_signature = "@dynamic=md5($p)@";
 const char *dyna_line1 = "@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72";
 const char *dyna_line2 = "@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785";
 const char *dyna_line3 = "@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb";
-int dyna_sig_len = 17;
+const char *options_format="";
+
+static int dyna_sig_len = 17;
+static int OLvL;
+static int gost_init = 0;
 
 extern char *dynamic_Demangle(char*,int *);
 
@@ -265,7 +264,7 @@ static char *dynamic_expr_normalize(const char *ct) {
 		}
 	}
 	//
-	// TODO:  put in this order:  expression,c1=,c2=,...,cn=,passcase=,saltlen=,pass=uni,salt=,usrname=,debug,optimize,optimize2
+	// TODO:  put in this order:  expression,c1=,c2=,...,cn=,passcase=,saltlen=,pass=uni,salt=,usrname=,-O=,debug
 	// NOTE,  we only crc up to the 'passcase=' part.  Everything after that should not be used to 'distinguish' the format hash
 	//        between hashes.  NOTE, it may still cause valid to not 'load' for testing some hashes, but these still should
 	//        be loaded from the .pot file to cross off items.
@@ -348,7 +347,7 @@ int dynamic_compile(const char *expr, DC_HANDLE *p) {
 		*p = (DC_HANDLE)pLastFind;
 		return 0;
 	}
-	if (!strstr(expr, ",nolib")) {
+	if (!strstr(expr, ",nolib") && (OLvL || strstr(expr, ",O"))) {
 		pHand = dynamic_compile_library(expr, crc32);
 		if (pHand && strstr(expr, ",debug")) {
 			printf ("Code from dynamic_compiler_lib.c\n");
@@ -649,6 +648,8 @@ static int handle_extra_params(DC_struct *ptr) {
 		strcpy(cp2, cp);
 		Const[++nConst] = cp2;
 	}
+	if ( (cp = get_param(ptr->pExtraParams, "O")) != NULL)
+		OLvL = atoi(&cp[1]);
 
 	// Find any other values here.
 	if (strstr(ptr->pExtraParams, "debug,") || strstr(ptr->pExtraParams, ",debug") || !strcmp(ptr->pExtraParams, "debug"))
@@ -1298,7 +1299,13 @@ static int parse_expression(DC_struct *p) {
 	// first handle the extra strings
 	if (handle_extra_params(p))
 		return 1;
-	pExpr = comp_optimize_expression(p->pExpr);
+	pExpr = p->pExpr;
+	if (OLvL>0)
+		pExpr = comp_optimize_expression(pExpr);
+	else {
+		pExpr = mem_alloc(strlen(p->pExpr)+1);
+		strcpy(pExpr,p->pExpr);
+	}
 	if (!comp_do_lexi(p, pExpr))
 		return 1;
 	comp_do_parse(0, nSyms-1);
