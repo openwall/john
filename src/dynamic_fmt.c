@@ -1533,7 +1533,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// single crypt.  That eliminates almost 1/2 of the calls to md5_crypt() for the format show in this example.
 	if (keys_dirty)
 	{
-		if (curdat.store_keys_normal_but_precompute_md5_to_output2)
+		if (curdat.store_keys_normal_but_precompute_hash_to_output2)
 		{
 			keys_dirty = 0;
 			__nonMP_DynamicFunc__clean_input2();
@@ -1544,13 +1544,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			//if (curdat.using_flat_buffers_sse2_ok) {
 			if (curdat.dynamic_use_sse == 0) {
-				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1) {
+				if (curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1) {
 #ifdef _OPENMP
 #define CASE(H) case MGF__##H: DynamicFunc__##H##_crypt_input2_overwrite_input1(0,m_count,0); break
 #else
 #define CASE(H) case MGF__##H: DynamicFunc__##H##_crypt_input2_overwrite_input1(); break
 #endif
-					switch(curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type)
+					switch(curdat.store_keys_normal_but_precompute_hash_to_output2_base16_type)
 					{
 						CASE(MD5);
 						CASE(MD4);
@@ -1588,23 +1588,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						CASE(SKEIN384);
 						CASE(SKEIN512);
 					}
-				} else if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32) {
+				} else if (curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1_offsetX) {
 					unsigned int i;
 					for (i = 0; i < m_count; ++i)
-						total_len_X86[i] = 32;
-#ifdef _OPENMP
-					DynamicFunc__MD5_crypt_input2_append_input1(0,m_count,0);
-#else
-					DynamicFunc__MD5_crypt_input2_append_input1();
-#endif
+						total_len_X86[i] = curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1_offsetX;
 #undef CASE
 #ifdef _OPENMP
-#define CASE(H) case MGF__##H: total_len_X86[i] = 32; DynamicFunc__##H##_crypt_input2_append_input1(0,m_count,0); break
+#define CASE(H) case MGF__##H: DynamicFunc__##H##_crypt_input2_append_input1(0,m_count,0); break
 #else
-#define CASE(H) case MGF__##H: total_len_X86[i] = 32; DynamicFunc__##H##_crypt_input2_append_input1(); break
+#define CASE(H) case MGF__##H: DynamicFunc__##H##_crypt_input2_append_input1(); break
 #endif
 
-					switch(curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type) {
+					switch(curdat.store_keys_normal_but_precompute_hash_to_output2_base16_type) {
 						CASE(MD5);
 						CASE(MD4);
 						CASE(SHA1);
@@ -1648,23 +1643,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				}
 			} else {
 				__possMP_DynamicFunc__crypt2_md5();
-				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1)
+				if (curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1)
 				{
-					if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1==2)
+					if (curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1==2)
 						__nonMP_DynamicFunc__SSEtoX86_switch_output2();
 					__nonMP_DynamicFunc__clean_input();
-					__nonMP_DynamicFunc__append_from_last_output2_to_input1_as_base16();
-				}
-				if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32)
-				{
-#ifndef SIMD_COEF_32
-					if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32==2)
-#else
-					if (dynamic_use_sse == 1)
-#endif
-						__nonMP_DynamicFunc__SSEtoX86_switch_output2();
-					__nonMP_DynamicFunc__clean_input();
-					__nonMP_DynamicFunc__set_input_len_32();
 					__nonMP_DynamicFunc__append_from_last_output2_to_input1_as_base16();
 				}
 			}
@@ -7569,19 +7552,31 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	if (curdat.store_keys_in_input_unicode_convert && curdat.store_keys_in_input)
 		return !fprintf(stderr, "Error invalid format %s: Using MGF_KEYS_INPUT and MGF_KEYS_UNICODE_B4_CRYPT in same format is NOT valid\n", Setup->szFORMAT_NAME);
 
-	curdat.store_keys_normal_but_precompute_md5_to_output2 = !!(Setup->startFlags&MGF_KEYS_CRYPT_IN2);
+	curdat.store_keys_normal_but_precompute_hash_to_output2 = !!(Setup->startFlags&MGF_KEYS_CRYPT_IN2);
 
-	curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1 = !!(Setup->startFlags&(MGF_KEYS_BASE16_IN1|MGF_KEYS_BASE16_IN1_SHA1|MGF_KEYS_BASE16_IN1_SHA256));
+	curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1 = !!(Setup->startFlags&MGF_KEYS_BASE16_IN1);
 
-	if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1)
-		curdat.store_keys_normal_but_precompute_md5_to_output2 = 1;
+	if (curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1)
+		curdat.store_keys_normal_but_precompute_hash_to_output2 = 1;
 
-	curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32 = !!(Setup->startFlags&MGF_KEYS_BASE16_IN1_Offset32);
-	if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1_offset32)
+#define IF_CDOFF32(F,L) if (!curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1_offsetX) \
+	curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1_offsetX = (!!(Setup->startFlags&MGF_KEYS_BASE16_IN1_Offset_ ## F))*L
+
+	curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1_offsetX = 0;
+	IF_CDOFF32(MD5,32); IF_CDOFF32(MD4,32); IF_CDOFF32(SHA1,40); IF_CDOFF32(SHA224,56);
+	IF_CDOFF32(SHA256,64); IF_CDOFF32(SHA384,96); IF_CDOFF32(SHA512,128); IF_CDOFF32(GOST,64);
+	IF_CDOFF32(WHIRLPOOL,128); IF_CDOFF32(Tiger,48); IF_CDOFF32(RIPEMD128,32); IF_CDOFF32(RIPEMD160,40);
+	IF_CDOFF32(RIPEMD256,64); IF_CDOFF32(RIPEMD320,80); IF_CDOFF32(MD2,32); IF_CDOFF32(PANAMA,64);
+	IF_CDOFF32(HAVAL128_3,32); IF_CDOFF32(HAVAL160_3,40); IF_CDOFF32(HAVAL192_3,48); IF_CDOFF32(HAVAL224_3,56); IF_CDOFF32(HAVAL256_3,64);
+	IF_CDOFF32(HAVAL128_4,32); IF_CDOFF32(HAVAL160_4,40); IF_CDOFF32(HAVAL192_4,48); IF_CDOFF32(HAVAL224_4,56); IF_CDOFF32(HAVAL256_4,64);
+	IF_CDOFF32(HAVAL128_5,32); IF_CDOFF32(HAVAL160_5,40); IF_CDOFF32(HAVAL192_5,48); IF_CDOFF32(HAVAL224_5,56); IF_CDOFF32(HAVAL256_5,64);
+	IF_CDOFF32(SKEIN224,56); IF_CDOFF32(SKEIN256,64); IF_CDOFF32(SKEIN384,96); IF_CDOFF32(SKEIN512,128);
+
+	if (curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1_offsetX)
 	{
-		curdat.store_keys_normal_but_precompute_md5_to_output2 = 1;
+		curdat.store_keys_normal_but_precompute_hash_to_output2 = 1;
 	}
-	curdat.store_keys_normal_but_precompute_md5_to_output2_base16_type = Setup->startFlags>>56;
+	curdat.store_keys_normal_but_precompute_hash_to_output2_base16_type = Setup->startFlags>>56;
 
 	if (Setup->startFlags&MGF_PHPassSetup)
 	{
