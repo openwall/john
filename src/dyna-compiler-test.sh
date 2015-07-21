@@ -1,4 +1,4 @@
-#!/bin/ksh
+#!/bin/bash
 #
 ##############################################################################
 # tests dynamic_compiler code against legacy dynamic_# hashes, pulling data
@@ -10,44 +10,44 @@
 #    ./dyna-compile-tst.sh  # expr   (runs a single test for dyna_# with expr)
 ##############################################################################
 
-typeset -i GOOD
-typeset -i FAIL
 GOOD=0
 FAIL=0
 
-function do_test {
-  ../run/john --list=format-tests --format=dynamic_$1 | cut -f 3 > dct-in
-  ../run/john --list=format-tests --format=dynamic_$1 | cut -f 4 > dct-in.dic
+function do_test()
+{
+  ../run/john --list=format-tests --format=dynamic_$1 | cut -f 3 > dyna-comp.in
+  ../run/john --list=format-tests --format=dynamic_$1 | cut -f 4 > dyna-comp.dic
+  rm -f ./dyna-comp.pot
   if [ "x$3" = "xSHOW" ]
   then
-    ../run/john dct-in -w=dct-in.dic -format=dynamic="$2"
+    ../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot
   else
-    ../run/john dct-in -w=dct-in.dic -format=dynamic="$2" > /dev/null 2>&1
-    VAL=`../run/john dct-in -w=dct-in.dic -format=dynamic="$2" 2> /dev/null | tail -1`
+    ../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot > /dev/null 2>&1
+    VAL=`../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot 2> /dev/null | tail -1`
     if [ "x$VAL" != 'xNo password hashes left to crack (see FAQ)' ]
     then
       echo "FAILURE!!! $1 -> $2"
-      let FAIL=$FAIL+1
+      FAIL=$(($FAIL+1))
     else
       echo "Success    $1 -> $2"
-      let GOOD=$GOOD+1
+      GOOD=$(($GOOD+1))
     fi
   fi
-  rm -f dct-in dct-in.dic
+  rm -f dyna-comp.in dyna-comp.dic dyna-comp.pot
 }
 
-function large_hash_set {
-  typeset -i NUM
+function large_hash_set()
+{
   NUM=$1         ; do_test $NUM   "$2(\$p)"                $3
-  let NUM=$NUM+1 ; do_test $NUM   "$2(\$s.\$p)"            $3
-  let NUM=$NUM+1 ; do_test $NUM   "$2(\$p.\$s)"            $3
-  let NUM=$NUM+1 ; do_test $NUM   "$2($2(\$p))"            $3
-  let NUM=$NUM+1 ; do_test $NUM   "$2(${2}_raw(\$p))"      $3
-  let NUM=$NUM+1 ; do_test $NUM   "$2($2(\$p).\$s)"        $3
-  let NUM=$NUM+1 ; do_test $NUM   "$2(\$s.$2(\$p))"        $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2(\$s.\$p)"            $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2(\$p.\$s)"            $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2($2(\$p))"            $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2(${2}_raw(\$p))"      $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2($2(\$p).\$s)"        $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2(\$s.$2(\$p))"        $3
   if [ $NUM = 86 ] ; then return ; fi
-  let NUM=$NUM+1 ; do_test $NUM   "$2($2(\$s).$2(\$p))"    $3
-  let NUM=$NUM+1 ; do_test $NUM   "$2($2(\$p).$2(\$p))"    $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2($2(\$s).$2(\$p))"    $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2($2(\$p).$2(\$p))"    $3
 }
 
 if [ "x$2" != "x" ]
