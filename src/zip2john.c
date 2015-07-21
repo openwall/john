@@ -114,7 +114,7 @@
 
 #define LARGE_ENOUGH 8192
 
-static int checksum_only=0, use_magic=1;
+static int checksum_only=0, use_magic=0;
 static int force_2_byte_checksum = 0;
 static char *ascii_fname, *only_fname;
 static int inline_thr = MAX_INLINE_SIZE;
@@ -609,9 +609,9 @@ int zip2john(int argc, char **argv)
 			checksum_only = 1;
 			fprintf(stderr, "Outputing hashes that are 'checksum ONLY' hashes\n");
 			break;
-		case 'n':
-			use_magic = 0;
-			fprintf(stderr, "Ignoring any checking of file 'magic' signatures\n");
+		case 'm':
+			use_magic = 1;
+			fprintf(stderr, "Using file 'magic' signatures if applicable (not 100%% safe)\n");
 			break;
 		case '2':
 			force_2_byte_checksum = 1;
