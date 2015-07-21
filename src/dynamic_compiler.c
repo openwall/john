@@ -788,8 +788,10 @@ static char *comp_optimize_expression(const char *pExpr) {
 		char cpType[48];
 		p = strstr(pBuf, "($s)");
 		--p;
-		while (*p != '.' && *p != '(')
+		while (p > pBuf && *p != '.' && *p != '(')
 			--p;
+		if (p==pBuf)
+			goto SkipSaltCheck;
 		p2 = cpType;
 		++p;
 		while (p[-1] != ')' && p2-cpType < sizeof(cpType)-1)
@@ -825,6 +827,7 @@ static char *comp_optimize_expression(const char *pExpr) {
 			}
 		}
 	}
+SkipSaltCheck:;
 	/*
 	 * End of SALT_AS_HEX optimization
 	 */
@@ -843,8 +846,10 @@ static char *comp_optimize_expression(const char *pExpr) {
 		char cpType[48];
 		p = strstr(pBuf, "($p)");
 		--p;
-		while (*p != '.' && *p != '(')
+		while (p > pBuf && *p != '.' && *p != '(')
 			--p;
+		if (p==pBuf)
+			goto SkipPassCheck;
 		p2 = cpType;
 		++p;
 		while (p[-1] != ')' && p2-cpType < sizeof(cpType)-1)
@@ -888,6 +893,7 @@ static char *comp_optimize_expression(const char *pExpr) {
 			}
 		}
 	}
+SkipPassCheck:;
 	/*
 	 * Look for common sub-expressions  we handle crypt($p), crypt($s.$p) crypt($p.$s)
 	 */
