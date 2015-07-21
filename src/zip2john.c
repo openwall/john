@@ -570,12 +570,8 @@ static int usage(char *name) {
 	fprintf(stderr, "    byte checksums, and there are 3 or more of them, then we have 48 bits\n");
 	fprintf(stderr, "    knowledge, which 'may' be enough to crack the password, without having\n");
 	fprintf(stderr, "    to force the user to have the .zip file present\n");
-	fprintf(stderr, " -n Do not look for any magic file types in this zip.  If you know that\n");
-	fprintf(stderr, "    are files with one of the 'magic' extensions, but they are not the right\n");
-	fprintf(stderr, "    type files (some *.doc files that ARE NOT MS Office Word documents), then\n");
-	fprintf(stderr, "    this switch will keep them from being detected this way.  NOTE, that\n");
-	fprintf(stderr, "    the 'magic' logic will only be used in john, under certain situations.\n");
-	fprintf(stderr, "    Most of these situations are when there are only 'stored' files in the zip\n");
+	fprintf(stderr, " -m Use \"file magic\" as known-plain if applicable. This is slightly faster\n");
+	fprintf(stderr, "    but not 100%% safe in all situations.\n");
 	fprintf(stderr, " -2 Force 2 byte checksum computation\n");
 
 	return EXIT_FAILURE;
