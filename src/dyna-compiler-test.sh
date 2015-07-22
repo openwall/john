@@ -33,12 +33,12 @@ do_test()
       GOOD=$(($GOOD+1))
     fi
   fi
-#  rm -f dyna-comp.in dyna-comp.dic dyna-comp.pot
+  rm -f dyna-comp.in dyna-comp.dic dyna-comp.pot
 }
 
 large_hash_set()
 {
-  NUM=$1         ; do_test $NUM   "$2(\$p)"                $3
+  NUM=$1          ; do_test $NUM   "$2(\$p)"                $3
   NUM=$(($NUM+1)) ; do_test $NUM   "$2(\$s.\$p)"            $3
   NUM=$(($NUM+1)) ; do_test $NUM   "$2(\$p.\$s)"            $3
   NUM=$(($NUM+1)) ; do_test $NUM   "$2($2(\$p))"            $3
@@ -57,16 +57,16 @@ then
 fi
 
 do_test 0 'md5($p),O=3'                          $1
-do_test 1 'md5($p.$s),O=3,saltlen=32'                       $1
+do_test 1 'md5($p.$s),O=3,saltlen=32'            $1
 do_test 2 'md5(md5($p)),O=3'                     $1
 do_test 3 'md5(md5(md5($p))),O=3'                $1
-do_test 4 'md5($s.$p),O=3,saltlen=-24'                       $1
-do_test 5 'md5($s.$p.$s),O=3,saltlen=-12'                    $1
+do_test 4 'md5($s.$p),O=3,saltlen=-24'           $1
+do_test 5 'md5($s.$p.$s),O=3,saltlen=-12'        $1
 do_test 6 'md5(md5($p).$s),O=3'                  $1
 do_test 8 'md5(md5($s).$p),O=3'                  $1
 do_test 9 'md5($s.md5($p)),O=3'                  $1
-do_test 10 'md5($s.md5($s.$p)),O=3,saltlen=-23'              $1
-do_test 11 'md5($s.md5($p.$s)),O=3,saltlen=-23'              $1
+do_test 10 'md5($s.md5($s.$p)),O=3,saltlen=-23'  $1
+do_test 11 'md5($s.md5($p.$s)),O=3,saltlen=-23'  $1
 do_test 12 'md5(md5($s).md5($p)),O=3'            $1
 do_test 13 'md5(md5($p).md5($s)),O=3'            $1
 do_test 14 'md5($s.md5($p).$s),O=3'              $1
