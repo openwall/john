@@ -35,10 +35,6 @@ john_register_one(&fmt_rawSHA1);
  */
 #define REVERSE_STEPS
 
-#define INIT_A 0x67452301
-#define INIT_B 0xefcdab89
-#define INIT_C 0x98badcfe
-#define INIT_D 0x10325476
 #define INIT_E 0xC3D2E1F0
 
 #ifdef _OPENMP
@@ -74,7 +70,7 @@ john_register_one(&fmt_rawSHA1);
 #define CIPHERTEXT_LENGTH		(HASH_LENGTH + TAG_LENGTH)
 
 #define DIGEST_SIZE				20
-#define BINARY_SIZE				20 // source()
+#define BINARY_SIZE				4
 #define BINARY_ALIGN			4
 #define SALT_SIZE				0
 #define SALT_ALIGN				1
@@ -264,7 +260,7 @@ static char *get_key(int index) {
 }
 #endif
 
-static void *get_binary(char *ciphertext)
+static void *get_full_binary(char *ciphertext)
 {
 	static ARCH_WORD_32 out[DIGEST_SIZE / 4];
 	unsigned char *realcipher = (unsigned char*)out;
@@ -276,14 +272,33 @@ static void *get_binary(char *ciphertext)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 	}
-#ifdef SIMD_COEF_32
-	alter_endianity(realcipher, DIGEST_SIZE);
+
+	return (void*)realcipher;
+}
+
+static void *get_binary(char *ciphertext)
+{
+	static
 #ifdef REVERSE_STEPS
-	out[0] -= INIT_A;
-	out[1] -= INIT_B;
-	out[2] -= INIT_C;
-	out[3] -= INIT_D;
-	out[4] -= INIT_E;
+	ARCH_WORD_32 out;
+#endif
+	ARCH_WORD_32 full[DIGEST_SIZE / 4];
+	unsigned char *realcipher = (unsigned char*)full;
+	int i;
+
+	ciphertext += TAG_LENGTH;
+
+	for(i=0;i<DIGEST_SIZE;i++)
+	{
+		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
+	}
+#ifdef SIMD_COEF_32
+#ifdef REVERSE_STEPS
+	out = JOHNSWAP(full[4]) - INIT_E;
+	out = (out << 2) | (out >> 30);
+	return (void*)&out;
+#else
+	alter_endianity(realcipher, DIGEST_SIZE);
 #endif
 #endif
 	return (void*)realcipher;
@@ -345,44 +360,16 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	return 1;
-}
-
-static char *source(char *source, void *binary)
-{
-	static char Buf[CIPHERTEXT_LENGTH + 1];
-	ARCH_WORD_32 out[BINARY_SIZE / 4];
-	unsigned char *realcipher = (unsigned char*)out;
-	unsigned char *cpi;
-	char *cpo;
-	int i;
-
-	memcpy(realcipher, binary, BINARY_SIZE);
-	strcpy(Buf, FORMAT_TAG);
-	cpo = &Buf[TAG_LENGTH];
-
-#if defined(SIMD_COEF_32) && defined(REVERSE_STEPS)
-	out[0] += INIT_A;
-	out[1] += INIT_B;
-	out[2] += INIT_C;
-	out[3] += INIT_D;
-	out[4] += INIT_E;
-	cpi = (unsigned char*)out;
-#else
-	cpi = realcipher;
-#endif
-
 #ifdef SIMD_COEF_32
-	alter_endianity(realcipher, BINARY_SIZE);
-#endif
+	ARCH_WORD_32 crypt_key[DIGEST_SIZE / 4];
+	SHA_CTX ctx;
+	char *key = get_key(index);
 
-	for (i = 0; i < BINARY_SIZE; ++i) {
-		*cpo++ = itoa16[(*cpi)>>4];
-		*cpo++ = itoa16[*cpi&0xF];
-		++cpi;
-	}
-	*cpo = 0;
-	return Buf;
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, key, strlen(key));
+	SHA1_Final((void*)crypt_key, &ctx);
+#endif
+	return !memcmp(get_full_binary(source), crypt_key, DIGEST_SIZE);
 }
 
 struct fmt_main fmt_rawSHA1 = {
@@ -420,7 +407,7 @@ struct fmt_main fmt_rawSHA1 = {
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
-		source,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,
 			fmt_default_binary_hash_1,
