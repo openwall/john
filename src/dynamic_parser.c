@@ -454,6 +454,7 @@ extern struct options_main options;
 
 static void add_line(char *cp) {
 	struct cfg_line *pln, *p;
+	int len;
 
 	pln = mem_calloc_tiny(sizeof(struct cfg_line), sizeof(struct cfg_line*));
 	if (gen_source->head == NULL)
@@ -464,6 +465,12 @@ static void add_line(char *cp) {
 	if (pln != p)
 		p->next = pln;
 	pln->data = str_alloc_copy(cp);
+	len = strlen(cp);
+	while (len>0) {
+		if (pln->data[len-1] != ' ')
+			break;
+		pln->data[--len] = 0;
+	}
 }
 static void load_script_from_string(int which) {
 	char *cp;
