@@ -30,10 +30,8 @@ inline uint192_t add192(uint192_t a, unsigned int b)
 	result.LO = a.LO + b;
 	result.MI = a.MI + (result.LO < a.LO);
 	result.HI = a.HI + (result.MI < a.MI);
-	if (result.HI < a.HI) {
-		fprintf(stderr, "192 bit add overflow!!\n");
-		exit(0);
-	}
+	if (result.HI < a.HI)
+		bt_error("192 bit add overflow.");
 
 	return result;
 }
