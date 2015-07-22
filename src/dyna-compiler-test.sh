@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 ##############################################################################
 # tests dynamic_compiler code against legacy dynamic_# hashes, pulling data
@@ -13,17 +13,17 @@
 GOOD=0
 FAIL=0
 
-function do_test()
+do_test()
 {
   ../run/john --list=format-tests --format=dynamic_$1 | cut -f 3 > dyna-comp.in
   ../run/john --list=format-tests --format=dynamic_$1 | cut -f 4 > dyna-comp.dic
   rm -f ./dyna-comp.pot
   if [ "x$3" = "xSHOW" ]
   then
-    ../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot
+    ../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot --session=dyna-comp --nolog
   else
-    ../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot > /dev/null 2>&1
-    VAL=`../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot 2> /dev/null | tail -1`
+    ../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot --session=dyna-comp --nolog > /dev/null 2>&1
+    VAL=`../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot --session=dyna-comp --nolog 2> /dev/null | tail -1`
     if [ "x$VAL" != 'xNo password hashes left to crack (see FAQ)' ]
     then
       echo "FAILURE!!! $1 -> $2"
@@ -36,7 +36,7 @@ function do_test()
   rm -f dyna-comp.in dyna-comp.dic dyna-comp.pot
 }
 
-function large_hash_set()
+large_hash_set()
 {
   NUM=$1         ; do_test $NUM   "$2(\$p)"                $3
   NUM=$(($NUM+1)) ; do_test $NUM   "$2(\$s.\$p)"            $3
@@ -122,6 +122,8 @@ large_hash_set 330 skein224      $1
 large_hash_set 340 skein256      $1
 large_hash_set 350 skein384      $1
 large_hash_set 360 skein512      $1
+
+rm -f  dyna-comp.in  dyna-comp.dic dyna-comp.pot
 
 echo ""
 if [ $FAIL -eq 0 ] ; then echo -n "ALL tests successful. " ; else echo "THERE WERE $FAIL FAILURES!" ; fi
