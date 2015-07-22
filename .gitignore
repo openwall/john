@@ -62,6 +62,10 @@ src/autom4te.cache/
 src/config.status
 src/configure.scan
 src/config*.cache
+src/dyna-comp.dic
+src/dyna-comp.in
+src/dyna-comp.pot
+src/dyna-comp.rec
 src/fmt_externs.h
 src/fmt_registers.h
 src/generic.h
