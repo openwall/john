@@ -148,7 +148,7 @@ static void init_kernels(char *bitmap_params, unsigned int num_loaded_hashes, si
 		 " -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u %s" ,
 		 num_loaded_hashes, use_local_mem, s_mem_lws, offset_table_size,  hash_table_size, bitmap_params);
 
-	opencl_read_source("$JOHN/kernels/lm_kernel.cl");
+	opencl_read_source("$JOHN/kernels/lm_kernel_f.cl");
 	opencl_build(gpu_id, build_opts, 0, NULL);
 
 	krnl[gpu_id][0] = clCreateKernel(program[gpu_id], "lm_bs", &ret_code);

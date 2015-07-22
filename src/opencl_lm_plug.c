@@ -96,7 +96,6 @@ void opencl_lm_init_index()
 
 	for (p = 0; p < 0x100; p++)
 		opencl_lm_u[p] = CP_up[p];
-
 }
 
 void opencl_lm_init(int block)
