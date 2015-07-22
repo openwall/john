@@ -100,7 +100,8 @@ typedef unsigned WORD vtype;
 	for (bit = bits; bit < k; bit++)		\
 		hash |= ((((uint)B[32 + bit]) >> x) & 1) << bit;
 
-inline void cmp_final(__private unsigned int *binary,
+inline void cmp_final(__private unsigned lm_vector *B,
+		      __private unsigned int *binary,
 		      __global unsigned int *offset_table,
 		      __global unsigned int *hash_table,
 		     volatile __global uint *output,
@@ -109,7 +110,16 @@ inline void cmp_final(__private unsigned int *binary,
 		      unsigned int section)
 {
 	unsigned long hash;
-	unsigned int hash_table_index, t;
+	unsigned int hash_table_index, t, bit;
+
+#if SELECT_CMP_STEPS > 1
+	GET_HASH_0(binary[0], depth, 32, REQ_BITMAP_BITS);
+	GET_HASH_1(binary[1], depth, 32, REQ_BITMAP_BITS);
+#else
+	binary[0] = 0;
+	GET_HASH_0(binary[0], depth, 32, 0);
+	GET_HASH_1(binary[1], depth, 32, REQ_BITMAP_BITS);
+#endif
 
 	hash = ((unsigned long)binary[1] << 32) | (unsigned long)binary[0];
 	hash += (unsigned long)offset_table[hash % OFFSET_TABLE_SIZE];
@@ -123,7 +133,6 @@ inline void cmp_final(__private unsigned int *binary,
 		output[2 + 3 * t] = 0;
 		output[3 + 3 * t] = hash_table_index;
 	}
-
 }
 
 inline void cmp( __private unsigned lm_vector *B,
@@ -137,21 +146,22 @@ inline void cmp( __private unsigned lm_vector *B,
 	unsigned int value[2] , i, bit, bitmap_index;
 
 	for (i = 0; i < 32; i++){
-		value[0] = 0;
-		value[1] = 0;
-		GET_HASH_0(value[0], i, 32, 0);
-		GET_HASH_1(value[1], i, 32, 0);
-
 #if SELECT_CMP_STEPS > 1
+	value[0] = 0;
+	value[1] = 0;
+	GET_HASH_0(value[0], i, REQ_BITMAP_BITS, 0);
+	GET_HASH_1(value[1], i, REQ_BITMAP_BITS, 0);
 	bitmap_index = value[1] & (BITMAP_SIZE_BITS - 1);
 	bit = (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
 	bitmap_index = value[0] & (BITMAP_SIZE_BITS - 1);
 	bit &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
 #else
+	value[1] = 0;
+	GET_HASH_1(value[1], i, REQ_BITMAP_BITS, 0);
 	bitmap_index = value[1] & BITMAP_SIZE_BITS_LESS_ONE;
 	bit = (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
 #endif
 	if (bit)
-		cmp_final(value, offset_table, hash_table, output, bitmap_dupe, i, section);
+		cmp_final(B, value, offset_table, hash_table, output, bitmap_dupe, i, section);
 	}
 }

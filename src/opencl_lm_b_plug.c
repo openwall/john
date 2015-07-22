@@ -103,7 +103,7 @@ static void create_buffer(unsigned int num_loaded_hashes, unsigned int ot_size, 
 	buffer_hash_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ht_size * sizeof(unsigned int) * 2, hash_table_64, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_table.");
 
-	buffer_bitmaps = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, (bmp_size_bits >> 3) * sizeof(cl_uint), bitmaps, &ret_code);
+	buffer_bitmaps = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bmp_size_bits >> 3, bitmaps, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_bitmaps.");
 
 	buffer_hash_ids = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (3 * num_loaded_hashes + 1) * sizeof(unsigned int), NULL, &ret_code);
@@ -532,7 +532,7 @@ static void prepare_bitmap_2(cl_ulong bmp_sz_bits, cl_uint **bitmap_ptr)
 {
 	unsigned int i;
 	MEM_FREE(*bitmap_ptr);
-	*bitmap_ptr = (cl_uint*) mem_calloc((bmp_sz_bits), sizeof(cl_uint));
+	*bitmap_ptr = (cl_uint*) mem_calloc((bmp_sz_bits >> 4), sizeof(cl_uint));
 
 	for (i = 0; i < num_loaded_hashes; i++) {
 		unsigned int bmp_idx = loaded_hashes[2 * i + 1] & (bmp_sz_bits - 1);
@@ -560,7 +560,7 @@ static void prepare_bitmap_1(cl_ulong bmp_sz_bits, cl_uint **bitmap_ptr)
 static char* select_bitmap(unsigned int num_ld_hashes)
 {
 	static char kernel_params[200];
-	unsigned int cmp_steps = 2;
+	unsigned int cmp_steps = 2, bits_req = 32;
 
 	if (num_ld_hashes <= 5100) {
 		if (amd_gcn_10(device_info[gpu_id]) ||
@@ -637,11 +637,12 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 		prepare_bitmap_2(bitmap_size_bits, &bitmaps);
 
 	assert(!(bitmap_size_bits & (bitmap_size_bits - 1)));
+	get_num_bits(bits_req, bitmap_size_bits);
 
 	sprintf(kernel_params,
 		"-D SELECT_CMP_STEPS=%u"
 		" -D BITMAP_SIZE_BITS_LESS_ONE="LLu" -D REQ_BITMAP_BITS=%u",
-		cmp_steps, (unsigned long long)bitmap_size_bits - 1, 32);
+		cmp_steps, (unsigned long long)bitmap_size_bits - 1, bits_req);
 
 	bitmap_size_bits *= cmp_steps;
 
@@ -688,7 +689,7 @@ static char* prepare_table(struct db_salt *salt) {
 	}
 
 	bitmap_params = select_bitmap(num_loaded_hashes);
-	//MEM_FREE(loaded_hashes);
+	MEM_FREE(loaded_hashes);
 
 	return bitmap_params;
 }
@@ -711,8 +712,8 @@ static void reset(struct db_main *db)
 		create_buffer(num_loaded_hashes, offset_table_size, hash_table_size, bitmap_size_bits);
 
 		auto_tune_all(bitmap_params, num_loaded_hashes, 300);
-		//MEM_FREE(offset_table);
-		//MEM_FREE(bitmaps);
+		MEM_FREE(offset_table);
+		MEM_FREE(bitmaps);
 	}
 	else {
 		int i, *binary;
@@ -749,13 +750,12 @@ static void reset(struct db_main *db)
 			error();
 		}
 		bitmap_params = select_bitmap(num_loaded_hashes);
-
 		create_buffer(num_loaded_hashes, offset_table_size, hash_table_size, bitmap_size_bits);
 		auto_tune_all(bitmap_params, num_loaded_hashes, 300);
 
-		//MEM_FREE(offset_table);
-		//MEM_FREE(bitmaps);
-		//MEM_FREE(loaded_hashes);
+		MEM_FREE(offset_table);
+		MEM_FREE(bitmaps);
+		MEM_FREE(loaded_hashes);
 		hash_ids[0] = 0;
 		initialized++;
 	}
