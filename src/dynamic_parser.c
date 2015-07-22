@@ -164,6 +164,7 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__set_input_len_20", DynamicFunc__set_input_len_20},
 	{ "DynamicFunc__set_input2_len_20", DynamicFunc__set_input2_len_20},
 	{ "DynamicFunc__set_input_len_32", DynamicFunc__set_input_len_32 },
+	{ "DynamicFunc__set_input_len_32_cleartop", DynamicFunc__set_input_len_32_cleartop },
 	{ "DynamicFunc__set_input2_len_32", DynamicFunc__set_input2_len_32 },
 	{ "DynamicFunc__set_input_len_24", DynamicFunc__set_input_len_24 },
 	{ "DynamicFunc__set_input2_len_24", DynamicFunc__set_input2_len_24 },
@@ -171,6 +172,8 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__set_input2_len_28", DynamicFunc__set_input2_len_28 },
 	{ "DynamicFunc__set_input_len_40", DynamicFunc__set_input_len_40 },
 	{ "DynamicFunc__set_input2_len_40", DynamicFunc__set_input2_len_40 },
+	{ "DynamicFunc__set_input2_len_32_cleartop", DynamicFunc__set_input2_len_32_cleartop },
+	{ "DynamicFunc__set_input2_len_40_cleartop", DynamicFunc__set_input2_len_40_cleartop },
 	{ "DynamicFunc__set_input_len_48", DynamicFunc__set_input_len_48 },
 	{ "DynamicFunc__set_input_2len_48", DynamicFunc__set_input2_len_48 },
 	{ "DynamicFunc__set_input_len_56", DynamicFunc__set_input_len_56 },
@@ -267,7 +270,6 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	LARGE_HASH_FUNCS(GOST)
 	LARGE_HASH_FUNCS(WHIRLPOOL)
 	LARGE_HASH_FUNCS(Tiger)
-	LARGE_HASH_FUNCS(WHIRLPOOL)
 	LARGE_HASH_FUNCS(RIPEMD128)
 	LARGE_HASH_FUNCS(RIPEMD160)
 	LARGE_HASH_FUNCS(RIPEMD256)
@@ -293,6 +295,7 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	LARGE_HASH_FUNCS(SKEIN256)
 	LARGE_HASH_FUNCS(SKEIN384)
 	LARGE_HASH_FUNCS(SKEIN512)
+	// LARGE_HASH_EDIT_POINT
 	{ NULL, NULL }};
 
 
@@ -325,6 +328,7 @@ static Dynamic_Str_Flag_t Dynamic_Str_Flag[] =  {
 	SALT_AS_HEX_FLAG(GOST)
 	SALT_AS_HEX_FLAG(WHIRLPOOL)
 	SALT_AS_HEX_FLAG(Tiger)
+	SALT_AS_HEX_FLAG(TIGER)
 	SALT_AS_HEX_FLAG(RIPEMD128)
 	SALT_AS_HEX_FLAG(RIPEMD160)
 	SALT_AS_HEX_FLAG(RIPEMD256)
@@ -350,6 +354,7 @@ static Dynamic_Str_Flag_t Dynamic_Str_Flag[] =  {
 	SALT_AS_HEX_FLAG(SKEIN256)
 	SALT_AS_HEX_FLAG(SKEIN384)
 	SALT_AS_HEX_FLAG(SKEIN512)
+	// LARGE_HASH_EDIT_POINT
 
 	{ "MGF_SALT_AS_HEX_TO_SALT2",         MGF_SALT_AS_HEX_TO_SALT2 },
 	{ "MGF_INPBASE64_4x6",				  MGF_INPBASE64_4x6 },
@@ -380,7 +385,7 @@ static Dynamic_Str_Flag_t Dynamic_Str_sFlag[] =  {
 	{ "MGF_KEYS_CRYPT_IN2",                   MGF_KEYS_CRYPT_IN2 },
 	{ "MGF_KEYS_BASE16_IN1",                  MGF_KEYS_BASE16_IN1 }, // deprecated (use the _MD5 version)
 	{ "MGF_KEYS_BASE16_IN1_Offset32",         MGF_KEYS_BASE16_IN1_Offset32 },  // deprecated (use the _MD5 version)
-	SALT_AS_HEX_FLAG(MD5)
+	SALT_AS_HEX_FLAG2(MD5)
 	SALT_AS_HEX_FLAG2(MD4)
 	SALT_AS_HEX_FLAG2(SHA1)
 	SALT_AS_HEX_FLAG2(SHA224)
@@ -390,6 +395,7 @@ static Dynamic_Str_Flag_t Dynamic_Str_sFlag[] =  {
 	SALT_AS_HEX_FLAG2(GOST)
 	SALT_AS_HEX_FLAG2(WHIRLPOOL)
 	SALT_AS_HEX_FLAG2(Tiger)
+	SALT_AS_HEX_FLAG2(TIGER)
 	SALT_AS_HEX_FLAG2(RIPEMD128)
 	SALT_AS_HEX_FLAG2(RIPEMD160)
 	SALT_AS_HEX_FLAG2(RIPEMD256)
@@ -415,6 +421,8 @@ static Dynamic_Str_Flag_t Dynamic_Str_sFlag[] =  {
 	SALT_AS_HEX_FLAG2(SKEIN256)
 	SALT_AS_HEX_FLAG2(SKEIN384)
 	SALT_AS_HEX_FLAG2(SKEIN512)
+	// LARGE_HASH_EDIT_POINT
+
 	{ "MGF_KEYS_UNICODE_B4_CRYPT",        MGF_KEYS_UNICODE_B4_CRYPT },
 	{ "MGF_PHPassSetup",                  MGF_PHPassSetup },
 	{ "MGF_POSetup",                      MGF_POSetup },
@@ -893,7 +901,9 @@ int dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt)
 	nPreloadCnt = 0;
 	nFuncCnt = 0;
 
-	pSetup = mem_calloc_tiny(sizeof(DYNAMIC_Setup), MEM_ALIGN_NONE);
+	// since we switched flags to this size, we need to align to 64 bit,
+	// or we crash on !ALLOW_UNALIGNED
+	pSetup = mem_calloc_tiny(sizeof(DYNAMIC_Setup), sizeof(uint64_t));
 
 	options.loader.field_sep_char = ':';
 	if (!dynamic_LOAD_PARSER_SIGNATURE(which))

@@ -56,3 +56,4 @@ cd /base/JohnTheRipper/run
 export WINEDEBUG=-all  # suppress wine warnings
 /usr/bin/wine john.exe --list=build-info
 /usr/bin/wine john.exe --test=0
+/usr/bin/wine john.exe --test=0 --format=dynamic-all

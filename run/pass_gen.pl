@@ -252,13 +252,13 @@ if (@ARGV == 1) {
 	# if only one format (how this script SHOULD be used), then we do not slurp the file, but we
 	# read STDIN line by line.  Cuts down on memory usage GREATLY within the running of the script.
 	$u = 0;
-	my $orig_arg = lc (defined($_) ? $_ : '');
+	my $orig_arg = $ARGV[0];
 	my $arg = lc $ARGV[0];
 	if (substr($arg,0,8) eq "dynamic_") { substr($arg,0,8)="dynamic="; }
 	if ($arg eq "dynamic") { $arg = "dynamic="; }
 	if (substr($arg,0,8) eq "dynamic=") {
 		@funcs = ();
-		push(@funcs, $arg = dynamic_compile(substr($arg,8)));
+		push(@funcs, $arg = dynamic_compile(substr($orig_arg,8)));
 	}
 	foreach (@funcs) {
 		if ($arg eq lc $_) {
@@ -294,11 +294,11 @@ if (@ARGV == 1) {
 
 	foreach (@ARGV) {
 		$u = 0;
-		my $orig_arg = lc $_;
+		my $orig_arg = $_;
 		my $arg = lc $_;
 		if (substr($arg,0,8) eq "dynamic_") { substr($arg,0,8)="dynamic="; }
 		if (substr($arg,0,8) eq "dynamic=") {
-			push(@funcs, $arg = dynamic_compile(substr($ARGV[0],8)));
+			push(@funcs, $arg = dynamic_compile(substr($orig_arg,8)));
 		}
 		foreach (@funcs) {
 			if ($arg eq lc $_) {

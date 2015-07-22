@@ -10,7 +10,7 @@
 #include <string.h>
 #include "md4.h"
 #include "stdint.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #ifndef MD4_DIGEST_LENGTH
 #define MD4_DIGEST_LENGTH 16
@@ -249,8 +249,8 @@ static void pbkdf2_md4_sse(const unsigned char *K[SSE_GROUP_SZ_MD4], int KL[SSE_
 
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.
 		for(i = 1; i < R; i++) {
-			SSEmd4body((unsigned char*)o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
-			SSEmd4body((unsigned char*)o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+			SIMDmd4body((unsigned char*)o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+			SIMDmd4body((unsigned char*)o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #if !defined (PBKDF1_LOGIC)
 			for (k = 0; k < SSE_GROUP_SZ_MD4; k++) {
 				unsigned *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*MD4_BUF_SIZ + (k&(SIMD_COEF_32-1))];

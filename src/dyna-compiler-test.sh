@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 ##############################################################################
 # tests dynamic_compiler code against legacy dynamic_# hashes, pulling data
@@ -10,39 +10,44 @@
 #    ./dyna-compile-tst.sh  # expr   (runs a single test for dyna_# with expr)
 ##############################################################################
 
+GOOD=0
+FAIL=0
+
 function do_test()
 {
-  ../run/john --list=format-tests --format=dynamic_$1 | cut -f 3 > dct-in
-  ../run/john --list=format-tests --format=dynamic_$1 | cut -f 4 > dct-in.dic
+  ../run/john --list=format-tests --format=dynamic_$1 | cut -f 3 > dyna-comp.in
+  ../run/john --list=format-tests --format=dynamic_$1 | cut -f 4 > dyna-comp.dic
+  rm -f ./dyna-comp.pot
   if [ "x$3" = "xSHOW" ]
   then
-    ../run/john dct-in -w=dct-in.dic -format=dynamic="$2"
+    ../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot
   else
-    ../run/john dct-in -w=dct-in.dic -format=dynamic="$2" > /dev/null 2>&1
-    VAL=`../run/john dct-in -w=dct-in.dic -format=dynamic="$2" 2> /dev/null | tail -1`
+    ../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot > /dev/null 2>&1
+    VAL=`../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot 2> /dev/null | tail -1`
     if [ "x$VAL" != 'xNo password hashes left to crack (see FAQ)' ]
     then
-      echo "FAILURE!!!  $2"
+      echo "FAILURE!!! $1 -> $2"
+      FAIL=$(($FAIL+1))
     else
-      echo "Success $1 -\> $2"
+      echo "Success    $1 -> $2"
+      GOOD=$(($GOOD+1))
     fi
   fi
-  rm -f dct-in dct-in.dic
+  rm -f dyna-comp.in dyna-comp.dic dyna-comp.pot
 }
 
 function large_hash_set()
 {
-  typeset -i NUM
   NUM=$1         ; do_test $NUM   "$2(\$p)"                $3
-  let NUM=$NUM+1 ; do_test $NUM   "$2(\$s.\$p)"            $3
-  let NUM=$NUM+1 ; do_test $NUM   "$2(\$p.\$s)"            $3
-  let NUM=$NUM+1 ; do_test $NUM   "$2($2(\$p))"            $3
-  let NUM=$NUM+1 ; do_test $NUM   "$2(${2}_raw(\$p))"      $3
-  let NUM=$NUM+1 ; do_test $NUM   "$2($2(\$p).\$s)"        $3
-  let NUM=$NUM+1 ; do_test $NUM   "$2(\$s.$2(\$p))"        $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2(\$s.\$p)"            $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2(\$p.\$s)"            $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2($2(\$p))"            $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2(${2}_raw(\$p))"      $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2($2(\$p).\$s)"        $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2(\$s.$2(\$p))"        $3
   if [ $NUM = 86 ] ; then return ; fi
-  let NUM=$NUM+1 ; do_test $NUM   "$2($2(\$s).$2(\$p))"    $3
-  let NUM=$NUM+1 ; do_test $NUM   "$2($2(\$p).$2(\$p))"    $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2($2(\$s).$2(\$p))"    $3
+  NUM=$(($NUM+1)) ; do_test $NUM   "$2($2(\$p).$2(\$p))"    $3
 }
 
 if [ "x$2" != "x" ]
@@ -83,7 +88,7 @@ do_test 36 'sha1($u.$c1.$p),c1=\x3a'         $1
 do_test 37 'sha1(lc($u).$p)'                 $1
 do_test 38 'sha1($s.sha1($s.sha1($p)))'      $1
 do_test 39 'md5($s.pad16($p)),saltlen=-231'  $1
-do_test 40 'sha1($s.pad20($p)),saltlen=-231' $1
+do_test 40 'sha1($s.pad20($p)),saltlen=-227' $1
 
 large_hash_set 50 sha224         $1
 large_hash_set 60 sha256         $1
@@ -117,3 +122,10 @@ large_hash_set 330 skein224      $1
 large_hash_set 340 skein256      $1
 large_hash_set 350 skein384      $1
 large_hash_set 360 skein512      $1
+
+echo ""
+if [ $FAIL -eq 0 ] ; then echo -n "ALL tests successful. " ; else echo "THERE WERE $FAIL FAILURES!" ; fi
+echo "There were $GOOD tests completed"
+echo ""
+
+exit $FAIL

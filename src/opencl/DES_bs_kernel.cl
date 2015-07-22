@@ -127,13 +127,6 @@ __kernel void DES_bs_25_b( constant uint *index768
 #endif
 		int k = 0, i;
 
-		if (!section) {
-			hash_ids[0] = 0;
-			for (i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
-				bitmap[i] = 0;
-		}
-		barrier(CLK_GLOBAL_MEM_FENCE);
-
 		for (i = 0; i < 56; i++)
 			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
 

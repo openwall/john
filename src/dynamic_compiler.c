@@ -58,11 +58,17 @@
  *     usrname=          (true), lc, uc, uni
  *     saltlen=#         This sets the length of the salt
  *     debug             If this is set, then JtR will output the script and other data and exit.
- *     optimize          If set, performs optimizations
- *     optimize2         If set, performs 2nd level of optimizations.
+ *     O=n               Optimize. Can be levels are 0, 1, 2
  *
  *****************************************************************
  *     TODO:
+ *****************************************************************
+ *
+ *  The big_hash speed tests done with 100's (whirlpool).  All others
+ *  should be similar, EXCEPT hashes using SIMD.  They should each be
+ *  looked at.
+ *
+ *  Optimal big_hash speeds:   *00, *01, *02, *03, *04, *05, *06, *07, *08 (all big hashes!)
  *****************************************************************
 
  add new logic for ^  (exponentiation)
@@ -70,26 +76,10 @@
  Handle:
 #define MGF_KEYS_INPUT                   0x00000001
 #define MGF_KEYS_CRYPT_IN2               0x00000002
+
 // for salt_as_hex for other formats, we do this:  (flag>>56)
 // Then 00 is md5, 01 is md4, 02 is SHA1, etc
 // NOTE, all top 8 bits of the flags are reserved, and should NOT be used for flags.
-#define MGF_KEYS_BASE16_IN1              0x00000004   // deprecated (use the _MD5 version)
-#define MGF_KEYS_BASE16_IN1_MD5          0x0000000000000004ULL
-#define MGF_KEYS_BASE16_IN1_MD4	         0x0100000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA1         0x0200000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA224       0x0300000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA256       0x0400000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA384       0x0500000000000004ULL
-#define MGF_KEYS_BASE16_IN1_SHA512       0x0600000000000004ULL
-#define MGF_KEYS_BASE16_IN1_GOST         0x0700000000000004ULL
-#define MGF_KEYS_BASE16_IN1_WHIRLPOOL    0x0800000000000004ULL
-#define MGF_KEYS_BASE16_IN1_Tiger        0x0900000000000004ULL
-#define MGF_KEYS_BASE16_IN1_RIPEMD128    0x0A00000000000004ULL
-#define MGF_KEYS_BASE16_IN1_RIPEMD160    0x0B00000000000004ULL
-#define MGF_KEYS_BASE16_IN1_RIPEMD256    0x0C00000000000004ULL
-#define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
-
-#define MGF_KEYS_BASE16_IN1_Offset32         0x00000008   // deprecated (use the _MD5 version)
 #define MGF_KEYS_BASE16_IN1_Offset_MD5       0x0000000000000008ULL
 #define MGF_KEYS_BASE16_IN1_Offset_MD4       0x0100000000000008ULL
 #define MGF_KEYS_BASE16_IN1_Offset_SHA1      0x0200000000000008ULL
@@ -133,6 +123,22 @@ DONE #define MGF_PASSWORD_UPCASE          0x08000000
 DONE #define MGF_PASSWORD_LOCASE          0x10000000
 DONE #define MGF_BASE_16_OUTPUT_UPCASE    0x00002000
 
+DONE: #define MGF_KEYS_BASE16_IN1              0x00000004   // deprecated (use the _MD5 version)
+DONE: #define MGF_KEYS_BASE16_IN1_MD5          0x0000000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_MD4	       0x0100000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_SHA1         0x0200000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_SHA224       0x0300000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_SHA256       0x0400000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_SHA384       0x0500000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_SHA512       0x0600000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_GOST         0x0700000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_WHIRLPOOL    0x0800000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_Tiger        0x0900000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD128    0x0A00000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD160    0x0B00000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD256    0x0C00000000000004ULL
+DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
+
  */
 
 #include "arch.h"
@@ -151,6 +157,7 @@ DONE #define MGF_BASE_16_OUTPUT_UPCASE    0x00002000
 #include "base64_convert.h"
 #include "md5.h"
 #include "md4.h"
+#include "sha.h"
 #include "sha2.h"
 #include "gost.h"
 #include "unicode.h"
@@ -179,8 +186,6 @@ DONE #define MGF_BASE_16_OUTPUT_UPCASE    0x00002000
 
 #include "memdbg.h"
 
-static int gost_init = 0;
-
 typedef struct DC_list {
 	struct DC_list *next;
 	DC_struct *value;
@@ -191,7 +196,11 @@ const char *dyna_signature = "@dynamic=md5($p)@";
 const char *dyna_line1 = "@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72";
 const char *dyna_line2 = "@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785";
 const char *dyna_line3 = "@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb";
-int dyna_sig_len = 17;
+const char *options_format="";
+
+static int dyna_sig_len = 17;
+static int OLvL = 2;
+static int gost_init = 0;
 
 extern char *dynamic_Demangle(char*,int *);
 
@@ -210,6 +219,7 @@ static void add_checksum_list(DC_HANDLE pHand);
 // TODO
 static char *dynamic_expr_normalize(const char *ct) {
 	// normalize $pass -> $p
+	//           $password -> $p
 	//           $salt -> $s
 	//           $user -> $u
 	//           $username -> $u
@@ -225,7 +235,9 @@ static char *dynamic_expr_normalize(const char *ct) {
 			while (*cp && *cp != '$' && *cp != 'u')
 				++cp;
 			if (*cp) {
-				if (!strncmp(cp, "$pass", 5))
+				if (!strncmp(cp, "$password", 9))
+					cnt = 7;
+				else if (!strncmp(cp, "$pass", 5))
 					cnt = 3;
 				else if (!strncmp(cp, "$salt", 5))
 					cnt = 3;
@@ -250,18 +262,99 @@ static char *dynamic_expr_normalize(const char *ct) {
 			}
 		}
 	}
+	//
+	// TODO:  put in this order:  expression,c1=,c2=,...,cn=,passcase=,saltlen=,pass=uni,salt=,usrname=,-O=,debug
+	// NOTE,  we only crc up to the 'passcase=' part.  Everything after that should not be used to 'distinguish' the format hash
+	//        between hashes.  NOTE, it may still cause valid to not 'load' for testing some hashes, but these still should
+	//        be loaded from the .pot file to cross off items.
+	//
+	/* normalize when it comes to constants:  md5($c1.$p.$c2),c1=x,c2=x  and  md5($c1.$p.$c1),c1=x  are the same.
+	   Also md5($c2.$p.$c1),c1=x,c2=y  and  md5($c1.$p.$c2),c1=y,c2=x are the same.
+	   The normalizer will have to address these, and put them into cannonical layout
+	*/
 	return (char*)ct;
+}
+
+static void DumpParts(char *part, char *cp) {
+	int len = strlen(part);
+	cp = strtok(cp, "\n");
+	while (cp) {
+		if (!strncmp(cp, part, len))
+			printf ("%s\n", cp);
+		cp = strtok(NULL, "\n");
+	}
+}
+
+static void DumpParts2(char *part, char *cp, char *comment) {
+	int len = strlen(part), first = 1;
+	cp = strtok(cp, "\n");
+	while (cp) {
+		if (!strncmp(cp, part, len)) {
+			if (first)
+				printf("%s\n", comment);
+			printf ("%s\n", cp);
+			first = 0;
+		}
+		cp = strtok(NULL, "\n");
+	}
+}
+
+static void dump_HANDLE(void *_p) {
+	DC_struct *p = (DC_struct*)_p;
+	char *cp;
+	printf("\ncrc32 = %08X\n", p->crc32);
+	printf("pExpr=%s\n", p->pExpr);
+	printf("extraParams=%s\n", p->pExtraParams);
+	printf("signature=%s\n", p->pSignature);
+	printf("line1=%s\n", p->pLine1);
+	printf("line2=%s\n", p->pLine2);
+	printf("line3=%s\n\n", p->pLine3);
+
+	// Now print out a nicely commented script, and put it back into order.
+	// order does not matter for the dyna-parser, BUT putting in good form
+	// will help anyone wanting to learn how to properly code in the dyna
+	// script language.
+	printf ("##############################################################\n");
+	printf ("#  Dynamic script for expression %s%s%s\n", p->pExpr, p->pExtraParams&&p->pExtraParams[0]?",":"", p->pExtraParams);
+	printf ("##############################################################\n");
+	cp = str_alloc_copy(p->pScript);
+	DumpParts("Expression", cp);
+	cp = str_alloc_copy(p->pScript);
+	printf ("#  Flags for this format\n");
+	DumpParts("Flag=", cp);
+	cp = str_alloc_copy(p->pScript);
+	printf ("#  Lengths used in this format\n");
+	DumpParts("SaltLen=", cp);
+	cp = str_alloc_copy(p->pScript);
+	DumpParts("MaxInput", cp);
+	cp = str_alloc_copy(p->pScript);
+	printf ("#  The functions in the script\n");
+	DumpParts("Func=", cp);
+	cp = str_alloc_copy(p->pScript);
+	DumpParts2("Const", cp, "#  Constants used by this format");
+	cp = str_alloc_copy(p->pScript);
+	printf ("#  The test hashes that validate this script\n");
+	DumpParts("Test", cp);
+
+	exit(0);
 }
 
 int dynamic_compile(const char *expr, DC_HANDLE *p) {
 	uint32_t crc32 = compute_checksum(dynamic_expr_normalize(expr));
-	DC_HANDLE pHand;
+	DC_HANDLE pHand=0;
 	if (pLastFind && pLastFind->crc32 == crc32) {
 		*p = (DC_HANDLE)pLastFind;
 		return 0;
 	}
-
-	pHand = find_checksum(crc32);
+	if (!strstr(expr, ",nolib") && (OLvL || strstr(expr, ",O"))) {
+		pHand = dynamic_compile_library(expr, crc32);
+		if (pHand && strstr(expr, ",debug")) {
+			printf ("Code from dynamic_compiler_lib.c\n");
+			dump_HANDLE(pHand);
+		}
+	}
+	if (!pHand)
+		pHand = find_checksum(crc32);
 	if (pHand) {
 		*p = pHand;
 		pLastFind = (DC_struct*)pHand;
@@ -312,15 +405,19 @@ static const char *Const[9];
 static int compile_debug;
 static char *SymTab[1024];
 static fpSYM fpSymTab[1024];
+static int nSymTabLen[1024];
 static char *pCode[1024];
 static fpSYM fpCode[1024];
+static int nLenCode[1024];
 static int nCode, nCurCode;
 static char *pScriptLines[1024];
 static int nScriptLines;
+static int outer_hash_len;
 static int nSyms;
 static int LastTokIsFunc;
 static int bNeedS, bNeedS2, bNeedU, bNeedUlc, bNeedUuc, bNeedPlc, bNeedPuc, bNeedUC, bNeedPC;
-static char *salt_as_hex_type;
+static char *salt_as_hex_type, *keys_base16_in1_type;
+static int bOffsetHashIn1; // for hash(hash(p).....) type hashes.
 static int keys_as_input;
 static char *gen_Stack[1024];
 static int gen_Stack_len[1024];
@@ -352,6 +449,8 @@ OSSL_FUNC(sha256,SHA256,SHA256,32)
 OSSL_FUNC(sha384,SHA512,SHA384,48)
 OSSL_FUNC(sha512,SHA512,SHA512,64)
 OSSL_FUNC(whirlpool,WHIRLPOOL,WHIRLPOOL,64)
+// LARGE_HASH_EDIT_POINT
+
 static void gost_hex()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
 static void gost_base64()      { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
 static void gost_base64c()     { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
@@ -370,6 +469,7 @@ SPH_FUNC(haval224_3,28) SPH_FUNC(haval224_4,28) SPH_FUNC(haval224_5,28)
 SPH_FUNC(haval256_3,32) SPH_FUNC(haval256_4,32) SPH_FUNC(haval256_5,32)
 SPH_FUNC(md2,16) SPH_FUNC(panama,32)
 SPH_FUNC(skein224,28) SPH_FUNC(skein256,32) SPH_FUNC(skein384,48) SPH_FUNC(skein512,64)
+// LARGE_HASH_EDIT_POINT
 
 static int encode_le()         { int len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
 static char *pad16()           { memset(gen_conv, 0, 16); strncpy(gen_conv, gen_pw, 16); return gen_conv; }
@@ -434,7 +534,7 @@ APP_CFUNC(1) APP_CFUNC(2) APP_CFUNC(3) APP_CFUNC(4) APP_CFUNC(5) APP_CFUNC(6) AP
 	static void dynamic_f##N##r()    { dyna_helper_pre(); T##_raw();               dyna_helper_post(L); }
 LEXI_FUNC(5,md5,16)       LEXI_FUNC(4,md4,16)          LEXI_FUNC(1,sha1,20)
 LEXI_FUNC(224,sha224,28)  LEXI_FUNC(256,sha256,32)     LEXI_FUNC(384,sha384,48)  LEXI_FUNC(512,sha512,64)
-LEXI_FUNC(gost,gost,28)   LEXI_FUNC(tig,tiger,24)      LEXI_FUNC(wrlp,whirlpool,64)
+LEXI_FUNC(gost,gost,32)   LEXI_FUNC(tig,tiger,24)      LEXI_FUNC(wrlp,whirlpool,64)
 LEXI_FUNC(rip128,ripemd128,16) LEXI_FUNC(rip160,ripemd160,20) LEXI_FUNC(rip256,ripemd256,32) LEXI_FUNC(rip320,ripemd320,40)
 LEXI_FUNC(hav128_3,haval128_3,16) LEXI_FUNC(hav128_4,haval128_4,16) LEXI_FUNC(hav128_5,haval128_5,16)
 LEXI_FUNC(hav160_3,haval160_3,20) LEXI_FUNC(hav160_4,haval160_4,20) LEXI_FUNC(hav160_5,haval160_5,20)
@@ -463,6 +563,7 @@ static void init_static_data() {
 	for (i = 0; i < nSyms; ++i) {
 		MEM_FREE(SymTab[i]);
 		fpSymTab[i] = NULL;
+		nSymTabLen[i] = 0;
 	}
 	for (i = 0; i < 9; ++i) {
 		if (Const[i]) {
@@ -474,6 +575,7 @@ static void init_static_data() {
 	for (i = 0; i < nCode; ++i) {
 		MEM_FREE(pCode[i]);
 		fpCode[i] = NULL;
+		nLenCode[i] = 0;
 	}
 	for (i = 0; i < nScriptLines; ++i)
 		MEM_FREE(pScriptLines[i]);
@@ -487,8 +589,12 @@ static void init_static_data() {
 	nScriptLines = 0;
 	LastTokIsFunc = 0;
 	keys_as_input = 0;
-	bNeedS = bNeedS2 = bNeedU = bNeedUlc = bNeedUuc = bNeedPlc = bNeedPuc = bNeedUC = bNeedPC = compile_debug = 0;
+	outer_hash_len = 0;
+	bNeedS = bNeedS2 = bNeedU = bNeedUlc = bNeedUuc = bNeedPlc = bNeedPuc = bNeedUC = bNeedPC = 0;
+	compile_debug = 0;
 	MEM_FREE(salt_as_hex_type);
+	MEM_FREE(keys_base16_in1_type);
+	bOffsetHashIn1=0;
 	h = NULL;
 	h_len = 0;
 	nSaltLen = -32;
@@ -544,6 +650,8 @@ static int handle_extra_params(DC_struct *ptr) {
 		strcpy(cp2, cp);
 		Const[++nConst] = cp2;
 	}
+	if ( (cp = get_param(ptr->pExtraParams, "O")) != NULL)
+		OLvL = atoi(&cp[1]);
 
 	// Find any other values here.
 	if (strstr(ptr->pExtraParams, "debug,") || strstr(ptr->pExtraParams, ",debug") || !strcmp(ptr->pExtraParams, "debug"))
@@ -557,98 +665,100 @@ static int handle_extra_params(DC_struct *ptr) {
 	return 0;
 }
 
-static const char *comp_push_sym(const char *p, fpSYM fpsym, const char *pRet) {
+static const char *comp_push_sym(const char *p, fpSYM fpsym, const char *pRet, int len) {
 	if (nSyms < ARRAY_COUNT(SymTab)) {
 		SymTab[nSyms] = mem_alloc(strlen(p)+1);
 		fpSymTab[nSyms] = fpsym;
+		nSymTabLen[nSyms] = len;
 		strcpy(SymTab[nSyms++], p);
 	}
 	return pRet;
 }
 
-#define LOOKUP_IF_BLK(T,U,S,F,L) \
+#define LOOKUP_IF_BLK(T,U,S,F,L,LL) \
 	if (!strncasecmp(pInput, #T, L)) { \
-		if (!strncmp(pInput, #T "_raw(", L+5)) { LastTokIsFunc = 2; return comp_push_sym("f" #S "r", dynamic_f##F##r, pInput+(L+4)); } \
-		if (!strncmp(pInput, #T "_64c(", L+5)) { return comp_push_sym("f" #S "c", dynamic_f##F##c, pInput+(L+4)); } \
-		if (!strncmp(pInput, #T "_64(", L+4)) { return comp_push_sym("f" #S "6", dynamic_f##F##6, pInput+(L+3)); } \
-		if (!strncmp(pInput, #T "(", L+1)) { return comp_push_sym("f" #S "h", dynamic_f##F##h, pInput+L); } \
-		if (!strncmp(pInput, #U "(", L+1)) { return comp_push_sym("f" #S "H", dynamic_f##F##H, pInput+L); } }
+		if (!strncmp(pInput, #T "_raw(", L+5)) { LastTokIsFunc = 2; return comp_push_sym("f" #S "r", dynamic_f##F##r, pInput+(L+4), LL); } \
+		if (!strncmp(pInput, #T "_64c(", L+5)) { return comp_push_sym("f" #S "c", dynamic_f##F##c, pInput+(L+4), LL); } \
+		if (!strncmp(pInput, #T "_64(", L+4)) { return comp_push_sym("f" #S "6", dynamic_f##F##6, pInput+(L+3), LL); } \
+		if (!strncmp(pInput, #T "(", L+1)) { return comp_push_sym("f" #S "h", dynamic_f##F##h, pInput+L, LL); } \
+		if (!strncmp(pInput, #U "(", L+1)) { return comp_push_sym("f" #S "H", dynamic_f##F##H, pInput+L, LL); } }
 
 static const char *comp_get_symbol(const char *pInput) {
 	// This function will grab the next valid symbol, and returns
 	// the location just past this symbol.
 	char TmpBuf[64];
 	LastTokIsFunc = 0;
-	if (!pInput || *pInput == 0) return comp_push_sym("X", fpNull, pInput);
-	if (*pInput == '.') return comp_push_sym(".", fpNull, pInput+1);
-	if (*pInput == '(') return comp_push_sym("(", fpNull, pInput+1);
-	if (*pInput == ')') return comp_push_sym(")", fpNull, pInput+1);
+	if (!pInput || *pInput == 0) return comp_push_sym("X", fpNull, pInput, 0);
+	if (*pInput == '.') return comp_push_sym(".", fpNull, pInput+1, 0);
+	if (*pInput == '(') return comp_push_sym("(", fpNull, pInput+1, 0);
+	if (*pInput == ')') return comp_push_sym(")", fpNull, pInput+1, 0);
 	if (*pInput == '^') {
 		int i=1;
 		// number. Can follow a ^, like    md5_raw($p)^5   ==  md5(md5(md5(md5(md5($p)))))
 		*TmpBuf = '^';
 		if (!isdigit(ARCH_INDEX(pInput[1])))
-			return comp_push_sym("X", fpNull, pInput+1);
+			return comp_push_sym("X", fpNull, pInput+1, 0);
 		while (i < 10 && isdigit(ARCH_INDEX(pInput[i])))
 			++i;
 		memcpy(&TmpBuf[1], &pInput[1], i-1);
 		TmpBuf[i]=0;
-		return comp_push_sym(TmpBuf, fpNull, pInput+i);
+		return comp_push_sym(TmpBuf, fpNull, pInput+i, 0);
 	}
 	if (*pInput == '$') {
 		switch(pInput[1]) {
-			case 'p': { if (bNeedPC>1) return comp_push_sym("X", fpNull, pInput); bNeedPC=-1; return comp_push_sym("p", fpNull, pInput+2); }
-			case 'u': { bNeedU=1; if (bNeedUC>0) return comp_push_sym("X", fpNull, pInput); bNeedUC=-1; return comp_push_sym("u", fpNull, pInput+2); }
-			case 's': if (pInput[2] == '2') return comp_push_sym("S", fpNull, pInput+3);
-					  return comp_push_sym("s", fpNull, pInput+2);
+			case 'p': { if (bNeedPC>1) return comp_push_sym("X", fpNull, pInput, 0); bNeedPC=-1; return comp_push_sym("p", fpNull, pInput+2, 0); }
+			case 'u': { bNeedU=1; if (bNeedUC>0) return comp_push_sym("X", fpNull, pInput, 0); bNeedUC=-1; return comp_push_sym("u", fpNull, pInput+2, 0); }
+			case 's': if (pInput[2] == '2') return comp_push_sym("S", fpNull, pInput+3, 0);
+					  return comp_push_sym("s", fpNull, pInput+2, 0);
 			case 'c': if (pInput[2] > '8' || pInput[2] < '1')
-						  return comp_push_sym("X", fpNull, pInput);
+						  return comp_push_sym("X", fpNull, pInput, 0);
 					  if (Const[pInput[2]-'0'] == NULL) {
 						  fprintf(stderr, "Error, a c%c found in expression, but the data for this const was not provided\n", pInput[2]);
-						  return comp_push_sym("X", fpNull, pInput);
+						  return comp_push_sym("X", fpNull, pInput, 0);
 					  }
 					  TmpBuf[0] = pInput[2];
 					  TmpBuf[1] = 0;
-					  return comp_push_sym(TmpBuf, fpNull, pInput+3);
+					  return comp_push_sym(TmpBuf, fpNull, pInput+3, 0);
 		}
 	}
 	// these are functions, BUT can not be used for 'outter' function (i.e. not the final hash)
 	// Note this may 'look' small, but it is a large IF block, once the macro's expand
 	LastTokIsFunc = 1;
-	LOOKUP_IF_BLK(md5,MD5,5,5,3)
-	LOOKUP_IF_BLK(md4,MD4,4,4,3)
-	LOOKUP_IF_BLK(sha1,SHA1,1,1,4)
-	LOOKUP_IF_BLK(sha224,SHA224,224,224,6)
-	LOOKUP_IF_BLK(sha256,SHA256,256,256,6)
-	LOOKUP_IF_BLK(sha384,SHA384,384,384,6)
-	LOOKUP_IF_BLK(sha512,SHA512,512,512,6)
-	LOOKUP_IF_BLK(gost,GOST,gost,gost,4)
-	LOOKUP_IF_BLK(tiger,TIGER,tig,tig,5)
-	LOOKUP_IF_BLK(whirlpool,WHIRLPOOL,wrlp,wrlp,9)
-	LOOKUP_IF_BLK(ripemd128,RIPEMD128,rip128,rip128,9) 	LOOKUP_IF_BLK(ripemd160,RIPEMD160,rip160,rip160,9)
-	LOOKUP_IF_BLK(ripemd256,RIPEMD256,rip256,rip256,9)	LOOKUP_IF_BLK(ripemd320,RIPEMD320,rip320,rip320,9)
-	LOOKUP_IF_BLK(haval128_3,HAVAL128_3,hav128_3,hav128_3,10) LOOKUP_IF_BLK(haval128_4,HAVAL128_4,hav128_4,hav128_4,10) LOOKUP_IF_BLK(haval128_5,HAVAL128_5,hav128_5,hav128_5,10)
-	LOOKUP_IF_BLK(haval160_3,HAVAL160_3,hav160_3,hav160_3,10) LOOKUP_IF_BLK(haval160_4,HAVAL160_4,hav160_4,hav160_4,10) LOOKUP_IF_BLK(haval160_5,HAVAL160_5,hav160_5,hav160_5,10)
-	LOOKUP_IF_BLK(haval192_3,HAVAL192_3,hav192_3,hav192_3,10) LOOKUP_IF_BLK(haval192_4,HAVAL192_4,hav192_4,hav192_4,10) LOOKUP_IF_BLK(haval192_5,HAVAL192_5,hav192_5,hav192_5,10)
-	LOOKUP_IF_BLK(haval224_3,HAVAL224_3,hav224_3,hav224_3,10) LOOKUP_IF_BLK(haval224_4,HAVAL224_4,hav224_4,hav224_4,10) LOOKUP_IF_BLK(haval224_5,HAVAL224_5,hav224_5,hav224_5,10)
-	LOOKUP_IF_BLK(haval256_3,HAVAL256_3,hav256_3,hav256_3,10) LOOKUP_IF_BLK(haval256_4,HAVAL256_4,hav256_4,hav256_4,10) LOOKUP_IF_BLK(haval256_5,HAVAL256_5,hav256_5,hav256_5,10)
-	LOOKUP_IF_BLK(md2,MD2,md2,md2,3) LOOKUP_IF_BLK(panama,PANAMA,pan,pan,6)
-	LOOKUP_IF_BLK(skein224,SKEIN224,skn224,skn224,8) LOOKUP_IF_BLK(skein256,SKEIN256,skn256,skn256,8)
-	LOOKUP_IF_BLK(skein384,SKEIN384,skn384,skn384,8) LOOKUP_IF_BLK(skein512,SKEIN512,skn512,skn512,8)
+	LOOKUP_IF_BLK(md5,MD5,5,5,3,16)
+	LOOKUP_IF_BLK(md4,MD4,4,4,3,16)
+	LOOKUP_IF_BLK(sha1,SHA1,1,1,4,20)
+	LOOKUP_IF_BLK(sha224,SHA224,224,224,6,28)
+	LOOKUP_IF_BLK(sha256,SHA256,256,256,6,32)
+	LOOKUP_IF_BLK(sha384,SHA384,384,384,6,48)
+	LOOKUP_IF_BLK(sha512,SHA512,512,512,6,64)
+	LOOKUP_IF_BLK(gost,GOST,gost,gost,4,32)
+	LOOKUP_IF_BLK(tiger,TIGER,tig,tig,5,24)
+	LOOKUP_IF_BLK(whirlpool,WHIRLPOOL,wrlp,wrlp,9,64)
+	LOOKUP_IF_BLK(ripemd128,RIPEMD128,rip128,rip128,9,16) 	LOOKUP_IF_BLK(ripemd160,RIPEMD160,rip160,rip160,9,20)
+	LOOKUP_IF_BLK(ripemd256,RIPEMD256,rip256,rip256,9,32)	LOOKUP_IF_BLK(ripemd320,RIPEMD320,rip320,rip320,9,40)
+	LOOKUP_IF_BLK(haval128_3,HAVAL128_3,hav128_3,hav128_3,10,16) LOOKUP_IF_BLK(haval128_4,HAVAL128_4,hav128_4,hav128_4,10,16) LOOKUP_IF_BLK(haval128_5,HAVAL128_5,hav128_5,hav128_5,10,16)
+	LOOKUP_IF_BLK(haval160_3,HAVAL160_3,hav160_3,hav160_3,10,20) LOOKUP_IF_BLK(haval160_4,HAVAL160_4,hav160_4,hav160_4,10,20) LOOKUP_IF_BLK(haval160_5,HAVAL160_5,hav160_5,hav160_5,10,20)
+	LOOKUP_IF_BLK(haval192_3,HAVAL192_3,hav192_3,hav192_3,10,24) LOOKUP_IF_BLK(haval192_4,HAVAL192_4,hav192_4,hav192_4,10,24) LOOKUP_IF_BLK(haval192_5,HAVAL192_5,hav192_5,hav192_5,10,24)
+	LOOKUP_IF_BLK(haval224_3,HAVAL224_3,hav224_3,hav224_3,10,28) LOOKUP_IF_BLK(haval224_4,HAVAL224_4,hav224_4,hav224_4,10,28) LOOKUP_IF_BLK(haval224_5,HAVAL224_5,hav224_5,hav224_5,10,28)
+	LOOKUP_IF_BLK(haval256_3,HAVAL256_3,hav256_3,hav256_3,10,32) LOOKUP_IF_BLK(haval256_4,HAVAL256_4,hav256_4,hav256_4,10,32) LOOKUP_IF_BLK(haval256_5,HAVAL256_5,hav256_5,hav256_5,10,32)
+	LOOKUP_IF_BLK(md2,MD2,md2,md2,3,16) LOOKUP_IF_BLK(panama,PANAMA,pan,pan,6,32)
+	LOOKUP_IF_BLK(skein224,SKEIN224,skn224,skn224,8,28) LOOKUP_IF_BLK(skein256,SKEIN256,skn256,skn256,8,32)
+	LOOKUP_IF_BLK(skein384,SKEIN384,skn384,skn384,8,48) LOOKUP_IF_BLK(skein512,SKEIN512,skn512,skn512,8,64)
+	// LARGE_HASH_EDIT_POINT
 
 	LastTokIsFunc = 0;
-	if (!strncmp(pInput, "pad16($p)", 9))   return comp_push_sym("pad16", dynamic_pad16, pInput+9);
-	if (!strncmp(pInput, "pad20($p)", 9))   return comp_push_sym("pad20", dynamic_pad20, pInput+9);
-	if (!strncmp(pInput, "pad100($p)", 10))  return comp_push_sym("pad100", dynamic_pad100, pInput+10);
-	if (!strncmp(pInput, "lc($u)", 6)) { if (bNeedUC&&bNeedUC!=1) return comp_push_sym("X", fpNull, pInput); bNeedU=bNeedUC=1; return comp_push_sym("u_lc", fpNull, pInput+6); }
-	if (!strncmp(pInput, "uc($u)", 6)) { if (bNeedUC&&bNeedUC!=2) return comp_push_sym("X", fpNull, pInput); bNeedU=bNeedUC=2; return comp_push_sym("u_uc", fpNull, pInput+6); }
-	if (!strncmp(pInput, "lc($p)", 6)) { if (bNeedPC&&bNeedPC!=1) return comp_push_sym("X", fpNull, pInput); bNeedPC=1; return comp_push_sym("p_lc", fpNull, pInput+6); }
-	if (!strncmp(pInput, "uc($p)", 6)) { if (bNeedPC&&bNeedPC!=2) return comp_push_sym("X", fpNull, pInput); bNeedPC=2; return comp_push_sym("p_uc", fpNull, pInput+6); }
+	if (!strncmp(pInput, "pad16($p)", 9))   return comp_push_sym("pad16", dynamic_pad16, pInput+9, 0);
+	if (!strncmp(pInput, "pad20($p)", 9))   return comp_push_sym("pad20", dynamic_pad20, pInput+9, 0);
+	if (!strncmp(pInput, "pad100($p)", 10))  return comp_push_sym("pad100", dynamic_pad100, pInput+10, 0);
+	if (!strncmp(pInput, "lc($u)", 6)) { if (bNeedUC&&bNeedUC!=1) return comp_push_sym("X", fpNull, pInput, 0); bNeedU=bNeedUC=1; return comp_push_sym("u_lc", fpNull, pInput+6, 0); }
+	if (!strncmp(pInput, "uc($u)", 6)) { if (bNeedUC&&bNeedUC!=2) return comp_push_sym("X", fpNull, pInput, 0); bNeedU=bNeedUC=2; return comp_push_sym("u_uc", fpNull, pInput+6, 0); }
+	if (!strncmp(pInput, "lc($p)", 6)) { if (bNeedPC&&bNeedPC!=1) return comp_push_sym("X", fpNull, pInput, 0); bNeedPC=1; return comp_push_sym("p_lc", fpNull, pInput+6, 0); }
+	if (!strncmp(pInput, "uc($p)", 6)) { if (bNeedPC&&bNeedPC!=2) return comp_push_sym("X", fpNull, pInput, 0); bNeedPC=2; return comp_push_sym("p_uc", fpNull, pInput+6, 0); }
 	LastTokIsFunc = 2;
 	//if (!strncmp(pInput, "utf16be", 7)) return comp_push_sym("futf16be", dynamic_futf16be, pInput+7);
-	if (!strncmp(pInput, "utf16(", 6))   return comp_push_sym("futf16", dynamic_futf16, pInput+5);
+	if (!strncmp(pInput, "utf16(", 6))   return comp_push_sym("futf16", dynamic_futf16, pInput+5, 0);
 	LastTokIsFunc = 0;
-	return comp_push_sym("X", fpNull, pInput);
+	return comp_push_sym("X", fpNull, pInput, 0);
 }
 
 static void comp_lexi_error(DC_struct *p, const char *pInput, char *msg) {
@@ -662,6 +772,38 @@ static void comp_lexi_error(DC_struct *p, const char *pInput, char *msg) {
 	if (SymTab[nSyms-1][0] != 'X') fprintf(stderr, "Invalid token found\n");
 	else fprintf(stderr, "%s\n", msg);
 	error("exiting now");
+}
+static char *comp_optimize_script(char *pScr) {
+	/*
+	 * in this function, we optimize out certain key issues.  We add the MGF_KEYS_IN1 if we can, and remove
+	 * the clean/key_load.   Also, if there is a trailing copy of input2 to input just to crypt_final from 1,
+	 * then we fix that.
+	 */
+	char *cp = strstr(pScr, "Func=");
+	if (!cp)
+		return pScr;
+
+	/* this code is WRONG and needs work!!! */
+	if (!strncmp(cp, "Func=DynamicFunc__clean_input_kwik\nFunc=DynamicFunc__append_keys\n", 64)) {
+		char *cp2 = mem_alloc_tiny(strlen(pScr), 1);
+		snprintf(cp2, strlen(pScr), "%*.*sFlag=MGF_KEYS_INPUT%s", (int)(cp-pScr), (int)(cp-pScr), pScr, &cp[64]);
+		// now make sure there are no other append_keys, or cleans.
+		// I think this is all that we need to know, but there may be other things to look for.
+		// we may not want to set this flag if we 'use'
+		if (!strstr(cp2, "DynamicFunc__clean_input\n") && !strstr(cp2, "DynamicFunc__clean_input_kwik\n") &&
+		    !strstr(cp2, "DynamicFunc__append_keys\n") && !strstr(cp2, "DynamicFunc__clean_input_full\n") &&
+		    !strstr(cp2, "DynamicFunc__append_salt\n") && !strstr(cp2, "DynamicFunc__append_salt\n") &&
+		    !strstr(cp2, "DynamicFunc__append_input1") && !strstr(cp2, "DynamicFunc__append_2nd_salt\n") &&
+		    !strstr(cp2, "DynamicFunc__append_userid\n") && !strstr(cp2, "DynamicFunc__append_keys_pad") &&
+		    !strstr(cp2, "DynamicFunc__overwrite_keys\n") &&
+		    !strstr(cp2, "DynamicFunc__overwrite_salt\n") &&   !strstr(cp2, "DynamicFunc__overwrite_salt\n") &&
+		    !strstr(cp2, "DynamicFunc__overwrite_input1") &&   !strstr(cp2, "DynamicFunc__overwrite_2nd_salt\n") &&
+		    !strstr(cp2, "DynamicFunc__overwrite_userid\n") && !strstr(cp2, "DynamicFunc__overwrite_keys_pad")
+			)
+			pScr = cp2;
+	}
+
+	return pScr;
 }
 static char *comp_optimize_expression(const char *pExpr) {
 	char *pBuf = (char*)mem_alloc(strlen(pExpr)+1), *p, *p2;
@@ -682,8 +824,10 @@ static char *comp_optimize_expression(const char *pExpr) {
 		char cpType[48];
 		p = strstr(pBuf, "($s)");
 		--p;
-		while (*p != '.' && *p != '(')
+		while (p > pBuf && *p != '.' && *p != '(')
 			--p;
+		if (p==pBuf)
+			goto SkipSaltCheck;
 		p2 = cpType;
 		++p;
 		while (p[-1] != ')' && p2-cpType < sizeof(cpType)-1)
@@ -719,10 +863,87 @@ static char *comp_optimize_expression(const char *pExpr) {
 			}
 		}
 	}
+SkipSaltCheck:;
 	/*
 	 * End of SALT_AS_HEX optimization
 	 */
 
+	/*
+	 * Look for MGF_KEYS_BASE16_IN1 optimization  1 level deep, except any hash($p), and have hash($p)
+	 * also eliminate things from this optimization such as  md5(md5($p)) or md5(sha1($p))  Those are
+	 * faster done in other methods.
+	 */
+	p = strstr(pBuf, "($p)");
+	n1 = 0;
+	while (p) {
+		++n1;
+		p = strstr(&p[1], "($p)");
+	}
+	if (n1) {
+		// make sure they are all the same crypt type
+		char cpType[48];
+		p = strstr(pBuf, "($p)");
+		--p;
+		while (p > pBuf && *p != '.' && *p != '(')
+			--p;
+		if (p==pBuf)
+			goto SkipPassCheck;
+		p2 = cpType;
+		++p;
+		while (p[-1] != ')' && p2-cpType < sizeof(cpType)-1)
+			*p2++ = *p++;
+		*p2 = 0;
+		if (islower(ARCH_INDEX(*cpType)) && !strstr(cpType, "_raw") && !strstr(cpType, "_b64") && strncmp(cpType, "utf", 3) && strncmp(cpType, "pad", 3) && strncmp(cpType, "lc(", 3) && strncmp(cpType, "uc(", 3)) {
+			p = strstr(pBuf, cpType);
+			n2 = 0;
+			while (p) {
+				++n2;
+				p = strstr(&p[1], cpType);
+			}
+			if (n1 == n2) {
+				// ok, make sure no other expressions (we do not have input buffers to handle them.
+				// NOTE, we 'could' handle salt as hex, but they should have been cleared already,
+				// and only $s are left. We 'also' could handle an expression (even semi complex)
+				// if it is the FIRST thing. SO md5(md5($p.$s.$u).md5($p).$s) we can still use this
+				// optimization, because we can build our md5($p.$s.$u) in buffer2, then crypt over
+				// writing buffer 2, then do the appends.  We may not add this on the very first
+				// iteration of this optimization.
+
+				// simple check, count '('.  It should be 1 more than n1.
+				n2 = 0;
+				p = strchr(pBuf, '(');
+				while (p) {
+					++n2;
+					p = strchr(&p[1], '(');
+				}
+				// if the ONLY thing is hash($p), then do not use this optimzation.
+				if (n1 == n2-1) {
+					// Make SURE there is something 'more' than just hash($p).  If not, we
+					// have code that is FASTER than using this optimization, so let this
+					// one NOT be optimized in this way.
+					n1 = 0;
+					p = strchr(pBuf, '$');
+					while (p) {
+						++n1;
+						p = strchr(&p[1], '$');
+					}
+					if (n1 > 1) {
+						// we can MGF_KEYS_BASE16_IN1
+						keys_base16_in1_type = mem_alloc(strlen(cpType)+1);
+						strcpy(keys_base16_in1_type, cpType);
+						// see if this is a bOffsetHashIn1 type.
+						if (n1 == 1) {
+							p = strchr(pExpr, '(');
+							++p;
+							if (!strncmp(p, cpType, strlen(cpType)))
+								bOffsetHashIn1=1;
+						}
+					}
+				}
+			}
+		}
+	}
+SkipPassCheck:;
 	/*
 	 * Look for common sub-expressions  we handle crypt($p), crypt($s.$p) crypt($p.$s)
 	 */
@@ -801,25 +1022,28 @@ static int comp_do_lexi(DC_struct *p, const char *pInput) {
 	}
 	return 0;
 }
-static void push_pcode(const char *v, fpSYM _fpSym) {
+static void push_pcode(const char *v, fpSYM _fpSym, int len) {
 	pCode[nCode] = mem_alloc(strlen(v)+1);
 	fpCode[nCode] = _fpSym;
+	nLenCode[nCode] = len;
 	strcpy(pCode[nCode++], v);
 }
 
 static void comp_do_parse(int cur, int curend) {
 	char *curTok;
 	fpSYM fpcurTok;
+	int curTokLen;
 	if (SymTab[cur][0] == '(' && SymTab[curend][0] == ')') {++cur; --curend; }
 	while (cur <= curend) {
 		curTok = SymTab[cur];
 		fpcurTok = fpSymTab[cur];
+		curTokLen = nSymTabLen[cur];
 		if (*curTok == '.') {
 			++cur;
 			continue;
 		}
 		if (*curTok == '^') {
-			push_pcode(curTok, dynamic_exp);
+			push_pcode(curTok, dynamic_exp, 0);
 			curTok = SymTab[++cur];
 			continue;
 		}
@@ -834,12 +1058,12 @@ static void comp_do_parse(int cur, int curend) {
 				if (SymTab[tail][0] == ')') --count;
 			}
 			// output code
-			push_pcode("push", dynamic_push);
+			push_pcode("push", dynamic_push, 0);
 			//. recursion
 			comp_do_parse(cur, tail);
 			cur = tail+1;
 			// now output right code to do the crypt;
-			push_pcode(curTok, fpcurTok);
+			push_pcode(curTok, fpcurTok, curTokLen);
 			continue;
 		}
 		++cur;
@@ -847,51 +1071,51 @@ static void comp_do_parse(int cur, int curend) {
 			case 's':
 				//if (!strcmp(gen_stype, "tohex")) push_pcode("app_sh");
 				//else
-					push_pcode("app_sh", dynamic_app_sh);
+					push_pcode("app_sh", dynamic_app_sh, 0);
 				bNeedS = 1;
 				continue;
 			case 'p':
 			{
 				if (!strcmp(curTok, "p"))
-					push_pcode("app_p", dynamic_app_p);
+					push_pcode("app_p", dynamic_app_p, 0);
 				else if (!strcmp(curTok, "pad16"))
-					push_pcode("pad16", dynamic_pad16);
+					push_pcode("pad16", dynamic_pad16, 0);
 				else if (!strcmp(curTok, "pad20"))
-					push_pcode("pad20", dynamic_pad20);
+					push_pcode("pad20", dynamic_pad20, 0);
 				else if (!strcmp(curTok, "pad100"))
-					push_pcode("pad100", dynamic_pad100);
+					push_pcode("pad100", dynamic_pad100, 0);
 				else if (!strcmp(curTok, "p_lc")) {
 					bNeedPlc = 1;
-					push_pcode("app_p_lc", dynamic_app_p_lc);
+					push_pcode("app_p_lc", dynamic_app_p_lc, 0);
 				} else if (!strcmp(curTok, "p_uc")) {
 					bNeedPuc = 1;
-					push_pcode("app_p_uc", dynamic_app_p_uc);
+					push_pcode("app_p_uc", dynamic_app_p_uc, 0);
 				}
 				continue;
 			}
-			case 'S': push_pcode("app_s2", dynamic_app_S); bNeedS2 = 1; continue;
+			case 'S': push_pcode("app_s2", dynamic_app_S, 0); bNeedS2 = 1; continue;
 			case 'u':
 			{
 				bNeedU = 1;
 				if (!strcmp(curTok, "u"))
-					push_pcode("app_u", dynamic_app_u);
+					push_pcode("app_u", dynamic_app_u, 0);
 				else if (!strcmp(curTok, "u_lc")) {
 					bNeedUlc = 1;
-					push_pcode("app_u_lc", dynamic_app_u_lc);
+					push_pcode("app_u_lc", dynamic_app_u_lc, 0);
 				} else if (!strcmp(curTok, "u_uc")) {
 					bNeedUuc = 1;
-					push_pcode("app_u_uc", dynamic_app_u_uc);
+					push_pcode("app_u_uc", dynamic_app_u_uc, 0);
 				}
 				continue;
 			}
-			case '1': push_pcode("app_1", dynamic_app_1); continue;
-			case '2': push_pcode("app_2", dynamic_app_2); continue;
-			case '3': push_pcode("app_3", dynamic_app_3); continue;
-			case '4': push_pcode("app_4", dynamic_app_4); continue;
-			case '5': push_pcode("app_5", dynamic_app_5); continue;
-			case '6': push_pcode("app_6", dynamic_app_6); continue;
-			case '7': push_pcode("app_7", dynamic_app_7); continue;
-			case '8': push_pcode("app_8", dynamic_app_8); continue;
+			case '1': push_pcode("app_1", dynamic_app_1, 0); continue;
+			case '2': push_pcode("app_2", dynamic_app_2, 0); continue;
+			case '3': push_pcode("app_3", dynamic_app_3, 0); continue;
+			case '4': push_pcode("app_4", dynamic_app_4, 0); continue;
+			case '5': push_pcode("app_5", dynamic_app_5, 0); continue;
+			case '6': push_pcode("app_6", dynamic_app_6, 0); continue;
+			case '7': push_pcode("app_7", dynamic_app_7, 0); continue;
+			case '8': push_pcode("app_8", dynamic_app_8, 0); continue;
 		}
 	}
 }
@@ -918,7 +1142,7 @@ static void comp_add_script_line(const char *fmt, ...) {
 		pScriptLines[nScriptLines][len] = 0;
 	}
 #else
-	if (len2 > len) {
+	if (len2 >= len) {
 		MEM_FREE(pScriptLines[nScriptLines]);
 		len = len2+1;
 		pScriptLines[nScriptLines] = mem_alloc(len+1);
@@ -996,6 +1220,7 @@ static void build_test_string(DC_struct *p, char **pLine) {
 		ELSEIF(MD2,md2); ELSEIF(PANAMA,panama);
 		ELSEIF(SKEIN224,skein224); ELSEIF(SKEIN256,skein256);
 		ELSEIF(SKEIN384,skein384); ELSEIF(SKEIN512,skein512);
+		// LARGE_HASH_EDIT_POINT
 
 		else { error("ERROR in dyna-parser. Have salt_as_hex_type set, but do not KNOW this type of hash\n"); }
 	}
@@ -1030,22 +1255,115 @@ static void build_test_string(DC_struct *p, char **pLine) {
 	ngen_Stack = ngen_Stack_max = 0;
 }
 
+static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex_len, int keys_hex_len) {
+	// ok, for this type, we simply walk the expression, parsing it again. We 'know' this
+	// is a simple expression.
+	int len = strlen(keys_base16_in1_type), i, side=2;
+	char *p = strchr(pExpr, '('), *pScr;
+	*p++ = 0;
+	if (bOffsetHashIn1) {
+		side = 1;
+		comp_add_script_line("Func=DynamicFunc__set_input_len_%d\n", keys_hex_len);
+	} else {
+		comp_add_script_line("Func=DynamicFunc__clean_input2_kwik\n");
+	}
+	while (*p) {
+		if (*p == '$') {
+			++p;
+			if (*p == 's') {
+				++p;
+				if (*p == '2')    { ++p; comp_add_script_line("Func=DynamicFunc__append_2nd_salt%s\n", side==2?"2":""); }
+				else                     comp_add_script_line("Func=DynamicFunc__append_salt%s\n", side==2?"2":"");
+			} else if (*p == 'p') { ++p; comp_add_script_line("Func=DynamicFunc__append_keys%s\n", side==2?"2":"");
+			} else if (*p == 'u') { ++p; comp_add_script_line("Func=DynamicFunc__append_userid%s\n", side==2?"2":"");
+			} else if (*p == 'c') { ++p; comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST%c\n", side, *p++);
+			}
+		} else if (!strncmp(p, keys_base16_in1_type, len)) {
+			p += len;
+			if (!bOffsetHashIn1)
+				comp_add_script_line("Func=DynamicFunc__append_input2_from_input\n");
+		} else if (*p == '.')
+			++p;
+		else if (*p == ')' && p[1] == 0) {
+			++p;
+		} else {
+			pexit ("compile_keys_base16_in1_type() : Error parsing %s, we got to %s\n", _p->pExpr, p);
+		}
+	}
+#undef IF
+#undef ELSEIF
+#define IF(C,L,F) if (!strncasecmp(pExpr, #C, L)) { \
+	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%d_to_output1_FINAL\n",side); \
+	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); } }
+#define ELSEIF(C,L,F) else if (!strncasecmp(pExpr, #C, L)) { \
+	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%d_to_output1_FINAL\n",side); \
+	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); } }
+
+	// now compute just what hash function was used.
+	IF(MD5,3,0) ELSEIF(MD4,3,0) ELSEIF(SHA1,4,20)
+	ELSEIF(SHA224,6,28) ELSEIF(SHA256,6,32) ELSEIF(SHA384,6,48) ELSEIF(SHA512,6,64)
+	ELSEIF(GOST,4,32) ELSEIF(Tiger,5,24) ELSEIF(WHIRLPOOL,9,64)
+	ELSEIF(RIPEMD128,9,0) ELSEIF(RIPEMD160,9,20) ELSEIF(RIPEMD256,9,32) ELSEIF(RIPEMD320,9,40)
+	ELSEIF(HAVAL128_3,10, 0) ELSEIF(HAVAL128_4,10, 0) ELSEIF(HAVAL128_5,10, 0)
+	ELSEIF(HAVAL160_3,10,20) ELSEIF(HAVAL160_4,10,20) ELSEIF(HAVAL160_5,10,20)
+	ELSEIF(HAVAL192_3,10,24) ELSEIF(HAVAL192_4,10,24) ELSEIF(HAVAL192_5,10,24)
+	ELSEIF(HAVAL224_3,10,28) ELSEIF(HAVAL224_4,10,28) ELSEIF(HAVAL224_5,10,28)
+	ELSEIF(HAVAL256_3,10,32) ELSEIF(HAVAL256_4,10,32) ELSEIF(HAVAL256_5,10,32)
+	ELSEIF(MD2,3,0) ELSEIF(PANAMA,6,32)
+	ELSEIF(SKEIN224,8,28) ELSEIF(SKEIN256,8,32)
+	ELSEIF(SKEIN384,8,48) ELSEIF(SKEIN512,8,64)
+	// LARGE_HASH_EDIT_POINT
+	comp_add_script_line("MaxInputLenX86=110\n");
+	comp_add_script_line("MaxInputLen=110\n");
+
+	len = i = 0;
+	for (i = 0; i < nScriptLines; ++i)
+		len += strlen(pScriptLines[i]);
+	pScr = mem_alloc_tiny(len+1,1);
+	*pScr = 0;
+	_p->pScript = pScr;
+	for (i = 0; i < nScriptLines; ++i) {
+		strcpy(pScr, pScriptLines[i]);
+		pScr += strlen(pScr);
+	}
+
+	if (compile_debug)
+		dump_HANDLE(_p);
+	MEM_FREE(pExpr);
+	return 0;
+}
+
+static int b64_len (int rawlen) {
+	// this is the formula for mime with trailing = values. It always jumps up
+	// an even 4 bytes, when we cross a base64 block threashold. Even though
+	// this may return a slightly larger string size than the actual string
+	// we put into the buffer, this function is safe. It may simply make
+	// MAX_PLAINTEXT_LENGTH a byte or 2 shorter than it possibly could be.
+	return (((((rawlen+2)/3)*4)+3)/4)*4;
+}
 static int parse_expression(DC_struct *p) {
 	int i, len;
 	char *pExpr, *pScr;
 	int salt_hex_len = 0;
+	int keys_hex_len = 0;
 	init_static_data();
 	// first handle the extra strings
 	if (handle_extra_params(p))
 		return 1;
-	pExpr = comp_optimize_expression(p->pExpr);
+	pExpr = p->pExpr;
+	if (OLvL>0)
+		pExpr = comp_optimize_expression(pExpr);
+	else {
+		pExpr = mem_alloc(strlen(p->pExpr)+1);
+		strcpy(pExpr,p->pExpr);
+	}
 	if (!comp_do_lexi(p, pExpr))
 		return 1;
 	comp_do_parse(0, nSyms-1);
-	MEM_FREE(pExpr);
 
 	// Ok, now 'build' the script
-	comp_add_script_line("Expression=dynamic=%s\nFlag=MGF_FLAT_BUFFERS\n", p->pExpr);
+	comp_add_script_line("Expression=dynamic=%s\n", p->pExpr);
+	comp_add_script_line("Flag=MGF_FLAT_BUFFERS\n");
 	if (salt_as_hex_type) {
 		char tmp[64], *cp;
 		strcpy(tmp, salt_as_hex_type);
@@ -1053,14 +1371,32 @@ static int parse_expression(DC_struct *p) {
 		*cp = 0;
 		strupr(tmp);
 		comp_add_script_line("Flag=MGF_SALT_AS_HEX_%s\n", tmp);
-		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||strcmp(tmp,"RIPEMD128")||!strncmp(tmp,"HAVAL_128", 9)) salt_hex_len = 32;
-		if (!strcmp(tmp,"SHA1")||!strcmp(tmp,"RIPEMD160")||!strncmp(tmp,"HAVAL_160", 9)) salt_hex_len = 40;
-		if (!strcmp(tmp,"TIGER")||!strncmp(tmp,"HAVAL_192", 9)) salt_hex_len = 48;
-		if (!strcmp(tmp,"SHA224")||!strncmp(tmp,"HAVAL_224", 9)) salt_hex_len = 56;
-		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")||!strncmp(tmp,"HAVAL_256",9)) salt_hex_len = 64;
+		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||!strcmp(tmp,"RIPEMD128")||!strncmp(tmp,"HAVAL128", 8)||!strcmp(tmp,"MD2")) salt_hex_len = 32;
+		if (!strcmp(tmp,"SHA1")||!strcmp(tmp,"RIPEMD160")||!strncmp(tmp,"HAVAL160", 8)) salt_hex_len = 40;
+		if (!strcmp(tmp,"TIGER")||!strncmp(tmp,"HAVAL192", 8)) salt_hex_len = 48;
+		if (!strcmp(tmp,"SHA224")||!strncmp(tmp,"HAVAL224", 8)||!strcmp(tmp,"SKEIN224")) salt_hex_len = 56;
+		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")||!strncmp(tmp,"HAVAL256",8)||!strcmp(tmp,"PANAMA")||!strcmp(tmp,"SKEIN256")) salt_hex_len = 64;
 		if (!strcmp(tmp,"RIPEMD320")) salt_hex_len = 80;
-		if (!strcmp(tmp,"SHA384")) salt_hex_len = 96;
-		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")) salt_hex_len = 128;
+		if (!strcmp(tmp,"SHA384")||!strcmp(tmp,"SKEIN384")) salt_hex_len = 96;
+		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")||!strcmp(tmp,"SKEIN512")) salt_hex_len = 128;
+		// LARGE_HASH_EDIT_POINT
+	}
+	if (keys_base16_in1_type) {
+		char tmp[64], *cp;
+		strcpy(tmp, keys_base16_in1_type);
+		cp = strchr(tmp, '(');
+		*cp = 0;
+		strupr(tmp);
+		comp_add_script_line("Flag=MGF_KEYS_BASE16_IN1_%s\n", tmp);
+		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||!strcmp(tmp,"RIPEMD128")||!strncmp(tmp,"HAVAL128", 8)||!strcmp(tmp,"MD2")) keys_hex_len = 32;
+		if (!strcmp(tmp,"SHA1")||!strcmp(tmp,"RIPEMD160")||!strncmp(tmp,"HAVAL160", 8)) keys_hex_len = 40;
+		if (!strcmp(tmp,"TIGER")||!strncmp(tmp,"HAVAL192", 8)) keys_hex_len = 48;
+		if (!strcmp(tmp,"SHA224")||!strncmp(tmp,"HAVAL224", 8)||!strcmp(tmp,"SKEIN224")) keys_hex_len = 56;
+		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")||!strncmp(tmp,"HAVAL256",8)||!strcmp(tmp,"PANAMA")||!strcmp(tmp,"SKEIN256")) keys_hex_len = 64;
+		if (!strcmp(tmp,"RIPEMD320")) keys_hex_len = 80;
+		if (!strcmp(tmp,"SHA384")||!strcmp(tmp,"SKEIN384")) keys_hex_len = 96;
+		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")||!strcmp(tmp,"SKEIN512")) keys_hex_len = 128;
+		// LARGE_HASH_EDIT_POINT
 	}
 	if (bNeedS) comp_add_script_line("Flag=MGF_SALTED\n");
 	if (bNeedS2) comp_add_script_line("Flag=MGF_SALTED2\n");
@@ -1083,10 +1419,10 @@ static int parse_expression(DC_struct *p) {
 			break;
 	}
 
-	if (compile_debug) {
+	// we have to dump these items here.  The current code generator smashes them.
+	if (compile_debug)
 		for (i = 0; i <nCode; ++i)
 			printf ("%s\n", pCode[i]);
-	}
 
 	// Build test strings.
 	strcpy(gen_pw, "abc");
@@ -1096,17 +1432,21 @@ static int parse_expression(DC_struct *p) {
 	strcpy(gen_pw, "passweird");
 	build_test_string(p, &p->pLine3);
 
+	if (keys_base16_in1_type)
+		return compile_keys_base16_in1_type(pExpr, p, salt_hex_len, keys_hex_len);
+	MEM_FREE(pExpr);
+
 	// Ok now run the script
 	{
 		int x, j, last_push;
-		//int inp2_used = 0;
 		int salt_len = nSaltLen ? nSaltLen : -32;
-		int in_unicode = 0, out_raw = 0, out_64 = 0, out_16u = 0;
-		int append_mode = 0;
-		int max_inp_len = 110, len_comp = 0;
+		int in_unicode = 0, out_raw = 0, out_64 = 0, out_16u = 0, flag_utf16 = 0;
+		int append_mode = 0, append_mode2 = 0;
+		int max_inp_len = 110, len_comp = 0, len_comp2 = 0;
 		int inp1_clean = 0, exponent = -1;
 		int use_inp1 = 1, use_inp1_again = 0;
-		int inp_cnt = 0, ex_cnt = 0, salt_cnt = 0, hash_cnt = 0, flag_utf16 = 0;
+		int inp_cnt = 0, ex_cnt = 0, salt_cnt = 0;
+		int inp_cnt2 = 0, ex_cnt2 = 0, salt_cnt2 = 0;
 
 		if (bNeedS) {
 			comp_add_script_line("SaltLen=%d\n", salt_len);
@@ -1119,6 +1459,8 @@ static int parse_expression(DC_struct *p) {
 		if (!keys_as_input) {
 			comp_add_script_line("Func=DynamicFunc__clean_input_kwik\n");
 			inp1_clean = 1;
+			inp_cnt = ex_cnt = salt_cnt = 0;
+			len_comp = 0;
 		}
 		for (i = 0; i < nCode; ++i) {
 			if (pCode[i][0] == 'f' || pCode[i][0] == 'F') {
@@ -1126,6 +1468,8 @@ static int parse_expression(DC_struct *p) {
 				if (!inp1_clean && !keys_as_input) {
 					comp_add_script_line("Func=DynamicFunc__clean_input_kwik\n");
 					inp1_clean = 1;
+					inp_cnt = ex_cnt = salt_cnt = 0;
+					len_comp = 0;
 				}
 				//if (!strcasecmp(pCode[i], "futf16be") || !strcasecmp(pCode[i], "futf16")) {
 				if (!strcasecmp(pCode[i], "futf16")) {
@@ -1166,44 +1510,43 @@ static int parse_expression(DC_struct *p) {
 					if (!strcmp(pCode[j], "push") || (exponent >= 0 && !strcmp(pCode[j], "Xush"))) { // push
 						last_push = j;
 						use_inp1_again = 0;
-						inp_cnt = 0, ex_cnt = 0, salt_cnt = 0, hash_cnt = 0;
 						for (x = j+1; x < i; ++x) {
 							if (!strncmp(pCode[x], "app_p", 5)) {
-								comp_add_script_line("Func=DynamicFunc__append_keys%s\n", use_inp1?"":"2"); ++inp_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_keys%s\n", use_inp1?"":"2"); use_inp1 ? ++inp_cnt : ++inp_cnt2; }
 							else if (!strcmp(pCode[x], "app_s")) {
-								comp_add_script_line("Func=DynamicFunc__append_salt%s\n", use_inp1?"":"2"); ++salt_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_salt%s\n", use_inp1?"":"2"); use_inp1 ? ++salt_cnt : ++salt_cnt2; }
 							else if (!strncmp(pCode[x], "app_u", 5)) {
-								comp_add_script_line("Func=DynamicFunc__append_userid%s\n", use_inp1?"":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_userid%s\n", use_inp1?"":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_s2")) {
-								comp_add_script_line("Func=DynamicFunc__append_2nd_salt%s\n", use_inp1?"":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_2nd_salt%s\n", use_inp1?"":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_sh")) {
-								comp_add_script_line("Func=DynamicFunc__append_salt%s\n", use_inp1?"":"2"); ++salt_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_salt%s\n", use_inp1?"":"2"); use_inp1 ? ++salt_cnt : ++salt_cnt2; }
 							else if (!strcmp(pCode[x], "app_1")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST1\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST1\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_2")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST2\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST2\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_3")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST3\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST3\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_4")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST4\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST4\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_5")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST5\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST5\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_6")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST6\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST6\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_7")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST7\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST7\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strcmp(pCode[x], "app_8")) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST8\n", use_inp1?"1":"2"); ++ex_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST8\n", use_inp1?"1":"2"); use_inp1 ? ++ex_cnt : ++ex_cnt2; }
 							else if (!strncmp(pCode[x], "IN2", 3)) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input2\n", use_inp1?"":"2"); ++hash_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input2\n", use_inp1?"":"2"); if (use_inp1) { len_comp+=len_comp2; ex_cnt+=ex_cnt2; inp_cnt+=inp_cnt2; salt_cnt+=salt_cnt2;} else { len_comp2<<=1; ex_cnt2<<=1; inp_cnt2<<=1; salt_cnt2<<=1; } }
 							else if (!strncmp(pCode[x], "IN1", 3)) {
-								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input\n", use_inp1?"":"2"); ++hash_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input\n", use_inp1?"":"2"); if (use_inp1) { len_comp<<=1; ex_cnt<<=1; inp_cnt<<=1; salt_cnt<<=1; } else { len_comp2+=len_comp; ex_cnt2+=ex_cnt; inp_cnt2+=inp_cnt; salt_cnt2+=salt_cnt; } }
 							else if (!strcmp(pCode[x], "pad16")) {
-								comp_add_script_line("Func=DynamicFunc__append_keys_pad16\n"); ++hash_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_keys_pad16\n"); if(use_inp1) len_comp += 16; else len_comp2 += 16; }
 							else if (!strcmp(pCode[x], "pad20")) {
-								comp_add_script_line("Func=DynamicFunc__append_keys_pad20\n"); ++hash_cnt; }
+								comp_add_script_line("Func=DynamicFunc__append_keys_pad20\n"); if(use_inp1) len_comp += 20; else len_comp2 += 20; }
 							else if (!strcmp(pCode[x], "pad100")) {
-								comp_add_script_line("Func=DynamicFunc__set_input_len_100\n"); len_comp += 100; }
+								comp_add_script_line("Func=DynamicFunc__set_input_len_100\n"); if(use_inp1) len_comp += 100; else len_comp2 += 100; }
 
 							*pCode[x] = 'X';
 						}
@@ -1217,14 +1560,85 @@ static int parse_expression(DC_struct *p) {
 
 						// Ok, the only thing we can control is salt_len (if not in hex_as_salt), and inp_len
 						// all we worry about is inp_len.  256 bytes is MAX.
-						len_comp += ex_cnt*24;
-						len_comp += inp_cnt*max_inp_len;
-						len_comp += salt_cnt*salt_len;
-						// add in hash_cnt*whatever_size_hash is.
-						if (len_comp > 256) {
-							max_inp_len -= (len_comp-256+(inp_cnt-1))/inp_cnt;
+						if (use_inp1) {
+							len_comp += ex_cnt*24;
+							len_comp += inp_cnt*max_inp_len;
+							len_comp += salt_cnt*salt_len;
+							// add in hash_cnt*whatever_size_hash is.
+							if (!strncasecmp(pCode[i], "f512", 4 ) || !strncasecmp(pCode[i], "f384", 4)) {
+								// the only 64 bit SIMD hashes we have right now. are sha284 and sha512
+								if (len_comp > 239) {
+									if (inp_cnt) max_inp_len -= (len_comp-239+(inp_cnt-1))/inp_cnt;
+									else max_inp_len = (239-len_comp);
+									if (max_inp_len <= 0) {
+										errno = ERANGE;
+										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
+									}
+								}
+							} else if (!strncasecmp(pCode[i], "f5", 2 ) || !strncasecmp(pCode[i], "f4", 2) ||
+									   !strncasecmp(pCode[i], "f1", 2) || !strncasecmp(pCode[i], "f224", 4 ) ||
+									   !strncasecmp(pCode[i], "f256", 4)) {
+								// the only 32 bit SIMD hashes we have right now. are sha284 and sha512
+								if (len_comp > 247) {
+									if (inp_cnt) max_inp_len -= (len_comp-247+(inp_cnt-1))/inp_cnt;
+									else max_inp_len = (247-len_comp);
+									if (max_inp_len <= 0) {
+										errno = ERANGE;
+										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
+									}
+								}
+							} else {
+								// non SIMD code can use full 256 byte buffers.
+								if (len_comp > 256) {
+									if (inp_cnt) max_inp_len -= (len_comp-256+(inp_cnt-1))/inp_cnt;
+									else max_inp_len = (256-len_comp);
+									if (max_inp_len <= 0) {
+										errno = ERANGE;
+										pexit("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
+									}
+								}
+							}
+							len_comp = 0;
+						} else {
+							len_comp2 += ex_cnt2*24;
+							len_comp2 += inp_cnt2*max_inp_len;
+							len_comp2 += salt_cnt2*salt_len;
+							// add in hash_cnt*whatever_size_hash is.
+							if (!strncasecmp(pCode[i], "f512", 4 ) || !strncasecmp(pCode[i], "f384", 4)) {
+								// the only 64 bit SIMD hashes we have right now. are sha284 and sha512
+								if (len_comp > 239) {
+									if (inp_cnt2) max_inp_len -= (len_comp2-239+(inp_cnt2-1))/inp_cnt2;
+									else max_inp_len = (239-len_comp2);
+									if (max_inp_len <= 0) {
+										errno = ERANGE;
+										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
+									}
+								}
+							} else if (!strncasecmp(pCode[i], "f5", 2 ) || !strncasecmp(pCode[i], "f4", 2) ||
+									   !strncasecmp(pCode[i], "f1", 2) || !strncasecmp(pCode[i], "f224", 4 ) ||
+									   !strncasecmp(pCode[i], "f256", 4)) {
+								// the only 32 bit SIMD hashes we have right now. are sha284 and sha512
+								if (len_comp2 > 247) {
+									if (inp_cnt2) max_inp_len -= (len_comp2-247+(inp_cnt2-1))/inp_cnt2;
+									else  max_inp_len = (247-len_comp2);
+									if (max_inp_len <= 0) {
+										errno = ERANGE;
+										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
+									}
+								}
+							} else {
+								// non SIMD code can use full 256 byte buffers.
+								if (len_comp2 > 256) {
+									if (inp_cnt2) max_inp_len -= (len_comp2-256+(inp_cnt2-1))/inp_cnt2;
+									else max_inp_len = (256-len_comp2);
+									if (max_inp_len <= 0) {
+										errno = ERANGE;
+										pexit("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
+									}
+								}
+							}
+							len_comp2 = 0;
 						}
-						len_comp = 0;
 						if (!pCode[i+1] || !pCode[i+1][0]) {
 							// final hash
 							char endch = pCode[i][strlen(pCode[i])-1];
@@ -1240,16 +1654,16 @@ static int parse_expression(DC_struct *p) {
 #undef ELSEIF
 #define IF(C,T,L,F) if (!strncasecmp(pCode[i], #T, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
-	if(F) comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); }
+	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
 #define ELSEIF(C,T,L,F) else if (!strncasecmp(pCode[i], #T, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
-	if(F) comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); }
+	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
 
 							IF(SHA512,f512,4,64)
 							ELSEIF(MD5,f5,2,0)
 							ELSEIF(MD4,f4,2,0)
 							ELSEIF(SHA1,f1,2,20)
-							ELSEIF(SHA224,f224,4,28) ELSEIF(SHA256,f256,4,32) ELSEIF(SHA384,f384,4,48) ELSEIF(SHA512,f512,4,64)
+							ELSEIF(SHA224,f224,4,28) ELSEIF(SHA256,f256,4,32) ELSEIF(SHA384,f384,4,48)
 							ELSEIF(GOST,fgost,5,32)
 							ELSEIF(Tiger,ftig,4,24)
 							ELSEIF(WHIRLPOOL,fwrl,4,64)
@@ -1262,18 +1676,32 @@ static int parse_expression(DC_struct *p) {
 							ELSEIF(MD2,fmd2,4,0) ELSEIF(PANAMA,fpan,4,32)
 							ELSEIF(SKEIN224,fskn224,7,28) ELSEIF(SKEIN256,fskn256,7,32)
 							ELSEIF(SKEIN384,fskn384,7,48) ELSEIF(SKEIN512,fskn512,7,64)
+							// LARGE_HASH_EDIT_POINT
 						} else {
-							if (append_mode) {
+							if (append_mode2) {
 #undef IF
 #undef ELSEIF
-#define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-#define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_append_input2\n", use_inp1?"1":"2");
-
+#define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) \
+	{ \
+		char type = pCode[i][strlen(pCode[i])-1]; \
+		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_%s_input2\n", use_inp1?"1":"2", use_inp1?"append":"overwrite"); \
+		if (type=='r') { len_comp2 += nLenCode[i]; } \
+		else if (type=='c'||type=='6') { len_comp2 += b64_len(nLenCode[i]); } \
+		else { len_comp2 += nLenCode[i]*2; } \
+	}
+#define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) \
+	{ \
+		char type = pCode[i][strlen(pCode[i])-1]; \
+		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_%s_input2\n", use_inp1?"1":"2", use_inp1?"append":"overwrite"); \
+		if (type=='r') { len_comp2 += nLenCode[i]; } \
+		else if (type=='c'||type=='6') { len_comp2 += b64_len(nLenCode[i]); } \
+		else { len_comp2 += nLenCode[i]*2; } \
+	}
 								IF(SHA512,f512,4)
 								ELSEIF(MD5,f5,2)
 								ELSEIF(MD4,f4,2)
 								ELSEIF(SHA1,f1,2)
-								ELSEIF(SHA224,f224,4) ELSEIF(SHA256,f256,4) ELSEIF(SHA384,f384,4) ELSEIF(SHA512,f512,4)
+								ELSEIF(SHA224,f224,4) ELSEIF(SHA256,f256,4) ELSEIF(SHA384,f384,4)
 								ELSEIF(GOST,fgost,5)
 								ELSEIF(Tiger,ftig,4)
 								ELSEIF(WHIRLPOOL,fwrl,4)
@@ -1286,21 +1714,37 @@ static int parse_expression(DC_struct *p) {
 								ELSEIF(MD2,fmd2,4) ELSEIF(PANAMA,fpan,4)
 								ELSEIF(SKEIN224,fskn224,7) ELSEIF(SKEIN256,fskn256,7)
 								ELSEIF(SKEIN384,fskn384,7) ELSEIF(SKEIN512,fskn512,7)
+								// LARGE_HASH_EDIT_POINT
 								else {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;
 								}
-						} else {
+						} else { // overwrite mode.
 #undef IF
 #undef ELSEIF
-#define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-#define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2");
-
+#define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) \
+	{ \
+		char type = pCode[i][strlen(pCode[i])-1]; \
+		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2"); \
+		if (type=='r') { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 = nLenCode[i]; } \
+		else if (type=='c'||type=='6') { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 += b64_len(nLenCode[i]); } \
+		else { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 = nLenCode[i]*2; } \
+		append_mode2 = 1; \
+	}
+#define ELSEIF(C,T,L) else if (!strncasecmp(pCode[i], #T, L)) \
+	{ \
+		char type = pCode[i][strlen(pCode[i])-1]; \
+		comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_overwrite_input2\n", use_inp1?"1":"2"); \
+		if (type=='r') { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 = nLenCode[i]; } \
+		else if (type=='c'||type=='6') { inp_cnt2 = ex_cnt2 = salt_cnt2 = 0; len_comp2 += b64_len(nLenCode[i]); } \
+		else { inp_cnt2 = ex_cnt2 = salt_cnt2 =0; len_comp2 = nLenCode[i]*2; } \
+		append_mode2 = 1; \
+	}
 								IF(SHA512,f512,4)
 								ELSEIF(MD5,f5,2)
 								ELSEIF(MD4,f4,2)
 								ELSEIF(SHA1,f1,2)
-								ELSEIF(SHA224,f224,4) ELSEIF(SHA256,f256,4) ELSEIF(SHA384,f384,4) ELSEIF(SHA512,f512,4)
+								ELSEIF(SHA224,f224,4) ELSEIF(SHA256,f256,4) ELSEIF(SHA384,f384,4)
 								ELSEIF(GOST,fgost,5)
 								ELSEIF(Tiger,ftig,4)
 								ELSEIF(WHIRLPOOL,fwrl,4)
@@ -1313,6 +1757,7 @@ static int parse_expression(DC_struct *p) {
 								ELSEIF(MD2,fmd2,4) ELSEIF(PANAMA,fpan,4)
 								ELSEIF(SKEIN224,fskn224,7) ELSEIF(SKEIN256,fskn256,7)
 								ELSEIF(SKEIN384,fskn384,7) ELSEIF(SKEIN512,fskn512,7)
+								// LARGE_HASH_EDIT_POINT
 								else {
 									if (use_inp1 && !use_inp1_again)
 										use_inp1_again = 1;
@@ -1359,14 +1804,16 @@ static int parse_expression(DC_struct *p) {
 		len += strlen(pScriptLines[i]);
 	pScr = mem_alloc_tiny(len+1,1);
 	*pScr = 0;
-	for (i = 0; i < nScriptLines; ++i)
-		strcat(pScr, pScriptLines[i]);
 	p->pScript = pScr;
-
-	if (compile_debug) {
-		printf("%s\n", p->pScript);
-		exit(0);
+	for (i = 0; i < nScriptLines; ++i) {
+		strcpy(pScr, pScriptLines[i]);
+		pScr += strlen(pScr);
 	}
+	if (OLvL>1)
+		p->pScript = comp_optimize_script(p->pScript);
+
+	if (compile_debug)
+		dump_HANDLE(p);
 
 	return 0;
 }
@@ -1425,6 +1872,8 @@ static uint32_t compute_checksum(const char *expr) {
 	uint32_t crc32 = 0xffffffff;
 	/* we should 'normalize' the expression 'first' */
 	while (*expr) {
+		if (*expr == ',' && expr[1] != 'c')
+			break;
 		crc32 = jtr_crc32(crc32,*expr);
 		++expr;
 	}
@@ -1463,6 +1912,16 @@ static char *convert_old_dyna_to_new(char *fld0, char *in, char *out, int outsiz
 		strcat (out, fld0);
 	}
 	return out;
+}
+
+int looks_like_bare_hash(const char *fld1) {
+	// look for hex string with 'optional' '$' for salt.
+	int len = base64_valid_length(fld1, e_b64_hex, 0);
+	if (len == (outer_hash_len<<1)) {
+		// check salt flag
+		return 1;
+	}
+	return 0;
 }
 
 char *dynamic_compile_prepare(char *fld0, char *fld1) {
@@ -1604,9 +2063,23 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 				fld1 = convert_old_dyna_to_new(fld0, fld1, Buf, sizeof(Buf), cpExpr);
 		}
 	}
-	else if (!strncmp(fld1, "@dynamic=", 9))
-		fld1 = dynamic_expr_normalize(fld1);
-	return fld1;
+	// NOTE, we probably could have used dyna_signature at this point, vs creating this options_format item.
+	else if (strstr(options_format, "$u") && fld0 && *fld0 && !strstr(fld1, "$$U")) {
+		char buf2[sizeof(Buf)];
+		// note that Buf may already be fld1, so do not printf into Buf from here on!!
+		if (*fld1 == '@')
+			snprintf(buf2, sizeof(buf2), "%s$$U%s", fld1, fld0);
+		else
+			snprintf(buf2, sizeof(buf2), "@%s@%s$$U%s", options_format, fld1, fld0);
+		strcpy(Buf, buf2);
+		fld1 = Buf;
+	} else if (strncmp(fld1, "@dynamic=", 9) && looks_like_bare_hash(fld1)) {
+		char buf2[sizeof(Buf)];
+		snprintf(buf2, sizeof(buf2), "%s%s", dyna_signature, fld1);
+		strcpy(Buf, buf2);
+		fld1 = Buf;
+	}
+	return dynamic_expr_normalize(fld1);
 }
 char *dynamic_compile_split(char *ct) {
 	extern int ldr_in_pot;
@@ -1614,6 +2087,7 @@ char *dynamic_compile_split(char *ct) {
 		return dynamic_compile_prepare("", ct);
 	} else if (strncmp(ct, "@dynamic=", 9) && strncmp(ct, dyna_signature, dyna_sig_len)) {
 		// convert back into dynamic= format
+		// Note we should probably ONLY do this on 'raw' hashes!
 		static char Buf[512];
 		sprintf(Buf, "%s%s", dyna_signature, ct);
 		ct = Buf;

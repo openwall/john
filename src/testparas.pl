@@ -35,7 +35,7 @@ if (defined $ENV{GOMP_CPU_AFFINITY}) {
 
 foreach $i (1..5)
 {
-	print `rm -f sse-intrinsics.o pbkdf2*fmt*o dynamic*o ../run/john` or die;
+	print `rm -f simd-intrinsics.o pbkdf2*fmt*o dynamic*o ../run/john` or die;
 	my $CPPFLAGS="-DSIMD_PARA_MD4=$i -DSIMD_PARA_MD5=$i -DSIMD_PARA_SHA1=$i -DSIMD_PARA_SHA256=$i -DSIMD_PARA_SHA512=$i -DOMP_SCALE=1";
 	print `make -sj4 CPPFLAGS="$CPPFLAGS"` or die;
 	if ($test eq "first") {

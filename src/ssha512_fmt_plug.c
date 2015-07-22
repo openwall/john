@@ -22,7 +22,7 @@ john_register_one(&fmt_saltedsha2);
 #include "common.h"
 #include "sha2.h"
 #include "base64.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include <string.h>
 
 #ifdef _OPENMP
@@ -377,7 +377,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 			*(len_ptr64[idx]) = (saved_len[idx]+saved_salt->len)<<3;
 		}
-		SSESHA512body(&saved_key[index/SIMD_COEF_64], crypt_out[index/SIMD_COEF_64], NULL, SSEi_MIXED_IN);
+		SIMDSHA512body(&saved_key[index/SIMD_COEF_64], crypt_out[index/SIMD_COEF_64], NULL, SSEi_MIXED_IN);
 #endif
 	}
 	return count;

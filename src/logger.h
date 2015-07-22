@@ -36,10 +36,10 @@ extern void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
  * format string expand to no more than 500 characters.
  */
 extern
-#if __clang__
-	__attribute__ ((format (printf, 1, 2)))
-#elif __GNUC__
+#if (__GNUC__ == 4 && __GNUC_MINOR >= 4) || __GNUC__ > 4
 	__attribute__ ((format (gnu_printf, 1, 2)))
+#elif __GNUC__
+	__attribute__ ((format (printf, 1, 2)))
 #endif
 void log_event(const char *format, ...);
 

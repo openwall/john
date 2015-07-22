@@ -36,7 +36,7 @@ john_register_one(&fmt_bitcoin);
 #include "sha2.h"
 #include "stdint.h"
 #include "johnswap.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -305,7 +305,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 		for (i = 1; i < cur_salt->cry_rounds; i++)  // start at 1; the first iteration is already done
-			SSESHA512body(key_iv, key_iv, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+			SIMDSHA512body(key_iv, key_iv, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 
 		for (index2 = 0; index2 < MAX_KEYS_PER_CRYPT; index2++) {
 			unsigned char key[32];

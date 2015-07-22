@@ -1115,7 +1115,9 @@ int base64_valid_length(const char *from, b64_convert_type from_t, unsigned flag
 		default:
 			return ERR_base64_unk_from_type;
 	}
-	if (len && *from && (flags&flg_Base64_RET_NEG_IF_NOT_PURE) == flg_Base64_RET_NEG_IF_NOT_PURE)
+	// we need to check from[-1] first.  We could be at null, or 1 byte past null at this point
+	// so both need to be checked, checking [-1] first to avoid ASAN overflow errors.
+	if ((flags&flg_Base64_RET_NEG_IF_NOT_PURE) == flg_Base64_RET_NEG_IF_NOT_PURE && len && from[-1] && *from)
 		return -len;
 	return len;
 }

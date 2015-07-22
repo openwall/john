@@ -22,7 +22,7 @@
 #include "MD5_std.h"
 #include "stdint.h"
 #include "johnswap.h"
-#include "sse-intrinsics-load-flags.h"
+#include "simd-intrinsics-load-flags.h"
 #include "aligned.h"
 
 #include "memdbg.h"
@@ -115,7 +115,7 @@ _inline __m128i _mm_set1_epi64(long long a)
         a[i] = vadd_epi32( a[i], b[i] );            \
     }
 
-void SSEmd5body(vtype* _data, unsigned int *out,
+void SIMDmd5body(vtype* _data, unsigned int *out,
                 ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
 	vtype w[16*SIMD_PARA_MD5];
@@ -533,7 +533,7 @@ static MAYBE_INLINE void dispatch(unsigned char buffers[8][64*MD5_SSE_NUM_KEYS],
 				mmxput3(buffers, bufferid, length, 2, saltlen, f);
 				break;
 		}
-		SSEmd5body((vtype*)&buffers[bufferid], f, NULL, SSEi_MIXED_IN);
+		SIMDmd5body((vtype*)&buffers[bufferid], f, NULL, SSEi_MIXED_IN);
 		if (j++ < 1000 % 42 - 1)
 			continue;
 		if (j == 1000 % 42) {
@@ -696,7 +696,7 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
         a[i] = vadd_epi32( a[i], data[i*16+x] );    \
     }
 
-void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
+void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
                 unsigned SSEi_flags)
 {
 	vtype w[16*SIMD_PARA_MD4];
@@ -1078,7 +1078,7 @@ void SSEmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
         b[i] = vroti_epi32(b[i], 30);               \
     }
 
-void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
+void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
                  unsigned SSEi_flags)
 {
 	vtype w[16*SIMD_PARA_SHA1];
@@ -1475,7 +1475,7 @@ void SSESHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 }
 
 
-void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
+void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
 	vtype a[SIMD_PARA_SHA256],
 		  b[SIMD_PARA_SHA256],
@@ -1908,7 +1908,7 @@ void SSESHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, u
     }                                                       \
 }
 
-void SSESHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
+void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
                    unsigned SSEi_flags)
 {
 	unsigned int i, k;

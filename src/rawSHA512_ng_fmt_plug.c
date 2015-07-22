@@ -86,6 +86,8 @@ john_register_one(&fmt_rawSHA512_ng);
 
 #if _MSC_VER && !_M_X64
 // 32 bit VC does NOT define these intrinsics :((((
+#define _mm_set_epi64  __mm_set_epi64
+#define _mm_set1_epi64 __mm_set1_epi64
 _inline __m128i _mm_set_epi64(uint64_t a, uint64_t b) {
 	__m128i x;
 	x.m128i_u64[0] = b;

@@ -1,0 +1,18 @@
+# top-most EditorConfig file
+root = true
+
+# Unix-style newlines with a newline ending every file
+[*]
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Unix-style newlines with a newline ending every file
+[*.{c,h,in,S,pl,py,sh}]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = tab
+# We don't enforce this, let user decide (that's the beauty of tabs)
+#indent_size = 8

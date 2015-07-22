@@ -30,7 +30,7 @@ john_register_one(&fmt_HDAA);
 
 #include "stdint.h"
 
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
 #if defined(_OPENMP)
@@ -469,7 +469,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + (ti/SIMD_COEF_32)*16*SIMD_COEF_32] = len << 3;
 		}
 
-		SSEmd5body(&saved_key[0][thread*64*NBKEYS], &crypt_key[thread*4*NBKEYS], NULL, SSEi_MIXED_IN);
+		SIMDmd5body(&saved_key[0][thread*64*NBKEYS], &crypt_key[thread*4*NBKEYS], NULL, SSEi_MIXED_IN);
 		sse_bin2ascii((unsigned char*)&saved_key[0][thread*64*NBKEYS], (unsigned char*)&crypt_key[thread*4*NBKEYS]);
 
 		longest = 0; shortest = HTMP;
@@ -508,7 +508,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 		// First limb
-		SSEmd5body(&saved_key[0][thread*64*NBKEYS], &interm_key[thread*4*NBKEYS], NULL, SSEi_MIXED_IN);
+		SIMDmd5body(&saved_key[0][thread*64*NBKEYS], &interm_key[thread*4*NBKEYS], NULL, SSEi_MIXED_IN);
 		// Copy any output that is done now
 		if (shortest < 56) {
 			if (longest < 56)
@@ -520,7 +520,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		// Do the rest of the limbs
 		for (i = 1; i < (((longest + 8) >> 6) + 1); i++) {
-			SSEmd5body(&saved_key[i][thread*64*NBKEYS], &interm_key[thread*4*NBKEYS], &interm_key[thread*4*NBKEYS], SSEi_RELOAD|SSEi_MIXED_IN);
+			SIMDmd5body(&saved_key[i][thread*64*NBKEYS], &interm_key[thread*4*NBKEYS], &interm_key[thread*4*NBKEYS], SSEi_RELOAD|SSEi_MIXED_IN);
 			// Copy any output that is done now
 			if (shortest < i*64+56) {
 				if (shortest > (i-1)*64+55 && longest < i*64+56)

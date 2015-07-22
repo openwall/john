@@ -32,7 +32,7 @@ john_register_one(&fmt_pwsafe);
 #include "params.h"
 #include "options.h"
 #include "johnswap.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #ifdef _OPENMP
 static int omp_t = 1;
@@ -549,10 +549,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			keys[GETPOS(62, i)] = 0x01;
 		}
 		for (i = 0; i < cur_salt->iterations; i++) {
-			SSESHA256body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+			SIMDSHA256body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 		}
 		// Last one with FLAT_OUT
-		SSESHA256body(keys, crypt_out[index], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
+		SIMDSHA256body(keys, crypt_out[index], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
 #else
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, saved_key[index], strlen(saved_key[index]));

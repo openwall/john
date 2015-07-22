@@ -45,9 +45,11 @@
 // It would be nice to CC: <Cokus@math.washington.edu> when you write.
 //
 
+#ifdef HAVE_OPENCL
+
 #include <stdio.h>
 #include <stdlib.h>
-#include "mt.h"
+#include "bt_twister.h"
 
 #define N              (624)                 // length of state vector
 #define M              (397)                 // a period parameter
@@ -154,3 +156,6 @@ mt_uint32 randomMT(void)
     y ^= (y << 15) & 0xEFC60000U;
     return(y ^ (y >> 18));
  }
+
+#endif
+

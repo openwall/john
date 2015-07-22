@@ -1,18 +1,18 @@
-	.file "sse-intrinsics.c"
+	.file "simd-intrinsics.c"
 	.text
 ..TXTST0:
-# -- Begin  SSEmd5body
+# -- Begin  SIMDmd5body
        .align    16,0x90
-	.globl SSEmd5body
-SSEmd5body:
+	.globl SIMDmd5body
+SIMDmd5body:
 # parameter 1: %rdi
 # parameter 2: %rsi
 # parameter 3: %rdx
 # parameter 4: %ecx
 ..B1.1:
-..___tag_value_SSEmd5body.1:
+..___tag_value_SIMDmd5body.1:
         subq      $1544, %rsp
-..___tag_value_SSEmd5body.3:
+..___tag_value_SIMDmd5body.3:
         movl      %ecx, %r8d
         movq      %rdx, %rcx
         testl     $1, %r8d
@@ -2999,9 +2999,9 @@ SSEmd5body:
         movdqa    %xmm12, 544(%rsi)
         movdqa    %xmm4, 560(%rsi)
         addq      $1544, %rsp
-..___tag_value_SSEmd5body.4:
+..___tag_value_SIMDmd5body.4:
         ret       
-..___tag_value_SSEmd5body.5:
+..___tag_value_SIMDmd5body.5:
 ..B1.30:
         movdqa    %xmm9, 64(%rsi)
         movdqa    %xmm3, 80(%rsi)
@@ -3013,26 +3013,26 @@ SSEmd5body:
         movdqa    %xmm4, 176(%rsi)
 ..B1.31:
         addq      $1544, %rsp
-..___tag_value_SSEmd5body.6:
+..___tag_value_SIMDmd5body.6:
         ret       
         .align    16,0x90
-..___tag_value_SSEmd5body.7:
-	.type	SSEmd5body,@function
-	.size	SSEmd5body,.-SSEmd5body
+..___tag_value_SIMDmd5body.7:
+	.type	SIMDmd5body,@function
+	.size	SIMDmd5body,.-SIMDmd5body
 	.data
-# -- End  SSEmd5body
+# -- End  SIMDmd5body
 	.text
-# -- Begin  SSEmd5body..0
+# -- Begin  SIMDmd5body..0
        .align    16,0x90
-SSEmd5body..0:
+SIMDmd5body..0:
 # parameter 1: %rdi
 # parameter 2: %rsi
 # parameter 3: %rdx
 # parameter 4: %ecx
 ..B2.1:
-..___tag_value_SSEmd5body..0.8:
+..___tag_value_SIMDmd5body..0.8:
         subq      $792, %rsp
-..___tag_value_SSEmd5body..0.10:
+..___tag_value_SIMDmd5body..0.10:
         movdqa    .L_2il0floatpacket.23(%rip), %xmm14
         pcmpeqd   %xmm13, %xmm13
         movdqa    .L_2il0floatpacket.24(%rip), %xmm10
@@ -5446,14 +5446,14 @@ SSEmd5body..0:
         movdqa    %xmm15, 160(%rsi)
         movdqa    %xmm10, 176(%rsi)
         addq      $792, %rsp
-..___tag_value_SSEmd5body..0.11:
+..___tag_value_SIMDmd5body..0.11:
         ret       
         .align    16,0x90
-..___tag_value_SSEmd5body..0.12:
-	.type	SSEmd5body..0,@function
-	.size	SSEmd5body..0,.-SSEmd5body..0
+..___tag_value_SIMDmd5body..0.12:
+	.type	SIMDmd5body..0,@function
+	.size	SIMDmd5body..0,.-SIMDmd5body..0
 	.data
-# -- End  SSEmd5body..0
+# -- End  SIMDmd5body..0
 	.text
 # -- Begin  md5cryptsse
        .align    16,0x90
@@ -8081,7 +8081,7 @@ md5cryptsse:
         addq      %r15, %rdi
         xorl      %ecx, %ecx
 ..___tag_value_md5cryptsse.72:
-        call      SSEmd5body..0
+        call      SIMDmd5body..0
 ..___tag_value_md5cryptsse.73:
 ..B3.251:
         incl      %r13d
@@ -8199,18 +8199,18 @@ md5cryptsse:
 	.data
 # -- End  md5cryptsse
 	.text
-# -- Begin  SSEmd4body
+# -- Begin  SIMDmd4body
        .align    16,0x90
-	.globl SSEmd4body
-SSEmd4body:
+	.globl SIMDmd4body
+SIMDmd4body:
 # parameter 1: %rdi
 # parameter 2: %rsi
 # parameter 3: %rdx
 # parameter 4: %ecx
 ..B4.1:
-..___tag_value_SSEmd4body.97:
+..___tag_value_SIMDmd4body.97:
         subq      $1544, %rsp
-..___tag_value_SSEmd4body.99:
+..___tag_value_SIMDmd4body.99:
         movl      %ecx, %r8d
         movq      %rdx, %rcx
         testl     $1, %r8d
@@ -10527,9 +10527,9 @@ SSEmd4body:
         movdqa    %xmm7, 544(%rsi)
         movdqa    %xmm5, 560(%rsi)
         addq      $1544, %rsp
-..___tag_value_SSEmd4body.100:
+..___tag_value_SIMDmd4body.100:
         ret       
-..___tag_value_SSEmd4body.101:
+..___tag_value_SIMDmd4body.101:
 ..B4.30:
         movdqa    %xmm9, 64(%rsi)
         movdqa    %xmm1, 80(%rsi)
@@ -10541,27 +10541,27 @@ SSEmd4body:
         movdqa    %xmm5, 176(%rsi)
 ..B4.31:
         addq      $1544, %rsp
-..___tag_value_SSEmd4body.102:
+..___tag_value_SIMDmd4body.102:
         ret       
         .align    16,0x90
-..___tag_value_SSEmd4body.103:
-	.type	SSEmd4body,@function
-	.size	SSEmd4body,.-SSEmd4body
+..___tag_value_SIMDmd4body.103:
+	.type	SIMDmd4body,@function
+	.size	SIMDmd4body,.-SIMDmd4body
 	.data
-# -- End  SSEmd4body
+# -- End  SIMDmd4body
 	.text
-# -- Begin  SSESHA1body
+# -- Begin  SIMDSHA1body
        .align    16,0x90
-	.globl SSESHA1body
-SSESHA1body:
+	.globl SIMDSHA1body
+SIMDSHA1body:
 # parameter 1: %rdi
 # parameter 2: %rsi
 # parameter 3: %rdx
 # parameter 4: %ecx
 ..B5.1:
-..___tag_value_SSESHA1body.104:
+..___tag_value_SIMDSHA1body.104:
         subq      $584, %rsp
-..___tag_value_SSESHA1body.106:
+..___tag_value_SIMDSHA1body.106:
         testb     $1, %cl
         je        ..B5.15
 ..B5.2:
@@ -13021,33 +13021,33 @@ SSESHA1body:
         movdqa    %xmm0, 48(%rsi)
         movdqa    %xmm1, 64(%rsi)
         addq      $584, %rsp
-..___tag_value_SSESHA1body.107:
+..___tag_value_SIMDSHA1body.107:
         ret       
         .align    16,0x90
-..___tag_value_SSESHA1body.108:
-	.type	SSESHA1body,@function
-	.size	SSESHA1body,.-SSESHA1body
+..___tag_value_SIMDSHA1body.108:
+	.type	SIMDSHA1body,@function
+	.size	SIMDSHA1body,.-SIMDSHA1body
 	.data
-# -- End  SSESHA1body
+# -- End  SIMDSHA1body
 	.text
-# -- Begin  SSESHA256body
+# -- Begin  SIMDSHA256body
        .align    16,0x90
-	.globl SSESHA256body
-SSESHA256body:
+	.globl SIMDSHA256body
+SIMDSHA256body:
 # parameter 1: %rdi
 # parameter 2: %rsi
 # parameter 3: %rdx
 # parameter 4: %ecx
 ..B6.1:
-..___tag_value_SSESHA256body.109:
+..___tag_value_SIMDSHA256body.109:
         pushq     %r12
-..___tag_value_SSESHA256body.111:
+..___tag_value_SIMDSHA256body.111:
         pushq     %r13
-..___tag_value_SSESHA256body.113:
+..___tag_value_SIMDSHA256body.113:
         pushq     %rbp
-..___tag_value_SSESHA256body.115:
+..___tag_value_SIMDSHA256body.115:
         subq      $624, %rsp
-..___tag_value_SSESHA256body.117:
+..___tag_value_SIMDSHA256body.117:
         movl      %ecx, %r12d
         movq      %rdx, %r13
         movq      %rsi, %rbp
@@ -13498,9 +13498,9 @@ SSESHA256body:
 ..B6.14:
         movl      $256, %edx
         lea       (%rsp), %rdi
-..___tag_value_SSESHA256body.118:
+..___tag_value_SIMDSHA256body.118:
         call      memcpy
-..___tag_value_SSESHA256body.119:
+..___tag_value_SIMDSHA256body.119:
 ..B6.15:
         movdqa    224(%rsp), %xmm0
         movdqa    240(%rsp), %xmm1
@@ -18539,39 +18539,39 @@ SSESHA256body:
         movdqa    %xmm3, 96(%rbp)
         movdqa    %xmm0, 112(%rbp)
         addq      $624, %rsp
-..___tag_value_SSESHA256body.120:
+..___tag_value_SIMDSHA256body.120:
         popq      %rbp
-..___tag_value_SSESHA256body.122:
+..___tag_value_SIMDSHA256body.122:
         popq      %r13
-..___tag_value_SSESHA256body.124:
+..___tag_value_SIMDSHA256body.124:
         popq      %r12
-..___tag_value_SSESHA256body.126:
+..___tag_value_SIMDSHA256body.126:
         ret       
         .align    16,0x90
-..___tag_value_SSESHA256body.127:
-	.type	SSESHA256body,@function
-	.size	SSESHA256body,.-SSESHA256body
+..___tag_value_SIMDSHA256body.127:
+	.type	SIMDSHA256body,@function
+	.size	SIMDSHA256body,.-SIMDSHA256body
 	.data
-# -- End  SSESHA256body
+# -- End  SIMDSHA256body
 	.text
-# -- Begin  SSESHA512body
+# -- Begin  SIMDSHA512body
        .align    16,0x90
-	.globl SSESHA512body
-SSESHA512body:
+	.globl SIMDSHA512body
+SIMDSHA512body:
 # parameter 1: %rdi
 # parameter 2: %rsi
 # parameter 3: %rdx
 # parameter 4: %ecx
 ..B7.1:
-..___tag_value_SSESHA512body.128:
+..___tag_value_SIMDSHA512body.128:
         pushq     %r12
-..___tag_value_SSESHA512body.130:
+..___tag_value_SIMDSHA512body.130:
         pushq     %rbx
-..___tag_value_SSESHA512body.132:
+..___tag_value_SIMDSHA512body.132:
         pushq     %rbp
-..___tag_value_SSESHA512body.134:
+..___tag_value_SIMDSHA512body.134:
         subq      $1280, %rsp
-..___tag_value_SSESHA512body.136:
+..___tag_value_SIMDSHA512body.136:
         movl      %ecx, %r12d
         movq      %rdx, %rbx
         movq      %rsi, %rbp
@@ -18674,9 +18674,9 @@ SSESHA512body:
 ..B7.13:
         movl      $256, %edx
         lea       (%rsp), %rdi
-..___tag_value_SSESHA512body.137:
+..___tag_value_SIMDSHA512body.137:
         call      memcpy
-..___tag_value_SSESHA512body.138:
+..___tag_value_SIMDSHA512body.138:
 ..B7.14:
         movb      $16, %dl
         movl      $256, %eax
@@ -23032,20 +23032,20 @@ SSESHA512body:
         movdqa    %xmm1, 96(%rbp)
         movdqa    %xmm0, 112(%rbp)
         addq      $1280, %rsp
-..___tag_value_SSESHA512body.139:
+..___tag_value_SIMDSHA512body.139:
         popq      %rbp
-..___tag_value_SSESHA512body.141:
+..___tag_value_SIMDSHA512body.141:
         popq      %rbx
-..___tag_value_SSESHA512body.143:
+..___tag_value_SIMDSHA512body.143:
         popq      %r12
-..___tag_value_SSESHA512body.145:
+..___tag_value_SIMDSHA512body.145:
         ret       
         .align    16,0x90
-..___tag_value_SSESHA512body.146:
-	.type	SSESHA512body,@function
-	.size	SSESHA512body,.-SSESHA512body
+..___tag_value_SIMDSHA512body.146:
+	.type	SIMDSHA512body,@function
+	.size	SIMDSHA512body,.-SIMDSHA512body
 	.data
-# -- End  SSESHA512body
+# -- End  SIMDSHA512body
 	.section .rodata, "a"
 	.space 8, 0x00 	# pad
 	.align 16
@@ -24610,26 +24610,26 @@ SSESHA512body:
 	.4byte 0x00000000
 	.4byte 0x00000034
 	.4byte 0x0000001c
-	.8byte ..___tag_value_SSEmd5body.1
-	.8byte ..___tag_value_SSEmd5body.7-..___tag_value_SSEmd5body.1
+	.8byte ..___tag_value_SIMDmd5body.1
+	.8byte ..___tag_value_SIMDmd5body.7-..___tag_value_SIMDmd5body.1
 	.byte 0x04
-	.4byte ..___tag_value_SSEmd5body.3-..___tag_value_SSEmd5body.1
+	.4byte ..___tag_value_SIMDmd5body.3-..___tag_value_SIMDmd5body.1
 	.4byte 0x040c900e
-	.4byte ..___tag_value_SSEmd5body.4-..___tag_value_SSEmd5body.3
+	.4byte ..___tag_value_SIMDmd5body.4-..___tag_value_SIMDmd5body.3
 	.2byte 0x080e
 	.byte 0x04
-	.4byte ..___tag_value_SSEmd5body.5-..___tag_value_SSEmd5body.4
+	.4byte ..___tag_value_SIMDmd5body.5-..___tag_value_SIMDmd5body.4
 	.4byte 0x040c900e
-	.4byte ..___tag_value_SSEmd5body.6-..___tag_value_SSEmd5body.5
+	.4byte ..___tag_value_SIMDmd5body.6-..___tag_value_SIMDmd5body.5
 	.4byte 0x0000080e
 	.4byte 0x00000024
 	.4byte 0x00000054
-	.8byte ..___tag_value_SSEmd5body..0.8
-	.8byte ..___tag_value_SSEmd5body..0.12-..___tag_value_SSEmd5body..0.8
+	.8byte ..___tag_value_SIMDmd5body..0.8
+	.8byte ..___tag_value_SIMDmd5body..0.12-..___tag_value_SIMDmd5body..0.8
 	.byte 0x04
-	.4byte ..___tag_value_SSEmd5body..0.10-..___tag_value_SSEmd5body..0.8
+	.4byte ..___tag_value_SIMDmd5body..0.10-..___tag_value_SIMDmd5body..0.8
 	.4byte 0x0406a00e
-	.4byte ..___tag_value_SSEmd5body..0.11-..___tag_value_SSEmd5body..0.10
+	.4byte ..___tag_value_SIMDmd5body..0.11-..___tag_value_SIMDmd5body..0.10
 	.2byte 0x080e
 	.byte 0x00
 	.4byte 0x000000a4
@@ -24679,74 +24679,74 @@ SSESHA512body:
 	.2byte 0x0000
 	.4byte 0x00000034
 	.4byte 0x00000124
-	.8byte ..___tag_value_SSEmd4body.97
-	.8byte ..___tag_value_SSEmd4body.103-..___tag_value_SSEmd4body.97
+	.8byte ..___tag_value_SIMDmd4body.97
+	.8byte ..___tag_value_SIMDmd4body.103-..___tag_value_SIMDmd4body.97
 	.byte 0x04
-	.4byte ..___tag_value_SSEmd4body.99-..___tag_value_SSEmd4body.97
+	.4byte ..___tag_value_SIMDmd4body.99-..___tag_value_SIMDmd4body.97
 	.4byte 0x040c900e
-	.4byte ..___tag_value_SSEmd4body.100-..___tag_value_SSEmd4body.99
+	.4byte ..___tag_value_SIMDmd4body.100-..___tag_value_SIMDmd4body.99
 	.2byte 0x080e
 	.byte 0x04
-	.4byte ..___tag_value_SSEmd4body.101-..___tag_value_SSEmd4body.100
+	.4byte ..___tag_value_SIMDmd4body.101-..___tag_value_SIMDmd4body.100
 	.4byte 0x040c900e
-	.4byte ..___tag_value_SSEmd4body.102-..___tag_value_SSEmd4body.101
+	.4byte ..___tag_value_SIMDmd4body.102-..___tag_value_SIMDmd4body.101
 	.4byte 0x0000080e
 	.4byte 0x00000024
 	.4byte 0x0000015c
-	.8byte ..___tag_value_SSESHA1body.104
-	.8byte ..___tag_value_SSESHA1body.108-..___tag_value_SSESHA1body.104
+	.8byte ..___tag_value_SIMDSHA1body.104
+	.8byte ..___tag_value_SIMDSHA1body.108-..___tag_value_SIMDSHA1body.104
 	.byte 0x04
-	.4byte ..___tag_value_SSESHA1body.106-..___tag_value_SSESHA1body.104
+	.4byte ..___tag_value_SIMDSHA1body.106-..___tag_value_SIMDSHA1body.104
 	.4byte 0x0404d00e
-	.4byte ..___tag_value_SSESHA1body.107-..___tag_value_SSESHA1body.106
+	.4byte ..___tag_value_SIMDSHA1body.107-..___tag_value_SIMDSHA1body.106
 	.2byte 0x080e
 	.byte 0x00
 	.4byte 0x0000005c
 	.4byte 0x00000184
-	.8byte ..___tag_value_SSESHA256body.109
-	.8byte ..___tag_value_SSESHA256body.127-..___tag_value_SSESHA256body.109
+	.8byte ..___tag_value_SIMDSHA256body.109
+	.8byte ..___tag_value_SIMDSHA256body.127-..___tag_value_SIMDSHA256body.109
 	.byte 0x04
-	.4byte ..___tag_value_SSESHA256body.111-..___tag_value_SSESHA256body.109
+	.4byte ..___tag_value_SIMDSHA256body.111-..___tag_value_SIMDSHA256body.109
 	.4byte 0x028c100e
 	.byte 0x04
-	.4byte ..___tag_value_SSESHA256body.113-..___tag_value_SSESHA256body.111
+	.4byte ..___tag_value_SIMDSHA256body.113-..___tag_value_SIMDSHA256body.111
 	.4byte 0x038d180e
 	.byte 0x04
-	.4byte ..___tag_value_SSESHA256body.115-..___tag_value_SSESHA256body.113
+	.4byte ..___tag_value_SIMDSHA256body.115-..___tag_value_SIMDSHA256body.113
 	.4byte 0x0486200e
 	.byte 0x04
-	.4byte ..___tag_value_SSESHA256body.117-..___tag_value_SSESHA256body.115
+	.4byte ..___tag_value_SIMDSHA256body.117-..___tag_value_SIMDSHA256body.115
 	.4byte 0x0405900e
-	.4byte ..___tag_value_SSESHA256body.120-..___tag_value_SSESHA256body.117
+	.4byte ..___tag_value_SIMDSHA256body.120-..___tag_value_SIMDSHA256body.117
 	.4byte 0x04c6200e
-	.4byte ..___tag_value_SSESHA256body.122-..___tag_value_SSESHA256body.120
+	.4byte ..___tag_value_SIMDSHA256body.122-..___tag_value_SIMDSHA256body.120
 	.4byte 0x04cd180e
-	.4byte ..___tag_value_SSESHA256body.124-..___tag_value_SSESHA256body.122
+	.4byte ..___tag_value_SIMDSHA256body.124-..___tag_value_SIMDSHA256body.122
 	.4byte 0x04cc100e
-	.4byte ..___tag_value_SSESHA256body.126-..___tag_value_SSESHA256body.124
+	.4byte ..___tag_value_SIMDSHA256body.126-..___tag_value_SIMDSHA256body.124
 	.8byte 0x000000000000080e
 	.4byte 0x0000005c
 	.4byte 0x000001e4
-	.8byte ..___tag_value_SSESHA512body.128
-	.8byte ..___tag_value_SSESHA512body.146-..___tag_value_SSESHA512body.128
+	.8byte ..___tag_value_SIMDSHA512body.128
+	.8byte ..___tag_value_SIMDSHA512body.146-..___tag_value_SIMDSHA512body.128
 	.byte 0x04
-	.4byte ..___tag_value_SSESHA512body.130-..___tag_value_SSESHA512body.128
+	.4byte ..___tag_value_SIMDSHA512body.130-..___tag_value_SIMDSHA512body.128
 	.4byte 0x028c100e
 	.byte 0x04
-	.4byte ..___tag_value_SSESHA512body.132-..___tag_value_SSESHA512body.130
+	.4byte ..___tag_value_SIMDSHA512body.132-..___tag_value_SIMDSHA512body.130
 	.4byte 0x0383180e
 	.byte 0x04
-	.4byte ..___tag_value_SSESHA512body.134-..___tag_value_SSESHA512body.132
+	.4byte ..___tag_value_SIMDSHA512body.134-..___tag_value_SIMDSHA512body.132
 	.4byte 0x0486200e
 	.byte 0x04
-	.4byte ..___tag_value_SSESHA512body.136-..___tag_value_SSESHA512body.134
+	.4byte ..___tag_value_SIMDSHA512body.136-..___tag_value_SIMDSHA512body.134
 	.4byte 0x040aa00e
-	.4byte ..___tag_value_SSESHA512body.139-..___tag_value_SSESHA512body.136
+	.4byte ..___tag_value_SIMDSHA512body.139-..___tag_value_SIMDSHA512body.136
 	.4byte 0x04c6200e
-	.4byte ..___tag_value_SSESHA512body.141-..___tag_value_SSESHA512body.139
+	.4byte ..___tag_value_SIMDSHA512body.141-..___tag_value_SIMDSHA512body.139
 	.4byte 0x04c3180e
-	.4byte ..___tag_value_SSESHA512body.143-..___tag_value_SSESHA512body.141
+	.4byte ..___tag_value_SIMDSHA512body.143-..___tag_value_SIMDSHA512body.141
 	.4byte 0x04cc100e
-	.4byte ..___tag_value_SSESHA512body.145-..___tag_value_SSESHA512body.143
+	.4byte ..___tag_value_SIMDSHA512body.145-..___tag_value_SIMDSHA512body.143
 	.8byte 0x000000000000080e
 # End

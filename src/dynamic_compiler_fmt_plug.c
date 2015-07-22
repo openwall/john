@@ -34,6 +34,7 @@ john_register_one(&fmt_CompiledDynamic);
 #include "dynamic.h"
 #include "dynamic_compiler.h"
 #include "dynamic_types.h"
+#include "options.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"dynamic="
@@ -99,8 +100,14 @@ static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 }
 static char *our_prepare(char **fields, struct fmt_main *self)
 {
-	char *ciphertext = dynamic_compile_prepare(fields[0], fields[1]);
-	return ciphertext;
+	if (options.format && !strncmp(options.format, "dynamic=", 8)) {
+		extern const char *options_format;
+		char *ct;
+		options_format = options.format;
+		ct = dynamic_compile_prepare(fields[0], fields[1]);
+		return ct;
+	}
+	return fields[1];
 }
 
 static int our_valid(char *ciphertext, struct fmt_main *self)

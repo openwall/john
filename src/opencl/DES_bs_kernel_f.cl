@@ -508,13 +508,6 @@ __kernel void DES_bs_25(__global DES_bs_vector *K,
 
 		__local DES_bs_vector _local_K[56 * WORK_GROUP_SIZE];
 
-		if(!section) {
-			hash_ids[0] = 0;
-			for (i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
-				bitmap[i] = 0;
-		}
-		barrier(CLK_GLOBAL_MEM_FENCE);
-
 		for (i = 0; i < 56; i++)
 			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -527,9 +520,6 @@ __kernel void DES_bs_25(__global DES_bs_vector *K,
 		}
 #pragma unroll 1
 		for (iterations = 24; iterations >= 0; --iterations) {
-#if gpu_amd(DEVICE_INFO)
-			barrier(CLK_GLOBAL_MEM_FENCE);
-#endif
 			H();
 			if (iterations)
 				BIG_SWAP();

@@ -210,7 +210,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if (((p - q) & 1))
 		return 0;
-	if (p - q > 2 * SALT_SIZE)
+	if (p - q >= 2 * SALT_SIZE)
 		return 0;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		q++;
@@ -333,15 +333,30 @@ static void *get_salt(char *ciphertext)
 	memset(out.b, 0, SALT_SIZE);
 	p = strchr(&ciphertext[WOWSIGLEN], '$') + 1;
 
-	while (atoi16[ARCH_INDEX(*p)] != 0x7f) {
+	// We need to know if this is odd length or not.
+	while (atoi16[ARCH_INDEX(*p++)] != 0x7f)
+		length++;
+	p = strchr(&ciphertext[WOWSIGLEN], '$') + 1;
+
+	// handle odd length hex (yes there can be odd length in these SRP files).
+	if ((length&1)&&atoi16[ARCH_INDEX(*p)] != 0x7f) {
+		length=0;
+		out.b[++length] = atoi16[ARCH_INDEX(*p)];
+		++p;
+	} else
+		length = 0;
+
+	while (atoi16[ARCH_INDEX(*p)] != 0x7f && atoi16[ARCH_INDEX(p[1])] != 0x7f) {
 		out.b[++length] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	++p;
 	out.b[0] = length;
-	memcpy(out.b + length+1, p, strlen(p)+1);
+	if (*p) {
+		++p;
+		memcpy(out.b + length+1, p, strlen(p)+1);
+	}
 
 	return out.b;
 }

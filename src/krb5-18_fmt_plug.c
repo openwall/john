@@ -39,7 +39,7 @@ john_register_one(&fmt_krb5_18);
 #include "johnswap.h"
 #include "params.h"
 #include "options.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "pbkdf2_hmac_sha1.h"
 #include <openssl/aes.h>
 #ifdef _OPENMP

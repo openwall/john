@@ -126,10 +126,10 @@ static int valid512(char *ciphertext, struct fmt_main *self)
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[TAG_LENGTH + BINARY_SIZE512*2 + 1];
-	
+
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		ciphertext += TAG_LENGTH;
-	
+
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
 	strnzcpy(out + TAG_LENGTH, ciphertext, BINARY_SIZE512*2 + 1);
 	strlwr(out + TAG_LENGTH);

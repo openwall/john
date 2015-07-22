@@ -16,8 +16,6 @@
 
 #include "arch.h"
 
-#if defined(SIMD_PARA_SHA1)
-
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rawSHA1_LI;
 #elif FMT_REGISTERS_H
@@ -29,7 +27,7 @@ john_register_one(&fmt_rawSHA1_LI);
 #ifdef SIMD_COEF_32
 #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #include "misc.h"
 #include "common.h"
@@ -38,6 +36,18 @@ john_register_one(&fmt_rawSHA1_LI);
 #include "johnswap.h"
 #include "loader.h"
 #include "memdbg.h"
+
+/*
+ * Only effective for SIMD.
+ * Undef to disable reversing steps for benchmarking.
+ */
+#define REVERSE_STEPS
+
+#define INIT_A 0x67452301
+#define INIT_B 0xefcdab89
+#define INIT_C 0x98badcfe
+#define INIT_D 0x10325476
+#define INIT_E 0xC3D2E1F0
 
 #define FORMAT_LABEL			"Raw-SHA1-Linkedin"
 #define FORMAT_NAME			""
@@ -249,13 +259,18 @@ static int cmp_one(void * binary, int index)
 #endif
 }
 
+#ifndef REVERSE_STEPS
+#undef SSEi_REVERSE_STEPS
+#define SSEi_REVERSE_STEPS 0
+#endif
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 
   // get plaintext input in saved_key put it into ciphertext crypt_key
 #ifdef SIMD_COEF_32
-	SSESHA1body(saved_key, crypt_key, NULL, SSEi_MIXED_IN);
+	SIMDSHA1body(saved_key, crypt_key, NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
 #else
 	SHA1_Init( &ctx );
 	SHA1_Update( &ctx, (unsigned char *) saved_key, strlen( saved_key ) );
@@ -266,11 +281,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned char *realcipher;
+	static ARCH_WORD_32 out[BINARY_SIZE / 4];
+	unsigned char *realcipher = (unsigned char*)out;
 	int i;
-
-	if (!realcipher)
-		realcipher = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
 	ciphertext += TAG_LENGTH;
 
@@ -280,6 +293,13 @@ static void *get_binary(char *ciphertext)
 	}
 #ifdef SIMD_COEF_32
 	alter_endianity(realcipher, BINARY_SIZE);
+#ifdef REVERSE_STEPS
+	out[0] -= INIT_A;
+	out[1] -= INIT_B;
+	out[2] -= INIT_C;
+	out[3] -= INIT_D;
+	out[4] -= INIT_E;
+#endif
 #endif
 	return (void *)realcipher;
 }
@@ -315,7 +335,8 @@ static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[1] & 0x7fff
 static char *source(char *source, void *binary)
 {
 	static char Buf[CIPHERTEXT_LENGTH + 1];
-	unsigned char realcipher[BINARY_SIZE];
+	ARCH_WORD_32 out[BINARY_SIZE / 4];
+	unsigned char *realcipher = (unsigned char*)out;
 	unsigned char *cpi;
 	char *cpo;
 	int i;
@@ -341,6 +362,13 @@ static char *source(char *source, void *binary)
 #endif
 	memcpy(realcipher, binary, BINARY_SIZE);
 #ifdef SIMD_COEF_32
+#if defined(REVERSE_STEPS)
+	out[0] += INIT_A;
+	out[1] += INIT_B;
+	out[2] += INIT_C;
+	out[3] += INIT_D;
+	out[4] += INIT_E;
+#endif
 	alter_endianity(realcipher, BINARY_SIZE);
 #endif
 	strcpy(Buf, FORMAT_TAG);
@@ -422,5 +450,3 @@ struct fmt_main fmt_rawSHA1_LI = {
 };
 
 #endif /* plugin stanza */
-
-#endif /* defined(SIMD_PARA_SHA1) && SIMD_PARA_SHA1 < 4 */

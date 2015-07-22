@@ -24,7 +24,7 @@ john_register_one(&fmt_IPB2);
 #include "md5.h"
 #include "common.h"
 #include "formats.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 
 #if defined(_OPENMP)
 #include <omp.h>
@@ -370,7 +370,7 @@ key_cleaning:
 			keybuffer[14*SIMD_COEF_32] = len << 3;
 		}
 
-		SSEmd5body(&key_buf[t*NBKEYS*64], (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
+		SIMDmd5body(&key_buf[t*NBKEYS*64], (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
 		for (index = 0; index < NBKEYS; index++) {
 			// Somehow when I optimised this it got faster in Valgrind but slower IRL
 			for (i = 0; i < BINARY_SIZE; i++) {
@@ -380,8 +380,8 @@ key_cleaning:
 			}
 		}
 
-		SSEmd5body(&saved_key[t*NBKEYS*64], (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
-		SSEmd5body(empty_key, (unsigned int*)&crypt_key[t*NBKEYS*16], (unsigned int*)&crypt_key[t*NBKEYS*16], SSEi_RELOAD|SSEi_MIXED_IN);
+		SIMDmd5body(&saved_key[t*NBKEYS*64], (unsigned int*)&crypt_key[t*NBKEYS*16], NULL, SSEi_MIXED_IN);
+		SIMDmd5body(empty_key, (unsigned int*)&crypt_key[t*NBKEYS*16], (unsigned int*)&crypt_key[t*NBKEYS*16], SSEi_RELOAD|SSEi_MIXED_IN);
 	}
 	//dump_stuff_mmx_msg("\nfinal ", saved_key, 64, count-1);
 	//dump_out_mmx_msg("result", crypt_key, 16, count-1);

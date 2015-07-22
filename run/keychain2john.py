@@ -8,7 +8,32 @@
 #
 # This code may be freely used and modified for any purpose.
 #
-# For "inner working details", see keychain2john.c file
+# How it works:
+#
+# The parts of the keychain we're interested in are "blobs" (see ssblob.h in
+# Apple's code). There are two types - DbBlobs and KeyBlobs.
+#
+# Each blob starts with the magic hex string FA DE 07 11 - so we search for
+# that. There's only one DbBlob (at the end of the file), and that contains the
+# file encryption key (amongst other things), encrypted with the master key.
+# The master key is derived purely from the user's password, and a salt, also
+# found in the DbBlob. PKCS #5 2 pbkdf2 is used for deriving the master key.
+#
+# DbBlob format:
+#
+# The offsets from the start of the blob are as follows:
+#
+#  0 0xfade0711 - magic number
+#  4 version
+#  8 crypto-offset - offset of the encryption and signing key
+# 12 total len
+# 16 signature (16 bytes)
+# 32 sequence
+# 36 idletimeout
+# 40 lockonsleep flag
+# 44 salt (20 bytes)
+# 64 iv (8 bytes)
+# 72 blob signature (20)
 #
 # Output Format: filename:$keychain$*salt*iv*ciphertext
 

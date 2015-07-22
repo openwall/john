@@ -30,7 +30,6 @@ john_register_one(&fmt_pufferfish);
 #include "params.h"
 #include "options.h"
 #include "pufferfish_common.h"
-// #include "pufferfish_itoa64.h"
 #include "pufferfish.h"
 #include "memdbg.h"
 
@@ -87,16 +86,16 @@ static void done(void)
 
 static void *get_salt(char *ciphertext)
 {
-        static struct custom_salt cs;
+	static struct custom_salt cs;
 
 	char *p = ciphertext;
         char *q = strrchr(ciphertext, '$');
 	int len = q - p;
 
-        memset(&cs, 0, sizeof(cs));
-        strncpy(cs.settings, p, len);
+	memset(&cs, 0, sizeof(cs));
+	strncpy(cs.settings, p, len);
 
-        return (void *)&cs;
+	return (void *)&cs;
 }
 
 int decode64 (unsigned char *dst, int size, char *src);
@@ -118,7 +117,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!p)
 		return 0;
 	len = p-ciphertext-TAG_LENGTH;
-	if (len > sizeof(cs.settings)-1 || len < 5)
+	// -1 for the NULL, -4 for $PF$ which also ends up in salt.
+	if (len > sizeof(cs.settings)-1-4 || len < 5)
 		return 0;
 	memcpy(cs.settings, &ciphertext[TAG_LENGTH], len);
 	cs.settings[len] = 0;

@@ -71,7 +71,7 @@ static void init(struct fmt_main *self)
 static void *get_salt(char *ciphertext)
 {
 	int end = 0, i, len = strlen(ciphertext);
-	static unsigned char ret[64];
+	static unsigned char ret[SALT_SIZE];
 
 	memset(ret, 0, sizeof(ret));
 	for (i = len - 1; i >= 0; i--)
@@ -237,7 +237,7 @@ struct fmt_main fmt_cuda_cryptsha256 = {
 		BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE,
-		SALT_ALIGN,
+		MEM_ALIGN_NONE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,

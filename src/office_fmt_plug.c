@@ -31,7 +31,7 @@ john_register_one(&fmt_office);
 #include "sha2.h"
 #include "johnswap.h"
 #include "office_common.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "memdbg.h"
 
 //#undef SIMD_COEF_32
@@ -192,7 +192,7 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 			keys[GETPOS_1(1, j)] = i>>8;
 		}
 		// Here we output to 4 bytes past start of input buffer.
-		SSESHA1body(keys, &keys32[SIMD_COEF_32], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+		SIMDSHA1body(keys, &keys32[SIMD_COEF_32], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 	}
 	// last iteration is output to start of input buffer, then 32 bit 0 appended.
 	// but this is still ends up being 24 bytes of crypt data.
@@ -200,14 +200,14 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 		keys[GETPOS_1(0, j)] = i&0xff;
 		keys[GETPOS_1(1, j)] = i>>8;
 	}
-	SSESHA1body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+	SIMDSHA1body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 
 	// Finally, append "block" (0) to H(n)
 	// hashBuf = SHA1Hash(hashBuf, 0);
 	for (i = 0; i < SIMD_PARA_SHA1; ++i)
 		memset(&keys[GETPOS_1(23,i*SIMD_COEF_32)], 0, 4*SIMD_COEF_32);
 
-	SSESHA1body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
+	SIMDSHA1body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
 
 	// Now convert back into a 'flat' value, which is a flat array.
 	for (i = 0; i < SHA1_LOOP_CNT; ++i)
@@ -302,7 +302,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 			keys[GETPOS_1(2, j)] = i>>16;
 		}
 		// Here we output to 4 bytes past start of input buffer.
-		SSESHA1body(keys, &keys32[SIMD_COEF_32], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+		SIMDSHA1body(keys, &keys32[SIMD_COEF_32], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 	}
 	// last iteration is output to start of input buffer, then 32 bit 0 appended.
 	// but this is still ends up being 24 bytes of crypt data.
@@ -311,7 +311,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 		keys[GETPOS_1(1, j)] = (i>>8)&0xff;
 		keys[GETPOS_1(2, j)] = i>>16;
 	}
-	SSESHA1body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+	SIMDSHA1body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 
 	// Finally, append "block" (0) to H(n)
 	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
@@ -321,7 +321,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 		// 28 bytes of crypt data (192 bits).
 		keys[GETPOS_1(63, i)] = 224;
 	}
-	SSESHA1body(keys, (ARCH_WORD_32*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
+	SIMDSHA1body(keys, (ARCH_WORD_32*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
 	for (i = 0; i < SHA1_LOOP_CNT; ++i)
 		memcpy(hashBuf[i], crypt[i], 20);
 
@@ -330,7 +330,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 		for (j = 0; j < 8; ++j)
 			keys[GETPOS_1(20+j, i)] = encryptedVerifierHashValueBlockKey[j];
 	}
-	SSESHA1body(keys, (ARCH_WORD_32*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
+	SIMDSHA1body(keys, (ARCH_WORD_32*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
 	for (i = 0; i < SHA1_LOOP_CNT; ++i)
 		memcpy(&hashBuf[i][32], crypt[i], 20);
 
@@ -441,7 +441,7 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 		for (j = 0; j < SHA512_LOOP_CNT; j++)
 			keys32[(j&(SIMD_COEF_64-1))*2 + j/SIMD_COEF_64*2*SHA_BUF_SIZ*SIMD_COEF_64 + 1] = i_be;
 
-		SSESHA512body(keys, (ARCH_WORD_64*)crypt, NULL, SSEi_MIXED_IN);
+		SIMDSHA512body(keys, (ARCH_WORD_64*)crypt, NULL, SSEi_MIXED_IN);
 
 		// Then we output to 4 bytes past start of input buffer.
 		for (j = 0; j < SHA512_LOOP_CNT; j++) {
@@ -463,7 +463,7 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 		keys[GETPOS_512(1, j)] = (i>>8)&0xff;
 		keys[GETPOS_512(2, j)] = i>>16;
 	}
-	SSESHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+	SIMDSHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 
 	// Finally, append "block" (0) to H(n)
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
@@ -473,7 +473,7 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 		// 72 bytes of crypt data (0x240  we already have 0x220 here)
 		keys[GETPOS_512(127, i)] = 0x40;
 	}
-	SSESHA512body(keys, (ARCH_WORD_64*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
+	SIMDSHA512body(keys, (ARCH_WORD_64*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
 	for (i = 0; i < SHA512_LOOP_CNT; ++i)
 		memcpy((ARCH_WORD_64*)(hashBuf[i]), crypt[i], 64);
 
@@ -482,7 +482,7 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 		for (j = 0; j < 8; ++j)
 			keys[GETPOS_512(64+j, i)] = encryptedVerifierHashValueBlockKey[j];
 	}
-	SSESHA512body(keys, (ARCH_WORD_64*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
+	SIMDSHA512body(keys, (ARCH_WORD_64*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
 
 	for (i = 0; i < SHA512_LOOP_CNT; ++i)
 		memcpy((ARCH_WORD_64*)(&hashBuf[i][64]), crypt[i], 64);

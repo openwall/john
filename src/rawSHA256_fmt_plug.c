@@ -30,6 +30,21 @@ john_register_one(&fmt_rawSHA256);
 #include "johnswap.h"
 #include "formats.h"
 
+/*
+ * Only effective for SIMD.
+ * Undef to disable reversing steps for benchmarking.
+ */
+#define REVERSE_STEPS
+
+#define INIT_A 0x6a09e667
+#define INIT_B 0xbb67ae85
+#define INIT_C 0x3c6ef372
+#define INIT_D 0xa54ff53a
+#define INIT_E 0x510e527f
+#define INIT_F 0x9b05688c
+#define INIT_G 0x1f83d9ab
+#define INIT_H 0x5be0cd19
+
 #ifdef _OPENMP
 #ifdef SIMD_COEF_32
 #ifndef OMP_SCALE
@@ -42,7 +57,7 @@ john_register_one(&fmt_rawSHA256);
 #endif
 #include <omp.h>
 #endif
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "Raw-SHA256"
@@ -118,6 +133,42 @@ static void done(void)
 #ifndef SIMD_COEF_32
 	MEM_FREE(saved_len);
 #endif
+}
+
+static void *get_binary(char *ciphertext)
+{
+	static unsigned int *outw;
+	unsigned char *out;
+	char *p;
+	int i;
+
+	if (!outw)
+		outw = mem_calloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+
+	out = (unsigned char*)outw;
+
+	p = ciphertext + HEX_TAG_LEN;
+	for (i = 0; i < BINARY_SIZE; i++) {
+		out[i] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				 atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+
+#ifdef SIMD_COEF_32
+	alter_endianity (out, BINARY_SIZE);
+#ifdef REVERSE_STEPS
+	outw[0] -= INIT_A;
+	outw[1] -= INIT_B;
+	outw[2] -= INIT_C;
+	outw[3] -= INIT_D;
+	outw[4] -= INIT_E;
+	outw[5] -= INIT_F;
+	outw[6] -= INIT_G;
+	outw[7] -= INIT_H;
+#endif
+#endif
+	return out;
 }
 
 #ifdef SIMD_COEF_32
@@ -212,6 +263,11 @@ static char *get_key(int index)
 }
 #endif
 
+#ifndef REVERSE_STEPS
+#undef SSEi_REVERSE_STEPS
+#define SSEi_REVERSE_STEPS 0
+#endif
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
@@ -223,9 +279,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef SIMD_COEF_32
-		SSESHA256body(&saved_key[(unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32],
+		SIMDSHA256body(&saved_key[(unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32],
 		              &crypt_out[(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32],
-		              NULL, SSEi_MIXED_IN);
+		              NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
 #else
 		SHA256_CTX ctx;
 		SHA256_Init(&ctx);
@@ -295,7 +351,7 @@ struct fmt_main fmt_rawSHA256 = {
 		sha256_common_prepare,
 		sha256_common_valid,
 		sha256_common_split,
-		sha256_common_binary,
+		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

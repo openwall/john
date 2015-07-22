@@ -87,7 +87,7 @@ JOHN_OBJS = \
 	base64.o base64_convert.o \
 	md4.o sha2.o \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
-	dynamic_compiler.o \
+	dynamic_compiler.o dynamic_compiler_lib.o \
 	ripemd.o tiger.o \
 	ssh2john.o \
 	pfx2john.o \
@@ -95,22 +95,18 @@ JOHN_OBJS = \
 	rar2john.o \
 	zip2john.o pkzip.o gladman_hmac.o gladman_pwd2key.o \
 	racf2john.o \
-	keychain2john.o \
-	kwallet2john.o \
-	pwsafe2john.o \
 	dmg2john.o \
 	keepass2john.o \
-	keyring2john.o \
 	hccap2john.o \
 	$(PLUGFORMATS_OBJS) \
 	dyna_salt.o dummy.o \
 	gost.o \
 	common-gpu.o \
-	batch.o bench.o build_table.o charset.o common.o compiler.o config.o cracker.o \
-	crc32.o external.o formats.o getopt.o hash_type_128.o hash_type_192.o idle.o inc.o john.o list.o \
-	loader.o logger.o mask.o mask_ext.o math.o memory.o misc.o options.o \
-	params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
-	tty.o twister.o wordlist.o \
+	batch.o bench.o bt.o charset.o common.o compiler.o config.o cracker.o \
+	crc32.o external.o formats.o getopt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o \
+	idle.o inc.o john.o list.o loader.o logger.o mask.o mask_ext.o math.o memory.o misc.o \
+	options.o params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
+	tty.o bt_twister.o wordlist.o \
 	mkv.o mkvlib.o \
 	listconf.o \
 	fake_salts.o \
@@ -136,11 +132,10 @@ GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o
 
 PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../run/unique@EXE_EXT@ ../run/undrop@EXE_EXT@ \
-	../run/ssh2john@EXE_EXT@ ../run/rar2john@EXE_EXT@ ../run/zip2john@EXE_EXT@ ../run/dynacomptest@EXE_EXT@ \
+	../run/ssh2john@EXE_EXT@ ../run/rar2john@EXE_EXT@ ../run/zip2john@EXE_EXT@ \
 	../run/genmkvpwd@EXE_EXT@ ../run/mkvcalcproba@EXE_EXT@ ../run/calc_stat@EXE_EXT@ \
 	../run/tgtsnarf@EXE_EXT@ ../run/racf2john@EXE_EXT@ ../run/hccap2john@EXE_EXT@ \
-	../run/pwsafe2john@EXE_EXT@ ../run/raw2dyna@EXE_EXT@ ../run/keepass2john@EXE_EXT@ ../run/pfx2john@EXE_EXT@ \
-	../run/keychain2john@EXE_EXT@ ../run/keyring2john@EXE_EXT@ ../run/kwallet2john@EXE_EXT@ \
+	../run/raw2dyna@EXE_EXT@ ../run/pfx2john@EXE_EXT@  ../run/keepass2john@EXE_EXT@ \
 	../run/dmg2john@EXE_EXT@ ../run/putty2john@EXE_EXT@ ../run/uaf2john@EXE_EXT@ \
 	../run/wpapcap2john@EXE_EXT@ \
 	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/luks2john@EXE_EXT@ ../run/base64conv@EXE_EXT@
@@ -173,12 +168,12 @@ endif
 #   ** DONE $(LN) x86-sse.h arch.h or $(LN) x86-64 arch.h
 # for now, in my testing, this is hard coded to x86-32.h
 # NOTE, we also need to add extra .o file's some how.
-#  ** DONE x86-64.o sse-intrinsics.o for 64 bit
-#  ** DONE x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o  for 32 bit:
+#  ** DONE x86-64.o simd-intrinsics.o for 64 bit
+#  ** DONE x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o simd-intrinsics.o  for 32 bit:
 #
 # for ssexi builds:
-# x86-64.o sse-intrinsics-64.o for 64 bit
-# x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o  for 32 bit:
+# x86-64.o simd-intrinsics-64.o for 64 bit
+# x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o simd-intrinsics-32.o  for 32 bit:
 #   and add -DUSING_ICC_S_FILE to CFLAGS
 #
 #  also need to figure out -DUNDERSCORES and add to ASFLAGS
@@ -293,7 +288,7 @@ DES_std.o:	DES_std.c arch.h common.h DES_std.h memdbg.h misc.h
 
 LM_fmt.o:	LM_fmt.c arch.h misc.h memory.h DES_bs.h common.h formats.h memdbg.h
 
-MD5_fmt.o:	MD5_fmt.c arch.h misc.h sse-intrinsics.h MD5_std.h common.h formats.h memdbg.h
+MD5_fmt.o:	MD5_fmt.c arch.h misc.h simd-intrinsics.h MD5_std.h common.h formats.h memdbg.h
 
 MD5_std.o:	MD5_std.c arch.h common.h MD5_std.h memdbg.h
 
@@ -341,9 +336,9 @@ dummy.o:	dummy.c common.h formats.h memdbg.h
 
 dyna_salt.o:	dyna_salt.c formats.h memory.h dyna_salt.h memdbg.h
 
-dynamic_big_crypt.o:	dynamic_big_crypt.c arch.h openssl_local_overrides.h misc.h common.h formats.h sha.h sha2.h md5.h md4.h stdint.h gost.h sph_haval.h sph_ripemd.h sph_tiger.h sph_whirlpool.h dynamic.h johnswap.h sse-intrinsics.h dynamic_types.h memdbg.h
+dynamic_big_crypt.o:	dynamic_big_crypt.c arch.h openssl_local_overrides.h misc.h common.h formats.h sha.h sha2.h md5.h md4.h stdint.h gost.h sph_haval.h sph_ripemd.h sph_tiger.h sph_whirlpool.h dynamic.h johnswap.h simd-intrinsics.h dynamic_types.h memdbg.h
 
-dynamic_fmt.o:	dynamic_fmt.c arch.h sse-intrinsics.h misc.h common.h formats.h params.h md5.h md4.h dynamic.h options.h config.h sha.h gost.h memory.h unicode.h johnswap.h pkzip.h aligned.h fake_salts.h dynamic_types.h memdbg.h
+dynamic_fmt.o:	dynamic_fmt.c arch.h simd-intrinsics.h misc.h common.h formats.h params.h md5.h md4.h dynamic.h options.h config.h sha.h gost.h memory.h unicode.h johnswap.h pkzip.h aligned.h fake_salts.h dynamic_types.h memdbg.h
 
 dynamic_parser.o:	dynamic_parser.c arch.h misc.h common.h formats.h config.h md5.h options.h john.h unicode.h dynamic.h memdbg.h
 
@@ -385,19 +380,13 @@ jumbo.o:	jumbo.c jumbo.h params.h memory.h memdbg.h
 
 keepass2john.o:	keepass2john.c autoconfig.h stdint.h missing_getopt.h jumbo.h params.h memory.h memdbg.h
 
-keychain2john.o:	keychain2john.c stdint.h jumbo.h memdbg.h
-
-keyring2john.o:	keyring2john.c stdint.h memory.h jumbo.h memdbg.h
-
-kwallet2john.o:	kwallet2john.c stdint.h jumbo.h memdbg.h
-
 list.o:	list.c memory.h list.h memdbg.h
 
 version.h: find_version
 
 find_version:
 	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
-	diff >/dev/null -Nq version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
+	diff >/dev/null 2>/dev/null version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
 
 listconf.o:	version.h listconf.h listconf.c autoconfig.h arch.h jumbo.h params.h path.h formats.h options.h unicode.h dynamic.h config.h regex.h john_build_rule.h common-opencl.h memdbg.h
 
@@ -465,8 +454,6 @@ pkzip.o:	pkzip.c arch.h misc.h common.h memory.h formats.h pkzip.h memdbg.h
 
 putty2john.o:	putty2john.c autoconfig.h memory.h jumbo.h memdbg.h
 
-pwsafe2john.o:	pwsafe2john.c stdint.h jumbo.h memdbg.h
-
 racf2john.o:	racf2john.c autoconfig.h jumbo.h memory.h memdbg.h
 
 rar2john.o:	rar2john.c jumbo.h common.h arch.h params.h crc32.h unicode.h stdint.h jumbo.h base64_convert.h sha2.h rar2john.h missing_getopt.h memdbg.h
@@ -497,7 +484,7 @@ signals.o:	signals.c os.h arch.h misc.h params.h tty.h options.h config.h bench.
 
 single.o:	single.c misc.h params.h common.h memory.h os.h signals.h loader.h logger.h status.h recovery.h options.h rpp.h rules.h external.h cracker.h john.h unicode.h config.h memdbg.h
 
-sse-intrinsics.o:	sse-intrinsics.c pseudo_intrinsics.h arch.h memory.h md5.h MD5_std.h stdint.h johnswap.h sse-intrinsics-load-flags.h aligned.h memdbg.h
+simd-intrinsics.o:	simd-intrinsics.c pseudo_intrinsics.h arch.h memory.h md5.h MD5_std.h stdint.h johnswap.h simd-intrinsics-load-flags.h aligned.h memdbg.h
 
 ssh2john.o:	ssh2john.c jumbo.h common.h arch.h params.h memdbg.h
 
@@ -615,10 +602,6 @@ aes/aes.a:
 	$(RM) ../run/keepass2john
 	$(LN) john ../run/keepass2john
 
-../run/keyring2john: ../run/john
-	$(RM) ../run/keyring2john
-	$(LN) john ../run/keyring2john
-
 ../run/zip2john: ../run/john
 	$(RM) ../run/zip2john
 	$(LN) john ../run/zip2john
@@ -634,18 +617,6 @@ aes/aes.a:
 ../run/racf2john: ../run/john
 	$(RM) ../run/racf2john
 	$(LN) john ../run/racf2john
-
-../run/keychain2john: ../run/john
-	$(RM) ../run/keychain2john
-	$(LN) john ../run/keychain2john
-
-../run/kwallet2john: ../run/john
-	$(RM) ../run/kwallet2john
-	$(LN) john ../run/kwallet2john
-
-../run/pwsafe2john: ../run/john
-	$(RM) ../run/pwsafe2john
-	$(LN) john ../run/pwsafe2john
 
 ../run/dmg2john: ../run/john
 	$(RM) ../run/dmg2john
@@ -699,10 +670,6 @@ aes/aes.a:
 	$(CC) symlink.c -o ../run/keepass2john.exe
 	$(STRIP) ../run/keepass2john.exe
 
-../run/keyring2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/keyring2john.exe
-	$(STRIP) ../run/keyring2john.exe
-
 ../run/zip2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/zip2john.exe
 	$(STRIP) ../run/zip2john.exe
@@ -718,18 +685,6 @@ aes/aes.a:
 ../run/racf2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/racf2john.exe
 	$(STRIP) ../run/racf2john.exe
-
-../run/keychain2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/keychain2john.exe
-	$(STRIP) ../run/keychain2john.exe
-
-../run/kwallet2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/kwallet2john.exe
-	$(STRIP) ../run/kwallet2john.exe
-
-../run/pwsafe2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/pwsafe2john.exe
-	$(STRIP) ../run/pwsafe2john.exe
 
 ../run/dmg2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/dmg2john.exe
@@ -776,8 +731,9 @@ aes/aes.a:
 ../run/wpapcap2john@EXE_EXT@: wpapcap2john.o
 	$(LD) $(LDFLAGS) wpapcap2john.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/wpapcap2john
 
-../run/dynacomptest@EXE_EXT@: dynamic_compiler.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o
-	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@  @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ -DWITH_MAIN -D_JOHN_MISC_NO_LOG -DUNICODE_NO_OPTIONS @MEMDBG_CFLAGS@ dynamic_compiler.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o $(LDFLAGS)  @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@  -o ../run/dynacomptest
+# Note, this one is NOT build by default. To get it, do a make ../run/dynacomptest (or ../run/dynacomptest.exe for cygwin builds)
+../run/dynacomptest@EXE_EXT@: dynamic_compiler.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o
+	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@  @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ -DWITH_MAIN -D_JOHN_MISC_NO_LOG -DUNICODE_NO_OPTIONS @MEMDBG_CFLAGS@ dynamic_compiler.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o $(LDFLAGS)  @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@  -o ../run/dynacomptest
 
 ../run/luks2john@EXE_EXT@: luks2john.o
 	$(LD) $(LDFLAGS) luks2john.o @OPENSSL_LIBS@ @OPENMP_CFLAGS@ -o ../run/luks2john
@@ -812,6 +768,7 @@ unrarppm.o: unrarppm.c
 check: default
 	../run/john --list=build-info
 	../run/john --test=0 --verbosity=2
+	../run/john --test=0 --verbosity=2 --format=dynamic-all
 
 depend:
 	makedepend -fMakefile.dep -Y *.c 2>> /dev/null
@@ -911,23 +868,23 @@ charsets: ../run/ascii.chr ../run/alpha.chr ../run/lowernum.chr ../run/uppernum.
 	../run/john -make-charset=../run/utf8.chr -pot:rockyou.utf8.24.pot
 
 
-# For the time being, icc builds a better sse-intrinsics.S but this may
-# change over time. NOTE that sse-intrinsics.S is never re-built unless you
+# For the time being, icc builds a better simd-intrinsics.S but this may
+# change over time. NOTE that simd-intrinsics.S is never re-built unless you
 # manually do a "make intrinsics".
-intrinsics: clean-intrinsics sse-intrinsics-64.S sse-intrinsics-32.S
+intrinsics: clean-intrinsics simd-intrinsics-64.S simd-intrinsics-32.S
 
 clean-intrinsics:
-	$(RM) sse-intrinsics-64.S sse-intrinsics-32.S sse-intrinsics-win32.S
+	$(RM) simd-intrinsics-64.S simd-intrinsics-32.S simd-intrinsics-win32.S
 
-sse-intrinsics-64.S:
+simd-intrinsics-64.S:
 	$(LN) -f x86-64.h arch.h
-	icc -S -o sse-intrinsics-64.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE -Wall
+	icc -S -o simd-intrinsics-64.S simd-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE -Wall
 
-sse-intrinsics-32.S:
+simd-intrinsics-32.S:
 	$(LN) -f x86-sse.h arch.h
-	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE -Wall
-	perl sse2i_winfix.pl sse-intrinsics-32.S sse-intrinsics-win32.S
-	$(MV) sse-intrinsics-win32.S sse-intrinsics-32.S
+	icc -m32 -S -o simd-intrinsics-32.S simd-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE -Wall
+	perl sse2i_winfix.pl simd-intrinsics-32.S simd-intrinsics-win32.S
+	$(MV) simd-intrinsics-win32.S simd-intrinsics-32.S
 
 #######################################################################
 ## NOTE, auto re-building configure will ONLY happen IF the user has ##

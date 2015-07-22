@@ -1,0 +1,90 @@
+Dynamic 'self-describing' mode.
+
+This is a new mode, that really opens up ease of use, for creating and using
+'dynamic' formats. This format is based upon work done in the dynamic format
+to allow 'thin' formats to be able to provide their own script to run. Thus
+thin formats are no longer tied to the concept of having to create a 100%
+valid dynamic sub-format, to be able to link to it by a thin dynamic. Now
+a thin format is able to create a brand new hash, that has never been part
+of dynamic at all. Once that code was done and working (documented in the
+DYNAMIC readme file), it allowed taking this one step further. That step is
+to not even require a thin format to be created!  By incorporating a parsing
+and compiling component, that is able to read a specific properly built
+expression, and generate valid script data for that expression, we can
+now build a brand new hashing function within JtR with absolutely no
+coding required by the end user.  This is truly a breakthrough in end
+user ease of usage.
+
+At the current time, the only way to tell John the expression for this
+new format, is within the --format= command line. Here is an example.
+
+./john input.txt --format='sha512(ripemd320($s.$p).$p)'
+
+NOTE, there likely will have to be shell quoting done. For unix, you
+will likely have to use single quotes.  To see what is needed, use
+echo as a test.  So  echo 'sha1($p)'   should show sha1($p) for unix.
+echo "sha1($p)" in unix shows sha1() which is NOT right. The shell
+ate our $p symbol.
+
+This will read all items from the input.txt file, which are of this
+format:    hex_128_bytes$salt     It will then perform the hashing
+denoted by the above expression, and look for password matches.
+
+Here is the expression language used.  NOTE, this same expression language
+is also found in the run/pass_gen.pl engine. There are a few deviations
+(such as more crypt types in John than pass_gen), but in all, the language
+is very similar, in fact the parsing engine in john was ported from the
+parser in pass_gen.pl.
+
+The expression MUST be a single crypt-hash expression. That means that
+only a single hash starts the expression, and there are not multiple
+hashes appended to each other.
+  so  md5($p) is valid, but md5($p).md5($p) is NOT valid
+
+All concatenation must have a dot '.' character between it.
+  so  md5($p.$p) is valid, but md5($p$s) is not valid.
+
+$s or $salt is used for the 'salt' constant
+$s2 is used for the 2nd salt constant
+$p or $pass is used for the password being tried
+$u is for the user id (which is the first field in the input file)
+lc($u) is for lower case of the user name (proper unicode lower casing)
+uc($u) is for upper case of the user name (again, proper unicode up casing)
+lc($p and uc($p) are for lower/upper casing the password.
+If uc($u) or lc($u) are used in the expression, then ALL $u must be done 
+  the same way.  This also applies to the password.
+  so  md5($u.$p.$) is valid, but md5(uc($u).$p.$u) is not valid
+  This is a limitation of the dynamic format in general.
+$c1 to $c8 are 8 'constants' that can be used. NOTE, they must be used
+  in order, i.e. if you have a $c2, then you should have a $c1 already.
+  so md5($s.$c1.$p.$c1),c1=x   gives us  md5($s."x".$p."x")
+When using constants, they must be appended with commas to the end of
+  the expression.  NOTE, if there are any ':' chars used in constants
+  then these constants must be added with an escape. An example is:
+  md5($c1.$p),c1=test_\xea_test  Which is md5("test_:_test".$p)
+The hashing functions come in multiple 'flavors', doing slightly different
+  things. examples: md5(exp) MD5(exp) md5_raw(exp) md5_64(exp) md5_64c(exp)
+  There is the lower case hash (like md5(...)) It returns it's results
+  as a lower case base16 number. So md5("password") would return
+  5f4dcc3b5aa765d61d8327deb882cf99,  Upper case of the hash, returns the
+  upper cased base16 hash. So MD5("password") would return
+  5F4DCC3B5AA765D61D8327DEB882CF99.  the hash with _raw appended, is simply
+  the 'raw' binary blob returned by the hash.  So md5_raw("password") would
+  give us the 16 byte binary that starts with byte '\0x5f' and 15 others.
+  md5_64("password") returns the mime base-64 result which is
+  X03MO1qnZdYdgyfeuILPmQ   md5_64c("password") returns the crypt alphabet
+  base-64 string which is LorACpebNRMRUmTSi69DaE.  Normally, the _64 and
+  _64c are used as the outer function, informing john what the input
+  hash type 'looks' like (i.e. the hashes are in base-64). Same goes
+  for the upper case. If the outer function is up case, then only
+  upper cased hex strings of the right length will be valid.
+The hashing functions (each have a lc, uc, _raw, _64 and _64c version)
+  are:   md2, md4, md5, sha1, sha224, sha256, sha384, sha512, tiger,
+         ripemd128, ripemd160, ripemd256, ripemd320, whirlpool, gost, 
+         skein224, skein256, skein384, skein512, panama,
+         haval_128_3, haval_128_4, haval_128_5,
+         haval_160_3, haval_160_4, haval_160_5,
+         haval_192_3, haval_192_4, haval_192_5,
+         haval_256_3, haval_256_4, haval_256_5,
+These functions can be intermixed in pretty much any way. So a hash of
+  sha512(md5(panama($p)))  is perfectly 'valid'

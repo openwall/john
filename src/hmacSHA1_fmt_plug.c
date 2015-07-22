@@ -28,7 +28,7 @@ john_register_one(&fmt_hmacSHA1);
 #include "formats.h"
 #include "sha.h"
 #include "johnswap.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "HMAC-SHA1"
@@ -342,18 +342,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 #ifdef SIMD_COEF_32
 		if (new_keys) {
-			SSESHA1body(&ipad[index * SHA_BUF_SIZ * 4],
+			SIMDSHA1body(&ipad[index * SHA_BUF_SIZ * 4],
 			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN);
-			SSESHA1body(&opad[index * SHA_BUF_SIZ * 4],
+			SIMDSHA1body(&opad[index * SHA_BUF_SIZ * 4],
 			            (unsigned int*)&prep_opad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN);
 		}
-		SSESHA1body(cur_salt,
+		SIMDSHA1body(cur_salt,
 		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
 		            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
-		SSESHA1body(&crypt_key[index * SHA_BUF_SIZ * 4],
+		SIMDSHA1body(&crypt_key[index * SHA_BUF_SIZ * 4],
 		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
 		            (unsigned int*)&prep_opad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);

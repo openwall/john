@@ -12,22 +12,6 @@
 #
 # To read from stdin instead, use: ./sap2john.pl - [A|B|D|E|F|H]
 #
-# If you omit the optional parameter, the script generates output
-# for all codvn F and codvn H hashes, as well as for all the
-# CODVN B hashes (including hashes where the script assumes CODVN B
-# because the CODVN column is missing or empty).
-# That means, the default implementation will mix up to 3 different
-# hash formats into the output file, but since these formats
-# are not ambiguous, that is not a problem.
-# CODVN A, D, and E hashes will be skipped, because these hashes
-# are currently not supported, and because these hashes would
-# be considered as valid CODVN B hashes by the current sapB_fmt_plug.c.
-# (And, by the way, CODVN A and CODVN D are obsolete.)
-#
-# By specifying the optional parameter, you can decide which
-# SAP hash format will be written to stdout instead of the default
-# hash formats.
-#
 # To generate a suitable input file for this script, download
 # the SAP hashes from one of the database tables USR02, USH02,
 # or USRPWDHISTORY.
@@ -52,10 +36,43 @@
 # If CODVN is empty (or the column is missing), but BCODE is filled,
 # the script assumes that the corresponding hash is a CODVN B hash,
 # but for very old USH02 records (created before around 1996)
-# probably CODVN was in use.
+# probably CODVN A was in use.
 #
-# Please note that currently John the Ripper (jumbo) only supports
-# SAP CODVN B (--format=sapb) and CODVN F (--format=sapg) hashes.
+#
+# If you omit the optional parameter, the script generates output
+# for all codvn F and codvn H hashes, as well as for all the
+# CODVN B hashes (including hashes where the script assumes CODVN B
+# because the CODVN column is missing or empty).
+# That means, the default implementation will mix up to 3 different
+# hash formats into the output file, but since these formats
+# are not ambiguous, that is not a problem.
+# John the Ripper (jumbo) currently supports these SAP hash formats:
+#         SAP CODVN B (--format=sapb)
+#         SAP CODVN F (--format=sapg)
+#         SAP CODVN H (--format=saph)
+# John the Ripper (jumbo) doesn't support these SAP hash formats
+#         SAP CODVN A (obsolete)
+#         SAP CODVN D (obsolete)
+#         SAP CODVN E (may still be used for older SAP releases)
+#
+# When running ./sap2john.pl with just a file name as a parameter,
+# CODVN A, D, and E hashes will be skipped, because these hashes
+# are currently not supported, and because these hashes would
+# be considered as valid CODVN B hashes by the current sapB_fmt_plug.c
+# implementation. (A format tag would need to be added to distinguish
+# these hash formats).
+#
+# By specifying the optional parameter, you can decide which
+# SAP hash format will be written to stdout instead of the default
+# hash formats.
+# So, running
+#         ./sap2john.pl <input-file>
+# is the same as running
+#         ./sap2john.pl <input-file> BFH
+# And
+#         ./sap2john.pl <input-file> E
+# would just extract the SAP CODVN E hashes.
+#
 #
 # FIXME: should the script generate different lines of output
 #        for the current password (e.g. uid=0, gid=$mandt[$i])

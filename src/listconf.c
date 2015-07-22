@@ -36,7 +36,7 @@
 #include <openssl/crypto.h>
 
 #include "arch.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "jumbo.h"
 #include "params.h"
 #include "path.h"

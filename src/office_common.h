@@ -1,4 +1,4 @@
-/* 
+/*
  * Office 2007-2013 cracker patch for JtR, common code. 2014 by JimF
  * This file takes replicated but common code, shared between the CPU
  * office format, and the GPU office formats, and places it into one

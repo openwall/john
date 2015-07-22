@@ -32,7 +32,7 @@ john_register_one(&FMT_STRUCT);
 #include "config.h"
 #include "options.h"
 #include "mask_ext.h"
-#include "interface.h"
+#include "bt_interface.h"
 
 #define FORMAT_LABEL			"Raw-SHA1-opencl"
 #define FORMAT_NAME			""

@@ -11,7 +11,7 @@
   Code added May 2014, JimF.  Released into public domain, and is usable
   in source or binary form, with or without modifications with no
   restrictions.
-  
+
 */
 
 #if !defined (__SKEY__JTR_H)

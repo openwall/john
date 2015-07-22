@@ -33,8 +33,6 @@
 #include "memdbg.h"
 
 extern struct fmt_main fmt_LM;
-extern struct fmt_main fmt_NETLM;
-extern struct fmt_main fmt_NETHALFLM;
 
 static double cand;
 
@@ -429,7 +427,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			                           "DefaultIncrementalLM")))
 				mode = "LM_ASCII";
 		} else if (db->format->params.label &&
-		           (!strcmp(db->format->params.label, "netlm") ||
+		           (!strcmp(db->format->params.label, "lm-opencl") ||
+		            !strcmp(db->format->params.label, "netlm") ||
 		            !strcmp(db->format->params.label, "nethalflm"))) {
 			if (!(mode = cfg_get_param(SECTION_OPTIONS, NULL,
 			                           "DefaultIncrementalLM")))

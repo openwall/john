@@ -175,7 +175,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	q = q + 1;
 	len = strspn(p, HEX_DIGITS);
-	if (len != q - p - 1 || len < 2 || len & 1 || len > sizeof(cur_salt->data))
+	if (len != q - p - 1 || len < 2 || (len & 1) || len/2 > sizeof(cur_salt->last_chunks))
 		return 0;
 	p = q; q = strchr(p, '$');	// inlined
 	if (!q)

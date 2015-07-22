@@ -1,15 +1,15 @@
-	.file "sse-intrinsics.c"
+	.file "simd-intrinsics.c"
 
 #ifdef UNDERSCORES
 #define MD5_Final                           _MD5_Final
 #define MD5_Init                            _MD5_Init
 #define MD5_Update                          _MD5_Update
-#define SSESHA1body                         _SSESHA1body
-#define SSESHA256body                       _SSESHA256body
-#define SSESHA512body                       _SSESHA512body
-#define SSEmd4body                          _SSEmd4body
-#define SSEmd5body                          _SSEmd5body
-#define SSEmd5body..0                       _SSEmd5body..0
+#define SIMDSHA1body                         _SIMDSHA1body
+#define SIMDSHA256body                       _SIMDSHA256body
+#define SIMDSHA512body                       _SIMDSHA512body
+#define SIMDmd4body                          _SIMDmd4body
+#define SIMDmd5body                          _SIMDmd5body
+#define SIMDmd5body..0                       _SIMDmd5body..0
 #define md5cryptsse                         _md5cryptsse
 #define memcpy                              _memcpy
 #define memset                              _memset
@@ -18,10 +18,10 @@
 
 	.text
 ..TXTST0:
-# -- Begin  SSEmd5body
+# -- Begin  SIMDmd5body
        .align    16,0x90
-	.globl SSEmd5body
-SSEmd5body:
+	.globl SIMDmd5body
+SIMDmd5body:
 # parameter 1: 2256 + %esp
 # parameter 2: 2260 + %esp
 # parameter 3: 2264 + %esp
@@ -3498,11 +3498,11 @@ SSEmd5body:
         ret       
         .align    16,0x90
 	.data
-# -- End  SSEmd5body
+# -- End  SIMDmd5body
 	.text
-# -- Begin  SSEmd5body..0
+# -- Begin  SIMDmd5body..0
        .align    16,0x90
-SSEmd5body..0:
+SIMDmd5body..0:
 # parameter 1: %eax
 # parameter 2: %edx
 # parameter 3: %ecx
@@ -6342,7 +6342,7 @@ SSEmd5body..0:
         ret       
         .align    16,0x90
 	.data
-# -- End  SSEmd5body..0
+# -- End  SIMDmd5body..0
 	.text
 # -- Begin  md5cryptsse
        .align    16,0x90
@@ -8879,7 +8879,7 @@ md5cryptsse:
         addl      %ecx, %eax
         xorl      %ecx, %ecx
         movl      $0, 12(%esp)
-        call      SSEmd5body..0
+        call      SIMDmd5body..0
 ..B3.254:
         incl      %ebx
         lea       -1(%ebx), %ecx
@@ -9030,10 +9030,10 @@ md5cryptsse:
 	.data
 # -- End  md5cryptsse
 	.text
-# -- Begin  SSEmd4body
+# -- Begin  SIMDmd4body
        .align    16,0x90
-	.globl SSEmd4body
-SSEmd4body:
+	.globl SIMDmd4body
+SIMDmd4body:
 # parameter 1: 2336 + %esp
 # parameter 2: 2340 + %esp
 # parameter 3: 2344 + %esp
@@ -11744,12 +11744,12 @@ SSEmd4body:
         ret       
         .align    16,0x90
 	.data
-# -- End  SSEmd4body
+# -- End  SIMDmd4body
 	.text
-# -- Begin  SSESHA1body
+# -- Begin  SIMDSHA1body
        .align    16,0x90
-	.globl SSESHA1body
-SSESHA1body:
+	.globl SIMDSHA1body
+SIMDSHA1body:
 # parameter 1: 960 + %esp
 # parameter 2: 964 + %esp
 # parameter 3: 968 + %esp
@@ -14379,12 +14379,12 @@ SSESHA1body:
         ret       
         .align    16,0x90
 	.data
-# -- End  SSESHA1body
+# -- End  SIMDSHA1body
 	.text
-# -- Begin  SSESHA256body
+# -- Begin  SIMDSHA256body
        .align    16,0x90
-	.globl SSESHA256body
-SSESHA256body:
+	.globl SIMDSHA256body
+SIMDSHA256body:
 # parameter 1: 800 + %esp
 # parameter 2: 804 + %esp
 # parameter 3: 808 + %esp
@@ -20285,12 +20285,12 @@ SSESHA256body:
         ret       
         .align    16,0x90
 	.data
-# -- End  SSESHA256body
+# -- End  SIMDSHA256body
 	.text
-# -- Begin  SSESHA512body
+# -- Begin  SIMDSHA512body
        .align    16,0x90
-	.globl SSESHA512body
-SSESHA512body:
+	.globl SIMDSHA512body
+SIMDSHA512body:
 # parameter 1: 1440 + %esp
 # parameter 2: 1444 + %esp
 # parameter 3: 1448 + %esp
@@ -24996,7 +24996,7 @@ SSESHA512body:
         ret       
         .align    16,0x90
 	.data
-# -- End  SSESHA512body
+# -- End  SIMDSHA512body
 	.section .rodata, "a"
 	.space 12, 0x00 	# pad
 	.align 16

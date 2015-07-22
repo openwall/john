@@ -60,7 +60,7 @@ john_register_one(&fmt_mssql12);
 #include "unicode.h"
 #include "sha2.h"
 #include "johnswap.h"
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "memdbg.h"
 #ifdef _OPENMP
 #include <omp.h>
@@ -367,7 +367,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				wucp[len + 4] = 0x80;
 			}
 		}
-		SSESHA512body(&saved_key[index], &crypt_out[HASH_IDX], NULL, SSEi_REVERSE_STEPS | SSEi_FLAT_IN);
+		SIMDSHA512body(&saved_key[index], &crypt_out[HASH_IDX], NULL, SSEi_REVERSE_STEPS | SSEi_FLAT_IN);
 #else
 		SHA512_CTX ctx;
 		memcpy(saved_key[index]+saved_len[index], cursalt, SALT_SIZE);

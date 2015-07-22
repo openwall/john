@@ -28,6 +28,21 @@ john_register_one(&fmt_rawSHA384);
 #include "johnswap.h"
 #include "formats.h"
 
+/*
+ * Only effective for SIMD.
+ * Undef to disable reversing steps for benchmarking.
+ */
+#define REVERSE_STEPS
+
+#define INIT_A 0xcbbb9d5dc1059ed8ULL
+#define INIT_B 0x629a292a367cd507ULL
+#define INIT_C 0x9159015a3070dd17ULL
+#define INIT_D 0x152fecd8f70e5939ULL
+#define INIT_E 0x67332667ffc00b31ULL
+#define INIT_F 0x8eb44a8768581511ULL
+#define INIT_G 0xdb0c2e0d64f98fa7ULL
+#define INIT_H 0x47b5481dbefa4fa4ULL
+
 #ifdef _OPENMP
 #ifdef SIMD_COEF_64
 #ifndef OMP_SCALE
@@ -40,7 +55,7 @@ john_register_one(&fmt_rawSHA384);
 #endif
 #include <omp.h>
 #endif
-#include "sse-intrinsics.h"
+#include "simd-intrinsics.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"Raw-SHA384"
@@ -157,21 +172,38 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-static void *get_binary(char *ciphertext)
+void *get_binary(char *ciphertext)
 {
-	static unsigned char *out;
+	static ARCH_WORD_64 *outw;
+	unsigned char *out;
+	char *p;
 	int i;
 
-	if (!out)
-		out = mem_alloc_tiny(BINARY_SIZE, 8);
+	if (!outw)
+		outw = mem_calloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
-	ciphertext += TAG_LENGTH;
+	out = (unsigned char*)outw;
+
+	p = ciphertext + TAG_LENGTH;
 	for (i = 0; i < BINARY_SIZE; i++) {
-		out[i] = atoi16[ARCH_INDEX(ciphertext[i*2])] * 16 +
-		         atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
+		out[i] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				 atoi16[ARCH_INDEX(p[1])];
+		p += 2;
 	}
+
 #ifdef SIMD_COEF_64
-	alter_endianity_to_BE64 (out, BINARY_SIZE/8);
+	alter_endianity_to_BE64(out, BINARY_SIZE/8);
+#ifdef REVERSE_STEPS
+	outw[0] -= INIT_A;
+	outw[1] -= INIT_B;
+	outw[2] -= INIT_C;
+	outw[3] -= INIT_D;
+	outw[4] -= INIT_E;
+	outw[5] -= INIT_F;
+	outw[6] -= INIT_G;
+	outw[7] -= INIT_H;
+#endif
 #endif
 	return out;
 }
@@ -289,6 +321,11 @@ static char *get_key(int index)
 #endif
 }
 
+#ifndef REVERSE_STEPS
+#undef SSEi_REVERSE_STEPS
+#define SSEi_REVERSE_STEPS 0
+#endif
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
@@ -300,9 +337,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef SIMD_COEF_64
-		SSESHA512body(&saved_key[index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64],
+		SIMDSHA512body(&saved_key[index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64],
 		              &crypt_out[index/SIMD_COEF_64*8*SIMD_COEF_64],
-		              NULL, SSEi_MIXED_IN|SSEi_CRYPT_SHA384);
+		              NULL, SSEi_REVERSE_STEPS|SSEi_MIXED_IN|SSEi_CRYPT_SHA384);
 #else
 		SHA512_CTX ctx;
 		SHA384_Init(&ctx);

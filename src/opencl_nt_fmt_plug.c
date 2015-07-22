@@ -39,7 +39,7 @@ john_register_one(&fmt_opencl_NT);
 #include "config.h"
 #include "options.h"
 #include "mask_ext.h"
-#include "interface.h"
+#include "bt_interface.h"
 
 #define FORMAT_LABEL		"nt-opencl"
 #define FORMAT_NAME		"NT"

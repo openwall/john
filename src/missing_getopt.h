@@ -18,7 +18,7 @@
  * statement above in this file).
  * This software was modified by JimF jfoug AT cox dot net
  * in 2014. No copyright is claimed, and all modifications to this source
- * fall under original public domain license statement. 
+ * fall under original public domain license statement.
  * In case this attempt to disclaim copyright and place the software in
  * the public domain is deemed null and void, then the software is
  * Copyright (c) 2002-3 Hans Dietrich / Jim Fougeron
