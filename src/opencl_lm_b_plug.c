@@ -30,6 +30,15 @@
 	v++;			\
 }
 
+#define get_num_bits(r, v)			\
+{						\
+	r = (v & 0xAAAAAAAA) != 0;		\
+	r |= ((v & 0xFFFF0000) != 0) << 4;	\
+	r |= ((v & 0xFF00FF00) != 0) << 3;	\
+	r |= ((v & 0xF0F0F0F0) != 0) << 2;	\
+	r |= ((v & 0xCCCCCCCC) != 0) << 1;	\
+}
+
 static cl_kernel **krnl = NULL;
 static cl_mem buffer_lm_key_idx, buffer_raw_keys, buffer_lm_keys, buffer_hash_ids, buffer_bitmap_dupe, buffer_offset_table, buffer_hash_table, buffer_bitmaps;
 static int *loaded_hashes = NULL;
@@ -523,7 +532,7 @@ static void prepare_bitmap_2(cl_ulong bmp_sz_bits, cl_uint **bitmap_ptr)
 {
 	unsigned int i;
 	MEM_FREE(*bitmap_ptr);
-	*bitmap_ptr = (cl_uint*) mem_calloc((bmp_sz_bits >> 4), sizeof(cl_uint));
+	*bitmap_ptr = (cl_uint*) mem_calloc((bmp_sz_bits), sizeof(cl_uint));
 
 	for (i = 0; i < num_loaded_hashes; i++) {
 		unsigned int bmp_idx = loaded_hashes[2 * i + 1] & (bmp_sz_bits - 1);
@@ -679,7 +688,7 @@ static char* prepare_table(struct db_salt *salt) {
 	}
 
 	bitmap_params = select_bitmap(num_loaded_hashes);
-	MEM_FREE(loaded_hashes);
+	//MEM_FREE(loaded_hashes);
 
 	return bitmap_params;
 }
@@ -702,8 +711,8 @@ static void reset(struct db_main *db)
 		create_buffer(num_loaded_hashes, offset_table_size, hash_table_size, bitmap_size_bits);
 
 		auto_tune_all(bitmap_params, num_loaded_hashes, 300);
-		MEM_FREE(offset_table);
-		MEM_FREE(bitmaps);
+		//MEM_FREE(offset_table);
+		//MEM_FREE(bitmaps);
 	}
 	else {
 		int i, *binary;
@@ -744,9 +753,9 @@ static void reset(struct db_main *db)
 		create_buffer(num_loaded_hashes, offset_table_size, hash_table_size, bitmap_size_bits);
 		auto_tune_all(bitmap_params, num_loaded_hashes, 300);
 
-		MEM_FREE(offset_table);
-		MEM_FREE(bitmaps);
-		MEM_FREE(loaded_hashes);
+		//MEM_FREE(offset_table);
+		//MEM_FREE(bitmaps);
+		//MEM_FREE(loaded_hashes);
 		hash_ids[0] = 0;
 		initialized++;
 	}
