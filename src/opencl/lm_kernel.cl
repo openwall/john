@@ -117,6 +117,7 @@ __kernel void lm_bs(constant uint *lm_key_idx
 		  ,__global lm_vector *lm_key,
 		   __global unsigned int *offset_table,
 		   __global unsigned int *hash_table,
+		   __global unsigned int *bitmaps,
                    volatile __global uint *hash_ids,
 		   volatile __global uint *bitmap_dupe)
 {
@@ -174,5 +175,5 @@ __kernel void lm_bs(constant uint *lm_key_idx
 #endif
 		);
 
-		cmp(B, offset_table, hash_table, hash_ids, bitmap_dupe, section);
+		cmp(B, offset_table, hash_table, bitmaps, hash_ids, bitmap_dupe, section);
 }
