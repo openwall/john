@@ -14,64 +14,6 @@
 #define y(p, q) vxorf(B[p], lm_key[q * gws + section])
 #endif
 
-#if WORK_GROUP_SIZE
-#define y1(p, q) vxorf(B[p], lm_key[lm_key_idx[q + k] + s_key_offset])
-#else
-#define y1(p, q) vxorf(B[p], lm_key[lm_key_idx[q + k] * gws + section])
-#endif
-
-#define H1()\
-	s1(y1(31, 0), y1(0, 1), y1(1, 2),\
-	y1(2, 3), y1(3, 4), y1(4, 5),\
-	B, 40, 48, 54, 62);\
-	s2(y1(3, 6), y1(4, 7), y1(5, 8),\
-	y1(6, 9), y1(7, 10), y1(8, 11),\
-	B, 44, 59, 33, 49);\
-	s3(y1(7, 12), y1(8, 13), y1(9, 14),\
-	y1(10, 15), y1(11, 16), y1(12, 17),\
-	B, 55, 47, 61, 37);\
-	s4(y1(11, 18), y1(12, 19), y1(13, 20),\
-	y1(14, 21), y1(15, 22), y1(16, 23),\
-	B, 57, 51, 41, 32);\
-	s5(y1(15, 24), y1(16, 25), y1(17, 26),\
-	y1(18, 27), y1(19, 28), y1(20, 29),\
-	B, 39, 45, 56, 34);\
-	s6(y1(19, 30), y1(20, 31), y1(21, 32),\
-	y1(22, 33), y1(23, 34), y1(24, 35),\
-	B, 35, 60, 42, 50);\
-	s7(y1(23, 36), y1(24, 37), y1(25, 38),\
-	y1(26, 39), y1(27, 40), y1(28, 41),\
-	B, 63, 43, 53, 38);\
-	s8(y1(27, 42), y1(28, 43), y1(29, 44),\
-	y1(30, 45), y1(31, 46), y1(0, 47),\
-	B, 36, 58, 46, 52);
-
-#define H2()\
-	s1(y1(63, 48), y1(32, 49), y1(33, 50),\
-	y1(34, 51), y1(35, 52), y1(36, 53),\
-	B, 8, 16, 22, 30);\
-	s2(y1(35, 54), y1(36, 55), y1(37, 56),\
-	y1(38, 57), y1(39, 58), y1(40, 59),\
-	B, 12, 27, 1, 17);\
-	s3(y1(39, 60), y1(40, 61), y1(41, 62),\
-	y1(42, 63), y1(43, 64), y1(44, 65),\
-	B, 23, 15, 29, 5);\
-	s4(y1(43, 66), y1(44, 67), y1(45, 68),\
-	y1(46, 69), y1(47, 70), y1(48, 71),\
-	B, 25, 19, 9, 0);\
-	s5(y1(47, 72), y1(48, 73), y1(49, 74),\
-	y1(50, 75), y1(51, 76), y1(52, 77),\
-	B, 7, 13, 24, 2);\
-	s6(y1(51, 78), y1(52, 79), y1(53, 80),\
-	y1(54, 81), y1(55, 82), y1(56, 83),\
-	B, 3, 28, 10, 18);\
-	s7(y1(55, 84), y1(56, 85), y1(57, 86),\
-	y1(58, 87), y1(59, 88), y1(60, 89),\
-	B, 31, 11, 21, 6);\
-	s8(y1(59, 90), y1(60, 91), y1(61, 92),\
-	y1(62, 93), y1(63, 94), y1(32, 95),\
-	B, 4, 26, 14, 20);
-
 #define H1_k0()\
 	s1(y(31, 15), y(0, 43), y(1, 26),\
 	y(2, 51), y(3, 45), y(4, 9),\
@@ -501,8 +443,22 @@
 	}
 
 #define vzero 0
-
 #define vones (~(vtype)0)
+
+#define PSEUDO_WORK(a, b) 	\
+{	unsigned int temp;	\
+	temp = B[a];		\
+	B[a] = B[b];		\
+	B[b] = temp;		\
+}
+
+#if gpu_amd(DEVICE_INFO)
+#define FAULTY_AMD_COMPILER	\
+	PSEUDO_WORK(63, 31);	\
+	PSEUDO_WORK(63, 31);
+#else
+#define FAULTY_AMD_COMPILER
+#endif
 
 inline void lm_loop(__private vtype *B,
 #if WORK_GROUP_SIZE
@@ -519,29 +475,41 @@ inline void lm_loop(__private vtype *B,
 		) {
 
 		H1_k0();
+		FAULTY_AMD_COMPILER
 		H2_k0();
+		FAULTY_AMD_COMPILER
 		H1_k1();
+		FAULTY_AMD_COMPILER
 		H2_k1();
+		FAULTY_AMD_COMPILER
 		H1_k2();
+		FAULTY_AMD_COMPILER
 		H2_k2();
+		FAULTY_AMD_COMPILER
 		H1_k3();
+		FAULTY_AMD_COMPILER
 		H2_k3();
+		FAULTY_AMD_COMPILER
 		H1_k4();
+		FAULTY_AMD_COMPILER
 		H2_k4();
+		FAULTY_AMD_COMPILER
 		H1_k5();
+		FAULTY_AMD_COMPILER
 		H2_k5();
+		FAULTY_AMD_COMPILER
 		H1_k6();
+		FAULTY_AMD_COMPILER
 		H2_k6();
+		FAULTY_AMD_COMPILER
 		H1_k7();
+		FAULTY_AMD_COMPILER
 		H2_k7();
 }
 
-__kernel void lm_bs(constant uint *lm_key_idx
-#if gpu_amd(DEVICE_INFO)
-                   __attribute__((max_constant_size(3072)))
-#endif
-		  ,__global lm_vector *lm_key,
-		   __global unsigned int *offset_table,
+#if FULL_UNROLL == 1
+__kernel void lm_bs(__global lm_vector *lm_key,
+		    __global unsigned int *offset_table,
 		   __global unsigned int *hash_table,
 		   __global unsigned int *bitmaps,
                    volatile __global uint *hash_ids,
@@ -587,3 +555,5 @@ __kernel void lm_bs(constant uint *lm_key_idx
 
 		cmp(B, offset_table, hash_table, bitmaps, hash_ids, bitmap_dupe, section);
 }
+#endif
+

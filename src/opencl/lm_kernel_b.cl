@@ -110,12 +110,13 @@ inline void lm_loop(__private vtype *B,
 		} while(--rounds);
 }
 
-__kernel void lm_bs(constant uint *lm_key_idx
+#if FULL_UNROLL == 0
+__kernel void lm_bs(__global lm_vector *lm_key,
+		constant uint *lm_key_idx
 #if gpu_amd(DEVICE_INFO)
                    __attribute__((max_constant_size(3072)))
 #endif
-		  ,__global lm_vector *lm_key,
-		   __global unsigned int *offset_table,
+		  , __global unsigned int *offset_table,
 		   __global unsigned int *hash_table,
 		   __global unsigned int *bitmaps,
                    volatile __global uint *hash_ids,
@@ -177,3 +178,5 @@ __kernel void lm_bs(constant uint *lm_key_idx
 
 		cmp(B, offset_table, hash_table, bitmaps, hash_ids, bitmap_dupe, section);
 }
+#endif
+

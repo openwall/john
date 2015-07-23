@@ -73,7 +73,7 @@ static void set_kernel_args_gws()
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][1], 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument 0, kernel 1.");
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][1], 1, sizeof(cl_mem), &buffer_lm_keys), "Failed setting kernel argument 1, kernel 1.");
 
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 1, sizeof(cl_mem), &buffer_lm_keys), "Failed setting kernel argument 1, kernel 0.");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 0, sizeof(cl_mem), &buffer_lm_keys), "Failed setting kernel argument 1, kernel 0.");
 }
 
 static void release_buffer_gws()
@@ -115,14 +115,15 @@ static void create_buffer(unsigned int num_loaded_hashes, unsigned int ot_size, 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
 }
 
-static void set_kernel_args()
+static void set_kernel_args(unsigned int full_unroll)
 {
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 0, sizeof(cl_mem), &buffer_lm_key_idx), "Failed setting kernel argument 0, kernel 0.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 2, sizeof(cl_mem), &buffer_offset_table), "Failed setting kernel argument 2, kernel 0.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 3, sizeof(cl_mem), &buffer_hash_table), "Failed setting kernel argument 3, kernel 0.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 4, sizeof(cl_mem), &buffer_bitmaps), "Failed setting kernel argument 4, kernel 0.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 5, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument 5, kernel 0.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 6, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument 6, kernel 0.");
+	if (!full_unroll)
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 1, sizeof(cl_mem), &buffer_lm_key_idx), "Failed setting kernel argument 0, kernel 0.");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 2 - full_unroll, sizeof(cl_mem), &buffer_offset_table), "Failed setting kernel argument 2, kernel 0.");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 3 - full_unroll, sizeof(cl_mem), &buffer_hash_table), "Failed setting kernel argument 3, kernel 0.");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 4 - full_unroll, sizeof(cl_mem), &buffer_bitmaps), "Failed setting kernel argument 4, kernel 0.");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 5 - full_unroll, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument 5, kernel 0.");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 6 - full_unroll, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument 6, kernel 0.");
 }
 
 static void release_buffer()
@@ -140,15 +141,18 @@ static void release_buffer()
 	}
 }
 
-static void init_kernels(char *bitmap_params, unsigned int num_loaded_hashes, size_t s_mem_lws, unsigned int use_local_mem)
+static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s_mem_lws, unsigned int use_local_mem)
 {
 	static char build_opts[500];
 
-	sprintf (build_opts, "-D NUM_LOADED_HASHES=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE=%zu"
+	sprintf (build_opts, "-D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE=%zu"
 		 " -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u %s" ,
-		 num_loaded_hashes, use_local_mem, s_mem_lws, offset_table_size,  hash_table_size, bitmap_params);
+		 full_unroll, use_local_mem, s_mem_lws, offset_table_size,  hash_table_size, bitmap_params);
 
-	opencl_read_source("$JOHN/kernels/lm_kernel_f.cl");
+	if (full_unroll)
+		opencl_read_source("$JOHN/kernels/lm_kernel_f.cl");
+	else
+		opencl_read_source("$JOHN/kernels/lm_kernel_b.cl");
 	opencl_build(gpu_id, build_opts, 0, NULL);
 
 	krnl[gpu_id][0] = clCreateKernel(program[gpu_id], "lm_bs", &ret_code);
@@ -328,7 +332,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 	if (cpu(device_info[gpu_id])) {
 		force_global_keys = 1;
 		use_local_mem = 0;
-		full_unroll = 0;
+		full_unroll = 1;
 		kernel_run_ms = 5;
 	}
 	else if (gpu(device_info[gpu_id])) {
@@ -371,8 +375,8 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		size_t best_lws, lws_limit;
 
 		release_kernels();
-		init_kernels(bitmap_params, num_loaded_hashes, 0, use_local_mem && s_mem_limited_lws);
-		set_kernel_args();
+		init_kernels(bitmap_params, full_unroll, 0, use_local_mem && s_mem_limited_lws);
+		set_kernel_args(full_unroll);
 
 		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag);
 		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag);
@@ -451,15 +455,15 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 			local_work_size = s_mem_limited_lws;
 
 		release_kernels();
-		init_kernels(bitmap_params, num_loaded_hashes, local_work_size, use_local_mem);
+		init_kernels(bitmap_params, full_unroll, local_work_size, use_local_mem);
 
 		if (local_work_size > get_kernel_max_lws(gpu_id, krnl[gpu_id][0])) {
 			local_work_size = get_kernel_max_lws(gpu_id, krnl[gpu_id][0]);
 			release_kernels();
-			init_kernels(bitmap_params, num_loaded_hashes, local_work_size, use_local_mem);
+			init_kernels(bitmap_params, full_unroll, local_work_size, use_local_mem);
 		}
 
-		set_kernel_args();
+		set_kernel_args(full_unroll);
 		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag);
 		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag);
 
@@ -469,8 +473,8 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 			while (local_work_size <= s_mem_limited_lws) {
 				int pcount, i;
 				release_kernels();
-				init_kernels(bitmap_params, num_loaded_hashes, local_work_size, use_local_mem);
-				set_kernel_args();
+				init_kernels(bitmap_params, full_unroll, local_work_size, use_local_mem);
+				set_kernel_args(full_unroll);
 				set_kernel_args_gws();
 
 				for (i = 0; i < (global_work_size << LM_LOG_DEPTH); i++) {
@@ -517,8 +521,8 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 			}
 			local_work_size = best_lws;
 			release_kernels();
-			init_kernels(bitmap_params, num_loaded_hashes, local_work_size, use_local_mem);
-			set_kernel_args();
+			init_kernels(bitmap_params, full_unroll, local_work_size, use_local_mem);
+			set_kernel_args(full_unroll);
 			gws_tune(global_work_size, kernel_run_ms, gws_tune_flag);
 		}
 	}
