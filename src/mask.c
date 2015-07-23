@@ -1949,10 +1949,10 @@ int do_mask_crack(const char *key)
 		                      &cpu_mask_ctx);
 
 			if (options.node_count &&
-			    !(options.flags & FLG_MASK_STACKED) && restored) {
+			    !(options.flags & FLG_MASK_STACKED) && restored)
 				cand = divide_work(&cpu_mask_ctx);
-				restored = 1;
-			}
+			restored = 1;
+
 
 			if (template_key_len == strlen(template_key)) break;
 			template_key_len = strlen(template_key);
