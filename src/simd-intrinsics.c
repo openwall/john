@@ -366,12 +366,22 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
-		MD5_PARA_DO(i)
-		{
-			vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
-			vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
-			vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
-			vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
+		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
+			MD5_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*32*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*32*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*32*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*32*VS32+3*VS32], d[i]);
+			}
+		} else {
+			MD5_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
+			}
 		}
 	}
 	else
@@ -931,12 +941,22 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
-		MD4_PARA_DO(i)
-		{
-			vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
-			vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
-			vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
-			vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
+		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
+			MD4_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*32*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*32*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*32*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*32*VS32+3*VS32], d[i]);
+			}
+		} else {
+			MD4_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
+			}
 		}
 	}
 	else
@@ -1374,13 +1394,24 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
-		SHA1_PARA_DO(i)
-		{
-			vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
-			vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
-			vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
-			vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
-			vstore((vtype*)&out[i*16*VS32+4*VS32], e[i]);
+		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
+			SHA1_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*32*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*32*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*32*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*32*VS32+3*VS32], d[i]);
+				vstore((vtype*)&out[i*32*VS32+4*VS32], e[i]);
+			}
+		} else {
+			SHA1_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
+				vstore((vtype*)&out[i*16*VS32+4*VS32], e[i]);
+			}
 		}
 	}
 	else
@@ -1798,16 +1829,30 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
 		}
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT) {
-		SHA256_PARA_DO(i)
-		{
-			vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
-			vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
-			vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
-			vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
-			vstore((vtype*)&out[i*16*VS32+4*VS32], e[i]);
-			vstore((vtype*)&out[i*16*VS32+5*VS32], f[i]);
-			vstore((vtype*)&out[i*16*VS32+6*VS32], g[i]);
-			vstore((vtype*)&out[i*16*VS32+7*VS32], h[i]);
+		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
+			SHA256_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*32*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*32*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*32*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*32*VS32+3*VS32], d[i]);
+				vstore((vtype*)&out[i*32*VS32+4*VS32], e[i]);
+				vstore((vtype*)&out[i*32*VS32+5*VS32], f[i]);
+				vstore((vtype*)&out[i*32*VS32+6*VS32], g[i]);
+				vstore((vtype*)&out[i*32*VS32+7*VS32], h[i]);
+			}
+		} else {
+			SHA256_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
+				vstore((vtype*)&out[i*16*VS32+4*VS32], e[i]);
+				vstore((vtype*)&out[i*16*VS32+5*VS32], f[i]);
+				vstore((vtype*)&out[i*16*VS32+6*VS32], g[i]);
+				vstore((vtype*)&out[i*16*VS32+7*VS32], h[i]);
+			}
 		}
 	}
 	else
@@ -2211,16 +2256,30 @@ void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
-		SHA512_PARA_DO(i)
-		{
-			vstore((vtype*)&out[i*16*VS64+0*VS64], a[i]);
-			vstore((vtype*)&out[i*16*VS64+1*VS64], b[i]);
-			vstore((vtype*)&out[i*16*VS64+2*VS64], c[i]);
-			vstore((vtype*)&out[i*16*VS64+3*VS64], d[i]);
-			vstore((vtype*)&out[i*16*VS64+4*VS64], e[i]);
-			vstore((vtype*)&out[i*16*VS64+5*VS64], f[i]);
-			vstore((vtype*)&out[i*16*VS64+6*VS64], g[i]);
-			vstore((vtype*)&out[i*16*VS64+7*VS64], h[i]);
+		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
+			SHA512_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*32*VS64+0*VS64], a[i]);
+				vstore((vtype*)&out[i*32*VS64+1*VS64], b[i]);
+				vstore((vtype*)&out[i*32*VS64+2*VS64], c[i]);
+				vstore((vtype*)&out[i*32*VS64+3*VS64], d[i]);
+				vstore((vtype*)&out[i*32*VS64+4*VS64], e[i]);
+				vstore((vtype*)&out[i*32*VS64+5*VS64], f[i]);
+				vstore((vtype*)&out[i*32*VS64+6*VS64], g[i]);
+				vstore((vtype*)&out[i*32*VS64+7*VS64], h[i]);
+			}
+		} else {
+			SHA512_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*16*VS64+0*VS64], a[i]);
+				vstore((vtype*)&out[i*16*VS64+1*VS64], b[i]);
+				vstore((vtype*)&out[i*16*VS64+2*VS64], c[i]);
+				vstore((vtype*)&out[i*16*VS64+3*VS64], d[i]);
+				vstore((vtype*)&out[i*16*VS64+4*VS64], e[i]);
+				vstore((vtype*)&out[i*16*VS64+5*VS64], f[i]);
+				vstore((vtype*)&out[i*16*VS64+6*VS64], g[i]);
+				vstore((vtype*)&out[i*16*VS64+7*VS64], h[i]);
+			}
 		}
 	}
 	else

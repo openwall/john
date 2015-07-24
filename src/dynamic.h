@@ -520,6 +520,14 @@ extern void DynamicFunc__LargeHash_OUTMode_raw(DYNA_OMP_PARAMS);
 	extern void DynamicFunc__##HASH##_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS); \
 	extern void DynamicFunc__##HASH##_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS); \
 	extern void DynamicFunc__##HASH##_crypt_input2_overwrite_input1(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input1_to_output1(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input1_to_output2(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input1_to_output3(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input1_to_output4(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input2_to_output1(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input2_to_output2(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input2_to_output3(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input2_to_output4(DYNA_OMP_PARAMS); \
 	extern void DynamicFunc__##HASH##_crypt_input1_to_output1_FINAL(DYNA_OMP_PARAMS); \
 	extern void DynamicFunc__##HASH##_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS)
 

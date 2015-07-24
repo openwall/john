@@ -71,6 +71,19 @@ typedef struct {
 
 typedef struct {
 	union {
+		uint32_t w32[128/4];
+		uint64_t w64[128/8];
+		uint8_t b[128];
+		char c[128];
+	} *dat;
+	uint32_t width; // number of bytes that are 'valid' in the dat[] element.
+	uint32_t bits;
+	uint32_t BE;
+	uint32_t mixed_SIMD;
+} BIG_HASH_OUT;
+
+typedef struct {
+	union {
 		double dummy;
 		MD5_word w[(PLAINTEXT_LENGTH_X86+EX_BUF_LEN)/sizeof(MD5_word)];
 		char b[PLAINTEXT_LENGTH_X86+EX_BUF_LEN];
