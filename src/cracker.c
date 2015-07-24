@@ -394,6 +394,7 @@ static int crk_remove_pot_entry(char *ciphertext)
 {
 	struct db_salt *salt;
 	struct db_password *pw;
+	char argcopy[LINE_BUFFER_SIZE];
 	void *pot_salt;
 	char *binary = crk_methods.binary(ciphertext);
 #ifdef POTSYNC_DEBUG
@@ -401,6 +402,13 @@ static int crk_remove_pot_entry(char *ciphertext)
 	clock_t start = times(&buffer), end;
 #endif
 
+	/*
+	 * We need to copy ciphertext, because the one we got actually
+	 * points to a static buffer in split() and we are going to call
+	 * that function again and compare the results. Thanks to
+	 * Christien Rioux for pointing this out.
+	 */
+	ciphertext = strncpy(argcopy, ciphertext, sizeof(argcopy));
 	pot_salt = crk_methods.salt(ciphertext);
 	dyna_salt_create(pot_salt);
 
@@ -432,6 +440,7 @@ static int crk_remove_pot_entry(char *ciphertext)
 
 			source = crk_methods.source(pw->source, pw->binary);
 
+			//assert(source != ciphertext);
 			if (!strcmp(source, ciphertext)) {
 				if (crk_process_guess(salt, pw, -1))
 					return 1;
@@ -455,6 +464,7 @@ static int crk_remove_pot_entry(char *ciphertext)
 
 			source = crk_methods.source(pw->source, pw->binary);
 
+			//assert(source != ciphertext);
 			if (!strcmp(source, ciphertext)) {
 				if (crk_process_guess(salt, pw, -1))
 					return 1;
