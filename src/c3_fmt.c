@@ -58,6 +58,11 @@
 #endif
 #endif
 
+#if (!AC_BUILT && defined(HAVE_CRYPT))
+#undef HAVE_CRYPT_H
+#define HAVE_CRYPT_H 1
+#endif
+
 #if HAVE_CRYPT_H
 #include <crypt.h>
 #endif
