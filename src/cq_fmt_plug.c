@@ -333,12 +333,17 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+	saved_key = mem_calloc_align(sizeof(*saved_key),
 		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) *
+	crypt_key = mem_calloc_align(sizeof(*crypt_key),
 		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
+static void done(void)
+{
+	MEM_FREE(crypt_key);
+	MEM_FREE(saved_key);
+}
 static struct fmt_tests cq_tests[] = {
 	{"$cq$admin$a9db7ca6", ""},
 	{"$cq$admin$10200218", "admin"},
@@ -501,7 +506,7 @@ struct fmt_main fmt_cq = {
 		cq_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

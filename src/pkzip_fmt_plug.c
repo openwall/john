@@ -273,12 +273,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 				fseek(in, offset+offex, SEEK_SET);
 				if (complen < 16*1024) {
 					/* simply load the whole blob */
-					unsigned char *tbuf = mem_alloc_tiny(complen, MEM_ALIGN_WORD);
+					void *tbuf = mem_alloc(complen);
 					if (fread(tbuf, 1, complen, in) != complen) {
+						MEM_FREE(tbuf);
 						fclose(in);
 						return 0;
 					}
 					data_len = complen;
+					MEM_FREE(tbuf);
 				}
 				fclose(in);
 			} else {

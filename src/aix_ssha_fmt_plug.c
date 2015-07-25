@@ -125,12 +125,17 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
+	crypt_out = mem_calloc_align(sizeof(*crypt_out),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
+static void done(void)
+{
+	MEM_FREE(crypt_out);
+	MEM_FREE(saved_key);
+}
 static int inline valid_common(char *ciphertext, struct fmt_main *self, int b64len, char *sig, int siglen)
 {
 	char *p = ciphertext;
@@ -445,7 +450,7 @@ struct fmt_main fmt_aixssha1 = {
 		aixssha_tests1
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid_sha1,
@@ -514,7 +519,7 @@ struct fmt_main fmt_aixssha256 = {
 		aixssha_tests256
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid_sha256,
@@ -583,7 +588,7 @@ struct fmt_main fmt_aixssha512 = {
 		aixssha_tests512
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid_sha512,

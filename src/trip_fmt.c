@@ -114,12 +114,11 @@ static void init(struct fmt_main *self)
 #define howmany(x, y) (((x) + ((y) - 1)) / (y))
 	worst_case_block_count = 0xFFF +
 	    howmany(fmt_trip.params.max_keys_per_crypt - 0xFFF, DES_BS_DEPTH);
-	crypt_out = mem_alloc_tiny(sizeof(*crypt_out) * worst_case_block_count,
+	crypt_out = mem_calloc_align(sizeof(*crypt_out), worst_case_block_count,
 	    MEM_ALIGN_CACHE);
-	memset(crypt_out, 0, sizeof(*crypt_out) * worst_case_block_count);
 
 #if DES_bs_mt
-	l2g = mem_alloc_tiny(sizeof(*l2g) * DES_bs_max_kpc, MEM_ALIGN_CACHE);
+	l2g = mem_calloc_align(sizeof(*l2g), DES_bs_max_kpc, MEM_ALIGN_CACHE);
 #endif
 
 	hash_func = NULL;
@@ -141,7 +140,7 @@ static void init(struct fmt_main *self)
 	}
 #endif
 
-	buffer = mem_alloc_tiny(sizeof(*buffer) *
+	buffer = mem_calloc_align(sizeof(*buffer),
 	    fmt_trip.params.max_keys_per_crypt,
 	    MEM_ALIGN_CACHE);
 
@@ -156,6 +155,15 @@ static void init(struct fmt_main *self)
 		else
 			salt_map[i] = '.';
 	}
+}
+
+static void done(void)
+{
+	MEM_FREE(buffer);
+#if DES_bs_mt
+	MEM_FREE(l2g);
+#endif
+	MEM_FREE(crypt_out);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -604,7 +612,7 @@ struct fmt_main fmt_trip = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

@@ -1986,7 +1986,7 @@ AlreadyCompiled:;
 
 	return 0;
 }
-
+DC_struct INVALID_STRUCT = { ~DC_MAGIC };
 static DC_HANDLE do_compile(const char *expr, uint32_t crc32) {
 	DC_struct *p;
 	char *cp;
@@ -1998,10 +1998,10 @@ static DC_HANDLE do_compile(const char *expr, uint32_t crc32) {
 		gost_init = 1;
 	}
 
+	if (strncmp(expr, "dynamic=", 8))
+		return &INVALID_STRUCT;
 	p = mem_calloc_tiny(sizeof(DC_struct), sizeof(void*));
 	p->magic = ~DC_MAGIC;
-	if (strncmp(expr, "dynamic=", 8))
-		return p;
 	p->crc32 = crc32;
 	p->pFmt = NULL; // not setup yet
 	p->pExpr = str_alloc_copy(find_the_expression(expr));
