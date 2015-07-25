@@ -180,7 +180,7 @@ void *get_binary(char *ciphertext)
 	int i;
 
 	if (!outw)
-		outw = mem_calloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+		outw = mem_calloc_tiny(BINARY_SIZE, BINARY_ALIGN);
 
 	out = (unsigned char*)outw;
 
