@@ -118,26 +118,40 @@ static void init(struct fmt_main *self)
 #endif
 #ifdef SIMD_COEF_64
 	bufsize = sizeof(ARCH_WORD_64) * self->params.max_keys_per_crypt * SHA_BUF_SIZ;
-	crypt_key = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
-	ipad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
-	opad = mem_calloc_tiny(bufsize, MEM_ALIGN_SIMD);
-	prep_ipad = mem_calloc_tiny(self->params.max_keys_per_crypt * BINARY_SIZE_512, MEM_ALIGN_SIMD);
-	prep_opad = mem_calloc_tiny(self->params.max_keys_per_crypt * BINARY_SIZE_512, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_align(sizeof(ARCH_WORD_64) * SHA_BUF_SIZ, self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	ipad = mem_calloc_align(sizeof(ARCH_WORD_64) * SHA_BUF_SIZ, self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	opad = mem_calloc_align(sizeof(ARCH_WORD_64) * SHA_BUF_SIZ, self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	prep_ipad = mem_calloc_align(self->params.max_keys_per_crypt, BINARY_SIZE_512, MEM_ALIGN_SIMD);
+	prep_opad = mem_calloc_align(self->params.max_keys_per_crypt, BINARY_SIZE_512, MEM_ALIGN_SIMD);
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
 		crypt_key[GETPOS(BINARY_SIZE, i)] = 0x80;
 		((ARCH_WORD_64*)crypt_key)[15 * SIMD_COEF_64 + (i & (SIMD_COEF_64-1)) + (i/SIMD_COEF_64) * SHA_BUF_SIZ * SIMD_COEF_64] = (BINARY_SIZE + PAD_SIZE) << 3;
 	}
 	clear_keys();
 #else
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	ipad = mem_calloc_tiny(sizeof(*ipad) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	opad = mem_calloc_tiny(sizeof(*opad) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	ipad_ctx = mem_calloc_tiny(sizeof(*ipad_ctx) * self->params.max_keys_per_crypt, 8);
-	opad_ctx = mem_calloc_tiny(sizeof(*opad_ctx) * self->params.max_keys_per_crypt, 8);
+	crypt_key = mem_calloc(sizeof(*crypt_key), self->params.max_keys_per_crypt);
+	ipad = mem_calloc(sizeof(*ipad), self->params.max_keys_per_crypt);
+	opad = mem_calloc(sizeof(*opad), self->params.max_keys_per_crypt);
+	ipad_ctx = mem_calloc_align(sizeof(*ipad_ctx), self->params.max_keys_per_crypt, 8);
+	opad_ctx = mem_calloc_align(sizeof(*opad_ctx), self->params.max_keys_per_crypt, 8);
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_calloc(sizeof(*saved_plain), self->params.max_keys_per_crypt);
 }
 
+static void done(void)
+{
+	MEM_FREE(saved_plain);
+#ifdef SIMD_COEF_64
+	MEM_FREE(prep_opad)
+	MEM_FREE(prep_ipad)
+#else
+	MEM_FREE(opad_ctx);
+	MEM_FREE(opad_ctx);
+#endif
+	MEM_FREE(opad);
+	MEM_FREE(ipad);
+	MEM_FREE(crypt_key);
+}
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -481,7 +495,7 @@ struct fmt_main fmt_hmacSHA384 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

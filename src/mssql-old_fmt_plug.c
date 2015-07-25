@@ -107,7 +107,7 @@ JTR_ALIGN(MEM_ALIGN_SIMD) char crypt_key[BINARY_SIZE*NBKEYS];
 static char plain_keys[NBKEYS][PLAINTEXT_LENGTH*3+1];
 #else
 
-static unsigned char *saved_key;
+static unsigned char saved_key[PLAINTEXT_LENGTH*2 + 1 + SALT_SIZE];
 static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 static unsigned int key_length;
 static char *plain_keys[1];
@@ -157,11 +157,8 @@ extern struct fmt_main fmt_mssql;
 static void init(struct fmt_main *self)
 {
 	initUnicode(UNICODE_MS_OLD);
-#ifdef SIMD_COEF_32
+
 	memset(saved_key, 0, sizeof(saved_key));
-#else
-	saved_key = mem_calloc_tiny(PLAINTEXT_LENGTH*2 + 1 + SALT_SIZE, MEM_ALIGN_WORD);
-#endif
 	if (pers_opts.target_enc == UTF_8)
 		fmt_mssql.params.plaintext_length = PLAINTEXT_LENGTH * 3;
 

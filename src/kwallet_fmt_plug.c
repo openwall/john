@@ -124,19 +124,21 @@ err:
 static void *get_salt(char *ciphertext)
 {
 	char *ctcopy = strdup(ciphertext);
+	static struct custom_salt *salt;
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
 	ctcopy += 9;	/* skip over "$kwallet$" */
-	cur_salt = mem_calloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	if (!salt) salt = mem_calloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	memset(salt, 0, sizeof(*salt));
 	p = strtokm(ctcopy, "$");
-	cur_salt->ctlen = atoi(p);
+	salt->ctlen = atoi(p);
 	p = strtokm(NULL, "$");
-	for (i = 0; i < cur_salt->ctlen; i++)
-		cur_salt->ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+	for (i = 0; i < salt->ctlen; i++)
+		salt->ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(keeptr);
-	return (void *)cur_salt;
+	return (void *)salt;
 }
 
 static void password2hash(const char *password, unsigned char *hash, int *key_size)

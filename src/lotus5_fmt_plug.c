@@ -111,12 +111,16 @@ static void init(struct fmt_main *self)
 	self->params.min_keys_per_crypt = n;
 #endif
 
-	crypt_key = mem_calloc_tiny(
-	    (sizeof(*crypt_key) + sizeof(*saved_key)) *
-	    self->params.max_keys_per_crypt,
-	    MEM_ALIGN_CACHE);
-	saved_key = (void *)((char *)crypt_key +
-	    sizeof(*crypt_key) * self->params.max_keys_per_crypt);
+	crypt_key = mem_calloc_align(sizeof(*crypt_key),
+	    self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
+	saved_key = mem_calloc_align(sizeof(*saved_key),
+	    self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
+}
+
+static void done(void)
+{
+	MEM_FREE(crypt_key);
+	MEM_FREE(saved_key);
 }
 
 /*Utility function to convert hex to bin */
@@ -381,7 +385,7 @@ struct fmt_main fmt_lotus5 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

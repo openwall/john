@@ -331,9 +331,8 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
+	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 
 /*
  * LUKS format will need to be redesigned to address the issues mentioned in
@@ -357,6 +356,12 @@ static void init(struct fmt_main *self)
 
 //	 This printf will 'help' debug a system that truncates that monster hash, but does not cause compiler to die.
 //	printf ("length=%d end=%s\n", strlen(fmt_luks.params.tests[0].ciphertext), &((fmt_luks.params.tests[0].ciphertext)[strlen(fmt_luks.params.tests[0].ciphertext)-30]));
+}
+
+static void done(void)
+{
+	MEM_FREE(crypt_out);
+	MEM_FREE(saved_key);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -703,7 +708,7 @@ struct fmt_main fmt_luks = {
 		luks_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

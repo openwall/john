@@ -985,7 +985,7 @@ static void init(struct fmt_main *self)
 		                       sizeof(unsigned short));
 	}
 	if (bitmap == NULL)
-		bitmap = mem_calloc_tiny(0x10000 / 8, MEM_ALIGN_CACHE);
+		bitmap = mem_calloc_align(1, 0x10000 / 8, MEM_ALIGN_CACHE);
 	else
 		memset(bitmap, 0, 0x10000 / 8);
 	use_bitmap = 0; /* we did not use bitmap yet */
@@ -994,6 +994,7 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
+	MEM_FREE(bitmap);
 	MEM_FREE(crypt_key);
 	MEM_FREE(nthash);
 #ifndef SIMD_COEF_32
