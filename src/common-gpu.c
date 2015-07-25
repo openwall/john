@@ -226,11 +226,17 @@ void amd_probe(void)
 
 			amd++;
 
-			if (ADL_Overdrive_Caps(adl_id, &iOverdriveSupported, &iOverdriveEnabled, &iOverdriveVersion) != ADL_OK)
+			if (ADL_Overdrive_Caps(adl_id, &iOverdriveSupported, &iOverdriveEnabled, &iOverdriveVersion) != ADL_OK) {
+				MEM_FREE(lpAdapterInfo);
+				ADL_Main_Control_Destroy();
 				return;
+			}
 
-			if (!iOverdriveSupported)
+			if (!iOverdriveSupported) {
+				MEM_FREE(lpAdapterInfo);
+				ADL_Main_Control_Destroy();
 				return;
+			}
 
 			if (iOverdriveVersion == 5)
 				adl2od[adl_id] = 5;
