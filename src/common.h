@@ -100,6 +100,9 @@ int ishex_oddOK(char *q);
 int ishexuc(char *q);
 /* is string full valid hex string (only lower case letters) */
 int ishexlc(char *q);
+/* same as ishexuc/lc except odd length is ok */
+int ishexuc_oddOK(char *q);
+int ishexlc_oddOK(char *q);
 /* length of hex. if non-hex chars found, then negative length of valid hex */
 int hexlen(char *q);
 /* is this a valid string for atoi() ONLY positive numbers are valid */

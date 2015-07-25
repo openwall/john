@@ -88,6 +88,21 @@ int ishexlc(char *q)
 	}
 	return !*q && !(((p-q))&1);
 }
+int ishexuc_oddOK(char *q) {
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
+		if (*q >= 'a' && *q <= 'f') return 0;
+		++q;
+	}
+	return !*q ;
+}
+int ishexlc_oddOK(char *q) {
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
+		if (*q >= 'A' && *q <= 'F') return 0;
+		++q;
+	}
+	return !*q ;
+}
+
 /*
  * if full string is HEX, then return is positive. If there is something
  * other than hex characters, then the return is negative but is the length

@@ -185,7 +185,7 @@ static const char *ValidateZipContents(FILE *in, long offset, u32 offex, int len
 /* there, so that we have a 'complete' format line, with the zip data contained.     */
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	u8 *p, *cp, *cpkeep;
+	c8 *p, *cp, *cpkeep;
 	int cnt, data_len, ret=0;
 	u32 crc;
 	FILE *in;
@@ -203,72 +203,59 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			return ret;
 	}
 
-	cpkeep = (u8*)strdup(ciphertext);
+	cpkeep = strdup(ciphertext);
 	cp = cpkeep;
 
 	p = &cp[7];
 	if (type2)
 		++p;
-	p = pkz_GetFld(p, &cp);
-	if (!pkz_is_hex_str(cp)) {
+	if ((cp = strtokm(p, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
 		sFailStr = "Out of data, reading count of hashes field"; goto Bail; }
-	sscanf((c8*)cp, "%x", &cnt);
+	sscanf(cp, "%x", &cnt);
 	if (cnt < 1 || cnt > MAX_PKZ_FILES) {
 		sFailStr = "Count of hashes field out of range"; goto Bail; }
-	p = pkz_GetFld(p, &cp);
-	if (cp[0] < '0' || cp[0] > '2' || cp[1]) {
+	if ((cp = strtokm(NULL, "*")) == NULL || cp[0] < '0' || cp[0] > '2' || cp[1]) {
 		sFailStr = "Number of valid hash bytes empty or out of range"; goto Bail; }
 
 	while (cnt--) {
-		p = pkz_GetFld(p, &cp);
-		if (cp[0]<'1' || cp[0]>'3' || cp[1]) {
+		if ((cp = strtokm(NULL, "*")) == NULL || cp[0]<'1' || cp[0]>'3' || cp[1]) {
 			sFailStr = "Invalid data enumeration type"; goto Bail; }
 		type = cp[0] - '0';
-		p = pkz_GetFld(p, &cp);
-		if (!pkz_is_hex_str(cp)) {
+		if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
 			sFailStr = "Invalid type enumeration"; goto Bail; }
 		if (type > 1) {
-			p = pkz_GetFld(p, &cp);
-			if (!pkz_is_hex_str(cp)) {
+			if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
 				sFailStr = "Invalid compressed length"; goto Bail; }
-			sscanf((c8*)cp, "%x", &complen);
-			p = pkz_GetFld(p, &cp);
-			if (!pkz_is_hex_str(cp)) {
+			sscanf(cp, "%x", &complen);
+			if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
 				sFailStr = "Invalid data length value"; goto Bail; }
-			p = pkz_GetFld(p, &cp);
-			if (!pkz_is_hex_str(cp)) {
+			if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
 				sFailStr = "Invalid CRC value"; goto Bail; }
-			sscanf((c8*)cp, "%x", &crc);
-			p = pkz_GetFld(p, &cp);
-			if (!pkz_is_hex_str(cp)) {
+			sscanf(cp, "%x", &crc);
+			if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
 				sFailStr = "Invalid offset length"; goto Bail; }
-			sscanf((c8*)cp, "%lx", &offset);
-			p = pkz_GetFld(p, &cp);
-			if (!pkz_is_hex_str(cp)) {
+			sscanf(cp, "%lx", &offset);
+			if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
 				sFailStr = "Invalid offset length"; goto Bail; }
-			sscanf((c8*)cp, "%x", &offex);
+			sscanf(cp, "%x", &offex);
 		}
-		p = pkz_GetFld(p, &cp);
-		if ((cp[0] != '0' && cp[0] != '8') || cp[1]) {
+		if ((cp = strtokm(NULL, "*")) == NULL || (cp[0] != '0' && cp[0] != '8') || cp[1]) {
 			sFailStr = "Compression type enumeration"; goto Bail; }
-		p = pkz_GetFld(p, &cp);
-		if (!pkz_is_hex_str(cp)) {
+		if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
 			sFailStr = "Invalid data length value"; goto Bail; }
-		sscanf((c8*)cp, "%x", &data_len);
-		p = pkz_GetFld(p, &cp);
-		if (!pkz_is_hex_str(cp) || strlen((c8*)cp) != 4) {
+		sscanf(cp, "%x", &data_len);
+		if ((cp = strtokm(NULL, "*")) == NULL || !ishexlc(cp) || strlen(cp) != 4) {
 			sFailStr = "invalid checksum value"; goto Bail; }
 		if (type2) {
-			p = pkz_GetFld(p, &cp);
-			if (!pkz_is_hex_str(cp) || strlen((c8*)cp) != 4) {
+			if ((cp = strtokm(NULL, "*")) == NULL || !ishexlc(cp) || strlen(cp) != 4) {
 				sFailStr = "invalid checksum2 value"; goto Bail;}
 		}
-		p = pkz_GetFld(p, &cp);
+		if ((cp = strtokm(NULL, "*")) == NULL) goto Bail;
 		if (type > 1) {
 			if (type == 3) {
-				if ( !p || strlen((c8*)cp) != data_len) {
+				if ( strlen(cp) != data_len) {
 					sFailStr = "invalid checksum value"; goto Bail; }
-				in = fopen((c8*)cp, "rb"); /* have to open in bin mode for OS's where this matters, DOS/Win32 */
+				in = fopen(cp, "rb"); /* have to open in bin mode for OS's where this matters, DOS/Win32 */
 				if (!in) {
 					/* this error is listed, even if not in pkzip debugging mode. */
 					/* But not if we're just reading old pot lines */
@@ -298,17 +285,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 				/* 'inline' data. */
 				if (complen != data_len) {
 					sFailStr = "length of full data does not match the salt len"; goto Bail; }
-				if (!pkz_is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
+				if (!ishexlc(cp) || strlen(cp) != data_len<<1) {
 					sFailStr = "invalid inline data"; goto Bail; }
 			}
 		} else {
-			if (!pkz_is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
+			if (!ishexlc(cp) || strlen(cp) != data_len<<1) {
 				sFailStr = "invalid partial data"; goto Bail; }
                 }
 	}
-	p = pkz_GetFld(p, &cp);
-	if (type2) ret = !strcmp((c8*)cp, "$/pkzip2$") && !*p;
-	else       ret = !strcmp((c8*)cp, "$/pkzip$") && !*p;
+	if ((cp = strtokm(NULL, "*")) == NULL) goto Bail;
+	if (strtokm(NULL, "") != NULL) goto Bail;
+	if (type2) ret = !strcmp(cp, "$/pkzip2$");
+	else       ret = !strcmp(cp, "$/pkzip$");
 
 Bail:;
 #ifdef ZIP_DEBUG
@@ -509,76 +497,76 @@ static void *get_salt(char *ciphertext)
 	long ex_len[3] = {0,0,0};
 	u32 offex;
 	int i, j;
-	u8 *p, *cp, *cpalloc = (unsigned char*)mem_alloc(strlen(ciphertext)+1);
+	c8 *p, *cp, *cpalloc = (char*)mem_alloc(strlen(ciphertext)+1);
 	int type2 = 0;
 
 	/* Needs word align on REQ_ALIGN systems.  May crash otherwise (in the sscanf) */
 	salt = mem_calloc(1, sizeof(PKZ_SALT));
 
 	cp = cpalloc;
-	strcpy((c8*)cp, ciphertext);
-	if (!strncmp((c8*)cp, "$pkzip$", 7))
+	strcpy(cp, ciphertext);
+	if (!strncmp(cp, "$pkzip$", 7))
 	p = &cp[7];
 	else {
 		p = &cp[8];
 		type2 = 1;
 	}
-	p = pkz_GetFld(p, &cp);
-	sscanf((c8*)cp, "%x", &(salt->cnt));
-	p = pkz_GetFld(p, &cp);
-	sscanf((c8*)cp, "%x", &(salt->chk_bytes));
+	cp = strtokm(p, "*");
+	sscanf(cp, "%x", &(salt->cnt));
+	cp = strtokm(NULL, "*");
+	sscanf(cp, "%x", &(salt->chk_bytes));
 	for(i = 0; i < salt->cnt; ++i) {
 		int data_enum;
-		p = pkz_GetFld(p, &cp);
+		cp = strtokm(NULL, "*");
 		data_enum = *cp - '0';
-		p = pkz_GetFld(p, &cp);
+		cp = strtokm(NULL, "*");
 #if USE_PKZIP_MAGIC
 		{
 			// mingw can't handle %hhx.  Use 'normal' %x and assign back to uint_8 var
 			unsigned jnk;
-			sscanf((c8*)cp, "%x", &jnk);
+			sscanf(cp, "%x", &jnk);
 			salt->H[i].magic = (unsigned char)jnk;
 		}
 		salt->H[i].pSig = &SIGS[salt->H[i].magic];
 #endif
 
 		if (data_enum > 1) {
-			p = pkz_GetFld(p, &cp);
-			sscanf((c8*)cp, "%x", &(salt->compLen));
-			p = pkz_GetFld(p, &cp);
-			sscanf((c8*)cp, "%x", &(salt->deCompLen));
-			p = pkz_GetFld(p, &cp);
-			sscanf((c8*)cp, "%x", &(salt->crc32));
-			p = pkz_GetFld(p, &cp);
-			sscanf((c8*)cp, "%lx", &offset);
-			p = pkz_GetFld(p, &cp);
-			sscanf((c8*)cp, "%x", &offex);
+			cp = strtokm(NULL, "*");
+			sscanf(cp, "%x", &(salt->compLen));
+			cp = strtokm(NULL, "*");
+			sscanf(cp, "%x", &(salt->deCompLen));
+			cp = strtokm(NULL, "*");
+			sscanf(cp, "%x", &(salt->crc32));
+			cp = strtokm(NULL, "*");
+			sscanf(cp, "%lx", &offset);
+			cp = strtokm(NULL, "*");
+			sscanf(cp, "%x", &offex);
 		}
-		p = pkz_GetFld(p, &cp);
-		sscanf((c8*)cp, "%x", &(salt->H[i].compType));
-		p = pkz_GetFld(p, &cp);
-		sscanf((c8*)cp, "%x", &(salt->H[i].datlen));
-		p = pkz_GetFld(p, &cp);
+		cp = strtokm(NULL, "*");
+		sscanf(cp, "%x", &(salt->H[i].compType));
+		cp = strtokm(NULL, "*");
+		sscanf(cp, "%x", &(salt->H[i].datlen));
+		cp = strtokm(NULL, "*");
 
 		for (j = 0; j < 4; ++j) {
 			salt->H[i].c <<= 4;
 			salt->H[i].c |= atoi16[ARCH_INDEX(cp[j])];
 		}
 		if (type2) {
-			p = pkz_GetFld(p, &cp);
+			cp = strtokm(NULL, "*");
 			for (j = 0; j < 4; ++j) {
 				salt->H[i].c2 <<= 4;
 				salt->H[i].c2 |= atoi16[ARCH_INDEX(cp[j])];
 			}
 		} else
 			salt->H[i].c2 = salt->H[i].c; // fake out 2nd hash, by copying first hash
-		p = pkz_GetFld(p, &cp);
+		cp = strtokm(NULL, "*");
 		if (data_enum > 1) {
 			/* if 2 or 3, we have the FULL zip blob for decrypting. */
 			if (data_enum == 3) {
 				/* read from file. */
 				FILE *fp;
-				fp = fopen((c8*)cp, "rb");
+				fp = fopen(cp, "rb");
 				if (!fp) {
 					fprintf (stderr, "Error opening file for pkzip data:  %s\n", cp);
 					MEM_FREE(cpalloc);
