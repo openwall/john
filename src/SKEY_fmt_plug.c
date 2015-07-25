@@ -270,7 +270,6 @@ skey_cmp_exact(char *source, int index)
 	return 1;
 }
 
-#if FMT_MAIN_VERSION > 11
 /*
  * report hash type as first tunable cost, even though the iteration count
  * might be more important with regard to CPU time
@@ -319,7 +318,6 @@ static unsigned int skey_iteration_count(void *salt)
 	my_salt = (struct skey_salt_st*)salt;
 	return (unsigned int) my_salt->num;
 }
-#endif
 
 struct fmt_main fmt_SKEY = {
 	{
@@ -337,12 +335,10 @@ struct fmt_main fmt_SKEY = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-#if FMT_MAIN_VERSION > 11
 		{
 			"hash type [1:MD4 2:MD5 3:SHA1 4:RMD160]",
 			"iteration count",
 		},
-#endif
 		skey_tests
 	}, {
 		fmt_default_init,
@@ -353,12 +349,10 @@ struct fmt_main fmt_SKEY = {
 		fmt_default_split,
 		get_binary,
 		skey_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			skey_hash_type,
 			skey_iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

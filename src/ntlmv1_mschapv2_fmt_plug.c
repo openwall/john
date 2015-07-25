@@ -1322,9 +1322,7 @@ struct fmt_main fmt_MSCHAPv2_new = {
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		chap_tests
 	}, {
 		init,
@@ -1335,9 +1333,7 @@ struct fmt_main fmt_MSCHAPv2_new = {
 		chap_split,
 		get_binary,
 		chap_get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			binary_hash_0,
@@ -1389,9 +1385,7 @@ struct fmt_main fmt_NETNTLM_new = {
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		ntlm_tests
 	}, {
 		init,
@@ -1402,9 +1396,7 @@ struct fmt_main fmt_NETNTLM_new = {
 		ntlm_split,
 		get_binary,
 		ntlm_get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			binary_hash_0,

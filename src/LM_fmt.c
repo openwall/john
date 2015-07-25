@@ -214,9 +214,7 @@ struct fmt_main fmt_LM = {
 		FMT_OMP | FMT_OMP_BAD |
 #endif
 		FMT_8_BIT | FMT_BS | FMT_SPLIT_UNIFIES_CASE,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests
 	}, {
 		init,
@@ -227,9 +225,7 @@ struct fmt_main fmt_LM = {
 		split,
 		binary,
 		fmt_default_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		source,
 		{
 			binary_hash_0,

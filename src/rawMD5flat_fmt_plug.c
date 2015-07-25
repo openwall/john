@@ -314,9 +314,7 @@ struct fmt_main fmt_rawMD5f = {
 		FMT_OMP | FMT_OMP_BAD |
 #endif
 		FMT_CASE | FMT_8_BIT,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests
 	}, {
 		init,
@@ -327,9 +325,7 @@ struct fmt_main fmt_rawMD5f = {
 		split,
 		get_binary,
 		fmt_default_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		source,
 		{
 			fmt_default_binary_hash_0,

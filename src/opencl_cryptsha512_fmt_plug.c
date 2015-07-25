@@ -533,14 +533,12 @@ static int get_hash_4(int index) { return calculated_hash[index].v[0] & 0xfffff;
 static int get_hash_5(int index) { return calculated_hash[index].v[0] & 0xffffff; }
 static int get_hash_6(int index) { return calculated_hash[index].v[0] & 0x7ffffff; }
 
-#if FMT_MAIN_VERSION > 11
 static unsigned int iteration_count(void *salt)
 {
 	sha512_salt *sha512crypt_salt;
 	sha512crypt_salt = salt;
 	return (unsigned int)sha512crypt_salt->rounds;
 }
-#endif
 
 /* ------- Format structure ------- */
 struct fmt_main fmt_opencl_cryptsha512 = {

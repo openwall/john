@@ -814,9 +814,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	struct db_password *current_pw, *last_pw;
 	struct list_main *words;
 	size_t pw_size, salt_size;
-#if FMT_MAIN_VERSION > 11
 	int i;
-#endif
 
 	count = ldr_split_line(&login, &ciphertext, &gecos, &home, &uid,
 		NULL, &db->format, db->options, line);
@@ -934,10 +932,8 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 				format->params.salt_size,
 				format->params.salt_align);
 
-#if FMT_MAIN_VERSION > 11
 			for (i = 0; i < FMT_TUNABLE_COSTS && format->methods.tunable_cost_value[i] != NULL; ++i)
 				current_salt->cost[i] = format->methods.tunable_cost_value[i](current_salt->salt);
-#endif
 
 			current_salt->index = fmt_dummy_hash;
 			current_salt->bitmap = NULL;
@@ -1360,7 +1356,6 @@ static void ldr_filter_salts(struct db_main *db)
 	} while ((current = current->next));
 }
 
-#if FMT_MAIN_VERSION > 11
 /*
  * check if cost values for a particular salt match
  * what has been requested with the --costs= option
@@ -1400,7 +1395,6 @@ static void ldr_filter_costs(struct db_main *db)
 			last = current;
 	} while ((current = current->next));
 }
-#endif
 
 /*
  * Allocate memory for and initialize the hash table for this salt if needed.
@@ -1512,7 +1506,6 @@ static void ldr_init_hash(struct db_main *db)
 	} while ((current = current->next));
 }
 
-#if FMT_MAIN_VERSION > 11
 /*
  * compute cost ranges after all unneeded salts have been removed
  */
@@ -1536,7 +1529,6 @@ static void ldr_cost_ranges(struct db_main *db)
 		}
 	} while ((current = current->next));
 }
-#endif
 
 void ldr_fix_database(struct db_main *db)
 {
@@ -1550,13 +1542,9 @@ void ldr_fix_database(struct db_main *db)
 		MEM_FREE(db->salt_hash);
 
 	ldr_filter_salts(db);
-#if FMT_MAIN_VERSION > 11
 	ldr_filter_costs(db);
-#endif
 	ldr_remove_marked(db);
-#if FMT_MAIN_VERSION > 11
 	ldr_cost_ranges(db);
-#endif
 	ldr_sort_salts(db);
 
 	ldr_init_hash(db);

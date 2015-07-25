@@ -410,7 +410,6 @@ static char *get_key(int index)
 	return (char*)utf16_to_enc(saved_key[index]);
 }
 
-#if FMT_MAIN_VERSION > 11
 static unsigned int oo_hash_type(void *salt)
 {
 	struct custom_salt *my_salt;
@@ -418,7 +417,6 @@ static unsigned int oo_hash_type(void *salt)
 	my_salt = salt;
 	return (unsigned int) my_salt->type;
 }
-#endif
 
 struct fmt_main fmt_oldoffice = {
 	{
@@ -436,11 +434,9 @@ struct fmt_main fmt_oldoffice = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE,
-#if FMT_MAIN_VERSION > 11
 		{
 			"hash type",
 		},
-#endif
 		oo_tests
 	}, {
 		init,
@@ -451,11 +447,9 @@ struct fmt_main fmt_oldoffice = {
 		split,
 		fmt_default_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			oo_hash_type,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

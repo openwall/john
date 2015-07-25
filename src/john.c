@@ -975,9 +975,7 @@ static void john_load(void)
 
 	if (options.flags & FLG_PASSWD) {
 		int total;
-#if FMT_MAIN_VERSION > 11
 		int i = 0;
-#endif
 
 		if (options.flags & FLG_SHOW_CHK) {
 			options.loader.flags |= DB_CRACKED;
@@ -1058,10 +1056,8 @@ static void john_load(void)
 			if (john_main_process)
 			printf("No password hashes %s (see FAQ)\n",
 			    total ? "left to crack" : "loaded");
-#if FMT_MAIN_VERSION > 11
 			/* skip tunable cost reporting if no hashes were loaded */
 			i = FMT_TUNABLE_COSTS;
-#endif
 		} else
 		if (database.password_count < total) {
 			log_event("Remaining %s", john_loaded_counts());
@@ -1069,7 +1065,6 @@ static void john_load(void)
 			printf("Remaining %s\n", john_loaded_counts());
 		}
 
-#if FMT_MAIN_VERSION > 11
 		for ( ; i < FMT_TUNABLE_COSTS &&
 			      database.format->methods.tunable_cost_value[i] != NULL; i++) {
 			if (database.min_cost[i] < database.max_cost[i]) {
@@ -1094,7 +1089,6 @@ static void john_load(void)
 				       database.min_cost[i]);
 			}
 		}
-#endif
 		if ((options.flags & FLG_PWD_REQ) && !database.salts) exit(0);
 
 		if (options.regen_lost_salts)

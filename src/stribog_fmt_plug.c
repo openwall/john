@@ -385,9 +385,7 @@ struct fmt_main fmt_stribog_256 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		stribog_256_tests
 	}, {
 		init,
@@ -398,9 +396,7 @@ struct fmt_main fmt_stribog_256 = {
 		split_256,
 		get_binary_256,
 		fmt_default_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,
@@ -449,9 +445,7 @@ struct fmt_main fmt_stribog_512 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		stribog_512_tests
 	}, {
 		init,
@@ -462,9 +456,7 @@ struct fmt_main fmt_stribog_512 = {
 		split_512,
 		get_binary_512,
 		fmt_default_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

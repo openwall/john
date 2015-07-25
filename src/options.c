@@ -57,9 +57,7 @@ struct options_main options;
 struct pers_opts pers_opts; /* Not reset after forked resume */
 static char *field_sep_char_str, *show_uncracked_str, *salts_str;
 static char *encoding_str, *target_enc_str, *internal_enc_str;
-#if FMT_MAIN_VERSION > 11
 static char *costs_str;
-#endif
 
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
@@ -237,11 +235,9 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_ADD_LIST_MULTI, &options.gpu_devices},
 #endif
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS},
-#if FMT_MAIN_VERSION > 11
 	{"costs", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
                 OPT_FMT_STR_ALLOC, &costs_str},
 
-#endif
 	{"keep-guessing", FLG_KEEP_GUESSING, FLG_KEEP_GUESSING},
 	{"stress-test", FLG_LOOPTEST | FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
@@ -369,11 +365,9 @@ void opt_print_hidden_usage(void)
 	puts("--mkpc=N                  request a lower max. keys per crypt");
 	puts("--min-length=N            request a minimum candidate length");
 	puts("--max-length=N            request a maximum candidate length");
-#if FMT_MAIN_VERSION > 11
 	puts("--costs=[-]C[:M][,...]    load salts with[out] cost value Cn [to Mn] for");
 	puts("                          tunable cost parameters, see doc/OPTIONS");
 	puts("                          (comma separated list of values/ranges per param.)");
-#endif
 	puts("--field-separator-char=C  use 'C' instead of the ':' in input and pot files");
 	puts("--fix-state-delay=N       performance tweak, see doc/OPTIONS");
 	puts("--nolog                   disables creation and writing to john.log file");
@@ -593,7 +587,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 		exit(0);
 	}
-#if FMT_MAIN_VERSION > 11
 	if (costs_str) {
 		/*
 		 * costs_str: [-]COST1[:MAX1][,[-]COST2[:MAX2]][...,[-]COSTn[:MAXn]]
@@ -678,7 +671,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			options.loader.max_cost[i] = UINT_MAX;
 		}
 	}
-#endif
 
 	if (options.flags & FLG_SALTS) {
 		int two_salts = 0;

@@ -441,9 +441,7 @@ struct fmt_main fmt_opencl_o5logon = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT, // Changed for OpenCL
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		o5logon_tests
 	}, {
 		init,
@@ -454,9 +452,7 @@ struct fmt_main fmt_opencl_o5logon = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

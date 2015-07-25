@@ -409,7 +409,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-#if FMT_MAIN_VERSION > 11
 /* report iteration count as tunable cost value */
 static unsigned int aixssha_iteration_count(void *salt)
 {
@@ -418,7 +417,6 @@ static unsigned int aixssha_iteration_count(void *salt)
 	my_salt = salt;
 	return (unsigned int) my_salt->iterations;
 }
-#endif
 
 struct fmt_main fmt_aixssha1 = {
 	{
@@ -441,11 +439,9 @@ struct fmt_main fmt_aixssha1 = {
 		MAX_KEYS_PER_CRYPT,
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 			"iteration count",
 		},
-#endif
 		aixssha_tests1
 	}, {
 		init,
@@ -456,11 +452,9 @@ struct fmt_main fmt_aixssha1 = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			aixssha_iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,
@@ -514,11 +508,9 @@ struct fmt_main fmt_aixssha256 = {
 		MAX_KEYS_PER_CRYPT,
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 			"iteration count",
 		},
-#endif
 		aixssha_tests256
 	}, {
 		init,
@@ -529,11 +521,9 @@ struct fmt_main fmt_aixssha256 = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			aixssha_iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,
@@ -587,11 +577,9 @@ struct fmt_main fmt_aixssha512 = {
 		MAX_KEYS_PER_CRYPT,
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 			"iteration count",
 		},
-#endif
 		aixssha_tests512
 	}, {
 		init,
@@ -602,11 +590,9 @@ struct fmt_main fmt_aixssha512 = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			aixssha_iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

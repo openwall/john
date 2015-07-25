@@ -646,12 +646,10 @@ static int salt_hash(void *salt)
 	return v & (SALT_HASH_SIZE - 1);
 }
 
-#if FMT_MAIN_VERSION > 11
 static unsigned int tc_hash_algorithm(void *salt)
 {
 	return (unsigned int)((struct cust_salt*)salt)->hash_type;
 }
-#endif
 
 struct fmt_main fmt_truecrypt = {
 	{
@@ -682,11 +680,9 @@ struct fmt_main fmt_truecrypt = {
 		MAX_KEYS_PER_CRYPT,
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 			"hash algorithm [1:SHA512 2:RIPEMD160 3:Whirlpool]",
 		},
-#endif
 		tests_all
 	}, {
 		init,
@@ -697,11 +693,9 @@ struct fmt_main fmt_truecrypt = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			tc_hash_algorithm,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
@@ -738,9 +732,7 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests_ripemd160
 	}, {
 		init,
@@ -751,9 +743,7 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
@@ -803,9 +793,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		MAX_KEYS_PER_CRYPT,
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests_sha512
 	}, {
 		init,
@@ -816,9 +804,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
@@ -859,9 +845,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests_whirlpool
 	}, {
 		init,
@@ -872,9 +856,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

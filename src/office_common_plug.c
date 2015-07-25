@@ -163,7 +163,6 @@ int ms_office_common_valid_2013(char *ciphertext, struct fmt_main *self)
 	return valid(ciphertext, self, "2013");
 }
 
-#if FMT_MAIN_VERSION > 11
 unsigned int ms_office_common_iteration_count(void *salt)
 {
 	ms_office_custom_salt *my_salt=(ms_office_custom_salt *)salt;
@@ -178,7 +177,6 @@ unsigned int ms_office_common_iteration_count(void *salt)
 	else
 		return (unsigned int)my_salt->spinCount;
 }
-#endif
 
 // MORE common code:
 

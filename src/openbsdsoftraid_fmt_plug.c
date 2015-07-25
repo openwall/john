@@ -266,13 +266,11 @@ static char *get_key(int index)
 {
 	return key_buffer[index];
 }
-#if FMT_MAIN_VERSION > 11
 /* report iteration count as tunable cost */
 static unsigned int iteration_count(void *salt)
 {
 	return ((struct custom_salt*)salt)->num_iterations;
 }
-#endif
 static struct fmt_tests tests_openbsdsoftraid[] = {
 	// too long of line was causing my Sparc box to fail to compile this code
 	{"\
@@ -304,11 +302,9 @@ struct fmt_main fmt_openbsd_softraid = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 			"iteration count",
 		},
-#endif
 		tests_openbsdsoftraid
 	}, {
 		init,
@@ -319,11 +315,9 @@ struct fmt_main fmt_openbsd_softraid = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

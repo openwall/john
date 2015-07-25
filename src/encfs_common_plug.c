@@ -124,13 +124,11 @@ void *encfs_common_get_salt(char *ciphertext)
 	return (void *) &cs;
 }
 
-#if FMT_MAIN_VERSION > 11
 unsigned int encfs_common_iteration_count(void *salt)
 {
 	encfs_common_custom_salt *my_salt = (encfs_common_custom_salt *)salt;
 	return (unsigned int) my_salt->iterations;
 }
-#endif
 
 // Other 'common' functions for this format:
 void encfs_common_setIVec(encfs_common_custom_salt *cur_salt, unsigned char *ivec, uint64_t seed, unsigned char *key)

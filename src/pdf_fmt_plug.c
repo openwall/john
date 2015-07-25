@@ -648,7 +648,6 @@ static int cmp_exact(char *source, int index)
 	return cracked[index];
 }
 
-#if FMT_MAIN_VERSION > 11
 /*
  * Report revision as tunable cost, since between revisions 2 and 6,
  * only revisions 3 and 4 seem to have a similar c/s rate.
@@ -660,7 +659,6 @@ static unsigned int pdf_revision(void *salt)
 	my_salt = salt;
 	return (unsigned int) my_salt->R;
 }
-#endif
 
 struct fmt_main fmt_pdf = {
 	{
@@ -678,11 +676,9 @@ struct fmt_main fmt_pdf = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 			"revision",
 		},
-#endif
 		pdf_tests
 	},
 	{
@@ -694,11 +690,9 @@ struct fmt_main fmt_pdf = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			pdf_revision,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

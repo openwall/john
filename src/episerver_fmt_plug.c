@@ -266,7 +266,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-#if FMT_MAIN_VERSION > 11
 /* report hash type: 1 SHA1, 2 SHA256 */
 static unsigned int hash_type(void *salt)
 {
@@ -276,7 +275,6 @@ static unsigned int hash_type(void *salt)
 	my_salt = salt;
 	return (unsigned int) (1 + my_salt->version);
 }
-#endif
 struct fmt_main fmt_episerver = {
 	{
 		FORMAT_LABEL,
@@ -293,11 +291,9 @@ struct fmt_main fmt_episerver = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8,
-#if FMT_MAIN_VERSION > 11
 		{
 			"hash type [1: SHA1 2:SHA256]",
 		},
-#endif
 		episerver_tests
 	}, {
 		init,
@@ -308,11 +304,9 @@ struct fmt_main fmt_episerver = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			hash_type,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

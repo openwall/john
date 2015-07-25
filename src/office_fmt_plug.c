@@ -656,7 +656,6 @@ static char *get_key(int index)
 {
 	return (char*)utf16_to_enc(saved_key[index]);
 }
-#if FMT_MAIN_VERSION > 11
 /*
  * MS Office version (2007, 2010, 2013) as first tunable cost
  */
@@ -667,7 +666,6 @@ static unsigned int ms_office_version(void *salt)
 	my_salt = salt;
 	return (unsigned int) my_salt->version;
 }
-#endif
 
 struct fmt_main fmt_office = {
 	{
@@ -685,12 +683,10 @@ struct fmt_main fmt_office = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8,
-#if FMT_MAIN_VERSION > 11
 		{
 			"MS Office version",
 			"iteration count",
 		},
-#endif
 		office_tests
 	}, {
 		init,
@@ -701,12 +697,10 @@ struct fmt_main fmt_office = {
 		fmt_default_split,
 		ms_office_common_binary,
 		ms_office_common_get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			ms_office_version,
 			ms_office_common_iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

@@ -286,7 +286,7 @@ static char *get_key(int index)
  */
 #define IKE_REPORT_TUNABLE_COSTS	1
 
-#if FMT_MAIN_VERSION > 11 && IKE_REPORT_TUNABLE_COSTS
+#if IKE_REPORT_TUNABLE_COSTS
 static unsigned int tunable_cost_hmac_hash_type(void *salt)
 {
 	psk_entry *my_salt;
@@ -311,7 +311,6 @@ struct fmt_main fmt_ike = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 #if IKE_REPORT_TUNABLE_COSTS
 			"hash algorithm used for hmac [1:MD5 2:SHA1]",
@@ -319,7 +318,6 @@ struct fmt_main fmt_ike = {
 			NULL
 #endif
 		},
-#endif
 		ike_tests
 	}, {
 		init,
@@ -330,7 +328,6 @@ struct fmt_main fmt_ike = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 #if IKE_REPORT_TUNABLE_COSTS
 			tunable_cost_hmac_hash_type,
@@ -338,7 +335,6 @@ struct fmt_main fmt_ike = {
 			NULL
 #endif
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

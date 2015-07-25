@@ -182,9 +182,7 @@ struct fmt_main fmt_mediawiki =
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
 		0, PLAINTEXT_LENGTH, BINARY_SIZE, BINARY_ALIGN, SALT_SIZE+1, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		mediawiki_tests
 	},
 	{

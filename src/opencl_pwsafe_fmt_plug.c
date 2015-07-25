@@ -409,7 +409,6 @@ static char *get_key(int index)
 	return ret;
 }
 
-#if FMT_MAIN_VERSION > 11
 	static unsigned int iteration_count(void *salt)
 	{
 		pwsafe_salt *my_salt;
@@ -417,7 +416,6 @@ static char *get_key(int index)
 		my_salt = salt;
 		return (unsigned int) my_salt->iterations;
 	}
-#endif
 
 struct fmt_main fmt_opencl_pwsafe = {
 	{
@@ -435,11 +433,9 @@ struct fmt_main fmt_opencl_pwsafe = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-#if FMT_MAIN_VERSION > 11
 		{
 			"iteration count",
 		},
-#endif
 		pwsafe_tests
 	}, {
 		init,
@@ -450,11 +446,9 @@ struct fmt_main fmt_opencl_pwsafe = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
