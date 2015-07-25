@@ -140,8 +140,8 @@ static void init(struct fmt_main *self)
 #ifdef SIMD_COEF_32
 	unsigned int i;
 
-	saved_key = mem_calloc_tiny(SHA_BUF_SIZ * 4 * NBKEYS, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(BINARY_SIZE * NBKEYS, MEM_ALIGN_SIMD);
+	saved_key = mem_calloc_align(SHA_BUF_SIZ * 4, NBKEYS, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_align(BINARY_SIZE, NBKEYS, MEM_ALIGN_SIMD);
 	/* Set lengths to SALT_LEN to avoid strange things in crypt_all()
 	   if called without setting all keys (in benchmarking). Unset
 	   keys would otherwise get a length of -10 and a salt appended
@@ -149,7 +149,14 @@ static void init(struct fmt_main *self)
 	for (i=0; i < NBKEYS; i++)
 		((unsigned int *)saved_key)[15*SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = 10 << 3;
 #endif
-	saved_salt = mem_calloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
+	saved_salt = mem_calloc(1, SALT_SIZE);
+}
+
+static void done(void)
+{
+	MEM_FREE(saved_salt);
+	MEM_FREE(crypt_key);
+	MEM_FREE(saved_key);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -434,7 +441,7 @@ struct fmt_main fmt_oracle11 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

@@ -99,8 +99,8 @@ char * sha512_common_prepare_xsha(char *split_fields[10], struct fmt_main *self)
 		sprintf(Buf, "%s%s", XSHA512_FORMAT_TAG, split_fields[0]);
 
 		if (sha512_common_valid_xsha(Buf, self)) {
-			char *cp = mem_calloc_tiny(XSHA512_CIPHERTEXT_LENGTH+7,
-				MEM_ALIGN_NONE);
+			static char *cp;
+			if (!cp) cp = mem_calloc_tiny(XSHA512_CIPHERTEXT_LENGTH+7, 1);
 			strcpy(cp, Buf);
 			return cp;
 		}
@@ -109,8 +109,8 @@ char * sha512_common_prepare_xsha(char *split_fields[10], struct fmt_main *self)
 		sprintf(Buf, "%s%s", XSHA512_FORMAT_TAG, split_fields[1]);
 
 		if (sha512_common_valid_xsha(Buf, self)) {
-			char *cp = mem_calloc_tiny(XSHA512_CIPHERTEXT_LENGTH+7,
-				MEM_ALIGN_NONE);
+			static char *cp;
+			if (!cp) cp = mem_calloc_tiny(XSHA512_CIPHERTEXT_LENGTH+7, 1);
 			strcpy(cp, Buf);
 			return cp;
 		}

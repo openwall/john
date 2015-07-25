@@ -146,7 +146,7 @@ static void init(struct fmt_main *self)
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_len));
 	if (!saved_salt)
-		saved_salt = mem_calloc_tiny(8, MEM_ALIGN_NONE);
+		saved_salt = mem_calloc(8, 1);
 	aes_key = mem_calloc(self->params.max_keys_per_crypt, 16);
 	aes_iv = mem_calloc(self->params.max_keys_per_crypt, 16);
 
@@ -177,6 +177,7 @@ static void done(void)
 	MEM_FREE(saved_key);
 	MEM_FREE(cracked);
 	MEM_FREE(unpack_data);
+	MEM_FREE(saved_salt);
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)

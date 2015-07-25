@@ -128,12 +128,19 @@ static void init(struct fmt_main *self)
 		}
 	}
 #if SIMD_COEF_32
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * 64*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * BINARY_SIZE*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	buf_ptr = mem_calloc_tiny(sizeof(*buf_ptr) * self->params.max_keys_per_crypt, sizeof(*buf_ptr));
+	saved_key = mem_calloc_align(sizeof(*saved_key), 64*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_align(sizeof(*crypt_key), BINARY_SIZE*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	buf_ptr = mem_calloc_align(sizeof(*buf_ptr), self->params.max_keys_per_crypt, sizeof(*buf_ptr));
 	for (i=0; i<self->params.max_keys_per_crypt; i++)
 		buf_ptr[i] = (unsigned int*)&saved_key[GETPOS(0, i)];
 #endif
+}
+
+static void done(void)
+{
+	MEM_FREE(buf_ptr);
+	MEM_FREE(crypt_key);
+	MEM_FREE(saved_key);
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
@@ -611,7 +618,7 @@ struct fmt_main fmt_rawmd5uthick = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

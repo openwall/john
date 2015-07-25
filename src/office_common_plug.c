@@ -19,9 +19,10 @@ void *ms_office_common_get_salt(char *ciphertext)
 	int i, length;
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy, *p;
-	ms_office_custom_salt *cur_salt;
+	static ms_office_custom_salt *cur_salt;
 
-	cur_salt = mem_calloc_tiny(sizeof(ms_office_custom_salt), MEM_ALIGN_WORD);
+	if (!cur_salt) cur_salt = mem_calloc_tiny(sizeof(ms_office_custom_salt), MEM_ALIGN_WORD);
+	memset(cur_salt, 0, sizeof(*cur_salt));
 	ctcopy += 9;	/* skip over "$office$*" */
 	p = strtokm(ctcopy, "*");
 	cur_salt->version = atoi(p);

@@ -78,9 +78,14 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	key_buffer = mem_calloc_tiny(sizeof(*key_buffer) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	key_buffer = mem_calloc(sizeof(*key_buffer), self->params.max_keys_per_crypt);
+	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
+}
+
+static void done(void)
+{
+	MEM_FREE(crypt_out);
+	MEM_FREE(key_buffer);
 }
 
 static int valid(char* ciphertext, struct fmt_main *self)
@@ -308,7 +313,7 @@ struct fmt_main fmt_openbsd_softraid = {
 		tests_openbsdsoftraid
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

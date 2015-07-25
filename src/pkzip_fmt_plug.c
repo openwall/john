@@ -361,12 +361,9 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	K12 = mem_calloc_tiny(sizeof(*K12) * 3 *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	chk = mem_calloc_tiny(sizeof(*chk) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
+	K12 = mem_calloc(sizeof(*K12) * 3, self->params.max_keys_per_crypt);
+	chk = mem_calloc(sizeof(*chk), self->params.max_keys_per_crypt);
 
 	/*
 	 * Precompute the multiply mangling, within several parts of the hash. There is a pattern,
@@ -473,6 +470,13 @@ static void init(struct fmt_main *self)
 
 	SIGS[255].max_len = 64;
 #endif
+}
+
+static void done(void)
+{
+	MEM_FREE(chk);
+	MEM_FREE(K12);
+	MEM_FREE(saved_key);
 }
 
 static void set_salt(void *_salt) {
@@ -1665,7 +1669,7 @@ struct fmt_main fmt_pkzip = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

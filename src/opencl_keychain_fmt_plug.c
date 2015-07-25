@@ -247,8 +247,10 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
+	static struct custom_salt *salt_struct;
 
-	salt_struct = mem_calloc_tiny(sizeof(struct custom_salt),
+	if (!salt_struct)
+		salt_struct = mem_calloc_tiny(sizeof(struct custom_salt),
 	                              MEM_ALIGN_WORD);
 	ctcopy += 11;	/* skip over "$keychain$*" */
 	p = strtokm(ctcopy, "*");

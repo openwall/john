@@ -131,7 +131,7 @@ static void init(struct fmt_main *self)
 		fmt_SybaseASE.params.plaintext_length = 125;
 	// will simply set SIMD stuff here, even if not 'used'
 #ifdef SIMD_COEF_32
-	NULL_LIMB = mem_calloc_tiny(64*MAX_KEYS_PER_CRYPT, MEM_ALIGN_CACHE);
+	NULL_LIMB = mem_calloc_align(64, MAX_KEYS_PER_CRYPT, MEM_ALIGN_CACHE);
 	last_len = mem_calloc_align(sizeof(*last_len), self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	for (i = 0; i < kpc/MAX_KEYS_PER_CRYPT; ++i) {
 		int j;
@@ -145,9 +145,10 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
-	MEM_FREE(prep_key);
-	MEM_FREE(crypt_out);
 	MEM_FREE(last_len);
+	MEM_FREE(NULL_LIMB);
+	MEM_FREE(crypt_out);
+	MEM_FREE(prep_key);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
