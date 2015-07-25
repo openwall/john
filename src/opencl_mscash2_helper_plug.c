@@ -12,7 +12,6 @@
 #include "opencl_mscash2_helper_plug.h"
 #include "options.h"
 
-#define MAX_DEVICE_PER_PLATFORM 	16
 #define PADDING				1024
 
 #define getPowerOfTwo(v)	\
@@ -57,9 +56,9 @@ static unsigned int maxActiveDevices = 0;
 
 void initNumDevices(void)
 {
-	devBuffer = (deviceBuffer *) mem_alloc(MAX_DEVICE_PER_PLATFORM * MAX_PLATFORMS * sizeof(deviceBuffer));
-	devParam = (deviceParam *) mem_calloc(MAX_DEVICE_PER_PLATFORM * MAX_PLATFORMS, sizeof(deviceParam));
-	events = (cl_event *) mem_alloc(MAX_DEVICE_PER_PLATFORM * MAX_PLATFORMS * sizeof(cl_event));
+	devBuffer = (deviceBuffer *) mem_alloc(MAX_GPU_DEVICES * sizeof(deviceBuffer));
+	devParam = (deviceParam *) mem_calloc(MAX_GPU_DEVICES, sizeof(deviceParam));
+	events = (cl_event *) mem_alloc(MAX_GPU_DEVICES * sizeof(cl_event));
 }
 
 static void createDevObjGws(size_t gws, int jtrUniqDevId)
@@ -461,7 +460,7 @@ size_t selectDevice(int jtrUniqDevId, struct fmt_main *self)
 {
 	char buildOpts[300];
 
-	assert(jtrUniqDevId < MAX_DEVICE_PER_PLATFORM * MAX_PLATFORMS);
+	assert(jtrUniqDevId < MAX_GPU_DEVICES);
 
 	sprintf(buildOpts, "-D SALT_BUFFER_SIZE=%lu", SALT_BUFFER_SIZE);
 	opencl_init("$JOHN/kernels/pbkdf2_kernel.cl", jtrUniqDevId, buildOpts);
