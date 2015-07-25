@@ -345,6 +345,8 @@ static void build_kernel(char * task) {
 static void init(struct fmt_main *_self) {
 
 	self = _self;
+
+	opencl_prepare_dev(gpu_id);
 }
 
 static void reset(struct db_main *db)
