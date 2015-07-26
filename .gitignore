@@ -23,6 +23,7 @@ run/gpg2john
 run/hccap2john
 run/john
 run/john.local.conf
+john-local.conf
 run/keepass2john
 run/kernels/
 run/keychain2john
