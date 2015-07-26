@@ -70,10 +70,17 @@ static void create_buffer_gws(size_t gws)
 
 static void set_kernel_args_gws()
 {
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][1], 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument 0, kernel 1.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][1], 1, sizeof(cl_mem), &buffer_lm_keys), "Failed setting kernel argument 1, kernel 1.");
+	size_t static_param_size = 101;
+	char *arg_name = (char *) mem_calloc(static_param_size, sizeof(char));
 
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 0, sizeof(cl_mem), &buffer_lm_keys), "Failed setting kernel argument 1, kernel 0.");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument 0, kernel 0.");
+
+	HANDLE_CLERROR(clGetKernelArgInfo(krnl[gpu_id][0], 1, CL_KERNEL_ARG_NAME, static_param_size - 1, arg_name, NULL), "Failed to query argument 1, kernel 0.");
+	if (!strncmp(arg_name, "lm_key_idx", 10));
+	else if (!strncmp(arg_name, "lm_keys", 7))
+		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 1, sizeof(cl_mem), &buffer_lm_keys), "Failed setting kernel argument buffer_lm_keys, kernel 0.");
+	
+	MEM_FREE(arg_name);
 }
 
 static void release_buffer_gws()
@@ -117,13 +124,27 @@ static void create_buffer(unsigned int num_loaded_hashes, unsigned int ot_size, 
 
 static void set_kernel_args(unsigned int full_unroll)
 {
-	if (!full_unroll)
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 1, sizeof(cl_mem), &buffer_lm_key_idx), "Failed setting kernel argument 0, kernel 0.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 2 - full_unroll, sizeof(cl_mem), &buffer_offset_table), "Failed setting kernel argument 2, kernel 0.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 3 - full_unroll, sizeof(cl_mem), &buffer_hash_table), "Failed setting kernel argument 3, kernel 0.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 4 - full_unroll, sizeof(cl_mem), &buffer_bitmaps), "Failed setting kernel argument 4, kernel 0.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 5 - full_unroll, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument 5, kernel 0.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 6 - full_unroll, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument 6, kernel 0.");
+	size_t static_param_size = 101;
+	unsigned int ctr = 1;
+	char *arg_name = (char *) mem_calloc(static_param_size, sizeof(char));
+
+	HANDLE_CLERROR(clGetKernelArgInfo(krnl[gpu_id][0], 1, CL_KERNEL_ARG_NAME, static_param_size - 1, arg_name, NULL), "Failed to query argument 1, kernel 0.");
+	if (!strncmp(arg_name, "lm_key_idx", 10))
+		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], ctr++, sizeof(cl_mem), &buffer_lm_key_idx), "Failed setting kernel argument buffer_lm_key_idx, kernel 0.");
+	else if (!strncmp(arg_name, "lm_keys", 7))
+		ctr++;
+
+	HANDLE_CLERROR(clGetKernelArgInfo(krnl[gpu_id][0], 2, CL_KERNEL_ARG_NAME, static_param_size - 1, arg_name, NULL), "Failed to query argument 2, kernel 0.");
+	if (!strncmp(arg_name, "lm_key_idx", 10))
+		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], ctr++, sizeof(cl_mem), &buffer_lm_key_idx), "Failed setting kernel argument buffer_lm_key_idx, kernel 0.");
+
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], ctr++, sizeof(cl_mem), &buffer_offset_table), "Failed setting kernel argument 2, kernel 0.");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], ctr++, sizeof(cl_mem), &buffer_hash_table), "Failed setting kernel argument 3, kernel 0.");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], ctr++, sizeof(cl_mem), &buffer_bitmaps), "Failed setting kernel argument 4, kernel 0.");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], ctr++, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument 5, kernel 0.");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], ctr++, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument 6, kernel 0.");
+
+	MEM_FREE(arg_name);
 }
 
 static void release_buffer()
@@ -157,19 +178,12 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 
 	krnl[gpu_id][0] = clCreateKernel(program[gpu_id], "lm_bs", &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating kernel lm_bs.");
-
-	opencl_read_source("$JOHN/kernels/lm_finalize_keys_kernel.cl");
-	opencl_build(gpu_id, build_opts, 0, NULL);
-
-	krnl[gpu_id][1] = clCreateKernel(program[gpu_id], "lm_bs_finalize_keys", &ret_code);
-	HANDLE_CLERROR(ret_code, "Failed creating kernel lm_bs_finalize_keys.");
 }
 
 static void release_kernels()
 {
 	if (krnl[gpu_id][0]) {
 		HANDLE_CLERROR(clReleaseKernel(krnl[gpu_id][0]), "Error releasing kernel 0");
-		HANDLE_CLERROR(clReleaseKernel(krnl[gpu_id][1]), "Error releasing kernel 1");
 		krnl[gpu_id][0] = 0;
 	}
 }
@@ -788,11 +802,8 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 
 	assert(current_gws <= global_work_size + PADDING);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, current_gws * sizeof(opencl_lm_transfer), opencl_lm_keys, 0, NULL, NULL ), "Failed Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id][1], 1, NULL, &current_gws, lws, 0, NULL, &evnt), "Failed enque kernel lm_bs_finalize_keys.");
-	clWaitForEvents(1, &evnt);
-	clReleaseEvent(evnt);
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id][0], 1, NULL, &current_gws, lws, 0, NULL, &evnt), "Failed creating kernel lm_bs.");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id][0], 1, NULL, &current_gws, lws, 0, NULL, &evnt), "Failed enqueue kernel lm_bs.");
 	clWaitForEvents(1, &evnt);
 	clReleaseEvent(evnt);
 

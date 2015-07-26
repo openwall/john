@@ -6,12 +6,12 @@
  * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
  */
 
-#include "opencl_lm_kernel_params.h"
+#include "opencl_lm_finalize_keys.h"
 
 #if WORK_GROUP_SIZE
-#define y(p, q) vxorf(B[p], lm_key[lm_key_idx[q + k] + s_key_offset])
+#define y(p, q) vxorf(B[p], lm_keys[lm_key_idx[q + k] + s_key_offset])
 #else
-#define y(p, q) vxorf(B[p], lm_key[lm_key_idx[q + k] * gws + section])
+#define y(p, q) vxorf(B[p], lm_keys[lm_key_idx[q + k] * gws + section])
 #endif
 
 #define H1()\
@@ -84,9 +84,9 @@
 
 inline void lm_loop(__private vtype *B,
 #if WORK_GROUP_SIZE
-		__local lm_vector *lm_key,
+		__local lm_vector *lm_keys,
 #else
-		__global lm_vector *lm_key,
+		__global lm_vector *lm_keys,
 #endif
 #if USE_LOCAL_MEM
 		__local ushort *lm_key_idx,
@@ -111,8 +111,11 @@ inline void lm_loop(__private vtype *B,
 }
 
 #if FULL_UNROLL == 0
-__kernel void lm_bs(__global lm_vector *lm_key,
-		constant uint *lm_key_idx
+__kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change kernel argument index.
+#if (WORK_GROUP_SIZE == 0)
+		    __global lm_vector *lm_keys, // Do not change kernel argument name or its index.
+#endif
+		   constant uint *lm_key_idx // Do not change kernel argument name or its index.
 #if gpu_amd(DEVICE_INFO)
                    __attribute__((max_constant_size(3072)))
 #endif
@@ -135,8 +138,11 @@ __kernel void lm_bs(__global lm_vector *lm_key,
 #if WORK_GROUP_SIZE
 		unsigned int s_key_offset  = 56 * lid;
 		__local lm_vector s_lm_key[56 * WORK_GROUP_SIZE];
-		for (i = 0; i < 56; i++)
-			s_lm_key[lid * 56 + i] = lm_key[section + i * gws];
+		lm_bs_finalize_keys(lm_raw_keys,
+				section, s_lm_key, s_key_offset);
+#else
+		lm_bs_finalize_keys(lm_raw_keys,
+				section, lm_keys, gws);
 #endif
 #if USE_LOCAL_MEM
 		__local ushort s_key_idx[768];
@@ -161,7 +167,7 @@ __kernel void lm_bs(__global lm_vector *lm_key,
 #if WORK_GROUP_SIZE
 		s_lm_key,
 #else
-		lm_key,
+		lm_keys,
 #endif
 #if USE_LOCAL_MEM
 		s_key_idx,
@@ -179,4 +185,3 @@ __kernel void lm_bs(__global lm_vector *lm_key,
 		cmp(B, offset_table, hash_table, bitmaps, hash_ids, bitmap_dupe, section);
 }
 #endif
-

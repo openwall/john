@@ -6,12 +6,12 @@
  * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
  */
 
-#include "opencl_lm_kernel_params.h"
+#include "opencl_lm_finalize_keys.h"
 
 #if WORK_GROUP_SIZE
-#define y(p, q) vxorf(B[p], lm_key[q + s_key_offset])
+#define y(p, q) vxorf(B[p], lm_keys[q + s_key_offset])
 #else
-#define y(p, q) vxorf(B[p], lm_key[q * gws + section])
+#define y(p, q) vxorf(B[p], lm_keys[q * gws + section])
 #endif
 
 #define H1_k0()\
@@ -462,9 +462,9 @@
 
 inline void lm_loop(__private vtype *B,
 #if WORK_GROUP_SIZE
-		__local lm_vector *lm_key,
+		__local lm_vector *lm_keys,
 #else
-		__global lm_vector *lm_key,
+		__global lm_vector *lm_keys,
 #endif
 #if WORK_GROUP_SIZE
 		unsigned int s_key_offset
@@ -508,12 +508,15 @@ inline void lm_loop(__private vtype *B,
 }
 
 #if FULL_UNROLL == 1
-__kernel void lm_bs(__global lm_vector *lm_key,
+__kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change kernel argument index.
+#if (WORK_GROUP_SIZE == 0)
+		    __global lm_vector *lm_keys, // Do not change kernel argument name or its index.
+#endif
 		    __global unsigned int *offset_table,
-		   __global unsigned int *hash_table,
-		   __global unsigned int *bitmaps,
-                   volatile __global uint *hash_ids,
-		   volatile __global uint *bitmap_dupe)
+		    __global unsigned int *hash_table,
+		    __global unsigned int *bitmaps,
+                    volatile __global uint *hash_ids,
+		    volatile __global uint *bitmap_dupe)
 {
 		unsigned int section = get_global_id(0);
 		unsigned int gws = get_global_size(0);
@@ -525,9 +528,12 @@ __kernel void lm_bs(__global lm_vector *lm_key,
 		unsigned int lid = get_local_id(0);
 		unsigned int s_key_offset  = 56 * lid;
 		__local lm_vector s_lm_key[56 * WORK_GROUP_SIZE];
-		for (i = 0; i < 56; i++)
-			s_lm_key[lid * 56 + i] = lm_key[section + i * gws];
+		lm_bs_finalize_keys(lm_raw_keys,
+				section, s_lm_key, s_key_offset);
 		barrier(CLK_LOCAL_MEM_FENCE);
+#else
+		lm_bs_finalize_keys(lm_raw_keys,
+				section, lm_keys, gws);
 #endif
 		vtype z = vzero, o = vones;
 		lm_set_block_8(B, 0, z, z, z, z, z, z, z, z);
@@ -543,7 +549,7 @@ __kernel void lm_bs(__global lm_vector *lm_key,
 #if WORK_GROUP_SIZE
 		s_lm_key,
 #else
-		lm_key,
+		lm_keys,
 #endif
 #if WORK_GROUP_SIZE
 		s_key_offset
