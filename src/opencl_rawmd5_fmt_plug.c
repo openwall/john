@@ -956,6 +956,8 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 		set_kernel_args_kpc();
 	}
 
+	clear_keys();
+
 	assert(!(local_work_size & (local_work_size -1)));
 	assert(!(global_work_size % local_work_size));
 	assert(local_work_size <= lws_limit);
