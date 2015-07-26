@@ -136,6 +136,7 @@ can still be selected explicitly. Entries are case insensitive.
 At version 1.7.8-jumbo6 (and later), include syntax was added to john.conf
 file format.  The syntax is one of these 3 types:
 .include "file"
+.include 'file'
 .include <file>
 .include [section]
 
@@ -144,6 +145,11 @@ the .include is located at.  This is similar to how #include "" and
 #include <> works in the C language.  Some of the larger sections in
 the jumbo john, have been moved out of the 'john.conf' file, into their
 own .conf file (the dumb16/32 and the generic scripting sections)
+Using the single quotes 'file' will work similar to the double quotes,
+but when loading if the file can not be found, then john silently
+continues forward.  If double quotes (or <> ) are used, then if the
+file can not be found, john will exit telling you about the missing
+file.
 
 the .include [section], will take all of the lines found within [section]
 and place them into the current 'building' section.  Thus, things like
