@@ -81,6 +81,7 @@ john_register_one(&fmt_rawSHA384);
 #define CIPHERTEXT_LENGTH		96
 
 #define BINARY_SIZE				48
+#define FULL_BINARY_SIZE		64
 #define BINARY_ALIGN			8
 #define SALT_SIZE				0
 #define SALT_ALIGN				1
@@ -180,7 +181,7 @@ void *get_binary(char *ciphertext)
 	int i;
 
 	if (!outw)
-		outw = mem_calloc_tiny(BINARY_SIZE, BINARY_ALIGN);
+		outw = mem_calloc_tiny(FULL_BINARY_SIZE, BINARY_ALIGN);
 
 	out = (unsigned char*)outw;
 
