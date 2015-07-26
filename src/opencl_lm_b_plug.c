@@ -6,13 +6,14 @@
  */
 
 #ifdef HAVE_OPENCL
+#include "opencl_lm.h"
+#if CL_VERSION_1_2
 
 #include <assert.h>
 #include <string.h>
 #include <sys/time.h>
 
 #include "options.h"
-#include "opencl_lm.h"
 #include "opencl_lm_hst_dev_shared.h"
 #include "bt_interface.h"
 #include "memdbg.h"
@@ -79,7 +80,7 @@ static void set_kernel_args_gws()
 	if (!strncmp(arg_name, "lm_key_idx", 10));
 	else if (!strncmp(arg_name, "lm_keys", 7))
 		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 1, sizeof(cl_mem), &buffer_lm_keys), "Failed setting kernel argument buffer_lm_keys, kernel 0.");
-	
+
 	MEM_FREE(arg_name);
 }
 
@@ -884,4 +885,5 @@ void opencl_lm_b_register_functions(struct fmt_main *fmt)
 	fmt->methods.cmp_one = cmp_one;
 	opencl_lm_init_global_variables = &init_global_variables;
 }
+#endif
 #endif /* HAVE_OPENCL */

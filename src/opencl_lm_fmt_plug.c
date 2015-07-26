@@ -6,6 +6,9 @@
  */
 
 #ifdef HAVE_OPENCL
+#include "opencl_lm.h"
+
+#if CL_VERSION_1_2
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_opencl_lm;
@@ -19,7 +22,6 @@ john_register_one(&fmt_opencl_lm);
 #include "common.h"
 #include "formats.h"
 #include "config.h"
-#include "opencl_lm.h"
 #include "opencl_lm_hst_dev_shared.h"
 #include "memdbg.h"
 
@@ -57,9 +59,14 @@ void (*opencl_lm_init_global_variables)(void);
 
 static void init(struct fmt_main *pFmt)
 {
+	opencl_prepare_dev(gpu_id);
+	if (get_device_version(gpu_id) < 120) {
+		fprintf(stderr, "OpenCL 1.2 capability required."
+			"Current capability:%d\n", get_device_version(gpu_id));
+		error();
+	}
 	opencl_lm_b_register_functions(pFmt);
 	opencl_lm_init_global_variables();
-	opencl_prepare_dev(gpu_id);
 }
 
 static char *prepare(char *fields[10], struct fmt_main *self)
@@ -238,4 +245,5 @@ struct fmt_main fmt_opencl_lm = {
 
 #endif /* plugin stanza */
 
+#endif /* CL_VERSION_1_2 */
 #endif /* HAVE_OPENCL */
