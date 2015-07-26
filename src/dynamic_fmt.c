@@ -7857,7 +7857,15 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	extern struct options_main options;
 	char label[16] = { 0 }, label_id[16] = { 0 }, *cp = NULL;
 	memcpy(pFmt, &fmt_Dynamic, sizeof(struct fmt_main));
-	dynamic_RESET(pFmt);
+
+	// TODO:
+	// NOTE, this was commented out, because the late binding @dynamic=expr@
+	// hashes were killing out possibly pre-setup input buffers.  NOTE, that
+	// things worked fine after this, all self tests do pass, and I am 99%
+	// sure that all of this 'required' cleaning happens in init(). but I am
+	// putting this comment in here, so that if at a later time, there are
+	// problems and are tracked down to this, we will know why.
+//	dynamic_RESET(pFmt);
 
 	// Ok we need to list this as a dynamic format (even for the 'thin' formats)
 	pFmt->params.flags |= FMT_DYNAMIC;
