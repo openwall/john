@@ -7,6 +7,7 @@
 
 #ifdef HAVE_OPENCL
 #include "opencl_lm.h"
+#ifdef CL_VERSION_1_2
 #if CL_VERSION_1_2
 
 #include <assert.h>
@@ -885,5 +886,7 @@ void opencl_lm_b_register_functions(struct fmt_main *fmt)
 	fmt->methods.cmp_one = cmp_one;
 	opencl_lm_init_global_variables = &init_global_variables;
 }
+
+#endif
 #endif
 #endif /* HAVE_OPENCL */

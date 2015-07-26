@@ -7,7 +7,7 @@
 
 #ifdef HAVE_OPENCL
 #include "opencl_lm.h"
-
+#ifdef CL_VERSION_1_2
 #if CL_VERSION_1_2
 
 #if FMT_EXTERNS_H
@@ -245,5 +245,6 @@ struct fmt_main fmt_opencl_lm = {
 
 #endif /* plugin stanza */
 
+#endif /* ifdef CL_VERSION_1_2 */
 #endif /* CL_VERSION_1_2 */
 #endif /* HAVE_OPENCL */

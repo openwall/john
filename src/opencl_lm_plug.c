@@ -7,6 +7,7 @@
 
 #ifdef HAVE_OPENCL
 #include "opencl_lm.h"
+#ifdef CL_VERSION_1_2
 #if CL_VERSION_1_2
 
 #include <string.h>
@@ -242,5 +243,6 @@ char *opencl_lm_get_source(WORD *raw)
 	return out;
 }
 
+#endif
 #endif /* CL_VERSION_1_2 */
 #endif /* HAVE_OPENCL */
