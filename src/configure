@@ -3435,17 +3435,6 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 
-# This file is Copyright (C) 2014 JimF
-# and is hereby released to the general public under the following terms:
-# Redistribution and use in source and binary forms, with or without
-# modifications, are permitted.
-#
-# This macro will create a john.local.conf, pre-seeding it with comments
-# and all usable sections (with comment), turning them into skeleton
-# 'Local:' sections.
-
-
-
 
 # Define precious variables. They get included in --help and need no AC_SUBST
 
@@ -15024,57 +15013,6 @@ fi
 if test "`echo cuda_*_fmt_plug.c`" != "cuda_*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H cuda_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 fi
-
-########################################################
-# Creates ./run/john.local.conf but ONLY if it does not
-# exist. The file will have a valid comment section, and
-# will be pre-seeded with all 'Local:' sections possible
-# at the time of creation.
-
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for john.local.conf" >&5
-$as_echo_n "checking for john.local.conf... " >&6; }
-   if test -e "../run/john.local.conf"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: exists" >&5
-$as_echo "exists" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: not found" >&5
-$as_echo "not found" >&6; }
-		echo "configure: creating ../run/john.local.conf (with skeleton sections)"
-		cat >../run/john.local.conf.tmp <<_EOF
-# Within john.local.conf, we can add or fully overwrite any exiting section
-# from any of the other .conf file. However if we add a special named
-# section that is the same name as some other section, but with Local:
-# appenneded, then this special section will allow the params from the
-# original section in john.conf, to be modified.  Any param from that
-# original section which is placed into this 'Local:' section will be
-# updated, without having to edit the john.conf file. The john.conf file
-# is a file owned by the JtR project.  It gets updated and edited by the
-# JtR development team.  User hand edits to this file are lost when JtR
-# updates. So it is recommended that updates to sections in that file are
-# not done by editing the john.conf file, but by adding 'Local:' sections
-# to this file, overriding parameters. NOTE, that a section starting out
-# with 'List.' can not be modified with a 'Local:'. This is because
-# there is no way to edit a List.  A List is used for things such as
-# Rules, or External scripts.  Those sections can be replaced fully if
-# put into this file, but can not be done with a 'Local:'
-#
-# This file was auto-created by the ./configure script when run. The
-# ./configure added Local: sections for all non-list sections from the
-# set of *.conf files present at the time ./configure was run. This will
-# ONLY be done if this john.local.conf file does NOT exist. Once this
-# file exists, it will not be updated again, by JtR code.
-
-_EOF
-
-		grep "^\[.*\]$" ../run/john.conf | grep -v "List\." | grep -v "Local:" > ../run/john.local.conf.tmp2
-		# NOTE, had to use a quadragraphs for unbalanced openbracket characters, pound character, and dollar signs.
-		awk -F[ '{printf("# Use this section used to override params in section [%s\n[Local:%s\n\n",$2,$2);}' < ../run/john.local.conf.tmp2 >> ../run/john.local.conf.tmp
-		rm ../run/john.local.conf.tmp2
-		mv ../run/john.local.conf.tmp ../run/john.local.conf
-
-fi
-
-########################################################
 
 ########################################################
 #    ONLY _COSMETICAL_ OUTPUT STUFF BELOW THIS LINE
