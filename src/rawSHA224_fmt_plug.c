@@ -29,6 +29,9 @@ john_register_one(&fmt_rawSHA224);
 #include "formats.h"
 #include "simd-intrinsics.h"
 
+//#undef SIMD_COEF_32
+//#undef SIMD_PARA_SHA256
+
 /*
  * Only effective for SIMD.
  * Undef to disable reversing steps for benchmarking.
@@ -42,7 +45,6 @@ john_register_one(&fmt_rawSHA224);
 #define INIT_E 0xffc00b31
 #define INIT_F 0x68581511
 #define INIT_G 0x64f98fa7
-#define INIT_H 0xbefa4fa4
 
 #ifdef _OPENMP
 #ifdef SIMD_COEF_32
@@ -79,7 +81,9 @@ john_register_one(&fmt_rawSHA224);
 #endif
 #define CIPHERTEXT_LENGTH       56
 
-#define BINARY_SIZE             28
+#define BINARY_SIZE             4
+#define DIGEST_SIZE             28
+#define DIGEST_SIZE_256			32
 #define BINARY_ALIGN			MEM_ALIGN_WORD
 #define SALT_SIZE               0
 #define SALT_ALIGN				1
@@ -108,7 +112,7 @@ static uint32_t (*crypt_out);
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)
-    [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
+    [(DIGEST_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
 #endif
 
 static void init(struct fmt_main *self)
@@ -130,7 +134,8 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc_align(self->params.max_keys_per_crypt * SHA_BUF_SIZ,
 	                             sizeof(*saved_key),
 	                             MEM_ALIGN_SIMD);
-	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt * 8,
+	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt *
+	                             DIGEST_SIZE_256 / sizeof(uint32_t),
 	                             sizeof(*crypt_out),
 	                             MEM_ALIGN_SIMD);
 #endif
@@ -180,12 +185,12 @@ static void *get_binary(char *ciphertext)
 	int i;
 
 	if (!outw)
-		outw = mem_calloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+		outw = mem_calloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
 	out = (unsigned char*)outw;
 
 	p = ciphertext + TAG_LENGTH;
-	for (i = 0; i < BINARY_SIZE; i++) {
+	for (i = 0; i < DIGEST_SIZE; i++) {
 		out[i] =
 				(atoi16[ARCH_INDEX(*p)] << 4) |
 				 atoi16[ARCH_INDEX(p[1])];
@@ -193,7 +198,7 @@ static void *get_binary(char *ciphertext)
 	}
 
 #ifdef SIMD_COEF_32
-	alter_endianity (out, BINARY_SIZE);
+	alter_endianity (out, DIGEST_SIZE);
 #ifdef REVERSE_STEPS
 	outw[0] -= INIT_A;
 	outw[1] -= INIT_B;
@@ -202,7 +207,6 @@ static void *get_binary(char *ciphertext)
 	outw[4] -= INIT_E;
 	outw[5] -= INIT_F;
 	outw[6] -= INIT_G;
-	outw[7] -= INIT_H;
 #endif
 #endif
 	return out;
@@ -331,11 +335,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
+	unsigned int index;
 
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_32
-		if (((uint32_t *) binary)[0] == crypt_out[HASH_IDX])
+		if (((ARCH_WORD_32*) binary)[0] == crypt_out[HASH_IDX])
 #else
 		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
 #endif
@@ -346,19 +350,32 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_32
-	int i;
-	for (i = 0; i < BINARY_SIZE/4; i++)
-		if (((uint32_t *) binary)[i] != crypt_out[HASH_IDX+i*SIMD_COEF_32])
-			return 0;
-	return 1;
+	return *(ARCH_WORD_32*)binary == crypt_out[HASH_IDX];
 #else
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return *(ARCH_WORD_32*)binary == crypt_out[index][0];
 #endif
 }
 
 static int cmp_exact(char *source, int index)
 {
+	ARCH_WORD_32 *binary = get_binary(source);
+#if SIMD_COEF_32
+	int i;
+
+	for (i = 0; i < DIGEST_SIZE/sizeof(ARCH_WORD_32); i++)
+		if (binary[i] != crypt_out[HASH_IDX + i*SIMD_COEF_32])
+			return 0;
 	return 1;
+#else
+	SHA256_CTX ctx;
+	ARCH_WORD_32 crypt_out[DIGEST_SIZE / sizeof(ARCH_WORD_32)];
+
+	SHA224_Init(&ctx);
+	SHA224_Update(&ctx, saved_key[index], saved_len[index]);
+	SHA224_Final((unsigned char*)crypt_out, &ctx);
+
+	return !memcmp(binary, crypt_out, DIGEST_SIZE);
+#endif
 }
 
 struct fmt_main fmt_rawSHA224 = {

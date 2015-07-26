@@ -47,6 +47,8 @@ john_register_one(&fmt_opencl_xsha512);
 
 #define ALGORITHM_NAME			"SHA512 OpenCL"
 
+#define BINARY_SIZE				DIGEST_SIZE
+
 static sha512_salt			* salt;
 
 //To keep the previous salt in order to reload hashes to GPU

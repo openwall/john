@@ -33,6 +33,8 @@ john_register_one(&fmt_opencl_rawsha256);
 #include "mask_ext.h"
 #include "opencl_mask_extras.h"
 
+#define BINARY_SIZE             DIGEST_SIZE
+
 #define FORMAT_LABEL			"Raw-SHA256-opencl"
 #define FORMAT_NAME			""
 

@@ -64,6 +64,8 @@ john_register_one(&fmt_rawSHA256_ng);
 #define SIMD_TYPE                 "128/128 SSE2 4x"
 #endif
 
+#define BINARY_SIZE               4
+
 #define FORMAT_LABEL              "Raw-SHA256-ng"
 #define FORMAT_NAME               ""
 #define ALGORITHM_NAME            "SHA256 " SIMD_TYPE
@@ -386,18 +388,19 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
+	return ((uint32_t*) binary)[0] == crypt_key[0][index];
+}
+
+
+static int cmp_exact(char *source, int index)
+{
+	ARCH_WORD_32 *binary = sha256_common_binary(source);
     int i;
 
     for (i = 0; i < 8; i++)
         if (((uint32_t*) binary)[i] != crypt_key[i][index])
             return 0;
 
-    return 1;
-}
-
-
-static int cmp_exact(char *source, int index)
-{
     return 1;
 }
 

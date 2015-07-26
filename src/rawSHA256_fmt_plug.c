@@ -30,6 +30,9 @@ john_register_one(&fmt_rawSHA256);
 #include "johnswap.h"
 #include "formats.h"
 
+//#undef SIMD_COEF_32
+//#undef SIMD_PARA_SHA256
+
 /*
  * Only effective for SIMD.
  * Undef to disable reversing steps for benchmarking.
@@ -79,6 +82,7 @@ john_register_one(&fmt_rawSHA256);
 #include "rawSHA256_common.h"
 #undef _RAWSHA256_H
 
+#define BINARY_SIZE             4
 #define SALT_SIZE               0
 #define SALT_ALIGN				1
 
@@ -98,7 +102,7 @@ static uint32_t (*crypt_out);
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)
-    [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
+    [(DIGEST_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
 #endif
 
 static void init(struct fmt_main *self)
@@ -143,12 +147,12 @@ static void *get_binary(char *ciphertext)
 	int i;
 
 	if (!outw)
-		outw = mem_calloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+		outw = mem_calloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
 	out = (unsigned char*)outw;
 
 	p = ciphertext + HEX_TAG_LEN;
-	for (i = 0; i < BINARY_SIZE; i++) {
+	for (i = 0; i < DIGEST_SIZE; i++) {
 		out[i] =
 				(atoi16[ARCH_INDEX(*p)] << 4) |
 				 atoi16[ARCH_INDEX(p[1])];
@@ -156,7 +160,7 @@ static void *get_binary(char *ciphertext)
 	}
 
 #ifdef SIMD_COEF_32
-	alter_endianity (out, BINARY_SIZE);
+	alter_endianity (out, DIGEST_SIZE);
 #ifdef REVERSE_STEPS
 	outw[0] -= INIT_A;
 	outw[1] -= INIT_B;
@@ -294,11 +298,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
+	unsigned int index;
 
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_32
-		if (((uint32_t *) binary)[0] == crypt_out[HASH_IDX])
+		if (((ARCH_WORD_32*) binary)[0] == crypt_out[HASH_IDX])
 #else
 		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
 #endif
@@ -309,19 +313,32 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_32
-	int i;
-	for (i = 0; i < BINARY_SIZE/4; i++)
-		if (((uint32_t *) binary)[i] != crypt_out[HASH_IDX+i*SIMD_COEF_32])
-			return 0;
-	return 1;
+	return *(ARCH_WORD_32*)binary == crypt_out[HASH_IDX];
 #else
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return *(ARCH_WORD_32*)binary == crypt_out[index][0];
 #endif
 }
 
 static int cmp_exact(char *source, int index)
 {
+	ARCH_WORD_32 *binary = get_binary(source);
+#if SIMD_COEF_32
+	int i;
+
+	for (i = 0; i < DIGEST_SIZE/sizeof(ARCH_WORD_32); i++)
+		if (binary[i] != crypt_out[HASH_IDX + i*SIMD_COEF_32])
+			return 0;
 	return 1;
+#else
+	SHA256_CTX ctx;
+	ARCH_WORD_32 crypt_out[DIGEST_SIZE / sizeof(ARCH_WORD_32)];
+
+	SHA256_Init(&ctx);
+	SHA256_Update(&ctx, saved_key[index], saved_len[index]);
+	SHA256_Final((unsigned char*)crypt_out, &ctx);
+
+	return !memcmp(binary, crypt_out, DIGEST_SIZE);
+#endif
 }
 
 struct fmt_main fmt_rawSHA256 = {
