@@ -70,10 +70,7 @@ static void create_buffer_gws(size_t gws)
 
 static void set_kernel_args_gws()
 {
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][1], 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument 0, kernel 1.");
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][1], 1, sizeof(cl_mem), &buffer_lm_keys), "Failed setting kernel argument 1, kernel 1.");
-
-	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 0, sizeof(cl_mem), &buffer_lm_keys), "Failed setting kernel argument 1, kernel 0.");
+	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument 1, kernel 0.");
 }
 
 static void release_buffer_gws()
@@ -158,18 +155,12 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 	krnl[gpu_id][0] = clCreateKernel(program[gpu_id], "lm_bs", &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating kernel lm_bs.");
 
-	opencl_read_source("$JOHN/kernels/lm_finalize_keys_kernel.cl");
-	opencl_build(gpu_id, build_opts, 0, NULL);
-
-	krnl[gpu_id][1] = clCreateKernel(program[gpu_id], "lm_bs_finalize_keys", &ret_code);
-	HANDLE_CLERROR(ret_code, "Failed creating kernel lm_bs_finalize_keys.");
 }
 
 static void release_kernels()
 {
 	if (krnl[gpu_id][0]) {
 		HANDLE_CLERROR(clReleaseKernel(krnl[gpu_id][0]), "Error releasing kernel 0");
-		HANDLE_CLERROR(clReleaseKernel(krnl[gpu_id][1]), "Error releasing kernel 1");
 		krnl[gpu_id][0] = 0;
 	}
 }
@@ -346,6 +337,12 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		full_unroll = 0;
 		kernel_run_ms = 40;
 	}
+
+	/* Temporary kludge */
+	force_global_keys = 0;
+	use_local_mem = 1;
+	full_unroll = 0;
+
 
 	local_work_size = 0;
 	global_work_size = 0;
@@ -788,9 +785,7 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 
 	assert(current_gws <= global_work_size + PADDING);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, current_gws * sizeof(opencl_lm_transfer), opencl_lm_keys, 0, NULL, NULL ), "Failed Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id][1], 1, NULL, &current_gws, lws, 0, NULL, &evnt), "Failed enque kernel lm_bs_finalize_keys.");
-	clWaitForEvents(1, &evnt);
-	clReleaseEvent(evnt);
+	
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id][0], 1, NULL, &current_gws, lws, 0, NULL, &evnt), "Failed creating kernel lm_bs.");
 	clWaitForEvents(1, &evnt);

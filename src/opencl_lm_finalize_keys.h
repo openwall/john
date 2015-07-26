@@ -7,11 +7,15 @@
  */
 #include "opencl_lm_kernel_params.h"
 
-#if 1
-#define MAYBE_GLOBAL __global
+#if WORK_GROUP_SIZE
+#define MAYBE_LOCAL 	__local
+#define NEXT_BIT	1
 #else
-#define MAYBE_GLOBAL
+#define MAYBE_LOCAL 	__global
+#define NEXT_BIT	gws
 #endif
+
+
 
 #define kvtype vtype
 #define kvand vand
@@ -57,14 +61,14 @@
 	kvshr(dst, tmp, shift)
 
 #define LOAD_V 						\
-	kvtype v0 = *(MAYBE_GLOBAL kvtype *)&vp[0]; 	\
-	kvtype v1 = *(MAYBE_GLOBAL kvtype *)&vp[1]; 	\
-	kvtype v2 = *(MAYBE_GLOBAL kvtype *)&vp[2]; 	\
-	kvtype v3 = *(MAYBE_GLOBAL kvtype *)&vp[3]; 	\
-	kvtype v4 = *(MAYBE_GLOBAL kvtype *)&vp[4]; 	\
-	kvtype v5 = *(MAYBE_GLOBAL kvtype *)&vp[5]; 	\
-	kvtype v6 = *(MAYBE_GLOBAL kvtype *)&vp[6]; 	\
-	kvtype v7 = *(MAYBE_GLOBAL kvtype *)&vp[7];
+	kvtype v0 = *(__global kvtype *)&vp[0]; 	\
+	kvtype v1 = *(__global kvtype *)&vp[1]; 	\
+	kvtype v2 = *(__global kvtype *)&vp[2]; 	\
+	kvtype v3 = *(__global kvtype *)&vp[3]; 	\
+	kvtype v4 = *(__global kvtype *)&vp[4]; 	\
+	kvtype v5 = *(__global kvtype *)&vp[5]; 	\
+	kvtype v6 = *(__global kvtype *)&vp[6]; 	\
+	kvtype v7 = *(__global kvtype *)&vp[7];
 
 #define FINALIZE_NEXT_KEY_BIT_0g { 			\
 	kvtype m = mask01, va, vb, tmp; 		\
@@ -77,7 +81,7 @@
 	kvand_shl_or(va, v6, m, 6); 			\
 	kvand_shl_or(vb, v7, m, 7); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += gws; 					\
+	kp += NEXT_BIT;					\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_1g { 			\
@@ -91,7 +95,7 @@
 	kvand_shl_or(va, v6, m, 5); 			\
 	kvand_shl_or(vb, v7, m, 6); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += gws; 					\
+	kp += NEXT_BIT;					\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_2g { 			\
@@ -105,7 +109,7 @@
 	kvand_shl_or(va, v6, m, 4); 			\
 	kvand_shl_or(vb, v7, m, 5); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += gws; 					\
+	kp += NEXT_BIT;					\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_3g { 			\
@@ -119,7 +123,7 @@
 	kvand_shl_or(va, v6, m, 3); 			\
 	kvand_shl_or(vb, v7, m, 4); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += gws; 					\
+	kp += NEXT_BIT;					\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_4g { 			\
@@ -133,7 +137,7 @@
 	kvand_shl_or(va, v6, m, 2); 			\
 	kvand_shl_or(vb, v7, m, 3); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += gws; 					\
+	kp += NEXT_BIT;					\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_5g { 			\
@@ -147,7 +151,7 @@
 	kvand_shl1_or(va, v6, m); 			\
 	kvand_shl_or(vb, v7, m, 2); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += gws; 					\
+	kp += NEXT_BIT;					\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_6g { 			\
@@ -161,7 +165,7 @@
 	kvand_or(va, v6, m); 				\
 	kvand_shl1_or(vb, v7, m); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += gws; 					\
+	kp += NEXT_BIT;					\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_7g { 			\
@@ -175,20 +179,30 @@
 	kvand_shr_or(va, v6, m, 1); 			\
 	kvand_or(vb, v7, m); 				\
 	kvor(kp[0], va, vb); 				\
-	kp += gws;				\
+	kp += NEXT_BIT;					\
 }
 
-__kernel void lm_bs_finalize_keys(__global opencl_lm_transfer *lm_raw_keys,
-				   __global lm_vector *lm_keys) {
+inline void lm_bs_finalize_keys(__global opencl_lm_transfer *lm_raw_keys,
+				int section,
+				MAYBE_LOCAL lm_vector *lm_keys,
+#if WORK_GROUP_SIZE
+				unsigned int s_key_offset
+#else
+				unsigned int gws
+#endif
+ 			      ) {
 
-	int section = get_global_id(0);
-	int gws = get_global_size(0);
-	__global lm_vector *kp = (__global lm_vector *)&lm_keys[section];
+#if WORK_GROUP_SIZE
+#define LM_KEYS_OFFSET  s_key_offset
+#else
+#define LM_KEYS_OFFSET	section
+#endif
+	MAYBE_LOCAL lm_vector *kp = (MAYBE_LOCAL lm_vector *)&lm_keys[LM_KEYS_OFFSET];
 
 	int ic ;
 	for (ic = 0; ic < 7; ic++) {
-		MAYBE_GLOBAL lm_vector *vp =
-		    (MAYBE_GLOBAL lm_vector *)&lm_raw_keys[section].xkeys.v[ic][0] ;
+		__global lm_vector *vp =
+		    (__global lm_vector *)&lm_raw_keys[section].xkeys.v[ic][0] ;
 		LOAD_V
 		FINALIZE_NEXT_KEY_BIT_0g
 		FINALIZE_NEXT_KEY_BIT_1g
