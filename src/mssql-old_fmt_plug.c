@@ -103,12 +103,12 @@ static unsigned char cursalt[SALT_SIZE];
 #define saved_key mssql_saved_key
 #define crypt_key mssql_crypt_key
 JTR_ALIGN(MEM_ALIGN_SIMD) char saved_key[SHA_BUF_SIZ*4*NBKEYS];
-JTR_ALIGN(MEM_ALIGN_SIMD) char crypt_key[BINARY_SIZE*NBKEYS];
+JTR_ALIGN(MEM_ALIGN_SIMD) char crypt_key[DIGEST_SIZE*NBKEYS];
 static char plain_keys[NBKEYS][PLAINTEXT_LENGTH*3+1];
 #else
 
 static unsigned char saved_key[PLAINTEXT_LENGTH*2 + 1 + SALT_SIZE];
-static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
+static ARCH_WORD_32 crypt_key[DIGEST_SIZE / 4];
 static unsigned int key_length;
 static char *plain_keys[1];
 
