@@ -14,7 +14,7 @@ typedef unsigned WORD vtype;
  * OSX' Intel HD4000 driver [1.2(Sep25 2014 22:26:04)] fails building the
  * "fast goto" version.
  */
-#if nvidia_sm_5x(DEVICE_INFO) || gpu_intel(DEVICE_INFO) ||	  \
+#if nvidia_sm_5x(DEVICE_INFO) || gpu_intel(DEVICE_INFO) || __MESA__ ||  \
 	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1573 && !defined(__Tahiti__)) || \
 	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1702)
 //#warning Using 'safe goto' kernel
