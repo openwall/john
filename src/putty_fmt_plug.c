@@ -180,7 +180,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!is_old_fmt) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* alg */
 			goto err;
-		if (strlen(p) > 8)
+		if (strlen(p) > 7)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* encryption */
 			goto err;
