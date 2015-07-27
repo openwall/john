@@ -68,7 +68,11 @@ int ldr_in_pot = 0;
 #define SPLFLEN(f)	(fields[f][0] ? fields[f+1] - fields[f] - 1 : 0)
 
 static char *no_username = "?";
+#ifdef HAVE_FUZZ
+int pristine_gecos;
+#else
 static int pristine_gecos;
+#endif
 
 /* There should be legislation against adding a BOM to UTF-8 */
 static char *skip_bom(char *string)
@@ -614,8 +618,19 @@ static int ldr_split_line(char **login, char **ciphertext,
 
 		if (valid) {
 			*ciphertext = prepared;
+#ifdef HAVE_FUZZ
+			if (options.flags & FLG_FUZZ_CHK) {
+				ldr_set_encoding(*format);
+				fmt_init(*format);
+			}
+#endif
 			return valid;
 		}
+
+#ifdef HAVE_FUZZ
+		if (options.flags & FLG_FUZZ_CHK)
+			return valid;
+#endif
 
 		ldr_set_encoding(*format);
 
@@ -801,7 +816,11 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 	return words;
 }
 
+#ifdef HAVE_FUZZ
+void ldr_load_pw_line(struct db_main *db, char *line)
+#else
 static void ldr_load_pw_line(struct db_main *db, char *line)
+#endif
 {
 	static int skip_dupe_checking = 0;
 	struct fmt_main *format;
@@ -816,8 +835,18 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	size_t pw_size, salt_size;
 	int i;
 
+#ifdef HAVE_FUZZ
+	char *line_sb;
+
+	line_sb = line;
+	if (options.flags & FLG_FUZZ_CHK)
+		line_sb = skip_bom(line);
+	count = ldr_split_line(&login, &ciphertext, &gecos, &home, &uid,
+		NULL, &db->format, db->options, line_sb);
+#else
 	count = ldr_split_line(&login, &ciphertext, &gecos, &home, &uid,
 		NULL, &db->format, db->options, line);
+#endif
 	if (count <= 0) return;
 	if (count >= 2) db->options->flags |= DB_SPLIT;
 

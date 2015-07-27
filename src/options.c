@@ -164,6 +164,16 @@ static struct opt_entry opt_list[] = {
 	{"test", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
 		~OPT_REQ_PARAM & ~FLG_NOLOG, "%u", &benchmark_time},
+#ifdef HAVE_FUZZ
+	{"fuzz", FLG_FUZZ_SET, FLG_FUZZ_CHK,
+		0, ~FLG_FUZZ_DUMP_SET & ~FLG_FUZZ_SET & ~FLG_FORMAT &
+		~FLG_SAVEMEM & ~FLG_DYNFMT & ~OPT_REQ_PARAM & ~FLG_NOLOG,
+		OPT_FMT_STR_ALLOC, &options.fuzz_dic},
+	{"fuzz-dump", FLG_FUZZ_DUMP_SET, FLG_FUZZ_DUMP_CHK,
+		0, ~FLG_FUZZ_SET & ~FLG_FUZZ_DUMP_SET & ~FLG_FORMAT &
+		~FLG_SAVEMEM & ~FLG_DYNFMT & ~OPT_REQ_PARAM & ~FLG_NOLOG,
+		OPT_FMT_STR_ALLOC, &options.fuzz_dump},
+#endif
 	{"users", FLG_NONE, 0, FLG_PASSWD, OPT_REQ_PARAM,
 		OPT_FMT_ADD_LIST_MULTI, &options.loader.users},
 	{"groups", FLG_NONE, 0, FLG_PASSWD, OPT_REQ_PARAM,
@@ -386,6 +396,10 @@ void opt_print_hidden_usage(void)
 	puts("--show=types              show some information about hashes in file (machine readable)");
 	puts("--skip-self-tests         skip self tests");
 	puts("--stress-test[=TIME]      loop self tests forever");
+#ifdef HAVE_FUZZ
+	puts("--fuzz[=DICTFILE]         fuzz formats' prepare(), valid() and split()");
+	puts("--fuzz-dump[=from,to]     dump the fuzzed hashes between from and to to file pwfile.format");
+#endif
 	puts("--input-encoding=NAME     input encoding (alias for --encoding)");
 	puts("--internal-encoding=NAME  encoding used in rules/masks (see doc/ENCODING)");
 	puts("--target-encoding=NAME    output encoding (used by format, see doc/ENCODING)");

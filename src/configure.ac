@@ -84,6 +84,7 @@ AC_ARG_ENABLE([pkg-config], [AS_HELP_STRING([--disable-pkg-config],[do not use p
 AC_ARG_ENABLE([nt-full-unicode], [AS_HELP_STRING([--enable-nt-full-unicode],[support 4-byte UTF-8 for MS formats])], [enable_nt_unicode=$enableval], [enable_nt_unicode=no])
 AC_ARG_ENABLE([int128], [AC_HELP_STRING([--disable-int128], [Do not use int128])], [enable_int128=$enableval], [enable_int128=auto])
 AC_ARG_ENABLE([experimental-code], [AC_HELP_STRING([--enable-experimental-code], [Use experimental code])], [experimental=$enableval], [experimental=no])
+AC_ARG_ENABLE([fuzz], [AC_HELP_STRING([--enable-fuzz], [Fuzzing prepare(), valid(), init(), etc])], [fuzz=$enableval], [fuzz=no])
 
 ####### Actual tests start here #######
 
@@ -802,6 +803,13 @@ AS_IF([test "x$enable_nt_unicode" != xno], [AC_DEFINE([NT_FULL_UNICODE],1,[Defin
 # Use features that may not yet be stable
 AS_IF([test "x$experimental" != xno], [AC_DEFINE([USE_EXPERIMENTAL],1,[Define to 1 if you want to include experimental code.])])
 
+# In makefile, we need to know if building extra fuzz items.
+if test "x$fuzz" != xno ; then
+   AC_SUBST(HAVE_FUZZ,[-DHAVE_FUZZ])
+else
+   AC_MSG_NOTICE([Fuzz check disabled])
+fi
+
 # code to create M4_INCLUDES (all ./m4/*.m4 )
 AC_SUBST([M4_INCLUDES],[`echo m4/*.m4`])
 
@@ -984,6 +992,7 @@ Cross compiling ............................. ${cross_compiling}
 Legacy arch header .......................... ${ARCH_LINK}
 
 Optional libraries/features found:
+Fuzzing test ................................ ${fuzz}
 Experimental code ........................... ${experimental}
 OpenMPI support (default disabled) .......... ${using_mpi}
 Fork support ................................ ${ac_cv_func_fork_works}

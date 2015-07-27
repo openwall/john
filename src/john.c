@@ -83,6 +83,9 @@ static int john_omp_threads_new;
 #include "options.h"
 #include "config.h"
 #include "bench.h"
+#ifdef HAVE_FUZZ
+#include "fuzz.h"
+#endif
 #include "charset.h"
 #include "single.h"
 #include "wordlist.h"
@@ -1363,6 +1366,13 @@ static void john_run(void)
 
 	if (options.flags & FLG_TEST_CHK)
 		exit_status = benchmark_all() ? 1 : 0;
+#ifdef HAVE_FUZZ
+	else
+	if (options.flags & FLG_FUZZ_CHK || options.flags & FLG_FUZZ_DUMP_CHK) {
+		ldr_init_database(&database, &options.loader);
+		exit_status = fuzz(&database);
+	}
+#endif
 	else
 	if (options.flags & FLG_MAKECHR_CHK)
 		do_makechars(&database, options.charset);

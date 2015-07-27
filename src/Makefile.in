@@ -127,6 +127,8 @@ CUDA_OBJS = common-cuda.o cuda_common.o cuda_cryptmd5.o cuda_phpass.o \
 	cuda_xsha512.o cuda_wpapsk.o cuda_rawsha512.o cuda_pwsafe.o \
 	cuda_rawsha224_fmt.o cuda_rawsha256_fmt.o
 
+FUZZ_OBJS = fuzz.o
+
 GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o
 
@@ -159,6 +161,13 @@ ifdef WITH_OPENCL
 CFLAGS += -DHAVE_OPENCL @CL_CFLAGS@
 CFLAGS_MAIN += -DHAVE_OPENCL @CL_CFLAGS@
 JOHN_OBJS += $(OCL_OBJS)
+endif
+
+WITH_FUZZ=@HAVE_FUZZ@
+ifdef WITH_FUZZ
+CFLAGS += -DHAVE_FUZZ
+CFLAGS_MAIN += -DHAVE_FUZZ
+JOHN_OBJS += $(FUZZ_OBJS)
 endif
 
 #########################################################
@@ -350,6 +359,8 @@ external.o:	external.c misc.h params.h os.h signals.h compiler.h loader.h logger
 fake_salts.o:	fake_salts.c config.h john.h memory.h options.h fake_salts.h memdbg.h
 
 formats.o:	formats.c params.h memory.h formats.h dyna_salt.h misc.h unicode.h options.h loader.h common-opencl.h cuda_common.h memdbg.h
+
+fuzz.o:	fuzz.h fuzz.c
 
 genmkvpwd.o:	genmkvpwd.c autoconfig.h params.h memory.h mkvlib.h memdbg.h
 

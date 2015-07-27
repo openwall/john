@@ -628,6 +628,7 @@ HOST_OS
 PLUGFORMATS_DEPS
 PLUGFORMATS_OBJS
 M4_INCLUDES
+HAVE_FUZZ
 EXE_EXT
 YASM_OPTIONS
 AESNI_OS
@@ -769,6 +770,7 @@ enable_pkg_config
 enable_nt_full_unicode
 enable_int128
 enable_experimental_code
+enable_fuzz
 enable_openmp
 enable_opencl
 '
@@ -1409,6 +1411,7 @@ Optional Features:
   --disable-int128        Do not use int128
   --enable-experimental-code
                           Use experimental code
+  --enable-fuzz           Fuzzing prepare(), valid(), init(), etc
   --disable-openmp        do not use OpenMP
   --disable-opencl        do not use OpenCL
 
@@ -3612,6 +3615,13 @@ if test "${enable_experimental_code+set}" = set; then :
   enableval=$enable_experimental_code; experimental=$enableval
 else
   experimental=no
+fi
+
+# Check whether --enable-fuzz was given.
+if test "${enable_fuzz+set}" = set; then :
+  enableval=$enable_fuzz; fuzz=$enableval
+else
+  fuzz=no
 fi
 
 
@@ -13574,6 +13584,15 @@ $as_echo "#define USE_EXPERIMENTAL 1" >>confdefs.h
 
 fi
 
+# In makefile, we need to know if building extra fuzz items.
+if test "x$fuzz" != xno ; then
+   HAVE_FUZZ=-DHAVE_FUZZ
+
+else
+   { $as_echo "$as_me:${as_lineno-$LINENO}: Fuzz check disabled" >&5
+$as_echo "$as_me: Fuzz check disabled" >&6;}
+fi
+
 # code to create M4_INCLUDES (all ./m4/*.m4 )
 M4_INCLUDES=`echo m4/*.m4`
 
@@ -15129,6 +15148,7 @@ Cross compiling ............................. ${cross_compiling}
 Legacy arch header .......................... ${ARCH_LINK}
 
 Optional libraries/features found:
+Fuzzing test ................................ ${fuzz}
 Experimental code ........................... ${experimental}
 OpenMPI support (default disabled) .......... ${using_mpi}
 Fork support ................................ ${ac_cv_func_fork_works}
