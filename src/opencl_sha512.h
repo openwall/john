@@ -18,7 +18,8 @@
 #define MAX_KEYS_PER_CRYPT      1
 
 //Macros.
-#ifdef USE_BITSELECT
+//OSX drivers has problems digesting this SWAP64 macro.
+#if defined(USE_BITSELECT) && !__OS_X__
 	#define Ch(x,y,z)       bitselect(z, y, x)
 	#define Maj(x,y,z)      bitselect(x, y, z ^ x)
 	#define ror(x, n)       ((x >> n) | (x << (64UL-n)))
