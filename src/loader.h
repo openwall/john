@@ -249,6 +249,13 @@ extern int ldr_in_pot;
  */
 extern void ldr_init_database(struct db_main *db, struct db_options *options);
 
+#ifdef HAVE_FUZZ
+/*
+ * Loads a line into the database.
+ */
+extern void ldr_load_pw_line(struct db_main *db, char *line);
+#endif
+
 /*
  * Loads a password file into the database.
  */
