@@ -539,7 +539,7 @@ static int cmp_exact(char *source, int index)
 {
 	ARCH_WORD_32 crypt_key[SHA_BUF_SIZ];
 	UTF8 *key = (UTF8*)get_key(index);
-	UTF16 u16[PLAINTEXT_LENGTH];
+	UTF16 u16[PLAINTEXT_LENGTH+1];
 	int len = enc_to_utf16(u16, PLAINTEXT_LENGTH, key, strlen((char*)key));
 	SHA_CTX ctx;
 
