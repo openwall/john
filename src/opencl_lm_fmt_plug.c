@@ -6,7 +6,9 @@
  */
 
 #include "autoconfig.h"
-#ifdef HAVE_OPENCL_1_2
+#include "opencl_lm.h"
+
+#if CL_VERSION_1_2 && HAVE_OPENCL_1_2
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_opencl_lm;
@@ -20,7 +22,6 @@ john_register_one(&fmt_opencl_lm);
 #include "common.h"
 #include "formats.h"
 #include "config.h"
-#include "opencl_lm.h"
 #include "opencl_lm_hst_dev_shared.h"
 #include "memdbg.h"
 
@@ -244,4 +245,4 @@ struct fmt_main fmt_opencl_lm = {
 
 #endif /* plugin stanza */
 
-#endif /* HAVE_OPENCL_1_2 */
+#endif /* #if CL_VERSION_1_2 && HAVE_OPENCL_1_2 */

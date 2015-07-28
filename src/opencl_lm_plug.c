@@ -6,13 +6,14 @@
  */
 
 #include "autoconfig.h"
-#ifdef HAVE_OPENCL_1_2
+#include "opencl_lm.h"
+
+#if CL_VERSION_1_2 && HAVE_OPENCL_1_2
 
 #include <string.h>
 
 #include "arch.h"
 #include "common.h"
-#include "opencl_lm.h"
 #include "opencl_lm_hst_dev_shared.h"
 #include "unicode.h"
 #include "memdbg.h"
@@ -242,4 +243,4 @@ char *opencl_lm_get_source(WORD *raw)
 	return out;
 }
 
-#endif /* HAVE_OPENCL_1_2 */
+#endif /* #if CL_VERSION_1_2 && HAVE_OPENCL_1_2 */
