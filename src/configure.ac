@@ -672,6 +672,15 @@ dnl                 ftruncate gethostbyname gettimeofday inet_ntoa
 dnl                 strrchr strcspn strspn strtol strtoul
 dnl ])
 
+# Mesa claims to support OpenCL 1.2, but does not.
+CFLAGS_BACKUP=$CFLAGS
+LIBS_BACKUP=$LIBS
+CFLAGS="$CFLAGS $CL_CFLAGS"
+LIBS="$LIBS $CL_LIBS"
+AC_CHECK_FUNC([clGetKernelArgInfo], [AC_DEFINE(HAVE_OPENCL_1_2, 1, [Define to 1 if you (really) have OpenCL 1.2.])])
+CFLAGS=$CFLAGS_BACKUP
+LIBS=$LIBS_BACKUP
+
 # This will stop at first found, will be used for mem_alloc_aligned()
 AC_CHECK_FUNCS([posix_memalign aligned_alloc memalign __mingw_aligned_malloc _aligned_malloc], break)
 

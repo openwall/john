@@ -5,16 +5,15 @@
  * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
  */
 
-#ifdef HAVE_OPENCL
-#include "opencl_lm.h"
-#ifdef CL_VERSION_1_2
-#if CL_VERSION_1_2
+#include "autoconfig.h"
+#ifdef HAVE_OPENCL_1_2
 
 #include <assert.h>
 #include <string.h>
 #include <sys/time.h>
 
 #include "options.h"
+#include "opencl_lm.h"
 #include "opencl_lm_hst_dev_shared.h"
 #include "bt_interface.h"
 #include "memdbg.h"
@@ -887,6 +886,4 @@ void opencl_lm_b_register_functions(struct fmt_main *fmt)
 	opencl_lm_init_global_variables = &init_global_variables;
 }
 
-#endif
-#endif
-#endif /* HAVE_OPENCL */
+#endif /* HAVE_OPENCL_1_2 */

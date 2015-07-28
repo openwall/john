@@ -5,10 +5,8 @@
  * Based on Solar Designer implementation of DES_fmt.c in jtr-v1.7.9
  */
 
-#ifdef HAVE_OPENCL
-#include "opencl_lm.h"
-#ifdef CL_VERSION_1_2
-#if CL_VERSION_1_2
+#include "autoconfig.h"
+#ifdef HAVE_OPENCL_1_2
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_opencl_lm;
@@ -22,6 +20,7 @@ john_register_one(&fmt_opencl_lm);
 #include "common.h"
 #include "formats.h"
 #include "config.h"
+#include "opencl_lm.h"
 #include "opencl_lm_hst_dev_shared.h"
 #include "memdbg.h"
 
@@ -245,6 +244,4 @@ struct fmt_main fmt_opencl_lm = {
 
 #endif /* plugin stanza */
 
-#endif /* ifdef CL_VERSION_1_2 */
-#endif /* CL_VERSION_1_2 */
-#endif /* HAVE_OPENCL */
+#endif /* HAVE_OPENCL_1_2 */

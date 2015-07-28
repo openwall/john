@@ -14,7 +14,7 @@
 #include "opencl_lm_hst_dev_shared.h"
 #include "loader.h"
 
-#define LM_OPENCL_ALGORITHM_NAME		"LM BS OpenCL(inefficient)"
+#define LM_OPENCL_ALGORITHM_NAME		"DES BS OpenCL"
 
 #define LM_DEPTH			32
 #define LM_LOG_DEPTH			5

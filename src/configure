@@ -12208,6 +12208,21 @@ fi
 done
 
 
+# Mesa claims to support OpenCL 1.2, but does not.
+CFLAGS_BACKUP=$CFLAGS
+LIBS_BACKUP=$LIBS
+CFLAGS="$CFLAGS $CL_CFLAGS"
+LIBS="$LIBS $CL_LIBS"
+ac_fn_c_check_func "$LINENO" "clGetKernelArgInfo" "ac_cv_func_clGetKernelArgInfo"
+if test "x$ac_cv_func_clGetKernelArgInfo" = xyes; then :
+
+$as_echo "#define HAVE_OPENCL_1_2 1" >>confdefs.h
+
+fi
+
+CFLAGS=$CFLAGS_BACKUP
+LIBS=$LIBS_BACKUP
+
 # This will stop at first found, will be used for mem_alloc_aligned()
 for ac_func in posix_memalign aligned_alloc memalign __mingw_aligned_malloc _aligned_malloc
 do :
