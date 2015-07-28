@@ -5,6 +5,8 @@
  * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
  */
 
+#if HAVE_OPENCL
+
 #include "autoconfig.h"
 #include "opencl_lm.h"
 
@@ -888,3 +890,4 @@ void opencl_lm_b_register_functions(struct fmt_main *fmt)
 }
 
 #endif /* #if CL_VERSION_1_2 && HAVE_OPENCL_1_2 */
+#endif /* #if HAVE_OPENCL */
