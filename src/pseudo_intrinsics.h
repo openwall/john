@@ -46,9 +46,13 @@ typedef vtype64 vtype;
 #define vadd_epi64              vaddq_u64
 #define vand                    vandq_u32
 #define vandnot                 vbicq_u32
-#define vcmov(x, y, z)          vxor(y, vand(z, vxor(x, y)))
+#define vcmov                   vcmov_emu
 #define vload(m)                vld1q_u32((uint32_t*)(m))
+#define vloadu                  vloadu_emu
 #define vor                     vorrq_u32
+#define vroti_epi32             vroti_epi32_emu
+#define vroti_epi64             vroti_epi64_emu
+#define vroti16_epi32           vroti_epi32
 #define vset1_epi32(x)          vdupq_n_u32(x)
 #define vset1_epi64(x)          vdupq_n_u64(x)
 #define vset_epi32(x3,x2,x1,x0) vcombine_u32(vcreate_u32(((uint64_t)(x1) << 32) | x0), vcreate_u32(((uint64_t)(x3) << 32) | x2))
@@ -59,6 +63,7 @@ typedef vtype64 vtype;
 #define vsrli_epi32(x, i)       vshrq_n_u32(x, i)
 #define vsrli_epi64(x, i)       vshrq_n_u64(x, i)
 #define vstore(m, x)            vst1_u32((uint32_t*)(m), x)
+#define vstoreu                 vstoreu_emu
 #define vunpackhi_epi32(x, y)   (vzip_u32(x, y)).val[1]
 #define vunpackhi_epi64(x, y)   (vzip_u64(x, y)).val[1]
 #define vunpacklo_epi32(x, y)   (vzip_u32(x, y)).val[0]
@@ -73,29 +78,10 @@ static inline vtype vtesteq_epi32(vtype x, vtype y)
 }
 #define vtestz_epi32(x)         vtesteq_epi32(x, vsetzero())
 
-#define vswap32(x) \
-	x = vxor(vsrli_epi32(x, 24),                                            \
-	         vxor(vslli_epi32(vsrli_epi32(vslli_epi32(x, 8), 24), 8),       \
-	              vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(x, 8), 24), 8),  \
-                       vslli_epi32(x, 24))))
-#define vswap64(x) \
-	(x = vxor(vsrli_epi64(x, 32), vslli_epi64(x, 32)), vswap32(x))
+#define vswap32                 vswap32_emu
+#define vswap64                 vswap64_emu
 
 #define GATHER64(x,y,z)     { x = vset_epi64 (y[1][z], y[0][z]); }
-
-static inline vtype vloadu(const void *addr)
-{
-	char JTR_ALIGN(MEM_ALIGN_SIMD) buf[MEM_ALIGN_SIMD];
-	return is_aligned(addr, MEM_ALIGN_SIMD) ?
-		vload(addr) : (memcpy(buf, addr, MEM_ALIGN_SIMD), vload(buf));
-}
-
-static inline void vstoreu(void *addr, vtype v)
-{
-	char JTR_ALIGN(MEM_ALIGN_SIMD) buf[MEM_ALIGN_SIMD];
-	is_aligned(addr, MEM_ALIGN_SIMD) ?
-		vstore(addr, v) : (vstore(buf, v), memcpy(addr, buf, MEM_ALIGN_SIMD));
-}
 
 /*************************** AltiVec (Power) **************************/
 #elif __ALTIVEC__
@@ -114,8 +100,9 @@ typedef union {
 #define vadd_epi64(x, y)        (vtype)vec_add((x).v64, (y).v64)
 #define vand(x, y)              (vtype)vec_and((x).v32, (y).v32)
 #define vandnot(x, y)           (vtype)vec_andc((y).v32, (x).v32)
-#define vcmov(y, z, x)          (vtype)vec_sel((z).v32, (y).v32, (x).v32)
+#define vcmov(x, y, z)          (vtype)vec_sel((y).v32, (x).v32, (z).v32)
 #define vload(m)                (vtype)(vtype32)vec_ld(0, (uint32_t*)(m))
+#define vloadu                  vloadu_emu
 #define vor(x, y)               (vtype)vec_or((x).v32, (y).v32)
 #define vroti_epi32(x, i)       (vtype)vec_rl((x).v32, (vset1_epi32(i)).v32)
 #define vroti_epi64(x, i)       (vtype)vec_rl((x).v64, (vset1_epi64(i)).v64)
@@ -130,6 +117,7 @@ typedef union {
 #define vsrli_epi32(x, i)       (vtype)vec_sr((x).v32, (vset1_epi32(i)).v32)
 #define vsrli_epi64(x, i)       (vtype)vec_sr((x).v64, (vset1_epi64(i)).v64)
 #define vstore(m, x)            vec_st((x).v32, 0, (uint32_t*)(m))
+#define vstoreu                 vstoreu_emu
 #define vunpackhi_epi32(x, y)   (vtype)vec_mergel((x).v32, (y).v32)
 #define vunpackhi_epi64(x, y)   (vtype)(vtype64)vec_mergel((vector long)(x).v64, (vector long)(y).v64)
 #define vunpacklo_epi32(x, y)   (vtype)vec_mergeh((x).v32, (y).v32)
@@ -139,29 +127,10 @@ typedef union {
 #define vtesteq_epi32(x, y)     vec_any_eq((x).v32, (y).v32)
 #define vtestz_epi32(x)         vtesteq_epi32(x, vsetzero())
 
-#define vswap32(x) \
-	x = vxor(vsrli_epi32(x, 24),                                            \
-	         vxor(vslli_epi32(vsrli_epi32(vslli_epi32(x, 8), 24), 8),       \
-	              vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(x, 8), 24), 8),  \
-                       vslli_epi32(x, 24))))
-#define vswap64(x) \
-	(x = vxor(vsrli_epi64(x, 32), vslli_epi64(x, 32)), vswap32(x))
+#define vswap32                 vswap32_emu
+#define vswap64                 vswap64_emu
 
 #define GATHER64(x,y,z)     { x = vset_epi64 (y[1][z], y[0][z]); }
-
-static inline vtype vloadu(const void *addr)
-{
-	char JTR_ALIGN(MEM_ALIGN_SIMD) buf[MEM_ALIGN_SIMD];
-	return is_aligned(addr, MEM_ALIGN_SIMD) ?
-		vload(addr) : (memcpy(buf, addr, MEM_ALIGN_SIMD), vload(buf));
-}
-
-static inline void vstoreu(void *addr, vtype v)
-{
-	char JTR_ALIGN(MEM_ALIGN_SIMD) buf[MEM_ALIGN_SIMD];
-	is_aligned(addr, MEM_ALIGN_SIMD) ?
-		vstore(addr, v) : (vstore(buf, v), memcpy(addr, buf, MEM_ALIGN_SIMD));
-}
 
 /*************************** AVX512 and MIC ***************************/
 #elif __AVX512F__ || __MIC__
@@ -173,7 +142,7 @@ typedef __m512i vtype;
 #define vadd_epi64              _mm512_add_epi64
 #define vand                    _mm512_and_si512
 #define vandnot                 _mm512_andnot_si512
-#define vcmov(y, z, x)          vxor(z, vand(x, vxor(y, z)))
+#define vcmov                   vcmov_emu
 /*
  * NOTE: AVX2 has it as (base, index, scale) while MIC and AVX512 are
  * different.
@@ -183,6 +152,9 @@ typedef __m512i vtype;
 #define vload(x)                _mm512_load_si512((void*)(x))
 #define vloadu(x)               _mm512_loadu_si512((void*)(x))
 #define vor                     _mm512_or_si512
+#define vroti_epi32             vroti_epi32_emu
+#define vroti_epi64             vroti_epi64_emu
+#define vroti16_epi32           vroti_epi32
 #define vscatter_epi32          _mm512_i32scatter_epi32
 #define vscatter_epi64          _mm512_i64scatter_epi64
 #define vset1_epi8              _mm512_set1_epi8
@@ -267,14 +239,10 @@ typedef __m512i vtype;
                                     0x08090a0b0c0d0e0fULL, \
                                     0x0001020304050607ULL))
 #else // workarounds without AVX512BW
-#define vswap32(n)                                                          \
-    n = vxor(vsrli_epi32(n, 24),                                            \
-             vxor(vslli_epi32(vsrli_epi32(vslli_epi32(n, 8), 24), 8),       \
-                  vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(n, 8), 24), 8),  \
-                       vslli_epi32(n, 24))))
-#define vswap64(n)                                   \
-    (n = vshuffle_epi32(n, _MM_SHUFFLE(2, 3, 0, 1)), \
-     vswap32(n))
+#define vswap32 vswap32_emu
+#define vswap64(x) \
+	(x = vshuffle_epi32(x, _MM_SHUFFLE(2, 3, 0, 1)), vswap32(x))
+
 #endif // __AVX512BW__
 
 // MIC lacks some intrinsics in AVX512F, thus needing emulation.
@@ -309,7 +277,7 @@ typedef __m256i vtype;
 #define vadd_epi64              _mm256_add_epi64
 #define vand                    _mm256_and_si256
 #define vandnot                 _mm256_andnot_si256
-#define vcmov(y, z, x)          vxor(z, vand(x, vxor(y, z)))
+#define vcmov                   vcmov_emu
 #define vcmpeq_epi8_mask(a, b)  _mm256_movemask_epi8(_mm256_cmpeq_epi8(a, b))
 #define vcmpeq_epi32            _mm256_cmpeq_epi32
 #define vcvtsi32                _mm256_cvtsi32_si256
@@ -322,6 +290,9 @@ typedef __m256i vtype;
 #define vor                     _mm256_or_si256
 #define vpermute2x128           _mm256_permute2x128_si256
 #define vpermute4x64_epi64      _mm256_permute4x64_epi64
+#define vroti_epi32             vroti_epi32_emu
+#define vroti_epi64             vroti_epi64_emu
+#define vroti16_epi32           vroti_epi32
 #define vset1_epi8              _mm256_set1_epi8
 #define vset1_epi32             _mm256_set1_epi32
 #define vset1_epi64             _mm256_set1_epi64x
@@ -413,7 +384,7 @@ typedef __m128i vtype;
 #if __XOP__
 #define vcmov                   _mm_cmov_si128
 #else
-#define vcmov(y, z, x)          vxor(z, vand(x, vxor(y, z)))
+#define vcmov                   vcmov_emu
 #endif
 #define vcmpeq_epi8_mask(a, b)  _mm_movemask_epi8(_mm_cmpeq_epi8(a, b))
 #define vcmpeq_epi32            _mm_cmpeq_epi32
@@ -428,11 +399,21 @@ typedef __m128i vtype;
 #define vpermute4x64_epi64      _mm_permute4x64_epi64
 #define vpermute2x128           _mm_permute2x128_si128
 #if __XOP__
-#define vroti_epi16             _mm_roti_epi16
 #define vroti_epi32             _mm_roti_epi32
 #define vroti16_epi32           _mm_roti_epi32
 #define vroti_epi64             _mm_roti_epi64
-#endif
+#else
+#define vroti_epi32             vroti_epi32_emu
+#define vroti_epi64             vroti_epi64_emu
+// Specialized ROTL16 for SSE4.1 and lower (MD5)
+#if __SSSE3__
+#define vroti16_epi32(a, s)     vshuffle_epi8((a), vset_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302))
+#elif __SSE2__
+#define vroti16_epi32(a, s)     vshufflelo_epi16(vshufflehi_epi16((a), 0xb1), 0xb1)
+#else
+#define vroti16_epi32           vroti_epi32
+#endif // __SSSE3__
+#endif // __XOP__
 #define vset_epi32              _mm_set_epi32
 #define vset1_epi8              _mm_set1_epi8
 #define vset1_epi32             _mm_set1_epi32
@@ -539,10 +520,32 @@ typedef __m64i vtype;
 #define MEM_ALIGN_SIMD          (SIMD_COEF_32 * 4)
 #endif
 
-#if (!__XOP__ && !__ALTIVEC__) || __AVX2__ || __MIC__ || __ARM_NEON__
+static inline vtype vloadu_emu(const void *addr)
+{
+	char JTR_ALIGN(MEM_ALIGN_SIMD) buf[MEM_ALIGN_SIMD];
+	return is_aligned(addr, MEM_ALIGN_SIMD) ?
+		vload(addr) : (memcpy(buf, addr, MEM_ALIGN_SIMD), vload(buf));
+}
+
+static inline void vstoreu_emu(void *addr, vtype v)
+{
+	char JTR_ALIGN(MEM_ALIGN_SIMD) buf[MEM_ALIGN_SIMD];
+	is_aligned(addr, MEM_ALIGN_SIMD) ?
+		vstore(addr, v) : (vstore(buf, v), memcpy(addr, buf, MEM_ALIGN_SIMD));
+}
+
+#define vswap32_emu(x) \
+	x = vxor(vsrli_epi32(x, 24),                                            \
+	         vxor(vslli_epi32(vsrli_epi32(vslli_epi32(x, 8), 24), 8),       \
+	              vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(x, 8), 24), 8),  \
+                       vslli_epi32(x, 24))))
+#define vswap64_emu(x) \
+	(x = vxor(vsrli_epi64(x, 32), vslli_epi64(x, 32)), vswap32_emu(x))
+
+#define vcmov_emu(x, y, z)      vxor(y, vand(z, vxor(x, y)))
 
 #if __SSE3__ || __MIC__
-#define vslli_epi64a(a, s) vslli_epi64(a, s)
+#define vslli_epi64a(a, s)      vslli_epi64(a, s)
 
 #else
 // Optimization for really old CPUs for << 1 (for vroti -1) (SHA512)
@@ -552,34 +555,13 @@ typedef __m64i vtype;
 #endif /* __SSE3__ || __MIC__ */
 
 // vroti must handle both ROTL and ROTR. If s < 0, then ROTR.
-#define vroti_epi16(a, s)  ((s) < 0 ?                                   \
-     vxor(vsrli_epi16((a), ~(s) + 1), vslli_epi16((a), 16 + (s))) :     \
-     vxor(vslli_epi16((a), (s)), vsrli_epi16((a), 16 - (s))))
-
-#define vroti_epi32(a, s)  ((s) < 0 ?                                   \
+#define vroti_epi32_emu(a, s)  ((s) < 0 ?                               \
      vxor(vsrli_epi32((a), ~(s) + 1), vslli_epi32((a), 32 + (s))) :     \
      vxor(vslli_epi32((a), (s)), vsrli_epi32((a), 32 - (s))))
 
-#define vroti_epi64(a, s)  ((s) < 0 ?                                   \
+#define vroti_epi64_emu(a, s)  ((s) < 0 ?                               \
      vxor(vsrli_epi64((a), ~(s) + 1), vslli_epi64a((a), 64 + (s))) :    \
      vxor(vslli_epi64a((a), (s)), vsrli_epi64((a), 64 - (s))))
-
-// Specialized ROTL16 for SSE4.1 and lower (MD5)
-#if __AVX__ || __MIC__
-#define vroti16_epi32(a,s) vroti_epi32(a, 16)
-
-#elif __SSSE3__
-#define rot16_mask  \
-        vset_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
-#define vroti16_epi32(a, s)     (vshuffle_epi8((a), rot16_mask))
-
-#else /* just SSE2 */
-#define vroti16_epi32(a,s)                                      \
-        (vshufflelo_epi16(vshufflehi_epi16((a), 0xb1), 0xb1))
-
-#endif /* __AVX__ || __MIC__ */
-
-#endif /* !__XOP__ || __AVX2__ || __MIC__ */
 
 #endif /* SIMD_COEF_32 */
 
