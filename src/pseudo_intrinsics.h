@@ -34,8 +34,71 @@
 #include "stdint.h"
 #include "common.h" /* for is_aligned() */
 
-/*************************** AltiVec (Power) ***************************/
-#ifdef __ALTIVEC__
+/*************************** NEON (ARM) *******************************/
+#ifdef __ARM_NEON__
+#include <arm_neon.h>
+
+typedef uint32x4_t vtype32;
+typedef uint64x2_t vtype64;
+typedef vtype64 vtype;
+
+#define vadd_epi32              vaddq_u32
+#define vadd_epi64              vaddq_u64
+#define vand                    vandq_u32
+#define vandnot                 vbicq_u32
+#define vcmov(x, y, z)          vxor(y, vand(z, vxor(x, y)))
+#define vload(m)                vld1q_u32((uint32_t*)(m))
+#define vor                     vorrq_u32
+#define vset1_epi32(x)          vdupq_n_u32(x)
+#define vset1_epi64(x)          vdupq_n_u64(x)
+#define vset_epi32(x3,x2,x1,x0) vcombine_u32(vcreate_u32(((uint64_t)(x1) << 32) | x0), vcreate_u32(((uint64_t)(x3) << 32) | x2))
+#define vset_epi64(x1,x0)       vcombine_u64(vcreate_u64(x0, x1))
+#define vsetzero()              vset1_epi32(0)
+#define vslli_epi32(x, i)       vshlq_n_u32(x, i)
+#define vslli_epi64(x, i)       vshlq_n_u64(x, i)
+#define vsrli_epi32(x, i)       vshrq_n_u32(x, i)
+#define vsrli_epi64(x, i)       vshrq_n_u64(x, i)
+#define vstore(m, x)            vst1_u32((uint32_t*)(m), x)
+#define vunpackhi_epi32(x, y)   (vzip_u32(x, y)).val[1]
+#define vunpackhi_epi64(x, y)   (vzip_u64(x, y)).val[1]
+#define vunpacklo_epi32(x, y)   (vzip_u32(x, y)).val[0]
+#define vunpacklo_epi64(x, y)   (vzip_u64(x, y)).val[0]
+#define vxor                    veor_u32
+
+static inline vtype vtesteq_epi32(vtype x, vtype y)
+{
+	vtype z = vceq_u32(x, y);
+	return vget_lane_u32(z, 0) || vget_lane_u32(z, 1) ||
+	       vget_lane_u32(z, 2) || vget_lane_u32(z, 3);
+}
+#define vtestz_epi32(x)         vtesteq_epi32(x, vsetzero())
+
+#define vswap32(x) \
+	x = vxor(vsrli_epi32(x, 24),                                            \
+	         vxor(vslli_epi32(vsrli_epi32(vslli_epi32(x, 8), 24), 8),       \
+	              vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(x, 8), 24), 8),  \
+                       vslli_epi32(x, 24))))
+#define vswap64(x) \
+	(x = vxor(vsrli_epi64(x, 32), vslli_epi64(x, 32)), vswap32(x))
+
+#define GATHER64(x,y,z)     { x = vset_epi64 (y[1][z], y[0][z]); }
+
+static inline vtype vloadu(const void *addr)
+{
+	char JTR_ALIGN(MEM_ALIGN_SIMD) buf[MEM_ALIGN_SIMD];
+	return is_aligned(addr, MEM_ALIGN_SIMD) ?
+		vload(addr) : (memcpy(buf, addr, MEM_ALIGN_SIMD), vload(buf));
+}
+
+static inline void vstoreu(void *addr, vtype v)
+{
+	char JTR_ALIGN(MEM_ALIGN_SIMD) buf[MEM_ALIGN_SIMD];
+	is_aligned(addr, MEM_ALIGN_SIMD) ?
+		vstore(addr, v) : (vstore(buf, v), memcpy(addr, buf, MEM_ALIGN_SIMD));
+}
+
+/*************************** AltiVec (Power) **************************/
+#elif __ALTIVEC__
 #include <altivec.h>
 
 typedef vector unsigned int vtype32;
@@ -67,7 +130,6 @@ typedef union {
 #define vsrli_epi32(x, i)       (vtype)vec_sr((x).v32, (vset1_epi32(i)).v32)
 #define vsrli_epi64(x, i)       (vtype)vec_sr((x).v64, (vset1_epi64(i)).v64)
 #define vstore(m, x)            vec_st((x).v32, 0, (uint32_t*)(m))
-#define vsub_epi32(x, y)        (vtype)vec_sub((x).v32, (y).v32)
 #define vunpackhi_epi32(x, y)   (vtype)vec_mergel((x).v32, (y).v32)
 #define vunpackhi_epi64(x, y)   (vtype)(vtype64)vec_mergel((vector long)(x).v64, (vector long)(y).v64)
 #define vunpacklo_epi32(x, y)   (vtype)vec_mergeh((x).v32, (y).v32)
@@ -477,7 +539,7 @@ typedef __m64i vtype;
 #define MEM_ALIGN_SIMD          (SIMD_COEF_32 * 4)
 #endif
 
-#if (!__XOP__ && !__ALTIVEC__) || __AVX2__ || __MIC__
+#if (!__XOP__ && !__ALTIVEC__) || __AVX2__ || __MIC__ || __ARM_NEON__
 
 #if __SSE3__ || __MIC__
 #define vslli_epi64a(a, s) vslli_epi64(a, s)
