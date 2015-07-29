@@ -52,8 +52,10 @@
 #define BF_SCALE			0
 #define BF_X2				0
 
+#ifdef __ALTIVEC__
 #define SIMD_COEF_32		4
 #define SIMD_COEF_64		2
+#endif
 
 #ifndef SIMD_PARA_MD4
 #define SIMD_PARA_MD4		1
