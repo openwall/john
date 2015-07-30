@@ -579,7 +579,7 @@ __kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change k
 #endif
 		);
 
-		cmp(B, offset_table, hash_table, bitmaps, hash_ids, bitmap_dupe, section, 0);
+		cmp(B, offset_table, hash_table, bitmaps, hash_ids, bitmap_dupe, section, i);
 	}
 }
 #endif
