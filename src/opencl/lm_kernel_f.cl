@@ -521,33 +521,40 @@ __kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change k
 		    volatile __global uint *bitmap_dupe)
 {
 		unsigned int section = get_global_id(0);
-		unsigned int gws = get_global_size(0);
+		unsigned int gws = get_global_size(0), i;
 
 		vtype B[64];
 
 #if WORK_GROUP_SIZE
-		int i;
 		unsigned int lid = get_local_id(0);
 		unsigned int s_key_offset  = 56 * lid;
 		__local lm_vector s_lm_key[56 * WORK_GROUP_SIZE];
 		lm_bs_finalize_keys(lm_raw_keys,
 				section, s_lm_key, s_key_offset);
-
-#if MASK_ENABLE
-		s_lm_key[s_key_offset] = lm_int_keys[0];
-		s_lm_key[s_key_offset + 1] = lm_int_keys[1];
-		s_lm_key[s_key_offset + 2] = lm_int_keys[2];
-		s_lm_key[s_key_offset + 3] = lm_int_keys[3];
-		s_lm_key[s_key_offset + 4] = lm_int_keys[4];
-		s_lm_key[s_key_offset + 5] = lm_int_keys[5];
-		s_lm_key[s_key_offset + 6] = lm_int_keys[6];
-		s_lm_key[s_key_offset + 7] = lm_int_keys[7];
-#endif
 		barrier(CLK_LOCAL_MEM_FENCE);
 #else
 		lm_bs_finalize_keys(lm_raw_keys,
 				section, lm_keys, gws);
 #endif
+#if MASK_ENABLE
+		uint loc0 = (lm_key_loc[section] & 0xff) * 8;
+#endif
+
+	for (i = 0; i < ITER_COUNT; i++) {
+#if MASK_ENABLE
+#if WORK_GROUP_SIZE
+#define OFFSET  0 * ITER_COUNT * 32
+		s_lm_key[s_key_offset + loc0] = lm_int_keys[OFFSET + i * 8];
+		s_lm_key[s_key_offset + loc0 + 1] = lm_int_keys[OFFSET + i * 8 + 1];
+		s_lm_key[s_key_offset + loc0 + 2] = lm_int_keys[OFFSET + i * 8 + 2];
+		s_lm_key[s_key_offset + loc0 + 3] = lm_int_keys[OFFSET + i * 8 + 3];
+		s_lm_key[s_key_offset + loc0 + 4] = lm_int_keys[OFFSET + i * 8 + 4];
+		s_lm_key[s_key_offset + loc0 + 5] = lm_int_keys[OFFSET + i * 8 + 5];
+		s_lm_key[s_key_offset + loc0 + 6] = lm_int_keys[OFFSET + i * 8 + 6];
+		s_lm_key[s_key_offset + loc0 + 7] = lm_int_keys[OFFSET + i * 8 + 7];
+#endif
+#endif
+
 		vtype z = vzero, o = vones;
 		lm_set_block_8(B, 0, z, z, z, z, z, z, z, z);
 		lm_set_block_8(B, 8, o, o, o, z, o, z, z, z);
@@ -573,6 +580,7 @@ __kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change k
 		);
 
 		cmp(B, offset_table, hash_table, bitmaps, hash_ids, bitmap_dupe, section, 0);
+	}
 }
 #endif
 

@@ -435,8 +435,9 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 	static char build_opts[500];
 
 	sprintf (build_opts, "-D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE=%zu"
-		 " -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u -D MASK_ENABLE=%u %s" ,
-		 full_unroll, use_local_mem, s_mem_lws, offset_table_size,  hash_table_size, mask_mode, bitmap_params);
+		 " -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u -D MASK_ENABLE=%u -D ITER_COUNT=%u %s" ,
+		 full_unroll, use_local_mem, s_mem_lws, offset_table_size,  hash_table_size, mask_mode,
+		 ((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH), bitmap_params);
 
 	if (full_unroll)
 		opencl_read_source("$JOHN/kernels/lm_kernel_f.cl");
@@ -989,8 +990,8 @@ static char* prepare_table(struct db_salt *salt) {
 static char *get_key_mm(int index)
 {
 	static char out[PLAINTEXT_LENGTH + 1];
-	unsigned int section, depth, iter, loc;
-	unsigned char *src;
+	unsigned int section, depth, iter;
+	unsigned char *src, i;
 	char *dst;
 
 	if (hash_ids == NULL || hash_ids[0] == 0 ||
@@ -1010,9 +1011,14 @@ static char *get_key_mm(int index)
 			global_work_size);
 		section = 0;
 		depth = 0;
+		iter = 0;
 	}
-	loc = 0;
-	opencl_lm_keys[section].xkeys.c[loc][depth & 7][depth >> 3] = opencl_lm_u[mask_int_cand.int_cand[iter * 32 + depth].x[0]];
+
+	if (mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
+		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
+			opencl_lm_keys[section].xkeys.c[(opencl_lm_int_key_loc[section] & (0xff << (i * 8))) >> (i * 8)][depth & 7][depth >> 3] = opencl_lm_u[mask_int_cand.int_cand[iter * 32 + depth].x[i]];
+	}
+
 	src = opencl_lm_all[section].pxkeys[depth];
 	dst = out;
 	while (dst < &out[PLAINTEXT_LENGTH] && (*dst = *src)) {
@@ -1103,7 +1109,7 @@ static void init_global_variables()
 	for (i = 0; i < MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM; i++)
 		krnl[i] = (cl_kernel *) mem_calloc(2, sizeof(cl_kernel));
 
-	mask_int_cand_target = 10;
+	mask_int_cand_target = 96;
 }
 
 static char *get_key(int index)
