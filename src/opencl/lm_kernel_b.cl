@@ -119,7 +119,8 @@ __kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change k
 #if gpu_amd(DEVICE_INFO)
                    __attribute__((max_constant_size(3072)))
 #endif
-		  , __global unsigned int *offset_table,
+		  , __global unsigned int *int_lm_keys,
+		   __global unsigned int *offset_table,
 		   __global unsigned int *hash_table,
 		   __global unsigned int *bitmaps,
                    volatile __global uint *hash_ids,
@@ -182,6 +183,6 @@ __kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change k
 #endif
 		);
 
-		cmp(B, offset_table, hash_table, bitmaps, hash_ids, bitmap_dupe, section);
+		cmp(B, offset_table, hash_table, bitmaps, hash_ids, bitmap_dupe, section, 0);
 }
 #endif

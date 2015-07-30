@@ -107,7 +107,8 @@ inline void cmp_final(__private unsigned lm_vector *B,
 		     volatile __global uint *output,
 		      volatile __global uint *bitmap_dupe,
 		      unsigned int depth,
-		      unsigned int section)
+		      unsigned int section,
+		      unsigned int iter)
 {
 	unsigned long hash;
 	unsigned int hash_table_index, t, bit;
@@ -130,7 +131,7 @@ inline void cmp_final(__private unsigned lm_vector *B,
 	if (!(atomic_or(&bitmap_dupe[hash_table_index/32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
 		t = atomic_inc(&output[0]);
 		output[1 + 3 * t] = (section * 32) + depth;
-		output[2 + 3 * t] = 0;
+		output[2 + 3 * t] = iter;
 		output[3 + 3 * t] = hash_table_index;
 	}
 }
@@ -141,7 +142,7 @@ inline void cmp( __private unsigned lm_vector *B,
 		  __global unsigned int *bitmaps,
 		 volatile __global uint *output,
 		 volatile __global uint *bitmap_dupe,
-		 int section) {
+		 int section, unsigned int iter) {
 
 	unsigned int value[2] , i, bit, bitmap_index;
 
@@ -162,6 +163,6 @@ inline void cmp( __private unsigned lm_vector *B,
 	bit = (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
 #endif
 	if (bit)
-		cmp_final(B, value, offset_table, hash_table, output, bitmap_dupe, i, section);
+		cmp_final(B, value, offset_table, hash_table, output, bitmap_dupe, i, section, iter);
 	}
 }

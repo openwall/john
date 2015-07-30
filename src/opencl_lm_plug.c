@@ -18,10 +18,12 @@
 #include "common.h"
 #include "opencl_lm_hst_dev_shared.h"
 #include "unicode.h"
+#include "mask_ext.h"
 #include "memdbg.h"
 
 opencl_lm_combined *opencl_lm_all;
 opencl_lm_transfer *opencl_lm_keys;
+unsigned int *opencl_lm_int_key_loc = NULL;
 
 static unsigned char LM_KP[56] = {
 	1, 2, 3, 4, 5, 6, 7,
@@ -155,6 +157,33 @@ fill3:
 fill2:
 	dst[sizeof(lm_vector) * 8 * 5] = 0;
 	dst[sizeof(lm_vector) * 8 * 6] = 0;
+}
+
+void opencl_lm_set_key_mm(char *key, int index)
+{
+	unsigned int len = strlen(key);
+	unsigned int i;
+	unsigned long c;
+
+	for (i = 0; i < len; i++) {
+		c = (unsigned char) key[i];
+		memset(opencl_lm_keys[index].xkeys.v[i], opencl_lm_u[c], 8 * sizeof(lm_vector));
+	}
+
+	for (i = len; i < PLAINTEXT_LENGTH; i++)
+		memset(opencl_lm_keys[index].xkeys.v[i], 0, 8 * sizeof(lm_vector));
+
+	opencl_lm_int_key_loc[index] = 0;
+	for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
+		if (mask_skip_ranges[i] != -1)  {
+			opencl_lm_int_key_loc[index] |= ((mask_int_cand.
+			int_cpu_mask_ctx->ranges[mask_skip_ranges[i]].offset +
+			mask_int_cand.int_cpu_mask_ctx->
+			ranges[mask_skip_ranges[i]].pos) & 0xff) << (i << 3);
+		}
+		else
+			opencl_lm_int_key_loc[index] |= 0x80 << (i << 3);
+	}
 }
 
 static WORD *lm_get_binary_raw(WORD *raw, int count)

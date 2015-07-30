@@ -509,9 +509,11 @@ inline void lm_loop(__private vtype *B,
 
 #if FULL_UNROLL == 1
 __kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change kernel argument index.
+		    __global unsigned int *lm_key_loc, // Do not change kernel argument index.
 #if (WORK_GROUP_SIZE == 0)
 		    __global lm_vector *lm_keys, // Do not change kernel argument name or its index.
 #endif
+		    __global unsigned int *lm_int_keys,
 		    __global unsigned int *offset_table,
 		    __global unsigned int *hash_table,
 		    __global unsigned int *bitmaps,
@@ -530,6 +532,17 @@ __kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change k
 		__local lm_vector s_lm_key[56 * WORK_GROUP_SIZE];
 		lm_bs_finalize_keys(lm_raw_keys,
 				section, s_lm_key, s_key_offset);
+
+#if MASK_ENABLE
+		s_lm_key[s_key_offset] = lm_int_keys[0];
+		s_lm_key[s_key_offset + 1] = lm_int_keys[1];
+		s_lm_key[s_key_offset + 2] = lm_int_keys[2];
+		s_lm_key[s_key_offset + 3] = lm_int_keys[3];
+		s_lm_key[s_key_offset + 4] = lm_int_keys[4];
+		s_lm_key[s_key_offset + 5] = lm_int_keys[5];
+		s_lm_key[s_key_offset + 6] = lm_int_keys[6];
+		s_lm_key[s_key_offset + 7] = lm_int_keys[7];
+#endif
 		barrier(CLK_LOCAL_MEM_FENCE);
 #else
 		lm_bs_finalize_keys(lm_raw_keys,
@@ -559,7 +572,7 @@ __kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change k
 #endif
 		);
 
-		cmp(B, offset_table, hash_table, bitmaps, hash_ids, bitmap_dupe, section);
+		cmp(B, offset_table, hash_table, bitmaps, hash_ids, bitmap_dupe, section, 0);
 }
 #endif
 
