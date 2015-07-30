@@ -38,12 +38,11 @@
 #ifdef __ARM_NEON__
 #include <arm_neon.h>
 
-typedef uint32x4_t vtype32;
+typedef uint32x4_t vtype;
 typedef uint64x2_t vtype64;
-typedef vtype64 vtype;
 
 #define vadd_epi32              vaddq_u32
-#define vadd_epi64              vaddq_u64
+#define vadd_epi64(x, y)        (vtype)vaddq_u64((vtype64)(x), (vtype64)(y))
 #define vand                    vandq_u32
 #define vandnot                 vbicq_u32
 #define vcmov                   vcmov_emu
@@ -51,24 +50,24 @@ typedef vtype64 vtype;
 #define vloadu                  vloadu_emu
 #define vor                     vorrq_u32
 #define vroti_epi32             vroti_epi32_emu
-#define vroti_epi64             vroti_epi64_emu
+#define vroti_epi64(x, y)       (vtype)vroti_epi64_emu((vtype64)(x), (vtype64)(y))
 #define vroti16_epi32           vroti_epi32
 #define vset1_epi32(x)          vdupq_n_u32(x)
-#define vset1_epi64(x)          vdupq_n_u64(x)
+#define vset1_epi64(x)          (vtype)vdupq_n_u64(x)
 #define vset_epi32(x3,x2,x1,x0) vcombine_u32(vcreate_u32(((uint64_t)(x1) << 32) | x0), vcreate_u32(((uint64_t)(x3) << 32) | x2))
-#define vset_epi64(x1,x0)       vcombine_u64(vcreate_u64(x0, x1))
+#define vset_epi64(x1,x0)       (vtype)vcombine_u64(vcreate_u64(x0), vcreate_u64(x1))
 #define vsetzero()              vset1_epi32(0)
 #define vslli_epi32(x, i)       vshlq_n_u32(x, i)
-#define vslli_epi64(x, i)       vshlq_n_u64(x, i)
+#define vslli_epi64(x, i)       (vtype)vshlq_n_u64((vtype64)(x), i)
 #define vsrli_epi32(x, i)       vshrq_n_u32(x, i)
-#define vsrli_epi64(x, i)       vshrq_n_u64(x, i)
-#define vstore(m, x)            vst1_u32((uint32_t*)(m), x)
+#define vsrli_epi64(x, i)       (vtype)vshrq_n_u64((vtype64)(x), i)
+#define vstore(m, x)            vst1q_u32((uint32_t*)(m), x)
 #define vstoreu                 vstoreu_emu
-#define vunpackhi_epi32(x, y)   (vzip_u32(x, y)).val[1]
-#define vunpackhi_epi64(x, y)   (vzip_u64(x, y)).val[1]
-#define vunpacklo_epi32(x, y)   (vzip_u32(x, y)).val[0]
-#define vunpacklo_epi64(x, y)   (vzip_u64(x, y)).val[0]
-#define vxor                    veor_u32
+#define vunpackhi_epi32(x, y)   (vzipq_u32(x, y)).val[1]
+#define vunpackhi_epi64(x, y)   (vtype)(vzipq_u64((vtype64)(x), (vtype64)(y))).val[1]
+#define vunpacklo_epi32(x, y)   (vzipq_u32(x, y)).val[0]
+#define vunpacklo_epi64(x, y)   (vtype)(vzipq_u64((vtype64)(x), (vtype64)(y))).val[0]
+#define vxor                    veorq_u32
 
 static inline vtype vtesteq_epi32(vtype x, vtype y)
 {
