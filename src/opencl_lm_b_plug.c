@@ -51,6 +51,7 @@ static unsigned int *bitmaps = NULL;
 static unsigned int num_loaded_hashes, *hash_ids = NULL, *zero_buffer = NULL;
 static size_t current_gws = 0;
 static unsigned int mask_mode = 0;
+static unsigned int static_gpu_locations[MASK_FMT_INT_PLHDR];
 
 typedef union {
 	unsigned char c[8][sizeof(lm_vector)];
@@ -249,8 +250,10 @@ static void lm_finalize_int_keys()
 	unsigned int *final_key_pages[MASK_FMT_INT_PLHDR], i, j;
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
-		int_key_page[i] = (key_page *) mem_calloc(((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH), sizeof(key_page));
-		final_key_pages[i] = (unsigned int *) mem_calloc(8 * ((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH), sizeof(unsigned int));
+		int_key_page[i] = (key_page *) mem_alloc(((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH) * sizeof(key_page));
+		final_key_pages[i] = (unsigned int *) mem_alloc(8 * ((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH) * sizeof(unsigned int));
+		memset(int_key_page[i], 0x7f, ((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH) * sizeof(key_page));
+		memset(final_key_pages[i], 0xff, 8 * ((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH) * sizeof(unsigned int));
 	}
 
 	for (i = 0; i < mask_int_cand.num_int_cand && mask_int_cand.int_cand; i++) {
@@ -291,9 +294,6 @@ static void lm_finalize_int_keys()
 				8 * ((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH) * sizeof(unsigned int), final_key_pages[j], 0, NULL, NULL ), "Failed Copy data to gpu");
 	}
 
-	for (i = 0; i < 8; i++)
-	  fprintf(stderr,"Kachum:%d\n", final_key_pages[0][i]);
-
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
 		MEM_FREE(int_key_page[i]);
 		MEM_FREE(final_key_pages[i]);
@@ -312,6 +312,8 @@ static void create_buffer_gws(size_t gws)
 	opencl_lm_all = (opencl_lm_combined*) mem_alloc ((gws + PADDING)* sizeof(opencl_lm_combined));
 	opencl_lm_keys = (opencl_lm_transfer*) mem_alloc ((gws + PADDING)* sizeof(opencl_lm_transfer));
 	opencl_lm_int_key_loc = (unsigned int*) mem_calloc((gws + PADDING), sizeof(unsigned int));
+
+	memset(opencl_lm_keys, 0x6f, (gws + PADDING)* sizeof(opencl_lm_transfer));
 
 	buffer_raw_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, (gws + PADDING) * sizeof(opencl_lm_transfer), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating buffer_raw_keys.");
@@ -433,11 +435,39 @@ static void release_buffer()
 static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s_mem_lws, unsigned int use_local_mem)
 {
 	static char build_opts[500];
+	unsigned int i;
+
+	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
+		if (mask_skip_ranges!= NULL && mask_skip_ranges[i] != -1)
+			static_gpu_locations[i] = mask_int_cand.int_cpu_mask_ctx->
+				ranges[mask_skip_ranges[i]].pos;
+		else
+			static_gpu_locations[i] = -1;
 
 	sprintf (build_opts, "-D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE=%zu"
-		 " -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u -D MASK_ENABLE=%u -D ITER_COUNT=%u %s" ,
+		 " -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u -D MASK_ENABLE=%u -D ITER_COUNT=%u -D LOC_0=%d"
+#if 1 < MASK_FMT_INT_PLHDR
+		 " -D LOC_1=%d "
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+		  "-D LOC_2=%d "
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+		  "-D LOC_3=%d"
+#endif
+		 " %s" ,
 		 full_unroll, use_local_mem, s_mem_lws, offset_table_size,  hash_table_size, mask_mode,
-		 ((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH), bitmap_params);
+		 ((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH), static_gpu_locations[0]
+#if 1 < MASK_FMT_INT_PLHDR
+	, static_gpu_locations[1]
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+	, static_gpu_locations[2]
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+	, static_gpu_locations[3]
+#endif
+	, bitmap_params);
 
 	if (full_unroll)
 		opencl_read_source("$JOHN/kernels/lm_kernel_f.cl");
@@ -621,10 +651,15 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		full_unroll = 1;
 		kernel_run_ms = 5;
 	}
-	else if (gpu(device_info[gpu_id])) {
+	else if (gpu(device_info[gpu_id]) && (amd_vliw4(device_info[gpu_id]) || amd_vliw5(device_info[gpu_id]))) {
 		force_global_keys = 0;
 		use_local_mem = 1;
 		full_unroll = 0;
+	}
+	else if (gpu(device_info[gpu_id])) {
+		force_global_keys = 0;
+		use_local_mem = 1;
+		full_unroll = 1;
 	}
 	else {
 		force_global_keys = 1;
@@ -632,9 +667,6 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		full_unroll = 0;
 		kernel_run_ms = 40;
 	}
-/* Temporay kludge. */
-	full_unroll = 1;
-	force_global_keys = 0;
 
 	local_work_size = 0;
 	global_work_size = 0;
@@ -652,7 +684,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 
 	s_mem_limited_lws = find_smem_lws_limit(
 			full_unroll, use_local_mem, force_global_keys);
-#if 1
+#if 0
 	fprintf(stdout, "Limit_smem:%zu, Full_unroll_flag:%u,"
 		"Use_local_mem:%u, Force_global_keys:%u\n",
  		s_mem_limited_lws, full_unroll, use_local_mem,
@@ -1047,11 +1079,13 @@ static void reset(struct db_main *db)
 		bitmap_params = prepare_table(salt);
 		create_buffer(num_loaded_hashes, offset_table_size, hash_table_size, bitmap_size_bits);
 
-		mask_mode = 1;
-		fmt_opencl_lm.methods.set_key = opencl_lm_set_key_mm;
-		fmt_opencl_lm.methods.get_key = get_key_mm;
+		if (options.flags & FLG_MASK_CHK) {
+			mask_mode = 1;
+			fmt_opencl_lm.methods.set_key = opencl_lm_set_key_mm;
+			fmt_opencl_lm.methods.get_key = get_key_mm;
+		}
 
-		auto_tune_all(bitmap_params, num_loaded_hashes, 300, opencl_lm_set_key_mm, 1);
+		auto_tune_all(bitmap_params, num_loaded_hashes, 300, fmt_opencl_lm.methods.set_key, mask_mode);
 		MEM_FREE(offset_table);
 		MEM_FREE(bitmaps);
 	}
@@ -1109,7 +1143,7 @@ static void init_global_variables()
 	for (i = 0; i < MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM; i++)
 		krnl[i] = (cl_kernel *) mem_calloc(2, sizeof(cl_kernel));
 
-	mask_int_cand_target = 96;
+	mask_int_cand_target = 10000;
 }
 
 static char *get_key(int index)
@@ -1146,6 +1180,9 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmap_dupe, CL_TRUE, 0, ((hash_table_size - 1)/32 + 1) * sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmap_dupe.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
 	}
+
+	if (mask_mode)
+		*pcount *= mask_int_cand.num_int_cand;
 
 	return hash_ids[0];
 }

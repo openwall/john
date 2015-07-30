@@ -7,6 +7,7 @@
  */
 
 #include "opencl_lm_finalize_keys.h"
+#include "opencl_mask.h"
 
 #if WORK_GROUP_SIZE
 #define y(p, q) vxorf(B[p], lm_keys[q + s_key_offset])
@@ -536,24 +537,135 @@ __kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change k
 		lm_bs_finalize_keys(lm_raw_keys,
 				section, lm_keys, gws);
 #endif
+
 #if MASK_ENABLE
-		uint loc0 = (lm_key_loc[section] & 0xff) * 8;
+	uint ikl = lm_key_loc[section];
+	uint loc0 = (ikl & 0xff) << 3;
+#if 1 < MASK_FMT_INT_PLHDR
+#if LOC_1 >= 0
+	uint loc1 = (ikl & 0xff00) >> 5;
+#endif
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+#if LOC_2 >= 0
+	uint loc2 = (ikl & 0xff0000) >> 13;
+#endif
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+#if LOC_3 >= 0
+	uint loc3 = (ikl & 0xff000000) >> 21;
+#endif
+#endif
 #endif
 
 	for (i = 0; i < ITER_COUNT; i++) {
 #if MASK_ENABLE
+
 #if WORK_GROUP_SIZE
-#define OFFSET  0 * ITER_COUNT * 32
-		s_lm_key[s_key_offset + loc0] = lm_int_keys[OFFSET + i * 8];
-		s_lm_key[s_key_offset + loc0 + 1] = lm_int_keys[OFFSET + i * 8 + 1];
-		s_lm_key[s_key_offset + loc0 + 2] = lm_int_keys[OFFSET + i * 8 + 2];
-		s_lm_key[s_key_offset + loc0 + 3] = lm_int_keys[OFFSET + i * 8 + 3];
-		s_lm_key[s_key_offset + loc0 + 4] = lm_int_keys[OFFSET + i * 8 + 4];
-		s_lm_key[s_key_offset + loc0 + 5] = lm_int_keys[OFFSET + i * 8 + 5];
-		s_lm_key[s_key_offset + loc0 + 6] = lm_int_keys[OFFSET + i * 8 + 6];
-		s_lm_key[s_key_offset + loc0 + 7] = lm_int_keys[OFFSET + i * 8 + 7];
+		s_lm_key[s_key_offset + loc0] = lm_int_keys[i * 8];
+		s_lm_key[s_key_offset + loc0 + 1] = lm_int_keys[i * 8 + 1];
+		s_lm_key[s_key_offset + loc0 + 2] = lm_int_keys[i * 8 + 2];
+		s_lm_key[s_key_offset + loc0 + 3] = lm_int_keys[i * 8 + 3];
+		s_lm_key[s_key_offset + loc0 + 4] = lm_int_keys[i * 8 + 4];
+		s_lm_key[s_key_offset + loc0 + 5] = lm_int_keys[i * 8 + 5];
+		s_lm_key[s_key_offset + loc0 + 6] = lm_int_keys[i * 8 + 6];
+		s_lm_key[s_key_offset + loc0 + 7] = lm_int_keys[i * 8 + 7];
+#if 1 < MASK_FMT_INT_PLHDR
+#if LOC_1 >= 0
+#define OFFSET 	(1 * ITER_COUNT * 8)
+		s_lm_key[s_key_offset + loc1] = lm_int_keys[OFFSET + i * 8];
+		s_lm_key[s_key_offset + loc1 + 1] = lm_int_keys[OFFSET + i * 8 + 1];
+		s_lm_key[s_key_offset + loc1 + 2] = lm_int_keys[OFFSET + i * 8 + 2];
+		s_lm_key[s_key_offset + loc1 + 3] = lm_int_keys[OFFSET + i * 8 + 3];
+		s_lm_key[s_key_offset + loc1 + 4] = lm_int_keys[OFFSET + i * 8 + 4];
+		s_lm_key[s_key_offset + loc1 + 5] = lm_int_keys[OFFSET + i * 8 + 5];
+		s_lm_key[s_key_offset + loc1 + 6] = lm_int_keys[OFFSET + i * 8 + 6];
+		s_lm_key[s_key_offset + loc1 + 7] = lm_int_keys[OFFSET + i * 8 + 7];
 #endif
 #endif
+#if 2 < MASK_FMT_INT_PLHDR
+#if LOC_2 >= 0
+#undef OFFSET
+#define OFFSET 	(2 * ITER_COUNT * 8)
+		s_lm_key[s_key_offset + loc2] = lm_int_keys[OFFSET + i * 8];
+		s_lm_key[s_key_offset + loc2 + 1] = lm_int_keys[OFFSET + i * 8 + 1];
+		s_lm_key[s_key_offset + loc2 + 2] = lm_int_keys[OFFSET + i * 8 + 2];
+		s_lm_key[s_key_offset + loc2 + 3] = lm_int_keys[OFFSET + i * 8 + 3];
+		s_lm_key[s_key_offset + loc2 + 4] = lm_int_keys[OFFSET + i * 8 + 4];
+		s_lm_key[s_key_offset + loc2 + 5] = lm_int_keys[OFFSET + i * 8 + 5];
+		s_lm_key[s_key_offset + loc2 + 6] = lm_int_keys[OFFSET + i * 8 + 6];
+		s_lm_key[s_key_offset + loc2 + 7] = lm_int_keys[OFFSET + i * 8 + 7];
+#endif
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+#if LOC_3 >= 0
+#undef OFFSET
+#define OFFSET 	(3 * ITER_COUNT * 8)
+		s_lm_key[s_key_offset + loc3] = lm_int_keys[OFFSET + i * 8];
+		s_lm_key[s_key_offset + loc3 + 1] = lm_int_keys[OFFSET + i * 8 + 1];
+		s_lm_key[s_key_offset + loc3 + 2] = lm_int_keys[OFFSET + i * 8 + 2];
+		s_lm_key[s_key_offset + loc3 + 3] = lm_int_keys[OFFSET + i * 8 + 3];
+		s_lm_key[s_key_offset + loc3 + 4] = lm_int_keys[OFFSET + i * 8 + 4];
+		s_lm_key[s_key_offset + loc3 + 5] = lm_int_keys[OFFSET + i * 8 + 5];
+		s_lm_key[s_key_offset + loc3 + 6] = lm_int_keys[OFFSET + i * 8 + 6];
+		s_lm_key[s_key_offset + loc3 + 7] = lm_int_keys[OFFSET + i * 8 + 7];
+#endif
+#endif
+
+#else
+		lm_keys[loc0 * gws + section] = lm_int_keys[i * 8];
+		lm_keys[(loc0 + 1) * gws + section] = lm_int_keys[i * 8 + 1];
+		lm_keys[(loc0 + 2) * gws + section] = lm_int_keys[i * 8 + 2];
+		lm_keys[(loc0 + 3) * gws + section] = lm_int_keys[i * 8 + 3];
+		lm_keys[(loc0 + 4) * gws + section] = lm_int_keys[i * 8 + 4];
+		lm_keys[(loc0 + 5) * gws + section] = lm_int_keys[i * 8 + 5];
+		lm_keys[(loc0 + 6) * gws + section] = lm_int_keys[i * 8 + 6];
+		lm_keys[(loc0 + 7) * gws + section] = lm_int_keys[i * 8 + 7];
+#if 1 < MASK_FMT_INT_PLHDR
+#if LOC_1 >= 0
+#define OFFSET 	(1 * ITER_COUNT * 8)
+		lm_keys[loc1 * gws + section] = lm_int_keys[OFFSET + i * 8];
+		lm_keys[(loc1 + 1) * gws + section] = lm_int_keys[OFFSET + i * 8 + 1];
+		lm_keys[(loc1 + 2) * gws + section] = lm_int_keys[OFFSET + i * 8 + 2];
+		lm_keys[(loc1 + 3) * gws + section] = lm_int_keys[OFFSET + i * 8 + 3];
+		lm_keys[(loc1 + 4) * gws + section] = lm_int_keys[OFFSET + i * 8 + 4];
+		lm_keys[(loc1 + 5) * gws + section] = lm_int_keys[OFFSET + i * 8 + 5];
+		lm_keys[(loc1 + 6) * gws + section] = lm_int_keys[OFFSET + i * 8 + 6];
+		lm_keys[(loc1 + 7) * gws + section] = lm_int_keys[OFFSET + i * 8 + 7];
+#endif
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+#if LOC_2 >= 0
+#undef OFFSET
+#define OFFSET 	(2 * ITER_COUNT * 8)
+		lm_keys[loc2 * gws + section] = lm_int_keys[OFFSET + i * 8];
+		lm_keys[(loc2 + 1) * gws + section] = lm_int_keys[OFFSET + i * 8 + 1];
+		lm_keys[(loc2 + 2) * gws + section] = lm_int_keys[OFFSET + i * 8 + 2];
+		lm_keys[(loc2 + 3) * gws + section] = lm_int_keys[OFFSET + i * 8 + 3];
+		lm_keys[(loc2 + 4) * gws + section] = lm_int_keys[OFFSET + i * 8 + 4];
+		lm_keys[(loc2 + 5) * gws + section] = lm_int_keys[OFFSET + i * 8 + 5];
+		lm_keys[(loc2 + 6) * gws + section] = lm_int_keys[OFFSET + i * 8 + 6];
+		lm_keys[(loc2 + 7) * gws + section] = lm_int_keys[OFFSET + i * 8 + 7];
+#endif
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+#if LOC_3 >= 0
+#undef OFFSET
+#define OFFSET 	(3 * ITER_COUNT * 8)
+		lm_keys[loc3 * gws + section] = lm_int_keys[OFFSET + i * 8];
+		lm_keys[(loc3 + 1) * gws + section] = lm_int_keys[OFFSET + i * 8 + 1];
+		lm_keys[(loc3 + 2) * gws + section] = lm_int_keys[OFFSET + i * 8 + 2];
+		lm_keys[(loc3 + 3) * gws + section] = lm_int_keys[OFFSET + i * 8 + 3];
+		lm_keys[(loc3 + 4) * gws + section] = lm_int_keys[OFFSET + i * 8 + 4];
+		lm_keys[(loc3 + 5) * gws + section] = lm_int_keys[OFFSET + i * 8 + 5];
+		lm_keys[(loc3 + 6) * gws + section] = lm_int_keys[OFFSET + i * 8 + 6];
+		lm_keys[(loc3 + 7) * gws + section] = lm_int_keys[OFFSET + i * 8 + 7];
+#endif
+#endif
+
+#endif /* WORK_GROUP_SIZE */
+
+#endif /* MASK_ENABLE */
 
 		vtype z = vzero, o = vones;
 		lm_set_block_8(B, 0, z, z, z, z, z, z, z, z);
