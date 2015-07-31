@@ -244,7 +244,6 @@ struct fmt_main fmt_opencl_lm = {
 		NULL
 	}
 };
-
 #endif /* plugin stanza */
 
 #endif /* #if CL_VERSION_1_2 && HAVE_OPENCL_1_2 */
