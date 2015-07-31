@@ -111,7 +111,24 @@ inline void lm_loop(__private vtype *B,
 		} while(--rounds);
 }
 
+#if LOC_3 >= 0
+#define ACTIVE_PLACEHOLDER	4
+#elif LOC_2 >= 0
+#define ACTIVE_PLACEHOLDER	3
+#elif LOC_1 >= 0
+#define ACTIVE_PLACEHOLDER	2
+#elif LOC_0 >= 0
+#define ACTIVE_PLACEHOLDER	1
+#else
+#define ACTIVE_PLACEHOLDER	0
+#endif
+
 #if FULL_UNROLL == 0
+#if (CONST_CACHE_SIZE >= (ACTIVE_PLACEHOLDER * 32 * ITER_COUNT + 3072)) && ACTIVE_PLACEHOLDER
+#define USE_CONST_CACHED_INT_KEYS	1
+#else
+#define USE_CONST_CACHED_INT_KEYS	0
+#endif
 __kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change kernel argument index.
 		    __global unsigned int *lm_key_loc, // Do not change kernel argument index.
 #if (WORK_GROUP_SIZE == 0)
@@ -121,8 +138,16 @@ __kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change k
 #if gpu_amd(DEVICE_INFO)
                    __attribute__((max_constant_size(3072)))
 #endif
-		  , __global unsigned int *lm_int_keys,
-		   __global unsigned int *offset_table,
+#if USE_CONST_CACHED_INT_KEYS
+		    , constant
+#else
+		    , __global
+#endif
+		    unsigned int *lm_int_keys
+#if USE_CONST_CACHED_INT_KEYS && gpu_amd(DEVICE_INFO)
+		__attribute__((max_constant_size ((ACTIVE_PLACEHOLDER * 32 * ITER_COUNT))))
+#endif
+		   , __global unsigned int *offset_table,
 		   __global unsigned int *hash_table,
 		   __global unsigned int *bitmaps,
                    volatile __global uint *hash_ids,

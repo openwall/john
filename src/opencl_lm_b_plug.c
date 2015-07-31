@@ -435,6 +435,7 @@ static void release_buffer()
 static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s_mem_lws, unsigned int use_local_mem)
 {
 	static char build_opts[500];
+	cl_ulong const_cache_size;
 	unsigned int i;
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
@@ -443,6 +444,8 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 				ranges[mask_skip_ranges[i]].pos;
 		else
 			static_gpu_locations[i] = -1;
+
+	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
 
 	sprintf (build_opts, "-D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE=%zu"
 		 " -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u -D MASK_ENABLE=%u -D ITER_COUNT=%u -D LOC_0=%d"
@@ -455,7 +458,7 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 #if 3 < MASK_FMT_INT_PLHDR
 		  "-D LOC_3=%d"
 #endif
-		 " -D IS_STATIC_GPU_MASK=%d %s" ,
+		 " -D IS_STATIC_GPU_MASK=%d -D CONST_CACHE_SIZE=%llu %s" ,
 		 full_unroll, use_local_mem, s_mem_lws, offset_table_size,  hash_table_size, mask_mode,
 		 ((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH), static_gpu_locations[0]
 #if 1 < MASK_FMT_INT_PLHDR
@@ -467,7 +470,7 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 #if 3 < MASK_FMT_INT_PLHDR
 	, static_gpu_locations[3]
 #endif
-	, is_static_gpu_mask, bitmap_params);
+	, is_static_gpu_mask, (unsigned long long)const_cache_size, bitmap_params);
 
 	if (full_unroll)
 		opencl_read_source("$JOHN/kernels/lm_kernel_f.cl");
@@ -659,7 +662,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 	else if (gpu(device_info[gpu_id])) {
 		force_global_keys = 0;
 		use_local_mem = 1;
-		full_unroll = 1;
+		full_unroll = 0;
 	}
 	else {
 		force_global_keys = 1;
