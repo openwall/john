@@ -38,19 +38,20 @@
 #ifdef __ARM_NEON__
 #include <arm_neon.h>
 
-typedef uint32x4_t vtype;
+typedef uint8x16_t vtype8;
+typedef uint32x4_t vtype; // the default one
 typedef uint64x2_t vtype64;
 
 #define vadd_epi32              vaddq_u32
 #define vadd_epi64(x, y)        (vtype)vaddq_u64((vtype64)(x), (vtype64)(y))
 #define vand                    vandq_u32
-#define vandnot                 vbicq_u32
+#define vandnot(x, y)           vbicq_u32(y, x)
 #define vcmov                   vcmov_emu
 #define vload(m)                vld1q_u32((uint32_t*)(m))
 #define vloadu                  vloadu_emu
 #define vor                     vorrq_u32
 #define vroti_epi32             vroti_epi32_emu
-#define vroti_epi64(x, y)       (vtype)vroti_epi64_emu((vtype64)(x), (vtype64)(y))
+#define vroti_epi64(x, i)       (vtype)vroti_epi64_emu((vtype64)(x), i)
 #define vroti16_epi32           vroti_epi32
 #define vset1_epi32(x)          vdupq_n_u32(x)
 #define vset1_epi64(x)          (vtype)vdupq_n_u64(x)
@@ -64,21 +65,21 @@ typedef uint64x2_t vtype64;
 #define vstore(m, x)            vst1q_u32((uint32_t*)(m), x)
 #define vstoreu                 vstoreu_emu
 #define vunpackhi_epi32(x, y)   (vzipq_u32(x, y)).val[1]
-#define vunpackhi_epi64(x, y)   (vtype)(vzipq_u64((vtype64)(x), (vtype64)(y))).val[1]
+#define vunpackhi_epi64(x, y)   vset_epi64(vgetq_lane_u64((vtype64)(y), 1), vgetq_lane_u64((vtype64)(x), 1))
 #define vunpacklo_epi32(x, y)   (vzipq_u32(x, y)).val[0]
-#define vunpacklo_epi64(x, y)   (vtype)(vzipq_u64((vtype64)(x), (vtype64)(y))).val[0]
+#define vunpacklo_epi64(x, y)   vset_epi64(vgetq_lane_u64((vtype64)(y), 0), vgetq_lane_u64((vtype64)(x), 0))
 #define vxor                    veorq_u32
 
-static inline vtype vtesteq_epi32(vtype x, vtype y)
+static inline int vtesteq_epi32(vtype x, vtype y)
 {
-	vtype z = vceq_u32(x, y);
-	return vget_lane_u32(z, 0) || vget_lane_u32(z, 1) ||
-	       vget_lane_u32(z, 2) || vget_lane_u32(z, 3);
+	vtype z = vceqq_u32(x, y);
+	return vgetq_lane_u32(z, 0) || vgetq_lane_u32(z, 1) ||
+	       vgetq_lane_u32(z, 2) || vgetq_lane_u32(z, 3);
 }
 #define vtestz_epi32(x)         vtesteq_epi32(x, vsetzero())
 
-#define vswap32                 vswap32_emu
-#define vswap64                 vswap64_emu
+#define vswap32(x)              (x = (vtype)vrev32q_u8((vtype8)x))
+#define vswap64(x)              (x = (vtype)vrev64q_u8((vtype8)x))
 
 #define GATHER64(x,y,z)     { x = vset_epi64 (y[1][z], y[0][z]); }
 
