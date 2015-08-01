@@ -163,7 +163,9 @@ static void done(void)
 #if DES_bs_mt
 	MEM_FREE(l2g);
 #endif
+#if DES_BS
 	MEM_FREE(crypt_out);
+#endif
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
