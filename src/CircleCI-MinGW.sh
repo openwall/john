@@ -68,10 +68,7 @@ export WINEDEBUG=-all  # suppress wine warnings
 /usr/bin/wine john.exe --test=0 --format=dynamic-all
 
 # now build a non-SIMD 64 bit exe and test it
-dnf install -y openssl openssl-devel.i686 openssl-devel.x86_64 \ 
-               zlib-devel.i686 zlib-devel.x86_64 \
-               gmp-devel.i686 gmp-devel.x86_64 \
-               libpcap-devel.i686 libpcap-devel.x86_64
+dnf install -y openssl openssl-devel zlib-devel gmp-devel libpcap-devel
 echo ""
 echo ""
 echo ""
