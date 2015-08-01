@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+# now does mingw-64 build, and linux-64 no-sse2 build  (and tests both)
 
 mkdir -p $HOME/bin
 cat >$HOME/bin/mingw64 << 'EOF'
@@ -30,7 +32,12 @@ export PATH="$HOME/bin:$PATH"
 
 mingw64 ./configure --host=x86_64-w64-mingw32
 mingw64 make -sj4
-mv ../run/john ../run/john.exe
+# the mingw build does not name many exe files correctly.  Fix that.  Also strip all exe files for distro.
+cd ../run
+for f in `ls -l | grep wxrw | grep -v [\.][epr] | cut -c 49-` ; do mv $f $f.exe ; done
+for f in benchmark-unify mailer makechr relbench ; do mv $f.exe $f ; done
+for f in *.exe ; do mingw64 $STRIP $f ; done
+cd ../src
 
 basepath="/usr/x86_64-w64-mingw32/sys-root/mingw/bin"
 
@@ -57,3 +64,19 @@ export WINEDEBUG=-all  # suppress wine warnings
 /usr/bin/wine john.exe --list=build-info
 /usr/bin/wine john.exe --test=0
 /usr/bin/wine john.exe --test=0 --format=dynamic-all
+
+# now build a non-SIMD 64 bit exe and test it
+echo ""
+echo ""
+echo ""
+echo ""
+echo '******************************************************************************'
+echo "now testing a NON-SIMD build"
+echo '******************************************************************************'
+echo ""
+cd /base/JohnTheRipper/src
+make -s distclean
+CPPFLAGS="-mno-sse2" ./configure
+make -sj4
+../run/john -test=0
+../run/john -test=0 -form=dynamic-all
