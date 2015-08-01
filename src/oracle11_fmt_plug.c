@@ -155,8 +155,10 @@ static void init(struct fmt_main *self)
 static void done(void)
 {
 	MEM_FREE(saved_salt);
+#ifdef SIMD_COEF_32
 	MEM_FREE(crypt_key);
 	MEM_FREE(saved_key);
+#endif
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
