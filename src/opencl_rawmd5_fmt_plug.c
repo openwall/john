@@ -751,6 +751,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_128, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
 		set_kernel_args();
+		set_kernel_args_kpc();
 	}
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
