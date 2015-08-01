@@ -659,6 +659,11 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		use_local_mem = 1;
 		full_unroll = 0;
 	}
+	else if (gpu(device_info[gpu_id]) && platform_apple(platform_id)) {
+		force_global_keys = 1;
+		use_local_mem = 0;
+		full_unroll = 0;
+	}
 	else if (gpu(device_info[gpu_id])) {
 		force_global_keys = 0;
 		use_local_mem = 1;

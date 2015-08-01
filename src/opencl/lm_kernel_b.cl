@@ -153,9 +153,11 @@ __kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change k
                    volatile __global uint *hash_ids,
 		   volatile __global uint *bitmap_dupe)
 {
+		unsigned int i;
 		unsigned int section = get_global_id(0);
-		unsigned int gws = get_global_size(0), i;
-
+#if !WORK_GROUP_SIZE
+		unsigned int gws = get_global_size(0);
+#endif
 		vtype B[64];
 
 #if USE_LOCAL_MEM || WORK_GROUP_SIZE
