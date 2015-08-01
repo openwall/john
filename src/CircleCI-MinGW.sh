@@ -38,7 +38,7 @@ mv ../run/john ../run/john.exe
 cd ../run
 for f in `ls -l | grep wxr | grep -v [\.][epr] | cut -c 46-` ; do mv $f $f.exe ; done
 for f in benchmark-unify mailer makechr relbench ; do mv $f.exe $f ; done
-for f in *.exe ; do mingw64 $STRIP $f ; done
+for f in *.exe ; do /usr/x86_64-w64-mingw32/bin/x86_64-w64-mingw32-strip $f ; done
 cd ../src
 
 basepath="/usr/x86_64-w64-mingw32/sys-root/mingw/bin"
@@ -69,7 +69,8 @@ export WINEDEBUG=-all  # suppress wine warnings
 
 # now build a non-SIMD 64 bit exe and test it
 
-sudo dnf install -y openssl openssl-devel zlib zlib-devel gmp gmp-devel libpcap libpcap-devel
+#sudo dnf install -y openssl openssl-devel zlib zlib-devel gmp gmp-devel libpcap libpcap-devel
+dnf install -y openssl openssl-devel zlib zlib-devel gmp gmp-devel libpcap libpcap-devel
 
 echo ""
 echo ""
