@@ -81,5 +81,37 @@ cd /base/JohnTheRipper/src
 make -s distclean
 CPPFLAGS="-mno-sse2" ./configure
 make -sj4
+../run/john --list=build-info
+../run/john -test=0
+../run/john -test=0 -form=dynamic-all
+
+# now build a non-SIMD 32 bit exe and test it
+dnf install -y glibc-headers.i686 glibc.i686 glibc-devel.i686 libgcc.i686 openssl-devel.i686 gmp-devel.i686 libpcap-devel.i686
+echo ""
+echo ""
+echo ""
+echo ""
+echo '******************************************************************************'
+echo "now testing a 32 bit NON-SIMD build"
+echo '******************************************************************************'
+echo ""
+make -s distclean
+JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -sj4 linux-x86-any
+../run/john --list=build-info
+../run/john -test=0
+../run/john -test=0 -form=dynamic-all
+
+# now build a 32 bit SSE2 exe and test it
+echo ""
+echo ""
+echo ""
+echo ""
+echo '******************************************************************************'
+echo "now testing a 32 bit SSE2 build"
+echo '******************************************************************************'
+echo ""
+make -f Makefile.legacy -s clean
+JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -sj4 linux-x86-sse2
+../run/john --list=build-info
 ../run/john -test=0
 ../run/john -test=0 -form=dynamic-all
