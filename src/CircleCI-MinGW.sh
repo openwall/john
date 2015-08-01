@@ -32,9 +32,11 @@ export PATH="$HOME/bin:$PATH"
 
 mingw64 ./configure --host=x86_64-w64-mingw32
 mingw64 make -sj4
+mv ../run/john ../run/john.exe
+
 # the mingw build does not name many exe files correctly.  Fix that.  Also strip all exe files for distro.
 cd ../run
-for f in `ls -l | grep wxrw | grep -v [\.][epr] | cut -c 49-` ; do mv $f $f.exe ; done
+for f in `ls -l | grep wxr | grep -v [\.][epr] | cut -c 46-` ; do mv $f $f.exe ; done
 for f in benchmark-unify mailer makechr relbench ; do mv $f.exe $f ; done
 for f in *.exe ; do mingw64 $STRIP $f ; done
 cd ../src
@@ -66,6 +68,9 @@ export WINEDEBUG=-all  # suppress wine warnings
 /usr/bin/wine john.exe --test=0 --format=dynamic-all
 
 # now build a non-SIMD 64 bit exe and test it
+
+sudo dnf install -y openssl openssl-devel zlib zlib-devel gmp gmp-devel libpcap libpcap-devel
+
 echo ""
 echo ""
 echo ""
