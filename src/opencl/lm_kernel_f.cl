@@ -526,7 +526,12 @@ inline void lm_loop(__private vtype *B,
 #else
 #define USE_CONST_CACHED_INT_KEYS	0
 #endif
-__kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change kernel argument index.
+
+/*
+ * Note: Change in kernel name or number of kernel arguments
+ * must be updated on host side set_kernel_args(), set_kernel_args_gws().
+ */
+__kernel void lm_bs_f(__global opencl_lm_transfer *lm_raw_keys, // Do not change kernel argument index.
 		    __global unsigned int *lm_key_loc, // Do not change kernel argument index.
 #if (WORK_GROUP_SIZE == 0)
 		    __global lm_vector *lm_keys, // Do not change kernel argument name or its index.

@@ -7,20 +7,15 @@
 
 #if HAVE_OPENCL
 
-#include "autoconfig.h"
-#include "opencl_lm.h"
-
-#if CL_VERSION_1_2 && HAVE_OPENCL_1_2
-
 #include <assert.h>
 #include <string.h>
 #include <sys/time.h>
 
+#include "opencl_lm.h"
 #include "options.h"
 #include "opencl_lm_hst_dev_shared.h"
 #include "bt_interface.h"
 #include "mask_ext.h"
-
 
 #define PADDING 	2048
 #define get_power_of_two(v)	\
@@ -331,17 +326,22 @@ static void create_buffer_gws(size_t gws)
 static void set_kernel_args_gws()
 {
 	size_t static_param_size = 101;
-	char *arg_name = (char *) mem_calloc(static_param_size, sizeof(char));
+	char *kernel_name = (char *) mem_calloc(static_param_size, sizeof(char));
+	cl_uint num_args;
 
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument buffer_raw_keys, kernel 0.");
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 1, sizeof(cl_mem), &buffer_int_key_loc), "Failed setting kernel argument buffer_int_key_loc, kernel 0.");
 
-	HANDLE_CLERROR(clGetKernelArgInfo(krnl[gpu_id][0], 2, CL_KERNEL_ARG_NAME, static_param_size - 1, arg_name, NULL), "Failed to query argument 2, kernel 0.");
-	if (!strncmp(arg_name, "lm_key_idx", 10));
-	else if (!strncmp(arg_name, "lm_keys", 7))
-		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 2, sizeof(cl_mem), &buffer_lm_keys), "Failed setting kernel argument buffer_lm_keys, kernel 0.");
+	HANDLE_CLERROR(clGetKernelInfo(krnl[gpu_id][0], CL_KERNEL_FUNCTION_NAME, static_param_size - 1, kernel_name, NULL), "Failed to query kernel name.");
+	HANDLE_CLERROR(clGetKernelInfo(krnl[gpu_id][0], CL_KERNEL_NUM_ARGS, sizeof(cl_uint), &num_args, NULL), "Failed to query kernel num args.");
 
-	MEM_FREE(arg_name);
+	if (!strncmp(kernel_name, "lm_bs_b", 7) && num_args == 10)
+		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 2, sizeof(cl_mem), &buffer_lm_keys), "Failed setting kernel argument buffer_lm_keys, kernel lm_bs_b.");
+
+	if (!strncmp(kernel_name, "lm_bs_f", 7) && num_args == 9)
+		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], 2, sizeof(cl_mem), &buffer_lm_keys), "Failed setting kernel argument buffer_lm_keys, kernel lm_bs_f.");
+
+	MEM_FREE(kernel_name);
 }
 
 static void release_buffer_gws()
@@ -394,17 +394,19 @@ static void set_kernel_args()
 {
 	size_t static_param_size = 101;
 	unsigned int ctr = 2;
-	char *arg_name = (char *) mem_calloc(static_param_size, sizeof(char));
+	char *kernel_name = (char *) mem_calloc(static_param_size, sizeof(char));
+	cl_uint num_args;
 
-	HANDLE_CLERROR(clGetKernelArgInfo(krnl[gpu_id][0], 2, CL_KERNEL_ARG_NAME, static_param_size - 1, arg_name, NULL), "Failed to query argument 2, kernel 0.");
-	if (!strncmp(arg_name, "lm_key_idx", 10))
+	HANDLE_CLERROR(clGetKernelInfo(krnl[gpu_id][0], CL_KERNEL_FUNCTION_NAME, static_param_size - 1, kernel_name, NULL), "Failed to query kernel name.");
+	HANDLE_CLERROR(clGetKernelInfo(krnl[gpu_id][0], CL_KERNEL_NUM_ARGS, sizeof(cl_uint), &num_args, NULL), "Failed to query kernel num args.");
+
+	if (!strncmp(kernel_name, "lm_bs_b", 7)) {
+		if (num_args == 10)
+			ctr++;
 		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], ctr++, sizeof(cl_mem), &buffer_lm_key_idx), "Failed setting kernel argument buffer_lm_key_idx, kernel 0.");
-	else if (!strncmp(arg_name, "lm_keys", 7))
+	}
+	if (!strncmp(kernel_name, "lm_bs_f", 7) && num_args == 9)
 		ctr++;
-
-	HANDLE_CLERROR(clGetKernelArgInfo(krnl[gpu_id][0], 3, CL_KERNEL_ARG_NAME, static_param_size - 1, arg_name, NULL), "Failed to query argument 3, kernel 0.");
-	if (!strncmp(arg_name, "lm_key_idx", 10))
-		HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], ctr++, sizeof(cl_mem), &buffer_lm_key_idx), "Failed setting kernel argument buffer_lm_key_idx, kernel 0.");
 
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], ctr++, sizeof(cl_mem), &buffer_int_lm_keys), "Failed setting kernel argument buffer_int_lm_keys, kernel 0.");
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], ctr++, sizeof(cl_mem), &buffer_offset_table), "Failed setting kernel argument buffer_offset_table, kernel 0.");
@@ -413,7 +415,7 @@ static void set_kernel_args()
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], ctr++, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument buffer_hash_ids, kernel 0.");
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id][0], ctr++, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument buffer_bitmap_dupe, kernel 0.");
 
-	MEM_FREE(arg_name);
+	MEM_FREE(kernel_name);
 }
 
 static void release_buffer()
@@ -510,10 +512,17 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 		opencl_read_source("$JOHN/kernels/lm_kernel_f.cl");
 	else
 		opencl_read_source("$JOHN/kernels/lm_kernel_b.cl");
+
 	opencl_build(gpu_id, build_opts, 0, NULL);
 
-	krnl[gpu_id][0] = clCreateKernel(program[gpu_id], "lm_bs", &ret_code);
-	HANDLE_CLERROR(ret_code, "Failed creating kernel lm_bs.");
+	if (use_last_build_opt ? last_build_opts[0] : full_unroll) {
+		krnl[gpu_id][0] = clCreateKernel(program[gpu_id], "lm_bs_f", &ret_code);
+		HANDLE_CLERROR(ret_code, "Failed creating kernel lm_bs_f.");
+	}
+	else {
+		krnl[gpu_id][0] = clCreateKernel(program[gpu_id], "lm_bs_b", &ret_code);
+		HANDLE_CLERROR(ret_code, "Failed creating kernel lm_bs_b.");
+	}
 }
 
 static void release_kernels()
@@ -1229,7 +1238,7 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 	if (!is_static_gpu_mask)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, current_gws * sizeof(unsigned int), opencl_lm_int_key_loc, 0, NULL, NULL ), "Failed Copy data to gpu");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id][0], 1, NULL, &current_gws, lws, 0, NULL, &evnt), "Failed enqueue kernel lm_bs.");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id][0], 1, NULL, &current_gws, lws, 0, NULL, &evnt), "Failed enqueue kernel lm_bs_*.");
 	clWaitForEvents(1, &evnt);
 	clReleaseEvent(evnt);
 
@@ -1313,5 +1322,4 @@ void opencl_lm_b_register_functions(struct fmt_main *fmt)
 	opencl_lm_init_global_variables = &init_global_variables;
 }
 
-#endif /* #if CL_VERSION_1_2 && HAVE_OPENCL_1_2 */
 #endif /* #if HAVE_OPENCL */
