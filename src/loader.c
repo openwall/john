@@ -276,6 +276,7 @@ static void ldr_set_encoding(struct fmt_main *format)
 	if ((!pers_opts.target_enc || pers_opts.default_target_enc) &&
 	    !pers_opts.internal_enc) {
 		if (!strcasecmp(format->params.label, "LM") ||
+		    !strcasecmp(format->params.label, "lm-opencl") ||
 		    !strcasecmp(format->params.label, "netlm") ||
 		    !strcasecmp(format->params.label, "nethalflm")) {
 			pers_opts.target_enc =
