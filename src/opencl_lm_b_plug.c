@@ -390,7 +390,7 @@ static void create_buffer(unsigned int num_loaded_hashes, unsigned int ot_size, 
 	lm_finalize_int_keys();
 }
 
-static void set_kernel_args(unsigned int full_unroll)
+static void set_kernel_args()
 {
 	size_t static_param_size = 101;
 	unsigned int ctr = 2;
@@ -432,9 +432,10 @@ static void release_buffer()
 	}
 }
 
-static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s_mem_lws, unsigned int use_local_mem)
+static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s_mem_lws, unsigned int use_local_mem, unsigned int use_last_build_opt)
 {
 	static char build_opts[500];
+	static unsigned int last_build_opts[3];
 	cl_ulong const_cache_size;
 	unsigned int i;
 
@@ -447,32 +448,65 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 
 	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
 
-	sprintf (build_opts, "-cl-kernel-arg-info -D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE=%zu"
-		 " -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u -D MASK_ENABLE=%u -D ITER_COUNT=%u -D LOC_0=%d"
+	if (!use_last_build_opt) {
+		sprintf (build_opts, "-cl-kernel-arg-info -D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE=%zu"
+		" -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u -D MASK_ENABLE=%u -D ITER_COUNT=%u -D LOC_0=%d"
 #if 1 < MASK_FMT_INT_PLHDR
-		 " -D LOC_1=%d "
+		" -D LOC_1=%d "
 #endif
 #if 2 < MASK_FMT_INT_PLHDR
-		  "-D LOC_2=%d "
+		"-D LOC_2=%d "
 #endif
 #if 3 < MASK_FMT_INT_PLHDR
-		  "-D LOC_3=%d"
+		"-D LOC_3=%d"
 #endif
-		 " -D IS_STATIC_GPU_MASK=%d -D CONST_CACHE_SIZE=%llu %s" ,
-		 full_unroll, use_local_mem, s_mem_lws, offset_table_size,  hash_table_size, mask_mode,
-		 ((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH), static_gpu_locations[0]
+		" -D IS_STATIC_GPU_MASK=%d -D CONST_CACHE_SIZE=%llu %s" ,
+		full_unroll, use_local_mem, s_mem_lws, offset_table_size,  hash_table_size, mask_mode,
+		((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH), static_gpu_locations[0]
 #if 1 < MASK_FMT_INT_PLHDR
-	, static_gpu_locations[1]
+		, static_gpu_locations[1]
 #endif
 #if 2 < MASK_FMT_INT_PLHDR
-	, static_gpu_locations[2]
+		, static_gpu_locations[2]
 #endif
 #if 3 < MASK_FMT_INT_PLHDR
-	, static_gpu_locations[3]
+		, static_gpu_locations[3]
 #endif
-	, is_static_gpu_mask, (unsigned long long)const_cache_size, bitmap_params);
+		, is_static_gpu_mask, (unsigned long long)const_cache_size, bitmap_params);
 
-	if (full_unroll)
+		last_build_opts[0] = full_unroll;
+		last_build_opts[1] = use_local_mem;
+		last_build_opts[2] = s_mem_lws;
+	}
+	else {
+		sprintf (build_opts, "-cl-kernel-arg-info -D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE=%zu"
+		" -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u -D MASK_ENABLE=%u -D ITER_COUNT=%u -D LOC_0=%d"
+#if 1 < MASK_FMT_INT_PLHDR
+		" -D LOC_1=%d "
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+		"-D LOC_2=%d "
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+		"-D LOC_3=%d"
+#endif
+		" -D IS_STATIC_GPU_MASK=%d -D CONST_CACHE_SIZE=%llu %s" ,
+		last_build_opts[0], last_build_opts[1], (size_t)last_build_opts[2], offset_table_size,  hash_table_size, mask_mode,
+		((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH), static_gpu_locations[0]
+#if 1 < MASK_FMT_INT_PLHDR
+		, static_gpu_locations[1]
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+		, static_gpu_locations[2]
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+		, static_gpu_locations[3]
+#endif
+		, is_static_gpu_mask, (unsigned long long)const_cache_size, bitmap_params);
+	}
+
+
+	if (use_last_build_opt ? last_build_opts[0] : full_unroll)
 		opencl_read_source("$JOHN/kernels/lm_kernel_f.cl");
 	else
 		opencl_read_source("$JOHN/kernels/lm_kernel_b.cl");
@@ -704,8 +738,8 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		size_t best_lws, lws_limit;
 
 		release_kernels();
-		init_kernels(bitmap_params, full_unroll, 0, use_local_mem && s_mem_limited_lws);
-		set_kernel_args(full_unroll);
+		init_kernels(bitmap_params, full_unroll, 0, use_local_mem && s_mem_limited_lws, 0);
+		set_kernel_args();
 
 		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag, set_key, mask_mode);
 		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, mask_mode);
@@ -784,15 +818,15 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 			local_work_size = s_mem_limited_lws;
 
 		release_kernels();
-		init_kernels(bitmap_params, full_unroll, local_work_size, use_local_mem);
+		init_kernels(bitmap_params, full_unroll, local_work_size, use_local_mem, 0);
 
 		if (local_work_size > get_kernel_max_lws(gpu_id, krnl[gpu_id][0])) {
 			local_work_size = get_kernel_max_lws(gpu_id, krnl[gpu_id][0]);
 			release_kernels();
-			init_kernels(bitmap_params, full_unroll, local_work_size, use_local_mem);
+			init_kernels(bitmap_params, full_unroll, local_work_size, use_local_mem, 0);
 		}
 
-		set_kernel_args(full_unroll);
+		set_kernel_args();
 		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag, set_key, mask_mode);
 		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, mask_mode);
 
@@ -802,8 +836,8 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 			while (local_work_size <= s_mem_limited_lws) {
 				int pcount, i;
 				release_kernels();
-				init_kernels(bitmap_params, full_unroll, local_work_size, use_local_mem);
-				set_kernel_args(full_unroll);
+				init_kernels(bitmap_params, full_unroll, local_work_size, use_local_mem, 0);
+				set_kernel_args();
 				set_kernel_args_gws();
 
 				for (i = 0; i < (global_work_size << lm_log_depth); i++) {
@@ -850,8 +884,8 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 			}
 			local_work_size = best_lws;
 			release_kernels();
-			init_kernels(bitmap_params, full_unroll, local_work_size, use_local_mem);
-			set_kernel_args(full_unroll);
+			init_kernels(bitmap_params, full_unroll, local_work_size, use_local_mem, 0);
+			set_kernel_args();
 			gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, mask_mode);
 		}
 	}
@@ -1169,6 +1203,26 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	current_gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
+	if (salt != NULL && salt->count > 4500 &&
+		(num_loaded_hashes - num_loaded_hashes / 10) > salt->count) {
+		char *bitmap_params;
+
+		release_buffer();
+		release_kernels();
+		MEM_FREE(hash_table_64);
+
+		bitmap_params = prepare_table(salt);
+		create_buffer(num_loaded_hashes, offset_table_size, hash_table_size, bitmap_size_bits);
+
+		init_kernels(bitmap_params, 0, 0, 0, 1);
+
+		set_kernel_args();
+		set_kernel_args_gws();
+
+		MEM_FREE(offset_table);
+		MEM_FREE(bitmaps);
+	}
+
 	assert(current_gws <= global_work_size + PADDING);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, current_gws * sizeof(opencl_lm_transfer), opencl_lm_keys, 0, NULL, NULL ), "Failed Copy data to gpu");
 
@@ -1192,10 +1246,9 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
 	}
 
-	if (mask_mode)
-		*pcount *= mask_int_cand.num_int_cand;
+	*pcount *= mask_int_cand.num_int_cand;
 
-	return hash_ids[0];
+	 return hash_ids[0];
 }
 
 int opencl_lm_get_hash_0(int index)
