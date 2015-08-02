@@ -31,7 +31,9 @@ export PATH="$HOME/bin:$PATH"
 # umount /proc/sys/fs/binfmt_misc
 
 mingw64 ./configure --host=x86_64-w64-mingw32
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 mingw64 make -sj4
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 mv ../run/john ../run/john.exe
 
 # the mingw build does not name many exe files correctly.  Fix that.  Also strip all exe files for distro.
@@ -65,7 +67,9 @@ cd /base/JohnTheRipper/run
 export WINEDEBUG=-all  # suppress wine warnings
 /usr/bin/wine john.exe --list=build-info
 /usr/bin/wine john.exe --test=0
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 /usr/bin/wine john.exe --test=0 --format=dynamic-all
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 
 # now build a non-SIMD 64 bit exe and test it
 dnf install -y openssl openssl-devel zlib-devel gmp-devel libpcap-devel
@@ -80,10 +84,14 @@ echo ""
 cd /base/JohnTheRipper/src
 make -s distclean
 CPPFLAGS="-mno-sse2" ./configure
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 make -sj4
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 ../run/john --list=build-info
 ../run/john -test=0
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 ../run/john -test=0 -form=dynamic-all
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 
 # now build a non-SIMD 32 bit exe and test it
 dnf install -y glibc-headers.i686 glibc.i686 glibc-devel.i686 libgcc.i686 openssl-devel.i686 gmp-devel.i686 libpcap-devel.i686
@@ -97,9 +105,12 @@ echo '**************************************************************************
 echo ""
 make -s distclean
 JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -sj4 linux-x86-any
+# do NOT exit on error from make.  We expect an error in the libpcap stuff
 ../run/john --list=build-info
 ../run/john -test=0
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 ../run/john -test=0 -form=dynamic-all
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 
 # now build a 32 bit SSE2 exe and test it
 echo ""
@@ -112,6 +123,8 @@ echo '**************************************************************************
 echo ""
 make -f Makefile.legacy -s clean
 JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -sj4 linux-x86-sse2
+# do NOT exit on error from make.  We expect an error in the libpcap stuff
 ../run/john --list=build-info
 ../run/john -test=0
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 ../run/john -test=0 -form=dynamic-all
