@@ -1223,6 +1223,8 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	current_gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
+	fprintf(stderr, "pcount %d count %d lws %zu gws %zu cur_gws %zu\n", *pcount, count, local_work_size, global_work_size, current_gws);
+
 	if (salt != NULL && salt->count > 4500 &&
 		(num_loaded_hashes - num_loaded_hashes / 10) > salt->count) {
 		char *bitmap_params;
