@@ -869,15 +869,36 @@ AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 # AC_OUTPUT
 ##########################################################
 echo "configure: creating ./fmt_externs.h"
-echo >fmt_externs.h
+rm -f fmt_externs.h
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
 fi
+# if the file was not created, then bail.
+if test -f fmt_externs.h -a ! -s fmt_externs.h; then
+  echo "The build of fmt_externs.h failed. Can not continue!"
+  cp Makefile.stub Makefile
+  exit 1
+fi
+# if file does not exist, then create a blank one (i.e. no *_plug.c files)
+if test ! -f fmt_externs.h; then
+  echo >fmt_externs.h
+fi
 echo "configure: creating ./fmt_registers.h"
-echo > fmt_registers.h
+rm -f fmt_registers.h
 if test "`echo *_plug.c`" != "*_plug.c"; then
    $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
 fi
+# if the file was not created, then bail.
+if test -f fmt_registers.h -a ! -s fmt_registers.h; then
+  echo "The build of fmt_registers.h failed. Can not continue!"
+  cp Makefile.stub Makefile
+  exit 1
+fi
+# if file does not exist, then create a blank one (i.e. no *_plug.c files)
+if test ! -f fmt_registers.h; then
+  echo >fmt_registers.h
+fi
+
 if test "`echo opencl_*_fmt_plug.c`" != "opencl_*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 fi
