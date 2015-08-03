@@ -670,6 +670,9 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 		global_work_size = (size_t)((kernel_run_ms / time_ms) * (long double)global_work_size);
 	}
 
+	if (global_work_size < local_work_size)
+		global_work_size = local_work_size;
+
 	get_power_of_two(global_work_size);
 
 	if (global_work_size > gws_limit)
@@ -1224,6 +1227,7 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 	const int count = mask_mode ? *pcount : (*pcount + LM_DEPTH - 1) >> LM_LOG_DEPTH;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	current_gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
+
 #if 0
 	fprintf(stderr, "pcount %d count %d lws %zu gws %zu cur_gws %zu\n", *pcount, count, local_work_size, global_work_size, current_gws);
 #endif
