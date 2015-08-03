@@ -58,11 +58,6 @@ void (*opencl_lm_init_global_variables)(void);
 static void init(struct fmt_main *pFmt)
 {
 	opencl_prepare_dev(gpu_id);
-	if (get_device_version(gpu_id) < 120) {
-		fprintf(stderr, "OpenCL 1.2 capability required."
-			"Current capability:%d\n", get_device_version(gpu_id));
-		error();
-	}
 	opencl_lm_b_register_functions(pFmt);
 	opencl_lm_init_global_variables();
 }

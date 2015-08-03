@@ -359,15 +359,26 @@ static void release_buffer_gws()
 
 static void create_buffer(unsigned int num_loaded_hashes, unsigned int ot_size, unsigned int ht_size, unsigned int bmp_size_bits)
 {
+	unsigned int active_placeholders, i;
+
 	hash_ids     = (unsigned int *) mem_calloc (3 * num_loaded_hashes + 1, sizeof(unsigned int));
 	zero_buffer = (unsigned int *) mem_calloc (((ht_size - 1) / 32 + 1), sizeof(unsigned int));
 
 	opencl_lm_init_index();
 
+	active_placeholders = 0;
+	if (mask_skip_ranges)
+	for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
+		if (mask_skip_ranges[i] != -1)
+			active_placeholders++;
+	}
+	else
+		active_placeholders = 1;
+
 	buffer_lm_key_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 768 * sizeof(unsigned int), opencl_lm_index768, &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating buffer_lm_key_idx.");
 
-	buffer_int_lm_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, MASK_FMT_INT_PLHDR * 8 * ((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH) * sizeof(unsigned int), NULL, &ret_code);
+	buffer_int_lm_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, active_placeholders * 8 * ((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH) * sizeof(unsigned int), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating buffer_int_lm_keys.");
 
 	buffer_offset_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ot_size * sizeof(OFFSET_TABLE_WORD), offset_table, &ret_code);

@@ -148,7 +148,7 @@ __kernel void lm_bs_b(__global opencl_lm_transfer *lm_raw_keys,
 #else
 		    , __global
 #endif
-		    unsigned int *lm_int_keys
+		    unsigned int *lm_int_keys /* Memory allocated on host side must not exceed CONST_CACHE_SIZE if constant is used. */
 #if USE_CONST_CACHED_INT_KEYS && gpu_amd(DEVICE_INFO)
 		__attribute__((max_constant_size ((ACTIVE_PLACEHOLDER * 32 * ITER_COUNT))))
 #endif
@@ -360,4 +360,5 @@ __kernel void lm_bs_b(__global opencl_lm_transfer *lm_raw_keys,
 		cmp(B, offset_table, hash_table, bitmaps, hash_ids, bitmap_dupe, section, i);
 	}
 }
+
 #endif
