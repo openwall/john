@@ -138,9 +138,11 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
+#ifdef SIMD_COEF_32
 	MEM_FREE(buf_ptr);
 	MEM_FREE(crypt_key);
 	MEM_FREE(saved_key);
+#endif
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)

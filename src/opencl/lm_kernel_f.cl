@@ -7,6 +7,7 @@
  */
 
 #include "opencl_lm_finalize_keys.h"
+#include "opencl_mask.h"
 
 #if WORK_GROUP_SIZE
 #define y(p, q) vxorf(B[p], lm_keys[q + s_key_offset])
@@ -507,24 +508,58 @@ inline void lm_loop(__private vtype *B,
 		H2_k7();
 }
 
+#if LOC_3 >= 0
+#define ACTIVE_PLACEHOLDER	4
+#elif LOC_2 >= 0
+#define ACTIVE_PLACEHOLDER	3
+#elif LOC_1 >= 0
+#define ACTIVE_PLACEHOLDER	2
+#elif LOC_0 >= 0
+#define ACTIVE_PLACEHOLDER	1
+#else
+#define ACTIVE_PLACEHOLDER	0
+#endif
+
 #if FULL_UNROLL == 1
-__kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change kernel argument index.
+#if (CONST_CACHE_SIZE >= ACTIVE_PLACEHOLDER * 32 * ITER_COUNT) && ACTIVE_PLACEHOLDER
+#define USE_CONST_CACHED_INT_KEYS	1
+#else
+#define USE_CONST_CACHED_INT_KEYS	0
+#endif
+
+/*
+ * Note: Change in kernel name or number of kernel arguments
+ * must be updated on host side set_kernel_args(), set_kernel_args_gws().
+ */
+__kernel void lm_bs_f(__global opencl_lm_transfer *lm_raw_keys, // Do not change kernel argument index.
+		    __global unsigned int *lm_key_loc, // Do not change kernel argument index.
 #if (WORK_GROUP_SIZE == 0)
 		    __global lm_vector *lm_keys, // Do not change kernel argument name or its index.
 #endif
-		    __global unsigned int *offset_table,
+#if USE_CONST_CACHED_INT_KEYS
+		    constant
+#else
+		    __global
+#endif
+		    unsigned int *lm_int_keys /* Memory allocated on host side must not exceed CONST_CACHE_SIZE if constant is used. */
+#if USE_CONST_CACHED_INT_KEYS && gpu_amd(DEVICE_INFO)
+		__attribute__((max_constant_size ((ACTIVE_PLACEHOLDER * 32 * ITER_COUNT))))
+#endif
+		    , __global unsigned int *offset_table,
 		    __global unsigned int *hash_table,
 		    __global unsigned int *bitmaps,
                     volatile __global uint *hash_ids,
 		    volatile __global uint *bitmap_dupe)
 {
+		unsigned int i;
 		unsigned int section = get_global_id(0);
-		unsigned int gws = get_global_size(0);
 
+#if !WORK_GROUP_SIZE
+		unsigned int gws = get_global_size(0);
+#endif
 		vtype B[64];
 
 #if WORK_GROUP_SIZE
-		int i;
 		unsigned int lid = get_local_id(0);
 		unsigned int s_key_offset  = 56 * lid;
 		__local lm_vector s_lm_key[56 * WORK_GROUP_SIZE];
@@ -535,6 +570,148 @@ __kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change k
 		lm_bs_finalize_keys(lm_raw_keys,
 				section, lm_keys, gws);
 #endif
+
+#if MASK_ENABLE && !IS_STATIC_GPU_MASK
+	uint ikl = lm_key_loc[section];
+	uint loc0 = (ikl & 0xff) << 3;
+#if 1 < MASK_FMT_INT_PLHDR
+#if LOC_1 >= 0
+	uint loc1 = (ikl & 0xff00) >> 5;
+#endif
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+#if LOC_2 >= 0
+	uint loc2 = (ikl & 0xff0000) >> 13;
+#endif
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+#if LOC_3 >= 0
+	uint loc3 = (ikl & 0xff000000) >> 21;
+#endif
+#endif
+#endif
+
+#if !IS_STATIC_GPU_MASK
+#define GPU_LOC_0 loc0
+#define GPU_LOC_1 loc1
+#define GPU_LOC_2 loc2
+#define GPU_LOC_3 loc3
+#else
+#define GPU_LOC_0 (LOC_0 << 3)
+#define GPU_LOC_1 (LOC_1 << 3)
+#define GPU_LOC_2 (LOC_2 << 3)
+#define GPU_LOC_3 (LOC_3 << 3)
+#endif
+
+	for (i = 0; i < ITER_COUNT; i++) {
+#if MASK_ENABLE
+
+#if WORK_GROUP_SIZE
+		s_lm_key[s_key_offset + GPU_LOC_0] = lm_int_keys[i * 8];
+		s_lm_key[s_key_offset + GPU_LOC_0 + 1] = lm_int_keys[i * 8 + 1];
+		s_lm_key[s_key_offset + GPU_LOC_0 + 2] = lm_int_keys[i * 8 + 2];
+		s_lm_key[s_key_offset + GPU_LOC_0 + 3] = lm_int_keys[i * 8 + 3];
+		s_lm_key[s_key_offset + GPU_LOC_0 + 4] = lm_int_keys[i * 8 + 4];
+		s_lm_key[s_key_offset + GPU_LOC_0 + 5] = lm_int_keys[i * 8 + 5];
+		s_lm_key[s_key_offset + GPU_LOC_0 + 6] = lm_int_keys[i * 8 + 6];
+		s_lm_key[s_key_offset + GPU_LOC_0 + 7] = lm_int_keys[i * 8 + 7];
+#if 1 < MASK_FMT_INT_PLHDR
+#if LOC_1 >= 0
+#define OFFSET 	(1 * ITER_COUNT * 8)
+		s_lm_key[s_key_offset + GPU_LOC_1] = lm_int_keys[OFFSET + i * 8];
+		s_lm_key[s_key_offset + GPU_LOC_1 + 1] = lm_int_keys[OFFSET + i * 8 + 1];
+		s_lm_key[s_key_offset + GPU_LOC_1 + 2] = lm_int_keys[OFFSET + i * 8 + 2];
+		s_lm_key[s_key_offset + GPU_LOC_1 + 3] = lm_int_keys[OFFSET + i * 8 + 3];
+		s_lm_key[s_key_offset + GPU_LOC_1 + 4] = lm_int_keys[OFFSET + i * 8 + 4];
+		s_lm_key[s_key_offset + GPU_LOC_1 + 5] = lm_int_keys[OFFSET + i * 8 + 5];
+		s_lm_key[s_key_offset + GPU_LOC_1 + 6] = lm_int_keys[OFFSET + i * 8 + 6];
+		s_lm_key[s_key_offset + GPU_LOC_1 + 7] = lm_int_keys[OFFSET + i * 8 + 7];
+#endif
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+#if LOC_2 >= 0
+#undef OFFSET
+#define OFFSET 	(2 * ITER_COUNT * 8)
+		s_lm_key[s_key_offset + GPU_LOC_2] = lm_int_keys[OFFSET + i * 8];
+		s_lm_key[s_key_offset + GPU_LOC_2 + 1] = lm_int_keys[OFFSET + i * 8 + 1];
+		s_lm_key[s_key_offset + GPU_LOC_2 + 2] = lm_int_keys[OFFSET + i * 8 + 2];
+		s_lm_key[s_key_offset + GPU_LOC_2 + 3] = lm_int_keys[OFFSET + i * 8 + 3];
+		s_lm_key[s_key_offset + GPU_LOC_2 + 4] = lm_int_keys[OFFSET + i * 8 + 4];
+		s_lm_key[s_key_offset + GPU_LOC_2 + 5] = lm_int_keys[OFFSET + i * 8 + 5];
+		s_lm_key[s_key_offset + GPU_LOC_2 + 6] = lm_int_keys[OFFSET + i * 8 + 6];
+		s_lm_key[s_key_offset + GPU_LOC_2 + 7] = lm_int_keys[OFFSET + i * 8 + 7];
+#endif
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+#if LOC_3 >= 0
+#undef OFFSET
+#define OFFSET 	(3 * ITER_COUNT * 8)
+		s_lm_key[s_key_offset + GPU_LOC_3] = lm_int_keys[OFFSET + i * 8];
+		s_lm_key[s_key_offset + GPU_LOC_3 + 1] = lm_int_keys[OFFSET + i * 8 + 1];
+		s_lm_key[s_key_offset + GPU_LOC_3 + 2] = lm_int_keys[OFFSET + i * 8 + 2];
+		s_lm_key[s_key_offset + GPU_LOC_3 + 3] = lm_int_keys[OFFSET + i * 8 + 3];
+		s_lm_key[s_key_offset + GPU_LOC_3 + 4] = lm_int_keys[OFFSET + i * 8 + 4];
+		s_lm_key[s_key_offset + GPU_LOC_3 + 5] = lm_int_keys[OFFSET + i * 8 + 5];
+		s_lm_key[s_key_offset + GPU_LOC_3 + 6] = lm_int_keys[OFFSET + i * 8 + 6];
+		s_lm_key[s_key_offset + GPU_LOC_3 + 7] = lm_int_keys[OFFSET + i * 8 + 7];
+#endif
+#endif
+
+#else
+		lm_keys[GPU_LOC_0 * gws + section] = lm_int_keys[i * 8];
+		lm_keys[(GPU_LOC_0 + 1) * gws + section] = lm_int_keys[i * 8 + 1];
+		lm_keys[(GPU_LOC_0 + 2) * gws + section] = lm_int_keys[i * 8 + 2];
+		lm_keys[(GPU_LOC_0 + 3) * gws + section] = lm_int_keys[i * 8 + 3];
+		lm_keys[(GPU_LOC_0 + 4) * gws + section] = lm_int_keys[i * 8 + 4];
+		lm_keys[(GPU_LOC_0 + 5) * gws + section] = lm_int_keys[i * 8 + 5];
+		lm_keys[(GPU_LOC_0 + 6) * gws + section] = lm_int_keys[i * 8 + 6];
+		lm_keys[(GPU_LOC_0 + 7) * gws + section] = lm_int_keys[i * 8 + 7];
+#if 1 < MASK_FMT_INT_PLHDR
+#if LOC_1 >= 0
+#define OFFSET 	(1 * ITER_COUNT * 8)
+		lm_keys[GPU_LOC_1 * gws + section] = lm_int_keys[OFFSET + i * 8];
+		lm_keys[(GPU_LOC_1 + 1) * gws + section] = lm_int_keys[OFFSET + i * 8 + 1];
+		lm_keys[(GPU_LOC_1 + 2) * gws + section] = lm_int_keys[OFFSET + i * 8 + 2];
+		lm_keys[(GPU_LOC_1 + 3) * gws + section] = lm_int_keys[OFFSET + i * 8 + 3];
+		lm_keys[(GPU_LOC_1 + 4) * gws + section] = lm_int_keys[OFFSET + i * 8 + 4];
+		lm_keys[(GPU_LOC_1 + 5) * gws + section] = lm_int_keys[OFFSET + i * 8 + 5];
+		lm_keys[(GPU_LOC_1 + 6) * gws + section] = lm_int_keys[OFFSET + i * 8 + 6];
+		lm_keys[(GPU_LOC_1 + 7) * gws + section] = lm_int_keys[OFFSET + i * 8 + 7];
+#endif
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+#if LOC_2 >= 0
+#undef OFFSET
+#define OFFSET 	(2 * ITER_COUNT * 8)
+		lm_keys[GPU_LOC_2 * gws + section] = lm_int_keys[OFFSET + i * 8];
+		lm_keys[(GPU_LOC_2 + 1) * gws + section] = lm_int_keys[OFFSET + i * 8 + 1];
+		lm_keys[(GPU_LOC_2 + 2) * gws + section] = lm_int_keys[OFFSET + i * 8 + 2];
+		lm_keys[(GPU_LOC_2 + 3) * gws + section] = lm_int_keys[OFFSET + i * 8 + 3];
+		lm_keys[(GPU_LOC_2 + 4) * gws + section] = lm_int_keys[OFFSET + i * 8 + 4];
+		lm_keys[(GPU_LOC_2 + 5) * gws + section] = lm_int_keys[OFFSET + i * 8 + 5];
+		lm_keys[(GPU_LOC_2 + 6) * gws + section] = lm_int_keys[OFFSET + i * 8 + 6];
+		lm_keys[(GPU_LOC_2 + 7) * gws + section] = lm_int_keys[OFFSET + i * 8 + 7];
+#endif
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+#if LOC_3 >= 0
+#undef OFFSET
+#define OFFSET 	(3 * ITER_COUNT * 8)
+		lm_keys[GPU_LOC_3 * gws + section] = lm_int_keys[OFFSET + i * 8];
+		lm_keys[(GPU_LOC_3 + 1) * gws + section] = lm_int_keys[OFFSET + i * 8 + 1];
+		lm_keys[(GPU_LOC_3 + 2) * gws + section] = lm_int_keys[OFFSET + i * 8 + 2];
+		lm_keys[(GPU_LOC_3 + 3) * gws + section] = lm_int_keys[OFFSET + i * 8 + 3];
+		lm_keys[(GPU_LOC_3 + 4) * gws + section] = lm_int_keys[OFFSET + i * 8 + 4];
+		lm_keys[(GPU_LOC_3 + 5) * gws + section] = lm_int_keys[OFFSET + i * 8 + 5];
+		lm_keys[(GPU_LOC_3 + 6) * gws + section] = lm_int_keys[OFFSET + i * 8 + 6];
+		lm_keys[(GPU_LOC_3 + 7) * gws + section] = lm_int_keys[OFFSET + i * 8 + 7];
+#endif
+#endif
+
+#endif /* WORK_GROUP_SIZE */
+
+#endif /* MASK_ENABLE */
+
 		vtype z = vzero, o = vones;
 		lm_set_block_8(B, 0, z, z, z, z, z, z, z, z);
 		lm_set_block_8(B, 8, o, o, o, z, o, z, z, z);
@@ -559,7 +736,8 @@ __kernel void lm_bs(__global opencl_lm_transfer *lm_raw_keys, // Do not change k
 #endif
 		);
 
-		cmp(B, offset_table, hash_table, bitmaps, hash_ids, bitmap_dupe, section);
+		cmp(B, offset_table, hash_table, bitmaps, hash_ids, bitmap_dupe, section, i);
+	}
 }
-#endif
 
+#endif

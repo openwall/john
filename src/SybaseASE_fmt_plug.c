@@ -145,8 +145,10 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
+#ifdef SIMD_COEF_32
 	MEM_FREE(last_len);
 	MEM_FREE(NULL_LIMB);
+#endif
 	MEM_FREE(crypt_out);
 	MEM_FREE(prep_key);
 }

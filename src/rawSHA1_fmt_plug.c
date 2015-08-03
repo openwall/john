@@ -279,7 +279,7 @@ static void *get_full_binary(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {
 	static
-#ifdef REVERSE_STEPS
+#if defined (SIMD_COEF_32) && defined(REVERSE_STEPS)
 	ARCH_WORD_32 out;
 #endif
 	ARCH_WORD_32 full[DIGEST_SIZE / 4];

@@ -208,13 +208,24 @@ We use names prefixed by crk_ for global functions in cracker.c, ldr_ for
 ones from loader.c and so on.
 
 
-	Chapter 5: Functions
+	Chapter 5: Declaration
 
-5.1 Declartion
+5.1 Functions declartion
 
 In function prototypes, include parameter names with their data types.
 Although this is not required by the C language, it is preferred in Linux
 because it is a simple way to add valuable information for the reader.
+
+5.2 Variables declaration
+
+Add a blank line after variables declaration. E.g:
+
+void function(void)
+{
+	unsigned char master[32];
+
+	sevenzip_kdf((unsigned char*)saved_key[index], master);
+}
 
 
 	Chapter 6: Commenting

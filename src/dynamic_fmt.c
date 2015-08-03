@@ -211,7 +211,6 @@ static union SIMD_crypt {
 } *crypt_key, *crypt_key2;
 static unsigned int (*total_len)[SIMD_COEF_32];
 static unsigned int (*total_len2)[SIMD_COEF_32];
-BIG_HASH_OUT dynamic_BHO[4];
 
 #define MMX_INP_BUF_SZ    (sizeof(input_buf[0]) *BLOCK_LOOPS)
 #define MMX_INP_BUF2_SZ   (sizeof(input_buf2[0])*BLOCK_LOOPS)
@@ -231,6 +230,7 @@ MD5_IN *input_buf_X86;
 MD5_IN *input_buf2_X86;
 unsigned int *total_len_X86;
 unsigned int *total_len2_X86;
+BIG_HASH_OUT dynamic_BHO[4];
 
 static int keys_dirty;
 // We store the salt here

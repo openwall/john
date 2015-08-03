@@ -170,7 +170,7 @@ typedef struct private_subformat_data
 #ifdef SIMD_COEF_32
 #define NON_OMP_MAX   (SIMD_COEF_32*3*4*5*7)
 #else
-#define NON_OMP_MAX   1
+#define NON_OMP_MAX   (1<<MD5_X2)
 #endif
 #define OMP_MAX       (NON_OMP_MAX*OMP_SCALE)
 

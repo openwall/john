@@ -122,7 +122,11 @@ john_register_one(&fmt_cryptsha512);
 #ifdef SIMD_COEF_64
 #define ALGORITHM_NAME          SHA512_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME			"64/" ARCH_BITS_STR " " SHA2_LIB
+#if ARCH_BITS >= 64
+#define ALGORITHM_NAME         "64/" ARCH_BITS_STR " " SHA2_LIB
+#else
+#define ALGORITHM_NAME         "32/" ARCH_BITS_STR " " SHA2_LIB
+#endif
 #endif
 
 // 79 is max length we can do in 2 SIMD limbs, so just make it 79 always.

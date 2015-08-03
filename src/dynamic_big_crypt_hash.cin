@@ -82,17 +82,14 @@ static void inline Do#{HASH}_sse_crypt_only(void *in, uint32_t len[#{HASH}_LOOPS
 		loops[i] = Do_FixBufferLen#{BITS}(cp, len[i], #{BE_HASH});
 		cp += 64*4;
 	}
-	cp = (unsigned char*)in;
-	bMore = 1;
-	cnt = 1;
+	cp = (unsigned char*)in; bMore = 1; cnt = 1;
 	while (bMore) {
-		#{SSEBody}(cp, out, out, SSEi_FLAT_IN#{SSEFLAGS}|SSEi_OUTPUT_AS_#{SSE_ONLY_LIMBS}INP_FMT|SSEi_#{SSE_LIMBS}BUF_INPUT_FIRST_BLK|(cnt==1?0:SSEi_RELOAD));
+		#{SSEBody}(cp, a, a, SSEi_FLAT_IN#{SSEFLAGS}|SSEi_OUTPUT_AS_#{SSE_ONLY_LIMBS}INP_FMT|SSEi_#{SSE_LIMBS}BUF_INPUT_FIRST_BLK|(cnt==1?0:SSEi_RELOAD));
 		bMore = 0;
 		for (i = 0; i < #{HASH}_LOOPS; ++i) {
 			if (cnt == loops[i]) {
 				uint32_t offx = ((i/SIMD_COEF_#{BITS})*(#{BIN_SZ}/sizeof(ARCH_WORD_#{BITS}))*SIMD_COEF_#{BITS})+(i&(SIMD_COEF_#{BITS}-1));
-				// only 16 bytes in the 'final'
-				for (j = 0; j < 16/sizeof(ARCH_WORD_#{BITS}); ++j) {
+				for (j = 0; j < #{BIN_SZ}/sizeof(ARCH_WORD_#{BITS}); ++j) {
 					((ARCH_WORD_#{BITS}*)out)[(i*#{SSE_LIMBS})+j] = #{JSWAPH}a[(j*SIMD_COEF_#{BITS})+offx]#{JSWAPT}
 				}
 			} else if (cnt < loops[i])

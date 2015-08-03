@@ -427,9 +427,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			                           "DefaultIncrementalLM")))
 				mode = "LM_ASCII";
 		} else if (db->format->params.label &&
-		           (!strcmp(db->format->params.label, "lm-opencl") ||
-		            !strcmp(db->format->params.label, "netlm") ||
-		            !strcmp(db->format->params.label, "nethalflm"))) {
+		           (!strcasecmp(db->format->params.label, "lm-opencl") ||
+		            !strcasecmp(db->format->params.label, "netlm") ||
+		            !strcasecmp(db->format->params.label, "nethalflm"))) {
 			if (!(mode = cfg_get_param(SECTION_OPTIONS, NULL,
 			                           "DefaultIncrementalLM")))
 				mode = "LM_ASCII";
