@@ -781,7 +781,8 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 			time_ms = 0;
 			best_time_ms = 999999.00;
 			best_lws = local_work_size;
-			while (local_work_size <= lws_limit) {
+			while (local_work_size <= lws_limit &&
+				local_work_size <= PADDING) {
 				int pcount, i;
 				for (i = 0; i < (global_work_size << lm_log_depth); i++) {
 					key[i & 3] = i & 255;
@@ -853,7 +854,8 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		if (lws_tune_flag) {
 			best_time_ms = 999999.00;
 			best_lws = local_work_size;
-			while (local_work_size <= s_mem_limited_lws) {
+			while (local_work_size <= s_mem_limited_lws &&
+				local_work_size <= PADDING) {
 				int pcount, i;
 				release_kernels();
 				init_kernels(bitmap_params, full_unroll, local_work_size, use_local_mem, 0);
@@ -1222,9 +1224,9 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 	const int count = mask_mode ? *pcount : (*pcount + LM_DEPTH - 1) >> LM_LOG_DEPTH;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	current_gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
-
+#if 0
 	fprintf(stderr, "pcount %d count %d lws %zu gws %zu cur_gws %zu\n", *pcount, count, local_work_size, global_work_size, current_gws);
-
+#endif
 	if (salt != NULL && salt->count > 4500 &&
 		(num_loaded_hashes - num_loaded_hashes / 10) > salt->count) {
 		char *bitmap_params;
