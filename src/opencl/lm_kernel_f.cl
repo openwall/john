@@ -446,21 +446,6 @@
 #define vzero 0
 #define vones (~(vtype)0)
 
-#define PSEUDO_WORK(a, b) 	\
-{	unsigned int temp;	\
-	temp = B[a];		\
-	B[a] = B[b];		\
-	B[b] = temp;		\
-}
-
-#if gpu_amd(DEVICE_INFO)
-#define FAULTY_AMD_COMPILER	\
-	PSEUDO_WORK(63, 31);	\
-	PSEUDO_WORK(63, 31);
-#else
-#define FAULTY_AMD_COMPILER
-#endif
-
 inline void lm_loop(__private vtype *B,
 #if WORK_GROUP_SIZE
 		__local lm_vector *lm_keys,
@@ -475,37 +460,26 @@ inline void lm_loop(__private vtype *B,
 #endif
 		) {
 
+	int iterations = 0;
+#pragma unroll 1
+	for (iterations = 0; iterations >= 0; iterations--) {
 		H1_k0();
-		FAULTY_AMD_COMPILER
 		H2_k0();
-		FAULTY_AMD_COMPILER
 		H1_k1();
-		FAULTY_AMD_COMPILER
 		H2_k1();
-		FAULTY_AMD_COMPILER
 		H1_k2();
-		FAULTY_AMD_COMPILER
 		H2_k2();
-		FAULTY_AMD_COMPILER
 		H1_k3();
-		FAULTY_AMD_COMPILER
 		H2_k3();
-		FAULTY_AMD_COMPILER
 		H1_k4();
-		FAULTY_AMD_COMPILER
 		H2_k4();
-		FAULTY_AMD_COMPILER
 		H1_k5();
-		FAULTY_AMD_COMPILER
 		H2_k5();
-		FAULTY_AMD_COMPILER
 		H1_k6();
-		FAULTY_AMD_COMPILER
 		H2_k6();
-		FAULTY_AMD_COMPILER
 		H1_k7();
-		FAULTY_AMD_COMPILER
 		H2_k7();
+	}
 }
 
 #if LOC_3 >= 0
