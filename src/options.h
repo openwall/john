@@ -92,6 +92,10 @@
 #define FLG_TEST_CHK			0x00400000
 #define FLG_TEST_SET \
 	(FLG_TEST_CHK | FLG_CRACKING_SUP | FLG_ACTION)
+/* Perform a test and benchmark */
+#define FLG_TEST_FULL_CHK		0x00800000
+#define FLG_TEST_FULL_SET \
+	(FLG_TEST_FULL_CHK | FLG_CRACKING_SUP | FLG_ACTION)
 #ifdef HAVE_FUZZ
 /* Perform a fuzzing */
 #define FLG_FUZZ_CHK			0x08000000

@@ -1364,7 +1364,7 @@ static void john_run(void)
 	struct stat trigger_stat;
 	int trigger_reset = 0;
 
-	if (options.flags & FLG_TEST_CHK)
+	if (options.flags & FLG_TEST_CHK || options.flags & FLG_TEST_FULL_CHK)
 		exit_status = benchmark_all() ? 1 : 0;
 #ifdef HAVE_FUZZ
 	else
