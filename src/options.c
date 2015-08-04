@@ -164,6 +164,9 @@ static struct opt_entry opt_list[] = {
 	{"test", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
 		~OPT_REQ_PARAM & ~FLG_NOLOG, "%u", &benchmark_time},
+	{"test-full", FLG_TEST_FULL_SET, FLG_TEST_FULL_CHK,
+		0, ~FLG_TEST_FULL_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
+		~OPT_REQ_PARAM & ~FLG_NOLOG, "%u", &benchmark_time},
 #ifdef HAVE_FUZZ
 	{"fuzz", FLG_FUZZ_SET, FLG_FUZZ_CHK,
 		0, ~FLG_FUZZ_DUMP_SET & ~FLG_FUZZ_SET & ~FLG_FORMAT &
@@ -314,6 +317,7 @@ JOHN_USAGE_REGEX \
 "--make-charset=FILE       make a charset file. It will be overwritten\n" \
 "--show[=left]             show cracked passwords [if =left, then uncracked]\n" \
 "--test[=TIME]             run tests and benchmarks for TIME seconds each\n" \
+"--test-full[=TIME]        run tests and benchmarks for TIME seconds each\n" \
 "--users=[-]LOGIN|UID[,..] [do not] load this (these) user(s) only\n" \
 "--groups=[-]GID[,..]      load users [not] of this (these) group(s) only\n" \
 "--shells=[-]SHELL[,..]    load users with[out] this (these) shell(s) only\n" \
