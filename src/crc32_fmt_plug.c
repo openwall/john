@@ -30,7 +30,7 @@ extern struct fmt_main fmt_crc32;
 john_register_one(&fmt_crc32);
 #else
 
-/* Uncomment to try out a non-SSE4.2 build */
+/* Uncomment to try out a non-SSE4.2 build (bench with -cost=1:1) */
 //#undef __SSE4_2__
 
 #include <string.h>
@@ -82,6 +82,7 @@ static struct fmt_main *pFmt;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static CRC32_t (*crcs);
 static CRC32_t crcsalt;
+static unsigned int crctype;
 
 static void init(struct fmt_main *self)
 {
@@ -176,18 +177,6 @@ static void *get_salt(char *ciphertext)
 	return out;
 }
 
-#if 0 // Not possible with current interface
-static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
-{
-	ARCH_WORD_32 s = *(ARCH_WORD_32*)(pw->source);
-	ARCH_WORD_32 b = *(ARCH_WORD_32*)(pw->binary);
-	s = ~s;
-	b = ~b;
-	sprintf(Buf, "$crc32$%08x.%08x", s,b);
-	return Buf;
-}
-#endif
-
 static void set_key(char *key, int index)
 {
 	char *p = saved_key[index];
@@ -204,45 +193,45 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int i;
-#ifdef _OPENMP
-#pragma omp parallel for private(i)
-#endif
-	for (i = 0; i < count; ++i) {
-		CRC32_t crc = crcsalt;
-		unsigned char *p = (unsigned char*)saved_key[i];
-		while (*p)
-			crc = jtr_crc32(crc, *p++);
-		crcs[i] = crc;
-	}
-	return count;
-}
 
-static int crypt_allc(int *pcount, struct db_salt *salt)
-{
-	const int count = *pcount;
-	int i;
+	switch (crctype) {
+
+	case 0:
 #ifdef _OPENMP
 #pragma omp parallel for private(i)
 #endif
-	for (i = 0; i < count; ++i) {
-		CRC32_t crc = crcsalt;
-		unsigned char *p = (unsigned char*)saved_key[i];
-		while (*p)
-			crc = jtr_crc32c(crc, *p++);
-		crcs[i] = crc;
-		//printf("In: '%s' Out: %08x\n", saved_key[i], ~crc);
+		for (i = 0; i < count; ++i) {
+			CRC32_t crc = crcsalt;
+			unsigned char *p = (unsigned char*)saved_key[i];
+			while (*p)
+				crc = jtr_crc32(crc, *p++);
+			crcs[i] = crc;
+			//printf("%s() In: '%s' Out: %08x\n", __FUNCTION__, saved_key[i], ~crc);
+		}
+		break;
+
+	case 1:
+#ifdef _OPENMP
+#pragma omp parallel for private(i)
+#endif
+		for (i = 0; i < count; ++i) {
+			CRC32_t crc = crcsalt;
+			unsigned char *p = (unsigned char*)saved_key[i];
+			while (*p)
+				crc = jtr_crc32c(crc, *p++);
+			crcs[i] = crc;
+			//printf("%s() In: '%s' Out: %08x\n", __FUNCTION__, saved_key[i], ~crc);
+		}
+
 	}
+
 	return count;
 }
 
 static void set_salt(void *salt)
 {
 	crcsalt = *((ARCH_WORD_32 *)salt);
-	if (((char*)salt)[4] == 0)
-		pFmt->methods.crypt_all = crypt_all;
-	else
-		pFmt->methods.crypt_all = crypt_allc;
-
+	crctype = ((char*)salt)[4];
 }
 
 static int cmp_all(void *binary, int count)
