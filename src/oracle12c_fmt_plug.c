@@ -18,8 +18,11 @@ john_register_one(&fmt_oracle12c);
 #include <string.h>
 
 #include "arch.h"
+
 //#undef SIMD_COEF_64
 //#undef SIMD_PARA_SHA512
+//#undef _OPENMP
+
 #include "misc.h"
 #include "memory.h"
 #include "common.h"
@@ -191,9 +194,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
 		SHA512_CTX ctx;
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-		int i;
-#endif
+		int i = 0;
 #if SIMD_COEF_64
 		int lens[SSE_GROUP_SZ_SHA512];
 		unsigned char *pin[SSE_GROUP_SZ_SHA512];
@@ -218,8 +219,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 #endif
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++)
 #endif
+		{
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, (unsigned char*)crypt_out[index + i], BINARY_SIZE);
 			SHA512_Update(&ctx, cur_salt->salt, 16); // AUTH_VFR_DATA first 16 bytes
