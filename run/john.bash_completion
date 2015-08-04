@@ -427,6 +427,20 @@ _john()
 			fi
 			return 0
 			;;
+		--regex=alpha[:=]*)
+			cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=sections #"`
+			cur=${cur#*[=:]}
+			cur=${cur#*[=:]}
+			list=`${cmd} 2>/dev/null|LC_ALL=C grep "^list\.rexgen\.alpha:"|cut -d: -f 2-`
+			COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
+			return 0
+			;;
+		--regex=?(a|al|alp|alph|alpha))
+			cur=${cur#*[=:]}
+			COMPREPLY=( $(compgen -W "alpha:" -- ${cur}) )
+			compopt -o nospace
+			return 0
+			;;
 		--external=*)
 			cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=externals #"`
 			list=`${cmd} 2>/dev/null`
