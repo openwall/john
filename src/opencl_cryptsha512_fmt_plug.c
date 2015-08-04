@@ -343,33 +343,35 @@ static void build_kernel(char * task) {
 }
 
 static void init(struct fmt_main *_self) {
-	char * tmp_value;
-	char * task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
 
 	self = _self;
 
 	opencl_prepare_dev(gpu_id);
-	source_in_use = device_info[gpu_id];
-
-	if ((tmp_value = getenv("_TYPE")))
-		source_in_use = atoi(tmp_value);
-
-	if (amd_gcn(source_in_use))
-		task = "$JOHN/kernels/cryptsha512_kernel_GCN.cl";
-	else if (_USE_GPU_SOURCE)
-		task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
-
-	build_kernel(task);
-
-	if (source_in_use != device_info[gpu_id])
-		fprintf(stderr, "Selected runtime id %d, source (%s)\n",
-		        source_in_use, task);
 }
 
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
+                char * tmp_value;
+                char * task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
 		int default_value = 0;
+
+                opencl_prepare_dev(gpu_id);
+                source_in_use = device_info[gpu_id];
+
+                if ((tmp_value = getenv("_TYPE")))
+                        source_in_use = atoi(tmp_value);
+
+                if (amd_gcn(source_in_use))
+                        task = "$JOHN/kernels/cryptsha512_kernel_GCN.cl";
+                else if (_USE_GPU_SOURCE)
+                        task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
+
+                build_kernel(task);
+
+                if (source_in_use != device_info[gpu_id])
+                        fprintf(stderr, "Selected runtime id %d, source (%s)\n",
+                                source_in_use, task);
 
 		if (gpu_amd(source_in_use))
 			default_value = get_processors_count(gpu_id);
@@ -399,15 +401,19 @@ static void reset(struct db_main *db)
 }
 
 static void done(void) {
-	release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+        if (autotuned) {
+                release_clobj();
 
-	if (_SPLIT_KERNEL_IN_USE) {
-		HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
-		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
-	}
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+                HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+
+                if (_SPLIT_KERNEL_IN_USE) {
+                        HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
+                        HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
+                }
+                HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+                autotuned = 0;
+        }
 }
 
 /* ------- Compare functins ------- */
