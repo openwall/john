@@ -452,8 +452,6 @@ opencl_autotune.o:	opencl_autotune.c common-opencl.h memdbg.h
 
 options.o:	version.h listconf.h options.c os.h arch.h misc.h params.h memory.h list.h loader.h logger.h status.h recovery.h options.h bench.h external.h john.h dynamic.h unicode.h fake_salts.h regex.h john-mpi.h common-opencl.h prince.h memdbg.h john_build_rule.h
 
-para-best.o:	para-best.c math.h params.h common.h formats.h bench.h memdbg.h
-
 params.o:	params.c params.h memdbg.h
 
 path.o:	path.c autoconfig.h misc.h params.h memory.h path.h memdbg.h
@@ -824,7 +822,7 @@ clean:
 	done
 	$(RM) john-macosx-* *.o escrypt/*.o *.bak core
 	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin
-	$(RM) detect bench para-bench generic.h tmp.s
+	$(RM) detect bench generic.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~
 	$(CP) $(NULL) Makefile.dep
 	@for dir in ${subdirs}; do \

@@ -76,7 +76,6 @@ src/fmt_registers.h
 src/generic.h
 src/john_build_rule.h
 src/memdbg_defines.h
-src/para-bench
 src/stamp-h1
 src/version.h
 src/version.h.new

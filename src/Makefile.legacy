@@ -197,17 +197,6 @@ BENCH_OBJS = \
 	bench-t.o best.o common.o config_g.o formats_g.o jumbo.o math.o dyna_salt.o \
 	memory.o miscnl.o params.o path.o signals_g.o tty.o memdbg.o
 
-PARA_BENCH_32_OBJS = \
-	bench-t.o para-best.o common.o config_g.o formats_g.o math.o memory.o \
-	miscnl.o params.o path.o signals_g.o tty.o x86.o $(BENCH_PARA_DEPEND)
-
-PARA_BENCH_OBJS = \
-	bench-t.o para-best.o common.o config_g.o formats_g.o math.o memory.o \
-	miscnl.o params.o path.o signals_g.o tty.o $(BENCH_PARA_DEPEND)
-
-BENCH_PARA_DEPEND = \
-	simd-intrinsics.o rawMD4_fmt_plug.o rawMD5_fmt_plug.o rawSHA1_fmt_plug.o MD5_fmt.o MD5_std.o memdbg.o
-
 GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o
 
@@ -1920,31 +1909,8 @@ generic.h:
 		"$(BENCH_MD5_OBJS_DEPEND)" \
 		"$(BENCH_BF_OBJS_DEPEND)"
 
-testpara:
-	$(LN) x86-64.h arch.h
-	perl ./para-best.pl "$(CC)" "$(MAKE_ORIG)" \
-		"$(BENCH_PARA_DEPEND)" "-msse2 -DHAVE_LIBSSL" 64
-
-testpara-native:
-	$(LN) x86-64.h arch.h
-	perl ./para-best.pl "$(CC)" "$(MAKE_ORIG)" \
-		"$(BENCH_PARA_DEPEND)" "-march=native -DHAVE_LIBSSL" 64
-
-testpara32:
-	$(LN) x86-sse.h arch.h
-	CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_LIBSSL" \
-	ASFLAGS="$(ASFLAGS) -m32 -msse2" \
-	perl ./para-best.pl "$(CC)" "$(MAKE_ORIG)" \
-		"$(BENCH_PARA_DEPEND)" "-m32 -msse2 -DHAVE_LIBSSL" 32
-
 bench: $(BENCH_OBJS)
 	$(LD) $(BENCH_OBJS) $(LDFLAGS) -o bench
-
-para-bench64: $(PARA_BENCH_OBJS)
-	$(LD) $(PARA_BENCH_OBJS) $(LDFLAGS) -o para-bench
-
-para-bench32: $(PARA_BENCH_32_OBJS)
-	$(LD) $(PARA_BENCH_32_OBJS) $(LDFLAGS) -o para-bench
 
 cuda_common.o:	cuda/cuda_common.cuh cuda/cuda_common.cu
 	cd cuda; $(NVCC) $(NVCC_FLAGS) cuda_common.cu -o ../cuda_common.o
@@ -2372,7 +2338,7 @@ clean:
 	$(RM) $(PROJ_PCAP)
 	$(RM) ../run/john.exe john-macosx-* *.o escrypt/*.o *.bak core
 	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin
-	$(RM) detect bench para-bench generic.h arch.h tmp.s
+	$(RM) detect bench generic.h arch.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~
 	$(RM) dynamic_big_crypt.c fmt_registers.h fmt_externs.h john_build_rule.h version.h version.h.new
 	$(CP) $(NULL) Makefile.dep
