@@ -732,7 +732,7 @@ static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 	char *ciphertext, char *plaintext, int *is_ignore_8th_bit,
 	int *plaintext_is_blank)
 {
-	char *plain_copy, *ret;
+	char *plain_copy;
 
 	if (*plaintext == 0)
 		return;
