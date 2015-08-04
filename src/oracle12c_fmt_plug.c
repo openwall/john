@@ -191,8 +191,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
 		SHA512_CTX ctx;
+#if MAX_KEYS_PER_CRYPT > 1
+		int i;
+#endif
 #if SIMD_COEF_64
-		int lens[SSE_GROUP_SZ_SHA512], i;
+		int lens[SSE_GROUP_SZ_SHA512];
 		unsigned char *pin[SSE_GROUP_SZ_SHA512];
 		union {
 			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA512];
@@ -214,10 +217,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		alter_endianity_w64(crypt_out[index], BINARY_SIZE/8);
 #endif
 #endif
-		SHA512_Init(&ctx);
-		SHA512_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);
-		SHA512_Update(&ctx, cur_salt->salt, 16); // AUTH_VFR_DATA first 16 bytes
-		SHA512_Final((unsigned char*)crypt_out[index], &ctx);
+#if MAX_KEYS_PER_CRYPT > 1
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+#endif
+			SHA512_Init(&ctx);
+			SHA512_Update(&ctx, (unsigned char*)crypt_out[index + i], BINARY_SIZE);
+			SHA512_Update(&ctx, cur_salt->salt, 16); // AUTH_VFR_DATA first 16 bytes
+			SHA512_Final((unsigned char*)crypt_out[index + i], &ctx);
+		}
 	}
 	return count;
 }
