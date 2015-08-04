@@ -1396,7 +1396,7 @@ Optional Features:
                           Enable OpenMP for fast formats (usually a bad idea -
                           use fork instead)
   --enable-mpi            Use OpenMPI
-  --enable-rexgen         Use rexgen library if present
+  --disable-rexgen        Disable use of rexgen library
   --enable-cuda           Use CUDA
   --disable-pcap          Do not build helpers depending on PCAP
   --disable-native-tests  Do not test build system for target features.

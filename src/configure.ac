@@ -74,7 +74,7 @@ AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependenc
 # MPI is not "auto" because its network usage might scare people:
 AC_ARG_ENABLE([openmp-for-fast-formats], [AC_HELP_STRING([--enable-openmp-for-fast-formats], [Enable OpenMP for fast formats (usually a bad idea - use fork instead)])], [ompfast=$enableval], [ompfast=no])
 AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--enable-mpi], [Use OpenMPI])], [enable_mpi=$enableval], [enable_mpi=no])
-AC_ARG_ENABLE([rexgen], [AC_HELP_STRING([--enable-rexgen], [Use rexgen library if present])], [enable_rexgen=$enableval], [enable_rexgen=auto])
+AC_ARG_ENABLE([rexgen], [AC_HELP_STRING([--disable-rexgen], [Disable use of rexgen library])], [enable_rexgen=$enableval], [enable_rexgen=auto])
 AC_ARG_ENABLE([cuda], [AC_HELP_STRING([--enable-cuda], [Use CUDA])], [enable_cuda=$enableval], [enable_cuda=no])
 AC_ARG_ENABLE([pcap], [AC_HELP_STRING([--disable-pcap], [Do not build helpers depending on PCAP])], [enable_pcap=$enableval], [enable_pcap=auto])
 AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not test build system for target features. Implies --disable-native-march.])], [enable_native_tests=$enableval], [enable_native_tests=auto])
