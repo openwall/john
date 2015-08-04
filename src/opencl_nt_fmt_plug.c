@@ -1,4 +1,5 @@
-/* NTLM patch for john (performance improvement and OpenCL 1.2 conformant)
+/*
+ * NTLM patch for john (performance improvement and OpenCL 1.0 conformant)
  *
  * Written by Alain Espinosa <alainesp at gmail.com> in 2010 and modified
  * by Samuele Giovanni Tonon in 2011.  No copyright is claimed, and
@@ -8,6 +9,7 @@
  * Copyright (c) 2010 Alain Espinosa
  * Copyright (c) 2011 Samuele Giovanni Tonon
  * Copyright (c) 2015 Sayantan Datta <sdatta at openwall.com>
+ * Copyright (c) 2015 magnum
  * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,7 +48,7 @@ john_register_one(&fmt_opencl_NT);
 #define ALGORITHM_NAME		"MD4 OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	23
+#define PLAINTEXT_LENGTH	27
 #define BUFSIZE                 ((PLAINTEXT_LENGTH+3)/4*4)
 #define CIPHERTEXT_LENGTH	32
 #define BINARY_SIZE		16
