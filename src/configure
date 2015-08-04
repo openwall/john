@@ -1397,7 +1397,7 @@ Optional Features:
                           use fork instead)
   --enable-mpi            Use OpenMPI
   --enable-rexgen         Use rexgen library if present
-  --disable-cuda          Do not use CUDA
+  --enable-cuda           Use CUDA
   --disable-pcap          Do not build helpers depending on PCAP
   --disable-native-tests  Do not test build system for target features.
                           Implies --disable-native-march.
@@ -3558,7 +3558,7 @@ fi
 if test "${enable_cuda+set}" = set; then :
   enableval=$enable_cuda; enable_cuda=$enableval
 else
-  enable_cuda=auto
+  enable_cuda=no
 fi
 
 # Check whether --enable-pcap was given.
@@ -15190,7 +15190,7 @@ OpenMPI support (default disabled) .......... ${using_mpi}
 Fork support ................................ ${ac_cv_func_fork_works}
 OpenMP support .............................. ${using_omp}
 OpenCL support .............................. ${using_cl}
-CUDA support ................................ ${using_cuda}
+CUDA support (default disabled) ............. ${using_cuda}
 Generic crypt(3) format ..................... ${using_crypt}
 Rexgen (extra cracking mode) ................ ${using_rexgen}
 GMP (PRINCE mode and faster SRP formats) .... ${ac_cv_lib_gmp___gmpz_init}
