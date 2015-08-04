@@ -191,7 +191,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
 		SHA512_CTX ctx;
-#if MAX_KEYS_PER_CRYPT > 1
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 		int i;
 #endif
 #if SIMD_COEF_64
@@ -217,7 +217,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		alter_endianity_w64(crypt_out[index], BINARY_SIZE/8);
 #endif
 #endif
-#if MAX_KEYS_PER_CRYPT > 1
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
 #endif
 			SHA512_Init(&ctx);
