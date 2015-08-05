@@ -21,7 +21,7 @@
  *
  */
 
-#define FMT_STRUCT	fmt_plaintext
+#define FMT_STRUCT	fmt_zzz_plaintext
 
 #if FMT_EXTERNS_H
 extern struct fmt_main FMT_STRUCT;
