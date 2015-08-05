@@ -39,8 +39,7 @@ $(SUBDIRS):
 	$(MAKE) -C $@ all
 
 aes.a: $(SUBDIRS) aes.o
-	$(AR) -r $@ $(AESIN)
-	$(AR) -s $@
+	$(AR) -rs $@ $(AESIN)
 
 default: aes.a
 all: aes.a
