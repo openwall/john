@@ -546,8 +546,11 @@ static void clean_all_buffers()
 	release_buffer();
 	release_kernels();
 	MEM_FREE(hash_table_64);
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
-	               "Error releasing Program");
+	if (program[gpu_id]) {
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
+			"Error releasing Program");
+		program[gpu_id] = 0;
+	}
 }
 
 /* if returns 0x800000, means there is no restriction on lws due to local memory limitations.*/
