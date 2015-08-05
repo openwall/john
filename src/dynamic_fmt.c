@@ -7671,17 +7671,25 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		//
 		// But for now, just get it working.  Get it working faster later.
 
+		// NOTE, these are commented out now. I am not sure why they were there
+		// I think the thought was for SIMD, BUT SIMD is not used on Sparc
+		// I am leaving this code for now, BUT I think it should NOT be here.
+		// I was getting failures on the 16 byte sph formats, for any
+		// hash(hash($p).$s)  such as md2(md2($p).$s)  However, the modifications
+		// where curdat.store_keys_in_input==1 is absolutely needed, or we have
+		// get_key() failures all over the place.
+
 		// note, with Setup->pFuncs[0]==DynamicFunc__set_input_len_32, we only will handle type 6 and 7
 		// for now we have this 'turned' off.  It is fixed for type 6, 7 and 14.  It is left on for the
 		// john.ini stuff.  Thus, if someone builds the intel version type 6, it will work (but slower).
-		if (curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1==1 && Setup->pFuncs[0]==DynamicFunc__set_input_len_32) {
-			curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1 = 0;
-			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__clean_input;
-			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__append_keys;
-			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__crypt_md5;
-			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__clean_input;
-			Setup->pFuncs[0] = DynamicFunc__append_from_last_output_as_base16;
-		}
+//		if (curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1==1 && Setup->pFuncs[0]==DynamicFunc__set_input_len_32) {
+//			curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1 = 0;
+//			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__clean_input;
+//			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__append_keys;
+//			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__crypt_md5;
+//			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__clean_input;
+//			Setup->pFuncs[0] = DynamicFunc__append_from_last_output_as_base16;
+//		}
 #endif
 		for (i=0; Setup->pFuncs[i]; ++i)
 		{
