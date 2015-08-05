@@ -7674,8 +7674,8 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		// note, with Setup->pFuncs[0]==DynamicFunc__set_input_len_32, we only will handle type 6 and 7
 		// for now we have this 'turned' off.  It is fixed for type 6, 7 and 14.  It is left on for the
 		// john.ini stuff.  Thus, if someone builds the intel version type 6, it will work (but slower).
-		if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1==1 && Setup->pFuncs[0]==DynamicFunc__set_input_len_32) {
-			curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1 = 0;
+		if (curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1==1 && Setup->pFuncs[0]==DynamicFunc__set_input_len_32) {
+			curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1 = 0;
 			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__clean_input;
 			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__append_keys;
 			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__crypt_md5;
