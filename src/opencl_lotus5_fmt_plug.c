@@ -16,6 +16,8 @@ john_register_one(&fmt_opencl_1otus5);
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
+
 #include "misc.h"
 #include "formats.h"
 #include "common.h"
@@ -92,9 +94,23 @@ static cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
 #define STEP			0
 #define SEED			256
 
+#define PADDING 		2048
+
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl-autotune.h"
 #include "memdbg.h"
+
+#define get_power_of_two(v)	\
+{				\
+	v--;			\
+	v |= v >> 1;		\
+	v |= v >> 2;		\
+	v |= v >> 4;		\
+	v |= v >> 8;		\
+	v |= v >> 16;		\
+	v |= v >> 32;		\
+	v++;			\
+}
 
 static const char * warn[] = {
 	"xfer: ",  ", crypt: ",  ", xfer: "
@@ -103,7 +119,7 @@ static const char * warn[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return autotune_get_task_max_work_group_size(CL_FALSE, 0, crypt_kernel);
+	return MIN(autotune_get_task_max_work_group_size(CL_FALSE, 0, crypt_kernel), PADDING);
 }
 
 static size_t get_task_max_size()
@@ -125,13 +141,13 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	size_t mem_alloc_sz;
 	char *err_msg = "Create Buffer FAILED";
 
-	mem_alloc_sz = KEY_SIZE_IN_BYTES * gws;
+	mem_alloc_sz = KEY_SIZE_IN_BYTES * (gws + PADDING);
 	cl_tx_keys = clCreateBuffer(context[gpu_id],
 				    CL_MEM_READ_ONLY,
 			            mem_alloc_sz, NULL, &err);
 	HANDLE_CLERROR(err, err_msg);
 
-	mem_alloc_sz = BINARY_SIZE * gws;
+	mem_alloc_sz = BINARY_SIZE * (gws + PADDING);
 	cl_tx_binary = clCreateBuffer(context[gpu_id],
 				      CL_MEM_WRITE_ONLY,
 			              mem_alloc_sz, NULL, &err);
@@ -154,8 +170,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 				      sizeof(cl_mem), &cl_tx_binary),
 		                      "Set Kernel Arg 1 :FAILED");
 
-	crypt_key = mem_calloc(gws, BINARY_SIZE);
-	saved_key = mem_calloc(gws, KEY_SIZE_IN_BYTES);
+	crypt_key = mem_calloc(gws + PADDING, BINARY_SIZE);
+	saved_key = mem_calloc(gws + PADDING, KEY_SIZE_IN_BYTES);
 }
 
 static void release_clobj(void)
@@ -181,6 +197,8 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
+		size_t gws_limit;
+
 		opencl_init("$JOHN/kernels/lotus5_kernel.cl", gpu_id, NULL);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "lotus5", &err);
@@ -190,10 +208,15 @@ static void reset(struct db_main *db)
 		if (0)
 			autotune_run(NULL, 0, 0, 0);
 
+		gws_limit = get_max_mem_alloc_size(gpu_id) / KEY_SIZE_IN_BYTES - PADDING;
+
+		get_power_of_two(gws_limit);
+		gws_limit >>= 1;
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
 		                       create_clobj, release_clobj,
-		                       2 * KEY_SIZE_IN_BYTES, 0);
+		                       KEY_SIZE_IN_BYTES, gws_limit);
 
 		// Auto tune execution from shared/included code.
 		autotune_run_extra(self, 1, 0, 1000, CL_TRUE);
@@ -299,6 +322,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	N = local_work_size ?
 		(count + (local_work_size - 1)) /
 		local_work_size * local_work_size : count;
+	assert(local_work_size <= PADDING);
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 					      crypt_kernel, 1,
 					      NULL, &N, M,
