@@ -119,7 +119,12 @@ static const char * warn[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return MIN(autotune_get_task_max_work_group_size(CL_FALSE, 0, crypt_kernel), PADDING);
+	size_t max_lws = MIN(get_kernel_max_lws(gpu_id, crypt_kernel), PADDING);
+
+	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			max_lws : 1;
+	return max_lws;
 }
 
 static size_t get_task_max_size()
@@ -129,11 +134,7 @@ static size_t get_task_max_size()
 
 static size_t get_default_workgroup()
 {
-	if (cpu(device_info[gpu_id]))
-		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
-			8 : 1;
-	else
-		return 64;
+	return get_kernel_preferred_multiple(gpu_id, crypt_kernel);
 }
 
 static void create_clobj(size_t gws, struct fmt_main *self)
@@ -219,7 +220,7 @@ static void reset(struct db_main *db)
 		                       KEY_SIZE_IN_BYTES, gws_limit);
 
 		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, 0, 1000, CL_TRUE);
+		autotune_run_extra(self, 1, gws_limit, 1000, CL_TRUE);
 	}
 }
 
