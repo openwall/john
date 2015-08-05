@@ -311,7 +311,6 @@ static void john_register_all(void)
 	john_register_one(&fmt_LM);
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_trip);
-	john_register_one(&fmt_dummy);
 
 #ifndef DYNAMIC_DISABLED
 	// NOTE, this MUST happen, before ANY format that links a 'thin' format
@@ -334,6 +333,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_cuda_rawsha256);
 #endif
 
+	john_register_one(&fmt_dummy);
 #if HAVE_CRYPT
 	john_register_one(&fmt_crypt);
 #endif
