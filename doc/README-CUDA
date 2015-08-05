@@ -1,22 +1,24 @@
 README CUDA:
 
+NOTE: If your device supports CUDA it usually also supports OpenCL. Exceptions
+are a few very old cards. In JtR, the OpenCL support is vastly superior both
+in terms of number of formats, and their speed (optimizations).
+See README-OPENCL for more OpenCL information.
+
 CUDA support is tested under Linux and OSX. Some recent Linux distributions
 have proprietry OpenCL and CUDA drivers included, for others (or for too new
 cards) you will have to install nvidia's drivers. OSX will support OpenCL
 natively but for using CUDA you need to download drivers from nvidia web site.
 
-If your device supports CUDA it usually also supports OpenCL. Exceptions are
-a few very old cards. See README-OPENCL for more OpenCL information.
-
 
 Compiling:
-  The autoconf system (./configure) should find your CUDA installation and add
-  CUDA support to your build automatically. If it does not, you might have to
-  pass some parameters about where it's located, eg.
-      ./configure LDFLAGS=-L/opt/cuda/lib CFLAGS=-I/opt/cuda/include
+  Since CUDA is more or less deprecated right now, it's disabled by default
+  if OpenCL is found. To force CUDA, use "./configure --enable-cuda". The
+  autoconf system (./configure) should then find your CUDA installation and
+  add CUDA support to your build automatically. If it does not, you might have
+  to pass some parameters about where it's located, eg.
 
-  To build without CUDA, use:
-      ./configure --disable-cuda".
+  ./configure --enable-CUDA LDFLAGS=-L/opt/cuda/lib CFLAGS=-I/opt/cuda/include
 
 
 If you have problems with JtR CUDA support:
@@ -26,11 +28,6 @@ If you have problems with JtR CUDA support:
 
 
 Performance issues:
-  If you have got Fermi or newer card change "-arch sm_10" to "-arch sm_20" in
-  the NVCC_FLAGS (Makefile). If you have Kepler or newer, you can experiment
-  with using "-arch sm_30" as well but some formats actually perform better
-  with sm_20.
-
   To get better performance you can experiment with THREADS and BLOCKS macros
   defined for each format in cuda*.h file. Default THREADS and BLOCKS settings
   are not likely optimal. For some (weak) cards, THREADS may even be too high
@@ -40,21 +37,8 @@ Performance issues:
   can try just doubling THREADS until it gets too high (error) or suboptimal
   (slower), then settle for previous figure.
 
-  For MSCash2[1]:
-    CARD NAME   BLOCKS  THREADS SM      RESULT
-    GTX460      14      128     20      14194 c/s
-  For WPAPSK[1]:
-    CARD NAME   BLOCKS  THREADS SM      RESULT
-    GTX460      14      256     20      15186 c/s
-  For PWSAFE[1]:
-    CARD NAME   BLOCKS  THREADS SM      RESULT
-    GTX460      112     512     10      50746 c/s
-  For XSHA512[2]:
-    CARD NAME   BLOCKS  THREADS SM      RESULT
-    GTX570      1600    256     ??      67385K c/s
-  For RAWSHA256[1]:
-    CARD NAME   BLOCKS  THREADS SM      RESULT
-    GTX570      7680    128     10      27561K c/s
+  You can also add arch options to NVCC_FLAGS in Makefile. See "nvcc -h" for
+  alternatives.
 
 
 OpenCL vs. CUDA parlor:
@@ -80,7 +64,8 @@ OpenCL vs. CUDA parlor:
       Benchmarking: md5crypt [CUDA]... DONE
       Raw:    907858 c/s real, 909827 c/s virtual
 
-  That's even better than the OpenCL figure at the time of writing.
+  That's even better than the OpenCL figure (but since the above was written,
+  the OpenCL format has evolved and should now be twice as fast as CUDA).
 
 
 Supported formats:
