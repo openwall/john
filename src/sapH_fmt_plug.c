@@ -663,7 +663,7 @@ struct fmt_main fmt_sapH = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_OMP | FMT_8_BIT,
+		FMT_OMP | FMT_CASE | FMT_8_BIT | FMT_UTF8,
 		{
 			"hash type [1:sha1 2:SHA256 3:SHA384 4:SHA512]",
 			"iteration count",
