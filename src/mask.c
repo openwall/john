@@ -15,6 +15,7 @@
 #include <stdio.h> /* for fprintf(stderr, ...) */
 #include <string.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include "misc.h" /* for error() */
 #include "logger.h"
@@ -35,11 +36,11 @@
 
 static parsed_ctx parsed_mask;
 static cpu_mask_context cpu_mask_ctx, rec_ctx;
-static int *template_key_offsets, *template_keyW_offsets;
+static int *template_key_offsets;
 static char *mask = NULL, *template_key;
 static int max_keylen, fmt_maxlen, rec_len, rec_cl, restored_len, restored = 1;
 static unsigned long long cand_length;
-int mask_add_len, mask_num_qw, mask_num_qW, mask_cur_len;
+int mask_add_len, mask_num_qw, mask_cur_len;
 
 /*
  * This keeps track of whether we have any 8-bit in our non-hybrid mask.
@@ -1184,15 +1185,13 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 				   parsed_ctx *parsed_mask,
 				   cpu_mask_context *cpu_mask_ctx)
 {
-	int i, k, t, j, l, lW, offset;
-	i = 0, k = 0, j = 0, l = 0, lW = 0, offset = 0;
+	int i, k, t, j, l, offset;
+	i = 0, k = 0, j = 0, l = 0, offset = 0;
 
 	while (template_key_offsets[l] != -1)
 		template_key_offsets[l++] = -1;
-	while (template_keyW_offsets[lW] != -1)
-		template_keyW_offsets[lW++] = -1;
 
-	l = lW = 0;
+	l = 0;
 	while (i < strlen(mask)) {
 		if ((t = search_stack(parsed_mask, i))) {
 			template_key[k++] = '#';
@@ -1202,15 +1201,10 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 			i++;
 			if (i >= strlen(mask)) break;
 			template_key[k++] = mask[i++];
-		} else if (key != NULL && mask[i + 1] == 'w' && mask[i] == '?') {
-			template_key_offsets[l++] = k;
+		} else if (key != NULL && (mask[i + 1] == 'w' ||
+			mask[i + 1] == 'W') && mask[i] == '?') {
+			template_key_offsets[l++] = ((unsigned char)mask[i + 1] << 16) | k;
 			/* Subtract 2 to account for '?w' in mask.*/
-			offset += (key_len - 2);
-			k += key_len;
-			i += 2;
-		} else if (key != NULL && mask[i + 1] == 'W' && mask[i] == '?') {
-			template_keyW_offsets[lW++] = k;
-			/* Subtract 2 to account for '?W' in mask.*/
 			offset += (key_len - 2);
 			k += key_len;
 			i += 2;
@@ -1754,38 +1748,26 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		error();
 	}
 
-	i = 0; mask_add_len = 0; mask_num_qw = 0; mask_num_qW = 0; max_static_range = 0;
+	i = 0; mask_add_len = 0; mask_num_qw = 0; max_static_range = 0;
 	while (i < strlen(mask)) {
 		int t;
 		if ((t = search_stack(&parsed_mask, i))) {
 			mask_add_len++;
 			i = t + 1;
-			if (!mask_num_qw && !mask_num_qW)
+			if (!mask_num_qw)
 				max_static_range++;
 		} else if (mask[i] == '\\') {
 			i += 2;
 			mask_add_len++;
 		} else if (i + 1 < strlen(mask) && mask[i] == '?' &&
-		    mask[i + 1] == 'w') {
+		    (mask[i + 1] == 'w' || mask[i + 1] == 'W')) {
 			mask_num_qw++;
 			i += 2;
 			if ((options.flags & FLG_MASK_STACKED) &&
 			    mask_add_len >= (unsigned int)max_keylen &&
 			    mask_num_qw == 1) {
 				if (john_main_process)
-				fprintf(stderr, "Hybrid mask must contain ?w"
-				        " after truncation for max. length\n");
-				error();
-			}
-		} else if (i + 1 < strlen(mask) && mask[i] == '?' &&
-		    mask[i + 1] == 'W') {
-			mask_num_qW++;
-			i += 2;
-			if ((options.flags & FLG_MASK_STACKED) &&
-			    mask_add_len >= (unsigned int)max_keylen &&
-			    mask_num_qW == 1) {
-				if (john_main_process)
-				fprintf(stderr, "Hybrid mask must contain ?W"
+				fprintf(stderr, "Hybrid mask must contain ?w/?W"
 				        " after truncation for max. length\n");
 				error();
 			}
@@ -1799,7 +1781,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		if (mask_add_len > max_keylen - 1)
 			mask_add_len = max_keylen - 1;
 
-		if (mask_num_qw == 0 && mask_num_qW == 0) {
+		if (mask_num_qw == 0) {
 			if (john_main_process)
 				fprintf(stderr,
 				        "Hybrid mask must contain ?w or ?W\n");
@@ -1817,13 +1799,10 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		if (mask_num_qw && john_main_process)
 		fprintf(stderr, "Warning: ?w has no special meaning in pure "
 		        "mask mode\n");
-		else if (mask_num_qW && john_main_process)
-		fprintf(stderr, "Warning: ?W has no special meaning in pure "
-		        "mask mode\n");
 	}
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "qw %d qW %d minlen %d maxlen %d fmt_len %d mask_add_len %d\n", mask_num_qw, mask_num_qW, options.force_minlength, options.force_maxlength, fmt_maxlen, mask_add_len);
+	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d\n", mask_num_qw, options.force_minlength, options.force_maxlength, fmt_maxlen, mask_add_len);
 #endif
 	/* We decrease these here instead of changing parent modes. */
 	if (options.flags & FLG_MASK_STACKED) {
@@ -1831,9 +1810,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			options.force_minlength -= mask_add_len;
 		if (options.force_maxlength)
 			options.force_maxlength -= mask_add_len;
-		if (mask_num_qw||mask_num_qW) {
-			options.force_minlength /= (mask_num_qw+mask_num_qW);
-			options.force_maxlength /= (mask_num_qw+mask_num_qW);
+		if (mask_num_qw) {
+			options.force_minlength /= mask_num_qw;
+			options.force_maxlength /= mask_num_qw;
 		}
 #ifdef MASK_DEBUG
 		fprintf(stderr, "effective minlen %d maxlen %d fmt_len %d\n",
@@ -1843,12 +1822,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	}
 
 	template_key_offsets = (int*)mem_alloc((mask_num_qw + 1) * sizeof(int));
-	template_keyW_offsets = (int*)mem_alloc((mask_num_qW + 1) * sizeof(int));
 
 	for (i = 0; i < mask_num_qw + 1; i++)
 		template_key_offsets[i] = -1;
-	for (i = 0; i < mask_num_qW + 1; i++)
-		template_keyW_offsets[i] = -1;
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to "
@@ -1918,7 +1894,6 @@ void mask_done()
 
 	MEM_FREE(template_key);
 	MEM_FREE(template_key_offsets);
-	MEM_FREE(template_keyW_offsets);
 	if (mask_skip_ranges)
 		MEM_FREE(mask_skip_ranges);
 	if (mask_int_cand.int_cand)
@@ -1927,13 +1902,13 @@ void mask_done()
 	mask_int_cand.int_cand = NULL;
 }
 
-int do_mask_crack(const char *key)
+int do_mask_crack(const char *extern_key)
 {
-	int key_len = key ? strlen(key) : 0;
+	int key_len = extern_key ? strlen(extern_key) : 0;
 	int i;
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s)\n", __FUNCTION__, key);
+	fprintf(stderr, "%s(%s)\n", __FUNCTION__, extern_key);
 #endif
 
 	mask_parent_keys++;
@@ -1957,7 +1932,6 @@ int do_mask_crack(const char *key)
 		}
 
 		for (i = mask_cur_len; i <= max_len; i++) {
-			int j = 0;
 
 			mask_cur_len = max_keylen = i;
 			cand_length = rec_cl ? rec_cl :
@@ -1965,40 +1939,20 @@ int do_mask_crack(const char *key)
 				status.cands.lo;
 			rec_cl = 0;
 
+			assert(extern_key == NULL);
+
 			save_restore(&cpu_mask_ctx, 0, 1);
-			generate_template_key(mask, key, key_len, &parsed_mask,
-		                      &cpu_mask_ctx);
+			generate_template_key(mask, extern_key, key_len,
+					      &parsed_mask, &cpu_mask_ctx);
 
 			if (options.node_count &&
 			    !(options.flags & FLG_MASK_STACKED) && restored)
 				cand = divide_work(&cpu_mask_ctx);
 			restored = 1;
 
-
 			if (template_key_len == strlen(template_key)) break;
-			template_key_len = strlen(template_key);
 
-			while(template_key_offsets[j] != -1) {
-				int cpy_len = max_keylen -
-					template_key_offsets[j];
-				cpy_len = cpy_len > key_len ? key_len : cpy_len;
-				memcpy(template_key + template_key_offsets[j++],
-				       key, cpy_len);
-			}
-			j = 0;
-			while(template_keyW_offsets[j] != -1) {
-				int off, z, cpy_len = max_keylen -
-					template_keyW_offsets[j];
-				cpy_len = cpy_len > key_len ? key_len : cpy_len;
-				off = template_keyW_offsets[j++];
-				memcpy(template_key + off, key, cpy_len);
-				for (z = 0; z < cpy_len; ++z) {
-					if (islower(ARCH_INDEX(template_key[off+z])))
-						template_key[off+z] = toupper(ARCH_INDEX(template_key[off+z]));
-					else if (isupper(ARCH_INDEX(template_key[off+z])))
-						template_key[off+z] = tolower(ARCH_INDEX(template_key[off+z]));
-				}
-			}
+			template_key_len = strlen(template_key);
 
 			if (generate_keys(&cpu_mask_ctx, &cand))
 				return 1;
@@ -2008,32 +1962,32 @@ int do_mask_crack(const char *key)
 
 		if (old_keylen != key_len) {
 			save_restore(&cpu_mask_ctx, 0, 1);
-			generate_template_key(mask, key, key_len, &parsed_mask,
+			generate_template_key(mask, extern_key, key_len, &parsed_mask,
 		                      &cpu_mask_ctx);
 			old_keylen = key_len;
 		}
 
 		i = 0;
 		while(template_key_offsets[i] != -1) {
-			int cpy_len = max_keylen - template_key_offsets[i];
+			int offset = template_key_offsets[i] & 0xffff;
+			unsigned char is_lower =  (template_key_offsets[i++] >> 16)
+				== 'w';
+			int cpy_len = max_keylen - offset;
 			cpy_len = cpy_len > key_len ? key_len : cpy_len;
-			memcpy(template_key + template_key_offsets[i++], key,
-			       cpy_len);
-		}
-		i = 0;
-		while(template_keyW_offsets[i] != -1) {
-				int off, z, cpy_len = max_keylen - template_keyW_offsets[i];
-				cpy_len = cpy_len > key_len ? key_len : cpy_len;
-				off = template_keyW_offsets[i++];
-				memcpy(template_key + off, key, cpy_len);
+			if (is_lower)
+			memcpy(template_key + offset, extern_key, cpy_len);
+			else {
+				int z;
 				for (z = 0; z < cpy_len; ++z) {
-					if (islower(ARCH_INDEX(template_key[off+z])))
-						template_key[off+z] = toupper(ARCH_INDEX(template_key[off+z]));
-					else if (isupper(ARCH_INDEX(template_key[off+z])))
-						template_key[off+z] = tolower(ARCH_INDEX(template_key[off+z]));
+					if (islower(ARCH_INDEX(extern_key[z])))
+						template_key[offset + z] =
+							toupper(ARCH_INDEX(extern_key[z]));
+					else
+						template_key[offset + z] =
+							tolower(ARCH_INDEX(extern_key[z]));
 				}
 			}
-
+		}
 		if (generate_keys(&cpu_mask_ctx, &cand))
 			return 1;
 	}
