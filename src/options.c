@@ -11,6 +11,11 @@
  */
 
 #define NEED_OS_FORK
+#ifdef HAVE_OPENCL
+#undef _GNU_SOURCE
+#define _GNU_SOURCE 1 /* for strcasestr in legacy opencl builds */
+#endif
+
 #include "os.h"
 
 #include <stdio.h>
@@ -43,8 +48,6 @@
 #endif
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
-#undef _GNU_SOURCE
-#define _GNU_SOURCE 1 /* for strcasestr in legacy opencl builds */
 #endif
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #include "prince.h"
