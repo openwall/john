@@ -301,30 +301,33 @@ static void build_kernel(char * task) {
 }
 
 static void init(struct fmt_main *_self) {
-	char * tmp_value;
-	char * task = "$JOHN/kernels/cryptsha256_kernel_DEFAULT.cl";
 
 	self = _self;
 
 	opencl_prepare_dev(gpu_id);
-	source_in_use = device_info[gpu_id];
-
-	if ((tmp_value = getenv("_TYPE")))
-		source_in_use = atoi(tmp_value);
-
-	if (_USE_GPU_SOURCE)
-		task = "$JOHN/kernels/cryptsha256_kernel_GPU.cl";
-
-	build_kernel(task);
-
-	if (source_in_use != device_info[gpu_id])
-		fprintf(stderr, "Selected runtime id %d, source (%s)\n",
-		        source_in_use, task);
 }
 
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
+                char * tmp_value;
+                char * task = "$JOHN/kernels/cryptsha256_kernel_DEFAULT.cl";
+
+                opencl_prepare_dev(gpu_id);
+                source_in_use = device_info[gpu_id];
+
+                if ((tmp_value = getenv("_TYPE")))
+                        source_in_use = atoi(tmp_value);
+
+                if (_USE_GPU_SOURCE)
+                        task = "$JOHN/kernels/cryptsha256_kernel_GPU.cl";
+
+                build_kernel(task);
+
+                if (source_in_use != device_info[gpu_id])
+                        fprintf(stderr, "Selected runtime id %d, source (%s)\n",
+                                source_in_use, task);
+
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS,
 		                       ((_SPLIT_KERNEL_IN_USE) ?
@@ -342,15 +345,19 @@ static void reset(struct db_main *db)
 }
 
 static void done(void) {
-	release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+        if (autotuned) {
+                release_clobj();
 
-	if (_SPLIT_KERNEL_IN_USE) {
-		HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
-		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
-	}
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+                HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+
+                if (_SPLIT_KERNEL_IN_USE) {
+                        HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
+                        HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
+                }
+                HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+                autotuned = 0;
+        }
 }
 
 /* ------- Compare functins ------- */
@@ -477,14 +484,12 @@ static int get_hash_4(int index) { return calculated_hash[index].v[0] & 0xfffff;
 static int get_hash_5(int index) { return calculated_hash[index].v[0] & 0xffffff; }
 static int get_hash_6(int index) { return calculated_hash[index].v[0] & 0x7ffffff; }
 
-#if FMT_MAIN_VERSION > 11
 static unsigned int iteration_count(void *salt)
 {
 	sha256_salt *sha256crypt_salt;
 	sha256crypt_salt = salt;
 	return (unsigned int)sha256crypt_salt->rounds;
 }
-#endif
 
 
 /* ------- Format structure ------- */

@@ -134,7 +134,9 @@ int do_regex_crack_as_rules(const char *regex, const char *base_word, int regex_
 				break;
 		}
 		*cp = 0;
-		printf ("buf=%s\n", Buf);
+#if DEBUG
+		fprintf(stderr, "buf=%s\n", Buf);
+#endif
 		if (*regex == 0)
 			regex = Buf;
 		else {

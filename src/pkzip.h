@@ -12,9 +12,6 @@ typedef ARCH_WORD_32 u32;
 
 u32 fget32LE(FILE * fp);
 u16 fget16LE(FILE * fp);
-u8 *pkz_GetFld(u8 *p, u8 **pRet);
-int pkz_is_hex_str(const u8 *cp);
-unsigned pkz_get_hex_num(const u8 *cp);
 
 #define MAX_PKZ_FILES 3
 

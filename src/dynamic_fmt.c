@@ -230,6 +230,7 @@ MD5_IN *input_buf_X86;
 MD5_IN *input_buf2_X86;
 unsigned int *total_len_X86;
 unsigned int *total_len2_X86;
+BIG_HASH_OUT dynamic_BHO[4];
 
 static int keys_dirty;
 // We store the salt here
@@ -2716,9 +2717,7 @@ static struct fmt_main fmt_Dynamic =
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		dynamic_tests
 	}, {
 		init,
@@ -2729,9 +2728,7 @@ static struct fmt_main fmt_Dynamic =
 		split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,
@@ -7674,17 +7671,25 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		//
 		// But for now, just get it working.  Get it working faster later.
 
+		// NOTE, these are commented out now. I am not sure why they were there
+		// I think the thought was for SIMD, BUT SIMD is not used on Sparc
+		// I am leaving this code for now, BUT I think it should NOT be here.
+		// I was getting failures on the 16 byte sph formats, for any
+		// hash(hash($p).$s)  such as md2(md2($p).$s)  However, the modifications
+		// where curdat.store_keys_in_input==1 is absolutely needed, or we have
+		// get_key() failures all over the place.
+
 		// note, with Setup->pFuncs[0]==DynamicFunc__set_input_len_32, we only will handle type 6 and 7
 		// for now we have this 'turned' off.  It is fixed for type 6, 7 and 14.  It is left on for the
 		// john.ini stuff.  Thus, if someone builds the intel version type 6, it will work (but slower).
-		if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1==1 && Setup->pFuncs[0]==DynamicFunc__set_input_len_32) {
-			curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1 = 0;
-			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__clean_input;
-			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__append_keys;
-			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__crypt_md5;
-			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__clean_input;
-			Setup->pFuncs[0] = DynamicFunc__append_from_last_output_as_base16;
-		}
+//		if (curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1==1 && Setup->pFuncs[0]==DynamicFunc__set_input_len_32) {
+//			curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1 = 0;
+//			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__clean_input;
+//			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__append_keys;
+//			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__crypt_md5;
+//			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__clean_input;
+//			Setup->pFuncs[0] = DynamicFunc__append_from_last_output_as_base16;
+//		}
 #endif
 		for (i=0; Setup->pFuncs[i]; ++i)
 		{
@@ -7860,7 +7865,15 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	extern struct options_main options;
 	char label[16] = { 0 }, label_id[16] = { 0 }, *cp = NULL;
 	memcpy(pFmt, &fmt_Dynamic, sizeof(struct fmt_main));
-	dynamic_RESET(pFmt);
+
+	// TODO:
+	// NOTE, this was commented out, because the late binding @dynamic=expr@
+	// hashes were killing out possibly pre-setup input buffers.  NOTE, that
+	// things worked fine after this, all self tests do pass, and I am 99%
+	// sure that all of this 'required' cleaning happens in init(). but I am
+	// putting this comment in here, so that if at a later time, there are
+	// problems and are tracked down to this, we will know why.
+//	dynamic_RESET(pFmt);
 
 	// Ok we need to list this as a dynamic format (even for the 'thin' formats)
 	pFmt->params.flags |= FMT_DYNAMIC;
@@ -8102,12 +8115,10 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 	pFmt->methods.cmp_all    = pFmtLocal->methods.cmp_all;
 	pFmt->methods.cmp_one    = pFmtLocal->methods.cmp_one;
 	pFmt->methods.cmp_exact  = pFmtLocal->methods.cmp_exact;
-#if FMT_MAIN_VERSION > 11
 	for (i = 0; i < FMT_TUNABLE_COSTS; ++i) {
 		pFmt->methods.tunable_cost_value[i] = pFmtLocal->methods.tunable_cost_value[i];
 		pFmt->params.tunable_cost_name[i] = pFmtLocal->params.tunable_cost_name[i];
 	}
-#endif
 	pFmt->methods.source     = pFmtLocal->methods.source;
 	pFmt->methods.set_salt   = pFmtLocal->methods.set_salt;
 	pFmt->methods.salt       = pFmtLocal->methods.salt;

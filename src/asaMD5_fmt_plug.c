@@ -121,9 +121,7 @@ struct fmt_main fmt_asaMD5 = {
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
 		0, 12, BINARY_SIZE, BINARY_ALIGN, SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests
 	},
 	{

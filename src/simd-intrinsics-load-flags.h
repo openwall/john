@@ -82,21 +82,22 @@
  */
 
 typedef enum {
-	SSEi_MIXED_IN             = 0x0,
-	SSEi_FLAT_IN              = 0x1,
-/*	SSEi_CSTRING_IN           = 0x2,	NOT IMPLEMENTED YET*/
-	SSEi_FLAT_OUT             = 0x4,
-	SSEi_RELOAD               = 0x8,
-	SSEi_RELOAD_INP_FMT       = 0x10 | 0x8,
-	SSEi_OUTPUT_AS_INP_FMT    = 0x20,
-	SSEi_REVERSE_STEPS        = 0x40,
-	SSEi_2BUF_INPUT           = 0x80,
-	SSEi_2BUF_INPUT_FIRST_BLK = 0x100 | 0x80,
-	SSEi_4BUF_INPUT           = 0x200,
-	SSEi_4BUF_INPUT_FIRST_BLK = 0x400 | 0x200,
-	SSEi_FLAT_RELOAD_SWAPLAST = 0x800,
-	SSEi_CRYPT_SHA224         = 0x1000,
-	SSEi_CRYPT_SHA384         = 0x1000
+	SSEi_MIXED_IN                = 0x0,
+	SSEi_FLAT_IN                 = 0x1,
+/*	SSEi_CSTRING_IN              = 0x2,	NOT IMPLEMENTED YET*/
+	SSEi_FLAT_OUT                = 0x4,
+	SSEi_RELOAD                  = 0x8,
+	SSEi_RELOAD_INP_FMT          = 0x10 | SSEi_RELOAD,
+	SSEi_OUTPUT_AS_INP_FMT       = 0x20,
+	SSEi_REVERSE_STEPS           = 0x40,
+	SSEi_2BUF_INPUT              = 0x80,
+	SSEi_2BUF_INPUT_FIRST_BLK    = 0x100 | SSEi_2BUF_INPUT,
+	SSEi_4BUF_INPUT              = 0x200,
+	SSEi_4BUF_INPUT_FIRST_BLK    = 0x400 | SSEi_4BUF_INPUT,
+	SSEi_FLAT_RELOAD_SWAPLAST    = 0x800,
+	SSEi_CRYPT_SHA224            = 0x1000,
+	SSEi_CRYPT_SHA384            = 0x1000,
+	SSEi_OUTPUT_AS_2BUF_INP_FMT  = 0x2000 | SSEi_OUTPUT_AS_INP_FMT
 } SSEi_FLAGS;
 
 

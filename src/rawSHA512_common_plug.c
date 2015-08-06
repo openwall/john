@@ -49,10 +49,10 @@ void * sha512_common_binary(char *ciphertext)
 	char *p;
 	int i;
 
-	if (!out) out = mem_calloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+	if (!out) out = mem_calloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
 	p = ciphertext + TAG_LENGTH;
-	for (i = 0; i < BINARY_SIZE; i++) {
+	for (i = 0; i < DIGEST_SIZE; i++) {
 		out[i] =
 				(atoi16[ARCH_INDEX(*p)] << 4) |
 				 atoi16[ARCH_INDEX(p[1])];
@@ -60,7 +60,7 @@ void * sha512_common_binary(char *ciphertext)
 	}
 
 #ifdef SIMD_COEF_64
-	alter_endianity_to_BE64(out, BINARY_SIZE/8);
+	alter_endianity_to_BE64(out, DIGEST_SIZE/8);
 #endif
 	return out;
 }
@@ -71,11 +71,11 @@ void * sha512_common_binary_xsha(char *ciphertext)
 	char *p;
 	int i;
 
-	if (!out) out = mem_calloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+	if (!out) out = mem_calloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
 	ciphertext += 6;
 	p = ciphertext + 8;
-	for (i = 0; i < BINARY_SIZE; i++) {
+	for (i = 0; i < DIGEST_SIZE; i++) {
 		out[i] =
 				(atoi16[ARCH_INDEX(*p)] << 4) |
 				 atoi16[ARCH_INDEX(p[1])];
@@ -83,7 +83,7 @@ void * sha512_common_binary_xsha(char *ciphertext)
 	}
 
 #ifdef SIMD_COEF_64
-	alter_endianity_to_BE64(out, BINARY_SIZE/8);
+	alter_endianity_to_BE64(out, DIGEST_SIZE/8);
 #endif
 	return out;
 }
@@ -99,8 +99,8 @@ char * sha512_common_prepare_xsha(char *split_fields[10], struct fmt_main *self)
 		sprintf(Buf, "%s%s", XSHA512_FORMAT_TAG, split_fields[0]);
 
 		if (sha512_common_valid_xsha(Buf, self)) {
-			char *cp = mem_calloc_tiny(XSHA512_CIPHERTEXT_LENGTH+7,
-				MEM_ALIGN_NONE);
+			static char *cp;
+			if (!cp) cp = mem_calloc_tiny(XSHA512_CIPHERTEXT_LENGTH+7, 1);
 			strcpy(cp, Buf);
 			return cp;
 		}
@@ -109,8 +109,8 @@ char * sha512_common_prepare_xsha(char *split_fields[10], struct fmt_main *self)
 		sprintf(Buf, "%s%s", XSHA512_FORMAT_TAG, split_fields[1]);
 
 		if (sha512_common_valid_xsha(Buf, self)) {
-			char *cp = mem_calloc_tiny(XSHA512_CIPHERTEXT_LENGTH+7,
-				MEM_ALIGN_NONE);
+			static char *cp;
+			if (!cp) cp = mem_calloc_tiny(XSHA512_CIPHERTEXT_LENGTH+7, 1);
 			strcpy(cp, Buf);
 			return cp;
 		}

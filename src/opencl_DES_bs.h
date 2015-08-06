@@ -23,7 +23,7 @@
 
 #define DES_bs_vector			WORD
 
-#define MULTIPLIER                      (WORK_GROUP_SIZE*256)
+#define MULTIPLIER                      (WORK_GROUP_SIZE*256*16)
 #define PLAINTEXT_LENGTH		8
 
 #define MIN_KEYS_PER_CRYPT		(DES_BS_DEPTH*MULTIPLIER)

@@ -22,7 +22,7 @@
 #define HEX_TAG_LEN             (sizeof(HEX_TAG) - 1)
 #define CISCO_TAG_LEN           (sizeof(CISCO_TAG) - 1)
 
-#define BINARY_SIZE             32
+#define DIGEST_SIZE             32
 #define BINARY_ALIGN            MEM_ALIGN_WORD
 
 #define BENCHMARK_COMMENT       ""

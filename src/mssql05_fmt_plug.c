@@ -28,10 +28,6 @@ john_register_one(&fmt_mssql05);
  */
 #define REVERSE_STEPS
 
-#define INIT_A 0x67452301
-#define INIT_B 0xefcdab89
-#define INIT_C 0x98badcfe
-#define INIT_D 0x10325476
 #define INIT_E 0xC3D2E1F0
 
 #ifdef SIMD_COEF_32
@@ -60,7 +56,8 @@ john_register_one(&fmt_mssql05);
 #define PLAINTEXT_LENGTH		25
 #define CIPHERTEXT_LENGTH		54
 
-#define BINARY_SIZE			20
+#define DIGEST_SIZE			20
+#define BINARY_SIZE			4
 #define BINARY_ALIGN			4
 #define SALT_SIZE			4
 #define SALT_ALIGN			4
@@ -96,12 +93,12 @@ static unsigned char cursalt[SALT_SIZE];
 #define saved_key mssql05_saved_key
 #define crypt_key mssql05_crypt_key
 JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS];
-JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
+JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char crypt_key[DIGEST_SIZE*NBKEYS];
 
 #else
 
 static unsigned char *saved_key;
-static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
+static ARCH_WORD_32 crypt_key[DIGEST_SIZE / 4];
 static int key_length;
 
 #endif
@@ -440,46 +437,6 @@ static char *get_key(int index) {
 #endif
 }
 
-static int cmp_all(void *binary, int count) {
-#ifdef SIMD_COEF_32
-	unsigned int x,y=0;
-
-	for(;y<SIMD_PARA_SHA1;y++)
-	for(x=0;x<SIMD_COEF_32;x++)
-	{
-		if( ((unsigned int *)binary)[0] == ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5] )
-			return 1;
-	}
-	return 0;
-#else
-	return !memcmp(binary, crypt_key, BINARY_SIZE);
-#endif
-}
-
-static int cmp_exact(char *source, int index)
-{
-  return (1);
-}
-
-static int cmp_one(void * binary, int index)
-{
-#ifdef SIMD_COEF_32
-	unsigned int x,y;
-	x = index&(SIMD_COEF_32-1);
-	y = (unsigned int)index/SIMD_COEF_32;
-
-	if( (((unsigned int *)binary)[0] != ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5])   |
-	    (((unsigned int *)binary)[1] != ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32]) |
-	    (((unsigned int *)binary)[2] != ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5+2*SIMD_COEF_32]) |
-	    (((unsigned int *)binary)[3] != ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5+3*SIMD_COEF_32])|
-	    (((unsigned int *)binary)[4] != ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5+4*SIMD_COEF_32]) )
-		return 0;
-	return 1;
-#else
-	return cmp_all(binary, index);
-#endif
-}
-
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
 #define SSEi_REVERSE_STEPS 0
@@ -509,27 +466,91 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static void * get_binary(char *ciphertext)
+static void *get_full_binary(char *ciphertext)
 {
 	static ARCH_WORD_32 out[SHA_BUF_SIZ];
 	char *realcipher = (char*)out;
 	int i;
 
-	for(i=0;i<BINARY_SIZE;i++)
+	ciphertext += 14;
+
+	for(i=0;i<DIGEST_SIZE;i++)
 	{
-		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2+14])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+15])];
+		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
+	}
+
+	return (void *)realcipher;
+}
+
+static void *get_binary(char *ciphertext)
+{
+	static
+#if SIMD_COEF_32 && defined(REVERSE_STEPS)
+	ARCH_WORD_32 out;
+#endif
+	ARCH_WORD_32 full[SHA_BUF_SIZ];
+	unsigned char *realcipher = (unsigned char*)full;
+	int i;
+
+	ciphertext += 14;
+
+	for(i=0;i<DIGEST_SIZE;i++)
+	{
+		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 	}
 #ifdef SIMD_COEF_32
-	alter_endianity((unsigned char *)realcipher, BINARY_SIZE);
 #ifdef REVERSE_STEPS
-	out[0] -= INIT_A;
-	out[1] -= INIT_B;
-	out[2] -= INIT_C;
-	out[3] -= INIT_D;
-	out[4] -= INIT_E;
+	out = JOHNSWAP(full[4]) - INIT_E;
+	out = (out << 2) | (out >> 30);
+	return (void*)&out;
+#else
+	alter_endianity(realcipher, DIGEST_SIZE);
 #endif
 #endif
-	return (void *)realcipher;
+	return (void*)realcipher;
+}
+
+static int cmp_all(void *binary, int count) {
+	int index;
+	for (index = 0; index < count; index++)
+#ifdef SIMD_COEF_32
+        if (((ARCH_WORD_32 *) binary)[0] == ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32])
+#else
+		if ( ((ARCH_WORD_32*)binary)[0] == crypt_key[0] )
+#endif
+			return 1;
+	return 0;
+}
+
+static int cmp_one(void *binary, int index)
+{
+#ifdef SIMD_COEF_32
+    int i;
+	for (i = 0; i < BINARY_SIZE/sizeof(ARCH_WORD_32); i++)
+        if (((ARCH_WORD_32 *) binary)[i] != ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32+i*SIMD_COEF_32])
+            return 0;
+	return 1;
+#else
+	return !memcmp(binary, crypt_key, BINARY_SIZE);
+#endif
+}
+
+static int cmp_exact(char *source, int index)
+{
+	ARCH_WORD_32 crypt_key[SHA_BUF_SIZ];
+	UTF8 *key = (UTF8*)get_key(index);
+	UTF16 u16[PLAINTEXT_LENGTH+1];
+	int len = enc_to_utf16(u16, PLAINTEXT_LENGTH, key, strlen((char*)key));
+	SHA_CTX ctx;
+
+	if (len < 0)
+		len = strlen16(u16);
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, u16, 2 * len);
+	SHA1_Update(&ctx, cursalt, SALT_SIZE);
+	SHA1_Final((void*)crypt_key, &ctx);
+
+	return !memcmp(get_full_binary(source), crypt_key, DIGEST_SIZE);
 }
 
 #ifdef SIMD_COEF_32
@@ -573,9 +594,7 @@ struct fmt_main fmt_mssql05 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests
 	}, {
 		init,
@@ -586,9 +605,7 @@ struct fmt_main fmt_mssql05 = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

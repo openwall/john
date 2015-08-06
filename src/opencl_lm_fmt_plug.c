@@ -5,7 +5,7 @@
  * Based on Solar Designer implementation of DES_fmt.c in jtr-v1.7.9
  */
 
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_opencl_lm;
@@ -15,11 +15,11 @@ john_register_one(&fmt_opencl_lm);
 
 #include <string.h>
 
+#include "opencl_lm.h"
 #include "arch.h"
 #include "common.h"
 #include "formats.h"
 #include "config.h"
-#include "opencl_lm.h"
 #include "opencl_lm_hst_dev_shared.h"
 #include "memdbg.h"
 
@@ -57,9 +57,9 @@ void (*opencl_lm_init_global_variables)(void);
 
 static void init(struct fmt_main *pFmt)
 {
+	opencl_prepare_dev(gpu_id);
 	opencl_lm_b_register_functions(pFmt);
 	opencl_lm_init_global_variables();
-	opencl_prepare_dev(gpu_id);
 }
 
 static char *prepare(char *fields[10], struct fmt_main *self)
@@ -192,9 +192,7 @@ struct fmt_main fmt_opencl_lm = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_BS | FMT_SPLIT_UNIFIES_CASE,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests
 	}, {
 		init,
@@ -205,9 +203,7 @@ struct fmt_main fmt_opencl_lm = {
 		split,
 		binary,
 		fmt_default_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		source,
 		{
 			binary_hash_0,
@@ -239,7 +235,6 @@ struct fmt_main fmt_opencl_lm = {
 		NULL
 	}
 };
-
 #endif /* plugin stanza */
 
-#endif /* HAVE_OPENCL */
+#endif /* #if HAVE_OPENCL */

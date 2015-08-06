@@ -14,7 +14,7 @@
 #include "opencl_lm_hst_dev_shared.h"
 #include "loader.h"
 
-#define LM_OPENCL_ALGORITHM_NAME		"LM BS OpenCL(inefficient)"
+#define LM_OPENCL_ALGORITHM_NAME		"DES BS OpenCL"
 
 #define LM_DEPTH			32
 #define LM_LOG_DEPTH			5
@@ -83,6 +83,7 @@ struct fmt_main fmt_opencl_lm;
 
 extern opencl_lm_combined *opencl_lm_all;
 extern opencl_lm_transfer *opencl_lm_keys;
+extern unsigned int *opencl_lm_int_key_loc;
 
 extern void opencl_lm_b_register_functions(struct fmt_main *);
 
@@ -99,6 +100,7 @@ extern void opencl_lm_init(int block);
 extern char *opencl_lm_get_source(WORD *raw);
 extern WORD *opencl_lm_get_binary(char *ciphertext);
 extern void opencl_lm_set_key(char *key, int index);
+extern void opencl_lm_set_key_mm(char *key, int index);
 extern void opencl_lm_init_index(void);
 
 #endif

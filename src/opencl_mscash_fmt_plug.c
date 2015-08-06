@@ -36,7 +36,7 @@ john_register_one(&FMT_STRUCT);
 #define FORMAT_NAME	    "M$ Cache Hash"
 #define ALGORITHM_NAME      "MD4 OpenCL"
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    -1
+#define BENCHMARK_LENGTH    0
 #define CIPHERTEXT_LENGTH   (2 + 19*3 + 1 + 32)
 #define DIGEST_SIZE         16
 #define BINARY_SIZE         16
@@ -60,6 +60,7 @@ static cl_uint *loaded_hashes = NULL, max_num_loaded_hashes, *hash_ids = NULL, *
 static cl_ulong bitmap_size_bits = 0;
 
 static unsigned int key_idx = 0;
+static unsigned int set_new_keys = 1;
 static struct fmt_main *self;
 static cl_uint *zero_buffer;
 
@@ -471,6 +472,7 @@ static int get_hash_6(int index) { return hash_tables[current_salt][hash_ids[3 +
 static void clear_keys(void)
 {
 	key_idx = 0;
+	set_new_keys = 1;
 }
 
 static void set_key(char *_key, int index)
@@ -501,6 +503,7 @@ static void set_key(char *_key, int index)
 	}
 	if (len)
 		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
+	set_new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -749,14 +752,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand%d\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx, mask_int_cand.num_int_cand);
 
 	// copy keys to the device
-	if (key_idx)
+	if (set_new_keys) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_keys.");
-
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * global_work_size, saved_idx, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_idx.");
-
-	if (!is_static_gpu_mask)
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
-
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * global_work_size, saved_idx, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_idx.");
+		if (!is_static_gpu_mask)
+			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
+		set_new_keys = 0;
+	}
 	if (salt) {
 		current_salt = salt->sequential_id;
 		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_salts[current_salt]), (void *) &buffer_salts[current_salt]), "Error setting argument 3.");
@@ -901,6 +903,8 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 
 	if (tune_lws) {
 		count = tune_gws ? count : global_work_size;
+		if (count > gws_limit)
+			count = gws_limit;
 		create_clobj_kpc(count);
 		set_kernel_args_kpc();
 		pcount = count;
@@ -982,6 +986,8 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 		create_clobj_kpc(global_work_size);
 		set_kernel_args_kpc();
 	}
+
+	clear_keys();
 
 	assert(!(local_work_size & (local_work_size -1)));
 	assert(!(global_work_size % local_work_size));
@@ -1112,9 +1118,7 @@ struct fmt_main FMT_STRUCT = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests
 	}, {
 		init,
@@ -1125,9 +1129,7 @@ struct fmt_main FMT_STRUCT = {
 		split,
 		binary,
 		salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

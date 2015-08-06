@@ -1,4 +1,5 @@
-/* NTLM patch for john (performance improvement and OpenCL 1.2 conformant)
+/*
+ * NTLM patch for john (performance improvement and OpenCL 1.0 conformant)
  *
  * Written by Alain Espinosa <alainesp at gmail.com> in 2010 and modified
  * by Samuele Giovanni Tonon in 2011.  No copyright is claimed, and
@@ -8,6 +9,7 @@
  * Copyright (c) 2010 Alain Espinosa
  * Copyright (c) 2011 Samuele Giovanni Tonon
  * Copyright (c) 2015 Sayantan Datta <sdatta at openwall.com>
+ * Copyright (c) 2015 magnum
  * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,7 +48,7 @@ john_register_one(&fmt_opencl_NT);
 #define ALGORITHM_NAME		"MD4 OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	23
+#define PLAINTEXT_LENGTH	27
 #define BUFSIZE                 ((PLAINTEXT_LENGTH+3)/4*4)
 #define CIPHERTEXT_LENGTH	32
 #define BINARY_SIZE		16
@@ -815,7 +817,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (!is_static_gpu_mask)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
 
-	if (salt != NULL && salt->count > 100 &&
+	if (salt != NULL && salt->count > 4500 &&
 		(num_loaded_hashes - num_loaded_hashes / 10) > salt->count) {
 		size_t old_ot_sz_bytes, old_ht_sz_bytes;
 		prepare_table(salt);
@@ -849,6 +851,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_128, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
 		set_kernel_args();
+		set_kernel_args_kpc();
 	}
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
@@ -980,6 +983,8 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 
 	if (tune_lws) {
 		count = tune_gws ? count : global_work_size;
+		if (count > gws_limit)
+			count = gws_limit;
 		create_clobj_kpc(count);
 		set_kernel_args_kpc();
 		pcount = count;
@@ -1051,6 +1056,8 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 		create_clobj_kpc(global_work_size);
 		set_kernel_args_kpc();
 	}
+
+	clear_keys();
 
 	assert(!(local_work_size & (local_work_size -1)));
 	assert(!(global_work_size % local_work_size));
@@ -1151,9 +1158,7 @@ struct fmt_main fmt_opencl_NT = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests
 	}, {
 		init,
@@ -1164,9 +1169,7 @@ struct fmt_main fmt_opencl_NT = {
 		split,
 		get_binary,
 		fmt_default_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			binary_hash_0,

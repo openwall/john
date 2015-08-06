@@ -634,7 +634,6 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
-#if FMT_MAIN_VERSION > 11
 static unsigned int sapH_type(void *salt)
 {
 	struct sapH_salt *my_salt;
@@ -649,7 +648,6 @@ static unsigned int iteration_count(void *salt)
 	my_salt = (struct sapH_salt *)salt;
 	return my_salt->iter;
 }
-#endif
 struct fmt_main fmt_sapH = {
 	{
 		FORMAT_LABEL,
@@ -666,12 +664,10 @@ struct fmt_main fmt_sapH = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_OMP | FMT_8_BIT,
-#if FMT_MAIN_VERSION > 11
 		{
 			"hash type [1:sha1 2:SHA256 3:SHA384 4:SHA512]",
 			"iteration count",
 		},
-#endif
 		tests
 	}, {
 		init,
@@ -682,12 +678,10 @@ struct fmt_main fmt_sapH = {
 		split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			sapH_type,
 			iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

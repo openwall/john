@@ -350,7 +350,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-#if FMT_MAIN_VERSION > 11
 /*
  * report hash algorithm used for hmac as "tunable cost"
  */
@@ -361,7 +360,6 @@ static unsigned int rsvp_hash_type(void *salt)
 	my_salt = salt;
 	return (unsigned int) my_salt->type;
 }
-#endif
 struct fmt_main fmt_rsvp = {
 	{
 		FORMAT_LABEL,
@@ -378,11 +376,9 @@ struct fmt_main fmt_rsvp = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 			"hash algorithm used for hmac [1:MD5 2:SHA1]"
 		},
-#endif
 		tests
 	}, {
 		init,
@@ -393,11 +389,9 @@ struct fmt_main fmt_rsvp = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			rsvp_hash_type,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

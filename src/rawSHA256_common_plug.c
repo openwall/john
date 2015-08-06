@@ -54,10 +54,10 @@ void * sha256_common_binary(char *ciphertext)
 	char *p;
 	int i;
 
-	if (!out) out = mem_calloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+	if (!out) out = mem_calloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
 	p = ciphertext + HEX_TAG_LEN;
-	for (i = 0; i < BINARY_SIZE; i++) {
+	for (i = 0; i < DIGEST_SIZE; i++) {
 		out[i] =
 				(atoi16[ARCH_INDEX(*p)] << 4) |
 				 atoi16[ARCH_INDEX(p[1])];
@@ -65,7 +65,7 @@ void * sha256_common_binary(char *ciphertext)
 	}
 
 #ifdef SIMD_COEF_32
-	alter_endianity (out, BINARY_SIZE);
+	alter_endianity (out, DIGEST_SIZE);
 #endif
 	return out;
 }

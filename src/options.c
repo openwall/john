@@ -11,6 +11,11 @@
  */
 
 #define NEED_OS_FORK
+#ifdef HAVE_OPENCL
+#undef _GNU_SOURCE
+#define _GNU_SOURCE 1 /* for strcasestr in legacy opencl builds */
+#endif
+
 #include "os.h"
 
 #include <stdio.h>
@@ -43,8 +48,6 @@
 #endif
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
-#undef _GNU_SOURCE
-#define _GNU_SOURCE 1 /* for strcasestr in legacy opencl builds */
 #endif
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #include "prince.h"
@@ -57,9 +60,7 @@ struct options_main options;
 struct pers_opts pers_opts; /* Not reset after forked resume */
 static char *field_sep_char_str, *show_uncracked_str, *salts_str;
 static char *encoding_str, *target_enc_str, *internal_enc_str;
-#if FMT_MAIN_VERSION > 11
 static char *costs_str;
-#endif
 
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
@@ -166,6 +167,19 @@ static struct opt_entry opt_list[] = {
 	{"test", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
 		~OPT_REQ_PARAM & ~FLG_NOLOG, "%u", &benchmark_time},
+	{"test-full", FLG_TEST_FULL_SET, FLG_TEST_FULL_CHK,
+		0, ~FLG_TEST_FULL_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
+		~OPT_REQ_PARAM & ~FLG_NOLOG, "%u", &benchmark_time},
+#ifdef HAVE_FUZZ
+	{"fuzz", FLG_FUZZ_SET, FLG_FUZZ_CHK,
+		0, ~FLG_FUZZ_DUMP_SET & ~FLG_FUZZ_SET & ~FLG_FORMAT &
+		~FLG_SAVEMEM & ~FLG_DYNFMT & ~OPT_REQ_PARAM & ~FLG_NOLOG,
+		OPT_FMT_STR_ALLOC, &options.fuzz_dic},
+	{"fuzz-dump", FLG_FUZZ_DUMP_SET, FLG_FUZZ_DUMP_CHK,
+		0, ~FLG_FUZZ_SET & ~FLG_FUZZ_DUMP_SET & ~FLG_FORMAT &
+		~FLG_SAVEMEM & ~FLG_DYNFMT & ~OPT_REQ_PARAM & ~FLG_NOLOG,
+		OPT_FMT_STR_ALLOC, &options.fuzz_dump},
+#endif
 	{"users", FLG_NONE, 0, FLG_PASSWD, OPT_REQ_PARAM,
 		OPT_FMT_ADD_LIST_MULTI, &options.loader.users},
 	{"groups", FLG_NONE, 0, FLG_PASSWD, OPT_REQ_PARAM,
@@ -237,11 +251,9 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_ADD_LIST_MULTI, &options.gpu_devices},
 #endif
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS},
-#if FMT_MAIN_VERSION > 11
 	{"costs", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
                 OPT_FMT_STR_ALLOC, &costs_str},
 
-#endif
 	{"keep-guessing", FLG_KEEP_GUESSING, FLG_KEEP_GUESSING},
 	{"stress-test", FLG_LOOPTEST | FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
@@ -308,6 +320,7 @@ JOHN_USAGE_REGEX \
 "--make-charset=FILE       make a charset file. It will be overwritten\n" \
 "--show[=left]             show cracked passwords [if =left, then uncracked]\n" \
 "--test[=TIME]             run tests and benchmarks for TIME seconds each\n" \
+"--test-full[=TIME]        run tests and benchmarks for TIME seconds each\n" \
 "--users=[-]LOGIN|UID[,..] [do not] load this (these) user(s) only\n" \
 "--groups=[-]GID[,..]      load users [not] of this (these) group(s) only\n" \
 "--shells=[-]SHELL[,..]    load users with[out] this (these) shell(s) only\n" \
@@ -369,11 +382,9 @@ void opt_print_hidden_usage(void)
 	puts("--mkpc=N                  request a lower max. keys per crypt");
 	puts("--min-length=N            request a minimum candidate length");
 	puts("--max-length=N            request a maximum candidate length");
-#if FMT_MAIN_VERSION > 11
 	puts("--costs=[-]C[:M][,...]    load salts with[out] cost value Cn [to Mn] for");
 	puts("                          tunable cost parameters, see doc/OPTIONS");
 	puts("                          (comma separated list of values/ranges per param.)");
-#endif
 	puts("--field-separator-char=C  use 'C' instead of the ':' in input and pot files");
 	puts("--fix-state-delay=N       performance tweak, see doc/OPTIONS");
 	puts("--nolog                   disables creation and writing to john.log file");
@@ -392,6 +403,10 @@ void opt_print_hidden_usage(void)
 	puts("--show=types              show some information about hashes in file (machine readable)");
 	puts("--skip-self-tests         skip self tests");
 	puts("--stress-test[=TIME]      loop self tests forever");
+#ifdef HAVE_FUZZ
+	puts("--fuzz[=DICTFILE]         fuzz formats' prepare(), valid() and split()");
+	puts("--fuzz-dump[=from,to]     dump the fuzzed hashes between from and to to file pwfile.format");
+#endif
 	puts("--input-encoding=NAME     input encoding (alias for --encoding)");
 	puts("--internal-encoding=NAME  encoding used in rules/masks (see doc/ENCODING)");
 	puts("--target-encoding=NAME    output encoding (used by format, see doc/ENCODING)");
@@ -593,7 +608,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 		exit(0);
 	}
-#if FMT_MAIN_VERSION > 11
 	if (costs_str) {
 		/*
 		 * costs_str: [-]COST1[:MAX1][,[-]COST2[:MAX2]][...,[-]COSTn[:MAXn]]
@@ -678,7 +692,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			options.loader.max_cost[i] = UINT_MAX;
 		}
 	}
-#endif
 
 	if (options.flags & FLG_SALTS) {
 		int two_salts = 0;

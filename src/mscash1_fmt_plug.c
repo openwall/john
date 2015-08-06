@@ -128,11 +128,11 @@ static void init(struct fmt_main *self)
 	fmt_mscash.params.max_keys_per_crypt *= omp_t;
 #endif
 
-	ms_buffer1x = mem_calloc_tiny(sizeof(ms_buffer1x[0]) * 16*fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	output1x    = mem_calloc_tiny(sizeof(output1x[0])    *  4*fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out       = mem_calloc_tiny(sizeof(crypt_out[0])       *  4*fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	last        = mem_calloc_tiny(sizeof(last[0])        *  4*fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	last_i      = mem_calloc_tiny(sizeof(last_i[0])      *    fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	ms_buffer1x = mem_calloc(sizeof(ms_buffer1x[0]), 16*fmt_mscash.params.max_keys_per_crypt);
+	output1x    = mem_calloc(sizeof(output1x[0])   ,  4*fmt_mscash.params.max_keys_per_crypt);
+	crypt_out   = mem_calloc(sizeof(crypt_out[0])  ,  4*fmt_mscash.params.max_keys_per_crypt);
+	last        = mem_calloc(sizeof(last[0])       ,  4*fmt_mscash.params.max_keys_per_crypt);
+	last_i      = mem_calloc(sizeof(last_i[0])     ,    fmt_mscash.params.max_keys_per_crypt);
 
 	new_key=1;
 
@@ -153,6 +153,15 @@ static void init(struct fmt_main *self)
 		fmt_mscash.methods.set_key = set_key_encoding;
 		fmt_mscash.methods.salt = get_salt_encoding;
 	}
+}
+
+static void done(void)
+{
+	MEM_FREE(last_i);
+	MEM_FREE(last);
+	MEM_FREE(crypt_out);
+	MEM_FREE(output1x);
+	MEM_FREE(ms_buffer1x);
 }
 
 static char * ms_split(char *ciphertext, int index, struct fmt_main *self)
@@ -935,22 +944,18 @@ struct fmt_main fmt_mscash = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		prepare,
 		valid,
 		ms_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			binary_hash_0,

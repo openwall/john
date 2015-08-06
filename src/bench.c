@@ -66,9 +66,7 @@
 #include "memdbg.h"
 
 #ifndef BENCH_BUILD
-#if FMT_MAIN_VERSION > 11
 static char cost_msg[128 * FMT_TUNABLE_COSTS];
-#endif
 #endif
 
 long clk_tck = 0;
@@ -141,7 +139,6 @@ static void bench_set_keys(struct fmt_main *format,
 	}
 }
 #ifndef BENCH_BUILD
-#if FMT_MAIN_VERSION > 11
 static unsigned int get_cost(struct fmt_main *format, int index, int cost_idx)
 {
 	void *salt;
@@ -159,7 +156,6 @@ static unsigned int get_cost(struct fmt_main *format, int index, int cost_idx)
 	dyna_salt_remove(salt);
 	return value;
 }
-#endif
 #endif
 
 char *benchmark_format(struct fmt_main *format, int salts,
@@ -186,17 +182,14 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	void *salt, *two_salts[2];
 	int index, max, i;
 #ifndef BENCH_BUILD
-#if FMT_MAIN_VERSION > 11
 	unsigned int t_cost[2][FMT_TUNABLE_COSTS];
 	int ntests, pruned;
-#endif
 #endif
 	clk_tck_init();
 
 	if (!(current = format->params.tests) || !current->ciphertext)
 		return "FAILED (no data)";
 
-#if FMT_MAIN_VERSION > 11
 #ifndef BENCH_BUILD
 	dyna_salt_init(format);
 
@@ -239,7 +232,6 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 	if (!(current = format->params.tests) || !current->ciphertext)
 		return "FAILED (no data)";
-#endif
 	if ((where = fmt_self_test(format, NULL))) {
 		sprintf(s_error, "FAILED (%s)\n", where);
 		return s_error;
@@ -277,18 +269,15 @@ char *benchmark_format(struct fmt_main *format, int salts,
 			memcpy(two_salts[index], salt,
 			    format->params.salt_size);
 #ifndef BENCH_BUILD
-#if FMT_MAIN_VERSION > 11
 		for (i = 0; i < FMT_TUNABLE_COSTS &&
 		     format->methods.tunable_cost_value[i] != NULL; i++)
 			t_cost[index][i] =
 				format->methods.tunable_cost_value[i](salt);
 #endif
-#endif
 	}
 	format->methods.set_salt(two_salts[0]);
 
 #ifndef BENCH_BUILD
-#if FMT_MAIN_VERSION > 11
 	*cost_msg = 0;
 	for (i = 0; i < FMT_TUNABLE_COSTS &&
 		     format->methods.tunable_cost_value[i] != NULL; i++) {
@@ -309,7 +298,6 @@ char *benchmark_format(struct fmt_main *format, int salts,
 			strcat(cost_msg, ", ");
 		strcat(cost_msg, msg);
 	}
-#endif
 #endif
 
 /* Smashed passwords: -1001 turns into -1 and -1000 turns into 0, and
@@ -712,12 +700,10 @@ AGAIN:
 		omp_set_num_threads(ompt_start);
 #endif
 
-#if FMT_MAIN_VERSION > 11
 #ifndef BENCH_BUILD
 		if (john_main_process && benchmark_time &&
 		    *cost_msg && options.verbosity >= 3)
 			puts(cost_msg);
-#endif
 #endif
 #ifdef HAVE_MPI
 		if (mpi_p > 1) {

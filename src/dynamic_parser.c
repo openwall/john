@@ -454,6 +454,7 @@ extern struct options_main options;
 
 static void add_line(char *cp) {
 	struct cfg_line *pln, *p;
+	int len;
 
 	pln = mem_calloc_tiny(sizeof(struct cfg_line), sizeof(struct cfg_line*));
 	if (gen_source->head == NULL)
@@ -464,6 +465,12 @@ static void add_line(char *cp) {
 	if (pln != p)
 		p->next = pln;
 	pln->data = str_alloc_copy(cp);
+	len = strlen(cp);
+	while (len>0) {
+		if (pln->data[len-1] != ' ')
+			break;
+		pln->data[--len] = 0;
+	}
 }
 static void load_script_from_string(int which) {
 	char *cp;
@@ -549,18 +556,10 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].plaintext), cp);
 		pSetup->pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(pSetup->pPreloads[nPreloadCnt].plaintext, NULL);
-#if FMT_MAIN_VERSION > 9
 		pSetup->pPreloads[nPreloadCnt].fields[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
-#else
-		pSetup->pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
-#endif
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
-#if FMT_MAIN_VERSION > 9
 			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].fields[j]), cp);
-#else
-			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].flds[j]), cp);
-#endif
 		}
 		++nPreloadCnt;
 		return 1;
@@ -577,18 +576,10 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].plaintext), cp);
 		pSetup->pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(pSetup->pPreloads[nPreloadCnt].plaintext, NULL);
-#if FMT_MAIN_VERSION > 9
 		pSetup->pPreloads[nPreloadCnt].fields[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
-#else
-		pSetup->pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
-#endif
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
-#if FMT_MAIN_VERSION > 9
 			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].fields[j]), cp);
-#else
-			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].flds[j]), cp);
-#endif
 		}
 		++nPreloadCnt;
 		return 1;
@@ -605,18 +596,10 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].plaintext), cp);
 		pSetup->pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(pSetup->pPreloads[nPreloadCnt].plaintext, NULL);
-#if FMT_MAIN_VERSION > 9
 		pSetup->pPreloads[nPreloadCnt].fields[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
-#else
-		pSetup->pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
-#endif
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
-#if FMT_MAIN_VERSION > 9
 			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].fields[j]), cp);
-#else
-			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].flds[j]), cp);
-#endif
 		}
 		++nPreloadCnt;
 		return 1;
@@ -635,18 +618,10 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].plaintext), cp);
 		pSetup->pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(pSetup->pPreloads[nPreloadCnt].plaintext, NULL);
-#if FMT_MAIN_VERSION > 9
 		pSetup->pPreloads[nPreloadCnt].fields[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
-#else
-		pSetup->pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
-#endif
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
-#if FMT_MAIN_VERSION > 9
 			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].fields[j]), cp);
-#else
-			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].flds[j]), cp);
-#endif
 		}
 		++nPreloadCnt;
 #endif
@@ -666,18 +641,10 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].plaintext), cp);
 		pSetup->pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(pSetup->pPreloads[nPreloadCnt].plaintext, NULL);
-#if FMT_MAIN_VERSION > 9
 		pSetup->pPreloads[nPreloadCnt].fields[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
-#else
-		pSetup->pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
-#endif
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
-#if FMT_MAIN_VERSION > 9
 			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].fields[j]), cp);
-#else
-			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].flds[j]), cp);
-#endif
 		}
 		++nPreloadCnt;
 #endif
@@ -697,18 +664,10 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].plaintext), cp);
 		pSetup->pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(pSetup->pPreloads[nPreloadCnt].plaintext, NULL);
-#if FMT_MAIN_VERSION > 9
 		pSetup->pPreloads[nPreloadCnt].fields[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
-#else
-		pSetup->pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
-#endif
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
-#if FMT_MAIN_VERSION > 9
 			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].fields[j]), cp);
-#else
-			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].flds[j]), cp);
-#endif
 		}
 		++nPreloadCnt;
 #endif

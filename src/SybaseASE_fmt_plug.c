@@ -122,17 +122,17 @@ static void init(struct fmt_main *self)
 #endif
 	kpc = self->params.max_keys_per_crypt;
 
-	prep_key = mem_calloc_tiny(sizeof(*prep_key) *
+	prep_key = mem_calloc_align(sizeof(*prep_key),
 		self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
-	crypt_out = mem_alloc_tiny(sizeof(*crypt_out) *
+	crypt_out = mem_calloc_align(sizeof(*crypt_out),
 		self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
 
 	if (pers_opts.target_enc == UTF_8)
 		fmt_SybaseASE.params.plaintext_length = 125;
 	// will simply set SIMD stuff here, even if not 'used'
 #ifdef SIMD_COEF_32
-	NULL_LIMB = mem_calloc_tiny(64*MAX_KEYS_PER_CRYPT, MEM_ALIGN_CACHE);
-	last_len = mem_calloc_tiny(sizeof(*last_len)*self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	NULL_LIMB = mem_calloc_align(64, MAX_KEYS_PER_CRYPT, MEM_ALIGN_CACHE);
+	last_len = mem_calloc_align(sizeof(*last_len), self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	for (i = 0; i < kpc/MAX_KEYS_PER_CRYPT; ++i) {
 		int j;
 		for (j = 0; j < MAX_KEYS_PER_CRYPT; ++j) {
@@ -141,6 +141,16 @@ static void init(struct fmt_main *self)
 		}
 	}
 #endif
+}
+
+static void done(void)
+{
+#ifdef SIMD_COEF_32
+	MEM_FREE(last_len);
+	MEM_FREE(NULL_LIMB);
+#endif
+	MEM_FREE(crypt_out);
+	MEM_FREE(prep_key);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -390,22 +400,18 @@ struct fmt_main fmt_SybaseASE = {
         MIN_KEYS_PER_CRYPT,
         MAX_KEYS_PER_CRYPT,
         FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
         SybaseASE_tests
     }, {
         init,
-        fmt_default_done,
+        done,
         fmt_default_reset,
         fmt_default_prepare,
         valid,
         split,
         get_binary,
         get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
         fmt_default_source,
         {
 		fmt_default_binary_hash_0,

@@ -85,15 +85,15 @@ __constant uint32_t clear_mask[] = {
 
 #define CLEAR_BUFFER_32_SINGLE(dest, start) {	\
     uint32_t tmp, pos;				\
-    tmp = (uint32_t) (start & 3U);		\
-    pos = (uint32_t) (start >> 2);		\
+    tmp = (uint32_t) ((start) & 3U);		\
+    pos = (uint32_t) ((start) >> 2);		\
     dest[pos] = dest[pos] & clear_mask[tmp];	\
 }
 
 #define CLEAR_BUFFER_32(dest, start) {		\
     uint32_t tmp, pos;				\
-    tmp = (uint32_t) (start & 3U);		\
-    pos = (uint32_t) (start >> 2);		\
+    tmp = (uint32_t) ((start) & 3U);		\
+    pos = (uint32_t) ((start) >> 2);		\
     dest[pos] = dest[pos] & clear_mask[tmp];	\
     if (tmp)					\
 	length = pos + 1;			\
@@ -103,16 +103,16 @@ __constant uint32_t clear_mask[] = {
 
 #define APPEND(dest, src, start) {		\
     uint32_t tmp, pos;				\
-    tmp = (uint32_t) (start & 3U) << 3;		\
-    pos = (uint32_t) (start >> 2);		\
+    tmp = (uint32_t) ((start) & 3U) << 3;		\
+    pos = (uint32_t) ((start) >> 2);		\
     dest[pos]   = (dest[pos] | (src << tmp));	\
     dest[pos+1] = (tmp ? (src >> (32U - tmp)) : 0U); \
 }
 
 #define APPEND_F(dest, src, start) {		\
     uint32_t tmp, pos;				\
-    tmp = (uint32_t) (start & 3U) << 3;		\
-    pos = (uint32_t) (start >> 2);		\
+    tmp = (uint32_t) ((start) & 3U) << 3;		\
+    pos = (uint32_t) ((start) >> 2);		\
     dest[pos]   = (dest[pos] | (src << tmp));	\
     if (pos < 15)                               \
 	dest[pos+1] = (tmp ? (src >> (32U - tmp)) : 0U); \
@@ -120,8 +120,8 @@ __constant uint32_t clear_mask[] = {
 
 #define APPEND_SINGLE(dest, src, start) {	\
     uint32_t tmp, pos;				\
-    tmp = (uint32_t) (start & 3U) << 3;		\
-    pos = (uint32_t) (start >> 2);		\
+    tmp = (uint32_t) ((start) & 3U) << 3;		\
+    pos = (uint32_t) ((start) >> 2);		\
     dest[pos]   = (dest[pos] | (src << tmp));	\
 }
 #endif

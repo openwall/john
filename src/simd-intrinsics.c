@@ -366,12 +366,22 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
-		MD5_PARA_DO(i)
-		{
-			vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
-			vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
-			vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
-			vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
+		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
+			MD5_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*32*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*32*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*32*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*32*VS32+3*VS32], d[i]);
+			}
+		} else {
+			MD5_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
+			}
 		}
 	}
 	else
@@ -847,7 +857,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	MD4_STEP(MD4_H2, d, a, b, c, 9, cst, 9)
 	MD4_STEP(MD4_H, c, d, a, b, 5, cst, 11)
 
-	if ((SSEi_flags & SSEi_REVERSE_STEPS))
+	if (SSEi_flags & SSEi_REVERSE_STEPS)
 	{
 		MD4_REV_STEP(MD4_H2, b, c, d, a, 13, cst, 15)
 		MD4_PARA_DO(i)
@@ -931,12 +941,22 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
-		MD4_PARA_DO(i)
-		{
-			vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
-			vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
-			vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
-			vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
+		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
+			MD4_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*32*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*32*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*32*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*32*VS32+3*VS32], d[i]);
+			}
+		} else {
+			MD4_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
+			}
 		}
 	}
 	else
@@ -1293,6 +1313,16 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 	SHA1_ROUND2x( c, d, e, a, b, SHA1_I, 73 );
 	SHA1_ROUND2x( b, c, d, e, a, SHA1_I, 74 );
 	SHA1_ROUND2x( a, b, c, d, e, SHA1_I, 75 );
+
+	if (SSEi_flags & SSEi_REVERSE_STEPS)
+	{
+		SHA1_PARA_DO(i)
+		{
+			vstore((vtype*)&out[i*5*VS32+0*VS32], e[i]);
+		}
+		return;
+	}
+
 	SHA1_ROUND2x( e, a, b, c, d, SHA1_I, 76 );
 	SHA1_ROUND2x( d, e, a, b, c, SHA1_I, 77 );
 	SHA1_ROUND2x( c, d, e, a, b, SHA1_I, 78 );
@@ -1300,16 +1330,13 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 
 	if((SSEi_flags & SSEi_RELOAD)==0)
 	{
-		if ((SSEi_flags & SSEi_REVERSE_STEPS) == 0)
+		SHA1_PARA_DO(i)
 		{
-			SHA1_PARA_DO(i)
-			{
-				a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
-				b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
-				c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
-				d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
-				e[i] = vadd_epi32(e[i], vset1_epi32(0xC3D2E1F0));
-			}
+			a[i] = vadd_epi32(a[i], vset1_epi32(0x67452301));
+			b[i] = vadd_epi32(b[i], vset1_epi32(0xefcdab89));
+			c[i] = vadd_epi32(c[i], vset1_epi32(0x98badcfe));
+			d[i] = vadd_epi32(d[i], vset1_epi32(0x10325476));
+			e[i] = vadd_epi32(e[i], vset1_epi32(0xC3D2E1F0));
 		}
 	}
 	else
@@ -1374,13 +1401,24 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
-		SHA1_PARA_DO(i)
-		{
-			vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
-			vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
-			vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
-			vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
-			vstore((vtype*)&out[i*16*VS32+4*VS32], e[i]);
+		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
+			SHA1_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*32*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*32*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*32*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*32*VS32+3*VS32], d[i]);
+				vstore((vtype*)&out[i*32*VS32+4*VS32], e[i]);
+			}
+		} else {
+			SHA1_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
+				vstore((vtype*)&out[i*16*VS32+4*VS32], e[i]);
+			}
 		}
 	}
 	else
@@ -1798,16 +1836,30 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
 		}
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT) {
-		SHA256_PARA_DO(i)
-		{
-			vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
-			vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
-			vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
-			vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
-			vstore((vtype*)&out[i*16*VS32+4*VS32], e[i]);
-			vstore((vtype*)&out[i*16*VS32+5*VS32], f[i]);
-			vstore((vtype*)&out[i*16*VS32+6*VS32], g[i]);
-			vstore((vtype*)&out[i*16*VS32+7*VS32], h[i]);
+		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
+			SHA256_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*32*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*32*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*32*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*32*VS32+3*VS32], d[i]);
+				vstore((vtype*)&out[i*32*VS32+4*VS32], e[i]);
+				vstore((vtype*)&out[i*32*VS32+5*VS32], f[i]);
+				vstore((vtype*)&out[i*32*VS32+6*VS32], g[i]);
+				vstore((vtype*)&out[i*32*VS32+7*VS32], h[i]);
+			}
+		} else {
+			SHA256_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*16*VS32+0*VS32], a[i]);
+				vstore((vtype*)&out[i*16*VS32+1*VS32], b[i]);
+				vstore((vtype*)&out[i*16*VS32+2*VS32], c[i]);
+				vstore((vtype*)&out[i*16*VS32+3*VS32], d[i]);
+				vstore((vtype*)&out[i*16*VS32+4*VS32], e[i]);
+				vstore((vtype*)&out[i*16*VS32+5*VS32], f[i]);
+				vstore((vtype*)&out[i*16*VS32+6*VS32], g[i]);
+				vstore((vtype*)&out[i*16*VS32+7*VS32], h[i]);
+			}
 		}
 	}
 	else
@@ -2211,16 +2263,30 @@ void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
-		SHA512_PARA_DO(i)
-		{
-			vstore((vtype*)&out[i*16*VS64+0*VS64], a[i]);
-			vstore((vtype*)&out[i*16*VS64+1*VS64], b[i]);
-			vstore((vtype*)&out[i*16*VS64+2*VS64], c[i]);
-			vstore((vtype*)&out[i*16*VS64+3*VS64], d[i]);
-			vstore((vtype*)&out[i*16*VS64+4*VS64], e[i]);
-			vstore((vtype*)&out[i*16*VS64+5*VS64], f[i]);
-			vstore((vtype*)&out[i*16*VS64+6*VS64], g[i]);
-			vstore((vtype*)&out[i*16*VS64+7*VS64], h[i]);
+		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
+			SHA512_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*32*VS64+0*VS64], a[i]);
+				vstore((vtype*)&out[i*32*VS64+1*VS64], b[i]);
+				vstore((vtype*)&out[i*32*VS64+2*VS64], c[i]);
+				vstore((vtype*)&out[i*32*VS64+3*VS64], d[i]);
+				vstore((vtype*)&out[i*32*VS64+4*VS64], e[i]);
+				vstore((vtype*)&out[i*32*VS64+5*VS64], f[i]);
+				vstore((vtype*)&out[i*32*VS64+6*VS64], g[i]);
+				vstore((vtype*)&out[i*32*VS64+7*VS64], h[i]);
+			}
+		} else {
+			SHA512_PARA_DO(i)
+			{
+				vstore((vtype*)&out[i*16*VS64+0*VS64], a[i]);
+				vstore((vtype*)&out[i*16*VS64+1*VS64], b[i]);
+				vstore((vtype*)&out[i*16*VS64+2*VS64], c[i]);
+				vstore((vtype*)&out[i*16*VS64+3*VS64], d[i]);
+				vstore((vtype*)&out[i*16*VS64+4*VS64], e[i]);
+				vstore((vtype*)&out[i*16*VS64+5*VS64], f[i]);
+				vstore((vtype*)&out[i*16*VS64+6*VS64], g[i]);
+				vstore((vtype*)&out[i*16*VS64+7*VS64], h[i]);
+			}
 		}
 	}
 	else

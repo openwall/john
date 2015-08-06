@@ -136,6 +136,7 @@ extern MD5_IN *input_buf_X86;
 extern MD5_IN *input_buf2_X86;
 extern unsigned int *total_len_X86;
 extern unsigned int *total_len2_X86;
+extern BIG_HASH_OUT dynamic_BHO[4];
 
 extern const char *dynamic_itoa16;
 
@@ -408,10 +409,12 @@ static inline uint32_t Do_FixBufferLen64(unsigned char *input_buf, int total_len
 	return ret;
 }
 
-/*
- * NOTE, all code after this point should NEVER be hand edited.
- * if there are bugs found, then the code in dynamic_big_crypt_hash.cxx
- * is what needs to be fixed, and then the build procedure 'may' also
- * need to be updated.  Multiple CPP's of the dynamic_big_crypt_hash.cxx
- * is what generates all of the data following this comment
- */
+/****************************************************************************
+ ****************************************************************************
+ ** NOTE, all code after this point should NEVER be hand edited.           **
+ ** if there are bugs found, then the code in dynamic_big_crypt_hash.cin   **
+ ** is what needs to be fixed, and then the build procedure 'may' also     **
+ ** need to be updated.  A perl script, and the dynamic_big_crypt_hash.cin **
+ ** is used to generate all the code after this comment!                   **
+ *****************************************************************************
+ ****************************************************************************/

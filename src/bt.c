@@ -18,8 +18,6 @@
 #include "bt_twister.h"
 #include "bt_hash_types.h"
 
-#define DEBUG
-
 #if _OPENMP > 201107
 #define MAYBE_PARALLEL_FOR _Pragma("omp for")
 #define MAYBE_ATOMIC_WRITE _Pragma("omp atomic write")

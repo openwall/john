@@ -83,6 +83,9 @@ static int john_omp_threads_new;
 #include "options.h"
 #include "config.h"
 #include "bench.h"
+#ifdef HAVE_FUZZ
+#include "fuzz.h"
+#endif
 #include "charset.h"
 #include "single.h"
 #include "wordlist.h"
@@ -308,7 +311,6 @@ static void john_register_all(void)
 	john_register_one(&fmt_LM);
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_trip);
-	john_register_one(&fmt_dummy);
 
 #ifndef DYNAMIC_DISABLED
 	// NOTE, this MUST happen, before ANY format that links a 'thin' format
@@ -331,6 +333,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_cuda_rawsha256);
 #endif
 
+	john_register_one(&fmt_dummy);
 #if HAVE_CRYPT
 	john_register_one(&fmt_crypt);
 #endif
@@ -975,9 +978,7 @@ static void john_load(void)
 
 	if (options.flags & FLG_PASSWD) {
 		int total;
-#if FMT_MAIN_VERSION > 11
 		int i = 0;
-#endif
 
 		if (options.flags & FLG_SHOW_CHK) {
 			options.loader.flags |= DB_CRACKED;
@@ -1058,10 +1059,8 @@ static void john_load(void)
 			if (john_main_process)
 			printf("No password hashes %s (see FAQ)\n",
 			    total ? "left to crack" : "loaded");
-#if FMT_MAIN_VERSION > 11
 			/* skip tunable cost reporting if no hashes were loaded */
 			i = FMT_TUNABLE_COSTS;
-#endif
 		} else
 		if (database.password_count < total) {
 			log_event("Remaining %s", john_loaded_counts());
@@ -1069,7 +1068,6 @@ static void john_load(void)
 			printf("Remaining %s\n", john_loaded_counts());
 		}
 
-#if FMT_MAIN_VERSION > 11
 		for ( ; i < FMT_TUNABLE_COSTS &&
 			      database.format->methods.tunable_cost_value[i] != NULL; i++) {
 			if (database.min_cost[i] < database.max_cost[i]) {
@@ -1094,7 +1092,6 @@ static void john_load(void)
 				       database.min_cost[i]);
 			}
 		}
-#endif
 		if ((options.flags & FLG_PWD_REQ) && !database.salts) exit(0);
 
 		if (options.regen_lost_salts)
@@ -1367,8 +1364,15 @@ static void john_run(void)
 	struct stat trigger_stat;
 	int trigger_reset = 0;
 
-	if (options.flags & FLG_TEST_CHK)
+	if (options.flags & FLG_TEST_CHK || options.flags & FLG_TEST_FULL_CHK)
 		exit_status = benchmark_all() ? 1 : 0;
+#ifdef HAVE_FUZZ
+	else
+	if (options.flags & FLG_FUZZ_CHK || options.flags & FLG_FUZZ_DUMP_CHK) {
+		ldr_init_database(&database, &options.loader);
+		exit_status = fuzz(&database);
+	}
+#endif
 	else
 	if (options.flags & FLG_MAKECHR_CHK)
 		do_makechars(&database, options.charset);

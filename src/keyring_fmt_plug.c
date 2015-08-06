@@ -368,7 +368,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-#if FMT_MAIN_VERSION > 11
 static unsigned int iteration_count(void *salt)
 {
 	struct custom_salt *my_salt;
@@ -376,7 +375,6 @@ static unsigned int iteration_count(void *salt)
 	my_salt = salt;
 	return my_salt->iterations;
 }
-#endif
 
 struct fmt_main fmt_keyring = {
 	{
@@ -394,11 +392,9 @@ struct fmt_main fmt_keyring = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 			"iteration count",
 		},
-#endif
 		keyring_tests
 	}, {
 		init,
@@ -409,11 +405,9 @@ struct fmt_main fmt_keyring = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

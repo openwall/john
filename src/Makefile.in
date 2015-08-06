@@ -102,11 +102,10 @@ JOHN_OBJS = \
 	dyna_salt.o dummy.o \
 	gost.o \
 	common-gpu.o \
-	batch.o bench.o bt.o charset.o common.o compiler.o config.o cracker.o \
-	crc32.o external.o formats.o getopt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o \
-	idle.o inc.o john.o list.o loader.o logger.o mask.o mask_ext.o math.o memory.o misc.o \
-	options.o params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
-	tty.o bt_twister.o wordlist.o \
+	batch.o bench.o charset.o common.o compiler.o config.o cracker.o crc32.o external.o \
+	formats.o getopt.o idle.o inc.o john.o list.o loader.o logger.o mask.o mask_ext.o math.o \
+	memory.o misc.o options.o params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
+	tty.o  wordlist.o \
 	mkv.o mkvlib.o \
 	listconf.o \
 	fake_salts.o \
@@ -120,13 +119,15 @@ JOHN_OBJS = \
 	c3_fmt.o \
 	unique.o putty2john.o gpg2john.o memdbg.o
 
-OCL_OBJS = common-opencl.o opencl_autotune.o
+OCL_OBJS = common-opencl.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
 CUDA_OBJS = common-cuda.o cuda_common.o cuda_cryptmd5.o cuda_phpass.o \
 	cuda_cryptsha256.o cuda_cryptsha512.o cuda_mscash2.o \
 	cuda_rawsha256.o cuda_rawsha224.o cuda_mscash.o \
 	cuda_xsha512.o cuda_wpapsk.o cuda_rawsha512.o cuda_pwsafe.o \
 	cuda_rawsha224_fmt.o cuda_rawsha256_fmt.o
+
+FUZZ_OBJS = fuzz.o
 
 GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o
@@ -160,6 +161,13 @@ ifdef WITH_OPENCL
 CFLAGS += -DHAVE_OPENCL @CL_CFLAGS@
 CFLAGS_MAIN += -DHAVE_OPENCL @CL_CFLAGS@
 JOHN_OBJS += $(OCL_OBJS)
+endif
+
+WITH_FUZZ=@HAVE_FUZZ@
+ifdef WITH_FUZZ
+CFLAGS += -DHAVE_FUZZ
+CFLAGS_MAIN += -DHAVE_FUZZ
+JOHN_OBJS += $(FUZZ_OBJS)
 endif
 
 #########################################################
@@ -214,7 +222,7 @@ help:
 
 dynamic_big_crypt.c: dynamic_big_crypt_hash.cin dynamic_big_crypt_header.cin dynamic_big_crypt_generator.sh dynamic_big_crypt_chopper.pl unused/dynamic_big_crypt.c
 	$(shell ./dynamic_big_crypt_generator.sh)
-	@if [ ! -e dynamic_big_crypt.c ] ; then $(CP_PRESERVE) unused/dynamic_big_crypt.c dynamic_big_crypt.c ; fi
+	@if [ ! -f dynamic_big_crypt.c ] ; then $(CP_PRESERVE) unused/dynamic_big_crypt.c dynamic_big_crypt.c ; fi
 
 # Digital/Compaq's cc and make use the .S suffix for a different purpose...
 digipaq-alpha.o: alpha.S
@@ -352,6 +360,8 @@ fake_salts.o:	fake_salts.c config.h john.h memory.h options.h fake_salts.h memdb
 
 formats.o:	formats.c params.h memory.h formats.h dyna_salt.h misc.h unicode.h options.h loader.h common-opencl.h cuda_common.h memdbg.h
 
+fuzz.o:	fuzz.h fuzz.c
+
 genmkvpwd.o:	genmkvpwd.c autoconfig.h params.h memory.h mkvlib.h memdbg.h
 
 getopt.o:	getopt.c misc.h memory.h list.h getopt.h john.h memdbg.h
@@ -441,8 +451,6 @@ skein.o:        skein.c sph_skein.h memdbg.h
 opencl_autotune.o:	opencl_autotune.c common-opencl.h memdbg.h
 
 options.o:	version.h listconf.h options.c os.h arch.h misc.h params.h memory.h list.h loader.h logger.h status.h recovery.h options.h bench.h external.h john.h dynamic.h unicode.h fake_salts.h regex.h john-mpi.h common-opencl.h prince.h memdbg.h john_build_rule.h
-
-para-best.o:	para-best.c math.h params.h common.h formats.h bench.h memdbg.h
 
 params.o:	params.c params.h memdbg.h
 
@@ -814,7 +822,7 @@ clean:
 	done
 	$(RM) john-macosx-* *.o escrypt/*.o *.bak core
 	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin
-	$(RM) detect bench para-bench generic.h tmp.s
+	$(RM) detect bench generic.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~
 	$(CP) $(NULL) Makefile.dep
 	@for dir in ${subdirs}; do \

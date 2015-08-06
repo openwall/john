@@ -56,9 +56,19 @@
  *     passcase=[L|U]    This will up case or low case the password
  *     salt=             (true), ashex or tohex
  *     usrname=          (true), lc, uc, uni
- *     saltlen=#         This sets the length of the salt
+ *     saltlen=#         This sets the length of the salt, negative value used for variable sized
+ *                       salt, with the max var size allowed being the positive of the number.
+ *                       so saltlen=-23 is variable sized salt from 0 to 23 bytes, while
+ *                       saltlen=23 is a fixed sized 23 byte salt.
+ *     maxinplen=#       If run in -O=3, this must be provided currently. It is the max plaintext
+ *                       len that this expression can handle that will not blow past the 55 byte
+ *                       SIMD max string length. So md5(md5($p).$s), the maxinplen=55 is used.
+ *                       but for md5($s.$p) the maxinplen would need to be 55-maxsaltlen so if
+ *                       we have this exression: md5(md5($s).$p) then the salt in this case is
+ *                       'really' 32 bytes, no matter what length the salt is, so we know the
+ *                       max to be 55-32 or only maxinplen=23 is the right value.
  *     debug             If this is set, then JtR will output the script and other data and exit.
- *     O=n               Optimize. Can be levels are 0, 1, 2
+ *     O=n               Optimize. Can be levels are 0, 1, 2 and 3
  *
  *****************************************************************
  *     TODO:
@@ -315,7 +325,7 @@ static void dump_HANDLE(void *_p) {
 	// will help anyone wanting to learn how to properly code in the dyna
 	// script language.
 	printf ("##############################################################\n");
-	printf ("#  Dynamic script for expression %s%s%s\n", p->pExpr, p->pExtraParams&&p->pExtraParams[0]?",":"", p->pExtraParams);
+	printf ("#  Dynamic script for expression %s%s\n", p->pExpr, p->pExtraParams);
 	printf ("##############################################################\n");
 	cp = str_alloc_copy(p->pScript);
 	DumpParts("Expression", cp);
@@ -391,7 +401,7 @@ static char *find_the_extra_params(const char *expr) {
 	cp = strrchr(expr, ')');
 	if (!cp) return "";
 	if (cp[1] == ',') ++cp;
-	strnzcpy(buf, &cp[1], sizeof(buf));
+	strnzcpy(buf, cp, sizeof(buf));
 	// NOTE, we should normalize this string!!
 	// we should probably call handle_extra_params, and then make a function
 	// regen_extra_params() so that we always normalize this string.
@@ -614,7 +624,7 @@ static const char *get_param(const char *p, const char *what) {
 	p = strstr(p, what);
 	if (!p)
 		return NULL;
-	p += strlen(what);
+	p += strlen(what)+1;	// the +1 is to skip the = character.
 	cp = strchr(p, ',');
 	while (cp && cp[-1] == '\\')
 		cp = strchr(&cp[1], ',');
@@ -651,14 +661,13 @@ static int handle_extra_params(DC_struct *ptr) {
 		Const[++nConst] = cp2;
 	}
 	if ( (cp = get_param(ptr->pExtraParams, "O")) != NULL)
-		OLvL = atoi(&cp[1]);
-
+		OLvL = atoi(cp);
 	// Find any other values here.
-	if (strstr(ptr->pExtraParams, "debug,") || strstr(ptr->pExtraParams, ",debug") || !strcmp(ptr->pExtraParams, "debug"))
+	if (strstr(ptr->pExtraParams, ",debug"))
 		compile_debug = 1;
 
 	if ( (cp = get_param(ptr->pExtraParams, "saltlen")) != NULL) {
-		nSaltLen = atoi(&cp[1]);
+		nSaltLen = atoi(cp);
 		if (nSaltLen > 200)
 			error("Max salt len allowed is 200 bytes\n");
 	}
@@ -783,7 +792,6 @@ static char *comp_optimize_script(char *pScr) {
 	if (!cp)
 		return pScr;
 
-	/* this code is WRONG and needs work!!! */
 	if (!strncmp(cp, "Func=DynamicFunc__clean_input_kwik\nFunc=DynamicFunc__append_keys\n", 64)) {
 		char *cp2 = mem_alloc_tiny(strlen(pScr), 1);
 		snprintf(cp2, strlen(pScr), "%*.*sFlag=MGF_KEYS_INPUT%s", (int)(cp-pScr), (int)(cp-pScr), pScr, &cp[64]);
@@ -802,7 +810,152 @@ static char *comp_optimize_script(char *pScr) {
 			)
 			pScr = cp2;
 	}
+	return pScr;
+}
+static char *comp_optimize_script_mixed(char *pScr, char *pParams) {
+	/*
+	 * in this function, we optimize out certain key issues.  We add the MGF_KEYS_IN1 if we can, and remove
+	 * the clean/key_load.   Also, if there is a trailing copy of input2 to input just to crypt_final from 1,
+	 * then we fix that.
+	 */
+	char *cp = strstr(pScr, "Func="), *cp2, *pNewScr;
+	const char *param;
+	int sha1=0, md45=0, inplen=55, saltlen=0;
 
+	if (!cp)
+		return pScr;
+
+	param = get_param(pParams, "maxinplen");
+	if (!param) {
+		// ok for unsalted, just use 55
+		if (strstr(pScr, "$s"))
+			return pScr;
+		inplen = 55;
+	} else
+		inplen = atoi(param);
+	if (inplen < 6 || inplen > 55)
+		return pScr;
+	param = get_param(pParams, "saltlen");
+	if (param) {
+		saltlen = atoi(param);
+		if (abs(saltlen) < 6 || saltlen > 55)
+			return pScr;
+	}
+
+	// ok, see if we can convert this into a mixed SIMD hash.
+
+	// First, the hash must be fully MD4/MD5 or fully SHA1 (MD4/MD5 can have a mix of both)
+	cp2 = strstr(pScr, "_crypt_");
+	if (strstr(pScr, "$u")) goto SkipFlat; // skip any hash with user name
+	if (strstr(pScr, "$s2")) goto SkipFlat; // skip any hash with 2nd salt
+	if (strstr(pScr, "pad")) goto SkipFlat; // skip pad16/pad20's
+	if (strstr(pScr, "$c")) goto SkipFlat; // skip any hash with constants (we 'could' deal with this if we want later)
+	if (!strstr(pScr, "MaxInputLen=110")) goto SkipFlat;  // if so complex that it would not fit a 110 byte PLAIN in 247 byte flat, then do not even try.
+	while (cp2) {
+		if (!strncmp(&cp2[-3], "MD5_", 4) || !strncmp(&cp2[-4], "MD4_", 4))
+			++md45;
+		else if (!strncmp(&cp2[-4], "SHA1_", 5))
+			goto SkipFlat;//++sha1;
+		else
+			goto SkipFlat;
+		cp2 = strstr(&cp2[1], "_crypt_");
+	}
+	if ((md45 && !sha1) || (sha1 && !md45)) {
+		// possible.
+		int len = strlen(pScr)+150*(md45+sha1);
+		char *cpI, *cpO;
+		pNewScr = mem_alloc_tiny(len, 1);
+		cpI = pScr, cpO = pNewScr;
+		while (*cpI) {
+			if (*cpI == 'F' && cpI[1] == 'l') {
+				// might be 'flag='
+				if (!strncmp(cpI, "Flag=MGF_FLAT_BUFFERS\n", 22)) {
+					cpI += 22;
+					continue;
+				}
+			}
+			if (*cpI == 'F' && cpI[1] == 'u') {
+				// might be 'Func=crypt'
+				if (!strncmp(cpI, "Func=DynamicFunc__MD5_crypt", 27)) {
+					if (!strncmp(cpI, "Func=DynamicFunc__MD5_crypt_input1_to_output1_FINAL\n", 52)) {
+						cpO += sprintf(cpO, "Func=DynamicFunc__crypt_md5\n");
+					} else if (!strncmp(cpI, "Func=DynamicFunc__MD5_crypt_input2_to_output1_FINAL\n", 52)) {
+						cpO += sprintf(cpO, "Func=DynamicFunc__crypt_md5_in2_to_out1\n");
+					} else if (!strncmp(cpI, "Func=DynamicFunc__MD5_crypt_input1_append_input2\n", 49)) {
+						cpO += sprintf(cpO, "Func=DynamicFunc__crypt_md5_in1_to_out2\nFunc=DynamicFunc__append_from_last_output2_as_base16\n");
+					} else if (!strncmp(cpI, "Func=DynamicFunc__MD5_crypt_input2_append_input2\n", 49)) {
+						cpO += sprintf(cpO, "Func=DynamicFunc__crypt2_md5\nFunc=DynamicFunc__append_from_last_output2_as_base16\n");
+					} else if (!strncmp(cpI, "Func=DynamicFunc__MD5_crypt_input1_overwrite_input2\n", 52)) {
+						cpO += sprintf(cpO, "Func=DynamicFunc__clean_input2\nFunc=DynamicFunc__crypt_md5_in1_to_out2\nFunc=DynamicFunc__append_from_last_output2_as_base16\n");
+					} else if (!strncmp(cpI, "Func=DynamicFunc__MD5_crypt_input2_overwrite_input2\n", 52)) {
+						cpO += sprintf(cpO, "Func=DynamicFunc__crypt2_md5\nFunc=DynamicFunc__overwrite_from_last_output2_to_input2_as_base16_no_size_fix\n");
+					}
+					cpI = strchr(cpI, '\n');
+					++cpI;
+					continue;
+				}
+				if (!strncmp(cpI, "Func=DynamicFunc__MD4_crypt", 27)) {
+					if (!strncmp(cpI, "Func=DynamicFunc__MD4_crypt_input1_to_output1_FINAL\n", 52)) {
+						cpO += sprintf(cpO, "Func=DynamicFunc__crypt_md4\n");
+					} else if (!strncmp(cpI, "Func=DynamicFunc__MD4_crypt_input2_to_output1_FINAL\n", 52)) {
+						cpO += sprintf(cpO, "Func=DynamicFunc__crypt_md4_in2_to_out1\n");
+					} else if (!strncmp(cpI, "Func=DynamicFunc__MD4_crypt_input1_append_input2\n", 49)) {
+						cpO += sprintf(cpO, "Func=DynamicFunc__crypt_md4_in1_to_out2\nFunc=DynamicFunc__append_from_last_output2_as_base16\n");
+					} else if (!strncmp(cpI, "Func=DynamicFunc__MD4_crypt_input2_append_input2\n", 49)) {
+						cpO += sprintf(cpO, "Func=DynamicFunc__crypt2_md4\nFunc=DynamicFunc__append_from_last_output2_as_base16\n");
+					} else if (!strncmp(cpI, "Func=DynamicFunc__MD4_crypt_input1_overwrite_input2\n", 52)) {
+						cpO += sprintf(cpO, "Func=DynamicFunc__clean_input2\nFunc=DynamicFunc__crypt_md4_in1_to_out2\nFunc=DynamicFunc__append_from_last_output2_as_base16\n");
+					} else if (!strncmp(cpI, "Func=DynamicFunc__MD4_crypt_input2_overwrite_input2\n", 52)) {
+						cpO += sprintf(cpO, "Func=DynamicFunc__crypt2_md4\nFunc=DynamicFunc__overwrite_from_last_output2_to_input2_as_base16_no_size_fix\n");
+					}
+					cpI = strchr(cpI, '\n');
+					++cpI;
+					continue;
+				}
+			}
+			*cpO++ = *cpI++;
+		}
+		*cpO++ = 0;
+		// ok, recompute (and fix) MaxInLen and SaltLen
+		pScr = pNewScr;
+//		inplen = 55;
+//		cp2 = strstr(pScr, "SaltLen=");
+//		if (cp2) {
+//			int salt_cnt=0;
+//			if (!salt_as_hex_type && !strncmp(cp2, "SaltLen=-32", 11)) {
+//				memcpy(cp2, "SaltLen=-16", 11);
+//				saltlen=16;
+//			} else
+//				sscanf(cp2, "SaltLen=%d", &saltlen);
+//			if (saltlen < 0) saltlen *= -1;
+//			cp2 = strstr(pScr, "$s");
+//			while (cp2) {
+//				salt_cnt++;
+//				cp2 = strstr(&cp2[1], "$s");
+//			}
+//			// ok, salt_cnt will be count of salts in the expression, and all 3 of the test strings, so divide by 4
+//			salt_cnt /= 4;
+//			len -= salt_cnt*saltlen;
+//		}
+//		if (inplen < 8) goto SkipFlat;
+		cp2 = strstr(pScr, "MaxInputLen=110");
+		cp2 += 12;
+		memcpy(cp2, "   ", 3);
+		len = sprintf(cp2, "%d", inplen);
+		cp2[len] = ' ';
+		// change all _clean_input_kwik to _clean_input
+		cp2 = strstr(pScr, "_clean_input_kwik");
+		while (cp2) {
+			memcpy(cp2, "_clean_input     ", 17);
+			cp2 = strstr(cp2, "_clean_input_kwik");
+		}
+		cp2 = strstr(pScr, "_clean_input2_kwik");
+		while (cp2) {
+			memcpy(cp2, "_clean_input2     ", 18);
+			cp2 = strstr(cp2, "_clean_input2_kwik");
+		}
+	}
+SkipFlat:;
 	return pScr;
 }
 static char *comp_optimize_expression(const char *pExpr) {
@@ -1039,7 +1192,9 @@ static void comp_do_parse(int cur, int curend) {
 		fpcurTok = fpSymTab[cur];
 		curTokLen = nSymTabLen[cur];
 		if (*curTok == '.') {
-			++cur;
+			push_pcode(curTok, dynamic_exp, 0);
+			curTok = SymTab[++cur];
+			//++cur;
 			continue;
 		}
 		if (*curTok == '^') {
@@ -1327,7 +1482,7 @@ static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex
 		pScr += strlen(pScr);
 	}
 
-	if (compile_debug)
+	if (OLvL < 3 && compile_debug)
 		dump_HANDLE(_p);
 	MEM_FREE(pExpr);
 	return 0;
@@ -1432,9 +1587,18 @@ static int parse_expression(DC_struct *p) {
 	strcpy(gen_pw, "passweird");
 	build_test_string(p, &p->pLine3);
 
-	if (keys_base16_in1_type)
-		return compile_keys_base16_in1_type(pExpr, p, salt_hex_len, keys_hex_len);
-	MEM_FREE(pExpr);
+	if (bNeedS)
+		comp_add_script_line("SaltLen=%d\n", nSaltLen ? nSaltLen : -32);
+
+	if (keys_base16_in1_type) {
+		if (OLvL>2) {
+			compile_keys_base16_in1_type(pExpr, p, salt_hex_len, keys_hex_len);
+			goto AlreadyCompiled;
+		}
+		else
+			return compile_keys_base16_in1_type(pExpr, p, salt_hex_len, keys_hex_len);
+	} else
+		MEM_FREE(pExpr);
 
 	// Ok now run the script
 	{
@@ -1449,7 +1613,6 @@ static int parse_expression(DC_struct *p) {
 		int inp_cnt2 = 0, ex_cnt2 = 0, salt_cnt2 = 0;
 
 		if (bNeedS) {
-			comp_add_script_line("SaltLen=%d\n", salt_len);
 			if (salt_hex_len)
 				salt_len = salt_hex_len;
 		} else
@@ -1511,6 +1674,8 @@ static int parse_expression(DC_struct *p) {
 						last_push = j;
 						use_inp1_again = 0;
 						for (x = j+1; x < i; ++x) {
+							if (pCode[x][0] == 'X')
+								continue;
 							if (!strncmp(pCode[x], "app_p", 5)) {
 								comp_add_script_line("Func=DynamicFunc__append_keys%s\n", use_inp1?"":"2"); use_inp1 ? ++inp_cnt : ++inp_cnt2; }
 							else if (!strcmp(pCode[x], "app_s")) {
@@ -1678,7 +1843,7 @@ static int parse_expression(DC_struct *p) {
 							ELSEIF(SKEIN384,fskn384,7,48) ELSEIF(SKEIN512,fskn512,7,64)
 							// LARGE_HASH_EDIT_POINT
 						} else {
-							if (append_mode2) {
+							if (append_mode2 && pCode[last_push-1][0] != '.') {
 #undef IF
 #undef ELSEIF
 #define IF(C,T,L) if (!strncasecmp(pCode[i], #T, L)) \
@@ -1809,15 +1974,19 @@ static int parse_expression(DC_struct *p) {
 		strcpy(pScr, pScriptLines[i]);
 		pScr += strlen(pScr);
 	}
+
+AlreadyCompiled:;
 	if (OLvL>1)
 		p->pScript = comp_optimize_script(p->pScript);
+	if (OLvL>2)
+		 p->pScript = comp_optimize_script_mixed(p->pScript, p->pExtraParams);
 
 	if (compile_debug)
 		dump_HANDLE(p);
 
 	return 0;
 }
-
+DC_struct INVALID_STRUCT = { ~DC_MAGIC };
 static DC_HANDLE do_compile(const char *expr, uint32_t crc32) {
 	DC_struct *p;
 	char *cp;
@@ -1829,10 +1998,10 @@ static DC_HANDLE do_compile(const char *expr, uint32_t crc32) {
 		gost_init = 1;
 	}
 
+	if (strncmp(expr, "dynamic=", 8))
+		return &INVALID_STRUCT;
 	p = mem_calloc_tiny(sizeof(DC_struct), sizeof(void*));
 	p->magic = ~DC_MAGIC;
-	if (strncmp(expr, "dynamic=", 8))
-		return p;
 	p->crc32 = crc32;
 	p->pFmt = NULL; // not setup yet
 	p->pExpr = str_alloc_copy(find_the_expression(expr));

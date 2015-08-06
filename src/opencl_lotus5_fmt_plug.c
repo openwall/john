@@ -16,6 +16,8 @@ john_register_one(&fmt_opencl_1otus5);
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
+
 #include "misc.h"
 #include "formats.h"
 #include "common.h"
@@ -82,19 +84,32 @@ static const unsigned int lotus_magic_table[256] = {
 };
 
 /*Some more JTR variables*/
-static cl_uint *crypt_key;
-static char *saved_key;
-static struct fmt_main *self;
+static cl_uint *crypt_key = NULL;
+static char *saved_key = NULL;
+static struct fmt_main *self = NULL;
 
-static cl_int err;
 static cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
 
 #define STEP			0
 #define SEED			256
 
+#define PADDING 		2048
+
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl-autotune.h"
 #include "memdbg.h"
+
+#define get_power_of_two(v)	\
+{				\
+	v--;			\
+	v |= v >> 1;		\
+	v |= v >> 2;		\
+	v |= v >> 4;		\
+	v |= v >> 8;		\
+	v |= v >> 16;		\
+	v |= v >> 32;		\
+	v++;			\
+}
 
 static const char * warn[] = {
 	"xfer: ",  ", crypt: ",  ", xfer: "
@@ -103,7 +118,12 @@ static const char * warn[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return autotune_get_task_max_work_group_size(CL_FALSE, 0, crypt_kernel);
+	size_t max_lws = MIN(get_kernel_max_lws(gpu_id, crypt_kernel), PADDING);
+
+	if (cpu(device_info[gpu_id]))
+		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			max_lws : 1;
+	return max_lws;
 }
 
 static size_t get_task_max_size()
@@ -113,59 +133,55 @@ static size_t get_task_max_size()
 
 static size_t get_default_workgroup()
 {
-	if (cpu(device_info[gpu_id]))
-		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
-			8 : 1;
-	else
-		return 64;
+	return get_kernel_preferred_multiple(gpu_id, crypt_kernel);
 }
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	size_t mem_alloc_sz;
-	char *err_msg = "Create Buffer FAILED";
 
-	mem_alloc_sz = KEY_SIZE_IN_BYTES * gws;
+	mem_alloc_sz = KEY_SIZE_IN_BYTES * (gws + PADDING);
 	cl_tx_keys = clCreateBuffer(context[gpu_id],
 				    CL_MEM_READ_ONLY,
-			            mem_alloc_sz, NULL, &err);
-	HANDLE_CLERROR(err, err_msg);
+			            mem_alloc_sz, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Failed to create buffer cl_tx_keys.");
 
-	mem_alloc_sz = BINARY_SIZE * gws;
+	mem_alloc_sz = BINARY_SIZE * (gws + PADDING);
 	cl_tx_binary = clCreateBuffer(context[gpu_id],
 				      CL_MEM_WRITE_ONLY,
-			              mem_alloc_sz, NULL, &err);
-	HANDLE_CLERROR(err, err_msg);
+			              mem_alloc_sz, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Failed to create buffer cl_tx_binary.");
 
 	mem_alloc_sz = sizeof(cl_uint) * 256;
 	cl_magic_table = clCreateBuffer(context[gpu_id],
 					CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
 				        mem_alloc_sz, (cl_uint *)lotus_magic_table,
-					&err);
-	HANDLE_CLERROR(err, err_msg);
+					&ret_code);
+	HANDLE_CLERROR(ret_code, "Failed to create buffer cl_magic_table.");
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0,
 				      sizeof(cl_mem), &cl_tx_keys),
-		                      "Set Kernel Arg 0 :FAILED");
+		                      "Failed to set kernel argument 0, cl_tx_keys.");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1,
 				      sizeof(cl_mem), &cl_magic_table),
-		                      "Set Kernel Arg 0 :FAILED");
+		                      "Failed to set kernel argument 1, cl_magic_table.");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2,
 				      sizeof(cl_mem), &cl_tx_binary),
-		                      "Set Kernel Arg 1 :FAILED");
+		                      "Failed to set kernel argument 2, cl_tx_binary.");
 
-	crypt_key = mem_calloc(gws, BINARY_SIZE);
-	saved_key = mem_calloc(gws, KEY_SIZE_IN_BYTES);
+	crypt_key = mem_calloc(gws + PADDING, BINARY_SIZE);
+	saved_key = mem_calloc(gws + PADDING, KEY_SIZE_IN_BYTES);
 }
 
 static void release_clobj(void)
 {
-	const char * err_msg = "Release Memory Object FAILED.";
-
 	if (crypt_key) {
-		HANDLE_CLERROR(clReleaseMemObject(cl_tx_keys), err_msg);
-		HANDLE_CLERROR(clReleaseMemObject(cl_tx_binary), err_msg);
-		HANDLE_CLERROR(clReleaseMemObject(cl_magic_table), err_msg);
+		HANDLE_CLERROR(clReleaseMemObject(cl_tx_keys),
+			       "Failed to release buffer cl_tx_keys.");
+		HANDLE_CLERROR(clReleaseMemObject(cl_tx_binary),
+			       "Failed to release buffer cl_tx_binary.");
+		HANDLE_CLERROR(clReleaseMemObject(cl_magic_table),
+			       "Failed to release buffer cl_magic_table.");
 
 		MEM_FREE(saved_key);
 		MEM_FREE(crypt_key);
@@ -181,22 +197,29 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
+		size_t gws_limit;
+
 		opencl_init("$JOHN/kernels/lotus5_kernel.cl", gpu_id, NULL);
 
-		crypt_kernel = clCreateKernel(program[gpu_id], "lotus5", &err);
-		HANDLE_CLERROR(err, "Create kernel FAILED.");
+		crypt_kernel = clCreateKernel(program[gpu_id], "lotus5", &ret_code);
+		HANDLE_CLERROR(ret_code, "Failed to create kernel lotus5.");
 
 		/* Just suppress a compiler warning!! */
 		if (0)
 			autotune_run(NULL, 0, 0, 0);
 
+		gws_limit = get_max_mem_alloc_size(gpu_id) / KEY_SIZE_IN_BYTES - PADDING;
+
+		get_power_of_two(gws_limit);
+		gws_limit >>= 1;
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
 		                       create_clobj, release_clobj,
-		                       2 * KEY_SIZE_IN_BYTES, 0);
+		                       KEY_SIZE_IN_BYTES, gws_limit);
 
 		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, 0, 1000, CL_TRUE);
+		autotune_run_extra(self, 1, gws_limit, 1000, CL_TRUE);
 	}
 }
 
@@ -205,7 +228,7 @@ static void done(void)
 	if (autotuned) {
 		release_clobj();
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel),
-		               "Release kernel");
+		               "Release kernel lotus5.");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 		               "Release Program");
 
@@ -293,24 +316,25 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					    cl_tx_keys, CL_FALSE, 0,
 					    mem_cpy_sz, saved_key,
 					    0, NULL, multi_profilingEvent[0]),
-					    "Failed:Copy data to gpu.");
+					    "Failed to write buffer cl_tx_keys.");
 
 	M = local_work_size ? &local_work_size : NULL;
 	N = local_work_size ?
 		(count + (local_work_size - 1)) /
 		local_work_size * local_work_size : count;
+	assert(local_work_size <= PADDING);
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 					      crypt_kernel, 1,
 					      NULL, &N, M,
 	                                      0, NULL, multi_profilingEvent[1]),
-					      "Enqueue Kernel Failed.");
+					      "Failed to enqueue kernel lotus5.");
 
 	mem_cpy_sz = count * BINARY_SIZE;
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id],
 					   cl_tx_binary, CL_TRUE, 0,
 					   mem_cpy_sz, crypt_key, 0,
 					   NULL, multi_profilingEvent[2]),
-					   "Failed:Copy data from gpu.");
+					   "Failed to read buffer cl_tx_binary.");
 
 	return count;
 }
@@ -340,9 +364,7 @@ struct fmt_main fmt_opencl_1otus5 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests
 	}, {
 		init,
@@ -353,9 +375,7 @@ struct fmt_main fmt_opencl_1otus5 = {
 		fmt_default_split,
 		get_binary,
 		fmt_default_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

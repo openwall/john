@@ -247,8 +247,10 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
+	static struct custom_salt *salt_struct;
 
-	salt_struct = mem_calloc_tiny(sizeof(struct custom_salt),
+	if (!salt_struct)
+		salt_struct = mem_calloc_tiny(sizeof(struct custom_salt),
 	                              MEM_ALIGN_WORD);
 	ctcopy += 11;	/* skip over "$keychain$*" */
 	p = strtokm(ctcopy, "*");
@@ -417,9 +419,7 @@ struct fmt_main fmt_opencl_keychain = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		keychain_tests
 	}, {
 		init,
@@ -430,9 +430,7 @@ struct fmt_main fmt_opencl_keychain = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

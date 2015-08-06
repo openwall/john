@@ -19,9 +19,10 @@ void *ms_office_common_get_salt(char *ciphertext)
 	int i, length;
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy, *p;
-	ms_office_custom_salt *cur_salt;
+	static ms_office_custom_salt *cur_salt;
 
-	cur_salt = mem_calloc_tiny(sizeof(ms_office_custom_salt), MEM_ALIGN_WORD);
+	if (!cur_salt) cur_salt = mem_calloc_tiny(sizeof(ms_office_custom_salt), MEM_ALIGN_WORD);
+	memset(cur_salt, 0, sizeof(*cur_salt));
 	ctcopy += 9;	/* skip over "$office$*" */
 	p = strtokm(ctcopy, "*");
 	cur_salt->version = atoi(p);
@@ -163,7 +164,6 @@ int ms_office_common_valid_2013(char *ciphertext, struct fmt_main *self)
 	return valid(ciphertext, self, "2013");
 }
 
-#if FMT_MAIN_VERSION > 11
 unsigned int ms_office_common_iteration_count(void *salt)
 {
 	ms_office_custom_salt *my_salt=(ms_office_custom_salt *)salt;
@@ -178,7 +178,6 @@ unsigned int ms_office_common_iteration_count(void *salt)
 	else
 		return (unsigned int)my_salt->spinCount;
 }
-#endif
 
 // MORE common code:
 

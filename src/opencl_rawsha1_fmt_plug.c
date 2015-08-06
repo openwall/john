@@ -364,6 +364,11 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
+static char *prepare(char *split_fields[10], struct fmt_main *self)
+{
+	return fmt_default_prepare(split_fields, self);
+}
+
 static void *get_binary(char *ciphertext)
 {
 	static unsigned char *realcipher;
@@ -739,7 +744,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (!is_static_gpu_mask)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
 
-	if (salt != NULL && salt->count > 100 &&
+	if (salt != NULL && salt->count > 4500 &&
 		(num_loaded_hashes - num_loaded_hashes / 10) > salt->count) {
 		size_t old_ot_sz_bytes, old_ht_sz_bytes;
 		prepare_table(salt);
@@ -773,6 +778,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_192, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
 		set_kernel_args();
+		set_kernel_args_kpc();
 	}
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
@@ -904,6 +910,8 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 
 	if (tune_lws) {
 		count = tune_gws ? count : global_work_size;
+		if (count > gws_limit)
+			count = gws_limit;
 		create_clobj_kpc(count);
 		set_kernel_args_kpc();
 		pcount = count;
@@ -976,6 +984,8 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 		set_kernel_args_kpc();
 	}
 
+	clear_keys();
+
 	assert(!(local_work_size & (local_work_size -1)));
 	assert(!(global_work_size % local_work_size));
 	assert(local_work_size <= lws_limit);
@@ -1019,7 +1029,10 @@ static void reset(struct db_main *db)
 		loaded_hashes = (cl_uint*)mem_alloc(6 * sizeof(cl_uint) * num_loaded_hashes);
 
 		while (tests[i].ciphertext != NULL) {
-			ciphertext = split(tests[i].ciphertext, 0, &FMT_STRUCT);
+			char **fields = tests[i].fields;
+			if (!fields[1])
+				fields[1] = tests[i].ciphertext;
+			ciphertext = split(prepare(fields, &FMT_STRUCT), 0, &FMT_STRUCT);
 			binary = (unsigned int*)get_binary(ciphertext);
 			loaded_hashes[6 * i] = binary[0];
 			loaded_hashes[6 * i + 1] = binary[1];
@@ -1077,22 +1090,18 @@ struct fmt_main FMT_STRUCT = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests
 	}, {
 		init,
 		done,
 		reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		split,
 		get_binary,
 		fmt_default_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

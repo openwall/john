@@ -395,13 +395,10 @@ static int cmp_exact(char *source, int index)
 
 #endif
 
-
-#if FMT_MAIN_VERSION > 11
 static unsigned int iteration_count(void *salt)
 {
 	return (unsigned int) ((ARCH_WORD *)salt)[1];
 }
-#endif
 
 struct fmt_main fmt_BSDI = {
 	{
@@ -426,11 +423,9 @@ struct fmt_main fmt_BSDI = {
 #else
 		FMT_CASE,
 #endif
-#if FMT_MAIN_VERSION > 11
 		{
 			"iteration count",
 		},
-#endif
 		tests
 	}, {
 		init,
@@ -446,11 +441,9 @@ struct fmt_main fmt_BSDI = {
 			DES_std_get_binary,
 #endif
 		salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			binary_hash_0,

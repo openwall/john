@@ -37,18 +37,6 @@ john_register_one(&fmt_rawSHA1_LI);
 #include "loader.h"
 #include "memdbg.h"
 
-/*
- * Only effective for SIMD.
- * Undef to disable reversing steps for benchmarking.
- */
-#define REVERSE_STEPS
-
-#define INIT_A 0x67452301
-#define INIT_B 0xefcdab89
-#define INIT_C 0x98badcfe
-#define INIT_D 0x10325476
-#define INIT_E 0xC3D2E1F0
-
 #define FORMAT_LABEL			"Raw-SHA1-Linkedin"
 #define FORMAT_NAME			""
 
@@ -259,18 +247,13 @@ static int cmp_one(void * binary, int index)
 #endif
 }
 
-#ifndef REVERSE_STEPS
-#undef SSEi_REVERSE_STEPS
-#define SSEi_REVERSE_STEPS 0
-#endif
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 
   // get plaintext input in saved_key put it into ciphertext crypt_key
 #ifdef SIMD_COEF_32
-	SIMDSHA1body(saved_key, crypt_key, NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
+	SIMDSHA1body(saved_key, crypt_key, NULL, SSEi_MIXED_IN);
 #else
 	SHA1_Init( &ctx );
 	SHA1_Update( &ctx, (unsigned char *) saved_key, strlen( saved_key ) );
@@ -293,13 +276,6 @@ static void *get_binary(char *ciphertext)
 	}
 #ifdef SIMD_COEF_32
 	alter_endianity(realcipher, BINARY_SIZE);
-#ifdef REVERSE_STEPS
-	out[0] -= INIT_A;
-	out[1] -= INIT_B;
-	out[2] -= INIT_C;
-	out[3] -= INIT_D;
-	out[4] -= INIT_E;
-#endif
 #endif
 	return (void *)realcipher;
 }
@@ -362,13 +338,6 @@ static char *source(char *source, void *binary)
 #endif
 	memcpy(realcipher, binary, BINARY_SIZE);
 #ifdef SIMD_COEF_32
-#if defined(REVERSE_STEPS)
-	out[0] += INIT_A;
-	out[1] += INIT_B;
-	out[2] += INIT_C;
-	out[3] += INIT_D;
-	out[4] += INIT_E;
-#endif
 	alter_endianity(realcipher, BINARY_SIZE);
 #endif
 	strcpy(Buf, FORMAT_TAG);
@@ -401,9 +370,7 @@ struct fmt_main fmt_rawSHA1_LI = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests
 	}, {
 		fmt_default_init,
@@ -414,9 +381,7 @@ struct fmt_main fmt_rawSHA1_LI = {
 		split,
 		get_binary,
 		fmt_default_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		source,
 		{
 			binary_hash_0,

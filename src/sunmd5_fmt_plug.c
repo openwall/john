@@ -259,8 +259,7 @@ static void init(struct fmt_main *self)
 #endif
 
 	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
-	if (!saved_salt)
-		saved_salt = mem_calloc_tiny(SALT_SIZE + 1, MEM_ALIGN_WORD);
+	saved_salt = mem_calloc(1, SALT_SIZE + 1);
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt, sizeof(*crypt_out));
 	data = mem_calloc_align(self->params.max_keys_per_crypt, sizeof(*data), MEM_ALIGN_CACHE);
 
@@ -270,14 +269,15 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
+	MEM_FREE(data);
+	MEM_FREE(crypt_out);
+	MEM_FREE(saved_salt);
+	MEM_FREE(saved_key);
 #ifdef SIMD_COEF_32
 	MEM_FREE(input_buf);
 	MEM_FREE(input_buf_big);
 	MEM_FREE(out_buf);
 #endif
-	MEM_FREE(crypt_out);
-	MEM_FREE(saved_key);
-	MEM_FREE(data);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -872,7 +872,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 	return count;
 }
-#if FMT_MAIN_VERSION > 11
 /*
  * the number of iterations is the sum of a "basic round count" (4096) and
  * a configurable "per-user round count"; we report the sum as cost
@@ -881,7 +880,6 @@ unsigned int sunmd5_cost(void *salt)
 {
 	return (unsigned int) (BASIC_ROUND_COUNT + getrounds(salt));
 }
-#endif
 
 struct fmt_main fmt_sunmd5 = {
 	{
@@ -899,7 +897,6 @@ struct fmt_main fmt_sunmd5 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 			/*
 			 * sum of a "basic round count" (4096) and
@@ -907,7 +904,6 @@ struct fmt_main fmt_sunmd5 = {
 			 */
 			"iteration count",
 		},
-#endif
 		tests
 	}, {
 		init,
@@ -918,11 +914,9 @@ struct fmt_main fmt_sunmd5 = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			sunmd5_cost,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

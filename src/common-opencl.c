@@ -267,6 +267,8 @@ static char *opencl_driver_info(int sequential_id)
 		{1526, 3},
 		{1573, 4},
 		{1642, 5},
+		{1702, 3},
+		{1729, 3},
 		{0, 0}
 	};
 
@@ -281,6 +283,8 @@ static char *opencl_driver_info(int sequential_id)
 		"14.6 beta (Mantle)",
 		"14.9 (Mantle) [recommended]",
 		"14.12 (Omega) [supported]",
+		"15.05 [buggy]",
+		"15.07 [recommended]",
 		""
 	};
 	clGetDeviceInfo(devices[sequential_id], CL_DRIVER_VERSION,
@@ -918,9 +922,10 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 		                                  SUBSECTION_OPENCL, "GlobalBuildOpts")))
 			global_opts = OPENCLBUILDOPTIONS;
 
-	sprintf(include, "-I %s %s %s%s%s%d %s -D_OPENCL_COMPILER %s",
+	sprintf(include, "-I %s %s %s%s%s%s%d %s -D_OPENCL_COMPILER %s",
 	        path_expand(pathname),
 	        global_opts,
+	        get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_MESA ? "-D__MESA__" : "",
 #ifdef __APPLE__
 	        "-D__OS_X__ ",
 #else
@@ -2250,6 +2255,9 @@ int get_platform_vendor_id(int platform_id)
 	if (strstr(dname, "Advanced Micro") != NULL ||
 	        strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)
 		return DEV_AMD;
+
+	if (strstr(dname, "MESA") != NULL)
+		return DEV_MESA;
 
 	return DEV_UNKNOWN;
 }

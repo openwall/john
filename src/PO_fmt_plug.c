@@ -219,9 +219,7 @@ struct fmt_main fmt_PO = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests
 	}, {
 		po_init,
@@ -232,9 +230,7 @@ struct fmt_main fmt_PO = {
 		fmt_default_split,
 		get_binary,
 		(void *(*)(char *))get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

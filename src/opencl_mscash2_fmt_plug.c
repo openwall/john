@@ -90,6 +90,7 @@ static cl_uint 		*dcc2_hash_host ;
 static unsigned char 	(*key_host)[MAX_PLAINTEXT_LENGTH + 1] ;
 static ms_cash2_salt 	currentsalt ;
 static cl_uint          *hmac_sha1_out ;
+static struct fmt_main  *self = NULL;
 
 extern int mscash2_valid(char *, int,  struct fmt_main *);
 extern char * mscash2_prepare(char **, struct fmt_main *);
@@ -98,9 +99,8 @@ extern char * mscash2_split(char *, int, struct fmt_main *);
 static void set_key(char*, int) ;
 static int crypt_all(int *pcount, struct db_salt *salt) ;
 
-static void init(struct fmt_main *self) {
-	int 	i ;
-
+static void init(struct fmt_main *__self)
+{
 	//Prepare OpenCL environment.
 	opencl_preinit();
 
@@ -109,28 +109,36 @@ static void init(struct fmt_main *self) {
 
 	initNumDevices();
 
-	self->params.max_keys_per_crypt = 0;
-
-	for( i=0; i < get_number_of_devices_in_use(); i++)
-		self->params.max_keys_per_crypt += selectDevice(gpu_device_list[i], self);
-
-	///Allocate memory
-	key_host = mem_calloc(self -> params.max_keys_per_crypt, sizeof(*key_host)) ;
-	dcc_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt) ;
-	dcc2_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt) ;
-	hmac_sha1_out  = (cl_uint*)mem_alloc(5 * sizeof(cl_uint) * self -> params.max_keys_per_crypt) ;
-
-	memset(dcc_hash_host, 0, 4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt) ;
-	memset(dcc2_hash_host, 0, 4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt) ;
-
-
-
-	//dcc2_warning() ;
-
 	if (pers_opts.target_enc == UTF_8) {
-		self->params.plaintext_length *= 3;
-		if (self->params.plaintext_length > 125)
-			self->params.plaintext_length = 125;
+		__self->params.plaintext_length *= 3;
+		if (__self->params.plaintext_length > 125)
+			__self->params.plaintext_length = 125;
+	}
+
+	self = __self;
+}
+
+static void reset(struct db_main *db)
+{
+	static unsigned int initialized;
+
+	if (!initialized) {
+		unsigned int i;
+		self->params.max_keys_per_crypt = 0;
+
+		for( i=0; i < get_number_of_devices_in_use(); i++)
+			self->params.max_keys_per_crypt += selectDevice(gpu_device_list[i], self);
+
+		///Allocate memory
+		key_host = mem_calloc(self -> params.max_keys_per_crypt, sizeof(*key_host));
+		dcc_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt);
+		dcc2_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt);
+		hmac_sha1_out  = (cl_uint*)mem_alloc(5 * sizeof(cl_uint) * self -> params.max_keys_per_crypt);
+
+		memset(dcc_hash_host, 0, 4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt);
+		memset(dcc2_hash_host, 0, 4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt);
+
+		initialized++;
 	}
 }
 
@@ -418,22 +426,18 @@ struct fmt_main fmt_opencl_mscash2 = {
 		MAX_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests
 	},{
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		mscash2_prepare,
 		valid,
 		mscash2_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			binary_hash_0,

@@ -103,11 +103,16 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
-	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
+	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
+}
+
+static void done(void)
+{
+	MEM_FREE(cracked);
+	MEM_FREE(saved_key);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -648,7 +653,6 @@ static int cmp_exact(char *source, int index)
 	return cracked[index];
 }
 
-#if FMT_MAIN_VERSION > 11
 /*
  * Report revision as tunable cost, since between revisions 2 and 6,
  * only revisions 3 and 4 seem to have a similar c/s rate.
@@ -660,7 +664,6 @@ static unsigned int pdf_revision(void *salt)
 	my_salt = salt;
 	return (unsigned int) my_salt->R;
 }
-#endif
 
 struct fmt_main fmt_pdf = {
 	{
@@ -678,27 +681,23 @@ struct fmt_main fmt_pdf = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 			"revision",
 		},
-#endif
 		pdf_tests
 	},
 	{
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		prepare,
 		valid,
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			pdf_revision,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

@@ -54,6 +54,33 @@ lotus_mix (__private unsigned int *m1, MAYBE_CONSTANT unsigned int *lotus_magic_
 			p1 =  ((m1[k] & 0xff000000) >> 24) ^ lotus_magic_table[((j-- + p1) & 0xff) & 0xff];
 			m1[k] = (m1[k] & 0x00ffffff) | (p1 << 24);
 			k++;
+			p1 = (m1[k] & 0xff) ^ lotus_magic_table[((j-- + p1) & 0xff) & 0xff];
+			m1[k] = (m1[k] & 0xffffff00) | p1;
+			p1 =  ((m1[k] & 0x0000ff00) >> 8) ^ lotus_magic_table[((j-- + p1) & 0xff) & 0xff];
+			m1[k] = (m1[k] & 0xffff00ff) | (p1 << 8);
+			p1 =  ((m1[k] & 0x00ff0000) >> 16) ^ lotus_magic_table[((j-- + p1) & 0xff) & 0xff];
+			m1[k] = (m1[k] & 0xff00ffff) | (p1 << 16);
+			p1 =  ((m1[k] & 0xff000000) >> 24) ^ lotus_magic_table[((j-- + p1) & 0xff) & 0xff];
+			m1[k] = (m1[k] & 0x00ffffff) | (p1 << 24);
+			k++;
+			p1 = (m1[k] & 0xff) ^ lotus_magic_table[((j-- + p1) & 0xff) & 0xff];
+			m1[k] = (m1[k] & 0xffffff00) | p1;
+			p1 =  ((m1[k] & 0x0000ff00) >> 8) ^ lotus_magic_table[((j-- + p1) & 0xff) & 0xff];
+			m1[k] = (m1[k] & 0xffff00ff) | (p1 << 8);
+			p1 =  ((m1[k] & 0x00ff0000) >> 16) ^ lotus_magic_table[((j-- + p1) & 0xff) & 0xff];
+			m1[k] = (m1[k] & 0xff00ffff) | (p1 << 16);
+			p1 =  ((m1[k] & 0xff000000) >> 24) ^ lotus_magic_table[((j-- + p1) & 0xff) & 0xff];
+			m1[k] = (m1[k] & 0x00ffffff) | (p1 << 24);
+			k++;
+			p1 = (m1[k] & 0xff) ^ lotus_magic_table[((j-- + p1) & 0xff) & 0xff];
+			m1[k] = (m1[k] & 0xffffff00) | p1;
+			p1 =  ((m1[k] & 0x0000ff00) >> 8) ^ lotus_magic_table[((j-- + p1) & 0xff) & 0xff];
+			m1[k] = (m1[k] & 0xffff00ff) | (p1 << 8);
+			p1 =  ((m1[k] & 0x00ff0000) >> 16) ^ lotus_magic_table[((j-- + p1) & 0xff) & 0xff];
+			m1[k] = (m1[k] & 0xff00ffff) | (p1 << 16);
+			p1 =  ((m1[k] & 0xff000000) >> 24) ^ lotus_magic_table[((j-- + p1) & 0xff) & 0xff];
+			m1[k] = (m1[k] & 0x00ffffff) | (p1 << 24);
+			k++;
 		}
 	}
 }
@@ -80,6 +107,8 @@ lotus5(__global unsigned int * i_saved_key,
 
 		for (offset = lid; offset < 256; offset += local_work_dim)
 			s_magic_table[offset] = magic_table[offset];
+
+		barrier(CLK_LOCAL_MEM_FENCE);
 	}
 #endif
 

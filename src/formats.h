@@ -28,13 +28,11 @@
  */
 struct fmt_main;
 
-#if FMT_MAIN_VERSION > 11
 /*
  * Maximum number of different tunable cost parameters
  * that can be reported for a single format
  */
 #define FMT_TUNABLE_COSTS	3
-#endif
 
 /*
  * Some format methods accept pointers to these, yet we can't just include
@@ -145,7 +143,6 @@ struct fmt_params {
 /* Properties of this format */
 	unsigned int flags;
 
-#if FMT_MAIN_VERSION > 11
 /*
  * Descriptions (names) of tunable cost parameters for this format
  *
@@ -156,7 +153,6 @@ struct fmt_params {
  * returning tunable cost values.
  */
 	char *tunable_cost_name[FMT_TUNABLE_COSTS];
-#endif
 
 /* Some passwords to test the methods for correct operation (or NULL for no
  * self test, and no benchmark), terminated with a NULL ciphertext. */
@@ -211,7 +207,6 @@ struct fmt_methods {
 /* Converts an ASCII salt to its internal representation */
 	void *(*salt)(char *ciphertext);
 
-#if FMT_MAIN_VERSION > 11
 /*
  * These functions return the value of a tunable cost parameter
  * for a given salt.
@@ -225,7 +220,6 @@ struct fmt_methods {
  * e.g., the real iteration count is 2^(t_cost) for parameter t_cost.
  */
 	unsigned int (*tunable_cost_value[FMT_TUNABLE_COSTS])(void *salt);
-#endif
 
 /* Reconstructs the ASCII ciphertext from its binary (saltless only).
  * Alternatively, in the simplest case simply returns "source" as-is. */

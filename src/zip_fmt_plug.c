@@ -176,21 +176,21 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
-static const char *ValidateZipFileData(u8 *Fn, u8 *Oh, u8 *Ob, unsigned len, u8 *Auth) {
+static const char *ValidateZipFileData(c8 *Fn, c8 *Oh, c8 *Ob, unsigned len, c8 *Auth) {
 	u32 id, i;
 	long off;
 	unsigned char bAuth[10], b;
 	static char tmp[8192+256]; // 8192 size came from zip2john.  That is max path it can put into a filename
 	FILE *fp;
 
-	fp = fopen((c8*)Fn, "rb"); /* have to open in bin mode for OS's where this matters, DOS/Win32 */
+	fp = fopen(Fn, "rb"); /* have to open in bin mode for OS's where this matters, DOS/Win32 */
 	if (!fp) {
 		/* this error is listed, even if not in pkzip debugging mode. */
 		snprintf(tmp, sizeof(tmp), "Error loading a zip-aes hash line. The ZIP file '%s' could NOT be found\n", Fn);
 		return tmp;
 	}
 
-	sscanf((char*)Oh, "%lx", &off);
+	sscanf(Oh, "%lx", &off);
 	if (fseek(fp, off, SEEK_SET) != 0) {
 		fclose(fp);
 		snprintf(tmp, sizeof(tmp), "Not able to seek to specified offset in the .zip file %s, to read the zip blob data.", Fn);
@@ -204,7 +204,7 @@ static const char *ValidateZipFileData(u8 *Fn, u8 *Oh, u8 *Ob, unsigned len, u8 
 		return tmp;
 	}
 
-	sscanf((char*)Ob, "%lx", &off);
+	sscanf(Ob, "%lx", &off);
 	off += len;
 	if (fseek(fp, off, SEEK_SET) != 0) {
 		fclose(fp);
@@ -229,66 +229,62 @@ static const char *ValidateZipFileData(u8 *Fn, u8 *Oh, u8 *Ob, unsigned len, u8 
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	u8 *ctcopy, *keeptr, *p, *cp, *Fn=0, *Oh=0, *Ob=0;
-	const char *sFailStr="Truncated hash, pkz_GetFld() returned NULL";
+	c8 *ctcopy, *keeptr, *p, *cp, *Fn=0, *Oh=0, *Ob=0;
+	const char *sFailStr="Truncated hash, strtokm() returned NULL";
 	unsigned val;
 	int ret = 0;
 	int zip_file_validate=0;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) || ciphertext[TAG_LENGTH] != '*')
 		return 0;
-	if (!(ctcopy = (u8*)strdup(ciphertext)))
+	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 
 	p = &ctcopy[TAG_LENGTH+1];
-	if ((p = pkz_GetFld(p, &cp)) == NULL)		// type
-		goto Bail;
-	if (!cp || *cp != '0') { sFailStr = "Out of data, reading count of hashes field"; goto Bail; }
 
-	if ((p = pkz_GetFld(p, &cp)) == NULL)		// mode
-		goto Bail;
-	if (cp[1] || *cp < '1' || *cp > '3') {
+	// type
+	if ((cp = strtokm(p, "*")) == NULL || !cp || *cp != '0') {
+		sFailStr = "Out of data, reading count of hashes field"; goto Bail; }
+
+	// mode
+	if ((cp = strtokm(NULL, "*")) == NULL || cp[1] || *cp < '1' || *cp > '3') {
 		sFailStr = "Invalid aes mode (only valid for 1 to 3)"; goto Bail; }
 	val = *cp - '0';
 
-	if ((p = pkz_GetFld(p, &cp)) == NULL)		// file_magic enum (ignored for now, just a place holder)
+	if ((cp = strtokm(NULL, "*")) == NULL)		// file_magic enum (ignored for now, just a place holder)
 		goto Bail;
 
-	if ((p = pkz_GetFld(p, &cp)) == NULL)		// salt
-		goto Bail;
-	if (!pkz_is_hex_str(cp) || strlen((char*)cp) != SALT_LENGTH(val)<<1)  {
+	// salt
+	if ((cp = strtokm(NULL, "*")) == NULL || !ishexlc(cp) || strlen((char*)cp) != SALT_LENGTH(val)<<1)  {
 		sFailStr = "Salt invalid or wrong length"; goto Bail; }
 
-	if ((p = pkz_GetFld(p, &cp)) == NULL)		// validator
-		goto Bail;
-	if (!pkz_is_hex_str(cp) || strlen((char*)cp) != 4)  {
+	// validator
+	if ((cp = strtokm(NULL, "*")) == NULL || !ishexlc(cp) || strlen((char*)cp) != 4)  {
 		sFailStr = "Validator invalid or wrong length (4 bytes hex)"; goto Bail; }
 
-	if ((p = pkz_GetFld(p, &cp)) == NULL)		// Data len.
-		goto Bail;
-	if (!pkz_is_hex_str(cp))  {
+	// Data len.
+	if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp))  {
 		sFailStr = "Data length invalid (not hex number)"; goto Bail; }
 	sscanf((const char*)cp, "%x", &val);
 
-	if ((p = pkz_GetFld(p, &cp)) == NULL)		// data blob, OR file structure
+	if ((cp = strtokm(NULL, "*")) == NULL)		// data blob, OR file structure
 		goto Bail;
 	if (!strcmp((char*)cp, "ZFILE")) {
-		if ((p = pkz_GetFld(p, &Fn)) == NULL)
+		if ((Fn = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp))
 			goto Bail;
-		if ((p = pkz_GetFld(p, &Oh)) == NULL)
+		if ((Oh = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp))
 			goto Bail;
-		if ((p = pkz_GetFld(p, &Ob)) == NULL)
+		if ((Ob = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp))
 			goto Bail;
 		zip_file_validate = 1;
 	} else {
-		if (!pkz_is_hex_str(cp) || strlen((char*)cp) != val<<1)  {
+		if (!ishexlc(cp) || strlen((char*)cp) != val<<1)  {
 			sFailStr = "Inline data blob invalid (not hex number), or wrong length"; goto Bail; }
 	}
 
-	if ((p = pkz_GetFld(p, &cp)) == NULL)		// authentication_code
-		goto Bail;
-	if (!pkz_is_hex_str(cp) || strlen((char*)cp) != BINARY_SIZE<<1)  {
+	// authentication_code
+	if ((cp = strtokm(NULL, "*")) == NULL || !ishexlc(cp) || strlen((char*)cp) != BINARY_SIZE<<1)  {
 		sFailStr = "Authentication data invalid (not hex number), or not 20 hex characters"; goto Bail; }
 
 	// Ok, now if we have to pull from .zip file, lets do so, and we can validate with the authentication bytes
@@ -301,10 +297,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		}
 	}
 
-	if ((p = pkz_GetFld(p, &cp)) == NULL)		// Trailing signature
-		goto Bail;
-	if (strcmp((char*)cp, FORMAT_CLOSE_TAG)) {
+	// Trailing signature
+	if ((cp = strtokm(NULL, "*")) == NULL || strcmp((char*)cp, FORMAT_CLOSE_TAG)) {
 		sFailStr = "Invalid trailing zip2 signature"; goto Bail; }
+	if ((strtokm(NULL, "*")) != NULL) {
+		sFailStr = "Trailing crap after pkzip hash, ignored"; goto Bail; }
+
 	ret = 1;
 
 Bail:;
@@ -336,35 +334,35 @@ static void *get_salt(char *ciphertext)
 	my_salt salt, *psalt;
 	static unsigned char *ptr;
 	/* extract data from "ciphertext" */
-	u8 *copy_mem = (u8*)strdup(ciphertext);
-	u8 *cp, *p;
+	c8 *copy_mem = strdup(ciphertext);
+	c8 *cp, *p;
 
 	if (!ptr) ptr = mem_alloc_tiny(sizeof(my_salt*),sizeof(my_salt*));
 	p = copy_mem + TAG_LENGTH+1; /* skip over "$zip2$*" */
 	memset(&salt, 0, sizeof(salt));
-	p = pkz_GetFld(p, &cp); // type
+	cp = strtokm(p, "*"); // type
 	salt.v.type = atoi((const char*)cp);
-	p = pkz_GetFld(p, &cp); // mode
+	cp = strtokm(NULL, "*"); // mode
 	salt.v.mode = atoi((const char*)cp);
-	p = pkz_GetFld(p, &cp); // file_magic enum (ignored)
-	p = pkz_GetFld(p, &cp); // salt
+	cp = strtokm(NULL, "*"); // file_magic enum (ignored)
+	cp = strtokm(NULL, "*"); // salt
 	for (i = 0; i < SALT_LENGTH(salt.v.mode); i++)
 		salt.salt[i] = (atoi16[ARCH_INDEX(cp[i<<1])]<<4) | atoi16[ARCH_INDEX(cp[(i<<1)+1])];
-	p = pkz_GetFld(p, &cp);	// validator
+	cp = strtokm(NULL, "*");	// validator
 	salt.passverify[0] = (atoi16[ARCH_INDEX(cp[0])]<<4) | atoi16[ARCH_INDEX(cp[1])];
 	salt.passverify[1] = (atoi16[ARCH_INDEX(cp[2])]<<4) | atoi16[ARCH_INDEX(cp[3])];
-	p = pkz_GetFld(p, &cp);	// data len
+	cp = strtokm(NULL, "*");	// data len
 	sscanf((const char *)cp, "%x", &salt.comp_len);
 
 	// later we will store the data blob in our own static data structure, and place the 64 bit LSB of the
 	// MD5 of the data blob into a field in the salt. For the first POC I store the entire blob and just
 	// make sure all my test data is small enough to fit.
 
-	p = pkz_GetFld(p, &cp);	// data blob
+	cp = strtokm(NULL, "*");	// data blob
 
 	// Ok, now create the allocated salt record we are going to return back to John, using the dynamic
 	// sized data buffer.
-	psalt = (my_salt*)mem_calloc(1, sizeof(my_salt)+salt.comp_len);
+	psalt = (my_salt*)mem_calloc(1, sizeof(my_salt) + salt.comp_len);
 	psalt->v.type = salt.v.type;
 	psalt->v.mode = salt.v.mode;
 	psalt->comp_len = salt.comp_len;
@@ -382,14 +380,14 @@ static void *get_salt(char *ciphertext)
 	for (i = 0; i < psalt->comp_len; i++)
 		psalt->datablob[i] = (atoi16[ARCH_INDEX(cp[i<<1])]<<4) | atoi16[ARCH_INDEX(cp[(i<<1)+1])];
 	} else {
-		u8 *Fn, *Oh, *Ob;
+		c8 *Fn, *Oh, *Ob;
 		long len;
 		uint32_t id;
 		FILE *fp;
 
-		p = pkz_GetFld(p, &Fn);
-		p = pkz_GetFld(p, &Oh);
-		p = pkz_GetFld(p, &Ob);
+		Fn = strtokm(NULL, "*");
+		Oh = strtokm(NULL, "*");
+		Ob = strtokm(NULL, "*");
 
 		fp = fopen((const char*)Fn, "rb");
 		if (!fp) {
@@ -561,9 +559,7 @@ struct fmt_main fmt_zip = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		zip_tests
 	}, {
 		init,
@@ -574,9 +570,7 @@ struct fmt_main fmt_zip = {
 		fmt_default_split,
 		binary,  // to add
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

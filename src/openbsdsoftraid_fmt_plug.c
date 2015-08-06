@@ -78,9 +78,14 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	key_buffer = mem_calloc_tiny(sizeof(*key_buffer) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	key_buffer = mem_calloc(sizeof(*key_buffer), self->params.max_keys_per_crypt);
+	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
+}
+
+static void done(void)
+{
+	MEM_FREE(crypt_out);
+	MEM_FREE(key_buffer);
 }
 
 static int valid(char* ciphertext, struct fmt_main *self)
@@ -266,13 +271,11 @@ static char *get_key(int index)
 {
 	return key_buffer[index];
 }
-#if FMT_MAIN_VERSION > 11
 /* report iteration count as tunable cost */
 static unsigned int iteration_count(void *salt)
 {
 	return ((struct custom_salt*)salt)->num_iterations;
 }
-#endif
 static struct fmt_tests tests_openbsdsoftraid[] = {
 	// too long of line was causing my Sparc box to fail to compile this code
 	{"\
@@ -304,26 +307,22 @@ struct fmt_main fmt_openbsd_softraid = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 			"iteration count",
 		},
-#endif
 		tests_openbsdsoftraid
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

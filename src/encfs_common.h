@@ -25,10 +25,7 @@ typedef struct encfs_common_custom_salt_t {
 
 int encfs_common_valid(char *ciphertext, struct fmt_main *self);
 void *encfs_common_get_salt(char *ciphertext);
-
-#if FMT_MAIN_VERSION > 11
 unsigned int encfs_common_iteration_count(void *salt);
-#endif
 
 // exported 'common' functions
 unsigned int encfs_common_MAC_32(encfs_common_custom_salt *cur_salt, unsigned char *src, int len, unsigned char *key);

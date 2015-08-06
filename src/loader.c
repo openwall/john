@@ -68,7 +68,11 @@ int ldr_in_pot = 0;
 #define SPLFLEN(f)	(fields[f][0] ? fields[f+1] - fields[f] - 1 : 0)
 
 static char *no_username = "?";
+#ifdef HAVE_FUZZ
+int pristine_gecos;
+#else
 static int pristine_gecos;
+#endif
 
 /* There should be legislation against adding a BOM to UTF-8 */
 static char *skip_bom(char *string)
@@ -272,6 +276,7 @@ static void ldr_set_encoding(struct fmt_main *format)
 	if ((!pers_opts.target_enc || pers_opts.default_target_enc) &&
 	    !pers_opts.internal_enc) {
 		if (!strcasecmp(format->params.label, "LM") ||
+		    !strcasecmp(format->params.label, "lm-opencl") ||
 		    !strcasecmp(format->params.label, "netlm") ||
 		    !strcasecmp(format->params.label, "nethalflm")) {
 			pers_opts.target_enc =
@@ -614,8 +619,19 @@ static int ldr_split_line(char **login, char **ciphertext,
 
 		if (valid) {
 			*ciphertext = prepared;
+#ifdef HAVE_FUZZ
+			if (options.flags & FLG_FUZZ_CHK) {
+				ldr_set_encoding(*format);
+				fmt_init(*format);
+			}
+#endif
 			return valid;
 		}
+
+#ifdef HAVE_FUZZ
+		if (options.flags & FLG_FUZZ_CHK)
+			return valid;
+#endif
 
 		ldr_set_encoding(*format);
 
@@ -801,7 +817,11 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 	return words;
 }
 
+#ifdef HAVE_FUZZ
+void ldr_load_pw_line(struct db_main *db, char *line)
+#else
 static void ldr_load_pw_line(struct db_main *db, char *line)
+#endif
 {
 	static int skip_dupe_checking = 0;
 	struct fmt_main *format;
@@ -814,12 +834,20 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	struct db_password *current_pw, *last_pw;
 	struct list_main *words;
 	size_t pw_size, salt_size;
-#if FMT_MAIN_VERSION > 11
 	int i;
-#endif
 
+#ifdef HAVE_FUZZ
+	char *line_sb;
+
+	line_sb = line;
+	if (options.flags & FLG_FUZZ_CHK)
+		line_sb = skip_bom(line);
+	count = ldr_split_line(&login, &ciphertext, &gecos, &home, &uid,
+		NULL, &db->format, db->options, line_sb);
+#else
 	count = ldr_split_line(&login, &ciphertext, &gecos, &home, &uid,
 		NULL, &db->format, db->options, line);
+#endif
 	if (count <= 0) return;
 	if (count >= 2) db->options->flags |= DB_SPLIT;
 
@@ -934,10 +962,8 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 				format->params.salt_size,
 				format->params.salt_align);
 
-#if FMT_MAIN_VERSION > 11
 			for (i = 0; i < FMT_TUNABLE_COSTS && format->methods.tunable_cost_value[i] != NULL; ++i)
 				current_salt->cost[i] = format->methods.tunable_cost_value[i](current_salt->salt);
-#endif
 
 			current_salt->index = fmt_dummy_hash;
 			current_salt->bitmap = NULL;
@@ -1360,7 +1386,6 @@ static void ldr_filter_salts(struct db_main *db)
 	} while ((current = current->next));
 }
 
-#if FMT_MAIN_VERSION > 11
 /*
  * check if cost values for a particular salt match
  * what has been requested with the --costs= option
@@ -1400,7 +1425,6 @@ static void ldr_filter_costs(struct db_main *db)
 			last = current;
 	} while ((current = current->next));
 }
-#endif
 
 /*
  * Allocate memory for and initialize the hash table for this salt if needed.
@@ -1512,7 +1536,6 @@ static void ldr_init_hash(struct db_main *db)
 	} while ((current = current->next));
 }
 
-#if FMT_MAIN_VERSION > 11
 /*
  * compute cost ranges after all unneeded salts have been removed
  */
@@ -1536,7 +1559,6 @@ static void ldr_cost_ranges(struct db_main *db)
 		}
 	} while ((current = current->next));
 }
-#endif
 
 void ldr_fix_database(struct db_main *db)
 {
@@ -1550,13 +1572,9 @@ void ldr_fix_database(struct db_main *db)
 		MEM_FREE(db->salt_hash);
 
 	ldr_filter_salts(db);
-#if FMT_MAIN_VERSION > 11
 	ldr_filter_costs(db);
-#endif
 	ldr_remove_marked(db);
-#if FMT_MAIN_VERSION > 11
 	ldr_cost_ranges(db);
-#endif
 	ldr_sort_salts(db);
 
 	ldr_init_hash(db);

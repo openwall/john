@@ -139,10 +139,8 @@ struct db_salt {
  * salts are removed during cracking */
 	int sequential_id;
 
-#if FMT_MAIN_VERSION > 11
 /* Tunable costs */
 	unsigned int cost[FMT_TUNABLE_COSTS];
-#endif
 
 /* Buffered keys, allocated for "single crack" mode only */
 /* THIS MUST BE LAST IN THE STRUCT */
@@ -189,11 +187,9 @@ struct db_options {
 /* Requested passwords per salt */
 	int min_pps, max_pps;
 
-#if FMT_MAIN_VERSION > 11
 /* Requested cost values */
 	unsigned int min_cost[FMT_TUNABLE_COSTS];
 	unsigned int max_cost[FMT_TUNABLE_COSTS];
-#endif
 
 /* if --show=left is used, john dumps the non-cracked hashes */
 	int showuncracked;
@@ -237,11 +233,9 @@ struct db_main {
 /* Number of salts, passwords and guesses */
 	int salt_count, password_count, guess_count;
 
-#if FMT_MAIN_VERSION > 11
 /* min. and max. tunable costs */
 	unsigned int min_cost[FMT_TUNABLE_COSTS];
 	unsigned int max_cost[FMT_TUNABLE_COSTS];
-#endif
 
 /* Ciphertext format */
 	struct fmt_main *format;
@@ -254,6 +248,13 @@ extern int ldr_in_pot;
  * Initializes the database before loading.
  */
 extern void ldr_init_database(struct db_main *db, struct db_options *options);
+
+#ifdef HAVE_FUZZ
+/*
+ * Loads a line into the database.
+ */
+extern void ldr_load_pw_line(struct db_main *db, char *line);
+#endif
 
 /*
  * Loads a password file into the database.

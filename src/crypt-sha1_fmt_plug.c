@@ -224,13 +224,11 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
-#if FMT_MAIN_VERSION > 11
 static unsigned int iteration_count(void *salt)
 {
 	struct saltstruct *p = (struct saltstruct *)salt;
 	return p->rounds;
 }
-#endif
 
 struct fmt_main fmt_cryptsha1 = {
 	{
@@ -248,11 +246,9 @@ struct fmt_main fmt_cryptsha1 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 			"iteration count",
 		},
-#endif
 		sha1crypt_common_tests
 	}, {
 		init,
@@ -263,11 +259,9 @@ struct fmt_main fmt_cryptsha1 = {
 		fmt_default_split,
 		sha1crypt_common_get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

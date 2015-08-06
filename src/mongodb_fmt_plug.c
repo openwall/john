@@ -274,7 +274,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-#if FMT_MAIN_VERSION > 11
 /*
  * report salt type as first "tunable cost"
  */
@@ -285,7 +284,6 @@ static unsigned int mongodb_salt_type(void *salt)
 	my_salt = salt;
 	return (unsigned int) my_salt->type;
 }
-#endif
 
 struct fmt_main fmt_mongodb = {
 	{
@@ -303,12 +301,10 @@ struct fmt_main fmt_mongodb = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 			"salt type",
 			/* FIXME: report user name length as 2nd cost? */
 		},
-#endif
 		mongodb_tests
 	}, {
 		init,
@@ -319,11 +315,9 @@ struct fmt_main fmt_mongodb = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			mongodb_salt_type,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

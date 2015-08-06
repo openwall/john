@@ -171,11 +171,9 @@ struct fmt_main fmt_opencl_bf = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-#if FMT_MAIN_VERSION > 11
 		{
 			"iteration count",
 		},
-#endif
 		BF_common_tests
 	}, {
 		init,
@@ -186,11 +184,9 @@ struct fmt_main fmt_opencl_bf = {
 		fmt_default_split,
 		BF_common_get_binary,
 		BF_common_get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			BF_common_iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

@@ -43,7 +43,6 @@ m4_include([m4/jtr_arm_logic.m4])
 m4_include([m4/jtr_generic_logic.m4])
 m4_include([m4/jtr_systems_specific_logic.m4])
 m4_include([m4/jtr_utility_macros.m4])
-m4_include([m4/jtr_local_conf.m4])
 
 # Define precious variables. They get included in --help and need no AC_SUBST
 AC_ARG_VAR([CFLAGS_EXTRA], [additional CFLAGS for -Woptions and other things, not used during ./configure but put in resulting Makefile])
@@ -75,8 +74,8 @@ AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependenc
 # MPI is not "auto" because its network usage might scare people:
 AC_ARG_ENABLE([openmp-for-fast-formats], [AC_HELP_STRING([--enable-openmp-for-fast-formats], [Enable OpenMP for fast formats (usually a bad idea - use fork instead)])], [ompfast=$enableval], [ompfast=no])
 AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--enable-mpi], [Use OpenMPI])], [enable_mpi=$enableval], [enable_mpi=no])
-AC_ARG_ENABLE([rexgen], [AC_HELP_STRING([--enable-rexgen], [Use rexgen library if present])], [enable_rexgen=$enableval], [enable_rexgen=auto])
-AC_ARG_ENABLE([cuda], [AC_HELP_STRING([--disable-cuda], [Do not use CUDA])], [enable_cuda=$enableval], [enable_cuda=auto])
+AC_ARG_ENABLE([rexgen], [AC_HELP_STRING([--disable-rexgen], [Disable use of rexgen library])], [enable_rexgen=$enableval], [enable_rexgen=auto])
+AC_ARG_ENABLE([cuda], [AC_HELP_STRING([--enable-cuda], [Use CUDA even if OpenCL was found too])], [enable_cuda=$enableval], [enable_cuda=auto])
 AC_ARG_ENABLE([pcap], [AC_HELP_STRING([--disable-pcap], [Do not build helpers depending on PCAP])], [enable_pcap=$enableval], [enable_pcap=auto])
 AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not test build system for target features. Implies --disable-native-march.])], [enable_native_tests=$enableval], [enable_native_tests=auto])
 AC_ARG_ENABLE([native-march], [AC_HELP_STRING([--disable-native-march], [Do not use things like -march=native even if valid compiler option(s). Native tests still can be run in this mode])], [enable_native_march=$enableval], [enable_native_march=auto])
@@ -85,6 +84,7 @@ AC_ARG_ENABLE([pkg-config], [AS_HELP_STRING([--disable-pkg-config],[do not use p
 AC_ARG_ENABLE([nt-full-unicode], [AS_HELP_STRING([--enable-nt-full-unicode],[support 4-byte UTF-8 for MS formats])], [enable_nt_unicode=$enableval], [enable_nt_unicode=no])
 AC_ARG_ENABLE([int128], [AC_HELP_STRING([--disable-int128], [Do not use int128])], [enable_int128=$enableval], [enable_int128=auto])
 AC_ARG_ENABLE([experimental-code], [AC_HELP_STRING([--enable-experimental-code], [Use experimental code])], [experimental=$enableval], [experimental=no])
+AC_ARG_ENABLE([fuzz], [AC_HELP_STRING([--enable-fuzz], [Fuzzing prepare(), valid(), init(), etc])], [fuzz=$enableval], [fuzz=no])
 
 ####### Actual tests start here #######
 
@@ -542,6 +542,9 @@ if test "x$CL_LIBS" = x; then
 else
    using_cl=yes
    HAVE_OPENCL=-DHAVE_OPENCL
+   if test x$enable_cuda = xauto; then
+      enable_cuda=no
+   fi
 fi
 
 # Check for CUDA, including headers.
@@ -671,6 +674,15 @@ dnl                 endpwent isascii mkdir rmdir atexit floor
 dnl                 ftruncate gethostbyname gettimeofday inet_ntoa
 dnl                 strrchr strcspn strspn strtol strtoul
 dnl ])
+
+# Mesa claims to support OpenCL 1.2, but does not.
+CFLAGS_BACKUP=$CFLAGS
+LIBS_BACKUP=$LIBS
+CFLAGS="$CFLAGS $CL_CFLAGS"
+LIBS="$LIBS $CL_LIBS"
+AC_CHECK_FUNC([clGetKernelArgInfo], [AC_DEFINE(HAVE_OPENCL_1_2, 1, [Define to 1 if you (really) have OpenCL 1.2.])])
+CFLAGS=$CFLAGS_BACKUP
+LIBS=$LIBS_BACKUP
 
 # This will stop at first found, will be used for mem_alloc_aligned()
 AC_CHECK_FUNCS([posix_memalign aligned_alloc memalign __mingw_aligned_malloc _aligned_malloc], break)
@@ -803,6 +815,13 @@ AS_IF([test "x$enable_nt_unicode" != xno], [AC_DEFINE([NT_FULL_UNICODE],1,[Defin
 # Use features that may not yet be stable
 AS_IF([test "x$experimental" != xno], [AC_DEFINE([USE_EXPERIMENTAL],1,[Define to 1 if you want to include experimental code.])])
 
+# In makefile, we need to know if building extra fuzz items.
+if test "x$fuzz" != xno ; then
+   AC_SUBST(HAVE_FUZZ,[-DHAVE_FUZZ])
+else
+   AC_MSG_NOTICE([Fuzz check disabled])
+fi
+
 # code to create M4_INCLUDES (all ./m4/*.m4 )
 AC_SUBST([M4_INCLUDES],[`echo m4/*.m4`])
 
@@ -853,29 +872,42 @@ AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 # AC_OUTPUT
 ##########################################################
 echo "configure: creating ./fmt_externs.h"
-echo >fmt_externs.h
+rm -f fmt_externs.h
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
 fi
+# if the file was not created, then bail.
+if test -f fmt_externs.h -a ! -s fmt_externs.h; then
+  echo "The build of fmt_externs.h failed. Can not continue!"
+  cp Makefile.stub Makefile
+  exit 1
+fi
+# if file does not exist, then create a blank one (i.e. no *_plug.c files)
+if test ! -f fmt_externs.h; then
+  echo >fmt_externs.h
+fi
 echo "configure: creating ./fmt_registers.h"
-echo > fmt_registers.h
+rm -f fmt_registers.h
 if test "`echo *_plug.c`" != "*_plug.c"; then
    $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
 fi
+# if the file was not created, then bail.
+if test -f fmt_registers.h -a ! -s fmt_registers.h; then
+  echo "The build of fmt_registers.h failed. Can not continue!"
+  cp Makefile.stub Makefile
+  exit 1
+fi
+# if file does not exist, then create a blank one (i.e. no *_plug.c files)
+if test ! -f fmt_registers.h; then
+  echo >fmt_registers.h
+fi
+
 if test "`echo opencl_*_fmt_plug.c`" != "opencl_*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 fi
 if test "`echo cuda_*_fmt_plug.c`" != "cuda_*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H cuda_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 fi
-
-########################################################
-# Creates ./run/john.local.conf but ONLY if it does not
-# exist. The file will have a valid comment section, and
-# will be pre-seeded with all 'Local:' sections possible
-# at the time of creation.
-JTR_JOHN_LOCAL_CONF
-########################################################
 
 ########################################################
 #    ONLY _COSMETICAL_ OUTPUT STUFF BELOW THIS LINE
@@ -981,37 +1013,43 @@ else
    have_int128=no
 fi
 
+if test x$using_cuda = xyes && test x$using_cl = xno; then
+   using_cuda="yes * NOTE: OpenCL is superior, *"
+   using_cl="no  *       even for NVIDIA     *"
+fi
+
 cat <<EOF
 dnl =======================================================================
 
 Configured for building John the Ripper ${PACKAGE_VERSION}:
 
-Target CPU .................................. ${host_cpu}, ${CPU_BIT_STR}-bit ${using_endian}${using_x32}
-AES-NI support .............................. ${using_aesni}
-Target OS ................................... ${host_os}
-Cross compiling ............................. ${cross_compiling}
-Legacy arch header .......................... ${ARCH_LINK}
+Target CPU ................................. ${host_cpu}, ${CPU_BIT_STR}-bit ${using_endian}${using_x32}
+AES-NI support ............................. ${using_aesni}
+Target OS .................................. ${host_os}
+Cross compiling ............................ ${cross_compiling}
+Legacy arch header ......................... ${ARCH_LINK}
 
 Optional libraries/features found:
-Experimental code ........................... ${experimental}
-OpenMPI support (default disabled) .......... ${using_mpi}
-Fork support ................................ ${ac_cv_func_fork_works}
-OpenMP support .............................. ${using_omp}
-OpenCL support .............................. ${using_cl}
-CUDA support ................................ ${using_cuda}
-Generic crypt(3) format ..................... ${using_crypt}
-Rexgen (extra cracking mode) ................ ${using_rexgen}
-GMP (PRINCE mode and faster SRP formats) .... ${ac_cv_lib_gmp___gmpz_init}
-PCAP (vncpcap2john and SIPdump) ............. ${using_pcap}
-Z (pkzip format, gpg2john) .................. ${using_zlib}
-BZ2 (gpg2john extra decompression logic) .... ${using_bz2}
-128-bit integer (faster PRINCE mode) ........ ${have_int128}
-Memory map (share/page large files) ......... ${using_mmap}
+Fuzzing test ............................... ${fuzz}
+Experimental code .......................... ${experimental}
+OpenMPI support (default disabled) ......... ${using_mpi}
+Fork support ............................... ${ac_cv_func_fork_works}
+OpenMP support ............................. ${using_omp}
+CUDA support (default disabled by OpenCL) .. ${using_cuda}
+OpenCL support ............................. ${using_cl}
+Generic crypt(3) format .................... ${using_crypt}
+Rexgen (extra cracking mode) ............... ${using_rexgen}
+GMP (PRINCE mode and faster SRP formats) ... ${ac_cv_lib_gmp___gmpz_init}
+PCAP (vncpcap2john and SIPdump) ............ ${using_pcap}
+Z (pkzip format, gpg2john) ................. ${using_zlib}
+BZ2 (gpg2john extra decompression logic) ... ${using_bz2}
+128-bit integer (faster PRINCE mode) ....... ${have_int128}
+Memory map (share/page large files) ........ ${using_mmap}
 
 Development options (these may hurt performance when enabled):
-Memdbg memory debugging settings ............ ${memdbg_settings}
-AddressSanitizer ("ASan") ................... ${asan}
-UndefinedBehaviorSanitizer ("UbSan") ........ ${ubsan}
+Memdbg memory debugging settings ........... ${memdbg_settings}
+AddressSanitizer ("ASan") .................. ${asan}
+UndefinedBehaviorSanitizer ("UbSan") ....... ${ubsan}
 
 Install missing libraries to get any needed features that were omitted.
 

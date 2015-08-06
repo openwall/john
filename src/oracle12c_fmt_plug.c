@@ -18,8 +18,11 @@ john_register_one(&fmt_oracle12c);
 #include <string.h>
 
 #include "arch.h"
+
 //#undef SIMD_COEF_64
 //#undef SIMD_PARA_SHA512
+//#undef _OPENMP
+
 #include "misc.h"
 #include "memory.h"
 #include "common.h"
@@ -191,8 +194,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
 		SHA512_CTX ctx;
+		int i = 0;
 #if SIMD_COEF_64
-		int lens[SSE_GROUP_SZ_SHA512], i;
+		int lens[SSE_GROUP_SZ_SHA512];
 		unsigned char *pin[SSE_GROUP_SZ_SHA512];
 		union {
 			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA512];
@@ -214,10 +218,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		alter_endianity_w64(crypt_out[index], BINARY_SIZE/8);
 #endif
 #endif
-		SHA512_Init(&ctx);
-		SHA512_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);
-		SHA512_Update(&ctx, cur_salt->salt, 16); // AUTH_VFR_DATA first 16 bytes
-		SHA512_Final((unsigned char*)crypt_out[index], &ctx);
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++)
+#endif
+		{
+			SHA512_Init(&ctx);
+			SHA512_Update(&ctx, (unsigned char*)crypt_out[index + i], BINARY_SIZE);
+			SHA512_Update(&ctx, cur_salt->salt, 16); // AUTH_VFR_DATA first 16 bytes
+			SHA512_Final((unsigned char*)crypt_out[index + i], &ctx);
+		}
 	}
 	return count;
 }
@@ -273,9 +282,7 @@ struct fmt_main fmt_oracle12c = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		tests
 	}, {
 		init,
@@ -286,9 +293,7 @@ struct fmt_main fmt_oracle12c = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

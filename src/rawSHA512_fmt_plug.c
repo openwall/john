@@ -28,6 +28,9 @@ john_register_one(&fmt_raw0_SHA512);
 #include "johnswap.h"
 #include "formats.h"
 
+//#undef SIMD_COEF_64
+//#undef SIMD_PARA_SHA512
+
 /*
  * Only effective for SIMD.
  * Undef to disable reversing steps for benchmarking.
@@ -73,6 +76,8 @@ john_register_one(&fmt_raw0_SHA512);
 #define PLAINTEXT_LENGTH        125
 #endif
 
+#define BINARY_SIZE				8
+
 #define SALT_SIZE				0
 #define SALT_ALIGN				1
 
@@ -93,7 +98,7 @@ static ARCH_WORD_64 (*crypt_out);
 #else
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_64 (*crypt_out)[DIGEST_SIZE / sizeof(ARCH_WORD_64)];
 #endif
 
 static void init(struct fmt_main *self)
@@ -130,7 +135,7 @@ static void done(void)
 #endif
 }
 
-void *binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static ARCH_WORD_64 *outw;
 	unsigned char *out;
@@ -138,12 +143,12 @@ void *binary(char *ciphertext)
 	int i;
 
 	if (!outw)
-		outw = mem_calloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+		outw = mem_calloc_tiny(DIGEST_SIZE, BINARY_ALIGN);
 
 	out = (unsigned char*)outw;
 
 	p = ciphertext + TAG_LENGTH;
-	for (i = 0; i < BINARY_SIZE; i++) {
+	for (i = 0; i < DIGEST_SIZE; i++) {
 		out[i] =
 				(atoi16[ARCH_INDEX(*p)] << 4) |
 				 atoi16[ARCH_INDEX(p[1])];
@@ -151,7 +156,7 @@ void *binary(char *ciphertext)
 	}
 
 #ifdef SIMD_COEF_64
-	alter_endianity_to_BE64(out, BINARY_SIZE/8);
+	alter_endianity_to_BE64(out, DIGEST_SIZE/8);
 #ifdef REVERSE_STEPS
 	outw[0] -= INIT_A;
 	outw[1] -= INIT_B;
@@ -316,7 +321,7 @@ static int cmp_all(void *binary, int count)
 #ifdef SIMD_COEF_64
 		if (((ARCH_WORD_64*) binary)[0] == crypt_out[HASH_IDX])
 #else
-		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
+		if ( ((ARCH_WORD_64*)binary)[0] == crypt_out[index][0] )
 #endif
 			return 1;
 	return 0;
@@ -325,22 +330,36 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_64
-	int i;
-	for (i = 0; i < BINARY_SIZE/sizeof(ARCH_WORD_64); i++)
-		if (((ARCH_WORD_64*) binary)[i] != crypt_out[HASH_IDX+i*SIMD_COEF_64])
-			return 0;
-	return 1;
+	return *(ARCH_WORD_64*)binary == crypt_out[HASH_IDX];
 #else
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return *(ARCH_WORD_64*)binary == crypt_out[index][0];
 #endif
 }
 
 static int cmp_exact(char *source, int index)
 {
+	ARCH_WORD_64 *binary = get_binary(source);
+#if SIMD_COEF_64
+	int i;
+
+	for (i = 0; i < DIGEST_SIZE/sizeof(ARCH_WORD_64); i++)
+		if (binary[i] != crypt_out[HASH_IDX + i*SIMD_COEF_64])
+			return 0;
 	return 1;
+#else
+	SHA512_CTX ctx;
+	ARCH_WORD_64 crypt_out[DIGEST_SIZE / sizeof(ARCH_WORD_64)];
+
+	SHA512_Init(&ctx);
+	SHA512_Update(&ctx, saved_key[index], saved_len[index]);
+	SHA512_Final((unsigned char*)crypt_out, &ctx);
+
+	return !memcmp(binary, crypt_out, DIGEST_SIZE);
+#endif
 }
 
-/* The '0_' makes sure this format registers before others,
+/*
+ * The '0_' makes sure this format registers before others,
  * if ambigous.  Do not copy it for other formats.
  */
 struct fmt_main fmt_raw0_SHA512 = {
@@ -359,9 +378,7 @@ struct fmt_main fmt_raw0_SHA512 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		sha512_common_tests
 	}, {
 		init,
@@ -370,11 +387,9 @@ struct fmt_main fmt_raw0_SHA512 = {
 		fmt_default_prepare,
 		sha512_common_valid,
 		sha512_common_split,
-		binary,
+		get_binary,
 		fmt_default_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

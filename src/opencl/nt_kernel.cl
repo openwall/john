@@ -8,6 +8,7 @@
  * Copyright (c) 2010 Alain Espinosa
  * Copyright (c) 2011 Samuele Giovanni Tonon
  * Copyright (c) 2015 Sayantan Datta <sdatta at openwall.com>
+ * Copyright (c) 2015 magnum
  * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,8 +60,8 @@ inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_s
 	hash[2] += bitselect(hash[1], hash[0], hash[3]) + nt_buffer[10]; hash[2] = rotate(hash[2], 11u);
 	hash[1] += bitselect(hash[0], hash[3], hash[2]) + nt_buffer[11]; hash[1] = rotate(hash[1], 19u);
 
-	hash[0] += bitselect(hash[3], hash[2], hash[1])                ; hash[0] = rotate(hash[0], 3u);
-	hash[3] += bitselect(hash[2], hash[1], hash[0])                ; hash[3] = rotate(hash[3], 7u);
+	hash[0] += bitselect(hash[3], hash[2], hash[1]) + nt_buffer[12]; hash[0] = rotate(hash[0], 3u);
+	hash[3] += bitselect(hash[2], hash[1], hash[0]) + nt_buffer[13]; hash[3] = rotate(hash[3], 7u);
 	hash[2] += bitselect(hash[1], hash[0], hash[3]) + md4_size     ; hash[2] = rotate(hash[2], 11u);
 	hash[1] += bitselect(hash[0], hash[3], hash[2])                ; hash[1] = rotate(hash[1], 19u);
 
@@ -76,8 +77,8 @@ inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_s
 	hash[2] += (hash[1] ^ (hash[3] & (hash[0] ^ hash[1])))  +  nt_buffer[10]; hash[2] = rotate(hash[2] , 11u);
 	hash[1] += (hash[0] ^ (hash[2] & (hash[3] ^ hash[0])))  +  nt_buffer[11]; hash[1] = rotate(hash[1] , 19u);
 
-	hash[0] += (hash[3] ^ (hash[1] & (hash[2] ^ hash[3])))                  ; hash[0] = rotate(hash[0] , 3u );
-	hash[3] += (hash[2] ^ (hash[0] & (hash[1] ^ hash[2])))                  ; hash[3] = rotate(hash[3] , 7u );
+	hash[0] += (hash[3] ^ (hash[1] & (hash[2] ^ hash[3])))  +  nt_buffer[12]; hash[0] = rotate(hash[0] , 3u );
+	hash[3] += (hash[2] ^ (hash[0] & (hash[1] ^ hash[2])))  +  nt_buffer[13]; hash[3] = rotate(hash[3] , 7u );
 	hash[2] += (hash[1] ^ (hash[3] & (hash[0] ^ hash[1])))  +    md4_size   ; hash[2] = rotate(hash[2] , 11u);
 	hash[1] += (hash[0] ^ (hash[2] & (hash[3] ^ hash[0])))                  ; hash[1] = rotate(hash[1] , 19u);
 
@@ -90,12 +91,12 @@ inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_s
 	hash[0] += bitselect(bitselect(hash[1], hash[2], hash[3]), bitselect(hash[3], hash[1], hash[2]), hash[1]) + nt_buffer[0] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += bitselect(bitselect(hash[0], hash[1], hash[2]), bitselect(hash[2], hash[0], hash[1]), hash[0]) + nt_buffer[4] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
 	hash[2] += bitselect(bitselect(hash[3], hash[0], hash[1]), bitselect(hash[1], hash[3], hash[0]), hash[3]) + nt_buffer[8] + SQRT_2; hash[2] = rotate(hash[2] , 9u );
-	hash[1] += bitselect(bitselect(hash[2], hash[3], hash[0]), bitselect(hash[0], hash[2], hash[3]), hash[2]) +                SQRT_2; hash[1] = rotate(hash[1] , 13u);
+	hash[1] += bitselect(bitselect(hash[2], hash[3], hash[0]), bitselect(hash[0], hash[2], hash[3]), hash[2]) + nt_buffer[12]+ SQRT_2; hash[1] = rotate(hash[1] , 13u);
 
 	hash[0] += bitselect(bitselect(hash[1], hash[2], hash[3]), bitselect(hash[3], hash[1], hash[2]), hash[1]) + nt_buffer[1] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += bitselect(bitselect(hash[0], hash[1], hash[2]), bitselect(hash[2], hash[0], hash[1]), hash[0]) + nt_buffer[5] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
 	hash[2] += bitselect(bitselect(hash[3], hash[0], hash[1]), bitselect(hash[1], hash[3], hash[0]), hash[3]) + nt_buffer[9] + SQRT_2; hash[2] = rotate(hash[2] , 9u );
-	hash[1] += bitselect(bitselect(hash[2], hash[3], hash[0]), bitselect(hash[0], hash[2], hash[3]), hash[2]) +                SQRT_2; hash[1] = rotate(hash[1] , 13u );
+	hash[1] += bitselect(bitselect(hash[2], hash[3], hash[0]), bitselect(hash[0], hash[2], hash[3]), hash[2]) + nt_buffer[13]+ SQRT_2; hash[1] = rotate(hash[1] , 13u );
 
 	hash[0] += bitselect(bitselect(hash[1], hash[2], hash[3]), bitselect(hash[3], hash[1], hash[2]), hash[1]) + nt_buffer[2] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += bitselect(bitselect(hash[0], hash[1], hash[2]), bitselect(hash[2], hash[0], hash[1]), hash[0]) + nt_buffer[6] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
@@ -112,12 +113,12 @@ inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_s
 	hash[0] += ((hash[1] & (hash[2] | hash[3])) | (hash[2] & hash[3])) + nt_buffer[0] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += ((hash[0] & (hash[1] | hash[2])) | (hash[1] & hash[2])) + nt_buffer[4] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
 	hash[2] += ((hash[3] & (hash[0] | hash[1])) | (hash[0] & hash[1])) + nt_buffer[8] + SQRT_2; hash[2] = rotate(hash[2] , 9u );
-	hash[1] += ((hash[2] & (hash[3] | hash[0])) | (hash[3] & hash[0]))                + SQRT_2; hash[1] = rotate(hash[1] , 13u);
+	hash[1] += ((hash[2] & (hash[3] | hash[0])) | (hash[3] & hash[0])) + nt_buffer[12]+ SQRT_2; hash[1] = rotate(hash[1] , 13u);
 
 	hash[0] += ((hash[1] & (hash[2] | hash[3])) | (hash[2] & hash[3])) + nt_buffer[1] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += ((hash[0] & (hash[1] | hash[2])) | (hash[1] & hash[2])) + nt_buffer[5] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
 	hash[2] += ((hash[3] & (hash[0] | hash[1])) | (hash[0] & hash[1])) + nt_buffer[9] + SQRT_2; hash[2] = rotate(hash[2] , 9u );
-	hash[1] += ((hash[2] & (hash[3] | hash[0])) | (hash[3] & hash[0]))                + SQRT_2; hash[1] = rotate(hash[1] , 13u);
+	hash[1] += ((hash[2] & (hash[3] | hash[0])) | (hash[3] & hash[0])) + nt_buffer[13]+ SQRT_2; hash[1] = rotate(hash[1] , 13u);
 
 	hash[0] += ((hash[1] & (hash[2] | hash[3])) | (hash[2] & hash[3])) + nt_buffer[2] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += ((hash[0] & (hash[1] | hash[2])) | (hash[1] & hash[2])) + nt_buffer[6] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
@@ -135,7 +136,7 @@ inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_s
 	hash[0] += (hash[3] ^ hash[2] ^ hash[1]) + nt_buffer[0]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += (hash[2] ^ hash[1] ^ hash[0]) + nt_buffer[8]  + SQRT_3; hash[3] = rotate(hash[3] , 9u );
 	hash[2] += (hash[1] ^ hash[0] ^ hash[3]) + nt_buffer[4]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
-	hash[1] += (hash[0] ^ hash[3] ^ hash[2])                 + SQRT_3; hash[1] = rotate(hash[1] , 15u);
+	hash[1] += (hash[0] ^ hash[3] ^ hash[2]) + nt_buffer[12] + SQRT_3; hash[1] = rotate(hash[1] , 15u);
 
 	hash[0] += (hash[3] ^ hash[2] ^ hash[1]) + nt_buffer[2]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += (hash[2] ^ hash[1] ^ hash[0]) + nt_buffer[10] + SQRT_3; hash[3] = rotate(hash[3] , 9u );
@@ -146,7 +147,7 @@ inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_s
 	hash[3] += (hash[2] ^ hash[1] ^ hash[0]) + nt_buffer[9]  + SQRT_3; hash[3] = rotate(hash[3] , 9u );
 	hash[2] += (hash[1] ^ hash[0] ^ hash[3]) + nt_buffer[5]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
 	//It is better to calculate this remining steps that access global memory
-	hash[1] += (hash[0] ^ hash[3] ^ hash[2]) ;
+	hash[1] += (hash[0] ^ hash[3] ^ hash[2]) + nt_buffer[13];
 	tmp = hash[1];
 	tmp += SQRT_3; tmp = rotate(tmp , 15u);
 
@@ -305,7 +306,7 @@ __kernel void nt(__global uint *keys,
 	uint i;
 	uint gid = get_global_id(0);
 	uint base = index[gid];
-	uint nt_buffer[12] = { 0 };
+	uint nt_buffer[14] = { 0 };
 	uint md4_size = base & 63;
 	uint hash[4];
 
@@ -385,30 +386,3 @@ __kernel void nt(__global uint *keys,
 		    , offset_table, hash_table, return_hashes, out_hash_ids, bitmap_dupe);
 	}
 }
-/*
-__kernel void nt(__global uint *keys,   __global uint *index, __global uint *output)
-{
-	uint gid = get_global_id(0);
-	//Max Size 27-4 = 23 for a better use of registers
-	uint nt_buffer[12] = {0};
-	uint base = index[gid];
-	uint hash[4];
-
-	uint md4_size = base & 63;
-	keys += base >> 6;
-	prepare_key(keys, md4_size, nt_buffer);
-
-
-	uint num_keys = get_global_size(0);
-
-	md4_size = md4_size << 4;
-	//end set key--------------------------------------------------------------------------
-
-	nt_crypt(hash, nt_buffer, md4_size);
-
-	//Coalescing writes
-	output[gid] = hash[1];
-	output[1*num_keys+gid] = hash[0];
-	output[2*num_keys+gid] = hash[2];
-	output[3*num_keys+gid] = hash[3];
-}*/

@@ -58,6 +58,11 @@
 #endif
 #endif
 
+#if (!AC_BUILT && defined(HAVE_CRYPT))
+#undef HAVE_CRYPT_H
+#define HAVE_CRYPT_H 1
+#endif
+
 #if HAVE_CRYPT_H
 #include <crypt.h>
 #endif
@@ -625,7 +630,7 @@ static int cmp_exact(char *source, int index)
 {
 	return 1;
 }
-#if FMT_MAIN_VERSION > 11
+
 /*
  * For generic crypt(3), the algorithm is returned as the first "tunable cost":
  * 0: unknown (shouldn't happen
@@ -706,7 +711,6 @@ static unsigned int  c3_algorithm_specific_cost1(void *salt)
 	}
 	return 1;
 }
-#endif
 
 struct fmt_main fmt_crypt = {
 	{
@@ -724,7 +728,6 @@ struct fmt_main fmt_crypt = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{
 			/*
 			 * use algorithm as first tunable cost:
@@ -734,7 +737,6 @@ struct fmt_main fmt_crypt = {
 			"algorithm [1:descrypt 2:md5crypt 3:sunmd5 4:bcrypt 5:sha256crypt 6:sha512crypt]",
 			"algorithm specific iterations",
 		},
-#endif
 		tests
 	}, {
 		init,
@@ -745,14 +747,12 @@ struct fmt_main fmt_crypt = {
 		fmt_default_split,
 		binary,
 		salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			c3_subformat_algorithm,
 #if 1
 			c3_algorithm_specific_cost1
 #endif
 		},
-#endif
 		fmt_default_source,
 		{
 			binary_hash_0,

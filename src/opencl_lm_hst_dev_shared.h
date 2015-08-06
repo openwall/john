@@ -1,9 +1,6 @@
 #ifndef _OPENCL_LM_HST_DEV_SHARED_H
 #define _OPENCL_LM_HST_DEV_SHARED_H
 
-#define HARDCODE_SALT 		0
-#define FULL_UNROLL		0
-
 #define WORD     		int
 #define lm_vector		WORD
 

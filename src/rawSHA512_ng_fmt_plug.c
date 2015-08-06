@@ -76,7 +76,7 @@ john_register_one(&fmt_rawSHA512_ng);
 #define MAXLEN                    111
 #define PLAINTEXT_LENGTH	  MAXLEN
 #define CIPHERTEXT_LENGTH         128
-#define SHORT_BINARY_SIZE         8
+#define BINARY_SIZE               8
 #define SALT_SIZE                 0
 #define SALT_ALIGN                1
 #define MIN_KEYS_PER_CRYPT        VWIDTH
@@ -268,21 +268,21 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 static void *get_binary(char *ciphertext)
 {
     static union {
-        unsigned char c[BINARY_SIZE];
-        uint64_t w[BINARY_SIZE / sizeof(uint64_t)];
+        unsigned char c[DIGEST_SIZE];
+        uint64_t w[DIGEST_SIZE / sizeof(uint64_t)];
     } *out;
     int i;
 
     if (!out)
-        out = mem_alloc_tiny(BINARY_SIZE, BINARY_ALIGN);
+        out = mem_alloc_tiny(DIGEST_SIZE, BINARY_ALIGN);
 
     ciphertext += TAG_LENGTH;
 
-    for (i=0; i < BINARY_SIZE; i++)
+    for (i=0; i < DIGEST_SIZE; i++)
         out->c[i] = atoi16[ARCH_INDEX(ciphertext[i*2])] * 16 +
                     atoi16[ARCH_INDEX(ciphertext[i*2 + 1])];
 
-    alter_endianity_64(out->w, BINARY_SIZE);
+    alter_endianity_64(out->w, DIGEST_SIZE);
 
     out->w[0] -= 0x6a09e667f3bcc908ULL;
     out->w[1] -= 0xbb67ae8584caa73bULL;
@@ -520,16 +520,14 @@ struct fmt_main fmt_rawSHA512_ng = {
         BENCHMARK_LENGTH,
         0,
         MAXLEN,
-        SHORT_BINARY_SIZE,
+        BINARY_SIZE,
         BINARY_ALIGN,
         SALT_SIZE,
         SALT_ALIGN,
         MIN_KEYS_PER_CRYPT,
         MAX_KEYS_PER_CRYPT,
         FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
         sha512_common_tests
     }, {
         init,
@@ -540,9 +538,7 @@ struct fmt_main fmt_rawSHA512_ng = {
         split,
         get_binary,
         fmt_default_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
         fmt_default_source,
         {
 		fmt_default_binary_hash_0,

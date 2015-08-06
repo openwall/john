@@ -114,11 +114,7 @@ static void listconf_list_help_options()
 
 static void listconf_list_method_names()
 {
-#if FMT_MAIN_VERSION > 11
 	puts("init, done, reset, prepare, valid, split, binary, salt, tunable_cost_value,");
-#else
-	puts("init, done, reset, prepare, valid, split, binary, salt,");
-#endif
 	puts("source, binary_hash, salt_hash, salt_compare, set_salt, set_key, get_key,");
 	puts("clear_keys, crypt_all, get_hash, cmp_all, cmp_one, cmp_exact");
 }
@@ -144,9 +140,7 @@ static void listconf_list_build_info(void)
 #endif
 	printf("$JOHN is %s\n", path_expand("$JOHN/"));
 	printf("Format interface version: %d\n", FMT_MAIN_VERSION);
-#if FMT_MAIN_VERSION > 11
 	printf("Max. number of reported tunable costs: %d\n", FMT_TUNABLE_COSTS);
-#endif
 	puts("Rec file version: " RECOVERY_V);
 	puts("Charset file version: " CHARSET_V);
 	printf("CHARSET_MIN: %d (0x%02x)\n", CHARSET_MIN, CHARSET_MIN);
@@ -356,7 +350,6 @@ void listconf_parse_early(void)
 	}
 }
 
-#if FMT_MAIN_VERSION > 11
 /*
  * List names of tunable cost parameters
  * Separator differs for --list=format-all-details (", ")
@@ -374,7 +367,6 @@ void list_tunable_cost_names(struct fmt_main *format, char *separator)
 		}
 	}
 }
-#endif
 
 char *get_test(struct fmt_main *format, int ntests)
 {
@@ -521,9 +513,7 @@ void listconf_parse_late(void)
 
 #if 0
 		puts("label\tmaxlen\tmin/\tmaxkpc\tflags\tntests\talgorithm_name\tformat_name\tbench comment\tbench len\tbin size\tsalt size"
-#if FMT_MAIN_VERSION > 11
 		     "\tcosts"
-#endif
 		     "\tminlen");
 #endif
 
@@ -558,10 +548,8 @@ void listconf_parse_late(void)
    'real' salt size. Dynamic will always set params.salt_size to 0 or sizeof
    a pointer. */
    dynamic_real_salt_length(format) : format->params.salt_size);
-#if FMT_MAIN_VERSION > 11
 			printf("\t");
 			list_tunable_cost_names(format, ",");
-#endif
 			printf("\t%d\t%.256s\n",
 			       format->params.plaintext_min_length,
 /*
@@ -669,11 +657,9 @@ void listconf_parse_late(void)
    'real' salt size dynamic will alway set params.salt_size to 0 or
    sizeof a pointer. */
 			       dynamic_real_salt_length(format) : format->params.salt_size);
-#if FMT_MAIN_VERSION > 11
 			printf("Tunable cost parameters              ");
 			list_tunable_cost_names(format, ", ");
 			printf("\n");
-#endif
 
 /*
  * The below should probably stay as last line of output if adding more
@@ -723,14 +709,12 @@ void listconf_parse_late(void)
 				         strcasecmp(&options.listconf[15], "binary") &&
 				         strcasecmp(&options.listconf[15], "clear_keys") &&
 				         strcasecmp(&options.listconf[15], "salt") &&
-#if FMT_MAIN_VERSION > 11
 				         strcasecmp(&options.listconf[15], "tunable_cost_value") &&
 				         strcasecmp(&options.listconf[15], "tunable_cost_value[0]") &&
 #if FMT_TUNABLE_COSTS > 1
 				         strcasecmp(&options.listconf[15], "tunable_cost_value[1]") &&
 #if FMT_TUNABLE_COSTS > 2
 				         strcasecmp(&options.listconf[15], "tunable_cost_value[2]") &&
-#endif
 #endif
 #endif
 					 strcasecmp(&options.listconf[15], "source") &&
@@ -776,7 +760,6 @@ void listconf_parse_late(void)
 				if (format->methods.salt != fmt_default_salt && !strcasecmp(&options.listconf[15], "salt"))
 					ShowIt = 1;
 
-#if FMT_MAIN_VERSION > 11
 				for (i = 0; i < FMT_TUNABLE_COSTS; ++i) {
 					char Buf[30];
 					sprintf(Buf, "tunable_cost_value[%d]", i);
@@ -785,7 +768,6 @@ void listconf_parse_late(void)
 				}
 				if (format->methods.tunable_cost_value[0] && !strcasecmp(&options.listconf[15], "tunable_cost_value"))
 					ShowIt = 1;
-#endif
 
 				if (format->methods.source != fmt_default_source && !strcasecmp(&options.listconf[15], "source"))
 					ShowIt = 1;
@@ -829,7 +811,6 @@ void listconf_parse_late(void)
 					printf("\tbinary()\n");
 				if (format->methods.salt != fmt_default_salt)
 					printf("\tsalt()\n");
-#if FMT_MAIN_VERSION > 11
 				for (i = 0; i < FMT_TUNABLE_COSTS; ++i)
 /*
  * Here, a NULL value serves as default,
@@ -837,7 +818,6 @@ void listconf_parse_late(void)
  */
 					if (format->methods.tunable_cost_value[i])
 						printf("\t\ttunable_cost_value[%d]()\n", i);
-#endif
 				if (format->methods.source != fmt_default_source)
 					printf("\tsource()\n");
 				for (i = 0; i < PASSWORD_HASH_SIZES; ++i)

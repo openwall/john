@@ -12,7 +12,7 @@
 #define _COMMON_RAWSHA512_H
 
 /* ------ Contains (at least) prepare(), valid() and split() ------ */
-#define BINARY_SIZE                     64
+#define DIGEST_SIZE                     64
 #define BINARY_ALIGN                    MEM_ALIGN_WORD
 
 #define BENCHMARK_COMMENT               ""

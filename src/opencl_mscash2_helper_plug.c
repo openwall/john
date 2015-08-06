@@ -11,8 +11,8 @@
 
 #include "opencl_mscash2_helper_plug.h"
 #include "options.h"
+#include "memdbg.h"
 
-#define MAX_DEVICE_PER_PLATFORM 	16
 #define PADDING				1024
 
 #define getPowerOfTwo(v)	\
@@ -57,9 +57,9 @@ static unsigned int maxActiveDevices = 0;
 
 void initNumDevices(void)
 {
-	devBuffer = (deviceBuffer *) mem_alloc(MAX_DEVICE_PER_PLATFORM * MAX_PLATFORMS * sizeof(deviceBuffer));
-	devParam = (deviceParam *) mem_calloc(MAX_DEVICE_PER_PLATFORM * MAX_PLATFORMS, sizeof(deviceParam));
-	events = (cl_event *) mem_alloc(MAX_DEVICE_PER_PLATFORM * MAX_PLATFORMS * sizeof(cl_event));
+	devBuffer = (deviceBuffer *) mem_calloc(MAX_GPU_DEVICES, sizeof(deviceBuffer));
+	devParam = (deviceParam *) mem_calloc(MAX_GPU_DEVICES, sizeof(deviceParam));
+	events = (cl_event *) mem_alloc(MAX_GPU_DEVICES * sizeof(cl_event));
 }
 
 static void createDevObjGws(size_t gws, int jtrUniqDevId)
@@ -118,13 +118,16 @@ void releaseAll()
 	int 	i;
 
 	for (i = 0; i < get_number_of_devices_in_use(); i++) {
-		releaseDevObjGws(gpu_device_list[i]);
-		releaseDevObj(gpu_device_list[i]);
+	releaseDevObjGws(gpu_device_list[i]);
+	releaseDevObj(gpu_device_list[i]);
+	if (devParam[gpu_device_list[i]].devKernel[0]) {
 		HANDLE_CLERROR(clReleaseKernel(devParam[gpu_device_list[i]].devKernel[0]), "Error releasing kernel pbkdf2_preprocess_short");
 		HANDLE_CLERROR(clReleaseKernel(devParam[gpu_device_list[i]].devKernel[1]), "Error releasing kernel pbkdf2_preprocess_long");
 		HANDLE_CLERROR(clReleaseKernel(devParam[gpu_device_list[i]].devKernel[2]), "Error releasing kernel pbkdf2_iter");
 		HANDLE_CLERROR(clReleaseKernel(devParam[gpu_device_list[i]].devKernel[3]), "Error releasing kernel pbkdf2_postprocess");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_device_list[i]]), "Error releasing Program");
+		devParam[gpu_device_list[i]].devKernel[0] = 0;
+		}
 	 }
 
 	 MEM_FREE(events);
@@ -461,7 +464,7 @@ size_t selectDevice(int jtrUniqDevId, struct fmt_main *self)
 {
 	char buildOpts[300];
 
-	assert(jtrUniqDevId < MAX_DEVICE_PER_PLATFORM * MAX_PLATFORMS);
+	assert(jtrUniqDevId < MAX_GPU_DEVICES);
 
 	sprintf(buildOpts, "-D SALT_BUFFER_SIZE=%lu", SALT_BUFFER_SIZE);
 	opencl_init("$JOHN/kernels/pbkdf2_kernel.cl", jtrUniqDevId, buildOpts);

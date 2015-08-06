@@ -1,17 +1,21 @@
 *.diff
 *.log
-*.o
 *.orig
 *.patch
 *.pot
 *.rec
 *.rej
 *~
+
+*.o
 *.exe
 *.dSYM
+.DS_Store
 
 Makefile
+john-local.conf
 
+run/SIPdump
 run/base64conv
 run/calc_stat
 run/cprepair
@@ -38,7 +42,6 @@ run/pwsafe2john
 run/racf2john
 run/rar2john
 run/raw2dyna
-run/SIPdump
 run/ssh2john
 run/tgtsnarf
 run/to_dyna
@@ -53,25 +56,28 @@ run/wpapcap2john
 run/zip2john
 
 src/.gdbinit
+src/Unicode
 src/aes/aes.a
 src/arch.h
 src/autoconfig-stamp-h
 src/autoconfig-stamp-h-in
 src/autoconfig.h
 src/autom4te.cache/
+src/config*.cache
 src/config.status
 src/configure.scan
-src/config*.cache
+src/dyna-comp.dic
+src/dyna-comp.in
+src/dyna-comp.pot
+src/dyna-comp.rec
+src/dynamic_big_crypt.c
 src/fmt_externs.h
 src/fmt_registers.h
 src/generic.h
 src/john_build_rule.h
 src/memdbg_defines.h
-src/para-bench
 src/stamp-h1
-src/Unicode
 src/version.h
 src/version.h.new
-src/dynamic_big_crypt.c
 
 test/

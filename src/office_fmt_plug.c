@@ -537,16 +537,20 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-	                            self->params.max_keys_per_crypt, sizeof(UTF16));
-	saved_len = mem_calloc_tiny(sizeof(*saved_len) *
-	                            self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	cracked = mem_calloc_tiny(sizeof(*cracked) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
+	saved_len = mem_calloc(sizeof(*saved_len), self->params.max_keys_per_crypt);
+	crypt_key = mem_calloc(sizeof(*crypt_key), self->params.max_keys_per_crypt);
+	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
+}
+
+static void done(void)
+{
+	MEM_FREE(cracked);
+	MEM_FREE(crypt_key);
+	MEM_FREE(saved_len);
+	MEM_FREE(saved_key);
 }
 
 static void set_salt(void *salt)
@@ -656,7 +660,6 @@ static char *get_key(int index)
 {
 	return (char*)utf16_to_enc(saved_key[index]);
 }
-#if FMT_MAIN_VERSION > 11
 /*
  * MS Office version (2007, 2010, 2013) as first tunable cost
  */
@@ -667,7 +670,6 @@ static unsigned int ms_office_version(void *salt)
 	my_salt = salt;
 	return (unsigned int) my_salt->version;
 }
-#endif
 
 struct fmt_main fmt_office = {
 	{
@@ -685,28 +687,24 @@ struct fmt_main fmt_office = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8,
-#if FMT_MAIN_VERSION > 11
 		{
 			"MS Office version",
 			"iteration count",
 		},
-#endif
 		office_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		ms_office_common_valid_all,
 		fmt_default_split,
 		ms_office_common_binary,
 		ms_office_common_get_salt,
-#if FMT_MAIN_VERSION > 11
 		{
 			ms_office_version,
 			ms_office_common_iteration_count,
 		},
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

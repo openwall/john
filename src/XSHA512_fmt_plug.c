@@ -62,6 +62,8 @@ john_register_one(&fmt_XSHA512);
 #define __XSHA512_CREATE_PROPER_TESTS_ARRAY__
 #include "rawSHA512_common.h"
 
+#define BINARY_SIZE				DIGEST_SIZE
+
 #ifdef SIMD_COEF_64
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
 static ARCH_WORD_64 (*saved_key)[SHA_BUF_SIZ*MAX_KEYS_PER_CRYPT];
@@ -371,9 +373,7 @@ struct fmt_main fmt_XSHA512 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		sha512_common_tests_xsha512
 	}, {
 		init,
@@ -384,9 +384,7 @@ struct fmt_main fmt_XSHA512 = {
 		sha512_common_split_xsha,
 		sha512_common_binary_xsha,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

@@ -322,9 +322,7 @@ struct fmt_main fmt_pfx = {
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_DYNA_SALT,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		pfx_tests
 	}, {
 		init,
@@ -335,9 +333,7 @@ struct fmt_main fmt_pfx = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

@@ -13,25 +13,26 @@
 #define	OPENCL_DEVICE_INFO_H
 
 //Copied from common-opencl.h
-#define DEV_UNKNOWN                 0		//0
-#define DEV_CPU                     (1 << 0)	//1
-#define DEV_GPU                     (1 << 1)	//2
-#define DEV_ACCELERATOR             (1 << 2)	//4
+#define DEV_UNKNOWN                 0       //0
+#define DEV_CPU                     (1 << 0)    //1
+#define DEV_GPU                     (1 << 1)    //2
+#define DEV_ACCELERATOR             (1 << 2)    //4
 #define DEV_AMD                     (1 << 3)    //8
-#define DEV_NVIDIA                  (1 << 4)	//16
-#define DEV_INTEL                   (1 << 5)	//32
-#define PLATFORM_APPLE              (1 << 6)	//64
+#define DEV_NVIDIA                  (1 << 4)    //16
+#define DEV_INTEL                   (1 << 5)    //32
+#define PLATFORM_APPLE              (1 << 6)    //64
 #define DEV_AMD_GCN_10              (1 << 7)    //128
 #define DEV_AMD_GCN_11              (1 << 8)    //256
 #define DEV_AMD_GCN_12              (1 << 9)    //512
 #define DEV_AMD_VLIW4               (1 << 12)   //4096
 #define DEV_AMD_VLIW5               (1 << 13)   //8192
-#define DEV_NV_C2X		    (1 << 14)   //16384
-#define DEV_NV_C30		    (1 << 15)   //32768
-#define DEV_NV_C35		    (1 << 16)   //65536
-#define DEV_NV_C5X		    (1 << 17)   //131072
+#define DEV_NV_C2X                  (1 << 14)   //16384
+#define DEV_NV_C30                  (1 << 15)   //32768
+#define DEV_NV_C35                  (1 << 16)   //65536
+#define DEV_NV_C5X                  (1 << 17)   //131072
 #define DEV_USE_LOCAL               (1 << 20)   //1048576
 #define DEV_NO_BYTE_ADDRESSABLE     (1 << 21)   //2097152
+#define DEV_MESA                    (1 << 22)   //4M
 
 #define cpu(n)                      ((n & DEV_CPU) == (DEV_CPU))
 #define gpu(n)                      ((n & DEV_GPU) == (DEV_GPU))
@@ -54,4 +55,3 @@
 #define platform_apple(p)           (get_platform_vendor_id(p) == PLATFORM_APPLE)
 
 #endif	/* OPENCL_DEVICE_INFO_H */
-

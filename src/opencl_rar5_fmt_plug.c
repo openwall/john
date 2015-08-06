@@ -390,11 +390,9 @@ struct fmt_main fmt_ocl_rar5 = {
 	1,
 	1,
 	FMT_CASE | FMT_8_BIT,
-#if FMT_MAIN_VERSION > 11
 	{
 		"iteration count",
 	},
-#endif
 	tests
 }, {
 	init,
@@ -405,11 +403,9 @@ struct fmt_main fmt_ocl_rar5 = {
 	fmt_default_split,
 	get_binary,
 	get_salt,
-#if FMT_MAIN_VERSION > 11
 	{
 		iteration_count,
 	},
-#endif
 	fmt_default_source,
 	{
 		fmt_default_binary_hash_0,

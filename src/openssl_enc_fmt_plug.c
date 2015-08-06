@@ -438,9 +438,7 @@ struct fmt_main fmt_openssl = {
  * FIXME: if there wouldn't be so many false positives,
  *        it would be useful to report some tunable costs
  */
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		openssl_tests
 	}, {
 		init,
@@ -451,9 +449,7 @@ struct fmt_main fmt_openssl = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
 		{ NULL },
-#endif
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
