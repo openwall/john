@@ -1469,7 +1469,7 @@ static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
 static double get_progress(void)
 {
 	double try;
-	int num_nodes = options.node_count ? options.node_count : 1;
+	//int num_nodes = options.node_count ? options.node_count : 1;
 
 	emms();
 
@@ -1481,7 +1481,8 @@ static double get_progress(void)
 	if (cand_length)
 		try -= cand_length;
 
-	return 100.0 * try / (double)((mask_tot_cand * mask_int_cand.num_int_cand) / num_nodes);
+	//return 100.0 * try / (double)((mask_tot_cand * mask_int_cand.num_int_cand) / num_nodes);
+	return 100.0 * try / (double)((mask_tot_cand * mask_int_cand.num_int_cand));
 }
 
 void mask_save_state(FILE *file)
