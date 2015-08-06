@@ -2360,7 +2360,7 @@ static char *human_format(size_t size)
 
 /***
  * Despite of whatever the user uses as -dev=N, I will always list devices in
- * their natural order as definded by the OpenCL libraries.
+ * their natural order as defined by the OpenCL libraries.
  *
  * In order to be able to know everything about the device and list it obeying
  * its natural sequence (defined by hardware, PCI slots sequence, ...) is better
