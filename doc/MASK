@@ -25,6 +25,9 @@ A mask may consist of:
 - Placeholder for Hybrid Mask mode
   ?w is a placeholder for the original word produced by the parent mode in
     Hybrid Mask mode.
+  ?W is a placeholder for the original word produced by the parent mode in
+    Hybrid Mask mode, but instead of the original word, use the word with
+    the case of all letters switched (so password becomes PASSWORD)
 
 Mask Mode alone produces words from the mask, for example ?u?l?l will generate
 all possible three-letter words, with first character uppercased and the
@@ -70,6 +73,7 @@ pass                                            pass            1
 pw?d                                            pw3             10
 ?w?d?d?d                password                password123     1000x
 ?w?s?w                  bozo                    bozo#bozo       33x
+?w?s?W                  bozo                    bozo#BOZO       33x
 0x?1?1:?1?1:?1?1        -1=[0-9a-f]             0xde:ad:ca      16777216
 ?3?l?l?l                -3=?l?u                 Bozo, hobo      913952
 [Pp][Aa@][Ss5][Ss5][Ww][Oo0][Rr][Dd]            P@55w0rD        1296
