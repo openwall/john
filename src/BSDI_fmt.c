@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2010-2012 by Solar Designer
+ * Copyright (c) 1996-2001,2010-2012,2015 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -33,6 +33,9 @@ static struct fmt_tests tests[] = {
 	{"_J9..XXXXsqM/YSSP..Y", "*U*U*U*U*"},
 	{"_J9..XXXXVL7qJCnku0I", "*U*U*U*U*U*U*U*U"},
 	{"_J9..XXXXAj8cFbP5scI", "*U*U*U*U*U*U*U*U*"},
+	{"_J9..XXXXAj8cFbP5scI",
+	    "\xaa\xd5\xaa\xd5\xaa\xd5\xaa\xd5"
+	    "\xaa\xd5\xaa\xd5\xaa\xd5\xaa\xd5\xaa"},
 	{"_J9..SDizh.vll5VED9g", "ab1234567"},
 	{"_J9..SDizRjWQ/zePPHc", "cr1234567"},
 	{"_J9..SDizxmRI1GjnQuE", "zxyDPWgydbQjgq"},
@@ -276,8 +279,8 @@ static void set_key(char *key, int index)
 		ptr -= 8;
 		for (word = 0; word < 2; word++)
 		for (pos = 0; pos < 4; pos++)
-			block[word] ^= (unsigned ARCH_WORD)(unsigned char)
-			    *ptr++ << (1 + (pos << 3));
+			block[word] ^= ((unsigned ARCH_WORD)(unsigned char)
+			    *ptr++ & 0x7f) << (1 + (pos << 3));
 
 #if !DES_BS
 		if (current_salt)
