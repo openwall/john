@@ -364,6 +364,11 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
+static char *prepare(char *split_fields[10], struct fmt_main *self)
+{
+	return fmt_default_prepare(split_fields, self);
+}
+
 static void *get_binary(char *ciphertext)
 {
 	static unsigned char *realcipher;
@@ -1024,7 +1029,10 @@ static void reset(struct db_main *db)
 		loaded_hashes = (cl_uint*)mem_alloc(6 * sizeof(cl_uint) * num_loaded_hashes);
 
 		while (tests[i].ciphertext != NULL) {
-			ciphertext = split(tests[i].ciphertext, 0, &FMT_STRUCT);
+			char **fields = tests[i].fields;
+			if (!fields[1])
+				fields[1] = tests[i].ciphertext;
+			ciphertext = split(prepare(fields, &FMT_STRUCT), 0, &FMT_STRUCT);
 			binary = (unsigned int*)get_binary(ciphertext);
 			loaded_hashes[6 * i] = binary[0];
 			loaded_hashes[6 * i + 1] = binary[1];
@@ -1088,7 +1096,7 @@ struct fmt_main FMT_STRUCT = {
 		init,
 		done,
 		reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		split,
 		get_binary,
