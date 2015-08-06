@@ -165,7 +165,7 @@ JOHN_OBJS = \
 	regex.o pp.o \
 	unique.o putty2john.o gpg2john.o memdbg.o
 
-OCL_OBJS = common-opencl.o opencl_autotune.o
+OCL_OBJS = common-opencl.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
 CUDA_OBJS = common-cuda.o cuda_common.o cuda_cryptmd5.o cuda_phpass.o \
 	cuda_cryptsha256.o cuda_cryptsha512.o cuda_mscash2.o \
