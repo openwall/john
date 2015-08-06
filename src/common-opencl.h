@@ -212,7 +212,7 @@ void opencl_get_user_preferences(char *format);
 /* Returns error name based on error codes list defined in cl.h */
 char *get_error_name(cl_int cl_error);
 
-/* Returns OpenCL version based on macro CL_VERSION_X_Y definded in cl.h */
+/* Returns OpenCL version based on macro CL_VERSION_X_Y defined in cl.h */
 char *get_opencl_header_version(void);
 
 void handle_clerror(cl_int cl_error, const char *message, const char *file,

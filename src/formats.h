@@ -73,7 +73,7 @@ struct db_salt;
 #define FMT_NOT_EXACT			0x00000100
 /*
  * this format uses a dynamic sized salt, and its salt structure
- * 'derives' from the dyna_salt type defind in dyna_salt.h
+ * 'derives' from the dyna_salt type defined in dyna_salt.h
  */
 #define FMT_DYNA_SALT			0x00000200
 /* Uses a bitslice implementation */
