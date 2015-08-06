@@ -521,10 +521,10 @@ __kernel void DES_bs_25(__global DES_bs_vector *K,
 #pragma unroll 1
 		for (iterations = 24; iterations >= 0; --iterations) {
 			H();
-			if (iterations)
-				BIG_SWAP();
+			BIG_SWAP();
 		}
 
+		BIG_SWAP();
 		cmp(B, binary, num_loaded_hashes, hash_ids, bitmap, B_global, section);
 
 		return;
