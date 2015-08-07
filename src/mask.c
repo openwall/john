@@ -1068,8 +1068,8 @@ static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
 					            count(i)))
 						count(i)--;
 
-					a = mask[j - 1];
-					b = mask[j + 1];
+					a = (unsigned char)mask[j - 1];
+					b = (unsigned char)mask[j + 1];
 
 					fill_range();
 
@@ -1090,8 +1090,8 @@ static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
 					            count(i)))
 						count(i)--;
 
-					a = mask[j - 1];
-					b = mask[j + 2];
+					a = (unsigned char)mask[j - 1];
+					b = (unsigned char)mask[j + 2];
 
 					fill_range();
 
