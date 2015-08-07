@@ -798,7 +798,7 @@ if __name__ == '__main__':
         print >> sys.stderr, "Usage: %s [bitcon wallet files]" % sys.argv[0]
         sys.exit(-1)
 
-    for i in range(0, len(sys.argv)):
+    for i in range(1, len(sys.argv)):
         filename = sys.argv[i]
         if read_wallet(json_db, filename, True, True, "", False) == -1:
             continue
@@ -826,9 +826,3 @@ if __name__ == '__main__':
                 (len(cry_master), cry_master, len(cry_salt),
                 cry_salt, cry_rounds, len(ckey), ckey, len(public_key),
                 public_key))
-
-
-
-
-
-
