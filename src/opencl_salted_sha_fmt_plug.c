@@ -536,11 +536,12 @@ static char *get_key(int index)
 	return out;
 }
 
-static void prepare_table(struct db_salt *salt) {
+static void prepare_table(struct db_main *db) {
 	unsigned int *bin, i;
 	struct db_password *pw;
+	struct db_salt *salt;
 
-	num_loaded_hashes = (salt->count);
+	num_loaded_hashes = (db->password_count);
 
 	MEM_FREE(loaded_hashes);
 	MEM_FREE(hash_ids);
@@ -550,9 +551,11 @@ static void prepare_table(struct db_salt *salt) {
 	loaded_hashes = (cl_uint*) mem_alloc(6 * num_loaded_hashes * sizeof(cl_uint));
 	hash_ids = (cl_uint*) mem_alloc((3 * num_loaded_hashes + 1) * sizeof(cl_uint));
 
-	pw = salt -> list;
 	i = 0;
+	salt = db->salts;
 	do {
+		pw = salt -> list;
+		do {
 		bin = (unsigned int *)pw -> binary;
 		// Potential segfault if removed
 		if(bin != NULL) {
@@ -564,9 +567,10 @@ static void prepare_table(struct db_salt *salt) {
 			loaded_hashes[6 * i + 5] = 0;
 			i++ ;
 		}
-	} while ((pw = pw -> next)) ;
+		} while ((pw = pw -> next));
+	} while ((salt = salt->next));
 
-	if(i != (salt->count)) {
+	if(i != (db->password_count)) {
 		fprintf(stderr,
 			"Something went wrong while preparing hashes..Exiting..\n");
 		error();
@@ -810,42 +814,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
 	keys_changed = 0;
 	}
-	if (salt != NULL && salt->count > 4500 &&
-		(num_loaded_hashes - num_loaded_hashes / 10) > salt->count) {
-		size_t old_ot_sz_bytes, old_ht_sz_bytes;
-		prepare_table(salt);
-		init_kernel(salt->count, select_bitmap(salt->count));
-
-		HANDLE_CLERROR(clGetMemObjectInfo(buffer_offset_table, CL_MEM_SIZE, sizeof(size_t), &old_ot_sz_bytes, NULL), "failed to query buffer_offset_table.");
-
-		if (old_ot_sz_bytes < offset_table_size *
-			sizeof(OFFSET_TABLE_WORD)) {
-			HANDLE_CLERROR(clReleaseMemObject(buffer_offset_table), "Error Releasing buffer_offset_table.");
-
-			buffer_offset_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, offset_table_size * sizeof(OFFSET_TABLE_WORD), NULL, &ret_code);
-			HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_offset_table.");
-		}
-
-		HANDLE_CLERROR(clGetMemObjectInfo(buffer_hash_table, CL_MEM_SIZE, sizeof(size_t), &old_ht_sz_bytes, NULL), "failed to query buffer_hash_table.");
-
-		if (old_ht_sz_bytes < hash_table_size * sizeof(cl_uint) * 2) {
-			HANDLE_CLERROR(clReleaseMemObject(buffer_hash_table), "Error Releasing buffer_hash_table.");
-			HANDLE_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Error Releasing buffer_bitmap_dupe.");
-			MEM_FREE(zero_buffer);
-
-			zero_buffer = (cl_uint *) mem_calloc(hash_table_size/32 + 1, sizeof(cl_uint));
-			buffer_bitmap_dupe = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, (hash_table_size/32 + 1) * sizeof(cl_uint), zero_buffer, &ret_code);
-			HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_bitmap_dupe.");
-			buffer_hash_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, hash_table_size * sizeof(cl_uint) * 2, NULL, &ret_code);
-			HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_table.");
-		}
-
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps, CL_TRUE, 0, (bitmap_size_bits >> 3), bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps.");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_192, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
-		set_kernel_args();
-		set_kernel_args_kpc();
-	}
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 
@@ -1077,8 +1045,8 @@ static void reset(struct db_main *db)
 		release_clobj();
 		release_clobj_kpc();
 
-		num_loaded_hashes = db->salts->count;
-		prepare_table(db->salts);
+		num_loaded_hashes = db->password_count;
+		prepare_table(db);
 		init_kernel(num_loaded_hashes, select_bitmap(num_loaded_hashes));
 
 		create_clobj();
