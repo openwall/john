@@ -324,8 +324,7 @@ static void reset(struct db_main *db)
 		//Auto tune execution from shared/included code.
 		self->methods.crypt_all = crypt_all_benchmark;
 		autotune_run(self, ROUNDS_DEFAULT, 0,
-		             (cpu(device_info[gpu_id]) ?
-		              2000000000ULL : 4000000000ULL));
+		             (cpu(device_info[gpu_id]) ? 1000ULL : 300ULL));
 		self->methods.crypt_all = crypt_all;
 	}
 }
