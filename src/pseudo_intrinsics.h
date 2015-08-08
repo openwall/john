@@ -46,7 +46,7 @@ typedef uint64x2_t vtype64;
 #define vadd_epi64(x, y)        (vtype)vaddq_u64((vtype64)(x), (vtype64)(y))
 #define vand                    vandq_u32
 #define vandnot(x, y)           vbicq_u32(y, x)
-#define vcmov                   vcmov_emu
+#define vcmov(x, y, z)          vbslq_u32(z, x, y)
 #define vload(m)                vld1q_u32((uint32_t*)(m))
 #define vloadu                  vloadu_emu
 #define vor                     vorrq_u32
