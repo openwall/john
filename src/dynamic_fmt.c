@@ -7857,6 +7857,9 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		sprintf(s, "%s %s", cp, pFmt->params.algorithm_name);
 		pFmt->params.algorithm_name = str_alloc_copy(s);
 	}
+
+	if ((Setup->flags & MGF_SALTED) && !Setup->SaltLen)
+		return !fprintf(stderr, "Error invalid format %s\n\tIt is required to add SaltLen= to the script, for this format\n", Setup->szFORMAT_NAME);
 	return 1;
 }
 
