@@ -402,7 +402,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		// jgypwqm.JsMssPLiS8YQ00$BaaaaaSX
 		unsigned int len;
 		len = base64_valid_length(cp, pPriv->dynamic_base64_inout==3?e_b64_mime:e_b64_crypt, flg_Base64_MIME_TRAIL_EQ_CNT);
-		if (len < 20) return 0;
+		if (len < 20 || len > pPriv->dynamic_SALT_OFFSET+4) return 0;
 		if (pPriv->dynamic_FIXED_SALT_SIZE == 0)
 			return !cp[len];
 		if (pPriv->dynamic_FIXED_SALT_SIZE && cp[len] != '$')
