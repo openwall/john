@@ -136,6 +136,18 @@ static int is_mixedcase(char *chars)
 	return 0;
 }
 
+static int has_8bit(char *chars)
+{
+	char *ptr, c;
+
+	ptr = chars;
+	while ((c = *ptr++))
+		if (c & 0x80)
+			return 1;
+
+	return 0;
+}
+
 static void inc_new_length(unsigned int length,
 	struct charset_header *header, FILE *file, char *charset,
 	char *char1, char2_table char2, chars_table *chars)
@@ -645,6 +657,14 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			    "but the current hash type is case-insensitive;\n"
 			    "some candidate passwords may be unnecessarily "
 			    "tried more than once.\n");
+	}
+
+	if (!(db->format->params.flags & FMT_8_BIT) && has_8bit(allchars)) {
+		log_event("! 8-bit charset, but the hash type is 7-bit");
+		if (john_main_process)
+			fprintf(stderr, "Warning: 8-bit charset, but the current"
+			    " hash type is 7-bit;\n"
+			    "some candidate passwords may be redundant.\n");
 	}
 
 	char2 = NULL;
