@@ -1161,7 +1161,6 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 			return ret;
 		format->methods.clear_keys();
 
-
 		dyna_salt_remove(salt);
 
 	} while ((++current)->ciphertext);
@@ -1169,26 +1168,32 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 	if (plaintext_has_alpha) {
 		if (is_case_sensitive && !(format->params.flags & FMT_CASE)) {
 			snprintf(s_size, sizeof(s_size),
-				"format:%s have not set FMT_CASE but there is at least one password which is case-sensitive",
+				"format:%s has not set FMT_CASE but there is at least one password which is case-sensitive",
 				format->params.label);
 			return s_size;
 		} else if (!is_case_sensitive && (format->params.flags & FMT_CASE)) {
 			snprintf(s_size, sizeof(s_size),
-				"format:%s have set FMT_CASE but all passwords are case-insensitive",
+				"format:%s has set FMT_CASE but all passwords are case-insensitive",
 				format->params.label);
 			return s_size;
 		}
 	}
 
 	if (!plaintext_is_blank) {
-		if (!is_ignore_8th_bit && !(format->params.flags & FMT_8_BIT)) {
+		if (!strcmp(format->params.label, "crypt")) {
+			// It "can't" reliably know if the underlying system's
+			// crypt() is 8-bit or not, and in fact this will vary
+			// by actual hash type, of which multiple ones may be
+			// loaded at once (with that one format).
+			// crypt SHOULD set FMT_8_BIT
+		} else if (!is_ignore_8th_bit && !(format->params.flags & FMT_8_BIT)) {
 			snprintf(s_size, sizeof(s_size),
-				"format:%s have not set FMT_8_BIT but there is at least one password which does not ignore the 8th bit",
+				"format:%s has not set FMT_8_BIT but there is at least one password which does not ignore the 8th bit",
 				format->params.label);
 			return s_size;
 		} else if (is_ignore_8th_bit && (format->params.flags & FMT_8_BIT)) {
 			snprintf(s_size, sizeof(s_size),
-				"format:%s have set FMT_8_BIT but all passwords ignore the 8th bit",
+				"format:%s has set FMT_8_BIT but all passwords ignore the 8th bit",
 				format->params.label);
 			return s_size;
 		}
