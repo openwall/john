@@ -212,7 +212,7 @@ if ($arg_utf8) {
 #if not a redirected file, prompt the user
 if (-t STDIN) {
 	print STDERR "\nEnter words to hash, one per line.\n";
-	print STDERR "When all entered ^D starts the processing.\n\n";
+	if (@ARGV != 1) { print STDERR "When all entered ^D starts the processing.\n\n"; }
 	$arg_nocomment = 1;  # we do not output 'comment' line if writing to stdout.
 }
 
