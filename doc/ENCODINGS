@@ -18,9 +18,10 @@ The new defaults (which can be changed in john.conf) are:
     superset and slightly better (for example, it includes the Euro sign) but
     is also a tad slower so is not made the default.
 
-For temporarily running "the old way", just give --enc=ascii. You will still
-get output to screen, log and .pot file in UTF-8 though, unless you change
-john.conf settings.
+For temporarily running "the old way", just give --enc=raw. You will still
+get output to screen and log in UTF-8, possibly incorrectly encoded. But the
+.pot file entries will not be converted in any way (except for Unicode formats
+which will always end up correctly, in UTF-8).
 
 For proper function, it's imperative that you let John know about what
 encodings are involved if they differ from defaults. For example, if your
@@ -94,8 +95,8 @@ Example using the now default john.conf settings:
 
 
 Currently supported encodings:
-ASCII, UTF-8, KOI8-R,
-ISO-8859-1 (alias latin1), ISO-8859-2, ISO-8859-7, ISO-8859-15,
+ASCII (or RAW), UTF-8, ISO-8859-1 (or Latin1 or ANSI),
+ISO-8859-2, ISO-8859-7, ISO-8859-15, KOI8-R,
 CP437, CP720, CP737, CP850, CP852, CP858, CP866, CP868,
 CP1250, CP1251, CP1252, CP1253, CP1254, CP1255, CP1256
 

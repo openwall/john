@@ -873,8 +873,8 @@ static void john_load_conf_db(void)
 		pers_opts.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
 		                                  NULL, "UnicodeStoreUTF8", 0);
 	else
-		pers_opts.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
-		                                  NULL, "CPstoreUTF8", 0);
+		pers_opts.store_utf8 = pers_opts.target_enc != ASCII &&
+			cfg_get_bool(SECTION_OPTIONS, NULL, "CPstoreUTF8", 0);
 
 	if (pers_opts.target_enc != pers_opts.input_enc &&
 	    pers_opts.input_enc != UTF_8) {
