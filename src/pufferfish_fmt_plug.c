@@ -236,7 +236,7 @@ struct fmt_main fmt_pufferfish = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE, // FMT_OMP is currently buggy!
+		FMT_CASE | FMT_8_BIT, // FMT_OMP is currently buggy!
 		{ NULL },
 		pufferfish_tests
 	}, {
