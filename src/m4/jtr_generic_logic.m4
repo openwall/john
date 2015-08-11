@@ -114,6 +114,9 @@ case "${host_cpu}_${CFLAGS}" in
    powerpc64le*)
       [CC_ASM_OBJS="simd-intrinsics.o"]
       ;;
+   arm*)
+      [CC_ASM_OBJS="simd-intrinsics.o"]
+      ;;
    alpha*dec*)
       [CC_ASM_OBJS="digipaq-alpha.o"]
       ;;
