@@ -59,10 +59,10 @@
 #define SIMD_COEF_64		8
 
 #ifndef SIMD_PARA_MD4
-#define SIMD_PARA_MD4		1
+#define SIMD_PARA_MD4		2
 #endif
 #ifndef SIMD_PARA_MD5
-#define SIMD_PARA_MD5		1
+#define SIMD_PARA_MD5		2
 #endif
 #ifndef SIMD_PARA_SHA1
 #define SIMD_PARA_SHA1		1
