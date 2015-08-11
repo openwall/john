@@ -394,8 +394,8 @@ typedef __m128i vtype;
 #define vcvtsi32                _mm_cvtsi32_si128
 #endif
 #define vinsert_epi32           _mm_insert_epi32
-#define vload(x)                _mm_load_si128((void*)(x))
-#define vloadu(x)               _mm_loadu_si128((void*)(x))
+#define vload(x)                _mm_load_si128((const vtype*)(x))
+#define vloadu(x)               _mm_loadu_si128((const vtype*)(x))
 #define vmovemask_epi8          _mm_movemask_epi8
 #define vor                     _mm_or_si128
 #define vpermute4x64_epi64      _mm_permute4x64_epi64
@@ -439,8 +439,8 @@ typedef __m128i vtype;
 #define vsrli_epi16             _mm_srli_epi16
 #define vsrli_epi32             _mm_srli_epi32
 #define vsrli_epi64             _mm_srli_epi64
-#define vstore(x, y)            _mm_store_si128((void*)(x), y)
-#define vstoreu(x, y)           _mm_storeu_si128((void*)(x), y)
+#define vstore(x, y)            _mm_store_si128((vtype*)(x), y)
+#define vstoreu(x, y)           _mm_storeu_si128((vtype*)(x), y)
 #define vunpackhi_epi32         _mm_unpackhi_epi32
 #define vunpackhi_epi64         _mm_unpackhi_epi64
 #define vunpacklo_epi32         _mm_unpacklo_epi32
@@ -518,22 +518,28 @@ typedef __m64i vtype;
 
 #ifdef _MSC_VER
 #define MEM_ALIGN_SIMD			16
+#define INLINE _inline
 #else
 #define MEM_ALIGN_SIMD          (SIMD_COEF_32 * 4)
+#define INLINE inline
 #endif
 
-static inline vtype vloadu_emu(const void *addr)
+static INLINE vtype vloadu_emu(const void *addr)
 {
 	char JTR_ALIGN(MEM_ALIGN_SIMD) buf[MEM_ALIGN_SIMD];
 	return is_aligned(addr, MEM_ALIGN_SIMD) ?
 		vload(addr) : (memcpy(buf, addr, MEM_ALIGN_SIMD), vload(buf));
 }
 
-static inline void vstoreu_emu(void *addr, vtype v)
+static INLINE void vstoreu_emu(void *addr, vtype v)
 {
 	char JTR_ALIGN(MEM_ALIGN_SIMD) buf[MEM_ALIGN_SIMD];
-	is_aligned(addr, MEM_ALIGN_SIMD) ?
-		vstore(addr, v) : (vstore(buf, v), memcpy(addr, buf, MEM_ALIGN_SIMD));
+	if (is_aligned(addr, MEM_ALIGN_SIMD))
+		vstore(addr, v);
+	else {
+		vstore(buf, v);
+		memcpy(addr, buf, MEM_ALIGN_SIMD);
+	}
 }
 
 #define vswap32_emu(x) \
