@@ -50,8 +50,10 @@ typedef uint64x2_t vtype64;
 #define vload(m)                vld1q_u32((uint32_t*)(m))
 #define vloadu                  vloadu_emu
 #define vor                     vorrq_u32
-#define vroti_epi32             vroti_epi32_emu
-#define vroti_epi64(x, i)       (vtype)vroti_epi64_emu((vtype64)(x), i)
+#define vroti_epi32(x, i)       (i > 0 ? vsliq_n_u32(vshrq_n_u32(x, 32-(i)), x, i) : \
+                                         vsriq_n_u32(vshlq_n_u32(x, 32+(i)), x, -(i)))
+#define vroti_epi64(x, i)       (i > 0 ? (vtype)vsliq_n_u64(vshrq_n_u64((vtype64)(x), 64-(i)), (vtype64)(x), i) : \
+                                         (vtype)vsriq_n_u64(vshlq_n_u64((vtype64)(x), 64+(i)), (vtype64)(x), -(i)))
 #define vroti16_epi32           vroti_epi32
 #define vset1_epi32(x)          vdupq_n_u32(x)
 #define vset1_epi64(x)          (vtype)vdupq_n_u64(x)
