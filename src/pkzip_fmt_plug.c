@@ -670,7 +670,6 @@ static void *get_salt(char *ciphertext)
 	MEM_FREE(salt);
 
 	psalt->dsalt.salt_alloc_needs_free = 1;  // we used mem_calloc, so JtR CAN free our pointer when done with them.
-	// NOTE, we need some way to close the BIO and EVP crap!!
 
 	// set the JtR core linkage stuff for this dyna_salt
 	memcpy(salt_p, &psalt, sizeof(psalt));

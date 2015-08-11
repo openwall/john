@@ -20,6 +20,8 @@
  * gcc luks2john.c jumbo.c -o luks2john -lcrypto
  */
 
+#include "arch.h"
+#if !AC_BUILT || HAVE_BIO_NEW
 
 #if AC_BUILT
 #include "autoconfig.h"
@@ -260,3 +262,5 @@ int main(int argc, char **argv)
 
 	return EXIT_SUCCESS;
 }
+
+#endif /* HAVE_BIO_NEW */

@@ -1661,20 +1661,21 @@ int main(int argc, char **argv)
 		return unique(argc, argv);
 	}
 
-	if (!strcmp(name, "ssh2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return ssh2john(argc, argv);
-	}
-
 	if (!strcmp(name, "putty2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return putty2john(argc, argv);
 	}
 
+#if !AC_BUILT || HAVE_BIO_NEW
 	if (!strcmp(name, "pfx2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return pfx2john(argc, argv);
 	}
+	if (!strcmp(name, "ssh2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return ssh2john(argc, argv);
+	}
+#endif
 
 	if (!strcmp(name, "keepass2john")) {
 		CPU_detect_or_fallback(argv, 0);

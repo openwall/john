@@ -524,6 +524,10 @@ AC_CHECK_FUNCS([EVP_aes_256_xts SHA256 WHIRLPOOL RIPEMD160 AES_encrypt EVP_sha51
 LIBS="$LIBS_ORIG"
 CFLAGS="$CFLAGS_ORIG"
 
+if test "x$ac_cv_func_BIO_new" = xyes ; then
+	AC_SUBST([HAVE_BIO_NEW],[-DHAVE_BIO_NEW])
+fi
+
 AC_CACHE_SAVE
 
 #################

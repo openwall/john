@@ -653,6 +653,7 @@ PTHREAD_LIBS
 PTHREAD_CC
 ax_pthread_config
 OPENMP_CFLAGS
+HAVE_BIO_NEW
 PCAP_LIBS
 HAVE_PCAP
 MEMDBG_CFLAGS
@@ -10248,6 +10249,11 @@ done
 
 LIBS="$LIBS_ORIG"
 CFLAGS="$CFLAGS_ORIG"
+
+if test "x$ac_cv_func_BIO_new" = xyes ; then
+	HAVE_BIO_NEW=-DHAVE_BIO_NEW
+
+fi
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure

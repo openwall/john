@@ -133,13 +133,18 @@ GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o
 
 PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../run/unique@EXE_EXT@ ../run/undrop@EXE_EXT@ \
-	../run/ssh2john@EXE_EXT@ ../run/rar2john@EXE_EXT@ ../run/zip2john@EXE_EXT@ \
+	../run/rar2john@EXE_EXT@ ../run/zip2john@EXE_EXT@ \
 	../run/genmkvpwd@EXE_EXT@ ../run/mkvcalcproba@EXE_EXT@ ../run/calc_stat@EXE_EXT@ \
 	../run/tgtsnarf@EXE_EXT@ ../run/racf2john@EXE_EXT@ ../run/hccap2john@EXE_EXT@ \
-	../run/raw2dyna@EXE_EXT@ ../run/pfx2john@EXE_EXT@  ../run/keepass2john@EXE_EXT@ \
+	../run/raw2dyna@EXE_EXT@  ../run/keepass2john@EXE_EXT@ \
 	../run/dmg2john@EXE_EXT@ ../run/putty2john@EXE_EXT@ ../run/uaf2john@EXE_EXT@ \
 	../run/wpapcap2john@EXE_EXT@ \
-	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/luks2john@EXE_EXT@ ../run/base64conv@EXE_EXT@
+	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/base64conv@EXE_EXT@
+
+WITH_BIO_NEW = @HAVE_BIO_NEW@
+ifdef WITH_BIO_NEW
+../run/pfx2john@EXE_EXT@ ../run/ssh2john@EXE_EXT@ ../run/luks2john@EXE_EXT@
+endif
 
 WITH_PCAP = @HAVE_PCAP@
 ifdef WITH_PCAP
