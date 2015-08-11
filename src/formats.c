@@ -696,8 +696,7 @@ static void test_fmt_case(struct fmt_main *format, void *binary,
 	char *ciphertext, char* plaintext, int *is_case_sensitive,
 	int *plaintext_has_alpha)
 {
-	char *plain_copy;
-	char *pk;
+	char *plain_copy, *pk;
 
 	if (*plaintext == 0)
 		return;
@@ -732,18 +731,37 @@ static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 	char *ciphertext, char *plaintext, int *is_ignore_8th_bit,
 	int *plaintext_is_blank)
 {
-	char *plain_copy;
+	char *plain_copy, *pk, *ret_all_set, *ret_none_set;
 
 	if (*plaintext == 0)
 		return;
 
 	*plaintext_is_blank = 0;
 	plain_copy = strdup(plaintext);
-	*plain_copy |= 0x80;
+
+	// All OR '\x80'
+	pk = plain_copy;
+	while (*pk) {
+		*pk |= '\x80';
+		pk++;
+	}
 
 	fmt_set_key(plain_copy, 0);
+	ret_all_set = is_key_right(format, 0, binary, ciphertext, plain_copy);
 
-	if (is_key_right(format, 0, binary, ciphertext, plain_copy))
+	format->methods.clear_keys();
+
+	// All AND '\x7F'
+	pk = plain_copy;
+	while (*pk) {
+		*pk &= '\x7F';
+		pk++;
+	}
+
+	fmt_set_key(plain_copy, 0);
+	ret_none_set = is_key_right(format, 0, binary, ciphertext, plain_copy);
+
+	if (ret_all_set != ret_none_set)
 		*is_ignore_8th_bit = 0;
 
 	free(plain_copy);
