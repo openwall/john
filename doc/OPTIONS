@@ -51,7 +51,8 @@ each line will be used. If FILE is not specified, the active .pot file will
 be used. This is very effective for applying rules to further permute words
 that has been successful, or without rules after a run using --salts in case
 the cracks are successful on other salts than the ones that has already been
-attacked.
+attacked. Note that by default, some rules are applied too (see john.conf
+"LoopbackRules"). To disable that for a run, just use --rules=none.
 
 --encoding=NAME
 
@@ -607,4 +608,3 @@ john.pot and applying all of the defined external mode filters.  To
 speed it up on a sufficiently large computer (RAM and CPUs), "&" may be
 added after the John invocation inside the script (to run all of them in
 parallel).
-
