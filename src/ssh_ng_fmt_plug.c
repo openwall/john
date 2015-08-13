@@ -13,6 +13,9 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
+#include "arch.h"
+#if !AC_BUILT || HAVE_BIO_NEW
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_sshng;
 #elif FMT_REGISTERS_H
@@ -34,7 +37,6 @@ static int omp_t = 1;
 #endif
 #endif
 
-#include "arch.h"
 #include "jumbo.h"
 #include "common.h"
 #include "formats.h"
@@ -518,3 +520,4 @@ struct fmt_main fmt_sshng = {
 };
 
 #endif /* plugin stanza */
+#endif /* HAVE_BIO_NEW */

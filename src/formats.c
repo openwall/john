@@ -696,8 +696,7 @@ static void test_fmt_case(struct fmt_main *format, void *binary,
 	char *ciphertext, char* plaintext, int *is_case_sensitive,
 	int *plaintext_has_alpha)
 {
-	char *plain_copy;
-	char *pk;
+	char *plain_copy, *pk;
 
 	if (*plaintext == 0)
 		return;
@@ -732,18 +731,37 @@ static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 	char *ciphertext, char *plaintext, int *is_ignore_8th_bit,
 	int *plaintext_is_blank)
 {
-	char *plain_copy;
+	char *plain_copy, *pk, *ret_all_set, *ret_none_set;
 
 	if (*plaintext == 0)
 		return;
 
 	*plaintext_is_blank = 0;
 	plain_copy = strdup(plaintext);
-	*plain_copy |= 0x80;
+
+	// All OR '\x80'
+	pk = plain_copy;
+	while (*pk) {
+		*pk |= '\x80';
+		pk++;
+	}
 
 	fmt_set_key(plain_copy, 0);
+	ret_all_set = is_key_right(format, 0, binary, ciphertext, plain_copy);
 
-	if (is_key_right(format, 0, binary, ciphertext, plain_copy))
+	format->methods.clear_keys();
+
+	// All AND '\x7F'
+	pk = plain_copy;
+	while (*pk) {
+		*pk &= '\x7F';
+		pk++;
+	}
+
+	fmt_set_key(plain_copy, 0);
+	ret_none_set = is_key_right(format, 0, binary, ciphertext, plain_copy);
+
+	if (ret_all_set != ret_none_set)
 		*is_ignore_8th_bit = 0;
 
 	free(plain_copy);
@@ -1161,7 +1179,6 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 			return ret;
 		format->methods.clear_keys();
 
-
 		dyna_salt_remove(salt);
 
 	} while ((++current)->ciphertext);
@@ -1169,26 +1186,32 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 	if (plaintext_has_alpha) {
 		if (is_case_sensitive && !(format->params.flags & FMT_CASE)) {
 			snprintf(s_size, sizeof(s_size),
-				"format:%s have not set FMT_CASE but there is at least one password which is case-sensitive",
+				"format:%s has not set FMT_CASE but there is at least one password which is case-sensitive",
 				format->params.label);
 			return s_size;
 		} else if (!is_case_sensitive && (format->params.flags & FMT_CASE)) {
 			snprintf(s_size, sizeof(s_size),
-				"format:%s have set FMT_CASE but all passwords are case-insensitive",
+				"format:%s has set FMT_CASE but all passwords are case-insensitive",
 				format->params.label);
 			return s_size;
 		}
 	}
 
 	if (!plaintext_is_blank) {
-		if (!is_ignore_8th_bit && !(format->params.flags & FMT_8_BIT)) {
+		if (!strcmp(format->params.label, "crypt")) {
+			// It "can't" reliably know if the underlying system's
+			// crypt() is 8-bit or not, and in fact this will vary
+			// by actual hash type, of which multiple ones may be
+			// loaded at once (with that one format).
+			// crypt SHOULD set FMT_8_BIT
+		} else if (!is_ignore_8th_bit && !(format->params.flags & FMT_8_BIT)) {
 			snprintf(s_size, sizeof(s_size),
-				"format:%s have not set FMT_8_BIT but there is at least one password which does not ignore the 8th bit",
+				"format:%s has not set FMT_8_BIT but there is at least one password which does not ignore the 8th bit",
 				format->params.label);
 			return s_size;
 		} else if (is_ignore_8th_bit && (format->params.flags & FMT_8_BIT)) {
 			snprintf(s_size, sizeof(s_size),
-				"format:%s have set FMT_8_BIT but all passwords ignore the 8th bit",
+				"format:%s has set FMT_8_BIT but all passwords ignore the 8th bit",
 				format->params.label);
 			return s_size;
 		}

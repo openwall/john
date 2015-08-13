@@ -15,6 +15,9 @@
  * level for brute-forcing purposes. So we drill down and find suitable
  * low-level OpenSSL functions. */
 
+#include "arch.h"
+#if !AC_BUILT || HAVE_BIO_NEW
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_ssh;
 #elif FMT_REGISTERS_H
@@ -37,7 +40,6 @@ john_register_one(&fmt_ssh);
 #endif
 #endif
 #include <string.h>
-#include "arch.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
@@ -540,3 +542,4 @@ struct fmt_main fmt_ssh = {
 };
 
 #endif /* plugin stanza */
+#endif /* HAVE_BIO_NEW */

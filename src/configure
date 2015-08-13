@@ -653,6 +653,7 @@ PTHREAD_LIBS
 PTHREAD_CC
 ax_pthread_config
 OPENMP_CFLAGS
+HAVE_BIO_NEW
 PCAP_LIBS
 HAVE_PCAP
 MEMDBG_CFLAGS
@@ -8748,6 +8749,9 @@ fi
    powerpc64le*)
       CC_ASM_OBJS="simd-intrinsics.o"
       ;;
+   arm*)
+      CC_ASM_OBJS="simd-intrinsics.o"
+      ;;
    alpha*dec*)
       CC_ASM_OBJS="digipaq-alpha.o"
       ;;
@@ -10248,6 +10252,11 @@ done
 
 LIBS="$LIBS_ORIG"
 CFLAGS="$CFLAGS_ORIG"
+
+if test "x$ac_cv_func_BIO_new" = xyes ; then
+	HAVE_BIO_NEW=-DHAVE_BIO_NEW
+
+fi
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure

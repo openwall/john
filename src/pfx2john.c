@@ -45,6 +45,10 @@
  *
  * Compile: gcc -Wall pfx2john.c -lcrypto -lssl common.o -o ../run/pfx2john */
 
+#include "arch.h"
+
+#if !AC_BUILT || HAVE_BIO_NEW
+
 #include <stdio.h>
 #include <stdlib.h>
 #if !AC_BUILT || HAVE_LIMITS_H
@@ -124,3 +128,5 @@ int pfx2john(int argc, char **argv)
 
 	return 0;
 }
+
+#endif

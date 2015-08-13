@@ -406,7 +406,7 @@ static int cfg_process_directive_include_section(char *line, int number)
 	}
 	p = strtokm(p, ":");
 	p2 = strtokm(NULL, "");
-	if (!p || !p2) {
+	if (!p) {
 		fprintf(stderr, "ERROR, invalid .include line, can not find this section:  %s\n", line);
 #ifndef BENCH_BUILD
 		log_event("! ERROR, invalid .include line, can not find this section:  %s", line);
@@ -414,7 +414,10 @@ static int cfg_process_directive_include_section(char *line, int number)
 		return 1;
 	}
 	*Section = ':';
-	strnzcpy(&Section[1], p2, 254);
+	if (p2)
+		strnzcpy(&Section[1], p2, 254);
+	else
+		*Section = 0;
 	if ((newsection = cfg_get_section(p, Section))) {
 		if (newsection->list) {
 			// Must check cfg_database->list before cfg_add_line()

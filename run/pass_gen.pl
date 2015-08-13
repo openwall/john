@@ -212,7 +212,7 @@ if ($arg_utf8) {
 #if not a redirected file, prompt the user
 if (-t STDIN) {
 	print STDERR "\nEnter words to hash, one per line.\n";
-	print STDERR "When all entered ^D starts the processing.\n\n";
+	if (@ARGV != 1) { print STDERR "When all entered ^D starts the processing.\n\n"; }
 	$arg_nocomment = 1;  # we do not output 'comment' line if writing to stdout.
 }
 
@@ -260,9 +260,12 @@ if (@ARGV == 1) {
 		@funcs = ();
 		push(@funcs, $arg = dynamic_compile(substr($orig_arg,8)));
 	}
+	my $have_something = 0;
 	foreach (@funcs) {
 		if ($arg eq lc $_) {
+			$have_something = 1;
 			if (-t STDOUT) { print "\n  ** Here are the hashes for format $orig_arg **\n"; }
+			$arg =~ s/-/_/g;
 			while (<STDIN>) {
 				next if (/^#!comment/);
 				chomp;
@@ -270,7 +273,6 @@ if (@ARGV == 1) {
 				#my $line_len = length($_);
 				my $line_len = jtr_unicode_corrected_length($_);
 				next if $line_len > $arg_maxlen || $line_len < $arg_minlen;
-				$arg =~ s/-/_/g;
 				reset_out_vars();
 				no strict 'refs';
 				my $hash = &$arg($_, word_encode($_));
@@ -287,6 +289,10 @@ if (@ARGV == 1) {
 			last;
 		}
 	}
+	if (!$have_something) {
+		print STDERR "hash type [$orig_arg] is not supported\n";
+		exit(1);
+	}
 } else {
 	#slurp the wordlist words from stdin.  We  have to, to be able to run the same words multiple
 	# times, and not interleave the format 'types' in the file.  Doing this allows us to group them.
@@ -300,9 +306,12 @@ if (@ARGV == 1) {
 		if (substr($arg,0,8) eq "dynamic=") {
 			push(@funcs, $arg = dynamic_compile(substr($orig_arg,8)));
 		}
+		my $have_something = 0;
 		foreach (@funcs) {
 			if ($arg eq lc $_) {
+				$have_something = 1;
 				if (-t STDOUT) { print "\n  ** Here are the hashes for format $orig_arg **\n"; }
+				$arg =~ s/-/_/g;
 				foreach (@lines) {
 					next if (/^#!comment/);
 					chomp;
@@ -322,6 +331,10 @@ if (@ARGV == 1) {
 				}
 				last;
 			}
+		}
+		if (!$have_something) {
+			print STDERR "hash type [$orig_arg] is not supported\n";
+			exit(1);
 		}
 	}
 }

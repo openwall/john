@@ -1724,8 +1724,9 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 			pers_opts.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
 			    NULL, "UnicodeStoreUTF8", 0);
 		else
-			pers_opts.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
-			    NULL, "CPstoreUTF8", 0);
+			pers_opts.store_utf8 = pers_opts.target_enc != ASCII &&
+				cfg_get_bool(SECTION_OPTIONS, NULL,
+				             "CPstoreUTF8", 0);
 	} else {
 		split = fmt_default_split;
 		count = 1;

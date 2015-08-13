@@ -873,8 +873,8 @@ static void john_load_conf_db(void)
 		pers_opts.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
 		                                  NULL, "UnicodeStoreUTF8", 0);
 	else
-		pers_opts.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
-		                                  NULL, "CPstoreUTF8", 0);
+		pers_opts.store_utf8 = pers_opts.target_enc != ASCII &&
+			cfg_get_bool(SECTION_OPTIONS, NULL, "CPstoreUTF8", 0);
 
 	if (pers_opts.target_enc != pers_opts.input_enc &&
 	    pers_opts.input_enc != UTF_8) {
@@ -1661,20 +1661,21 @@ int main(int argc, char **argv)
 		return unique(argc, argv);
 	}
 
-	if (!strcmp(name, "ssh2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return ssh2john(argc, argv);
-	}
-
 	if (!strcmp(name, "putty2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return putty2john(argc, argv);
 	}
 
+#if !AC_BUILT || HAVE_BIO_NEW
 	if (!strcmp(name, "pfx2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return pfx2john(argc, argv);
 	}
+	if (!strcmp(name, "ssh2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return ssh2john(argc, argv);
+	}
+#endif
 
 	if (!strcmp(name, "keepass2john")) {
 		CPU_detect_or_fallback(argv, 0);

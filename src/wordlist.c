@@ -138,7 +138,7 @@ static MAYBE_INLINE char *mgetl(char *res)
 	char *pos = res;
 
 #if defined(SIMD_COEF_32) && !defined(_MSC_VER) && \
-	!((__AVX512F__ && !__AVX512BW__) || __MIC__) && !__ALTIVEC__
+	!((__AVX512F__ && !__AVX512BW__) || __MIC__) && !__ALTIVEC__ && !__ARM_NEON__
 
 	/* 16/32/64 chars at a time with known remainder. */
 	const vtype vnl = vset1_epi8('\n');

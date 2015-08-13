@@ -19,6 +19,9 @@
  *
  * 1. Support more formats of SSH private keys. */
 
+#include "arch.h"
+#if !AC_BUILT || HAVE_BIO_NEW
+
 #include <stdio.h>
 #include <stdlib.h>
 #if !AC_BUILT || HAVE_LIMITS_H
@@ -180,3 +183,5 @@ int ssh2john(int argc, char **argv)
 
 	return 0;
 }
+
+#endif /* HAVE_BIO_NEW */
