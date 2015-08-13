@@ -47,6 +47,7 @@
 #include "params.h"
 #include "path.h"
 #include "memory.h"
+#include "config.h"
 #include "options.h"
 #include "loader.h"
 #include "logger.h"
@@ -196,11 +197,30 @@ static void rec_unlock(void)
 
 void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 {
+	const char *protect;
 	rec_done(1);
 
 	if (!rec_argc) return;
 
 	rec_name_complete();
+
+	protect = cfg_get_param(SECTION_OPTIONS, NULL, "SessionFileProtect");
+	if (!protect)
+		protect = "Disabled";
+
+	if (strcasecmp(protect, "Disabled")) {
+		if (!strcmp(rec_name, "$JOHN/john.rec")) {
+			if(!strcasecmp(protect, "Always")) {
+				struct stat st;
+				if (!stat(path_expand(rec_name), &st))
+					pexit("ERROR: With the john.conf [Options] SessionFileProtect=Always we can not proceed, since we would be overwriting %s\n", path_expand(rec_name));
+			}
+		} else {
+			struct stat st;
+			if (!stat(path_expand(rec_name), &st))
+				pexit("ERROR: With the john.conf [Options] SessionFileProtect not set to 'Disabled', we can not proceed, since we would be overwriting %s\n", path_expand(rec_name));
+		}
+	}
 
 	if ((rec_fd = open(path_expand(rec_name), O_RDWR | O_CREAT, 0600)) < 0)
 		pexit("open: %s", path_expand(rec_name));
