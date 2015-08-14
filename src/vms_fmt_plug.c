@@ -66,6 +66,7 @@ static int omp_t = 1;
 static struct fmt_tests tests[] = {
 	{"$V$9AYXUd5LfDy-aj48Vj54P-----", "USER"},
 	{"$V$p1UQjRZKulr-Z25g5lJ-------", "service"},
+	{"$V$S44zI913bBx-UJrcFSC------D", "President#44"},
 	{NULL}
 };
 
