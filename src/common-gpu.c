@@ -433,6 +433,7 @@ int id2adl(const hw_bus busInfo) {
 void gpu_check_temp(void)
 {
 #if HAVE_LIBDL
+	static int warned;
 	int i;
 
 	if (temp_limit < 0)
@@ -444,6 +445,17 @@ void gpu_check_temp(void)
 		int dev = gpu_device_list[i];
 
 		dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util);
+
+		if (temp > 125 || temp < 10) {
+			if (!warned++) {
+				log_event("GPU %d probably invalid temp reading (%d" DEGC
+				          ").", dev, temp);
+				fprintf(stderr, "GPU %d probably invalid temp reading (%d"
+				        DEGC ").\n", dev, temp);
+			}
+			return;
+		}
+
 		if (temp >= temp_limit) {
 			char s_fan[10] = "n/a";
 			if (fan >= 0)
