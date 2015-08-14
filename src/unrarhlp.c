@@ -35,7 +35,7 @@ void *rar_malloc(size_t size)
 	if(!size || size > (size_t)RAR_MAX_ALLOCATION) {
 		return NULL;
 	}
-	//rar_dbgmsg("%s() allocating "Zd" bytes\n", __func__, size);
+	//rar_dbgmsg("%s() allocating "Zu" bytes\n", __func__, size);
 
 	return mem_alloc(size);
 }

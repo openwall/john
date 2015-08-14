@@ -1478,7 +1478,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		benchEvent[i] = NULL;
 
 	if (options.verbosity > 3)
-		fprintf(stderr, "Max local worksize "Zd", ", group_size_limit);
+		fprintf(stderr, "Max local worksize "Zu", ", group_size_limit);
 
 	/* Formats supporting vectorizing should have a default max keys per
 	   crypt that is a multiple of 2 and of 3 */
@@ -2354,7 +2354,7 @@ static char *human_format(size_t size)
 		size /= 1024;
 		prefid++;
 	}
-	sprintf(ret, ""Zd"."Zd" %cB", size, (size % 1024) / 100, pref[prefid]);
+	sprintf(ret, ""Zu"."Zu" %cB", size, (size % 1024) / 100, pref[prefid]);
 	return ret;
 }
 
