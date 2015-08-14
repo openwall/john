@@ -64,6 +64,7 @@ static int omp_t = 1;
 #define MAX_KEYS_PER_CRYPT		1
 
 static struct fmt_tests tests[] = {
+	{"$V$S44zI913bBx-UJrcFSC------D", "President#44"},
 	{"$V$9AYXUd5LfDy-aj48Vj54P-----", "USER"},
 	{"$V$p1UQjRZKulr-Z25g5lJ-------", "service"},
 	{NULL}
