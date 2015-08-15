@@ -64,8 +64,14 @@ static int omp_t = 1;
 #define MAX_KEYS_PER_CRYPT		1
 
 static struct fmt_tests tests[] = {
+/*
+ * The following two test vectors: "USER" and "service" are case-insensitive
+ */
 	{"$V$9AYXUd5LfDy-aj48Vj54P-----", "USER"},
 	{"$V$p1UQjRZKulr-Z25g5lJ-------", "service"},
+/*
+ * The following one test vector: "President#44" is case-sensitive
+ */
 	{"$V$S44zI913bBx-UJrcFSC------D", "President#44"},
 	{NULL}
 };
@@ -257,6 +263,10 @@ struct fmt_main fmt_VMS = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+/*
+ * This format supports both case-sensitive and case-insensitive passwords,
+ * so this format should set FMT_CASE
+ */
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
 		tests
