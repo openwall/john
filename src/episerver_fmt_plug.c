@@ -76,9 +76,13 @@ john_register_one(&fmt_episerver);
 #include "simd-intrinsics.h"
 #include "johnswap.h"
 
-#define NBKEYS              (SIMD_COEF_32 * SIMD_PARA_SHA1 * SIMD_PARA_SHA256)
-#define HASH_IDX_IN  (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32)
-#define HASH_IDX_OUT (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32)
+#define NBKEYS_SHA1     (SIMD_COEF_32 * SIMD_PARA_SHA1)
+#define NBKEYS_SHA256   (SIMD_COEF_32 * SIMD_PARA_SHA256)
+#define NBKEYS          (SIMD_COEF_32 * SIMD_PARA_SHA1 * SIMD_PARA_SHA256)
+#define HASH_IDX_IN     (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32)
+#define HASH_IDX_SHA1   (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32)
+#define HASH_IDX_SHA256 (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32)
+#define HASH_IDX_OUT    (cur_salt->version == 0 ? HASH_IDX_SHA1 : HASH_IDX_SHA256)
 #define GETPOS(i, index) ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianness conversion
 
 #define ALGORITHM_NAME      "SHA1/SHA256 " SHA1_ALGORITHM_NAME
@@ -274,21 +278,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 #ifdef SIMD_COEF_32
-	for (index = 0; index < count; index += NBKEYS)
+	for (index = 0; index < count; index += (cur_salt->version == 0 ? NBKEYS_SHA1 : NBKEYS_SHA256))
 	{
 		uint32_t *in = &saved_key[HASH_IDX_IN];
 		uint32_t *out = &crypt_out[HASH_IDX_OUT];
 
-		if(cur_salt->version == 0) {
-			int j;
+		if(cur_salt->version == 0)
 			SIMDSHA1body(in, out, NULL, SSEi_MIXED_IN);
-			for (j = 0; j < NBKEYS; ++j) // remap output of SHA1 to the layout of SHA256
-				memcpy(&out[(j&(SIMD_COEF_32-1)) + j/SIMD_COEF_32*8*SIMD_COEF_32],
-				       &out[(j&(SIMD_COEF_32-1)) + j/SIMD_COEF_32*5*SIMD_COEF_32], 20);
-		}
-		else if(cur_salt->version == 1) {
+		else if(cur_salt->version == 1)
 			SIMDSHA256body(in, out, NULL, SSEi_MIXED_IN);
-		}
 	}
 #else
 	for (index = 0; index < count; index++)
