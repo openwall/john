@@ -175,12 +175,17 @@ static char *longcand(struct fmt_main *format, int index, int ml)
 }
 
 static char* is_key_right(struct fmt_main *format, int index,
-	void *binary, char *ciphertext, char *plaintext)
+	void *binary, char *ciphertext, char *plaintext, int is_test_fmt_case)
 {
 	static char s_size[100];
-	int i, size;
-	int count = index + 1;
-	int match = format->methods.crypt_all(&count, NULL);
+	int i, size, count, match, len;
+	char *key;
+
+	if (is_test_fmt_case && index != 0)
+		return "index should be 0 when test_fmt_case";
+
+	count = index + 1;
+	match = format->methods.crypt_all(&count, NULL);
 
 	if (!format->methods.cmp_all(binary, match)) {
 		sprintf(s_size, "cmp_all(%d)", match);
@@ -233,10 +238,34 @@ static char* is_key_right(struct fmt_main *format, int index,
 		return s_size;
 	}
 
-	if (strncmp(format->methods.get_key(i), plaintext,
-		format->params.plaintext_length)) {
-		sprintf(s_size, "get_key(%d)", i);
+	key = format->methods.get_key(i);
+	len = strlen(key);
+
+	if (len < format->params.plaintext_min_length ||
+		len > format->params.plaintext_length) {
+		sprintf(s_size, "The length of string returned by get_key() is %d"
+			"which should between plaintext_min_length=%d and plaintext_length=%d",
+			len, format->params.plaintext_min_length,
+			format->params.plaintext_length);
 		return s_size;
+	}
+
+	if (is_test_fmt_case)
+		return NULL;
+
+	if (format->params.flags & FMT_CASE) {
+		// Case-sensitive passwords
+		if (strncmp(key, plaintext, format->params.plaintext_length)) {
+			sprintf(s_size, "get_key(%d)", i);
+			return s_size;
+		}
+	} else {
+		// Case-insensitive passwords
+		if (strncasecmp(key, plaintext,
+			format->params.plaintext_length)) {
+			sprintf(s_size, "get_key(%d)", i);
+			return s_size;
+		}
 	}
 
 	return NULL;
@@ -633,7 +662,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		advance_cursor();
 #endif
 
-		ret = is_key_right(format, index, binary, ciphertext, plaintext);
+		ret = is_key_right(format, index, binary, ciphertext, plaintext, 0);
 		if (ret)
 			return ret;
 
@@ -720,7 +749,7 @@ static void test_fmt_case(struct fmt_main *format, void *binary,
 	*plaintext_has_alpha = 1;
 	fmt_set_key(plain_copy, 0);
 
-	if (is_key_right(format, 0, binary, ciphertext, plain_copy))
+	if (is_key_right(format, 0, binary, ciphertext, plain_copy, 1))
 		*is_case_sensitive = 1;
 
 out:
@@ -747,7 +776,7 @@ static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 	}
 
 	fmt_set_key(plain_copy, 0);
-	ret_all_set = is_key_right(format, 0, binary, ciphertext, plain_copy);
+	ret_all_set = is_key_right(format, 0, binary, ciphertext, plain_copy, 0);
 
 	format->methods.clear_keys();
 
@@ -759,7 +788,7 @@ static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 	}
 
 	fmt_set_key(plain_copy, 0);
-	ret_none_set = is_key_right(format, 0, binary, ciphertext, plain_copy);
+	ret_none_set = is_key_right(format, 0, binary, ciphertext, plain_copy, 0);
 
 	if (ret_all_set != ret_none_set)
 		*is_ignore_8th_bit = 0;
@@ -1174,7 +1203,7 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 		advance_cursor();
 #endif
 
-		ret = is_key_right(format, max - 1, binary, ciphertext, plaintext);
+		ret = is_key_right(format, max - 1, binary, ciphertext, plaintext, 0);
 		if (ret)
 			return ret;
 		format->methods.clear_keys();

@@ -181,7 +181,7 @@ void ext_init(char *mode, struct db_main *db)
 		if (john_main_process)
 			fprintf(stderr,
 			    "Compiler error in %s at line %d: %s\n",
-			    cfg_name, ext_line->number,
+			    ext_line->cfg_name, ext_line->number,
 			    c_errors[c_errno]);
 		error();
 	}
