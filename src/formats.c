@@ -1228,17 +1228,38 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 
 	if (!plaintext_is_blank) {
 		if (!strcmp(format->params.label, "crypt")) {
-			// It "can't" reliably know if the underlying system's
-			// crypt() is 8-bit or not, and in fact this will vary
-			// by actual hash type, of which multiple ones may be
-			// loaded at once (with that one format).
-			// crypt SHOULD set FMT_8_BIT
-		} else if (!is_ignore_8th_bit && !(format->params.flags & FMT_8_BIT)) {
+/*
+ * It "can't" reliably know if the underlying system's crypt() is 8-bit or not,
+ * and in fact this will vary by actual hash type, of which multiple ones may
+ * be loaded at once (with that one format). crypt SHOULD set FMT_8_BIT
+ */
+			if (!(format->params.flags & FMT_8_BIT)) {
+				snprintf(s_size, sizeof(s_size),
+					"crypt should set FMT_8_BIT",
+					format->params.label);
+				return s_size;
+			}
+		} else if (!strcmp(format->params.label, "wpapsk")) {
+/*
+ * wpapsk technically handles 8-bit just fine, a WPAPSK passphrase is 8 to 63
+ * printable ASCII characters according to the spec. IEEE Std. 802.11i-2004,
+ * Annex H.4.1: Each character in the pass-phrase must have an encoding in
+ * the range of 32 to 126 (decimal), inclusive.
+ */
+			if (format->params.flags & FMT_8_BIT) {
+				snprintf(s_size, sizeof(s_size),
+					"wpapsk should not set FMT_8_BIT",
+					format->params.label);
+				return s_size;
+			}
+		} else if (!is_ignore_8th_bit &&
+			   !(format->params.flags & FMT_8_BIT)) {
 			snprintf(s_size, sizeof(s_size),
 				"format:%s has not set FMT_8_BIT but there is at least one password which does not ignore the 8th bit",
 				format->params.label);
 			return s_size;
-		} else if (is_ignore_8th_bit && (format->params.flags & FMT_8_BIT)) {
+		} else if (is_ignore_8th_bit &&
+			   (format->params.flags & FMT_8_BIT)) {
 			snprintf(s_size, sizeof(s_size),
 				"format:%s has set FMT_8_BIT but all passwords ignore the 8th bit",
 				format->params.label);
