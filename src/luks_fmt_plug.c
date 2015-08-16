@@ -347,7 +347,8 @@ static void init(struct fmt_main *self)
  * to re-run luks2john and retry the passwords that have been stored for the current LUKS hashes
  * once the redesign of john's LUKS format implementation has been completed.)
  */
-	if (!options.listconf && !(options.flags & FLG_TEST_CHK) && warned++ == 0) {
+	if (!options.listconf && !(options.flags & FLG_TEST_CHK) &&
+	    !(options.flags & FLG_TEST_FULL_CHK) && warned++ == 0) {
 		fprintf(stderr,
 		        "WARNING, LUKS format hash representation will change in future releases,\n"
 		        "see doc/README.LUKS\n"); // FIXME: address github issue #557 after 1.8.0-jumbo-1
