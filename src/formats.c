@@ -244,7 +244,7 @@ static char* is_key_right(struct fmt_main *format, int index,
 	if (len < format->params.plaintext_min_length ||
 		len > format->params.plaintext_length) {
 		sprintf(s_size, "The length of string returned by get_key() is %d"
-			"which should between plaintext_min_length=%d and plaintext_length=%d",
+			"which should be between plaintext_min_length=%d and plaintext_length=%d",
 			len, format->params.plaintext_min_length,
 			format->params.plaintext_length);
 		return s_size;
@@ -1189,10 +1189,12 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 
 		// Test FMT_8_BIT
 		format->methods.clear_keys();
+		format->methods.set_salt(salt);
 		test_fmt_8_bit(format, binary, ciphertext, plaintext,
 			&is_ignore_8th_bit, &plaintext_is_blank);
 
 		format->methods.clear_keys();
+		format->methods.set_salt(salt);
 		for (i = 0; i < max - 1; i++) {
 			char *pCand = longcand(format, i, ml);
 			fmt_set_key(pCand, i);
