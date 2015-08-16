@@ -651,7 +651,7 @@ static int handle_extra_params(DC_struct *ptr) {
 	// Find any 'const' values that have been provided.
 	for (i = 1; i < 9; ++i) {
 		char *cp2;
-		sprintf(cx, "c%d=", i);
+		sprintf(cx, "c%d", i);
 		cp = get_param(ptr->pExtraParams, cx);
 		if (!cp)
 			break;
