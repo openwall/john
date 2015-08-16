@@ -1579,14 +1579,6 @@ static int parse_expression(DC_struct *p) {
 		for (i = 0; i <nCode; ++i)
 			printf ("%s\n", pCode[i]);
 
-	// Build test strings.
-	strcpy(gen_pw, "abc");
-	build_test_string(p, &p->pLine1);
-	strcpy(gen_pw, "john");
-	build_test_string(p, &p->pLine2);
-	strcpy(gen_pw, "passweird");
-	build_test_string(p, &p->pLine3);
-
 	if (bNeedS)
 		comp_add_script_line("SaltLen=%d\n", nSaltLen ? nSaltLen : -32);
 
@@ -1963,6 +1955,14 @@ static int parse_expression(DC_struct *p) {
 		comp_add_script_line("MaxInputLenX86=%d\n",max_inp_len);
 		comp_add_script_line("MaxInputLen=%d\n",max_inp_len);
 	}
+
+	// Build test strings.
+	strcpy(gen_pw, "abc");
+	build_test_string(p, &p->pLine1);
+	strcpy(gen_pw, "john");
+	build_test_string(p, &p->pLine2);
+	strcpy(gen_pw, "passweird");
+	build_test_string(p, &p->pLine3);
 
 	len = i = 0;
 	for (i = 0; i < nScriptLines; ++i)
