@@ -1078,13 +1078,9 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 void ldr_load_pot_file(struct db_main *db, char *name)
 {
 	if (db->format && !(db->format->params.flags & FMT_NOT_EXACT)) {
-#ifdef HAVE_CRYPT
 		ldr_in_pot = 1;
-#endif
 		read_file(db, name, RF_ALLOW_MISSING, ldr_load_pot_line);
-#ifdef HAVE_CRYPT
 		ldr_in_pot = 0;
-#endif
 	}
 }
 
@@ -1678,13 +1674,9 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 
 void ldr_show_pot_file(struct db_main *db, char *name)
 {
-#ifdef HAVE_CRYPT
 	ldr_in_pot = 1;
-#endif
 	read_file(db, name, RF_ALLOW_MISSING, ldr_show_pot_line);
-#ifdef HAVE_CRYPT
 	ldr_in_pot = 0;
-#endif
 }
 
 static void ldr_show_pw_line(struct db_main *db, char *line)
