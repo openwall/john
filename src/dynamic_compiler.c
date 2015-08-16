@@ -653,7 +653,7 @@ static int handle_extra_params(DC_struct *ptr) {
 		char *cp2;
 		sprintf(cx, "c%d", i);
 		cp = get_param(ptr->pExtraParams, cx);
-		if (!cp)
+		if (!cp || !cp[0])
 			break;
 
 		cp2 = mem_alloc(strlen(cp)+1);
