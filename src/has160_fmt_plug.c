@@ -6,9 +6,9 @@
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_HAS160;
+extern struct fmt_main fmt__HAS160;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_HAS160);
+john_register_one(&fmt__HAS160);
 #else
 
 #include <string.h>
@@ -198,7 +198,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main fmt_HAS160 = {
+struct fmt_main fmt__HAS160 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

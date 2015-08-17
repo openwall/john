@@ -209,6 +209,7 @@ foreach $id (sort sort_benchmarks keys %b1r) {
 
 $minr = $maxr = $minv = $maxv = -1.0;
 $mr = $mv = 1.0;
+$mrl = $mvl = 0.0;
 $n = 0;
 foreach $id (sort sort_benchmarks keys %b2r) {
 	if (!defined($b1r{$id})) {
@@ -230,7 +231,15 @@ foreach $id (sort sort_benchmarks keys %b2r) {
 	$akr[$n] = $kr;
 	$akv[$n] = $kv;
 	$mr *= $kr;
+	if ($mr < 1e-300 || $mr > 1e300) {
+		$mrl += log($mr);
+		$mr = 1.0;
+	}
 	$mv *= $kv;
+	if ($mv < 1e-300 || $mv > 1e300) {
+		$mvl += log($mv);
+		$mv = 1.0;
+	}
 	$n++;
 	if ($verbose == 1) {
 		printf "Ratio:\t%.5f real, %.5f virtual\t$id\n", $kr, $kv;
@@ -257,8 +266,8 @@ if ($n & 1) {
 }
 printf "Median:\t\t\t\t%.5f real, %.5f virtual\n", $medr, $medv;
 
-$mr **= 1.0 / $n;
-$mv **= 1.0 / $n;
+$mr = exp(($mrl + log($mr)) / $n);
+$mv = exp(($mvl + log($mv)) / $n);
 $dr = $dv = 0.0;
 for ($i = 0; $i < $n; $i++) {
 	$adr[$i] = abs($akr[$i] - $medr);
