@@ -43,13 +43,28 @@ john_register_one(&fmt_sevenzip);
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		1
-#define PLAINTEXT_LENGTH	125
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
 #ifndef OMP_SCALE
 #define OMP_SCALE               1 // tuned on core i7
+#endif
+
+#ifdef SIMD_COEF_32
+#include "simd-intrinsics.h"
+
+#define NBKEYS     (SIMD_COEF_32*SIMD_PARA_SHA256)
+#define MAX_ROUNDS (BIG_ENOUGH*2)
+#define BUF_SIZE   (PLAINTEXT_LENGTH*2 + 8)*MAX_ROUNDS/4
+#define GETPOS(i, index) ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*BUF_SIZE*4*SIMD_COEF_32 ) //for endianness conversion
+#define HASH_IDX (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32)
+
+#define PLAINTEXT_LENGTH	28
+#define MIN_KEYS_PER_CRYPT	NBKEYS
+#define MAX_KEYS_PER_CRYPT	NBKEYS
+#else
+#define PLAINTEXT_LENGTH	125
+#define MIN_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	1
 #endif
 
 #define BIG_ENOUGH 		(8192 * 32)
@@ -97,6 +112,10 @@ static void init(struct fmt_main *self)
 	cracked   = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*cracked));
 	CRC32_Init(&crc);
+#ifdef SIMD_COEF_32
+	if (pers_opts.target_enc == UTF_8)
+		self->params.plaintext_length = PLAINTEXT_LENGTH * 3;
+#endif
 }
 
 static void done(void)
@@ -319,6 +338,70 @@ static int sevenzip_decrypt(unsigned char *derived_key)
 	return -1;
 }
 
+#ifdef SIMD_COEF_32
+static void sevenzip_kdf(UTF8 *password, unsigned char *master)
+{
+	long long rounds = (long long) 1 << cur_salt->NumCyclesPower;
+	long long round;
+	int index, j;
+	static uint32_t buf_in[NBKEYS*BUF_SIZE], buf_out[NBKEYS*8] JTR_ALIGN(MEM_ALIGN_SIMD);
+#ifdef _OPENMP
+#pragma omp threadprivate(buf_in,buf_out)
+#endif
+	int nblocks[NBKEYS];
+	int nfinished;
+	unsigned char *in = (unsigned char*)buf_in;
+
+	memset(buf_in, 0, sizeof(buf_in));
+	for (index = 0; index < NBKEYS; ++index) {
+		UTF16 buf[PLAINTEXT_LENGTH + 1];
+		UTF8 *pw = (unsigned char*)password + index*sizeof(*saved_key);
+		int len, tot_len;
+		len = enc_to_utf16(buf, PLAINTEXT_LENGTH, pw, strlen((char*)pw));
+		if (len <= 0) {
+			password[-len] = 0; // match truncation
+			len = strlen16(buf);
+		}
+		len *= 2;
+
+		// copy keys to vector buffer
+		tot_len = 0;
+		for (round = 0; round < rounds; ++round) {
+			for (j = 0; j < len; ++j)
+				in[GETPOS(j + tot_len, index)] = ((char*)buf)[j];
+			tot_len += len;
+
+			for (j = 0; j < 8; ++j)
+				in[GETPOS(j + tot_len, index)] = ((char*)&round)[j];
+			tot_len += 8;
+		}
+		if (tot_len % 64 >= 56)
+			nblocks[index] = tot_len/64 + 2;
+		else
+			nblocks[index] = tot_len/64 + 1;
+		// padding
+		in[GETPOS(tot_len, index)] = 0x80;
+		*(uint32_t*)&in[GETPOS(nblocks[index]*64 - 1, index)] = tot_len*8;
+	}
+
+	nfinished = 0;
+	SIMDSHA256body(in, buf_out, NULL, SSEi_MIXED_IN);
+	while (nfinished < NBKEYS) {
+		for (index = 0; index < NBKEYS; ++index) {
+			nblocks[index]--;
+			if (nblocks[index] == 0) { // copy out result for this password
+				uint32_t *m = (uint32_t*)&master[index*32];
+				for (j = 0; j < 32/4; ++j)
+					m[j] = JOHNSWAP(buf_out[HASH_IDX + j*SIMD_COEF_32]);
+				nfinished++;
+			}
+		}
+	
+		in += SIMD_COEF_32*64;
+		SIMDSHA256body(in, buf_out, buf_out, SSEi_MIXED_IN | SSEi_RELOAD);
+	}
+}
+#else
 static void sevenzip_kdf(UTF8 *password, unsigned char *master)
 {
 	int len;
@@ -355,6 +438,7 @@ static void sevenzip_kdf(UTF8 *password, unsigned char *master)
 	}
 	SHA256_Final(master, &sha);
 }
+#endif
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -362,8 +446,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
+#ifdef SIMD_COEF_32
+	for (index = 0; index < count; index += NBKEYS)
+	{
+		int j;
+		unsigned char master[NBKEYS*32];
+		sevenzip_kdf((unsigned char*)saved_key[index], master);
+
+		/* do decryption and checks */
+		for (j = 0; j < NBKEYS; ++j) {
+			if (sevenzip_decrypt(&master[j*32]) == 0)
+				cracked[index + j] = 1;
+			else
+				cracked[index + j] = 0;
+		}
+	}
+#else
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
 		/* derive key */
 		unsigned char master[32];
@@ -375,6 +475,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		else
 			cracked[index] = 0;
 	}
+#endif // SIMD_COEF_32
 	return count;
 }
 
