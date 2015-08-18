@@ -11,7 +11,7 @@
 #include "office_common.h"
 #include "sha.h"
 #include "sha2.h"
-#include "aes.h"
+#include <openssl/aes.h>
 #include "memdbg.h"
 
 void *ms_office_common_get_salt(char *ciphertext)

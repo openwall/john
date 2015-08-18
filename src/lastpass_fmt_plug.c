@@ -24,7 +24,7 @@ john_register_one(&fmt_lastpass);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "aes.h"
+#include <openssl/aes.h>
 #include "pbkdf2_hmac_sha256.h"
 #ifdef _OPENMP
 #include <omp.h>
