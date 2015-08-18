@@ -210,6 +210,10 @@ struct fmt_main fmt_LM = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+/*
+ * Do not add FAST_FORMATS_OMP checks to LM, because its use of OpenMP is in
+ * code shared with other formats.
+ */
 #if DES_bs_mt
 		FMT_OMP | FMT_OMP_BAD |
 #endif

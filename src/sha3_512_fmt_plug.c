@@ -243,7 +243,7 @@ struct fmt_main fmt_rawSHA3 = {
                 SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_OMP | FMT_OMP_BAD | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		tests
 	}, {

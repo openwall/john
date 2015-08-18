@@ -33,6 +33,10 @@ john_register_one(&fmt_HDAA);
 #include "simd-intrinsics.h"
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
+#if !FAST_FORMATS_OMP
+#undef _OPENMP
+#endif
+
 #if defined(_OPENMP)
 #include <omp.h>
 #endif
@@ -719,7 +723,9 @@ struct fmt_main fmt_HDAA = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_OMP |
+#ifdef _OPENMP
+		FMT_OMP | FMT_OMP_BAD |
+#endif
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
 		tests
