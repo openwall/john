@@ -58,6 +58,9 @@ john_register_one(&fmt_lastpass);
 
 static struct fmt_tests lastpass_tests[] = {
 	{"$lp$hackme@mailinator.com$6f5d8cec3615fc9ac7ba2e0569bce4f5", "strongpassword"},
+	{"$lp$3$27c8641d7f5ab5985569d9d0b499b467", "123"},
+	{"$lp$ninechars$d09153108a89347da5c97a4a18f91345", "PassWord"},
+	{"$lp$anicocls$764b0f54528eb4a4c93aab1b18af28a5", ""},
 	{NULL}
 };
 
