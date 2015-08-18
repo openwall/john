@@ -2714,7 +2714,7 @@ static struct fmt_main fmt_Dynamic =
 		MAX_KEYS_PER_CRYPT_X86,
 #endif
 #ifdef _OPENMP
-		FMT_OMP |
+		FMT_OMP | FMT_OMP_BAD |
 #endif
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },

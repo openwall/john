@@ -616,7 +616,7 @@ struct fmt_main fmt_MSCHAPv2_old = {
 #if DES_BS
 		FMT_BS |
 #if DES_bs_mt
-		FMT_OMP |
+		FMT_OMP | FMT_OMP_BAD |
 #endif
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,

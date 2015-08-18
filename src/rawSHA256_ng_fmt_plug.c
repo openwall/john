@@ -16,6 +16,10 @@ extern struct fmt_main fmt_rawSHA256_ng;
 john_register_one(&fmt_rawSHA256_ng);
 #else
 
+#if !FAST_FORMATS_OMP
+#undef _OPENMP
+#endif
+
 #if _OPENMP
 #include <omp.h>
 #if __XOP__
@@ -422,7 +426,10 @@ struct fmt_main fmt_rawSHA256_ng = {
         SALT_ALIGN,
         MIN_KEYS_PER_CRYPT,
         MAX_KEYS_PER_CRYPT,
-        FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
+#ifdef _OPENMP
+        FMT_OMP | FMT_OMP_BAD |
+#endif
+        FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
         sha256_common_tests
     }, {
