@@ -31,7 +31,7 @@ john_register_one(&fmt_o5logon);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "aes/aes.h"
+#include "aes.h"
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>

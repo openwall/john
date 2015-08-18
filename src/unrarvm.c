@@ -24,7 +24,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <openssl/aes.h>
+#include "aes.h"
 
 #include "unrar.h"
 #include "unrarvm.h"

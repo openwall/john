@@ -23,7 +23,7 @@ john_register_one(&fmt_opencl_office2013);
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-#include <openssl/aes.h>
+#include "aes.h"
 
 #include "arch.h"
 #include "misc.h"

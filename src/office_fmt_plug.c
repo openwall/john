@@ -12,7 +12,7 @@ john_register_one(&fmt_office);
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-#include <openssl/aes.h>
+#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE

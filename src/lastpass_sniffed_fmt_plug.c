@@ -28,7 +28,7 @@ john_register_one(&fmt_sniffed_lastpass);
 #include "params.h"
 #include "options.h"
 #include "base64_convert.h"
-#include <openssl/aes.h>
+#include "aes.h"
 #include "pbkdf2_hmac_sha256.h"
 #ifdef _OPENMP
 #include <omp.h>

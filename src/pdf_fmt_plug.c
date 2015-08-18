@@ -23,7 +23,7 @@ john_register_one(&fmt_pdf);
 #include "md5.h"
 #include "rc4.h"
 #include "pdfcrack_md5.h"
-#include <openssl/aes.h>
+#include "aes.h"
 #include "sha2.h"
 #ifdef _OPENMP
 #include <omp.h>

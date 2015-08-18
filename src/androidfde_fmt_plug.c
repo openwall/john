@@ -36,7 +36,7 @@ john_register_one(&fmt_fde);
 #include "stdint.h"
 #include <stdlib.h>
 #include <sys/types.h>
-#include <openssl/aes.h>
+#include "aes.h"
 
 #include <string.h>
 #include "arch.h"

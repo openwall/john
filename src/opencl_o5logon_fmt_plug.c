@@ -37,7 +37,7 @@ john_register_one(&fmt_opencl_o5logon);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "aes/aes.h"
+#include "aes.h"
 
 /* ---- Start OpenCL Modifications ---- */
 

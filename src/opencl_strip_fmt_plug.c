@@ -17,7 +17,7 @@ john_register_one(&fmt_opencl_strip);
 #else
 
 #include <string.h>
-#include <openssl/aes.h>
+#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif

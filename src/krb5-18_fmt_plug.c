@@ -41,7 +41,7 @@ john_register_one(&fmt_krb5_18);
 #include "options.h"
 #include "simd-intrinsics.h"
 #include "pbkdf2_hmac_sha1.h"
-#include <openssl/aes.h>
+#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef SIMD_COEF_32

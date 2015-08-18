@@ -15,7 +15,7 @@ john_register_one(&fmt_opencl_gpg);
 #else
 
 #include <string.h>
-#include <openssl/aes.h>
+#include "aes.h"
 #include <assert.h>
 #include <openssl/blowfish.h>
 #include <openssl/ripemd.h>

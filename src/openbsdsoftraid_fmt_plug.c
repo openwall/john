@@ -27,7 +27,7 @@ john_register_one(&fmt_openbsd_softraid);
 #else
 
 #include <openssl/evp.h>
-#include <openssl/aes.h>
+#include "aes.h"
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
 #include "common.h"

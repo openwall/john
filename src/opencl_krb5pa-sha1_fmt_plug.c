@@ -52,7 +52,7 @@ john_register_one(&fmt_opencl_krb5pa_sha1);
 #include "common.h"
 #include "unicode.h"
 #include "config.h"
-#include "aes/aes.h"
+#include "aes.h"
 #include "common-opencl.h"
 #define OUTLEN 32
 #include "opencl_pbkdf2_hmac_sha1.h"

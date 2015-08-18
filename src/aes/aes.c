@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "aes.h"
+#include "../aes.h"
 
 #if HAVE_AES_ENCRYPT || !defined(AC_BUILT)
 #include "openssl/ossl_aes.h"

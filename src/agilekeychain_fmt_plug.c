@@ -28,7 +28,7 @@ john_register_one(&fmt_agile_keychain);
 #include "johnswap.h"
 #include "options.h"
 #include "pbkdf2_hmac_sha1.h"
-#include <openssl/aes.h>
+#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE

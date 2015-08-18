@@ -26,7 +26,7 @@ john_register_one(&fmt_opencl_dmg);
 #else
 
 #include <string.h>
-#include <openssl/aes.h>
+#include "aes.h"
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #ifdef _OPENMP

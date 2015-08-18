@@ -16,7 +16,7 @@ john_register_one(&fmt_opencl_odf);
 #include <string.h>
 #include "sha.h"
 #include <openssl/blowfish.h>
-#include <openssl/aes.h>
+#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif

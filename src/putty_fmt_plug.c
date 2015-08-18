@@ -21,12 +21,11 @@ john_register_one(&fmt_putty);
 #include "common.h"
 #include "formats.h"
 #include "misc.h"
-#include <openssl/aes.h>
+#include "aes.h"
 #include "sha.h"
 #include <openssl/evp.h>
 //#include <openssl/hmac.h>
 #include "gladman_hmac.h"
-#include <openssl/aes.h>
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE

@@ -32,7 +32,7 @@ john_register_one(&fmt_odf);
 #include "sha.h"
 #include "sha2.h"
 #include <openssl/blowfish.h>
-#include <openssl/aes.h>
+#include "aes.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "memdbg.h"
 

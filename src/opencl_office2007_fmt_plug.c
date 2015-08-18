@@ -19,7 +19,7 @@ john_register_one(&fmt_opencl_office2007);
 #else
 
 #include "sha.h"
-#include <openssl/aes.h>
+#include "aes.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

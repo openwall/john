@@ -28,7 +28,7 @@ john_register_one(&fmt_blockchain);
 #include "options.h"
 #include "johnswap.h"
 #include "pbkdf2_hmac_sha1.h"
-#include <openssl/aes.h>
+#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 //#define OMP_SCALE               1 // tuned on core i7
