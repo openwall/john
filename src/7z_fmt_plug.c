@@ -56,7 +56,8 @@ john_register_one(&fmt_sevenzip);
 #define MAX_ROUNDS (BIG_ENOUGH*2)
 #define BUF_SIZE   (PLAINTEXT_LENGTH*2 + 8)*MAX_ROUNDS/4
 #define GETPOS(i,idx) ( (idx&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)idx/SIMD_COEF_32*BUF_SIZE*4*SIMD_COEF_32 )
-#define HASH_IDX(idx) (((unsigned int)idx&(SIMD_COEF_32-1))+(unsigned int)idx/SIMD_COEF_32*8*SIMD_COEF_32)
+#define HASH_IDX_IN(idx) (((unsigned int)idx&(SIMD_COEF_32-1))+(unsigned int)idx/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32)
+#define HASH_IDX_OUT(idx) (((unsigned int)idx&(SIMD_COEF_32-1))+(unsigned int)idx/SIMD_COEF_32*8*SIMD_COEF_32)
 
 #define PLAINTEXT_LENGTH	28
 #define MIN_KEYS_PER_CRYPT	NBKEYS
@@ -345,48 +346,56 @@ static int sevenzip_decrypt(unsigned char *derived_key)
 #ifdef SIMD_COEF_32
 static void sevenzip_kdf(int *indices, unsigned char *master)
 {
-	long long rounds = (long long) 1 << cur_salt->NumCyclesPower;
-	long long round;
+	long long round, rounds = (long long) 1 << cur_salt->NumCyclesPower;
 	int i, j;
-	static uint32_t buf_in[NBKEYS*BUF_SIZE], buf_out[NBKEYS*8] JTR_ALIGN(MEM_ALIGN_SIMD);
-#ifdef _OPENMP
-#pragma omp threadprivate(buf_in,buf_out)
-#endif
-	unsigned char *in = (unsigned char*)buf_in;
+	uint32_t buf_out[NBKEYS*8] JTR_ALIGN(MEM_ALIGN_SIMD);
+	union {
+		uint32_t w[2][NBKEYS*16];
+		unsigned char c[NBKEYS*64*2];
+	} buf_in JTR_ALIGN(MEM_ALIGN_SIMD);
 	int len = saved_len[indices[0]];
 	int tot_len = (len + 8)*rounds;
-	int nblocks = tot_len/64 + 1;
 
-	memset(buf_in, 0, sizeof(buf_in));
-	for (i = 0; i < NBKEYS; ++i) {
-		UTF16 *buf = saved_key[indices[i]];
-		int base = 0;
-
-		// copy keys to vector buffer
-		for (round = 0; round < rounds; ++round) {
+	int cur_buf = 0;
+	int cur_len = 0;
+	int fst_blk = 1;
+	
+	for (round = 0; round < rounds; ++round) {
+		// copy password to vector buffer
+		for (i = 0; i < NBKEYS; ++i) {
+			UTF16 *buf = saved_key[indices[i]];
 			for (j = 0; j < len; ++j)
-				in[GETPOS(base + j, i)] = ((char*)buf)[j];
-			base += len;
+				buf_in.c[GETPOS((cur_len + j)%128, i)] = ((char*)buf)[j];
 
 			for (j = 0; j < 8; ++j)
-				in[GETPOS(base + j, i)] = ((char*)&round)[j];
-			base += 8;
+				buf_in.c[GETPOS((cur_len + len + j)%128, i)] = ((char*)&round)[j];
 		}
-		// padding
-		in[GETPOS(tot_len, i)] = 0x80;
-		*(uint32_t*)&in[GETPOS(nblocks*64 - 1, i)] = tot_len*8;
+		cur_len += (len + 8);
+
+		// swap out and compute digest on the filled buffer
+		if ((cur_len & 64) != (cur_buf << 6)) {
+			if (fst_blk)
+				SIMDSHA256body(buf_in.w[cur_buf], buf_out, NULL, SSEi_MIXED_IN);
+			else
+				SIMDSHA256body(buf_in.w[cur_buf], buf_out, buf_out, SSEi_MIXED_IN | SSEi_RELOAD);
+			fst_blk = 0;
+			cur_buf = 1 - cur_buf;
+		}
 	}
 
-	SIMDSHA256body(in, buf_out, NULL, SSEi_MIXED_IN);
-	while (--nblocks) {
-		in += SIMD_COEF_32*64;
-		SIMDSHA256body(in, buf_out, buf_out, SSEi_MIXED_IN | SSEi_RELOAD);
+	// padding
+	memset(buf_in.w[0], 0, sizeof(buf_in.w[0]));
+	for (i = 0; i < NBKEYS; ++i) {
+		buf_in.w[0][HASH_IDX_IN(i)] = (0x80 << 24);
+		buf_in.w[0][HASH_IDX_IN(i) + 15*SIMD_COEF_32] = tot_len*8;
 	}
+	SIMDSHA256body(buf_in.w[0], buf_out, buf_out, SSEi_MIXED_IN | SSEi_RELOAD);
+
 	// copy out result
 	for (i = 0; i < NBKEYS; ++i) {
 		uint32_t *m = (uint32_t*)&master[i*32];
 		for (j = 0; j < 32/4; ++j)
-			m[j] = JOHNSWAP(buf_out[HASH_IDX(i) + j*SIMD_COEF_32]);
+			m[j] = JOHNSWAP(buf_out[HASH_IDX_OUT(i) + j*SIMD_COEF_32]);
 	}
 }
 #else
@@ -422,9 +431,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
 #ifdef SIMD_COEF_32
 	int len;
 	int *indices = mem_calloc(count*NBKEYS, sizeof(*indices));
@@ -438,6 +444,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			indices[tot_todo++] = count;
 	}
 
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
 	for (index = 0; index < tot_todo; index += NBKEYS)
 	{
 		int j;
@@ -454,7 +463,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 	MEM_FREE(indices);
 #else
+#ifdef _OPENMP
+#pragma omp parallel for
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
+#endif
 	{
 		/* derive key */
 		unsigned char master[32];
