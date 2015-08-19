@@ -185,6 +185,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	unsigned int t_cost[2][FMT_TUNABLE_COSTS];
 	int ntests, pruned;
 #endif
+	int salts_done = 0;
+
 	clk_tck_init();
 
 	if (!(current = format->params.tests) || !current->ciphertext)
@@ -385,6 +387,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #if !OS_TIMER
 		sig_timer_emu_tick();
 #endif
+		salts_done++;
 	} while (bench_running && !event_abort);
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
@@ -401,6 +404,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 	results->real = end_real - start_real;
 	results->crypts = crypts;
+	results->salts_done = salts_done;
 
 	// if left at 0, we get a / by 0 later.  I have seen this happen on -test=0 runs.
 	if (results->real == 0)
@@ -468,6 +472,8 @@ void gather_results(struct bench_results *results)
 		MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&results->crypts.hi, &combined.crypts.hi, 1, MPI_UNSIGNED,
 		MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(&results->salts_done, &combined.salts_done, 1, MPI_INT,
+		MPI_MIN, 0, MPI_COMM_WORLD);
 	if (mpi_id == 0) {
 		combined.real /= mpi_p;
 		combined.virtual /= mpi_p;
@@ -711,6 +717,13 @@ AGAIN:
 			gather_results(&results_1);
 		}
 #endif
+		if (msg_1 && format->params.salt_size &&
+		    results_m.salts_done < BENCHMARK_MANY &&
+		    john_main_process && benchmark_time) {
+			printf("Warning: \"Many salts\" test limited: %d/%d\n",
+			       results_m.salts_done, BENCHMARK_MANY);
+		}
+
 		benchmark_cps(&results_m.crypts, results_m.real, s_real);
 		benchmark_cps(&results_m.crypts, results_m.virtual, s_virtual);
 #if !defined(__DJGPP__) && !defined(__BEOS__) && !defined(__MINGW32__) && !defined (_MSC_VER)
