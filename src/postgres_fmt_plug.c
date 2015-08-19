@@ -61,6 +61,14 @@ static struct fmt_tests postgres_tests[] = {
 	/* $postgre$ is supported but deprecated */
 	{"$postgre$postgres*684697c8*bf2a64f35feba7bf1b633d60393c1356",
 	 "openwall"},
+	{"$postgres$postgres*65687433*b782eca219ad84b58f26d25e19a1bbc9",
+	 "thisisalongstring"},
+	{"$postgres$postgres*33374273*77e0016f1b92cdea7291ab0ed21798b8",
+	 "string with space"},
+	{"$postgres$postgres*6f734f37*d5451e93f6ac9a0d30336ec106e91cf5",
+	 "123456789"},
+	{"$postgres$postgres*3348654b*0f0f46a3dfebf45f4320d2edeabc318f",
+	 ""},
 	{NULL}
 };
 

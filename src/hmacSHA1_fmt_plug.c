@@ -69,6 +69,9 @@ static struct fmt_tests tests[] = {
 	{"#fbdb1d1b18aa6c08324b7d64b71fb76370690e1d", ""},
 	{"Beppe#Grillo#DEBBDB4D549ABE59FAB67D0FB76B76FDBC4431F1", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	{"7oTwG04WUjJ0BTDFFIkTJlgl#293b75c1f28def530c17fc8ae389008179bf4091", "late*night"}, // from the test suite
+	{"D2hIU7fdd78WARm5dt95k6MD#e741a6100ccfd1205a8ffe1321b61fc5aa06f6db", "123"},
+	{"6Fv5kYoxuEuroTkagbf3ZRsV#370edad3540b1ad3e96b03ccf3956645306074b7", "123456789"},
+	{"3uqqtMBC7vzh9tdVMPJ9bAwE#65ed35cf94e2180d6a797e5ad5e4175891427572", "passWOrd"},
 	{NULL}
 };
 

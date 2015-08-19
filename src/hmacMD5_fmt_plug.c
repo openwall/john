@@ -73,6 +73,9 @@ static struct fmt_tests tests[] = {
 	{"The quick brown fox jumps over the lazy dog#80070713463e7749b90c2dc24911e275", "key"},
 	{"Beppe Grillo#F8457C3046C587BBCBD6D7036BA42C81", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	{"$cram_md5$PG5vLXJlcGx5QGhhc2hjYXQubmV0Pg==$dXNlciA0NGVhZmQyMmZlNzY2NzBmNmIyODc5MDgxYTdmNWY3MQ==", "hashcat"},
+	{"MEaEObR2JNXgchVn93GLLH1Ud4qTzuC0#9a80bea0acd72231ea043210a173ec7f", "123"},
+	{"d2BbCbiSXTlglEstbFFlrRgPhR1KUa2s#7a553738bc4997e656329c1b1ef99e4f", "123456789"},
+	{"dBTmX1AdmnWyVkMKp7BEt4O3eBktdN2S#f6af0afd4f397504c3bfa3836bc04a0f", "passWOrd"},
 	{NULL}
 };
 

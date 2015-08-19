@@ -60,6 +60,10 @@ static struct fmt_tests mongodb_tests[] = {
 	/* Ettercap fixed salt MiTM attack generated test vectors */
 	{"$mongodb$1$longusername$0000000000000000$53257e018399a241849cb04c70ba8daa", "longpassword"},
 	{"$mongodb$1$longusername$0000000000000000$10290925d16d81e50db242c9f3572d91", "longpassword@12345678"},
+	{"$mongodb$1$eight18_characters$8c82aec197929775$5c414259f7f7a42f8c4d1b6ffb37913a", "123"},
+	{"$mongodb$1$Herman$9b90cf265f3194d7$a5ca2c517c06fdfb773144d53fb26f56", "123456789"},
+	{"$mongodb$1$sz110$be8fa52f0e64c250$441d6ece7356c67dcc69dd26e7e0501f", "passWOrd"},
+	{"$mongodb$1$jack$304b81adddfb4d6f$c95e106f1d9952c88044a0b21a6bd3fd", ""},
 	{NULL}
 };
 

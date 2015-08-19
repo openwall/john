@@ -85,6 +85,7 @@ static struct fmt_tests tests[] = {
 	{"28ff8d49159ffbaf", "http://violating.us"},
 	{"5d2e19393cc5ef67", "password"},
 	{"5030573512345671", ""},
+	{"723d80f65bf9d670", "UPPERCASE"},
 	{NULL}
 };
 
