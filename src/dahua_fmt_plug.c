@@ -65,6 +65,8 @@ static struct fmt_tests tests[] = {
 	{"$dahua$HRG6OLE6", "Do You Even Lift?"},
 	{"$dahua$sh15yfFM", "666666"},
 	{"$dahua$6QNMIQGe", "admin"},
+	{"$dahua$g2UpKxOg", "passWOrd"},
+	{"$dahua$tlJwpbo6", ""},
 	{NULL}
 };
 

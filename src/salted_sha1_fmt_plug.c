@@ -117,6 +117,7 @@ static struct fmt_tests tests[] = {
 	{"{SSHA}/EExmSfmhQSPHDJaTxwQSdb/uPpzYWx0ZXI=", "secret"},
 	{"{SSHA}gVK8WC9YyFT1gMsQHTGCgT3sSv5zYWx0", "secret"},
 
+	{"{SSHA}zTYIHsq8ygmPTPPjoeNVXfKtEthEMXNCMU9jcURy", ""},
 	{NULL}
 };
 

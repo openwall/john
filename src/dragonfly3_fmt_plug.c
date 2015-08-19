@@ -63,6 +63,8 @@ static struct fmt_tests tests_32[] = {
 	{"$3$PNPA2tJ$ppD4bXqPMYFVdYVYrxXGMWeYB6Xv8e6jmXbvrB5V.okl", "password"},
 	{"$3$jWhDSrS$bad..Dy7UAyabPyfrEi3fgQ2qtT.5fE7C5EMNo/n.Qk5", "John the Ripper"},
 	{"$3$SSYEHO$hkuDmUQHT2Tr0.ai.lUVyb9bCC875Up.CZVa6UJZ.Muv", "DragonFly BSD"},
+	{"$3$pomO$a2ltqo.LlUSt1DG68sv2FZOdLcul0gYQ3xmn6z0G.I6Y", "123"},
+	{"$3$F$8Asqp58WwQ3WDMhaR3yQMSJGdCtpBqckemkCSNnJ.gRr", "12345678"},
 	{NULL}
 };
 
@@ -72,6 +74,8 @@ static struct fmt_tests tests_64[] = {
 	{"$3$PNPA2tJ$GvXjg6zSge3YDh5I35JlYZHoQS2r0/.vn36fQzSY.A0d", "password"},
 	{"$3$jWhDSrS$5yBH7KFPmsg.PhPeDMj1MY4fv9061zdbYumPe2Ve.Y5J", "John the Ripper"},
 	{"$3$SSYEHO$AMYLyanRYs8F2U07FsBrSFuOIygJ4kgqvpBB17BI.61N", "DragonFly BSD"},
+	{"$3$e$TzMK1ePmjnZI/YbGes/1PAKqbj8aOV31Hf8Tz9es.kkq", "123"},
+	{"$3$XcMa$idKoaBQXdRlhfJFDjnV0jDryW/nEBAGXONyzJvnH.cR3", "12345678"},
 	{NULL}
 };
 
