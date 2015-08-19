@@ -299,7 +299,7 @@ struct fmt_main fmt_dragonfly3_32 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
 		tests_32
 	}, {
@@ -359,7 +359,7 @@ struct fmt_main fmt_dragonfly3_64 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
 		tests_64
 	}, {

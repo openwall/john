@@ -42,7 +42,7 @@ john_register_one(&fmt_truecrypt_sha512);
 john_register_one(&fmt_truecrypt_whirlpool);
 #else
 
-#include <openssl/aes.h>
+#include "aes.h"
 #include <string.h>
 #include "misc.h"
 #include "memory.h"

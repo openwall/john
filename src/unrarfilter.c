@@ -20,7 +20,7 @@
  */
 
 #include "arch.h"
-#include <openssl/aes.h>
+#include "aes.h"
 
 #include "unrar.h"
 #include "unrarfilter.h"

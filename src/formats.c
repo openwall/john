@@ -177,7 +177,7 @@ static char *longcand(struct fmt_main *format, int index, int ml)
 static char* is_key_right(struct fmt_main *format, int index,
 	void *binary, char *ciphertext, char *plaintext, int is_test_fmt_case)
 {
-	static char s_size[100];
+	static char err_buf[100];
 	int i, size, count, match, len;
 	char *key;
 
@@ -188,8 +188,8 @@ static char* is_key_right(struct fmt_main *format, int index,
 	match = format->methods.crypt_all(&count, NULL);
 
 	if (!format->methods.cmp_all(binary, match)) {
-		sprintf(s_size, "cmp_all(%d)", match);
-		return s_size;
+		sprintf(err_buf, "cmp_all(%d)", match);
+		return err_buf;
 	}
 
 	for (i = match - 1; i >= 0; i--) {
@@ -198,8 +198,8 @@ static char* is_key_right(struct fmt_main *format, int index,
 	}
 
 	if (i == -1) {
-		sprintf(s_size, "cmp_one(%d)", match);
-		return s_size;
+		sprintf(err_buf, "cmp_one(%d)", match);
+		return err_buf;
 	}
 
 	for (size = 0; size < PASSWORD_HASH_SIZES; size++)
@@ -207,7 +207,7 @@ static char* is_key_right(struct fmt_main *format, int index,
 	    format->methods.get_hash[size](i) !=
 	    format->methods.binary_hash[size](binary)) {
 #ifndef DEBUG
-		sprintf(s_size, "get_hash[%d](%d) %x!=%x", size,
+		sprintf(err_buf, "get_hash[%d](%d) %x!=%x", size,
 			index, format->methods.get_hash[size](index),
 			format->methods.binary_hash[size](binary));
 #else
@@ -224,18 +224,18 @@ static char* is_key_right(struct fmt_main *format, int index,
 			}
 		}
 		if (format->methods.get_hash[maxi] && format->methods.binary_hash[maxi])
-			sprintf(s_size, "get_hash[%d](%d) %x!=%x", size, index,
+			sprintf(err_buf, "get_hash[%d](%d) %x!=%x", size, index,
 			        format->methods.get_hash[maxi](index),
 			        format->methods.binary_hash[maxi](binary));
 			else
-				sprintf(s_size, "get_hash[%d](%d)", size, index);
+				sprintf(err_buf, "get_hash[%d](%d)", size, index);
 #endif
-			return s_size;
+			return err_buf;
 	}
 
 	if (!format->methods.cmp_exact(ciphertext, i)) {
-		sprintf(s_size, "cmp_exact(%d)", i);
-		return s_size;
+		sprintf(err_buf, "cmp_exact(%d)", i);
+		return err_buf;
 	}
 
 	key = format->methods.get_key(i);
@@ -243,11 +243,11 @@ static char* is_key_right(struct fmt_main *format, int index,
 
 	if (len < format->params.plaintext_min_length ||
 		len > format->params.plaintext_length) {
-		sprintf(s_size, "The length of string returned by get_key() is %d"
+		sprintf(err_buf, "The length of string returned by get_key() is %d"
 			"which should be between plaintext_min_length=%d and plaintext_length=%d",
 			len, format->params.plaintext_min_length,
 			format->params.plaintext_length);
-		return s_size;
+		return err_buf;
 	}
 
 	if (is_test_fmt_case)
@@ -256,15 +256,15 @@ static char* is_key_right(struct fmt_main *format, int index,
 	if (format->params.flags & FMT_CASE) {
 		// Case-sensitive passwords
 		if (strncmp(key, plaintext, format->params.plaintext_length)) {
-			sprintf(s_size, "get_key(%d)", i);
-			return s_size;
+			sprintf(err_buf, "get_key(%d)", i);
+			return err_buf;
 		}
 	} else {
 		// Case-insensitive passwords
 		if (strncasecmp(key, plaintext,
 			format->params.plaintext_length)) {
-			sprintf(s_size, "get_key(%d)", i);
-			return s_size;
+			sprintf(err_buf, "get_key(%d)", i);
+			return err_buf;
 		}
 	}
 
@@ -799,7 +799,7 @@ static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 static char *fmt_self_test_full_body(struct fmt_main *format,
     void *binary_copy, void *salt_copy, struct db_main *db)
 {
-	static char s_size[200];
+	static char err_buf[200];
 	struct fmt_tests *current;
 	char *ciphertext, *plaintext, *ret;
 	int i, ntests, max;
@@ -958,8 +958,8 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 		                    strlen(ciphertext) < 7))
 			return "prepare";
 		if (format->methods.valid(ciphertext, format) != 1) {
-			snprintf(s_size, sizeof(s_size), "valid (%s)", ciphertext);
-			return s_size;
+			snprintf(err_buf, sizeof(err_buf), "valid (%s)", ciphertext);
+			return err_buf;
 		}
 
 #if !defined(BENCH_BUILD)
@@ -976,16 +976,16 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 						*p = 0;
 						// $tag$ only
 						if (format->methods.valid(k, format)) {
-							sprintf(s_size, "promiscuous valid (%s)", k);
-							return s_size;
+							sprintf(err_buf, "promiscuous valid (%s)", k);
+							return err_buf;
 						}
 						*p = '$';
 						while (*p)
 							*p++ = '$';
 						// $tag$$$$$$$$$$$$$$$$$$
 						if (format->methods.valid(k, format)) {
-							sprintf(s_size, "promiscuous valid");
-							return s_size;
+							sprintf(err_buf, "promiscuous valid");
+							return err_buf;
 						}
 						break;
 					}
@@ -1169,14 +1169,14 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 
 				if (strncmp(getkey, setkey, ml + 1)) {
 					if (strnlen(getkey, ml + 1) > ml)
-					sprintf(s_size, "max. length in index "
+					sprintf(err_buf, "max. length in index "
 					        "%d: wrote %d, got longer back",
 					        i, ml);
 					else
-					sprintf(s_size, "max. length in index "
+					sprintf(err_buf, "max. length in index "
 					        "%d: wrote %d, got %d back", i,
 					        ml, (int)strlen(getkey));
-					return s_size;
+					return err_buf;
 				}
 			}
 		}
@@ -1216,15 +1216,15 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 
 	if (plaintext_has_alpha) {
 		if (is_case_sensitive && !(format->params.flags & FMT_CASE)) {
-			snprintf(s_size, sizeof(s_size),
+			snprintf(err_buf, sizeof(err_buf),
 				"format:%s has not set FMT_CASE but there is at least one password which is case-sensitive",
 				format->params.label);
-			return s_size;
+			return err_buf;
 		} else if (!is_case_sensitive && (format->params.flags & FMT_CASE)) {
-			snprintf(s_size, sizeof(s_size),
+			snprintf(err_buf, sizeof(err_buf),
 				"format:%s has set FMT_CASE but all passwords are case-insensitive",
 				format->params.label);
-			return s_size;
+			return err_buf;
 		}
 	}
 
@@ -1236,10 +1236,10 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
  * be loaded at once (with that one format). crypt SHOULD set FMT_8_BIT
  */
 			if (!(format->params.flags & FMT_8_BIT)) {
-				snprintf(s_size, sizeof(s_size),
+				snprintf(err_buf, sizeof(err_buf),
 					"crypt should set FMT_8_BIT",
 					format->params.label);
-				return s_size;
+				return err_buf;
 			}
 		} else if (!strcmp(format->params.label, "wpapsk")) {
 /*
@@ -1249,23 +1249,23 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
  * the range of 32 to 126 (decimal), inclusive.
  */
 			if (format->params.flags & FMT_8_BIT) {
-				snprintf(s_size, sizeof(s_size),
+				snprintf(err_buf, sizeof(err_buf),
 					"wpapsk should not set FMT_8_BIT",
 					format->params.label);
-				return s_size;
+				return err_buf;
 			}
 		} else if (!is_ignore_8th_bit &&
 			   !(format->params.flags & FMT_8_BIT)) {
-			snprintf(s_size, sizeof(s_size),
+			snprintf(err_buf, sizeof(err_buf),
 				"format:%s has not set FMT_8_BIT but there is at least one password which does not ignore the 8th bit",
 				format->params.label);
-			return s_size;
+			return err_buf;
 		} else if (is_ignore_8th_bit &&
 			   (format->params.flags & FMT_8_BIT)) {
-			snprintf(s_size, sizeof(s_size),
+			snprintf(err_buf, sizeof(err_buf),
 				"format:%s has set FMT_8_BIT but all passwords ignore the 8th bit",
 				format->params.label);
-			return s_size;
+			return err_buf;
 		}
 	}
 

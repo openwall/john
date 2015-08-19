@@ -40,7 +40,7 @@ john_register_one(&fmt_luks);
 #include "stdint.h"
 #include <stdlib.h>
 #include <sys/types.h>
-#include <openssl/aes.h>
+#include "aes.h"
 #include "sha.h"
 #include "sha2.h"
 #include <string.h>

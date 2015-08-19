@@ -23,7 +23,7 @@ john_register_one(&fmt_sshng);
 #else
 
 #include <string.h>
-#include <openssl/aes.h>
+#include "aes.h"
 #include <openssl/des.h>
 #include <openssl/asn1.h>
 #include <assert.h>

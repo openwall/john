@@ -20,6 +20,10 @@ john_register_one(&fmt__HAS160);
 #include "options.h"
 #include "has160.h"
 
+#if !FAST_FORMATS_OMP
+#undef _OPENMP
+#endif
+
 #ifdef _OPENMP
 #ifndef OMP_SCALE
 #ifdef __MIC__
@@ -213,7 +217,10 @@ struct fmt_main fmt__HAS160 = {
                 SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+#ifdef _OPENMP
+		FMT_OMP | FMT_OMP_BAD |
+#endif
+		FMT_CASE | FMT_8_BIT,
 		{ NULL },
 		tests
 	}, {

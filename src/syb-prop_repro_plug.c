@@ -1,43 +1,33 @@
 #include "syb-prop_repro.h"
+#include "common.h"
+#include "feal8.h"
 #include "memdbg.h"
 
 static unsigned char joke[] =
     "Q:Whydidtheflydanceonthejar?A:Becausethelidsaidtwisttoopen.HaHa!";
 
-static void rnd_srand(unsigned int seed, unsigned int *g_seed)
+static MAYBE_INLINE void rnd_srand(unsigned int seed, unsigned int *g_seed)
 {
 	*g_seed = seed;
 }
 
-static int rnd_rand(unsigned int *g_seed)
+static MAYBE_INLINE int rnd_rand(unsigned int *g_seed)
 {
 	*g_seed = (*g_seed) * 0x343FD + 0x269EC3;
 	return ((*g_seed) >> 0x10) & 0x7FFF;
 }
 
-/* static void print_block(unsigned char *bytes, int endpos, const char *szoveg)
-{
-	int i;
-	printf("\n%s:\n", szoveg);
-	for (i = 0; i < endpos; i++) {
-		if (i % 8 == 0)
-			printf("\n");
-		printf("%.2x", bytes[i]);
-	}
-	printf("\n");
-} */
-
-static void feal_keysch_repro(unsigned char *key, struct JtR_FEAL8_CTX *ctx)
+static MAYBE_INLINE void feal_keysch_repro(unsigned char *key, struct JtR_FEAL8_CTX *ctx)
 {
 	feal_SetKey((ByteType *) key, ctx);
 }
 
-static void feal_encrypt_repro(unsigned char *plaintext, unsigned char *ciphertext, struct JtR_FEAL8_CTX *ctx)
+static MAYBE_INLINE void feal_encrypt_repro(unsigned char *plaintext, unsigned char *ciphertext, struct JtR_FEAL8_CTX *ctx)
 {
 	feal_Encrypt(plaintext, ciphertext, ctx);
 }
 
-static void ccat_pad_repro(unsigned char *password, unsigned char *expanded_password)
+static MAYBE_INLINE void ccat_pad_repro(unsigned char *password, unsigned char *expanded_password)
 {
 	int i, pwdlen;
 	pwdlen = strlen((const char *) password);
@@ -48,7 +38,7 @@ static void ccat_pad_repro(unsigned char *password, unsigned char *expanded_pass
 		expanded_password[i] = 0x1D;
 }
 
-static void syb_XOR(unsigned char *enc_result, unsigned char *password_block,
+static MAYBE_INLINE void syb_XOR(unsigned char *enc_result, unsigned char *password_block,
     unsigned char *result)
 {
 	int i;
@@ -56,7 +46,7 @@ static void syb_XOR(unsigned char *enc_result, unsigned char *password_block,
 		result[i] = enc_result[i] ^ password_block[i];
 }
 
-static void syb_apply_salt_byte(unsigned char salt, unsigned char *password,
+static MAYBE_INLINE void syb_apply_salt_byte(unsigned char salt, unsigned char *password,
     unsigned char *result)
 {
 	result[0] = salt ^ password[0];
@@ -69,7 +59,7 @@ static void syb_apply_salt_byte(unsigned char salt, unsigned char *password,
 	result[7] = result[1] ^ password[7];
 }
 
-static unsigned char salt_prob(unsigned int *g_seed)
+static MAYBE_INLINE unsigned char salt_prob(unsigned int *g_seed)
 {
 	unsigned int random = rnd_rand(g_seed);
 
@@ -79,7 +69,7 @@ static unsigned char salt_prob(unsigned int *g_seed)
 	return (unsigned char) random;
 }
 
-static void meta_keysch_repro(unsigned int seed, unsigned char *password,
+static MAYBE_INLINE void meta_keysch_repro(unsigned int seed, unsigned char *password,
     unsigned char *result, unsigned int *g_seed, struct JtR_FEAL8_CTX *ctx)
 {
 	unsigned char expanded_password[EXPANDED_PWDLEN];
@@ -116,7 +106,7 @@ static void meta_keysch_repro(unsigned int seed, unsigned char *password,
 	}
 }
 
-static void meta_encrypt_repro(unsigned char *meta_keysched, unsigned char *result, struct JtR_FEAL8_CTX *ctx)
+static MAYBE_INLINE void meta_encrypt_repro(unsigned char *meta_keysched, unsigned char *result, struct JtR_FEAL8_CTX *ctx)
 {
 	unsigned char act_XOR_copy_result[8];
 	unsigned int i;
@@ -131,34 +121,17 @@ static void meta_encrypt_repro(unsigned char *meta_keysched, unsigned char *resu
 	}
 }
 
-// static int state;
-
-/* static int myrand(void) {
-	int const a = 1103515245;
-	int const c = 12345;
-	state = a * state + c;
-
-	return (state >> 16) & 0x7FFF;
-}
-static int myrand(void)
-
-{
-	int const a = 69069;
-	int const c = 1;
-	state = a * state + c;
-	return (state >> 16) & 0x7FFF;
-} */
-
 void generate_hash(unsigned char *password, unsigned char seed,
-    unsigned char *result_hash, unsigned int *g_seed, struct JtR_FEAL8_CTX *ctx)
+    unsigned char *result_hash)
 {
+	struct JtR_FEAL8_CTX ctx;
+	unsigned int g_seed = 0x3f;
 	unsigned char meta_keysch_result[META_KEYSCH_LEN];
 	unsigned char meta_encrypt_result[META_KEYSCH_LEN];
 
-	// srand(seed);
-	rnd_srand(seed, g_seed);
-	meta_keysch_repro(seed, password, meta_keysch_result, g_seed, ctx);
-	meta_encrypt_repro(meta_keysch_result, meta_encrypt_result, ctx);
+	rnd_srand(seed, &g_seed);
+	meta_keysch_repro(seed, password, meta_keysch_result, &g_seed, &ctx);
+	meta_encrypt_repro(meta_keysch_result, meta_encrypt_result, &ctx);
 
 	memcpy(result_hash, meta_encrypt_result + META_KEYSCH_LEN - HASH_LEN,
 	    HASH_LEN);

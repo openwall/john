@@ -12,7 +12,7 @@ extern struct fmt_main fmt_strip;
 john_register_one(&fmt_strip);
 #else
 
-#include <openssl/aes.h>
+#include "aes.h"
 #include <string.h>
 #include "stdint.h"
 #include <assert.h>

@@ -278,7 +278,8 @@ struct fmt_main fmt_whirlpool_0 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
+		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL
 		},
 		whirlpool_0_tests
@@ -341,7 +342,8 @@ struct fmt_main fmt_whirlpool_1 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
+		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL
 		},
 		whirlpool_1_tests
@@ -403,7 +405,8 @@ struct fmt_main fmt_whirlpool = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
+		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		whirlpool_tests
 	}, {

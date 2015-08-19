@@ -27,7 +27,7 @@ john_register_one(&fmt_KeePass);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "aes/aes.h"
+#include "aes.h"
 #include "twofish.h"
 #ifdef _OPENMP
 #include <omp.h>

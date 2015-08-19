@@ -38,7 +38,7 @@ john_register_one(&fmt_keyring);
 #include "options.h"
 #include "md5.h"
 #include "sha2.h"
-#include <openssl/aes.h>
+#include "aes.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
 #include "memdbg.h"

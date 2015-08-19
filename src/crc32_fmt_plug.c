@@ -40,6 +40,10 @@ john_register_one(&fmt_crc32);
 #include "crc32.h"
 #include "loader.h"
 
+#if !FAST_FORMATS_OMP
+#undef _OPENMP
+#endif
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -279,7 +283,10 @@ struct fmt_main fmt_crc32 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+#ifdef _OPENMP
+		FMT_OMP | FMT_OMP_BAD |
+#endif
+		FMT_CASE | FMT_8_BIT,
 		{
 			"version: 0 = CRC-32, 1 = CRC-32C",
 		},

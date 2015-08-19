@@ -32,7 +32,9 @@ john_register_one(&fmt_openssl);
 // cygwin has HORRIBLE performance GOMP for this format it runs at 1/#cpu's the speed of OMP_NUM_THREADS=1 or non-GMP build
 #undef _OPENMP
 #undef FMT_OMP
+#undef FMT_OMP_BAD
 #define FMT_OMP 0
+#define FMT_OMP_BAD 0
 #endif
 
 #include <string.h>
@@ -44,7 +46,7 @@ john_register_one(&fmt_openssl);
 #include "stdint.h"
 #include <sys/types.h>
 #include <openssl/evp.h>
-#include <openssl/aes.h>
+#include "aes.h"
 #include "md5.h"
 #include "arch.h"
 #include "misc.h"
@@ -433,7 +435,7 @@ struct fmt_main fmt_openssl = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD | FMT_NOT_EXACT,
 /*
  * FIXME: if there wouldn't be so many false positives,
  *        it would be useful to report some tunable costs

@@ -300,7 +300,7 @@ struct fmt_main fmt_mongodb = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 		{
 			"salt type",
 			/* FIXME: report user name length as 2nd cost? */

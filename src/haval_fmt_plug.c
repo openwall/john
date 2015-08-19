@@ -24,6 +24,11 @@ john_register_one(&fmt_haval_128_4);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+
+#if !FAST_FORMATS_OMP
+#undef _OPENMP
+#endif
+
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
@@ -295,7 +300,10 @@ struct fmt_main fmt_haval_256_3 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
+#ifdef _OPENMP
+		FMT_OMP | FMT_OMP_BAD |
+#endif
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		haval_256_3_tests
 	}, {
@@ -356,7 +364,10 @@ struct fmt_main fmt_haval_128_4 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
+#ifdef _OPENMP
+		FMT_OMP | FMT_OMP_BAD |
+#endif
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		haval_128_4_tests
 	}, {

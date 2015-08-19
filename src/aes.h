@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #ifdef AC_BUILT
-#include "../autoconfig.h"
+#include "autoconfig.h"
 #endif
 
 // Input, output, key, number of blocks
@@ -25,7 +25,7 @@ typedef void (*aes_fptr_ctr)(unsigned char *, unsigned char *, unsigned char *, 
 
 #define FUNC(r,p) aes_fptr_##r get_##p();
 
-#include "aes_func.h"
+#include "aes/aes_func.h"
 
 #undef FUNC
 

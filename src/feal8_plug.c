@@ -9,111 +9,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "common.h"
 #include "johnswap.h"
 #include "memdbg.h"
 
-// Moved these declares out of the functions, and into global for this file.
-static ByteType S0(ByteType X1, ByteType X2);
-static ByteType S1(ByteType X1, ByteType X2);
-static HalfWord f(HalfWord AA, QuarterWord BB);
-static HalfWord MakeH1(ByteType * B);
-static void DissH1(HalfWord H, ByteType * D);
-
-void feal_Decrypt(ByteType * Cipher, ByteType * Plain, struct JtR_FEAL8_CTX *ctx)
+static MAYBE_INLINE ByteType Rot2(ByteType X)
 /*
-     Decrypt a block, using the last key set.
+     Evaluate the Rot2 function.
 */
 {
-	HalfWord L, R, NewL;
-	int r;
-
-	R = MakeH1(Cipher);
-	L = MakeH1(Cipher + 4);
-	R ^= ctx->K1213;
-	L ^= ctx->K1415;
-	L ^= R;
-
-	for (r = 7; r >= 0; --r) {
-		NewL = R ^ f(L, ctx->K[r]);
-		R = L;
-		L = NewL;
-	}
-
-	R ^= L;
-	R ^= ctx->K1011;
-	L ^= ctx->K89;
-
-	DissH1(L, Plain);
-	DissH1(R, Plain + 4);
+	return (X << 2) | (X >> 6);
 }
 
-static void DissH1(HalfWord H, ByteType * D)
-/*
-     Disassemble the given halfword into 4 bytes.
-*/
+static MAYBE_INLINE ByteType S0(ByteType X1, ByteType X2)
 {
-	union {
-		HalfWord All;
-		ByteType Byte[4];
-	} T;
-
-	T.All = H;
-	*D++ = T.Byte[0];
-	*D++ = T.Byte[1];
-	*D++ = T.Byte[2];
-	*D = T.Byte[3];
+	return Rot2((X1 + X2) & 0xff);
 }
 
-static void DissQ1(QuarterWord Q, ByteType * B)
-/*
-     Disassemble a quarterword into two Bytes.
-*/
+static MAYBE_INLINE ByteType S1(ByteType X1, ByteType X2)
 {
-	union {
-		QuarterWord All;
-		ByteType Byte[2];
-	} QQ;
-
-	QQ.All = Q;
-	*B++ = QQ.Byte[0];
-	*B = QQ.Byte[1];
+	return Rot2((X1 + X2 + 1) & 0xff);
 }
 
-void feal_Encrypt(ByteType * Plain, ByteType * Cipher, struct JtR_FEAL8_CTX *ctx)
-/*
-     Encrypt a block, using the last key set.
-*/
-{
-	HalfWord L, R, NewR;
-	int r;
-
-	L = MakeH1(Plain);
-	R = MakeH1(Plain + 4);
-	L ^= ctx->K89;
-	R ^= ctx->K1011;
-	R ^= L;
-
-#ifdef FEAL_DEBUG
-	printf("p:  %08lx %08lx\n", L, R);
-#endif
-	for (r = 0; r < 8; ++r) {
-		NewR = L ^ f(R, ctx->K[r]);
-		L = R;
-		R = NewR;
-#ifdef FEAL_DEBUG
-		printf("%2d: %08lx %08lx\n", r, L, R);
-#endif
-	}
-
-	L ^= R;
-	R ^= ctx->K1213;
-	L ^= ctx->K1415;
-
-	DissH1(R, Cipher);
-	DissH1(L, Cipher + 4);
-}
-
-static HalfWord f(HalfWord AA, QuarterWord BB)
+static MAYBE_INLINE HalfWord f(HalfWord AA, QuarterWord BB)
 /*
      Evaluate the f function.
 */
@@ -147,7 +65,68 @@ static HalfWord f(HalfWord AA, QuarterWord BB)
 	return RetVal.All;
 }
 
-static HalfWord FK(HalfWord AA, HalfWord BB)
+static MAYBE_INLINE HalfWord MakeH1(ByteType * B)
+/*
+     Assemble a HalfWord from the four bytes provided.
+*/
+{
+	union {
+		HalfWord All;
+		ByteType Byte[4];
+	} RetVal;
+
+	RetVal.Byte[0] = *B++;
+	RetVal.Byte[1] = *B++;
+	RetVal.Byte[2] = *B++;
+	RetVal.Byte[3] = *B;
+	return RetVal.All;
+}
+
+static MAYBE_INLINE void DissH1(HalfWord H, ByteType * D)
+/*
+     Disassemble the given halfword into 4 bytes.
+*/
+{
+	union {
+		HalfWord All;
+		ByteType Byte[4];
+	} T;
+
+	T.All = H;
+	*D++ = T.Byte[0];
+	*D++ = T.Byte[1];
+	*D++ = T.Byte[2];
+	*D = T.Byte[3];
+}
+
+static MAYBE_INLINE void DissQ1(QuarterWord Q, ByteType * B)
+/*
+     Disassemble a quarterword into two Bytes.
+*/
+{
+	union {
+		QuarterWord All;
+		ByteType Byte[2];
+	} QQ;
+
+	QQ.All = Q;
+	*B++ = QQ.Byte[0];
+	*B = QQ.Byte[1];
+}
+
+static MAYBE_INLINE HalfWord MakeH2(QuarterWord * Q)
+/*
+     Make a halfword from the two quarterwords given.
+*/
+{
+	ByteType B[4];
+
+	DissQ1(*Q++, B);
+	DissQ1(*Q, B + 2);
+	return MakeH1(B);
+}
+
+static MAYBE_INLINE HalfWord FK(HalfWord AA, HalfWord BB)
 /*
      Evaluate the FK function.
 */
@@ -169,68 +148,6 @@ static HalfWord FK(HalfWord AA, HalfWord BB)
 	RetVal.Byte[0] = S0(A.Byte[0], FK1 ^ B.Byte[2]);
 	RetVal.Byte[3] = S1(A.Byte[3], FK2 ^ B.Byte[3]);
 	return RetVal.All;
-}
-
-static HalfWord MakeH1(ByteType * B)
-/*
-     Assemble a HalfWord from the four bytes provided.
-*/
-{
-	union {
-		HalfWord All;
-		ByteType Byte[4];
-	} RetVal;
-
-	RetVal.Byte[0] = *B++;
-	RetVal.Byte[1] = *B++;
-	RetVal.Byte[2] = *B++;
-	RetVal.Byte[3] = *B;
-	return RetVal.All;
-}
-
-static HalfWord MakeH2(QuarterWord * Q)
-/*
-     Make a halfword from the two quarterwords given.
-*/
-{
-	ByteType B[4];
-
-	DissQ1(*Q++, B);
-	DissQ1(*Q, B + 2);
-	return MakeH1(B);
-}
-
-static ByteType Rot2(ByteType X)
-/*
-     Evaluate the Rot2 function.
-*/
-{
-	static int First = 1;
-	static ByteType RetVal[256];
-
-	if (First) {
-		int i, High, Low;
-		for (i = 0, High = 0, Low = 0; i < 256; ++i) {
-			RetVal[i] = High + Low;
-			High += 4;
-			if (High > 255) {
-				High = 0;
-				++Low;
-			}
-		}
-		First = 0;
-	}
-	return RetVal[X];
-}
-
-static ByteType S0(ByteType X1, ByteType X2)
-{
-	return Rot2((X1 + X2) & 0xff);
-}
-
-static ByteType S1(ByteType X1, ByteType X2)
-{
-	return Rot2((X1 + X2 + 1) & 0xff);
 }
 
 void feal_SetKey(ByteType * KP, struct JtR_FEAL8_CTX *ctx)
@@ -275,4 +192,66 @@ void feal_SetKey(ByteType * KP, struct JtR_FEAL8_CTX *ctx)
 	ctx->K1011 = MakeH2(ctx->K + 10);
 	ctx->K1213 = MakeH2(ctx->K + 12);
 	ctx->K1415 = MakeH2(ctx->K + 14);
+}
+
+void feal_Decrypt(ByteType * Cipher, ByteType * Plain, struct JtR_FEAL8_CTX *ctx)
+/*
+     Decrypt a block, using the last key set.
+*/
+{
+	HalfWord L, R, NewL;
+	int r;
+
+	R = MakeH1(Cipher);
+	L = MakeH1(Cipher + 4);
+	R ^= ctx->K1213;
+	L ^= ctx->K1415;
+	L ^= R;
+
+	for (r = 7; r >= 0; --r) {
+		NewL = R ^ f(L, ctx->K[r]);
+		R = L;
+		L = NewL;
+	}
+
+	R ^= L;
+	R ^= ctx->K1011;
+	L ^= ctx->K89;
+
+	DissH1(L, Plain);
+	DissH1(R, Plain + 4);
+}
+
+void feal_Encrypt(ByteType * Plain, ByteType * Cipher, struct JtR_FEAL8_CTX *ctx)
+/*
+     Encrypt a block, using the last key set.
+*/
+{
+	HalfWord L, R, NewR;
+	int r;
+
+	L = MakeH1(Plain);
+	R = MakeH1(Plain + 4);
+	L ^= ctx->K89;
+	R ^= ctx->K1011;
+	R ^= L;
+
+#ifdef FEAL_DEBUG
+	printf("p:  %08lx %08lx\n", L, R);
+#endif
+	for (r = 0; r < 8; ++r) {
+		NewR = L ^ f(R, ctx->K[r]);
+		L = R;
+		R = NewR;
+#ifdef FEAL_DEBUG
+		printf("%2d: %08lx %08lx\n", r, L, R);
+#endif
+	}
+
+	L ^= R;
+	R ^= ctx->K1213;
+	L ^= ctx->K1415;
+
+	DissH1(R, Cipher);
+	DissH1(L, Cipher + 4);
 }

@@ -38,7 +38,7 @@
 #include <sys/stat.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
-#include <openssl/aes.h>
+#include "aes.h"
 #include <openssl/hmac.h>
 
 #include "stdint.h"

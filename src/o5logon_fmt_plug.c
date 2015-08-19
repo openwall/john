@@ -31,7 +31,7 @@ john_register_one(&fmt_o5logon);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "aes/aes.h"
+#include "aes.h"
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
@@ -254,7 +254,7 @@ struct fmt_main fmt_o5logon = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
 		o5logon_tests
 	}, {

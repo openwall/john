@@ -17,7 +17,7 @@ john_register_one(&fmt_sevenzip);
 
 #include <string.h>
 #include <errno.h>
-#include <openssl/aes.h>
+#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif

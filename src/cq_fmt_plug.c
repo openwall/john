@@ -34,7 +34,7 @@ john_register_one(&fmt_cq);
 #define TAG_LENGTH           (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME      "CQWeb"
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    -1
+#define BENCHMARK_LENGTH    0
 #define PLAINTEXT_LENGTH    32
 #define SALT_SIZE           64  // XXX double check this
 #define SALT_ALIGN          MEM_ALIGN_NONE
@@ -42,6 +42,14 @@ john_register_one(&fmt_cq);
 #define BINARY_ALIGN        sizeof(ARCH_WORD_32)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  512
+
+static struct fmt_tests cq_tests[] = {
+	{"$cq$admin$a9db7ca6", ""},
+	{"$cq$admin$10200218", "admin"},
+	{"$cq$admin$4cfb73f2", "password"},
+	{"$cq$clearquest$a279b184", "clearquest"},
+	{NULL}
+};
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
@@ -344,13 +352,6 @@ static void done(void)
 	MEM_FREE(crypt_key);
 	MEM_FREE(saved_key);
 }
-static struct fmt_tests cq_tests[] = {
-	{"$cq$admin$a9db7ca6", ""},
-	{"$cq$admin$10200218", "admin"},
-	{"$cq$admin$4cfb73f2", "password"},
-	{"$cq$clearquest$a279b184", "clearquest"},
-	{NULL}
-};
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -501,7 +502,7 @@ struct fmt_main fmt_cq = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD | FMT_NOT_EXACT,
 		{ NULL },
 		cq_tests
 	}, {

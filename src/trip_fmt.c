@@ -603,7 +603,7 @@ struct fmt_main fmt_trip = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if DES_BS && DES_bs_mt
-		FMT_OMP |
+		FMT_OMP | FMT_OMP_BAD |
 #endif
 #if DES_BS
 		FMT_CASE | FMT_BS,
