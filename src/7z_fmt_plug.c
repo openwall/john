@@ -55,8 +55,8 @@ john_register_one(&fmt_sevenzip);
 #define NBKEYS     (SIMD_COEF_32*SIMD_PARA_SHA256)
 #define MAX_ROUNDS (BIG_ENOUGH*2)
 #define BUF_SIZE   (PLAINTEXT_LENGTH*2 + 8)*MAX_ROUNDS/4
-#define GETPOS(i, index) ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*BUF_SIZE*4*SIMD_COEF_32 ) //for endianness conversion
-#define HASH_IDX (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32)
+#define GETPOS(i,idx) ( (idx&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)idx/SIMD_COEF_32*BUF_SIZE*4*SIMD_COEF_32 )
+#define HASH_IDX(idx) (((unsigned int)idx&(SIMD_COEF_32-1))+(unsigned int)idx/SIMD_COEF_32*8*SIMD_COEF_32)
 
 #define PLAINTEXT_LENGTH	28
 #define MIN_KEYS_PER_CRYPT	NBKEYS
@@ -80,7 +80,8 @@ static struct fmt_tests sevenzip_tests[] = {
 	{NULL}
 };
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
+static int *saved_len;
 static int *cracked;
 
 static struct custom_salt {
@@ -107,9 +108,11 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	saved_key = mem_calloc(self->params.max_keys_per_crypt + 1,
 	                       sizeof(*saved_key));
-	cracked   = mem_calloc(self->params.max_keys_per_crypt,
+	saved_len = mem_calloc(self->params.max_keys_per_crypt + 1,
+	                       sizeof(*saved_len));
+	cracked   = mem_calloc(self->params.max_keys_per_crypt + 1,
 	                       sizeof(*cracked));
 	CRC32_Init(&crc);
 #ifdef SIMD_COEF_32
@@ -122,6 +125,7 @@ static void done(void)
 {
 	MEM_FREE(cracked);
 	MEM_FREE(saved_key);
+	MEM_FREE(saved_len)
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -339,94 +343,68 @@ static int sevenzip_decrypt(unsigned char *derived_key)
 }
 
 #ifdef SIMD_COEF_32
-static void sevenzip_kdf(UTF8 *password, unsigned char *master)
+static void sevenzip_kdf(int *indices, unsigned char *master)
 {
 	long long rounds = (long long) 1 << cur_salt->NumCyclesPower;
 	long long round;
-	int index, j;
+	int i, j;
 	static uint32_t buf_in[NBKEYS*BUF_SIZE], buf_out[NBKEYS*8] JTR_ALIGN(MEM_ALIGN_SIMD);
 #ifdef _OPENMP
 #pragma omp threadprivate(buf_in,buf_out)
 #endif
-	int nblocks[NBKEYS];
-	int nfinished;
 	unsigned char *in = (unsigned char*)buf_in;
+	int len = saved_len[indices[0]];
+	int tot_len = (len + 8)*rounds;
+	int nblocks = tot_len/64 + 1;
 
 	memset(buf_in, 0, sizeof(buf_in));
-	for (index = 0; index < NBKEYS; ++index) {
-		UTF16 buf[PLAINTEXT_LENGTH + 1];
-		UTF8 *pw = (unsigned char*)password + index*sizeof(*saved_key);
-		int len, tot_len;
-		len = enc_to_utf16(buf, PLAINTEXT_LENGTH, pw, strlen((char*)pw));
-		if (len <= 0) {
-			password[-len] = 0; // match truncation
-			len = strlen16(buf);
-		}
-		len *= 2;
+	for (i = 0; i < NBKEYS; ++i) {
+		UTF16 *buf = saved_key[indices[i]];
+		int base = 0;
 
 		// copy keys to vector buffer
-		tot_len = 0;
 		for (round = 0; round < rounds; ++round) {
 			for (j = 0; j < len; ++j)
-				in[GETPOS(j + tot_len, index)] = ((char*)buf)[j];
-			tot_len += len;
+				in[GETPOS(base + j, i)] = ((char*)buf)[j];
+			base += len;
 
 			for (j = 0; j < 8; ++j)
-				in[GETPOS(j + tot_len, index)] = ((char*)&round)[j];
-			tot_len += 8;
+				in[GETPOS(base + j, i)] = ((char*)&round)[j];
+			base += 8;
 		}
-		if (tot_len % 64 >= 56)
-			nblocks[index] = tot_len/64 + 2;
-		else
-			nblocks[index] = tot_len/64 + 1;
 		// padding
-		in[GETPOS(tot_len, index)] = 0x80;
-		*(uint32_t*)&in[GETPOS(nblocks[index]*64 - 1, index)] = tot_len*8;
+		in[GETPOS(tot_len, i)] = 0x80;
+		*(uint32_t*)&in[GETPOS(nblocks*64 - 1, i)] = tot_len*8;
 	}
 
-	nfinished = 0;
 	SIMDSHA256body(in, buf_out, NULL, SSEi_MIXED_IN);
-	while (nfinished < NBKEYS) {
-		for (index = 0; index < NBKEYS; ++index) {
-			nblocks[index]--;
-			if (nblocks[index] == 0) { // copy out result for this password
-				uint32_t *m = (uint32_t*)&master[index*32];
-				for (j = 0; j < 32/4; ++j)
-					m[j] = JOHNSWAP(buf_out[HASH_IDX + j*SIMD_COEF_32]);
-				nfinished++;
-			}
-		}
-	
+	while (--nblocks) {
 		in += SIMD_COEF_32*64;
 		SIMDSHA256body(in, buf_out, buf_out, SSEi_MIXED_IN | SSEi_RELOAD);
 	}
+	// copy out result
+	for (i = 0; i < NBKEYS; ++i) {
+		uint32_t *m = (uint32_t*)&master[i*32];
+		for (j = 0; j < 32/4; ++j)
+			m[j] = JOHNSWAP(buf_out[HASH_IDX(i) + j*SIMD_COEF_32]);
+	}
 }
 #else
-static void sevenzip_kdf(UTF8 *password, unsigned char *master)
+static void sevenzip_kdf(int index, unsigned char *master)
 {
-	int len;
 	long long rounds = (long long) 1 << cur_salt->NumCyclesPower;
 	long long round;
-	UTF16 buffer[PLAINTEXT_LENGTH + 1];
 #if !ARCH_LITTLE_ENDIAN
 	int i;
 	unsigned char temp[8] = { 0,0,0,0,0,0,0,0 };
 #endif
 	SHA256_CTX sha;
 
-	/* Convert password to utf-16-le format (--encoding aware) */
-	len = enc_to_utf16(buffer, PLAINTEXT_LENGTH, password, strlen((char*)password));
-	if (len <= 0) {
-		password[-len] = 0; // match truncation
-		len = strlen16(buffer);
-	}
-	len *= 2;
-
 	/* kdf */
         SHA256_Init(&sha);
 	for (round = 0; round < rounds; round++) {
 		//SHA256_Update(&sha, "", cur_salt->SaltSize);
-		SHA256_Update(&sha, (char*)buffer, len);
+		SHA256_Update(&sha, (char*)saved_key[index], saved_len[index]);
 #if ARCH_LITTLE_ENDIAN
 		SHA256_Update(&sha, (char*)&round, 8);
 #else
@@ -448,26 +426,39 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 #ifdef SIMD_COEF_32
-	for (index = 0; index < count; index += NBKEYS)
+	int len;
+	int *indices = mem_calloc(count*NBKEYS, sizeof(*indices));
+	int tot_todo = 0;
+	for (len = 0; len < PLAINTEXT_LENGTH*2; len += 2) {
+		for (index = 0; index < count; ++index) {
+			if (saved_len[index] == len)
+				indices[tot_todo++] = index;
+		}
+		while (tot_todo % NBKEYS)
+			indices[tot_todo++] = count;
+	}
+
+	for (index = 0; index < tot_todo; index += NBKEYS)
 	{
 		int j;
 		unsigned char master[NBKEYS*32];
-		sevenzip_kdf((unsigned char*)saved_key[index], master);
+		sevenzip_kdf(indices + index, master);
 
 		/* do decryption and checks */
 		for (j = 0; j < NBKEYS; ++j) {
 			if (sevenzip_decrypt(&master[j*32]) == 0)
-				cracked[index + j] = 1;
+				cracked[indices[index + j]] = 1;
 			else
-				cracked[index + j] = 0;
+				cracked[indices[index + j]] = 0;
 		}
 	}
+	MEM_FREE(indices);
 #else
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
 		/* derive key */
 		unsigned char master[32];
-		sevenzip_kdf((unsigned char*)saved_key[index], master);
+		sevenzip_kdf(index, master);
 
 		/* do decryption and checks */
 		if(sevenzip_decrypt(master) == 0)
@@ -500,17 +491,20 @@ static int cmp_exact(char *source, int index)
 
 static void sevenzip_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	/* Convert key to utf-16-le format (--encoding aware) */
+	int len;
+	len = enc_to_utf16(saved_key[index], PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
+	if (len <= 0) {
+		key[-len] = 0; // match truncation
+		len = strlen16(saved_key[index]);
+	}
+	len *= 2;
+	saved_len[index] = len;
 }
 
 static char *get_key(int index)
 {
-	return saved_key[index];
+	return (char*)utf16_to_enc(saved_key[index]);
 }
 
 static unsigned int iteration_count(void *salt)
