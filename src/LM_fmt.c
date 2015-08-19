@@ -30,15 +30,17 @@
 #define LM_EMPTY			"aad3b435b51404ee"
 
 static struct fmt_tests tests[] = {
-	{"$LM$a9c604d244c4e99d", "AAAAAA"},
+	{"$LM$a9c604d244c4e99d", "aaaaaa"},
 	{"$LM$cbc501a4d2227783", "AAAAAAA"},
 	{"$LM$3466c2b0487fe39a", "CRACKPO"},
-	{"$LM$dbc5e5cba8028091", "IMPUNIT"},
+	{"$LM$dbc5e5cba8028091", "impunit"},
 	{LM_EMPTY LM_EMPTY, ""},
 	{"$LM$73cc402bd3e79175", "SCLEROS"},
 	{"$LM$5ecd9236d21095ce", "YOKOHAM"},
 	{"$LM$A5E6066DE61C3E35", "ZZZZZZZ"}, /* uppercase encoding */
 	{"$LM$1FB363feB834C12D", "ZZZZZZ"}, /* mixed case encoding */
+	{"$LM$fea4ab7d7b7d0452", "0688648"},
+
 	{NULL}
 };
 
