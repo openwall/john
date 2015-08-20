@@ -38,7 +38,7 @@ john_register_one(&fmt_sevenzip);
 #define FORMAT_NAME		"7-Zip"
 #define FORMAT_TAG		"$7z$"
 #define TAG_LENGTH		4
-#define ALGORITHM_NAME		"SHA256 AES 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"AES SHA256" SHA256_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	" (512K iterations)"
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0
@@ -53,10 +53,8 @@ john_register_one(&fmt_sevenzip);
 #include "simd-intrinsics.h"
 
 #define NBKEYS     (SIMD_COEF_32*SIMD_PARA_SHA256)
-#define MAX_ROUNDS (BIG_ENOUGH*2)
-#define BUF_SIZE   (PLAINTEXT_LENGTH*2 + 8)*MAX_ROUNDS/4
-#define GETPOS(i,idx) ( (idx&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)idx/SIMD_COEF_32*BUF_SIZE*4*SIMD_COEF_32 )
-#define HASH_IDX_IN(idx) (((unsigned int)idx&(SIMD_COEF_32-1))+(unsigned int)idx/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32)
+#define GETPOS(i,idx) ( (idx&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)idx/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 )
+#define HASH_IDX_IN(idx)  (((unsigned int)idx&(SIMD_COEF_32-1))+(unsigned int)idx/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32)
 #define HASH_IDX_OUT(idx) (((unsigned int)idx&(SIMD_COEF_32-1))+(unsigned int)idx/SIMD_COEF_32*8*SIMD_COEF_32)
 
 #define PLAINTEXT_LENGTH	28
@@ -346,50 +344,65 @@ static int sevenzip_decrypt(unsigned char *derived_key)
 #ifdef SIMD_COEF_32
 static void sevenzip_kdf(int *indices, unsigned char *master)
 {
-	long long round, rounds = (long long) 1 << cur_salt->NumCyclesPower;
 	int i, j;
-	uint32_t buf_out[NBKEYS*8] JTR_ALIGN(MEM_ALIGN_SIMD);
-	union {
-		uint32_t w[2][NBKEYS*16];
-		unsigned char c[NBKEYS*64*2];
-	} buf_in JTR_ALIGN(MEM_ALIGN_SIMD);
-	int len = saved_len[indices[0]];
-	int tot_len = (len + 8)*rounds;
+	long long round, rounds = (long long) 1 << cur_salt->NumCyclesPower;
+	uint32_t buf_in[2][NBKEYS*16], buf_out[NBKEYS*8] JTR_ALIGN(MEM_ALIGN_SIMD);
+	int pw_len = saved_len[indices[0]];
+	int tot_len = (pw_len + 8)*rounds;
+	int acc_len = 0;
+#if !ARCH_LITTLE_ENDIAN
+	unsigned char temp[8] = { 0,0,0,0,0,0,0,0 };
+#endif
 
 	int cur_buf = 0;
-	int cur_len = 0;
 	int fst_blk = 1;
-	
+
+	// it's assumed rounds is divisible by 64
 	for (round = 0; round < rounds; ++round) {
 		// copy password to vector buffer
 		for (i = 0; i < NBKEYS; ++i) {
 			UTF16 *buf = saved_key[indices[i]];
-			for (j = 0; j < len; ++j)
-				buf_in.c[GETPOS((cur_len + j)%128, i)] = ((char*)buf)[j];
+			for (j = 0; j < pw_len; ++j) {
+				int len = acc_len + j;
+				char *in = (char*)buf_in[(len & 64)>>6];
+				in[GETPOS(len%64, i)] = ((char*)buf)[j];
+			}
 
-			for (j = 0; j < 8; ++j)
-				buf_in.c[GETPOS((cur_len + len + j)%128, i)] = ((char*)&round)[j];
+			for (j = 0; j < 8; ++j) {
+				int len = acc_len + pw_len + j;
+				char *in = (char*)buf_in[(len & 64)>>6];
+#if ARCH_LITTLE_ENDIAN
+				in[GETPOS(len%64, i)] = ((char*)&round)[j];
+#else
+				in[GETPOS(len%64, i)] = temp[j];
+#endif
+			}
 		}
-		cur_len += (len + 8);
+#if !ARCH_LITTLE_ENDIAN
+		for (j = 0; j < 8; j++)
+			if (++(temp[j]) != 0)
+				break;
+#endif
+		acc_len += (pw_len + 8);
 
 		// swap out and compute digest on the filled buffer
-		if ((cur_len & 64) != (cur_buf << 6)) {
+		if ((acc_len & 64) != (cur_buf << 6)) {
 			if (fst_blk)
-				SIMDSHA256body(buf_in.w[cur_buf], buf_out, NULL, SSEi_MIXED_IN);
+				SIMDSHA256body(buf_in[cur_buf], buf_out, NULL, SSEi_MIXED_IN);
 			else
-				SIMDSHA256body(buf_in.w[cur_buf], buf_out, buf_out, SSEi_MIXED_IN | SSEi_RELOAD);
+				SIMDSHA256body(buf_in[cur_buf], buf_out, buf_out, SSEi_MIXED_IN | SSEi_RELOAD);
 			fst_blk = 0;
 			cur_buf = 1 - cur_buf;
 		}
 	}
 
 	// padding
-	memset(buf_in.w[0], 0, sizeof(buf_in.w[0]));
+	memset(buf_in[0], 0, sizeof(buf_in[0]));
 	for (i = 0; i < NBKEYS; ++i) {
-		buf_in.w[0][HASH_IDX_IN(i)] = (0x80 << 24);
-		buf_in.w[0][HASH_IDX_IN(i) + 15*SIMD_COEF_32] = tot_len*8;
+		buf_in[0][HASH_IDX_IN(i)] = (0x80 << 24);
+		buf_in[0][HASH_IDX_IN(i) + 15*SIMD_COEF_32] = tot_len*8;
 	}
-	SIMDSHA256body(buf_in.w[0], buf_out, buf_out, SSEi_MIXED_IN | SSEi_RELOAD);
+	SIMDSHA256body(buf_in[0], buf_out, buf_out, SSEi_MIXED_IN | SSEi_RELOAD);
 
 	// copy out result
 	for (i = 0; i < NBKEYS; ++i) {
