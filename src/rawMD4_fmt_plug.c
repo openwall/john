@@ -234,7 +234,12 @@ static void *get_binary(char *ciphertext)
 #ifdef SIMD_COEF_32
 static void set_key(char *_key, int index)
 {
+#if ARCH_ALLOWS_UNALIGNED
 	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
+#else
+	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
+	const ARCH_WORD_32 *key = (ARCH_WORD_32*)strcpy(buf_aligned, _key);
+#endif
 	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*MD4_BUF_SIZ*SIMD_COEF_32];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;

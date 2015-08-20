@@ -124,7 +124,11 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
+#if ARCH_ALLOWS_UNALIGNED
 static UTF8 (*saved_plain)[UTF8_PLAINTEXT_LENGTH + 1];
+#else
+static UTF8 (*saved_plain)[UTF8_PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
+#endif
 static int *keyLen;
 
 #ifdef SIMD_COEF_32
