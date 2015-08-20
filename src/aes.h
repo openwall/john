@@ -10,6 +10,9 @@
  * do a lot of work with any single key.
  */
 
+#ifndef JTR_AES_H
+#define JTR_AES_H
+
 #include <stdio.h>
 #include <string.h>
 #ifdef AC_BUILT
@@ -68,3 +71,5 @@ extern void JTR_AES_cbc_encrypt(const unsigned char *in, unsigned char *out, siz
 // probably need to also do AES_cbc_decrypt, but will wait until someone 'needs' it.
 
 #endif
+
+#endif /* JTR_AES_H */
