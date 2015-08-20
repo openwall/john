@@ -71,12 +71,24 @@ static struct fmt_tests haval_256_3_tests[] = {
 	{"$haval$91850C6487C9829E791FC5B58E98E372F3063256BB7D313A93F1F83B426AEDCC", "HAVAL"},
 	// john.pot uses lower case hex, so repeat that hash with lower case hex
 	{"$haval$91850c6487c9829e791fc5b58e98e372f3063256bb7d313a93f1f83b426aedcc", "HAVAL"},
+	{"8699f1e3384d05b2a84b032693e2b6f46df85a13a50d93808d6874bb8fb9e86c", "abc"},
+	{"$haval$8699f1e3384d05b2a84b032693e2b6f46df85a13a50d93808d6874bb8fb9e86c", "abc"},
+	{"cd43bec91c50e5f781fc50a78a3e9c8c48b407fa35a20c972178d63867dbe158", "john"},
+	{"$haval$cd43bec91c50e5f781fc50a78a3e9c8c48b407fa35a20c972178d63867dbe158", "john"},
+	{"5aa9c913463f82260071629c8ac2c54d73b3af016ffd8e8ce128558d909fab06", "passweird"},
+	{"$haval$5aa9c913463f82260071629c8ac2c54d73b3af016ffd8e8ce128558d909fab06", "passweird"},
 	{NULL}
 };
 
 static struct fmt_tests haval_128_4_tests[] = {
 	{"EE6BBF4D6A46A679B3A856C88538BB98", ""},
 	{"$haval$ee6bbf4d6a46a679b3a856c88538bb98", ""},
+	{"6f2132867c9648419adcd5013e532fa2", "abc"},
+	{"$haval$6f2132867c9648419adcd5013e532fa2", "abc"},
+	{"c98232b4ae6e7ef3235e838387111f23", "john"},
+	{"$haval$c98232b4ae6e7ef3235e838387111f23", "john"},
+	{"50683b38df349781b2ef29e7720eb730", "passweird"},
+	{"$haval$50683b38df349781b2ef29e7720eb730", "passweird"},
 	{NULL}
 };
 
