@@ -459,13 +459,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 	static unsigned char (*master)[32];
 
-	if (!master)
-		master = mem_alloc_tiny(sizeof(master) * max_kpc, MEM_ALIGN_CACHE);
-
 #ifdef SIMD_COEF_32
 	int len;
 	int *indices = mem_calloc(count*NBKEYS, sizeof(*indices));
 	int tot_todo = 0;
+	// sort passwords by length
 	for (len = 0; len < PLAINTEXT_LENGTH*2; len += 2) {
 		for (index = 0; index < count; ++index) {
 			if (saved_len[index] == len)
@@ -474,7 +472,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		while (tot_todo % NBKEYS)
 			indices[tot_todo++] = count;
 	}
+#endif
 
+	if (!master)
+		master = mem_alloc_tiny(sizeof(master) * max_kpc, MEM_ALIGN_CACHE);
+
+#ifdef SIMD_COEF_32
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -494,10 +497,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 	MEM_FREE(indices);
 #else
-#ifdef _OPENMP
-#pragma omp parallel for
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
-#endif
 	{
 		/* derive key */
 		if (new_keys)
