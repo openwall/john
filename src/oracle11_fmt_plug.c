@@ -208,7 +208,12 @@ static void clear_keys(void)
 static void set_key(char *key, int index)
 {
 #ifdef SIMD_COEF_32
+#if ARCH_ALLOWS_UNALIGNED
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
+#else
+	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
+	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)strcpy(buf_aligned, key);
+#endif
 	ARCH_WORD_32 *keybuf_word = (unsigned int*)&saved_key[GETPOS_WORD(0, index)];
 	unsigned int len;
 
