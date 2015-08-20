@@ -650,38 +650,6 @@ static struct fmt_tests _Preloads_16[] =
 	{NULL}
 };
 
-//dynamic_17$ --> $P$9 phpass (or $H$7, $P$A, ... )
-static DYNAMIC_primitive_funcp _Funcs_17[] =
-{
-	//MGF_PHPassSetup
-	DynamicFunc__PHPassCrypt,
-	NULL
-};
-static struct fmt_tests _Preloads_17[] =
-{
-	// format:  dynamic_17)hash$Xssssssss
-	// Xssssssss is the 9 bytes immediately following the standard
-	// signature of $P$  So $P$912345678jgypwqm.JsMssPLiS8YQ00 the
-	// 912345678 will be inserted into $Xssssssss
-	// ssssssss is the salt, and X is a byte used to count how many
-	// times we do the inner md5 crypt packing.
-	{"$dynamic_17$jgypwqm.JsMssPLiS8YQ00$9aaaaaSXB","test1"},
-	{"$dynamic_17$5R3ueot5zwV.7MyzAItyg/$912345678","thatsworking"},
-	{"$dynamic_17$JSe8S8ufpLrsNE7utOpWc/$BaaaaaSXB","test1"},
-	{"$dynamic_17$mwulIMWPGe6RPXG1/R8l50$712345678","thatsworking"},
-
-	// Place last, so this is the 'timing' test for 'single salt'
-	{"$dynamic_17$Y5RwgMij0xFsUIrr33lM1/$9555555hh","test3"},
-
-	{"$dynamic_17$JyPbSuePnNXiY9336yq0R1$9Auz3pFS7", "12345678901234567890123456789012345678"},
-#ifndef SIMD_COEF_32
-#if ARCH_LITTLE_ENDIAN
-	{"$dynamic_17$tGuFea/ssk7VS3TBfuokh/$9WCK6e/dw", "12345678901234567890123456789012345678901234567890123456789012345678901"},
-#endif
-#endif
-	{NULL}
-};
-
 //dynamic_18 --> PO  md5($s.$C1.$p.$C2.$s)
 static DYNAMIC_primitive_funcp _Funcs_18[] =
 {
@@ -2904,10 +2872,17 @@ static DYNAMIC_Setup Setups[] =
 #endif
 	{ "dynamic_15: md5($u.md5($p).$s)",         _Funcs_15,_Preloads_15,_ConstDefault, MGF_SALTED|MGF_USERNAME|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_MD5, -32, 110, 110 },
 	{ "dynamic_16: md5(md5(md5($p).$s).$s2)",   _Funcs_16,_Preloads_16,_ConstDefault, MGF_SALTED|MGF_SALTED2|MGF_FLAT_BUFFERS, MGF_KEYS_BASE16_IN1_MD5, -32, 110, 110 },
+#if 0
+	// this format has been removed. It has served its purpose. Now, the
+	// phpass 'fat' format is back, as fast as this, and does OMP properly.
+	// Also the fat phpass handled all dynamic_17 in input and in .pot
+	// files, converting them back into proper phpass (with $P$ signature).
+	// this format has been removed from dynamic.
 	#if !ARCH_LITTLE_ENDIAN
 	{ "dynamic_17: phpass ($P$ or $H$)",        _Funcs_17,_Preloads_17,_ConstDefault, MGF_SALTED|MGF_INPBASE64, MGF_PHPassSetup, 9, 38, 38 },
 	#else
 	{ "dynamic_17: phpass ($P$ or $H$)",        _Funcs_17,_Preloads_17,_ConstDefault, MGF_SALTED|MGF_INPBASE64, MGF_PHPassSetup, 9, 38 },
+#endif
 	#endif
 	{ "dynamic_18: md5($s.Y.$p.0xF7.$s) (Post.Office MD5)",  _Funcs_18,_Preloads_18,_Const_18,     MGF_SALTED|MGF_NOTSSE2Safe, MGF_POSetup, 32, 110, 110 },
 	{ "dynamic_19: Cisco PIX (MD5)",            _Funcs_19,_Preloads_19,_ConstDefault, MGF_INPBASE64_4x6, MGF_POOR_OMP, 0, 16, 16 },

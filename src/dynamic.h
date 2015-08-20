@@ -175,7 +175,7 @@ typedef struct DYNAMIC_Constants_t
 // These are special loader flags.  They specify that keys loads are 'special', and
 // do MORE than simply load keys into the keys[] array.  They may preload the keys
 // into input, may load keys into keys, but call crypt, may do that and call base16
-// convert, and may even point different functions than 'defalt' (such as phpass).
+// convert, and may even point different functions than 'defalt'
 // If high bit of flags is set, then at least ONE of these flags has been used
 #define MGF_KEYS_INPUT                   0x00000001
 #define MGF_KEYS_CRYPT_IN2               0x00000002
@@ -263,10 +263,8 @@ typedef struct DYNAMIC_Constants_t
 //#define MGF_KEYS_BASE16_X86_IN1_Offset32 0x00000020
 //  Open                                   0x00000020
 
-#define MGF_PHPassSetup                  0x00000040
 #define MGF_POSetup                      0x00000080
 #define MGF_POOR_OMP                     0x00000100
-#define MGF_FreeBSDMD5Setup              0x00000000
 //#define MGF_RAW_SHA1_INPUT             0x00000200 // no longer 'used'
 #define MGF_RAW_SHA1_INPUT               0x00000000
 // open                                  0x00000200
@@ -568,8 +566,7 @@ LARGE_HASH_FUNCTION_DECLARAION(SKEIN384);
 LARGE_HASH_FUNCTION_DECLARAION(SKEIN512);
 // LARGE_HASH_EDIT_POINT
 
-// These 3 dump the raw crypt back into input (only at the head of it).
-// they are for phpass, wordpress, etc.
+// These dump the raw crypt back into input (only at the head of it).
 extern void DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMS);
 extern void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMS);
 // NOTE, the below line is called 'one' time.  It calls the 'normal' intrinsic loading
@@ -580,18 +577,13 @@ extern void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMS)
 // us a 1 or 2% speed increase.
 extern void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE(DYNA_OMP_PARAMS);
 
-// special for phpass
-extern void DynamicFunc__PHPassCrypt(DYNA_OMP_PARAMS);
 // special for PO
 extern void DynamicFunc__POCrypt(DYNA_OMP_PARAMS);
-// special for OpenBSD MD5 and Apache MD5
-extern void DynamicFunc__FreeBSDMD5Crypt(DYNA_OMP_PARAMS);
 
 // End of generic md5 'types' and helpers
 
 // Depricated 'functions'  These are now 'flags'. We handle them by 'adding' the proper flags, but allow the script
 // to run IF the user has these fake functions as the first function.
-extern void DynamicFunc__PHPassSetup(DYNA_OMP_PARAMS);
 extern void DynamicFunc__InitialLoadKeysToInput(DYNA_OMP_PARAMS);
 extern void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2(DYNA_OMP_PARAMS);
 extern void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1(DYNA_OMP_PARAMS);

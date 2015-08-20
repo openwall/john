@@ -28,9 +28,9 @@
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_fat_phpassmd5;
+extern struct fmt_main fmt_phpassmd5;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_fat_phpassmd5);
+john_register_one(&fmt_phpassmd5);
 #else
 
 
@@ -437,7 +437,7 @@ static unsigned int iteration_count(void *salt)
 	return 1U<<atoi64[(((unsigned char*)salt)[8])];
 }
 
-struct fmt_main fmt_fat_phpassmd5 = {
+struct fmt_main fmt_phpassmd5 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
