@@ -111,6 +111,7 @@ static struct fmt_tests episerver_tests[] = {
 	{"$episerver$*1*aHIza2pUY0ZkR2dqQnJrNQ==*1KPAZriqakiNvE6ML6xkUzS11QPREziCvYkJc4UtjWs","test1"},
 	{"$episerver$*1*RUZzRmNja0c5NkN0aDlMVw==*nh46rc4vkFIL0qGUrKTPuPWO6wqoESSeAxUNccEOe28","thatsworking"},
 	{"$episerver$*1*cW9DdnVVUnFwM2FobFc4dg==*Zr/nekpDxU5gjt+fzTSqm0j/twZySBBW44Csoai2Fug","test3"},
+	{"$episerver$*0*b0lvUnlWbkVlSFJQTFBMeg==*K7NAoB/wZfZjsG4DuMkNqKYwfTs", "123456789"},
 	{NULL}
 };
 

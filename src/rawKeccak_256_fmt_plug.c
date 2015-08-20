@@ -70,6 +70,9 @@ john_register_one(&fmt_rawKeccak_256);
 static struct fmt_tests tests[] = {
 	{"4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45", "abc"},
 	{"$keccak256$4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45", "abc"},
+	{"$keccak256$3b673b24a64aebb286f193e5c985c8e528db8590f997d9130889ca7f5f4cfe6e", "passWOrd"},
+	{"$keccak256$2a359feeb8e488a1af2c03b908b3ed7990400555db73e1421181d97cac004d48", "123456789"},
+	{"$keccak256$c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470", ""},
 	{NULL}
 };
 
