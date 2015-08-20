@@ -54,15 +54,15 @@ john_register_one(&fmt_phpassmd5);
 #include "simd-intrinsics.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"phpass-md5"
+#define FORMAT_LABEL			"phpass"
 #define FORMAT_NAME				""
-#define ALGORITHM_NAME			"phpass-MD5 "  MD5_ALGORITHM_NAME
+#define ALGORITHM_NAME			"phpass ($P$ or $H$) "  MD5_ALGORITHM_NAME
 
 #ifdef SIMD_COEF_32
 #define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_MD5)
 #endif
 
-#define BENCHMARK_COMMENT		""
+#define BENCHMARK_COMMENT		" ($P$9)"
 #define BENCHMARK_LENGTH		-1 // only 1 salt is pretty much same speed.
 
 #define PLAINTEXT_LENGTH		39
