@@ -48,6 +48,7 @@ john_register_one(&fmt_sevenzip);
 #define OMP_SCALE               1 // tuned on core i7
 #endif
 
+#undef SIMD_COEF_32
 #ifdef SIMD_COEF_32
 #include "simd-intrinsics.h"
 
@@ -501,7 +502,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		/* derive key */
 		if (new_keys)
-			sevenzip_kdf((unsigned char*)saved_key[index], master[index]);
+			sevenzip_kdf(index, master[index]);
 
 		/* do decryption and checks */
 		if(sevenzip_decrypt(master[index]) == 0)
