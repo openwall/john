@@ -38,7 +38,6 @@ john_register_one(&fmt_sevenzip);
 #define FORMAT_NAME		"7-Zip"
 #define FORMAT_TAG		"$7z$"
 #define TAG_LENGTH		4
-#define ALGORITHM_NAME		"AES SHA256" SHA256_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	" (512K iterations)"
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0
@@ -57,10 +56,12 @@ john_register_one(&fmt_sevenzip);
 #define HASH_IDX_IN(idx)  (((unsigned int)idx&(SIMD_COEF_32-1))+(unsigned int)idx/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32)
 #define HASH_IDX_OUT(idx) (((unsigned int)idx&(SIMD_COEF_32-1))+(unsigned int)idx/SIMD_COEF_32*8*SIMD_COEF_32)
 
+#define ALGORITHM_NAME		"AES SHA256" SHA256_ALGORITHM_NAME
 #define PLAINTEXT_LENGTH	28
 #define MIN_KEYS_PER_CRYPT	NBKEYS
 #define MAX_KEYS_PER_CRYPT	NBKEYS
 #else
+#define ALGORITHM_NAME		"SHA256 AES 32/" ARCH_BITS_STR
 #define PLAINTEXT_LENGTH	125
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
