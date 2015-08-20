@@ -48,15 +48,7 @@ john_register_one(&fmt_rar);
 #else
 
 #include <string.h>
-#include <assert.h>
 #include <errno.h>
-#include <openssl/engine.h>
-#include <openssl/evp.h>
-#include <openssl/ssl.h>
-
-#include "arch.h"
-#include "sha.h"
-
 #if AC_BUILT
 #include "autoconfig.h"
 #endif
@@ -71,6 +63,8 @@ john_register_one(&fmt_rar);
 #include <sys/mman.h>
 #endif
 
+#include "arch.h"
+#include "sha.h"
 #include "crc32.h"
 #include "misc.h"
 #include "common.h"
@@ -116,11 +110,9 @@ john_register_one(&fmt_rar);
 
 #ifdef _OPENMP
 #include <omp.h>
-#include <pthread.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE		4
 #endif
-static pthread_mutex_t *lockarray;
 #endif
 
 #include "rar_common.c"
@@ -132,7 +124,6 @@ static void init(struct fmt_main *self)
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	self->params.max_keys_per_crypt = omp_t * OMP_SCALE * MAX_KEYS_PER_CRYPT;
-	init_locks();
 #endif /* _OPENMP */
 
 	if (pers_opts.target_enc == UTF_8)
@@ -154,14 +145,6 @@ static void init(struct fmt_main *self)
 	self->params.benchmark_comment = " (1-16 characters)";
 #endif
 
-	/* OpenSSL init */
-	init_aesni();
-	SSL_load_error_strings();
-	SSL_library_init();
-	OpenSSL_add_all_algorithms();
-#ifndef __APPLE__
-	atexit(openssl_cleanup);
-#endif
 	/* CRC-32 table init, do it before we start multithreading */
 	{
 		CRC32_t crc;

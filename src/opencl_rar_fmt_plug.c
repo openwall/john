@@ -48,18 +48,8 @@ extern struct fmt_main fmt_ocl_rar;
 john_register_one(&fmt_ocl_rar);
 #else
 
-#define STEP			0
-#define SEED			256
 #include <string.h>
-#include <assert.h>
 #include <errno.h>
-#include <openssl/engine.h>
-#include <openssl/evp.h>
-#include <openssl/ssl.h>
-
-#include "arch.h"
-#include "sha.h"
-
 #if AC_BUILT
 #include "autoconfig.h"
 #endif
@@ -74,6 +64,9 @@ john_register_one(&fmt_ocl_rar);
 #include <sys/mman.h>
 #endif
 
+#include "arch.h"
+#include "sha.h"
+#include "aes.h"
 #include "crc32.h"
 #include "misc.h"
 #include "common.h"
@@ -110,11 +103,9 @@ john_register_one(&fmt_ocl_rar);
 
 #ifdef _OPENMP
 #include <omp.h>
-#include <pthread.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE		32
 #endif
-static pthread_mutex_t *lockarray;
 #endif
 
 static const char * warn[] = {
@@ -126,6 +117,9 @@ static int split_events[] = { 3, -1, -1 };
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
+
+#define STEP			0
+#define SEED			256
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl-autotune.h"
@@ -304,7 +298,6 @@ static void init(struct fmt_main *_self)
 
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
-	init_locks();
 #endif /* _OPENMP */
 
 	if (pers_opts.target_enc == UTF_8)
@@ -312,14 +305,6 @@ static void init(struct fmt_main *_self)
 
 	unpack_data = mem_calloc(omp_t, sizeof(unpack_data_t));
 
-	/* OpenSSL init */
-	init_aesni();
-	SSL_load_error_strings();
-	SSL_library_init();
-	OpenSSL_add_all_algorithms();
-#ifndef __APPLE__
-	atexit(openssl_cleanup);
-#endif
 	/* CRC-32 table init, do it before we start multithreading */
 	{
 		CRC32_t crc;

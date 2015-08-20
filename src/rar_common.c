@@ -123,71 +123,6 @@ typedef struct {
 
 static rarfile *cur_file;
 
-#if defined (_OPENMP)
-static void lock_callback(int mode, int type, const char *file, int line)
-{
-	(void)file;
-	(void)line;
-	if (mode & CRYPTO_LOCK)
-		pthread_mutex_lock(&(lockarray[type]));
-	else
-		pthread_mutex_unlock(&(lockarray[type]));
-}
-
-static unsigned long thread_id(void)
-{
-	return omp_get_thread_num();
-}
-
-static void init_locks(void)
-{
-	int i;
-	lockarray = (pthread_mutex_t*) OPENSSL_malloc(CRYPTO_num_locks() * sizeof(pthread_mutex_t));
-	for (i = 0; i < CRYPTO_num_locks(); i++)
-		pthread_mutex_init(&(lockarray[i]), NULL);
-	CRYPTO_set_id_callback(thread_id);
-	CRYPTO_set_locking_callback(lock_callback);
-}
-#endif	/* _OPENMP */
-
-/* Use AES-NI if available. This is not supported with low-level calls,
-   we have to use EVP) */
-static void init_aesni(void)
-{
-	ENGINE *e;
-	const char *engine_id = "aesni";
-
-	ENGINE_load_builtin_engines();
-	e = ENGINE_by_id(engine_id);
-	if (!e) {
-		//fprintf(stderr, "AES-NI engine not available\n");
-		return;
-	}
-	if (!ENGINE_init(e)) {
-		fprintf(stderr, "AES-NI engine could not init\n");
-		ENGINE_free(e);
-		return;
-	}
-	if (!ENGINE_set_default(e, ENGINE_METHOD_ALL & ~ENGINE_METHOD_RAND)) {
-		/* This should only happen when 'e' can't initialise, but the
-		 * previous statement suggests it did. */
-		fprintf(stderr, "AES-NI engine initialized but then failed\n");
-		abort();
-	}
-	ENGINE_finish(e);
-	ENGINE_free(e);
-}
-
-#ifndef __APPLE__ /* Apple segfaults on this :) */
-static void openssl_cleanup(void)
-{
-	ENGINE_cleanup();
-	ERR_free_strings();
-	CRYPTO_cleanup_all_ex_data();
-	EVP_cleanup();
-}
-#endif
-
 #undef set_key
 static void set_key(char *key, int index)
 {
@@ -588,52 +523,42 @@ static inline void check_rar(int count)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
-		int i16 = index*16;
-		unsigned int inlen = 16;
-		int outlen;
-		EVP_CIPHER_CTX aes_ctx;
+		AES_KEY aes_ctx;
+		unsigned char *key = &aes_key[index * 16];
+		unsigned char *iv = &aes_iv[index * 16];
 
-		EVP_CIPHER_CTX_init(&aes_ctx);
-		EVP_DecryptInit_ex(&aes_ctx, EVP_aes_128_cbc(), NULL, &aes_key[i16], &aes_iv[i16]);
-		EVP_CIPHER_CTX_set_padding(&aes_ctx, 0);
+		AES_set_decrypt_key(key, 128, &aes_ctx);
 
 		/* AES decrypt, uses aes_iv, aes_key and blob */
 		if (cur_file->type == 0) {	/* rar-hp mode */
 			unsigned char plain[16];
 
-			outlen = 0;
-
-			EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->blob, inlen);
-			EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
+			AES_cbc_encrypt(cur_file->blob, plain, 16,
+			                &aes_ctx, iv, AES_DECRYPT);
 
 			cracked[index] = !memcmp(plain, "\xc4\x3d\x7b\x00\x40\x07\x00", 7);
-
 		} else {
-
 			if (cur_file->method == 0x30) {	/* stored, not deflated */
 				CRC32_t crc;
 				unsigned char crc_out[4];
-				unsigned char plain[0x8010];
+				unsigned char plain[0x8000];
 				unsigned long long size = cur_file->unp_size;
 				unsigned char *cipher = cur_file->blob;
 
 				/* Use full decryption with CRC check.
 				   Compute CRC of the decompressed plaintext */
 				CRC32_Init(&crc);
-				outlen = 0;
 
-				while (size > 0x8000) {
-					inlen = 0x8000;
+				while (size) {
+					unsigned int inlen = (size > 0x8000) ? 0x8000 : size;
 
-					EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cipher, inlen);
-					CRC32_Update(&crc, plain, outlen > size ? size : outlen);
-					size -= outlen;
+					AES_cbc_encrypt(cipher, plain, inlen,
+					                &aes_ctx, iv, AES_DECRYPT);
+
+					CRC32_Update(&crc, plain, inlen);
+					size -= inlen;
 					cipher += inlen;
 				}
-				EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cipher, (size + 15) & ~0xf);
-				EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
-				size += outlen;
-				CRC32_Update(&crc, plain, size);
 				CRC32_Final(crc_out, crc);
 
 				/* Compare computed CRC with stored CRC */
@@ -642,15 +567,16 @@ static inline void check_rar(int count)
 				const int solid = 0;
 				unpack_data_t *unpack_t;
 				unsigned char plain[20];
+				unsigned char pre_iv[16];
 
 				cracked[index] = 0;
 
-				/* Decrypt just one block for early rejection */
-				outlen = 0;
-				EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->blob, 16);
-				EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
+				memcpy(pre_iv, iv, 16);
 
-#if 1
+				/* Decrypt just one block for early rejection */
+				AES_cbc_encrypt(cur_file->blob, plain, 16,
+				                &aes_ctx, pre_iv, AES_DECRYPT);
+
 				/* Early rejection */
 				if (plain[0] & 0x80) {
 					// PPM checks here.
@@ -663,10 +589,10 @@ static inline void check_rar(int count)
 					    !check_huffman(plain)) // Huffman table check
 						goto bailOut;
 				}
-#endif
+
 				/* Reset stuff for full check */
-				EVP_DecryptInit_ex(&aes_ctx, EVP_aes_128_cbc(), NULL, &aes_key[i16], &aes_iv[i16]);
-				EVP_CIPHER_CTX_set_padding(&aes_ctx, 0);
+				AES_set_decrypt_key(key, 128, &aes_ctx);
+
 #ifdef _OPENMP
 				unpack_t = &unpack_data[omp_get_thread_num()];
 #else
@@ -675,15 +601,14 @@ static inline void check_rar(int count)
 				unpack_t->max_size = cur_file->unp_size;
 				unpack_t->dest_unp_size = cur_file->unp_size;
 				unpack_t->pack_size = cur_file->pack_size;
-				unpack_t->iv = &aes_iv[i16];
+				unpack_t->iv = iv;
 				unpack_t->ctx = &aes_ctx;
-				unpack_t->key = &aes_key[i16];
+				unpack_t->key = key;
 
 				if (rar_unpack29(cur_file->blob, solid, unpack_t))
 					cracked[index] = !memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4);
 bailOut:;
 			}
 		}
-		EVP_CIPHER_CTX_cleanup(&aes_ctx);
 	}
 }
