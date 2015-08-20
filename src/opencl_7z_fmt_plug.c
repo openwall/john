@@ -36,7 +36,7 @@ john_register_one(&fmt_opencl_sevenzip);
 #define TAG_LENGTH		4
 #define ALGORITHM_NAME		"SHA256 OPENCL AES"
 #define BENCHMARK_COMMENT	" (512K iterations)"
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 #define PLAINTEXT_LENGTH	((55-8)/2) // 23, rar3 uses 22
@@ -79,6 +79,7 @@ typedef struct {
 
 static int *cracked;
 static int any_cracked;
+static int new_keys;
 
 static struct custom_salt {
 	int NumCyclesPower;
@@ -400,6 +401,10 @@ static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
 	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->SaltSize);
+
+	if (currentsalt.iterations != cur_salt->NumCyclesPower)
+		new_keys = 1;
+
 	currentsalt.length = cur_salt->SaltSize;
 	currentsalt.iterations = cur_salt->NumCyclesPower;
 
@@ -426,6 +431,8 @@ static void sevenzip_set_key(char *key, int index)
 	length *= 2;
 	inbuffer[index].length = length;
 	memcpy(inbuffer[index].v, c_key, length);
+
+	new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -460,6 +467,7 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 	CRC32_t crc;
 	int i;
 	int nbytes, margin;
+
 	memcpy(iv, cur_salt->iv, 16);
 
 	if(AES_set_decrypt_key(derived_key, 256, &akey) < 0) {
@@ -504,46 +512,52 @@ static int sevenzip_decrypt(unsigned char *derived_key, unsigned char *data)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int i, index;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
-
-	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
+	int index;
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
 		any_cracked = 0;
 	}
 
-	// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, NULL),
-	        "Copy data to gpu");
+	if (new_keys) {
+		int i;
+		size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	// Run 1st kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_init, 1,
-		NULL, &global_work_size, lws, 0, NULL, NULL),
-		"Run init kernel");
+		global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
-	// Run loop kernel
-	for (i = 0; i < LOOP_COUNT; i++) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
-			crypt_kernel, 1, NULL, &global_work_size, lws, 0,
+		// Copy data to gpu
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+			insize, inbuffer, 0, NULL, NULL),
+			"Copy data to gpu");
+
+		// Run 1st kernel
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_init, 1,
+			NULL, &global_work_size, lws, 0, NULL, NULL),
+			"Run init kernel");
+
+		// Run loop kernel
+		for (i = 0; i < LOOP_COUNT; i++) {
+			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
+				crypt_kernel, 1, NULL, &global_work_size, lws, 0,
 				NULL, NULL),
 				"Run loop kernel");
-		HANDLE_CLERROR(clFinish(queue[gpu_id]),
-			"Error running loop kernel");
-		opencl_process_event();
+			HANDLE_CLERROR(clFinish(queue[gpu_id]),
+				"Error running loop kernel");
+			opencl_process_event();
+		}
+
+		// Run final kernel
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_final, 1,
+			NULL, &global_work_size, lws, 0, NULL, NULL),
+			"Run final kernel");
+
+		// Read the result back
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
+			outsize, outbuffer, 0, NULL, NULL),
+			"Copy result back");
 	}
 
-	// Run final kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_final, 1,
-		NULL, &global_work_size, lws, 0, NULL, NULL),
-		"Run final kernel");
-
-	// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-		outsize, outbuffer, 0, NULL, NULL),
-		"Copy result back");
+	new_keys = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel for

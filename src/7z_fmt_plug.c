@@ -39,7 +39,7 @@ john_register_one(&fmt_sevenzip);
 #define FORMAT_TAG		"$7z$"
 #define TAG_LENGTH		4
 #define BENCHMARK_COMMENT	" (512K iterations)"
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		1
 #define SALT_SIZE		sizeof(struct custom_salt)
@@ -83,6 +83,8 @@ static struct fmt_tests sevenzip_tests[] = {
 static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
 static int *cracked;
+static int new_keys;
+static int max_kpc;
 
 static struct custom_salt {
 	int NumCyclesPower;
@@ -115,6 +117,9 @@ static void init(struct fmt_main *self)
 	cracked   = mem_calloc(self->params.max_keys_per_crypt + 1,
 	                       sizeof(*cracked));
 	CRC32_Init(&crc);
+
+	max_kpc = self->params.max_keys_per_crypt;
+
 #ifdef SIMD_COEF_32
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = PLAINTEXT_LENGTH * 3;
@@ -249,7 +254,14 @@ static void *get_salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
+	static int old_power;
+
 	cur_salt = (struct custom_salt *)salt;
+
+	if (old_power != cur_salt->NumCyclesPower) {
+		new_keys = 1;
+		old_power = cur_salt->NumCyclesPower;
+	}
 }
 
 // XXX port Python code to C *OR* use code from LZMA SDK
@@ -445,6 +457,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
+	static unsigned char (*master)[32];
+
+	if (!master)
+		master = mem_alloc_tiny(sizeof(master) * max_kpc, MEM_ALIGN_CACHE);
+
 #ifdef SIMD_COEF_32
 	int len;
 	int *indices = mem_calloc(count*NBKEYS, sizeof(*indices));
@@ -464,12 +481,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < tot_todo; index += NBKEYS)
 	{
 		int j;
-		unsigned char master[NBKEYS*32];
-		sevenzip_kdf(indices + index, master);
+		if (new_keys)
+			sevenzip_kdf(indices + index, master[index]);
 
 		/* do decryption and checks */
 		for (j = 0; j < NBKEYS; ++j) {
-			if (sevenzip_decrypt(&master[j*32]) == 0)
+			if (sevenzip_decrypt(master[index + j]) == 0)
 				cracked[indices[index + j]] = 1;
 			else
 				cracked[indices[index + j]] = 0;
@@ -483,16 +500,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 		/* derive key */
-		unsigned char master[32];
-		sevenzip_kdf(index, master);
+		if (new_keys)
+			sevenzip_kdf((unsigned char*)saved_key[index], master[index]);
 
 		/* do decryption and checks */
-		if(sevenzip_decrypt(master) == 0)
+		if(sevenzip_decrypt(master[index]) == 0)
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;
 	}
 #endif // SIMD_COEF_32
+	new_keys = 0;
+
 	return count;
 }
 
@@ -526,6 +545,8 @@ static void sevenzip_set_key(char *key, int index)
 	}
 	len *= 2;
 	saved_len[index] = len;
+	
+	new_keys = 1;
 }
 
 static char *get_key(int index)
