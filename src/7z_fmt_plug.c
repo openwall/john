@@ -40,7 +40,7 @@ john_register_one(&fmt_sevenzip);
 #define TAG_LENGTH		4
 #define ALGORITHM_NAME		"SHA256 AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	" (512K iterations)"
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		1
 #define PLAINTEXT_LENGTH	125
@@ -67,6 +67,8 @@ static struct fmt_tests sevenzip_tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
+static int new_keys;
+static int max_kpc;
 
 static struct custom_salt {
 	int NumCyclesPower;
@@ -97,6 +99,8 @@ static void init(struct fmt_main *self)
 	cracked   = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*cracked));
 	CRC32_Init(&crc);
+
+	max_kpc = self->params.max_keys_per_crypt;
 }
 
 static void done(void)
@@ -226,7 +230,14 @@ static void *get_salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
+	static int old_power;
+
 	cur_salt = (struct custom_salt *)salt;
+
+	if (old_power != cur_salt->NumCyclesPower) {
+		new_keys = 1;
+		old_power = cur_salt->NumCyclesPower;
+	}
 }
 
 // XXX port Python code to C *OR* use code from LZMA SDK
@@ -360,21 +371,29 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
+	static unsigned char (*master)[32];
+
+	if (!master)
+		master = mem_alloc_tiny(sizeof(master) * max_kpc, MEM_ALIGN_CACHE);
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
 		/* derive key */
-		unsigned char master[32];
-		sevenzip_kdf((unsigned char*)saved_key[index], master);
+		if (new_keys)
+			sevenzip_kdf((unsigned char*)saved_key[index], master[index]);
 
 		/* do decryption and checks */
-		if(sevenzip_decrypt(master) == 0)
+		if(sevenzip_decrypt(master[index]) == 0)
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;
 	}
+
+	new_keys = 0;
+
 	return count;
 }
 
@@ -405,6 +424,8 @@ static void sevenzip_set_key(char *key, int index)
 		saved_len = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, saved_len);
 	saved_key[index][saved_len] = 0;
+
+	new_keys = 1;
 }
 
 static char *get_key(int index)
