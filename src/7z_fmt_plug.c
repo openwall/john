@@ -57,12 +57,12 @@ john_register_one(&fmt_sevenzip);
 #define HASH_IDX_IN(idx)  (((unsigned int)idx&(SIMD_COEF_32-1))+(unsigned int)idx/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32)
 #define HASH_IDX_OUT(idx) (((unsigned int)idx&(SIMD_COEF_32-1))+(unsigned int)idx/SIMD_COEF_32*8*SIMD_COEF_32)
 
-#define ALGORITHM_NAME		"AES SHA256" SHA256_ALGORITHM_NAME
+#define ALGORITHM_NAME		"SHA256 " SHA256_ALGORITHM_NAME " AES"
 #define PLAINTEXT_LENGTH	28
 #define MIN_KEYS_PER_CRYPT	NBKEYS
 #define MAX_KEYS_PER_CRYPT	NBKEYS
 #else
-#define ALGORITHM_NAME		"SHA256 AES 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"SHA256 32/" ARCH_BITS_STR " AES"
 #define PLAINTEXT_LENGTH	125
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -498,6 +498,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 	MEM_FREE(indices);
 #else
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
 		/* derive key */
