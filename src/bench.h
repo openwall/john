@@ -30,6 +30,9 @@ struct bench_results {
 
 /* Number of ciphertexts computed */
 	int64 crypts;
+
+/* Number of salts actually tested */
+	int salts_done;
 };
 
 /*
