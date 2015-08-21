@@ -32,8 +32,8 @@ john_register_one(&fmt_efs);
 #include "options.h"
 #include "unicode.h"
 #include "sha.h"
-#include "gladman_hmac.h"
 #include "simd-intrinsics.h"
+#include "hmac_sha1.h"
 #define EFS_CRAP_LOGIC
 #include "pbkdf2_hmac_sha1.h"
 #include <openssl/des.h>
