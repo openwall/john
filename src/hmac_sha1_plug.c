@@ -18,6 +18,7 @@
 #include "aligned.h"
 #include "sha.h"
 #include "common.h"
+#include "stdint.h"
 
 #if ARCH_BITS==64
 #define HMAC_SHA1_COUNT    8
