@@ -463,7 +463,7 @@ static int cmp_all(void *binary, int count)
 			return 1;
 	}
 
-	return count;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
