@@ -197,8 +197,8 @@ static void set_key(char *key, int index)
 	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)key;
 #else
 	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint64_t));
-	const ARCH_WORD_64 *wkey = (uint64_t*)(is_aligned(key, sizeof(uint64_t)) ?
-	                                       key : strcpy(buf_aligned, key));
+	const ARCH_WORD_64 *wkey = is_aligned(key, sizeof(uint64_t)) ?
+			(ARCH_WORD_64*)key : (ARCH_WORD_64*)strcpy(buf_aligned, key);
 #endif
 	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64*)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
 	ARCH_WORD_64 *keybuf_word = keybuffer;
