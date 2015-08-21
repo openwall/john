@@ -31,7 +31,12 @@
 #endif
 
 void JTR_hmac_sha1(const unsigned char *key, int key_len, const unsigned char *data, int data_len, unsigned char *digest, int digest_len) {
-	JTR_ALIGN(sizeof(ARCH_WORD)) unsigned char buf[64];
+#if ARCH_BITS==64
+	// VC did not like sizeof() in the align
+	JTR_ALIGN(8) unsigned char buf[64];
+#else
+	JTR_ALIGN(4) unsigned char buf[64];
+#endif
 	unsigned char int_digest[20];
 	ARCH_WORD *pW = (ARCH_WORD *)buf;
 	unsigned i;
