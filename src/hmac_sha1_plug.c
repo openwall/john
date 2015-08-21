@@ -27,7 +27,7 @@
 #else
 #define HMAC_SHA1_COUNT    16
 #define HMAC_SHA1_IPAD_XOR 0x36363636
-#define HMAC_SHA1_OPAD_XOR (0x3636363^0x5c5c5c5c)
+#define HMAC_SHA1_OPAD_XOR (0x36363636^0x5c5c5c5c)
 #endif
 
 void JTR_hmac_sha1(const unsigned char *key, int key_len, const unsigned char *data, int data_len, unsigned char *digest, int digest_len) {
