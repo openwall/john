@@ -2220,7 +2220,7 @@ john.com: john.asm
 	$(LD) $(LDFLAGS) wpapcap2john.o memdbg.o $(OMPFLAGS) -o ../run/wpapcap2john
 
 ../run/luks2john: luks2john.c
-	$(CC) -D_JOHN_MISC_NO_LOG luks2john.c base64_convert.c common.c memory.c memdbg.c misc.c base64.c -o ../run/luks2john
+	$(CC) -D_JOHN_MISC_NO_LOG luks2john.c base64_convert.c common.c memory.c memdbg.c misc.c base64.c jumbo.c -o ../run/luks2john
 
 ../run/cprepair: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
 	memdbg.h memdbg.c
