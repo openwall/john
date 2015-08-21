@@ -193,7 +193,12 @@ static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 static void set_key(char *key, int index)
 {
 #ifdef SIMD_COEF_64
+#if ARCH_ALLOWS_UNALIGNED
 	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)key;
+#else
+	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint64_t));
+	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)strcpy(buf_aligned, key);
+#endif
 	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64*)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
 	ARCH_WORD_64 *keybuf_word = keybuffer;
 	unsigned int len;

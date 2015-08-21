@@ -75,6 +75,9 @@ static struct fmt_tests tests[] = {
 	{"01295B67659E95F32931CEDB3BA50289E2826AF3D5A1422F", "apple"},
 	{"0E6A48F765D0FFFFF6247FA80D748E615F91DD0C7431E4D9", "macintosh"},
 	{"A320163F1E6DB42C3949F7E232888ACC7DB7A0A17E493DBA", "test"},
+	{"743777471285CB3566886D4821D556E475E0DF9234308B22", "123"},
+	{"474379622BD7B9F84BD6E4BB52ABF9D01705EFB0A2426655", "passWOrd"},
+	{"597A523666A10C534495DB6333CF7EBA70C1A578CADE11A3", ""},
 	{NULL}
 };
 
@@ -276,7 +279,12 @@ static void set_salt(void *salt)
 static void set_key(char *key, int index)
 {
 #ifdef SIMD_COEF_32
+#if ARCH_ALLOWS_UNALIGNED
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
+#else
+	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
+	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)strcpy(buf_aligned, key);
+#endif
 	ARCH_WORD_32 *keybuffer = &saved_key[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32 + SIMD_COEF_32];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;

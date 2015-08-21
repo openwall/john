@@ -20,6 +20,8 @@ john_register_one(&fmt_rawSHA1);
 #include "sha.h"
 #include "common.h"
 #include "formats.h"
+#include "base64_convert.h"
+#include "rawSHA1_common.h"
 #include "johnswap.h"
 
 #if !FAST_FORMATS_OMP
@@ -53,7 +55,7 @@ john_register_one(&fmt_rawSHA1);
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-SHA1"
-#define FORMAT_NAME			""
+#define FORMAT_NAME				""
 #define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 #ifdef SIMD_COEF_32
@@ -63,31 +65,10 @@ john_register_one(&fmt_rawSHA1);
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define FORMAT_TAG				"$dynamic_26$"
-#define TAG_LENGTH				12
 
-#define HASH_LENGTH				40
-#define CIPHERTEXT_LENGTH		(HASH_LENGTH + TAG_LENGTH)
-
-#define DIGEST_SIZE				20
 #define BINARY_SIZE				4
 #define BINARY_ALIGN			4
-#define SALT_SIZE				0
-#define SALT_ALIGN				1
 
-static struct fmt_tests tests[] = {
-	{"c3e337f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
-	{"2fbf0eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
-	{"A9993E364706816ABA3E25717850C26C9CD0D89D", "abc"},
-	{FORMAT_TAG "A9993E364706816ABA3E25717850C26C9CD0D89D", "abc"},
-	// repeat hash in exactly the same form that is used in john.pot (lower case)
-	{FORMAT_TAG "a9993e364706816aba3e25717850c26c9cd0d89d", "abc"},
-	{"f879f8090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
-	{"1813c12f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
-	{"095bec1163897ac86e393fa16d6ae2c2fce21602", "7850"},
-	{"dd3fbb0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
-	{NULL}
-};
 
 #ifdef SIMD_COEF_32
 #define PLAINTEXT_LENGTH		55
@@ -137,41 +118,6 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	int i;
-
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		ciphertext += TAG_LENGTH;
-
-	if (strlen(ciphertext) != HASH_LENGTH)
-		return 0;
-
-	for (i = 0; i < HASH_LENGTH; i++){
-		if (!(  (('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||
-					(('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
-					|| (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))))
-			return 0;
-	}
-	return 1;
-}
-
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[CIPHERTEXT_LENGTH + 1];
-
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		ciphertext += TAG_LENGTH;
-
-	strncpy(out, FORMAT_TAG, sizeof(out));
-
-	memcpy(&out[TAG_LENGTH], ciphertext, HASH_LENGTH);
-	out[CIPHERTEXT_LENGTH] = 0;
-
-	strlwr(&out[TAG_LENGTH]);
-
-	return out;
-}
 
 #ifdef SIMD_COEF_32
 #define HASH_OFFSET	(index&(SIMD_COEF_32-1))+(((unsigned int)index%NBKEYS)/SIMD_COEF_32)*SIMD_COEF_32*5
@@ -195,7 +141,12 @@ static int get_hash_6(int index) { return crypt_key[index][0] & 0x7ffffff; }
 #ifdef SIMD_COEF_32
 static void set_key(char *key, int index)
 {
+#if ARCH_ALLOWS_UNALIGNED
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
+#else
+	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
+	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)strcpy(buf_aligned, key);
+#endif
 	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
@@ -260,38 +211,17 @@ static char *get_key(int index) {
 }
 #endif
 
-static void *get_full_binary(char *ciphertext)
-{
-	static ARCH_WORD_32 out[DIGEST_SIZE / 4];
-	unsigned char *realcipher = (unsigned char*)out;
-	int i;
-
-	ciphertext += TAG_LENGTH;
-
-	for(i=0;i<DIGEST_SIZE;i++)
-	{
-		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
-	}
-
-	return (void*)realcipher;
-}
-
-static void *get_binary(char *ciphertext)
+static void *get_binary_rev_steps(char *ciphertext)
 {
 	static
 #if defined (SIMD_COEF_32) && defined(REVERSE_STEPS)
 	ARCH_WORD_32 out;
 #endif
-	ARCH_WORD_32 full[DIGEST_SIZE / 4];
+	ARCH_WORD_32 full[DIGEST_SIZE / 4 + 1];
 	unsigned char *realcipher = (unsigned char*)full;
-	int i;
 
 	ciphertext += TAG_LENGTH;
-
-	for(i=0;i<DIGEST_SIZE;i++)
-	{
-		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
-	}
+	base64_convert(ciphertext, e_b64_mime, 28, realcipher, e_b64_raw, DIGEST_SIZE, flg_Base64_MIME_TRAIL_EQ);
 #ifdef SIMD_COEF_32
 #ifdef REVERSE_STEPS
 	out = JOHNSWAP(full[4]) - INIT_E;
@@ -369,7 +299,7 @@ static int cmp_exact(char *source, int index)
 	SHA1_Update(&ctx, key, strlen(key));
 	SHA1_Final((void*)crypt_key, &ctx);
 #endif
-	return !memcmp(get_full_binary(source), crypt_key, DIGEST_SIZE);
+	return !memcmp(rawsha1_common_get_binary(source), crypt_key, DIGEST_SIZE);
 }
 
 struct fmt_main fmt_rawSHA1 = {
@@ -392,15 +322,15 @@ struct fmt_main fmt_rawSHA1 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		tests
+		rawsha1_common_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		fmt_default_prepare,
-		valid,
-		split,
-		get_binary,
+		rawsha1_common_prepare,
+		rawsha1_common_valid,
+		rawsha1_common_split,
+		get_binary_rev_steps,
 		fmt_default_salt,
 		{ NULL },
 		fmt_default_source,

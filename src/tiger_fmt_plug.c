@@ -70,6 +70,8 @@ static int omp_t = 1;
 static struct fmt_tests tiger_tests[] = {
 	{"3293AC630C13F0245F92BBB1766E16167A4E58492DDE73F3", ""},
 	{"$tiger$D981F8CB78201A950DCF3048751E441C517FCA1AA55A29F6", "message digest"},
+	{"$tiger$a90197a19d2872ed8a5d508ba5b42deecf08344cc9f42195", "12346789"},
+	{"$tiger$4a82b9bb5911e1eccfd27d90584903d568e4f96b4ecf0d97", "UPPERCASE"},
 	{NULL}
 };
 

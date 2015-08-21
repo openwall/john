@@ -60,6 +60,8 @@ static struct fmt_tests radmin_tests[] = {
 	{"$radmin2$b4e13c7149ebde51e510959f30319ac7", "firebaLL"},
 	{"$radmin2$3d2c8cae4621edf8abb081408569482b", "yamaha12345"},
 	{"$radmin2$60cb8e411b02c10ecc3c98e29e830de8", "xplicit"},
+	{"$radmin2$53b1dc4fd27e58a075b196f99b2ac992", "UPPERCASE"},
+	{"$radmin2$6d0bb00954ceb7fbee436bb55a8397a9", ""},
 	{NULL}
 };
 

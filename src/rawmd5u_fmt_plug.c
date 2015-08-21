@@ -215,7 +215,12 @@ static void *get_binary(char *ciphertext)
 static void set_key(char *_key, int index)
 {
 #ifdef SIMD_COEF_32
+#if ARCH_ALLOWS_UNALIGNED
 	const unsigned char *key = (unsigned char*)_key;
+#else
+	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
+	const unsigned char *key = (unsigned char*)strcpy(buf_aligned, _key);
+#endif
 	unsigned int *keybuf_word = buf_ptr[index];
 	unsigned int len, temp2;
 
@@ -272,7 +277,12 @@ key_cleaning:
 static void set_key_CP(char *_key, int index)
 {
 #ifdef SIMD_COEF_32
+#if ARCH_ALLOWS_UNALIGNED
 	const unsigned char *key = (unsigned char*)_key;
+#else
+	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
+	const unsigned char *key = (unsigned char*)strcpy(buf_aligned, _key);
+#endif
 	unsigned int *keybuf_word = buf_ptr[index];
 	unsigned int len, temp2;
 
@@ -318,7 +328,12 @@ key_cleaning_enc:
 static void set_key_utf8(char *_key, int index)
 {
 #ifdef SIMD_COEF_32
+#if ARCH_ALLOWS_UNALIGNED
 	const UTF8 *source = (UTF8*)_key;
+#else
+	UTF8 *buf_aligned[PLAINTEXT_LENGTH*3 + 1] JTR_ALIGN(sizeof(uint32_t));
+	const UTF8 *source = memcpy(buf_aligned, _key, strlen8((UTF8*)_key)*3 + 1);
+#endif
 	unsigned int *keybuf_word = buf_ptr[index];
 	UTF32 chl, chh = 0x80;
 	unsigned int len = 0;

@@ -411,12 +411,6 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			return 0;
 		else if (pPriv->dynamic_FIXED_SALT_SIZE < -1 && strlen(&cp[len+1]) > -(pPriv->dynamic_FIXED_SALT_SIZE))
 			return  0;
-		if ((pPriv->pSetup->startFlags & MGF_PHPassSetup) == MGF_PHPassSetup) {
-			// we have to perform the salt 'length' check here, so we do not process invalid hashes later.
-			int Lcount = atoi64[ARCH_INDEX(cp[23])];
-			if (Lcount < 7 || Lcount > 31)
-				return 0;
-		}
 		return 1;
 	}
 	if (pPriv->dynamic_base64_inout == 2)
@@ -2336,34 +2330,6 @@ static void *get_salt(char *ciphertext)
 }
 
 /*********************************************************************************
- * 'special' get salt function for phpass. We return the 8 bytes salt, followed by
- * the 1 byte loop count.  'normally' in phpass format, that order is reversed.
- * we do it this way, since our 'primitive' functions would not know to treat the
- * salt any differently for phpass.  Thus the primitives are told about the first
- * 8 bytes (and not the full 9).  But the phpass crypt function uses that 9th byte.
- *********************************************************************************/
-static void *salt_phpass(char *ciphertext)
-{
-	unsigned char salt[20], *saltp;
-	static union x {
-		unsigned char salt_p[sizeof(unsigned char*)];
-		unsigned long p[1];
-	} union_x;
-
-	if (!strncmp(ciphertext, "$dynamic_", 9)) {
-		ciphertext += 9;
-		while (*ciphertext != '$')
-			++ciphertext;
-	}
-	sprintf((char*)salt, "100000%8.8s%c", &ciphertext[25], ciphertext[24]);
-
-	// Now convert this into a stored salt, or find the 'already' stored same salt.
-	saltp = HashSalt(salt, 15);
-	memcpy(union_x.salt_p, &saltp, sizeof(saltp));
-	return union_x.salt_p;
-}
-
-/*********************************************************************************
  * Now our salt is returned only as a pointer.  We
  *********************************************************************************/
 static int salt_hash(void *salt)
@@ -2553,7 +2519,7 @@ static char *source_64_hex(char *source, void *binary)
 }
 
 /*********************************************************************************
- * Gets the binary value from a base-64 hash (such as phpass)
+ * Gets the binary value from a base-64 hash
  *********************************************************************************/
 
 static void * binary_b64m(char *ciphertext)
@@ -2681,8 +2647,7 @@ static void * binary_b64_4x6(char *ciphertext)
 
 /*********************************************************************************
  * Here is the main mdg_generic fmt_main. NOTE in its default settings, it is
- * ready to handle base-16 hashes.  The phpass stuff will be linked in later, IF
- * needed.
+ * ready to handle base-16 hashes.
  *********************************************************************************/
 static struct fmt_main fmt_Dynamic =
 {
@@ -4930,10 +4895,7 @@ static void SSE_Intrinsics_LoadLens_md4(int side, int i)
  * still in the binary encrypted format, in the crypt_key.
  * we do not yet convert to base-16.  This is so we can output
  * as base-16, or later, if we add base-64, we can output to
- * that format instead.  Some functions do NOT change from
- * the binary format (such as phpass). Thus if we are doing
- * something like phpass, we would NOT want the conversion
- * to happen at all
+ * that format instead.
  *************************************************************/
 void DynamicFunc__crypt_md5(DYNA_OMP_PARAMS)
 {
@@ -5019,93 +4981,6 @@ void DynamicFunc__crypt_md4(DYNA_OMP_PARAMS)
 #endif
 		DoMD4(input_buf_X86[i>>MD5_X2], len, crypt_key_X86[i>>MD5_X2]);
 	}
-}
-
-// we do provide a NOOP function. This will not kill jtr, BUT output that this function has been REMOVED
-// but it DOES NOT shutdown john.
-void DynamicFunc__FreeBSDMD5Crypt(DYNA_OMP_PARAMS)
-{
-	static int bFirst=1;
-	if (bFirst) {
-		bFirst = 0;
-		fprintf(stderr, "\nERROR, DynamicFunc__FreeBSDMD5Crypt() dynamic primitive is no longer supported.\nThis format is invalid and will not process\n");
-	}
-}
-
-/**************************************************************
- * DYNAMIC primitive helper function
- * Special crypt to handle the 'looping' needed for phpass
- *************************************************************/
-void DynamicFunc__PHPassCrypt(DYNA_OMP_PARAMS)
-{
-	unsigned int Lcount;
-
-	Lcount = atoi64[ARCH_INDEX(cursalt[8])];
-	if (Lcount < 7 || Lcount > 31) {
-		fprintf(stderr, "Error, invalid loop byte in a php salt %s\n",cursalt);
-		error();
-	}
-	Lcount = (1<<Lcount);
-
-	DynamicFunc__clean_input(DYNA_OMP_PARAMSd);
-
-	// First 'round' is md5 of ($s.$p)
-	DynamicFunc__append_salt(DYNA_OMP_PARAMSd);
-	DynamicFunc__append_keys(DYNA_OMP_PARAMSd);
-
-	// The later rounds (variable number, based upon the salt's first byte)
-	//   are ALL done as 16 byte md5 result of prior hash, with the password appeneded
-
-	// crypt, and put the 'raw' 16 byte raw crypt data , into the
-	// input buffer.  We will then append the keys to that, and never
-	// have to append the keys again (we just make sure we do NOT adjust
-	// the amount of bytes to md5 from this point no
-	DynamicFunc__crypt_md5_to_input_raw(DYNA_OMP_PARAMSd);
-
-	// Now append the pass
-	DynamicFunc__append_keys(DYNA_OMP_PARAMSd);
-
-	// NOTE last we do 1 less than the required number of crypts in our loop
-	DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE(DYNA_OMP_PARAMSd);
-
-#if !ARCH_LITTLE_ENDIAN
-	// from this point on, we want to have the binary blobs in 'native' big endian
-	// format. Thus, we need to 'unswap' them.  Then the call to the
-	// DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen will leave the 16 bytes
-	// output, in big endian (thus needing no swapping).
-	// we only have to 'fix up' the final crypt results.
-#if MD5_X2
-		MD5_swap2(input_buf_X86[0].x1.w, input_buf_X86[0].x2.w2, input_buf_X86[0].x1.w, input_buf_X86[0].x2.w2, 4);
-#else
-		MD5_swap(input_buf_X86[0].x1.w, input_buf_X86[0].x1.w, 4);
-#endif
-#endif
-
-	--Lcount;
-	while(--Lcount)
-		DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMSd);
-
-	// final crypt is to the normal 'output' buffer, since john uses that to find 'hits'.
-#if !ARCH_LITTLE_ENDIAN
-	// we have to use this function, since we do not want to 'fixup' the
-	// end of the buffer again (it has been put into BE format already.
-	// Thus, simply use the raw_overwrite again, then swap the output that
-	// is found in the input buf to the output buf.
-	DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMSd);
-#if MD5_X2
-	MD5_swap2(input_buf_X86[0].x1.w, input_buf_X86[0].x2.w2, crypt_key_X86[0].x1.w, crypt_key_X86[0].x2.w2, 4);
-#else
-	MD5_swap(input_buf_X86[0].x1.w, crypt_key_X86[0].x1.w, 4);
-#endif
-	//dump_stuff_msg("crypt0", crypt_key_X86[0].x1.w, 16);
-	//dump_stuff_msg("crypt1", crypt_key_X86[0].x2.w2, 16);
-	//{ 	static int x=0; if (++x == 2) 	exit(0); }
-#else
-	// little endian can use 'original' crypt function.
-	DynamicFunc__crypt_md5(DYNA_OMP_PARAMSd);
-	//dump_stuff_msg("crypt0", crypt_key_X86[0].x1.w, 16);
-	//{ 	static int x=0; if (++x == 8) 	exit(0); }
-#endif
 }
 
 void DynamicFunc__POCrypt(DYNA_OMP_PARAMS)
@@ -7011,7 +6886,6 @@ void DynamicFunc__base16_convert_upcase(DYNA_OMP_PARAMS)
  * add the proper flags, even if the user is running an older
  * script.
  *************************************************************/
-void DynamicFunc__PHPassSetup(DYNA_OMP_PARAMS) {}
 void DynamicFunc__InitialLoadKeysToInput(DYNA_OMP_PARAMS) {}
 void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2(DYNA_OMP_PARAMS) {}
 void DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1(DYNA_OMP_PARAMS) {}
@@ -7033,8 +6907,7 @@ static DYNAMIC_primitive_funcp *ConvertFuncs(DYNAMIC_primitive_funcp p, unsigned
 {
 	static DYNAMIC_primitive_funcp fncs[20];
 	*count = 0;
-	if (p==DynamicFunc__PHPassSetup  ||
-		p==DynamicFunc__InitialLoadKeysToInput ||
+	if (p==DynamicFunc__InitialLoadKeysToInput ||
 		p==DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2 ||
 		p==DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1 ||
 		p==DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1_offset32)
@@ -7127,9 +7000,6 @@ static int isMD5Func(DYNAMIC_primitive_funcp p)
 		p==DynamicFunc__crypt_md5_to_input_raw   || p==DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen                   ||
 		p==DynamicFunc__crypt_md5_in2_to_out1    || p==DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE ||
 		p==DynamicFunc__crypt2_md5               || p==DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1_offset32)
-		return 1;
-	// this one also.
-	if (p==DynamicFunc__PHPassCrypt)
 		return 1;
 	return 0;
 }
@@ -7290,8 +7160,6 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	}
 
 	// Deal with depricated 1st functions.  Convert them to proper 'flags'
-	if (Setup->pFuncs[0] == DynamicFunc__PHPassSetup)
-		Setup->startFlags |= MGF_PHPassSetup;
 	if (Setup->pFuncs[0] == DynamicFunc__InitialLoadKeysToInput)
 		Setup->startFlags |= MGF_KEYS_INPUT;
 	if (Setup->pFuncs[0] == DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2)
@@ -7581,50 +7449,6 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	}
 	curdat.store_keys_normal_but_precompute_hash_to_output2_base16_type = Setup->startFlags>>56;
 
-	if (Setup->startFlags&MGF_PHPassSetup)
-	{
-		pFmt->methods.salt = salt_phpass;
-#ifdef _OPENMP
-#ifdef SIMD_COEF_32
-		// no reason to do 128 crypts, causes slow validity checking.  But we do get some gains
-		// by doing more than simple 1 set of SIMD_COEF_32
-		pFmt->params.algorithm_name = "128/128 " SIMD_TYPE " " STRINGIZE(SIMD_COEF_32) "x" STRINGIZE(SIMD_PARA_MD5);
-		pFmt->params.max_keys_per_crypt = 96*SIMD_PARA_MD5;
-#else
-#if ARCH_LITTLE_ENDIAN
-		pFmt->params.max_keys_per_crypt = 96;
-#else
-		pFmt->params.max_keys_per_crypt = 2;
-#endif
-#if MD5_X2
-		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " 48x2  (MD5_body)";
-#else
-		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " 96x1 (MD5_body)";
-#endif
-#endif
-#else
-#ifdef SIMD_COEF_32
-		pFmt->params.algorithm_name = "128/128 " SIMD_TYPE " " STRINGIZE(SIMD_COEF_32) "x" STRINGIZE(SIMD_PARA_MD5);
-		pFmt->params.max_keys_per_crypt = 16*SIMD_PARA_MD5;
-#else
-		// In non-sse mode, 1 test runs as fast as 128. But validity checking is MUCH faster if
-		// we leave it at only 1.
-		pFmt->params.max_keys_per_crypt = 1;
-#if MD5_X2
-		pFmt->params.max_keys_per_crypt = 2;
-		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " 1x2  (MD5_body)";
-#else
-		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " (MD5_body)";
-#endif
-#endif
-#endif
-		pFmt->params.min_keys_per_crypt = 1;
-		saltlen = 8;
-		// no reason to run double tests. The 1 salt vs MANY salts is the
-		// same speed, so why double the benchmark time for no reason.
-		pFmt->params.benchmark_length = -1;
-	}
-
 	if ((Setup->startFlags) == 0)
 	{
 		// Ok, if we do not have some 'special' loader function, we MUST first clean some
@@ -7813,10 +7637,6 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		for (i = 0; cnt < ARRAY_COUNT(dynamic_tests) -1; ++i)
 		{
 			if (Setup->pPreloads[i].ciphertext == NULL) {
-				if (Setup->startFlags&MGF_PHPassSetup)
-					// for phpass, do not load ANY more than the 9 that are in the preload.
-					// loading more will simply slow down the validation code loop at startup.
-					break;
 				i = 0;
 			}
 			if (Setup->pPreloads[i].ciphertext[0] == 'A' && Setup->pPreloads[i].ciphertext[1] == '=') {

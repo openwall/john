@@ -156,8 +156,6 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen", DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen },
 	{ "DynamicFunc__crypt_to_input_raw", DynamicFunc__crypt_md5_to_input_raw }, // support deprecated function
 	{ "DynamicFunc__crypt_md5_to_input_raw", DynamicFunc__crypt_md5_to_input_raw },
-	{ "DynamicFunc__PHPassCrypt", DynamicFunc__PHPassCrypt },
-	{ "DynamicFunc__FreeBSDMD5Crypt", DynamicFunc__FreeBSDMD5Crypt },
 	{ "DynamicFunc__POCrypt", DynamicFunc__POCrypt },
 	{ "DynamicFunc__set_input_len_16", DynamicFunc__set_input_len_16},
 	{ "DynamicFunc__set_input2_len_16", DynamicFunc__set_input2_len_16},
@@ -424,10 +422,8 @@ static Dynamic_Str_Flag_t Dynamic_Str_sFlag[] =  {
 	// LARGE_HASH_EDIT_POINT
 
 	{ "MGF_KEYS_UNICODE_B4_CRYPT",        MGF_KEYS_UNICODE_B4_CRYPT },
-	{ "MGF_PHPassSetup",                  MGF_PHPassSetup },
 	{ "MGF_POSetup",                      MGF_POSetup },
 	{ "MGF_POOR_OMP",                     MGF_POOR_OMP },
-	{ "MGF_FreeBSDMD5Setup",              MGF_FreeBSDMD5Setup },
 	{ "MGF_RAW_SHA1_INPUT",               MGF_RAW_SHA1_INPUT },
 	{ "MGF_KEYS_INPUT_BE_SAFE",           MGF_KEYS_INPUT_BE_SAFE },  // big endian safe, i.e. the input will NEVER get swapped.  Only SHA1 is 'safe'.
 	{ "MGF_SET_INP2LEN32",                MGF_SET_INP2LEN32 }, // this sets the input2 lens (in SSE2) to 32 bytes long, but only in init() call

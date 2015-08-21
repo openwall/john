@@ -71,6 +71,8 @@ static struct fmt_tests tests[] = {
 	/* test vectors from Wikipedia */
 	{"$BLAKE2$a8add4bdddfd93e4877d2746e62817b116364a1fa7bc148d95090bc7333b3673f82401cf7aa2e4cb1ecd90296e3f14cb5413f8ed77be73045b13914cdcd6a918", "The quick brown fox jumps over the lazy dog"},
 	{"$BLAKE2$786a02f742015903c6c6fd852552d272912f4740e15847618a86e217f71f5419d25e1031afee585313896444934eb04b903a685b1448b755d56f701afe9be2ce", ""},
+	{"$BLAKE2$da40d8f48e9e7560c56e2b92205aed6342a276994ca0287ea4f8c1423ef07d519ecb4bf8668c118379a36be8aa6c077bbc6213fa81fbb332fad9d8a19a7756e6", "UPPERCASE"},
+	{"$BLAKE2$f5ab8bafa6f2f72b431188ac38ae2de7bb618fb3d38b6cbf639defcdd5e10a86b22fccff571da37e42b23b80b657ee4d936478f582280a87d6dbb1da73f5c47d", "123456789"},
 	{NULL}
 };
 

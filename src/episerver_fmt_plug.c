@@ -89,7 +89,7 @@ john_register_one(&fmt_episerver);
 #define HASH_IDX_OUT    (cur_salt->version == 0 ? HASH_IDX_SHA1 : HASH_IDX_SHA256)
 #define GETPOS(i, index) ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianness conversion
 
-#define ALGORITHM_NAME      "SHA1/SHA256 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME      "SHA1/SHA256 " SHA256_ALGORITHM_NAME
 #define PLAINTEXT_LENGTH    19 // (64 - 9 - 16)/2
 #define MIN_KEYS_PER_CRYPT  NBKEYS
 #define MAX_KEYS_PER_CRYPT  NBKEYS
@@ -111,6 +111,7 @@ static struct fmt_tests episerver_tests[] = {
 	{"$episerver$*1*aHIza2pUY0ZkR2dqQnJrNQ==*1KPAZriqakiNvE6ML6xkUzS11QPREziCvYkJc4UtjWs","test1"},
 	{"$episerver$*1*RUZzRmNja0c5NkN0aDlMVw==*nh46rc4vkFIL0qGUrKTPuPWO6wqoESSeAxUNccEOe28","thatsworking"},
 	{"$episerver$*1*cW9DdnVVUnFwM2FobFc4dg==*Zr/nekpDxU5gjt+fzTSqm0j/twZySBBW44Csoai2Fug","test3"},
+	{"$episerver$*0*b0lvUnlWbkVlSFJQTFBMeg==*K7NAoB/wZfZjsG4DuMkNqKYwfTs", "123456789"},
 	{NULL}
 };
 

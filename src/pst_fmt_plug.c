@@ -64,6 +64,8 @@ static struct fmt_tests tests[] = {
 	{"$pst$00000000", ""},
 	{"$pst$e3da3318", "xxx"},
 	{"$pst$a655dd18", "XYz123"},
+	{"$pst$29b14070", "thisisalongstring"},
+	{"$pst$25b44615", "string with space"},
 	{NULL}
 };
 

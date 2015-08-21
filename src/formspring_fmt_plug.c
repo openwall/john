@@ -62,6 +62,9 @@ static struct fmt_tests formspring_tests[] = {
 	{"$dynamic_61$2a4fa0bf8c6a01dd625d3141746451ba51e07f99dc9143f1e25a37f65cb02eb4$RA", "test1"},
 	//{"b06b5c132bb1adf421ce6ac406bfabba380546deaab92bd20c3d56baaa70b6cf$  ", "test1"},
 	//{"cdefb423bad94e3abfe5fc4044bb315a2b875220eb8c8b840849df7ef45bdcef$  ", "test3"},
+	{"$dynamic_61$a987090ac31f466c4637e22858aa3db0001e7c0ad8e6724e26e76b8e531df46c$76931fac", "abc"},
+	{"$dynamic_61$bb18710c098cc97a204d9a17bdd701d323a48ccaf67adcf67186a91da3619ac9$9dab2b36", "john"},
+	{"$dynamic_61$eecc9358bf47c8739dd988c1926a5346721557ed50665c4ef41224fceb009ad5$c248b87d", "passweird"},
 	{NULL}
 };
 

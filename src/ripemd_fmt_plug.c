@@ -70,12 +70,28 @@ static int omp_t = 1;
 static struct fmt_tests ripemd_160_tests[] = {
 	{"9c1185a5c5e9fc54612808977ee8f548b2258d31", ""},
 	{"$ripemd$9c1185a5c5e9fc54612808977ee8f548b2258d31", ""},
+	{"56e11fdd5479b30020fc010551536af074e1b82f", "thisisalongstring"},
+	{"$ripemd$56e11fdd5479b30020fc010551536af074e1b82f", "thisisalongstring"},
+	{"a1a94e392ce7d861a4fdcaa291e453c082807f50", "string with space"},
+	{"$ripemd$a1a94e392ce7d861a4fdcaa291e453c082807f50", "string with space"},
+	{"98f3860a474d986964df9c1fd3621e68eaf76a25", "UPPERCASE"},
+	{"$ripemd$98f3860a474d986964df9c1fd3621e68eaf76a25", "UPPERCASE"},
+	{"d3d0379126c1e5e0ba70ad6e5e53ff6aeab9f4fa", "123456789"},
+	{"$ripemd$d3d0379126c1e5e0ba70ad6e5e53ff6aeab9f4fa", "123456789"},
 	{NULL}
 };
 
 static struct fmt_tests ripemd_128_tests[] = {
 	{"cdf26213a150dc3ecb610f18f6b38b46", ""},
 	{"$ripemd$cdf26213a150dc3ecb610f18f6b38b46", ""},
+	{"060d8817be332f6e6a9a09a209ea453e", "thisisalongstring"},
+	{"$ripemd$060d8817be332f6e6a9a09a209ea453e", "thisisalongstring"},
+	{"ed402bdf044344c34935ac93a2d90a13", "string with space"},
+	{"$ripemd$ed402bdf044344c34935ac93a2d90a13", "string with space"},
+	{"5e71f949a0d5c69f3c1aeaf245ba527a", "UPPERCASE"},
+	{"$ripemd$5e71f949a0d5c69f3c1aeaf245ba527a", "UPPERCASE"},
+	{"1886db8acdcbfeab1e7ee3780400536f", "123456789"},
+	{"$ripemd$1886db8acdcbfeab1e7ee3780400536f", "123456789"},
 	{NULL}
 };
 

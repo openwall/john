@@ -101,6 +101,7 @@ static struct fmt_tests tests[] = {
 	{"$SHA384$a8b64babd0aca91a59bdbb7761b421d4f2bb38280d3a75ba0f21f2bebc45583d446c598660c94ce680c47d19c30783a7", "password"},
 	{"$SHA384$8cafed2235386cc5855e75f0d34f103ccc183912e5f02446b77c66539f776e4bf2bf87339b4518a7cb1c2441c568b0f8", "12345678"},
 	{"$SHA384$38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b", ""},
+	{"94e75dd8e1f16d7df761d76c021ad98c283791008b98368e891f411fc5aa1a83ef289e348abdecf5e1ba6971604a0cb0", "UPPERCASE"},
 	{NULL}
 };
 
@@ -233,7 +234,12 @@ static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 static void set_key(char *key, int index)
 {
 #ifdef SIMD_COEF_64
+#if ARCH_ALLOWS_UNALIGNED
 	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)key;
+#else
+	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint64_t));
+	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)strcpy(buf_aligned, key);
+#endif
 	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64*)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
 	ARCH_WORD_64 *keybuf_word = keybuffer;
 	unsigned int len;
