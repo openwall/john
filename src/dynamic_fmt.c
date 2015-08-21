@@ -1199,7 +1199,13 @@ static void set_key(char *key, int index)
 #ifdef SIMD_COEF_32
 		if (dynamic_use_sse==1) {
 			// code derived from rawMD5_fmt_plug.c code from magnum
+#if ARCH_ALLOWS_UNALIGNED
 			const ARCH_WORD_32 *key32 = (ARCH_WORD_32*)key;
+#else
+			char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
+			const ARCH_WORD_32 *key32 = is_aligned(key, sizeof(uint32_t)) ?
+					(uint32_t*)key : (uint32_t*)strcpy(buf_aligned, key);
+#endif
 			unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
 			ARCH_WORD_32 *keybuffer = &input_buf[idx].w[index&(SIMD_COEF_32-1)];
 			ARCH_WORD_32 *keybuf_word = keybuffer;

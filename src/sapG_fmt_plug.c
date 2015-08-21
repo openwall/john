@@ -124,11 +124,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-#if ARCH_ALLOWS_UNALIGNED
 static UTF8 (*saved_plain)[UTF8_PLAINTEXT_LENGTH + 1];
-#else
-static UTF8 (*saved_plain)[UTF8_PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
-#endif
 static int *keyLen;
 
 #ifdef SIMD_COEF_32
@@ -463,7 +459,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// Store key into vector key buffer
 			if ((len = keyLen[ti]) < 0) {
 				ARCH_WORD_32 *keybuf_word = (ARCH_WORD_32*)&saved_key[0][GETSTARTPOS(ti)];
+#if ARCH_ALLOWS_UNALIGNED
 				const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)saved_plain[ti];
+#else
+				char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(4);
+				char *key = (char*)saved_plain[ti];
+				const ARCH_WORD_32 *wkey = is_aligned(key, 4) ?
+						(uint32_t*)key : (uint32_t*)strcpy(buf_aligned, key);
+#endif
 				ARCH_WORD_32 temp;
 
 				len = 0;
