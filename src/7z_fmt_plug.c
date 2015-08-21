@@ -48,7 +48,6 @@ john_register_one(&fmt_sevenzip);
 #define OMP_SCALE               1 // tuned on core i7
 #endif
 
-#undef SIMD_COEF_32
 #ifdef SIMD_COEF_32
 #include "simd-intrinsics.h"
 
@@ -58,7 +57,7 @@ john_register_one(&fmt_sevenzip);
 #define HASH_IDX_OUT(idx) (((unsigned int)idx&(SIMD_COEF_32-1))+(unsigned int)idx/SIMD_COEF_32*8*SIMD_COEF_32)
 
 #define ALGORITHM_NAME		"SHA256 " SHA256_ALGORITHM_NAME " AES"
-#define PLAINTEXT_LENGTH	27
+#define PLAINTEXT_LENGTH	28
 #define MIN_KEYS_PER_CRYPT	NBKEYS
 #define MAX_KEYS_PER_CRYPT	NBKEYS
 #else
@@ -496,7 +495,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int *indices = mem_calloc(count*NBKEYS, sizeof(*indices));
 	int tot_todo = 0;
 	// sort passwords by length
-	for (len = 0; len < PLAINTEXT_LENGTH*2; len += 2) {
+	for (len = 0; len <= PLAINTEXT_LENGTH*2; len += 2) {
 		for (index = 0; index < count; ++index) {
 			if (saved_len[index] == len)
 				indices[tot_todo++] = index;
