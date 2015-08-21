@@ -30,7 +30,7 @@ john_register_one(&fmt_opencl_zip);
 #include "common-opencl.h"
 #include "pkzip.h"
 #include "dyna_salt.h"
-#include "gladman_fileenc.h"
+#include "hmac_sha1.h"
 #include "options.h"
 #include "stdint.h"
 
@@ -69,12 +69,6 @@ typedef struct {
 	uint8_t length;
 	uint8_t salt[64];
 } zip_salt;
-
-/* From gladman_fileenc.h */
-#define PWD_VER_LENGTH		2
-#define KEYING_ITERATIONS	1000
-#define KEY_LENGTH(mode)	(8 * ((mode) & 3) + 8)
-#define SALT_LENGTH(mode)	(4 * ((mode) & 3) + 4)
 
 typedef struct my_salt_t {
 	dyna_salt dsalt;

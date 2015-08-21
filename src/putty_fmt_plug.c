@@ -24,8 +24,7 @@ john_register_one(&fmt_putty);
 #include "aes.h"
 #include "sha.h"
 #include <openssl/evp.h>
-//#include <openssl/hmac.h>
-#include "gladman_hmac.h"
+#include "hmac_sha1.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE

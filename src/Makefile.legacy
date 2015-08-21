@@ -139,7 +139,7 @@ JOHN_OBJS = \
 	pfx2john.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar2john.o \
-	zip2john.o pkzip.o gladman_hmac.o gladman_pwd2key.o \
+	zip2john.o pkzip.o \
 	racf2john.o \
 	dmg2john.o \
 	keepass2john.o \

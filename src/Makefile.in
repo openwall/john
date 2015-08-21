@@ -93,7 +93,7 @@ JOHN_OBJS = \
 	pfx2john.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar2john.o \
-	zip2john.o pkzip.o gladman_hmac.o gladman_pwd2key.o \
+	zip2john.o pkzip.o \
 	racf2john.o \
 	dmg2john.o \
 	keepass2john.o \
@@ -343,7 +343,7 @@ crc32.o:	crc32.c memory.h crc32.h memdbg.h
 
 cryptmd5_common.o:	cryptmd5_common.c arch.h misc.h common.h formats.h cryptmd5_common.h
 
-dmg2john.o:	dmg2john.c autoconfig.h stdint.h gladman_fileenc.h filevault.h misc.h jumbo.h memdbg.h
+dmg2john.o:	dmg2john.c autoconfig.h stdint.h filevault.h misc.h jumbo.h memdbg.h
 
 dummy.o:	dummy.c common.h formats.h memdbg.h
 
@@ -370,10 +370,6 @@ fuzz.o:	fuzz.h fuzz.c
 genmkvpwd.o:	genmkvpwd.c autoconfig.h params.h memory.h mkvlib.h memdbg.h
 
 getopt.o:	getopt.c misc.h memory.h list.h getopt.h john.h memdbg.h
-
-gladman_hmac.o:	gladman_hmac.c gladman_hmac.h memdbg.h
-
-gladman_pwd2key.o:	gladman_pwd2key.c gladman_hmac.h memdbg.h
 
 gost.o:	gost.c gost.h memdbg.h
 
