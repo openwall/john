@@ -30,8 +30,9 @@
 #define HMAC_SHA1_OPAD_XOR (0x3636363^0x5c5c5c5c)
 #endif
 
-void MAYBE_INLINE hmac_sha1(const unsigned char *key, int key_len, const unsigned char *data, int data_len, unsigned char *digest) {
+void MAYBE_INLINE hmac_sha1(const unsigned char *key, int key_len, const unsigned char *data, int data_len, unsigned char *digest, int digest_len) {
 	JTR_ALIGN(sizeof(ARCH_WORD)) unsigned char buf[64];
+	unsigned char int_digest[20];
 	ARCH_WORD *pW = (ARCH_WORD *)buf;
 	unsigned i;
 	SHA_CTX ctx;
@@ -53,13 +54,18 @@ void MAYBE_INLINE hmac_sha1(const unsigned char *key, int key_len, const unsigne
 	SHA1_Update(&ctx, buf, 64);
 	if (data_len)
 		SHA1_Update(&ctx, data, data_len);
-	SHA1_Final(digest, &ctx);
+	SHA1_Final(int_digest, &ctx);
 	for (i = 0; i < HMAC_SHA1_COUNT; ++i)
 		pW[i] ^= HMAC_SHA1_OPAD_XOR;
 	SHA_Init(&ctx);
 	SHA1_Update(&ctx, buf, 64);
-	SHA1_Update(&ctx, digest, 20);
-	SHA1_Final(digest, &ctx);
+	SHA1_Update(&ctx, int_digest, 20);
+	if (digest_len >= 20)
+		SHA1_Final(digest, &ctx);
+	else {
+		SHA1_Final(int_digest, &ctx);
+		memcpy(digest, int_digest, digest_len);
+	}
 }
 
 #endif /* _HMAC_SHA1_H */
