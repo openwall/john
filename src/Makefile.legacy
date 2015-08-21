@@ -2219,8 +2219,8 @@ john.com: john.asm
 ../run/wpapcap2john: wpapcap2john.o
 	$(LD) $(LDFLAGS) wpapcap2john.o memdbg.o $(OMPFLAGS) -o ../run/wpapcap2john
 
-../run/luks2john: luks2john.o
-	$(LD) $(LDFLAGS) luks2john.o -s -lcrypto -lssl memdbg.o jumbo.o $(OMPFLAGS) -o ../run/luks2john
+../run/luks2john: luks2john.c
+	$(CC) -D_JOHN_MISC_NO_LOG luks2john.c base64_convert.c common.c memory.c memdbg.c misc.c base64.c -o ../run/luks2john
 
 ../run/cprepair: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
 	memdbg.h memdbg.c
