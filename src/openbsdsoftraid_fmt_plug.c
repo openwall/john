@@ -26,10 +26,9 @@ extern struct fmt_main fmt_openbsd_softraid;
 john_register_one(&fmt_openbsd_softraid);
 #else
 
-#include <openssl/evp.h>
 #include "aes.h"
-#include <openssl/hmac.h>
-#include <openssl/sha.h>
+#include "hmac_sha1.h"
+#include "sha.h"
 #include "common.h"
 #include "formats.h"
 #include "pbkdf2_hmac_sha1.h"
@@ -71,7 +70,6 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-	OpenSSL_add_all_algorithms();
 #ifdef _OPENMP
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
@@ -198,45 +196,44 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		/* derive masking key from password */
 #ifdef SSE_GROUP_SZ_SHA1
-    int lens[SSE_GROUP_SZ_SHA1];
-    unsigned char *pin[SSE_GROUP_SZ_SHA1], *pout[SSE_GROUP_SZ_SHA1];
-    for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
-      lens[i] = strlen(key_buffer[index+i]);
-      pin[i] = (unsigned char*)key_buffer[index+i];
-      pout[i] = mask_key[i];
-    }
-    pbkdf2_sha1_sse((const unsigned char **)pin, lens,
-        cur_salt->salt, OPENBSD_SOFTRAID_SALTLENGTH,
-        cur_salt->num_iterations, (unsigned char**)pout,
-        32, 0);
+	int lens[SSE_GROUP_SZ_SHA1];
+	unsigned char *pin[SSE_GROUP_SZ_SHA1], *pout[SSE_GROUP_SZ_SHA1];
+	for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
+		lens[i] = strlen(key_buffer[index+i]);
+		pin[i] = (unsigned char*)key_buffer[index+i];
+		pout[i] = mask_key[i];
+	}
+	pbkdf2_sha1_sse((const unsigned char **)pin, lens,
+	                cur_salt->salt, OPENBSD_SOFTRAID_SALTLENGTH,
+	                cur_salt->num_iterations, (unsigned char**)pout,
+	                32, 0);
 #else
-    pbkdf2_sha1((const unsigned char*)(key_buffer[index]),
-        strlen(key_buffer[index]),
-        cur_salt->salt, OPENBSD_SOFTRAID_SALTLENGTH,
-        cur_salt->num_iterations, mask_key[0],
-        32, 0);
+	pbkdf2_sha1((const unsigned char*)(key_buffer[index]),
+	            strlen(key_buffer[index]),
+	            cur_salt->salt, OPENBSD_SOFTRAID_SALTLENGTH,
+	            cur_salt->num_iterations, mask_key[0],
+	            32, 0);
 #endif
 
-    for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 
 #if !ARCH_LITTLE_ENDIAN
-      alter_endianity(mask_key[i], 32);
+		alter_endianity(mask_key[i], 32);
 #endif
 
-      /* decrypt sector keys */
-      AES_set_decrypt_key(mask_key[i], 256, &akey);
-      for(j = 0; j < (OPENBSD_SOFTRAID_KEYLENGTH * OPENBSD_SOFTRAID_KEYS) / 16;  j++) {
-        AES_decrypt(&cur_salt->masked_keys[16*j], &unmasked_keys[16*j], &akey);
-      }
+		/* decrypt sector keys */
+		AES_set_decrypt_key(mask_key[i], 256, &akey);
+		for(j = 0; j < (OPENBSD_SOFTRAID_KEYLENGTH * OPENBSD_SOFTRAID_KEYS) / 16;  j++) {
+			AES_decrypt(&cur_salt->masked_keys[16*j], &unmasked_keys[16*j], &akey);
+		}
 
-      /* get SHA1 of mask_key */
-      SHA1(mask_key[i], 32, hashed_mask_key);
+		/* get SHA1 of mask_key */
+		SHA1(mask_key[i], 32, hashed_mask_key);
 
-      /* get HMAC-SHA1 of unmasked_keys using hashed_mask_key */
-      HMAC(EVP_sha1(), hashed_mask_key, OPENBSD_SOFTRAID_MACLENGTH,
-          unmasked_keys, OPENBSD_SOFTRAID_KEYLENGTH * OPENBSD_SOFTRAID_KEYS,
-          (unsigned char*)crypt_out[index+i], NULL);
-    }
+		hmac_sha1(hashed_mask_key, OPENBSD_SOFTRAID_MACLENGTH,
+		          unmasked_keys, OPENBSD_SOFTRAID_KEYLENGTH * OPENBSD_SOFTRAID_KEYS,
+		          (unsigned char*)crypt_out[index+i], 20);
+	}
 
 	}
 	return count;
