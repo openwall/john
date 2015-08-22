@@ -27,7 +27,7 @@ john_register_one(&fmt_openbsd_softraid);
 #else
 
 #include "aes.h"
-#include "hmac_sha1.h"
+#include "hmac_sha.h"
 #include "sha.h"
 #include "common.h"
 #include "formats.h"
