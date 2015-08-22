@@ -15,9 +15,6 @@ john_register_one(&fmt_encfs);
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <openssl/hmac.h>
 #include <openssl/engine.h>
 #include <string.h>
 

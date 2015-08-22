@@ -8,7 +8,7 @@
 #include "misc.h"
 #include "common.h"
 #include "encfs_common.h"
-#include <openssl/hmac.h>
+#include "hmac_sha.h"
 #include "memdbg.h"
 
 int encfs_common_valid(char *ciphertext, struct fmt_main *self)
@@ -133,25 +133,16 @@ unsigned int encfs_common_iteration_count(void *salt)
 // Other 'common' functions for this format:
 void encfs_common_setIVec(encfs_common_custom_salt *cur_salt, unsigned char *ivec, uint64_t seed, unsigned char *key)
 {
-	unsigned char md[EVP_MAX_MD_SIZE];
-	unsigned int mdLen = EVP_MAX_MD_SIZE;
+	unsigned char iv_and_seed[MAX_IVLENGTH+8];
 	int i;
-	HMAC_CTX mac_ctx;
 
-	memcpy( ivec, &key[cur_salt->keySize], cur_salt->ivLength );
+	// combine ivec and seed with HMAC
+	memcpy(iv_and_seed, &key[cur_salt->keySize], cur_salt->ivLength);
 	for(i=0; i<8; ++i) {
-		md[i] = (unsigned char)(seed & 0xff);
+		iv_and_seed[i+cur_salt->ivLength] = (unsigned char)(seed & 0xff);
 		seed >>= 8;
 	}
-	// combine ivec and seed with HMAC
-	HMAC_CTX_init(&mac_ctx);
-	HMAC_Init_ex( &mac_ctx, key, cur_salt->keySize, EVP_sha1(), 0 );
-	HMAC_Init_ex( &mac_ctx, 0, 0, 0, 0 );
-	HMAC_Update( &mac_ctx, ivec, cur_salt->ivLength );
-	HMAC_Update( &mac_ctx, md, 8 );
-	HMAC_Final( &mac_ctx, md, &mdLen );
-	HMAC_CTX_cleanup(&mac_ctx);
-	memcpy( ivec, md, cur_salt->ivLength );
+	hmac_sha1(key, cur_salt->keySize, iv_and_seed, cur_salt->ivLength+8, ivec, cur_salt->ivLength);
 }
 
 static void flipBytes(unsigned char *buf, int size)
@@ -172,33 +163,28 @@ static void flipBytes(unsigned char *buf, int size)
 }
 static uint64_t _checksum_64(encfs_common_custom_salt *cur_salt, unsigned char *key, const unsigned char *data, int dataLen, uint64_t *chainedIV)
 {
-	unsigned char md[EVP_MAX_MD_SIZE];
+	unsigned char DataIV[128+8];	// max data len is 128
+	unsigned char md[20];
 	unsigned int mdLen = EVP_MAX_MD_SIZE;
 	int i;
 	unsigned char h[8] = {0,0,0,0,0,0,0,0};
 	uint64_t value;
-	HMAC_CTX mac_ctx;
 
-	HMAC_CTX_init(&mac_ctx);
-	HMAC_Init_ex( &mac_ctx, key, cur_salt->keySize, EVP_sha1(), 0 );
-	HMAC_Init_ex( &mac_ctx, 0, 0, 0, 0 );
-	HMAC_Update( &mac_ctx, data, dataLen );
+	memcpy(DataIV, data, dataLen);
 	if(chainedIV)
 	{
 	  // toss in the chained IV as well
 		uint64_t tmp = *chainedIV;
 		unsigned char h[8];
 		for(i=0; i<8; ++i) {
-			h[i] = tmp & 0xff;
+			h[i] = DataIV[dataLen++] = (tmp & 0xff);
 			tmp >>= 8;
 		}
-		HMAC_Update( &mac_ctx, h, 8 );
 	}
-	HMAC_Final( &mac_ctx, md, &mdLen );
-	HMAC_CTX_cleanup(&mac_ctx);
+	hmac_sha1(key, cur_salt->keySize, DataIV, dataLen, md, 20);
 
 	// chop this down to a 64bit value..
-	for(i=0; i < (mdLen - 1); ++i)
+	for(i=0; i < 19; ++i)
 		h[i%8] ^= (unsigned char)(md[i]);
 
 	value = (uint64_t)h[0];
