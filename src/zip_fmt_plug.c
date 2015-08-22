@@ -7,9 +7,6 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
  *
- * Files borrowed from http://www.gladman.me.uk/cryptography_technology/fileencrypt/
- * have "gladman_" prepended to them.
- *
  * http://www.winzip.com/aes_info.htm (There is a 1 in 65,536 chance that an
  * incorrect password will yield a matching verification value; therefore, a
  * matching verification value cannot be absolutely relied on to indicate a
@@ -65,7 +62,7 @@ john_register_one(&fmt_zip);
 #endif
 static int omp_t = 1;
 #endif
-#include "gladman_hmac.h"
+#include "hmac_sha1.h"
 #include "memdbg.h"
 
 #define KEY_LENGTH(mode)        (8 * ((mode) & 3) + 8)
@@ -85,9 +82,6 @@ typedef struct my_salt_t {
 } my_salt;
 
 
-/* From gladman_fileenc.h */
-#define PWD_VER_LENGTH         2
-#define KEYING_ITERATIONS   1000
 #define FORMAT_LABEL        "ZIP"
 #define FORMAT_NAME         "WinZip"
 #define FORMAT_TAG			"$zip2$"
@@ -482,7 +476,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			if (!memcmp(&(pout[i][KEY_LENGTH(saved_salt->v.mode)<<1]), saved_salt->passverify, 2))
 			{
-				// yes, I know gladman's code but for now that is what I am using.  Later we will improve.
 				hmac_sha1(&(pout[i][KEY_LENGTH(saved_salt->v.mode)]), KEY_LENGTH(saved_salt->v.mode),
 						   (const unsigned char*)saved_salt->datablob, saved_salt->comp_len,
 						   crypt_key[index+i], BINARY_SIZE);
@@ -510,7 +503,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 		if (!memcmp(&(pwd_ver[KEY_LENGTH(saved_salt->v.mode)<<1]), saved_salt->passverify, 2))
 		{
-			// yes, I know gladman's code but for now that is what I am using.  Later we will improve.
 			hmac_sha1(&(pwd_ver[KEY_LENGTH(saved_salt->v.mode)]), KEY_LENGTH(saved_salt->v.mode),
                        (const unsigned char*)saved_salt->datablob, saved_salt->comp_len,
                        crypt_key[index], BINARY_SIZE);

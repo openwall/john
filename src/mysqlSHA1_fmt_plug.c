@@ -160,7 +160,8 @@ static void set_key(char *key, int index)
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
 #else
 	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
-	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)strcpy(buf_aligned, key);
+	const ARCH_WORD_32 *wkey = (uint32_t*)(is_aligned(key, sizeof(uint32_t)) ?
+	                                       key : strcpy(buf_aligned, key));
 #endif
 	ARCH_WORD_32 *keybuf_word = (ARCH_WORD_32*)&saved_key[GETPOS(3, index)];
 	unsigned int len;

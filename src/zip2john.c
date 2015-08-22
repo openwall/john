@@ -18,7 +18,7 @@
  * 6. http://oldhome.schmorp.de/marc/fcrackzip.html (coding hints)
  * 7. http://www.pkware.com/documents/casestudies/APPNOTE.TXT
  * 8. http://gladman.plushost.co.uk/oldsite/cryptography_technology/fileencrypt/index.php
- *   (borrowed files have "gladman_" prepended to them)
+ *   (borrowed files have "gladman_" prepended to them). This gladman code has been removed from JtR source tree.
  * 9. http://svn.assembla.com/svn/os2utils/unzip60f/proginfo/extrafld.txt
  * 10. http://emerge.hg.sourceforge.net/hgweb/emerge/emerge/diff/c2f208617d32/Source/unzip/proginfo/extrafld.txt
  *

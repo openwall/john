@@ -37,12 +37,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
-#include <openssl/evp.h>
 #include "aes.h"
-#include <openssl/hmac.h>
 
 #include "stdint.h"
-#include "gladman_fileenc.h"
 #include "filevault.h"
 #include "misc.h"
 #include "jumbo.h"

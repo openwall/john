@@ -93,7 +93,7 @@ JOHN_OBJS = \
 	pfx2john.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar2john.o \
-	zip2john.o pkzip.o gladman_hmac.o gladman_pwd2key.o \
+	zip2john.o pkzip.o \
 	racf2john.o \
 	dmg2john.o \
 	keepass2john.o \
@@ -138,12 +138,12 @@ PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../ru
 	../run/tgtsnarf@EXE_EXT@ ../run/racf2john@EXE_EXT@ ../run/hccap2john@EXE_EXT@ \
 	../run/raw2dyna@EXE_EXT@ ../run/keepass2john@EXE_EXT@ \
 	../run/dmg2john@EXE_EXT@ ../run/putty2john@EXE_EXT@ ../run/uaf2john@EXE_EXT@ \
-	../run/wpapcap2john@EXE_EXT@ \
+	../run/wpapcap2john@EXE_EXT@ ../run/luks2john@EXE_EXT@ \
 	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/base64conv@EXE_EXT@
 
 WITH_BIO_NEW = @HAVE_BIO_NEW@
 ifdef WITH_BIO_NEW
-PROJ += ../run/pfx2john@EXE_EXT@ ../run/ssh2john@EXE_EXT@ ../run/luks2john@EXE_EXT@
+PROJ += ../run/pfx2john@EXE_EXT@ ../run/ssh2john@EXE_EXT@
 endif
 
 WITH_PCAP = @HAVE_PCAP@
@@ -343,7 +343,7 @@ crc32.o:	crc32.c memory.h crc32.h memdbg.h
 
 cryptmd5_common.o:	cryptmd5_common.c arch.h misc.h common.h formats.h cryptmd5_common.h
 
-dmg2john.o:	dmg2john.c autoconfig.h stdint.h gladman_fileenc.h filevault.h misc.h jumbo.h memdbg.h
+dmg2john.o:	dmg2john.c autoconfig.h stdint.h filevault.h misc.h jumbo.h memdbg.h
 
 dummy.o:	dummy.c common.h formats.h memdbg.h
 
@@ -370,10 +370,6 @@ fuzz.o:	fuzz.h fuzz.c
 genmkvpwd.o:	genmkvpwd.c autoconfig.h params.h memory.h mkvlib.h memdbg.h
 
 getopt.o:	getopt.c misc.h memory.h list.h getopt.h john.h memdbg.h
-
-gladman_hmac.o:	gladman_hmac.c gladman_hmac.h memdbg.h
-
-gladman_pwd2key.o:	gladman_pwd2key.c gladman_hmac.h memdbg.h
 
 gost.o:	gost.c gost.h memdbg.h
 
@@ -408,8 +404,6 @@ listconf.o:	version.h listconf.h listconf.c autoconfig.h arch.h jumbo.h params.h
 loader.o:	loader.c autoconfig.h jumbo.h os.h arch.h misc.h params.h path.h memory.h list.h signals.h formats.h dyna_salt.h loader.h options.h config.h unicode.h dynamic.h fake_salts.h john.h cracker.h config.h logger.h memdbg.h
 
 logger.o:	logger.c os.h arch.h misc.h params.h path.h memory.h status.h options.h config.h options.h unicode.h dynamic.h john-mpi.h cracker.h signals.h memdbg.h
-
-luks2john.o:	luks2john.c autoconfig.h jumbo.h stdint.h johnswap.h params.h memdbg.h
 
 mask.o:	mask.c misc.h logger.h recovery.h os.h signals.h status.h options.h config.h external.h cracker.h john.h mask.h unicode.h encoding_data.h memdbg.h
 
@@ -748,8 +742,8 @@ aes/aes.a:
 ../run/dynacomptest@EXE_EXT@: dynamic_compiler.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o
 	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@  @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ -DWITH_MAIN -D_JOHN_MISC_NO_LOG -DUNICODE_NO_OPTIONS @MEMDBG_CFLAGS@ dynamic_compiler.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o $(LDFLAGS)  @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@  -o ../run/dynacomptest
 
-../run/luks2john@EXE_EXT@: luks2john.o
-	$(LD) $(LDFLAGS) luks2john.o @OPENSSL_LIBS@ @OPENMP_CFLAGS@ -o ../run/luks2john
+../run/luks2john@EXE_EXT@: luks2john.c base64_convert.c
+	$(CC) @CFLAGS@ @CFLAGS_EXTRA@ -O2 -Wall -DAC_BUILT -D_JOHN_MISC_NO_LOG luks2john.c base64_convert.c base64.c common.c memdbg.c memory.c jumbo.c misc.c -o ../run/luks2john
 
 ../run/cprepair@EXE_EXT@: cprepair.c autoconfig.h unicode.c unicode.h options.h misc.h misc.c memdbg.h memdbg.c
 	$(CC) -DAC_BUILT -Wall -O3 @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ -DNOT_JOHN -D_JOHN_MISC_NO_LOG $(CPPFLAGS) cprepair.c unicode.c misc.c memdbg.c -o ../run/cprepair

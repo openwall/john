@@ -56,6 +56,10 @@ static int omp_t = 1;
 #endif
 #endif
 
+#if !defined (SHA512_DIGEST_LENGTH)
+#define SHA512_DIGEST_LENGTH 64
+#endif
+
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	64

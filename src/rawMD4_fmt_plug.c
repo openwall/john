@@ -238,7 +238,8 @@ static void set_key(char *_key, int index)
 	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
 #else
 	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
-	const ARCH_WORD_32 *key = (ARCH_WORD_32*)strcpy(buf_aligned, _key);
+	const ARCH_WORD_32 *key = (uint32_t*)(is_aligned(_key, sizeof(uint32_t)) ?
+	                                      _key : strcpy(buf_aligned, _key));
 #endif
 	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*MD4_BUF_SIZ*SIMD_COEF_32];
 	ARCH_WORD_32 *keybuf_word = keybuffer;

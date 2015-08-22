@@ -21,7 +21,6 @@
  */
 
 #include "arch.h"
-#if !AC_BUILT || HAVE_BIO_NEW
 
 #if AC_BUILT
 #include "autoconfig.h"
@@ -47,8 +46,7 @@
 #define ntohl JOHNSWAP
 #endif
 #include "params.h"
-#include <openssl/bio.h>
-#include <openssl/evp.h>
+#include "base64_convert.h"
 
 #define LUKS_MAGIC_L        6
 #define LUKS_CIPHERNAME_L   32
@@ -172,23 +170,16 @@ static int hash_plugin_parse_hash(char *filename)
 	}
 
 	if (afsize < inline_thr) {
-		BIO *bio, *b64;
+		char *buf64 = malloc(afsize*2);
+
+		memset(buf64, 0, afsize*2);
 		fprintf(stderr, "Generating inlined hash!\n");
 		printf("$luks$1$"Zu"$", sizeof(myphdr));
 		print_hex((unsigned char *)&myphdr, sizeof(myphdr));
 		printf("$%d$", afsize);
-		/* base-64 encode cipherbuf */
-		b64 = BIO_new(BIO_f_base64());
-		bio = BIO_new_fp(stdout, BIO_NOCLOSE);
-		bio = BIO_push(b64, bio);
-		BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-		BIO_write(bio, cipherbuf, afsize);
-		if(BIO_flush(bio) <= 0) {
-			fprintf(stderr, "%s : BIO_flush failed ;(\n", filename);
-			fclose(myfile);
-			return -3;
-		}
-		BIO_free_all(bio);
+		base64_convert(cipherbuf, e_b64_raw, afsize, buf64, e_b64_mime, afsize*2, flg_Base64_MIME_TRAIL_EQ);
+		printf("%s", buf64);
+		free(buf64);
 		printf("$");
 		print_hex((unsigned char *)myphdr.mkDigest, LUKS_DIGESTSIZE);
 		printf("\n");
@@ -201,11 +192,9 @@ static int hash_plugin_parse_hash(char *filename)
 		printf("$luks$0$"Zu"$", sizeof(myphdr));
 		print_hex((unsigned char *)&myphdr, sizeof(myphdr));
 		printf("$%d$", afsize);
-
 		printf("%s$%s$", filename, "dump");
 		print_hex((unsigned char *)myphdr.mkDigest, LUKS_DIGESTSIZE);
 		printf("\n");
-
 		fwrite(cipherbuf, afsize, 1, fp);
 		free(cipherbuf);
 		fclose(fp);
@@ -262,5 +251,3 @@ int main(int argc, char **argv)
 
 	return EXIT_SUCCESS;
 }
-
-#endif /* HAVE_BIO_NEW */
