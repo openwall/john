@@ -1,5 +1,5 @@
 /*
- * free 'simple' hmac_sha1. Public domain, 2015, JimF.
+ * free 'simple' hmac_sha*. Public domain, 2015, JimF.
  * Built for John source to replace other code.
  *
  * This software was written by JimF jfoug AT cox dot net
@@ -21,23 +21,20 @@
 #include "stdint.h"
 
 #if ARCH_BITS==64
-#define HMAC_SHA1_COUNT    8
-#define HMAC_SHA1_IPAD_XOR 0x3636363636363636ULL
-#define HMAC_SHA1_OPAD_XOR (0x3636363636363636ULL^0x5c5c5c5c5c5c5c5cULL)
+#define HMAC_SHA32_COUNT  8
+#define HMAC_SHA64_COUNT  16
+#define HMAC_SHA_IPAD_XOR 0x3636363636363636ULL
+#define HMAC_SHA_OPAD_XOR (0x3636363636363636ULL^0x5c5c5c5c5c5c5c5cULL)
 #else
-#define HMAC_SHA1_COUNT    16
-#define HMAC_SHA1_IPAD_XOR 0x36363636
-#define HMAC_SHA1_OPAD_XOR (0x36363636^0x5c5c5c5c)
+#define HMAC_SHA32_COUNT  16
+#define HMAC_SHA64_COUNT  32
+#define HMAC_SHA_IPAD_XOR 0x36363636
+#define HMAC_SHA_OPAD_XOR (0x36363636^0x5c5c5c5c)
 #endif
 
 void JTR_hmac_sha1(const unsigned char *key, int key_len, const unsigned char *data, int data_len, unsigned char *digest, int digest_len) {
-#if ARCH_BITS==64
-	// VC did not like sizeof() in the align
 	JTR_ALIGN(8) unsigned char buf[64];
-#else
-	JTR_ALIGN(4) unsigned char buf[64];
-#endif
-	unsigned char int_digest[20];
+	unsigned char local_digest[20];
 	ARCH_WORD *pW = (ARCH_WORD *)buf;
 	unsigned i;
 	SHA_CTX ctx;
@@ -52,23 +49,101 @@ void JTR_hmac_sha1(const unsigned char *key, int key_len, const unsigned char *d
 	} else {
 		memcpy(buf, key, key_len);
 		memset(&buf[key_len], 0, 64-key_len);
-		for (i = 0; i < HMAC_SHA1_COUNT; ++i)
-			pW[i] ^= HMAC_SHA1_IPAD_XOR;
+		for (i = 0; i < HMAC_SHA32_COUNT; ++i)
+			pW[i] ^= HMAC_SHA_IPAD_XOR;
 	}
 	SHA_Init(&ctx);
 	SHA1_Update(&ctx, buf, 64);
 	if (data_len)
 		SHA1_Update(&ctx, data, data_len);
-	SHA1_Final(int_digest, &ctx);
-	for (i = 0; i < HMAC_SHA1_COUNT; ++i)
-		pW[i] ^= HMAC_SHA1_OPAD_XOR;
+	SHA1_Final(local_digest, &ctx);
+	for (i = 0; i < HMAC_SHA32_COUNT; ++i)
+		pW[i] ^= HMAC_SHA_OPAD_XOR;
 	SHA_Init(&ctx);
 	SHA1_Update(&ctx, buf, 64);
-	SHA1_Update(&ctx, int_digest, 20);
+	SHA1_Update(&ctx, local_digest, 20);
 	if (digest_len >= 20)
 		SHA1_Final(digest, &ctx);
 	else {
-		SHA1_Final(int_digest, &ctx);
-		memcpy(digest, int_digest, digest_len);
+		SHA1_Final(local_digest, &ctx);
+		memcpy(digest, local_digest, digest_len);
+	}
+}
+
+void JTR_hmac_sha256(const unsigned char *key, int key_len, const unsigned char *data, int data_len, unsigned char *digest, int digest_len) {
+	JTR_ALIGN(8) unsigned char buf[64];
+	unsigned char local_digest[32];
+	ARCH_WORD *pW = (ARCH_WORD *)buf;
+	unsigned i;
+	SHA256_CTX ctx;
+
+	if (key_len > 64) {
+		SHA256_Init(&ctx);
+		SHA256_Update(&ctx, key, key_len);
+		SHA256_Final(buf, &ctx);
+		for (i = 0; i < HMAC_SHA32_COUNT/2; ++i)
+			pW[i] ^= HMAC_SHA_IPAD_XOR;
+		for (; i < HMAC_SHA32_COUNT; ++i)
+			pW[i] = HMAC_SHA_IPAD_XOR;
+	} else {
+		memcpy(buf, key, key_len);
+		memset(&buf[key_len], 0, 64-key_len);
+		for (i = 0; i < HMAC_SHA32_COUNT; ++i)
+			pW[i] ^= HMAC_SHA_IPAD_XOR;
+	}
+	SHA256_Init(&ctx);
+	SHA256_Update(&ctx, buf, 64);
+	if (data_len)
+		SHA256_Update(&ctx, data, data_len);
+	SHA256_Final(local_digest, &ctx);
+	for (i = 0; i < HMAC_SHA32_COUNT; ++i)
+		pW[i] ^= HMAC_SHA_OPAD_XOR;
+	SHA256_Init(&ctx);
+	SHA256_Update(&ctx, buf, 64);
+	SHA256_Update(&ctx, local_digest, 32);
+	if (digest_len >= 32)
+		SHA256_Final(digest, &ctx);
+	else {
+		SHA256_Final(local_digest, &ctx);
+		memcpy(digest, local_digest, digest_len);
+	}
+}
+
+void JTR_hmac_sha512(const unsigned char *key, int key_len, const unsigned char *data, int data_len, unsigned char *digest, int digest_len) {
+	JTR_ALIGN(8) unsigned char buf[128];
+	unsigned char local_digest[64];
+	ARCH_WORD *pW = (ARCH_WORD *)buf;
+	unsigned i;
+	SHA512_CTX ctx;
+
+	if (key_len > 128) {
+		SHA512_Init(&ctx);
+		SHA512_Update(&ctx, key, key_len);
+		SHA512_Final(buf, &ctx);
+		for (i = 0; i < HMAC_SHA64_COUNT/2; ++i)
+			pW[i] ^= HMAC_SHA_IPAD_XOR;
+		for (; i < HMAC_SHA64_COUNT; ++i)
+			pW[i] = HMAC_SHA_IPAD_XOR;
+	} else {
+		memcpy(buf, key, key_len);
+		memset(&buf[key_len], 0, 128-key_len);
+		for (i = 0; i < HMAC_SHA64_COUNT; ++i)
+			pW[i] ^= HMAC_SHA_IPAD_XOR;
+	}
+	SHA512_Init(&ctx);
+	SHA512_Update(&ctx, buf, 128);
+	if (data_len)
+		SHA512_Update(&ctx, data, data_len);
+	SHA512_Final(local_digest, &ctx);
+	for (i = 0; i < HMAC_SHA64_COUNT; ++i)
+		pW[i] ^= HMAC_SHA_OPAD_XOR;
+	SHA512_Init(&ctx);
+	SHA512_Update(&ctx, buf, 128);
+	SHA512_Update(&ctx, local_digest, 64);
+	if (digest_len >= 64)
+		SHA512_Final(digest, &ctx);
+	else {
+		SHA512_Final(local_digest, &ctx);
+		memcpy(digest, local_digest, digest_len);
 	}
 }
