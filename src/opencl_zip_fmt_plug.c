@@ -30,7 +30,7 @@ john_register_one(&fmt_opencl_zip);
 #include "common-opencl.h"
 #include "pkzip.h"
 #include "dyna_salt.h"
-#include "hmac_sha1.h"
+#include "hmac_sha.h"
 #include "options.h"
 #include "stdint.h"
 
