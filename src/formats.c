@@ -1237,11 +1237,10 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
  */
 			if (!(format->params.flags & FMT_8_BIT)) {
 				snprintf(err_buf, sizeof(err_buf),
-					"crypt should set FMT_8_BIT",
-					format->params.label);
+					"format:crypt should set FMT_8_BIT");
 				return err_buf;
 			}
-		} else if (!strcmp(format->params.label, "wpapsk")) {
+		} else if (!strncmp(format->params.label, "wpapsk", 6)) {
 /*
  * wpapsk technically handles 8-bit just fine, a WPAPSK passphrase is 8 to 63
  * printable ASCII characters according to the spec. IEEE Std. 802.11i-2004,
@@ -1250,7 +1249,7 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
  */
 			if (format->params.flags & FMT_8_BIT) {
 				snprintf(err_buf, sizeof(err_buf),
-					"wpapsk should not set FMT_8_BIT",
+					"format:%s should not set FMT_8_BIT",
 					format->params.label);
 				return err_buf;
 			}

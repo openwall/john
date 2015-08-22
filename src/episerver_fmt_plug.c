@@ -127,7 +127,9 @@ static struct custom_salt {
 	int version;
 	unsigned char esalt[18 + 1]; /* base64 decoding, 24 / 4 * 3 = 18 */
 } *cur_salt;
+#if defined(_OPENMP) || defined(SIMD_COEF_32)
 static int omp_t = 1;
+#endif
 
 #ifdef SIMD_COEF_32
 static void episerver_set_key_utf8(char *_key, int index);
@@ -353,7 +355,7 @@ static int cmp_exact(char *source, int index)
 	int i;
 	for (i = 0; i < BINARY_SIZE/4; ++i)
 		out[i] = crypt_out[HASH_IDX_OUT + i*SIMD_COEF_32];
-	
+
 	if(cur_salt->version == 0)
 		return !memcmp(binary, out, 20);
 	else
@@ -563,7 +565,7 @@ bailout:
 #endif
 
 static char *get_key(int index)
-{	
+{
 #ifdef SIMD_COEF_32
 	static UTF16 out[PLAINTEXT_LENGTH + 1];
 	unsigned int i,s;
@@ -572,7 +574,7 @@ static char *get_key(int index)
 	for(i = 0; i < s; i++)
 		out[i] = ((unsigned char*)saved_key)[GETPOS(16 + (i<<1), index)] | (((unsigned char*)saved_key)[GETPOS(16 + (i<<1) + 1, index)] << 8);
 	out[i] = 0;
-	
+
 	return (char*)utf16_to_enc(out);
 #else
 	return saved_key[index];
