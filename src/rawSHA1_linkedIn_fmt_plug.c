@@ -35,6 +35,8 @@ john_register_one(&fmt_rawSHA1_LI);
 #include "sha.h"
 #include "johnswap.h"
 #include "loader.h"
+#include "rawSHA1_common.h"
+#include "base64_convert.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-SHA1-Linkedin"
@@ -45,11 +47,8 @@ john_register_one(&fmt_rawSHA1_LI);
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define FORMAT_TAG			"$dynamic_26$"
-#define TAG_LENGTH			12
 
 #define PLAINTEXT_LENGTH		55
-#define HASH_LENGTH			40
 #define CIPHERTEXT_LENGTH		(HASH_LENGTH + TAG_LENGTH)
 
 #define BINARY_SIZE			20
@@ -71,10 +70,10 @@ static struct fmt_tests tests[] = {
 	{"000007f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
 	{"2fbf0eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
 	{"000006c9bca350e96223a850d9e862a6b3bf2641", "magnum"},
-	{FORMAT_TAG "a9993e364706816aba3e25717850c26c9cd0d89d", "abc"},
-	{FORMAT_TAG "00000E364706816ABA3E25717850C26C9CD0D89D", "abc"},
+	{"a9993e364706816aba3e25717850c26c9cd0d89d", "abc"},
+	{"$dynamic_26$00000E364706816ABA3E25717850C26C9CD0D89D", "abc"},
 	{"000008090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
-	{"0000012f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
+	{"$dynamic_26$0000012f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
 	{"00000c1163897ac86e393fa16d6ae2c2fce21602", "7850"},
 	{"00000b0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
 	{NULL}
@@ -95,44 +94,23 @@ static SHA_CTX ctx;
 
 extern volatile int bench_running;
 
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	int i;
-
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		ciphertext += TAG_LENGTH;
-
-	if (strlen(ciphertext) != HASH_LENGTH)
-		return 0;
-
-	for (i = 0; i < HASH_LENGTH; i++){
-		if (!(  (('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||
-					(('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
-					|| (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))))
-			return 0;
-	}
-	return 1;
-}
-
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[CIPHERTEXT_LENGTH + 1];
+	static char out[41+3];
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		ciphertext += TAG_LENGTH;
+	if (strncmp(ciphertext, "{SHA}", 5))
+		ciphertext = rawsha1_common_split(ciphertext, index, self);
 
-	strncpy(out, FORMAT_TAG, sizeof(out));
-
-	memcpy(&out[TAG_LENGTH], ciphertext, HASH_LENGTH);
-	out[CIPHERTEXT_LENGTH] = 0;
+	if (strncmp(ciphertext, "{SHA}", 5))
+		return ciphertext;
 
 	// 'normalize' these hashes to all 'appear' to be 00000xxxxxx hashes.
 	// on the source() function, we later 'fix' these up.
-	memcpy(&out[TAG_LENGTH], "00000", 5);
+	ciphertext += 5;
+	base64_convert(ciphertext, e_b64_mime, strlen(ciphertext), out, e_b64_hex, 41, 0);
+	memcpy(out, "00000", 5);
 
-	strlwr(&out[TAG_LENGTH]);
-
-	return out;
+	return rawsha1_common_split(out, index, self);
 }
 
 static void set_key(char *key, int index) {
@@ -204,7 +182,6 @@ static char *get_key(int index) {
 static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
 	unsigned int x,y=0;
-
 	for(;y<SIMD_PARA_SHA1;y++)
 	for(x=0;x<SIMD_COEF_32;x++)
 	{
@@ -268,24 +245,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static void *get_binary(char *ciphertext)
-{
-	static ARCH_WORD_32 out[BINARY_SIZE / 4];
-	unsigned char *realcipher = (unsigned char*)out;
-	int i;
-
-	ciphertext += TAG_LENGTH;
-
-	for(i=0;i<BINARY_SIZE;i++)
-	{
-		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
-	}
-#ifdef SIMD_COEF_32
-	alter_endianity(realcipher, BINARY_SIZE);
-#endif
-	return (void *)realcipher;
-}
-
 static int binary_hash_0(void * binary) { return ((ARCH_WORD_32*)binary)[1] & 0xf; }
 static int binary_hash_1(void * binary) { return ((ARCH_WORD_32*)binary)[1] & 0xff; }
 static int binary_hash_2(void * binary) { return ((ARCH_WORD_32*)binary)[1] & 0xfff; }
@@ -314,16 +273,23 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[1] & 0xffff
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[1] & 0x7ffffff; }
 #endif
 
+void *binary(char *ciphertext)
+{
+	ARCH_WORD_32 *bin = (ARCH_WORD_32*)rawsha1_common_get_binary(ciphertext);
+#ifdef SIMD_COEF_32
+	alter_endianity(bin, BINARY_SIZE);
+#endif
+	return (void*)bin;
+}
 static char *source(char *source, void *binary)
 {
 	static char Buf[CIPHERTEXT_LENGTH + 1];
 	ARCH_WORD_32 out[BINARY_SIZE / 4];
 	unsigned char *realcipher = (unsigned char*)out;
-	unsigned char *cpi;
-	char *cpo;
-	int i;
 
 #ifdef SIMD_COEF_32
+	int i;
+
 	for (i = 0; i < NBKEYS; ++i) {
 		if (crypt_key[(i/SIMD_COEF_32)*20+SIMD_COEF_32+(i%SIMD_COEF_32)] == ((ARCH_WORD_32*)binary)[1]) {
 			// Ok, we may have found it.  Check the next 3 DWORDS
@@ -347,16 +313,7 @@ static char *source(char *source, void *binary)
 	alter_endianity(realcipher, BINARY_SIZE);
 #endif
 	strcpy(Buf, FORMAT_TAG);
-	cpo = &Buf[TAG_LENGTH];
-
-	cpi = realcipher;
-
-	for (i = 0; i < BINARY_SIZE; ++i) {
-		*cpo++ = itoa16[(*cpi)>>4];
-		*cpo++ = itoa16[*cpi&0xF];
-		++cpi;
-	}
-	*cpo = 0;
+	base64_convert(realcipher, e_b64_raw, 20, &Buf[TAG_LENGTH], e_b64_mime, CIPHERTEXT_LENGTH-6, flg_Base64_MIME_TRAIL_EQ);
 	return Buf;
 }
 
@@ -382,10 +339,10 @@ struct fmt_main fmt_rawSHA1_LI = {
 		fmt_default_init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
-		valid,
+		rawsha1_common_prepare,
+		rawsha1_common_valid,
 		split,
-		get_binary,
+		binary,
 		fmt_default_salt,
 		{ NULL },
 		source,
