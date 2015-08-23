@@ -599,8 +599,12 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		salt = salt_copy;
 
 		if (strcmp(ciphertext,
-		    format->methods.source(ciphertext, binary)))
+		    format->methods.source(ciphertext, binary))) {
+			//static char LargeBuf[500];
+			//sprintf(LargeBuf, "source\n%.200s\n%.200s\n", ciphertext, format->methods.source(ciphertext, binary));
+			//return LargeBuf;
 			return "source";
+		}
 
 		if ((unsigned int)format->methods.salt_hash(salt) >=
 		    SALT_HASH_SIZE)
