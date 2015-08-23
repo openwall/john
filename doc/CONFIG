@@ -217,33 +217,23 @@ for each non 'List.' section found in the john.conf file. From that
 point on, the john-local.conf file is the users file. The version control
 system will not touch it, and configure will not touch it again.
 
-Multiple .pot files (new addition in 1.8-jumbo2)
-There has been a new section added to john, that allows john to read
-additional .pot files when it starts. These additional .pot files will
-be used to scrub off candidates which were already found, but which are
-not in the .pot file we want john to write to. This is an option that
-may likely will only benefit users during a contest, but can be useful for
-that purpose. This section is not 'part' of john proper. If you want this
-type of feature, you will have to add it to your john-local.conf file.
-Here is the layout of this section.
-[Options.ExtraPots]
-Pot1 = somefile.pot
-pot2 = someother.pot
-...
-Pot12 = mylast.pot
-
-There can be up to 100 extra .pots, john will load them in order. However,
-as soon as the loader code does not see the next key (PotXX), loading will
-end.  So if the section is this
-[Options.ExtraPots]
-Pot1 = somefile.pot
-pot2 = someother.pot
-Pot4 = wont_load.pot
-
-Then only somefile.pot and someother.pot will be loaded.  The Pot3= item
-was not in the list, so loading of extra pot files will cease.
-
 See [List.Rules:Single-Extra] and several others around there for examples.
+
+
+	Multiple .pot files (new addition in 1.8.0-jumbo-2)
+
+This new config list section allows john to read additional .pot files
+when loading hashes.
+
+[List.Extra:Potfiles]
+somefile.pot
+someother.pot
+...
+mylast.pot
+
+These additional .pot files will be used to scrub off candidates which
+were already found, but which are not in the .pot file we want john to
+write to.
 
 
 	Defining an external mode.

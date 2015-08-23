@@ -1052,24 +1052,25 @@ static void john_load(void)
 			    database.format->params.format_name,
 			    database.format->params.algorithm_name);
 
-			// Tell External our max length
+			/* Tell External our max length */
 			if (options.flags & FLG_EXTERNAL_CHK)
 				ext_init(options.external, &database);
 		}
 
 		total = database.password_count;
 		ldr_load_pot_file(&database, pers_opts.activepot);
+
+		/* Load optional extra (read-only) pot files */
 		{
-			/* check for any 'extra' pots to load */
-			/* section is [Options.ExtraPots]      */
-			char name[8], *cp;
-			int i;
-			for (i = 1; i < 100; ++i) {
-				sprintf(name, "Pot%d", i);
-				cp = cfg_get_param(SECTION_OPTIONS, ".ExtraPots", name);
-				if (!cp)
-					break;
-				ldr_load_pot_file(&database, cp);
+			struct cfg_list *list;
+			struct cfg_line *line;
+
+			if ((list = cfg_get_list("List.Extra:", "Potfiles"))) {
+				if ((line = list->head)) {
+					do {
+						ldr_load_pot_file(&database, line->data);
+					} while ((line = line->next));
+				}
 			}
 		}
 
