@@ -58,7 +58,7 @@ john_register_one(&fmt_dmg);
 #include <sys/types.h>
 #include <openssl/evp.h>
 #include "aes.h"
-#include <openssl/hmac.h>
+#include "hmac_sha.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -548,8 +548,6 @@ static void hash_plugin_check_hash(int index)
 		unsigned char outbuf[8192 + 1];
 		unsigned char outbuf2[4096 + 1];
 		unsigned char iv[20];
-		HMAC_CTX hmacsha1_ctx;
-		int mdlen;
 #ifdef DMG_DEBUG
 		unsigned char *r;
 #endif
@@ -605,11 +603,7 @@ static void hash_plugin_check_hash(int index)
 		outlen += tmplen;
 		memcpy(aes_key_, TEMP1, 32);
 		memcpy(hmacsha1_key_, TEMP1, 20);
-		HMAC_CTX_init(&hmacsha1_ctx);
-		HMAC_Init_ex(&hmacsha1_ctx, hmacsha1_key_, 20, EVP_sha1(), NULL);
-		HMAC_Update(&hmacsha1_ctx, (void *) &cur_salt->cno, 4);
-		HMAC_Final(&hmacsha1_ctx, iv, (unsigned int *) &mdlen);
-		HMAC_CTX_cleanup(&hmacsha1_ctx);
+		hmac_sha1(hmacsha1_key_, 20, (unsigned char*)&cur_salt->cno, 4, iv, 20);
 		if (cur_salt->encrypted_keyblob_size == 48)
 			AES_set_decrypt_key(aes_key_, 128, &aes_decrypt_key);
 		else
@@ -673,12 +667,7 @@ static void hash_plugin_check_hash(int index)
 		/* Second buffer test. If present, *this* is the very first block of the DMG */
 		if (!cracked[index+j] && cur_salt->scp == 1) {
 			int cno = 0;
-
-			HMAC_CTX_init(&hmacsha1_ctx);
-			HMAC_Init_ex(&hmacsha1_ctx, hmacsha1_key_, 20, EVP_sha1(), NULL);
-			HMAC_Update(&hmacsha1_ctx, (void *) &cno, 4);
-			HMAC_Final(&hmacsha1_ctx, iv, (unsigned int *) &mdlen);
-			HMAC_CTX_cleanup(&hmacsha1_ctx);
+			hmac_sha1(hmacsha1_key_, 20, (unsigned char*)&cno, 4, iv, 20);
 			if (cur_salt->encrypted_keyblob_size == 48)
 				AES_set_decrypt_key(aes_key_, 128, &aes_decrypt_key);
 			else
