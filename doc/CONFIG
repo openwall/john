@@ -160,8 +160,10 @@ it can be used to load common information among several incremental
 sections, or a common init function (or other functions), in a pair
 of extern sections.
 
+See [List.Rules:Single-Extra] and several others around there for examples.
 
-   Local configuration file.
+
+	Local configuration file.
 
 The file john.conf is a file that is 'owned' by JtR.  In other words,
 when you make local edits to this file, it is assured that these
@@ -217,8 +219,6 @@ for each non 'List.' section found in the john.conf file. From that
 point on, the john-local.conf file is the users file. The version control
 system will not touch it, and configure will not touch it again.
 
-See [List.Rules:Single-Extra] and several others around there for examples.
-
 
 	Multiple .pot files (new addition in 1.8.0-jumbo-2)
 
@@ -226,14 +226,14 @@ This new config list section allows john to read additional .pot files
 when loading hashes.
 
 [List.Extra:Potfiles]
-somefile.pot
+$JOHN/somefile.pot
 someother.pot
 ...
 mylast.pot
 
 These additional .pot files will be used to scrub off candidates which
 were already found, but which are not in the .pot file we want john to
-write to.
+write to. Names of files that does not exist will be silently ignored.
 
 
 	Defining an external mode.
