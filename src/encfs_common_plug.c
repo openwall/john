@@ -175,7 +175,7 @@ static uint64_t _checksum_64(encfs_common_custom_salt *cur_salt, unsigned char *
 	  // toss in the chained IV as well
 		uint64_t tmp = *chainedIV;
 		for(i=0; i<8; ++i) {
-			h[i] = DataIV[dataLen++] = (tmp & 0xff);
+			DataIV[dataLen++] = (tmp & 0xff);
 			tmp >>= 8;
 		}
 	}
