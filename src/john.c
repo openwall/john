@@ -1059,6 +1059,20 @@ static void john_load(void)
 
 		total = database.password_count;
 		ldr_load_pot_file(&database, pers_opts.activepot);
+		{
+			/* check for any 'extra' pots to load */
+			/* section is [Options.ExtraPots]      */
+			char name[8], *cp;
+			int i;
+			for (i = 1; i < 100; ++i) {
+				sprintf(name, "Pot%d", i);
+				cp = cfg_get_param(SECTION_OPTIONS, ".ExtraPots", name);
+				if (!cp)
+					break;
+				ldr_load_pot_file(&database, cp);
+			}
+		}
+
 		ldr_fix_database(&database);
 
 		if (!database.password_count) {
