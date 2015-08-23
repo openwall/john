@@ -165,7 +165,6 @@ static uint64_t _checksum_64(encfs_common_custom_salt *cur_salt, unsigned char *
 {
 	unsigned char DataIV[128+8];	// max data len is 128
 	unsigned char md[20];
-	unsigned int mdLen = EVP_MAX_MD_SIZE;
 	int i;
 	unsigned char h[8] = {0,0,0,0,0,0,0,0};
 	uint64_t value;
