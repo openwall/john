@@ -21,7 +21,7 @@
 #if gpu_amd(DEVICE_INFO)
 #define BITALIGN(hi, lo, s) amd_bitalign((hi), (lo), (s))
 #else
-#if 0 /* Need to check for sm_32 or better to enable this */
+#if nvidia_sm_32plus(DEVICE_INFO) /* sm_32 or better */
 static inline uint funnel_shift_right(uint hi, uint lo, uint s) {
 	uint r;
 	asm("shf.r.wrap.b32 %0, %1, %2, %3;"

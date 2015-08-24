@@ -28,8 +28,9 @@
 #define DEV_AMD_VLIW5               (1 << 13)   //8192
 #define DEV_NV_C2X                  (1 << 14)   //16384
 #define DEV_NV_C30                  (1 << 15)   //32768
-#define DEV_NV_C35                  (1 << 16)   //65536
-#define DEV_NV_C5X                  (1 << 17)   //131072
+#define DEV_NV_C32                  (1 << 16)   //65536
+#define DEV_NV_C35                  (1 << 17)   //131072
+#define DEV_NV_C5X                  (1 << 18)   //262144
 #define DEV_USE_LOCAL               (1 << 20)   //1048576
 #define DEV_NO_BYTE_ADDRESSABLE     (1 << 21)   //2097152
 #define DEV_MESA                    (1 << 22)   //4M
@@ -48,7 +49,8 @@
 #define amd_vliw4(n)                ((n & DEV_AMD_VLIW4) && gpu_amd(n))
 #define amd_vliw5(n)                ((n & DEV_AMD_VLIW5) && gpu_amd(n))
 #define nvidia_sm_2x(n)             ((n & DEV_NV_C2X) && gpu_nvidia(n))
-#define nvidia_sm_3x(n)             (((n & DEV_NV_C30) || (n & DEV_NV_C35)) && gpu_nvidia(n))
+#define nvidia_sm_3x(n)             (((n & DEV_NV_C30) || (n & DEV_NV_C32) || (n & DEV_NV_C35)) && gpu_nvidia(n))
+#define nvidia_sm_32plus(n)         (((n & DEV_NV_C32) || (n & DEV_NV_C35) || (n & DEV_NV_C5X)) && gpu_nvidia(n))
 #define nvidia_sm_5x(n)             ((n & DEV_NV_C5X) && gpu_nvidia(n))
 #define no_byte_addressable(n)      ((n & DEV_NO_BYTE_ADDRESSABLE))
 #define use_local(n)                ((n & DEV_USE_LOCAL))
