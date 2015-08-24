@@ -514,7 +514,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 
 	if (!master)
-		master = mem_alloc_tiny(sizeof(*master) * max_kpc * NBKEYS, MEM_ALIGN_CACHE);
+		master = mem_alloc_tiny(sizeof(*master) * max_kpc * MAX_KEYS_PER_CRYPT,
+		                        MEM_ALIGN_CACHE);
 
 #ifdef SIMD_COEF_32
 	if (new_keys) {
