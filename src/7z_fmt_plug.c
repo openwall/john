@@ -114,6 +114,10 @@ static int *saved_len;
 static int *cracked;
 static int new_keys;
 static int max_kpc;
+#ifdef SIMD_COEF_32
+static uint32_t (*vec_in)[2][NBKEYS*16];
+static uint32_t (*vec_out)[NBKEYS*8];
+#endif
 
 static struct custom_salt {
 	int NumCyclesPower;
@@ -139,27 +143,36 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
+	// allocate 1 more slot to handle the tail of vector buffer
 	saved_key = mem_calloc(self->params.max_keys_per_crypt + 1,
 	                       sizeof(*saved_key));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt + 1,
 	                       sizeof(*saved_len));
 	cracked   = mem_calloc(self->params.max_keys_per_crypt + 1,
 	                       sizeof(*cracked));
+#ifdef SIMD_COEF_32
+	vec_in  = mem_calloc_align(self->params.max_keys_per_crypt,
+	                           sizeof(*vec_in), MEM_ALIGN_CACHE);
+	vec_out = mem_calloc_align(self->params.max_keys_per_crypt,
+	                           sizeof(*vec_out), MEM_ALIGN_CACHE);
+#endif
 	CRC32_Init(&crc);
 
 	max_kpc = self->params.max_keys_per_crypt;
 
-#ifdef SIMD_COEF_32
 	if (pers_opts.target_enc == UTF_8)
-		self->params.plaintext_length = PLAINTEXT_LENGTH * 3;
-#endif
+		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 }
 
 static void done(void)
 {
 	MEM_FREE(cracked);
 	MEM_FREE(saved_key);
-	MEM_FREE(saved_len)
+	MEM_FREE(saved_len);
+#ifdef SIMD_COEF_32
+	MEM_FREE(vec_in);
+	MEM_FREE(vec_out);
+#endif
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -384,11 +397,12 @@ static int sevenzip_decrypt(unsigned char *derived_key)
 }
 
 #ifdef SIMD_COEF_32
-static void sevenzip_kdf(int *indices, unsigned char *master)
+static void sevenzip_kdf(int buf_idx, int *indices, unsigned char *master)
 {
 	int i, j;
 	long long round, rounds = (long long) 1 << cur_salt->NumCyclesPower;
-	JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t buf_in[2][NBKEYS*16], buf_out[NBKEYS*8];
+	uint32_t (*buf_in)[NBKEYS*16] = vec_in[buf_idx];
+	uint32_t *buf_out = vec_out[buf_idx];
 	int pw_len = saved_len[indices[0]];
 	int tot_len = (pw_len + 8)*rounds;
 	int acc_len = 0;
@@ -514,7 +528,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		int j;
 		if (new_keys)
-			sevenzip_kdf(indices + index, master[index]);
+			sevenzip_kdf(index/NBKEYS, indices + index, master[index]);
 
 		/* do decryption and checks */
 		for (j = 0; j < NBKEYS; ++j) {
