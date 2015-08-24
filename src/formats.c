@@ -325,7 +325,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		ntests++;
 	current = format->params.tests;
 #ifdef _MSC_VER
-	if (current->ciphertext[0] == 0 && !strcmp(format->params.label, "LUKS")) {
+	if (current->ciphertext[0] == 0 &&
+	    !strcasecmp(format->params.label, "LUKS")) {
 		// luks has a string that is longer than the 64k max string length of
 		// VC. So to get it to work, we post load the the test value.
 		void LUKS_test_fixup();
@@ -706,9 +707,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #endif
 /* Jump straight to last index for non-bitslice DES */
 			if (!(format->params.flags & FMT_BS) &&
-			    (!strcmp(format->params.label, "descrypt") ||
-			    !strcmp(format->params.label, "bsdicrypt") ||
-			    !strcmp(format->params.label, "AFS")))
+			    (!strcasecmp(format->params.label, "descrypt") ||
+			    !strcasecmp(format->params.label, "bsdicrypt") ||
+			    !strcasecmp(format->params.label, "AFS")))
 				index = max - 1;
 
 			current = format->params.tests;
@@ -858,7 +859,8 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 		ntests++;
 	current = format->params.tests;
 #ifdef _MSC_VER
-	if (current->ciphertext[0] == 0 && !strcmp(format->params.label, "LUKS")) {
+	if (current->ciphertext[0] == 0 &&
+	    !strcasecmp(format->params.label, "LUKS")) {
 		// luks has a string that is longer than the 64k max string length of
 		// VC. So to get it to work, we post load the the test value.
 		void LUKS_test_fixup();
@@ -1221,12 +1223,12 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 	if (plaintext_has_alpha) {
 		if (is_case_sensitive && !(format->params.flags & FMT_CASE)) {
 			snprintf(err_buf, sizeof(err_buf),
-				"format:%s has not set FMT_CASE but there is at least one password which is case-sensitive",
+				"%s doesn't set FMT_CASE but at least one test-vector is case-sensitive",
 				format->params.label);
 			return err_buf;
 		} else if (!is_case_sensitive && (format->params.flags & FMT_CASE)) {
 			snprintf(err_buf, sizeof(err_buf),
-				"format:%s has set FMT_CASE but all passwords are case-insensitive",
+				"%s sets FMT_CASE but all test-vectors are case-insensitive",
 				format->params.label);
 			return err_buf;
 		}
@@ -1235,38 +1237,38 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 	if (!plaintext_is_blank) {
 		if (!strcmp(format->params.label, "crypt")) {
 /*
- * It "can't" reliably know if the underlying system's crypt() is 8-bit or not,
+ * We "can't" reliably know if the underlying system's crypt() is 8-bit or not,
  * and in fact this will vary by actual hash type, of which multiple ones may
  * be loaded at once (with that one format). crypt SHOULD set FMT_8_BIT
  */
 			if (!(format->params.flags & FMT_8_BIT)) {
 				snprintf(err_buf, sizeof(err_buf),
-					"format:crypt should set FMT_8_BIT");
+					"crypt should set FMT_8_BIT");
 				return err_buf;
 			}
-		} else if (!strncmp(format->params.label, "wpapsk", 6)) {
+		} else if (!strncasecmp(format->params.label, "wpapsk", 6)) {
 /*
- * wpapsk technically handles 8-bit just fine, a WPAPSK passphrase is 8 to 63
+ * WPAPSK technically handles 8-bit, but a WPAPSK passphrase is 8 to 63
  * printable ASCII characters according to the spec. IEEE Std. 802.11i-2004,
  * Annex H.4.1: Each character in the pass-phrase must have an encoding in
  * the range of 32 to 126 (decimal), inclusive.
  */
 			if (format->params.flags & FMT_8_BIT) {
 				snprintf(err_buf, sizeof(err_buf),
-					"format:%s should not set FMT_8_BIT",
+					"%s should not set FMT_8_BIT",
 					format->params.label);
 				return err_buf;
 			}
 		} else if (!is_ignore_8th_bit &&
 			   !(format->params.flags & FMT_8_BIT)) {
 			snprintf(err_buf, sizeof(err_buf),
-				"format:%s has not set FMT_8_BIT but there is at least one password which does not ignore the 8th bit",
+				"%s doesn't set FMT_8_BIT but at least one test-vector does not ignore the 8th bit",
 				format->params.label);
 			return err_buf;
 		} else if (is_ignore_8th_bit &&
 			   (format->params.flags & FMT_8_BIT)) {
 			snprintf(err_buf, sizeof(err_buf),
-				"format:%s has set FMT_8_BIT but all passwords ignore the 8th bit",
+				"%s sets FMT_8_BIT but all test-vectors ignore the 8th bit",
 				format->params.label);
 			return err_buf;
 		}
