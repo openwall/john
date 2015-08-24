@@ -599,8 +599,12 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		salt = salt_copy;
 
 		if (strcmp(ciphertext,
-		    format->methods.source(ciphertext, binary)))
+		    format->methods.source(ciphertext, binary))) {
+			//static char LargeBuf[500];
+			//sprintf(LargeBuf, "source\n%.200s\n%.200s\n", ciphertext, format->methods.source(ciphertext, binary));
+			//return LargeBuf;
 			return "source";
+		}
 
 		if ((unsigned int)format->methods.salt_hash(salt) >=
 		    SALT_HASH_SIZE)
@@ -1237,11 +1241,10 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
  */
 			if (!(format->params.flags & FMT_8_BIT)) {
 				snprintf(err_buf, sizeof(err_buf),
-					"crypt should set FMT_8_BIT",
-					format->params.label);
+					"format:crypt should set FMT_8_BIT");
 				return err_buf;
 			}
-		} else if (!strcmp(format->params.label, "wpapsk")) {
+		} else if (!strncmp(format->params.label, "wpapsk", 6)) {
 /*
  * wpapsk technically handles 8-bit just fine, a WPAPSK passphrase is 8 to 63
  * printable ASCII characters according to the spec. IEEE Std. 802.11i-2004,
@@ -1250,7 +1253,7 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
  */
 			if (format->params.flags & FMT_8_BIT) {
 				snprintf(err_buf, sizeof(err_buf),
-					"wpapsk should not set FMT_8_BIT",
+					"format:%s should not set FMT_8_BIT",
 					format->params.label);
 				return err_buf;
 			}

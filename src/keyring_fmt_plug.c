@@ -328,11 +328,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			if (verify_decrypted_buffer(buffers[i], cur_salt->crypto_size)) {
 				cracked[index+i] = 1;
-			}
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-			any_cracked |= 1;
+				any_cracked |= 1;
+			}
 		}
 		MEM_FREE(buffers);
 	}

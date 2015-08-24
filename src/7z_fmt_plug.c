@@ -388,7 +388,7 @@ static void sevenzip_kdf(int *indices, unsigned char *master)
 {
 	int i, j;
 	long long round, rounds = (long long) 1 << cur_salt->NumCyclesPower;
-	uint32_t buf_in[2][NBKEYS*16], buf_out[NBKEYS*8] JTR_ALIGN(MEM_ALIGN_SIMD);
+	JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t buf_in[2][NBKEYS*16], buf_out[NBKEYS*8];
 	int pw_len = saved_len[indices[0]];
 	int tot_len = (pw_len + 8)*rounds;
 	int acc_len = 0;

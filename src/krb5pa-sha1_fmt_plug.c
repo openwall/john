@@ -57,7 +57,7 @@ static int omp_t = 1;
 #include "unicode.h"
 #include "johnswap.h"
 #include "aes.h"
-#include "hmac_sha1.h"
+#include "hmac_sha.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "loader.h"
 #include "memdbg.h"

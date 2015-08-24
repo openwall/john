@@ -62,7 +62,7 @@ john_register_one(&fmt_zip);
 #endif
 static int omp_t = 1;
 #endif
-#include "hmac_sha1.h"
+#include "hmac_sha.h"
 #include "memdbg.h"
 
 #define KEY_LENGTH(mode)        (8 * ((mode) & 3) + 8)

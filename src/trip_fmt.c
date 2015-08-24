@@ -602,14 +602,21 @@ struct fmt_main fmt_trip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+/*
+ * Characters 2 and 3 of passwords form a descrypt salt.  Formally, 8-bit
+ * characters are invalid in descrypt salts, but our implementation, as well as
+ * most others, actually handles them in some way, and the 8th bit is not
+ * necessarily ignored there.  Hence, we set FMT_8_BIT, even though the 8th bit
+ * is ignored for most character positions and its behavior for positions 2 and
+ * 3 is not precisely defined.
+ */
 #if DES_BS && DES_bs_mt
 		FMT_OMP | FMT_OMP_BAD |
 #endif
 #if DES_BS
-		FMT_CASE | FMT_BS,
-#else
-		FMT_CASE,
+		FMT_BS |
 #endif
+		FMT_CASE | FMT_8_BIT,
 		{ NULL },
 		tests
 	}, {

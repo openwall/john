@@ -250,8 +250,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		DES_cbc_encrypt(cur_salt->challenge, &encrypted_challenge[0], 8, &schedule, &ivec, DES_ENCRYPT);
 		if(memcmp(encrypted_challenge, cur_salt->response, 8) == 0) {
 			DES_cbc_encrypt(&cur_salt->challenge[8], &encrypted_challenge[8], 8, &schedule, &ivec, DES_ENCRYPT);
-			if(memcmp(encrypted_challenge, cur_salt->response, 16) == 0)
-				memcpy((unsigned char*)crypt_out[index], encrypted_challenge, 16);
+			memcpy((unsigned char*)crypt_out[index], encrypted_challenge, 16);
+		} else {
+			memset((unsigned char*)crypt_out[index], 0, 16);
 		}
 	}
 	return count;

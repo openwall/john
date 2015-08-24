@@ -121,7 +121,7 @@ they will be added, but considered the least probable.
 	Temporarily disabling formats
 
 If you have problems with some format(s) and just want to disable them,
-you can add them to john.conf (or john.local.conf) by adding them as
+you can add them to john.conf (or john-local.conf) by adding them as
 booleans to a [Disabled:Formats] section, set as true:
 
 [Disabled:Formats]
@@ -160,27 +160,29 @@ it can be used to load common information among several incremental
 sections, or a common init function (or other functions), in a pair
 of extern sections.
 
+See [List.Rules:Single-Extra] and several others around there for examples.
 
-   Local configuration file.
+
+	Local configuration file.
 
 The file john.conf is a file that is 'owned' by JtR.  In other words,
-when you make local edits to this file, it is not assured that these
-changes will not be lost (overwritten) when you update JtR out of the
+when you make local edits to this file, it is assured that these
+changes will be lost (overwritten) when you update JtR out of the
 version control system.  However, there is a file, which is NOT owned
 by JtR, but which john.conf will include at the very bottom. This file
-is john.local.conf.  It is highly recommended that a user make edits to
+is john-local.conf.  It is highly recommended that a user make edits to
 this local file, as much as possible, leaving the original john.conf
 file intact.  There is also a special naming convention added to the
 latest JtR bleeding code, where these local edits can modify an
 existing non "List." section within john.conf.  The naming convention
 is [Local:original_section:name]  So to modify existing params in the
 [Options] section of john.conf, you can add a [Local:Options] to the
-john.local.conf and any param found in there will update the param
+john-local.conf and any param found in there will update the param
 within john.conf's [Options] section.
 
 For instance, if you wanted to NOT run in idle mode, and always want
 to have dynamic hashes load raw hash lines, you can put this into
-john.local.conf, instead of editing john.conf:
+john-local.conf, instead of editing john.conf:
 
 [Local:Options]
 DynamicAlwaysUseBareHashes = Y
@@ -192,19 +194,46 @@ for setting things like MinLen and MaxLen within the incremental
 sections, and setting things like local Markov settings. Yes, each of
 these can be done by editing john.conf.  However, keep in mind that
 all of these changes to a john.conf file 'can' be lost. If they are
-modified within john.local.conf then they are safe from being lost
+modified within john-local.conf then they are safe from being lost
 during an update.
 
+This file (john-local.conf) can be located in the $JOHN directory
+(where the john executable resides). It can also be in the local
+working directory, AND it can even be in both places.  These files
+will be loaded in this order:
+   1. all of $JOHN/john.conf
+   2. $JOHN/john-local.conf
+   3. ./john-local.conf
+So each john-local.conf can add, or modify the existing config
+data. The absolute last file loaded will be ./john-local.conf, so
+the changes this file makes will always be used. The changes done
+in $JOHN/john-local.conf will override what was set in $JOHN/john.conf
+BUT these settings can also be overridden by changes in ./john-local.conf
+
 The one and ONLY time that the JtR environment will ever edit or
-modify the john.local.conf file, is if it does not exist when the
+modify the john-local.conf file, is if it does not exist when the
 configure script is run. If that is the case, configure will building
-a initial skeleton john.local.conf file. This file will have a comment
+a initial skeleton john-local.conf file. This file will have a comment
 section explaining things, and then have blank skeleton Local sections
 for each non 'List.' section found in the john.conf file. From that
-point on, the john.local.conf file is the users file. The version control
+point on, the john-local.conf file is the users file. The version control
 system will not touch it, and configure will not touch it again.
 
-See [List.Rules:Single-Extra] and several others around there for examples.
+
+	Multiple .pot files (new addition in 1.8.0-jumbo-2)
+
+This new config list section allows john to read additional .pot files
+when loading hashes.
+
+[List.Extra:Potfiles]
+$JOHN/somefile.pot
+someother.pot
+...
+mylast.pot
+
+These additional .pot files will be used to scrub off candidates which
+were already found, but which are not in the .pot file we want john to
+write to. Names of files that does not exist will be silently ignored.
 
 
 	Defining an external mode.
