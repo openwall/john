@@ -81,7 +81,7 @@ typedef struct {
 
 typedef struct {
 	uint length;
-	uchar v[15];
+	uchar v[PLAINTEXT_LENGTH];
 } crypt_md5_password;
 
 typedef struct {
@@ -276,7 +276,7 @@ __kernel void cryptmd5(__global const crypt_md5_password * inbuffer,
 	uint ctx_buflen[8];
 	union {
 		uint w[4];
-		uchar c[15];
+		uchar c[PLAINTEXT_LENGTH];
 	} pass;
 	union {
 		uint w[2];
@@ -284,7 +284,7 @@ __kernel void cryptmd5(__global const crypt_md5_password * inbuffer,
 	} salt;
 	uint i;
 
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < (PLAINTEXT_LENGTH + 3) / 4; i++)
 		pass.w[i] = ((__global uint *) & inbuffer[idx].v)[i];
 
 	for (i = 0; i < 2; i++)
@@ -301,7 +301,7 @@ __kernel void cryptmd5(__global const crypt_md5_password * inbuffer,
 	ctx_update(&ctx[1], pass.c, pass_len, &ctx_buflen[1]);
 	ctx_update_prefix(&ctx[1], hsalt->prefix, &ctx_buflen[1]);
 	ctx_update(&ctx[1], salt.c, salt_len, &ctx_buflen[1]);
-#if 0
+#if PLAINTEXT_LENGTH >= 16
 	for (i = pass_len; i > 16; i -= 16)
 		ctx_update(&ctx[1], (uchar *) alt_result, 16, &ctx_buflen[1]);
 	ctx_update(&ctx[1], (uchar *) alt_result, i, &ctx_buflen[1]);
