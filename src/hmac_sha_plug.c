@@ -17,6 +17,7 @@
 #include "arch.h"
 #include "aligned.h"
 #include "sha.h"
+#include "sha2.h"
 #include "common.h"
 #include "stdint.h"
 
