@@ -269,6 +269,7 @@ static char *opencl_driver_info(int sequential_id)
 		{1642, 5},
 		{1702, 3},
 		{1729, 3},
+		{1800, 5},
 		{0, 0}
 	};
 
@@ -281,10 +282,11 @@ static char *opencl_driver_info(int sequential_id)
 		"13.12",
 		"14.4 (Mantle)",
 		"14.6 beta (Mantle)",
-		"14.9 (Mantle) [recommended]",
-		"14.12 (Omega) [supported]",
-		"15.05 [buggy]",
-		"15.07 [recommended]",
+		"14.9 (Mantle)",
+		"14.12 (Omega)",
+		"15.5 beta",
+		"15.5",
+		"15.7 [recommended]",
 		""
 	};
 	clGetDeviceInfo(devices[sequential_id], CL_DRIVER_VERSION,
