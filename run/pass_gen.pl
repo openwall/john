@@ -116,9 +116,9 @@ my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singles
 #########################################################
 # These global vars settable by command line args.
 #########################################################
-my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "unknown";
+my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "stdin";
 my $arg_count = 1500, my $argsalt, my $argiv, my $argcontent; my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
-my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode; my $arguser;
+my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode; my $arguser; my $arg_vectors;
 
 GetOptions(
 	'codepage=s'       => \$arg_codepage,
@@ -137,6 +137,7 @@ GetOptions(
 	'tstall!'          => \$arg_tstall,
 	'genall!'          => \$arg_genall,
 	'nrgenall!'        => \$arg_nrgenall,
+	'vectors!'         => \$arg_vectors,
 	'user=s'           => \$arguser
 	) || usage();
 
@@ -186,7 +187,8 @@ $s
 
     -tstall       runs a 'simple' test for all known types.
     -genall       generates all hashes with random salts.
-    -nrgenall     gererates all hashes (non-random, repeatable)
+    -nrgenall     generates all hashes (non-random, repeatable)
+    -vectors      output in test vector source code format
 
     -help         shows this help screen.
 UsageHelp
@@ -215,6 +217,8 @@ if (-t STDIN) {
 	if (@ARGV != 1) { print STDERR "When all entered ^D starts the processing.\n\n"; }
 	$arg_nocomment = 1;  # we do not output 'comment' line if writing to stdout.
 }
+
+if ($arg_vectors) { $arg_nocomment = 1; }
 
 ###############################################################################################
 # modifications to character set used.  This is to get pass_gen.pl working correctly
@@ -264,7 +268,11 @@ if (@ARGV == 1) {
 	foreach (@funcs) {
 		if ($arg eq lc $_) {
 			$have_something = 1;
-			if (-t STDOUT) { print "\n  ** Here are the hashes for format $orig_arg **\n"; }
+			if (!$arg_nocomment) {
+				print "\n  ** Here are the ";
+				print $arg_vectors ? "test vectors" : "hashes";
+				print " for format $orig_arg **\n";
+			}
 			$arg =~ s/-/_/g;
 			while (<STDIN>) {
 				next if (/^#!comment/);
@@ -310,7 +318,7 @@ if (@ARGV == 1) {
 		foreach (@funcs) {
 			if ($arg eq lc $_) {
 				$have_something = 1;
-				if (-t STDOUT) { print "\n  ** Here are the hashes for format $orig_arg **\n"; }
+				if (!$arg_nocomment) { print "\n  ** Here are the hashes for format $orig_arg **\n"; }
 				$arg =~ s/-/_/g;
 				foreach (@lines) {
 					next if (/^#!comment/);
@@ -362,6 +370,10 @@ sub reset_out_vars {
 sub output_hash {
 	if ($l0pht_fmt == 1) {
 		print "$_[0]:$_[1]:\n";
+		return;
+	}
+	elsif ($arg_vectors) {
+		printf("\t{\"%s\", \"%s\"},\n", $_[0], $_[1]);
 		return;
 	}
 	my $p = $_[1];
