@@ -10,6 +10,49 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 
+#ifdef cl_nv_pragma_unroll
+#define NVIDIA
+#endif
+
+#if nvidia_sm_3x(DEVICE_INFO)
+#define USE_BITSELECT 1
+#endif
+
+#if gpu_amd(DEVICE_INFO)
+#define BITALIGN(hi, lo, s) amd_bitalign((hi), (lo), (s))
+#else
+#if 0 /* Need to check for sm_32 or better to enable this */
+static inline uint funnel_shift_right(uint hi, uint lo, uint s) {
+	uint r;
+	asm("shf.r.wrap.b32 %0, %1, %2, %3;"
+	    : "=r" (r)
+	    : "r" (lo), "r" (hi), "r" (s));
+	return r;
+}
+static inline uint funnel_shift_right_imm(uint hi, uint lo, uint s) {
+	uint r;
+	asm("shf.r.wrap.b32 %0, %1, %2, %3;"
+	    : "=r" (r)
+	    : "r" (lo), "r" (hi), "i" (s));
+	return r;
+}
+#define BITALIGN(hi, lo, s) funnel_shift_right(hi, lo, s)
+#define BITALIGN_IMM(hi, lo, s) funnel_shift_right_imm(hi, lo, s)
+#else
+#define BITALIGN(hi, lo, s) (((hi) << (32 - (s))) | ((lo) >> (s)))
+#endif
+#endif
+
+#ifndef BITALIGN_IMM
+#define BITALIGN_IMM(hi, lo, s) BITALIGN(hi, lo, s)
+#endif
+
+#ifdef NVIDIA
+#define BITALIGN_AGGRESSIVE
+#else
+#define BUF_UPDATE_SWITCH
+#endif
+
 #define ROTATE_LEFT(x, s) rotate(x, (uint)s)
 
 #ifdef USE_BITSELECT
@@ -94,47 +137,100 @@ typedef struct {
 
 __constant uchar cl_md5_salt_prefix[] = "$1$";
 __constant uchar cl_apr1_salt_prefix[] = "$apr1$";
-__constant uint g[] =
+__constant uchar g[] =
     { 0, 7, 3, 5, 3, 7, 1, 6, 3, 5, 3, 7, 1, 7, 2, 5, 3, 7, 1, 7, 3, 4, 3, 7,
 	    1, 7, 3, 5, 2, 7, 1, 7, 3, 5, 3, 6, 1, 7, 3, 5, 3, 7 };
 
-inline void buf_update(uint * buf, uint a, uint b, uint c, uint d, uint offset)
+#ifdef BUF_UPDATE_SWITCH
+static inline void buf_update(uint * buf, uint a, uint b, uint c, uint d, uint offset)
 {
-	switch (offset % 4) {
+	uint i = offset >> 2;
+	switch (offset & 3) {
 	case 0:
-		buf[offset / 4] = a;
-		buf[(offset / 4) + 1] = b;
-		buf[(offset / 4) + 2] = c;
-		buf[(offset / 4) + 3] = d;
+		buf[i] = a;
+		buf[i + 1] = b;
+		buf[i + 2] = c;
+		buf[i + 3] = d;
 		break;
 	case 1:
-		buf[offset / 4] = (buf[offset / 4] & 0x000000ff) | (a << 8);
-		buf[(offset / 4) + 1] = (a >> 24) | (b << 8);
-		buf[(offset / 4) + 2] = (b >> 24) | (c << 8);
-		buf[(offset / 4) + 3] = (c >> 24) | (d << 8);
-		buf[(offset / 4) + 4] =
-		    (buf[(offset / 4) + 4] & 0xffffff00) | (d >> 24);
+#ifdef BITALIGN_AGGRESSIVE
+		buf[i] = BITALIGN_IMM(a, buf[i] << 24, 24);
+#else
+		buf[i] = (buf[i] & 0x000000ff) | (a << 8);
+#endif
+		buf[i + 1] = BITALIGN_IMM(b, a, 24);
+		buf[i + 2] = BITALIGN_IMM(c, b, 24);
+		buf[i + 3] = BITALIGN_IMM(d, c, 24);
+#ifdef BITALIGN_AGGRESSIVE
+		buf[i + 4] = BITALIGN_IMM(buf[i + 4] >> 8, d, 24);
+#else
+		buf[i + 4] = (buf[i + 4] & 0xffffff00) | (d >> 24);
+#endif
 		break;
 	case 2:
-		buf[offset / 4] = (buf[offset / 4] & 0x0000ffff) | (a << 16);
-		buf[(offset / 4) + 1] = (a >> 16) | (b << 16);
-		buf[(offset / 4) + 2] = (b >> 16) | (c << 16);
-		buf[(offset / 4) + 3] = (c >> 16) | (d << 16);
-		buf[(offset / 4) + 4] =
-		    (buf[(offset / 4) + 4] & 0xffff0000) | (d >> 16);
+#ifdef BITALIGN_AGGRESSIVE
+		buf[i] = BITALIGN_IMM(a, buf[i] << 16, 16);
+#else
+		buf[i] = (buf[i] & 0x0000ffff) | (a << 16);
+#endif
+		buf[i + 1] = BITALIGN_IMM(b, a, 16);
+		buf[i + 2] = BITALIGN_IMM(c, b, 16);
+		buf[i + 3] = BITALIGN_IMM(d, c, 16);
+#ifdef BITALIGN_AGGRESSIVE
+		buf[i + 4] = BITALIGN_IMM(buf[i + 4] >> 16, d, 16);
+#else
+		buf[i + 4] = (buf[i + 4] & 0xffff0000) | (d >> 16);
+#endif
 		break;
 	case 3:
-		buf[offset / 4] = (buf[offset / 4] & 0x00ffffff) | (a << 24);
-		buf[(offset / 4) + 1] = (a >> 8) | (b << 24);
-		buf[(offset / 4) + 2] = (b >> 8) | (c << 24);
-		buf[(offset / 4) + 3] = (c >> 8) | (d << 24);
-		buf[(offset / 4) + 4] =
-		    (buf[(offset / 4) + 4] & 0xff000000) | (d >> 8);
+#ifdef BITALIGN_AGGRESSIVE
+		buf[i] = BITALIGN_IMM(a, buf[i] << 8, 8);
+#else
+		buf[i] = (buf[i] & 0x00ffffff) | (a << 24);
+#endif
+		buf[i + 1] = BITALIGN_IMM(b, a, 8);
+		buf[i + 2] = BITALIGN_IMM(c, b, 8);
+		buf[i + 3] = BITALIGN_IMM(d, c, 8);
+#ifdef BITALIGN_AGGRESSIVE
+		buf[i + 4] = BITALIGN_IMM(buf[i + 4] >> 24, d, 8);
+#else
+		buf[i + 4] = (buf[i + 4] & 0xff000000) | (d >> 8);
+#endif
 		break;
 	}
 }
+#else
+static inline void buf_update(uint * buf, uint a, uint b, uint c, uint d, uint offset)
+{
+	uint i = offset >> 2;
+	uint j = offset & 3;
+	if (!j) {
+		buf[i] = a;
+		buf[i + 1] = b;
+		buf[i + 2] = c;
+		buf[i + 3] = d;
+		return;
+	}
 
-inline void ctx_update(md5_ctx * ctx, uchar * string, uint len,
+	j <<= 3;
+	uint k = 32 - j;
+#ifdef BITALIGN_AGGRESSIVE
+	buf[i] = BITALIGN(a, buf[i] << k, k);
+#else
+	buf[i] = (buf[i] & (0xffffffffU >> k)) | (a << j);
+#endif
+	buf[i + 1] = BITALIGN(b, a, k);
+	buf[i + 2] = BITALIGN(c, b, k);
+	buf[i + 3] = BITALIGN(d, c, k);
+#ifdef BITALIGN_AGGRESSIVE
+	buf[i + 4] = BITALIGN(buf[i + 4] >> j, d, k);
+#else
+	buf[i + 4] = (buf[i + 4] & (0xffffffffU << j)) | (d >> k);
+#endif
+}
+#endif
+
+static inline void ctx_update(md5_ctx * ctx, uchar * string, uint len,
     uint * ctx_buflen)
 {
 	uint i;
@@ -145,7 +241,7 @@ inline void ctx_update(md5_ctx * ctx, uchar * string, uint len,
 	*ctx_buflen += len;
 }
 
-inline void ctx_update_prefix(md5_ctx * ctx, uchar prefix, uint * ctx_buflen)
+static inline void ctx_update_prefix(md5_ctx * ctx, uchar prefix, uint * ctx_buflen)
 {
 	uint i;
 
@@ -163,27 +259,27 @@ inline void ctx_update_prefix(md5_ctx * ctx, uchar prefix, uint * ctx_buflen)
 	// else if (prefix == '\0') do nothing. for {smd5}
 }
 
-inline void init_ctx(md5_ctx * ctx, uint * ctx_buflen)
+static inline void init_ctx(md5_ctx * ctx, uint * ctx_buflen)
 {
 	uint i;
 	uint *buf = (uint *) ctx->buffer;
 
+#ifdef NVIDIA
+#pragma unroll 4
+#endif
 	for (i = 0; i < sizeof(ctx->buffer) / 4; i++)
 		*buf++ = 0;
 	*ctx_buflen = 0;
 }
 
-inline void md5_digest(md5_ctx * ctx, uint * result, uint * ctx_buflen,
+static void md5_digest(md5_ctx * ctx, uint * result, uint len,
     uint res_offset)
 {
-	uint len = *ctx_buflen;
 	uint *x = ctx->buffer;
 	uint a;
 	uint b = 0xefcdab89;
 	uint c = 0x98badcfe;
 	uint d = 0x10325476;
-
-	len <<= 3;
 
 	a = ROTATE_LEFT(AC1 + x[0], S11);
 	a += b;			/* 1 */
@@ -262,6 +358,14 @@ inline void md5_digest(md5_ctx * ctx, uint * result, uint * ctx_buflen,
 	c += 0x98badcfe;
 	d += 0x10325476;
 
+	if (!res_offset) {
+		result[0] = a;
+		result[1] = b;
+		result[2] = c;
+		result[3] = d;
+		return;
+	}
+
 	buf_update(result, a, b, c, d, res_offset);
 }
 
@@ -284,18 +388,21 @@ __kernel void cryptmd5(__global const crypt_md5_password * inbuffer,
 	} salt;
 	uint i;
 
+#ifdef NVIDIA
+#pragma unroll 4
+#endif
 	for (i = 0; i < (PLAINTEXT_LENGTH + 3) / 4; i++)
 		pass.w[i] = ((__global uint *) & inbuffer[idx].v)[i];
 
-	for (i = 0; i < 2; i++)
-		salt.w[i] = ((__global uint *) & hsalt->salt)[i];
+	salt.w[0] = ((__global uint *) & hsalt->salt)[0];
+	salt.w[1] = ((__global uint *) & hsalt->salt)[1];
 
 	init_ctx(&ctx[1], &ctx_buflen[1]);
 	ctx_update(&ctx[1], pass.c, pass_len, &ctx_buflen[1]);
 	ctx_update(&ctx[1], salt.c, salt_len, &ctx_buflen[1]);
 	ctx_update(&ctx[1], pass.c, pass_len, &ctx_buflen[1]);
 	PUTCHAR(ctx[1].buffer, ctx_buflen[1], 0x80);
-	md5_digest(&ctx[1], alt_result, &ctx_buflen[1], 0);
+	md5_digest(&ctx[1], alt_result, ctx_buflen[1] << 3, 0);
 
 	init_ctx(&ctx[1], &ctx_buflen[1]);
 	ctx_update(&ctx[1], pass.c, pass_len, &ctx_buflen[1]);
@@ -308,13 +415,11 @@ __kernel void cryptmd5(__global const crypt_md5_password * inbuffer,
 #else
 	ctx_update(&ctx[1], (uchar *) alt_result, pass_len, &ctx_buflen[1]);
 #endif
-	*alt_result = 0;
-	for (i = pass_len; i > 0; i >>= 1)
-		if (i & 1)
-			ctx_update(&ctx[1], (uchar *) alt_result, 1,
-			    &ctx_buflen[1]);
-		else
-			ctx_update(&ctx[1], pass.c, 1, &ctx_buflen[1]);
+	for (i = pass_len; i > 0; i >>= 1) {
+		uchar c = (i & 1) ? 0 : pass.c[0];
+		PUTCHAR(ctx[1].buffer, ctx_buflen[1], c);
+		ctx_buflen[1]++;
+	}
 
 	//pattern[0]=alt pass
 	//pattern[1]=alt pass pass
@@ -325,21 +430,17 @@ __kernel void cryptmd5(__global const crypt_md5_password * inbuffer,
 	//pattern[6]=pass salt alt
 	//pattern[7]=pass salt pass alt
 
-	uint altpos[8];
-	altpos[0] = 0;
-	altpos[1] = 0;
-	altpos[2] = 0;
-	altpos[3] = 0;
-	altpos[4] = pass_len;
-	altpos[5] = pass_len * 2;
-	altpos[6] = pass_len + salt_len;
-	altpos[7] = pass_len * 2 + salt_len;
+	uchar altpos[4];
+	altpos[0] = pass_len;
+	altpos[1] = pass_len * 2;
+	altpos[2] = pass_len + salt_len;
+	altpos[3] = altpos[1] + salt_len;
 
 	//prepare pattern buffers
 	init_ctx(&ctx[0], &ctx_buflen[0]);
 	PUTCHAR(ctx[1].buffer, ctx_buflen[1], 0x80);
 	//alt pass
-	md5_digest(&ctx[1], ctx[0].buffer, &ctx_buflen[1], 0);	//add results from init
+	md5_digest(&ctx[1], ctx[0].buffer, ctx_buflen[1] << 3, 0);	//add results from init
 	ctx_buflen[0] = 16;
 	for (i = 1; i < 8; i++)	//1 not 0
 		init_ctx(&ctx[i], &ctx_buflen[i]);
@@ -384,14 +485,45 @@ __kernel void cryptmd5(__global const crypt_md5_password * inbuffer,
 	ctx_buflen[7] += 16;
 	PUTCHAR(ctx[7].buffer, ctx_buflen[7], 0x80);
 
-	uint nid, cid = g[0];	//current ctx id
+#ifdef NVIDIA
+#pragma unroll 8
+#endif
+	for (i = 0; i < 8; i++)
+		ctx_buflen[i] <<= 3;
 
-	for (i = 0; i < 1000; i++) {
-		nid = g[(i + 1) % 42];	//next ctx id to process
-		md5_digest(&ctx[cid], ctx[nid].buffer, &ctx_buflen[cid],
-		    altpos[nid]);
-		cid = nid;
+	uint id1 = g[0], id2;
+
+	uint j = 1;
+#ifdef NVIDIA
+	for (i = 0; i < 250; i++) {
+#else
+	for (i = 0; i < 500; i++) {
+#endif
+		id2 = g[j];
+		md5_digest(&ctx[id1], ctx[id2].buffer, ctx_buflen[id1],
+		    altpos[id2 - 4]);
+		if (j == 41)
+			j = (uint)-1;
+		id1 = g[j + 1];
+		md5_digest(&ctx[id2], ctx[id1].buffer, ctx_buflen[id2], 0);
+
+#ifdef NVIDIA
+		id2 = g[j + 2];
+		md5_digest(&ctx[id1], ctx[id2].buffer, ctx_buflen[id1],
+		    altpos[id2 - 4]);
+		if (j == 39)
+			j = (uint)-3;
+		id1 = g[j + 3];
+		j += 4;
+		md5_digest(&ctx[id2], ctx[id1].buffer, ctx_buflen[id2], 0);
+#else
+		j += 2;
+#endif
 	}
+
+#ifdef NVIDIA
+#pragma unroll 4
+#endif
 	for (i = 0; i < 4; i++)
 		outbuffer[idx].v[i] = ctx[3].buffer[i];
 }
