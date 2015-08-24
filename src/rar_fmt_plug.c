@@ -131,12 +131,23 @@ john_register_one(&fmt_rar);
 #include "rar_common.c"
 #include "memdbg.h"
 
+// these are supposed to be stack arrays; however gcc cannot correctly align
+// stack arrays so we have to use global arrays; we may switch back to stack
+// arrays (which take less space) when gcc fixes this issue
+#ifdef SIMD_COEF_32
+static uint8_t  (*vec_in)[2][NBKEYS*64];
+static uint32_t (*vec_out)[NBKEYS*5];
+static uint8_t  (*tmp_in)[NBKEYS*64];
+static uint32_t (*tmp_out)[NBKEYS*5];
+#endif
+
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
-	self->params.max_keys_per_crypt = omp_t * OMP_SCALE * MAX_KEYS_PER_CRYPT;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif /* _OPENMP */
 
 	if (pers_opts.target_enc == UTF_8)
@@ -154,6 +165,17 @@ static void init(struct fmt_main *self)
 		saved_salt = mem_calloc(8, 1);
 	aes_key = mem_calloc(self->params.max_keys_per_crypt + 1, 16);
 	aes_iv = mem_calloc(self->params.max_keys_per_crypt + 1, 16);
+
+#ifdef SIMD_COEF_32
+	vec_in  = mem_calloc_align(self->params.max_keys_per_crypt,
+	                           sizeof(*vec_in), MEM_ALIGN_CACHE);
+	vec_out = mem_calloc_align(self->params.max_keys_per_crypt,
+	                           sizeof(*vec_out), MEM_ALIGN_CACHE);
+	tmp_in  = mem_calloc_align(self->params.max_keys_per_crypt,
+	                           sizeof(*tmp_in), MEM_ALIGN_CACHE);
+	tmp_out = mem_calloc_align(self->params.max_keys_per_crypt,
+	                           sizeof(*tmp_out), MEM_ALIGN_CACHE);
+#endif
 
 #ifdef DEBUG
 	self->params.benchmark_comment = " (1-16 characters)";
@@ -175,6 +197,12 @@ static void done(void)
 	MEM_FREE(cracked);
 	MEM_FREE(unpack_data);
 	MEM_FREE(saved_salt);
+#ifdef SIMD_COEF_32
+	MEM_FREE(vec_in);
+	MEM_FREE(vec_out);
+	MEM_FREE(tmp_in);
+	MEM_FREE(tmp_out);
+#endif
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -201,8 +229,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < tot_todo; index += NBKEYS) {
 		unsigned int i, j, k;
-		JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char RawPsw[2][NBKEYS*64];
-		JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t digest[NBKEYS*5];
+		uint8_t (*RawPsw)[NBKEYS*64] = vec_in[index/NBKEYS];
+		uint32_t *digest = vec_out[index/NBKEYS];
 
 		// all passwords in one batch has the same length
 		int pw_len = saved_len[indices[index]];
@@ -240,9 +268,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			cur_len += RawLength;
 
 			if (i % (ROUNDS / 16) == 0) {
-				JTR_ALIGN(MEM_ALIGN_SIMD) uint8_t tempin[NBKEYS*64];
-				JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t tempout[NBKEYS*5];
-				memcpy(tempin, RawPsw[cur_buf], sizeof(tempin));
+				uint8_t *tempin = tmp_in[index/NBKEYS];
+				uint32_t *tempout = tmp_out[index/NBKEYS];
+				memcpy(tempin, RawPsw[cur_buf], NBKEYS*64);
 				for (j = 0; j < NBKEYS; ++j) { // padding
 					uint32_t *tail;
 					for (k = RawLength; k < 64; ++k)
