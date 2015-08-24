@@ -1000,7 +1000,6 @@ sub bsdicrypt {
 	return "_".Crypt::UnixCrypt_XS::int24_to_base64($rounds).$salt.Crypt::UnixCrypt_XS::block_to_base64($h);
 }
 sub md5crypt {
-	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	$salt = get_salt(8);
 	return md5crypt_hash($_[1], $salt, "\$1\$");
 }
@@ -2081,13 +2080,11 @@ sub md5crypt_hash {
 	return $ret;
 }
 sub md5crypt_a {
-	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	$salt = get_salt(8);
 	$h = md5crypt_hash($_[1], $salt, "\$apr1\$");
 	return $h;
 }
 sub md5crypt_smd5 {
-	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	$salt = get_salt(8);
 	$h = md5crypt_hash($_[1], $salt, "");
 	return "{smd5}$h";
@@ -3069,13 +3066,11 @@ sub dynamic_20 { #dynamic_20 --> Cisco PIX (MD5 salted)
 	return "\$dynamic_20\$$h\$$salt";
 }
 sub dynamic_27 { #dynamic_27 --> OpenBSD MD5
-	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
 	$h = md5crypt_hash($_[1], $salt, "\$1\$");
 	return "\$dynamic_27\$".substr($h,15)."\$$salt";
 }
 sub dynamic_28 { # Apache MD5
-	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
 	$h = md5crypt_hash($_[1], $salt, "\$apr1\$");
 	return "\$dynamic_28\$".substr($h,15)."\$$salt";
