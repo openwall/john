@@ -88,7 +88,7 @@ lotus_mix (__private unsigned int *m1, MAYBE_CONSTANT unsigned int *lotus_magic_
 __kernel void
 lotus5(__global unsigned int * i_saved_key,
        constant unsigned int * magic_table
-#if gpu_amd(DEVICE_INFO)
+#if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
 	__attribute__((max_constant_size(256 * sizeof(unsigned int))))
 #endif
        , __global unsigned int * crypt_key) {

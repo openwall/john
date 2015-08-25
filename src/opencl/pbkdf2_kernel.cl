@@ -582,7 +582,7 @@ inline void hmac_sha1(__private uint *istate, __private uint *ostate, __private 
 __kernel
 void pbkdf2_preprocess_short(	const __global unsigned int *dccHahses,
 				constant unsigned int *salt
-#if gpu_amd(DEVICE_INFO)
+#if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
 	__attribute__((max_constant_size(SALT_BUFFER_SIZE)))
 #endif
 				, int usrlen,
