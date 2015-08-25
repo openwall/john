@@ -1374,8 +1374,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 			global_work_size = GET_EXACT_MULTIPLE(gws, my_work_group);
 
 		if (options.verbosity > 3)
-			fprintf(stderr, "Testing GWS=" Zu " LWS=" Zu " ...",
-			    global_work_size, my_work_group);
+			fprintf(stderr, "Testing LWS=" Zu " GWS=" Zu " ...", my_work_group, global_work_size);
 
 		sumStartTime = 0;
 		sumEndTime = 0;
@@ -1417,7 +1416,9 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		if (!endTime)
 			break;
 		if (options.verbosity > 3)
-			fprintf(stderr, " " Zu "ns\n", sumEndTime - sumStartTime);
+			fprintf(stderr, " %s%s\n", ns2string(sumEndTime - sumStartTime),
+			    ((double)(sumEndTime - sumStartTime) / kernelExecTimeNs < 0.997)
+			        ? "+" : "");
 		if ((double)(sumEndTime - sumStartTime) / kernelExecTimeNs < 0.997) {
 			kernelExecTimeNs = sumEndTime - sumStartTime;
 			optimal_work_group = my_work_group;
