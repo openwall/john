@@ -180,10 +180,6 @@ void opencl_build_from_binary(int sequential_id);
 void opencl_build_kernel(char *kernel_filename, int sequential_id,
                          char *options, int warn);
 
-void opencl_find_best_workgroup(struct fmt_main *self);
-void opencl_find_best_workgroup_limit(struct fmt_main *self,
-                                      size_t group_size_limit, int sequential_id, cl_kernel crypt_kernel);
-
 cl_device_type get_device_type(int sequential_id);
 cl_ulong get_local_memory_size(int sequential_id);
 cl_ulong get_global_memory_size(int sequential_id);
