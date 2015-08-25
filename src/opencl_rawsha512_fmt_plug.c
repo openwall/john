@@ -411,6 +411,8 @@ static void reset(struct db_main *db)
 		create_clobj(global_work_size, self);
 		load_hash(db->salts);
 	}
+
+	hash_ids[0] = 0;
 }
 
 /* ------- Key functions ------- */
