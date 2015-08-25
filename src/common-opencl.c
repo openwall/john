@@ -1313,6 +1313,9 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	for (i = 0; i < MAX_EVENTS; i++)
 		benchEvent[i] = NULL;
 
+	// Ensure format knows its GWS
+	global_work_size = gws;
+
 	// Prepare buffers.
 	create_clobj(gws, self);
 
