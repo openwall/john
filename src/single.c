@@ -102,6 +102,9 @@ static void single_init(void)
 	                                  "SingleWordsPairMax")) < 0)
 		words_pair_max = SINGLE_WORDS_PAIR_MAX;
 
+	log_event("- SingleWordsPairMax used is %d", words_pair_max);
+	log_event("- SingleRetestGuessed = %s",retest_guessed?"true":"false");
+
 	progress = 0;
 
 	length = single_db->format->params.plaintext_length;
