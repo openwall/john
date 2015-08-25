@@ -1116,12 +1116,10 @@ static void john_load(void)
 								snprintf(dname, sizeof(dname), "%s/*.pot", name);
 								h = FindFirstFile(dname, &f);
 								if (h != INVALID_HANDLE_VALUE) {
-									snprintf(dname, sizeof(dname), "%s/%s", name, f.cFileName);
-									ldr_load_pot_file(&database, dname);
-									while (FindNextFile(h, &f)) {
+									do {
 										snprintf(dname, sizeof(dname), "%s/%s", name, f.cFileName);
 										ldr_load_pot_file(&database, dname);
-									}
+									} while (FindNextFile(h, &f));
 									FindClose(h);
 								}
 							}
