@@ -249,6 +249,13 @@ static int single_process_buffer(struct db_salt *salt)
 	struct db_salt *current;
 	struct db_keys *keys;
 	size_t size;
+	int continue_retest;
+	static int chk_config = 1, cont=0;
+
+	if (chk_config) {
+		cont = cfg_get_bool(SECTION_OPTIONS, NULL, "continue_single", 1);
+		chk_config = 0;
+	}
 
 	if (crk_process_salt(salt))
 		return 1;
@@ -270,7 +277,11 @@ static int single_process_buffer(struct db_salt *salt)
 	keys->ptr = keys->buffer;
 	keys->lock++;
 
-	if (guessed_keys->count) {
+	continue_retest = guessed_keys->count != 0;
+	if (!cont)
+		continue_retest = 0;
+
+	if (continue_retest) {
 		keys = mem_alloc(size = sizeof(struct db_keys) - 1 +
 			length * guessed_keys->count);
 		memcpy(keys, guessed_keys, size);

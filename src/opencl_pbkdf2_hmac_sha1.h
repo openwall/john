@@ -8,7 +8,7 @@
 #define _OPENCL_PBKDF2_HMAC_SHA1_H
 
 /*
- * The SHA-1 block size used for HMAC dictates (for optimised code) a max.
+ * The SHA-1 block size used for HMAC dictates (for optimized code) a max.
  * plaintext length of 64 and a max. salt length of 52.
  *
  * These structs do NOT have space for any cstring trailing NULL
@@ -38,8 +38,12 @@ typedef struct {
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
 	MAYBE_VECTOR_UINT out[5];
+#ifndef ITERATIONS
 	unsigned int iter_cnt;
+#endif
+#if !OUTLEN || OUTLEN > 20
 	unsigned int pass;
+#endif
 } pbkdf2_state;
 
 #endif

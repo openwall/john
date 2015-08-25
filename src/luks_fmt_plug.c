@@ -513,6 +513,7 @@ static void *get_salt(char *ciphertext)
 		cs.afsize = size;
 	}
 	else {
+		cs.afsize = res;
 		p = strtokm(NULL, "$");
 		p = strtokm(NULL, "$");
 		strcpy(cs.path, p);

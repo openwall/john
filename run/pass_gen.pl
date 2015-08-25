@@ -116,9 +116,9 @@ my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singles
 #########################################################
 # These global vars settable by command line args.
 #########################################################
-my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "unknown";
+my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "stdin";
 my $arg_count = 1500, my $argsalt, my $argiv, my $argcontent; my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
-my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode; my $arguser;
+my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode; my $arguser; my $arg_vectors;
 
 GetOptions(
 	'codepage=s'       => \$arg_codepage,
@@ -137,6 +137,7 @@ GetOptions(
 	'tstall!'          => \$arg_tstall,
 	'genall!'          => \$arg_genall,
 	'nrgenall!'        => \$arg_nrgenall,
+	'vectors!'         => \$arg_vectors,
 	'user=s'           => \$arguser
 	) || usage();
 
@@ -186,7 +187,8 @@ $s
 
     -tstall       runs a 'simple' test for all known types.
     -genall       generates all hashes with random salts.
-    -nrgenall     gererates all hashes (non-random, repeatable)
+    -nrgenall     generates all hashes (non-random, repeatable)
+    -vectors      output in test vector source code format
 
     -help         shows this help screen.
 UsageHelp
@@ -216,6 +218,8 @@ if (-t STDIN) {
 	$arg_nocomment = 1;  # we do not output 'comment' line if writing to stdout.
 }
 
+if ($arg_vectors) { $arg_nocomment = 1; }
+
 ###############################################################################################
 # modifications to character set used.  This is to get pass_gen.pl working correctly
 # with john's -utf8 switch.  Also added is code to do max length of passwords.
@@ -236,7 +240,7 @@ if ($arg_genall != 0) {
 		chomp;
 		s/\r$//;  # strip CR for non-Windows
 		#my $line_len = length($_);
-		my $line_len = jtr_unicode_corrected_length($_);
+		my $line_len = utf16_len($_);
 		next if $line_len > $arg_maxlen || $line_len < $arg_minlen;
 		gen_all($_);
 	}
@@ -264,14 +268,18 @@ if (@ARGV == 1) {
 	foreach (@funcs) {
 		if ($arg eq lc $_) {
 			$have_something = 1;
-			if (-t STDOUT) { print "\n  ** Here are the hashes for format $orig_arg **\n"; }
+			if (!$arg_nocomment) {
+				print "\n  ** Here are the ";
+				print $arg_vectors ? "test vectors" : "hashes";
+				print " for format $orig_arg **\n";
+			}
 			$arg =~ s/-/_/g;
 			while (<STDIN>) {
 				next if (/^#!comment/);
 				chomp;
 				s/\r$//;  # strip CR for non-Windows
 				#my $line_len = length($_);
-				my $line_len = jtr_unicode_corrected_length($_);
+				my $line_len = utf16_len($_);
 				next if $line_len > $arg_maxlen || $line_len < $arg_minlen;
 				reset_out_vars();
 				no strict 'refs';
@@ -310,14 +318,14 @@ if (@ARGV == 1) {
 		foreach (@funcs) {
 			if ($arg eq lc $_) {
 				$have_something = 1;
-				if (-t STDOUT) { print "\n  ** Here are the hashes for format $orig_arg **\n"; }
+				if (!$arg_nocomment) { print "\n  ** Here are the hashes for format $orig_arg **\n"; }
 				$arg =~ s/-/_/g;
 				foreach (@lines) {
 					next if (/^#!comment/);
 					chomp;
 					s/\r$//;  # strip CR for non-Windows
 					#my $line_len = length($_);
-					my $line_len = jtr_unicode_corrected_length($_);
+					my $line_len = utf16_len($_);
 					next if $line_len > $arg_maxlen || $line_len < $arg_minlen;
 					reset_out_vars();
 					no strict 'refs';
@@ -362,6 +370,10 @@ sub reset_out_vars {
 sub output_hash {
 	if ($l0pht_fmt == 1) {
 		print "$_[0]:$_[1]:\n";
+		return;
+	}
+	elsif ($arg_vectors) {
+		printf("\t{\"%s\", \"%s\"},\n", $_[0], $_[1]);
 		return;
 	}
 	my $p = $_[1];
@@ -494,23 +506,16 @@ sub to_phpbyte {
 
 
 #############################################################################
-# this function is 'like' the length($s) function, BUT it has special processing
-# needed by JtR.  The only problems we are seeing, is that 4 byte utf-8 (or 5
-# byte, etc), end up requiring 4 bytes of buffer, while 3 byte utf-8 only require
-# 2 bytes. We have assumption that 1 utf8 char is 2 bytes long. So if we find
-# 4 byte characters used for a single utf8 char, then we have to say it is 2
-# characters long.  Sounds complicated, and the length is 'not' the proper
-# character length, but we have to make this choice, since the low level functions
-# in jtr do NOT know unicode, then only know bytes, AND we have to fit things
-# into proper buffer length constraints.
+# this function is 'like' the length($s) function, BUT it has special
+# processing needed for UTF-16 formats.  The problem is that 4-byte UTF-8
+# end up requiring 4 bytes of UTF-16 (using a surrogate), while up to 3-byte
+# UTF-8 only require 2 bytes. We have assumption that 1 UTF-8 char is 2 bytes
+# long. So if we find 4-byte characters used for a single UTF-8 char, then we
+# have to say it is 2 characters long.
 #############################################################################
-sub jtr_unicode_corrected_length {
+sub utf16_len {
 	my $base_len = length($_[0]);
 	if ($arg_codepage ne "UTF-8") { return $base_len; }
-	# We need to check each letter, and see if it takes 4 bytes to store. If
-	# so then we charge an extra character to that char (from 1 to 2 utf-16
-	# chars). The 1 or 2 byte characters were already handled by length(),
-	# we just have to add 'extra' characters for any 4 byte unicode chars.
 	my $final_len = $base_len;
 	for (my $i = 0; $i < $base_len; $i += 1) {
 		my $s = substr($_[0], $i, 1);
@@ -988,7 +993,6 @@ sub bsdicrypt {
 	return "_".Crypt::UnixCrypt_XS::int24_to_base64($rounds).$salt.Crypt::UnixCrypt_XS::block_to_base64($h);
 }
 sub md5crypt {
-	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	$salt = get_salt(8);
 	return md5crypt_hash($_[1], $salt, "\$1\$");
 }
@@ -2069,13 +2073,11 @@ sub md5crypt_hash {
 	return $ret;
 }
 sub md5crypt_a {
-	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	$salt = get_salt(8);
 	$h = md5crypt_hash($_[1], $salt, "\$apr1\$");
 	return $h;
 }
 sub md5crypt_smd5 {
-	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	$salt = get_salt(8);
 	$h = md5crypt_hash($_[1], $salt, "");
 	return "{smd5}$h";
@@ -3057,13 +3059,11 @@ sub dynamic_20 { #dynamic_20 --> Cisco PIX (MD5 salted)
 	return "\$dynamic_20\$$h\$$salt";
 }
 sub dynamic_27 { #dynamic_27 --> OpenBSD MD5
-	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
 	$h = md5crypt_hash($_[1], $salt, "\$1\$");
 	return "\$dynamic_27\$".substr($h,15)."\$$salt";
 }
 sub dynamic_28 { # Apache MD5
-	if (length($_[1]) > 15) { print STDERR "Warning, john can only handle 15 byte passwords for this format!\n"; }
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
 	$h = md5crypt_hash($_[1], $salt, "\$apr1\$");
 	return "\$dynamic_28\$".substr($h,15)."\$$salt";

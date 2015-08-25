@@ -361,7 +361,7 @@ inline void cmp(uint gid,
 __kernel void mscash(__global uint *keys,
 		  __global uint *index,
 		  constant uint *salt
-#if gpu_amd(DEVICE_INFO)
+#if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
 		__attribute__((max_constant_size(17 * sizeof(uint))))
 #endif
 		  , __global uint *int_key_loc,
@@ -371,7 +371,7 @@ __kernel void mscash(__global uint *keys,
 		  __global
 #endif
 		  uint *int_keys
-#if USE_CONST_CACHE && gpu_amd(DEVICE_INFO)
+#if !defined(__OS_X__) && USE_CONST_CACHE && gpu_amd(DEVICE_INFO)
 		__attribute__((max_constant_size (NUM_INT_KEYS * 4)))
 #endif
 		 , __global uint *bitmaps,

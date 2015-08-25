@@ -139,7 +139,7 @@
 }
 
 __kernel void DES_bs_25( constant uint *index768
-#if gpu_amd(DEVICE_INFO)
+#if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
                          __attribute__((max_constant_size(3072)))
 #endif
                          , __global DES_bs_vector *K,

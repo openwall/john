@@ -134,7 +134,9 @@ void pbkdf2_init(__global const MAYBE_VECTOR_UINT *inbuffer,
 #ifndef ITERATIONS
 	state[gid].iter_cnt = salt->iterations - 1;
 #endif
+#if !OUTLEN || OUTLEN > 20
 	state[gid].pass = 0;
+#endif
 }
 
 __kernel
@@ -148,7 +150,8 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 	MAYBE_VECTOR_UINT opad[5];
 	MAYBE_VECTOR_UINT output[5];
 	MAYBE_VECTOR_UINT state_out[5];
-#if defined ITERATIONS
+
+#ifdef ITERATIONS
 #define iterations HASH_LOOPS
 #else
 	uint iterations = state[gid].iter_cnt > HASH_LOOPS ?
@@ -209,10 +212,6 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 #endif
 }
 
-#ifndef OUTLEN
-#define OUTLEN salt->outlen
-#endif
-
 __kernel
 __attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
 void pbkdf2_final(MAYBE_CONSTANT pbkdf2_salt *salt,
@@ -220,10 +219,15 @@ void pbkdf2_final(MAYBE_CONSTANT pbkdf2_salt *salt,
                   __global pbkdf2_state *state)
 {
 	uint gid = get_global_id(0);
-	uint i, pass, base;
+	uint i;
 
-	base = state[gid].pass++ * 5;
-	pass = state[gid].pass;
+#if !OUTLEN || OUTLEN > 20
+	uint base = state[gid].pass++ * 5;
+	uint pass = state[gid].pass;
+#else
+#define base 0
+#define pass 1
+#endif
 
 	// First/next 20 bytes of output
 	for (i = 0; i < 5; i++)
@@ -263,6 +267,9 @@ void pbkdf2_final(MAYBE_CONSTANT pbkdf2_salt *salt,
 	}
 #endif
 
+#ifndef OUTLEN
+#define OUTLEN salt->outlen
+#endif
 	/* Was this the last pass? If not, prepare for next one */
 	if (4 * base + 20 < OUTLEN) {
 		hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad,

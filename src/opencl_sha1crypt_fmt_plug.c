@@ -178,6 +178,10 @@ static void init(struct fmt_main *_self)
 	self = _self;
 
 	opencl_prepare_dev(gpu_id);
+	/* Nvidia Kepler benefits from 2x interleaved code */
+	if (!options.v_width && nvidia_sm_3x(device_info[gpu_id]))
+		v_width = 2;
+	else
 	/* VLIW5 does better with just 2x vectors due to GPR pressure */
 	if (!options.v_width && amd_vliw5(device_info[gpu_id]))
 		v_width = 2;

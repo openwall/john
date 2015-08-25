@@ -113,11 +113,11 @@
 	    }
 
 __kernel void blowfish(	constant uint *salt
-#if gpu_amd(DEVICE_INFO)
+#if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
 	__attribute__((max_constant_size(16)))
 #endif
 	, constant uint *P_box
-#if gpu_amd(DEVICE_INFO)
+#if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
 	__attribute__((max_constant_size(72)))
 #endif
 	, __global uint *BF_out,
@@ -125,7 +125,7 @@ __kernel void blowfish(	constant uint *salt
 	__global uint *BF_current_P_global,
 	uint rounds,
 	constant uint *S_box
-#if gpu_amd(DEVICE_INFO)
+#if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
 	__attribute__((max_constant_size(4096)))
 #endif
   	)

@@ -269,6 +269,7 @@ static char *opencl_driver_info(int sequential_id)
 		{1642, 5},
 		{1702, 3},
 		{1729, 3},
+		{1800, 5},
 		{0, 0}
 	};
 
@@ -282,9 +283,10 @@ static char *opencl_driver_info(int sequential_id)
 		"14.4 (Mantle)",
 		"14.6 beta (Mantle)",
 		"14.9 (Mantle) [recommended]",
-		"14.12 (Omega) [supported]",
-		"15.05 [buggy]",
-		"15.07 [recommended]",
+		"14.12 (Omega) [recommended]",
+		"15.5 beta [not recommended]",
+		"15.5",
+		"15.7",
 		""
 	};
 	clGetDeviceInfo(devices[sequential_id], CL_DRIVER_VERSION,
@@ -1767,6 +1769,8 @@ static void opencl_get_dev_info(int sequential_id)
 		device_info[sequential_id] += (major == 2 ? DEV_NV_C2X : 0);
 		device_info[sequential_id] +=
 		    (major == 3 && minor == 0 ? DEV_NV_C30 : 0);
+		device_info[sequential_id] +=
+		    (major == 3 && minor == 2 ? DEV_NV_C32 : 0);
 		device_info[sequential_id] +=
 		    (major == 3 && minor == 5 ? DEV_NV_C35 : 0);
 		device_info[sequential_id] += (major == 5 ? DEV_NV_C5X : 0);
