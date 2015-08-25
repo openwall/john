@@ -116,9 +116,11 @@ static int *saved_len;
 static int *cracked;
 static int new_keys;
 static int max_kpc;
+static unsigned char (*master)[32];
 #ifdef SIMD_COEF_32
 static uint32_t (*vec_in)[2][NBKEYS*16];
 static uint32_t (*vec_out)[NBKEYS*8];
+static int *indices;
 #endif
 
 static struct custom_salt {
@@ -146,12 +148,11 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	// allocate 1 more slot to handle the tail of vector buffer
-	saved_key = mem_calloc(self->params.max_keys_per_crypt + 1,
-	                       sizeof(*saved_key));
-	saved_len = mem_calloc(self->params.max_keys_per_crypt + 1,
-	                       sizeof(*saved_len));
-	cracked   = mem_calloc(self->params.max_keys_per_crypt + 1,
-	                       sizeof(*cracked));
+	max_kpc = self->params.max_keys_per_crypt + 1;
+
+	saved_key = mem_calloc(max_kpc, sizeof(*saved_key));
+	saved_len = mem_calloc(max_kpc, sizeof(*saved_len));
+	cracked   = mem_calloc(max_kpc, sizeof(*cracked));
 #ifdef SIMD_COEF_32
 	vec_in  = mem_calloc_align(self->params.max_keys_per_crypt,
 	                           sizeof(*vec_in), MEM_ALIGN_CACHE);
@@ -159,8 +160,6 @@ static void init(struct fmt_main *self)
 	                           sizeof(*vec_out), MEM_ALIGN_CACHE);
 #endif
 	CRC32_Init(&crc);
-
-	max_kpc = self->params.max_keys_per_crypt;
 
 	if (pers_opts.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
@@ -171,9 +170,11 @@ static void done(void)
 	MEM_FREE(cracked);
 	MEM_FREE(saved_key);
 	MEM_FREE(saved_len);
+	MEM_FREE(master);
 #ifdef SIMD_COEF_32
 	MEM_FREE(vec_in);
 	MEM_FREE(vec_out);
+	MEM_FREE(indices);
 #endif
 }
 
@@ -502,20 +503,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
-	static unsigned char (*master)[32];
-
 #ifdef SIMD_COEF_32
-	int len;
-	static int *indices;
 	static int tot_todo;
+	int len;
 
 	if (!indices)
-		indices = mem_calloc((PLAINTEXT_LENGTH + 1) * NBKEYS, sizeof(int));
+		indices = mem_alloc(MIN(PLAINTEXT_LENGTH + 1, max_kpc) *
+		                    NBKEYS * sizeof(int));
 #endif
-
 	if (!master)
-		master = mem_alloc_tiny(sizeof(*master) * max_kpc * MAX_KEYS_PER_CRYPT,
-		                        MEM_ALIGN_CACHE);
+		master =  mem_alloc(MIN(PLAINTEXT_LENGTH + 1, max_kpc) *
+		                    MAX_KEYS_PER_CRYPT * sizeof(*master));
 
 #ifdef SIMD_COEF_32
 	if (new_keys) {
@@ -537,6 +535,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < tot_todo; index += NBKEYS)
 	{
 		int j;
+
 		if (new_keys)
 			sevenzip_kdf(index/NBKEYS, indices + index, master[index]);
 
