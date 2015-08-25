@@ -270,7 +270,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
  *   For raw formats it should be 1. For sha512crypt it is 5000.
  */
 void opencl_find_best_gws(int step, unsigned long long int max_run_time,
-                          int sequential_id, unsigned int rounds);
+                          int sequential_id, unsigned int rounds, int have_lws);
 
 /*
  * Shared function to initialize variables necessary by shared find(lws/gws) functions.

@@ -1069,6 +1069,7 @@ void opencl_build_from_binary(int sequential_id)
 		fprintf(stderr, "Binary Build log: %s\n", opencl_log);
 }
 
+#if 0
 /*
  *   NOTE: Requirements for using this function:
  *
@@ -1278,6 +1279,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self,
 	profilingEvent = firstEvent = lastEvent = NULL;
 	dyna_salt_remove(salt);
 }
+#endif
 
 // Do the proper test using different global work sizes.
 static void clear_profiling_events()
@@ -1480,12 +1482,9 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		benchEvent[i] = NULL;
 
 	if (options.verbosity > 3)
-		fprintf(stderr, "Max local worksize "Zu", ", group_size_limit);
+		fprintf(stderr, "Calculating best local worksize (LWS)\n");
 
-	/* Formats supporting vectorizing should have a default max keys per
-	   crypt that is a multiple of 2 and of 3 */
-	gws = global_work_size ? global_work_size :
-	      self->params.max_keys_per_crypt / opencl_v_width;
+	gws = global_work_size;
 
 	if (get_device_version(sequential_id) < 110) {
 		if (get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU)
@@ -1584,8 +1583,13 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	        (int)my_work_group <= (int)max_group_size;
 	        my_work_group += wg_multiple) {
 
+		global_work_size = gws;
 		if (gws % my_work_group != 0)
-			continue;
+			global_work_size = GET_EXACT_MULTIPLE(gws, my_work_group);
+
+		if (options.verbosity > 3)
+			fprintf(stderr, "Testing GWS=" Zu " LWS=" Zu " ...",
+			    global_work_size, my_work_group);
 
 		sumStartTime = 0;
 		sumEndTime = 0;
@@ -1603,7 +1607,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 				startTime = endTime = 0;
 
 				if (options.verbosity > 3)
-					fprintf(stderr, " Error occurred\n");
+					fprintf(stderr, " crypt_all() error\n");
 				break;
 			}
 
@@ -1626,9 +1630,25 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		}
 		if (!endTime)
 			break;
-		if ((sumEndTime - sumStartTime) < kernelExecTimeNs) {
+		if (options.verbosity > 3)
+			fprintf(stderr, " " Zu "ns\n", sumEndTime - sumStartTime);
+		if ((double)(sumEndTime - sumStartTime) / kernelExecTimeNs < 0.997) {
 			kernelExecTimeNs = sumEndTime - sumStartTime;
 			optimal_work_group = my_work_group;
+		} else {
+			if (my_work_group >= 256 ||
+			    (my_work_group >= 8 && wg_multiple < 8)) {
+				/* Jump to next power of 2 */
+				size_t x, y;
+				x = my_work_group;
+				while ((y = x & (x - 1)))
+					x = y;
+				x *= 2;
+				my_work_group =
+				    GET_MULTIPLE_OR_BIGGER(x, wg_multiple);
+				/* The loop logic will re-add wg_multiple */
+				my_work_group -= wg_multiple;
+			}
 		}
 	}
 	// Release profiling queue and create new with profiling disabled
@@ -1639,17 +1659,28 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	                         devices[sequential_id], 0, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
+	global_work_size = GET_EXACT_MULTIPLE(gws, local_work_size);
 
 	dyna_salt_remove(salt);
 }
 
 void opencl_find_best_gws(int step, unsigned long long int max_run_time,
-                          int sequential_id, unsigned int rounds)
+                          int sequential_id, unsigned int rounds, int have_lws)
 {
 	size_t num = 0;
-	size_t optimal_gws = local_work_size;
+	size_t optimal_gws = local_work_size, soft_limit = 0;
 	unsigned long long speed, best_speed = 0, raw_speed;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
+	unsigned long long int save_duration_time = duration_time;
+	cl_uint core_count = get_max_compute_units(sequential_id);
+
+	if (have_lws) {
+		if (core_count > 2)
+			optimal_gws *= core_count;
+		default_value = optimal_gws;
+	} else {
+		soft_limit = local_work_size * core_count * 128;
+	}
 
 	/*
 	 * max_run_time is either:
@@ -1692,8 +1723,12 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 
 		// Check if hardware can handle the size we are going
 		// to try now.
-		if ((gws_limit && (num > gws_limit)) || ((gws_limit == 0) &&
-		        (buffer_size * kpc * 1.1 > get_max_mem_alloc_size(gpu_id)))) {
+		if ((soft_limit && (num > soft_limit)) ||
+		    (gws_limit && (num > gws_limit)) || ((gws_limit == 0) &&
+		    (buffer_size * kpc * 1.1 > get_max_mem_alloc_size(gpu_id)))) {
+			if (!optimal_gws)
+				optimal_gws = num;
+
 			if (options.verbosity > 4)
 				fprintf(stderr, "Hardware resources exhausted\n");
 			break;
@@ -1743,6 +1778,8 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 	                         devices[sequential_id], 0, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	global_work_size = optimal_gws;
+
+	duration_time = save_duration_time;
 }
 
 static void opencl_get_dev_info(int sequential_id)
