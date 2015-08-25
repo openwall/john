@@ -115,26 +115,6 @@ static size_t get_task_max_work_group_size()
 	return s;
 }
 
-static size_t get_task_max_size()
-{
-	return 0;
-}
-
-static size_t get_default_workgroup()
-{
-#if 0
-	return get_task_max_work_group_size(); // GTX980: 53986K c/s
-#elif 0
-	return 0; // 53986K
-#else
-	if (cpu(device_info[gpu_id]))
-		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
-			8 : 1;
-	else
-		return 64; // 54878K c/s
-#endif
-}
-
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	gws *= v_width;

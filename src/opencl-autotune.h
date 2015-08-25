@@ -26,8 +26,6 @@
 #endif
 
 //Necessary definitions. Each format have to have each one of them.
-static size_t get_task_max_size();
-static size_t get_default_workgroup();
 static size_t get_task_max_work_group_size();
 static void create_clobj(size_t gws, struct fmt_main * self);
 static void release_clobj(void);
@@ -114,11 +112,11 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 	opencl_get_user_preferences(FORMAT_LABEL);
 
 	if (!global_work_size && !getenv("GWS"))
-		global_work_size = get_task_max_size();
+		global_work_size = 0;
 
 	need_best_lws = !local_work_size && !getenv("LWS");
 	if (need_best_lws)
-		local_work_size = get_default_workgroup();
+		local_work_size = 0;
 
 	if (gws_limit && (global_work_size > gws_limit))
 		global_work_size = gws_limit;

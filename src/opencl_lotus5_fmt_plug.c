@@ -126,16 +126,6 @@ static size_t get_task_max_work_group_size()
 	return max_lws;
 }
 
-static size_t get_task_max_size()
-{
-	return 0;
-}
-
-static size_t get_default_workgroup()
-{
-	return get_kernel_preferred_multiple(gpu_id, crypt_kernel);
-}
-
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	size_t mem_alloc_sz;
