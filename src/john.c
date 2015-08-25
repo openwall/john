@@ -33,6 +33,8 @@
 #if HAVE_DIRENT_H && HAVE_SYS_TYPES_H
 #include <dirent.h>
 #include <sys/types.h>
+#elif _MSC_VER || __MINGW32__
+#include <windows.h>
 #endif
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
@@ -1104,6 +1106,23 @@ static void john_load(void)
 										}
 									}
 									(void)closedir(dp);
+								}
+							}
+#elif _MSC_VER || __MINGW32__
+							else if (s.st_mode & S_IFDIR) {
+								WIN32_FIND_DATA f;
+								HANDLE h;
+								char dname[PATH_BUFFER_SIZE];
+								snprintf(dname, sizeof(dname), "%s/*.pot", name);
+								h = FindFirstFile(dname, &f);
+								if (h != INVALID_HANDLE_VALUE) {
+									snprintf(dname, sizeof(dname), "%s/%s", name, f.cFileName);
+									ldr_load_pot_file(&database, dname);
+									while (FindNextFile(h, &f)) {
+										snprintf(dname, sizeof(dname), "%s/%s", name, f.cFileName);
+										ldr_load_pot_file(&database, dname);
+									}
+									FindClose(h);
 								}
 							}
 #endif
