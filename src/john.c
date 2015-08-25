@@ -1120,11 +1120,14 @@ static void john_load(void)
 			build_fake_salts_for_regen_lost(database.salts);
 	}
 
-	/* Nefarious hack and memory leak. Among other problems, we'd want
-	   ldr_drop_database() after this, but it's built with mem_alloc_tiny()
-	   so it's not trivial. Works like a champ though. */
+	/*
+	 * Nefarious hack and memory leak. Among other problems, we'd want
+	 * ldr_drop_database() after this, but it's built with mem_alloc_tiny()
+	 * so it's not trivial. Works like a champ though, except with
+	 * DEScrypt. I have no idea why, maybe because LM and DES share code?
+	 */
 	if (options.flags & FLG_LOOPBACK_CHK &&
-	    database.format != &fmt_LM) {
+	    database.format != &fmt_LM && database.format != &fmt_DES) {
 		struct db_main loop_db;
 		struct fmt_main *save_list = fmt_list;
 		char *save_pot = pers_opts.activepot;
