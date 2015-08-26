@@ -30,6 +30,12 @@
 #include "os.h"
 
 #include <stdio.h>
+#if HAVE_DIRENT_H && HAVE_SYS_TYPES_H
+#include <dirent.h>
+#include <sys/types.h>
+#elif _MSC_VER || __MINGW32__
+#include <windows.h>
+#endif
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
@@ -1060,7 +1066,10 @@ static void john_load(void)
 		total = database.password_count;
 		ldr_load_pot_file(&database, pers_opts.activepot);
 
-		/* Load optional extra (read-only) pot files */
+/*
+ * Load optional extra (read-only) pot files. If an entry is a directory,
+ * we read all files in it. We currently do NOT recurse.
+ */
 		{
 			struct cfg_list *list;
 			struct cfg_line *line;
@@ -1068,7 +1077,54 @@ static void john_load(void)
 			if ((list = cfg_get_list("List.Extra:", "Potfiles"))) {
 				if ((line = list->head)) {
 					do {
-						ldr_load_pot_file(&database, line->data);
+						struct stat s;
+						char *name = path_expand(line->data);
+
+						if (!stat(name, &s)) {
+							if (s.st_mode & S_IFREG) {
+								ldr_load_pot_file(&database, name);
+							}
+#if HAVE_DIRENT_H && HAVE_SYS_TYPES_H
+							else if (s.st_mode & S_IFDIR) {
+								DIR *dp;
+
+								dp = opendir(name);
+								if (dp != NULL) {
+									struct dirent *ep;
+
+									while ((ep = readdir(dp))) {
+										char dname[PATH_BUFFER_SIZE];
+
+										snprintf(dname, sizeof(dname), "%s/%s",
+										         name, ep->d_name);
+
+										if (!stat(dname, &s)) {
+											if (s.st_mode & S_IFREG) {
+												ldr_load_pot_file(&database,
+												                  dname);
+											}
+										}
+									}
+									(void)closedir(dp);
+								}
+							}
+#elif _MSC_VER || __MINGW32__
+							else if (s.st_mode & S_IFDIR) {
+								WIN32_FIND_DATA f;
+								HANDLE h;
+								char dname[PATH_BUFFER_SIZE];
+								snprintf(dname, sizeof(dname), "%s/*.pot", name);
+								h = FindFirstFile(dname, &f);
+								if (h != INVALID_HANDLE_VALUE) {
+									do {
+										snprintf(dname, sizeof(dname), "%s/%s", name, f.cFileName);
+										ldr_load_pot_file(&database, dname);
+									} while (FindNextFile(h, &f));
+									FindClose(h);
+								}
+							}
+#endif
+						}
 					} while ((line = line->next));
 				}
 			}

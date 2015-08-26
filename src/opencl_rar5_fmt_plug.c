@@ -157,19 +157,6 @@ static size_t get_task_max_work_group_size()
 	return s;
 }
 
-static size_t get_task_max_size()
-{
-	return 0;
-}
-
-static size_t get_default_workgroup()
-{
-	if (cpu(device_info[gpu_id]))
-		return 1;
-	else
-		return 128;
-}
-
 static void release_clobj(void)
 {
 	if (crypt_out) {

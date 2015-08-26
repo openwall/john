@@ -92,20 +92,6 @@ static size_t get_task_max_work_group_size()
 	return s;
 }
 
-static size_t get_task_max_size()
-{
-	return 0;
-}
-
-static size_t get_default_workgroup()
-{
-	if (cpu(device_info[gpu_id]))
-		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
-			8 : 1;
-	else
-		return 64;
-}
-
 static struct fmt_tests tests[] = {
 	{"$pbkdf2-hmac-md4$1000$6d61676e756d$32ebfcea201e61cc498948916a213459", "magnum"},
 	{"$pbkdf2-hmac-md4$1000$6d61676e756d$32ebfcea201e61cc498948916a213459c259c7b0a8ce9473368665f0808dcde1", "magnum"},

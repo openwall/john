@@ -95,20 +95,6 @@ static size_t get_task_max_work_group_size()
 	return s;
 }
 
-static size_t get_task_max_size()
-{
-	return 0;
-}
-
-static size_t get_default_workgroup()
-{
-	if (cpu(device_info[gpu_id]))
-		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
-			8 : 1;
-	else
-		return 64;
-}
-
 static struct fmt_tests tests[] = {
 	{"$pbkdf2-hmac-sha1$1000.fd11cde0.27de197171e6d49fc5f55c9ef06c0d8751cd7250", "3956"},
 	{"$pbkdf2-hmac-sha1$1000.6926d45e.231c561018a4cee662df7cd4a8206701c5806af9", "1234"},

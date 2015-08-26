@@ -311,11 +311,6 @@ static char *opencl_driver_info(int sequential_id)
 			snprintf(ret, sizeof(ret), "%s%s", dname, " [supported]");
 		else
 			snprintf(ret, sizeof(ret), "%s", dname);
-
-#if 0                           /* I see no reason to say "CPU", it's indicated elsewhere */
-	} else if (cpu(device_info[sequential_id])) {
-		snprintf(ret, sizeof(ret), "%s%s", dname, " [CPU]");
-#endif
 	} else
 		snprintf(ret, sizeof(ret), "%s", dname);
 
@@ -1069,216 +1064,6 @@ void opencl_build_from_binary(int sequential_id)
 		fprintf(stderr, "Binary Build log: %s\n", opencl_log);
 }
 
-/*
- *   NOTE: Requirements for using this function:
- *
- * - Your kernel (or main kernel) should be crypt_kernel.
- * - Use profilingEvent in your crypt_all() when enqueueing crypt_kernel.
- * - Do not use profilingEvent for transfers or other subkernels.
- * - For split kernels, use firstEvent and lastEvent instead.
- */
-void opencl_find_best_workgroup(struct fmt_main *self)
-{
-	opencl_find_best_workgroup_limit(self, UINT_MAX, gpu_id, crypt_kernel);
-}
-
-void opencl_find_best_workgroup_limit(struct fmt_main *self,
-                                      size_t group_size_limit, int sequential_id, cl_kernel crypt_kernel)
-{
-	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
-	size_t my_work_group, optimal_work_group;
-	cl_int ret_code;
-	int i, numloops;
-	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
-	cl_event benchEvent[2];
-	size_t gws;
-	int count, tidx = 0;
-	void *salt;
-	char *ciphertext;
-
-	/* Formats supporting vectorizing should have a default max keys per
-	   crypt that is a multiple of 2 and of 3 */
-	gws = global_work_size ? global_work_size :
-	      self->params.max_keys_per_crypt / opencl_v_width;
-
-	if (get_device_version(sequential_id) < 110) {
-		if (get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU)
-			wg_multiple = 32;
-		else if (get_platform_vendor_id(get_platform_id(sequential_id))
-		         == DEV_INTEL)
-			wg_multiple = 8;
-		else
-			wg_multiple = 1;
-	} else {
-		wg_multiple = get_kernel_preferred_multiple(sequential_id,
-		              crypt_kernel);
-	}
-	max_group_size = get_kernel_max_lws(sequential_id, crypt_kernel);
-
-	if (max_group_size > group_size_limit)
-		// Needed to deal (at least) with cryptsha512-opencl limits.
-		max_group_size = group_size_limit;
-
-	// Safety harness
-	if (wg_multiple > max_group_size)
-		wg_multiple = max_group_size;
-
-	// Command Queue changing:
-	// 1) Delete old CQ
-	clReleaseCommandQueue(queue[sequential_id]);
-	// 2) Create new CQ with profiling enabled
-	queue[sequential_id] =
-	    clCreateCommandQueue(context[sequential_id],
-	                         devices[sequential_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating command queue");
-
-	if (options.verbosity > 3)
-		fprintf(stderr, "Max local work size %d, ", (int)max_group_size);
-
-	self->methods.clear_keys();
-
-	// Set keys - all keys from tests will be benchmarked and some
-	// will be permuted to force them unique
-	for (i = 0; i < self->params.max_keys_per_crypt; i++) {
-		union {
-			char c[PLAINTEXT_BUFFER_SIZE];
-			unsigned int w;
-		} uniq;
-		int len;
-
-		if (self->params.tests[tidx].plaintext == NULL)
-			tidx = 0;
-		len = strlen(self->params.tests[tidx].plaintext);
-		strncpy(uniq.c, self->params.tests[tidx++].plaintext, sizeof(uniq.c));
-		uniq.w ^= i;
-		uniq.c[len] = 0;        // Do not change length
-		self->methods.set_key(uniq.c, i);
-	}
-	// Set salt
-	dyna_salt_init(self);
-	dyna_salt_create();
-	if (!self->params.tests[0].fields[1])
-		self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
-	ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
-	salt = self->methods.salt(ciphertext);
-	self->methods.set_salt(salt);
-
-	// Warm-up run
-	local_work_size = wg_multiple;
-	count = self->params.max_keys_per_crypt;
-	self->methods.crypt_all(&count, NULL);
-
-	// Activate events
-	benchEvent[0] = benchEvent[1] = NULL;
-	firstEvent = profilingEvent = &benchEvent[0];
-	lastEvent = &benchEvent[1];
-
-	// Some formats need this for "keys_dirty"
-	self->methods.set_key(self->params.tests[0].plaintext,
-	                      self->params.max_keys_per_crypt - 1);
-
-	// Timing run
-	count = self->params.max_keys_per_crypt;
-	self->methods.crypt_all(&count, NULL);
-
-	if (*lastEvent == NULL)
-		lastEvent = firstEvent;
-
-	HANDLE_CLERROR(clWaitForEvents(1, firstEvent), "WaitForEvents failed");
-	HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
-	HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
-	                                       CL_PROFILING_COMMAND_SUBMIT,
-	                                       sizeof(cl_ulong),
-	                                       &startTime, NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(*lastEvent,
-	                                       CL_PROFILING_COMMAND_END,
-	                                       sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
-	numloops = (int)(size_t)(500000000ULL / (endTime - startTime));
-
-	if (numloops < 1)
-		numloops = 1;
-	else if (numloops > 10)
-		numloops = 10;
-	//fprintf(stderr, ""Zu", "Zu", time: %s, loops: %d\n", endTime,
-	//  startTime, ns2string(endTime - startTime), numloops);
-
-	// Find minimum time
-	for (optimal_work_group = my_work_group = wg_multiple;
-	        (int)my_work_group <= (int)max_group_size;
-	        my_work_group += wg_multiple) {
-
-		if (gws % my_work_group != 0)
-			continue;
-
-		sumStartTime = 0;
-		sumEndTime = 0;
-
-		for (i = 0; i < numloops; i++) {
-			advance_cursor();
-			local_work_size = my_work_group;
-
-			clReleaseEvent(benchEvent[0]);
-
-			if (*lastEvent != *firstEvent)
-				clReleaseEvent(benchEvent[1]);
-
-			// Some formats need this for "keys_dirty"
-			self->methods.set_key(self->params.tests[0].plaintext,
-			                      self->params.max_keys_per_crypt - 1);
-
-			count = self->params.max_keys_per_crypt;
-			if (self->methods.crypt_all(&count, NULL) < 0) {
-				startTime = endTime = 0;
-				if (options.verbosity > 3)
-					fprintf(stderr, " Error occurred\n");
-				break;
-			}
-
-			HANDLE_CLERROR(clWaitForEvents(1, firstEvent),
-			               "WaitForEvents failed");
-			HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
-			HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
-			                                       CL_PROFILING_COMMAND_SUBMIT,
-			                                       sizeof(cl_ulong), &startTime, NULL),
-			               "Failed to get profiling info");
-			HANDLE_CLERROR(clGetEventProfilingInfo(*lastEvent,
-			                                       CL_PROFILING_COMMAND_END,
-			                                       sizeof(cl_ulong), &endTime, NULL),
-			               "Failed to get profiling info");
-			//fprintf(stderr, ""Zu", "Zu", time: %s\n", endTime,
-			//  startTime, ns2string(endTime-startTime));
-			sumStartTime += startTime;
-			sumEndTime += endTime;
-		}
-		if (!endTime)
-			break;
-		if ((sumEndTime - sumStartTime) < kernelExecTimeNs) {
-			kernelExecTimeNs = sumEndTime - sumStartTime;
-			optimal_work_group = my_work_group;
-		}
-		//fprintf(stderr, "LWS %d time=%s\n",(int) my_work_group,
-		//  ns2string(sumEndTime-sumStartTime));
-	}
-	// Release profiling queue and create new with profiling disabled
-	clReleaseCommandQueue(queue[sequential_id]);
-	queue[sequential_id] =
-	    clCreateCommandQueue(context[sequential_id],
-	                         devices[sequential_id], 0, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating command queue");
-	local_work_size = optimal_work_group;
-
-	//fprintf(stderr, "Optimal local work size = %d\n",
-	//  (int)local_work_size);
-	// Release events
-	clReleaseEvent(benchEvent[0]);
-	if (benchEvent[1])
-		clReleaseEvent(benchEvent[1]);
-
-	// These ensure we don't get events from crypt_all() in real use
-	profilingEvent = firstEvent = lastEvent = NULL;
-	dyna_salt_remove(salt);
-}
-
 // Do the proper test using different global work sizes.
 static void clear_profiling_events()
 {
@@ -1310,6 +1095,9 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 
 	for (i = 0; i < MAX_EVENTS; i++)
 		benchEvent[i] = NULL;
+
+	// Ensure format knows its GWS
+	global_work_size = gws;
 
 	// Prepare buffers.
 	create_clobj(gws, self);
@@ -1480,12 +1268,9 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		benchEvent[i] = NULL;
 
 	if (options.verbosity > 3)
-		fprintf(stderr, "Max local worksize "Zu", ", group_size_limit);
+		fprintf(stderr, "Calculating best local worksize (LWS)\n");
 
-	/* Formats supporting vectorizing should have a default max keys per
-	   crypt that is a multiple of 2 and of 3 */
-	gws = global_work_size ? global_work_size :
-	      self->params.max_keys_per_crypt / opencl_v_width;
+	gws = global_work_size;
 
 	if (get_device_version(sequential_id) < 110) {
 		if (get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU)
@@ -1584,8 +1369,12 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	        (int)my_work_group <= (int)max_group_size;
 	        my_work_group += wg_multiple) {
 
+		global_work_size = gws;
 		if (gws % my_work_group != 0)
-			continue;
+			global_work_size = GET_EXACT_MULTIPLE(gws, my_work_group);
+
+		if (options.verbosity > 3)
+			fprintf(stderr, "Testing LWS=" Zu " GWS=" Zu " ...", my_work_group, global_work_size);
 
 		sumStartTime = 0;
 		sumEndTime = 0;
@@ -1603,7 +1392,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 				startTime = endTime = 0;
 
 				if (options.verbosity > 3)
-					fprintf(stderr, " Error occurred\n");
+					fprintf(stderr, " crypt_all() error\n");
 				break;
 			}
 
@@ -1626,9 +1415,27 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		}
 		if (!endTime)
 			break;
-		if ((sumEndTime - sumStartTime) < kernelExecTimeNs) {
+		if (options.verbosity > 3)
+			fprintf(stderr, " %s%s\n", ns2string(sumEndTime - sumStartTime),
+			    ((double)(sumEndTime - sumStartTime) / kernelExecTimeNs < 0.997)
+			        ? "+" : "");
+		if ((double)(sumEndTime - sumStartTime) / kernelExecTimeNs < 0.997) {
 			kernelExecTimeNs = sumEndTime - sumStartTime;
 			optimal_work_group = my_work_group;
+		} else {
+			if (my_work_group >= 256 ||
+			    (my_work_group >= 8 && wg_multiple < 8)) {
+				/* Jump to next power of 2 */
+				size_t x, y;
+				x = my_work_group;
+				while ((y = x & (x - 1)))
+					x = y;
+				x *= 2;
+				my_work_group =
+				    GET_MULTIPLE_OR_BIGGER(x, wg_multiple);
+				/* The loop logic will re-add wg_multiple */
+				my_work_group -= wg_multiple;
+			}
 		}
 	}
 	// Release profiling queue and create new with profiling disabled
@@ -1639,17 +1446,28 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	                         devices[sequential_id], 0, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
+	global_work_size = GET_EXACT_MULTIPLE(gws, local_work_size);
 
 	dyna_salt_remove(salt);
 }
 
 void opencl_find_best_gws(int step, unsigned long long int max_run_time,
-                          int sequential_id, unsigned int rounds)
+                          int sequential_id, unsigned int rounds, int have_lws)
 {
 	size_t num = 0;
-	size_t optimal_gws = local_work_size;
+	size_t optimal_gws = local_work_size, soft_limit = 0;
 	unsigned long long speed, best_speed = 0, raw_speed;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
+	unsigned long long int save_duration_time = duration_time;
+	cl_uint core_count = get_max_compute_units(sequential_id);
+
+	if (have_lws) {
+		if (core_count > 2)
+			optimal_gws *= core_count;
+		default_value = optimal_gws;
+	} else {
+		soft_limit = local_work_size * core_count * 128;
+	}
 
 	/*
 	 * max_run_time is either:
@@ -1692,8 +1510,12 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 
 		// Check if hardware can handle the size we are going
 		// to try now.
-		if ((gws_limit && (num > gws_limit)) || ((gws_limit == 0) &&
-		        (buffer_size * kpc * 1.1 > get_max_mem_alloc_size(gpu_id)))) {
+		if ((soft_limit && (num > soft_limit)) ||
+		    (gws_limit && (num > gws_limit)) || ((gws_limit == 0) &&
+		    (buffer_size * kpc * 1.1 > get_max_mem_alloc_size(gpu_id)))) {
+			if (!optimal_gws)
+				optimal_gws = num;
+
 			if (options.verbosity > 4)
 				fprintf(stderr, "Hardware resources exhausted\n");
 			break;
@@ -1743,6 +1565,8 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 	                         devices[sequential_id], 0, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	global_work_size = optimal_gws;
+
+	duration_time = save_duration_time;
 }
 
 static void opencl_get_dev_info(int sequential_id)

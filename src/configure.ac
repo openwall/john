@@ -556,9 +556,9 @@ JTR_CUDA
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-AC_CHECK_HEADERS([arpa/inet.h crypt.h fcntl.h limits.h locale.h malloc.h \
-                  net/ethernet.h netdb.h netinet/in.h netinet/in_systm.h \
-                  stdint.h string.h strings.h \
+AC_CHECK_HEADERS([arpa/inet.h crypt.h dirent.h fcntl.h limits.h locale.h \
+                  malloc.h net/ethernet.h netdb.h netinet/in.h \
+                  netinet/in_systm.h stdint.h string.h strings.h \
                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h \
                   sys/time.h sys/times.h sys/types.h termios.h \
                   unistd.h unixlib/local.h windows.h])

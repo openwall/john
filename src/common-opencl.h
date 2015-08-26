@@ -180,10 +180,6 @@ void opencl_build_from_binary(int sequential_id);
 void opencl_build_kernel(char *kernel_filename, int sequential_id,
                          char *options, int warn);
 
-void opencl_find_best_workgroup(struct fmt_main *self);
-void opencl_find_best_workgroup_limit(struct fmt_main *self,
-                                      size_t group_size_limit, int sequential_id, cl_kernel crypt_kernel);
-
 cl_device_type get_device_type(int sequential_id);
 cl_ulong get_local_memory_size(int sequential_id);
 cl_ulong get_global_memory_size(int sequential_id);
@@ -270,7 +266,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
  *   For raw formats it should be 1. For sha512crypt it is 5000.
  */
 void opencl_find_best_gws(int step, unsigned long long int max_run_time,
-                          int sequential_id, unsigned int rounds);
+                          int sequential_id, unsigned int rounds, int have_lws);
 
 /*
  * Shared function to initialize variables necessary by shared find(lws/gws) functions.

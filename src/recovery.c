@@ -198,27 +198,27 @@ static void rec_unlock(void)
 void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 {
 	const char *protect;
+
 	rec_done(1);
 
 	if (!rec_argc) return;
 
 	rec_name_complete();
 
-	protect = cfg_get_param(SECTION_OPTIONS, NULL, "SessionFileProtect");
-	if (!protect)
+	if (!(protect = cfg_get_param(SECTION_OPTIONS, NULL,
+	    "SessionFileProtect")))
 		protect = "Disabled";
 
-	if (strcasecmp(protect, "Disabled")) {
-		if (!strcmp(rec_name, "$JOHN/john.rec")) {
-			if(!strcasecmp(protect, "Always")) {
-				struct stat st;
-				if (!stat(path_expand(rec_name), &st))
-					pexit("ERROR: With the john.conf [Options] SessionFileProtect=Always we can not proceed, since we would be overwriting %s\n", path_expand(rec_name));
-			}
-		} else {
-			struct stat st;
-			if (!stat(path_expand(rec_name), &st))
-				pexit("ERROR: With the john.conf [Options] SessionFileProtect not set to 'Disabled', we can not proceed, since we would be overwriting %s\n", path_expand(rec_name));
+	if (!(options.flags & FLG_RESTORE_CHK) &&
+	    (((!strcasecmp(protect, "Named")) && strcmp(rec_name, "$JOHN/john.rec")) ||
+	    (!strcasecmp(protect, "Always")))) {
+		struct stat st;
+
+		if (!stat(path_expand(rec_name), &st)) {
+			fprintf(stderr,
+			    "ERROR: SessionFileProtect enabled in john.conf, and %s exists\n",
+			    path_expand(rec_name));
+			error();
 		}
 	}
 

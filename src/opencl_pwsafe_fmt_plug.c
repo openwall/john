@@ -70,16 +70,6 @@ static size_t get_task_max_work_group_size()
 		autotune_get_task_max_work_group_size(FALSE, 0, finish_kernel));
 }
 
-static size_t get_task_max_size()
-{
-	return 0;
-}
-
-static size_t get_default_workgroup()
-{
-	return 0;
-}
-
 # define SWAP32(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 

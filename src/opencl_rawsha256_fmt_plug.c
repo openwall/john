@@ -98,16 +98,6 @@ static size_t get_task_max_work_group_size()
 	return MIN(s, 512);
 }
 
-static size_t get_task_max_size()
-{
-	return 0;
-}
-
-static size_t get_default_workgroup()
-{
-	return 0;
-}
-
 /* ------- Create and destroy necessary objects ------- */
 static void create_mask_buffers()
 {
@@ -346,6 +336,8 @@ static void reset(struct db_main *db)
 		create_clobj(global_work_size, self);
 		load_hash(db->salts);
 	}
+
+	hash_ids[0] = 0;
 }
 
 /* ------- Key functions ------- */

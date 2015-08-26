@@ -54,6 +54,9 @@
 /* Define to 1 if you have the <crypt.h> header file. */
 #undef HAVE_CRYPT_H
 
+/* Define to 1 if you have the <dirent.h> header file. */
+#undef HAVE_DIRENT_H
+
 /* Define to 1 if you have the `EVP_aes_256_xts' function. */
 #undef HAVE_EVP_AES_256_XTS
 

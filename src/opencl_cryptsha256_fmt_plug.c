@@ -76,20 +76,6 @@ static size_t get_task_max_work_group_size(){
 
 }
 
-static size_t get_task_max_size(){
-
-	return 0;
-}
-
-static size_t get_default_workgroup(){
-
-    	if (cpu(device_info[gpu_id]))
-		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
-			8 : 1;
-	else
-		return 0;
-}
-
 /* ------- Create and destroy necessary objects ------- */
 static void create_clobj(size_t gws, struct fmt_main * self)
 {

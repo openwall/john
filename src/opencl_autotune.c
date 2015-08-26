@@ -83,7 +83,7 @@ void autotune_find_best_lws(size_t group_size_limit,
    of keys per crypt for the given format
    -- */
 void autotune_find_best_gws(int sequential_id, unsigned int rounds, int step,
-                          unsigned long long int max_run_time)
+                          unsigned long long int max_run_time, int have_lws)
 {
 	char *tmp_value;
 
@@ -93,7 +93,7 @@ void autotune_find_best_gws(int sequential_id, unsigned int rounds, int step,
 	step = GET_MULTIPLE_OR_ZERO(step, local_work_size);
 
 	//Call the default function.
-	opencl_find_best_gws(step, max_run_time, sequential_id, rounds);
+	opencl_find_best_gws(step, max_run_time, sequential_id, rounds, have_lws);
 }
 
 #endif

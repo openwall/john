@@ -14,5 +14,231 @@ end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 indent_style = tab
-# We don't enforce this, let user decide (that's the beauty of tabs)
+# We don't enforce this for Jumbo, let user decide (that's the beauty of tabs)
 #indent_size = 8
+
+# Core files do use a tab size of 8
+[AFS_fmt.[ch]]
+indent_size = 8
+
+[BF_fmt.[ch]]
+indent_size = 8
+
+[BF_std.[ch]]
+indent_size = 8
+
+[BSDI_fmt.[ch]]
+indent_size = 8
+
+[DES_bs.[ch]]
+indent_size = 8
+
+[DES_bs_b.[ch]]
+indent_size = 8
+
+[DES_fmt.[ch]]
+indent_size = 8
+
+[DES_std.[ch]]
+indent_size = 8
+
+[LM_fmt.[ch]]
+indent_size = 8
+
+[MD5_fmt.[ch]]
+indent_size = 8
+
+[MD5_std.[ch]]
+indent_size = 8
+
+[alpha.[ch]]
+indent_size = 8
+
+[arm32le.[ch]]
+indent_size = 8
+
+[batch.[ch]]
+indent_size = 8
+
+[bench.[ch]]
+indent_size = 8
+
+[best.[ch]]
+indent_size = 8
+
+[best.s[ch]]
+indent_size = 8
+
+[c3_fmt.[ch]]
+indent_size = 8
+
+[charset.[ch]]
+indent_size = 8
+
+[common.[ch]]
+indent_size = 8
+
+[compiler.[ch]]
+indent_size = 8
+
+[config.[ch]]
+indent_size = 8
+
+[cracker.[ch]]
+indent_size = 8
+
+[crc32.[ch]]
+indent_size = 8
+
+[detect.[ch]]
+indent_size = 8
+
+[dummy.[ch]]
+indent_size = 8
+
+[external.[ch]]
+indent_size = 8
+
+[formats.[ch]]
+indent_size = 8
+
+[getopt.[ch]]
+indent_size = 8
+
+[ia64.[ch]]
+indent_size = 8
+
+[idle.[ch]]
+indent_size = 8
+
+[inc.[ch]]
+indent_size = 8
+
+[john.[ch]]
+indent_size = 8
+
+[list.[ch]]
+indent_size = 8
+
+[loader.[ch]]
+indent_size = 8
+
+[logger.[ch]]
+indent_size = 8
+
+[math.[ch]]
+indent_size = 8
+
+[memory.[ch]]
+indent_size = 8
+
+[mic.[ch]]
+indent_size = 8
+
+[mips32.[ch]]
+indent_size = 8
+
+[mips64.[ch]]
+indent_size = 8
+
+[misc.[ch]]
+indent_size = 8
+
+[nonstd.[ch]]
+indent_size = 8
+
+[options.[ch]]
+indent_size = 8
+
+[os.[ch]]
+indent_size = 8
+
+[pa-risc.[ch]]
+indent_size = 8
+
+[params.[ch]]
+indent_size = 8
+
+[path.[ch]]
+indent_size = 8
+
+[ppc32.[ch]]
+indent_size = 8
+
+[ppc32alt.[ch]]
+indent_size = 8
+
+[ppc64.[ch]]
+indent_size = 8
+
+[ppc64alt.[ch]]
+indent_size = 8
+
+[recovery.[ch]]
+indent_size = 8
+
+[rpp.[ch]]
+indent_size = 8
+
+[rules.[ch]]
+indent_size = 8
+
+[sboxes-s.[ch]]
+indent_size = 8
+
+[sboxes.[ch]]
+indent_size = 8
+
+[signals.[ch]]
+indent_size = 8
+
+[single.[ch]]
+indent_size = 8
+
+[sparc32.[ch]]
+indent_size = 8
+
+[sparc64.[ch]]
+indent_size = 8
+
+[status.[ch]]
+indent_size = 8
+
+[symlink.[ch]]
+indent_size = 8
+
+[times.[ch]]
+indent_size = 8
+
+[trip_fmt.[ch]]
+indent_size = 8
+
+[tty.[ch]]
+indent_size = 8
+
+[unafs.[ch]]
+indent_size = 8
+
+[unique.[ch]]
+indent_size = 8
+
+[unshadow.[ch]]
+indent_size = 8
+
+[vax.[ch]]
+indent_size = 8
+
+[wordlist.[ch]]
+indent_size = 8
+
+[x86-64.[ch]]
+indent_size = 8
+
+[x86-any.[ch]]
+indent_size = 8
+
+[x86-mmx.[ch]]
+indent_size = 8
+
+[x86-sse.[ch]]
+indent_size = 8
