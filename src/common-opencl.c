@@ -1259,7 +1259,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	gws = global_work_size;
 
 	if (options.verbosity > 3)
-		fprintf(stderr, "Calculating best LWS for GWS=%zu\n", gws);
+		fprintf(stderr, "Calculating best LWS for GWS="Zu"\n", gws);
 
 	if (get_device_version(sequential_id) < 110) {
 		if (get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU)
@@ -1473,12 +1473,12 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 
 	if (options.verbosity > 3) {
 		if (!max_run_time)
-			fprintf(stderr, "Calculating best GWS for LWS=%zu; "
+			fprintf(stderr, "Calculating best GWS for LWS="Zu"; "
 			        "max. %s single kernel invocation.\n",
 			        local_work_size,
 			        ns2string(duration_time));
 		else
-			fprintf(stderr, "Calculating best GWS for LWS=%zu; "
+			fprintf(stderr, "Calculating best GWS for LWS="Zu"; "
 			        "max. %s total for crypt_all()\n",
 			        local_work_size,
 			        ns2string(max_run_time));
