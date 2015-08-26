@@ -117,8 +117,22 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 		global_work_size = 0;
 
 	need_best_lws = !local_work_size && !getenv("LWS");
-	if (need_best_lws)
+	if (need_best_lws) {
+#if 0
+		// 1st run without specified LWS (will use NULL)
 		local_work_size = 0;
+#elif 0
+		// 1st run with fixed figure (that depends on device type)
+		if (cpu(device_info[gpu_id]))
+			local_work_size = get_platform_vendor_id(platform_id) == DEV_INTEL ?
+				8 : 1;
+		else
+			local_work_size = 64;
+#else
+		// 1st run with LWS set from OpenCL query (warp size) for main kernel
+		local_work_size = get_kernel_preferred_multiple(gpu_id, crypt_kernel);
+#endif
+	}
 
 	if (gws_limit && (global_work_size > gws_limit))
 		global_work_size = gws_limit;
