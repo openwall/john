@@ -59,7 +59,8 @@
 
 /* Common OpenCL variables */
 int platform_id;
-int default_gpu_selected = 0;
+int default_gpu_selected;
+int ocl_autotune_running;
 
 static char opencl_log[LOG_SIZE];
 static int kernel_loaded;

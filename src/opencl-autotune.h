@@ -108,6 +108,8 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 {
 	int need_best_lws, need_best_gws;
 
+	ocl_autotune_running = 1;
+
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(FORMAT_LABEL);
 
@@ -170,6 +172,7 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 	self->params.max_keys_per_crypt = global_work_size * opencl_v_width;
 
 	autotuned++;
+	ocl_autotune_running = 0;
 }
 
 static void autotune_run(struct fmt_main * self, unsigned int rounds,
