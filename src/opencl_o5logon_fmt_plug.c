@@ -314,23 +314,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
         //fprintf(stderr, "%s(%d) lws "Zu" gws "Zu"\n", __FUNCTION__, count, local_work_size, global_work_size);
 
 	if (key_idx)
-        HANDLE_CLERROR(
+        BENCH_CLERROR(
                 clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]),
                 "failed in clEnqueueWriteBuffer buffer_keys");
 
-        HANDLE_CLERROR(
+        BENCH_CLERROR(
                 clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]),
                 "failed in clEnqueueWriteBuffer buffer_idx");
 
-        HANDLE_CLERROR(
+        BENCH_CLERROR(
                 clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]),
                 "failed in clEnqueueNDRangeKernel");
 
-        HANDLE_CLERROR(
+        BENCH_CLERROR(
                 clFinish(queue[gpu_id]),
                 "failed in clFinish");
 
-        HANDLE_CLERROR(
+        BENCH_CLERROR(
                 clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * 5 * count, sha1_hashes, 0, NULL, multi_profilingEvent[3]),
                 "failed in reading data back");
 

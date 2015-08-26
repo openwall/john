@@ -211,9 +211,6 @@ char *get_error_name(cl_int cl_error);
 /* Returns OpenCL version based on macro CL_VERSION_X_Y defined in cl.h */
 char *get_opencl_header_version(void);
 
-void handle_clerror(cl_int cl_error, const char *message, const char *file,
-                    int line);
-
 /* List all available devices. For each one, shows a set of useful
  * hardware/software details */
 void opencl_list_devices(void);
@@ -221,17 +218,29 @@ void opencl_list_devices(void);
 /* Call this to check for keypress etc. within kernel loops */
 void opencl_process_event(void);
 
-/* Use this macro for OpenCL Error handling */
-#define HANDLE_CLERROR(cl_error, message) (handle_clerror(cl_error,message,__FILE__,__LINE__))
+/* Use this macro for OpenCL Error handling in crypt_all() */
+#define BENCH_CLERROR(cl_error, message)	  \
+	do { \
+		if ((cl_error) != CL_SUCCESS) { \
+			if (options.verbosity > 4) \
+				fprintf(stderr, "OpenCL error (%s) in %s:%d - %s\n", \
+			        get_error_name(cl_error), __FILE__, __LINE__, message); \
+			if (salt) \
+				error(); \
+			else \
+				return -1; \
+		} \
+	} while (0)
 
-/* Use this macro for OpenCL Error handling in crypt_all_benchmark() */
-#define BENCH_CLERROR(cl_error, message) {    \
-        if ((cl_error) != CL_SUCCESS) { \
-            if (options.verbosity > 4) \
-                fprintf(stderr, message); \
-            return -1; \
-        } \
-    }
+/* Use this macro for OpenCL Error handling anywhere else */
+#define HANDLE_CLERROR(cl_error, message)	  \
+	do { \
+		if (cl_error != CL_SUCCESS) { \
+			fprintf(stderr, "OpenCL error (%s) in %s:%d - %s\n", \
+			    get_error_name(cl_error), __FILE__, __LINE__, message); \
+			error(); \
+		} \
+	} while (0)
 
 /* Macro for get a multiple of a given value */
 #define GET_MULTIPLE_OR_BIGGER(dividend, divisor)   \
@@ -280,7 +289,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
  *   Find best_gws will compute the split-kernel three times in order to get the 'real' runtime.
  *   Example:
  *       for (i = 0; i < 3; i++) {
- *     HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], main_kernel[gpu_id], 1, NULL,
+ *     BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], main_kernel[gpu_id], 1, NULL,
  *         &gws, &local_work_size, 0, NULL,
  *         multi_profilingEvent[split_events[i]]),  //split_events contains: 2 ,5 ,6
  *         "failed in clEnqueueNDRangeKernel");
@@ -290,15 +299,16 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
  *   For example to get a line like this:
  *     - pass xfer: 10.01 ms, crypt: 3.46 ms, result xfer: 1.84 ms
  *   An array like this have to be used:
- *     - "pass xfer: "  ,  ", crypt: ", ", result xfer: "
+ *     - "pass xfer: ",  ", crypt: ", ", result xfer: "
  * - p_main_opencl_event: index of the main event to be profiled (in find_lws).
  * - p_self: a pointer to the format itself.
  * - p_create_clobj: function that (m)alloc all buffers needed by crypt_all.
  * - p_release_clobj: function that release all buffers needed by crypt_all.
- * - p_buffer_size: the size of the plaintext/the most important buffer to allocate.
- *   (needed to assure there is enough memory to handle a GWS that is going to be tested).
+ * - p_buffer_size: size of the largest single buffer to allocate per work item
+ *   (needed to assure there is enough memory to handle a GWS that is going to
+ *    be tested).
  * - p_gws_limit: the maximum number of global_work_size the format can handle.
- *   (needed to variable size plaintext formats).
+ *   If non-zero, this will over-ride p_buffer_size when more fine control is needed.
  */
 void opencl_init_auto_setup(int p_default_value, int p_hash_loops,
                             int *p_split_events, const char **p_warnings,

@@ -302,7 +302,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t N, *M;
 
 	mem_cpy_sz = count * KEY_SIZE_IN_BYTES;
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id],
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id],
 					    cl_tx_keys, CL_FALSE, 0,
 					    mem_cpy_sz, saved_key,
 					    0, NULL, multi_profilingEvent[0]),
@@ -313,14 +313,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		(count + (local_work_size - 1)) /
 		local_work_size * local_work_size : count;
 	assert(local_work_size <= PADDING);
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 					      crypt_kernel, 1,
 					      NULL, &N, M,
 	                                      0, NULL, multi_profilingEvent[1]),
 					      "Failed to enqueue kernel lotus5.");
 
 	mem_cpy_sz = count * BINARY_SIZE;
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id],
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id],
 					   cl_tx_binary, CL_TRUE, 0,
 					   mem_cpy_sz, crypt_key, 0,
 					   NULL, multi_profilingEvent[2]),

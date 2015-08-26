@@ -577,48 +577,48 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 	if (salt && num_loaded_hashes != salt->count)
 		load_hash(salt);
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1, NULL,
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1, NULL,
 		&gws, lws, 0, NULL, NULL),
 		"failed in clEnqueueNDRangeKernel I");
 
 	//Send data to device.
 	if (key_idx > offset)
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE,
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE,
 		    sizeof(uint32_t) * offset,
 		    sizeof(uint32_t) * (key_idx - offset),
 		    plaintext + offset, 0, NULL, multi_profilingEvent[0]),
 		    "failed in clEnqueueWriteBuffer pass_buffer");
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], idx_buffer, CL_FALSE,
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], idx_buffer, CL_FALSE,
 		sizeof(uint32_t) * offset,
 		sizeof(uint32_t) * (gws - offset),
 		saved_idx + offset, 0, NULL, multi_profilingEvent[3]),
 		"failed in clEnqueueWriteBuffer idx_buffer");
 
 	if (mask_int_cand.num_int_cand > 1) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE,
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE,
 			0, 4 * gws, saved_int_key_loc, 0, NULL, multi_profilingEvent[4]),
 			"failed in clEnqueueWriteBuffer buffer_int_key_loc");
 
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_keys, CL_FALSE,
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_keys, CL_FALSE,
 			0, 4 * mask_int_cand.num_int_cand, mask_int_cand.int_cand,
 			0, NULL, multi_profilingEvent[5]),
 			"failed in clEnqueueWriteBuffer buffer_int_keys");
 	}
 
 	//Enqueue the kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 			&gws, lws, 0, NULL, multi_profilingEvent[1]),
 			"failed in clEnqueueNDRangeKernel");
 
 	//Found hashes
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_FALSE,
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_FALSE,
 		0, (num_loaded_hashes + 1) * 3 * sizeof(uint32_t), hash_ids,
 		0, NULL, multi_profilingEvent[2]),
 		"failed in reading data back buffer_hash_ids");
 
 	//Do the work
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
 
 	if (hash_ids[0] > num_loaded_hashes) {
 		fprintf(stderr, "Error, crypt_all kernel.\n");

@@ -389,19 +389,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu" kidx %u\n", __FUNCTION__, count, local_work_size, global_work_size, scalar_gws, key_idx);
 
 	if (key_idx)
-		HANDLE_CLERROR(
+		BENCH_CLERROR(
 			clEnqueueWriteBuffer(queue[gpu_id], keys_buffer, CL_FALSE, 0, 4 * key_idx, keys, 0, NULL, multi_profilingEvent[0]),
 			"Error updating contents of keys_buffer");
 
-	HANDLE_CLERROR(
+	BENCH_CLERROR(
 		clEnqueueWriteBuffer(queue[gpu_id], idx_buffer, CL_FALSE, 0, 4 * scalar_gws, idx, 0, NULL, multi_profilingEvent[1]),
 		"Error updating contents of idx_buffer");
 
-	HANDLE_CLERROR(
+	BENCH_CLERROR(
 		clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]),
 		"Error beginning execution of the kernel");
 
-	HANDLE_CLERROR(
+	BENCH_CLERROR(
 		clEnqueueReadBuffer(queue[gpu_id], digest_buffer, CL_TRUE, 0, sizeof(cl_uint) * scalar_gws, digest, 0, NULL, multi_profilingEvent[3]),
 		"Error reading results from digest_buffer");
 	partial_output = 1;

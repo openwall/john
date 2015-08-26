@@ -135,17 +135,6 @@ void opencl_process_event(void)
 	}
 }
 
-void handle_clerror(cl_int cl_error, const char *message, const char *file,
-                    int line)
-{
-	if (cl_error != CL_SUCCESS) {
-		fprintf(stderr,
-		        "OpenCL error (%s) in file (%s) at line (%d) - (%s)\n",
-		        get_error_name(cl_error), file, line, message);
-		error();
-	}
-}
-
 int get_number_of_available_platforms()
 {
 	int i = 0;

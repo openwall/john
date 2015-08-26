@@ -395,7 +395,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 
 	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
 		CL_FALSE, 0, global_work_size * sizeof(pass_t), host_pass, 0,
 		NULL, NULL), "Copy data to gpu");
 
