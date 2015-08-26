@@ -159,7 +159,7 @@ static struct fmt_main *self;
 static int split_events[] = { 2, -1, -1 };
 
 static const char *warn[] = {
-	"xfer: "  ,  ", init: ",  ", crypt: ",  ", xfer: "
+	"xfer: ",  ", init: ",  ", crypt: ",  ", final: ",  ", xfer: "
 };
 
 // This file contains auto-tuning routine(s). It has to be included after formats definitions.
@@ -244,9 +244,6 @@ static void done(void)
 	}
 }
 
-static int crypt_all(int *pcount, struct db_salt *salt);
-static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
-
 static void init(struct fmt_main *_self)
 {
 	CRC32_t crc;
@@ -291,9 +288,7 @@ static void reset(struct db_main *db)
 		                       sizeof(sevenzip_salt), 0);
 
 		//  Auto tune execution from shared/included code.
-		self->methods.crypt_all = crypt_all_benchmark;
 		autotune_run(self, 1 << 19, 0, 15000000000ULL);
-		self->methods.crypt_all = crypt_all;
 	}
 }
 
@@ -538,103 +533,62 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		any_cracked = 0;
 	}
 
-	if (new_keys) {
+	if (ocl_autotune_running || new_keys) {
 		int i;
 		size_t *lws = local_work_size ? &local_work_size : NULL;
 
 		global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
 		// Copy data to gpu
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-			insize, inbuffer, 0, NULL, NULL),
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+			insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
 			"Copy data to gpu");
 
 		// Run 1st kernel
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_init, 1,
-			NULL, &global_work_size, lws, 0, NULL, NULL),
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_init, 1,
+			NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]),
 			"Run init kernel");
 
 		// Run loop kernel
-		for (i = 0; i < LOOP_COUNT; i++) {
-			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
+		for (i = 0; i < (ocl_autotune_running ? 1 : LOOP_COUNT); i++) {
+			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 				crypt_kernel, 1, NULL, &global_work_size, lws, 0,
-				NULL, NULL),
+				NULL, multi_profilingEvent[2]),
 				"Run loop kernel");
-			HANDLE_CLERROR(clFinish(queue[gpu_id]),
+			BENCH_CLERROR(clFinish(queue[gpu_id]),
 				"Error running loop kernel");
 			opencl_process_event();
 		}
 
 		// Run final kernel
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_final, 1,
-			NULL, &global_work_size, lws, 0, NULL, NULL),
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_final, 1,
+			NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]),
 			"Run final kernel");
 
 		// Read the result back
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-			outsize, outbuffer, 0, NULL, NULL),
+		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
+			outsize, outbuffer, 0, NULL, multi_profilingEvent[4]),
 			"Copy result back");
 	}
 
 	new_keys = 0;
 
+	if (!ocl_autotune_running) {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++) {
-		/* decrypt and check */
-		if(sevenzip_decrypt(outbuffer[index].key, cur_salt->data) == 0)
-		{
-			cracked[index] = 1;
+		for (index = 0; index < count; index++) {
+			/* decrypt and check */
+			if(sevenzip_decrypt(outbuffer[index].key, cur_salt->data) == 0)
+			{
+				cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-			any_cracked |= 1;
+				any_cracked |= 1;
+			}
 		}
 	}
-	return count;
-}
-
-static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
-{
-	int count = *pcount;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
-
-	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
-
-	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
-		"Copy data to gpu");
-
-	// Run 1st kernels
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_init, 1,
-		NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]),
-		"Run init kernel");
-
-	// Warm-up run
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
-		crypt_kernel, 1, NULL, &global_work_size, lws, 0,
-		NULL, NULL),
-		"Run loop kernel");
-
-	// Loop kernel
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
-		crypt_kernel, 1, NULL, &global_work_size, lws, 0,
-			NULL, multi_profilingEvent[2]),
-			"Run loop kernel");
-
-	// Run final kernel
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_final, 1,
-		NULL, &global_work_size, lws, 0, NULL, NULL),
-		"Run final kernel");
-
-	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-		outsize, outbuffer, 0, NULL, multi_profilingEvent[3]),
-		"Copy result back");
-
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 
 	return count;
 }
