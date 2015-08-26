@@ -1222,7 +1222,7 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 	cl_event evnt;
 	const int count = mask_mode ? *pcount : (*pcount + LM_DEPTH - 1) >> LM_LOG_DEPTH;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
-	current_gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
+	current_gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 #if 0
 	fprintf(stderr, "pcount %d count %d lws "Zu" gws "Zu" cur_gws "Zu"\n", *pcount, count, local_work_size, global_work_size, current_gws);
