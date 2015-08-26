@@ -180,9 +180,6 @@ static void done(void)
 	}
 }
 
-static int crypt_all(int *pcount, struct db_salt *salt);
-static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
-
 static void init(struct fmt_main *_self)
 {
 	static char valgo[sizeof(ALGORITHM_NAME) + 8] = "";
@@ -229,11 +226,9 @@ static void reset(struct db_main *db)
 		                       v_width * sizeof(pbkdf2_state), 0);
 
 		//Auto tune execution from shared/included code.
-		self->methods.crypt_all = crypt_all_benchmark;
 		autotune_run(self, 2 * (ITERATIONS - 1) + 4, 0,
 		             (cpu(device_info[gpu_id]) ?
 		              1000000000 : 10000000000ULL));
-		self->methods.crypt_all = crypt_all;
 	}
 }
 
@@ -280,8 +275,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	int i, j, index;
 	size_t scalar_gws;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size;
+	global_work_size = local_work_size ? ((*pcount + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : *pcount / v_width;
 	scalar_gws = global_work_size * v_width;
 
 	if (any_cracked) {
@@ -290,84 +286,59 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	/// Copy data to gpu
-	if (new_keys) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, NULL), "Copy data to gpu");
+	if (ocl_autotune_running || new_keys) {
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 		new_keys = 0;
 	}
 
 	/// Run kernels
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "Run initial kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
 
-	for (j = 0; j < ((currentsalt.outlen + 19) / 20); j++) {
-		for (i = 0; i < LOOP_COUNT; i++) {
-			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel");
-			HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+	for (j = 0; j < (ocl_autotune_running ? 1 : (currentsalt.outlen + 19) / 20); j++) {
+		for (i = 0; i < (ocl_autotune_running ? 1 : LOOP_COUNT); i++) {
+			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
+			BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 			opencl_process_event();
 		}
 
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_final, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run intermediate kernel");
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
 	}
-
-	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(pbkdf2_out) * scalar_gws, output, 0, NULL, NULL), "Copy result back");
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (index = 0; index < count; index++)
-	{
-		int i;
-		unsigned char master[MAX_KEYLENGTH + MAX_IVLENGTH];
-		unsigned char tmpBuf[cur_salt->dataLen];
-		unsigned int checksum = 0;
-		unsigned int checksum2 = 0;
-		memcpy(master, output[index].dk, cur_salt->keySize + cur_salt->ivLength);
-
-		// First N bytes are checksum bytes.
-		for(i=0; i<KEY_CHECKSUM_BYTES; ++i)
-			checksum = (checksum << 8) | (unsigned int)cur_salt->data[i];
-		memcpy( tmpBuf, cur_salt->data+KEY_CHECKSUM_BYTES, cur_salt->keySize + cur_salt->ivLength );
-		encfs_common_streamDecode(cur_salt, tmpBuf, cur_salt->keySize + cur_salt->ivLength ,checksum, master);
-		checksum2 = encfs_common_MAC_32(cur_salt, tmpBuf,  cur_salt->keySize + cur_salt->ivLength, master);
-		if(checksum2 == checksum)
-		{
-			cracked[index] = 1;
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			any_cracked |= 1;
-		}
-	}
-	return count;
-}
-
-static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
-{
-	size_t scalar_gws;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
-
-	global_work_size = local_work_size ? ((*pcount + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : *pcount / v_width;
-	scalar_gws = global_work_size * v_width;
-
-#if 0
-	fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu" kpc %d/%d\n", __FUNCTION__, *pcount, local_work_size, global_work_size, scalar_gws, me->params.min_keys_per_crypt, me->params.max_keys_per_crypt);
-#endif
-
-	/// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
-
-	/// Run kernels
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
-
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel");
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
-
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
 
 	/// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(pbkdf2_out) * scalar_gws, output, 0, NULL, multi_profilingEvent[4]), "Copy result back");
 
-	return *pcount;
+	if (!ocl_autotune_running) {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+		for (index = 0; index < count; index++)
+		{
+			int i;
+			unsigned char master[MAX_KEYLENGTH + MAX_IVLENGTH];
+			unsigned char tmpBuf[cur_salt->dataLen];
+			unsigned int checksum = 0;
+			unsigned int checksum2 = 0;
+
+			memcpy(master, output[index].dk, cur_salt->keySize + cur_salt->ivLength);
+
+			// First N bytes are checksum bytes.
+			for (i = 0; i < KEY_CHECKSUM_BYTES; ++i)
+				checksum = (checksum << 8) | (unsigned int)cur_salt->data[i];
+			memcpy(tmpBuf, cur_salt->data + KEY_CHECKSUM_BYTES, cur_salt->keySize + cur_salt->ivLength);
+			encfs_common_streamDecode(cur_salt, tmpBuf, cur_salt->keySize + cur_salt->ivLength ,checksum, master);
+			checksum2 = encfs_common_MAC_32(cur_salt, tmpBuf, cur_salt->keySize + cur_salt->ivLength, master);
+			if (checksum2 == checksum)
+			{
+				cracked[index] = 1;
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+				any_cracked |= 1;
+			}
+		}
+	}
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
