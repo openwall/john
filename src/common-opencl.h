@@ -244,13 +244,15 @@ void opencl_process_event(void);
 	} while (0)
 
 /* Macro for get a multiple of a given value */
-#define GET_MULTIPLE_OR_BIGGER(dividend, divisor)   \
-    (divisor) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
-#define GET_MULTIPLE_OR_ZERO(dividend, divisor)     \
-    ((divisor) ? ((dividend / divisor) * divisor) : (dividend))
-#define GET_EXACT_MULTIPLE(dividend, divisor)   (divisor) ? \
-            ((dividend > divisor) ? ((dividend / divisor) * divisor) : divisor) : \
-        dividend
+#define GET_MULTIPLE_OR_BIGGER(dividend, divisor)	  \
+	(divisor) ? ((dividend + (opencl_v_width * divisor - 1)) / (opencl_v_width * divisor)) * divisor : (dividend) / opencl_v_width;
+//    (divisor) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
+
+#define GET_MULTIPLE_OR_ZERO(dividend, divisor)	  \
+	((divisor) ? ((dividend / divisor) * divisor) : (dividend))
+
+#define GET_EXACT_MULTIPLE(dividend, divisor)	  \
+	(divisor) ? ((dividend > divisor) ? ((dividend / divisor) * divisor) : divisor) : dividend
 
 /*
  * Shared function to find 'the best' local work group size.
