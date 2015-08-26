@@ -81,7 +81,6 @@ static unsigned ocl_initialized = 0;
 static uint32_t key_idx = 0;
 static size_t offset = 0, offset_idx = 0;
 
-static int crypt_all(int *pcount, struct db_salt *_salt);
 static void load_hash(const struct db_salt *salt);
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.

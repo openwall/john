@@ -363,6 +363,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	/// Await completion of all the above
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
+	if (ocl_autotune_running)
+		return count;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif

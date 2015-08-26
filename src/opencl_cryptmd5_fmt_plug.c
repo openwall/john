@@ -321,8 +321,6 @@ static char *get_key(int index)
 	return ret;
 }
 
-static int crypt_all(int *pcount, struct db_salt *salt);
-
 static void init(struct fmt_main *_self)
 {
 	self = _self;

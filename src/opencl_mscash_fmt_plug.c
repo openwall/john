@@ -87,8 +87,6 @@ static char mscash_prefix[] = "M$";
 	v++;			\
 }
 
-static int crypt_all(int *pcount, struct db_salt *_salt);
-
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
 #include "memdbg.h"
 

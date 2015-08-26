@@ -348,6 +348,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[2]), "Failed running second kernel");
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, BINARY_SIZE * global_work_size, output, 0, NULL, multi_profilingEvent[3]), "failed reading results back");
 
+	if (ocl_autotune_running)
+		return count;
+
 	for (i = 0; i < count; i++) {
 		unsigned char *binary = &((unsigned char*)output)[BINARY_SIZE * i];
 

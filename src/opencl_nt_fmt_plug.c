@@ -142,8 +142,6 @@ static cl_uint *zero_buffer;
 	v++;			\
 }
 
-static int crypt_all(int *pcount, struct db_salt *_salt);
-
 struct fmt_main fmt_opencl_NT;
 
 static void set_kernel_args_kpc()

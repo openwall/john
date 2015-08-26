@@ -529,6 +529,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),
 		"Copy result back");
 
+	if (ocl_autotune_running)
+		return count;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif

@@ -82,8 +82,6 @@ static unsigned int v_width = 1;	/* Vector width of kernel */
 static int partial_output;
 static struct fmt_main *self;
 
-static int crypt_all(int *pcount, struct db_salt *_salt);
-
 //This file contains auto-tuning routine(s). Have to included after other definitions.
 #include "opencl-autotune.h"
 #include "memdbg.h"

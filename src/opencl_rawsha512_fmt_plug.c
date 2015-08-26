@@ -95,7 +95,6 @@ static uint32_t key_idx = 0;
 static size_t offset = 0, offset_idx = 0;
 static int new_keys, salted_format = 0;
 
-static int crypt_all(int *pcount, struct db_salt *_salt);
 static void load_hash(const struct db_salt *salt);
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.

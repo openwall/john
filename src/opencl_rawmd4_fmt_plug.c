@@ -80,8 +80,6 @@ static cl_uint *zero_buffer;
 	v++;			\
 }
 
-static int crypt_all(int *pcount, struct db_salt *_salt);
-
 #include "memdbg.h"
 
 static struct fmt_tests tests[] = {

@@ -38,12 +38,7 @@ john_register_one(&fmt_opencl_o5logon);
 #include "params.h"
 #include "options.h"
 #include "aes.h"
-
-/* ---- Start OpenCL Modifications ---- */
-
 #include "common-opencl.h"
-
-/* ---- End OpenCL Modifications ---- */
 
 #define FORMAT_LABEL		"o5logon-opencl"
 #define FORMAT_NAME		"Oracle O5LOGON protocol"
@@ -80,8 +75,6 @@ static struct custom_salt {
 
 // AESNI Modification: function pointer to OpenSSL or AES-NI function
 static aes_fptr_cbc aesFunc;
-
-/* ---- Start OpenCL Modifications ---- */
 
 // Shared auto-tune stuff
 #define STEP                    0
@@ -183,12 +176,8 @@ static void done(void)
 	}
 }
 
-/* ---- End OpenCL Modifications ---- */
-
 static void init(struct fmt_main *_self)
 {
-/* ---- Start OpenCL Modifications ---- */
-
 	self = _self;
 
 	opencl_prepare_dev(gpu_id);
@@ -196,8 +185,6 @@ static void init(struct fmt_main *_self)
 	aesFunc = get_AES_dec192_CBC();
 
 	cracked = NULL;
-
-/* ---- End OpenCL Modifications ---- */
 }
 
 static void reset(struct db_main *db)
@@ -276,12 +263,8 @@ static void *get_salt(char *ciphertext)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
-	/* ---- Start OpenCL Modifications ---- */
-
 	cs.salt[SALT_LENGTH] = 0x80;
 	memset(&cs.salt[SALT_LENGTH+1], 0, sizeof(cs.salt)-(SALT_LENGTH+1));
-
-	/* ---- End OpenCL Modifications ---- */
 
 	MEM_FREE(keeptr);
 	return (void *)&cs;
@@ -289,7 +272,6 @@ static void *get_salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
-	/* ----- Start OpenCL Modifications ----- */
 	memcpy(&cur_salt, salt, sizeof(cur_salt));
 
 	HANDLE_CLERROR(
@@ -299,7 +281,6 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(
 		clFlush(queue[gpu_id]),
 		"Failed in clFlush");
-	/* ----- End OpenCL Modifications ----- */
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -307,39 +288,40 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	int index = 0;
 	size_t gws;
-        size_t *lws = local_work_size ? &local_work_size : NULL;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-        gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-        //fprintf(stderr, "%s(%d) lws "Zu" gws "Zu"\n", __FUNCTION__, count, local_work_size, global_work_size);
+	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu"\n", __FUNCTION__, count, local_work_size, global_work_size);
 
 	if (key_idx)
-        BENCH_CLERROR(
-                clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]),
-                "failed in clEnqueueWriteBuffer buffer_keys");
+		BENCH_CLERROR(
+			clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]),
+			"failed in clEnqueueWriteBuffer buffer_keys");
 
-        BENCH_CLERROR(
-                clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]),
-                "failed in clEnqueueWriteBuffer buffer_idx");
+	BENCH_CLERROR(
+		clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]),
+		"failed in clEnqueueWriteBuffer buffer_idx");
 
-        BENCH_CLERROR(
-                clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]),
-                "failed in clEnqueueNDRangeKernel");
+	BENCH_CLERROR(
+		clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]),
+		"failed in clEnqueueNDRangeKernel");
 
-        BENCH_CLERROR(
-                clFinish(queue[gpu_id]),
-                "failed in clFinish");
+	BENCH_CLERROR(
+		clFinish(queue[gpu_id]),
+		"failed in clFinish");
 
-        BENCH_CLERROR(
-                clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * 5 * count, sha1_hashes, 0, NULL, multi_profilingEvent[3]),
-                "failed in reading data back");
-
-/* ----- End OpenCL Modifications ----- */
+	BENCH_CLERROR(
+		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * 5 * count, sha1_hashes, 0, NULL, multi_profilingEvent[3]),
+		"failed in reading data back");
 
 	if (any_cracked) {
 		memset(cracked, 0, sizeof(*cracked) * count);
 		any_cracked = 0;
 	}
+
+	if (ocl_autotune_running)
+		return count;
 
 	for (index = 0; index < count; index++)
 	{
@@ -379,8 +361,6 @@ static int cmp_exact(char *source, int index)
     return 1;
 }
 
-/* ----- Start OpenCL Modifications ----- */
-
 static void clear_keys(void)
 {
         key_idx = 0;
@@ -412,8 +392,6 @@ static char *get_key(int index)
         out[i] = 0;
         return out;
 }
-
-/* ----- End OpenCL Modifications ----- */
 
 struct fmt_main fmt_opencl_o5logon = {
 	{
