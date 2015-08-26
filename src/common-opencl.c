@@ -111,7 +111,7 @@ static ocl_device_details ocl_device_list[MAX_GPU_DEVICES];
 
 void opencl_process_event(void)
 {
-	if (!bench_running) {
+	if (!ocl_autotune_running && !bench_running) {
 #if !OS_TIMER
 		sig_timer_emu_tick();
 #endif
