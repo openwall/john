@@ -212,8 +212,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef SIMD_COEF_32
 	int len;
-	int *indices = mem_calloc(count*NBKEYS, sizeof(*indices));
+	int *indices;
 	int tot_todo = 0;
+
+	/* Tricky formula, see GitHub #1692 :-) */
+	indices = mem_calloc(count + MIN(PLAINTEXT_LENGTH + 1, count) *
+	                     (NBKEYS - 1), sizeof(*indices));
+
 	// sort passwords by length
 	for (len = 0; len <= PLAINTEXT_LENGTH*2; len += 2) {
 		for (index = 0; index < count; ++index) {

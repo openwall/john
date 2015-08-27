@@ -507,13 +507,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	static int tot_todo;
 	int len;
 
+	/* Tricky formula, see GitHub #1692 :-) */
 	if (!indices)
-		indices = mem_alloc(MIN(PLAINTEXT_LENGTH + 1, max_kpc) *
-		                    NBKEYS * sizeof(int));
-#endif
+		indices = mem_alloc(max_kpc + MIN(PLAINTEXT_LENGTH + 1, max_kpc) *
+		                    (NBKEYS - 1) * sizeof(int));
 	if (!master)
-		master =  mem_alloc(MIN(PLAINTEXT_LENGTH + 1, max_kpc) *
-		                    MAX_KEYS_PER_CRYPT * sizeof(*master));
+		master =  mem_alloc(max_kpc + MIN(PLAINTEXT_LENGTH + 1, max_kpc) *
+		                    (NBKEYS - 1) * sizeof(*master));
+#else
+	if (!master)
+		master =  mem_alloc(max_kpc * sizeof(*master));
+#endif
 
 #ifdef SIMD_COEF_32
 	if (new_keys) {
