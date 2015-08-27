@@ -39,11 +39,11 @@
 	unsigned char *src;						\
 	char *dst;							\
 									\
-	if (cmp_out == NULL || cmp_out[0] == 0 ||			\
-	    index > 32 * cmp_out[0] || cmp_out[0] > num_loaded_hashes)	\
+	if (hash_ids == NULL || hash_ids[0] == 0 ||			\
+	    index > 32 * hash_ids[0] || hash_ids[0] > num_loaded_hashes)	\
 		section = index / DES_BS_DEPTH;				\
 	else								\
-		section = cmp_out[2 * (index/DES_BS_DEPTH) + 1];	\
+		section = hash_ids[2 * (index/DES_BS_DEPTH) + 1];	\
 									\
 	if (section > (num_set_keys + 31) / 32) {			\
 		fprintf(stderr, "Get key error! %d %d\n", section,	\

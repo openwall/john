@@ -21,7 +21,7 @@ static cl_int err;
 static cl_mem index768_gpu, keys_gpu, cracked_hashes_gpu, K_gpu, cmp_out_gpu, loaded_hash_gpu, bitmap, *loaded_hash_gpu_salt = NULL;
 static   WORD current_salt = 0;
 static int *loaded_hash = NULL;
-static unsigned int *cmp_out = NULL, num_loaded_hashes, num_set_keys;
+static unsigned int *hash_ids = NULL, num_loaded_hashes, num_set_keys;
 static WORD *stored_salt;
 static int num_compiled_salt;
 static unsigned int *index96 = NULL, *zero_buffer = NULL;
@@ -37,7 +37,7 @@ static void clean_all_buffers()
 	MEM_FREE(opencl_DES_bs_keys);
 	MEM_FREE(opencl_DES_bs_cracked_hashes);
 	MEM_FREE(loaded_hash);
-	MEM_FREE(cmp_out);
+	MEM_FREE(hash_ids);
 	MEM_FREE(index96);
 	MEM_FREE(zero_buffer);
 	HANDLE_CLERROR(clReleaseMemObject(index768_gpu),errMsg);
@@ -75,7 +75,7 @@ static void reset(struct db_main *db)
 		int i;
 
 		MEM_FREE(loaded_hash);
-		MEM_FREE(cmp_out);
+		MEM_FREE(hash_ids);
 		MEM_FREE(opencl_DES_bs_cracked_hashes);
 		MEM_FREE(zero_buffer);
 
@@ -84,7 +84,7 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clReleaseMemObject(bitmap), errMsg);
 
 		loaded_hash = (int *) mem_alloc((db->password_count) * sizeof(int) * 2);
-		cmp_out     = (unsigned int *) mem_alloc((2 * db->password_count + 1) * sizeof(unsigned int));
+		hash_ids     = (unsigned int *) mem_alloc((2 * db->password_count + 1) * sizeof(unsigned int));
 		opencl_DES_bs_cracked_hashes = (DES_bs_vector*) mem_alloc(db->password_count * 64 * sizeof(DES_bs_vector));
 		loaded_hash_gpu_salt = (cl_mem *) mem_alloc(4096 * sizeof(cl_mem));
 		zero_buffer = (unsigned int *) mem_calloc((db->password_count - 1) / 32 + 1, sizeof(unsigned int));
@@ -120,8 +120,8 @@ static void reset(struct db_main *db)
 
 		if (!loaded_hash)
 			MEM_FREE(loaded_hash);
-		if (!cmp_out)
-			MEM_FREE(cmp_out);
+		if (!hash_ids)
+			MEM_FREE(hash_ids);
 		if (!opencl_DES_bs_cracked_hashes)
 			MEM_FREE(opencl_DES_bs_cracked_hashes);
 
@@ -134,11 +134,11 @@ static void reset(struct db_main *db)
 		while (fmt_opencl_DES.params.tests[num_loaded_hashes].ciphertext) num_loaded_hashes++;
 
 		loaded_hash = (int *) mem_alloc(num_loaded_hashes * sizeof(int) * 2);
-		cmp_out     = (unsigned int *) mem_alloc((2 * num_loaded_hashes + 1) * sizeof(unsigned int));
+		hash_ids     = (unsigned int *) mem_alloc((2 * num_loaded_hashes + 1) * sizeof(unsigned int));
 		opencl_DES_bs_cracked_hashes = (DES_bs_vector*) mem_alloc (num_loaded_hashes * 64 * sizeof(DES_bs_vector));
 		zero_buffer = (unsigned int *) mem_calloc((num_loaded_hashes - 1) / 32 + 1, sizeof(unsigned int));
 
-		cmp_out[0] = 0;
+		hash_ids[0] = 0;
 
 		cracked_hashes_gpu = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, 64 * num_loaded_hashes * sizeof(DES_bs_vector), NULL, &err);
 		if (cracked_hashes_gpu == (cl_mem)0)
@@ -199,7 +199,7 @@ static void find_best_gws(struct fmt_main *fmt)
 	int ccount;
 
 	num_loaded_hashes = 1;
-	cmp_out = (unsigned int *) mem_alloc((2 * num_loaded_hashes + 1) * sizeof(int));
+	hash_ids = (unsigned int *) mem_alloc((2 * num_loaded_hashes + 1) * sizeof(int));
 	opencl_DES_bs_cracked_hashes = (DES_bs_vector*) mem_alloc(num_loaded_hashes * 64 * sizeof(DES_bs_vector));
 	zero_buffer = (unsigned int *) mem_calloc((num_loaded_hashes - 1) / 32 + 1, sizeof(unsigned int));
 
@@ -239,11 +239,11 @@ static void find_best_gws(struct fmt_main *fmt)
 	fmt -> params.max_keys_per_crypt = count * local_work_size * DES_BS_DEPTH;
 	fmt -> params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
 
-	MEM_FREE(cmp_out);
+	MEM_FREE(hash_ids);
 	MEM_FREE(opencl_DES_bs_cracked_hashes);
 	MEM_FREE(zero_buffer);
 
-	cmp_out = NULL;
+	hash_ids = NULL;
 	opencl_DES_bs_cracked_hashes = NULL;
 	zero_buffer = NULL;
 
@@ -534,21 +534,21 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 	clWaitForEvents(1, &evnt);
 	clReleaseEvent(evnt);
 
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cmp_out_gpu, CL_TRUE, 0, sizeof(unsigned int), cmp_out, 0, NULL, NULL), "Write FAILED\n");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cmp_out_gpu, CL_TRUE, 0, sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Write FAILED\n");
 
-	if (cmp_out[0] > num_loaded_hashes) {
+	if (hash_ids[0] > num_loaded_hashes) {
 		fprintf(stderr, "Error, crypt_all kernel.\n");
 		error();
 	}
 
-	if (cmp_out[0]) {
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cmp_out_gpu, CL_TRUE, 0, (2 * num_loaded_hashes + 1) * sizeof(unsigned int), cmp_out, 0, NULL, NULL), "Write FAILED\n");
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cracked_hashes_gpu, CL_TRUE, 0, cmp_out[0] * 64 * sizeof(DES_bs_vector), opencl_DES_bs_cracked_hashes, 0, NULL, NULL), "Write FAILED\n");
+	if (hash_ids[0]) {
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cmp_out_gpu, CL_TRUE, 0, (2 * num_loaded_hashes + 1) * sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Write FAILED\n");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cracked_hashes_gpu, CL_TRUE, 0, hash_ids[0] * 64 * sizeof(DES_bs_vector), opencl_DES_bs_cracked_hashes, 0, NULL, NULL), "Write FAILED\n");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], bitmap, CL_TRUE, 0, ((num_loaded_hashes - 1)/32 + 1) * sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer bitmap.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cmp_out_gpu, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer cmp_out_gpu.");
 	}
 
-	return 32 * cmp_out[0];
+	return 32 * hash_ids[0];
 }
 
 void opencl_DES_bs_h_register_functions(struct fmt_main *fmt)

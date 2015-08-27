@@ -74,9 +74,6 @@ static void init(struct fmt_main *pFmt)
 		else local_work_size = WORK_GROUP_SIZE;
 	}
 
-	for (i = 0; i < MULTIPLIER; i++)
-		opencl_DES_bs_init(i);
-
 	opencl_DES_bs_select_device(pFmt);
 }
 

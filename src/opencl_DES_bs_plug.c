@@ -114,7 +114,6 @@ static void init_index()
 			opencl_DES_bs_index768[t++] = bit;
 		}
 	}
-
 }
 
 void opencl_DES_bs_init(int block)
