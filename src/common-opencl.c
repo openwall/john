@@ -54,7 +54,7 @@
 #ifdef JTR_RELEASE_BUILD
 #define LOG_VERB 4
 #else
-#define LOG_VERB 3
+#define LOG_VERB 4
 #endif
 
 /* Common OpenCL variables */
