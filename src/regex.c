@@ -167,7 +167,7 @@ int do_regex_crack_as_rules(const char *regex, const char *base_word, int regex_
 	iter = c_regex_iterator_cb(regex, regex_case, encoding, callback);
 	if (!iter) {
 		fprintf(stderr, "Error, invalid regex expression.  John exiting now  base_word=%s  Regex= %s\n", base_word, regex);
-		exit(1);
+		error();
 	}
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
@@ -205,7 +205,7 @@ void do_regex_crack(struct db_main *db, const char *regex) {
 	iter = c_regex_iterator_cb(regex, ignore_case, encoding, callback);
 	if (!iter) {
 		fprintf(stderr, "Error, invalid regex expression.  John exiting now\n");
-		exit(1);
+		error();
 	}
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);

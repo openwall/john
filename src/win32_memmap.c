@@ -20,12 +20,12 @@ void init_sharedmem(char *ipc_fname) {
 	hMapFile = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, FName);
 	if (hMapFile == NULL) {
 		fprintf(stderr, "ERROR, the memory mapped file: %s could not be opened\n", FName);
-		exit(1);
+		error();
 	}
 	pData = (IPCData*) MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(IPCData));
 	if (pData == NULL) {
 		fprintf(stderr, "ERROR, the memory mapped file: %s could not have its data properly mapped\n", FName);
-		exit (1);
+		error();
 	}
 	sprintf(FName, "john_mutext_%s", ipc_fname);
 
@@ -86,7 +86,7 @@ DoAgain1:;
 		if (++cnt == 5) {
 			fprintf(stderr, "Error trying to release IPC object (could not get mutex)\n");
 			ReleaseMutex(hMutex);
-			exit(2);
+			error();
 		}
 		goto DoAgain1;
 	}
