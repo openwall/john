@@ -1383,9 +1383,6 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 			count = global_work_size * ocl_v_width;
 			if (self->methods.crypt_all(&count, NULL) < 0) {
 				startTime = endTime = 0;
-
-				if (options.verbosity > 3)
-					fprintf(stderr, " crypt_all() error\n");
 				break;
 			}
 

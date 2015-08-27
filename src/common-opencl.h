@@ -224,8 +224,10 @@ void opencl_process_event(void);
 	do { \
 		if ((cl_error) != CL_SUCCESS) { \
 			if (!ocl_autotune_running || options.verbosity > 4) \
-				fprintf(stderr, "OpenCL error (%s) in %s:%d - %s\n", \
+				fprintf(stderr, "OpenCL %s error in %s:%d - %s\n", \
 			        get_error_name(cl_error), __FILE__, __LINE__, message); \
+			else if (options.verbosity == 4) \
+				fprintf(stderr, " %s\n", get_error_name(cl_error)); \
 			if (!ocl_autotune_running) \
 				error(); \
 			else \
@@ -237,7 +239,7 @@ void opencl_process_event(void);
 #define HANDLE_CLERROR(cl_error, message)	  \
 	do { \
 		if (cl_error != CL_SUCCESS) { \
-			fprintf(stderr, "OpenCL error (%s) in %s:%d - %s\n", \
+			fprintf(stderr, "OpenCL %s error in %s:%d - %s\n", \
 			    get_error_name(cl_error), __FILE__, __LINE__, message); \
 			error(); \
 		} \
