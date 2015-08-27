@@ -535,7 +535,7 @@ unshadow.o:	unshadow.c misc.h params.h memory.h memdbg.h
 
 vncpcap2john.o:	vncpcap2john.c autoconfig.h cygwin/ethernet.h tcphdr.h memdbg.h
 
-win32_memmap.o:	win32_memmap.c os.h win32_memmap.h memdbg.h
+win32_memmap.o:	win32_memmap.c os.h win32_memmap.h error.h memdbg.h
 
 wordlist.o:	wordlist.c autoconfig.h os.h win32_memmap.h mmap-windows.c arch.h jumbo.h misc.h math.h params.h common.h path.h signals.h loader.h logger.h status.h recovery.h options.h rpp.h rules.h external.h cracker.h john.h memory.h unicode.h regex.h mask.h memdbg.h
 
