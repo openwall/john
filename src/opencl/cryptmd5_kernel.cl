@@ -19,6 +19,7 @@
 #endif
 
 #if gpu_amd(DEVICE_INFO)
+#pragma OPENCL EXTENSION cl_amd_media_ops : enable
 #define BITALIGN(hi, lo, s) amd_bitalign((hi), (lo), (s))
 #else
 #if nvidia_sm_32plus(DEVICE_INFO) /* sm_32 or better */
