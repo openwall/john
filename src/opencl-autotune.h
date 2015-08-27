@@ -13,6 +13,7 @@
 #ifndef _COMMON_TUNE_H
 #define _COMMON_TUNE_H
 
+#include "config.h"
 #include "common-opencl.h"
 
 /* Step size for work size enumeration. Zero will double. */
@@ -118,20 +119,40 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 
 	need_best_lws = !local_work_size && !getenv("LWS");
 	if (need_best_lws) {
-#if 0
-		// 1st run without specified LWS (will use NULL)
-		local_work_size = 0;
-#elif 0
-		// 1st run with fixed figure (that depends on device type)
-		if (cpu(device_info[gpu_id]))
-			local_work_size = get_platform_vendor_id(platform_id) == DEV_INTEL ?
-				8 : 1;
-		else
-			local_work_size = 64;
-#else
-		// 1st run with LWS set from OpenCL query (warp size) for main kernel
-		local_work_size = get_kernel_preferred_multiple(gpu_id, crypt_kernel);
-#endif
+		int cfg_lws;
+
+		cfg_lws = cfg_get_int(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		                      "AutotuneLWS");
+
+		switch (cfg_lws) {
+		case 0:
+			// Use NULL (OpenCL implementation will decide)
+			local_work_size = 0;
+			break;
+
+		case 1:
+			// Set from OpenCL query (warp size)
+			local_work_size =
+				get_kernel_preferred_multiple(gpu_id, crypt_kernel);
+			break;
+
+		default:
+			if (cfg_lws < 0) {
+				fprintf(stderr,
+				    "Error: AutotuneLWS must be a positive number (now set to %d)\n",
+				    cfg_lws);
+				error();
+			}
+			if (cpu(device_info[gpu_id]))
+				local_work_size =
+					get_platform_vendor_id(platform_id) == DEV_INTEL ?
+					8 : 1;
+			else {
+				// 1st run with fixed figure
+				local_work_size = cfg_lws;
+			}
+			break;
+		}
 	}
 
 	if (gws_limit && (global_work_size > gws_limit))
