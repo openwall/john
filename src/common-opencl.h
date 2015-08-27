@@ -223,10 +223,10 @@ void opencl_process_event(void);
 #define BENCH_CLERROR(cl_error, message)	  \
 	do { \
 		if ((cl_error) != CL_SUCCESS) { \
-			if (options.verbosity > 4) \
+			if (!ocl_autotune_running || options.verbosity > 4) \
 				fprintf(stderr, "OpenCL error (%s) in %s:%d - %s\n", \
 			        get_error_name(cl_error), __FILE__, __LINE__, message); \
-			if (ocl_autotune_running) \
+			if (!ocl_autotune_running) \
 				error(); \
 			else \
 				return -1; \
