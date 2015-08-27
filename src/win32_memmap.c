@@ -1,9 +1,10 @@
 #include "os.h"
 #if HAVE_WINDOWS_H
 
-#include "win32_memmap.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "win32_memmap.h"
+#include "misc.h"
 #include "memdbg.h"
 
 //#pragma comment(lib, "user32.lib")
