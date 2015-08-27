@@ -127,7 +127,10 @@ static int split_events[] = { 2, -1, -1 };
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	size_t min_lws =
+		autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	return MIN(min_lws, autotune_get_task_max_work_group_size(FALSE, 0,
+	                                                          split_kernel));
 }
 
 static void create_clobj(size_t kpc, struct fmt_main *self)

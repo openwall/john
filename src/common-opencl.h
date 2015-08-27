@@ -124,6 +124,7 @@ typedef struct {
 extern int platform_id;
 extern int default_gpu_selected;
 extern int ocl_autotune_running;
+extern size_t ocl_max_lws;
 
 extern cl_device_id devices[MAX_GPU_DEVICES];
 extern cl_context context[MAX_GPU_DEVICES];

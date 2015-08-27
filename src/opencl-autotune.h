@@ -147,8 +147,9 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 		  get_power_of_two(local_work_size);
 
 	/* Ensure local_work_size is not oversized */
-	if (local_work_size > get_task_max_work_group_size())
-		local_work_size = get_task_max_work_group_size();
+	ocl_max_lws = get_task_max_work_group_size();
+	if (local_work_size > ocl_max_lws)
+		local_work_size = ocl_max_lws;
 
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
 	need_best_gws = !global_work_size;
@@ -181,7 +182,10 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 		fprintf(stderr,
 		        "Local worksize (LWS) "Zu", global worksize (GWS) "Zu"\n",
 		        local_work_size, global_work_size);
-
+#ifdef DEBUG
+	else if (!(options.flags & FLG_SHOW_CHK))
+		fprintf(stderr, "{"Zu"/"Zu"} ", global_work_size, local_work_size);
+#endif
 	self->params.min_keys_per_crypt = local_work_size * ocl_v_width;
 	self->params.max_keys_per_crypt = global_work_size * ocl_v_width;
 

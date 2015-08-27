@@ -61,6 +61,7 @@
 int platform_id;
 int default_gpu_selected;
 int ocl_autotune_running;
+size_t ocl_max_lws;
 
 static char opencl_log[LOG_SIZE];
 static int kernel_loaded;
@@ -807,6 +808,7 @@ void opencl_done()
 
 	/* Reset in case we load another format after this */
 	local_work_size = global_work_size = duration_time = 0;
+	ocl_max_lws = 0;
 	ocl_v_width = 1;
 	fmt_base_name[0] = 0;
 	opencl_initialized = 0;
@@ -1277,7 +1279,8 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	if (platform_apple(platform_id) && cpu(device_info[sequential_id]))
 		max_group_size = 1;
 	else
-		max_group_size = get_kernel_max_lws(sequential_id, crypt_kernel);
+		max_group_size = ocl_max_lws ?
+			ocl_max_lws : get_kernel_max_lws(sequential_id, crypt_kernel);
 
 	if (max_group_size > group_size_limit)
 		// Needed to deal (at least) with cryptsha512-opencl limits.
