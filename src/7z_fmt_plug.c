@@ -509,11 +509,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	/* Tricky formula, see GitHub #1692 :-) */
 	if (!indices)
-		indices = mem_alloc(max_kpc + MIN(PLAINTEXT_LENGTH + 1, max_kpc) *
-		                    (NBKEYS - 1) * sizeof(int));
+		indices = mem_alloc((max_kpc + MIN(PLAINTEXT_LENGTH + 1, max_kpc) *
+		                     (NBKEYS - 1)) * sizeof(int));
 	if (!master)
-		master =  mem_alloc(max_kpc + MIN(PLAINTEXT_LENGTH + 1, max_kpc) *
-		                    (NBKEYS - 1) * sizeof(*master));
+		master =  mem_alloc((max_kpc + MIN(PLAINTEXT_LENGTH + 1, max_kpc) *
+		                     (NBKEYS - 1)) * sizeof(*master));
 #else
 	if (!master)
 		master =  mem_alloc(max_kpc * sizeof(*master));
