@@ -22,14 +22,14 @@
 #define BITALIGN(hi, lo, s) amd_bitalign((hi), (lo), (s))
 #else
 #if nvidia_sm_32plus(DEVICE_INFO) /* sm_32 or better */
-static inline uint funnel_shift_right(uint hi, uint lo, uint s) {
+inline uint funnel_shift_right(uint hi, uint lo, uint s) {
 	uint r;
 	asm("shf.r.wrap.b32 %0, %1, %2, %3;"
 	    : "=r" (r)
 	    : "r" (lo), "r" (hi), "r" (s));
 	return r;
 }
-static inline uint funnel_shift_right_imm(uint hi, uint lo, uint s) {
+inline uint funnel_shift_right_imm(uint hi, uint lo, uint s) {
 	uint r;
 	asm("shf.r.wrap.b32 %0, %1, %2, %3;"
 	    : "=r" (r)
@@ -142,7 +142,7 @@ __constant uchar g[] =
 	    1, 7, 3, 5, 2, 7, 1, 7, 3, 5, 3, 6, 1, 7, 3, 5, 3, 7 };
 
 #ifdef BUF_UPDATE_SWITCH
-static inline void buf_update(uint * buf, uint a, uint b, uint c, uint d, uint offset)
+inline void buf_update(uint * buf, uint a, uint b, uint c, uint d, uint offset)
 {
 	uint i = offset >> 2;
 	switch (offset & 3) {
@@ -200,7 +200,7 @@ static inline void buf_update(uint * buf, uint a, uint b, uint c, uint d, uint o
 	}
 }
 #else
-static inline void buf_update(uint * buf, uint a, uint b, uint c, uint d, uint offset)
+inline void buf_update(uint * buf, uint a, uint b, uint c, uint d, uint offset)
 {
 	uint i = offset >> 2;
 	uint j = offset & 3;
@@ -230,7 +230,7 @@ static inline void buf_update(uint * buf, uint a, uint b, uint c, uint d, uint o
 }
 #endif
 
-static inline void ctx_update(md5_ctx * ctx, uchar * string, uint len,
+inline void ctx_update(md5_ctx * ctx, uchar * string, uint len,
     uint * ctx_buflen)
 {
 	uint i;
@@ -241,7 +241,7 @@ static inline void ctx_update(md5_ctx * ctx, uchar * string, uint len,
 	*ctx_buflen += len;
 }
 
-static inline void ctx_update_prefix(md5_ctx * ctx, uchar prefix, uint * ctx_buflen)
+inline void ctx_update_prefix(md5_ctx * ctx, uchar prefix, uint * ctx_buflen)
 {
 	uint i;
 
@@ -259,7 +259,7 @@ static inline void ctx_update_prefix(md5_ctx * ctx, uchar prefix, uint * ctx_buf
 	// else if (prefix == '\0') do nothing. for {smd5}
 }
 
-static inline void init_ctx(md5_ctx * ctx, uint * ctx_buflen)
+inline void init_ctx(md5_ctx * ctx, uint * ctx_buflen)
 {
 	uint i;
 	uint *buf = (uint *) ctx->buffer;
@@ -272,7 +272,7 @@ static inline void init_ctx(md5_ctx * ctx, uint * ctx_buflen)
 	*ctx_buflen = 0;
 }
 
-static void md5_digest(md5_ctx * ctx, uint * result, uint len,
+inline void md5_digest(md5_ctx * ctx, uint * result, uint len,
     uint res_offset)
 {
 	uint *x = ctx->buffer;
