@@ -285,7 +285,7 @@ static void reset(struct db_main *db)
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
 		                       warn, 2, self,
 		                       create_clobj, release_clobj,
-		                       sizeof(sevenzip_salt), 0);
+		                       sizeof(sevenzip_state), 0);
 
 		//  Auto tune execution from shared/included code.
 		autotune_run(self, 1 << 19, 0, 15000000000ULL);
@@ -527,6 +527,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+
+	//fprintf(stderr, "%s(%d) lws %zu gws %zu\n", __FUNCTION__, count, local_work_size, global_work_size);
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);

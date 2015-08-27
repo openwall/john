@@ -1274,7 +1274,10 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		wg_multiple = get_kernel_preferred_multiple(sequential_id,
 		              crypt_kernel);
 
-	max_group_size = get_kernel_max_lws(sequential_id, crypt_kernel);
+	if (platform_apple(platform_id) && cpu(device_info[sequential_id]))
+		max_group_size = 1;
+	else
+		max_group_size = get_kernel_max_lws(sequential_id, crypt_kernel);
 
 	if (max_group_size > group_size_limit)
 		// Needed to deal (at least) with cryptsha512-opencl limits.
