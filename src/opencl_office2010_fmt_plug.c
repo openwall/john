@@ -297,7 +297,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t gws, scalar_gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	gws = GET_MULTIPLE_OR_BIGGER_VW(count, local_work_size);
 	scalar_gws = gws * ocl_v_width;
 
 	if (any_cracked) {

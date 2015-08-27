@@ -248,8 +248,11 @@ void opencl_process_event(void);
 
 /* Macro for get a multiple of a given value */
 #define GET_MULTIPLE_OR_BIGGER(dividend, divisor)	  \
+    (divisor) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
+
+/* Vector-aware version */
+#define GET_MULTIPLE_OR_BIGGER_VW(dividend, divisor)	  \
 	(divisor) ? ((dividend + (ocl_v_width * divisor - 1)) / (ocl_v_width * divisor)) * divisor : (dividend) / ocl_v_width;
-//    (divisor) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
 
 #define GET_MULTIPLE_OR_ZERO(dividend, divisor)	  \
 	((divisor) ? ((dividend / divisor) * divisor) : (dividend))
