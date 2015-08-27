@@ -67,7 +67,7 @@ john_register_one(&fmt_ocl_cryptsha1);
 #define ITERATIONS		(64000*2+2)
 
 /* This handles all widths */
-#define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + ((index) / v_width) * 64 * v_width)
+#define GETPOS(i, index)	(((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
 
 static unsigned int *inbuffer;
 static pbkdf1_out *host_crack;
@@ -75,7 +75,6 @@ static pbkdf1_salt *host_salt;
 static cl_int cl_error;
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static size_t key_buf_size;
-static unsigned int v_width = 1;	/* Vector width of kernel */
 static cl_kernel pbkdf1_init, pbkdf1_loop, pbkdf1_final;
 static int new_keys;
 static struct fmt_main *self;
@@ -92,7 +91,7 @@ static int split_events[] = { 2, -1, -1 };
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	size_t kpc = gws * v_width;
+	size_t kpc = gws * ocl_v_width;
 
 #define CL_RO CL_MEM_READ_ONLY
 #define CL_WO CL_MEM_WRITE_ONLY
@@ -163,18 +162,18 @@ static void init(struct fmt_main *_self)
 	opencl_prepare_dev(gpu_id);
 	/* Nvidia Kepler benefits from 2x interleaved code */
 	if (!options.v_width && nvidia_sm_3x(device_info[gpu_id]))
-		v_width = 2;
+		ocl_v_width = 2;
 	else
 	/* VLIW5 does better with just 2x vectors due to GPR pressure */
 	if (!options.v_width && amd_vliw5(device_info[gpu_id]))
-		v_width = 2;
+		ocl_v_width = 2;
 	else
-		v_width = opencl_get_vector_width(gpu_id, sizeof(cl_int));
+		ocl_v_width = opencl_get_vector_width(gpu_id, sizeof(cl_int));
 
-	if (v_width > 1) {
+	if (ocl_v_width > 1) {
 		/* Run vectorized kernel */
 		snprintf(valgo, sizeof(valgo),
-		         ALGORITHM_NAME " %ux", v_width);
+		         ALGORITHM_NAME " %ux", ocl_v_width);
 		self->params.algorithm_name = valgo;
 	}
 }
@@ -187,7 +186,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DHASH_LOOPS=%u -DOUTLEN=%u "
 		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
-		         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, v_width);
+		         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, ocl_v_width);
 		opencl_init("$JOHN/kernels/pbkdf1_hmac_sha1_kernel.cl",
 		            gpu_id, build_opts);
 
@@ -201,7 +200,7 @@ static void reset(struct db_main *db)
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
 		                       2, self, create_clobj, release_clobj,
-		                       v_width *
+		                       ocl_v_width *
 		                       (PLAINTEXT_LENGTH + sizeof(pbkdf1_out)),
 		                       0);
 
@@ -262,8 +261,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t scalar_gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = local_work_size ? ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : count / v_width;
-	scalar_gws = global_work_size * v_width;
+	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	scalar_gws = global_work_size * ocl_v_width;
 #if 0
 	fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu"\n", __FUNCTION__,
 	        count, local_work_size, global_work_size, scalar_gws);

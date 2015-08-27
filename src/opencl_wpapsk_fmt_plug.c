@@ -26,7 +26,6 @@ john_register_one(&fmt_opencl_wpapsk);
 
 static cl_mem mem_in, mem_out, mem_salt, mem_state, pinned_in, pinned_out;
 static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final_md5, wpapsk_final_sha1;
-static unsigned int v_width = 1;	/* Vector width of kernel */
 static size_t key_buf_size;
 static unsigned int *inbuffer;
 static struct fmt_main *self;
@@ -50,9 +49,9 @@ static struct fmt_main *self;
 #define OCL_CONFIG		"wpapsk"
 
 /* This handles all sizes */
-#define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + ((index) / v_width) * 64 * v_width)
+#define GETPOS(i, index)	(((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
 /* This is faster but can't handle size 3 */
-//#define GETPOS(i, index)	(((index) & (v_width - 1)) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + ((index) / v_width) * 64 * v_width)
+//#define GETPOS(i, index)	(((index) & (ocl_v_width - 1)) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
 
 extern wpapsk_salt currentsalt;
 extern mic_t *mic;
@@ -91,7 +90,7 @@ static size_t get_task_max_work_group_size()
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	gws *= v_width;
+	gws *= ocl_v_width;
 
 	key_buf_size = 64 * gws;
 
@@ -203,14 +202,14 @@ static void init(struct fmt_main *_self)
 	opencl_prepare_dev(gpu_id);
 	/* VLIW5 does better with just 2x vectors due to GPR pressure */
 	if (!options.v_width && amd_vliw5(device_info[gpu_id]))
-		v_width = 2;
+		ocl_v_width = 2;
 	else
-		v_width = opencl_get_vector_width(gpu_id, sizeof(cl_int));
+		ocl_v_width = opencl_get_vector_width(gpu_id, sizeof(cl_int));
 
-	if (v_width > 1) {
+	if (ocl_v_width > 1) {
 		/* Run vectorized kernel */
 		snprintf(valgo, sizeof(valgo),
-		         ALGORITHM_NAME " %ux", v_width);
+		         ALGORITHM_NAME " %ux", ocl_v_width);
 		self->params.algorithm_name = valgo;
 	}
 }
@@ -232,7 +231,7 @@ static void reset(struct db_main *db)
 		         custom_opts ? custom_opts : "",
 		         custom_opts ? " " : "",
 		         HASH_LOOPS, ITERATIONS,
-		         PLAINTEXT_LENGTH, v_width);
+		         PLAINTEXT_LENGTH, ocl_v_width);
 		opencl_init("$JOHN/kernels/wpapsk_kernel.cl", gpu_id, build_opts);
 
 		// create kernels to execute
@@ -251,7 +250,7 @@ static void reset(struct db_main *db)
 		opencl_init_auto_setup(SEED, 2 * HASH_LOOPS, split_events,
 		                       warn, 2, self,
 		                       create_clobj, release_clobj,
-		                       2 * v_width * sizeof(wpapsk_state), 0);
+		                       2 * ocl_v_width * sizeof(wpapsk_state), 0);
 
 		// Auto tune execution from shared/included code.
 		autotune_run(self, 2 * ITERATIONS * 2 + 2, 0,
@@ -267,8 +266,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t scalar_gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = local_work_size ? ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : count / v_width;
-	scalar_gws = global_work_size * v_width;
+	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	scalar_gws = global_work_size * ocl_v_width;
 
 	/// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, scalar_gws * 64, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");

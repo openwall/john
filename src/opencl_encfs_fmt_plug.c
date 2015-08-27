@@ -54,7 +54,7 @@ john_register_one(&fmt_opencl_encfs);
 #define SALT_ALIGN			MEM_ALIGN_WORD
 
 /* This handles all widths */
-#define GETPOS(i, index)	(((index) % v_width) * 4 + ((i) & ~3U) * v_width + (((i) & 3) ^ 3) + ((index) / v_width) * 64 * v_width)
+#define GETPOS(i, index)	(((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
 
 static int *cracked;
 static int any_cracked;
@@ -76,14 +76,13 @@ static unsigned int *inbuffer;
 static pbkdf2_out *output;
 static pbkdf2_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
-static unsigned int v_width = 1;	/* Vector width of kernel */
 static size_t key_buf_size;
 static int new_keys;
 static struct fmt_main *self;
 
 static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final;
 
-#define cracked_size (sizeof(*cracked) * global_work_size * v_width)
+#define cracked_size (sizeof(*cracked) * global_work_size * ocl_v_width)
 
 /*
  * HASH_LOOPS is ideally made by factors of (iteration count - 1) and should
@@ -122,7 +121,7 @@ struct fmt_main *me;
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	gws *= v_width;
+	gws *= ocl_v_width;
 
 	key_buf_size = 64 * gws;
 
@@ -189,14 +188,14 @@ static void init(struct fmt_main *_self)
 	opencl_prepare_dev(gpu_id);
 	/* VLIW5 does better with just 2x vectors due to GPR pressure */
 	if (!options.v_width && amd_vliw5(device_info[gpu_id]))
-		v_width = 2;
+		ocl_v_width = 2;
 	else
-		v_width = opencl_get_vector_width(gpu_id, sizeof(cl_int));
+		ocl_v_width = opencl_get_vector_width(gpu_id, sizeof(cl_int));
 
-	if (v_width > 1) {
+	if (ocl_v_width > 1) {
 		/* Run vectorized kernel */
 		snprintf(valgo, sizeof(valgo),
-		         OCL_ALGORITHM_NAME " %ux" CPU_ALGORITHM_NAME, v_width);
+		         OCL_ALGORITHM_NAME " %ux" CPU_ALGORITHM_NAME, ocl_v_width);
 		self->params.algorithm_name = valgo;
 	}
 }
@@ -209,7 +208,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DHASH_LOOPS=%u -DOUTLEN=%u "
 		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
-		         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, v_width);
+		         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, ocl_v_width);
 		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_kernel.cl", gpu_id, build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
@@ -223,7 +222,7 @@ static void reset(struct db_main *db)
 		opencl_init_auto_setup(SEED, 2*HASH_LOOPS, split_events,
 		                       warn, 2, self, create_clobj,
 		                       release_clobj,
-		                       v_width * sizeof(pbkdf2_state), 0);
+		                       ocl_v_width * sizeof(pbkdf2_state), 0);
 
 		//Auto tune execution from shared/included code.
 		autotune_run(self, 2 * (ITERATIONS - 1) + 4, 0,
@@ -277,8 +276,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t scalar_gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = local_work_size ? ((*pcount + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : *pcount / v_width;
-	scalar_gws = global_work_size * v_width;
+	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	scalar_gws = global_work_size * ocl_v_width;
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);

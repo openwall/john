@@ -134,7 +134,7 @@ extern cl_kernel crypt_kernel;
 extern size_t local_work_size;
 extern size_t global_work_size;
 extern size_t max_group_size;
-extern unsigned int opencl_v_width;
+extern unsigned int ocl_v_width;
 extern char *kernel_source;
 
 extern cl_event *profilingEvent, *firstEvent, *lastEvent;
@@ -245,7 +245,7 @@ void opencl_process_event(void);
 
 /* Macro for get a multiple of a given value */
 #define GET_MULTIPLE_OR_BIGGER(dividend, divisor)	  \
-	(divisor) ? ((dividend + (opencl_v_width * divisor - 1)) / (opencl_v_width * divisor)) * divisor : (dividend) / opencl_v_width;
+	(divisor) ? ((dividend + (ocl_v_width * divisor - 1)) / (ocl_v_width * divisor)) * divisor : (dividend) / ocl_v_width;
 //    (divisor) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
 
 #define GET_MULTIPLE_OR_ZERO(dividend, divisor)	  \

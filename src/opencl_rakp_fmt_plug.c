@@ -78,7 +78,6 @@ static unsigned int *keys;
 static unsigned int *idx;
 static ARCH_WORD_32 (*digest);
 static unsigned int key_idx = 0;
-static unsigned int v_width = 1;	/* Vector width of kernel */
 static int partial_output;
 static struct fmt_main *self;
 
@@ -136,7 +135,7 @@ static void set_key(char *key, int index);
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	gws *= v_width;
+	gws *= ocl_v_width;
 
 	keys = mem_alloc((PLAINTEXT_LENGTH + 1) * gws);
 	idx = mem_calloc(gws, sizeof(*idx));
@@ -206,14 +205,14 @@ static void init(struct fmt_main *_self)
 	opencl_prepare_dev(gpu_id);
 	/* VLIW5 does better with just 2x vectors due to GPR pressure */
 	if (!options.v_width && amd_vliw5(device_info[gpu_id]))
-		v_width = 2;
+		ocl_v_width = 2;
 	else
-		v_width = opencl_get_vector_width(gpu_id, sizeof(cl_int));
+		ocl_v_width = opencl_get_vector_width(gpu_id, sizeof(cl_int));
 
-	if (v_width > 1) {
+	if (ocl_v_width > 1) {
 		/* Run vectorized kernel */
 		snprintf(valgo, sizeof(valgo),
-		         ALGORITHM_NAME " %ux", v_width);
+		         ALGORITHM_NAME " %ux", ocl_v_width);
 		self->params.algorithm_name = valgo;
 	}
 }
@@ -224,7 +223,7 @@ static void reset(struct db_main *db)
 		size_t gws_limit;
 		char build_opts[64];
 
-		snprintf(build_opts, sizeof(build_opts), "-DV_WIDTH=%u", v_width);
+		snprintf(build_opts, sizeof(build_opts), "-DV_WIDTH=%u", ocl_v_width);
 		opencl_init("$JOHN/kernels/rakp_kernel.cl", gpu_id, build_opts);
 
 		// create kernel to execute
@@ -233,14 +232,14 @@ static void reset(struct db_main *db)
 
 		// Current key_idx can only hold 26 bits of offset so
 		// we can't reliably use a GWS higher than 4M or so.
-		gws_limit = MIN((1 << 26) * 4 / (v_width * BUFFER_SIZE),
+		gws_limit = MIN((1 << 26) * 4 / (ocl_v_width * BUFFER_SIZE),
 		                get_max_mem_alloc_size(gpu_id) /
-		                (v_width * BUFFER_SIZE));
+		                (ocl_v_width * BUFFER_SIZE));
 
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
 		                       self, create_clobj, release_clobj,
-		                       v_width * BUFFER_SIZE, gws_limit);
+		                       ocl_v_width * BUFFER_SIZE, gws_limit);
 
 		//Auto tune execution from shared/included code.
 		autotune_run(self, ROUNDS, gws_limit, 200);
@@ -364,13 +363,13 @@ static int cmp_exact(char *source, int index)
 	int i;
 
 	if (partial_output) {
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], digest_buffer, CL_TRUE, 0, BINARY_SIZE * global_work_size * v_width, digest, 0, NULL, NULL), "failed reading results back");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], digest_buffer, CL_TRUE, 0, BINARY_SIZE * global_work_size * ocl_v_width, digest, 0, NULL, NULL), "failed reading results back");
 		partial_output = 0;
 	}
 	b = (ARCH_WORD_32*)get_binary(source);
 
 	for(i = 0; i < BINARY_SIZE / 4; i++)
-		if (digest[i * global_work_size * v_width + index] != b[i])
+		if (digest[i * global_work_size * ocl_v_width + index] != b[i])
 			return 0;
 	return 1;
 }
@@ -381,8 +380,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t scalar_gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = local_work_size ? ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : count / v_width;
-	scalar_gws = global_work_size * v_width;
+	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	scalar_gws = global_work_size * ocl_v_width;
 
 	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu" kidx %u\n", __FUNCTION__, count, local_work_size, global_work_size, scalar_gws, key_idx);
 

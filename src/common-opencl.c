@@ -98,7 +98,7 @@ cl_kernel crypt_kernel;
 size_t local_work_size;
 size_t global_work_size;
 size_t max_group_size;
-unsigned int opencl_v_width = 1;
+unsigned int ocl_v_width = 1;
 
 char *kernel_source;
 static char *kernel_source_file;
@@ -743,7 +743,7 @@ unsigned int opencl_get_vector_width(int sequential_id, int size)
 
 	/* --force-vector-width=N */
 	if (options.v_width) {
-		opencl_v_width = options.v_width;
+		ocl_v_width = options.v_width;
 	} else {
 		cl_uint v_width = 0;
 
@@ -778,9 +778,9 @@ unsigned int opencl_get_vector_width(int sequential_id, int size)
 			fprintf(stderr, "%s() called with unknown type\n", __FUNCTION__);
 			error();
 		}
-		opencl_v_width = v_width;
+		ocl_v_width = v_width;
 	}
-	return opencl_v_width;
+	return ocl_v_width;
 }
 
 /* Called by core after calling format's done() */
@@ -807,7 +807,7 @@ void opencl_done()
 
 	/* Reset in case we load another format after this */
 	local_work_size = global_work_size = duration_time = 0;
-	opencl_v_width = 1;
+	ocl_v_width = 1;
 	fmt_base_name[0] = 0;
 	opencl_initialized = 0;
 	crypt_kernel = NULL;
@@ -1076,7 +1076,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 {
 	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
 	int i, count, tidx = 0, total = 0;
-	size_t kpc = gws * opencl_v_width;
+	size_t kpc = gws * ocl_v_width;
 	cl_event benchEvent[MAX_EVENTS];
 	int number_of_events = 0;
 	void *salt;
@@ -1323,7 +1323,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 
 	// Warm-up run
 	local_work_size = wg_multiple;
-	count = global_work_size * opencl_v_width;
+	count = global_work_size * ocl_v_width;
 	self->methods.crypt_all(&count, NULL);
 
 	// Activate events. Then clear them later.
@@ -1331,7 +1331,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		multi_profilingEvent[i] = &benchEvent[i];
 
 	// Timing run
-	count = global_work_size * opencl_v_width;
+	count = global_work_size * ocl_v_width;
 	self->methods.crypt_all(&count, NULL);
 
 	HANDLE_CLERROR(clWaitForEvents(1, &benchEvent[main_opencl_event]),
@@ -1377,7 +1377,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 			for (j = 0; j < MAX_EVENTS; j++)
 				multi_profilingEvent[j] = &benchEvent[j];
 
-			count = global_work_size * opencl_v_width;
+			count = global_work_size * ocl_v_width;
 			if (self->methods.crypt_all(&count, NULL) < 0) {
 				startTime = endTime = 0;
 
@@ -1499,7 +1499,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 
 	for (num = autotune_get_next_gws_size(num, step, 1, default_value);;
 	        num = autotune_get_next_gws_size(num, step, 0, default_value)) {
-		size_t kpc = num * opencl_v_width;
+		size_t kpc = num * ocl_v_width;
 
 		// Check if hardware can handle the size we are going
 		// to try now.

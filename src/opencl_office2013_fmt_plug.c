@@ -72,7 +72,6 @@ static struct fmt_tests tests[] = {
 static ms_office_custom_salt *cur_salt;
 
 static int *cracked, any_cracked;
-static unsigned int v_width = 1;	/* Vector width of kernel */
 
 static char *saved_key;	/* Password encoded in UCS-2 */
 static int *saved_len;	/* UCS-2 password length, in octets */
@@ -116,7 +115,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	int i;
 	int bench_len = strlen(tests[0].plaintext) * 2;
 
-	gws *= v_width;
+	gws *= ocl_v_width;
 
 	pinned_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
@@ -211,8 +210,8 @@ static void done(void)
 
 static void clear_keys(void)
 {
-	memset(saved_key, 0, UNICODE_LENGTH * global_work_size * v_width);
-	memset(saved_len, 0, sizeof(*saved_len) * global_work_size * v_width);
+	memset(saved_key, 0, UNICODE_LENGTH * global_work_size * ocl_v_width);
+	memset(saved_len, 0, sizeof(*saved_len) * global_work_size * ocl_v_width);
 }
 
 static void set_key(char *key, int index)
@@ -252,11 +251,11 @@ static void init(struct fmt_main *_self)
 	   Well it can, and it does get faster but only at a GWS that will
 	   give a total time for crypt_all() of > 30 seconds. */
 	if (options.v_width || !amd_vliw5(device_info[gpu_id]))
-	if ((v_width = opencl_get_vector_width(gpu_id,
+	if ((ocl_v_width = opencl_get_vector_width(gpu_id,
 	                                       sizeof(cl_long))) > 1) {
 		/* Run vectorized kernel */
 		snprintf(valgo, sizeof(valgo),
-		         OCL_ALGORITHM_NAME " %ux" CPU_ALGORITHM_NAME, v_width);
+		         OCL_ALGORITHM_NAME " %ux" CPU_ALGORITHM_NAME, ocl_v_width);
 		self->params.algorithm_name = valgo;
 	}
 
@@ -273,7 +272,7 @@ static void reset(struct db_main *db)
 		         "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u -DV_WIDTH=%u",
 		         HASH_LOOPS,
 		         UNICODE_LENGTH,
-		         v_width);
+		         ocl_v_width);
 		opencl_init("$JOHN/kernels/office2013_kernel.cl", gpu_id,
 		            build_opts);
 
@@ -288,7 +287,7 @@ static void reset(struct db_main *db)
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
 		                       3, self, create_clobj, release_clobj,
-		                       v_width * UNICODE_LENGTH, 0);
+		                       ocl_v_width * UNICODE_LENGTH, 0);
 
 		//Auto tune execution from shared/included code.
 		autotune_run(self, ITERATIONS + 4, 0,
@@ -304,8 +303,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t gws, scalar_gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	gws = ((count + (v_width * (local_work_size ? local_work_size : 1) - 1)) / (v_width * (local_work_size ? local_work_size : 1))) * (local_work_size ? local_work_size : 1);
-	scalar_gws = gws * v_width;
+	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	scalar_gws = gws * ocl_v_width;
 
 	if (any_cracked) {
 		memset(cracked, 0, count * sizeof(*cracked));

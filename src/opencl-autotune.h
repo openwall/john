@@ -182,8 +182,8 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 		        "Local worksize (LWS) "Zu", global worksize (GWS) "Zu"\n",
 		        local_work_size, global_work_size);
 
-	self->params.min_keys_per_crypt = local_work_size * opencl_v_width;
-	self->params.max_keys_per_crypt = global_work_size * opencl_v_width;
+	self->params.min_keys_per_crypt = local_work_size * ocl_v_width;
+	self->params.max_keys_per_crypt = global_work_size * ocl_v_width;
 
 	autotuned++;
 	ocl_autotune_running = 0;
