@@ -226,7 +226,7 @@ void opencl_process_event(void);
 			if (options.verbosity > 4) \
 				fprintf(stderr, "OpenCL error (%s) in %s:%d - %s\n", \
 			        get_error_name(cl_error), __FILE__, __LINE__, message); \
-			if (salt) \
+			if (ocl_autotune_running) \
 				error(); \
 			else \
 				return -1; \
