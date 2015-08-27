@@ -234,12 +234,6 @@ static void set_salt(void *salt)
 #endif
 }
 
-static void opencl_limit_gws(int count)
-{
-	global_work_size =
-	    (count + local_work_size - 1) / local_work_size * local_work_size;
-}
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int i;
@@ -250,7 +244,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	loops += host_salt->rounds % HASH_LOOPS > 0;
-	opencl_limit_gws(count);
 
 #if 0
 	printf("crypt_all(%d)\n", count);
