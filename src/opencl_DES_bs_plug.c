@@ -93,7 +93,7 @@ static unsigned char DES_atoi64[0x100] = {
 	53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 0, 1, 2, 3, 4
 };
 
-static void init_index()
+void opencl_DES_bs_init_index()
 {
 	int p,q,s,t ;
 	int round, index, bit;
@@ -121,7 +121,7 @@ void opencl_DES_bs_init(int block)
 	int index;
 
 	if (block == 0)
-		init_index();
+		opencl_DES_bs_init_index();
 
 	for (index = 0; index < DES_BS_DEPTH; index++)
 		opencl_DES_bs_all[block].pxkeys[index] =

@@ -505,3 +505,4 @@ void opencl_DES_bs_b_register_functions(struct fmt_main *fmt)
 	opencl_DES_bs_select_device = select_device;
 }
 #endif /* HAVE_OPENCL */
+
