@@ -1884,7 +1884,7 @@ static int parse_expression(DC_struct *p) {
 							ELSEIF(SKEIN224,fskn224,7,28) ELSEIF(SKEIN256,fskn256,7,32)
 							ELSEIF(SKEIN384,fskn384,7,48) ELSEIF(SKEIN512,fskn512,7,64)
 							ELSEIF(SHA3_224,fsha3_224,9,28) ELSEIF(SHA3_256,fsha3_256,9,32) ELSEIF(SHA3_384,fsha3_384,9,48) ELSEIF(SHA3_512,fsha3_512,9,64)
-							ELSEIF(KECCAK_256,fkeccak_256,11,32) ELSEIF(KECCAK_512,fkeccak_256,11,64)
+							ELSEIF(KECCAK_256,fkeccak_256,11,32) ELSEIF(KECCAK_512,fkeccak_512,11,64)
 							// LARGE_HASH_EDIT_POINT
 						} else {
 							if (append_mode2 && pCode[last_push-1][0] != '.') {
