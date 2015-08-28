@@ -50,7 +50,6 @@
 #define amd_vliw5(n)                ((n & DEV_AMD_VLIW5) && gpu_amd(n))
 #define nvidia_sm_2x(n)             ((n & DEV_NV_C2X) && gpu_nvidia(n))
 #define nvidia_sm_3x(n)             (((n & DEV_NV_C30) || (n & DEV_NV_C32) || (n & DEV_NV_C35)) && gpu_nvidia(n))
-#define nvidia_sm_32plus(n)         (((n & DEV_NV_C32) || (n & DEV_NV_C35) || (n & DEV_NV_C5X)) && gpu_nvidia(n))
 #define nvidia_sm_5x(n)             ((n & DEV_NV_C5X) && gpu_nvidia(n))
 #define no_byte_addressable(n)      ((n & DEV_NO_BYTE_ADDRESSABLE))
 #define use_local(n)                ((n & DEV_USE_LOCAL))

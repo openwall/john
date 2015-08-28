@@ -49,7 +49,7 @@ typedef long int64_t;
 #pragma OPENCL EXTENSION cl_amd_media_ops : enable
 #define BITALIGN(hi, lo, s) amd_bitalign((hi), (lo), (s))
 #else
-#if nvidia_sm_32plus(DEVICE_INFO) /* sm_32 or better */
+#if SM_MAJOR > 3 || (SM_MAJOR == 3 && SM_MINOR >= 2)
 inline uint funnel_shift_right(uint hi, uint lo, uint s) {
 	uint r;
 	asm("shf.r.wrap.b32 %0, %1, %2, %3;"

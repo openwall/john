@@ -69,7 +69,7 @@ static size_t program_size;
 static int opencl_initialized;
 
 extern volatile int bench_running;
-static void opencl_get_dev_info(int sequential_id);
+static char* opencl_get_dev_info(int sequential_id);
 static void find_valid_opencl_device(int *dev_id, int *platform_id);
 
 // Used by auto-tuning to decide how GWS should changed between trials.
@@ -914,7 +914,8 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	sprintf(include, "-I %s %s %s%s%s%s%d %s -D_OPENCL_COMPILER %s",
 	        path_expand(pathname),
 	        global_opts,
-	        get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_MESA ? "-D__MESA__" : "",
+	        get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_MESA ?
+	            "-D__MESA__" : opencl_get_dev_info(sequential_id),
 #ifdef __APPLE__
 	        "-D__OS_X__ ",
 #else
@@ -1565,12 +1566,15 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 	duration_time = save_duration_time;
 }
 
-static void opencl_get_dev_info(int sequential_id)
+static char* opencl_get_dev_info(int sequential_id)
 {
+	static char ret[32];
 	cl_device_type device;
 	unsigned int major = 0, minor = 0;
 
 	device = get_device_type(sequential_id);
+
+	ret[0] = 0;
 
 	if (device == CL_DEVICE_TYPE_CPU)
 		device_info[sequential_id] = DEV_CPU;
@@ -1586,6 +1590,8 @@ static void opencl_get_dev_info(int sequential_id)
 	get_compute_capability(sequential_id, &major, &minor);
 
 	if (major) {
+		snprintf(ret, sizeof(ret), "-DSM_MAJOR=%d -DSM_MINOR=%d ",
+		         major, minor);
 		device_info[sequential_id] += (major == 2 ? DEV_NV_C2X : 0);
 		device_info[sequential_id] +=
 		    (major == 3 && minor == 0 ? DEV_NV_C30 : 0);
@@ -1595,6 +1601,8 @@ static void opencl_get_dev_info(int sequential_id)
 		    (major == 3 && minor == 5 ? DEV_NV_C35 : 0);
 		device_info[sequential_id] += (major == 5 ? DEV_NV_C5X : 0);
 	}
+
+	return ret;
 }
 
 static void find_valid_opencl_device(int *dev_id, int *platform_id)
