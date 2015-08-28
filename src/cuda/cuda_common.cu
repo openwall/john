@@ -23,7 +23,7 @@ void HandleError(cudaError_t err, const char *file, int line)
 		    cudaGetErrorString(err), file, line);
 		if (err == cudaErrorLaunchOutOfResources)
 			fprintf(stderr, "Try decreasing THREADS in the corresponding cuda*h file. See doc/README-CUDA\n");
-		error();
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -81,11 +81,11 @@ void cuda_device_list()
 	ret = cudaGetDeviceCount(&devices);
 	if (ret == cudaErrorNoDevice) {
 		puts("Error: No CUDA-capable devices were detected by the installed CUDA driver.\n");
-		error();
+		exit(EXIT_FAILURE);
 	}
 	if (ret == cudaErrorInsufficientDriver) {
 		puts("Error: The installed NVIDIA CUDA driver is older than the CUDA runtime library.\nThis is not a supported configuration. Update your display driver.\n");
-		error();
+		exit(EXIT_FAILURE);
 	}
 	if (cudaRuntimeGetVersion(&version) == cudaSuccess)
 		printf("CUDA runtime version %d.%d\n",
