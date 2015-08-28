@@ -2233,15 +2233,15 @@ void opencl_list_devices(void)
 				/* Obtain information about platform */
 				clGetPlatformInfo(platforms[i].platform,
 				                  CL_PLATFORM_NAME, sizeof(dname), dname, NULL);
-				printf("Platform #%d name: %s\n", i, dname);
+				printf("Platform #%d name: %s, ", i, dname);
 				clGetPlatformInfo(platforms[i].platform,
 				                  CL_PLATFORM_VERSION, sizeof(dname), dname, NULL);
-				printf("Platform version: %s\n", dname);
+				printf("version: %s\n", dname);
 
 				clGetPlatformInfo(platforms[i].platform,
 				                  CL_PLATFORM_EXTENSIONS, sizeof(dname), dname, NULL);
 				if (options.verbosity > 3)
-					printf("\tPlatform extensions:\t%s\n", dname);
+					printf("    Platform extensions:    %s\n", dname);
 
 				/* Obtain a list of devices available */
 				if (!platforms[i].num_devices)
@@ -2254,30 +2254,30 @@ void opencl_list_devices(void)
 			p = dname;
 			while (isspace(ARCH_INDEX(*p))) /* Intel quirk */
 				p++;
-			printf("\tDevice #%d (%d) name:\t%s\n", j, sequence_nr, p);
+			printf("    Device #%d (%d) name:     %s\n", j, sequence_nr, p);
 
 			// Check if device seems to be working.
 			if (!start_opencl_device(sequence_nr, &err_type)) {
 
 				if (err_type == 1)
-					printf("\tStatus:\t\t\t%s (%s)\n",
+					printf("    Status:                 %s (%s)\n",
 					       "Context creation error", get_error_name(ret_code));
 				else
-					printf("\tStatus:\t\t\t%s (%s)\n",
+					printf("    Status:                 %s (%s)\n",
 					       "Queue creation error", get_error_name(ret_code));
 			}
 
 			ret = clGetDeviceInfo(devices[sequence_nr],
 			                      CL_DEVICE_BOARD_NAME_AMD, sizeof(dname), dname, NULL);
 			if (ret == CL_SUCCESS && strlen(dname))
-				printf("\tBoard name:\t\t%s\n", dname);
+				printf("    Board name:             %s\n", dname);
 
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_VENDOR,
 			                sizeof(dname), dname, NULL);
-			printf("\tDevice vendor:\t\t%s\n", dname);
+			printf("    Device vendor:          %s\n", dname);
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_TYPE,
 			                sizeof(cl_ulong), &long_entries, NULL);
-			printf("\tDevice type:\t\t");
+			printf("    Device type:            ");
 			if (long_entries & CL_DEVICE_TYPE_CPU)
 				printf("CPU ");
 			if (long_entries & CL_DEVICE_TYPE_GPU)
@@ -2295,14 +2295,14 @@ void opencl_list_devices(void)
 			printf("(%s)\n", boolean == CL_TRUE ? "LE" : "BE");
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_VERSION,
 			                sizeof(dname), dname, NULL);
-			printf("\tDevice version:\t\t%s\n", dname);
-			printf("\tDriver version:\t\t%s\n",
+			printf("    Device version:         %s\n", dname);
+			printf("    Driver version:         %s\n",
 			       opencl_driver_info(sequence_nr));
 
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR,
 			                sizeof(cl_uint), &entries, NULL);
-			printf("\tNative vector widths:\tchar %d, ", entries);
+			printf("    Native vector widths:   char %d, ", entries);
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT,
 			                sizeof(cl_uint), &entries, NULL);
@@ -2319,7 +2319,7 @@ void opencl_list_devices(void)
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR,
 			                sizeof(cl_uint), &entries, NULL);
-			printf("\tPreferred vector width:\tchar %d, ", entries);
+			printf("    Preferred vector width: char %d, ", entries);
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT,
 			                sizeof(cl_uint), &entries, NULL);
@@ -2339,20 +2339,20 @@ void opencl_list_devices(void)
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_ERROR_CORRECTION_SUPPORT,
 			                sizeof(cl_bool), &boolean, NULL);
-			printf("\tGlobal Memory:\t\t%s%s\n",
+			printf("    Global Memory:          %s%s\n",
 			       human_format((unsigned long long)long_entries),
 			       boolean == CL_TRUE ? " (ECC)" : "");
 
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_EXTENSIONS, sizeof(dname), dname, NULL);
 			if (options.verbosity > 3)
-				printf("\tDevice extensions:\t%s\n", dname);
+				printf("    Device extensions:      %s\n", dname);
 
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_GLOBAL_MEM_CACHE_SIZE,
 			                sizeof(cl_ulong), &long_entries, NULL);
 			if (long_entries)
-				printf("\tGlobal Memory Cache:\t%s\n",
+				printf("    Global Memory Cache:    %s\n",
 				       human_format((unsigned long long)long_entries)
 				      );
 			clGetDeviceInfo(devices[sequence_nr],
@@ -2361,33 +2361,33 @@ void opencl_list_devices(void)
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_LOCAL_MEM_TYPE,
 			                sizeof(cl_device_local_mem_type), &memtype, NULL);
-			printf("\tLocal Memory:\t\t%s (%s)\n",
+			printf("    Local Memory:           %s (%s)\n",
 			       human_format((unsigned long long)long_entries),
 			       memtype == CL_LOCAL ? "Local" : "Global");
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_MAX_MEM_ALLOC_SIZE,
 			                sizeof(long_entries), &long_entries, NULL);
-			printf("\tMax memory alloc. size:\t%s\n",
+			printf("    Max memory alloc. size: %s\n",
 			       human_format(long_entries));
 			ret = clGetDeviceInfo(devices[sequence_nr],
 			                      CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(cl_int), &entries, NULL);
 			if (ret == CL_SUCCESS && entries)
-				printf("\tMax clock (MHz):\t%u\n", entries);
+				printf("    Max clock (MHz):        %u\n", entries);
 			ret = clGetDeviceInfo(devices[sequence_nr],
 			                      CL_DEVICE_PROFILING_TIMER_RESOLUTION,
 			                      sizeof(size_t), &z_entries, NULL);
 			if (ret == CL_SUCCESS && z_entries)
-				printf("\tProfiling timer res.:\t"Zu" ns\n", z_entries);
+				printf("    Profiling timer res.:   "Zu" ns\n", z_entries);
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &p_size, NULL);
-			printf("\tMax Work Group Size:\t%d\n", (int)p_size);
+			printf("    Max Work Group Size:    %d\n", (int)p_size);
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &entries, NULL);
-			printf("\tParallel compute cores:\t%d\n", entries);
+			printf("    Parallel compute cores: %d\n", entries);
 
 			long_entries = get_processors_count(sequence_nr);
 			if (ocl_device_list[sequence_nr].cores_per_MP > 1)
-				printf("\tStream processors:\t"LLu" "
+				printf("    Stream processors:      "LLu" "
 				       " (%d x %d)\n",
 				       (unsigned long long)long_entries,
 				       entries, ocl_device_list[sequence_nr].cores_per_MP);
@@ -2395,14 +2395,14 @@ void opencl_list_devices(void)
 			ret = clGetDeviceInfo(devices[sequence_nr],
 			                      CL_DEVICE_WARP_SIZE_NV, sizeof(cl_uint), &long_entries, NULL);
 			if (ret == CL_SUCCESS)
-				printf("\tWarp size:\t\t"LLu"\n",
+				printf("    Warp size:              "LLu"\n",
 				       (unsigned long long)long_entries);
 
 			ret = clGetDeviceInfo(devices[sequence_nr],
 			                      CL_DEVICE_REGISTERS_PER_BLOCK_NV,
 			                      sizeof(cl_uint), &long_entries, NULL);
 			if (ret == CL_SUCCESS)
-				printf("\tMax. GPRs/work-group:\t"LLu"\n",
+				printf("    Max. GPRs/work-group:   "LLu"\n",
 				       (unsigned long long)long_entries);
 
 			if (gpu_nvidia(device_info[sequence_nr])) {
@@ -2410,30 +2410,30 @@ void opencl_list_devices(void)
 
 				get_compute_capability(sequence_nr, &major, &minor);
 				if (major && minor)
-					printf("\tCompute capability:\t%u.%u "
+					printf("    Compute capability:     %u.%u "
 					       "(sm_%u%u)\n", major, minor, major, minor);
 			}
 			ret = clGetDeviceInfo(devices[sequence_nr],
 			                      CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV,
 			                      sizeof(cl_bool), &boolean, NULL);
 			if (ret == CL_SUCCESS)
-				printf("\tKernel exec. timeout:\t%s\n",
+				printf("    Kernel exec. timeout:   %s\n",
 				       boolean ? "yes" : "no");
 
 			if (ocl_device_list[sequence_nr].pci_info.bus >= 0) {
-				printf("\tPCI device topology:\t%s\n",
+				printf("    PCI device topology:    %s\n",
 				       ocl_device_list[sequence_nr].pci_info.busId);
 			}
 			fan = temp = util = -1;
 #if __linux__ && HAVE_LIBDL
 			if (gpu_nvidia(device_info[sequence_nr]) && nvml_lib) {
-				printf("\tNVML id:\t\t%d\n",
+				printf("    NVML id:                %d\n",
 				       id2nvml(ocl_device_list[sequence_nr].pci_info));
 				nvidia_get_temp(id2nvml(ocl_device_list[sequence_nr].pci_info),
 				                &temp, &fan, &util);
 			} else if (gpu_amd(device_info[sequence_nr])) {
 				if (adl_lib) {
-					printf("\tADL:\t\t\tOverdrive%d, device id %d\n",
+					printf("    ADL:                    Overdrive%d, device id %d\n",
 					       adl2od[id2adl(ocl_device_list[sequence_nr].pci_info)],
 					       id2adl(ocl_device_list[sequence_nr].pci_info));
 					amd_get_temp(id2adl(ocl_device_list[sequence_nr].pci_info),
@@ -2442,13 +2442,13 @@ void opencl_list_devices(void)
 			}
 #endif
 			if (fan >= 0)
-				printf("\tFan speed:\t\t%u%%\n", fan);
+				printf("    Fan speed:              %u%%\n", fan);
 			if (temp >= 0)
-				printf("\tTemperature:\t\t%u" DEGC "\n", temp);
+				printf("    Temperature:            %u" DEGC "\n", temp);
 			if (util >= 0)
-				printf("\tUtilization:\t\t%u%%\n", util);
+				printf("    Utilization:            %u%%\n", util);
 			else if (temp >= 0)
-				printf("\tUtilization:\t\tn/a\n");
+				printf("    Utilization:            n/a\n");
 			puts("");
 		}
 	}

@@ -88,10 +88,10 @@ void cuda_device_list()
 		exit(EXIT_FAILURE);
 	}
 	if (cudaRuntimeGetVersion(&version) == cudaSuccess)
-		printf("CUDA runtime version %d.%d\n",
+		printf("CUDA runtime %d.%d, ",
 		       version / 1000, (version % 100) / 10);
 	if (cudaDriverGetVersion(&version) == cudaSuccess)
-		printf("CUDA driver version %d.%d\n",
+		printf("driver %d.%d - ",
 		       version / 1000, (version % 100) / 10);
 
 	printf("%d CUDA device%s found:\n", devices, devices > 1 ? "s" : "");
@@ -102,91 +102,91 @@ void cuda_device_list()
 
 		cudaGetDeviceProperties(&devProp, i);
 		printf("\nCUDA Device #%d\n", i);
-		printf("\tName:                          %s\n", devProp.name);
-		printf("\tType:                          %s%s\n",
+		printf("    Name:                          %s\n", devProp.name);
+		printf("    Type:                          %s%s\n",
 		    devProp.integrated ? "integrated" : "discrete",
 		    devProp.tccDriver ? " (Tesla running tcc)" : "");
-		printf("\tCompute capability:            %d.%d (sm_%d%d)\n",
+		printf("    Compute capability:            %d.%d (sm_%d%d)\n",
 		       devProp.major, devProp.minor,
 		       devProp.major, devProp.minor);
 
 		if (devProp.major == 2 && devProp.minor >= 1)
-		printf("\tNumber of stream processors:   %d (%d x %d)\n",
+		printf("    Number of stream processors:   %d (%d x %d)\n",
 		    devProp.multiProcessorCount * 48,
 		    devProp.multiProcessorCount, 48);
 		if (devProp.major <= 5 && arch_sm[devProp.major])
-		printf("\tNumber of stream processors:   %d (%d x %d)\n",
+		printf("    Number of stream processors:   %d (%d x %d)\n",
 		    devProp.multiProcessorCount * arch_sm[devProp.major],
 		    devProp.multiProcessorCount, arch_sm[devProp.major]);
 		else /* We need to populate the arch_sm[] above */
-		printf("\tNumber of multiprocessors:     %d\n",
+		printf("    Number of multiprocessors:     %d\n",
 		    devProp.multiProcessorCount);
 
-		printf("\tClock rate:                    %d Mhz\n",
+		printf("    Clock rate:                    %d Mhz\n",
 		    devProp.clockRate / 1000);
-		printf("\tMemory clock rate (peak)       %d Mhz\n",
+		printf("    Memory clock rate (peak)       %d Mhz\n",
 		    devProp.memoryClockRate / 1000);
-		printf("\tMemory bus width               %d bits\n",
+		printf("    Memory bus width               %d bits\n",
 		    devProp.memoryBusWidth);
-		printf("\tPeak memory bandwidth:         %u GB/s\n",
+		printf("    Peak memory bandwidth:         %u GB/s\n",
 		    2 * devProp.memoryClockRate *
 		    (devProp.memoryBusWidth / 8) /
 		    1000000);
-		printf("\tTotal global memory:           %s%s\n",
+		printf("    Total global memory:           %s%s\n",
 		    human_format(devProp.totalGlobalMem),
 		    devProp.ECCEnabled ? " (ECC)" : "");
-		printf("\tTotal shared memory per block: %s\n",
+		printf("    Total shared memory per block: %s\n",
 		    human_format(devProp.sharedMemPerBlock));
-		printf("\tTotal constant memory:         %s\n",
+		printf("    Total constant memory:         %s\n",
 		    human_format(devProp.totalConstMem));
 
 		if (devProp.l2CacheSize)
-		printf("\tL2 cache size                  %s\n",
+		printf("    L2 cache size                  %s\n",
 		    human_format(devProp.l2CacheSize));
 		else
-		printf("\tL2 cache:                      No\n");
+		printf("    L2 cache:                      No\n");
 
-		printf("\tKernel execution timeout:      %s\n",
+		printf("    Kernel execution timeout:      %s\n",
 		    (devProp.kernelExecTimeoutEnabled ? "Yes" : "No"));
-		printf("\tConcurrent copy and execution: %s\n",
+		printf("    Concurrent copy and execution: %s\n",
 		    (devProp.asyncEngineCount == 2 ?
 		     "Bi-directional" : devProp.asyncEngineCount == 1 ?
 		     "One direction" : "No"));
-		printf("\tConcurrent kernels support:    %s\n",
+		printf("    Concurrent kernels support:    %s\n",
 		    (devProp.concurrentKernels ? "Yes" : "No"));
-		printf("\tWarp size:                     %d\n",
+		printf("    Warp size:                     %d\n",
 		    devProp.warpSize);
-		printf("\tMax. GPRs/thread block         %d\n",
+		printf("    Max. GPRs/thread block         %d\n",
 		    devProp.regsPerBlock);
-		printf("\tMax. threads per block         %d\n",
+		printf("    Max. threads per block         %d\n",
 		    devProp.maxThreadsPerBlock);
-		printf("\tMax. resident threads per MP   %d\n",
+		printf("    Max. resident threads per MP   %d\n",
 		    devProp.maxThreadsPerMultiProcessor);
-		printf("\tPCI device topology:           %02x:%02x.%x\n",
+		printf("    PCI device topology:           %02x:%02x.%x\n",
 		    devProp.pciBusID, devProp.pciDeviceID, devProp.pciDomainID);
 #if __linux__ && HAVE_LIBDL
 		if (nvml_lib) {
 			int fan, temp, util;
 			int nvml_id = cuda_id2nvml(i);
 
-			printf("\tNVML id:                       %d\n",
+			printf("    NVML id:                       %d\n",
 			       nvml_id);
 			fan = temp = util = -1;
 
 			nvidia_get_temp(nvml_id, &temp, &fan, &util);
 			if (fan >= 0)
-				printf("\tFan speed:                     %d%%\n", fan);
+				printf("    Fan speed:                     %d%%\n", fan);
 			else
-				printf("\tFan speed:                     n/a\n");
+				printf("    Fan speed:                     n/a\n");
 			if (temp >= 0)
-				printf("\tGPU temp:                      %d"
+				printf("    GPU temp:                      %d"
 				       DEGC "\n", temp);
 			else
-				printf("\tGPU temp:                      n/a\n");
+				printf("    GPU temp:                      n/a\n");
 			if (util >= 0)
-				printf("\tUtilization:                   %d%%\n", util);
+				printf("    Utilization:                   %d%%\n", util);
 			else
-				printf("\tUtilization:                   n/a\n");
+				printf("    Utilization:                   n/a\n");
 		}
 #endif
 		puts("");
