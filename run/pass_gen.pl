@@ -3147,36 +3147,35 @@ sub dynamic_compile {
 			my $dyna_func_which = $dynamic_args%10;
 			my $dyna_func_range = $dynamic_args-$dyna_func_which;
 			my %dyna_hashes = (
-				50=>'sha224',		60=>'sha256',	70=>'sha384',	80=>'sha512',	90=>'gost',
-				100=>'whirlpool',	110=>'tiger',	120=>'ripemd128',	130=>'ripemd160',	140=>'ripemd256',
-				150=>'ripemd320',	370=>'sha3_224',380=>'sha3_256',	390=>'sha3_384',	400=>'sha3_512',
-				410=>'keccak_256',	420=>'keccak_512' );
+				50=>'sha224',		60=>'sha256',		70=>'sha384',	80=>'sha512',	90=>'gost',
+				100=>'whirlpool',	110=>'tiger',		120=>'ripemd128',	130=>'ripemd160',	140=>'ripemd256',
+				150=>'ripemd320',	370=>'sha3_224',	380=>'sha3_256',	390=>'sha3_384',	400=>'sha3_512',
+				410=>'keccak_256',	420=>'keccak_512',	310=>'md2' );
 
 # NOTE, these are still part of dynamic in JtR, but may not be handled here.
 # Some may NOT be able to be done within perl.  Haval does have some Perl
-# support, but not nearly as much as john has.
-#define MGF__HAVAL128_3  0x0E
-#define MGF__HAVAL128_4  0x0F
-#define MGF__HAVAL128_5  0x10
-#define MGF__HAVAL160_3  0x11
-#define MGF__HAVAL160_4  0x12
-#define MGF__HAVAL160_5  0x13
-#define MGF__HAVAL192_3  0x14
-#define MGF__HAVAL192_4  0x15
-#define MGF__HAVAL192_5  0x16
-#define MGF__HAVAL224_3  0x17
-#define MGF__HAVAL224_4  0x18
-#define MGF__HAVAL224_5  0x19
-#define MGF__HAVAL256_3  0x1A
-#define MGF__HAVAL256_4  0x1B
-#define MGF__HAVAL256_5  0x1C
-#define MGF__MD2         0x1D
-#define MGF__PANAMA      0x1E
-#define MGF__SKEIN224    0x1F
-#define MGF__SKEIN256    0x20
-#define MGF__SKEIN384    0x21
-#define MGF__SKEIN512    0x22
-
+# support, but not nearly as much as john has.  Skein is the wrong version
+# perl is 1.2 and john is 1.3
+#dynamic_160 -->HAVAL128_3($p)
+#dynamic_170 -->HAVAL128_4($p)
+#dynamic_180 -->HAVAL128_5($p)
+#dynamic_190 -->HAVAL160_3($p)
+#dynamic_200 -->HAVAL160_4($p)
+#dynamic_210 -->HAVAL160_5($p)
+#dynamic_220 -->HAVAL192_3($p)
+#dynamic_230 -->HAVAL192_4($p)
+#dynamic_240 -->HAVAL192_5($p)
+#dynamic_250 -->HAVAL224_3($p)
+#dynamic_260 -->HAVAL224_4($p)
+#dynamic_270 -->HAVAL224_5($p)
+#dynamic_280 -->HAVAL256_3($p)
+#dynamic_290 -->HAVAL256_4($p)
+#dynamic_300 -->HAVAL256_5($p)
+#dynamic_320 -->PANAMA($p)
+#dynamic_330 -->SKEIN224($p)
+#dynamic_340 -->SKEIN256($p)
+#dynamic_350 -->SKEIN384($p)
+#dynamic_360 -->SKEIN512($p)
 			my $ht = $dyna_hashes{$dynamic_args-$dyna_func_which};
 			if (!defined($ht)) { return $func; }
 			SWITCH: {
@@ -3346,6 +3345,7 @@ sub do_dynamic_GetToken {
 	if (substr($exprStr, 0,12) eq "sha3_512_raw") { return dyna_addtok("fsha3_512r", substr($exprStr,12)); }
 	if (substr($exprStr, 0,14) eq "keccak_256_raw") { return dyna_addtok("fkeccak_256r", substr($exprStr,14)); }
 	if (substr($exprStr, 0,14) eq "keccak_512_raw") { return dyna_addtok("fkeccak_512r", substr($exprStr,14)); }
+	if (substr($exprStr, 0, 7) eq "md2_raw") { return dyna_addtok("fmd2r", substr($exprStr, 7)); }
 	if (substr($exprStr, 0, 8) eq "gost_raw")   { return dyna_addtok("fgostr",substr($exprStr, 8)); }
 	if (substr($exprStr, 0,13) eq "whirlpool_raw") { return dyna_addtok("fwrlpr", substr($exprStr, 13)); }
 	if (substr($exprStr, 0, 9) eq "tiger_raw")     { return dyna_addtok("ftigr", substr($exprStr, 9)); }
@@ -3461,6 +3461,11 @@ sub do_dynamic_GetToken {
 		if (substr($exprStr, 0,13) eq "keccak_512_64") { return dyna_addtok("fkeccak_5126", substr($exprStr, 13)); }
 		if (substr($exprStr, 0,10) eq "KECCAK_512")    { return dyna_addtok("fkeccak_512H", substr($exprStr, 10)); }
 		if (substr($exprStr, 0,10) eq "keccak_512")    { return dyna_addtok("fkeccak_512h", substr($exprStr, 10)); }
+	}  elsif ($stmp eq "MD2") {
+		if (substr($exprStr, 0, 7) eq "md2_64c")   { return dyna_addtok("fmd2c", substr($exprStr, 7)); }
+		if (substr($exprStr, 0, 6) eq "md2_64")    { return dyna_addtok("fmd26", substr($exprStr, 6)); }
+		if (substr($exprStr, 0, 3) eq "md2")       { return dyna_addtok("fmd2h", substr($exprStr, 3)); }
+		if (substr($exprStr, 0, 3) eq "MD2")       { return dyna_addtok("fmd2H", substr($exprStr, 3)); }
 	}
 
 	$gen_lastTokIsFunc=0;
@@ -3989,3 +3994,8 @@ sub dynamic_fkeccak_512H  { require Digest::Keccak; import Digest::Keccak qw(kec
 sub dynamic_fkeccak_5126  { require Digest::Keccak; import Digest::Keccak qw(keccak_512_base64);  $h = pop @gen_Stack; $h = keccak_512_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fkeccak_512c  { require Digest::Keccak; import Digest::Keccak qw(keccak_512);         $h = pop @gen_Stack; $h = base64_wpa(keccak_512($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_fkeccak_512r  { require Digest::Keccak; import Digest::Keccak qw(keccak_512);         $h = pop @gen_Stack; $h = keccak_512($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fmd2h  { require Digest::MD2; import Digest::MD2 qw(md2_hex);     $h = pop @gen_Stack; $h = md2_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fmd2H  { require Digest::MD2; import Digest::MD2 qw(md2_hex);     $h = pop @gen_Stack; $h = uc md2_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fmd26  { require Digest::MD2; import Digest::MD2 qw(md2_base64);  $h = pop @gen_Stack; $h = md2_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fmd2c  { require Digest::MD2; import Digest::MD2 qw(md2);         $h = pop @gen_Stack; $h = base64_wpa(md2($h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_fmd2r  { require Digest::MD2; import Digest::MD2 qw(md2);         $h = pop @gen_Stack; $h = md2($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
