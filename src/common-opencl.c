@@ -1111,7 +1111,8 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 		len = strlen(self->params.tests[tidx].plaintext);
 		strncpy(uniq.c, self->params.tests[tidx++].plaintext, sizeof(uniq.c));
 		uniq.w ^= i;
-		uniq.c[len] = 0;        // Do not change length
+		uniq.w |= 0x20202020;   // Do not change length!
+		uniq.c[len] = 0;
 		self->methods.set_key(uniq.c, i);
 	}
 	// Set salt
@@ -1316,7 +1317,8 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		len = strlen(self->params.tests[tidx].plaintext);
 		strncpy(uniq.c, self->params.tests[tidx++].plaintext, sizeof(uniq.c));
 		uniq.w ^= i;
-		uniq.c[len] = 0;        // Do not change length
+		uniq.w |= 0x20202020;   // Do not change length!
+		uniq.c[len] = 0;
 		self->methods.set_key(uniq.c, i);
 	}
 	// Set salt
