@@ -16,11 +16,6 @@
 #include "unicode.h"
 #include "memdbg.h"
 
-#define DEPTH
-#define START
-#define init_depth()
-#define for_each_depth()
-
 opencl_DES_bs_combined *opencl_DES_bs_all;
 opencl_DES_bs_transfer *opencl_DES_bs_keys;
 int opencl_DES_bs_keys_changed = 1;
@@ -129,9 +124,9 @@ void opencl_DES_bs_set_key(char *key, int index)
 {
 	unsigned char *dst;
 	unsigned int sector,key_index;
-	unsigned int flag=key[0];
+	unsigned int flag = key[0];
 
-	sector = index >> DES_BS_LOG2;
+	sector = index >> DES_LOG_DEPTH;
 	key_index = index & (DES_BS_DEPTH - 1);
 	dst = opencl_DES_bs_all[sector].pxkeys[key_index];
 
@@ -191,7 +186,7 @@ int opencl_DES_bs_cmp_one_b(WORD *binary, int count, int index)
 	int depth;
 	unsigned int section;
 
-	section = index >> DES_BS_LOG2;
+	section = index >> DES_LOG_DEPTH;
 	index &= (DES_BS_DEPTH - 1);
 	depth = index >> 3;
 	index &= 7;
@@ -289,25 +284,22 @@ static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
 	DES_bs_vector *b;
 	unsigned int sector;
 
-	sector = index>>DES_BS_LOG2;
+	sector = index >> DES_LOG_DEPTH;
 	index &= (DES_BS_DEPTH-1);
 #if ARCH_LITTLE_ENDIAN
 /*
  * This is merely an optimization.  Nothing will break if this check for
  * little-endian archs is removed, even if the arch is in fact little-endian.
  */
-	init_depth();
-	//b = (DES_bs_vector *)&opencl_DES_bs_all[sector].opencl_DES_bs_cracked_hashes[0] DEPTH;
-	b = (DES_bs_vector *)&opencl_DES_bs_cracked_hashes[sector * 64] DEPTH;
+	b = (DES_bs_vector *)&opencl_DES_bs_cracked_hashes[sector * 64];
 #define GET_BIT(bit) \
-	(((unsigned WORD)b[(bit)] START >> index) & 1)
+	(((unsigned WORD)b[(bit)] >> index) & 1)
 #else
 	depth = index >> 3;
 	index &= 7;
-	//b = (DES_bs_vector *)((unsigned char *)&opencl_DES_bs_all[sector].opencl_DES_bs_cracked_hashes[0] START + depth);
-	b = (DES_bs_vector *)((unsigned char *)&opencl_DES_bs_cracked_hashes[sector * 64] START + depth);
+	b = (DES_bs_vector *)((unsigned char *)&opencl_DES_bs_cracked_hashes[sector * 64] + depth);
 #define GET_BIT(bit) \
-	(((unsigned int)*(unsigned char *)&b[(bit)] START >> index) & 1)
+	(((unsigned int)*(unsigned char *)&b[(bit)] >> index) & 1)
 #endif
 #define MOVE_BIT(bit) \
 	(GET_BIT(bit) << (bit))

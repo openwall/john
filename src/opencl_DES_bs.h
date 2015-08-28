@@ -17,7 +17,7 @@
 #define DES_BS_OPENCL_ALGORITHM_NAME		"DES OpenCL"
 
 #define DES_BS_DEPTH			32
-#define DES_BS_LOG2			5
+#define DES_LOG_DEPTH			5
 
 #define WORD                      	int
 
@@ -54,7 +54,6 @@ extern void opencl_DES_bs_h_register_functions(struct fmt_main *);
 extern void opencl_DES_bs_f_register_functions(struct fmt_main *);
 
 extern void (*opencl_DES_bs_init_global_variables)(void);
-extern void (*opencl_DES_bs_select_device)(struct fmt_main *);
 
 extern int opencl_DES_bs_get_hash_0(int index);
 extern int opencl_DES_bs_get_hash_1(int index);

@@ -71,8 +71,6 @@ static void init(struct fmt_main *pFmt)
 		else if (local_work_size < 32) local_work_size = 32;
 		else local_work_size = WORK_GROUP_SIZE;
 	}
-
-	opencl_DES_bs_select_device(pFmt);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)

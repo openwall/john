@@ -58,7 +58,7 @@
 
 #include "opencl_DES_kernel_params.h"
 
-#define z(p, q) vxorf(B[p], _local_K[q + local_offset_K])
+#define z(p, q) vxorf(B[p], s_des_bs_key[q + s_key_offset])
 
 #define H1_k0()\
         s1(z(index00, 12), z(index01, 46), z(index02, 33), z(index03, 52), z(index04, 48), z(index05, 20),\
@@ -491,25 +491,25 @@
 	H1_k672();	\
 	H2_k672();
 
-__kernel void DES_bs_25(__global DES_bs_vector *K,
-                        __global DES_bs_vector *B_global,
-			__global int *binary,
-			  uint num_loaded_hashes,
+__kernel void DES_bs_25(__global DES_bs_vector *des_bs_key,
+                        __global DES_bs_vector *cracked_hashes,
+			__global int *uncracked_hashes,
+			  uint num_uncracked_hashes,
 			  volatile __global uint *hash_ids,
-			  volatile __global uint *bitmap) {
+			  volatile __global uint *bitmap_dupe) {
 
-		unsigned int section = get_global_id(0), local_offset_K;
-		unsigned int local_id = get_local_id(0), i;
-		int global_work_size = get_global_size(0);
+		unsigned int section = get_global_id(0), s_key_offset;
+		unsigned int lid = get_local_id(0), i;
+		int gws = get_global_size(0);
 
-		local_offset_K  = 56 * local_id;
+		s_key_offset  = 56 * lid;
 
 		vtype B[64], tmp;
 
-		__local DES_bs_vector _local_K[56 * WORK_GROUP_SIZE];
+		__local DES_bs_vector s_des_bs_key[56 * WORK_GROUP_SIZE];
 
 		for (i = 0; i < 56; i++)
-			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
+			s_des_bs_key[lid * 56 + i] = des_bs_key[section + i * gws];
 		barrier(CLK_LOCAL_MEM_FENCE);
 
 		int iterations;
@@ -525,7 +525,7 @@ __kernel void DES_bs_25(__global DES_bs_vector *K,
 		}
 
 		BIG_SWAP();
-		cmp(B, binary, num_loaded_hashes, hash_ids, bitmap, B_global, section);
+		cmp(B, uncracked_hashes, num_uncracked_hashes, hash_ids, bitmap_dupe, cracked_hashes, section);
 
 		return;
 }

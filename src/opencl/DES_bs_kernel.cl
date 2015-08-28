@@ -9,11 +9,11 @@
 #include "opencl_DES_kernel_params.h"
 
 #ifndef RV7xx
-#define x(p) vxorf(B[ index96[p]], _local_K[_local_index768[p + k] + local_offset_K])
-#define y(p, q) vxorf(B[p]       , _local_K[_local_index768[q + k] + local_offset_K])
+#define x(p) vxorf(B[processed_salt[p]], s_des_bs_key[s_key_map[p + k] + s_key_offset])
+#define y(p, q) vxorf(B[p]       , s_des_bs_key[s_key_map[q + k] + s_key_offset])
 #else
-#define x(p) vxorf(B[index96[p] ], _local_K[index768[p + k] + local_offset_K])
-#define y(p, q) vxorf(B[p]       , _local_K[index768[q + k] + local_offset_K])
+#define x(p) vxorf(B[processed_salt[p]], s_des_bs_key[key_map[p + k] + s_key_offset])
+#define y(p, q) vxorf(B[p]       , s_des_bs_key[key_map[q + k] + s_key_offset])
 #endif
 
 #define H1()\
@@ -90,34 +90,34 @@
 		rounds_and_swapped--;
 #endif
 
-__kernel void DES_bs_25_b( constant uint *index768
+__kernel void DES_bs_25_b( constant uint *key_map
 #if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
                            __attribute__((max_constant_size(3072)))
 #endif
-                           ,constant int *index96
+                           ,constant int *processed_salt
 #if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
                            __attribute__((max_constant_size(384)))
 #endif
-			   ,__global DES_bs_vector *K,
-                           __global DES_bs_vector *B_global,
-                           __global int *binary,
-                           int num_loaded_hashes,
+			   ,__global DES_bs_vector *des_bs_key,
+                           __global DES_bs_vector *cracked_hashes,
+                           __global int *uncracked_hashes,
+                           int num_uncracked_hashes,
                            volatile __global uint *hash_ids,
-			   volatile __global uint *bitmap)
+			   volatile __global uint *bitmap_dupe)
 {
 
-		unsigned int section = get_global_id(0), local_offset_K;
-		unsigned int local_id = get_local_id(0);
-		unsigned int global_work_size = get_global_size(0);
-		unsigned int local_work_size = get_local_size(0);
+		unsigned int section = get_global_id(0), s_key_offset;
+		unsigned int lid = get_local_id(0);
+		unsigned int gws = get_global_size(0);
+		unsigned int lws = get_local_size(0);
 
-		local_offset_K  = 56 * local_id;
+		s_key_offset  = 56 * lid;
 
 		vtype B[64];
 
-		__local DES_bs_vector _local_K[56 * WORK_GROUP_SIZE] ;
+		__local DES_bs_vector s_des_bs_key[56 * WORK_GROUP_SIZE] ;
 #ifndef RV7xx
-		__local ushort _local_index768[768] ;
+		__local ushort s_key_map[768] ;
 #endif
 		int iterations;
 #ifndef SAFE_GOTO
@@ -128,11 +128,11 @@ __kernel void DES_bs_25_b( constant uint *index768
 		int k = 0, i;
 
 		for (i = 0; i < 56; i++)
-			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
+			s_des_bs_key[lid * 56 + i] = des_bs_key[section + i * gws];
 
 #ifndef RV7xx
-		for (i = 0; i < 768; i += local_work_size)
-			_local_index768[local_id + i] = index768[local_id + i];
+		for (i = 0; i < 768; i += lws)
+			s_key_map[lid + i] = key_map[lid + i];
 #endif
 		barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -170,7 +170,7 @@ start:
 
 		if (--iterations) goto swap;
 #endif
-		cmp(B, binary, num_loaded_hashes, hash_ids, bitmap, B_global, section);
+		cmp(B, uncracked_hashes, num_uncracked_hashes, hash_ids, bitmap_dupe, cracked_hashes, section);
 
 		return;
 #ifndef SAFE_GOTO
