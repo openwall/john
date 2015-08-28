@@ -26,7 +26,7 @@ opencl_DES_bs_transfer *opencl_DES_bs_keys;
 int opencl_DES_bs_keys_changed = 1;
 DES_bs_vector *opencl_DES_bs_cracked_hashes;
 
-static unsigned char opencl_DES_E[48] = {
+unsigned char opencl_DES_E[48] = {
 	31, 0, 1, 2, 3, 4,
 	3, 4, 5, 6, 7, 8,
 	7, 8, 9, 10, 11, 12,
@@ -123,11 +123,6 @@ void opencl_DES_bs_init(int block)
 	for (index = 0; index < DES_BS_DEPTH; index++)
 		opencl_DES_bs_all[block].pxkeys[index] =
 			&opencl_DES_bs_keys[block].xkeys.c[0][index & 7][index >> 3];
-
-	for (index = 0; index < 48; index++)
-		opencl_DES_bs_all[block].Ens[index] =
-			opencl_DES_E[index] + block * 64;
-	opencl_DES_bs_all[block].salt = 0xffffff;
 }
 
 void opencl_DES_bs_set_key(char *key, int index)

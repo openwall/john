@@ -135,16 +135,14 @@ static void clean_all_buffers()
 	MEM_FREE(processed_salts);
 }
 
+/* First call must use salt = 0, to initialize processed_salts. */
 static void build_salt(WORD salt)
 {
-	unsigned int new = salt;
-	unsigned int old;
+	unsigned int new;
+	static unsigned int old = 0xffffff;
 	int dst;
 
 	new = salt;
-	old = opencl_DES_bs_all[0].salt;
-	opencl_DES_bs_all[0].salt = new;
-
 	for (dst = 0; dst < 24; dst++) {
 		if ((new ^ old) & 1) {
 			DES_bs_vector sp1, sp2;
@@ -154,8 +152,8 @@ static void build_salt(WORD salt)
 				src1 = src2;
 				src2 = dst;
 			}
-			sp1 = opencl_DES_bs_all[0].Ens[src1];
-			sp2 = opencl_DES_bs_all[0].Ens[src2];
+			sp1 = opencl_DES_E[src1];
+			sp2 = opencl_DES_E[src2];
 			processed_salts[4096 * 96 + dst] = sp1;
 			processed_salts[4096 * 96 + dst + 24] = sp2;
 			processed_salts[4096 * 96 + dst + 48] = sp1 + 32;
@@ -166,6 +164,7 @@ static void build_salt(WORD salt)
 		if (new == old)
 			break;
 	}
+	old = salt;
 	memcpy(&processed_salts[salt * 96], &processed_salts[4096 * 96], 96 * sizeof(unsigned int));
 }
 

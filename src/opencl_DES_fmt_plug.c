@@ -52,8 +52,6 @@ void (*opencl_DES_bs_select_device)(struct fmt_main *);
 
 static void init(struct fmt_main *pFmt)
 {
-	unsigned int i;
-
 	if (HARDCODE_SALT && FULL_UNROLL)
 		opencl_DES_bs_f_register_functions(pFmt);
 	else if (HARDCODE_SALT)

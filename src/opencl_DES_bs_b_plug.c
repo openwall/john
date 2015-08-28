@@ -145,17 +145,15 @@ static void clean_all_buffers()
 	MEM_FREE(num_uncracked_hashes);
 }
 
+/* First call must use salt = 0, to initialize processed_salt. */
 static void build_salt(WORD salt)
 {
-	unsigned int new = salt;
-	unsigned int old;
-	unsigned int processed_salt[96];
+	unsigned int new;
+	static unsigned int old = 0xffffff;
+	static unsigned int processed_salt[96];
 	int dst;
 
 	new = salt;
-	old = opencl_DES_bs_all[0].salt;
-	opencl_DES_bs_all[0].salt = new;
-
 	for (dst = 0; dst < 24; dst++) {
 		if ((new ^ old) & 1) {
 			DES_bs_vector sp1, sp2;
@@ -165,8 +163,8 @@ static void build_salt(WORD salt)
 				src1 = src2;
 				src2 = dst;
 			}
-			sp1 = opencl_DES_bs_all[0].Ens[src1];
-			sp2 = opencl_DES_bs_all[0].Ens[src2];
+			sp1 = opencl_DES_E[src1];
+			sp2 = opencl_DES_E[src2];
 			processed_salt[dst] = sp1;
 			processed_salt[dst + 24] = sp2;
 			processed_salt[dst + 48] = sp1 + 32;
@@ -177,6 +175,7 @@ static void build_salt(WORD salt)
 		if (new == old)
 			break;
 	}
+	old = salt;
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_processed_salts[salt], CL_TRUE, 0, 96 * sizeof(unsigned int), processed_salt, 0, NULL, NULL), "Failed to write buffer buffer_processed_salts.\n");
 }
 
@@ -220,8 +219,7 @@ static void reset(struct db_main *db)
 		for (i = 0; i < global_work_size; i++)
 			opencl_DES_bs_init(i);
 
-		for (i = 0; i < 4096; i++)
-			build_salt(i);
+		build_salt(0);
 
 		uncracked_hashes = (int *) mem_calloc(2 * max_uncracked_hashes, sizeof(int));
 		salt = db->salts;
@@ -239,6 +237,7 @@ static void reset(struct db_main *db)
 				uncracked_hashes[i + salt->count] = binary[1];
 				i++;
 			} while ((pw = pw -> next));
+			build_salt(bin_salt);
 			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_uncracked_hashes[bin_salt], CL_TRUE, 0, (salt->count) * sizeof(int) * 2, uncracked_hashes, 0, NULL, NULL ), "Failed to write buffer buffer_uncracked_hashes.\n");
 		} while((salt = salt->next));
 
@@ -276,10 +275,9 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 7, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument buffer_bitmap_dupe, kernel DES_bs_25.\n");
 
 		for (i = 0; i < global_work_size; i++)
-		opencl_DES_bs_init(i);
+			opencl_DES_bs_init(i);
 
-		for (i = 0; i < 4096; i++)
-		build_salt(i);
+		build_salt(0);
 
 		hash_ids[0] = 0;
 		i = 0;
@@ -289,6 +287,7 @@ static void reset(struct db_main *db)
 			ciphertext = fmt_opencl_DES.methods.split(fmt_opencl_DES.params.tests[i].ciphertext, 0, &fmt_opencl_DES);
 			binary = (int *)fmt_opencl_DES.methods.binary(ciphertext);
 			salt = *(int *)fmt_opencl_DES.methods.salt(ciphertext);
+			build_salt(salt);
 			fprintf(stderr, "Salt:%d\n", salt);
 			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_uncracked_hashes[salt], CL_TRUE, ctr[salt] * sizeof(int), sizeof(int), &binary[0], 0, NULL, NULL ), "Failed to write buffer buffer_uncracked_hashes.\n");
 			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_uncracked_hashes[salt], CL_TRUE, (ctr[salt] + num_uncracked_hashes[salt]) * sizeof(int), sizeof(int), &binary[1], 0, NULL, NULL ), "Failed to write buffer buffer_uncracked_hashes.\n");
