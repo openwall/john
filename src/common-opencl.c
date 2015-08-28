@@ -1078,7 +1078,7 @@ static void clear_profiling_events()
 static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 {
 	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
-	int i, count, tidx = 0, total = 0;
+	int i, count, total = 0;
 	size_t kpc = gws * ocl_v_width;
 	cl_event benchEvent[MAX_EVENTS];
 	int number_of_events = 0;
@@ -1095,26 +1095,26 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	// Prepare buffers.
 	create_clobj(gws, self);
 
+
+	// Set keys - unique printable length-8 keys
 	self->methods.clear_keys();
-
-	// Set keys - all keys from tests will be benchmarked and some
-	// will be permuted to force them unique
-	for (i = 0; i < kpc; i++) {
+	{
 		union {
-			char c[PLAINTEXT_BUFFER_SIZE];
-			unsigned int w;
-		} uniq;
-		int len;
+			char c[9];
+			unsigned long w;
+		} key;
+		key.w = 0x6161616161616161ULL;
 
-		if (self->params.tests[tidx].plaintext == NULL)
-			tidx = 0;
-		len = strlen(self->params.tests[tidx].plaintext);
-		strncpy(uniq.c, self->params.tests[tidx++].plaintext, sizeof(uniq.c));
-		uniq.w ^= i;
-		uniq.w |= 0x20202020;   // Do not change length!
-		uniq.c[len] = 0;
-		self->methods.set_key(uniq.c, i);
+		for (i = 0; i < kpc; i++) {
+			int l = 0;
+
+			key.c[8] = 0;
+			self->methods.set_key(key.c, i);
+			while (++key.c[l] > 0x7a)
+				key.c[l++] = 0x20;
+		}
 	}
+
 	// Set salt
 	dyna_salt_init(self);
 	dyna_salt_create();
@@ -1250,7 +1250,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 {
 	size_t gws;
 	cl_int ret_code;
-	int i, j, numloops, count, tidx = 0;
+	int i, j, numloops, count;
 	size_t my_work_group, optimal_work_group;
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
@@ -1301,26 +1301,25 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	                         devices[sequential_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 
+	// Set keys - unique printable length-8 keys
 	self->methods.clear_keys();
-
-	// Set keys - all keys from tests will be benchmarked and some
-	// will be permuted to force them unique
-	for (i = 0; i < self->params.max_keys_per_crypt; i++) {
+	{
 		union {
-			char c[PLAINTEXT_BUFFER_SIZE];
-			unsigned int w;
-		} uniq;
-		int len;
+			char c[9];
+			unsigned long w;
+		} key;
+		key.w = 0x6161616161616161ULL;
 
-		if (self->params.tests[tidx].plaintext == NULL)
-			tidx = 0;
-		len = strlen(self->params.tests[tidx].plaintext);
-		strncpy(uniq.c, self->params.tests[tidx++].plaintext, sizeof(uniq.c));
-		uniq.w ^= i;
-		uniq.w |= 0x20202020;   // Do not change length!
-		uniq.c[len] = 0;
-		self->methods.set_key(uniq.c, i);
+		for (i = 0; i < global_work_size; i++) {
+			int l = 0;
+
+			key.c[8] = 0;
+			self->methods.set_key(key.c, i);
+			while (++key.c[l] > 0x7a)
+				key.c[l++] = 0x20;
+		}
 	}
+
 	// Set salt
 	dyna_salt_init(self);
 	dyna_salt_create();
