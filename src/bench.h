@@ -49,7 +49,7 @@ extern void clk_tck_init(void);
 /*
  * Benchmark time in seconds (per cracking algorithm).
  */
-extern unsigned int benchmark_time;
+extern int benchmark_time;
 
 /*
  * Benchmarks the supplied cracking algorithm. Returns NULL on success,
