@@ -110,7 +110,7 @@ static struct opt_entry opt_list[] = {
 #else
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK},
 #endif
-	{"rules", FLG_RULES_SET, FLG_RULES, FLG_RULES_ALLOW, FLG_STDIN_CHK,
+	{"rules", FLG_RULES, FLG_RULES, FLG_RULES_ALLOW, FLG_STDIN_CHK,
 		OPT_FMT_STR_ALLOC, &pers_opts.activewordlistrules},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
