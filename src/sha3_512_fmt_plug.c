@@ -34,19 +34,7 @@ john_register_one(&fmt_rawSHA3);
 
 #define FORMAT_LABEL			"Raw-SHA3"
 #define FORMAT_NAME			""
-#if defined(__AVX__)
-#define ALGORITHM_NAME			"128/128 AVX"
-#elif defined(__XOP__)
-#define ALGORITHM_NAME			"128/128 XOP"
-#elif defined(__SSE4_1__)
-#define ALGORITHM_NAME			"128/128 SSE4.1"
-#elif defined(__SSSE3__)
-#define ALGORITHM_NAME			"128/128 SSSE3"
-#elif defined(__SSE2__)
-#define ALGORITHM_NAME			"128/128 SSE2"
-#else
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
-#endif
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -65,6 +53,8 @@ john_register_one(&fmt_rawSHA3);
 
 static struct fmt_tests tests[] = {
 	{"a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26", ""},
+	{"6eb7b86765bf96a8467b72401231539cbb830f6c64120954c4567272f613f1364d6a80084234fa3400d306b9f5e10c341bbdc5894d9b484a8c7deea9cbe4e265", "abcd"},
+	{"3adc667b43bf846ca27bf09ebc0115982e38832c31115e5b23a85e101340c4ecd81ccce79257efdb1a846997803e8eb0df25c67f2bc2a43c2ae8379672317023", "MuchB4tter PassWord !her@"},
 	{NULL}
 };
 

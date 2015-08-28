@@ -110,7 +110,7 @@ static struct opt_entry opt_list[] = {
 #else
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK},
 #endif
-	{"rules", FLG_RULES_SET, FLG_RULES, FLG_RULES_ALLOW, FLG_STDIN_CHK,
+	{"rules", FLG_RULES, FLG_RULES, FLG_RULES_ALLOW, FLG_STDIN_CHK,
 		OPT_FMT_STR_ALLOC, &pers_opts.activewordlistrules},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
@@ -166,10 +166,10 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &show_uncracked_str},
 	{"test", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
-		~OPT_REQ_PARAM & ~FLG_NOLOG, "%u", &benchmark_time},
+		~OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_time},
 	{"test-full", FLG_TEST_FULL_SET, FLG_TEST_FULL_CHK,
 		0, ~FLG_TEST_FULL_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
-		~OPT_REQ_PARAM & ~FLG_NOLOG, "%u", &benchmark_time},
+		~OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_time},
 #ifdef HAVE_FUZZ
 	{"fuzz", FLG_FUZZ_SET, FLG_FUZZ_CHK,
 		0, ~FLG_FUZZ_DUMP_SET & ~FLG_FUZZ_SET & ~FLG_FORMAT &
@@ -257,7 +257,7 @@ static struct opt_entry opt_list[] = {
 	{"keep-guessing", FLG_KEEP_GUESSING, FLG_KEEP_GUESSING},
 	{"stress-test", FLG_LOOPTEST | FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
-		~OPT_REQ_PARAM & ~FLG_NOLOG, "%u", &benchmark_time},
+		~OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_time},
 	{NULL}
 };
 

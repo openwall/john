@@ -321,8 +321,6 @@ static char *get_key(int index)
 	return ret;
 }
 
-static int crypt_all(int *pcount, struct db_salt *salt);
-
 static void init(struct fmt_main *_self)
 {
 	self = _self;
@@ -364,24 +362,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
+	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	///Copy data to GPU memory
 	if (new_keys)
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE,
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE,
 			0, insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
 			"Copy memin");
 
 	///Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
 		NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]),
 		"Set ND range");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE,
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE,
 		0, outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),
 		"Copy data back");
 
 	///Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
 	new_keys = 0;
 	return count;

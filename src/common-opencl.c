@@ -54,12 +54,14 @@
 #ifdef JTR_RELEASE_BUILD
 #define LOG_VERB 4
 #else
-#define LOG_VERB 3
+#define LOG_VERB 4
 #endif
 
 /* Common OpenCL variables */
 int platform_id;
-int default_gpu_selected = 0;
+int default_gpu_selected;
+int ocl_autotune_running;
+size_t ocl_max_lws;
 
 static char opencl_log[LOG_SIZE];
 static int kernel_loaded;
@@ -97,7 +99,7 @@ cl_kernel crypt_kernel;
 size_t local_work_size;
 size_t global_work_size;
 size_t max_group_size;
-unsigned int opencl_v_width = 1;
+unsigned int ocl_v_width = 1;
 
 char *kernel_source;
 static char *kernel_source_file;
@@ -110,7 +112,7 @@ static ocl_device_details ocl_device_list[MAX_GPU_DEVICES];
 
 void opencl_process_event(void)
 {
-	if (!bench_running) {
+	if (!ocl_autotune_running && !bench_running) {
 #if !OS_TIMER
 		sig_timer_emu_tick();
 #endif
@@ -132,17 +134,6 @@ void opencl_process_event(void)
 
 			event_pending = (event_abort || event_poll_files);
 		}
-	}
-}
-
-void handle_clerror(cl_int cl_error, const char *message, const char *file,
-                    int line)
-{
-	if (cl_error != CL_SUCCESS) {
-		fprintf(stderr,
-		        "OpenCL error (%s) in file (%s) at line (%d) - (%s)\n",
-		        get_error_name(cl_error), file, line, message);
-		error();
 	}
 }
 
@@ -753,7 +744,7 @@ unsigned int opencl_get_vector_width(int sequential_id, int size)
 
 	/* --force-vector-width=N */
 	if (options.v_width) {
-		opencl_v_width = options.v_width;
+		ocl_v_width = options.v_width;
 	} else {
 		cl_uint v_width = 0;
 
@@ -788,9 +779,9 @@ unsigned int opencl_get_vector_width(int sequential_id, int size)
 			fprintf(stderr, "%s() called with unknown type\n", __FUNCTION__);
 			error();
 		}
-		opencl_v_width = v_width;
+		ocl_v_width = v_width;
 	}
-	return opencl_v_width;
+	return ocl_v_width;
 }
 
 /* Called by core after calling format's done() */
@@ -817,7 +808,8 @@ void opencl_done()
 
 	/* Reset in case we load another format after this */
 	local_work_size = global_work_size = duration_time = 0;
-	opencl_v_width = 1;
+	ocl_max_lws = 0;
+	ocl_v_width = 1;
 	fmt_base_name[0] = 0;
 	opencl_initialized = 0;
 	crypt_kernel = NULL;
@@ -1086,7 +1078,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 {
 	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
 	int i, count, tidx = 0, total = 0;
-	size_t kpc = gws * opencl_v_width;
+	size_t kpc = gws * ocl_v_width;
 	cl_event benchEvent[MAX_EVENTS];
 	int number_of_events = 0;
 	void *salt;
@@ -1267,10 +1259,10 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	for (i = 0; i < MAX_EVENTS; i++)
 		benchEvent[i] = NULL;
 
-	if (options.verbosity > 3)
-		fprintf(stderr, "Calculating best local worksize (LWS)\n");
-
 	gws = global_work_size;
+
+	if (options.verbosity > 3)
+		fprintf(stderr, "Calculating best LWS for GWS="Zu"\n", gws);
 
 	if (get_device_version(sequential_id) < 110) {
 		if (get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU)
@@ -1284,7 +1276,11 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		wg_multiple = get_kernel_preferred_multiple(sequential_id,
 		              crypt_kernel);
 
-	max_group_size = get_kernel_max_lws(sequential_id, crypt_kernel);
+	if (platform_apple(platform_id) && cpu(device_info[sequential_id]))
+		max_group_size = 1;
+	else
+		max_group_size = ocl_max_lws ?
+			ocl_max_lws : get_kernel_max_lws(sequential_id, crypt_kernel);
 
 	if (max_group_size > group_size_limit)
 		// Needed to deal (at least) with cryptsha512-opencl limits.
@@ -1333,7 +1329,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 
 	// Warm-up run
 	local_work_size = wg_multiple;
-	count = global_work_size * opencl_v_width;
+	count = global_work_size * ocl_v_width;
 	self->methods.crypt_all(&count, NULL);
 
 	// Activate events. Then clear them later.
@@ -1341,7 +1337,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		multi_profilingEvent[i] = &benchEvent[i];
 
 	// Timing run
-	count = global_work_size * opencl_v_width;
+	count = global_work_size * ocl_v_width;
 	self->methods.crypt_all(&count, NULL);
 
 	HANDLE_CLERROR(clWaitForEvents(1, &benchEvent[main_opencl_event]),
@@ -1387,12 +1383,9 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 			for (j = 0; j < MAX_EVENTS; j++)
 				multi_profilingEvent[j] = &benchEvent[j];
 
-			count = global_work_size * opencl_v_width;
+			count = global_work_size * ocl_v_width;
 			if (self->methods.crypt_all(&count, NULL) < 0) {
 				startTime = endTime = 0;
-
-				if (options.verbosity > 3)
-					fprintf(stderr, " crypt_all() error\n");
 				break;
 			}
 
@@ -1484,12 +1477,15 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 
 	if (options.verbosity > 3) {
 		if (!max_run_time)
-			fprintf(stderr, "Calculating best global worksize (GWS); "
+			fprintf(stderr, "Calculating best GWS for LWS="Zu"; "
 			        "max. %s single kernel invocation.\n",
+			        local_work_size,
 			        ns2string(duration_time));
 		else
-			fprintf(stderr, "Calculating best global worksize (GWS); "
-			        "max. %s total for crypt_all()\n", ns2string(max_run_time));
+			fprintf(stderr, "Calculating best GWS for LWS="Zu"; "
+			        "max. %s total for crypt_all()\n",
+			        local_work_size,
+			        ns2string(max_run_time));
 	}
 
 	if (options.verbosity > 4)
@@ -1506,7 +1502,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 
 	for (num = autotune_get_next_gws_size(num, step, 1, default_value);;
 	        num = autotune_get_next_gws_size(num, step, 0, default_value)) {
-		size_t kpc = num * opencl_v_width;
+		size_t kpc = num * ocl_v_width;
 
 		// Check if hardware can handle the size we are going
 		// to try now.

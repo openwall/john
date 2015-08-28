@@ -291,6 +291,9 @@ typedef struct private_subformat_data
 #define ALGORITHM_NAME_SKEIN     "32/"ARCH_BITS_STR " sph_skein"
 #define ALGORITHM_NAME_X86_SKEIN "32/"ARCH_BITS_STR " sph_skein"
 
+#define ALGORITHM_NAME_KECCAK     "64/"ARCH_BITS_STR " keccak"
+#define ALGORITHM_NAME_X86_KECCAK "64/"ARCH_BITS_STR " keccak"
+// LARGE_HASH_EDIT_POINT
 
 #ifndef SIMD_COEF_32
 //static MD5_OUT tmpOut;

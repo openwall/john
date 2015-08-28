@@ -380,7 +380,7 @@ load_psk_params(const char *ciphertext, const char *nortel_user,
 	    idir_b_hex, ni_b_hex, nr_b_hex, hash_r_hex);
 	if (n != 9) {
 		fprintf(stderr, "ERROR: Format error in PSK data file\n");
-		exit(-1);
+		error();
 	}
 	memset(pe, 0, sizeof(*pe));
 /*

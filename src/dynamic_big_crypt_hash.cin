@@ -142,14 +142,6 @@ static void inline Do#{HASH}_crypt_only(void *in, uint32_t ilen, void *out)
 }
 #endif  // defined SIMD_PARA_#{PARAHASH}
 
-#ifdef _OPENMP
-#define PRELIM_W_TID   uint32_t i=first, til=last
-#define PRELIM_NO_TID  uint32_t i=first, til=last
-#else
-#define PRELIM_W_TID   uint32_t i=0, til=m_count, tid=0
-#define PRELIM_NO_TID  uint32_t i=0, til=m_count
-#endif
-
 void DynamicFunc__#{HASH}_crypt_input1_append_input2(DYNA_OMP_PARAMS) {
 	PRELIM_W_TID;
 	for (; i < til; i += #{HASH}_inc) {

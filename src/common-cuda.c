@@ -25,11 +25,11 @@ void cuda_init()
 	ret = cudaGetDeviceCount(&devices);
 	if (ret == cudaErrorNoDevice) {
 		puts("Error: No CUDA-capable devices were detected by the installed CUDA driver.\n");
-		exit(1);
+		error();
 	}
 	if (ret == cudaErrorInsufficientDriver) {
 		puts("Error: The installed NVIDIA CUDA driver is older than the CUDA runtime library.\nThis is not a supported configuration. Update your display driver.\n");
-		exit(1);
+		error();
 	}
 
 	nvidia_probe();
@@ -39,7 +39,7 @@ void cuda_init()
 		if (!isdigit(current->data[0])) {
 			fprintf(stderr, "Invalid CUDA device id \"%s\"\n",
 			        current->data);
-			exit(1);
+			error();
 		}
 		gpu_id = atoi(current->data);
 		dev_get_temp[gpu_id] = nvml_lib ? nvidia_get_temp : NULL;
@@ -76,7 +76,7 @@ void cuda_init()
 		cudaSetDevice(gpu_id);
 	else {
 		fprintf(stderr, "Invalid CUDA device id = %d\n", gpu_id);
-		exit(1);
+		error();
 	}
 }
 

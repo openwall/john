@@ -344,15 +344,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
+	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, PLAINTEXT_LENGTH * global_work_size, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_plain");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, PLAINTEXT_LENGTH * global_work_size, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_plain");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueNDRangeKernel");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueNDRangeKernel");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
 	// read back partial hashes
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, outbuffer, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueReadBuffer -reading partial hashes");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, outbuffer, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueReadBuffer -reading partial hashes");
 	have_full_hashes = 0;
 
 	return count;

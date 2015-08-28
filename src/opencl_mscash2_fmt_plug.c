@@ -97,7 +97,6 @@ extern char * mscash2_prepare(char **, struct fmt_main *);
 extern char * mscash2_split(char *, int, struct fmt_main *);
 
 static void set_key(char*, int) ;
-static int crypt_all(int *pcount, struct db_salt *salt) ;
 
 static void init(struct fmt_main *__self)
 {

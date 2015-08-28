@@ -209,7 +209,7 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 	    "SessionFileProtect")))
 		protect = "Disabled";
 
-	if (!(options.flags & FLG_RESTORE_CHK) &&
+	if (!rec_restored &&
 	    (((!strcasecmp(protect, "Named")) && strcmp(rec_name, "$JOHN/john.rec")) ||
 	    (!strcasecmp(protect, "Always")))) {
 		struct stat st;

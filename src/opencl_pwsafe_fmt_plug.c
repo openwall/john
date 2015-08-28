@@ -75,9 +75,6 @@ static size_t get_task_max_work_group_size()
 
 static int split_events[3] = { 2, -1, -1 };
 
-static int crypt_all(int *pcount, struct db_salt *_salt);
-static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
-
 static struct fmt_tests pwsafe_tests[] = {
 	{"$pwsafe$*3*fefc1172093344c9d5577b25f5b4b6e5d2942c94f9fc24c21733e28ae6527521*2048*88cbaf7d8668c1a98263f5dce7cb39c3304c49a3e0d76a7ea475dc02ab2f97a7", "12345678"},
 	{"$pwsafe$*3*581cd1135b9b993ccb0f6b01c1fcfacd799c69960496c96286f94fe1400c1b25*2048*4ab3c2d3af251e94eb2f753fdf30fb9da074bec6bac0fa9d9d152b95fc5795c6", "openwall"},
@@ -203,7 +200,6 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(ret_code, "Error while creating finish kernel");
 
 		//Initialize openCL tuning (library) for this format.
-		self->methods.crypt_all = crypt_all_benchmark;
 		opencl_init_auto_setup(SEED, ROUNDS_DEFAULT/8, split_events,
 		                       warn, 2, self, create_clobj,
 		                       release_clobj, sizeof(pwsafe_pass), 0);
@@ -212,7 +208,6 @@ static void reset(struct db_main *db)
 		autotune_run(self, ROUNDS_DEFAULT, 0,
 		             (cpu(device_info[gpu_id]) ?
 		              500000000ULL : 1000000000ULL));
-		self->methods.crypt_all = crypt_all;
 	}
 }
 
@@ -297,75 +292,40 @@ static void set_salt(void *salt)
 	        "Copy memsalt");
 }
 
-static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
+	int i = 0;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE,
-		0, insize, host_pass, 0, NULL, multi_profilingEvent[0]), "Copy memin");
+	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	///Run the init kernel
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], init_kernel, 1,
-		NULL, &global_work_size, lws,
+	///Copy data to GPU memory
+		BENCH_CLERROR(clEnqueueWriteBuffer
+			(queue[gpu_id], mem_in, CL_FALSE, 0, insize, host_pass, 0, NULL,
+			multi_profilingEvent[0]), "Copy memin");
+
+	BENCH_CLERROR(clEnqueueNDRangeKernel
+	    (queue[gpu_id], init_kernel, 1, NULL, &global_work_size, lws,
 		0, NULL, multi_profilingEvent[1]), "Set ND range");
 
-	///Run split kernel
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, lws,
-		0, NULL, NULL), "Set ND range");
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, lws,
-		0, NULL, multi_profilingEvent[2]), "Set ND range");
+	///Run kernel
+	for(i = 0; i < (ocl_autotune_running ? 1 : 8); i++)
+	{
+		BENCH_CLERROR(clEnqueueNDRangeKernel
+			(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws,
+			0, NULL, multi_profilingEvent[2]), "Set ND range");
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+		opencl_process_event();
+	}
 
-	///Run the finish kernel
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], finish_kernel, 1,
-		NULL, &global_work_size, lws,
+	BENCH_CLERROR(clEnqueueNDRangeKernel
+	    (queue[gpu_id], finish_kernel, 1, NULL, &global_work_size, lws,
 		0, NULL, multi_profilingEvent[3]), "Set ND range");
 
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
 		outsize, host_hash, 0, NULL, multi_profilingEvent[4]),
 	    "Copy data back");
-
-	return count;
-}
-
-static int crypt_all(int *pcount, struct db_salt *salt)
-{
-	const int count = *pcount;
-	int i = 0;
-
-	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
-
-	///Copy data to GPU memory
-		HANDLE_CLERROR(clEnqueueWriteBuffer
-			(queue[gpu_id], mem_in, CL_FALSE, 0, insize, host_pass, 0, NULL,
-			NULL), "Copy memin");
-
-	HANDLE_CLERROR(clEnqueueNDRangeKernel
-	    (queue[gpu_id], init_kernel, 1, NULL, &global_work_size, &local_work_size,
-		0, NULL, NULL), "Set ND range");
-
-	///Run kernel
-	for(i = 0; i < 8; i++)
-	{
-		HANDLE_CLERROR(clEnqueueNDRangeKernel
-			(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size,
-			0, NULL, NULL), "Set ND range");
-		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
-		opencl_process_event();
-	}
-
-	HANDLE_CLERROR(clEnqueueNDRangeKernel
-	    (queue[gpu_id], finish_kernel, 1, NULL, &global_work_size, &local_work_size,
-		0, NULL, NULL), "Set ND range");
-
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, host_hash, 0, NULL, NULL),
-	    "Copy data back");
-
-	///Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
 	return count;
 }

@@ -914,7 +914,7 @@ char *cp_id2name(int encoding)
 		return enc_name[encoding];
 
 	fprintf(stderr, "ERROR: %s(%d)\n", __FUNCTION__, encoding);
-	exit(EXIT_FAILURE);
+	error();
 }
 
 static char *enc_macro[] = { "UNDEF", "ASCII", "CP437", "CP720", "CP737",
@@ -931,7 +931,7 @@ char *cp_id2macro(int encoding)
 		return enc_macro[encoding];
 
 	fprintf(stderr, "ERROR: %s(%d)\n", __FUNCTION__, encoding);
-	exit(EXIT_FAILURE);
+	error();
 }
 
 /* Convert encoding name to numerical ID */
@@ -1029,7 +1029,7 @@ int cp_name2id(char *encoding)
  err:
 	fprintf(stderr, "Invalid encoding. Supported encodings:\n");
 	listEncodings(stderr);
-	exit(EXIT_FAILURE);
+	error();
 }
 
 int cp_class(int encoding)

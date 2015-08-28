@@ -87,7 +87,6 @@ static size_t key_offset, idx_offset;
 static unsigned char *challenge;
 static int new_keys, partial_output;
 static int max_len = PLAINTEXT_LENGTH;
-static unsigned int v_width = 1;	/* Vector width of kernel */
 static struct fmt_main *self;
 
 static cl_mem cl_saved_key, cl_saved_idx, cl_challenge, cl_nthash, cl_result;
@@ -117,7 +116,7 @@ static size_t get_task_max_work_group_size()
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	gws *= v_width;
+	gws *= ocl_v_width;
 
 	pinned_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, max_len * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
@@ -275,14 +274,14 @@ static void init(struct fmt_main *_self)
 	opencl_prepare_dev(gpu_id);
 	/* Nvidia Kepler benefits from 2x interleaved code */
 	if (!options.v_width && nvidia_sm_3x(device_info[gpu_id]))
-		v_width = 2;
+		ocl_v_width = 2;
 	else
-		v_width = opencl_get_vector_width(gpu_id, sizeof(cl_int));
+		ocl_v_width = opencl_get_vector_width(gpu_id, sizeof(cl_int));
 
-	if (v_width > 1) {
+	if (ocl_v_width > 1) {
 		/* Run vectorized kernel */
 		snprintf(valgo, sizeof(valgo),
-		         ALGORITHM_NAME " %ux", v_width);
+		         ALGORITHM_NAME " %ux", ocl_v_width);
 		self->params.algorithm_name = valgo;
 	}
 
@@ -298,7 +297,7 @@ static void reset(struct db_main *db)
 
 		snprintf(build_opts, sizeof(build_opts),
 		         "-D%s -DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
-		         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH, v_width);
+		         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH, ocl_v_width);
 		opencl_init("$JOHN/kernels/ntlmv2_kernel.cl", gpu_id, build_opts);
 
 		/* create kernels to execute */
@@ -307,12 +306,12 @@ static void reset(struct db_main *db)
 		crypt_kernel = clCreateKernel(program[gpu_id], "ntlmv2_final", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-		gws_limit = (4 << 20) / v_width;
+		gws_limit = (4 << 20) / ocl_v_width;
 
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 3, self,
 		                       create_clobj, release_clobj,
-		                       2 * v_width * max_len, gws_limit);
+		                       2 * ocl_v_width * max_len, gws_limit);
 
 		//Auto tune execution from shared/included code.
 		autotune_run(self, 11, gws_limit, 500);
@@ -484,22 +483,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	/* Don't do more than requested */
-	global_work_size = local_work_size ? ((count + (v_width * local_work_size - 1)) / (v_width * local_work_size)) * local_work_size : count / v_width;
-	scalar_gws = global_work_size * v_width;
+	global_work_size = GET_MULTIPLE_OR_BIGGER_VW(count, local_work_size);
+	scalar_gws = global_work_size * ocl_v_width;
 
 	/* Self-test cludge */
 	if (idx_offset > 4 * (scalar_gws + 1))
 		idx_offset = 0;
 
 	if (new_keys) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (scalar_gws + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], ntlmv2_nthash, 1, NULL, &scalar_gws, lws, 0, NULL, multi_profilingEvent[2]), "Failed running first kernel");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (scalar_gws + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], ntlmv2_nthash, 1, NULL, &scalar_gws, lws, 0, NULL, multi_profilingEvent[2]), "Failed running first kernel");
 
 		new_keys = 0;
 	}
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Failed running second kernel");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, 4 * scalar_gws, output, 0, NULL, multi_profilingEvent[4]), "failed reading results back");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Failed running second kernel");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, 4 * scalar_gws, output, 0, NULL, multi_profilingEvent[4]), "failed reading results back");
 
 	partial_output = 1;
 
@@ -527,13 +526,13 @@ static int cmp_exact(char *source, int index)
 	int i;
 
 	if (partial_output) {
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, 16 * v_width * global_work_size, output, 0, NULL, NULL), "failed reading results back");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, 16 * ocl_v_width * global_work_size, output, 0, NULL, NULL), "failed reading results back");
 		partial_output = 0;
 	}
 	binary = (ARCH_WORD_32*)get_binary(source);
 
 	for(i = 0; i < DIGEST_SIZE / 4; i++)
-		if (output[i * v_width * global_work_size + index] != binary[i])
+		if (output[i * ocl_v_width * global_work_size + index] != binary[i])
 			return 0;
 	return 1;
 }

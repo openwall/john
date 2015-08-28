@@ -458,7 +458,7 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
 
 	if (!use_last_build_opt) {
-		sprintf (build_opts, "-D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE=%zu"
+		sprintf (build_opts, "-D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE="Zu""
 		" -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u -D MASK_ENABLE=%u -D ITER_COUNT=%u -D LOC_0=%d"
 #if 1 < MASK_FMT_INT_PLHDR
 		" -D LOC_1=%d "
@@ -488,7 +488,7 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 		last_build_opts[2] = s_mem_lws;
 	}
 	else {
-		sprintf (build_opts, "-cl-kernel-arg-info -D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE=%zu"
+		sprintf (build_opts, "-cl-kernel-arg-info -D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE="Zu""
 		" -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u -D MASK_ENABLE=%u -D ITER_COUNT=%u -D LOC_0=%d"
 #if 1 < MASK_FMT_INT_PLHDR
 		" -D LOC_1=%d "
@@ -745,7 +745,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 	s_mem_limited_lws = find_smem_lws_limit(
 			full_unroll, use_local_mem, force_global_keys);
 #if 0
-	fprintf(stdout, "Limit_smem:%zu, Full_unroll_flag:%u,"
+	fprintf(stdout, "Limit_smem:"Zu", Full_unroll_flag:%u,"
 		"Use_local_mem:%u, Force_global_keys:%u\n",
  		s_mem_limited_lws, full_unroll, use_local_mem,
 		force_global_keys);
@@ -799,7 +799,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 					best_time_ms = time_ms;
 				}
 #if 0
-	fprintf(stdout, "GWS: %zu, LWS: %zu, Limit_smem:%zu, Limit_kernel:%zu,"
+	fprintf(stdout, "GWS: "Zu", LWS: "Zu", Limit_smem:"Zu", Limit_kernel:"Zu","
 		"Current time:%Lf, Best time:%Lf\n",
  		global_work_size, local_work_size, s_mem_limited_lws,
 		get_kernel_max_lws(gpu_id, crypt_kernel), time_ms,
@@ -879,7 +879,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 					best_time_ms = time_ms;
 				}
 #if 0
-	fprintf(stdout, "GWS: %zu, LWS: %zu, Limit_smem:%zu, Limit_kernel:%zu,"
+	fprintf(stdout, "GWS: "Zu", LWS: "Zu", Limit_smem:"Zu", Limit_kernel:"Zu","
 		"Current time:%Lf, Best time:%Lf\n",
  		global_work_size, local_work_size, s_mem_limited_lws,
 		get_kernel_max_lws(gpu_id, crypt_kernel), time_ms,
@@ -910,7 +910,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		}
 	}
 	if (options.verbosity > 3)
-	fprintf(stdout, "GWS: %zu, LWS: %zu\n",
+	fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",
 		global_work_size, local_work_size);
 }
 
@@ -1101,7 +1101,7 @@ static char *get_key_mm(int index)
 	}
 
 	if (section > global_work_size ) {
-		fprintf(stderr, "Get key error! %u %zu\n", section,
+		fprintf(stderr, "Get key error! %u "Zu"\n", section,
 			global_work_size);
 		section = 0;
 		depth = 0;
@@ -1222,10 +1222,10 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 	cl_event evnt;
 	const int count = mask_mode ? *pcount : (*pcount + LM_DEPTH - 1) >> LM_LOG_DEPTH;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
-	current_gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
+	current_gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 #if 0
-	fprintf(stderr, "pcount %d count %d lws %zu gws %zu cur_gws %zu\n", *pcount, count, local_work_size, global_work_size, current_gws);
+	fprintf(stderr, "pcount %d count %d lws "Zu" gws "Zu" cur_gws "Zu"\n", *pcount, count, local_work_size, global_work_size, current_gws);
 #endif
 	if (salt != NULL && salt->count > 4500 &&
 		(num_loaded_hashes - num_loaded_hashes / 10) > salt->count) {

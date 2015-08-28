@@ -82,7 +82,7 @@ void clk_tck_init(void)
 #endif
 }
 
-unsigned int benchmark_time = BENCHMARK_TIME;
+int benchmark_time = BENCHMARK_TIME;
 
 volatile int bench_running;
 
@@ -186,6 +186,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	int ntests, pruned;
 #endif
 	int salts_done = 0;
+	int wait_salts = 0;
 
 	clk_tck_init();
 
@@ -343,6 +344,15 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	bench_running = 1;
 	bench_install_handler();
 
+/*
+ * A hack. A negative time means "at least this many seconds, but wait until
+ * "Many salts" have completed".
+ */
+	if (benchmark_time < 0) {
+		wait_salts = 1;
+		benchmark_time *= -1;
+	}
+
 /* Cap it at a sane value to hopefully avoid integer overflows below */
 	if (benchmark_time > 3600)
 		benchmark_time = 3600;
@@ -388,7 +398,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		sig_timer_emu_tick();
 #endif
 		salts_done++;
-	} while (bench_running && !event_abort);
+	} while ((wait_salts && salts_done < salts) &&
+	         bench_running && !event_abort);
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 	end_real = clock();

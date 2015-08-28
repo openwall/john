@@ -13,6 +13,7 @@
 #ifndef _COMMON_TUNE_H
 #define _COMMON_TUNE_H
 
+#include "config.h"
 #include "common-opencl.h"
 
 /* Step size for work size enumeration. Zero will double. */
@@ -108,6 +109,8 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 {
 	int need_best_lws, need_best_gws;
 
+	ocl_autotune_running = 1;
+
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(FORMAT_LABEL);
 
@@ -115,8 +118,42 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 		global_work_size = 0;
 
 	need_best_lws = !local_work_size && !getenv("LWS");
-	if (need_best_lws)
-		local_work_size = 0;
+	if (need_best_lws) {
+		int cfg_lws;
+
+		cfg_lws = cfg_get_int(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		                      "AutotuneLWS");
+
+		switch (cfg_lws) {
+		case 0:
+			// Use NULL (OpenCL implementation will decide)
+			local_work_size = 0;
+			break;
+
+		case 1:
+			// Set from OpenCL query (warp size)
+			local_work_size =
+				get_kernel_preferred_multiple(gpu_id, crypt_kernel);
+			break;
+
+		default:
+			if (cfg_lws < 0) {
+				fprintf(stderr,
+				    "Error: AutotuneLWS must be a positive number (now set to %d)\n",
+				    cfg_lws);
+				error();
+			}
+			if (cpu(device_info[gpu_id]))
+				local_work_size =
+					get_platform_vendor_id(platform_id) == DEV_INTEL ?
+					8 : 1;
+			else {
+				// 1st run with fixed figure
+				local_work_size = cfg_lws;
+			}
+			break;
+		}
+	}
 
 	if (gws_limit && (global_work_size > gws_limit))
 		global_work_size = gws_limit;
@@ -131,8 +168,9 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 		  get_power_of_two(local_work_size);
 
 	/* Ensure local_work_size is not oversized */
-	if (local_work_size > get_task_max_work_group_size())
-		local_work_size = get_task_max_work_group_size();
+	ocl_max_lws = get_task_max_work_group_size();
+	if (local_work_size > ocl_max_lws)
+		local_work_size = ocl_max_lws;
 
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
 	need_best_gws = !global_work_size;
@@ -165,11 +203,15 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 		fprintf(stderr,
 		        "Local worksize (LWS) "Zu", global worksize (GWS) "Zu"\n",
 		        local_work_size, global_work_size);
-
-	self->params.min_keys_per_crypt = local_work_size * opencl_v_width;
-	self->params.max_keys_per_crypt = global_work_size * opencl_v_width;
+#ifdef DEBUG
+	else if (!(options.flags & FLG_SHOW_CHK))
+		fprintf(stderr, "{"Zu"/"Zu"} ", global_work_size, local_work_size);
+#endif
+	self->params.min_keys_per_crypt = local_work_size * ocl_v_width;
+	self->params.max_keys_per_crypt = global_work_size * ocl_v_width;
 
 	autotuned++;
+	ocl_autotune_running = 0;
 }
 
 static void autotune_run(struct fmt_main * self, unsigned int rounds,

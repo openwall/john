@@ -105,6 +105,14 @@ typedef struct Dynamic_Str_Flag_t
 	{ "DynamicFunc__" #HASH "_crypt_input2_overwrite_input2", DynamicFunc__##HASH##_crypt_input2_overwrite_input2 }, \
 	{ "DynamicFunc__" #HASH "_crypt_input1_overwrite_input2", DynamicFunc__##HASH##_crypt_input1_overwrite_input2 }, \
 	{ "DynamicFunc__" #HASH "_crypt_input2_overwrite_input1", DynamicFunc__##HASH##_crypt_input2_overwrite_input1 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input1_to_output1", DynamicFunc__##HASH##_crypt_input1_to_output1 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input1_to_output2", DynamicFunc__##HASH##_crypt_input1_to_output2 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input1_to_output3", DynamicFunc__##HASH##_crypt_input1_to_output3 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input1_to_output4", DynamicFunc__##HASH##_crypt_input1_to_output4 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input2_to_output1", DynamicFunc__##HASH##_crypt_input2_to_output1 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input2_to_output2", DynamicFunc__##HASH##_crypt_input2_to_output2 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input2_to_output3", DynamicFunc__##HASH##_crypt_input2_to_output3 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input2_to_output4", DynamicFunc__##HASH##_crypt_input2_to_output4 }, \
 	{ "DynamicFunc__" #HASH "_crypt_input1_to_output1_FINAL", DynamicFunc__##HASH##_crypt_input1_to_output1_FINAL }, \
 	{ "DynamicFunc__" #HASH "_crypt_input2_to_output1_FINAL", DynamicFunc__##HASH##_crypt_input2_to_output1_FINAL },
 
@@ -293,6 +301,12 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	LARGE_HASH_FUNCS(SKEIN256)
 	LARGE_HASH_FUNCS(SKEIN384)
 	LARGE_HASH_FUNCS(SKEIN512)
+	LARGE_HASH_FUNCS(SHA3_224)
+	LARGE_HASH_FUNCS(SHA3_256)
+	LARGE_HASH_FUNCS(SHA3_384)
+	LARGE_HASH_FUNCS(SHA3_512)
+	LARGE_HASH_FUNCS(KECCAK_256)
+	LARGE_HASH_FUNCS(KECCAK_512)
 	// LARGE_HASH_EDIT_POINT
 	{ NULL, NULL }};
 
@@ -352,6 +366,12 @@ static Dynamic_Str_Flag_t Dynamic_Str_Flag[] =  {
 	SALT_AS_HEX_FLAG(SKEIN256)
 	SALT_AS_HEX_FLAG(SKEIN384)
 	SALT_AS_HEX_FLAG(SKEIN512)
+	SALT_AS_HEX_FLAG(SHA3_224)
+	SALT_AS_HEX_FLAG(SHA3_256)
+	SALT_AS_HEX_FLAG(SHA3_384)
+	SALT_AS_HEX_FLAG(SHA3_512)
+	SALT_AS_HEX_FLAG(KECCAK_256)
+	SALT_AS_HEX_FLAG(KECCAK_512)
 	// LARGE_HASH_EDIT_POINT
 
 	{ "MGF_SALT_AS_HEX_TO_SALT2",         MGF_SALT_AS_HEX_TO_SALT2 },
@@ -419,6 +439,12 @@ static Dynamic_Str_Flag_t Dynamic_Str_sFlag[] =  {
 	SALT_AS_HEX_FLAG2(SKEIN256)
 	SALT_AS_HEX_FLAG2(SKEIN384)
 	SALT_AS_HEX_FLAG2(SKEIN512)
+	SALT_AS_HEX_FLAG2(SHA3_224)
+	SALT_AS_HEX_FLAG2(SHA3_256)
+	SALT_AS_HEX_FLAG2(SHA3_384)
+	SALT_AS_HEX_FLAG2(SHA3_512)
+	SALT_AS_HEX_FLAG2(KECCAK_256)
+	SALT_AS_HEX_FLAG2(KECCAK_512)
 	// LARGE_HASH_EDIT_POINT
 
 	{ "MGF_KEYS_UNICODE_B4_CRYPT",        MGF_KEYS_UNICODE_B4_CRYPT },

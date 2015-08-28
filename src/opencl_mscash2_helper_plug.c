@@ -278,8 +278,8 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 	devParam[jtrUniqDevId].devGws = global_work_size;
 
 #if 0
-	 fprintf(stderr, "lwsInit:%zu lwsLimit:%zu"
-			 " gwsInit:%zu gwsLimit:%zu\n",
+	 fprintf(stderr, "lwsInit:"Zu" lwsLimit:"Zu""
+			 " gwsInit:"Zu" gwsLimit:"Zu"\n",
 			  lwsInit, lwsLimit, gwsInit,
 			  gwsLimit);
 #endif
@@ -453,7 +453,7 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 	assert(devParam[jtrUniqDevId].devLws <= PADDING);
 
 	if (options.verbosity > 3)
-	fprintf(stdout, "Device %d  GWS: %zu, LWS: %zu\n", jtrUniqDevId,
+	fprintf(stdout, "Device %d  GWS: "Zu", LWS: "Zu"\n", jtrUniqDevId,
 			devParam[jtrUniqDevId].devGws, devParam[jtrUniqDevId].devLws);
 
 #undef calcMs
@@ -515,7 +515,7 @@ void dcc2Execute(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint *hostS
 		fprintf(stderr, "Work Offset:%d  Work Part Size:%d Event No:%d",workOffset,workPart,event_ctr);
 
 		if (workPart != devParam[gpu_device_list[i]].devGws)
-			fprintf(stderr, "Deficit: %d %zu\n",  gpu_device_list[i], devParam[gpu_device_list[i]].devGws - workPart);
+			fprintf(stderr, "Deficit: %d "Zu"\n",  gpu_device_list[i], devParam[gpu_device_list[i]].devGws - workPart);
 #endif
 
 		///call to execKernel()
