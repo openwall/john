@@ -120,9 +120,6 @@ void opencl_DES_bs_init(int block)
 {
 	int index;
 
-	if (block == 0)
-		opencl_DES_bs_init_index();
-
 	for (index = 0; index < DES_BS_DEPTH; index++)
 		opencl_DES_bs_all[block].pxkeys[index] =
 			&opencl_DES_bs_keys[block].xkeys.c[0][index & 7][index >> 3];
