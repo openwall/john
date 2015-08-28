@@ -18,36 +18,6 @@
 #define USE_BITSELECT 1
 #endif
 
-#if gpu_amd(DEVICE_INFO)
-#pragma OPENCL EXTENSION cl_amd_media_ops : enable
-#define BITALIGN(hi, lo, s) amd_bitalign((hi), (lo), (s))
-#else
-#if nvidia_sm_32plus(DEVICE_INFO) /* sm_32 or better */
-inline uint funnel_shift_right(uint hi, uint lo, uint s) {
-	uint r;
-	asm("shf.r.wrap.b32 %0, %1, %2, %3;"
-	    : "=r" (r)
-	    : "r" (lo), "r" (hi), "r" (s));
-	return r;
-}
-inline uint funnel_shift_right_imm(uint hi, uint lo, uint s) {
-	uint r;
-	asm("shf.r.wrap.b32 %0, %1, %2, %3;"
-	    : "=r" (r)
-	    : "r" (lo), "r" (hi), "i" (s));
-	return r;
-}
-#define BITALIGN(hi, lo, s) funnel_shift_right(hi, lo, s)
-#define BITALIGN_IMM(hi, lo, s) funnel_shift_right_imm(hi, lo, s)
-#else
-#define BITALIGN(hi, lo, s) (((hi) << (32 - (s))) | ((lo) >> (s)))
-#endif
-#endif
-
-#ifndef BITALIGN_IMM
-#define BITALIGN_IMM(hi, lo, s) BITALIGN(hi, lo, s)
-#endif
-
 #ifdef NVIDIA
 #define BITALIGN_AGGRESSIVE
 #else
