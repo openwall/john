@@ -446,8 +446,6 @@ static void init(struct fmt_main *_self)
 {
 	self = _self;
 	mask_int_cand_target = 20000;
-
-	opencl_prepare_dev(gpu_id);
 }
 
 static void done(void)
