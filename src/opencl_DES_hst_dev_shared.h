@@ -2,7 +2,7 @@
 #define _OPENCL_DES_HST_DEV_SHARED_H
 
 #define WORK_GROUP_SIZE		64
-#define HARDCODE_SALT 		0
+#define HARDCODE_SALT 		1
 #define FULL_UNROLL		0
 
 #define WORD     		int

@@ -143,11 +143,7 @@ __kernel void DES_bs_25( constant uint *key_map
                          __attribute__((max_constant_size(3072)))
 #endif
                          , __global DES_bs_vector *des_bs_key,
-                         __global DES_bs_vector *cracked_hashes,
-                         __global int *uncracked_hashes,
-                         int num_uncracked_hashes,
-                         volatile __global uint *hash_ids,
-			 volatile __global uint *bitmap_dupe) {
+                         __global vtype *unchecked_hashes) {
 
 		unsigned int section = get_global_id(0), s_key_offset;
 		unsigned int lid = get_local_id(0);
@@ -220,7 +216,8 @@ start:
 		rounds_and_swapped = 0x108;
 		if (--iterations) goto swap;
 #endif
-		cmp(B, uncracked_hashes, num_uncracked_hashes, hash_ids, bitmap_dupe, cracked_hashes, section);
+		for (i = 0; i < 64; i++)
+			unchecked_hashes[i * gws + section] = B[i];
 
 		return;
 #ifndef SAFE_GOTO

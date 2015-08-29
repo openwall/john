@@ -199,3 +199,46 @@ __kernel void DES_bs_finalize_keys(__global opencl_DES_bs_transfer *des_raw_keys
 		FINALIZE_NEXT_KEY_BIT_6g
 	}
 }
+
+__kernel void DES_bs_cmp(__global unsigned DES_bs_vector *unchecked_hashes,
+	  __global int *uncracked_hashes,
+	  int num_uncracked_hashes,
+	  volatile __global uint *hash_ids,
+	  volatile __global uint *bitmap_dupe,
+	  __global DES_bs_vector *cracked_hashes) {
+
+	int value[2] , mask, i, bit;
+	unsigned DES_bs_vector B[64];
+	int section = get_global_id(0);
+	int gws = get_global_size(0);
+
+	for (i = 0; i < 64; i++)
+		B[i] = unchecked_hashes[section + i * gws];
+
+	for(i = 0; i < num_uncracked_hashes; i++) {
+
+		value[0] = uncracked_hashes[i];
+		value[1] = uncracked_hashes[i + num_uncracked_hashes];
+
+		mask = B[0] ^ -(value[0] & 1);
+
+		for (bit = 1; bit < 32; bit++)
+			mask |= B[bit] ^ -((value[0] >> bit) & 1);
+
+		for (; bit < 64; bit += 2) {
+			mask |= B[bit] ^ -((value[1] >> (bit & 0x1F)) & 1);
+			mask |= B[bit + 1] ^ -((value[1] >> ((bit + 1) & 0x1F)) & 1);
+		}
+
+		if (mask != ~(int)0) {
+			if (!(atomic_or(&bitmap_dupe[i/32], (1U << (i % 32))) & (1U << (i % 32)))) {
+				mask = atomic_inc(&hash_ids[0]);
+				hash_ids[1 + 2 * mask] = section;
+				hash_ids[2 + 2 * mask] = 0;
+				for (bit = 0; bit < 64; bit++)
+					cracked_hashes[mask * 64 + bit] = (DES_bs_vector)B[bit];
+
+			}
+		}
+	}
+}
