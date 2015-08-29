@@ -252,8 +252,8 @@ static void reset(struct db_main *db)
 		local_work_size = 64;
 		global_work_size = 131072;
 
-		db -> format -> params.max_keys_per_crypt = global_work_size * DES_BS_DEPTH;
-		db -> format -> params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
+		fmt_opencl_DES.params.max_keys_per_crypt = global_work_size * DES_BS_DEPTH;
+		fmt_opencl_DES.params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
 
 		tot_uncracked_hashes = 0;
 		while (fmt_opencl_DES.params.tests[tot_uncracked_hashes].ciphertext) {
