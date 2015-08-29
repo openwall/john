@@ -400,7 +400,6 @@ static void modify_build_save_restore(WORD cur_salt, int id_gpu) {
 
 static int des_crypt_25(int *pcount, struct db_salt *salt)
 {
-	cl_event evnt;
 	const int count = (*pcount + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	size_t current_gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
@@ -421,10 +420,8 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 	if (opencl_DES_bs_keys_changed) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, current_gws * sizeof(opencl_DES_bs_transfer), opencl_DES_bs_keys, 0, NULL, NULL ), "Failed to write buffer buffer_raw_keys.\n");
 
-		ret_code = clEnqueueNDRangeKernel(queue[gpu_id], kernels[gpu_id][4096], 1, NULL, &current_gws, lws, 0, NULL, &evnt);
+		ret_code = clEnqueueNDRangeKernel(queue[gpu_id], kernels[gpu_id][4096], 1, NULL, &current_gws, lws, 0, NULL, NULL);
 		HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_finalize_keys failed.\n");
-		clWaitForEvents(1, &evnt);
-		clReleaseEvent(evnt);
 
 		opencl_DES_bs_keys_changed = 0;
 	}
