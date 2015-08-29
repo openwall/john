@@ -54,9 +54,6 @@ static cl_kernel prepare_kernel, final_kernel;
 static int new_keys, source_in_use;
 static int split_events[3] = { 1, 5, 6 };
 
-static int crypt_all(int *pcount, struct db_salt *_salt);
-static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
-
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
 #include "opencl-autotune.h"
 #include "memdbg.h"
@@ -377,10 +374,8 @@ static void reset(struct db_main *db)
 		                       sizeof(uint64_t) * 9 * 8 , 0);
 
 		//Auto tune execution from shared/included code.
-		self->methods.crypt_all = crypt_all_benchmark;
 		autotune_run(self, ROUNDS_DEFAULT, 0,
 		             (cpu(device_info[gpu_id]) ? 1000ULL : 300ULL));
-		self->methods.crypt_all = crypt_all;
 		memset(plaintext, '\0', sizeof(sha512_password) * global_work_size);
 	}
 }
@@ -422,7 +417,7 @@ static int cmp_exact(char * source, int count) {
 }
 
 /* ------- Crypt function ------- */
-static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
+static int crypt_all(int *pcount, struct db_salt *_salt) {
 	int count = *pcount;
 	int i;
 	size_t gws;
@@ -442,11 +437,14 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 			&gws, lws, 0, NULL, multi_profilingEvent[3]),
 			"failed in clEnqueueNDRangeKernel I");
 
-		for (i = 0; i < 3; i++) {
+		for (i = 0; i < (ocl_autotune_running ? 3 : (salt->rounds  / HASH_LOOPS)); i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 				&gws, lws, 0, NULL,
-				multi_profilingEvent[split_events[i]]),  //1, 5, 6
+				(ocl_autotune_running ? multi_profilingEvent[split_events[i]] : NULL)),  //1, 5, 6
 				"failed in clEnqueueNDRangeKernel");
+
+			HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+			opencl_process_event();
 		}
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL,
 			&gws, lws, 0, NULL, multi_profilingEvent[4]),
@@ -463,53 +461,6 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 
 	//Do the work
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
-	new_keys = 0;
-
-	return count;
-}
-
-static int crypt_all(int *pcount, struct db_salt *_salt)
-{
-	const int count = *pcount;
-	int i;
-	size_t gws;
-
-	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
-
-	//Send data to device.
-	if (new_keys)
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE, 0,
-			sizeof(sha512_password) * gws, plaintext, 0, NULL, NULL),
-			"failed in clEnqueueWriteBuffer pass_buffer");
-
-	//Enqueue the kernel
-	if (_SPLIT_KERNEL_IN_USE) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1, NULL,
-			&gws, &local_work_size, 0, NULL, NULL),
-			"failed in clEnqueueNDRangeKernel I");
-
-		for (i = 0; i < (salt->rounds / HASH_LOOPS); i++) {
-			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
-				&gws, &local_work_size, 0, NULL, NULL),
-				"failed in clEnqueueNDRangeKernel");
-			HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
-			opencl_process_event();
-		}
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL,
-			&gws, &local_work_size, 0, NULL, NULL),
-			"failed in clEnqueueNDRangeKernel II");
-	} else
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
-			&gws, &local_work_size, 0, NULL, NULL),
-			"failed in clEnqueueNDRangeKernel");
-
-	//Read back hashes
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], hash_buffer, CL_FALSE, 0,
-			sizeof(sha512_hash) * gws, calculated_hash, 0, NULL, NULL),
-			"failed in reading data back");
-
-	//Do the work
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
 	new_keys = 0;
 
 	return count;
