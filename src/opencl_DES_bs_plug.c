@@ -21,8 +21,10 @@ opencl_DES_bs_transfer *opencl_DES_bs_keys;
 int opencl_DES_bs_keys_changed = 1;
 DES_bs_vector *opencl_DES_bs_cracked_hashes;
 
-cl_mem buffer_cracked_hashes, buffer_hash_ids, buffer_bitmap_dupe, *buffer_uncracked_hashes = NULL;
-unsigned int *hash_ids = NULL, *num_uncracked_hashes = NULL, *zero_buffer = NULL;
+static cl_kernel *cmp_kernel = NULL;
+static cl_mem buffer_cracked_hashes, buffer_hash_ids, buffer_bitmap_dupe, *buffer_uncracked_hashes = NULL;
+static unsigned int *zero_buffer = NULL;
+unsigned int *hash_ids = NULL, *num_uncracked_hashes = NULL;
 
 unsigned char opencl_DES_E[48] = {
 	31, 0, 1, 2, 3, 4,
@@ -267,6 +269,46 @@ void build_tables(struct db_main *db)
 	create_aux_buffers(max_uncracked_hashes);
 }
 
+void create_checking_kernel_set_args(cl_mem buffer_unchecked_hashes)
+{
+	if (cmp_kernel[gpu_id] == 0) {
+		opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
+		opencl_build(gpu_id, NULL, 0, NULL);
+		cmp_kernel[gpu_id] = clCreateKernel(program[gpu_id], "DES_bs_cmp", &ret_code);
+		HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_cmp.\n");
+	}
+
+	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 0, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_cmp.\n");
+	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 3, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument buffer_hash_ids, kernel DES_bs_cmp.\n");
+	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 4, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument buffer_bitmap_dupe, kernel DES_bs_cmp.\n");
+	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 5, sizeof(cl_mem), &buffer_cracked_hashes), "Failed setting kernel argument buffer_cracked_hashes, kernel DES_bs_cmp.\n");
+}
+
+int extract_info(size_t current_gws, size_t *lws, WORD current_salt)
+{
+	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 1, sizeof(cl_mem), &buffer_uncracked_hashes[current_salt]), "Failed setting kernel argument buffer_uncracked_hashes, kernel DES_bs_25.\n");
+	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 2, sizeof(int), &num_uncracked_hashes[current_salt]), "Failed setting kernel argument num_uncracked_hashes, kernel DES_bs_25.\n");
+
+	ret_code = clEnqueueNDRangeKernel(queue[gpu_id], cmp_kernel[gpu_id], 1, NULL, &current_gws, lws, 0, NULL, NULL);
+	HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_cmp failed.\n");
+
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Failed to read buffer buffer_hash_ids.\n");
+
+	if (hash_ids[0] > num_uncracked_hashes[current_salt]) {
+		fprintf(stderr, "Error, crypt_all kernel.\n");
+		error();
+	}
+
+	if (hash_ids[0]) {
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (2 * num_uncracked_hashes[current_salt] + 1) * sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Failed to read buffer buffer_hash_ids.\n");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_cracked_hashes, CL_TRUE, 0, hash_ids[0] * 64 * sizeof(DES_bs_vector), opencl_DES_bs_cracked_hashes, 0, NULL, NULL), "Failed to read buffer buffer_cracked_hashes.\n");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmap_dupe, CL_TRUE, 0, ((num_uncracked_hashes[current_salt] - 1)/32 + 1) * sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "Failed to write buffer buffer_bitmap_dupe.\n");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "Failed to write buffer buffer_hash_ids.\n");
+	}
+
+	return 32 * hash_ids[0];
+}
+
 void release_tables()
 {
 	release_aux_buffers();
@@ -276,6 +318,19 @@ void release_tables()
 		MEM_FREE(buffer_uncracked_hashes);
 		buffer_uncracked_hashes = 0;
 	}
+}
+
+void init_checking()
+{
+	cmp_kernel = (cl_kernel *) mem_calloc(MAX_GPU_DEVICES, sizeof(cl_kernel));
+	num_uncracked_hashes = (unsigned int *) mem_calloc(4096, sizeof(unsigned int));
+}
+
+void finish_checking()
+{
+	HANDLE_CLERROR(clReleaseKernel(cmp_kernel[gpu_id]), "Error releasing cmp_kernel");
+	MEM_FREE(cmp_kernel);
+	MEM_FREE(num_uncracked_hashes);
 }
 
 

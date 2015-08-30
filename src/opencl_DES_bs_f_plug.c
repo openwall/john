@@ -90,7 +90,7 @@ static void clean_all_buffers()
 	release_clobj();
 	release_clobj_kpc();
 
-	for( i = 0; i < 4098; i++)
+	for( i = 0; i < 4097; i++)
 		if (kernels[gpu_id][i])
 		HANDLE_CLERROR(clReleaseKernel(kernels[gpu_id][i]), "Error releasing kernel");
 
@@ -100,8 +100,9 @@ static void clean_all_buffers()
 		MEM_FREE(kernels[i]);
 
 	MEM_FREE(kernels);
-	MEM_FREE(num_uncracked_hashes);
 	MEM_FREE(processed_salts);
+
+	finish_checking();
 }
 
 /* First call must use salt = 0, to initialize processed_salts. */
@@ -148,17 +149,13 @@ static void reset(struct db_main *db)
 		release_clobj();
 		memset(num_uncracked_hashes, 0, 4096 * sizeof(unsigned int));
 
-
-		create_clobj(db);
 		create_clobj_kpc(global_work_size);
+		create_clobj(db);
+
+		create_checking_kernel_set_args(buffer_unchecked_hashes);
 
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][4096], 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument buffer_raw_keys, kernel DES_bs_finalize_keys.\n");
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][4096], 1, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_finalize_keys.\n");
-
-		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][4097], 0, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_cmp.\n");
-		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][4097], 3, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument buffer_hash_ids, kernel DES_bs_cmp.\n");
-		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][4097], 4, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument buffer_bitmap_dupe, kernel DES_bs_cmp.\n");
-		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][4097], 5, sizeof(cl_mem), &buffer_cracked_hashes), "Failed setting kernel argument buffer_cracked_hashes, kernel DES_bs_cmp.\n");
 
 		for (i = 0; i < global_work_size; i++)
 		opencl_DES_bs_init(i);
@@ -173,9 +170,6 @@ static void reset(struct db_main *db)
 		kernels[gpu_id][4096] = clCreateKernel(program[gpu_id], "DES_bs_finalize_keys", &ret_code);
 		HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_finalize_keys.\n");
 
-		kernels[gpu_id][4097] = clCreateKernel(program[gpu_id], "DES_bs_cmp", &ret_code);
-		HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_cmp.\n");
-
 		local_work_size = 64;
 		global_work_size = 131072;
 
@@ -185,13 +179,10 @@ static void reset(struct db_main *db)
 		create_clobj(NULL);
 		create_clobj_kpc(global_work_size);
 
+		create_checking_kernel_set_args(buffer_unchecked_hashes);
+
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][4096], 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument buffer_raw_keys, kernel DES_bs_finalize_keys.\n");
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][4096], 1, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_finalize_keys.\n");
-
-		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][4097], 0, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_cmp.\n");
-		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][4097], 3, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument buffer_hash_ids, kernel DES_bs_cmp.\n");
-		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][4097], 4, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument buffer_bitmap_dupe, kernel DES_bs_cmp.\n");
-		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][4097], 5, sizeof(cl_mem), &buffer_cracked_hashes), "Failed setting kernel argument buffer_cracked_hashes, kernel DES_bs_cmp.\n");
 
 		for (i = 0; i < global_work_size; i++)
 			opencl_DES_bs_init(i);
@@ -208,12 +199,12 @@ static void init_global_variables()
 	int i;
 
 	processed_salts = (unsigned int *) mem_calloc(4097, 96 * sizeof(unsigned int));
-
 	kernels = (cl_kernel **) mem_calloc(MAX_GPU_DEVICES, sizeof(cl_kernel *));
-	for (i = 0; i < MAX_GPU_DEVICES; i++)
-		kernels[i] = (cl_kernel *) mem_calloc(4098, sizeof(cl_kernel));
 
-	num_uncracked_hashes = (unsigned int *) mem_calloc(4096, sizeof(unsigned int));
+	for (i = 0; i < MAX_GPU_DEVICES; i++)
+		kernels[i] = (cl_kernel *) mem_calloc(4097, sizeof(cl_kernel));
+
+	init_checking();
 }
 
 static void modify_src()
@@ -316,7 +307,6 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 		marked_salts[current_salt] = current_salt;
 	}
 
-
 	if (opencl_DES_bs_keys_changed) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, current_gws * sizeof(opencl_DES_bs_transfer), opencl_DES_bs_keys, 0, NULL, NULL ), "Failed to write buffer buffer_raw_keys.\n");
 
@@ -329,31 +319,11 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 	if (salt && num_uncracked_hashes[current_salt] != salt -> count)
 		update_buffer(salt);
 
-
-	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][4097], 1, sizeof(cl_mem), &buffer_uncracked_hashes[current_salt]), "Failed setting kernel argument buffer_uncracked_hashes, kernel DES_bs_25.\n");
-	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][4097], 2, sizeof(int), &num_uncracked_hashes[current_salt]), "Failed setting kernel argument num_uncracked_hashes, kernel DES_bs_25.\n");
-
 	ret_code = clEnqueueNDRangeKernel(queue[gpu_id], kernels[gpu_id][current_salt], 1, NULL, &current_gws, lws, 0, NULL, NULL);
 	HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_25 failed.\n");
 
-	ret_code = clEnqueueNDRangeKernel(queue[gpu_id], kernels[gpu_id][4097], 1, NULL, &current_gws, lws, 0, NULL, NULL);
-	HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_cmp failed.\n");
+	return extract_info(current_gws, lws, current_salt);
 
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Failed to read buffer buffer_hash_ids.\n");
-
-	if (hash_ids[0] > num_uncracked_hashes[current_salt]) {
-		fprintf(stderr, "Error, crypt_all kernel.\n");
-		error();
-	}
-
-	if (hash_ids[0]) {
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (2 * num_uncracked_hashes[current_salt] + 1) * sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Failed to read buffer buffer_hash_ids.\n");
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_cracked_hashes, CL_TRUE, 0, hash_ids[0] * 64 * sizeof(DES_bs_vector), opencl_DES_bs_cracked_hashes, 0, NULL, NULL), "Failed to read buffer buffer_cracked_hashes.\n");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmap_dupe, CL_TRUE, 0, ((num_uncracked_hashes[current_salt] - 1)/32 + 1) * sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "Failed to write buffer buffer_bitmap_dupe.\n");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "Failed to write buffer buffer_hash_ids.\n");
-	}
-
-	return 32 * hash_ids[0];
 }
 
 void opencl_DES_bs_f_register_functions(struct fmt_main *fmt)
