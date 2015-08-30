@@ -256,10 +256,8 @@ static int mime_to_cryptBS(const char *cpi, char *cpo, int to_len, int flags) {
 	char Tmp[5], *cpo_o = cpo;
 	int len_left = strlen(cpi);
 	int use_bytes=3;
-	if (to_len < len_left) {
-		fprintf(stderr, "ERROR, mime_to_cryptBS, output buffer not large enough\n");
-		error();
-	}
+	if (to_len < len_left)
+		error_msg("ERROR, mime_to_cryptBS, output buffer not large enough\n");
 	while (len_left > 0) {
 		char tmp[4];
 		if(len_left<4) {
@@ -283,10 +281,8 @@ static int mime_to_crypt(const char *cpi, char *cpo, int to_len, int flags) {
 	char Tmp[5], *cpo_o = cpo;
 	int len_left = strlen(cpi);
 	int use_bytes=3;
-	if (to_len < len_left) {
-		fprintf(stderr, "ERROR, mime_to_crypt, output buffer not large enough\n");
-		error();
-	}
+	if (to_len < len_left)
+		error_msg("ERROR, mime_to_crypt, output buffer not large enough\n");
 	while (len_left > 0) {
 		char tmp[4];
 		if(len_left<4) {
@@ -310,10 +306,8 @@ static int crypt_to_cryptBS(const char *cpi, char *cpo, int to_len, int flags) {
 	char Tmp[5], *cpo_o = cpo;
 	int len_left = strlen(cpi);
 	int use_bytes=3;
-	if (to_len < len_left) {
-		fprintf(stderr, "ERROR, crypt_to_cryptBS, output buffer not large enough\n");
-		error();
-	}
+	if (to_len < len_left)
+		error_msg("ERROR, crypt_to_cryptBS, output buffer not large enough\n");
 	while (len_left > 0) {
 		char tmp[4];
 		if(len_left<4) {
@@ -337,10 +331,8 @@ static int crypt_to_mime(const char *cpi, char *cpo, int to_len, int flags) {
 	char Tmp[5], *cpo_o = cpo;
 	int len_left = strlen(cpi);
 	int use_bytes=3;
-	if (to_len < len_left) {
-		fprintf(stderr, "ERROR, crypt_to_mime, output buffer not large enough\n");
-		error();
-	}
+	if (to_len < len_left)
+		error_msg("ERROR, crypt_to_mime, output buffer not large enough\n");
 	while (len_left > 0) {
 		char tmp[4];
 		if(len_left<4) {
@@ -364,10 +356,8 @@ static int cryptBS_to_mime(const char *cpi, char *cpo, int to_len, int flags) {
 	char Tmp[5], *cpo_o = cpo;
 	int len_left = strlen(cpi);
 	int use_bytes=3;
-	if (to_len < len_left) {
-		fprintf(stderr, "ERROR, cryptBS_to_mime, output buffer not large enough\n");
-		error();
-	}
+	if (to_len < len_left)
+		error_msg("ERROR, cryptBS_to_mime, output buffer not large enough\n");
 	while (len_left > 0) {
 		char tmp[4];
 		if(len_left<4) {
@@ -391,10 +381,8 @@ static int cryptBS_to_crypt(const char *cpi, char *cpo, int to_len, int flags) {
 	char Tmp[5], *cpo_o = cpo;
 	int len_left = strlen(cpi);
 	int use_bytes=3;
-	if (to_len < len_left) {
-		fprintf(stderr, "ERROR, cryptBS_to_crypt, output buffer not large enough\n");
-		error();
-	}
+	if (to_len < len_left)
+		error_msg("ERROR, cryptBS_to_crypt, output buffer not large enough\n");
 	while (len_left > 0) {
 		char tmp[4];
 		if(len_left<4) {

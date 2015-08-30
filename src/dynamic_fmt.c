@@ -2361,7 +2361,7 @@ static void *get_salt(char *ciphertext)
 
 			default:
 			{
-				error("Invalid dynamic flags seen.  Data type not yet defined\n");
+				error_msg("Invalid dynamic flags seen.  Data type not yet defined\n");
 			}
 		}
 	}
@@ -4197,10 +4197,8 @@ void DynamicFunc__set_input_len_64(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_64 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_64 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len_X86[j] = 64;
@@ -4217,10 +4215,8 @@ void DynamicFunc__set_input2_len_64(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_64 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_64 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len2_X86[j] = 64;
@@ -4237,10 +4233,8 @@ void DynamicFunc__set_input_len_100(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_100 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_100 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j) {
 		unsigned char *cp;
@@ -4268,10 +4262,8 @@ void DynamicFunc__set_input_len_24(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_24 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_24 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len_X86[j] = 24;
@@ -4288,10 +4280,8 @@ void DynamicFunc__set_input_len_28(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_28 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_28 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len_X86[j] = 28;
@@ -4308,10 +4298,8 @@ void DynamicFunc__set_input_len_48(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_48 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_48 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len_X86[j] = 48;
@@ -4328,10 +4316,8 @@ void DynamicFunc__set_input_len_56(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_56 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_56 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len_X86[j] = 56;
@@ -4348,10 +4334,8 @@ void DynamicFunc__set_input_len_80(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_80 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_80 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len_X86[j] = 80;
@@ -4368,10 +4352,8 @@ void DynamicFunc__set_input_len_96(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_96 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_96 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len_X86[j] = 96;
@@ -4388,10 +4370,8 @@ void DynamicFunc__set_input_len_112(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_112 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_112 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len_X86[j] = 112;
@@ -4408,10 +4388,8 @@ void DynamicFunc__set_input_len_128(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_128 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_128 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len_X86[j] = 128;
@@ -4428,10 +4406,8 @@ void DynamicFunc__set_input_len_160(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_160 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_160 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len_X86[j] = 160;
@@ -4448,10 +4424,8 @@ void DynamicFunc__set_input_len_192(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_192 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_192 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len_X86[j] = 192;
@@ -4468,10 +4442,8 @@ void DynamicFunc__set_input_len_256(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_256 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_256 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len_X86[j] = 256;
@@ -4488,10 +4460,8 @@ void DynamicFunc__set_input2_len_24(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_24 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_24 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len2_X86[j] = 24;
@@ -4508,10 +4478,8 @@ void DynamicFunc__set_input2_len_28(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_28 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_28 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len2_X86[j] = 28;
@@ -4528,10 +4496,8 @@ void DynamicFunc__set_input2_len_48(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_48 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_48 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len2_X86[j] = 48;
@@ -4548,10 +4514,8 @@ void DynamicFunc__set_input2_len_56(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_56 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_56 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len2_X86[j] = 56;
@@ -4568,10 +4532,8 @@ void DynamicFunc__set_input2_len_80(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_80 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_80 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len2_X86[j] = 80;
@@ -4588,10 +4550,8 @@ void DynamicFunc__set_input2_len_96(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_96 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_96 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len2_X86[j] = 96;
@@ -4608,10 +4568,8 @@ void DynamicFunc__set_input2_len_112(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_112 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_112 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len2_X86[j] = 112;
@@ -4628,10 +4586,8 @@ void DynamicFunc__set_input2_len_128(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_128 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_128 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len2_X86[j] = 128;
@@ -4648,10 +4604,8 @@ void DynamicFunc__set_input2_len_160(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_160 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_160 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len2_X86[j] = 160;
@@ -4668,10 +4622,8 @@ void DynamicFunc__set_input2_len_192(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_192 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_192 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len2_X86[j] = 192;
@@ -4688,10 +4640,8 @@ void DynamicFunc__set_input2_len_256(DYNA_OMP_PARAMS)
 	til = m_count;
 #endif
 #ifdef SIMD_COEF_32
-	if (dynamic_use_sse == 1) {
-		fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_256 in SSE2/MMX mode\n");
-		error();
-	}
+	if (dynamic_use_sse == 1)
+		error_msg("Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input2_len_256 in SSE2/MMX mode\n");
 #endif
 	for (; j < til; ++j)
 		total_len2_X86[j] = 256;
@@ -7967,23 +7917,14 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 
 	nFmtNum = -1;
 	sscanf(subformat, "$dynamic_%d", &nFmtNum);
-	if (nFmtNum == -1) {
-		fprintf(stderr, "Error, Invalid signature line trying to link to dynamic format.\nOriginal format=%s\nSignature line=%s\n", orig_sig, ciphertext);
-		error();
-	}
-
+	if (nFmtNum == -1)
+		error_msg("Error, Invalid signature line trying to link to dynamic format.\nOriginal format=%s\nSignature line=%s\n", orig_sig, ciphertext);
 	pFmtLocal = dynamic_Get_fmt_main(nFmtNum);
-	if (pFmtLocal == NULL) {
-		fprintf(stderr, "Error, Invalid signature line trying to link to dynamic format.\nOriginal format=%s\nSignature line=%s\n", orig_sig, ciphertext);
-		error();
-	}
-
+	if (pFmtLocal == NULL)
+		error_msg("Error, Invalid signature line trying to link to dynamic format.\nOriginal format=%s\nSignature line=%s\n", orig_sig, ciphertext);
 	valid = pFmtLocal->methods.valid(ciphertext, pFmtLocal);
-	if (!valid) {
-		fprintf(stderr, "Error, trying to link to %s using ciphertext=%s FAILED\n", subformat, ciphertext);
-		error();
-	}
-
+	if (!valid)
+		error_msg("Error, trying to link to %s using ciphertext=%s FAILED\n", subformat, ciphertext);
 	pFmt->params.algorithm_name = pFmtLocal->params.algorithm_name;
 	if (pFmt->params.plaintext_length == 0 ||
 		pFmt->params.plaintext_length > pFmtLocal->params.plaintext_length) {

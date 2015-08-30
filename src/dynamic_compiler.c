@@ -810,12 +810,16 @@ static void comp_lexi_error(DC_struct *p, const char *pInput, char *msg) {
 	fprintf(stderr, "Dyna expression syntax error around this part of expression\n");
 	fprintf(stderr, "%s\n", p->pExpr);
 	n = strlen(p->pExpr)-strlen(pInput);
-	if (SymTab[nSyms-1][0] != 'X') n--;
-	while (n--) fprintf(stderr, " ");
+	if (SymTab[nSyms-1][0] != 'X')
+		n--;
+	while (n--)
+		fprintf(stderr, " ");
 	fprintf(stderr, "^\n");
-	if (SymTab[nSyms-1][0] != 'X') fprintf(stderr, "Invalid token found\n");
-	else fprintf(stderr, "%s\n", msg);
-	error("exiting now");
+	if (SymTab[nSyms-1][0] != 'X')
+		fprintf(stderr, "Invalid token found\n");
+	else
+		fprintf(stderr, "%s\n", msg);
+	error_msg("exiting now");
 }
 static char *comp_optimize_script(char *pScr) {
 	/*
@@ -1141,7 +1145,7 @@ static int comp_do_lexi(DC_struct *p, const char *pInput) {
 	int paren = 0;
 	pInput = comp_get_symbol(pInput);
 	if (LastTokIsFunc != 1)
-		error("Error: dynamic hash must start with md4/md5/sha1 and NOT a *_raw version. This expression one does not\n");
+		error_msg("Error: dynamic hash must start with md4/md5/sha1 and NOT a *_raw version. This expression one does not\n");
 	while (SymTab[nSyms-1][0] != 'X') {
 		if (LastTokIsFunc) {
 			pInput = comp_get_symbol(pInput);
@@ -1414,7 +1418,7 @@ static void build_test_string(DC_struct *p, char **pLine) {
 		ELSEIF(KECCAK_256,keccak_256); ELSEIF(KECCAK_512,keccak_512);
 		// LARGE_HASH_EDIT_POINT
 
-		else { error("ERROR in dyna-parser. Have salt_as_hex_type set, but do not KNOW this type of hash\n"); }
+		else { error_msg("ERROR in dyna-parser. Have salt_as_hex_type set, but do not KNOW this type of hash\n"); }
 	}
 	for (nCurCode = 0; nCurCode < nCode; ++nCurCode)
 		fpCode[nCurCode]();

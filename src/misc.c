@@ -45,6 +45,25 @@ void real_error(char *file, int line)
 	exit(1);
 }
 
+void real_error_msg(char *file, int line,  char *format, ...)
+{
+	va_list args;
+
+#if defined(HAVE_MPI) && !defined(_JOHN_MISC_NO_LOG)
+	if (mpi_p > 1)
+		fprintf(stderr, "%u@%s: ", mpi_id + 1, mpi_name);
+	else
+#elif OS_FORK && !defined(_JOHN_MISC_NO_LOG)
+	if (options.fork)
+		fprintf(stderr, "%u: ", options.node_min);
+#endif
+	va_start(args, format);
+	vfprintf(stderr, format, args);
+	va_end(args);
+
+	real_error(file, line);
+}
+
 void real_pexit(char *file, int line, char *format, ...)
 {
 	va_list args;
