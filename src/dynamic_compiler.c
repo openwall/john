@@ -1483,7 +1483,7 @@ static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex
 		else if (*p == ')' && p[1] == 0) {
 			++p;
 		} else {
-			pexit ("compile_keys_base16_in1_type() : Error parsing %s, we got to %s\n", _p->pExpr, p);
+			error_msg("compile_keys_base16_in1_type() : Error parsing %s, we got to %s\n", _p->pExpr, p);
 		}
 	}
 #undef IF
@@ -1781,10 +1781,8 @@ static int parse_expression(DC_struct *p) {
 								if (len_comp > 239) {
 									if (inp_cnt) max_inp_len -= (len_comp-239+(inp_cnt-1))/inp_cnt;
 									else max_inp_len = (239-len_comp);
-									if (max_inp_len <= 0) {
-										errno = ERANGE;
-										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
-									}
+									if (max_inp_len <= 0)
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
 								}
 							} else if (!strncasecmp(pCode[i], "f5", 2 ) || !strncasecmp(pCode[i], "f4", 2) ||
 									   !strncasecmp(pCode[i], "f1", 2) || !strncasecmp(pCode[i], "f224", 4 ) ||
@@ -1793,20 +1791,17 @@ static int parse_expression(DC_struct *p) {
 								if (len_comp > 247) {
 									if (inp_cnt) max_inp_len -= (len_comp-247+(inp_cnt-1))/inp_cnt;
 									else max_inp_len = (247-len_comp);
-									if (max_inp_len <= 0) {
-										errno = ERANGE;
-										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
-									}
+									if (max_inp_len <= 0)
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
 								}
 							} else {
 								// non SIMD code can use full 256 byte buffers.
 								if (len_comp > 256) {
 									if (inp_cnt) max_inp_len -= (len_comp-256+(inp_cnt-1))/inp_cnt;
 									else max_inp_len = (256-len_comp);
-									if (max_inp_len <= 0) {
-										errno = ERANGE;
-										pexit("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
-									}
+									if (max_inp_len <= 0)
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
+
 								}
 							}
 							len_comp = 0;
@@ -1820,10 +1815,8 @@ static int parse_expression(DC_struct *p) {
 								if (len_comp > 239) {
 									if (inp_cnt2) max_inp_len -= (len_comp2-239+(inp_cnt2-1))/inp_cnt2;
 									else max_inp_len = (239-len_comp2);
-									if (max_inp_len <= 0) {
-										errno = ERANGE;
-										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
-									}
+									if (max_inp_len <= 0)
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
 								}
 							} else if (!strncasecmp(pCode[i], "f5", 2 ) || !strncasecmp(pCode[i], "f4", 2) ||
 									   !strncasecmp(pCode[i], "f1", 2) || !strncasecmp(pCode[i], "f224", 4 ) ||
@@ -1832,20 +1825,16 @@ static int parse_expression(DC_struct *p) {
 								if (len_comp2 > 247) {
 									if (inp_cnt2) max_inp_len -= (len_comp2-247+(inp_cnt2-1))/inp_cnt2;
 									else  max_inp_len = (247-len_comp2);
-									if (max_inp_len <= 0) {
-										errno = ERANGE;
-										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
-									}
+									if (max_inp_len <= 0)
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
 								}
 							} else {
 								// non SIMD code can use full 256 byte buffers.
 								if (len_comp2 > 256) {
 									if (inp_cnt2) max_inp_len -= (len_comp2-256+(inp_cnt2-1))/inp_cnt2;
 									else max_inp_len = (256-len_comp2);
-									if (max_inp_len <= 0) {
-										errno = ERANGE;
-										pexit("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
-									}
+									if (max_inp_len <= 0)
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
 								}
 							}
 							len_comp2 = 0;
