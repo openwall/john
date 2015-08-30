@@ -177,9 +177,6 @@ static void reset(struct db_main *db)
 			bin_salt = *(WORD *)(salt -> salt);
 			build_salt(bin_salt);
 		} while((salt = salt -> next));
-
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "Failed to write buffer buffer_hash_ids.\n");
-		hash_ids[0] = 0;
 	}
 	else {
 		int i;
@@ -233,9 +230,6 @@ static void reset(struct db_main *db)
 			build_salt(salt_val);
 			i++;
 		}
-
-		hash_ids[0] = 0;
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "Failed to write buffer buffer_hash_ids.\n");
 
 		initialized++;
 	}
@@ -304,35 +298,8 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 		opencl_DES_bs_keys_changed = 0;
 	}
 
-	if (salt) {
-		if (num_uncracked_hashes[current_salt] != salt -> count) {
-			int i, *bin, *uncracked_hashes;
-			struct db_password *pw;
-
-			uncracked_hashes = (int *) mem_calloc(2 * (salt -> count), sizeof(int));
-			num_uncracked_hashes[current_salt] = salt -> count;
-			i = 0;
-			pw = salt -> list;
-			do {
-				if (!(bin = (int *)pw -> binary))
-					continue;
-				uncracked_hashes[i] = bin[0];
-				uncracked_hashes[i + salt -> count] = bin[1];
-				i++;
-				//printf("%d %d\n", i++, bin[0]);
-			} while ((pw = pw -> next));
-
-			if (num_uncracked_hashes[current_salt] < salt -> count) {
-				if (buffer_uncracked_hashes[current_salt] != (cl_mem)0)
-					HANDLE_CLERROR(clReleaseMemObject(buffer_uncracked_hashes[current_salt]), "Release buffer_uncracked_hashes failed.\n");
-				buffer_uncracked_hashes[current_salt] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 2 * sizeof(int) * num_uncracked_hashes[current_salt], NULL, &ret_code);
-				HANDLE_CLERROR(ret_code, "Create buffer_uncracked_hashes failed.\n");
-			}
-
-			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_uncracked_hashes[current_salt], CL_TRUE, 0, num_uncracked_hashes[current_salt] * sizeof(int) * 2, uncracked_hashes, 0, NULL, NULL ), "Failed to write buffer buffer_uncracked_hashes.\n");
-			MEM_FREE(uncracked_hashes);
-		}
-	}
+	if (salt && num_uncracked_hashes[current_salt] != salt -> count)
+		update_buffer(salt);
 
 	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 1, sizeof(cl_mem), &buffer_processed_salts[current_salt]), "Failed setting kernel argument buffer_processed_salts, kernel DES_bs_25.\n");
 	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][2], 1, sizeof(cl_mem), &buffer_uncracked_hashes[current_salt]), "Failed setting kernel argument buffer_uncracked_hashes, kernel DES_bs_25.\n");

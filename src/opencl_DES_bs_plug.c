@@ -102,6 +102,11 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 	salt_val = *(WORD *)salt -> salt;
 	num_uncracked_hashes[salt_val] = salt -> count;
 
+	if (buffer_uncracked_hashes[salt_val] != (cl_mem)0) {
+		HANDLE_CLERROR(clReleaseMemObject(buffer_uncracked_hashes[salt_val]), "Release buffer_uncracked_hashes failed.\n");
+			buffer_uncracked_hashes[salt_val] = (cl_mem)0;
+	}
+
 	uncracked_hashes = (WORD *) mem_calloc(2 * num_uncracked_hashes[salt_val], sizeof(WORD));
 	uncracked_hashes_t = (WORD *) mem_calloc(2 * num_uncracked_hashes[salt_val], sizeof(WORD));
 
@@ -124,6 +129,37 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 
 	MEM_FREE(uncracked_hashes);
 	MEM_FREE(uncracked_hashes_t);
+}
+
+void update_buffer(struct db_salt *salt)
+{
+	int i, *bin, *uncracked_hashes;
+	struct db_password *pw;
+	WORD salt_val = *(WORD *)salt -> salt;
+
+	uncracked_hashes = (int *) mem_calloc(2 * (salt -> count), sizeof(int));
+	num_uncracked_hashes[salt_val] = salt -> count;
+
+	i = 0;
+	pw = salt -> list;
+	do {
+		if (!(bin = (int *)pw -> binary))
+			continue;
+		uncracked_hashes[i] = bin[0];
+		uncracked_hashes[i + salt -> count] = bin[1];
+		i++;
+		//printf("%d %d\n", i++, bin[0]);
+	} while ((pw = pw -> next));
+
+	if (num_uncracked_hashes[salt_val] < salt -> count) {
+		if (buffer_uncracked_hashes[salt_val] != (cl_mem)0)
+			HANDLE_CLERROR(clReleaseMemObject(buffer_uncracked_hashes[salt_val]), "Release buffer_uncracked_hashes failed.\n");
+		buffer_uncracked_hashes[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 2 * sizeof(int) * num_uncracked_hashes[salt_val], NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Create buffer_uncracked_hashes failed.\n");
+	}
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_uncracked_hashes[salt_val], CL_TRUE, 0, num_uncracked_hashes[salt_val] * sizeof(int) * 2, uncracked_hashes, 0, NULL, NULL ), "Failed to write buffer buffer_uncracked_hashes.\n");
+	MEM_FREE(uncracked_hashes);
 }
 
 static void fill_buffer_self_test(unsigned int *max_uncracked_hashes)
@@ -192,6 +228,8 @@ static void create_aux_buffers(unsigned int max_uncracked_hashes)
 
 	hash_ids = (unsigned int *) mem_calloc((2 * max_uncracked_hashes + 1), sizeof(unsigned int));
 	opencl_DES_bs_cracked_hashes = (DES_bs_vector*) mem_alloc(max_uncracked_hashes * 64 * sizeof(DES_bs_vector));
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "Failed to write buffer buffer_hash_ids.\n");
 }
 
 static void release_aux_buffers()

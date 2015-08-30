@@ -37,6 +37,7 @@ extern unsigned int *hash_ids, *num_uncracked_hashes, *zero_buffer;
 
 extern void build_tables(struct db_main *);
 extern void release_tables();
+extern void update_buffer(struct db_salt *);
 
 typedef unsigned WORD vtype;
 
