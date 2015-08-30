@@ -533,7 +533,8 @@ extern void DynamicFunc__base16_convert_upcase(DYNA_OMP_PARAMS);
 
 extern void DynamicFunc__LargeHash_OUTMode_base16(DYNA_OMP_PARAMS);
 extern void DynamicFunc__LargeHash_OUTMode_base16u(DYNA_OMP_PARAMS);
-extern void DynamicFunc__LargeHash_OUTMode_base64(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_OUTMode_base64(DYNA_OMP_PARAMS);	// mime
+extern void DynamicFunc__LargeHash_OUTMode_base64c(DYNA_OMP_PARAMS);	// crypt
 extern void DynamicFunc__LargeHash_OUTMode_base64_nte(DYNA_OMP_PARAMS); // no trailing = chars, for non length%3 !=0
 extern void DynamicFunc__LargeHash_OUTMode_raw(DYNA_OMP_PARAMS);
 

@@ -15,7 +15,7 @@
  *     raw      (binary)
  *     hex
  *     mime     (A..Za..z0..1+/   The == for null trails may be optional, removed for now)
- *     crypt    (./0..9A..Za..Z   Similar to encoding used by crypt)
+ *     crypt    (./0..9A..Za..z   Similar to encoding used by crypt)
  *     cryptBS  like crypt, but bit swapped encoding order
  */
 

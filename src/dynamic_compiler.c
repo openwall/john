@@ -1650,7 +1650,7 @@ static int parse_expression(DC_struct *p) {
 	{
 		int x, j, last_push;
 		int salt_len = nSaltLen ? nSaltLen : -32;
-		int in_unicode = 0, out_raw = 0, out_64 = 0, out_16u = 0, flag_utf16 = 0;
+		int in_unicode = 0, out_raw = 0, out_64 = 0, out_64c = 0, out_16u = 0, flag_utf16 = 0;
 		int append_mode = 0, append_mode2 = 0;
 		int max_inp_len = 110, len_comp = 0, len_comp2 = 0;
 		int inp1_clean = 0, exponent = -1;
@@ -1673,6 +1673,7 @@ static int parse_expression(DC_struct *p) {
 		}
 		for (i = 0; i < nCode; ++i) {
 			if (pCode[i][0] == 'f' || pCode[i][0] == 'F') {
+				char func_last_char = pCode[i][strlen(pCode[i])-1];
 
 				if (!inp1_clean && !keys_as_input) {
 					comp_add_script_line("Func=DynamicFunc__clean_input_kwik\n");
@@ -1690,29 +1691,34 @@ static int parse_expression(DC_struct *p) {
 						comp_add_script_line("Flag=MGF_UTF8\n");
 						flag_utf16 = 1;
 					}
-				} else if ((pCode[i][0] == 'f' || pCode[i][0] == 'F') && pCode[i][strlen(pCode[i])-1] == 'r') {
+				} else if (func_last_char == 'r') {
 					if (!out_raw) {
 						out_raw = 1;
 						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_raw\n");
 					}
-				} else if ((pCode[i][0] == 'f' || pCode[i][0] == 'F') && pCode[i][strlen(pCode[i])-1] == 'H') {
+				} else if (func_last_char == 'H') {
 					if (!out_16u) {
 						out_16u = 1;
 						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base16u\n");
 					}
-				} else if ((pCode[i][0] == 'f' || pCode[i][0] == 'F') && pCode[i][strlen(pCode[i])-1] == '6') {
+				} else if (func_last_char == '6') {
 					if (!out_64) {
 						out_64 = 1;
-						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base64\n");
+						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base64_nte\n");
+					}
+				} else  if (func_last_char == 'c') {
+					if (!out_64c) {
+						out_64c = 1;
+						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base64c\n");
 					}
 				} else {
 					// if final hash, then dont clear the mode to normal
 					if ( in_unicode && !(!pCode[i+1] || !pCode[i+1][0]))
 						comp_add_script_line("Func=DynamicFunc__setmode_normal\n");
 					in_unicode = 0;
-					if ( (out_raw||out_64||out_16u) && !(!pCode[i+1] || !pCode[i+1][0]))
+					if ( (out_raw||out_64||out_64c||out_16u) && !(!pCode[i+1] || !pCode[i+1][0]))
 						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base16\n");
-					out_raw = out_64 = out_16u = 0;
+					out_raw = out_64 = out_64c = out_16u = 0;
 				}
 				// Found next function.  Now back up and load the data
 				for (j = i - 1; j >= 0; --j) {

@@ -199,6 +199,11 @@ void DynamicFunc__LargeHash_OUTMode_base64(DYNA_OMP_PARAMS)
 	eLargeOut_set(eBase64,tid);
 }
 
+void DynamicFunc__LargeHash_OUTMode_base64c(DYNA_OMP_PARAMS)
+{
+	eLargeOut_set(eBase64c,tid);
+}
+
 void DynamicFunc__LargeHash_OUTMode_base64_nte(DYNA_OMP_PARAMS)
 {
 	eLargeOut_set(eBase64_nte,tid);
@@ -303,6 +308,34 @@ static inline unsigned char *base64_out_buf(unsigned char *cpi, unsigned char *c
 	return cpo;
 }
 
+// compatible 'crypt' charset base-64 encoding.
+static inline unsigned char *base64c_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
+{
+	static char *_itoa64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+	while (in_byte_cnt > 2) {
+		*cpo++ = _itoa64[(cpi[0] & 0xfc) >> 2];
+		*cpo++ = _itoa64[((cpi[0] & 0x03) << 4) + ((cpi[1] & 0xf0) >> 4)];
+		*cpo++ = _itoa64[((cpi[1] & 0x0f) << 2) + ((cpi[2] & 0xc0) >> 6)];
+		*cpo++ = _itoa64[cpi[2] & 0x3f];
+		cpi += 3;
+		in_byte_cnt -= 3;
+	}
+	// easiest way is to simply have 2 'special' cases to handle these lengths
+	if (in_byte_cnt==2)
+	{
+		*cpo++ = _itoa64[(cpi[0] & 0xfc) >> 2];
+		*cpo++ = _itoa64[((cpi[0] & 0x03) << 4) + ((cpi[1] & 0xf0) >> 4)];
+		*cpo++ = _itoa64[((cpi[1] & 0x0f) << 2)];
+	}
+	if (in_byte_cnt==1)
+	{
+		*cpo++ = _itoa64[(cpi[0] & 0xfc) >> 2];
+		*cpo++ = _itoa64[((cpi[0] & 0x03) << 4)];
+	}
+	return cpo;
+}
+
 int inline large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int tid)
 {
 	unsigned char *cpo2=cpo;
@@ -318,6 +351,9 @@ int inline large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte
 			break;
 		case eBase64_nte:
 			cpo2 = base64_out_buf(cpi, cpo, in_byte_cnt, 0);
+			break;
+		case eBase64c:
+			cpo2 = base64c_out_buf(cpi, cpo, in_byte_cnt);
 			break;
 		case eBaseRaw:
 			cpo2 = raw_out_buf(cpi, cpo, in_byte_cnt);
