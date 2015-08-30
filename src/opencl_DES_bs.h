@@ -31,6 +31,13 @@
 
 #define GWS_CONFIG		        "des_GWS"
 
+/* Common hash checking variables */
+extern cl_mem buffer_cracked_hashes, buffer_hash_ids, buffer_bitmap_dupe, *buffer_uncracked_hashes;
+extern unsigned int *hash_ids, *num_uncracked_hashes, *zero_buffer;
+
+extern void build_tables(struct db_main *);
+extern void release_tables();
+
 typedef unsigned WORD vtype;
 
 unsigned int CC_CACHE_ALIGN opencl_DES_bs_index768[0x300];

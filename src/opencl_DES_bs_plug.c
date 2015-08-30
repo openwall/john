@@ -21,6 +21,9 @@ opencl_DES_bs_transfer *opencl_DES_bs_keys;
 int opencl_DES_bs_keys_changed = 1;
 DES_bs_vector *opencl_DES_bs_cracked_hashes;
 
+cl_mem buffer_cracked_hashes, buffer_hash_ids, buffer_bitmap_dupe, *buffer_uncracked_hashes = NULL;
+unsigned int *hash_ids = NULL, *num_uncracked_hashes = NULL, *zero_buffer = NULL;
+
 unsigned char opencl_DES_E[48] = {
 	31, 0, 1, 2, 3, 4,
 	3, 4, 5, 6, 7, 8,
@@ -87,6 +90,156 @@ static unsigned char DES_atoi64[0x100] = {
 	37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,
 	53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 0, 1, 2, 3, 4
 };
+
+static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes)
+{
+	int i;
+	WORD salt_val;
+	WORD *binary;
+	WORD *uncracked_hashes = NULL, *uncracked_hashes_t = NULL;
+	struct db_password *pw = salt -> list;
+
+	salt_val = *(WORD *)salt -> salt;
+	num_uncracked_hashes[salt_val] = salt -> count;
+
+	uncracked_hashes = (WORD *) mem_calloc(2 * num_uncracked_hashes[salt_val], sizeof(WORD));
+	uncracked_hashes_t = (WORD *) mem_calloc(2 * num_uncracked_hashes[salt_val], sizeof(WORD));
+
+	i = 0;
+	do {
+		if (!(binary = (int *)pw -> binary))
+			continue;
+		uncracked_hashes_t[2 * i] =
+			uncracked_hashes[i] = binary[0];
+		uncracked_hashes_t[2 * i + 1] =
+			uncracked_hashes[i + salt -> count] = binary[1];
+		i++;
+	} while ((pw = pw -> next));
+
+	if (salt -> count > *max_uncracked_hashes)
+		*max_uncracked_hashes = salt -> count;
+
+	buffer_uncracked_hashes[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(WORD) * num_uncracked_hashes[salt_val], uncracked_hashes, &ret_code);
+	HANDLE_CLERROR(ret_code, "Create buffer_uncracked_hashes failed.\n");
+
+	MEM_FREE(uncracked_hashes);
+	MEM_FREE(uncracked_hashes_t);
+}
+
+static void fill_buffer_self_test(unsigned int *max_uncracked_hashes)
+{
+	char *ciphertext;
+	WORD *binary;
+	WORD salt_val;
+	WORD *uncracked_hashes = NULL, *uncracked_hashes_t = NULL;
+	int i;
+
+	while (fmt_opencl_DES.params.tests[*max_uncracked_hashes].ciphertext) {
+		ciphertext = fmt_opencl_DES.methods.split(fmt_opencl_DES.params.tests[*max_uncracked_hashes].ciphertext, 0, &fmt_opencl_DES);
+		(*max_uncracked_hashes)++;
+	}
+
+	uncracked_hashes = (WORD *) mem_calloc(2 * *max_uncracked_hashes, sizeof(WORD));
+	uncracked_hashes_t = (WORD *) mem_calloc(2 * *max_uncracked_hashes, sizeof(WORD));
+
+	i = 0;
+	while (fmt_opencl_DES.params.tests[i].ciphertext) {
+		ciphertext = fmt_opencl_DES.methods.split(fmt_opencl_DES.params.tests[i].ciphertext, 0, &fmt_opencl_DES);
+		binary = (WORD *)fmt_opencl_DES.methods.binary(ciphertext);
+		salt_val = *(WORD *)fmt_opencl_DES.methods.salt(ciphertext);
+		uncracked_hashes_t[2 * i] =
+			uncracked_hashes[i] = binary[0];
+		uncracked_hashes_t[2 * i + 1] =
+			uncracked_hashes[i + *max_uncracked_hashes] = binary[1];
+		num_uncracked_hashes[salt_val] = *max_uncracked_hashes;
+		//fprintf(stderr, "C:%s B:%d %d\n", ciphertext, binary[0], i == num_loaded_hashes );
+		i++;
+	}
+
+	for (i = 0; i < 4096; i++) {
+		if (!num_uncracked_hashes[i]) continue;
+		buffer_uncracked_hashes[i] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(WORD) * *max_uncracked_hashes, uncracked_hashes, &ret_code);
+		HANDLE_CLERROR(ret_code, "Create buffer_uncracked_hashes failed.\n");
+	}
+
+	MEM_FREE(uncracked_hashes);
+	MEM_FREE(uncracked_hashes_t);
+}
+
+static void release_fill_buffers()
+{
+	int i;
+	for (i = 0; i < 4096; i++)
+		if (buffer_uncracked_hashes[i] != (cl_mem)0) {
+			HANDLE_CLERROR(clReleaseMemObject(buffer_uncracked_hashes[i]), "Release buffer_uncracked_hashes failed.\n");
+			buffer_uncracked_hashes[i] = (cl_mem)0;
+		}
+
+}
+
+static void create_aux_buffers(unsigned int max_uncracked_hashes)
+{
+	buffer_cracked_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, 64 * max_uncracked_hashes * sizeof(DES_bs_vector), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Create buffer_cracked_hashes failed.\n");
+
+	zero_buffer = (unsigned int *) mem_calloc((max_uncracked_hashes - 1) / 32 + 1, sizeof(unsigned int));
+
+	buffer_bitmap_dupe = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, ((max_uncracked_hashes - 1) / 32 + 1) * sizeof(unsigned int), zero_buffer, &ret_code);
+	HANDLE_CLERROR(ret_code, "Create buffer_bitmap_dupe failed.\n");
+
+	buffer_hash_ids = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (2 * max_uncracked_hashes + 1) * sizeof(unsigned int), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Create buffer_hash_ids failed.\n");
+
+	hash_ids = (unsigned int *) mem_calloc((2 * max_uncracked_hashes + 1), sizeof(unsigned int));
+	opencl_DES_bs_cracked_hashes = (DES_bs_vector*) mem_alloc(max_uncracked_hashes * 64 * sizeof(DES_bs_vector));
+}
+
+static void release_aux_buffers()
+{
+	if (zero_buffer) {
+		HANDLE_CLERROR(clReleaseMemObject(buffer_cracked_hashes), "Release buffer_cracked_hashes failed.\n");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Release buffer_bitmap_dupe failed.\n");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_ids), "Release buffer_hash_ids failed.\n");
+
+		MEM_FREE(hash_ids);
+		MEM_FREE(opencl_DES_bs_cracked_hashes);
+		MEM_FREE(zero_buffer);
+		zero_buffer = 0;
+	}
+}
+
+void build_tables(struct db_main *db)
+{
+	unsigned int max_uncracked_hashes = 0, i;
+	buffer_uncracked_hashes = (cl_mem *) mem_alloc(4096 * sizeof(cl_mem));
+
+	for (i = 0; i < 4096; i++)
+		buffer_uncracked_hashes[i] = (cl_mem)0;
+
+	if (db) {
+	struct db_salt *salt = db -> salts;
+	do {
+		fill_buffer(salt, &max_uncracked_hashes);
+	} while((salt = salt -> next));
+	}
+	else {
+		fill_buffer_self_test(&max_uncracked_hashes);
+	}
+
+	create_aux_buffers(max_uncracked_hashes);
+}
+
+void release_tables()
+{
+	release_aux_buffers();
+
+	if (buffer_uncracked_hashes) {
+		release_fill_buffers();
+		MEM_FREE(buffer_uncracked_hashes);
+		buffer_uncracked_hashes = 0;
+	}
+}
+
 
 void opencl_DES_bs_init_index()
 {
