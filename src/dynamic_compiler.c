@@ -123,7 +123,7 @@ Same goes for $u.  NOTE, the lexi works this way. I just need to document it.
 
 DONE // MGF_INPBASE64b uses e_b64_crypt from base64_convert.h
 DONE #define MGF_INPBASE64b		         0x00004000
-DONE if outter hash is md5_b64 (or b64e) then use this flag
+DONE if outer hash is md5_64 (or 64c) then use this flag
 DONE #define MGF_INPBASE64m               0x02000000
 DONE #define MGF_UTF8                     0x04000000
 DONE Remove all md5u() types.  Replace with a utf16() function.
@@ -1085,7 +1085,7 @@ SkipSaltCheck:;
 		while (p[-1] != ')' && p2-cpType < sizeof(cpType)-1)
 			*p2++ = *p++;
 		*p2 = 0;
-		if (islower(ARCH_INDEX(*cpType)) && !strstr(cpType, "_raw") && !strstr(cpType, "_b64") && strncmp(cpType, "utf", 3) && strncmp(cpType, "pad", 3) && strncmp(cpType, "lc(", 3) && strncmp(cpType, "uc(", 3)) {
+		if (islower(ARCH_INDEX(*cpType)) && !strstr(cpType, "_raw") && !strstr(cpType, "_64") && strncmp(cpType, "utf", 3) && strncmp(cpType, "pad", 3) && strncmp(cpType, "lc(", 3) && strncmp(cpType, "uc(", 3)) {
 			p = strstr(pBuf, cpType);
 			n2 = 0;
 			while (p) {
