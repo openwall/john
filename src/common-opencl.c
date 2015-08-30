@@ -2215,6 +2215,12 @@ void opencl_list_devices(void)
 		        " by the installed OpenCL driver.\n\n");
 	}
 
+	if (get_number_of_available_devices() == 0) {
+		fprintf(stderr, "Error: No OpenCL-capable devices were detected"
+		        " by the installed OpenCL driver.\n\n");
+		return;
+	}
+
 	for (i = 0; platforms[i].platform; i++) {
 
 		/* Query devices for information */
