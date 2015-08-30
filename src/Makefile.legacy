@@ -124,6 +124,7 @@ JOHN_OBJS = \
 	AFS_fmt.o \
 	LM_fmt.o \
 	trip_fmt.o \
+	KeccakHash.o \
 	NT_fmt.o \
 	whirlpool.o haval.o skein.o md2.o panama.o \
 	timer.o \
