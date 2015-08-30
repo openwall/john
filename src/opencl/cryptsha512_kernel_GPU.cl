@@ -13,7 +13,7 @@
 
 #include "opencl_cryptsha512.h"
 
-#if __GPU__
+#if __GPU__ && DEV_VER_MAJOR != 1729
     #define VECTOR_USAGE
 #endif
 
@@ -130,11 +130,11 @@ inline void sha512_block(sha512_ctx * ctx) {
     w_vector = SWAP64_V(w_vector);
     vstore16(w_vector, 0, w);
 #else
-    for (uint32_t i = 0U; i < 16U; i++)
+    for (uint i = 0U; i < 16U; i++)
         w[i] = SWAP64(ctx->buffer[i].mem_64[0]);
 #endif
 
-    for (uint32_t i = 0U; i < 16U; i++) {
+    for (uint i = 0U; i < 16U; i++) {
         t = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
 
         h = g;
@@ -151,7 +151,7 @@ inline void sha512_block(sha512_ctx * ctx) {
 #ifdef AMD_STUPID_BUG_1
     #pragma unroll 2
 #endif
-    for (uint32_t i = 16U; i < 80U; i++) {
+    for (uint i = 16U; i < 80U; i++) {
         w[i & 15] = w[(i - 16) & 15] + w[(i - 7) & 15] + sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]);
         t = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
 
@@ -185,7 +185,7 @@ inline void insert_to_buffer_R(sha512_ctx    * ctx,
     tmp = ((ctx->buflen & 7) << 3);
     pos = (ctx->buflen >> 3);
 
-    for (uint32_t i = 0U; i < len; i+=8, s++) {
+    for (uint i = 0U; i < len; i+=8, s++) {
 	APPEND_BUFFER_F(ctx->buffer->mem_64, s[0]);
     }
     ctx->buflen += len;
@@ -203,7 +203,7 @@ inline void insert_to_buffer_G(         sha512_ctx    * ctx,
     tmp = ((ctx->buflen & 7) << 3);
     pos = (ctx->buflen >> 3);
 
-    for (uint32_t i = 0U; i < len; i+=8, s++) {
+    for (uint i = 0U; i < len; i+=8, s++) {
 	APPEND_BUFFER_F(ctx->buffer->mem_64, s[0]);
     }
     ctx->buflen += len;
@@ -224,7 +224,7 @@ inline void insert_to_buffer_C(           sha512_ctx    * ctx,
     tmp = ((ctx->buflen & 7) << 3);
     pos = (ctx->buflen >> 3);
 
-    for (uint32_t i = 0U; i < len; i+=8, s++) {
+    for (uint i = 0U; i < len; i+=8, s++) {
 	APPEND_BUFFER_F(ctx->buffer->mem_64, s[0]);
     }
     ctx->buflen += len;
@@ -251,7 +251,7 @@ inline void ctx_update_R(sha512_ctx * ctx,
         ctx->buflen = len - offset;
 
         //Unaligned memory acess.
-	for (uint32_t i = 0U; i < ctx->buflen; i++)
+	for (uint i = 0U; i < ctx->buflen; i++)
 	    PUT(BUFFER, i, (string + offset)[i]);
 
 	clear_buffer(ctx->buffer->mem_64, ctx->buflen, 16);
@@ -272,7 +272,7 @@ inline void ctx_update_G(         sha512_ctx * ctx,
         ctx->buflen = len - offset;
 
         //Unaligned memory acess.
-	for (uint32_t i = 0U; i < ctx->buflen; i++)
+	for (uint i = 0U; i < ctx->buflen; i++)
 	    PUT(BUFFER, i, (string + offset)[i]);
 
 	clear_buffer(ctx->buffer->mem_64, ctx->buflen, 16);
@@ -293,7 +293,7 @@ inline void ctx_update_C(           sha512_ctx * ctx,
         ctx->buflen = len - offset;
 
         //Unaligned memory acess.
-	for (uint32_t i = 0U; i < ctx->buflen; i++)
+	for (uint i = 0U; i < ctx->buflen; i++)
 	    PUT(BUFFER, i, (string + offset)[i]);
 
 	clear_buffer(ctx->buffer->mem_64, ctx->buflen, 16);
@@ -325,7 +325,7 @@ inline void sha512_digest(sha512_ctx * ctx,
     }
     sha512_block(ctx);
 
-    for (uint32_t i = 0U; i < size; i++)
+    for (uint i = 0U; i < size; i++)
         result[i] = SWAP64(ctx->H[i]);
 }
 
@@ -363,7 +363,7 @@ inline void sha512_prepare(
     ctx.total = ctx.buflen;
     init_H(&ctx);
 
-    for (uint32_t i = passlen; i > 0; i >>= 1) {
+    for (uint i = passlen; i > 0; i >>= 1) {
 
         if (i & 1)
             ctx_update_R(&ctx, alt_result->mem_08, 64U);
@@ -373,14 +373,14 @@ inline void sha512_prepare(
     sha512_digest(&ctx, alt_result->mem_64, BUFFER_ARRAY);
     init_ctx(&ctx);
 
-    for (uint32_t i = 0U; i < passlen; i++)
+    for (uint i = 0U; i < passlen; i++)
         ctx_update_G(&ctx, pass, passlen);
 
     sha512_digest(&ctx, p_sequence->mem_64, PLAINTEXT_ARRAY);
     init_ctx(&ctx);
 
     /* For every character in the password add the entire password. */
-    for (uint32_t i = 0U; i < 16U + alt_result->mem_08[0]; i++)
+    for (uint i = 0U; i < 16U + alt_result->mem_08[0]; i++)
         ctx_update_C(&ctx, salt, saltlen);
 
     sha512_digest(&ctx, temp_result->mem_64, SALT_ARRAY);
@@ -417,17 +417,17 @@ void kernel_prepare(
     sha512_prepare(salt, &keys_buffer[gid], &fast_buffers);
 
     //Save results.
-    for (uint32_t i = 0U; i < 8; i++)
+    for (uint i = 0U; i < 8; i++)
         alt_result[i].mem_64[0] = SWAP64(fast_buffers.alt_result[i].mem_64[0]);
 
-    for (uint32_t i = 0U; i < SALT_ARRAY; i++)
+    for (uint i = 0U; i < SALT_ARRAY; i++)
         fast_buffers.temp_result[i].mem_64[0] = SWAP64(fast_buffers.temp_result[i].mem_64[0]);
 
-    for (uint32_t i = 0U; i < PLAINTEXT_ARRAY; i++)
+    for (uint i = 0U; i < PLAINTEXT_ARRAY; i++)
         fast_buffers.p_sequence[i].mem_64[0] = SWAP64(fast_buffers.p_sequence[i].mem_64[0]);
 
     //Preload and prepare the temp buffer.
-    for (uint32_t i = 0U; i < 8; i++) {
+    for (uint i = 0U; i < 8; i++) {
 	uint32_t total = 0;
 	uint32_t j = generator_index[i];
 
@@ -490,14 +490,14 @@ inline void sha512_block_be(uint64_t * buffer, uint64_t * H) {
     vstore16(w_vector, 0, w);
 #else
     #pragma unroll
-    for (uint32_t i = 0U; i < 16; i++)
+    for (uint i = 0U; i < 16; i++)
         w[i] = buffer[i];
 #endif
 
 #if UNROLL_LEVEL > 4
     #pragma unroll
 #endif
-    for (uint32_t i = 0U; i < 16U; i++) {
+    for (uint i = 0U; i < 16U; i++) {
         t = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
 
         h = g;
@@ -518,7 +518,7 @@ inline void sha512_block_be(uint64_t * buffer, uint64_t * H) {
 #elif UNROLL_LEVEL > 2
     #pragma unroll 8
 #endif
-    for (uint32_t i = 16U; i < 80U; i++) {
+    for (uint i = 16U; i < 80U; i++) {
         w[i & 15] = w[(i - 16) & 15] + w[(i - 7) & 15] + sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]);
         t = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
 
@@ -544,8 +544,8 @@ inline void sha512_block_be(uint64_t * buffer, uint64_t * H) {
 }
 
 inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
-			 __global	buffer_64      * alt_result,
-			 __global	uint64_t       * work_memory) {
+			 __global buffer_64      * const __restrict alt_result,
+			 __global uint64_t       * const __restrict work_memory) {
 
     //To compute buffers.
     uint32_t	    total;
@@ -554,7 +554,7 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 
     //Transfer host global data to a faster memory space.
     #pragma unroll
-    for (uint32_t i = 0U; i < 8; i++)
+    for (uint i = 0U; i < 8; i++)
         H[i] = alt_result[i].mem_64[0];
 
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
@@ -636,7 +636,7 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 	    sha512_block_be(w, H);
 
 	    #pragma unroll
-	    for (uint32_t i = 0U; i < 15U; i++)
+	    for (uint i = 0U; i < 15U; i++)
 	       w[i] = 0;
 	    w[15] = (total * 8UL);
 	}
@@ -644,14 +644,14 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
     }
     //Push results back to global memory.
     #pragma unroll
-    for (uint32_t i = 0U; i < 8U; i++)
+    for (uint i = 0U; i < 8U; i++)
         alt_result[i].mem_64[0] = H[i];
 }
 
 inline void sha512_crypt_f(const uint32_t saltlen, const uint32_t passlen,
                            const uint32_t initial, const uint32_t rounds,
-			   __global	  buffer_64      * alt_result,
-			   __global	  uint64_t       * work_memory) {
+			   __global buffer_64      * const __restrict alt_result,
+			   __global uint64_t       * const __restrict work_memory) {
 
     //To compute buffers.
     uint32_t	    total;
@@ -660,7 +660,7 @@ inline void sha512_crypt_f(const uint32_t saltlen, const uint32_t passlen,
 
     //Transfer host global data to a faster memory space.
     #pragma unroll
-    for (uint32_t i = 0U; i < 8U; i++)
+    for (uint i = 0U; i < 8U; i++)
         H[i] = alt_result[i].mem_64[0];
 
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
@@ -736,7 +736,7 @@ inline void sha512_crypt_f(const uint32_t saltlen, const uint32_t passlen,
 	    sha512_block_be(w, H);
 
 	    #pragma unroll
-	    for (uint32_t i = 0U; i < 15U; i++)
+	    for (uint i = 0U; i < 15U; i++)
 	       w[i] = 0;
 	    w[15] = (total * 8UL);
 	}
@@ -744,7 +744,7 @@ inline void sha512_crypt_f(const uint32_t saltlen, const uint32_t passlen,
     }
     //Push results back to global memory.
     #pragma unroll
-    for (uint32_t i = 0U; i < 8U; i++)
+    for (uint i = 0U; i < 8U; i++)
         alt_result[i].mem_64[0] = H[i];
 }
 
@@ -787,6 +787,6 @@ void kernel_final(
 		   alt_result, work_memory);
 
     //SWAP results and put it as hash data.
-    for (uint32_t i = 0U; i < 8; i++)
+    for (uint i = 0U; i < 8; i++)
         out_buffer[gid].v[i] = SWAP64(alt_result[i].mem_64[0]);
 }
