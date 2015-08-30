@@ -79,6 +79,7 @@ extern void real_pexit(char *file, int line, char *format, ...)
 #else
 	;
 #endif
+
 #define pexit(...) real_pexit(__FILE__, __LINE__, __VA_ARGS__)
 
 /*
