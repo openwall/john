@@ -429,10 +429,10 @@ __kernel void RarHashLoop(
 		for (i = pwlen + 12; i < 56; i++)
 			PUTCHAR_BE(tempin, i, 0);
 		tempin[14] = 0;
-		tempin[15] = ((pwlen + 8 + 3) * (round + 1)) << 3;
+		tempin[15] = (blocklen * (round + 1)) << 3;
 		sha1_block(tempin, tempout);
 #else
-		sha1_final(tempin, tempout, (pwlen + 8 + 3) * (round + 1));
+		sha1_final(tempin, tempout, blocklen * (round + 1));
 #endif
 		PUTCHAR_G(aes_iv, gid * 16 + (round >> 14), GETCHAR(tempout, 16));
 	}
@@ -442,9 +442,11 @@ __kernel void RarHashLoop(
 	 * this is really a piece of art
 	 */
 	for (j = 0; j < 256; j++) {
+#pragma unroll
 		for (i = 0; i < 64; i++, round++) {
 			PUTCHAR_BE(block, i * blocklen + pwlen + 8, round & 0xff);
-			PUTCHAR_BE(block, i * blocklen + pwlen + 9, (round >> 8) & 0xff);
+			if (!(j & 3))
+				PUTCHAR_BE(block, i * blocklen + pwlen + 9, (round >> 8) & 0xff);
 		}
 		sha1_mblock(block, output, blocklen);
 	}
