@@ -380,7 +380,7 @@ __kernel void RarInit(__global uint *OutputBuf, __global uint *round)
 		OutputBuf[i * gws + gid] = output[i];
 }
 
-/* This kernel is called 16 times in a row */
+/* This kernel is called 16 times in a row (at HASH_LOOPS == 0x4000) */
 __kernel void RarHashLoop(
 	const __global uint *unicode_pw,
 	const __global uint *pw_len,
@@ -411,6 +411,9 @@ __kernel void RarHashLoop(
 	}
 
 	/* Get IV */
+#if ROUNDS / HASH_LOOPS != 16
+	if ((round % (ROUNDS / 16)) == 0)
+#endif
 	{
 		uint tempin[16], tempout[5];
 
@@ -441,7 +444,7 @@ __kernel void RarHashLoop(
 	 * The inner loop. Compared to earlier revisions of this kernel
 	 * this is really a piece of art
 	 */
-	for (j = 0; j < 256; j++) {
+	for (j = 0; j < (HASH_LOOPS / 64); j++) {
 #pragma unroll
 		for (i = 0; i < 64; i++, round++) {
 			PUTCHAR_BE(block, i * blocklen + pwlen + 8, round & 0xff);
