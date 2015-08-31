@@ -111,9 +111,11 @@ __kernel void sevenzip_loop(__global const sevenzip_password *inbuffer,
 	 * Hysterically optimized inner loop.
 	 */
 	for (j = 0; j < (HASH_LOOPS / 32); j++) {
+#pragma unroll
 		for (i = 0; i < 32; i++, round++) {
 			PUTCHAR_BE(block, i * blocklen + pwlen + 0, round & 0xff);
-			PUTCHAR_BE(block, i * blocklen + pwlen + 1, (round >> 8) & 0xff);
+			if (!(j & 7))
+				PUTCHAR_BE(block, i * blocklen + pwlen + 1, (round >> 8) & 0xff);
 		}
 		sha256_mblock(block, output, blocklen>>1);
 	}
