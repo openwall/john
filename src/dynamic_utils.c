@@ -57,12 +57,10 @@ void dynamic_DISPLAY_ALL_FORMATS()
 	for (i = 0; i < 1000; ++i)
 	{
 		char *sz = dynamic_PRELOAD_SIGNATURE(i);
-		char Type[14], *cp, lc_type[512];
+		char Type[14], *cp;
 		if (!sz)
 			break;
 		strnzcpy(Type, sz, sizeof(Type));
-		strnzcpy(lc_type, sz, sizeof(lc_type));
-		strlwr(lc_type);
 		cp = strchr(Type, ':');
 		if (cp) *cp = 0;
 #if !defined (DEBUG) && !defined (UNICODE_NO_OPTIONS)
@@ -70,7 +68,7 @@ void dynamic_DISPLAY_ALL_FORMATS()
 		    (!options.format || strcasecmp(options.format, "dynamic-all")))
 			continue;
 #endif
-		printf ("Format = %s%s  type = %s\n", Type, strlen(Type)<10?" ":"", lc_type);
+		printf ("Format = %s%s  type = %s\n", Type, strlen(Type)<10?" ":"", sz);
 	}
 
 	// The config has not been loaded, so we have to load it now, if we want to 'check'
@@ -88,12 +86,7 @@ void dynamic_DISPLAY_ALL_FORMATS()
 		if (sz &&
 		    // dynamic_IS_PARSER_VALID(i)) // this would include "reserved" formats
 		    dynamic_IS_VALID(i, 0) == 1) // skip "reserved" formats & disabled
-		{
-			char lc_type[512];
-			strnzcpy(lc_type, sz, sizeof(lc_type));
-			strlwr(lc_type);
-			printf ("UserFormat = dynamic_%d  type = %s\n", i, lc_type);
-		}
+			printf ("UserFormat = dynamic_%d  type = %s\n", i, sz);
 	}
 }
 
