@@ -14,6 +14,7 @@
 #define _COMMON_TUNE_H
 
 #include "config.h"
+#include "logger.h"
 #include "common-opencl.h"
 
 /* Step size for work size enumeration. Zero will double. */
@@ -207,6 +208,11 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 	else if (!(options.flags & FLG_SHOW_CHK))
 		fprintf(stderr, "{"Zu"/"Zu"} ", global_work_size, local_work_size);
 #endif
+
+	log_event("- OpenCL %sLWS: "Zu", GWS: "Zu" ("Zu" blocks)",
+	    (need_best_lws | need_best_gws) ? "(auto-tuned) " : "",
+		local_work_size, global_work_size, global_work_size / local_work_size);
+
 	self->params.min_keys_per_crypt = local_work_size * ocl_v_width;
 	self->params.max_keys_per_crypt = global_work_size * ocl_v_width;
 
