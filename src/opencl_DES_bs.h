@@ -75,8 +75,6 @@ extern int opencl_DES_bs_get_hash_5(int index);
 extern int opencl_DES_bs_get_hash_6(int index);
 extern void opencl_DES_bs_init(int block);
 extern int opencl_DES_bs_cmp_one_b(WORD *binary, int count, int index);
-extern WORD opencl_DES_raw_get_salt(char *ciphertext);
-extern WORD *opencl_DES_bs_get_binary(char *ciphertext);
 extern void opencl_DES_bs_set_key(char *key, int index);
 extern void opencl_DES_bs_init_index();
 
