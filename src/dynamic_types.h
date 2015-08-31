@@ -337,7 +337,7 @@ extern void MD5_body(MD5_word x[15],MD5_word out[4]);
 extern int large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int tid);
 int large_hash_output_no_null(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int tid);
 
-typedef enum { eUNK=0, eBase16=1, eBase16u=2, eBase64=3, eBase64_nte=4, eBaseRaw=5} eLargeOut_t;
+typedef enum { eUNK=0, eBase16=1, eBase16u=2, eBase64=3, eBase64_nte=4, eBaseRaw=5, eBase64c=6, } eLargeOut_t;
 
 #endif /* DYNAMIC_DISABLED */
 

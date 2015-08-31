@@ -370,8 +370,7 @@ static void reset(struct db_main *db)
 		                       2 * BUFFER_SIZE, gws_limit);
 
 		//Auto tune execution from shared/included code.
-		autotune_run(self, 1, gws_limit,
-		             (cpu(device_info[gpu_id]) ? 500000000ULL : 1000000000ULL));
+		autotune_run(self, 1, gws_limit, 500ULL);
 
 		load_hash(NULL);
 
@@ -516,8 +515,6 @@ static void init_common(struct fmt_main *_self)
 {
 	self = _self;
 	mask_int_cand_target = 20000;
-
-	opencl_prepare_dev(gpu_id);
 }
 
 static void init(struct fmt_main *_self)

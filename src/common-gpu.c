@@ -402,7 +402,8 @@ int id2nvml(const hw_bus busInfo) {
 	nvmlDevice_t dev;
 
 	if (nvmlDeviceGetHandleByPciBusId &&
-	    nvmlDeviceGetHandleByPciBusId(busInfo.busId, &dev) == NVML_SUCCESS)
+	    nvmlDeviceGetHandleByPciBusId(busInfo.busId, &dev) == NVML_SUCCESS &&
+	    nvmlDeviceGetIndex)
 	{
 		unsigned int id_NVML;
 

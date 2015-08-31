@@ -398,8 +398,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		sig_timer_emu_tick();
 #endif
 		salts_done++;
-	} while ((wait_salts && salts_done < salts) &&
-	         bench_running && !event_abort);
+	} while (((wait_salts && salts_done < salts) ||
+	          bench_running) && !event_abort);
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 	end_real = clock();

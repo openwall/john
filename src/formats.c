@@ -34,6 +34,7 @@ typedef unsigned int ARCH_WORD_32;
 
 struct fmt_main *fmt_list = NULL;
 static struct fmt_main **fmt_tail = &fmt_list;
+static char *buf_key;
 
 extern volatile int bench_running;
 
@@ -51,6 +52,9 @@ void fmt_register(struct fmt_main *format)
 
 void fmt_init(struct fmt_main *format)
 {
+	if (!buf_key)
+		buf_key = mem_alloc_tiny(PLAINTEXT_BUFFER_SIZE, MEM_ALIGN_SIMD);
+
 	if (!format->private.initialized) {
 #ifndef BENCH_BUILD
 		if (options.flags & FLG_LOOPTEST) {
@@ -146,7 +150,6 @@ static int is_aligned(void *p, size_t align)
 /* Mutes ASan problems. We pass a buffer long enough for any use */
 #define fmt_set_key(key, index)	  \
 	{ \
-		static char buf_key[PLAINTEXT_BUFFER_SIZE]; \
 		char *s = key, *d = buf_key; \
 		while ((*d++ = *s++)); \
 		format->methods.set_key(buf_key, index); \
@@ -289,7 +292,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #else
 	int extra_tests = 0;
 #endif
-	int ml;
+	int ml, sl = 0;
 
 	// validate that there are no NULL function pointers
 	if (format->methods.prepare == NULL)    return "method prepare NULL";
@@ -473,6 +476,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			return "split() returned NULL";
 		plaintext = current->plaintext;
 
+		if (!sl)
+			sl = strlen(plaintext);
 /*
  * Make sure the declared binary_size and salt_size are sufficient to actually
  * hold the binary ciphertexts and salts.  We do this by copying the values
@@ -623,16 +628,17 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			format->methods.clear_keys();
 			for (i = 0; i < max; i++) {
 				char *pCand = longcand(format, i, ml);
-				format->methods.set_key(pCand, i);
+				fmt_set_key(pCand, i);
 			}
 
+#if 0
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 			advance_cursor();
 #endif
 			/* 2. Perform a limited crypt (in case it matters) */
-		/*	if (format->methods.crypt_all(&min, NULL) != min)
-				return "crypt_all";*/
-
+			if (format->methods.crypt_all(&min, NULL) != min)
+				return "crypt_all";
+#endif
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 			advance_cursor();
 #endif
@@ -673,14 +679,14 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 /* Remove some old keys to better test cmp_all() */
 		if (index & 1)
-			fmt_set_key("", index);
+			fmt_set_key(longcand(format, index, sl), index);
 
 /* 0 1 2 3 4 6 9 13 19 28 42 63 94 141 211 316 474 711 1066 ... */
 		if (index >= 2 && max > ntests) {
 /* Always call set_key() even if skipping. Some formats depend on it. */
 			for (i = index + 1;
 			     i < max && i < (index + (index >> 1)); i++)
-				format->methods.set_key(longcand(format, i, ml), i);
+				fmt_set_key(longcand(format, i, sl), i);
 			index = i;
 		} else
 			index++;
@@ -689,9 +695,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			format->methods.clear_keys();
 			index = (max > 5 && max > ntests && done != 1) ? 5 : 0;
 /* Always call set_key() even if skipping. Some formats depend on it. */
-			if (index == 5)
-			for (i = 0; i < 5; i++)
-				fmt_set_key("", i);
+			for (i = 0; i < index; i++)
+				fmt_set_key(longcand(format, i, sl), i);
 			done |= 1;
 		}
 
@@ -701,7 +706,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			if (strstr(format->params.label, "-opencl") ||
 			    strstr(format->params.label, "-cuda")) {
 				for (i = index + 1; i < max - 1; i++)
-				    format->methods.set_key(longcand(format, i, ml), i);
+				    fmt_set_key(longcand(format, i, sl), i);
 				index = max - 1;
 			} else
 #endif
@@ -1152,16 +1157,17 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 			format->methods.clear_keys();
 			for (i = 0; i < max; i++) {
 				char *pCand = longcand(format, i, ml);
-				format->methods.set_key(pCand, i);
+				fmt_set_key(pCand, i);
 			}
 
+#if 0
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 			advance_cursor();
 #endif
 			/* 2. Perform a limited crypt (in case it matters) */
-		/*	if (format->methods.crypt_all(&min, NULL) != min)
-				return "crypt_all";*/
-
+			if (format->methods.crypt_all(&min, NULL) != min)
+				return "crypt_all";
+#endif
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 			advance_cursor();
 #endif

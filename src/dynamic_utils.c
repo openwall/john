@@ -60,8 +60,7 @@ void dynamic_DISPLAY_ALL_FORMATS()
 		char Type[14], *cp;
 		if (!sz)
 			break;
-		strncpy(Type, sz, sizeof(Type));
-		Type[13] = 0;
+		strnzcpy(Type, sz, sizeof(Type));
 		cp = strchr(Type, ':');
 		if (cp) *cp = 0;
 #if !defined (DEBUG) && !defined (UNICODE_NO_OPTIONS)

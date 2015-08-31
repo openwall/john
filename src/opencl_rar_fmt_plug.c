@@ -123,7 +123,7 @@ static int split_events[] = { 3, -1, -1 };
 #include "memdbg.h"
 
 #define ITERATIONS		0x40000
-#define HASH_LOOPS		0x04000 // Fixed, do not change
+#define HASH_LOOPS		0x4000 // Max. 0x4000
 
 static int new_keys;
 static struct fmt_main *self;
@@ -301,7 +301,7 @@ static void reset(struct db_main *db)
 	if (!autotuned) {
 		char build_opts[64];
 
-		snprintf(build_opts, sizeof(build_opts), "-DPLAINTEXT_LENGTH=%u", PLAINTEXT_LENGTH);
+		snprintf(build_opts, sizeof(build_opts), "-DPLAINTEXT_LENGTH=%u -DHASH_LOOPS=0x%x", PLAINTEXT_LENGTH, HASH_LOOPS);
 		opencl_init("$JOHN/kernels/rar_kernel.cl", gpu_id, build_opts);
 
 		// create kernels to execute
@@ -338,7 +338,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		new_keys = 0;
 	}
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarInit, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
-	for (k = 0; k < (ocl_autotune_running ? 1 : 16); k++) {
+	for (k = 0; k < (ocl_autotune_running ? 1 : (ITERATIONS / HASH_LOOPS)); k++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 		opencl_process_event();

@@ -123,7 +123,7 @@ Same goes for $u.  NOTE, the lexi works this way. I just need to document it.
 
 DONE // MGF_INPBASE64b uses e_b64_crypt from base64_convert.h
 DONE #define MGF_INPBASE64b		         0x00004000
-DONE if outter hash is md5_b64 (or b64e) then use this flag
+DONE if outer hash is md5_64 (or 64c) then use this flag
 DONE #define MGF_INPBASE64m               0x02000000
 DONE #define MGF_UTF8                     0x04000000
 DONE Remove all md5u() types.  Replace with a utf16() function.
@@ -810,12 +810,16 @@ static void comp_lexi_error(DC_struct *p, const char *pInput, char *msg) {
 	fprintf(stderr, "Dyna expression syntax error around this part of expression\n");
 	fprintf(stderr, "%s\n", p->pExpr);
 	n = strlen(p->pExpr)-strlen(pInput);
-	if (SymTab[nSyms-1][0] != 'X') n--;
-	while (n--) fprintf(stderr, " ");
+	if (SymTab[nSyms-1][0] != 'X')
+		n--;
+	while (n--)
+		fprintf(stderr, " ");
 	fprintf(stderr, "^\n");
-	if (SymTab[nSyms-1][0] != 'X') fprintf(stderr, "Invalid token found\n");
-	else fprintf(stderr, "%s\n", msg);
-	error("exiting now");
+	if (SymTab[nSyms-1][0] != 'X')
+		fprintf(stderr, "Invalid token found\n");
+	else
+		fprintf(stderr, "%s\n", msg);
+	error_msg("exiting now");
 }
 static char *comp_optimize_script(char *pScr) {
 	/*
@@ -1081,7 +1085,7 @@ SkipSaltCheck:;
 		while (p[-1] != ')' && p2-cpType < sizeof(cpType)-1)
 			*p2++ = *p++;
 		*p2 = 0;
-		if (islower(ARCH_INDEX(*cpType)) && !strstr(cpType, "_raw") && !strstr(cpType, "_b64") && strncmp(cpType, "utf", 3) && strncmp(cpType, "pad", 3) && strncmp(cpType, "lc(", 3) && strncmp(cpType, "uc(", 3)) {
+		if (islower(ARCH_INDEX(*cpType)) && !strstr(cpType, "_raw") && !strstr(cpType, "_64") && strncmp(cpType, "utf", 3) && strncmp(cpType, "pad", 3) && strncmp(cpType, "lc(", 3) && strncmp(cpType, "uc(", 3)) {
 			p = strstr(pBuf, cpType);
 			n2 = 0;
 			while (p) {
@@ -1141,7 +1145,7 @@ static int comp_do_lexi(DC_struct *p, const char *pInput) {
 	int paren = 0;
 	pInput = comp_get_symbol(pInput);
 	if (LastTokIsFunc != 1)
-		error("Error: dynamic hash must start with md4/md5/sha1 and NOT a *_raw version. This expression one does not\n");
+		error_msg("Error: dynamic hash must start with md4/md5/sha1 and NOT a *_raw version. This expression one does not\n");
 	while (SymTab[nSyms-1][0] != 'X') {
 		if (LastTokIsFunc) {
 			pInput = comp_get_symbol(pInput);
@@ -1414,7 +1418,7 @@ static void build_test_string(DC_struct *p, char **pLine) {
 		ELSEIF(KECCAK_256,keccak_256); ELSEIF(KECCAK_512,keccak_512);
 		// LARGE_HASH_EDIT_POINT
 
-		else { error("ERROR in dyna-parser. Have salt_as_hex_type set, but do not KNOW this type of hash\n"); }
+		else { error_msg("ERROR in dyna-parser. Have salt_as_hex_type set, but do not KNOW this type of hash\n"); }
 	}
 	for (nCurCode = 0; nCurCode < nCode; ++nCurCode)
 		fpCode[nCurCode]();
@@ -1479,7 +1483,7 @@ static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex
 		else if (*p == ')' && p[1] == 0) {
 			++p;
 		} else {
-			pexit ("compile_keys_base16_in1_type() : Error parsing %s, we got to %s\n", _p->pExpr, p);
+			error_msg("compile_keys_base16_in1_type() : Error parsing %s, we got to %s\n", _p->pExpr, p);
 		}
 	}
 #undef IF
@@ -1646,7 +1650,7 @@ static int parse_expression(DC_struct *p) {
 	{
 		int x, j, last_push;
 		int salt_len = nSaltLen ? nSaltLen : -32;
-		int in_unicode = 0, out_raw = 0, out_64 = 0, out_16u = 0, flag_utf16 = 0;
+		int in_unicode = 0, out_raw = 0, out_64 = 0, out_64c = 0, out_16u = 0, flag_utf16 = 0;
 		int append_mode = 0, append_mode2 = 0;
 		int max_inp_len = 110, len_comp = 0, len_comp2 = 0;
 		int inp1_clean = 0, exponent = -1;
@@ -1669,6 +1673,7 @@ static int parse_expression(DC_struct *p) {
 		}
 		for (i = 0; i < nCode; ++i) {
 			if (pCode[i][0] == 'f' || pCode[i][0] == 'F') {
+				char func_last_char = pCode[i][strlen(pCode[i])-1];
 
 				if (!inp1_clean && !keys_as_input) {
 					comp_add_script_line("Func=DynamicFunc__clean_input_kwik\n");
@@ -1686,29 +1691,34 @@ static int parse_expression(DC_struct *p) {
 						comp_add_script_line("Flag=MGF_UTF8\n");
 						flag_utf16 = 1;
 					}
-				} else if ((pCode[i][0] == 'f' || pCode[i][0] == 'F') && pCode[i][strlen(pCode[i])-1] == 'r') {
+				} else if (func_last_char == 'r') {
 					if (!out_raw) {
 						out_raw = 1;
 						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_raw\n");
 					}
-				} else if ((pCode[i][0] == 'f' || pCode[i][0] == 'F') && pCode[i][strlen(pCode[i])-1] == 'H') {
+				} else if (func_last_char == 'H') {
 					if (!out_16u) {
 						out_16u = 1;
 						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base16u\n");
 					}
-				} else if ((pCode[i][0] == 'f' || pCode[i][0] == 'F') && pCode[i][strlen(pCode[i])-1] == '6') {
+				} else if (func_last_char == '6') {
 					if (!out_64) {
 						out_64 = 1;
-						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base64\n");
+						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base64_nte\n");
+					}
+				} else  if (func_last_char == 'c') {
+					if (!out_64c) {
+						out_64c = 1;
+						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base64c\n");
 					}
 				} else {
 					// if final hash, then dont clear the mode to normal
 					if ( in_unicode && !(!pCode[i+1] || !pCode[i+1][0]))
 						comp_add_script_line("Func=DynamicFunc__setmode_normal\n");
 					in_unicode = 0;
-					if ( (out_raw||out_64||out_16u) && !(!pCode[i+1] || !pCode[i+1][0]))
+					if ( (out_raw||out_64||out_64c||out_16u) && !(!pCode[i+1] || !pCode[i+1][0]))
 						comp_add_script_line("Func=DynamicFunc__LargeHash_OUTMode_base16\n");
-					out_raw = out_64 = out_16u = 0;
+					out_raw = out_64 = out_64c = out_16u = 0;
 				}
 				// Found next function.  Now back up and load the data
 				for (j = i - 1; j >= 0; --j) {
@@ -1777,10 +1787,8 @@ static int parse_expression(DC_struct *p) {
 								if (len_comp > 239) {
 									if (inp_cnt) max_inp_len -= (len_comp-239+(inp_cnt-1))/inp_cnt;
 									else max_inp_len = (239-len_comp);
-									if (max_inp_len <= 0) {
-										errno = ERANGE;
-										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
-									}
+									if (max_inp_len <= 0)
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
 								}
 							} else if (!strncasecmp(pCode[i], "f5", 2 ) || !strncasecmp(pCode[i], "f4", 2) ||
 									   !strncasecmp(pCode[i], "f1", 2) || !strncasecmp(pCode[i], "f224", 4 ) ||
@@ -1789,20 +1797,17 @@ static int parse_expression(DC_struct *p) {
 								if (len_comp > 247) {
 									if (inp_cnt) max_inp_len -= (len_comp-247+(inp_cnt-1))/inp_cnt;
 									else max_inp_len = (247-len_comp);
-									if (max_inp_len <= 0) {
-										errno = ERANGE;
-										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
-									}
+									if (max_inp_len <= 0)
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
 								}
 							} else {
 								// non SIMD code can use full 256 byte buffers.
 								if (len_comp > 256) {
 									if (inp_cnt) max_inp_len -= (len_comp-256+(inp_cnt-1))/inp_cnt;
 									else max_inp_len = (256-len_comp);
-									if (max_inp_len <= 0) {
-										errno = ERANGE;
-										pexit("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
-									}
+									if (max_inp_len <= 0)
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
+
 								}
 							}
 							len_comp = 0;
@@ -1816,10 +1821,8 @@ static int parse_expression(DC_struct *p) {
 								if (len_comp > 239) {
 									if (inp_cnt2) max_inp_len -= (len_comp2-239+(inp_cnt2-1))/inp_cnt2;
 									else max_inp_len = (239-len_comp2);
-									if (max_inp_len <= 0) {
-										errno = ERANGE;
-										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
-									}
+									if (max_inp_len <= 0)
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
 								}
 							} else if (!strncasecmp(pCode[i], "f5", 2 ) || !strncasecmp(pCode[i], "f4", 2) ||
 									   !strncasecmp(pCode[i], "f1", 2) || !strncasecmp(pCode[i], "f224", 4 ) ||
@@ -1828,20 +1831,16 @@ static int parse_expression(DC_struct *p) {
 								if (len_comp2 > 247) {
 									if (inp_cnt2) max_inp_len -= (len_comp2-247+(inp_cnt2-1))/inp_cnt2;
 									else  max_inp_len = (247-len_comp2);
-									if (max_inp_len <= 0) {
-										errno = ERANGE;
-										pexit("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
-									}
+									if (max_inp_len <= 0)
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
 								}
 							} else {
 								// non SIMD code can use full 256 byte buffers.
 								if (len_comp2 > 256) {
 									if (inp_cnt2) max_inp_len -= (len_comp2-256+(inp_cnt2-1))/inp_cnt2;
 									else max_inp_len = (256-len_comp2);
-									if (max_inp_len <= 0) {
-										errno = ERANGE;
-										pexit("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
-									}
+									if (max_inp_len <= 0)
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
 								}
 							}
 							len_comp2 = 0;

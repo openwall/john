@@ -380,7 +380,7 @@ __kernel void RarInit(__global uint *OutputBuf, __global uint *round)
 		OutputBuf[i * gws + gid] = output[i];
 }
 
-/* This kernel is called 16 times in a row */
+/* This kernel is called 16 times in a row (at HASH_LOOPS == 0x4000) */
 __kernel void RarHashLoop(
 	const __global uint *unicode_pw,
 	const __global uint *pw_len,
@@ -411,6 +411,9 @@ __kernel void RarHashLoop(
 	}
 
 	/* Get IV */
+#if ROUNDS / HASH_LOOPS != 16
+	if ((round % (ROUNDS / 16)) == 0)
+#endif
 	{
 		uint tempin[16], tempout[5];
 
@@ -429,10 +432,10 @@ __kernel void RarHashLoop(
 		for (i = pwlen + 12; i < 56; i++)
 			PUTCHAR_BE(tempin, i, 0);
 		tempin[14] = 0;
-		tempin[15] = ((pwlen + 8 + 3) * (round + 1)) << 3;
+		tempin[15] = (blocklen * (round + 1)) << 3;
 		sha1_block(tempin, tempout);
 #else
-		sha1_final(tempin, tempout, (pwlen + 8 + 3) * (round + 1));
+		sha1_final(tempin, tempout, blocklen * (round + 1));
 #endif
 		PUTCHAR_G(aes_iv, gid * 16 + (round >> 14), GETCHAR(tempout, 16));
 	}
@@ -441,10 +444,12 @@ __kernel void RarHashLoop(
 	 * The inner loop. Compared to earlier revisions of this kernel
 	 * this is really a piece of art
 	 */
-	for (j = 0; j < 256; j++) {
+	for (j = 0; j < (HASH_LOOPS / 64); j++) {
+#pragma unroll
 		for (i = 0; i < 64; i++, round++) {
 			PUTCHAR_BE(block, i * blocklen + pwlen + 8, round & 0xff);
-			PUTCHAR_BE(block, i * blocklen + pwlen + 9, (round >> 8) & 0xff);
+			if (!(j & 3))
+				PUTCHAR_BE(block, i * blocklen + pwlen + 9, (round >> 8) & 0xff);
 		}
 		sha1_mblock(block, output, blocklen);
 	}
