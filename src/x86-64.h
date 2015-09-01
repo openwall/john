@@ -345,10 +345,12 @@
  * likely benefit from the 3x interleaving with no adverse effects for the
  * multi-threaded case.
  */
+#ifndef BF_X2
 #ifdef __AVX__
 #define BF_X2				1
 #else
 #define BF_X2				3
+#endif
 #endif
 
 #endif

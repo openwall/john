@@ -53,7 +53,9 @@
 
 #define BF_ASM				0
 #define BF_SCALE			1
+#ifndef BF_X2
 #define BF_X2				1
+#endif
 
 #define SIMD_COEF_32		16
 #define SIMD_COEF_64		8

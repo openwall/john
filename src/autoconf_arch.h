@@ -38,6 +38,8 @@
 
 #define BF_ASM				0
 #define BF_SCALE			0
+#ifndef BF_X2
 #define BF_X2				1
+#endif
 
 #endif
