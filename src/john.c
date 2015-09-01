@@ -1411,18 +1411,20 @@ static void john_init(char *name, int argc, char **argv)
 	gpu_log_temp();
 #endif
 
-	if (pers_opts.target_enc != ASCII)
+	if (pers_opts.target_enc != ASCII) {
 		log_event("- %s input encoding enabled",
 		          cp_id2name(pers_opts.input_enc));
 
-	if (!options.secure) {
-		if (pers_opts.report_utf8 && options.loader.log_passwords)
-			log_event("- Passwords in this logfile are "
-			          "UTF-8 encoded");
+		if (!options.secure) {
+			if (pers_opts.report_utf8 &&
+			    options.loader.log_passwords)
+				log_event("- Passwords in this logfile are "
+				    "UTF-8 encoded");
 
-		if (pers_opts.store_utf8)
-			log_event("- Passwords will be stored UTF-8 "
-			          "encoded in .pot file");
+			if (pers_opts.store_utf8)
+				log_event("- Passwords will be stored UTF-8 "
+				    "encoded in .pot file");
+		}
 	}
 
 	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked)
