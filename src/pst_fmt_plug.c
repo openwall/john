@@ -185,7 +185,7 @@ struct fmt_main fmt_pst = {
 #ifdef _OPENMP
 		FMT_OMP | FMT_OMP_BAD |
 #endif
-		FMT_CASE | FMT_8_BIT | FMT_NOT_EXACT,
+		FMT_CASE | FMT_TRUNC | FMT_8_BIT | FMT_NOT_EXACT,
 		{ NULL },
 		tests
 	}, {

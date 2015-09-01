@@ -82,6 +82,8 @@ struct db_salt;
 #define FMT_SPLIT_UNIFIES_CASE		0x00020000
 /* Is this format a dynamic_x format (or a 'thin' format using dynamic code)? */
 #define FMT_DYNAMIC			0x00100000
+/* Is this a format which originally truncates at our max. length? */
+#define FMT_TRUNC			0x00200000
 #ifdef _OPENMP
 /* Parallelized with OpenMP */
 #define FMT_OMP				0x01000000

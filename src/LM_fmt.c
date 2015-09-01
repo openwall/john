@@ -219,7 +219,7 @@ struct fmt_main fmt_LM = {
 #if DES_bs_mt
 		FMT_OMP | FMT_OMP_BAD |
 #endif
-		FMT_8_BIT | FMT_BS | FMT_SPLIT_UNIFIES_CASE,
+		FMT_8_BIT | FMT_TRUNC | FMT_BS | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		tests
 	}, {

@@ -495,10 +495,10 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	}
 
 	/* Command-line can over-ride lengths from config file */
-	if (options.force_minlength >= 0)
-		min_length = options.force_minlength;
-	if (options.force_maxlength)
-		max_length = options.force_maxlength;
+	if (options.req_minlength >= 0)
+		min_length = options.req_minlength;
+	if (options.req_maxlength)
+		max_length = options.req_maxlength;
 
 	if (min_length > max_length) {
 		log_event("! MinLen = %d exceeds MaxLen = %d",

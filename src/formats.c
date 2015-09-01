@@ -91,7 +91,7 @@ void fmt_init(struct fmt_main *format)
 			format->params.min_keys_per_crypt =
 				options.force_maxkeys;
 	}
-	if (options.force_maxlength > format->params.plaintext_length) {
+	if (options.req_maxlength > format->params.plaintext_length) {
 		fprintf(stderr, "Can't set max length larger than %u "
 		        "for %s format\n",
 		        format->params.plaintext_length,

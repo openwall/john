@@ -715,7 +715,7 @@ struct fmt_main fmt_sapB = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_OMP | FMT_8_BIT,
+		FMT_TRUNC | FMT_OMP | FMT_8_BIT,
 		{ NULL },
 		tests
 	}, {

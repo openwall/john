@@ -275,9 +275,12 @@ struct options_main {
 	int force_maxkeys;
 
 /* Requested MinLen (min plaintext_length) */
-	int force_minlength;
+	int req_minlength;
 
 /* Requested MaxLen (max plaintext_length) */
+	int req_maxlength;
+
+/* Forced MaxLen (we will reject candidates longer than this) */
 	int force_maxlength;
 
 /* Graceful exit after this many seconds of cracking */

@@ -981,7 +981,7 @@ static void john_load(void)
 		dummy_format.methods.clear_keys = &fmt_default_clear_keys;
 
 		pers_opts.target_enc = pers_opts.input_enc;
-		if (options.force_maxlength > options.length) {
+		if (options.req_maxlength > options.length) {
 			fprintf(stderr, "Can't set max length larger than %u "
 			        "for stdout format\n", options.length);
 			error();
@@ -1497,25 +1497,38 @@ static void john_run(void)
 		}
 		tty_init(options.flags & FLG_STDIN_CHK);
 
-		if (john_main_process && database.format->params.flags & FMT_NOT_EXACT)
+		if (john_main_process &&
+		    database.format->params.flags & FMT_NOT_EXACT)
 			fprintf(stderr, "Note: This format may emit false "
 			        "positives, so it will keep trying even "
 			        "after\nfinding a possible candidate.\n");
 
+		/* Some formats truncate at (our) max. length */
+		if (!(database.format->params.flags & FMT_TRUNC) &&
+		    !options.force_maxlength)
+			options.force_maxlength =
+			    database.format->params.plaintext_length;
+
+		if (options.force_maxlength)
+			log_event("- Will reject candidates longer than %d %s",
+				  options.force_maxlength,
+				  (pers_opts.target_enc == UTF_8) ?
+				  "bytes" : "characters");
+
 		/* Some formats have a minimum plaintext length */
 		if (database.format->params.plaintext_min_length &&
-		    options.force_minlength <
+		    options.req_minlength <
 		    database.format->params.plaintext_min_length) {
-			options.force_minlength =
+			options.req_minlength =
 				database.format->params.plaintext_min_length;
 			if (john_main_process)
 				fprintf(stderr,
 				        "Note: minimum length forced to %d\n",
-				        options.force_minlength);
+				        options.req_minlength);
 
 			/* Now we need to re-check this */
-			if (options.force_maxlength &&
-			    options.force_maxlength < options.force_minlength) {
+			if (options.req_maxlength &&
+			    options.req_maxlength < options.req_minlength) {
 				if (john_main_process)
 					fprintf(stderr, "Invalid option: "
 					        "--max-length smaller than "
