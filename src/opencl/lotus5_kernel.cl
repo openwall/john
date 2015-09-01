@@ -86,12 +86,12 @@ lotus_mix (__private unsigned int *m1, MAYBE_CONSTANT unsigned int *lotus_magic_
 }
 
 __kernel void
-lotus5(__global unsigned int * i_saved_key,
-       constant unsigned int * magic_table
+lotus5(__global lotus5_key *i_saved_key,
+       constant unsigned int *magic_table
 #if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
 	__attribute__((max_constant_size(256 * sizeof(unsigned int))))
 #endif
-       , __global unsigned int * crypt_key) {
+       , __global unsigned int *crypt_key) {
 
 	unsigned int index = get_global_id(0);
 	unsigned int m32[16];
@@ -115,9 +115,7 @@ lotus5(__global unsigned int * i_saved_key,
 	m32[0] = m32[1] = m32[2] = m32[3] = 0;
 	m32[4] = m32[5] = m32[6] = m32[7] = 0;
 
-	password_length = i_saved_key[
-	                index * KEY_SIZE_IN_ARCH_WORD_32 + KEY_SIZE_IN_ARCH_WORD_32 - 1]
-			>> 24;
+	password_length = i_saved_key[index].l;
 
 	{
 		int i, j;
@@ -135,10 +133,10 @@ lotus5(__global unsigned int * i_saved_key,
 	                             (PLAINTEXT_LENGTH - password_length) << 24;
 		}
 
-	m32[8] = m32[4] ^= i_saved_key[index * KEY_SIZE_IN_ARCH_WORD_32];
-	m32[9] = m32[5] ^= i_saved_key[index * KEY_SIZE_IN_ARCH_WORD_32 + 1];
-	m32[10] = m32[6] ^= i_saved_key[index * KEY_SIZE_IN_ARCH_WORD_32 + 2];
-	m32[11] = m32[7] ^= i_saved_key[index * KEY_SIZE_IN_ARCH_WORD_32 + 3];
+	m32[8] = m32[4] ^= i_saved_key[index].v.w[0];
+	m32[9] = m32[5] ^= i_saved_key[index].v.w[1];
+	m32[10] = m32[6] ^= i_saved_key[index].v.w[2];
+	m32[11] = m32[7] ^= i_saved_key[index].v.w[3];
 
 	lotus_transform_password(m32 + 4, m32 + 12,
 #if cpu(DEVICE_INFO)
