@@ -59,9 +59,7 @@
 #endif
 #else
 #define BF_ASM				1
-#ifndef BF_X2
 #define BF_X2				0
-#endif
 #endif
 #define BF_SCALE			1
 
