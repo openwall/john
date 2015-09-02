@@ -150,7 +150,6 @@ static void reset(struct db_main *db)
 
 		release_clobj_kpc();
 		release_clobj();
-		memset(num_uncracked_hashes, 0, 4096 * sizeof(unsigned int));
 
 		create_clobj(db);
 		create_clobj_kpc(global_work_size);
@@ -252,7 +251,7 @@ static char *get_key(int index)
 	char *dst;
 
 	if (hash_ids == NULL || hash_ids[0] == 0 ||
-	    index > 32 * hash_ids[0] || hash_ids[0] > num_uncracked_hashes[current_salt])
+	    index > 32 * hash_ids[0] || hash_ids[0] > num_uncracked_hashes(current_salt))
 		section = 0;
 	else
 		section = hash_ids[2 * (index/DES_BS_DEPTH) + 1];
@@ -291,7 +290,7 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 		opencl_DES_bs_keys_changed = 0;
 	}
 
-	if (salt && num_uncracked_hashes[current_salt] != salt -> count)
+	if (salt && num_uncracked_hashes(current_salt) != salt -> count)
 		update_buffer(salt);
 
 	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 1, sizeof(cl_mem), &buffer_processed_salts[current_salt]), "Failed setting kernel argument buffer_processed_salts, kernel DES_bs_25.\n");

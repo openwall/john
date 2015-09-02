@@ -200,9 +200,59 @@ __kernel void DES_bs_finalize_keys(__global opencl_DES_bs_transfer *des_raw_keys
 	}
 }
 
+#define GET_HASH_0(hash, x, k, bits)			\
+	for (bit = bits; bit < k; bit++)		\
+		hash |= ((((uint)B[bit]) >> x) & 1) << bit;
+
+#define GET_HASH_1(hash, x, k, bits)   			\
+	for (bit = bits; bit < k; bit++)		\
+		hash |= ((((uint)B[32 + bit]) >> x) & 1) << bit;
+
+#define OFFSET_TABLE_SIZE hash_chk_params.offset_table_size
+#define HASH_TABLE_SIZE hash_chk_params.hash_table_size
+
+inline void cmp_final(__private unsigned DES_bs_vector *B,
+		      __global unsigned int *offset_table,
+		      __global unsigned int *hash_table,
+		      DES_hash_check_params hash_chk_params,
+		      volatile __global uint *hash_ids,
+		      volatile __global uint *bitmap_dupe,
+		      unsigned int section,
+		      unsigned int depth,
+		      __global DES_bs_vector *cracked_hashes)
+{
+	unsigned long hash;
+	unsigned int hash_table_index, t, bit;
+	unsigned DES_bs_vector binary[2];
+
+	binary[0] = 0;
+	binary[1] = 0;
+	GET_HASH_0(binary[0], depth, 32, 0);
+	GET_HASH_1(binary[1], depth, 32, 0);
+
+
+	hash = ((unsigned long)binary[1] << 32) | (unsigned long)binary[0];
+	hash += (unsigned long)offset_table[hash % OFFSET_TABLE_SIZE];
+	hash_table_index = hash % HASH_TABLE_SIZE;
+
+	if (hash_table[hash_table_index + HASH_TABLE_SIZE] == binary[1])
+	if (hash_table[hash_table_index] == binary[0])
+	if (!(atomic_or(&bitmap_dupe[hash_table_index/32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
+		t = atomic_inc(&hash_ids[0]);
+		hash_ids[1 + 2 * t] = section;
+		hash_ids[2 + 2 * t] = 0;
+		for (bit = 0; bit < 64; bit++)
+			cracked_hashes[t * 64 + bit] = (DES_bs_vector)B[bit];
+	}
+}
+
+#define num_uncracked_hashes hash_chk_params.num_uncracked_hashes
+
 __kernel void DES_bs_cmp(__global unsigned DES_bs_vector *unchecked_hashes,
 	  __global int *uncracked_hashes,
-	  int num_uncracked_hashes,
+	  __global unsigned int *offset_table,
+	  __global unsigned int *hash_table,
+	  DES_hash_check_params hash_chk_params,
 	  volatile __global uint *hash_ids,
 	  volatile __global uint *bitmap_dupe,
 	  __global DES_bs_vector *cracked_hashes) {
@@ -231,14 +281,8 @@ __kernel void DES_bs_cmp(__global unsigned DES_bs_vector *unchecked_hashes,
 		}
 
 		if (mask != ~(int)0) {
-			if (!(atomic_or(&bitmap_dupe[i/32], (1U << (i % 32))) & (1U << (i % 32)))) {
-				mask = atomic_inc(&hash_ids[0]);
-				hash_ids[1 + 2 * mask] = section;
-				hash_ids[2 + 2 * mask] = 0;
-				for (bit = 0; bit < 64; bit++)
-					cracked_hashes[mask * 64 + bit] = (DES_bs_vector)B[bit];
-
-			}
+			for (mask = 0; mask < 32; mask++)
+			cmp_final(B, offset_table, hash_table, hash_chk_params, hash_ids, bitmap_dupe, section, mask, cracked_hashes);
 		}
 	}
 }

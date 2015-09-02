@@ -32,7 +32,9 @@
 #define GWS_CONFIG		        "des_GWS"
 
 /* Common hash checking variables */
-extern unsigned int *hash_ids, *num_uncracked_hashes;
+extern unsigned int *hash_ids;
+extern DES_hash_check_params *hash_chk_params;
+#define num_uncracked_hashes(k) hash_chk_params[k].num_uncracked_hashes
 
 extern void build_tables(struct db_main *);
 extern void release_tables();
