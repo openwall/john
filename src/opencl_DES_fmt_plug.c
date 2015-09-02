@@ -249,16 +249,6 @@ static int cmp_all(WORD *binary, int count)
 	return 1;
 }
 
-static int cmp_one(void *binary, int index)
-{
-	return opencl_DES_bs_cmp_one_b((WORD*)binary, 32, index);
-}
-
-static int cmp_exact(char *source, int index)
-{
-	return opencl_DES_bs_cmp_one_b(get_binary(source), 64, index);
-}
-
 struct fmt_main fmt_opencl_DES = {
 	{
 		FORMAT_LABEL,
@@ -304,7 +294,7 @@ struct fmt_main fmt_opencl_DES = {
 		NULL,
 		NULL,
 		opencl_DES_bs_set_key,
-		NULL,
+		opencl_DES_bs_get_key,
 		fmt_default_clear_keys,
 		NULL,
 		{
@@ -319,8 +309,8 @@ struct fmt_main fmt_opencl_DES = {
 
 		(int (*)(void *, int))cmp_all,
 
-		cmp_one,
-		cmp_exact
+		opencl_DES_bs_cmp_one,
+		opencl_DES_bs_cmp_exact
 	}
 };
 

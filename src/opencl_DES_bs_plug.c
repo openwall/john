@@ -27,6 +27,7 @@ static cl_mem buffer_cracked_hashes, buffer_hash_ids, buffer_bitmap_dupe, *buffe
 static unsigned int *zero_buffer = NULL, **hash_tables = NULL;
 unsigned int *hash_ids = NULL;
 DES_hash_check_params *hash_chk_params = NULL;
+static WORD current_salt = 0;
 
 unsigned char opencl_DES_E[48] = {
 	31, 0, 1, 2, 3, 4,
@@ -359,8 +360,10 @@ void create_checking_kernel_set_args(cl_mem buffer_unchecked_hashes)
 	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 7, sizeof(cl_mem), &buffer_cracked_hashes), "Failed setting kernel argument buffer_cracked_hashes, kernel DES_bs_cmp.\n");
 }
 
-int extract_info(size_t current_gws, size_t *lws, WORD current_salt)
+int extract_info(size_t current_gws, size_t *lws, WORD salt_val)
 {
+	current_salt = salt_val;
+
 	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 1, sizeof(cl_mem), &buffer_uncracked_hashes[current_salt]), "Failed setting kernel argument buffer_uncracked_hashes, kernel DES_bs_25.\n");
 	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 2, sizeof(cl_mem), &buffer_offset_tables[current_salt]), "Failed setting kernel argument buffer_offset_tables, kernel DES_bs_25.\n");
 	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 3, sizeof(cl_mem), &buffer_hash_tables[current_salt]), "Failed setting kernel argument buffer_hash_tables, kernel DES_bs_25.\n");
@@ -377,13 +380,13 @@ int extract_info(size_t current_gws, size_t *lws, WORD current_salt)
 	}
 
 	if (hash_ids[0]) {
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (2 * num_uncracked_hashes(current_salt) + 1) * sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Failed to read buffer buffer_hash_ids.\n");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (2 * hash_ids[0] + 1) * sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Failed to read buffer buffer_hash_ids.\n");
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_cracked_hashes, CL_TRUE, 0, hash_ids[0] * 64 * sizeof(DES_bs_vector), opencl_DES_bs_cracked_hashes, 0, NULL, NULL), "Failed to read buffer buffer_cracked_hashes.\n");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmap_dupe, CL_TRUE, 0, ((hash_table_size(current_salt) - 1)/32 + 1) * sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "Failed to write buffer buffer_bitmap_dupe.\n");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "Failed to write buffer buffer_hash_ids.\n");
 	}
 
-	return 32 * hash_ids[0];
+	return hash_ids[0];
 }
 
 void init_checking()
@@ -491,139 +494,90 @@ fill2:
 	*/
 }
 
-int opencl_DES_bs_cmp_one_b(WORD *binary, int count, int index)
+char *opencl_DES_bs_get_key(int index)
 {
-	int bit;
-	DES_bs_vector *b;
-	int depth;
-	unsigned int section;
+	static char out[PLAINTEXT_LENGTH + 1];
+	unsigned int section, block;
+	unsigned char *src;
+	char *dst;
 
-	section = index >> DES_LOG_DEPTH;
-	index &= (DES_BS_DEPTH - 1);
-	depth = index >> 3;
-	index &= 7;
+	if (hash_ids == NULL || hash_ids[0] == 0 ||
+	    index > 32 * hash_ids[0] || hash_ids[0] > num_uncracked_hashes(current_salt)) {
+		section = 0;
+		block = 0;
+	}
+	else {
+		section = hash_ids[2 * index + 1] / 32;
+		block  = hash_ids[2 * index + 1] & 31;
 
-	b = (DES_bs_vector *)((unsigned char *)&opencl_DES_bs_cracked_hashes[section * 64] + depth);
+	}
 
-#define GET_BIT \
-	((unsigned WORD)*(unsigned char *)&b[0] >> index)
+	if (section > global_work_size) {
+		fprintf(stderr, "Get key error! %d %zu\n", section,
+			global_work_size);
+		section = 0;
+	}
 
-	for (bit = 0; bit < 31; bit++, b++)
-		if ((GET_BIT ^ (binary[0] >> bit)) & 1)
-			return 0;
+	src = opencl_DES_bs_all[section].pxkeys[block];
+	dst = out;
+	while (dst < &out[PLAINTEXT_LENGTH] && (*dst = *src)) {
+		src += sizeof(DES_bs_vector) * 8;
+		dst++;
+	}
+	*dst = 0;
 
-	for (; bit < count; bit++, b++)
-		if ((GET_BIT ^ (binary[bit >> 5] >> (bit & 0x1F))) & 1)
-			return 0;
-#undef GET_BIT
-	return 1;
-}
-
-static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
-{
-	int result;
-	DES_bs_vector *b;
-	unsigned int sector;
-
-	sector = index >> DES_LOG_DEPTH;
-	index &= (DES_BS_DEPTH-1);
-#if ARCH_LITTLE_ENDIAN
-/*
- * This is merely an optimization.  Nothing will break if this check for
- * little-endian archs is removed, even if the arch is in fact little-endian.
- */
-	b = (DES_bs_vector *)&opencl_DES_bs_cracked_hashes[sector * 64];
-#define GET_BIT(bit) \
-	(((unsigned WORD)b[(bit)] >> index) & 1)
-#else
-	depth = index >> 3;
-	index &= 7;
-	b = (DES_bs_vector *)((unsigned char *)&opencl_DES_bs_cracked_hashes[sector * 64] + depth);
-#define GET_BIT(bit) \
-	(((unsigned int)*(unsigned char *)&b[(bit)] >> index) & 1)
-#endif
-#define MOVE_BIT(bit) \
-	(GET_BIT(bit) << (bit))
-
-	result = GET_BIT(0);
-	result |= MOVE_BIT(1);
-	result |= MOVE_BIT(2);
-	result |= MOVE_BIT(3);
-	if (count == 4) return result;
-
-	result |= MOVE_BIT(4);
-	result |= MOVE_BIT(5);
-	result |= MOVE_BIT(6);
-	result |= MOVE_BIT(7);
-	if (count == 8) return result;
-
-	result |= MOVE_BIT(8);
-	result |= MOVE_BIT(9);
-	result |= MOVE_BIT(10);
-	result |= MOVE_BIT(11);
-	if (count == 12) return result;
-
-	result |= MOVE_BIT(12);
-	result |= MOVE_BIT(13);
-	result |= MOVE_BIT(14);
-	result |= MOVE_BIT(15);
-	if (count == 16) return result;
-
-	result |= MOVE_BIT(16);
-	result |= MOVE_BIT(17);
-	result |= MOVE_BIT(18);
-	result |= MOVE_BIT(19);
-	if (count == 20) return result;
-
-	result |= MOVE_BIT(20);
-	result |= MOVE_BIT(21);
-	result |= MOVE_BIT(22);
-	result |= MOVE_BIT(23);
-	if (count == 24) return result;
-
-	result |= MOVE_BIT(24);
-	result |= MOVE_BIT(25);
-	result |= MOVE_BIT(26);
-
-#undef GET_BIT
-#undef MOVE_BIT
-
-	return result;
+	return out;
 }
 
 int opencl_DES_bs_get_hash_0(int index)
 {
-	return DES_bs_get_hash(index, 4);
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xf;
 }
 
 int opencl_DES_bs_get_hash_1(int index)
 {
-	return DES_bs_get_hash(index, 8);
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xff;
 }
 
 int opencl_DES_bs_get_hash_2(int index)
 {
-	return DES_bs_get_hash(index, 12);
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xfff;
 }
 
 int opencl_DES_bs_get_hash_3(int index)
 {
-	return DES_bs_get_hash(index, 16);
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xffff;
 }
 
 int opencl_DES_bs_get_hash_4(int index)
 {
-	return DES_bs_get_hash(index, 20);
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xfffff;
 }
 
 int opencl_DES_bs_get_hash_5(int index)
 {
-	return DES_bs_get_hash(index, 24);
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xffffff;
 }
 
 int opencl_DES_bs_get_hash_6(int index)
 {
-	return DES_bs_get_hash(index, 27);
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0x7ffffff;
+}
+
+int opencl_DES_bs_cmp_one(void *binary, int index)
+{
+	if (((int *)binary)[0] == hash_tables[current_salt][hash_ids[2 + 2 * index]])
+		return 1;
+	return 0;
+}
+
+int opencl_DES_bs_cmp_exact(char *source, int index)
+{
+	int *binary = fmt_opencl_DES.methods.binary(source);
+
+	if (binary[1] == hash_tables[current_salt][hash_ids[2 + 2 * index] + hash_table_size(current_salt)])
+		return 1;
+	return 0;
 }
 
 #endif /* HAVE_OPENCL */

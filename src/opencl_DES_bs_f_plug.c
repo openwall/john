@@ -232,37 +232,6 @@ static void set_salt(void *salt)
 	current_salt = *(WORD *)salt;
 }
 
-static char *get_key(int index)
-{
-	static char out[PLAINTEXT_LENGTH + 1];
-	unsigned int section, block;
-	unsigned char *src;
-	char *dst;
-
-	if (hash_ids == NULL || hash_ids[0] == 0 ||
-	    index > 32 * hash_ids[0] || hash_ids[0] > num_uncracked_hashes(current_salt))
-		section = 0;
-	else
-		section = hash_ids[2 * (index/DES_BS_DEPTH) + 1];
-
-	if (section > global_work_size) {
-		fprintf(stderr, "Get key error! %d %zu\n", section,
-			global_work_size);
-		section = 0;
-	}
-	block  = index % DES_BS_DEPTH;
-
-	src = opencl_DES_bs_all[section].pxkeys[block];
-	dst = out;
-	while (dst < &out[PLAINTEXT_LENGTH] && (*dst = *src)) {
-		src += sizeof(DES_bs_vector) * 8;
-		dst++;
-	}
-	*dst = 0;
-
-	return out;
-}
-
 static void modify_build_save_restore(WORD cur_salt, int id_gpu) {
 	char kernel_bin_name[200];
 	FILE *file;
@@ -330,7 +299,6 @@ void opencl_DES_bs_f_register_functions(struct fmt_main *fmt)
 	fmt -> methods.done = &clean_all_buffers;
 	fmt -> methods.reset = &reset;
 	fmt -> methods.set_salt = &set_salt;
-	fmt -> methods.get_key = &get_key;
 	fmt -> methods.crypt_all = &des_crypt_25;
 
 	opencl_DES_bs_init_global_variables = &init_global_variables;

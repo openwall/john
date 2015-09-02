@@ -239,10 +239,8 @@ inline void cmp_final(__private unsigned DES_bs_vector *B,
 	if (hash_table[hash_table_index] == binary[0])
 	if (!(atomic_or(&bitmap_dupe[hash_table_index/32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
 		t = atomic_inc(&hash_ids[0]);
-		hash_ids[1 + 2 * t] = section;
-		hash_ids[2 + 2 * t] = 0;
-		for (bit = 0; bit < 64; bit++)
-			cracked_hashes[t * 64 + bit] = (DES_bs_vector)B[bit];
+		hash_ids[1 + 2 * t] = (section * 32) + depth;
+		hash_ids[2 + 2 * t] = hash_table_index;
 	}
 }
 
