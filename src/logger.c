@@ -436,7 +436,8 @@ void log_event(const char *format, ...)
 		vfprintf(stderr, format, args);
 		va_end(args);
 		fprintf(stderr, "\n");
-		return;
+		if (options.flags & FLG_NOLOG)
+			return;
 	}
 
 	if (log.fd < 0) return;
