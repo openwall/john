@@ -32,11 +32,11 @@ __constant uint k[] = {
 };
 
 #ifdef USE_BITSELECT
-#define Ch(x, y, z)	bitselect(z, y, x)
-#define Maj(x, y, z)	bitselect(x, y, z ^ x)
+#define Ch(x, y, z) bitselect(z, y, x)
+#define Maj(x, y, z) bitselect(x, y, z ^ x)
 #else
-#define Ch(x, y, z)	(z ^ (x & (y ^ z)))
-#define Maj(x, y, z)	((x & y) | (z & (x | y)))
+#define Ch(x, y, z) (z ^ (x & (y ^ z)))
+#define Maj(x, y, z) ((x & y) | (z & (x | y)))
 #endif
 
 #define ror(x, n)	rotate(x, 32U-(n))

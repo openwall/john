@@ -63,8 +63,8 @@ be32dec_vect(uint32_t *dst, const unsigned char *src, size_t len)
 }
 
 /* Elementary functions used by SHA256 */
-#define Ch(x, y, z)	((x & (y ^ z)) ^ z)
-#define Maj(x, y, z)	((x & (y | z)) | (y & z))
+#define Ch(x, y, z) (z ^ (x & (y ^ z)))
+#define Maj(x, y, z) ((x & (y | z)) | (y & z))
 #define SHR(x, n)	(x >> n)
 #define ROTR(x, n)	((x >> n) | (x << (32 - n)))
 #define S0(x)		(ROTR(x, 2) ^ ROTR(x, 13) ^ ROTR(x, 22))

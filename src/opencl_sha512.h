@@ -20,29 +20,33 @@
 //Macros.
 //OSX drivers has problems digesting this SWAP64 macro.
 #if defined(USE_BITSELECT) && !__OS_X__
-	#define Ch(x,y,z)       bitselect(z, y, x)
-	#define Maj(x,y,z)      bitselect(x, y, z ^ x)
-	#define ror(x, n)       ((x >> n) | (x << (64UL-n)))
-	#define SWAP64(n)	bitselect(					    \
-				    bitselect(rotate(n, 24UL),			    \
-					rotate(n, 8UL), 0x000000FF000000FFUL),	    \
-				    bitselect(rotate(n, 56UL),			    \
-					rotate(n, 40UL), 0x00FF000000FF0000UL),	    \
-				    0xFFFF0000FFFF0000UL)
 
-	#define SWAP64_V(n)     SWAP64(n)
+#define Ch(x,y,z)       bitselect(z, y, x)
+#define Maj(x, y, z) bitselect(x, y, z ^ x)
+#define ror(x, n)       ((x >> n) | (x << (64UL-n)))
+#define SWAP64(n)	bitselect( \
+		bitselect(rotate(n, 24UL), \
+		          rotate(n, 8UL), 0x000000FF000000FFUL), \
+		bitselect(rotate(n, 56UL), \
+		          rotate(n, 40UL), 0x00FF000000FF0000UL), \
+		0xFFFF0000FFFF0000UL)
+
+#define SWAP64_V(n)     SWAP64(n)
+
 #else
-	#define SWAP(n) \
-            (((n)             << 56)     | (((n) & 0xff00UL)     << 40) |   \
-            (((n) & 0xff0000UL) << 24)   | (((n) & 0xff000000UL) << 8)  |   \
-            (((n) >> 8)  & 0xff000000UL) | (((n) >> 24) & 0xff0000UL)   |   \
-            (((n) >> 40) & 0xff00UL)     | ((n)  >> 56))
-	#define Ch(x,y,z)       ((x & y) ^ ( (~x) & z))
-        #define Maj(x,y,z)      ((x & y) ^ (x & z) ^ (y & z))
-        #define ror(x, n)       ((x >> n) | (x << (64UL-n)))
-        #define SWAP64(n)       SWAP(n)
-	#define SWAP64_V(n)     SWAP(n)
+
+#define SWAP(n)	  \
+	(((n)             << 56)     | (((n) & 0xff00UL)     << 40) | \
+	 (((n) & 0xff0000UL) << 24)   | (((n) & 0xff000000UL) << 8)  | \
+	 (((n) >> 8)  & 0xff000000UL) | (((n) >> 24) & 0xff0000UL)   | \
+	 (((n) >> 40) & 0xff00UL)     | ((n)  >> 56))
+#define Ch(x, y, z) (z ^ (x & (y ^ z)))
+#define Maj(x, y, z) ((x & y) | (z & (x | y)))
+#define ror(x, n)       ((x >> n) | (x << (64UL-n)))
+#define SWAP64(n)       SWAP(n)
+#define SWAP64_V(n)     SWAP(n)
 #endif
+
 #define Sigma0(x)               ((ror(x,28UL)) ^ (ror(x,34UL)) ^ (ror(x,39UL)))
 #define Sigma1(x)               ((ror(x,14UL)) ^ (ror(x,18UL)) ^ (ror(x,41UL)))
 #define sigma0(x)               ((ror(x,1UL))  ^ (ror(x,8UL))  ^ (x>>7))

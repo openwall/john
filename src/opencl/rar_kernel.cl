@@ -128,7 +128,7 @@ inline void sha1_mblock(uint *Win, uint *out, uint blocks)
 #undef F
 
 #ifdef USE_BITSELECT
-#define F(x,y,z)	(bitselect(x, y, z) ^ bitselect(x, 0U, y))
+#define F(x,y,z)	bitselect(x, y, (z) ^ (x))
 #else
 #define F(x,y,z)	((x & y) | (z & (x | y)))
 #endif
@@ -283,7 +283,7 @@ inline void sha1_block(MAYBE_VECTOR_UINT *W, MAYBE_VECTOR_UINT *output) {
 #undef F
 
 #ifdef USE_BITSELECT
-#define F(x,y,z)	(bitselect(x, y, z) ^ bitselect(x, 0U, y))
+#define F(x,y,z)	bitselect(x, y, (z) ^ (x))
 #else
 #define F(x,y,z)	((x & y) | (z & (x | y)))
 #endif
