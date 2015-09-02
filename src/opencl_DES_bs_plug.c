@@ -20,12 +20,13 @@
 opencl_DES_bs_combined *opencl_DES_bs_all;
 opencl_DES_bs_transfer *opencl_DES_bs_keys;
 int opencl_DES_bs_keys_changed = 1;
-DES_bs_vector *opencl_DES_bs_cracked_hashes;
 
-static cl_kernel *cmp_kernel = NULL;
-static cl_mem buffer_cracked_hashes, buffer_hash_ids, buffer_bitmap_dupe, *buffer_uncracked_hashes = NULL, *buffer_hash_tables = NULL, *buffer_offset_tables = NULL;
+static cl_kernel **cmp_kernel = NULL;
+static cl_kernel kernel_high, kernel_med, kernel_low;
+static cl_mem buffer_hash_ids, buffer_bitmap_dupe, *buffer_uncracked_hashes = NULL, *buffer_hash_tables = NULL, *buffer_offset_tables = NULL;
 static unsigned int *zero_buffer = NULL, **hash_tables = NULL;
-unsigned int *hash_ids = NULL;
+static unsigned int *hash_ids = NULL;
+static unsigned int max_uncracked_hashes = 0, max_hash_table_size = 0;
 DES_hash_check_params *hash_chk_params = NULL;
 static WORD current_salt = 0;
 
@@ -70,7 +71,10 @@ static unsigned char opencl_DES_PC2[48] = {
 #define hash_table_size(k) hash_chk_params[k].hash_table_size
 #define offset_table_size(k) hash_chk_params[k].offset_table_size
 
-/* To Do: When there are duplicate hashes, in that case update_buffer will be called
+#define LOW_THRESHOLD 		10
+
+/*
+ * To Do: When there are duplicate hashes, in that case update_buffer will be called
  * every time as salt->count != num_uncracked_hashes(salt_val)(no duplicate) all the time
  * even when nothing gets cracked.
  */
@@ -86,11 +90,6 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 
 	salt_val = *(WORD *)salt -> salt;
 	num_uncracked_hashes(salt_val) = salt -> count;
-
-	if (buffer_uncracked_hashes[salt_val] != (cl_mem)0) {
-		HANDLE_CLERROR(clReleaseMemObject(buffer_uncracked_hashes[salt_val]), "Release buffer_uncracked_hashes failed.\n");
-			buffer_uncracked_hashes[salt_val] = (cl_mem)0;
-	}
 
 	uncracked_hashes = (WORD *) mem_calloc(2 * num_uncracked_hashes(salt_val), sizeof(WORD));
 	uncracked_hashes_t = (WORD *) mem_calloc(2 * num_uncracked_hashes(salt_val), sizeof(WORD));
@@ -140,45 +139,13 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 	buffer_hash_tables[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(unsigned int) * hash_table_size, hash_table_64, &ret_code);
 	HANDLE_CLERROR(ret_code, "Create buffer_hash_tables failed.\n");
 
-	buffer_uncracked_hashes[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(WORD) * num_uncracked_hashes(salt_val), uncracked_hashes, &ret_code);
-	HANDLE_CLERROR(ret_code, "Create buffer_uncracked_hashes failed.\n");
+	if (num_uncracked_hashes(salt_val) <= LOW_THRESHOLD)
+		buffer_uncracked_hashes[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(WORD) * num_uncracked_hashes(salt_val), uncracked_hashes, &ret_code);
+		HANDLE_CLERROR(ret_code, "Create buffer_uncracked_hashes failed.\n");
 
 	MEM_FREE(uncracked_hashes);
 	MEM_FREE(uncracked_hashes_t);
 	MEM_FREE(offset_table);
-}
-
-void update_buffer(struct db_salt *salt)
-{
-	int i, *bin, *uncracked_hashes;
-	struct db_password *pw;
-	WORD salt_val = *(WORD *)salt -> salt;
-
-	uncracked_hashes = (int *) mem_calloc(2 * (salt -> count), sizeof(int));
-	num_uncracked_hashes(salt_val) = salt -> count;
-
-	i = 0;
-	pw = salt -> list;
-	do {
-		if (!(bin = (int *)pw -> binary))
-			continue;
-		uncracked_hashes[i] = bin[0];
-		uncracked_hashes[i + salt -> count] = bin[1];
-		i++;
-		//printf("%d %d\n", i++, bin[0]);
-	} while ((pw = pw -> next));
-
-	if (num_uncracked_hashes(salt_val) < salt -> count) {
-		if (buffer_uncracked_hashes[salt_val] != (cl_mem)0)
-			HANDLE_CLERROR(clReleaseMemObject(buffer_uncracked_hashes[salt_val]), "Release buffer_uncracked_hashes failed.\n");
-		buffer_uncracked_hashes[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 2 * sizeof(int) * num_uncracked_hashes(salt_val), NULL, &ret_code);
-		HANDLE_CLERROR(ret_code, "Create buffer_uncracked_hashes failed.\n");
-	}
-
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_uncracked_hashes[salt_val], CL_TRUE, 0, num_uncracked_hashes(salt_val) * sizeof(int) * 2, uncracked_hashes, 0, NULL, NULL ), "Failed to write buffer buffer_uncracked_hashes.\n");
-	MEM_FREE(uncracked_hashes);
-
-	fprintf(stderr, "Updated internal tables and buffers for salt %d.\n", salt_val);
 }
 
 static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned int *max_hash_table_size)
@@ -252,11 +219,9 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 	MEM_FREE(hash_table_64);
 }
 
-static void release_fill_buffers()
+static void release_fill_buffer(WORD i)
 {
-	int i;
-	for (i = 0; i < 4096; i++)
-		if (buffer_uncracked_hashes[i] != (cl_mem)0) {
+	if (buffer_uncracked_hashes[i] != (cl_mem)0) {
 			HANDLE_CLERROR(clReleaseMemObject(buffer_uncracked_hashes[i]), "Release buffer_uncracked_hashes failed.\n");
 			HANDLE_CLERROR(clReleaseMemObject(buffer_offset_tables[i]), "Release buffer_offset_tables failed.\n");
 			HANDLE_CLERROR(clReleaseMemObject(buffer_hash_tables[i]), "Release buffer_hash_tables failed.\n");
@@ -264,18 +229,21 @@ static void release_fill_buffers()
 			buffer_hash_tables[i] = (cl_mem)0;
 			buffer_offset_tables[i] = (cl_mem)0;
 		}
-	for (i = 0; i < 4096; i++) {
-		if (hash_tables[i])
-			MEM_FREE(hash_tables[i]);
-		hash_tables[i] = 0;
-	}
+	if (hash_tables[i])
+		MEM_FREE(hash_tables[i]);
+	hash_tables[i] = 0;
+}
+
+static void release_fill_buffers()
+{
+	int i;
+
+	for (i = 0; i < 4096; i++)
+		release_fill_buffer(i);
 }
 
 static void create_aux_buffers(unsigned int max_uncracked_hashes, unsigned int max_hash_table_size)
 {
-	buffer_cracked_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, 64 * max_uncracked_hashes * sizeof(DES_bs_vector), NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Create buffer_cracked_hashes failed.\n");
-
 	zero_buffer = (unsigned int *) mem_calloc((max_hash_table_size - 1) / 32 + 1, sizeof(unsigned int));
 
 	buffer_bitmap_dupe = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, ((max_hash_table_size - 1) / 32 + 1) * sizeof(unsigned int), zero_buffer, &ret_code);
@@ -285,7 +253,6 @@ static void create_aux_buffers(unsigned int max_uncracked_hashes, unsigned int m
 	HANDLE_CLERROR(ret_code, "Create buffer_hash_ids failed.\n");
 
 	hash_ids = (unsigned int *) mem_calloc((2 * max_uncracked_hashes + 1), sizeof(unsigned int));
-	opencl_DES_bs_cracked_hashes = (DES_bs_vector*) mem_alloc(max_uncracked_hashes * 64 * sizeof(DES_bs_vector));
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "Failed to write buffer buffer_hash_ids.\n");
 }
@@ -293,12 +260,10 @@ static void create_aux_buffers(unsigned int max_uncracked_hashes, unsigned int m
 static void release_aux_buffers()
 {
 	if (zero_buffer) {
-		HANDLE_CLERROR(clReleaseMemObject(buffer_cracked_hashes), "Release buffer_cracked_hashes failed.\n");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Release buffer_bitmap_dupe failed.\n");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_ids), "Release buffer_hash_ids failed.\n");
 
 		MEM_FREE(hash_ids);
-		MEM_FREE(opencl_DES_bs_cracked_hashes);
 		MEM_FREE(zero_buffer);
 		zero_buffer = 0;
 	}
@@ -306,16 +271,11 @@ static void release_aux_buffers()
 
 void build_tables(struct db_main *db)
 {
-	unsigned int max_uncracked_hashes = 0, max_hash_table_size = 0;
-	unsigned int i;
-	buffer_uncracked_hashes = (cl_mem *) mem_alloc(4096 * sizeof(cl_mem));
+	buffer_uncracked_hashes = (cl_mem *) mem_calloc(4096, sizeof(cl_mem));
 	hash_tables = (unsigned int **) mem_calloc(4096, sizeof(unsigned int *));
 	buffer_offset_tables = (cl_mem *) mem_calloc(4096, sizeof(cl_mem));
 	buffer_hash_tables = (cl_mem *) mem_calloc(4096, sizeof(cl_mem));
 	memset(hash_chk_params, 0, 4096 * sizeof(DES_hash_check_params));
-
-	for (i = 0; i < 4096; i++)
-		buffer_uncracked_hashes[i] = (cl_mem)0;
 
 	if (db) {
 	struct db_salt *salt = db -> salts;
@@ -345,31 +305,82 @@ void release_tables()
 	}
 }
 
+static void set_kernel_args_aux_buf()
+{
+
+	HANDLE_CLERROR(clSetKernelArg(kernel_low, 4, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument buffer_hash_ids, kernel DES_bs_cmp.\n");
+	HANDLE_CLERROR(clSetKernelArg(kernel_low, 5, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument buffer_bitmap_dupe, kernel DES_bs_cmp.\n");
+
+	HANDLE_CLERROR(clSetKernelArg(kernel_high, 4, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument buffer_hash_ids, kernel DES_bs_cmp.\n");
+	HANDLE_CLERROR(clSetKernelArg(kernel_high, 5, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument buffer_bitmap_dupe, kernel DES_bs_cmp.\n");
+}
+
 void create_checking_kernel_set_args(cl_mem buffer_unchecked_hashes)
 {
-	if (cmp_kernel[gpu_id] == 0) {
-		opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
-		opencl_build(gpu_id, NULL, 0, NULL);
-		cmp_kernel[gpu_id] = clCreateKernel(program[gpu_id], "DES_bs_cmp", &ret_code);
+	int i;
+
+	opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
+	opencl_build(gpu_id, NULL, 0, NULL);
+
+	if (kernel_high == 0) {
+		kernel_high = clCreateKernel(program[gpu_id], "DES_bs_cmp_high", &ret_code);
+		HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_cmp_high.\n");
+	}
+	if (kernel_low == 0) {
+		kernel_low = clCreateKernel(program[gpu_id], "DES_bs_cmp", &ret_code);
 		HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_cmp.\n");
 	}
 
-	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 0, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_cmp.\n");
-	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 5, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument buffer_hash_ids, kernel DES_bs_cmp.\n");
-	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 6, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument buffer_bitmap_dupe, kernel DES_bs_cmp.\n");
-	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 7, sizeof(cl_mem), &buffer_cracked_hashes), "Failed setting kernel argument buffer_cracked_hashes, kernel DES_bs_cmp.\n");
+	memset(cmp_kernel[gpu_id], 0, 4096 * sizeof(cl_kernel));
+
+	for (i = 0; i < 4096; i++) {
+		if(num_uncracked_hashes(i) <= LOW_THRESHOLD)
+			cmp_kernel[gpu_id][i] = kernel_low;
+		else
+			cmp_kernel[gpu_id][i] = kernel_high;
+	}
+
+	HANDLE_CLERROR(clSetKernelArg(kernel_low, 0, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_cmp.\n");
+	HANDLE_CLERROR(clSetKernelArg(kernel_high, 0, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_cmp.\n");
+
+	set_kernel_args_aux_buf();
+}
+
+void update_buffer(struct db_salt *salt)
+{
+	unsigned int _max_uncracked_hashes = 0, _max_hash_table_size = 0;
+	WORD salt_val = *(WORD *)salt -> salt;
+	release_fill_buffer(salt_val);
+
+	fill_buffer(salt, &_max_uncracked_hashes, &_max_hash_table_size);
+
+	if (_max_uncracked_hashes > max_uncracked_hashes || _max_hash_table_size > max_hash_table_size) {
+		release_aux_buffers();
+		create_aux_buffers(max_uncracked_hashes, max_hash_table_size);
+		set_kernel_args_aux_buf();
+		max_hash_table_size = _max_hash_table_size;
+		max_uncracked_hashes = _max_uncracked_hashes;
+	}
+
+	if (num_uncracked_hashes(salt_val) <= LOW_THRESHOLD)
+		cmp_kernel[gpu_id][salt_val] = kernel_low;
+	else
+		cmp_kernel[gpu_id][salt_val] = kernel_high;
+
+	fprintf(stderr, "Updated internal tables and buffers for salt %d.\n", salt_val);
 }
 
 int extract_info(size_t current_gws, size_t *lws, WORD salt_val)
 {
 	current_salt = salt_val;
 
-	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 1, sizeof(cl_mem), &buffer_uncracked_hashes[current_salt]), "Failed setting kernel argument buffer_uncracked_hashes, kernel DES_bs_25.\n");
-	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 2, sizeof(cl_mem), &buffer_offset_tables[current_salt]), "Failed setting kernel argument buffer_offset_tables, kernel DES_bs_25.\n");
-	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 3, sizeof(cl_mem), &buffer_hash_tables[current_salt]), "Failed setting kernel argument buffer_hash_tables, kernel DES_bs_25.\n");
-	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id], 4, sizeof(DES_hash_check_params), &hash_chk_params[current_salt]), "Failed setting kernel argument num_uncracked_hashes, kernel DES_bs_25.\n");
+	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id][current_salt], 1, sizeof(cl_mem), &buffer_offset_tables[current_salt]), "Failed setting kernel argument buffer_offset_tables, kernel DES_bs_cmp.\n");
+	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id][current_salt], 2, sizeof(cl_mem), &buffer_hash_tables[current_salt]), "Failed setting kernel argument buffer_hash_tables, kernel DES_bs_cmp.\n");
+	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id][current_salt], 3, sizeof(DES_hash_check_params), &hash_chk_params[current_salt]), "Failed setting kernel argument num_uncracked_hashes, kernel DES_bs_cmp.\n");
+	if (num_uncracked_hashes(current_salt) <= LOW_THRESHOLD)
+		HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id][current_salt], 6, sizeof(cl_mem), &buffer_uncracked_hashes[current_salt]), "Failed setting kernel argument buffer_uncracked_hashes, kernel DES_bs_cmp.\n");
 
-	ret_code = clEnqueueNDRangeKernel(queue[gpu_id], cmp_kernel[gpu_id], 1, NULL, &current_gws, lws, 0, NULL, NULL);
+	ret_code = clEnqueueNDRangeKernel(queue[gpu_id], cmp_kernel[gpu_id][current_salt], 1, NULL, &current_gws, lws, 0, NULL, NULL);
 	HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_cmp failed.\n");
 
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Failed to read buffer buffer_hash_ids.\n");
@@ -381,7 +392,6 @@ int extract_info(size_t current_gws, size_t *lws, WORD salt_val)
 
 	if (hash_ids[0]) {
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (2 * hash_ids[0] + 1) * sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Failed to read buffer buffer_hash_ids.\n");
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_cracked_hashes, CL_TRUE, 0, hash_ids[0] * 64 * sizeof(DES_bs_vector), opencl_DES_bs_cracked_hashes, 0, NULL, NULL), "Failed to read buffer buffer_cracked_hashes.\n");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmap_dupe, CL_TRUE, 0, ((hash_table_size(current_salt) - 1)/32 + 1) * sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "Failed to write buffer buffer_bitmap_dupe.\n");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "Failed to write buffer buffer_hash_ids.\n");
 	}
@@ -391,14 +401,23 @@ int extract_info(size_t current_gws, size_t *lws, WORD salt_val)
 
 void init_checking()
 {
-	cmp_kernel = (cl_kernel *) mem_calloc(MAX_GPU_DEVICES, sizeof(cl_kernel));
+	int i = 0;
+	cmp_kernel = (cl_kernel **) mem_calloc(MAX_GPU_DEVICES, sizeof(cl_kernel *));
+	for (i = 0; i < MAX_GPU_DEVICES; i++)
+		cmp_kernel[i] = (cl_kernel *) mem_calloc(4096, sizeof(cl_kernel));
 	hash_chk_params = (DES_hash_check_params *) mem_calloc(4096, sizeof(DES_hash_check_params));
 }
 
 void finish_checking()
 {
-	HANDLE_CLERROR(clReleaseKernel(cmp_kernel[gpu_id]), "Error releasing cmp_kernel");
+	int i;
+
+	HANDLE_CLERROR(clReleaseKernel(kernel_high), "Error releasing kernel_high");
+	HANDLE_CLERROR(clReleaseKernel(kernel_low), "Error releasing kernel_low");
+	for (i = 0; i < MAX_GPU_DEVICES; i++)
+		MEM_FREE(cmp_kernel[i]);
 	MEM_FREE(cmp_kernel);
+	cmp_kernel = 0;
 	MEM_FREE(hash_chk_params);
 }
 

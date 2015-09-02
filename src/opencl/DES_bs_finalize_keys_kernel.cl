@@ -218,8 +218,7 @@ inline void cmp_final(__private unsigned DES_bs_vector *B,
 		      volatile __global uint *hash_ids,
 		      volatile __global uint *bitmap_dupe,
 		      unsigned int section,
-		      unsigned int depth,
-		      __global DES_bs_vector *cracked_hashes)
+		      unsigned int depth)
 {
 	unsigned long hash;
 	unsigned int hash_table_index, t, bit;
@@ -244,16 +243,34 @@ inline void cmp_final(__private unsigned DES_bs_vector *B,
 	}
 }
 
+__kernel void DES_bs_cmp_high(__global unsigned DES_bs_vector *unchecked_hashes,
+	  __global unsigned int *offset_table,
+	  __global unsigned int *hash_table,
+	  DES_hash_check_params hash_chk_params,
+	  volatile __global uint *hash_ids,
+	  volatile __global uint *bitmap_dupe) {
+
+	int i;
+	unsigned DES_bs_vector B[64];
+	int section = get_global_id(0);
+	int gws = get_global_size(0);
+
+	for (i = 0; i < 64; i++)
+		B[i] = unchecked_hashes[section + i * gws];
+
+	for (i = 0; i < 32; i++)
+		cmp_final(B, offset_table, hash_table, hash_chk_params, hash_ids, bitmap_dupe, section, i);
+}
+
 #define num_uncracked_hashes hash_chk_params.num_uncracked_hashes
 
 __kernel void DES_bs_cmp(__global unsigned DES_bs_vector *unchecked_hashes,
-	  __global int *uncracked_hashes,
 	  __global unsigned int *offset_table,
 	  __global unsigned int *hash_table,
 	  DES_hash_check_params hash_chk_params,
 	  volatile __global uint *hash_ids,
 	  volatile __global uint *bitmap_dupe,
-	  __global DES_bs_vector *cracked_hashes) {
+	  __global int *uncracked_hashes) {
 
 	int value[2] , mask, i, bit;
 	unsigned DES_bs_vector B[64];
@@ -280,7 +297,7 @@ __kernel void DES_bs_cmp(__global unsigned DES_bs_vector *unchecked_hashes,
 
 		if (mask != ~(int)0) {
 			for (mask = 0; mask < 32; mask++)
-			cmp_final(B, offset_table, hash_table, hash_chk_params, hash_ids, bitmap_dupe, section, mask, cracked_hashes);
+			cmp_final(B, offset_table, hash_table, hash_chk_params, hash_ids, bitmap_dupe, section, mask);
 		}
 	}
 }
