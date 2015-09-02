@@ -376,10 +376,9 @@ struct fmt_main fmt_DES = {
 		FMT_OMP |
 #endif
 #if DES_BS
-		FMT_CASE | FMT_BS,
-#else
-		FMT_CASE,
+		FMT_BS |
 #endif
+		FMT_TRUNC | FMT_CASE,
 		{ NULL },
 		tests
 	}, {

@@ -3155,27 +3155,28 @@ sub dynamic_compile {
 # NOTE, these are still part of dynamic in JtR, but may not be handled here.
 # Some may NOT be able to be done within perl.  Haval does have some Perl
 # support, but not nearly as much as john has.  Skein is the wrong version
-# perl is 1.2 and john is 1.3
-#dynamic_160 -->HAVAL128_3($p)
-#dynamic_170 -->HAVAL128_4($p)
-#dynamic_180 -->HAVAL128_5($p)
-#dynamic_190 -->HAVAL160_3($p)
-#dynamic_200 -->HAVAL160_4($p)
-#dynamic_210 -->HAVAL160_5($p)
-#dynamic_220 -->HAVAL192_3($p)
-#dynamic_230 -->HAVAL192_4($p)
-#dynamic_240 -->HAVAL192_5($p)
-#dynamic_250 -->HAVAL224_3($p)
-#dynamic_260 -->HAVAL224_4($p)
-#dynamic_270 -->HAVAL224_5($p)
-#dynamic_280 -->HAVAL256_3($p)
-#dynamic_290 -->HAVAL256_4($p)
-#dynamic_300 -->HAVAL256_5($p)
-#dynamic_320 -->PANAMA($p)
-#dynamic_330 -->SKEIN224($p)
-#dynamic_340 -->SKEIN256($p)
-#dynamic_350 -->SKEIN384($p)
-#dynamic_360 -->SKEIN512($p)
+# perl is v1.2 and john is v1.3. John implements skein-512-224 skein-512-256
+# skein-512-384 and skein-512-512
+#dynamic_160 -->haval128_3($p)
+#dynamic_170 -->haval128_4($p)
+#dynamic_180 -->haval128_5($p)
+#dynamic_190 -->haval160_3($p)
+#dynamic_200 -->haval160_4($p)
+#dynamic_210 -->haval160_5($p)
+#dynamic_220 -->haval192_3($p)
+#dynamic_230 -->haval192_4($p)
+#dynamic_240 -->haval192_5($p)
+#dynamic_250 -->haval224_3($p)
+#dynamic_260 -->haval224_4($p)
+#dynamic_270 -->haval224_5($p)
+#dynamic_280 -->haval256_3($p)
+#dynamic_290 -->haval256_4($p)
+#dynamic_300 -->haval256_5($p)
+#dynamic_320 -->panama($p)
+#dynamic_330 -->skein224($p)
+#dynamic_340 -->skein256($p)
+#dynamic_350 -->skein384($p)
+#dynamic_360 -->skein512($p)
 			my $ht = $dyna_hashes{$dynamic_args-$dyna_func_which};
 			if (!defined($ht)) { return $func; }
 			SWITCH: {

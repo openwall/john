@@ -54,7 +54,9 @@
 
 #ifdef _OPENMP
 #define BF_ASM				0
+#ifndef BF_X2
 #define BF_X2				1
+#endif
 #else
 #define BF_ASM				1
 #define BF_X2				0

@@ -193,7 +193,7 @@ struct fmt_main fmt_BF = {
 #if BF_mt > 1
 		FMT_OMP |
 #endif
-		FMT_CASE | FMT_8_BIT,
+		FMT_TRUNC | FMT_CASE | FMT_8_BIT,
 		{
 			"iteration count",
 		},

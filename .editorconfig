@@ -8,7 +8,7 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 
 # Unix-style newlines with a newline ending every file
-[*.{c,h,in,S,pl,py,sh}]
+[*.{c,h,in,pl,py,sh}]
 charset = utf-8
 end_of_line = lf
 insert_final_newline = true
@@ -18,6 +18,9 @@ indent_style = tab
 #indent_size = 8
 
 # Core files do use a tab size of 8
+[*.{S,sh}]
+indent_size = 8
+
 [AFS_fmt.[ch]]
 indent_size = 8
 
@@ -63,10 +66,7 @@ indent_size = 8
 [bench.[ch]]
 indent_size = 8
 
-[best.[ch]]
-indent_size = 8
-
-[best.s[ch]]
+[best.*]
 indent_size = 8
 
 [c3_fmt.[ch]]

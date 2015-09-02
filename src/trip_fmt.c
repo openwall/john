@@ -616,7 +616,7 @@ struct fmt_main fmt_trip = {
 #if DES_BS
 		FMT_BS |
 #endif
-		FMT_CASE | FMT_8_BIT,
+		FMT_TRUNC | FMT_CASE | FMT_8_BIT,
 		{ NULL },
 		tests
 	}, {

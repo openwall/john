@@ -1486,7 +1486,7 @@ void mask_save_state(FILE *file)
 	fprintf(file, ""LLu"\n", rec_cand + 1);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
-	if (options.force_minlength >= 0) {
+	if (options.req_minlength >= 0) {
 		fprintf(file, "%d\n", rec_len);
 		fprintf(file, ""LLu"\n", cand_length);
 	}
@@ -1516,7 +1516,7 @@ int mask_restore_state(FILE *file)
 	else
 		return fail;
 
-	if (options.force_minlength >= 0) {
+	if (options.req_minlength >= 0) {
 		if (fscanf(file, "%d\n", &d) == 1)
 			restored_len = d;
 		else
@@ -1570,11 +1570,11 @@ char *stretch_mask(char *mask, parsed_ctx *parsed_mask)
 	int i, j, k;
 
 	j = strlen(mask);
-	stretched_mask = (char*)mem_alloc((options.force_maxlength + 2) * j);
+	stretched_mask = (char*)mem_alloc((options.req_maxlength + 2) * j);
 
 	strncpy(stretched_mask, mask, j);
 	k = 0;
-	while (k < options.force_maxlength) {
+	while (k < options.req_maxlength) {
 		i = strlen(mask) - 1;
 		if (mask[i] == '\\' && i - 1 >= 0) {
 			i--;
@@ -1651,8 +1651,8 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	int i, max_static_range;
 
 	fmt_maxlen = db->format->params.plaintext_length;
-	max_keylen = options.force_maxlength ?
-		options.force_maxlength : fmt_maxlen;
+	max_keylen = options.req_maxlength ?
+		options.req_maxlength : fmt_maxlen;
 
 	if ((options.flags & FLG_MASK_STACKED) && max_keylen < 2) {
 		if (john_main_process)
@@ -1728,7 +1728,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 	if (parsed_mask.parse_ok) {
 		if (!(options.flags & FLG_MASK_STACKED) &&
-		      options.force_maxlength > 0) {
+		      options.req_maxlength > 0) {
 			mask = stretch_mask(mask, &parsed_mask);
 			parse_braces(mask, &parsed_mask);
 			if (!parsed_mask.parse_ok) {
@@ -1791,7 +1791,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		if (mask_add_len > max_keylen)
 			mask_add_len = max_keylen;
 		else
-		if (options.force_maxlength && mask_add_len < max_keylen)
+		if (options.req_maxlength && mask_add_len < max_keylen)
 			if (john_main_process)
 			fprintf(stderr, "Warning: mask is shorter than "
 			        "-max-length parameter\n");
@@ -1802,21 +1802,21 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	}
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d\n", mask_num_qw, options.force_minlength, options.force_maxlength, fmt_maxlen, mask_add_len);
+	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d\n", mask_num_qw, options.req_minlength, options.req_maxlength, fmt_maxlen, mask_add_len);
 #endif
 	/* We decrease these here instead of changing parent modes. */
 	if (options.flags & FLG_MASK_STACKED) {
-		if (options.force_minlength - mask_add_len >= 0)
-			options.force_minlength -= mask_add_len;
-		if (options.force_maxlength)
-			options.force_maxlength -= mask_add_len;
+		if (options.req_minlength - mask_add_len >= 0)
+			options.req_minlength -= mask_add_len;
+		if (options.req_maxlength)
+			options.req_maxlength -= mask_add_len;
 		if (mask_num_qw) {
-			options.force_minlength /= mask_num_qw;
-			options.force_maxlength /= mask_num_qw;
+			options.req_minlength /= mask_num_qw;
+			options.req_maxlength /= mask_num_qw;
 		}
 #ifdef MASK_DEBUG
 		fprintf(stderr, "effective minlen %d maxlen %d fmt_len %d\n",
-		        options.force_minlength, options.force_maxlength,
+		        options.req_minlength, options.req_maxlength,
 		        fmt_maxlen - mask_add_len);
 #endif
 	}
@@ -1876,7 +1876,7 @@ void mask_done()
 {
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		if (parsed_mask.parse_ok &&
-		    options.force_maxlength > 0)
+		    options.req_maxlength > 0)
 			MEM_FREE(mask);
 		// For reporting DONE regardless of rounding errors
 		if (!event_abort) {
@@ -1915,12 +1915,12 @@ int do_mask_crack(const char *extern_key)
 
 	/* If --min-len is used, we iterate max_keylen */
 	if (!(options.flags & FLG_MASK_STACKED) &&
-	    options.force_minlength >= 0) {
+	    options.req_minlength >= 0) {
 		int template_key_len = -1;
 		int max_len = max_keylen;
 
 		mask_cur_len = restored_len ?
-			restored_len : options.force_minlength;
+			restored_len : options.req_minlength;
 
 		restored_len = 0;
 

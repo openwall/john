@@ -225,9 +225,9 @@ static struct opt_entry opt_list[] = {
 	{"mkpc", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
 		"%d", &options.force_maxkeys},
 	{"min-length", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
-		"%u", &options.force_minlength},
+		"%u", &options.req_minlength},
 	{"max-length", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
-		"%u", &options.force_maxlength},
+		"%u", &options.req_maxlength},
 	{"max-run-time", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
 		"%u", &options.max_run_time},
 	{"progress-every", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
@@ -444,8 +444,9 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	options.regen_lost_salts = 0;
 	options.max_fix_state_delay = 0;
 	options.max_wordfile_memory = WORDLIST_BUFFER_DEFAULT;
-	options.force_maxkeys = options.force_maxlength = 0;
-	options.force_minlength = -1; options.reload_at_crack = 0;
+	options.force_maxkeys = 0;
+	options.req_maxlength = options.force_maxlength = 0;
+	options.req_minlength = -1; options.reload_at_crack = 0;
 	options.max_run_time = options.status_interval = 0;
 	options.reload_at_save = options.dynamic_bare_hashes_always_valid = 0;
 	options.verbosity = 3;
@@ -736,13 +737,13 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			fprintf(stderr, "Invalid plaintext length requested\n");
 		error();
 	}
-	if (options.force_maxlength && options.force_maxlength < options.force_minlength) {
+	if (options.req_maxlength && options.req_maxlength < options.req_minlength) {
 		if (john_main_process)
 			fprintf(stderr, "Invalid options: --min-length larger "
 			        "than --max-length\n");
 		error();
 	}
-	if (options.force_maxlength < 0 || options.force_maxlength > PLAINTEXT_BUFFER_SIZE - 3) {
+	if (options.req_maxlength < 0 || options.req_maxlength > PLAINTEXT_BUFFER_SIZE - 3) {
 		if (john_main_process)
 			fprintf(stderr, "Invalid max length requested\n");
 		error();
@@ -753,6 +754,13 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			        "Invalid options: --mkpc must be at least 1\n");
 		error();
 	}
+
+	/*
+	 * If max length came from --max-len, these are set the same.
+	 * If max length later comes from FMT_TRUNC, only force_maxlength
+	 * will be set.
+	 */
+	options.force_maxlength = options.req_maxlength;
 
 	if (options.flags & FLG_STDOUT) options.flags &= ~FLG_PWD_REQ;
 

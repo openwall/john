@@ -1211,12 +1211,12 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
             loopback ? " in loopback mode" : "");
 
   /* This mode defaults to length 16 (unless lowered by format) */
-  pw_min = MAX(PW_MIN, options.force_minlength);
+  pw_min = MAX(PW_MIN, options.req_minlength);
   pw_max = MIN(PW_MAX, our_fmt_len);
 
   /* ...but can be bumped using -max-len */
-  if (options.force_maxlength)
-    pw_max = options.force_maxlength;
+  if (options.req_maxlength)
+    pw_max = options.req_maxlength;
 
   if (mask_num_qw > 1) {
     pw_min /= MIN(PW_MIN, mask_num_qw);

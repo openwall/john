@@ -37,7 +37,7 @@ john_register_one(&fmt_opencl_1otus5);
 #define SALT_ALIGN                     1
 #define MIN_KEYS_PER_CRYPT             1
 #define MAX_KEYS_PER_CRYPT             1
-#define KEY_SIZE_IN_BYTES              (((PLAINTEXT_LENGTH >> 2) + 1) << 2)
+#define KEY_SIZE_IN_BYTES              sizeof(lotus5_key)
 
 /*A struct used for JTR's benchmarks*/
 static struct fmt_tests tests[] = {
@@ -84,9 +84,9 @@ static const unsigned int lotus_magic_table[256] = {
 };
 
 /*Some more JTR variables*/
-static cl_uint *crypt_key = NULL;
-static char *saved_key = NULL;
-static struct fmt_main *self = NULL;
+static cl_uint *crypt_key;
+static lotus5_key *saved_key;
+static struct fmt_main *self;
 
 static cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
 
@@ -111,7 +111,7 @@ static cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
 	v++;			\
 }
 
-static const char * warn[] = {
+static const char *warn[] = {
 	"xfer: ",  ", crypt: ",  ", xfer: "
 };
 
@@ -227,7 +227,7 @@ static void done(void)
 }
 
 /*Utility function to convert hex to bin */
-static void * get_binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
   static char realcipher[BINARY_SIZE];
   int i;
@@ -255,24 +255,23 @@ static int valid (char *ciphertext, struct fmt_main *self)
 /*sets the value of saved_key so we can play with it*/
 static void set_key (char *key, int index)
 {
-  memset (saved_key + index *
-	  KEY_SIZE_IN_BYTES, 0,
-	  KEY_SIZE_IN_BYTES);
-  saved_key[index *
-	    KEY_SIZE_IN_BYTES +
-	    KEY_SIZE_IN_BYTES - 1] = strlen(key);
-  strnzcpy (saved_key + index *
-	    KEY_SIZE_IN_BYTES, key,
-	    saved_key[index *
-	    KEY_SIZE_IN_BYTES +
-	    KEY_SIZE_IN_BYTES - 1] + 1);
+	int len = strlen(key);
 
+	memset(saved_key[index].v.c, 0, PLAINTEXT_LENGTH);
+	memcpy(saved_key[index].v.c, key, len);
+	saved_key[index].l = len;
 }
 
 /*retrieves the saved key; used by JTR*/
-static char * get_key (int index)
+static char *get_key (int index)
 {
-	return (saved_key + index * KEY_SIZE_IN_BYTES);
+	static char out[PLAINTEXT_LENGTH + 1];
+	int len = saved_key[index].l;
+
+	memcpy(out, saved_key[index].v.c, len);
+	out[len] = 0;
+
+	return out;
 }
 
 static int cmp_all (void *binary, int count)

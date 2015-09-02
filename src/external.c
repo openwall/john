@@ -163,9 +163,9 @@ void ext_init(char *mode, struct db_main *db)
 
 	ext_time = (int) time(NULL);
 
-	ext_maxlen = options.force_maxlength;
-	if (options.force_minlength > 0)
-		ext_minlen = options.force_minlength;
+	ext_maxlen = options.req_maxlength;
+	if (options.req_minlength > 0)
+		ext_minlen = options.req_minlength;
 	else
 		ext_minlen = 0;
 
