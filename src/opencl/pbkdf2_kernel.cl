@@ -6,6 +6,7 @@
 * Modified to support salts upto 19 characters. Bug in orginal code allowed only upto 8 characters.
 */
 #include "opencl_device_info.h"
+#include "opencl_misc.h"
 
 #ifdef cl_nv_pragma_unroll
 #define NVIDIA
@@ -356,7 +357,11 @@ inline void SHA1(__private uint *A, __private uint *W) {
 #ifndef NVIDIA
 #define F(x, y, z) bitselect(z, y, x)
 #else
+#if HAVE_ANDNOT
+#define F(x, y, z) ((x & y) ^ ((~x) & z))
+#else
 #define F(x, y, z) (z ^ (x & (y ^ z)))
+#endif
 #endif
 #define K 0x5A827999
 	SHA1_part0(A[0], A[1], A[2], A[3], A[4], W) ;

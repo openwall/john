@@ -21,7 +21,11 @@
 #define MD5_F(x, y, z)	bitselect((z), (y), (x))
 #define MD5_G(x, y, z)	bitselect((y), (x), (z))
 #else
+#if HAVE_ANDNOT
+#define MD5_F(x, y, z) ((x & y) ^ ((~x) & z))
+#else
 #define MD5_F(x, y, z)	((z) ^ ((x) & ((y) ^ (z))))
+#endif
 #define MD5_G(x, y, z)	((y) ^ ((z) & ((x) ^ (y))))
 #endif
 

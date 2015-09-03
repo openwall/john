@@ -35,7 +35,11 @@
 #ifdef USE_BITSELECT
 #define F1(x, y, z)	bitselect(z, y, x)
 #else
-#define F1(x, y, z)	(z ^ (x & (y ^ z)))
+#if HAVE_ANDNOT
+#define F1(x, y, z) ((x & y) ^ ((~x) & z))
+#else
+#define F1(x, y, z) (z ^ (x & (y ^ z)))
+#endif
 #endif
 
 #define F2(x, y, z)		(x ^ y ^ z)

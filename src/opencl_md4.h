@@ -19,7 +19,11 @@
 #ifdef USE_BITSELECT
 #define MD4_F(x, y, z)	bitselect((z), (y), (x))
 #else
+#if HAVE_ANDNOT
+#define MD4_F(x, y, z) ((x & y) ^ ((~x) & z))
+#else
 #define MD4_F(x, y, z)	((z) ^ ((x) & ((y) ^ (z))))
+#endif
 #endif
 
 #define MD4_H(x, y, z)	(((x) ^ (y)) ^ (z))

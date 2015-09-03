@@ -40,7 +40,11 @@
 	 (((n) & 0xff0000UL) << 24)   | (((n) & 0xff000000UL) << 8)  | \
 	 (((n) >> 8)  & 0xff000000UL) | (((n) >> 24) & 0xff0000UL)   | \
 	 (((n) >> 40) & 0xff00UL)     | ((n)  >> 56))
+#if HAVE_ANDNOT
+#define Ch(x, y, z) ((x & y) ^ ((~x) & z))
+#else
 #define Ch(x, y, z) (z ^ (x & (y ^ z)))
+#endif
 #define Maj(x, y, z) ((x & y) | (z & (x | y)))
 #define ror(x, n)       ((x >> n) | (x << (64UL-n)))
 #define SWAP64(n)       SWAP(n)

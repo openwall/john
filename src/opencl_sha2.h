@@ -35,9 +35,13 @@ __constant uint k[] = {
 #define Ch(x, y, z) bitselect(z, y, x)
 #define Maj(x, y, z) bitselect(x, y, z ^ x)
 #else
+#if HAVE_ANDNOT
+#define Ch(x, y, z) ((x & y) ^ ((~x) & z))
+#else
 #define Ch(x, y, z) (z ^ (x & (y ^ z)))
-#define Maj(x, y, z) ((x & y) | (z & (x | y)))
 #endif
+#define Maj(x, y, z) ((x & y) | (z & (x | y)))
+#endif /* USE_BITSELECT */
 
 #define ror(x, n)	rotate(x, 32U-(n))
 
