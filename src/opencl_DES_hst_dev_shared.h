@@ -20,6 +20,8 @@ typedef struct {
 	unsigned int offset_table_size;
 	unsigned int hash_table_size;
 	unsigned int bitmap_size_bits;
+	unsigned int cmp_steps;
+	unsigned int cmp_bits;
 } DES_hash_check_params;
 
 #endif /* _OPENCL_DES_HST_DEV_SHARED_H */

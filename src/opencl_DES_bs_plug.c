@@ -8,6 +8,7 @@
 #ifdef HAVE_OPENCL
 
 #include <string.h>
+#include <assert.h>
 
 #include "arch.h"
 #include "common.h"
@@ -23,7 +24,7 @@ int opencl_DES_bs_keys_changed = 1;
 
 static cl_kernel **cmp_kernel = NULL;
 static cl_kernel kernel_high, kernel_med, kernel_low;
-static cl_mem buffer_hash_ids, buffer_bitmap_dupe, *buffer_uncracked_hashes = NULL, *buffer_hash_tables = NULL, *buffer_offset_tables = NULL;
+static cl_mem buffer_hash_ids, buffer_bitmap_dupe, *buffer_uncracked_hashes = NULL, *buffer_hash_tables = NULL, *buffer_offset_tables = NULL, *buffer_bitmaps = NULL;
 static unsigned int *zero_buffer = NULL, **hash_tables = NULL;
 static unsigned int *hash_ids = NULL;
 static unsigned int max_uncracked_hashes = 0, max_hash_table_size = 0;
@@ -71,7 +72,146 @@ static unsigned char opencl_DES_PC2[48] = {
 #define hash_table_size(k) hash_chk_params[k].hash_table_size
 #define offset_table_size(k) hash_chk_params[k].offset_table_size
 
-#define LOW_THRESHOLD 		10
+#define LOW_THRESHOLD 		1
+
+#define get_num_bits(r, v)			\
+{						\
+	r = (v & 0xAAAAAAAA) != 0;		\
+	r |= ((v & 0xFFFF0000) != 0) << 4;	\
+	r |= ((v & 0xFF00FF00) != 0) << 3;	\
+	r |= ((v & 0xF0F0F0F0) != 0) << 2;	\
+	r |= ((v & 0xCCCCCCCC) != 0) << 1;	\
+}
+
+#define get_power_of_two(v)	\
+{				\
+	v--;			\
+	v |= v >> 1;		\
+	v |= v >> 2;		\
+	v |= v >> 4;		\
+	v |= v >> 8;		\
+	v |= v >> 16;		\
+	v |= v >> 32;		\
+	v++;			\
+}
+
+/* Use only for smaller bitmaps < 16MB */
+static void prepare_bitmap_2(cl_ulong bmp_sz_bits, cl_uint **bitmaps_ptr, unsigned WORD *loaded_hashes, unsigned int num_uncracked_hashes)
+{
+	unsigned int i;
+	MEM_FREE(*bitmaps_ptr);
+	*bitmaps_ptr = (cl_uint*) mem_calloc((bmp_sz_bits >> 4), sizeof(cl_uint));
+
+	for (i = 0; i < num_uncracked_hashes; i++) {
+		unsigned int bmp_idx = loaded_hashes[2 * i + 1] & (bmp_sz_bits - 1);
+		(*bitmaps_ptr)[bmp_idx >> 5] |= (1U << (bmp_idx & 31));
+
+		bmp_idx = loaded_hashes[2 * i] & (bmp_sz_bits - 1);
+		(*bitmaps_ptr)[(bmp_sz_bits >> 5) + (bmp_idx >> 5)] |=
+			(1U << (bmp_idx & 31));
+	}
+}
+
+static void prepare_bitmap_1(cl_ulong bmp_sz_bits, cl_uint **bitmaps_ptr, unsigned WORD *loaded_hashes, unsigned int num_uncracked_hashes)
+{
+	unsigned int i;
+	MEM_FREE(*bitmaps_ptr);
+	*bitmaps_ptr = (cl_uint*) mem_calloc((bmp_sz_bits >> 5), sizeof(cl_uint));
+
+	for (i = 0; i < num_uncracked_hashes; i++) {
+		unsigned int bmp_idx = loaded_hashes[2 * i + 1] & (bmp_sz_bits - 1);
+		(*bitmaps_ptr)[bmp_idx >> 5] |= (1U << (bmp_idx & 31));
+	}
+}
+
+static void select_bitmap(unsigned int num_ld_hashes, WORD *uncracked_hashes_t, unsigned long *bitmap_size_bits, unsigned int **bitmaps_ptr, DES_hash_check_params *hash_chk_params)
+{
+	unsigned int cmp_steps = 2, bits_req = 32;
+
+	if (num_ld_hashes <= 5100) {
+		if (amd_gcn_10(device_info[gpu_id]) ||
+			amd_vliw4(device_info[gpu_id]))
+			*bitmap_size_bits = 512 * 1024;
+
+		else
+			*bitmap_size_bits = 256 * 1024;
+
+	}
+
+	else if (num_ld_hashes <= 10100) {
+		if (amd_gcn_10(device_info[gpu_id]) ||
+			amd_vliw4(device_info[gpu_id]))
+			*bitmap_size_bits = 512 * 1024;
+
+		else
+			*bitmap_size_bits = 256 * 1024;
+	}
+
+	else if (num_ld_hashes <= 20100) {
+		if (amd_gcn_10(device_info[gpu_id]))
+			*bitmap_size_bits = 1024 * 1024;
+
+		else
+			*bitmap_size_bits = 512 * 1024;
+	}
+
+	else if (num_ld_hashes <= 250100)
+		*bitmap_size_bits = 2048 * 1024;
+
+	else if (num_ld_hashes <= 1100100) {
+		if (!amd_gcn_11(device_info[gpu_id]))
+			*bitmap_size_bits = 4096 * 1024;
+
+		else
+			*bitmap_size_bits = 2048 * 1024;
+	}
+
+	else if (num_ld_hashes <= 1500100) {
+		*bitmap_size_bits = 4096 * 1024 * 2;
+		cmp_steps = 1;
+	}
+
+	else if (num_ld_hashes <= 2700100) {
+		*bitmap_size_bits = 4096 * 1024 * 2 * 2;
+		cmp_steps = 1;
+	}
+
+	else {
+		cl_ulong mult = num_ld_hashes / 2700100;
+		cl_ulong buf_sz;
+		*bitmap_size_bits = 4096 * 4096;
+		get_power_of_two(mult);
+		*bitmap_size_bits *= mult;
+		buf_sz = get_max_mem_alloc_size(gpu_id);
+		if (buf_sz & (buf_sz - 1)) {
+			get_power_of_two(buf_sz);
+			buf_sz >>= 1;
+		}
+		if (buf_sz >= 536870912)
+			buf_sz = 536870912;
+		assert(!(buf_sz & (buf_sz - 1)));
+		if (((*bitmap_size_bits) >> 3) > buf_sz)
+			*bitmap_size_bits = buf_sz << 3;
+		assert(!((*bitmap_size_bits) & ((*bitmap_size_bits) - 1)));
+		cmp_steps = 1;
+	}
+
+	if (cmp_steps == 1)
+		prepare_bitmap_1(*bitmap_size_bits, bitmaps_ptr, (unsigned WORD *)uncracked_hashes_t, num_ld_hashes);
+
+	else
+		prepare_bitmap_2(*bitmap_size_bits, bitmaps_ptr, (unsigned WORD *)uncracked_hashes_t, num_ld_hashes);
+
+	assert(!((*bitmap_size_bits) & ((*bitmap_size_bits) - 1)));
+	assert(*bitmap_size_bits <= 0xffffffff);
+	get_num_bits(bits_req, (*bitmap_size_bits));
+
+	hash_chk_params -> bitmap_size_bits = (unsigned int)(*bitmap_size_bits);
+	hash_chk_params -> cmp_steps = cmp_steps;
+	hash_chk_params -> cmp_bits = bits_req;
+
+	*bitmap_size_bits *= cmp_steps;
+}
 
 /*
  * To Do: When there are duplicate hashes, in that case update_buffer will be called
@@ -139,9 +279,18 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 	buffer_hash_tables[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(unsigned int) * hash_table_size, hash_table_64, &ret_code);
 	HANDLE_CLERROR(ret_code, "Create buffer_hash_tables failed.\n");
 
-	if (num_uncracked_hashes(salt_val) <= LOW_THRESHOLD)
+	if (num_uncracked_hashes(salt_val) <= LOW_THRESHOLD) {
 		buffer_uncracked_hashes[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(WORD) * num_uncracked_hashes(salt_val), uncracked_hashes, &ret_code);
 		HANDLE_CLERROR(ret_code, "Create buffer_uncracked_hashes failed.\n");
+	}
+	else {
+		unsigned long bitmap_size_bits = 0;
+		unsigned int *bitmaps = NULL;
+		select_bitmap(num_uncracked_hashes(salt_val), uncracked_hashes_t, &bitmap_size_bits, &bitmaps, &hash_chk_params[salt_val]);
+		buffer_bitmaps[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bitmap_size_bits >> 3, bitmaps, &ret_code);
+		HANDLE_CLERROR(ret_code, "Create buffer_bitmaps failed.\n");
+		MEM_FREE(bitmaps);
+	}
 
 	MEM_FREE(uncracked_hashes);
 	MEM_FREE(uncracked_hashes_t);
@@ -154,9 +303,12 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 	WORD *binary;
 	WORD salt_val;
 	unsigned int offset_table_size, hash_table_size;
+	unsigned long bitmap_size_bits = 0;
+	unsigned int *bitmaps = NULL;
 	WORD *uncracked_hashes = NULL, *uncracked_hashes_t = NULL;
 	int i;
-	OFFSET_TABLE_WORD *offset_table = NULL;;
+	OFFSET_TABLE_WORD *offset_table = NULL;
+	DES_hash_check_params temp_param;
 
 	while (fmt_opencl_DES.params.tests[*max_uncracked_hashes].ciphertext) {
 		ciphertext = fmt_opencl_DES.methods.split(fmt_opencl_DES.params.tests[*max_uncracked_hashes].ciphertext, 0, &fmt_opencl_DES);
@@ -198,8 +350,11 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 		uncracked_hashes[i + *max_uncracked_hashes] = uncracked_hashes_t[2 * i + 1];
 	}
 
+	select_bitmap(*max_uncracked_hashes, uncracked_hashes_t, &bitmap_size_bits, &bitmaps, &temp_param);
+
 	for (i = 0; i < 4096; i++) {
 		if (!num_uncracked_hashes(i)) continue;
+		hash_chk_params[i] = temp_param; /* Error if this statement is excuted later in the body of loop. */
 		num_uncracked_hashes(i) = *max_uncracked_hashes;
 		hash_table_size(i) = hash_table_size;
 		offset_table_size(i) = offset_table_size;
@@ -209,6 +364,8 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 		HANDLE_CLERROR(ret_code, "Create buffer_offset_tables failed.\n");
 		buffer_hash_tables[i] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(unsigned int) * hash_table_size, hash_table_64, &ret_code);
 		HANDLE_CLERROR(ret_code, "Create buffer_hash_tables failed.\n");
+		buffer_bitmaps[i] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bitmap_size_bits >> 3, bitmaps, &ret_code);
+		HANDLE_CLERROR(ret_code, "Create buffer_bitmaps failed.\n");
 		buffer_uncracked_hashes[i] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(WORD) * *max_uncracked_hashes, uncracked_hashes, &ret_code);
 		HANDLE_CLERROR(ret_code, "Create buffer_uncracked_hashes failed.\n");
 	}
@@ -217,18 +374,25 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 	MEM_FREE(uncracked_hashes_t);
 	MEM_FREE(offset_table);
 	MEM_FREE(hash_table_64);
+	MEM_FREE(bitmaps);
 }
 
 static void release_fill_buffer(WORD i)
 {
 	if (buffer_uncracked_hashes[i] != (cl_mem)0) {
-			HANDLE_CLERROR(clReleaseMemObject(buffer_uncracked_hashes[i]), "Release buffer_uncracked_hashes failed.\n");
-			HANDLE_CLERROR(clReleaseMemObject(buffer_offset_tables[i]), "Release buffer_offset_tables failed.\n");
-			HANDLE_CLERROR(clReleaseMemObject(buffer_hash_tables[i]), "Release buffer_hash_tables failed.\n");
-			buffer_uncracked_hashes[i] = (cl_mem)0;
-			buffer_hash_tables[i] = (cl_mem)0;
-			buffer_offset_tables[i] = (cl_mem)0;
-		}
+		HANDLE_CLERROR(clReleaseMemObject(buffer_uncracked_hashes[i]), "Release buffer_uncracked_hashes failed.\n");
+		buffer_uncracked_hashes[i] = (cl_mem)0;
+	}
+	if (buffer_offset_tables[i] != (cl_mem)0) {
+		HANDLE_CLERROR(clReleaseMemObject(buffer_offset_tables[i]), "Release buffer_offset_tables failed.\n");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_tables[i]), "Release buffer_hash_tables failed.\n");
+		buffer_hash_tables[i] = (cl_mem)0;
+		buffer_offset_tables[i] = (cl_mem)0;
+	}
+	if (buffer_bitmaps[i] != (cl_mem)0) {
+		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmaps[i]), "Release buffer_bitmaps failed.\n");
+		buffer_bitmaps[i] = (cl_mem)0;
+	}
 	if (hash_tables[i])
 		MEM_FREE(hash_tables[i]);
 	hash_tables[i] = 0;
@@ -275,6 +439,7 @@ void build_tables(struct db_main *db)
 	hash_tables = (unsigned int **) mem_calloc(4096, sizeof(unsigned int *));
 	buffer_offset_tables = (cl_mem *) mem_calloc(4096, sizeof(cl_mem));
 	buffer_hash_tables = (cl_mem *) mem_calloc(4096, sizeof(cl_mem));
+	buffer_bitmaps = (cl_mem *) mem_calloc(4096, sizeof(cl_mem));
 	memset(hash_chk_params, 0, 4096 * sizeof(DES_hash_check_params));
 
 	if (db) {
@@ -299,6 +464,7 @@ void release_tables()
 		MEM_FREE(buffer_uncracked_hashes);
 		MEM_FREE(buffer_offset_tables);
 		MEM_FREE(buffer_hash_tables);
+		MEM_FREE(buffer_bitmaps);
 		MEM_FREE(hash_tables);
 		hash_tables = 0;
 		buffer_uncracked_hashes = 0;
@@ -379,6 +545,8 @@ int extract_info(size_t current_gws, size_t *lws, WORD salt_val)
 	HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id][current_salt], 3, sizeof(DES_hash_check_params), &hash_chk_params[current_salt]), "Failed setting kernel argument num_uncracked_hashes, kernel DES_bs_cmp.\n");
 	if (num_uncracked_hashes(current_salt) <= LOW_THRESHOLD)
 		HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id][current_salt], 6, sizeof(cl_mem), &buffer_uncracked_hashes[current_salt]), "Failed setting kernel argument buffer_uncracked_hashes, kernel DES_bs_cmp.\n");
+	else
+		HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id][current_salt], 6, sizeof(cl_mem), &buffer_bitmaps[current_salt]), "Failed setting kernel argument buffer_bitmaps, kernel DES_bs_cmp_high.\n");
 
 	ret_code = clEnqueueNDRangeKernel(queue[gpu_id], cmp_kernel[gpu_id][current_salt], 1, NULL, &current_gws, lws, 0, NULL, NULL);
 	HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_cmp failed.\n");
