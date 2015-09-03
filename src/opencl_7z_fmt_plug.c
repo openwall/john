@@ -173,6 +173,7 @@ static size_t get_task_max_work_group_size()
 
 	s = autotune_get_task_max_work_group_size(FALSE, 0, sevenzip_init);
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, sevenzip_final));
 	return s;
 }
 
