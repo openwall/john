@@ -25,6 +25,9 @@ extern struct fmt_main fmt_opencl_dmg;
 john_register_one(&fmt_opencl_dmg);
 #else
 
+// OpenSSL has problem with thread safety
+#undef _OPENMP
+
 #include <string.h>
 #include "aes.h"
 #include <openssl/evp.h>
@@ -822,7 +825,10 @@ struct fmt_main fmt_opencl_dmg = {
 #ifdef DMG_DEBUG
 		FMT_NOT_EXACT |
 #endif
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+#ifdef _OPENMP
+		FMT_OMP |
+#endif
+		FMT_CASE | FMT_8_BIT,
 		{
 			"iteration count",
 		},
