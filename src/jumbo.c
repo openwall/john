@@ -405,3 +405,23 @@ char *strcasestr(const char *haystack, const char *needle) {
 	return (char*)fnd;
 }
 #endif
+
+int check_pkcs_pad(const unsigned char* data, size_t len, int blocksize)
+{
+	int pad_len = data[len - 1];
+	int padding = pad_len;
+	int real_len = len - pad_len;
+	const unsigned char *p = data + real_len;
+
+	if (pad_len > blocksize || pad_len < 1)
+		return -1;
+
+	if (len < blocksize)
+		return -1;
+
+	while (pad_len--)
+		if (*p++ != padding)
+			return -1;
+
+	return real_len;
+}
