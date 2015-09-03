@@ -39,7 +39,7 @@
 #include <arm_neon.h>
 
 typedef uint8x16_t vtype8;
-typedef uint32x4_t vtype; // the default one
+typedef uint32x4_t vtype; /* the default one */
 typedef uint64x2_t vtype64;
 
 #define vadd_epi32              vaddq_u32
@@ -241,14 +241,14 @@ typedef __m512i vtype;
                                     0x1011121314151617ULL, \
                                     0x08090a0b0c0d0e0fULL, \
                                     0x0001020304050607ULL))
-#else // workarounds without AVX512BW
+#else /* workarounds without AVX512BW */
 #define vswap32 vswap32_emu
 #define vswap64(x) \
 	(x = vshuffle_epi32(x, _MM_SHUFFLE(2, 3, 0, 1)), vswap32(x))
 
-#endif // __AVX512BW__
+#endif /* __AVX512BW__ */
 
-// MIC lacks some intrinsics in AVX512F, thus needing emulation.
+/* MIC lacks some intrinsics in AVX512F, thus needing emulation. */
 #if __MIC__
 #define _mm512_set1_epi8(x) _mm512_set1_epi32(x | x<<8 | x<<16 | x<<24)
 
@@ -268,7 +268,7 @@ static inline void _mm512_storeu_si512(void *addr, vtype d)
 	else
 		_mm512_i64scatter_epi64(addr, indices, d, 8);
 }
-#endif // __MIC__
+#endif /* __MIC__ */
 
 /******************************** AVX2 ********************************/
 #elif __AVX2__
@@ -410,15 +410,15 @@ typedef __m128i vtype;
 #else
 #define vroti_epi32             vroti_epi32_emu
 #define vroti_epi64             vroti_epi64_emu
-// Specialized ROTL16 for SSE4.1 and lower (MD5)
+/* Specialized ROTL16 for SSE4.1 and lower (eg. MD5) */
 #if __SSSE3__
 #define vroti16_epi32(a, s)     vshuffle_epi8((a), vset_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302))
 #elif __SSE2__
 #define vroti16_epi32(a, s)     vshufflelo_epi16(vshufflehi_epi16((a), 0xb1), 0xb1)
 #else
 #define vroti16_epi32           vroti_epi32
-#endif // __SSSE3__
-#endif // __XOP__
+#endif /* __SSSE3__ */
+#endif /* __XOP__ */
 #define vset_epi32              _mm_set_epi32
 #define vset1_epi8              _mm_set1_epi8
 #define vset1_epi32             _mm_set1_epi32
@@ -565,13 +565,16 @@ static INLINE void vstoreu_emu(void *addr, vtype v)
 #define vslli_epi64a(a, s)      vslli_epi64(a, s)
 
 #else
-// Optimization for really old CPUs for << 1 (for vroti -1) (SHA512)
+/* Optimization for really old CPUs for << 1 (for vroti -1) (eg. SHA512) */
 #define vslli_epi64a(a, s) ((s) == 1 ?              \
      vadd_epi64((a), (a)) : vslli_epi64((a), (s)))
 
 #endif /* __SSE3__ || __MIC__ */
 
-// vroti must handle both ROTL and ROTR. If s < 0, then ROTR.
+/*
+ * vroti must handle both ROTL and ROTR. If s < 0, then ROTR. Note that
+ * the ternary will normally be optimized away!
+ */
 #define vroti_epi32_emu(a, s)  ((s) < 0 ?                               \
      vxor(vsrli_epi32((a), ~(s) + 1), vslli_epi32((a), 32 + (s))) :     \
      vxor(vslli_epi32((a), (s)), vsrli_epi32((a), 32 - (s))))
