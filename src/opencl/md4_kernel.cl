@@ -25,7 +25,11 @@
 #ifdef USE_BITSELECT
 #define F(x, y, z)	bitselect((z), (y), (x))
 #else
-#define F(x, y, z)	((z) ^ ((x) & ((y) ^ (z))))
+#if HAVE_ANDNOT
+#define F(x, y, z) ((x & y) ^ ((~x) & z))
+#else
+#define F(x, y, z) (z ^ (x & (y ^ z)))
+#endif
 #endif
 #define G(x, y, z)	(((x) & ((y) | (z))) | ((y) & (z)))
 

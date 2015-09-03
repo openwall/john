@@ -40,7 +40,6 @@ john_register_one(&fmt_rawMD5f);
 #endif
 #include <omp.h>
 #endif
-#include "pseudo_intrinsics.h"
 #include "simd-intrinsics.h"
 #include "memdbg.h"
 

@@ -36,7 +36,11 @@
 	(((n) << 24)	       | (((n) & 0xff00U) << 8) | \
 	 (((n) >> 8) & 0xff00U)     | ((n) >> 24))
 
+#if HAVE_ANDNOT
+#define Ch(x, y, z) ((x & y) ^ ((~x) & z))
+#else
 #define Ch(x, y, z) (z ^ (x & (y ^ z)))
+#endif
 #define Maj(x, y, z) ((x & y) | (z & (x | y)))
 #define ror(x, n)       ((x >> n) | (x << (32U-n)))
 #define SWAP32(n)       SWAP(n)

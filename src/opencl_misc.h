@@ -39,10 +39,14 @@ typedef long int64_t;
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #endif
 
-#if !gpu_nvidia(DEVICE_INFO) || nvidia_sm_5x(DEVICE_INFO)
+#if !gpu_nvidia(DEVICE_INFO)
 #define USE_BITSELECT 1
 #elif gpu_nvidia(DEVICE_INFO)
 #define OLD_NVIDIA 1
+#endif
+
+#if cpu(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
+#define HAVE_ANDNOT 1
 #endif
 
 #if gpu_amd(DEVICE_INFO)
