@@ -1103,12 +1103,15 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			char c[9];
 			unsigned long w;
 		} key;
+		int len = MIN(MAX(self->params.plaintext_length, 8),
+		              self->params.plaintext_min_length);
+
 		key.w = 0x6161616161616161ULL;
 
 		for (i = 0; i < kpc; i++) {
 			int l = 0;
 
-			key.c[8] = 0;
+			key.c[len] = 0;
 			self->methods.set_key(key.c, i);
 			while (++key.c[l] > 0x7a)
 				key.c[l++] = 0x20;
@@ -1308,12 +1311,15 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 			char c[9];
 			unsigned long w;
 		} key;
+		int len = MIN(MAX(self->params.plaintext_length, 8),
+		              self->params.plaintext_min_length);
+
 		key.w = 0x6161616161616161ULL;
 
 		for (i = 0; i < global_work_size; i++) {
 			int l = 0;
 
-			key.c[8] = 0;
+			key.c[len] = 0;
 			self->methods.set_key(key.c, i);
 			while (++key.c[l] > 0x7a)
 				key.c[l++] = 0x20;
