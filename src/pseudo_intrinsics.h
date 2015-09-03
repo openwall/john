@@ -554,7 +554,11 @@ static INLINE void vstoreu_emu(void *addr, vtype v)
 	(x = vxor(vsrli_epi64(x, 32), vslli_epi64(x, 32)), vswap32_emu(x))
 
 #if VCMOV_EMULATED
+#if VANDNOT_EMULATED /* currently never */
 #define vcmov_emu(x, y, z)      vxor(y, vand(z, vxor(x, y)))
+#else
+#define vcmov_emu(x, y, z)      vxor(vand(z, x), vandnot(z, y))
+#endif
 #endif
 
 #if __SSE3__ || __MIC__
