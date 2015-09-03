@@ -115,13 +115,23 @@ john_register_one(&fmt_sha1_ng);
         E   = vadd_epi32(E, vroti_epi32(A, 5));     \
     } while (false)
 
+#if !VCMOV_EMULATED
 #define R3(W, A, B, C, D, E) do {                                   \
         E   = vadd_epi32(E, K);                                     \
-        E   = vadd_epi32(E, vxor(vcmov(D, B, C), vandnot(D, B)));   \
+        E   = vadd_epi32(E, vcmov(D, B, vxor(C, B)));               \
         E   = vadd_epi32(E, W);                                     \
         B   = vroti_epi32(B, 30);                                   \
         E   = vadd_epi32(E, vroti_epi32(A, 5));                     \
     } while (false)
+#else
+#define R3(W, A, B, C, D, E) do {                                   \
+        E   = vadd_epi32(E, K);                                     \
+        E   = vadd_epi32(E, vor(vand(D, B), vand(vor(D, B), C)));   \
+        E   = vadd_epi32(E, W);                                     \
+        B   = vroti_epi32(B, 30);                                   \
+        E   = vadd_epi32(E, vroti_epi32(A, 5));                     \
+    } while (false)
+#endif
 
 #if SIMD_COEF_32 == 4
 // Not used for AVX2 and better, which has gather instructions.

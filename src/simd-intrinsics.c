@@ -985,10 +985,10 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
     tmp[i] = vxor((y[i]),(z[i]));               \
     tmp[i] = vxor((tmp[i]),(x[i]));
 
-#if __XOP__
-#define SHA1_H(x,y,z)                               \
-    tmp[i] = vcmov((x[i]),(y[i]),(z[i]));           \
-    tmp[i] = vxor((tmp[i]),vandnot((x[i]),(y[i])));
+#if !VCMOV_EMULATED
+#define SHA1_H(x,y,z)                           \
+    tmp[i] = vxor((z[i]), (y[i]));              \
+    tmp[i] = vcmov((x[i]), (y[i]), tmp[i]);
 #else
 #define SHA1_H(x,y,z)                                       \
     tmp[i] = vand((x[i]),(y[i]));                           \
@@ -1482,7 +1482,11 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
     )                                           \
 )
 
+#if !VCMOV_EMULATED
 #define Maj(x,y,z) vcmov(x, y, vxor(z, y))
+#else
+#define Maj(x,y,z) vor(vand(x, y), vand(vor(x, y), z))
+#endif
 
 #define Ch(x,y,z) vcmov(y, z, x)
 
@@ -1931,9 +1935,13 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
     )                                           \
 )
 
+#if !VCMOV_EMULATED
 #define Maj(x,y,z) vcmov(x, y, vxor(z, y))
+#else
+#define Maj(x,y,z) vor(vand(x, y), vand(vor(x, y), z))
+#endif
 
-#define Ch(x,y,z)  vcmov(y, z, x)
+#define Ch(x,y,z) vcmov(y, z, x)
 
 #define SHA512_PARA_DO(x) for (x = 0; x < SIMD_PARA_SHA512; ++x)
 

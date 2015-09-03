@@ -41,7 +41,7 @@
 #define F2(x, y, z)		(x ^ y ^ z)
 
 #ifdef USE_BITSELECT
-#define F3(x, y, z)	(bitselect(x, y, z) ^ bitselect(x, 0U, y))
+#define F3(x, y, z)	bitselect(x, y, (z) ^ (x))
 #else
 #define F3(x, y, z)	((x & y) | (z & (x | y)))
 #endif

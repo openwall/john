@@ -1187,26 +1187,27 @@ static int ldr_salt_cmp_num(const void *x, const void *y) {
 }
 
 /*
- * If there are more than 1 salt, AND the format exports a salt_compare
- * function, then we reorder the salt array, into the order the format
- * wants them in.  Reasons for this, are usually that the format can
- * gain a lot of speed, if some of the salts are grouped together, so
- * that the group is run one after the other.  This was first done for
- * the WPAPSK format, so that the format could group all ESSID's in
- * the salts, so that the PBKDF2 is computed once (for the first
- * instance of the ESSID), then all of the other salts which are
- * different salts, but  * which have the exact same ESSID will not
- * have to perform the very costly PBKDF2.  The format is designed
- * to work that way, IFF the salts come to it in the right order.
- * This function gets them into that order.
- * A later bug was found in dynamic (hopefully not in other formats
- * also), where some formats, like md5(md5($p).$s) would fail, if
- * there were salt of varying length, within the same input file.
- * the longer salts would leave stale data, which would cause
- * subsquent shorter salt values to produce wrong hash. But if
- * we sort the salts based on salt string length, this issue
- * goes away, and things work properly.  This function now handles
- * the dynamic type also, to correct this performance design choice.
+ * If there are more than 1 salt AND the format exports a salt_compare
+ * function, then we reorder the salt array into the order the format
+ * wants them in.  The rationale is usually that the format can
+ * gain speed if some of the salts are grouped together.  This was first
+ * done for the WPAPSK format so that the format could group all ESSID's
+ * in the salts. So the PBKDF2 is computed once (for the first instance
+ * of the ESSID), then all of the other salts which are different but
+ * have the same ESSID will not have to perform the very costly PBKDF2.
+ * The format is designed to work that way, IF the salts come to it in
+ * the right order.
+ *
+ * Later, a bug was found in dynamic (hopefully not in other formats)
+ * where formats like md5(md5($p).$s) would fail if there were salts of
+ * varying length within the same input file. The longer salts would
+ * leave stale data. If we sort the salts based on salt string length,
+ * this issue goes away with no performance overhead.  So this function
+ * is now also used for dynamic.
+ *
+ * There's also an experimental john.conf setting AlwaysSortSalts that,
+ * if true, will fallback to sort "most used first" if the format does
+ * not have a salt_compare method defined.
  */
 static void ldr_sort_salts(struct db_main *db)
 {
@@ -1217,7 +1218,11 @@ static void ldr_sort_salts(struct db_main *db)
 #else
 	salt_cmp_t ar[100];  /* array is easier to debug in VC */
 #endif
-	if (db->salt_count < 2)
+	int always;
+
+	always = cfg_get_bool(SECTION_OPTIONS, NULL, "AlwaysSortSalts", 1);
+
+	if (db->salt_count < 2 || (!fmt_salt_compare && !always))
 		return;
 
 	log_event("Sorting salts, for performance");

@@ -146,7 +146,11 @@ john_register_one(&fmt_rawSHA256_ng);
             )                                   \
         )
 
+#if !VCMOV_EMULATED
 #define Maj(x,y,z) vcmov(x, y, vxor(z, y))
+#else
+#define Maj(x,y,z) vor(vand(x, y), vand(vor(x, y), z))
+#endif
 
 #define Ch(x,y,z) vcmov(y, z, x)
 

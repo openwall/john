@@ -145,6 +145,7 @@ typedef __m512i vtype;
 #define vand                    _mm512_and_si512
 #define vandnot                 _mm512_andnot_si512
 #define vcmov                   vcmov_emu
+#define VCMOV_EMULATED          1
 /*
  * NOTE: AVX2 has it as (base, index, scale) while MIC and AVX512 are
  * different.
@@ -280,6 +281,7 @@ typedef __m256i vtype;
 #define vand                    _mm256_and_si256
 #define vandnot                 _mm256_andnot_si256
 #define vcmov                   vcmov_emu
+#define VCMOV_EMULATED          1
 #define vcmpeq_epi8_mask(a, b)  _mm256_movemask_epi8(_mm256_cmpeq_epi8(a, b))
 #define vcmpeq_epi32            _mm256_cmpeq_epi32
 #define vcvtsi32                _mm256_cvtsi32_si256
@@ -387,6 +389,7 @@ typedef __m128i vtype;
 #define vcmov                   _mm_cmov_si128
 #else
 #define vcmov                   vcmov_emu
+#define VCMOV_EMULATED          1
 #endif
 #define vcmpeq_epi8_mask(a, b)  _mm_movemask_epi8(_mm_cmpeq_epi8(a, b))
 #define vcmpeq_epi32            _mm_cmpeq_epi32
@@ -550,7 +553,9 @@ static INLINE void vstoreu_emu(void *addr, vtype v)
 #define vswap64_emu(x) \
 	(x = vxor(vsrli_epi64(x, 32), vslli_epi64(x, 32)), vswap32_emu(x))
 
+#if VCMOV_EMULATED
 #define vcmov_emu(x, y, z)      vxor(y, vand(z, vxor(x, y)))
+#endif
 
 #if __SSE3__ || __MIC__
 #define vslli_epi64a(a, s)      vslli_epi64(a, s)

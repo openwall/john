@@ -28,7 +28,7 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 #define FORMAT_NAME		""
 #define ALGORITHM_NAME		"PBKDF2-SHA256 OpenCL"
 
-#define BENCHMARK_COMMENT	", rounds=12000"
+#define BENCHMARK_COMMENT	", rounds=1000"
 #define BENCHMARK_LENGTH	-1
 
 #define BINARY_ALIGN		4
@@ -75,7 +75,9 @@ typedef struct {
 	salt and checksum are encoded in "adapted base64"
 */
 static struct fmt_tests tests[] = {
-
+	/* Low iteration test vectors for comparison */
+	{"$pbkdf2-sha256$1000$b1dWS2dab3dKQWhPSUg3cg$UY9j5wlyxtsJqhDKTqua8Q3fMp0ojc2pOnErzr8ntLE", "magnum"},
+	{"$pbkdf2-sha256$1000$amkzNk9tOXJVZ043QTZ1dA$YIpbl0hjiV9UFMszHNDlJIa0bcObTIkPzT6XvhJPcMM", "bonum"},
 	{"$pbkdf2-sha256$12000$2NtbSwkhRChF6D3nvJfSGg$OEWLc4keep8Vx3S/WnXgsfalb9q0RQdS1s05LfalSG4", ""},
 	{"$pbkdf2-sha256$12000$fK8VAoDQuvees5ayVkpp7Q$xfzKAoBR/Iaa68tjn.O8KfGxV.zdidcqEeDoTFvDz2A", "1"},
 	{"$pbkdf2-sha256$12000$GoMQYsxZ6/0fo5QyhtAaAw$xQ9L6toKn0q245SIZKoYjCu/Fy15hwGme9.08hBde1w", "12"},

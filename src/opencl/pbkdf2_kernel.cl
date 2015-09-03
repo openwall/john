@@ -370,7 +370,7 @@ inline void SHA1(__private uint *A, __private uint *W) {
 #undef F
 
 #ifndef NVIDIA
-#define F(x, y, z) (bitselect(x, y, z) ^ bitselect(x, (uint)0, y))
+#define F(x, y, z) bitselect(x, y, (z) ^ (x))
 #else
 #define F(x, y, z) ((x & y) | (z & (x | y)))
 #endif
@@ -404,7 +404,7 @@ inline void SHA1_digest(__private uint *A, __private uint *W) {
 #undef F
 
 #ifndef NVIDIA
-#define F(x,y,z) (bitselect(x, y, z) ^ bitselect(x, (uint)0, y))
+#define F(x,y,z) bitselect(x, y, (z) ^ (x))
 #else
 #define F(x,y,z) ((x & y) | (z & (x | y)))
 #endif

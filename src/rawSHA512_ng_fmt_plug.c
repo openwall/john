@@ -172,9 +172,13 @@ _inline __m128i _mm_set1_epi64(uint64_t a) {
     )                                                                     \
 )
 
+#if !VCMOV_EMULATED
 #define Maj(x,y,z) vcmov(x, y, vxor(z, y))
+#else
+#define Maj(x,y,z) vor(vand(x, y), vand(vor(x, y), z))
+#endif
 
-#define Ch(x,y,z)  vcmov(y, z, x)
+#define Ch(x,y,z) vcmov(y, z, x)
 
 #define R(t)                                                              \
 {                                                                         \

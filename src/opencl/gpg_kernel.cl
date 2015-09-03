@@ -180,7 +180,7 @@ inline void sha1_process( sha1_context *ctx, const uchar data[64] )
 #undef F
 
 #ifdef USE_BITSELECT
-#define F(x, y, z)	(bitselect(x, y, z) ^ bitselect(x, 0U, y))
+#define F(x, y, z)	bitselect(x, y, (z) ^ (x))
 #else
 #define F(x, y, z)	((x & y) | (z & (x | y)))
 #endif

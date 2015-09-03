@@ -19,28 +19,30 @@
 
 //Macros.
 #ifdef USE_BITSELECT
-	#define Ch(x, y, z)     bitselect(z, y, x)
-	#define Maj(x, y, z)    bitselect(x, y, z ^ x)
-	#define ror(x, n)       rotate(x, (32U-n))
-	#define SWAP32(n)       rotate(n & 0x00FF00FFU, 24U) | rotate(n & 0xFF00FF00U, 8U)
+
+#define Ch(x, y, z)     bitselect(z, y, x)
+#define Maj(x, y, z) bitselect(x, y, z ^ x)
+#define ror(x, n)       rotate(x, (32U-n))
+#define SWAP32(n)       rotate(n & 0x00FF00FFU, 24U) | rotate(n & 0xFF00FF00U, 8U)
 
 #ifdef AMD_STUPID_BUG_2
-	#define SWAP_V(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
+#define SWAP_V(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
 #else
-	#define SWAP_V(n)	SWAP32(n)
+#define SWAP_V(n)	SWAP32(n)
 #endif
 
 #else
-	#define SWAP(n) \
-	    (((n) << 24)	       | (((n) & 0xff00U) << 8) |     \
-	    (((n) >> 8) & 0xff00U)     | ((n) >> 24))
+#define SWAP(n)	  \
+	(((n) << 24)	       | (((n) & 0xff00U) << 8) | \
+	 (((n) >> 8) & 0xff00U)     | ((n) >> 24))
 
-	#define Ch(x, y, z)     ((x & y) ^ ( (~x) & z))
-	#define Maj(x, y, z)    ((x & y) ^ (x & z) ^ (y & z))
-	#define ror(x, n)       ((x >> n) | (x << (32U-n)))
-	#define SWAP32(n)       SWAP(n)
-	#define SWAP_V(n)       SWAP(n)
+#define Ch(x, y, z) (z ^ (x & (y ^ z)))
+#define Maj(x, y, z) ((x & y) | (z & (x | y)))
+#define ror(x, n)       ((x >> n) | (x << (32U-n)))
+#define SWAP32(n)       SWAP(n)
+#define SWAP_V(n)       SWAP(n)
 #endif
+
 #define SWAP32_V(n)		SWAP_V(n)
 #define Sigma0(x)		((ror(x,2U))  ^ (ror(x,13U)) ^ (ror(x,22U)))
 #define Sigma1(x)		((ror(x,6U))  ^ (ror(x,11U)) ^ (ror(x,25U)))
