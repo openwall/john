@@ -18,6 +18,14 @@ john_register_one(&fmt_keychain);
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <openssl/des.h>
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               64
+#endif
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -26,13 +34,7 @@ john_register_one(&fmt_keychain);
 #include "options.h"
 #include "johnswap.h"
 #include "pbkdf2_hmac_sha1.h"
-#include <openssl/des.h>
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               64
-#endif
-#endif
+#include "jumbo.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"keychain"
@@ -164,7 +166,6 @@ static void set_salt(void *salt)
 static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *data)
 {
 	unsigned char out[CTLEN];
-	int pad, n, i;
 	DES_cblock key1, key2, key3;
 	DES_cblock ivec;
 	DES_key_schedule ks1, ks2, ks3;
@@ -178,18 +179,9 @@ static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *data)
 	memcpy(ivec, iv, 8);
 	DES_ede3_cbc_encrypt(data, out, CTLEN, &ks1, &ks2, &ks3, &ivec,  DES_DECRYPT);
 
-	// now check padding
-	pad = out[47];
-	if(pad > 8)
-		// "Bad padding byte. You probably have a wrong password"
+	if (check_pkcs_pad(out, CTLEN, 8) < 0)
 		return -1;
-	if(pad != 4) /* possible bug here, is this assumption always valid? */
-		return -1;
-	n = CTLEN - pad;
-	for(i = n; i < CTLEN; i++)
-		if(out[i] != pad)
-			// "Bad padding. You probably have a wrong password"
-			return -1;
+
 	return 0;
 }
 

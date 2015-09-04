@@ -400,4 +400,10 @@ extern size_t strnlen(const char *s, size_t max);
 char *strcasestr(const char *haystack, const char *needle);
 #endif
 
+/*
+ * Standard PKCS padding check. On success, returns net length.
+ * On failure, returns -1.
+ */
+extern int check_pkcs_pad(const unsigned char* data, size_t len, int blocksize);
+
 #endif /* _JTR_JUMBO_H */

@@ -41,6 +41,7 @@ static int omp_t = 1;
 #include "stdint.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
+#include "jumbo.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"Bitcoin"
@@ -76,7 +77,6 @@ static int omp_t = 1;
 #endif
 
 #define SZ 			128
-#define PADDING		"\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10"
 
 static struct fmt_tests bitcoin_tests[] = {
 	/* bitcoin wallet hashes */
@@ -325,7 +325,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			AES_set_decrypt_key(key, 256, &aes_key);
 			AES_cbc_encrypt(cur_salt->cry_master, output, cur_salt->cry_master_length, &aes_key, iv, AES_DECRYPT);
 
-			if (!memcmp(output + 32, PADDING, 16)) {
+			if (check_pkcs_pad(output, cur_salt->cry_master_length, 16) == 32) {
 				cracked[index + index2] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
@@ -350,7 +350,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		AES_set_decrypt_key(key_iv, 256, &aes_key);
 		AES_cbc_encrypt(cur_salt->cry_master, output, cur_salt->cry_master_length, &aes_key, key_iv + 32, AES_DECRYPT);
 
-		if (!memcmp(output + 32, PADDING, 16)) {
+		if (check_pkcs_pad(output, cur_salt->cry_master_length, 16) == 32) {
 			cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic

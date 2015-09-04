@@ -299,12 +299,12 @@ static int kpa(unsigned char *key, unsigned char *iv, int inlined)
 static int decrypt(char *password)
 {
 	unsigned char out[16];
-	int pad, n, i;
 	AES_KEY akey;
 	unsigned char iv[16];
 	unsigned char biv[16];
 	unsigned char key[32];
 	int nrounds = 1;
+
 	// FIXME handle more stuff
 	switch(cur_salt->cipher) {
 		case 0:
@@ -349,14 +349,8 @@ static int decrypt(char *password)
 		AES_cbc_encrypt(cur_salt->last_chunks + 16, out, 16, &akey, iv, AES_DECRYPT);
 	}
 
-	// FIXME use padding check for CBC mode only
 	// now check padding
-	pad = out[16 - 1];
-	if(pad < 1 || pad > 16)
-		return -1;
-	n = 16 - pad;
-	for(i = n; i < 16; i++)
-		if(out[i] != pad)
+	if (check_pkcs_pad(out, 16, 16) < 0)
 			return -1;
 
 	if(cur_salt->kpa)

@@ -22,7 +22,6 @@ john_register_one(&fmt_opencl_agilekeychain);
 #else
 
 #include <string.h>
-#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -32,8 +31,10 @@ john_register_one(&fmt_opencl_agilekeychain);
 #include "common.h"
 #include "stdint.h"
 #include "misc.h"
+#include "aes.h"
 #include "common-opencl.h"
 #include "options.h"
+#include "jumbo.h"
 
 #define FORMAT_LABEL		"agilekeychain-opencl"
 #define FORMAT_NAME		"1Password Agile Keychain"
@@ -324,30 +325,26 @@ static char *get_key(int index)
 static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 {
 	unsigned char out[CTLEN];
-	int pad, n, i, key_size;
+	int n, key_size;
 	AES_KEY akey;
 	unsigned char iv[16];
+
 	memcpy(iv, data + CTLEN - 32, 16);
 
-	if(AES_set_decrypt_key(derived_key, 128, &akey) < 0) {
+	if (AES_set_decrypt_key(derived_key, 128, &akey) < 0)
 		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
-	}
+
 	AES_cbc_encrypt(data + CTLEN - 16, out + CTLEN - 16, 16, &akey, iv, AES_DECRYPT);
 
-	// now check padding
-	pad = out[CTLEN - 1];
-	if(pad < 1 || pad > 16) /* AES block size is 128 bits = 16 bytes */
-		// "Bad padding byte. You probably have a wrong password"
+	n = check_pkcs_pad(out, CTLEN, 16);
+	if (n < 0)
 		return -1;
-	n = CTLEN - pad;
+
 	key_size = n / 8;
-	if(key_size != 128 && key_size != 192 && key_size != 256)
+	if (key_size != 128 && key_size != 192 && key_size != 256)
 		// "invalid key size"
 		return -1;
-	for(i = n; i < CTLEN; i++)
-		if(out[i] != pad)
-			// "Bad padding. You probably have a wrong password"
-			return -1;
+
 	return 0;
 }
 

@@ -41,7 +41,9 @@ typedef long int64_t;
 
 #if !gpu_nvidia(DEVICE_INFO)
 #define USE_BITSELECT 1
-#elif gpu_nvidia(DEVICE_INFO)
+#endif
+
+#if SM_MAJOR < 2
 #define OLD_NVIDIA 1
 #endif
 
