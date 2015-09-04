@@ -296,9 +296,6 @@ static inline int check_padding_only(unsigned char *out, int length)
 
 static inline int check_padding_and_structure(unsigned char *out, int length)
 {
-	int pad;
-	int i;
-	int n;
 	unsigned char output[N];
 	int ul; /* useful length */
 	unsigned char *res = NULL;
@@ -306,13 +303,8 @@ static inline int check_padding_and_structure(unsigned char *out, int length)
 	BIO * outfile;
 
 	// First check padding
-	pad = out[length - 1];
-	if(pad > 16)
+	if (check_pkcs_pad(out, length, 16) < 0)
 		return -1;
-	n = length - pad;
-	for(i = n; i < length; i++)
-		if(out[i] != pad)
-			return -1;
 
 	/* check BER decoding, private key file contains:
 	 * RSAPrivateKey = { version = 0, n, e, d, p, q, d mod p-1, d mod q-1, q**-1 mod p }
