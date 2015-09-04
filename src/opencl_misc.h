@@ -47,7 +47,7 @@ typedef long int64_t;
 #define OLD_NVIDIA 1
 #endif
 
-#if cpu(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
+#if cpu(DEVICE_INFO)
 #define HAVE_ANDNOT 1
 #endif
 
