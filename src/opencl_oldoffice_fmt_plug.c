@@ -413,7 +413,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" kidx %u m %d k %d\n", __FUNCTION__, count, lws, global_work_size, key_idx, m, new_keys);
 
-	if (new_keys) {
+	if (new_keys || ocl_autotune_running) {
 		/* Self-test kludge */
 		if (idx_offset > 4 * (global_work_size + 1))
 			idx_offset = 0;
@@ -425,13 +425,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		new_keys = 0;
 	}
 
-	if(cur_salt->type < 3) {
+	if (cur_salt->type < 3) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_md5, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running second kernel");
 	} else {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_sha1, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running first kernel");
 	}
 
-	if (bench_running || m) {
+	if (bench_running || ocl_autotune_running || m) {
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, multi_profilingEvent[4]), "failed reading results back");
 
 		any_cracked = 0;

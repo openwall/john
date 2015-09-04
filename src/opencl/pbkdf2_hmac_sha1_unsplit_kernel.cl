@@ -34,8 +34,8 @@ typedef struct {
 	uchar salt[SALTLEN];
 } pbkdf2_salt;
 
-inline void preproc(__global const uchar * key, uint keylen,
-    __private uint * state, uint padding)
+inline void preproc(__global const uchar *key, uint keylen,
+    __private uint *state, uint padding)
 {
 	uint i;
 	uint W[16], temp;
@@ -59,12 +59,22 @@ inline void preproc(__global const uchar * key, uint keylen,
 	state[2] = C + INIT_C;
 	state[3] = D + INIT_D;
 	state[4] = E + INIT_E;
+
+#if __OS_X__ && gpu_intel(DEVICE_INFO)
+/*
+ * Ridiculous workaround for Apple w/ Intel HD Graphics. I tried to
+ * replace this with a barrier but that did not do the trick.
+ *
+ * Yosemite, HD Graphics 4000, 1.2(Jul 29 2015 02:40:37)
+ */
+	if (get_global_id(0) == 0x7fffffff) printf(".");
+#endif
 }
 
-inline void hmac_sha1(__private uint * output,
-    __private uint * ipad_state,
-    __private uint * opad_state,
-    __global const uchar * salt, int saltlen, uchar add)
+inline void hmac_sha1(__private uint *output,
+    __private uint *ipad_state,
+    __private uint *opad_state,
+    __global const uchar *salt, int saltlen, uchar add)
 {
 	int i;
 	uint temp, W[16];
@@ -134,9 +144,9 @@ inline void hmac_sha1(__private uint * output,
 	output[4] = E;
 }
 
-inline void big_hmac_sha1(__private uint * input, uint inputlen,
-    __private uint * ipad_state,
-    __private uint * opad_state, __private uint * tmp_out, uint iterations)
+inline void big_hmac_sha1(__private uint *input, uint inputlen,
+    __private uint *ipad_state,
+    __private uint *opad_state, __private uint *tmp_out, uint iterations)
 {
 	uint i;
 	uint W[16];
@@ -200,9 +210,9 @@ inline void big_hmac_sha1(__private uint * input, uint inputlen,
 	}
 }
 
-inline void pbkdf2(__global const uchar * pass, uint passlen,
-                   __global const uchar * salt, uint saltlen, uint iterations,
-                   __global uint * out, uint outlen)
+inline void pbkdf2(__global const uchar *pass, uint passlen,
+                   __global const uchar *salt, uint saltlen, uint iterations,
+                   __global uint *out, uint outlen)
 {
 	uint ipad_state[5];
 	uint opad_state[5];
