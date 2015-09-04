@@ -804,6 +804,10 @@ void listconf_parse_late(void)
 				printf("Methods overridden for:   %s [%s] %s\n", format->params.label, format->params.algorithm_name, format->params.format_name);
 				if (format->methods.init != fmt_default_init)
 					printf("\tinit()\n");
+				if (format->methods.done != fmt_default_done)
+					printf("\tdone()\n");
+				if (format->methods.reset != fmt_default_reset)
+					printf("\treset()\n");
 				if (format->methods.prepare != fmt_default_prepare)
 					printf("\tprepare()\n");
 				printf("\tvalid()\n");
@@ -826,8 +830,6 @@ void listconf_parse_late(void)
 					if (format->methods.binary_hash[i] != fmt_default_binary_hash) {
 						if (format->methods.binary_hash[i])
 							printf("\t\tbinary_hash[%d]()\n", i);
-						else
-							printf("\t\tbinary_hash[%d]()  (NULL pointer)\n", i);
 					}
 				if (format->methods.salt_hash != fmt_default_salt_hash)
 					printf("\tsalt_hash()\n");
@@ -842,15 +844,13 @@ void listconf_parse_late(void)
 				printf("\tget_key()\n");
 				if (format->methods.clear_keys != fmt_default_clear_keys)
 					printf("\tclear_keys()\n");
+// there is no default for crypt_all() it must be defined.
+				printf("\tcrypt_all()\n");
 				for (i = 0; i < PASSWORD_HASH_SIZES; ++i)
 					if (format->methods.get_hash[i] != fmt_default_get_hash) {
 						if (format->methods.get_hash[i])
 							printf("\t\tget_hash[%d]()\n", i);
-						else
-							printf("\t\tget_hash[%d]()  (NULL pointer)\n", i);
 					}
-// there is no default for crypt_all() it must be defined.
-				printf("\tcrypt_all()\n");
 // there is no default for cmp_all() it must be defined.
 				printf("\tcmp_all()\n");
 // there is no default for cmp_one() it must be defined.
