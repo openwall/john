@@ -3120,8 +3120,8 @@ static DYNAMIC_Constants _ConstDefault[] =
 	{ "dynamic_" #NUM "4: " #ALGO "(" #ALGO "_raw($p))",             _Funcs_##NUM##4,_Preloads_##NUM##4,_ConstDefault,MGF_NOTSSE2Safe,MGF_KEYS_INPUT|INPB}, \
 	{ "dynamic_" #NUM "5: " #ALGO "(" #ALGO "($p).$s)",              _Funcs_##NUM##5,_Preloads_##NUM##5,_ConstDefault,MGF_SALTED|MGF_NOTSSE2Safe,KBHIN1|INPB,-64,110,110}, \
 	{ "dynamic_" #NUM "6: " #ALGO "($s." #ALGO "($p))",              _Funcs_##NUM##6,_Preloads_##NUM##6,_ConstDefault,MGF_SALTED|MGF_NOTSSE2Safe,KBHIN1|INPB,-64,110,110}, \
-	{ "dynamic_" #NUM "7: " #ALGO "(" #ALGO "($s)." #ALGO " ($p))",  _Funcs_##NUM##7,_Preloads_##NUM##7,_ConstDefault,SAH|MGF_NOTSSE2Safe,KBHIN1|INPB,-64,110,110}, \
-	{ "dynamic_" #NUM "8: " #ALGO "(" #ALGO "($p)." #ALGO " ($p))",  _Funcs_##NUM##8,_Preloads_##NUM##8,_ConstDefault,MGF_NOTSSE2Safe,MGF_KEYS_INPUT|INPB},
+	{ "dynamic_" #NUM "7: " #ALGO "(" #ALGO "($s)." #ALGO "($p))",  _Funcs_##NUM##7,_Preloads_##NUM##7,_ConstDefault,SAH|MGF_NOTSSE2Safe,KBHIN1|INPB,-64,110,110}, \
+	{ "dynamic_" #NUM "8: " #ALGO "(" #ALGO "($p)." #ALGO "($p))",  _Funcs_##NUM##8,_Preloads_##NUM##8,_ConstDefault,MGF_NOTSSE2Safe,MGF_KEYS_INPUT|INPB},
 
 // As long as the setup for the large hash is 'default', then we can use this macro. This one is for hashes which there is possible SIMD code in JtR
 #define SETUP_LARGE_HASH_SIMD(ALGO,KBHIN1,SAH,NUM,INPB) \
