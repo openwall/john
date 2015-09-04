@@ -823,6 +823,9 @@ zsh-completion:
 
 shell-completion: bash-completion zsh-completion
 
+kernel-clean:
+	$(RM) -r ~/.nv/ComputeCache ../run/kernels/*.bin
+
 clean:
 	$(RM) $(PROJ)
 	@for exe in ${PROJ}; do \
@@ -960,12 +963,12 @@ all:
 	done && test -z "$$fail"
 
 distclean: clean
-	$(RM) -rf autom4te.cache
+	$(RM) -r autom4te.cache
 	@for dir in ${subdirs}; do \
 	  (cd $$dir && $(MAKE) distclean) \
 	  || case "$(MFLAGS)" in *k*) fail=yes;; *) exit 1;; esac; \
 	done && test -z "$$fail"
-	$(RM) -f Makefile autoconfig.h config.status config.cache \
+	$(RM) Makefile autoconfig.h config.status config.cache \
 		config.log autoconfig-stamp-h autoconfig-stamp-h-in stamp-h1
 	$(LN) Makefile.stub Makefile
 	$(RM) arch.h
