@@ -461,6 +461,14 @@ static char *get_key(int index)
 	return (char*)utf16_to_enc(c_key);
 }
 
+static int salt_compare(const void *x, const void *y)
+{
+	const struct custom_salt *s1 = x;
+	const struct custom_salt *s2 = y;
+
+	return (s1->NumCyclesPower - s2->NumCyclesPower);
+}
+
 // XXX port Python code to C *OR* use code from LZMA SDK
 static int validFolder(unsigned char *data)
 {
@@ -656,7 +664,7 @@ struct fmt_main fmt_opencl_sevenzip = {
 			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
-		NULL,
+		salt_compare,
 		set_salt,
 		sevenzip_set_key,
 		get_key,

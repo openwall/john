@@ -17,7 +17,7 @@
 #include "opencl_misc.h"
 
 /* The basic MD5 functions */
-#ifdef USE_BITSELECT
+#if USE_BITSELECT
 #define MD5_F(x, y, z)	bitselect((z), (y), (x))
 #define MD5_G(x, y, z)	bitselect((y), (x), (z))
 #else
@@ -31,8 +31,11 @@
 
 #define MD5_H(x, y, z)	(((x) ^ (y)) ^ (z))
 #define MD5_H2(x, y, z)	((x) ^ ((y) ^ (z)))
+#if USE_BITSELECT
+#define MD5_I(x, y, z)	((y) ^ bitselect(0xffffffffU, (x), (z)))
+#else
 #define MD5_I(x, y, z)	((y) ^ ((x) | ~(z)))
-
+#endif
 
 /* The MD5 transformation for all four rounds. */
 #define MD5_STEP(f, a, b, c, d, x, t, s)	  \
