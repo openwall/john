@@ -304,7 +304,8 @@ static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *data)
 	memcpy(ivec, iv, 8);
 	DES_ede3_cbc_encrypt(data, out, CTLEN, &ks1, &ks2, &ks3, &ivec,  DES_DECRYPT);
 
-	if (check_pkcs_pad(out, CTLEN, 8) < 0)
+	/* possible bug here, is this assumption (pad of 4) always valid? */
+	if (out[47] != 4 || check_pkcs_pad(out, CTLEN, 8) < 0)
 		return -1;
 
 	return 0;
