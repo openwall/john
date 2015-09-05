@@ -90,10 +90,16 @@ _inline __m128i _mm_set1_epi64(long long a)
     tmp[i] = vxor((tmp[i]),(x[i]));
 #endif
 
+#if !VCMOV_EMULATED
+#define MD5_I(x,y,z)                            \
+    tmp[i] = vcmov((x[i]), mask, (z[i])); \
+    tmp[i] = vxor((tmp[i]), (y[i]));
+#else
 #define MD5_I(x,y,z)                            \
     tmp[i] = vandnot((z[i]), mask);             \
     tmp[i] = vor((tmp[i]),(x[i]));              \
     tmp[i] = vxor((tmp[i]),(y[i]));
+#endif
 
 #define MD5_STEP(f, a, b, c, d, x, t, s)            \
     MD5_PARA_DO(i) {                                \
@@ -332,6 +338,7 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 		}
 	}
 
+#if 0
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		MD5_PARA_DO(i)
 		{
@@ -364,7 +371,9 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 #endif
 		}
 	}
-	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
+	else
+#endif
+	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
 			MD5_PARA_DO(i)
@@ -667,13 +676,19 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 #define MD4_F(x,y,z)                            \
     tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
 
+#if !VCMOV_EMULATED
+#define MD4_G(x,y,z)                            \
+    tmp[i] = vxor((y[i]), (z[i]));              \
+    tmp[i] = vcmov((x[i]), (z[i]), (tmp[i]));
+#else
 #define MD4_G(x,y,z)                            \
     tmp[i] = vor((y[i]),(z[i]));                \
     tmp2[i] = vand((y[i]),(z[i]));              \
     tmp[i] = vand((tmp[i]),(x[i]));             \
     tmp[i] = vor((tmp[i]), (tmp2[i]) );
+#endif
 
-#if SIMD_PARA_MD4 == 1
+#if SIMD_PARA_MD4 < 3
 #define MD4_H(x,y,z)                            \
     tmp2[i] = vxor((x[i]),(y[i]));              \
     tmp[i] = vxor(tmp2[i], (z[i]));
@@ -907,6 +922,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 		}
 	}
 
+#if 0
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		MD4_PARA_DO(i)
 		{
@@ -939,7 +955,9 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 #endif
 		}
 	}
-	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
+	else
+#endif
+	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
 			MD4_PARA_DO(i)
