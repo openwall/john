@@ -278,9 +278,9 @@ ranges (these will be substituted by the same character that is
 currently substituted for the referenced range, with ranges numbered
 from 1, left-to-right), "\0" for back-reference to the immediately
 preceding range, "\p" before a range to have that range processed "in
-parallel" with preceding ranges, "\p1" through "\p9" to have the range
-processed "in parallel" with the specific referenced range, "\p0" to
-have the range processed "in parallel" with the immediately preceding
+parallel" with all preceding ranges, "\p1" through "\p9" to have the
+range processed "in parallel" with the specific referenced range, "\p0"
+to have the range processed "in parallel" with the immediately preceding
 range, and "\r" to allow the range to produce repeated characters.  The
 "\r" escape is only useful if the range is "parallel" to another one or
 if there's at least one other range "parallel" to this one, because you
