@@ -337,7 +337,12 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 		}
 	}
 
-#if 0
+#if USE_EXPERIMENTAL
+/*
+ * This is currently not used for MD4 & MD5, and was observed to result
+ * in a significant performance regression (at least on XOP) just by sitting
+ * here. http://www.openwall.com/lists/john-dev/2015/09/05/5
+ */
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		MD5_PARA_DO(i)
 		{
@@ -921,7 +926,12 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 		}
 	}
 
-#if 0
+#if USE_EXPERIMENTAL
+/*
+ * This is currently not used for MD4 & MD5, and was observed to result
+ * in a significant performance regression (at least on XOP) just by sitting
+ * here. http://www.openwall.com/lists/john-dev/2015/09/05/5
+ */
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		MD4_PARA_DO(i)
 		{
