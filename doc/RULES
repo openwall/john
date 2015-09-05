@@ -176,6 +176,9 @@ every character in a short word), ">9x5zX05z" (rotate long words left by
 
 vVNM	update "l" (length), then subtract M from N and assign to variable V
 
+"l" is set to the current word's length, and its new value is usable by
+this same command (if N or/and M is also "l").
+
 V must be one of "a" through "k".  N and M may be any valid numeric
 constants or initialized variables.  It is OK to refer to the same
 variable in the same command more than once, even three times.  For
