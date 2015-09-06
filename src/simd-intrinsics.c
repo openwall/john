@@ -27,6 +27,18 @@
 #include "misc.h"
 #include "memdbg.h"
 
+#if 1
+/* Some regression seen without this. */
+#define mem_align inline_mem_align
+static MAYBE_INLINE void *mem_align(void *stack_ptr, int align) {
+	char *cp_align = (char*)stack_ptr;
+
+	cp_align += (align-1);
+	cp_align -= (size_t)cp_align & (align - 1);
+	return (void*)cp_align;
+}
+#endif
+
 #if _MSC_VER && !_M_X64 && __SSE2__
 /* These are slow, but the F'n 32 bit compiler will not build these intrinsics.
    Only the 64-bit (Win64) MSVC compiler has these as intrinsics. These slow
@@ -579,11 +591,12 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 	unsigned int i,j;
 	MD5_CTX ctx;
 	MD5_CTX tctx;
-	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char buffers[8][64*MD5_SSE_NUM_KEYS];
-	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned int F[4*MD5_SSE_NUM_KEYS];
+	char _b[8 * 64 * MD5_SSE_NUM_KEYS + MEM_ALIGN_SIMD] = { 0 };
+	unsigned char (*buffers)[64*MD5_SSE_NUM_KEYS] =
+		mem_align(_b, MEM_ALIGN_SIMD);
+	int _F[4 * MD5_SSE_NUM_KEYS + MEM_ALIGN_SIMD] = { 0 };
+	unsigned int *F = mem_align(_F, MEM_ALIGN_SIMD);
 
-	memset(F,0,sizeof(F));
-	memset(buffers, 0, sizeof(buffers));
 	saltlen = strlen((char*)salt);
 	for(i=0;i<MD5_SSE_NUM_KEYS;i++)
 	{

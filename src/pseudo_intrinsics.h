@@ -34,6 +34,15 @@
 #include "stdint.h"
 #include "common.h" /* for is_aligned() */
 
+#define mem_align pseudo_inline_mem_align
+static MAYBE_INLINE void *mem_align(void *stack_ptr, int align) {
+	char *cp_align = (char*)stack_ptr;
+
+	cp_align += (align-1);
+	cp_align -= (size_t)cp_align & (align - 1);
+	return (void*)cp_align;
+}
+
 /*************************** NEON (ARM) *******************************/
 #ifdef __ARM_NEON__
 #include <arm_neon.h>
@@ -529,14 +538,16 @@ typedef __m64i vtype;
 
 static INLINE vtype vloadu_emu(const void *addr)
 {
-	char JTR_ALIGN(MEM_ALIGN_SIMD) buf[MEM_ALIGN_SIMD];
+	char _buf[MEM_ALIGN_SIMD + MEM_ALIGN_SIMD];
+	char *buf = mem_align(_buf, MEM_ALIGN_SIMD);
 	return is_aligned(addr, MEM_ALIGN_SIMD) ?
 		vload(addr) : (memcpy(buf, addr, MEM_ALIGN_SIMD), vload(buf));
 }
 
 static INLINE void vstoreu_emu(void *addr, vtype v)
 {
-	char JTR_ALIGN(MEM_ALIGN_SIMD) buf[MEM_ALIGN_SIMD];
+	char _buf[MEM_ALIGN_SIMD + MEM_ALIGN_SIMD];
+	char *buf = mem_align(_buf, MEM_ALIGN_SIMD);
 	if (is_aligned(addr, MEM_ALIGN_SIMD))
 		vstore(addr, v);
 	else {
@@ -582,6 +593,8 @@ static INLINE void vstoreu_emu(void *addr, vtype v)
 #define vroti_epi64_emu(a, s)  ((s) < 0 ?                               \
      vxor(vsrli_epi64((a), ~(s) + 1), vslli_epi64a((a), 64 + (s))) :    \
      vxor(vslli_epi64a((a), (s)), vsrli_epi64((a), 64 - (s))))
+
+#undef mem_align
 
 #endif /* SIMD_COEF_32 */
 
