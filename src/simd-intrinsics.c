@@ -27,18 +27,6 @@
 #include "misc.h"
 #include "memdbg.h"
 
-#if 1
-/* Some regression seen without this. */
-#define mem_align inline_mem_align
-static MAYBE_INLINE void *mem_align(void *stack_ptr, int align) {
-	char *cp_align = (char*)stack_ptr;
-
-	cp_align += (align-1);
-	cp_align -= (size_t)cp_align & (align - 1);
-	return (void*)cp_align;
-}
-#endif
-
 #if _MSC_VER && !_M_X64 && __SSE2__
 /* These are slow, but the F'n 32 bit compiler will not build these intrinsics.
    Only the 64-bit (Win64) MSVC compiler has these as intrinsics. These slow

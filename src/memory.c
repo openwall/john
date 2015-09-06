@@ -315,19 +315,6 @@ char *str_alloc_copy_func(char *src
 #endif
 }
 
-/*
- * We stipulate that align must be 1<<x (i.e. base 2).
- * If we use '% align' instead of '& (align - 1)' we can do any
- * alignment but that is slower.
- */
-void *mem_align(void *stack_ptr, int align) {
-	char *cp_align = (char*)stack_ptr;
-
-	cp_align += (align-1);
-	cp_align -= (size_t)cp_align & (align - 1);
-	return (void*)cp_align;
-}
-
 void dump_text(void *in, int len)
 {
 	unsigned char *p = (unsigned char*)in;
