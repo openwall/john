@@ -60,11 +60,12 @@ static struct fmt_tests formspring_tests[] = {
 	{"2a4fa0bf8c6a01dd625d3141746451ba51e07f99dc9143f1e25a37f65cb02eb4$RA", "test1"},
 	// repeat in the same format that is used in john.pot
 	{"$dynamic_61$2a4fa0bf8c6a01dd625d3141746451ba51e07f99dc9143f1e25a37f65cb02eb4$RA", "test1"},
-	//{"b06b5c132bb1adf421ce6ac406bfabba380546deaab92bd20c3d56baaa70b6cf$  ", "test1"},
-	//{"cdefb423bad94e3abfe5fc4044bb315a2b875220eb8c8b840849df7ef45bdcef$  ", "test3"},
-	{"$dynamic_61$a987090ac31f466c4637e22858aa3db0001e7c0ad8e6724e26e76b8e531df46c$76931fac", "abc"},
-	{"$dynamic_61$bb18710c098cc97a204d9a17bdd701d323a48ccaf67adcf67186a91da3619ac9$9dab2b36", "john"},
-	{"$dynamic_61$eecc9358bf47c8739dd988c1926a5346721557ed50665c4ef41224fceb009ad5$c248b87d", "passweird"},
+	{"b06b5c132bb1adf421ce6ac406bfabba380546deaab92bd20c3d56baaa70b6cf$  ", "test1"},
+	{"cdefb423bad94e3abfe5fc4044bb315a2b875220eb8c8b840849df7ef45bdcef$  ", "test3"},
+	// these fail, salt too long
+	//{"$dynamic_61$a987090ac31f466c4637e22858aa3db0001e7c0ad8e6724e26e76b8e531df46c$76931fac", "abc"},
+	//{"$dynamic_61$bb18710c098cc97a204d9a17bdd701d323a48ccaf67adcf67186a91da3619ac9$9dab2b36", "john"},
+	//{"$dynamic_61$eecc9358bf47c8739dd988c1926a5346721557ed50665c4ef41224fceb009ad5$c248b87d", "passweird"},
 	{NULL}
 };
 
@@ -106,9 +107,20 @@ static int formspring_valid(char *ciphertext, struct fmt_main *self)
 	get_ptr();
 	i = strlen(ciphertext);
 
-	if (i != CIPHERTEXT_LENGTH)
-		return pDynamic_61->methods.valid(ciphertext, pDynamic_61);
-	return pDynamic_61->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic_61);
+	if (i == CIPHERTEXT_LENGTH && strncmp(ciphertext, "$dynamic", 8))
+		ciphertext = Convert(Conv_Buf, ciphertext);
+	if (!pDynamic_61->methods.valid(ciphertext, pDynamic_61))
+		return 0;
+	// safe, since this has already passed dynamic valid. We know there is a '$'
+	// for the salt, otherwise it would fail valid before this point.
+	if (strlen(strrchr(ciphertext, '$')) != SALT_SIZE+1) {
+		// check for $HEX$ (such as re-reading from the .pot file
+		ciphertext = strstr(ciphertext, "$HEX$");
+		if (ciphertext && strlen(ciphertext) == 5+SALT_SIZE*2)
+			return 1;
+		return 0;
+	}
+	return 1;
 }
 
 
