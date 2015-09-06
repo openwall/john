@@ -211,9 +211,12 @@ static void pbkdf2_sha256_sse(const unsigned char *K[SSE_GROUP_SZ_SHA256], int K
 	SHA256_CTX ipad[SSE_GROUP_SZ_SHA256], opad[SSE_GROUP_SZ_SHA256], ctx;
 
 	// sse_hash1 would need to be 'adjusted' for SHA256_PARA
-	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_hash1[SHA_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_SHA256];
-	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt1[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256];
-	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt2[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256];
+	unsigned char _sse_hash1[SHA_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_SHA256 + MEM_ALIGN_SIMD];
+	unsigned char _sse_crypt1[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256 + MEM_ALIGN_SIMD];
+	unsigned char _sse_crypt2[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256 + MEM_ALIGN_SIMD];
+	unsigned char *sse_hash1 = mem_align(_sse_hash1, MEM_ALIGN_SIMD);
+	unsigned char *sse_crypt1 = mem_align(_sse_crypt1, MEM_ALIGN_SIMD);
+	unsigned char *sse_crypt2 = mem_align(_sse_crypt2, MEM_ALIGN_SIMD);
 	i1 = (ARCH_WORD_32*)sse_crypt1;
 	i2 = (ARCH_WORD_32*)sse_crypt2;
 	o1 = (ARCH_WORD_32*)sse_hash1;
