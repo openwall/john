@@ -253,8 +253,10 @@ void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, u
  * properly aligned to 'align' bytes. So:   char tmpbuf[256+15], *aligned_buf=mem_align(tmpbuf,16);
  * will give you a stack buffer, aligned to 16 bytes.  There are bugs in some compilers which cause
  * JTR_ALIGN(x) to fail properly (such as a bug in bitcoin OMP mode for linux32)
+ * Switched to a define macro for performance.
  */
-extern void *mem_align(void *stack_ptr, int align);
+#define mem_align(a,b) (void*)(((char*)(a))+(((b)-1)-(((size_t)((char*)(a))-1)&((b)-1))))
+
 
 /*
  * 32-bit endian-swap a memory buffer in place. Size is in octets (so should
