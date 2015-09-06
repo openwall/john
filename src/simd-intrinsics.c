@@ -13,9 +13,9 @@
  * redistribution of source retains the above copyright.
  */
 
-#include "arch.h"
 #include <string.h>
 
+#include "arch.h"
 #include "pseudo_intrinsics.h"
 #include "memory.h"
 #include "md5.h"
@@ -24,7 +24,7 @@
 #include "johnswap.h"
 #include "simd-intrinsics-load-flags.h"
 #include "aligned.h"
-
+#include "misc.h"
 #include "memdbg.h"
 
 #if _MSC_VER && !_M_X64 && __SSE2__
@@ -52,7 +52,6 @@ _inline __m128i _mm_set1_epi64(long long a)
 #define vset_epi64x(x1,x0)      (vtype)(vtype64){x0, x1}
 #endif
 
-#include "misc.h"
 #ifndef DEBUG
 #if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER
 #pragma GCC optimize 3
@@ -90,10 +89,16 @@ _inline __m128i _mm_set1_epi64(long long a)
     tmp[i] = vxor((tmp[i]),(x[i]));
 #endif
 
+#if !VCMOV_EMULATED
+#define MD5_I(x,y,z)                            \
+    tmp[i] = vcmov((x[i]), mask, (z[i])); \
+    tmp[i] = vxor((tmp[i]), (y[i]));
+#else
 #define MD5_I(x,y,z)                            \
     tmp[i] = vandnot((z[i]), mask);             \
     tmp[i] = vor((tmp[i]),(x[i]));              \
     tmp[i] = vxor((tmp[i]),(y[i]));
+#endif
 
 #define MD5_STEP(f, a, b, c, d, x, t, s)            \
     MD5_PARA_DO(i) {                                \
@@ -332,6 +337,12 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 		}
 	}
 
+#if USE_EXPERIMENTAL
+/*
+ * This is currently not used for MD4 & MD5, and was observed to result
+ * in a significant performance regression (at least on XOP) just by sitting
+ * here. http://www.openwall.com/lists/john-dev/2015/09/05/5
+ */
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		MD5_PARA_DO(i)
 		{
@@ -364,7 +375,9 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 #endif
 		}
 	}
-	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
+	else
+#endif
+	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
 			MD5_PARA_DO(i)
@@ -667,13 +680,19 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 #define MD4_F(x,y,z)                            \
     tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
 
+#if !VCMOV_EMULATED
+#define MD4_G(x,y,z)                            \
+    tmp[i] = vxor((y[i]), (z[i]));              \
+    tmp[i] = vcmov((x[i]), (z[i]), (tmp[i]));
+#else
 #define MD4_G(x,y,z)                            \
     tmp[i] = vor((y[i]),(z[i]));                \
     tmp2[i] = vand((y[i]),(z[i]));              \
     tmp[i] = vand((tmp[i]),(x[i]));             \
     tmp[i] = vor((tmp[i]), (tmp2[i]) );
+#endif
 
-#if SIMD_PARA_MD4 == 1
+#if SIMD_PARA_MD4 < 3
 #define MD4_H(x,y,z)                            \
     tmp2[i] = vxor((x[i]),(y[i]));              \
     tmp[i] = vxor(tmp2[i], (z[i]));
@@ -907,6 +926,12 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 		}
 	}
 
+#if USE_EXPERIMENTAL
+/*
+ * This is currently not used for MD4 & MD5, and was observed to result
+ * in a significant performance regression (at least on XOP) just by sitting
+ * here. http://www.openwall.com/lists/john-dev/2015/09/05/5
+ */
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		MD4_PARA_DO(i)
 		{
@@ -939,7 +964,9 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 #endif
 		}
 	}
-	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
+	else
+#endif
+	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
 			MD4_PARA_DO(i)
