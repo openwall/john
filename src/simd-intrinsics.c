@@ -129,7 +129,9 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	vtype c[SIMD_PARA_MD5];
 	vtype d[SIMD_PARA_MD5];
 	vtype tmp[SIMD_PARA_MD5];
+#if 1
 	vtype tmp2[SIMD_PARA_MD5];
+#endif
 	vtype mask;
 	unsigned int i;
 	vtype *data;
@@ -734,7 +736,10 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	vtype b[SIMD_PARA_MD4];
 	vtype c[SIMD_PARA_MD4];
 	vtype d[SIMD_PARA_MD4];
-	vtype tmp[SIMD_PARA_MD4], tmp2[SIMD_PARA_MD4];
+	vtype tmp[SIMD_PARA_MD4];
+#if SIMD_PARA_MD4 < 3 || VCMOV_EMULATED
+	vtype tmp2[SIMD_PARA_MD4];
+#endif
 	vtype cst;
 	unsigned int i;
 	vtype *data;
