@@ -749,7 +749,6 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
-with_icc_asm
 with_openssl
 with_commoncrypto
 with_endian
@@ -1419,8 +1418,6 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-icc-asm          Use ICC pre-built asm files for intrisic SIMD code.
-                          Default: no
   --without-openssl       Do not use Openssl (CommonCrypto must be enabled)
   --with-commoncrypto     Use CommonCrypto
   --with-endian=little|big
@@ -3448,15 +3445,6 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 # Define Packages.
-# Intrinsics pre-compiled (to .S) with icc
-
-# Check whether --with-icc-asm was given.
-if test "${with_icc_asm+set}" = set; then :
-  withval=$with_icc_asm;
-else
-  with_icc_asm=no
-fi
-
 # Use OpenSSL (default: yes).
 
 # Check whether --with-openssl was given.
@@ -8688,57 +8676,21 @@ case "${host_cpu}_${CFLAGS}" in
    *_*-mno-mmx) ;;
    *_*-mno-sse2) ;;
    x86_64_*)
-      if test "x$with_icc_asm" = "xyes"; then
-
-   for i in -DUSING_ICC_S_FILE; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS="$CFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-         CC_ASM_OBJS="x86-64.o simd-intrinsics-64.o"
-      else
-         case "${CPPFLAGS}_${CFLAGS}" in
-           *-mno-sse2*) ;;
-           *-mno-mmx*) ;;
-           *)
-         if test "y$CPU_STR" != "yx86_64"; then :
+      case "${CPPFLAGS}_${CFLAGS}" in
+        *-mno-sse2*) ;;
+        *-mno-mmx*) ;;
+        *)
+      if test "y$CPU_STR" != "yx86_64"; then :
   CC_ASM_OBJS="x86-64.o simd-intrinsics.o"
 fi
-         ;;
-         esac
-      fi
+      ;;
+      esac
    ;;
    i?86_*)
       if test "y$ARCH_LINK" = "yx86-any.h"; then
         CC_ASM_OBJS="x86.o"
       elif test "y$ARCH_LINK" = "yx86-mmx.h"; then
         CC_ASM_OBJS="x86.o x86-mmx.o"
-      elif test "x$with_icc_asm" = "xyes"; then
-
-   for i in -DUSING_ICC_S_FILE; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS="$CFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-        CC_ASM_OBJS="x86.o x86-sse.o simd-intrinsics-32.o"
       else
         CC_ASM_OBJS="x86.o x86-sse.o simd-intrinsics.o"
       fi

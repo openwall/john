@@ -229,7 +229,7 @@
 #endif
 
 #ifndef SIMD_PARA_MD4
-#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#if defined(__INTEL_COMPILER)
 #define SIMD_PARA_MD4			3
 #elif defined(__clang__)
 #define SIMD_PARA_MD4			4
@@ -247,7 +247,7 @@
 #endif
 
 #ifndef SIMD_PARA_MD5
-#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#if defined(__INTEL_COMPILER)
 #define SIMD_PARA_MD5			3
 #elif defined(__clang__)
 #define SIMD_PARA_MD5			5
@@ -267,7 +267,7 @@
 #endif
 
 #ifndef SIMD_PARA_SHA1
-#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#if defined(__INTEL_COMPILER)
 #define SIMD_PARA_SHA1			1
 #elif defined(__clang__)
 #define SIMD_PARA_SHA1			2
