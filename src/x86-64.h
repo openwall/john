@@ -283,7 +283,11 @@
 #endif
 
 #ifndef SIMD_PARA_SHA256
+#if __XOP__
+#define SIMD_PARA_SHA256 2
+#else
 #define SIMD_PARA_SHA256 1
+#endif
 #endif
 #ifndef SIMD_PARA_SHA512
 #define SIMD_PARA_SHA512 1
