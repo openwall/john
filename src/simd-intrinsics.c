@@ -456,19 +456,24 @@ static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid,
 			if(dec)
 			{
 				noffd = noff & (~3);
+#if (ARCH_SIZE >= 8) || defined(__i386__)
+#define BITALIGN(hi, lo, s) ((((uint64_t)(hi) << 32) | (lo)) >> (s))
+#else
+#define BITALIGN(hi, lo, s) (((hi) << (32 - (s))) | ((lo) >> (s)))
+#endif
 				((unsigned int*)(nbuf+noffd*VS32))[i+0*VS32] &=
 					(0xffffffff>>(32-dec));
 				((unsigned int*)(nbuf+noffd*VS32))[i+0*VS32] |=
 					(((unsigned int*)src)[i+j*4*VS32+0*VS32] << dec);
-				((unsigned int*)(nbuf+noffd*VS32))[i+1*VS32] =
-					(((unsigned int*)src)[i+j*4*VS32+1*VS32] << dec) |
-					(((unsigned int*)src)[i+j*4*VS32+0*VS32] >> (32-dec));
-				((unsigned int*)(nbuf+noffd*VS32))[i+2*VS32] =
-					(((unsigned int*)src)[i+j*4*VS32+2*VS32] << dec) |
-					(((unsigned int*)src)[i+j*4*VS32+1*VS32] >> (32-dec));
-				((unsigned int*)(nbuf+noffd*VS32))[i+3*VS32] =
-					(((unsigned int*)src)[i+j*4*VS32+3*VS32] << dec) |
-					(((unsigned int*)src)[i+j*4*VS32+2*VS32] >> (32-dec));
+				((unsigned int*)(nbuf+noffd*VS32))[i+1*VS32] = BITALIGN(
+					((unsigned int*)src)[i+j*4*VS32+1*VS32],
+					((unsigned int*)src)[i+j*4*VS32+0*VS32], 32 - dec);
+				((unsigned int*)(nbuf+noffd*VS32))[i+2*VS32] = BITALIGN(
+					((unsigned int*)src)[i+j*4*VS32+2*VS32],
+					((unsigned int*)src)[i+j*4*VS32+1*VS32], 32 - dec);
+				((unsigned int*)(nbuf+noffd*VS32))[i+3*VS32] = BITALIGN(
+					((unsigned int*)src)[i+j*4*VS32+3*VS32],
+					((unsigned int*)src)[i+j*4*VS32+2*VS32], 32 - dec);
 				((unsigned int*)(nbuf+noffd*VS32))[i+4*VS32] &=
 					(0xffffffff<<dec);
 				((unsigned int*)(nbuf+noffd*VS32))[i+4*VS32] |=
