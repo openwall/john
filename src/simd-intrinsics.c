@@ -436,63 +436,70 @@ static MAYBE_INLINE void mmxput2(void *buf, unsigned int bid, void *src)
 		memcpy( nbuf+i*64*VS32, ((unsigned char*)src)+i*16*VS32, 16*VS32);
 }
 
-static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid,
-                                 unsigned int *offset, unsigned int mult,
-                                 unsigned int saltlen, void *src)
-{
-	unsigned char *nbuf;
-	unsigned int noff;
-	unsigned int noffd;
-	unsigned int i,j;
-	unsigned int dec;
-
-	MD5_PARA_DO(j)
-	{
-		nbuf = ((unsigned char*)buf) + bid*64*MD5_SSE_NUM_KEYS + j*64*VS32;
-		for(i=0;i<VS32;i++)
-		{
-			noff = offset[i+j*VS32]*mult + saltlen;
-			dec = (noff&3)*8;
-			if(dec)
-			{
-				noffd = noff & (~3);
-#if (ARCH_SIZE >= 8) || defined(__i386__)
+#if (ARCH_SIZE >= 8) || defined(__i386__) || defined(__ARM_NEON__)
 #define BITALIGN(hi, lo, s) ((((uint64_t)(hi) << 32) | (lo)) >> (s))
 #else
 #define BITALIGN(hi, lo, s) (((hi) << (32 - (s))) | ((lo) >> (s)))
 #endif
-				((unsigned int*)(nbuf+noffd*VS32))[i+0*VS32] &=
-					(0xffffffff>>(32-dec));
-				((unsigned int*)(nbuf+noffd*VS32))[i+0*VS32] |=
-					(((unsigned int*)src)[i+j*4*VS32+0*VS32] << dec);
-				((unsigned int*)(nbuf+noffd*VS32))[i+1*VS32] = BITALIGN(
-					((unsigned int*)src)[i+j*4*VS32+1*VS32],
-					((unsigned int*)src)[i+j*4*VS32+0*VS32], 32 - dec);
-				((unsigned int*)(nbuf+noffd*VS32))[i+2*VS32] = BITALIGN(
-					((unsigned int*)src)[i+j*4*VS32+2*VS32],
-					((unsigned int*)src)[i+j*4*VS32+1*VS32], 32 - dec);
-				((unsigned int*)(nbuf+noffd*VS32))[i+3*VS32] = BITALIGN(
-					((unsigned int*)src)[i+j*4*VS32+3*VS32],
-					((unsigned int*)src)[i+j*4*VS32+2*VS32], 32 - dec);
-				((unsigned int*)(nbuf+noffd*VS32))[i+4*VS32] &=
-					(0xffffffff<<dec);
-				((unsigned int*)(nbuf+noffd*VS32))[i+4*VS32] |=
-					(((unsigned int*)src)[i+j*4*VS32+3*VS32] >> (32-dec));
-			}
-			else
-			{
-				((unsigned int*)(nbuf+noff*VS32))[i+0*VS32] =
-					((unsigned int*)src)[i+j*4*VS32+0*VS32];
-				((unsigned int*)(nbuf+noff*VS32))[i+1*VS32] =
-					((unsigned int*)src)[i+j*4*VS32+1*VS32];
-				((unsigned int*)(nbuf+noff*VS32))[i+2*VS32] =
-					((unsigned int*)src)[i+j*4*VS32+2*VS32];
-				((unsigned int*)(nbuf+noff*VS32))[i+3*VS32] =
-					((unsigned int*)src)[i+j*4*VS32+3*VS32];
+
+static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid,
+                                 unsigned int *offset, unsigned int mult,
+                                 unsigned int saltlen, void *src)
+{
+	unsigned int j;
+
+	MD5_PARA_DO(j) {
+		unsigned int i;
+		unsigned int jm = j * VS32 * 4;
+		unsigned char *nbuf = ((unsigned char *)buf) + bid * (64 * MD5_SSE_NUM_KEYS) + jm * 16;
+		unsigned int *s = (unsigned int *)src + jm;
+		for (i = 0; i < VS32; i++, s++) {
+			unsigned int n = offset[i + jm / 4] * mult + saltlen;
+			unsigned int *d = (unsigned int *)(nbuf + (n & ~3U) * VS32) + i;
+
+			switch (n &= 3) {
+			case 0:
+				d[0] = s[0];
+				d[1 * VS32] = s[1 * VS32];
+				d[2 * VS32] = s[2 * VS32];
+				d[3 * VS32] = s[3 * VS32];
+				break;
+#ifdef __XOP__
+			default:
+				n <<= 3;
+				{
+					unsigned int m = 32 - n;
+					d[0] = (d[0] & (0xffffffffU >> m)) | (s[0] << n);
+					d[1 * VS32] = BITALIGN(s[1 * VS32], s[0], m);
+					d[2 * VS32] = BITALIGN(s[2 * VS32], s[1 * VS32], m);
+					d[3 * VS32] = BITALIGN(s[3 * VS32], s[2 * VS32], m);
+					d[4 * VS32] = (d[4 * VS32] & (0xffffffffU << n)) | (s[3 * VS32] >> m);
+				}
+#else
+			case 1:
+				d[0] = (d[0] & 0xffU) | (s[0] << 8);
+				d[1 * VS32] = BITALIGN(s[1 * VS32], s[0], 24);
+				d[2 * VS32] = BITALIGN(s[2 * VS32], s[1 * VS32], 24);
+				d[3 * VS32] = BITALIGN(s[3 * VS32], s[2 * VS32], 24);
+				d[4 * VS32] = (d[4 * VS32] & 0xffffff00U) | (s[3 * VS32] >> 24);
+				break;
+			case 2:
+				d[0] = (d[0] & 0xffffU) | (s[0] << 16);
+				d[1 * VS32] = BITALIGN(s[1 * VS32], s[0], 16);
+				d[2 * VS32] = BITALIGN(s[2 * VS32], s[1 * VS32], 16);
+				d[3 * VS32] = BITALIGN(s[3 * VS32], s[2 * VS32], 16);
+				d[4 * VS32] = (d[4 * VS32] & 0xffff0000U) | (s[3 * VS32] >> 16);
+				break;
+			case 3:
+				d[0] = (d[0] & 0xffffffU) | (s[0] << 24);
+				d[1 * VS32] = BITALIGN(s[1 * VS32], s[0], 8);
+				d[2 * VS32] = BITALIGN(s[2 * VS32], s[1 * VS32], 8);
+				d[3 * VS32] = BITALIGN(s[3 * VS32], s[2 * VS32], 8);
+				d[4 * VS32] = (d[4 * VS32] & 0xff000000U) | (s[3 * VS32] >> 8);
+#endif
 			}
 		}
 	}
-
 }
 
 static MAYBE_INLINE void dispatch(unsigned char buffers[8][64*MD5_SSE_NUM_KEYS],
