@@ -116,7 +116,14 @@ targets other than "generic" and since they typically use gcc, they are
 usually not affected by this potential problem.
 
 
-	Optimal build on OS X (Jumbo specific)
+	Optimal interleaving factors (intrinsics builds)
+
+There is a script "testparas.pl" in the src directory, that can be used
+to test for optimal performance. Run it on an idle system. It will finish
+with printing a full "./configure" command line to use.
+
+
+	Optimal build on OS X
 
 Using OS X, you can install Xcode (free) and then its "command line tools"
 and after that a normal build should work fine. However, using native

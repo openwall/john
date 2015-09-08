@@ -246,7 +246,6 @@ default:
 	@echo "To build John the Ripper, type:"
 	@echo "	make -f Makefile.legacy clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
-	@echo "([i] is an optional letter for pre-built intrinsics, eg. -sse2i vs -sse2):"
 	@echo "linux-x86-64-native      Linux, x86-64 (enabling all CPU features you've got)"
 	@echo "linux-X32-native         Linux, X32-ABI"
 #	@echo "linux-X32                Linux, X32-ABI SSE2 (for testing)"
@@ -255,19 +254,19 @@ default:
 	@echo "linux-x86-64-cuda        Linux, x86-64 CUDA"
 	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (2011+ Intel CPUs)"
 	@echo "linux-x86-64-xop         Linux, x86-64 with AVX and XOP (2011+ AMD CPUs)"
-	@echo "linux-x86-64[i]          Linux, x86-64 with SSE2 (any x86-64 CPU)"
+	@echo "linux-x86-64             Linux, x86-64 with SSE2 (any x86-64 CPU)"
 	@echo "linux-x86-64-icc         Linux, x86-64 compiled with icc"
 	@echo "linux-x86-64-clang       Linux, x86-64 compiled with clang"
 #	@echo "linux-x86-64-clang-debug Linux, x86-64 compiled with clang (with debugging options)
 #	@echo "linux-x86-64-32-native   Linux, x86-64, 32-bit with everything (for regression tests)"
 #	@echo "linux-x86-64-32-sse2asm  Linux, x86-64, 32-bit with asm SSE2 (for regression tests)"
-#	@echo "linux-x86-64-32-sse2[i]  Linux, x86-64, 32-bit with SSE2 (for regression tests)"
+#	@echo "linux-x86-64-32-sse2     Linux, x86-64, 32-bit with SSE2 (for regression tests)"
 #	@echo "linux-x86-64-32-mmx      Linux, x86-64, 32-bit with MMX (for regression tests)"
 #	@echo "linux-x86-64-32-any      Linux, x86-64, 32-bit (for regression tests)"
 	@echo "linux-x86-gpu            Linux, x86 32-bit with SSE2, CUDA and OpenCL"
 	@echo "linux-x86-opencl         Linux, x86 32-bit with SSE2 and OpenCL"
 	@echo "linux-x86-cuda           Linux, x86 32-bit with SSE2 and CUDA"
-	@echo "linux-x86-sse2[i]        Linux, x86 32-bit with SSE2 (most common, 32-bit)"
+	@echo "linux-x86-sse2           Linux, x86 32-bit with SSE2 (most common, 32-bit)"
 	@echo "linux-x86-native         Linux, x86 32-bit, with all CPU features you've got (not necessarily best)"
 	@echo "linux-x86-mmx            Linux, x86 32-bit with MMX (for old computers)"
 	@echo "linux-x86-any            Linux, x86 32-bit (for truly ancient computers)"
@@ -283,13 +282,13 @@ default:
 #	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
 	@echo "linux-ppc64              Linux, PowerPC 64-bit"
 	@echo "linux-ia64               Linux, IA-64"
-	@echo "freebsd-x86-64[i]        FreeBSD, x86-64 with SSE2 (best)"
-	@echo "freebsd-x86-sse2[i]      FreeBSD, x86 with SSE2 (best if 32-bit)"
+	@echo "freebsd-x86-64           FreeBSD, x86-64 with SSE2 (best)"
+	@echo "freebsd-x86-sse2         FreeBSD, x86 with SSE2 (best if 32-bit)"
 	@echo "freebsd-x86-mmx          FreeBSD, x86 with MMX"
 	@echo "freebsd-x86-any          FreeBSD, x86"
 	@echo "freebsd-alpha            FreeBSD, Alpha"
-	@echo "openbsd-x86-64[i]        OpenBSD, x86-64 with SSE2 (best)"
-	@echo "openbsd-x86-sse2[i]      OpenBSD, x86 with SSE2 (best if 32-bit)"
+	@echo "openbsd-x86-64           OpenBSD, x86-64 with SSE2 (best)"
+	@echo "openbsd-x86-sse2         OpenBSD, x86 with SSE2 (best if 32-bit)"
 	@echo "openbsd-x86-mmx          OpenBSD, x86 with MMX"
 	@echo "openbsd-x86-any          OpenBSD, x86"
 	@echo "openbsd-alpha            OpenBSD, Alpha"
@@ -307,9 +306,9 @@ default:
 	@echo "solaris-sparcv8-cc       Solaris, SPARC V8 32-bit, cc"
 	@echo "solaris-sparc-gcc        Solaris, SPARC 32-bit, gcc"
 	@echo "solaris-x86-64-cc        Solaris, x86-64 with SSE2, cc"
-	@echo "solaris-x86-64[i]-gcc    Solaris, x86-64 with SSE2, gcc"
+	@echo "solaris-x86-64-gcc       Solaris, x86-64 with SSE2, gcc"
 	@echo "solaris-x86-sse2-cc      Solaris 9 4/04+, x86 with SSE2, cc"
-	@echo "solaris-x86-sse2[i]-gcc  Solaris 9 4/04+, x86 with SSE2, gcc"
+	@echo "solaris-x86-sse2-gcc     Solaris 9 4/04+, x86 with SSE2, gcc"
 	@echo "solaris-x86-mmx-cc       Solaris, x86 with MMX, cc"
 	@echo "solaris-x86-mmx-gcc      Solaris, x86 with MMX, gcc"
 	@echo "solaris-x86-any-cc       Solaris, x86, cc"
@@ -475,18 +474,6 @@ linux-x86-64:
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
 
-linux-x86-64i:
-	$(LN) x86-64.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o simd-intrinsics-64.o" \
-		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_LIBDL -DUSING_ICC_S_FILE" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
-		AESNI_ARCH=64 YASM_FORMAT="elf64"
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP)
-	@echo "All done"
-
 linux-x86-64-clang:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -583,19 +570,6 @@ linux-x86-64-32-sse2asm:
 	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
-linux-x86-64-32-sse2i:
-	$(LN) x86-sse.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o simd-intrinsics-32.o" \
-		CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_CRYPT -DHAVE_LIBDL -DUSING_ICC_S_FILE -D_LARGEFILE64_SOURCE" \
-		ASFLAGS="$(ASFLAGS) -m32 -msse2" \
-		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
-		AESNI_ARCH=86 YASM_FORMAT="elf32"
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
-	@echo "All done"
-
 linux-x86-64-32-mmx:
 	$(LN) x86-mmx.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -655,7 +629,7 @@ linux-x86-gpu:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o simd-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_LIBDL -DUSING_ICC_S_FILE -D_LARGEFILE64_SOURCE -march=native" \
+		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_LIBDL -D_LARGEFILE64_SOURCE -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH)/lib -lcrypt -lOpenCL -ldl -lcudart -march=native" \
 		AESNI_ARCH=86 YASM_FORMAT="elf32"
@@ -671,7 +645,7 @@ linux-x86-opencl:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86.o x86-sse.o simd-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_LIBDL -DUSING_ICC_S_FILE -D_LARGEFILE64_SOURCE -march=native" \
+		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_LIBDL -D_LARGEFILE64_SOURCE -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -lcrypt -lOpenCL -ldl -march=native" \
 		AESNI_ARCH=86 YASM_FORMAT="elf32"
@@ -687,7 +661,7 @@ linux-x86-cuda:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o simd-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_LIBDL -DHAVE_CUDA -DUSING_ICC_S_FILE -D_LARGEFILE64_SOURCE -march=native" \
+		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_LIBDL -DHAVE_CUDA -D_LARGEFILE64_SOURCE -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib -lcrypt -ldl -lcudart -march=native" \
 		AESNI_ARCH=86 YASM_FORMAT="elf32"
@@ -714,19 +688,6 @@ linux-x86-sse2:
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o simd-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -msse2 -DHAVE_CRYPT -DHAVE_LIBDL -D_LARGEFILE64_SOURCE" \
-		ASFLAGS="$(ASFLAGS) -msse2" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
-		AESNI_ARCH=86 YASM_FORMAT="elf32"
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP)
-	@echo "All done"
-
-linux-x86-sse2i:
-	$(LN) x86-sse.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o simd-intrinsics-32.o" \
-		CFLAGS="$(CFLAGS) -msse2 -DHAVE_CRYPT -DHAVE_LIBDL -DUSING_ICC_S_FILE -D_LARGEFILE64_SOURCE" \
 		ASFLAGS="$(ASFLAGS) -msse2" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		AESNI_ARCH=86 YASM_FORMAT="elf32"
@@ -920,16 +881,6 @@ freebsd-x86-64:
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
 
-freebsd-x86-64i:
-	$(LN) x86-64.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o simd-intrinsics-64.o" \
-		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE -DUSING_ICC_S_FILE"
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP)
-	@echo "All done"
-
 freebsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -938,17 +889,6 @@ freebsd-x86-sse2:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o simd-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE -msse2" \
 		ASFLAGS="$(ASFLAGS) -DBSD -msse2"
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP)
-	@echo "All done"
-
-freebsd-x86-sse2i:
-	$(LN) x86-sse.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o simd-intrinsics-32.o" \
-		CFLAGS="$(CFLAGS) -msse2 -D__BSD_VISIBLE -DUSING_ICC_S_FILE" \
-		ASFLAGS="$(ASFLAGS) -msse2 -DBSD" \
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
@@ -1004,33 +944,12 @@ openbsd-x86-64:
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
 
-openbsd-x86-64i:
-	$(LN) x86-64.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o simd-intrinsics-64.o" \
-		CFLAGS="$(CFLAGS) -DUSING_ICC_S_FILE"
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP)
-	@echo "All done"
-
 openbsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o simd-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP)
-	@echo "All done"
-
-openbsd-x86-sse2i:
-	$(LN) x86-sse.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o simd-intrinsics-32.o" \
-		CFLAGS="$(CFLAGS) -msse2 -DUSING_ICC_S_FILE" \
-		ASFLAGS="$(ASFLAGS) -msse2 -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
@@ -1226,16 +1145,6 @@ solaris-x86-64-gcc:
 		ASFLAGS="$(ASFLAGS) -m64" \
 		LDFLAGS="$(LDFLAGS) -m64 $(LDFLAGS_SOLARIS)"
 
-solaris-x86-64i-gcc:
-	$(RM) arch.h
-	$(LN) x86-64.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o simd-intrinsics-64.o" \
-		CFLAGS="$(CFLAGS) -m64 -DHAVE_CRYPT -DUSING_ICC_S_FILE" \
-		ASFLAGS="$(ASFLAGS) -m64" \
-		LDFLAGS="$(LDFLAGS) -m64 $(LDFLAGS_SOLARIS)"
-
 solaris-x86-sse2-cc:
 	$(RM) arch.h
 	$(LN) x86-sse.h arch.h
@@ -1256,16 +1165,6 @@ solaris-x86-sse2-gcc:
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-sse.o simd-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
-		LDFLAGS="$(LDFLAGS) $(LDFLAGS_SOLARIS)"
-
-solaris-x86-sse2i-gcc:
-	$(RM) arch.h
-	$(LN) x86-sse.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-sse.o simd-intrinsics-32.o" \
-		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -msse2 -DUSING_ICC_S_FILE" \
-		ASFLAGS="$(ASFLAGS) -msse2" \
 		LDFLAGS="$(LDFLAGS) $(LDFLAGS_SOLARIS)"
 
 solaris-x86-mmx-cc:
@@ -1741,17 +1640,6 @@ win64-mingw-x86-64:
 	    CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
 	@echo "All done"
 
-win32-cygwin-x86-sse2i:
-	$(CP) x86-sse.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ_WIN32) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o simd-intrinsics-32.o" \
-		CFLAGS="$(CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32 -DUSING_ICC_S_FILE" \
-		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES"
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
-	@echo "All done"
-
 win32-cygwin-x86-sse2:
 	$(CP) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -1823,18 +1711,6 @@ win32-cygwin-x86-any:
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
-	@echo "All done"
-
-win32-mingw-x86-sse2i:
-	$(CP) x86-sse.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ_WIN32_MINGW) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o simd-intrinsics-32.o" \
-		CFLAGS="$(CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32 -DUSING_ICC_S_FILE" \
-		LDFLAGS="$(LDFLAGS) -lpthread" \
-		ASFLAGS="$(ASFLAGS) -msse2 -m32  -DUNDERSCORES"
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
 win32-mingw-x86-sse2:
@@ -2391,24 +2267,5 @@ charsets: ../run/ascii.chr ../run/alpha.chr ../run/lowernum.chr ../run/uppernum.
 
 ../run/utf8.chr: charset.c params.h
 	../run/john -make-charset=../run/utf8.chr -pot:rockyou.utf8.24.pot
-
-
-# For the time being, icc builds a better simd-intrinsics.S but this may
-# change over time. NOTE that simd-intrinsics.S is never re-built unless you
-# manually do a "make intrinsics".
-intrinsics: clean-intrinsics simd-intrinsics-64.S simd-intrinsics-32.S
-
-clean-intrinsics:
-	$(RM) simd-intrinsics-64.S simd-intrinsics-32.S simd-intrinsics-win32.S
-
-simd-intrinsics-64.S:
-	$(LN) x86-64.h arch.h
-	icc -S -o simd-intrinsics-64.S simd-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
-
-simd-intrinsics-32.S:
-	$(LN) x86-sse.h arch.h
-	icc -m32 -S -o simd-intrinsics-32.S simd-intrinsics.c -O2 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
-	perl sse2i_winfix.pl simd-intrinsics-32.S simd-intrinsics-win32.S
-	$(MV) simd-intrinsics-win32.S simd-intrinsics-32.S
 
 include Makefile.dep

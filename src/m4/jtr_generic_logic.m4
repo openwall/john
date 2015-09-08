@@ -82,28 +82,20 @@ case "${host_cpu}_${CFLAGS}" in
    *_*-mno-mmx) ;;
    *_*-mno-sse2) ;;
    x86_64_*)
-      if test "x$with_icc_asm" = "xyes"; then
-         JTR_LIST_ADD(CFLAGS, [-DUSING_ICC_S_FILE])
-         [CC_ASM_OBJS="x86-64.o simd-intrinsics-64.o"]
-      else
-         case "${CPPFLAGS}_${CFLAGS}" in
-           *-mno-sse2*) ;;
-           *-mno-mmx*) ;;
-           *)
-         AS_IF([test "y$CPU_STR" != "yx86_64"],
-            [CC_ASM_OBJS="x86-64.o simd-intrinsics.o"])
-         ;;
-         esac
-      fi
+      case "${CPPFLAGS}_${CFLAGS}" in
+        *-mno-sse2*) ;;
+        *-mno-mmx*) ;;
+        *)
+      AS_IF([test "y$CPU_STR" != "yx86_64"],
+         [CC_ASM_OBJS="x86-64.o simd-intrinsics.o"])
+      ;;
+      esac
    ;;
    i?86_*)
       if test "y$ARCH_LINK" = "yx86-any.h"; then
         [CC_ASM_OBJS="x86.o"]
       elif test "y$ARCH_LINK" = "yx86-mmx.h"; then
         [CC_ASM_OBJS="x86.o x86-mmx.o"]
-      elif test "x$with_icc_asm" = "xyes"; then
-        JTR_LIST_ADD(CFLAGS, [-DUSING_ICC_S_FILE])
-        [CC_ASM_OBJS="x86.o x86-sse.o simd-intrinsics-32.o"]
       else
         [CC_ASM_OBJS="x86.o x86-sse.o simd-intrinsics.o"]
       fi

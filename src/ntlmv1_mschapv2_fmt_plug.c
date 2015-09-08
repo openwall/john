@@ -1131,10 +1131,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 		for (i = 0; i < BLOCK_LOOPS; i++)
-			SIMDmd4body(&saved_key[i * NBKEYS * 64],
-			           (unsigned int*)&nthash[i * NBKEYS * 16], NULL, SSEi_MIXED_IN);
+			SIMDmd4body(&saved_key[i * NBKEYS * 64], (unsigned int*)&nthash[i * NBKEYS * 16], NULL, SSEi_MIXED_IN);
 #else
-		SIMDmd4body(saved_key, (unsigned int*)nthash, 1);
+		SIMDmd4body(saved_key, (unsigned int*)nthash, NULL, SSEi_MIXED_IN);
 #endif
 		if (use_bitmap)
 			for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++) {

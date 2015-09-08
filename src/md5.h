@@ -26,11 +26,9 @@ typedef unsigned int MD5_u32plus;
 
 #else
 
-#ifndef USING_ICC_S_FILE
 #define MD5_Init john_MD5_Init
 #define MD5_Update john_MD5_Update
 #define MD5_Final john_MD5_Final
-#endif
 
 typedef struct {
 	MD5_u32plus A, B, C, D;

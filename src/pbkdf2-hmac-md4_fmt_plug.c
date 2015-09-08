@@ -63,6 +63,8 @@ static struct fmt_tests tests[] = {
 	{"$pbkdf2-hmac-md4$1000$6d61676e756d$32ebfcea201e61cc498948916a213459", "magnum"},
 	{"$pbkdf2-hmac-md4$1000$6d61676e756d$32ebfcea201e61cc498948916a213459c259c7b0a8ce9473368665f0808dcde1", "magnum"},
 	{"$pbkdf2-hmac-md4$1$73616c74$1857f69412150bca4542581d0f9e7fd1", "password"},
+	{"$pbkdf2-hmac-md4$10000$6d61676e756d$72afea482e97ffbba4171f5cc251215e", "Borkum"},
+	{"$pbkdf2-hmac-md4$10000$6d61676e756d$2a945628a540f074a99a47cba86081b7", "Riff"},
 	{NULL}
 };
 
@@ -242,6 +244,7 @@ static int cmp_all(void *binary, int count)
 #endif
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
+	//dump_stuff_msg("\nbinary", crypt_out[count - 1], 16);
 	return 0;
 }
 
