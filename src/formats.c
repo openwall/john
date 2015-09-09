@@ -887,6 +887,11 @@ static int test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext
 		while (cipher_copy[index] && cipher_copy[index] != '$')
 			index++;
 	}
+	if (!index && !strncmp(cipher_copy, "@dynamic=", 9)) {
+		index = 1;
+		while (cipher_copy[index] && cipher_copy[index] != '@')
+			index++;
+	}
 
 	// Lower case
 	strlwr(cipher_copy + index);
