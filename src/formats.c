@@ -940,6 +940,7 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 	int plaintext_is_blank = 1;    // Is plaintext blank ""
 	int is_ignore_8th_bit = 1;     // Is ignore 8th bit, FMT_8_BIT
 	int is_split_unifies_case = 0; // Is split() unifies case
+	int cnt_split_unifies_case = 0;// just in case only the last test case unifies.
 
 	// validate that there are no NULL function pointers
 	if (format->methods.prepare == NULL)    return "method prepare NULL";
@@ -1116,9 +1117,19 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 			}
 		}
 #endif
-		if (!is_split_unifies_case &&
-		    test_fmt_split_unifies_case(format, ciphertext))
-			is_split_unifies_case = 1;
+		++cnt_split_unifies_case;
+		// here we find cases where the unify_case flag is not set
+		// but should be, is set but should not be, and where the
+		// case unification code only 'sometimes' works.
+		if (is_split_unifies_case == 0 &&
+		    test_fmt_split_unifies_case(format, ciphertext)) {
+			if (cnt_split_unifies_case > 1)
+				is_split_unifies_case = -1;
+			else
+				is_split_unifies_case = 1;
+		} else if (is_split_unifies_case == 1 &&
+		           !test_fmt_split_unifies_case(format, ciphertext))
+			is_split_unifies_case = -1;
 
 		ciphertext = format->methods.split(ciphertext, 0, format);
 
@@ -1395,11 +1406,12 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 		}
 	}
 
-	if (is_split_unifies_case && !(format->params.flags & FMT_SPLIT_UNIFIES_CASE)) {
+	if (is_split_unifies_case == 1 && !(format->params.flags & FMT_SPLIT_UNIFIES_CASE)) {
 		printf("FAILED: %s should set FMT_SPLIT_UNIFIES_CASE\n", format->params.label);
 	} else if (!is_split_unifies_case && (format->params.flags & FMT_SPLIT_UNIFIES_CASE)) {
 		printf("Warning: %s should not set FMT_SPLIT_UNIFIES_CASE\n", format->params.label);
-	}
+	} else if (is_split_unifies_case == -1)
+		printf("Warning: %s FMT_SPLIT_UNIFIES_CASE is only working for some cases\n", format->params.label);
 
 	format->methods.clear_keys();
 	format->private.initialized = 2;
