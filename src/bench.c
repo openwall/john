@@ -164,6 +164,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	static void *binary = NULL;
 	static int binary_size = 0;
 	static char s_error[128];
+	static int wait_salts = 0;
 	char *TmpPW[1024];
 	int pw_mangled = 0;
 	char *where;
@@ -186,7 +187,6 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	int ntests, pruned;
 #endif
 	int salts_done = 0;
-	int wait_salts = 0;
 
 	clk_tck_init();
 
