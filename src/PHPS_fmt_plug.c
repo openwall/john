@@ -74,6 +74,8 @@ static struct fmt_tests phps_tests[] = {
 	{"$PHPS$433925$5d756853cd63acee76e6dcd6d3728447", "welcome"},
 	{"$PHPS$73616c$aba22b2ceb7c841473c03962b145feb3", "password"},
 	{"$PHPS$247824$ad14afbbf0e16d4ad8c8985263a3d051","test"},  // salt is $x$ (I want to test that a $ works)
+	{"$dynamic_6$ad14afbbf0e16d4ad8c8985263a3d051$HEX$247824","test"},
+	//{"$dynamic_6$ad14afbbf0e16d4ad8c8985263a3d051$$x$","test"}, // fails $HEX$ IS required by dyna
 	{NULL}
 };
 
@@ -117,6 +119,7 @@ static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 		// convert back into $PHPS$ format
 		static char Buf[128];
 		char *cp;
+
 		strcpy(Buf, "$PHPS$");
 		cp = strchr(&ciphertext[11], '$');
 		++cp;
@@ -131,6 +134,13 @@ static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 		}
 		strcat(Buf, "$");
 		sprintf(&Buf[strlen(Buf)], "%32.32s", &ciphertext[11]);
+		strlwr(&Buf[6]);
+		return Buf;
+	}
+	if (!strncmp(ciphertext, "$PHPS$", 6)) {
+		static char Buf[128];
+		strnzcpy(Buf, ciphertext, sizeof(Buf));
+		strlwr(&Buf[6]);
 		return Buf;
 	}
 	return ciphertext;
@@ -148,9 +158,13 @@ static int phps_valid(char *ciphertext, struct fmt_main *self)
 	if (i != CIPHERTEXT_LENGTH) {
 		int val = pDynamic_6->methods.valid(ciphertext, pDynamic_6);
 		char *cp;
+		int wanted_len = 3+1; // salt length + length of the '$' char.
+
 		if (!val) return 0;
 		cp = strrchr(ciphertext, '$');
-		return cp && strlen(cp)==3;
+		if (strstr(ciphertext, "$HEX$"))
+			wanted_len += 3; // salt is in hex.
+		return cp && strlen(cp)==wanted_len;
 	}
 
 	if (strncmp(ciphertext, "$PHPS$", 6) != 0)
