@@ -867,6 +867,7 @@ static int test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext
 {
 	char *cipher_copy, *ret;
 	int first_index, second_index, size, index;
+	int change_count = 0;
 
 	cipher_copy = strdup(ciphertext);
 	ret = format->methods.split(cipher_copy, 0, format);
@@ -895,6 +896,8 @@ static int test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext
 
 	// Lower case
 	strlwr(cipher_copy + index);
+	if (strcmp(cipher_copy + index, ciphertext + index))
+		++change_count;
 	ret = format->methods.split(cipher_copy, 0, format);
 	if (strcmp(cipher_copy, ret)) {
 		get_longest_common_string(cipher_copy, ret, &first_index,
@@ -905,6 +908,8 @@ static int test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext
 
 	// Upper case
 	strupr(cipher_copy + index);
+	if (strcmp(cipher_copy + index, ciphertext + index))
+		++change_count;
 	ret = format->methods.split(cipher_copy, 0, format);
 	if (strcmp(cipher_copy, ret)) {
 		get_longest_common_string(cipher_copy, ret, &first_index,
@@ -914,6 +919,8 @@ static int test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext
 	}
 
 	MEM_FREE(cipher_copy);
+	if (!change_count)
+		return -1;
 	return 0;
 
 change_case:
@@ -1127,7 +1134,7 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 		// but should be, is set but should not be, and where the
 		// case unification code only 'sometimes' works.
 		if (is_split_unifies_case == 0 &&
-		    test_fmt_split_unifies_case(format, ciphertext)) {
+		    test_fmt_split_unifies_case(format, ciphertext) == 1) {
 			if (cnt_split_unifies_case > 1)
 				is_split_unifies_case = -1;
 			else
