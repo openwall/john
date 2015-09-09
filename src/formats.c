@@ -763,7 +763,7 @@ static void test_fmt_case(struct fmt_main *format, void *binary,
 		*is_case_sensitive = 1;
 
 out:
-	free(plain_copy);
+	MEM_FREE(plain_copy);
 }
 
 static void test_fmt_8_bit(struct fmt_main *format, void *binary,
@@ -803,7 +803,7 @@ static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 	if (ret_all_set != ret_none_set)
 		*is_ignore_8th_bit = 0;
 
-	free(plain_copy);
+	MEM_FREE(plain_copy);
 }
 
 static int chrcasecmp(char lc, char rc)
@@ -908,11 +908,11 @@ static int test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext
 			goto change_case;
 	}
 
-	free(cipher_copy);
+	MEM_FREE(cipher_copy);
 	return 0;
 
 change_case:
-	free(cipher_copy);
+	MEM_FREE(cipher_copy);
 	return 1;
 }
 
