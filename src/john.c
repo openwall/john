@@ -200,10 +200,12 @@ static void john_register_one(struct fmt_main *format)
 			        "name\n");
 			error();
 		}
+
 		if (pos) {
-			// Wildcard, as in office*
+			// Wildcard, as in --format=office*
 			if (strncasecmp(format->params.label, options.format,
-			                (int)(pos - options.format))) return;
+			                (int)(pos - options.format)))
+				return;
 			// Trailer wildcard, as in *office or raw*ng
 			if (pos[1]) {
 				int wild_len = strlen(++pos);
@@ -218,64 +220,73 @@ static void john_register_one(struct fmt_main *format)
 				if (strcasecmp(p, pos))
 					return;
 			}
-		}
-		else if (!strcasecmp(options.format, "dynamic")||!strcasecmp(options.format, "dynamic-all")) {
-			if ( (format->params.flags & FMT_DYNAMIC) == 0) return;
-		}
-		else if (!strcasecmp(options.format, "avx")) {
-			if (!strstr(format->params.algorithm_name, "AVX")) return;
-		}
-		else if (!strcasecmp(options.format, "avx2")) {
-			if (!strstr(format->params.algorithm_name, "AVX2")) return;
-		}
-		else if (!strcasecmp(options.format, "sha2")) {
-			if (strstr(format->params.label, "-opencl") ||
-			    strstr(format->params.label, "-cuda") ||
-			    (!strcasestr(format->params.algorithm_name, "sha2") &&
-			    !strcasestr(format->params.algorithm_name, "sha38") &&
-			    !strcasestr(format->params.algorithm_name, "sha5") &&
-			    !strcasestr(format->params.algorithm_name, "sha-2") &&
-			    !strcasestr(format->params.algorithm_name, "sha-38") &&
-			     !strcasestr(format->params.algorithm_name, "sha-5")))
+		} else if ((pos = strchr(options.format, '@'))) {
+			char *algo = strdup(++pos);
+			char *nodyn = strcasestr(algo, "-dynamic");
+			if (nodyn) {
+				if (format->params.flags & FMT_DYNAMIC) {
+					free (algo);
+					return;
+				}
+				*nodyn = 0;
+			}
+			// Algo match, as in --format=@xop or --format=@sha384
+			if (!strcasestr(format->params.algorithm_name, algo)) {
+				free (algo);
 				return;
+			}
+			free (algo);
 		}
-		else if (!strcasecmp(options.format, "avx512")) {
-			if (!strstr(format->params.algorithm_name, "AVX512")
-			    && (!strstr(format->params.algorithm_name, "MIC"))) return;
+		else if (!strcasecmp(options.format, "dynamic") ||
+			 !strcasecmp(options.format, "dynamic-all")) {
+			if ((format->params.flags & FMT_DYNAMIC) == 0)
+				return;
 		}
 		else if (!strcasecmp(options.format, "cpu")) {
 			if (strstr(format->params.label, "-opencl") ||
-			    strstr(format->params.label, "-cuda")) return;
+			    strstr(format->params.label, "-cuda"))
+				return;
 		}
 		else if (!strcasecmp(options.format, "cpu-dynamic")) {
 			if (strstr(format->params.label, "-opencl") ||
-			    strstr(format->params.label, "-cuda")) return;
-			if ( (format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) return;
+			    strstr(format->params.label, "-cuda"))
+				return;
+			if (format->params.flags & FMT_DYNAMIC)
+				return;
 		}
 		else if (!strcasecmp(options.format, "gpu")) {
 			if (!strstr(format->params.label, "-opencl") &&
-			    !strstr(format->params.label, "-cuda")) return;
+			    !strstr(format->params.label, "-cuda"))
+				return;
 		}
 		else if (!strcasecmp(options.format, "opencl")) {
-			if (!strstr(format->params.label, "-opencl")) return;
+			if (!strstr(format->params.label, "-opencl"))
+				return;
 		}
 		else if (!strcasecmp(options.format, "cuda")) {
-			if (!strstr(format->params.label, "-cuda")) return;
+			if (!strstr(format->params.label, "-cuda"))
+				return;
 		}
 #ifdef _OPENMP
 		else if (!strcasecmp(options.format, "omp")) {
-			if ((format->params.flags & FMT_OMP) != FMT_OMP) return;
+			if ((format->params.flags & FMT_OMP) != FMT_OMP)
+				return;
 		}
 		else if (!strcasecmp(options.format, "cpu+omp")) {
-			if ((format->params.flags & FMT_OMP) != FMT_OMP) return;
+			if ((format->params.flags & FMT_OMP) != FMT_OMP)
+				return;
 			if (strstr(format->params.label, "-opencl") ||
-			    strstr(format->params.label, "-cuda")) return;
+			    strstr(format->params.label, "-cuda"))
+				return;
 		}
 		else if (!strcasecmp(options.format, "cpu+omp-dynamic")) {
-			if ((format->params.flags & FMT_OMP) != FMT_OMP) return;
+			if ((format->params.flags & FMT_OMP) != FMT_OMP)
+				return;
 			if (strstr(format->params.label, "-opencl") ||
-			    strstr(format->params.label, "-cuda")) return;
-			if ( (format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) return;
+			    strstr(format->params.label, "-cuda"))
+				return;
+			if (format->params.flags & FMT_DYNAMIC)
+				return;
 		}
 #endif
 		else if (strcasecmp(options.format, format->params.label)) {
