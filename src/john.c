@@ -225,17 +225,17 @@ static void john_register_one(struct fmt_main *format)
 			char *nodyn = strcasestr(algo, "-dynamic");
 			if (nodyn) {
 				if (format->params.flags & FMT_DYNAMIC) {
-					free (algo);
+					MEM_FREE (algo);
 					return;
 				}
 				*nodyn = 0;
 			}
 			// Algo match, as in --format=@xop or --format=@sha384
 			if (!strcasestr(format->params.algorithm_name, algo)) {
-				free (algo);
+				MEM_FREE (algo);
 				return;
 			}
-			free (algo);
+			MEM_FREE (algo);
 		}
 		else if (!strcasecmp(options.format, "dynamic") ||
 			 !strcasecmp(options.format, "dynamic-all")) {
