@@ -145,7 +145,8 @@ struct fmt_main fmt_CompiledDynamic =
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
-		0, 0, 16, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC | FMT_SPLIT_UNIFIES_CASE,
+			/* for now, turn off FMT_SPLIT_UNIFIES_CASE until we get the code right */
+		0, 0, 16, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC /*| FMT_SPLIT_UNIFIES_CASE */ ,
 		{ NULL },
 		tests
 	},
@@ -185,6 +186,10 @@ static void link_funcs() {
 	fmt_CompiledDynamic.params.tests[0].ciphertext = (char*)dyna_line1;
 	fmt_CompiledDynamic.params.tests[1].ciphertext = (char*)dyna_line2;
 	fmt_CompiledDynamic.params.tests[2].ciphertext = (char*)dyna_line3;
+
+	/* for now, turn off FMT_SPLIT_UNIFIES_CASE until we get the code right */
+	fmt_CompiledDynamic.params.flags &= ~FMT_SPLIT_UNIFIES_CASE;
+
 	if ((pPriv->pSetup->flags&MGF_SALTED)!=MGF_SALTED)
 		fmt_CompiledDynamic.params.benchmark_length = -1;
 	else
