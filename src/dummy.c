@@ -61,9 +61,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	q = ++p;
 	while ((c = *q)) {
 		q++;
-		if (atoi16[ARCH_INDEX(c)] == 0x7F)
-			return 0;
-		if (c >= 'A' && c <= 'F') /* support lowercase only */
+		if (atoi16l[ARCH_INDEX(c)] == 0x7F)
 			return 0;
 	}
 
