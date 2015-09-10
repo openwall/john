@@ -442,10 +442,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int t;
 #pragma omp parallel for
 	for (t = 0; t < omp_t; t++)
-#define ti (t*NBKEYS+index)
+#define ti ((unsigned int)t*NBKEYS+(unsigned int)index)
 #else
 #define t  0
-#define ti index
+#define ti (unsigned int)index
 #endif
 	{
 		unsigned int index, i, longest;

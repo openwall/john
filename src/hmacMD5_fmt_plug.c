@@ -369,7 +369,7 @@ static int cmp_one(void *binary, int index)
 	int i;
 	for(i = 0; i < (BINARY_SIZE/4); i++)
 		// NOTE crypt_key is in input format (64 * SIMD_COEF_32)
-		if (((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[i * SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32 * 16 * SIMD_COEF_32])
+		if (((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[i * SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32 * 16 * SIMD_COEF_32])
 			return 0;
 	return 1;
 #else
@@ -457,8 +457,8 @@ static void *get_salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_LENGTH];
 #ifdef SIMD_COEF_32
-	int i = 0;
-	int j;
+	unsigned int i = 0;
+	unsigned int j;
 	unsigned total_len = 0;
 #endif
 	memset(salt, 0, sizeof(salt));
