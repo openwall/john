@@ -227,6 +227,9 @@ every character in a short word), ">9x5zX05z" (rotate long words left by
 
 vVNM	update "l" (length), then subtract M from N and assign to variable V
 
+"l" is set to the current word's length, and its new value is usable by
+this same command (if N or/and M is also "l").
+
 V must be one of "a" through "k".  N and M may be any valid numeric
 constants or initialized variables.  It is OK to refer to the same
 variable in the same command more than once, even three times.  For
@@ -335,9 +338,9 @@ ranges (these will be substituted by the same character that is
 currently substituted for the referenced range, with ranges numbered
 from 1, left-to-right), "\0" for back-reference to the immediately
 preceding range, "\p" before a range to have that range processed "in
-parallel" with preceding ranges, "\p1" through "\p9" to have the range
-processed "in parallel" with the specific referenced range, "\p0" to
-have the range processed "in parallel" with the immediately preceding
+parallel" with all preceding ranges, "\p1" through "\p9" to have the
+range processed "in parallel" with the specific referenced range, "\p0"
+to have the range processed "in parallel" with the immediately preceding
 range, and "\r" to allow the range to produce repeated characters.  The
 "\r" escape is only useful if the range is "parallel" to another one or
 if there's at least one other range "parallel" to this one, because you

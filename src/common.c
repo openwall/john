@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99 by Solar Designer
+ * Copyright (c) 1996-99,2015 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -20,13 +20,13 @@
    and the latter can be found in base64.[ch] */
 const char itoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-char atoi64[0x100];
+unsigned char atoi64[0x100];
 
 const char itoa16[16] =
 	"0123456789abcdef";
 const char itoa16u[16] =
 	"0123456789ABCDEF";
-char atoi16[0x100];
+unsigned char atoi16[0x100], atoi16l[0x100];
 
 static int initialized = 0;
 
@@ -43,6 +43,8 @@ void common_init(void)
 	memset(atoi16, 0x7F, sizeof(atoi16));
 	for (pos = itoa16; pos <= &itoa16[15]; pos++)
 		atoi16[ARCH_INDEX(*pos)] = pos - itoa16;
+
+	memcpy(atoi16l, atoi16, sizeof(atoi16l));
 
 	atoi16['A'] = atoi16['a'];
 	atoi16['B'] = atoi16['b'];
