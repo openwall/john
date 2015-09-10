@@ -1419,11 +1419,16 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 	}
 
 	if (is_split_unifies_case == 1 && !(format->params.flags & FMT_SPLIT_UNIFIES_CASE)) {
-		printf("FAILED: %s should set FMT_SPLIT_UNIFIES_CASE\n", format->params.label);
+		snprintf(err_buf, sizeof(err_buf), "should set FMT_SPLIT_UNIFIES_CASE");
+		return err_buf;
 	} else if (!is_split_unifies_case && (format->params.flags & FMT_SPLIT_UNIFIES_CASE)) {
-		printf("Warning: %s should not set FMT_SPLIT_UNIFIES_CASE\n", format->params.label);
-	} else if (is_split_unifies_case == -1)
-		printf("Warning: %s FMT_SPLIT_UNIFIES_CASE is only working for some cases\n", format->params.label);
+		snprintf(err_buf, sizeof(err_buf), "should not set FMT_SPLIT_UNIFIES_CASE");
+		return err_buf;
+	} else if (is_split_unifies_case == -1) {
+		snprintf(err_buf, sizeof(err_buf),
+			"FMT_SPLIT_UNIFIES_CASE is only working for some cases");
+		return err_buf;
+	}
 
 	format->methods.clear_keys();
 	format->private.initialized = 2;
