@@ -221,14 +221,22 @@ static void john_register_one(struct fmt_main *format)
 					return;
 			}
 		} else if ((pos = strchr(options.format, '@'))) {
-			char *algo = strdup(++pos);
-			char *nodyn = strcasestr(algo, "-dynamic");
-			if (nodyn) {
+			char *reject, *algo = strdup(++pos);
+
+			// Rejections
+			if ((reject = strcasestr(algo, "-dynamic"))) {
 				if (format->params.flags & FMT_DYNAMIC) {
 					MEM_FREE (algo);
 					return;
 				}
-				*nodyn = 0;
+				memmove(reject, reject + 8, strlen(reject + 7));
+			}
+			if ((reject = strcasestr(algo, "-opencl"))) {
+				if (strstr(format->params.label, "-opencl")) {
+					MEM_FREE (algo);
+					return;
+				}
+				memmove(reject, reject + 7, strlen(reject + 6));
 			}
 			// Algo match, as in --format=@xop or --format=@sha384
 			if (!strcasestr(format->params.algorithm_name, algo)) {
