@@ -89,9 +89,16 @@ _inline __m128i _mm_set1_epi64(long long a)
     tmp[i] = vxor((tmp[i]),(x[i]));
 #endif
 
-#if !VCMOV_EMULATED
+#if __AVX512__
 #define MD5_I(x,y,z)                            \
-    tmp[i] = vcmov((x[i]), mask, (z[i])); \
+	tmp[i] = vternarylogic(x, y, z, 0x9C);
+#elif __ARM_NEON__
+#define MD5_I(x,y,z)                            \
+    tmp[i] = vorn((x[i]), (z[i]));              \
+    tmp[i] = vxor((tmp[i]), (y[i]));
+#elif !VCMOV_EMULATED
+#define MD5_I(x,y,z)                            \
+    tmp[i] = vcmov((x[i]), mask, (z[i]));       \
     tmp[i] = vxor((tmp[i]), (y[i]));
 #else
 #define MD5_I(x,y,z)                            \
