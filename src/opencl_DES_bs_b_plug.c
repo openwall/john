@@ -234,7 +234,10 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 
 	process_keys(current_gws, lws);
 
-	if (salt && num_uncracked_hashes(current_salt) != salt -> count)
+	if (salt && num_uncracked_hashes(current_salt) != salt -> count &&
+	/* In case there are duplicate hashes, num_uncracked_hashes is always less than salt->count, as
+	 * num_uncracked_hashes tracks only unique hashes. */
+		num_uncracked_hashes(current_salt) > salt -> count)
 		update_buffer(salt);
 
 	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 1, sizeof(cl_mem), &buffer_processed_salts[current_salt]), "Failed setting kernel argument buffer_processed_salts, kernel DES_bs_25.\n");

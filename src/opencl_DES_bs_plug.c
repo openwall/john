@@ -193,11 +193,6 @@ static void select_bitmap(unsigned int num_ld_hashes, WORD *uncracked_hashes_t, 
 	*bitmap_size_bits *= cmp_steps;
 }
 
-/*
- * To Do: When there are duplicate hashes, in that case update_buffer will be called
- * every time as salt->count != num_uncracked_hashes(salt_val)(no duplicate) all the time
- * even when nothing gets cracked.
- */
 static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes, unsigned int *max_hash_table_size)
 {
 	int i;
@@ -496,6 +491,10 @@ void update_buffer(struct db_salt *salt)
 	unsigned int _max_uncracked_hashes = 0, _max_hash_table_size = 0;
 	WORD salt_val = *(WORD *)salt -> salt;
 	release_fill_buffer(salt_val);
+
+	if (salt -> count > LOW_THRESHOLD &&
+		(num_uncracked_hashes(salt_val) - num_uncracked_hashes(salt_val) / 10) < salt -> count)
+		return;
 
 	fill_buffer(salt, &_max_uncracked_hashes, &_max_hash_table_size);
 

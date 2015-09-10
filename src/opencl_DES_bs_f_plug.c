@@ -260,14 +260,16 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 
 	process_keys(current_gws, lws);
 
-	if (salt && num_uncracked_hashes(current_salt) != salt -> count)
+	if (salt && num_uncracked_hashes(current_salt) != salt -> count &&
+	/* In case there are duplicate hashes, num_uncracked_hashes is always less than salt->count, as
+	 * num_uncracked_hashes tracks only unique hashes. */
+		num_uncracked_hashes(current_salt) > salt -> count)
 		update_buffer(salt);
 
 	ret_code = clEnqueueNDRangeKernel(queue[gpu_id], kernels[gpu_id][current_salt], 1, NULL, &current_gws, lws, 0, NULL, NULL);
 	HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_25 failed.\n");
 
 	return extract_info(current_gws, lws, current_salt);
-
 }
 
 void opencl_DES_bs_f_register_functions(struct fmt_main *fmt)
