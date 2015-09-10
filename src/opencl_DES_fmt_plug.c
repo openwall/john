@@ -82,6 +82,8 @@ static unsigned char DES_atoi64[0x100] = {
 
 static void init(struct fmt_main *pFmt)
 {
+	opencl_prepare_dev(gpu_id);
+
 	if (HARDCODE_SALT && FULL_UNROLL)
 		opencl_DES_bs_f_register_functions(pFmt);
 	else if (HARDCODE_SALT)
@@ -313,7 +315,6 @@ struct fmt_main fmt_opencl_DES = {
 		opencl_DES_bs_cmp_exact
 	}
 };
-
 #endif /* plugin stanza */
 
 #endif /* HAVE_OPENCL */

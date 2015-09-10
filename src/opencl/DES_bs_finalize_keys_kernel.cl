@@ -220,21 +220,13 @@ inline void cmp_final(__private unsigned DES_bs_vector *B,
 		      volatile __global uint *bitmap_dupe,
 		      unsigned int section,
 		      unsigned int depth,
-		      unsigned int start_bit,
-		      unsigned int cmp_steps
- 		    )
+		      unsigned int start_bit)
 {
 	unsigned long hash;
 	unsigned int hash_table_index, t, bit;
 
-	if (cmp_steps > 1) {
-		GET_HASH_0(binary[0], depth, 32, start_bit);
-		GET_HASH_1(binary[1], depth, 32, start_bit);
-	}
-	else {
-		GET_HASH_0(binary[0], depth, 32, 0);
-		GET_HASH_1(binary[1], depth, 32, start_bit);
-	}
+	GET_HASH_0(binary[0], depth, 32, start_bit);
+	GET_HASH_1(binary[1], depth, 32, start_bit);
 
 	hash = ((unsigned long)binary[1] << 32) | (unsigned long)binary[0];
 	hash += (unsigned long)offset_table[hash % OFFSET_TABLE_SIZE];
@@ -248,6 +240,9 @@ inline void cmp_final(__private unsigned DES_bs_vector *B,
 		hash_ids[2 + 2 * t] = hash_table_index;
 	}
 }
+
+#define BITMAP_SIZE_BITS hash_chk_params.bitmap_size_bits
+#define BITMAP_SIZE_BITS_LESS_ONE (BITMAP_SIZE_BITS - 1)
 
 __kernel void DES_bs_cmp_high(__global unsigned DES_bs_vector *unchecked_hashes,
 	  __global unsigned int *offset_table,
@@ -263,41 +258,18 @@ __kernel void DES_bs_cmp_high(__global unsigned DES_bs_vector *unchecked_hashes,
 	int gws = get_global_size(0);
 	unsigned int value[2] , bit, bitmap_index;
 
-#define BITMAP_SIZE_BITS hash_chk_params.bitmap_size_bits
-#define BITMAP_SIZE_BITS_LESS_ONE (BITMAP_SIZE_BITS - 1)
-
 	for (i = 0; i < 64; i++)
 		B[i] = unchecked_hashes[section + i * gws];
 
-	value[0] = 0;
-	if (hash_chk_params.cmp_steps > 1) {
 	for (i = 0; i < 32; i++) {
 		value[0] = 0;
-		value[1] = 0;
-		GET_HASH_0(value[0], i, hash_chk_params.cmp_bits, 0);
-		GET_HASH_1(value[1], i, hash_chk_params.cmp_bits, 0);
-		bitmap_index = value[1] & (BITMAP_SIZE_BITS - 1);
-		bit = (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-		bitmap_index = value[0] & (BITMAP_SIZE_BITS - 1);
-		bit &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-		if (bit)
-		cmp_final(B, value, offset_table, hash_table, hash_chk_params, hash_ids, bitmap_dupe, section, i, hash_chk_params.cmp_bits, hash_chk_params.cmp_steps);
-	}
-	}
-
-	else {
-	for (i = 0; i < 32; i++) {
 		value[1] = 0;
 		GET_HASH_1(value[1], i, hash_chk_params.cmp_bits, 0);
 		bitmap_index = value[1] & BITMAP_SIZE_BITS_LESS_ONE;
 		bit = (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
 		if (bit)
-		cmp_final(B, value, offset_table, hash_table, hash_chk_params, hash_ids, bitmap_dupe, section, i, hash_chk_params.cmp_bits, hash_chk_params.cmp_steps);
+		cmp_final(B, value, offset_table, hash_table, hash_chk_params, hash_ids, bitmap_dupe, section, i, 0);
 	}
-	}
-
-
-
 }
 
 #define num_uncracked_hashes hash_chk_params.num_uncracked_hashes
@@ -336,7 +308,7 @@ __kernel void DES_bs_cmp(__global unsigned DES_bs_vector *unchecked_hashes,
 		if (mask != ~(int)0) {
 			for (mask = 0; mask < 32; mask++) {
 				value[0] = value[1] = 0;
-				cmp_final(B, value, offset_table, hash_table, hash_chk_params, hash_ids, bitmap_dupe, section, mask, 0, 2);
+				cmp_final(B, value, offset_table, hash_table, hash_chk_params, hash_ids, bitmap_dupe, section, mask, 0);
 			}
 		}
 	}

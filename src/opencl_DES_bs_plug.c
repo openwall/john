@@ -18,18 +18,24 @@
 #include "bt_interface.h"
 #include "memdbg.h"
 
-opencl_DES_bs_combined *opencl_DES_bs_all;
-opencl_DES_bs_transfer *opencl_DES_bs_keys;
-int opencl_DES_bs_keys_changed = 1;
+typedef struct {
+	unsigned char *pxkeys[DES_BS_DEPTH]; /* Pointers into xkeys.c */
+} des_combined;
 
 static cl_kernel **cmp_kernel = NULL;
-static cl_kernel kernel_high, kernel_med, kernel_low;
+static cl_kernel kernel_high = 0, kernel_low = 0;
 static cl_mem buffer_hash_ids, buffer_bitmap_dupe, *buffer_uncracked_hashes = NULL, *buffer_hash_tables = NULL, *buffer_offset_tables = NULL, *buffer_bitmaps = NULL;
 static unsigned int *zero_buffer = NULL, **hash_tables = NULL;
 static unsigned int *hash_ids = NULL;
 static unsigned int max_uncracked_hashes = 0, max_hash_table_size = 0;
 DES_hash_check_params *hash_chk_params = NULL;
 static WORD current_salt = 0;
+
+static cl_kernel keys_kernel = 0;
+static cl_mem buffer_raw_keys = 0;
+static int keys_changed = 1;
+static des_combined *des_all;
+static opencl_DES_bs_transfer *des_raw_keys;
 
 unsigned char opencl_DES_E[48] = {
 	31, 0, 1, 2, 3, 4,
@@ -72,7 +78,7 @@ static unsigned char opencl_DES_PC2[48] = {
 #define hash_table_size(k) hash_chk_params[k].hash_table_size
 #define offset_table_size(k) hash_chk_params[k].offset_table_size
 
-#define LOW_THRESHOLD 		1
+#define LOW_THRESHOLD 		10
 
 #define get_num_bits(r, v)			\
 {						\
@@ -95,23 +101,6 @@ static unsigned char opencl_DES_PC2[48] = {
 	v++;			\
 }
 
-/* Use only for smaller bitmaps < 16MB */
-static void prepare_bitmap_2(cl_ulong bmp_sz_bits, cl_uint **bitmaps_ptr, unsigned WORD *loaded_hashes, unsigned int num_uncracked_hashes)
-{
-	unsigned int i;
-	MEM_FREE(*bitmaps_ptr);
-	*bitmaps_ptr = (cl_uint*) mem_calloc((bmp_sz_bits >> 4), sizeof(cl_uint));
-
-	for (i = 0; i < num_uncracked_hashes; i++) {
-		unsigned int bmp_idx = loaded_hashes[2 * i + 1] & (bmp_sz_bits - 1);
-		(*bitmaps_ptr)[bmp_idx >> 5] |= (1U << (bmp_idx & 31));
-
-		bmp_idx = loaded_hashes[2 * i] & (bmp_sz_bits - 1);
-		(*bitmaps_ptr)[(bmp_sz_bits >> 5) + (bmp_idx >> 5)] |=
-			(1U << (bmp_idx & 31));
-	}
-}
-
 static void prepare_bitmap_1(cl_ulong bmp_sz_bits, cl_uint **bitmaps_ptr, unsigned WORD *loaded_hashes, unsigned int num_uncracked_hashes)
 {
 	unsigned int i;
@@ -126,7 +115,7 @@ static void prepare_bitmap_1(cl_ulong bmp_sz_bits, cl_uint **bitmaps_ptr, unsign
 
 static void select_bitmap(unsigned int num_ld_hashes, WORD *uncracked_hashes_t, unsigned long *bitmap_size_bits, unsigned int **bitmaps_ptr, DES_hash_check_params *hash_chk_params)
 {
-	unsigned int cmp_steps = 2, bits_req = 32;
+	unsigned int cmp_steps = 1, bits_req = 32;
 
 	if (num_ld_hashes <= 5100) {
 		if (amd_gcn_10(device_info[gpu_id]) ||
@@ -166,15 +155,11 @@ static void select_bitmap(unsigned int num_ld_hashes, WORD *uncracked_hashes_t, 
 			*bitmap_size_bits = 2048 * 1024;
 	}
 
-	else if (num_ld_hashes <= 1500100) {
+	else if (num_ld_hashes <= 1500100)
 		*bitmap_size_bits = 4096 * 1024 * 2;
-		cmp_steps = 1;
-	}
 
-	else if (num_ld_hashes <= 2700100) {
+	else if (num_ld_hashes <= 2700100)
 		*bitmap_size_bits = 4096 * 1024 * 2 * 2;
-		cmp_steps = 1;
-	}
 
 	else {
 		cl_ulong mult = num_ld_hashes / 2700100;
@@ -193,14 +178,9 @@ static void select_bitmap(unsigned int num_ld_hashes, WORD *uncracked_hashes_t, 
 		if (((*bitmap_size_bits) >> 3) > buf_sz)
 			*bitmap_size_bits = buf_sz << 3;
 		assert(!((*bitmap_size_bits) & ((*bitmap_size_bits) - 1)));
-		cmp_steps = 1;
 	}
 
-	if (cmp_steps == 1)
-		prepare_bitmap_1(*bitmap_size_bits, bitmaps_ptr, (unsigned WORD *)uncracked_hashes_t, num_ld_hashes);
-
-	else
-		prepare_bitmap_2(*bitmap_size_bits, bitmaps_ptr, (unsigned WORD *)uncracked_hashes_t, num_ld_hashes);
+	prepare_bitmap_1(*bitmap_size_bits, bitmaps_ptr, (unsigned WORD *)uncracked_hashes_t, num_ld_hashes);
 
 	assert(!((*bitmap_size_bits) & ((*bitmap_size_bits) - 1)));
 	assert(*bitmap_size_bits <= 0xffffffff);
@@ -326,7 +306,7 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 		uncracked_hashes_t[2 * i] = binary[0];
 		uncracked_hashes_t[2 * i + 1] = binary[1];
 		num_uncracked_hashes(salt_val) = 1;
-		//fprintf(stderr, "C:%s B:%d \n", ciphertext, binary[0]);
+		//fprintf(stderr, "C:%s B:%d \n", ciphertext, binary[1]);
 		i++;
 	}
 
@@ -473,9 +453,8 @@ void release_tables()
 
 static void set_kernel_args_aux_buf()
 {
-
-	HANDLE_CLERROR(clSetKernelArg(kernel_low, 4, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument buffer_hash_ids, kernel DES_bs_cmp.\n");
-	HANDLE_CLERROR(clSetKernelArg(kernel_low, 5, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument buffer_bitmap_dupe, kernel DES_bs_cmp.\n");
+	HANDLE_CLERROR(clSetKernelArg(kernel_low, 4, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument buffer_hash_ids, kernel DES_bs_cmp_low.\n");
+	HANDLE_CLERROR(clSetKernelArg(kernel_low, 5, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument buffer_bitmap_dupe, kernel DES_bs_cmp_low.\n");
 
 	HANDLE_CLERROR(clSetKernelArg(kernel_high, 4, sizeof(cl_mem), &buffer_hash_ids), "Failed setting kernel argument buffer_hash_ids, kernel DES_bs_cmp.\n");
 	HANDLE_CLERROR(clSetKernelArg(kernel_high, 5, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument buffer_bitmap_dupe, kernel DES_bs_cmp.\n");
@@ -580,8 +559,8 @@ void finish_checking()
 {
 	int i;
 
-	HANDLE_CLERROR(clReleaseKernel(kernel_high), "Error releasing kernel_high");
-	HANDLE_CLERROR(clReleaseKernel(kernel_low), "Error releasing kernel_low");
+	HANDLE_CLERROR(clReleaseKernel(kernel_high), "Error releasing kernel_high.");
+	HANDLE_CLERROR(clReleaseKernel(kernel_low), "Error releasing kernel_low.");
 	for (i = 0; i < MAX_GPU_DEVICES; i++)
 		MEM_FREE(cmp_kernel[i]);
 	MEM_FREE(cmp_kernel);
@@ -589,6 +568,58 @@ void finish_checking()
 	MEM_FREE(hash_chk_params);
 }
 
+int opencl_DES_bs_get_hash_0(int index)
+{
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xf;
+}
+
+int opencl_DES_bs_get_hash_1(int index)
+{
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xff;
+}
+
+int opencl_DES_bs_get_hash_2(int index)
+{
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xfff;
+}
+
+int opencl_DES_bs_get_hash_3(int index)
+{
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xffff;
+}
+
+int opencl_DES_bs_get_hash_4(int index)
+{
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xfffff;
+}
+
+int opencl_DES_bs_get_hash_5(int index)
+{
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xffffff;
+}
+
+int opencl_DES_bs_get_hash_6(int index)
+{
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0x7ffffff;
+}
+
+int opencl_DES_bs_cmp_one(void *binary, int index)
+{
+	if (((int *)binary)[0] == hash_tables[current_salt][hash_ids[2 + 2 * index]])
+		return 1;
+	return 0;
+}
+
+int opencl_DES_bs_cmp_exact(char *source, int index)
+{
+	int *binary = fmt_opencl_DES.methods.binary(source);
+
+	if (binary[1] == hash_tables[current_salt][hash_ids[2 + 2 * index] + hash_table_size(current_salt)])
+		return 1;
+	return 0;
+}
+
+/* End of hash checking. */
 
 void opencl_DES_bs_init_index()
 {
@@ -618,8 +649,52 @@ void opencl_DES_bs_init(int block)
 	int index;
 
 	for (index = 0; index < DES_BS_DEPTH; index++)
-		opencl_DES_bs_all[block].pxkeys[index] =
-			&opencl_DES_bs_keys[block].xkeys.c[0][index & 7][index >> 3];
+		des_all[block].pxkeys[index] =
+			&des_raw_keys[block].xkeys.c[0][index & 7][index >> 3];
+}
+
+void create_keys_buffer(size_t gws, size_t padding)
+{
+	des_all = (des_combined *) mem_alloc((gws + padding) * sizeof(des_combined));
+	des_raw_keys = (opencl_DES_bs_transfer *) mem_alloc((gws + padding) * sizeof(opencl_DES_bs_transfer));
+
+	buffer_raw_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, (gws + padding) * sizeof(opencl_DES_bs_transfer), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Create buffer_raw_keys failed.\n");
+}
+
+void release_keys_buffer()
+{
+	if (buffer_raw_keys) {
+		MEM_FREE(des_all);
+		MEM_FREE(des_raw_keys);
+		HANDLE_CLERROR(clReleaseMemObject(buffer_raw_keys), "Release buffer_raw_keys failed.\n");
+		buffer_raw_keys = 0;
+	}
+}
+
+void create_keys_kernel_set_args(cl_mem buffer_bs_keys)
+{
+	if (keys_kernel == 0) {
+		opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
+		opencl_build(gpu_id, NULL, 0, NULL);
+		keys_kernel = clCreateKernel(program[gpu_id], "DES_bs_finalize_keys", &ret_code);
+		HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_finalize_keys.\n");
+	}
+
+	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument buffer_raw_keys, kernel DES_bs_finalize_keys.\n");
+	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 1, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_finalize_keys.\n");
+}
+
+void process_keys(size_t current_gws, size_t *lws)
+{
+	if (keys_changed) {
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, current_gws * sizeof(opencl_DES_bs_transfer), des_raw_keys, 0, NULL, NULL ), "Failed to write buffer buffer_raw_keys.\n");
+
+		ret_code = clEnqueueNDRangeKernel(queue[gpu_id], keys_kernel, 1, NULL, &current_gws, lws, 0, NULL, NULL);
+		HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_finalize_keys failed.\n");
+
+		keys_changed = 0;
+	}
 }
 
 void opencl_DES_bs_set_key(char *key, int index)
@@ -630,9 +705,9 @@ void opencl_DES_bs_set_key(char *key, int index)
 
 	sector = index >> DES_LOG_DEPTH;
 	key_index = index & (DES_BS_DEPTH - 1);
-	dst = opencl_DES_bs_all[sector].pxkeys[key_index];
+	dst = des_all[sector].pxkeys[key_index];
 
-	opencl_DES_bs_keys_changed = 1;
+	keys_changed = 1;
 
 	dst[0] = 				(!flag) ? 0 : key[0];
 	dst[sizeof(DES_bs_vector) * 8]      =	(!flag) ? 0 : key[1];
@@ -705,7 +780,7 @@ char *opencl_DES_bs_get_key(int index)
 		section = 0;
 	}
 
-	src = opencl_DES_bs_all[section].pxkeys[block];
+	src = des_all[section].pxkeys[block];
 	dst = out;
 	while (dst < &out[PLAINTEXT_LENGTH] && (*dst = *src)) {
 		src += sizeof(DES_bs_vector) * 8;
@@ -714,57 +789,6 @@ char *opencl_DES_bs_get_key(int index)
 	*dst = 0;
 
 	return out;
-}
-
-int opencl_DES_bs_get_hash_0(int index)
-{
-	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xf;
-}
-
-int opencl_DES_bs_get_hash_1(int index)
-{
-	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xff;
-}
-
-int opencl_DES_bs_get_hash_2(int index)
-{
-	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xfff;
-}
-
-int opencl_DES_bs_get_hash_3(int index)
-{
-	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xffff;
-}
-
-int opencl_DES_bs_get_hash_4(int index)
-{
-	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xfffff;
-}
-
-int opencl_DES_bs_get_hash_5(int index)
-{
-	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xffffff;
-}
-
-int opencl_DES_bs_get_hash_6(int index)
-{
-	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0x7ffffff;
-}
-
-int opencl_DES_bs_cmp_one(void *binary, int index)
-{
-	if (((int *)binary)[0] == hash_tables[current_salt][hash_ids[2 + 2 * index]])
-		return 1;
-	return 0;
-}
-
-int opencl_DES_bs_cmp_exact(char *source, int index)
-{
-	int *binary = fmt_opencl_DES.methods.binary(source);
-
-	if (binary[1] == hash_tables[current_salt][hash_ids[2 + 2 * index] + hash_table_size(current_salt)])
-		return 1;
-	return 0;
 }
 
 #endif /* HAVE_OPENCL */

@@ -31,7 +31,7 @@
 
 #define GWS_CONFIG		        "des_GWS"
 
-/* Common hash checking variables */
+/* Common hash checking variables. */
 extern DES_hash_check_params *hash_chk_params;
 #define num_uncracked_hashes(k) hash_chk_params[k].num_uncracked_hashes
 
@@ -43,22 +43,19 @@ extern void create_checking_kernel_set_args(cl_mem);
 extern void init_checking();
 extern void finish_checking();
 
+extern void create_keys_buffer(size_t, size_t);
+extern void release_keys_buffer();
+extern void create_keys_kernel_set_args(cl_mem);
+extern void process_keys(size_t, size_t *);
+
 typedef unsigned WORD vtype;
 
 unsigned int CC_CACHE_ALIGN opencl_DES_bs_index768[0x300];
-
-typedef struct {
-	unsigned char *pxkeys[DES_BS_DEPTH]; /* Pointers into xkeys.c */
-} opencl_DES_bs_combined;
 
 struct fmt_main;
 
 struct fmt_main fmt_opencl_DES;
 extern unsigned char opencl_DES_E[48];
-
-extern opencl_DES_bs_combined *opencl_DES_bs_all;
-extern opencl_DES_bs_transfer *opencl_DES_bs_keys;
-extern int opencl_DES_bs_keys_changed;
 
 extern void opencl_DES_bs_b_register_functions(struct fmt_main *);
 extern void opencl_DES_bs_h_register_functions(struct fmt_main *);

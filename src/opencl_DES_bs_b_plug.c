@@ -19,18 +19,14 @@
 #define PADDING 	2048
 
 static cl_kernel **kernels;
-static cl_mem buffer_map, buffer_raw_keys, buffer_bs_keys, *buffer_processed_salts = NULL, buffer_unchecked_hashes;
+static cl_mem buffer_map, buffer_bs_keys, *buffer_processed_salts = NULL, buffer_unchecked_hashes;
 static WORD current_salt = 0;
 
 static int des_crypt_25(int *pcount, struct db_salt *salt);
 
 static void create_clobj_kpc(size_t gws)
 {
-	opencl_DES_bs_all = (opencl_DES_bs_combined *) mem_alloc((gws + PADDING) * sizeof(opencl_DES_bs_combined));
-	opencl_DES_bs_keys = (opencl_DES_bs_transfer *) mem_alloc((gws + PADDING) * sizeof(opencl_DES_bs_transfer));
-
-	buffer_raw_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, (gws + PADDING) * sizeof(opencl_DES_bs_transfer), NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Create buffer_raw_keys failed.\n");
+	create_keys_buffer(gws, PADDING);
 
 	buffer_bs_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (gws + PADDING) * sizeof(DES_bs_vector) * 56, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Create buffer_bs_keys failed.\n");
@@ -41,13 +37,11 @@ static void create_clobj_kpc(size_t gws)
 
 static void release_clobj_kpc()
 {
-	if (buffer_raw_keys != (cl_mem)0) {
-		MEM_FREE(opencl_DES_bs_all);
-		MEM_FREE(opencl_DES_bs_keys);
-		HANDLE_CLERROR(clReleaseMemObject(buffer_raw_keys), "Release buffer_raw_keys failed.\n");
+	if (buffer_bs_keys != (cl_mem)0) {
+		release_keys_buffer();
 		HANDLE_CLERROR(clReleaseMemObject(buffer_bs_keys), "Release buffer_bs_keys failed.\n");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_unchecked_hashes), "Release buffer_unchecked_hashes failed.\n");
-		buffer_raw_keys = (cl_mem)0;
+		buffer_bs_keys = (cl_mem)0;
 	}
 }
 
@@ -92,7 +86,7 @@ static void clean_all_buffers()
 	release_clobj();
 	release_clobj_kpc();
 
-	for( i = 0; i < 2; i++)
+	for( i = 0; i < 1; i++)
 		if (kernels[gpu_id][i])
 		HANDLE_CLERROR(clReleaseKernel(kernels[gpu_id][i]), "Error releasing kernel");
 
@@ -155,9 +149,7 @@ static void reset(struct db_main *db)
 		create_clobj_kpc(global_work_size);
 
 		create_checking_kernel_set_args(buffer_unchecked_hashes);
-
-		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][1], 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument buffer_raw_keys, kernel DES_bs_finalize_keys.\n");
-		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][1], 1, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_finalize_keys.\n");
+		create_keys_kernel_set_args(buffer_bs_keys);
 
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 0, sizeof(cl_mem), &buffer_map), "Failed setting kernel argument buffer_map, kernel DES_bs_25.\n");
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 2, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_25.\n");
@@ -178,13 +170,6 @@ static void reset(struct db_main *db)
 	else {
 		int i;
 
-		opencl_prepare_dev(gpu_id);
-
-		opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
-		opencl_build(gpu_id, NULL, 0, NULL);
-		kernels[gpu_id][1] = clCreateKernel(program[gpu_id], "DES_bs_finalize_keys", &ret_code);
-		HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_finalize_keys.\n");
-
 		opencl_read_source("$JOHN/kernels/DES_bs_kernel.cl");
 		opencl_build(gpu_id, NULL, 0, NULL);
 		kernels[gpu_id][0] = clCreateKernel(program[gpu_id], "DES_bs_25_b", &ret_code);
@@ -200,9 +185,7 @@ static void reset(struct db_main *db)
 		create_clobj(NULL);
 
 		create_checking_kernel_set_args(buffer_unchecked_hashes);
-
-		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][1], 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument buffer_raw_keys, kernel DES_bs_finalize_keys.\n");
-		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][1], 1, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_finalize_keys.\n");
+		create_keys_kernel_set_args(buffer_bs_keys);
 
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 0, sizeof(cl_mem), &buffer_map), "Failed setting kernel argument buffer_map, kernel DES_bs_25.\n");
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 2, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_25.\n");
@@ -233,7 +216,7 @@ static void init_global_variables()
 	kernels = (cl_kernel **) mem_calloc(MAX_GPU_DEVICES, sizeof(cl_kernel *));
 
 	for (i = 0; i < MAX_GPU_DEVICES; i++)
-		kernels[i] = (cl_kernel *) mem_calloc(2, sizeof(cl_kernel));
+		kernels[i] = (cl_kernel *) mem_calloc(1, sizeof(cl_kernel));
 
 	init_checking();
 }
@@ -249,14 +232,7 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	size_t current_gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
 
-	if (opencl_DES_bs_keys_changed) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, current_gws * sizeof(opencl_DES_bs_transfer), opencl_DES_bs_keys, 0, NULL, NULL), "Failed to write buffer buffer_raw_keys.\n");
-
-		ret_code = clEnqueueNDRangeKernel(queue[gpu_id], kernels[gpu_id][1], 1, NULL, &current_gws, lws, 0, NULL, NULL);
-		HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_finalize_keys failed.\n");
-
-		opencl_DES_bs_keys_changed = 0;
-	}
+	process_keys(current_gws, lws);
 
 	if (salt && num_uncracked_hashes(current_salt) != salt -> count)
 		update_buffer(salt);
