@@ -220,6 +220,10 @@ dynamic_big_crypt.c: dynamic_big_crypt_hash.cin dynamic_big_crypt_header.cin dyn
 	$(shell ./dynamic_big_crypt_generator.sh)
 	@if [ ! -f dynamic_big_crypt.c ] ; then $(CP_PRESERVE) unused/dynamic_big_crypt.c dynamic_big_crypt.c ; fi
 
+dynamic_compiler.o:     dynamic_compiler.c arch.h common.h stdint.h formats.h list.h crc32.h johnswap.h dynamic.h dynamic_compiler.h base64_convert.h md5.h md4.h sha.h sha2.h gost.h unicode.h sph_ripemd.h sph_tiger.h sph_whirlpool.h sph_haval.h sph_md2.h sph_panama.h sph_skein.h KeccakHash.h memdbg.h
+
+dynamic_compiler_lib.o: dynamic_compiler_lib.c arch.h formats.h dynamic.h dynamic_compiler.h memdbg.h
+
 # Digital/Compaq's cc and make use the .S suffix for a different purpose...
 digipaq-alpha.o: alpha.S
 	$(CPP) $(CPPFLAGS) alpha.S > tmp.s
