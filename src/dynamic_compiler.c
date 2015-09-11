@@ -1649,7 +1649,7 @@ static int parse_expression(DC_struct *p) {
 		for (i = 0; i <nCode; ++i)
 			printf ("%s\n", pCode[i]);
 
-	if (bNeedS)
+	if (bNeedS || bNeedU || Const[1])
 		comp_add_script_line("SaltLen=%d\n", nSaltLen ? nSaltLen : -32);
 
 	if (keys_base16_in1_type) {
