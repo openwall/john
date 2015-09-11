@@ -54,6 +54,7 @@ john_register_one(&fmt_nk);
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1 /* change to 0 once there's any speedup for "many salts" */
 #define PLAINTEXT_LENGTH	32
+#define CIPHERTEXT_LENGTH	(4+32+40+3+1)
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define BINARY_ALIGN		sizeof(ARCH_WORD_32)
@@ -106,6 +107,18 @@ static void done(void)
 {
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
+}
+
+
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	memcpy(out, ciphertext, CIPHERTEXT_LENGTH);
+	out[CIPHERTEXT_LENGTH] = 0;
+	strlwr(out);
+
+	return out;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -271,7 +284,7 @@ struct fmt_main fmt_nk = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		nk_tests
 	}, {
@@ -280,7 +293,7 @@ struct fmt_main fmt_nk = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		get_salt,
 		{ NULL },

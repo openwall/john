@@ -164,6 +164,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	static void *binary = NULL;
 	static int binary_size = 0;
 	static char s_error[128];
+	static int wait_salts = 0;
 	char *TmpPW[1024];
 	int pw_mangled = 0;
 	char *where;
@@ -186,7 +187,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	int ntests, pruned;
 #endif
 	int salts_done = 0;
-	int wait_salts = 0;
+	int wait = 0;
 
 	clk_tck_init();
 
@@ -352,6 +353,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		wait_salts = 1;
 		benchmark_time *= -1;
 	}
+	wait = format->params.benchmark_length ? 0 : wait_salts;
 
 /* Cap it at a sane value to hopefully avoid integer overflows below */
 	if (benchmark_time > 3600)
@@ -398,7 +400,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		sig_timer_emu_tick();
 #endif
 		salts_done++;
-	} while (((wait_salts && salts_done < salts) ||
+	} while (((wait && salts_done < salts) ||
 	          bench_running) && !event_abort);
 
 #if defined (__MINGW32__) || defined (_MSC_VER)

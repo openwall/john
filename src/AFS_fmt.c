@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2012 by Solar Designer
+ * Copyright (c) 1996-2001,2012,2015 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -129,11 +129,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, "$K4$", 4)) return 0;
 
-	for (pos = &ciphertext[4]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+	for (pos = &ciphertext[4]; atoi16l[ARCH_INDEX(*pos)] != 0x7F; pos++);
 	if (*pos != ',' || pos - ciphertext != CIPHERTEXT_LENGTH) return 0;
 
 	for (index = 0; index < 16; index += 2) {
-		value = (int)atoi16[ARCH_INDEX(ciphertext[index + 4])] << 4;
+		value = atoi16[ARCH_INDEX(ciphertext[index + 4])] << 4;
 		value |= atoi16[ARCH_INDEX(ciphertext[index + 5])];
 
 		count = 0;
@@ -161,7 +161,7 @@ static void *get_binary(char *ciphertext)
 	known_long = 0;
 
 	for (index = 0; index < 16; index += 2) {
-		value = (int)atoi16[ARCH_INDEX(ciphertext[index + 4])] << 4;
+		value = atoi16[ARCH_INDEX(ciphertext[index + 4])] << 4;
 		value |= atoi16[ARCH_INDEX(ciphertext[index + 5])];
 
 		out[index >> 3] |= (value | 1) << ((index << 2) & 0x18);

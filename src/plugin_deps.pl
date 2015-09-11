@@ -2,7 +2,6 @@
 use strict;
 
 foreach my $format (@ARGV) {
-	next unless $format =~ m/_plug\.c$/;
 	my $object = $format;
 	my $deps = "";
 	$object =~ s/\.c$/.o/;

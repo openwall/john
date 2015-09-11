@@ -58,7 +58,7 @@ john_register_one(&fmt_hmacSHA224);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
 #define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
-#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i) & (0xffffffff - 3)) * SIMD_COEF_32 + (3 - ((i) & 3)) + index/SIMD_COEF_32 * SHA_BUF_SIZ * 4 * SIMD_COEF_32)
+#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i) & (0xffffffff - 3)) * SIMD_COEF_32 + (3 - ((i) & 3)) + (unsigned int)index/SIMD_COEF_32 * SHA_BUF_SIZ * 4 * SIMD_COEF_32)
 #else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -313,7 +313,7 @@ static int cmp_one(void *binary, int index)
 	int i;
 	for(i = 0; i < (BINARY_SIZE/4); i++)
 		// NOTE crypt_key is in input format (4 * SHA_BUF_SIZ * SIMD_COEF_32)
-		if (((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[i * SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32 * SHA_BUF_SIZ * SIMD_COEF_32])
+		if (((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[i * SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32 * SHA_BUF_SIZ * SIMD_COEF_32])
 			return 0;
 	return 1;
 #else
@@ -354,7 +354,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|SSEi_CRYPT_SHA224);
 		// NOTE, SSESHA224 will output 32 bytes. We need the first 28 (plus the 0x80 padding).
 		// so we are forced to 'clean' this crap up, before using the crypt as the input.
-		pclear = (unsigned int*)&crypt_key[index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4];
+		pclear = (unsigned int*)&crypt_key[(unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4];
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++)
 			pclear[28/4*SIMD_COEF_32+(i&(SIMD_COEF_32-1))+i/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = 0x80000000;
 		SIMDSHA256body(&crypt_key[index * SHA_BUF_SIZ * 4],
@@ -408,7 +408,7 @@ static void *get_salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_LENGTH+1];
 #ifdef SIMD_COEF_32
-	int i = 0;
+	unsigned int i = 0;
 	unsigned total_len = 0;
 #endif
 	memset(salt, 0, sizeof(salt));

@@ -758,7 +758,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			if (cnt == cur_salt->rounds)
 				break;
 			{
-				int j, k;
+				unsigned int j, k;
 				for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
 					ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_struct->cptr[k][idx];
 					for (j = 0; j < 8; ++j)
@@ -769,7 +769,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				idx = 0;
 		}
 		{
-			int j, k;
+			unsigned int j, k;
 			for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
 				ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_out[MixOrder[index+k]];
 				for (j = 0; j < 8; ++j)

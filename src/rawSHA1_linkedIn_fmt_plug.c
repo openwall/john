@@ -169,7 +169,7 @@ static char *get_key(int index) {
 #ifdef SIMD_COEF_32
 	unsigned int i,s;
 
-	s = saved_key[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
+	s = saved_key[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
 	for(i=0;i<s;i++)
 		out[i] = ((unsigned char*)saved_key)[ GETPOS(i, index) ];
 	out[i] = 0;
@@ -204,7 +204,7 @@ static int cmp_one(void * binary, int index)
 #ifdef SIMD_COEF_32
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
-	y = index/SIMD_COEF_32;
+	y = (unsigned int)index/SIMD_COEF_32;
 
 //	if( ((ARCH_WORD_32*)binary)[0] != crypt_key[x+y*SIMD_COEF_32*5] )
 //		return 0;

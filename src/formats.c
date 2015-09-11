@@ -763,7 +763,7 @@ static void test_fmt_case(struct fmt_main *format, void *binary,
 		*is_case_sensitive = 1;
 
 out:
-	free(plain_copy);
+	MEM_FREE(plain_copy);
 }
 
 static void test_fmt_8_bit(struct fmt_main *format, void *binary,
@@ -803,7 +803,129 @@ static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 	if (ret_all_set != ret_none_set)
 		*is_ignore_8th_bit = 0;
 
-	free(plain_copy);
+	MEM_FREE(plain_copy);
+}
+
+static int chrcasecmp(char lc, char rc)
+{
+	if (lc >= 'a' && lc <= 'z')
+		lc += 'A' - 'a';
+	if (rc >= 'a' && rc <= 'z')
+		rc += 'A' - 'a';
+	return lc - rc;
+}
+
+/*
+ * Since the split() may add prefix or suffix to the original ciphertext, and
+ * the split() may truncate the original ciphertext, so we would better get
+ * the longest common strings for the ciphertext and the string returned by
+ * split(), and check the cases
+ */
+static void get_longest_common_string(char *fstr, char *sstr, int *first_index,
+	int *second_index, int *size)
+{
+	int fi, si, max, fp, sp, cnt_len, fj, sj;
+
+	fi = si = max = 0;
+	fp = sp = 0;
+
+	while (fstr[fi]) {
+
+		si = max;
+		while (sstr[si]) {
+
+			if (!chrcasecmp(fstr[fi], sstr[si])) {
+
+				fj = fi - 1;
+				sj = si - 1;
+				cnt_len = 1;
+
+				while (fj >= 0 && sj >= 0) {
+					if (chrcasecmp(fstr[fj], sstr[sj]))
+						break;
+					cnt_len++;
+					fj--;
+					sj--;
+				}
+				if (cnt_len > max) {
+					max = cnt_len;
+					fp = fi;
+					sp = si;
+				}
+			}
+			si++;
+		}
+		fi++;
+	}
+
+	*size = max;
+	*first_index = fp - max + 1;
+	*second_index = sp - max + 1;
+}
+
+static int test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext)
+{
+	char *cipher_copy, *ret;
+	int first_index, second_index, size, index;
+	int change_count = 0;
+
+	cipher_copy = strdup(ciphertext);
+	ret = format->methods.split(cipher_copy, 0, format);
+	if (strcmp(cipher_copy, ret)) {
+		get_longest_common_string(cipher_copy, ret, &first_index,
+			&second_index, &size);
+		if (strncmp(cipher_copy + first_index, ret + second_index, size))
+			goto change_case;
+	}
+/*
+ * Find the second '$' if the ciphertext begins with '$'. We shoud not change the
+ * cases between the first and the second '$', since the string is format label
+ * and split() may check it
+ */
+	index = 0;
+	if (cipher_copy[0] == '$') {
+		index = 1;
+		while (cipher_copy[index] && cipher_copy[index] != '$')
+			index++;
+	}
+	if (!index && !strncmp(cipher_copy, "@dynamic=", 9)) {
+		index = 1;
+		while (cipher_copy[index] && cipher_copy[index] != '@')
+			index++;
+	}
+
+	// Lower case
+	strlwr(cipher_copy + index);
+	if (strcmp(cipher_copy + index, ciphertext + index))
+		++change_count;
+	ret = format->methods.split(cipher_copy, 0, format);
+	if (strcmp(cipher_copy, ret)) {
+		get_longest_common_string(cipher_copy, ret, &first_index,
+			&second_index, &size);
+		if (strncmp(cipher_copy + first_index, ret + second_index, size))
+			goto change_case;
+	}
+
+	// Upper case
+	strupr(cipher_copy + index);
+	if (strcmp(cipher_copy + index, ciphertext + index))
+		++change_count;
+	ret = format->methods.split(cipher_copy, 0, format);
+	if (strcmp(cipher_copy, ret)) {
+		get_longest_common_string(cipher_copy, ret, &first_index,
+			&second_index, &size);
+		if (strncmp(cipher_copy + first_index, ret + second_index, size))
+			goto change_case;
+	}
+
+	MEM_FREE(cipher_copy);
+	if (!change_count)
+		return -1;
+	return 0;
+
+change_case:
+	MEM_FREE(cipher_copy);
+	return 1;
 }
 
 static char *fmt_self_test_full_body(struct fmt_main *format,
@@ -825,10 +947,12 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 	int extra_tests = 0;
 #endif
 	int ml;
-	int plaintext_has_alpha = 0;  // Does plaintext has alphabet: a-z A-Z
-	int is_case_sensitive = 0;    // Is password case sensitive, FMT_CASE
-	int plaintext_is_blank = 1;   // Is plaintext blank ""
-	int is_ignore_8th_bit = 1;    // Is ignore 8th bit, FMT_8_BIT
+	int plaintext_has_alpha = 0;   // Does plaintext has alphabet: a-z A-Z
+	int is_case_sensitive = 0;     // Is password case sensitive, FMT_CASE
+	int plaintext_is_blank = 1;    // Is plaintext blank ""
+	int is_ignore_8th_bit = 1;     // Is ignore 8th bit, FMT_8_BIT
+	int is_split_unifies_case = 0; // Is split() unifies case
+	int cnt_split_unifies_case = 0;// just in case only the last test case unifies.
 
 	// validate that there are no NULL function pointers
 	if (format->methods.prepare == NULL)    return "method prepare NULL";
@@ -1005,8 +1129,22 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 			}
 		}
 #endif
+		++cnt_split_unifies_case;
+		// here we find cases where the unify_case flag is not set
+		// but should be, is set but should not be, and where the
+		// case unification code only 'sometimes' works.
+		if (is_split_unifies_case == 0 &&
+		    test_fmt_split_unifies_case(format, ciphertext) == 1) {
+			if (cnt_split_unifies_case > 1)
+				is_split_unifies_case = -1;
+			else
+				is_split_unifies_case = 1;
+		} else if (is_split_unifies_case == 1 &&
+		           !test_fmt_split_unifies_case(format, ciphertext))
+			is_split_unifies_case = -1;
 
 		ciphertext = format->methods.split(ciphertext, 0, format);
+
 		if (!ciphertext)
 			return "split() returned NULL";
 		plaintext = current->plaintext;
@@ -1278,6 +1416,18 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 				format->params.label);
 			return err_buf;
 		}
+	}
+
+	if (is_split_unifies_case == 1 && !(format->params.flags & FMT_SPLIT_UNIFIES_CASE)) {
+		snprintf(err_buf, sizeof(err_buf), "should set FMT_SPLIT_UNIFIES_CASE");
+		return err_buf;
+	} else if (!is_split_unifies_case && (format->params.flags & FMT_SPLIT_UNIFIES_CASE)) {
+		snprintf(err_buf, sizeof(err_buf), "should not set FMT_SPLIT_UNIFIES_CASE");
+		return err_buf;
+	} else if (is_split_unifies_case == -1) {
+		snprintf(err_buf, sizeof(err_buf),
+			"FMT_SPLIT_UNIFIES_CASE is only working for some cases");
+		return err_buf;
 	}
 
 	format->methods.clear_keys();

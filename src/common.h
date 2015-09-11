@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2005,2009,2011,2013 by Solar Designer
+ * Copyright (c) 1996-99,2005,2009,2011,2013,2015 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -78,9 +78,9 @@ typedef unsigned long long ARCH_WORD_64;
  * ASCII <-> binary conversion tables.
  */
 extern const char itoa64[64]; /* crypt(3) base64 - not MIME Base64! */
-extern char atoi64[0x100];
+extern unsigned char atoi64[0x100];
 extern const char itoa16[16];
-extern char atoi16[0x100];
+extern unsigned char atoi16[0x100], atoi16l[0x100];
 extern const char itoa16u[16]; // uppercase
 
 /*

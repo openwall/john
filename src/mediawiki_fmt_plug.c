@@ -80,6 +80,7 @@ john_register_one(&fmt_mediawiki);
 
 static struct fmt_tests mediawiki_tests[] = {
 	{"$B$113$de2874e33da25313d808d2a8cbf31485",      "qwerty"},
+	{"$dynamic_9$de2874e33da25313d808d2a8cbf31485$113-",      "qwerty"},
 	{"$B$bca6c557$8d187736f828e4cb032bd6c7a268cd95", "abc123"},
 	{"$B$6$70b3e0907f028877ea47c16496d6df6d",        ""},
 	{"$B$761$3ae7c8e25addfd82544c0c0b1ca8f5e4",      "password"},
@@ -121,14 +122,29 @@ static char *Convert(char *Buf, char *ciphertext)
 static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	// Convert from dyna_9 back into $B$ (only if last byte of salt is '-'
+	char *cp;
 	if (!strncmp(ciphertext, "$dynamic_9$", 11) && ciphertext[strlen(ciphertext)-1] == '-') {
 		static char Buf[128], *cp;
 		strcpy(Buf, "$B$");
 		cp = strrchr(ciphertext, '$');
 		if (cp && strlen(cp) < 65 && strlen(cp) > 2) {
+			int len;
 			strcat(Buf, &cp[1]);
 			Buf[strlen(Buf)-1] = '$';  // remove the '-' char, simply replace it with the '$'
-			sprintf(&Buf[strlen(Buf)], "%32.32s", &ciphertext[11]);
+			len = strlen(Buf);
+			sprintf(&Buf[len], "%32.32s", &ciphertext[11]);
+			strlwr(&Buf[len]);
+			return Buf;
+		}
+	}
+	// we may stil have to unify case (to lower) since we have FMT_SPLIT_UNIFIES_CASE set.
+	if (!strncmp(ciphertext, "$B$", 3)) {
+		cp = strchr(&ciphertext[3], '$');
+		if (cp) {
+			static char Buf[128];
+			strnzcpy(Buf, ciphertext, sizeof(Buf));
+			cp = strchr(&Buf[3], '$')+1;
+			strlwr(cp);
 			return Buf;
 		}
 	}

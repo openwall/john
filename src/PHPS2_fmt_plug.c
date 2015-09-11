@@ -45,7 +45,7 @@ john_register_one(&fmt_PHPS2);
 
 static char *dyna_script =
 	"Expression=md5(md5($p).$s)\n"
-    "Flag=MGF_SALTED\n"
+	"Flag=MGF_SALTED\n"
 	"Flag=MGF_KEYS_BASE16_IN1\n"
 	"SaltLen=3\n"
 	"MaxInputLenX86=110\n"
@@ -107,6 +107,7 @@ static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 		// convert back into $PHPS$ format
 		static char Buf[128];
 		char *cp;
+
 		strcpy(Buf, "$PHPS$");
 		cp = strchr(&ciphertext[11], '$');
 		++cp;
@@ -121,6 +122,13 @@ static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 		}
 		strcat(Buf, "$");
 		sprintf(&Buf[strlen(Buf)], "%32.32s", &ciphertext[11]);
+		strlwr(&Buf[6]);
+		return Buf;
+	}
+	if (!strncmp(ciphertext, "$PHPS$", 6)) {
+		static char Buf[128];
+		strnzcpy(Buf, ciphertext, sizeof(Buf));
+		strlwr(&Buf[6]);
 		return Buf;
 	}
 	return ciphertext;

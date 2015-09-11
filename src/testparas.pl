@@ -19,7 +19,7 @@ my $test="-test";
 my $john_build;
 my $default_para = "";
 my $gomp_stuff = "";
-my $num_cpus = "-j4";
+my $num_cpus = 4;
 
 if (defined($ARGV[0]) && $ARGV[0] > 0) { $test="-test=$ARGV[0]"; }
 if (defined($ARGV[1]) && $ARGV[1] > 0) { $num_cpus = $ARGV[1]; }
