@@ -195,19 +195,26 @@ static void link_funcs() {
 		fmt_CompiledDynamic.params.benchmark_length = -1;
 	else
 		fmt_CompiledDynamic.params.benchmark_length = 0;
-	if ((pPriv->pSetup->flags&MGF_PASSWORD_UPCASE)==MGF_PASSWORD_UPCASE) {
+	if (pPriv->pSetup->flags&MGF_PASSWORD_UPCASE) {
 		tests[0].plaintext = "ABC";
 		tests[1].plaintext = "JOHN";
 		tests[2].plaintext= "PASSWEIRD";
 		for (i = 0; i < pPriv->pSetup->MaxInputLen; i++)
 			max_vector[i] = 'A' + (i % 26);
 		max_vector[i] = 0;
-	} else {
+	} else if (pPriv->pSetup->flags&MGF_PASSWORD_LOCASE) {
 		tests[0].plaintext = "abc";
 		tests[1].plaintext = "john";
 		tests[2].plaintext= "passweird";
 		for (i = 0; i < pPriv->pSetup->MaxInputLen; i++)
 			max_vector[i] = 'a' + (i % 26);
+		max_vector[i] = 0;
+	} else {
+		tests[0].plaintext = "abc";
+		tests[1].plaintext = "john";
+		tests[2].plaintext= "passweird";
+		for (i = 0; i < pPriv->pSetup->MaxInputLen; i++)
+			max_vector[i] = 'A' + (i % 26) + ((i % 52) > 25 ? 0x20 : 0);
 		max_vector[i] = 0;
 	}
 	tests[3].plaintext = max_vector;
