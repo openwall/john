@@ -50,15 +50,14 @@ john_register_one(&fmt_CompiledDynamic);
 
 extern const char *dyna_script;
 extern const char *dyna_signature;
-extern const char *dyna_line1;
-extern const char *dyna_line2;
-extern const char *dyna_line3;
 extern int dyna_sig_len;
 
-static struct fmt_tests tests[] = {
+static struct fmt_tests tests[DC_NUM_VECTORS + 1] = {
 	{"@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72", "abc"},
 	{"@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785", "john"},
 	{"@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb", "passweird"},
+	{"@dynamic=md5($p)@142a42ffcb282cf8087dd4dfebacdec2", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABC"},
+	{"@dynamic=md5($p)@d41d8cd98f00b204e9800998ecf8427e", ""},
 	{NULL},
 };
 
@@ -163,8 +162,11 @@ struct fmt_main fmt_CompiledDynamic =
 };
 
 static void link_funcs() {
+	static char max_vector[PLAINTEXT_BUFFER_SIZE];
 	char *cp;
 	private_subformat_data *pPriv = fmt_CompiledDynamic.private.data;
+	int i;
+
 	cp = strrchr(fmt_CompiledDynamic.params.algorithm_name, ')');
 	if (cp) {
 		fmt_CompiledDynamic.params.label = fmt_CompiledDynamic.params.algorithm_name;
@@ -183,9 +185,8 @@ static void link_funcs() {
 	fmt_CompiledDynamic.methods.split = our_split;
 	fmt_CompiledDynamic.methods.prepare = our_prepare;
 	fmt_CompiledDynamic.methods.done = our_done;
-	fmt_CompiledDynamic.params.tests[0].ciphertext = (char*)dyna_line1;
-	fmt_CompiledDynamic.params.tests[1].ciphertext = (char*)dyna_line2;
-	fmt_CompiledDynamic.params.tests[2].ciphertext = (char*)dyna_line3;
+	for (i = 0; i < DC_NUM_VECTORS; i++)
+		fmt_CompiledDynamic.params.tests[i].ciphertext = (char*)dyna_line[i];
 
 	/* for now, turn off FMT_SPLIT_UNIFIES_CASE until we get the code right */
 	fmt_CompiledDynamic.params.flags &= ~FMT_SPLIT_UNIFIES_CASE;
@@ -198,11 +199,19 @@ static void link_funcs() {
 		tests[0].plaintext = "ABC";
 		tests[1].plaintext = "JOHN";
 		tests[2].plaintext= "PASSWEIRD";
+		for (i = 0; i < pPriv->pSetup->MaxInputLen; i++)
+			max_vector[i] = 'A' + (i % 26);
+		max_vector[i] = 0;
 	} else {
 		tests[0].plaintext = "abc";
 		tests[1].plaintext = "john";
 		tests[2].plaintext= "passweird";
+		for (i = 0; i < pPriv->pSetup->MaxInputLen; i++)
+			max_vector[i] = 'a' + (i % 26);
+		max_vector[i] = 0;
 	}
+	tests[3].plaintext = max_vector;
+	tests[4].plaintext = "";
 }
 
 static void our_init(struct fmt_main *self)
@@ -219,7 +228,7 @@ static void get_ptr() {
 		dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS(dyna_script, &dyna_type, &fmt_CompiledDynamic, Convert);
 		sprintf (dyna_hash_type, "$dynamic_%d$", dyna_type);
 		dyna_hash_type_len = strlen(dyna_hash_type);
-		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_CompiledDynamic, Convert(Conv_Buf, (char*)dyna_line1, 0), "@dynamic=", 0);
+		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_CompiledDynamic, Convert(Conv_Buf, (char*)dyna_line[0], 0), "@dynamic=", 0);
 		link_funcs();
 	}
 }

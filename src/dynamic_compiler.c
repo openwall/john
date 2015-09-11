@@ -215,9 +215,13 @@ typedef struct DC_list {
 
 const char *dyna_script = "Expression=dynamic=md5($p)\nFlag=MGF_KEYS_INPUT\nFunc=DynamicFunc__crypt_md5\nTest=@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72:abc";
 const char *dyna_signature = "@dynamic=md5($p)@";
-const char *dyna_line1 = "@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72";
-const char *dyna_line2 = "@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785";
-const char *dyna_line3 = "@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb";
+const char *dyna_line[DC_NUM_VECTORS] = {
+	"@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72",
+	"@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785",
+	"@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb",
+	"@dynamic=md5($p)@142a42ffcb282cf8087dd4dfebacdec2",
+	"@dynamic=md5($p)@d41d8cd98f00b204e9800998ecf8427e",
+};
 const char *options_format="";
 
 static int dyna_sig_len = 17;
@@ -324,13 +328,15 @@ static void DumpParts2(char *part, char *cp, char *comment) {
 static void dump_HANDLE(void *_p) {
 	DC_struct *p = (DC_struct*)_p;
 	char *cp;
+	int i;
+
 	printf("\ncrc32 = %08X\n", p->crc32);
 	printf("pExpr=%s\n", p->pExpr);
 	printf("extraParams=%s\n", p->pExtraParams);
 	printf("signature=%s\n", p->pSignature);
-	printf("line1=%s\n", p->pLine1);
-	printf("line2=%s\n", p->pLine2);
-	printf("line3=%s\n\n", p->pLine3);
+	for (i = 0; i < DC_NUM_VECTORS; i++)
+		if (p->pLine[i])
+			printf("line%d=%s\n", i, p->pLine[i]);
 
 	// Now print out a nicely commented script, and put it back into order.
 	// order does not matter for the dyna-parser, BUT putting in good form
@@ -447,7 +453,8 @@ static int ngen_Stack, ngen_Stack_max;
 static char *h;
 static int h_len;
 static int nSaltLen = -32;
-static char gen_s[260], gen_s2[16], gen_u[16], gen_uuc[16], gen_ulc[16], gen_pw[16], gen_puc[16], gen_plc[16], gen_conv[260];
+static char gen_s[260], gen_conv[260];
+static char gen_s2[PLAINTEXT_BUFFER_SIZE], gen_u[PLAINTEXT_BUFFER_SIZE], gen_uuc[PLAINTEXT_BUFFER_SIZE], gen_ulc[PLAINTEXT_BUFFER_SIZE], gen_pw[PLAINTEXT_BUFFER_SIZE], gen_puc[PLAINTEXT_BUFFER_SIZE], gen_plc[PLAINTEXT_BUFFER_SIZE];
 
 /*
  * These are the 'low level' primative functions ported from pass_gen.pl.
@@ -1456,6 +1463,7 @@ static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex
 	// is a simple expression.
 	int len = strlen(keys_base16_in1_type), i, side=2;
 	char *p = strchr(pExpr, '('), *pScr;
+
 	*p++ = 0;
 	if (bOffsetHashIn1) {
 		side = 1;
@@ -1517,11 +1525,17 @@ static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex
 
 	// Build test strings.
 	strcpy(gen_pw, "abc");
-	build_test_string(_p, &_p->pLine1);
+	build_test_string(_p, &_p->pLine[0]);
 	strcpy(gen_pw, "john");
-	build_test_string(_p, &_p->pLine2);
+	build_test_string(_p, &_p->pLine[1]);
 	strcpy(gen_pw, "passweird");
-	build_test_string(_p, &_p->pLine3);
+	build_test_string(_p, &_p->pLine[2]);
+	for (i = 0; i < 110; i++)
+		gen_pw[i] = 'A' + (i % 26) + ((i % 52) > 25 ? 0x20 : 0);
+	gen_pw[i] = 0;
+	build_test_string(_p, &_p->pLine[3]);
+	strcpy(gen_pw, "");
+	build_test_string(_p, &_p->pLine[4]);
 
 	len = i = 0;
 	for (i = 0; i < nScriptLines; ++i)
@@ -1553,6 +1567,8 @@ static int parse_expression(DC_struct *p) {
 	char *pExpr, *pScr;
 	int salt_hex_len = 0;
 	int keys_hex_len = 0;
+	int max_inp_len = 110;
+
 	init_static_data();
 	// first handle the extra strings
 	if (handle_extra_params(p))
@@ -1648,11 +1664,11 @@ static int parse_expression(DC_struct *p) {
 
 	// Ok now run the script
 	{
-		int x, j, last_push;
+		int x, i, j, last_push;
 		int salt_len = nSaltLen ? nSaltLen : -32;
 		int in_unicode = 0, out_raw = 0, out_64 = 0, out_64c = 0, out_16u = 0, flag_utf16 = 0;
 		int append_mode = 0, append_mode2 = 0;
-		int max_inp_len = 110, len_comp = 0, len_comp2 = 0;
+		int len_comp = 0, len_comp2 = 0;
 		int inp1_clean = 0, exponent = -1;
 		int use_inp1 = 1, use_inp1_again = 0;
 		int inp_cnt = 0, ex_cnt = 0, salt_cnt = 0;
@@ -2013,11 +2029,17 @@ static int parse_expression(DC_struct *p) {
 
 	// Build test strings.
 	strcpy(gen_pw, "abc");
-	build_test_string(p, &p->pLine1);
+	build_test_string(p, &p->pLine[0]);
 	strcpy(gen_pw, "john");
-	build_test_string(p, &p->pLine2);
+	build_test_string(p, &p->pLine[1]);
 	strcpy(gen_pw, "passweird");
-	build_test_string(p, &p->pLine3);
+	build_test_string(p, &p->pLine[2]);
+	for (i = 0; i < max_inp_len; i++)
+		gen_pw[i] = 'A' + (i % 26) + ((i % 52) > 25 ? 0x20 : 0);
+	gen_pw[i] = 0;
+	build_test_string(p, &p->pLine[3]);
+	strcpy(gen_pw, "");
+	build_test_string(p, &p->pLine[4]);
 
 	len = i = 0;
 	for (i = 0; i < nScriptLines; ++i)
@@ -2339,17 +2361,19 @@ char *dynamic_compile_split(char *ct) {
 }
 
 int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt) {
+	int i;
+
 	if (!((DC_struct*)H) || ((DC_struct*)H)->magic != DC_MAGIC)
 		return -1;
 	dyna_script = ((DC_struct*)H)->pScript;
 	dyna_signature = ((DC_struct*)H)->pSignature;
-	dyna_line1 = ((DC_struct*)H)->pLine1;
-	dyna_line2 = ((DC_struct*)H)->pLine2;
-	dyna_line3 = ((DC_struct*)H)->pLine3;
+	for (i = 0; i < DC_NUM_VECTORS; i++)
+		dyna_line[i] = ((DC_struct*)H)->pLine[i];
 	dyna_sig_len = strlen(dyna_signature);
 	((DC_struct*)H)->pFmt = pFmt;
 	return 0;
 }
+
 void dynamic_compile_done() {
 	init_static_data(); /* this will free all allocated crap */
 }
@@ -2378,9 +2402,13 @@ int big_gen_one(int Num, char *cpExpr) {
 	p2 = (DC_struct *)p;
 	if (ret || !p2->pScript) return !!printf ("Error, null script variable in type %d\n", Num);
 	printf ("static struct fmt_tests _Preloads_%d[] = {\n", Num);
-	printf ("    {\"$dynamic_%d$%s\",\"abc\"},\n",Num, strchr(&(p2->pLine1[1]), '@')+1);
-	printf ("    {\"$dynamic_%d$%s\",\"john\"},\n",Num, strchr(&(p2->pLine2[1]), '@')+1);
-	printf ("    {\"$dynamic_%d$%s\",\"passweird\"},\n",Num, strchr(&(p2->pLine3[1]), '@')+1);
+	/*
+	 * FIXME This should be rewritten, using DC_NUM_VECTORS and not
+	 * hard coding stuff:
+	 */
+	printf ("    {\"$dynamic_%d$%s\",\"abc\"},\n",Num, strchr(&(p2->pLine[0][1]), '@')+1);
+	printf ("    {\"$dynamic_%d$%s\",\"john\"},\n",Num, strchr(&(p2->pLine[1][1]), '@')+1);
+	printf ("    {\"$dynamic_%d$%s\",\"passweird\"},\n",Num, strchr(&(p2->pLine[2][1]), '@')+1);
 	printf ("    {NULL}};\n");
 	return 0;
 }
@@ -2424,7 +2452,7 @@ int big_gen(char *cpType, char *cpNum) {
 int main(int argc, char **argv) {
 	DC_HANDLE p;
 	DC_struct *p2;
-	int ret;
+	int i, ret;
 
 	CRC32_Init_tab();
 	compile_debug = 1;
@@ -2439,9 +2467,9 @@ int main(int argc, char **argv) {
 	printf("Expression:  %s\n", p2->pExpr);
 	printf("ExtraParams: %s\n", p2->pExtraParams);
 	printf("Signature:   %s\n", p2->pSignature);
-	printf("Test Line:   %s\n", p2->pLine1);
-	printf("Test Line:   %s\n", p2->pLine2);
-	printf("Test Line:   %s\n", p2->pLine3);
+	for (i = 0; i < DC_NUM_VECTORS; i++)
+		if (p2->pLine[i])
+			printf("Test Line:   %s\n", p2->pLine[i]);
 	printf("crc32:       %08x\n", p2->crc32);
 	if (nConst) {
 		int i;
