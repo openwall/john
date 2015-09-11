@@ -27,6 +27,9 @@ extern void dynamic_compile_done();
 extern DC_HANDLE dynamic_compile_library(const char *expr, uint32_t crc32);
 
 #define DC_MAGIC 0x654d7baf
+#define DC_NUM_VECTORS 5
+
+extern const char *dyna_line[DC_NUM_VECTORS];
 
 /* this structure is WHAT is pointed to by a DC_HANDLE */
 typedef struct DC_struct {
@@ -37,9 +40,7 @@ typedef struct DC_struct {
 	char *pExtraParams;
 	char *pScript;
 	char *pSignature;
-	char *pLine1;
-	char *pLine2;
-	char *pLine3;
+	char *pLine[DC_NUM_VECTORS];
 } DC_struct;
 
 #endif // __DYNAMIC_COMPILER_H__
