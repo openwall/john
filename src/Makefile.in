@@ -277,38 +277,9 @@ cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
 
 @PLUGFORMATS_DEPS@
 
-######## auto-generated, best-effort
+######## auto-generated, best-effort:
+
 AFS_fmt.o:	AFS_fmt.c arch.h misc.h params.h DES_std.h common.h formats.h memdbg.h
-
-BF_common.o:	BF_common.c arch.h misc.h common.h formats.h BF_common.h
-
-BF_fmt.o:	BF_fmt.c arch.h misc.h BF_std.h common.h formats.h memdbg.h
-
-BF_std.o:	BF_std.c arch.h common.h BF_std.h memdbg.h
-
-BSDI_fmt.o:	BSDI_fmt.c arch.h misc.h DES_std.h common.h formats.h DES_bs.h memdbg.h
-
-DES_bs.o:	DES_bs.c arch.h common.h DES_std.h DES_bs.h unicode.h memdbg.h
-
-DES_fmt.o:	DES_fmt.c arch.h DES_std.h common.h formats.h DES_bs.h memdbg.h
-
-KeccakDuplex.o:	KeccakDuplex.c KeccakDuplex.h KeccakF-1600-interface.h memdbg.h
-
-KeccakF-1600-opt64.o:	KeccakF-1600-opt64.c brg_endian.h KeccakF-1600-opt64-settings.h KeccakF-1600-interface.h memdbg.h
-
-KeccakHash.o:	KeccakHash.c KeccakHash.h KeccakF-1600-interface.h memdbg.h
-
-KeccakSponge.o:	KeccakSponge.c KeccakSponge.h KeccakF-1600-interface.h memdbg.h
-
-DES_std.o:	DES_std.c arch.h common.h DES_std.h memdbg.h misc.h
-
-LM_fmt.o:	LM_fmt.c arch.h misc.h memory.h DES_bs.h common.h formats.h memdbg.h
-
-MD5_fmt.o:	MD5_fmt.c arch.h misc.h simd-intrinsics.h MD5_std.h common.h formats.h memdbg.h
-
-MD5_std.o:	MD5_std.c arch.h common.h MD5_std.h memdbg.h
-
-SIPdump.o:	SIPdump.c autoconfig.h tcphdr.h SIPdump.h memdbg.h
 
 base64.o:	base64.c memdbg.h
 
@@ -320,7 +291,15 @@ bench.o:	bench.c os.h times.h arch.h misc.h math.h params.h memory.h signals.h f
 
 best.o:	best.c os.h math.h params.h common.h formats.h bench.h memdbg.h
 
+BF_common.o:	BF_common.c arch.h misc.h common.h formats.h BF_common.h
+
+BF_fmt.o:	BF_fmt.c arch.h misc.h BF_std.h common.h formats.h memdbg.h
+
+BF_std.o:	BF_std.c arch.h common.h BF_std.h memdbg.h
+
 blowfish.o:	blowfish.c blowfish.h bf_tab.h memory.h johnswap.h memdbg.h
+
+BSDI_fmt.o:	BSDI_fmt.c arch.h misc.h DES_std.h common.h formats.h DES_bs.h memdbg.h
 
 c3_fmt.o:	c3_fmt.c autoconfig.h options.h arch.h misc.h params.h memory.h common.h formats.h loader.h john.h john-mpi.h memdbg.h
 
@@ -345,6 +324,12 @@ cracker.o:	cracker.c os.h arch.h misc.h math.h params.h memory.h signals.h idle.
 crc32.o:	crc32.c memory.h crc32.h memdbg.h
 
 cryptmd5_common.o:	cryptmd5_common.c arch.h misc.h common.h formats.h cryptmd5_common.h
+
+DES_bs.o:	DES_bs.c arch.h common.h DES_std.h DES_bs.h unicode.h memdbg.h
+
+DES_fmt.o:	DES_fmt.c arch.h DES_std.h common.h formats.h DES_bs.h memdbg.h
+
+DES_std.o:	DES_std.c arch.h common.h DES_std.h memdbg.h misc.h
 
 dmg2john.o:	dmg2john.c autoconfig.h stdint.h filevault.h misc.h jumbo.h memdbg.h
 
@@ -378,6 +363,8 @@ gost.o:	gost.c gost.h memdbg.h
 
 gpg2john.o:	gpg2john.c autoconfig.h arch.h jumbo.h misc.h memdbg.h
 
+haval.o:	haval.c arch.h sph_haval.h memdbg.h haval_helper.c haval_helper.c haval_helper.c
+
 haval_helper.o:	haval_helper.c
 
 hccap2john.o:	hccap2john.c autoconfig.h jumbo.h os.h common.h memdbg.h
@@ -392,17 +379,21 @@ john-mpi.o:	john-mpi.c autoconfig.h john-mpi.h john.h memory.h memdbg.h
 
 jumbo.o:	jumbo.c jumbo.h params.h memory.h memdbg.h
 
+KeccakDuplex.o:	KeccakDuplex.c KeccakDuplex.h KeccakF-1600-interface.h memdbg.h
+
+KeccakF-1600-opt64.o:	KeccakF-1600-opt64.c brg_endian.h KeccakF-1600-opt64-settings.h KeccakF-1600-interface.h memdbg.h
+
+KeccakHash.o:	KeccakHash.c KeccakHash.h KeccakF-1600-interface.h memdbg.h
+
+KeccakSponge.o:	KeccakSponge.c KeccakSponge.h KeccakF-1600-interface.h memdbg.h
+
 keepass2john.o:	keepass2john.c autoconfig.h stdint.h missing_getopt.h jumbo.h params.h memory.h memdbg.h
 
 list.o:	list.c memory.h list.h memdbg.h
 
-version.h: find_version
-
-find_version:
-	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
-	diff >/dev/null 2>/dev/null version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
-
 listconf.o:	version.h listconf.h listconf.c autoconfig.h arch.h jumbo.h params.h path.h formats.h options.h unicode.h dynamic.h config.h regex.h john_build_rule.h common-opencl.h memdbg.h
+
+LM_fmt.o:	LM_fmt.c arch.h misc.h memory.h DES_bs.h common.h formats.h memdbg.h
 
 loader.o:	loader.c autoconfig.h jumbo.h os.h arch.h misc.h params.h path.h memory.h list.h signals.h formats.h dyna_salt.h loader.h options.h config.h unicode.h dynamic.h fake_salts.h john.h cracker.h config.h logger.h memdbg.h
 
@@ -412,9 +403,15 @@ mask.o:	mask.c misc.h logger.h recovery.h os.h signals.h status.h options.h conf
 
 math.o:	math.c arch.h math.h memdbg.h
 
+md2.o:	md2.c sph_md2.h memdbg.h
+
 md4.o:	md4.c md4.h memdbg.h
 
 md5.o:	md5.c md5.h memdbg.h
+
+MD5_fmt.o:	MD5_fmt.c arch.h misc.h simd-intrinsics.h MD5_std.h common.h formats.h memdbg.h
+
+MD5_std.o:	MD5_std.c arch.h common.h MD5_std.h memdbg.h
 
 md_helper.o:	md_helper.c
 
@@ -438,21 +435,11 @@ nonstd.o:	nonstd.c
 
 NT_fmt.o:	NT_fmt.c arch.h misc.h memory.h common.h formats.h options.h unicode.h aligned.h johnswap.h memdbg.h
 
-whirlpool.o:	whirlpool.c sph_whirlpool.h memdbg.h md_helper.c md_helper.c md_helper.c
-
-haval.o:	haval.c arch.h sph_haval.h memdbg.h haval_helper.c haval_helper.c haval_helper.c
-
-skein.o:	skein.c sph_skein.h memdbg.h
-
-md2.o:	md2.c sph_md2.h memdbg.h
-
-panama.o:	panama.c sph_panama.h memdbg.h
-
-skein.o:        skein.c sph_skein.h memdbg.h
-
 opencl_autotune.o:	opencl_autotune.c common-opencl.h memdbg.h
 
 options.o:	version.h listconf.h options.c os.h arch.h misc.h params.h memory.h list.h loader.h logger.h status.h recovery.h options.h bench.h external.h john.h dynamic.h unicode.h fake_salts.h regex.h john-mpi.h common-opencl.h prince.h memdbg.h john_build_rule.h
+
+panama.o:	panama.c sph_panama.h memdbg.h
 
 params.o:	params.c params.h memdbg.h
 
@@ -492,9 +479,13 @@ sha2.o:	sha2.c arch.h sha2.h params.h common.h johnswap.h memdbg.h
 
 signals.o:	signals.c os.h arch.h misc.h params.h tty.h options.h config.h bench.h john.h status.h signals.h john-mpi.h memdbg.h
 
+simd-intrinsics.o:	simd-intrinsics.c pseudo_intrinsics.h arch.h memory.h md5.h MD5_std.h stdint.h johnswap.h simd-intrinsics-load-flags.h aligned.h memdbg.h
+
 single.o:	single.c misc.h params.h common.h memory.h os.h signals.h loader.h logger.h status.h recovery.h options.h rpp.h rules.h external.h cracker.h john.h unicode.h config.h memdbg.h
 
-simd-intrinsics.o:	simd-intrinsics.c pseudo_intrinsics.h arch.h memory.h md5.h MD5_std.h stdint.h johnswap.h simd-intrinsics-load-flags.h aligned.h memdbg.h
+SIPdump.o:	SIPdump.c autoconfig.h tcphdr.h SIPdump.h memdbg.h
+
+skein.o:	skein.c sph_skein.h memdbg.h
 
 ssh2john.o:	ssh2john.c jumbo.h common.h arch.h params.h memdbg.h
 
@@ -538,18 +529,26 @@ unshadow.o:	unshadow.c misc.h params.h memory.h memdbg.h
 
 vncpcap2john.o:	vncpcap2john.c autoconfig.h cygwin/ethernet.h tcphdr.h memdbg.h
 
+whirlpool.o:	whirlpool.c sph_whirlpool.h memdbg.h md_helper.c md_helper.c md_helper.c
+
 win32_memmap.o:	win32_memmap.c os.h win32_memmap.h misc.h memdbg.h
 
 wordlist.o:	wordlist.c autoconfig.h os.h win32_memmap.h mmap-windows.c arch.h jumbo.h misc.h math.h params.h common.h path.h signals.h loader.h logger.h status.h recovery.h options.h rpp.h rules.h external.h cracker.h john.h memory.h unicode.h regex.h mask.h memdbg.h
-
-pp.o:	pp.c prince.h mpz_int128.h autoconfig.h os.h arch.h jumbo.h misc.h math.h params.h common.h path.h signals.h loader.h logger.h status.h recovery.h options.h external.h cracker.h john.h memory.h unicode.h memdbg.h
-	$(CC) $(CFLAGS) $(OPT_NORMAL) -DJTR_MODE -Wno-declaration-after-statement -std=c99 -c pp.c
 
 wpapcap2john.o:	wpapcap2john.c wpapcap2john.h memdbg.h
 
 zip2john.o:	zip2john.c common.h jumbo.h formats.h stdint.h pkzip.h missing_getopt.h memdbg.h
 
-########
+######## End auto-generated
+
+pp.o:	pp.c prince.h mpz_int128.h autoconfig.h os.h arch.h jumbo.h misc.h math.h params.h common.h path.h signals.h loader.h logger.h status.h recovery.h options.h external.h cracker.h john.h memory.h unicode.h memdbg.h
+	$(CC) $(CFLAGS) $(OPT_NORMAL) -DJTR_MODE -Wno-declaration-after-statement -std=c99 -c pp.c
+
+version.h: find_version
+
+find_version:
+	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
+	diff >/dev/null 2>/dev/null version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
 
 SUBDIRS = aes
 
