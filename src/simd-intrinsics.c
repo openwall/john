@@ -95,9 +95,9 @@ _inline __m128i _mm_set1_epi64(long long a)
     tmp[i] = vxor((tmp[i]),(x[i]));
 #endif
 
-#if __AVX512__
+#if __AVX512F__
 #define MD5_I(x,y,z)                            \
-	tmp[i] = vternarylogic(x, y, z, 0x39);
+    tmp[i] = vternarylogic(x, y, z, 0x39);
 #elif __ARM_NEON__
 #define MD5_I(x,y,z)                            \
     tmp[i] = vorn((x[i]), (z[i]));              \
@@ -710,7 +710,7 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 
 #if __AVX512F__
 #define MD4_G(x,y,z)                            \
-	tmp[i] = vternarylogic(x[i], y[i], z[i], 0xE8);
+    tmp[i] = vternarylogic(x[i], y[i], z[i], 0xE8);
 #elif !VCMOV_EMULATED
 #define MD4_G(x,y,z)                            \
     tmp[i] = vxor((y[i]), (z[i]));              \
@@ -1050,7 +1050,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 
 #if __AVX512F__
 #define SHA1_G(x,y,z)                           \
-	tmp[i] = vternarylogic(x[i], y[i], z[i], 0x96);
+    tmp[i] = vternarylogic(x[i], y[i], z[i], 0x96);
 #else
 #define SHA1_G(x,y,z)                           \
     tmp[i] = vxor((y[i]),(z[i]));               \
@@ -1059,7 +1059,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 
 #if __AVX512F__
 #define SHA1_H(x,y,z)                           \
-	tmp[i] = vternarylogic(x[i], y[i], z[i], 0xE8);
+    tmp[i] = vternarylogic(x[i], y[i], z[i], 0xE8);
 #elif !VCMOV_EMULATED
 #define SHA1_H(x,y,z)                           \
     tmp[i] = vxor((z[i]), (y[i]));              \
