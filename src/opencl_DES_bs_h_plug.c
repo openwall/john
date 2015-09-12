@@ -62,6 +62,7 @@ static void create_clobj(struct db_main *db)
 	buffer_map = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 768 * sizeof(unsigned int), opencl_DES_bs_index768, &ret_code);
 	HANDLE_CLERROR(ret_code, "Create buffer_map.\n");
 
+	create_int_keys_buffer();
 	build_tables(db);
 }
 
@@ -73,6 +74,7 @@ static void release_clobj()
 		MEM_FREE(marked_salts);
 		HANDLE_CLERROR(clReleaseMemObject(buffer_map), "Release buffer_map failed.\n");
 		release_tables();
+		release_int_keys_buffer();
 		buffer_map = 0;
 	}
 
@@ -152,7 +154,7 @@ static void reset(struct db_main *db)
 		create_clobj(db);
 
 		create_checking_kernel_set_args(buffer_unchecked_hashes);
-		create_keys_kernel_set_args(buffer_bs_keys);
+		create_keys_kernel_set_args(buffer_bs_keys, 0);
 
 		for (i = 0; i < global_work_size; i++)
 		opencl_DES_bs_init(i);
@@ -170,7 +172,7 @@ static void reset(struct db_main *db)
 		create_clobj(NULL);
 
 		create_checking_kernel_set_args(buffer_unchecked_hashes);
-		create_keys_kernel_set_args(buffer_bs_keys);
+		create_keys_kernel_set_args(buffer_bs_keys, 0);
 
 		for (i = 0; i < global_work_size; i++)
 			opencl_DES_bs_init(i);

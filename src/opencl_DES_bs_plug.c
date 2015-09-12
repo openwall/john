@@ -16,6 +16,7 @@
 #include "opencl_DES_hst_dev_shared.h"
 #include "unicode.h"
 #include "bt_interface.h"
+#include "mask_ext.h"
 #include "memdbg.h"
 
 typedef struct {
@@ -32,7 +33,7 @@ DES_hash_check_params *hash_chk_params = NULL;
 static WORD current_salt = 0;
 
 static cl_kernel keys_kernel = 0;
-static cl_mem buffer_raw_keys = 0;
+static cl_mem buffer_raw_keys = 0, buffer_int_des_keys = 0;
 static int keys_changed = 1;
 static des_combined *des_all;
 static opencl_DES_bs_transfer *des_raw_keys;
@@ -620,6 +621,238 @@ int opencl_DES_bs_cmp_exact(char *source, int index)
 
 /* End of hash checking. */
 
+typedef union {
+	unsigned char c[8][sizeof(DES_bs_vector)];
+	DES_bs_vector v[8];
+} key_page;
+
+#define vxorf(a, b) 					\
+	((a) ^ (b))
+#define vnot(dst, a) 					\
+	(dst) = ~(a)
+#define vand(dst, a, b) 				\
+	(dst) = (a) & (b)
+#define vor(dst, a, b) 					\
+	(dst) = (a) | (b)
+#define vandn(dst, a, b) 				\
+	(dst) = (a) & ~(b)
+#define vxor(dst, a, b) 				\
+	(dst) = vxorf((a), (b))
+#define vshl(dst, src, shift) 				\
+	(dst) = (src) << (shift)
+#define vshr(dst, src, shift) 				\
+	(dst) = (src) >> (shift)
+#define vshl1(dst, src) 				\
+	vshl((dst), (src), 1)
+
+#define kvtype vtype
+#define kvand vand
+#define kvor vor
+#define kvshl1 vshl1
+#define kvshl vshl
+#define kvshr vshr
+
+#define mask01 0x01010101
+#define mask02 0x02020202
+#define mask04 0x04040404
+#define mask08 0x08080808
+#define mask10 0x10101010
+#define mask20 0x20202020
+#define mask40 0x40404040
+#define mask80 0x80808080
+
+#define kvand_shl1_or(dst, src, mask) 			\
+	kvand(tmp, src, mask); 				\
+	kvshl1(tmp, tmp); 				\
+	kvor(dst, dst, tmp)
+
+#define kvand_shl_or(dst, src, mask, shift) 		\
+	kvand(tmp, src, mask); 				\
+	kvshl(tmp, tmp, shift); 			\
+	kvor(dst, dst, tmp)
+
+#define kvand_shl1(dst, src, mask) 			\
+	kvand(tmp, src, mask) ;				\
+	kvshl1(dst, tmp)
+
+#define kvand_or(dst, src, mask) 			\
+	kvand(tmp, src, mask); 				\
+	kvor(dst, dst, tmp)
+
+#define kvand_shr_or(dst, src, mask, shift)		\
+	kvand(tmp, src, mask); 				\
+	kvshr(tmp, tmp, shift); 			\
+	kvor(dst, dst, tmp)
+
+#define kvand_shr(dst, src, mask, shift) 		\
+	kvand(tmp, src, mask); 				\
+	kvshr(dst, tmp, shift)
+
+#define LOAD_V 						\
+	kvtype v0 = *(kvtype *)&vp[0]; 	\
+	kvtype v1 = *(kvtype *)&vp[1]; 	\
+	kvtype v2 = *(kvtype *)&vp[2]; 	\
+	kvtype v3 = *(kvtype *)&vp[3]; 	\
+	kvtype v4 = *(kvtype *)&vp[4]; 	\
+	kvtype v5 = *(kvtype *)&vp[5]; 	\
+	kvtype v6 = *(kvtype *)&vp[6]; 	\
+	kvtype v7 = *(kvtype *)&vp[7];
+
+#define FINALIZE_NEXT_KEY_BIT_0g { 			\
+	kvtype m = mask01, va, vb, tmp; 		\
+	kvand(va, v0, m); 				\
+	kvand_shl1(vb, v1, m); 				\
+	kvand_shl_or(va, v2, m, 2); 			\
+	kvand_shl_or(vb, v3, m, 3); 			\
+	kvand_shl_or(va, v4, m, 4); 			\
+	kvand_shl_or(vb, v5, m, 5); 			\
+	kvand_shl_or(va, v6, m, 6); 			\
+	kvand_shl_or(vb, v7, m, 7); 			\
+	kvor(kp[0], va, vb); 				\
+	kp += 1;					\
+}
+
+#define FINALIZE_NEXT_KEY_BIT_1g { 			\
+	kvtype m = mask02, va, vb, tmp; 		\
+	kvand_shr(va, v0, m, 1); 			\
+	kvand(vb, v1, m); 				\
+	kvand_shl1_or(va, v2, m); 			\
+	kvand_shl_or(vb, v3, m, 2); 			\
+	kvand_shl_or(va, v4, m, 3); 			\
+	kvand_shl_or(vb, v5, m, 4); 			\
+	kvand_shl_or(va, v6, m, 5); 			\
+	kvand_shl_or(vb, v7, m, 6); 			\
+	kvor(kp[0], va, vb); 				\
+	kp += 1;					\
+}
+
+#define FINALIZE_NEXT_KEY_BIT_2g { 			\
+	kvtype m = mask04, va, vb, tmp; 		\
+	kvand_shr(va, v0, m, 2); 			\
+	kvand_shr(vb, v1, m, 1); 			\
+	kvand_or(va, v2, m); 				\
+	kvand_shl1_or(vb, v3, m); 			\
+	kvand_shl_or(va, v4, m, 2); 			\
+	kvand_shl_or(vb, v5, m, 3); 			\
+	kvand_shl_or(va, v6, m, 4); 			\
+	kvand_shl_or(vb, v7, m, 5); 			\
+	kvor(kp[0], va, vb); 				\
+	kp += 1;					\
+}
+
+#define FINALIZE_NEXT_KEY_BIT_3g { 			\
+	kvtype m = mask08, va, vb, tmp; 		\
+	kvand_shr(va, v0, m, 3); 			\
+	kvand_shr(vb, v1, m, 2); 			\
+	kvand_shr_or(va, v2, m, 1); 			\
+	kvand_or(vb, v3, m); 				\
+	kvand_shl1_or(va, v4, m); 			\
+	kvand_shl_or(vb, v5, m, 2); 			\
+	kvand_shl_or(va, v6, m, 3); 			\
+	kvand_shl_or(vb, v7, m, 4); 			\
+	kvor(kp[0], va, vb); 				\
+	kp += 1;					\
+}
+
+#define FINALIZE_NEXT_KEY_BIT_4g { 			\
+	kvtype m = mask10, va, vb, tmp; 		\
+	kvand_shr(va, v0, m, 4); 			\
+	kvand_shr(vb, v1, m, 3); 			\
+	kvand_shr_or(va, v2, m, 2); 			\
+	kvand_shr_or(vb, v3, m, 1); 			\
+	kvand_or(va, v4, m); 				\
+	kvand_shl1_or(vb, v5, m); 			\
+	kvand_shl_or(va, v6, m, 2); 			\
+	kvand_shl_or(vb, v7, m, 3); 			\
+	kvor(kp[0], va, vb); 				\
+	kp += 1;					\
+}
+
+#define FINALIZE_NEXT_KEY_BIT_5g { 			\
+	kvtype m = mask20, va, vb, tmp; 		\
+	kvand_shr(va, v0, m, 5); 			\
+	kvand_shr(vb, v1, m, 4); 			\
+	kvand_shr_or(va, v2, m, 3); 			\
+	kvand_shr_or(vb, v3, m, 2); 			\
+	kvand_shr_or(va, v4, m, 1); 			\
+	kvand_or(vb, v5, m); 				\
+	kvand_shl1_or(va, v6, m); 			\
+	kvand_shl_or(vb, v7, m, 2); 			\
+	kvor(kp[0], va, vb); 				\
+	kp += 1;					\
+}
+
+#define FINALIZE_NEXT_KEY_BIT_6g { 			\
+	kvtype m = mask40, va, vb, tmp; 		\
+	kvand_shr(va, v0, m, 6); 			\
+	kvand_shr(vb, v1, m, 5); 			\
+	kvand_shr_or(va, v2, m, 4); 			\
+	kvand_shr_or(vb, v3, m, 3); 			\
+	kvand_shr_or(va, v4, m, 2); 			\
+	kvand_shr_or(vb, v5, m, 1); 			\
+	kvand_or(va, v6, m); 				\
+	kvand_shl1_or(vb, v7, m); 			\
+	kvor(kp[0], va, vb); 				\
+	kp += 1;					\
+}
+
+#include "memdbg.h"
+
+static void des_finalize_int_keys()
+{
+	key_page *int_key_page[MASK_FMT_INT_PLHDR];
+	unsigned int *final_key_pages[MASK_FMT_INT_PLHDR], i, j;
+
+	for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
+		int_key_page[i] = (key_page *) mem_alloc(((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH) * sizeof(key_page));
+		final_key_pages[i] = (unsigned int *) mem_alloc(7 * ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH) * sizeof(unsigned int));
+		memset(int_key_page[i], 0x7f, ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH) * sizeof(key_page));
+		memset(final_key_pages[i], 0xff, 7 * ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH) * sizeof(unsigned int));
+	}
+
+	for (i = 0; i < mask_int_cand.num_int_cand && mask_int_cand.int_cand; i++) {
+		j = i >> DES_LOG_DEPTH;
+		int_key_page[0][j].c[(i & (DES_BS_DEPTH - 1)) & 7][(i & (DES_BS_DEPTH - 1)) >> 3] = mask_int_cand.int_cand[i].x[0] & 0xFF;
+#if 1 < MASK_FMT_INT_PLHDR
+		if (mask_skip_ranges[1] != -1)
+			int_key_page[1][j].c[(i & (DES_BS_DEPTH - 1)) & 7][(i & (DES_BS_DEPTH - 1)) >> 3] = mask_int_cand.int_cand[i].x[1] & 0xFF;
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+		if (mask_skip_ranges[2] != -1)
+			int_key_page[2][j].c[(i & (DES_BS_DEPTH - 1)) & 7][(i & (DES_BS_DEPTH - 1)) >> 3] = mask_int_cand.int_cand[i].x[2] & 0xFF;
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+		if (mask_skip_ranges[3] != -1)
+			int_key_page[3][j].c[(i & (DES_BS_DEPTH - 1)) & 7][(i & (DES_BS_DEPTH - 1)) >> 3] = mask_int_cand.int_cand[i].x[3] & 0xFF;
+#endif
+	}
+
+	for (j = 0; j < MASK_FMT_INT_PLHDR; j++) {
+		if (mask_skip_ranges == NULL || mask_skip_ranges[j] == -1)
+			continue;
+		for (i = 0; i < ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH); i++) {
+			DES_bs_vector *kp = (DES_bs_vector *)&final_key_pages[j][7 * i];
+			DES_bs_vector *vp = (DES_bs_vector *)&int_key_page[j][i].v[0];
+			LOAD_V
+			FINALIZE_NEXT_KEY_BIT_0g
+			FINALIZE_NEXT_KEY_BIT_1g
+			FINALIZE_NEXT_KEY_BIT_2g
+			FINALIZE_NEXT_KEY_BIT_3g
+			FINALIZE_NEXT_KEY_BIT_4g
+			FINALIZE_NEXT_KEY_BIT_5g
+			FINALIZE_NEXT_KEY_BIT_6g
+		}
+		fprintf(stderr, "%d %d %d %d %d %d %d\n", final_key_pages[j][0], final_key_pages[j][1], final_key_pages[j][2], final_key_pages[j][3], final_key_pages[j][4], final_key_pages[j][5], final_key_pages[j][6]);
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_des_keys, CL_TRUE, j * 7 * ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH) * sizeof(unsigned int),
+				7 * ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH) * sizeof(unsigned int), final_key_pages[j], 0, NULL, NULL ), "Failed Copy data to gpu");
+	}
+
+	for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
+		MEM_FREE(int_key_page[i]);
+		MEM_FREE(final_key_pages[i]);
+	}
+}
+
 void opencl_DES_bs_init_index()
 {
 	int p,q,s,t ;
@@ -661,6 +894,31 @@ void create_keys_buffer(size_t gws, size_t padding)
 	HANDLE_CLERROR(ret_code, "Create buffer_raw_keys failed.\n");
 }
 
+void create_int_keys_buffer()
+{
+	unsigned int active_placeholders, i;
+
+	active_placeholders = 0;
+	if (mask_skip_ranges)
+	for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
+		if (mask_skip_ranges[i] != -1)
+			active_placeholders++;
+	}
+	else
+		active_placeholders = 1;
+
+	buffer_int_des_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, active_placeholders * 7 * ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH) * sizeof(unsigned int), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Failed creating buffer_int_des_keys.");
+}
+
+void release_int_keys_buffer()
+{
+	if (buffer_int_des_keys) {
+		HANDLE_CLERROR(clReleaseMemObject(buffer_int_des_keys), "Release buffer_int_des_keys failed.\n");
+		buffer_int_des_keys = 0;
+	}
+}
+
 void release_keys_buffer()
 {
 	if (buffer_raw_keys) {
@@ -671,17 +929,43 @@ void release_keys_buffer()
 	}
 }
 
-void create_keys_kernel_set_args(cl_mem buffer_bs_keys)
+static void set_key_mm(char *key, int index)
 {
-	if (keys_kernel == 0) {
-		opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
-		opencl_build(gpu_id, NULL, 0, NULL);
-		keys_kernel = clCreateKernel(program[gpu_id], "DES_bs_finalize_keys", &ret_code);
-		HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_finalize_keys.\n");
+	unsigned int len = strlen(key);
+	unsigned int i;
+	unsigned long c;
+
+	for (i = 0; i < len; i++) {
+		c = (unsigned char) key[i];
+		memset(des_raw_keys[index].xkeys.v[i], c, 8 * sizeof(DES_bs_vector));
 	}
 
+	for (i = len; i < PLAINTEXT_LENGTH; i++)
+		memset(des_raw_keys[index].xkeys.v[i], 0, 8 * sizeof(DES_bs_vector));
+
+	keys_changed = 1;
+}
+
+
+void create_keys_kernel_set_args(cl_mem buffer_bs_keys, int mask_mode)
+{
+	static char build_opts[400];
+
+	if (mask_mode)
+		fmt_opencl_DES.methods.set_key = set_key_mm;
+
+	des_finalize_int_keys();
+
+	sprintf(build_opts, "-D ITER_COUNT=%u -D MASK_MODE=%d", ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH), mask_mode);
+
+	opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
+	opencl_build(gpu_id, build_opts, 0, NULL);
+	keys_kernel = clCreateKernel(program[gpu_id], "DES_bs_finalize_keys", &ret_code);
+	HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_finalize_keys.\n");
+
 	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument buffer_raw_keys, kernel DES_bs_finalize_keys.\n");
-	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 1, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_finalize_keys.\n");
+	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 1, sizeof(cl_mem), &buffer_int_des_keys), "Failed setting kernel argument buffer_int_des_keys, kernel DES_bs_finalize_keys.\n");
+	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 2, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_finalize_keys.\n");
 }
 
 void process_keys(size_t current_gws, size_t *lws)

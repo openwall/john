@@ -61,6 +61,7 @@ static void create_clobj(struct db_main *db)
 	buffer_map = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 768 * sizeof(unsigned int), opencl_DES_bs_index768, &ret_code);
 	HANDLE_CLERROR(ret_code, "Create buffer_map.\n");
 
+	create_int_keys_buffer();
 	build_tables(db);
 }
 
@@ -71,6 +72,7 @@ static void release_clobj()
 	if (buffer_map) {
 		HANDLE_CLERROR(clReleaseMemObject(buffer_map), "Release buffer_map failed.\n");
 		release_tables();
+		release_int_keys_buffer();
 		for (i = 0; i < 4096; i++)
 			if (buffer_processed_salts[i] != (cl_mem)0)
 				HANDLE_CLERROR(clReleaseMemObject(buffer_processed_salts[i]), "Release buffer_processed_salts failed.\n");
@@ -149,7 +151,7 @@ static void reset(struct db_main *db)
 		create_clobj_kpc(global_work_size);
 
 		create_checking_kernel_set_args(buffer_unchecked_hashes);
-		create_keys_kernel_set_args(buffer_bs_keys);
+		create_keys_kernel_set_args(buffer_bs_keys, 0);
 
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 0, sizeof(cl_mem), &buffer_map), "Failed setting kernel argument buffer_map, kernel DES_bs_25.\n");
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 2, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_25.\n");
@@ -185,7 +187,7 @@ static void reset(struct db_main *db)
 		create_clobj(NULL);
 
 		create_checking_kernel_set_args(buffer_unchecked_hashes);
-		create_keys_kernel_set_args(buffer_bs_keys);
+		create_keys_kernel_set_args(buffer_bs_keys, 0);
 
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 0, sizeof(cl_mem), &buffer_map), "Failed setting kernel argument buffer_map, kernel DES_bs_25.\n");
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 2, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_25.\n");

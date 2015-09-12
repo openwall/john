@@ -44,9 +44,11 @@ extern void init_checking();
 extern void finish_checking();
 
 extern void create_keys_buffer(size_t, size_t);
+extern void create_int_keys_buffer(void);
 extern void release_keys_buffer();
-extern void create_keys_kernel_set_args(cl_mem);
+extern void release_int_keys_buffer(void);
 extern void process_keys(size_t, size_t *);
+extern void create_keys_kernel_set_args(cl_mem, int);
 
 typedef unsigned WORD vtype;
 

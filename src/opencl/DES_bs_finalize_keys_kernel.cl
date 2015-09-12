@@ -13,6 +13,10 @@
 #define MAYBE_GLOBAL
 #endif
 
+#ifndef ITER_COUNT
+#define ITER_COUNT	0
+#endif
+
 #define kvtype vtype
 #define kvand vand
 #define kvor vor
@@ -77,7 +81,7 @@
 	kvand_shl_or(va, v6, m, 6); 			\
 	kvand_shl_or(vb, v7, m, 7); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += gws; 						\
+	kp += (gws * ITER_COUNT);			\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_1g { 			\
@@ -91,7 +95,7 @@
 	kvand_shl_or(va, v6, m, 5); 			\
 	kvand_shl_or(vb, v7, m, 6); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += gws; 						\
+	kp += (gws * ITER_COUNT);			\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_2g { 			\
@@ -105,7 +109,7 @@
 	kvand_shl_or(va, v6, m, 4); 			\
 	kvand_shl_or(vb, v7, m, 5); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += gws; 						\
+	kp += (gws * ITER_COUNT);			\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_3g { 			\
@@ -119,7 +123,7 @@
 	kvand_shl_or(va, v6, m, 3); 			\
 	kvand_shl_or(vb, v7, m, 4); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += gws; 						\
+	kp += (gws * ITER_COUNT);			\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_4g { 			\
@@ -133,7 +137,7 @@
 	kvand_shl_or(va, v6, m, 2); 			\
 	kvand_shl_or(vb, v7, m, 3); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += gws; 						\
+	kp += (gws * ITER_COUNT);			\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_5g { 			\
@@ -147,7 +151,7 @@
 	kvand_shl1_or(va, v6, m); 			\
 	kvand_shl_or(vb, v7, m, 2); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += gws; 						\
+	kp += (gws * ITER_COUNT);			\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_6g { 			\
@@ -161,7 +165,7 @@
 	kvand_or(va, v6, m); 				\
 	kvand_shl1_or(vb, v7, m); 			\
 	kvor(kp[0], va, vb); 				\
-	kp += gws; 						\
+	kp += (gws * ITER_COUNT); 			\
 }
 
 #define FINALIZE_NEXT_KEY_BIT_7g { 			\
@@ -175,10 +179,11 @@
 	kvand_shr_or(va, v6, m, 1); 			\
 	kvand_or(vb, v7, m); 				\
 	kvor(kp[0], va, vb); 				\
-	kp += gws;				\
+	kp += (gws * ITER_COUNT);			\
 }
 
 __kernel void DES_bs_finalize_keys(__global opencl_DES_bs_transfer *des_raw_keys,
+				   __global unsigned int *des_int_keys,
 				   __global DES_bs_vector *des_bs_keys) {
 
 	int section = get_global_id(0);
@@ -188,7 +193,7 @@ __kernel void DES_bs_finalize_keys(__global opencl_DES_bs_transfer *des_raw_keys
 	int ic ;
 	for (ic = 0; ic < 8; ic++) {
 		MAYBE_GLOBAL DES_bs_vector *vp =
-		    (MAYBE_GLOBAL DES_bs_vector *)&des_raw_keys[section].xkeys.v[ic][0] ;
+		    (MAYBE_GLOBAL DES_bs_vector *)&des_raw_keys[section].xkeys.v[ic][0];
 		LOAD_V
 		FINALIZE_NEXT_KEY_BIT_0g
 		FINALIZE_NEXT_KEY_BIT_1g
@@ -198,6 +203,26 @@ __kernel void DES_bs_finalize_keys(__global opencl_DES_bs_transfer *des_raw_keys
 		FINALIZE_NEXT_KEY_BIT_5g
 		FINALIZE_NEXT_KEY_BIT_6g
 	}
+
+#if MASK_MODE
+	int i;
+	for (i = 0; i < 56; i++)
+	for (ic = 1; ic < ITER_COUNT; ic++) {
+		des_bs_keys[i * ITER_COUNT * gws + ic * gws + section] = des_bs_keys[i * ITER_COUNT * gws + section];
+	}
+
+#define GPU_LOC_0 	(0 * 7)
+#define OFFSET 		(0 * ITER_COUNT * 7)
+	for (ic = 0; ic < ITER_COUNT; ic++) {
+		des_bs_keys[GPU_LOC_0 * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7];
+		des_bs_keys[(GPU_LOC_0 + 1) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 1];
+		des_bs_keys[(GPU_LOC_0 + 2) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 2];
+		des_bs_keys[(GPU_LOC_0 + 3) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 3];
+		des_bs_keys[(GPU_LOC_0 + 4) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 4];
+		des_bs_keys[(GPU_LOC_0 + 5) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 5];
+		des_bs_keys[(GPU_LOC_0 + 6) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 6];
+	}
+#endif
 }
 
 #define GET_HASH_0(hash, x, k, bits)			\
