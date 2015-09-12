@@ -294,6 +294,8 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 	ret_code = clEnqueueNDRangeKernel(queue[gpu_id], kernels[gpu_id][current_salt], 1, NULL, &current_gws, lws, 0, NULL, NULL);
 	HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_25 failed.\n");
 
+	*pcount = mask_mode ? *pcount * mask_int_cand.num_int_cand : *pcount;
+
 	return extract_info(current_gws, lws, current_salt);
 }
 
