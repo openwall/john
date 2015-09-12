@@ -207,7 +207,7 @@ __kernel void DES_bs_finalize_keys(__global opencl_DES_bs_transfer *des_raw_keys
 	}
 
 #if MASK_ENABLED && !IS_STATIC_GPU_MASK
-	uint ikl = lm_key_loc[section];
+	uint ikl = des_int_key_loc[section];
 	uint loc0 = (ikl & 0xff) * 7;
 #if 1 < MASK_FMT_INT_PLHDR
 #if LOC_1 >= 0
@@ -269,6 +269,7 @@ __kernel void DES_bs_finalize_keys(__global opencl_DES_bs_transfer *des_raw_keys
 
 #if 2 < MASK_FMT_INT_PLHDR
 #if LOC_2 >= 0
+#undef OFFSET
 #define OFFSET 	(2 * ITER_COUNT * 7)
 		des_bs_keys[GPU_LOC_2 * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7];
 		des_bs_keys[(GPU_LOC_2 + 1) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 1];
@@ -282,6 +283,7 @@ __kernel void DES_bs_finalize_keys(__global opencl_DES_bs_transfer *des_raw_keys
 
 #if 3 < MASK_FMT_INT_PLHDR
 #if LOC_3 >= 0
+#undef OFFSET
 #define OFFSET 	(3 * ITER_COUNT * 7)
 		des_bs_keys[GPU_LOC_3 * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7];
 		des_bs_keys[(GPU_LOC_3 + 1) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 1];
