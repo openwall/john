@@ -1040,9 +1040,11 @@ static char *comp_optimize_expression(const char *pExpr) {
 		}
 		if (n1 == n2) {
 			// ok, all were same hash type.  Now make sure all $s are in crypt($s)
+			// Ignore lc() and uc() */
 			n2 = 0;
 			p = strstr(pBuf, "$s");
-			while (p) {
+			while (p && (p[-1] != '(' || p[-2] != 'c' ||
+			             (p[-3] != 'l' && p[-3] != 'u'))) {
 				++n2;
 				p = strstr(&p[1], cpType);
 			}
