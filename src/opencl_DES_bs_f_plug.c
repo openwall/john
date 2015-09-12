@@ -209,7 +209,7 @@ static void init_global_variables()
 
 	init_checking();
 
-	mask_int_cand_target = 11;
+	mask_int_cand_target = 1000;
 }
 
 static void modify_src()

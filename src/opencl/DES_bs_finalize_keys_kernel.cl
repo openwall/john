@@ -6,6 +6,7 @@
  * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
  */
 #include "opencl_DES_kernel_params.h"
+#include "opencl_mask.h"
 
 #if 1
 #define MAYBE_GLOBAL __global
@@ -184,6 +185,7 @@
 
 __kernel void DES_bs_finalize_keys(__global opencl_DES_bs_transfer *des_raw_keys,
 				   __global unsigned int *des_int_keys,
+				   __global unsigned int *des_int_key_loc,
 				   __global DES_bs_vector *des_bs_keys) {
 
 	int section = get_global_id(0);
@@ -204,23 +206,92 @@ __kernel void DES_bs_finalize_keys(__global opencl_DES_bs_transfer *des_raw_keys
 		FINALIZE_NEXT_KEY_BIT_6g
 	}
 
-#if MASK_MODE
+#if MASK_ENABLED && !IS_STATIC_GPU_MASK
+	uint ikl = lm_key_loc[section];
+	uint loc0 = (ikl & 0xff) * 7;
+#if 1 < MASK_FMT_INT_PLHDR
+#if LOC_1 >= 0
+	uint loc1 = ((ikl & 0xff00) >> 8) * 7;
+#endif
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+#if LOC_2 >= 0
+	uint loc2 = ((ikl & 0xff0000) >> 16) * 7;
+#endif
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+#if LOC_3 >= 0
+	uint loc3 = ((ikl & 0xff000000) >> 24) * 7;
+#endif
+#endif
+#endif
+
+#if !IS_STATIC_GPU_MASK
+#define GPU_LOC_0 loc0
+#define GPU_LOC_1 loc1
+#define GPU_LOC_2 loc2
+#define GPU_LOC_3 loc3
+#else
+#define GPU_LOC_0 (LOC_0 * 7)
+#define GPU_LOC_1 (LOC_1 * 7)
+#define GPU_LOC_2 (LOC_2 * 7)
+#define GPU_LOC_3 (LOC_3 * 7)
+#endif
+
+#if MASK_ENABLED
 	int i;
 	for (i = 0; i < 56; i++)
 	for (ic = 1; ic < ITER_COUNT; ic++) {
 		des_bs_keys[i * ITER_COUNT * gws + ic * gws + section] = des_bs_keys[i * ITER_COUNT * gws + section];
 	}
 
-#define GPU_LOC_0 	(0 * 7)
-#define OFFSET 		(0 * ITER_COUNT * 7)
 	for (ic = 0; ic < ITER_COUNT; ic++) {
-		des_bs_keys[GPU_LOC_0 * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7];
-		des_bs_keys[(GPU_LOC_0 + 1) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 1];
-		des_bs_keys[(GPU_LOC_0 + 2) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 2];
-		des_bs_keys[(GPU_LOC_0 + 3) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 3];
-		des_bs_keys[(GPU_LOC_0 + 4) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 4];
-		des_bs_keys[(GPU_LOC_0 + 5) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 5];
-		des_bs_keys[(GPU_LOC_0 + 6) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 6];
+		des_bs_keys[GPU_LOC_0 * ITER_COUNT * gws + ic * gws + section] = des_int_keys[ic * 7];
+		des_bs_keys[(GPU_LOC_0 + 1) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[ic * 7 + 1];
+		des_bs_keys[(GPU_LOC_0 + 2) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[ic * 7 + 2];
+		des_bs_keys[(GPU_LOC_0 + 3) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[ic * 7 + 3];
+		des_bs_keys[(GPU_LOC_0 + 4) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[ic * 7 + 4];
+		des_bs_keys[(GPU_LOC_0 + 5) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[ic * 7 + 5];
+		des_bs_keys[(GPU_LOC_0 + 6) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[ic * 7 + 6];
+
+#if 1 < MASK_FMT_INT_PLHDR
+#if LOC_1 >= 0
+#define OFFSET 	(1 * ITER_COUNT * 7)
+		des_bs_keys[GPU_LOC_1 * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7];
+		des_bs_keys[(GPU_LOC_1 + 1) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 1];
+		des_bs_keys[(GPU_LOC_1 + 2) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 2];
+		des_bs_keys[(GPU_LOC_1 + 3) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 3];
+		des_bs_keys[(GPU_LOC_1 + 4) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 4];
+		des_bs_keys[(GPU_LOC_1 + 5) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 5];
+		des_bs_keys[(GPU_LOC_1 + 6) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 6];
+#endif
+#endif
+
+#if 2 < MASK_FMT_INT_PLHDR
+#if LOC_2 >= 0
+#define OFFSET 	(2 * ITER_COUNT * 7)
+		des_bs_keys[GPU_LOC_2 * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7];
+		des_bs_keys[(GPU_LOC_2 + 1) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 1];
+		des_bs_keys[(GPU_LOC_2 + 2) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 2];
+		des_bs_keys[(GPU_LOC_2 + 3) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 3];
+		des_bs_keys[(GPU_LOC_2 + 4) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 4];
+		des_bs_keys[(GPU_LOC_2 + 5) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 5];
+		des_bs_keys[(GPU_LOC_2 + 6) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 6];
+#endif
+#endif
+
+#if 3 < MASK_FMT_INT_PLHDR
+#if LOC_3 >= 0
+#define OFFSET 	(3 * ITER_COUNT * 7)
+		des_bs_keys[GPU_LOC_3 * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7];
+		des_bs_keys[(GPU_LOC_3 + 1) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 1];
+		des_bs_keys[(GPU_LOC_3 + 2) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 2];
+		des_bs_keys[(GPU_LOC_3 + 3) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 3];
+		des_bs_keys[(GPU_LOC_3 + 4) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 4];
+		des_bs_keys[(GPU_LOC_3 + 5) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 5];
+		des_bs_keys[(GPU_LOC_3 + 6) * ITER_COUNT * gws + ic * gws + section] = des_int_keys[OFFSET + ic * 7 + 6];
+#endif
+#endif
 	}
 #endif
 }
