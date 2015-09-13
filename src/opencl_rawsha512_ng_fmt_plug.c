@@ -39,10 +39,10 @@ john_register_one(&fmt_opencl_xsha512);
 #include "mask_ext.h"
 #include "opencl_mask_extras.h"
 
-#define FORMAT_LABEL			"Raw-SHA512-opencl"
+#define FORMAT_LABEL			"Raw-SHA512-ng-opencl"
 #define FORMAT_NAME			""
 
-#define X_FORMAT_LABEL			"XSHA512-opencl"
+#define X_FORMAT_LABEL			"XSHA512-ng-opencl"
 #define X_FORMAT_NAME			"Mac OS X 10.7 salted"
 
 #define ALGORITHM_NAME			"SHA512 OpenCL"
@@ -330,7 +330,7 @@ static void reset(struct db_main *db)
 	if (!autotuned) {
 		size_t gws_limit;
 		unsigned int flag;
-                char * task = "$JOHN/kernels/sha512_kernel.cl";
+                char * task = "$JOHN/kernels/sha512_ng_kernel.cl";
 
                 opencl_prepare_dev(gpu_id);
                 opencl_build_kernel(task, gpu_id, NULL, 1);
