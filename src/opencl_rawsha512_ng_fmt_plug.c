@@ -16,11 +16,11 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_rawsha512;
-extern struct fmt_main fmt_opencl_xsha512;
+extern struct fmt_main fmt_opencl_ng_rawsha512;
+extern struct fmt_main fmt_opencl_ng_xsha512;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_rawsha512);
-john_register_one(&fmt_opencl_xsha512);
+john_register_one(&fmt_opencl_ng_rawsha512);
+john_register_one(&fmt_opencl_ng_xsha512);
 #else
 
 #include <string.h>
@@ -760,7 +760,7 @@ static int get_hash_5(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 
 static int get_hash_6(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & 0x7ffffff; }
 
 /* ------- Format structure ------- */
-struct fmt_main fmt_opencl_rawsha512 = {
+struct fmt_main fmt_opencl_ng_rawsha512 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -820,7 +820,7 @@ struct fmt_main fmt_opencl_rawsha512 = {
 	}
 };
 
-struct fmt_main fmt_opencl_xsha512 = {
+struct fmt_main fmt_opencl_ng_xsha512 = {
 	{
 		X_FORMAT_LABEL,
 		X_FORMAT_NAME,
