@@ -462,7 +462,7 @@ void create_checking_kernel_set_args(cl_mem buffer_unchecked_hashes)
 {
 	int i;
 
-	opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
+	opencl_read_source("$JOHN/kernels/DES_bs_hash_checking_kernel.cl");
 	opencl_build(gpu_id, NULL, 0, NULL);
 
 	if (kernel_high == 0) {
@@ -844,9 +844,8 @@ static void des_finalize_int_keys()
 			FINALIZE_NEXT_KEY_BIT_5g
 			FINALIZE_NEXT_KEY_BIT_6g
 		}
-		fprintf(stderr, "%d %d %d %d %d %d %d\n", final_key_pages[j][0], final_key_pages[j][1], final_key_pages[j][2], final_key_pages[j][3], final_key_pages[j][4], final_key_pages[j][5], final_key_pages[j][6]);
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_des_keys, CL_TRUE, j * 7 * ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH) * sizeof(unsigned int),
-				7 * ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH) * sizeof(unsigned int), final_key_pages[j], 0, NULL, NULL ), "Failed Copy data to gpu");
+			7 * ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH) * sizeof(unsigned int), final_key_pages[j], 0, NULL, NULL ), "Failed Copy data to gpu");
 	}
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
@@ -972,6 +971,7 @@ static void set_key_mm(char *key, int index)
 void create_keys_kernel_set_args(cl_mem buffer_bs_keys, int mask_mode)
 {
 	static char build_opts[400];
+	cl_ulong const_cache_size;
 	int i;
 
 	if (mask_mode)
@@ -986,6 +986,8 @@ void create_keys_kernel_set_args(cl_mem buffer_bs_keys, int mask_mode)
 		else
 			static_gpu_locations[i] = -1;
 
+	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
+
 	sprintf(build_opts, "-D ITER_COUNT=%u -D MASK_ENABLED=%d -D LOC_0=%d"
 #if 1 < MASK_FMT_INT_PLHDR
 		" -D LOC_1=%d "
@@ -996,7 +998,7 @@ void create_keys_kernel_set_args(cl_mem buffer_bs_keys, int mask_mode)
 #if 3 < MASK_FMT_INT_PLHDR
 		"-D LOC_3=%d"
 #endif
-		" -D IS_STATIC_GPU_MASK=%d"
+		" -D IS_STATIC_GPU_MASK=%d -D CONST_CACHE_SIZE=%llu"
 		, ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH), mask_mode, static_gpu_locations[0]
 #if 1 < MASK_FMT_INT_PLHDR
 		, static_gpu_locations[1]
@@ -1007,7 +1009,7 @@ void create_keys_kernel_set_args(cl_mem buffer_bs_keys, int mask_mode)
 #if 3 < MASK_FMT_INT_PLHDR
 		, static_gpu_locations[3]
 #endif
-		, is_static_gpu_mask);
+		, is_static_gpu_mask, (unsigned long long)const_cache_size);
 
 	opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
 	opencl_build(gpu_id, build_opts, 0, NULL);
