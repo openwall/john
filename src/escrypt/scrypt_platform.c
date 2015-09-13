@@ -30,7 +30,7 @@
 #include "../memory.h"
 
 static void *
-alloc_region(escrypt_region_t * region, size_t size)
+escrypt_alloc_region(escrypt_region_t * region, size_t size)
 {
 	uint8_t * base, * aligned;
 #if defined(MAP_ANON) && !defined (MEMDBG_ON)
@@ -63,14 +63,14 @@ alloc_region(escrypt_region_t * region, size_t size)
 }
 
 static inline void
-init_region(escrypt_region_t * region)
+escrypt_init_region(escrypt_region_t * region)
 {
 	region->base = region->aligned = NULL;
 	region->size = 0;
 }
 
 static int
-free_region(escrypt_region_t * region)
+escrypt_free_region(escrypt_region_t * region)
 {
 	if (region->base) {
 #if defined(MAP_ANON) && !defined (MEMDBG_ON)
@@ -82,19 +82,19 @@ free_region(escrypt_region_t * region)
 		MEM_FREE(region->base);
 #endif
 	}
-	init_region(region);
+	escrypt_init_region(region);
 	return 0;
 }
 
 int
 escrypt_init_local(escrypt_local_t * local)
 {
-	init_region(local);
+	escrypt_init_region(local);
 	return 0;
 }
 
 int
 escrypt_free_local(escrypt_local_t * local)
 {
-	return free_region(local);
+	return escrypt_free_region(local);
 }

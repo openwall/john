@@ -32,7 +32,7 @@ struct fmt_main;
  * Maximum number of different tunable cost parameters
  * that can be reported for a single format
  */
-#define FMT_TUNABLE_COSTS	3
+#define FMT_TUNABLE_COSTS	5
 
 /*
  * Some format methods accept pointers to these, yet we can't just include
