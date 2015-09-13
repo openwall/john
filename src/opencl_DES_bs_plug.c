@@ -39,6 +39,7 @@ static des_combined *des_all;
 static opencl_DES_bs_transfer *des_raw_keys;
 static unsigned int *des_int_key_loc = NULL;
 static unsigned int static_gpu_locations[MASK_FMT_INT_PLHDR];
+static size_t process_key_gws = 0;
 
 unsigned char opencl_DES_E[48] = {
 	31, 0, 1, 2, 3, 4,
@@ -920,6 +921,7 @@ void release_int_keys_buffer()
 {
 	if (buffer_int_des_keys) {
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_des_keys), "Release buffer_int_des_keys failed.\n");
+		HANDLE_CLERROR(clReleaseKernel(keys_kernel), "Release keys_kernel failed.\n");
 		buffer_int_des_keys = 0;
 	}
 }
@@ -933,107 +935,6 @@ void release_keys_buffer()
 		HANDLE_CLERROR(clReleaseMemObject(buffer_raw_keys), "Release buffer_raw_keys failed.\n");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_key_loc), "Release buffer_int_key_loc failed.\n");
 		buffer_raw_keys = 0;
-	}
-}
-
-static void set_key_mm(char *key, int index)
-{
-	unsigned int len = strlen(key);
-	unsigned int i;
-	unsigned long c;
-
-	for (i = 0; i < len; i++) {
-		c = (unsigned char) key[i];
-		memset(des_raw_keys[index].xkeys.v[i], c, 8 * sizeof(DES_bs_vector));
-	}
-
-	for (i = len; i < PLAINTEXT_LENGTH; i++)
-		memset(des_raw_keys[index].xkeys.v[i], 0, 8 * sizeof(DES_bs_vector));
-
-	if (!is_static_gpu_mask) {
-		des_int_key_loc[index] = 0;
-		for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
-			if (mask_skip_ranges[i] != -1)  {
-				des_int_key_loc[index] |= ((mask_int_cand.
-				int_cpu_mask_ctx->ranges[mask_skip_ranges[i]].offset +
-				mask_int_cand.int_cpu_mask_ctx->
-				ranges[mask_skip_ranges[i]].pos) & 0xff) << (i << 3);
-			}
-			else
-				des_int_key_loc[index] |= 0x80 << (i << 3);
-		}
-	}
-
-	keys_changed = 1;
-}
-
-
-void create_keys_kernel_set_args(cl_mem buffer_bs_keys, int mask_mode)
-{
-	static char build_opts[400];
-	cl_ulong const_cache_size;
-	int i;
-
-	if (mask_mode)
-		fmt_opencl_DES.methods.set_key = set_key_mm;
-
-	des_finalize_int_keys();
-
-	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
-		if (mask_skip_ranges!= NULL && mask_skip_ranges[i] != -1)
-			static_gpu_locations[i] = mask_int_cand.int_cpu_mask_ctx->
-				ranges[mask_skip_ranges[i]].pos;
-		else
-			static_gpu_locations[i] = -1;
-
-	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
-
-	sprintf(build_opts, "-D ITER_COUNT=%u -D MASK_ENABLED=%d -D LOC_0=%d"
-#if 1 < MASK_FMT_INT_PLHDR
-		" -D LOC_1=%d "
-#endif
-#if 2 < MASK_FMT_INT_PLHDR
-		"-D LOC_2=%d "
-#endif
-#if 3 < MASK_FMT_INT_PLHDR
-		"-D LOC_3=%d"
-#endif
-		" -D IS_STATIC_GPU_MASK=%d -D CONST_CACHE_SIZE=%llu"
-		, ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH), mask_mode, static_gpu_locations[0]
-#if 1 < MASK_FMT_INT_PLHDR
-		, static_gpu_locations[1]
-#endif
-#if 2 < MASK_FMT_INT_PLHDR
-		, static_gpu_locations[2]
-#endif
-#if 3 < MASK_FMT_INT_PLHDR
-		, static_gpu_locations[3]
-#endif
-		, is_static_gpu_mask, (unsigned long long)const_cache_size);
-
-	opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
-	opencl_build(gpu_id, build_opts, 0, NULL);
-	keys_kernel = clCreateKernel(program[gpu_id], "DES_bs_finalize_keys", &ret_code);
-	HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_finalize_keys.\n");
-
-	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument buffer_raw_keys, kernel DES_bs_finalize_keys.\n");
-	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 1, sizeof(cl_mem), &buffer_int_des_keys), "Failed setting kernel argument buffer_int_des_keys, kernel DES_bs_finalize_keys.\n");
-	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 2, sizeof(cl_mem), &buffer_int_key_loc), "Failed setting kernel argument buffer_int_key_loc, kernel DES_bs_finalize_keys.\n");
-	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 3, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_finalize_keys.\n");
-}
-
-void process_keys(size_t current_gws, size_t *lws)
-{
-	if (keys_changed) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, current_gws * sizeof(opencl_DES_bs_transfer), des_raw_keys, 0, NULL, NULL ), "Failed to write buffer buffer_raw_keys.\n");
-
-		if (!is_static_gpu_mask)
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, current_gws * sizeof(unsigned int), des_int_key_loc, 0, NULL, NULL ), "Failed Copy data to gpu");
-
-		ret_code = clEnqueueNDRangeKernel(queue[gpu_id], keys_kernel, 1, NULL, &current_gws, lws, 0, NULL, NULL);
-		HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_finalize_keys failed.\n");
-
-		keys_changed = 0;
 	}
 }
 
@@ -1131,4 +1032,162 @@ char *opencl_DES_bs_get_key(int index)
 	return out;
 }
 
+static void set_key_mm(char *key, int index)
+{
+	unsigned int len = strlen(key);
+	unsigned int i;
+	unsigned long c;
+
+	for (i = 0; i < len; i++) {
+		c = (unsigned char) key[i];
+		memset(des_raw_keys[index].xkeys.v[i], c, 8 * sizeof(DES_bs_vector));
+	}
+
+	for (i = len; i < PLAINTEXT_LENGTH; i++)
+		memset(des_raw_keys[index].xkeys.v[i], 0, 8 * sizeof(DES_bs_vector));
+
+	if (!is_static_gpu_mask) {
+		des_int_key_loc[index] = 0;
+		for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
+			if (mask_skip_ranges[i] != -1)  {
+				des_int_key_loc[index] |= ((mask_int_cand.
+				int_cpu_mask_ctx->ranges[mask_skip_ranges[i]].offset +
+				mask_int_cand.int_cpu_mask_ctx->
+				ranges[mask_skip_ranges[i]].pos) & 0xff) << (i << 3);
+			}
+			else
+				des_int_key_loc[index] |= 0x80 << (i << 3);
+		}
+	}
+
+	keys_changed = 1;
+}
+
+/* des_bs_key arrangement.
+	iter 0			iter 1			iter n-1
+0	w0 w1 w2.. w(gws-1)	w0 w1 w2.. w(gws-1) 	w0 w1 w2.. w(gws-1)
+1	w0 w1 w2.. w(gws-1)	w0 w1 w2.. w(gws-1) 	w0 w1 w2.. w(gws-1)
+2	w0 w1 w2.. w(gws-1)	w0 w1 w2.. w(gws-1) 	w0 w1 w2.. w(gws-1)
+.
+.
+.
+55 	w0 w1 w2.. w(gws-1)	w0 w1 w2.. w(gws-1) 	w0 w1 w2.. w(gws-1) */
+static char *get_key_mm(int index)
+{
+	static char out[PLAINTEXT_LENGTH + 1];
+	unsigned int section, depth, iter;
+	unsigned char *src, i;
+	char *dst;
+
+	if (hash_ids == NULL || hash_ids[0] == 0 ||
+	    index > hash_ids[0] || hash_ids[0] > num_uncracked_hashes(current_salt)) {
+		section = 0;
+		depth = 0;
+		iter = 0;
+	}
+	else {
+		section = (hash_ids[2 * index + 1] >> DES_LOG_DEPTH) % process_key_gws;
+		depth  = hash_ids[2 * index + 1] & (DES_BS_DEPTH - 1);
+		iter = (hash_ids[2 * index + 1] >> DES_LOG_DEPTH) / process_key_gws;
+	}
+
+	if (section > process_key_gws) {
+		fprintf(stderr, "Get key error! %u "Zu"\n", section,
+			process_key_gws);
+		section = 0;
+		depth = 0;
+		iter = 0;
+	}
+
+	if (mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
+		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
+			if (is_static_gpu_mask)
+				des_raw_keys[section].xkeys.c[static_gpu_locations[i]][depth & 7][depth >> 3] = mask_int_cand.int_cand[iter * 32 + depth].x[i];
+			else
+				des_raw_keys[section].xkeys.c[(des_int_key_loc[section] & (0xff << (i * 8))) >> (i * 8)][depth & 7][depth >> 3] = mask_int_cand.int_cand[iter * 32 + depth].x[i];
+	}
+
+	src = des_all[section].pxkeys[depth];
+	dst = out;
+	while (dst < &out[PLAINTEXT_LENGTH] && (*dst = *src)) {
+		src += sizeof(DES_bs_vector) * 8;
+		dst++;
+	}
+	*dst = 0;
+
+	return out;
+}
+
+void create_keys_kernel_set_args(cl_mem buffer_bs_keys, int mask_mode)
+{
+	static char build_opts[400];
+	cl_ulong const_cache_size;
+	int i;
+
+	if (mask_mode) {
+		fmt_opencl_DES.methods.set_key = set_key_mm;
+		fmt_opencl_DES.methods.get_key = get_key_mm;
+	}
+
+	des_finalize_int_keys();
+
+	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
+		if (mask_skip_ranges!= NULL && mask_skip_ranges[i] != -1)
+			static_gpu_locations[i] = mask_int_cand.int_cpu_mask_ctx->
+				ranges[mask_skip_ranges[i]].pos;
+		else
+			static_gpu_locations[i] = -1;
+
+	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
+
+	sprintf(build_opts, "-D ITER_COUNT=%u -D MASK_ENABLED=%d -D LOC_0=%d"
+#if 1 < MASK_FMT_INT_PLHDR
+		" -D LOC_1=%d "
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+		"-D LOC_2=%d "
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+		"-D LOC_3=%d"
+#endif
+		" -D IS_STATIC_GPU_MASK=%d -D CONST_CACHE_SIZE=%llu"
+		, ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH), mask_mode, static_gpu_locations[0]
+#if 1 < MASK_FMT_INT_PLHDR
+		, static_gpu_locations[1]
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+		, static_gpu_locations[2]
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+		, static_gpu_locations[3]
+#endif
+		, is_static_gpu_mask, (unsigned long long)const_cache_size);
+
+	opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
+	opencl_build(gpu_id, build_opts, 0, NULL);
+	keys_kernel = clCreateKernel(program[gpu_id], "DES_bs_finalize_keys", &ret_code);
+	HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_finalize_keys.\n");
+
+	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument buffer_raw_keys, kernel DES_bs_finalize_keys.\n");
+	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 1, sizeof(cl_mem), &buffer_int_des_keys), "Failed setting kernel argument buffer_int_des_keys, kernel DES_bs_finalize_keys.\n");
+	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 2, sizeof(cl_mem), &buffer_int_key_loc), "Failed setting kernel argument buffer_int_key_loc, kernel DES_bs_finalize_keys.\n");
+	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 3, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_finalize_keys.\n");
+}
+
+void process_keys(size_t current_gws, size_t *lws)
+{
+	process_key_gws = current_gws;
+
+	if (keys_changed) {
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, current_gws * sizeof(opencl_DES_bs_transfer), des_raw_keys, 0, NULL, NULL ), "Failed to write buffer buffer_raw_keys.\n");
+
+		if (!is_static_gpu_mask)
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, current_gws * sizeof(unsigned int), des_int_key_loc, 0, NULL, NULL ), "Failed Copy data to gpu");
+
+		ret_code = clEnqueueNDRangeKernel(queue[gpu_id], keys_kernel, 1, NULL, &current_gws, lws, 0, NULL, NULL);
+		HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_finalize_keys failed.\n");
+
+		keys_changed = 0;
+	}
+}
 #endif /* HAVE_OPENCL */

@@ -121,4 +121,3 @@ __kernel void DES_bs_cmp(__global unsigned DES_bs_vector *unchecked_hashes,
 		}
 	}
 }
-

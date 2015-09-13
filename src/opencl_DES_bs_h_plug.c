@@ -42,6 +42,8 @@ static void create_clobj_kpc(size_t gws)
 
 	buffer_unchecked_hashes = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (gws * iter_count + PADDING) * sizeof(DES_bs_vector) * 64, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Create buffer_unchecked_hashes failed.\n");
+
+	assert(gws * iter_count <= ((0x1 << 27) - 1));
 }
 
 static void release_clobj_kpc()
