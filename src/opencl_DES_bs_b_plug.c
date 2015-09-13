@@ -14,7 +14,7 @@
 #include "options.h"
 #include "opencl_DES_bs.h"
 #include "opencl_DES_hst_dev_shared.h"
-#include "memdbg.h"
+#include "mask_ext.h"
 
 #define PADDING 	2048
 
@@ -22,16 +22,22 @@ static cl_kernel **kernels;
 static cl_mem buffer_map, buffer_bs_keys, *buffer_processed_salts = NULL, buffer_unchecked_hashes;
 static WORD current_salt = 0;
 
+static int mask_mode = 0;
+
+#include "memdbg.h"
+
 static int des_crypt_25(int *pcount, struct db_salt *salt);
 
 static void create_clobj_kpc(size_t gws)
 {
+	unsigned int iter_count = (mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH;
+
 	create_keys_buffer(gws, PADDING);
 
-	buffer_bs_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (gws + PADDING) * sizeof(DES_bs_vector) * 56, NULL, &ret_code);
+	buffer_bs_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (gws * iter_count + PADDING) * sizeof(DES_bs_vector) * 56, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Create buffer_bs_keys failed.\n");
 
-	buffer_unchecked_hashes = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (gws + PADDING) * sizeof(DES_bs_vector) * 64, NULL, &ret_code);
+	buffer_unchecked_hashes = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (gws * iter_count + PADDING) * sizeof(DES_bs_vector) * 64, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Create buffer_unchecked_hashes failed.\n");
 }
 
@@ -147,11 +153,20 @@ static void reset(struct db_main *db)
 		release_clobj_kpc();
 		release_clobj();
 
+		fmt_opencl_DES.params.max_keys_per_crypt = global_work_size * DES_BS_DEPTH;
+		fmt_opencl_DES.params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
+
+		if (options.flags & FLG_MASK_CHK) {
+			mask_mode = 1;
+			fmt_opencl_DES.params.max_keys_per_crypt = global_work_size;
+			fmt_opencl_DES.params.min_keys_per_crypt = local_work_size;
+		}
+
 		create_clobj(db);
 		create_clobj_kpc(global_work_size);
 
 		create_checking_kernel_set_args(buffer_unchecked_hashes);
-		create_keys_kernel_set_args(buffer_bs_keys, 0);
+		create_keys_kernel_set_args(buffer_bs_keys, mask_mode);
 
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 0, sizeof(cl_mem), &buffer_map), "Failed setting kernel argument buffer_map, kernel DES_bs_25.\n");
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 2, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_25.\n");
@@ -182,6 +197,12 @@ static void reset(struct db_main *db)
 
 		fmt_opencl_DES.params.max_keys_per_crypt = global_work_size * DES_BS_DEPTH;
 		fmt_opencl_DES.params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
+
+		if (options.flags & FLG_MASK_CHK) {
+			mask_mode = 1;
+			fmt_opencl_DES.params.max_keys_per_crypt = global_work_size;
+			fmt_opencl_DES.params.min_keys_per_crypt = local_work_size;
+		}
 
 		create_clobj_kpc(global_work_size);
 		create_clobj(NULL);
@@ -221,6 +242,8 @@ static void init_global_variables()
 		kernels[i] = (cl_kernel *) mem_calloc(1, sizeof(cl_kernel));
 
 	init_checking();
+
+	mask_int_cand_target = 1024;
 }
 
 static void set_salt(void *salt)
@@ -230,9 +253,10 @@ static void set_salt(void *salt)
 
 static int des_crypt_25(int *pcount, struct db_salt *salt)
 {
-	const int count = (*pcount + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH;
+	const int count = mask_mode ? *pcount : (*pcount + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	size_t current_gws = local_work_size ? (count + local_work_size - 1) / local_work_size * local_work_size : count;
+	size_t iter_count = (mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH;
 
 	process_keys(current_gws, lws);
 
@@ -244,8 +268,11 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 
 	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 1, sizeof(cl_mem), &buffer_processed_salts[current_salt]), "Failed setting kernel argument buffer_processed_salts, kernel DES_bs_25.\n");
 
+	current_gws *= iter_count;
 	ret_code = clEnqueueNDRangeKernel(queue[gpu_id], kernels[gpu_id][0], 1, NULL, &current_gws, lws, 0, NULL, NULL);
 	HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_25 failed.\n");
+
+	*pcount = mask_mode ? *pcount * mask_int_cand.num_int_cand : *pcount;
 
 	return extract_info(current_gws, lws, current_salt);
 }

@@ -14,7 +14,6 @@
 #include "options.h"
 #include "opencl_DES_bs.h"
 #include "opencl_DES_hst_dev_shared.h"
-#include "memdbg.h"
 #include "mask_ext.h"
 
 #define PADDING 	2048
@@ -27,6 +26,8 @@ static unsigned int save_binary = 1;
 static int num_compiled_salt = 0;
 
 static int mask_mode = 0;
+
+#include "memdbg.h"
 
 static int des_crypt_25(int *pcount, struct db_salt *salt);
 
@@ -209,7 +210,7 @@ static void init_global_variables()
 
 	init_checking();
 
-	mask_int_cand_target = 1000;
+	mask_int_cand_target = 1024;
 }
 
 static void modify_src()
