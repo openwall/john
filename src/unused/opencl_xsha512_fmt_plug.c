@@ -192,8 +192,8 @@ static void init(struct fmt_main *self)
 	while (local_work_size > maxsize)
 		local_work_size >>= 1;
 
-	gkey = mem_calloc(global_work_size * sizeof(xsha512_key));
-	ghash = mem_calloc(global_work_size * sizeof(xsha512_hash));
+	gkey = mem_calloc(global_work_size, sizeof(xsha512_key));
+	ghash = mem_calloc(global_work_size, sizeof(xsha512_hash));
 
 	///Allocate memory on the GPU
 	mem_salt =
@@ -233,7 +233,7 @@ static void init(struct fmt_main *self)
 
 	self->params.max_keys_per_crypt = global_work_size;
 	if (!local_work_size)
-		opencl_find_best_workgroup(self);
+		local_work_size = 64;
 
 	self->params.min_keys_per_crypt = local_work_size;
 
@@ -514,6 +514,7 @@ struct fmt_main fmt_opencl_xsha512 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		FULL_BINARY_SIZE,
 		BINARY_ALIGN,
@@ -549,6 +550,7 @@ struct fmt_main fmt_opencl_xsha512 = {
 			binary_hash_6
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,

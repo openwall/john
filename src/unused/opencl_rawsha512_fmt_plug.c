@@ -59,10 +59,11 @@ john_register_one(&fmt_opencl_rawsha512);
 
 
 #define SALT_SIZE 0
+#define SALT_ALIGN 1
 
 #define BINARY_SIZE 8
 #define FULL_BINARY_SIZE 64
-
+#define BINARY_ALIGN sizeof(uint64_t)
 
 #define PLAINTEXT_LENGTH 20
 #define CIPHERTEXT_LENGTH 128
@@ -174,8 +175,8 @@ static void init(struct fmt_main *self)
 
 	opencl_init("$JOHN/kernels/sha512_kernel.cl", gpu_id, NULL);
 
-	gkey = mem_calloc(global_work_size * sizeof(sha512_key));
-	ghash = mem_calloc(global_work_size * sizeof(sha512_hash));
+	gkey = mem_calloc(global_work_size, sizeof(sha512_key));
+	ghash = mem_calloc(global_work_size, sizeof(sha512_hash));
 
 	///Allocate memory on the GPU
 	mem_in =
@@ -218,7 +219,7 @@ static void init(struct fmt_main *self)
 
 	self->params.max_keys_per_crypt = global_work_size;
 	if (!local_work_size)
-		opencl_find_best_workgroup(self);
+		local_work_size = 64;
 
 	self->params.min_keys_per_crypt = local_work_size;
 
@@ -436,11 +437,12 @@ struct fmt_main fmt_opencl_rawsha512 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		0,
 		PLAINTEXT_LENGTH,
 		FULL_BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -471,6 +473,7 @@ struct fmt_main fmt_opencl_rawsha512 = {
 			binary_hash_6
 		},
 		fmt_default_salt_hash,
+		NULL,
 		fmt_default_set_salt,
 		set_key,
 		get_key,
