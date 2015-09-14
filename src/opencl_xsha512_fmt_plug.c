@@ -200,8 +200,14 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
+		char build_opts[64];
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-DPLAINTEXT_LENGTH=%u -DSALT_SIZE=%d",
+		         PLAINTEXT_LENGTH, SALT_SIZE);
+
 		opencl_init("$JOHN/kernels/xsha512_kernel.cl",
-	                gpu_id, NULL);
+	                gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error while creating crypt_kernel");
