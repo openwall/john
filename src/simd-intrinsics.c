@@ -474,6 +474,18 @@ static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid,
 				d[2 * VS32] = s[2 * VS32];
 				d[3 * VS32] = s[3 * VS32];
 				break;
+#if 0
+			default:
+				n <<= 3;
+				{
+					unsigned int m = 32 - n;
+					d[0] = (d[0] & (0xffffffffU >> m)) | (s[0] << n);
+					d[1 * VS32] = BITALIGN(s[1 * VS32], s[0], m);
+					d[2 * VS32] = BITALIGN(s[2 * VS32], s[1 * VS32], m);
+					d[3 * VS32] = BITALIGN(s[3 * VS32], s[2 * VS32], m);
+					d[4 * VS32] = (d[4 * VS32] & (0xffffffffU << n)) | (s[3 * VS32] >> m);
+				}
+#else
 			case 1:
 				d[0] = (d[0] & 0xffU) | (s[0] << 8);
 				d[1 * VS32] = BITALIGN(s[1 * VS32], s[0], 24);
@@ -494,6 +506,7 @@ static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid,
 				d[2 * VS32] = BITALIGN(s[2 * VS32], s[1 * VS32], 8);
 				d[3 * VS32] = BITALIGN(s[3 * VS32], s[2 * VS32], 8);
 				d[4 * VS32] = (d[4 * VS32] & 0xff000000U) | (s[3 * VS32] >> 8);
+#endif
 			}
 		}
 	}
