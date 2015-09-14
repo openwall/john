@@ -30,7 +30,6 @@ john_register_one(&fmt_opencl_xsha512);
 #include "common.h"
 #include "formats.h"
 #include "sha2.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"XSHA512-opencl"
 #define FORMAT_NAME			"Mac OS X 10.7+"
@@ -119,81 +118,34 @@ static uint64_t H[8] = {
 
 //OpenCL variables:
 static cl_mem mem_in, mem_out, mem_salt, mem_binary, mem_cmp;
-cl_kernel cmp_kernel;
+static cl_kernel cmp_kernel;
+static struct fmt_main *self;
 
 #define insize (sizeof(xsha512_key) * global_work_size)
 #define outsize (sizeof(xsha512_hash) * global_work_size)
 
-static void release_clobj(void)
-{
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+#define STEP			0
+#define SEED			256
 
-	MEM_FREE(ghash);
-	MEM_FREE(gkey);
+// This file contains auto-tuning routine(s). Has to be included after formats definitions.
+#include "opencl-autotune.h"
+#include "memdbg.h"
+
+static const char * warn[] = {
+	"xfer: ",  ", crypt: "
+};
+
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	return MIN(autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel),
+			   autotune_get_task_max_work_group_size(FALSE, 0, cmp_kernel));
 }
 
-static void done(void)
+static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	release_clobj();
-
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
-}
-
-static void copy_hash_back()
-{
-    if (!hash_copy_back) {
-        HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,outsize, ghash, 0, NULL, NULL), "Copy data back");
-        HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-        hash_copy_back = 1;
-    }
-}
-
-static void set_key(char *key, int index)
-{
-	int length = strlen(key);
-	if (length > PLAINTEXT_LENGTH)
-		length = PLAINTEXT_LENGTH;
-	gkey[index].length = length;
-	memcpy(gkey[index].v, key, length);
-	xsha512_key_changed = 1;
-}
-
-static char *get_key(int index)
-{
-	gkey[index].v[gkey[index].length] = 0;
-	return gkey[index].v;
-}
-
-static void init(struct fmt_main *self)
-{
-	cl_ulong maxsize;
-
-	opencl_init("$JOHN/kernels/xsha512_kernel.cl",
-	                gpu_id, NULL);
-
-	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while creating crypt_kernel");
-
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
-
-	if (!local_work_size)
-		local_work_size = cpu(device_info[gpu_id]) ? 1 : 64;
-
-	if (!global_work_size)
-		global_work_size = MAX_KEYS_PER_CRYPT;
-
-	/* Note: we ask for the kernel's max size, not the device's! */
-	maxsize = get_kernel_max_lws(gpu_id, crypt_kernel);
-
-	while (local_work_size > maxsize)
-		local_work_size >>= 1;
-
-	gkey = mem_calloc(global_work_size, sizeof(xsha512_key));
-	ghash = mem_calloc(global_work_size, sizeof(xsha512_hash));
+	gkey = mem_calloc(gws, sizeof(xsha512_key));
+	ghash = mem_calloc(gws, sizeof(xsha512_hash));
 
 	///Allocate memory on the GPU
 	mem_salt =
@@ -224,21 +176,85 @@ static void init(struct fmt_main *self)
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
 
 	///Assign cmp kernel parameters
-	cmp_kernel =
-	    clCreateKernel(program[gpu_id], CMP_KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while creating cmp_kernel");
 	clSetKernelArg(cmp_kernel, 0, sizeof(mem_binary), &mem_binary);
 	clSetKernelArg(cmp_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(cmp_kernel, 2, sizeof(mem_cmp), &mem_cmp);
+}
 
-	self->params.max_keys_per_crypt = global_work_size;
-	if (!local_work_size)
-		local_work_size = 64;
+static void release_clobj(void)
+{
+	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
+	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
-	self->params.min_keys_per_crypt = local_work_size;
+	MEM_FREE(ghash);
+	MEM_FREE(gkey);
+}
 
-	if (options.verbosity > 2)
-		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n",(int)local_work_size, (int)global_work_size);
+static void init(struct fmt_main *_self)
+{
+	self = _self;
+	opencl_prepare_dev(gpu_id);
+}
+
+static void reset(struct db_main *db)
+{
+	if (!autotuned) {
+		opencl_init("$JOHN/kernels/xsha512_kernel.cl",
+	                gpu_id, NULL);
+
+		crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error while creating crypt_kernel");
+
+		cmp_kernel =
+			clCreateKernel(program[gpu_id], CMP_KERNEL_NAME, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error while creating cmp_kernel");
+
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
+		                       create_clobj, release_clobj,
+		                       sizeof(xsha512_key), 0);
+
+		// Auto tune execution from shared/included code.
+		autotune_run(self, 1, 0, 500);
+	}
+}
+
+static void done(void)
+{
+	if (autotuned) {
+		release_clobj();
+
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(cmp_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		autotuned--;
+	}
+}
+
+static void copy_hash_back()
+{
+    if (!hash_copy_back) {
+        HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,outsize, ghash, 0, NULL, NULL), "Copy data back");
+        HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
+        hash_copy_back = 1;
+    }
+}
+
+static void set_key(char *key, int index)
+{
+	int length = strlen(key);
+	if (length > PLAINTEXT_LENGTH)
+		length = PLAINTEXT_LENGTH;
+	gkey[index].length = length;
+	memcpy(gkey[index].v, key, length);
+	xsha512_key_changed = 1;
+}
+
+static char *get_key(int index)
+{
+	gkey[index].v[gkey[index].length] = 0;
+	return gkey[index].v;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -414,26 +430,29 @@ static int salt_hash(void *salt)
 static void set_salt(void *salt)
 {
 	memcpy(gsalt.v, (uint8_t *) salt, SALT_SIZE);
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE,
+		0, SALT_SIZE, &gsalt, 0, NULL, NULL), "Copy memsalt");
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
-	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+	const int count = *pcount;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+
+	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	///Copy data to GPU memory
-	if (xsha512_key_changed) {
+	if (xsha512_key_changed || ocl_autotune_running) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer
 		    (queue[gpu_id], mem_in, CL_FALSE, 0, insize, gkey, 0, NULL,
-			NULL), "Copy memin");
+			multi_profilingEvent[0]), "Copy memin");
 	}
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE,
-		0, SALT_SIZE, &gsalt, 0, NULL, NULL), "Copy memsalt");
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
-	    (queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size,
-		0, NULL, profilingEvent), "Set ND range");
+	    (queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws,
+		0, NULL, multi_profilingEvent[1]), "Set ND range");
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
@@ -466,7 +485,6 @@ static int cmp_all(void *binary, int count)
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 	return result;
-
 }
 
 static int cmp_one(void *binary, int index)
@@ -530,7 +548,7 @@ struct fmt_main fmt_opencl_xsha512 = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		prepare,
 		valid,
 		fmt_default_split,
