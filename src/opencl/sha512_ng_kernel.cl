@@ -31,11 +31,8 @@ inline void _memcpy(               uint32_t * dest,
                     __global const uint32_t * src,
                              const uint32_t   len) {
 
-#if UNROLL_LEVEL > 0
-    #pragma unroll
-#endif
-    for (uint32_t i = 0; i < 120; i += 4)
-        *dest++ = select(0U, *src++, i < len);
+    for (uint32_t i = 0; i < len; i += 4)
+        *dest++ = *src++;
 }
 
 inline void sha512_block(	  const uint64_t * const buffer,
@@ -142,6 +139,11 @@ void kernel_crypt_raw(
 	//Ajust keys to it start position.
 	keys_buffer += (base >> 6);
     }
+    //Clear the buffer.
+    #pragma unroll
+    for (uint32_t i = 0; i < 15; i++)
+        w[i] = 0;
+
     //Get password.
     _memcpy((uint32_t *) w, keys_buffer, total);
 
@@ -193,6 +195,11 @@ void kernel_crypt_xsha(
     }
     //Get salt information.
     w[0] = salt->salt;
+
+    //Clear the buffer.
+    #pragma unroll
+    for (uint32_t i = 1; i < 15; i++)
+        w[i] = 0;
 
     //Get password.
     _memcpy(((uint32_t *) w) + 1, keys_buffer, total);

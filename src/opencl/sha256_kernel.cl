@@ -30,11 +30,8 @@ inline void _memcpy(               uint32_t * dest,
                     __global const uint32_t * src,
                              const uint32_t   len) {
 
-#if UNROLL_LEVEL > 0
-    #pragma unroll
-#endif
-    for (uint32_t i = 0; i < BUFFER_SIZE + 4; i += 4)
-        *dest++ = select(0U, *src++, i < len);
+    for (uint32_t i = 0; i < len; i += 4)
+        *dest++ = *src++;
 }
 
 inline void sha256_block(	  const uint32_t * const buffer,
@@ -140,6 +137,11 @@ void kernel_crypt(
 	//Ajust keys to it start position.
 	keys_buffer += (base >> 6);
     }
+    //Clear the buffer.
+    #pragma unroll
+    for (uint32_t i = 0; i < 15; i++)
+        w[i] = 0;
+
     //Get password.
     _memcpy(w, keys_buffer, total);
 

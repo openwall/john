@@ -353,10 +353,10 @@ static void set_key(char * _key, int index)
 
 	saved_idx[index] = (key_idx << 6) | len;
 
-	while (len > 4) {
+	do {
 		plaintext[key_idx++] = *key++;
 		len -= 4;
-	}
+	} while (len > 4);
 
 	if (len > 0)
 		plaintext[key_idx++] = *key;
