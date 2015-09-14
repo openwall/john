@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
+ * This software is Copyright (c) 2012-2015 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -7,6 +7,8 @@
  */
 
 #include "opencl_DES_kernel_params.h"
+
+#define WORK_GROUP_SIZE		64
 
 #ifndef RV7xx
 #define x(p) vxorf(B[processed_salt[p]], s_des_bs_key[s_key_map[p + k] + s_key_offset])

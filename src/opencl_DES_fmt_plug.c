@@ -101,7 +101,7 @@ static void init(struct fmt_main *pFmt)
 		else if (local_work_size < 8) local_work_size = 8;
 		else if (local_work_size < 16) local_work_size = 16;
 		else if (local_work_size < 32) local_work_size = 32;
-		else local_work_size = WORK_GROUP_SIZE;
+		else local_work_size = 64;
 	}
 }
 

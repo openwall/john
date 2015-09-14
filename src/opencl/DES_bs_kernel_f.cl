@@ -1,55 +1,5 @@
-/* CAUTION:Do not change or move the next 48 lines */
-#define index00 31
-#define index01  0
-#define index02  1
-#define index03  2
-#define index04  3
-#define index05  4
-#define index06  3
-#define index07  4
-#define index08  5
-#define index09  6
-#define index10  7
-#define index11  8
-#define index24 15
-#define index25 16
-#define index26 17
-#define index27 18
-#define index28 19
-#define index29 20
-#define index30 19
-#define index31 20
-#define index32 21
-#define index33 22
-#define index34 23
-#define index35 24
-#define index48 63
-#define index49 32
-#define index50 33
-#define index51 34
-#define index52 35
-#define index53 36
-#define index54 35
-#define index55 36
-#define index56 37
-#define index57 38
-#define index58 39
-#define index59 40
-#define index72 47
-#define index73 48
-#define index74 49
-#define index75 50
-#define index76 51
-#define index77 52
-#define index78 51
-#define index79 52
-#define index80 53
-#define index81 54
-#define index82 55
-#define index83 56
-
 /*
- * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
+ * This software is Copyright (c) 2012-2015 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -61,9 +11,9 @@
 #define z(p, q) vxorf(B[p], s_des_bs_key[q + s_key_offset])
 
 #define H1_k0()\
-        s1(z(index00, 12), z(index01, 46), z(index02, 33), z(index03, 52), z(index04, 48), z(index05, 20),\
+        s1(z(index0, 12), z(index1, 46), z(index2, 33), z(index3, 52), z(index4, 48), z(index5, 20),\
 		B,40, 48, 54, 62);\
-	s2(z(index06, 34), z(index07, 55), z(index08, 5), z(index09, 13), z(index10, 18), z(index11, 40),\
+	s2(z(index6, 34), z(index7, 55), z(index8, 5), z(index9, 13), z(index10, 18), z(index11, 40),\
 		B,44, 59, 33, 49);\
 	s3(z(7, 4), z(8, 32), z(9, 26),\
 		z(10, 27), z(11, 38), z(12, 54),\
@@ -127,9 +77,9 @@
 		B,4, 26, 14, 20);
 
 #define H1_k96()\
-        s1(z(index00, 46), z(index01, 25), z(index02, 12), z(index03, 31), z(index04, 27), z(index05, 54),\
+        s1(z(index0, 46), z(index1, 25), z(index2, 12), z(index3, 31), z(index4, 27), z(index5, 54),\
 		B,40, 48, 54, 62);\
-	s2(z(index06, 13), z(index07, 34), z(index08, 39), z(index09, 47), z(index10, 52), z(index11, 19),\
+	s2(z(index6, 13), z(index7, 34), z(index8, 39), z(index9, 47), z(index10, 52), z(index11, 19),\
 		B,44, 59, 33, 49);\
 	s3(z(7, 38), z(8, 11), z(9, 5),\
 		z(10, 6), z(11, 48), z(12, 33),\
@@ -171,9 +121,9 @@
 		B,4, 26, 14, 20);
 
 #define H1_k192()\
-        s1(z(index00, 18), z(index01, 52), z(index02, 39), z(index03, 34), z(index04, 54), z(index05, 26),\
+        s1(z(index0, 18), z(index1, 52), z(index2, 39), z(index3, 34), z(index4, 54), z(index5, 26),\
 		B,40, 48, 54, 62);\
-	s2(z(index06, 40), z(index07, 6), z(index08, 11), z(index09, 19), z(index10, 55), z(index11, 46),\
+	s2(z(index6, 40), z(index7, 6), z(index8, 11), z(index9, 19), z(index10, 55), z(index11, 46),\
 		B,44, 59, 33, 49);\
 	s3(z(7, 41), z(8, 38), z(9, 32),\
 		z(10, 33), z(11, 20), z(12, 5),\
@@ -215,9 +165,9 @@
 		B,4, 26, 14, 20);
 
 #define H1_k288()\
-        s1(z(index00, 45), z(index01, 55), z(index02, 11), z(index03, 6), z(index04, 26), z(index05, 53),\
+        s1(z(index0, 45), z(index1, 55), z(index2, 11), z(index3, 6), z(index4, 26), z(index5, 53),\
 		B,40, 48, 54, 62);\
-	s2(z(index06, 12), z(index07, 33), z(index08, 38), z(index09, 46), z(index10, 27), z(index11, 18),\
+	s2(z(index6, 12), z(index7, 33), z(index8, 38), z(index9, 46), z(index10, 27), z(index11, 18),\
 		B,44, 59, 33, 49);\
 	s3(z(7, 13), z(8, 41), z(9, 4),\
 		z(10, 5), z(11, 47), z(12, 32),\
@@ -259,9 +209,9 @@
 		B,4, 26, 14, 20);
 
 #define H1_k384()\
-        s1(z(index00, 55), z(index01, 34), z(index02, 45), z(index03, 40), z(index04, 5), z(index05, 32),\
+        s1(z(index0, 55), z(index1, 34), z(index2, 45), z(index3, 40), z(index4, 5), z(index5, 32),\
 		B,40, 48, 54, 62);\
-	s2(z(index06, 46), z(index07, 12), z(index08, 48), z(index09, 25), z(index10, 6), z(index11, 52),\
+	s2(z(index6, 46), z(index7, 12), z(index8, 48), z(index9, 25), z(index10, 6), z(index11, 52),\
 		B,44, 59, 33, 49);\
 	s3(z(7, 47), z(8, 20), z(9, 38),\
 		z(10, 39), z(11, 26), z(12, 11),\
@@ -303,9 +253,9 @@
 		B,4, 26, 14, 20);
 
 #define H1_k480()\
-        s1(z(index00, 27), z(index01, 6), z(index02, 48), z(index03, 12), z(index04, 32), z(index05, 4),\
+        s1(z(index0, 27), z(index1, 6), z(index2, 48), z(index3, 12), z(index4, 32), z(index5, 4),\
 		B,40, 48, 54, 62);\
-	s2(z(index06, 18), z(index07, 39), z(index08, 20), z(index09, 52), z(index10, 33), z(index11, 55),\
+	s2(z(index6, 18), z(index7, 39), z(index8, 20), z(index9, 52), z(index10, 33), z(index11, 55),\
 		B,44, 59, 33, 49);\
 	s3(z(7, 19), z(8, 47), z(9, 41),\
 		z(10, 11), z(11, 53), z(12, 38),\
@@ -347,9 +297,9 @@
 		B,4, 26, 14, 20);
 
 #define H1_k576()\
-        s1(z(index00, 54), z(index01, 33), z(index02, 20), z(index03, 39), z(index04, 4), z(index05, 31),\
+        s1(z(index0, 54), z(index1, 33), z(index2, 20), z(index3, 39), z(index4, 4), z(index5, 31),\
 		B,40, 48, 54, 62);\
-	s2(z(index06, 45), z(index07, 11), z(index08, 47), z(index09, 55), z(index10, 5), z(index11, 27),\
+	s2(z(index6, 45), z(index7, 11), z(index8, 47), z(index9, 55), z(index10, 5), z(index11, 27),\
 		B,44, 59, 33, 49);\
 	s3(z(7, 46), z(8, 19), z(9, 13),\
 		z(10, 38), z(11, 25), z(12, 41),\
@@ -391,9 +341,9 @@
 		B,4, 26, 14, 20);
 
 #define H1_k672()\
-        s1(z(index00, 26), z(index01, 5), z(index02, 47), z(index03, 11), z(index04, 31), z(index05, 34),\
+        s1(z(index0, 26), z(index1, 5), z(index2, 47), z(index3, 11), z(index4, 31), z(index5, 34),\
 		B,40, 48, 54, 62);\
-	s2(z(index06, 48), z(index07, 38), z(index08, 19), z(index09, 27), z(index10, 32), z(index11, 54),\
+	s2(z(index6, 48), z(index7, 38), z(index8, 19), z(index9, 27), z(index10, 32), z(index11, 54),\
 		B,44, 59, 33, 49);\
 	s3(z(7, 18), z(8, 46), z(9, 40),\
 		z(10, 41), z(11, 52), z(12, 13),\

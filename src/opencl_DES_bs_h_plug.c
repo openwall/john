@@ -163,25 +163,22 @@ static void init_global_variables()
 	mask_int_cand_target = 1024;
 }
 
-static void modify_src(WORD salt_val)
+static char* enc_salt(WORD salt_val)
 {
-	  int i = 53, j = 1, tmp;
-	  static char digits[10] = {'0','1','2','3','4','5','6','7','8','9'};
-	  static unsigned int  index[48]  = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,
-					     24,25,26,27,28,29,30,31,32,33,34,35,
-					     48,49,50,51,52,53,54,55,56,57,58,59,
-					     72,73,74,75,76,77,78,79,80,81,82,83 };
-	  for (j = 1; j <= 48; j++) {
-		tmp = processed_salts[salt_val * 96 + index[j - 1]] / 10;
-		if (tmp == 0)
-			kernel_source[i + j * 17] = ' ' ;
-		else
-			kernel_source[i + j * 17] = digits[tmp];
-		tmp = processed_salts[salt_val * 96 + index[j - 1]] % 10;
-	     ++i;
-	     kernel_source[i + j * 17 ] = digits[tmp];
-	     ++i;
-	  }
+	static unsigned int  index[48]  = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+				24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
+				48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
+				72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83};
+
+	static char build_opts[10000];
+	unsigned int i, j;
+
+	for (i = 0, j = 0; i < 48; i++) {
+		sprintf(build_opts + j, "-D index%u=%u ", index[i], processed_salts[salt_val * 96 + index[i]]);
+		j = strlen(build_opts);
+	}
+
+	return build_opts;
 }
 
 static void set_salt(void *salt)
@@ -189,7 +186,7 @@ static void set_salt(void *salt)
 	current_salt = *(WORD *)salt;
 }
 
-static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary) {
+static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary, size_t lws) {
 	char kernel_bin_name[200];
 	FILE *file;
 
@@ -198,12 +195,14 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 	file = fopen(path_expand(kernel_bin_name), "r");
 
 	if (file == NULL) {
-		char *build_opt = "-fno-bin-amdil -fno-bin-source -fbin-exe";
+		static char build_opts[10000];
 		opencl_read_source("$JOHN/kernels/DES_bs_kernel_h.cl");
-		modify_src(salt_val);
 		if (get_platform_vendor_id(get_platform_id(id_gpu)) != DEV_AMD)
-			build_opt = NULL;
-		opencl_build(id_gpu, build_opt, save_binary, kernel_bin_name);
+			sprintf(build_opts, "-D WORK_GROUP_SIZE=%zu %s", lws, enc_salt(salt_val));
+		else
+			sprintf(build_opts, "-D WORK_GROUP_SIZE=%zu -fno-bin-amdil -fno-bin-source -fbin-exe %s", lws, enc_salt(salt_val));
+
+		opencl_build(id_gpu, build_opts, save_binary, kernel_bin_name);
 		fprintf(stderr, "Salt compiled from Source:%d\n", ++num_compiled_salt);
 	}
 	else {
@@ -214,11 +213,11 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 	}
 }
 
-static void init_kernel(WORD salt_val, int id_gpu, int save_binary)
+static void init_kernel(WORD salt_val, int id_gpu, int save_binary, size_t lws)
 {
 	if (marked_salts[salt_val] == salt_val) return;
 
-	modify_build_save_restore(salt_val, id_gpu, save_binary);
+	modify_build_save_restore(salt_val, id_gpu, save_binary, lws);
 
 	kernels[id_gpu][salt_val] = clCreateKernel(program[id_gpu], "DES_bs_25", &ret_code);
 	HANDLE_CLERROR(ret_code, "Create Kernel DES_bs_25 failed.\n");
@@ -258,7 +257,7 @@ static void reset(struct db_main *db)
 
 		salt = db -> salts;
 		do {
-			init_kernel((*(WORD *)salt -> salt), gpu_id, 1);
+			init_kernel((*(WORD *)salt -> salt), gpu_id, 1, local_work_size);
 		} while ((salt = salt -> next));
 	}
 	else {
@@ -290,7 +289,7 @@ static void reset(struct db_main *db)
 		while (fmt_opencl_DES.params.tests[i].ciphertext) {
 			ciphertext = fmt_opencl_DES.methods.split(fmt_opencl_DES.params.tests[i].ciphertext, 0, &fmt_opencl_DES);
 			salt_val = *(WORD *)fmt_opencl_DES.methods.salt(ciphertext);
-			init_kernel(salt_val, gpu_id, 1);
+			init_kernel(salt_val, gpu_id, 1, local_work_size);
 			i++;
 		}
 

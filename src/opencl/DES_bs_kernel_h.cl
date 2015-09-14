@@ -1,55 +1,5 @@
-/* CAUTION:Do not change or move the next 48 lines */
-#define index00 31
-#define index01  0
-#define index02  1
-#define index03  2
-#define index04  3
-#define index05  4
-#define index06  3
-#define index07  4
-#define index08  5
-#define index09  6
-#define index10  7
-#define index11  8
-#define index24 15
-#define index25 16
-#define index26 17
-#define index27 18
-#define index28 19
-#define index29 20
-#define index30 19
-#define index31 20
-#define index32 21
-#define index33 22
-#define index34 23
-#define index35 24
-#define index48 63
-#define index49 32
-#define index50 33
-#define index51 34
-#define index52 35
-#define index53 36
-#define index54 35
-#define index55 36
-#define index56 37
-#define index57 38
-#define index58 39
-#define index59 40
-#define index72 47
-#define index73 48
-#define index74 49
-#define index75 50
-#define index76 51
-#define index77 52
-#define index78 51
-#define index79 52
-#define index80 53
-#define index81 54
-#define index82 55
-#define index83 56
-
 /*
- * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
+ * This software is Copyright (c) 2012-2015 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -59,9 +9,9 @@
 #include "opencl_DES_kernel_params.h"
 
 #define H1_s()\
-	s1(z(index00, 0), z(index01, 1), z(index02, 2), z(index03, 3), z(index04, 4), z(index05, 5),\
+	s1(z(index0, 0), z(index1, 1), z(index2, 2), z(index3, 3), z(index4, 4), z(index5, 5),\
 		B,40, 48, 54, 62);\
-	s2(z(index06, 6), z(index07, 7), z(index08, 8), z(index09, 9), z(index10, 10), z(index11, 11),\
+	s2(z(index6, 6), z(index7, 7), z(index8, 8), z(index9, 9), z(index10, 10), z(index11, 11),\
 		B,44, 59, 33, 49);\
 	s3(z(7, 12), z(8, 13), z(9, 14),\
 		z(10, 15), z(11, 16), z(12, 17),\
