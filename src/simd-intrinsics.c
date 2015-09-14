@@ -590,11 +590,8 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 	unsigned int i,j;
 	MD5_CTX ctx;
 	MD5_CTX tctx;
-	char _b[8 * 64 * MD5_SSE_NUM_KEYS + MEM_ALIGN_SIMD] = { 0 };
-	unsigned char (*buffers)[64*MD5_SSE_NUM_KEYS] =
-		mem_align(_b, MEM_ALIGN_SIMD);
-	int _F[4 * MD5_SSE_NUM_KEYS + MEM_ALIGN_SIMD] = { 0 };
-	unsigned int *F = mem_align(_F, MEM_ALIGN_SIMD);
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char buffers[8][64*MD5_SSE_NUM_KEYS] = { 0 };
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned int F[4*MD5_SSE_NUM_KEYS];
 
 	saltlen = strlen((char*)salt);
 	for(i=0;i<MD5_SSE_NUM_KEYS;i++)
