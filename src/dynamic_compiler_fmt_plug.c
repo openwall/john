@@ -221,6 +221,10 @@ static void link_funcs() {
 	}
 	tests[3].plaintext = max_vector;
 	tests[4].plaintext = "";
+#if SIMD_COEF_32 < 4
+	fprintf(stderr, "%s() maxlen %d\n", __func__, fmt_CompiledDynamic.params.plaintext_length);
+	fprintf(stderr, "%s() '%s' %s\n", __func__, tests[3].plaintext, tests[3].ciphertext);
+#endif
 }
 
 static void our_init(struct fmt_main *self)

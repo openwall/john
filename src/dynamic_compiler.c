@@ -1525,6 +1525,9 @@ static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex
 	comp_add_script_line("MaxInputLenX86=110\n");
 	comp_add_script_line("MaxInputLen=110\n");
 
+#if SIMD_COEF_32 < 4
+	fprintf(stderr, "%s() maxlen 110\n", __func__);
+#endif
 	// Build test strings.
 	strcpy(gen_pw, "abc");
 	build_test_string(_p, &_p->pLine[0]);
@@ -2029,6 +2032,9 @@ static int parse_expression(DC_struct *p) {
 		comp_add_script_line("MaxInputLen=%d\n",max_inp_len);
 	}
 
+#if SIMD_COEF_32 < 4
+	fprintf(stderr, "%s() maxlen %d\n", __func__, max_inp_len);
+#endif
 	// Build test strings.
 	strcpy(gen_pw, "abc");
 	build_test_string(p, &p->pLine[0]);
