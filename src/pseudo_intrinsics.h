@@ -219,6 +219,7 @@ typedef __m512i vtype;
 
 #if __AVX512F__
 #undef vcmov
+#undef VCMOV_EMULATED
 #define vcmov(x, y, z)          vternarylogic(x, y, z, 0xE4)
 #define vternarylogic           _mm512_ternarylogic_epi32
 #endif
