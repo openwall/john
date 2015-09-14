@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2006,2008,2010-2013 by Solar Designer
+ * Copyright (c) 1996-2001,2006,2008,2010-2013,2015 by Solar Designer
  */
 
 #include <stdio.h>
@@ -9,6 +9,8 @@
 #include "params.h"
 #include "memory.h"
 #include "formats.h"
+
+char fmt_null_key[PLAINTEXT_BUFFER_SIZE];
 
 struct fmt_main *fmt_list = NULL;
 static struct fmt_main **fmt_tail = &fmt_list;
@@ -165,7 +167,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 /* Remove some old keys to better test cmp_all() */
 		if (index & 1)
-			format->methods.set_key("", index);
+			format->methods.set_key(fmt_null_key, index);
 
 /* 0 1 2 3 4 6 9 13 19 28 42 63 94 141 211 316 474 711 1066 ... */
 		if (index >= 2 && max > ntests)

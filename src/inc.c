@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2006,2010-2013 by Solar Designer
+ * Copyright (c) 1996-2006,2010-2013,2015 by Solar Designer
  */
 
 #include <stdio.h>
@@ -668,7 +668,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 		if (!length && !min_length) {
 			min_length = 1;
-			if (!skip && crk_process_key(""))
+			if (!skip && crk_process_key(fmt_null_key))
 				break;
 		}
 
