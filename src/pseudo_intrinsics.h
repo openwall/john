@@ -160,8 +160,8 @@ typedef __m512i vtype;
 #define vroti_epi32             vroti_epi32_emu
 #define vroti_epi64             vroti_epi64_emu
 #define vroti16_epi32           vroti_epi32
-#define vscatter_epi32          _mm512_i32scatter_epi32
-#define vscatter_epi64          _mm512_i64scatter_epi64
+#define vscatter_epi32(b,i,v,s) _mm512_i32scatter_epi32((void*)b, i, v, s)
+#define vscatter_epi64(b,i,v,s) _mm512_i64scatter_epi64((void*)b, i, v, s)
 #define vset1_epi8              _mm512_set1_epi8
 #define vset1_epi32             _mm512_set1_epi32
 #define vset1_epi64             _mm512_set1_epi64

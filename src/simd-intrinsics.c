@@ -97,7 +97,7 @@ _inline __m128i _mm_set1_epi64(long long a)
 
 #if __AVX512F__
 #define MD5_I(x,y,z)                            \
-    tmp[i] = vternarylogic(x, y, z, 0x39);
+    tmp[i] = vternarylogic(x[i], y[i], z[i], 0x39);
 #elif __ARM_NEON__
 #define MD5_I(x,y,z)                            \
     tmp[i] = vorn((x[i]), (z[i]));              \
@@ -142,14 +142,16 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	vtype c[SIMD_PARA_MD5];
 	vtype d[SIMD_PARA_MD5];
 	vtype tmp[SIMD_PARA_MD5];
-#if 1
+#if !__AVX512F__
 	vtype tmp2[SIMD_PARA_MD5];
 #endif
-	vtype mask;
 	unsigned int i;
 	vtype *data;
 
+#if !__AVX512F__ && !__ARM_NEON__
+	vtype mask;
 	mask = vset1_epi32(0xffffffff);
+#endif
 
 	if(SSEi_flags & SSEi_FLAT_IN) {
 		// Move _data to __data, mixing it SIMD_COEF_32 wise.
@@ -771,7 +773,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	vtype c[SIMD_PARA_MD4];
 	vtype d[SIMD_PARA_MD4];
 	vtype tmp[SIMD_PARA_MD4];
-#if SIMD_PARA_MD4 < 3 || VCMOV_EMULATED
+#if (SIMD_PARA_MD4 < 3 || VCMOV_EMULATED) && !__AVX512F__
 	vtype tmp2[SIMD_PARA_MD4];
 #endif
 	vtype cst;
