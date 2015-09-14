@@ -878,7 +878,7 @@ void opencl_DES_bs_init_index()
 	}
 }
 
-void opencl_DES_bs_init(int block)
+static void DES_bs_init(int block)
 {
 	int index;
 
@@ -889,9 +889,14 @@ void opencl_DES_bs_init(int block)
 
 void create_keys_buffer(size_t gws, size_t padding)
 {
+	int i;
+
 	des_all = (des_combined *) mem_alloc((gws + padding) * sizeof(des_combined));
 	des_raw_keys = (opencl_DES_bs_transfer *) mem_alloc((gws + padding) * sizeof(opencl_DES_bs_transfer));
 	des_int_key_loc = (unsigned int *) mem_calloc((gws + padding), sizeof(unsigned int));
+
+	for (i = 0; i < gws; i++)
+		DES_bs_init(i);
 
 	buffer_raw_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, (gws + padding) * sizeof(opencl_DES_bs_transfer), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Create buffer_raw_keys failed.\n");

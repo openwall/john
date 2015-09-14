@@ -149,7 +149,6 @@ static void reset(struct db_main *db)
 	static int initialized;
 
 	if (initialized) {
-		int i;
 		struct db_salt *salt;
 
 		release_clobj_kpc();
@@ -173,9 +172,6 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 0, sizeof(cl_mem), &buffer_map), "Failed setting kernel argument buffer_map, kernel DES_bs_25.\n");
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 2, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_25.\n");
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 3, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_25.\n");
-
-		for (i = 0; i < global_work_size; i++)
-			opencl_DES_bs_init(i);
 
 		build_salt(0);
 
@@ -215,9 +211,6 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 0, sizeof(cl_mem), &buffer_map), "Failed setting kernel argument buffer_map, kernel DES_bs_25.\n");
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 2, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_25.\n");
 		HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 3, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_25.\n");
-
-		for (i = 0; i < global_work_size; i++)
-			opencl_DES_bs_init(i);
 
 		build_salt(0);
 

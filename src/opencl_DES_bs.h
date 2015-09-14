@@ -74,7 +74,6 @@ extern int opencl_DES_bs_get_hash_5(int index);
 extern int opencl_DES_bs_get_hash_6(int index);
 extern int opencl_DES_bs_cmp_one(void *binary, int index);
 extern int opencl_DES_bs_cmp_exact(char *source, int index);
-extern void opencl_DES_bs_init(int block);
 extern void opencl_DES_bs_set_key(char *key, int index);
 extern char *opencl_DES_bs_get_key(int index);
 extern void opencl_DES_bs_init_index();

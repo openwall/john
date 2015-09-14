@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
+ * This software is Copyright (c) 2012-2015 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
@@ -256,9 +256,6 @@ static void reset(struct db_main *db)
 		create_checking_kernel_set_args(buffer_unchecked_hashes);
 		create_keys_kernel_set_args(buffer_bs_keys, mask_mode);
 
-		for (i = 0; i < global_work_size; i++)
-		opencl_DES_bs_init(i);
-
 		salt = db -> salts;
 		do {
 			init_kernel((*(WORD *)salt -> salt), gpu_id, 1);
@@ -285,9 +282,6 @@ static void reset(struct db_main *db)
 
 		create_checking_kernel_set_args(buffer_unchecked_hashes);
 		create_keys_kernel_set_args(buffer_bs_keys, 0);
-
-		for (i = 0; i < global_work_size; i++)
-			opencl_DES_bs_init(i);
 
 		for (i = 0; i < 4096; i++)
 			build_salt(i);
