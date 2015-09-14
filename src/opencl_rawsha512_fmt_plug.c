@@ -185,7 +185,12 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
-		opencl_init("$JOHN/kernels/sha512_kernel.cl", gpu_id, NULL);
+		char build_opts[64];
+
+		snprintf(build_opts, sizeof(build_opts),
+		         "-DPLAINTEXT_LENGTH=%u", PLAINTEXT_LENGTH);
+
+		opencl_init("$JOHN/kernels/sha512_kernel.cl", gpu_id, build_opts);
 
 		/* create kernels to execute */
 		crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
