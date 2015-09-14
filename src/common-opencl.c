@@ -1103,7 +1103,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			char c[9];
 			unsigned long w;
 		} key;
-		int len = MIN(MAX(self->params.plaintext_length, 8),
+		int len = MAX(MIN(self->params.plaintext_length, 8),
 		              self->params.plaintext_min_length);
 
 		key.w = 0x6161616161616161ULL;
@@ -1311,7 +1311,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 			char c[9];
 			unsigned long w;
 		} key;
-		int len = MIN(MAX(self->params.plaintext_length, 8),
+		int len = MAX(MIN(self->params.plaintext_length, 8),
 		              self->params.plaintext_min_length);
 
 		key.w = 0x6161616161616161ULL;

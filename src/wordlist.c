@@ -594,29 +594,34 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		}
 
 #ifdef HAVE_MMAP
-		log_event("- memory mapping wordlist ("LLd" bytes)",
-		          (long long)file_len);
+		if (cfg_get_bool(SECTION_OPTIONS, NULL, "WordlistMemoryMap", 1))
+		{
+			log_event("- memory mapping wordlist ("LLd" bytes)",
+			          (long long)file_len);
 #if (SIZEOF_SIZE_T < 8)
-		/* Now even though we are 64 bit file size, we must still
-		 * deal with some 32 bit functions ;) */
-		mem_map = MAP_FAILED;
-		if (file_len < ((1LL)<<32))
+/*
+ * Now even though we are 64 bit file size, we must still deal with some
+ * 32 bit functions ;)
+ */
+			mem_map = MAP_FAILED;
+			if (file_len < ((1LL)<<32))
 #endif
-		mem_map = mmap(NULL, file_len,
-		               PROT_READ, MAP_SHARED,
-		               fileno(word_file), 0);
-		if (mem_map == MAP_FAILED) {
-			mem_map = NULL;
+			mem_map = mmap(NULL, file_len,
+			               PROT_READ, MAP_SHARED,
+			               fileno(word_file), 0);
+			if (mem_map == MAP_FAILED) {
+				mem_map = NULL;
 #ifdef DEBUG
-			fprintf(stderr, "wordlist: memory mapping failed (%s) (non-fatal)\n",
-			        strerror(errno));
+				fprintf(stderr, "wordlist: memory mapping failed (%s) (non-fatal)\n",
+				        strerror(errno));
 #endif
-			log_event("- memory mapping failed (%s) - but we'll do "
-			          "fine without it.", strerror(errno));
-		} else {
-			map_pos = mem_map;
-			map_end = mem_map + file_len;
-			map_scan_end = map_end - VSCANSZ;
+				log_event("- memory mapping failed (%s) - but we'll do fine without it.",
+				          strerror(errno));
+			} else {
+				map_pos = mem_map;
+				map_end = mem_map + file_len;
+				map_scan_end = map_end - VSCANSZ;
+			}
 		}
 #endif
 

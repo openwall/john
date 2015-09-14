@@ -60,16 +60,14 @@ static auxilliary_offset_data *offset_data = NULL;
 
 unsigned long long total_memory_in_bytes = 0;
 
-static unsigned int signal_stop = 0;
+static volatile sig_atomic_t signal_stop = 0;
 
 static unsigned int verbosity;
 
 static void alarm_handler(int sig)
 {
-	if (sig == SIGALRM) {
+	if (sig == SIGALRM)
 		signal_stop = 1;
-		fprintf(stderr, "\nProgress is too slow!! trying next table size.\n");
-	}
 }
 
 static unsigned int coprime_check(unsigned int m,unsigned int n)
@@ -412,8 +410,9 @@ static unsigned int create_tables()
 		}
 
 		if (signal_stop) {
-			signal_stop = 0;
 			alarm(0);
+			signal_stop = 0;
+			fprintf(stderr, "\nProgress is too slow!! trying next table size.\n");
 			bt_free((void **)&hash_table_idxs);
 			bt_free((void **)&store_hash_modulo_table_sz);
 			return 0;

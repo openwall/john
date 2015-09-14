@@ -1,10 +1,11 @@
 /*
- * SHA-512 hashing, OpenCL interface.
+ * Mac OS X 10.7+ salted SHA-512 password hashing, OpenCL interface.
  * Please note that in current comparison function, we use computed a77
  * compares with ciphertext d80. For more details, refer to:
  * http://www.openwall.com/lists/john-dev/2012/04/11/13
  *
- * Copyright (c) 2012 myrice
+ * Copyright (c) 2008,2011 Solar Designer (original CPU-only code)
+ * Copyright (c) 2012 myrice (interfacing to OpenCL)
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -15,9 +16,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_rawsha512;
+extern struct fmt_main fmt_opencl_xsha512;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_rawsha512);
+john_register_one(&fmt_opencl_xsha512);
 #else
 
 #include <string.h>
@@ -31,14 +32,14 @@ john_register_one(&fmt_opencl_rawsha512);
 #include "sha2.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"Raw-SHA512-opencl"
-#define FORMAT_NAME			""
-#define ALGORITHM_NAME			"SHA512 OpenCL (inefficient, development use mostly)"
+#define FORMAT_LABEL			"XSHA512-opencl"
+#define FORMAT_NAME			"Mac OS X 10.7+"
+#define ALGORITHM_NAME			"SHA512 OpenCL (efficient at \"many salts\" only)"
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0
 
-#define KERNEL_NAME "kernel_sha512"
+#define KERNEL_NAME "kernel_xsha512"
 #define CMP_KERNEL_NAME "kernel_cmp"
 
 #define ITERATIONS 1
@@ -58,46 +59,51 @@ john_register_one(&fmt_opencl_rawsha512);
    | ((n) >> 56))
 
 
-#define SALT_SIZE 0
-#define SALT_ALIGN 1
+#define SALT_SIZE 4
+#define SALT_ALIGN 4
 
 #define BINARY_SIZE 8
 #define FULL_BINARY_SIZE 64
 #define BINARY_ALIGN sizeof(uint64_t)
 
-#define PLAINTEXT_LENGTH 20
-#define CIPHERTEXT_LENGTH 128
 
-typedef struct { // notice memory align problem
+#define PLAINTEXT_LENGTH 20
+#define CIPHERTEXT_LENGTH 136
+
+typedef struct {		// notice memory align problem
 	uint64_t H[8];
 	uint32_t buffer[32];	//1024 bits
 	uint32_t buflen;
-} sha512_ctx;
-
-#define OCL_CONFIG		"rawsha512"
-
-typedef struct {
-    uint8_t length;
-    char v[PLAINTEXT_LENGTH+1];
-} sha512_key;
+} xsha512_ctx;
 
 
+#define OCL_CONFIG		"xsha512"
 
 typedef struct {
-    uint64_t v[BINARY_SIZE / 8]; // up to 512 bits
-} sha512_hash;
+	uint8_t v[SALT_SIZE];	// 32bits
+} xsha512_salt;
+
+typedef struct {
+	uint8_t length;
+	char v[PLAINTEXT_LENGTH + 1];
+} xsha512_key;
+
+typedef struct {
+	uint64_t v[BINARY_SIZE / 8];	// up to 512 bits
+} xsha512_hash;
 
 
 static struct fmt_tests tests[] = {
-	{"b109f3bbbc244eb82441917ed06d618b9008dd09b3befd1b5e07394c706a8bb980b1d7785e5976ec049b46df5f1326af5a2ea6d103fd07c95385ffab0cacbc86", "password"},
-	{"2c80f4c2b3db6b677d328775be4d38c8d8cd9a4464c3b6273644fb148f855e3db51bc33b54f3f6fa1f5f52060509f0e4d350bb0c7f51947728303999c6eff446", "john-user"},
+	{"bb0489df7b073e715f19f83fd52d08ede24243554450f7159dd65c100298a5820525b55320f48182491b72b4c4ba50d7b0e281c1d98e06591a5e9c6167f42a742f0359c7", "password"},
+	{"$LION$74911f723bd2f66a3255e0af4b85c639776d510b63f0b939c432ab6e082286c47586f19b4e2f3aab74229ae124ccb11e916a7a1c9b29c64bd6b0fd6cbd22e7b1f0ba1673", "hello"},
+	{"$LION$5e3ab14c8bd0f210eddafbe3c57c0003147d376bf4caf75dbffa65d1891e39b82c383d19da392d3fcc64ea16bf8203b1fc3f2b14ab82c095141bb6643de507e18ebe7489", "boobies"},
 	{NULL}
 };
 
-
-static sha512_key *gkey;
-static sha512_hash *ghash;
-static uint8_t sha512_key_changed;
+static xsha512_key *gkey;
+static xsha512_hash *ghash;
+static xsha512_salt gsalt;
+uint8_t xsha512_key_changed;
 static uint8_t hash_copy_back;
 
 static uint64_t H[8] = {
@@ -112,15 +118,16 @@ static uint64_t H[8] = {
 };
 
 //OpenCL variables:
-static cl_mem mem_in, mem_out, mem_binary, mem_cmp;
+static cl_mem mem_in, mem_out, mem_salt, mem_binary, mem_cmp;
 cl_kernel cmp_kernel;
 
-#define insize (sizeof(sha512_key) * global_work_size)
-#define outsize (sizeof(sha512_hash) * global_work_size)
+#define insize (sizeof(xsha512_key) * global_work_size)
+#define outsize (sizeof(xsha512_hash) * global_work_size)
 
 static void release_clobj(void)
 {
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
 	MEM_FREE(ghash);
@@ -151,7 +158,7 @@ static void set_key(char *key, int index)
 		length = PLAINTEXT_LENGTH;
 	gkey[index].length = length;
 	memcpy(gkey[index].v, key, length);
-	sha512_key_changed = 1;
+	xsha512_key_changed = 1;
 }
 
 static char *get_key(int index)
@@ -162,7 +169,13 @@ static char *get_key(int index)
 
 static void init(struct fmt_main *self)
 {
-	size_t maxsize;
+	cl_ulong maxsize;
+
+	opencl_init("$JOHN/kernels/xsha512_kernel.cl",
+	                gpu_id, NULL);
+
+	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while creating crypt_kernel");
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(OCL_CONFIG);
@@ -173,49 +186,50 @@ static void init(struct fmt_main *self)
 	if (!global_work_size)
 		global_work_size = MAX_KEYS_PER_CRYPT;
 
-	opencl_init("$JOHN/kernels/sha512_kernel.cl", gpu_id, NULL);
-
-	gkey = mem_calloc(global_work_size, sizeof(sha512_key));
-	ghash = mem_calloc(global_work_size, sizeof(sha512_hash));
-
-	///Allocate memory on the GPU
-	mem_in =
-		clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
-		&ret_code);
-	HANDLE_CLERROR(ret_code,"Error while allocating memory for passwords");
-	mem_out =
-		clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
-		&ret_code);
-	HANDLE_CLERROR(ret_code,"Error while allocating memory for hashes");
-	mem_binary =
-		clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(uint64_t), NULL,
-		&ret_code);
-	HANDLE_CLERROR(ret_code,"Error while allocating memory for binary");
-	mem_cmp =
-		clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(uint32_t), NULL,
-		&ret_code);
-	HANDLE_CLERROR(ret_code,"Error while allocating memory for cmp_all result");
-
-	///Assign crypt kernel parameters
-	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code,"Error while creating crypt_kernel");
-	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
-	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
-
-	///Assign cmp kernel parameters
-	cmp_kernel = clCreateKernel(program[gpu_id], CMP_KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code,"Error while creating cmp_kernel");
-	clSetKernelArg(cmp_kernel, 0, sizeof(mem_binary), &mem_binary);
-	clSetKernelArg(cmp_kernel, 1, sizeof(mem_out), &mem_out);
-	clSetKernelArg(cmp_kernel, 2, sizeof(mem_cmp), &mem_cmp);
-
 	/* Note: we ask for the kernel's max size, not the device's! */
 	maxsize = get_kernel_max_lws(gpu_id, crypt_kernel);
 
-	if (local_work_size > maxsize) {
-		local_work_size = maxsize;
-		global_work_size = (global_work_size + local_work_size - 1) / local_work_size * local_work_size;
-	}
+	while (local_work_size > maxsize)
+		local_work_size >>= 1;
+
+	gkey = mem_calloc(global_work_size, sizeof(xsha512_key));
+	ghash = mem_calloc(global_work_size, sizeof(xsha512_hash));
+
+	///Allocate memory on the GPU
+	mem_salt =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, SALT_SIZE, NULL,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
+	mem_in =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
+	mem_out =
+	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while allocating memory for hashes");
+	mem_binary =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(uint64_t),
+	    NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while allocating memory for binary");
+	mem_cmp =
+	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
+	    sizeof(uint32_t), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,
+	    "Error while allocating memory for cmp_all result");
+
+	///Assign crypt kernel parameters
+	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
+	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
+	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
+
+	///Assign cmp kernel parameters
+	cmp_kernel =
+	    clCreateKernel(program[gpu_id], CMP_KERNEL_NAME, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while creating cmp_kernel");
+	clSetKernelArg(cmp_kernel, 0, sizeof(mem_binary), &mem_binary);
+	clSetKernelArg(cmp_kernel, 1, sizeof(mem_out), &mem_out);
+	clSetKernelArg(cmp_kernel, 2, sizeof(mem_cmp), &mem_cmp);
 
 	self->params.max_keys_per_crypt = global_work_size;
 	if (!local_work_size)
@@ -233,128 +247,188 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	/* Require lowercase hex digits (assume ASCII) */
 	pos = ciphertext;
-	while (atoi16[ARCH_INDEX(*pos)] != 0x7F && (*pos <= '9' || *pos >= 'a'))
+	if (strncmp(pos, "$LION$", 6))
+		return 0;
+	pos += 6;
+	while (atoi16[ARCH_INDEX(*pos)] != 0x7F && (*pos <= '9' ||
+		*pos >= 'a'))
 		pos++;
-	return !*pos && pos - ciphertext == CIPHERTEXT_LENGTH;
+	return !*pos && pos - ciphertext == CIPHERTEXT_LENGTH + 6;
+}
 
+static char *prepare(char *split_fields[10], struct fmt_main *self)
+{
+	char Buf[200];
+	if (!strncmp(split_fields[1], "$LION$", 6))
+		return split_fields[1];
+	if (split_fields[0] && strlen(split_fields[0]) == CIPHERTEXT_LENGTH) {
+		sprintf(Buf, "$LION$%s", split_fields[0]);
+		if (valid(Buf, self)) {
+			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH + 7,
+			    MEM_ALIGN_NONE);
+			strcpy(cp, Buf);
+			return cp;
+		}
+	}
+	if (strlen(split_fields[1]) == CIPHERTEXT_LENGTH) {
+		sprintf(Buf, "$LION$%s", split_fields[1]);
+		if (valid(Buf, self)) {
+			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH + 7,
+			    MEM_ALIGN_NONE);
+			strcpy(cp, Buf);
+			return cp;
+		}
+	}
+	return split_fields[1];
 }
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned char out[FULL_BINARY_SIZE];
+	static union {
+		unsigned char c[FULL_BINARY_SIZE];
+		uint64_t l[FULL_BINARY_SIZE / sizeof(uint64_t)];
+	} buf;
+	unsigned char *out = buf.c;
 	char *p;
 	int i;
 	uint64_t *b;
 
-	p = ciphertext;
-	for (i = 0; i < sizeof(out); i++) {
+	ciphertext += 6;
+	p = ciphertext + 8;
+	for (i = 0; i < sizeof(buf.c); i++) {
 		out[i] =
-		    (atoi16[ARCH_INDEX(*p)] << 4) |
-		    atoi16[ARCH_INDEX(p[1])];
+		    (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	b = (uint64_t*)out;
+	b = buf.l;
 	for (i = 0; i < 8; i++) {
-		uint64_t t = SWAP64(b[i])-H[i];
+		uint64_t t = SWAP64(b[i]) - H[i];
 		b[i] = SWAP64(t);
 	}
 	return out;
+}
 
+static void *salt(char *ciphertext)
+{
+	static union {
+		unsigned char c[SALT_SIZE];
+		ARCH_WORD_32 dummy;
+	} buf;
+	unsigned char *out = buf.c;
+	char *p;
+	int i;
+
+	ciphertext += 6;
+	p = ciphertext;
+	for (i = 0; i < sizeof(buf.c); i++) {
+		out[i] =
+		    (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+
+	return out;
 }
 
 static int binary_hash_0(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xF;
 }
 
 static int binary_hash_1(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFF;
 }
 
 static int binary_hash_2(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFFF;
 }
 
 static int binary_hash_3(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFFFF;
 }
 
 static int binary_hash_4(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFFFFF;
 }
 
 static int binary_hash_5(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFFFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFFFFFF;
 }
 
 static int binary_hash_6(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0x7FFFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0x7FFFFFF;
 }
 
 static int get_hash_0(int index)
 {
-	copy_hash_back();
-	return ((uint64_t*)ghash)[index] & 0xF;
+    copy_hash_back();
+	return ((uint64_t *) ghash)[index] & 0xF;
 }
 
 static int get_hash_1(int index)
 {
-	copy_hash_back();
-	return ((uint64_t*)ghash)[index] & 0xFF;
+    copy_hash_back();
+	return ((uint64_t *) ghash)[index] & 0xFF;
 }
 
 static int get_hash_2(int index)
 {
-	copy_hash_back();
-
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFF;
+    copy_hash_back();
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFF;
 }
 
 static int get_hash_3(int index)
 {
-	copy_hash_back();
-
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFF;
+    copy_hash_back();
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFF;
 }
 
 static int get_hash_4(int index)
 {
-	copy_hash_back();
-
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFFF;
+    copy_hash_back();
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFFF;
 }
 
 static int get_hash_5(int index)
 {
-	copy_hash_back();
-
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFFFF;
+    copy_hash_back();
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFFFF;
 }
 
 static int get_hash_6(int index)
 {
-	copy_hash_back();
+    copy_hash_back();
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0x7FFFFFF;
+}
 
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0x7FFFFFF;
+static int salt_hash(void *salt)
+{
+	return *(ARCH_WORD_32 *) salt & (SALT_HASH_SIZE - 1);
+}
+
+static void set_salt(void *salt)
+{
+	memcpy(gsalt.v, (uint8_t *) salt, SALT_SIZE);
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	///Copy data to GPU memory
-	if (sha512_key_changed) {
+	if (xsha512_key_changed) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer
 		    (queue[gpu_id], mem_in, CL_FALSE, 0, insize, gkey, 0, NULL,
 			NULL), "Copy memin");
 	}
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE,
+		0, SALT_SIZE, &gsalt, 0, NULL, NULL), "Copy memsalt");
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
@@ -365,7 +439,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
 	/// Reset key to unchanged and hashes uncopy to host
-	sha512_key_changed = 0;
+	xsha512_key_changed = 0;
     hash_copy_back = 0;
 
 	return count;
@@ -374,9 +448,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	uint32_t result;
+
 	///Copy binary to GPU memory
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_binary, CL_FALSE,
-		0, sizeof(uint64_t), ((uint64_t*)binary)+3, 0, NULL, NULL), "Copy mem_binary");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_binary,
+		CL_FALSE, 0, sizeof(uint64_t), ((uint64_t *) binary) + 3, 0,
+		NULL, NULL), "Copy mem_binary");
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
@@ -396,9 +472,9 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void *binary, int index)
 {
 	uint64_t *b = (uint64_t *) binary;
-	uint64_t *t = (uint64_t *)ghash;
+	uint64_t *t = (uint64_t *) ghash;
 
-	copy_hash_back();
+    copy_hash_back();
 	if (b[3] != t[hash_addr(0, index)])
 		return 0;
 	return 1;
@@ -407,22 +483,23 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	SHA512_CTX ctx;
-	uint64_t *b,*c,crypt_out[8];
 	int i;
-	SHA512_Init(&ctx);
-	SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
-	SHA512_Final((unsigned char *)(crypt_out), &ctx);
+	uint64_t *b,*c,crypt_out[8];
 
-	b = (uint64_t *)get_binary(source);
-	c = (uint64_t *)crypt_out;
+	SHA512_Init(&ctx);
+	SHA512_Update(&ctx, gsalt.v, SALT_SIZE);
+	SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
+	SHA512_Final((unsigned char *) (crypt_out), &ctx);
+
+	b = (uint64_t *) get_binary(source);
+	c = (uint64_t *) crypt_out;
 
 	for (i = 0; i < 8; i++) {
-		uint64_t t = SWAP64(c[i])-H[i];
+		uint64_t t = SWAP64(c[i]) - H[i];
 		c[i] = SWAP64(t);
 	}
 
-
-	for (i = 0; i < FULL_BINARY_SIZE / 8; i++) { //examin 512bits
+	for (i = 0; i < FULL_BINARY_SIZE / 8; i++) {	//examin 512bits
 		if (b[i] != c[i])
 			return 0;
 	}
@@ -430,7 +507,7 @@ static int cmp_exact(char *source, int index)
 
 }
 
-struct fmt_main fmt_opencl_rawsha512 = {
+struct fmt_main fmt_opencl_xsha512 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -449,16 +526,16 @@ struct fmt_main fmt_opencl_rawsha512 = {
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
-		tests
+	    tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
-		fmt_default_salt,
+		salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
@@ -472,9 +549,9 @@ struct fmt_main fmt_opencl_rawsha512 = {
 			binary_hash_5,
 			binary_hash_6
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		NULL,
-		fmt_default_set_salt,
+		set_salt,
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
