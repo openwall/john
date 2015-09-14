@@ -185,6 +185,7 @@ static void link_funcs() {
 	fmt_CompiledDynamic.methods.split = our_split;
 	fmt_CompiledDynamic.methods.prepare = our_prepare;
 	fmt_CompiledDynamic.methods.done = our_done;
+
 	for (i = 0; i < DC_NUM_VECTORS; i++)
 		fmt_CompiledDynamic.params.tests[i].ciphertext = (char*)dyna_line[i];
 
@@ -195,6 +196,7 @@ static void link_funcs() {
 		fmt_CompiledDynamic.params.benchmark_length = -1;
 	else
 		fmt_CompiledDynamic.params.benchmark_length = 0;
+
 	if (pPriv->pSetup->flags&MGF_PASSWORD_UPCASE) {
 		tests[0].plaintext = "ABC";
 		tests[1].plaintext = "JOHN";
@@ -206,14 +208,14 @@ static void link_funcs() {
 		tests[0].plaintext = "abc";
 		tests[1].plaintext = "john";
 		tests[2].plaintext= "passweird";
-		for (i = 0; i < pPriv->pSetup->MaxInputLen; i++)
+		for (i = 0; i < fmt_CompiledDynamic.params.plaintext_length; i++)
 			max_vector[i] = 'a' + (i % 26);
 		max_vector[i] = 0;
 	} else {
 		tests[0].plaintext = "abc";
 		tests[1].plaintext = "john";
 		tests[2].plaintext= "passweird";
-		for (i = 0; i < pPriv->pSetup->MaxInputLen; i++)
+		for (i = 0; i < fmt_CompiledDynamic.params.plaintext_length; i++)
 			max_vector[i] = 'A' + (i % 26) + ((i % 52) > 25 ? 0x20 : 0);
 		max_vector[i] = 0;
 	}
