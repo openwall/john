@@ -51,6 +51,7 @@ typedef uint64x2_t vtype64;
 #define vload(m)                vld1q_u32((uint32_t*)(m))
 #define vloadu                  vloadu_emu
 #define vor                     vorrq_u32
+#define vorn                    vornq_u32
 #define vroti_epi32(x, i)       (i > 0 ? vsliq_n_u32(vshrq_n_u32(x, 32-(i)), x, i) : \
                                          vsriq_n_u32(vshlq_n_u32(x, 32+(i)), x, -(i)))
 #define vroti_epi64(x, i)       (i > 0 ? (vtype)vsliq_n_u64(vshrq_n_u64((vtype64)(x), 64-(i)), (vtype64)(x), i) : \
@@ -159,8 +160,8 @@ typedef __m512i vtype;
 #define vroti_epi32             vroti_epi32_emu
 #define vroti_epi64             vroti_epi64_emu
 #define vroti16_epi32           vroti_epi32
-#define vscatter_epi32          _mm512_i32scatter_epi32
-#define vscatter_epi64          _mm512_i64scatter_epi64
+#define vscatter_epi32(b,i,v,s) _mm512_i32scatter_epi32((void*)b, i, v, s)
+#define vscatter_epi64(b,i,v,s) _mm512_i64scatter_epi64((void*)b, i, v, s)
 #define vset1_epi8              _mm512_set1_epi8
 #define vset1_epi32             _mm512_set1_epi32
 #define vset1_epi64             _mm512_set1_epi64
@@ -215,6 +216,12 @@ typedef __m512i vtype;
                                3*stride, 2*stride, 1*stride, 0);        \
     x = vgather_epi64(&y[0][z], indices, 1);                            \
 }
+
+#if __AVX512F__
+#undef vcmov
+#define vcmov(x, y, z)          vternarylogic(x, y, z, 0xE4)
+#define vternarylogic           _mm512_ternarylogic_epi32
+#endif
 
 #if __AVX512BW__
 #define vcmpeq_epi8_mask        (uint64_t)_mm512_cmpeq_epi8_mask

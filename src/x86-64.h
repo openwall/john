@@ -214,7 +214,7 @@
 
 #ifdef __SSE2__
 
-#if __AVX512__
+#if __AVX512F__
 #define SIMD_COEF_32 16
 #define SIMD_COEF_64 8
 #elif __AVX2__
