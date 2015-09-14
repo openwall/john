@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2006,2010-2013 by Solar Designer
+ * Copyright (c) 1996-2006,2010-2013,2015 by Solar Designer
  *
  * ...with changes in the jumbo patch, by JoMo-Kun and magnum
  */
@@ -35,8 +35,6 @@
 extern struct fmt_main fmt_LM;
 
 static double cand;
-
-static char safe_null_key[PLAINTEXT_BUFFER_SIZE];
 
 static double get_progress(void)
 {
@@ -772,10 +770,10 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		if (!length && !min_length) {
 			min_length = 1;
 			if (options.mask) {
-				if (!skip && do_mask_crack(safe_null_key))
+				if (!skip && do_mask_crack(fmt_null_key))
 					break;
 			} else
-			if (!skip && crk_process_key(safe_null_key))
+			if (!skip && crk_process_key(fmt_null_key))
 				break;
 		}
 

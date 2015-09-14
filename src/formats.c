@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2006,2008,2010-2013 by Solar Designer
+ * Copyright (c) 1996-2001,2006,2008,2010-2013,2015 by Solar Designer
  */
 
 #include <stdio.h>
@@ -31,6 +31,8 @@ typedef unsigned int ARCH_WORD_32;
 #endif
 #include "jumbo.h"
 #include "memdbg.h"
+
+char fmt_null_key[PLAINTEXT_BUFFER_SIZE];
 
 struct fmt_main *fmt_list = NULL;
 static struct fmt_main **fmt_tail = &fmt_list;
