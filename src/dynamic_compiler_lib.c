@@ -31,11 +31,17 @@ typedef struct LIB_struct {
 	int nlegacy_types;
 	int legacy_types[10];
 	DC_struct code;
-}LIB_struct;
+} LIB_struct;
 
 static LIB_struct lib[] = {
 	// might want to add a extra param of ,MaxInputLen=55 ??
-	{ 1, {0}, {DC_MAGIC, 0x09ABB6B4, NULL, "dynamic=md5($p)", "", "Expression=dynamic=md5($p)\nFlag=MGF_KEYS_INPUT\nFunc=DynamicFunc__crypt_md5\nMaxInputLenX86=110\nMaxInputLen=55\nTest=@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72:abc\nTest=@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785:john\nTest=@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb:passweird", "@dynamic=md5($p)@", { "@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72", "@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785","@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb"} } },
+	{ 1, {0}, {DC_MAGIC, 0x09ABB6B4, NULL, "dynamic=md5($p)", "", "Expression=dynamic=md5($p)\nFlag=MGF_KEYS_INPUT\nFunc=DynamicFunc__crypt_md5\nMaxInputLenX86=110\nMaxInputLen=55\nTest=@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72:abc\nTest=@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785:john\nTest=@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb:passweird", "@dynamic=md5($p)@", { "@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72", "@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785","@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb",
+#if SIMD_COEF_32 < 4
+	"@dynamic=md5($p)@fc58a609d0358176385b00970bfb2b49", // Len 110
+#else
+	"@dynamic=md5($p)@142a42ffcb282cf8087dd4dfebacdec2", // Len 55
+#endif
+	"@dynamic=md5($p)@d41d8cd98f00b204e9800998ecf8427e"} } },
 #if ARCH_LITTLE_ENDIAN
 	{ 1, {6}, {DC_MAGIC, 0x49FD36B6, NULL, "dynamic=md5(md5($p).$s)", "", "Expression=dynamic=md5(md5($p).$s)\nSaltLen=-23\nFlag=MGF_KEYS_BASE16_IN1_MD5\nFlag=MGF_SALTED\nTest=@dynamic=md5(md5($p).$s)@9c4f5b8c75fbabfd2f139ab34fb9da48$df694488:abc\nTest=@dynamic=md5(md5($p).$s)@bba77a29ae019330fc2794fb989526cc$87ffb1c9:john\nTest=@dynamic=md5(md5($p).$s)@59a41226b09eaab88854047448cef789$a69c5744:passweird\nSaltLen=-23\nFunc=DynamicFunc__set_input_len_32_cleartop\nFunc=DynamicFunc__append_salt\nFunc=DynamicFunc__crypt_md5\nMaxInputLenX86=110\nMaxInputLen=55", "@dynamic=md5(md5($p).$s)@", { "@dynamic=md5(md5($p).$s)@9c4f5b8c75fbabfd2f139ab34fb9da48$df694488", "@dynamic=md5(md5($p).$s)@bba77a29ae019330fc2794fb989526cc$87ffb1c9","@dynamic=md5(md5($p).$s)@59a41226b09eaab88854047448cef789$a69c5744"} } },
 #else

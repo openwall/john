@@ -219,6 +219,7 @@ typedef __m512i vtype;
 
 #if __AVX512F__
 #undef vcmov
+#undef VCMOV_EMULATED
 #define vcmov(x, y, z)          vternarylogic(x, y, z, 0xE4)
 #define vternarylogic           _mm512_ternarylogic_epi32
 #endif
@@ -540,8 +541,7 @@ static INLINE vtype vloadu_emu(const void *addr)
 	if (is_aligned(addr, MEM_ALIGN_SIMD))
 		return vload(addr);
 	else {
-		char _buf[MEM_ALIGN_SIMD + MEM_ALIGN_SIMD];
-		char *buf = mem_align(_buf, MEM_ALIGN_SIMD);
+		JTR_ALIGN(MEM_ALIGN_SIMD) char buf[MEM_ALIGN_SIMD];
 
 		return (memcpy(buf, addr, MEM_ALIGN_SIMD), vload(buf));
 	}
@@ -552,8 +552,7 @@ static INLINE void vstoreu_emu(void *addr, vtype v)
 	if (is_aligned(addr, MEM_ALIGN_SIMD))
 		vstore(addr, v);
 	else {
-		char _buf[MEM_ALIGN_SIMD + MEM_ALIGN_SIMD];
-		char *buf = mem_align(_buf, MEM_ALIGN_SIMD);
+		JTR_ALIGN(MEM_ALIGN_SIMD) char buf[MEM_ALIGN_SIMD];
 
 		vstore(buf, v);
 		memcpy(addr, buf, MEM_ALIGN_SIMD);

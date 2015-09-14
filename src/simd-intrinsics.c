@@ -52,12 +52,6 @@ _inline __m128i _mm_set1_epi64(long long a)
 #define vset_epi64x(x1,x0)      (vtype)(vtype64){x0, x1}
 #endif
 
-#ifndef DEBUG
-#if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER
-#pragma GCC optimize 3
-#endif
-#endif
-
 /* Shorter names for use in index calculations */
 #define VS32 SIMD_COEF_32
 #define VS64 SIMD_COEF_64
@@ -356,9 +350,10 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 
 #if USE_EXPERIMENTAL
 /*
- * This is currently not used for MD4 & MD5, and was observed to result
+ * This is currently not used for MD5, and was observed to result
  * in a significant performance regression (at least on XOP) just by sitting
  * here. http://www.openwall.com/lists/john-dev/2015/09/05/5
+ * NOTE the regression might be gone now anyway since we went from -O3 to -O2.
  */
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		MD5_PARA_DO(i)
@@ -479,18 +474,6 @@ static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid,
 				d[2 * VS32] = s[2 * VS32];
 				d[3 * VS32] = s[3 * VS32];
 				break;
-#ifdef __XOP__
-			default:
-				n <<= 3;
-				{
-					unsigned int m = 32 - n;
-					d[0] = (d[0] & (0xffffffffU >> m)) | (s[0] << n);
-					d[1 * VS32] = BITALIGN(s[1 * VS32], s[0], m);
-					d[2 * VS32] = BITALIGN(s[2 * VS32], s[1 * VS32], m);
-					d[3 * VS32] = BITALIGN(s[3 * VS32], s[2 * VS32], m);
-					d[4 * VS32] = (d[4 * VS32] & (0xffffffffU << n)) | (s[3 * VS32] >> m);
-				}
-#else
 			case 1:
 				d[0] = (d[0] & 0xffU) | (s[0] << 8);
 				d[1 * VS32] = BITALIGN(s[1 * VS32], s[0], 24);
@@ -511,7 +494,6 @@ static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid,
 				d[2 * VS32] = BITALIGN(s[2 * VS32], s[1 * VS32], 8);
 				d[3 * VS32] = BITALIGN(s[3 * VS32], s[2 * VS32], 8);
 				d[4 * VS32] = (d[4 * VS32] & 0xff000000U) | (s[3 * VS32] >> 8);
-#endif
 			}
 		}
 	}
@@ -608,11 +590,8 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 	unsigned int i,j;
 	MD5_CTX ctx;
 	MD5_CTX tctx;
-	char _b[8 * 64 * MD5_SSE_NUM_KEYS + MEM_ALIGN_SIMD] = { 0 };
-	unsigned char (*buffers)[64*MD5_SSE_NUM_KEYS] =
-		mem_align(_b, MEM_ALIGN_SIMD);
-	int _F[4 * MD5_SSE_NUM_KEYS + MEM_ALIGN_SIMD] = { 0 };
-	unsigned int *F = mem_align(_F, MEM_ALIGN_SIMD);
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char buffers[8][64*MD5_SSE_NUM_KEYS] = { 0 };
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned int F[4*MD5_SSE_NUM_KEYS];
 
 	saltlen = strlen((char*)salt);
 	for(i=0;i<MD5_SSE_NUM_KEYS;i++)
@@ -970,9 +949,10 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 
 #if USE_EXPERIMENTAL
 /*
- * This is currently not used for MD4 & MD5, and was observed to result
+ * This is currently not used for MD4, and was observed to result
  * in a significant performance regression (at least on XOP) just by sitting
  * here. http://www.openwall.com/lists/john-dev/2015/09/05/5
+ * NOTE the regression might be gone now anyway since we went from -O3 to -O2.
  */
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		MD4_PARA_DO(i)
