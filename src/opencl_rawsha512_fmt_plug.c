@@ -29,7 +29,6 @@ john_register_one(&fmt_opencl_rawsha512);
 #include "common.h"
 #include "formats.h"
 #include "sha2.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-SHA512-opencl"
 #define FORMAT_NAME			""
@@ -81,8 +80,6 @@ typedef struct {
     char v[PLAINTEXT_LENGTH+1];
 } sha512_key;
 
-
-
 typedef struct {
     uint64_t v[BINARY_SIZE / 8]; // up to 512 bits
 } sha512_hash;
@@ -113,10 +110,62 @@ static uint64_t H[8] = {
 
 //OpenCL variables:
 static cl_mem mem_in, mem_out, mem_binary, mem_cmp;
-cl_kernel cmp_kernel;
+static cl_kernel cmp_kernel;
+static struct fmt_main *self;
 
 #define insize (sizeof(sha512_key) * global_work_size)
 #define outsize (sizeof(sha512_hash) * global_work_size)
+
+#define STEP			0
+#define SEED			256
+
+// This file contains auto-tuning routine(s). Has to be included after formats definitions.
+#include "opencl-autotune.h"
+#include "memdbg.h"
+
+static const char * warn[] = {
+	"xfer: ",  ", crypt: "
+};
+
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	return MIN(autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel),
+			   autotune_get_task_max_work_group_size(FALSE, 0, cmp_kernel));
+}
+
+static void create_clobj(size_t gws, struct fmt_main *self)
+{
+	gkey = mem_calloc(gws, sizeof(sha512_key));
+	ghash = mem_calloc(gws, sizeof(sha512_hash));
+
+	///Allocate memory on the GPU
+	mem_in =
+		clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
+		&ret_code);
+	HANDLE_CLERROR(ret_code,"Error while allocating memory for passwords");
+	mem_out =
+		clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+		&ret_code);
+	HANDLE_CLERROR(ret_code,"Error while allocating memory for hashes");
+	mem_binary =
+		clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(uint64_t), NULL,
+		&ret_code);
+	HANDLE_CLERROR(ret_code,"Error while allocating memory for binary");
+	mem_cmp =
+		clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(uint32_t), NULL,
+		&ret_code);
+	HANDLE_CLERROR(ret_code,"Error while allocating memory for cmp_all result");
+
+	///Assign crypt kernel parameters
+	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
+	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
+
+	///Assign cmp kernel parameters
+	clSetKernelArg(cmp_kernel, 0, sizeof(mem_binary), &mem_binary);
+	clSetKernelArg(cmp_kernel, 1, sizeof(mem_out), &mem_out);
+	clSetKernelArg(cmp_kernel, 2, sizeof(mem_cmp), &mem_cmp);
+}
 
 static void release_clobj(void)
 {
@@ -127,12 +176,43 @@ static void release_clobj(void)
 	MEM_FREE(gkey);
 }
 
+static void init(struct fmt_main *_self)
+{
+	self = _self;
+	opencl_prepare_dev(gpu_id);
+}
+
+static void reset(struct db_main *db)
+{
+	if (!autotuned) {
+		opencl_init("$JOHN/kernels/sha512_kernel.cl", gpu_id, NULL);
+
+		/* create kernels to execute */
+		crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
+		HANDLE_CLERROR(ret_code,"Error while creating crypt_kernel");
+		cmp_kernel = clCreateKernel(program[gpu_id], CMP_KERNEL_NAME, &ret_code);
+		HANDLE_CLERROR(ret_code,"Error while creating cmp_kernel");
+
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
+		                       create_clobj, release_clobj,
+		                       sizeof(sha512_key), 0);
+
+		// Auto tune execution from shared/included code.
+		autotune_run(self, 1, 0, 500);
+	}
+}
+
 static void done(void)
 {
-	release_clobj();
+	if (autotuned) {
+		release_clobj();
 
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(cmp_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		autotuned--;
+	}
 }
 
 static void copy_hash_back()
@@ -158,73 +238,6 @@ static char *get_key(int index)
 {
 	gkey[index].v[gkey[index].length] = 0;
 	return gkey[index].v;
-}
-
-static void init(struct fmt_main *self)
-{
-	size_t maxsize;
-
-	/* Read LWS/GWS prefs from config or environment */
-	opencl_get_user_preferences(OCL_CONFIG);
-
-	if (!local_work_size)
-		local_work_size = cpu(device_info[gpu_id]) ? 1 : 64;
-
-	if (!global_work_size)
-		global_work_size = MAX_KEYS_PER_CRYPT;
-
-	opencl_init("$JOHN/kernels/sha512_kernel.cl", gpu_id, NULL);
-
-	gkey = mem_calloc(global_work_size, sizeof(sha512_key));
-	ghash = mem_calloc(global_work_size, sizeof(sha512_hash));
-
-	///Allocate memory on the GPU
-	mem_in =
-		clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
-		&ret_code);
-	HANDLE_CLERROR(ret_code,"Error while allocating memory for passwords");
-	mem_out =
-		clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
-		&ret_code);
-	HANDLE_CLERROR(ret_code,"Error while allocating memory for hashes");
-	mem_binary =
-		clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(uint64_t), NULL,
-		&ret_code);
-	HANDLE_CLERROR(ret_code,"Error while allocating memory for binary");
-	mem_cmp =
-		clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(uint32_t), NULL,
-		&ret_code);
-	HANDLE_CLERROR(ret_code,"Error while allocating memory for cmp_all result");
-
-	///Assign crypt kernel parameters
-	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code,"Error while creating crypt_kernel");
-	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
-	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
-
-	///Assign cmp kernel parameters
-	cmp_kernel = clCreateKernel(program[gpu_id], CMP_KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code,"Error while creating cmp_kernel");
-	clSetKernelArg(cmp_kernel, 0, sizeof(mem_binary), &mem_binary);
-	clSetKernelArg(cmp_kernel, 1, sizeof(mem_out), &mem_out);
-	clSetKernelArg(cmp_kernel, 2, sizeof(mem_cmp), &mem_cmp);
-
-	/* Note: we ask for the kernel's max size, not the device's! */
-	maxsize = get_kernel_max_lws(gpu_id, crypt_kernel);
-
-	if (local_work_size > maxsize) {
-		local_work_size = maxsize;
-		global_work_size = (global_work_size + local_work_size - 1) / local_work_size * local_work_size;
-	}
-
-	self->params.max_keys_per_crypt = global_work_size;
-	if (!local_work_size)
-		local_work_size = 64;
-
-	self->params.min_keys_per_crypt = local_work_size;
-
-	if (options.verbosity > 2)
-		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n",(int)local_work_size, (int)global_work_size);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -346,23 +359,25 @@ static int get_hash_6(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
-	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
+	const int count = *pcount;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+
+	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	///Copy data to GPU memory
-	if (sha512_key_changed) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer
+	if (sha512_key_changed || ocl_autotune_running) {
+		BENCH_CLERROR(clEnqueueWriteBuffer
 		    (queue[gpu_id], mem_in, CL_FALSE, 0, insize, gkey, 0, NULL,
-			NULL), "Copy memin");
+			multi_profilingEvent[0]), "Copy memin");
 	}
 
 	///Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel
-	    (queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size,
-		0, NULL, profilingEvent), "Set ND range");
+	BENCH_CLERROR(clEnqueueNDRangeKernel
+	    (queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws,
+		0, NULL, multi_profilingEvent[1]), "Set ND range");
 
 	///Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
 	/// Reset key to unchanged and hashes uncopy to host
 	sha512_key_changed = 0;
@@ -390,7 +405,6 @@ static int cmp_all(void *binary, int count)
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 	return result;
-
 }
 
 static int cmp_one(void *binary, int index)
@@ -453,7 +467,7 @@ struct fmt_main fmt_opencl_rawsha512 = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
