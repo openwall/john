@@ -219,7 +219,11 @@ const char *dyna_line[DC_NUM_VECTORS] = {
 	"@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72",
 	"@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785",
 	"@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb",
-	"@dynamic=md5($p)@142a42ffcb282cf8087dd4dfebacdec2",
+#if SIMD_COEF_32 < 4
+	"@dynamic=md5($p)@fc58a609d0358176385b00970bfb2b49", // Len 110
+#else
+	"@dynamic=md5($p)@142a42ffcb282cf8087dd4dfebacdec2", // Len 55
+#endif
 	"@dynamic=md5($p)@d41d8cd98f00b204e9800998ecf8427e",
 };
 const char *options_format="";
@@ -1525,9 +1529,6 @@ static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex
 	comp_add_script_line("MaxInputLenX86=110\n");
 	comp_add_script_line("MaxInputLen=110\n");
 
-#if SIMD_COEF_32 < 4
-	fprintf(stderr, "%s() maxlen 110\n", __func__);
-#endif
 	// Build test strings.
 	strcpy(gen_pw, "abc");
 	build_test_string(_p, &_p->pLine[0]);
@@ -2032,9 +2033,6 @@ static int parse_expression(DC_struct *p) {
 		comp_add_script_line("MaxInputLen=%d\n",max_inp_len);
 	}
 
-#if SIMD_COEF_32 < 4
-	fprintf(stderr, "%s() maxlen %d\n", __func__, max_inp_len);
-#endif
 	// Build test strings.
 	strcpy(gen_pw, "abc");
 	build_test_string(p, &p->pLine[0]);
