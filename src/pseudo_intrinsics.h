@@ -175,7 +175,6 @@ typedef __m512i vtype;
 #define vsrli_epi64             _mm512_srli_epi64
 #define vstore(x, y)            _mm512_store_si512((void*)(x), y)
 #define vstoreu(x, y)           _mm512_storeu_si512((void*)(x), y)
-#define vternarylogic           _mm512_ternarylogic_epi32
 #define vunpackhi_epi32         _mm512_unpackhi_epi32
 #define vunpackhi_epi64         _mm512_unpackhi_epi64
 #define vunpacklo_epi32         _mm512_unpacklo_epi32
@@ -217,6 +216,12 @@ typedef __m512i vtype;
                                3*stride, 2*stride, 1*stride, 0);        \
     x = vgather_epi64(&y[0][z], indices, 1);                            \
 }
+
+#if __AVX512F__
+#undef vcmov
+#define vcmov(x, y, z)          vternarylogic(x, y, z, 0xE4)
+#define vternarylogic           _mm512_ternarylogic_epi32
+#endif
 
 #if __AVX512BW__
 #define vcmpeq_epi8_mask        (uint64_t)_mm512_cmpeq_epi8_mask
