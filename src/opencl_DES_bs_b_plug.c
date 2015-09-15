@@ -60,7 +60,7 @@ static void create_clobj(struct db_main *db)
 	buffer_processed_salts = (cl_mem *) mem_alloc(4096 * sizeof(cl_mem));
 
 	for (i = 0; i < 4096; i++) {
-		buffer_processed_salts[i] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 96 * sizeof(unsigned int), NULL, &ret_code);
+		buffer_processed_salts[i] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 48 * sizeof(unsigned int), NULL, &ret_code);
 		HANDLE_CLERROR(ret_code, "Create buffer_processed_salts failed.\n");
 	}
 
@@ -116,6 +116,11 @@ static void build_salt(WORD salt)
 	WORD new;
 	static WORD old = 0xffffff;
 	static unsigned int processed_salt[96];
+	unsigned int transfer[48];
+	unsigned int  index[48]  = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+				24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
+				48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
+				72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83};
 	int dst;
 
 	new = salt;
@@ -141,7 +146,9 @@ static void build_salt(WORD salt)
 			break;
 	}
 	old = salt;
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_processed_salts[salt], CL_TRUE, 0, 96 * sizeof(unsigned int), processed_salt, 0, NULL, NULL), "Failed to write buffer buffer_processed_salts.\n");
+	for (dst = 0; dst < 48; dst++)
+		transfer[dst] = processed_salt[index[dst]];
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_processed_salts[salt], CL_TRUE, 0, 48 * sizeof(unsigned int), transfer, 0, NULL, NULL), "Failed to write buffer buffer_processed_salts.\n");
 }
 
 static void reset(struct db_main *db)
