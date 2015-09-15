@@ -873,13 +873,9 @@ static void john_load_conf_db(void)
 		if (!pers_opts.internal_enc &&
 		    pers_opts.target_enc == UTF_8 && options.flags &
 		    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
-		if (!(pers_opts.internal_enc =
-		      cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
-		                               "DefaultInternalEncoding"))))
-			/* Deprecated alternative */
 			pers_opts.internal_enc =
-				cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
-				               "DefaultIntermediateEncoding"));
+			    cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
+			        "DefaultInternalEncoding"));
 	}
 
 	if (!pers_opts.unicode_cp)

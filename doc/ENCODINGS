@@ -14,9 +14,10 @@ The new defaults (which can be changed in john.conf) are:
   * Input (eg. wordlists, usernames etc) are assumed to be UTF-8.
   * Output to screen, log and .pot file is UTF-8.
   * Target encoding for LM is CP850 (and input will be converted accordingly).
-  * Internal encoding (eg. for rules processing) is ISO-8859-1. CP1252 is a
-    superset and slightly better (for example, it includes the Euro sign) but
-    is also a tad slower so is not made the default.
+  * Internal encoding (eg. for rules processing) is disabled. For Western
+    Europe, ISO-8859-1 is recommended but since this has a performance impact
+    you'll need to use the command-line option or un-comment the line in
+    john.conf.
 
 For temporarily running "the old way", just give --enc=raw. You will still
 get output to screen and log in UTF-8, possibly incorrectly encoded. But the
@@ -81,7 +82,7 @@ Example using the now default john.conf settings:
    Use the "--show" option to display all of the cracked passwords reliably
    Session completed
 
-   $ ../run/john hashfile -form:nt -loopback
+   $ ../run/john hashfile -form:nt -loopback -internal-enc:cp850
    Rules engine using CP850 for Unicode
    Loaded 2 password hashes with no different salts (NT [MD4 128/128 SSE2-16])
    Assembling cracked LM halves for loopback
