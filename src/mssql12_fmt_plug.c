@@ -43,15 +43,6 @@ john_register_one(&fmt_mssql12);
  */
 #define REVERSE_STEPS
 
-#define INIT_A 0x6a09e667f3bcc908ULL
-#define INIT_B 0xbb67ae8584caa73bULL
-#define INIT_C 0x3c6ef372fe94f82bULL
-#define INIT_D 0xa54ff53a5f1d36f1ULL
-#define INIT_E 0x510e527fade682d1ULL
-#define INIT_F 0x9b05688c2b3e6c1fULL
-#define INIT_G 0x1f83d9abfb41bd6bULL
-#define INIT_H 0x5be0cd19137e2179ULL
-
 #include "misc.h"
 #include "params.h"
 #include "common.h"
@@ -395,14 +386,7 @@ static void *get_binary(char *ciphertext)
 #ifdef SIMD_COEF_64
 	alter_endianity_to_BE64 (realcipher, BINARY_SIZE/8);
 #ifdef REVERSE_STEPS
-	out[0] -= INIT_A;
-	out[1] -= INIT_B;
-	out[2] -= INIT_C;
-	out[3] -= INIT_D;
-	out[4] -= INIT_E;
-	out[5] -= INIT_F;
-	out[6] -= INIT_G;
-	out[7] -= INIT_H;
+	sha512_reverse(out);
 #endif
 #endif
 	return (void *)realcipher;

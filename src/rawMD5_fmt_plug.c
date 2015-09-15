@@ -35,9 +35,6 @@ john_register_one(&fmt_rawMD5);
  */
 #define REVERSE_STEPS
 
-//Init values
-#define INIT_A 0x67452301
-
 #ifdef _OPENMP
 #ifdef SIMD_COEF_32
 #ifndef OMP_SCALE
@@ -70,7 +67,7 @@ john_register_one(&fmt_rawMD5);
 #define CIPHERTEXT_LENGTH		32
 
 #define DIGEST_SIZE				16
-#define BINARY_SIZE				4
+#define BINARY_SIZE				16
 #define BINARY_ALIGN			4
 #define SALT_SIZE				0
 #define SALT_ALIGN				1
@@ -155,11 +152,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		p += TAG_LENGTH;
 
 	q = p;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
-		if (*q >= 'A' && *q <= 'F') /* support lowercase only */
-			return 0;
+	while (atoi16l[ARCH_INDEX(*q)] != 0x7F)
 		q++;
-	}
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
@@ -208,9 +202,29 @@ static void *get_binary(char *ciphertext)
 	}
 
 #if SIMD_COEF_32 && defined(REVERSE_STEPS)
-	/* Early exit */
-	out[0] -= INIT_A;
+	md5_reverse(out);
 #endif
+
+	return out;
+}
+
+static char *source(char *source, void *binary)
+{
+	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1] = FORMAT_TAG;
+	ARCH_WORD_32 b[4];
+	char *p;
+	int i, j;
+
+	memcpy(b, binary, sizeof(b));
+
+#if SIMD_COEF_32 && defined(REVERSE_STEPS)
+	md5_unreverse(b);
+#endif
+
+	p = &out[TAG_LENGTH];
+	for (i = 0; i < 4; i++)
+		for (j = 0; j < 8; j++)
+			*p++ = itoa16[(b[i] >> ((j ^ 1) * 4)) & 0xf];
 
 	return out;
 }
@@ -381,8 +395,7 @@ static int cmp_exact(char *source, int index)
 	MD5_Final((void*)crypt_key, &ctx);
 
 #ifdef REVERSE_STEPS
-	/* Match reversal */
-	crypt_key[0] -= INIT_A;
+	md5_reverse(crypt_key);
 #endif
 #endif
 	return !memcmp(get_binary(source), crypt_key, DIGEST_SIZE);
@@ -438,7 +451,7 @@ struct fmt_main fmt_rawMD5 = {
 		get_binary,
 		fmt_default_salt,
 		{ NULL },
-		fmt_default_source,
+		source,
 		{
 			fmt_default_binary_hash_0,
 			fmt_default_binary_hash_1,

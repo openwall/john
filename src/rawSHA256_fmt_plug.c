@@ -39,15 +39,6 @@ john_register_one(&fmt_rawSHA256);
  */
 #define REVERSE_STEPS
 
-#define INIT_A 0x6a09e667
-#define INIT_B 0xbb67ae85
-#define INIT_C 0x3c6ef372
-#define INIT_D 0xa54ff53a
-#define INIT_E 0x510e527f
-#define INIT_F 0x9b05688c
-#define INIT_G 0x1f83d9ab
-#define INIT_H 0x5be0cd19
-
 #ifdef _OPENMP
 #ifdef SIMD_COEF_32
 #ifndef OMP_SCALE
@@ -162,14 +153,7 @@ static void *get_binary(char *ciphertext)
 #ifdef SIMD_COEF_32
 	alter_endianity (out, DIGEST_SIZE);
 #ifdef REVERSE_STEPS
-	outw[0] -= INIT_A;
-	outw[1] -= INIT_B;
-	outw[2] -= INIT_C;
-	outw[3] -= INIT_D;
-	outw[4] -= INIT_E;
-	outw[5] -= INIT_F;
-	outw[6] -= INIT_G;
-	outw[7] -= INIT_H;
+	sha256_reverse(outw);
 #endif
 #endif
 	return out;

@@ -825,7 +825,7 @@ static void john_load_conf(void)
 	options.secure = cfg_get_bool(SECTION_OPTIONS, NULL, "SecureMode", 0);
 	options.show_uid_on_crack = cfg_get_bool(SECTION_OPTIONS, NULL, "ShowUIDinCracks", 0);
 	options.reload_at_crack =
-		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtCrack", 1);
+		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtCrack", 0);
 	options.reload_at_save =
 		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtSave", 1);
 	options.abort_file = cfg_get_param(SECTION_OPTIONS, NULL, "AbortFile");

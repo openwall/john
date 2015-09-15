@@ -29,13 +29,6 @@ john_register_one(&fmt_NT2);
  */
 #define REVERSE_STEPS
 
-//Init values
-#define INIT_A 0x67452301
-#define INIT_B 0xefcdab89
-#define INIT_C 0x98badcfe
-#define INIT_D 0x10325476
-#define SQRT_3 0x6ed9eba1
-
 #ifdef SIMD_COEF_32
 #define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_MD4)
 #endif
@@ -60,9 +53,11 @@ john_register_one(&fmt_NT2);
 #define BENCHMARK_LENGTH		-1
 
 #define CIPHERTEXT_LENGTH		32
+#define FORMAT_TAG				"$NT$"
+#define TAG_LENGTH				(sizeof(FORMAT_TAG) - 1)
 
 #define DIGEST_SIZE			16
-#define BINARY_SIZE			8
+#define BINARY_SIZE			DIGEST_SIZE
 #define BINARY_ALIGN			4
 #define SALT_SIZE			0
 #define SALT_ALIGN			1
@@ -87,6 +82,27 @@ john_register_one(&fmt_NT2);
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
+
+static char *source(char *source, void *binary)
+{
+	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1] = FORMAT_TAG;
+	ARCH_WORD_32 b[4];
+	char *p;
+	int i, j;
+
+	memcpy(b, binary, sizeof(b));
+
+#if SIMD_COEF_32 && defined(REVERSE_STEPS)
+	md4_unreverse(b);
+#endif
+
+	p = &out[TAG_LENGTH];
+	for (i = 0; i < 4; i++)
+		for (j = 0; j < 8; j++)
+			*p++ = itoa16[(b[i] >> ((j ^ 1) * 4)) & 0xf];
+
+	return out;
+}
 
 #ifdef SIMD_COEF_32
 static unsigned char (*saved_key);
@@ -297,15 +313,7 @@ static void *get_binary(char *ciphertext)
 	}
 
 #if SIMD_COEF_32 && defined(REVERSE_STEPS)
-	/* Reverse some steps! */
-	out[0] -= INIT_A;
-	out[1] -= INIT_B;
-	out[2] -= INIT_C;
-	out[3] -= INIT_D;
-	out[1]  = (out[1] >> 15) | (out[1] << 17);
-	out[1] -= SQRT_3 + (out[2] ^ out[3] ^ out[0]);
-	out[1]  = (out[1] >> 15) | (out[1] << 17);
-	out[1] -= SQRT_3;
+	md4_reverse(out);
 #endif
 
 	//dump_stuff_msg("\nbinary", out, 16);
@@ -644,7 +652,6 @@ static int cmp_exact(char *source, int index)
 	MD4_CTX ctx;
 	UTF8 *key = (UTF8*)get_key(index);
 	int len = enc_to_utf16(u16, PLAINTEXT_LENGTH, key, strlen((char*)key));
-	ARCH_WORD_32 *binary = (ARCH_WORD_32*)get_binary(source);
 
 	if (len <= 0)
 		len = strlen16(u16);
@@ -654,21 +661,9 @@ static int cmp_exact(char *source, int index)
 	MD4_Final((void*)crypt_key, &ctx);
 
 #ifdef REVERSE_STEPS
-	/* Undo the reversing of steps */
-	binary[0] = ((ARCH_WORD_32*)binary)[0];
-	binary[1] = ((ARCH_WORD_32*)binary)[1];
-	binary[2] = ((ARCH_WORD_32*)binary)[2];
-	binary[3] = ((ARCH_WORD_32*)binary)[3];
-	binary[1] += SQRT_3;
-	binary[1]  = (binary[1] >> 17) | (binary[1] << 15);
-	binary[1] += SQRT_3 + (binary[2] ^ binary[3] ^ binary[0]);
-	binary[1]  = (binary[1] >> 17) | (binary[1] << 15);
-	binary[0] += INIT_A;
-	binary[1] += INIT_B;
-	binary[2] += INIT_C;
-	binary[3] += INIT_D;
+	md4_reverse(crypt_key);
 #endif
-	return !memcmp(binary, crypt_key, DIGEST_SIZE);
+	return !memcmp(get_binary(source), crypt_key, DIGEST_SIZE);
 #else
 	return 1;
 #endif
@@ -732,7 +727,7 @@ struct fmt_main fmt_NT2 = {
 		get_binary,
 		fmt_default_salt,
 		{ NULL },
-		fmt_default_source,
+		source,
 		{
 			binary_hash_0,
 			binary_hash_1,

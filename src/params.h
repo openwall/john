@@ -195,7 +195,7 @@
  * its own purposes.  This does not affect password cracking speed after the
  * loading is complete.
  */
-#define PASSWORD_HASH_SIZE_FOR_LDR	4
+#define PASSWORD_HASH_SIZE_FOR_LDR	5
 
 /*
  * Hash table sizes.  These may also be hardcoded into the hash functions.
@@ -348,8 +348,8 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * john.pot and log file buffer sizes, can be zero.
  */
-#define POT_BUFFER_SIZE			0x8000
-#define LOG_BUFFER_SIZE			0x8000
+#define POT_BUFFER_SIZE			0x100000
+#define LOG_BUFFER_SIZE			0x100000
 
 /*
  * Buffer size for path names.

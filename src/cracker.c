@@ -32,6 +32,12 @@
 #include <io.h> // open()
 #endif
 
+#ifdef CRACKER_PREFETCH
+#ifdef __SSE2__
+#include <emmintrin.h>
+#endif
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "math.h"
@@ -225,7 +231,7 @@ static void crk_remove_salt(struct db_salt *salt)
  */
 static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 {
-	struct db_password **current;
+	struct db_password **start, **current;
 	int hash, count;
 
 	crk_db->password_count--;
@@ -251,15 +257,23 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 
 	hash = crk_db->format->methods.binary_hash[salt->hash_size](pw->binary);
 	count = 0;
-	current = &salt->hash[hash >> PASSWORD_HASH_SHR];
+	start = current = &salt->hash[hash >> PASSWORD_HASH_SHR];
 	do {
 		if (crk_db->format->methods.binary_hash[salt->hash_size]
 		    ((*current)->binary) == hash)
 			count++;
-		if (*current == pw)
+		if (*current == pw) {
+/*
+ * If we can, skip the write to hash table to avoid unnecessary page
+ * copy-on-write when running with "--fork".  We can do this when we're about
+ * to remove this entry from the bitmap, which we'd be checking first.
+ */
+			if (count == 1 && current == start && !pw->next_hash)
+				break;
 			*current = pw->next_hash;
-		else
+		} else {
 			current = &(*current)->next_hash;
+		}
 	} while (*current);
 
 	assert(count >= 1);
@@ -276,9 +290,10 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 /*
  * If there's a hash table for this salt, assume that the list is only used by
  * "single crack" mode, so mark the entry for removal by "single crack" mode
- * code in case that's what we're running, instead of traversing the list here.
+ * code if that's what we're running, instead of traversing the list here.
  */
-	pw->binary = NULL;
+	if (crk_guesses)
+		pw->binary = NULL;
 }
 
 /* Negative index is not counted/reported (got it from pot sync) */
@@ -743,11 +758,33 @@ static int crk_password_loop(struct db_salt *salt)
 			}
 		} while ((pw = pw->next));
 	} else
+#ifndef CRACKER_PREFETCH
 	for (index = 0; index < match; index++) {
 		int hash = salt->index(index);
 		if (salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] &
 		    (1U << (hash % (sizeof(*salt->bitmap) * 8)))) {
 			pw = salt->hash[hash >> PASSWORD_HASH_SHR];
+#else
+	for (index = 0; index < match; ) {
+		int slot, ahead, target = index + 64;
+		int h[64];
+		unsigned int *b[64];
+		if (target > match)
+			target = match;
+		for (slot = 0, ahead = index; ahead < target; slot++, ahead++) {
+			h[slot] = salt->index(ahead);
+			b[slot] = &salt->bitmap[h[slot] / (sizeof(*salt->bitmap) * 8)];
+#ifdef __SSE2__
+			_mm_prefetch((const char *)b[slot], _MM_HINT_NTA);
+//			_mm_prefetch((const char *)&salt->hash[h[slot] >> PASSWORD_HASH_SHR], _MM_HINT_NTA);
+#else
+			*(volatile unsigned int *)b[slot];
+#endif
+		}
+		for (slot = 0; index < target; slot++, index++)
+		if (*b[slot] & (1U << (h[slot] % (sizeof(*salt->bitmap) * 8)))) {
+			pw = salt->hash[h[slot] >> PASSWORD_HASH_SHR];
+#endif
 			do {
 				if (crk_methods.cmp_one(pw->binary, index))
 				if (crk_methods.cmp_exact(crk_methods.source(

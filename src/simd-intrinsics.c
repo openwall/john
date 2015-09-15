@@ -127,6 +127,20 @@ _inline __m128i _mm_set1_epi64(long long a)
         a[i] = vadd_epi32( a[i], b[i] );            \
     }
 
+#define INIT_A 0x67452301
+
+void md5_reverse(uint32_t *hash)
+{
+	hash[0] -= INIT_A;
+}
+
+void md5_unreverse(uint32_t *hash)
+{
+	hash[0] += INIT_A;
+}
+
+#undef INIT_A
+
 void SIMDmd5body(vtype* _data, unsigned int *out,
                 ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
@@ -757,6 +771,42 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
         a[i] = vadd_epi32( a[i], data[i*16+x] );    \
     }
 
+#define INIT_A 0x67452301
+#define INIT_B 0xefcdab89
+#define INIT_C 0x98badcfe
+#define INIT_D 0x10325476
+#define SQRT_3 0x6ed9eba1
+
+void md4_reverse(uint32_t *hash)
+{
+	hash[0] -= INIT_A;
+	hash[1] -= INIT_B;
+	hash[2] -= INIT_C;
+	hash[3] -= INIT_D;
+	hash[1]  = (hash[1] >> 15) | (hash[1] << 17);
+	hash[1] -= SQRT_3 + (hash[2] ^ hash[3] ^ hash[0]);
+	hash[1]  = (hash[1] >> 15) | (hash[1] << 17);
+	hash[1] -= SQRT_3;
+}
+
+void md4_unreverse(uint32_t *hash)
+{
+	hash[1] += SQRT_3;
+	hash[1]  = (hash[1] >> 17) | (hash[1] << 15);
+	hash[1] += SQRT_3 + (hash[2] ^ hash[3] ^ hash[0]);
+	hash[1]  = (hash[1] >> 17) | (hash[1] << 15);
+	hash[3] += INIT_D;
+	hash[2] += INIT_C;
+	hash[1] += INIT_B;
+	hash[0] += INIT_A;
+}
+
+#undef SQRT_3
+#undef INIT_D
+#undef INIT_C
+#undef INIT_B
+#undef INIT_A
+
 void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
                 unsigned SSEi_flags)
 {
@@ -1169,6 +1219,22 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
         b[i] = vroti_epi32(b[i], 30);               \
     }
 
+#define INIT_E 0xC3D2E1F0
+
+void sha1_reverse(uint32_t *hash)
+{
+	hash[4] -= INIT_E;
+	hash[4]  = (hash[4] << 2) | (hash[4] >> 30);
+}
+
+void sha1_unreverse(uint32_t *hash)
+{
+	hash[4]  = (hash[4] << 30) | (hash[4] >> 2);
+	hash[4] += INIT_E;
+}
+
+#undef INIT_E
+
 void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
                  unsigned SSEi_flags)
 {
@@ -1389,7 +1455,7 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 	{
 		SHA1_PARA_DO(i)
 		{
-			vstore((vtype*)&out[i*5*VS32+0*VS32], e[i]);
+			vstore((vtype*)&out[i*5*VS32+4*VS32], e[i]);
 		}
 		return;
 	}
@@ -1589,6 +1655,86 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
     }                                                       \
 }
 
+#define INIT_A 0x6a09e667
+#define INIT_B 0xbb67ae85
+#define INIT_C 0x3c6ef372
+#define INIT_D 0xa54ff53a
+#define INIT_E 0x510e527f
+#define INIT_F 0x9b05688c
+#define INIT_G 0x1f83d9ab
+#define INIT_H 0x5be0cd19
+
+void sha256_reverse(uint32_t *hash)
+{
+	hash[0] -= INIT_A;
+	hash[1] -= INIT_B;
+	hash[2] -= INIT_C;
+	hash[3] -= INIT_D;
+	hash[4] -= INIT_E;
+	hash[5] -= INIT_F;
+	hash[6] -= INIT_G;
+	hash[7] -= INIT_H;
+}
+
+void sha256_unreverse(uint32_t *hash)
+{
+	hash[0] += INIT_A;
+	hash[1] += INIT_B;
+	hash[2] += INIT_C;
+	hash[3] += INIT_D;
+	hash[4] += INIT_E;
+	hash[5] += INIT_F;
+	hash[6] += INIT_G;
+	hash[7] += INIT_H;
+}
+
+#undef INIT_H
+#undef INIT_G
+#undef INIT_F
+#undef INIT_E
+#undef INIT_D
+#undef INIT_C
+#undef INIT_B
+#undef INIT_A
+
+#define INIT_A 0xc1059ed8
+#define INIT_B 0x367cd507
+#define INIT_C 0x3070dd17
+#define INIT_D 0xf70e5939
+#define INIT_E 0xffc00b31
+#define INIT_F 0x68581511
+#define INIT_G 0x64f98fa7
+
+void sha224_reverse(uint32_t *hash)
+{
+	hash[0] -= INIT_A;
+	hash[1] -= INIT_B;
+	hash[2] -= INIT_C;
+	hash[3] -= INIT_D;
+	hash[4] -= INIT_E;
+	hash[5] -= INIT_F;
+	hash[6] -= INIT_G;
+}
+
+void sha224_unreverse(uint32_t *hash)
+{
+	hash[0] += INIT_A;
+	hash[1] += INIT_B;
+	hash[2] += INIT_C;
+	hash[3] += INIT_D;
+	hash[4] += INIT_E;
+	hash[5] += INIT_F;
+	hash[6] += INIT_G;
+}
+
+#undef INIT_H
+#undef INIT_G
+#undef INIT_F
+#undef INIT_E
+#undef INIT_D
+#undef INIT_C
+#undef INIT_B
+#undef INIT_A
 
 void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
@@ -2042,6 +2188,84 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
         if (x < 64) R(x);                                   \
     }                                                       \
 }
+
+#define INIT_A 0x6a09e667f3bcc908ULL
+#define INIT_B 0xbb67ae8584caa73bULL
+#define INIT_C 0x3c6ef372fe94f82bULL
+#define INIT_D 0xa54ff53a5f1d36f1ULL
+#define INIT_E 0x510e527fade682d1ULL
+#define INIT_F 0x9b05688c2b3e6c1fULL
+#define INIT_G 0x1f83d9abfb41bd6bULL
+#define INIT_H 0x5be0cd19137e2179ULL
+
+void sha512_reverse(ARCH_WORD_64 *hash)
+{
+	hash[0] -= INIT_A;
+	hash[1] -= INIT_B;
+	hash[2] -= INIT_C;
+	hash[3] -= INIT_D;
+	hash[4] -= INIT_E;
+	hash[5] -= INIT_F;
+	hash[6] -= INIT_G;
+	hash[7] -= INIT_H;
+}
+
+void sha512_unreverse(ARCH_WORD_64 *hash)
+{
+	hash[0] += INIT_A;
+	hash[1] += INIT_B;
+	hash[2] += INIT_C;
+	hash[3] += INIT_D;
+	hash[4] += INIT_E;
+	hash[5] += INIT_F;
+	hash[6] += INIT_G;
+	hash[7] += INIT_H;
+}
+
+#undef INIT_H
+#undef INIT_G
+#undef INIT_F
+#undef INIT_E
+#undef INIT_D
+#undef INIT_C
+#undef INIT_B
+#undef INIT_A
+
+#define INIT_A 0xcbbb9d5dc1059ed8ULL
+#define INIT_B 0x629a292a367cd507ULL
+#define INIT_C 0x9159015a3070dd17ULL
+#define INIT_D 0x152fecd8f70e5939ULL
+#define INIT_E 0x67332667ffc00b31ULL
+#define INIT_F 0x8eb44a8768581511ULL
+
+void sha384_reverse(ARCH_WORD_64 *hash)
+{
+	hash[0] -= INIT_A;
+	hash[1] -= INIT_B;
+	hash[2] -= INIT_C;
+	hash[3] -= INIT_D;
+	hash[4] -= INIT_E;
+	hash[5] -= INIT_F;
+}
+
+void sha384_unreverse(ARCH_WORD_64 *hash)
+{
+	hash[0] += INIT_A;
+	hash[1] += INIT_B;
+	hash[2] += INIT_C;
+	hash[3] += INIT_D;
+	hash[4] += INIT_E;
+	hash[5] += INIT_F;
+}
+
+#undef INIT_H
+#undef INIT_G
+#undef INIT_F
+#undef INIT_E
+#undef INIT_D
+#undef INIT_C
+#undef INIT_B
+#undef INIT_A
 
 void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
                    unsigned SSEi_flags)
