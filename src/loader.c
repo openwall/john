@@ -312,13 +312,9 @@ static void ldr_set_encoding(struct fmt_main *format)
 	    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
 	if ((!pers_opts.target_enc || pers_opts.target_enc == UTF_8) &&
 	    !pers_opts.internal_enc) {
-		if (!(pers_opts.internal_enc =
-		      cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
-		                               "DefaultInternalEncoding"))))
-			/* Deprecated alternative */
-			pers_opts.internal_enc =
-				cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
-				               "DefaultIntermediateEncoding"));
+		pers_opts.internal_enc =
+			cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
+			                         "DefaultInternalEncoding"));
 	}
 
 	/* Performance opportunity - avoid unneccessary conversions */
