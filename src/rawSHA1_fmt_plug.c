@@ -234,6 +234,36 @@ static void *get_binary(char *ciphertext)
 	return (void*)realcipher;
 }
 
+static char *source(char *source, void *binary)
+{
+	ARCH_WORD_32 hash[DIGEST_SIZE / 4];
+	char hex[2 * DIGEST_SIZE + 1];
+	char *fields[10] = { 0 };
+	char *p;
+	int i, j;
+
+	memcpy(hash, binary, DIGEST_SIZE);
+
+	/* Un-reverse binary */
+#ifdef SIMD_COEF_32
+#ifdef REVERSE_STEPS
+	sha1_unreverse(hash);
+#endif
+	alter_endianity(hash, DIGEST_SIZE);
+#endif
+
+	/* Convert to hex string */
+	p = hex;
+	for (i = 0; i < 5; i++)
+		for (j = 0; j < 8; j++)
+			*p++ = itoa16[(hash[i] >> ((j ^ 1) * 4)) & 0xf];
+	*p = 0;
+
+	/* Let prepare() convert to a canonical hash (currently Base64) */
+	fields[1] = (void*)hex;
+	return rawsha1_common_prepare(fields, NULL);
+}
+
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
 #define SSEi_REVERSE_STEPS 0
@@ -338,7 +368,7 @@ struct fmt_main fmt_rawSHA1 = {
 		get_binary,
 		fmt_default_salt,
 		{ NULL },
-		fmt_default_source,
+		source,
 		{
 			binary_hash_0,
 			binary_hash_1,
