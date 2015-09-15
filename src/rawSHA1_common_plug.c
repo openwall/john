@@ -77,6 +77,7 @@ char *rawsha1_common_prepare(char *split_fields[10], struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 6];
 	char *ciphertext;
+
 	if (!strncmp(split_fields[1], FORMAT_TAG, TAG_LENGTH))
 		return split_fields[1];
 	ciphertext = split_fields[1];
