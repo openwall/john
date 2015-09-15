@@ -6,7 +6,6 @@
  */
 
 #define NEED_OS_TIMER
-#define NEED_OS_FLOCK
 #include "os.h"
 
 #include <string.h>
@@ -20,9 +19,6 @@
 #include <time.h>
 #if (!AC_BUILT || HAVE_SYS_TIMES_H)
 #include <sys/times.h>
-#endif
-#if (!AC_BUILT || HAVE_FCNTL_H)
-#include <fcntl.h>
 #endif
 #include <errno.h>
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
@@ -498,9 +494,6 @@ int crk_reload_pot(void)
 	char line[LINE_BUFFER_SIZE];
 	FILE *pot_file;
 	int total = crk_db->password_count, others;
-#if FCNTL_LOCKS
-	struct flock lock;
-#endif
 #ifdef POTSYNC_DEBUG
 	struct tms buffer;
 	clock_t start = times(&buffer), end;
@@ -515,27 +508,6 @@ int crk_reload_pot(void)
 	if (!(pot_file = fopen(path_expand(pers_opts.activepot), "rb")))
 		pexit("fopen: %s", path_expand(pers_opts.activepot));
 
-#if OS_FLOCK || FCNTL_LOCKS
-#ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Locking potfile...\n", __FUNCTION__, options.node_min);
-#endif
-#if FCNTL_LOCKS
-	memset(&lock, 0, sizeof(lock));
-	lock.l_type = F_RDLCK;
-	while (fcntl(fileno(pot_file), F_SETLKW, &lock)) {
-		if (errno != EINTR)
-			pexit("fcntl(F_RDLCK)");
-	}
-#else
-	while (flock(fileno(pot_file), LOCK_SH)) {
-		if (errno != EINTR)
-			pexit("flock(LOCK_SH)");
-	}
-#endif
-#ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Locked potfile (shared)\n", __FUNCTION__, options.node_min);
-#endif
-#endif
 	if (crk_pot_pos && (jtr_fseek64(pot_file, crk_pot_pos, SEEK_SET) == -1)) {
 		perror("fseek");
 		rewind(pot_file);
@@ -565,19 +537,7 @@ int crk_reload_pot(void)
 	ldr_in_pot = 0;
 
 	crk_pot_pos = jtr_ftell64(pot_file);
-#if OS_FLOCK || FCNTL_LOCKS
-#ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Unlocking potfile\n", __FUNCTION__, options.node_min);
-#endif
-#if FCNTL_LOCKS
-	lock.l_type = F_UNLCK;
-	if (fcntl(fileno(pot_file), F_SETLK, &lock))
-		perror("fcntl(F_UNLCK)");
-#else
-	if (flock(fileno(pot_file), LOCK_UN))
-		perror("flock(LOCK_UN)");
-#endif
-#endif
+
 	if (fclose(pot_file))
 		pexit("fclose");
 
