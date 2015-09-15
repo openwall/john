@@ -35,9 +35,6 @@ john_register_one(&fmt_rawMD5);
  */
 #define REVERSE_STEPS
 
-//Init values
-#define INIT_A 0x67452301
-
 #ifdef _OPENMP
 #ifdef SIMD_COEF_32
 #ifndef OMP_SCALE
@@ -205,8 +202,7 @@ static void *get_binary(char *ciphertext)
 	}
 
 #if SIMD_COEF_32 && defined(REVERSE_STEPS)
-	/* Early exit */
-	out[0] -= INIT_A;
+	md5_reverse(out);
 #endif
 
 	return out;
@@ -222,7 +218,7 @@ static char *source(char *source, void *binary)
 	memcpy(b, binary, sizeof(b));
 
 #if SIMD_COEF_32 && defined(REVERSE_STEPS)
-	b[0] += INIT_A;
+	md5_unreverse(b);
 #endif
 
 	p = &out[TAG_LENGTH];
@@ -399,8 +395,7 @@ static int cmp_exact(char *source, int index)
 	MD5_Final((void*)crypt_key, &ctx);
 
 #ifdef REVERSE_STEPS
-	/* Match reversal */
-	crypt_key[0] -= INIT_A;
+	md5_reverse(crypt_key);
 #endif
 #endif
 	return !memcmp(get_binary(source), crypt_key, DIGEST_SIZE);
