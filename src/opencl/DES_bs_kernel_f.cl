@@ -8,7 +8,11 @@
 
 #include "opencl_DES_kernel_params.h"
 
+#if WORK_GROUP_SIZE > 0
 #define z(p, q) vxorf(B[p], s_des_bs_key[q + s_key_offset])
+#else
+#define z(p, q) vxorf(B[p], des_bs_key[section + q * gws])
+#endif
 
 #define H1_k0()\
         s1(z(index0, 12), z(index1, 46), z(index2, 33), z(index3, 52), z(index4, 48), z(index5, 20),\
@@ -444,20 +448,20 @@
 __kernel void DES_bs_25(__global DES_bs_vector *des_bs_key,
 			__global vtype *unchecked_hashes) {
 
-		unsigned int section = get_global_id(0), s_key_offset;
-		unsigned int lid = get_local_id(0), i;
+		int section = get_global_id(0);
+		int i;
 		int gws = get_global_size(0);
-
-		s_key_offset  = 56 * lid;
-
 		vtype B[64], tmp;
 
+#if WORK_GROUP_SIZE > 0
 		__local DES_bs_vector s_des_bs_key[56 * WORK_GROUP_SIZE];
+		int lid = get_local_id(0)
+		int s_key_offset = 56 * lid;
 
 		for (i = 0; i < 56; i++)
 			s_des_bs_key[lid * 56 + i] = des_bs_key[section + i * gws];
 		barrier(CLK_LOCAL_MEM_FENCE);
-
+#endif
 		int iterations;
 
 		{

@@ -191,7 +191,7 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_25_b.\n");
 
 		local_work_size = 64;
-		global_work_size = 131072;
+		global_work_size = 16384;
 
 		fmt_opencl_DES.params.max_keys_per_crypt = global_work_size * DES_BS_DEPTH;
 		fmt_opencl_DES.params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;

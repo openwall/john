@@ -8,6 +8,14 @@
 
 #include "opencl_DES_kernel_params.h"
 
+#if WORK_GROUP_SIZE > 0
+#define y48(p, q) vxorf(B[p], s_des_bs_key[q + s_key_offset])
+#define z(p, q) vxorf(B[p], s_des_bs_key[key_map[q + k] + s_key_offset])
+#else
+#define y48(p, q) vxorf(B[p], des_bs_key[section + q * gws])
+#define z(p, q) vxorf(B[p], des_bs_key[section + key_map[q + k] * gws])
+#endif
+
 #define H1_s()\
 	s1(z(index0, 0), z(index1, 1), z(index2, 2), z(index3, 3), z(index4, 4), z(index5, 5),\
 		B,40, 48, 54, 62);\
@@ -74,18 +82,45 @@
 		y48(62, 50), y48(63, 42), y48(32, 21),\
 		B,4, 26, 14, 20);
 
-#define y48(p, q) vxorf(B[p]     , s_des_bs_key[q + s_key_offset])
-
-#ifndef RV7xx
-#define z(p, q) vxorf(B[p]      , s_des_bs_key[*s_key_map_ptr++ + s_key_offset])
-#else
-#define z(p, q) vxorf(B[p]      , s_des_bs_key[key_map[q + k] + s_key_offset])
-#endif
-
 #define SWAP(a, b) {	\
 	tmp = B[a];	\
 	B[a] = B[b];	\
 	B[b] = tmp;	\
+}
+
+#define BIG_SWAP() { 	\
+	SWAP(0, 32);	\
+	SWAP(1, 33);	\
+	SWAP(2, 34);	\
+	SWAP(3, 35);	\
+	SWAP(4, 36);	\
+	SWAP(5, 37);	\
+	SWAP(6, 38);	\
+	SWAP(7, 39);	\
+	SWAP(8, 40);	\
+	SWAP(9, 41);	\
+	SWAP(10, 42);	\
+	SWAP(11, 43);	\
+	SWAP(12, 44);	\
+	SWAP(13, 45);	\
+	SWAP(14, 46);	\
+	SWAP(15, 47);	\
+	SWAP(16, 48);	\
+	SWAP(17, 49);	\
+	SWAP(18, 50);	\
+	SWAP(19, 51);	\
+	SWAP(20, 52);	\
+	SWAP(21, 53);	\
+	SWAP(22, 54);	\
+	SWAP(23, 55);	\
+	SWAP(24, 56);	\
+	SWAP(25, 57);	\
+	SWAP(26, 58);	\
+	SWAP(27, 59);	\
+	SWAP(28, 60);	\
+	SWAP(29, 61);	\
+	SWAP(30, 62);	\
+	SWAP(31, 63);  	\
 }
 
 __kernel void DES_bs_25( constant uint *key_map
@@ -95,66 +130,50 @@ __kernel void DES_bs_25( constant uint *key_map
                          , __global DES_bs_vector *des_bs_key,
                          __global vtype *unchecked_hashes) {
 
-		unsigned int section = get_global_id(0), s_key_offset;
-		unsigned int lid = get_local_id(0);
-		unsigned int gws = get_global_size(0);
-		unsigned int lws = get_local_size(0);
-
-		s_key_offset  = 56 * lid;
+		int section = get_global_id(0);
+		int gws = get_global_size(0);
 
 		vtype B[64];
 
-		__local DES_bs_vector s_des_bs_key[56 * WORK_GROUP_SIZE];
-#ifndef RV7xx
-		__local ushort s_key_map[768];
-		__local ushort *s_key_map_ptr;
-#endif
 		int iterations;
+		int k, i;
 
-#ifndef SAFE_GOTO
-		int rounds_and_swapped;
-#else
-		vtype tmp;
-#endif
-		int k = 0, i;
-
+#if WORK_GROUP_SIZE > 0
+		__local DES_bs_vector s_des_bs_key[56 * WORK_GROUP_SIZE];
+		int lid = get_local_id(0);
+		int s_key_offset = 56 * lid;
 		for (i = 0; i < 56; i++)
 			s_des_bs_key[lid * 56 + i] = des_bs_key[section + i * gws];
 
-#ifndef RV7xx
-		for (i = 0; i < 768; i += lws)
-			s_key_map[lid + i] = key_map[lid + i];
-#endif
 		barrier(CLK_LOCAL_MEM_FENCE);
-
+#endif
 		{
 			vtype zero = 0;
 			DES_bs_clear_block
 		}
 
-		k = 0;
-#ifndef SAFE_GOTO
-		rounds_and_swapped = 8;
-#endif
-		iterations = 25;
-
 #ifdef SAFE_GOTO
+		vtype tmp;
+
 		for (iterations = 24; iterations >= 0; iterations--) {
 			for (k = 0; k < 768; k += 96) {
-#ifndef RV7xx
-				s_key_map_ptr = s_key_map + k ;
-#endif
 				H1_s();
 				H2_s();
 			}
-			for (i = 0; i < 32 && iterations; i++)
-				SWAP(i, i + 32);
+			BIG_SWAP();
 		}
+
+		BIG_SWAP();
+		for (i = 0; i < 64; i++)
+			unchecked_hashes[i * gws + section] = B[i];
+
 #else
+		int rounds_and_swapped;
+		rounds_and_swapped = 8;
+		iterations = 25;
+		k = 0;
+
 start:
-#ifndef RV7xx
-		s_key_map_ptr = s_key_map + k ;
-#endif
 		H1_s();
 		if (rounds_and_swapped == 0x100) goto next;
 		H2_s();
@@ -165,12 +184,12 @@ start:
 		k -= (0x300 + 48);
 		rounds_and_swapped = 0x108;
 		if (--iterations) goto swap;
-#endif
+
 		for (i = 0; i < 64; i++)
 			unchecked_hashes[i * gws + section] = B[i];
 
 		return;
-#ifndef SAFE_GOTO
+
 swap:
 		H2_k48();
 		k += 96;
