@@ -515,6 +515,33 @@ typedef __m128i vtype;
 
 #define GATHER64(x,y,z)     { x = vset_epi64 (y[1][z], y[0][z]); }
 
+#if _MSC_VER && !_M_X64
+/*
+ * These are slow, but the F'n 32 bit compiler will not build these intrinsics.
+ * Only the 64-bit (Win64) MSVC compiler has these as intrinsics. These slow
+ * ones let me debug, and develop this code, and work, but use CPU
+ */
+#define _mm_set_epi64 __mm_set_epi64
+#define _mm_set1_epi64 __mm_set1_epi64
+_inline __m128i _mm_set_epi64(long long a, long long b)
+{
+	__m128i x;
+
+	x.m128i_i64[0] = b;
+	x.m128i_i64[1] = a;
+	return x;
+}
+_inline __m128i _mm_set1_epi64(long long a)
+{
+	__m128i x;
+
+	x.m128i_i64[0] = x.m128i_i64[1] = a;
+	return x;
+}
+#define vset1_epi64x(x)         vset_epi64x(x, x)
+#define vset_epi64x(x1, x0)     (vtype)(vtype64){x0, x1}
+#endif
+
 /******************************** MMX *********************************/
 
 #elif __MMX__
