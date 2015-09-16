@@ -563,17 +563,6 @@ static int ldr_split_line(char **login, char **ciphertext,
 			if (bare_always_valid)
 				dynamic_allow_rawhash_fixup = 1;
 #endif
-			/* We don't skip generic crypt. */
-			/* Format disabled in john.conf */
-			if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
-			                 alt->params.label, 0)) {
-				if (options.format && !strcasecmp(options.format, "dynamic-all") &&
-					(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
-					// allow dyna if '-format=dynamic-all' was selected
-				} else
-					disabled = 1;
-			}
-			/* prepared is not equal to *ciphertext for nt in pwdump format */
 			prepared = alt->methods.prepare(fields, alt);
 			if (!prepared)
 				continue;
@@ -640,21 +629,6 @@ static int ldr_split_line(char **login, char **ciphertext,
 				continue;
 			if (alt->params.flags & FMT_WARNED)
 				continue;
-			/* Format disabled in john.conf */
-			if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
-			                 alt->params.label, 0)) {
-#ifdef DEBUG
-				if ((alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
-					// in debug mode, we 'allow' dyna
-				} else
-#else
-				if (options.format && !strcasecmp(options.format, "dynamic-all") &&
-					(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
-					// allow dyna if '-format=dynamic-all' was selected
-				} else
-#endif
-				continue;
-			}
 #ifdef HAVE_CRYPT
 			if (alt == &fmt_crypt &&
 #ifdef __sun
@@ -689,24 +663,6 @@ static int ldr_split_line(char **login, char **ciphertext,
 	do {
 		char *prepared;
 		int valid;
-
-		/* Format disabled in john.conf, unless forced */
-		if (fmt_list->next &&
-		    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
-		                 alt->params.label, 0)) {
-#ifdef DEBUG
-			if ((alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
-				// in debug mode, we 'allow' dyna
-			} else
-#else
-			if (options.format && !strcasecmp(options.format, "dynamic-all") &&
-				(alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
-				// allow dyna if '-format=dynamic-all' was selected
-			} else
-
-#endif
-			continue;
-		}
 
 #ifdef HAVE_CRYPT
 /*
