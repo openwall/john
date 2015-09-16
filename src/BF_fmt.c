@@ -70,32 +70,32 @@ static void init(struct fmt_main *self)
 
 static int get_hash_0(int index)
 {
-	return BF_out[index][0] & 0xF;
+	return BF_out[index][0] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
-	return BF_out[index][0] & 0xFF;
+	return BF_out[index][0] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
-	return BF_out[index][0] & 0xFFF;
+	return BF_out[index][0] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
 {
-	return BF_out[index][0] & 0xFFFF;
+	return BF_out[index][0] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
 {
-	return BF_out[index][0] & 0xFFFFF;
+	return BF_out[index][0] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
 {
-	return BF_out[index][0] & 0xFFFFFF;
+	return BF_out[index][0] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)

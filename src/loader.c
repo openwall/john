@@ -262,7 +262,7 @@ static int ldr_check_list(struct list_main *list, char *s1, char *s2)
 	return 0;
 }
 
-static int ldr_check_shells(struct list_main *list, char *shell)
+static MAYBE_INLINE int ldr_check_shells(struct list_main *list, char *shell)
 {
 	char *name;
 
@@ -341,9 +341,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 	fields[1] = *ciphertext = ldr_get_field(&line, db_opts->field_sep_char);
 
 /* Check for NIS stuff */
-	if ((!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) &&
-	    strlen(*ciphertext) < 10 && strncmp(*ciphertext, "$dummy$", 7)
-	    && strncmp(*ciphertext, "$0$", 3)) {
+	if (((*login)[0] == '+' && (!(*login)[1] || (*login)[1] == '@')) &&
+	    strlen(*ciphertext) < 10 && strncmp(*ciphertext, "$dummy$", 7)) {
 		if (db_opts->showtypes) {
 			int fs = db_opts->field_sep_char;
 			printf("%s%c%s%c2%c\n",
@@ -366,8 +365,9 @@ static int ldr_split_line(char **login, char **ciphertext,
 		p++;
 /* Some valid dummy or plaintext hashes may be shorter than 10 characters,
  * so don't subject them to the length checks. */
-		if (strncmp(*ciphertext, "$dummy$", 7) &&
-		    strncmp(*ciphertext, "$0$", 3) &&
+		if (((*ciphertext)[0] != '$' ||
+		    (strncmp(*ciphertext, "$dummy$", 7) &&
+		    strncmp(*ciphertext, "$0$", 3))) &&
 		    p - *ciphertext != 10 /* not tripcode */) {
 /* Check for a special case: possibly a traditional crypt(3) hash with
  * whitespace in its invalid salt.  Only support such hashes at the very start
@@ -421,9 +421,13 @@ static int ldr_split_line(char **login, char **ciphertext,
 
 	/* /etc/passwd */
 	*uid = fields[2];
-	gid = fields[3];
 	*gecos = fields[4];
 	*home = fields[5];
+
+	if (fields[0] == no_username && !db_opts->showtypes)
+		goto find_format;
+
+	gid = fields[3];
 	shell = fields[6];
 
 	if (SPLFLEN(2) == 32 || SPLFLEN(3) == 32) {
@@ -594,7 +598,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 #undef check_field_separator
 	}
 
-
+find_format:
 	if (*format) {
 		char *prepared;
 		int valid;

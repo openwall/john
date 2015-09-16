@@ -145,37 +145,37 @@ static int get_hash_0(int index)
 {
 
 	uint32_t *out = outbuffer;
-	return out[hash_addr(0, index)] & 0xf;
+	return out[hash_addr(0, index)] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
 	uint32_t *out = outbuffer;
-	return out[hash_addr(0, index)] & 0xff;
+	return out[hash_addr(0, index)] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
 	uint32_t *out = outbuffer;
-	return out[hash_addr(0, index)] & 0xfff;
+	return out[hash_addr(0, index)] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
 {
 	uint32_t *out = outbuffer;
-	return out[hash_addr(0, index)] & 0xffff;
+	return out[hash_addr(0, index)] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
 {
 	uint32_t *out = outbuffer;
-	return out[hash_addr(0, index)] & 0xfffff;
+	return out[hash_addr(0, index)] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
 {
 	uint32_t *out = outbuffer;
-	return out[hash_addr(0, index)] & 0xffffff;
+	return out[hash_addr(0, index)] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)

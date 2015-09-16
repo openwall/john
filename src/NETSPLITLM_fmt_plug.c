@@ -286,32 +286,32 @@ static int salt_hash(void *salt)
 
 static int get_hash_0(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & 0xF;
+	return *(ARCH_WORD_32 *)output[index] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & 0xFF;
+	return *(ARCH_WORD_32 *)output[index] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & 0xFFF;
+	return *(ARCH_WORD_32 *)output[index] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & 0xFFFF;
+	return *(ARCH_WORD_32 *)output[index] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & 0xFFFFF;
+	return *(ARCH_WORD_32 *)output[index] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & 0xFFFFFF;
+	return *(ARCH_WORD_32 *)output[index] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)

@@ -353,32 +353,32 @@ static void *salt(char *ciphertext)
 
 static int binary_hash_0(void *binary)
 {
-	return *((ARCH_WORD_32 *) binary + 6) & 0xF;
+	return *((ARCH_WORD_32 *) binary + 6) & PH_MASK_0;
 }
 
 static int binary_hash_1(void *binary)
 {
-	return *((ARCH_WORD_32 *) binary + 6) & 0xFF;
+	return *((ARCH_WORD_32 *) binary + 6) & PH_MASK_1;
 }
 
 static int binary_hash_2(void *binary)
 {
-	return *((ARCH_WORD_32 *) binary + 6) & 0xFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & PH_MASK_2;
 }
 
 static int binary_hash_3(void *binary)
 {
-	return *((ARCH_WORD_32 *) binary + 6) & 0xFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & PH_MASK_3;
 }
 
 static int binary_hash_4(void *binary)
 {
-	return *((ARCH_WORD_32 *) binary + 6) & 0xFFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & PH_MASK_4;
 }
 
 static int binary_hash_5(void *binary)
 {
-	return *((ARCH_WORD_32 *) binary + 6) & 0xFFFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & PH_MASK_5;
 }
 
 static int binary_hash_6(void *binary)
@@ -389,37 +389,37 @@ static int binary_hash_6(void *binary)
 static int get_hash_0(int index)
 {
     copy_hash_back();
-	return ((uint64_t *) ghash)[index] & 0xF;
+	return ((uint64_t *) ghash)[index] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
     copy_hash_back();
-	return ((uint64_t *) ghash)[index] & 0xFF;
+	return ((uint64_t *) ghash)[index] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
     copy_hash_back();
-	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
 {
     copy_hash_back();
-	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
 {
     copy_hash_back();
-	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
 {
     copy_hash_back();
-	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)

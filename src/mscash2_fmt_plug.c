@@ -406,36 +406,36 @@ static void *get_binary(char *ciphertext)
 
 static int binary_hash_0(void *binary)
 {
-	return ((unsigned int*)binary)[3] & 0x0F;
+	return ((unsigned int*)binary)[3] & PH_MASK_0;
 }
 
 
 static int binary_hash_1(void *binary)
 {
-	return ((unsigned int*)binary)[3] & 0xFF;
+	return ((unsigned int*)binary)[3] & PH_MASK_1;
 }
 
 
 static int binary_hash_2(void *binary)
 {
-	return ((unsigned int*)binary)[3] & 0x0FFF;
+	return ((unsigned int*)binary)[3] & PH_MASK_2;
 }
 
 
 static int binary_hash_3(void *binary)
 {
-	return ((unsigned int*)binary)[3] & 0x0FFFF;
+	return ((unsigned int*)binary)[3] & PH_MASK_3;
 }
 
 
 static int binary_hash_4(void *binary)
 {
-	return ((unsigned int*)binary)[3] & 0x0FFFFF;
+	return ((unsigned int*)binary)[3] & PH_MASK_4;
 }
 
 static int binary_hash_5(void *binary)
 {
-	return ((unsigned int*)binary)[3] & 0x0FFFFFF;
+	return ((unsigned int*)binary)[3] & PH_MASK_5;
 }
 
 static int binary_hash_6(void *binary)
@@ -445,32 +445,32 @@ static int binary_hash_6(void *binary)
 
 static int get_hash_0(int index)
 {
-	return crypt_out[4 * index + 3] & 0x0F;
+	return crypt_out[4 * index + 3] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
-	return crypt_out[4 * index + 3] & 0xFF;
+	return crypt_out[4 * index + 3] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
-	return crypt_out[4 * index + 3] & 0x0FFF;
+	return crypt_out[4 * index + 3] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
 {
-	return crypt_out[4 * index + 3] & 0x0FFFF;
+	return crypt_out[4 * index + 3] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
 {
-	return crypt_out[4 * index + 3] & 0x0FFFFF;
+	return crypt_out[4 * index + 3] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
 {
-	return crypt_out[4 * index + 3] & 0x0FFFFFF;
+	return crypt_out[4 * index + 3] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)

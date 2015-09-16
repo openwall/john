@@ -193,7 +193,7 @@ static void *salt(char *ciphertext)
 static int binary_hash_0(void *binary)
 {
 	if (((ARCH_WORD *)binary)[2] == ~(ARCH_WORD)0)
-		return *(ARCH_WORD *)binary & 0xF;
+		return *(ARCH_WORD *)binary & PH_MASK_0;
 
 	return DES_STD_HASH_0(((ARCH_WORD *)binary)[2]);
 }
@@ -201,7 +201,7 @@ static int binary_hash_0(void *binary)
 static int binary_hash_1(void *binary)
 {
 	if (((ARCH_WORD *)binary)[2] == ~(ARCH_WORD)0)
-		return *(ARCH_WORD *)binary & 0xFF;
+		return *(ARCH_WORD *)binary & PH_MASK_1;
 
 	return DES_STD_HASH_1(((ARCH_WORD *)binary)[2]);
 }
@@ -209,7 +209,7 @@ static int binary_hash_1(void *binary)
 static int binary_hash_2(void *binary)
 {
 	if (((ARCH_WORD *)binary)[2] == ~(ARCH_WORD)0)
-		return *(ARCH_WORD *)binary & 0xFFF;
+		return *(ARCH_WORD *)binary & PH_MASK_2;
 
 	return DES_STD_HASH_2(((ARCH_WORD *)binary)[2]);
 }
@@ -241,7 +241,7 @@ static int get_hash_0(int index)
 
 	if (buffer[index].is_long) {
 		if ((binary = to_short_hash(index)) == ~(ARCH_WORD)0)
-			return buffer[index].aligned.binary[0] & 0xF;
+			return buffer[index].aligned.binary[0] & PH_MASK_0;
 	} else
 		binary = buffer[index].aligned.binary[0] & AFS_BINARY_MASK;
 	return DES_STD_HASH_0(binary);
@@ -253,7 +253,7 @@ static int get_hash_1(int index)
 
 	if (buffer[index].is_long) {
 		if ((binary = to_short_hash(index)) == ~(ARCH_WORD)0)
-			return buffer[index].aligned.binary[0] & 0xFF;
+			return buffer[index].aligned.binary[0] & PH_MASK_1;
 	} else
 		binary = buffer[index].aligned.binary[0] & AFS_BINARY_MASK;
 	return DES_STD_HASH_1(binary);
@@ -265,7 +265,7 @@ static int get_hash_2(int index)
 
 	if (buffer[index].is_long) {
 		if ((binary = to_short_hash(index)) == ~(ARCH_WORD)0)
-			return buffer[index].aligned.binary[0] & 0xFFF;
+			return buffer[index].aligned.binary[0] & PH_MASK_2;
 	} else
 		binary = buffer[index].aligned.binary[0] & AFS_BINARY_MASK;
 	return DES_STD_HASH_2(binary);

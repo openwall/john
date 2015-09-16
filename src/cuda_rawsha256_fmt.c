@@ -232,32 +232,32 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int get_hash_0(int index)
 {
-	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xf;
+	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
-	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xff;
+	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
-	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xfff;
+	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
 {
-	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xffff;
+	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
 {
-	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xfffff;
+	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
 {
-	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xffffff;
+	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)

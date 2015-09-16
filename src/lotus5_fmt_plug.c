@@ -349,19 +349,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static int get_hash_0(int index) { return crypt_key[index][0] & 0xf; }
-static int get_hash_1(int index) { return crypt_key[index][0] & 0xff; }
-static int get_hash_2(int index) { return crypt_key[index][0] & 0xfff; }
-static int get_hash_3(int index) { return crypt_key[index][0] & 0xffff; }
-static int get_hash_4(int index) { return crypt_key[index][0] & 0xfffff; }
-static int get_hash_5(int index) { return crypt_key[index][0] & 0xffffff; }
+static int get_hash_0(int index) { return crypt_key[index][0] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_key[index][0] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_key[index][0] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_key[index][0] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_key[index][0] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_key[index][0] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_key[index][0] & PH_MASK_6; }
-static int binary_hash_0(void * binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
-static int binary_hash_1(void * binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
-static int binary_hash_2(void * binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
-static int binary_hash_3(void * binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
-static int binary_hash_4(void * binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
-static int binary_hash_5(void * binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
+static int binary_hash_0(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_0; }
+static int binary_hash_1(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_1; }
+static int binary_hash_2(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_2; }
+static int binary_hash_3(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_3; }
+static int binary_hash_4(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_4; }
+static int binary_hash_5(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_5; }
 static int binary_hash_6(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_6; }
 
 /* C's version of a class specifier */

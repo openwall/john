@@ -199,12 +199,12 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int get_hash_0(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[0](index); return crypt_out[index][0] & 0xf; }
-static int get_hash_1(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[1](index); return crypt_out[index][0] & 0xff; }
-static int get_hash_2(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[2](index); return crypt_out[index][0] & 0xfff; }
-static int get_hash_3(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[3](index); return crypt_out[index][0] & 0xffff; }
-static int get_hash_4(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[4](index); return crypt_out[index][0] & 0xfffff; }
-static int get_hash_5(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[5](index); return crypt_out[index][0] & 0xffffff; }
+static int get_hash_0(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[0](index); return crypt_out[index][0] & PH_MASK_0; }
+static int get_hash_1(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[1](index); return crypt_out[index][0] & PH_MASK_1; }
+static int get_hash_2(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[2](index); return crypt_out[index][0] & PH_MASK_2; }
+static int get_hash_3(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[3](index); return crypt_out[index][0] & PH_MASK_3; }
+static int get_hash_4(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[4](index); return crypt_out[index][0] & PH_MASK_4; }
+static int get_hash_5(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[5](index); return crypt_out[index][0] & PH_MASK_5; }
 static int get_hash_6(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[6](index); return crypt_out[index][0] & PH_MASK_6; }
 
 static void set_salt(void *salt)
