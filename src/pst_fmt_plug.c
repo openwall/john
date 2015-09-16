@@ -159,12 +159,12 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static int get_hash_0(int index) { return crypt_out[index] & 0xf; }
-static int get_hash_1(int index) { return crypt_out[index] & 0xff; }
-static int get_hash_2(int index) { return crypt_out[index] & 0xfff; }
-static int get_hash_3(int index) { return crypt_out[index] & 0xffff; }
-static int get_hash_4(int index) { return crypt_out[index] & 0xfffff; }
-static int get_hash_5(int index) { return crypt_out[index] & 0xffffff; }
+static int get_hash_0(int index) { return crypt_out[index] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_out[index] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_out[index] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_out[index] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_out[index] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_out[index] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_out[index] & PH_MASK_6; }
 
 struct fmt_main fmt_pst = {

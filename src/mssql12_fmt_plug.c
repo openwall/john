@@ -363,29 +363,29 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #define HASH_IDX (((unsigned int)index&(SIMD_COEF_64-1))+(unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64 + 3*SIMD_COEF_64)
 
 #ifdef SIMD_COEF_64
-static int get_hash_0 (int index) { return crypt_out[HASH_IDX] & 0xf; }
-static int get_hash_1 (int index) { return crypt_out[HASH_IDX] & 0xff; }
-static int get_hash_2 (int index) { return crypt_out[HASH_IDX] & 0xfff; }
-static int get_hash_3 (int index) { return crypt_out[HASH_IDX] & 0xffff; }
-static int get_hash_4 (int index) { return crypt_out[HASH_IDX] & 0xfffff; }
-static int get_hash_5 (int index) { return crypt_out[HASH_IDX] & 0xffffff; }
+static int get_hash_0 (int index) { return crypt_out[HASH_IDX] & PH_MASK_0; }
+static int get_hash_1 (int index) { return crypt_out[HASH_IDX] & PH_MASK_1; }
+static int get_hash_2 (int index) { return crypt_out[HASH_IDX] & PH_MASK_2; }
+static int get_hash_3 (int index) { return crypt_out[HASH_IDX] & PH_MASK_3; }
+static int get_hash_4 (int index) { return crypt_out[HASH_IDX] & PH_MASK_4; }
+static int get_hash_5 (int index) { return crypt_out[HASH_IDX] & PH_MASK_5; }
 static int get_hash_6 (int index) { return crypt_out[HASH_IDX] & PH_MASK_6; }
 #else
-static int get_hash_0(int index) { return ((ARCH_WORD_64*)crypt_out[index])[3] & 0xf; }
-static int get_hash_1(int index) { return ((ARCH_WORD_64*)crypt_out[index])[3] & 0xff; }
-static int get_hash_2(int index) { return ((ARCH_WORD_64*)crypt_out[index])[3] & 0xfff; }
-static int get_hash_3(int index) { return ((ARCH_WORD_64*)crypt_out[index])[3] & 0xffff; }
-static int get_hash_4(int index) { return ((ARCH_WORD_64*)crypt_out[index])[3] & 0xfffff; }
-static int get_hash_5(int index) { return ((ARCH_WORD_64*)crypt_out[index])[3] & 0xffffff; }
+static int get_hash_0(int index) { return ((ARCH_WORD_64*)crypt_out[index])[3] & PH_MASK_0; }
+static int get_hash_1(int index) { return ((ARCH_WORD_64*)crypt_out[index])[3] & PH_MASK_1; }
+static int get_hash_2(int index) { return ((ARCH_WORD_64*)crypt_out[index])[3] & PH_MASK_2; }
+static int get_hash_3(int index) { return ((ARCH_WORD_64*)crypt_out[index])[3] & PH_MASK_3; }
+static int get_hash_4(int index) { return ((ARCH_WORD_64*)crypt_out[index])[3] & PH_MASK_4; }
+static int get_hash_5(int index) { return ((ARCH_WORD_64*)crypt_out[index])[3] & PH_MASK_5; }
 static int get_hash_6(int index) { return ((ARCH_WORD_64*)crypt_out[index])[3] & PH_MASK_6; }
 #endif
 
-static int binary_hash_0(void *binary) { return ((ARCH_WORD_64*)binary)[3] & 0xf; }
-static int binary_hash_1(void *binary) { return ((ARCH_WORD_64*)binary)[3] & 0xff; }
-static int binary_hash_2(void *binary) { return ((ARCH_WORD_64*)binary)[3] & 0xfff; }
-static int binary_hash_3(void *binary) { return ((ARCH_WORD_64*)binary)[3] & 0xffff; }
-static int binary_hash_4(void *binary) { return ((ARCH_WORD_64*)binary)[3] & 0xfffff; }
-static int binary_hash_5(void *binary) { return ((ARCH_WORD_64*)binary)[3] & 0xffffff; }
+static int binary_hash_0(void *binary) { return ((ARCH_WORD_64*)binary)[3] & PH_MASK_0; }
+static int binary_hash_1(void *binary) { return ((ARCH_WORD_64*)binary)[3] & PH_MASK_1; }
+static int binary_hash_2(void *binary) { return ((ARCH_WORD_64*)binary)[3] & PH_MASK_2; }
+static int binary_hash_3(void *binary) { return ((ARCH_WORD_64*)binary)[3] & PH_MASK_3; }
+static int binary_hash_4(void *binary) { return ((ARCH_WORD_64*)binary)[3] & PH_MASK_4; }
+static int binary_hash_5(void *binary) { return ((ARCH_WORD_64*)binary)[3] & PH_MASK_5; }
 static int binary_hash_6(void *binary) { return ((ARCH_WORD_64*)binary)[3] & PH_MASK_6; }
 
 static int cmp_all(void *binary, int count)

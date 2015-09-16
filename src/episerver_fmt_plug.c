@@ -247,20 +247,20 @@ static void *get_binary(char *ciphertext)
 }
 
 #ifdef SIMD_COEF_32
-static int get_hash_0 (int index) { return crypt_out[HASH_IDX_OUT] & 0xf; }
-static int get_hash_1 (int index) { return crypt_out[HASH_IDX_OUT] & 0xff; }
-static int get_hash_2 (int index) { return crypt_out[HASH_IDX_OUT] & 0xfff; }
-static int get_hash_3 (int index) { return crypt_out[HASH_IDX_OUT] & 0xffff; }
-static int get_hash_4 (int index) { return crypt_out[HASH_IDX_OUT] & 0xfffff; }
-static int get_hash_5 (int index) { return crypt_out[HASH_IDX_OUT] & 0xffffff; }
+static int get_hash_0 (int index) { return crypt_out[HASH_IDX_OUT] & PH_MASK_0; }
+static int get_hash_1 (int index) { return crypt_out[HASH_IDX_OUT] & PH_MASK_1; }
+static int get_hash_2 (int index) { return crypt_out[HASH_IDX_OUT] & PH_MASK_2; }
+static int get_hash_3 (int index) { return crypt_out[HASH_IDX_OUT] & PH_MASK_3; }
+static int get_hash_4 (int index) { return crypt_out[HASH_IDX_OUT] & PH_MASK_4; }
+static int get_hash_5 (int index) { return crypt_out[HASH_IDX_OUT] & PH_MASK_5; }
 static int get_hash_6 (int index) { return crypt_out[HASH_IDX_OUT] & PH_MASK_6; }
 #else
-static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
-static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
-static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
-static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
-static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
-static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
+static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 #endif
 

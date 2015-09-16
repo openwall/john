@@ -1280,32 +1280,32 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 
 int opencl_lm_get_hash_0(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & 0xf;
+	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_0;
 }
 
 int opencl_lm_get_hash_1(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & 0xff;
+	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_1;
 }
 
 int opencl_lm_get_hash_2(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & 0xfff;
+	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_2;
 }
 
 int opencl_lm_get_hash_3(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & 0xffff;
+	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_3;
 }
 
 int opencl_lm_get_hash_4(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & 0xfffff;
+	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_4;
 }
 
 int opencl_lm_get_hash_5(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & 0xffffff;
+	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_5;
 }
 
 int opencl_lm_get_hash_6(int index)

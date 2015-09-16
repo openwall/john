@@ -452,20 +452,20 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int binary_hash_0(void *binary) { return ((unsigned int *)binary)[0] & 0xF; }
-static int binary_hash_1(void *binary) { return ((unsigned int *)binary)[0] & 0xFF; }
-static int binary_hash_2(void *binary) { return ((unsigned int *)binary)[0] & 0xFFF; }
-static int binary_hash_3(void *binary) { return ((unsigned int *)binary)[0] & 0xFFFF; }
-static int binary_hash_4(void *binary) { return ((unsigned int *)binary)[0] & 0xFFFFF; }
-static int binary_hash_5(void *binary) { return ((unsigned int *)binary)[0] & 0xFFFFFF; }
+static int binary_hash_0(void *binary) { return ((unsigned int *)binary)[0] & PH_MASK_0; }
+static int binary_hash_1(void *binary) { return ((unsigned int *)binary)[0] & PH_MASK_1; }
+static int binary_hash_2(void *binary) { return ((unsigned int *)binary)[0] & PH_MASK_2; }
+static int binary_hash_3(void *binary) { return ((unsigned int *)binary)[0] & PH_MASK_3; }
+static int binary_hash_4(void *binary) { return ((unsigned int *)binary)[0] & PH_MASK_4; }
+static int binary_hash_5(void *binary) { return ((unsigned int *)binary)[0] & PH_MASK_5; }
 static int binary_hash_6(void *binary) { return ((unsigned int *)binary)[0] & PH_MASK_6; }
 
-static int get_hash_0(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & 0xf; }
-static int get_hash_1(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & 0xff; }
-static int get_hash_2(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & 0xfff; }
-static int get_hash_3(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & 0xffff; }
-static int get_hash_4(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & 0xfffff; }
-static int get_hash_5(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & 0xffffff; }
+static int get_hash_0(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_0; }
+static int get_hash_1(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_1; }
+static int get_hash_2(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_2; }
+static int get_hash_3(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_3; }
+static int get_hash_4(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_4; }
+static int get_hash_5(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_5; }
 static int get_hash_6(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_6; }
 
 static void clear_keys(void)

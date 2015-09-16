@@ -376,7 +376,7 @@ static int binary_hash_0(void *binary)
 		printf("%08x ", b[i]);
 	puts("");
 #endif
-	return ((uint32_t *) binary)[0] & 0xf;
+	return ((uint32_t *) binary)[0] & PH_MASK_0;
 }
 
 static int get_hash_0(int index)
@@ -390,37 +390,37 @@ static int get_hash_0(int index)
 	puts("");
 #endif
 	uint32_t *h = (uint32_t *) mic[index].keymic;
-	return h[0] & 0xf;
+	return h[0] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
 	uint32_t *h = (uint32_t *) mic[index].keymic;
-	return h[0] & 0xff;
+	return h[0] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
 	uint32_t *h = (uint32_t *) mic[index].keymic;
-	return h[0] & 0xfff;
+	return h[0] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
 {
 	uint32_t *h = (uint32_t *) mic[index].keymic;
-	return h[0] & 0xffff;
+	return h[0] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
 {
 	uint32_t *h = (uint32_t *) mic[index].keymic;
-	return h[0] & 0xfffff;
+	return h[0] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
 {
 	uint32_t *h = (uint32_t *) mic[index].keymic;
-	return h[0] & 0xffffff;
+	return h[0] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)

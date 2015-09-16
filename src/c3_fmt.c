@@ -434,21 +434,21 @@ static void *salt(char *ciphertext)
 
 #define H0(s) \
 	int i = strlen(s) - 2; \
-	return i > 0 ? H((s), i) & 0xF : 0
+	return i > 0 ? H((s), i) & PH_MASK_0 : 0
 #define H1(s) \
 	int i = strlen(s) - 2; \
-	return i > 2 ? (H((s), i) ^ (H((s), i - 2) << 4)) & 0xFF : 0
+	return i > 2 ? (H((s), i) ^ (H((s), i - 2) << 4)) & PH_MASK_1 : 0
 #define H2(s) \
 	int i = strlen(s) - 2; \
-	return i > 2 ? (H((s), i) ^ (H((s), i - 2) << 6)) & 0xFFF : 0
+	return i > 2 ? (H((s), i) ^ (H((s), i - 2) << 6)) & PH_MASK_2 : 0
 #define H3(s) \
 	int i = strlen(s) - 2; \
 	return i > 4 ? (H((s), i) ^ (H((s), i - 2) << 5) ^ \
-	    (H((s), i - 4) << 10)) & 0xFFFF : 0
+	    (H((s), i - 4) << 10)) & PH_MASK_3 : 0
 #define H4(s) \
 	int i = strlen(s) - 2; \
 	return i > 6 ? (H((s), i) ^ (H((s), i - 2) << 5) ^ \
-	    (H((s), i - 4) << 10) ^ (H((s), i - 6) << 15)) & 0xFFFFF : 0
+	    (H((s), i - 4) << 10) ^ (H((s), i - 6) << 15)) & PH_MASK_4 : 0
 
 static int binary_hash_0(void *binary)
 {

@@ -117,29 +117,29 @@ static void done(void)
 
 #ifdef SIMD_COEF_32
 #define HASH_OFFSET	(index&(SIMD_COEF_32-1))+(((unsigned int)index%NBKEYS)/SIMD_COEF_32)*SIMD_COEF_32*5+4*SIMD_COEF_32
-static int get_hash_0(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & 0xf; }
-static int get_hash_1(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & 0xff; }
-static int get_hash_2(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & 0xfff; }
-static int get_hash_3(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & 0xffff; }
-static int get_hash_4(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & 0xfffff; }
-static int get_hash_5(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & 0xffffff; }
+static int get_hash_0(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_6; }
 #else
-static int get_hash_0(int index) { return crypt_key[index][4] & 0xf; }
-static int get_hash_1(int index) { return crypt_key[index][4] & 0xff; }
-static int get_hash_2(int index) { return crypt_key[index][4] & 0xfff; }
-static int get_hash_3(int index) { return crypt_key[index][4] & 0xffff; }
-static int get_hash_4(int index) { return crypt_key[index][4] & 0xfffff; }
-static int get_hash_5(int index) { return crypt_key[index][4] & 0xffffff; }
+static int get_hash_0(int index) { return crypt_key[index][4] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_key[index][4] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_key[index][4] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_key[index][4] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_key[index][4] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_key[index][4] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_key[index][4] & PH_MASK_6; }
 #endif
 
-static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[4] & 0xf; }
-static int binary_hash_1(void *binary) { return ((ARCH_WORD_32*)binary)[4] & 0xff; }
-static int binary_hash_2(void *binary) { return ((ARCH_WORD_32*)binary)[4] & 0xfff; }
-static int binary_hash_3(void *binary) { return ((ARCH_WORD_32*)binary)[4] & 0xffff; }
-static int binary_hash_4(void *binary) { return ((ARCH_WORD_32*)binary)[4] & 0xfffff; }
-static int binary_hash_5(void *binary) { return ((ARCH_WORD_32*)binary)[4] & 0xffffff; }
+static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_0; }
+static int binary_hash_1(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_1; }
+static int binary_hash_2(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_2; }
+static int binary_hash_3(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_3; }
+static int binary_hash_4(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_4; }
+static int binary_hash_5(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_5; }
 static int binary_hash_6(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_6; }
 
 #ifdef SIMD_COEF_32

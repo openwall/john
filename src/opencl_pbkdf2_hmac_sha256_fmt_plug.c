@@ -421,7 +421,7 @@ static int binary_hash_0(void *binary)
 		printf("%08x ", b[i]);
 	puts("");
 #endif
-	return (((uint32_t *) binary)[0] & 0xf);
+	return (((uint32_t *) binary)[0] & PH_MASK_0);
 }
 
 static int get_hash_0(int index)
@@ -433,32 +433,32 @@ static int get_hash_0(int index)
 		printf("%08x ", ((uint32_t *) host_crack[index].hash)[i]);
 	puts("");
 #endif
-	return host_crack[index].hash[0] & 0xf;
+	return host_crack[index].hash[0] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
-	return host_crack[index].hash[0] & 0xff;
+	return host_crack[index].hash[0] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
-	return host_crack[index].hash[0] & 0xfff;
+	return host_crack[index].hash[0] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
 {
-	return host_crack[index].hash[0] & 0xffff;
+	return host_crack[index].hash[0] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
 {
-	return host_crack[index].hash[0] & 0xfffff;
+	return host_crack[index].hash[0] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
 {
-	return host_crack[index].hash[0] & 0xffffff;
+	return host_crack[index].hash[0] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)

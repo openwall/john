@@ -375,32 +375,32 @@ static void *get_binary(char *ciphertext)
 
 static int binary_hash_0(void *binary)
 {
-	return ((unsigned int *)binary)[1] & 0x0F;
+	return ((unsigned int *)binary)[1] & PH_MASK_0;
 }
 
 static int binary_hash_1(void *binary)
 {
-	return ((unsigned int *)binary)[1] & 0xFF;
+	return ((unsigned int *)binary)[1] & PH_MASK_1;
 }
 
 static int binary_hash_2(void *binary)
 {
-	return ((unsigned int *)binary)[1] & 0x0FFF;
+	return ((unsigned int *)binary)[1] & PH_MASK_2;
 }
 
 static int binary_hash_3(void *binary)
 {
-	return ((unsigned int *)binary)[1] & 0x0FFFF;
+	return ((unsigned int *)binary)[1] & PH_MASK_3;
 }
 
 static int binary_hash_4(void *binary)
 {
-	return ((unsigned int *)binary)[1] & 0x0FFFFF;
+	return ((unsigned int *)binary)[1] & PH_MASK_4;
 }
 
 static int binary_hash_5(void *binary)
 {
-	return ((unsigned int *)binary)[1] & 0x0FFFFFF;
+	return ((unsigned int *)binary)[1] & PH_MASK_5;
 }
 
 static int binary_hash_6(void *binary)
@@ -411,84 +411,84 @@ static int binary_hash_6(void *binary)
 static int get_hash_0(int index)
 {
 #if defined(NT_X86_64)
-	return output8x[32*(index>>3)+8+index%8] & 0x0F;
+	return output8x[32*(index>>3)+8+index%8] & PH_MASK_0;
 #elif defined(NT_SSE2)
 	if(index<NT_NUM_KEYS4)
-		return output4x[16*(index>>2)+4+index%4] & 0x0F;
+		return output4x[16*(index>>2)+4+index%4] & PH_MASK_0;
 	else
-		return output1x[(index-NT_NUM_KEYS4)*4+1] & 0x0F;
+		return output1x[(index-NT_NUM_KEYS4)*4+1] & PH_MASK_0;
 #else
-	return output1x[(index<<2)+1] & 0x0F;
+	return output1x[(index<<2)+1] & PH_MASK_0;
 #endif
 }
 
 static int get_hash_1(int index)
 {
 #if defined(NT_X86_64)
-	return output8x[32*(index>>3)+8+index%8] & 0xFF;
+	return output8x[32*(index>>3)+8+index%8] & PH_MASK_1;
 #elif defined(NT_SSE2)
 	if(index<NT_NUM_KEYS4)
-		return output4x[16*(index>>2)+4+index%4] & 0xFF;
+		return output4x[16*(index>>2)+4+index%4] & PH_MASK_1;
 	else
-		return output1x[(index-NT_NUM_KEYS4)*4+1] & 0xFF;
+		return output1x[(index-NT_NUM_KEYS4)*4+1] & PH_MASK_1;
 #else
-	return output1x[(index<<2)+1] & 0xFF;
+	return output1x[(index<<2)+1] & PH_MASK_1;
 #endif
 }
 
 static int get_hash_2(int index)
 {
 #if defined(NT_X86_64)
-	return output8x[32*(index>>3)+8+index%8] & 0x0FFF;
+	return output8x[32*(index>>3)+8+index%8] & PH_MASK_2;
 #elif defined(NT_SSE2)
 	if(index<NT_NUM_KEYS4)
-		return output4x[16*(index>>2)+4+index%4] & 0x0FFF;
+		return output4x[16*(index>>2)+4+index%4] & PH_MASK_2;
 	else
-		return output1x[(index-NT_NUM_KEYS4)*4+1] & 0x0FFF;
+		return output1x[(index-NT_NUM_KEYS4)*4+1] & PH_MASK_2;
 #else
-	return output1x[(index<<2)+1] & 0x0FFF;
+	return output1x[(index<<2)+1] & PH_MASK_2;
 #endif
 }
 
 static int get_hash_3(int index)
 {
 #if defined(NT_X86_64)
-	return output8x[32*(index>>3)+8+index%8] & 0x0FFFF;
+	return output8x[32*(index>>3)+8+index%8] & PH_MASK_3;
 #elif defined(NT_SSE2)
 	if(index<NT_NUM_KEYS4)
-		return output4x[16*(index>>2)+4+index%4] & 0x0FFFF;
+		return output4x[16*(index>>2)+4+index%4] & PH_MASK_3;
 	else
-		return output1x[(index-NT_NUM_KEYS4)*4+1] & 0x0FFFF;
+		return output1x[(index-NT_NUM_KEYS4)*4+1] & PH_MASK_3;
 #else
-	return output1x[(index<<2)+1] & 0x0FFFF;
+	return output1x[(index<<2)+1] & PH_MASK_3;
 #endif
 }
 
 static int get_hash_4(int index)
 {
 #if defined(NT_X86_64)
-	return output8x[32*(index>>3)+8+index%8] & 0x0FFFFF;
+	return output8x[32*(index>>3)+8+index%8] & PH_MASK_4;
 #elif defined(NT_SSE2)
 	if(index<NT_NUM_KEYS4)
-		return output4x[16*(index>>2)+4+index%4] & 0x0FFFFF;
+		return output4x[16*(index>>2)+4+index%4] & PH_MASK_4;
 	else
-		return output1x[(index-NT_NUM_KEYS4)*4+1] & 0x0FFFFF;
+		return output1x[(index-NT_NUM_KEYS4)*4+1] & PH_MASK_4;
 #else
-	return output1x[(index<<2)+1] & 0x0FFFFF;
+	return output1x[(index<<2)+1] & PH_MASK_4;
 #endif
 }
 
 static int get_hash_5(int index)
 {
 #if defined(NT_X86_64)
-	return output8x[32*(index>>3)+8+index%8] & 0x0FFFFFF;
+	return output8x[32*(index>>3)+8+index%8] & PH_MASK_5;
 #elif defined(NT_SSE2)
 	if(index<NT_NUM_KEYS4)
-		return output4x[16*(index>>2)+4+index%4] & 0x0FFFFFF;
+		return output4x[16*(index>>2)+4+index%4] & PH_MASK_5;
 	else
-		return output1x[(index-NT_NUM_KEYS4)*4+1] & 0x0FFFFFF;
+		return output1x[(index-NT_NUM_KEYS4)*4+1] & PH_MASK_5;
 #else
-	return output1x[(index<<2)+1] & 0x0FFFFFF;
+	return output1x[(index<<2)+1] & PH_MASK_5;
 #endif
 }
 

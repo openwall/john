@@ -326,7 +326,7 @@ static int binary_hash_0(void *binary) {
 		fprintf(stderr, "%08x ", b[i]);
 	puts("") ;
 #endif
-	return (((unsigned int *) binary)[0] & 0xf) ;
+	return (((unsigned int *) binary)[0] & PH_MASK_0) ;
 }
 
 static int get_hash_0(int index) {
@@ -337,27 +337,27 @@ static int get_hash_0(int index) {
 		fprintf(stderr, "%08x ", dcc2_hash_host[index]) ;
 	puts("") ;
 #endif
-	return dcc2_hash_host[4 * index] & 0xf ;
+	return dcc2_hash_host[4 * index] & PH_MASK_0 ;
 }
 
 static int get_hash_1(int index) {
-	return dcc2_hash_host[4 * index] & 0xff ;
+	return dcc2_hash_host[4 * index] & PH_MASK_1 ;
 }
 
 static int get_hash_2(int index) {
-	return dcc2_hash_host[4 * index] & 0xfff ;
+	return dcc2_hash_host[4 * index] & PH_MASK_2 ;
 }
 
 static int get_hash_3(int index) {
-	return dcc2_hash_host[4 * index] & 0xffff ;
+	return dcc2_hash_host[4 * index] & PH_MASK_3 ;
 }
 
 static int get_hash_4(int index) {
-	return dcc2_hash_host[4 * index] & 0xfffff ;
+	return dcc2_hash_host[4 * index] & PH_MASK_4 ;
 }
 
 static int get_hash_5(int index) {
-	return dcc2_hash_host[4 * index] & 0xffffff ;
+	return dcc2_hash_host[4 * index] & PH_MASK_5 ;
 }
 
 static int get_hash_6(int index) {

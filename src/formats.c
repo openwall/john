@@ -1534,32 +1534,32 @@ int fmt_default_binary_hash(void *binary)
 
 int fmt_default_binary_hash_0(void * binary)
 {
-	return *(ARCH_WORD_32 *) binary & 0xF;
+	return *(ARCH_WORD_32 *) binary & PH_MASK_0;
 }
 
 int fmt_default_binary_hash_1(void * binary)
 {
-	return *(ARCH_WORD_32 *) binary & 0xFF;
+	return *(ARCH_WORD_32 *) binary & PH_MASK_1;
 }
 
 int fmt_default_binary_hash_2(void * binary)
 {
-	return *(ARCH_WORD_32 *) binary & 0xFFF;
+	return *(ARCH_WORD_32 *) binary & PH_MASK_2;
 }
 
 int fmt_default_binary_hash_3(void * binary)
 {
-	return *(ARCH_WORD_32 *) binary & 0xFFFF;
+	return *(ARCH_WORD_32 *) binary & PH_MASK_3;
 }
 
 int fmt_default_binary_hash_4(void * binary)
 {
-	return *(ARCH_WORD_32 *) binary & 0xFFFFF;
+	return *(ARCH_WORD_32 *) binary & PH_MASK_4;
 }
 
 int fmt_default_binary_hash_5(void * binary)
 {
-	return *(ARCH_WORD_32 *) binary & 0xFFFFFF;
+	return *(ARCH_WORD_32 *) binary & PH_MASK_5;
 }
 
 int fmt_default_binary_hash_6(void * binary)
