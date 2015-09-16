@@ -28,12 +28,6 @@
 #include <io.h> // open()
 #endif
 
-#define CRK_PREFETCH 64
-
-#if CRK_PREFETCH && defined(__SSE2__)
-#include <emmintrin.h>
-#endif
-
 #include "arch.h"
 #include "misc.h"
 #include "math.h"
@@ -61,6 +55,9 @@
 #include "jumbo.h"
 #if HAVE_LIBDL && defined(HAVE_CUDA) || defined(HAVE_OPENCL)
 #include "common-gpu.h"
+#endif
+#if CRK_PREFETCH && defined(__SSE2__)
+#include <emmintrin.h>
 #endif
 #include "memdbg.h"
 
