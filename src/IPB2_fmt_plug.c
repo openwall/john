@@ -198,10 +198,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (ciphertext[16] != '$')
 		return 0;
 
-	if (strspn(ciphertext+6, itoa16) != SALT_LENGTH*2)
+	if (strspn(ciphertext+6, HEXCHARS_lc) != SALT_LENGTH*2)
 		return 0;
 
-	if (strspn(ciphertext+17, itoa16) != MD5_HEX_SIZE)
+	if (strspn(ciphertext+17, HEXCHARS_lc) != MD5_HEX_SIZE)
 		return 0;
 
 	return 1;
