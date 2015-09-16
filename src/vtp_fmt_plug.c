@@ -144,7 +144,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) / 2 != res)
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 
 	if ((p = strtokm(NULL, "$")) == NULL)  /* salt len */
@@ -156,7 +156,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) / 2 != res)
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 
 	if (((atoi16[ARCH_INDEX(p[6])]<<4)|atoi16[ARCH_INDEX(p[7])]) >
@@ -167,7 +167,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != BINARY_SIZE * 2)
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 
 	MEM_FREE(ptrkeep);
@@ -254,7 +254,7 @@ static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
 static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
 static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
-static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
+static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 static void vtp_secret_derive(char *password, int length, unsigned char *output)
 {

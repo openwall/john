@@ -356,7 +356,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 6;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* data */
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 	length = strlen(p);
 

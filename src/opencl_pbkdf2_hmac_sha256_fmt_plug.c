@@ -463,7 +463,7 @@ static int get_hash_5(int index)
 
 static int get_hash_6(int index)
 {
-	return host_crack[index].hash[0] & 0x7ffffff;
+	return host_crack[index].hash[0] & PH_MASK_6;
 }
 
 static unsigned int iteration_count(void *salt)

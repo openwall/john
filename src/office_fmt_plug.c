@@ -645,7 +645,7 @@ static int get_hash_2(int index) { if (cur_salt->version!=2007) return 0; return
 static int get_hash_3(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & 0xffff; }
 static int get_hash_4(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & 0xfffff; }
 static int get_hash_5(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & 0xffffff; }
-static int get_hash_6(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & 0x7ffffff; }
+static int get_hash_6(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & PH_MASK_6; }
 
 static void office_set_key(char *key, int index)
 {

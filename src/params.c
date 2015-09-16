@@ -11,7 +11,7 @@
 #include "params.h"
 #include "memdbg.h"
 
-int password_hash_sizes[PASSWORD_HASH_SIZES] = {
+unsigned int password_hash_sizes[PASSWORD_HASH_SIZES] = {
 	PASSWORD_HASH_SIZE_0,
 	PASSWORD_HASH_SIZE_1,
 	PASSWORD_HASH_SIZE_2,
@@ -21,7 +21,7 @@ int password_hash_sizes[PASSWORD_HASH_SIZES] = {
 	PASSWORD_HASH_SIZE_6
 };
 
-int password_hash_thresholds[PASSWORD_HASH_SIZES] = {
+unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES] = {
 	PASSWORD_HASH_THRESHOLD_0,
 	PASSWORD_HASH_THRESHOLD_1,
 	PASSWORD_HASH_THRESHOLD_2,

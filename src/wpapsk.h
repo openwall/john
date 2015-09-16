@@ -426,7 +426,7 @@ static int get_hash_5(int index)
 static int get_hash_6(int index)
 {
 	uint32_t *h = (uint32_t *) mic[index].keymic;
-	return h[0] & 0x7ffffff;
+	return h[0] & PH_MASK_6;
 }
 
 static int cmp_all(void *binary, int count)

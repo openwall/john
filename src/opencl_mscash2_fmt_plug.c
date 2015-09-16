@@ -361,7 +361,7 @@ static int get_hash_5(int index) {
 }
 
 static int get_hash_6(int index) {
-	return dcc2_hash_host[4 * index] & 0x7ffffff ;
+	return dcc2_hash_host[4 * index] & PH_MASK_6 ;
 }
 
 static int cmp_all(void *binary, int count) {

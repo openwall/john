@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006,2010-2013 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2010-2013,2015 by Solar Designer
  *
  * ...with heavy changes in the jumbo patch, by magnum & JimF
  */
@@ -26,12 +26,6 @@
 #endif
 #if _MSC_VER || HAVE_IO_H
 #include <io.h> // open()
-#endif
-
-#ifdef CRACKER_PREFETCH
-#ifdef __SSE2__
-#include <emmintrin.h>
-#endif
 #endif
 
 #include "arch.h"
@@ -61,6 +55,9 @@
 #include "jumbo.h"
 #if HAVE_LIBDL && defined(HAVE_CUDA) || defined(HAVE_OPENCL)
 #include "common-gpu.h"
+#endif
+#if CRK_PREFETCH && defined(__SSE2__)
+#include <emmintrin.h>
 #endif
 #include "memdbg.h"
 
@@ -676,7 +673,6 @@ static int crk_process_event(void)
 
 static int crk_password_loop(struct db_salt *salt)
 {
-	struct db_password *pw;
 	int count, match, index;
 
 #if !OS_TIMER
@@ -702,7 +698,7 @@ static int crk_password_loop(struct db_salt *salt)
 		return 0;
 
 	if (!salt->bitmap) {
-		pw = salt->list;
+		struct db_password *pw = salt->list;
 		do {
 			if (crk_methods.cmp_all(pw->binary, match))
 			for (index = 0; index < match; index++)
@@ -718,32 +714,53 @@ static int crk_password_loop(struct db_salt *salt)
 			}
 		} while ((pw = pw->next));
 	} else
-#ifndef CRACKER_PREFETCH
+#if !CRK_PREFETCH
 	for (index = 0; index < match; index++) {
 		int hash = salt->index(index);
 		if (salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] &
 		    (1U << (hash % (sizeof(*salt->bitmap) * 8)))) {
-			pw = salt->hash[hash >> PASSWORD_HASH_SHR];
+			struct db_password *pw =
+			    salt->hash[hash >> PASSWORD_HASH_SHR];
 #else
 	for (index = 0; index < match; ) {
-		int slot, ahead, target = index + 64;
-		int h[64];
-		unsigned int *b[64];
+		int slot, ahead, target = index + CRK_PREFETCH, lucky = 0;
+		struct {
+			unsigned int h;
+			union {
+				unsigned int *b;
+				struct db_password **p;
+			} u;
+		} a[CRK_PREFETCH];
 		if (target > match)
 			target = match;
 		for (slot = 0, ahead = index; ahead < target; slot++, ahead++) {
-			h[slot] = salt->index(ahead);
-			b[slot] = &salt->bitmap[h[slot] / (sizeof(*salt->bitmap) * 8)];
+			unsigned int h = salt->index(ahead);
+			unsigned int *b = &salt->bitmap[h / (sizeof(*salt->bitmap) * 8)];
+			a[slot].h = h;
+			a[slot].u.b = b;
 #ifdef __SSE2__
-			_mm_prefetch((const char *)b[slot], _MM_HINT_NTA);
-//			_mm_prefetch((const char *)&salt->hash[h[slot] >> PASSWORD_HASH_SHR], _MM_HINT_NTA);
+			_mm_prefetch((const char *)b, _MM_HINT_NTA);
 #else
-			*(volatile unsigned int *)b[slot];
+			*(volatile unsigned int *)b;
 #endif
 		}
-		for (slot = 0; index < target; slot++, index++)
-		if (*b[slot] & (1U << (h[slot] % (sizeof(*salt->bitmap) * 8)))) {
-			pw = salt->hash[h[slot] >> PASSWORD_HASH_SHR];
+		for (slot = 0, ahead = index; ahead < target; slot++, ahead++) {
+			unsigned int h = a[slot].h;
+			if (*a[slot].u.b & (1U << (h % (sizeof(*salt->bitmap) * 8)))) {
+				struct db_password **pwp = &salt->hash[h >> PASSWORD_HASH_SHR];
+#ifdef __SSE2__
+				_mm_prefetch((const char *)pwp, _MM_HINT_NTA);
+#else
+				*(void * volatile *)pwp;
+#endif
+				a[slot].u.p = pwp;
+				lucky = ahead;
+			} else
+				a[slot].u.p = NULL;
+		}
+		for (slot = 0; index <= lucky; slot++, index++)
+		if (a[slot].u.p) {
+			struct db_password *pw = *a[slot].u.p;
 #endif
 			do {
 				if (crk_methods.cmp_one(pw->binary, index))
@@ -753,6 +770,9 @@ static int crk_password_loop(struct db_salt *salt)
 					return 1;
 			} while ((pw = pw->next_hash));
 		}
+#if CRK_PREFETCH
+		index = target;
+#endif
 	}
 
 	return 0;

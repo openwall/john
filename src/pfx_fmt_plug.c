@@ -153,7 +153,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	len = atoi(p);
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data */
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 	if(strlen(p) != len * 2)
 		goto err;

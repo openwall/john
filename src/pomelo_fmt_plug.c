@@ -111,7 +111,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	while(*p)
-		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
+		if(atoi16l[ARCH_INDEX(*p++)]==0x7f)
 			return 0;
 
 	return 1;
@@ -159,7 +159,7 @@ static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
 static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
 static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
-static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
+static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 static void set_salt(void *salt)
 {

@@ -197,7 +197,7 @@ static int get_hash_2(int index) { if (cur_salt->magic != MAGIC) return pDynamic
 static int get_hash_3(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[3](index); return crypt_out[index][0] & 0xffff; }
 static int get_hash_4(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[4](index); return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[5](index); return crypt_out[index][0] & 0xffffff; }
-static int get_hash_6(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[6](index); return crypt_out[index][0] & 0x7ffffff; }
+static int get_hash_6(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[6](index); return crypt_out[index][0] & PH_MASK_6; }
 
 static void set_salt(void *salt)
 {

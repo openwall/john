@@ -483,7 +483,7 @@ static int binary_hash_2(void *binary) { return (((uint32_t *) binary)[0] & 0xff
 static int binary_hash_3(void *binary) { return (((uint32_t *) binary)[0] & 0xffff); }
 static int binary_hash_4(void *binary) { return (((uint32_t *) binary)[0] & 0xfffff); }
 static int binary_hash_5(void *binary) { return (((uint32_t *) binary)[0] & 0xffffff); }
-static int binary_hash_6(void *binary) { return (((uint32_t *) binary)[0] & 0x7ffffff); }
+static int binary_hash_6(void *binary) { return (((uint32_t *) binary)[0] & PH_MASK_6); }
 
 static int get_hash_0(int index)
 {
@@ -502,7 +502,7 @@ static int get_hash_2(int index) { return host_crack[index].hash[0] & 0xfff; }
 static int get_hash_3(int index) { return host_crack[index].hash[0] & 0xffff; }
 static int get_hash_4(int index) { return host_crack[index].hash[0] & 0xfffff; }
 static int get_hash_5(int index) { return host_crack[index].hash[0] & 0xffffff; }
-static int get_hash_6(int index) { return host_crack[index].hash[0] & 0x7ffffff; }
+static int get_hash_6(int index) { return host_crack[index].hash[0] & PH_MASK_6; }
 
 static unsigned int iteration_count(void *salt)
 {

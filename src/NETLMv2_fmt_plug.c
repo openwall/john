@@ -428,7 +428,7 @@ static int get_hash_5(int index)
 
 static int get_hash_6(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & 0x7FFFFFF;
+	return *(ARCH_WORD_32 *)output[index] & PH_MASK_6;
 }
 
 struct fmt_main fmt_NETLMv2 = {

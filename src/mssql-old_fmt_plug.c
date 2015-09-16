@@ -357,7 +357,7 @@ static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 
 static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xffff; }
 static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xfffff; }
 static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xffffff; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0x7ffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & PH_MASK_6; }
 #else
 static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[4] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[4] & 0xff; }
@@ -365,7 +365,7 @@ static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[4] & 0xfff;
 static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_key)[4] & 0xffff; }
 static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[4] & 0xfffff; }
 static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[4] & 0xffffff; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[4] & 0x7ffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[4] & PH_MASK_6; }
 #endif
 
 static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[4] & 0xf; }
@@ -374,7 +374,7 @@ static int binary_hash_2(void *binary) { return ((ARCH_WORD_32*)binary)[4] & 0xf
 static int binary_hash_3(void *binary) { return ((ARCH_WORD_32*)binary)[4] & 0xffff; }
 static int binary_hash_4(void *binary) { return ((ARCH_WORD_32*)binary)[4] & 0xfffff; }
 static int binary_hash_5(void *binary) { return ((ARCH_WORD_32*)binary)[4] & 0xffffff; }
-static int binary_hash_6(void *binary) { return ((ARCH_WORD_32*)binary)[4] & 0x7ffffff; }
+static int binary_hash_6(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {

@@ -97,7 +97,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = ciphertext;
 	q = p;
 
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+	while (atoi16l[ARCH_INDEX(*q)] != 0x7F)
 		q++;
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
@@ -151,7 +151,7 @@ static int get_hash_5(int index)
 
 static int get_hash_6(int index)
 {
-	return crypt_out[index][0] & 0x7FFFFFF;
+	return crypt_out[index][0] & PH_MASK_6;
 }
 
 static void set_key(char *key, int index)

@@ -27,31 +27,6 @@
 #include "misc.h"
 #include "memdbg.h"
 
-#if _MSC_VER && !_M_X64 && __SSE2__
-/* These are slow, but the F'n 32 bit compiler will not build these intrinsics.
-   Only the 64-bit (Win64) MSVC compiler has these as intrinsics. These slow
-   ones let me debug, and develop this code, and work, but use CPU */
-#define _mm_set_epi64 __mm_set_epi64
-#define _mm_set1_epi64 __mm_set1_epi64
-_inline __m128i _mm_set_epi64(long long a, long long b)
-{
-	__m128i x;
-
-	x.m128i_i64[0] = b;
-	x.m128i_i64[1] = a;
-	return x;
-}
-_inline __m128i _mm_set1_epi64(long long a)
-{
-	__m128i x;
-
-	x.m128i_i64[0] = x.m128i_i64[1] = a;
-	return x;
-}
-#define vset1_epi64x(x)         vset_epi64x(x, x)
-#define vset_epi64x(x1,x0)      (vtype)(vtype64){x0, x1}
-#endif
-
 /* Shorter names for use in index calculations */
 #define VS32 SIMD_COEF_32
 #define VS64 SIMD_COEF_64
@@ -1655,86 +1630,33 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
     }                                                       \
 }
 
-#define INIT_A 0x6a09e667
-#define INIT_B 0xbb67ae85
-#define INIT_C 0x3c6ef372
 #define INIT_D 0xa54ff53a
-#define INIT_E 0x510e527f
-#define INIT_F 0x9b05688c
-#define INIT_G 0x1f83d9ab
-#define INIT_H 0x5be0cd19
 
 void sha256_reverse(uint32_t *hash)
 {
-	hash[0] -= INIT_A;
-	hash[1] -= INIT_B;
-	hash[2] -= INIT_C;
 	hash[3] -= INIT_D;
-	hash[4] -= INIT_E;
-	hash[5] -= INIT_F;
-	hash[6] -= INIT_G;
-	hash[7] -= INIT_H;
 }
 
 void sha256_unreverse(uint32_t *hash)
 {
-	hash[0] += INIT_A;
-	hash[1] += INIT_B;
-	hash[2] += INIT_C;
 	hash[3] += INIT_D;
-	hash[4] += INIT_E;
-	hash[5] += INIT_F;
-	hash[6] += INIT_G;
-	hash[7] += INIT_H;
 }
 
-#undef INIT_H
-#undef INIT_G
-#undef INIT_F
-#undef INIT_E
 #undef INIT_D
-#undef INIT_C
-#undef INIT_B
-#undef INIT_A
 
-#define INIT_A 0xc1059ed8
-#define INIT_B 0x367cd507
-#define INIT_C 0x3070dd17
 #define INIT_D 0xf70e5939
-#define INIT_E 0xffc00b31
-#define INIT_F 0x68581511
-#define INIT_G 0x64f98fa7
 
 void sha224_reverse(uint32_t *hash)
 {
-	hash[0] -= INIT_A;
-	hash[1] -= INIT_B;
-	hash[2] -= INIT_C;
 	hash[3] -= INIT_D;
-	hash[4] -= INIT_E;
-	hash[5] -= INIT_F;
-	hash[6] -= INIT_G;
 }
 
 void sha224_unreverse(uint32_t *hash)
 {
-	hash[0] += INIT_A;
-	hash[1] += INIT_B;
-	hash[2] += INIT_C;
 	hash[3] += INIT_D;
-	hash[4] += INIT_E;
-	hash[5] += INIT_F;
-	hash[6] += INIT_G;
 }
 
-#undef INIT_H
-#undef INIT_G
-#undef INIT_F
-#undef INIT_E
 #undef INIT_D
-#undef INIT_C
-#undef INIT_B
-#undef INIT_A
 
 void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
@@ -1955,6 +1877,16 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
 	SHA256_STEP(g, h, a, b, c, d, e, f, 58, 0x84c87814);
 	SHA256_STEP(f, g, h, a, b, c, d, e, 59, 0x8cc70208);
 	SHA256_STEP(e, f, g, h, a, b, c, d, 60, 0x90befffa);
+
+	if (SSEi_flags & SSEi_REVERSE_STEPS)
+	{
+		SHA256_PARA_DO(i)
+		{
+			vstore((vtype*)&(out[i*8*VS32+3*VS32]), d[i]);
+		}
+		return;
+	}
+
 	SHA256_STEP(d, e, f, g, h, a, b, c, 61, 0xa4506ceb);
 	SHA256_STEP(c, d, e, f, g, h, a, b, 62, 0xbef9a3f7);
 	SHA256_STEP(b, c, d, e, f, g, h, a, 63, 0xc67178f2);
@@ -1988,7 +1920,7 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
 				h[i] = vadd_epi32(h[i],vload((vtype*)&reload_state[i*8*VS32+7*VS32]));
 			}
 		}
-	} else if ((SSEi_flags & SSEi_REVERSE_STEPS) == 0) {
+	} else {
 		if (SSEi_flags & SSEi_CRYPT_SHA224) {
 			SHA256_PARA_DO(i)
 			{
@@ -2189,83 +2121,33 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
     }                                                       \
 }
 
-#define INIT_A 0x6a09e667f3bcc908ULL
-#define INIT_B 0xbb67ae8584caa73bULL
-#define INIT_C 0x3c6ef372fe94f82bULL
 #define INIT_D 0xa54ff53a5f1d36f1ULL
-#define INIT_E 0x510e527fade682d1ULL
-#define INIT_F 0x9b05688c2b3e6c1fULL
-#define INIT_G 0x1f83d9abfb41bd6bULL
-#define INIT_H 0x5be0cd19137e2179ULL
 
 void sha512_reverse(ARCH_WORD_64 *hash)
 {
-	hash[0] -= INIT_A;
-	hash[1] -= INIT_B;
-	hash[2] -= INIT_C;
 	hash[3] -= INIT_D;
-	hash[4] -= INIT_E;
-	hash[5] -= INIT_F;
-	hash[6] -= INIT_G;
-	hash[7] -= INIT_H;
 }
 
 void sha512_unreverse(ARCH_WORD_64 *hash)
 {
-	hash[0] += INIT_A;
-	hash[1] += INIT_B;
-	hash[2] += INIT_C;
 	hash[3] += INIT_D;
-	hash[4] += INIT_E;
-	hash[5] += INIT_F;
-	hash[6] += INIT_G;
-	hash[7] += INIT_H;
 }
 
-#undef INIT_H
-#undef INIT_G
-#undef INIT_F
-#undef INIT_E
 #undef INIT_D
-#undef INIT_C
-#undef INIT_B
-#undef INIT_A
 
-#define INIT_A 0xcbbb9d5dc1059ed8ULL
-#define INIT_B 0x629a292a367cd507ULL
-#define INIT_C 0x9159015a3070dd17ULL
 #define INIT_D 0x152fecd8f70e5939ULL
-#define INIT_E 0x67332667ffc00b31ULL
-#define INIT_F 0x8eb44a8768581511ULL
 
 void sha384_reverse(ARCH_WORD_64 *hash)
 {
-	hash[0] -= INIT_A;
-	hash[1] -= INIT_B;
-	hash[2] -= INIT_C;
 	hash[3] -= INIT_D;
-	hash[4] -= INIT_E;
-	hash[5] -= INIT_F;
 }
 
 void sha384_unreverse(ARCH_WORD_64 *hash)
 {
-	hash[0] += INIT_A;
-	hash[1] += INIT_B;
-	hash[2] += INIT_C;
 	hash[3] += INIT_D;
-	hash[4] += INIT_E;
-	hash[5] += INIT_F;
 }
 
-#undef INIT_H
-#undef INIT_G
-#undef INIT_F
-#undef INIT_E
 #undef INIT_D
-#undef INIT_C
-#undef INIT_B
-#undef INIT_A
 
 void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
                    unsigned SSEi_flags)
@@ -2467,6 +2349,16 @@ void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 	SHA512_STEP(g, h, a, b, c, d, e, f, 74, 0x3c9ebe0a15c9bebcULL);
 	SHA512_STEP(f, g, h, a, b, c, d, e, 75, 0x431d67c49c100d4cULL);
 	SHA512_STEP(e, f, g, h, a, b, c, d, 76, 0x4cc5d4becb3e42b6ULL);
+
+	if (SSEi_flags & SSEi_REVERSE_STEPS)
+	{
+		SHA512_PARA_DO(i)
+		{
+			vstore((vtype*)&(out[i*8*VS64+3*VS64]), d[i]);
+		}
+		return;
+	}
+
 	SHA512_STEP(d, e, f, g, h, a, b, c, 77, 0x597f299cfc657e2aULL);
 	SHA512_STEP(c, d, e, f, g, h, a, b, 78, 0x5fcb6fab3ad6faecULL);
 	SHA512_STEP(b, c, d, e, f, g, h, a, 79, 0x6c44198c4a475817ULL);
@@ -2500,7 +2392,7 @@ void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 				h[i] = vadd_epi64(h[i],vload((vtype*)&reload_state[i*8*VS64+7*VS64]));
 			}
 		}
-	} else if ((SSEi_flags & SSEi_REVERSE_STEPS) == 0) {
+	} else {
 		if (SSEi_flags & SSEi_CRYPT_SHA384) {
 			SHA512_PARA_DO(i)
 			{

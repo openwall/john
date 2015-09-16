@@ -445,7 +445,7 @@ static int get_hash_2(int index) { return ((ARCH_WORD_32*)&(crypt_key[index]))[0
 static int get_hash_3(int index) { return ((ARCH_WORD_32*)&(crypt_key[index]))[0] & 0xffff; }
 static int get_hash_4(int index) { return ((ARCH_WORD_32*)&(crypt_key[index]))[0] & 0xfffff; }
 static int get_hash_5(int index) { return ((ARCH_WORD_32*)&(crypt_key[index]))[0] & 0xffffff; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32*)&(crypt_key[index]))[0] & 0x7ffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32*)&(crypt_key[index]))[0] & PH_MASK_6; }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {

@@ -267,7 +267,7 @@ static int get_hash_2(int index) { return outbuffer[index] & 0xfff; }
 static int get_hash_3(int index) { return outbuffer[index] & 0xffff; }
 static int get_hash_4(int index) { return outbuffer[index] & 0xfffff; }
 static int get_hash_5(int index) { return outbuffer[index] & 0xffffff; }
-static int get_hash_6(int index) { return outbuffer[index] & 0x7ffffff; }
+static int get_hash_6(int index) { return outbuffer[index] & PH_MASK_6; }
 
 static int salt_hash(void *salt){
 	return *((ARCH_WORD_32 *) salt) & (SALT_HASH_SIZE - 1);

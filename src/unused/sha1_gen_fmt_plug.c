@@ -140,7 +140,7 @@ static int get_hash_5(int index)
 
 static int get_hash_6(int index)
 {
-	return crypt_out[0] & 0x7FFFFFF;
+	return crypt_out[0] & PH_MASK_6;
 }
 
 static int salt_hash(void *salt)

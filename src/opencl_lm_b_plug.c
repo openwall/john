@@ -1310,7 +1310,7 @@ int opencl_lm_get_hash_5(int index)
 
 int opencl_lm_get_hash_6(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & 0x7ffffff;
+	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_6;
 }
 
 static int cmp_one(void *binary, int index)

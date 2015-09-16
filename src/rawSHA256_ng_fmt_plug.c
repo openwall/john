@@ -209,7 +209,7 @@ static int get_hash_2(int index) { return crypt_key[0][index] & 0xfff; }
 static int get_hash_3(int index) { return crypt_key[0][index] & 0xffff; }
 static int get_hash_4(int index) { return crypt_key[0][index] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_key[0][index] & 0xffffff; }
-static int get_hash_6(int index) { return crypt_key[0][index] & 0x7ffffff; }
+static int get_hash_6(int index) { return crypt_key[0][index] & PH_MASK_6; }
 
 
 static void set_key(char *key, int index)

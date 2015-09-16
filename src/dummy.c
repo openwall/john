@@ -227,7 +227,7 @@ static int binary_hash_5(void *binary)
 
 static int binary_hash_6(void *binary)
 {
-	return ((dummy_binary *)binary)->hash & 0x7ffffff;
+	return ((dummy_binary *)binary)->hash & PH_MASK_6;
 }
 
 static int get_hash_0(int index)
@@ -266,7 +266,7 @@ static int get_hash_5(int index)
 
 static int get_hash_6(int index)
 {
-	return string_hash(saved_key[index]) & 0x7ffffff;
+	return string_hash(saved_key[index]) & PH_MASK_6;
 }
 
 static void set_key(char *key, int index)

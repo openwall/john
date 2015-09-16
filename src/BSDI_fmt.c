@@ -176,7 +176,7 @@ static int binary_hash_5(void *binary)
 
 static int binary_hash_6(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
+	return *(ARCH_WORD_32 *)binary & PH_MASK_6;
 }
 
 #define get_hash_0 DES_bs_get_hash_0

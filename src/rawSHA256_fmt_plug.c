@@ -73,7 +73,7 @@ john_register_one(&fmt_rawSHA256);
 #include "rawSHA256_common.h"
 #undef _RAWSHA256_H
 
-#define BINARY_SIZE             4
+#define BINARY_SIZE             DIGEST_SIZE
 #define SALT_SIZE               0
 #define SALT_ALIGN				1
 
@@ -160,23 +160,31 @@ static void *get_binary(char *ciphertext)
 }
 
 #ifdef SIMD_COEF_32
-#define HASH_IDX (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32)
+#define HASH_IDX (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32 + 3*SIMD_COEF_32)
 static int get_hash_0 (int index) { return crypt_out[HASH_IDX] & 0xf; }
 static int get_hash_1 (int index) { return crypt_out[HASH_IDX] & 0xff; }
 static int get_hash_2 (int index) { return crypt_out[HASH_IDX] & 0xfff; }
 static int get_hash_3 (int index) { return crypt_out[HASH_IDX] & 0xffff; }
 static int get_hash_4 (int index) { return crypt_out[HASH_IDX] & 0xfffff; }
 static int get_hash_5 (int index) { return crypt_out[HASH_IDX] & 0xffffff; }
-static int get_hash_6 (int index) { return crypt_out[HASH_IDX] & 0x7ffffff; }
+static int get_hash_6 (int index) { return crypt_out[HASH_IDX] & PH_MASK_6; }
 #else
-static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
-static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
-static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
-static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
-static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
-static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
-static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
+static int get_hash_0(int index) { return crypt_out[index][3] & 0xf; }
+static int get_hash_1(int index) { return crypt_out[index][3] & 0xff; }
+static int get_hash_2(int index) { return crypt_out[index][3] & 0xfff; }
+static int get_hash_3(int index) { return crypt_out[index][3] & 0xffff; }
+static int get_hash_4(int index) { return crypt_out[index][3] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_out[index][3] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_out[index][3] & PH_MASK_6; }
 #endif
+
+static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[3] & 0xf; }
+static int binary_hash_1(void *binary) { return ((ARCH_WORD_32*)binary)[3] & 0xff; }
+static int binary_hash_2(void *binary) { return ((ARCH_WORD_32*)binary)[3] & 0xfff; }
+static int binary_hash_3(void *binary) { return ((ARCH_WORD_32*)binary)[3] & 0xffff; }
+static int binary_hash_4(void *binary) { return ((ARCH_WORD_32*)binary)[3] & 0xfffff; }
+static int binary_hash_5(void *binary) { return ((ARCH_WORD_32*)binary)[3] & 0xffffff; }
+static int binary_hash_6(void *binary) { return ((ARCH_WORD_32*)binary)[3] & PH_MASK_6; }
 
 #ifdef SIMD_COEF_32
 static void set_key(char *key, int index) {
@@ -292,7 +300,7 @@ static int cmp_all(void *binary, int count)
 
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_32
-		if (((ARCH_WORD_32*) binary)[0] == crypt_out[HASH_IDX])
+		if (((ARCH_WORD_32*) binary)[3] == crypt_out[HASH_IDX])
 #else
 		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
 #endif
@@ -303,7 +311,7 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_32
-	return *(ARCH_WORD_32*)binary == crypt_out[HASH_IDX];
+	return ((ARCH_WORD_32*)binary)[3] == crypt_out[HASH_IDX];
 #else
 	return *(ARCH_WORD_32*)binary == crypt_out[index][0];
 #endif
@@ -312,23 +320,21 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	ARCH_WORD_32 *binary = get_binary(source);
-#if SIMD_COEF_32
-	int i;
-
-	for (i = 0; i < DIGEST_SIZE/sizeof(ARCH_WORD_32); i++)
-		if (binary[i] != crypt_out[HASH_IDX + i*SIMD_COEF_32])
-			return 0;
-	return 1;
-#else
+	char *key = get_key(index);
 	SHA256_CTX ctx;
 	ARCH_WORD_32 crypt_out[DIGEST_SIZE / sizeof(ARCH_WORD_32)];
 
 	SHA256_Init(&ctx);
-	SHA256_Update(&ctx, saved_key[index], saved_len[index]);
+	SHA256_Update(&ctx, key, strlen(key));
 	SHA256_Final((unsigned char*)crypt_out, &ctx);
 
-	return !memcmp(binary, crypt_out, DIGEST_SIZE);
+#ifdef SIMD_COEF_32
+	alter_endianity(crypt_out, DIGEST_SIZE);
+#ifdef REVERSE_STEPS
+	sha256_reverse(crypt_out);
 #endif
+#endif
+	return !memcmp(binary, crypt_out, DIGEST_SIZE);
 }
 
 struct fmt_main fmt_rawSHA256 = {
@@ -362,13 +368,13 @@ struct fmt_main fmt_rawSHA256 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		NULL,
