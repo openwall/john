@@ -562,7 +562,7 @@ static size_t find_smem_lws_limit(unsigned int full_unroll, unsigned int use_loc
 	cl_uint warp_size;
 
 	if (force_global_keys) {
-		if (s_mem_sz > 768 * sizeof(cl_short))
+		if (s_mem_sz > 768 * sizeof(cl_short) || full_unroll)
 			return 0x800000;
 		else
 			return 0;

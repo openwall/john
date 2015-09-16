@@ -459,7 +459,7 @@ static void set_kernel_args_aux_buf()
 	HANDLE_CLERROR(clSetKernelArg(kernel_high, 5, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument buffer_bitmap_dupe, kernel DES_bs_cmp.\n");
 }
 
-void create_checking_kernel_set_args(cl_mem buffer_unchecked_hashes)
+void create_checking_kernel_set_args()
 {
 	int i;
 
@@ -484,10 +484,17 @@ void create_checking_kernel_set_args(cl_mem buffer_unchecked_hashes)
 			cmp_kernel[gpu_id][i] = kernel_high;
 	}
 
+	set_kernel_args_aux_buf();
+}
+
+void set_common_kernel_args_kpc(cl_mem buffer_unchecked_hashes, cl_mem buffer_bs_keys)
+{
 	HANDLE_CLERROR(clSetKernelArg(kernel_low, 0, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_cmp.\n");
 	HANDLE_CLERROR(clSetKernelArg(kernel_high, 0, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_cmp.\n");
 
-	set_kernel_args_aux_buf();
+	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument buffer_raw_keys, kernel DES_bs_finalize_keys.\n");
+	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 2, sizeof(cl_mem), &buffer_int_key_loc), "Failed setting kernel argument buffer_int_key_loc, kernel DES_bs_finalize_keys.\n");
+	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 3, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_finalize_keys.\n");
 }
 
 void update_buffer(struct db_salt *salt)
@@ -1123,7 +1130,7 @@ static char *get_key_mm(int index)
 	return out;
 }
 
-void create_keys_kernel_set_args(cl_mem buffer_bs_keys, int mask_mode)
+void create_keys_kernel_set_args(int mask_mode)
 {
 	static char build_opts[400];
 	cl_ulong const_cache_size;
@@ -1173,10 +1180,7 @@ void create_keys_kernel_set_args(cl_mem buffer_bs_keys, int mask_mode)
 	keys_kernel = clCreateKernel(program[gpu_id], "DES_bs_finalize_keys", &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_finalize_keys.\n");
 
-	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 0, sizeof(cl_mem), &buffer_raw_keys), "Failed setting kernel argument buffer_raw_keys, kernel DES_bs_finalize_keys.\n");
 	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 1, sizeof(cl_mem), &buffer_int_des_keys), "Failed setting kernel argument buffer_int_des_keys, kernel DES_bs_finalize_keys.\n");
-	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 2, sizeof(cl_mem), &buffer_int_key_loc), "Failed setting kernel argument buffer_int_key_loc, kernel DES_bs_finalize_keys.\n");
-	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 3, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_finalize_keys.\n");
 }
 
 void process_keys(size_t current_gws, size_t *lws)

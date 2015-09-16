@@ -223,10 +223,22 @@ static void init_kernel(WORD salt_val, int id_gpu, int save_binary, size_t lws)
 	HANDLE_CLERROR(ret_code, "Create Kernel DES_bs_25 failed.\n");
 
 	HANDLE_CLERROR(clSetKernelArg(kernels[id_gpu][salt_val], 0, sizeof(cl_mem), &buffer_map), "Failed setting kernel argument buffer_map, kernel DES_bs_25.\n");
-	HANDLE_CLERROR(clSetKernelArg(kernels[id_gpu][salt_val], 1, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_25.\n");
-	HANDLE_CLERROR(clSetKernelArg(kernels[id_gpu][salt_val], 2, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_25.\n");
 
 	marked_salts[salt_val] = salt_val;
+}
+
+static void set_kernel_arg_kpc()
+{
+	int i;
+
+	for (i = 0; i < 4096; i++) {
+		if (marked_salts[i] == i) {
+			HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][i], 1, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_25.\n");
+			HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][i], 2, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_25.\n");
+		}
+	}
+
+	set_common_kernel_args_kpc(buffer_unchecked_hashes, buffer_bs_keys);
 }
 
 static void reset(struct db_main *db)
@@ -252,13 +264,15 @@ static void reset(struct db_main *db)
 		create_clobj_kpc(global_work_size);
 		create_clobj(db);
 
-		create_checking_kernel_set_args(buffer_unchecked_hashes);
-		create_keys_kernel_set_args(buffer_bs_keys, mask_mode);
+		create_checking_kernel_set_args();
+		create_keys_kernel_set_args(mask_mode);
 
 		salt = db -> salts;
 		do {
 			init_kernel((*(WORD *)salt -> salt), gpu_id, 1, local_work_size);
 		} while ((salt = salt -> next));
+
+		set_kernel_arg_kpc();
 	}
 	else {
 		char *ciphertext;
@@ -279,8 +293,8 @@ static void reset(struct db_main *db)
 		create_clobj_kpc(global_work_size);
 		create_clobj(NULL);
 
-		create_checking_kernel_set_args(buffer_unchecked_hashes);
-		create_keys_kernel_set_args(buffer_bs_keys, 0);
+		create_checking_kernel_set_args();
+		create_keys_kernel_set_args(0);
 
 		for (i = 0; i < 4096; i++)
 			build_salt(i);
@@ -292,6 +306,8 @@ static void reset(struct db_main *db)
 			init_kernel(salt_val, gpu_id, 1, local_work_size);
 			i++;
 		}
+
+		set_kernel_arg_kpc();
 
 		initialized++;
 	}

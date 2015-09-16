@@ -455,7 +455,7 @@ __kernel void DES_bs_25(__global DES_bs_vector *des_bs_key,
 
 #if WORK_GROUP_SIZE > 0
 		__local DES_bs_vector s_des_bs_key[56 * WORK_GROUP_SIZE];
-		int lid = get_local_id(0)
+		int lid = get_local_id(0);
 		int s_key_offset = 56 * lid;
 
 		for (i = 0; i < 56; i++)

@@ -38,7 +38,8 @@ extern void build_tables(struct db_main *);
 extern void release_tables();
 extern void update_buffer(struct db_salt *);
 extern int extract_info(size_t, size_t *, WORD);
-extern void create_checking_kernel_set_args(cl_mem);
+extern void create_checking_kernel_set_args();
+extern void set_common_kernel_args_kpc(cl_mem, cl_mem);
 extern void init_checking();
 extern void finish_checking();
 
@@ -47,7 +48,7 @@ extern void create_int_keys_buffer(void);
 extern void release_keys_buffer();
 extern void release_int_keys_buffer(void);
 extern void process_keys(size_t, size_t *);
-extern void create_keys_kernel_set_args(cl_mem, int);
+extern void create_keys_kernel_set_args(int);
 
 typedef unsigned WORD vtype;
 

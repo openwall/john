@@ -11,9 +11,9 @@
 #define WORK_GROUP_SIZE		64
 
 #if WORK_GROUP_SIZE > 0
-#define y(p, q) vxorf(B[p], s_des_bs_key[key_map[q + k] + s_key_offset])
+#define y(p, q) vxorf(B[p], s_des_bs_key[s_key_map[q + k] + s_key_offset])
 #else
-#define y(p, q) vxorf(B[p], des_bs_key[section + key_map[q + k] * gws])
+#define y(p, q) vxorf(B[p], des_bs_key[section + s_key_map[q + k] * gws])
 #endif
 
 #define H1()\
