@@ -86,10 +86,9 @@ static void rec_name_complete(void)
 #else
 	if (!john_main_process && options.node_min) {
 #endif
-		char *suffix = mem_alloc(1 + 20 + strlen(RECOVERY_SUFFIX) + 1);
+		char suffix[1 + 20 + sizeof(RECOVERY_SUFFIX)];
 		sprintf(suffix, ".%u%s", options.node_min, RECOVERY_SUFFIX);
 		rec_name = path_session(rec_name, suffix);
-		MEM_FREE(suffix);
 	} else {
 		rec_name = path_session(rec_name, RECOVERY_SUFFIX);
 	}
@@ -195,6 +194,20 @@ static void rec_unlock(void)
 	{}
 #endif
 
+static int is_default(char *name)
+{
+	if (john_main_process)
+		return !strcmp(rec_name, RECOVERY_NAME RECOVERY_SUFFIX);
+	else {
+		char def_name[sizeof(RECOVERY_NAME) + 20 +
+		              sizeof(RECOVERY_SUFFIX)];
+
+		sprintf(def_name, "%s.%u%s", RECOVERY_NAME, options.node_min,
+		        RECOVERY_SUFFIX);
+		return !strcmp(rec_name, def_name);
+	}
+}
+
 void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 {
 	const char *protect;
@@ -210,7 +223,7 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 		protect = "Disabled";
 
 	if (!rec_restored &&
-	    (((!strcasecmp(protect, "Named")) && strcmp(rec_name, "$JOHN/john.rec")) ||
+	    (((!strcasecmp(protect, "Named")) && !is_default(rec_name)) ||
 	    (!strcasecmp(protect, "Always")))) {
 		struct stat st;
 
