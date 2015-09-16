@@ -199,9 +199,10 @@ static int valid(char* ciphertext, int pos)
 	}
 
 	// Not hexadecimal characters
-	for (i = 0; i < 512*2; i++)
-		if (atoi16[ARCH_INDEX((ciphertext+pos)[i])] == 0x7F)
+	for (i = 0; i < 512*2; i++) {
+		if (atoi16l[ARCH_INDEX((ciphertext+pos)[i])] == 0x7F)
 			return 0;
+	}
 
 	return 1;
 }

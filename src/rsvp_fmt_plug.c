@@ -145,7 +145,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) >= MAX_SALT_SIZE*2)
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 
 	if ((p = strtokm(NULL, "$")) == NULL) /* hash */
@@ -153,7 +153,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	/* there is code that trim longer binary values, so we do not need to check for extra long */
 	if (strlen(p) < BINARY_SIZE*2)
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 
 	MEM_FREE(strkeep);

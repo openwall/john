@@ -97,7 +97,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = ciphertext;
 	q = p;
 
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+	while (atoi16l[ARCH_INDEX(*q)] != 0x7F)
 		q++;
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
