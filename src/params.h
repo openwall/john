@@ -236,7 +236,11 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * 5 or 6 will make them the same size in bytes on systems with 32-bit or
  * 64-bit pointers, respectively.
  */
+#if ARCH_BITS >= 64
+#define PASSWORD_HASH_SHR		0
+#else
 #define PASSWORD_HASH_SHR		2
+#endif
 
 /*
  * Cracked password hash size, used while loading.
@@ -283,6 +287,16 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * hashes (since it could be too slow).
  */
 #define LDR_HASH_COLLISIONS_MAX		1000
+
+/*
+ * How many bitmap entries should the cracker prefetch at once.  Set this to 0
+ * to disable prefetching.
+ */
+#ifdef __SSE2__
+#define CRK_PREFETCH			64
+#else
+#define CRK_PREFETCH			0
+#endif
 
 /*
  * Maximum number of GECOS words to try in pairs.
