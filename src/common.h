@@ -77,6 +77,12 @@ typedef unsigned long long ARCH_WORD_64;
 /*
  * ASCII <-> binary conversion tables.
  */
+#define DIGITCHARS   "0123456789"
+#define HEXCHARS_lc  DIGITCHARS"abcdef"
+#define HEXCHARS_uc  DIGITCHARS"ABCDEF"
+#define HEXCHARS_all DIGITCHARS"abcdefABCDEF"
+#define BASE64_CRYPT "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
 extern const char itoa64[64]; /* crypt(3) base64 - not MIME Base64! */
 extern unsigned char atoi64[0x100];
 extern const char itoa16[16];
@@ -103,8 +109,16 @@ int ishexlc(char *q);
 /* same as ishexuc/lc except odd length is ok */
 int ishexuc_oddOK(char *q);
 int ishexlc_oddOK(char *q);
+/* provide a length field, so return true if 'n' bytes of the string are hex */
+/* the n is length q, so there is no need for a 'odd' field. If checking for */
+/* a 49 byte string, simply specify 49 */
+int ishexn(char *q, int n);
+int ishexucn(char *q, int n);
+int ishexlcn(char *q, int n);
 /* length of hex. if non-hex chars found, then negative length of valid hex */
 int hexlen(char *q);
+int hexlenl(char *q); /* lower cased only */
+int hexlenu(char *q); /* upper cased only */
 /* is this a valid string for atoi() ONLY positive numbers are valid */
 int isdec(char *q);
 /* is this a valid string for atoi() */

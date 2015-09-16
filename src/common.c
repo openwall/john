@@ -18,14 +18,11 @@
 
 /* This is the base64 that is used in crypt(3). It differs from MIME Base64
    and the latter can be found in base64.[ch] */
-const char itoa64[64] =
-	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const char itoa64[64] = BASE64_CRYPT;
 unsigned char atoi64[0x100];
+const char itoa16[16]  = HEXCHARS_lc;
+const char itoa16u[16] = HEXCHARS_uc;
 
-const char itoa16[16] =
-	"0123456789abcdef";
-const char itoa16u[16] =
-	"0123456789ABCDEF";
 unsigned char atoi16[0x100], atoi16l[0x100], atoi16u[0x100];
 
 static int initialized = 0;
@@ -79,21 +76,40 @@ int ishex_oddOK(char *q)
 int ishexuc(char *q)
 {
 	char *p=q;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
-		if (*q >= 'a' && *q <= 'f') return 0;
+	while (atoi16u[ARCH_INDEX(*q)] != 0x7F)
 		++q;
-	}
 	return !*q && !(((p-q))&1);
 }
 int ishexlc(char *q)
 {
 	char *p=q;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
-		if (*q >= 'A' && *q <= 'F') return 0;
+	while (atoi16l[ARCH_INDEX(*q)] != 0x7F)
 		++q;
-	}
 	return !*q && !(((p-q))&1);
 }
+
+int ishexn(char *q, int n)
+{
+	char *p=q;
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		++q;
+	return (q-p) >= n;
+}
+int ishexucn(char *q, int n)
+{
+	char *p=q;
+	while (atoi16u[ARCH_INDEX(*q)] != 0x7F)
+		++q;
+	return (q-p) >= n;
+}
+int ishexlcn(char *q, int n)
+{
+	char *p=q;
+	while (atoi16l[ARCH_INDEX(*q)] != 0x7F)
+		++q;
+	return (q-p) >= n;
+}
+
 int ishexuc_oddOK(char *q) {
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
 		if (*q >= 'a' && *q <= 'f') return 0;
@@ -118,7 +134,7 @@ int ishexlc_oddOK(char *q) {
  * the length returned will be length-1 since it would not be proper to try
  * to hex convert the last odd byte.
  */
-int hexlen(char *q)
+static MAYBE_INLINE int _hexlen(char *q, unsigned char dic[0x100])
 {
 	char *s = q;
 	size_t len = strlen(q);
@@ -129,6 +145,19 @@ int hexlen(char *q)
 	if ((size_t)(q - s)&1) --q;
 	return (len == (size_t)(q - s)) ? (int)(q - s) : -1 - (int)(q - s);
 }
+int hexlen(char *q)
+{
+	return _hexlen(q, atoi16);
+}
+int hexlenu(char *q)
+{
+	return _hexlen(q, atoi16u);
+}
+int hexlenl(char *q)
+{
+	return _hexlen(q, atoi16l);
+}
+
 int isdec(char *q)
 {
 	char buf[24];
