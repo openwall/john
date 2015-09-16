@@ -196,7 +196,7 @@ void ldr_init_database(struct db_main *db, struct db_options *options)
 static void ldr_init_password_hash(struct db_main *db)
 {
 	int (*func)(void *binary);
-	int size = PASSWORD_HASH_SIZE_FOR_LDR;
+	size_t size = PASSWORD_HASH_SIZE_FOR_LDR;
 
 	if (size >= 2 && mem_saving_level >= 2) {
 		size--;
@@ -212,7 +212,7 @@ static void ldr_init_password_hash(struct db_main *db)
 	if (size < 0)
 		size = 0;
 	db->password_hash_func = func;
-	size = password_hash_sizes[size] * sizeof(struct db_password *);
+	size = (size_t)password_hash_sizes[size] * sizeof(struct db_password *);
 	db->password_hash = mem_alloc(size);
 	memset(db->password_hash, 0, size);
 }
@@ -1401,7 +1401,7 @@ static void ldr_init_hash_for_salt(struct db_main *db, struct db_salt *salt)
 {
 	struct db_password *current;
 	int (*hash_func)(void *binary);
-	int bitmap_size, hash_size;
+	size_t bitmap_size, hash_size;
 	int hash;
 
 	if (salt->hash_size < 0) {

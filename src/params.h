@@ -226,8 +226,8 @@
 /*
  * Tables of the above values.
  */
-extern int password_hash_sizes[PASSWORD_HASH_SIZES];
-extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
+extern unsigned int password_hash_sizes[PASSWORD_HASH_SIZES];
+extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 
 /*
  * How much smaller should the hash tables be than bitmaps in terms of entry
