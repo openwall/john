@@ -80,7 +80,7 @@ typedef unsigned long long ARCH_WORD_64;
 extern const char itoa64[64]; /* crypt(3) base64 - not MIME Base64! */
 extern unsigned char atoi64[0x100];
 extern const char itoa16[16];
-extern unsigned char atoi16[0x100], atoi16l[0x100];
+extern unsigned char atoi16[0x100], atoi16l[0x100], atoi16u[0x100];
 extern const char itoa16u[16]; // uppercase
 
 /*

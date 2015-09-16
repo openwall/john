@@ -26,7 +26,7 @@ const char itoa16[16] =
 	"0123456789abcdef";
 const char itoa16u[16] =
 	"0123456789ABCDEF";
-unsigned char atoi16[0x100], atoi16l[0x100];
+unsigned char atoi16[0x100], atoi16l[0x100], atoi16u[0x100];
 
 static int initialized = 0;
 
@@ -52,6 +52,10 @@ void common_init(void)
 	atoi16['D'] = atoi16['d'];
 	atoi16['E'] = atoi16['e'];
 	atoi16['F'] = atoi16['f'];
+
+	memset(atoi16u, 0x7F, sizeof(atoi16u));
+	for (pos = itoa16u; pos <= &itoa16u[15]; pos++)
+		atoi16u[ARCH_INDEX(*pos)] = pos - itoa16u;
 
 	initialized = 1;
 }

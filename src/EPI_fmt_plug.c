@@ -107,8 +107,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
      ciphertext[63] != '0' || ciphertext[64] != 'x')
     return 0;
 
-  for(n = 2; n < 62 && atoi16[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
-  for(n = 65; n < 105 && atoi16[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
+  for(n = 2; n < 62 && atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
+  for(n = 65; n < 105 && atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
 
   return n == len;
 }
