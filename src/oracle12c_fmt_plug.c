@@ -119,7 +119,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) != (BINARY_SIZE * 2 + 32))
 		return 0;
 
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto error;
 
 	return 1;

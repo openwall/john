@@ -11,7 +11,8 @@
 static const uint32_t #{HASH}_inc = #{HASH}_LOOPS;
 
 static void Do#{HASH}_crypt_f_sse(void *in, uint32_t len[#{HASH}_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_#{BITS} a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(ARCH_WORD_#{BITS})];
+	ARCH_WORD_#{BITS} _a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(ARCH_WORD_#{BITS}) + MEM_ALIGN_SIMD];
+	ARCH_WORD_#{BITS} *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[#{HASH}_LOOPS], bMore, cnt;
 #ifndef TRUNC_TO16
 //	uint32_t max_cnt=0;
@@ -49,7 +50,8 @@ static void Do#{HASH}_crypt_f_sse(void *in, uint32_t len[#{HASH}_LOOPS], void *o
 }
 
 static void Do#{HASH}_crypt_sse(void *in, uint32_t ilen[#{HASH}_LOOPS], void *out[#{HASH}_LOOPS], uint32_t *tot_len, uint32_t tid) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_#{BITS} a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(ARCH_WORD_#{BITS})];
+	ARCH_WORD_#{BITS} _a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(ARCH_WORD_#{BITS}) + MEM_ALIGN_SIMD];
+	ARCH_WORD_#{BITS} *a = mem_align(_a, MEM_ALIGN_SIMD);
 	union yy { unsigned char u[#{BIN_SZ}]; ARCH_WORD_#{BITS} a[#{BIN_SZ}/sizeof(ARCH_WORD_#{BITS})]; } y;
 	uint32_t i, j, loops[#{HASH}_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -75,7 +77,8 @@ static void Do#{HASH}_crypt_sse(void *in, uint32_t ilen[#{HASH}_LOOPS], void *ou
 }
 
 static void inline Do#{HASH}_sse_crypt_only(void *in, uint32_t len[#{HASH}_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_#{BITS} a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(ARCH_WORD_#{BITS})];
+	ARCH_WORD_#{BITS} _a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(ARCH_WORD_#{BITS}) + MEM_ALIGN_SIMD];
+	ARCH_WORD_#{BITS} *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[#{HASH}_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < #{HASH}_LOOPS; ++i) {

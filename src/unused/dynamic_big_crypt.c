@@ -1,6 +1,6 @@
 /*
  * The source for this file AUTO-GENERATED on:
- * Sun, Aug 30, 2015 12:02:23 PM
+ * Tue, Sep 15, 2015  9:01:39 PM
  *
  * NOTE.  This file IS 100% auto-generated code.
  *
@@ -521,7 +521,8 @@ static inline uint32_t Do_FixBufferLen64(unsigned char *input_buf, int total_len
 static const uint32_t MD5_inc = MD5_LOOPS;
 
 static void DoMD5_crypt_f_sse(void *in, uint32_t len[MD5_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[MD5_LOOPS], bMore, cnt;
 //	uint32_t max_cnt=0;
 	unsigned char *cp = (unsigned char*)in;
@@ -550,7 +551,8 @@ static void DoMD5_crypt_f_sse(void *in, uint32_t len[MD5_LOOPS], void *out) {
 }
 
 static void DoMD5_crypt_sse(void *in, uint32_t ilen[MD5_LOOPS], void *out[MD5_LOOPS], uint32_t *tot_len, uint32_t tid) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	union yy { unsigned char u[16]; ARCH_WORD_32 a[16/sizeof(ARCH_WORD_32)]; } y;
 	uint32_t i, j, loops[MD5_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -576,7 +578,8 @@ static void DoMD5_crypt_sse(void *in, uint32_t ilen[MD5_LOOPS], void *out[MD5_LO
 }
 
 static void inline DoMD5_sse_crypt_only(void *in, uint32_t len[MD5_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(16*MD5_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[MD5_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < MD5_LOOPS; ++i) {
@@ -917,7 +920,8 @@ void DynamicFunc__MD5_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 static const uint32_t MD4_inc = MD4_LOOPS;
 
 static void DoMD4_crypt_f_sse(void *in, uint32_t len[MD4_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[MD4_LOOPS], bMore, cnt;
 //	uint32_t max_cnt=0;
 	unsigned char *cp = (unsigned char*)in;
@@ -946,7 +950,8 @@ static void DoMD4_crypt_f_sse(void *in, uint32_t len[MD4_LOOPS], void *out) {
 }
 
 static void DoMD4_crypt_sse(void *in, uint32_t ilen[MD4_LOOPS], void *out[MD4_LOOPS], uint32_t *tot_len, uint32_t tid) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	union yy { unsigned char u[16]; ARCH_WORD_32 a[16/sizeof(ARCH_WORD_32)]; } y;
 	uint32_t i, j, loops[MD4_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -972,7 +977,8 @@ static void DoMD4_crypt_sse(void *in, uint32_t ilen[MD4_LOOPS], void *out[MD4_LO
 }
 
 static void inline DoMD4_sse_crypt_only(void *in, uint32_t len[MD4_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(16*MD4_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[MD4_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < MD4_LOOPS; ++i) {
@@ -1313,7 +1319,8 @@ void DynamicFunc__MD4_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 static const uint32_t SHA1_inc = SHA1_LOOPS;
 
 static void DoSHA1_crypt_f_sse(void *in, uint32_t len[SHA1_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(20*SHA1_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(20*SHA1_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[SHA1_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA1_LOOPS; ++i) {
@@ -1340,7 +1347,8 @@ static void DoSHA1_crypt_f_sse(void *in, uint32_t len[SHA1_LOOPS], void *out) {
 }
 
 static void DoSHA1_crypt_sse(void *in, uint32_t ilen[SHA1_LOOPS], void *out[SHA1_LOOPS], uint32_t *tot_len, uint32_t tid) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(20*SHA1_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(20*SHA1_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	union yy { unsigned char u[20]; ARCH_WORD_32 a[20/sizeof(ARCH_WORD_32)]; } y;
 	uint32_t i, j, loops[SHA1_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -1366,7 +1374,8 @@ static void DoSHA1_crypt_sse(void *in, uint32_t ilen[SHA1_LOOPS], void *out[SHA1
 }
 
 static void inline DoSHA1_sse_crypt_only(void *in, uint32_t len[SHA1_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(20*SHA1_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(20*SHA1_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[SHA1_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA1_LOOPS; ++i) {
@@ -1709,7 +1718,8 @@ void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 static const uint32_t SHA224_inc = SHA224_LOOPS;
 
 static void DoSHA224_crypt_f_sse(void *in, uint32_t len[SHA224_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(32*SHA224_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(32*SHA224_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[SHA224_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA224_LOOPS; ++i) {
@@ -1736,7 +1746,8 @@ static void DoSHA224_crypt_f_sse(void *in, uint32_t len[SHA224_LOOPS], void *out
 }
 
 static void DoSHA224_crypt_sse(void *in, uint32_t ilen[SHA224_LOOPS], void *out[SHA224_LOOPS], uint32_t *tot_len, uint32_t tid) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(32*SHA224_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(32*SHA224_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	union yy { unsigned char u[32]; ARCH_WORD_32 a[32/sizeof(ARCH_WORD_32)]; } y;
 	uint32_t i, j, loops[SHA224_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -1762,7 +1773,8 @@ static void DoSHA224_crypt_sse(void *in, uint32_t ilen[SHA224_LOOPS], void *out[
 }
 
 static void inline DoSHA224_sse_crypt_only(void *in, uint32_t len[SHA224_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(32*SHA224_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(32*SHA224_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[SHA224_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA224_LOOPS; ++i) {
@@ -2105,7 +2117,8 @@ void DynamicFunc__SHA224_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 static const uint32_t SHA256_inc = SHA256_LOOPS;
 
 static void DoSHA256_crypt_f_sse(void *in, uint32_t len[SHA256_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(32*SHA256_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(32*SHA256_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[SHA256_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA256_LOOPS; ++i) {
@@ -2132,7 +2145,8 @@ static void DoSHA256_crypt_f_sse(void *in, uint32_t len[SHA256_LOOPS], void *out
 }
 
 static void DoSHA256_crypt_sse(void *in, uint32_t ilen[SHA256_LOOPS], void *out[SHA256_LOOPS], uint32_t *tot_len, uint32_t tid) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(32*SHA256_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(32*SHA256_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	union yy { unsigned char u[32]; ARCH_WORD_32 a[32/sizeof(ARCH_WORD_32)]; } y;
 	uint32_t i, j, loops[SHA256_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -2158,7 +2172,8 @@ static void DoSHA256_crypt_sse(void *in, uint32_t ilen[SHA256_LOOPS], void *out[
 }
 
 static void inline DoSHA256_sse_crypt_only(void *in, uint32_t len[SHA256_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_32 a[(32*SHA256_LOOPS)/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 _a[(32*SHA256_LOOPS)/sizeof(ARCH_WORD_32) + MEM_ALIGN_SIMD];
+	ARCH_WORD_32 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[SHA256_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA256_LOOPS; ++i) {
@@ -2501,7 +2516,8 @@ void DynamicFunc__SHA256_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 static const uint32_t SHA384_inc = SHA384_LOOPS;
 
 static void DoSHA384_crypt_f_sse(void *in, uint32_t len[SHA384_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 a[(64*SHA384_LOOPS)/sizeof(ARCH_WORD_64)];
+	ARCH_WORD_64 _a[(64*SHA384_LOOPS)/sizeof(ARCH_WORD_64) + MEM_ALIGN_SIMD];
+	ARCH_WORD_64 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[SHA384_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA384_LOOPS; ++i) {
@@ -2528,7 +2544,8 @@ static void DoSHA384_crypt_f_sse(void *in, uint32_t len[SHA384_LOOPS], void *out
 }
 
 static void DoSHA384_crypt_sse(void *in, uint32_t ilen[SHA384_LOOPS], void *out[SHA384_LOOPS], uint32_t *tot_len, uint32_t tid) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 a[(64*SHA384_LOOPS)/sizeof(ARCH_WORD_64)];
+	ARCH_WORD_64 _a[(64*SHA384_LOOPS)/sizeof(ARCH_WORD_64) + MEM_ALIGN_SIMD];
+	ARCH_WORD_64 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	union yy { unsigned char u[64]; ARCH_WORD_64 a[64/sizeof(ARCH_WORD_64)]; } y;
 	uint32_t i, j, loops[SHA384_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -2554,7 +2571,8 @@ static void DoSHA384_crypt_sse(void *in, uint32_t ilen[SHA384_LOOPS], void *out[
 }
 
 static void inline DoSHA384_sse_crypt_only(void *in, uint32_t len[SHA384_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 a[(64*SHA384_LOOPS)/sizeof(ARCH_WORD_64)];
+	ARCH_WORD_64 _a[(64*SHA384_LOOPS)/sizeof(ARCH_WORD_64) + MEM_ALIGN_SIMD];
+	ARCH_WORD_64 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[SHA384_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA384_LOOPS; ++i) {
@@ -2897,7 +2915,8 @@ void DynamicFunc__SHA384_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 static const uint32_t SHA512_inc = SHA512_LOOPS;
 
 static void DoSHA512_crypt_f_sse(void *in, uint32_t len[SHA512_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 a[(64*SHA512_LOOPS)/sizeof(ARCH_WORD_64)];
+	ARCH_WORD_64 _a[(64*SHA512_LOOPS)/sizeof(ARCH_WORD_64) + MEM_ALIGN_SIMD];
+	ARCH_WORD_64 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[SHA512_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA512_LOOPS; ++i) {
@@ -2924,7 +2943,8 @@ static void DoSHA512_crypt_f_sse(void *in, uint32_t len[SHA512_LOOPS], void *out
 }
 
 static void DoSHA512_crypt_sse(void *in, uint32_t ilen[SHA512_LOOPS], void *out[SHA512_LOOPS], uint32_t *tot_len, uint32_t tid) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 a[(64*SHA512_LOOPS)/sizeof(ARCH_WORD_64)];
+	ARCH_WORD_64 _a[(64*SHA512_LOOPS)/sizeof(ARCH_WORD_64) + MEM_ALIGN_SIMD];
+	ARCH_WORD_64 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	union yy { unsigned char u[64]; ARCH_WORD_64 a[64/sizeof(ARCH_WORD_64)]; } y;
 	uint32_t i, j, loops[SHA512_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -2950,7 +2970,8 @@ static void DoSHA512_crypt_sse(void *in, uint32_t ilen[SHA512_LOOPS], void *out[
 }
 
 static void inline DoSHA512_sse_crypt_only(void *in, uint32_t len[SHA512_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 a[(64*SHA512_LOOPS)/sizeof(ARCH_WORD_64)];
+	ARCH_WORD_64 _a[(64*SHA512_LOOPS)/sizeof(ARCH_WORD_64) + MEM_ALIGN_SIMD];
+	ARCH_WORD_64 *a = mem_align(_a, MEM_ALIGN_SIMD);
 	uint32_t i, j, loops[SHA512_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < SHA512_LOOPS; ++i) {
