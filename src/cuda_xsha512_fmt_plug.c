@@ -211,7 +211,7 @@ static int binary_hash_5(void *binary)
 
 static int binary_hash_6(void *binary)
 {
-	return *((ARCH_WORD_32 *) binary + 6) & 0x7FFFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & PH_MASK_6;
 }
 
 static int get_hash_0(int index)
@@ -253,7 +253,7 @@ static int get_hash_5(int index)
 static int get_hash_6(int index)
 {
 	cuda_xsha512_cpy_hash(ghash);
-	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0x7FFFFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & PH_MASK_6;
 }
 
 static int salt_hash(void *salt)

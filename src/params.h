@@ -210,6 +210,8 @@
 #define PASSWORD_HASH_SIZE_5		0x1000000
 #define PASSWORD_HASH_SIZE_6		0x8000000
 
+#define PH_MASK_6			(PASSWORD_HASH_SIZE_6 - 1)
+
 /*
  * Password hash table thresholds.  These are the counts of entries required
  * to enable the corresponding bitmap size.  The corresponding hash table size

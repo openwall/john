@@ -367,7 +367,7 @@ static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] &
 static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xffff; }
 static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xfffff; }
 static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xffffff; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0x7ffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & PH_MASK_6; }
 #else
 static int get_hash_0(int index) { return crypt_key[index][0] & 0xf; }
 static int get_hash_1(int index) { return crypt_key[index][0] & 0xff; }
@@ -375,7 +375,7 @@ static int get_hash_2(int index) { return crypt_key[index][0] & 0xfff; }
 static int get_hash_3(int index) { return crypt_key[index][0] & 0xffff; }
 static int get_hash_4(int index) { return crypt_key[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_key[index][0] & 0xffffff; }
-static int get_hash_6(int index) { return crypt_key[index][0] & 0x7ffffff; }
+static int get_hash_6(int index) { return crypt_key[index][0] & PH_MASK_6; }
 #endif
 
 static int salt_hash(void *salt)

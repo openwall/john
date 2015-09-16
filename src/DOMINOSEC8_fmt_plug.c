@@ -748,7 +748,7 @@ static int get_hash_2(int index) { return *(ARCH_WORD_32*)&crypt_out_real[index]
 static int get_hash_3(int index) { return *(ARCH_WORD_32*)&crypt_out_real[index] & 0xFFFF; }
 static int get_hash_4(int index) { return *(ARCH_WORD_32*)&crypt_out_real[index] & 0xFFFFF; }
 static int get_hash_5(int index) { return *(ARCH_WORD_32*)&crypt_out_real[index] & 0xFFFFFF; }
-static int get_hash_6(int index) { return *(ARCH_WORD_32*)&crypt_out_real[index] & 0x7FFFFFF; }
+static int get_hash_6(int index) { return *(ARCH_WORD_32*)&crypt_out_real[index] & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {

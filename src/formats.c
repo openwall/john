@@ -1564,7 +1564,7 @@ int fmt_default_binary_hash_5(void * binary)
 
 int fmt_default_binary_hash_6(void * binary)
 {
-	return *(ARCH_WORD_32 *) binary & 0x7FFFFFF;
+	return *(ARCH_WORD_32 *) binary & PH_MASK_6;
 }
 
 int fmt_default_salt_hash(void *salt)

@@ -367,7 +367,7 @@ static int get_hash_2(int index)       { return crypt_out[index][0] & 0xFFF; }
 static int get_hash_3(int index)       { return crypt_out[index][0] & 0xFFFF; }
 static int get_hash_4(int index)       { return crypt_out[index][0] & 0xFFFFF; }
 static int get_hash_5(int index)       { return crypt_out[index][0] & 0xFFFFFF; }
-static int get_hash_6(int index)       { return crypt_out[index][0] & 0x7FFFFFF; }
+static int get_hash_6(int index)       { return crypt_out[index][0] & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {

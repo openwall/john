@@ -308,7 +308,7 @@ static int get_hash_2(int index) { return saved_key[0] & 0xfff; }
 static int get_hash_3(int index) { return saved_key[0] & 0xffff; }
 static int get_hash_4(int index) { return saved_key[0] & 0xfffff; }
 static int get_hash_5(int index) { return saved_key[0] & 0xffffff; }
-static int get_hash_6(int index) { return saved_key[0] & 0x7ffffff; }
+static int get_hash_6(int index) { return saved_key[0] & PH_MASK_6; }
 
 /* iteration count as 2nd tunable cost */
 static unsigned int skey_iteration_count(void *salt)

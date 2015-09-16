@@ -384,7 +384,7 @@ static int get_hash_2(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) &
 static int get_hash_3(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & 0xffff; }
 static int get_hash_4(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & 0xfffff; }
 static int get_hash_5(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & 0xffffff; }
-static int get_hash_6(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & 0x7ffffff; }
+static int get_hash_6(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {

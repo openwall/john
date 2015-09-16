@@ -359,7 +359,7 @@ static int get_hash_6(int index)
 	unsigned int x,y;
         x = index&(SIMD_COEF_32-1);
         y = (unsigned int)index/SIMD_COEF_32;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & 0x7ffffff;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*5] & PH_MASK_6;
 }
 #else
 static int get_hash_0(int index)
@@ -394,7 +394,7 @@ static int get_hash_5(int index)
 
 static int get_hash_6(int index)
 {
-	return ((ARCH_WORD_32 *)crypt_key)[index] & 0x7FFFFFF;
+	return ((ARCH_WORD_32 *)crypt_key)[index] & PH_MASK_6;
 }
 #endif
 

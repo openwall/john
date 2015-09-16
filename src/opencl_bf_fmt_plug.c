@@ -99,7 +99,7 @@ static int get_hash_5(int index) {
 }
 
 static int get_hash_6(int index) {
-	return opencl_BF_out[index][0] & 0x7FFFFFF ;
+	return opencl_BF_out[index][0] & PH_MASK_6 ;
 }
 
 static int salt_hash(void *salt) {

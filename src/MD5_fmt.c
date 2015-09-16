@@ -241,10 +241,10 @@ static int get_hash_6(int index)
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
-	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & 0x7FFFFFF;
+	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & PH_MASK_6;
 #else
 	init_t();
-	return MD5_out[index][0] & 0x7FFFFFF;
+	return MD5_out[index][0] & PH_MASK_6;
 #endif
 }
 

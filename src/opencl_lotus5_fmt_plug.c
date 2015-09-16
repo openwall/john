@@ -328,13 +328,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static int get_hash1(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xf; }
-static int get_hash2(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xff; }
-static int get_hash3(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xfff; }
-static int get_hash4(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xffff; }
-static int get_hash5(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xfffff; }
-static int get_hash6(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xffffff; }
-static int get_hash7(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0x7ffffff; }
+static int get_hash_0(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xf; }
+static int get_hash_1(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xff; }
+static int get_hash_2(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xfff; }
+static int get_hash_3(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xffff; }
+static int get_hash_4(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_6; }
 
 /* C's version of a class specifier */
 struct fmt_main fmt_opencl_1otus5 = {
@@ -383,13 +383,13 @@ struct fmt_main fmt_opencl_1otus5 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash1,
-			get_hash2,
-			get_hash3,
-			get_hash4,
-			get_hash5,
-			get_hash6,
-			get_hash7
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

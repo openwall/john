@@ -476,7 +476,7 @@ static int get_hash_2(int index) { return *(uint32_t*)output[index].dk & 0xfff; 
 static int get_hash_3(int index) { return *(uint32_t*)output[index].dk & 0xffff; }
 static int get_hash_4(int index) { return *(uint32_t*)output[index].dk & 0xfffff; }
 static int get_hash_5(int index) { return *(uint32_t*)output[index].dk & 0xffffff; }
-static int get_hash_6(int index) { return *(uint32_t*)output[index].dk & 0x7ffffff; }
+static int get_hash_6(int index) { return *(uint32_t*)output[index].dk & PH_MASK_6; }
 
 static int cmp_all(void *binary, int count)
 {

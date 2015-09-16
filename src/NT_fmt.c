@@ -405,7 +405,7 @@ static int binary_hash_5(void *binary)
 
 static int binary_hash_6(void *binary)
 {
-	return ((unsigned int *)binary)[1] & 0x07FFFFFF;
+	return ((unsigned int *)binary)[1] & PH_MASK_6;
 }
 
 static int get_hash_0(int index)
@@ -495,14 +495,14 @@ static int get_hash_5(int index)
 static int get_hash_6(int index)
 {
 #if defined(NT_X86_64)
-	return output8x[32*(index>>3)+8+index%8] & 0x07FFFFFF;
+	return output8x[32*(index>>3)+8+index%8] & PH_MASK_6;
 #elif defined(NT_SSE2)
 	if(index<NT_NUM_KEYS4)
-		return output4x[16*(index>>2)+4+index%4] & 0x07FFFFFF;
+		return output4x[16*(index>>2)+4+index%4] & PH_MASK_6;
 	else
-		return output1x[(index-NT_NUM_KEYS4)*4+1] & 0x07FFFFFF;
+		return output1x[(index-NT_NUM_KEYS4)*4+1] & PH_MASK_6;
 #else
-	return output1x[(index<<2)+1] & 0x07FFFFFF;
+	return output1x[(index<<2)+1] & PH_MASK_6;
 #endif
 }
 

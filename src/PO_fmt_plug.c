@@ -117,7 +117,7 @@ static int get_hash_5(int index)
 
 static int get_hash_6(int index)
 {
-	return MD5_out[0] & 0x7FFFFFF;
+	return MD5_out[0] & PH_MASK_6;
 }
 
 static int salt_hash(void *salt)

@@ -731,7 +731,7 @@ static int sha1_fmt_get_hash2(int index) { return sha1_fmt_get_hash(index) & 0x0
 static int sha1_fmt_get_hash3(int index) { return sha1_fmt_get_hash(index) & 0x0000FFFF; }
 static int sha1_fmt_get_hash4(int index) { return sha1_fmt_get_hash(index) & 0x000FFFFF; }
 static int sha1_fmt_get_hash5(int index) { return sha1_fmt_get_hash(index) & 0x00FFFFFF; }
-static int sha1_fmt_get_hash6(int index) { return sha1_fmt_get_hash(index) & 0x07FFFFFF; }
+static int sha1_fmt_get_hash6(int index) { return sha1_fmt_get_hash(index) & PH_MASK_6; }
 
 static inline int sha1_fmt_get_binary(void *binary)
 {
@@ -744,7 +744,7 @@ static int sha1_fmt_binary2(void *binary) { return sha1_fmt_get_binary(binary) &
 static int sha1_fmt_binary3(void *binary) { return sha1_fmt_get_binary(binary) & 0x0000FFFF; }
 static int sha1_fmt_binary4(void *binary) { return sha1_fmt_get_binary(binary) & 0x000FFFFF; }
 static int sha1_fmt_binary5(void *binary) { return sha1_fmt_get_binary(binary) & 0x00FFFFFF; }
-static int sha1_fmt_binary6(void *binary) { return sha1_fmt_get_binary(binary) & 0x07FFFFFF; }
+static int sha1_fmt_binary6(void *binary) { return sha1_fmt_get_binary(binary) & PH_MASK_6; }
 
 static int sha1_fmt_cmp_one(void *binary, int index)
 {

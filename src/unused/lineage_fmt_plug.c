@@ -201,7 +201,7 @@ make_get_hash(2, 0xfff)
 make_get_hash(3, 0xffff)
 make_get_hash(4, 0xfffff)
 make_get_hash(5, 0xffffff)
-make_get_hash(6, 0x7ffffff)
+make_get_hash(6, PH_MASK_6)
 
 static void set_key(char *key, int index)
 {

@@ -418,7 +418,7 @@ static int binary_hash_2(void *binary) { return ((unsigned int*)binary)[3] & 0x0
 static int binary_hash_3(void *binary) { return ((unsigned int*)binary)[3] & 0x0FFFF; }
 static int binary_hash_4(void *binary) { return ((unsigned int*)binary)[3] & 0x0FFFFF; }
 static int binary_hash_5(void *binary) { return ((unsigned int*)binary)[3] & 0x0FFFFFF; }
-static int binary_hash_6(void *binary) { return ((unsigned int*)binary)[3] & 0x07FFFFFF; }
+static int binary_hash_6(void *binary) { return ((unsigned int*)binary)[3] & PH_MASK_6; }
 
 static int get_hash_0(int index) { return output1x[4*index+3] & 0x0F; }
 static int get_hash_1(int index) { return output1x[4*index+3] & 0xFF; }
@@ -426,7 +426,7 @@ static int get_hash_2(int index) { return output1x[4*index+3] & 0x0FFF; }
 static int get_hash_3(int index) { return output1x[4*index+3] & 0x0FFFF; }
 static int get_hash_4(int index) { return output1x[4*index+3] & 0x0FFFFF; }
 static int get_hash_5(int index) { return output1x[4*index+3] & 0x0FFFFFF; }
-static int get_hash_6(int index) { return output1x[4*index+3] & 0x07FFFFFF; }
+static int get_hash_6(int index) { return output1x[4*index+3] & PH_MASK_6; }
 
 static void nt_hash(int count)
 {

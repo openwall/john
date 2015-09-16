@@ -412,7 +412,7 @@ static int get_hash_2(int index) { return digest[index] & 0xfff; }
 static int get_hash_3(int index) { return digest[index] & 0xffff; }
 static int get_hash_4(int index) { return digest[index] & 0xfffff; }
 static int get_hash_5(int index) { return digest[index] & 0xffffff; }
-static int get_hash_6(int index) { return digest[index] & 0x7ffffff; }
+static int get_hash_6(int index) { return digest[index] & PH_MASK_6; }
 
 struct fmt_main fmt_opencl_rakp = {
 	{

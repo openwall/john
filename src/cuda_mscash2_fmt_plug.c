@@ -229,7 +229,7 @@ static int get_hash_5(int index)
 
 static int get_hash_6(int index)
 {
-	return outbuffer[index].v[0] & 0x7ffffff;
+	return outbuffer[index].v[0] & PH_MASK_6;
 }
 
 static int cmp_all(void *binary, int count)

@@ -458,7 +458,7 @@ static int binary_hash_2(void *binary) { return ((unsigned int *)binary)[0] & 0x
 static int binary_hash_3(void *binary) { return ((unsigned int *)binary)[0] & 0xFFFF; }
 static int binary_hash_4(void *binary) { return ((unsigned int *)binary)[0] & 0xFFFFF; }
 static int binary_hash_5(void *binary) { return ((unsigned int *)binary)[0] & 0xFFFFFF; }
-static int binary_hash_6(void *binary) { return ((unsigned int *)binary)[0] & 0x7FFFFFF; }
+static int binary_hash_6(void *binary) { return ((unsigned int *)binary)[0] & PH_MASK_6; }
 
 static int get_hash_0(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & 0xf; }
 static int get_hash_1(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & 0xff; }
@@ -466,7 +466,7 @@ static int get_hash_2(int index) { return hash_table_128[hash_ids[3 + 3 * index]
 static int get_hash_3(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & 0xffff; }
 static int get_hash_4(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & 0xfffff; }
 static int get_hash_5(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & 0xffffff; }
-static int get_hash_6(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & 0x7ffffff; }
+static int get_hash_6(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_6; }
 
 static void clear_keys(void)
 {

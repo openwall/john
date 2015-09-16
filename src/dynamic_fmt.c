@@ -1936,14 +1936,14 @@ static int get_hash_6(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0x7ffffff;
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_6;
 	}
 #endif
 #if MD5_X2
 	if (index & 1)
-		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & 0x7ffffff;
+		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & PH_MASK_6;
 #endif
-	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0x7ffffff;
+	return crypt_key_X86[index>>MD5_X2].x1.w[0] & PH_MASK_6;
 }
 
 
