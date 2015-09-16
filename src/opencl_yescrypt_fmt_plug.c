@@ -395,7 +395,7 @@ static void reset_()
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL,
-	    warn, 4, self, create_clobj, release_clobj, need/4, 0);
+	    warn, 4, self, create_clobj, release_clobj, need, 0);
 
 
 	//Auto tune execution from shared/included code.
