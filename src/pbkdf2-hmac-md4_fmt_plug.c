@@ -123,14 +123,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	len = strlen(ptr); // salt hex length
 	if (len > 2 * MAX_SALT_SIZE || len & 1)
 		goto error;
-	if (!ishex(ptr))
+	if (!ishexlc(ptr))
 		goto error;
 	if (!(ptr = strtokm(NULL, delim)))
 		goto error;
 	len = strlen(ptr); // binary hex length
 	if (len < BINARY_SIZE || len > MAX_BINARY_SIZE || len & 1)
 		goto error;
-	if (!ishex(ptr))
+	if (!ishexlc(ptr))
 		goto error;
 	MEM_FREE(keeptr);
 	return 1;
