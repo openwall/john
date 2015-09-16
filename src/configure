@@ -15012,7 +15012,7 @@ if test ! -f fmt_externs.h; then
 fi
 echo "configure: creating ./fmt_registers.h"
 rm -f fmt_registers.h
-if test "`echo *_plug.c`" != "*_plug.c"; then
+if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
 fi
 # if the file was not created, then bail.
