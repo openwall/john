@@ -27,7 +27,8 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <immintrin.h>
+#include <x86intrin.h>
+//#include <x86intrin.h>
 
 #include "blake2b-round.h"
 #include "Sponge_sse.h"
@@ -43,8 +44,8 @@ static inline void spongeLyra(__m128i *v){
     int i;
 
 #if defined(__SSSE3__) && !defined(__XOP__)
-  const __m128i r16 = _mm_setr_epi8( 2, 3, 4, 5, 6, 7, 0, 1, 10, 11, 12, 13, 14, 15, 8, 9 );
-  const __m128i r24 = _mm_setr_epi8( 3, 4, 5, 6, 7, 0, 1, 2, 11, 12, 13, 14, 15, 8, 9, 10 );
+    const __m128i r16 = _mm_setr_epi8( 2, 3, 4, 5, 6, 7, 0, 1, 10, 11, 12, 13, 14, 15, 8, 9 );
+    const __m128i r24 = _mm_setr_epi8( 3, 4, 5, 6, 7, 0, 1, 2, 11, 12, 13, 14, 15, 8, 9, 10 );
 #endif
 
 #if (SPONGE == 0)

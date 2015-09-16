@@ -90,8 +90,6 @@ static void ComputeBlock_pgg(ulong2 *state, __global ulong2 *ref_block_ptr, __gl
 	uchar i;
 
 	ulong2 t0,t1;
-	uchar16 r16 = (uchar16) (2, 3, 4, 5, 6, 7, 0, 1, 10, 11, 12, 13, 14, 15, 8, 9);
-	uchar16 r24 = (uchar16) (3, 4, 5, 6, 7, 0, 1, 2, 11, 12, 13, 14, 15, 8, 9, 10);
 
 	for (i = 0; i < 64; i++)
 	{

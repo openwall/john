@@ -23,8 +23,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#ifdef _OPENMP
 #include <omp.h>
-#include <pthread.h>
+#endif
 
 #include "Lyra2.h"
 #include "Sponge.h"

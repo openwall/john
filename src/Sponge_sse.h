@@ -30,7 +30,7 @@
 #define SPONGE_SSE_H_
 
 #include <stdint.h>
-#include <emmintrin.h>
+#include <x86intrin.h>
 
 #if defined(__GNUC__)
 #define ALIGN __attribute__ ((aligned(32)))

@@ -98,8 +98,10 @@ static void ComputeBlock(__m128i *state, uint8_t* ref_block_ptr, uint8_t* next_b
 	uint8_t i;
 
 	__m128i t0, t1;
-	__m128i r16 = _mm_setr_epi8(2, 3, 4, 5, 6, 7, 0, 1, 10, 11, 12, 13, 14, 15, 8, 9);
-	__m128i r24 = _mm_setr_epi8(3, 4, 5, 6, 7, 0, 1, 2, 11, 12, 13, 14, 15, 8, 9, 10);
+#if defined(__SSSE3__) && !defined(__XOP__)
+	const __m128i r16 = _mm_setr_epi8( 2, 3, 4, 5, 6, 7, 0, 1, 10, 11, 12, 13, 14, 15, 8, 9 );
+	const __m128i r24 = _mm_setr_epi8( 3, 4, 5, 6, 7, 0, 1, 2, 11, 12, 13, 14, 15, 8, 9, 10 );
+#endif
 
 	for (i = 0; i < 64; i++)
 	{
