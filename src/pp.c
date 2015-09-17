@@ -1232,36 +1232,36 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     error();
   }
 
-	if (pw_min > pw_max) {
-		log_event("! MinLen = %d exceeds MaxLen = %d",
+  if (pw_min > pw_max) {
+    log_event("! MinLen = %d exceeds MaxLen = %d",
               pw_min, pw_max);
-		if (john_main_process)
-			fprintf(stderr, "MinLen = %d exceeds MaxLen = %d\n",
+    if (john_main_process)
+      fprintf(stderr, "MinLen = %d exceeds MaxLen = %d\n",
               pw_min, pw_max);
-		error();
-	}
+    error();
+  }
 
-	if (pw_min > our_fmt_len) {
-		log_event("! MinLen = %d is too large for this hash type",
+  if (pw_min > our_fmt_len) {
+    log_event("! MinLen = %d is too large for this hash type",
               pw_min);
-		if (john_main_process)
-			fprintf(stderr,
+    if (john_main_process)
+      fprintf(stderr,
               "MinLen = %d exceeds the maximum possible "
               "length for the current hash type (%d)\n",
               pw_min, db->format->params.plaintext_length);
-		error();
-	}
+    error();
+  }
 
-	if (pw_max > our_fmt_len) {
-		log_event("! MaxLen = %d is too large for this hash type",
+  if (pw_max > our_fmt_len) {
+    log_event("! MaxLen = %d is too large for this hash type",
               pw_max);
-		if (john_main_process)
-			fprintf(stderr, "Warning: MaxLen = %d is too large "
+    if (john_main_process)
+      fprintf(stderr, "Warning: MaxLen = %d is too large "
               "for the current hash type, reduced to %d\n",
               pw_max,
               our_fmt_len);
-		pw_max = our_fmt_len;
-	}
+    pw_max = our_fmt_len;
+  }
 
   wl_max = prince_wl_max; /* JtR defaults to 0 as in unlimited */
 
