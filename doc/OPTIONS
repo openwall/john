@@ -336,11 +336,11 @@ separate invocations of John, one per hash type.
 One of the significant performance improvements for some builds of
 john, is preloading the wordlist file into memory, instead of reading
 line by line. This is especially true when running with a large list of
---rules. The default max size file is 5000000 bytes. Using this option
+--rules. The default max size file is one gigabyte. Using this option
 allows making this larger.  A special value is --mem-file-size=0. This
 will force loading to memory regardless of file size (take care not to
 exceed your physical memory limits, or things will just run much slower).
-NOTE if --save-memory is used, preload will be disabled.
+NOTE if --save-memory > 2, default preload will be disabled.
 
 --field-separator-char=c	Use 'c' instead of the char ':'
 

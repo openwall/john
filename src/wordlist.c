@@ -137,8 +137,8 @@ static MAYBE_INLINE char *mgetl(char *res)
 {
 	char *pos = res;
 
-#if defined(SIMD_COEF_32) && !defined(_MSC_VER) && !VLOADU_EMULATED &&  \
-	!((__AVX512F__ && !__AVX512BW__) || __MIC__)
+#if defined(vcmpeq_epi8_mask) && !defined(_MSC_VER) && \
+	!VLOADU_EMULATED && !VSTOREU_EMULATED
 
 	/* 16/32/64 chars at a time with known remainder. */
 	const vtype vnl = vset1_epi8('\n');
@@ -555,14 +555,13 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 	/* If we did not give a name for loopback mode,
 	   we use the active pot file */
-	if (loopBack) {
-		dupeCheck = 1;
-		if (!name)
-			name = options.wordlist = pers_opts.activepot;
-	}
+	if (loopBack && !name)
+		name = options.wordlist = pers_opts.activepot;
 
-	if (!mem_saving_level &&
-	    (dupeCheck || !options.max_wordfile_memory))
+	/* These will ignore --save-memory */
+	if (loopBack || dupeCheck ||
+	    (!options.max_wordfile_memory &&
+	     (options.flags & FLG_RULES)))
 		forceLoad = 1;
 
 	/* If we did not give a name for wordlist mode,
@@ -630,17 +629,15 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			(options.node_max - options.node_min + 1)
 			: file_len;
 
-		if (ourshare < options.max_wordfile_memory)
+		if (ourshare < options.max_wordfile_memory &&
+		    mem_saving_level < 2 &&
+		    (options.flags & FLG_RULES))
 			forceLoad = 1;
 
 		/* If it's worth it we make a ready-to-use buffer with the
 		   (possibly converted) contents ready to use as an array.
 		   Disabled for external filter - it would trash the buffer. */
-		if (!(options.flags & FLG_EXTERNAL_CHK) && !mem_saving_level)
-		if (dupeCheck || options.flags & FLG_RULES)
-		if (forceLoad || (options.node_count > 1 &&
-		     file_len > options.node_count * (length * 100) &&
-		     ourshare < options.max_wordfile_memory)) {
+		if (!(options.flags & FLG_EXTERNAL_CHK) && forceLoad) {
 			char *aep;
 
 			// Load only this node's share of words to memory
