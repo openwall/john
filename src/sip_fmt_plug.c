@@ -183,7 +183,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp("MD5*", p, 4))
 		goto err;
 	p = q + 1;
-	if (strspn(p, "0123456789abcdef") != MD5_LEN_HEX) /* hash */
+	if (strspn(p, HEXCHARS_lc) != MD5_LEN_HEX) /* hash */
 		goto err;
 	return 1;
 err:

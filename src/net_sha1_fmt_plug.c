@@ -58,7 +58,6 @@ john_register_one(&fmt_netsha1);
 #define SALT_ALIGN              MEM_ALIGN_WORD
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-#define HEXCHARS                "0123456789abcdef"
 #define MAX_SALT_LEN			1024
 
 static struct fmt_tests tests[] = {
@@ -120,13 +119,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((q - p - 1) > MAX_SALT_LEN * 2)
 		return 0;
 
-	len = strspn(q, HEXCHARS);
+	len = strspn(q, HEXCHARS_lc);
 	if (len != BINARY_SIZE * 2 || len != strlen(q)) {
 		get_ptr();
 		return pDynamicFmt->methods.valid(ciphertext, pDynamicFmt);
 	}
 
-	if (strspn(p, HEXCHARS) != q - p - 1)
+	if (strspn(p, HEXCHARS_lc) != q - p - 1)
 		return 0;
 
 	return 1;

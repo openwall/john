@@ -54,7 +54,6 @@ john_register_one(&fmt_tcpmd5);
 #define SALT_ALIGN              sizeof(int)
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-#define HEXCHARS                "0123456789abcdef"
 #define MAX_SALT                1024
 
 static struct fmt_tests tests[] = {
@@ -114,11 +113,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((q - p - 1) > MAX_SALT * 2)
 		return 0;
 
-	len = strspn(q, HEXCHARS);
+	len = strspn(q, HEXCHARS_lc);
 	if (len != BINARY_SIZE * 2 || len != strlen(q))
 		return 0;
 
-	if (strspn(p, HEXCHARS) != q - p - 1)
+	if (strspn(p, HEXCHARS_lc) != q - p - 1)
 		return 0;
 
 	return 1;

@@ -232,7 +232,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) < 64)
 		goto err;
-	if (strspn(p, "0123456789abcdef") != 64)
+	if (strspn(p, HEXCHARS_lc) != 64)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
 		goto err;
@@ -244,7 +244,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != 64)
 		goto err;
-	if (strspn(p, "0123456789abcdef") != 64)
+	if (strspn(p, HEXCHARS_lc) != 64)
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;
