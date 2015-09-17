@@ -4,6 +4,7 @@
  * data, it just CRC's it. Support for older RAR versions was stripped.
  * Autoconf stuff was removed.
  *
+ *  Copyright (C) 2015 Cisco Systems, Inc. and/or its affiliates. All rights reserved.
  *  Copyright (C) 2007 Sourcefire, Inc.
  *
  *  The unRAR sources may be used in any software to handle RAR

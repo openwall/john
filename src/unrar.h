@@ -190,7 +190,7 @@ typedef struct unpack_data_tag
 	rar_filter_array_t Filters;
 	rar_filter_array_t PrgStack;
 	int *old_filter_lengths;
-	int last_filter, old_filter_lengths_size;
+	unsigned int last_filter, old_filter_lengths_size;
 	long long written_size;
 	long long true_size;
 	long long max_size;

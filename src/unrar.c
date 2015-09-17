@@ -48,7 +48,7 @@
 #ifdef RAR_HIGH_DEBUG
 #define rar_dbgmsg printf
 #else
-//static void rar_dbgmsg(const char* fmt,...){}
+//static void rar_dbgmsg(const char* fmt,...){(void)fmt;}
 #endif
 
 static void insert_old_dist(unpack_data_t *unpack_data, unsigned int distance)
@@ -98,13 +98,13 @@ unsigned int rar_getbits(unpack_data_t *unpack_data)
 	unsigned int bit_field;
 
 	//rar_dbgmsg("rar_getbits: in_addr=%d in_bit=%d read_top=%d\n", unpack_data->in_addr, unpack_data->in_bit, unpack_data->read_top);
-	if (unpack_data->in_addr + 2 > unpack_data->read_top) {
-		//printf("%s() out of data: offset %u with %u in buffer\n", __FUNCTION__, unpack_data->in_addr + 2, unpack_data->read_top);
-		return 0;
-	}
 	bit_field = (unsigned int) unpack_data->in_buf[unpack_data->in_addr] << 16;
-	bit_field |= (unsigned int) unpack_data->in_buf[unpack_data->in_addr+1] << 8;
-	bit_field |= (unsigned int) unpack_data->in_buf[unpack_data->in_addr+2];
+	if (unpack_data->in_addr + 1 <= unpack_data->read_top) {
+		bit_field |= (unsigned int) unpack_data->in_buf[unpack_data->in_addr+1] << 8;
+		if (unpack_data->in_addr + 2 <= unpack_data->read_top) {
+			bit_field |= (unsigned int) unpack_data->in_buf[unpack_data->in_addr+2];
+		}
+	}
 	bit_field >>= (8-unpack_data->in_bit);
 	//rar_dbgmsg("rar_getbits return(0x%04x)\n", bit_field & 0xffff);
 	return(bit_field & 0xffff);
@@ -127,13 +127,14 @@ int rar_unp_read_buf(const unsigned char **fd, unpack_data_t *unpack_data)
 			memmove(unpack_data->in_buf, unpack_data->in_buf+unpack_data->in_addr,
 					data_size);
 		}
+
 		unpack_data->in_addr = 0;
 		unpack_data->read_top = data_size;
 	} else {
 		data_size = unpack_data->read_top;
 	}
 	/* RAR2 depends on us only reading upto the end of the current compressed file */
-	if (unpack_data->pack_size < ((MAX_BUF_SIZE-data_size)&~0xf)) {
+	if (unpack_data->pack_size < (uint32_t)((MAX_BUF_SIZE-data_size)&~0xf)) {
 		read_size = unpack_data->pack_size;
 	} else {
 		read_size = (MAX_BUF_SIZE-data_size)&~0xf;
@@ -232,7 +233,7 @@ static void unp_write_buf(unpack_data_t *unpack_data)
 	struct UnpackFilter *flt, *next_filter;
 	struct rarvm_prepared_program *prg, *next_prg;
 	unsigned char *filtered_data;
-	int i, j;
+	size_t i, j;
 
 	//rar_dbgmsg("in unp_write_buf\n");
 	written_border = unpack_data->wr_ptr;
@@ -329,7 +330,6 @@ void rar_make_decode_tables(unsigned char *len_tab, struct Decode *decode, int s
 	memset(decode->DecodeNum,0,size*sizeof(*decode->DecodeNum));
 	// Calculate how many entries for every bit length in LengthTable we have.
 	memset(len_count, 0, sizeof(len_count));
-	memset(decode->DecodeNum,0,size*sizeof(*decode->DecodeNum));
 	for (i=0 ; i < size ; i++) {
 		len_count[len_tab[i] & 0x0f]++;
 	}
@@ -455,8 +455,9 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 	unsigned char bit_length[BC];
 	unsigned char table[HUFF_TABLE_SIZE];
 	unsigned int bit_field;
-	int i, length, zero_count, number, n;
-	const int table_size=HUFF_TABLE_SIZE;
+	int length, zero_count, number, n;
+	size_t i;
+	const size_t table_size=HUFF_TABLE_SIZE;
 
 	//rar_dbgmsg("in read_tables fd=%p in_addr=%d read_top=%d\n", *fd, unpack_data->in_addr, unpack_data->read_top);
 	if (unpack_data->in_addr > unpack_data->read_top-25) {
@@ -536,11 +537,8 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 				rar_addbits(unpack_data, 7);
 			}
 			while (n-- > 0 && i < table_size) {
-				if (!i) {
-					// rar_dbgmsg("ERROR: read_tables invalid table index\n");
-					return 0;
-				}
-				table[i] = table[i-1];
+				if (i>0)
+					table[i] = table[i-1];
 				i++;
 			}
 		} else {
@@ -608,9 +606,11 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 			unsigned char *vmcode, int code_size)
 {
 	rarvm_input_t rarvm_input;
-	unsigned int filter_pos, new_filter, block_start, init_mask, cur_size;
-	struct UnpackFilter *filter, *stack_filter;
-	int i, empty_count, stack_pos, vm_codesize, static_size, data_size;
+	unsigned int filter_pos, new_filter, block_start, init_mask, cur_size, data_size;
+ 	struct UnpackFilter *filter, *stack_filter;
+	size_t i, empty_count, stack_pos;
+	unsigned int vm_codesize;
+	long static_size;
 	unsigned char *vm_code, *global_data;
 
 	//rar_dbgmsg("in add_vm_code first_byte=0x%x code_size=%d\n", first_byte, code_size);
@@ -630,7 +630,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 		filter_pos = unpack_data->last_filter;
 	}
 	//rar_dbgmsg("filter_pos = %u\n", filter_pos);
-	if (filter_pos > unpack_data->Filters.num_items ||
+	if ((size_t) filter_pos > unpack_data->Filters.num_items ||
 			filter_pos > unpack_data->old_filter_lengths_size) {
 		//rar_dbgmsg("filter_pos check failed\n");
 		return 0;
@@ -734,7 +734,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 	}
 	if (new_filter) {
 		vm_codesize = rarvm_read_data(&rarvm_input);
-		if (vm_codesize >= 0x1000 || vm_codesize == 0 || (vm_codesize > rarvm_input.buf_size) || vm_codesize < 0) {
+		if (vm_codesize >= 0x1000 || vm_codesize == 0 || vm_codesize > (unsigned int)rarvm_input.buf_size) {
 			//rar_dbgmsg("ERROR: vm_codesize=0x%x buf_size=0x%x\n", vm_codesize, rarvm_input.buf_size);
 			return 0;
 		}
@@ -743,11 +743,11 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 		    //rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for vm_code\n");
 		    return 0;
 		}
-		for (i=0 ; i < vm_codesize ; i++) {
+		for (i=0 ; i < (size_t) vm_codesize ; i++) {
 			vm_code[i] = rarvm_getbits(&rarvm_input) >> 8;
 			rarvm_addbits(&rarvm_input, 8);
 		}
-		if (!rarvm_prepare(&unpack_data->rarvm_data, &rarvm_input, &vm_code[0], vm_codesize, &filter->prg)) {
+		if (!rarvm_prepare(&unpack_data->rarvm_data, &rarvm_input, &vm_code[0], (int) vm_codesize, &filter->prg)) {
 		    //rar_dbgmsg("unrar: add_vm_code: rarvm_prepare failed\n");
 		    MEM_FREE(vm_code);
 		    return 0;
@@ -796,10 +796,10 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 		if (data_size >= 0x10000) {
 			return 0;
 		}
-		cur_size = stack_filter->prg.global_size;
-		if (cur_size < data_size+VM_FIXEDGLOBALSIZE) {
-			stack_filter->prg.global_size += data_size+VM_FIXEDGLOBALSIZE-cur_size;
-			stack_filter->prg.global_data = rar_realloc2(stack_filter->prg.global_data,
+		cur_size = (unsigned int)stack_filter->prg.global_size;
+		if (cur_size < data_size + VM_FIXEDGLOBALSIZE) {
+			stack_filter->prg.global_size += (long)data_size + VM_FIXEDGLOBALSIZE - cur_size;
+			stack_filter->prg.global_data = (unsigned char*)rar_realloc2(stack_filter->prg.global_data,
 				stack_filter->prg.global_size);
 			if (!stack_filter->prg.global_data) {
 			    //rar_dbgmsg("unrar: add_vm_code: rar_realloc2 failed for stack_filter->prg.global_data\n");
@@ -807,8 +807,8 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 			}
 		}
 		global_data = &stack_filter->prg.global_data[VM_FIXEDGLOBALSIZE];
-		for (i=0 ; i< data_size ; i++) {
-			if ((rarvm_input.in_addr+2) > rarvm_input.buf_size) {
+		for (i=0 ; i < (size_t)data_size ; i++) {
+			if (rarvm_input.in_addr + 2 > rarvm_input.buf_size) {
 				//rar_dbgmsg("Buffer truncated\n");
 				return 0;
 			}
