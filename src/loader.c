@@ -815,18 +815,15 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 
 	words = NULL;
 
-	if (db->options->flags & DB_WORDS) {
-		pw_size = sizeof(struct db_password);
-		salt_size = sizeof(struct db_salt);
-	} else {
+	pw_size = sizeof(struct db_password);
+	salt_size = sizeof(struct db_salt);
+	if (!(db->options->flags & DB_WORDS)) {
 		if (db->options->flags & DB_LOGIN)
-			pw_size = sizeof(struct db_password) -
-				sizeof(struct list_main *);
+			pw_size -= sizeof(struct list_main *);
 		else
-			pw_size = sizeof(struct db_password) -
-				(sizeof(char *) + sizeof(struct list_main *));
-		salt_size = sizeof(struct db_salt) -
-			sizeof(struct db_keys *);
+			pw_size -= sizeof(struct list_main *) +
+			    sizeof(char *) * 2;
+		salt_size -= sizeof(struct db_keys *);
 	}
 
 	if (!db->password_hash) {
