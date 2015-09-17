@@ -316,9 +316,9 @@ static void john_register_one(struct fmt_main *format)
 	if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
 	                 format->params.label, 0)) {
 #ifdef DEBUG
-		if (format->params.flags & FMT_DYNAMIC)
+		if (format->params.flags & FMT_DYNAMIC) {
 			// in debug mode, we 'allow' dyna
-		else
+		} else
 #else
 		if (options.format &&
 		    !strcasecmp(options.format, "dynamic-all") &&
