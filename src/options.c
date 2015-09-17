@@ -208,11 +208,11 @@ static struct opt_entry opt_list[] = {
 	{"list", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.listconf},
 	{"mem-file-size", FLG_ZERO, 0,
-		FLG_WORDLIST_CHK, (FLG_DUPESUPP | FLG_SAVEMEM |
-		FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM),
+		FLG_WORDLIST_CHK, (FLG_DUPESUPP | FLG_STDIN_CHK |
+		FLG_PIPE_CHK | OPT_REQ_PARAM),
 		Zu, &options.max_wordfile_memory},
 	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, 0,
-		FLG_SAVEMEM | FLG_STDIN_CHK | FLG_PIPE_CHK},
+		FLG_STDIN_CHK | FLG_PIPE_CHK},
 	{"fix-state-delay", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
 		"%u", &options.max_fix_state_delay},
 	{"field-separator-char", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
