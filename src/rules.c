@@ -1539,18 +1539,46 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 
 		case '$':
 			VALUE(in[length++])
+			if (NEXT == '$') {
+				(void)RULE;
+				VALUE(in[length++])
+				if (NEXT == '$') {
+					(void)RULE;
+					VALUE(in[length++])
+				}
+			}
 			in[length] = 0;
 			break;
 
 		case '^':
 			{
-				char *out;
+				char *out, a, b;
 				GET_OUT
+				VALUE(a)
+				if (NEXT != '^') {
+					out[0] = a;
+					memcpy(&out[1], in, ++length);
+					in = out;
+					break;
+				}
+				(void)RULE;
+				VALUE(b)
+				if (NEXT != '^') {
+					out[0] = b;
+					out[1] = a;
+					memcpy(&out[2], in, length + 1);
+					length += 2;
+					in = out;
+					break;
+				}
+				(void)RULE;
 				VALUE(out[0])
-				strcpy(&out[1], in);
+				out[1] = b;
+				out[2] = a;
+				memcpy(&out[3], in, length + 1);
+				length += 3;
 				in = out;
 			}
-			length++;
 			break;
 
 		case 'x':
@@ -1641,20 +1669,34 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 
 /* Crack 5.0 rules */
 		case '[':
-			if (length) {
-				char *out;
-				GET_OUT
-				strcpy(out, &in[1]);
-				length--;
-				in = out;
-				break;
+			{
+				int count = 1;
+				while (NEXT == '[') {
+					(void)RULE;
+					count++;
+				}
+				if ((length -= count) > 0) {
+					char *out;
+					GET_OUT
+					memcpy(out, &in[count], length + 1);
+					in = out;
+					break;
+				}
+				in[length = 0] = 0;
 			}
-			in[0] = 0;
 			break;
 
 		case ']':
-			if (length)
-				in[--length] = 0;
+			{
+				int count = 1;
+				while (NEXT == ']') {
+					(void)RULE;
+					count++;
+				}
+				if ((length -= count) < 0)
+					length = 0;
+				in[length] = 0;
+			}
 			break;
 
 		case 'C':
@@ -1769,12 +1811,9 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 				int pos;
 				POSITION(pos)
 				if (pos < length) {
-					char *out;
-					GET_OUT
-					memcpy(out, in, pos);
-					strcpy(&out[pos], &in[pos + 1]);
+					memmove(&in[pos], &in[pos + 1],
+					    length - pos);
 					length--;
-					in = out;
 				}
 			}
 			break;
@@ -1782,10 +1821,19 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 		case '{':
 			if (length) {
 				char *out;
+				int count = 1;
+				while (NEXT == '{') {
+					(void)RULE;
+					count++;
+				}
+				while (count >= length)
+					count -= length;
+				if (!count)
+					break;
 				GET_OUT
-				strcpy(out, &in[1]);
-				in[1] = 0;
-				strcat(out, in);
+				memcpy(out, &in[count], length - count);
+				memcpy(&out[length - count], in, count);
+				out[length] = 0;
 				in = out;
 				break;
 			}
@@ -1796,10 +1844,19 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			if (length) {
 				char *out;
 				int pos;
+				int count = 1;
+				while (NEXT == '}') {
+					(void)RULE;
+					count++;
+				}
+				while (count >= length)
+					count -= length;
+				if (!count)
+					break;
 				GET_OUT
-				out[0] = in[pos = length - 1];
-				in[pos] = 0;
-				strcpy(&out[1], in);
+				memcpy(out, &in[pos = length - count], count);
+				memcpy(&out[count], in, pos);
+				out[length] = 0;
 				in = out;
 				break;
 			}
