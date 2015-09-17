@@ -50,6 +50,7 @@ typedef uint64x2_t vtype64;
 #define vcmov(x, y, z)          vbslq_u32(z, x, y)
 #define vload(m)                vld1q_u32((uint32_t*)(m))
 #define vloadu                  vloadu_emu
+#define VLOADU_EMULATED         1
 #define vor                     vorrq_u32
 #define vorn                    vornq_u32
 #define vroti_epi32(x, i)       (i > 0 ? vsliq_n_u32(vshrq_n_u32(x, 32-(i)), x, i) : \
@@ -68,6 +69,7 @@ typedef uint64x2_t vtype64;
 #define vsrli_epi64(x, i)       (vtype)vshrq_n_u64((vtype64)(x), i)
 #define vstore(m, x)            vst1q_u32((uint32_t*)(m), x)
 #define vstoreu                 vstoreu_emu
+#define VSTOREU_EMULATED        1
 #define vunpackhi_epi32(x, y)   (vzipq_u32(x, y)).val[1]
 #define vunpackhi_epi64(x, y)   vset_epi64(vgetq_lane_u64((vtype64)(y), 1), vgetq_lane_u64((vtype64)(x), 1))
 #define vunpacklo_epi32(x, y)   (vzipq_u32(x, y)).val[0]
@@ -107,6 +109,7 @@ typedef union {
 #define vcmov(x, y, z)          (vtype)vec_sel((y).v32, (x).v32, (z).v32)
 #define vload(m)                (vtype)(vtype32)vec_ld(0, (uint32_t*)(m))
 #define vloadu                  vloadu_emu
+#define VLOADU_EMULATED         1
 #define vor(x, y)               (vtype)vec_or((x).v32, (y).v32)
 #define vroti_epi32(x, i)       (vtype)vec_rl((x).v32, (vset1_epi32(i)).v32)
 #define vroti_epi64(x, i)       (vtype)vec_rl((x).v64, (vset1_epi64(i)).v64)
@@ -122,6 +125,7 @@ typedef union {
 #define vsrli_epi64(x, i)       (vtype)vec_sr((x).v64, (vset1_epi64(i)).v64)
 #define vstore(m, x)            vec_st((x).v32, 0, (uint32_t*)(m))
 #define vstoreu                 vstoreu_emu
+#define VSTOREU_EMULATED        1
 #define vunpackhi_epi32(x, y)   (vtype)vec_mergel((x).v32, (y).v32)
 #define vunpackhi_epi64(x, y)   (vtype)(vtype64)vec_mergel((vector long)(x).v64, (vector long)(y).v64)
 #define vunpacklo_epi32(x, y)   (vtype)vec_mergeh((x).v32, (y).v32)
@@ -563,28 +567,32 @@ typedef __m64i vtype;
 #define INLINE inline
 #endif
 
+#if VLOADU_EMULATED
 static INLINE vtype vloadu_emu(const void *addr)
 {
 	if (is_aligned(addr, MEM_ALIGN_SIMD))
 		return vload(addr);
 	else {
-		JTR_ALIGN(MEM_ALIGN_SIMD) char buf[MEM_ALIGN_SIMD];
+		JTR_ALIGN(MEM_ALIGN_SIMD) char buf[sizeof(vtype)];
 
-		return (memcpy(buf, addr, MEM_ALIGN_SIMD), vload(buf));
+		return (memcpy(buf, addr, sizeof(vtype)), vload(buf));
 	}
 }
+#endif
 
+#if VSTOREU_EMULATED
 static INLINE void vstoreu_emu(void *addr, vtype v)
 {
 	if (is_aligned(addr, MEM_ALIGN_SIMD))
 		vstore(addr, v);
 	else {
-		JTR_ALIGN(MEM_ALIGN_SIMD) char buf[MEM_ALIGN_SIMD];
+		JTR_ALIGN(MEM_ALIGN_SIMD) char buf[sizeof(vtype)];
 
 		vstore(buf, v);
-		memcpy(addr, buf, MEM_ALIGN_SIMD);
+		memcpy(addr, buf, sizeof(vtype));
 	}
 }
+#endif
 
 #define vswap32_emu(x) \
 	x = vxor(vsrli_epi32(x, 24),                                            \
