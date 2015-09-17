@@ -79,7 +79,7 @@ static void po_init(struct fmt_main *self) {
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	if (strlen(ciphertext) == 64 &&
-	    strspn(ciphertext, "0123456789abcdef") == 64) {
+	    strspn(ciphertext, HEXCHARS_lc) == 64) {
 		return 1;
 	}
 	return 0;

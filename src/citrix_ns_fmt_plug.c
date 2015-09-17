@@ -176,7 +176,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(ciphertext) != len)
 		return 0;
 
-	if (len != strspn(ciphertext, "0123456789abcdef"))
+	if (len != strspn(ciphertext, HEXCHARS_lc))
 		return 0;
 
 	return 1;

@@ -68,8 +68,6 @@ john_register_one(&fmt_opencl_krb5pa_md5);
 #define MIN_KEYS_PER_CRYPT 1
 #define MAX_KEYS_PER_CRYPT 1
 
-#define HEXCHARS           "0123456789abcdefABCDEF"
-
 // Second and third plaintext will be replaced in init() under come encodings
 static struct fmt_tests tests[] = {
 	{"$krb5pa$23$user$realm$salt$afcbe07c32c3450b37d0f2516354570fe7d3e78f829e77cdc1718adf612156507181f7daeb03b6fbcfe91f8346f3c0ae7e8abfe5", "John"},
@@ -473,14 +471,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		// checksum
 		p = strchr(data, '$');
 		if (!p || p - data != 2 * CHECKSUM_SIZE ||
-		    strspn(data, HEXCHARS) != p - data)
+		    strspn(data, HEXCHARS_all) != p - data)
 			return 0;
 		data = p + 1;
 
 		// encrypted timestamp
 		p += strlen(data) + 1;
 		if (*p || p - data != TIMESTAMP_SIZE * 2 ||
-		    strspn(data, HEXCHARS) != p - data)
+		    strspn(data, HEXCHARS_all) != p - data)
 			return 0;
 
 		return 1;
@@ -508,7 +506,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		// timestamp+checksum
 		p += strlen(data) + 1;
 		if (*p || p - data != (TIMESTAMP_SIZE + CHECKSUM_SIZE) * 2 ||
-		    strspn(data, HEXCHARS) != p - data)
+		    strspn(data, HEXCHARS_all) != p - data)
 			return 0;
 
 		return 1;

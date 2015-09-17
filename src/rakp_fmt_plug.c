@@ -54,8 +54,6 @@ john_register_one(&fmt_rakp);
 #define FORMAT_TAG              "$rakp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 
-#define HEXCHARS                "0123456789abcdef"
-
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SHA1_N
 #define MAX_KEYS_PER_CRYPT      SHA1_N
@@ -184,11 +182,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((q - p - 1) < SALT_MIN_SIZE * 2)
 		return 0;
 
-	len = strspn(q, HEXCHARS);
+	len = strspn(q, HEXCHARS_lc);
 	if (len != BINARY_SIZE * 2 || len != strlen(q))
 		return 0;
 
-	if (strspn(p, HEXCHARS) != q - p - 1)
+	if (strspn(p, HEXCHARS_lc) != q - p - 1)
 		return 0;
 
 	return 1;

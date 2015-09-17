@@ -64,7 +64,6 @@ john_register_one(&fmt_hsrp);
 #define SALT_ALIGN              sizeof(int)
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-#define HEXCHARS                "0123456789abcdef"
 
 static struct fmt_tests tests[] = {
 	{"$hsrp$000004030a64010000000000000000000a000064041c010000000a0000140000000000000000000000000000000000000000$52e1db09d18d695b8fefb3730ff8d9d6", "password12345"},
@@ -126,11 +125,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	// if ((q - p - 1) > REAL_SALT_SIZE * 2)
 	//	return 0;
 
-	len = strspn(q, HEXCHARS);
+	len = strspn(q, HEXCHARS_lc);
 	if (len != BINARY_SIZE * 2 || len != strlen(q))
 		return 0;
 
-	if (strspn(p, HEXCHARS) != q - p - 1)
+	if (strspn(p, HEXCHARS_lc) != q - p - 1)
 		return 0;
 
 	if (q-p > (sizeof(cur_salt->salt)-1)*2)
