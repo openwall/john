@@ -838,8 +838,8 @@ int main (int argc, char *argv[])
 static mpf_t count;
 static mpz_t rec_pos;
 static int rec_pos_destroyed;
-static int rule_number, rule_count;
-static struct rpp_context *rule_ctx;
+static int rule_count;
+static struct list_main *rule_list;
 
 static void save_state(FILE *file)
 {
@@ -1198,8 +1198,6 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   setmode (fileno (stdout), O_BINARY);
   #endif
 #else
-  struct rpp_context ctx;
-  char *prerule="", *rule="", *word="";
   char last_buf[PLAINTEXT_BUFFER_SIZE] = "\r";
   char *last = last_buf;
   int loopback = (options.flags & FLG_PRINCE_LOOPBACK) ? 1 : 0;
@@ -1307,6 +1305,10 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   log_event("- Using chains with %d - %d elements.", elem_cnt_min, elem_cnt_max);
 
   if (rules) {
+    char *prerule="";
+    struct rpp_context ctx, *rule_ctx;
+    int rule_number = 0;
+
     if (pers_opts.activewordlistrules)
       log_event("- Rules: %.100s", pers_opts.activewordlistrules);
 
@@ -1327,7 +1329,28 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
     log_event("- %d preprocessed word mangling rules", rule_count);
 
-    prerule = rpp_next(&ctx);
+    list_init(&rule_list);
+
+    if ((prerule = rpp_next(&ctx)))
+    do {
+      char *rule;
+
+      if ((rule = rules_reject(prerule, -1, last, db))) {
+        if (strcmp(prerule, rule))
+          log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
+                    rule_number + 1, prerule, rule);
+        else
+          log_event("- Rule #%d: '%.100s' accepted",
+                    rule_number + 1, prerule);
+        list_add(rule_list, rule);
+      } else {
+        log_event("- Rule #%d: '%.100s' rejected",
+                  rule_number + 1, prerule);
+      }
+
+      if (!(rule = rpp_next(&ctx))) break;
+      rule_number++;
+    } while (rules);
   }
   else
   {
@@ -2202,32 +2225,13 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
                   break;
               }
             } else {
-              rule_number = 0;
-              if (rpp_init(rule_ctx = &ctx, pers_opts.activewordlistrules)) {
-                log_event("! No \"%s\" mode rules found",
-                          pers_opts.activewordlistrules);
-              }
-              rules_init(pers_opts.internal_enc == pers_opts.target_enc ?
-                         pw_max : db->format->params.plaintext_length);
+              struct list_entry *rule;
 
-              if ((prerule = rpp_next(&ctx)))
+              if ((rule = rule_list->head))
               do {
-                if (rules) {
-                  if ((rule = rules_reject(prerule, -1, last, db))) {
-                    if (strcmp(prerule, rule))
-                      log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
-                                rule_number + 1, prerule, rule);
-                    else
-                      log_event("- Rule #%d: '%.100s' accepted",
-                                rule_number + 1, prerule);
-                  } else {
-                    log_event("- Rule #%d: '%.100s' rejected",
-                              rule_number + 1, prerule);
-                    goto next_rule;
-                  }
-                }
+                char *word;
 
-                if ((word = rules_apply(pw_buf, rule, -1, last))) {
+                if ((word = rules_apply(pw_buf, rule->data, -1, last))) {
                   last = word;
 
                   if (options.mask) {
@@ -2236,18 +2240,11 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
                   } else {
                     if (ext_filter(word) && (jtr_done = crk_process_key(word)))
                     {
-                      rules = 0;
                       break;
                     }
                   }
                 }
-
-                if (rules) {
-next_rule:
-                  if (!(rule = rpp_next(&ctx))) break;
-                  rule_number++;
-                }
-              } while (rules);
+              } while ((rule = rule->next));
 
               if (jtr_done || event_abort)
                 break;
