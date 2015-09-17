@@ -218,6 +218,7 @@ static void FillSegment(scheme_info_t *info, position_info_t pos)
 	uint32_t i;
 
 	__m128i prev_block[64];
+	uint32_t *ptr=(uint32_t*)prev_block;
 
 	uint32_t next_block_offset;
 	uint8_t lanes = info->lanes;
@@ -254,7 +255,8 @@ static void FillSegment(scheme_info_t *info, position_info_t pos)
 		// compute block
 		ComputeBlock(prev_block, memory+ reference_block_offset, memory+next_block_offset);//Computing third block in the segment
 
-		phi = _mm_extract_epi32(prev_block[0], 0);
+		//phi = _mm_extract_epi32(prev_block[0], 0);
+		phi=ptr[0];
 	}
 	else
 	{
@@ -269,7 +271,8 @@ static void FillSegment(scheme_info_t *info, position_info_t pos)
 			bi += 16;
 		}
 		
-		phi = _mm_extract_epi32(prev_block[0], 0);
+		//phi = _mm_extract_epi32(prev_block[0], 0);
+		phi=ptr[0];
 	}
 
 	next_block_offset = ((pos.slice*lanes + pos.lane)*segment_length + start)*BLOCK_SIZE;
@@ -316,7 +319,8 @@ static void FillSegment(scheme_info_t *info, position_info_t pos)
 	
 		// compute block
 		ComputeBlock(prev_block, memory + reference_block_offset, memory+next_block_offset);
-		phi = _mm_extract_epi32(prev_block[0], 0);
+		//phi = _mm_extract_epi32(prev_block[0], 0);
+		phi=ptr[0];
 		next_block_offset += BLOCK_SIZE;
 	}
 }
