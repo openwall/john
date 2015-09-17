@@ -1307,7 +1307,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   if (rules) {
     char *prerule="";
     struct rpp_context ctx, *rule_ctx;
-    int rule_number = 0;
+    int active_rules = 0, rule_number = 0;
 
     if (pers_opts.activewordlistrules)
       log_event("- Rules: %.100s", pers_opts.activewordlistrules);
@@ -1335,22 +1335,46 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     do {
       char *rule;
 
-      if ((rule = rules_reject(prerule, -1, last, db))) {
-        if (strcmp(prerule, rule))
-          log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
-                    rule_number + 1, prerule, rule);
-        else
-          log_event("- Rule #%d: '%.100s' accepted",
-                    rule_number + 1, prerule);
+      if ((rule = rules_reject(prerule, -1, last, db)))
+      {
         list_add(rule_list, rule);
+        active_rules++;
+
+        if (options.verbosity >= 3)
+        {
+          if (strcmp(prerule, rule))
+            log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
+                      rule_number + 1, prerule, rule);
+          else
+            log_event("- Rule #%d: '%.100s' accepted",
+                      rule_number + 1, prerule);
+        }
       } else {
-        log_event("- Rule #%d: '%.100s' rejected",
-                  rule_number + 1, prerule);
+        if (options.verbosity >= 3)
+          log_event("- Rule #%d: '%.100s' rejected",
+                    rule_number + 1, prerule);
       }
 
       if (!(rule = rpp_next(&ctx))) break;
       rule_number++;
     } while (rules);
+
+    if (rule_count != active_rules)
+    {
+      rule_count = active_rules;
+      log_event("- %d accepted word mangling rules", rule_count);
+    }
+
+    if (rule_count == 1 && rule_list->head->data[0] == 0)
+    {
+      rules = 0;
+    }
+
+    if (rule_count < 1)
+    {
+      rules = 0;
+      rule_count = 1;
+    }
   }
   else
   {
