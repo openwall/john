@@ -465,6 +465,20 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	opt_process(opt_list, &options.flags, argv);
 
+	if (options.flags & FLG_MASK_CHK) {
+		if (strcasestr(options.mask, "?w"))
+			options.flags |= FLG_MASK_STACKED;
+		else
+			options.flags |= FLG_CRACKING_SET;
+	}
+
+	if (options.flags & FLG_REGEX_CHK) {
+		if (strstr(options.regex, "\\0"))
+			options.flags |= FLG_REGEX_STACKED;
+		else
+			options.flags |= FLG_CRACKING_SET;
+	}
+
 	ext_flags = 0;
 	if (options.flags & FLG_EXTERNAL_CHK) {
 		if (options.flags & (FLG_CRACKING_CHK | FLG_MAKECHR_CHK)) {
@@ -476,18 +490,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			if (rec_restored)
 				ext_flags |= EXT_REQ_RESTORE;
 		}
-	}
-	if (options.flags & FLG_MASK_CHK) {
-		if (options.flags & FLG_CRACKING_CHK)
-			options.flags |= FLG_MASK_STACKED;
-		else
-			options.flags |= FLG_CRACKING_SET;
-	}
-	if (options.flags & FLG_REGEX_CHK) {
-		//if (options.flags & FLG_CRACKING_CHK)
-		//	options.flags |= FLG_REGEX_STACKED;
-		//else
-			options.flags |= FLG_CRACKING_SET;
 	}
 
 	/* Bodge for bash completion of eg. "john -stdout -list=..." */

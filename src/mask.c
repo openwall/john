@@ -1661,7 +1661,8 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		error();
 	}
 
-	log_event("Proceeding with mask mode");
+	if (!(options.flags & FLG_MASK_STACKED))
+		log_event("Proceeding with mask mode");
 
 	/* Load defaults from john.conf */
 	if (options.flags & FLG_MASK_STACKED) {

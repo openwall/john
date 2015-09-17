@@ -1596,7 +1596,8 @@ static void john_run(void)
 #endif
 #if HAVE_REXGEN
 		else
-		if (options.flags & FLG_REGEX_CHK)
+		if ((options.flags & FLG_REGEX_CHK) &&
+		    !(options.flags & FLG_REGEX_STACKED))
 			do_regex_crack(&database, options.regex);
 #endif
 		else
@@ -1606,11 +1607,12 @@ static void john_run(void)
 		if (options.flags & FLG_MKV_CHK)
 			do_markov_crack(&database, options.mkv_param);
 		else
+		if ((options.flags & FLG_MASK_CHK) &&
+		    !(options.flags & FLG_MASK_STACKED))
+			do_mask_crack(NULL);
+		else
 		if (options.flags & FLG_EXTERNAL_CHK)
 			do_external_crack(&database);
-		else
-		if (options.flags & FLG_MASK_CHK)
-			do_mask_crack(NULL);
 		else
 		if (options.flags & FLG_BATCH_CHK)
 			do_batch_crack(&database);
