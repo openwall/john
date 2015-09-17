@@ -1788,7 +1788,7 @@ void encode64(__global uchar * dst, uint dstlen,uchar * src, uint srclen)
 
 __kernel void yescrypt_crypt_kernel(
     __global const uchar * in,
-    __global const uint * index,
+    __global const uint * lengths,
     __global uchar *out,
     __global struct yescrypt_salt *salt, 
     __global unsigned long *V,
@@ -1812,12 +1812,11 @@ __kernel void yescrypt_crypt_kernel(
 	uint saltlen=salt->salt_length;
 
 	uint gid=get_global_id(0);
-	uint base=index[gid];
-	uint passwdlen=index[gid+1]-base;
+	uint passwdlen=lengths[gid];
 	ulong rom_size=salt->rom_size;
 
 	out+=gid*HASH_SIZE;
-	in+=base;
+	in += gid*PLAINTEXT_LENGTH;
 
 	long V_size=128*r*(N<<(g*2));
 	long B_size=128*r*p;
