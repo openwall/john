@@ -118,6 +118,8 @@ static void init(struct fmt_main *self)
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
+#else
+	self->params.max_keys_per_crypt *= 10;
 #endif
 #ifndef SIMD_COEF_32
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
@@ -148,7 +150,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p, *q;
 
 	p = ciphertext;
-	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
+	if (*p == '$' && !strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
 
 	q = p;
@@ -159,13 +161,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
+	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1] = FORMAT_TAG;
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+	if (ciphertext[0] == '$' &&
+	    !strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return ciphertext;
 
-	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
+	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH);
+
 	return out;
 }
 
@@ -325,13 +328,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	int index = 0;
 
-#ifdef _OPENMP
 	int loops = (count + MAX_KEYS_PER_CRYPT - 1) / MAX_KEYS_PER_CRYPT;
 
+#ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < loops; index++)
 #endif
-	{
+	for (index = 0; index < loops; index++) {
 #if SIMD_COEF_32
 		SIMDmd5body(saved_key[index], crypt_key[index], NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
 #else
@@ -347,7 +349,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
 	unsigned int x, y;
-#ifdef _OPENMP
+#if 1
 	const unsigned int c = (count + SIMD_COEF_32 - 1) / SIMD_COEF_32;
 #else
 	const unsigned int c = SIMD_PARA_MD5;
@@ -362,7 +364,7 @@ static int cmp_all(void *binary, int count) {
 #else
 	unsigned int index = 0;
 
-#ifdef _OPENMP
+#if 1
 	for (index = 0; index < count; index++)
 #endif
 		if (!memcmp(binary, crypt_key[index], BINARY_SIZE))
