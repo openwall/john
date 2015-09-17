@@ -805,7 +805,7 @@ static char* expand_plhdr(char *string, int fmt_case)
 		return string;
 
 	//fprintf(stderr, "%s(%s)\n", __FUNCTION__, string);
-	if (*s != '[') {
+	if (*s != '[' || string[strlen(string) - 1] != ']') {
 		*d++ = '[';
 		ab = 1;
 	}
@@ -813,6 +813,9 @@ static char* expand_plhdr(char *string, int fmt_case)
 		if (*s == '\\') {
 			*d++ = *s++;
 			*d++ = *s++;
+		} else
+		if (s[0] == ']' && s[1] == '[') {
+			s += 2;
 		} else
 		if (*s == '?' && strchr(BUILT_IN_CHARSET, s[1])) {
 			char *ps = plhdr2string(s[1], fmt_case);
@@ -1661,7 +1664,8 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		error();
 	}
 
-	log_event("Proceeding with mask mode");
+	if (!(options.flags & FLG_MASK_STACKED))
+		log_event("Proceeding with mask mode");
 
 	/* Load defaults from john.conf */
 	if (options.flags & FLG_MASK_STACKED) {

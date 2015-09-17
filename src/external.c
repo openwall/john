@@ -401,7 +401,7 @@ void do_external_crack(struct db_main *db)
 		}
 
 		int_word[maxlen] = 0;
-		if (options.mask) {
+		if (options.flags & FLG_MASK_STACKED) {
 			if (do_mask_crack(int_word))
 				break;
 		} else
