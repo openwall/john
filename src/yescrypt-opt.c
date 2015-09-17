@@ -28,12 +28,6 @@
  * online backup system.
  */
 
-#ifdef __i386__
-#warning "This implementation does not use SIMD, and thus it runs a lot slower than the SIMD-enabled implementation. Enable at least SSE2 in the C compiler and use yescrypt-best.c instead unless you're building this SIMD-less implementation on purpose (portability to older CPUs or testing)."
-#elif defined(__x86_64__)
-#warning "This implementation does not use SIMD, and thus it runs a lot slower than the SIMD-enabled implementation. Use yescrypt-best.c instead unless you're building this SIMD-less implementation on purpose (for testing only)."
-#endif
-
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
