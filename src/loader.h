@@ -25,13 +25,13 @@ struct db_password {
 /* Pointer to next password hash with the same salt */
 	struct db_password *next;
 
+/* Hot portion of or full binary ciphertext for fast comparison (aligned) */
+	void *binary;
+
 /* After loading is completed: pointer to next password hash with the same salt
  * and hash-of-hash.
  * While loading: pointer to next password hash with the same hash-of-hash. */
 	struct db_password *next_hash;
-
-/* Hot portion of or full binary ciphertext for fast comparison (aligned) */
-	void *binary;
 
 /* ASCII ciphertext for exact comparison and saving with cracked passwords.
  * Alternatively, when the source() method is non-default this field is either
