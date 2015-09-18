@@ -677,8 +677,6 @@ static void reset(struct db_main *db)
 
 	if (initialized) {
 		struct db_salt *salt;
-		unsigned int max_uncracked_hashes = 0;
-		WORD test_salt = 0;
 
 		release_clobj_kpc();
 		release_clobj();
@@ -687,21 +685,27 @@ static void reset(struct db_main *db)
 			mask_mode = 1;
 
 		create_clobj(db);
+		if (!mask_mode)
+			create_clobj_kpc(global_work_size);
 
 		create_checking_kernel_set_args();
 		create_keys_kernel_set_args(mask_mode);
 
-		salt = db -> salts;
-		max_uncracked_hashes = 0;
-		do {
-			if (salt -> count > max_uncracked_hashes) {
-				max_uncracked_hashes = salt -> count;
-				test_salt = *(WORD *)salt -> salt;
-			}
+		if (mask_mode) {
+			unsigned int max_uncracked_hashes = 0;
+			WORD test_salt = 0;
 
-		} while ((salt = salt -> next));
+			salt = db -> salts;
+			max_uncracked_hashes = 0;
+			do {
+				if (salt -> count > max_uncracked_hashes) {
+					max_uncracked_hashes = salt -> count;
+					test_salt = *(WORD *)salt -> salt;
+				}
 
-		auto_tune_all(300, fmt_opencl_DES.methods.set_key, test_salt, mask_mode);
+			} while ((salt = salt -> next));
+			auto_tune_all(300, fmt_opencl_DES.methods.set_key, test_salt, mask_mode);
+		}
 
 		salt = db -> salts;
 		do {
