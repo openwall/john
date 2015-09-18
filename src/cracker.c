@@ -333,7 +333,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 
 	if (crk_db->options->flags & DB_LOGIN) {
 		replogin = pw->login;
-		if (options.show_uid_on_crack)
+		if (options.show_uid_in_cracks)
 			repuid = pw->uid;
 		else
 			repuid = "";

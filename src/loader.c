@@ -156,7 +156,7 @@ void ldr_init_database(struct db_main *db, struct db_options *db_options)
 	if (!(db_options->flags & DB_WORDS)) {
 		db->pw_size -= sizeof(struct list_main *);
 		if (db_options->flags & DB_LOGIN) {
-			if (!options.show_uid_on_crack)
+			if (!options.show_uid_in_cracks)
 				db->pw_size -= sizeof(char *);
 		} else
 			db->pw_size -= sizeof(char *) * 2;
@@ -982,7 +982,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			if (login != no_username && index == 0)
 				login = ldr_conv(login);
 
-			if (options.show_uid_on_crack)
+			if (options.show_uid_in_cracks)
 				current_pw->uid = str_alloc_copy(uid);
 
 			if (count >= 2 && count <= 9) {
@@ -1269,7 +1269,7 @@ static void ldr_show_left(struct db_main *db, struct db_password *pw)
 	if (!strncmp(pw_source, "$dynamic_", 9))
 		pw_source = dynamic_FIX_SALT_TO_HEX(pw_source);
 #endif
-	if (options.show_uid_on_crack && pw->uid && *pw->uid) {
+	if (options.show_uid_in_cracks && pw->uid && *pw->uid) {
 		uid_sep[0] = db->options->field_sep_char;
 		uid_out = pw->uid;
 	}
