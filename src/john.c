@@ -1059,7 +1059,9 @@ static void john_load(void)
 		else
 		if (mem_saving_level) {
 			options.loader.flags &= ~DB_LOGIN;
-			options.max_wordfile_memory = 1;
+			options.show_uid_on_crack = 0;
+			if (mem_saving_level >= 2)
+				options.max_wordfile_memory = 1;
 		}
 
 		ldr_init_database(&database, &options.loader);
