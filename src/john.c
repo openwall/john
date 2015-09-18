@@ -1010,7 +1010,7 @@ static void john_load(void)
 		database.format = &dummy_format;
 		memset(&dummy_format, 0, sizeof(dummy_format));
 		dummy_format.params.plaintext_length = options.length;
-		dummy_format.params.flags = FMT_CASE | FMT_8_BIT;
+		dummy_format.params.flags = FMT_CASE | FMT_8_BIT | FMT_TRUNC;
 		if (pers_opts.report_utf8 || pers_opts.target_enc == UTF_8)
 			dummy_format.params.flags |= FMT_UTF8;
 		dummy_format.params.label = "stdout";
