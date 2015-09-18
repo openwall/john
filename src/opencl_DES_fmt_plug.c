@@ -23,7 +23,6 @@ john_register_one(&fmt_opencl_DES);
 #include "opencl_DES_hst_dev_shared.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"descrypt-opencl"
 #define FORMAT_NAME			"traditional crypt(3)"
 
 #define BENCHMARK_COMMENT		""

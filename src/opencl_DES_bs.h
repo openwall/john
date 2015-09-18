@@ -14,7 +14,9 @@
 #include "opencl_DES_hst_dev_shared.h"
 #include "loader.h"
 
-#define DES_BS_OPENCL_ALGORITHM_NAME		"DES OpenCL"
+#define DES_BS_OPENCL_ALGORITHM_NAME	"DES OpenCL"
+
+#define FORMAT_LABEL			"descrypt-opencl"
 
 #define DES_BS_DEPTH			32
 #define DES_LOG_DEPTH			5
@@ -29,6 +31,18 @@
 #define MAX_KEYS_PER_CRYPT		DES_BS_DEPTH
 
 #define GWS_CONFIG		        "des_GWS"
+
+#define get_power_of_two(v)	\
+{				\
+	v--;			\
+	v |= v >> 1;		\
+	v |= v >> 2;		\
+	v |= v >> 4;		\
+	v |= v >> 8;		\
+	v |= v >> 16;		\
+	v |= v >> 32;		\
+	v++;			\
+}
 
 /* Common hash checking variables. */
 extern DES_hash_check_params *hash_chk_params;
