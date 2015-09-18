@@ -76,6 +76,13 @@ static clock_t salt_time = 0;
 static struct db_main *crk_db;
 static struct fmt_params crk_params;
 static struct fmt_methods crk_methods;
+#if CRK_PREFETCH
+#if 1
+static unsigned int crk_prefetch;
+#else
+#define crk_prefetch CRK_PREFETCH
+#endif
+#endif
 static int crk_key_index, crk_last_key;
 static void *crk_last_salt;
 void (*crk_fix_state)(void);
@@ -158,6 +165,22 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	crk_db = db;
 	memcpy(&crk_params, &db->format->params, sizeof(struct fmt_params));
 	memcpy(&crk_methods, &db->format->methods, sizeof(struct fmt_methods));
+
+#if CRK_PREFETCH && !defined(crk_prefetch)
+	{
+		unsigned int m = crk_params.max_keys_per_crypt;
+		if (m > CRK_PREFETCH) {
+			unsigned int n = (m + CRK_PREFETCH - 1) / CRK_PREFETCH;
+			crk_prefetch = (m + n - 1) / n;
+			/* CRK_PREFETCH / 2 < crk_prefetch <= CRK_PREFETCH */
+		} else {
+/* Actual prefetch will be capped to crypt_all() return value anyway, so let's
+ * not cap it to max_keys_per_crypt here in case crypt_all() generates more
+ * candidates on its own. */
+			crk_prefetch = CRK_PREFETCH;
+		}
+	}
+#endif
 
 	if (db->loaded) crk_init_salt();
 	crk_last_key = crk_key_index = 0;
@@ -673,7 +696,8 @@ static int crk_process_event(void)
 
 static int crk_password_loop(struct db_salt *salt)
 {
-	int count, match, index;
+	int count;
+	unsigned int match, index;
 
 #if !OS_TIMER
 	sig_timer_emu_tick();
@@ -713,30 +737,27 @@ static int crk_password_loop(struct db_salt *salt)
 				}
 			}
 		} while ((pw = pw->next));
-	} else
-#if !CRK_PREFETCH
-	for (index = 0; index < match; index++) {
-		int hash = salt->index(index);
-		if (salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] &
-		    (1U << (hash % (sizeof(*salt->bitmap) * 8)))) {
-			struct db_password *pw =
-			    salt->hash[hash >> PASSWORD_HASH_SHR];
-#else
+
+		return 0;
+	}
+
+#if CRK_PREFETCH
 	for (index = 0; index < match; ) {
-		int slot, ahead, target = index + CRK_PREFETCH, lucky = 0;
+		unsigned int target, slot, ahead, lucky;
 		struct {
-			unsigned int h;
+			unsigned int i;
 			union {
 				unsigned int *b;
 				struct db_password **p;
 			} u;
 		} a[CRK_PREFETCH];
+		target = index + crk_prefetch;
 		if (target > match)
 			target = match;
 		for (slot = 0, ahead = index; ahead < target; slot++, ahead++) {
 			unsigned int h = salt->index(ahead);
 			unsigned int *b = &salt->bitmap[h / (sizeof(*salt->bitmap) * 8)];
-			a[slot].h = h;
+			a[slot].i = h;
 			a[slot].u.b = b;
 #ifdef __SSE2__
 			_mm_prefetch((const char *)b, _MM_HINT_NTA);
@@ -744,8 +765,9 @@ static int crk_password_loop(struct db_salt *salt)
 			*(volatile unsigned int *)b;
 #endif
 		}
-		for (slot = 0, ahead = index; ahead < target; slot++, ahead++) {
-			unsigned int h = a[slot].h;
+		lucky = 0;
+		for (slot = 0; index < target; slot++, index++) {
+			unsigned int h = a[slot].i;
 			if (*a[slot].u.b & (1U << (h % (sizeof(*salt->bitmap) * 8)))) {
 				struct db_password **pwp = &salt->hash[h >> PASSWORD_HASH_SHR];
 #ifdef __SSE2__
@@ -753,14 +775,37 @@ static int crk_password_loop(struct db_salt *salt)
 #else
 				*(void * volatile *)pwp;
 #endif
-				a[slot].u.p = pwp;
-				lucky = ahead;
-			} else
-				a[slot].u.p = NULL;
+				a[lucky].i = index;
+				a[lucky++].u.p = pwp;
+			}
 		}
-		for (slot = 0; index <= lucky; slot++, index++)
-		if (a[slot].u.p) {
+#if 1
+		if (!lucky)
+			continue;
+		for (slot = 0; slot < lucky; slot++) {
 			struct db_password *pw = *a[slot].u.p;
+/*
+ * Chances are this will also prefetch the next_hash field and the actual
+ * binary (pointed to by the binary field, but likely located right after
+ * this struct.
+ */
+#ifdef __SSE2__
+			_mm_prefetch((const char *)&pw->binary, _MM_HINT_NTA);
+#else
+			*(void * volatile *)&pw->binary;
+#endif
+		}
+#endif
+		for (slot = 0; slot < lucky; slot++) {
+			int index = a[slot].i;
+			struct db_password *pw = *a[slot].u.p;
+#else
+	for (index = 0; index < match; index++) {
+		unsigned int hash = salt->index(index);
+		if (salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] &
+		    (1U << (hash % (sizeof(*salt->bitmap) * 8)))) {
+			struct db_password *pw =
+			    salt->hash[hash >> PASSWORD_HASH_SHR];
 #endif
 			do {
 				if (crk_methods.cmp_one(pw->binary, index))
@@ -770,9 +815,6 @@ static int crk_password_loop(struct db_salt *salt)
 					return 1;
 			} while ((pw = pw->next_hash));
 		}
-#if CRK_PREFETCH
-		index = target;
-#endif
 	}
 
 	return 0;
