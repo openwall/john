@@ -1261,6 +1261,7 @@ static void ldr_show_left(struct db_main *db, struct db_password *pw)
 	char uid_sep[2] = { 0 };
 	char *uid_out = "";
 	char *pw_source = db->format->methods.source(pw->source, pw->binary);
+	char *login = (db->options->flags & DB_LOGIN) ? pw->login : "?";
 
 #ifndef DYNAMIC_DISABLED
 	/* Note for salted dynamic, we 'may' need to fix up the salts to
@@ -1276,12 +1277,12 @@ static void ldr_show_left(struct db_main *db, struct db_password *pw)
 	{
 		char utf8login[PLAINTEXT_BUFFER_SIZE + 1];
 
-		cp_to_utf8_r(pw->login, utf8login,
+		cp_to_utf8_r(login, utf8login,
 		             PLAINTEXT_BUFFER_SIZE);
 		printf("%s%c%s%s%s\n", utf8login, db->options->field_sep_char,
 		       pw_source, uid_sep, uid_out);
 	} else
-		printf("%s%c%s%s%s\n", pw->login, db->options->field_sep_char,
+		printf("%s%c%s%s%s\n", login, db->options->field_sep_char,
 		       pw_source, uid_sep, uid_out);
 }
 

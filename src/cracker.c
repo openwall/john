@@ -330,8 +330,15 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		dupe = 0;
 
 	repkey = key = index < 0 ? "" : crk_methods.get_key(index);
-	replogin = pw->login;
-	repuid = pw->uid;
+
+	if (crk_db->options->flags & DB_LOGIN) {
+		replogin = pw->login;
+		if (options.show_uid_on_crack)
+			repuid = pw->uid;
+		else
+			repuid = "";
+	} else
+		replogin = repuid = "";
 
 	if (index >= 0 && (pers_opts.store_utf8 || pers_opts.report_utf8)) {
 		if (pers_opts.target_enc == UTF_8)
@@ -357,7 +364,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		if (pers_opts.report_utf8) {
 			repkey = utf8key;
 			if (pers_opts.target_enc != UTF_8)
-				replogin = cp_to_utf8_r(pw->login,
+				replogin = cp_to_utf8_r(replogin,
 					      utf8login, PLAINTEXT_BUFFER_SIZE);
 		}
 		if (pers_opts.store_utf8)
