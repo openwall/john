@@ -1579,10 +1579,17 @@ static int ldr_cracked_hash(char *ciphertext)
 	while (*p) {
 		hash <<= 1;
 		hash += (unsigned char)*p++ | 0x20; /* ASCII case insensitive */
+#if CRACKED_HASH_LOG <= 12
 		if (hash >> (2 * CRACKED_HASH_LOG - 1)) {
 			hash ^= hash >> CRACKED_HASH_LOG;
 			hash &= CRACKED_HASH_SIZE - 1;
 		}
+#else
+		if (hash & 0xff000000U) {
+			hash ^= hash >> 13;
+			hash &= 0xffffffU;
+		}
+#endif
 	}
 
 	hash ^= hash >> CRACKED_HASH_LOG;
@@ -1694,13 +1701,20 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	if (format) {
 		split = format->methods.split;
 		unify = format->params.flags & FMT_SPLIT_UNIFIES_CASE;
-		if (format->params.flags & FMT_UNICODE)
-			pers_opts.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
-			    NULL, "UnicodeStoreUTF8", 0);
-		else
-			pers_opts.store_utf8 = pers_opts.target_enc != ASCII &&
-				cfg_get_bool(SECTION_OPTIONS, NULL,
-				             "CPstoreUTF8", 0);
+		if (format->params.flags & FMT_UNICODE) {
+			static int setting = -1;
+			if (setting < 0)
+				setting = cfg_get_bool(SECTION_OPTIONS, NULL,
+				    "UnicodeStoreUTF8", 0);
+			pers_opts.store_utf8 = setting;
+		} else {
+			static int setting = -1;
+			if (setting < 0)
+				setting = pers_opts.target_enc != ASCII &&
+				    cfg_get_bool(SECTION_OPTIONS, NULL,
+				    "CPstoreUTF8", 0);
+			pers_opts.store_utf8 = setting;
+		}
 	} else {
 		split = fmt_default_split;
 		count = 1;

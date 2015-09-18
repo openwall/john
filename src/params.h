@@ -253,7 +253,7 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Cracked password hash size, used while loading.
  */
-#define CRACKED_HASH_LOG		16
+#define CRACKED_HASH_LOG		25
 #define CRACKED_HASH_SIZE		(1 << CRACKED_HASH_LOG)
 
 /*
