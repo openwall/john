@@ -1403,21 +1403,18 @@ static void ldr_filter_costs(struct db_main *db)
 	} while ((current = current->next));
 }
 
-extern int john_omp_threads_orig;
-
 /*
  * Allocate memory for and initialize the hash table for this salt if needed.
  * Also initialize salt->count (the number of password hashes for this salt).
  */
 static void ldr_init_hash_for_salt(struct db_main *db, struct db_salt *salt)
 {
-	unsigned int bitmap_size, hash_size;
-	size_t bitmap_alloc, hash_alloc;
+	struct db_password *current;
 	int (*hash_func)(void *binary);
+	size_t bitmap_size, hash_size;
+	int hash;
 
 	if (salt->hash_size < 0) {
-		struct db_password *current;
-
 		salt->count = 0;
 		if ((current = salt->list))
 		do {
@@ -1430,106 +1427,38 @@ static void ldr_init_hash_for_salt(struct db_main *db, struct db_salt *salt)
 
 	bitmap_size = password_hash_sizes[salt->hash_size];
 	{
-		bitmap_alloc = (bitmap_size +
+		size_t size = (bitmap_size +
 		    sizeof(*salt->bitmap) * 8 - 1) /
 		    (sizeof(*salt->bitmap) * 8) * sizeof(*salt->bitmap);
-		salt->bitmap = mem_alloc_tiny(bitmap_alloc, sizeof(*salt->bitmap));
+		salt->bitmap = mem_alloc_tiny(size, sizeof(*salt->bitmap));
+		memset(salt->bitmap, 0, size);
 	}
 
 	hash_size = bitmap_size >> PASSWORD_HASH_SHR;
 	if (hash_size > 1) {
-		hash_alloc = hash_size * sizeof(struct db_password *);
-		salt->hash = mem_alloc_tiny(hash_alloc, MEM_ALIGN_WORD);
+		size_t size = hash_size * sizeof(struct db_password *);
+		salt->hash = mem_alloc_tiny(size, MEM_ALIGN_WORD);
+		memset(salt->hash, 0, size);
 	}
+
+	salt->index = db->format->methods.get_hash[salt->hash_size];
 
 	hash_func = db->format->methods.binary_hash[salt->hash_size];
 
-	salt->index = db->format->methods.get_hash[salt->hash_size];
 	salt->count = 0;
-
-	if (john_omp_threads_orig < 3)
-		goto single_threaded;
-
-#ifdef _OPENMP
-	#pragma omp parallel sections num_threads(3) default(none) shared(salt, bitmap_size, hash_size, hash_func, bitmap_alloc, hash_alloc)
-	{
-		#pragma omp section
-		{
-			struct db_password *current;
-
-			memset(salt->bitmap, 0, bitmap_alloc);
-
-			if ((current = salt->list))
-			do {
-				unsigned int hash = hash_func(current->binary);
-				salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] |=
-				    1U << (hash % (sizeof(*salt->bitmap) * 8));
-				salt->count++;
-			} while ((current = current->next));
-		}
-
-		#pragma omp section
-		{
-			struct db_password *current;
-
-			memset(salt->hash, 0, hash_alloc / 2);
-
-			if ((current = salt->list))
-			do {
-				unsigned int hash = hash_func(current->binary);
-				if (hash_size > 1) {
-					if (hash < bitmap_size / 2) {
-						hash >>= PASSWORD_HASH_SHR;
-						current->next_hash = salt->hash[hash];
-						salt->hash[hash] = current;
-					}
-				} else
-					current->next_hash = current->next;
-			} while ((current = current->next));
-		}
-
-		#pragma omp section
-		{
-			struct db_password *current;
-
-			memset(salt->hash + hash_size / 2, 0, hash_alloc / 2);
-
-			if ((current = salt->list))
-			do {
-				unsigned int hash = hash_func(current->binary);
-				if (hash_size > 1 && hash >= bitmap_size / 2) {
-					hash >>= PASSWORD_HASH_SHR;
-					current->next_hash = salt->hash[hash];
-					salt->hash[hash] = current;
-				}
-			} while ((current = current->next));
-		}
-	}
-
-	return;
-#endif
-
-single_threaded:
-	memset(salt->bitmap, 0, bitmap_alloc);
-	memset(salt->hash, 0, hash_alloc);
-
-	{
-		struct db_password *current;
-
-		if ((current = salt->list))
-		do {
-			unsigned int hash = hash_func(current->binary);
-			salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] |=
-			    1U << (hash % (sizeof(*salt->bitmap) * 8));
-			if (hash_size > 1) {
-				hash >>= PASSWORD_HASH_SHR;
-				current->next_hash = salt->hash[hash];
-				salt->hash[hash] = current;
-			} else
-				current->next_hash = current->next;
-			salt->count++;
-		} while ((current = current->next));
-	}
+	if ((current = salt->list))
+	do {
+		hash = hash_func(current->binary);
+		salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] |=
+		    1U << (hash % (sizeof(*salt->bitmap) * 8));
+		if (hash_size > 1) {
+			hash >>= PASSWORD_HASH_SHR;
+			current->next_hash = salt->hash[hash];
+			salt->hash[hash] = current;
+		} else
+			current->next_hash = current->next;
+		salt->count++;
+	} while ((current = current->next));
 }
 
 /*

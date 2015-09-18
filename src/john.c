@@ -66,7 +66,7 @@
 
 #ifdef _OPENMP
 #include <omp.h>
-int john_omp_threads_orig = 0;
+static int john_omp_threads_orig = 0;
 static int john_omp_threads_new;
 #endif
 
