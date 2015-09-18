@@ -553,15 +553,6 @@ static inline void __nonMP_DynamicFunc__append_from_last_output2_to_input1_as_ba
 #endif
 }
 
-static inline void __nonMP_DynamicFunc__set_input_len_32()
-{
-#ifdef _OPENMP
-	DynamicFunc__set_input_len_32(0,m_count,0);
-#else
-	DynamicFunc__set_input_len_32();
-#endif
-}
-
 void __nonMP_eLargeOut(eLargeOut_t what)
 {
 #ifdef _OPENMP
