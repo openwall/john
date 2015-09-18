@@ -147,19 +147,34 @@ static void read_file(struct db_main *db, char *name, int flags,
 	if (fclose(file)) pexit("fclose");
 }
 
-void ldr_init_database(struct db_main *db, struct db_options *options)
+void ldr_init_database(struct db_main *db, struct db_options *db_options)
 {
 	db->loaded = 0;
 
-	db->options = mem_alloc_copy(options,
+	db->pw_size = sizeof(struct db_password);
+	db->salt_size = sizeof(struct db_salt);
+	if (!(db_options->flags & DB_WORDS)) {
+		db->pw_size -= sizeof(struct list_main *);
+		if (db_options->flags & DB_LOGIN) {
+			if (!options.show_uid_on_crack)
+				db->pw_size -= sizeof(char *);
+		} else
+			db->pw_size -= sizeof(char *) * 2;
+		db->salt_size -= sizeof(struct db_keys *);
+	}
+
+	db->options = mem_alloc_copy(db_options,
 	    sizeof(struct db_options), MEM_ALIGN_WORD);
+
+	if (db->options->flags & DB_WORDS)
+		db->options->flags |= DB_LOGIN;
 
 	db->salts = NULL;
 
 	db->password_hash = NULL;
 	db->password_hash_func = NULL;
 
-	if (options->flags & DB_CRACKED) {
+	if (db_options->flags & DB_CRACKED) {
 		db->salt_hash = NULL;
 
 		db->cracked_hash = mem_alloc(
@@ -173,10 +188,6 @@ void ldr_init_database(struct db_main *db, struct db_options *options)
 			SALT_HASH_SIZE * sizeof(struct db_salt *));
 
 		db->cracked_hash = NULL;
-
-		if (options->flags & DB_WORDS)
-			options->flags |= DB_LOGIN;
-
 	}
 
 	list_init(&db->plaintexts);
@@ -792,7 +803,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	struct db_salt *current_salt, *last_salt;
 	struct db_password *current_pw, *last_pw;
 	struct list_main *words;
-	size_t pw_size, salt_size;
+	size_t pw_size;
 	int i;
 
 #ifdef HAVE_FUZZ
@@ -814,17 +825,6 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	dyna_salt_init(format);
 
 	words = NULL;
-
-	pw_size = sizeof(struct db_password);
-	salt_size = sizeof(struct db_salt);
-	if (!(db->options->flags & DB_WORDS)) {
-		if (db->options->flags & DB_LOGIN)
-			pw_size -= sizeof(struct list_main *);
-		else
-			pw_size -= sizeof(struct list_main *) +
-			    sizeof(char *) * 2;
-		salt_size -= sizeof(struct db_keys *);
-	}
 
 	if (!db->password_hash) {
 		ldr_init_password_hash(db);
@@ -911,7 +911,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		if (!current_salt) {
 			last_salt = db->salt_hash[salt_hash];
 			current_salt = db->salt_hash[salt_hash] =
-				mem_alloc_tiny(salt_size, MEM_ALIGN_WORD);
+				mem_alloc_tiny(db->salt_size, MEM_ALIGN_WORD);
 			current_salt->next = last_salt;
 
 			current_salt->salt = mem_alloc_copy(salt,
@@ -939,6 +939,13 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		current_salt->count++;
 		db->password_count++;
 
+/* If we're not allocating memory for the "login" field, we may as well not
+ * allocate it for the "source" field if the format doesn't need it. */
+		pw_size = db->pw_size;
+		if (!(db->options->flags & DB_LOGIN) &&
+		    format->methods.source != fmt_default_source)
+			pw_size -= sizeof(char *);
+
 		last_pw = current_salt->list;
 		current_pw = current_salt->list = mem_alloc_tiny(
 			pw_size, MEM_ALIGN_WORD);
@@ -948,9 +955,11 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		db->password_hash[pw_hash] = current_pw;
 		current_pw->next_hash = last_pw;
 
-/* If we're not going to use the source field for its usual purpose, see if we
- * can pack the binary value in it. */
-		if (format->methods.source != fmt_default_source &&
+/* If we're not going to use the source field for its usual purpose yet we had
+ * to allocate memory for it (because we need at least one field after it), see
+ * if we can pack the binary value in it. */
+		if ((db->options->flags & DB_LOGIN) &&
+		    format->methods.source != fmt_default_source &&
 		    sizeof(current_pw->source) >= format->params.binary_size)
 			current_pw->binary = memcpy(&current_pw->source,
 				binary, format->params.binary_size);
@@ -972,23 +981,22 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			if (login != no_username && index == 0)
 				login = ldr_conv(login);
 
-			current_pw->uid = "";
+			if (options.show_uid_on_crack)
+				current_pw->uid = str_alloc_copy(uid);
+
 			if (count >= 2 && count <= 9) {
 				current_pw->login = mem_alloc_tiny(
 					strlen(login) + 3, MEM_ALIGN_NONE);
 				sprintf(current_pw->login, "%s:%d",
 					login, index + 1);
-				current_pw->uid = str_alloc_copy(uid);
 			} else
 			if (login == no_username)
 				current_pw->login = login;
 			else
 			if (words && *login)
 				current_pw->login = words->head->data;
-			else {
+			else
 				current_pw->login = str_alloc_copy(login);
-				current_pw->uid = str_alloc_copy(uid);
-			}
 		}
 	}
 }
