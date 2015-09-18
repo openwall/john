@@ -128,8 +128,12 @@ static char* expand_cplhdr(char *string)
 
 	//fprintf(stderr, "%s(%s)\n", __FUNCTION__, string);
 	while (*s && d < &out[sizeof(out) - 2]) {
-		if (*s == '\\') {
+		if (s[0] == '?' && s[1] == '?') {
+			*d++ = '\\';
 			*d++ = *s++;
+			s++;
+		} else
+		if (*s == '\\') {
 			*d++ = *s++;
 		} else
 		if (*s == '?' && s[1] >= '1' && s[1] <= '9') {
@@ -810,6 +814,11 @@ static char* expand_plhdr(char *string, int fmt_case)
 		ab = 1;
 	}
 	while (*s && d < &out[sizeof(out) - 1]) {
+		if (s[0] == '?' && s[1] == '?') {
+			*d++ = '\\';
+			*d++ = *s++;
+			s++;
+		} else
 		if (*s == '\\') {
 			*d++ = *s++;
 			*d++ = *s++;
