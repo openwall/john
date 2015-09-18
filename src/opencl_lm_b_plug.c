@@ -765,6 +765,9 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 
 		lws_limit = get_kernel_max_lws(gpu_id, crypt_kernel);
 
+		if (lws_limit > global_work_size)
+			lws_limit = global_work_size;
+
 		if (lws_tune_flag) {
 			if (gpu(device_info[gpu_id]) && lws_limit >= 32)
 				local_work_size = 32;
@@ -849,6 +852,12 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		set_kernel_args();
 		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag, set_key, mask_mode);
 		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, mask_mode);
+
+		if (global_work_size < s_mem_limited_lws) {
+			s_mem_limited_lws = global_work_size;
+			if (local_work_size > s_mem_limited_lws)
+				local_work_size = s_mem_limited_lws;
+		}
 
 		if (lws_tune_flag) {
 			best_time_ms = 999999.00;
