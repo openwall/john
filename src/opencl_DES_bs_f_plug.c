@@ -17,8 +17,8 @@
 #include "mask_ext.h"
 
 #define PADDING 	2048
-#define CONFIG_FILE 	"$JOHN/kernels/DES_bs_kernel_f_%d.config"
-#define BINARY_FILE	"$JOHN/kernels/DES_bs_kernel_f_%zu_%d_%d.bin"
+#define CONFIG_FILE 	"$JOHN/kernels/DES_bs_kernel_f_%s.config"
+#define BINARY_FILE	"$JOHN/kernels/DES_bs_kernel_f_%zu_%s_%d.bin"
 
 static cl_kernel **kernels;
 static cl_mem buffer_bs_keys, buffer_unchecked_hashes;
@@ -185,7 +185,7 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 	char kernel_bin_name[200];
 	FILE *file;
 
-	sprintf(kernel_bin_name, BINARY_FILE, lws, id_gpu, salt_val);
+	sprintf(kernel_bin_name, BINARY_FILE, lws, get_device_name(id_gpu), salt_val);
 
 	file = fopen(path_expand(kernel_bin_name), "r");
 
@@ -367,7 +367,7 @@ static void save_lws_config(int id_gpu, size_t lws)
 	FILE *file;
 	char config_file_name[500];
 
-	sprintf(config_file_name, CONFIG_FILE, id_gpu);
+	sprintf(config_file_name, CONFIG_FILE, get_device_name(id_gpu));
 
 	file = fopen(path_expand(config_file_name), "r");
 	if (file != NULL) {
@@ -399,12 +399,12 @@ static void save_lws_config(int id_gpu, size_t lws)
 	fclose(file);
 }
 
-static int restore_lws_config(int id_gpu, size_t *lws)
+static int restore_lws_config(int id_gpu, size_t *lws, size_t extern_lws_limit)
 {
 	FILE *file;
 	char config_file_name[500];
 
-	sprintf(config_file_name, CONFIG_FILE, id_gpu);
+	sprintf(config_file_name, CONFIG_FILE, get_device_name(id_gpu));
 
 	file = fopen(path_expand(config_file_name), "r");
 	if (file == NULL)
@@ -430,7 +430,7 @@ static int restore_lws_config(int id_gpu, size_t *lws)
 #endif
 	}
 #endif
-	if (fscanf(file, "%zu", lws) != 1) {
+	if (fscanf(file, "%zu", lws) != 1 || *lws > extern_lws_limit) {
 		fclose(file);
 		return 0;
 	}
@@ -439,7 +439,7 @@ static int restore_lws_config(int id_gpu, size_t *lws)
 	return 1;
 }
 
-static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int), WORD test_salt, int mask_mode)
+static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int), WORD test_salt, int mask_mode, size_t extern_lws_limit)
 {
 	unsigned int force_global_keys = 1;
 	unsigned int gws_tune_flag = 1;
@@ -479,7 +479,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	opencl_get_user_preferences(FORMAT_LABEL);
 	if (global_work_size)
 		gws_tune_flag = 0;
-	if (local_work_size || restore_lws_config(gpu_id, &local_work_size)) {
+	if (local_work_size || restore_lws_config(gpu_id, &local_work_size, extern_lws_limit)) {
 		lws_tune_flag = 0;
 		if (local_work_size & (local_work_size - 1)) {
 			get_power_of_two(local_work_size);
@@ -507,6 +507,8 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 
 		if (lws_limit > global_work_size)
 			lws_limit = global_work_size;
+		if (lws_limit > extern_lws_limit)
+			lws_limit = extern_lws_limit;
 
 		if (lws_tune_flag) {
 			if (gpu(device_info[gpu_id]) && lws_limit >= 32)
@@ -580,6 +582,8 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 
 		if (lws_tune_flag)
 			local_work_size = warp_size;
+		if (s_mem_limited_lws > extern_lws_limit)
+			s_mem_limited_lws = extern_lws_limit;
 		if (local_work_size > s_mem_limited_lws)
 			local_work_size = s_mem_limited_lws;
 
@@ -674,6 +678,7 @@ static void reset(struct db_main *db)
 {
 	static int initialized;
 	int i;
+	size_t extern_lws_limit, limit_temp;
 
 	if (initialized) {
 		struct db_salt *salt;
@@ -688,8 +693,10 @@ static void reset(struct db_main *db)
 		if (!mask_mode)
 			create_clobj_kpc(global_work_size);
 
-		create_checking_kernel_set_args();
-		create_keys_kernel_set_args(mask_mode);
+		extern_lws_limit = create_checking_kernel_set_args();
+		limit_temp = create_keys_kernel_set_args(mask_mode);
+		if (limit_temp < extern_lws_limit)
+			extern_lws_limit = limit_temp;
 
 		if (mask_mode) {
 			unsigned int max_uncracked_hashes = 0;
@@ -704,7 +711,7 @@ static void reset(struct db_main *db)
 				}
 
 			} while ((salt = salt -> next));
-			auto_tune_all(300, fmt_opencl_DES.methods.set_key, test_salt, mask_mode);
+			auto_tune_all(300, fmt_opencl_DES.methods.set_key, test_salt, mask_mode, extern_lws_limit);
 		}
 
 		salt = db -> salts;
@@ -720,13 +727,15 @@ static void reset(struct db_main *db)
 
 		create_clobj(NULL);
 
-		create_checking_kernel_set_args();
-		create_keys_kernel_set_args(0);
+		extern_lws_limit = create_checking_kernel_set_args();
+		limit_temp = create_keys_kernel_set_args(0);
+		if (limit_temp < extern_lws_limit)
+			extern_lws_limit = limit_temp;
 
 		for (i = 0; i < 4096; i++)
 			build_salt((WORD)i);
 
-		auto_tune_all(300, fmt_opencl_DES.methods.set_key, 2, 0);
+		auto_tune_all(300, fmt_opencl_DES.methods.set_key, 2, 0, extern_lws_limit);
 
 		i = 0;
 		while (fmt_opencl_DES.params.tests[i].ciphertext) {

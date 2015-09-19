@@ -447,9 +447,10 @@ static void set_kernel_args_aux_buf()
 	HANDLE_CLERROR(clSetKernelArg(kernel_high, 5, sizeof(cl_mem), &buffer_bitmap_dupe), "Failed setting kernel argument buffer_bitmap_dupe, kernel DES_bs_cmp.\n");
 }
 
-void create_checking_kernel_set_args()
+size_t create_checking_kernel_set_args()
 {
 	int i;
+	size_t min_lws;
 
 	opencl_read_source("$JOHN/kernels/DES_bs_hash_checking_kernel.cl");
 	opencl_build(gpu_id, NULL, 0, NULL);
@@ -473,6 +474,13 @@ void create_checking_kernel_set_args()
 	}
 
 	set_kernel_args_aux_buf();
+
+	min_lws = get_kernel_max_lws(gpu_id, kernel_high);
+
+	if(min_lws > get_kernel_max_lws(gpu_id, kernel_low))
+		return get_kernel_max_lws(gpu_id, kernel_low);
+
+	return min_lws;
 }
 
 void set_common_kernel_args_kpc(cl_mem buffer_unchecked_hashes, cl_mem buffer_bs_keys)
@@ -1118,7 +1126,7 @@ static char *get_key_mm(int index)
 	return out;
 }
 
-void create_keys_kernel_set_args(int mask_mode)
+size_t create_keys_kernel_set_args(int mask_mode)
 {
 	static char build_opts[400];
 	cl_ulong const_cache_size;
@@ -1169,6 +1177,8 @@ void create_keys_kernel_set_args(int mask_mode)
 	HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_finalize_keys.\n");
 
 	HANDLE_CLERROR(clSetKernelArg(keys_kernel, 1, sizeof(cl_mem), &buffer_int_des_keys), "Failed setting kernel argument buffer_int_des_keys, kernel DES_bs_finalize_keys.\n");
+
+	return get_kernel_max_lws(gpu_id, keys_kernel);
 }
 
 void process_keys(size_t current_gws, size_t *lws)
@@ -1186,5 +1196,12 @@ void process_keys(size_t current_gws, size_t *lws)
 
 		keys_changed = 0;
 	}
+}
+
+char *get_device_name(int id)
+{
+	static char d_name[600];
+	HANDLE_CLERROR(clGetDeviceInfo(devices[id], CL_DEVICE_NAME, 600, d_name, NULL), "Failed to get device name.\n");
+	return d_name;
 }
 #endif /* HAVE_OPENCL */
