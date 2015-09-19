@@ -498,7 +498,6 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 
 		release_kernels();
 		init_kernel(test_salt, gpu_id, 0, 1, 0);
-		set_kernel_args_kpc();
 
 		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag, set_key, test_salt, mask_mode);
 		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, test_salt, mask_mode);
@@ -735,7 +734,10 @@ static void reset(struct db_main *db)
 		for (i = 0; i < 4096; i++)
 			build_salt((WORD)i);
 
-		auto_tune_all(300, fmt_opencl_DES.methods.set_key, 2, 0, extern_lws_limit);
+		salt_val = *(WORD *)fmt_opencl_DES.methods.salt(fmt_opencl_DES.methods.split(
+			fmt_opencl_DES.params.tests[0].ciphertext, 0, &fmt_opencl_DES));
+
+		auto_tune_all(300, fmt_opencl_DES.methods.set_key, salt_val, 0, extern_lws_limit);
 
 		i = 0;
 		while (fmt_opencl_DES.params.tests[i].ciphertext) {
