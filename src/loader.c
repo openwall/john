@@ -354,7 +354,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 
 /* Check for NIS stuff */
 	if (((*login)[0] == '+' && (!(*login)[1] || (*login)[1] == '@')) &&
-	    strlen(*ciphertext) < 10 && strncmp(*ciphertext, "$dummy$", 7)) {
+	    (*ciphertext)[0] != '$' && strnlen(*ciphertext, 10) < 10 &&
+	    strncmp(*ciphertext, "$dummy$", 7)) {
 		if (db_opts->showtypes) {
 			int fs = db_opts->field_sep_char;
 			printf("%s%c%s%c2%c\n",
