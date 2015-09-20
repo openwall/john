@@ -645,13 +645,6 @@ int fuzz(struct db_main *db)
 		if (!format->params.tests && format != fmt_list)
 			continue;
 
-/* Format disabled in john.conf, unless forced */
-		if (fmt_list->next &&
-		    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
-		                 format->params.label, 0)) {
-			continue;
-		}
-
 		printf("%s: %s%s%s%s [%s]%s... ",
 		    "Fuzzing",
 		    format->params.label,
