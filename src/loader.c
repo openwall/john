@@ -70,8 +70,10 @@ int ldr_in_pot = 0;
 static char *no_username = "?";
 #ifdef HAVE_FUZZ
 int pristine_gecos;
+int single_skip_login;
 #else
 static int pristine_gecos;
+static int single_skip_login;
 #endif
 
 /* There should be legislation against adding a BOM to UTF-8 */
@@ -775,10 +777,10 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 
 	list_init(&words);
 
-	if (*login && login != no_username)
+	if (*login && login != no_username && !single_skip_login)
 		list_add(words, ldr_conv(login));
 	ldr_split_string(words, ldr_conv(gecos));
-	if (login != no_username)
+	if (login != no_username && !single_skip_login)
 		ldr_split_string(words, ldr_conv(login));
 	if (pristine_gecos && *gecos)
 		list_add_unique(words, ldr_conv(gecos));
@@ -1007,6 +1009,8 @@ void ldr_load_pw_file(struct db_main *db, char *name)
 {
 	pristine_gecos = cfg_get_bool(SECTION_OPTIONS, NULL,
 	        "PristineGecos", 0);
+	single_skip_login = cfg_get_bool(SECTION_OPTIONS, NULL,
+	        "SingleSkipLogin", 0);
 
 	read_file(db, name, RF_ALLOW_DIR, ldr_load_pw_line);
 }

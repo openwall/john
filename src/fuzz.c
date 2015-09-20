@@ -53,6 +53,7 @@ static struct FuzzDic *rfd;
 static FILE *s_file; // Status file which is ./fuzz_status/'format->params.label'
 
 extern int pristine_gecos;
+extern int single_skip_login;
 
 static char *file_pos, *file_end;
 
@@ -611,6 +612,8 @@ int fuzz(struct db_main *db)
 
 	pristine_gecos = cfg_get_bool(SECTION_OPTIONS, NULL,
 	        "PristineGecos", 0);
+	single_skip_login = cfg_get_bool(SECTION_OPTIONS, NULL,
+		"PristineGecos", 0);
 
 	if (options.flags & FLG_FUZZ_DUMP_CHK) {
 		from = -1;
