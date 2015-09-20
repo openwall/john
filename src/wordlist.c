@@ -1134,13 +1134,20 @@ REDO_AFTER_LMLOOP:
 						break;
 					}
 				} else
-				if (ext_filter(word))
-				if (
 #if HAVE_REXGEN
-				    regex ?
-				    do_regex_crack_as_rules(regex, word, regex_case, regex_alpha) :
+				if (regex) {
+					if (do_regex_hybrid_crack(regex, word,
+					                            regex_case,
+					                            regex_alpha)) {
+					rule = NULL;
+					rules = 0;
+					pipe_input = 0;
+					break;
+					}
+				} else
 #endif
-				    crk_process_key(word)) {
+				if (ext_filter(word))
+				if (crk_process_key(word)) {
 					rule = NULL;
 					rules = 0;
 					pipe_input = 0;
@@ -1180,13 +1187,20 @@ REDO_AFTER_LMLOOP:
 						break;
 					}
 				} else
-				if (ext_filter(word))
-				if (
 #if HAVE_REXGEN
-				    regex!=NULL ?
-					do_regex_crack_as_rules(regex, word, regex_case, regex_alpha) :
+				if (regex) {
+					if (do_regex_hybrid_crack(regex, word,
+					                            regex_case,
+					                            regex_alpha)) {
+					rule = NULL;
+					rules = 0;
+					pipe_input = 0;
+					break;
+					}
+				} else
 #endif
-				    crk_process_key(word)) {
+				if (ext_filter(word))
+				if (crk_process_key(word)) {
 					rules = 0;
 					pipe_input = 0;
 					break;
@@ -1236,13 +1250,21 @@ process_word:
 							break;
 						}
 					} else
-					if (ext_filter(word))
-					if (
 #if HAVE_REXGEN
-					    regex != NULL ?
-						do_regex_crack_as_rules(regex, word, regex_case, regex_alpha) :
+					if (regex) {
+						if (do_regex_hybrid_crack(
+							    regex, word,
+							    regex_case,
+							    regex_alpha)) {
+							rule = NULL;
+							rules = 0;
+							pipe_input = 0;
+							break;
+						}
+					} else
 #endif
-						crk_process_key(word)) {
+					if (ext_filter(word))
+					if (crk_process_key(word)) {
 						rules = 0;
 						pipe_input = 0;
 						break;
