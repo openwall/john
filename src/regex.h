@@ -49,7 +49,7 @@
      * Runs the Regular expression cracker
      */
     void do_regex_crack(struct db_main *db, const char *regex);
-    int do_regex_hybrid_crack(const char *regex, const char *base_word, int bCase, const char *regex_alpha);
+    int do_regex_hybrid_crack(struct db_main *db, const char *regex, const char *base_word, int bCase, const char *regex_alpha);
 	char *prepare_regex(char *regex, int *bCase, char **regex_alpha);
   #else
     #undef HAVE_REXGEN

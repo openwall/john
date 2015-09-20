@@ -113,6 +113,9 @@ static char *mem_map, *map_pos, *map_end, *map_scan_end;
 static char *word_file_str, **words;
 static int64_t nWordFileLines;
 
+// Used for freezing fix_state while in hybrid Regex
+static int freeze_state;
+
 static void save_state(FILE *file)
 {
 	fprintf(file, "%d\n" LLd "\n" LLd "\n",
@@ -316,6 +319,9 @@ static int fix_state_delay;
 
 static void fix_state(void)
 {
+	if (freeze_state)
+		return;
+
 	if (++fix_state_delay < options.max_fix_state_delay)
 		return;
 	fix_state_delay=0;
@@ -1136,14 +1142,17 @@ REDO_AFTER_LMLOOP:
 				} else
 #if HAVE_REXGEN
 				if (regex) {
-					if (do_regex_hybrid_crack(regex, word,
-					                            regex_case,
-					                            regex_alpha)) {
-					rule = NULL;
-					rules = 0;
-					pipe_input = 0;
-					break;
+					freeze_state = 1;
+					if (do_regex_hybrid_crack(db, regex,
+					                          word,
+					                          regex_case,
+					                          regex_alpha)) {
+						rule = NULL;
+						rules = 0;
+						pipe_input = 0;
+						break;
 					}
+					freeze_state = 0;
 				} else
 #endif
 				if (ext_filter(word))
@@ -1189,14 +1198,17 @@ REDO_AFTER_LMLOOP:
 				} else
 #if HAVE_REXGEN
 				if (regex) {
-					if (do_regex_hybrid_crack(regex, word,
-					                            regex_case,
-					                            regex_alpha)) {
-					rule = NULL;
-					rules = 0;
-					pipe_input = 0;
-					break;
+					freeze_state = 1;
+					if (do_regex_hybrid_crack(db, regex,
+					                          word,
+					                          regex_case,
+					                          regex_alpha)) {
+						rule = NULL;
+						rules = 0;
+						pipe_input = 0;
+						break;
 					}
+					freeze_state = 0;
 				} else
 #endif
 				if (ext_filter(word))
@@ -1252,8 +1264,9 @@ process_word:
 					} else
 #if HAVE_REXGEN
 					if (regex) {
+						freeze_state = 1;
 						if (do_regex_hybrid_crack(
-							    regex, word,
+							    db, regex, word,
 							    regex_case,
 							    regex_alpha)) {
 							rule = NULL;
@@ -1261,6 +1274,7 @@ process_word:
 							pipe_input = 0;
 							break;
 						}
+						freeze_state = 0;
 					} else
 #endif
 					if (ext_filter(word))

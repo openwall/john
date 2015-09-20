@@ -104,14 +104,14 @@ void SetupAlpha(const char *regex_alpha)
 	}
 }
 
-int do_regex_hybrid_crack(const char *regex, const char *base_word, int regex_case, const char *regex_alpha) {
+int do_regex_hybrid_crack(struct db_main *db, const char *regex, const char *base_word, int regex_case, const char *regex_alpha) {
 	c_simplestring_ptr buffer = c_simplestring_new();
 	c_iterator_ptr iter = NULL;
 	charset encoding = CHARSET_UTF8;
 	char word[PLAINTEXT_BUFFER_SIZE];
 	static int bFirst=1;
 	static int bALPHA=0;
-	int max_len = db->format->params->plaintext_length;
+	int max_len = db->format->params.plaintext_length;
 
 	if (bFirst) {
 		bFirst = 0;
@@ -193,7 +193,7 @@ void do_regex_crack(struct db_main *db, const char *regex) {
 	charset encoding = CHARSET_UTF8;
 	int ignore_case = 0;
 	char word[PLAINTEXT_BUFFER_SIZE];
-	int max_len = db->format->params->plaintext_length;
+	int max_len = db->format->params.plaintext_length;
 
 	if (john_main_process)
 		fprintf(stderr, "Warning: regex mode currently can't be "
