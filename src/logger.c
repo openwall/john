@@ -255,7 +255,6 @@ static int log_time(void)
 	return count1 + count2;
 }
 
-
 void log_init(char *log_name, char *pot_name, char *session)
 {
 	in_logger = 1;
