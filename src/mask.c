@@ -1153,6 +1153,8 @@ static void save_restore(cpu_mask_context *cpu_mask_ctx, int range_idx, int ch)
 {
 	static int bckp_range_idx, bckp_next, toggle;
 
+	if (range_idx == -1) return;
+
 	/* save state */
 	if (!ch) {
 		bckp_range_idx = range_idx;
@@ -1176,6 +1178,13 @@ static void truncate_mask(cpu_mask_context *cpu_mask_ctx, int range_idx)
 		error();
 	}
 
+	if (range_idx == -1) {
+		mask_tot_cand = 1;
+		cpu_mask_ctx->cpu_count = 0;
+		cpu_mask_ctx->ps1 = MAX_NUM_MASK_PLHDR;
+		return;
+	}
+
 	cpu_mask_ctx->ranges[range_idx].next = MAX_NUM_MASK_PLHDR;
 
 	mask_tot_cand = 1;
@@ -1187,6 +1196,8 @@ static void truncate_mask(cpu_mask_context *cpu_mask_ctx, int range_idx)
 				cpu_mask_ctx->ps1 = i;
 			cpu_mask_ctx->cpu_count++;
 			mask_tot_cand *= cpu_mask_ctx->ranges[i].count;
+			if (cpu_mask_ctx->ranges[i].next == MAX_NUM_MASK_PLHDR)
+				break;
 		}
 }
 
