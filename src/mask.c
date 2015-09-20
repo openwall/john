@@ -1949,8 +1949,7 @@ int do_mask_crack(const char *extern_key)
 		restored_len = 0;
 
 		if (mask_cur_len == 0) {
-			char nullstring[PLAINTEXT_BUFFER_SIZE] = { 0 };
-			if (crk_process_key(nullstring))
+			if (crk_process_key(fmt_null_key))
 				return 1;
 			mask_cur_len++;
 		}
