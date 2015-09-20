@@ -844,7 +844,7 @@ static void john_load_conf(void)
 	}
 
 	options.secure = cfg_get_bool(SECTION_OPTIONS, NULL, "SecureMode", 0);
-	options.show_uid_on_crack = cfg_get_bool(SECTION_OPTIONS, NULL, "ShowUIDinCracks", 0);
+	options.show_uid_in_cracks = cfg_get_bool(SECTION_OPTIONS, NULL, "ShowUIDinCracks", 0);
 	options.reload_at_crack =
 		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtCrack", 0);
 	options.reload_at_save =
@@ -1059,8 +1059,11 @@ static void john_load(void)
 		else
 		if (mem_saving_level) {
 			options.loader.flags &= ~DB_LOGIN;
-			options.max_wordfile_memory = 1;
+			options.show_uid_in_cracks = 0;
 		}
+
+		if (mem_saving_level >= 2)
+			options.max_wordfile_memory = 1;
 
 		ldr_init_database(&database, &options.loader);
 

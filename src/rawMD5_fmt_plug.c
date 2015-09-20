@@ -381,7 +381,7 @@ static int cmp_one(void *binary, int index)
 
 	return ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4];
 #else
-	return !memcmp(binary, crypt_key, BINARY_SIZE);
+	return !memcmp(binary, crypt_key[index], DIGEST_SIZE);
 #endif
 }
 
@@ -399,8 +399,10 @@ static int cmp_exact(char *source, int index)
 #ifdef REVERSE_STEPS
 	md5_reverse(crypt_key);
 #endif
-#endif
 	return !memcmp(get_binary(source), crypt_key, DIGEST_SIZE);
+#else
+	return 1;
+#endif
 }
 
 #ifdef SIMD_COEF_32
@@ -413,13 +415,13 @@ static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[SIMD_INDEX]
 static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[SIMD_INDEX] & PH_MASK_5; }
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[SIMD_INDEX] & PH_MASK_6; }
 #else
-static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & PH_MASK_6; }
+static int get_hash_0(int index) { return crypt_key[index][0] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_key[index][0] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_key[index][0] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_key[index][0] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_key[index][0] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_key[index][0] & PH_MASK_5; }
+static int get_hash_6(int index) { return crypt_key[index][0] & PH_MASK_6; }
 #endif
 
 struct fmt_main fmt_rawMD5 = {

@@ -575,7 +575,7 @@ static INLINE vtype vloadu_emu(const void *addr)
 	else {
 		JTR_ALIGN(MEM_ALIGN_SIMD) char buf[sizeof(vtype)];
 
-		return (memcpy(buf, addr, sizeof(vtype)), vload(buf));
+		return vload(memcpy(buf, addr, sizeof(vtype)));
 	}
 }
 #endif

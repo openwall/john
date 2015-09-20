@@ -327,15 +327,22 @@ static int cmp_exact(char *source, int index)
 {
 #if SIMD_COEF_32
 	ARCH_WORD_32 crypt_key[SHA_BUF_SIZ];
-	UTF8 *key = (UTF8*)get_key(index);
-	UTF16 u16[PLAINTEXT_LENGTH+1];
-	int len = enc_to_utf16(u16, PLAINTEXT_LENGTH, key, strlen((char*)key));
+	char *key = get_key(index);
+	UTF16 utf16key[PLAINTEXT_LENGTH+1], utf16key_tmp[PLAINTEXT_LENGTH+1];
+	int len;
 	SHA_CTX ctx;
 
+	len = enc_to_utf16(utf16key_tmp, PLAINTEXT_LENGTH,
+	                        (unsigned char*)key, strlen(key));
 	if (len < 0)
-		len = strlen16(u16);
+		len = strlen16(utf16key_tmp);
+
+	len = utf16_uc(utf16key, PLAINTEXT_LENGTH, utf16key_tmp, len);
+	if (len <= 0)
+		len *= -1;
+
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, u16, 2 * len);
+	SHA1_Update(&ctx, utf16key, 2 * len);
 	SHA1_Update(&ctx, cursalt, SALT_SIZE);
 	SHA1_Final((void*)crypt_key, &ctx);
 

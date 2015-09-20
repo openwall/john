@@ -324,7 +324,7 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 	else
 		len = strlen(rep_plain);
 
-	if (options.show_uid_on_crack && uid && *uid) {
+	if (options.show_uid_in_cracks && uid && *uid) {
 		uid_sep[0] = field_sep;
 		uid_out = uid;
 	}

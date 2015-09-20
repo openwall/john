@@ -156,7 +156,7 @@ void ldr_init_database(struct db_main *db, struct db_options *db_options)
 	if (!(db_options->flags & DB_WORDS)) {
 		db->pw_size -= sizeof(struct list_main *);
 		if (db_options->flags & DB_LOGIN) {
-			if (!options.show_uid_on_crack)
+			if (!options.show_uid_in_cracks)
 				db->pw_size -= sizeof(char *);
 		} else
 			db->pw_size -= sizeof(char *) * 2;
@@ -354,7 +354,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 
 /* Check for NIS stuff */
 	if (((*login)[0] == '+' && (!(*login)[1] || (*login)[1] == '@')) &&
-	    strlen(*ciphertext) < 10 && strncmp(*ciphertext, "$dummy$", 7)) {
+	    (*ciphertext)[0] != '$' && strnlen(*ciphertext, 10) < 10 &&
+	    strncmp(*ciphertext, "$dummy$", 7)) {
 		if (db_opts->showtypes) {
 			int fs = db_opts->field_sep_char;
 			printf("%s%c%s%c2%c\n",
@@ -982,7 +983,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			if (login != no_username && index == 0)
 				login = ldr_conv(login);
 
-			if (options.show_uid_on_crack)
+			if (options.show_uid_in_cracks)
 				current_pw->uid = str_alloc_copy(uid);
 
 			if (count >= 2 && count <= 9) {
@@ -1261,6 +1262,7 @@ static void ldr_show_left(struct db_main *db, struct db_password *pw)
 	char uid_sep[2] = { 0 };
 	char *uid_out = "";
 	char *pw_source = db->format->methods.source(pw->source, pw->binary);
+	char *login = (db->options->flags & DB_LOGIN) ? pw->login : "?";
 
 #ifndef DYNAMIC_DISABLED
 	/* Note for salted dynamic, we 'may' need to fix up the salts to
@@ -1268,7 +1270,7 @@ static void ldr_show_left(struct db_main *db, struct db_password *pw)
 	if (!strncmp(pw_source, "$dynamic_", 9))
 		pw_source = dynamic_FIX_SALT_TO_HEX(pw_source);
 #endif
-	if (options.show_uid_on_crack && pw->uid && *pw->uid) {
+	if (options.show_uid_in_cracks && pw->uid && *pw->uid) {
 		uid_sep[0] = db->options->field_sep_char;
 		uid_out = pw->uid;
 	}
@@ -1276,12 +1278,12 @@ static void ldr_show_left(struct db_main *db, struct db_password *pw)
 	{
 		char utf8login[PLAINTEXT_BUFFER_SIZE + 1];
 
-		cp_to_utf8_r(pw->login, utf8login,
+		cp_to_utf8_r(login, utf8login,
 		             PLAINTEXT_BUFFER_SIZE);
 		printf("%s%c%s%s%s\n", utf8login, db->options->field_sep_char,
 		       pw_source, uid_sep, uid_out);
 	} else
-		printf("%s%c%s%s%s\n", pw->login, db->options->field_sep_char,
+		printf("%s%c%s%s%s\n", login, db->options->field_sep_char,
 		       pw_source, uid_sep, uid_out);
 }
 
@@ -1578,10 +1580,17 @@ static int ldr_cracked_hash(char *ciphertext)
 	while (*p) {
 		hash <<= 1;
 		hash += (unsigned char)*p++ | 0x20; /* ASCII case insensitive */
+#if CRACKED_HASH_LOG <= 12
 		if (hash >> (2 * CRACKED_HASH_LOG - 1)) {
 			hash ^= hash >> CRACKED_HASH_LOG;
 			hash &= CRACKED_HASH_SIZE - 1;
 		}
+#else
+		if (hash & 0xff000000U) {
+			hash ^= hash >> 13;
+			hash &= 0xffffffU;
+		}
+#endif
 	}
 
 	hash ^= hash >> CRACKED_HASH_LOG;
@@ -1693,13 +1702,20 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	if (format) {
 		split = format->methods.split;
 		unify = format->params.flags & FMT_SPLIT_UNIFIES_CASE;
-		if (format->params.flags & FMT_UNICODE)
-			pers_opts.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
-			    NULL, "UnicodeStoreUTF8", 0);
-		else
-			pers_opts.store_utf8 = pers_opts.target_enc != ASCII &&
-				cfg_get_bool(SECTION_OPTIONS, NULL,
-				             "CPstoreUTF8", 0);
+		if (format->params.flags & FMT_UNICODE) {
+			static int setting = -1;
+			if (setting < 0)
+				setting = cfg_get_bool(SECTION_OPTIONS, NULL,
+				    "UnicodeStoreUTF8", 0);
+			pers_opts.store_utf8 = setting;
+		} else {
+			static int setting = -1;
+			if (setting < 0)
+				setting = pers_opts.target_enc != ASCII &&
+				    cfg_get_bool(SECTION_OPTIONS, NULL,
+				    "CPstoreUTF8", 0);
+			pers_opts.store_utf8 = setting;
+		}
 	} else {
 		split = fmt_default_split;
 		count = 1;

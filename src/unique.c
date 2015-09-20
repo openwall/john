@@ -20,8 +20,8 @@
  *           files are 'proper' LM format (7 char and upcase).  No auto
  *           trimming/upcasing is done.
  * -mem=num. A number that overrides the UNIQUE_HASH_LOG value from within
- *           params.h.  The default is 21.  valid range from 13 to 25.  25
- *           will use a 2GB memory buffer, and 33 entry million hash table
+ *           params.h.  The default is 24 or 25.  valid range from 13 to 25.
+ *           25 will use a 2GB memory buffer, and 33 entry million hash table
  *           Each number doubles size.
  */
 
@@ -446,7 +446,7 @@ int unique(int argc, char **argv)
 #if defined (__MINGW32__)
 	    puts("");
 #endif
-		puts("Usage: unique [-v] [-inp=fname] [-cut=len] [-mem=num] OUTPUT-FILE [-ex_file=FNAME2] [-ex_file_only=FNAME2]\n\n"
+		printf("Usage: unique [-v] [-inp=fname] [-cut=len] [-mem=num] OUTPUT-FILE [-ex_file=FNAME2] [-ex_file_only=FNAME2]\n\n"
 			 "       reads from stdin 'normally', but can be overridden by optional -inp=\n"
 			 "       If -ex_file=XX is used, then data from file XX is also used to\n"
 			 "       unique the data, but nothing is ever written to XX. Thus, any data in\n"
@@ -455,11 +455,12 @@ int unique(int argc, char **argv)
 			 "       -cut=len  Will trim each input lines to 'len' bytes long, prior to running\n"
 			 "       the unique algorithm. The 'trimming' is done on any -ex_file[_only] file\n"
 			 "       -mem=num.  A number that overrides the UNIQUE_HASH_LOG value from within\n"
-			 "       params.h.  The default is 21.  This can be raised, up to 25 (memory usage\n"
+			 "       params.h.  The default is %u.  Valid range is from 13 to 25 (memory usage\n"
 			 "       doubles each number).  If you go TOO large, unique will swap and thrash and\n"
 			 "       work VERY slow\n"
 			 "\n"
-			 "       -v is for 'verbose' mode, outputs line counts during the run");
+			 "       -v is for 'verbose' mode, outputs line counts during the run\n",
+			UNIQUE_HASH_LOG);
 
 		if (argc <= 1)
 			return 0;
