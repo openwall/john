@@ -306,7 +306,7 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * to disable prefetching.
  */
 #ifdef __SSE2__
-#define CRK_PREFETCH			64
+#define CRK_PREFETCH			0 // was 64 - segfaults seen
 #else
 #define CRK_PREFETCH			0
 #endif
