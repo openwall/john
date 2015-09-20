@@ -613,7 +613,7 @@ int fuzz(struct db_main *db)
 	pristine_gecos = cfg_get_bool(SECTION_OPTIONS, NULL,
 	        "PristineGecos", 0);
 	single_skip_login = cfg_get_bool(SECTION_OPTIONS, NULL,
-		"PristineGecos", 0);
+		"SingleSkipLogin", 0);
 
 	if (options.flags & FLG_FUZZ_DUMP_CHK) {
 		from = -1;
