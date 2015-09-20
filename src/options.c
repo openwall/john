@@ -507,11 +507,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		list_add(options.gpu_devices, "all");
 	}
 #endif
-	if (options.flags & FLG_MASK_STACKED && ext_flags & EXT_REQ_FILTER) {
-		fprintf(stderr, "Can't use Hybrid Mask mode with External "
-		        "Filter\n");
-		error();
-	}
 
 	if (options.session) {
 #if OS_FORK
