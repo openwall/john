@@ -531,6 +531,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	int maxlength = options.force_maxlength;
 	int minlength = (options.req_minlength >= 0) ?
 		options.req_minlength : 0;
+	int rules_length;
 #if HAVE_REXGEN
 	char *regex_alpha = 0;
 	int regex_case = 0;
@@ -550,6 +551,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	length = db->format->params.plaintext_length - mask_add_len;
 	if (mask_num_qw > 1)
 		length /= mask_num_qw;
+
+	/* rules.c honors -min/max-len options on its own */
+	rules_length = length;
+
 	if (maxlength && maxlength < length)
 		length = maxlength;
 
@@ -981,9 +986,7 @@ REDO_AFTER_LMLOOP:
 			error();
 		}
 
-		/* rules.c honors -min/max-len options on its own */
-		rules_init(pers_opts.internal_enc == pers_opts.target_enc ?
-		           length : db->format->params.plaintext_length);
+		rules_init(rules_length);
 		rule_count = rules_count(&ctx, -1);
 
 		if (do_lmloop || !db->plaintexts->head)
