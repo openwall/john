@@ -113,6 +113,9 @@ static char *mem_map, *map_pos, *map_end, *map_scan_end;
 static char *word_file_str, **words;
 static int64_t nWordFileLines;
 
+// Used for freezing fix_state while in hybrid Regex
+static int freeze_state;
+
 static void save_state(FILE *file)
 {
 	fprintf(file, "%d\n" LLd "\n" LLd "\n",
@@ -316,6 +319,9 @@ static int fix_state_delay;
 
 static void fix_state(void)
 {
+	if (freeze_state)
+		return;
+
 	if (++fix_state_delay < options.max_fix_state_delay)
 		return;
 	fix_state_delay=0;
@@ -531,6 +537,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	int maxlength = options.force_maxlength;
 	int minlength = (options.req_minlength >= 0) ?
 		options.req_minlength : 0;
+	int rules_length;
 #if HAVE_REXGEN
 	char *regex_alpha = 0;
 	int regex_case = 0;
@@ -550,6 +557,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	length = db->format->params.plaintext_length - mask_add_len;
 	if (mask_num_qw > 1)
 		length /= mask_num_qw;
+
+	/* rules.c honors -min/max-len options on its own */
+	rules_length = length;
+
 	if (maxlength && maxlength < length)
 		length = maxlength;
 
@@ -981,9 +992,7 @@ REDO_AFTER_LMLOOP:
 			error();
 		}
 
-		/* rules.c honors -min/max-len options on its own */
-		rules_init(pers_opts.internal_enc == pers_opts.target_enc ?
-		           length : db->format->params.plaintext_length);
+		rules_init(rules_length);
 		rule_count = rules_count(&ctx, -1);
 
 		if (do_lmloop || !db->plaintexts->head)
@@ -1131,13 +1140,23 @@ REDO_AFTER_LMLOOP:
 						break;
 					}
 				} else
-				if (ext_filter(word))
-				if (
 #if HAVE_REXGEN
-				    regex ?
-				    do_regex_crack_as_rules(regex, word, regex_case, regex_alpha) :
+				if (regex) {
+					freeze_state = 1;
+					if (do_regex_hybrid_crack(db, regex,
+					                          word,
+					                          regex_case,
+					                          regex_alpha)) {
+						rule = NULL;
+						rules = 0;
+						pipe_input = 0;
+						break;
+					}
+					freeze_state = 0;
+				} else
 #endif
-				    crk_process_key(word)) {
+				if (ext_filter(word))
+				if (crk_process_key(word)) {
 					rule = NULL;
 					rules = 0;
 					pipe_input = 0;
@@ -1177,13 +1196,23 @@ REDO_AFTER_LMLOOP:
 						break;
 					}
 				} else
-				if (ext_filter(word))
-				if (
 #if HAVE_REXGEN
-				    regex!=NULL ?
-					do_regex_crack_as_rules(regex, word, regex_case, regex_alpha) :
+				if (regex) {
+					freeze_state = 1;
+					if (do_regex_hybrid_crack(db, regex,
+					                          word,
+					                          regex_case,
+					                          regex_alpha)) {
+						rule = NULL;
+						rules = 0;
+						pipe_input = 0;
+						break;
+					}
+					freeze_state = 0;
+				} else
 #endif
-				    crk_process_key(word)) {
+				if (ext_filter(word))
+				if (crk_process_key(word)) {
 					rules = 0;
 					pipe_input = 0;
 					break;
@@ -1233,13 +1262,23 @@ process_word:
 							break;
 						}
 					} else
-					if (ext_filter(word))
-					if (
 #if HAVE_REXGEN
-					    regex != NULL ?
-						do_regex_crack_as_rules(regex, word, regex_case, regex_alpha) :
+					if (regex) {
+						freeze_state = 1;
+						if (do_regex_hybrid_crack(
+							    db, regex, word,
+							    regex_case,
+							    regex_alpha)) {
+							rule = NULL;
+							rules = 0;
+							pipe_input = 0;
+							break;
+						}
+						freeze_state = 0;
+					} else
 #endif
-						crk_process_key(word)) {
+					if (ext_filter(word))
+					if (crk_process_key(word)) {
 						rules = 0;
 						pipe_input = 0;
 						break;

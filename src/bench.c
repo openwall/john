@@ -549,24 +549,6 @@ AGAIN:
 		if (!format->params.tests && format != fmt_list)
 			continue;
 
-/* Format disabled in john.conf, unless forced */
-		if (fmt_list->next &&
-		    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
-		                 format->params.label, 0)) {
-#ifdef DEBUG
-			if ((format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
-				// in debug mode, we 'allow' dyna
-			} else
-#else
-			if ((options.format && !strcasecmp(options.format, "dynamic-all")&&(format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) ||
-			    (options.listconf && !strcasecmp(options.listconf, "subformats"))) {
-				// allow dyna if '-format=dynamic-all' was selected
-			} else
-
-#endif
-			continue;
-		}
-
 /* Just test the encoding-aware formats if --encoding was used explicitly */
 		if (!pers_opts.default_enc && pers_opts.target_enc != ASCII &&
 		    pers_opts.target_enc != ISO_8859_1 &&

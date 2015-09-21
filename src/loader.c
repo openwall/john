@@ -70,8 +70,10 @@ int ldr_in_pot = 0;
 static char *no_username = "?";
 #ifdef HAVE_FUZZ
 int pristine_gecos;
+int single_skip_login;
 #else
 static int pristine_gecos;
+static int single_skip_login;
 #endif
 
 /* There should be legislation against adding a BOM to UTF-8 */
@@ -177,10 +179,8 @@ void ldr_init_database(struct db_main *db, struct db_options *db_options)
 	if (db_options->flags & DB_CRACKED) {
 		db->salt_hash = NULL;
 
-		db->cracked_hash = mem_alloc(
-			CRACKED_HASH_SIZE * sizeof(struct db_cracked *));
-		memset(db->cracked_hash, 0,
-			CRACKED_HASH_SIZE * sizeof(struct db_cracked *));
+		db->cracked_hash = mem_calloc(
+			CRACKED_HASH_SIZE, sizeof(struct db_cracked *));
 	} else {
 		db->salt_hash = mem_alloc(
 			SALT_HASH_SIZE * sizeof(struct db_salt *));
@@ -775,10 +775,10 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 
 	list_init(&words);
 
-	if (*login && login != no_username)
+	if (*login && login != no_username && !single_skip_login)
 		list_add(words, ldr_conv(login));
 	ldr_split_string(words, ldr_conv(gecos));
-	if (login != no_username)
+	if (login != no_username && !single_skip_login)
 		ldr_split_string(words, ldr_conv(login));
 	if (pristine_gecos && *gecos)
 		list_add_unique(words, ldr_conv(gecos));
@@ -1007,6 +1007,8 @@ void ldr_load_pw_file(struct db_main *db, char *name)
 {
 	pristine_gecos = cfg_get_bool(SECTION_OPTIONS, NULL,
 	        "PristineGecos", 0);
+	single_skip_login = cfg_get_bool(SECTION_OPTIONS, NULL,
+	        "SingleSkipLogin", 0);
 
 	read_file(db, name, RF_ALLOW_DIR, ldr_load_pw_line);
 }
@@ -1574,28 +1576,52 @@ void ldr_fix_database(struct db_main *db)
 
 static int ldr_cracked_hash(char *ciphertext)
 {
-	unsigned int hash = 0;
-	char *p = ciphertext;
+	unsigned int hash, extra;
+	unsigned char *p = (unsigned char *)ciphertext;
 
+	hash = p[0] | 0x20; /* ASCII case insensitive */
+	if (!hash)
+		goto out;
+	extra = p[1] | 0x20;
+	if (!extra)
+#if CRACKED_HASH_SIZE >= 0x100
+		goto out;
+#else
+		goto out_and;
+#endif
+
+	p += 2;
 	while (*p) {
-		hash <<= 1;
-		hash += (unsigned char)*p++ | 0x20; /* ASCII case insensitive */
-#if CRACKED_HASH_LOG <= 12
-		if (hash >> (2 * CRACKED_HASH_LOG - 1)) {
+		hash <<= 1; extra <<= 1;
+		hash += p[0] | 0x20;
+		if (!p[1]) break;
+		extra += p[1] | 0x20;
+		p += 2;
+		if (hash & 0xe0000000) {
 			hash ^= hash >> CRACKED_HASH_LOG;
+			extra ^= extra >> (CRACKED_HASH_LOG - 1);
 			hash &= CRACKED_HASH_SIZE - 1;
 		}
-#else
-		if (hash & 0xff000000U) {
-			hash ^= hash >> 13;
-			hash &= 0xffffffU;
-		}
-#endif
 	}
 
+	hash -= extra;
+	hash ^= extra << (CRACKED_HASH_LOG / 2);
+
 	hash ^= hash >> CRACKED_HASH_LOG;
+
+#if CRACKED_HASH_LOG <= 15
+	hash ^= hash >> (2 * CRACKED_HASH_LOG);
+#endif
+#if CRACKED_HASH_LOG <= 10
+	hash ^= hash >> (3 * CRACKED_HASH_LOG);
+#endif
+
+#if CRACKED_HASH_SIZE < 0x100
+out_and:
+#endif
 	hash &= CRACKED_HASH_SIZE - 1;
 
+out:
 	return hash;
 }
 

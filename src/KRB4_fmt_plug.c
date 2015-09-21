@@ -125,7 +125,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (tgt-ciphertext > REALM_SZ)
 		return 0;
 	++tgt;
-	if (!ishex(tgt)) return 0;
+	if (!ishexlc(tgt)) return 0;
 	if (strlen(tgt) != TGT_LENGTH * 2)
 		return 0;
 

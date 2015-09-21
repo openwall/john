@@ -27,6 +27,7 @@
 #if defined (_MSC_VER) && !defined (MEMDBG_ON)
 #define malloc(a) _aligned_malloc(a,16)
 #define realloc(a,b) _aligned_realloc(a,b,16)
+#define calloc(a,b) memset(_aligned_malloc(a*b,16),0,a*b)
 #define free(a) _aligned_free(a)
 char *strdup_MSVC(const char *str)
 {

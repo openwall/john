@@ -53,6 +53,7 @@ static struct FuzzDic *rfd;
 static FILE *s_file; // Status file which is ./fuzz_status/'format->params.label'
 
 extern int pristine_gecos;
+extern int single_skip_login;
 
 static char *file_pos, *file_end;
 
@@ -611,6 +612,8 @@ int fuzz(struct db_main *db)
 
 	pristine_gecos = cfg_get_bool(SECTION_OPTIONS, NULL,
 	        "PristineGecos", 0);
+	single_skip_login = cfg_get_bool(SECTION_OPTIONS, NULL,
+		"SingleSkipLogin", 0);
 
 	if (options.flags & FLG_FUZZ_DUMP_CHK) {
 		from = -1;
@@ -641,13 +644,6 @@ int fuzz(struct db_main *db)
 /* Silently skip formats for which we have no tests, unless forced */
 		if (!format->params.tests && format != fmt_list)
 			continue;
-
-/* Format disabled in john.conf, unless forced */
-		if (fmt_list->next &&
-		    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
-		                 format->params.label, 0)) {
-			continue;
-		}
 
 		printf("%s: %s%s%s%s [%s]%s... ",
 		    "Fuzzing",

@@ -49,6 +49,7 @@
 #include "options.h"
 #include "config.h"
 #include "options.h"
+#include "recovery.h"
 #include "unicode.h"
 #include "dynamic.h"
 #ifdef HAVE_MPI
@@ -261,6 +262,23 @@ void log_init(char *log_name, char *pot_name, char *session)
 	if (log_name && log.fd < 0) {
 		if (session)
 			log_name = path_session(session, LOG_SUFFIX);
+		if(!rec_restored && !(options.flags & FLG_NOLOG)) {
+			const char *protect;
+			if (!(protect = cfg_get_param(SECTION_OPTIONS, NULL,
+			                              "LogFileProtect")))
+				protect = "Disabled";
+			if (((!strcasecmp(protect, "Named")) &&
+			     strcmp(log_name, LOG_NAME)) ||
+			    (!strcasecmp(protect, "Always"))) {
+				struct stat st;
+				if (!stat(path_expand(log_name), &st)) {
+					fprintf(stderr,
+					        "ERROR: LogFileProtect enabled in john.conf, and %s exists\n",
+					        path_expand(log_name));
+					error();
+				}
+			}
+		}
 
 		log_file_init(&log, log_name, LOG_BUFFER_SIZE);
 	}
