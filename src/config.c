@@ -31,6 +31,16 @@ static struct cfg_section *cfg_database = NULL;
 static int cfg_recursion;
 static int cfg_process_directive(char *line, int number);
 
+/* we have exposed this to the dyna_parser file, so that it can easily
+ * walk the configuration list one time, to determine which dynamic formats
+ * are in the file.  Before we would walk the entire configuration list
+ * 4000 times. Now only 1 time. We return the pointer to this data in
+ * a const manner, telling the outside function to NOT make changes.
+ */
+const struct cfg_section *get_cfg_db() {
+	return cfg_database;
+}
+
 static char *trim(char *s)
 {
 	char *e;

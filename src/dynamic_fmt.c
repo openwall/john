@@ -7821,7 +7821,7 @@ int dynamic_Register_formats(struct fmt_main **ptr)
 	}
 
 	for (count = i = 0; i < 5000; ++i) {
-		if ((pop[i] = (dynamic_IS_VALID(i, 1) == 1)))
+		if ((pop[i] = (dynamic_IS_VALID(i, 0) == 1)))
 			++count;
 	}
 

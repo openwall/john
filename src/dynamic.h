@@ -339,7 +339,7 @@ typedef struct DYNAMIC_Setup_t
 extern int dynamic_allow_rawhash_fixup;
 
 int dynamic_SETUP(DYNAMIC_Setup *, struct fmt_main *pFmt);
-int dynamic_IS_VALID(int i, int force);
+int dynamic_IS_VALID(int i, int single_lookup_only);
 int dynamic_real_salt_length(struct fmt_main *pFmt);
 void dynamic_DISPLAY_ALL_FORMATS();
 char *RemoveHEX(char *output, char *input);
@@ -354,7 +354,7 @@ struct fmt_main * dynamic_Register_local_format(int *);
 
 int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt);
 char *dynamic_PRELOAD_SIGNATURE(int cnt);
-int dynamic_IS_PARSER_VALID(int which);
+int dynamic_IS_PARSER_VALID(int which, int single_lookup_only);
 
 // This one is called in the .pot writing.  We 'fixup' salts which contain ':' chars, or other
 // chars which cause problems (like the $ char).

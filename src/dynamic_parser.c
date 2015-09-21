@@ -518,12 +518,7 @@ static int load_config(int which) {
 	} else {
 		ngen_source = 0;
 		sprintf(SubSection, ":dynamic_%d", which);
-
 		gen_source = cfg_get_list("list.generic", SubSection);
-		//if (!gen_source) {
-		//	sprintf(SubSection, ":md5_gen(%d)", which);
-		//	gen_source = cfg_get_list("list.generic", SubSection);
-		//}
 	}
 	return !!gen_source;
 }
@@ -825,26 +820,36 @@ char *dynamic_LOAD_PARSER_SIGNATURE(int which)
 	return Sig;
 }
 
-int dynamic_IS_PARSER_VALID(int which)
+int dynamic_IS_PARSER_VALID(int which, int single_lookup_only)
 {
-	struct cfg_line *gen_line;
-	if (!dynamic_LOAD_PARSER_SIGNATURE(which))
-		return 0;
+	static char valid[5001];
+	static int init=0;
 
-	gen_line = gen_source->head;
-	while (gen_line)
-	{
-		if (!strncasecmp(gen_line->data, "ColonChar", 9))
-		{
-			// not sse2, but we do not handle this in the long bench.
-			// we can still bench if we specify JUST this one.
+	if (which < 1000 || which > 5000)
+		return -1;
+	if (single_lookup_only) {
+		// if only loading a single dyna format, then do NOT load the valid array
+		if (!dynamic_LOAD_PARSER_SIGNATURE(which))
 			return 0;
-		}
-		if (strstr(gen_line->data, "MGF_ColonNOTValid"))
-			return 0;  // same as above, ColonChar.
-		gen_line = gen_line->next;
+		return 1;
 	}
-	return 1;
+	if (!init) {
+		extern const struct cfg_section *get_cfg_db();
+		const struct cfg_section *cfg_db;
+
+		cfg_db = get_cfg_db();
+		memset(valid, -1, sizeof(valid));
+		while (cfg_db) {
+			if (!strncasecmp(cfg_db->name, "list.generic:dynamic_", 21)) {
+				int i = atoi(&cfg_db->name[21]);
+				if (i >= 1000 && i < 5000)
+					valid[i] = 1;
+			}
+			cfg_db = cfg_db->next;
+		}
+		init = 1;
+	}
+	return valid[which];
 }
 
 static int Count_Items(char *Key)

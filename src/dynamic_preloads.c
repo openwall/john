@@ -3296,13 +3296,26 @@ int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt)
 //   but the format is INCLUDED in the build.  A couple things are still left
 //   in the parser as invalid (such as non-colon separators, etc).
 // 1 is valid.
-int dynamic_IS_VALID(int i, int force)
+int dynamic_IS_VALID(int i, int single_lookup_only)
 {
 	static char valid[5001];
 	static int init=0;
+	int j;
 
+	if (single_lookup_only) {
+		// if only loading a single dyna format, then do NOT load the valid array
+		if (i < 1000) {
+			for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
+				if(atoi(&Setups[j].szFORMAT_NAME[8]) == i)
+					return 1;
+			}
+			return 0;
+		}
+		if (!dynamic_IS_PARSER_VALID(i, 1))
+			return 0;
+		return 1;
+	}
 	if (!init) {
-		int j;
 		memset(valid, -1, sizeof(valid));
 		for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
 			int k = atoi(&Setups[j].szFORMAT_NAME[8]);
@@ -3310,7 +3323,7 @@ int dynamic_IS_VALID(int i, int force)
 				valid[k] = 1;
 		}
 		for (j = 1000; j < 5000; ++j) {
-			if (dynamic_IS_PARSER_VALID(j))
+			if (dynamic_IS_PARSER_VALID(j, 0) != -1)
 				valid[j] = 1;
 		}
 		init = 1;
