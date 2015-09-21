@@ -157,6 +157,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	data = p + 1; // cnonce
 	if (!(p = strchr(data, '$')) || (int)(p-data) > MD5_HEX_SIZE)
 		return 0;
+	if ( abs(hexlenl(data)) != p-data)
+		return 0;
 	data = p + 1; // nc
 	if (!(p = strchr(data, '$')) || (int)(p-data) >= 9)
 		return 0;
@@ -171,6 +173,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if ((int)(p-data) > MD5_HEX_SIZE || strlen(&p[1]) >= 8)
 			return 0;
 	} else if (strlen(data) > MD5_HEX_SIZE)
+		return 0;
+	if (hexlenl(data) !=strlen(data))
 		return 0;
 
 	return 1;

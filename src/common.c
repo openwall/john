@@ -140,10 +140,10 @@ static MAYBE_INLINE int _hexlen(char *q, unsigned char dic[0x100])
 	size_t len = strlen(q);
 	if (len&1) --len;
 
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+	while (dic[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	if ((size_t)(q - s)&1) --q;
-	return (len == (size_t)(q - s)) ? (int)(q - s) : -1 - (int)(q - s);
+	return (len == (size_t)(q - s)) ? (int)(q - s) : 0 - (int)(q - s);
 }
 int hexlen(char *q)
 {
