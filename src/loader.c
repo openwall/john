@@ -44,6 +44,7 @@
 #include "cracker.h"
 #include "config.h"
 #include "logger.h" /* Beware: log_init() happens after most functions here */
+#include "base64_convert.h"
 #include "memdbg.h"
 
 #ifdef HAVE_CRYPT
@@ -1634,13 +1635,17 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
 
 	if (options.format &&
-	    !strcasecmp(options.format, "raw-sha1-linkedin") &&
-	    !strncmp(ciphertext, "$dynamic_26$", 12) &&
-	    strncmp(ciphertext, "$dynamic_26$00000", 17)) {
-		char *new = mem_alloc_tiny(12 + 41, MEM_ALIGN_NONE);
-		strnzcpy(new, ciphertext, 12 + 41);
-		memset(new + 12, '0', 5);
-		ciphertext = new;
+	    !strcasecmp(options.format, "raw-sha1-linkedin")) {
+		if (!strncmp(ciphertext, "$dynamic_26$", 12))
+			memset(ciphertext + 12, '0', 5);
+		else if (!strncmp(ciphertext, "{SHA}", 5)) {
+			char out[41+3];
+			base64_convert(ciphertext + 5, e_b64_mime,
+			    strlen(ciphertext) - 5, out, e_b64_hex, 41, 0);
+			memcpy(out, "00000", 5);
+			base64_convert(out, e_b64_hex, 40, ciphertext + 5,
+			    e_b64_mime, strlen(out), flg_Base64_MIME_TRAIL_EQ);
+		}
 	}
 #ifndef DYNAMIC_DISABLED
 	else
