@@ -520,10 +520,10 @@ static int load_config(int which) {
 		sprintf(SubSection, ":dynamic_%d", which);
 
 		gen_source = cfg_get_list("list.generic", SubSection);
-		if (!gen_source) {
-			sprintf(SubSection, ":md5_gen(%d)", which);
-			gen_source = cfg_get_list("list.generic", SubSection);
-		}
+		//if (!gen_source) {
+		//	sprintf(SubSection, ":md5_gen(%d)", which);
+		//	gen_source = cfg_get_list("list.generic", SubSection);
+		//}
 	}
 	return !!gen_source;
 }

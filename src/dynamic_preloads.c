@@ -3298,22 +3298,26 @@ int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt)
 // 1 is valid.
 int dynamic_IS_VALID(int i, int force)
 {
-	char Type[20];
-	sprintf(Type, "dynamic_%d", i);
+	static char valid[5001];
+	static int init=0;
+
+	if (!init) {
+		int j;
+		memset(valid, -1, sizeof(valid));
+		for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
+			int k = atoi(&Setups[j].szFORMAT_NAME[8]);
+			if (k >= 0 && k < 1000)
+				valid[k] = 1;
+		}
+		for (j = 1000; j < 5000; ++j) {
+			if (dynamic_IS_PARSER_VALID(j))
+				valid[j] = 1;
+		}
+		init = 1;
+	}
 	if (i < 0 || i >= 5000)
 		return -1;
-	if (i < 1000) {
-		int j,len;
-		len=strlen(Type);
-		for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
-			if (!strncmp(Type, Setups[j].szFORMAT_NAME, len))
-				return 1;
-		}
-		return -1;
-	}
-	if (!dynamic_IS_PARSER_VALID(i))
-		return 0;
-	return 1;
+	return valid[i];
 }
 
 #endif /* DYNAMIC_DISABLED */
