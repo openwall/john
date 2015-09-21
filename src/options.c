@@ -401,7 +401,7 @@ void opt_print_hidden_usage(void)
 	puts("--reject-printable        reject printable binaries");
 	puts("--verbosity=N             change verbosity (1-5, default 3)");
 	puts("--show=types              show some information about hashes in file (machine readable)");
-	puts("--show=invalid            show the hashes which valid fails."); // --format=xx required");
+	puts("--show=invalid            show the hashes which valid fails.");
 	puts("--skip-self-tests         skip self tests");
 	puts("--stress-test[=TIME]      loop self tests forever");
 #ifdef HAVE_FUZZ
@@ -920,10 +920,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		}
 		else if (!strcasecmp(show_uncracked_str, "invalid")) {
 			options.loader.showinvalid = 1;
-			//if (!options.format || options.format[0] == 0) {
-			//	fprintf(stderr, "When using --show=invalid using --format=type parameter to john is required\n");
-			//	error();
-			//}
 		}
 		else {
 			fprintf(stderr, "Invalid option in --show switch.\nOnly --show , --show=left, --show=types or --show=invalid are valid\n");
