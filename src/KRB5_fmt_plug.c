@@ -126,8 +126,8 @@ static char *hex2bin(char *src, unsigned char *dst, int outsize) {
     qe = dst + outsize;
 
     for (p = src, q = dst; p < pe && q < qe && isxdigit((int)(unsigned char)*p); p += 2) {
-        ch = tolower((int)(unsigned char)p[0]);
-        cl = tolower((int)(unsigned char)p[1]);
+	ch = p[0];
+	cl = p[1];
 
         if ((ch >= '0') && (ch <= '9')) ch -= '0';
         else if ((ch >= 'a') && (ch <= 'f')) ch -= 'a' - 10;
