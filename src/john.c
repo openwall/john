@@ -345,7 +345,7 @@ static void john_register_all(void)
 
 	if (options.format) {
 		// The case of the expression for this format is VERY important to keep
-		if (strncmp(options.format, "dynamic=", 8))
+		if (strncasecmp(options.format, "dynamic=", 8))
 			strlwr(options.format);
 	}
 

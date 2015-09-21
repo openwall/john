@@ -7791,7 +7791,7 @@ struct fmt_main *dynamic_Register_local_format(int *type) {
 
 int dynamic_Register_formats(struct fmt_main **ptr)
 {
-	int count, i, idx, single=-1, wildcard = 0;
+	int count, i, idx, single=-1, wildcard = 0, pop[5000];
 	extern struct options_main options;
 
 	if (options.format && strstr(options.format, "*"))
@@ -7821,13 +7821,14 @@ int dynamic_Register_formats(struct fmt_main **ptr)
 	}
 
 	for (count = i = 0; i < 5000; ++i) {
-		if (dynamic_IS_VALID(i, 1) == 1)
+		if ((pop[i] = (dynamic_IS_VALID(i, 1) == 1)))
 			++count;
 	}
+
 	// Ok, now we know how many formats we have.  Load them
 	pFmts = mem_alloc_tiny(sizeof(pFmts[0])*count, MEM_ALIGN_WORD);
 	for (idx = i = 0; i < 5000; ++i) {
-		if (dynamic_IS_VALID(i, 1) == 1) {
+		if (pop[i]) {
 			if (LoadOneFormat(i, &pFmts[idx]) == 0)
 				--count;
 			else
