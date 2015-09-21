@@ -199,6 +199,9 @@ struct db_options {
 /* if --show=types is used, john shows all hashes in machine readable form */
 	int showtypes;
 
+/* if --show=invalid is used, john shows all hashes which fail valid() */
+	int showinvalid;
+
 /* Field separator (normally ':') */
 	char field_sep_char;
 

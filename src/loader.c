@@ -1704,6 +1704,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 {
 	int show, loop;
 	char source[LINE_BUFFER_SIZE];
+	char orig_line[LINE_BUFFER_SIZE];
 	struct fmt_main *format;
 	char *(*split)(char *ciphertext, int index, struct fmt_main *self);
 	int index, count, unify;
@@ -1716,10 +1717,18 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	char utf8source[LINE_BUFFER_SIZE + 1];
 	char joined[PLAINTEXT_BUFFER_SIZE + 1] = "";
 
+	if (db->options->showinvalid)
+		strnzcpy(orig_line, line, sizeof(orig_line));
 	format = NULL;
 	count = ldr_split_line(&login, &ciphertext, &gecos, &home, &uid,
 		source, &format, db->options, line);
 	if (!count) return;
+
+/* If we are just showing the invalid, then simply run that logic */
+	if (db->options->showinvalid && count == -1) {
+		printf ("%s",orig_line);
+		return;
+	}
 
 /* If just one format was forced on the command line, insist on it */
 	if (!fmt_list->next && !format) return;
