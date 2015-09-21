@@ -276,8 +276,8 @@ typedef struct private_subformat_data
 #define ALGORITHM_NAME_TGR     "32/"ARCH_BITS_STR " sph_tiger"
 #define ALGORITHM_NAME_X86_TGR "32/"ARCH_BITS_STR " sph_tiger"
 
-#define ALGORITHM_NAME_RIPEMD     "32/"ARCH_BITS_STR " sph_ripmd"
-#define ALGORITHM_NAME_X86_RIPEMD "32/"ARCH_BITS_STR " sph_ripmd"
+#define ALGORITHM_NAME_RIPEMD     "32/"ARCH_BITS_STR " sph_ripemd"
+#define ALGORITHM_NAME_X86_RIPEMD "32/"ARCH_BITS_STR " sph_ripemd"
 
 #define ALGORITHM_NAME_HAVAL     "32/"ARCH_BITS_STR " sph_haval"
 #define ALGORITHM_NAME_X86_HAVAL "32/"ARCH_BITS_STR " sph_haval"
