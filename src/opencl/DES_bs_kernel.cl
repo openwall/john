@@ -8,12 +8,16 @@
 
 #include "opencl_DES_kernel_params.h"
 
-#define WORK_GROUP_SIZE		64
+#if USE_LOCAL_MEM
+#define KEY_MAP		s_key_map
+#else
+#define KEY_MAP		key_map
+#endif
 
 #if WORK_GROUP_SIZE > 0
-#define y(p, q) vxorf(B[p], s_des_bs_key[s_key_map[q + k] + s_key_offset])
+#define y(p, q) vxorf(B[p], s_des_bs_key[KEY_MAP[q + k] + s_key_offset])
 #else
-#define y(p, q) vxorf(B[p], des_bs_key[section + s_key_map[q + k] * gws])
+#define y(p, q) vxorf(B[p], des_bs_key[section + KEY_MAP[q + k] * gws])
 #endif
 
 #define H1()\
@@ -140,8 +144,6 @@ __kernel void DES_bs_25_b(constant uint *key_map
 
 	vtype B[64];
 
-	__local ushort s_key_map[768];
-
 	int iterations;
 
 	int k, i;
@@ -153,11 +155,15 @@ __kernel void DES_bs_25_b(constant uint *key_map
 		s_des_bs_key[lid * 56 + i] = des_bs_key[section + i * gws];
 #endif
 
+#if USE_LOCAL_MEM
+	__local ushort s_key_map[768];
 	for (i = 0; i < 768; i += lws)
 		s_key_map[(lid + i) % 768] = key_map[(lid + i) % 768];
+#endif
 
+#if USE_LOCAL_MEM || WORK_GROUP_SIZE > 0
 	barrier(CLK_LOCAL_MEM_FENCE);
-
+#endif
 	{
 		vtype zero = 0;
 		DES_bs_clear_block

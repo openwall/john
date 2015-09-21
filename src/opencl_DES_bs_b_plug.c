@@ -151,12 +151,25 @@ static void build_salt(WORD salt)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_processed_salts[salt], CL_TRUE, 0, 48 * sizeof(unsigned int), transfer, 0, NULL, NULL), "Failed to write buffer buffer_processed_salts.\n");
 }
 
-static void set_kernel_arg_kpc()
+static void set_kernel_args_kpc()
 {
 	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 2, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_25.\n");
 	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 3, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_25.\n");
 
 	set_common_kernel_args_kpc(buffer_unchecked_hashes, buffer_bs_keys);
+}
+
+static void init_kernel(int id_gpu, size_t s_mem_lws, unsigned int use_local_mem)
+{
+	static char build_opts[600];
+
+	sprintf(build_opts, "-D WORK_GROUP_SIZE=%zu -D USE_LOCAL_MEM=%u", s_mem_lws, use_local_mem);;
+	opencl_read_source("$JOHN/kernels/DES_bs_kernel.cl");
+	opencl_build(id_gpu, build_opts, 0, NULL);
+	kernels[id_gpu][0] = clCreateKernel(program[id_gpu], "DES_bs_25_b", &ret_code);
+	HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_25_b.\n");
+
+	HANDLE_CLERROR(clSetKernelArg(kernels[id_gpu][0], 0, sizeof(cl_mem), &buffer_map), "Failed setting kernel argument buffer_map, kernel DES_bs_25.\n");
 }
 
 static void reset(struct db_main *db)
@@ -195,18 +208,15 @@ static void reset(struct db_main *db)
 			build_salt(bin_salt);
 		} while((salt = salt -> next));
 
-		set_kernel_arg_kpc();
+		set_kernel_args_kpc();
 	}
 	else {
 		int i;
 
-		opencl_read_source("$JOHN/kernels/DES_bs_kernel.cl");
-		opencl_build(gpu_id, NULL, 0, NULL);
-		kernels[gpu_id][0] = clCreateKernel(program[gpu_id], "DES_bs_25_b", &ret_code);
-		HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_25_b.\n");
-
-		local_work_size = 64;
+		local_work_size = 128;
 		global_work_size = 16384;
+
+		init_kernel(gpu_id, local_work_size, 0);
 
 		fmt_opencl_DES.params.max_keys_per_crypt = global_work_size * DES_BS_DEPTH;
 		fmt_opencl_DES.params.min_keys_per_crypt = local_work_size * DES_BS_DEPTH;
@@ -236,7 +246,7 @@ static void reset(struct db_main *db)
 			i++;
 		}
 
-		set_kernel_arg_kpc();
+		set_kernel_args_kpc();
 
 		initialized++;
 	}
