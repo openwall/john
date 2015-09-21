@@ -74,15 +74,16 @@ struct lyra2_salt {
 };
 
 static char *saved_key;
-static unsigned int *saved_idx, key_idx;
-static cl_mem cl_saved_key, cl_saved_idx, cl_result, cl_saved_salt, cl_memMatrixGPU, cl_pKeysGPU, cl_stateThreadGPU, cl_stateIdxGPU;
-static cl_mem pinned_key, pinned_idx,
+static unsigned int *saved_lengths;
+static cl_mem cl_saved_key, cl_saved_lengths, cl_saved_salt, cl_memMatrixGPU, cl_pKeysGPU, cl_stateThreadGPU, cl_stateIdxGPU;
+static cl_mem pinned_key, pinned_lengths,
      pinned_salt, pinned_pKeysGPU;
 static unsigned int M_COST, nPARALLEL, N_COLS;
 static struct lyra2_salt *saved_salt;
 static char *saved_key;
 static char *pKeysGPU;
 static int clobj_allocated;
+static uint saved_gws;
 cl_kernel bootStrapAndAbsorb_kernel, reducedSqueezeRow0_kernel, reducedDuplexRow_kernel, setupPhaseWanderingGPU_kernel, setupPhaseWanderingGPU_P1_kernel;
 
 
@@ -118,10 +119,10 @@ static void print_memory(double memory)
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	if (clobj_allocated)
-		return;
+		release_clobj();
 
 	clobj_allocated = 1;
-
+	saved_gws=gws;
 
 	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
 	cl_memMatrixGPU =
@@ -193,25 +194,20 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping saved_salt");
 
-	pinned_idx =
+	pinned_lengths =
 	    clCreateBuffer(context[gpu_id],
 	    CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-	    sizeof(cl_uint) * (gws + 1) , NULL, &ret_code);
+	    sizeof(cl_uint) * gws , NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
-	cl_saved_idx =
+	cl_saved_lengths =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-	    sizeof(cl_uint) * (gws + 1), NULL, &ret_code);
+	    sizeof(cl_uint) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
-	saved_idx =
-	    clEnqueueMapBuffer(queue[gpu_id], pinned_idx, CL_TRUE,
-	    CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * (gws + 1), 0,
+	saved_lengths =
+	    clEnqueueMapBuffer(queue[gpu_id], pinned_lengths, CL_TRUE,
+	    CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * gws, 0,
 	    NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping saved_idx");
-
-	cl_result =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
-	    ((BINARY_SIZE * gws) + 4) / 4 * 4, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating device buffer");
+	HANDLE_CLERROR(ret_code, "Error mapping saved_lengths");
 
 
 	HANDLE_CLERROR(clSetKernelArg(bootStrapAndAbsorb_kernel, 0, sizeof(cl_mem),
@@ -221,7 +217,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(bootStrapAndAbsorb_kernel, 2, sizeof(cl_mem),
 		(void *)&cl_saved_key), "Error setting argument 2 in bootStrapAndAbsorb_kernel");
 	HANDLE_CLERROR(clSetKernelArg(bootStrapAndAbsorb_kernel, 3, sizeof(cl_mem),
-		(void *)&cl_saved_idx), "Error setting argument 3 in bootStrapAndAbsorb_kernel");
+		(void *)&cl_saved_lengths), "Error setting argument 3 in bootStrapAndAbsorb_kernel");
 	HANDLE_CLERROR(clSetKernelArg(bootStrapAndAbsorb_kernel, 4, sizeof(cl_mem),
 		(void *)&cl_saved_salt), "Error setting argument 4 in bootStrapAndAbsorb_kernel");
 	HANDLE_CLERROR(clSetKernelArg(bootStrapAndAbsorb_kernel, 5, sizeof(cl_mem),
@@ -268,12 +264,13 @@ static void release_clobj(void)
 {
 	if (!clobj_allocated)
 		return;
+
 	clobj_allocated = 0;
 
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key,
 		saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_idx,
-		saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_lengths,
+		saved_lengths, 0, NULL, NULL), "Error Unmapping saved_lengths");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_salt,
 		saved_salt, 0, NULL, NULL),
 	    "Error Unmapping saved_salt");
@@ -285,16 +282,15 @@ static void release_clobj(void)
 
 	HANDLE_CLERROR(clReleaseMemObject(pinned_key),
 	    "Release pinned key buffer");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_idx),
+	HANDLE_CLERROR(clReleaseMemObject(pinned_lengths),
 	    "Release pinned index buffer");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_salt),
 	    "Release pinned index buffer");	
 	HANDLE_CLERROR(clReleaseMemObject(pinned_pKeysGPU),
 	    "Release pinned pKeysGPU buffer");
 	
-	HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release result buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release key buffer");
-	HANDLE_CLERROR(clReleaseMemObject(cl_saved_idx),
+	HANDLE_CLERROR(clReleaseMemObject(cl_saved_lengths),
 	    "Release index buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_saved_salt),
 	    "Release real salt");
@@ -326,7 +322,7 @@ static void reset_()
 	char build_opts[128];
 
 	sprintf(build_opts,
-	    "-DBINARY_SIZE=%d -DSALT_SIZE=%d", BINARY_SIZE, SALT_SIZE);
+	    "-DBINARY_SIZE=%d -DSALT_SIZE=%d -DPLAINTEXT_LENGTH=%d", BINARY_SIZE, SALT_SIZE, PLAINTEXT_LENGTH);
 
 	opencl_init("$JOHN/kernels/lyra2_kernel.cl", gpu_id, build_opts);
 
@@ -477,19 +473,18 @@ static void set_key(char *key, int index)
 	len=strlen(key);
 	if(len>PLAINTEXT_LENGTH)
 		len=PLAINTEXT_LENGTH;
-		
-	key_idx=saved_idx[index];
-	for(i=0;i<len;i++)
-		saved_key[key_idx++] = *key++;
 
-	saved_idx[index + 1] = key_idx;
+	for(i=0;i<len;i++)
+		saved_key[PLAINTEXT_LENGTH*index+i] = key[i];
+
+	saved_lengths[index]=len;
 }
 
 static char *get_key(int index)
 {
 	static char out[PLAINTEXT_LENGTH + 1];
-	int i, len = saved_idx[index + 1] - saved_idx[index];
-	char *key = (char *)&saved_key[saved_idx[index]];
+	int i, len = saved_lengths[index];
+	char *key = (char *)&saved_key[PLAINTEXT_LENGTH*index];
 
 	for (i = 0; i < len; i++)
 		out[i] = *key++;
@@ -500,9 +495,9 @@ static char *get_key(int index)
 
 static void clear_keys(void)
 {
-	key_idx = 0;
-	saved_idx[0] = 0;
+	memset(saved_lengths,0,sizeof(cl_uint)*saved_gws);
 }
+
 
 
 static void char_to_bin(char *in, int char_length, char *bin)
@@ -611,12 +606,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id],
 		cl_saved_key, CL_FALSE, 0,
-		key_idx, saved_key, 0, NULL,
+		PLAINTEXT_LENGTH*count, saved_key, 0, NULL,
 		multi_profilingEvent[1]), "Failed transferring keys");
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx,
-		CL_FALSE, 0, sizeof(cl_uint) * (global_work_size + 1),
-		saved_idx, 0, NULL, multi_profilingEvent[2]), "Failed transferring index");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_lengths,
+		CL_FALSE, 0, sizeof(cl_uint) * (global_work_size),
+		saved_lengths, 0, NULL, multi_profilingEvent[2]), "Failed transferring index");
 
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], bootStrapAndAbsorb_kernel, 1,

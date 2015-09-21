@@ -95,7 +95,7 @@ static struct fmt_tests tests[] = {
 
 
 static char *saved_key;
-static unsigned int *saved_lengths, key_lengths;
+static unsigned int *saved_lengths;
 static cl_mem cl_saved_key, cl_saved_lengths, cl_result, cl_saved_salt, cl_V, cl_B, cl_XY, cl_S, cl_shared;
 static cl_mem pinned_key, pinned_lengths, pinned_result,
      pinned_salt, pinned_shared;
@@ -107,6 +107,7 @@ static yescrypt_flags_t flags;
 static yescrypt_flags_t saved_flags;
 static yescrypt_shared_t shared;
 static char prev_key[KEY_SIZE+1];
+static int clobj_allocated;
 static uint saved_gws;
 
 uint64_t prev_saved_rom_N;
@@ -151,6 +152,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	uint64_t B_size=128*r*p;
 	uint64_t XY_size=256*r+64;
 	uint64_t S_size=Sbytes * p;
+
+	if (clobj_allocated)
+		release_clobj();
+	clobj_allocated = 1;
 
 	saved_gws=gws;
 	cl_V = cl_B = cl_XY = cl_S = NULL;
@@ -228,6 +233,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
+	if (!clobj_allocated)
+		return;
+	clobj_allocated = 0;
+
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, output, 0, NULL, NULL), "Error Unmapping output");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_lengths, saved_lengths, 0, NULL, NULL), "Error Unmapping saved_lengths");
@@ -426,6 +435,7 @@ static void reset(struct db_main *db)
 
 static void init(struct fmt_main *_self)
 {
+	clobj_allocated = 0;
 	self = _self;
 	prev_saved_rom_N=prev_saved_rom_r=prev_saved_rom_p=0;
 	memset(prev_key,0,KEY_SIZE+1);
@@ -570,7 +580,6 @@ static char *get_key(int index)
 
 static void clear_keys(void)
 {
-	key_lengths = 0;
 	memset(saved_lengths,0,sizeof(cl_uint)*saved_gws);
 }
 

@@ -108,7 +108,7 @@ inline static void absorbBlockBlake2Safe(ulong * state, __global ulong * in)
 
 static void lyra2_absorbInput(__global ulong * memMatrixGPU,
     __global ulong * stateThreadGPU_, __global ulong * stateIdxGPU,
-    __global const uint * index, __global struct lyra2_salt *salt)
+    __global const uint * lengths, __global struct lyra2_salt *salt)
 {
 	int i;
 	__global ulong *ptrWord;
@@ -120,7 +120,7 @@ static void lyra2_absorbInput(__global ulong * memMatrixGPU,
 	uint nPARALLEL = salt->nParallel;
 	uint thStart = (threadNumber / nPARALLEL);
 
-	inlen = index[thStart + 1] - index[thStart];
+	inlen = lengths[thStart];
 	saltlen = salt->salt_length;
 
 	ulong nBlocksInput;
@@ -160,13 +160,13 @@ static void lyra2_absorbInput(__global ulong * memMatrixGPU,
 
 __kernel void lyra2_bootStrapAndAbsorb(__global ulong * memMatrixGPU,
     __global unsigned char *pkeysGPU, __global unsigned char *pwdGPU,
-    __global const uint * index, __global struct lyra2_salt *salt,
+    __global const uint * lengths, __global struct lyra2_salt *salt,
     __global ulong * state, __global ulong * stateIdxGPU)
 {
 	uint i, mi;
 
 	ulong threadNumber;
-	uint base, inlen, saltlen;
+	uint inlen, saltlen;
 	uint nPARALLEL = salt->nParallel;
 	uint kLen = salt->hash_size;
 	ulong thStart;
@@ -175,8 +175,7 @@ __kernel void lyra2_bootStrapAndAbsorb(__global ulong * memMatrixGPU,
 	threadNumber = get_global_id(0);
 	thStart = (threadNumber / nPARALLEL);
 
-	base = index[thStart];
-	inlen = index[thStart + 1] - base;
+	inlen = lengths[thStart];
 	saltlen = salt->salt_length;
 
 	// Size of each chunk that each thread will work with
@@ -194,7 +193,7 @@ __kernel void lyra2_bootStrapAndAbsorb(__global ulong * memMatrixGPU,
 	//OBS.:The memory matrix will temporarily hold the password: not for saving memory,
 	//but this ensures that the password copied locally will be overwritten as soon as possible
 	ptrByte = (__global byte *) & memMatrixGPU[sliceStart];
-	ptrByteSource = (__global byte *) & pwdGPU[base];
+	ptrByteSource = (__global byte *) & pwdGPU[PLAINTEXT_LENGTH*thStart];
 
 
 	if (nPARALLEL == 1)
@@ -262,7 +261,7 @@ __kernel void lyra2_bootStrapAndAbsorb(__global ulong * memMatrixGPU,
 
 	lyra2_initState(state);
 
-	lyra2_absorbInput(memMatrixGPU, state, stateIdxGPU, index, salt);
+	lyra2_absorbInput(memMatrixGPU, state, stateIdxGPU, lengths, salt);
 }
 
 
