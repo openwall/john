@@ -18,7 +18,7 @@
 
 #define PADDING 	2048
 #define CONFIG_FILE 	"$JOHN/kernels/DES_bs_kernel_f_%s.config"
-#define BINARY_FILE	"$JOHN/kernels/DES_bs_kernel_f_%zu_%s_%d.bin"
+#define BINARY_FILE	"$JOHN/kernels/DES_bs_kernel_f_"Zu"_%s_%d.bin"
 
 static cl_kernel **kernels;
 static cl_mem buffer_bs_keys, buffer_unchecked_hashes;
@@ -193,9 +193,9 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 		static char build_opts[10000];
 		opencl_read_source("$JOHN/kernels/DES_bs_kernel_f.cl");
 		if (get_platform_vendor_id(get_platform_id(id_gpu)) != DEV_AMD)
-			sprintf(build_opts, "-D WORK_GROUP_SIZE=%zu %s", lws, enc_salt(salt_val));
+			sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" %s", lws, enc_salt(salt_val));
 		else
-			sprintf(build_opts, "-D WORK_GROUP_SIZE=%zu -fno-bin-amdil -fno-bin-source -fbin-exe %s", lws, enc_salt(salt_val));
+			sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" -fno-bin-amdil -fno-bin-source -fbin-exe %s", lws, enc_salt(salt_val));
 
 		opencl_build(id_gpu, build_opts, save_binary, kernel_bin_name);
 		fprintf(stderr, "Salt compiled from Source:%d\n", ++num_compiled_salt);

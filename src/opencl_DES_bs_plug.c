@@ -1024,7 +1024,7 @@ char *opencl_DES_bs_get_key(int index)
 	}
 
 	if (section > global_work_size) {
-		fprintf(stderr, "Get key error! %d %zu\n", section,
+		fprintf(stderr, "Get key error! %d "Zu"\n", section,
 			global_work_size);
 		section = 0;
 	}
@@ -1244,7 +1244,7 @@ void save_lws_config(const char* config_file, int id_gpu, size_t lws)
 #endif
 	}
 #endif
-	fprintf(file, "%zu", lws);
+	fprintf(file, ""Zu"", lws);
 	fclose(file);
 }
 
@@ -1279,7 +1279,7 @@ int restore_lws_config(const char *config_file, int id_gpu, size_t *lws, size_t 
 #endif
 	}
 #endif
-	if (fscanf(file, "%zu", lws) != 1 || *lws > extern_lws_limit) {
+	if (fscanf(file, ""Zu"", lws) != 1 || *lws > extern_lws_limit) {
 		fclose(file);
 		return 0;
 	}
