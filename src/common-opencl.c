@@ -1225,7 +1225,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	if (options.verbosity > 4)
 		fprintf(stderr, "\n");
 
-	if (split_events)
+	if (total)
 		runtime += (looptime * rounds) / (hash_loops * total);
 
 	clear_profiling_events();
