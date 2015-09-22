@@ -1725,12 +1725,12 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	if (!count) return;
 
 /* If we are just showing the invalid, then simply run that logic */
-	if (db->options->showinvalid && count) {
-		++db->password_count;
-		if (count == -1)
+	if (db->options->showinvalid) {
+		if (count == -1) {
+			db->password_count++;
 			printf ("%s", orig_line);
-		else
-			++db->guess_count;
+		} else
+			db->guess_count += count;
 		return;
 	}
 
