@@ -355,8 +355,6 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 	assert(global_work_size <= ((1U << 28) - 1));
 	fmt_opencl_DES.params.max_keys_per_crypt = global_work_size << des_log_depth;
 	fmt_opencl_DES.params.min_keys_per_crypt = 1U << des_log_depth;
-
-	fprintf(stderr, "GWS-F:%zu\n", global_work_size);
 }
 
 static void release_kernels()
@@ -369,83 +367,6 @@ static void release_kernels()
 		kernels[gpu_id][i] = 0;
 		marked_salts[i] = 0x7fffffff;
 		}
-}
-
-static void save_lws_config(int id_gpu, size_t lws)
-{
-	FILE *file;
-	char config_file_name[500];
-
-	sprintf(config_file_name, CONFIG_FILE, get_device_name(id_gpu));
-
-	file = fopen(path_expand(config_file_name), "r");
-	if (file != NULL) {
-		fclose(file);
-		return;
-	}
-	file = fopen(path_expand(config_file_name), "w");
-
-#if OS_FLOCK || FCNTL_LOCKS
-	{
-#if FCNTL_LOCKS
-		struct flock lock;
-
-		memset(&lock, 0, sizeof(lock));
-		lock.l_type = F_WRLCK;
-		while (fcntl(fileno(file), F_SETLKW, &lock)) {
-			if (errno != EINTR)
-				pexit("fcntl(F_WRLCK)");
-		}
-#else
-		while (flock(fileno(file), LOCK_EX)) {
-			if (errno != EINTR)
-				pexit("flock(LOCK_EX)");
-		}
-#endif
-	}
-#endif
-	fprintf(file, "%zu", lws);
-	fclose(file);
-}
-
-static int restore_lws_config(int id_gpu, size_t *lws, size_t extern_lws_limit)
-{
-	FILE *file;
-	char config_file_name[500];
-
-	sprintf(config_file_name, CONFIG_FILE, get_device_name(id_gpu));
-
-	file = fopen(path_expand(config_file_name), "r");
-	if (file == NULL)
-		return 0;
-
-
-#if OS_FLOCK || FCNTL_LOCKS
-	{
-#if FCNTL_LOCKS
-		struct flock lock;
-
-		memset(&lock, 0, sizeof(lock));
-		lock.l_type = F_RDLCK;
-		while (fcntl(fileno(fp), F_SETLKW, &lock)) {
-			if (errno != EINTR)
-				pexit("fcntl(F_RDLCK)");
-		}
-#else
-		while (flock(fileno(fp), LOCK_SH)) {
-			if (errno != EINTR)
-				pexit("flock(LOCK_SH)");
-		}
-#endif
-	}
-#endif
-	if (fscanf(file, "%zu", lws) != 1 || *lws > extern_lws_limit) {
-		fclose(file);
-		return 0;
-	}
-
-	fclose(file);
-	return 1;
 }
 
 static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int), WORD test_salt, int mask_mode, size_t extern_lws_limit)
@@ -488,7 +409,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	opencl_get_user_preferences(FORMAT_LABEL);
 	if (global_work_size)
 		gws_tune_flag = 0;
-	if (local_work_size || restore_lws_config(gpu_id, &local_work_size, extern_lws_limit)) {
+	if (local_work_size || restore_lws_config(CONFIG_FILE, gpu_id, &local_work_size, extern_lws_limit)) {
 		lws_tune_flag = 0;
 		if (local_work_size & (local_work_size - 1)) {
 			get_power_of_two(local_work_size);
@@ -554,7 +475,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 					best_lws = local_work_size;
 					best_time_ms = time_ms;
 				}
-#if 1
+#if 0
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu", Limit_smem:"Zu", Limit_kernel:"Zu","
 		"Current time:%Lf, Best time:%Lf\n",
  		global_work_size, local_work_size, s_mem_limited_lws,
@@ -675,8 +596,9 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	}
 	release_kernels();
 	if (lws_tune_flag)
-		save_lws_config(gpu_id, local_work_size);
-	//if (options.verbosity > 3)
+		save_lws_config(CONFIG_FILE, gpu_id, local_work_size);
+
+	if (options.verbosity > 3)
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",
 		global_work_size, local_work_size);
 }

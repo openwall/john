@@ -1210,4 +1210,81 @@ char *get_device_name(int id)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[id], CL_DEVICE_NAME, 600, d_name, NULL), "Failed to get device name.\n");
 	return d_name;
 }
+
+void save_lws_config(const char* config_file, int id_gpu, size_t lws)
+{
+	FILE *file;
+	char config_file_name[500];
+
+	sprintf(config_file_name, config_file, get_device_name(id_gpu));
+
+	file = fopen(path_expand(config_file_name), "r");
+	if (file != NULL) {
+		fclose(file);
+		return;
+	}
+	file = fopen(path_expand(config_file_name), "w");
+
+#if OS_FLOCK || FCNTL_LOCKS
+	{
+#if FCNTL_LOCKS
+		struct flock lock;
+
+		memset(&lock, 0, sizeof(lock));
+		lock.l_type = F_WRLCK;
+		while (fcntl(fileno(file), F_SETLKW, &lock)) {
+			if (errno != EINTR)
+				pexit("fcntl(F_WRLCK)");
+		}
+#else
+		while (flock(fileno(file), LOCK_EX)) {
+			if (errno != EINTR)
+				pexit("flock(LOCK_EX)");
+		}
+#endif
+	}
+#endif
+	fprintf(file, "%zu", lws);
+	fclose(file);
+}
+
+int restore_lws_config(const char *config_file, int id_gpu, size_t *lws, size_t extern_lws_limit)
+{
+	FILE *file;
+	char config_file_name[500];
+
+	sprintf(config_file_name, config_file, get_device_name(id_gpu));
+
+	file = fopen(path_expand(config_file_name), "r");
+	if (file == NULL)
+		return 0;
+
+
+#if OS_FLOCK || FCNTL_LOCKS
+	{
+#if FCNTL_LOCKS
+		struct flock lock;
+
+		memset(&lock, 0, sizeof(lock));
+		lock.l_type = F_RDLCK;
+		while (fcntl(fileno(fp), F_SETLKW, &lock)) {
+			if (errno != EINTR)
+				pexit("fcntl(F_RDLCK)");
+		}
+#else
+		while (flock(fileno(fp), LOCK_SH)) {
+			if (errno != EINTR)
+				pexit("flock(LOCK_SH)");
+		}
+#endif
+	}
+#endif
+	if (fscanf(file, "%zu", lws) != 1 || *lws > extern_lws_limit) {
+		fclose(file);
+		return 0;
+	}
+
+	fclose(file);
+	return 1;
+}
 #endif /* HAVE_OPENCL */
