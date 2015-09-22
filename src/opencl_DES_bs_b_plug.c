@@ -429,7 +429,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 					best_lws = local_work_size;
 					best_time_ms = time_ms;
 				}
-#if 1
+#if 0
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu", Limit_smem:"Zu", Limit_kernel:"Zu","
 		"Current time:%Lf, Best time:%Lf\n",
  		global_work_size, local_work_size, s_mem_limited_lws,
