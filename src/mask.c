@@ -1398,7 +1398,7 @@ done:
 #undef set_template_key
 }
 
-/* Skips iteration for postions stored in arr */
+/* Skips iteration for positions stored in arr */
 static void skip_position(cpu_mask_context *cpu_mask_ctx, int *arr)
 {
 	int i;
@@ -1718,14 +1718,34 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	template_key = (char*)mem_alloc(0x400);
 
 	/* Handle command-line (or john.conf) masks given in UTF-8 */
-	if (pers_opts.input_enc == UTF_8 && pers_opts.internal_enc != UTF_8) {
+	if (pers_opts.input_enc == UTF_8) {
+		int has_utf8 = 0;
+
 		if (valid_utf8((UTF8*)mask) > 1)
-			utf8_to_cp_r(mask, mask, strlen(mask));
-		for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
-		if (valid_utf8((UTF8*)options.custom_mask[i]) > 1)
-			utf8_to_cp_r(options.custom_mask[i],
-			             options.custom_mask[i],
-			             strlen(options.custom_mask[i]));
+			has_utf8 = 1;
+		else {
+			for (i = 0; i < MAX_NUM_CUST_PLHDR; i++) {
+				if (valid_utf8((UTF8*)options.custom_mask[i]) > 1) {
+					has_utf8 = 1;
+					break;
+				}
+			}
+		}
+		if (has_utf8) {
+			if (pers_opts.internal_enc == pers_opts.input_enc) {
+				if (john_main_process)
+					fprintf(stderr,
+					    "Mask contains UTF-8 characters; --internal-encoding is required!\n");
+				error();
+			} else {
+				utf8_to_cp_r(mask, mask, strlen(mask));
+				for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
+					if (valid_utf8((UTF8*)options.custom_mask[i]) > 1)
+						utf8_to_cp_r(options.custom_mask[i],
+						             options.custom_mask[i],
+						             strlen(options.custom_mask[i]));
+			}
+		}
 	}
 
 	/* Expand static placeholders within custom ones */
