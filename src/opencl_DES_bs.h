@@ -96,6 +96,7 @@ extern int opencl_DES_bs_cmp_one(void *binary, int index);
 extern int opencl_DES_bs_cmp_exact(char *source, int index);
 extern void opencl_DES_bs_set_key(char *key, int index);
 extern char *opencl_DES_bs_get_key(int index);
-extern void opencl_DES_bs_init_index();
+extern void opencl_DES_bs_init_index(void);
+extern void opencl_DES_bs_clear_keys(void);
 
 #endif

@@ -296,7 +296,7 @@ struct fmt_main fmt_opencl_DES = {
 		NULL,
 		opencl_DES_bs_set_key,
 		opencl_DES_bs_get_key,
-		fmt_default_clear_keys,
+		opencl_DES_bs_clear_keys,
 		NULL,
 		{
 			get_hash_0,

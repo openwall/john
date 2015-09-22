@@ -1126,6 +1126,12 @@ static char *get_key_mm(int index)
 	return out;
 }
 
+void opencl_DES_bs_clear_keys()
+{	/* Auto-tune might set hash_ids[0] to some value, which interferes with
+	set-key/get-key checking during self test. */
+	hash_ids[0] = 0;
+}
+
 size_t create_keys_kernel_set_args(int mask_mode)
 {
 	static char build_opts[400];
