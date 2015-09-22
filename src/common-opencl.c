@@ -35,6 +35,7 @@
 #include "options.h"
 #include "config.h"
 #include "common.h"
+#include "logger.h"
 #include "common-opencl.h"
 #include "mask_ext.h"
 #include "dyna_salt.h"
@@ -891,6 +892,7 @@ static void dev_init(int sequential_id)
 		if (options.verbosity >= 2 && !printed[sequential_id]++)
 			fprintf(stderr, "Device %d: %s [%s]\n",
 			        sequential_id, device_name, opencl_log);
+		log_event("Device %d: %s [%s]", sequential_id, device_name, opencl_log);
 	} else {
 		char *dname = device_name;
 
@@ -900,6 +902,7 @@ static void dev_init(int sequential_id)
 
 		if (options.verbosity >= 2 && !printed[sequential_id]++)
 			fprintf(stderr, "Device %d: %s\n", sequential_id, dname);
+		log_event("Device %d: %s", sequential_id, dname);
 	}
 }
 

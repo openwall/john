@@ -488,7 +488,7 @@ void gpu_log_temp(void)
 
 		fan = temp = util = -1;
 		dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util);
-		n = sprintf(s_gpu, "GPU %d:", i);
+		n = sprintf(s_gpu, "GPU %d:", dev);
 		if (temp >= 0)
 			n += sprintf(s_gpu + n, " temp: %u" DEGC, temp);
 		if (util > 0)
