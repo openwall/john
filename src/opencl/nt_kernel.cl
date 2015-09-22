@@ -22,7 +22,11 @@
 #include "opencl_device_info.h"
 #define AMD_PUTCHAR_NOCAST
 #include "opencl_misc.h"
+#include "opencl_unicode.h"
 #include "opencl_mask.h"
+
+/* If defined, we do not support full UTF-16 with surrogate pairs */
+//#define UCS_2
 
 //Init values
 #define INIT_A 0x67452301
@@ -36,7 +40,7 @@
 #if BITMAP_SIZE_BITS_LESS_ONE < 0xffffffff
 #define BITMAP_SIZE_BITS (BITMAP_SIZE_BITS_LESS_ONE + 1)
 #else
-/*undefined, cause error.*/
+#error BITMAP_SIZE_BITS_LESS_ONE too large
 #endif
 
 inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_size) {
@@ -156,18 +160,103 @@ inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_s
 	hash[2] += (hash[3] ^ hash[0] ^ tmp) + nt_buffer[7]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
 }
 
-inline void prepare_key(__global uint * key, uint length, uint * nt_buffer)
+#if ISO_8859_1 || ASCII
+#define LUT(c) (c)
+#else
+#define LUT(c) (((c) < 0x80) ? (c) : cp[(c) & 0x7f])
+#endif
+
+#if UTF_8
+inline uint prepare_key(__global uint *key, uint length, uint *nt_buffer)
 {
-	uint i = 0, nt_index, keychars;
+	const __global UTF8 *source = (const __global uchar*)key;
+	const __global UTF8 *sourceEnd = &source[length];
+	UTF16 *target = (UTF16*)nt_buffer;
+	const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
+	UTF32 ch;
+	uint extraBytesToRead;
+
+	/* Input buffer is UTF-8 without zero-termination */
+	while (source < sourceEnd) {
+		if (*source < 0xC0) {
+			*target++ = (UTF16)*source++;
+			if (source >= sourceEnd || target >= targetEnd) {
+				break;
+			}
+			continue;
+		}
+		ch = *source;
+		// This point must not be reached with *source < 0xC0
+		extraBytesToRead =
+			opt_trailingBytesUTF8[ch & 0x3f];
+		if (source + extraBytesToRead >= sourceEnd) {
+			break;
+		}
+		switch (extraBytesToRead) {
+		case 3:
+			ch <<= 6;
+			ch += *++source;
+		case 2:
+			ch <<= 6;
+			ch += *++source;
+		case 1:
+			ch <<= 6;
+			ch += *++source;
+			++source;
+			break;
+		default:
+			*target = 0x80;
+			break; // from switch
+		}
+		if (*target == 0x80)
+			break; // from while
+		ch -= offsetsFromUTF8[extraBytesToRead];
+#ifdef UCS_2
+		/* UCS-2 only */
+		*target++ = (UTF16)ch;
+#else
+		/* full UTF-16 with surrogate pairs */
+		if (ch <= UNI_MAX_BMP) {  /* Target is a character <= 0xFFFF */
+			*target++ = (UTF16)ch;
+		} else {  /* target is a character in range 0xFFFF - 0x10FFFF. */
+			if (target + 1 >= targetEnd)
+				break;
+			ch -= halfBase;
+			*target++ = (UTF16)((ch >> halfShift) + UNI_SUR_HIGH_START);
+			*target++ = (UTF16)((ch & halfMask) + UNI_SUR_LOW_START);
+		}
+#endif
+		if (source >= sourceEnd || target >= targetEnd)
+			break;
+	}
+	*target = 0x80;	// Terminate
+
+	//dump_stuff_msg("buf", nt_buffer, 64);
+
+	return (uint)(target - (UTF16*)nt_buffer);
+}
+
+#else
+
+inline uint prepare_key(const __global uint *key, uint length, uint *nt_buffer)
+{
+	uint i, nt_index, keychars;
+
 	nt_index = 0;
 	for (i = 0; i < (length + 3)/ 4; i++) {
 		keychars = key[i];
-		nt_buffer[nt_index++] = (keychars & 0xFF) | (((keychars >> 8) & 0xFF) << 16);
-		nt_buffer[nt_index++] = ((keychars >> 16) & 0xFF) | ((keychars >> 24) << 16);
+		nt_buffer[nt_index++] = LUT(keychars & 0xFF) | (LUT((keychars >> 8) & 0xFF) << 16);
+		nt_buffer[nt_index++] = LUT((keychars >> 16) & 0xFF) | (LUT(keychars >> 24) << 16);
 	}
 	nt_index = length >> 1;
 	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
+
+	//dump_stuff_msg("buf", nt_buffer, 64);
+
+	return length;
 }
+
+#endif /* UTF_8 */
 
 inline void cmp_final(uint gid,
 		uint iter,
@@ -354,25 +443,25 @@ __kernel void nt(__global uint *keys,
 #endif
 
 	keys += base >> 6;
-	prepare_key(keys, md4_size, nt_buffer);
+	md4_size = prepare_key(keys, md4_size, nt_buffer);
 	md4_size = md4_size << 4;
 
 	for (i = 0; i < NUM_INT_KEYS; i++) {
 #if NUM_INT_KEYS > 1
-		PUTSHORT(nt_buffer, GPU_LOC_0, (int_keys[i] & 0xff));
+		PUTSHORT(nt_buffer, GPU_LOC_0, LUT(int_keys[i] & 0xff));
 #if 1 < MASK_FMT_INT_PLHDR
 #if LOC_1 >= 0
-		PUTSHORT(nt_buffer, GPU_LOC_1, ((int_keys[i] & 0xff00) >> 8));
+		PUTSHORT(nt_buffer, GPU_LOC_1, LUT((int_keys[i] & 0xff00) >> 8));
 #endif
 #endif
 #if 2 < MASK_FMT_INT_PLHDR
 #if LOC_2 >= 0
-		PUTSHORT(nt_buffer, GPU_LOC_2, ((int_keys[i] & 0xff0000) >> 16));
+		PUTSHORT(nt_buffer, GPU_LOC_2, LUT((int_keys[i] & 0xff0000) >> 16));
 #endif
 #endif
 #if 3 < MASK_FMT_INT_PLHDR
 #if LOC_3 >= 0
-		PUTSHORT(nt_buffer, GPU_LOC_3, ((int_keys[i] & 0xff000000) >> 24));
+		PUTSHORT(nt_buffer, GPU_LOC_3, LUT((int_keys[i] & 0xff000000) >> 24));
 #endif
 #endif
 #endif
