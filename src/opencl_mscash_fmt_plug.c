@@ -1,5 +1,6 @@
 /*
  * This software is Copyright (c) 2015, Sayantan Datta <std2048@gmail.com>
+ * and Copyright (c) 2015, magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -31,9 +32,11 @@ john_register_one(&FMT_STRUCT);
 #include "bt_interface.h"
 
 #define PLAINTEXT_LENGTH    27 /* Max. is 55 with current kernel */
-#define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)
-#define FORMAT_LABEL	    "mscash-opencl"
-#define FORMAT_NAME	    "M$ Cache Hash"
+#define UTF8_MAX_LENGTH     (3 * PLAINTEXT_LENGTH)
+#define BUFSIZE             ((UTF8_MAX_LENGTH + 3) / 4 * 4)
+#define AUTOTUNE_LENGTH     8
+#define FORMAT_LABEL        "mscash-opencl"
+#define FORMAT_NAME         "M$ Cache Hash"
 #define ALGORITHM_NAME      "MD4 OpenCL"
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0
@@ -41,8 +44,8 @@ john_register_one(&FMT_STRUCT);
 #define DIGEST_SIZE         16
 #define BINARY_SIZE         16
 #define BINARY_ALIGN        sizeof(unsigned int)
-#define SALT_LENGTH	    19
-#define SALT_SIZE	    (12 * sizeof(unsigned int))
+#define SALT_LENGTH         19
+#define SALT_SIZE           (12 * sizeof(unsigned int))
 #define SALT_ALIGN          sizeof(unsigned int)
 
 static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_int_key_loc;
@@ -315,7 +318,7 @@ static void init_kernel(void)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
 
 	sprintf(build_opts, "-D NUM_INT_KEYS=%u -D IS_STATIC_GPU_MASK=%d"
-		" -D CONST_CACHE_SIZE=%llu -D LOC_0=%d"
+		" -D CONST_CACHE_SIZE=%llu -D%s -D%s -DPLAINTEXT_LENGTH=%d -D LOC_0=%d"
 #if 1 < MASK_FMT_INT_PLHDR
 	" -D LOC_1=%d "
 #endif
@@ -326,7 +329,10 @@ static void init_kernel(void)
 	"-D LOC_3=%d"
 #endif
 	, mask_int_cand.num_int_cand, is_static_gpu_mask,
-	(unsigned long long)const_cache_size, static_gpu_locations[0]
+	(unsigned long long)const_cache_size, cp_id2macro(pers_opts.target_enc),
+	pers_opts.internal_enc == UTF_8 ? cp_id2macro(ASCII) :
+	cp_id2macro(pers_opts.internal_enc), PLAINTEXT_LENGTH,
+	static_gpu_locations[0]
 #if 1 < MASK_FMT_INT_PLHDR
 	, static_gpu_locations[1]
 #endif
@@ -351,6 +357,9 @@ static void init(struct fmt_main *_self)
 
 	opencl_prepare_dev(gpu_id);
 	opencl_read_source("$JOHN/kernels/mscash_kernel.cl");
+
+	if (pers_opts.target_enc == UTF_8)
+		self->params.plaintext_length = MIN(125, UTF8_MAX_LENGTH);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -506,7 +515,7 @@ static void set_key(char *_key, int index)
 
 static char *get_key(int index)
 {
-	static char out[PLAINTEXT_LENGTH + 1];
+	static char out[UTF8_MAX_LENGTH + 1];
 	int i, len, int_index, t;
 	char *key;
 
@@ -821,12 +830,12 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 
 	int tune_gws, tune_lws;
 
-	char key[PLAINTEXT_LENGTH + 1];
+	char key[AUTOTUNE_LENGTH + 1];
 	unsigned int salt[SALT_SIZE/sizeof(unsigned int)];
 
-	memset(key, 0xF5, PLAINTEXT_LENGTH);
+	memset(key, 0xF5, AUTOTUNE_LENGTH);
 	memset(salt, 0x35, (SALT_SIZE));
-	key[PLAINTEXT_LENGTH] = 0;
+	key[AUTOTUNE_LENGTH] = 0;
 
 	gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
 			get_max_mem_alloc_size(gpu_id) / BUFSIZE);
@@ -1115,7 +1124,7 @@ struct fmt_main FMT_STRUCT = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
 		tests
 	}, {
