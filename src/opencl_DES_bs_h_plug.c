@@ -671,10 +671,9 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 			init_kernel(test_salt, gpu_id, 0, 1, local_work_size);
 			set_kernel_args_kpc();
 			gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, test_salt, mask_mode);
-
-			release_kernels();
 		}
 	}
+	release_kernels();
 	if (lws_tune_flag)
 		save_lws_config(gpu_id, local_work_size);
 	//if (options.verbosity > 3)

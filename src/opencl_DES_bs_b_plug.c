@@ -465,7 +465,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag, set_key, test_salt, mask_mode);
 		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, test_salt, mask_mode);
 
-		lws_limit = get_kernel_max_lws(gpu_id, kernels[gpu_id][test_salt]);
+		lws_limit = get_kernel_max_lws(gpu_id, kernels[gpu_id][0]);
 
 		if (lws_limit > global_work_size)
 			lws_limit = global_work_size;
@@ -476,7 +476,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 			if (gpu(device_info[gpu_id]) && lws_limit >= 32)
 				local_work_size = 32;
 			else
-				local_work_size = get_kernel_preferred_multiple(gpu_id, kernels[gpu_id][test_salt]);
+				local_work_size = get_kernel_preferred_multiple(gpu_id, kernels[gpu_id][0]);
 		}
 		if (local_work_size > lws_limit)
 			local_work_size = lws_limit;
@@ -512,7 +512,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu", Limit_smem:"Zu", Limit_kernel:"Zu","
 		"Current time:%Lf, Best time:%Lf\n",
  		global_work_size, local_work_size, s_mem_limited_lws,
-		get_kernel_max_lws(gpu_id, kernels[gpu_id][test_salt]), time_ms,
+		get_kernel_max_lws(gpu_id, kernels[gpu_id][0]), time_ms,
 		best_time_ms);
 #endif
 				local_work_size *= 2;
@@ -552,8 +552,8 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 		release_kernel();
 		init_kernel(gpu_id, local_work_size, use_local_mem);
 
-		if (local_work_size > get_kernel_max_lws(gpu_id, kernels[gpu_id][test_salt])) {
-			local_work_size = get_kernel_max_lws(gpu_id, kernels[gpu_id][test_salt]);
+		if (local_work_size > get_kernel_max_lws(gpu_id, kernels[gpu_id][0])) {
+			local_work_size = get_kernel_max_lws(gpu_id, kernels[gpu_id][0]);
 			release_kernel();
 			init_kernel(gpu_id, local_work_size, use_local_mem);
 		}
@@ -592,7 +592,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 
 				if (time_ms < best_time_ms &&
 				  local_work_size <= get_kernel_max_lws(
-				    gpu_id, kernels[gpu_id][test_salt])) {
+				    gpu_id, kernels[gpu_id][0])) {
 					best_lws = local_work_size;
 					best_time_ms = time_ms;
 				}
@@ -600,7 +600,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu", Limit_smem:"Zu", Limit_kernel:"Zu","
 		"Current time:%Lf, Best time:%Lf\n",
  		global_work_size, local_work_size, s_mem_limited_lws,
-		get_kernel_max_lws(gpu_id, kernels[gpu_id][test_salt]), time_ms,
+		get_kernel_max_lws(gpu_id, kernels[gpu_id][0]), time_ms,
 		best_time_ms);
 #endif
 				if (gpu(device_info[gpu_id])) {
@@ -637,6 +637,7 @@ static void reset(struct db_main *db)
 {
 	static int initialized;
 	size_t extern_lws_limit, limit_temp;
+	WORD salt_val = 0;
 
 	if (initialized) {
 		struct db_salt *salt;
@@ -660,19 +661,19 @@ static void reset(struct db_main *db)
 
 		salt = db -> salts;
 		do {
-			WORD bin_salt;
-			bin_salt = *(WORD *)(salt -> salt);
-			build_salt(bin_salt);
+			salt_val = *(WORD *)(salt -> salt);
+			build_salt(salt_val);
 		} while((salt = salt -> next));
 
-		if (mask_mode)
-			auto_tune_all(300, fmt_opencl_DES.methods.set_key, 0, mask_mode, extern_lws_limit);
+		if (mask_mode) {
+			release_kernel();
+			auto_tune_all(300, fmt_opencl_DES.methods.set_key, salt_val, mask_mode, extern_lws_limit);
+		}
 
 		set_kernel_args_kpc();
 	}
 	else {
 		int i;
-		WORD salt_val = 0;
 
 		create_clobj(NULL);
 
@@ -689,9 +690,6 @@ static void reset(struct db_main *db)
 			build_salt(salt_val);
 			i++;
 		}
-
-		fprintf(stderr, "Salt_val:%d\n", salt_val);
-
 
 		auto_tune_all(300, fmt_opencl_DES.methods.set_key, salt_val, 0, extern_lws_limit);
 
