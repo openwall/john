@@ -86,20 +86,20 @@ typedef unsigned WORD vtype;
 	DES_bs_clear_block_8(48); 			\
 	DES_bs_clear_block_8(56);
 
-inline void cmp( __private unsigned DES_bs_vector *B,
-	  __global int *binary,
-	  int num_loaded_hash,
-	  volatile __global uint *output,
-	  volatile __global uint *bitmap,
-	  __global DES_bs_vector *B_global,
+inline void cmp(__private unsigned DES_bs_vector *B,
+	  __global int *uncracked_hashes,
+	  int num_uncracked_hashes,
+	  volatile __global uint *hash_ids,
+	  volatile __global uint *bitmap_dupe,
+	  __global DES_bs_vector *cracked_hashes,
 	  int section) {
 
 	int value[2] , mask, i, bit;
 
-	for(i = 0; i < num_loaded_hash; i++) {
+	for(i = 0; i < num_uncracked_hashes; i++) {
 
-		value[0] = binary[i];
-		value[1] = binary[i + num_loaded_hash];
+		value[0] = uncracked_hashes[i];
+		value[1] = uncracked_hashes[i + num_uncracked_hashes];
 
 		mask = B[0] ^ -(value[0] & 1);
 
@@ -112,12 +112,12 @@ inline void cmp( __private unsigned DES_bs_vector *B,
 		}
 
 		if (mask != ~(int)0) {
-			if (!(atomic_or(&bitmap[i/32], (1U << (i % 32))) & (1U << (i % 32)))) {
-				mask = atomic_inc(&output[0]);
-				output[1 + 2 * mask] = section;
-				output[2 + 2 * mask] = 0;
+			if (!(atomic_or(&bitmap_dupe[i/32], (1U << (i % 32))) & (1U << (i % 32)))) {
+				mask = atomic_inc(&hash_ids[0]);
+				hash_ids[1 + 2 * mask] = section;
+				hash_ids[2 + 2 * mask] = 0;
 				for (bit = 0; bit < 64; bit++)
-					B_global[mask * 64 + bit] = (DES_bs_vector)B[bit];
+					cracked_hashes[mask * 64 + bit] = (DES_bs_vector)B[bit];
 
 			}
 		}

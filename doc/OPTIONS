@@ -125,6 +125,19 @@ information, first send a SIGHUP to the appropriate "john" process.
 if --show=left then all uncracked hashes are listed (in a john 'input'
 file format way).  =left is just that literal string "=left".
 
+--show=type				show the types found in the input file
+
+Shows the types of input hashes contained in the input file.
+
+--show=invalid			show lines in the input file that fail valid()
+
+Shows the input hash lines which fail the valid() function (i.e. these
+hashes have something wrong with them and would not be processed).
+When using this mode, you will want to run against a solid file,
+that is made up of just one type hash.  Also, the --format=xx flag
+is not required, but if not used, then the first valid line of the
+file will be used as the format type.
+
 --test[=TIME]			run tests and benchmarks for TIME seconds each
 
 Tests all of the compiled in hashing algorithms for proper operation and

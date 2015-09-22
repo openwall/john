@@ -44,6 +44,7 @@
 #include "cracker.h"
 #include "config.h"
 #include "logger.h" /* Beware: log_init() happens after most functions here */
+#include "base64_convert.h"
 #include "memdbg.h"
 
 #ifdef HAVE_CRYPT
@@ -90,10 +91,10 @@ static void read_file(struct db_main *db, char *name, int flags,
 	struct stat file_stat;
 	FILE *file;
 	char line_buf[LINE_BUFFER_SIZE], *line;
-	int warn = cfg_get_bool(SECTION_OPTIONS, NULL, "WarnEncoding", 0);
+	int warn_enc;
 
-	if (!john_main_process)
-		warn = 0;
+	warn_enc = john_main_process && (pers_opts.target_enc != ASCII) &&
+		cfg_get_bool(SECTION_OPTIONS, NULL, "WarnEncoding", 0);
 
 	if (flags & RF_ALLOW_DIR) {
 		if (stat(name, &file_stat)) {
@@ -113,7 +114,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 	while (fgets(line_buf, sizeof(line_buf), file)) {
 		line = skip_bom(line_buf);
 
-		if (warn) {
+		if (warn_enc) {
 			char *u8check;
 
 			if (!(flags & RF_ALLOW_MISSING) ||
@@ -126,14 +127,14 @@ static void read_file(struct db_main *db, char *name, int flags,
 			    ((flags & RF_ALLOW_DIR) &&
 			     pers_opts.input_enc == UTF_8)) {
 				if (!valid_utf8((UTF8*)u8check)) {
-					warn = 0;
+					warn_enc = 0;
 					fprintf(stderr, "Warning: invalid UTF-8"
 					        " seen reading %s\n", name);
 				}
 			} else if (pers_opts.input_enc != UTF_8 &&
 			           (line != line_buf ||
 			            valid_utf8((UTF8*)u8check) > 1)) {
-				warn = 0;
+				warn_enc = 0;
 				fprintf(stderr, "Warning: UTF-8 seen reading "
 				        "%s\n", name);
 			}
@@ -1634,13 +1635,17 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
 
 	if (options.format &&
-	    !strcasecmp(options.format, "raw-sha1-linkedin") &&
-	    !strncmp(ciphertext, "$dynamic_26$", 12) &&
-	    strncmp(ciphertext, "$dynamic_26$00000", 17)) {
-		char *new = mem_alloc_tiny(12 + 41, MEM_ALIGN_NONE);
-		strnzcpy(new, ciphertext, 12 + 41);
-		memset(new + 12, '0', 5);
-		ciphertext = new;
+	    !strcasecmp(options.format, "raw-sha1-linkedin")) {
+		if (!strncmp(ciphertext, "$dynamic_26$", 12))
+			memset(ciphertext + 12, '0', 5);
+		else if (!strncmp(ciphertext, "{SHA}", 5)) {
+			char out[41+3];
+			base64_convert(ciphertext + 5, e_b64_mime,
+			    strlen(ciphertext) - 5, out, e_b64_hex, 41, 0);
+			memcpy(out, "00000", 5);
+			base64_convert(out, e_b64_hex, 40, ciphertext + 5,
+			    e_b64_mime, strlen(out), flg_Base64_MIME_TRAIL_EQ);
+		}
 	}
 #ifndef DYNAMIC_DISABLED
 	else
@@ -1699,6 +1704,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 {
 	int show, loop;
 	char source[LINE_BUFFER_SIZE];
+	char orig_line[LINE_BUFFER_SIZE];
 	struct fmt_main *format;
 	char *(*split)(char *ciphertext, int index, struct fmt_main *self);
 	int index, count, unify;
@@ -1711,10 +1717,19 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	char utf8source[LINE_BUFFER_SIZE + 1];
 	char joined[PLAINTEXT_BUFFER_SIZE + 1] = "";
 
+	if (db->options->showinvalid)
+		strnzcpy(orig_line, line, sizeof(orig_line));
 	format = NULL;
 	count = ldr_split_line(&login, &ciphertext, &gecos, &home, &uid,
 		source, &format, db->options, line);
 	if (!count) return;
+
+/* If we are just showing the invalid, then simply run that logic */
+	if (db->options->showinvalid && count) {
+		if (count == -1)
+			printf ("%s", orig_line);
+		return;
+	}
 
 /* If just one format was forced on the command line, insist on it */
 	if (!fmt_list->next && !format) return;

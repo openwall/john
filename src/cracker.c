@@ -705,6 +705,9 @@ static int crk_password_loop(struct db_salt *salt)
 {
 	int count;
 	unsigned int match, index;
+#if CRK_PREFETCH
+	unsigned int target;
+#endif
 
 #if !OS_TIMER
 	sig_timer_emu_tick();
@@ -749,8 +752,8 @@ static int crk_password_loop(struct db_salt *salt)
 	}
 
 #if CRK_PREFETCH
-	for (index = 0; index < match; ) {
-		unsigned int target, slot, ahead, lucky;
+	for (index = 0; index < match; index = target) {
+		unsigned int slot, ahead, lucky;
 		struct {
 			unsigned int i;
 			union {
@@ -773,7 +776,7 @@ static int crk_password_loop(struct db_salt *salt)
 #endif
 		}
 		lucky = 0;
-		for (slot = 0; index < target; slot++, index++) {
+		for (slot = 0, ahead = index; ahead < target; slot++, ahead++) {
 			unsigned int h = a[slot].i;
 			if (*a[slot].u.b & (1U << (h % (sizeof(*salt->bitmap) * 8)))) {
 				struct db_password **pwp = &salt->hash[h >> PASSWORD_HASH_SHR];
@@ -782,7 +785,7 @@ static int crk_password_loop(struct db_salt *salt)
 #else
 				*(void * volatile *)pwp;
 #endif
-				a[lucky].i = index;
+				a[lucky].i = ahead;
 				a[lucky++].u.p = pwp;
 			}
 		}
@@ -804,8 +807,33 @@ static int crk_password_loop(struct db_salt *salt)
 		}
 #endif
 		for (slot = 0; slot < lucky; slot++) {
-			int index = a[slot].i;
 			struct db_password *pw = *a[slot].u.p;
+			index = a[slot].i;
+			do {
+				if (crk_methods.cmp_one(pw->binary, index))
+				if (crk_methods.cmp_exact(crk_methods.source(
+				    pw->source, pw->binary), index)) {
+					if (crk_process_guess(salt, pw, index))
+						return 1;
+/* After we've successfully cracked and removed a hash, our prefetched bitmap
+ * and hash table entries might be stale: some might correspond to the same
+ * hash bucket, yet with this removed hash still in there if it was the first
+ * one in the bucket.  If so, re-prefetch from the next lucky index if any,
+ * yet complete handling of this index first. */
+					if (slot + 1 < lucky) {
+						struct db_password *first =
+						    salt->hash[
+						    salt->index(index) >>
+						    PASSWORD_HASH_SHR];
+						if (pw == first || !first) {
+							target = a[slot + 1].i;
+							lucky = 0;
+						}
+					}
+				}
+			} while ((pw = pw->next_hash));
+		}
+	}
 #else
 	for (index = 0; index < match; index++) {
 		unsigned int hash = salt->index(index);
@@ -813,7 +841,6 @@ static int crk_password_loop(struct db_salt *salt)
 		    (1U << (hash % (sizeof(*salt->bitmap) * 8)))) {
 			struct db_password *pw =
 			    salt->hash[hash >> PASSWORD_HASH_SHR];
-#endif
 			do {
 				if (crk_methods.cmp_one(pw->binary, index))
 				if (crk_methods.cmp_exact(crk_methods.source(
@@ -823,6 +850,7 @@ static int crk_password_loop(struct db_salt *salt)
 			} while ((pw = pw->next_hash));
 		}
 	}
+#endif
 
 	return 0;
 }

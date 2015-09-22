@@ -70,12 +70,11 @@ static struct fmt_tests tests[] = {
 	{"000007f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
 	{"2fbf0eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
 	{"000006c9bca350e96223a850d9e862a6b3bf2641", "magnum"},
-	{"a9993e364706816aba3e25717850c26c9cd0d89d", "abc"},
 	{"$dynamic_26$00000E364706816ABA3E25717850C26C9CD0D89D", "abc"},
 	{"000008090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
 	{"$dynamic_26$0000012f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
 	{"00000c1163897ac86e393fa16d6ae2c2fce21602", "7850"},
-	{"00000b0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
+	{"{SHA}AAALC6nhM8T9hO0xrC5bxZfWF3Q=", "7858"},
 	{NULL}
 };
 
@@ -98,11 +97,12 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[41+3];
 
-	if (strncmp(ciphertext, "{SHA}", 5))
+	if (strncmp(ciphertext, "{SHA}", 5)) {
 		ciphertext = rawsha1_common_split(ciphertext, index, self);
 
-	if (strncmp(ciphertext, "{SHA}", 5))
-		return ciphertext;
+		if (strncmp(ciphertext, "{SHA}", 5))
+			return ciphertext;
+	}
 
 	// 'normalize' these hashes to all 'appear' to be 00000xxxxxx hashes.
 	// on the source() function, we later 'fix' these up.

@@ -2,13 +2,15 @@
 
 === Install pre-requisites
 
+    mkdir -p ~/src
+
 ==== Required stuff
 
     sudo apt-get install build-essential libssl-dev git
 
 ==== Recommended (extra formats and performance)
 
-    sudo apt-get install yasm libgmp-dev libpcap-dev pkg-config
+    sudo apt-get install yasm libgmp-dev libpcap-dev pkg-config libbz2-dev
 
 ==== If you have an NVIDIA GPU (CUDA and OpenCL support)
 
@@ -24,9 +26,9 @@
 
 ==== Optional REXGEN support (additional cracking modes)
 
-    sudo apt-get install cmake bison flex
-    mkdir ~/src && cd ~/src
-    git clone --recursive https://github.com/teeshop/rexgen.git
+    sudo apt-get install cmake bison flex libicu-dev
+    cd ~/src
+    git clone --recursive -b 1.2.5 https://github.com/teeshop/rexgen.git
     cd rexgen/src
     ./install.sh
 

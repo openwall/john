@@ -35,6 +35,7 @@
 #include "options.h"
 #include "config.h"
 #include "common.h"
+#include "logger.h"
 #include "common-opencl.h"
 #include "mask_ext.h"
 #include "dyna_salt.h"
@@ -261,6 +262,7 @@ static char *opencl_driver_info(int sequential_id)
 		{1702, 3},
 		{1729, 3},
 		{1800, 5},
+		{1800, 11},
 		{0, 0}
 	};
 
@@ -277,7 +279,8 @@ static char *opencl_driver_info(int sequential_id)
 		"14.12 (Omega) [recommended]",
 		"15.5 beta [not recommended]",
 		"15.5",
-		"15.7",
+		"15.7 [recommended]",
+		"15.9 [recommended]",
 		""
 	};
 	clGetDeviceInfo(devices[sequential_id], CL_DRIVER_VERSION,
@@ -889,6 +892,7 @@ static void dev_init(int sequential_id)
 		if (options.verbosity >= 2 && !printed[sequential_id]++)
 			fprintf(stderr, "Device %d: %s [%s]\n",
 			        sequential_id, device_name, opencl_log);
+		log_event("Device %d: %s [%s]", sequential_id, device_name, opencl_log);
 	} else {
 		char *dname = device_name;
 
@@ -898,6 +902,7 @@ static void dev_init(int sequential_id)
 
 		if (options.verbosity >= 2 && !printed[sequential_id]++)
 			fprintf(stderr, "Device %d: %s\n", sequential_id, dname);
+		log_event("Device %d: %s", sequential_id, dname);
 	}
 }
 
@@ -938,6 +943,17 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name)
 	char *build_log, *build_opts;
 	size_t log_size;
 	const char *srcptr[] = { kernel_source };
+
+	if (getenv("DUMP_BINARY")) {
+		char *bname = basename(kernel_source_file);
+		char *ext = ".bin";
+		int size = strlen(bname) + strlen(ext) + 1;
+		char *name = mem_alloc(size);
+
+		save = 1;
+		snprintf(name, size, "%s%s", bname, ext);
+		file_name = name;
+	}
 
 	assert(kernel_loaded);
 	program[sequential_id] =
@@ -1209,7 +1225,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	if (options.verbosity > 4)
 		fprintf(stderr, "\n");
 
-	if (split_events)
+	if (total)
 		runtime += (looptime * rounds) / (hash_loops * total);
 
 	clear_profiling_events();
@@ -1762,8 +1778,8 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 		}
 
 		// Select the kernel to run.
-		if (!stat(path_expand(bin_name), &bin_stat) &&
-		        (source_stat.st_mtime < bin_stat.st_mtime)) {
+		if (!getenv("DUMP_BINARY") && !stat(path_expand(bin_name), &bin_stat) &&
+			(source_stat.st_mtime < bin_stat.st_mtime)) {
 			opencl_read_source(bin_name);
 			opencl_build_from_binary(sequential_id);
 		} else {

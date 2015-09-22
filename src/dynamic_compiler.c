@@ -2392,7 +2392,7 @@ int ldr_in_pot = 0;
  * but there was other baggage along for the ride. When built with WITH_MAIN
  * we use no other code from dynamic_utils.c, so these stubs are safe.
  ****************************************************************************/
-int dynamic_IS_VALID(int i, int force) {return 0;}
+int dynamic_IS_VALID(int i, int single_lookup_only) {return 0;}
 char *dynamic_LOAD_PARSER_SIGNATURE(int which) {return 0;}
 void cfg_init(char *name, int allow_missing) {}
 int cfg_get_bool(char *section, char *subsection, char *param, int def) {return 0;}

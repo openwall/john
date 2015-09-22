@@ -40,29 +40,37 @@ john_register_one(&fmt_opencl_NT);
 #include "common-opencl.h"
 #include "config.h"
 #include "options.h"
+#include "unicode.h"
 #include "mask_ext.h"
 #include "bt_interface.h"
 
-#define FORMAT_LABEL		"nt-opencl"
-#define FORMAT_NAME		"NT"
-#define ALGORITHM_NAME		"MD4 OpenCL"
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	27
-#define BUFSIZE                 ((PLAINTEXT_LENGTH+3)/4*4)
-#define CIPHERTEXT_LENGTH	32
-#define BINARY_SIZE		16
-#define BINARY_ALIGN		MEM_ALIGN_WORD
-#define SALT_SIZE		0
-#define SALT_ALIGN		1
+#define FORMAT_LABEL        "nt-opencl"
+#define FORMAT_NAME         "NT"
+#define ALGORITHM_NAME      "MD4 OpenCL"
+#define BENCHMARK_COMMENT   ""
+#define BENCHMARK_LENGTH    -1
+#define PLAINTEXT_LENGTH    27
+/* At most 3 bytes of UTF-8 needed per character */
+#define UTF8_MAX_LENGTH     (3 * PLAINTEXT_LENGTH)
+#define BUFSIZE             ((UTF8_MAX_LENGTH + 3) / 4 * 4)
+#define AUTOTUNE_LENGTH     8
+#define CIPHERTEXT_LENGTH   32
+#define BINARY_SIZE         16
+#define BINARY_ALIGN        MEM_ALIGN_WORD
+#define SALT_SIZE           0
+#define SALT_ALIGN          1
 
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  1
 
+/* Note: Some plaintexts will be replaced in init() depending on codepage */
 static struct fmt_tests tests[] = {
 	{"b7e4b9022cd45f275334bbdb83bb5be5", "John the Ripper"},
-	{"$NT$8bd6e4fb88e01009818749c5443ea712", "\xFC"},         // German u-diaeresis in ISO-8859-1
-	{"$NT$cc1260adb6985ca749f150c7e0b22063", "\xFC\xFC"},     // Two of the above
+	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
+	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
+	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
+	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
+	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
 	{"$NT$7a21990fcd3d759941e45c490f143d5f", "12345"},
 	{"$NT$f9e37e83b83c47a93c2f09f66408631b", "abc123"},
 	{"$NT$8846f7eaee8fb117ad06bdd830b7586c", "password"},
@@ -324,7 +332,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 	sprintf(build_opts, "-D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u"
 		" -D SHIFT64_OT_SZ=%u -D SHIFT64_HT_SZ=%u -D NUM_LOADED_HASHES=%u"
 		" -D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d"
-		" -D CONST_CACHE_SIZE=%llu -D LOC_0=%d"
+		" -D CONST_CACHE_SIZE=%llu -D%s -D%s -DPLAINTEXT_LENGTH=%d -D LOC_0=%d"
 #if 1 < MASK_FMT_INT_PLHDR
 	" -D LOC_1=%d "
 #endif
@@ -334,9 +342,12 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 #if 3 < MASK_FMT_INT_PLHDR
 	"-D LOC_3=%d"
 #endif
-	, offset_table_size, hash_table_size, shift64_ot_sz, shift64_ht_sz,
+	,offset_table_size, hash_table_size, shift64_ot_sz, shift64_ht_sz,
 	num_ld_hashes, mask_int_cand.num_int_cand, bitmap_para, is_static_gpu_mask,
-	(unsigned long long)const_cache_size, static_gpu_locations[0]
+	(unsigned long long)const_cache_size, cp_id2macro(pers_opts.target_enc),
+	pers_opts.internal_enc == UTF_8 ? cp_id2macro(ASCII) :
+	cp_id2macro(pers_opts.internal_enc), PLAINTEXT_LENGTH,
+	static_gpu_locations[0]
 #if 1 < MASK_FMT_INT_PLHDR
 	, static_gpu_locations[1]
 #endif
@@ -362,6 +373,27 @@ static void init(struct fmt_main *_self)
 	opencl_prepare_dev(gpu_id);
 
 	opencl_read_source("$JOHN/kernels/nt_kernel.cl");
+
+	if (pers_opts.target_enc == UTF_8) {
+		self->params.plaintext_length = MIN(125, UTF8_MAX_LENGTH);
+		tests[1].plaintext = "\xC3\xBC";	// German u-umlaut in UTF-8
+		tests[1].ciphertext = "$NT$8bd6e4fb88e01009818749c5443ea712";
+		tests[2].plaintext = "\xC3\xBC\xC3\xBC"; // two of them
+		tests[2].ciphertext = "$NT$cc1260adb6985ca749f150c7e0b22063";
+		tests[3].plaintext = "\xE2\x82\xAC";	// euro sign
+		tests[3].ciphertext = "$NT$030926b781938db4365d46adc7cfbcb8";
+		tests[4].plaintext = "\xE2\x82\xAC\xE2\x82\xAC";
+		tests[4].ciphertext = "$NT$682467b963bb4e61943e170a04f7db46";
+	} else if (CP_to_Unicode[0xfc] == 0x00fc) {
+		tests[1].plaintext = "\xFC";	// German u-umlaut in UTF-8
+		tests[1].ciphertext = "$NT$8bd6e4fb88e01009818749c5443ea712";
+		tests[2].plaintext = "\xFC\xFC"; // two of them
+		tests[2].ciphertext = "$NT$cc1260adb6985ca749f150c7e0b22063";
+		tests[3].plaintext = "\xFC\xFC\xFC";	// 3 of them
+		tests[3].ciphertext = "$NT$2e583e8c210fb101994c19877ac53b89";
+		tests[4].plaintext = "\xFC\xFC\xFC\xFC";
+		tests[4].ciphertext = "$NT$243bb98e7704797f92b1dd7ded6da0d0";
+	}
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
@@ -505,7 +537,7 @@ static void set_key(char *_key, int index)
 
 static char *get_key(int index)
 {
-	static char out[PLAINTEXT_LENGTH + 1];
+	static char out[UTF8_MAX_LENGTH + 1];
 	int i, len, int_index, t;
 	char *key;
 
@@ -908,10 +940,10 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 
 	int tune_gws, tune_lws;
 
-	char key[PLAINTEXT_LENGTH + 1];
+	char key[AUTOTUNE_LENGTH + 1];
 
-	memset(key, 0xF5, PLAINTEXT_LENGTH);
-	key[PLAINTEXT_LENGTH] = 0;
+	memset(key, 0xF5, AUTOTUNE_LENGTH);
+	key[AUTOTUNE_LENGTH] = 0;
 
 	gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
 			get_max_mem_alloc_size(gpu_id) / BUFSIZE);
@@ -1155,7 +1187,7 @@ struct fmt_main fmt_opencl_NT = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
 		tests
 	}, {
