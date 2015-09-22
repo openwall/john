@@ -562,7 +562,7 @@ static size_t find_smem_lws_limit(unsigned int full_unroll, unsigned int use_loc
 	cl_uint warp_size;
 
 	if (force_global_keys) {
-		if (s_mem_sz > 768 * sizeof(cl_short))
+		if (s_mem_sz > 768 * sizeof(cl_short) || full_unroll)
 			return 0x800000;
 		else
 			return 0;
@@ -627,8 +627,9 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 	long double time_ms = 0;
 	int pcount;
 	unsigned int lm_log_depth = mask_mode ? 0 : LM_LOG_DEPTH;
+	size_t iter_count = (mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH;
 
-	size_t gws_limit = get_max_mem_alloc_size(gpu_id) / sizeof(opencl_lm_transfer);
+	size_t gws_limit = get_max_mem_alloc_size(gpu_id) / (sizeof(opencl_lm_transfer) * iter_count);
 	if (gws_limit > PADDING)
 		gws_limit -= PADDING;
 
@@ -764,6 +765,9 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 
 		lws_limit = get_kernel_max_lws(gpu_id, crypt_kernel);
 
+		if (lws_limit > global_work_size)
+			lws_limit = global_work_size;
+
 		if (lws_tune_flag) {
 			if (gpu(device_info[gpu_id]) && lws_limit >= 32)
 				local_work_size = 32;
@@ -848,6 +852,12 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		set_kernel_args();
 		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag, set_key, mask_mode);
 		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, mask_mode);
+
+		if (global_work_size < s_mem_limited_lws) {
+			s_mem_limited_lws = global_work_size;
+			if (local_work_size > s_mem_limited_lws)
+				local_work_size = s_mem_limited_lws;
+		}
 
 		if (lws_tune_flag) {
 			best_time_ms = 999999.00;

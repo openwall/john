@@ -1,55 +1,5 @@
-/* CAUTION:Do not change or move the next 48 lines */
-#define index00 31
-#define index01  0
-#define index02  1
-#define index03  2
-#define index04  3
-#define index05  4
-#define index06  3
-#define index07  4
-#define index08  5
-#define index09  6
-#define index10  7
-#define index11  8
-#define index24 15
-#define index25 16
-#define index26 17
-#define index27 18
-#define index28 19
-#define index29 20
-#define index30 19
-#define index31 20
-#define index32 21
-#define index33 22
-#define index34 23
-#define index35 24
-#define index48 63
-#define index49 32
-#define index50 33
-#define index51 34
-#define index52 35
-#define index53 36
-#define index54 35
-#define index55 36
-#define index56 37
-#define index57 38
-#define index58 39
-#define index59 40
-#define index72 47
-#define index73 48
-#define index74 49
-#define index75 50
-#define index76 51
-#define index77 52
-#define index78 51
-#define index79 52
-#define index80 53
-#define index81 54
-#define index82 55
-#define index83 56
-
 /*
- * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
+ * This software is Copyright (c) 2012-2015 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -58,10 +8,18 @@
 
 #include "opencl_DES_kernel_params.h"
 
+#if WORK_GROUP_SIZE > 0
+#define y48(p, q) vxorf(B[p], s_des_bs_key[q + s_key_offset])
+#define z(p, q) vxorf(B[p], s_des_bs_key[key_map[q + k] + s_key_offset])
+#else
+#define y48(p, q) vxorf(B[p], des_bs_key[section + q * gws])
+#define z(p, q) vxorf(B[p], des_bs_key[section + key_map[q + k] * gws])
+#endif
+
 #define H1_s()\
-	s1(z(index00, 0), z(index01, 1), z(index02, 2), z(index03, 3), z(index04, 4), z(index05, 5),\
+	s1(z(index0, 0), z(index1, 1), z(index2, 2), z(index3, 3), z(index4, 4), z(index5, 5),\
 		B,40, 48, 54, 62);\
-	s2(z(index06, 6), z(index07, 7), z(index08, 8), z(index09, 9), z(index10, 10), z(index11, 11),\
+	s2(z(index6, 6), z(index7, 7), z(index8, 8), z(index9, 9), z(index10, 10), z(index11, 11),\
 		B,44, 59, 33, 49);\
 	s3(z(7, 12), z(8, 13), z(9, 14),\
 		z(10, 15), z(11, 16), z(12, 17),\
@@ -124,91 +82,98 @@
 		y48(62, 50), y48(63, 42), y48(32, 21),\
 		B,4, 26, 14, 20);
 
-#define y48(p, q) vxorf(B[p]     , _local_K[q + local_offset_K])
-
-#ifndef RV7xx
-#define z(p, q) vxorf(B[p]      , _local_K[*_index768_ptr++ + local_offset_K])
-#else
-#define z(p, q) vxorf(B[p]      , _local_K[index768[q + k] + local_offset_K])
-#endif
-
 #define SWAP(a, b) {	\
 	tmp = B[a];	\
 	B[a] = B[b];	\
 	B[b] = tmp;	\
 }
 
-__kernel void DES_bs_25( constant uint *index768
+#define BIG_SWAP() { 	\
+	SWAP(0, 32);	\
+	SWAP(1, 33);	\
+	SWAP(2, 34);	\
+	SWAP(3, 35);	\
+	SWAP(4, 36);	\
+	SWAP(5, 37);	\
+	SWAP(6, 38);	\
+	SWAP(7, 39);	\
+	SWAP(8, 40);	\
+	SWAP(9, 41);	\
+	SWAP(10, 42);	\
+	SWAP(11, 43);	\
+	SWAP(12, 44);	\
+	SWAP(13, 45);	\
+	SWAP(14, 46);	\
+	SWAP(15, 47);	\
+	SWAP(16, 48);	\
+	SWAP(17, 49);	\
+	SWAP(18, 50);	\
+	SWAP(19, 51);	\
+	SWAP(20, 52);	\
+	SWAP(21, 53);	\
+	SWAP(22, 54);	\
+	SWAP(23, 55);	\
+	SWAP(24, 56);	\
+	SWAP(25, 57);	\
+	SWAP(26, 58);	\
+	SWAP(27, 59);	\
+	SWAP(28, 60);	\
+	SWAP(29, 61);	\
+	SWAP(30, 62);	\
+	SWAP(31, 63);  	\
+}
+
+__kernel void DES_bs_25( constant uint *key_map
 #if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
                          __attribute__((max_constant_size(3072)))
 #endif
-                         , __global DES_bs_vector *K,
-                         __global DES_bs_vector *B_global,
-                         __global int *binary,
-                         int num_loaded_hashes,
-                         volatile __global uint *hash_ids,
-			 volatile __global uint *bitmap) {
+                         , __global DES_bs_vector *des_bs_key,
+                         __global vtype *unchecked_hashes) {
 
-		unsigned int section = get_global_id(0), local_offset_K;
-		unsigned int local_id = get_local_id(0);
-		unsigned int global_work_size = get_global_size(0);
-		unsigned int local_work_size = get_local_size(0);
-
-		local_offset_K  = 56 * local_id;
+		int section = get_global_id(0);
+		int gws = get_global_size(0);
 
 		vtype B[64];
 
-		__local DES_bs_vector _local_K[56 * WORK_GROUP_SIZE] ;
-#ifndef RV7xx
-		__local ushort _local_index768[768] ;
-		__local ushort *_index768_ptr ;
-#endif
 		int iterations;
+		int k, i;
 
-#ifndef SAFE_GOTO
-		int rounds_and_swapped;
-#else
-		vtype tmp;
-#endif
-		int k = 0, i;
-
+#if WORK_GROUP_SIZE > 0
+		__local DES_bs_vector s_des_bs_key[56 * WORK_GROUP_SIZE];
+		int lid = get_local_id(0);
+		int s_key_offset = 56 * lid;
 		for (i = 0; i < 56; i++)
-			_local_K[local_id * 56 + i] = K[section + i * global_work_size];
+			s_des_bs_key[lid * 56 + i] = des_bs_key[section + i * gws];
 
-#ifndef RV7xx
-		for (i = 0; i < 768; i += local_work_size)
-			_local_index768[local_id + i] = index768[local_id + i];
-#endif
 		barrier(CLK_LOCAL_MEM_FENCE);
-
+#endif
 		{
 			vtype zero = 0;
 			DES_bs_clear_block
 		}
 
-		k = 0;
-#ifndef SAFE_GOTO
-		rounds_and_swapped = 8;
-#endif
-		iterations = 25;
-
 #ifdef SAFE_GOTO
+		vtype tmp;
+
 		for (iterations = 24; iterations >= 0; iterations--) {
 			for (k = 0; k < 768; k += 96) {
-#ifndef RV7xx
-				_index768_ptr = _local_index768 + k ;
-#endif
 				H1_s();
 				H2_s();
 			}
-			for (i = 0; i < 32 && iterations; i++)
-				SWAP(i, i + 32);
+			BIG_SWAP();
 		}
+
+		BIG_SWAP();
+		for (i = 0; i < 64; i++)
+			unchecked_hashes[i * gws + section] = B[i];
+
 #else
+		int rounds_and_swapped;
+		rounds_and_swapped = 8;
+		iterations = 25;
+		k = 0;
+
 start:
-#ifndef RV7xx
-		_index768_ptr = _local_index768 + k ;
-#endif
 		H1_s();
 		if (rounds_and_swapped == 0x100) goto next;
 		H2_s();
@@ -219,11 +184,12 @@ start:
 		k -= (0x300 + 48);
 		rounds_and_swapped = 0x108;
 		if (--iterations) goto swap;
-#endif
-		cmp(B, binary, num_loaded_hashes, hash_ids, bitmap, B_global, section);
+
+		for (i = 0; i < 64; i++)
+			unchecked_hashes[i * gws + section] = B[i];
 
 		return;
-#ifndef SAFE_GOTO
+
 swap:
 		H2_k48();
 		k += 96;
