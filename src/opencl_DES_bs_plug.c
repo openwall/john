@@ -1013,7 +1013,7 @@ char *opencl_DES_bs_get_key(int index)
 	char *dst;
 
 	if (hash_ids == NULL || hash_ids[0] == 0 ||
-	    index > 32 * hash_ids[0] || hash_ids[0] > num_uncracked_hashes(current_salt)) {
+	    index >= hash_ids[0] || hash_ids[0] > num_uncracked_hashes(current_salt)) {
 		section = 0;
 		block = 0;
 	}
@@ -1088,7 +1088,7 @@ static char *get_key_mm(int index)
 	char *dst;
 
 	if (hash_ids == NULL || hash_ids[0] == 0 ||
-	    index > hash_ids[0] || hash_ids[0] > num_uncracked_hashes(current_salt)) {
+	    index >= hash_ids[0] || hash_ids[0] > num_uncracked_hashes(current_salt)) {
 		section = 0;
 		depth = 0;
 		iter = 0;
