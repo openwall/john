@@ -944,6 +944,17 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name)
 	size_t log_size;
 	const char *srcptr[] = { kernel_source };
 
+	if (getenv("DUMP_BINARY")) {
+		char *bname = basename(kernel_source_file);
+		char *ext = ".bin";
+		int size = strlen(bname) + strlen(ext) + 1;
+		char *name = mem_alloc(size);
+
+		save = 1;
+		snprintf(name, size, "%s%s", bname, ext);
+		file_name = name;
+	}
+
 	assert(kernel_loaded);
 	program[sequential_id] =
 	    clCreateProgramWithSource(context[sequential_id], 1, srcptr,
@@ -1767,8 +1778,8 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 		}
 
 		// Select the kernel to run.
-		if (!stat(path_expand(bin_name), &bin_stat) &&
-		        (source_stat.st_mtime < bin_stat.st_mtime)) {
+		if (!getenv("DUMP_BINARY") && !stat(path_expand(bin_name), &bin_stat) &&
+			(source_stat.st_mtime < bin_stat.st_mtime)) {
 			opencl_read_source(bin_name);
 			opencl_build_from_binary(sequential_id);
 		} else {
