@@ -1040,9 +1040,9 @@ static void john_load(void)
 				ldr_show_pw_file(&database, current->data);
 			} while ((current = current->next));
 
-			if (john_main_process && !options.loader.showtypes)
-			fprintf(options.loader.showinvalid ? stderr : stdout,
-			        "%s%d password hash%s cracked, %d left\n",
+			if (john_main_process && !options.loader.showtypes &&
+			    !options.loader.showinvalid)
+			printf("%s%d password hash%s cracked, %d left\n",
 				database.guess_count ? "\n" : "",
 				database.guess_count,
 				database.guess_count != 1 ? "es" : "",
