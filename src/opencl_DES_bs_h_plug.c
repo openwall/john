@@ -105,7 +105,10 @@ static void clean_all_buffers()
 		if (kernels[gpu_id][i])
 		HANDLE_CLERROR(clReleaseKernel(kernels[gpu_id][i]), "Error releasing kernel");
 
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
+	if (program[gpu_id]) {
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
+		program[gpu_id] = NULL;
+	}
 
 	for (i = 0; i < MAX_GPU_DEVICES; i++)
 		MEM_FREE(kernels[i]);

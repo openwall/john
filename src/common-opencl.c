@@ -804,6 +804,7 @@ void opencl_done()
 			HANDLE_CLERROR(clReleaseContext(context[gpu_device_list[i]]),
 			               "Release Context");
 		context[gpu_device_list[i]] = NULL;
+		program[gpu_device_list[i]] = NULL;
 	}
 	if (kernel_source)
 		libc_free(kernel_source);

@@ -97,11 +97,17 @@ static void clean_all_buffers()
 	release_clobj();
 	release_clobj_kpc();
 
-	for( i = 0; i < 1; i++)
-		if (kernels[gpu_id][i])
-		HANDLE_CLERROR(clReleaseKernel(kernels[gpu_id][i]), "Error releasing kernel");
+	for( i = 0; i < 1; i++) {
+		if (kernels[gpu_id][i]) {
+			HANDLE_CLERROR(clReleaseKernel(kernels[gpu_id][i]), "Error releasing kernel");
+			kernels[gpu_id][i] = NULL;
+		}
+	}
 
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
+	if (program[gpu_id]) {
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
+		program[gpu_id] = NULL;
+	}
 
 	for (i = 0; i < MAX_GPU_DEVICES; i++)
 		MEM_FREE(kernels[i]);

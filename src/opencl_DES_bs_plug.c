@@ -576,7 +576,6 @@ void finish_checking()
 	for (i = 0; i < MAX_GPU_DEVICES; i++)
 		MEM_FREE(cmp_kernel[i]);
 	MEM_FREE(cmp_kernel);
-	cmp_kernel = 0;
 	MEM_FREE(hash_chk_params);
 }
 
