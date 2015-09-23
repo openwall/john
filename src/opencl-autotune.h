@@ -159,19 +159,24 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	if (gws_limit && (global_work_size > gws_limit))
 		global_work_size = gws_limit;
 
+	if (lws_is_power_of_two && (local_work_size & (local_work_size - 1)))
+		  get_power_of_two(local_work_size);
+
 	/* Adjust, if necessary */
 	if (!local_work_size)
 		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size, 64);
 	else if (global_work_size)
 		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size, local_work_size);
 
-	if (lws_is_power_of_two && local_work_size & (local_work_size - 1))
-		  get_power_of_two(local_work_size);
-
 	/* Ensure local_work_size is not oversized */
 	ocl_max_lws = get_task_max_work_group_size();
-	if (local_work_size > ocl_max_lws)
+	if (local_work_size > ocl_max_lws) {
 		local_work_size = ocl_max_lws;
+		if (lws_is_power_of_two && (local_work_size & (local_work_size - 1))) {
+		  get_power_of_two(local_work_size);
+		  local_work_size >>= 1;
+		}
+	}
 
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
 	need_best_gws = !global_work_size;
@@ -189,8 +194,13 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 		create_clobj(global_work_size, self);
 	}
 
-	if (!local_work_size || need_best_lws)
+	if (!local_work_size || need_best_lws) {
 		find_best_lws(self, gpu_id);
+		if (lws_is_power_of_two && (local_work_size & (local_work_size - 1))) {
+			get_power_of_two(local_work_size);
+			local_work_size >>= 1;
+		}
+	}
 
 	if (need_best_gws)
 		find_best_gws(self, gpu_id, rounds, max_run_time, 1);
