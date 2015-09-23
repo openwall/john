@@ -72,11 +72,25 @@ static char mscash_prefix[] = "M$";
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
+#define SWAP(n) \
+    (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
+
 #define STEP                    0
 #define SEED                    1024
 
-#define SWAP(n) \
-    (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
+static const char * warn[] = {
+	"key xfer: ",  ", idx xfer: ",  ", crypt: ",  ", res xfer: "
+};
+
+//This file contains auto-tuning routine(s). Has to be included after formats definitions.
+#include "opencl-autotune.h"
+#include "memdbg.h"
+
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+}
 
 #define get_power_of_two(v)	\
 {				\
@@ -89,9 +103,6 @@ static char mscash_prefix[] = "M$";
 	v |= v >> 32;		\
 	v++;			\
 }
-
-//This file contains auto-tuning routine(s). It has to be included after formats definitions.
-#include "memdbg.h"
 
 static struct fmt_tests tests[] = {
 	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2"},
@@ -125,7 +136,7 @@ static void set_kernel_args()
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 10, sizeof(buffer_bitmap_dupe), (void *) &buffer_bitmap_dupe), "Error setting argument 11.");
 }
 
-static void create_clobj_kpc(size_t kpc)
+static void create_clobj(size_t kpc, struct fmt_main *self)
 {
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * kpc, NULL, &ret_code);
 	if (ret_code != CL_SUCCESS) {
@@ -157,9 +168,11 @@ static void create_clobj_kpc(size_t kpc)
 
 	buffer_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(cl_uint) * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_key_loc.");
+
+	set_kernel_args_kpc();
 }
 
-static void create_clobj()
+static void create_base_clobj()
 {
 	unsigned int dummy = 0;
 
@@ -179,9 +192,11 @@ static void create_clobj()
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys.");
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
+
+	set_kernel_args();
 }
 
-static void release_clobj_kpc(void)
+static void release_clobj(void)
 {
 	if (buffer_keys) {
 		if (pinned_saved_keys) {
@@ -214,7 +229,7 @@ static void release_clobj_test(void)
 	}
 }
 
-static void release_clobj(void)
+static void release_base_clobj(void)
 {
 	if (buffer_int_keys) {
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys.");
@@ -285,7 +300,7 @@ static void done(void)
 {
 	release_clobj_test();
 	release_clobj();
-	release_clobj_kpc();
+	release_base_clobj();
 
 	if (crypt_kernel) {
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel.");
@@ -756,17 +771,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 
 	size_t *lws = local_work_size ? &local_work_size : NULL;
+	size_t gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
-
-	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand%d\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx, mask_int_cand.num_int_cand);
+	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand%d\n", __FUNCTION__, count, local_work_size, gws, key_idx, mask_int_cand.num_int_cand);
 
 	// copy keys to the device
 	if (set_new_keys) {
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_keys.");
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * global_work_size, saved_idx, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_idx.");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys.");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx.");
 		if (!is_static_gpu_mask)
-			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
+			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, 0, 4 * gws, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
 		set_new_keys = 0;
 	}
 	if (salt) {
@@ -777,9 +791,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_hash_tables[current_salt]), (void *) &buffer_hash_tables[current_salt]), "Error setting argument 8.");
 	}
 
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
 
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), hash_ids, 0, NULL, NULL), "failed in reading back num cracked hashes.");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), hash_ids, 0, NULL, multi_profilingEvent[3]), "failed in reading back num cracked hashes.");
 
 	if (hash_ids[0] > max_num_loaded_hashes) {
 		fprintf(stderr, "Error, crypt_all kernel.\n");
@@ -787,9 +801,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	if (hash_ids[0]) {
-		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_return_hashes, CL_TRUE, 0, 2 * sizeof(cl_uint) * hash_ids[0], loaded_hashes, 0, NULL, NULL), "failed in reading back return_hashes.");
+		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_return_hashes, CL_FALSE, 0, 2 * sizeof(cl_uint) * hash_ids[0], loaded_hashes, 0, NULL, NULL), "failed in reading back return_hashes.");
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (3 * hash_ids[0] + 1) * sizeof(cl_uint), hash_ids, 0, NULL, NULL), "failed in reading data back hash_ids.");
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmap_dupe, CL_TRUE, 0, (max_hash_table_size/32 + 1) * sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmap_dupe.");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmap_dupe, CL_FALSE, 0, (max_hash_table_size/32 + 1) * sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmap_dupe.");
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
 	}
 
@@ -820,221 +834,52 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void auto_tune(struct db_main *db, long double kernel_run_ms)
-{
-	size_t gws_limit, gws_init;
-	size_t lws_limit, lws_init;
-
-	struct timeval startc, endc;
-	long double time_ms = 0, old_time_ms = 0;
-
-	size_t pcount, count;
-	size_t i;
-
-	int tune_gws, tune_lws;
-
-	char key[AUTOTUNE_LENGTH + 1];
-	unsigned int salt[SALT_SIZE/sizeof(unsigned int)];
-
-	memset(key, 0xF5, AUTOTUNE_LENGTH);
-	memset(salt, 0x35, (SALT_SIZE));
-	key[AUTOTUNE_LENGTH] = 0;
-
-	gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
-			get_max_mem_alloc_size(gpu_id) / BUFSIZE);
-	get_power_of_two(gws_limit);
-	if (gws_limit > MIN((0xf << 22) * 4 / BUFSIZE,
-		get_max_mem_alloc_size(gpu_id) / BUFSIZE))
-		gws_limit >>= 1;
-
-	lws_limit = get_kernel_max_lws(gpu_id, crypt_kernel);
-
-	lws_init = get_kernel_preferred_multiple(gpu_id, crypt_kernel);
-
-	if (gpu_amd(device_info[gpu_id]))
-		gws_init = gws_limit >> 6;
-	else if (gpu_nvidia(device_info[gpu_id]))
-		gws_init = gws_limit >> 8;
-	else
-		gws_init = 1024;
-
-	if (gws_init > gws_limit)
-		gws_init = gws_limit;
-	if (gws_init < lws_init)
-		lws_init = gws_init;
-
-	local_work_size = 0;
-	global_work_size = 0;
-	tune_gws = 1;
-	tune_lws = 1;
-	opencl_get_user_preferences(FORMAT_LABEL);
-	if (local_work_size) {
-		tune_lws = 0;
-		if (local_work_size & (local_work_size - 1))
-			get_power_of_two(local_work_size);
-		if (local_work_size > lws_limit)
-			local_work_size = lws_limit;
-	}
-	if (global_work_size)
-		tune_gws = 0;
-
-#if 0
-	 fprintf(stderr, "lws_init:"Zu" lws_limit:"Zu""
-			 " gws_init:"Zu" gws_limit:"Zu"\n",
-			  lws_init, lws_limit, gws_init,
-			  gws_limit);
-#endif
-	/* Auto tune start.*/
-	pcount = gws_init;
-	count = 0;
-#define calc_ms(start, end)	\
-		((long double)(end.tv_sec - start.tv_sec) * 1000.000 + \
-			(long double)(end.tv_usec - start.tv_usec) / 1000.000)
-	if (tune_gws) {
-		create_clobj_kpc(pcount);
-		set_kernel_args_kpc();
-		for (i = 0; i < pcount; i++)
-			set_key(key, i);
-		gettimeofday(&startc, NULL);
-		if (db)
-			crypt_all((int *)&pcount, db->salts);
-		else {
-			set_salt(salt);
-			crypt_all((int *)&pcount, NULL);
-		}
-		gettimeofday(&endc, NULL);
-		time_ms = calc_ms(startc, endc);
-		count = (size_t)((kernel_run_ms / time_ms) * (long double)gws_init);
-		get_power_of_two(count);
-	}
-
-	if (tune_gws && tune_lws)
-		release_clobj_kpc();
-
-	if (tune_lws) {
-		count = tune_gws ? count : global_work_size;
-		if (count > gws_limit)
-			count = gws_limit;
-		create_clobj_kpc(count);
-		set_kernel_args_kpc();
-		pcount = count;
-		clear_keys();
-		for (i = 0; i < pcount; i++)
-			set_key(key, i);
-		local_work_size = lws_init;
-		gettimeofday(&startc, NULL);
-		if (db)
-			crypt_all((int *)&pcount, db->salts);
-		else {
-			set_salt(salt);
-			crypt_all((int *)&pcount, NULL);
-		}
-		gettimeofday(&endc, NULL);
-		old_time_ms = calc_ms(startc, endc);
-		local_work_size = 2 * lws_init;
-
-		while (local_work_size <= lws_limit) {
-			gettimeofday(&startc, NULL);
-			pcount = count;
-			if (db)
-				crypt_all((int *)&pcount, db->salts);
-			else {
-				set_salt(salt);
-				crypt_all((int *)&pcount, NULL);
-			}
-			gettimeofday(&endc, NULL);
-			time_ms = calc_ms(startc, endc);
-			if (old_time_ms < time_ms) {
-				local_work_size /= 2;
-				break;
-			}
-			old_time_ms = time_ms;
-			local_work_size *= 2;
-		}
-
-		if (local_work_size > lws_limit)
-			local_work_size = lws_limit;
-	}
-
-	if (tune_gws && tune_lws) {
-		if (old_time_ms > kernel_run_ms) {
-			count /= 2;
-		}
-		else {
-			count = (size_t)((kernel_run_ms / old_time_ms) * (long double)count);
-			get_power_of_two(count);
-		}
-	}
-
-	if (tune_gws) {
-		if (count > gws_limit)
-			count = gws_limit;
-		release_clobj_kpc();
-		create_clobj_kpc(count);
-		set_kernel_args_kpc();
-		global_work_size = count;
-	}
-
-	if (!tune_gws && !tune_lws) {
-		create_clobj_kpc(global_work_size);
-		set_kernel_args_kpc();
-	}
-	/* Auto tune finish.*/
-
-	if (global_work_size % local_work_size) {
-		global_work_size = GET_MULTIPLE_OR_BIGGER(global_work_size, local_work_size);
-		get_power_of_two(global_work_size);
-		release_clobj_kpc();
-		if (global_work_size > gws_limit)
-			global_work_size = gws_limit;
-		create_clobj_kpc(global_work_size);
-		set_kernel_args_kpc();
-	}
-	if (global_work_size > gws_limit) {
-		release_clobj_kpc();
-		global_work_size = gws_limit;
-		create_clobj_kpc(global_work_size);
-		set_kernel_args_kpc();
-	}
-
-	clear_keys();
-
-	assert(!(local_work_size & (local_work_size -1)));
-	assert(!(global_work_size % local_work_size));
-	assert(local_work_size <= lws_limit);
-	assert(global_work_size <= gws_limit);
-
-	self->params.max_keys_per_crypt = global_work_size;
-	if (options.verbosity > 3)
-	fprintf(stdout, "%s GWS: "Zu", LWS: "Zu"\n", db ? "Cracking" : "Self test",
-			global_work_size, local_work_size);
-#undef calc_ms
-}
-
 static void reset(struct db_main *db)
 {
+	static size_t o_lws, o_gws;
 	static int initialized;
+	size_t gws_limit;
 
-	if (initialized) {
+	//fprintf(stderr, "%s(%p), i=%d\n", __func__, db, initialized);
+	gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
+	                get_max_mem_alloc_size(gpu_id) / BUFSIZE);
+	get_power_of_two(gws_limit);
+	if (gws_limit > MIN((0xf << 22) * 4 / BUFSIZE,
+	                    get_max_mem_alloc_size(gpu_id) / BUFSIZE))
+		gws_limit >>= 1;
+
+
+	if (initialized && db) {
 		release_clobj_test();
 		release_clobj();
-		release_clobj_kpc();
+		release_base_clobj();
 
 		prepare_table(db);
 		init_kernel();
 
-		create_clobj();
-		set_kernel_args();
+		create_base_clobj();
 
 		self->methods.set_salt = set_salt_no_op;
-		auto_tune(db, 300);
+		// Forget the previous auto-tune
+		local_work_size = o_lws;
+		global_work_size = o_gws;
 
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 1, NULL, warn, 2, self,
+		                       create_clobj, release_clobj,
+		                       2 * BUFSIZE, gws_limit);
+
+		// Auto tune execution from shared/included code.
+		autotune_run_extra(self, 1, gws_limit, 300, CL_TRUE);
 	}
 	else {
 		unsigned int *binary_hash, i = 0;
 		char *ciphertext;
 		unsigned int salt_params[17];
 		static unsigned int hash_table_size, offset_table_size, shift64_ht_sz, shift64_ot_sz;
+
+		o_lws = local_work_size;
+		o_gws = global_work_size;
 
 		while (tests[max_num_loaded_hashes].ciphertext != NULL)
 			max_num_loaded_hashes++;
@@ -1100,13 +945,19 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_offset_table_test), (void *) &buffer_offset_table_test), "Error setting argument 7.");
 		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_hash_table_test), (void *) &buffer_hash_table_test), "Error setting argument 8.");
 
-		create_clobj();
-		set_kernel_args();
+		create_base_clobj();
 
 		hash_ids[0] = 0;
 		MEM_FREE(offset_table);
 		MEM_FREE(bitmaps);
-		auto_tune(NULL, 50);
+
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 1, NULL, warn, 2, self,
+		                       create_clobj, release_clobj,
+		                       2 * BUFSIZE, gws_limit);
+
+		// Auto tune execution from shared/included code.
+		autotune_run_extra(self, 1, gws_limit, 50, CL_TRUE);
 
 		initialized++;
 	}
