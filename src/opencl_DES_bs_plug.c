@@ -1024,8 +1024,7 @@ char *opencl_DES_bs_get_key(int index)
 	}
 
 	if (section > global_work_size) {
-		fprintf(stderr, "Get key error! %d "Zu"\n", section,
-			global_work_size);
+		//fprintf(stderr, "Get key error! %d "Zu"\n", section, global_work_size);
 		section = 0;
 	}
 
