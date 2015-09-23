@@ -13,7 +13,7 @@
 #include "opencl_mask.h"
 
 /* If defined, we do not support full UTF-16 with surrogate pairs */
-//#define UCS_2
+#define UCS_2
 
 #define INIT_A			0x67452301
 #define INIT_B			0xefcdab89
@@ -278,6 +278,7 @@ inline void md4_crypt_b(__private uint *hash, constant uint *salt)
 #endif
 
 #if UTF_8
+
 inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
 {
 	const __global UTF8 *source = (const __global uchar*)key;
@@ -347,8 +348,6 @@ inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
 	*target++ = 0;
 	*target++ = 0;
 
-	//dump_stuff_msg("buf", nt_buffer, 64);
-
 	nt_buffer[14] = len << 4;
 }
 
@@ -368,8 +367,6 @@ inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
 	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
 	nt_buffer[nt_index + 1] = 0;
 	nt_buffer[14] = length << 4;
-
-	//dump_stuff_msg("buf", nt_buffer, 64);
 }
 
 #endif /* UTF_8 */

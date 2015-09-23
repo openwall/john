@@ -57,7 +57,7 @@ __kernel void oldoffice_utf16(__global const uchar *source,
 	while (source < sourceEnd) {
 		if (*source < 0xC0) {
 			*target++ = (UTF16)*source++;
-			if (*source == 0 || target >= targetEnd) {
+			if (source >= sourceEnd || target >= targetEnd) {
 				break;
 			}
 			continue;
@@ -103,7 +103,7 @@ __kernel void oldoffice_utf16(__global const uchar *source,
 			*target++ = (UTF16)((ch & halfMask) + UNI_SUR_LOW_START);
 		}
 #endif
-		if (*source == 0 || target >= targetEnd)
+		if (source >= sourceEnd || target >= targetEnd)
 			break;
 	}
 
