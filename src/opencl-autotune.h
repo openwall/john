@@ -88,6 +88,9 @@ static void find_best_gws(struct fmt_main *self, int sequential_id, unsigned int
 	create_clobj(global_work_size, self);
 }
 
+static void autotune_run(struct fmt_main *self, unsigned int rounds,
+			 size_t gws_limit, unsigned long long int max_run_time);
+
 #define get_power_of_two(v)	\
 {				\
 	v--;			\
@@ -202,6 +205,11 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 		}
 	}
 
+#ifdef _JOHN_MASK_EXT_H
+	if (mask_int_cand.num_int_cand > 1)
+		max_run_time /= 10;
+#endif
+
 	if (need_best_gws)
 		find_best_gws(self, gpu_id, rounds, max_run_time, 1);
 
@@ -228,6 +236,9 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 
 	autotuned++;
 	ocl_autotune_running = 0;
+
+	/* Just suppress a compiler warning */
+	if (0) autotune_run(NULL, 0, 0, 0);
 }
 
 static void autotune_run(struct fmt_main *self, unsigned int rounds,

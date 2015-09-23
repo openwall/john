@@ -194,10 +194,6 @@ static void reset(struct db_main *db)
 		crypt_kernel = clCreateKernel(program[gpu_id], "lotus5", &ret_code);
 		HANDLE_CLERROR(ret_code, "Failed to create kernel lotus5.");
 
-		/* Just suppress a compiler warning!! */
-		if (0)
-			autotune_run(NULL, 0, 0, 0);
-
 		gws_limit = get_max_mem_alloc_size(gpu_id) / KEY_SIZE_IN_BYTES - PADDING;
 
 		get_power_of_two(gws_limit);

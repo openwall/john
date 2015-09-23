@@ -413,9 +413,6 @@ static void init(struct fmt_main *_self)
 		tests[4].plaintext = "\xFC\xFC\xFC\xFC";
 		tests[4].ciphertext = "$NT$243bb98e7704797f92b1dd7ded6da0d0";
 	}
-
-	/* Just suppress a compiler warning */
-	if (0) autotune_run(NULL, 0, 0, 0);
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
