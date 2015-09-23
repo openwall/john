@@ -384,6 +384,10 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	do {
 		int count = max;
 
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+		if (!bench_running)
+			advance_cursor();
+#endif
 		if (!--index) {
 			index = salts;
 			if (!(++current)->ciphertext)
