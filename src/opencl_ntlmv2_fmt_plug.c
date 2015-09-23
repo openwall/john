@@ -296,6 +296,9 @@ static void reset(struct db_main *db)
 		char build_opts[96];
 
 		snprintf(build_opts, sizeof(build_opts),
+#if !NT_FULL_UNICODE
+		         "-DUCS_2 "
+#endif
 		         "-D%s -DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
 		         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH, ocl_v_width);
 		opencl_init("$JOHN/kernels/ntlmv2_kernel.cl", gpu_id, build_opts);

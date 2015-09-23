@@ -349,6 +349,9 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
 
 	sprintf(build_opts, "-D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u"
+#if !NT_FULL_UNICODE
+		" -DUCS_2"
+#endif
 		" -D SHIFT64_OT_SZ=%u -D SHIFT64_HT_SZ=%u -D NUM_LOADED_HASHES=%u"
 		" -D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d"
 		" -D CONST_CACHE_SIZE=%llu -D%s -D%s -DPLAINTEXT_LENGTH=%d -D LOC_0=%d"

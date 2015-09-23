@@ -25,9 +25,6 @@
 #include "opencl_unicode.h"
 #include "opencl_mask.h"
 
-/* If defined, we do not support full UTF-16 with surrogate pairs */
-#define UCS_2
-
 //Init values
 #define INIT_A 0x67452301
 #define INIT_B 0xefcdab89

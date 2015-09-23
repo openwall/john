@@ -14,9 +14,6 @@
 #include "opencl_md4.h"
 #include "opencl_md5.h"
 
-/* If defined, we do not support full UTF-16 with surrogate pairs */
-#define UCS_2
-
 #define VEC_IN(INPUT, OUTPUT, INDEX, LEN)	  \
 	OUTPUT[(gid / V_WIDTH) * (LEN) * V_WIDTH + (gid % V_WIDTH) + (INDEX) * V_WIDTH] = INPUT[(INDEX)]
 

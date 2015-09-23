@@ -17,9 +17,6 @@
 #include "opencl_md5.h"
 #include "opencl_sha1.h"
 
-/* Do not support full UTF-16 with surrogate pairs */
-#define UCS_2
-
 typedef struct {
 	int type;
 	uint salt[16/4];

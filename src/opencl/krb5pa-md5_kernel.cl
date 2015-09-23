@@ -16,9 +16,6 @@
 #include "opencl_md4.h"
 #include "opencl_md5.h"
 
-/* If defined, we do not support full UTF-16 with surrogate pairs */
-#define UCS_2
-
 #ifdef UTF_8
 
 __kernel void krb5pa_md5_nthash(const __global uchar *source,

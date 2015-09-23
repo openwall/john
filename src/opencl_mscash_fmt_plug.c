@@ -318,6 +318,9 @@ static void init_kernel(void)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
 
 	sprintf(build_opts, "-D NUM_INT_KEYS=%u -D IS_STATIC_GPU_MASK=%d"
+#if !NT_FULL_UNICODE
+		" -DUCS_2"
+#endif
 		" -D CONST_CACHE_SIZE=%llu -D%s -D%s -DPLAINTEXT_LENGTH=%d -D LOC_0=%d"
 #if 1 < MASK_FMT_INT_PLHDR
 	" -D LOC_1=%d "
