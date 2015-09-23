@@ -934,13 +934,13 @@ else
    using_crypt=no
 fi
 
-if test "x$ac_cv_lib_z_deflate" != xno; then
+if test "x$ac_cv_lib_z_deflate" = xyes; then
    using_zlib=yes
 else
    using_zlib=no
 fi
 
-if test "x$ac_cv_lib_bz2_main" != xno; then
+if test "x$ac_cv_lib_bz2_main" = xyes; then
    using_bz2=yes
 else
    using_bz2=no
