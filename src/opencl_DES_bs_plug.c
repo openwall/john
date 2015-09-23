@@ -565,8 +565,14 @@ void finish_checking()
 {
 	int i;
 
-	HANDLE_CLERROR(clReleaseKernel(kernel_high), "Error releasing kernel_high.");
-	HANDLE_CLERROR(clReleaseKernel(kernel_low), "Error releasing kernel_low.");
+	if (kernel_high) {
+		HANDLE_CLERROR(clReleaseKernel(kernel_high), "Error releasing kernel_high.");
+		kernel_high = 0;
+	}
+	if (kernel_low) {
+		HANDLE_CLERROR(clReleaseKernel(kernel_low), "Error releasing kernel_low.");
+		kernel_low = 0;
+	}
 	for (i = 0; i < MAX_GPU_DEVICES; i++)
 		MEM_FREE(cmp_kernel[i]);
 	MEM_FREE(cmp_kernel);
