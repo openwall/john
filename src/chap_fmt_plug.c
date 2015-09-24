@@ -108,15 +108,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* challenge */
 		goto err;
-	if (strlen(p) > 64)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) > 64)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* binary */
 		goto err;
-	if (strlen(p) != BINARY_SIZE*2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != BINARY_SIZE*2)
 		goto err;
 
 	MEM_FREE(keeptr);

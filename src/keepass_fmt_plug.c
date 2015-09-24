@@ -219,31 +219,20 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* final random seed */
 		goto err;
-	res = strlen(p);
+	res = hexlenl(p);
 	if (res != 32 && res != 64)
-		goto err;
-	if (!ishex(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* transf random seed */
 		goto err;
-	res = strlen(p);
-	if (res != 64)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != 64)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* env_iv */
 		goto err;
-	res = strlen(p);
-	if (res != 32)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != 32)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash or expected bytes*/
 		goto err;
-	res = strlen(p);
-	if (res != 64)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != 64)
 		goto err;
 	if (version == 1) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* inline flag */
@@ -265,10 +254,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			contentsize = atoi(p);
 			if ((p = strtokm(NULL, "*")) == NULL)	/* content */
 				goto err;
-			res = strlen(p);
-			if (res / 2 != contentsize)
-				goto err;
-			if (!ishex(p))
+			if (hexlenl(p) / 2 != contentsize)
 				goto err;
 			p = strtokm(NULL, "*");
 			if (p)
@@ -279,24 +265,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			// keyfile handling
 			if ((p = strtokm(NULL, "*")) == NULL)
 				goto err;
-			if (!ishex(p))
-				goto err;
-			res = strlen(p);
+			res = hexlenl(p);
 			if ((p = strtokm(NULL, "*")) == NULL)
 				goto err;
-			if (res != 32 || strlen(p) != 64)
-				goto err;
-			if (!ishex(p))
+			if (res != 32 || hexlenl(p) != 64)
 				goto err;
 		}
 	}
 	else {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* content */
 			goto err;
-		res = strlen(p);
-		if (res != 64)
-			goto err;
-		if (!ishex(p))
+		if (hexlenl(p) != 64)
 			goto err;
 	}
 
