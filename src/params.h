@@ -200,7 +200,7 @@
 /*
  * Hash table sizes.  These may also be hardcoded into the hash functions.
  */
-#define SALT_HASH_LOG			12
+#define SALT_HASH_LOG			20
 #define SALT_HASH_SIZE			(1 << SALT_HASH_LOG)
 #define PASSWORD_HASH_SIZE_0		0x10
 #define PASSWORD_HASH_SIZE_1		0x100
