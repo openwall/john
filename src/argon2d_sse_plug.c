@@ -254,7 +254,7 @@ static void FillSegment(scheme_info_t *info, position_info_t pos)
 		// compute block
 		ComputeBlock(prev_block, memory+ reference_block_offset, memory+next_block_offset);//Computing third block in the segment
 
-		phi = (_mm_extract_epi16(prev_block[0], 0)<<16)+_mm_extract_epi16(prev_block[0], 1);
+		phi = (_mm_extract_epi16(prev_block[0], 1)<<16)+_mm_extract_epi16(prev_block[0], 0);
 	}
 	else
 	{
@@ -269,7 +269,7 @@ static void FillSegment(scheme_info_t *info, position_info_t pos)
 			bi += 16;
 		}
 		
-		phi = (_mm_extract_epi16(prev_block[0], 0)<<16)+_mm_extract_epi16(prev_block[0], 1);
+		phi = (_mm_extract_epi16(prev_block[0], 1)<<16)+_mm_extract_epi16(prev_block[0], 0);
 	}
 
 	next_block_offset = ((pos.slice*lanes + pos.lane)*segment_length + start)*BLOCK_SIZE;
@@ -316,7 +316,7 @@ static void FillSegment(scheme_info_t *info, position_info_t pos)
 	
 		// compute block
 		ComputeBlock(prev_block, memory + reference_block_offset, memory+next_block_offset);
-		phi = (_mm_extract_epi16(prev_block[0], 0)<<16)+_mm_extract_epi16(prev_block[0], 1);
+		phi = (_mm_extract_epi16(prev_block[0], 1)<<16)+_mm_extract_epi16(prev_block[0], 0);
 		next_block_offset += BLOCK_SIZE;
 	}
 }

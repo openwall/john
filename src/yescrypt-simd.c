@@ -33,9 +33,6 @@
  * gcc bug 54349 (fixed for gcc 4.9+).  On 32-bit, it's of direct help.  AVX
  * and XOP are of further help either way.
  */
-#ifndef __SSE4_1__
-#warning "Consider enabling SSE4.1, AVX, or XOP in the C compiler for significantly better performance"
-#endif
 
 #include <emmintrin.h>
 #ifdef __XOP__
@@ -47,13 +44,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "sha256.h"
 #include "sysendian.h"
-
 #include "yescrypt.h"
-
 #include "yescrypt-platform.c"
 #include "memory.h"
+#include "escrypt/sha256.h"
 
 #if __STDC_VERSION__ >= 199901L
 /* have restrict */
@@ -1090,10 +1085,12 @@ yescrypt_kdf_body(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 			errno = EINVAL;
 			return -1;
 		}
+#if SIZE_MAX / Sbytes < 4294967295
 		if (p > SIZE_MAX / Sbytes) {
 			errno = ENOMEM;
 			return -1;
 		}
+#endif
 	}
 /*#ifdef _OPENMP
 	else if (N > SIZE_MAX / 128 / (r * p)) {
@@ -1185,10 +1182,10 @@ yescrypt_kdf_body(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 
 	if (flags) {
 		HMAC_SHA256_CTX ctx;
-		HMAC_SHA256_Init(&ctx, "yescrypt-prehash",
+		HMAC__SHA256_Init(&ctx, "yescrypt-prehash",
 		    (flags & __YESCRYPT_PREHASH) ? 16 : 8);
-		HMAC_SHA256_Update(&ctx, passwd, passwdlen);
-		HMAC_SHA256_Final((uint8_t *)sha256, &ctx);
+		HMAC__SHA256_Update(&ctx, passwd, passwdlen);
+		HMAC__SHA256_Final((uint8_t *)sha256, &ctx);
 		passwd = (uint8_t *)sha256;
 		passwdlen = sizeof(sha256);
 	}
@@ -1243,9 +1240,9 @@ yescrypt_kdf_body(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 		/* Compute ClientKey */
 		{
 			HMAC_SHA256_CTX ctx;
-			HMAC_SHA256_Init(&ctx, dkp, sizeof(dk));
-			HMAC_SHA256_Update(&ctx, "Client Key", 10);
-			HMAC_SHA256_Final((uint8_t *)sha256, &ctx);
+			HMAC__SHA256_Init(&ctx, dkp, sizeof(dk));
+			HMAC__SHA256_Update(&ctx, "Client Key", 10);
+			HMAC__SHA256_Final((uint8_t *)sha256, &ctx);
 		}
 		/* Compute StoredKey */
 		{
@@ -1253,9 +1250,9 @@ yescrypt_kdf_body(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 			size_t clen = buflen;
 			if (clen > sizeof(dk))
 				clen = sizeof(dk);
-			SHA256_Init(&ctx);
-			SHA256_Update(&ctx, (uint8_t *)sha256, sizeof(sha256));
-			SHA256_Final(dk, &ctx);
+			_SHA256_Init(&ctx);
+			_SHA256_Update(&ctx, (uint8_t *)sha256, sizeof(sha256));//pomidor: czy jest wersja dla sse osobna?
+			_SHA256_Final(dk, &ctx);
 			memcpy(buf, dk, clen);
 		}
 	}

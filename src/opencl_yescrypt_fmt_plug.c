@@ -543,9 +543,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if ((flags & YESCRYPT_WORM) || (N / p <= 1) || (r < rmin)) {
 			return 0;
 		}
+#if SIZE_MAX / Sbytes < 4294967295
 		if (p > SIZE_MAX / Sbytes) {
 			return 0;
 		}
+#endif
 	}
 
 	return 1;
