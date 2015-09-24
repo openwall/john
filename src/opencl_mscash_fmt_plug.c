@@ -78,7 +78,7 @@ static char mscash_prefix[] = "M$";
 #define STEP                    0
 #define SEED                    1024
 
-static const char * warn[] = {
+static const char *warn[] = {
 	"key xfer: ",  ", idx xfer: ",  ", crypt: ",  ", res xfer: "
 };
 
@@ -104,18 +104,19 @@ static size_t get_task_max_work_group_size()
 	v++;			\
 }
 
+/* Note: some tests will be replaced in init() if running UTF-8 */
 static struct fmt_tests tests[] = {
-	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2"},
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
-	{"176a4c2bd45ac73687676c2f09045353", "", {"root"}},	// nullstring password
-	{"M$test3#14dd041848e12fc48c0aa7a416a4a00c", "test3"},
-	{"M$test4#b945d24866af4b01a6d89b9d932a153c", "test4"},
-	{"64cd29e36a8431a2b111378564a10631", "test1", {"TEST1"}},	// salt is lowercased before hashing
-	{"290efa10307e36a79b3eebf2a6b29455", "okolada", {"nineteen_characters"}},	// max salt length
-	{"ab60bdb4493822b175486810ac2abe63", "test2", {"test2"}},
-	{"b945d24866af4b01a6d89b9d932a153c", "test4", {"test4"}},
+	{"176a4c2bd45ac73687676c2f09045353", "", {"root"} }, // nullstring password
+	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2" },
+	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
+	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
+	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
+	{"M$test3#14dd041848e12fc48c0aa7a416a4a00c", "test3" },
+	{"M$test4#b945d24866af4b01a6d89b9d932a153c", "test4" },
+	{"64cd29e36a8431a2b111378564a10631", "test1", {"TEST1"} },    // salt is lowercased before hashing
+	{"290efa10307e36a79b3eebf2a6b29455", "okolada", {"nineteen_characters"} }, // max salt length
+	{"ab60bdb4493822b175486810ac2abe63", "test2", {"test2"} },
+	{"b945d24866af4b01a6d89b9d932a153c", "test4", {"test4"} },
 	{NULL}
 };
 
@@ -376,24 +377,56 @@ static void init(struct fmt_main *_self)
 	opencl_prepare_dev(gpu_id);
 	opencl_read_source("$JOHN/kernels/mscash_kernel.cl");
 
-	if (pers_opts.target_enc == UTF_8)
+	if (pers_opts.target_enc == UTF_8) {
 		self->params.plaintext_length = MIN(125, UTF8_MAX_LENGTH);
+		tests[1].ciphertext = "M$\xC3\xBC#48f84e6f73d6d5305f6558a33fa2c9bb";
+		tests[1].plaintext = "\xC3\xBC";         // German u-umlaut in UTF-8
+		tests[2].ciphertext = "M$user#9121790702dda0fa5d353014c334c2ce";
+		tests[2].plaintext = "\xe2\x82\xac\xe2\x82\xac"; // 2 x Euro signs
+	} else if (pers_opts.target_enc == ASCII || pers_opts.target_enc == ISO_8859_1) {
+		tests[1].ciphertext = "M$\xFC#48f84e6f73d6d5305f6558a33fa2c9bb";
+		tests[1].plaintext = "\xFC";         // German u-umlaut in UTF-8
+		tests[2].ciphertext = "M$\xFC\xFC#593246a8335cf0261799bda2a2a9c623";
+		tests[2].plaintext = "\xFC\xFC"; // 2 x Euro signs
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *hash, *p;
-	if (strncmp(ciphertext, mscash_prefix, strlen(mscash_prefix)) != 0)
+	unsigned int i;
+	unsigned int l;
+	char insalt[3*19+1];
+	UTF16 realsalt[21];
+	int saltlen;
+
+	if (strncmp(ciphertext, "M$", 2))
 		return 0;
-	hash = p = strrchr(ciphertext, '#');
-	if (!p)
+
+	l = strlen(ciphertext);
+	if (l <= 32 || l > CIPHERTEXT_LENGTH)
 		return 0;
-	p++;
-	hash++;
-	while (*p)
-		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
+
+	l -= 32;
+	if(ciphertext[l-1]!='#')
+		return 0;
+
+	for (i = l; i < l + 32; i++)
+		if (atoi16[ARCH_INDEX(ciphertext[i])] == 0x7F)
 			return 0;
-	return p - hash == 32;
+
+	// This is tricky: Max supported salt length is 19 characters of Unicode
+	saltlen = enc_to_utf16(realsalt, 20, (UTF8*)strnzcpy(insalt, &ciphertext[2], l - 2), l - 3);
+	if (saltlen < 0 || saltlen > 19) {
+		static int warned = 0;
+
+		if (!ldr_in_pot)
+		if (!warned++)
+			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+
+		return 0;
+	}
+
+	return 1;
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
@@ -411,13 +444,18 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
-	if (!strncmp(split_fields[1], "M$", 2) && valid(split_fields[1], self))
+	int i;
+	if (!strncmp(split_fields[1], "M$", 2) || !split_fields[0])
 		return split_fields[1];
 	if (!split_fields[0])
 		return split_fields[1];
-	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
-	sprintf(cp, "M$%s#%s", split_fields[0], split_fields[1]);
-	if (valid(cp, self)) {
+	for (i = 0; i < 32; i++)
+		if (atoi16[ARCH_INDEX(split_fields[1][i])] == 0x7F)
+			return split_fields[1];
+	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
+	sprintf (cp, "M$%s#%s", split_fields[0], split_fields[1]);
+	if (valid(cp, self))
+	{
 		char *cipher = str_alloc_copy(cp);
 		MEM_FREE(cp);
 		return cipher;
@@ -438,43 +476,37 @@ static void *binary(char *ciphertext)
 	return binary;
 }
 
-void prepare_login(unsigned int * login, int length,
-    unsigned int * nt_buffer)
+static void prepare_login(UTF16 *login, int length, unsigned int *nt_buffer)
 {
-	int i = 0, nt_index, keychars;;
-	for (i = 0; i < 12; i++)
-		nt_buffer[i] = 0;
+	UTF16 *out = (UTF16*)nt_buffer;
+	int i;
 
-	nt_index = 0;
-	for (i = 0; i < (length + 4)/ 4; i++) {
-		keychars = login[i];
-		nt_buffer[nt_index++] = (keychars & 0xFF) | (((keychars >> 8) & 0xFF) << 16);
-		nt_buffer[nt_index++] = ((keychars >> 16) & 0xFF) | ((keychars >> 24) << 16);
-	}
-	nt_index = (length >> 1);
-	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
-	nt_buffer[nt_index + 1] = 0;
+	memset(nt_buffer, 0, 12 * sizeof(int));
+
+	for (i = 0; i < length; i++)
+		*out++ = *login++;
+	*out++ = 0x80;
+
 	nt_buffer[10] = (length << 4) + 128;
 }
 
 static void *salt(char *ciphertext)
 {
-	static union {
-		char csalt[SALT_LENGTH + 1];
-		unsigned int  isalt[(SALT_LENGTH + 4)/4];
-	} salt;
+	UTF8 csalt[3 * SALT_LENGTH + 1];
+	UTF16 usalt[SALT_LENGTH + 1 + 2];
 	static unsigned int final_salt[12];
 	char *pos = ciphertext + strlen(mscash_prefix);
 	int length = 0;
-	memset(&salt, 0, sizeof(salt));
-	while (*pos != '#') {
-		if (length == SALT_LENGTH)
-			return NULL;
-		salt.csalt[length++] = *pos++;
-	}
-	salt.csalt[length] = 0;
-	enc_strlwr(salt.csalt);
-	prepare_login(salt.isalt, length, final_salt);
+
+	memset(usalt, 0, sizeof(usalt));
+	while (*pos != '#' && length < 3 * SALT_LENGTH)
+		csalt[length++] = *pos++;
+	csalt[length] = 0;
+	enc_strlwr((char*)csalt);
+	enc_to_utf16(usalt, SALT_LENGTH, csalt, length);
+	length = strlen16(usalt);
+	prepare_login(usalt, length, final_salt);
+	//dump_stuff_msg("salt", final_salt, 44);
 	return &final_salt;
 }
 
