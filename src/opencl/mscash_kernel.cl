@@ -283,7 +283,7 @@ inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
 	UTF16 *target = (UTF16*)nt_buffer;
 	const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
 	UTF32 ch;
-	uint extraBytesToRead, len;
+	uint extraBytesToRead;
 
 	/* Input buffer is UTF-8 without zero-termination */
 	while (source < sourceEnd) {
@@ -339,13 +339,9 @@ inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
 			break;
 	}
 
-	len = (uint)(target - (UTF16*)nt_buffer);
+	*target = 0x80;	// Terminate
 
-	*target++ = 0x80;	// Terminate
-	*target++ = 0;
-	*target++ = 0;
-
-	nt_buffer[14] = len << 4;
+	nt_buffer[14] = (uint)(target - (UTF16*)nt_buffer) << 4;
 }
 
 #else
@@ -361,7 +357,7 @@ inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
 		nt_buffer[nt_index++] = LUT((keychars >> 16) & 0xFF) | (LUT(keychars >> 24) << 16);
 	}
 	nt_index = length >> 1;
-	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
+	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFFFF) | (0x80 << ((length & 1) << 4));
 	nt_buffer[nt_index + 1] = 0;
 	nt_buffer[14] = length << 4;
 }
@@ -472,7 +468,7 @@ __kernel void mscash(__global uint *keys,
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint nt_buffer[16] = { 0 };
-	uint len = base & 63;
+	uint len = base & 127;
 	uint hash[4] = {0};
 	uint bitmap_sz_bits = salt[12] + 1;
 
@@ -508,7 +504,7 @@ __kernel void mscash(__global uint *keys,
 #define GPU_LOC_3 LOC_3
 #endif
 
-	keys += base >> 6;
+	keys += base >> 7;
 	prepare_key(keys, len, nt_buffer);
 
 	for (i = 0; i < NUM_INT_KEYS; i++) {

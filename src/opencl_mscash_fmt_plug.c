@@ -552,7 +552,7 @@ static void set_key(char *_key, int index)
 		}
 	}
 
-	saved_idx[index] = (key_idx << 6) | len;
+	saved_idx[index] = (key_idx << 7) | len;
 
 	while (len > 4) {
 		saved_plain[key_idx++] = *key++;
@@ -585,8 +585,8 @@ static char *get_key(int index)
 		t = 0;
 	}
 
-	len = saved_idx[t] & 63;
-	key = (char*)&saved_plain[saved_idx[t] >> 6];
+	len = saved_idx[t] & 127;
+	key = (char*)&saved_plain[saved_idx[t] >> 7];
 
 	for (i = 0; i < len; i++)
 		out[i] = *key++;
@@ -879,10 +879,10 @@ static void reset(struct db_main *db)
 	size_t gws_limit;
 
 	//fprintf(stderr, "%s(%p), i=%d\n", __func__, db, initialized);
-	gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
+	gws_limit = MIN((0xf << 21) * 4 / BUFSIZE,
 	                get_max_mem_alloc_size(gpu_id) / BUFSIZE);
 	get_power_of_two(gws_limit);
-	if (gws_limit > MIN((0xf << 22) * 4 / BUFSIZE,
+	if (gws_limit > MIN((0xf << 21) * 4 / BUFSIZE,
 	                    get_max_mem_alloc_size(gpu_id) / BUFSIZE))
 		gws_limit >>= 1;
 

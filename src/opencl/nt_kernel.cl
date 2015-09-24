@@ -258,7 +258,7 @@ inline uint prepare_key(__global uint *key, uint length, uint *nt_buffer)
 		nt_buffer[nt_index++] = LUT((keychars >> 16) & 0xFF) | (LUT(keychars >> 24) << 16);
 	}
 	nt_index = length >> 1;
-	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
+	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFFFF) | (0x80 << ((length & 1) << 4));
 
 	return length;
 }
@@ -374,8 +374,6 @@ inline void cmp(uint gid,
 
 #define USE_CONST_CACHE \
 	(CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4))
-/* some constants used below are passed with -D */
-//#define KEY_LENGTH (MD4_PLAINTEXT_LENGTH + 1)
 
 /* OpenCL kernel entry point. Copy key to be hashed from
  * global to local (thread) memory. Break the key into 16 32-bit (uint)
@@ -403,7 +401,7 @@ __kernel void nt(__global uint *keys,
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint nt_buffer[14] = { 0 };
-	uint md4_size = base & 63;
+	uint md4_size = base & 127;
 	uint hash[4];
 
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
@@ -449,7 +447,7 @@ __kernel void nt(__global uint *keys,
 	barrier(CLK_LOCAL_MEM_FENCE);
 #endif
 
-	keys += base >> 6;
+	keys += base >> 7;
 	md4_size = prepare_key(keys, md4_size, nt_buffer);
 	md4_size = md4_size << 4;
 
