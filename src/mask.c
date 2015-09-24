@@ -57,7 +57,7 @@ static unsigned long long cand, rec_cand;
 unsigned long long mask_tot_cand;
 unsigned long long mask_parent_keys;
 
-#define BUILT_IN_CHARSET "ludshaLUDSHA123456789"
+#define BUILT_IN_CHARSET "ludsaLUDSAbhBH123456789"
 
 #define store_op(k, i) \
 	parsed_mask->stack_op_br[k] = i;
@@ -544,10 +544,12 @@ static char* plhdr2string(char p, int fmt_case)
 			break;
 		}
 		break;
-	case 'h': /* All high-bit */
+	case 'B': /* All high-bit */
+	case 'h': /* deprecated alias for B */
 		add_range(0x80, 0xff);
 		break;
-	case 'H': /* All (except NULL which we can't handle) */
+	case 'b': /* All (except NULL which we can't handle) */
+	case 'H': /* deprecated alias for b */
 		add_range(0x01, 0xff);
 		break;
 	case 'a': /* Printable ASCII */
@@ -558,7 +560,13 @@ static char* plhdr2string(char p, int fmt_case)
 			add_range(0x5b, 0x7e);
 		}
 		break;
-	case 'A': /* All valid non-ASCII chars in codepage */
+	case 'A': /* All valid chars in codepage (including ASCII) */
+		if (fmt_case)
+			add_range(0x20, 0x7e);
+		else {
+			add_range(0x20, 0x40);
+			add_range(0x5b, 0x7e);
+		}
 		switch (pers_opts.internal_enc) {
 		case CP437:
 			if (fmt_case)
