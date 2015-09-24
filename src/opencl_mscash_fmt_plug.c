@@ -476,38 +476,37 @@ static void *binary(char *ciphertext)
 	return binary;
 }
 
-static void prepare_login(UTF16 *login, int length, unsigned int *nt_buffer)
+static void *salt(char *ciphertext)
 {
-	UTF16 *out = (UTF16*)nt_buffer;
-	int i;
+	static union {
+		unsigned int w[12];
+		UTF16 s[24];
+	} nt_buffer;
+	UTF16 *out = nt_buffer.s;
+	UTF16 usalt[SALT_LENGTH + 1 + 2];
+	UTF16 *login = usalt;
+	UTF8 csalt[3 * SALT_LENGTH + 1];
+	int i, length = 0;
+	char *pos = ciphertext + strlen(mscash_prefix);
 
-	memset(nt_buffer, 0, 12 * sizeof(int));
+	memset(nt_buffer.w, 0, sizeof(nt_buffer.w));
+	memset(usalt, 0, sizeof(usalt));
+
+	while (*pos != '#' && length < 3 * SALT_LENGTH)
+		csalt[length++] = *pos++;
+	csalt[length] = 0;
+
+	enc_strlwr((char*)csalt);
+	enc_to_utf16(usalt, SALT_LENGTH, csalt, length);
+	length = strlen16(usalt);
 
 	for (i = 0; i < length; i++)
 		*out++ = *login++;
 	*out++ = 0x80;
 
-	nt_buffer[10] = (length << 4) + 128;
-}
+	nt_buffer.w[10] = (length << 4) + 128;
 
-static void *salt(char *ciphertext)
-{
-	UTF8 csalt[3 * SALT_LENGTH + 1];
-	UTF16 usalt[SALT_LENGTH + 1 + 2];
-	static unsigned int final_salt[12];
-	char *pos = ciphertext + strlen(mscash_prefix);
-	int length = 0;
-
-	memset(usalt, 0, sizeof(usalt));
-	while (*pos != '#' && length < 3 * SALT_LENGTH)
-		csalt[length++] = *pos++;
-	csalt[length] = 0;
-	enc_strlwr((char*)csalt);
-	enc_to_utf16(usalt, SALT_LENGTH, csalt, length);
-	length = strlen16(usalt);
-	prepare_login(usalt, length, final_salt);
-	//dump_stuff_msg("salt", final_salt, 44);
-	return &final_salt;
+	return &nt_buffer.w;
 }
 
 /* Used during self-test. */
