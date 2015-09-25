@@ -1745,34 +1745,14 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	template_key = (char*)mem_alloc(0x400);
 
 	/* Handle command-line (or john.conf) masks given in UTF-8 */
-	if (pers_opts.input_enc == UTF_8) {
-		int has_utf8 = 0;
-
+	if (pers_opts.input_enc == UTF_8 && pers_opts.internal_enc != UTF_8) {
 		if (valid_utf8((UTF8*)mask) > 1)
-			has_utf8 = 1;
-		else {
-			for (i = 0; i < MAX_NUM_CUST_PLHDR; i++) {
-				if (valid_utf8((UTF8*)options.custom_mask[i]) > 1) {
-					has_utf8 = 1;
-					break;
-				}
-			}
-		}
-		if (has_utf8) {
-			if (pers_opts.internal_enc == pers_opts.input_enc) {
-				if (john_main_process)
-					fprintf(stderr,
-					    "Mask contains UTF-8 characters; --internal-encoding is required!\n");
-				error();
-			} else {
-				utf8_to_cp_r(mask, mask, strlen(mask));
-				for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
-					if (valid_utf8((UTF8*)options.custom_mask[i]) > 1)
-						utf8_to_cp_r(options.custom_mask[i],
-						             options.custom_mask[i],
-						             strlen(options.custom_mask[i]));
-			}
-		}
+			utf8_to_cp_r(mask, mask, strlen(mask));
+		for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
+			if (valid_utf8((UTF8*)options.custom_mask[i]) > 1)
+				utf8_to_cp_r(options.custom_mask[i],
+				             options.custom_mask[i],
+				             strlen(options.custom_mask[i]));
 	}
 
 	/* Expand static placeholders within custom ones */
@@ -1784,6 +1764,17 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 	/* Finally expand custom placeholders ?1 .. ?9 */
 	mask = expand_cplhdr(mask);
+
+	/*
+	 * UTF-8 is not supported in mask mode unless -internal-encoding is used
+	 * except for UTF-16 formats (eg. NT).
+	 */
+	if (pers_opts.internal_enc == UTF_8 && valid_utf8((UTF8*)mask) > 1) {
+		if (john_main_process)
+			fprintf(stderr,
+			        "Mask contains UTF-8 characters; --internal-encoding is required!\n");
+		error();
+	}
 
 	/* De-hexify mask and custom placeholders */
 	parse_hex(mask);
