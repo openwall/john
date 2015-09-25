@@ -467,16 +467,21 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	opt_process(opt_list, &options.flags, argv);
 
 	if (options.flags & FLG_MASK_CHK) {
-		if (strcasestr(options.mask, "?w"))
+		if (options.flags & FLG_CRACKING_CHK)
 			options.flags |= FLG_MASK_STACKED;
-		else
+		else if (options.mask && strcasestr(options.mask, "?w")) {
+			fprintf(stderr, "?w is only used with hybrid mask\n");
+			error();
+		} else
 			options.flags |= FLG_CRACKING_SET;
 	}
-
 	if (options.flags & FLG_REGEX_CHK) {
-		if (strstr(options.regex, "\\0"))
+		if (options.flags & FLG_CRACKING_CHK)
 			options.flags |= FLG_REGEX_STACKED;
-		else
+		else if (strstr(options.regex, "\\0")) {
+			fprintf(stderr, "\\0 is only used with hybrid regex\n");
+			error();
+		} else
 			options.flags |= FLG_CRACKING_SET;
 	}
 
