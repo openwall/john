@@ -928,7 +928,7 @@ else
    using_omp=no
 fi
 
-if test "x$ac_cv_search_crypt" != xno; then
+if test "x$ac_cv_search_crypt" = xyes; then
    using_crypt=yes
 else
    using_crypt=no
@@ -946,7 +946,7 @@ else
    using_bz2=no
 fi
 
-if test "x$ac_cv_func_mmap" != xno; then
+if test "x$ac_cv_func_mmap" = xyes; then
    using_mmap=yes
 else
    using_mmap=no
