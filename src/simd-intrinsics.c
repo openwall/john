@@ -1630,19 +1630,82 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
     }                                                       \
 }
 
+#define INIT_A 0x6a09e667
+#define INIT_B 0xbb67ae85
+#define INIT_C 0x3c6ef372
 #define INIT_D 0xa54ff53a
+#define INIT_E 0x510e527f
+#define INIT_F 0x9b05688c
+#define INIT_G 0x1f83d9ab
+#define INIT_H 0x5be0cd19
+
+#define ror(x, n)       ((x >> n) | (x << (32 - n)))
 
 void sha256_reverse(uint32_t *hash)
 {
-	hash[3] -= INIT_D;
+	uint32_t a, b, c, d, e, f, g, h, s0, maj, tmp;
+
+	a = hash[0] - INIT_A;
+	b = hash[1] - INIT_B;
+	c = hash[2] - INIT_C;
+	d = hash[3] - INIT_D;
+	e = hash[4] - INIT_E;
+	f = hash[5] - INIT_F;
+	g = hash[6] - INIT_G;
+	h = hash[7] - INIT_H;
+
+	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	f = g;
+	g = h;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	f = g;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+
+	hash[0] = e - (a - (s0 + maj));
 }
 
 void sha256_unreverse(uint32_t *hash)
 {
-	hash[3] += INIT_D;
+	fprintf(stderr, "%s() not implemented\n", __func__);
+	error();
 }
 
+#undef ror
+
+#undef INIT_H
+#undef INIT_G
+#undef INIT_F
+#undef INIT_E
 #undef INIT_D
+#undef INIT_C
+#undef INIT_B
+#undef INIT_A
 
 #define INIT_D 0xf70e5939
 
@@ -1873,6 +1936,16 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
 	SHA256_STEP(c, d, e, f, g, h, a, b, 54, 0x5b9cca4f);
 	SHA256_STEP(b, c, d, e, f, g, h, a, 55, 0x682e6ff3);
 	SHA256_STEP(a, b, c, d, e, f, g, h, 56, 0x748f82ee);
+
+	if (SSEi_flags & SSEi_REVERSE_STEPS && !(SSEi_flags & SSEi_CRYPT_SHA224))
+	{
+		SHA256_PARA_DO(i)
+		{
+			vstore((vtype*)&(out[i*8*VS32+0*VS32]), h[i]);
+		}
+		return;
+	}
+
 	SHA256_STEP(h, a, b, c, d, e, f, g, 57, 0x78a5636f);
 	SHA256_STEP(g, h, a, b, c, d, e, f, 58, 0x84c87814);
 	SHA256_STEP(f, g, h, a, b, c, d, e, 59, 0x8cc70208);
