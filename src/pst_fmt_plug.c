@@ -98,9 +98,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, "$pst$", 5))
 		return 0;
 	p = ciphertext + 5;
-	if (strlen(p) != BINARY_SIZE * 2)
-		return 0;
-	if (!ishex(p))
+	if (hexlenl(p) != BINARY_SIZE * 2)
 		return 0;
 	return 1;
 }

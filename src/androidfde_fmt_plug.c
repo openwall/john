@@ -158,7 +158,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* key */
 		goto err;
-	if(hexlenl(p) != keysize * 2)
+	if (hexlenl(p) != keysize * 2)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* data */
 		goto err;

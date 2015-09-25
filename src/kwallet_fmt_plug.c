@@ -109,7 +109,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* ct */
 		goto err;
-	if(hexlenl(p) / 2 != res)
+	if (hexlenl(p) != res*2)
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;

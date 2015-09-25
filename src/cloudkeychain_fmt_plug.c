@@ -165,9 +165,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* iv */
 		goto err;
-	if (strlen(p) / 2 != len)	/* validates iv_len */
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) / 2 != len)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* cryptext length */
 		goto err;

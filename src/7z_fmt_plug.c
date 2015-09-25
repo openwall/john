@@ -222,7 +222,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* iv */
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 	if (strlen(p) / 2 > len && strcmp(p+len*2, "0000000000000000"))
 		goto err;
@@ -243,7 +243,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) / 2 != len)	/* validates data_len atoi() */
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 
 	MEM_FREE(keeptr);
