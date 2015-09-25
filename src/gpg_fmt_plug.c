@@ -331,9 +331,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data */
 		goto err;
-	if (strlen(p) / 2 != res)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) / 2 != res)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* spec */
 		goto err;
@@ -370,9 +368,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 		goto err;
-	if (strlen(p) != res * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != res * 2)
 		goto err;
 	/* handle "SPEC_SIMPLE" correctly */
 	if ((spec != 0 || usage == 255))
@@ -387,9 +383,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p) != SALT_LENGTH * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != SALT_LENGTH * 2)
 		goto err;
 	/*
 	 * For some test vectors, there are no more fields,
@@ -424,9 +418,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err; // FIXME: warn if BIG_ENOUGH isn't big enough?
 		if ((p = strtokm(NULL, "*")) == NULL)
 			goto err;
-		if (strlen(p) != res * 2) /* validates res is a valid int */
-			goto err;
-		if (!ishex(p))
+		if (hexlenl(p) != res * 2) /* validates res is a valid int */
 			goto err;
 		p = strtokm(NULL, "*");  /* NOTE, do not goto err if null, we WANT p nul if there are no fields */
 	}
