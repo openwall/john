@@ -2022,6 +2022,9 @@ int do_mask_crack(const char *extern_key)
 
 			if (generate_keys(&cpu_mask_ctx, &cand))
 				return 1;
+
+			if (cfg_get_bool("Mask", NULL, "MaskLengthIterStatus", 1))
+				event_pending = event_status = 1;
 		}
 	} else {
 		static int old_keylen = -1;
