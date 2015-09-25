@@ -187,8 +187,9 @@ static char* plhdr2string(char p, int fmt_case)
 	     pers_opts.internal_enc == UTF_8) &&
 	    (p == 'L' || p == 'U' || p == 'D' || p == 'S')) {
 		if (john_main_process)
-		fprintf(stderr, "Can't use ?%c placeholder with %s encoding\n",
-			        p, cp_id2name(pers_opts.internal_enc));
+			fprintf(stderr,
+			        "Can't use ?%c placeholder without --internal-encoding\n",
+			        p);
 		error();
 	}
 
