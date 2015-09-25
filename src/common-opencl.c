@@ -28,10 +28,11 @@
 #include <time.h>
 #include <signal.h>
 #include <stdlib.h>
-
 #if (!AC_BUILT || HAVE_FCNTL_H)
 #include <fcntl.h>
 #endif
+
+#include "jumbo.h"
 #include "options.h"
 #include "config.h"
 #include "common.h"
