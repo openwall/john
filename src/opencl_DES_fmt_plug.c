@@ -83,12 +83,14 @@ static void init(struct fmt_main *pFmt)
 {
 	opencl_prepare_dev(gpu_id);
 
-	if (HARDCODE_SALT && FULL_UNROLL)
-		opencl_DES_bs_f_register_functions(pFmt);
-	else if (HARDCODE_SALT)
-		opencl_DES_bs_h_register_functions(pFmt);
-	else
+	if ((cpu(device_info[gpu_id]) && !OVERRIDE_AUTO_CONFIG) ||
+		(OVERRIDE_AUTO_CONFIG && !HARDCODE_SALT && !FULL_UNROLL))
 		opencl_DES_bs_b_register_functions(pFmt);
+	else if (((amd_gcn(device_info[gpu_id]) || gpu_nvidia(device_info[gpu_id])) &&
+		!OVERRIDE_AUTO_CONFIG) || (OVERRIDE_AUTO_CONFIG && HARDCODE_SALT && FULL_UNROLL))
+		opencl_DES_bs_f_register_functions(pFmt);
+	else
+		opencl_DES_bs_h_register_functions(pFmt);
 
 	// Check if specific LWS/GWS was requested
 	opencl_get_user_preferences(FORMAT_LABEL);
