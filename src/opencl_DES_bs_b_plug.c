@@ -213,7 +213,7 @@ static size_t find_smem_lws_limit(unsigned int use_local_mem, unsigned int force
 			warp_size = 32;
 	}
 	else
-		return 0;
+		warp_size = 1;
 
 	if (!use_local_mem) {
 		expected_lws_limit = s_mem_sz /
@@ -339,9 +339,15 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 
 	unsigned int des_log_depth = mask_mode ? 0 : DES_LOG_DEPTH;
 
-		if (cpu(device_info[gpu_id])) {
-		force_global_keys = 1;
-		use_local_mem = 0;
+	if (cpu(device_info[gpu_id])) {
+		if (get_platform_vendor_id(platform_id) == DEV_AMD) {
+			force_global_keys = 0;
+			use_local_mem = 1;
+		}
+		else {
+			force_global_keys = 1;
+			use_local_mem = 0;
+		}
 		kernel_run_ms = 5;
 	}
 	else if (amd_vliw4(device_info[gpu_id]) || amd_vliw5(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])) {
@@ -378,7 +384,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 
 	s_mem_limited_lws = find_smem_lws_limit(use_local_mem, force_global_keys);
 #if 0
-	fprintf(stdout, "Limit_smem:"Zu", Force global keys:%u,"
+	fprintf(stdout, "Limit_smem:"Zu", Force global keys:%u",
 		s_mem_limited_lws, force_global_keys);
 #endif
 
@@ -466,7 +472,8 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 		}
 		else {
 			warp_size = 1;
-			fprintf(stderr, "Possible auto_tune fail!!.\n");
+			if (!cpu(device_info[gpu_id]))
+				fprintf(stderr, "Possible auto_tune fail!!.\n");
 		}
 
 		if (lws_tune_flag)
