@@ -1692,7 +1692,7 @@ void sha256_reverse(uint32_t *hash)
 
 void sha256_unreverse(uint32_t *hash)
 {
-	fprintf(stderr, "%s() not implemented\n", __func__);
+	fprintf(stderr, "sha256_unreverse() not implemented\n");
 	error();
 }
 
@@ -2256,7 +2256,7 @@ void sha512_reverse(uint64_t *hash)
 
 void sha512_unreverse(uint64_t *hash)
 {
-	fprintf(stderr, "%s() not implemented\n", __func__);
+	fprintf(stderr, "sha512_unreverse() not implemented\n");
 	error();
 }
 
