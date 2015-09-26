@@ -12,6 +12,7 @@
 #include "dyna_salt.h"
 #include "misc.h"
 #include "unicode.h"
+#include "base64_convert.h"
 #ifndef BENCH_BUILD
 #include "options.h"
 #else
@@ -865,13 +866,107 @@ static void get_longest_common_string(char *fstr, char *sstr, int *first_index,
 	*second_index = sp - max + 1;
 }
 
-static int test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext)
+/* settings for is_split_unifies_case
+ * case -1: casing happening, but every hash has been correct.
+ * case 0: no error found (or casing not being used)
+ * case 1: "should set FMT_SPLIT_UNIFIES_CASE"
+ * case 2: "should not set FMT_SPLIT_UNIFIES_CASE"
+ * case 3: "split() is only casing sometimes"
+ * case 4: "split() case, or valid() should fail"
+ */
+static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext, int *is_split_unifies_case, int call_cnt)
 {
-	char *cipher_copy, *ret;
+	char *cipher_copy, *ret, *bin_hex, *ret_copy;
+	void *bin;
 	int first_index, second_index, size, index;
 	int change_count = 0;
+	char fake_user[5] = "john";
+	char *flds[10] = {0,0,0,0,0,0,0,0,0,0};
+
+	if (*is_split_unifies_case>2) return; // already know all we need to know.
 
 	cipher_copy = strdup(ciphertext);
+
+	// check for common case problem.  hash is HEX, so find it, change it,
+	// and is there is no split, or split() does not fix it, then check
+	// valid().  If valid allows the hash, THEN we have a #4 problem.
+	flds[0] = fake_user;
+	flds[1] = cipher_copy;
+	ret = format->methods.prepare(flds, format);
+	if (format->methods.valid(ret, format)) {
+		char *cp;
+		int do_test=0;
+		ret = format->methods.split(ret, 0, format);
+		ret_copy = strdup(ret);
+		bin = format->methods.binary(ret_copy);
+		if (format->params.binary_size>4) {
+			bin_hex = mem_alloc(format->params.binary_size*2 + 4);
+			base64_convert(bin, e_b64_raw, format->params.binary_size, bin_hex, e_b64_hex, format->params.binary_size*2+1, 0);
+			cp = strstr(ret_copy, bin_hex);
+			strupr(bin_hex);
+			if (cp) {
+				do_test |= 1;
+				memcpy(cp, bin_hex, strlen(bin_hex));
+				/* NOTE, there can be cases where hashes are PURE digits.  Thus, this test can not be used to validate case */
+				if (!strcmp(ret, ret_copy))
+					do_test &= ~1;
+			} else {
+				cp = strstr(ret_copy, bin_hex);
+				if (cp) {
+					do_test |= 1;
+					strlwr(bin_hex);
+					memcpy(cp, bin_hex, strlen(bin_hex));
+					/* NOTE, there can be cases where hashes are PURE digits.  Thus, this test can not be used to validate case */
+					if (!strcmp(ret, ret_copy))
+						do_test &= ~1;
+				}
+			}
+			MEM_FREE(bin_hex);
+		}
+		if (format->params.salt_size>4 && format->params.salt_size < strlen(ret_copy)-10) {
+			bin_hex = mem_alloc(format->params.salt_size*2 + 4);
+			bin = format->methods.salt(ret_copy);
+			base64_convert(bin, e_b64_raw, format->params.salt_size, bin_hex, e_b64_hex, format->params.salt_size*2+1, 0);
+			cp = strstr(ret_copy, bin_hex);
+			strupr(bin_hex);
+			if (cp) {
+				do_test |= 2;
+				memcpy(cp, bin_hex, strlen(bin_hex));
+				/* NOTE, there can be cases where hashes are PURE digits.  Thus, this test can not be used to validate case */
+				if (!strcmp(ret, ret_copy))
+					do_test &= ~2;
+			} else {
+				cp = strstr(ret_copy, bin_hex);
+				if (cp) {
+					do_test |= 2;
+					strlwr(bin_hex);
+					memcpy(cp, bin_hex, strlen(bin_hex));
+					/* NOTE, there can be cases where hashes are PURE digits.  Thus, this test can not be used to validate case */
+					if (!strcmp(ret, ret_copy))
+						do_test &= ~2;
+				}
+			}
+			MEM_FREE(bin_hex);
+		}
+		if (!do_test) {
+			MEM_FREE(cipher_copy);
+			MEM_FREE(ret_copy);
+			return;
+		}
+		ret = format->methods.split(ret_copy, 0, format);
+		if (!strcmp(ret_copy, ret)) {
+			if (format->methods.valid(ret_copy, format)) {
+				// we have the bug!
+				MEM_FREE(bin_hex);
+				MEM_FREE(ret_copy);
+				MEM_FREE(cipher_copy);
+				*is_split_unifies_case = 4;
+				return;
+			}
+		}
+	}
+
+
 	ret = format->methods.split(cipher_copy, 0, format);
 	if (strcmp(cipher_copy, ret)) {
 		get_longest_common_string(cipher_copy, ret, &first_index,
@@ -922,12 +1017,18 @@ static int test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext
 
 	MEM_FREE(cipher_copy);
 	if (!change_count)
-		return -1;
-	return 0;
+		*is_split_unifies_case = 2;
+	else
+		*is_split_unifies_case = 0;
+	return;
 
 change_case:
 	MEM_FREE(cipher_copy);
-	return 1;
+	if (call_cnt == 0)
+		*is_split_unifies_case = -1;
+	else if (*is_split_unifies_case != -1)
+		*is_split_unifies_case = 3;
+	return;
 }
 
 static char *fmt_self_test_full_body(struct fmt_main *format,
@@ -1131,19 +1232,9 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 			}
 		}
 #endif
-		++cnt_split_unifies_case;
-		// here we find cases where the unify_case flag is not set
-		// but should be, is set but should not be, and where the
-		// case unification code only 'sometimes' works.
-		if (is_split_unifies_case == 0 &&
-		    test_fmt_split_unifies_case(format, ciphertext) == 1) {
-			if (cnt_split_unifies_case > 1)
-				is_split_unifies_case = -1;
-			else
-				is_split_unifies_case = 1;
-		} else if (is_split_unifies_case == 1 &&
-		           !test_fmt_split_unifies_case(format, ciphertext))
-			is_split_unifies_case = -1;
+		test_fmt_split_unifies_case(format, ciphertext,
+		                            &is_split_unifies_case,
+		                            cnt_split_unifies_case);
 
 		ciphertext = format->methods.split(ciphertext, 0, format);
 
@@ -1420,16 +1511,23 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 		}
 	}
 
-	if (is_split_unifies_case == 1 && !(format->params.flags & FMT_SPLIT_UNIFIES_CASE)) {
-		snprintf(err_buf, sizeof(err_buf), "should set FMT_SPLIT_UNIFIES_CASE");
-		return err_buf;
-	} else if (!is_split_unifies_case && (format->params.flags & FMT_SPLIT_UNIFIES_CASE)) {
-		snprintf(err_buf, sizeof(err_buf), "should not set FMT_SPLIT_UNIFIES_CASE");
-		return err_buf;
-	} else if (is_split_unifies_case == -1) {
-		snprintf(err_buf, sizeof(err_buf),
-			"FMT_SPLIT_UNIFIES_CASE is only working for some cases");
-		return err_buf;
+	switch (is_split_unifies_case) {
+		case 1:
+			snprintf(err_buf, sizeof(err_buf), "should set FMT_SPLIT_UNIFIES_CASE");
+			return err_buf;
+		case 2:
+			snprintf(err_buf, sizeof(err_buf), "should not set FMT_SPLIT_UNIFIES_CASE");
+			return err_buf;
+		case 3:
+			snprintf(err_buf, sizeof(err_buf), "split() is only casing sometimes");
+			return err_buf;
+		case 4:
+			snprintf(err_buf, sizeof(err_buf), "split() case, or valid() should fail");
+			return err_buf;
+		case 0:
+		case -1:
+		default:
+			break;
 	}
 
 	format->methods.clear_keys();
