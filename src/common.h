@@ -99,37 +99,37 @@ extern void common_init(void);
  **************************************************************/
 
 /* is string full valid hex string */
-int ishex(char *q);
+int ishex(const char *q);
 /* Same as ishex(), BUT will still return true for an odd length string */
-int ishex_oddOK(char *q);
+int ishex_oddOK(const char *q);
 /* is string full valid hex string (only upper case letters) */
-int ishexuc(char *q);
+int ishexuc(const char *q);
 /* is string full valid hex string (only lower case letters) */
-int ishexlc(char *q);
+int ishexlc(const char *q);
 /* same as ishexuc/lc except odd length is ok */
-int ishexuc_oddOK(char *q);
-int ishexlc_oddOK(char *q);
+int ishexuc_oddOK(const char *q);
+int ishexlc_oddOK(const char *q);
 /* provide a length field, so return true if 'n' bytes of the string are hex */
 /* the n is length q, so there is no need for a 'odd' field. If checking for */
 /* a 49 byte string, simply specify 49 */
-int ishexn(char *q, int n);
-int ishexucn(char *q, int n);
-int ishexlcn(char *q, int n);
+int ishexn(const char *q, int n);
+int ishexucn(const char *q, int n);
+int ishexlcn(const char *q, int n);
 /* length of hex. if non-hex chars found, then negative length of valid hex */
-int hexlen(char *q);
-int hexlenl(char *q); /* lower cased only */
-int hexlenu(char *q); /* upper cased only */
+int hexlen(const char *q);
+int hexlenl(const char *q); /* lower cased only */
+int hexlenu(const char *q); /* upper cased only */
 /* is this a valid string for atoi() ONLY positive numbers are valid */
-int isdec(char *q);
+int isdec(const char *q);
 /* is this a valid string for atoi() */
-int isdec_negok(char *q);
+int isdec_negok(const char *q);
 /* is this a valid string for atou()?  atou() func == sprintf("%x",&val) */
-int isdecu(char *q);
+int isdecu(const char *q);
 /* provides the length of the base64 string.  See base64_convert.c for that
  * function. If the string is not 'pure', then the return is -1*length */
-int base64_mime_len(char *q);
-int base64_crypt_len(char *q);
-int base64_mime_du_len(char *q);  /* mime, -_ instead of +/ */
+int base64_mime_len(const char *q);
+int base64_crypt_len(const char *q);
+int base64_mime_du_len(const char *q);  /* mime, -_ instead of +/ */
 
 #endif
 

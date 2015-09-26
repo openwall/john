@@ -389,7 +389,7 @@ char *strrev(char *str);
 extern size_t strnlen(const char *s, size_t max);
 #endif
 
-#if AC_BUILT && !HAVE_STRCASESTR
+#if AC_BUILT && !HAVE_STRCASESTR || !AC_BUILT && defined(__MINGW__)
 char *strcasestr(const char *haystack, const char *needle);
 #endif
 

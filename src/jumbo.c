@@ -368,7 +368,7 @@ size_t strnlen(const char *s, size_t max) {
 }
 #endif
 
-#if AC_BUILT && !HAVE_STRCASESTR
+#if AC_BUILT && !HAVE_STRCASESTR || !AC_BUILT && defined(__MINGW__)
 /* not optimal, but good enough for how we use it */
 char *strcasestr(const char *haystack, const char *needle) {
 	const char *H = haystack;
