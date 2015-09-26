@@ -34,6 +34,7 @@ john_register_one(&fmt_mssql12);
 #include "arch.h"
 
 //#undef _OPENMP
+//#undef SIMD_COEF_32
 //#undef SIMD_COEF_64
 //#undef SIMD_PARA_SHA512
 
@@ -119,7 +120,7 @@ static int max_keys;
 static int new_keys;
 #else
 static char (*saved_key)[(PLAINTEXT_LENGTH + 1) * 2 + SALT_SIZE];
-static ARCH_WORD_32 (*crypt_out)[DIGEST_SIZE / 4];
+static ARCH_WORD_64 (*crypt_out)[DIGEST_SIZE / 8];
 static int *saved_len;
 #endif
 
@@ -372,13 +373,13 @@ static int get_hash_4 (int index) { return crypt_out[HASH_IDX] & PH_MASK_4; }
 static int get_hash_5 (int index) { return crypt_out[HASH_IDX] & PH_MASK_5; }
 static int get_hash_6 (int index) { return crypt_out[HASH_IDX] & PH_MASK_6; }
 #else
-static int get_hash_0(int index) { return ((ARCH_WORD_64*)crypt_out[index])[0] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((ARCH_WORD_64*)crypt_out[index])[0] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((ARCH_WORD_64*)crypt_out[index])[0] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((ARCH_WORD_64*)crypt_out[index])[0] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((ARCH_WORD_64*)crypt_out[index])[0] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((ARCH_WORD_64*)crypt_out[index])[0] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((ARCH_WORD_64*)crypt_out[index])[0] & PH_MASK_6; }
+static int get_hash_0(int index) { return (crypt_out[index])[0] & PH_MASK_0; }
+static int get_hash_1(int index) { return (crypt_out[index])[0] & PH_MASK_1; }
+static int get_hash_2(int index) { return (crypt_out[index])[0] & PH_MASK_2; }
+static int get_hash_3(int index) { return (crypt_out[index])[0] & PH_MASK_3; }
+static int get_hash_4(int index) { return (crypt_out[index])[0] & PH_MASK_4; }
+static int get_hash_5(int index) { return (crypt_out[index])[0] & PH_MASK_5; }
+static int get_hash_6(int index) { return (crypt_out[index])[0] & PH_MASK_6; }
 #endif
 
 static int binary_hash_0(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_0; }
@@ -397,7 +398,7 @@ static int cmp_all(void *binary, int count)
 		if (((ARCH_WORD_64*)binary)[0] == crypt_out[HASH_IDX])
 			return 1;
 #else
-		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
+		if ( ((ARCH_WORD_64*)binary)[0] == crypt_out[index][0] )
 			return 1;
 #endif
 	return 0;
@@ -408,14 +409,14 @@ static int cmp_one(void *binary, int index)
 #ifdef SIMD_COEF_64
 	return (((ARCH_WORD_64*)binary)[0] == crypt_out[HASH_IDX]);
 #else
-	return !memcmp(binary, crypt_out[index], DIGEST_SIZE);
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 #endif
 }
 
 static int cmp_exact(char *source, int index)
 {
-#if SIMD_COEF_64
 	ARCH_WORD_64 *binary = get_binary(source);
+#if SIMD_COEF_64
 	char *key = get_key(index);
 	UTF16 wkey[PLAINTEXT_LENGTH];
 	SHA512_CTX ctx;
@@ -438,7 +439,7 @@ static int cmp_exact(char *source, int index)
 #endif
 	return !memcmp(binary, crypt_out, DIGEST_SIZE);
 #else
-	return 1;
+	return !memcmp(binary, crypt_out[index], DIGEST_SIZE);
 #endif
 }
 
