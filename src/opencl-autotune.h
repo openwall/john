@@ -15,7 +15,6 @@
 
 #include "config.h"
 #include "logger.h"
-#include "mask.h"
 #include "common-opencl.h"
 
 /* Step size for work size enumeration. Zero will double. */
@@ -110,15 +109,11 @@ static void autotune_run(struct fmt_main *self, unsigned int rounds,
   in each format file.
 -- */
 static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
-    size_t gws_limit, unsigned long long int max_run_time,
-    cl_uint lws_is_power_of_two, struct db_main *db)
+	size_t gws_limit, unsigned long long int max_run_time, cl_uint lws_is_power_of_two)
 {
 	int need_best_lws, need_best_gws;
 
 	ocl_autotune_running = 1;
-
-	if (db && options.flags & FLG_MASK_CHK)
-		mask_init(db, options.mask);
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(FORMAT_LABEL);
@@ -242,11 +237,11 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 }
 
 static void autotune_run(struct fmt_main *self, unsigned int rounds,
-    size_t gws_limit, unsigned long long int max_run_time)
+	size_t gws_limit, unsigned long long int max_run_time)
 {
-	return autotune_run_extra(self, rounds, gws_limit, max_run_time,
-	                          CL_FALSE, NULL);
+	return autotune_run_extra(self, rounds, gws_limit, max_run_time, CL_FALSE);
 }
+
 
 #undef get_power_of_two
 #endif  /* _COMMON_TUNE_H */
