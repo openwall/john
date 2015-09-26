@@ -44,6 +44,7 @@
 #include "recovery.h"
 #include "status.h"
 #include "john.h"
+#include "md5.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
@@ -807,9 +808,7 @@ void opencl_done()
 		context[gpu_device_list[i]] = NULL;
 		program[gpu_device_list[i]] = NULL;
 	}
-	if (kernel_source)
-		libc_free(kernel_source);
-	kernel_source = NULL;
+	MEM_FREE(kernel_source);
 
 	/* Reset in case we load another format after this */
 	local_work_size = global_work_size = duration_time = 0;
@@ -1736,10 +1735,8 @@ void opencl_read_source(char *kernel_filename)
 	fseek(fp, 0, SEEK_END);
 	source_size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
-	if (kernel_source)
-		libc_free(kernel_source);
-	kernel_source = NULL;
-	kernel_source = libc_calloc(1, source_size + 1);
+	MEM_FREE(kernel_source);
+	kernel_source = mem_calloc(1, source_size + 1);
 	read_size = fread(kernel_source, sizeof(char), source_size, fp);
 	if (read_size != source_size)
 		fprintf(stderr,
@@ -1757,12 +1754,15 @@ void opencl_build_kernel_opt(char *kernel_filename, int sequential_id,
 	opencl_build(sequential_id, opts, 0, NULL);
 }
 
+#define md5add(string) MD5_Update(&ctx, (string), strlen(string))
+
 void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
                          int warn)
 {
 	struct stat source_stat, bin_stat;
 	char dev_name[512], bin_name[512];
-	char *p;
+	unsigned char hash[16];
+	char hash_str[33];
 	uint64_t startTime, runtime;
 
 	kernel_loaded = 0;
@@ -1772,7 +1772,8 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 	        stat(path_expand(kernel_filename), &source_stat))
 		opencl_build_kernel_opt(kernel_filename, sequential_id, opts);
 	else {
-		char pnum[16];
+		int i;
+		MD5_CTX ctx;
 
 		startTime = (unsigned long)time(NULL);
 
@@ -1781,29 +1782,28 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 		                               CL_DEVICE_NAME, sizeof(dev_name),
 		                               dev_name, NULL), "Error querying DEVICE_NAME");
 
-		// Decide the binary name.
-		strnzcpy(bin_name, kernel_filename, sizeof(bin_name));
-		p = strstr(bin_name, ".cl");
-		if (p)
-			*p = 0;
-		strcat(bin_name, "_");
-		if (opts) {
-			strcat(bin_name, opts);
-			strcat(bin_name, "_");
-		}
-		strcat(bin_name, opencl_driver_ver(sequential_id));
-		strcat(bin_name, "_");
-		strcat(bin_name, dev_name);
-		sprintf(pnum, "_%d", platform_id);
-		strcat(bin_name, pnum);
-		strcat(bin_name, ".bin");
+/*
+ * Create a hash of kernel source and paramters, and use as cache name.
+ */
+		MD5_Init(&ctx);
+		md5add(kernel_filename);
+		opencl_read_source(kernel_filename);
+		md5add(kernel_source);
+		if (opts)
+			md5add(opts);
+		md5add(opencl_driver_ver(sequential_id));
+		md5add(dev_name);
+		MD5_Update(&ctx, (char*)&platform_id, sizeof(platform_id));
+		MD5_Final(hash, &ctx);
 
-		// Change spaces to '_'
-		while (p && *p) {
-			if (isspace((unsigned char)(*p)))
-				*p = '_';
-			p++;
+		for (i = 0; i < 16; i++) {
+			hash_str[2 * i + 0] = itoa16[hash[i] >> 4];
+			hash_str[2 * i + 1] = itoa16[hash[i] & 0xf];
 		}
+		hash_str[32] = 0;
+
+		snprintf(bin_name, sizeof(bin_name), "%s_%s.bin",
+		         kernel_filename, hash_str);
 
 		// Select the kernel to run.
 		if (!getenv("DUMP_BINARY") && !stat(path_expand(bin_name), &bin_stat) &&
