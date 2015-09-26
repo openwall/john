@@ -1013,7 +1013,8 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name)
 		file = fopen(path_expand(file_name), "w");
 
 		if (file == NULL)
-			fprintf(stderr, "Error creating binary file %s\n", file_name);
+			fprintf(stderr, "Error creating binary file %s: %s\n",
+			        file_name, strerror(errno));
 		else {
 #if OS_FLOCK || FCNTL_LOCKS
 			{
@@ -1711,7 +1712,7 @@ void opencl_read_source(char *kernel_filename)
 	kernel_source_file = kernel_filename;
 
 	if (!fp)
-		HANDLE_CLERROR(!CL_SUCCESS, "Source kernel not found!");
+		pexit("Can't read source kernel");
 
 #if OS_FLOCK || FCNTL_LOCKS
 	{
@@ -1791,6 +1792,7 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 			strcat(bin_name, "_");
 		}
 		strcat(bin_name, opencl_driver_ver(sequential_id));
+		strcat(bin_name, "_");
 		strcat(bin_name, dev_name);
 		sprintf(pnum, "_%d", platform_id);
 		strcat(bin_name, pnum);

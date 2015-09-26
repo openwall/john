@@ -173,11 +173,11 @@ static void set_salt(void *salt)
 
 static void init_kernel(int id_gpu, size_t s_mem_lws, unsigned int use_local_mem)
 {
-	static char build_opts[600];
+	char build_opts[600];
 
 	sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" -D USE_LOCAL_MEM=%u", s_mem_lws, use_local_mem);;
-	opencl_read_source("$JOHN/kernels/DES_bs_kernel.cl");
-	opencl_build(id_gpu, build_opts, 0, NULL);
+	opencl_build_kernel("$JOHN/kernels/DES_bs_kernel.cl",
+	                    id_gpu, build_opts, 0);
 	kernels[id_gpu][0] = clCreateKernel(program[id_gpu], "DES_bs_25_b", &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_25_b.\n");
 

@@ -452,8 +452,8 @@ size_t create_checking_kernel_set_args()
 	int i;
 	size_t min_lws;
 
-	opencl_read_source("$JOHN/kernels/DES_bs_hash_checking_kernel.cl");
-	opencl_build(gpu_id, NULL, 0, NULL);
+	opencl_build_kernel("$JOHN/kernels/DES_bs_hash_checking_kernel.cl",
+	                    gpu_id, NULL, 0);
 
 	if (kernel_high == 0) {
 		kernel_high = clCreateKernel(program[gpu_id], "DES_bs_cmp_high", &ret_code);
@@ -1138,7 +1138,7 @@ void opencl_DES_bs_clear_keys()
 
 size_t create_keys_kernel_set_args(int mask_mode)
 {
-	static char build_opts[400];
+	char build_opts[400];
 	cl_ulong const_cache_size;
 	int i;
 
@@ -1181,8 +1181,8 @@ size_t create_keys_kernel_set_args(int mask_mode)
 #endif
 		, is_static_gpu_mask, (unsigned long long)const_cache_size);
 
-	opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
-	opencl_build(gpu_id, build_opts, 0, NULL);
+	opencl_build_kernel("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl",
+	                    gpu_id, build_opts, 0);
 	keys_kernel = clCreateKernel(program[gpu_id], "DES_bs_finalize_keys", &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_finalize_keys.\n");
 

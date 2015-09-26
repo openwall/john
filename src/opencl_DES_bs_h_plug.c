@@ -200,7 +200,7 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 	file = fopen(path_expand(kernel_bin_name), "r");
 
 	if (file == NULL || force_build) {
-		static char build_opts[10000];
+		char build_opts[10000];
 		opencl_read_source("$JOHN/kernels/DES_bs_kernel_h.cl");
 		if (get_platform_vendor_id(get_platform_id(id_gpu)) != DEV_AMD)
 			sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" %s", lws, enc_salt(salt_val));

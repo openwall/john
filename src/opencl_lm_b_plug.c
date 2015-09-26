@@ -443,8 +443,8 @@ static void release_buffer()
 
 static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s_mem_lws, unsigned int use_local_mem, unsigned int use_last_build_opt)
 {
-	static char build_opts[500];
 	static unsigned int last_build_opts[3];
+	char build_opts[500];
 	cl_ulong const_cache_size;
 	unsigned int i;
 
@@ -516,11 +516,11 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 
 
 	if (use_last_build_opt ? last_build_opts[0] : full_unroll)
-		opencl_read_source("$JOHN/kernels/lm_kernel_f.cl");
+		opencl_build_kernel("$JOHN/kernels/lm_kernel_f.cl",
+		                    gpu_id, build_opts, 1);
 	else
-		opencl_read_source("$JOHN/kernels/lm_kernel_b.cl");
-
-	opencl_build(gpu_id, build_opts, 0, NULL);
+		opencl_build_kernel("$JOHN/kernels/lm_kernel_b.cl",
+		                    gpu_id, build_opts, 1);
 
 	if (use_last_build_opt ? last_build_opts[0] : full_unroll) {
 		crypt_kernel = clCreateKernel(program[gpu_id], "lm_bs_f", &ret_code);
