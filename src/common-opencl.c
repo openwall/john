@@ -1470,6 +1470,30 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	dyna_salt_remove(salt);
 }
 
+static char *human_speed(uint64_t speed)
+{
+	static char p, out[32];
+
+	if (speed > 1000000) {
+		speed /= 1000;
+		p = 'K';
+	}
+	if (speed > 1000000) {
+		speed /= 1000;
+		p = 'M';
+	}
+	if (speed > 1000000) {
+		speed /= 1000;
+		p = 'G';
+	}
+	if (speed > 1000000) {
+		speed /= 1000;
+		p = 'T'; /* you wish */
+	}
+	snprintf(out, sizeof(out), "%llu%cc/s", speed, p);
+	return out;
+}
+
 void opencl_find_best_gws(int step, unsigned long long int max_run_time,
                           int sequential_id, unsigned int rounds, int have_lws)
 {
@@ -1556,9 +1580,9 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 			min_time = run_time;
 
 		if (options.verbosity > 3)
-			fprintf(stderr, "gws: %9zu\t%10llu c/s%12llu "
+			fprintf(stderr, "gws: %9zu\t%10s%12llu "
 			        "rounds/s%10s per crypt_all()",
-			        num, raw_speed, speed, ns2string(run_time));
+			        num, human_speed(raw_speed), speed, ns2string(run_time));
 
 		if (best_speed && speed < 1.8 * best_speed &&
 		        max_run_time && run_time > max_run_time) {
