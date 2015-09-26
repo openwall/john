@@ -188,8 +188,9 @@ static char* plhdr2string(char p, int fmt_case)
 	    (p == 'L' || p == 'U' || p == 'D' || p == 'S')) {
 		if (john_main_process)
 			fprintf(stderr,
-			        "Can't use ?%c placeholder without --internal-encoding\n",
-			        p);
+			    "Can't use ?%c placeholder without using a codepage in --internal-encoding\n"
+			    "(%s is not a codepage).\n",
+				p, cp_id2name(pers_opts.internal_enc));
 		error();
 	}
 
