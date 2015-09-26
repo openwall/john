@@ -397,11 +397,11 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	else if (amd_vliw4(device_info[gpu_id]) || amd_vliw5(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])) {
 		force_global_keys = 0;
 	}
-	else if (platform_apple(platform_id) && gpu_nvidia(device_info[gpu_id])) {
-		force_global_keys = 0;
+	else if (gpu_nvidia(device_info[gpu_id])) {
+		force_global_keys = 1;
 	}
 	else if (gpu(device_info[gpu_id])) {
-		force_global_keys = 1;
+		force_global_keys = 0;
 	}
 	else {
 		force_global_keys = 1;

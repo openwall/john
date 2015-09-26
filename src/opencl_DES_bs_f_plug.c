@@ -379,7 +379,10 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	unsigned int des_log_depth = mask_mode ? 0 : DES_LOG_DEPTH;
 
 	if (cpu(device_info[gpu_id])) {
-		force_global_keys = 1;
+		if (get_platform_vendor_id(platform_id) == DEV_AMD)
+			force_global_keys = 0;
+		else
+			force_global_keys = 1;
 		kernel_run_ms = 5;
 	}
 	else if (amd_vliw4(device_info[gpu_id]) || amd_vliw5(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])) {
