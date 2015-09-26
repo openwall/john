@@ -69,8 +69,8 @@ extern void process_keys(size_t, size_t *);
 extern size_t create_keys_kernel_set_args(int);
 
 extern char *get_device_name(int);
-extern void save_lws_config(const char *, int, size_t);
-extern int restore_lws_config(const char *, int, size_t *, size_t);
+extern void save_lws_config(const char *, int, size_t, unsigned int);
+extern int restore_lws_config(const char *, int, size_t *, size_t, unsigned int *);
 
 typedef unsigned WORD vtype;
 

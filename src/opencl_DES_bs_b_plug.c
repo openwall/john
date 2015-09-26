@@ -375,7 +375,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	opencl_get_user_preferences(FORMAT_LABEL);
 	if (global_work_size)
 		gws_tune_flag = 0;
-	if (local_work_size || restore_lws_config(CONFIG_FILE, gpu_id, &local_work_size, extern_lws_limit)) {
+	if (local_work_size || restore_lws_config(CONFIG_FILE, gpu_id, &local_work_size, extern_lws_limit, NULL)) {
 		lws_tune_flag = 0;
 		if (local_work_size & (local_work_size - 1)) {
 			get_power_of_two(local_work_size);
@@ -561,7 +561,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 		}
 	}
 	if (lws_tune_flag)
-		save_lws_config(CONFIG_FILE, gpu_id, local_work_size);
+		save_lws_config(CONFIG_FILE, gpu_id, local_work_size, 0);
 
 	if (options.verbosity > 3)
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",

@@ -1215,7 +1215,7 @@ char *get_device_name(int id)
 	return d_name;
 }
 
-void save_lws_config(const char* config_file, int id_gpu, size_t lws)
+void save_lws_config(const char* config_file, int id_gpu, size_t lws, unsigned int forced_global_key)
 {
 	FILE *file;
 	char config_file_name[500];
@@ -1248,14 +1248,15 @@ void save_lws_config(const char* config_file, int id_gpu, size_t lws)
 #endif
 	}
 #endif
-	fprintf(file, ""Zu"", lws);
+	fprintf(file, ""Zu" %u", lws, forced_global_key);
 	fclose(file);
 }
 
-int restore_lws_config(const char *config_file, int id_gpu, size_t *lws, size_t extern_lws_limit)
+int restore_lws_config(const char *config_file, int id_gpu, size_t *lws, size_t extern_lws_limit, unsigned int *forced_global_key)
 {
 	FILE *file;
 	char config_file_name[500];
+	unsigned int param;
 
 	sprintf(config_file_name, config_file, get_device_name(id_gpu));
 
@@ -1283,7 +1284,9 @@ int restore_lws_config(const char *config_file, int id_gpu, size_t *lws, size_t 
 #endif
 	}
 #endif
-	if (fscanf(file, ""Zu"", lws) != 1 || *lws > extern_lws_limit) {
+	if (fscanf(file, ""Zu" %u", lws, &param) != 2 || *lws > extern_lws_limit) {
+		if (forced_global_key)
+			*forced_global_key = param;
 		fclose(file);
 		return 0;
 	}

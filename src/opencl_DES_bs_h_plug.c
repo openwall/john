@@ -271,7 +271,7 @@ static size_t find_smem_lws_limit(unsigned int force_global_keys)
 			warp_size = 32;
 	}
 	else
-		return 0;
+		warp_size = 1;
 
 	expected_lws_limit = s_mem_sz /
 			(sizeof(DES_bs_vector) * 56);
@@ -372,7 +372,7 @@ static void release_kernels()
 		}
 }
 
-static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int), WORD test_salt, int mask_mode, size_t extern_lws_limit)
+static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int), WORD test_salt, int mask_mode, size_t extern_lws_limit, unsigned int *forced_global_keys)
 {
 	unsigned int force_global_keys = 1;
 	unsigned int gws_tune_flag = 1;
@@ -388,17 +388,20 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	unsigned int des_log_depth = mask_mode ? 0 : DES_LOG_DEPTH;
 
 	if (cpu(device_info[gpu_id])) {
-		force_global_keys = 1;
+		if (get_platform_vendor_id(platform_id) == DEV_AMD)
+			force_global_keys = 0;
+		else
+			force_global_keys = 1;
 		kernel_run_ms = 5;
 	}
 	else if (amd_vliw4(device_info[gpu_id]) || amd_vliw5(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])) {
 		force_global_keys = 0;
 	}
 	else if (platform_apple(platform_id) && gpu_nvidia(device_info[gpu_id])) {
-		force_global_keys = 1;
+		force_global_keys = 0;
 	}
 	else if (gpu(device_info[gpu_id])) {
-		force_global_keys = 0;
+		force_global_keys = 1;
 	}
 	else {
 		force_global_keys = 1;
@@ -412,7 +415,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	opencl_get_user_preferences(FORMAT_LABEL);
 	if (global_work_size)
 		gws_tune_flag = 0;
-	if (local_work_size || restore_lws_config(CONFIG_FILE, gpu_id, &local_work_size, extern_lws_limit)) {
+	if (local_work_size || restore_lws_config(CONFIG_FILE, gpu_id, &local_work_size, extern_lws_limit, forced_global_keys)) {
 		lws_tune_flag = 0;
 		if (local_work_size & (local_work_size - 1)) {
 			get_power_of_two(local_work_size);
@@ -428,6 +431,8 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	if (s_mem_limited_lws == 0x800000 || !s_mem_limited_lws) {
 		long double best_time_ms;
 		size_t best_lws, lws_limit;
+
+		*forced_global_keys = 1;
 
 		release_kernels();
 		init_kernel(test_salt, gpu_id, 0, 1, 0);
@@ -509,6 +514,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 		}
 		else {
 			warp_size = 1;
+			if (!cpu(device_info[gpu_id]))
 			fprintf(stderr, "Possible auto_tune fail!!.\n");
 		}
 
@@ -599,7 +605,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	}
 	release_kernels();
 	if (lws_tune_flag)
-		save_lws_config(CONFIG_FILE, gpu_id, local_work_size);
+		save_lws_config(CONFIG_FILE, gpu_id, local_work_size, *forced_global_keys);
 
 	if (options.verbosity > 3)
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",
@@ -611,6 +617,7 @@ static void reset(struct db_main *db)
 	static int initialized;
 	int i;
 	size_t extern_lws_limit, limit_temp;
+	unsigned int forced_global_keys = 0;
 
 	if (initialized) {
 		struct db_salt *salt;
@@ -643,12 +650,14 @@ static void reset(struct db_main *db)
 				}
 
 			} while ((salt = salt -> next));
-			auto_tune_all(300, fmt_opencl_DES.methods.set_key, test_salt, mask_mode, extern_lws_limit);
+
+			forced_global_keys = 0;
+			auto_tune_all(300, fmt_opencl_DES.methods.set_key, test_salt, mask_mode, extern_lws_limit, &forced_global_keys);
 		}
 
 		salt = db -> salts;
 		do {
-			init_kernel((*(WORD *)salt -> salt), gpu_id, 1, 0, local_work_size);
+			init_kernel((*(WORD *)salt -> salt), gpu_id, 1, 0, forced_global_keys ? 0 :local_work_size);
 		} while ((salt = salt -> next));
 
 		set_kernel_args_kpc();
@@ -670,13 +679,13 @@ static void reset(struct db_main *db)
 		salt_val = *(WORD *)fmt_opencl_DES.methods.salt(fmt_opencl_DES.methods.split(
 			fmt_opencl_DES.params.tests[0].ciphertext, 0, &fmt_opencl_DES));
 
-		auto_tune_all(300, fmt_opencl_DES.methods.set_key, salt_val, 0, extern_lws_limit);
+		auto_tune_all(300, fmt_opencl_DES.methods.set_key, salt_val, 0, extern_lws_limit, &forced_global_keys);
 
 		i = 0;
 		while (fmt_opencl_DES.params.tests[i].ciphertext) {
 			ciphertext = fmt_opencl_DES.methods.split(fmt_opencl_DES.params.tests[i].ciphertext, 0, &fmt_opencl_DES);
 			salt_val = *(WORD *)fmt_opencl_DES.methods.salt(ciphertext);
-			init_kernel(salt_val, gpu_id, 1, 0, local_work_size);
+			init_kernel(salt_val, gpu_id, 1, 0, forced_global_keys ? 0 :local_work_size);
 			i++;
 		}
 
