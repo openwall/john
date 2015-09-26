@@ -163,12 +163,7 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	int i;
-
-	for (i = 0; i < CIPHERTEXT_LENGTH; i++)
-		if (atoi16[ARCH_INDEX(ciphertext[i])] == 0x7F)
-			return 0;
-	return !ciphertext[i];
+	return hexlenu(ciphertext)==CIPHERTEXT_LENGTH;
 }
 
 static void *get_salt(char *ciphertext)

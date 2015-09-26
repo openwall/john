@@ -152,11 +152,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* verifier hash */
 		goto error;
-	if (res < 3 && strlen(ptr) != 32)
+	if (res < 3 && hexlen(ptr) != 32)
 		goto error;
-	if (res >= 3 && strlen(ptr) != 40)
-		goto error;
-	if (!ishex(ptr))
+	if (res >= 3 && hexlen(ptr) != 40)
 		goto error;
 	MEM_FREE(keeptr);
 	return 1;

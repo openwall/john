@@ -103,12 +103,8 @@ static int valid(char *ciphertext, struct fmt_main *self, int len)
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (strlen(p) != len)
+	if (hexlenl(p) != len)
 		return 0;
-
-	while(*p)
-		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
-			return 0;
 
 	return 1;
 }
@@ -340,8 +336,7 @@ struct fmt_main fmt_snefru_128 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		{ NULL },
-		snefru_128_tests
+		{ NULL },snefru_128_tests
 	}, {
 		init,
 		done,

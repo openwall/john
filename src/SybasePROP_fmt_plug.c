@@ -104,12 +104,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, PREFIX_VALUE, PREFIX_LENGTH))
 		return 0;
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
+	if (hexlenl(p) != CIPHERTEXT_LENGTH-PREFIX_LENGTH)
 		return 0;
 
-	while (*p)
-		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
-			return 0;
 	return 1;
 }
 

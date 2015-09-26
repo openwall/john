@@ -157,10 +157,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
     if(strncmp(ciphertext, "0xc007", 6)!=0)
         return 0;
-    if(strlen(ciphertext) != CIPHERTEXT_LENGTH)
+    if(hexlen(&ciphertext[6]) != CIPHERTEXT_LENGTH - 6)
         return 0;
-	if (!ishex(&ciphertext[6]))
-		return 0;
     return 1;
 }
 

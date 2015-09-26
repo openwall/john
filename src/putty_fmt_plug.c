@@ -158,9 +158,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* public_blob */
 		goto err;
-	if (strlen(p) != res * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != res * 2)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* private_blob_len */
 		goto err;
@@ -171,9 +169,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* private_blob */
 		goto err;
-	if (strlen(p) != res * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != res * 2)
 		goto err;
 	if (!is_old_fmt) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* alg */

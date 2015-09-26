@@ -109,14 +109,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	/* Check hash */
 	if (!(p = strrchr(ciphertext, '*')))
 		return 0;
-	if (strspn(&p[1], HEXCHARS_all) != 2*BINARY_SIZE)
+	if (hexlenl(&p[1]) != 2*BINARY_SIZE)
 		return 0;
 
 	/* Check salt */
 	p -= 9;
 	if (*p != '*')
 		return 0;
-	if (strspn(&p[1], HEXCHARS_all) != 8)
+	if (abs(hexlenl(&p[1])) != 8)
 		return 0;
 
 	/* Check username length */

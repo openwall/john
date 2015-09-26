@@ -84,18 +84,14 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p, *q;
-
-	p = ciphertext;
+	char *p = ciphertext;
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
+	if (hexlenl(p) != BINARY_SIZE*2)
+		return 0;
 
-	q = p;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		q++;
-
-	return !*q && q - p == BINARY_SIZE * 2;
+	return 1;
 }
 
 static void *get_binary(char *ciphertext)

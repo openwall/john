@@ -98,12 +98,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (strlen(p) != BINARY_SIZE*2)
+	if (hexlenl(p) != BINARY_SIZE*2)
 		return 0;
-	while(*p)
-		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
-			return 0;
-
 	return 1;
 }
 

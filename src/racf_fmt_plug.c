@@ -169,8 +169,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy;
 	char *keeptr;
-	char *p, *q;
-	int res;
+	char *p;
 	if (strncmp(ciphertext, "$racf$*", 7))
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -181,13 +180,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
-	q = p;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		q++;
-
-	res = !*q && q - p == CIPHERTEXT_LENGTH;
+	if (hexlenu(p) != CIPHERTEXT_LENGTH)
+		goto err;
 	MEM_FREE(keeptr);
-	return res;
+	return 1;
 
 err:
 	MEM_FREE(keeptr);

@@ -160,11 +160,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (!(ptr = strtokm(ctcopy, "*")))
 		goto error;
-	if (strlen(ptr) != 32 || !ishex(ptr))
+	if (hexlenu(ptr) != 32)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
-	if (strlen(ptr) != 32 || !ishex(ptr))
+	if (hexlenu(ptr) != 32)
 		goto error;
 	MEM_FREE(keeptr);
 	return 1;
