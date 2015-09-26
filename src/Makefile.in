@@ -801,16 +801,16 @@ test_utf8_verbose: default
 	cd ../test && perl jtrts.pl -type utf-8
 
 bash-completion:
-	[ -d /etc/bash_completion.d ] && $(CP) ../run/john.bash_completion /etc/bash_completion.d/ || true
-	[ -d /usr/local/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion /usr/local/etc/bash_completion.d/ || true
-	[ -d /opt/local/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion /opt/local/etc/bash_completion.d/ || true
+	[ -d $(DESTDIR)/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/etc/bash_completion.d/ || true
+	[ -d $(DESTDIR)/usr/local/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/usr/local/etc/bash_completion.d/ || true
+	[ -d $(DESTDIR)/opt/local/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/opt/local/etc/bash_completion.d/ || true
 	@echo Bash-completion for JtR opportunistically installed.
 	@echo Source \". ../run/john.bash_completion\" or logout/login to activate the changes
 
 zsh-completion:
-	[ -d /usr/share/zsh/functions/Completion/Unix ] && $(CP) ../run/john.zsh_completion /usr/share/zsh/functions/Completion/Unix/_john || true
-	[ -d /usr/share/zsh/site-functions ] && $(CP) ../run/john.zsh_completion /usr/share/zsh/site-functions/_john || true
-	[ -d /usr/local/share/zsh/site-functions ] && $(CP) ../run/john.zsh_completion /usr/local/share/zsh/site-functions/_john || true
+	[ -d $(DESTDIR)/usr/share/zsh/functions/Completion/Unix ] && $(CP) ../run/john.zsh_completion $(DESTDIR)/usr/share/zsh/functions/Completion/Unix/_john || true
+	[ -d $(DESTDIR)/usr/share/zsh/site-functions ] && $(CP) ../run/john.zsh_completion $(DESTDIR)/usr/share/zsh/site-functions/_john || true
+	[ -d $(DESTDIR)/usr/local/share/zsh/site-functions ] && $(CP) ../run/john.zsh_completion $(DESTDIR)/usr/local/share/zsh/site-functions/_john || true
 	@echo zsh-completion for JtR opportunistically installed.
 	@echo Source \". ../run/john.zsh_completion\" or logout/login to activate the changes
 

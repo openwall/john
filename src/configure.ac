@@ -258,8 +258,8 @@ AC_PATH_PROG([FIND], [find])
 AC_PATH_PROG([PERL], [perl])
 AS_IF([test -z "$AS"], [AS="$CC"])
 AS_IF([test -z "$LD"], [LD="$CC"])
-AS_IF([test -z "$AR"], [AC_PATH_PROG([AR], [ar])])
-AS_IF([test -z "$STRIP"], [AC_PATH_PROG([STRIP], [strip])])
+AS_IF([test -z "$AR"], [AC_CHECK_TOOL([AR], [ar])])
+AS_IF([test -z "$STRIP"], [AC_CHECK_TOOL([STRIP], [strip])])
 
 # Check if we have this at all
 PKG_PROG_PKG_CONFIG
