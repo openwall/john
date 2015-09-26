@@ -359,7 +359,7 @@ struct pers_opts {
    do proper case conversion etc. in UTF-8, we can pick this intermediate
    encoding (use one that matches most input) but the double conversions may
    come with a speed penalty. */
-	int internal_enc;
+	int internal_cp;
 
 /* Store UTF-8 in pot file. Default is no conversion. */
 	int store_utf8;

@@ -879,10 +879,10 @@ static void john_load_conf(void)
 	}
 
 	/* Pre-init in case some format's prepare() needs it */
-	internal = pers_opts.internal_enc;
+	internal = pers_opts.internal_cp;
 	target = pers_opts.target_enc;
 	initUnicode(UNICODE_UNICODE);
-	pers_opts.internal_enc = internal;
+	pers_opts.internal_cp = internal;
 	pers_opts.target_enc = target;
 	pers_opts.unicode_cp = CP_UNDEF;
 }
@@ -890,13 +890,16 @@ static void john_load_conf(void)
 static void john_load_conf_db(void)
 {
 	if (options.flags & FLG_STDOUT) {
-		/* john.conf alternative for --internal-encoding */
-		if (!pers_opts.internal_enc &&
+		/* john.conf alternative for --internal-codepage */
+		if (!pers_opts.internal_cp &&
 		    pers_opts.target_enc == UTF_8 && options.flags &
 		    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
-			pers_opts.internal_enc =
+			if (!(pers_opts.internal_cp =
 			    cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
-			        "DefaultInternalEncoding"));
+			    "DefaultInternalCodepage"))))
+			pers_opts.internal_cp =
+				cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
+			            "DefaultInternalEncoding"));
 	}
 
 	if (!pers_opts.unicode_cp)
@@ -952,11 +955,11 @@ static void john_load_conf_db(void)
 				        cp_id2name(pers_opts.target_enc));
 		}
 
-		if (pers_opts.input_enc != pers_opts.internal_enc)
+		if (pers_opts.input_enc != pers_opts.internal_cp)
 		if (database.format &&
 		    (database.format->params.flags & FMT_UNICODE))
 			fprintf(stderr, "Rules/masks using %s\n",
-			        cp_id2name(pers_opts.internal_enc));
+			        cp_id2name(pers_opts.internal_cp));
 	}
 }
 
@@ -1428,11 +1431,11 @@ static void john_init(char *name, int argc, char **argv)
 	john_load();
 
 	/* Init the Unicode system */
-	if (pers_opts.internal_enc) {
-		if (pers_opts.internal_enc != pers_opts.input_enc &&
+	if (pers_opts.internal_cp) {
+		if (pers_opts.internal_cp != pers_opts.input_enc &&
 		    pers_opts.input_enc != UTF_8) {
 			if (john_main_process)
-			fprintf(stderr, "Internal encoding can only be "
+			fprintf(stderr, "-internal-codepage can only be "
 			        "specified if input encoding is UTF-8\n");
 			error();
 		}
@@ -1483,9 +1486,9 @@ static void john_init(char *name, int argc, char **argv)
 	}
 
 	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked)
-	if (pers_opts.input_enc != pers_opts.internal_enc) {
+	if (pers_opts.input_enc != pers_opts.internal_cp) {
 		log_event("- Rules/masks using %s",
-		          cp_id2name(pers_opts.internal_enc));
+		          cp_id2name(pers_opts.internal_cp));
 	}
 }
 

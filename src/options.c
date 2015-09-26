@@ -59,7 +59,7 @@
 struct options_main options;
 struct pers_opts pers_opts; /* Not reset after forked resume */
 static char *field_sep_char_str, *show_uncracked_str, *salts_str;
-static char *encoding_str, *target_enc_str, *internal_enc_str;
+static char *encoding_str, *target_enc_str, *internal_cp_str;
 static char *costs_str;
 
 static struct opt_entry opt_list[] = {
@@ -99,8 +99,11 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
 	{"input-encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,
 		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
+	{"internal-codepage", FLG_SECOND_ENC, FLG_SECOND_ENC,
+		0, 0, OPT_FMT_STR_ALLOC, &internal_cp_str},
+	/* -internal-encoding is a deprecated alias for -internal-codepage */
 	{"internal-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC,
-		0, 0, OPT_FMT_STR_ALLOC, &internal_enc_str},
+		0, 0, OPT_FMT_STR_ALLOC, &internal_cp_str},
 	{"target-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC,
 		0, 0, OPT_FMT_STR_ALLOC, &target_enc_str},
 	{"stdin", FLG_STDIN_SET, FLG_CRACKING_CHK},
@@ -409,7 +412,7 @@ void opt_print_hidden_usage(void)
 	puts("--fuzz-dump[=from,to]     dump the fuzzed hashes between from and to to file pwfile.format");
 #endif
 	puts("--input-encoding=NAME     input encoding (alias for --encoding)");
-	puts("--internal-encoding=NAME  encoding used in rules/masks (see doc/ENCODING)");
+	puts("--internal-codepage=NAME  codepage used in rules/masks (see doc/ENCODING)");
 	puts("--target-encoding=NAME    output encoding (used by format, see doc/ENCODING)");
 #ifdef HAVE_OPENCL
 	puts("--force-scalar            (OpenCL) force scalar mode");
@@ -847,8 +850,8 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	 * that in john.conf or with the --encoding option.
 	 */
 	if ((encoding_str && !strcasecmp(encoding_str, "list")) ||
-	    (internal_enc_str &&
-	     !strcasecmp(internal_enc_str, "list")) ||
+	    (internal_cp_str &&
+	     !strcasecmp(internal_cp_str, "list")) ||
 	    (target_enc_str && !strcasecmp(target_enc_str, "list"))) {
 		listEncodings(stdout);
 		exit(EXIT_SUCCESS);
@@ -860,14 +863,14 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	if (target_enc_str)
 		pers_opts.target_enc = cp_name2id(target_enc_str);
 
-	if (internal_enc_str)
-		pers_opts.internal_enc = cp_name2id(internal_enc_str);
+	if (internal_cp_str)
+		pers_opts.internal_cp = cp_name2id(internal_cp_str);
 
 	if (pers_opts.input_enc && pers_opts.input_enc != UTF_8) {
 		if (!pers_opts.target_enc)
 			pers_opts.target_enc = pers_opts.input_enc;
-		if (!pers_opts.internal_enc)
-			pers_opts.internal_enc = pers_opts.input_enc;
+		if (!pers_opts.internal_cp)
+			pers_opts.internal_cp = pers_opts.input_enc;
 	}
 
 #ifdef HAVE_OPENCL

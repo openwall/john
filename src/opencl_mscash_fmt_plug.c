@@ -349,8 +349,8 @@ static void init_kernel(void)
 #endif
 	, mask_int_cand.num_int_cand, is_static_gpu_mask,
 	(unsigned long long)const_cache_size, cp_id2macro(pers_opts.target_enc),
-	pers_opts.internal_enc == UTF_8 ? cp_id2macro(ASCII) :
-	cp_id2macro(pers_opts.internal_enc), PLAINTEXT_LENGTH,
+	pers_opts.internal_cp == UTF_8 ? cp_id2macro(ASCII) :
+	cp_id2macro(pers_opts.internal_cp), PLAINTEXT_LENGTH,
 	static_gpu_locations[0]
 #if 1 < MASK_FMT_INT_PLHDR
 	, static_gpu_locations[1]

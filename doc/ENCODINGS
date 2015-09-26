@@ -36,24 +36,24 @@ to/from Unicode as needed.
 Finally, there's the special case where both input (wordlist) and output (eg.
 hashes from a website) are UTF-8 but you want to use rules including eg. upper
 or lower-casing non-ASCII characters. In this case you can use an intermediate
-encoding (--internal-encoding option) and pick some codepage that can
+encoding (--internal-codepage option) and pick some codepage that can
 shelter as much of the needed input as possible. For US/Western Europe, any
 "Latin-1" codepage will do fine, eg. CP850, ISO-8859-1 or CP1252 (if you do
 this with a Unicode format like NT, it will silently be treated in another
 way internally for performance reasons but the outcome will be the same).
 
-Mask mode also honors --internal-encoding (or plain --encoding). For
+Mask mode also honors --internal-codepage (or plain --encoding). For
 example, the mask ?L is a placeholder for all lowercase Greek letters if you
 use CP737. If you instead use CP850, it'll be western-european ones.
 
-The limitation is if you use --target-encoding or --internal-encoding,
+The limitation is if you use --target-encoding or --internal-codepage,
 the input encoding must be UTF-8. The recommended, and easiest, use is to
 keep all wordlists encoded as UTF-8. This will work for most cases without
 too much impact on cracking speed and you will almost never have to give
 any command-line options.
 
 Some new reject rules and character classes are implemented, see doc/RULES.
-If you use rules without --internal-encoding, some wordlist rules may cut
+If you use rules without --internal-codepage, some wordlist rules may cut
 UTF-8 multibyte sequences in the middle, resulting in garbage. You can reject
 such rules with -U to have them in use only when UTF-8 is not used.
 

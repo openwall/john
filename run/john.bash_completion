@@ -611,7 +611,7 @@ _john()
 			COMPREPLY=( $(compgen -W "COUNT -COUNT" -- ${cur}) )
 			return 0
 			;;
-		--encoding=*|--intermediate-enc=*|--internal-encoding=*|--target-encoding=*|--input-encoding=*)
+		--encoding=*|--intermediate-enc=*|--internal-codepage=*|--internal-encoding=*|--target-encoding=*|--input-encoding=*)
 			cur=${cur#*[=:]}
 			# --encoding=LIST wrote to stderr in the past
 			list=`${first} --list=\? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`

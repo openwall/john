@@ -1062,11 +1062,11 @@ void initUnicode(int type) {
 	if (!pers_opts.target_enc)
 		pers_opts.target_enc = pers_opts.input_enc;
 
-	if (!pers_opts.internal_enc)
-		pers_opts.internal_enc = pers_opts.target_enc;
+	if (!pers_opts.internal_cp)
+		pers_opts.internal_cp = pers_opts.target_enc;
 
-	if (pers_opts.internal_enc != pers_opts.target_enc)
-		encoding = pers_opts.internal_enc;
+	if (pers_opts.internal_cp != pers_opts.target_enc)
+		encoding = pers_opts.internal_cp;
 	else if (pers_opts.target_enc != pers_opts.input_enc)
 		encoding = pers_opts.target_enc;
 	else
@@ -1087,7 +1087,7 @@ void initUnicode(int type) {
 		        cp_id2name(encoding), cp_id2name(pers_opts.unicode_cp));
 		fprintf(stderr, "%s -> %s -> %s\n",
 		        cp_id2name(pers_opts.input_enc),
-		        cp_id2name(pers_opts.internal_enc),
+		        cp_id2name(pers_opts.internal_cp),
 		        cp_id2name(pers_opts.target_enc));
 	}
 

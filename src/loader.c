@@ -290,7 +290,7 @@ static MAYBE_INLINE int ldr_check_shells(struct list_main *list, char *shell)
 static void ldr_set_encoding(struct fmt_main *format)
 {
 	if ((!pers_opts.target_enc || pers_opts.default_target_enc) &&
-	    !pers_opts.internal_enc) {
+	    !pers_opts.internal_cp) {
 		if (!strcasecmp(format->params.label, "LM") ||
 		    !strcasecmp(format->params.label, "lm-opencl") ||
 		    !strcasecmp(format->params.label, "netlm") ||
@@ -303,10 +303,10 @@ static void ldr_set_encoding(struct fmt_main *format)
 				pers_opts.default_target_enc = 1;
 			else
 				pers_opts.target_enc = pers_opts.input_enc;
-		} else if (pers_opts.internal_enc &&
+		} else if (pers_opts.internal_cp &&
 		           (format->params.flags & FMT_UNICODE) &&
 		           (format->params.flags & FMT_UTF8)) {
-			pers_opts.target_enc = pers_opts.internal_enc;
+			pers_opts.target_enc = pers_opts.internal_cp;
 		}
 	}
 
@@ -320,22 +320,25 @@ static void ldr_set_encoding(struct fmt_main *format)
 		return;
 	}
 
-	/* john.conf alternative for --internal-encoding */
+	/* john.conf alternative for --internal-codepage */
 	if (options.flags &
 	    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
 	if ((!pers_opts.target_enc || pers_opts.target_enc == UTF_8) &&
-	    !pers_opts.internal_enc) {
-		pers_opts.internal_enc =
+	    !pers_opts.internal_cp) {
+		if (!(pers_opts.internal_cp =
 			cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
+			                         "DefaultInternalCodepage"))))
+			pers_opts.internal_cp =
+			    cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
 			                         "DefaultInternalEncoding"));
 	}
 
 	/* Performance opportunity - avoid unneccessary conversions */
-	if (pers_opts.internal_enc && pers_opts.internal_enc != UTF_8 &&
+	if (pers_opts.internal_cp && pers_opts.internal_cp != UTF_8 &&
 	    (!pers_opts.target_enc || pers_opts.target_enc == UTF_8)) {
 		if ((format->params.flags & FMT_UNICODE) &&
 		    (format->params.flags & FMT_UTF8))
-			pers_opts.target_enc = pers_opts.internal_enc;
+			pers_opts.target_enc = pers_opts.internal_cp;
 	}
 
 	initUnicode(UNICODE_UNICODE);

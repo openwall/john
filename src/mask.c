@@ -183,14 +183,15 @@ static char* plhdr2string(char p, int fmt_case)
 #define add_range(a, b)	for (j = a; j <= b; j++) *o++ = j
 #define add_string(str)	for (s = (char*)str; *s; s++) *o++ = *s
 
-	if ((pers_opts.internal_enc == ASCII ||
-	     pers_opts.internal_enc == UTF_8) &&
+	if ((pers_opts.internal_cp == ASCII ||
+	     pers_opts.internal_cp == UTF_8) &&
 	    (p == 'L' || p == 'U' || p == 'D' || p == 'S')) {
 		if (john_main_process)
 			fprintf(stderr,
-			    "Can't use ?%c placeholder without using a codepage in --internal-encoding\n"
-			    "(%s is not a codepage).\n",
-				p, cp_id2name(pers_opts.internal_enc));
+			    "Can't use ?%c placeholder without using an 8-bit legacy codepage for\n"
+			    "--internal-codepage%s\n", p,
+			    (pers_opts.internal_cp == UTF_8) ?
+			    " (UTF-8 is not a codepage, it's a Unicode encoding)." : ".");
 		error();
 	}
 
@@ -199,7 +200,7 @@ static char* plhdr2string(char p, int fmt_case)
 		add_range('a', 'z');
 		break;
 	case 'L': /* lower-case letters, non-ASCII only */
-		switch (pers_opts.internal_enc) {
+		switch (pers_opts.internal_cp) {
 		case CP437:
 			add_string(CHARS_LOWER_CP437
 			           CHARS_LOW_ONLY_CP437);
@@ -286,7 +287,7 @@ static char* plhdr2string(char p, int fmt_case)
 		add_range('A', 'Z');
 		break;
 	case 'U': /* upper-case letters, non-ASCII only */
-		switch (pers_opts.internal_enc) {
+		switch (pers_opts.internal_cp) {
 		case CP437:
 			add_string(CHARS_UPPER_CP437
 			           CHARS_UP_ONLY_CP437);
@@ -373,7 +374,7 @@ static char* plhdr2string(char p, int fmt_case)
 		add_range('0', '9');
 		break;
 	case 'D': /* digits, non-ASCII only */
-		switch (pers_opts.internal_enc) {
+		switch (pers_opts.internal_cp) {
 		case CP437:
 			add_string(CHARS_DIGITS_CP437);
 			break;
@@ -443,7 +444,7 @@ static char* plhdr2string(char p, int fmt_case)
 		add_range(123, 126);
 		break;
 	case 'S': /* specials, non-ASCII only */
-		switch (pers_opts.internal_enc) {
+		switch (pers_opts.internal_cp) {
 		case CP437:
 			add_string(CHARS_PUNCTUATION_CP437
 			           CHARS_SPECIALS_CP437
@@ -569,7 +570,7 @@ static char* plhdr2string(char p, int fmt_case)
 			add_range(0x20, 0x40);
 			add_range(0x5b, 0x7e);
 		}
-		switch (pers_opts.internal_enc) {
+		switch (pers_opts.internal_cp) {
 		case CP437:
 			if (fmt_case)
 				add_string(CHARS_ALPHA_CP437);
@@ -1304,7 +1305,7 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 	static char out[PLAINTEXT_BUFFER_SIZE + 1];
 
 	if (mask_has_8bit &&
-	    (pers_opts.internal_enc != UTF_8 && pers_opts.target_enc == UTF_8))
+	    (pers_opts.internal_cp != UTF_8 && pers_opts.target_enc == UTF_8))
 		return cp_to_utf8_r(in, out, fmt_maxlen);
 
 	return in;
@@ -1747,7 +1748,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	template_key = (char*)mem_alloc(0x400);
 
 	/* Handle command-line (or john.conf) masks given in UTF-8 */
-	if (pers_opts.input_enc == UTF_8 && pers_opts.internal_enc != UTF_8) {
+	if (pers_opts.input_enc == UTF_8 && pers_opts.internal_cp != UTF_8) {
 		if (valid_utf8((UTF8*)mask) > 1)
 			utf8_to_cp_r(mask, mask, strlen(mask));
 		for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
@@ -1768,13 +1769,13 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	mask = expand_cplhdr(mask);
 
 	/*
-	 * UTF-8 is not supported in mask mode unless -internal-encoding is used
+	 * UTF-8 is not supported in mask mode unless -internal-codepage is used
 	 * except for UTF-16 formats (eg. NT).
 	 */
-	if (pers_opts.internal_enc == UTF_8 && valid_utf8((UTF8*)mask) > 1) {
+	if (pers_opts.internal_cp == UTF_8 && valid_utf8((UTF8*)mask) > 1) {
 		if (john_main_process)
 			fprintf(stderr,
-			        "Mask contains UTF-8 characters; --internal-encoding is required!\n");
+			        "Mask contains UTF-8 characters; --internal-codepage is required!\n");
 		error();
 	}
 
