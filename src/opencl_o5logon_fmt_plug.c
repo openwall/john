@@ -225,13 +225,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 9;
-	p = strtokm(ctcopy, "*"); /* ciphertext */
-	if(!p)
+	if ((p = strtokm(ctcopy, "*")) == NULL) /* ciphertext */
 		goto err;
-	if(hexlenl(p) != CIPHERTEXT_LENGTH * 2)
+	if(hexlenu(p) != CIPHERTEXT_LENGTH * 2)
+		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if(hexlenl(p) != SALT_LENGTH * 2)
+	if(hexlenu(p) != SALT_LENGTH * 2)
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;
