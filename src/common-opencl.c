@@ -1470,7 +1470,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	dyna_salt_remove(salt);
 }
 
-static char *human_speed(uint64_t speed)
+static char *human_speed(unsigned long long int speed)
 {
 	static char p, out[32];
 
