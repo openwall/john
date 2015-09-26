@@ -205,7 +205,7 @@ static void reset(struct db_main *db)
 		                       KEY_SIZE_IN_BYTES, gws_limit);
 
 		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, gws_limit, 1000, CL_TRUE);
+		autotune_run_extra(self, 1, gws_limit, 1000, CL_TRUE, NULL);
 	}
 }
 

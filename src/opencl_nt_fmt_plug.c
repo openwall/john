@@ -987,7 +987,7 @@ static void reset(struct db_main *db)
 		                       2 * BUFSIZE, gws_limit);
 
 		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, gws_limit, 300, CL_TRUE);
+		autotune_run_extra(self, 1, gws_limit, 300, CL_TRUE, db);
 	}
 	else {
 		unsigned int *binary, i = 0;
@@ -1040,7 +1040,7 @@ static void reset(struct db_main *db)
 		                       2 * BUFSIZE, gws_limit);
 
 		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, gws_limit, 50, CL_TRUE);
+		autotune_run_extra(self, 1, gws_limit, 50, CL_TRUE, NULL);
 
 		hash_ids[0] = 0;
 

@@ -15,6 +15,7 @@
 
 #include "config.h"
 #include "logger.h"
+#include "mask.h"
 #include "common-opencl.h"
 
 /* Step size for work size enumeration. Zero will double. */
@@ -109,11 +110,15 @@ static void autotune_run(struct fmt_main *self, unsigned int rounds,
   in each format file.
 -- */
 static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
-	size_t gws_limit, unsigned long long int max_run_time, cl_uint lws_is_power_of_two)
+    size_t gws_limit, unsigned long long int max_run_time,
+    cl_uint lws_is_power_of_two, struct db_main *db)
 {
 	int need_best_lws, need_best_gws;
 
 	ocl_autotune_running = 1;
+
+	if (db && options.flags & FLG_MASK_CHK)
+		mask_init(db, options.mask);
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(FORMAT_LABEL);
@@ -205,11 +210,6 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 		}
 	}
 
-#ifdef _JOHN_MASK_EXT_H
-	if (mask_int_cand.num_int_cand > 1)
-		max_run_time /= 10;
-#endif
-
 	if (need_best_gws)
 		find_best_gws(self, gpu_id, rounds, max_run_time, 1);
 
@@ -242,11 +242,11 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 }
 
 static void autotune_run(struct fmt_main *self, unsigned int rounds,
-	size_t gws_limit, unsigned long long int max_run_time)
+    size_t gws_limit, unsigned long long int max_run_time)
 {
-	return autotune_run_extra(self, rounds, gws_limit, max_run_time, CL_FALSE);
+	return autotune_run_extra(self, rounds, gws_limit, max_run_time,
+	                          CL_FALSE, NULL);
 }
-
 
 #undef get_power_of_two
 #endif  /* _COMMON_TUNE_H */

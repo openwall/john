@@ -1924,13 +1924,6 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 				cand *= cpu_mask_ctx.ranges[i].count;
 	}
 	mask_tot_cand = cand;
-
-	if (!(options.flags & FLG_MASK_STACKED)) {
-		status_init(get_progress, 0);
-
-		rec_restore_mode(mask_restore_state);
-		rec_init(db, mask_save_state);
-	}
 }
 
 void mask_crk_init(struct db_main *db)
@@ -1938,8 +1931,14 @@ void mask_crk_init(struct db_main *db)
 #ifdef MASK_DEBUG
 	fprintf(stderr, "%s()\n", __func__);
 #endif
-	if (!(options.flags & FLG_MASK_STACKED))
+	if (!(options.flags & FLG_MASK_STACKED)) {
+		status_init(get_progress, 0);
+
+		rec_restore_mode(mask_restore_state);
+		rec_init(db, mask_save_state);
+
 		crk_init(db, mask_fix_state, NULL);
+	}
 }
 
 void mask_done()
