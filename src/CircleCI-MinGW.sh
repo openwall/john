@@ -107,9 +107,9 @@ make -s distclean
 JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -sj4 linux-x86-any
 # do NOT exit on error from make.  We expect an error in the libpcap stuff
 ../run/john --list=build-info
-../run/john -test=0
+../run/john -test-full=0
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
-../run/john -test=0 -form=dynamic-all
+../run/john -test-full=0 -form=dynamic-all
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 
 # now build a 32 bit SSE2 exe and test it
@@ -125,6 +125,6 @@ make -f Makefile.legacy -s clean
 JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -sj4 linux-x86-sse2
 # do NOT exit on error from make.  We expect an error in the libpcap stuff
 ../run/john --list=build-info
-../run/john -test=0
+../run/john -test-full=0
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
-../run/john -test=0 -form=dynamic-all
+../run/john -test-full=0 -form=dynamic-all
