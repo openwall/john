@@ -1045,7 +1045,8 @@ static char* select_bitmap(unsigned int num_ld_hashes, int *loaded_hashes, unsig
 	return kernel_params;
 }
 
-static char* prepare_table(struct db_salt *salt, OFFSET_TABLE_WORD **offset_table_ptr, unsigned int *bitmap_size_bits, unsigned **bitmaps_ptr) {
+static char* prepare_table(struct db_salt *salt, OFFSET_TABLE_WORD **offset_table_ptr, unsigned int *bitmap_size_bits, unsigned **bitmaps_ptr)
+{
 	int *bin, i;
 	struct db_password *pw;
 	char *bitmap_params;
@@ -1066,9 +1067,9 @@ static char* prepare_table(struct db_salt *salt, OFFSET_TABLE_WORD **offset_tabl
 		}
 	} while ((pw = pw -> next)) ;
 
-	if(i != (salt->count)) {
+	if(i > (salt->count)) {
 		fprintf(stderr,
-			"Something went wrong while preparing hashes..Exiting..\n");
+			"Something went wrong while preparing hashes(%d, %d)..Exiting..\n", i, salt->count);
 		error();
 	}
 

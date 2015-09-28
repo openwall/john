@@ -2055,7 +2055,7 @@ cl_uint get_processor_family(int sequential_id)
 
 		} else {
 
-			if (strstr(dname, "Capeverde") || strstr(dname, "Malta")
+			if (strstr(dname, "Capeverde") || strstr(dname, "Malta") ||
 			        strstr(dname, "Oland") || strstr(dname, "Hainan") ||
 			        strstr(dname, "Pitcairn") || strstr(dname, "Tahiti"))
 				return DEV_AMD_GCN_10; //AMD Radeon GCN 1.0
