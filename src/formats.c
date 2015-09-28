@@ -883,13 +883,15 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 	char fake_user[5] = "john";
 	char *flds[10] = {0,0,0,0,0,0,0,0,0,0};
 
-	if (*is_split_unifies_case>2) return; // already know all we need to know.
+	if (*is_split_unifies_case>2) return; /* already know all we need to know. */
 
 	cipher_copy = strdup(ciphertext);
 
-	// check for common case problem.  hash is HEX, so find it, change it,
-	// and is there is no split, or split() does not fix it, then check
-	// valid().  If valid allows the hash, THEN we have a #4 problem.
+	/*
+	 * check for common case problem.  hash is HEX, so find it, change it,
+	 * and is there is no split, or split() does not fix it, then check
+	 * valid().  If valid allows the hash, THEN we have a #4 problem.
+	 */
 	flds[0] = fake_user;
 	flds[1] = cipher_copy;
 	ret = format->methods.prepare(flds, format);
@@ -958,11 +960,12 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 		ret = format->methods.split(ret_copy, 0, format);
 		if (!strcmp(ret_copy, ret)) {
 			if (format->methods.valid(ret_copy, format)) {
-				// we have the bug!
+				/* we have the bug! */
 				MEM_FREE(bin_hex);
 				MEM_FREE(ret_copy);
 				MEM_FREE(cipher_copy);
-				*is_split_unifies_case = 4;
+				if (!strncmp(format->params.label, "@dynamic=", 9))	// white list this one.
+					*is_split_unifies_case = 4;
 				return;
 			}
 		}
@@ -993,7 +996,7 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 			index++;
 	}
 
-	// Lower case
+	/* Lower case */
 	strlwr(cipher_copy + index);
 	if (strcmp(cipher_copy + index, ciphertext + index))
 		++change_count;
@@ -1005,7 +1008,7 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 			goto change_case;
 	}
 
-	// Upper case
+	/* Upper case */
 	strupr(cipher_copy + index);
 	if (strcmp(cipher_copy + index, ciphertext + index))
 		++change_count;
@@ -1018,7 +1021,7 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 	}
 
 	MEM_FREE(cipher_copy);
-	if (!change_count)
+	if (!change_count && strncmp(format->params.label, "@dynamic=", 9)) // white list this one.
 		*is_split_unifies_case = 2;
 	else
 		*is_split_unifies_case = 0;
@@ -1026,10 +1029,158 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 
 change_case:
 	MEM_FREE(cipher_copy);
+	if (strncmp(format->params.label, "@dynamic=", 9)) // white list this one.
+		return;
 	if (call_cnt == 0)
 		*is_split_unifies_case = -1;
 	else if (*is_split_unifies_case != -1)
 		*is_split_unifies_case = 3;
+	return;
+}
+
+/*
+ * This function is to detect whether the format need to unify cases in split()
+ * and add FMT_SPLIT_UNIFIES_CASE
+ *
+ *  NOTE, I think this test is NOT valid!  The 'results' of this function are
+ *        currently not being listed to screen.  Right now, there is a handful
+ *        of failures, and every one of them is a false-positive.
+ */
+static void test_fmt_split_unifies_case_3(struct fmt_main *format,
+	char *ciphertext, int *has_change_case, int *is_need_unify_case)
+{
+	char *cipher_copy, *split_ret;
+	int index;
+	void *orig_binary, *orig_salt;
+	void *binary, *salt;
+
+	cipher_copy = strdup(ciphertext);
+	split_ret = format->methods.split(cipher_copy, 0, format);
+
+	orig_binary = NULL;
+	orig_salt = NULL;
+
+	binary = format->methods.binary(split_ret);
+	if (binary != NULL) {
+
+		orig_binary = mem_alloc(format->params.binary_size);
+		memcpy(orig_binary, binary, format->params.binary_size);
+
+		salt = format->methods.salt(split_ret);
+		if (salt != NULL) {
+			orig_salt = mem_alloc(format->params.salt_size);
+			memcpy(orig_salt, salt, format->params.salt_size);
+		}
+	}
+
+/*
+ * Find the second '$' if the ciphertext begins with '$'. We shoud not change the
+ * cases between the first and the second '$', since the string is format label
+ * and split() may check it
+ */
+	index = 0;
+	if (cipher_copy[0] == '$') {
+		index = 1;
+		while (cipher_copy[index] && cipher_copy[index] != '$')
+			index++;
+	}
+	if (!index && !strncmp(cipher_copy, "@dynamic=", 9)) {
+		index = 1;
+		while (cipher_copy[index] && cipher_copy[index] != '@')
+			index++;
+	}
+
+	// Lower case
+	strlwr(cipher_copy + index);
+
+	if (strcmp(cipher_copy, ciphertext))
+	if (format->methods.valid(cipher_copy, format)) {
+
+		*has_change_case = 1;
+		split_ret = format->methods.split(cipher_copy, 0, format);
+		binary = format->methods.binary(split_ret);
+
+		if (binary != NULL)
+		if (memcmp(orig_binary, binary, format->params.binary_size) != 0) {
+			// Do not need to unify cases in split() and add
+			// FMT_SPLIT_UNIFIES_CASE
+			*is_need_unify_case = 0;
+		}
+	}
+
+	// Upper case
+	strupr(cipher_copy + index);
+
+	if (strcmp(cipher_copy, ciphertext))
+	if (format->methods.valid(cipher_copy, format)) {
+
+		*has_change_case = 1;
+		split_ret = format->methods.split(cipher_copy, 0, format);
+		binary = format->methods.binary(split_ret);
+
+		if (binary != NULL)
+		if (memcmp(orig_binary, binary, format->params.binary_size) != 0) {
+			// Do not need to unify cases in split() and add
+			// FMT_SPLIT_UNIFIES_CASE
+			*is_need_unify_case = 0;
+		}
+	}
+
+	MEM_FREE(orig_salt);
+	MEM_FREE(orig_binary);
+	MEM_FREE(cipher_copy);
+}
+
+static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphertext, int *is_split_unifies_case, int call_cnt)
+{
+//	char *cipher_copy, *ret, *bin_hex, *ret_copy;
+//	void *bin;
+//	int first_index, second_index, size, index;
+//	int change_count = 0;
+//	char fake_user[5] = "john";
+//	char *flds[10] = {0,0,0,0,0,0,0,0,0,0};
+//
+//	if (*is_split_unifies_case>2) return; /* already know all we need to know. */
+//
+//	cipher_copy = strdup(ciphertext);
+//
+//	/*
+//	 * check for common case problem, but in a 'generic' manner. Here, we find sets of
+//	 * data that are 'hex-like'. All one case, not pure digits, AND of a 'known' expected length. The
+//	 * lengths we care about are:  16, 24, 28, 32, 40, 48, 56, 64, 72, 80, 96, 112, 128
+//	 * and even length strings > 128 bytes (which are likely data blobs).  When we find strings
+//	 * this length, we mangle them, and see if the format fixes them, or rejects them.  If the format
+//	 * neither fixes and does not reject the hash, then we return 'error'
+//	 */
+//	flds[0] = fake_user;
+//	flds[1] = cipher_copy;
+//	ret = format->methods.prepare(flds, format);
+//	if (format->methods.valid(ret, format)) {
+//		char *cp;
+//		int do_test=0;
+//		ret = format->methods.split(ret, 0, format);
+//		ret_copy = strdup(ret);
+//		// NOTE, this function is still WIP.  It is a safe 'failure' of logic
+//		// (i.e. says there are never problems), but it is not doing anything
+//		// yet.  It is included, since I am working on it. I just want to get
+//		// all the usable code added.
+//	}
+//
+//	return;
+//
+//	MEM_FREE(cipher_copy);
+//	if (!change_count)
+//		*is_split_unifies_case = 2;
+//	else
+//		*is_split_unifies_case = 0;
+//	return;
+//
+//change_case:
+//	MEM_FREE(cipher_copy);
+//	if (call_cnt == 0)
+//		*is_split_unifies_case = -1;
+//	else if (*is_split_unifies_case != -1)
+//		*is_split_unifies_case = 3;
 	return;
 }
 
@@ -1057,7 +1208,10 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 	int plaintext_is_blank = 1;    // Is plaintext blank ""
 	int is_ignore_8th_bit = 1;     // Is ignore 8th bit, FMT_8_BIT
 	int is_split_unifies_case = 0; // Is split() unifies case
+	int is_split_unifies_case_4 = 0;
 	int cnt_split_unifies_case = 0;// just in case only the last test case unifies.
+	int is_change_case = 0;        // Is change cases of ciphertext and it is valid
+	int is_need_unify_case = 1;    // Is need to unify cases in split()
 
 	// validate that there are no NULL function pointers
 	if (format->methods.prepare == NULL)    return "method prepare NULL";
@@ -1234,9 +1388,21 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 			}
 		}
 #endif
+
+		if (!(format->params.flags & FMT_SPLIT_UNIFIES_CASE) &&
+			format->params.binary_size != 0 && is_need_unify_case)
+			test_fmt_split_unifies_case_3(format, ciphertext,
+				&is_change_case, &is_need_unify_case);
+
 		test_fmt_split_unifies_case(format, ciphertext,
 		                            &is_split_unifies_case,
 		                            cnt_split_unifies_case);
+
+		test_fmt_split_unifies_case_4(format, ciphertext,
+		                            &is_split_unifies_case_4,
+		                            cnt_split_unifies_case);
+
+		++cnt_split_unifies_case;
 
 		ciphertext = format->methods.split(ciphertext, 0, format);
 
@@ -1531,6 +1697,35 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 		default:
 			break;
 	}
+	switch (is_split_unifies_case_4) {
+		case 1:
+			snprintf(err_buf, sizeof(err_buf), "should set FMT_SPLIT_UNIFIES_CASE (#4)");
+			return err_buf;
+		case 2:
+			snprintf(err_buf, sizeof(err_buf), "should not set FMT_SPLIT_UNIFIES_CASE (#4)");
+			return err_buf;
+		case 3:
+			snprintf(err_buf, sizeof(err_buf), "split() is only casing sometimes (#4)");
+			return err_buf;
+		case 4:
+			snprintf(err_buf, sizeof(err_buf), "split() case, or valid() should fail (#4)");
+			return err_buf;
+		case 0:
+		case -1:
+		default:
+			break;
+	}
+
+	// Currently this code only has false positive failures, so for now, it is comment out.
+	// @loverszhaokai needs to look at a re-do of the function.  The 'blind' casing fails
+	// when there are constant strings, or things like user names embedded in the hash,
+	// or other non-hex strings.
+//	if (!(format->params.flags & FMT_SPLIT_UNIFIES_CASE) &&
+//		format->params.binary_size != 0 && is_change_case && is_need_unify_case) {
+//		snprintf(err_buf, sizeof(err_buf),
+//			"should unify cases in split() and set FMT_SPLIT_UNIFIES_CASE (#3)");
+//		return err_buf;
+//	}
 
 	format->methods.clear_keys();
 	format->private.initialized = 2;
