@@ -523,9 +523,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		binary = binary_copy;
 
 		salt = format->methods.salt(ciphertext);
-		dyna_salt_create(salt);
 		if (!salt)
 			return "salt() returned NULL";
+		dyna_salt_create(salt);
 #if ARCH_ALLOWS_UNALIGNED
 		if (mem_saving_level <= 2 || format->params.salt_align >= MEM_ALIGN_SIMD)
 #endif
@@ -1067,10 +1067,12 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 		memcpy(orig_binary, binary, format->params.binary_size);
 
 		salt = format->methods.salt(split_ret);
+		dyna_salt_create(salt);
 		if (salt != NULL) {
 			orig_salt = mem_alloc(format->params.salt_size);
 			memcpy(orig_salt, salt, format->params.salt_size);
 		}
+		dyna_salt_remove(salt);
 	}
 
 /*
@@ -1452,9 +1454,9 @@ static char *fmt_self_test_full_body(struct fmt_main *format,
 		binary = binary_copy;
 
 		salt = format->methods.salt(ciphertext);
-		dyna_salt_create(salt);
 		if (!salt)
 			return "salt() returned NULL";
+		dyna_salt_create(salt);
 #if ARCH_ALLOWS_UNALIGNED
 		if (mem_saving_level <= 2 || format->params.salt_align >= MEM_ALIGN_SIMD)
 #endif
