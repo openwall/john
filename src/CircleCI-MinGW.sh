@@ -67,6 +67,7 @@ cd /base/JohnTheRipper/run
 export WINEDEBUG=-all  # suppress wine warnings
 /usr/bin/wine john.exe --list=build-info
 echo "[Disabled:Formats]" > john-local.conf
+echo ".include [Disabled:Formats_base]" >> john-local.conf
 /usr/bin/wine john.exe --test-full=0
 # if [ "x$?" != "x0" ] ; then exit 1 ; fi
 
@@ -88,6 +89,7 @@ make -sj4
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 ../run/john --list=build-info
 echo "[Disabled:Formats]" > john-local.conf
+echo ".include [Disabled:Formats_base]" >> john-local.conf
 ../run/john -test-full=0
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 
@@ -106,6 +108,7 @@ JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -sj
 # do NOT exit on error from make.  We expect an error in the libpcap stuff
 ../run/john --list=build-info
 echo "[Disabled:Formats]" > john-local.conf
+echo ".include [Disabled:Formats_base]" >> john-local.conf
 ../run/john -test-full=0
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 
@@ -123,4 +126,5 @@ JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -sj
 # do NOT exit on error from make.  We expect an error in the libpcap stuff
 ../run/john --list=build-info
 echo "[Disabled:Formats]" > john-local.conf
+echo ".include [Disabled:Formats_base]" >> john-local.conf
 ../run/john -test-full=0
