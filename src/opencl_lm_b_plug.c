@@ -1060,7 +1060,10 @@ static char* prepare_table(struct db_salt *salt, OFFSET_TABLE_WORD **offset_tabl
 	do {
 		bin = (int *)pw->binary;
 		if (bin == NULL) {
-			last->next = pw->next;
+			if (last == pw)
+				salt->list = pw->next;
+			else
+				last->next = pw->next;
 		} else {
 			last = pw;
 			loaded_hashes[2 * i] = bin[0];

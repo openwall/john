@@ -616,7 +616,10 @@ static void prepare_table(struct db_salt *salt) {
 	do {
 		bin = (unsigned int *)pw->binary;
 		if (bin == NULL) {
-			last->next = pw->next;
+			if (last == pw)
+				salt->list = pw->next;
+			else
+				last->next = pw->next;
 		} else {
 			last = pw;
 			loaded_hashes[4 * i] = bin[0];
