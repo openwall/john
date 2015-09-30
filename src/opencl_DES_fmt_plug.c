@@ -46,8 +46,8 @@ static struct fmt_tests tests[] = {
 #define BINARY_SIZE			(2 * sizeof(WORD))
 #define SALT_SIZE			sizeof(WORD)
 
-#define USE_FULL_UNROLL 		(amd_gcn(device_info[gpu_id]) || gpu_nvidia(device_info[gpu_id]))
-#define USE_BASIC_KERNEL		(cpu(device_info[gpu_id]) || amd_vliw5(device_info[gpu_id]))
+#define USE_FULL_UNROLL 		(amd_gcn(device_info[gpu_id]) || nvidia_sm_5x(device_info[gpu_id]))
+#define USE_BASIC_KERNEL		(cpu(device_info[gpu_id]) || platform_apple(platform_id))
 
 void (*opencl_DES_bs_init_global_variables)(void);
 void (*opencl_DES_bs_select_device)(struct fmt_main *);
