@@ -103,38 +103,38 @@ inline void md4_crypt_a(__private uint *hash, __private uint *nt_buffer)
 	b = rotate(b, 13U);
 
 	/* Round 3 */
-	a += MD4_H1(b, c, d) + nt_buffer[0] + SQRT_3;
+	a += MD4_H(b, c, d) + nt_buffer[0] + SQRT_3;
 	a = rotate(a, 3U);
 	d += MD4_H2(a, b, c) + nt_buffer[8] + SQRT_3;
 	d = rotate(d, 9U);
-	c += MD4_H1(d, a, b) + nt_buffer[4] + SQRT_3;
+	c += MD4_H(d, a, b) + nt_buffer[4] + SQRT_3;
 	c = rotate(c, 11U);
 	b += MD4_H2(c, d, a) + nt_buffer[12] + SQRT_3;
 	b = rotate(b, 15U);
 
-	a += MD4_H1(b, c, d) + nt_buffer[2] + SQRT_3;
+	a += MD4_H(b, c, d) + nt_buffer[2] + SQRT_3;
 	a = rotate(a, 3U);
 	d += MD4_H2(a, b, c) + nt_buffer[10] + SQRT_3;
 	d = rotate(d, 9U);
-	c += MD4_H1(d, a, b) + nt_buffer[6] + SQRT_3;
+	c += MD4_H(d, a, b) + nt_buffer[6] + SQRT_3;
 	c = rotate(c, 11U);
 	b += MD4_H2(c, d, a) + nt_buffer[14] + SQRT_3;
 	b = rotate(b, 15U);
 
-	a += MD4_H1(b, c, d) + nt_buffer[1] + SQRT_3;
+	a += MD4_H(b, c, d) + nt_buffer[1] + SQRT_3;
 	a = rotate(a, 3U);
 	d += MD4_H2(a, b, c) + nt_buffer[9] + SQRT_3;
 	d = rotate(d, 9U);
-	c += MD4_H1(d, a, b) + nt_buffer[5] + SQRT_3;
+	c += MD4_H(d, a, b) + nt_buffer[5] + SQRT_3;
 	c = rotate(c, 11U);
 	b += MD4_H2(c, d, a) + nt_buffer[13] + SQRT_3;
 	b = rotate(b, 15U);
 
-	a += MD4_H1(b, c, d) + nt_buffer[3] + SQRT_3;
+	a += MD4_H(b, c, d) + nt_buffer[3] + SQRT_3;
 	a = rotate(a, 3U);
 	d += MD4_H2(a, b, c) + nt_buffer[11] + SQRT_3;
 	d = rotate(d, 9U);
-	c += MD4_H1(d, a, b) + nt_buffer[7] + SQRT_3;
+	c += MD4_H(d, a, b) + nt_buffer[7] + SQRT_3;
 	c = rotate(c, 11U);
 	b += MD4_H2(c, d, a) + nt_buffer[15] + SQRT_3;
 	b = rotate(b, 15U);
@@ -227,38 +227,38 @@ inline void md4_crypt_b(__private uint *hash, constant uint *salt)
 	b = rotate(b, 13U);
 
 	/* Round 3 */
-	a += MD4_H1(b, c, d) + hash[0] + SQRT_3;
+	a += MD4_H(b, c, d) + hash[0] + SQRT_3;
 	a = rotate(a, 3U);
 	d += MD4_H2(a, b, c) + salt[4] + SQRT_3;
 	d = rotate(d, 9U);
-	c += MD4_H1(d, a, b) + salt[0] + SQRT_3;
+	c += MD4_H(d, a, b) + salt[0] + SQRT_3;
 	c = rotate(c, 11U);
 	b += MD4_H2(c, d, a) + salt[8] + SQRT_3;
 	b = rotate(b, 15U);
 
-	a += MD4_H1(b, c, d) + hash[2] + SQRT_3;
+	a += MD4_H(b, c, d) + hash[2] + SQRT_3;
 	a = rotate(a, 3U);
 	d += MD4_H2(a, b, c) + salt[6] + SQRT_3;
 	d = rotate(d, 9U);
-	c += MD4_H1(d, a, b) + salt[2] + SQRT_3;
+	c += MD4_H(d, a, b) + salt[2] + SQRT_3;
 	c = rotate(c, 11U);
 	b += MD4_H2(c, d, a) + salt[10] + SQRT_3;
 	b = rotate(b, 15U);
 
-	a += MD4_H1(b, c, d) + hash[1] + SQRT_3;
+	a += MD4_H(b, c, d) + hash[1] + SQRT_3;
 	a = rotate(a, 3U);
 	d += MD4_H2(a, b, c) + salt[5] + SQRT_3;
 	d = rotate(d, 9U);
-	c += MD4_H1(d, a, b) + salt[1] + SQRT_3;
+	c += MD4_H(d, a, b) + salt[1] + SQRT_3;
 	c = rotate(c, 11U);
 	b += MD4_H2(c, d, a) + salt[9] + SQRT_3;
 	b = rotate(b, 15U);
 
-	a += MD4_H1(b, c, d) + hash[3] + SQRT_3;
+	a += MD4_H(b, c, d) + hash[3] + SQRT_3;
 	a = rotate(a, 3U);
 	d += MD4_H2(a, b, c) + salt[7] + SQRT_3;
 	d = rotate(d, 9U);
-	c += MD4_H1(d, a, b) + salt[3] + SQRT_3;
+	c += MD4_H(d, a, b) + salt[3] + SQRT_3;
 	c = rotate(c, 11U);
 	b += MD4_H2(c, d, a) + salt[11] + SQRT_3;
 	b = rotate(b, 15U);

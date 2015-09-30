@@ -88,27 +88,27 @@ inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_s
 	hash[1] += MD4_G(hash[2], hash[3], hash[0])                + SQRT_2; hash[1] = rotate(hash[1] , 13u);
 
 	/* Round 3 */
-	hash[0] += MD4_H1(hash[1], hash[2], hash[3]) + nt_buffer[0]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
+	hash[0] += MD4_H(hash[1], hash[2], hash[3]) + nt_buffer[0]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += MD4_H2(hash[0], hash[1], hash[2]) + nt_buffer[8]  + SQRT_3; hash[3] = rotate(hash[3] , 9u );
-	hash[2] += MD4_H1(hash[3], hash[0], hash[1]) + nt_buffer[4]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
+	hash[2] += MD4_H(hash[3], hash[0], hash[1]) + nt_buffer[4]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
 	hash[1] += MD4_H2(hash[2], hash[3], hash[0]) + nt_buffer[12] + SQRT_3; hash[1] = rotate(hash[1] , 15u);
 
-	hash[0] += MD4_H1(hash[1], hash[2], hash[3]) + nt_buffer[2]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
+	hash[0] += MD4_H(hash[1], hash[2], hash[3]) + nt_buffer[2]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += MD4_H2(hash[0], hash[1], hash[2]) + nt_buffer[10] + SQRT_3; hash[3] = rotate(hash[3] , 9u );
-	hash[2] += MD4_H1(hash[3], hash[0], hash[1]) + nt_buffer[6]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
+	hash[2] += MD4_H(hash[3], hash[0], hash[1]) + nt_buffer[6]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
 	hash[1] += MD4_H2(hash[2], hash[3], hash[0]) +   md4_size    + SQRT_3; hash[1] = rotate(hash[1] , 15u);
 
-	hash[0] += MD4_H1(hash[1], hash[2], hash[3]) + nt_buffer[1]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
+	hash[0] += MD4_H(hash[1], hash[2], hash[3]) + nt_buffer[1]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += MD4_H2(hash[0], hash[1], hash[2]) + nt_buffer[9]  + SQRT_3; hash[3] = rotate(hash[3] , 9u );
-	hash[2] += MD4_H1(hash[3], hash[0], hash[1]) + nt_buffer[5]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
+	hash[2] += MD4_H(hash[3], hash[0], hash[1]) + nt_buffer[5]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
 	//It is better to calculate this remining steps that access global memory
 	hash[1] += MD4_H2(hash[2], hash[3], hash[0]) + nt_buffer[13];
 	tmp = hash[1];
 	tmp += SQRT_3; tmp = rotate(tmp , 15u);
 
-	hash[0] += MD4_H1(hash[3], hash[2], tmp) + nt_buffer[3]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
+	hash[0] += MD4_H(hash[3], hash[2], tmp) + nt_buffer[3]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += MD4_H2(hash[2], tmp, hash[0]) + nt_buffer[11] + SQRT_3; hash[3] = rotate(hash[3] , 9u );
-	hash[2] += MD4_H1(tmp, hash[0], hash[3]) + nt_buffer[7]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
+	hash[2] += MD4_H(tmp, hash[0], hash[3]) + nt_buffer[7]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
 }
 
 #if (ISO_8859_1 || ASCII) && (__OS_X__ && gpu_intel(DEVICE_INFO) && !UTF_8)
