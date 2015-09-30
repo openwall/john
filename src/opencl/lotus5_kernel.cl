@@ -106,7 +106,7 @@ lotus5(__global lotus5_key *i_saved_key,
 		size_t offset;
 
 		for (offset = lid; offset < 256; offset += local_work_dim)
-			s_magic_table[offset] = magic_table[offset];
+			s_magic_table[offset & 255] = magic_table[offset & 255];
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
