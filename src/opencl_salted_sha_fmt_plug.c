@@ -535,7 +535,7 @@ static char *get_key(int index)
 
 static void prepare_table(struct db_main *db) {
 	unsigned int *bin, i;
-	struct db_password *pw;
+	struct db_password *pw, *last;
 	struct db_salt *salt;
 
 	num_loaded_hashes = (db->password_count);
@@ -551,23 +551,25 @@ static void prepare_table(struct db_main *db) {
 	i = 0;
 	salt = db->salts;
 	do {
-		pw = salt -> list;
+		last = pw = salt->list;
 		do {
-		bin = (unsigned int *)pw -> binary;
-		// Potential segfault if removed
-		if(bin != NULL) {
-			loaded_hashes[6 * i] = bin[0];
-			loaded_hashes[6 * i + 1] = bin[1];
-			loaded_hashes[6 * i + 2] = bin[2];
-			loaded_hashes[6 * i + 3] = bin[3];
-			loaded_hashes[6 * i + 4] = bin[4];
-			loaded_hashes[6 * i + 5] = 0;
-			i++ ;
-		}
-		} while ((pw = pw -> next));
+			bin = (unsigned int *)pw->binary;
+			if (bin == NULL) {
+				last->next = pw->next;
+			} else {
+				last = pw;
+				loaded_hashes[6 * i] = bin[0];
+				loaded_hashes[6 * i + 1] = bin[1];
+				loaded_hashes[6 * i + 2] = bin[2];
+				loaded_hashes[6 * i + 3] = bin[3];
+				loaded_hashes[6 * i + 4] = bin[4];
+				loaded_hashes[6 * i + 5] = 0;
+				i++;
+			}
+		} while ((pw = pw->next));
 	} while ((salt = salt->next));
 
-	if(i != (db->password_count)) {
+	if (i != (db->password_count)) {
 		fprintf(stderr,
 			"Something went wrong while preparing hashes..Exiting..\n");
 		error();

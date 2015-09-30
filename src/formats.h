@@ -64,9 +64,9 @@ struct db_salt;
  */
 #define FMT_UTF8			0x00000008
 /*
- * Mark password->binary = NULL immediately after a hash is cracked. Must be set
- * for formats that reads salt->list in crypt_all for the purpose of identification
- * of uncraked hashes for this salt.
+ * Mark password->binary = NULL immediately after a hash is cracked. Must be
+ * set for formats that reads salt->list in crypt_all for the purpose of
+ * identification of uncracked hashes for this salt.
  */
 #define FMT_REMOVE			0x00000010
 /*

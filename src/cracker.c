@@ -306,8 +306,10 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 /*
  * If there's a hash table for this salt, assume that the list is only used by
  * "single crack" mode, so mark the entry for removal by "single crack" mode
- * code if that's what we're running, instead of traversing the list here. Or the
- * format explicitly intends to traverse the list during craking.
+ * code if that's what we're running, instead of traversing the list here.
+ *
+ * Or, if FMT_REMOVE, the format explicitly intends to traverse the list
+ * during cracking, and will remove entries at that point.
  */
 	if (crk_guesses || (crk_params.flags & FMT_REMOVE))
 		pw->binary = NULL;

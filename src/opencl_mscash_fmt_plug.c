@@ -406,7 +406,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	l -= 32;
-	if(ciphertext[l-1]!='#')
+	if (ciphertext[l-1]!='#')
 		return 0;
 
 	for (i = l; i < l + 32; i++)
@@ -729,20 +729,24 @@ static void prepare_table(struct db_main *db)
 		unsigned int i = 0;
 		unsigned int num_loaded_hashes, salt_params[SALT_SIZE / sizeof(unsigned int) + 5];
 		unsigned int hash_table_size, offset_table_size, shift64_ht_sz, shift64_ot_sz;
-		struct db_password *pw = salt->list;
+		struct db_password *pw, *last;
+
+		last = pw = salt->list;
 		do {
 			unsigned int *bin = (unsigned int *)pw->binary;
-			// Potential segfault if removed
-			if(bin != NULL) {
+			if (bin == NULL) {
+				last->next = pw->next;
+			} else {
+				last = pw;
 				loaded_hashes[4 * i] = bin[0];
 				loaded_hashes[4 * i + 1] = bin[1];
 				loaded_hashes[4 * i + 2] = bin[2];
 				loaded_hashes[4 * i + 3] = bin[3];
 				i++;
 			}
-		} while ((pw = pw -> next));
+		} while ((pw = pw->next));
 
-		if(i != salt->count) {
+		if (i != salt->count) {
 			fprintf(stderr,
 				"Something went wrong while preparing hashes..Exiting..\n");
 			error();

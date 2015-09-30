@@ -599,7 +599,7 @@ static char *get_key(int index)
 
 static void prepare_table(struct db_salt *salt) {
 	unsigned int *bin, i;
-	struct db_password *pw;
+	struct db_password *pw, *last;
 
 	num_loaded_hashes = (salt->count);
 
@@ -611,21 +611,23 @@ static void prepare_table(struct db_salt *salt) {
 	loaded_hashes = (cl_uint*) mem_alloc(4 * num_loaded_hashes * sizeof(cl_uint));
 	hash_ids = (cl_uint*) mem_alloc((3 * num_loaded_hashes + 1) * sizeof(cl_uint));
 
-	pw = salt -> list;
+	last = pw = salt->list;
 	i = 0;
 	do {
-		bin = (unsigned int *)pw -> binary;
-		// Potential segfault if removed
-		if(bin != NULL) {
+		bin = (unsigned int *)pw->binary;
+		if (bin == NULL) {
+			last->next = pw->next;
+		} else {
+			last = pw;
 			loaded_hashes[4 * i] = bin[0];
 			loaded_hashes[4 * i + 1] = bin[1];
 			loaded_hashes[4 * i + 2] = bin[2];
 			loaded_hashes[4 * i + 3] = bin[3];
-			i++ ;
+			i++;
 		}
-	} while ((pw = pw -> next)) ;
+	} while ((pw = pw->next)) ;
 
-	if(i != (salt->count)) {
+	if (i != (salt->count)) {
 		fprintf(stderr,
 			"Something went wrong while preparing hashes..Exiting..\n");
 		error();

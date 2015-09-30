@@ -1048,26 +1048,28 @@ static char* select_bitmap(unsigned int num_ld_hashes, int *loaded_hashes, unsig
 static char* prepare_table(struct db_salt *salt, OFFSET_TABLE_WORD **offset_table_ptr, unsigned int *bitmap_size_bits, unsigned **bitmaps_ptr)
 {
 	int *bin, i;
-	struct db_password *pw;
+	struct db_password *pw, *last;
 	char *bitmap_params;
 	int *loaded_hashes;
 
 	num_loaded_hashes = salt->count;
 	loaded_hashes = (int *)mem_alloc(num_loaded_hashes * sizeof(int) * 2);
 
-	pw = salt -> list;
+	last = pw = salt->list;
 	i = 0;
 	do {
-		bin = (int *)pw -> binary;
-		// Potential segfault if removed
-		if(bin != NULL) {
+		bin = (int *)pw->binary;
+		if (bin == NULL) {
+			last->next = pw->next;
+		} else {
+			last = pw;
 			loaded_hashes[2 * i] = bin[0];
 			loaded_hashes[2 * i + 1] = bin[1];
-			i++ ;
+			i++;
 		}
-	} while ((pw = pw -> next)) ;
+	} while ((pw = pw->next)) ;
 
-	if(i > (salt->count)) {
+	if (i > (salt->count)) {
 		fprintf(stderr,
 			"Something went wrong while preparing hashes(%d, %d)..Exiting..\n", i, salt->count);
 		error();
