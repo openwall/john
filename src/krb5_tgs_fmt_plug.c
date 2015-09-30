@@ -18,7 +18,6 @@ john_register_one(&fmt_krb5tgs);
 
 #include <stdio.h>
 #include <string.h>
-#include <openssl/hmac.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -163,11 +162,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const unsigned char data[4] = { 2, 0, 0, 0 };
 	int index;
 
-	if (new_keys) {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-		for (index = 0; index < count; index++) {
+	for (index = 0; index < count; index++) {
+		unsigned char K3[16];
+		unsigned char checksum[16];
+		unsigned char ddata[MAX_EDATA_SIZE];
+		RC4_KEY rckey;
+
+		if (new_keys) {
 			MD4_CTX ctx;
 			unsigned char key[16];
 			UTF16 wkey[PLAINTEXT_LENGTH + 1];
@@ -187,17 +191,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			hmac_md5(key, data, 4, saved_K1[index]);
 		}
-	}
-	new_keys = 0;
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (index = 0; index < count; index++) {
-		unsigned char K3[16];
-		unsigned char checksum[16];
-		unsigned char ddata[MAX_EDATA_SIZE];
-		RC4_KEY rckey;
 
 		hmac_md5(saved_K1[index], cur_salt->edata1, 16, K3);
 
@@ -208,6 +201,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		memcpy(crypt_key[index], checksum, 16);
 	}
+	new_keys = 0;
 
 	return *pcount;
 }
