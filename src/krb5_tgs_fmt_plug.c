@@ -1,7 +1,10 @@
-//Based on the work by Tim Medin
-//Port from his Pythonscript to John by Michael Kramer (SySS GmbH)
 /*
- * This software is Copyright (c) 2015 Michael Kramer <michael.kramer@uni-konstanz.de>,
+ * Based on the work by Tim Medin
+ * Port from his Pythonscript to John by Michael Kramer (SySS GmbH)
+ *
+ * This software is
+ * Copyright (c) 2015 Michael Kramer <michael.kramer@uni-konstanz.de>,
+ * Copyright (c) 2015 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -16,41 +19,38 @@ john_register_one(&fmt_krb5tgs);
 #include <stdio.h>
 #include <string.h>
 #include <openssl/hmac.h>
-#include <openssl/rc4.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "misc.h"
 #include "formats.h"
 #include "common.h"
-
-
+#include "rc4.h"
+#include "md4.h"
+#include "hmacmd5.h"
+#include "unicode.h"
 #include "memdbg.h"
 
+#ifndef OMP_SCALE
+#define OMP_SCALE                       256
+#endif
 
-#define FORMAT_LABEL                   	"krb5tgs"
-#define FORMAT_NAME                    	"Kerberos5 TGS"
-#define ALGORITHM_NAME                 	"NTLM/HMAC/RC4Crypt"
-#define BENCHMARK_COMMENT              	""
-#define BENCHMARK_LENGTH               	-1
-#define PLAINTEXT_LENGTH               	32
-#define CIPHERTEXT_LENGTH              	2000
-#define BINARY_SIZE                   	0
-#define SALT_SIZE                      	sizeof(struct custom_salt)
-#define BINARY_ALIGN			1
-#define SALT_ALIGN			4
-#define MIN_KEYS_PER_CRYPT             	1
-#define MAX_KEYS_PER_CRYPT             	1
+#define FORMAT_LABEL                    "krb5tgs"
+#define FORMAT_NAME                     "Kerberos 5 TGS"
+#define ALGORITHM_NAME                  "MD4 HMAC-MD5 RC4"
+#define BENCHMARK_COMMENT               ""
+#define BENCHMARK_LENGTH                0
+#define MIN_PLAINTEXT_LENGTH            0
+#define PLAINTEXT_LENGTH                125
+#define BINARY_SIZE                     0
+#define BINARY_ALIGN                    1
+#define SALT_SIZE                       sizeof(struct custom_salt)
+#define SALT_ALIGN                      4
+#define MIN_KEYS_PER_CRYPT              1
+#define MAX_KEYS_PER_CRYPT              1
 
-#define MAX_EDATA_SIZE			2000
-
-//Init values
-#define INIT_A 0x67452301
-#define INIT_B 0xefcdab89
-#define INIT_C 0x98badcfe
-#define INIT_D 0x10325476
- 
-#define SQRT_2 0x5a827999
-#define SQRT_3 0x6ed9eba1
-
+#define MAX_EDATA_SIZE                  2048
 
 static struct fmt_tests tests[] = {
 	{"74809c4c83c3c8279c6058d2f206ec2f$78b4bbd4d229487d5afc9a6050d4144ce10e9245cdfc0df542879814ce740cebb970ee820677041596d7e55836a18cc95c04169e7c74a4a22ae94e66f3d37150e26cc9cb99e189ef54feb7a40a8db2cb2c41db80d8927c74da7b33b52c58742d2109036b8ab27184609e7adff27b8f17b2f2a7b7d85e4ad532d8a70d48685a4390a9fc7a0ab47fd17334534d795abf83462f0db3de931c6a2d5988ab5bf3253facfff1381afb192ce385511c9052f2915ffdb7ea28a1bbad0573d9071e79dc15068527d50100de8813793a15c292f145fa3797ba86f373a4f0a05e5f2ec7dbfd8c8b5139cc7fbb098ea1dd91a7440134ffe2aff7174d0df13dcad82c81c680a70127a3ec8792bdecd74a878f97ff2b21277dc8c9a2f7bbcd9f72560dd933d85585259067d45a46a6f505d03f188b62c37edf03f117503a26743ebd674d5b07324c15fc8418881613b365402e0176da97d43cf85e8239b69aee07791233a959bcaf83a7f492fa718dd0a1747eaf5ce626eb11bda89e8235a056e2721f45c3b61442d893ef32a8c192ea0dadb853f3c6f3c75e92f23c744605c6f55578f696b0f33a9586b8aae3e12e38a097692cd9a31d780d973eaaf62ef23b2fc9ae59a38bfd8ea14d3289b46910f61a90aa733e66382bc27f40ba634e55ef1bec0ca7f71546b79566d85664b92f9fae495fcef5cde4c4399a6798569a7e81b9cc4bdde7104f3fe181401f82bba944e3b0a406c7093c00ff9d5984a82517b1a64a8aa561bc1f0cbafbdbbc5654d375c91d4e485e17bb06838109fbc1504147481c91652f545086a84daa423a6286ea6bb13460c5ff3d865a7b37b9ce4e7b07fbe2f6897c12c1e4df2e875c1ec9cfbf84097a7f48b270baf3481263b21849ab93c231490d06a23461a5e00c23df76bca8e5a19256d859304e1f5752bf055ac7f4843e1ad174f1cbbf5c142958f9310025ce439d5979982fb0b8c2ea95e1a22ee8dc63423d9d364cb0b95bcdf89ec4ed485b9005326d728757d77aa3e020a4a61d7deb782bc5264dca350173609772cd6d003ee8104dd24d310c9a18a44f78e27d65095f5bb54f6118c8f0d79ad5a850cec8d40a19bd0134144e904c9eb7fdcff3293696071fc1118f6b2f934281a25bcd5ca7d567714b1e43bd6d09bfcc8744c0ca273a75938394ac2fb31957287093346078577c94a71dfa6ad4a63211f54f00ef7a9064d070aaff84116ee891728915c938a8a32e87aaa00ec18e2b4e9ae88f7e53f08d855052a995f92351be32d8df934eab487103b0f089828e5fb5f73af3a8a05b9fffd25c43a392994743de3de1a2a9b8bba27e02ae2341f09d63aafab291759c41b9635521ca02f08e21e7e5c3ce75c8c3515eaa99aeb9bf8e204663e8b6b8507ecf87230a131687b4770e250ba0ef29fa3ca3b47b34971e17c6a3ef785acdd7c90da9d2", "test123"},
@@ -59,221 +59,176 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-
-
 static unsigned char (*crypt_key)[16];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static unsigned char (*saved_K1)[16];
+static int new_keys;
+
 static struct custom_salt {
 	unsigned char edata1[16];
 	unsigned char edata2[MAX_EDATA_SIZE];
 	uint32_t edata2len;
 } *cur_salt;
-unsigned char realcipher[16];
+
+static int valid(char *ciphertext, struct fmt_main *self)
+{
+	int len;
+
+	if (hexlenl(ciphertext) != -32)
+		return 0;
+
+	if (ciphertext[32] != '$')
+		return 0;
+
+	ciphertext += 33;
+	len = hexlenl(ciphertext);
+	if ((len & 1) || len < 32 || len > (MAX_EDATA_SIZE * 2))
+		return 0;
+
+	return 1;
+}
 
 static void init(struct fmt_main *self)
 {
-	crypt_key = mem_calloc_tiny(
-	    (sizeof(*crypt_key) + sizeof(*saved_key)) *
-	    self->params.max_keys_per_crypt,
-	    MEM_ALIGN_CACHE);
-	saved_key = (void *)((char *)crypt_key +
-	    sizeof(*crypt_key) * self->params.max_keys_per_crypt);
+#ifdef _OPENMP
+	int omp_t = omp_get_max_threads();
+
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+	crypt_key = mem_alloc_align(sizeof(*crypt_key) *
+	                            self->params.max_keys_per_crypt,
+	                            MEM_ALIGN_CACHE);
+	saved_key = mem_alloc_align(sizeof(*saved_key) *
+	                            self->params.max_keys_per_crypt,
+	                            MEM_ALIGN_CACHE);
+	saved_K1 = mem_alloc_align(sizeof(*saved_K1) *
+	                             self->params.max_keys_per_crypt,
+	                             MEM_ALIGN_CACHE);
 }
 
-// ntlm_crypt function from the JTR site
-
-static void ntlm_crypt(char *key, unsigned int *output)
+static void done(void)
 {
-
-	
-	unsigned int nt_buffer[16];
-	int i=0;
-	int length=strlen(key);
-	memset(nt_buffer,0,16*4);
-	//The length of key need to be <= 27
-	for(;i<length/2;i++)	
-		nt_buffer[i] = key[2*i] | (key[2*i+1]<<16);
- 
-	//padding
-	if(length%2==1)
-		nt_buffer[i] = key[length-1] | 0x800000;
-	else
-		nt_buffer[i]=0x80;
-	//put the length
-	nt_buffer[14] = length << 4;	
-
-
-	unsigned int a = INIT_A;
-	unsigned int b = INIT_B;
-	unsigned int c = INIT_C;
-	unsigned int d = INIT_D;
- 
-	/* Round 1 */
-	a += (d ^ (b & (c ^ d)))  +  nt_buffer[0]  ;a = (a << 3 ) | (a >> 29);
-	d += (c ^ (a & (b ^ c)))  +  nt_buffer[1]  ;d = (d << 7 ) | (d >> 25);
-	c += (b ^ (d & (a ^ b)))  +  nt_buffer[2]  ;c = (c << 11) | (c >> 21);
-	b += (a ^ (c & (d ^ a)))  +  nt_buffer[3]  ;b = (b << 19) | (b >> 13);
- 
-	a += (d ^ (b & (c ^ d)))  +  nt_buffer[4]  ;a = (a << 3 ) | (a >> 29);
-	d += (c ^ (a & (b ^ c)))  +  nt_buffer[5]  ;d = (d << 7 ) | (d >> 25);
-	c += (b ^ (d & (a ^ b)))  +  nt_buffer[6]  ;c = (c << 11) | (c >> 21);
-	b += (a ^ (c & (d ^ a)))  +  nt_buffer[7]  ;b = (b << 19) | (b >> 13);
- 
-	a += (d ^ (b & (c ^ d)))  +  nt_buffer[8]  ;a = (a << 3 ) | (a >> 29);
-	d += (c ^ (a & (b ^ c)))  +  nt_buffer[9]  ;d = (d << 7 ) | (d >> 25);
-	c += (b ^ (d & (a ^ b)))  +  nt_buffer[10] ;c = (c << 11) | (c >> 21);
-	b += (a ^ (c & (d ^ a)))  +  nt_buffer[11] ;b = (b << 19) | (b >> 13);
- 
-	a += (d ^ (b & (c ^ d)))  +  nt_buffer[12] ;a = (a << 3 ) | (a >> 29);
-	d += (c ^ (a & (b ^ c)))  +  nt_buffer[13] ;d = (d << 7 ) | (d >> 25);
-	c += (b ^ (d & (a ^ b)))  +  nt_buffer[14] ;c = (c << 11) | (c >> 21);
-	b += (a ^ (c & (d ^ a)))  +  nt_buffer[15] ;b = (b << 19) | (b >> 13);
- 
-	/* Round 2 */
-	a += ((b & (c | d)) | (c & d)) + nt_buffer[0] +SQRT_2; a = (a<<3 ) | (a>>29);
-	d += ((a & (b | c)) | (b & c)) + nt_buffer[4] +SQRT_2; d = (d<<5 ) | (d>>27);
-	c += ((d & (a | b)) | (a & b)) + nt_buffer[8] +SQRT_2; c = (c<<9 ) | (c>>23);
-	b += ((c & (d | a)) | (d & a)) + nt_buffer[12]+SQRT_2; b = (b<<13) | (b>>19);
- 
-	a += ((b & (c | d)) | (c & d)) + nt_buffer[1] +SQRT_2; a = (a<<3 ) | (a>>29);
-	d += ((a & (b | c)) | (b & c)) + nt_buffer[5] +SQRT_2; d = (d<<5 ) | (d>>27);
-	c += ((d & (a | b)) | (a & b)) + nt_buffer[9] +SQRT_2; c = (c<<9 ) | (c>>23);
-	b += ((c & (d | a)) | (d & a)) + nt_buffer[13]+SQRT_2; b = (b<<13) | (b>>19);
- 
-	a += ((b & (c | d)) | (c & d)) + nt_buffer[2] +SQRT_2; a = (a<<3 ) | (a>>29);
-	d += ((a & (b | c)) | (b & c)) + nt_buffer[6] +SQRT_2; d = (d<<5 ) | (d>>27);
-	c += ((d & (a | b)) | (a & b)) + nt_buffer[10]+SQRT_2; c = (c<<9 ) | (c>>23);
-	b += ((c & (d | a)) | (d & a)) + nt_buffer[14]+SQRT_2; b = (b<<13) | (b>>19);
- 
-	a += ((b & (c | d)) | (c & d)) + nt_buffer[3] +SQRT_2; a = (a<<3 ) | (a>>29);
-	d += ((a & (b | c)) | (b & c)) + nt_buffer[7] +SQRT_2; d = (d<<5 ) | (d>>27);
-	c += ((d & (a | b)) | (a & b)) + nt_buffer[11]+SQRT_2; c = (c<<9 ) | (c>>23);
-	b += ((c & (d | a)) | (d & a)) + nt_buffer[15]+SQRT_2; b = (b<<13) | (b>>19);
- 
-	/* Round 3 */
-	a += (d ^ c ^ b) + nt_buffer[0]  +  SQRT_3; a = (a << 3 ) | (a >> 29);
-	d += (c ^ b ^ a) + nt_buffer[8]  +  SQRT_3; d = (d << 9 ) | (d >> 23);
-	c += (b ^ a ^ d) + nt_buffer[4]  +  SQRT_3; c = (c << 11) | (c >> 21);
-	b += (a ^ d ^ c) + nt_buffer[12] +  SQRT_3; b = (b << 15) | (b >> 17);
- 
-	a += (d ^ c ^ b) + nt_buffer[2]  +  SQRT_3; a = (a << 3 ) | (a >> 29);
-	d += (c ^ b ^ a) + nt_buffer[10] +  SQRT_3; d = (d << 9 ) | (d >> 23);
-	c += (b ^ a ^ d) + nt_buffer[6]  +  SQRT_3; c = (c << 11) | (c >> 21);
-	b += (a ^ d ^ c) + nt_buffer[14] +  SQRT_3; b = (b << 15) | (b >> 17);
- 
-	a += (d ^ c ^ b) + nt_buffer[1]  +  SQRT_3; a = (a << 3 ) | (a >> 29);
-	d += (c ^ b ^ a) + nt_buffer[9]  +  SQRT_3; d = (d << 9 ) | (d >> 23);
-	c += (b ^ a ^ d) + nt_buffer[5]  +  SQRT_3; c = (c << 11) | (c >> 21);
-	b += (a ^ d ^ c) + nt_buffer[13] +  SQRT_3; b = (b << 15) | (b >> 17);
- 
-	a += (d ^ c ^ b) + nt_buffer[3]  +  SQRT_3; a = (a << 3 ) | (a >> 29);
-	d += (c ^ b ^ a) + nt_buffer[11] +  SQRT_3; d = (d << 9 ) | (d >> 23);
-	c += (b ^ a ^ d) + nt_buffer[7]  +  SQRT_3; c = (c << 11) | (c >> 21);
-	b += (a ^ d ^ c) + nt_buffer[15] +  SQRT_3; b = (b << 15) | (b >> 17);
- 
-	output[0] = a + INIT_A;
-	output[1] = b + INIT_B;
-	output[2] = c + INIT_C;
-	output[3] = d + INIT_D;
+	MEM_FREE(saved_K1);
+	MEM_FREE(saved_key);
+	MEM_FREE(crypt_key);
 }
 
-static void *get_salt(char *ciphertext) 
+static void *get_salt(char *ciphertext)
 {
 	int i, len;
+
 	static struct custom_salt cs;
-	len = (strlen(ciphertext)-33)/2;
-	for (i=0; i < 16; i++){
-		cs.edata1[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
+
+	len = (strlen(ciphertext) - 33) / 2;
+	for (i = 0; i < 16; i++) {
+		cs.edata1[i] =
+			atoi16[ARCH_INDEX(ciphertext[i * 2])] * 16 +
+			atoi16[ARCH_INDEX(ciphertext[i * 2 + 1])];
 	}
-	for (i=0; i < len; i++){
-		cs.edata2[i] = atoi16[ARCH_INDEX(ciphertext[i*2+33])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1+33])];
+	for (i = 0; i < len; i++) {
+		cs.edata2[i] =
+			atoi16[ARCH_INDEX(ciphertext[i * 2 + 33])] * 16 +
+			atoi16[ARCH_INDEX(ciphertext[i * 2 + 1 + 33])];
 	}
 	cs.edata2len = len;
 	return (void*)&cs;
 }
 
-static int salt_hash(void *salt){
-	return 0;
-}
-
-static void set_salt(void *salt){
-	cur_salt = (struct custom_salt *)salt;
-}
-	
-
-
-static int valid (char *ciphertext, struct fmt_main *self)
+static int salt_hash(void *salt)
 {
-	char h = '$';
-	if (ciphertext[32]!=h){
-		return 0;
-	}
-	return 1;
+	return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1);
 }
 
-
-static void set_key (char *key, int index)
+static void set_salt(void *salt)
 {
-	strnzcpy (saved_key[index], key, PLAINTEXT_LENGTH + 1);
+	cur_salt = (struct custom_salt*)salt;
 }
 
+static void set_key(char *key, int index)
+{
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
+	new_keys = 1;
+}
 
-static char * get_key (int index)
+static char *get_key(int index)
 {
 	return saved_key[index];
 }
 
-static int cmp_all (void *binary, int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	if (!memcmp(crypt_key[0],cur_salt->edata1,16)){
-		return 1;
+	const int count = *pcount;
+	const unsigned char data[4] = { 2, 0, 0, 0 };
+	int index;
+
+	if (new_keys) {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+		for (index = 0; index < count; index++) {
+			MD4_CTX ctx;
+			unsigned char key[16];
+			UTF16 wkey[PLAINTEXT_LENGTH + 1];
+			int len;
+
+			len = enc_to_utf16(wkey, PLAINTEXT_LENGTH,
+			                   (UTF8*)saved_key[index],
+			                   strlen(saved_key[index]));
+			if (len <= 0) {
+				saved_key[index][-len] = 0;
+				len = strlen16(wkey);
+			}
+
+			MD4_Init(&ctx);
+			MD4_Update(&ctx, (char*)wkey, 2 * len);
+			MD4_Final(key, &ctx);
+
+			hmac_md5(key, data, 4, saved_K1[index]);
+		}
 	}
-	
+	new_keys = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+	for (index = 0; index < count; index++) {
+		unsigned char K3[16];
+		unsigned char checksum[16];
+		unsigned char ddata[MAX_EDATA_SIZE];
+		RC4_KEY rckey;
+
+		hmac_md5(saved_K1[index], cur_salt->edata1, 16, K3);
+
+		RC4_set_key(&rckey, 16, K3);
+		RC4(&rckey, cur_salt->edata2len, cur_salt->edata2, ddata);
+
+		hmac_md5(saved_K1[index], ddata, cur_salt->edata2len, checksum);
+
+		memcpy(crypt_key[index], checksum, 16);
+	}
+
+	return *pcount;
+}
+
+static int cmp_all(void *binary, int count)
+{
+	unsigned int index;
+
+	for (index = 0; index < count; index++)
+		if (!memcmp(crypt_key[index], cur_salt->edata1, 16))
+			return 1;
 	return 0;
 }
 
-static int cmp_one (void *binary, int index)
+static int cmp_one(void *binary, int index)
 {
-	return 1;
+	return !memcmp(crypt_key[index], cur_salt->edata1, 16);
 }
 
-static int cmp_exact (char *source, int index)
+static int cmp_exact(char *source, int index)
 {
-	return 1;
-}
-
-
-
-static int crypt_all(int *pcount, struct db_salt *salt)
-{
-	unsigned int output[4];
-	ntlm_crypt(saved_key[0], output);
-	unsigned char* key = (unsigned char*) output;
-	char data[4] = {2,0,0,0};
-	unsigned char* K1;
-
-	K1 = HMAC(EVP_md5(), key, 16, data, 4, NULL, NULL);
-
-	unsigned char K2[16];
-	unsigned char* K3;
-	unsigned char edata1[16];
-	unsigned char edata2[cur_salt->edata2len];
-	unsigned char* checksum;
-	unsigned char ddata[cur_salt->edata2len];
-	int i;
-	memcpy(K2, K1, 16);
-	memcpy(edata1, cur_salt->edata1, 16);
-	memcpy(edata2, cur_salt->edata2, cur_salt->edata2len);
-	K3 = HMAC(EVP_md5(), K1, 16, edata1, 16, NULL, NULL);
-
-	RC4_KEY rckey;
-	RC4_set_key(&rckey, 16, K3);
-	RC4(&rckey, cur_salt->edata2len, edata2, ddata);
-
-	checksum = HMAC(EVP_md5(), K2, 16, ddata, cur_salt->edata2len, NULL, NULL);
-
-	memcpy(crypt_key[0], checksum, 16);
-
 	return 1;
 }
 
@@ -284,6 +239,7 @@ struct fmt_main fmt_krb5tgs = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
+		MIN_PLAINTEXT_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -291,28 +247,25 @@ struct fmt_main fmt_krb5tgs = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
-#if FMT_MAIN_VERSION > 11
-		{ NULL },
-#endif
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_OMP,
+		{NULL},
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 11
-		{ NULL },
-#endif
+		{NULL},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
 		},
 		salt_hash,
+		NULL,
 		set_salt,
 		set_key,
 		get_key,
@@ -327,6 +280,4 @@ struct fmt_main fmt_krb5tgs = {
 	}
 };
 
-
-
-#endif
+#endif							/* plugin stanza */
