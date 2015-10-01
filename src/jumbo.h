@@ -17,6 +17,10 @@
 #ifndef _JTR_JUMBO_H
 #define _JTR_JUMBO_H
 
+// use this define in some core (master) code, to be able to more cleanly insert code
+// leaving the master code more intact for easier merging of changes Solar gives us.
+#define JUMBO_JTR  1
+
 #include "arch.h"
 #include <stdio.h>
 #include <errno.h>
