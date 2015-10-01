@@ -15,6 +15,7 @@
  * ./configure)
  */
 #ifndef _JTR_JUMBO_H
+#define _JTR_JUMBO_H
 
 #include "arch.h"
 #include <stdio.h>
