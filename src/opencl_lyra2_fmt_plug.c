@@ -594,6 +594,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t real_gws;
 	int i,j,k;
 
+	printf("crypt all %d lws=%u\n",count,*lws);
+
 	global_work_size =
 	    local_work_size ? (count + local_work_size -
 	    1) / local_work_size * local_work_size : count;
