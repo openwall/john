@@ -191,7 +191,7 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 	WORD salt_val;
 	WORD *binary;
 	WORD *uncracked_hashes = NULL, *uncracked_hashes_t = NULL;
-	struct db_password *pw = salt -> list;
+	struct db_password *pw, *last;
 	OFFSET_TABLE_WORD *offset_table;
 	unsigned int hash_table_size, offset_table_size;
 
@@ -202,13 +202,21 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 	uncracked_hashes_t = (WORD *) mem_calloc(2 * num_uncracked_hashes(salt_val), sizeof(WORD));
 
 	i = 0;
+	last = pw = salt->list;
 	do {
-		if (!(binary = (int *)pw -> binary))
-			continue;
-		uncracked_hashes_t[2 * i] = binary[0];
-		uncracked_hashes_t[2 * i + 1] = binary[1];
-		i++;
-	} while ((pw = pw -> next));
+		binary = (WORD *)pw->binary;
+		if (binary == NULL) {
+			if (last == pw)
+				salt->list = pw->next;
+			else
+				last->next = pw->next;
+		} else {
+			last = pw;
+			uncracked_hashes_t[2 * i] = binary[0];
+			uncracked_hashes_t[2 * i + 1] = binary[1];
+			i++;
+		}
+	} while ((pw = pw->next));
 
 	if (salt -> count > *max_uncracked_hashes)
 		*max_uncracked_hashes = salt -> count;
