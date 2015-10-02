@@ -193,6 +193,7 @@ static void set_salt(void *salt)
 
 static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary, int force_build, size_t lws) {
 	char kernel_bin_name[200];
+	char *kernel_source;
 	FILE *file;
 
 	sprintf(kernel_bin_name, BINARY_FILE, lws, get_device_name(id_gpu), salt_val);
@@ -201,21 +202,24 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 
 	if (file == NULL || force_build) {
 		char build_opts[10000];
-		opencl_read_source("$JOHN/kernels/DES_bs_kernel_h.cl");
+		char *kernel_filename = "$JOHN/kernels/DES_bs_kernel_h.cl";
+		opencl_read_source(kernel_filename, &kernel_source);
 		if (get_platform_vendor_id(get_platform_id(id_gpu)) != DEV_AMD)
 			sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" %s", lws, enc_salt(salt_val));
 		else
 			sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" -fno-bin-amdil -fno-bin-source -fbin-exe %s", lws, enc_salt(salt_val));
 
-		opencl_build(id_gpu, build_opts, save_binary, kernel_bin_name, &program[id_gpu]);
+		opencl_build(id_gpu, build_opts, save_binary, kernel_bin_name, &program[id_gpu], kernel_filename, kernel_source);
 		fprintf(stderr, "Salt compiled from Source:%d\n", ++num_compiled_salt);
 	}
 	else {
+		size_t program_size;
 		fclose(file);
-		opencl_read_source(kernel_bin_name);
-		opencl_build_from_binary(id_gpu, &program[id_gpu]);
+		program_size = opencl_read_source(kernel_bin_name, &kernel_source);
+		opencl_build_from_binary(id_gpu, &program[id_gpu], kernel_source, program_size);
 		fprintf(stderr, "Salt compiled from Binary:%d\n", ++num_compiled_salt);
 	}
+	MEM_FREE(kernel_source);
 }
 
 static void init_kernel(WORD salt_val, int id_gpu, int save_binary, int force_build, size_t lws)

@@ -136,7 +136,6 @@ extern size_t local_work_size;
 extern size_t global_work_size;
 extern size_t max_group_size;
 extern unsigned int ocl_v_width;
-extern char *kernel_source;
 
 extern cl_event *profilingEvent, *firstEvent, *lastEvent;
 extern cl_event *multi_profilingEvent[MAX_EVENTS];
@@ -148,7 +147,7 @@ extern int device_info[MAX_GPU_DEVICES];
 #define DUR_CONFIG_NAME         "_MaxDuration"
 #define FALSE               0
 
-void opencl_read_source(char *kernel_filename);
+size_t opencl_read_source(char *kernel_filename, char **kernel_source);
 
 /* Passive init: enumerate platforms and devices and parse options */
 void opencl_preinit(void);
@@ -175,8 +174,10 @@ int opencl_prepare_dev(int sequential_id);
 void opencl_init(char *kernel_filename, int sequential_id, char *options);
 
 /* used by opencl_DES_bs_*.c */
-void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_program *program);
-void opencl_build_from_binary(int sequential_id, cl_program *program);
+void opencl_build(int sequential_id, char *opts, int save, char *file_name,
+		  cl_program *program, char *kernel_source_file, char *kernel_source);
+void opencl_build_from_binary(int sequential_id, cl_program *program, char *kernel_source,
+			      size_t program_size);
 
 /* Build kernel (if not cached), and cache it */
 void opencl_build_kernel(char *kernel_filename, int sequential_id,
