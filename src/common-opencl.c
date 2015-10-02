@@ -1057,16 +1057,17 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
  */
 void opencl_build_from_binary(int sequential_id, cl_program *program)
 {
-	cl_int build_code;
-	char build_log[LOG_SIZE];
+	cl_int build_code, err_code;
+	char *build_log;
 	const char *srcptr[] = { kernel_source };
 
+	build_log = (char *) mem_calloc(LOG_SIZE, sizeof(char));
 	assert(kernel_loaded);
 	program[0] =
 	    clCreateProgramWithBinary(context[sequential_id], 1,
 	                              &devices[sequential_id], &program_size, (const unsigned char **)srcptr,
-	                              NULL, &ret_code);
-	HANDLE_CLERROR(ret_code,
+	                              NULL, &err_code);
+	HANDLE_CLERROR(err_code,
 	               "Error while creating program (using cached binary)");
 
 	build_code = clBuildProgram(program[0], 0,
@@ -1088,6 +1089,8 @@ void opencl_build_from_binary(int sequential_id, cl_program *program)
 	// Nvidia may return a single '\n' that we ignore
 	else if (options.verbosity >= LOG_VERB && strlen(build_log) > 1)
 		fprintf(stderr, "Binary Build log: %s\n", build_log);
+
+	MEM_FREE(build_log);
 }
 
 // Do the proper test using different global work sizes.
