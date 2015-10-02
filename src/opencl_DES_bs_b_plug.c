@@ -472,8 +472,8 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 		}
 		else {
 			warp_size = 1;
-			if (!cpu(device_info[gpu_id]))
-				fprintf(stderr, "Possible auto_tune fail!!.\n");
+			if (!(cpu(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])))
+			fprintf(stderr, "Possible auto_tune fail!!.\n");
 		}
 
 		if (lws_tune_flag)
@@ -537,7 +537,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 		get_kernel_max_lws(gpu_id, kernels[gpu_id][0]), time_ms,
 		best_time_ms);
 #endif
-				if (gpu(device_info[gpu_id])) {
+				if (gpu_amd(device_info[gpu_id]) || gpu_nvidia(device_info[gpu_id])) {
 					if (local_work_size < 16)
 						local_work_size = 16;
 					else if (local_work_size < 32)
