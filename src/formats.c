@@ -31,6 +31,7 @@ typedef unsigned int ARCH_WORD_32;
 #include "cuda_common.h"
 #endif
 #include "jumbo.h"
+#include "bench.h"
 #include "memdbg.h"
 
 char fmt_null_key[PLAINTEXT_BUFFER_SIZE];
@@ -44,6 +45,19 @@ extern volatile int bench_running;
 #ifndef BENCH_BUILD
 static int orig_min, orig_max, orig_len;
 #endif
+
+static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphertext, int *is_split_unifies_case, int call_cnt);
+static void test_fmt_split_unifies_case_3(struct fmt_main *format,
+	char *ciphertext, int *has_change_case, int *is_need_unify_case);
+static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext, int *is_split_unifies_case, int call_cnt);
+static void get_longest_common_string(char *fstr, char *sstr, int *first_index,
+	int *second_index, int *size);
+static void test_fmt_8_bit(struct fmt_main *format, void *binary,
+	char *ciphertext, char *plaintext, int *is_ignore_8th_bit,
+	int *plaintext_is_blank);
+static void test_fmt_case(struct fmt_main *format, void *binary,
+	char *ciphertext, char* plaintext, int *is_case_sensitive,
+	int *plaintext_has_alpha);
 
 void fmt_register(struct fmt_main *format)
 {
@@ -277,17 +291,25 @@ static char* is_key_right(struct fmt_main *format, int index,
 	return NULL;
 }
 
+#ifdef JUMBO_JTR
 static char *fmt_self_test_body(struct fmt_main *format,
-    void *binary_copy, void *salt_copy, struct db_main *db)
+    void *binary_copy, void *salt_copy, struct db_main *db, int full_lvl)
 {
-	static char s_size[100];
+	static char s_size[200];
+	char *ret;
+#else
+static char *fmt_self_test_body(struct fmt_main *format,
+    void *binary_copy, void *salt_copy)
+{
+	static char s_size[32];
+#endif
 	struct fmt_tests *current;
-	char *ciphertext, *plaintext, *ret;
-	int i, ntests, done, index, max;
+	char *ciphertext, *plaintext;
+	int ntests, done, index, max, size;
 	void *binary, *salt;
 	int binary_align_warned = 0, salt_align_warned = 0;
 	int salt_cleaned_warned = 0, binary_cleaned_warned = 0;
-	int salt_dupe_warned = 0;
+	int salt_dupe_warned = 0, i;
 #ifndef BENCH_BUILD
 	int dhirutest = 0;
 	int maxlength = 0;
@@ -296,12 +318,25 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	int extra_tests = 0;
 #endif
 	int ml, sl = 0;
+	int plaintext_has_alpha = 0;   // Does plaintext has alphabet: a-z A-Z
+	int is_case_sensitive = 0;     // Is password case sensitive, FMT_CASE
+	int plaintext_is_blank = 1;    // Is plaintext blank ""
+	int is_ignore_8th_bit = 1;     // Is ignore 8th bit, FMT_8_BIT
+	int is_split_unifies_case = 0; // Is split() unifies case
+	int is_split_unifies_case_4 = 0;
+	int cnt_split_unifies_case = 0;// just in case only the last test case unifies.
+	int is_change_case = 0;        // Is change cases of ciphertext and it is valid
+	int is_need_unify_case = 1;    // Is need to unify cases in split()
+	int fmt_split_case = ((format->params.flags & FMT_SPLIT_UNIFIES_CASE)==FMT_SPLIT_UNIFIES_CASE);
+	int while_condition;           // since -test and -test-full use very do{}while(cond) so we use a var.
 
 	// validate that there are no NULL function pointers
 	if (format->methods.prepare == NULL)    return "method prepare NULL";
 	if (format->methods.valid == NULL)      return "method valid NULL";
 	if (format->methods.split == NULL)      return "method split NULL";
 	if (format->methods.init == NULL)       return "method init NULL";
+
+	(void)size;  // quiet stupid warning.
 
 /*
  * Test each format just once unless we're debugging.
@@ -386,6 +421,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->methods.valid("*", format))
 		return "valid";
 
+#ifndef JUMBO_JTR
+	fmt_init(format);
+#endif
+
 	ml = format->params.plaintext_length;
 #ifndef BENCH_BUILD
 	/* UTF-8 bodge in reverse. Otherwise we will get truncated keys back
@@ -396,9 +435,19 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		ml /= 3;
 #endif
 
+#ifndef JUMBO_JTR
+	format->methods.reset(NULL);
+#endif
 	format->methods.reset(db);
 	dyna_salt_init(format);
 
+#ifndef JUMBO_JTR
+	if (!(current = format->params.tests)) return NULL;
+	ntests = 0;
+	while ((current++)->ciphertext)
+		ntests++;
+	current = format->params.tests;
+#endif
 	if ((format->methods.split == fmt_default_split) &&
 	    (format->params.flags & FMT_SPLIT_UNIFIES_CASE))
 		return "FMT_SPLIT_UNIFIES_CASE";
@@ -433,6 +482,12 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (!current->fields[1])
 			current->fields[1] = current->ciphertext;
 		ciphertext = format->methods.prepare(current->fields, format);
+#ifndef JUMBO_JTR
+		if (!ciphertext || strlen(ciphertext) < 7)
+			return "prepare";
+		if (format->methods.valid(ciphertext, format) != 1)
+			return "valid";
+#else
 		if (!ciphertext || (strcmp(format->params.label, "plaintext") &&
 		                    strlen(ciphertext) < 7))
 			return "prepare";
@@ -440,6 +495,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			snprintf(s_size, sizeof(s_size), "valid (%s)", ciphertext);
 			return s_size;
 		}
+#endif
 
 #if !defined(BENCH_BUILD)
 		if (extra_tests && !dhirutest++ &&
@@ -473,6 +529,15 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			}
 		}
 #endif
+		if (full_lvl >= 0) {
+			// numerous tests. We need to 'merge' into 1, probably.
+			if (!fmt_split_case && format->params.binary_size && is_need_unify_case)
+				test_fmt_split_unifies_case_3(format, ciphertext, &is_change_case, &is_need_unify_case);
+			test_fmt_split_unifies_case(format, ciphertext, &is_split_unifies_case, cnt_split_unifies_case);
+			if (full_lvl > 0)
+				test_fmt_split_unifies_case_4(format, ciphertext, &is_split_unifies_case_4, cnt_split_unifies_case);
+			++cnt_split_unifies_case;
+		}
 
 		ciphertext = format->methods.split(ciphertext, 0, format);
 		if (!ciphertext)
@@ -486,6 +551,15 @@ static char *fmt_self_test_body(struct fmt_main *format,
  * hold the binary ciphertexts and salts.  We do this by copying the values
  * returned by binary() and salt() only to the declared sizes.
  */
+#ifndef JUMBO_JTR
+		binary = format->methods.binary(ciphertext);
+		if (!is_aligned(binary, format->params.binary_align) &&
+		    !binary_align_warned) {
+			puts("Warning: binary() returned misaligned pointer");
+			binary_align_warned = 1;
+		}
+		memcpy(binary_copy, binary, format->params.binary_size);
+#else
 		if (!(binary = format->methods.binary(ciphertext)))
 			return "binary() returned NULL";
 #if ARCH_ALLOWS_UNALIGNED
@@ -497,6 +571,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			puts("Warning: binary() returned misaligned pointer");
 			binary_align_warned = 1;
 		}
+#endif
 
 		/* validate that binary() returns cleaned buffer */
 		if (extra_tests && !binary_cleaned_warned && format->params.binary_size) {
@@ -523,6 +598,14 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		binary = binary_copy;
 
 		salt = format->methods.salt(ciphertext);
+#ifndef JUMBO_JTR
+		if (!is_aligned(salt, format->params.salt_align) &&
+		    !salt_align_warned) {
+			puts("Warning: salt() returned misaligned pointer");
+			salt_align_warned = 1;
+		}
+		memcpy(salt_copy, salt, format->params.salt_size);
+#else
 		if (!salt)
 			return "salt() returned NULL";
 		dyna_salt_create(salt);
@@ -535,6 +618,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			puts("Warning: salt() returned misaligned pointer");
 			salt_align_warned = 1;
 		}
+#endif
 
 		/* validate that salt dupe checks will work */
 		if (!salt_dupe_warned && format->params.salt_size) {
@@ -607,6 +691,11 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
 
+#ifndef JUMBO_JTR
+		if (strcmp(ciphertext,
+		    format->methods.source(ciphertext, binary)))
+			return "source";
+#else
 		if (strcmp(ciphertext,
 		    format->methods.source(ciphertext, binary))) {
 			//static char LargeBuf[500];
@@ -614,13 +703,44 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			//return LargeBuf;
 			return "source";
 		}
+#endif
 
 		if ((unsigned int)format->methods.salt_hash(salt) >=
 		    SALT_HASH_SIZE)
 			return "salt_hash";
 
 		format->methods.set_salt(salt);
+#ifndef JUMBO_JTR
+		format->methods.set_key(current->plaintext, index);
 
+		{
+			int count = index + 1;
+			int match = format->methods.crypt_all(&count, NULL);
+/* If salt is NULL, the return value must always match *count the way it is
+ * after the crypt_all() call. */
+			if (match != count)
+				return "crypt_all";
+		}
+
+		for (size = 0; size < PASSWORD_HASH_SIZES; size++)
+		if (format->methods.binary_hash[size] &&
+		    format->methods.get_hash[size](index) !=
+		    format->methods.binary_hash[size](binary)) {
+			sprintf(s_size, "get_hash[%d](%d)", size, index);
+			return s_size;
+		}
+
+		if (!format->methods.cmp_all(binary, index + 1))
+			return "cmp_all";
+		if (!format->methods.cmp_one(binary, index))
+			return "cmp_one";
+		if (!format->methods.cmp_exact(ciphertext, index))
+			return "cmp_exact";
+
+		if (strncmp(format->methods.get_key(index), plaintext,
+		    format->params.plaintext_length))
+			return "get_key";
+#else
 #ifndef BENCH_BUILD
 		if (extra_tests && maxlength == 0) {
 			//int min = format->params.min_keys_per_crypt;
@@ -668,23 +788,61 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 #endif
 
-		if (index == 0)
+#endif
+		if (full_lvl >= 0) {
+			// Test FMT_CASE
 			format->methods.clear_keys();
-		fmt_set_key(current->plaintext, index);
+			test_fmt_case(format, binary, ciphertext, plaintext,
+				&is_case_sensitive, &plaintext_has_alpha);
 
+			// Test FMT_8_BIT
+			format->methods.clear_keys();
+			format->methods.set_salt(salt);
+			test_fmt_8_bit(format, binary, ciphertext, plaintext,
+				&is_ignore_8th_bit, &plaintext_is_blank);
+
+			format->methods.clear_keys();
+			format->methods.set_salt(salt);
+			for (i = 0; i < max - 1; i++) {
+				char *pCand = longcand(format, i, ml);
+				fmt_set_key(pCand, i);
+			}
+			fmt_set_key(current->plaintext, max - 1);
+		} else {
+			if (index == 0)
+				format->methods.clear_keys();
+			fmt_set_key(current->plaintext, index);
+		}
 #if !defined(BENCH_BUILD) && (defined(HAVE_OPENCL) || defined(HAVE_CUDA))
 		advance_cursor();
 #endif
-
+		if (full_lvl >= 0) {
+			ret = is_key_right(format, max - 1, binary, ciphertext, plaintext, 0);
+			if (ret)
+				return ret;
+			format->methods.clear_keys();
+			dyna_salt_remove(salt);
+			while_condition = (++current)->ciphertext != NULL;
+		} else {
 		ret = is_key_right(format, index, binary, ciphertext, plaintext, 0);
 		if (ret)
 			return ret;
 
 /* Remove some old keys to better test cmp_all() */
 		if (index & 1)
+#ifndef JUMBO_JTR
+			format->methods.set_key(fmt_null_key, index);
+#else
 			fmt_set_key(longcand(format, index, sl), index);
+#endif
 
 /* 0 1 2 3 4 6 9 13 19 28 42 63 94 141 211 316 474 711 1066 ... */
+#ifndef JUMBO_JTR
+		if (index >= 2 && max > ntests)
+			index += index >> 1;
+		else
+			index++;
+#else
 		if (index >= 2 && max > ntests) {
 /* Always call set_key() even if skipping. Some formats depend on it. */
 			for (i = index + 1;
@@ -693,6 +851,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			index = i;
 		} else
 			index++;
+#endif
 
 		if (index >= max) {
 			format->methods.clear_keys();
@@ -714,17 +873,131 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			} else
 #endif
 /* Jump straight to last index for non-bitslice DES */
+#ifndef JUMBO_JTR
+			if (!(format->params.flags & FMT_BS) &&
+			    (!strcmp(format->params.label, "des") ||
+			    !strcmp(format->params.label, "bsdi") ||
+			    !strcmp(format->params.label, "afs")))
+				index = max - 1;
+#else
 			if (!(format->params.flags & FMT_BS) &&
 			    (!strcasecmp(format->params.label, "descrypt") ||
 			    !strcasecmp(format->params.label, "bsdicrypt") ||
 			    !strcasecmp(format->params.label, "AFS")))
 				index = max - 1;
+#endif
 
 			current = format->params.tests;
 			done |= 2;
 		}
 		dyna_salt_remove(salt);
-	} while (done != 3);
+		while_condition = done != 3;
+		}
+	} while (while_condition);
+
+	if (full_lvl >= 0) {
+		if (plaintext_has_alpha) {
+			if (is_case_sensitive && !(format->params.flags & FMT_CASE)) {
+				snprintf(s_size, sizeof(s_size),
+					"%s doesn't set FMT_CASE but at least one test-vector is case-sensitive",
+					format->params.label);
+				return s_size;
+			} else if (!is_case_sensitive && (format->params.flags & FMT_CASE)) {
+				snprintf(s_size, sizeof(s_size),
+					"%s sets FMT_CASE but all test-vectors are case-insensitive",
+					format->params.label);
+				return s_size;
+			}
+		}
+
+		if (!plaintext_is_blank) {
+			if (!strcmp(format->params.label, "crypt")) {
+/*
+ * We "can't" reliably know if the underlying system's crypt() is 8-bit or not,
+ * and in fact this will vary by actual hash type, of which multiple ones may
+ * be loaded at once (with that one format). crypt SHOULD set FMT_8_BIT
+ */
+				if (!(format->params.flags & FMT_8_BIT)) {
+					snprintf(s_size, sizeof(s_size),
+						"crypt should set FMT_8_BIT");
+					return s_size;
+				}
+			} else if (!strncasecmp(format->params.label, "wpapsk", 6)) {
+/*
+ * WPAPSK technically handles 8-bit, but a WPAPSK passphrase is 8 to 63
+ * printable ASCII characters according to the spec. IEEE Std. 802.11i-2004,
+ * Annex H.4.1: Each character in the pass-phrase must have an encoding in
+ * the range of 32 to 126 (decimal), inclusive.
+ */
+				if (format->params.flags & FMT_8_BIT) {
+					snprintf(s_size, sizeof(s_size),
+						"%s should not set FMT_8_BIT",
+						format->params.label);
+					return s_size;
+				}
+			} else if (!is_ignore_8th_bit &&
+				   !(format->params.flags & FMT_8_BIT)) {
+				snprintf(s_size, sizeof(s_size),
+					"%s doesn't set FMT_8_BIT but at least one test-vector does not ignore the 8th bit",
+					format->params.label);
+				return s_size;
+			} else if (is_ignore_8th_bit &&
+				   (format->params.flags & FMT_8_BIT)) {
+				snprintf(s_size, sizeof(s_size),
+					"%s sets FMT_8_BIT but all test-vectors ignore the 8th bit",
+					format->params.label);
+				return s_size;
+			}
+		}
+
+		switch (is_split_unifies_case) {
+			case 1:
+				snprintf(s_size, sizeof(s_size), "should set FMT_SPLIT_UNIFIES_CASE");
+				return s_size;
+			case 2:
+				snprintf(s_size, sizeof(s_size), "should not set FMT_SPLIT_UNIFIES_CASE");
+				return s_size;
+			case 3:
+				snprintf(s_size, sizeof(s_size), "split() is only casing sometimes");
+				return s_size;
+			case 4:
+				snprintf(s_size, sizeof(s_size), "split() case, or valid() should fail");
+				return s_size;
+			case 0:
+			case -1:
+			default:
+				break;
+		}
+		switch (is_split_unifies_case_4) {
+			case 1:
+				snprintf(s_size, sizeof(s_size), "should set FMT_SPLIT_UNIFIES_CASE (#4)");
+				return s_size;
+			case 2:
+				snprintf(s_size, sizeof(s_size), "should not set FMT_SPLIT_UNIFIES_CASE (#4)");
+				return s_size;
+			case 3:
+				snprintf(s_size, sizeof(s_size), "split() is only casing sometimes (#4)");
+				return s_size;
+			case 4:
+				snprintf(s_size, sizeof(s_size), "split() case, or valid() should fail (#4)");
+				return s_size;
+			case 0:
+			case -1:
+			default:
+				break;
+		}
+
+		// Currently this code only has false positive failures, so for now, it is comment out.
+		// @loverszhaokai needs to look at a re-do of the function.  The 'blind' casing fails
+		// when there are constant strings, or things like user names embedded in the hash,
+		// or other non-hex strings.
+		if (full_lvl > 0)
+		if (!fmt_split_case && format->params.binary_size != 0 && is_change_case && is_need_unify_case) {
+			snprintf(s_size, sizeof(s_size),
+				"should unify cases in split() and set FMT_SPLIT_UNIFIES_CASE (#3)");
+			return s_size;
+		}
+	}
 
 	format->methods.clear_keys();
 	format->private.initialized = 2;
@@ -1186,557 +1459,6 @@ static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphert
 	return;
 }
 
-static char *fmt_self_test_full_body(struct fmt_main *format,
-    void *binary_copy, void *salt_copy, struct db_main *db)
-{
-	static char err_buf[200];
-	struct fmt_tests *current;
-	char *ciphertext, *plaintext, *ret;
-	int i, ntests, max;
-	void *binary, *salt;
-	int binary_align_warned = 0, salt_align_warned = 0;
-	int salt_cleaned_warned = 0, binary_cleaned_warned = 0;
-	int salt_dupe_warned = 0;
-#ifndef BENCH_BUILD
-	int dhirutest = 0;
-	int maxlength = 0;
-	int extra_tests = options.flags & FLG_TEST_SET;
-#else
-	int extra_tests = 0;
-#endif
-	int ml;
-	int plaintext_has_alpha = 0;   // Does plaintext has alphabet: a-z A-Z
-	int is_case_sensitive = 0;     // Is password case sensitive, FMT_CASE
-	int plaintext_is_blank = 1;    // Is plaintext blank ""
-	int is_ignore_8th_bit = 1;     // Is ignore 8th bit, FMT_8_BIT
-	int is_split_unifies_case = 0; // Is split() unifies case
-	int is_split_unifies_case_4 = 0;
-	int cnt_split_unifies_case = 0;// just in case only the last test case unifies.
-	int is_change_case = 0;        // Is change cases of ciphertext and it is valid
-	int is_need_unify_case = 1;    // Is need to unify cases in split()
-
-	// validate that there are no NULL function pointers
-	if (format->methods.prepare == NULL)    return "method prepare NULL";
-	if (format->methods.valid == NULL)      return "method valid NULL";
-	if (format->methods.split == NULL)      return "method split NULL";
-	if (format->methods.init == NULL)       return "method init NULL";
-
-/*
- * Test each format just once unless we're debugging.
- */
-#ifndef DEBUG
-	if (format->private.initialized == 2)
-		return NULL;
-#endif
-
-#ifndef BENCH_BUILD
-	if (options.flags & FLG_NOTESTS) {
-		fmt_init(format);
-		dyna_salt_init(format);
-		format->methods.reset(db);
-		format->private.initialized = 2;
-		format->methods.clear_keys();
-		return NULL;
-	}
-#endif
-
-	MemDbg_Validate_msg(MEMDBG_VALIDATE_DEEPEST,
-	                    "\nAt start of self-test:");
-
-	if (!(current = format->params.tests)) return NULL;
-	ntests = 0;
-	while ((current++)->ciphertext)
-		ntests++;
-	current = format->params.tests;
-#ifdef _MSC_VER
-	if (current->ciphertext[0] == 0 &&
-	    !strcasecmp(format->params.label, "LUKS")) {
-		// luks has a string that is longer than the 64k max string length of
-		// VC. So to get it to work, we post load the the test value.
-		void LUKS_test_fixup();
-		LUKS_test_fixup();
-		current = format->params.tests;
-	}
-#endif
-
-	if (ntests==0) return NULL;
-
-	/* Check prepare, valid, split before init */
-	if (!current->fields[1])
-		current->fields[1] = current->ciphertext;
-	ciphertext = format->methods.prepare(current->fields, format);
-	if (!ciphertext || strlen(ciphertext) < 7)
-		return "prepare (before init)";
-	if (format->methods.valid(ciphertext, format) != 1)
-		return "valid (before init)";
-	if (!format->methods.split(ciphertext, 0, format))
-		return "split() returned NULL (before init)";
-	fmt_init(format);
-
-	// validate that there are no NULL function pointers after init()
-	if (format->methods.done == NULL)       return "method done NULL";
-	if (format->methods.reset == NULL)      return "method reset NULL";
-	if (format->methods.binary == NULL)     return "method binary NULL";
-	if (format->methods.salt == NULL)       return "method salt NULL";
-	if (format->methods.source == NULL)     return "method source NULL";
-	if (!format->methods.binary_hash[0])    return "method binary_hash[0] NULL";
-	if (format->methods.salt_hash == NULL)  return "method salt_hash NULL";
-	if (format->methods.set_salt == NULL)   return "method set_salt NULL";
-	if (format->methods.set_key == NULL)    return "method set_key NULL";
-	if (format->methods.get_key == NULL)    return "method get_key NULL";
-	if (format->methods.clear_keys == NULL) return "method clear_keys NULL";
-	if (format->methods.crypt_all == NULL)  return "method crypt_all NULL";
-	if (format->methods.get_hash[0]==NULL)  return "method get_hash[0] NULL";
-	if (format->methods.cmp_all == NULL)    return "method cmp_all NULL";
-	if (format->methods.cmp_one == NULL)    return "method cmp_one NULL";
-	if (format->methods.cmp_exact == NULL)  return "method cmp_exact NULL";
-
-	if (format->params.plaintext_length < 1 ||
-	    format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
-		return "plaintext_length";
-
-	if (!is_poweroftwo(format->params.binary_align))
-		return "binary_align";
-
-	if (!is_poweroftwo(format->params.salt_align))
-		return "salt_align";
-
-	if (format->methods.valid("*", format))
-		return "valid";
-
-	ml = format->params.plaintext_length;
-#ifndef BENCH_BUILD
-	/* UTF-8 bodge in reverse. Otherwise we will get truncated keys back
-	   from the max-length self-test */
-	if ((pers_opts.target_enc == UTF_8) &&
-	    (format->params.flags & FMT_UTF8) &&
-	    (format->params.flags & FMT_UNICODE))
-		ml /= 3;
-#endif
-
-	format->methods.reset(db);
-	dyna_salt_init(format);
-
-	if ((format->methods.split == fmt_default_split) &&
-	    (format->params.flags & FMT_SPLIT_UNIFIES_CASE))
-		return "FMT_SPLIT_UNIFIES_CASE";
-
-	if ((format->params.flags & FMT_OMP_BAD) &&
-	    !(format->params.flags & FMT_OMP))
-		return "FMT_OMP_BAD";
-
-	if ((format->methods.binary == fmt_default_binary) &&
-	    (format->params.binary_size > 0))
-		puts("Warning: Using default binary() with a "
-		     "non-zero BINARY_SIZE");
-
-	if ((format->methods.salt == fmt_default_salt) &&
-	    (format->params.salt_size > 0))
-		puts("Warning: Using default salt() with a non-zero SALT_SIZE");
-
-	if (format->params.min_keys_per_crypt < 1)
-		return "min keys per crypt";
-
-	if (format->params.max_keys_per_crypt < 1)
-		return "max keys per crypt";
-
-	if (format->params.max_keys_per_crypt <
-	    format->params.min_keys_per_crypt)
-		return "max < min keys per crypt";
-
-	max = format->params.max_keys_per_crypt;
-
-	do {
-		if (!current->fields[1])
-			current->fields[1] = current->ciphertext;
-		ciphertext = format->methods.prepare(current->fields, format);
-		if (!ciphertext || (strcmp(format->params.label, "plaintext") &&
-		                    strlen(ciphertext) < 7))
-			return "prepare";
-		if (format->methods.valid(ciphertext, format) != 1) {
-			snprintf(err_buf, sizeof(err_buf), "valid (%s)", ciphertext);
-			return err_buf;
-		}
-
-#if !defined(BENCH_BUILD)
-		if (extra_tests && !dhirutest++ &&
-		    strcmp(format->params.label, "plaintext") &&
-		    strcmp(format->params.label, "dummy") &&
-		    strcmp(format->params.label, "crypt")) {
-			if (*ciphertext == '$') {
-				char *p, *k = strdup(ciphertext);
-
-				p = k + 1;
-				while (*p) {
-					if (*p++ == '$') {
-						*p = 0;
-						// $tag$ only
-						if (format->methods.valid(k, format)) {
-							sprintf(err_buf, "promiscuous valid (%s)", k);
-							return err_buf;
-						}
-						*p = '$';
-						while (*p)
-							*p++ = '$';
-						// $tag$$$$$$$$$$$$$$$$$$
-						if (format->methods.valid(k, format)) {
-							sprintf(err_buf, "promiscuous valid");
-							return err_buf;
-						}
-						break;
-					}
-				}
-				MEM_FREE(k);
-			}
-		}
-#endif
-
-		if (!(format->params.flags & FMT_SPLIT_UNIFIES_CASE) &&
-			format->params.binary_size != 0 && is_need_unify_case)
-			test_fmt_split_unifies_case_3(format, ciphertext,
-				&is_change_case, &is_need_unify_case);
-
-		test_fmt_split_unifies_case(format, ciphertext,
-		                            &is_split_unifies_case,
-		                            cnt_split_unifies_case);
-
-		test_fmt_split_unifies_case_4(format, ciphertext,
-		                            &is_split_unifies_case_4,
-		                            cnt_split_unifies_case);
-
-		++cnt_split_unifies_case;
-
-		ciphertext = format->methods.split(ciphertext, 0, format);
-
-		if (!ciphertext)
-			return "split() returned NULL";
-		plaintext = current->plaintext;
-
-/*
- * Make sure the declared binary_size and salt_size are sufficient to actually
- * hold the binary ciphertexts and salts.  We do this by copying the values
- * returned by binary() and salt() only to the declared sizes.
- */
-		if (!(binary = format->methods.binary(ciphertext)))
-			return "binary() returned NULL";
-#if ARCH_ALLOWS_UNALIGNED
-		if (mem_saving_level <= 2 || format->params.binary_align >= MEM_ALIGN_SIMD)
-#endif
-		if (!binary_align_warned &&
-			!is_aligned(binary, format->params.binary_align) &&
-		    format->params.binary_size > 0) {
-			puts("Warning: binary() returned misaligned pointer");
-			binary_align_warned = 1;
-		}
-
-		/* validate that binary() returns cleaned buffer */
-		if (extra_tests && !binary_cleaned_warned && format->params.binary_size) {
-			memset(binary, 0xAF, format->params.binary_size);
-			binary = format->methods.binary(ciphertext);
-			if (((unsigned char*)binary)[format->params.binary_size-1] == 0xAF)
-			{
-				memset(binary, 0xCC, format->params.binary_size);
-				binary = format->methods.binary(ciphertext);
-				if (((unsigned char*)binary)[format->params.binary_size-1] == 0xCC)
-				{
-					/* possibly did not clean the binary. */
-					puts("Warning: binary() not pre-cleaning buffer");
-					binary_cleaned_warned = 1;
-				}
-			}
-			/* Clean up the mess we might have caused */
-			memset(binary, 0, format->params.binary_size);
-			binary = format->methods.binary(ciphertext);
-		}
-		*((char*)binary_copy) = 0;
-		if (format->params.binary_size)
-			memcpy(binary_copy, binary, format->params.binary_size);
-		binary = binary_copy;
-
-		salt = format->methods.salt(ciphertext);
-		if (!salt)
-			return "salt() returned NULL";
-		dyna_salt_create(salt);
-#if ARCH_ALLOWS_UNALIGNED
-		if (mem_saving_level <= 2 || format->params.salt_align >= MEM_ALIGN_SIMD)
-#endif
-		if (!salt_align_warned &&
-			!is_aligned(salt, format->params.salt_align) &&
-		    format->params.salt_size > 0) {
-			puts("Warning: salt() returned misaligned pointer");
-			salt_align_warned = 1;
-		}
-
-		/* validate that salt dupe checks will work */
-		if (!salt_dupe_warned && format->params.salt_size) {
-			char *copy = mem_alloc(format->params.salt_size);
-
-			memcpy(copy, salt, format->params.salt_size);
-			salt = format->methods.salt(ciphertext);
-			dyna_salt_create(salt);
-			if (dyna_salt_cmp(copy, salt, format->params.salt_size))
-			{
-				puts("Warning: No dupe-salt detection");
-				salt_dupe_warned = 1;
-				// These can be useful in tracking down salt
-				// dupe problems.
-				//fprintf(stderr, "%s\n", ciphertext);
-				//dump_stuff(copy, format->params.salt_size);
-				//dump_stuff(salt, format->params.salt_size);
-			}
-			dyna_salt_remove(copy);
-			MEM_FREE(copy);
-		}
-
-		/* validate that salt() returns cleaned buffer */
-		if (extra_tests && !salt_cleaned_warned && format->params.salt_size) {
-			if ((format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
-				dyna_salt *p1, *p2=0, *p3=0;
-				p1 = *((dyna_salt**)salt);
-				dyna_salt_smash(salt, 0xAF);
-				salt = format->methods.salt(ciphertext);
-				dyna_salt_create(salt);
-				p2 = *((dyna_salt**)salt);
-				if (dyna_salt_smash_check(salt, 0xAF))
-				{
-					dyna_salt_smash(salt, 0xC3);
-					salt = format->methods.salt(ciphertext);
-					dyna_salt_create(salt);
-					p3 = *((dyna_salt**)salt);
-					if (dyna_salt_smash_check(salt, 0xC3)) {
-						/* possibly did not clean the salt. */
-						puts("Warning: salt() not pre-cleaning buffer");
-						salt_cleaned_warned = 1;
-					}
-				}
-				/* Clean up the mess we might have caused */
-				dyna_salt_remove(&p1);
-				dyna_salt_remove(&p2);
-				dyna_salt_remove(&p3);
-			} else {
-				memset(salt, 0xAF, format->params.salt_size);
-				salt = format->methods.salt(ciphertext);
-				if (((unsigned char*)salt)[format->params.salt_size-1] == 0xAF)
-				{
-					memset(salt, 0xC3, format->params.salt_size);
-					salt = format->methods.salt(ciphertext);
-					if (((unsigned char*)salt)[format->params.salt_size-1] == 0xC3) {
-						/* possibly did not clean the salt. */
-						puts("Warning: salt() not pre-cleaning buffer");
-						salt_cleaned_warned = 1;
-					}
-				}
-				/* Clean up the mess we might have caused */
-				memset(salt, 0, format->params.salt_size);
-			}
-			salt = format->methods.salt(ciphertext);
-			dyna_salt_create(salt);
-		}
-
-		*((char*)salt_copy) = 0;
-		if (format->params.salt_size)
-			memcpy(salt_copy, salt, format->params.salt_size);
-		salt = salt_copy;
-
-		if (strcmp(ciphertext,
-		    format->methods.source(ciphertext, binary)))
-			return "source";
-
-		if ((unsigned int)format->methods.salt_hash(salt) >=
-		    SALT_HASH_SIZE)
-			return "salt_hash";
-
-		format->methods.set_salt(salt);
-
-#ifndef BENCH_BUILD
-		if (extra_tests && maxlength == 0) {
-			//int min = format->params.min_keys_per_crypt;
-			maxlength = 1;
-
-			/* Check that claimed max. length is actually supported:
-			   1. Fill the buffer with maximum length keys */
-			format->methods.clear_keys();
-			for (i = 0; i < max; i++) {
-				char *pCand = longcand(format, i, ml);
-				fmt_set_key(pCand, i);
-			}
-
-#if 0
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
-			advance_cursor();
-#endif
-			/* 2. Perform a limited crypt (in case it matters) */
-			if (format->methods.crypt_all(&min, NULL) != min)
-				return "crypt_all";
-#endif
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
-			advance_cursor();
-#endif
-			/* 3. Now read them back and verify they are intact */
-			for (i = 0; i < max; i++) {
-				char *getkey = format->methods.get_key(i);
-				char *setkey = longcand(format, i, ml);
-
-				if (!getkey)
-					return "get_key() returned NULL";
-
-				if (strncmp(getkey, setkey, ml + 1)) {
-					if (strnlen(getkey, ml + 1) > ml)
-					sprintf(err_buf, "max. length in index "
-					        "%d: wrote %d, got longer back",
-					        i, ml);
-					else
-					sprintf(err_buf, "max. length in index "
-					        "%d: wrote %d, got %d back", i,
-					        ml, (int)strlen(getkey));
-					return err_buf;
-				}
-			}
-		}
-#endif
-
-		// Test FMT_CASE
-		format->methods.clear_keys();
-		test_fmt_case(format, binary, ciphertext, plaintext,
-			&is_case_sensitive, &plaintext_has_alpha);
-
-		// Test FMT_8_BIT
-		format->methods.clear_keys();
-		format->methods.set_salt(salt);
-		test_fmt_8_bit(format, binary, ciphertext, plaintext,
-			&is_ignore_8th_bit, &plaintext_is_blank);
-
-		format->methods.clear_keys();
-		format->methods.set_salt(salt);
-		for (i = 0; i < max - 1; i++) {
-			char *pCand = longcand(format, i, ml);
-			fmt_set_key(pCand, i);
-		}
-		fmt_set_key(current->plaintext, max - 1);
-
-#if !defined(BENCH_BUILD) && (defined(HAVE_OPENCL) || defined(HAVE_CUDA))
-		advance_cursor();
-#endif
-
-		ret = is_key_right(format, max - 1, binary, ciphertext, plaintext, 0);
-		if (ret)
-			return ret;
-		format->methods.clear_keys();
-
-		dyna_salt_remove(salt);
-
-	} while ((++current)->ciphertext);
-
-	if (plaintext_has_alpha) {
-		if (is_case_sensitive && !(format->params.flags & FMT_CASE)) {
-			snprintf(err_buf, sizeof(err_buf),
-				"%s doesn't set FMT_CASE but at least one test-vector is case-sensitive",
-				format->params.label);
-			return err_buf;
-		} else if (!is_case_sensitive && (format->params.flags & FMT_CASE)) {
-			snprintf(err_buf, sizeof(err_buf),
-				"%s sets FMT_CASE but all test-vectors are case-insensitive",
-				format->params.label);
-			return err_buf;
-		}
-	}
-
-	if (!plaintext_is_blank) {
-		if (!strcmp(format->params.label, "crypt")) {
-/*
- * We "can't" reliably know if the underlying system's crypt() is 8-bit or not,
- * and in fact this will vary by actual hash type, of which multiple ones may
- * be loaded at once (with that one format). crypt SHOULD set FMT_8_BIT
- */
-			if (!(format->params.flags & FMT_8_BIT)) {
-				snprintf(err_buf, sizeof(err_buf),
-					"crypt should set FMT_8_BIT");
-				return err_buf;
-			}
-		} else if (!strncasecmp(format->params.label, "wpapsk", 6)) {
-/*
- * WPAPSK technically handles 8-bit, but a WPAPSK passphrase is 8 to 63
- * printable ASCII characters according to the spec. IEEE Std. 802.11i-2004,
- * Annex H.4.1: Each character in the pass-phrase must have an encoding in
- * the range of 32 to 126 (decimal), inclusive.
- */
-			if (format->params.flags & FMT_8_BIT) {
-				snprintf(err_buf, sizeof(err_buf),
-					"%s should not set FMT_8_BIT",
-					format->params.label);
-				return err_buf;
-			}
-		} else if (!is_ignore_8th_bit &&
-			   !(format->params.flags & FMT_8_BIT)) {
-			snprintf(err_buf, sizeof(err_buf),
-				"%s doesn't set FMT_8_BIT but at least one test-vector does not ignore the 8th bit",
-				format->params.label);
-			return err_buf;
-		} else if (is_ignore_8th_bit &&
-			   (format->params.flags & FMT_8_BIT)) {
-			snprintf(err_buf, sizeof(err_buf),
-				"%s sets FMT_8_BIT but all test-vectors ignore the 8th bit",
-				format->params.label);
-			return err_buf;
-		}
-	}
-
-	switch (is_split_unifies_case) {
-		case 1:
-			snprintf(err_buf, sizeof(err_buf), "should set FMT_SPLIT_UNIFIES_CASE");
-			return err_buf;
-		case 2:
-			snprintf(err_buf, sizeof(err_buf), "should not set FMT_SPLIT_UNIFIES_CASE");
-			return err_buf;
-		case 3:
-			snprintf(err_buf, sizeof(err_buf), "split() is only casing sometimes");
-			return err_buf;
-		case 4:
-			snprintf(err_buf, sizeof(err_buf), "split() case, or valid() should fail");
-			return err_buf;
-		case 0:
-		case -1:
-		default:
-			break;
-	}
-	switch (is_split_unifies_case_4) {
-		case 1:
-			snprintf(err_buf, sizeof(err_buf), "should set FMT_SPLIT_UNIFIES_CASE (#4)");
-			return err_buf;
-		case 2:
-			snprintf(err_buf, sizeof(err_buf), "should not set FMT_SPLIT_UNIFIES_CASE (#4)");
-			return err_buf;
-		case 3:
-			snprintf(err_buf, sizeof(err_buf), "split() is only casing sometimes (#4)");
-			return err_buf;
-		case 4:
-			snprintf(err_buf, sizeof(err_buf), "split() case, or valid() should fail (#4)");
-			return err_buf;
-		case 0:
-		case -1:
-		default:
-			break;
-	}
-
-	// Currently this code only has false positive failures, so for now, it is comment out.
-	// @loverszhaokai needs to look at a re-do of the function.  The 'blind' casing fails
-	// when there are constant strings, or things like user names embedded in the hash,
-	// or other non-hex strings.
-//	if (!(format->params.flags & FMT_SPLIT_UNIFIES_CASE) &&
-//		format->params.binary_size != 0 && is_change_case && is_need_unify_case) {
-//		snprintf(err_buf, sizeof(err_buf),
-//			"should unify cases in split() and set FMT_SPLIT_UNIFIES_CASE (#3)");
-//		return err_buf;
-//	}
-
-	format->methods.clear_keys();
-	format->private.initialized = 2;
-
-	MemDbg_Validate_msg(MEMDBG_VALIDATE_DEEPEST, "At end of self-test:");
-
-	return NULL;
-}
-
 /*
  * Allocate memory for a copy of a binary ciphertext or salt with only the
  * minimum guaranteed alignment.  We do this to test that binary_hash*(),
@@ -1759,6 +1481,26 @@ static void *alloc_binary(void **alloc, size_t size, size_t align)
 	return p;
 }
 
+#ifndef JUMBO_JTR
+char *fmt_self_test(struct fmt_main *format)
+{
+	char *retval;
+	void *binary_alloc, *salt_alloc;
+	void *binary_copy, *salt_copy;
+
+	binary_copy = alloc_binary(&binary_alloc,
+	    format->params.binary_size, format->params.binary_align);
+	salt_copy = alloc_binary(&salt_alloc,
+	    format->params.salt_size, format->params.salt_align);
+
+	retval = fmt_self_test_body(format, binary_copy, salt_copy);
+
+	MEM_FREE(salt_alloc);
+	MEM_FREE(binary_alloc);
+
+	return retval;
+}
+#else
 char *fmt_self_test(struct fmt_main *format, struct db_main *db)
 {
 	char *retval;
@@ -1774,10 +1516,9 @@ char *fmt_self_test(struct fmt_main *format, struct db_main *db)
 	 * while self-test is running. */
 	bench_running = 1;
 
-	if (options.flags & FLG_TEST_FULL_CHK)
-		retval = fmt_self_test_full_body(format, binary_copy, salt_copy, db);
-	else
-		retval = fmt_self_test_body(format, binary_copy, salt_copy, db);
+	if (benchmark_level >= 0)
+		benchmark_time = 0;
+	retval = fmt_self_test_body(format, binary_copy, salt_copy, db, benchmark_level);
 
 	bench_running = 0;
 
@@ -1786,6 +1527,7 @@ char *fmt_self_test(struct fmt_main *format, struct db_main *db)
 
 	return retval;
 }
+#endif
 
 void fmt_default_init(struct fmt_main *self)
 {

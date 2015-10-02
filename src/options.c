@@ -170,9 +170,9 @@ static struct opt_entry opt_list[] = {
 	{"test", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
 		~OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_time},
-	{"test-full", FLG_TEST_FULL_SET, FLG_TEST_FULL_CHK,
-		0, ~FLG_TEST_FULL_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
-		~OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_time},
+	{"test-full", FLG_TEST_SET, FLG_TEST_CHK,
+		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
+		OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_level},
 #ifdef HAVE_FUZZ
 	{"fuzz", FLG_FUZZ_SET, FLG_FUZZ_CHK,
 		0, ~FLG_FUZZ_DUMP_SET & ~FLG_FUZZ_SET & ~FLG_FORMAT &

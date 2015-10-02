@@ -83,6 +83,7 @@ void clk_tck_init(void)
 }
 
 int benchmark_time = BENCHMARK_TIME;
+int benchmark_level = -1;
 
 volatile int bench_running;
 

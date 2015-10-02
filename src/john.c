@@ -507,12 +507,6 @@ static void john_omp_show_info(void)
 		else if ((options.flags & FLG_TEST_CHK) &&
 		    (fmt_list->params.flags & FMT_OMP))
 			show = 1;
-		else if ((options.flags & (FLG_TEST_FULL_CHK | FLG_FORMAT)) ==
-		    FLG_TEST_FULL_CHK)
-			show = 1;
-		else if ((options.flags & FLG_TEST_FULL_CHK) &&
-		    (fmt_list->params.flags & FMT_OMP))
-			show = 1;
 
 		if (!show)
 			return;
@@ -865,8 +859,7 @@ static void john_load_conf(void)
 	options.loader.log_passwords = options.secure ||
 		cfg_get_bool(SECTION_OPTIONS, NULL, "LogCrackedPasswords", 0);
 
-	if (!pers_opts.input_enc && !(options.flags & FLG_TEST_CHK) &&
-	    !(options.flags & FLG_TEST_FULL_CHK)) {
+	if (!pers_opts.input_enc && !(options.flags & FLG_TEST_CHK)) {
 		if ((options.flags & FLG_LOOPBACK_CHK) &&
 		    cfg_get_bool(SECTION_OPTIONS, NULL, "UnicodeStoreUTF8", 0))
 			pers_opts.input_enc = cp_name2id("UTF-8");
@@ -1497,7 +1490,7 @@ static void john_run(void)
 	struct stat trigger_stat;
 	int trigger_reset = 0;
 
-	if (options.flags & FLG_TEST_CHK || options.flags & FLG_TEST_FULL_CHK)
+	if (options.flags & FLG_TEST_CHK)
 		exit_status = benchmark_all() ? 1 : 0;
 #ifdef HAVE_FUZZ
 	else
