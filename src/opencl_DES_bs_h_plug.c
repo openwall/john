@@ -207,13 +207,13 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 		else
 			sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" -fno-bin-amdil -fno-bin-source -fbin-exe %s", lws, enc_salt(salt_val));
 
-		opencl_build(id_gpu, build_opts, save_binary, kernel_bin_name);
+		opencl_build(id_gpu, build_opts, save_binary, kernel_bin_name, &program[id_gpu]);
 		fprintf(stderr, "Salt compiled from Source:%d\n", ++num_compiled_salt);
 	}
 	else {
 		fclose(file);
 		opencl_read_source(kernel_bin_name);
-		opencl_build_from_binary(id_gpu);
+		opencl_build_from_binary(id_gpu, &program[id_gpu]);
 		fprintf(stderr, "Salt compiled from Binary:%d\n", ++num_compiled_salt);
 	}
 }

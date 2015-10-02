@@ -909,8 +909,10 @@ static void dev_init(int sequential_id)
 
 static char *include_source(char *pathname, int sequential_id, char *opts)
 {
-	static char include[PATH_BUFFER_SIZE];
+	char *include;
 	char *global_opts;
+
+	include = (char *) mem_calloc(PATH_BUFFER_SIZE, sizeof(char));
 
 	if (!(global_opts = getenv("OPENCLBUILDOPTIONS")))
 		if (!(global_opts = cfg_get_param(SECTION_OPTIONS,
@@ -938,14 +940,19 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	return include;
 }
 
-void opencl_build(int sequential_id, char *opts, int save, char *file_name)
+/*
+ * For Thread Safety:
+ * 1. No instance of opencl_read_source() should run concurrently.
+ * 2. kernel_source_file must not be modified concurrently.
+ */
+void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_program *program)
 {
-	cl_int build_code;
+	cl_int build_code, err_code;
 	char *build_log, *build_opts;
 	size_t log_size;
 	const char *srcptr[] = { kernel_source };
 
-	if (getenv("DUMP_BINARY")) {
+	if (getenv("DUMP_BINARY") && !save) {
 		char *bname = basename(kernel_source_file);
 		char *ext = ".bin";
 		int size = strlen(bname) + strlen(ext) + 1;
@@ -957,22 +964,22 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name)
 	}
 
 	assert(kernel_loaded);
-	program[sequential_id] =
+	program[0] =
 	    clCreateProgramWithSource(context[sequential_id], 1, srcptr,
-	                              NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while creating program");
-
+	                              NULL, &err_code);
+	HANDLE_CLERROR(err_code, "Error while creating program");
+	// include source is thread safe.
 	build_opts = include_source("$JOHN/kernels", sequential_id, opts);
-	build_code = clBuildProgram(program[sequential_id], 0, NULL,
+	build_code = clBuildProgram(program[0], 0, NULL,
 	                            build_opts, NULL, NULL);
 
-	HANDLE_CLERROR(clGetProgramBuildInfo(program[sequential_id],
+	HANDLE_CLERROR(clGetProgramBuildInfo(program[0],
 	                                     devices[sequential_id],
 	                                     CL_PROGRAM_BUILD_LOG, 0, NULL,
 	                                     &log_size), "Error while getting build info I");
 	build_log = (char *)mem_calloc(1, log_size + 1);
 
-	HANDLE_CLERROR(clGetProgramBuildInfo(program[sequential_id],
+	HANDLE_CLERROR(clGetProgramBuildInfo(program[0],
 	                                     devices[sequential_id],
 	                                     CL_PROGRAM_BUILD_LOG, log_size + 1,
 	                                     (void *)build_log, NULL), "Error while getting build info");
@@ -991,13 +998,14 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name)
 	else if (options.verbosity >= LOG_VERB && strlen(build_log) > 1)
 		fprintf(stderr, "Build log: %s\n", build_log);
 	MEM_FREE(build_log);
+	MEM_FREE(build_opts);
 
 	if (save) {
 		FILE *file;
 		size_t source_size;
 		char *source;
 
-		HANDLE_CLERROR(clGetProgramInfo(program[sequential_id],
+		HANDLE_CLERROR(clGetProgramInfo(program[0],
 		                                CL_PROGRAM_BINARY_SIZES,
 		                                sizeof(size_t), &source_size, NULL), "error");
 
@@ -1006,7 +1014,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name)
 
 		source = mem_calloc(1, source_size);
 
-		HANDLE_CLERROR(clGetProgramInfo(program[sequential_id],
+		HANDLE_CLERROR(clGetProgramInfo(program[0],
 		                                CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");
 
 		file = fopen(path_expand(file_name), "w");
@@ -1042,37 +1050,44 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name)
 	}
 }
 
-void opencl_build_from_binary(int sequential_id)
+/*
+ * For Thread Safety:
+ * 1. No instance of opencl_read_source() should run concurrently.
+ * 2. kernel_source_file must not be modified concurrently.
+ */
+void opencl_build_from_binary(int sequential_id, cl_program *program)
 {
 	cl_int build_code;
+	char build_log[LOG_SIZE];
 	const char *srcptr[] = { kernel_source };
+
 	assert(kernel_loaded);
-	program[sequential_id] =
+	program[0] =
 	    clCreateProgramWithBinary(context[sequential_id], 1,
 	                              &devices[sequential_id], &program_size, (const unsigned char **)srcptr,
 	                              NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,
 	               "Error while creating program (using cached binary)");
 
-	build_code = clBuildProgram(program[sequential_id], 0,
+	build_code = clBuildProgram(program[0], 0,
 	                            NULL, NULL, NULL, NULL);
 
-	HANDLE_CLERROR(clGetProgramBuildInfo(program[sequential_id],
+	HANDLE_CLERROR(clGetProgramBuildInfo(program[0],
 	                                     devices[sequential_id],
-	                                     CL_PROGRAM_BUILD_LOG, sizeof(opencl_log), (void *)opencl_log,
+	                                     CL_PROGRAM_BUILD_LOG, sizeof(build_log), (void *)build_log,
 	                                     NULL), "Error while getting build info (using cached binary)");
 
 	// Report build errors and warnings
 	if (build_code != CL_SUCCESS) {
 		// Give us much info about error and exit
-		fprintf(stderr, "Binary build log: %s\n", opencl_log);
+		fprintf(stderr, "Binary build log: %s\n", build_log);
 		fprintf(stderr, "Error %d building kernel using cached binary."
 		        " DEVICE_INFO=%d\n", build_code, device_info[sequential_id]);
 		HANDLE_CLERROR(build_code, "clBuildProgram failed.");
 	}
 	// Nvidia may return a single '\n' that we ignore
-	else if (options.verbosity >= LOG_VERB && strlen(opencl_log) > 1)
-		fprintf(stderr, "Binary Build log: %s\n", opencl_log);
+	else if (options.verbosity >= LOG_VERB && strlen(build_log) > 1)
+		fprintf(stderr, "Binary Build log: %s\n", build_log);
 }
 
 // Do the proper test using different global work sizes.
@@ -1751,7 +1766,7 @@ void opencl_build_kernel_opt(char *kernel_filename, int sequential_id,
                              char *opts)
 {
 	opencl_read_source(kernel_filename);
-	opencl_build(sequential_id, opts, 0, NULL);
+	opencl_build(sequential_id, opts, 0, NULL, &program[sequential_id]);
 }
 
 #define md5add(string) MD5_Update(&ctx, (string), strlen(string))
@@ -1809,7 +1824,7 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 		if (!getenv("DUMP_BINARY") && !stat(path_expand(bin_name), &bin_stat) &&
 			(source_stat.st_mtime < bin_stat.st_mtime)) {
 			opencl_read_source(bin_name);
-			opencl_build_from_binary(sequential_id);
+			opencl_build_from_binary(sequential_id, &program[sequential_id]);
 		} else {
 			if (warn && options.verbosity > 2) {
 				fprintf(stderr, "Building the kernel, this "
@@ -1817,7 +1832,7 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 				fflush(stdout);
 			}
 			opencl_read_source(kernel_filename);
-			opencl_build(sequential_id, opts, 1, bin_name);
+			opencl_build(sequential_id, opts, 1, bin_name, &program[sequential_id]);
 		}
 		if (warn && options.verbosity > 2) {
 			if ((runtime = (unsigned long)(time(NULL) - startTime))
