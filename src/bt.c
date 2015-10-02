@@ -118,10 +118,15 @@ void bt_free(void **ptr)
 	*ptr = NULL;
 }
 
-void bt_error(const char *str)
+void bt_error_fn(const char *str, char *file, int line)
 {
-      fprintf(stderr, "%s\n", str);
+      fprintf(stderr, "%s in file:%s, line:%d.\n", str, file, line);
       error();
+}
+
+void bt_warn_fn(const char *str, char *file, int line)
+{
+      fprintf(stderr, "%s in file:%s, line:%d.\n", str, file, line);
 }
 
 static unsigned int modulo_op(void * hash, unsigned int N, uint64_t shift64, uint64_t shift128)
