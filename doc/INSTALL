@@ -151,14 +151,13 @@ After the above, you should be able to get an optimal build with AVX and/or
 whatever extra features your CPU has got.
 
 If you get weird problems including things like "error: unknown type name
-'dispatch_block_t'" on Yosemite, you might need to apply a patch for the
-system headers (at your own risk, as always, but backups are created). From
-John's "src" directory:
+'dispatch_block_t'" on 10.10 Yosemite, you might need to apply a patch for
+the system headers (at your own risk, as always, but backups are created).
+From John's "src" directory:
 
   sudo patch -b -N -p0 < unused/Yosemite.patch
 
-If the patch does not apply, perhaps it was fixed already by a system update
-that did not exist at the time of this writing.
+The patch is not needed for 10.11 "El Capitan".
 
 NOTE: The above command will create backup files. If you ever want to restore
 everything as it were originally:
