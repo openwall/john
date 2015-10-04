@@ -1218,7 +1218,9 @@ void process_keys(size_t current_gws, size_t *lws)
 
 char *get_device_name(int id)
 {
-	static char d_name[600];
+	char *d_name;
+
+	d_name = (char *) mem_calloc(600, sizeof(char));
 	HANDLE_CLERROR(clGetDeviceInfo(devices[id], CL_DEVICE_NAME, 600, d_name, NULL), "Failed to get device name.\n");
 	return d_name;
 }
@@ -1227,8 +1229,10 @@ void save_lws_config(const char* config_file, int id_gpu, size_t lws, unsigned i
 {
 	FILE *file;
 	char config_file_name[500];
+	char *d_name;
 
-	sprintf(config_file_name, config_file, get_device_name(id_gpu));
+	sprintf(config_file_name, config_file, d_name = get_device_name(id_gpu));
+	MEM_FREE(d_name);
 
 	file = fopen(path_expand(config_file_name), "r");
 	if (file != NULL) {
@@ -1264,9 +1268,11 @@ int restore_lws_config(const char *config_file, int id_gpu, size_t *lws, size_t 
 {
 	FILE *file;
 	char config_file_name[500];
+	char *d_name;
 	unsigned int param;
 
-	sprintf(config_file_name, config_file, get_device_name(id_gpu));
+	sprintf(config_file_name, config_file, d_name = get_device_name(id_gpu));
+	MEM_FREE(d_name);
 
 	file = fopen(path_expand(config_file_name), "r");
 	if (file == NULL)

@@ -912,7 +912,10 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 		if (!(global_opts = cfg_get_param(SECTION_OPTIONS,
 		                                  SUBSECTION_OPENCL, "GlobalBuildOpts")))
 			global_opts = OPENCLBUILDOPTIONS;
-
+#if _OPENMP
+#pragma omp critical
+#endif
+{
 	sprintf(include, "-I %s %s %s%s%s%s%d %s -D_OPENCL_COMPILER %s",
 	        path_expand(pathname),
 	        global_opts,
@@ -928,7 +931,7 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	        "-DDEVICE_INFO=", device_info[sequential_id],
 	        opencl_driver_ver(sequential_id),
 	        opts ? opts : "");
-
+}
 	if (options.verbosity > 3)
 		fprintf(stderr, "Options used: %s\n", include);
 	return include;
@@ -1004,9 +1007,12 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 
 		HANDLE_CLERROR(clGetProgramInfo(*program,
 		                                CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");
-
+#if _OPENMP
+#pragma omp critical
+#endif
+{
 		file = fopen(path_expand(file_name), "w");
-
+}
 		if (file == NULL)
 			fprintf(stderr, "Error creating binary file %s: %s\n",
 			        file_name, strerror(errno));
@@ -1704,10 +1710,15 @@ err:
 
 size_t opencl_read_source(char *kernel_filename, char **kernel_source)
 {
-	char *kernel_path = path_expand(kernel_filename);
-	FILE *fp = fopen(kernel_path, "rb");
+	FILE *fp;
 	size_t source_size, read_size;
 
+#if _OPENMP
+#pragma omp critical
+#endif
+{
+	fp = fopen(path_expand(kernel_filename), "rb");
+}
 	if (!fp)
 		pexit("Can't read source kernel");
 
