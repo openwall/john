@@ -187,7 +187,7 @@ static void set_salt(void *salt)
 static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary, int force_build, size_t lws, cl_program *program_ptr) {
 	char kernel_bin_name[200];
 	char *kernel_source = NULL;
-	char *d_name, *full_path;
+	char *d_name;
 	FILE *file;
 
 	sprintf(kernel_bin_name, BINARY_FILE, lws, d_name = get_device_name(id_gpu), salt_val);
@@ -196,9 +196,9 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 #if _OPENMP
 #pragma omp critical
 #endif
-	full_path = path_expand(kernel_bin_name);
-
-	file = fopen(full_path, "r");
+{
+	file = fopen(path_expand(kernel_bin_name), "r");
+}
 
 	if (file == NULL || force_build) {
 		char build_opts[10000];
@@ -681,7 +681,7 @@ static void reset(struct db_main *db)
 			salt_list[num_salts++] = (*(WORD *)salt -> salt);
 		} while ((salt = salt -> next));
 
-#if _OPENMP
+#if _OPENMP && PARALLEL_BUILD
 #pragma omp parallel for
 #endif
 		for (i = 0; i < num_salts; i++)
