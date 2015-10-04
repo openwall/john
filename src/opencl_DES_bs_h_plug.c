@@ -170,13 +170,15 @@ static void init_global_variables()
 
 static char* enc_salt(WORD salt_val)
 {
-	static unsigned int  index[48]  = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+	unsigned int  index[48]  = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
 				24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
 				48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
 				72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83};
 
-	static char build_opts[10000];
+	char *build_opts;
 	unsigned int i, j;
+
+	build_opts = (char *)mem_calloc(1000, sizeof(char));
 
 	for (i = 0, j = 0; i < 48; i++) {
 		sprintf(build_opts + j, "-D index%u=%u ", index[i], processed_salts[salt_val * 96 + index[i]]);
@@ -211,9 +213,7 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 		char build_opts[10000];
 		char *encoded_salt;
 		char *kernel_filename = "$JOHN/kernels/DES_bs_kernel_h.cl";
-#if _OPENMP
-#pragma omp critical
-#endif
+
 		encoded_salt = enc_salt(salt_val);
 
 		opencl_read_source(kernel_filename, &kernel_source);
@@ -222,11 +222,14 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 		else
 			sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" -fno-bin-amdil -fno-bin-source -fbin-exe %s", lws, encoded_salt);
 
+		MEM_FREE(encoded_salt);
 		opencl_build(id_gpu, build_opts, save_binary, kernel_bin_name, program_ptr, kernel_filename, kernel_source);
 #if _OPENMP
 #pragma omp critical
 #endif
+{
 		fprintf(stderr, "Salt compiled from Source:%d\n", ++num_compiled_salt);
+}
 	}
 	else {
 		size_t program_size;
@@ -236,7 +239,9 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 #if _OPENMP
 #pragma omp critical
 #endif
+{
 		fprintf(stderr, "Salt compiled from Binary:%d\n", ++num_compiled_salt);
+}
 	}
 	MEM_FREE(kernel_source);
 }
@@ -253,8 +258,12 @@ static void init_kernel(WORD salt_val, int id_gpu, int save_binary, int force_bu
 
 	kernels[id_gpu][salt_val] = clCreateKernel(program, "DES_bs_25", &err_code);
 	HANDLE_CLERROR(err_code, "Create Kernel DES_bs_25 failed.\n");
+#if _OPENMP
+#pragma omp critical
+#endif
+{
 	HANDLE_CLERROR(clSetKernelArg(kernels[id_gpu][salt_val], 0, sizeof(cl_mem), &buffer_map), "Failed setting kernel argument buffer_map, kernel DES_bs_25.\n");
-
+}
 	marked_salts[salt_val] = salt_val;
 
 	HANDLE_CLERROR(clReleaseProgram(program), "Error releasing Program");
