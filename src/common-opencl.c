@@ -1063,7 +1063,7 @@ void opencl_build_from_binary(int sequential_id, cl_program *program, char *kern
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(*program,
 	                                     devices[sequential_id],
-	                                     CL_PROGRAM_BUILD_LOG, sizeof(build_log), (void *)build_log,
+	                                     CL_PROGRAM_BUILD_LOG, LOG_SIZE, (void *)build_log,
 	                                     NULL), "Error while getting build info (using cached binary)");
 
 	// Report build errors and warnings
