@@ -640,6 +640,8 @@ static void reset(struct db_main *db)
 
 	if (initialized) {
 		struct db_salt *salt;
+		WORD salt_list[4096];
+		unsigned int num_salts, i;
 
 		release_clobj_kpc();
 		release_clobj();
@@ -674,9 +676,16 @@ static void reset(struct db_main *db)
 		}
 
 		salt = db -> salts;
+		num_salts = 0;
 		do {
-			init_kernel((*(WORD *)salt -> salt), gpu_id, 1, 0, forced_global_keys ? 0 :local_work_size);
+			salt_list[num_salts++] = (*(WORD *)salt -> salt);
 		} while ((salt = salt -> next));
+
+#if _OPENMP
+#pragma omp parallel for
+#endif
+		for (i = 0; i < num_salts; i++)
+			init_kernel(salt_list[i], gpu_id, 1, 0, forced_global_keys ? 0 :local_work_size);
 
 		set_kernel_args_kpc();
 	}
