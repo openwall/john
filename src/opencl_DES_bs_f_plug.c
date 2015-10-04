@@ -186,7 +186,7 @@ static void set_salt(void *salt)
 
 static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary, int force_build, size_t lws) {
 	char kernel_bin_name[200];
-	char *kernel_source;
+	char *kernel_source = NULL;
 	FILE *file;
 
 	sprintf(kernel_bin_name, BINARY_FILE, lws, get_device_name(id_gpu), salt_val);
