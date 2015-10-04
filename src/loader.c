@@ -862,7 +862,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 				        " \"%.*s\" (%s)\n",
 				        format->params.binary_size,
 				        (char*)binary, piece);
-				break;
+				continue;
 			}
 		}
 
