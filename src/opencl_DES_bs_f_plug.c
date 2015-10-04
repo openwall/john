@@ -184,32 +184,51 @@ static void set_salt(void *salt)
 	current_salt = *(WORD *)salt;
 }
 
-static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary, int force_build, size_t lws) {
+static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary, int force_build, size_t lws, cl_program *program_ptr) {
 	char kernel_bin_name[200];
 	char *kernel_source = NULL;
+	char *d_name, *full_path;
 	FILE *file;
 
-	sprintf(kernel_bin_name, BINARY_FILE, lws, get_device_name(id_gpu), salt_val);
+	sprintf(kernel_bin_name, BINARY_FILE, lws, d_name = get_device_name(id_gpu), salt_val);
+	MEM_FREE(d_name);
 
-	file = fopen(path_expand(kernel_bin_name), "r");
+#if _OPENMP
+#pragma omp critical
+#endif
+	full_path = path_expand(kernel_bin_name);
+
+	file = fopen(full_path, "r");
 
 	if (file == NULL || force_build) {
 		char build_opts[10000];
+		char *encoded_salt;
 		char *kernel_filename = "$JOHN/kernels/DES_bs_kernel_f.cl";
+#if _OPENMP
+#pragma omp critical
+#endif
+		encoded_salt = enc_salt(salt_val);
+
 		opencl_read_source(kernel_filename, &kernel_source);
 		if (get_platform_vendor_id(get_platform_id(id_gpu)) != DEV_AMD)
-			sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" %s", lws, enc_salt(salt_val));
+			sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" %s", lws, encoded_salt);
 		else
-			sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" -fno-bin-amdil -fno-bin-source -fbin-exe %s", lws, enc_salt(salt_val));
+			sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" -fno-bin-amdil -fno-bin-source -fbin-exe %s", lws, encoded_salt);
 
-		opencl_build(id_gpu, build_opts, save_binary, kernel_bin_name, &program[id_gpu], kernel_filename, kernel_source);
+		opencl_build(id_gpu, build_opts, save_binary, kernel_bin_name, program_ptr, kernel_filename, kernel_source);
+#if _OPENMP
+#pragma omp critical
+#endif
 		fprintf(stderr, "Salt compiled from Source:%d\n", ++num_compiled_salt);
 	}
 	else {
 		size_t program_size;
 		fclose(file);
 		program_size = opencl_read_source(kernel_bin_name, &kernel_source);
-		opencl_build_from_binary(id_gpu, &program[id_gpu], kernel_source, program_size);
+		opencl_build_from_binary(id_gpu, program_ptr, kernel_source, program_size);
+#if _OPENMP
+#pragma omp critical
+#endif
 		fprintf(stderr, "Salt compiled from Binary:%d\n", ++num_compiled_salt);
 	}
 	MEM_FREE(kernel_source);
@@ -217,14 +236,19 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 
 static void init_kernel(WORD salt_val, int id_gpu, int save_binary, int force_build, size_t lws)
 {
+	cl_program program;
+	cl_int err_code;
+
 	if (marked_salts[salt_val] == salt_val) return;
 
-	modify_build_save_restore(salt_val, id_gpu, save_binary, force_build, lws);
+	modify_build_save_restore(salt_val, id_gpu, save_binary, force_build, lws, &program);
 
-	kernels[id_gpu][salt_val] = clCreateKernel(program[id_gpu], "DES_bs_25", &ret_code);
-	HANDLE_CLERROR(ret_code, "Create Kernel DES_bs_25 failed.\n");
+	kernels[id_gpu][salt_val] = clCreateKernel(program, "DES_bs_25", &err_code);
+	HANDLE_CLERROR(err_code, "Create Kernel DES_bs_25 failed.\n");
 
 	marked_salts[salt_val] = salt_val;
+
+	HANDLE_CLERROR(clReleaseProgram(program), "Error releasing Program");
 }
 
 static void set_kernel_args_kpc()

@@ -905,6 +905,7 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 {
 	char *include;
 	char *global_opts;
+	char *fullpath;
 
 	include = (char *) mem_calloc(PATH_BUFFER_SIZE, sizeof(char));
 
@@ -912,9 +913,13 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 		if (!(global_opts = cfg_get_param(SECTION_OPTIONS,
 		                                  SUBSECTION_OPENCL, "GlobalBuildOpts")))
 			global_opts = OPENCLBUILDOPTIONS;
+#if _OPENMP
+#pragma omp critical
+#endif
+	fullpath = path_expand(pathname);
 
 	sprintf(include, "-I %s %s %s%s%s%s%d %s -D_OPENCL_COMPILER %s",
-	        path_expand(pathname),
+	        fullpath,
 	        global_opts,
 	        get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_MESA ?
 	            "-D__MESA__" : opencl_get_dev_info(sequential_id),
@@ -992,6 +997,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 		FILE *file;
 		size_t source_size;
 		char *source;
+		char *fullpath;
 
 		HANDLE_CLERROR(clGetProgramInfo(*program,
 		                                CL_PROGRAM_BINARY_SIZES,
@@ -1004,8 +1010,11 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 
 		HANDLE_CLERROR(clGetProgramInfo(*program,
 		                                CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");
-
-		file = fopen(path_expand(file_name), "w");
+#if _OPENMP
+#pragma omp critical
+#endif
+		fullpath = path_expand(file_name);
+		file = fopen(fullpath, "w");
 
 		if (file == NULL)
 			fprintf(stderr, "Error creating binary file %s: %s\n",
@@ -1704,10 +1713,16 @@ err:
 
 size_t opencl_read_source(char *kernel_filename, char **kernel_source)
 {
-	char *kernel_path = path_expand(kernel_filename);
-	FILE *fp = fopen(kernel_path, "rb");
+	char *kernel_path;
+	FILE *fp;
 	size_t source_size, read_size;
 
+#if _OPENMP
+#pragma omp critical
+#endif
+	kernel_path = path_expand(kernel_filename);
+
+	fp = fopen(kernel_path, "rb");
 	if (!fp)
 		pexit("Can't read source kernel");
 
