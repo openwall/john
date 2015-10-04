@@ -25,6 +25,10 @@ extern void path_init(char **argv);
  * The returned buffer might be overwritten with subsequent calls.
  */
 extern char *path_expand(char *name);
+/*
+ * Thread safe path_expand()
+ */
+extern char *path_expand_safe(char *name);
 
 /*
  * these 2 are used when -conf=path is used.  Here, we have a 'base'

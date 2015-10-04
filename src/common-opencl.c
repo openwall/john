@@ -903,7 +903,7 @@ static void dev_init(int sequential_id)
 
 static char *include_source(char *pathname, int sequential_id, char *opts)
 {
-	char *include;
+	char *include, *full_path;
 	char *global_opts;
 
 	include = (char *) mem_calloc(PATH_BUFFER_SIZE, sizeof(char));
@@ -912,12 +912,9 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 		if (!(global_opts = cfg_get_param(SECTION_OPTIONS,
 		                                  SUBSECTION_OPENCL, "GlobalBuildOpts")))
 			global_opts = OPENCLBUILDOPTIONS;
-#if _OPENMP
-#pragma omp critical
-#endif
-{
+
 	sprintf(include, "-I %s %s %s%s%s%s%d %s -D_OPENCL_COMPILER %s",
-	        path_expand(pathname),
+	        full_path = path_expand_safe(pathname),
 	        global_opts,
 	        get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_MESA ?
 	            "-D__MESA__" : opencl_get_dev_info(sequential_id),
@@ -931,7 +928,8 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	        "-DDEVICE_INFO=", device_info[sequential_id],
 	        opencl_driver_ver(sequential_id),
 	        opts ? opts : "");
-}
+	MEM_FREE(full_path);
+
 	if (options.verbosity > 3)
 		fprintf(stderr, "Options used: %s\n", include);
 	return include;
@@ -994,7 +992,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 	if (save) {
 		FILE *file;
 		size_t source_size;
-		char *source;
+		char *source, *full_path;
 
 		HANDLE_CLERROR(clGetProgramInfo(*program,
 		                                CL_PROGRAM_BINARY_SIZES,
@@ -1007,12 +1005,10 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 
 		HANDLE_CLERROR(clGetProgramInfo(*program,
 		                                CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");
-#if _OPENMP
-#pragma omp critical
-#endif
-{
-		file = fopen(path_expand(file_name), "w");
-}
+
+		file = fopen(full_path = path_expand_safe(file_name), "w");
+		MEM_FREE(full_path);
+
 		if (file == NULL)
 			fprintf(stderr, "Error creating binary file %s: %s\n",
 			        file_name, strerror(errno));
@@ -1711,14 +1707,12 @@ err:
 size_t opencl_read_source(char *kernel_filename, char **kernel_source)
 {
 	FILE *fp;
+	char *full_path;
 	size_t source_size, read_size;
 
-#if _OPENMP
-#pragma omp critical
-#endif
-{
-	fp = fopen(path_expand(kernel_filename), "rb");
-}
+	fp = fopen(full_path = path_expand_safe(kernel_filename), "rb");
+	MEM_FREE(full_path);
+
 	if (!fp)
 		pexit("Can't read source kernel");
 
