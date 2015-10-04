@@ -24,7 +24,6 @@ static cl_kernel **kernels;
 static cl_mem buffer_map, buffer_bs_keys, buffer_unchecked_hashes;
 static WORD *marked_salts = NULL, current_salt = 0;
 static unsigned int *processed_salts = NULL;
-static int num_compiled_salt = 0;
 
 static int mask_mode = 0;
 
@@ -196,18 +195,14 @@ static void set_salt(void *salt)
 static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary, int force_build, size_t lws, cl_program *program_ptr) {
 	char kernel_bin_name[200];
 	char *kernel_source = NULL;
-	char *d_name;
+	char *d_name, *full_path;
 	FILE *file;
 
 	sprintf(kernel_bin_name, BINARY_FILE, lws, d_name = get_device_name(id_gpu), salt_val);
 	MEM_FREE(d_name);
 
-#if _OPENMP
-#pragma omp critical
-#endif
-{
-	file = fopen(path_expand(kernel_bin_name), "r");
-}
+	file = fopen(full_path = path_expand_safe(kernel_bin_name), "r");
+	MEM_FREE(full_path);
 
 	if (file == NULL || force_build) {
 		char build_opts[10000];
@@ -224,24 +219,17 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 
 		MEM_FREE(encoded_salt);
 		opencl_build(id_gpu, build_opts, save_binary, kernel_bin_name, program_ptr, kernel_filename, kernel_source);
-#if _OPENMP
-#pragma omp critical
-#endif
-{
-		fprintf(stderr, "Salt compiled from Source:%d\n", ++num_compiled_salt);
-}
+
+		fprintf(stderr, "Salt compiled from Source:%d\n", salt_val);
+
 	}
 	else {
 		size_t program_size;
 		fclose(file);
 		program_size = opencl_read_source(kernel_bin_name, &kernel_source);
 		opencl_build_from_binary(id_gpu, program_ptr, kernel_source, program_size);
-#if _OPENMP
-#pragma omp critical
-#endif
-{
-		fprintf(stderr, "Salt compiled from Binary:%d\n", ++num_compiled_salt);
-}
+
+		fprintf(stderr, "Salt compiled from Binary:%d\n", salt_val);
 	}
 	MEM_FREE(kernel_source);
 }
