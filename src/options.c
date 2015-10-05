@@ -510,6 +510,9 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	opt_check(opt_list, options.flags, argv);
 
+	if (benchmark_level >= 0)
+		benchmark_time = 0;
+
 #if HAVE_OPENCL
 	if (options.format && strcasestr(options.format, "opencl") &&
 	    (options.flags & FLG_FORK) && options.gpu_devices->count == 0) {
