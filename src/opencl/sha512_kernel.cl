@@ -40,8 +40,8 @@ typedef struct { // notice memory align problem
 } sha512_ctx;
 
 typedef struct {
-    uint8_t length;
-    char v[PLAINTEXT_LENGTH+1];
+	uint8_t length;
+	char v[PLAINTEXT_LENGTH+1];
 } sha512_key;
 
 __constant uint64_t k[] = {
@@ -87,18 +87,17 @@ __constant uint64_t k[] = {
 	    0x6c44198c4a475817UL,
 };
 
-inline void sha512(__global const char* password, uint8_t pass_len,
-	__global uint64_t* hash, uint32_t offset)
+inline void sha512(__global const char *password, uint8_t pass_len,
+	__global uint64_t *hash, uint32_t offset)
 {
-    __private sha512_ctx ctx;
-
-	uint32_t* b32 = ctx.buffer;
+	__private sha512_ctx ctx;
+	uint32_t *b32 = ctx.buffer;
 
 	//set password to buffer
-    for (uint32_t i = 0; i < pass_len; i++) {
+	for (uint32_t i = 0; i < pass_len; i++) {
 		PUTCHAR(b32,i,password[i]);
 	}
-    ctx.buflen = pass_len;
+	ctx.buflen = pass_len;
 
 	//append 1 to ctx buffer
 	uint32_t length = ctx.buflen;
@@ -107,7 +106,7 @@ inline void sha512(__global const char* password, uint8_t pass_len,
 		PUTCHAR(b32, length, 0);
 	}
 
-	uint32_t* buffer32 = b32+(length>>2);
+	uint32_t *buffer32 = b32+(length>>2);
 	for(uint32_t i = length; i < 128; i+=4) {// append 0 to 128
 		*buffer32++=0;
 	}
@@ -132,12 +131,12 @@ inline void sha512(__global const char* password, uint8_t pass_len,
 
 	uint64_t *data = (uint64_t *) ctx.buffer;
 
-	#pragma unroll 16
+#pragma unroll 16
 	for (i = 0; i < 16; i++)
 		w[i] = SWAP64(data[i]);
 
 	uint64_t t1, t2;
-	#pragma unroll 16
+#pragma unroll 16
 	for (i = 0; i < 16; i++) {
 		t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
 		t2 = Maj(a, b, c) + Sigma0(a);
@@ -152,7 +151,7 @@ inline void sha512(__global const char* password, uint8_t pass_len,
 		a = t1 + t2;
 	}
 
-	#pragma unroll 61
+#pragma unroll 61
 	for (i = 16; i < 77; i++) {
 
 		w[i & 15] =sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i -16) & 15] + w[(i - 7) & 15];
@@ -176,24 +175,30 @@ __kernel void kernel_sha512(
 	__global uint64_t *hash)
 {
 	uint32_t idx = get_global_id(0);
+
 	for(uint32_t it = 0; it < ITERATIONS; ++it) {
 		uint32_t offset = idx+it*get_global_size(0);
+
 		sha512(password[offset].v, password[offset].length,
 		       hash, offset);
 	}
 }
 
 __kernel void kernel_cmp(
-	__constant uint64_t* binary,
+	__constant uint64_t *binary,
 	__global uint64_t *hash,
-	__global uint32_t* result)
+	__global uint32_t *result)
 {
 	uint32_t idx = get_global_id(0);
+
 	if(idx == 0)
 		*result = 0;
 
+	barrier(CLK_GLOBAL_MEM_FENCE);
+
 	for(uint32_t it = 0; it < ITERATIONS; ++it) {
 		uint32_t offset = idx+it*get_global_size(0);
+
 		if (*binary == hash[offset])
 			*result = 1;
 	}
