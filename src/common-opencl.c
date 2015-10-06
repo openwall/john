@@ -942,11 +942,12 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 	size_t log_size;
 	const char *srcptr[] = { kernel_source };
 
-	if (getenv("DUMP_BINARY") && !save) {
+	/* This over-rides binary caching */
+	if (getenv("DUMP_BINARY")) {
 		char *bname = basename(kernel_source_file);
 		char *ext = ".bin";
 		int size = strlen(bname) + strlen(ext) + 1;
-		char *name = mem_alloc(size);
+		char *name = mem_alloc_tiny(size, MEM_ALIGN_NONE);
 
 		save = 1;
 		snprintf(name, size, "%s%s", bname, ext);
