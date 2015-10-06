@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+
 #include "../cuda_cryptsha256.h"
 #include "cuda_common.cuh"
 
