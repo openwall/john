@@ -93,8 +93,6 @@ static cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
 #define STEP			0
 #define SEED			256
 
-#define PADDING 		2048
-
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl-autotune.h"
 #include "memdbg.h"
@@ -118,7 +116,7 @@ static const char *warn[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	size_t max_lws = MIN(get_kernel_max_lws(gpu_id, crypt_kernel), PADDING);
+	size_t max_lws = get_kernel_max_lws(gpu_id, crypt_kernel);
 
 	if (cpu(device_info[gpu_id]))
 		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
@@ -130,13 +128,13 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	size_t mem_alloc_sz;
 
-	mem_alloc_sz = KEY_SIZE_IN_BYTES * (gws + PADDING);
+	mem_alloc_sz = KEY_SIZE_IN_BYTES * gws;
 	cl_tx_keys = clCreateBuffer(context[gpu_id],
 				    CL_MEM_READ_ONLY,
 			            mem_alloc_sz, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed to create buffer cl_tx_keys.");
 
-	mem_alloc_sz = BINARY_SIZE * (gws + PADDING);
+	mem_alloc_sz = BINARY_SIZE * gws;
 	cl_tx_binary = clCreateBuffer(context[gpu_id],
 				      CL_MEM_WRITE_ONLY,
 			              mem_alloc_sz, NULL, &ret_code);
@@ -159,8 +157,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 				      sizeof(cl_mem), &cl_tx_binary),
 		                      "Failed to set kernel argument 2, cl_tx_binary.");
 
-	crypt_key = mem_calloc(gws + PADDING, BINARY_SIZE);
-	saved_key = mem_calloc(gws + PADDING, KEY_SIZE_IN_BYTES);
+	crypt_key = mem_calloc(gws, BINARY_SIZE);
+	saved_key = mem_calloc(gws, KEY_SIZE_IN_BYTES);
 }
 
 static void release_clobj(void)
@@ -194,7 +192,7 @@ static void reset(struct db_main *db)
 		crypt_kernel = clCreateKernel(program[gpu_id], "lotus5", &ret_code);
 		HANDLE_CLERROR(ret_code, "Failed to create kernel lotus5.");
 
-		gws_limit = get_max_mem_alloc_size(gpu_id) / KEY_SIZE_IN_BYTES - PADDING;
+		gws_limit = get_max_mem_alloc_size(gpu_id) / KEY_SIZE_IN_BYTES;
 
 		get_power_of_two(gws_limit);
 		gws_limit >>= 1;
@@ -304,14 +302,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					    "Failed to write buffer cl_tx_keys.");
 
 	M = local_work_size ? &local_work_size : NULL;
-	N = local_work_size ?
-		(count + (local_work_size - 1)) /
-		local_work_size * local_work_size : count;
-	assert(local_work_size <= PADDING);
+	N = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 					      crypt_kernel, 1,
-					      NULL, &N, M,
-	                                      0, NULL, multi_profilingEvent[1]),
+					      NULL, &N, M, 0, NULL, multi_profilingEvent[1]),
 					      "Failed to enqueue kernel lotus5.");
 
 	mem_cpy_sz = count * BINARY_SIZE;
