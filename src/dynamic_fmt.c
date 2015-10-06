@@ -1945,7 +1945,7 @@ static int get_hash_6(int index)
  * want to return THAT pointer, and not allocate a new pointer.
  * This works great, but forces us to do salt comparision here.
  ***********************************************************************/
-#define DYNA_SALT_HASH_BITS 15
+#define DYNA_SALT_HASH_BITS SALT_HASH_LOG
 #define DYNA_SALT_HASH_SIZE (1<<DYNA_SALT_HASH_BITS)
 #define DYNA_SALT_HASH_MOD  (DYNA_SALT_HASH_SIZE-1)
 
