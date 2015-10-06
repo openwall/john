@@ -26,21 +26,36 @@
 
 #define ROTATE_LEFT(x, s) rotate(x, (uint)s)
 
-#ifdef USE_BITSELECT
+#if USE_LOP3_LUT
+#define F(x, y, z)	lop3_lut(y, z, x, 0xe4)
+#define G(x, y, z)	lop3_lut(x, y, z, 0xe4)
+#elif USE_BITSELECT
 #define F(x, y, z)	bitselect((z), (y), (x))
 #define G(x, y, z)	bitselect((y), (x), (z))
 #else
 #if HAVE_ANDNOT
 #define F(x, y, z) ((x & y) ^ ((~x) & z))
 #else
-#define F(x, y, z) (z ^ (x & (y ^ z)))
+#define F(x, y, z)	((z) ^ ((x) & ((y) ^ (z))))
 #endif
 #define G(x, y, z)	((y) ^ ((z) & ((x) ^ (y))))
 #endif
 
-#define H(x, y, z)	((x ^ y) ^ z)
-#define H2(x, y, z)	(x ^ (y ^ z))
-#define I(x, y, z)	(y ^ (x | ~z))
+#if USE_LOP3_LUT
+#define H(x, y, z)	lop3_lut(x, y, z, 0x96)
+#define H2 H
+#else
+#define H(x, y, z)	(((x) ^ (y)) ^ (z))
+#define H2(x, y, z)	((x) ^ ((y) ^ (z)))
+#endif
+
+#if USE_LOP3_LUT
+#define I(x, y, z)	lop3_lut(x, y, z, 0x39)
+#elif USE_BITSELECT
+#define I(x, y, z)	((y) ^ bitselect(0xffffffffU, (x), (z)))
+#else
+#define I(x, y, z)	((y) ^ ((x) | ~(z)))
+#endif
 
 #define FF(v, w, x, y, z, s, ac) {        \
                 v += F(w, x, y) + z + ac; \

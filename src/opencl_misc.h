@@ -1,7 +1,7 @@
 /*
  * OpenCL macros
  *
- * Copyright (c) 2014, magnum
+ * Copyright (c) 2014-2015, magnum
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
@@ -39,6 +39,11 @@ typedef long int64_t;
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #endif
 
+#if SM_MAJOR >= 5
+/* This does no good right now */
+//#define USE_LOP3_LUT 1
+#endif
+
 #if !gpu_nvidia(DEVICE_INFO) || SM_MAJOR >= 5
 #define USE_BITSELECT 1
 #endif
@@ -51,19 +56,42 @@ typedef long int64_t;
 #define HAVE_ANDNOT 1
 #endif
 
+#if USE_LOP3_LUT
+inline uint lop3_lut(uint a, uint b, uint c, uint imm)
+{
+	uint r;
+	asm("lop3.b32 %0, %1, %2, %3, %4;"
+	    : "=r" (r)
+	    : "r" (a), "r" (b), "r" (c), "i" (imm));
+	return r;
+}
+
+inline ulong lop3_lut64(ulong a, ulong b, ulong c, uint imm)
+{
+	ulong r;
+	asm("lop3.b64 %0, %1, %2, %3, %4;"
+	    : "=r" (r)
+	    : "r" (a), "r" (b), "r" (c), "i" (imm));
+	return r;
+}
+#endif
+
 #if gpu_amd(DEVICE_INFO)
 #pragma OPENCL EXTENSION cl_amd_media_ops : enable
 #define BITALIGN(hi, lo, s) amd_bitalign((hi), (lo), (s))
 #else
 #if SM_MAJOR > 3 || (SM_MAJOR == 3 && SM_MINOR >= 2)
-inline uint funnel_shift_right(uint hi, uint lo, uint s) {
+inline uint funnel_shift_right(uint hi, uint lo, uint s)
+{
 	uint r;
 	asm("shf.r.wrap.b32 %0, %1, %2, %3;"
 	    : "=r" (r)
 	    : "r" (lo), "r" (hi), "r" (s));
 	return r;
 }
-inline uint funnel_shift_right_imm(uint hi, uint lo, uint s) {
+
+inline uint funnel_shift_right_imm(uint hi, uint lo, uint s)
+{
 	uint r;
 	asm("shf.r.wrap.b32 %0, %1, %2, %3;"
 	    : "=r" (r)
