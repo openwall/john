@@ -205,8 +205,10 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 		}
 	}
 
-	if (need_best_gws)
+	if (need_best_gws) {
+		release_clobj();
 		find_best_gws(self, gpu_id, rounds, max_run_time, 1);
+	}
 
 	/* Adjust to the final configuration */
 	release_clobj();
