@@ -1406,56 +1406,109 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 	MEM_FREE(cipher_copy);
 }
 
+static int is_known_len(int len) {
+	switch (len) {
+		case 16: case 24: case 28: case 32:
+		case 40: case 48: case 56: case 64:
+		case 72: case 84: case 96: case 112: case 128:
+			return 1;
+		default:
+			if (len&1)
+				return 0;
+			if (len > 128)
+				return 1;
+	}
+	return 0;
+}
+
 static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphertext, int *is_split_unifies_case, int call_cnt)
 {
-//	char *cipher_copy, *ret, *bin_hex, *ret_copy;
-//	void *bin;
-//	int first_index, second_index, size, index;
-//	int change_count = 0;
-//	char fake_user[5] = "john";
-//	char *flds[10] = {0,0,0,0,0,0,0,0,0,0};
-//
-//	if (*is_split_unifies_case>2) return; /* already know all we need to know. */
-//
-//	cipher_copy = strdup(ciphertext);
-//
-//	/*
-//	 * check for common case problem, but in a 'generic' manner. Here, we find sets of
-//	 * data that are 'hex-like'. All one case, not pure digits, AND of a 'known' expected length. The
-//	 * lengths we care about are:  16, 24, 28, 32, 40, 48, 56, 64, 72, 80, 96, 112, 128
-//	 * and even length strings > 128 bytes (which are likely data blobs).  When we find strings
-//	 * this length, we mangle them, and see if the format fixes them, or rejects them.  If the format
-//	 * neither fixes and does not reject the hash, then we return 'error'
-//	 */
-//	flds[0] = fake_user;
-//	flds[1] = cipher_copy;
-//	ret = format->methods.prepare(flds, format);
-//	if (format->methods.valid(ret, format)) {
-//		char *cp;
-//		int do_test=0;
-//		ret = format->methods.split(ret, 0, format);
-//		ret_copy = strdup(ret);
-//		// NOTE, this function is still WIP.  It is a safe 'failure' of logic
-//		// (i.e. says there are never problems), but it is not doing anything
-//		// yet.  It is included, since I am working on it. I just want to get
-//		// all the usable code added.
-//	}
-//
-//	return;
-//
-//	MEM_FREE(cipher_copy);
-//	if (!change_count)
-//		*is_split_unifies_case = 2;
-//	else
-//		*is_split_unifies_case = 0;
-//	return;
-//
-//change_case:
-//	MEM_FREE(cipher_copy);
-//	if (call_cnt == 0)
-//		*is_split_unifies_case = -1;
-//	else if (*is_split_unifies_case != -1)
-//		*is_split_unifies_case = 3;
+	char *cipher_copy, *ret, *ret_copy, *ret_fix;
+	int change_count = 0, i;
+	char fake_user[5] = "john";
+	char *flds[10] = {0,0,0,0,0,0,0,0,0,0};
+	static unsigned char case_hex_chars[256], case_hex_init=0;
+
+	if (!case_hex_init) {
+		case_hex_init = 1;
+		memset(case_hex_chars, 0, sizeof(case_hex_chars));
+		for (i = '0'; i <= '9'; ++i) case_hex_chars[i] = 1;	// 'bits'
+		for (i = 'a'; i <= 'f'; ++i) case_hex_chars[i] = 2;
+		for (i = 'A'; i <= 'F'; ++i) case_hex_chars[i] = 4;
+	}
+
+	if (*is_split_unifies_case>2) return; /* already know all we need to know. */
+
+	cipher_copy = strdup(ciphertext);
+
+	/*
+	 * check for common case problem, but in a 'generic' manner. Here, we find sets of
+	 * data that are 'hex-like'. All one case, not pure digits, AND of a 'known' expected length. The
+	 * lengths we care about are:  16, 24, 28, 32, 40, 48, 56, 64, 72, 80, 96, 112, 128
+	 * and even length strings > 128 bytes (which are likely data blobs).  When we find strings
+	 * this length, we mangle them, and see if the format fixes them, or rejects them.  If the format
+	 * neither fixes and does not reject the hash, then we return 'error'
+	 */
+	flds[0] = fake_user;
+	flds[1] = cipher_copy;
+	ret = format->methods.prepare(flds, format);
+	if (format->methods.valid(ret, format)) {
+		char *cp;
+		ret = format->methods.split(ret, 0, format);
+		ret_copy = strdup(ret);
+		// Ok, now walk the string, LOOKING for hex string or known lengths which are all 1 case, and NOT pure numeric
+		cp = ret_copy;
+		while (strlen(cp) > 16) {
+			if (case_hex_chars[ARCH_INDEX(*cp)]) {
+				unsigned cnt = 1, vals=case_hex_chars[ARCH_INDEX(*cp)];
+				char *cp2 = cp+1;
+				while (case_hex_chars[ARCH_INDEX(*cp2)]) {
+					++cnt;
+					vals |= case_hex_chars[ARCH_INDEX(*cp2)];
+					++cp2;
+				}
+				if ( ((vals&6) == 2 || (vals&6) == 4) && is_known_len(cnt)) {
+					// Ok, we have 'found' a hex block of a 'known' length.
+					// Flip the case, and see if split() returns it to cannonical
+					// or if valid says not valid.  If either of those happen, then
+					// we do not have the bug. If both fail, then we flag this format
+					// as HAVING the bug (possibly having the bug, but we report it).
+					int good = 0;
+					while (cp < cp2) {
+						if (*cp < '0' || *cp > '9')
+							*cp ^= 0x20;
+						++cp;
+					}
+					ret_fix = format->methods.split(ret_copy, 0, format);
+					if (!strcmp(ret_fix, ret))
+						good = 1;
+					else if (!format->methods.valid(ret_fix, format))
+						good = 1;
+					if (!good) {
+						// white list.
+						if (!strncmp(ret, "@dynamic=", 9)) {
+						} else
+							goto change_case;
+					}
+				}
+			}
+			++cp;
+		}
+	}
+
+	MEM_FREE(cipher_copy);
+	if (call_cnt == 0)
+		*is_split_unifies_case = -1;
+	else if (*is_split_unifies_case != -1)
+		*is_split_unifies_case = 3;
+	return;
+
+change_case:
+	MEM_FREE(cipher_copy);
+	if (!change_count)
+		*is_split_unifies_case = 2;
+	else
+		*is_split_unifies_case = 0;
 	return;
 }
 
