@@ -238,7 +238,6 @@ static int valid (char *ciphertext, struct fmt_main *self)
 
   for (i = 0; i < CIPHERTEXT_LENGTH; i++)
 	  if (!(((ciphertext[i] >= '0') && (ciphertext[i] <= '9'))
-				  || ((ciphertext[i] >= 'a') && (ciphertext[i] <= 'f'))
 				  || ((ciphertext[i] >= 'A') && (ciphertext[i] <= 'F'))))
 	  {
 		  return 0;

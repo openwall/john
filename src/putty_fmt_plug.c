@@ -147,7 +147,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* mac */
 		goto err;
-	if (strlen(p) > 128)
+	res = strlen(p);
+	if (res > 128)
+		goto err;
+	if (hexlenl(p) != res)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* public_blob_len */
 		goto err;
