@@ -168,13 +168,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!q)
 		return 0;
 	q = q + 1;
-	if (2 * len != q - p - 1 || 2 * len != strspn(p, HEXCHARS_all))
+	if (2 * len != q - p - 1 || 2 * len != strspn(p, HEXCHARS_lc))
 		return 0;
 	p = q; q = strchr(p, '$');	// last-chunks
 	if (!q)
 		return 0;
 	q = q + 1;
-	len = strspn(p, HEXCHARS_all);
+	len = strspn(p, HEXCHARS_lc);
 	if (len != q - p - 1 || len < 2 || (len & 1) || len/2 > sizeof(cur_salt->last_chunks))
 		return 0;
 	p = q; q = strchr(p, '$');	// inlined

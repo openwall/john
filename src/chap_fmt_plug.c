@@ -97,6 +97,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
+	int len;
 	if (strncmp(ciphertext,  "$chap$", 6) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -108,7 +109,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* challenge */
 		goto err;
-	if (hexlenl(p) > 64)
+	len = strlen(p);
+	if (len > 64 || (len&1))
+		goto err;
+	if (hexlenl(p) != len)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* binary */
 		goto err;
