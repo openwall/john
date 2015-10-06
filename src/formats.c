@@ -1486,7 +1486,9 @@ static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphert
 						good = 1;
 					if (!good) {
 						// white list.
-						if (!strncmp(ret, "@dynamic=", 9)) {
+						if (!strncmp(ret, "@dynamic=", 9) ||
+						    (ret[0]=='$'&&ret[1]=='2'&&ret[3]=='$'&& (ret[2]=='a'||ret[2]=='b'||ret[2]=='x'||ret[2]=='y') ) )
+						{
 						} else
 							goto change_case;
 					}
@@ -1569,6 +1571,8 @@ char *fmt_self_test(struct fmt_main *format, struct db_main *db)
 	 * while self-test is running. */
 	bench_running = 1;
 
+	if (benchmark_level >= 0)
+		benchmark_time = 0;
 	retval = fmt_self_test_body(format, binary_copy, salt_copy, db, benchmark_level);
 
 	bench_running = 0;
