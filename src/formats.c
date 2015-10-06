@@ -1571,8 +1571,6 @@ char *fmt_self_test(struct fmt_main *format, struct db_main *db)
 	 * while self-test is running. */
 	bench_running = 1;
 
-	if (benchmark_level >= 0)
-		benchmark_time = 0;
 	retval = fmt_self_test_body(format, binary_copy, salt_copy, db, benchmark_level);
 
 	bench_running = 0;
