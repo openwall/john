@@ -39,7 +39,7 @@ typedef long int64_t;
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #endif
 
-#if SM_MAJOR >= 5
+#if SM_MAJOR >= 5 && (DEV_VER_MAJOR > 352 || (DEV_VER_MAJOR == 352 && DEV_VER_MINOR >= 21))
 /* This does no good right now */
 //#define USE_LOP3_LUT 1
 #endif
