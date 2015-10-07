@@ -1422,7 +1422,7 @@ static int is_known_len(int len) {
 
 static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphertext, int *is_split_unifies_case, int call_cnt)
 {
-	char *cipher_copy, *ret, *ret_copy, *ret_fix;
+	char *cipher_copy, *ret, *ret_copy=0, *ret_fix;
 	int change_count = 0, i;
 	char fake_user[5] = "john";
 	char *flds[10] = {0,0,0,0,0,0,0,0,0,0};
@@ -1498,6 +1498,7 @@ static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphert
 	}
 
 	MEM_FREE(cipher_copy);
+	MEM_FREE(ret_copy);
 	if (call_cnt == 0)
 		*is_split_unifies_case = -1;
 	else if (*is_split_unifies_case != -1)
@@ -1505,6 +1506,7 @@ static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphert
 	return;
 
 change_case:
+	MEM_FREE(ret_copy);
 	MEM_FREE(cipher_copy);
 	if (!change_count)
 		*is_split_unifies_case = 2;
