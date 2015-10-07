@@ -274,7 +274,7 @@ cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
 @PLUGFORMATS_DEPS@
 
 %.cl:
-	$(CP) $< $? ../run/kernels
+	@$(CP) $? ../run/kernels && touch $@
 
 ../run/kernels:
 	$(MKDIR) ../run/kernels
