@@ -243,9 +243,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 		goto err;
-	if (strlen(p) != res * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != res * 2)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt length */
 		goto err;
@@ -254,9 +252,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p) != res * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != res * 2)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* something */
 		goto err;
@@ -265,7 +261,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	res = strlen(p);
 	if (res > 2048 || res & 1)
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 
 	MEM_FREE(keeptr);

@@ -48,9 +48,6 @@ static uint32_t *outbuffer;//[MAX_KEYS_PER_CRYPT * 8];				/** calculated hashes 
 static char currentsalt[64];
 static crypt_sha256_salt host_salt;
 
-void sha256_crypt_cpu(crypt_sha256_password * passwords,
-    crypt_sha256_hash * output, crypt_sha256_salt * salt);
-
 static void done(void)
 {
  MEM_FREE(inbuffer);

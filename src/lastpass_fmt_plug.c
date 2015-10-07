@@ -110,9 +110,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
-	if (strlen(p) != 32)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != 32)
 		goto err;
 
 	MEM_FREE(keeptr);

@@ -118,10 +118,15 @@ void bt_free(void **ptr)
 	*ptr = NULL;
 }
 
-void bt_error(const char *str)
+void bt_error_fn(const char *str, char *file, int line)
 {
-      fprintf(stderr, "%s\n", str);
+      fprintf(stderr, "%s in file:%s, line:%d.\n", str, file, line);
       error();
+}
+
+void bt_warn_fn(const char *str, char *file, int line)
+{
+      fprintf(stderr, "%s in file:%s, line:%d.\n", str, file, line);
 }
 
 static unsigned int modulo_op(void * hash, unsigned int N, uint64_t shift64, uint64_t shift128)
@@ -650,8 +655,16 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 		multiplier_ot = 1.31375173;
 		dupe_remove_ht_sz = 16777216;
 	}
-	else if (num_ld_hashes <= 110000000) {
+	else if (num_ld_hashes <= 20000000) {
+		multiplier_ot = 1.35375173;
+		dupe_remove_ht_sz = 33554432;
+	}
+	else if (num_ld_hashes <= 50000000) {
 		multiplier_ot = 1.41375173;
+		dupe_remove_ht_sz = 67108864;
+	}
+	else if (num_ld_hashes <= 110000000) {
+		multiplier_ot = 1.51375173;
 		dupe_remove_ht_sz = 134217728;
 	}
 	else if (num_ld_hashes <= 200000000) {
@@ -742,4 +755,3 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 }*/
 
 #endif
-

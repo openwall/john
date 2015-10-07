@@ -83,6 +83,7 @@ void clk_tck_init(void)
 }
 
 int benchmark_time = BENCHMARK_TIME;
+int benchmark_level = -1;
 
 volatile int bench_running;
 
@@ -384,6 +385,10 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	do {
 		int count = max;
 
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+		if (!bench_running)
+			advance_cursor();
+#endif
 		if (!--index) {
 			index = salts;
 			if (!(++current)->ciphertext)

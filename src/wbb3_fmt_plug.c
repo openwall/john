@@ -125,15 +125,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if (!ishex(p))
-		goto err;
-	if (strlen(p) > 40)
+	res = strlen(p);
+	if (hexlenl(p) != res)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
-	if (strlen(p) != BINARY_SIZE * 2)
-		goto err;
-	if(!ishex(p))
+	if (hexlenl(p) != BINARY_SIZE * 2)
 		goto err;
 
 	return 1;

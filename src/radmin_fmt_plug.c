@@ -88,15 +88,20 @@ static void done(void)
 	MEM_FREE(crypt_out);
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *self) {
+	static char buf[CIPHERTEXT_LENGTH + 10];   // $radmin2$ is 9 bytes
+	strnzcpy(buf, ciphertext, CIPHERTEXT_LENGTH + 10);
+	strlwr(buf);
+	return buf;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
 	if (strncmp(ciphertext, "$radmin2$", 9))
 		return 0;
 	p = ciphertext + 9;
-	if (strlen(p) != CIPHERTEXT_LENGTH)
-		return 0;
-	if (!ishex(p))
+	if (hexlen(p) != CIPHERTEXT_LENGTH)
 		return 0;
 	return 1;
 }
@@ -196,7 +201,7 @@ struct fmt_main fmt_radmin = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		radmin_tests
 	}, {
@@ -205,7 +210,7 @@ struct fmt_main fmt_radmin = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		fmt_default_salt,
 		{ NULL },

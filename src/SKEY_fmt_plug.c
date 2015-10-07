@@ -125,7 +125,7 @@ skey_valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if ((p = strtok(NULL, " \t")) == NULL)
 		return 0;
-	if (hexlen(p) != (2 * SKEY_BINKEY_SIZE))
+	if (hexlenl(p) != (2 * SKEY_BINKEY_SIZE))
 		return 0;
 
 	if (!skey_salt(ciphertext))

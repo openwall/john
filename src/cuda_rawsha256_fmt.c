@@ -6,6 +6,7 @@
 * SHA256 definition is used to distinguish between them.
 */
 #ifdef HAVE_CUDA
+
 #include <string.h>
 
 #include "arch.h"
@@ -116,6 +117,7 @@ extern int cuda_getAsyncEngineCount();
 static sha256_password *inbuffer;			/** binary ciphertexts **/
 static SHA_HASH *outbuffer;				/** calculated hashes **/
 static int overlap;
+
 static void done(void)
 {
 	if (overlap) {
@@ -349,4 +351,5 @@ struct fmt_main FMT_MAIN = {
 		cmp_exact
 	}
 };
-#endif
+
+#endif /* HAVE_CUDA */

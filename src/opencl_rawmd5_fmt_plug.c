@@ -304,7 +304,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 #endif
 	);
 
-	opencl_build(gpu_id, build_opts, 0, NULL);
+	opencl_build_kernel("$JOHN/kernels/md5_kernel.cl", gpu_id, build_opts, 1);
 	crypt_kernel = clCreateKernel(program[gpu_id], "md5", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 }
@@ -316,8 +316,6 @@ static void init(struct fmt_main *_self)
 	mask_int_cand_target = 10000;
 
 	opencl_prepare_dev(gpu_id);
-
-	opencl_read_source("$JOHN/kernels/md5_kernel.cl");
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -423,7 +421,7 @@ static char *get_key(int index)
 	}
 
 	if (t > global_work_size) {
-		fprintf(stderr, "Get key error! %d %d\n", t, index);
+		//fprintf(stderr, "Get key error! %d %d\n", t, index);
 		t = 0;
 	}
 
@@ -448,7 +446,7 @@ static char *get_key(int index)
 }
 static void prepare_table(struct db_salt *salt) {
 	unsigned int *bin, i;
-	struct db_password *pw;
+	struct db_password *pw, *last;
 
 	num_loaded_hashes = (salt->count);
 
@@ -460,21 +458,26 @@ static void prepare_table(struct db_salt *salt) {
 	loaded_hashes = (cl_uint*) mem_alloc(4 * num_loaded_hashes * sizeof(cl_uint));
 	hash_ids = (cl_uint*) mem_alloc((3 * num_loaded_hashes + 1) * sizeof(cl_uint));
 
-	pw = salt -> list;
+	last = pw = salt->list;
 	i = 0;
 	do {
-		bin = (unsigned int *)pw -> binary;
-		// Potential segfault if removed
-		if(bin != NULL) {
+		bin = (unsigned int *)pw->binary;
+		if (bin == NULL) {
+			if (last == pw)
+				salt->list = pw->next;
+			else
+				last->next = pw->next;
+		} else {
+			last = pw;
 			loaded_hashes[4 * i] = bin[0];
 			loaded_hashes[4 * i + 1] = bin[1];
 			loaded_hashes[4 * i + 2] = bin[2];
 			loaded_hashes[4 * i + 3] = bin[3];
-			i++ ;
+			i++;
 		}
-	} while ((pw = pw -> next)) ;
+	} while ((pw = pw->next)) ;
 
-	if(i != (salt->count)) {
+	if (i != (salt->count)) {
 		fprintf(stderr,
 			"Something went wrong while preparing hashes..Exiting..\n");
 		error();
@@ -1056,7 +1059,7 @@ struct fmt_main FMT_STRUCT = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_REMOVE,
 		{ NULL },
 		tests
 	}, {

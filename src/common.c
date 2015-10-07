@@ -57,14 +57,14 @@ void common_init(void)
 	initialized = 1;
 }
 
-int ishex(char *q)
+int ishex(const char *q)
 {
-	char *p=q;
+	const char *p=q;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	return !*q && !(((q-p))&1);
 }
-int ishex_oddOK(char *q)
+int ishex_oddOK(const char *q)
 {
 	// Sometimes it is 'ok' to have odd length hex.  Usually not.  If odd is
 	// allowed, then the format will have to properly handle odd length.
@@ -73,51 +73,51 @@ int ishex_oddOK(char *q)
 	return !*q;
 }
 
-int ishexuc(char *q)
+int ishexuc(const char *q)
 {
-	char *p=q;
+	const char *p=q;
 	while (atoi16u[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	return !*q && !(((p-q))&1);
 }
-int ishexlc(char *q)
+int ishexlc(const char *q)
 {
-	char *p=q;
+	const char *p=q;
 	while (atoi16l[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	return !*q && !(((p-q))&1);
 }
 
-int ishexn(char *q, int n)
+int ishexn(const char *q, int n)
 {
-	char *p=q;
+	const char *p=q;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	return (q-p) >= n;
 }
-int ishexucn(char *q, int n)
+int ishexucn(const char *q, int n)
 {
-	char *p=q;
+	const char *p=q;
 	while (atoi16u[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	return (q-p) >= n;
 }
-int ishexlcn(char *q, int n)
+int ishexlcn(const char *q, int n)
 {
-	char *p=q;
+	const char *p=q;
 	while (atoi16l[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	return (q-p) >= n;
 }
 
-int ishexuc_oddOK(char *q) {
+int ishexuc_oddOK(const char *q) {
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
 		if (*q >= 'a' && *q <= 'f') return 0;
 		++q;
 	}
 	return !*q ;
 }
-int ishexlc_oddOK(char *q) {
+int ishexlc_oddOK(const char *q) {
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
 		if (*q >= 'A' && *q <= 'F') return 0;
 		++q;
@@ -134,9 +134,9 @@ int ishexlc_oddOK(char *q) {
  * the length returned will be length-1 since it would not be proper to try
  * to hex convert the last odd byte.
  */
-static MAYBE_INLINE int _hexlen(char *q, unsigned char dic[0x100])
+static MAYBE_INLINE int _hexlen(const char *q, unsigned char dic[0x100])
 {
-	char *s = q;
+	const char *s = q;
 	size_t len = strlen(q);
 	if (len&1) --len;
 
@@ -145,34 +145,34 @@ static MAYBE_INLINE int _hexlen(char *q, unsigned char dic[0x100])
 	if ((size_t)(q - s)&1) --q;
 	return (len == (size_t)(q - s)) ? (int)(q - s) : 0 - (int)(q - s);
 }
-int hexlen(char *q)
+int hexlen(const char *q)
 {
 	return _hexlen(q, atoi16);
 }
-int hexlenu(char *q)
+int hexlenu(const char *q)
 {
 	return _hexlen(q, atoi16u);
 }
-int hexlenl(char *q)
+int hexlenl(const char *q)
 {
 	return _hexlen(q, atoi16l);
 }
 
-int isdec(char *q)
+int isdec(const char *q)
 {
 	char buf[24];
 	int x = atoi(q);
 	sprintf(buf, "%d", x);
 	return !strcmp(q,buf) && *q != '-';
 }
-int isdec_negok(char *q)
+int isdec_negok(const char *q)
 {
 	char buf[24];
 	int x = atoi(q);
 	sprintf(buf, "%d", x);
 	return !strcmp(q,buf);
 }
-int isdecu(char *q)
+int isdecu(const char *q)
 {
 	char buf[24];
 	unsigned int x = atou(q);
@@ -181,12 +181,12 @@ int isdecu(char *q)
 }
 /* provides the length of the base64 string.  See base64_convert.c for that
  * function. If the string is not 'pure', then the return is -1*length */
-int base64_mime_len(char *q) {
+int base64_mime_len(const char *q) {
 	return base64_valid_length(q, e_b64_mime, flg_Base64_RET_NEG_IF_NOT_PURE);
 }
-int base64_crypt_len(char *q) {
+int base64_crypt_len(const char *q) {
 	return base64_valid_length(q, e_b64_crypt, flg_Base64_RET_NEG_IF_NOT_PURE);
 }
-int base64_mime_du_len(char *q) {
+int base64_mime_du_len(const char *q) {
 	return base64_valid_length(q, e_b64_mime, flg_Base64_RET_NEG_IF_NOT_PURE|flg_Base64_MIME_DASH_UNDER);
 }

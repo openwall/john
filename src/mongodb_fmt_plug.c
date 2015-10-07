@@ -122,16 +122,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (type == 0) {
 		if (!(ptr = strtokm(NULL, "$"))) /* hash */
 			goto error;
-		if (strlen(ptr) != 32 || !ishex(ptr))
+		if (hexlenl(ptr) != 32)
 			goto error;
 	} else {
 		if (!(ptr = strtokm(NULL, "$"))) /* salt */
 			goto error;
-		if (strlen(ptr) != 16 || !ishex(ptr))
+		if (hexlenl(ptr) != 16)
 			goto error;
 		if (!(ptr = strtokm(NULL, "$"))) /* hash */
 			goto error;
-		if (strlen(ptr) != 32 || !ishex(ptr))
+		if (hexlenl(ptr) != 32)
 			goto error;
 	}
 

@@ -60,7 +60,7 @@ void RC4(RC4_KEY *ctx, RC4_INT len, const unsigned char *in, unsigned char *out)
 
 	state = &ctx->state[0];
 	for (counter = 0; counter < len; counter ++) {
-		x++;
+		x = (x + 1) & 255;
 		y = (state[x] + y) & 255;
 		swap_byte(&state[x], &state[y]);
 		*out++ = *in++ ^ state[(state[x] + state[y]) & 255];

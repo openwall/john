@@ -22,6 +22,7 @@
 #ifndef _HMAC_MD5_H
 
 #include "aligned.h"
+#include "md5.h"
 
 #if defined(__SUNPRO_C)
 // In this case, align is for memcpy, not strictly needed

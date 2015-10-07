@@ -367,10 +367,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto Err;
 
 	p += 1;
-	if (strlen(p) != BINARY_SIZE * 2)
-		goto Err;
 
-	if (!ishex(p))
+	if (hexlenl(p)  != BINARY_SIZE * 2)
 		goto Err;
 
 	if ((p - q) >= SALT_SIZE || p <= q)

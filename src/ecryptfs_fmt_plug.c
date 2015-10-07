@@ -139,12 +139,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (*p == '1' && *(p + 1) == '$') {
 		// handle salted variety
 		p += 2;
-		if (base64_valid_length(p, e_b64_hex, flg_Base64_NO_FLAGS) != HEX_BINARY_SIZE || p[HEX_BINARY_SIZE] != '$')
+		if ( abs(hexlenl(p)) != HEX_BINARY_SIZE || p[HEX_BINARY_SIZE] != '$')
 			return 0;
 		p += (HEX_BINARY_SIZE+1);
 	}
 
-	return base64_valid_length(p, e_b64_hex, flg_Base64_NO_FLAGS) == HEX_BINARY_SIZE;
+	return hexlenl(p) == HEX_BINARY_SIZE && !p[HEX_BINARY_SIZE];
 }
 
 static void *get_salt(char *ciphertext)

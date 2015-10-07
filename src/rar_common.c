@@ -303,12 +303,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* salt */
 		goto error;
-	if (hexlen(ptr) != 16) /* 8 bytes of salt */
+	if (hexlenl(ptr) != 16) /* 8 bytes of salt */
 		goto error;
 	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
 	if (mode == 0) {
-		if (hexlen(ptr) != 32) /* 16 bytes of encrypted known plain */
+		if (hexlenl(ptr) != 32) /* 16 bytes of encrypted known plain */
 			goto error;
 		MEM_FREE(keeptr);
 		return 1;
@@ -316,7 +316,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		int inlined;
 		long long plen, ulen;
 
-		if (hexlen(ptr) != 8) /* 4 bytes of CRC */
+		if (hexlenl(ptr) != 8) /* 4 bytes of CRC */
 			goto error;
 		if (!(ptr = strtokm(NULL, "*"))) /* pack_size */
 			goto error;
@@ -352,7 +352,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if (!(ptr = strtokm(NULL, "*"))) /* pack_size / archive_name */
 			goto error;
 		if (inlined) {
-			if (hexlen(ptr) != plen * 2)
+			if (hexlenl(ptr) != plen * 2)
 				goto error;
 		} else {
 			FILE *fp;

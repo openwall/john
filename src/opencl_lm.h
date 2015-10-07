@@ -50,8 +50,7 @@
 	}								\
 									\
 	if (section > global_work_size ) {				\
-		fprintf(stderr, "Get key error! %u "Zu"\n", section,	\
-			global_work_size);				\
+		/*fprintf(stderr, "Get key error! %u "Zu"\n", section, global_work_size);*/ \
 		section = 0;						\
 		block = 0;						\
 	}								\

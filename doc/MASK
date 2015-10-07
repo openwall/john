@@ -5,48 +5,59 @@ A mask may consist of:
 
 - Static letters.
 - Ranges in [aouei] or [a-z] syntax. Or both, [0-9abcdef] is the same as
-  [0-9a-f].
+     [0-9a-f].
 - Placeholders that are just a short form for ranges, like ?l which is
-  equivalent to [a-z].
+     100% equivalent to [a-z].
 - ?l lower-case ASCII letters
 - ?u upper-case ASCII letters
 - ?d digits
 - ?s specials (all printable ASCII characters not in ?l, ?u or ?d)
-- ?a full 'printable' ASCII
-- ?A all valid characters in the current code page
-- ?h all 8-bit (0x80-0xff)
-- ?H all except the NULL character (which is currently not supported by core)
-- ?L non-ASCII lower-case letters
-- ?U non-ASCII upper-case letters
+- ?a full 'printable' ASCII. Note that for formats that doesn't recognize case
+     (eg. LM), this only includes lower-case characters which is a tremendous
+     reduction of keyspace for the win.
+- ?B all 8-bit (0x80-0xff)
+- ?b all (0x01-0xff) (the NULL character is currently not supported by core).
+- ?L lower-case non-ASCII letters
+- ?U upper-case non-ASCII letters
 - ?D non-ASCII "digits"
 - ?S non-ASCII "specials"
+- ?A all valid characters in the current code page (including ASCII). Note
+     that for formats that doesn't recognize case (eg. LM), this only includes
+     lower-case characters which is a tremendous reduction of keyspace.
 - Placeholders that are custom defined, so we can eg. define ?1 to mean [?u?l]
   ?1 .. ?9 user-defined place-holder 1 .. 9
-- Placeholder for Hybrid Mask mode
+- Placeholders for Hybrid Mask mode:
   ?w is a placeholder for the original word produced by the parent mode in
-    Hybrid Mask mode.
+     Hybrid Mask mode.
   ?W is a placeholder for the original word produced by the parent mode in
-    Hybrid Mask mode, but instead of the original word, use the word with
-    the case of all letters switched (so password becomes PASSWORD)
+     Hybrid Mask mode, but instead of the original word, use the word with
+     the case of all letters toggled (so PassWord becomes pASSwORD)
 
 Mask Mode alone produces words from the mask, for example ?u?l?l will generate
 all possible three-letter words, with first character uppercased and the
 remaining in lowercase.
 
-Hybrid Mask means we use eg. a wordlist with or without rules (or some other
+Hybrid Mask means we use eg. a wordlist with or without rules (or any other
 cracking mode), and then apply the mask to each word. So with a mask of ?w?d?d
 and an input word (from the parent cracking mode) of "pass", it will produce
 "pass00", "pass01" and so on until "pass99". Hybrid Mask can be stacked upon
-Incremental, Markov, Wordlist and External modes.
+incremental, markov, wordlist, loopback and external modes. It is currently
+not supported for single or regex modes.
 
-External Filters currently can't be applied to Hybrid Mask output.
+For most fast GPU formats, mask mode (including hybrid) is several orders of
+magnitude faster than any other cracking mode, as the mask (or part of it) is
+applied on GPU side.
+
+External filters can be applied too, and will be applied last of all. The
+"longest" chain is thus wordlist->rules->mask->filter. Using external filters
+with "GPU side mask" will cause undefined behavior though: The filter will
+be applied before the GPU-side mask has finished the word.
 
 You can define custom placeholders for ?1 .. ?9 using command line eg. -1=?l?u
 or in john.conf section [Mask].
 
-There is a default mask in john.conf too (defaulting to same as Hashcat:
-?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d). This should be used with -max-len and possibly
--min-len.
+There is a default mask in john.conf too (defaulting to same as Hashcat).
+This should be used with -max-len (and possibly -min-len) to do any good.
 
 The -max-len=N option will truncate the mask so no words longer than N are
 produced.
@@ -54,8 +65,9 @@ produced.
 The -min-len=N option will skip generation of words shorter than N, and more
 importantly in this case, it will iterate length from -min-len to -max-len (or
 format's max length, if -max-len was not given). So to produce all possible
-words from 3 to 5 letters, use -mask=?l?l?l?l?l -min-len=3 -max-len=5. For this
-to work, the mask must have at least 5 positions defined.
+words from 3 to 5 letters, use -mask=?l -min-len=3 -max-len=5. In case the
+specified mask is shorter, the last part of it will be expanded, for example
+"-mask=?u?l -max-len=5" will use an effective mask of ?u?l?l?l?l.
 
 You can escape special characters with \. So to produce a literal "?l" you
 could say \?l or ?\l and it will not be parsed as a placeholder. Similarly you

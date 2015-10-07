@@ -59,7 +59,7 @@
 struct options_main options;
 struct pers_opts pers_opts; /* Not reset after forked resume */
 static char *field_sep_char_str, *show_uncracked_str, *salts_str;
-static char *encoding_str, *target_enc_str, *internal_enc_str;
+static char *encoding_str, *target_enc_str, *internal_cp_str;
 static char *costs_str;
 
 static struct opt_entry opt_list[] = {
@@ -99,8 +99,11 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
 	{"input-encoding", FLG_INPUT_ENC, FLG_INPUT_ENC,
 		0, 0, OPT_FMT_STR_ALLOC, &encoding_str},
+	{"internal-codepage", FLG_SECOND_ENC, FLG_SECOND_ENC,
+		0, 0, OPT_FMT_STR_ALLOC, &internal_cp_str},
+	/* -internal-encoding is a deprecated alias for -internal-codepage */
 	{"internal-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC,
-		0, 0, OPT_FMT_STR_ALLOC, &internal_enc_str},
+		0, 0, OPT_FMT_STR_ALLOC, &internal_cp_str},
 	{"target-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC,
 		0, 0, OPT_FMT_STR_ALLOC, &target_enc_str},
 	{"stdin", FLG_STDIN_SET, FLG_CRACKING_CHK},
@@ -167,9 +170,9 @@ static struct opt_entry opt_list[] = {
 	{"test", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
 		~OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_time},
-	{"test-full", FLG_TEST_FULL_SET, FLG_TEST_FULL_CHK,
-		0, ~FLG_TEST_FULL_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
-		~OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_time},
+	{"test-full", FLG_TEST_SET, FLG_TEST_CHK,
+		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
+		OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_level},
 #ifdef HAVE_FUZZ
 	{"fuzz", FLG_FUZZ_SET, FLG_FUZZ_CHK,
 		0, ~FLG_FUZZ_DUMP_SET & ~FLG_FUZZ_SET & ~FLG_FORMAT &
@@ -409,7 +412,7 @@ void opt_print_hidden_usage(void)
 	puts("--fuzz-dump[=from,to]     dump the fuzzed hashes between from and to to file pwfile.format");
 #endif
 	puts("--input-encoding=NAME     input encoding (alias for --encoding)");
-	puts("--internal-encoding=NAME  encoding used in rules/masks (see doc/ENCODING)");
+	puts("--internal-codepage=NAME  codepage used in rules/masks (see doc/ENCODING)");
 	puts("--target-encoding=NAME    output encoding (used by format, see doc/ENCODING)");
 #ifdef HAVE_OPENCL
 	puts("--force-scalar            (OpenCL) force scalar mode");
@@ -467,16 +470,21 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	opt_process(opt_list, &options.flags, argv);
 
 	if (options.flags & FLG_MASK_CHK) {
-		if (strcasestr(options.mask, "?w"))
+		if (options.flags & FLG_CRACKING_CHK)
 			options.flags |= FLG_MASK_STACKED;
-		else
+		else if (options.mask && strcasestr(options.mask, "?w")) {
+			fprintf(stderr, "?w is only used with hybrid mask\n");
+			error();
+		} else
 			options.flags |= FLG_CRACKING_SET;
 	}
-
 	if (options.flags & FLG_REGEX_CHK) {
-		if (strstr(options.regex, "\\0"))
+		if (options.flags & FLG_CRACKING_CHK)
 			options.flags |= FLG_REGEX_STACKED;
-		else
+		else if (strstr(options.regex, "\\0")) {
+			fprintf(stderr, "\\0 is only used with hybrid regex\n");
+			error();
+		} else
 			options.flags |= FLG_CRACKING_SET;
 	}
 
@@ -501,6 +509,9 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		options.flags |= FLG_BATCH_SET;
 
 	opt_check(opt_list, options.flags, argv);
+
+	if (benchmark_level >= 0)
+		benchmark_time = 0;
 
 #if HAVE_OPENCL
 	if (options.format && strcasestr(options.format, "opencl") &&
@@ -842,8 +853,8 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	 * that in john.conf or with the --encoding option.
 	 */
 	if ((encoding_str && !strcasecmp(encoding_str, "list")) ||
-	    (internal_enc_str &&
-	     !strcasecmp(internal_enc_str, "list")) ||
+	    (internal_cp_str &&
+	     !strcasecmp(internal_cp_str, "list")) ||
 	    (target_enc_str && !strcasecmp(target_enc_str, "list"))) {
 		listEncodings(stdout);
 		exit(EXIT_SUCCESS);
@@ -855,14 +866,14 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	if (target_enc_str)
 		pers_opts.target_enc = cp_name2id(target_enc_str);
 
-	if (internal_enc_str)
-		pers_opts.internal_enc = cp_name2id(internal_enc_str);
+	if (internal_cp_str)
+		pers_opts.internal_cp = cp_name2id(internal_cp_str);
 
 	if (pers_opts.input_enc && pers_opts.input_enc != UTF_8) {
 		if (!pers_opts.target_enc)
 			pers_opts.target_enc = pers_opts.input_enc;
-		if (!pers_opts.internal_enc)
-			pers_opts.internal_enc = pers_opts.input_enc;
+		if (!pers_opts.internal_cp)
+			pers_opts.internal_cp = pers_opts.input_enc;
 	}
 
 #ifdef HAVE_OPENCL

@@ -18,13 +18,12 @@
 
 #define PADDING 	2048
 #define CONFIG_FILE 	"$JOHN/kernels/DES_bs_kernel_f_%s.config"
-#define BINARY_FILE	"$JOHN/kernels/DES_bs_kernel_f_%zu_%s_%d.bin"
+#define BINARY_FILE	"$JOHN/kernels/DES_bs_kernel_f_"Zu"_%s_%d.bin"
 
 static cl_kernel **kernels;
 static cl_mem buffer_bs_keys, buffer_unchecked_hashes;
 static WORD *marked_salts = NULL, current_salt = 0;
 static unsigned int *processed_salts = NULL;
-static int num_compiled_salt = 0;
 
 static int mask_mode = 0;
 
@@ -99,7 +98,10 @@ static void clean_all_buffers()
 		if (kernels[gpu_id][i])
 		HANDLE_CLERROR(clReleaseKernel(kernels[gpu_id][i]), "Error releasing kernel");
 
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
+	if (program[gpu_id]) {
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
+		program[gpu_id] = NULL;
+	}
 
 	for (i = 0; i < MAX_GPU_DEVICES; i++)
 		MEM_FREE(kernels[i]);
@@ -160,13 +162,15 @@ static void init_global_variables()
 
 static char* enc_salt(WORD salt_val)
 {
-	static unsigned int  index[48]  = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+	unsigned int  index[48]  = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
 				24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
 				48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
 				72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83};
 
-	static char build_opts[10000];
+	char *build_opts;
 	unsigned int i, j;
+
+	build_opts = (char *)mem_calloc(1000, sizeof(char));
 
 	for (i = 0, j = 0; i < 48; i++) {
 		sprintf(build_opts + j, "-D index%u=%u ", index[i], processed_salts[salt_val * 96 + index[i]]);
@@ -181,43 +185,63 @@ static void set_salt(void *salt)
 	current_salt = *(WORD *)salt;
 }
 
-static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary, int force_build, size_t lws) {
+static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary, int force_build, size_t lws, cl_program *program_ptr) {
 	char kernel_bin_name[200];
+	char *kernel_source = NULL;
+	char *d_name, *full_path;
 	FILE *file;
 
-	sprintf(kernel_bin_name, BINARY_FILE, lws, get_device_name(id_gpu), salt_val);
+	sprintf(kernel_bin_name, BINARY_FILE, lws, d_name = get_device_name(id_gpu), salt_val);
+	MEM_FREE(d_name);
 
-	file = fopen(path_expand(kernel_bin_name), "r");
-
+	file = fopen(full_path = path_expand_safe(kernel_bin_name), "r");
+	MEM_FREE(full_path);
+	
 	if (file == NULL || force_build) {
-		static char build_opts[10000];
-		opencl_read_source("$JOHN/kernels/DES_bs_kernel_f.cl");
-		if (get_platform_vendor_id(get_platform_id(id_gpu)) != DEV_AMD)
-			sprintf(build_opts, "-D WORK_GROUP_SIZE=%zu %s", lws, enc_salt(salt_val));
-		else
-			sprintf(build_opts, "-D WORK_GROUP_SIZE=%zu -fno-bin-amdil -fno-bin-source -fbin-exe %s", lws, enc_salt(salt_val));
+		char build_opts[10000];
+		char *encoded_salt;
+		char *kernel_filename = "$JOHN/kernels/DES_bs_kernel_f.cl";
 
-		opencl_build(id_gpu, build_opts, save_binary, kernel_bin_name);
-		fprintf(stderr, "Salt compiled from Source:%d\n", ++num_compiled_salt);
+		encoded_salt = enc_salt(salt_val);
+
+		opencl_read_source(kernel_filename, &kernel_source);
+		if (get_platform_vendor_id(get_platform_id(id_gpu)) != DEV_AMD)
+			sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" %s", lws, encoded_salt);
+		else
+			sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" -fno-bin-amdil -fno-bin-source -fbin-exe %s", lws, encoded_salt);
+
+		MEM_FREE(encoded_salt);
+		opencl_build(id_gpu, build_opts, save_binary, kernel_bin_name, program_ptr, kernel_filename, kernel_source);
+
+		fprintf(stderr, "Salt compiled from Source:%d\n", salt_val);
+
 	}
 	else {
+		size_t program_size;
 		fclose(file);
-		opencl_read_source(kernel_bin_name);
-		opencl_build_from_binary(id_gpu);
-		fprintf(stderr, "Salt compiled from Binary:%d\n", ++num_compiled_salt);
+		program_size = opencl_read_source(kernel_bin_name, &kernel_source);
+		opencl_build_from_binary(id_gpu, program_ptr, kernel_source, program_size);
+
+		fprintf(stderr, "Salt compiled from Binary:%d\n", salt_val);
 	}
+	MEM_FREE(kernel_source);
 }
 
 static void init_kernel(WORD salt_val, int id_gpu, int save_binary, int force_build, size_t lws)
 {
+	cl_program program;
+	cl_int err_code;
+
 	if (marked_salts[salt_val] == salt_val) return;
 
-	modify_build_save_restore(salt_val, id_gpu, save_binary, force_build, lws);
+	modify_build_save_restore(salt_val, id_gpu, save_binary, force_build, lws, &program);
 
-	kernels[id_gpu][salt_val] = clCreateKernel(program[id_gpu], "DES_bs_25", &ret_code);
-	HANDLE_CLERROR(ret_code, "Create Kernel DES_bs_25 failed.\n");
+	kernels[id_gpu][salt_val] = clCreateKernel(program, "DES_bs_25", &err_code);
+	HANDLE_CLERROR(err_code, "Create Kernel DES_bs_25 failed.\n");
 
 	marked_salts[salt_val] = salt_val;
+
+	HANDLE_CLERROR(clReleaseProgram(program), "Error releasing Program");
 }
 
 static void set_kernel_args_kpc()
@@ -360,7 +384,7 @@ static void release_kernels()
 		}
 }
 
-static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int), WORD test_salt, int mask_mode, size_t extern_lws_limit)
+static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int), WORD test_salt, int mask_mode, size_t extern_lws_limit, unsigned int *forced_global_keys)
 {
 	unsigned int force_global_keys = 1;
 	unsigned int gws_tune_flag = 1;
@@ -376,7 +400,10 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	unsigned int des_log_depth = mask_mode ? 0 : DES_LOG_DEPTH;
 
 	if (cpu(device_info[gpu_id])) {
-		force_global_keys = 1;
+		if (get_platform_vendor_id(platform_id) == DEV_AMD)
+			force_global_keys = 0;
+		else
+			force_global_keys = 1;
 		kernel_run_ms = 5;
 	}
 	else if (amd_vliw4(device_info[gpu_id]) || amd_vliw5(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])) {
@@ -400,7 +427,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	opencl_get_user_preferences(FORMAT_LABEL);
 	if (global_work_size)
 		gws_tune_flag = 0;
-	if (local_work_size || restore_lws_config(CONFIG_FILE, gpu_id, &local_work_size, extern_lws_limit)) {
+	if (local_work_size || restore_lws_config(CONFIG_FILE, gpu_id, &local_work_size, extern_lws_limit, forced_global_keys)) {
 		lws_tune_flag = 0;
 		if (local_work_size & (local_work_size - 1)) {
 			get_power_of_two(local_work_size);
@@ -416,6 +443,8 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	if (s_mem_limited_lws == 0x800000 || !s_mem_limited_lws) {
 		long double best_time_ms;
 		size_t best_lws, lws_limit;
+
+		*forced_global_keys = 1;
 
 		release_kernels();
 		init_kernel(test_salt, gpu_id, 0, 1, 0);
@@ -497,6 +526,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 		}
 		else {
 			warp_size = 1;
+			if (!(cpu(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])))
 			fprintf(stderr, "Possible auto_tune fail!!.\n");
 		}
 
@@ -561,7 +591,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 		get_kernel_max_lws(gpu_id, kernels[gpu_id][test_salt]), time_ms,
 		best_time_ms);
 #endif
-				if (gpu(device_info[gpu_id])) {
+				if (gpu_amd(device_info[gpu_id]) || gpu_nvidia(device_info[gpu_id])) {
 					if (local_work_size < 16)
 						local_work_size = 16;
 					else if (local_work_size < 32)
@@ -587,7 +617,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	}
 	release_kernels();
 	if (lws_tune_flag)
-		save_lws_config(CONFIG_FILE, gpu_id, local_work_size);
+		save_lws_config(CONFIG_FILE, gpu_id, local_work_size, *forced_global_keys);
 
 	if (options.verbosity > 3)
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",
@@ -599,9 +629,12 @@ static void reset(struct db_main *db)
 	static int initialized;
 	int i;
 	size_t extern_lws_limit, limit_temp;
+	unsigned int forced_global_keys = 0;
 
 	if (initialized) {
 		struct db_salt *salt;
+		WORD salt_list[4096];
+		unsigned int num_salts, i;
 
 		release_clobj_kpc();
 		release_clobj();
@@ -631,13 +664,21 @@ static void reset(struct db_main *db)
 				}
 
 			} while ((salt = salt -> next));
-			auto_tune_all(300, fmt_opencl_DES.methods.set_key, test_salt, mask_mode, extern_lws_limit);
+			forced_global_keys = 0;
+			auto_tune_all(300, fmt_opencl_DES.methods.set_key, test_salt, mask_mode, extern_lws_limit, &forced_global_keys);
 		}
 
 		salt = db -> salts;
+		num_salts = 0;
 		do {
-			init_kernel((*(WORD *)salt -> salt), gpu_id, 1, 0, local_work_size);
+			salt_list[num_salts++] = (*(WORD *)salt -> salt);
 		} while ((salt = salt -> next));
+
+#if _OPENMP && PARALLEL_BUILD
+#pragma omp parallel for
+#endif
+		for (i = 0; i < num_salts; i++)
+			init_kernel(salt_list[i], gpu_id, 1, 0, forced_global_keys ? 0 :local_work_size);
 
 		set_kernel_args_kpc();
 	}
@@ -658,13 +699,13 @@ static void reset(struct db_main *db)
 		salt_val = *(WORD *)fmt_opencl_DES.methods.salt(fmt_opencl_DES.methods.split(
 			fmt_opencl_DES.params.tests[0].ciphertext, 0, &fmt_opencl_DES));
 
-		auto_tune_all(300, fmt_opencl_DES.methods.set_key, salt_val, 0, extern_lws_limit);
+		auto_tune_all(300, fmt_opencl_DES.methods.set_key, salt_val, 0, extern_lws_limit, &forced_global_keys);
 
 		i = 0;
 		while (fmt_opencl_DES.params.tests[i].ciphertext) {
 			ciphertext = fmt_opencl_DES.methods.split(fmt_opencl_DES.params.tests[i].ciphertext, 0, &fmt_opencl_DES);
 			salt_val = *(WORD *)fmt_opencl_DES.methods.salt(ciphertext);
-			init_kernel(salt_val, gpu_id, 1, 0, local_work_size);
+			init_kernel(salt_val, gpu_id, 1, 0, forced_global_keys ? 0 :local_work_size);
 			i++;
 		}
 

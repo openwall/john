@@ -491,9 +491,9 @@ static char * get_key(int index)
 	//Mask Mode plaintext recovery.
 	//TODO: ### remove me.
 	if (t > global_work_size) {
-		fprintf(stderr,
+		/*fprintf(stderr,
 			"Get key error! t: %d gws: "Zu" index: %d int_index: %d\n",
-			t, global_work_size, index, int_index);
+			t, global_work_size, index, int_index);*/
 		t = 0;
 	}
 	memcpy(ret, ((char *) &plaintext[saved_idx[t] >> 6]), PLAINTEXT_LENGTH);

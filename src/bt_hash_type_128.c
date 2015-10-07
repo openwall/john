@@ -29,7 +29,7 @@ inline uint128_t add128(uint128_t a, unsigned int b)
 	result.LO64 = a.LO64 + b;
 	result.HI64 = a.HI64 + (result.LO64 < a.LO64);
 	if (result.HI64 < a.HI64)
-		bt_error("128 bit add overflow.");
+		bt_warn("128 bit add overflow.");
 
 	return result;
 }

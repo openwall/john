@@ -443,8 +443,8 @@ static void release_buffer()
 
 static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s_mem_lws, unsigned int use_local_mem, unsigned int use_last_build_opt)
 {
-	static char build_opts[500];
 	static unsigned int last_build_opts[3];
+	char build_opts[500];
 	cl_ulong const_cache_size;
 	unsigned int i;
 
@@ -516,11 +516,11 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 
 
 	if (use_last_build_opt ? last_build_opts[0] : full_unroll)
-		opencl_read_source("$JOHN/kernels/lm_kernel_f.cl");
+		opencl_build_kernel("$JOHN/kernels/lm_kernel_f.cl",
+		                    gpu_id, build_opts, 1);
 	else
-		opencl_read_source("$JOHN/kernels/lm_kernel_b.cl");
-
-	opencl_build(gpu_id, build_opts, 0, NULL);
+		opencl_build_kernel("$JOHN/kernels/lm_kernel_b.cl",
+		                    gpu_id, build_opts, 1);
 
 	if (use_last_build_opt ? last_build_opts[0] : full_unroll) {
 		crypt_kernel = clCreateKernel(program[gpu_id], "lm_bs_f", &ret_code);
@@ -627,9 +627,8 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 	long double time_ms = 0;
 	int pcount;
 	unsigned int lm_log_depth = mask_mode ? 0 : LM_LOG_DEPTH;
-	size_t iter_count = (mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH;
 
-	size_t gws_limit = get_max_mem_alloc_size(gpu_id) / (sizeof(opencl_lm_transfer) * iter_count);
+	size_t gws_limit = get_max_mem_alloc_size(gpu_id) / sizeof(opencl_lm_transfer);
 	if (gws_limit > PADDING)
 		gws_limit -= PADDING;
 
@@ -637,6 +636,7 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 		get_power_of_two(gws_limit);
 		gws_limit >>= 1;
 	}
+
 	assert(gws_limit > PADDING);
 	assert(!(gws_limit & (gws_limit - 1)));
 
@@ -1045,30 +1045,36 @@ static char* select_bitmap(unsigned int num_ld_hashes, int *loaded_hashes, unsig
 	return kernel_params;
 }
 
-static char* prepare_table(struct db_salt *salt, OFFSET_TABLE_WORD **offset_table_ptr, unsigned int *bitmap_size_bits, unsigned **bitmaps_ptr) {
+static char* prepare_table(struct db_salt *salt, OFFSET_TABLE_WORD **offset_table_ptr, unsigned int *bitmap_size_bits, unsigned **bitmaps_ptr)
+{
 	int *bin, i;
-	struct db_password *pw;
+	struct db_password *pw, *last;
 	char *bitmap_params;
 	int *loaded_hashes;
 
 	num_loaded_hashes = salt->count;
 	loaded_hashes = (int *)mem_alloc(num_loaded_hashes * sizeof(int) * 2);
 
-	pw = salt -> list;
+	last = pw = salt->list;
 	i = 0;
 	do {
-		bin = (int *)pw -> binary;
-		// Potential segfault if removed
-		if(bin != NULL) {
+		bin = (int *)pw->binary;
+		if (bin == NULL) {
+			if (last == pw)
+				salt->list = pw->next;
+			else
+				last->next = pw->next;
+		} else {
+			last = pw;
 			loaded_hashes[2 * i] = bin[0];
 			loaded_hashes[2 * i + 1] = bin[1];
-			i++ ;
+			i++;
 		}
-	} while ((pw = pw -> next)) ;
+	} while ((pw = pw->next)) ;
 
-	if(i != (salt->count)) {
+	if (i > (salt->count)) {
 		fprintf(stderr,
-			"Something went wrong while preparing hashes..Exiting..\n");
+			"Something went wrong while preparing hashes(%d, %d)..Exiting..\n", i, salt->count);
 		error();
 	}
 
@@ -1111,8 +1117,7 @@ static char *get_key_mm(int index)
 	}
 
 	if (section > global_work_size ) {
-		fprintf(stderr, "Get key error! %u "Zu"\n", section,
-			global_work_size);
+		//fprintf(stderr, "Get key error! %u "Zu"\n", section, global_work_size);
 		section = 0;
 		depth = 0;
 		iter = 0;

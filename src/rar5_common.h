@@ -77,9 +77,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // salt
 		goto err;
-	if (strlen(p) != len * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != len * 2)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // iterations (in log2)
 		goto err;
@@ -91,9 +89,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // AES IV
 		goto err;
-	if (strlen(p) != SIZE_INITV * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != SIZE_INITV * 2)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // pswcheck len (redundant)
 		goto err;
@@ -103,9 +99,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // pswcheck
 		goto err;
-	if (strlen(p) != BINARY_SIZE * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != BINARY_SIZE * 2)
 		goto err;
 
 	MEM_FREE(keeptr);

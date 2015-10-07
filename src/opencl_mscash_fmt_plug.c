@@ -1,5 +1,6 @@
 /*
  * This software is Copyright (c) 2015, Sayantan Datta <std2048@gmail.com>
+ * and Copyright (c) 2015, magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -31,9 +32,11 @@ john_register_one(&FMT_STRUCT);
 #include "bt_interface.h"
 
 #define PLAINTEXT_LENGTH    27 /* Max. is 55 with current kernel */
-#define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)
-#define FORMAT_LABEL	    "mscash-opencl"
-#define FORMAT_NAME	    "M$ Cache Hash"
+#define UTF8_MAX_LENGTH     (3 * PLAINTEXT_LENGTH)
+#define BUFSIZE             ((UTF8_MAX_LENGTH + 3) / 4 * 4)
+#define AUTOTUNE_LENGTH     8
+#define FORMAT_LABEL        "mscash-opencl"
+#define FORMAT_NAME         "M$ Cache Hash"
 #define ALGORITHM_NAME      "MD4 OpenCL"
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0
@@ -41,8 +44,8 @@ john_register_one(&FMT_STRUCT);
 #define DIGEST_SIZE         16
 #define BINARY_SIZE         16
 #define BINARY_ALIGN        sizeof(unsigned int)
-#define SALT_LENGTH	    19
-#define SALT_SIZE	    (12 * sizeof(unsigned int))
+#define SALT_LENGTH         19
+#define SALT_SIZE           (12 * sizeof(unsigned int))
 #define SALT_ALIGN          sizeof(unsigned int)
 
 static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_int_key_loc;
@@ -69,11 +72,25 @@ static char mscash_prefix[] = "M$";
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
+#define SWAP(n) \
+    (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
+
 #define STEP                    0
 #define SEED                    1024
 
-#define SWAP(n) \
-    (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
+static const char *warn[] = {
+	"key xfer: ",  ", idx xfer: ",  ", crypt: ",  ", res xfer: "
+};
+
+//This file contains auto-tuning routine(s). Has to be included after formats definitions.
+#include "opencl-autotune.h"
+#include "memdbg.h"
+
+/* ------- Helper functions ------- */
+static size_t get_task_max_work_group_size()
+{
+	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+}
 
 #define get_power_of_two(v)	\
 {				\
@@ -87,21 +104,19 @@ static char mscash_prefix[] = "M$";
 	v++;			\
 }
 
-//This file contains auto-tuning routine(s). It has to be included after formats definitions.
-#include "memdbg.h"
-
+/* Note: some tests will be replaced in init() if running UTF-8 */
 static struct fmt_tests tests[] = {
-	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2"},
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
-	{"176a4c2bd45ac73687676c2f09045353", "", {"root"}},	// nullstring password
-	{"M$test3#14dd041848e12fc48c0aa7a416a4a00c", "test3"},
-	{"M$test4#b945d24866af4b01a6d89b9d932a153c", "test4"},
-	{"64cd29e36a8431a2b111378564a10631", "test1", {"TEST1"}},	// salt is lowercased before hashing
-	{"290efa10307e36a79b3eebf2a6b29455", "okolada", {"nineteen_characters"}},	// max salt length
-	{"ab60bdb4493822b175486810ac2abe63", "test2", {"test2"}},
-	{"b945d24866af4b01a6d89b9d932a153c", "test4", {"test4"}},
+	{"176a4c2bd45ac73687676c2f09045353", "", {"root"} }, // nullstring password
+	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2" },
+	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
+	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
+	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
+	{"M$test3#14dd041848e12fc48c0aa7a416a4a00c", "test3" },
+	{"M$test4#b945d24866af4b01a6d89b9d932a153c", "test4" },
+	{"64cd29e36a8431a2b111378564a10631", "test1", {"TEST1"} },    // salt is lowercased before hashing
+	{"290efa10307e36a79b3eebf2a6b29455", "okolada", {"nineteen_characters"} }, // max salt length
+	{"ab60bdb4493822b175486810ac2abe63", "test2", {"test2"} },
+	{"b945d24866af4b01a6d89b9d932a153c", "test4", {"test4"} },
 	{NULL}
 };
 
@@ -122,7 +137,7 @@ static void set_kernel_args()
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 10, sizeof(buffer_bitmap_dupe), (void *) &buffer_bitmap_dupe), "Error setting argument 11.");
 }
 
-static void create_clobj_kpc(size_t kpc)
+static void create_clobj(size_t kpc, struct fmt_main *self)
 {
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * kpc, NULL, &ret_code);
 	if (ret_code != CL_SUCCESS) {
@@ -154,9 +169,11 @@ static void create_clobj_kpc(size_t kpc)
 
 	buffer_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(cl_uint) * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_key_loc.");
+
+	set_kernel_args_kpc();
 }
 
-static void create_clobj()
+static void create_base_clobj()
 {
 	unsigned int dummy = 0;
 
@@ -176,9 +193,11 @@ static void create_clobj()
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys.");
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
+
+	set_kernel_args();
 }
 
-static void release_clobj_kpc(void)
+static void release_clobj(void)
 {
 	if (buffer_keys) {
 		if (pinned_saved_keys) {
@@ -211,7 +230,7 @@ static void release_clobj_test(void)
 	}
 }
 
-static void release_clobj(void)
+static void release_base_clobj(void)
 {
 	if (buffer_int_keys) {
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys.");
@@ -282,7 +301,7 @@ static void done(void)
 {
 	release_clobj_test();
 	release_clobj();
-	release_clobj_kpc();
+	release_base_clobj();
 
 	if (crypt_kernel) {
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel.");
@@ -315,7 +334,10 @@ static void init_kernel(void)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
 
 	sprintf(build_opts, "-D NUM_INT_KEYS=%u -D IS_STATIC_GPU_MASK=%d"
-		" -D CONST_CACHE_SIZE=%llu -D LOC_0=%d"
+#if !NT_FULL_UNICODE
+		" -DUCS_2"
+#endif
+		" -D CONST_CACHE_SIZE=%llu -D%s -D%s -DPLAINTEXT_LENGTH=%d -D LOC_0=%d"
 #if 1 < MASK_FMT_INT_PLHDR
 	" -D LOC_1=%d "
 #endif
@@ -326,7 +348,10 @@ static void init_kernel(void)
 	"-D LOC_3=%d"
 #endif
 	, mask_int_cand.num_int_cand, is_static_gpu_mask,
-	(unsigned long long)const_cache_size, static_gpu_locations[0]
+	(unsigned long long)const_cache_size, cp_id2macro(pers_opts.target_enc),
+	pers_opts.internal_cp == UTF_8 ? cp_id2macro(ASCII) :
+	cp_id2macro(pers_opts.internal_cp), PLAINTEXT_LENGTH,
+	static_gpu_locations[0]
 #if 1 < MASK_FMT_INT_PLHDR
 	, static_gpu_locations[1]
 #endif
@@ -338,7 +363,7 @@ static void init_kernel(void)
 #endif
 	);
 
-	opencl_build(gpu_id, build_opts, 0, NULL);
+	opencl_build_kernel("$JOHN/kernels/mscash_kernel.cl", gpu_id, build_opts, 1);
 	crypt_kernel = clCreateKernel(program[gpu_id], "mscash", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 }
@@ -350,23 +375,57 @@ static void init(struct fmt_main *_self)
 	mask_int_cand_target = 10000;
 
 	opencl_prepare_dev(gpu_id);
-	opencl_read_source("$JOHN/kernels/mscash_kernel.cl");
+
+	if (pers_opts.target_enc == UTF_8) {
+		self->params.plaintext_length = MIN(125, UTF8_MAX_LENGTH);
+		tests[1].ciphertext = "M$\xC3\xBC#48f84e6f73d6d5305f6558a33fa2c9bb";
+		tests[1].plaintext = "\xC3\xBC";         // German u-umlaut in UTF-8
+		tests[2].ciphertext = "M$user#9121790702dda0fa5d353014c334c2ce";
+		tests[2].plaintext = "\xe2\x82\xac\xe2\x82\xac"; // 2 x Euro signs
+	} else if (pers_opts.target_enc == ASCII || pers_opts.target_enc == ISO_8859_1) {
+		tests[1].ciphertext = "M$\xFC#48f84e6f73d6d5305f6558a33fa2c9bb";
+		tests[1].plaintext = "\xFC";         // German u-umlaut in UTF-8
+		tests[2].ciphertext = "M$\xFC\xFC#593246a8335cf0261799bda2a2a9c623";
+		tests[2].plaintext = "\xFC\xFC"; // 2 x Euro signs
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *hash, *p;
-	if (strncmp(ciphertext, mscash_prefix, strlen(mscash_prefix)) != 0)
+	unsigned int i;
+	unsigned int l;
+	char insalt[3*19+1];
+	UTF16 realsalt[21];
+	int saltlen;
+
+	if (strncmp(ciphertext, "M$", 2))
 		return 0;
-	hash = p = strrchr(ciphertext, '#');
-	if (!p)
+
+	l = strlen(ciphertext);
+	if (l <= 32 || l > CIPHERTEXT_LENGTH)
 		return 0;
-	p++;
-	hash++;
-	while (*p)
-		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
+
+	l -= 32;
+	if (ciphertext[l-1]!='#')
+		return 0;
+
+	for (i = l; i < l + 32; i++)
+		if (atoi16[ARCH_INDEX(ciphertext[i])] == 0x7F)
 			return 0;
-	return p - hash == 32;
+
+	// This is tricky: Max supported salt length is 19 characters of Unicode
+	saltlen = enc_to_utf16(realsalt, 20, (UTF8*)strnzcpy(insalt, &ciphertext[2], l - 2), l - 3);
+	if (saltlen < 0 || saltlen > 19) {
+		static int warned = 0;
+
+		if (!ldr_in_pot)
+		if (!warned++)
+			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+
+		return 0;
+	}
+
+	return 1;
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
@@ -384,13 +443,18 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
-	if (!strncmp(split_fields[1], "M$", 2) && valid(split_fields[1], self))
+	int i;
+	if (!strncmp(split_fields[1], "M$", 2) || !split_fields[0])
 		return split_fields[1];
 	if (!split_fields[0])
 		return split_fields[1];
-	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
-	sprintf(cp, "M$%s#%s", split_fields[0], split_fields[1]);
-	if (valid(cp, self)) {
+	for (i = 0; i < 32; i++)
+		if (atoi16[ARCH_INDEX(split_fields[1][i])] == 0x7F)
+			return split_fields[1];
+	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
+	sprintf (cp, "M$%s#%s", split_fields[0], split_fields[1]);
+	if (valid(cp, self))
+	{
 		char *cipher = str_alloc_copy(cp);
 		MEM_FREE(cp);
 		return cipher;
@@ -411,44 +475,37 @@ static void *binary(char *ciphertext)
 	return binary;
 }
 
-void prepare_login(unsigned int * login, int length,
-    unsigned int * nt_buffer)
-{
-	int i = 0, nt_index, keychars;;
-	for (i = 0; i < 12; i++)
-		nt_buffer[i] = 0;
-
-	nt_index = 0;
-	for (i = 0; i < (length + 4)/ 4; i++) {
-		keychars = login[i];
-		nt_buffer[nt_index++] = (keychars & 0xFF) | (((keychars >> 8) & 0xFF) << 16);
-		nt_buffer[nt_index++] = ((keychars >> 16) & 0xFF) | ((keychars >> 24) << 16);
-	}
-	nt_index = (length >> 1);
-	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
-	nt_buffer[nt_index + 1] = 0;
-	nt_buffer[10] = (length << 4) + 128;
-}
-
 static void *salt(char *ciphertext)
 {
 	static union {
-		char csalt[SALT_LENGTH + 1];
-		unsigned int  isalt[(SALT_LENGTH + 4)/4];
-	} salt;
-	static unsigned int final_salt[12];
+		unsigned int w[12];
+		UTF16 s[24];
+	} nt_buffer;
+	UTF16 *out = nt_buffer.s;
+	UTF16 usalt[SALT_LENGTH + 1 + 2];
+	UTF16 *login = usalt;
+	UTF8 csalt[3 * SALT_LENGTH + 1];
+	int i, length = 0;
 	char *pos = ciphertext + strlen(mscash_prefix);
-	int length = 0;
-	memset(&salt, 0, sizeof(salt));
-	while (*pos != '#') {
-		if (length == SALT_LENGTH)
-			return NULL;
-		salt.csalt[length++] = *pos++;
-	}
-	salt.csalt[length] = 0;
-	enc_strlwr(salt.csalt);
-	prepare_login(salt.isalt, length, final_salt);
-	return &final_salt;
+
+	memset(nt_buffer.w, 0, sizeof(nt_buffer.w));
+	memset(usalt, 0, sizeof(usalt));
+
+	while (*pos != '#' && length < 3 * SALT_LENGTH)
+		csalt[length++] = *pos++;
+	csalt[length] = 0;
+
+	enc_strlwr((char*)csalt);
+	enc_to_utf16(usalt, SALT_LENGTH, csalt, length);
+	length = strlen16(usalt);
+
+	for (i = 0; i < length; i++)
+		*out++ = *login++;
+	*out++ = 0x80;
+
+	nt_buffer.w[10] = (length << 4) + 128;
+
+	return &nt_buffer.w;
 }
 
 /* Used during self-test. */
@@ -457,7 +514,7 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_salt_test, CL_TRUE, 0, 12 * sizeof(cl_uint), salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_salt_test.");
 }
 
-static void set_salt_no_op(void *salt){}
+static void set_salt_no_op(void *salt) {}
 
 static int get_hash_0(int index) { return hash_tables[current_salt][hash_ids[3 + 3 * index]] & PH_MASK_0; }
 static int get_hash_1(int index) { return hash_tables[current_salt][hash_ids[3 + 3 * index]] & PH_MASK_1; }
@@ -493,7 +550,7 @@ static void set_key(char *_key, int index)
 		}
 	}
 
-	saved_idx[index] = (key_idx << 6) | len;
+	saved_idx[index] = (key_idx << 7) | len;
 
 	while (len > 4) {
 		saved_plain[key_idx++] = *key++;
@@ -506,7 +563,7 @@ static void set_key(char *_key, int index)
 
 static char *get_key(int index)
 {
-	static char out[PLAINTEXT_LENGTH + 1];
+	static char out[UTF8_MAX_LENGTH + 1];
 	int i, len, int_index, t;
 	char *key;
 
@@ -522,12 +579,12 @@ static char *get_key(int index)
 	}
 
 	if (t > global_work_size) {
-		fprintf(stderr, "Get key error! %d %d\n", t, index);
+		//fprintf(stderr, "Get key error! %d %d\n", t, index);
 		t = 0;
 	}
 
-	len = saved_idx[t] & 63;
-	key = (char*)&saved_plain[saved_idx[t] >> 6];
+	len = saved_idx[t] & 127;
+	key = (char*)&saved_plain[saved_idx[t] >> 7];
 
 	for (i = 0; i < len; i++)
 		out[i] = *key++;
@@ -672,20 +729,27 @@ static void prepare_table(struct db_main *db)
 		unsigned int i = 0;
 		unsigned int num_loaded_hashes, salt_params[SALT_SIZE / sizeof(unsigned int) + 5];
 		unsigned int hash_table_size, offset_table_size, shift64_ht_sz, shift64_ot_sz;
-		struct db_password *pw = salt->list;
+		struct db_password *pw, *last;
+
+		last = pw = salt->list;
 		do {
 			unsigned int *bin = (unsigned int *)pw->binary;
-			// Potential segfault if removed
-			if(bin != NULL) {
+			if (bin == NULL) {
+				if (last == pw)
+					salt->list = pw->next;
+				else
+					last->next = pw->next;
+			} else {
+				last = pw;
 				loaded_hashes[4 * i] = bin[0];
 				loaded_hashes[4 * i + 1] = bin[1];
 				loaded_hashes[4 * i + 2] = bin[2];
 				loaded_hashes[4 * i + 3] = bin[3];
 				i++;
 			}
-		} while ((pw = pw -> next));
+		} while ((pw = pw->next));
 
-		if(i != salt->count) {
+		if (i != salt->count) {
 			fprintf(stderr,
 				"Something went wrong while preparing hashes..Exiting..\n");
 			error();
@@ -744,30 +808,36 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 
 	size_t *lws = local_work_size ? &local_work_size : NULL;
+	size_t gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
-
-	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand%d\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx, mask_int_cand.num_int_cand);
+	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand %d\n", __FUNCTION__, count, local_work_size, gws, key_idx, mask_int_cand.num_int_cand);
 
 	// copy keys to the device
-	if (set_new_keys) {
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_keys.");
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * global_work_size, saved_idx, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_idx.");
+	if (set_new_keys || ocl_autotune_running) {
+		if (key_idx)
+			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys.");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx.");
 		if (!is_static_gpu_mask)
-			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
+			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, 0, 4 * gws, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
 		set_new_keys = 0;
 	}
-	if (salt) {
+
+	if (salt && self->methods.set_salt == set_salt_no_op) {
 		current_salt = salt->sequential_id;
 		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_salts[current_salt]), (void *) &buffer_salts[current_salt]), "Error setting argument 3.");
 		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_bitmaps[current_salt]), (void *) &buffer_bitmaps[current_salt]), "Error setting argument 6.");
 		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_offset_tables[current_salt]), (void *) &buffer_offset_tables[current_salt]), "Error setting argument 7.");
 		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_hash_tables[current_salt]), (void *) &buffer_hash_tables[current_salt]), "Error setting argument 8.");
+	} else {
+		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_salt_test), (void *) &buffer_salt_test), "Error setting argument 3.");
+		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_bitmaps_test), (void *) &buffer_bitmaps_test), "Error setting argument 6.");
+		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_offset_table_test), (void *) &buffer_offset_table_test), "Error setting argument 7.");
+		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_hash_table_test), (void *) &buffer_hash_table_test), "Error setting argument 8.");
 	}
 
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
 
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), hash_ids, 0, NULL, NULL), "failed in reading back num cracked hashes.");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), hash_ids, 0, NULL, multi_profilingEvent[3]), "failed in reading back num cracked hashes.");
 
 	if (hash_ids[0] > max_num_loaded_hashes) {
 		fprintf(stderr, "Error, crypt_all kernel.\n");
@@ -775,9 +845,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	if (hash_ids[0]) {
-		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_return_hashes, CL_TRUE, 0, 2 * sizeof(cl_uint) * hash_ids[0], loaded_hashes, 0, NULL, NULL), "failed in reading back return_hashes.");
+		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_return_hashes, CL_FALSE, 0, 2 * sizeof(cl_uint) * hash_ids[0], loaded_hashes, 0, NULL, NULL), "failed in reading back return_hashes.");
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (3 * hash_ids[0] + 1) * sizeof(cl_uint), hash_ids, 0, NULL, NULL), "failed in reading data back hash_ids.");
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmap_dupe, CL_TRUE, 0, (max_hash_table_size/32 + 1) * sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmap_dupe.");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmap_dupe, CL_FALSE, 0, (max_hash_table_size/32 + 1) * sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmap_dupe.");
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
 	}
 
@@ -808,221 +878,53 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void auto_tune(struct db_main *db, long double kernel_run_ms)
-{
-	size_t gws_limit, gws_init;
-	size_t lws_limit, lws_init;
-
-	struct timeval startc, endc;
-	long double time_ms = 0, old_time_ms = 0;
-
-	size_t pcount, count;
-	size_t i;
-
-	int tune_gws, tune_lws;
-
-	char key[PLAINTEXT_LENGTH + 1];
-	unsigned int salt[SALT_SIZE/sizeof(unsigned int)];
-
-	memset(key, 0xF5, PLAINTEXT_LENGTH);
-	memset(salt, 0x35, (SALT_SIZE));
-	key[PLAINTEXT_LENGTH] = 0;
-
-	gws_limit = MIN((0xf << 22) * 4 / BUFSIZE,
-			get_max_mem_alloc_size(gpu_id) / BUFSIZE);
-	get_power_of_two(gws_limit);
-	if (gws_limit > MIN((0xf << 22) * 4 / BUFSIZE,
-		get_max_mem_alloc_size(gpu_id) / BUFSIZE))
-		gws_limit >>= 1;
-
-	lws_limit = get_kernel_max_lws(gpu_id, crypt_kernel);
-
-	lws_init = get_kernel_preferred_multiple(gpu_id, crypt_kernel);
-
-	if (gpu_amd(device_info[gpu_id]))
-		gws_init = gws_limit >> 6;
-	else if (gpu_nvidia(device_info[gpu_id]))
-		gws_init = gws_limit >> 8;
-	else
-		gws_init = 1024;
-
-	if (gws_init > gws_limit)
-		gws_init = gws_limit;
-	if (gws_init < lws_init)
-		lws_init = gws_init;
-
-	local_work_size = 0;
-	global_work_size = 0;
-	tune_gws = 1;
-	tune_lws = 1;
-	opencl_get_user_preferences(FORMAT_LABEL);
-	if (local_work_size) {
-		tune_lws = 0;
-		if (local_work_size & (local_work_size - 1))
-			get_power_of_two(local_work_size);
-		if (local_work_size > lws_limit)
-			local_work_size = lws_limit;
-	}
-	if (global_work_size)
-		tune_gws = 0;
-
-#if 0
-	 fprintf(stderr, "lws_init:"Zu" lws_limit:"Zu""
-			 " gws_init:"Zu" gws_limit:"Zu"\n",
-			  lws_init, lws_limit, gws_init,
-			  gws_limit);
-#endif
-	/* Auto tune start.*/
-	pcount = gws_init;
-	count = 0;
-#define calc_ms(start, end)	\
-		((long double)(end.tv_sec - start.tv_sec) * 1000.000 + \
-			(long double)(end.tv_usec - start.tv_usec) / 1000.000)
-	if (tune_gws) {
-		create_clobj_kpc(pcount);
-		set_kernel_args_kpc();
-		for (i = 0; i < pcount; i++)
-			set_key(key, i);
-		gettimeofday(&startc, NULL);
-		if (db)
-			crypt_all((int *)&pcount, db->salts);
-		else {
-			set_salt(salt);
-			crypt_all((int *)&pcount, NULL);
-		}
-		gettimeofday(&endc, NULL);
-		time_ms = calc_ms(startc, endc);
-		count = (size_t)((kernel_run_ms / time_ms) * (long double)gws_init);
-		get_power_of_two(count);
-	}
-
-	if (tune_gws && tune_lws)
-		release_clobj_kpc();
-
-	if (tune_lws) {
-		count = tune_gws ? count : global_work_size;
-		if (count > gws_limit)
-			count = gws_limit;
-		create_clobj_kpc(count);
-		set_kernel_args_kpc();
-		pcount = count;
-		clear_keys();
-		for (i = 0; i < pcount; i++)
-			set_key(key, i);
-		local_work_size = lws_init;
-		gettimeofday(&startc, NULL);
-		if (db)
-			crypt_all((int *)&pcount, db->salts);
-		else {
-			set_salt(salt);
-			crypt_all((int *)&pcount, NULL);
-		}
-		gettimeofday(&endc, NULL);
-		old_time_ms = calc_ms(startc, endc);
-		local_work_size = 2 * lws_init;
-
-		while (local_work_size <= lws_limit) {
-			gettimeofday(&startc, NULL);
-			pcount = count;
-			if (db)
-				crypt_all((int *)&pcount, db->salts);
-			else {
-				set_salt(salt);
-				crypt_all((int *)&pcount, NULL);
-			}
-			gettimeofday(&endc, NULL);
-			time_ms = calc_ms(startc, endc);
-			if (old_time_ms < time_ms) {
-				local_work_size /= 2;
-				break;
-			}
-			old_time_ms = time_ms;
-			local_work_size *= 2;
-		}
-
-		if (local_work_size > lws_limit)
-			local_work_size = lws_limit;
-	}
-
-	if (tune_gws && tune_lws) {
-		if (old_time_ms > kernel_run_ms) {
-			count /= 2;
-		}
-		else {
-			count = (size_t)((kernel_run_ms / old_time_ms) * (long double)count);
-			get_power_of_two(count);
-		}
-	}
-
-	if (tune_gws) {
-		if (count > gws_limit)
-			count = gws_limit;
-		release_clobj_kpc();
-		create_clobj_kpc(count);
-		set_kernel_args_kpc();
-		global_work_size = count;
-	}
-
-	if (!tune_gws && !tune_lws) {
-		create_clobj_kpc(global_work_size);
-		set_kernel_args_kpc();
-	}
-	/* Auto tune finish.*/
-
-	if (global_work_size % local_work_size) {
-		global_work_size = GET_MULTIPLE_OR_BIGGER(global_work_size, local_work_size);
-		get_power_of_two(global_work_size);
-		release_clobj_kpc();
-		if (global_work_size > gws_limit)
-			global_work_size = gws_limit;
-		create_clobj_kpc(global_work_size);
-		set_kernel_args_kpc();
-	}
-	if (global_work_size > gws_limit) {
-		release_clobj_kpc();
-		global_work_size = gws_limit;
-		create_clobj_kpc(global_work_size);
-		set_kernel_args_kpc();
-	}
-
-	clear_keys();
-
-	assert(!(local_work_size & (local_work_size -1)));
-	assert(!(global_work_size % local_work_size));
-	assert(local_work_size <= lws_limit);
-	assert(global_work_size <= gws_limit);
-
-	self->params.max_keys_per_crypt = global_work_size;
-	if (options.verbosity > 3)
-	fprintf(stdout, "%s GWS: "Zu", LWS: "Zu"\n", db ? "Cracking" : "Self test",
-			global_work_size, local_work_size);
-#undef calc_ms
-}
-
 static void reset(struct db_main *db)
 {
+	static size_t o_lws, o_gws;
 	static int initialized;
+	size_t gws_limit;
 
-	if (initialized) {
-		release_clobj_test();
+	//fprintf(stderr, "%s(%p), i=%d\n", __func__, db, initialized);
+	gws_limit = MIN((0xf << 21) * 4 / BUFSIZE,
+	                get_max_mem_alloc_size(gpu_id) / BUFSIZE);
+	get_power_of_two(gws_limit);
+	if (gws_limit > MIN((0xf << 21) * 4 / BUFSIZE,
+	                    get_max_mem_alloc_size(gpu_id) / BUFSIZE))
+		gws_limit >>= 1;
+
+
+	if (initialized && db) {
 		release_clobj();
-		release_clobj_kpc();
+		release_base_clobj();
 
 		prepare_table(db);
 		init_kernel();
 
-		create_clobj();
-		set_kernel_args();
+		create_base_clobj();
 
+		// Use salts directly from db
 		self->methods.set_salt = set_salt_no_op;
-		auto_tune(db, 300);
 
+		// Forget the previous auto-tune
+		local_work_size = o_lws;
+		global_work_size = o_gws;
+
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 1, NULL, warn, 2, self,
+		                       create_clobj, release_clobj,
+		                       2 * BUFSIZE, gws_limit);
+
+		// Auto tune execution from shared/included code.
+		autotune_run_extra(self, 1, gws_limit, 1000, CL_TRUE);
 	}
 	else {
 		unsigned int *binary_hash, i = 0;
 		char *ciphertext;
 		unsigned int salt_params[17];
 		static unsigned int hash_table_size, offset_table_size, shift64_ht_sz, shift64_ot_sz;
+
+		o_lws = local_work_size;
+		o_gws = global_work_size;
 
 		while (tests[max_num_loaded_hashes].ciphertext != NULL)
 			max_num_loaded_hashes++;
@@ -1083,18 +985,19 @@ static void reset(struct db_main *db)
 		buffer_hash_table_test = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, hash_table_size * sizeof(unsigned int) * 2, hash_tables[current_salt], &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_table_test.");
 
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_salt_test), (void *) &buffer_salt_test), "Error setting argument 3.");
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_bitmaps_test), (void *) &buffer_bitmaps_test), "Error setting argument 6.");
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_offset_table_test), (void *) &buffer_offset_table_test), "Error setting argument 7.");
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_hash_table_test), (void *) &buffer_hash_table_test), "Error setting argument 8.");
-
-		create_clobj();
-		set_kernel_args();
+		create_base_clobj();
 
 		hash_ids[0] = 0;
 		MEM_FREE(offset_table);
 		MEM_FREE(bitmaps);
-		auto_tune(NULL, 50);
+
+		// Initialize openCL tuning (library) for this format.
+		opencl_init_auto_setup(SEED, 1, NULL, warn, 2, self,
+		                       create_clobj, release_clobj,
+		                       2 * BUFSIZE, gws_limit);
+
+		// Auto tune execution from shared/included code.
+		autotune_run_extra(self, 1, gws_limit, 50, CL_TRUE);
 
 		initialized++;
 	}
@@ -1115,7 +1018,7 @@ struct fmt_main FMT_STRUCT = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8 | FMT_REMOVE,
 		{ NULL },
 		tests
 	}, {

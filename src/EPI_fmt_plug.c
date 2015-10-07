@@ -108,6 +108,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
     return 0;
 
   for(n = 2; n < 62 && atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
+  if (n < 62)
+	  return 0;
   for(n = 65; n < 105 && atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
 
   return n == len;

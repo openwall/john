@@ -66,9 +66,9 @@ zip -r /base/builds/JtR-MinGW-${v}.zip run/ doc/ README.md README README-jumbo
 cd /base/JohnTheRipper/run
 export WINEDEBUG=-all  # suppress wine warnings
 /usr/bin/wine john.exe --list=build-info
-/usr/bin/wine john.exe --test=0
-# if [ "x$?" != "x0" ] ; then exit 1 ; fi
-/usr/bin/wine john.exe --test=0 --format=dynamic-all
+echo "[Disabled:Formats]" > john-local.conf
+echo ".include [Disabled:Formats_base]" >> john-local.conf
+/usr/bin/wine john.exe --test-full=0
 # if [ "x$?" != "x0" ] ; then exit 1 ; fi
 
 # now build a non-SIMD 64 bit exe and test it
@@ -88,9 +88,9 @@ if [ "x$?" != "x0" ] ; then exit 1 ; fi
 make -sj4
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 ../run/john --list=build-info
-../run/john -test=0
-if [ "x$?" != "x0" ] ; then exit 1 ; fi
-../run/john -test=0 -form=dynamic-all
+echo "[Disabled:Formats]" > john-local.conf
+echo ".include [Disabled:Formats_base]" >> john-local.conf
+../run/john -test-full=0
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 
 # now build a non-SIMD 32 bit exe and test it
@@ -107,9 +107,9 @@ make -s distclean
 JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -sj4 linux-x86-any
 # do NOT exit on error from make.  We expect an error in the libpcap stuff
 ../run/john --list=build-info
-../run/john -test=0
-if [ "x$?" != "x0" ] ; then exit 1 ; fi
-../run/john -test=0 -form=dynamic-all
+echo "[Disabled:Formats]" > john-local.conf
+echo ".include [Disabled:Formats_base]" >> john-local.conf
+../run/john -test-full=0
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 
 # now build a 32 bit SSE2 exe and test it
@@ -125,6 +125,6 @@ make -f Makefile.legacy -s clean
 JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -sj4 linux-x86-sse2
 # do NOT exit on error from make.  We expect an error in the libpcap stuff
 ../run/john --list=build-info
-../run/john -test=0
-if [ "x$?" != "x0" ] ; then exit 1 ; fi
-../run/john -test=0 -form=dynamic-all
+echo "[Disabled:Formats]" > john-local.conf
+echo ".include [Disabled:Formats_base]" >> john-local.conf
+../run/john -test-full=0

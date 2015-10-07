@@ -57,7 +57,7 @@ static unsigned long long cand, rec_cand;
 unsigned long long mask_tot_cand;
 unsigned long long mask_parent_keys;
 
-#define BUILT_IN_CHARSET "ludshaLUDSHA123456789"
+#define BUILT_IN_CHARSET "ludsaLUDSAbhBH123456789"
 
 #define store_op(k, i) \
 	parsed_mask->stack_op_br[k] = i;
@@ -87,6 +87,9 @@ static void parse_hex(char *string)
 	unsigned char *s = (unsigned char*)string;
 	unsigned char *d = s;
 
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s)\n", __func__, string);
+#endif
 	if (!string || !*string)
 		return;
 
@@ -123,10 +126,12 @@ static char* expand_cplhdr(char *string)
 	unsigned char *s = (unsigned char*)string;
 	char *d = out;
 
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s)\n", __func__, string);
+#endif
 	if (!string || !*string)
 		return string;
 
-	//fprintf(stderr, "%s(%s)\n", __FUNCTION__, string);
 	while (*s && d < &out[sizeof(out) - 2]) {
 		if (s[0] == '?' && s[1] == '?') {
 			*d++ = '\\';
@@ -154,7 +159,7 @@ static char* expand_cplhdr(char *string)
 	*d = '\0';
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s) return: %s\n", __FUNCTION__, string, out);
+	fprintf(stderr, "%s(%s) return: %s\n", __func__, string, out);
 #endif
 	return out;
 }
@@ -171,15 +176,22 @@ static char* plhdr2string(char p, int fmt_case)
 	char *s, *o = out;
 	int j;
 
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%c)\n", __func__, p);
+#endif
+
 #define add_range(a, b)	for (j = a; j <= b; j++) *o++ = j
 #define add_string(str)	for (s = (char*)str; *s; s++) *o++ = *s
 
-	if ((pers_opts.internal_enc == ASCII ||
-	     pers_opts.internal_enc == UTF_8) &&
+	if ((pers_opts.internal_cp == ASCII ||
+	     pers_opts.internal_cp == UTF_8) &&
 	    (p == 'L' || p == 'U' || p == 'D' || p == 'S')) {
 		if (john_main_process)
-		fprintf(stderr, "Can't use ?%c placeholder with %s encoding\n",
-			        p, cp_id2name(pers_opts.internal_enc));
+			fprintf(stderr,
+			    "Can't use ?%c placeholder without using an 8-bit legacy codepage for\n"
+			    "--internal-codepage%s\n", p,
+			    (pers_opts.internal_cp == UTF_8) ?
+			    " (UTF-8 is not a codepage, it's a Unicode encoding)." : ".");
 		error();
 	}
 
@@ -188,7 +200,7 @@ static char* plhdr2string(char p, int fmt_case)
 		add_range('a', 'z');
 		break;
 	case 'L': /* lower-case letters, non-ASCII only */
-		switch (pers_opts.internal_enc) {
+		switch (pers_opts.internal_cp) {
 		case CP437:
 			add_string(CHARS_LOWER_CP437
 			           CHARS_LOW_ONLY_CP437);
@@ -275,7 +287,7 @@ static char* plhdr2string(char p, int fmt_case)
 		add_range('A', 'Z');
 		break;
 	case 'U': /* upper-case letters, non-ASCII only */
-		switch (pers_opts.internal_enc) {
+		switch (pers_opts.internal_cp) {
 		case CP437:
 			add_string(CHARS_UPPER_CP437
 			           CHARS_UP_ONLY_CP437);
@@ -362,7 +374,7 @@ static char* plhdr2string(char p, int fmt_case)
 		add_range('0', '9');
 		break;
 	case 'D': /* digits, non-ASCII only */
-		switch (pers_opts.internal_enc) {
+		switch (pers_opts.internal_cp) {
 		case CP437:
 			add_string(CHARS_DIGITS_CP437);
 			break;
@@ -432,7 +444,7 @@ static char* plhdr2string(char p, int fmt_case)
 		add_range(123, 126);
 		break;
 	case 'S': /* specials, non-ASCII only */
-		switch (pers_opts.internal_enc) {
+		switch (pers_opts.internal_cp) {
 		case CP437:
 			add_string(CHARS_PUNCTUATION_CP437
 			           CHARS_SPECIALS_CP437
@@ -535,10 +547,12 @@ static char* plhdr2string(char p, int fmt_case)
 			break;
 		}
 		break;
-	case 'h': /* All high-bit */
+	case 'B': /* All high-bit */
+	case 'h': /* deprecated alias for B */
 		add_range(0x80, 0xff);
 		break;
-	case 'H': /* All (except NULL which we can't handle) */
+	case 'b': /* All (except NULL which we can't handle) */
+	case 'H': /* deprecated alias for b */
 		add_range(0x01, 0xff);
 		break;
 	case 'a': /* Printable ASCII */
@@ -549,8 +563,14 @@ static char* plhdr2string(char p, int fmt_case)
 			add_range(0x5b, 0x7e);
 		}
 		break;
-	case 'A': /* All valid non-ASCII chars in codepage */
-		switch (pers_opts.internal_enc) {
+	case 'A': /* All valid chars in codepage (including ASCII) */
+		if (fmt_case)
+			add_range(0x20, 0x7e);
+		else {
+			add_range(0x20, 0x40);
+			add_range(0x5b, 0x7e);
+		}
+		switch (pers_opts.internal_cp) {
 		case CP437:
 			if (fmt_case)
 				add_string(CHARS_ALPHA_CP437);
@@ -805,10 +825,12 @@ static char* expand_plhdr(char *string, int fmt_case)
 	char *d = out;
 	int ab = 0;
 
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s)\n", __func__, string);
+#endif
 	if (!string || !*string)
 		return string;
 
-	//fprintf(stderr, "%s(%s)\n", __FUNCTION__, string);
 	if (*s != '[' || string[strlen(string) - 1] != ']') {
 		*d++ = '[';
 		ab = 1;
@@ -842,7 +864,7 @@ static char* expand_plhdr(char *string, int fmt_case)
 	*d = '\0';
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s) return: %s\n", __FUNCTION__, string, out);
+	fprintf(stderr, "%s(%s) return: %s\n", __func__, string, out);
 #endif
 	return out;
 }
@@ -861,6 +883,9 @@ static void parse_braces(char *mask, parsed_ctx *parsed_mask)
 	int i, j ,k;
 	int cl_br_enc;
 
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s)\n", __func__, mask);
+#endif
 	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++) {
 		store_cl(i, -1);
 		store_op(i, -1);
@@ -918,6 +943,9 @@ static void parse_qtn(char *mask, parsed_ctx *parsed_mask)
 {
 	int i, j, k;
 
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s)\n", __func__, mask);
+#endif
 	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++)
 		parsed_mask->stack_qtn[i] = -1;
 
@@ -998,6 +1026,9 @@ static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
 	char *p;
 	int fmt_case = (db->format->params.flags & FMT_CASE);
 
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s)\n", __func__, mask);
+#endif
 #define count(i) cpu_mask_ctx->ranges[i].count
 #define fill_range() 							\
 	if (a > b) {							\
@@ -1274,7 +1305,7 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 	static char out[PLAINTEXT_BUFFER_SIZE + 1];
 
 	if (mask_has_8bit &&
-	    (pers_opts.internal_enc != UTF_8 && pers_opts.target_enc == UTF_8))
+	    (pers_opts.internal_cp != UTF_8 && pers_opts.target_enc == UTF_8))
 		return cp_to_utf8_r(in, out, fmt_maxlen);
 
 	return in;
@@ -1398,7 +1429,7 @@ done:
 #undef set_template_key
 }
 
-/* Skips iteration for postions stored in arr */
+/* Skips iteration for positions stored in arr */
 static void skip_position(cpu_mask_context *cpu_mask_ctx, int *arr)
 {
 	int i;
@@ -1486,7 +1517,7 @@ static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
 static double get_progress(void)
 {
 	double try;
-	//int num_nodes = options.node_count ? options.node_count : 1;
+	int num_nodes = options.node_count ? options.node_count : 1;
 
 	emms();
 
@@ -1498,8 +1529,7 @@ static double get_progress(void)
 	if (cand_length)
 		try -= cand_length;
 
-	//return 100.0 * try / (double)((mask_tot_cand * mask_int_cand.num_int_cand) / num_nodes);
-	return 100.0 * try / (double)((mask_tot_cand * mask_int_cand.num_int_cand));
+	return 100.0 * try / (double)((mask_tot_cand * mask_int_cand.num_int_cand) / num_nodes);
 }
 
 void mask_save_state(FILE *file)
@@ -1684,6 +1714,10 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		error();
 	}
 
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s) maxlen %d\n", __func__, unprocessed_mask,
+	        max_keylen);
+#endif
 	if (!(options.flags & FLG_MASK_STACKED))
 		log_event("Proceeding with mask mode");
 
@@ -1709,38 +1743,46 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	if (!unprocessed_mask)
 		unprocessed_mask = options.mask;
 
-#ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s) maxlen %d\n", __FUNCTION__, unprocessed_mask,
-	        max_keylen);
-#endif
-
 	mask = unprocessed_mask;
 	template_key = (char*)mem_alloc(0x400);
 
 	/* Handle command-line (or john.conf) masks given in UTF-8 */
-	if (pers_opts.input_enc == UTF_8 && pers_opts.internal_enc != UTF_8) {
+	if (pers_opts.input_enc == UTF_8 && pers_opts.internal_cp != UTF_8) {
 		if (valid_utf8((UTF8*)mask) > 1)
 			utf8_to_cp_r(mask, mask, strlen(mask));
 		for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
-		if (valid_utf8((UTF8*)options.custom_mask[i]) > 1)
-			utf8_to_cp_r(options.custom_mask[i],
-			             options.custom_mask[i],
-			             strlen(options.custom_mask[i]));
+			if (valid_utf8((UTF8*)options.custom_mask[i]) > 1)
+				utf8_to_cp_r(options.custom_mask[i],
+				             options.custom_mask[i],
+				             strlen(options.custom_mask[i]));
 	}
 
 	/* Expand static placeholders within custom ones */
 	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
-		options.custom_mask[i] =
-			str_alloc_copy(expand_plhdr(options.custom_mask[i],
-				db->format->params.flags & FMT_CASE));
+		if (*options.custom_mask[i])
+			options.custom_mask[i] =
+				str_alloc_copy(expand_plhdr(options.custom_mask[i],
+				    db->format->params.flags & FMT_CASE));
 
 	/* Finally expand custom placeholders ?1 .. ?9 */
 	mask = expand_cplhdr(mask);
 
+	/*
+	 * UTF-8 is not supported in mask mode unless -internal-codepage is used
+	 * except for UTF-16 formats (eg. NT).
+	 */
+	if (pers_opts.internal_cp == UTF_8 && valid_utf8((UTF8*)mask) > 1) {
+		if (john_main_process)
+			fprintf(stderr,
+			        "Mask contains UTF-8 characters; --internal-codepage is required!\n");
+		error();
+	}
+
 	/* De-hexify mask and custom placeholders */
 	parse_hex(mask);
 	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
-		parse_hex(options.custom_mask[i]);
+		if (*options.custom_mask[i])
+			parse_hex(options.custom_mask[i]);
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "Custom masks expanded (this is 'mask' when passed to "
@@ -1881,19 +1923,21 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 				cand *= cpu_mask_ctx.ranges[i].count;
 	}
 	mask_tot_cand = cand;
+}
 
+void mask_crk_init(struct db_main *db)
+{
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s()\n", __func__);
+#endif
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		status_init(get_progress, 0);
 
 		rec_restore_mode(mask_restore_state);
 		rec_init(db, mask_save_state);
-	}
-}
 
-void mask_crk_init(struct db_main *db)
-{
-	if (!(options.flags & FLG_MASK_STACKED))
 		crk_init(db, mask_fix_state, NULL);
+	}
 }
 
 void mask_done()
@@ -1932,7 +1976,7 @@ int do_mask_crack(const char *extern_key)
 	int i;
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s)\n", __FUNCTION__, extern_key);
+	fprintf(stderr, "%s(%s)\n", __func__, extern_key);
 #endif
 
 	mask_parent_keys++;
@@ -1979,6 +2023,9 @@ int do_mask_crack(const char *extern_key)
 
 			if (generate_keys(&cpu_mask_ctx, &cand))
 				return 1;
+
+			if (cfg_get_bool("Mask", NULL, "MaskLengthIterStatus", 1))
+				event_pending = event_status = 1;
 		}
 	} else {
 		static int old_keylen = -1;

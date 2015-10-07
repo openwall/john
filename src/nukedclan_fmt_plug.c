@@ -134,9 +134,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!(ptr = strtokm(ctcopy, "*")))
 		goto error;
 	/* HASHKEY is of fixed length 40 */
-	if (strlen(ptr) != 40)
-		goto error;
-	if(!ishex(ptr))
+	if(hexlenl(ptr) != 40)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
@@ -146,9 +144,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	ptr += 2;
 	/* hash is of fixed length 32 */
-	if (strlen(ptr) != 32)
-		goto error;
-	if(!ishex(ptr))
+	if(hexlenl(ptr) != 32)
 		goto error;
 
 	MEM_FREE(keeptr);

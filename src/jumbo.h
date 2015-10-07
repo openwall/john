@@ -15,6 +15,16 @@
  * ./configure)
  */
 #ifndef _JTR_JUMBO_H
+#ifndef _MSC_VER
+// not sure why I need to multiply include in VC, but the SIMD builds will NOT work without it.
+// problems with the define of inline->_inline   I just do not understand why this has to be included
+// multiple times, BUT it does??
+#define _JTR_JUMBO_H
+#endif
+
+// use this define in some core (master) code, to be able to more cleanly insert code
+// leaving the master code more intact for easier merging of changes Solar gives us.
+#define JUMBO_JTR  1
 
 #include "arch.h"
 #include <stdio.h>
@@ -389,7 +399,7 @@ char *strrev(char *str);
 extern size_t strnlen(const char *s, size_t max);
 #endif
 
-#if AC_BUILT && !HAVE_STRCASESTR
+#if AC_BUILT && !HAVE_STRCASESTR || !AC_BUILT && defined(__MINGW__)
 char *strcasestr(const char *haystack, const char *needle);
 #endif
 

@@ -56,8 +56,6 @@ static int omp_t = 1;
 /* Globals */
 static const char LOTUS85_UNIQUE_STRING[] = "Lotus Notes Password Pad Uniquifier";
 
-static const char LOTUS85_BASE16_CHARSET[] = "0123456789ABCDEFabcdef";
-
 static uint8_t ebits_to_num[256]=
 {
 	0xbd, 0x56, 0xea, 0xf2, 0xa2, 0xf1, 0xac, 0x2a,
@@ -319,7 +317,7 @@ static void done(void)
 /* Check if given ciphertext (hash) format is valid */
 static int lotus85_valid(char *ciphertext,struct fmt_main *self)
 {
-	int i,len;
+	int len;
 
 	len = strlen(ciphertext);
 
@@ -332,9 +330,8 @@ static int lotus85_valid(char *ciphertext,struct fmt_main *self)
 	if((len >> 1) < LOTUS85_MIN_BLOB_SIZE)
 		return 0;
 
-	for (i=0;i<len;i++)
-		if(!strchr(LOTUS85_BASE16_CHARSET,ciphertext[i]))
-			return 0;
+	if (hexlenu(ciphertext)  != len)
+		return 0;
 
 	return 1;
 }

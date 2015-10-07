@@ -191,7 +191,7 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 	WORD salt_val;
 	WORD *binary;
 	WORD *uncracked_hashes = NULL, *uncracked_hashes_t = NULL;
-	struct db_password *pw = salt -> list;
+	struct db_password *pw, *last;
 	OFFSET_TABLE_WORD *offset_table;
 	unsigned int hash_table_size, offset_table_size;
 
@@ -202,13 +202,21 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 	uncracked_hashes_t = (WORD *) mem_calloc(2 * num_uncracked_hashes(salt_val), sizeof(WORD));
 
 	i = 0;
+	last = pw = salt->list;
 	do {
-		if (!(binary = (int *)pw -> binary))
-			continue;
-		uncracked_hashes_t[2 * i] = binary[0];
-		uncracked_hashes_t[2 * i + 1] = binary[1];
-		i++;
-	} while ((pw = pw -> next));
+		binary = (WORD *)pw->binary;
+		if (binary == NULL) {
+			if (last == pw)
+				salt->list = pw->next;
+			else
+				last->next = pw->next;
+		} else {
+			last = pw;
+			uncracked_hashes_t[2 * i] = binary[0];
+			uncracked_hashes_t[2 * i + 1] = binary[1];
+			i++;
+		}
+	} while ((pw = pw->next));
 
 	if (salt -> count > *max_uncracked_hashes)
 		*max_uncracked_hashes = salt -> count;
@@ -452,8 +460,8 @@ size_t create_checking_kernel_set_args()
 	int i;
 	size_t min_lws;
 
-	opencl_read_source("$JOHN/kernels/DES_bs_hash_checking_kernel.cl");
-	opencl_build(gpu_id, NULL, 0, NULL);
+	opencl_build_kernel("$JOHN/kernels/DES_bs_hash_checking_kernel.cl",
+	                    gpu_id, NULL, 0);
 
 	if (kernel_high == 0) {
 		kernel_high = clCreateKernel(program[gpu_id], "DES_bs_cmp_high", &ret_code);
@@ -565,12 +573,17 @@ void finish_checking()
 {
 	int i;
 
-	HANDLE_CLERROR(clReleaseKernel(kernel_high), "Error releasing kernel_high.");
-	HANDLE_CLERROR(clReleaseKernel(kernel_low), "Error releasing kernel_low.");
+	if (kernel_high) {
+		HANDLE_CLERROR(clReleaseKernel(kernel_high), "Error releasing kernel_high.");
+		kernel_high = 0;
+	}
+	if (kernel_low) {
+		HANDLE_CLERROR(clReleaseKernel(kernel_low), "Error releasing kernel_low.");
+		kernel_low = 0;
+	}
 	for (i = 0; i < MAX_GPU_DEVICES; i++)
 		MEM_FREE(cmp_kernel[i]);
 	MEM_FREE(cmp_kernel);
-	cmp_kernel = 0;
 	MEM_FREE(hash_chk_params);
 }
 
@@ -1024,8 +1037,7 @@ char *opencl_DES_bs_get_key(int index)
 	}
 
 	if (section > global_work_size) {
-		fprintf(stderr, "Get key error! %d %zu\n", section,
-			global_work_size);
+		//fprintf(stderr, "Get key error! %d "Zu"\n", section, global_work_size);
 		section = 0;
 	}
 
@@ -1134,7 +1146,7 @@ void opencl_DES_bs_clear_keys()
 
 size_t create_keys_kernel_set_args(int mask_mode)
 {
-	static char build_opts[400];
+	char build_opts[400];
 	cl_ulong const_cache_size;
 	int i;
 
@@ -1177,8 +1189,8 @@ size_t create_keys_kernel_set_args(int mask_mode)
 #endif
 		, is_static_gpu_mask, (unsigned long long)const_cache_size);
 
-	opencl_read_source("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl");
-	opencl_build(gpu_id, build_opts, 0, NULL);
+	opencl_build_kernel("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl",
+	                    gpu_id, build_opts, 0);
 	keys_kernel = clCreateKernel(program[gpu_id], "DES_bs_finalize_keys", &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_finalize_keys.\n");
 
@@ -1206,17 +1218,21 @@ void process_keys(size_t current_gws, size_t *lws)
 
 char *get_device_name(int id)
 {
-	static char d_name[600];
+	char *d_name;
+
+	d_name = (char *) mem_calloc(600, sizeof(char));
 	HANDLE_CLERROR(clGetDeviceInfo(devices[id], CL_DEVICE_NAME, 600, d_name, NULL), "Failed to get device name.\n");
 	return d_name;
 }
 
-void save_lws_config(const char* config_file, int id_gpu, size_t lws)
+void save_lws_config(const char* config_file, int id_gpu, size_t lws, unsigned int forced_global_key)
 {
 	FILE *file;
 	char config_file_name[500];
+	char *d_name;
 
-	sprintf(config_file_name, config_file, get_device_name(id_gpu));
+	sprintf(config_file_name, config_file, d_name = get_device_name(id_gpu));
+	MEM_FREE(d_name);
 
 	file = fopen(path_expand(config_file_name), "r");
 	if (file != NULL) {
@@ -1244,16 +1260,19 @@ void save_lws_config(const char* config_file, int id_gpu, size_t lws)
 #endif
 	}
 #endif
-	fprintf(file, "%zu", lws);
+	fprintf(file, ""Zu" %u", lws, forced_global_key);
 	fclose(file);
 }
 
-int restore_lws_config(const char *config_file, int id_gpu, size_t *lws, size_t extern_lws_limit)
+int restore_lws_config(const char *config_file, int id_gpu, size_t *lws, size_t extern_lws_limit, unsigned int *forced_global_key)
 {
 	FILE *file;
 	char config_file_name[500];
+	char *d_name;
+	unsigned int param;
 
-	sprintf(config_file_name, config_file, get_device_name(id_gpu));
+	sprintf(config_file_name, config_file, d_name = get_device_name(id_gpu));
+	MEM_FREE(d_name);
 
 	file = fopen(path_expand(config_file_name), "r");
 	if (file == NULL)
@@ -1279,7 +1298,9 @@ int restore_lws_config(const char *config_file, int id_gpu, size_t *lws, size_t 
 #endif
 	}
 #endif
-	if (fscanf(file, "%zu", lws) != 1 || *lws > extern_lws_limit) {
+	if (fscanf(file, ""Zu" %u", lws, &param) != 2 || *lws > extern_lws_limit) {
+		if (forced_global_key)
+			*forced_global_key = param;
 		fclose(file);
 		return 0;
 	}

@@ -157,7 +157,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != res || strlen(p) > SZ * 2) /* validates atoi() and cry_master */
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* cry_salt_length (length of hex string) */
 		goto err;
@@ -168,7 +168,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != res || strlen(p) > SZ * 2) /* validates atoi() and cry_salt */
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* cry_rounds */
 		goto err;
@@ -184,7 +184,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != res || strlen(p) > SZ * 2) /* validates atoi() and ckey */
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* public_key_length */
 		goto err;
@@ -195,7 +195,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != res || strlen(p) > SZ * 2) /* validates atoi() and public_key */
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;

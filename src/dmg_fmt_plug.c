@@ -271,9 +271,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 			goto err;
-		if (strlen(p) / 2 != res)
-			goto err;
-		if(!ishex(p))
+		if (hexlenl(p) / 2 != res)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* ivlen */
 			goto err;
@@ -284,9 +282,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 			goto err;
-		if (strlen(p) / 2 != res)
-			goto err;
-		if(!ishex(p))
+		if (hexlenl(p) / 2 != res)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* encrypted_keyblob_size */
 			goto err;
@@ -297,9 +293,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* encrypted keyblob */
 			goto err;
-		if (strlen(p) / 2 != res)
-			goto err;
-		if(!ishex(p))
+		if (hexlenl(p) / 2 != res)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* chunk number */
 			goto err;
@@ -310,9 +304,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		res = atoi(p);
 		if ((p = strtokm(NULL, "*")) == NULL)	/* chunk */
 			goto err;
-		if (strlen(p) / 2 != res)
-			goto err;
-		if(!ishex(p))
+		if (hexlenl(p) / 2 != res)
 			goto err;
 		if (res > 8192)
 			goto err;
@@ -339,9 +331,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 			goto err;
-		if (strlen(p) / 2 != res)
-			goto err;
-		if(!ishex(p))
+		if (hexlenl(p) / 2 != res)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* len_wrapped_aes_key */
 			goto err;
@@ -352,9 +342,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* wrapped_aes_key  */
 			goto err;
-		if (strlen(p) / 2 != res)
-			goto err;
-		if (!ishex(p))
+		if (hexlenl(p) / 2 != res)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* len_hmac_sha1_key */
 			goto err;

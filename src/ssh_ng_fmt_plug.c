@@ -112,6 +112,14 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char buf[sizeof(struct custom_salt)+100];
+	strnzcpy(buf, ciphertext, sizeof(buf));
+	strlwr(buf);
+	return buf;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
@@ -135,9 +143,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p) != len * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlen(p) != len * 2)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* ciphertext length */
 		goto err;
@@ -146,9 +152,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	len = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)	/* ciphertext */
 		goto err;
-	if (strlen(p) / 2 != len)
-		goto err;
-	if (!ishex(p))
+	if (hexlen(p) / 2 != len)
 		goto err;
 	if (cipher == 2) {
 		if ((p = strtokm(NULL, "$")) == NULL)	/* rounds */
@@ -478,7 +482,7 @@ struct fmt_main fmt_sshng = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		sshng_tests
 	}, {
@@ -487,7 +491,7 @@ struct fmt_main fmt_sshng = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		fmt_default_binary,
 		get_salt,
 		{ NULL },

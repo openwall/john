@@ -124,15 +124,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = strtokm(ctcopy, "*"); /* ciphertext */
 	if(!p)
 		goto err;
-	if(strlen(p) != CIPHERTEXT_LENGTH * 2)
-		goto err;
-	if (!ishex(p))
+	if(hexlenu(p) != CIPHERTEXT_LENGTH * 2)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if(strlen(p) != SALT_LENGTH * 2)
-		goto err;
-	if (!ishex(p))
+	if(hexlenu(p) != SALT_LENGTH * 2)
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;

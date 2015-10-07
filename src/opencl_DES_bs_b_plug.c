@@ -97,11 +97,17 @@ static void clean_all_buffers()
 	release_clobj();
 	release_clobj_kpc();
 
-	for( i = 0; i < 1; i++)
-		if (kernels[gpu_id][i])
-		HANDLE_CLERROR(clReleaseKernel(kernels[gpu_id][i]), "Error releasing kernel");
+	for( i = 0; i < 1; i++) {
+		if (kernels[gpu_id][i]) {
+			HANDLE_CLERROR(clReleaseKernel(kernels[gpu_id][i]), "Error releasing kernel");
+			kernels[gpu_id][i] = NULL;
+		}
+	}
 
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
+	if (program[gpu_id]) {
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
+		program[gpu_id] = NULL;
+	}
 
 	for (i = 0; i < MAX_GPU_DEVICES; i++)
 		MEM_FREE(kernels[i]);
@@ -167,11 +173,11 @@ static void set_salt(void *salt)
 
 static void init_kernel(int id_gpu, size_t s_mem_lws, unsigned int use_local_mem)
 {
-	static char build_opts[600];
+	char build_opts[600];
 
-	sprintf(build_opts, "-D WORK_GROUP_SIZE=%zu -D USE_LOCAL_MEM=%u", s_mem_lws, use_local_mem);;
-	opencl_read_source("$JOHN/kernels/DES_bs_kernel.cl");
-	opencl_build(id_gpu, build_opts, 0, NULL);
+	sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" -D USE_LOCAL_MEM=%u", s_mem_lws, use_local_mem);;
+	opencl_build_kernel("$JOHN/kernels/DES_bs_kernel.cl",
+	                    id_gpu, build_opts, 1);
 	kernels[id_gpu][0] = clCreateKernel(program[id_gpu], "DES_bs_25_b", &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_25_b.\n");
 
@@ -207,7 +213,7 @@ static size_t find_smem_lws_limit(unsigned int use_local_mem, unsigned int force
 			warp_size = 32;
 	}
 	else
-		return 0;
+		warp_size = 1;
 
 	if (!use_local_mem) {
 		expected_lws_limit = s_mem_sz /
@@ -333,9 +339,15 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 
 	unsigned int des_log_depth = mask_mode ? 0 : DES_LOG_DEPTH;
 
-		if (cpu(device_info[gpu_id])) {
-		force_global_keys = 1;
-		use_local_mem = 0;
+	if (cpu(device_info[gpu_id])) {
+		if (get_platform_vendor_id(platform_id) == DEV_AMD) {
+			force_global_keys = 0;
+			use_local_mem = 1;
+		}
+		else {
+			force_global_keys = 1;
+			use_local_mem = 0;
+		}
 		kernel_run_ms = 5;
 	}
 	else if (amd_vliw4(device_info[gpu_id]) || amd_vliw5(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])) {
@@ -363,7 +375,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	opencl_get_user_preferences(FORMAT_LABEL);
 	if (global_work_size)
 		gws_tune_flag = 0;
-	if (local_work_size || restore_lws_config(CONFIG_FILE, gpu_id, &local_work_size, extern_lws_limit)) {
+	if (local_work_size || restore_lws_config(CONFIG_FILE, gpu_id, &local_work_size, extern_lws_limit, NULL)) {
 		lws_tune_flag = 0;
 		if (local_work_size & (local_work_size - 1)) {
 			get_power_of_two(local_work_size);
@@ -372,7 +384,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 
 	s_mem_limited_lws = find_smem_lws_limit(use_local_mem, force_global_keys);
 #if 0
-	fprintf(stdout, "Limit_smem:"Zu", Force global keys:%u,"
+	fprintf(stdout, "Limit_smem:"Zu", Force global keys:%u",
 		s_mem_limited_lws, force_global_keys);
 #endif
 
@@ -460,6 +472,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 		}
 		else {
 			warp_size = 1;
+			if (!(cpu(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])))
 			fprintf(stderr, "Possible auto_tune fail!!.\n");
 		}
 
@@ -524,7 +537,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 		get_kernel_max_lws(gpu_id, kernels[gpu_id][0]), time_ms,
 		best_time_ms);
 #endif
-				if (gpu(device_info[gpu_id])) {
+				if (gpu_amd(device_info[gpu_id]) || gpu_nvidia(device_info[gpu_id])) {
 					if (local_work_size < 16)
 						local_work_size = 16;
 					else if (local_work_size < 32)
@@ -548,7 +561,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 		}
 	}
 	if (lws_tune_flag)
-		save_lws_config(CONFIG_FILE, gpu_id, local_work_size);
+		save_lws_config(CONFIG_FILE, gpu_id, local_work_size, 0);
 
 	if (options.verbosity > 3)
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",
