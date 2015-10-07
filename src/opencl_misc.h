@@ -61,8 +61,9 @@ inline uint lut3(uint a, uint b, uint c, uint imm)
 	    : "r" (a), "r" (b), "r" (c), "i" (imm));
 	return r;
 }
-#if 0
-/* Is this even exposed? */
+
+#if 0 /* This doesn't seem exposed yet? */
+#define HAVE_LUT3_64	1
 inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
 {
 	ulong r;

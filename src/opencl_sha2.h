@@ -12,6 +12,26 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 
+#if HAVE_LUT3
+#define Ch(x, y, z) lut3(y, z, x, 0xe4)
+#elif USE_BITSELECT
+#define Ch(x, y, z) bitselect(z, y, x)
+#elif HAVE_ANDNOT
+#define Ch(x, y, z) ((x & y) ^ ((~x) & z))
+#else
+#define Ch(x, y, z) (z ^ (x & (y ^ z)))
+#endif
+
+#if HAVE_LUT3
+#define Maj(x, y, z) lut3(x, y, z, 0xE8);
+#elif USE_BITSELECT
+#define Maj(x, y, z) bitselect(x, y, z ^ x)
+#else
+#define Maj(x, y, z) ((x & y) | (z & (x | y)))
+#endif
+
+#define ror(x, n)	rotate(x, 32U-(n))
+
 __constant uint h[] = {
 	0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
 	0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
@@ -30,20 +50,6 @@ __constant uint k[] = {
 	0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
 	0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
-
-#ifdef USE_BITSELECT
-#define Ch(x, y, z) bitselect(z, y, x)
-#define Maj(x, y, z) bitselect(x, y, z ^ x)
-#else
-#if HAVE_ANDNOT
-#define Ch(x, y, z) ((x & y) ^ ((~x) & z))
-#else
-#define Ch(x, y, z) (z ^ (x & (y ^ z)))
-#endif
-#define Maj(x, y, z) ((x & y) | (z & (x | y)))
-#endif /* USE_BITSELECT */
-
-#define ror(x, n)	rotate(x, 32U-(n))
 
 #define Sigma0(x) ((ror(x, 2)) ^ (ror(x, 13)) ^ (ror(x, 22)))
 #define Sigma1(x) ((ror(x, 6)) ^ (ror(x, 11)) ^ (ror(x, 25)))
@@ -277,6 +283,27 @@ __constant uint k[] = {
  * SHA512 below this line
  ***************************************************************************
  */
+
+#undef Maj
+#undef Ch
+
+#if HAVE_LUT3_64
+#define Ch(x, y, z) lut3_64(y, z, x, 0xe4)
+#elif USE_BITSELECT
+#define Ch(x, y, z) bitselect(z, y, x)
+#elif HAVE_ANDNOT
+#define Ch(x, y, z) ((x & y) ^ ((~x) & z))
+#else
+#define Ch(x, y, z) (z ^ (x & (y ^ z)))
+#endif
+
+#if HAVE_LUT3_64
+#define Maj(x, y, z) lut3_64(x, y, z, 0xE8);
+#elif USE_BITSELECT
+#define Maj(x, y, z) bitselect(x, y, z ^ x)
+#else
+#define Maj(x, y, z) ((x & y) | (z & (x | y)))
+#endif
 
 __constant ulong K[] = {
 	0x428a2f98d728ae22UL, 0x7137449123ef65cdUL, 0xb5c0fbcfec4d3b2fUL,

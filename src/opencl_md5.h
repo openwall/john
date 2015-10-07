@@ -16,41 +16,36 @@
 
 #include "opencl_misc.h"
 
-#if HAVE_LUT3
-//#define USE_LUT3 1	/* This does no good right now */
-#undef USE_LUT3
-#endif
-
 /* The basic MD5 functions */
-#if USE_LUT3
+#if HAVE_LUT3
 #define MD5_F(x, y, z)	lut3(y, z, x, 0xe4)
 #define MD5_G(x, y, z)	lut3(x, y, z, 0xe4)
 #elif USE_BITSELECT
-#define MD5_F(x, y, z)	bitselect((z), (y), (x))
-#define MD5_G(x, y, z)	bitselect((y), (x), (z))
+#define MD5_F(x, y, z)	bitselect(z, y, x)
+#define MD5_G(x, y, z)	bitselect(y, x, z)
 #else
 #if HAVE_ANDNOT
 #define MD5_F(x, y, z) ((x & y) ^ ((~x) & z))
 #else
-#define MD5_F(x, y, z)	((z) ^ ((x) & ((y) ^ (z))))
+#define MD5_F(x, y, z)	(z ^ (x & (y ^ z)))
 #endif
-#define MD5_G(x, y, z)	((y) ^ ((z) & ((x) ^ (y))))
+#define MD5_G(x, y, z)	(y ^ (z & (x ^ y)))
 #endif
 
-#if USE_LUT3
+#if HAVE_LUT3
 #define MD5_H(x, y, z)	lut3(x, y, z, 0x96)
 #define MD5_H2 MD5_H
 #else
-#define MD5_H(x, y, z)	(((x) ^ (y)) ^ (z))
-#define MD5_H2(x, y, z)	((x) ^ ((y) ^ (z)))
+#define MD5_H(x, y, z)	((x ^ y) ^ z)
+#define MD5_H2(x, y, z)	(x ^ (y ^ z))
 #endif
 
-#if USE_LUT3
+#if HAVE_LUT3
 #define MD5_I(x, y, z)	lut3(x, y, z, 0x39)
 #elif USE_BITSELECT
-#define MD5_I(x, y, z)	((y) ^ bitselect(0xffffffffU, (x), (z)))
+#define MD5_I(x, y, z)	(y ^ bitselect(0xffffffffU, x, z))
 #else
-#define MD5_I(x, y, z)	((y) ^ ((x) | ~(z)))
+#define MD5_I(x, y, z)	(y ^ (x | ~z))
 #endif
 
 /* The MD5 transformation for all four rounds. */
