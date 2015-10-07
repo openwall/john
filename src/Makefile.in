@@ -185,6 +185,7 @@ endif
 #
 #########################################################
 default:
+	$(MAKE) ../run/kernels
 	$(MAKE) find_version
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@" \
@@ -572,7 +573,7 @@ miscnl.o: misc.c
 aes/aes.a:
 	$(MAKE) -C aes all
 
-kernels: ../run/kernels @KERNEL_OBJS@
+kernels: @KERNEL_OBJS@ ../run/kernels
 
 ###############################################################################
 #  Process targets.  Note, these are *nix targets, but also work fine under
