@@ -236,6 +236,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* checksum field (skipped) */
 		goto err;
+	//if (hexlenl(p) != res) // Hmm.  res==16, length of p == 40???  Not sure about this one.
+	//	goto err;
+	if (!ishexlc(p))
+		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iv length */
 		goto err;
 	res = atoi(p);

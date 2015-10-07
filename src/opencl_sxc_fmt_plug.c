@@ -238,7 +238,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* checksum field (skipped) */
 		goto err;
-	if (strlen(p) != BINARY_SIZE * 2)
+	if (hexlenl(p) != BINARY_SIZE * 2)
 		goto err;
 	if (!ishex(p))
 		goto err;
@@ -249,7 +249,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 		goto err;
-	if (strlen(p) != res * 2)
+	if (hexlenl(p) != res * 2)
 		goto err;
 	if (!ishex(p))
 		goto err;
@@ -260,7 +260,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p) != res * 2)
+	if (hexlenl(p) != res * 2)
 		goto err;
 	if (!ishex(p))
 		goto err;
@@ -276,9 +276,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* content */
 		goto err;
-	if (strlen(p) != res * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != res * 2)
 		goto err;
 	if (strtokm(NULL, "*") != NULL)	        /* the end */
 		goto err;

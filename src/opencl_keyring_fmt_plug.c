@@ -221,7 +221,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 9;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p) != SALTLEN * 2)
+	if (hexlenl(p) != SALTLEN * 2)
 		goto err;
 	while (*p)
 		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
@@ -245,12 +245,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (ctlen > LINE_BUFFER_SIZE)
 		goto err;
-	if (strlen(p) != ctlen * 2)
+	if (hexlenl(p) != ctlen * 2)
 		goto err;
 	if (strlen(p) < 32)	/* this shouldn't happen for valid hashes */
 		goto err;
 	while (*p)
-		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
+		if (atoi16l[ARCH_INDEX(*p++)] == 0x7f)
 			goto err;
 
 	MEM_FREE(keeptr);
