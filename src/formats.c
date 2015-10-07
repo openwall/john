@@ -534,8 +534,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			if (!fmt_split_case && format->params.binary_size && is_need_unify_case)
 				test_fmt_split_unifies_case_3(format, ciphertext, &is_change_case, &is_need_unify_case);
 			test_fmt_split_unifies_case(format, ciphertext, &is_split_unifies_case, cnt_split_unifies_case);
-			if (full_lvl > 0)
-				test_fmt_split_unifies_case_4(format, ciphertext, &is_split_unifies_case_4, cnt_split_unifies_case);
+			test_fmt_split_unifies_case_4(format, ciphertext, &is_split_unifies_case_4, cnt_split_unifies_case);
 			++cnt_split_unifies_case;
 		}
 
