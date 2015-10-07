@@ -46,11 +46,7 @@
 
 #include "options.h"
 #include "common.h"
-
-#ifdef _MSC_VER
-#undef inline
-#define inline _inline
-#endif
+#include "jumbo.h"
 
 /* Load the 'case-conversion' tables. */
 #define UNICODE_MS_OLD  1

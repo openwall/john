@@ -37,11 +37,6 @@
 # endif
 #endif
 
-#ifdef _MSC_VER
-#undef inline
-#define inline static
-#endif
-
 /*
  * Exit on error. Logs the event, closes john.pot and the log file, and
  * terminates the process with non-zero exit status.

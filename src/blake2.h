@@ -17,11 +17,7 @@
 #include <stddef.h>
 #include "stdint.h"
 #include "aligned.h"
-
-#if _MSC_VER
-#undef inline
-#define inline
-#endif
+#include "jumbo.h"
 
 #if defined(__cplusplus)
 extern "C" {

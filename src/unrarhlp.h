@@ -20,13 +20,9 @@
 
 #include "arch.h"
 #include "memory.h"
+#include "jumbo.h"
 
 //#define RAR_HIGH_DEBUG
-
-#ifdef _MSC_VER
-#undef inline
-#define inline
-#endif
 
 extern void *rar_malloc(size_t size);
 extern void *rar_realloc2(void *ptr, size_t size);

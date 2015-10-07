@@ -51,11 +51,6 @@ john_register_one(&fmt_sunmd5);
 #include "simd-intrinsics.h"
 #include "memdbg.h"
 
-#ifdef _MSC_VER
-#undef inline
-#define inline
-#endif
-
 /*
  * these 2 are for testing non-MMX mode. if we
  * undefine these 2, then we force build oSSL model.
