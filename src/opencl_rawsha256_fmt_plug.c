@@ -269,21 +269,23 @@ static void reset(struct db_main *db)
 	if (!autotuned) {
 		size_t gws_limit;
 		unsigned int flag;
-                char * task = "$JOHN/kernels/sha256_kernel.cl";
+		char * task = "$JOHN/kernels/sha256_kernel.cl";
 
-                opencl_prepare_dev(gpu_id);
-                opencl_build_kernel(task, gpu_id, NULL, 1);
+		opencl_prepare_dev(gpu_id);
+		opencl_build_kernel(task, gpu_id, NULL, 0);
 
-                /* Read LWS/GWS prefs from config or environment */
-                opencl_get_user_preferences(FORMAT_LABEL);
+		/* Read LWS/GWS prefs from config or environment */
+		opencl_get_user_preferences(FORMAT_LABEL);
 
-                // create kernel(s) to execute
-                prepare_kernel = clCreateKernel(program[gpu_id], "kernel_prepare", &ret_code);
-                HANDLE_CLERROR(ret_code,
-                        "Error creating kernel_prepare. Double-check kernel name?");
-                crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
-                HANDLE_CLERROR(ret_code,
-                        "Error creating kernel. Double-check kernel name?");
+		// create kernel(s) to execute
+		prepare_kernel = clCreateKernel(program[gpu_id], "kernel_prepare",
+		                                &ret_code);
+		HANDLE_CLERROR(ret_code,
+			"Error creating kernel_prepare. Double-check kernel name?");
+		crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt",
+		                              &ret_code);
+		HANDLE_CLERROR(ret_code,
+		               "Error creating kernel. Double-check kernel name?");
 
 		//Mask initialization
 		flag = (options.flags & FLG_MASK_CHK) && !global_work_size;

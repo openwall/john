@@ -333,7 +333,7 @@ static void reset(struct db_main *db)
                 char * task = "$JOHN/kernels/sha512_ng_kernel.cl";
 
                 opencl_prepare_dev(gpu_id);
-                opencl_build_kernel(task, gpu_id, NULL, 1);
+                opencl_build_kernel(task, gpu_id, NULL, 0);
 
                 /* Read LWS/GWS prefs from config or environment */
                 opencl_get_user_preferences(FORMAT_LABEL);
