@@ -912,7 +912,6 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 		if (!(global_opts = cfg_get_param(SECTION_OPTIONS,
 		                                  SUBSECTION_OPENCL, "GlobalBuildOpts")))
 			global_opts = OPENCLBUILDOPTIONS;
-
 	sprintf(include, "-I %s %s %s%s%s%s%d %s -D_OPENCL_COMPILER %s",
 	        full_path = path_expand_safe(pathname),
 	        global_opts,
@@ -930,8 +929,6 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	        opts ? opts : "");
 	MEM_FREE(full_path);
 
-	if (options.verbosity > 3)
-		fprintf(stderr, "Options used: %s\n", include);
 	return include;
 }
 
@@ -960,6 +957,10 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 	HANDLE_CLERROR(err_code, "Error while creating program");
 	// include source is thread safe.
 	build_opts = include_source("$JOHN/kernels", sequential_id, opts);
+
+	if (options.verbosity > 3)
+		fprintf(stderr, "Options used: %s %s\n", build_opts, kernel_source_file);
+
 	build_code = clBuildProgram(*program, 0, NULL,
 	                            build_opts, NULL, NULL);
 
@@ -978,7 +979,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 	if ((build_code != CL_SUCCESS)) {
 		// Give us much info about error and exit
 		if (options.verbosity <= 3)
-			fprintf(stderr, "Options used: %s\n", build_opts);
+			fprintf(stderr, "Options used: %s %s\n", build_opts, kernel_source_file);
 		fprintf(stderr, "Build log: %s\n", build_log);
 		fprintf(stderr, "Error %d building kernel %s. DEVICE_INFO=%d\n",
 		        build_code, kernel_source_file, device_info[sequential_id]);
