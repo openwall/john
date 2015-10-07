@@ -65,7 +65,7 @@ OPT_INLINE = @OPT_INLINE_FLAGS@
 
 PLUGFORMATS_OBJS = @PLUGFORMATS_OBJS@
 
-@JOHN_OBJS = \
+JOHN_OBJS = \
 	jumbo.o john-mpi.o \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
 	BSDI_fmt.o \
@@ -184,15 +184,11 @@ endif
 #
 #########################################################
 default:
+	$(MAKE) ../run/kernels
 	$(MAKE) find_version
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@" \
 		AESNI_ARCH=@AESNI_ARCH@
-ifdef WITH_OPENCL
-	$(MKDIR) ../run/kernels/
-	$(CP) opencl/*.cl ../run/kernels/
-	$(CP) opencl_*.h ../run/kernels/
-endif
 	@echo
 	@echo Make process completed.
 
@@ -276,7 +272,15 @@ cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
 
 @PLUGFORMATS_DEPS@
 
-######## auto-generated, best-effort:
+%.cl:
+	@$(CP) $? ../run/kernels && touch $@
+
+../run/kernels:
+	$(MKDIR) ../run/kernels
+
+@KERNEL_DEPS@
+
+######## auto-generated, best-effort
 
 AFS_fmt.o:	AFS_fmt.c arch.h misc.h params.h DES_std.h common.h formats.h memdbg.h
 
@@ -545,13 +549,13 @@ pp.o:	pp.c prince.h mpz_int128.h autoconfig.h os.h arch.h jumbo.h misc.h math.h 
 
 version.h: find_version
 
-find_version:
+find_version: kernels
 	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
 	diff >/dev/null 2>/dev/null version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
 
 SUBDIRS = aes
 
-.PHONY: subdirs $(SUBDIRS) find_version
+.PHONY: subdirs $(SUBDIRS) find_version kernels
 
 subdirs: $(SUBDIRS)
 
@@ -567,6 +571,8 @@ miscnl.o: misc.c
 
 aes/aes.a:
 	$(MAKE) -C aes all
+
+kernels: @KERNEL_OBJS@ ../run/kernels
 
 ###############################################################################
 #  Process targets.  Note, these are *nix targets, but also work fine under
