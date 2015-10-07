@@ -16,10 +16,6 @@
 
 #include "stdint.h"
 
-#if _MSC_VER
-#define inline
-#endif
-
 static inline uint32_t load32( const void *src )
 {
 #if ARCH_LITTLE_ENDIAN

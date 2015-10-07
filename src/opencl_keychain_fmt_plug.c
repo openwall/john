@@ -209,15 +209,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 11;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
-	if(strlen(p) != SALTLEN * 2)
+	if(hexlenl(p) != SALTLEN * 2)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 		goto err;
-	if(strlen(p) != IVLEN * 2)
+	if(hexlenl(p) != IVLEN * 2)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
-	if(strlen(p) != CTLEN * 2)
+	if(hexlenl(p) != CTLEN * 2)
 		goto err;
 
 	MEM_FREE(keeptr);

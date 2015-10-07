@@ -55,7 +55,7 @@
 #define ATTRIB(buf, index, val) (buf)[(index)] = val
 
 #if gpu_amd(DEVICE_INFO)
-	#define USE_BITSELECT
+	#define USE_BITSELECT	1
 #endif
 
 #if cpu(DEVICE_INFO) || amd_gcn(DEVICE_INFO)

@@ -307,7 +307,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 #endif
 	);
 
-	opencl_build_kernel("$JOHN/kernels/md4_kernel.cl", gpu_id, build_opts, 1);
+	opencl_build_kernel("$JOHN/kernels/md4_kernel.cl", gpu_id, build_opts, 0);
 	crypt_kernel = clCreateKernel(program[gpu_id], "md4", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 }

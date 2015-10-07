@@ -517,10 +517,10 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 
 	if (use_last_build_opt ? last_build_opts[0] : full_unroll)
 		opencl_build_kernel("$JOHN/kernels/lm_kernel_f.cl",
-		                    gpu_id, build_opts, 1);
+		                    gpu_id, build_opts, 0);
 	else
 		opencl_build_kernel("$JOHN/kernels/lm_kernel_b.cl",
-		                    gpu_id, build_opts, 1);
+		                    gpu_id, build_opts, 0);
 
 	if (use_last_build_opt ? last_build_opts[0] : full_unroll) {
 		crypt_kernel = clCreateKernel(program[gpu_id], "lm_bs_f", &ret_code);

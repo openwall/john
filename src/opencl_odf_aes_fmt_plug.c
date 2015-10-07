@@ -232,6 +232,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* checksum field (skipped) */
 		goto err;
+	if (hexlenl(p) != res * 2)
+		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iv length */
 		goto err;
 	res = atoi(p);

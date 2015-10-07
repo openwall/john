@@ -39,11 +39,6 @@ typedef long int64_t;
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #endif
 
-#if SM_MAJOR >= 5 && (DEV_VER_MAJOR > 352 || (DEV_VER_MAJOR == 352 && DEV_VER_MINOR >= 21))
-/* This does no good right now */
-//#define USE_LOP3_LUT 1
-#endif
-
 #if !gpu_nvidia(DEVICE_INFO) || SM_MAJOR >= 5
 #define USE_BITSELECT 1
 #endif
@@ -56,8 +51,9 @@ typedef long int64_t;
 #define HAVE_ANDNOT 1
 #endif
 
-#if USE_LOP3_LUT
-inline uint lop3_lut(uint a, uint b, uint c, uint imm)
+#if SM_MAJOR >= 5 && (DEV_VER_MAJOR > 352 || (DEV_VER_MAJOR == 352 && DEV_VER_MINOR >= 21))
+#define HAVE_LUT3	1
+inline uint lut3(uint a, uint b, uint c, uint imm)
 {
 	uint r;
 	asm("lop3.b32 %0, %1, %2, %3, %4;"
@@ -66,7 +62,9 @@ inline uint lop3_lut(uint a, uint b, uint c, uint imm)
 	return r;
 }
 
-inline ulong lop3_lut64(ulong a, ulong b, ulong c, uint imm)
+#if 0 /* This doesn't seem exposed yet? */
+#define HAVE_LUT3_64	1
+inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
 {
 	ulong r;
 	asm("lop3.b64 %0, %1, %2, %3, %4;"
@@ -74,6 +72,7 @@ inline ulong lop3_lut64(ulong a, ulong b, ulong c, uint imm)
 	    : "r" (a), "r" (b), "r" (c), "i" (imm));
 	return r;
 }
+#endif
 #endif
 
 #if gpu_amd(DEVICE_INFO)

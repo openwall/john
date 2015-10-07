@@ -210,9 +210,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 7+1;	/* skip over "$strip$" and first '*' */
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt + data */
 		goto err;
-	if (strlen(p) != 2048)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != 2048)
 		goto err;
 
 	MEM_FREE(keeptr);

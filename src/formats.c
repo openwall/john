@@ -534,8 +534,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			if (!fmt_split_case && format->params.binary_size && is_need_unify_case)
 				test_fmt_split_unifies_case_3(format, ciphertext, &is_change_case, &is_need_unify_case);
 			test_fmt_split_unifies_case(format, ciphertext, &is_split_unifies_case, cnt_split_unifies_case);
-			if (full_lvl > 0)
-				test_fmt_split_unifies_case_4(format, ciphertext, &is_split_unifies_case_4, cnt_split_unifies_case);
+			test_fmt_split_unifies_case_4(format, ciphertext, &is_split_unifies_case_4, cnt_split_unifies_case);
 			++cnt_split_unifies_case;
 		}
 
@@ -1149,7 +1148,7 @@ static void get_longest_common_string(char *fstr, char *sstr, int *first_index,
  */
 static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext, int *is_split_unifies_case, int call_cnt)
 {
-	char *cipher_copy, *ret, *bin_hex, *ret_copy;
+	char *cipher_copy, *ret, *bin_hex, *ret_copy=0;
 	void *bin;
 	int first_index, second_index, size, index;
 	int change_count = 0;
@@ -1293,6 +1292,7 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 			goto change_case;
 	}
 
+	MEM_FREE(ret_copy);
 	MEM_FREE(cipher_copy);
 	if (!change_count && strncmp(format->params.label, "@dynamic=", 9)) // white list this one.
 		*is_split_unifies_case = 2;
@@ -1301,6 +1301,7 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 	return;
 
 change_case:
+	MEM_FREE(ret_copy);
 	MEM_FREE(cipher_copy);
 	if (strncmp(format->params.label, "@dynamic=", 9)) // white list this one.
 		return;
@@ -1423,7 +1424,7 @@ static int is_known_len(int len) {
 
 static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphertext, int *is_split_unifies_case, int call_cnt)
 {
-	char *cipher_copy, *ret, *ret_copy, *ret_fix;
+	char *cipher_copy, *ret, *ret_copy=0, *ret_fix;
 	int change_count = 0, i;
 	char fake_user[5] = "john";
 	char *flds[10] = {0,0,0,0,0,0,0,0,0,0};
@@ -1493,12 +1494,15 @@ static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphert
 							goto change_case;
 					}
 				}
+				cp = cp2;
 			}
-			++cp;
+			else
+				++cp;
 		}
 	}
 
 	MEM_FREE(cipher_copy);
+	MEM_FREE(ret_copy);
 	if (call_cnt == 0)
 		*is_split_unifies_case = -1;
 	else if (*is_split_unifies_case != -1)
@@ -1506,6 +1510,7 @@ static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphert
 	return;
 
 change_case:
+	MEM_FREE(ret_copy);
 	MEM_FREE(cipher_copy);
 	if (!change_count)
 		*is_split_unifies_case = 2;
