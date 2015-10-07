@@ -625,9 +625,7 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 HOST_OS
-KERNEL_DEPS
 PLUGFORMATS_DEPS
-KERNEL_OBJS
 PLUGFORMATS_OBJS
 M4_INCLUDES
 HAVE_FUZZ
@@ -13707,17 +13705,13 @@ fi
 # Code  to create @PLUGFORMATS_OBJS@ and
 # john_buildrule.h moved from Makefile.in to here.
 ####################################################
-echo "configure: creating *_plug.c and OpenCL object rules"
+echo "configure: creating *_plug.c object rules"
 if test "`echo *_plug.c`" != "*_plug.c"; then
-   PLUGFORMATS_OBJS=`echo *_plug.c | sed 's/\.c/.o/g'`
-
-   KERNEL_OBJS=`echo opencl/*.cl | sed 's/\bopencl\//..\/run\/kernels\//g'`
+   PLUGFORMATS_OBJS=`echo *_plug.c | sed "s/\.c/.o/g"`
 
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
       echo "configure: creating Makefile dependencies"
       PLUGFORMATS_DEPS=`$PERL ./plugin_deps.pl *_plug.c`
-
-      KERNEL_DEPS=`$PERL ./plugin_deps.pl opencl/*.cl`
 
    fi
 fi
