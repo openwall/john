@@ -194,8 +194,10 @@ static void reset(struct db_main *db)
 
 		gws_limit = get_max_mem_alloc_size(gpu_id) / KEY_SIZE_IN_BYTES;
 
-		get_power_of_two(gws_limit);
-		gws_limit >>= 1;
+		if (gws_limit & (gws_limit - 1)) {
+			get_power_of_two(gws_limit);
+			gws_limit >>= 1;
+		}
 
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
@@ -223,26 +225,26 @@ static void done(void)
 /*Utility function to convert hex to bin */
 static void *get_binary(char *ciphertext)
 {
-  static char realcipher[BINARY_SIZE];
-  int i;
-  for (i = 0; i < BINARY_SIZE; i++)
-      realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
-  return ((void *) realcipher);
+	static char realcipher[BINARY_SIZE];
+	int i;
+	for (i = 0; i < BINARY_SIZE; i++)
+		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
+	return ((void *) realcipher);
 }
 
 /*Another function required by JTR: decides whether we have a valid
  * ciphertext */
 static int valid (char *ciphertext, struct fmt_main *self)
 {
-  int i;
+	int i;
 
-  for (i = 0; i < CIPHERTEXT_LENGTH; i++)
-	  if (!(((ciphertext[i] >= '0') && (ciphertext[i] <= '9'))
-				  || ((ciphertext[i] >= 'A') && (ciphertext[i] <= 'F'))))
-	  {
-		  return 0;
-	  }
-  return !ciphertext[i];
+	for (i = 0; i < CIPHERTEXT_LENGTH; i++)
+		if (!(((ciphertext[i] >= '0') && (ciphertext[i] <= '9'))
+		      || ((ciphertext[i] >= 'A') && (ciphertext[i] <= 'F'))))
+		{
+			return 0;
+		}
+	return !ciphertext[i];
 }
 
 /*sets the value of saved_key so we can play with it*/
@@ -307,6 +309,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					      crypt_kernel, 1,
 					      NULL, &N, M, 0, NULL, multi_profilingEvent[1]),
 					      "Failed to enqueue kernel lotus5.");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Shit hit fan");
 
 	mem_cpy_sz = count * BINARY_SIZE;
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id],
