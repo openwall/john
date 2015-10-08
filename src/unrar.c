@@ -948,7 +948,7 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 	int retval=1, i, number, length, dist_number, low_dist, ch, next_ch;
 	int length_number, failed;
 
-	//rar_dbgmsg("%s fd: %p\n", __func__, fd);
+	//rar_dbgmsg("%s fd: %p\n", __FUNCTION__, fd);
 
 	if (!solid) {
 		//rar_dbgmsg("Not solid\n");

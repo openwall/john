@@ -88,7 +88,7 @@ static void parse_hex(char *string)
 	unsigned char *d = s;
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s)\n", __func__, string);
+	fprintf(stderr, "%s(%s)\n", __FUNCTION__, string);
 #endif
 	if (!string || !*string)
 		return;
@@ -127,7 +127,7 @@ static char* expand_cplhdr(char *string)
 	char *d = out;
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s)\n", __func__, string);
+	fprintf(stderr, "%s(%s)\n", __FUNCTION__, string);
 #endif
 	if (!string || !*string)
 		return string;
@@ -159,7 +159,7 @@ static char* expand_cplhdr(char *string)
 	*d = '\0';
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s) return: %s\n", __func__, string, out);
+	fprintf(stderr, "%s(%s) return: %s\n", __FUNCTION__, string, out);
 #endif
 	return out;
 }
@@ -177,7 +177,7 @@ static char* plhdr2string(char p, int fmt_case)
 	int j;
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%c)\n", __func__, p);
+	fprintf(stderr, "%s(%c)\n", __FUNCTION__, p);
 #endif
 
 #define add_range(a, b)	for (j = a; j <= b; j++) *o++ = j
@@ -826,7 +826,7 @@ static char* expand_plhdr(char *string, int fmt_case)
 	int ab = 0;
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s)\n", __func__, string);
+	fprintf(stderr, "%s(%s)\n", __FUNCTION__, string);
 #endif
 	if (!string || !*string)
 		return string;
@@ -864,7 +864,7 @@ static char* expand_plhdr(char *string, int fmt_case)
 	*d = '\0';
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s) return: %s\n", __func__, string, out);
+	fprintf(stderr, "%s(%s) return: %s\n", __FUNCTION__, string, out);
 #endif
 	return out;
 }
@@ -884,7 +884,7 @@ static void parse_braces(char *mask, parsed_ctx *parsed_mask)
 	int cl_br_enc;
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s)\n", __func__, mask);
+	fprintf(stderr, "%s(%s)\n", __FUNCTION__, mask);
 #endif
 	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++) {
 		store_cl(i, -1);
@@ -944,7 +944,7 @@ static void parse_qtn(char *mask, parsed_ctx *parsed_mask)
 	int i, j, k;
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s)\n", __func__, mask);
+	fprintf(stderr, "%s(%s)\n", __FUNCTION__, mask);
 #endif
 	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++)
 		parsed_mask->stack_qtn[i] = -1;
@@ -1027,7 +1027,7 @@ static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
 	int fmt_case = (db->format->params.flags & FMT_CASE);
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s)\n", __func__, mask);
+	fprintf(stderr, "%s(%s)\n", __FUNCTION__, mask);
 #endif
 #define count(i) cpu_mask_ctx->ranges[i].count
 #define fill_range() 							\
@@ -1715,7 +1715,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	}
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s) maxlen %d\n", __func__, unprocessed_mask,
+	fprintf(stderr, "%s(%s) maxlen %d\n", __FUNCTION__, unprocessed_mask,
 	        max_keylen);
 #endif
 	if (!(options.flags & FLG_MASK_STACKED))
@@ -1924,7 +1924,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 void mask_crk_init(struct db_main *db)
 {
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s()\n", __func__);
+	fprintf(stderr, "%s()\n", __FUNCTION__);
 #endif
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		status_init(get_progress, 0);
@@ -1971,7 +1971,7 @@ int do_mask_crack(const char *extern_key)
 	int i;
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s)\n", __func__, extern_key);
+	fprintf(stderr, "%s(%s)\n", __FUNCTION__, extern_key);
 #endif
 
 	mask_parent_keys++;

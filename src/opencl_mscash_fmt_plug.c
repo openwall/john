@@ -884,7 +884,7 @@ static void reset(struct db_main *db)
 	static int initialized;
 	size_t gws_limit;
 
-	//fprintf(stderr, "%s(%p), i=%d\n", __func__, db, initialized);
+	//fprintf(stderr, "%s(%p), i=%d\n", __FUNCTION__, db, initialized);
 	gws_limit = MIN((0xf << 21) * 4 / BUFSIZE,
 	                get_max_mem_alloc_size(gpu_id) / BUFSIZE);
 	get_power_of_two(gws_limit);
