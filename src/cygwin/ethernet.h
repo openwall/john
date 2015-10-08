@@ -13,7 +13,7 @@
 #if !__JTR_ETHERNET_H && !__NET_ETHERNET_H && !_SYS_ETHERNET_H
 #define __JTR_ETHERNET_H 1
 
-#include "stdint.h"
+#include "../stdint.h"
 
 #define ether_header jtr_ether_header
 struct ether_header
