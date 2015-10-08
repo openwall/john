@@ -24,7 +24,7 @@
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 4)
 #define SEED                    1024
 #define STEP                    0
-#define HASH_LOOPS              ((7*3*2) * 4)
+#define HASH_LOOPS              (7*3*2)
 
 #define KEYS_PER_CORE_CPU       128
 #define KEYS_PER_CORE_GPU       1
