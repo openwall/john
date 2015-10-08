@@ -410,6 +410,10 @@ inline void sha256_prepare(__constant sha256_salt	 * salt_data,
 	ctx_update_G(ctx, pass, passlen);
 
 	sha256_digest(ctx);
+
+#if __GPU__ && DEV_VER_MAJOR == 1729
+        barrier(CLK_GLOBAL_MEM_FENCE); //TODO: Why?
+#endif
 	sha256_digest_move_R(ctx, alt_result->mem_32, BUFFER_ARRAY);
 	init_ctx(ctx);
 
