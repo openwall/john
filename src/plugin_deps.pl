@@ -25,7 +25,9 @@ sub find_deps {
 			while ($object =~ s/([^\/]+)\/..\///g) {}
 			if ($object eq "arch.h" || $object eq "autoconfig.h" || -f $object) {
 				if (!($uniqdep_ref->{$object}++)) {
-					if ($src_file =~ /\.cl$/ && $object =~ /^opencl_.*\.h$/) {
+					#print "src $src_file obj $object\n";
+					if (($src_file =~ /\.cl$/ && $object =~ /^opencl_.*\.h$/) ||
+						($src_file =~ /^opencl_.*\.h$/ && $object =~ /^opencl_.*\.h$/)) {
 						$object = "../run/kernels/" . $object;
 						$deps .= " " . $object;
 						# Recurse!
