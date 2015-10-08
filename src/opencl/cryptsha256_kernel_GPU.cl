@@ -70,70 +70,6 @@ inline void sha256_block(sha256_ctx * ctx) {
 	uint32_t f = ctx->H[5];
 	uint32_t g = ctx->H[6];
 	uint32_t h = ctx->H[7];
-	uint32_t t1, t2;
-	uint32_t w[16];
-
-#ifdef VECTOR_USAGE
-	uint16  w_vector;
-	w_vector = vload16(0, ctx->buffer->mem_32);
-	w_vector = SWAP32_V(w_vector);
-	vstore16(w_vector, 0, w);
-#else
-	#pragma unroll
-	for (int i = 0; i < 16; i++)
-		w[i] = SWAP32(ctx->buffer->mem_32[i]);
-#endif
-
-	#pragma unroll
-	for (int i = 0; i < 16; i++) {
-		t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
-		t2 = Maj(a, b, c) + Sigma0(a);
-
-		h = g;
-		g = f;
-		f = e;
-		e = d + t1;
-		d = c;
-		c = b;
-		b = a;
-		a = t1 + t2;
-	}
-
-	#pragma unroll
-	for (int i = 16; i < 64; i++) {
-		w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
-		t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
-		t2 = Maj(a, b, c) + Sigma0(a);
-
-		h = g;
-		g = f;
-		f = e;
-		e = d + t1;
-		d = c;
-		c = b;
-		b = a;
-		a = t1 + t2;
-	}
-	/* Put checksum in context given as argument. */
-	ctx->H[0] += a;
-	ctx->H[1] += b;
-	ctx->H[2] += c;
-	ctx->H[3] += d;
-	ctx->H[4] += e;
-	ctx->H[5] += f;
-	ctx->H[6] += g;
-	ctx->H[7] += h;
-}
-
-inline void sha256_block_short(sha256_ctx * ctx) {
-	uint32_t a = ctx->H[0];
-	uint32_t b = ctx->H[1];
-	uint32_t c = ctx->H[2];
-	uint32_t d = ctx->H[3];
-	uint32_t e = ctx->H[4];
-	uint32_t f = ctx->H[5];
-	uint32_t g = ctx->H[6];
-	uint32_t h = ctx->H[7];
 	uint32_t t;
 	uint32_t w[16];
 
@@ -529,14 +465,14 @@ inline void sha256_crypt(sha256_buffers * fast_buffers,
 			ctx_append_1(ctx);
 		moved = false;
 		}
-		sha256_block_short(ctx);
+		sha256_block(ctx);
 		clear_ctx_buffer(ctx);
 
 		if (moved) //append 1,the rest is already clean
 			ctx->buffer[0].mem_32[0] = 0x80;
 		ctx->buffer[15].mem_32[0] = SWAP32(ctx->total * 8);
 	}
-	sha256_block_short(ctx);
+	sha256_block(ctx);
 
 	#pragma unroll
 	for (int j = 0; j < BUFFER_ARRAY; j++)
