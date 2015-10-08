@@ -51,7 +51,7 @@ static struct fmt_main *self;
 
 static cl_kernel prepare_kernel, final_kernel;
 
-static int new_keys, source_in_use;
+static int new_keys, source_in_use, use_gcn_code;
 static int split_events[3] = { 1, 5, 6 };
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
@@ -112,7 +112,7 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			sizeof(buffer_64) * 8 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 1");
 
-	if (! amd_gcn(source_in_use)) {
+	if (! use_gcn_code) {
 		work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
 			sizeof(uint64_t) * (9 * 8) * gws, NULL, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 2");
@@ -132,7 +132,7 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 
 	if (_SPLIT_KERNEL_IN_USE) {
 
-		if (! amd_gcn(source_in_use)) {
+		if (! use_gcn_code) {
 			//Set prepare kernel arguments
 			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
 				(void *) &salt_buffer), "Error setting argument 0");
@@ -336,6 +336,7 @@ static void reset(struct db_main *db)
                 char * tmp_value;
                 char * task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
 		int default_value = 0;
+		int major, minor;
 
                 opencl_prepare_dev(gpu_id);
                 source_in_use = device_info[gpu_id];
@@ -343,7 +344,10 @@ static void reset(struct db_main *db)
                 if ((tmp_value = getenv("_TYPE")))
                         source_in_use = atoi(tmp_value);
 
-                if (amd_gcn(source_in_use))
+		opencl_driver_value(gpu_id, &major, &minor);
+		use_gcn_code = (amd_gcn(source_in_use) && major < 1800);
+
+                if (use_gcn_code)
                         task = "$JOHN/kernels/cryptsha512_kernel_GCN.cl";
                 else if (_USE_GPU_SOURCE)
                         task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
