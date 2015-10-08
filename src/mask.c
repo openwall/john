@@ -1385,7 +1385,7 @@ static int generate_keys(cpu_mask_context *cpu_mask_ctx,
 	else if (cpu_mask_ctx->cpu_count >= 4) {
 		ps = ranges(ps4).next;
 
-	/* Initialize the reaming placeholders other than the first four */
+	/* Initialize the remaining placeholders other than the first four */
 		init_key(ps);
 
 		while (1) {
@@ -1905,10 +1905,6 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	fprintf(stderr, "%d ", mask_skip_ranges[i]);
 	fprintf(stderr, "\n");*/
 
-	/*
-	 * Warning: NULL to be replaced by an array containing information
-	 * regarding GPU portion of mask.
-	 */
 	skip_position(&cpu_mask_ctx, mask_skip_ranges);
 
 	/* If running hybrid (stacked), we let the parent mode distribute */
@@ -1950,9 +1946,8 @@ void mask_done()
 		if (!event_abort) {
 			int num_nodes = options.node_count ?
 				options.node_count : 1;
-			mask_tot_cand = num_nodes *
-				(((unsigned long long)status.cands.hi << 32) +
-				 status.cands.lo);
+			mask_tot_cand = (((unsigned long long)status.cands.hi << 32) +
+				status.cands.lo) / mask_int_cand.num_int_cand * num_nodes;
 			cand_length = 0;
 		}
 		crk_done();
@@ -2024,7 +2019,8 @@ int do_mask_crack(const char *extern_key)
 			if (generate_keys(&cpu_mask_ctx, &cand))
 				return 1;
 
-			if (cfg_get_bool("Mask", NULL, "MaskLengthIterStatus", 1))
+			if (i < max_len && cfg_get_bool("Mask", NULL,
+			                                "MaskLengthIterStatus", 1))
 				event_pending = event_status = 1;
 		}
 	} else {
