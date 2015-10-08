@@ -347,7 +347,8 @@ static void FillSegment(const scheme_info_t* info, const position_info_t positio
 {
 	uint i;
 	ulong2 prev_block[64];
-	uint addresses[ADDRESSES_PER_BLOCK];
+	ulong2 addresses_[ADDRESSES_PER_BLOCK/4];
+	ulong *addresses=(ulong*)addresses_;
 	uint next_block_offset;
 	__global ulong2 *memory = info->state;
 	uint pass = position.pass;
@@ -383,7 +384,7 @@ static void FillSegment(const scheme_info_t* info, const position_info_t positio
 		// compute block
 		ComputeBlock_pgg(prev_block, memory+ MAP(reference_block_offset/16), memory+MAP(next_block_offset/16));//Computing third block in the segment
 		position_local.index = 0;
-		GenerateAddresses(info, &position_local, addresses);
+		GenerateAddresses(info, &position_local, (uint*)addresses);
 	}
 	else
 	{
@@ -402,9 +403,14 @@ static void FillSegment(const scheme_info_t* info, const position_info_t positio
 		if ((i&ADDRESSES_MASK) == 0)
 		{
 			position_local.index = i / ADDRESSES_PER_BLOCK;
-			GenerateAddresses(info, &position_local, addresses);
+			GenerateAddresses(info, &position_local, (uint*)addresses);
 		}
-		ComputeBlock_pgg(prev_block, memory+MAP(addresses[i&ADDRESSES_MASK]/16), memory + MAP(next_block_offset));
+		uint address;
+		if(i%2)
+			address=((uint)((addresses[(i&ADDRESSES_MASK)/2])>>32))/16;
+		else
+			address=((uint)(addresses[(i&ADDRESSES_MASK)/2]))/16;		
+		ComputeBlock_pgg(prev_block, memory+MAP(address), memory + MAP(next_block_offset));
 		next_block_offset += BLOCK_SIZE/16;
 	}
 }
