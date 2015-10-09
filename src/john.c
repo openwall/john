@@ -1074,7 +1074,9 @@ static void john_load(void)
 		dummy_format.params.label = "stdout";
 		dummy_format.methods.clear_keys = &fmt_default_clear_keys;
 
-		pers_opts.target_enc = pers_opts.input_enc;
+		if (!pers_opts.target_enc || pers_opts.input_enc != UTF_8)
+			pers_opts.target_enc = pers_opts.input_enc;
+
 		if (options.req_maxlength > options.length) {
 			fprintf(stderr, "Can't set max length larger than %u "
 			        "for stdout format\n", options.length);
