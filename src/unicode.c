@@ -735,6 +735,158 @@ UTF8 *utf16_to_enc_r(UTF8 *dst, int dst_len, const UTF16 *source)
 #endif
 }
 
+/* UTF-32 functions */
+static inline UTF8 *utf32_to_utf8(UTF8 *dst, int dst_len, const UTF32 *source)
+{
+	UTF8 *tpt = dst;
+	UTF8 *targetEnd = tpt + dst_len;
+	while (*source) {
+		UTF32 ch;
+		unsigned short bytesToWrite = 0;
+		const UTF32 byteMask = 0xBF;
+		const UTF32 byteMark = 0x80;
+
+		ch = *source++;
+
+		/* Figure out how many bytes the result will require */
+		if (ch < (UTF32)0x80) {	     bytesToWrite = 1;
+		} else if (ch < (UTF32)0x800) {     bytesToWrite = 2;
+		} else if (ch < (UTF32)0x10000) {   bytesToWrite = 3;
+		} else if (ch < (UTF32)0x110000) {  bytesToWrite = 4;
+		} else {			    bytesToWrite = 3;
+			ch = UNI_REPLACEMENT_CHAR;
+		}
+
+		tpt += bytesToWrite;
+		if (tpt > targetEnd) {
+			tpt -= bytesToWrite;
+			break;
+		}
+		switch (bytesToWrite) { /* note: everything falls through. */
+		case 4: *--tpt = (UTF8)((ch | byteMark) & byteMask); ch >>= 6;
+		case 3: *--tpt = (UTF8)((ch | byteMark) & byteMask); ch >>= 6;
+		case 2: *--tpt = (UTF8)((ch | byteMark) & byteMask); ch >>= 6;
+		case 1: *--tpt =  (UTF8)(ch | firstByteMark[bytesToWrite]);
+		}
+		tpt += bytesToWrite;
+	}
+	*tpt = 0;
+	return dst;
+}
+
+static inline int utf8_to_utf32(UTF32 *target, unsigned int len,
+                                const UTF8 *source, unsigned int sourceLen)
+{
+	const UTF32 *targetStart = target;
+	const UTF32 *targetEnd = target + len;
+	const UTF8 *sourceStart = source;
+	const UTF8 *sourceEnd = source + sourceLen;
+	UTF32 ch;
+	unsigned int extraBytesToRead;
+
+	while (source < sourceEnd) {
+		if (*source < 0xC0) {
+			*target++ = (UTF32)*source++;
+			if (*source == 0)
+				break;
+			if (target >= targetEnd) {
+				*target = 0;
+				return -1 * (source - sourceStart);
+			}
+			continue;
+		}
+		ch = *source;
+/*
+ * The original code in ConvertUTF.c has a much larger (slower) lookup table
+ * including zeros. This point must not be reached with *source < 0xC0
+ */
+		extraBytesToRead =
+		    opt_trailingBytesUTF8[ch & 0x3f];
+		if (source + extraBytesToRead >= sourceEnd) {
+			*target = 0;
+			return -1 * (source - sourceStart);
+		}
+		switch (extraBytesToRead) {
+		case 3:
+			ch <<= 6;
+			ch += *++source;
+		case 2:
+			ch <<= 6;
+			ch += *++source;
+		case 1:
+			ch <<= 6;
+			ch += *++source;
+			++source;
+			break;
+		default:
+			*target = 0;
+			return -1 * (source - sourceStart);
+		}
+		ch -= offsetsFromUTF8[extraBytesToRead];
+
+		*target++ = (UTF32)ch;
+
+		if (*source == 0)
+			break;
+		if (target >= targetEnd) {
+			*target = 0;
+			return -1 * (source - sourceStart);
+		}
+	}
+	*target = 0;
+	return (target - targetStart);
+}
+
+static inline UTF8 *utf32_to_cp(UTF8 *dst, int dst_len, const UTF32 *source)
+{
+	UTF8 *tgt = dst;
+	UTF8 *targetEnd = tgt + dst_len;
+
+	while (*source && tgt < targetEnd) {
+		if ((*tgt = CP_from_Unicode[*source++ & 0xffff]))
+			tgt++;
+	}
+	*tgt = 0;
+
+	return dst;
+}
+
+int enc_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,
+                 unsigned int srclen)
+{
+#ifndef UNICODE_NO_OPTIONS
+	if (pers_opts.target_enc != UTF_8) {
+		int i, trunclen = (int)srclen;
+		if (trunclen > maxdstlen)
+			trunclen = maxdstlen;
+
+		for (i = 0; i < trunclen; i++)
+			*dst++ = CP_to_Unicode[*src++];
+		*dst = 0;
+		if (i < srclen)
+			return -i;
+		else
+			return i;
+	} else {
+#endif
+		return utf8_to_utf32(dst, maxdstlen, src, srclen);
+#ifndef UNICODE_NO_OPTIONS
+	}
+#endif
+}
+
+UTF8 *utf32_to_enc(UTF8 *dst, int dst_len, const UTF32 *source)
+{
+#ifndef UNICODE_NO_OPTIONS
+	if (pers_opts.target_enc == UTF_8)
+#endif
+		return utf32_to_utf8(dst, dst_len, source);
+#ifndef UNICODE_NO_OPTIONS
+	else
+		return utf32_to_cp(dst, dst_len, source);
+#endif
+}
+
 void listEncodings(FILE *fd)
 {
 	fprintf(fd, "ASCII (or RAW), UTF-8, ISO-8859-1 (or Latin1 or ANSI),\n"

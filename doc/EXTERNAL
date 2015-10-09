@@ -71,6 +71,14 @@ expressed in seconds after Jan 1 1970. This variable is initialized once,
 not updated. Note: On a resume you will end up using a new value than was
 originally used.
 
+From 1.8.0-Jumbo-2, two new variables "utf32" and "target_utf8" were
+introduced. The "utf32" (int) can be set from an external mode and indicates
+that the word may contain UTF-32 characters. It will be encoded to whatever
+target encoding is in use. The "target_utf8" (int) can be read by an external
+mode and indicates whether the target encoding is UTF-8 or not (some modes
+may take that into account when considering output length). See eg.
+Repeats32 external mode (run/repeats32.conf) for examples.
+
 
 	The language.
 
