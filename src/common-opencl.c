@@ -1396,8 +1396,12 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	        my_work_group += wg_multiple) {
 
 		global_work_size = gws;
-		if (gws % my_work_group != 0)
+		if (gws % my_work_group != 0) {
+
+			if (GET_EXACT_MULTIPLE(gws, my_work_group) > global_work_size)
+			    continue;
 			global_work_size = GET_EXACT_MULTIPLE(gws, my_work_group);
+		}
 
 		if (options.verbosity > 3)
 			fprintf(stderr, "Testing LWS=" Zu " GWS=" Zu " ...", my_work_group, global_work_size);
