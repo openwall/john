@@ -27,7 +27,6 @@ john_register_one(&FMT_STRUCT);
 #include "path.h"
 #include "common.h"
 #include "formats.h"
-#include "common-opencl.h"
 #include "config.h"
 #include "options.h"
 #include "mask_ext.h"
@@ -55,12 +54,10 @@ static cl_mem buffer_keys, buffer_idx, buffer_int_keys, buffer_int_key_loc;
 static cl_uint *saved_plain, *saved_idx, *saved_int_key_loc;
 static int static_gpu_locations[MASK_FMT_INT_PLHDR];
 
-static cl_mem buffer_offset_table, buffer_hash_table, buffer_return_hashes, buffer_hash_ids, buffer_bitmap_dupe, buffer_bitmaps;
 static unsigned int shift64_ht_sz, shift64_ot_sz;
 
 static unsigned int key_idx = 0;
 static struct fmt_main *self;
-static cl_uint *zero_buffer;
 
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -151,47 +148,13 @@ static void create_clobj_kpc(size_t kpc)
 
 static void create_clobj(void)
 {
-	cl_ulong max_alloc_size_bytes = 0;
-	cl_ulong cache_size_bytes = 0;
 	cl_uint dummy = 0;
-
-	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &max_alloc_size_bytes, 0), "failed to get CL_DEVICE_MAX_MEM_ALLOC_SIZE.");
-	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong), &cache_size_bytes, 0), "failed to get CL_DEVICE_GLOBAL_MEM_CACHE_SIZE.");
-
-	if (max_alloc_size_bytes & (max_alloc_size_bytes - 1)) {
-		get_power_of_two(max_alloc_size_bytes);
-		max_alloc_size_bytes >>= 1;
-	}
-	if (max_alloc_size_bytes >= 536870912) max_alloc_size_bytes = 536870912;
-	assert(!(max_alloc_size_bytes & (max_alloc_size_bytes - 1)));
-
-	if (!cache_size_bytes) cache_size_bytes = 1024;
-
-	zero_buffer = (cl_uint *) mem_calloc(hash_table_size_128/32 + 1, sizeof(cl_uint));
-
-	buffer_return_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, 2 * sizeof(cl_uint) * num_loaded_hashes, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_return_hashes.");
-
-	buffer_hash_ids = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (3 * num_loaded_hashes + 1) * sizeof(cl_uint), NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_buffer_hash_ids.");
-
-	buffer_bitmap_dupe = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, (hash_table_size_128/32 + 1) * sizeof(cl_uint), zero_buffer, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_bitmap_dupe.");
-
-	buffer_bitmaps = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, max_alloc_size_bytes, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_bitmaps.");
 
 	//dummy is used as dummy parameter
 	buffer_int_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 4 * mask_int_cand.num_int_cand, mask_int_cand.int_cand ? mask_int_cand.int_cand : (void *)&dummy, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys.");
 
-	buffer_offset_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, offset_table_size * sizeof(OFFSET_TABLE_WORD), NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_offset_table.");
-
-	buffer_hash_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, hash_table_size_128 * sizeof(unsigned int) * 2, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_table.");
-
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
+	ocl_hc_128_crobj();
 }
 
 static void release_clobj_kpc(void)
@@ -217,17 +180,11 @@ static void release_clobj_kpc(void)
 
 static void release_clobj(void)
 {
-	if (buffer_offset_table) {
+	if (buffer_int_keys) {
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys.");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_return_hashes), "Error Releasing buffer_return_hashes.");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_offset_table), "Error Releasing buffer_offset_table.");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_table), "Error Releasing buffer_hash_table.");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Error Releasing buffer_bitmap_dupe.");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_ids), "Error Releasing buffer_hash_ids.");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmaps), "Error Releasing buffer_bitmap.");
-		MEM_FREE(zero_buffer);
-		buffer_offset_table = 0;
+		buffer_int_keys = 0;
 	}
+	ocl_hc_128_rlobj();
 }
 
 static void done(void)

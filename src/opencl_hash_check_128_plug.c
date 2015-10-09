@@ -1,6 +1,5 @@
 #include <assert.h>
 
-#include "common-opencl.h"
 #include "options.h"
 #include "opencl_hash_check_128.h"
 
@@ -11,6 +10,10 @@ OFFSET_TABLE_WORD *offset_table = NULL;
 unsigned int hash_table_size_128 = 0, offset_table_size = 0;
 cl_ulong bitmap_size_bits = 0;
 cl_uint *bitmaps = NULL;
+
+cl_uint *zero_buffer;
+
+cl_mem buffer_offset_table = 0, buffer_hash_table = 0, buffer_return_hashes = 0, buffer_hash_ids = 0, buffer_bitmap_dupe = 0, buffer_bitmaps = 0;
 
 static struct fmt_main *self;
 
@@ -25,6 +28,8 @@ static struct fmt_main *self;
 	v |= v >> 32;		\
 	v++;			\
 }
+
+#include "memdbg.h"
 
 void opencl_hash_check_128_init(struct fmt_main *_self)
 {
@@ -288,6 +293,59 @@ char* select_bitmap(unsigned int num_ld_hashes)
 	return kernel_params;
 }
 
+void ocl_hc_128_crobj(void)
+{
+	cl_ulong max_alloc_size_bytes = 0;
+	cl_ulong cache_size_bytes = 0;
+
+	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &max_alloc_size_bytes, 0), "failed to get CL_DEVICE_MAX_MEM_ALLOC_SIZE.");
+	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong), &cache_size_bytes, 0), "failed to get CL_DEVICE_GLOBAL_MEM_CACHE_SIZE.");
+
+	if (max_alloc_size_bytes & (max_alloc_size_bytes - 1)) {
+		get_power_of_two(max_alloc_size_bytes);
+		max_alloc_size_bytes >>= 1;
+	}
+	if (max_alloc_size_bytes >= 536870912) max_alloc_size_bytes = 536870912;
+	assert(!(max_alloc_size_bytes & (max_alloc_size_bytes - 1)));
+
+	if (!cache_size_bytes) cache_size_bytes = 1024;
+
+	zero_buffer = (cl_uint *) mem_calloc(hash_table_size_128/32 + 1, sizeof(cl_uint));
+
+	buffer_return_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, 2 * sizeof(cl_uint) * num_loaded_hashes, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_return_hashes.");
+
+	buffer_hash_ids = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (3 * num_loaded_hashes + 1) * sizeof(cl_uint), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_buffer_hash_ids.");
+
+	buffer_bitmap_dupe = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, (hash_table_size_128/32 + 1) * sizeof(cl_uint), zero_buffer, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_bitmap_dupe.");
+
+	buffer_bitmaps = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, max_alloc_size_bytes, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_bitmaps.");
+
+	buffer_offset_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, offset_table_size * sizeof(OFFSET_TABLE_WORD), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_offset_table.");
+
+	buffer_hash_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, hash_table_size_128 * sizeof(unsigned int) * 2, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_table.");
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
+}
+
+void ocl_hc_128_rlobj(void)
+{
+	if (buffer_bitmaps) {
+		HANDLE_CLERROR(clReleaseMemObject(buffer_return_hashes), "Error Releasing buffer_return_hashes.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_offset_table), "Error Releasing buffer_offset_table.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_table), "Error Releasing buffer_hash_table.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Error Releasing buffer_bitmap_dupe.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_ids), "Error Releasing buffer_hash_ids.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmaps), "Error Releasing buffer_bitmap.");
+		MEM_FREE(zero_buffer);
+		buffer_bitmaps = 0;
+	}
+}
 
 int cmp_all(void *binary, int count)
 {
