@@ -8,7 +8,7 @@ cl_uint num_loaded_hashes;
 cl_uint *loaded_hashes = NULL;
 cl_uint *hash_ids = NULL;
 OFFSET_TABLE_WORD *offset_table = NULL;
-unsigned int hash_table_size = 0, offset_table_size = 0;
+unsigned int hash_table_size_128 = 0, offset_table_size = 0;
 cl_ulong bitmap_size_bits = 0;
 cl_uint *bitmaps = NULL;
 
@@ -74,7 +74,7 @@ void prepare_table(struct db_salt *salt) {
 				num_loaded_hashes,
 			        &offset_table,
 			        &offset_table_size,
-			        &hash_table_size, 0);
+			        &hash_table_size_128, 0);
 
 	if (!num_loaded_hashes) {
 		MEM_FREE(hash_table_128);

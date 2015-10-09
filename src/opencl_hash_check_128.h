@@ -4,7 +4,7 @@ extern cl_uint num_loaded_hashes;
 extern cl_uint *loaded_hashes;
 extern cl_uint *hash_ids;
 extern OFFSET_TABLE_WORD *offset_table;
-extern unsigned int hash_table_size, offset_table_size;
+extern unsigned int hash_table_size_128, offset_table_size;
 extern cl_ulong bitmap_size_bits;
 extern cl_uint *bitmaps;
 
