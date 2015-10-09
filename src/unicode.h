@@ -1,7 +1,14 @@
 /*
- * Copyright 2001-2004 Unicode, Inc.
+ * This file is Copyright (c) 2009-2015 magnum and JimF,
+ * and is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modifications, are permitted.
  *
- * Disclaimer
+ * Original files "ConvertUTF.[ch]"
+ * Author: Mark E. Davis, 1994.
+ * Rev History: Rick McGowan, fixes & updates May 2001.
+ * Fixes & updates, Sept 2001.
+ * Copyright 2001-2004 Unicode, Inc.
  *
  * This source code is provided as is by Unicode, Inc. No claims are
  * made as to fitness for any particular purpose. No warranties of any
@@ -19,27 +26,6 @@
  * for internal or external distribution as long as this notice
  * remains attached.
  */
-
-/* ---------------------------------------------------------------------
-
-    Conversion from UTF-8 to UTF-16.  Header file.
-
-	Stripped and modified for John the Ripper ; see ConvertUTF.h.original
-	for the original content. magnum, 2009
-
-    Author: Mark E. Davis, 1994.
-    Rev History: Rick McGowan, fixes & updates May 2001.
-		 Fixes & updates, Sept 2001.
-
------------------------------------------------------------------------- */
-
-/* ---------------------------------------------------------------------
-    The following definitions are compiler-specific.
-    The C standard does not guarantee that wchar_t has at least
-    16 bits, so wchar_t is no less portable than unsigned short!
-    All should be unsigned values to avoid sign extension during
-    bit mask & shift operations.
------------------------------------------------------------------------- */
 
 #ifndef _CONVERTUTF_H
 #define _CONVERTUTF_H
@@ -92,9 +78,7 @@
 #define CP_ISO_HI      20
 
 /* Rexgen library header might have defined this (empty) */
-#ifdef UTF32
 #undef UTF32
-#endif
 
 typedef ARCH_WORD_32 UTF32;	/* at least 32 bits */
 typedef unsigned short UTF16;	/* at least 16 bits */
@@ -146,32 +130,40 @@ extern int enc_to_utf16_be(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
                            unsigned int srclen);
 
 /* Thread-safe conversion from codepage to UTF-8 */
-UTF8 * enc_to_utf8_r (char *src, UTF8* dst, int dstlen);
+UTF8 * enc_to_utf8_r(char *src, UTF8* dst, int dstlen);
 
 /* Thread-safe conversion from UTF-8 to codepage */
-char * utf8_to_enc_r (UTF8 *src, char* dst, int dstlen);
+char * utf8_to_enc_r(UTF8 *src, char* dst, int dstlen);
 
 /* Convert back to UTF-8 (for get_key without a saved_plain) */
-extern UTF8 * utf16_to_utf8 (const UTF16* source);
-extern UTF8 * utf16_to_utf8_r (UTF8 *dst, int dst_len, const UTF16* source);
+extern UTF8 * utf16_to_utf8(const UTF16* source);
+extern UTF8 * utf16_to_utf8_r(UTF8 *dst, int dst_len, const UTF16* source);
 
-/* Convert back to UTF-8 or codepage (for get_key without a saved_plain)
-   from UTF-16LE (regardless of host architecture) */
-extern UTF8 * utf16_to_enc (const UTF16* source);
+/*
+ * Convert back to UTF-8 or codepage (for get_key without a saved_plain)
+ * from UTF-16LE (regardless of host architecture)
+ */
+extern UTF8 * utf16_to_enc(const UTF16* source);
 extern UTF8 * utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16* source);
 
-// Even after initializing for UTF-8 we still have some codepage that
-// we can opt to convert to/from.
-extern char *utf16_to_cp (const UTF16* source);
-extern char *utf8_to_cp_r (char *src, char* dst, int dstlen);
-extern char *cp_to_utf8_r (char *src, char* dst, int dstlen);
+/*
+ * Even after initializing for UTF-8 we still have some codepage that
+ * we can opt to convert to/from.
+ */
+extern char *utf16_to_cp(const UTF16* source);
+extern char *utf8_to_cp_r(char *src, char* dst, int dstlen);
+extern char *cp_to_utf8_r(char *src, char* dst, int dstlen);
 
-/* Return length (in characters) of a UTF-16 string */
-/* Number of octets is the result * sizeof(UTF16)  */
+/*
+ * Return length (in characters) of a UTF-16 string
+ * Number of octets is the result * sizeof(UTF16)
+ */
 extern unsigned int strlen16(const UTF16 * str);
 
-/* Return length (in characters) of a UTF-8 string */
-/* Will return a "truncated" length if fed with invalid data. */
+/*
+ * Return length (in characters) of a UTF-8 string
+ * Will return a "truncated" length if fed with invalid data.
+ */
 extern unsigned int strlen8(const UTF8 *source);
 
 /* Check if a string is valid UTF-8 */
@@ -182,60 +174,87 @@ extern int E_md4hash(const UTF8 * passwd, unsigned int len, unsigned char *p16);
 
 extern void listEncodings(FILE *stream);
 extern void initUnicode(int type);
-extern UTF16 ucs2_upcase[0x10000];   /* NOTE, for multi-char converts, we put a 1 into these */
-extern UTF16 ucs2_downcase[0x10000]; /* array. The 1 is not valid, just an indicator to check the multi-char */
 
-/* single char conversion inlines. Inlines vs macros, so that we get type 'safety'           */
-/* NOTE these functions do NOT return multi UTF16 conversion characters, so they are         */
-/* only 'partly' proper.  The enc_to_utf16_uc() and  enc_to_utf16_lc() do full conversions as    */
-/* does the utf16_lc() and utf16_uc().  Full conversion uses the utc_*case[] arrays, but  it */
-/* also uses the 1 UTC2 to multi UTC2 lookup table to do things 'properly'.                  */
-/* NOTE low2up_ansi() does not handle 0xDF to "SS" conversion, since it is 1 to many.       */
-static inline unsigned char low2up_ansi(unsigned char c) {if ((ucs2_upcase[c]&0xFFFE)&&ucs2_upcase[c]<0x100) return (unsigned char)ucs2_upcase[c]; return c; }
-static inline unsigned char up2low_ansi(unsigned char c) {if ((ucs2_downcase[c]&0xFFFE)&&ucs2_downcase[c]<0x100) return (unsigned char)ucs2_downcase[c]; return c; }
-static inline UTF16 low2up_u16(UTF16 w) {if (ucs2_upcase[w]&0xFFFE) return ucs2_upcase[w]; return w; }
-static inline UTF16 up2low_u16(UTF16 w) {if (ucs2_downcase[w]&0xFFFE) return ucs2_downcase[w]; return w; }
+/*
+ * NOTE, for multi-char converts, we put a 1 into these arrays. The 1 is not
+ * valid, just an indicator to check the multi-char
+ */
+extern UTF16 ucs2_upcase[0x10000];
+extern UTF16 ucs2_downcase[0x10000];
 
-/* Convert to UTF-16LE from UTF-8 or ISO-8859-1 depending on --encoding= flag, and upcase/lowcase at same time */
-//extern int enc_to_utf16_uc(UTF16 * dst, unsigned int maxdstlen, const UTF8 * src, unsigned int srclen);
-//extern int enc_to_utf16_lc(UTF16 * dst, unsigned int maxdstlen, const UTF8 * src, unsigned int srclen);
+/*
+ * Single char conversion inlines. Inlines vs macros, so that we get type
+ * 'safety' NOTE these functions do NOT return multi UTF16 conversion
+ * characters, so they are only 'partly' proper.  The enc_to_utf16_uc() and
+ * enc_to_utf16_lc() do full conversions as does the utf16_lc() and utf16_uc().
+ * Full conversion uses the utc_*case[] arrays, but  it also uses the 1 UTC2
+ * to multi UTC2 lookup table to do things 'properly'. NOTE low2up_ansi() does
+ * not handle 0xDF to "SS" conversion, since it is 1 to many.
+ */
+static inline UTF8 low2up_ansi(UTF8 c)
+{
+	if ((ucs2_upcase[c] & 0xFFFE) && ucs2_upcase[c] < 0x100)
+		return (UTF8)ucs2_upcase[c];
+	return c;
+}
 
-// Lowercase UTF-16 string
+static inline UTF8 up2low_ansi(UTF8 c)
+{
+	if ((ucs2_downcase[c] & 0xFFFE) && ucs2_downcase[c] < 0x100)
+		return (UTF8)ucs2_downcase[c];
+	return c;
+}
+
+static inline UTF16 low2up_u16(UTF16 w)
+{
+	if (ucs2_upcase[w] & 0xFFFE)
+		return ucs2_upcase[w];
+	return w;
+}
+
+static inline UTF16 up2low_u16(UTF16 w)
+{
+	if (ucs2_downcase[w] & 0xFFFE)
+		return ucs2_downcase[w];
+	return w;
+}
+
+/* Lowercase UTF-16 string */
 extern int utf16_lc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src_len);
 
-// Uppercase UTF-16 string
+/* Uppercase UTF-16 string */
 extern int utf16_uc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src_len);
 
-// Lowercase UTF-8 or codepage string
+/* Lowercase UTF-8 or codepage string */
 extern int enc_lc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len);
 
-// Uppercase UTF-8 or codepage string
+/* Uppercase UTF-8 or codepage string */
 extern int enc_uc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len);
 
-// Encoding-aware strlwr(): in-place lowercase of string
+/* Encoding-aware strlwr(): in-place lowercase of string */
 extern char *enc_strlwr(char *s);
 
-// Encoding-aware in-place uppercase of string
+/* Encoding-aware in-place uppercase of string */
 extern char *enc_strupper(char *s);
 
-// Used by NT's inline set_key_helper_encoding()
+/* Used by NT's inline set_key_helper_encoding() */
 extern UTF16 CP_to_Unicode[0x100];
 
-// Used by various formats uc/lc
+/* Used by various formats uc/lc */
 extern UTF8  CP_up[0x100];
 extern UTF8  CP_down[0x100];
 
-// Used by single.c and loader.c
+/* Used by single.c and loader.c */
 extern UTF8 CP_isLetter[0x100];
 extern UTF8 CP_isSeparator[0x100];
 
-// Conversion between encoding names and integer id
+/* Conversion between encoding names and integer id */
 extern int cp_name2id(char *encoding);
 extern char *cp_id2name(int encoding);
 extern char *cp_id2macro(int encoding);
-//
-// NOTE! Please read the comments in formats.h for FMT_UNICODE and FMT_UTF8
-//
 
-/* --------------------------------------------------------------------- */
+/*
+ * NOTE! Please read the comments in formats.h for FMT_UNICODE and FMT_UTF8
+ */
+
 #endif				/* _CONVERTUTF_H */
