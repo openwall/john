@@ -27,7 +27,7 @@
 #elif (nvidia_sm_2x(DEVICE_INFO) || nvidia_sm_3x(DEVICE_INFO))
     #define UNROLL_LEVEL	4
 #elif nvidia_sm_5x(DEVICE_INFO)
-    #define UNROLL_LEVEL	1
+    #define UNROLL_LEVEL	4
 #else
     #define UNROLL_LEVEL	0
 #endif
