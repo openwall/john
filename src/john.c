@@ -967,9 +967,9 @@ static void load_extra_pots(void)
 		struct stat s;
 		char *name = path_expand(line->data);
 
+#if HAVE_DIRENT_H && HAVE_SYS_TYPES_H
 		if (!stat(name, &s) && s.st_mode & (S_IFREG | S_IFLNK))
 			ldr_load_pot_file(&database, name);
-#if HAVE_DIRENT_H && HAVE_SYS_TYPES_H
 		else if (s.st_mode & S_IFDIR) {
 			DIR *dp;
 
@@ -997,6 +997,8 @@ static void load_extra_pots(void)
 			}
 		}
 #elif _MSC_VER || __MINGW32__
+		if (!stat(name, &s) && s.st_mode & S_IFREG)
+			ldr_load_pot_file(&database, name);
 		else if (s.st_mode & S_IFDIR) {
 			WIN32_FIND_DATA f;
 			HANDLE h;
