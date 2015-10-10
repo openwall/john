@@ -536,12 +536,16 @@ static void add_device_to_list(int sequential_id)
 
 	if (found == 0) {
 		// Only requested and working devices should be started.
-		if (start_opencl_device(sequential_id, &i)) {
-			gpu_device_list[get_number_of_devices_in_use() + 1] = -1;
-			gpu_device_list[get_number_of_devices_in_use()] = sequential_id;
-		} else
-			fprintf(stderr, "Device id %d not working correctly,"
-			        " skipping.\n", sequential_id);
+		if (john_main_process) {
+			if (! start_opencl_device(sequential_id, &i)) {
+				fprintf(stderr, "Device id %d not working correctly,"
+					" skipping.\n", sequential_id);
+				return;
+			}
+		}
+		gpu_device_list[get_number_of_devices_in_use() + 1] = -1;
+		gpu_device_list[get_number_of_devices_in_use()] = sequential_id;
+
 	}
 }
 
