@@ -1,6 +1,8 @@
+#!/usr/bin/env python
+
 # Based on the Kerberoast script from Tim Medin to extract the Kerberos tickets
-# from a kirbi file.
-# Modification to parse them into the JTR-format by Michael Kramer (SySS GmbH)
+# from a kirbi file (https://github.com/nidem/kerberoast).
+# Modification to parse them into the JtR-format by Michael Kramer (SySS GmbH)
 # Copyright [2015] [Tim Medin, Michael Kramer]
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,39 +17,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-from pyasn1.codec.ber import encoder, decoder
-from multiprocessing import JoinableQueue, Manager
-import glob
+from pyasn1.codec.ber import decoder
+import sys
 
 if __name__ == '__main__':
-	import argparse
+    m = "exported mimikatz kerberos tickets / extracttgsrepfrompcap.py output"
 
-	parser = argparse.ArgumentParser(description='Read Mimikatz kerberos ticket then modify it and save it in crack_file')
-	parser.add_argument('files', nargs='+', metavar='file.kirbi',
-					help='File name to crack. Use asterisk \'*\' for many files.\n Files are exported with mimikatz or from extracttgsrepfrompcap.py')
+    if len(sys.argv) < 2:
+        sys.stderr.write("Usage: %s <%s>\n" % (sys.argv[0], m))
+        sys.exit(-1)
 
-	args = parser.parse_args()
-
-	manager = Manager()
-	enctickets = manager.list()
-
-	i = 0
-	for path in args.files:
-		for f in glob.glob(path):
-			with open(f, 'rb') as fd:
-				data = fd.read()
-			#data = open('f.read()
-
-			if data[0] == '\x76':
-				# rem dump
-				enctickets.append((str(decoder.decode(data)[0][2][0][3][2]), i, f))
-				i += 1
-			elif data[:2] == '6d':
-				for ticket in data.strip().split('\n'):
-					enctickets.append((str(decoder.decode(ticket.decode('hex'))[0][4][3][2]), i, f))
-					i += 1
-
-	out=open("crack_file","wb")
-	for et in enctickets:
-		out.write("$krb5tgs$unkown:"+et[0][:16].encode("hex")+"$"+et[0][16:].encode("hex")+"\n")
-	out.close
+    for f in sys.argv[1:]:
+        with open(f, 'rb') as fd:
+            data = fd.read()
+            if data[0] == '\x76':
+                # rem dump
+                et = str(decoder.decode(data)[0][2][0][3][2])
+                sys.stdout.write("$krb5tgs$unkown:" + et[:16].encode("hex") +
+                                 "$" + et[16:].encode("hex") + "\n")
+            elif data[:2] == '6d':
+                for ticket in data.strip().split('\n'):
+                    et = str(decoder.decode(ticket.decode('hex'))[0][4][3][2])
+                    sys.stdout.write("$krb5tgs$unkown:" + et[:16].encode("hex")
+                                     + "$" + et[16:].encode("hex") + "\n")
