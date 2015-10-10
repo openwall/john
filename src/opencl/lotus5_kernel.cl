@@ -9,7 +9,7 @@
 #include "opencl_device_info.h"
 
 #if cpu(DEVICE_INFO)
-#define MAYBE_CONSTANT constant
+#define MAYBE_CONSTANT __constant
 #define CPU_DEVICE
 #else
 #define MAYBE_CONSTANT __local
@@ -87,9 +87,9 @@ lotus_mix (__private unsigned int *m1, MAYBE_CONSTANT unsigned int *lotus_magic_
 
 __kernel void
 lotus5(__global lotus5_key *i_saved_key,
-       constant unsigned int *magic_table
+       __constant unsigned int *magic_table
 #if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
-	__attribute__((max_constant_size(256 * sizeof(unsigned int))))
+       __attribute__((max_constant_size(256 * sizeof(unsigned int))))
 #endif
        , __global unsigned int *crypt_key) {
 

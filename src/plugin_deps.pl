@@ -1,21 +1,88 @@
 #!/usr/bin/perl -w
+#
+# Warning: Trying to understand this script will make your brain bleed.
+#
 use strict;
 
-foreach my $format (@ARGV) {
-	my $object = $format;
+sub find_deps {
+	my ($src_file, $uniqobj_ref, $uniqdep_ref) = @_;
 	my $deps = "";
-	$object =~ s/\.c$/.o/;
-	open FILE, "<", $format or die $!;
-	while (<FILE>) {
+	my $base_dir = "";
+
+	if ($src_file =~ m/(.*\/)/ && $1 ne "opencl/") {
+		$base_dir = $1;
+	}
+
+	if ($src_file eq "arch.h") {
+		return "";
+	}
+
+	#print "find_deps processing $src_file\n";
+	open my $fh, "<", $src_file or die "$src_file: $!";
+	while (<$fh>) {
 		if (/^\s*#\s*include\s+"([^"]+)"/) {
-			if ($1 eq "arch.h" || $1 eq "autoconfig.h" || -f $1) {
-				$deps .= " " . $1;
+			my $object = $base_dir . $1;
+			while ($object =~ s/([^\/]+)\/..\///g) {}
+			if ($object eq "arch.h" || $object eq "autoconfig.h" || -f $object) {
+				if (!($uniqdep_ref->{$object}++)) {
+					#print "src $src_file obj $object\n";
+					if (($src_file =~ /\.cl$/ && $object =~ /^opencl_.*\.h$/) ||
+						($src_file =~ /^opencl_.*\.h$/ && $object =~ /^opencl_.*\.h$/)) {
+						$object = "../run/kernels/" . $object;
+						$deps .= " " . $object;
+						# Recurse!
+						proc_file($object, $uniqobj_ref);
+					} else {
+						$deps .= " " . $object;
+						# Recurse!
+						$deps .= find_deps($object, $uniqobj_ref, $uniqdep_ref);
+					}
+				}
 			} else {
-				print STDERR "Warning: " . $format . " includes \"" . $1 . "\" but that file is not found.\n";
+				print STDERR "Warning: " . $src_file . " includes \"" . $1 . "\" but that file is not found.\n";
 			}
 		}
 	}
-	close(FILE);
-	print $object . ":" . "\t" . $format . $deps . "\n\n";
-	#print "\t" . '$(CC) $(CFLAGS) ' . $format . " -o " . $object . "\n\n";
+	close($fh);
+
+	return $deps;
+}
+
+sub proc_file {
+	my ($src_file, $uniqobj_ref) = @_;
+	my $object = $src_file;
+	my $type = "";
+	my %uniqdeps;
+
+	#print "proc_file processing $src_file\n";
+	if ($object =~ /^..\/run\/kernels\/opencl_.*\.h$/) {
+		$src_file =~ s/^..\/run\/kernels\///;
+		$type = "oclh";
+	}
+	if (!$uniqobj_ref->{$src_file}++) {
+		if ($object =~ /\.c$/) {
+			$object =~ s/\.c$/.o/;
+			$type = "c";
+		} elsif ($object =~ /\.cl$/) {
+			$object =~ s/^opencl\//..\/run\/kernels\//;
+			$type = "cl";
+		}
+		if ($type) {
+			my $deps = find_deps($src_file, $uniqobj_ref, \%uniqdeps);
+			print $object . ":" . "\t" . $src_file . $deps . "\n";
+			if ($type eq "c") {
+				#print "\t" . '$(CC) $(CFLAGS) ' . $src_file . " -o " . $object . "\n";
+			} elsif ($type eq "cl" || $type eq "oclh") {
+				#print "\t" . '$(CP) $? ' . "../run/kernels\n";
+			}
+			print "\n";
+		}
+	}
+}
+
+my %uniqobjs;
+
+foreach my $src_file (@ARGV) {
+	#print "outer loop processing $src_file\n";
+	proc_file($src_file, \%uniqobjs);
 }

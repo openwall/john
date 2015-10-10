@@ -860,7 +860,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	size_t gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand %d\n", __func__, count, local_work_size, gws, key_idx, mask_int_cand.num_int_cand);
+	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand %d\n", __FUNCTION__, count, local_work_size, gws, key_idx, mask_int_cand.num_int_cand);
 
 	// copy keys to the device
 	if (key_idx)
@@ -958,7 +958,7 @@ static void reset(struct db_main *db)
 	static size_t o_lws, o_gws;
 	size_t gws_limit;
 
-	//fprintf(stderr, "%s(%p), i=%d\n", __func__, db, initialized);
+	//fprintf(stderr, "%s(%p), i=%d\n", __FUNCTION__, db, initialized);
 	gws_limit = MIN((0xf << 21) * 4 / BUFSIZE,
 					get_max_mem_alloc_size(gpu_id) / BUFSIZE);
 	get_power_of_two(gws_limit);

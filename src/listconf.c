@@ -188,10 +188,10 @@ static void listconf_list_build_info(void)
 #endif
 
 #if HAVE_CUDA
-	printf("CUDA library version: %s\n",get_cuda_header_version());
+	printf("CUDA headers version: %s\n",get_cuda_header_version());
 #endif
 #if HAVE_OPENCL
-	printf("OpenCL library version: %s\n",get_opencl_header_version());
+	printf("OpenCL headers version: %s\n",get_opencl_header_version());
 #endif
 #if HAVE_LIBSSL
 	printf("Crypto library: OpenSSL\n");

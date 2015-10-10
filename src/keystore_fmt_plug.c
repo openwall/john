@@ -166,7 +166,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	/* NOTE: do we need dynamic allocation because of underlying large object size? */
 	static struct custom_salt *cs;
-	if (!cs) cs = mem_alloc(sizeof(struct custom_salt));
+	if (!cs) cs = mem_alloc_tiny(sizeof(struct custom_salt),16);
 	memset(cs, 0, sizeof(struct custom_salt));
 	ctcopy += 10; /* skip over "$keystore$" */
 	p = strtokm(ctcopy, "$");

@@ -35,7 +35,7 @@ void *rar_malloc(size_t size)
 	if(!size || size > (size_t)RAR_MAX_ALLOCATION) {
 		return NULL;
 	}
-	//rar_dbgmsg("%s() allocating "Zu" bytes\n", __func__, size);
+	//rar_dbgmsg("%s() allocating "Zu" bytes\n", __FUNCTION__, size);
 
 	return mem_alloc(size);
 }
@@ -57,7 +57,7 @@ void *rar_realloc2(void *ptr, size_t size)
 	return NULL;
     }
 
-    // //rar_dbgmsg("%s: reallocated %p to "Zu" bytes at %p\n", __func__, ptr, size, alloc); // realloc invalidates ptr
+    // //rar_dbgmsg("%s: reallocated %p to "Zu" bytes at %p\n", __FUNCTION__, ptr, size, alloc); // realloc invalidates ptr
 
     return alloc;
 }

@@ -89,7 +89,7 @@
 	D += (t); H = (t) + Sigma0(A) + Maj((A), (B), (C));
 
 #define ROUND_B(A, B, C, D, E, F, G, H, ki, wi, wj, wk, wl, wm)\
-	wi = sigma1(wj) + sigma0(wk) + wl + wm;\
+	wi = (wl) + (wm) + sigma1(wj) + sigma0(wk);\
 	t = (ki) + (wi) + (H) + Sigma1(E) + Ch((E),(F),(G));\
 	D += (t); H = (t) + Sigma0(A) + Maj((A), (B), (C));
 

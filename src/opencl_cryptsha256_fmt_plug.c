@@ -42,7 +42,11 @@ john_register_one(&fmt_opencl_cryptsha256);
 
 static sha256_salt			* salt;
 static sha256_password			* plaintext;			// plaintext ciphertexts
+static sha256_password			* plain_sorted;			// sorted list (by plaintext len)
 static sha256_hash			* calculated_hash;		// calculated hashes
+static sha256_hash			* computed_hash;		// calculated hashes (from plain_sorted)
+
+static int				* indices;			// relationship between sorted and unsorted plaintext list
 
 static cl_mem salt_buffer;		//Salt information.
 static cl_mem pass_buffer;		//Plaintext buffer.
@@ -81,7 +85,9 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			sizeof(sha256_password) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys");
 
-	plaintext = (sha256_password *) clEnqueueMapBuffer(queue[gpu_id],
+	plaintext = (sha256_password *) mem_alloc(sizeof(sha256_password) * gws);
+
+	plain_sorted = (sha256_password *) clEnqueueMapBuffer(queue[gpu_id],
 			pinned_saved_keys, CL_TRUE, CL_MAP_WRITE, 0,
 			sizeof(sha256_password) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
@@ -91,7 +97,9 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			sizeof(sha256_hash) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_partial_hashes");
 
-	calculated_hash = (sha256_hash *) clEnqueueMapBuffer(queue[gpu_id],
+	calculated_hash = (sha256_hash *) mem_alloc(sizeof(sha256_hash) * gws);
+
+	computed_hash = (sha256_hash *) clEnqueueMapBuffer(queue[gpu_id],
 			pinned_partial_hashes, CL_TRUE, CL_MAP_READ, 0,
 			sizeof(sha256_hash) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory out_hashes");
@@ -145,6 +153,7 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			(void *) &work_buffer), "Error setting argument crypt_kernel (3)");
 	}
 	memset(plaintext, '\0', sizeof(sha256_password) * gws);
+	memset(plain_sorted, '\0', sizeof(sha256_password) * gws);
 }
 
 static void release_clobj(void) {
@@ -152,14 +161,17 @@ static void release_clobj(void) {
 
 	if (work_buffer) {
 		ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes,
-		                                   calculated_hash, 0, NULL, NULL);
+		                                   computed_hash, 0, NULL, NULL);
 		HANDLE_CLERROR(ret_code, "Error Unmapping out_hashes");
 
 		ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys,
-		                                   plaintext, 0, NULL, NULL);
+		                                   plain_sorted, 0, NULL, NULL);
 		HANDLE_CLERROR(ret_code, "Error Unmapping saved_plain");
 		HANDLE_CLERROR(clFinish(queue[gpu_id]),
 		               "Error releasing memory mappings");
+
+		MEM_FREE(plaintext);
+		MEM_FREE(calculated_hash);
 
 		ret_code = clReleaseMemObject(salt_buffer);
 		HANDLE_CLERROR(ret_code, "Error Releasing data_info");
@@ -362,17 +374,40 @@ static int cmp_exact(char * source, int count) {
 static int crypt_all(int *pcount, struct db_salt *_salt)
 {
 	int count = *pcount;
-	int i;
+	int i, index;
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	//Send data to device.
-	if (new_keys)
+	if (new_keys) {
+		// sort passwords by length
+		int tot_todo = 0, len;
+
+		if (indices)
+		    MEM_FREE(indices);
+
+		indices = mem_alloc(gws * sizeof(int));
+
+		for (len = 0; len <= PLAINTEXT_LENGTH; len++) {
+			for (index = 0; index < count; index++) {
+				if (plaintext[index].length == len)
+					indices[tot_todo++] = index;
+			}
+		}
+
+		//Create a sorted candidates list.
+		for (index = 0; index < count; index++) {
+			memcpy(plain_sorted[index].pass, plaintext[indices[index]].pass,
+				PLAINTEXT_LENGTH);
+			plain_sorted[index].length = plaintext[indices[index]].length;
+		}
+
+		//Transfer plaintext buffer to device.
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE, 0,
-			sizeof(sha256_password) * gws, plaintext, 0, NULL, multi_profilingEvent[0]),
+			sizeof(sha256_password) * gws, plain_sorted, 0, NULL, multi_profilingEvent[0]),
 			"failed in clEnqueueWriteBuffer pass_buffer");
+	}
 
 	//Enqueue the kernel
 	if (_SPLIT_KERNEL_IN_USE) {
@@ -385,9 +420,9 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 				&gws, lws, 0, NULL,
 				(ocl_autotune_running ? multi_profilingEvent[split_events[i]] : NULL)),  //1, 5, 6
 				"failed in clEnqueueNDRangeKernel");
-                        
+
 			HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
-			opencl_process_event();                        
+			opencl_process_event();
 		}
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL,
 			&gws, lws, 0, NULL, multi_profilingEvent[4]),
@@ -399,12 +434,16 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 	//Read back hashes
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], hash_buffer, CL_FALSE, 0,
-			sizeof(sha256_hash) * gws, calculated_hash, 0, NULL, multi_profilingEvent[2]),
+			sizeof(sha256_hash) * gws, computed_hash, 0, NULL, multi_profilingEvent[2]),
 			"failed in reading data back");
 
 	//Do the work
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
 	new_keys = 0;
+	
+	//Build calculated hash list according to original plaintext list order.
+	for (index = 0; index < count; index++)
+		memcpy(calculated_hash[indices[index]].v, computed_hash[index].v, BINARY_SIZE);
 
 	return count;
 }
