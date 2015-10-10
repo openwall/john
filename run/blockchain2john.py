@@ -26,19 +26,21 @@ if __name__ == '__main__':
         with open(filename, "rb") as f:
             data = f.read()
             # try to detect the wallet format version, https://blockchain.info/wallet/wallet-format
-            if "guid" in data and args.json:  # v1
+            if b"guid" in data and args.json:  # v1
                 sys.stderr.write("My Wallet Version 1 seems to be used, try removing the --json option!\n")
+            if b"pbkdf2_iterations" in data and not args.json:  # v2
+                sys.stderr.write("My Wallet Version 2 seems to be used, try adding the --json option!\n")
 
             if args.json:
                 # hack for version 2.0 wallets
                 try:
-                    decoded_data = json.loads(data)
+                    decoded_data = json.loads(data.decode("utf-8"))
                     if "version" in decoded_data and str(decoded_data["version"]) == "2":
-                        payload = base64.decodestring(decoded_data["payload"])
+                        payload = base64.b64decode(decoded_data["payload"])
                         iterations = decoded_data["pbkdf2_iterations"]
-                        print("%s:$blockchain$v2$%s$%s$%s" % (filename, iterations,
-                                                        len(payload),
-                                                        binascii.hexlify(payload)))
+                        print("%s:$blockchain$v2$%s$%s$%s" % (
+                            filename, iterations, len(payload),
+                            binascii.hexlify(payload).decode(("ascii"))))
                 except:
                     traceback.print_exc()
                     pass
@@ -46,10 +48,12 @@ if __name__ == '__main__':
                 # umm, what was this code for?
                 try:
                     ddata = base64.decodestring(data)
-                    print("%s:$blockchain$%s$%s" % (filename, len(ddata),
-                                                    binascii.hexlify(ddata)))
+                    print("%s:$blockchain$%s$%s" % (
+                        filename, len(ddata),
+                        binascii.hexlify(ddata).decode("ascii")))
                 except:
                     pass
             else:  # --json is not specified, version 1 wallets
-                print("%s:$blockchain$%s$%s" % (filename, len(data),
-                                                binascii.hexlify(data)))
+                print("%s:$blockchain$%s$%s" % (
+                    filename, len(data),
+                    binascii.hexlify(data).decode("ascii")))
