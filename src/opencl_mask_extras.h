@@ -97,7 +97,7 @@ inline void compare_64(
 	}
 }
 
-#define	MASK_KEYS_GENERATION                                        \
+#define MASK_KEYS_GENERATION                                        \
     if (candidates_number > 1) {                                    \
         uint32_t ikl = int_key_loc[get_global_id(0)];               \
         PUTCHAR(w, (ikl & 0xff) + W_OFFSET, (int_keys[i] & 0xff));  \
