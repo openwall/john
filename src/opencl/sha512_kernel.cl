@@ -21,7 +21,9 @@
 #define Maj(x, y, z) ((x & y) | (z & (x | y)))
 #endif /* USE_BITSELECT */
 
-#if __OS_X__ && gpu_nvidia(DEVICE_INFO)
+#if gpu_amd(DEVICE_INFO)
+#define ror(x, n)	((n) < 32 ? (amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n)) | ((ulong)amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n)) << 32)) : (amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n) - 32) | ((ulong)amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n) - 32) << 32)))
+#elif __OS_X__ && gpu_nvidia(DEVICE_INFO)
 /* Bug workaround for OSX nvidia 10.2.7 310.41.25f01 */
 #define ror(x, n)       ((x >> n) | (x << (64 - n)))
 #else
