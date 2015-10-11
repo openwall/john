@@ -335,7 +335,7 @@ __constant ulong K[] = {
 	0x5fcb6fab3ad6faecUL, 0x6c44198c4a475817UL
 };
 
-#if gpu_amd(DEVICE_INFO)
+#if gpu_amd(DEVICE_INFO) && SCALAR
 #define ror64(x, n)	((n) < 32 ? (amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n)) | ((ulong)amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n)) << 32)) : (amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n) - 32) | ((ulong)amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n) - 32) << 32)))
 #elif __OS_X__ && gpu_nvidia(DEVICE_INFO)
 /* Bug workaround for OSX nvidia 10.2.7 310.41.25f01 */
