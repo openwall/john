@@ -13,7 +13,7 @@
 
 #include "opencl_cryptsha512.h"
 
-#if gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR < 1729
+#if (gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR < 1729) || nvidia_sm_5x(DEVICE_INFO)
     #define VECTOR_USAGE
 #endif
 
