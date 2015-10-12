@@ -23,7 +23,11 @@
 
 #define Ch(x,y,z)       bitselect(z, y, x)
 #define Maj(x, y, z) bitselect(x, y, z ^ x)
-#define ror(x, n)       ((x >> n) | (x << (64UL-n)))
+#define ror(x, n)      ((n) < 32 ?                                                      \
+		(amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n)) |                \
+		((ulong)amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n)) << 32)) : \
+		(amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n) - 32) |           \
+		((ulong)amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n) - 32) << 32)))
 #define SWAP64(n)	bitselect( \
 		bitselect(rotate(n, 24UL), \
 		          rotate(n, 8UL), 0x000000FF000000FFUL), \
