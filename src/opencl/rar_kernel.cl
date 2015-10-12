@@ -20,8 +20,6 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 
-#undef HAVE_LUT3 // LOP3.LUT bugs out with this format on nvidia 352.39
-
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define ROUNDS			0x40000
 

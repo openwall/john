@@ -32,8 +32,6 @@
 #define K3			0x8f1bbcdc
 #define K4			0xca62c1d6
 
-#undef HAVE_LUT3 // LOP3.LUT bugs out with this format on nvidia 352.39
-
 #if HAVE_LUT3
 #define F1(x, y, z) lut3(x, y, z, 0xca)
 #elif USE_BITSELECT
