@@ -32,13 +32,10 @@
 #define K3			0x8f1bbcdc
 #define K4			0xca62c1d6
 
-/*
- * Note: for this format we test HAVE_LUT3 as well as USE_LUT3. The
- * latter defaults to undefined - most SHA-1 formats fails on nvidia
- * 352.39 when defined.
- */
-#if HAVE_LUT3 && USE_LUT3
-#define F1(x, y, z) lut3(y, z, x, 0xE4);
+#undef HAVE_LUT3 // LOP3.LUT bugs out with this format on nvidia 352.39
+
+#if HAVE_LUT3
+#define F1(x, y, z) lut3(x, y, z, 0xd8);
 #elif USE_BITSELECT
 #define F1(x, y, z) bitselect(z, y, x)
 #elif HAVE_ANDNOT
@@ -47,24 +44,24 @@
 #define F1(x, y, z) (z ^ (x & (y ^ z)))
 #endif
 
-#if HAVE_LUT3 && USE_LUT3
+#if HAVE_LUT3
 #define F2(x, y, z) lut3(x, y, z, 0x96);
 #else
 #define F2(x, y, z) (x ^ y ^ z)
 #endif
 
-#if HAVE_LUT3 && USE_LUT3
-#define F3(x, y, z) lut3(x, y, z, 0xE8);
+#if HAVE_LUT3
+#define F3(x, y, z) lut3(x, y, z, 0xe8);
 #elif USE_BITSELECT
 #define F3(x, y, z) bitselect(x, y, (z) ^ (x))
 #else
 #define F3(x, y, z) ((x & y) | (z & (x | y)))
 #endif
 
-#if HAVE_LUT3 && USE_LUT3
-#define F4(x, y, z)     lut3(x, y, z, 0x96);
+#if HAVE_LUT3
+#define F4(x, y, z) lut3(x, y, z, 0x96);
 #else
-#define F4(x, y, z)		(x ^ y ^ z)
+#define F4(x, y, z) (x ^ y ^ z)
 #endif
 
 #define R(t)	  \
