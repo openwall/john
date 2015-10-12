@@ -130,7 +130,7 @@ void opencl_process_event(void)
 				status_ticks_overflow_safety();
 			}
 
-			event_pending = (event_abort || event_poll_files);
+			event_pending = (event_abort || event_poll_files || event_reload);
 		}
 	}
 }
