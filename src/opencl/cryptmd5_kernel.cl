@@ -31,7 +31,7 @@
 
 /* The basic MD5 functions */
 #if HAVE_LUT3
-#define F(x, y, z)	lut3(x, y, z, 0xd8)
+#define F(x, y, z)	lut3(x, y, z, 0xca)
 #define G(x, y, z)	lut3(x, y, z, 0xe4)
 #elif USE_BITSELECT
 #define F(x, y, z)	bitselect(z, y, x)

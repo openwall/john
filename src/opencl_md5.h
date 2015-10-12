@@ -18,8 +18,7 @@
 
 /* The basic MD5 functions */
 #if HAVE_LUT3
-//#define MD5_F(x, y, z)  lut3(x, y, z, 0xd8) // Driver bug!
-#define MD5_F(x, y, z)  lut3(y, z, x, 0xe4)
+#define MD5_F(x, y, z)  lut3(x, y, z, 0xca)
 #define MD5_G(x, y, z)  lut3(x, y, z, 0xe4)
 #elif USE_BITSELECT
 #define MD5_F(x, y, z)  bitselect(z, y, x)

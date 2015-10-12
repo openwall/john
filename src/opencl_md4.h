@@ -18,8 +18,7 @@
 
 /* The basic MD4 functions */
 #if HAVE_LUT3
-//#define MD4_F(x, y, z)  lut3(x, y, z, 0xd8) // Driver bug!
-#define MD4_F(x, y, z)  lut3(y, z, x, 0xe4)
+#define MD4_F(x, y, z)  lut3(x, y, z, 0xca)
 #elif USE_BITSELECT
 #define MD4_F(x, y, z)  bitselect((z), (y), (x))
 #elif HAVE_ANDNOT

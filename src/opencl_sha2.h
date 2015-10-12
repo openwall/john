@@ -13,7 +13,7 @@
 #include "opencl_misc.h"
 
 #if HAVE_LUT3
-#define Ch(x, y, z) lut3(x, y, z, 0xd8)
+#define Ch(x, y, z) lut3(x, y, z, 0xca)
 #elif USE_BITSELECT
 #define Ch(x, y, z) bitselect(z, y, x)
 #elif HAVE_ANDNOT
@@ -23,7 +23,7 @@
 #endif
 
 #if HAVE_LUT3
-#define Maj(x, y, z) lut3(x, y, z, 0xe8);
+#define Maj(x, y, z) lut3(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define Maj(x, y, z) bitselect(x, y, z ^ x)
 #else
@@ -288,7 +288,7 @@ __constant uint k[] = {
 #undef Ch
 
 #if HAVE_LUT3_64
-#define Ch(x, y, z) lut3_64(x, y, z, 0xd8)
+#define Ch(x, y, z) lut3_64(x, y, z, 0xca)
 #elif USE_BITSELECT
 #define Ch(x, y, z) bitselect(z, y, x)
 #elif HAVE_ANDNOT
@@ -298,7 +298,7 @@ __constant uint k[] = {
 #endif
 
 #if HAVE_LUT3_64
-#define Maj(x, y, z) lut3_64(x, y, z, 0xe8);
+#define Maj(x, y, z) lut3_64(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define Maj(x, y, z) bitselect(x, y, z ^ x)
 #else

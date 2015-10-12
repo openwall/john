@@ -35,7 +35,7 @@
 #undef HAVE_LUT3 // LOP3.LUT bugs out with this format on nvidia 352.39
 
 #if HAVE_LUT3
-#define F1(x, y, z) lut3(x, y, z, 0xd8);
+#define F1(x, y, z) lut3(x, y, z, 0xca)
 #elif USE_BITSELECT
 #define F1(x, y, z) bitselect(z, y, x)
 #elif HAVE_ANDNOT
@@ -45,13 +45,13 @@
 #endif
 
 #if HAVE_LUT3
-#define F2(x, y, z) lut3(x, y, z, 0x96);
+#define F2(x, y, z) lut3(x, y, z, 0x96)
 #else
 #define F2(x, y, z) (x ^ y ^ z)
 #endif
 
 #if HAVE_LUT3
-#define F3(x, y, z) lut3(x, y, z, 0xe8);
+#define F3(x, y, z) lut3(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define F3(x, y, z) bitselect(x, y, (z) ^ (x))
 #else
@@ -59,7 +59,7 @@
 #endif
 
 #if HAVE_LUT3
-#define F4(x, y, z) lut3(x, y, z, 0x96);
+#define F4(x, y, z) lut3(x, y, z, 0x96)
 #else
 #define F4(x, y, z) (x ^ y ^ z)
 #endif

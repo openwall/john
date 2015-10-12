@@ -71,8 +71,7 @@ inline void sha1_mblock(uint *Win, uint *out, uint blocks)
 
 #undef F // F1
 #if HAVE_LUT3
-#define F(x, y, z) lut3(x, y, z, 0xd8); // Driver bug?
-//#define F(x, y, z) lut3(y, z, x, 0xe4);
+#define F(x, y, z) lut3(x, y, z, 0xca)
 #elif USE_BITSELECT
 #define F(x, y, z) bitselect(z, y, x)
 #elif HAVE_ANDNOT
@@ -106,7 +105,7 @@ inline void sha1_mblock(uint *Win, uint *out, uint blocks)
 
 #undef F // F2
 #if HAVE_LUT3
-#define F(x, y, z) lut3(x, y, z, 0x96);
+#define F(x, y, z) lut3(x, y, z, 0x96)
 #else
 #define F(x, y, z) (x ^ y ^ z)
 #endif
@@ -137,7 +136,7 @@ inline void sha1_mblock(uint *Win, uint *out, uint blocks)
 
 #undef F // F3
 #if HAVE_LUT3
-#define F(x, y, z) lut3(x, y, z, 0xe8);
+#define F(x, y, z) lut3(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define F(x, y, z) bitselect(x, y, (z) ^ (x))
 #else
@@ -170,9 +169,9 @@ inline void sha1_mblock(uint *Win, uint *out, uint blocks)
 
 #undef F // F4
 #if HAVE_LUT3
-#define F(x, y, z)     lut3(x, y, z, 0x96);
+#define F(x, y, z) lut3(x, y, z, 0x96)
 #else
-#define F(x, y, z)		(x ^ y ^ z)
+#define F(x, y, z) (x ^ y ^ z)
 #endif
 
 #undef K
@@ -242,8 +241,7 @@ inline void sha1_block(MAYBE_VECTOR_UINT *W, MAYBE_VECTOR_UINT *output) {
 
 #undef F // F1
 #if HAVE_LUT3
-#define F(x, y, z) lut3(x, y, z, 0xd8); // Driver bug?
-//#define F(x, y, z) lut3(y, z, x, 0xe4);
+#define F(x, y, z) lut3(x, y, z, 0xca)
 #elif USE_BITSELECT
 #define F(x, y, z) bitselect(z, y, x)
 #else
@@ -279,7 +277,7 @@ inline void sha1_block(MAYBE_VECTOR_UINT *W, MAYBE_VECTOR_UINT *output) {
 
 #undef F // F2
 #if HAVE_LUT3
-#define F(x, y, z) lut3(x, y, z, 0x96);
+#define F(x, y, z) lut3(x, y, z, 0x96)
 #else
 #define F(x, y, z) (x ^ y ^ z)
 #endif
@@ -310,7 +308,7 @@ inline void sha1_block(MAYBE_VECTOR_UINT *W, MAYBE_VECTOR_UINT *output) {
 
 #undef F // F3
 #if HAVE_LUT3
-#define F(x, y, z) lut3(x, y, z, 0xe8);
+#define F(x, y, z) lut3(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define F(x, y, z) bitselect(x, y, (z) ^ (x))
 #else
@@ -343,7 +341,7 @@ inline void sha1_block(MAYBE_VECTOR_UINT *W, MAYBE_VECTOR_UINT *output) {
 
 #undef F // F4
 #if HAVE_LUT3
-#define F(x, y, z)     lut3(x, y, z, 0x96);
+#define F(x, y, z)     lut3(x, y, z, 0x96)
 #else
 #define F(x, y, z)		(x ^ y ^ z)
 #endif

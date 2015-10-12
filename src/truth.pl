@@ -29,9 +29,10 @@ $f =~ s/~(\$[xyz])/((~$1) & 1)/g;
 
 my $r = 0;
 foreach my $i (0..7) {
-	my $x = $i & 0x01;
-	my $y = ($i & 0x2) >> 1;
-	my $z = ($i & 0x4) >> 2;
+	my $x = ($i >> 2) & 0x1;
+	my $y = ($i >> 1) & 0x1;
+	my $z = ($i >> 0) & 0x1;
+	#print "$x $y $z = ", eval($f), "\n";
 	$r |= eval($f) << $i;
 }
-printf("lut3(x, y, z, 0x%02x) == %s\n", $r, $orig_f);
+printf("lut3(x, y, z, 0x%02x)  ==  %s\n", $r, $orig_f);
