@@ -10,15 +10,11 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 
-#ifdef cl_nv_pragma_unroll
-#define NVIDIA
-#endif
-
 #if nvidia_sm_3x(DEVICE_INFO)
 #define USE_BITSELECT 1
 #endif
 
-#ifdef NVIDIA
+#if gpu_nvidia(DEVICE_INFO)
 #define BITALIGN_AGGRESSIVE
 #else
 #define BUF_UPDATE_SWITCH
@@ -258,7 +254,7 @@ inline void init_ctx(md5_ctx * ctx, uint * ctx_buflen)
 	uint i;
 	uint *buf = (uint *) ctx->buffer;
 
-#ifdef NVIDIA
+#if gpu_nvidia(DEVICE_INFO)
 #pragma unroll 4
 #endif
 	for (i = 0; i < sizeof(ctx->buffer) / 4; i++)
@@ -382,7 +378,7 @@ __kernel void cryptmd5(__global const crypt_md5_password * inbuffer,
 	} salt;
 	uint i;
 
-#ifdef NVIDIA
+#if gpu_nvidia(DEVICE_INFO)
 #pragma unroll 4
 #endif
 	for (i = 0; i < (PLAINTEXT_LENGTH + 3) / 4; i++)
@@ -479,7 +475,7 @@ __kernel void cryptmd5(__global const crypt_md5_password * inbuffer,
 	ctx_buflen[7] += 16;
 	PUTCHAR(ctx[7].buffer, ctx_buflen[7], 0x80);
 
-#ifdef NVIDIA
+#if gpu_nvidia(DEVICE_INFO)
 #pragma unroll 8
 #endif
 	for (i = 0; i < 8; i++)
@@ -488,7 +484,7 @@ __kernel void cryptmd5(__global const crypt_md5_password * inbuffer,
 	uint id1 = g[0], id2;
 
 	uint j = 1;
-#ifdef NVIDIA
+#if gpu_nvidia(DEVICE_INFO)
 	for (i = 0; i < 250; i++) {
 #else
 	for (i = 0; i < 500; i++) {
@@ -501,7 +497,7 @@ __kernel void cryptmd5(__global const crypt_md5_password * inbuffer,
 		id1 = g[j + 1];
 		md5_digest(&ctx[id2], ctx[id1].buffer, ctx_buflen[id2], 0);
 
-#ifdef NVIDIA
+#if gpu_nvidia(DEVICE_INFO)
 		id2 = g[j + 2];
 		md5_digest(&ctx[id1], ctx[id2].buffer, ctx_buflen[id1],
 		    altpos[id2 - 4]);
@@ -515,7 +511,7 @@ __kernel void cryptmd5(__global const crypt_md5_password * inbuffer,
 #endif
 	}
 
-#ifdef NVIDIA
+#if gpu_nvidia(DEVICE_INFO)
 #pragma unroll 4
 #endif
 	for (i = 0; i < 4; i++)
