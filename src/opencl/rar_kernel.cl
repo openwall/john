@@ -20,8 +20,6 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 
-#undef HAVE_LUT3 // LOP3.LUT bugs out with this format on nvidia 352.39
-
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define ROUNDS			0x40000
 
@@ -69,9 +67,9 @@ inline void sha1_mblock(uint *Win, uint *out, uint blocks)
 			b = rotate(b, 30U); \
 		}
 
-#undef F
+#undef F // F1
 #if HAVE_LUT3
-#define F(x, y, z) lut3(y, z, x, 0xE4);
+#define F(x, y, z) lut3(x, y, z, 0xca)
 #elif USE_BITSELECT
 #define F(x, y, z) bitselect(z, y, x)
 #elif HAVE_ANDNOT
@@ -103,9 +101,9 @@ inline void sha1_mblock(uint *Win, uint *out, uint blocks)
 		P( C, D, E, A, B, R(18) );
 		P( B, C, D, E, A, R(19) );
 
-#undef F
+#undef F // F2
 #if HAVE_LUT3
-#define F(x, y, z) lut3(x, y, z, 0x96);
+#define F(x, y, z) lut3(x, y, z, 0x96)
 #else
 #define F(x, y, z) (x ^ y ^ z)
 #endif
@@ -134,9 +132,9 @@ inline void sha1_mblock(uint *Win, uint *out, uint blocks)
 		P( C, D, E, A, B, R(38) );
 		P( B, C, D, E, A, R(39) );
 
-#undef F
+#undef F // F3
 #if HAVE_LUT3
-#define F(x, y, z) lut3(x, y, z, 0xE8);
+#define F(x, y, z) lut3(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define F(x, y, z) bitselect(x, y, (z) ^ (x))
 #else
@@ -167,11 +165,11 @@ inline void sha1_mblock(uint *Win, uint *out, uint blocks)
 		P( C, D, E, A, B, R(58) );
 		P( B, C, D, E, A, R(59) );
 
-#undef F
+#undef F // F4
 #if HAVE_LUT3
-#define F(x, y, z)     lut3(x, y, z, 0x96);
+#define F(x, y, z) lut3(x, y, z, 0x96)
 #else
-#define F(x, y, z)		(x ^ y ^ z)
+#define F(x, y, z) (x ^ y ^ z)
 #endif
 
 #undef K
@@ -239,7 +237,10 @@ inline void sha1_block(MAYBE_VECTOR_UINT *W, MAYBE_VECTOR_UINT *output) {
 		b = rotate(b, 30U); \
 	}
 
-#ifdef USE_BITSELECT
+#undef F // F1
+#if HAVE_LUT3
+#define F(x, y, z) lut3(x, y, z, 0xca)
+#elif USE_BITSELECT
 #define F(x, y, z) bitselect(z, y, x)
 #else
 #if HAVE_ANDNOT
@@ -272,9 +273,9 @@ inline void sha1_block(MAYBE_VECTOR_UINT *W, MAYBE_VECTOR_UINT *output) {
 	P( C, D, E, A, B, R(18) );
 	P( B, C, D, E, A, R(19) );
 
-#undef F
+#undef F // F2
 #if HAVE_LUT3
-#define F(x, y, z) lut3(x, y, z, 0x96);
+#define F(x, y, z) lut3(x, y, z, 0x96)
 #else
 #define F(x, y, z) (x ^ y ^ z)
 #endif
@@ -303,9 +304,9 @@ inline void sha1_block(MAYBE_VECTOR_UINT *W, MAYBE_VECTOR_UINT *output) {
 	P( C, D, E, A, B, R(38) );
 	P( B, C, D, E, A, R(39) );
 
-#undef F
+#undef F // F3
 #if HAVE_LUT3
-#define F(x, y, z) lut3(x, y, z, 0xE8);
+#define F(x, y, z) lut3(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define F(x, y, z) bitselect(x, y, (z) ^ (x))
 #else
@@ -336,9 +337,9 @@ inline void sha1_block(MAYBE_VECTOR_UINT *W, MAYBE_VECTOR_UINT *output) {
 	P( C, D, E, A, B, R(58) );
 	P( B, C, D, E, A, R(59) );
 
-#undef F
+#undef F // F4
 #if HAVE_LUT3
-#define F(x, y, z)     lut3(x, y, z, 0x96);
+#define F(x, y, z)     lut3(x, y, z, 0x96)
 #else
 #define F(x, y, z)		(x ^ y ^ z)
 #endif

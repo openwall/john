@@ -13,7 +13,7 @@
 #include "opencl_misc.h"
 
 #if HAVE_LUT3
-#define Ch(x, y, z) lut3(y, z, x, 0xe4)
+#define Ch(x, y, z) lut3(x, y, z, 0xca)
 #elif USE_BITSELECT
 #define Ch(x, y, z) bitselect(z, y, x)
 #elif HAVE_ANDNOT
@@ -23,7 +23,7 @@
 #endif
 
 #if HAVE_LUT3
-#define Maj(x, y, z) lut3(x, y, z, 0xE8);
+#define Maj(x, y, z) lut3(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define Maj(x, y, z) bitselect(x, y, z ^ x)
 #else
@@ -288,7 +288,7 @@ __constant uint k[] = {
 #undef Ch
 
 #if HAVE_LUT3_64
-#define Ch(x, y, z) lut3_64(y, z, x, 0xe4)
+#define Ch(x, y, z) lut3_64(x, y, z, 0xca)
 #elif USE_BITSELECT
 #define Ch(x, y, z) bitselect(z, y, x)
 #elif HAVE_ANDNOT
@@ -298,7 +298,7 @@ __constant uint k[] = {
 #endif
 
 #if HAVE_LUT3_64
-#define Maj(x, y, z) lut3_64(x, y, z, 0xE8);
+#define Maj(x, y, z) lut3_64(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define Maj(x, y, z) bitselect(x, y, z ^ x)
 #else
@@ -335,7 +335,9 @@ __constant ulong K[] = {
 	0x5fcb6fab3ad6faecUL, 0x6c44198c4a475817UL
 };
 
-#if __OS_X__ && gpu_nvidia(DEVICE_INFO)
+#if gpu_amd(DEVICE_INFO) && SCALAR
+#define ror64(x, n)	((n) < 32 ? (amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n)) | ((ulong)amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n)) << 32)) : (amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n) - 32) | ((ulong)amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n) - 32) << 32)))
+#elif __OS_X__ && gpu_nvidia(DEVICE_INFO)
 /* Bug workaround for OSX nvidia 10.2.7 310.41.25f01 */
 #define ror64(x, n)       ((x >> n) | (x << (64 - n)))
 #else

@@ -8,10 +8,6 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 
-#ifdef cl_nv_pragma_unroll
-#define NVIDIA
-#endif
-
 #define SHA1_DIGEST_LENGTH          20
 
 #define INIT_SHA1_A                 0x67452301
@@ -354,27 +350,33 @@ typedef struct {
 	P(B, C, D, E, A, R7);
 
 inline void SHA1(__private uint *A, __private uint *W) {
-#ifndef NVIDIA
+#if HAVE_LUT3
+#define F(x, y, z) lut3(x, y, z, 0xca)
+#elif USE_BITSELECT
 #define F(x, y, z) bitselect(z, y, x)
-#else
-#if HAVE_ANDNOT
+#elif HAVE_ANDNOT
 #define F(x, y, z) ((x & y) ^ ((~x) & z))
 #else
 #define F(x, y, z) (z ^ (x & (y ^ z)))
-#endif
 #endif
 #define K 0x5A827999
 	SHA1_part0(A[0], A[1], A[2], A[3], A[4], W) ;
 #undef K
 #undef F
 
-#define F(x,y,z) (x ^ y ^ z)
+#if HAVE_LUT3
+#define F(x, y, z) lut3(x, y, z, 0x96)
+#else
+#define F(x, y, z) (x ^ y ^ z)
+#endif
 #define K 0x6ED9EBA1
 	SHA1_part1(A[0], A[1], A[2], A[3], A[4]) ;
 #undef K
 #undef F
 
-#ifndef NVIDIA
+#if HAVE_LUT3
+#define F(x, y, z) lut3(x, y, z, 0xe8)
+#elif USE_BITSELECT
 #define F(x, y, z) bitselect(x, y, (z) ^ (x))
 #else
 #define F(x, y, z) ((x & y) | (z & (x | y)))
@@ -384,7 +386,11 @@ inline void SHA1(__private uint *A, __private uint *W) {
 #undef K
 #undef F
 
-#define F(x,y,z) (x ^ y ^ z)
+#if HAVE_LUT3
+#define F(x, y, z) lut3(x, y, z, 0x96)
+#else
+#define F(x, y, z) (x ^ y ^ z)
+#endif
 #define K 0xCA62C1D6
 	SHA1_part3(A[0], A[1], A[2], A[3], A[4]) ;
 #undef K
@@ -392,33 +398,47 @@ inline void SHA1(__private uint *A, __private uint *W) {
 }
 
 inline void SHA1_digest(__private uint *A, __private uint *W) {
-#ifndef NVIDIA
-#define F(x,y,z) bitselect(z, y, x)
+#if HAVE_LUT3
+#define F(x, y, z) lut3(x, y, z, 0xca)
+#elif USE_BITSELECT
+#define F(x, y, z) bitselect(z, y, x)
+#elif HAVE_ANDNOT
+#define F(x, y, z) ((x & y) ^ ((~x) & z))
 #else
-#define F(x,y,z) (z ^ (x & (y ^ z)))
+#define F(x, y, z) (z ^ (x & (y ^ z)))
 #endif
 #define K 0x5A827999
 	SHA1_digest_part0(A[0], A[1], A[2], A[3], A[4], W) ;
 #undef K
 #undef F
 
-#define F(x,y,z) (x ^ y ^ z)
+#if HAVE_LUT3
+#define F(x, y, z) lut3(x, y, z, 0x96)
+#else
+#define F(x, y, z) (x ^ y ^ z)
+#endif
 #define K 0x6ED9EBA1
 	SHA1_digest_part1(A[0], A[1], A[2], A[3], A[4]) ;
 #undef K
 #undef F
 
-#ifndef NVIDIA
-#define F(x,y,z) bitselect(x, y, (z) ^ (x))
+#if HAVE_LUT3
+#define F(x, y, z) lut3(x, y, z, 0xe8)
+#elif USE_BITSELECT
+#define F(x, y, z) bitselect(x, y, (z) ^ (x))
 #else
-#define F(x,y,z) ((x & y) | (z & (x | y)))
+#define F(x, y, z) ((x & y) | (z & (x | y)))
 #endif
 #define K 0x8F1BBCDC
 	SHA1_part2(A[0], A[1], A[2], A[3], A[4]) ;
 #undef K
 #undef F
 
-#define F(x,y,z) (x ^ y ^ z)
+#if HAVE_LUT3
+#define F(x, y, z) lut3(x, y, z, 0x96)
+#else
+#define F(x, y, z) (x ^ y ^ z)
+#endif
 #define K 0xCA62C1D6
 	SHA1_part3(A[0], A[1], A[2], A[3], A[4]) ;
 #undef K

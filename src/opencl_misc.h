@@ -39,6 +39,20 @@ typedef long int64_t;
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #endif
 
+#if 0 /* Used for testing */
+#define HAVE_LUT3	1
+inline uint lut3(uint x, uint y, uint z, uchar m)
+{
+	uint i;
+	uint r = 0;
+	for(i = 0; i < sizeof(uint) * 8; i++)
+		r |= (uint)((m >> ( (((x >> i) & 1) << 2) |
+		                    (((y >> i) & 1) << 1) |
+		                     ((z >> i) & 1) )) & 1) << i;
+	return r;
+}
+#endif
+
 #if !gpu_nvidia(DEVICE_INFO) || SM_MAJOR >= 5
 #define USE_BITSELECT 1
 #endif
@@ -62,15 +76,20 @@ inline uint lut3(uint a, uint b, uint c, uint imm)
 	return r;
 }
 
-#if 0 /* This doesn't seem exposed yet? */
+#if 0 /* This does no good */
 #define HAVE_LUT3_64	1
 inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
 {
-	ulong r;
-	asm("lop3.b64 %0, %1, %2, %3, %4;"
-	    : "=r" (r)
-	    : "r" (a), "r" (b), "r" (c), "i" (imm));
-	return r;
+	ulong t, r;
+
+	asm("lop3.b32 %0, %1, %2, %3, %4;"
+	    : "=r" (t)
+	    : "r" ((uint)a), "r" ((uint)b), "r" ((uint)c), "i" (imm));
+	r = t;
+	asm("lop3.b32 %0, %1, %2, %3, %4;"
+	    : "=r" (t)
+	    : "r" ((uint)(a >> 32)), "r" ((uint)(b >> 32)), "r" ((uint)(c >> 32)), "i" (imm));
+	return r + (t << 32);
 }
 #endif
 #endif
