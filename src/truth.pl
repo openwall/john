@@ -9,7 +9,7 @@
 #
 # Example:
 # $ ./truth.pl '((x | ~y) ^ z)'
-# lut3(x, y, z, 0x4b) == ((x | ~y) ^ z)
+# lut3(x, y, z, 0x59)  ==  ((x | ~y) ^ z)
 #
 use strict;
 
