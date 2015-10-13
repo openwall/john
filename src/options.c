@@ -169,7 +169,8 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &show_uncracked_str},
 	{"test", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
-		~OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_time},
+		~FLG_MASK_CHK & ~FLG_NOLOG & ~OPT_REQ_PARAM,
+		"%d", &benchmark_time},
 	{"test-full", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
 		OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_level},
@@ -470,6 +471,14 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	opt_process(opt_list, &options.flags, argv);
 
 	if (options.flags & FLG_MASK_CHK) {
+		if (options.flags & FLG_TEST_CHK) {
+			options.flags &= ~FLG_PWD_SUP;
+			options.flags |= FLG_NOTESTS;
+
+			if (options.mask && (strstr(options.mask, "?w") ||
+			                     strstr(options.mask, "?W")))
+				options.flags |= FLG_MASK_STACKED;
+		} else
 		if (options.flags & FLG_CRACKING_CHK)
 			options.flags |= FLG_MASK_STACKED;
 		else if (options.mask && strcasestr(options.mask, "?w")) {

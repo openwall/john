@@ -51,6 +51,7 @@
 #include "unicode.h"
 #include "config.h"
 #include "common-gpu.h"
+#include "mask.h"
 
 #ifndef BENCH_BUILD
 #include "options.h"
@@ -632,6 +633,15 @@ AGAIN:
 		fflush(stdout);
 #endif /* _OPENMP */
 #endif /* HAVE_MPI */
+
+		/* GPU-side mask mode benchmark */
+		if (options.flags & FLG_MASK_CHK) {
+			struct db_main fakedb;
+
+			fakedb.format = format;
+			mask_init(&fakedb, options.mask);
+		}
+
 		switch (format->params.benchmark_length) {
 		case 0:
 		case -1000:
