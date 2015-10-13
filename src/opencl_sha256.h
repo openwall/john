@@ -37,14 +37,14 @@
 	 (((n) >> 8) & 0xff00U)     | ((n) >> 24))
 
 #if HAVE_LUT3
-#define Ch(x, y, z) lut3(y, z, x, 0xca)
-#elseif HAVE_ANDNOT
+#define Ch(x, y, z) lut3(x, y, z, 0xca)
+#elif HAVE_ANDNOT
 #define Ch(x, y, z) ((x & y) ^ ((~x) & z))
 #else
 #define Ch(x, y, z) (z ^ (x & (y ^ z)))
 #endif
 #if HAVE_LUT3
-#define Maj(x, y, z) lut3(x, y, z, 0xe8);
+#define Maj(x, y, z) lut3(x, y, z, 0xe8)
 #else
 #define Maj(x, y, z) ((x & y) | (z & (x | y)))
 #endif
