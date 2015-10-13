@@ -3,38 +3,57 @@
 import sys
 import base64
 import binascii
-from optparse import OptionParser
 import argparse
+import json
+import traceback
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(prog='blockchain2john.py', usage="%(prog)s [blockchain wallet files]")
-    parser.add_argument('--json', action='store_true', 
-								default=False,
-								dest='json', 
-								help='is input in base64 format?'
-								)
+    parser = argparse.ArgumentParser(
+        prog=sys.argv[0],
+        usage="%(prog)s [blockchain wallet files]")
 
-    args = parser.parse_args()
+    parser.add_argument('--json', action='store_true', default=False,
+                        dest='json', help='is input in base64 format?')
+
+    args, unknown = parser.parse_known_args()
 
     if len(sys.argv) < 2:
         parser.print_help()
         sys.exit(-1)
 
-    if options.json:
-        for i in range(0, len(sys.argv)):
-            filename = sys.argv[i]
-            with open(filename, "rb") as f:
-                data = f.read()
-                ddata = base64.decodestring(data)
-                print "%s:$blockchain$%s$%s" % (filename,
-                        len(ddata), binascii.hexlify(ddata))
-    else:
-        for i in range(0, len(sys.argv)):
-            filename = sys.argv[i]
-            with open(filename, "rb") as f:
-                data = f.read()
-                print "%s:$blockchain$%s$%s" % (filename,
-                        len(data), binascii.hexlify(data))
+    for filename in unknown:
+        with open(filename, "rb") as f:
+            data = f.read()
+            # try to detect the wallet format version, https://blockchain.info/wallet/wallet-format
+            if b"guid" in data and args.json:  # v1
+                sys.stderr.write("My Wallet Version 1 seems to be used, try removing the --json option!\n")
+            if b"pbkdf2_iterations" in data and not args.json:  # v2
+                sys.stderr.write("My Wallet Version 2 seems to be used, try adding the --json option!\n")
 
+            if args.json:
+                # hack for version 2.0 wallets
+                try:
+                    decoded_data = json.loads(data.decode("utf-8"))
+                    if "version" in decoded_data and str(decoded_data["version"]) == "2":
+                        payload = base64.b64decode(decoded_data["payload"])
+                        iterations = decoded_data["pbkdf2_iterations"]
+                        print("%s:$blockchain$v2$%s$%s$%s" % (
+                            filename, iterations, len(payload),
+                            binascii.hexlify(payload).decode(("ascii"))))
+                except:
+                    traceback.print_exc()
+                    pass
 
+                # umm, what was this code for?
+                try:
+                    ddata = base64.decodestring(data)
+                    print("%s:$blockchain$%s$%s" % (
+                        filename, len(ddata),
+                        binascii.hexlify(ddata).decode("ascii")))
+                except:
+                    pass
+            else:  # --json is not specified, version 1 wallets
+                print("%s:$blockchain$%s$%s" % (
+                    filename, len(data),
+                    binascii.hexlify(data).decode("ascii")))

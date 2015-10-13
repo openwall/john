@@ -15,6 +15,11 @@
  * ./configure)
  */
 #ifndef _JTR_JUMBO_H
+#define _JTR_JUMBO_H
+
+// use this define in some core (master) code, to be able to more cleanly insert code
+// leaving the master code more intact for easier merging of changes Solar gives us.
+#define JUMBO_JTR  1
 
 #include "arch.h"
 #include <stdio.h>
@@ -327,8 +332,6 @@ extern int vc_fixed_snprintf(char *Dest, size_t max_cnt, const char *Fmt, ...);
 #undef fileno
 #define fileno _fileno
 #pragma warning (disable : 4018 297 )
-#undef inline
-#define inline _inline
 #endif
 
 // NOTE, this still will fail on REALLY old systems, where you can only
@@ -389,7 +392,7 @@ char *strrev(char *str);
 extern size_t strnlen(const char *s, size_t max);
 #endif
 
-#if AC_BUILT && !HAVE_STRCASESTR
+#if AC_BUILT && !HAVE_STRCASESTR || !AC_BUILT && defined(__MINGW__)
 char *strcasestr(const char *haystack, const char *needle);
 #endif
 

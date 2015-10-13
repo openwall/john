@@ -13,7 +13,7 @@
 
 #include "opencl_cryptsha512.h"
 
-#if __GPU__ && DEV_VER_MAJOR != 1729
+#if (gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR < 1729) || nvidia_sm_5x(DEVICE_INFO)
     #define VECTOR_USAGE
 #endif
 
@@ -23,11 +23,11 @@
 #if amd_vliw4(DEVICE_INFO) || amd_vliw5(DEVICE_INFO)
     #define UNROLL_LEVEL	5
 #elif amd_gcn(DEVICE_INFO)
-    #define UNROLL_LEVEL	1
+    #define UNROLL_LEVEL	5
 #elif (nvidia_sm_2x(DEVICE_INFO) || nvidia_sm_3x(DEVICE_INFO))
     #define UNROLL_LEVEL	4
 #elif nvidia_sm_5x(DEVICE_INFO)
-    #define UNROLL_LEVEL	1
+    #define UNROLL_LEVEL	4
 #else
     #define UNROLL_LEVEL	0
 #endif
@@ -152,7 +152,7 @@ inline void sha512_block(sha512_ctx * ctx) {
     #pragma unroll 2
 #endif
     for (uint i = 16U; i < 80U; i++) {
-        w[i & 15] = w[(i - 16) & 15] + w[(i - 7) & 15] + sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]);
+	w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
         t = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
 
         h = g;

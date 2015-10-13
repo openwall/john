@@ -27,37 +27,6 @@
 #include "misc.h"
 #include "memdbg.h"
 
-#if _MSC_VER && !_M_X64 && __SSE2__
-/* These are slow, but the F'n 32 bit compiler will not build these intrinsics.
-   Only the 64-bit (Win64) MSVC compiler has these as intrinsics. These slow
-   ones let me debug, and develop this code, and work, but use CPU */
-#define _mm_set_epi64 __mm_set_epi64
-#define _mm_set1_epi64 __mm_set1_epi64
-_inline __m128i _mm_set_epi64(long long a, long long b)
-{
-	__m128i x;
-
-	x.m128i_i64[0] = b;
-	x.m128i_i64[1] = a;
-	return x;
-}
-_inline __m128i _mm_set1_epi64(long long a)
-{
-	__m128i x;
-
-	x.m128i_i64[0] = x.m128i_i64[1] = a;
-	return x;
-}
-#define vset1_epi64x(x)         vset_epi64x(x, x)
-#define vset_epi64x(x1,x0)      (vtype)(vtype64){x0, x1}
-#endif
-
-#ifndef DEBUG
-#if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER
-#pragma GCC optimize 3
-#endif
-#endif
-
 /* Shorter names for use in index calculations */
 #define VS32 SIMD_COEF_32
 #define VS64 SIMD_COEF_64
@@ -72,7 +41,13 @@ _inline __m128i _mm_set1_epi64(long long a)
 #define MD5_G(x,y,z)                            \
     tmp[i] = vcmov((x[i]),(y[i]),(z[i]));
 
-#if 1
+#if __AVX512F__
+#define MD5_H(x,y,z)                            \
+    tmp[i] = vternarylogic(x[i], y[i], z[i], 0x96);
+
+#define MD5_H2(x,y,z)                           \
+    tmp[i] = vternarylogic(x[i], y[i], z[i], 0x96);
+#elif 1
 #define MD5_H(x,y,z)                            \
     tmp2[i] = vxor((x[i]),(y[i]));              \
     tmp[i] = vxor(tmp2[i], (z[i]));
@@ -89,9 +64,16 @@ _inline __m128i _mm_set1_epi64(long long a)
     tmp[i] = vxor((tmp[i]),(x[i]));
 #endif
 
-#if !VCMOV_EMULATED
+#if __AVX512F__
 #define MD5_I(x,y,z)                            \
-    tmp[i] = vcmov((x[i]), mask, (z[i])); \
+    tmp[i] = vternarylogic(x[i], y[i], z[i], 0x39);
+#elif __ARM_NEON__
+#define MD5_I(x,y,z)                            \
+    tmp[i] = vorn((x[i]), (z[i]));              \
+    tmp[i] = vxor((tmp[i]), (y[i]));
+#elif !VCMOV_EMULATED
+#define MD5_I(x,y,z)                            \
+    tmp[i] = vcmov((x[i]), mask, (z[i]));       \
     tmp[i] = vxor((tmp[i]), (y[i]));
 #else
 #define MD5_I(x,y,z)                            \
@@ -120,6 +102,20 @@ _inline __m128i _mm_set1_epi64(long long a)
         a[i] = vadd_epi32( a[i], b[i] );            \
     }
 
+#define INIT_A 0x67452301
+
+void md5_reverse(uint32_t *hash)
+{
+	hash[0] -= INIT_A;
+}
+
+void md5_unreverse(uint32_t *hash)
+{
+	hash[0] += INIT_A;
+}
+
+#undef INIT_A
+
 void SIMDmd5body(vtype* _data, unsigned int *out,
                 ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
@@ -129,14 +125,16 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	vtype c[SIMD_PARA_MD5];
 	vtype d[SIMD_PARA_MD5];
 	vtype tmp[SIMD_PARA_MD5];
-#if 1
+#if !__AVX512F__
 	vtype tmp2[SIMD_PARA_MD5];
 #endif
-	vtype mask;
 	unsigned int i;
 	vtype *data;
 
+#if !__AVX512F__ && !__ARM_NEON__
+	vtype mask;
 	mask = vset1_epi32(0xffffffff);
+#endif
 
 	if(SSEi_flags & SSEi_FLAT_IN) {
 		// Move _data to __data, mixing it SIMD_COEF_32 wise.
@@ -341,9 +339,10 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 
 #if USE_EXPERIMENTAL
 /*
- * This is currently not used for MD4 & MD5, and was observed to result
+ * This is currently not used for MD5, and was observed to result
  * in a significant performance regression (at least on XOP) just by sitting
  * here. http://www.openwall.com/lists/john-dev/2015/09/05/5
+ * NOTE the regression might be gone now anyway since we went from -O3 to -O2.
  */
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		MD5_PARA_DO(i)
@@ -464,7 +463,7 @@ static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid,
 				d[2 * VS32] = s[2 * VS32];
 				d[3 * VS32] = s[3 * VS32];
 				break;
-#ifdef __XOP__
+#if 0
 			default:
 				n <<= 3;
 				{
@@ -593,11 +592,9 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 	unsigned int i,j;
 	MD5_CTX ctx;
 	MD5_CTX tctx;
-	char _b[8 * 64 * MD5_SSE_NUM_KEYS + MEM_ALIGN_SIMD] = { 0 };
-	unsigned char (*buffers)[64*MD5_SSE_NUM_KEYS] =
-		mem_align(_b, MEM_ALIGN_SIMD);
-	int _F[4 * MD5_SSE_NUM_KEYS + MEM_ALIGN_SIMD] = { 0 };
-	unsigned int *F = mem_align(_F, MEM_ALIGN_SIMD);
+	JTR_ALIGN(MEM_ALIGN_SIMD)
+		unsigned char buffers[8][64*MD5_SSE_NUM_KEYS] = { { 0 } };
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned int F[4*MD5_SSE_NUM_KEYS];
 
 	saltlen = strlen((char*)salt);
 	for(i=0;i<MD5_SSE_NUM_KEYS;i++)
@@ -695,7 +692,10 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 #define MD4_F(x,y,z)                            \
     tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
 
-#if !VCMOV_EMULATED
+#if __AVX512F__
+#define MD4_G(x,y,z)                            \
+    tmp[i] = vternarylogic(x[i], y[i], z[i], 0xE8);
+#elif !VCMOV_EMULATED
 #define MD4_G(x,y,z)                            \
     tmp[i] = vxor((y[i]), (z[i]));              \
     tmp[i] = vcmov((x[i]), (z[i]), (tmp[i]));
@@ -707,7 +707,13 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
     tmp[i] = vor((tmp[i]), (tmp2[i]) );
 #endif
 
-#if SIMD_PARA_MD4 < 3
+#if __AVX512F__
+#define MD4_H(x,y,z)                            \
+    tmp[i] = vternarylogic(x[i], y[i], z[i], 0x96);
+
+#define MD4_H2(x,y,z)                           \
+    tmp[i] = vternarylogic(x[i], y[i], z[i], 0x96);
+#elif SIMD_PARA_MD4 < 3
 #define MD4_H(x,y,z)                            \
     tmp2[i] = vxor((x[i]),(y[i]));              \
     tmp[i] = vxor(tmp2[i], (z[i]));
@@ -740,6 +746,42 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
         a[i] = vadd_epi32( a[i], data[i*16+x] );    \
     }
 
+#define INIT_A 0x67452301
+#define INIT_B 0xefcdab89
+#define INIT_C 0x98badcfe
+#define INIT_D 0x10325476
+#define SQRT_3 0x6ed9eba1
+
+void md4_reverse(uint32_t *hash)
+{
+	hash[0] -= INIT_A;
+	hash[1] -= INIT_B;
+	hash[2] -= INIT_C;
+	hash[3] -= INIT_D;
+	hash[1]  = (hash[1] >> 15) | (hash[1] << 17);
+	hash[1] -= SQRT_3 + (hash[2] ^ hash[3] ^ hash[0]);
+	hash[1]  = (hash[1] >> 15) | (hash[1] << 17);
+	hash[1] -= SQRT_3;
+}
+
+void md4_unreverse(uint32_t *hash)
+{
+	hash[1] += SQRT_3;
+	hash[1]  = (hash[1] >> 17) | (hash[1] << 15);
+	hash[1] += SQRT_3 + (hash[2] ^ hash[3] ^ hash[0]);
+	hash[1]  = (hash[1] >> 17) | (hash[1] << 15);
+	hash[3] += INIT_D;
+	hash[2] += INIT_C;
+	hash[1] += INIT_B;
+	hash[0] += INIT_A;
+}
+
+#undef SQRT_3
+#undef INIT_D
+#undef INIT_C
+#undef INIT_B
+#undef INIT_A
+
 void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
                 unsigned SSEi_flags)
 {
@@ -749,7 +791,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	vtype c[SIMD_PARA_MD4];
 	vtype d[SIMD_PARA_MD4];
 	vtype tmp[SIMD_PARA_MD4];
-#if SIMD_PARA_MD4 < 3 || VCMOV_EMULATED
+#if (SIMD_PARA_MD4 < 3 || VCMOV_EMULATED) && !__AVX512F__
 	vtype tmp2[SIMD_PARA_MD4];
 #endif
 	vtype cst;
@@ -946,9 +988,10 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 
 #if USE_EXPERIMENTAL
 /*
- * This is currently not used for MD4 & MD5, and was observed to result
+ * This is currently not used for MD4, and was observed to result
  * in a significant performance regression (at least on XOP) just by sitting
  * here. http://www.openwall.com/lists/john-dev/2015/09/05/5
+ * NOTE the regression might be gone now anyway since we went from -O3 to -O2.
  */
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		MD4_PARA_DO(i)
@@ -1026,11 +1069,19 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 #define SHA1_F(x,y,z)                           \
     tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
 
+#if __AVX512F__
+#define SHA1_G(x,y,z)                           \
+    tmp[i] = vternarylogic(x[i], y[i], z[i], 0x96);
+#else
 #define SHA1_G(x,y,z)                           \
     tmp[i] = vxor((y[i]),(z[i]));               \
     tmp[i] = vxor((tmp[i]),(x[i]));
+#endif
 
-#if !VCMOV_EMULATED
+#if __AVX512F__
+#define SHA1_H(x,y,z)                           \
+    tmp[i] = vternarylogic(x[i], y[i], z[i], 0xE8);
+#elif !VCMOV_EMULATED
 #define SHA1_H(x,y,z)                           \
     tmp[i] = vxor((z[i]), (y[i]));              \
     tmp[i] = vcmov((x[i]), (y[i]), tmp[i]);
@@ -1142,6 +1193,22 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
         e[i] = vadd_epi32( e[i], w[i*16+(t&0xF)] ); \
         b[i] = vroti_epi32(b[i], 30);               \
     }
+
+#define INIT_E 0xC3D2E1F0
+
+void sha1_reverse(uint32_t *hash)
+{
+	hash[4] -= INIT_E;
+	hash[4]  = (hash[4] << 2) | (hash[4] >> 30);
+}
+
+void sha1_unreverse(uint32_t *hash)
+{
+	hash[4]  = (hash[4] << 30) | (hash[4] >> 2);
+	hash[4] += INIT_E;
+}
+
+#undef INIT_E
 
 void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
                  unsigned SSEi_flags)
@@ -1363,7 +1430,7 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 	{
 		SHA1_PARA_DO(i)
 		{
-			vstore((vtype*)&out[i*5*VS32+0*VS32], e[i]);
+			vstore((vtype*)&out[i*5*VS32+4*VS32], e[i]);
 		}
 		return;
 	}
@@ -1527,7 +1594,9 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
     )                                           \
 )
 
-#if !VCMOV_EMULATED
+#if __AVX512F__
+#define Maj(x,y,z) vternarylogic(x, y, z, 0xE8)
+#elif !VCMOV_EMULATED
 #define Maj(x,y,z) vcmov(x, y, vxor(z, y))
 #else
 #define Maj(x,y,z) vor(vand(x, y), vand(vor(x, y), z))
@@ -1561,6 +1630,96 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
     }                                                       \
 }
 
+#define INIT_A 0x6a09e667
+#define INIT_B 0xbb67ae85
+#define INIT_C 0x3c6ef372
+#define INIT_D 0xa54ff53a
+#define INIT_E 0x510e527f
+#define INIT_F 0x9b05688c
+#define INIT_G 0x1f83d9ab
+#define INIT_H 0x5be0cd19
+
+#define ror(x, n)       ((x >> n) | (x << (32 - n)))
+
+void sha256_reverse(uint32_t *hash)
+{
+	uint32_t a, b, c, d, e, f, g, h, s0, maj, tmp;
+
+	a = hash[0] - INIT_A;
+	b = hash[1] - INIT_B;
+	c = hash[2] - INIT_C;
+	d = hash[3] - INIT_D;
+	e = hash[4] - INIT_E;
+	f = hash[5] - INIT_F;
+	g = hash[6] - INIT_G;
+	h = hash[7] - INIT_H;
+
+	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	f = g;
+	g = h;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	f = g;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+
+	hash[0] = e - (a - (s0 + maj));
+}
+
+void sha256_unreverse(uint32_t *hash)
+{
+	fprintf(stderr, "sha256_unreverse() not implemented\n");
+	error();
+}
+
+#undef ror
+
+#undef INIT_H
+#undef INIT_G
+#undef INIT_F
+#undef INIT_E
+#undef INIT_D
+#undef INIT_C
+#undef INIT_B
+#undef INIT_A
+
+#define INIT_D 0xf70e5939
+
+void sha224_reverse(uint32_t *hash)
+{
+	hash[3] -= INIT_D;
+}
+
+void sha224_unreverse(uint32_t *hash)
+{
+	hash[3] += INIT_D;
+}
+
+#undef INIT_D
 
 void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
 {
@@ -1777,10 +1936,30 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
 	SHA256_STEP(c, d, e, f, g, h, a, b, 54, 0x5b9cca4f);
 	SHA256_STEP(b, c, d, e, f, g, h, a, 55, 0x682e6ff3);
 	SHA256_STEP(a, b, c, d, e, f, g, h, 56, 0x748f82ee);
+
+	if (SSEi_flags & SSEi_REVERSE_STEPS && !(SSEi_flags & SSEi_CRYPT_SHA224))
+	{
+		SHA256_PARA_DO(i)
+		{
+			vstore((vtype*)&(out[i*8*VS32+0*VS32]), h[i]);
+		}
+		return;
+	}
+
 	SHA256_STEP(h, a, b, c, d, e, f, g, 57, 0x78a5636f);
 	SHA256_STEP(g, h, a, b, c, d, e, f, 58, 0x84c87814);
 	SHA256_STEP(f, g, h, a, b, c, d, e, 59, 0x8cc70208);
 	SHA256_STEP(e, f, g, h, a, b, c, d, 60, 0x90befffa);
+
+	if (SSEi_flags & SSEi_REVERSE_STEPS)
+	{
+		SHA256_PARA_DO(i)
+		{
+			vstore((vtype*)&(out[i*8*VS32+3*VS32]), d[i]);
+		}
+		return;
+	}
+
 	SHA256_STEP(d, e, f, g, h, a, b, c, 61, 0xa4506ceb);
 	SHA256_STEP(c, d, e, f, g, h, a, b, 62, 0xbef9a3f7);
 	SHA256_STEP(b, c, d, e, f, g, h, a, 63, 0xc67178f2);
@@ -1814,7 +1993,7 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
 				h[i] = vadd_epi32(h[i],vload((vtype*)&reload_state[i*8*VS32+7*VS32]));
 			}
 		}
-	} else if ((SSEi_flags & SSEi_REVERSE_STEPS) == 0) {
+	} else {
 		if (SSEi_flags & SSEi_CRYPT_SHA224) {
 			SHA256_PARA_DO(i)
 			{
@@ -1980,7 +2159,9 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
     )                                           \
 )
 
-#if !VCMOV_EMULATED
+#if __AVX512F__
+#define Maj(x,y,z) vternarylogic(x, y, z, 0xE8)
+#elif !VCMOV_EMULATED
 #define Maj(x,y,z) vcmov(x, y, vxor(z, y))
 #else
 #define Maj(x,y,z) vor(vand(x, y), vand(vor(x, y), z))
@@ -2012,6 +2193,97 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
         if (x < 64) R(x);                                   \
     }                                                       \
 }
+
+#define INIT_A 0x6a09e667f3bcc908ULL
+#define INIT_B 0xbb67ae8584caa73bULL
+#define INIT_C 0x3c6ef372fe94f82bULL
+#define INIT_D 0xa54ff53a5f1d36f1ULL
+#define INIT_E 0x510e527fade682d1ULL
+#define INIT_F 0x9b05688c2b3e6c1fULL
+#define INIT_G 0x1f83d9abfb41bd6bULL
+#define INIT_H 0x5be0cd19137e2179ULL
+
+#define ror(x, n)       ((x >> n) | (x << (64 - n)))
+
+void sha512_reverse(uint64_t *hash)
+{
+	uint64_t a, b, c, d, e, f, g, h, s0, maj, tmp;
+
+	a = hash[0] - INIT_A;
+	b = hash[1] - INIT_B;
+	c = hash[2] - INIT_C;
+	d = hash[3] - INIT_D;
+	e = hash[4] - INIT_E;
+	f = hash[5] - INIT_F;
+	g = hash[6] - INIT_G;
+	h = hash[7] - INIT_H;
+
+	s0 = ror(b, 28) ^ ror(b, 34) ^ ror(b, 39);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	f = g;
+	g = h;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ror(b, 28) ^ ror(b, 34) ^ ror(b, 39);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	f = g;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ror(b, 28) ^ ror(b, 34) ^ ror(b, 39);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ror(b, 28) ^ ror(b, 34) ^ ror(b, 39);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+
+	hash[0] = e - (a - (s0 + maj));
+}
+
+void sha512_unreverse(uint64_t *hash)
+{
+	fprintf(stderr, "sha512_unreverse() not implemented\n");
+	error();
+}
+
+#undef ror
+
+#undef INIT_H
+#undef INIT_G
+#undef INIT_F
+#undef INIT_E
+#undef INIT_D
+#undef INIT_C
+#undef INIT_B
+#undef INIT_A
+
+#define INIT_D 0x152fecd8f70e5939ULL
+
+void sha384_reverse(ARCH_WORD_64 *hash)
+{
+	hash[3] -= INIT_D;
+}
+
+void sha384_unreverse(ARCH_WORD_64 *hash)
+{
+	hash[3] += INIT_D;
+}
+
+#undef INIT_D
 
 void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
                    unsigned SSEi_flags)
@@ -2209,10 +2481,30 @@ void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 	SHA512_STEP(c, d, e, f, g, h, a, b, 70, 0x113f9804bef90daeULL);
 	SHA512_STEP(b, c, d, e, f, g, h, a, 71, 0x1b710b35131c471bULL);
 	SHA512_STEP(a, b, c, d, e, f, g, h, 72, 0x28db77f523047d84ULL);
+
+	if (SSEi_flags & SSEi_REVERSE_STEPS && !(SSEi_flags & SSEi_CRYPT_SHA384))
+	{
+		SHA512_PARA_DO(i)
+		{
+			vstore((vtype*)&(out[i*8*VS64+0*VS64]), h[i]);
+		}
+		return;
+	}
+
 	SHA512_STEP(h, a, b, c, d, e, f, g, 73, 0x32caab7b40c72493ULL);
 	SHA512_STEP(g, h, a, b, c, d, e, f, 74, 0x3c9ebe0a15c9bebcULL);
 	SHA512_STEP(f, g, h, a, b, c, d, e, 75, 0x431d67c49c100d4cULL);
 	SHA512_STEP(e, f, g, h, a, b, c, d, 76, 0x4cc5d4becb3e42b6ULL);
+
+	if (SSEi_flags & SSEi_REVERSE_STEPS)
+	{
+		SHA512_PARA_DO(i)
+		{
+			vstore((vtype*)&(out[i*8*VS64+3*VS64]), d[i]);
+		}
+		return;
+	}
+
 	SHA512_STEP(d, e, f, g, h, a, b, c, 77, 0x597f299cfc657e2aULL);
 	SHA512_STEP(c, d, e, f, g, h, a, b, 78, 0x5fcb6fab3ad6faecULL);
 	SHA512_STEP(b, c, d, e, f, g, h, a, 79, 0x6c44198c4a475817ULL);
@@ -2246,7 +2538,7 @@ void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 				h[i] = vadd_epi64(h[i],vload((vtype*)&reload_state[i*8*VS64+7*VS64]));
 			}
 		}
-	} else if ((SSEi_flags & SSEi_REVERSE_STEPS) == 0) {
+	} else {
 		if (SSEi_flags & SSEi_CRYPT_SHA384) {
 			SHA512_PARA_DO(i)
 			{

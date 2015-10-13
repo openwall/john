@@ -1,12 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006,2010-2013 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2010-2013,2015 by Solar Designer
  *
  * ...with heavy changes in the jumbo patch, by magnum & JimF
  */
 
 #define NEED_OS_TIMER
-#define NEED_OS_FLOCK
 #include "os.h"
 
 #include <string.h>
@@ -20,9 +19,6 @@
 #include <time.h>
 #if (!AC_BUILT || HAVE_SYS_TIMES_H)
 #include <sys/times.h>
-#endif
-#if (!AC_BUILT || HAVE_FCNTL_H)
-#include <fcntl.h>
 #endif
 #include <errno.h>
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
@@ -60,6 +56,9 @@
 #if HAVE_LIBDL && defined(HAVE_CUDA) || defined(HAVE_OPENCL)
 #include "common-gpu.h"
 #endif
+#if CRK_PREFETCH && defined(__SSE2__)
+#include <emmintrin.h>
+#endif
 #include "memdbg.h"
 
 #ifdef index
@@ -77,6 +76,13 @@ static clock_t salt_time = 0;
 static struct db_main *crk_db;
 static struct fmt_params crk_params;
 static struct fmt_methods crk_methods;
+#if CRK_PREFETCH
+#if 1
+static unsigned int crk_prefetch;
+#else
+#define crk_prefetch CRK_PREFETCH
+#endif
+#endif
 static int crk_key_index, crk_last_key;
 static void *crk_last_salt;
 void (*crk_fix_state)(void);
@@ -160,6 +166,22 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	memcpy(&crk_params, &db->format->params, sizeof(struct fmt_params));
 	memcpy(&crk_methods, &db->format->methods, sizeof(struct fmt_methods));
 
+#if CRK_PREFETCH && !defined(crk_prefetch)
+	{
+		unsigned int m = crk_params.max_keys_per_crypt;
+		if (m > CRK_PREFETCH) {
+			unsigned int n = (m + CRK_PREFETCH - 1) / CRK_PREFETCH;
+			crk_prefetch = (m + n - 1) / n;
+			/* CRK_PREFETCH / 2 < crk_prefetch <= CRK_PREFETCH */
+		} else {
+/* Actual prefetch will be capped to crypt_all() return value anyway, so let's
+ * not cap it to max_keys_per_crypt here in case crypt_all() generates more
+ * candidates on its own. */
+			crk_prefetch = CRK_PREFETCH;
+		}
+	}
+#endif
+
 	if (db->loaded) crk_init_salt();
 	crk_last_key = crk_key_index = 0;
 	crk_last_salt = NULL;
@@ -225,7 +247,7 @@ static void crk_remove_salt(struct db_salt *salt)
  */
 static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 {
-	struct db_password **current;
+	struct db_password **start, **current;
 	int hash, count;
 
 	crk_db->password_count--;
@@ -251,15 +273,23 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 
 	hash = crk_db->format->methods.binary_hash[salt->hash_size](pw->binary);
 	count = 0;
-	current = &salt->hash[hash >> PASSWORD_HASH_SHR];
+	start = current = &salt->hash[hash >> PASSWORD_HASH_SHR];
 	do {
 		if (crk_db->format->methods.binary_hash[salt->hash_size]
 		    ((*current)->binary) == hash)
 			count++;
-		if (*current == pw)
+		if (*current == pw) {
+/*
+ * If we can, skip the write to hash table to avoid unnecessary page
+ * copy-on-write when running with "--fork".  We can do this when we're about
+ * to remove this entry from the bitmap, which we'd be checking first.
+ */
+			if (count == 1 && current == start && !pw->next_hash)
+				break;
 			*current = pw->next_hash;
-		else
+		} else {
 			current = &(*current)->next_hash;
+		}
 	} while (*current);
 
 	assert(count >= 1);
@@ -276,9 +306,13 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 /*
  * If there's a hash table for this salt, assume that the list is only used by
  * "single crack" mode, so mark the entry for removal by "single crack" mode
- * code in case that's what we're running, instead of traversing the list here.
+ * code if that's what we're running, instead of traversing the list here.
+ *
+ * Or, if FMT_REMOVE, the format explicitly intends to traverse the list
+ * during cracking, and will remove entries at that point.
  */
-	pw->binary = NULL;
+	if (crk_guesses || (crk_params.flags & FMT_REMOVE))
+		pw->binary = NULL;
 }
 
 /* Negative index is not counted/reported (got it from pot sync) */
@@ -299,8 +333,15 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		dupe = 0;
 
 	repkey = key = index < 0 ? "" : crk_methods.get_key(index);
-	replogin = pw->login;
-	repuid = pw->uid;
+
+	if (crk_db->options->flags & DB_LOGIN) {
+		replogin = pw->login;
+		if (options.show_uid_in_cracks)
+			repuid = pw->uid;
+		else
+			repuid = "";
+	} else
+		replogin = repuid = "";
 
 	if (index >= 0 && (pers_opts.store_utf8 || pers_opts.report_utf8)) {
 		if (pers_opts.target_enc == UTF_8)
@@ -326,7 +367,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		if (pers_opts.report_utf8) {
 			repkey = utf8key;
 			if (pers_opts.target_enc != UTF_8)
-				replogin = cp_to_utf8_r(pw->login,
+				replogin = cp_to_utf8_r(replogin,
 					      utf8login, PLAINTEXT_BUFFER_SIZE);
 		}
 		if (pers_opts.store_utf8)
@@ -483,9 +524,6 @@ int crk_reload_pot(void)
 	char line[LINE_BUFFER_SIZE];
 	FILE *pot_file;
 	int total = crk_db->password_count, others;
-#if FCNTL_LOCKS
-	struct flock lock;
-#endif
 #ifdef POTSYNC_DEBUG
 	struct tms buffer;
 	clock_t start = times(&buffer), end;
@@ -500,27 +538,6 @@ int crk_reload_pot(void)
 	if (!(pot_file = fopen(path_expand(pers_opts.activepot), "rb")))
 		pexit("fopen: %s", path_expand(pers_opts.activepot));
 
-#if OS_FLOCK || FCNTL_LOCKS
-#ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Locking potfile...\n", __FUNCTION__, options.node_min);
-#endif
-#if FCNTL_LOCKS
-	memset(&lock, 0, sizeof(lock));
-	lock.l_type = F_RDLCK;
-	while (fcntl(fileno(pot_file), F_SETLKW, &lock)) {
-		if (errno != EINTR)
-			pexit("fcntl(F_RDLCK)");
-	}
-#else
-	while (flock(fileno(pot_file), LOCK_SH)) {
-		if (errno != EINTR)
-			pexit("flock(LOCK_SH)");
-	}
-#endif
-#ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Locked potfile (shared)\n", __FUNCTION__, options.node_min);
-#endif
-#endif
 	if (crk_pot_pos && (jtr_fseek64(pot_file, crk_pot_pos, SEEK_SET) == -1)) {
 		perror("fseek");
 		rewind(pot_file);
@@ -550,19 +567,7 @@ int crk_reload_pot(void)
 	ldr_in_pot = 0;
 
 	crk_pot_pos = jtr_ftell64(pot_file);
-#if OS_FLOCK || FCNTL_LOCKS
-#ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Unlocking potfile\n", __FUNCTION__, options.node_min);
-#endif
-#if FCNTL_LOCKS
-	lock.l_type = F_UNLCK;
-	if (fcntl(fileno(pot_file), F_SETLK, &lock))
-		perror("fcntl(F_UNLCK)");
-#else
-	if (flock(fileno(pot_file), LOCK_UN))
-		perror("flock(LOCK_UN)");
-#endif
-#endif
+
 	if (fclose(pot_file))
 		pexit("fclose");
 
@@ -701,8 +706,11 @@ static int crk_process_event(void)
 
 static int crk_password_loop(struct db_salt *salt)
 {
-	struct db_password *pw;
-	int count, match, index;
+	int count;
+	unsigned int match, index;
+#if CRK_PREFETCH
+	unsigned int target;
+#endif
 
 #if !OS_TIMER
 	sig_timer_emu_tick();
@@ -727,7 +735,7 @@ static int crk_password_loop(struct db_salt *salt)
 		return 0;
 
 	if (!salt->bitmap) {
-		pw = salt->list;
+		struct db_password *pw = salt->list;
 		do {
 			if (crk_methods.cmp_all(pw->binary, match))
 			for (index = 0; index < match; index++)
@@ -742,12 +750,100 @@ static int crk_password_loop(struct db_salt *salt)
 				}
 			}
 		} while ((pw = pw->next));
-	} else
+
+		return 0;
+	}
+
+#if CRK_PREFETCH
+	for (index = 0; index < match; index = target) {
+		unsigned int slot, ahead, lucky;
+		struct {
+			unsigned int i;
+			union {
+				unsigned int *b;
+				struct db_password **p;
+			} u;
+		} a[CRK_PREFETCH];
+		target = index + crk_prefetch;
+		if (target > match)
+			target = match;
+		for (slot = 0, ahead = index; ahead < target; slot++, ahead++) {
+			unsigned int h = salt->index(ahead);
+			unsigned int *b = &salt->bitmap[h / (sizeof(*salt->bitmap) * 8)];
+			a[slot].i = h;
+			a[slot].u.b = b;
+#ifdef __SSE2__
+			_mm_prefetch((const char *)b, _MM_HINT_NTA);
+#else
+			*(volatile unsigned int *)b;
+#endif
+		}
+		lucky = 0;
+		for (slot = 0, ahead = index; ahead < target; slot++, ahead++) {
+			unsigned int h = a[slot].i;
+			if (*a[slot].u.b & (1U << (h % (sizeof(*salt->bitmap) * 8)))) {
+				struct db_password **pwp = &salt->hash[h >> PASSWORD_HASH_SHR];
+#ifdef __SSE2__
+				_mm_prefetch((const char *)pwp, _MM_HINT_NTA);
+#else
+				*(void * volatile *)pwp;
+#endif
+				a[lucky].i = ahead;
+				a[lucky++].u.p = pwp;
+			}
+		}
+#if 1
+		if (!lucky)
+			continue;
+		for (slot = 0; slot < lucky; slot++) {
+			struct db_password *pw = *a[slot].u.p;
+/*
+ * Chances are this will also prefetch the next_hash field and the actual
+ * binary (pointed to by the binary field, but likely located right after
+ * this struct.
+ */
+#ifdef __SSE2__
+			_mm_prefetch((const char *)&pw->binary, _MM_HINT_NTA);
+#else
+			*(void * volatile *)&pw->binary;
+#endif
+		}
+#endif
+		for (slot = 0; slot < lucky; slot++) {
+			struct db_password *pw = *a[slot].u.p;
+			index = a[slot].i;
+			do {
+				if (crk_methods.cmp_one(pw->binary, index))
+				if (crk_methods.cmp_exact(crk_methods.source(
+				    pw->source, pw->binary), index)) {
+					if (crk_process_guess(salt, pw, index))
+						return 1;
+/* After we've successfully cracked and removed a hash, our prefetched bitmap
+ * and hash table entries might be stale: some might correspond to the same
+ * hash bucket, yet with this removed hash still in there if it was the first
+ * one in the bucket.  If so, re-prefetch from the next lucky index if any,
+ * yet complete handling of this index first. */
+					if (slot + 1 < lucky) {
+						struct db_password *first =
+						    salt->hash[
+						    salt->index(index) >>
+						    PASSWORD_HASH_SHR];
+						if (pw == first || !first) {
+							target = a[slot + 1].i;
+							lucky = 0;
+						}
+					}
+				}
+			} while ((pw = pw->next_hash));
+		}
+	}
+#else
 	for (index = 0; index < match; index++) {
-		int hash = salt->index(index);
+		unsigned int hash = salt->index(index);
 		if (salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] &
 		    (1U << (hash % (sizeof(*salt->bitmap) * 8)))) {
-			pw = salt->hash[hash >> PASSWORD_HASH_SHR];
+			struct db_password *pw =
+			    salt->hash[hash >> PASSWORD_HASH_SHR];
 			do {
 				if (crk_methods.cmp_one(pw->binary, index))
 				if (crk_methods.cmp_exact(crk_methods.source(
@@ -757,6 +853,7 @@ static int crk_password_loop(struct db_salt *salt)
 			} while ((pw = pw->next_hash));
 		}
 	}
+#endif
 
 	return 0;
 }

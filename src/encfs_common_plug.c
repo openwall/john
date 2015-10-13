@@ -46,9 +46,7 @@ int encfs_common_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if (res != strlen(p) / 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p)/2 != res)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data length */
 		goto err;
@@ -59,9 +57,7 @@ int encfs_common_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data */
 		goto err;
-	if (res != strlen(p) / 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p)/2 != res)
 		goto err;
 
 	MEM_FREE(keeptr);

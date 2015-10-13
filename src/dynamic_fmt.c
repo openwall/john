@@ -553,15 +553,6 @@ static inline void __nonMP_DynamicFunc__append_from_last_output2_to_input1_as_ba
 #endif
 }
 
-static inline void __nonMP_DynamicFunc__set_input_len_32()
-{
-#ifdef _OPENMP
-	DynamicFunc__set_input_len_32(0,m_count,0);
-#else
-	DynamicFunc__set_input_len_32();
-#endif
-}
-
 void __nonMP_eLargeOut(eLargeOut_t what)
 {
 #ifdef _OPENMP
@@ -1801,42 +1792,42 @@ extern char *MD5_DumpHexStr(void *p);
 
 #if !ARCH_LITTLE_ENDIAN
 // the lower 8 bits is zero on the binary (but filled in on the hash).  We need to dump the low 8
-static int binary_hash_0_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & 0xf; }
-static int binary_hash_1_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & 0xff; }
-static int binary_hash_2_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & 0xfff; }
-static int binary_hash_3_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & 0xffff; }
-static int binary_hash_4_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & 0xfffff; }
-static int binary_hash_5_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & 0xffffff; }
+static int binary_hash_0_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & PH_MASK_0; }
+static int binary_hash_1_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & PH_MASK_1; }
+static int binary_hash_2_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & PH_MASK_2; }
+static int binary_hash_3_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & PH_MASK_3; }
+static int binary_hash_4_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & PH_MASK_4; }
+static int binary_hash_5_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & PH_MASK_5; }
 static int get_hash_0_64x4(int index) {
 #if MD5_X2
-	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xf;
+	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & PH_MASK_0;
 #endif
-	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & 0xf;}
+	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & PH_MASK_0;}
 static int get_hash_1_64x4(int index) {
 #if MD5_X2
-	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xff;
+	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & PH_MASK_1;
 #endif
-	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & 0xff;}
+	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & PH_MASK_1;}
 static int get_hash_2_64x4(int index) {
 #if MD5_X2
-	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xfff;
+	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & PH_MASK_2;
 #endif
-	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & 0xfff;}
+	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & PH_MASK_2;}
 static int get_hash_3_64x4(int index) {
 #if MD5_X2
-	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xffff;
+	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & PH_MASK_3;
 #endif
-	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & 0xffff;}
+	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & PH_MASK_3;}
 static int get_hash_4_64x4(int index) {
 #if MD5_X2
-	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xfffff;
+	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & PH_MASK_4;
 #endif
-	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & 0xfffff;}
+	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & PH_MASK_4;}
 static int get_hash_5_64x4(int index) {
 #if MD5_X2
-	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xffffff;
+	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & PH_MASK_5;
 #endif
-	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & 0xffffff;}
+	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & PH_MASK_5;}
 
 
 #endif
@@ -1846,14 +1837,14 @@ static int get_hash_0(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xf;
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_0;
 	}
 #endif
 #if MD5_X2
 	if (index & 1)
-		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & 0xf;
+		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & PH_MASK_0;
 #endif
-	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0xf;
+	return crypt_key_X86[index>>MD5_X2].x1.w[0] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
@@ -1861,14 +1852,14 @@ static int get_hash_1(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xff;
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_1;
 	}
 #endif
 #if MD5_X2
 	if (index & 1)
-		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & 0xff;
+		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & PH_MASK_1;
 #endif
-	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0xff;
+	return crypt_key_X86[index>>MD5_X2].x1.w[0] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
@@ -1876,14 +1867,14 @@ static int get_hash_2(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xfff;
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_2;
 	}
 #endif
 #if MD5_X2
 	if (index & 1)
-		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & 0xfff;
+		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & PH_MASK_2;
 #endif
-	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0xfff;
+	return crypt_key_X86[index>>MD5_X2].x1.w[0] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
@@ -1891,14 +1882,14 @@ static int get_hash_3(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xffff;
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_3;
 	}
 #endif
 #if MD5_X2
 	if (index & 1)
-		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & 0xffff;
+		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & PH_MASK_3;
 #endif
-	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0xffff;
+	return crypt_key_X86[index>>MD5_X2].x1.w[0] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
@@ -1906,14 +1897,14 @@ static int get_hash_4(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xfffff;
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_4;
 	}
 #endif
 #if MD5_X2
 	if (index & 1)
-		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & 0xfffff;
+		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & PH_MASK_4;
 #endif
-	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0xfffff;
+	return crypt_key_X86[index>>MD5_X2].x1.w[0] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
@@ -1921,14 +1912,14 @@ static int get_hash_5(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0xffffff;
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_5;
 	}
 #endif
 #if MD5_X2
 	if (index & 1)
-		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & 0xffffff;
+		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & PH_MASK_5;
 #endif
-	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0xffffff;
+	return crypt_key_X86[index>>MD5_X2].x1.w[0] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)
@@ -1936,14 +1927,14 @@ static int get_hash_6(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & 0x7ffffff;
+		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_6;
 	}
 #endif
 #if MD5_X2
 	if (index & 1)
-		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & 0x7ffffff;
+		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & PH_MASK_6;
 #endif
-	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0x7ffffff;
+	return crypt_key_X86[index>>MD5_X2].x1.w[0] & PH_MASK_6;
 }
 
 
@@ -1954,7 +1945,7 @@ static int get_hash_6(int index)
  * want to return THAT pointer, and not allocate a new pointer.
  * This works great, but forces us to do salt comparision here.
  ***********************************************************************/
-#define DYNA_SALT_HASH_BITS 15
+#define DYNA_SALT_HASH_BITS SALT_HASH_LOG
 #define DYNA_SALT_HASH_SIZE (1<<DYNA_SALT_HASH_BITS)
 #define DYNA_SALT_HASH_MOD  (DYNA_SALT_HASH_SIZE-1)
 
@@ -7800,7 +7791,7 @@ struct fmt_main *dynamic_Register_local_format(int *type) {
 
 int dynamic_Register_formats(struct fmt_main **ptr)
 {
-	int count, i, idx, single=-1, wildcard = 0;
+	int count, i, idx, single=-1, wildcard = 0, pop[5000];
 	extern struct options_main options;
 
 	if (options.format && strstr(options.format, "*"))
@@ -7830,13 +7821,14 @@ int dynamic_Register_formats(struct fmt_main **ptr)
 	}
 
 	for (count = i = 0; i < 5000; ++i) {
-		if (dynamic_IS_VALID(i, 1) == 1)
+		if ((pop[i] = (dynamic_IS_VALID(i, 0) == 1)))
 			++count;
 	}
+
 	// Ok, now we know how many formats we have.  Load them
 	pFmts = mem_alloc_tiny(sizeof(pFmts[0])*count, MEM_ALIGN_WORD);
 	for (idx = i = 0; i < 5000; ++i) {
-		if (dynamic_IS_VALID(i, 1) == 1) {
+		if (pop[i]) {
 			if (LoadOneFormat(i, &pFmts[idx]) == 0)
 				--count;
 			else

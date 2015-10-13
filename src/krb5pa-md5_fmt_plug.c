@@ -103,8 +103,6 @@ john_register_one(&fmt_mskrb5);
 #define OMP_SCALE          1024
 #endif
 
-#define HEXCHARS           "0123456789abcdefABCDEF"
-
 // Second and third plaintext will be replaced in init() under come encodings
 static struct fmt_tests tests[] = {
 	{"$krb5pa$23$user$realm$salt$afcbe07c32c3450b37d0f2516354570fe7d3e78f829e77cdc1718adf612156507181f7daeb03b6fbcfe91f8346f3c0ae7e8abfe5", "John"},
@@ -275,14 +273,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		// checksum
 		p = strchr(data, '$');
 		if (!p || p - data != 2 * CHECKSUM_SIZE ||
-		    strspn(data, HEXCHARS) != p - data)
+		    strspn(data, HEXCHARS_all) != p - data)
 			return 0;
 		data = p + 1;
 
 		// encrypted timestamp
 		p += strlen(data) + 1;
 		if (*p || p - data != TIMESTAMP_SIZE * 2 ||
-		    strspn(data, HEXCHARS) != p - data)
+		    strspn(data, HEXCHARS_all) != p - data)
 			return 0;
 
 		return 1;
@@ -310,7 +308,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		// timestamp+checksum
 		p += strlen(data) + 1;
 		if (*p || p - data != (TIMESTAMP_SIZE + CHECKSUM_SIZE) * 2 ||
-		    strspn(data, HEXCHARS) != p - data)
+		    strspn(data, HEXCHARS_all) != p - data)
 			return 0;
 
 		return 1;
@@ -418,13 +416,13 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static int get_hash_0(int index) { return output[index][0] & 0xf; }
-static int get_hash_1(int index) { return output[index][0] & 0xff; }
-static int get_hash_2(int index) { return output[index][0] & 0xfff; }
-static int get_hash_3(int index) { return output[index][0] & 0xffff; }
-static int get_hash_4(int index) { return output[index][0] & 0xfffff; }
-static int get_hash_5(int index) { return output[index][0] & 0xffffff; }
-static int get_hash_6(int index) { return output[index][0] & 0x7ffffff; }
+static int get_hash_0(int index) { return output[index][0] & PH_MASK_0; }
+static int get_hash_1(int index) { return output[index][0] & PH_MASK_1; }
+static int get_hash_2(int index) { return output[index][0] & PH_MASK_2; }
+static int get_hash_3(int index) { return output[index][0] & PH_MASK_3; }
+static int get_hash_4(int index) { return output[index][0] & PH_MASK_4; }
+static int get_hash_5(int index) { return output[index][0] & PH_MASK_5; }
+static int get_hash_6(int index) { return output[index][0] & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {

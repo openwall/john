@@ -127,11 +127,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	v = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto bail;
-	if (strlen(p) / 2 != v)
-		goto bail;
-	if (!ishex(p))
+	if (hexlenl(p) != v*2)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) /* hash */
+		goto bail;
+	if (hexlenl(p) != BINARY_SIZE*2)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) /* number of keys */
 		goto bail;
@@ -149,9 +149,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) /* key data */
 		goto bail;
-	if (strlen(p) / 2 != v)
-		goto bail;
-	if (!ishex(p))
+	if (hexlenl(p) != v*2)
 		goto bail;
 	MEM_FREE(keeptr);
 	return 1;
@@ -167,27 +165,28 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	/* NOTE: do we need dynamic allocation because of underlying large object size? */
-	static struct custom_salt cs;
-	memset(&cs, 0, sizeof(cs));
+	static struct custom_salt *cs;
+	if (!cs) cs = mem_alloc_tiny(sizeof(struct custom_salt),16);
+	memset(cs, 0, sizeof(struct custom_salt));
 	ctcopy += 10; /* skip over "$keystore$" */
 	p = strtokm(ctcopy, "$");
-	cs.target = atoi(p);
+	cs->target = atoi(p);
 	p = strtokm(NULL, "$");
-	cs.data_length = atoi(p);
+	cs->data_length = atoi(p);
 	p = strtokm(NULL, "$");
-	for (i = 0; i < cs.data_length; i++)
-		cs.data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+	for (i = 0; i < cs->data_length; i++)
+		cs->data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtokm(NULL, "$"); /* skip hash */
 	p = strtokm(NULL, "$");
-	cs.count = atoi(p);
+	cs->count = atoi(p);
 	p = strtokm(NULL, "$");
-	cs.keysize = atoi(p);
-	for (i = 0; i < cs.keysize; i++)
-		cs.keydata[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+	cs->keysize = atoi(p);
+	for (i = 0; i < cs->keysize; i++)
+		cs->keydata[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(keeptr);
-	return (void *)&cs;
+	return (void *)cs;
 }
 
 static void *get_binary(char *ciphertext)
@@ -216,13 +215,13 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
-static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
-static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
-static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
-static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
-static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
-static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
+static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
+static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 static void set_salt(void *salt)
 {

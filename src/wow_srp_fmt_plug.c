@@ -361,13 +361,13 @@ static void *get_salt(char *ciphertext)
 	return out.b;
 }
 
-static int get_hash_0(int index)       { return crypt_out[index][0] & 0xF; }
-static int get_hash_1(int index)       { return crypt_out[index][0] & 0xFF; }
-static int get_hash_2(int index)       { return crypt_out[index][0] & 0xFFF; }
-static int get_hash_3(int index)       { return crypt_out[index][0] & 0xFFFF; }
-static int get_hash_4(int index)       { return crypt_out[index][0] & 0xFFFFF; }
-static int get_hash_5(int index)       { return crypt_out[index][0] & 0xFFFFFF; }
-static int get_hash_6(int index)       { return crypt_out[index][0] & 0x7FFFFFF; }
+static int get_hash_0(int index)       { return crypt_out[index][0] & PH_MASK_0; }
+static int get_hash_1(int index)       { return crypt_out[index][0] & PH_MASK_1; }
+static int get_hash_2(int index)       { return crypt_out[index][0] & PH_MASK_2; }
+static int get_hash_3(int index)       { return crypt_out[index][0] & PH_MASK_3; }
+static int get_hash_4(int index)       { return crypt_out[index][0] & PH_MASK_4; }
+static int get_hash_5(int index)       { return crypt_out[index][0] & PH_MASK_5; }
+static int get_hash_6(int index)       { return crypt_out[index][0] & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {

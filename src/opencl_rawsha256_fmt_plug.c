@@ -269,21 +269,23 @@ static void reset(struct db_main *db)
 	if (!autotuned) {
 		size_t gws_limit;
 		unsigned int flag;
-                char * task = "$JOHN/kernels/sha256_kernel.cl";
+		char * task = "$JOHN/kernels/sha256_kernel.cl";
 
-                opencl_prepare_dev(gpu_id);
-                opencl_build_kernel(task, gpu_id, NULL, 1);
+		opencl_prepare_dev(gpu_id);
+		opencl_build_kernel(task, gpu_id, NULL, 0);
 
-                /* Read LWS/GWS prefs from config or environment */
-                opencl_get_user_preferences(FORMAT_LABEL);
+		/* Read LWS/GWS prefs from config or environment */
+		opencl_get_user_preferences(FORMAT_LABEL);
 
-                // create kernel(s) to execute
-                prepare_kernel = clCreateKernel(program[gpu_id], "kernel_prepare", &ret_code);
-                HANDLE_CLERROR(ret_code,
-                        "Error creating kernel_prepare. Double-check kernel name?");
-                crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
-                HANDLE_CLERROR(ret_code,
-                        "Error creating kernel. Double-check kernel name?");
+		// create kernel(s) to execute
+		prepare_kernel = clCreateKernel(program[gpu_id], "kernel_prepare",
+		                                &ret_code);
+		HANDLE_CLERROR(ret_code,
+			"Error creating kernel_prepare. Double-check kernel name?");
+		crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt",
+		                              &ret_code);
+		HANDLE_CLERROR(ret_code,
+		               "Error creating kernel. Double-check kernel name?");
 
 		//Mask initialization
 		flag = (options.flags & FLG_MASK_CHK) && !global_work_size;
@@ -353,10 +355,10 @@ static void set_key(char * _key, int index)
 
 	saved_idx[index] = (key_idx << 6) | len;
 
-	while (len > 4) {
+	do {
 		plaintext[key_idx++] = *key++;
 		len -= 4;
-	}
+	} while (len > 4);
 
 	if (len > 0)
 		plaintext[key_idx++] = *key;
@@ -423,9 +425,9 @@ static char * get_key(int index)
 	//Mask Mode plaintext recovery.
 	//TODO: ### remove me.
 	if (t > global_work_size) {
-		fprintf(stderr,
+		/*fprintf(stderr,
 			"Get key error! t: %d gws: "Zu" index: %d int_index: %d\n",
-			t, global_work_size, index, int_index);
+			t, global_work_size, index, int_index);*/
 		t = 0;
 	}
 	memcpy(ret, ((char *) &plaintext[saved_idx[t] >> 6]), PLAINTEXT_LENGTH);
@@ -656,13 +658,13 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static int get_hash_0(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & 0xf; }
-static int get_hash_1(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & 0xff; }
-static int get_hash_2(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & 0xfff; }
-static int get_hash_3(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & 0xffff; }
-static int get_hash_4(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & 0xfffff; }
-static int get_hash_5(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & 0xffffff; }
-static int get_hash_6(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & 0x7ffffff; }
+static int get_hash_0(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & PH_MASK_0; }
+static int get_hash_1(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & PH_MASK_1; }
+static int get_hash_2(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & PH_MASK_2; }
+static int get_hash_3(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & PH_MASK_3; }
+static int get_hash_4(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & PH_MASK_4; }
+static int get_hash_5(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & PH_MASK_5; }
+static int get_hash_6(int index) { return loaded_hashes[HASH_PARTS * hash_ids[3 + 3 * index]] & PH_MASK_6; }
 
 /* ------- Format structure ------- */
 struct fmt_main fmt_opencl_rawsha256 = {

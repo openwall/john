@@ -157,6 +157,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	data = p + 1; // cnonce
 	if (!(p = strchr(data, '$')) || (int)(p-data) > MD5_HEX_SIZE)
 		return 0;
+	if ( abs(hexlenl(data)) != p-data)
+		return 0;
 	data = p + 1; // nc
 	if (!(p = strchr(data, '$')) || (int)(p-data) >= 9)
 		return 0;
@@ -171,6 +173,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if ((int)(p-data) > MD5_HEX_SIZE || strlen(&p[1]) >= 8)
 			return 0;
 	} else if (strlen(data) > MD5_HEX_SIZE)
+		return 0;
+	if (hexlenl(data) !=strlen(data))
 		return 0;
 
 	return 1;
@@ -388,13 +392,13 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static int get_hash_0(int index) { return crypt_key[index][0] & 0xf; }
-static int get_hash_1(int index) { return crypt_key[index][0] & 0xff; }
-static int get_hash_2(int index) { return crypt_key[index][0] & 0xfff; }
-static int get_hash_3(int index) { return crypt_key[index][0] & 0xffff; }
-static int get_hash_4(int index) { return crypt_key[index][0] & 0xfffff; }
-static int get_hash_5(int index) { return crypt_key[index][0] & 0xffffff; }
-static int get_hash_6(int index) { return crypt_key[index][0] & 0x7ffffff; }
+static int get_hash_0(int index) { return crypt_key[index][0] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_key[index][0] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_key[index][0] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_key[index][0] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_key[index][0] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_key[index][0] & PH_MASK_5; }
+static int get_hash_6(int index) { return crypt_key[index][0] & PH_MASK_6; }
 
 struct fmt_main fmt_DMD5 = {
 	{

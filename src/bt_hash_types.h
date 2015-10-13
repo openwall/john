@@ -12,6 +12,9 @@
 #include "memdbg.h" // Debug memory leaks.
 #include "misc.h" // error()
 
+#define bt_error(a) bt_error_fn(a, __FILE__, __LINE__)
+#define bt_warn(a) bt_warn_fn(a, __FILE__, __LINE__)
+
 extern uint64_t *loaded_hashes_64;
 extern uint128_t *loaded_hashes_128;
 extern uint192_t *loaded_hashes_192;
@@ -24,7 +27,8 @@ extern int bt_malloc(void **ptr, size_t size);
 extern int bt_calloc(void **ptr, size_t num, size_t size);
 extern int bt_memalign_alloc(void **ptr, size_t alignment, size_t size);
 extern void bt_free(void **ptr);
-extern void bt_error(const char *str);
+extern void bt_error_fn(const char *str, char *file, int line);
+extern void bt_warn_fn(const char *str, char *file, int line);
 
 extern unsigned int modulo64_31b(uint64_t, unsigned int);
 extern void allocate_ht_64(unsigned int, unsigned int);

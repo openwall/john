@@ -29,7 +29,7 @@
 
 //Necessary definitions. Each format have to have each one of them.
 static size_t get_task_max_work_group_size();
-static void create_clobj(size_t gws, struct fmt_main * self);
+static void create_clobj(size_t gws, struct fmt_main *self);
 static void release_clobj(void);
 
 /* Keeps track of whether we already tuned */
@@ -65,7 +65,7 @@ void autotune_find_best_lws(size_t group_size_limit,
   Work-items that make up a work-group (also referred to
   as the size of the work-group)
 -- */
-static void find_best_lws(struct fmt_main * self, int sequential_id)
+static void find_best_lws(struct fmt_main *self, int sequential_id)
 {
 	//Call the default function.
 	autotune_find_best_lws(
@@ -77,7 +77,7 @@ static void find_best_lws(struct fmt_main * self, int sequential_id)
   This function could be used to calculated the best num
   of keys per crypt for the given format
 -- */
-static void find_best_gws(struct fmt_main * self, int sequential_id, unsigned int rounds,
+static void find_best_gws(struct fmt_main *self, int sequential_id, unsigned int rounds,
 	unsigned long long int max_run_time, int have_lws)
 {
 	//Call the common function.
@@ -87,6 +87,9 @@ static void find_best_gws(struct fmt_main * self, int sequential_id, unsigned in
 
 	create_clobj(global_work_size, self);
 }
+
+static void autotune_run(struct fmt_main *self, unsigned int rounds,
+			 size_t gws_limit, unsigned long long int max_run_time);
 
 #define get_power_of_two(v)	\
 {				\
@@ -105,7 +108,7 @@ static void find_best_gws(struct fmt_main * self, int sequential_id, unsigned in
   preparation and execution. It is shared code to be inserted
   in each format file.
 -- */
-static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
+static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	size_t gws_limit, unsigned long long int max_run_time, cl_uint lws_is_power_of_two)
 {
 	int need_best_lws, need_best_gws;
@@ -159,19 +162,24 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 	if (gws_limit && (global_work_size > gws_limit))
 		global_work_size = gws_limit;
 
+	if (lws_is_power_of_two && (local_work_size & (local_work_size - 1)))
+		  get_power_of_two(local_work_size);
+
 	/* Adjust, if necessary */
 	if (!local_work_size)
 		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size, 64);
 	else if (global_work_size)
 		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size, local_work_size);
 
-	if (lws_is_power_of_two && local_work_size & (local_work_size - 1))
-		  get_power_of_two(local_work_size);
-
 	/* Ensure local_work_size is not oversized */
 	ocl_max_lws = get_task_max_work_group_size();
-	if (local_work_size > ocl_max_lws)
+	if (local_work_size > ocl_max_lws) {
 		local_work_size = ocl_max_lws;
+		if (lws_is_power_of_two && (local_work_size & (local_work_size - 1))) {
+		  get_power_of_two(local_work_size);
+		  local_work_size >>= 1;
+		}
+	}
 
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
 	need_best_gws = !global_work_size;
@@ -189,11 +197,18 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 		create_clobj(global_work_size, self);
 	}
 
-	if (!local_work_size || need_best_lws)
+	if (!local_work_size || need_best_lws) {
 		find_best_lws(self, gpu_id);
+		if (lws_is_power_of_two && (local_work_size & (local_work_size - 1))) {
+			get_power_of_two(local_work_size);
+			local_work_size >>= 1;
+		}
+	}
 
-	if (need_best_gws)
+	if (need_best_gws) {
+		release_clobj();
 		find_best_gws(self, gpu_id, rounds, max_run_time, 1);
+	}
 
 	/* Adjust to the final configuration */
 	release_clobj();
@@ -218,9 +233,12 @@ static void autotune_run_extra(struct fmt_main * self, unsigned int rounds,
 
 	autotuned++;
 	ocl_autotune_running = 0;
+
+	/* Just suppress a compiler warning */
+	if (0) autotune_run(NULL, 0, 0, 0);
 }
 
-static void autotune_run(struct fmt_main * self, unsigned int rounds,
+static void autotune_run(struct fmt_main *self, unsigned int rounds,
 	size_t gws_limit, unsigned long long int max_run_time)
 {
 	return autotune_run_extra(self, rounds, gws_limit, max_run_time, CL_FALSE);

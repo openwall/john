@@ -402,7 +402,7 @@ static int binary_hash_0(void *binary)
 #if 0
 	dump_stuff_msg(__FUNCTION__, binary, BINARY_SIZE);
 #endif
-	return (((uint32_t *) binary)[0] & 0xf);
+	return (((uint32_t *) binary)[0] & PH_MASK_0);
 }
 
 static int get_hash_0(int index)
@@ -410,14 +410,14 @@ static int get_hash_0(int index)
 #if 0
 	dump_stuff_msg(__FUNCTION__, output[index].dk, BINARY_SIZE);
 #endif
-	return *(uint32_t*)output[index].dk & 0xf;
+	return *(uint32_t*)output[index].dk & PH_MASK_0;
 }
-static int get_hash_1(int index) { return *(uint32_t*)output[index].dk & 0xff; }
-static int get_hash_2(int index) { return *(uint32_t*)output[index].dk & 0xfff; }
-static int get_hash_3(int index) { return *(uint32_t*)output[index].dk & 0xffff; }
-static int get_hash_4(int index) { return *(uint32_t*)output[index].dk & 0xfffff; }
-static int get_hash_5(int index) { return *(uint32_t*)output[index].dk & 0xffffff; }
-static int get_hash_6(int index) { return *(uint32_t*)output[index].dk & 0x7ffffff; }
+static int get_hash_1(int index) { return *(uint32_t*)output[index].dk & PH_MASK_1; }
+static int get_hash_2(int index) { return *(uint32_t*)output[index].dk & PH_MASK_2; }
+static int get_hash_3(int index) { return *(uint32_t*)output[index].dk & PH_MASK_3; }
+static int get_hash_4(int index) { return *(uint32_t*)output[index].dk & PH_MASK_4; }
+static int get_hash_5(int index) { return *(uint32_t*)output[index].dk & PH_MASK_5; }
+static int get_hash_6(int index) { return *(uint32_t*)output[index].dk & PH_MASK_6; }
 
 static int cmp_all(void *binary, int count)
 {

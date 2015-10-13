@@ -17,9 +17,6 @@
 #include "opencl_md5.h"
 #include "opencl_sha1.h"
 
-/* Do not support full UTF-16 with surrogate pairs */
-#define UCS_2
-
 typedef struct {
 	int type;
 	uint salt[16/4];
@@ -57,7 +54,7 @@ __kernel void oldoffice_utf16(__global const uchar *source,
 	while (source < sourceEnd) {
 		if (*source < 0xC0) {
 			*target++ = (UTF16)*source++;
-			if (*source == 0 || target >= targetEnd) {
+			if (source >= sourceEnd || target >= targetEnd) {
 				break;
 			}
 			continue;
@@ -103,7 +100,7 @@ __kernel void oldoffice_utf16(__global const uchar *source,
 			*target++ = (UTF16)((ch & halfMask) + UNI_SUR_LOW_START);
 		}
 #endif
-		if (*source == 0 || target >= targetEnd)
+		if (source >= sourceEnd || target >= targetEnd)
 			break;
 	}
 

@@ -219,7 +219,11 @@ const char *dyna_line[DC_NUM_VECTORS] = {
 	"@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72",
 	"@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785",
 	"@dynamic=md5($p)@9dc1dc3f8499ab3bbc744557acf0a7fb",
-	"@dynamic=md5($p)@142a42ffcb282cf8087dd4dfebacdec2",
+#if SIMD_COEF_32 < 4
+	"@dynamic=md5($p)@fc58a609d0358176385b00970bfb2b49", // Len 110
+#else
+	"@dynamic=md5($p)@142a42ffcb282cf8087dd4dfebacdec2", // Len 55
+#endif
 	"@dynamic=md5($p)@d41d8cd98f00b204e9800998ecf8427e",
 };
 const char *options_format="";
@@ -1040,9 +1044,11 @@ static char *comp_optimize_expression(const char *pExpr) {
 		}
 		if (n1 == n2) {
 			// ok, all were same hash type.  Now make sure all $s are in crypt($s)
+			// Ignore lc() and uc() */
 			n2 = 0;
 			p = strstr(pBuf, "$s");
-			while (p) {
+			while (p && (p[-1] != '(' || p[-2] != 'c' ||
+			             (p[-3] != 'l' && p[-3] != 'u'))) {
 				++n2;
 				p = strstr(&p[1], cpType);
 			}
@@ -2386,7 +2392,7 @@ int ldr_in_pot = 0;
  * but there was other baggage along for the ride. When built with WITH_MAIN
  * we use no other code from dynamic_utils.c, so these stubs are safe.
  ****************************************************************************/
-int dynamic_IS_VALID(int i, int force) {return 0;}
+int dynamic_IS_VALID(int i, int single_lookup_only) {return 0;}
 char *dynamic_LOAD_PARSER_SIGNATURE(int which) {return 0;}
 void cfg_init(char *name, int allow_missing) {}
 int cfg_get_bool(char *section, char *subsection, char *param, int def) {return 0;}

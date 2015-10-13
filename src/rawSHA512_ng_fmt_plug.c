@@ -86,23 +86,6 @@ john_register_one(&fmt_rawSHA512_ng);
 #define __RAWSHA512_CREATE_PROPER_TESTS_ARRAY__
 #include "rawSHA512_common.h"
 
-#if _MSC_VER && !_M_X64
-// 32 bit VC does NOT define these intrinsics :((((
-#define _mm_set_epi64  __mm_set_epi64
-#define _mm_set1_epi64 __mm_set1_epi64
-_inline __m128i _mm_set_epi64(uint64_t a, uint64_t b) {
-	__m128i x;
-	x.m128i_u64[0] = b;
-	x.m128i_u64[1] = a;
-	return x;
-}
-_inline __m128i _mm_set1_epi64(uint64_t a) {
-	__m128i x;
-	x.m128i_u64[0] = a;
-	x.m128i_u64[1] = a;
-	return x;
-}
-#endif
 
 #undef GATHER /* This one is not like the shared ones in pseudo_intrinsics.h */
 
@@ -302,13 +285,13 @@ static void *get_binary(char *ciphertext)
     return (void *) out;
 }
 
-static int get_hash_0(int index) { return crypt_key[0][index] & 0xf; }
-static int get_hash_1(int index) { return crypt_key[0][index] & 0xff; }
-static int get_hash_2(int index) { return crypt_key[0][index] & 0xfff; }
-static int get_hash_3(int index) { return crypt_key[0][index] & 0xffff; }
-static int get_hash_4(int index) { return crypt_key[0][index] & 0xfffff; }
-static int get_hash_5(int index) { return crypt_key[0][index] & 0xffffff; }
-static int get_hash_6(int index) { return crypt_key[0][index] & 0x7ffffff; }
+static int get_hash_0(int index) { return crypt_key[0][index] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_key[0][index] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_key[0][index] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_key[0][index] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_key[0][index] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_key[0][index] & PH_MASK_5; }
+static int get_hash_6(int index) { return crypt_key[0][index] & PH_MASK_6; }
 
 
 static void set_key(char *key, int index)

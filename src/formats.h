@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2010-2013 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2010-2013,2015 by Solar Designer
  *
  * ...with a change in the jumbo patch, by JimF
  */
@@ -63,6 +63,12 @@ struct db_salt;
  * cp1251) as well as UTF-8.
  */
 #define FMT_UTF8			0x00000008
+/*
+ * Mark password->binary = NULL immediately after a hash is cracked. Must be
+ * set for formats that reads salt->list in crypt_all for the purpose of
+ * identification of uncracked hashes for this salt.
+ */
+#define FMT_REMOVE			0x00000010
 /*
  * Format has false positive matches. Thus, do not remove hashes when
  * a likely PW is found.  This should only be set for formats where a
@@ -242,7 +248,10 @@ struct fmt_methods {
 /* Sets a salt for the crypt_all() method */
 	void (*set_salt)(void *salt);
 
-/* Sets a plaintext, with index from 0 to fmt_params.max_keys_per_crypt - 1 */
+/* Sets a plaintext, with index from 0 to fmt_params.max_keys_per_crypt - 1.
+ * The string is NUL-terminated, but set_key() may over-read it until up to
+ * PLAINTEXT_BUFFER_SIZE total read (thus, the caller's buffer must be at least
+ * this large).  Empty string may be passed as fmt_null_key. */
 	void (*set_key)(char *key, int index);
 
 /* Returns a plaintext previously set with and potentially altered by
@@ -316,6 +325,12 @@ struct fmt_main {
 	struct fmt_private private;
 	struct fmt_main *next;
 };
+
+/*
+ * Empty key that is safe to pass to the set_key() method, given that it may
+ * over-read the empty string for up to PLAINTEXT_BUFFER_SIZE.
+ */
+extern char fmt_null_key[PLAINTEXT_BUFFER_SIZE];
 
 /*
  * Linked list of registered formats.

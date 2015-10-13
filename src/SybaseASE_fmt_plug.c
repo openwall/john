@@ -157,10 +157,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
     if(strncmp(ciphertext, "0xc007", 6)!=0)
         return 0;
-    if(strlen(ciphertext) != CIPHERTEXT_LENGTH)
+    if(hexlen(&ciphertext[6]) != CIPHERTEXT_LENGTH - 6)
         return 0;
-	if (!ishex(&ciphertext[6]))
-		return 0;
     return 1;
 }
 
@@ -205,37 +203,37 @@ static void *get_salt(char *ciphertext)
 
 static int get_hash_0(int index)
 {
-    return crypt_out[index][0] & 0xF;
+    return crypt_out[index][0] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
-    return crypt_out[index][0] & 0xFF;
+    return crypt_out[index][0] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
-    return crypt_out[index][0] & 0xFFF;
+    return crypt_out[index][0] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
 {
-    return crypt_out[index][0] & 0xFFFF;
+    return crypt_out[index][0] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
 {
-    return crypt_out[index][0] & 0xFFFFF;
+    return crypt_out[index][0] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
 {
-    return crypt_out[index][0] & 0xFFFFFF;
+    return crypt_out[index][0] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)
 {
-    return crypt_out[index][0] & 0x7FFFFFF;
+    return crypt_out[index][0] & PH_MASK_6;
 }
 
 static void set_salt(void *salt)

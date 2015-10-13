@@ -175,12 +175,9 @@ static void pbkdf2_md4_sse(const unsigned char *K[SSE_GROUP_SZ_MD4], int KL[SSE_
 	MD4_CTX ipad[SSE_GROUP_SZ_MD4], opad[SSE_GROUP_SZ_MD4], ctx;
 
 	// sse_hash1 would need to be 'adjusted' for MD4_PARA
-	unsigned char _sse_hash1[MD4_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_MD4 + MEM_ALIGN_SIMD];
-	unsigned char _sse_crypt1[MD4_DIGEST_LENGTH*SSE_GROUP_SZ_MD4 + MEM_ALIGN_SIMD];
-	unsigned char _sse_crypt2[MD4_DIGEST_LENGTH*SSE_GROUP_SZ_MD4 + MEM_ALIGN_SIMD];
-	unsigned char *sse_hash1 = mem_align(_sse_hash1, MEM_ALIGN_SIMD);
-	unsigned char *sse_crypt1 = mem_align(_sse_crypt1, MEM_ALIGN_SIMD);
-	unsigned char *sse_crypt2 = mem_align(_sse_crypt2, MEM_ALIGN_SIMD);
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_hash1[MD4_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_MD4];
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt1[MD4_DIGEST_LENGTH*SSE_GROUP_SZ_MD4];
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt2[MD4_DIGEST_LENGTH*SSE_GROUP_SZ_MD4];
 	i1 = (ARCH_WORD_32*)sse_crypt1;
 	i2 = (ARCH_WORD_32*)sse_crypt2;
 	o1 = (ARCH_WORD_32*)sse_hash1;

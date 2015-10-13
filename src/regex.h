@@ -49,18 +49,18 @@
      * Runs the Regular expression cracker
      */
     void do_regex_crack(struct db_main *db, const char *regex);
-    int do_regex_crack_as_rules(const char *regex, const char *base_word, int bCase, const char *regex_alpha);
+    int do_regex_hybrid_crack(struct db_main *db, const char *regex, const char *base_word, int bCase, const char *regex_alpha);
 	char *prepare_regex(char *regex, int *bCase, char **regex_alpha);
   #else
     #undef HAVE_REXGEN
-    #define do_regex_crack_as_rules(a,word,b,c) crk_process_key(word)
+    #define do_regex_hybrid_crack(a,word,b,c) crk_process_key(word)
 	#define prepare_regex(a,b,c)
 	#ifndef _MSC_VER
 	#warning Notice: rexgen cracking mode disabled, Library is installed, it is too old.
 	#endif
   #endif
 #else
-  #define do_regex_crack_as_rules(a,word,b,c) crk_process_key(word)
+  #define do_regex_hybrid_crack(a,word,b,c) crk_process_key(word)
   #define prepare_regex(a,b,c)
 #endif
 

@@ -195,12 +195,12 @@
  * its own purposes.  This does not affect password cracking speed after the
  * loading is complete.
  */
-#define PASSWORD_HASH_SIZE_FOR_LDR	4
+#define PASSWORD_HASH_SIZE_FOR_LDR	5
 
 /*
  * Hash table sizes.  These may also be hardcoded into the hash functions.
  */
-#define SALT_HASH_LOG			12
+#define SALT_HASH_LOG			20
 #define SALT_HASH_SIZE			(1 << SALT_HASH_LOG)
 #define PASSWORD_HASH_SIZE_0		0x10
 #define PASSWORD_HASH_SIZE_1		0x100
@@ -209,6 +209,14 @@
 #define PASSWORD_HASH_SIZE_4		0x100000
 #define PASSWORD_HASH_SIZE_5		0x1000000
 #define PASSWORD_HASH_SIZE_6		0x8000000
+
+#define PH_MASK_0			(PASSWORD_HASH_SIZE_0 - 1)
+#define PH_MASK_1			(PASSWORD_HASH_SIZE_1 - 1)
+#define PH_MASK_2			(PASSWORD_HASH_SIZE_2 - 1)
+#define PH_MASK_3			(PASSWORD_HASH_SIZE_3 - 1)
+#define PH_MASK_4			(PASSWORD_HASH_SIZE_4 - 1)
+#define PH_MASK_5			(PASSWORD_HASH_SIZE_5 - 1)
+#define PH_MASK_6			(PASSWORD_HASH_SIZE_6 - 1)
 
 /*
  * Password hash table thresholds.  These are the counts of entries required
@@ -226,8 +234,8 @@
 /*
  * Tables of the above values.
  */
-extern int password_hash_sizes[PASSWORD_HASH_SIZES];
-extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
+extern unsigned int password_hash_sizes[PASSWORD_HASH_SIZES];
+extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 
 /*
  * How much smaller should the hash tables be than bitmaps in terms of entry
@@ -236,12 +244,16 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * 5 or 6 will make them the same size in bytes on systems with 32-bit or
  * 64-bit pointers, respectively.
  */
+#if ARCH_BITS >= 64
+#define PASSWORD_HASH_SHR		0
+#else
 #define PASSWORD_HASH_SHR		2
+#endif
 
 /*
  * Cracked password hash size, used while loading.
  */
-#define CRACKED_HASH_LOG		16
+#define CRACKED_HASH_LOG		25
 #define CRACKED_HASH_SIZE		(1 << CRACKED_HASH_LOG)
 
 /*
@@ -268,9 +280,14 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Hash and buffer sizes for unique.
  */
-#define UNIQUE_HASH_LOG			21
+#if ARCH_BITS >= 64
+#define UNIQUE_HASH_LOG			25
+#define UNIQUE_BUFFER_SIZE		0x80000000U
+#else
+#define UNIQUE_HASH_LOG			24
+#define UNIQUE_BUFFER_SIZE		0x40000000
+#endif
 #define UNIQUE_HASH_SIZE		(1 << UNIQUE_HASH_LOG)
-#define UNIQUE_BUFFER_SIZE		0x8000000
 
 /*
  * Maximum number of GECOS words per password to load.
@@ -283,6 +300,16 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * hashes (since it could be too slow).
  */
 #define LDR_HASH_COLLISIONS_MAX		1000
+
+/*
+ * How many bitmap entries should the cracker prefetch at once.  Set this to 0
+ * to disable prefetching.
+ */
+#ifdef __SSE2__
+#define CRK_PREFETCH			64
+#else
+#define CRK_PREFETCH			0
+#endif
 
 /*
  * Maximum number of GECOS words to try in pairs.
@@ -348,8 +375,8 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * john.pot and log file buffer sizes, can be zero.
  */
-#define POT_BUFFER_SIZE			0x8000
-#define LOG_BUFFER_SIZE			0x8000
+#define POT_BUFFER_SIZE			0x100000
+#define LOG_BUFFER_SIZE			0x100000
 
 /*
  * Buffer size for path names.
@@ -365,7 +392,7 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define MAX_MKV_LEN 30
 
 /* Default maximum size of wordlist memory buffer. */
-#define WORDLIST_BUFFER_DEFAULT		5000000
+#define WORDLIST_BUFFER_DEFAULT		0x40000000
 
 /* Number of custom Mask placeholders */
 #define MAX_NUM_CUST_PLHDR 9

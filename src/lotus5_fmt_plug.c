@@ -144,7 +144,7 @@ valid (char *ciphertext, struct fmt_main *self)
 
   for (i = 0; i < CIPHERTEXT_LENGTH; i++)
 	  if (!(((ciphertext[i] >= '0') && (ciphertext[i] <= '9'))
-				  || ((ciphertext[i] >= 'a') && (ciphertext[i] <= 'f'))
+				  //|| ((ciphertext[i] >= 'a') && (ciphertext[i] <= 'f'))
 				  || ((ciphertext[i] >= 'A') && (ciphertext[i] <= 'F'))))
 	  {
 		  return 0;
@@ -349,20 +349,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static int get_hash1(int index) { return crypt_key[index][0] & 0xf; }
-static int get_hash2(int index) { return crypt_key[index][0] & 0xff; }
-static int get_hash3(int index) { return crypt_key[index][0] & 0xfff; }
-static int get_hash4(int index) { return crypt_key[index][0] & 0xffff; }
-static int get_hash5(int index) { return crypt_key[index][0] & 0xfffff; }
-static int get_hash6(int index) { return crypt_key[index][0] & 0xffffff; }
-static int get_hash7(int index) { return crypt_key[index][0] & 0x7ffffff; }
-static int binary_hash1(void * binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
-static int binary_hash2(void * binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
-static int binary_hash3(void * binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
-static int binary_hash4(void * binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
-static int binary_hash5(void * binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
-static int binary_hash6(void * binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
-static int binary_hash7(void * binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
+static int get_hash_0(int index) { return crypt_key[index][0] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_key[index][0] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_key[index][0] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_key[index][0] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_key[index][0] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_key[index][0] & PH_MASK_5; }
+static int get_hash_6(int index) { return crypt_key[index][0] & PH_MASK_6; }
+static int binary_hash_0(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_0; }
+static int binary_hash_1(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_1; }
+static int binary_hash_2(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_2; }
+static int binary_hash_3(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_3; }
+static int binary_hash_4(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_4; }
+static int binary_hash_5(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_5; }
+static int binary_hash_6(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_6; }
 
 /* C's version of a class specifier */
 struct fmt_main fmt_lotus5 = {
@@ -395,13 +395,13 @@ struct fmt_main fmt_lotus5 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			binary_hash1,
-			binary_hash2,
-			binary_hash3,
-			binary_hash4,
-			binary_hash5,
-			binary_hash6,
-			binary_hash7
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -411,13 +411,13 @@ struct fmt_main fmt_lotus5 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash1,
-			get_hash2,
-			get_hash3,
-			get_hash4,
-			get_hash5,
-			get_hash6,
-			get_hash7
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

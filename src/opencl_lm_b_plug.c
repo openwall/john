@@ -443,8 +443,8 @@ static void release_buffer()
 
 static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s_mem_lws, unsigned int use_local_mem, unsigned int use_last_build_opt)
 {
-	static char build_opts[500];
 	static unsigned int last_build_opts[3];
+	char build_opts[500];
 	cl_ulong const_cache_size;
 	unsigned int i;
 
@@ -516,11 +516,11 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 
 
 	if (use_last_build_opt ? last_build_opts[0] : full_unroll)
-		opencl_read_source("$JOHN/kernels/lm_kernel_f.cl");
+		opencl_build_kernel("$JOHN/kernels/lm_kernel_f.cl",
+		                    gpu_id, build_opts, 0);
 	else
-		opencl_read_source("$JOHN/kernels/lm_kernel_b.cl");
-
-	opencl_build(gpu_id, build_opts, 0, NULL);
+		opencl_build_kernel("$JOHN/kernels/lm_kernel_b.cl",
+		                    gpu_id, build_opts, 0);
 
 	if (use_last_build_opt ? last_build_opts[0] : full_unroll) {
 		crypt_kernel = clCreateKernel(program[gpu_id], "lm_bs_f", &ret_code);
@@ -562,7 +562,7 @@ static size_t find_smem_lws_limit(unsigned int full_unroll, unsigned int use_loc
 	cl_uint warp_size;
 
 	if (force_global_keys) {
-		if (s_mem_sz > 768 * sizeof(cl_short))
+		if (s_mem_sz > 768 * sizeof(cl_short) || full_unroll)
 			return 0x800000;
 		else
 			return 0;
@@ -636,6 +636,7 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 		get_power_of_two(gws_limit);
 		gws_limit >>= 1;
 	}
+
 	assert(gws_limit > PADDING);
 	assert(!(gws_limit & (gws_limit - 1)));
 
@@ -764,6 +765,9 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 
 		lws_limit = get_kernel_max_lws(gpu_id, crypt_kernel);
 
+		if (lws_limit > global_work_size)
+			lws_limit = global_work_size;
+
 		if (lws_tune_flag) {
 			if (gpu(device_info[gpu_id]) && lws_limit >= 32)
 				local_work_size = 32;
@@ -848,6 +852,12 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		set_kernel_args();
 		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag, set_key, mask_mode);
 		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, mask_mode);
+
+		if (global_work_size < s_mem_limited_lws) {
+			s_mem_limited_lws = global_work_size;
+			if (local_work_size > s_mem_limited_lws)
+				local_work_size = s_mem_limited_lws;
+		}
 
 		if (lws_tune_flag) {
 			best_time_ms = 999999.00;
@@ -1035,30 +1045,36 @@ static char* select_bitmap(unsigned int num_ld_hashes, int *loaded_hashes, unsig
 	return kernel_params;
 }
 
-static char* prepare_table(struct db_salt *salt, OFFSET_TABLE_WORD **offset_table_ptr, unsigned int *bitmap_size_bits, unsigned **bitmaps_ptr) {
+static char* prepare_table(struct db_salt *salt, OFFSET_TABLE_WORD **offset_table_ptr, unsigned int *bitmap_size_bits, unsigned **bitmaps_ptr)
+{
 	int *bin, i;
-	struct db_password *pw;
+	struct db_password *pw, *last;
 	char *bitmap_params;
 	int *loaded_hashes;
 
 	num_loaded_hashes = salt->count;
 	loaded_hashes = (int *)mem_alloc(num_loaded_hashes * sizeof(int) * 2);
 
-	pw = salt -> list;
+	last = pw = salt->list;
 	i = 0;
 	do {
-		bin = (int *)pw -> binary;
-		// Potential segfault if removed
-		if(bin != NULL) {
+		bin = (int *)pw->binary;
+		if (bin == NULL) {
+			if (last == pw)
+				salt->list = pw->next;
+			else
+				last->next = pw->next;
+		} else {
+			last = pw;
 			loaded_hashes[2 * i] = bin[0];
 			loaded_hashes[2 * i + 1] = bin[1];
-			i++ ;
+			i++;
 		}
-	} while ((pw = pw -> next)) ;
+	} while ((pw = pw->next)) ;
 
-	if(i != (salt->count)) {
+	if (i > (salt->count)) {
 		fprintf(stderr,
-			"Something went wrong while preparing hashes..Exiting..\n");
+			"Something went wrong while preparing hashes(%d, %d)..Exiting..\n", i, salt->count);
 		error();
 	}
 
@@ -1101,8 +1117,7 @@ static char *get_key_mm(int index)
 	}
 
 	if (section > global_work_size ) {
-		fprintf(stderr, "Get key error! %u "Zu"\n", section,
-			global_work_size);
+		//fprintf(stderr, "Get key error! %u "Zu"\n", section, global_work_size);
 		section = 0;
 		depth = 0;
 		iter = 0;
@@ -1280,37 +1295,37 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 
 int opencl_lm_get_hash_0(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & 0xf;
+	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_0;
 }
 
 int opencl_lm_get_hash_1(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & 0xff;
+	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_1;
 }
 
 int opencl_lm_get_hash_2(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & 0xfff;
+	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_2;
 }
 
 int opencl_lm_get_hash_3(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & 0xffff;
+	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_3;
 }
 
 int opencl_lm_get_hash_4(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & 0xfffff;
+	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_4;
 }
 
 int opencl_lm_get_hash_5(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & 0xffffff;
+	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_5;
 }
 
 int opencl_lm_get_hash_6(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & 0x7ffffff;
+	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_6;
 }
 
 static int cmp_one(void *binary, int index)

@@ -838,8 +838,8 @@ int main (int argc, char *argv[])
 static mpf_t count;
 static mpz_t rec_pos;
 static int rec_pos_destroyed;
-static int rule_number, rule_count;
-static struct rpp_context *rule_ctx;
+static int rule_count;
+static struct list_main *rule_list;
 
 static void save_state(FILE *file)
 {
@@ -1198,8 +1198,6 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   setmode (fileno (stdout), O_BINARY);
   #endif
 #else
-  struct rpp_context ctx;
-  char *prerule="", *rule="", *word="";
   char last_buf[PLAINTEXT_BUFFER_SIZE] = "\r";
   char *last = last_buf;
   int loopback = (options.flags & FLG_PRINCE_LOOPBACK) ? 1 : 0;
@@ -1232,36 +1230,36 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     error();
   }
 
-	if (pw_min > pw_max) {
-		log_event("! MinLen = %d exceeds MaxLen = %d",
+  if (pw_min > pw_max) {
+    log_event("! MinLen = %d exceeds MaxLen = %d",
               pw_min, pw_max);
-		if (john_main_process)
-			fprintf(stderr, "MinLen = %d exceeds MaxLen = %d\n",
+    if (john_main_process)
+      fprintf(stderr, "MinLen = %d exceeds MaxLen = %d\n",
               pw_min, pw_max);
-		error();
-	}
+    error();
+  }
 
-	if (pw_min > our_fmt_len) {
-		log_event("! MinLen = %d is too large for this hash type",
+  if (pw_min > our_fmt_len) {
+    log_event("! MinLen = %d is too large for this hash type",
               pw_min);
-		if (john_main_process)
-			fprintf(stderr,
+    if (john_main_process)
+      fprintf(stderr,
               "MinLen = %d exceeds the maximum possible "
               "length for the current hash type (%d)\n",
               pw_min, db->format->params.plaintext_length);
-		error();
-	}
+    error();
+  }
 
-	if (pw_max > our_fmt_len) {
-		log_event("! MaxLen = %d is too large for this hash type",
+  if (pw_max > our_fmt_len) {
+    log_event("! MaxLen = %d is too large for this hash type",
               pw_max);
-		if (john_main_process)
-			fprintf(stderr, "Warning: MaxLen = %d is too large "
+    if (john_main_process)
+      fprintf(stderr, "Warning: MaxLen = %d is too large "
               "for the current hash type, reduced to %d\n",
               pw_max,
               our_fmt_len);
-		pw_max = our_fmt_len;
-	}
+    pw_max = our_fmt_len;
+  }
 
   wl_max = prince_wl_max; /* JtR defaults to 0 as in unlimited */
 
@@ -1307,6 +1305,10 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   log_event("- Using chains with %d - %d elements.", elem_cnt_min, elem_cnt_max);
 
   if (rules) {
+    char *prerule="";
+    struct rpp_context ctx, *rule_ctx;
+    int active_rules = 0, rule_number = 0;
+
     if (pers_opts.activewordlistrules)
       log_event("- Rules: %.100s", pers_opts.activewordlistrules);
 
@@ -1321,13 +1323,58 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     }
 
   /* rules.c honors -min/max-len options on its own */
-    rules_init(pers_opts.internal_enc == pers_opts.target_enc ?
+    rules_init(pers_opts.internal_cp == pers_opts.target_enc ?
                pw_max : db->format->params.plaintext_length);
     rule_count = rules_count(&ctx, -1);
 
     log_event("- %d preprocessed word mangling rules", rule_count);
 
-    prerule = rpp_next(&ctx);
+    list_init(&rule_list);
+
+    if ((prerule = rpp_next(&ctx)))
+    do {
+      char *rule;
+
+      if ((rule = rules_reject(prerule, -1, last, db)))
+      {
+        list_add(rule_list, rule);
+        active_rules++;
+
+        if (options.verbosity >= 3)
+        {
+          if (strcmp(prerule, rule))
+            log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
+                      rule_number + 1, prerule, rule);
+          else
+            log_event("- Rule #%d: '%.100s' accepted",
+                      rule_number + 1, prerule);
+        }
+      } else {
+        if (options.verbosity >= 3)
+          log_event("- Rule #%d: '%.100s' rejected",
+                    rule_number + 1, prerule);
+      }
+
+      if (!(rule = rpp_next(&ctx))) break;
+      rule_number++;
+    } while (rules);
+
+    if (rule_count != active_rules)
+    {
+      rule_count = active_rules;
+      log_event("- %d accepted word mangling rules", rule_count);
+    }
+
+    if (rule_count == 1 && rule_list->head->data[0] == 0)
+    {
+      rules = 0;
+    }
+
+    if (rule_count < 1)
+    {
+      rules = 0;
+      rule_count = 1;
+    }
   }
   else
   {
@@ -2202,32 +2249,13 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
                   break;
               }
             } else {
-              rule_number = 0;
-              if (rpp_init(rule_ctx = &ctx, pers_opts.activewordlistrules)) {
-                log_event("! No \"%s\" mode rules found",
-                          pers_opts.activewordlistrules);
-              }
-              rules_init(pers_opts.internal_enc == pers_opts.target_enc ?
-                         pw_max : db->format->params.plaintext_length);
+              struct list_entry *rule;
 
-              if ((prerule = rpp_next(&ctx)))
+              if ((rule = rule_list->head))
               do {
-                if (rules) {
-                  if ((rule = rules_reject(prerule, -1, last, db))) {
-                    if (strcmp(prerule, rule))
-                      log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
-                                rule_number + 1, prerule, rule);
-                    else
-                      log_event("- Rule #%d: '%.100s' accepted",
-                                rule_number + 1, prerule);
-                  } else {
-                    log_event("- Rule #%d: '%.100s' rejected",
-                              rule_number + 1, prerule);
-                    goto next_rule;
-                  }
-                }
+                char *word;
 
-                if ((word = rules_apply(pw_buf, rule, -1, last))) {
+                if ((word = rules_apply(pw_buf, rule->data, -1, last))) {
                   last = word;
 
                   if (options.mask) {
@@ -2236,18 +2264,11 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
                   } else {
                     if (ext_filter(word) && (jtr_done = crk_process_key(word)))
                     {
-                      rules = 0;
                       break;
                     }
                   }
                 }
-
-                if (rules) {
-next_rule:
-                  if (!(rule = rpp_next(&ctx))) break;
-                  rule_number++;
-                }
-              } while (rules);
+              } while ((rule = rule->next));
 
               if (jtr_done || event_abort)
                 break;

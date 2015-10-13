@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+
 #include "cuda_common.cuh"
 #include "../cuda_rawsha256.h"
 
@@ -39,8 +40,8 @@ extern "C" void gpu_rawsha224(sha256_password * i, SHA_HASH * o, int lap)
 }
 #endif
 
-const uint32_t DATA_IN_SIZE = KEYS_PER_CRYPT * sizeof(sha256_password);
-const uint32_t DATA_OUT_SIZE = KEYS_PER_CRYPT * sizeof(SHA_HASH);
+static const uint32_t DATA_IN_SIZE = KEYS_PER_CRYPT * sizeof(sha256_password);
+static const uint32_t DATA_OUT_SIZE = KEYS_PER_CRYPT * sizeof(SHA_HASH);
 
 static sha256_password *cuda_data = NULL;	///candidates
 static SHA_HASH *cuda_data_out = NULL;		///sha256(candidate) or sha224(candidate)
@@ -56,6 +57,7 @@ static SHA_HASH *cuda_data_out1 = NULL;	///sha256(candidates)
 static SHA_HASH *cuda_data_out2 = NULL;	///sha256(candidates)
 
 __global__ void kernel_sha256(sha256_password * data, SHA_HASH * data_out);
+
 static void cuda_rawsha256(sha256_password * host_in, void *out, int overlap)
 {
 	if (overlap) {

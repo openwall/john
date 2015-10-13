@@ -23,7 +23,6 @@ john_register_one(&fmt_opencl_DES);
 #include "opencl_DES_hst_dev_shared.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"descrypt-opencl"
 #define FORMAT_NAME			"traditional crypt(3)"
 
 #define BENCHMARK_COMMENT		""
@@ -47,19 +46,54 @@ static struct fmt_tests tests[] = {
 #define BINARY_SIZE			(2 * sizeof(WORD))
 #define SALT_SIZE			sizeof(WORD)
 
+#define USE_FULL_UNROLL 		(amd_gcn(device_info[gpu_id]) || nvidia_sm_5x(device_info[gpu_id]))
+#define USE_BASIC_KERNEL		(cpu(device_info[gpu_id]) || platform_apple(platform_id))
+
 void (*opencl_DES_bs_init_global_variables)(void);
 void (*opencl_DES_bs_select_device)(struct fmt_main *);
 
+static  unsigned char DES_IP[64] = {
+	57, 49, 41, 33, 25, 17, 9, 1,
+	59, 51, 43, 35, 27, 19, 11, 3,
+	61, 53, 45, 37, 29, 21, 13, 5,
+	63, 55, 47, 39, 31, 23, 15, 7,
+	56, 48, 40, 32, 24, 16, 8, 0,
+	58, 50, 42, 34, 26, 18, 10, 2,
+	60, 52, 44, 36, 28, 20, 12, 4,
+	62, 54, 46, 38, 30, 22, 14, 6
+};
+
+static unsigned char DES_atoi64[0x100] = {
+	18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,
+	34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+	50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 0, 1,
+	2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 5, 6, 7, 8, 9, 10,
+	11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
+	27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 32, 33, 34, 35, 36,
+	37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,
+	53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 0, 1, 2, 3, 4,
+	5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+	21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
+	37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,
+	53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 0, 1, 2, 3, 4,
+	5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+	21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
+	37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,
+	53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 0, 1, 2, 3, 4
+};
+
 static void init(struct fmt_main *pFmt)
 {
-	unsigned int i;
+	opencl_prepare_dev(gpu_id);
 
-	if (HARDCODE_SALT && FULL_UNROLL)
-		opencl_DES_bs_f_register_functions(pFmt);
-	else if (HARDCODE_SALT)
-		opencl_DES_bs_h_register_functions(pFmt);
-	else
+	if ((USE_BASIC_KERNEL&& !OVERRIDE_AUTO_CONFIG) ||
+		(OVERRIDE_AUTO_CONFIG && !HARDCODE_SALT && !FULL_UNROLL))
 		opencl_DES_bs_b_register_functions(pFmt);
+	else if ((USE_FULL_UNROLL && !OVERRIDE_AUTO_CONFIG) ||
+		(OVERRIDE_AUTO_CONFIG && HARDCODE_SALT && FULL_UNROLL))
+		opencl_DES_bs_f_register_functions(pFmt);
+	else
+		opencl_DES_bs_h_register_functions(pFmt);
 
 	// Check if specific LWS/GWS was requested
 	opencl_get_user_preferences(FORMAT_LABEL);
@@ -71,13 +105,8 @@ static void init(struct fmt_main *pFmt)
 		else if (local_work_size < 8) local_work_size = 8;
 		else if (local_work_size < 16) local_work_size = 16;
 		else if (local_work_size < 32) local_work_size = 32;
-		else local_work_size = WORK_GROUP_SIZE;
+		else local_work_size = 64;
 	}
-
-	for (i = 0; i < MULTIPLIER; i++)
-		opencl_DES_bs_init(i);
-
-	opencl_DES_bs_select_device(pFmt);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -118,11 +147,92 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 	return out;
 }
 
+static WORD *do_IP(WORD in[2])
+{
+	static WORD out[2];
+	int src, dst;
+
+	out[0] = out[1] = 0;
+	for (dst = 0; dst < 64; dst++) {
+		src = DES_IP[dst ^ 0x20];
+
+		if (in[src >> 5] & (1 << (src & 0x1F)))
+			out[dst >> 5] |= 1 << (dst & 0x1F);
+	}
+
+	return out;
+}
+
+static WORD *raw_get_binary(char *ciphertext)
+{
+	WORD block[3];
+	WORD mask;
+	int ofs, chr, src, dst, value;
+
+	if (ciphertext[13]) ofs = 9; else ofs = 2;
+
+	block[0] = block[1] = 0;
+	dst = 0;
+	for (chr = 0; chr < 11; chr++) {
+		value = DES_atoi64[ARCH_INDEX(ciphertext[chr + ofs])];
+		mask = 0x20;
+
+		for (src = 0; src < 6; src++) {
+			if (value & mask)
+				block[dst >> 5] |= 1 << (dst & 0x1F);
+			mask >>= 1;
+			dst++;
+		}
+	}
+
+	return do_IP(block);
+}
+
+static WORD *get_binary_raw(WORD *raw, int count)
+{
+	static WORD out[2];
+
+/* For odd iteration counts, swap L and R here instead of doing it one
+ * more time in DES_bs_crypt(). */
+	count &= 1;
+	out[count] = raw[0];
+	out[count ^ 1] = raw[1];
+
+	return out;
+}
+
+
+static WORD raw_get_count(char *ciphertext)
+{
+	if (ciphertext[13]) return DES_atoi64[ARCH_INDEX(ciphertext[1])] |
+		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[2])] << 6) |
+		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[3])] << 12) |
+		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[4])] << 18);
+	else return 25;
+}
+
+static WORD *get_binary(char *ciphertext)
+{
+	return get_binary_raw(
+		raw_get_binary(ciphertext),
+		raw_get_count(ciphertext));
+}
+
+static WORD raw_get_salt(char *ciphertext)
+{
+	if (ciphertext[13]) return DES_atoi64[ARCH_INDEX(ciphertext[5])] |
+		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[6])] << 6) |
+		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[7])] << 12) |
+		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[8])] << 18);
+	else return DES_atoi64[ARCH_INDEX(ciphertext[0])] |
+		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[1])] << 6);
+}
+
 static void *get_salt(char *ciphertext)
 {
 	static WORD out;
 
-	out = opencl_DES_raw_get_salt(ciphertext);
+	out = raw_get_salt(ciphertext);
 
 	return &out;
 }
@@ -145,16 +255,6 @@ static int cmp_all(WORD *binary, int count)
 	return 1;
 }
 
-static int cmp_one(void *binary, int index)
-{
-	return opencl_DES_bs_cmp_one_b((WORD*)binary, 32, index);
-}
-
-static int cmp_exact(char *source, int index)
-{
-	return opencl_DES_bs_cmp_one_b(opencl_DES_bs_get_binary(source), 64, index);
-}
-
 struct fmt_main fmt_opencl_DES = {
 	{
 		FORMAT_LABEL,
@@ -170,7 +270,7 @@ struct fmt_main fmt_opencl_DES = {
 		sizeof(WORD),
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_TRUNC | FMT_BS,
+		FMT_CASE | FMT_TRUNC | FMT_BS | FMT_REMOVE,
 		{ NULL },
 		tests
 	}, {
@@ -182,7 +282,7 @@ struct fmt_main fmt_opencl_DES = {
 		split,
 		(void *(*)(char *))
 
-			opencl_DES_bs_get_binary,
+			get_binary,
 
 		get_salt,
 		{ NULL },
@@ -200,8 +300,8 @@ struct fmt_main fmt_opencl_DES = {
 		NULL,
 		NULL,
 		opencl_DES_bs_set_key,
-		NULL,
-		fmt_default_clear_keys,
+		opencl_DES_bs_get_key,
+		opencl_DES_bs_clear_keys,
 		NULL,
 		{
 			get_hash_0,
@@ -215,11 +315,10 @@ struct fmt_main fmt_opencl_DES = {
 
 		(int (*)(void *, int))cmp_all,
 
-		cmp_one,
-		cmp_exact
+		opencl_DES_bs_cmp_one,
+		opencl_DES_bs_cmp_exact
 	}
 };
-
 #endif /* plugin stanza */
 
 #endif /* HAVE_OPENCL */

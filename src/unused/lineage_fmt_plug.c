@@ -195,13 +195,13 @@ static void *binary(char *ciphertext)
 #define make_get_hash(num, mask) \
 	static int get_hash_ ## num (int index) { return ((unsigned long long *)crypt_out[index])[0] & mask; }
 
-make_get_hash(0, 0xf)
-make_get_hash(1, 0xff)
-make_get_hash(2, 0xfff)
-make_get_hash(3, 0xffff)
-make_get_hash(4, 0xfffff)
-make_get_hash(5, 0xffffff)
-make_get_hash(6, 0x7ffffff)
+make_get_hash(0, PH_MASK_0)
+make_get_hash(1, PH_MASK_1)
+make_get_hash(2, PH_MASK_2)
+make_get_hash(3, PH_MASK_3)
+make_get_hash(4, PH_MASK_4)
+make_get_hash(5, PH_MASK_5)
+make_get_hash(6, PH_MASK_6)
 
 static void set_key(char *key, int index)
 {

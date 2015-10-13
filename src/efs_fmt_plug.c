@@ -148,7 +148,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) > MAX_IV_LEN * 2 || (strlen(p)&1)) /* iv length */
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* iterations */
 		goto err;
@@ -158,7 +158,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) > MAX_CT_LEN * 2 || (strlen(p)&1))
 		goto err;
-	if (!ishex(p))
+	if (!ishexlc(p))
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;

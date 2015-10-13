@@ -296,6 +296,9 @@ static void reset(struct db_main *db)
 		char build_opts[96];
 
 		snprintf(build_opts, sizeof(build_opts),
+#if !NT_FULL_UNICODE
+		         "-DUCS_2 "
+#endif
 		         "-D%s -DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
 		         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH, ocl_v_width);
 		opencl_init("$JOHN/kernels/ntlmv2_kernel.cl", gpu_id, build_opts);
@@ -585,13 +588,13 @@ static int salt_hash(void *salt)
 	return ((ARCH_WORD_32*)salt)[17+2+5] & (SALT_HASH_SIZE - 1);
 }
 
-static int get_hash_0(int index) { return output[index] & 0xf; }
-static int get_hash_1(int index) { return output[index] & 0xff; }
-static int get_hash_2(int index) { return output[index] & 0xfff; }
-static int get_hash_3(int index) { return output[index] & 0xffff; }
-static int get_hash_4(int index) { return output[index] & 0xfffff; }
-static int get_hash_5(int index) { return output[index] & 0xffffff; }
-static int get_hash_6(int index) { return output[index] & 0x7ffffff; }
+static int get_hash_0(int index) { return output[index] & PH_MASK_0; }
+static int get_hash_1(int index) { return output[index] & PH_MASK_1; }
+static int get_hash_2(int index) { return output[index] & PH_MASK_2; }
+static int get_hash_3(int index) { return output[index] & PH_MASK_3; }
+static int get_hash_4(int index) { return output[index] & PH_MASK_4; }
+static int get_hash_5(int index) { return output[index] & PH_MASK_5; }
+static int get_hash_6(int index) { return output[index] & PH_MASK_6; }
 
 struct fmt_main fmt_opencl_NTLMv2 = {
 	{

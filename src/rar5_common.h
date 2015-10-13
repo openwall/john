@@ -77,9 +77,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // salt
 		goto err;
-	if (strlen(p) != len * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != len * 2)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // iterations (in log2)
 		goto err;
@@ -91,9 +89,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // AES IV
 		goto err;
-	if (strlen(p) != SIZE_INITV * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != SIZE_INITV * 2)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // pswcheck len (redundant)
 		goto err;
@@ -103,9 +99,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // pswcheck
 		goto err;
-	if (strlen(p) != BINARY_SIZE * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != BINARY_SIZE * 2)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -200,14 +194,14 @@ static int get_hash_0(int index)
 #ifdef RARDEBUG
 	dump_stuff_msg("get_hash", crypt_out[index], BINARY_SIZE);
 #endif
-	return crypt_out[index][0] & 0xf;
+	return crypt_out[index][0] & PH_MASK_0;
 }
-static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
-static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
-static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
-static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
-static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
-static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
+static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
+static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 static unsigned int iteration_count(void *salt)
 {

@@ -1293,15 +1293,15 @@ static int cmp_exact(char *source, int index)
 
 static int salt_hash(void *salt) { return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1); }
 
-static int binary_hash_0(void *binary) { return *(unsigned short*)binary & 0xF; }
-static int binary_hash_1(void *binary) { return *(unsigned short*)binary & 0xFF; }
-static int binary_hash_2(void *binary) { return *(unsigned short*)binary & 0xFFF; }
-static int binary_hash_3(void *binary) { return *(unsigned short*)binary & 0xFFFF; }
+static int binary_hash_0(void *binary) { return *(unsigned short*)binary & PH_MASK_0; }
+static int binary_hash_1(void *binary) { return *(unsigned short*)binary & PH_MASK_1; }
+static int binary_hash_2(void *binary) { return *(unsigned short*)binary & PH_MASK_2; }
+static int binary_hash_3(void *binary) { return *(unsigned short*)binary & PH_MASK_3; }
 
-static int get_hash_0(int index) { return crypt_key[index] & 0xF; }
-static int get_hash_1(int index) { return crypt_key[index] & 0xFF; }
-static int get_hash_2(int index) { return crypt_key[index] & 0xFFF; }
-static int get_hash_3(int index) { return crypt_key[index] & 0xFFFF; }
+static int get_hash_0(int index) { return crypt_key[index] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_key[index] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_key[index] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_key[index] & PH_MASK_3; }
 
 struct fmt_main fmt_MSCHAPv2_new = {
 	{

@@ -38,14 +38,6 @@ john_register_one(&fmt_rawSHA224);
  */
 #define REVERSE_STEPS
 
-#define INIT_A 0xc1059ed8
-#define INIT_B 0x367cd507
-#define INIT_C 0x3070dd17
-#define INIT_D 0xf70e5939
-#define INIT_E 0xffc00b31
-#define INIT_F 0x68581511
-#define INIT_G 0x64f98fa7
-
 #ifdef _OPENMP
 #ifdef SIMD_COEF_32
 #ifndef OMP_SCALE
@@ -81,7 +73,7 @@ john_register_one(&fmt_rawSHA224);
 #endif
 #define CIPHERTEXT_LENGTH       56
 
-#define BINARY_SIZE             4
+#define BINARY_SIZE             DIGEST_SIZE
 #define DIGEST_SIZE             28
 #define DIGEST_SIZE_256			32
 #define BINARY_ALIGN			MEM_ALIGN_WORD
@@ -201,36 +193,38 @@ static void *get_binary(char *ciphertext)
 #ifdef SIMD_COEF_32
 	alter_endianity (out, DIGEST_SIZE);
 #ifdef REVERSE_STEPS
-	outw[0] -= INIT_A;
-	outw[1] -= INIT_B;
-	outw[2] -= INIT_C;
-	outw[3] -= INIT_D;
-	outw[4] -= INIT_E;
-	outw[5] -= INIT_F;
-	outw[6] -= INIT_G;
+	sha224_reverse(outw);
 #endif
 #endif
 	return out;
 }
 
 #ifdef SIMD_COEF_32
-#define HASH_IDX (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32)
-static int get_hash_0 (int index) { return crypt_out[HASH_IDX] & 0xf; }
-static int get_hash_1 (int index) { return crypt_out[HASH_IDX] & 0xff; }
-static int get_hash_2 (int index) { return crypt_out[HASH_IDX] & 0xfff; }
-static int get_hash_3 (int index) { return crypt_out[HASH_IDX] & 0xffff; }
-static int get_hash_4 (int index) { return crypt_out[HASH_IDX] & 0xfffff; }
-static int get_hash_5 (int index) { return crypt_out[HASH_IDX] & 0xffffff; }
-static int get_hash_6 (int index) { return crypt_out[HASH_IDX] & 0x7ffffff; }
+#define HASH_IDX (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32 + 3*SIMD_COEF_32)
+static int get_hash_0 (int index) { return crypt_out[HASH_IDX] & PH_MASK_0; }
+static int get_hash_1 (int index) { return crypt_out[HASH_IDX] & PH_MASK_1; }
+static int get_hash_2 (int index) { return crypt_out[HASH_IDX] & PH_MASK_2; }
+static int get_hash_3 (int index) { return crypt_out[HASH_IDX] & PH_MASK_3; }
+static int get_hash_4 (int index) { return crypt_out[HASH_IDX] & PH_MASK_4; }
+static int get_hash_5 (int index) { return crypt_out[HASH_IDX] & PH_MASK_5; }
+static int get_hash_6 (int index) { return crypt_out[HASH_IDX] & PH_MASK_6; }
 #else
-static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
-static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
-static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
-static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
-static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
-static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
-static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
+static int get_hash_0(int index) { return crypt_out[index][3] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_out[index][3] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_out[index][3] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_out[index][3] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_out[index][3] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_out[index][3] & PH_MASK_5; }
+static int get_hash_6(int index) { return crypt_out[index][3] & PH_MASK_6; }
 #endif
+
+static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[3] & PH_MASK_0; }
+static int binary_hash_1(void *binary) { return ((ARCH_WORD_32*)binary)[3] & PH_MASK_1; }
+static int binary_hash_2(void *binary) { return ((ARCH_WORD_32*)binary)[3] & PH_MASK_2; }
+static int binary_hash_3(void *binary) { return ((ARCH_WORD_32*)binary)[3] & PH_MASK_3; }
+static int binary_hash_4(void *binary) { return ((ARCH_WORD_32*)binary)[3] & PH_MASK_4; }
+static int binary_hash_5(void *binary) { return ((ARCH_WORD_32*)binary)[3] & PH_MASK_5; }
+static int binary_hash_6(void *binary) { return ((ARCH_WORD_32*)binary)[3] & PH_MASK_6; }
 
 #ifdef SIMD_COEF_32
 static void set_key(char *key, int index) {
@@ -346,7 +340,7 @@ static int cmp_all(void *binary, int count)
 
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_32
-		if (((ARCH_WORD_32*) binary)[0] == crypt_out[HASH_IDX])
+		if (((ARCH_WORD_32*) binary)[3] == crypt_out[HASH_IDX])
 #else
 		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
 #endif
@@ -357,7 +351,7 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_32
-	return *(ARCH_WORD_32*)binary == crypt_out[HASH_IDX];
+	return ((ARCH_WORD_32*)binary)[3] == crypt_out[HASH_IDX];
 #else
 	return *(ARCH_WORD_32*)binary == crypt_out[index][0];
 #endif
@@ -366,23 +360,21 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	ARCH_WORD_32 *binary = get_binary(source);
-#if SIMD_COEF_32
-	int i;
-
-	for (i = 0; i < DIGEST_SIZE/sizeof(ARCH_WORD_32); i++)
-		if (binary[i] != crypt_out[HASH_IDX + i*SIMD_COEF_32])
-			return 0;
-	return 1;
-#else
+	char *key = get_key(index);
 	SHA256_CTX ctx;
 	ARCH_WORD_32 crypt_out[DIGEST_SIZE / sizeof(ARCH_WORD_32)];
 
 	SHA224_Init(&ctx);
-	SHA224_Update(&ctx, saved_key[index], saved_len[index]);
+	SHA224_Update(&ctx, key, strlen(key));
 	SHA224_Final((unsigned char*)crypt_out, &ctx);
 
-	return !memcmp(binary, crypt_out, DIGEST_SIZE);
+#ifdef SIMD_COEF_32
+	alter_endianity(crypt_out, DIGEST_SIZE);
+#ifdef REVERSE_STEPS
+	sha224_reverse(crypt_out);
 #endif
+#endif
+	return !memcmp(binary, crypt_out, DIGEST_SIZE);
 }
 
 struct fmt_main fmt_rawSHA224 = {
@@ -416,13 +408,13 @@ struct fmt_main fmt_rawSHA224 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		NULL,

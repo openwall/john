@@ -1167,7 +1167,7 @@ static struct fmt_tests _Preloads_40[] =
 //	{"$netsha1$20440a340000000100000000000f4240000f424000000000051c010000000002$94bce4d9084199508669b39f044064082a093de3", "password12345"},
 	{"$dynamic_40$94bce4d9084199508669b39f044064082a093de3$HEX$20440a340000000100000000000f4240000f424000000000051c010000000002","password12345"},
 	// repeat in the same format that is used for john.pot
-	{"$dynamic_40$709d3307304d790f58bf0a3cefd783b438408996$HEX$4845582432303434306133343030303030303031303030303030303030303066343234303030306634323430303030303030303030353163303130303030303030303031","password12345"},
+//	{"$dynamic_40$709d3307304d790f58bf0a3cefd783b438408996$HEX$4845582432303434306133343030303030303031303030303030303030303066343234303030306634323430303030303030303030353163303130303030303030303031","password12345"},
 	{"$dynamic_40$709d3307304d790f58bf0a3cefd783b438408996$HEX$20440a340000000100000000000f4240000f424000000000051c010000000001","password12345"},
 	{NULL}
 };
@@ -3296,29 +3296,41 @@ int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt)
 //   but the format is INCLUDED in the build.  A couple things are still left
 //   in the parser as invalid (such as non-colon separators, etc).
 // 1 is valid.
-int dynamic_IS_VALID(int i, int force)
+int dynamic_IS_VALID(int i, int single_lookup_only)
 {
-	char Type[20];
-	sprintf(Type, "dynamic_%d", i);
+	static char valid[5001];
+	static int init=0;
+	int j;
+
+	if (single_lookup_only) {
+		// if only loading a single dyna format, then do NOT load the valid array
+		if (i < 1000) {
+			for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
+				if(atoi(&Setups[j].szFORMAT_NAME[8]) == i)
+					return 1;
+			}
+			return 0;
+		}
+		if (!dynamic_IS_PARSER_VALID(i, 1))
+			return 0;
+		return 1;
+	}
+	if (!init) {
+		memset(valid, -1, sizeof(valid));
+		for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
+			int k = atoi(&Setups[j].szFORMAT_NAME[8]);
+			if (k >= 0 && k < 1000)
+				valid[k] = 1;
+		}
+		for (j = 1000; j < 5000; ++j) {
+			if (dynamic_IS_PARSER_VALID(j, 0) != -1)
+				valid[j] = 1;
+		}
+		init = 1;
+	}
 	if (i < 0 || i >= 5000)
 		return -1;
-#ifndef DEBUG
-	if (!force && cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, Type, 0) &&
-	    (!options.format || strcasecmp(options.format, "dynamic-all")))
-		return 0;
-#endif
-	if (i < 1000) {
-		int j,len;
-		len=strlen(Type);
-		for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
-			if (!strncmp(Type, Setups[j].szFORMAT_NAME, len))
-				return 1;
-		}
-		return -1;
-	}
-	if (!dynamic_IS_PARSER_VALID(i))
-		return 0;
-	return 1;
+	return valid[i];
 }
 
 #endif /* DYNAMIC_DISABLED */

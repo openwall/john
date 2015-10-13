@@ -32,25 +32,35 @@
 #define K3			0x8f1bbcdc
 #define K4			0xca62c1d6
 
-#ifdef USE_BITSELECT
-#define F1(x, y, z)	bitselect(z, y, x)
-#else
-#if HAVE_ANDNOT
+#if HAVE_LUT3
+#define F1(x, y, z) lut3(x, y, z, 0xca)
+#elif USE_BITSELECT
+#define F1(x, y, z) bitselect(z, y, x)
+#elif HAVE_ANDNOT
 #define F1(x, y, z) ((x & y) ^ ((~x) & z))
 #else
 #define F1(x, y, z) (z ^ (x & (y ^ z)))
 #endif
-#endif
 
-#define F2(x, y, z)		(x ^ y ^ z)
-
-#ifdef USE_BITSELECT
-#define F3(x, y, z)	bitselect(x, y, (z) ^ (x))
+#if HAVE_LUT3
+#define F2(x, y, z) lut3(x, y, z, 0x96)
 #else
-#define F3(x, y, z)	((x & y) | (z & (x | y)))
+#define F2(x, y, z) (x ^ y ^ z)
 #endif
 
-#define F4(x, y, z)		(x ^ y ^ z)
+#if HAVE_LUT3
+#define F3(x, y, z) lut3(x, y, z, 0xe8)
+#elif USE_BITSELECT
+#define F3(x, y, z) bitselect(x, y, (z) ^ (x))
+#else
+#define F3(x, y, z) ((x & y) | (z & (x | y)))
+#endif
+
+#if HAVE_LUT3
+#define F4(x, y, z) lut3(x, y, z, 0x96)
+#else
+#define F4(x, y, z) (x ^ y ^ z)
+#endif
 
 #define R(t)	  \
 	( \

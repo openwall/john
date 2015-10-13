@@ -121,19 +121,15 @@ static int valid(char *ciphertext, struct fmt_main *self, char *which)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* salt */
 		goto error;
-	if (strlen(ptr) != res * 2)
-		goto error;
-	if (!ishex(ptr))
+	if (hexlenl(ptr) != res * 2)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* encrypted verifier */
 		goto error;
-	if (!ishex(ptr))
-		goto error;
-	if (strlen(ptr) != 32)
+	if (hexlenl(ptr) != 32)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* encrypted verifier hash */
 		goto error;
-	if (!ishex(ptr))
+	if (!ishexlc(ptr))
 		goto error;
 	if (strlen(ptr) > 64)
 		goto error;

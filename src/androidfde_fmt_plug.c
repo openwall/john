@@ -147,9 +147,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (!ishex(p))
-		goto err;
-	if (strlen(p) != saltlen * 2)
+	if (hexlenl(p) != saltlen * 2)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* keysize */
 		goto err;
@@ -160,15 +158,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* key */
 		goto err;
-	if(strlen(p) != keysize * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != keysize * 2)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* data */
 		goto err;
-	if (strlen(p) != 512 * 3 * 2)
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) != 512 * 3 * 2)
 		goto err;
 
 	MEM_FREE(keeptr);

@@ -258,8 +258,8 @@ AC_PATH_PROG([FIND], [find])
 AC_PATH_PROG([PERL], [perl])
 AS_IF([test -z "$AS"], [AS="$CC"])
 AS_IF([test -z "$LD"], [LD="$CC"])
-AS_IF([test -z "$AR"], [AC_PATH_PROG([AR], [ar])])
-AS_IF([test -z "$STRIP"], [AC_PATH_PROG([STRIP], [strip])])
+AS_IF([test -z "$AR"], [AC_CHECK_TOOL([AR], [ar])])
+AS_IF([test -z "$STRIP"], [AC_CHECK_TOOL([STRIP], [strip])])
 
 # Check if we have this at all
 PKG_PROG_PKG_CONFIG
@@ -848,12 +848,14 @@ fi
 # Code  to create @PLUGFORMATS_OBJS@ and
 # john_buildrule.h moved from Makefile.in to here.
 ####################################################
-echo "configure: creating *_plug.c object rules"
+echo "configure: creating *_plug.c and OpenCL object rules"
 if test "`echo *_plug.c`" != "*_plug.c"; then
-   AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed "s/\.c/.o/g"`])
+   AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed 's/\.c/.o/g'`])
+   AC_SUBST([KERNEL_OBJS],[`echo opencl/*.cl | sed 's/\bopencl\//..\/run\/kernels\//g'`])
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
       echo "configure: creating Makefile dependencies"
       AC_SUBST([PLUGFORMATS_DEPS],[`$PERL ./plugin_deps.pl *_plug.c`])
+      AC_SUBST([KERNEL_DEPS],[`$PERL ./plugin_deps.pl opencl/*.cl`])
    fi
 fi
 
@@ -890,7 +892,7 @@ if test ! -f fmt_externs.h; then
 fi
 echo "configure: creating ./fmt_registers.h"
 rm -f fmt_registers.h
-if test "`echo *_plug.c`" != "*_plug.c"; then
+if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
 fi
 # if the file was not created, then bail.
@@ -934,13 +936,13 @@ else
    using_crypt=no
 fi
 
-if test "x$ac_cv_lib_z_deflate" != xno; then
+if test "x$ac_cv_lib_z_deflate" = xyes; then
    using_zlib=yes
 else
    using_zlib=no
 fi
 
-if test "x$ac_cv_lib_bz2_main" != xno; then
+if test "x$ac_cv_lib_bz2_main" = xyes; then
    using_bz2=yes
 else
    using_bz2=no

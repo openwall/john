@@ -60,8 +60,6 @@ john_register_one(&fmt_opencl_rakp);
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              1
 
-#define HEXCHARS                "0123456789abcdef"
-
 #define STEP                    0
 #define SEED                    65536
 #define ROUNDS			5
@@ -120,11 +118,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((q - p - 1) < SALT_MIN_SIZE * 2)
 		return 0;
 
-	len = strspn(q, HEXCHARS);
+	len = strspn(q, HEXCHARS_lc);
 	if (len != BINARY_SIZE * 2 || len != strlen(q))
 		return 0;
 
-	if (strspn(p, HEXCHARS) != q - p - 1)
+	if (strspn(p, HEXCHARS_lc) != q - p - 1)
 		return 0;
 
 	return 1;
@@ -406,13 +404,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static int get_hash_0(int index) { return digest[index] & 0xf; }
-static int get_hash_1(int index) { return digest[index] & 0xff; }
-static int get_hash_2(int index) { return digest[index] & 0xfff; }
-static int get_hash_3(int index) { return digest[index] & 0xffff; }
-static int get_hash_4(int index) { return digest[index] & 0xfffff; }
-static int get_hash_5(int index) { return digest[index] & 0xffffff; }
-static int get_hash_6(int index) { return digest[index] & 0x7ffffff; }
+static int get_hash_0(int index) { return digest[index] & PH_MASK_0; }
+static int get_hash_1(int index) { return digest[index] & PH_MASK_1; }
+static int get_hash_2(int index) { return digest[index] & PH_MASK_2; }
+static int get_hash_3(int index) { return digest[index] & PH_MASK_3; }
+static int get_hash_4(int index) { return digest[index] & PH_MASK_4; }
+static int get_hash_5(int index) { return digest[index] & PH_MASK_5; }
+static int get_hash_6(int index) { return digest[index] & PH_MASK_6; }
 
 struct fmt_main fmt_opencl_rakp = {
 	{

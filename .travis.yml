@@ -23,7 +23,7 @@ before_install:
   - sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev fglrx-dev opencl-headers
   - export OMP_NUM_THREADS=4
 script:
-  - cd src && ./configure && make -sj4 check
+  - cd src && ./configure && make -sj4 && echo '[Disabled:Formats]' > john-local.conf && echo '.include [Disabled:Formats_base]' >> john-local.conf && ../run/john -test-full=0
 
 addons:
   coverity_scan:
@@ -32,5 +32,5 @@ addons:
       description: "http://openwall.com/john"
     notification_email: john.magnum@hushmail.com
     build_command_prepend:
-    build_command: "cd src && ./configure && make -sj4 check"
+    build_command: "cd src && ./configure && make -sj4 && echo '[Disabled:Formats]' > john-local.conf && echo '.include [Disabled:Formats_base]' >> john-local.conf && ../run/john -test-full=0"
     branch_pattern: coverity_scan

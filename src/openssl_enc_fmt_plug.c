@@ -129,8 +129,6 @@ static void done(void)
 #define return if(printf("\noriginal: %s\n",ciphertext)+printf("fail line %u: '%s' p=%p q=%p q-p-1=%u\n",__LINE__,p,p,q,(unsigned int)(q-p-1)))return
 #endif
 
-#define HEX_DIGITS "0123456789abcdefABCDEF"
-#define DEC_DIGITS "0123456789"
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext, *q = NULL;
@@ -160,7 +158,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!q)
 		return 0;
 	q = q + 1;
-	len = strspn(p, DEC_DIGITS);
+	len = strspn(p, DIGITCHARS);
 	if (len < 1 || len > 2 || len != q - p - 1)
 		return 0;
 	len = atoi(p);
@@ -170,13 +168,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!q)
 		return 0;
 	q = q + 1;
-	if (2 * len != q - p - 1 || 2 * len != strspn(p, HEX_DIGITS))
+	if (2 * len != q - p - 1 || 2 * len != strspn(p, HEXCHARS_lc))
 		return 0;
 	p = q; q = strchr(p, '$');	// last-chunks
 	if (!q)
 		return 0;
 	q = q + 1;
-	len = strspn(p, HEX_DIGITS);
+	len = strspn(p, HEXCHARS_lc);
 	if (len != q - p - 1 || len < 2 || (len & 1) || len/2 > sizeof(cur_salt->last_chunks))
 		return 0;
 	p = q; q = strchr(p, '$');	// inlined
@@ -192,7 +190,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if (!q)
 			return 0;
 		q = q + 1;
-		len = strspn(p, DEC_DIGITS);
+		len = strspn(p, DIGITCHARS);
 		if (len < 1 || len > 3 || len != q - p - 1)
 			return 0;
 		len = atoi(p);
@@ -202,7 +200,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if (!q)
 			return 0;
 		q = q + 1;
-		if (2 * len != q - p - 1 || 2 * len != strspn(p, HEX_DIGITS))
+		if (2 * len != q - p - 1 || 2 * len != strspn(p, HEXCHARS_all))
 			return 0;
 	}
 	p = q; q = strchr(p, '$');	// known-plaintext

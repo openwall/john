@@ -92,10 +92,6 @@
 #define FLG_TEST_CHK			0x00400000
 #define FLG_TEST_SET \
 	(FLG_TEST_CHK | FLG_CRACKING_SUP | FLG_ACTION)
-/* Perform a test and benchmark */
-#define FLG_TEST_FULL_CHK		0x00800000
-#define FLG_TEST_FULL_SET \
-	(FLG_TEST_FULL_CHK | FLG_CRACKING_SUP | FLG_ACTION)
 #ifdef HAVE_FUZZ
 /* Perform a fuzzing */
 #define FLG_FUZZ_CHK			0x08000000
@@ -187,6 +183,7 @@
 #define FLG_PRINCE_LOOPBACK		0x0080000000000000ULL
 #define FLG_PRINCE_MMAP			0x0100000000000000ULL
 #define FLG_RULES_ALLOW			0x0200000000000000ULL
+#define FLG_REGEX_STACKED		0x0400000000000000ULL
 
 /*
  * Structure with option flags and all the parameters.
@@ -321,7 +318,7 @@ struct options_main {
 /* Secure mode. Do not output, log or store cracked passwords. */
 	int secure;
 /* Mode that appended the uid to the user name (on display) */
-	int show_uid_on_crack;
+	int show_uid_in_cracks;
 /* regular expression */
 	char *regex;
 /* Custom masks */
@@ -358,7 +355,7 @@ struct pers_opts {
    do proper case conversion etc. in UTF-8, we can pick this intermediate
    encoding (use one that matches most input) but the double conversions may
    come with a speed penalty. */
-	int internal_enc;
+	int internal_cp;
 
 /* Store UTF-8 in pot file. Default is no conversion. */
 	int store_utf8;

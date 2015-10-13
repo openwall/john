@@ -125,7 +125,7 @@ skey_valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if ((p = strtok(NULL, " \t")) == NULL)
 		return 0;
-	if (hexlen(p) != (2 * SKEY_BINKEY_SIZE))
+	if (hexlenl(p) != (2 * SKEY_BINKEY_SIZE))
 		return 0;
 
 	if (!skey_salt(ciphertext))
@@ -302,13 +302,13 @@ static unsigned int skey_hash_type(void *salt)
 		return (unsigned int) 0;
 }
 
-static int get_hash_0(int index) { return saved_key[0] & 0xf; }
-static int get_hash_1(int index) { return saved_key[0] & 0xff; }
-static int get_hash_2(int index) { return saved_key[0] & 0xfff; }
-static int get_hash_3(int index) { return saved_key[0] & 0xffff; }
-static int get_hash_4(int index) { return saved_key[0] & 0xfffff; }
-static int get_hash_5(int index) { return saved_key[0] & 0xffffff; }
-static int get_hash_6(int index) { return saved_key[0] & 0x7ffffff; }
+static int get_hash_0(int index) { return saved_key[0] & PH_MASK_0; }
+static int get_hash_1(int index) { return saved_key[0] & PH_MASK_1; }
+static int get_hash_2(int index) { return saved_key[0] & PH_MASK_2; }
+static int get_hash_3(int index) { return saved_key[0] & PH_MASK_3; }
+static int get_hash_4(int index) { return saved_key[0] & PH_MASK_4; }
+static int get_hash_5(int index) { return saved_key[0] & PH_MASK_5; }
+static int get_hash_6(int index) { return saved_key[0] & PH_MASK_6; }
 
 /* iteration count as 2nd tunable cost */
 static unsigned int skey_iteration_count(void *salt)

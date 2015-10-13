@@ -224,6 +224,9 @@ static void reset(struct db_main *db)
 		char build_opts[96];
 
 		snprintf(build_opts, sizeof(build_opts),
+#if !NT_FULL_UNICODE
+		         "-DUCS_2 "
+#endif
 		         "-D%s -DPLAINTEXT_LENGTH=%u",
 		         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH);
 		opencl_init("$JOHN/kernels/oldoffice_kernel.cl", gpu_id, build_opts);
@@ -267,23 +270,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* salt */
 		goto error;
-	if (strlen(ptr) != 32)
-		goto error;
-	if (!ishex(ptr))
+	if (hexlen(ptr) != 32)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* verifier */
 		goto error;
-	if (strlen(ptr) != 32)
-		goto error;
-	if (!ishex(ptr))
+	if (hexlen(ptr) != 32)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* verifier hash */
 		goto error;
-	if (res < 3 && strlen(ptr) != 32)
+	if (res < 3 && hexlen(ptr) != 32)
 		goto error;
-	if (res >= 3 && strlen(ptr) != 40)
-		goto error;
-	if (!ishex(ptr))
+	if (res >= 3 && hexlen(ptr) != 40)
 		goto error;
 	MEM_FREE(keeptr);
 	return 1;

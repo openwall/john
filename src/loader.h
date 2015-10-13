@@ -25,13 +25,13 @@ struct db_password {
 /* Pointer to next password hash with the same salt */
 	struct db_password *next;
 
+/* Hot portion of or full binary ciphertext for fast comparison (aligned) */
+	void *binary;
+
 /* After loading is completed: pointer to next password hash with the same salt
  * and hash-of-hash.
  * While loading: pointer to next password hash with the same hash-of-hash. */
 	struct db_password *next_hash;
-
-/* Hot portion of or full binary ciphertext for fast comparison (aligned) */
-	void *binary;
 
 /* ASCII ciphertext for exact comparison and saving with cracked passwords.
  * Alternatively, when the source() method is non-default this field is either
@@ -169,6 +169,8 @@ struct db_cracked {
 #define DB_SPLIT			0x00000010
 /* Duplicate hashes were seen and excluded */
 #define DB_NODUP			0x00000020
+/* Some entries are marked for removal */
+#define DB_NEED_REMOVAL			0x00000080
 /* Cracked passwords only (ciphertext, plaintext) */
 #define DB_CRACKED			0x00000100
 /* Cracked plaintexts list */
@@ -197,6 +199,9 @@ struct db_options {
 /* if --show=types is used, john shows all hashes in machine readable form */
 	int showtypes;
 
+/* if --show=invalid is used, john shows all hashes which fail valid() */
+	int showinvalid;
+
 /* Field separator (normally ':') */
 	char field_sep_char;
 
@@ -210,6 +215,10 @@ struct db_options {
 struct db_main {
 /* Are hashed passwords loaded into this database? */
 	int loaded;
+
+/* Base allocation sizes for "struct db_password" and "struct db_salt" as
+ * possibly adjusted by ldr_init_database() given options->flags and such. */
+	size_t pw_size, salt_size;
 
 /* Options */
 	struct db_options *options;

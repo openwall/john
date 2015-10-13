@@ -51,7 +51,6 @@ static int omp_t = 1;
 #define MAX_USERNAME_LEN        64
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-#define HEX                     "0123456789abcdefABCDEF"
 
 static struct fmt_tests postgres_tests[] = {
 	{"$postgres$postgres*f063f05d*1d586cc8d137e5f1733f234d224393e8",
@@ -110,14 +109,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	/* Check hash */
 	if (!(p = strrchr(ciphertext, '*')))
 		return 0;
-	if (strspn(&p[1], HEX) != 2*BINARY_SIZE)
+	if (hexlenl(&p[1]) != 2*BINARY_SIZE)
 		return 0;
 
 	/* Check salt */
 	p -= 9;
 	if (*p != '*')
 		return 0;
-	if (strspn(&p[1], HEX) != 8)
+	if (abs(hexlenl(&p[1])) != 8)
 		return 0;
 
 	/* Check username length */
@@ -179,13 +178,13 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
-static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
-static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
-static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
-static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
-static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
-static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
+static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
+static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 static void set_salt(void *salt)
 {

@@ -50,7 +50,9 @@ typedef uint64x2_t vtype64;
 #define vcmov(x, y, z)          vbslq_u32(z, x, y)
 #define vload(m)                vld1q_u32((uint32_t*)(m))
 #define vloadu                  vloadu_emu
+#define VLOADU_EMULATED         1
 #define vor                     vorrq_u32
+#define vorn                    vornq_u32
 #define vroti_epi32(x, i)       (i > 0 ? vsliq_n_u32(vshrq_n_u32(x, 32-(i)), x, i) : \
                                          vsriq_n_u32(vshlq_n_u32(x, 32+(i)), x, -(i)))
 #define vroti_epi64(x, i)       (i > 0 ? (vtype)vsliq_n_u64(vshrq_n_u64((vtype64)(x), 64-(i)), (vtype64)(x), i) : \
@@ -67,6 +69,7 @@ typedef uint64x2_t vtype64;
 #define vsrli_epi64(x, i)       (vtype)vshrq_n_u64((vtype64)(x), i)
 #define vstore(m, x)            vst1q_u32((uint32_t*)(m), x)
 #define vstoreu                 vstoreu_emu
+#define VSTOREU_EMULATED        1
 #define vunpackhi_epi32(x, y)   (vzipq_u32(x, y)).val[1]
 #define vunpackhi_epi64(x, y)   vset_epi64(vgetq_lane_u64((vtype64)(y), 1), vgetq_lane_u64((vtype64)(x), 1))
 #define vunpacklo_epi32(x, y)   (vzipq_u32(x, y)).val[0]
@@ -106,6 +109,7 @@ typedef union {
 #define vcmov(x, y, z)          (vtype)vec_sel((y).v32, (x).v32, (z).v32)
 #define vload(m)                (vtype)(vtype32)vec_ld(0, (uint32_t*)(m))
 #define vloadu                  vloadu_emu
+#define VLOADU_EMULATED         1
 #define vor(x, y)               (vtype)vec_or((x).v32, (y).v32)
 #define vroti_epi32(x, i)       (vtype)vec_rl((x).v32, (vset1_epi32(i)).v32)
 #define vroti_epi64(x, i)       (vtype)vec_rl((x).v64, (vset1_epi64(i)).v64)
@@ -121,6 +125,7 @@ typedef union {
 #define vsrli_epi64(x, i)       (vtype)vec_sr((x).v64, (vset1_epi64(i)).v64)
 #define vstore(m, x)            vec_st((x).v32, 0, (uint32_t*)(m))
 #define vstoreu                 vstoreu_emu
+#define VSTOREU_EMULATED        1
 #define vunpackhi_epi32(x, y)   (vtype)vec_mergel((x).v32, (y).v32)
 #define vunpackhi_epi64(x, y)   (vtype)(vtype64)vec_mergel((vector long)(x).v64, (vector long)(y).v64)
 #define vunpacklo_epi32(x, y)   (vtype)vec_mergeh((x).v32, (y).v32)
@@ -159,8 +164,8 @@ typedef __m512i vtype;
 #define vroti_epi32             vroti_epi32_emu
 #define vroti_epi64             vroti_epi64_emu
 #define vroti16_epi32           vroti_epi32
-#define vscatter_epi32          _mm512_i32scatter_epi32
-#define vscatter_epi64          _mm512_i64scatter_epi64
+#define vscatter_epi32(b,i,v,s) _mm512_i32scatter_epi32((void*)b, i, v, s)
+#define vscatter_epi64(b,i,v,s) _mm512_i64scatter_epi64((void*)b, i, v, s)
 #define vset1_epi8              _mm512_set1_epi8
 #define vset1_epi32             _mm512_set1_epi32
 #define vset1_epi64             _mm512_set1_epi64
@@ -215,6 +220,13 @@ typedef __m512i vtype;
                                3*stride, 2*stride, 1*stride, 0);        \
     x = vgather_epi64(&y[0][z], indices, 1);                            \
 }
+
+#if __AVX512F__
+#undef vcmov
+#undef VCMOV_EMULATED
+#define vcmov(x, y, z)          vternarylogic(x, y, z, 0xE4)
+#define vternarylogic           _mm512_ternarylogic_epi32
+#endif
 
 #if __AVX512BW__
 #define vcmpeq_epi8_mask        (uint64_t)_mm512_cmpeq_epi8_mask
@@ -507,6 +519,33 @@ typedef __m128i vtype;
 
 #define GATHER64(x,y,z)     { x = vset_epi64 (y[1][z], y[0][z]); }
 
+#if _MSC_VER && !_M_X64
+/*
+ * These are slow, but the F'n 32 bit compiler will not build these intrinsics.
+ * Only the 64-bit (Win64) MSVC compiler has these as intrinsics. These slow
+ * ones let me debug, and develop this code, and work, but use CPU
+ */
+#define _mm_set_epi64 __mm_set_epi64
+#define _mm_set1_epi64 __mm_set1_epi64
+_inline __m128i _mm_set_epi64(long long a, long long b)
+{
+	__m128i x;
+
+	x.m128i_i64[0] = b;
+	x.m128i_i64[1] = a;
+	return x;
+}
+_inline __m128i _mm_set1_epi64(long long a)
+{
+	__m128i x;
+
+	x.m128i_i64[0] = x.m128i_i64[1] = a;
+	return x;
+}
+#define vset1_epi64x(x)         vset_epi64x(x, x)
+#define vset_epi64x(x1, x0)     (vtype)(vtype64){x0, x1}
+#endif
+
 /******************************** MMX *********************************/
 
 #elif __MMX__
@@ -528,30 +567,32 @@ typedef __m64i vtype;
 #define INLINE inline
 #endif
 
+#if VLOADU_EMULATED
 static INLINE vtype vloadu_emu(const void *addr)
 {
 	if (is_aligned(addr, MEM_ALIGN_SIMD))
 		return vload(addr);
 	else {
-		char _buf[MEM_ALIGN_SIMD + MEM_ALIGN_SIMD];
-		char *buf = mem_align(_buf, MEM_ALIGN_SIMD);
+		JTR_ALIGN(MEM_ALIGN_SIMD) char buf[sizeof(vtype)];
 
-		return (memcpy(buf, addr, MEM_ALIGN_SIMD), vload(buf));
+		return vload(memcpy(buf, addr, sizeof(vtype)));
 	}
 }
+#endif
 
+#if VSTOREU_EMULATED
 static INLINE void vstoreu_emu(void *addr, vtype v)
 {
 	if (is_aligned(addr, MEM_ALIGN_SIMD))
 		vstore(addr, v);
 	else {
-		char _buf[MEM_ALIGN_SIMD + MEM_ALIGN_SIMD];
-		char *buf = mem_align(_buf, MEM_ALIGN_SIMD);
+		JTR_ALIGN(MEM_ALIGN_SIMD) char buf[sizeof(vtype)];
 
 		vstore(buf, v);
-		memcpy(addr, buf, MEM_ALIGN_SIMD);
+		memcpy(addr, buf, sizeof(vtype));
 	}
 }
+#endif
 
 #define vswap32_emu(x) \
 	x = vxor(vsrli_epi32(x, 24),                                            \

@@ -130,37 +130,37 @@ static char *source(char *source, void *binary)
 
 static int binary_hash_0(void *binary)
 {
-	return *(unsigned WORD *)binary & 0xF;
+	return *(unsigned WORD *)binary & PH_MASK_0;
 }
 
 static int binary_hash_1(void *binary)
 {
-	return *(unsigned WORD *)binary & 0xFF;
+	return *(unsigned WORD *)binary & PH_MASK_1;
 }
 
 static int binary_hash_2(void *binary)
 {
-	return *(unsigned WORD *)binary & 0xFFF;
+	return *(unsigned WORD *)binary & PH_MASK_2;
 }
 
 static int binary_hash_3(void *binary)
 {
-	return *(unsigned WORD *)binary & 0xFFFF;
+	return *(unsigned WORD *)binary & PH_MASK_3;
 }
 
 static int binary_hash_4(void *binary)
 {
-	return *(unsigned WORD *)binary & 0xFFFFF;
+	return *(unsigned WORD *)binary & PH_MASK_4;
 }
 
 static int binary_hash_5(void *binary)
 {
-	return *(unsigned WORD *)binary & 0xFFFFFF;
+	return *(unsigned WORD *)binary & PH_MASK_5;
 }
 
 static int binary_hash_6(void *binary)
 {
-	return *(unsigned WORD *)binary & 0x7FFFFFF;
+	return *(unsigned WORD *)binary & PH_MASK_6;
 }
 
 #define get_hash_0 opencl_lm_get_hash_0
@@ -191,7 +191,7 @@ struct fmt_main fmt_opencl_lm = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_8_BIT | FMT_BS | FMT_TRUNC | FMT_SPLIT_UNIFIES_CASE,
+		FMT_8_BIT | FMT_BS | FMT_TRUNC | FMT_SPLIT_UNIFIES_CASE | FMT_REMOVE,
 		{ NULL },
 		tests
 	}, {

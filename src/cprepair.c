@@ -213,12 +213,12 @@ static int process_file(char *name)
 					out = convin;
 				} else {
 					if (auto_cp != inv_cp)
-						pers_opts.internal_enc =
+						pers_opts.internal_cp =
 							pers_opts.target_enc =
 							contains_ascii_letters(convin) ?
 							inv_cp : auto_cp;
 					else
-						pers_opts.internal_enc =
+						pers_opts.internal_cp =
 							pers_opts.target_enc =
 							inv_cp;
 					initUnicode(0);
@@ -239,7 +239,7 @@ static int process_file(char *name)
 					              (UTF8*)dd, len);
 					if (!valid_ansi(u16))
 						break;
-					pers_opts.internal_enc =
+					pers_opts.internal_cp =
 						pers_opts.target_enc =
 						ISO_8859_1;
 					initUnicode(0);

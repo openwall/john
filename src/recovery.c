@@ -86,10 +86,9 @@ static void rec_name_complete(void)
 #else
 	if (!john_main_process && options.node_min) {
 #endif
-		char *suffix = mem_alloc(1 + 20 + strlen(RECOVERY_SUFFIX) + 1);
+		char suffix[1 + 20 + sizeof(RECOVERY_SUFFIX)];
 		sprintf(suffix, ".%u%s", options.node_min, RECOVERY_SUFFIX);
 		rec_name = path_session(rec_name, suffix);
-		MEM_FREE(suffix);
 	} else {
 		rec_name = path_session(rec_name, RECOVERY_SUFFIX);
 	}
@@ -195,6 +194,20 @@ static void rec_unlock(void)
 	{}
 #endif
 
+static int is_default(char *name)
+{
+	if (john_main_process)
+		return !strcmp(rec_name, RECOVERY_NAME RECOVERY_SUFFIX);
+	else {
+		char def_name[sizeof(RECOVERY_NAME) + 20 +
+		              sizeof(RECOVERY_SUFFIX)];
+
+		sprintf(def_name, "%s.%u%s", RECOVERY_NAME, options.node_min,
+		        RECOVERY_SUFFIX);
+		return !strcmp(rec_name, def_name);
+	}
+}
+
 void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 {
 	const char *protect;
@@ -210,7 +223,7 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 		protect = "Disabled";
 
 	if (!rec_restored &&
-	    (((!strcasecmp(protect, "Named")) && strcmp(rec_name, "$JOHN/john.rec")) ||
+	    (((!strcasecmp(protect, "Named")) && !is_default(rec_name)) ||
 	    (!strcasecmp(protect, "Always")))) {
 		struct stat st;
 
@@ -268,7 +281,8 @@ void rec_save(void)
 		if (!strncmp(*opt, "--encoding", 10) ||
 			!strncmp(*opt, "--input-encoding", 16))
 			add_enc = 0;
-		else if (!strncmp(*opt, "--internal-encoding", 19) ||
+		else if (!strncmp(*opt, "--internal-codepage", 19) ||
+		         !strncmp(*opt, "--internal-encoding", 19) ||
 		         !strncmp(*opt, "--target-encoding", 17))
 			add_2nd_enc = 0;
 		else if (!strncmp(*opt, "--mkv-stats", 11))
@@ -319,8 +333,8 @@ void rec_save(void)
 
 	if (add_2nd_enc && pers_opts.input_enc == UTF_8 &&
 	    pers_opts.target_enc == UTF_8)
-		fprintf(rec_file, "--internal-encoding=%s\n",
-		        cp_id2name(pers_opts.internal_enc));
+		fprintf(rec_file, "--internal-codepage=%s\n",
+		        cp_id2name(pers_opts.internal_cp));
 	else if (add_2nd_enc)
 		fprintf(rec_file, "--target-encoding=%s\n",
 		        cp_id2name(pers_opts.target_enc));

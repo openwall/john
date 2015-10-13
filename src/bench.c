@@ -83,6 +83,7 @@ void clk_tck_init(void)
 }
 
 int benchmark_time = BENCHMARK_TIME;
+int benchmark_level = -1;
 
 volatile int bench_running;
 
@@ -384,6 +385,10 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	do {
 		int count = max;
 
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+		if (!bench_running)
+			advance_cursor();
+#endif
 		if (!--index) {
 			index = salts;
 			if (!(++current)->ciphertext)
@@ -548,24 +553,6 @@ AGAIN:
 /* Silently skip formats for which we have no tests, unless forced */
 		if (!format->params.tests && format != fmt_list)
 			continue;
-
-/* Format disabled in john.conf, unless forced */
-		if (fmt_list->next &&
-		    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
-		                 format->params.label, 0)) {
-#ifdef DEBUG
-			if ((format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) {
-				// in debug mode, we 'allow' dyna
-			} else
-#else
-			if ((options.format && !strcasecmp(options.format, "dynamic-all")&&(format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC) ||
-			    (options.listconf && !strcasecmp(options.listconf, "subformats"))) {
-				// allow dyna if '-format=dynamic-all' was selected
-			} else
-
-#endif
-			continue;
-		}
 
 /* Just test the encoding-aware formats if --encoding was used explicitly */
 		if (!pers_opts.default_enc && pers_opts.target_enc != ASCII &&

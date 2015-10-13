@@ -137,9 +137,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	len = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (!ishex(p))
-		goto err;
-	if (strlen(p) / 2 != len)	/* validates salt_len also */
+	if (hexlenl(p)/2 != len)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* iterations */
 		goto err;
@@ -152,9 +150,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	len = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)	/* masterkey */
 		goto err;
-	if (!ishex(p))
-		goto err;
-	if (strlen(p) / 2 != len)	/* validates masterkey_len also */
+	if (hexlenl(p)/2 != len)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* plaintext length */
 		goto err;
@@ -169,9 +165,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* iv */
 		goto err;
-	if (strlen(p) / 2 != len)	/* validates iv_len */
-		goto err;
-	if (!ishex(p))
+	if (hexlenl(p) / 2 != len)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* cryptext length */
 		goto err;
@@ -182,9 +176,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* cryptext */
 		goto err;
-	if (!ishex(p))
-		goto err;
-	if (strlen(p) / 2 != len)	/* validates cryptext_len */
+	if (hexlenl(p)/2 != len)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* expectedhmac length */
 		goto err;
@@ -195,9 +187,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* expectedhmac */
 		goto err;
-	if (!ishex(p))
-		goto err;
-	if (strlen(p) / 2 != len)	/* validates expectedhmac_len */
+	if (hexlenl(p)/2 != len)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* hmacdata length */
 		goto err;
@@ -208,9 +198,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* hmacdata */
 		goto err;
-	if (!ishex(p))
-		goto err;
-	if (strlen(p) / 2 != len)	/* validates hmacdata_len */
+	if (hexlenl(p)/2 != len)
 		goto err;
 
 	MEM_FREE(keeptr);

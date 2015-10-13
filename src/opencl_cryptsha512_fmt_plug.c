@@ -40,7 +40,11 @@ john_register_one(&fmt_opencl_cryptsha512);
 
 static sha512_salt			* salt;
 static sha512_password	 		* plaintext;			// plaintext ciphertexts
+static sha512_password			* plain_sorted;			// sorted list (by plaintext len)
 static sha512_hash			* calculated_hash;		// calculated hashes
+static sha512_hash			* computed_hash;		// calculated hashes (from plain_sorted)
+
+static int				* indices;			// relationship between sorted and unsorted plaintext list
 
 static cl_mem salt_buffer;		//Salt information.
 static cl_mem pass_buffer;		//Plaintext buffer.
@@ -51,7 +55,7 @@ static struct fmt_main *self;
 
 static cl_kernel prepare_kernel, final_kernel;
 
-static int new_keys, source_in_use;
+static int new_keys, source_in_use, use_gcn_code;
 static int split_events[3] = { 1, 5, 6 };
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
@@ -80,7 +84,9 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			sizeof(sha512_password) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys");
 
-	plaintext = (sha512_password *) clEnqueueMapBuffer(queue[gpu_id],
+	plaintext = (sha512_password *) mem_alloc(sizeof(sha512_password) * gws);
+
+	plain_sorted = (sha512_password *) clEnqueueMapBuffer(queue[gpu_id],
 			pinned_saved_keys, CL_TRUE, CL_MAP_WRITE, 0,
 			sizeof(sha512_password) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
@@ -90,7 +96,9 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			sizeof(sha512_hash) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_partial_hashes");
 
-	calculated_hash = (sha512_hash *) clEnqueueMapBuffer(queue[gpu_id],
+	calculated_hash = (sha512_hash *) mem_alloc(sizeof(sha512_hash) * gws);
+
+	computed_hash = (sha512_hash *) clEnqueueMapBuffer(queue[gpu_id],
 			pinned_partial_hashes, CL_TRUE, CL_MAP_READ, 0,
 			sizeof(sha512_hash) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory out_hashes");
@@ -112,7 +120,7 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			sizeof(buffer_64) * 8 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 1");
 
-	if (! amd_gcn(source_in_use)) {
+	if (! use_gcn_code) {
 		work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
 			sizeof(uint64_t) * (9 * 8) * gws, NULL, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 2");
@@ -132,7 +140,7 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 
 	if (_SPLIT_KERNEL_IN_USE) {
 
-		if (! amd_gcn(source_in_use)) {
+		if (! use_gcn_code) {
 			//Set prepare kernel arguments
 			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
 				(void *) &salt_buffer), "Error setting argument 0");
@@ -185,6 +193,7 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 		}
 	}
 	memset(plaintext, '\0', sizeof(sha512_password) * gws);
+	memset(plain_sorted, '\0', sizeof(sha512_password) * gws);
 }
 
 static void release_clobj(void) {
@@ -192,14 +201,17 @@ static void release_clobj(void) {
 
 	if (work_buffer) {
 		ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes,
-		                                   calculated_hash, 0, NULL, NULL);
+		                                   computed_hash, 0, NULL, NULL);
 		HANDLE_CLERROR(ret_code, "Error Unmapping out_hashes");
 
 		ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys,
-		                                   plaintext, 0, NULL, NULL);
+		                                   plain_sorted, 0, NULL, NULL);
 		HANDLE_CLERROR(ret_code, "Error Unmapping saved_plain");
 		HANDLE_CLERROR(clFinish(queue[gpu_id]),
 		               "Error releasing memory mappings");
+
+		MEM_FREE(plaintext);
+		MEM_FREE(calculated_hash);
 
 		ret_code = clReleaseMemObject(salt_buffer);
 		HANDLE_CLERROR(ret_code, "Error Releasing data_info");
@@ -336,6 +348,7 @@ static void reset(struct db_main *db)
                 char * tmp_value;
                 char * task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
 		int default_value = 0;
+		int major, minor;
 
                 opencl_prepare_dev(gpu_id);
                 source_in_use = device_info[gpu_id];
@@ -343,7 +356,10 @@ static void reset(struct db_main *db)
                 if ((tmp_value = getenv("_TYPE")))
                         source_in_use = atoi(tmp_value);
 
-                if (amd_gcn(source_in_use))
+		opencl_driver_value(gpu_id, &major, &minor);
+		use_gcn_code = (amd_gcn(source_in_use) && major < 1800);
+
+                if (use_gcn_code)
                         task = "$JOHN/kernels/cryptsha512_kernel_GCN.cl";
                 else if (_USE_GPU_SOURCE)
                         task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
@@ -417,17 +433,40 @@ static int cmp_exact(char * source, int count) {
 /* ------- Crypt function ------- */
 static int crypt_all(int *pcount, struct db_salt *_salt) {
 	int count = *pcount;
-	int i;
+	int i, index;
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	//Send data to device.
-	if (new_keys)
+	if (new_keys) {
+		// sort passwords by length
+		int tot_todo = 0, len;
+
+		if (indices)
+		    MEM_FREE(indices);
+
+		indices = mem_alloc(gws * sizeof(int));
+
+		for (len = 0; len <= PLAINTEXT_LENGTH; len++) {
+			for (index = 0; index < count; index++) {
+				if (plaintext[index].length == len)
+					indices[tot_todo++] = index;
+			}
+		}
+
+		//Create a sorted candidates list.
+		for (index = 0; index < count; index++) {
+			memcpy(plain_sorted[index].pass, plaintext[indices[index]].pass,
+				PLAINTEXT_LENGTH);
+			plain_sorted[index].length = plaintext[indices[index]].length;
+		}
+
+		//Transfer plaintext buffer to device.
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE, 0,
-			sizeof(sha512_password) * gws, plaintext, 0, NULL, multi_profilingEvent[0]),
+			sizeof(sha512_password) * gws, plain_sorted, 0, NULL, multi_profilingEvent[0]),
 			"failed in clEnqueueWriteBuffer pass_buffer");
+	}
 
 	//Enqueue the kernel
 	if (_SPLIT_KERNEL_IN_USE) {
@@ -454,24 +493,28 @@ static int crypt_all(int *pcount, struct db_salt *_salt) {
 
 	//Read back hashes
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], hash_buffer, CL_FALSE, 0,
-			sizeof(sha512_hash) * gws, calculated_hash, 0, NULL, multi_profilingEvent[2]),
+			sizeof(sha512_hash) * gws, computed_hash, 0, NULL, multi_profilingEvent[2]),
 			"failed in reading data back");
 
 	//Do the work
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
 	new_keys = 0;
 
+	//Build calculated hash list according to original plaintext list order.
+	for (index = 0; index < count; index++)
+		memcpy(calculated_hash[indices[index]].v, computed_hash[index].v, BINARY_SIZE);
+
 	return count;
 }
 
 /* ------- Binary Hash functions group ------- */
-static int get_hash_0(int index) { return calculated_hash[index].v[0] & 0xf; }
-static int get_hash_1(int index) { return calculated_hash[index].v[0] & 0xff; }
-static int get_hash_2(int index) { return calculated_hash[index].v[0] & 0xfff; }
-static int get_hash_3(int index) { return calculated_hash[index].v[0] & 0xffff; }
-static int get_hash_4(int index) { return calculated_hash[index].v[0] & 0xfffff; }
-static int get_hash_5(int index) { return calculated_hash[index].v[0] & 0xffffff; }
-static int get_hash_6(int index) { return calculated_hash[index].v[0] & 0x7ffffff; }
+static int get_hash_0(int index) { return calculated_hash[index].v[0] & PH_MASK_0; }
+static int get_hash_1(int index) { return calculated_hash[index].v[0] & PH_MASK_1; }
+static int get_hash_2(int index) { return calculated_hash[index].v[0] & PH_MASK_2; }
+static int get_hash_3(int index) { return calculated_hash[index].v[0] & PH_MASK_3; }
+static int get_hash_4(int index) { return calculated_hash[index].v[0] & PH_MASK_4; }
+static int get_hash_5(int index) { return calculated_hash[index].v[0] & PH_MASK_5; }
+static int get_hash_6(int index) { return calculated_hash[index].v[0] & PH_MASK_6; }
 
 static unsigned int iteration_count(void *salt)
 {

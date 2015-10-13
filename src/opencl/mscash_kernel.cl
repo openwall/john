@@ -1,5 +1,6 @@
 /*
  * This software is Copyright (c) 2015, Sayantan Datta <sdatta@openwall.com>
+ * and Copyright (c) 2015, magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
@@ -8,6 +9,8 @@
 #include "opencl_device_info.h"
 #define AMD_PUTCHAR_NOCAST
 #include "opencl_misc.h"
+#include "opencl_md4.h"
+#include "opencl_unicode.h"
 #include "opencl_mask.h"
 
 #define INIT_A			0x67452301
@@ -26,115 +29,115 @@ inline void md4_crypt_a(__private uint *hash, __private uint *nt_buffer)
 	unsigned int d = INIT_D;
 
 	/* Round 1 */
-	a += (d ^ (b & (c ^ d))) + nt_buffer[0];
-	a = (a << 3) | (a >> 29);
-	d += (c ^ (a & (b ^ c))) + nt_buffer[1];
-	d = (d << 7) | (d >> 25);
-	c += (b ^ (d & (a ^ b))) + nt_buffer[2];
-	c = (c << 11) | (c >> 21);
-	b += (a ^ (c & (d ^ a))) + nt_buffer[3];
-	b = (b << 19) | (b >> 13);
+	a += MD4_F(b, c, d) + nt_buffer[0];
+	a = rotate(a, 3U);
+	d += MD4_F(a, b, c) + nt_buffer[1];
+	d = rotate(d, 7U);
+	c += MD4_F(d, a, b) + nt_buffer[2];
+	c = rotate(c, 11U);
+	b += MD4_F(c, d, a) + nt_buffer[3];
+	b = rotate(b, 19U);
 
-	a += (d ^ (b & (c ^ d))) + nt_buffer[4];
-	a = (a << 3) | (a >> 29);
-	d += (c ^ (a & (b ^ c))) + nt_buffer[5];
-	d = (d << 7) | (d >> 25);
-	c += (b ^ (d & (a ^ b))) + nt_buffer[6];
-	c = (c << 11) | (c >> 21);
-	b += (a ^ (c & (d ^ a))) + nt_buffer[7];
-	b = (b << 19) | (b >> 13);
+	a += MD4_F(b, c, d) + nt_buffer[4];
+	a = rotate(a, 3U);
+	d += MD4_F(a, b, c) + nt_buffer[5];
+	d = rotate(d, 7U);
+	c += MD4_F(d, a, b) + nt_buffer[6];
+	c = rotate(c, 11U);
+	b += MD4_F(c, d, a) + nt_buffer[7];
+	b = rotate(b, 19U);
 
-	a += (d ^ (b & (c ^ d))) + nt_buffer[8];
-	a = (a << 3) | (a >> 29);
-	d += (c ^ (a & (b ^ c))) + nt_buffer[9];
-	d = (d << 7) | (d >> 25);
-	c += (b ^ (d & (a ^ b))) + nt_buffer[10];
-	c = (c << 11) | (c >> 21);
-	b += (a ^ (c & (d ^ a))) + nt_buffer[11];
-	b = (b << 19) | (b >> 13);
+	a += MD4_F(b, c, d) + nt_buffer[8];
+	a = rotate(a, 3U);
+	d += MD4_F(a, b, c) + nt_buffer[9];
+	d = rotate(d, 7U);
+	c += MD4_F(d, a, b) + nt_buffer[10];
+	c = rotate(c, 11U);
+	b += MD4_F(c, d, a) + nt_buffer[11];
+	b = rotate(b, 19U);
 
-	a += (d ^ (b & (c ^ d))) + nt_buffer[12];
-	a = (a << 3) | (a >> 29);
-	d += (c ^ (a & (b ^ c))) + nt_buffer[13];
-	d = (d << 7) | (d >> 25);
-	c += (b ^ (d & (a ^ b))) + nt_buffer[14];
-	c = (c << 11) | (c >> 21);
-	b += (a ^ (c & (d ^ a))) + nt_buffer[15];
-	b = (b << 19) | (b >> 13);
+	a += MD4_F(b, c, d) + nt_buffer[12];
+	a = rotate(a, 3U);
+	d += MD4_F(a, b, c) + nt_buffer[13];
+	d = rotate(d, 7U);
+	c += MD4_F(d, a, b) + nt_buffer[14];
+	c = rotate(c, 11U);
+	b += MD4_F(c, d, a) + nt_buffer[15];
+	b = rotate(b, 19U);
 
 	/* Round 2 */
-	a += ((b & (c | d)) | (c & d)) + nt_buffer[0] + SQRT_2;
-	a = (a << 3) | (a >> 29);
-	d += ((a & (b | c)) | (b & c)) + nt_buffer[4] + SQRT_2;
-	d = (d << 5) | (d >> 27);
-	c += ((d & (a | b)) | (a & b)) + nt_buffer[8] + SQRT_2;
-	c = (c << 9) | (c >> 23);
-	b += ((c & (d | a)) | (d & a)) + nt_buffer[12] + SQRT_2;
-	b = (b << 13) | (b >> 19);
+	a += MD4_G(b, c, d) + nt_buffer[0] + SQRT_2;
+	a = rotate(a, 3U);
+	d += MD4_G(a, b, c) + nt_buffer[4] + SQRT_2;
+	d = rotate(d, 5U);
+	c += MD4_G(d, a, b) + nt_buffer[8] + SQRT_2;
+	c = rotate(c, 9U);
+	b += MD4_G(c, d, a) + nt_buffer[12] + SQRT_2;
+	b = rotate(b, 13U);
 
-	a += ((b & (c | d)) | (c & d)) + nt_buffer[1] + SQRT_2;
-	a = (a << 3) | (a >> 29);
-	d += ((a & (b | c)) | (b & c)) + nt_buffer[5] + SQRT_2;
-	d = (d << 5) | (d >> 27);
-	c += ((d & (a | b)) | (a & b)) + nt_buffer[9] + SQRT_2;
-	c = (c << 9) | (c >> 23);
-	b += ((c & (d | a)) | (d & a)) + nt_buffer[13] + SQRT_2;
-	b = (b << 13) | (b >> 19);
+	a += MD4_G(b, c, d) + nt_buffer[1] + SQRT_2;
+	a = rotate(a, 3U);
+	d += MD4_G(a, b, c) + nt_buffer[5] + SQRT_2;
+	d = rotate(d, 5U);
+	c += MD4_G(d, a, b) + nt_buffer[9] + SQRT_2;
+	c = rotate(c, 9U);
+	b += MD4_G(c, d, a) + nt_buffer[13] + SQRT_2;
+	b = rotate(b, 13U);
 
-	a += ((b & (c | d)) | (c & d)) + nt_buffer[2] + SQRT_2;
-	a = (a << 3) | (a >> 29);
-	d += ((a & (b | c)) | (b & c)) + nt_buffer[6] + SQRT_2;
-	d = (d << 5) | (d >> 27);
-	c += ((d & (a | b)) | (a & b)) + nt_buffer[10] + SQRT_2;
-	c = (c << 9) | (c >> 23);
-	b += ((c & (d | a)) | (d & a)) + nt_buffer[14] + SQRT_2;
-	b = (b << 13) | (b >> 19);
+	a += MD4_G(b, c, d) + nt_buffer[2] + SQRT_2;
+	a = rotate(a, 3U);
+	d += MD4_G(a, b, c) + nt_buffer[6] + SQRT_2;
+	d = rotate(d, 5U);
+	c += MD4_G(d, a, b) + nt_buffer[10] + SQRT_2;
+	c = rotate(c, 9U);
+	b += MD4_G(c, d, a) + nt_buffer[14] + SQRT_2;
+	b = rotate(b, 13U);
 
-	a += ((b & (c | d)) | (c & d)) + nt_buffer[3] + SQRT_2;
-	a = (a << 3) | (a >> 29);
-	d += ((a & (b | c)) | (b & c)) + nt_buffer[7] + SQRT_2;
-	d = (d << 5) | (d >> 27);
-	c += ((d & (a | b)) | (a & b)) + nt_buffer[11] + SQRT_2;
-	c = (c << 9) | (c >> 23);
-	b += ((c & (d | a)) | (d & a)) + nt_buffer[15] + SQRT_2;
-	b = (b << 13) | (b >> 19);
+	a += MD4_G(b, c, d) + nt_buffer[3] + SQRT_2;
+	a = rotate(a, 3U);
+	d += MD4_G(a, b, c) + nt_buffer[7] + SQRT_2;
+	d = rotate(d, 5U);
+	c += MD4_G(d, a, b) + nt_buffer[11] + SQRT_2;
+	c = rotate(c, 9U);
+	b += MD4_G(c, d, a) + nt_buffer[15] + SQRT_2;
+	b = rotate(b, 13U);
 
 	/* Round 3 */
-	a += (d ^ c ^ b) + nt_buffer[0] + SQRT_3;
-	a = (a << 3) | (a >> 29);
-	d += (c ^ b ^ a) + nt_buffer[8] + SQRT_3;
-	d = (d << 9) | (d >> 23);
-	c += (b ^ a ^ d) + nt_buffer[4] + SQRT_3;
-	c = (c << 11) | (c >> 21);
-	b += (a ^ d ^ c) + nt_buffer[12] + SQRT_3;
-	b = (b << 15) | (b >> 17);
+	a += MD4_H(b, c, d) + nt_buffer[0] + SQRT_3;
+	a = rotate(a, 3U);
+	d += MD4_H2(a, b, c) + nt_buffer[8] + SQRT_3;
+	d = rotate(d, 9U);
+	c += MD4_H(d, a, b) + nt_buffer[4] + SQRT_3;
+	c = rotate(c, 11U);
+	b += MD4_H2(c, d, a) + nt_buffer[12] + SQRT_3;
+	b = rotate(b, 15U);
 
-	a += (d ^ c ^ b) + nt_buffer[2] + SQRT_3;
-	a = (a << 3) | (a >> 29);
-	d += (c ^ b ^ a) + nt_buffer[10] + SQRT_3;
-	d = (d << 9) | (d >> 23);
-	c += (b ^ a ^ d) + nt_buffer[6] + SQRT_3;
-	c = (c << 11) | (c >> 21);
-	b += (a ^ d ^ c) + nt_buffer[14] + SQRT_3;
-	b = (b << 15) | (b >> 17);
+	a += MD4_H(b, c, d) + nt_buffer[2] + SQRT_3;
+	a = rotate(a, 3U);
+	d += MD4_H2(a, b, c) + nt_buffer[10] + SQRT_3;
+	d = rotate(d, 9U);
+	c += MD4_H(d, a, b) + nt_buffer[6] + SQRT_3;
+	c = rotate(c, 11U);
+	b += MD4_H2(c, d, a) + nt_buffer[14] + SQRT_3;
+	b = rotate(b, 15U);
 
-	a += (d ^ c ^ b) + nt_buffer[1] + SQRT_3;
-	a = (a << 3) | (a >> 29);
-	d += (c ^ b ^ a) + nt_buffer[9] + SQRT_3;
-	d = (d << 9) | (d >> 23);
-	c += (b ^ a ^ d) + nt_buffer[5] + SQRT_3;
-	c = (c << 11) | (c >> 21);
-	b += (a ^ d ^ c) + nt_buffer[13] + SQRT_3;
-	b = (b << 15) | (b >> 17);
+	a += MD4_H(b, c, d) + nt_buffer[1] + SQRT_3;
+	a = rotate(a, 3U);
+	d += MD4_H2(a, b, c) + nt_buffer[9] + SQRT_3;
+	d = rotate(d, 9U);
+	c += MD4_H(d, a, b) + nt_buffer[5] + SQRT_3;
+	c = rotate(c, 11U);
+	b += MD4_H2(c, d, a) + nt_buffer[13] + SQRT_3;
+	b = rotate(b, 15U);
 
-	a += (d ^ c ^ b) + nt_buffer[3] + SQRT_3;
-	a = (a << 3) | (a >> 29);
-	d += (c ^ b ^ a) + nt_buffer[11] + SQRT_3;
-	d = (d << 9) | (d >> 23);
-	c += (b ^ a ^ d) + nt_buffer[7] + SQRT_3;
-	c = (c << 11) | (c >> 21);
-	b += (a ^ d ^ c) + nt_buffer[15] + SQRT_3;
-	b = (b << 15) | (b >> 17);
+	a += MD4_H(b, c, d) + nt_buffer[3] + SQRT_3;
+	a = rotate(a, 3U);
+	d += MD4_H2(a, b, c) + nt_buffer[11] + SQRT_3;
+	d = rotate(d, 9U);
+	c += MD4_H(d, a, b) + nt_buffer[7] + SQRT_3;
+	c = rotate(c, 11U);
+	b += MD4_H2(c, d, a) + nt_buffer[15] + SQRT_3;
+	b = rotate(b, 15U);
 
 	hash[0] = a + INIT_A;
 	hash[1] = b + INIT_B;
@@ -150,115 +153,115 @@ inline void md4_crypt_b(__private uint *hash, constant uint *salt)
 	unsigned int d = INIT_D;
 
 	/* Round 1 */
-	a += (d ^ (b & (c ^ d))) + hash[0];
-	a = (a << 3) | (a >> 29);
-	d += (c ^ (a & (b ^ c))) + hash[1];
-	d = (d << 7) | (d >> 25);
-	c += (b ^ (d & (a ^ b))) + hash[2];
-	c = (c << 11) | (c >> 21);
-	b += (a ^ (c & (d ^ a))) + hash[3];
-	b = (b << 19) | (b >> 13);
+	a += MD4_F(b, c, d) + hash[0];
+	a = rotate(a, 3U);
+	d += MD4_F(a, b, c) + hash[1];
+	d = rotate(d, 7U);
+	c += MD4_F(d, a, b) + hash[2];
+	c = rotate(c, 11U);
+	b += MD4_F(c, d, a) + hash[3];
+	b = rotate(b, 19U);
 
-	a += (d ^ (b & (c ^ d))) + salt[0];
-	a = (a << 3) | (a >> 29);
-	d += (c ^ (a & (b ^ c))) + salt[1];
-	d = (d << 7) | (d >> 25);
-	c += (b ^ (d & (a ^ b))) + salt[2];
-	c = (c << 11) | (c >> 21);
-	b += (a ^ (c & (d ^ a))) + salt[3];
-	b = (b << 19) | (b >> 13);
+	a += MD4_F(b, c, d) + salt[0];
+	a = rotate(a, 3U);
+	d += MD4_F(a, b, c) + salt[1];
+	d = rotate(d, 7U);
+	c += MD4_F(d, a, b) + salt[2];
+	c = rotate(c, 11U);
+	b += MD4_F(c, d, a) + salt[3];
+	b = rotate(b, 19U);
 
-	a += (d ^ (b & (c ^ d))) + salt[4];
-	a = (a << 3) | (a >> 29);
-	d += (c ^ (a & (b ^ c))) + salt[5];
-	d = (d << 7) | (d >> 25);
-	c += (b ^ (d & (a ^ b))) + salt[6];
-	c = (c << 11) | (c >> 21);
-	b += (a ^ (c & (d ^ a))) + salt[7];
-	b = (b << 19) | (b >> 13);
+	a += MD4_F(b, c, d) + salt[4];
+	a = rotate(a, 3U);
+	d += MD4_F(a, b, c) + salt[5];
+	d = rotate(d, 7U);
+	c += MD4_F(d, a, b) + salt[6];
+	c = rotate(c, 11U);
+	b += MD4_F(c, d, a) + salt[7];
+	b = rotate(b, 19U);
 
-	a += (d ^ (b & (c ^ d))) + salt[8];
-	a = (a << 3) | (a >> 29);
-	d += (c ^ (a & (b ^ c))) + salt[9];
-	d = (d << 7) | (d >> 25);
-	c += (b ^ (d & (a ^ b))) + salt[10];
-	c = (c << 11) | (c >> 21);
-	b += (a ^ (c & (d ^ a))) + salt[11];
-	b = (b << 19) | (b >> 13);
+	a += MD4_F(b, c, d) + salt[8];
+	a = rotate(a, 3U);
+	d += MD4_F(a, b, c) + salt[9];
+	d = rotate(d, 7U);
+	c += MD4_F(d, a, b) + salt[10];
+	c = rotate(c, 11U);
+	b += MD4_F(c, d, a) + salt[11];
+	b = rotate(b, 19U);
 
 	/* Round 2 */
-	a += ((b & (c | d)) | (c & d)) + hash[0] + SQRT_2;
-	a = (a << 3) | (a >> 29);
-	d += ((a & (b | c)) | (b & c)) + salt[0] + SQRT_2;
-	d = (d << 5) | (d >> 27);
-	c += ((d & (a | b)) | (a & b)) + salt[4] + SQRT_2;
-	c = (c << 9) | (c >> 23);
-	b += ((c & (d | a)) | (d & a)) + salt[8] + SQRT_2;
-	b = (b << 13) | (b >> 19);
+	a += MD4_G(b, c, d) + hash[0] + SQRT_2;
+	a = rotate(a, 3U);
+	d += MD4_G(a, b, c) + salt[0] + SQRT_2;
+	d = rotate(d, 5U);
+	c += MD4_G(d, a, b) + salt[4] + SQRT_2;
+	c = rotate(c, 9U);
+	b += MD4_G(c, d, a) + salt[8] + SQRT_2;
+	b = rotate(b, 13U);
 
-	a += ((b & (c | d)) | (c & d)) + hash[1] + SQRT_2;
-	a = (a << 3) | (a >> 29);
-	d += ((a & (b | c)) | (b & c)) + salt[1] + SQRT_2;
-	d = (d << 5) | (d >> 27);
-	c += ((d & (a | b)) | (a & b)) + salt[5] + SQRT_2;
-	c = (c << 9) | (c >> 23);
-	b += ((c & (d | a)) | (d & a)) + salt[9] + SQRT_2;
-	b = (b << 13) | (b >> 19);
+	a += MD4_G(b, c, d) + hash[1] + SQRT_2;
+	a = rotate(a, 3U);
+	d += MD4_G(a, b, c) + salt[1] + SQRT_2;
+	d = rotate(d, 5U);
+	c += MD4_G(d, a, b) + salt[5] + SQRT_2;
+	c = rotate(c, 9U);
+	b += MD4_G(c, d, a) + salt[9] + SQRT_2;
+	b = rotate(b, 13U);
 
-	a += ((b & (c | d)) | (c & d)) + hash[2] + SQRT_2;
-	a = (a << 3) | (a >> 29);
-	d += ((a & (b | c)) | (b & c)) + salt[2] + SQRT_2;
-	d = (d << 5) | (d >> 27);
-	c += ((d & (a | b)) | (a & b)) + salt[6] + SQRT_2;
-	c = (c << 9) | (c >> 23);
-	b += ((c & (d | a)) | (d & a)) + salt[10] + SQRT_2;
-	b = (b << 13) | (b >> 19);
+	a += MD4_G(b, c, d) + hash[2] + SQRT_2;
+	a = rotate(a, 3U);
+	d += MD4_G(a, b, c) + salt[2] + SQRT_2;
+	d = rotate(d, 5U);
+	c += MD4_G(d, a, b) + salt[6] + SQRT_2;
+	c = rotate(c, 9U);
+	b += MD4_G(c, d, a) + salt[10] + SQRT_2;
+	b = rotate(b, 13U);
 
-	a += ((b & (c | d)) | (c & d)) + hash[3] + SQRT_2;
-	a = (a << 3) | (a >> 29);
-	d += ((a & (b | c)) | (b & c)) + salt[3] + SQRT_2;
-	d = (d << 5) | (d >> 27);
-	c += ((d & (a | b)) | (a & b)) + salt[7] + SQRT_2;
-	c = (c << 9) | (c >> 23);
-	b += ((c & (d | a)) | (d & a)) + salt[11] + SQRT_2;
-	b = (b << 13) | (b >> 19);
+	a += MD4_G(b, c, d) + hash[3] + SQRT_2;
+	a = rotate(a, 3U);
+	d += MD4_G(a, b, c) + salt[3] + SQRT_2;
+	d = rotate(d, 5U);
+	c += MD4_G(d, a, b) + salt[7] + SQRT_2;
+	c = rotate(c, 9U);
+	b += MD4_G(c, d, a) + salt[11] + SQRT_2;
+	b = rotate(b, 13U);
 
 	/* Round 3 */
-	a += (d ^ c ^ b) + hash[0] + SQRT_3;
-	a = (a << 3) | (a >> 29);
-	d += (c ^ b ^ a) + salt[4] + SQRT_3;
-	d = (d << 9) | (d >> 23);
-	c += (b ^ a ^ d) + salt[0] + SQRT_3;
-	c = (c << 11) | (c >> 21);
-	b += (a ^ d ^ c) + salt[8] + SQRT_3;
-	b = (b << 15) | (b >> 17);
+	a += MD4_H(b, c, d) + hash[0] + SQRT_3;
+	a = rotate(a, 3U);
+	d += MD4_H2(a, b, c) + salt[4] + SQRT_3;
+	d = rotate(d, 9U);
+	c += MD4_H(d, a, b) + salt[0] + SQRT_3;
+	c = rotate(c, 11U);
+	b += MD4_H2(c, d, a) + salt[8] + SQRT_3;
+	b = rotate(b, 15U);
 
-	a += (d ^ c ^ b) + hash[2] + SQRT_3;
-	a = (a << 3) | (a >> 29);
-	d += (c ^ b ^ a) + salt[6] + SQRT_3;
-	d = (d << 9) | (d >> 23);
-	c += (b ^ a ^ d) + salt[2] + SQRT_3;
-	c = (c << 11) | (c >> 21);
-	b += (a ^ d ^ c) + salt[10] + SQRT_3;
-	b = (b << 15) | (b >> 17);
+	a += MD4_H(b, c, d) + hash[2] + SQRT_3;
+	a = rotate(a, 3U);
+	d += MD4_H2(a, b, c) + salt[6] + SQRT_3;
+	d = rotate(d, 9U);
+	c += MD4_H(d, a, b) + salt[2] + SQRT_3;
+	c = rotate(c, 11U);
+	b += MD4_H2(c, d, a) + salt[10] + SQRT_3;
+	b = rotate(b, 15U);
 
-	a += (d ^ c ^ b) + hash[1] + SQRT_3;
-	a = (a << 3) | (a >> 29);
-	d += (c ^ b ^ a) + salt[5] + SQRT_3;
-	d = (d << 9) | (d >> 23);
-	c += (b ^ a ^ d) + salt[1] + SQRT_3;
-	c = (c << 11) | (c >> 21);
-	b += (a ^ d ^ c) + salt[9] + SQRT_3;
-	b = (b << 15) | (b >> 17);
+	a += MD4_H(b, c, d) + hash[1] + SQRT_3;
+	a = rotate(a, 3U);
+	d += MD4_H2(a, b, c) + salt[5] + SQRT_3;
+	d = rotate(d, 9U);
+	c += MD4_H(d, a, b) + salt[1] + SQRT_3;
+	c = rotate(c, 11U);
+	b += MD4_H2(c, d, a) + salt[9] + SQRT_3;
+	b = rotate(b, 15U);
 
-	a += (d ^ c ^ b) + hash[3] + SQRT_3;
-	a = (a << 3) | (a >> 29);
-	d += (c ^ b ^ a) + salt[7] + SQRT_3;
-	d = (d << 9) | (d >> 23);
-	c += (b ^ a ^ d) + salt[3] + SQRT_3;
-	c = (c << 11) | (c >> 21);
-	b += (a ^ d ^ c) + salt[11] + SQRT_3;
-	b = (b << 15) | (b >> 17);
+	a += MD4_H(b, c, d) + hash[3] + SQRT_3;
+	a = rotate(a, 3U);
+	d += MD4_H2(a, b, c) + salt[7] + SQRT_3;
+	d = rotate(d, 9U);
+	c += MD4_H(d, a, b) + salt[3] + SQRT_3;
+	c = rotate(c, 11U);
+	b += MD4_H2(c, d, a) + salt[11] + SQRT_3;
+	b = rotate(b, 15U);
 
 	hash[0] = a + INIT_A;
 	hash[1] = b + INIT_B;
@@ -266,20 +269,101 @@ inline void md4_crypt_b(__private uint *hash, constant uint *salt)
 	hash[3] = d + INIT_D;
 }
 
-inline void prepare_key(__global uint * key, uint length, uint * nt_buffer)
+#if ISO_8859_1 || ASCII
+#define LUT(c) (c)
+#else
+#define LUT(c) (((c) < 0x80) ? (c) : cp[(c) & 0x7f])
+#endif
+
+#if UTF_8
+
+inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
 {
-	uint i = 0, nt_index, keychars;
+	const __global UTF8 *source = (const __global uchar*)key;
+	const __global UTF8 *sourceEnd = &source[length];
+	UTF16 *target = (UTF16*)nt_buffer;
+	const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
+	UTF32 ch;
+	uint extraBytesToRead;
+
+	/* Input buffer is UTF-8 without zero-termination */
+	while (source < sourceEnd) {
+		if (*source < 0xC0) {
+			*target++ = (UTF16)*source++;
+			if (source >= sourceEnd || target >= targetEnd) {
+				break;
+			}
+			continue;
+		}
+		ch = *source;
+		// This point must not be reached with *source < 0xC0
+		extraBytesToRead =
+			opt_trailingBytesUTF8[ch & 0x3f];
+		if (source + extraBytesToRead >= sourceEnd) {
+			break;
+		}
+		switch (extraBytesToRead) {
+		case 3:
+			ch <<= 6;
+			ch += *++source;
+		case 2:
+			ch <<= 6;
+			ch += *++source;
+		case 1:
+			ch <<= 6;
+			ch += *++source;
+			++source;
+			break;
+		default:
+			*target = 0x80;
+			break; // from switch
+		}
+		if (*target == 0x80)
+			break; // from while
+		ch -= offsetsFromUTF8[extraBytesToRead];
+#ifdef UCS_2
+		/* UCS-2 only */
+		*target++ = (UTF16)ch;
+#else
+		/* full UTF-16 with surrogate pairs */
+		if (ch <= UNI_MAX_BMP) {  /* Target is a character <= 0xFFFF */
+			*target++ = (UTF16)ch;
+		} else {  /* target is a character in range 0xFFFF - 0x10FFFF. */
+			if (target + 1 >= targetEnd)
+				break;
+			ch -= halfBase;
+			*target++ = (UTF16)((ch >> halfShift) + UNI_SUR_HIGH_START);
+			*target++ = (UTF16)((ch & halfMask) + UNI_SUR_LOW_START);
+		}
+#endif
+		if (source >= sourceEnd || target >= targetEnd)
+			break;
+	}
+
+	*target = 0x80;	// Terminate
+
+	nt_buffer[14] = (uint)(target - (UTF16*)nt_buffer) << 4;
+}
+
+#else
+
+inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
+{
+	uint i, nt_index, keychars;
+
 	nt_index = 0;
 	for (i = 0; i < (length + 3)/ 4; i++) {
 		keychars = key[i];
-		nt_buffer[nt_index++] = (keychars & 0xFF) | (((keychars >> 8) & 0xFF) << 16);
-		nt_buffer[nt_index++] = ((keychars >> 16) & 0xFF) | ((keychars >> 24) << 16);
+		nt_buffer[nt_index++] = LUT(keychars & 0xFF) | (LUT((keychars >> 8) & 0xFF) << 16);
+		nt_buffer[nt_index++] = LUT((keychars >> 16) & 0xFF) | (LUT(keychars >> 24) << 16);
 	}
 	nt_index = length >> 1;
-	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFF) | (0x80 << ((length & 1) << 4));
+	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFFFF) | (0x80 << ((length & 1) << 4));
 	nt_buffer[nt_index + 1] = 0;
 	nt_buffer[14] = length << 4;
 }
+
+#endif /* UTF_8 */
 
 inline void cmp_final(uint gid,
 		uint iter,
@@ -385,7 +469,7 @@ __kernel void mscash(__global uint *keys,
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint nt_buffer[16] = { 0 };
-	uint len = base & 63;
+	uint len = base & 127;
 	uint hash[4] = {0};
 	uint bitmap_sz_bits = salt[12] + 1;
 
@@ -421,25 +505,25 @@ __kernel void mscash(__global uint *keys,
 #define GPU_LOC_3 LOC_3
 #endif
 
-	keys += base >> 6;
+	keys += base >> 7;
 	prepare_key(keys, len, nt_buffer);
 
 	for (i = 0; i < NUM_INT_KEYS; i++) {
 #if NUM_INT_KEYS > 1
-		PUTSHORT(nt_buffer, GPU_LOC_0, (int_keys[i] & 0xff));
+		PUTSHORT(nt_buffer, GPU_LOC_0, LUT(int_keys[i] & 0xff));
 #if 1 < MASK_FMT_INT_PLHDR
 #if LOC_1 >= 0
-		PUTSHORT(nt_buffer, GPU_LOC_1, ((int_keys[i] & 0xff00) >> 8));
+		PUTSHORT(nt_buffer, GPU_LOC_1, LUT((int_keys[i] & 0xff00) >> 8));
 #endif
 #endif
 #if 2 < MASK_FMT_INT_PLHDR
 #if LOC_2 >= 0
-		PUTSHORT(nt_buffer, GPU_LOC_2, ((int_keys[i] & 0xff0000) >> 16));
+		PUTSHORT(nt_buffer, GPU_LOC_2, LUT((int_keys[i] & 0xff0000) >> 16));
 #endif
 #endif
 #if 3 < MASK_FMT_INT_PLHDR
 #if LOC_3 >= 0
-		PUTSHORT(nt_buffer, GPU_LOC_3, ((int_keys[i] & 0xff000000) >> 24));
+		PUTSHORT(nt_buffer, GPU_LOC_3, LUT((int_keys[i] & 0xff000000) >> 24));
 #endif
 #endif
 #endif

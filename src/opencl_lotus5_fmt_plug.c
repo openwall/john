@@ -93,8 +93,6 @@ static cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
 #define STEP			0
 #define SEED			256
 
-#define PADDING 		2048
-
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl-autotune.h"
 #include "memdbg.h"
@@ -118,7 +116,7 @@ static const char *warn[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	size_t max_lws = MIN(get_kernel_max_lws(gpu_id, crypt_kernel), PADDING);
+	size_t max_lws = get_kernel_max_lws(gpu_id, crypt_kernel);
 
 	if (cpu(device_info[gpu_id]))
 		return get_platform_vendor_id(platform_id) == DEV_INTEL ?
@@ -130,13 +128,13 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	size_t mem_alloc_sz;
 
-	mem_alloc_sz = KEY_SIZE_IN_BYTES * (gws + PADDING);
+	mem_alloc_sz = KEY_SIZE_IN_BYTES * gws;
 	cl_tx_keys = clCreateBuffer(context[gpu_id],
 				    CL_MEM_READ_ONLY,
 			            mem_alloc_sz, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed to create buffer cl_tx_keys.");
 
-	mem_alloc_sz = BINARY_SIZE * (gws + PADDING);
+	mem_alloc_sz = BINARY_SIZE * gws;
 	cl_tx_binary = clCreateBuffer(context[gpu_id],
 				      CL_MEM_WRITE_ONLY,
 			              mem_alloc_sz, NULL, &ret_code);
@@ -159,8 +157,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 				      sizeof(cl_mem), &cl_tx_binary),
 		                      "Failed to set kernel argument 2, cl_tx_binary.");
 
-	crypt_key = mem_calloc(gws + PADDING, BINARY_SIZE);
-	saved_key = mem_calloc(gws + PADDING, KEY_SIZE_IN_BYTES);
+	crypt_key = mem_calloc(gws, BINARY_SIZE);
+	saved_key = mem_calloc(gws, KEY_SIZE_IN_BYTES);
 }
 
 static void release_clobj(void)
@@ -194,14 +192,12 @@ static void reset(struct db_main *db)
 		crypt_kernel = clCreateKernel(program[gpu_id], "lotus5", &ret_code);
 		HANDLE_CLERROR(ret_code, "Failed to create kernel lotus5.");
 
-		/* Just suppress a compiler warning!! */
-		if (0)
-			autotune_run(NULL, 0, 0, 0);
+		gws_limit = get_max_mem_alloc_size(gpu_id) / KEY_SIZE_IN_BYTES;
 
-		gws_limit = get_max_mem_alloc_size(gpu_id) / KEY_SIZE_IN_BYTES - PADDING;
-
-		get_power_of_two(gws_limit);
-		gws_limit >>= 1;
+		if (gws_limit & (gws_limit - 1)) {
+			get_power_of_two(gws_limit);
+			gws_limit >>= 1;
+		}
 
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
@@ -209,7 +205,7 @@ static void reset(struct db_main *db)
 		                       KEY_SIZE_IN_BYTES, gws_limit);
 
 		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, gws_limit, 1000, CL_TRUE);
+		autotune_run_extra(self, 1, gws_limit, 300, CL_TRUE);
 	}
 }
 
@@ -229,27 +225,26 @@ static void done(void)
 /*Utility function to convert hex to bin */
 static void *get_binary(char *ciphertext)
 {
-  static char realcipher[BINARY_SIZE];
-  int i;
-  for (i = 0; i < BINARY_SIZE; i++)
-      realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
-  return ((void *) realcipher);
+	static char realcipher[BINARY_SIZE];
+	int i;
+	for (i = 0; i < BINARY_SIZE; i++)
+		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
+	return ((void *) realcipher);
 }
 
 /*Another function required by JTR: decides whether we have a valid
  * ciphertext */
 static int valid (char *ciphertext, struct fmt_main *self)
 {
-  int i;
+	int i;
 
-  for (i = 0; i < CIPHERTEXT_LENGTH; i++)
-	  if (!(((ciphertext[i] >= '0') && (ciphertext[i] <= '9'))
-				  || ((ciphertext[i] >= 'a') && (ciphertext[i] <= 'f'))
-				  || ((ciphertext[i] >= 'A') && (ciphertext[i] <= 'F'))))
-	  {
-		  return 0;
-	  }
-  return !ciphertext[i];
+	for (i = 0; i < CIPHERTEXT_LENGTH; i++)
+		if (!(((ciphertext[i] >= '0') && (ciphertext[i] <= '9'))
+		      || ((ciphertext[i] >= 'A') && (ciphertext[i] <= 'F'))))
+		{
+			return 0;
+		}
+	return !ciphertext[i];
 }
 
 /*sets the value of saved_key so we can play with it*/
@@ -308,15 +303,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					    "Failed to write buffer cl_tx_keys.");
 
 	M = local_work_size ? &local_work_size : NULL;
-	N = local_work_size ?
-		(count + (local_work_size - 1)) /
-		local_work_size * local_work_size : count;
-	assert(local_work_size <= PADDING);
+	N = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 					      crypt_kernel, 1,
-					      NULL, &N, M,
-	                                      0, NULL, multi_profilingEvent[1]),
+					      NULL, &N, M, 0, NULL, multi_profilingEvent[1]),
 					      "Failed to enqueue kernel lotus5.");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Shit hit fan");
 
 	mem_cpy_sz = count * BINARY_SIZE;
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id],
@@ -328,13 +321,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static int get_hash1(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xf; }
-static int get_hash2(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xff; }
-static int get_hash3(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xfff; }
-static int get_hash4(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xffff; }
-static int get_hash5(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xfffff; }
-static int get_hash6(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0xffffff; }
-static int get_hash7(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & 0x7ffffff; }
+static int get_hash_0(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_5; }
+static int get_hash_6(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_6; }
 
 /* C's version of a class specifier */
 struct fmt_main fmt_opencl_1otus5 = {
@@ -383,13 +376,13 @@ struct fmt_main fmt_opencl_1otus5 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash1,
-			get_hash2,
-			get_hash3,
-			get_hash4,
-			get_hash5,
-			get_hash6,
-			get_hash7
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
