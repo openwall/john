@@ -1236,7 +1236,7 @@ static void ldr_sort_salts(struct db_main *db)
 	/* finally, we re-build the linked list of salts */
 	db->salts = ar[0].p;
 	s = db->salts;
-	for (i = 1; i < db->salt_count; ++i) {
+	for (i = 1; i <= db->salt_count; ++i) {
 		/* Rebuild salt hash table, if we still had one */
 		if (db->salt_hash) {
 			int hash;
@@ -1245,8 +1245,10 @@ static void ldr_sort_salts(struct db_main *db)
 			if (!db->salt_hash[hash])
 				db->salt_hash[hash] = s;
 		}
-		s->next = ar[i].p;
-		s = s->next;
+		if (i < db->salt_count) {
+			s->next = ar[i].p;
+			s = s->next;
+		}
 	}
 	s->next = 0;
 
