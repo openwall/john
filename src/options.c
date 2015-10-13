@@ -312,7 +312,7 @@ PRINCE_USAGE \
 "                          doc/ENCODING and --list=hidden-options.\n" \
 "--rules[=SECTION]         enable word mangling rules for wordlist modes\n" \
 "--incremental[=MODE]      \"incremental\" mode [using section MODE]\n" \
-"--mask=MASK               mask mode using MASK\n" \
+"--mask[=MASK]             mask mode using MASK (or default mask from john.conf)\n" \
 "--markov[=OPTIONS]        \"Markov\" mode (see doc/MARKOV)\n" \
 "--external=MODE           external mode or word filter\n" \
 JOHN_USAGE_REGEX \
@@ -342,10 +342,10 @@ JOHN_USAGE_FORK \
 "--devices=N[,..]          set OpenCL or CUDA device(s)\n"
 #elif defined(HAVE_OPENCL)
 #define JOHN_USAGE_GPU \
-"--devices=N[,..]          set OpenCL device(s) (list using --list=opencl-devices)\n"
+"--devices=N[,..]          set OpenCL device(s) (see --list=opencl-devices)\n"
 #elif defined (HAVE_CUDA)
 #define JOHN_USAGE_GPU \
-"--device=N                set CUDA device (list using --list=cuda-devices)\n"
+"--device=N                set CUDA device (see --list=cuda-devices)\n"
 #endif
 
 static void print_usage(char *name)
