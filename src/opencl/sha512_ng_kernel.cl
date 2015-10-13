@@ -17,12 +17,15 @@
 
 ///	    *** UNROLL ***
 ///AMD: sometimes a bad thing(?).
+///NVIDIA: GTX 570 don't allow full unroll.
 #if amd_vliw4(DEVICE_INFO) || amd_vliw5(DEVICE_INFO)
-    #define UNROLL_LEVEL	2
+    #define UNROLL_LEVEL	5
 #elif amd_gcn(DEVICE_INFO)
-    #define UNROLL_LEVEL	1
-#elif gpu_nvidia(DEVICE_INFO)
-    #define UNROLL_LEVEL	0
+    #define UNROLL_LEVEL	5
+#elif (nvidia_sm_2x(DEVICE_INFO) || nvidia_sm_3x(DEVICE_INFO))
+    #define UNROLL_LEVEL	4
+#elif nvidia_sm_5x(DEVICE_INFO)
+    #define UNROLL_LEVEL	4
 #else
     #define UNROLL_LEVEL	0
 #endif
@@ -56,7 +59,7 @@ inline void sha512_block(	  const uint64_t * const buffer,
     w[15] = (total * 8UL);
 
     /* Do the job. */
-#if UNROLL_LEVEL > 0
+#if UNROLL_LEVEL > 4
     #pragma unroll
 #endif
     for (uint64_t i = 0U; i < 16U; i++) {
@@ -73,8 +76,12 @@ inline void sha512_block(	  const uint64_t * const buffer,
 	a = t;
     }
 
-#if UNROLL_LEVEL > 1
+#if UNROLL_LEVEL > 4
     #pragma unroll
+#elif UNROLL_LEVEL > 3
+    #pragma unroll 16
+#elif UNROLL_LEVEL > 2
+    #pragma unroll 8
 #endif
     for (uint64_t i = 16U; i < 80U; i++) {
 	w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
