@@ -478,6 +478,14 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			if (options.mask && (strstr(options.mask, "?w") ||
 			                     strstr(options.mask, "?W")))
 				options.flags |= FLG_MASK_STACKED;
+
+			if (!benchmark_time) {
+				fprintf(stderr, "Currently can't self-test with mask\n");
+				error();
+			}
+
+			if (benchmark_time == 1)
+				benchmark_time = 2;
 		} else
 		if (options.flags & FLG_CRACKING_CHK)
 			options.flags |= FLG_MASK_STACKED;
