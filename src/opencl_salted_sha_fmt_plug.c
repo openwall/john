@@ -1063,6 +1063,7 @@ static void reset(struct db_main *db)
 	else {
 		unsigned int *binary, i = 0;
 		char *ciphertext;
+		int tune_time = (options.flags & FLG_MASK_CHK) ? 300 : 50;
 
 		while (tests[num_loaded_hashes].ciphertext != NULL)
 			num_loaded_hashes++;
@@ -1105,7 +1106,7 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_192, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
 
-		auto_tune(NULL, 50);
+		auto_tune(NULL, tune_time);
 		hash_ids[0] = 0;
 
 		initialized++;

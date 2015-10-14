@@ -995,6 +995,7 @@ static void reset(struct db_main *db)
 	else {
 		unsigned int *binary, i = 0;
 		char *ciphertext;
+		int tune_time = (options.flags & FLG_MASK_CHK) ? 300 : 50;
 
 		o_lws = local_work_size;
 		o_gws = global_work_size;
@@ -1043,7 +1044,7 @@ static void reset(struct db_main *db)
 		                       2 * BUFSIZE, gws_limit);
 
 		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, gws_limit, 50, CL_TRUE);
+		autotune_run_extra(self, 1, gws_limit, tune_time, CL_TRUE);
 
 		hash_ids[0] = 0;
 

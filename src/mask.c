@@ -2153,7 +2153,8 @@ int do_mask_crack(const char *extern_key)
 				return 1;
 		}
 	}
-	if (!event_abort && (options.flags & FLG_MASK_STACKED))
+	if (!event_abort && (options.flags & FLG_MASK_STACKED) &&
+		!(options.flags & FLG_TEST_CHK))
 		crk_fix_state();
 
 	return event_abort;
