@@ -19,7 +19,8 @@
 
 #include "loader.h"
 
-#define MAX_NUM_MASK_PLHDR 255 // Maximum number of placeholders in a mask.
+// Maximum number of placeholders in a mask.
+#define MAX_NUM_MASK_PLHDR 127
 
 typedef struct {
 	/* store locations of op braces in mask */
