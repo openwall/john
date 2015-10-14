@@ -14,7 +14,9 @@ if __name__ == '__main__':
         usage="%(prog)s [blockchain wallet files]")
 
     parser.add_argument('--json', action='store_true', default=False,
-                        dest='json', help='is input in base64 format?')
+                        dest='json', help='is the wallet using v2 format?')
+    parser.add_argument('--base64', action='store_true', default=False,
+                        dest='base64', help='does the wallet contain only a base64 string?')
 
     args, unknown = parser.parse_known_args()
 
@@ -45,7 +47,9 @@ if __name__ == '__main__':
                     traceback.print_exc()
                     pass
 
-                # umm, what was this code for?
+            if args.base64:
+                # handle blockchain version 1 wallet format files which contain
+                # only a base64 encoded string
                 try:
                     ddata = base64.decodestring(data)
                     print("%s:$blockchain$%s$%s" % (
@@ -53,7 +57,8 @@ if __name__ == '__main__':
                         binascii.hexlify(ddata).decode("ascii")))
                 except:
                     pass
-            else:  # --json is not specified, version 1 wallets
+
+            if not (args.json or args.base64):  # version 1 wallet format
                 print("%s:$blockchain$%s$%s" % (
                     filename, len(data),
                     binascii.hexlify(data).decode("ascii")))
