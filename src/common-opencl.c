@@ -1538,8 +1538,8 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 	}
 
 	if (options.verbosity > 3) {
-		if (options.flags & FLG_MASK_CHK)
-			fprintf(stderr, "Internal mask multiplier: %u/%u\n",
+		if (mask_int_cand.num_int_cand > 1)
+			fprintf(stderr, "Internal mask, multiplier: %u (target: %u)\n",
 			        mask_int_cand.num_int_cand, mask_int_cand_target);
 		if (!max_run_time)
 			fprintf(stderr, "Calculating best GWS for LWS="Zu"; "
@@ -2533,6 +2533,8 @@ void opencl_list_devices(void)
 				}
 			}
 #endif
+			printf("    Speed index:            %u\n",
+			       opencl_speed_index(sequence_nr));
 			if (fan >= 0)
 				printf("    Fan speed:              %u%%\n", fan);
 			if (temp >= 0)
