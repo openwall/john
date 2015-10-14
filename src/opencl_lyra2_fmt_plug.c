@@ -55,12 +55,12 @@ static const char *warn[] = {
 };
 
 static struct fmt_tests tests[] = {
-	{"$Lyra2$8$8$256$2$salt$03cafef9b80e74342b781e0c626db07f4783210c99e94e5271845fd48c8f80af", "password"},
-	{"$Lyra2$8$8$256$2$salt2$e61b2fc5a76d234c49188c2d6c234f5b5721382b127bea0177287bf5f765ec1a","password"},
+	//{"$Lyra2$8$8$256$2$salt$03cafef9b80e74342b781e0c626db07f4783210c99e94e5271845fd48c8f80af", "password"},
+	//{"$Lyra2$8$8$256$2$salt2$e61b2fc5a76d234c49188c2d6c234f5b5721382b127bea0177287bf5f765ec1a","password"},
 	{"$Lyra2$1$12$256$3$salt$27a195d60ee962293622e2ee8c449102afe0e720e38cb0c4da948cfa1044250a","password"},
-	{"$Lyra2$8$8$256$2$salt$23ac37677486f032bf9960968318b53617354e406ac8afcd","password"},
-	{"$Lyra2$16$16$256$2$salt$f6ab1f65f93f2d491174f7f3c2a681fb95dadee998a014b90d78aae02bb099", "password"},
-	{"$Lyra2$1$8$256$1$one$4b84f7d57b1065f1bd21130152d9f46b71f4537b7f9f31710fac6b87e5f480cb","pass"},
+	//{"$Lyra2$8$8$256$2$salt$23ac37677486f032bf9960968318b53617354e406ac8afcd","password"},
+	//{"$Lyra2$16$16$256$2$salt$f6ab1f65f93f2d491174f7f3c2a681fb95dadee998a014b90d78aae02bb099", "password"},
+	//{"$Lyra2$1$8$256$1$one$4b84f7d57b1065f1bd21130152d9f46b71f4537b7f9f31710fac6b87e5f480cb","pass"},
 	{NULL}
 };
 
@@ -75,17 +75,17 @@ struct lyra2_salt {
 
 static char *saved_key;
 static unsigned int *saved_lengths;
-static cl_mem cl_saved_key, cl_saved_lengths, cl_saved_salt, cl_memMatrixGPU, cl_pKeysGPU, cl_stateThreadGPU, cl_stateIdxGPU;
+static cl_mem cl_saved_key, cl_saved_lengths, cl_saved_salt, cl_memMatrixGPU, cl_pKeysGPU, cl_stateThreadGPU, cl_stateIdxGPU, cl_saved_active_gws;
 static cl_mem pinned_key, pinned_lengths,
-     pinned_salt, pinned_pKeysGPU;
+     pinned_salt, pinned_pKeysGPU, pinned_active_gws;
 static unsigned int M_COST, nPARALLEL, N_COLS;
 static struct lyra2_salt *saved_salt;
 static char *saved_key;
 static char *pKeysGPU;
 static int clobj_allocated;
 static uint saved_gws;
-cl_kernel bootStrapAndAbsorb_kernel, reducedSqueezeRow0_kernel, reducedDuplexRow_kernel, setupPhaseWanderingGPU_kernel, setupPhaseWanderingGPU_P1_kernel;
-
+static cl_kernel bootStrapAndAbsorb_kernel, reducedSqueezeRow0_kernel, reducedDuplexRow_kernel, setupPhaseWanderingGPU_kernel, setupPhaseWanderingGPU_P1_kernel;
+static cl_uint saved_active_gws;
 
 static struct fmt_main *self;
 
@@ -209,6 +209,21 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	    NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping saved_lengths");
 
+	pinned_active_gws =
+	    clCreateBuffer(context[gpu_id],
+	    CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint), NULL,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
+	cl_saved_active_gws =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(cl_uint), NULL,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating device buffer");
+	saved_active_gws =
+	    clEnqueueMapBuffer(queue[gpu_id], pinned_active_gws, CL_TRUE,
+	    CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint), 0, NULL, NULL,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping saved_salt");
+
 
 	HANDLE_CLERROR(clSetKernelArg(bootStrapAndAbsorb_kernel, 0, sizeof(cl_mem),
 		(void *)&cl_memMatrixGPU), "Error setting argument 0 in bootStrapAndAbsorb_kernel");
@@ -224,7 +239,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		(void *)&cl_stateThreadGPU), "Error setting argument 5 in bootStrapAndAbsorb_kernel");
 	HANDLE_CLERROR(clSetKernelArg(bootStrapAndAbsorb_kernel, 6, sizeof(cl_mem),
 		(void *)&cl_stateIdxGPU), "Error setting argument 6 in bootStrapAndAbsorb_kernel");
-
+	HANDLE_CLERROR(clSetKernelArg(bootStrapAndAbsorb_kernel, 7, sizeof(cl_mem),
+		(void *)&cl_saved_active_gws), "Error setting argument 7 in bootStrapAndAbsorb_kernel");
 
 	HANDLE_CLERROR(clSetKernelArg(reducedSqueezeRow0_kernel, 0, sizeof(cl_mem),
 		(void *)&cl_memMatrixGPU), "Error setting argument 0 in reducedSqueezeRow0_kernel");
@@ -232,6 +248,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		(void *)&cl_stateThreadGPU), "Error setting argument 1 in reducedSqueezeRow0_kernel");
 	HANDLE_CLERROR(clSetKernelArg(reducedSqueezeRow0_kernel, 2, sizeof(cl_mem),
 		(void *)&cl_saved_salt), "Error setting argument 2 in reducedSqueezeRow0_kernel");
+	HANDLE_CLERROR(clSetKernelArg(reducedSqueezeRow0_kernel, 3, sizeof(cl_mem),
+		(void *)&cl_saved_active_gws), "Error setting argument 3 in reducedSqueezeRow0_kernel");
 
 	HANDLE_CLERROR(clSetKernelArg(reducedDuplexRow_kernel, 0, sizeof(cl_mem),
 		(void *)&cl_memMatrixGPU), "Error setting argument 0 in reducedSqueezeRow0_kernel");
@@ -239,6 +257,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		(void *)&cl_stateThreadGPU), "Error setting argument 1 in reducedSqueezeRow0_kernel");
 	HANDLE_CLERROR(clSetKernelArg(reducedDuplexRow_kernel, 2, sizeof(cl_mem),
 		(void *)&cl_saved_salt), "Error setting argument 2 in reducedSqueezeRow0_kernel");
+	HANDLE_CLERROR(clSetKernelArg(reducedDuplexRow_kernel, 3, sizeof(cl_mem),
+		(void *)&cl_saved_active_gws), "Error setting argument 3 in reducedSqueezeRow0_kernel");
+
 
 	HANDLE_CLERROR(clSetKernelArg(setupPhaseWanderingGPU_kernel, 0, sizeof(cl_mem),
 		(void *)&cl_memMatrixGPU), "Error setting argument 0 in setupPhaseWanderingGPU_kernel");
@@ -248,6 +269,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		(void *)&cl_pKeysGPU), "Error setting argument 2 in setupPhaseWanderingGPU_P1_kernel");
 	HANDLE_CLERROR(clSetKernelArg(setupPhaseWanderingGPU_kernel, 3, sizeof(cl_mem),
 		(void *)&cl_saved_salt), "Error setting argument 3 in setupPhaseWanderingGPU_kernel");
+	HANDLE_CLERROR(clSetKernelArg(setupPhaseWanderingGPU_kernel, 4, sizeof(cl_mem),
+		(void *)&cl_saved_active_gws), "Error setting argument 4 in setupPhaseWanderingGPU_kernel");
 
 	HANDLE_CLERROR(clSetKernelArg(setupPhaseWanderingGPU_P1_kernel, 0, sizeof(cl_mem),
 		(void *)&cl_memMatrixGPU), "Error setting argument 0 in setupPhaseWanderingGPU_P1_kernel");
@@ -257,7 +280,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		(void *)&cl_pKeysGPU), "Error setting argument 2 in setupPhaseWanderingGPU_P1_kernel");
 	HANDLE_CLERROR(clSetKernelArg(setupPhaseWanderingGPU_P1_kernel, 3, sizeof(cl_mem),
 		(void *)&cl_saved_salt), "Error setting argument 3 in setupPhaseWanderingGPU_P1_kernel");
-
+	HANDLE_CLERROR(clSetKernelArg(setupPhaseWanderingGPU_P1_kernel, 4, sizeof(cl_mem),
+		(void *)&cl_saved_active_gws), "Error setting argument 4 in setupPhaseWanderingGPU_P1_kernel");
 }
 
 static void release_clobj(void)
@@ -591,20 +615,42 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
-	size_t real_gws;
+	size_t real_gws, real_lws;
 	int i,j,k;
-
-	printf("crypt all %d lws=%u\n",count,*lws);
 
 	global_work_size =
 	    local_work_size ? (count + local_work_size -
-	    1) / local_work_size * local_work_size : count;
+	    1) / local_work_size * local_work_size : count;//pomidor wyswietlic czy nParallel ma dobra wartosc
+
+	printf("crypt all %d lws=%u, gws=%u\n",count,*lws,global_work_size);
 
 	real_gws=global_work_size*saved_salt->nParallel;
-
+	saved_active_gws=real_gws;
+	real_lws=*lws;
+	//must real_lws%saved_salt->nParallel==0
+	if(real_lws)
+	{
+		real_lws-=real_lws%saved_salt->nParallel;
+		if(real_lws==0)
+			real_lws=saved_salt->nParallel;
+	}
+	//must real_gws%real_lws==0
+	if(real_gws)
+	{
+		if(real_gws%real_lws)
+		{
+			real_gws+=real_lws;
+			real_gws-=real_gws%real_lws;
+		}
+	}
+	printf("real_gws=%u, real_lws=%u\n",real_gws,real_lws);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_salt,
 		CL_FALSE, 0, sizeof(struct lyra2_salt), saved_salt, 0, NULL,
 		multi_profilingEvent[0]), "Failed transferring salt");
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_active_gws,
+		CL_FALSE, 0, sizeof(cl_uint), &saved_active_gws, 0, NULL,
+		multi_profilingEvent[0]), "Failed transferring active_gws");
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id],
 		cl_saved_key, CL_FALSE, 0,
@@ -617,25 +663,25 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], bootStrapAndAbsorb_kernel, 1,
-		NULL, &real_gws, lws, 0, NULL,
+		NULL, &real_gws, &real_lws, 0, NULL,
 		multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
 
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], reducedSqueezeRow0_kernel, 1,
-		NULL, &real_gws, lws, 0, NULL,
+		NULL, &real_gws, &real_lws, 0, NULL,
 		multi_profilingEvent[4]), "failed in clEnqueueNDRangeKernel");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], reducedDuplexRow_kernel, 1,
-		NULL, &real_gws, lws, 0, NULL,
+		NULL, &real_gws, &real_lws, 0, NULL,
 		multi_profilingEvent[5]), "failed in clEnqueueNDRangeKernel");
 
 	if(saved_salt->nParallel==1)
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], setupPhaseWanderingGPU_P1_kernel, 1,
-			NULL, &real_gws, lws, 0, NULL,
+			NULL, &real_gws, &real_lws, 0, NULL,
 			multi_profilingEvent[6]), "failed in clEnqueueNDRangeKernel");
 	else
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], setupPhaseWanderingGPU_kernel, 1,
-			NULL, &real_gws, lws, 0, NULL,
+			NULL, &real_gws, &real_lws, 0, NULL,
 			multi_profilingEvent[6]), "failed in clEnqueueNDRangeKernel");
 
 	opencl_process_event();
