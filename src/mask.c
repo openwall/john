@@ -34,8 +34,8 @@
 #include "memdbg.h"
 #include "mask_ext.h"
 
-static parsed_ctx parsed_mask;
-static cpu_mask_context cpu_mask_ctx, rec_ctx;
+static mask_parsed_ctx parsed_mask;
+static mask_cpu_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
 static int max_keylen, fmt_maxlen, rec_len, rec_cl, restored_len, restored = 1;
@@ -880,7 +880,7 @@ static char* expand_plhdr(char *string, int fmt_case)
  *
  * This function must pass any escaped characters on, as-is (still escaped).
  */
-static void parse_braces(char *mask, parsed_ctx *parsed_mask)
+static void parse_braces(char *mask, mask_parsed_ctx *parsed_mask)
 {
 	int i, j ,k;
 	int cl_br_enc;
@@ -941,7 +941,7 @@ static void parse_braces(char *mask, parsed_ctx *parsed_mask)
  *
  * This function must pass any escaped characters on, as-is (still escaped).
  */
-static void parse_qtn(char *mask, parsed_ctx *parsed_mask)
+static void parse_qtn(char *mask, mask_parsed_ctx *parsed_mask)
 {
 	int i, j, k;
 
@@ -975,7 +975,7 @@ cont:
 	}
 }
 
-static int search_stack(parsed_ctx *parsed_mask, int loc)
+static int search_stack(mask_parsed_ctx *parsed_mask, int loc)
 {
 	int t;
 
@@ -993,7 +993,7 @@ static int search_stack(parsed_ctx *parsed_mask, int loc)
  * Maps the position of a range in a mask to its actual postion in a key.
  * Offset for wordlist + mask is not taken into account.
  */
-static int calc_pos_in_key(const char *mask, parsed_ctx *parsed_mask,
+static int calc_pos_in_key(const char *mask, mask_parsed_ctx *parsed_mask,
                            int mask_loc)
 {
 	int i, ret_pos;
@@ -1021,8 +1021,8 @@ static int calc_pos_in_key(const char *mask, parsed_ctx *parsed_mask,
  * This function will finally remove any escape characters (after honoring
  * them of course, if they protected any of our specials)
  */
-static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
-                          cpu_mask_context *cpu_mask_ctx)
+static void init_cpu_mask(const char *mask, mask_parsed_ctx *parsed_mask,
+                          mask_cpu_context *cpu_mask_ctx)
 {
 	int i, qtn_ctr, op_ctr, cl_ctr;
 	char *p;
@@ -1182,7 +1182,7 @@ static void init_cpu_mask(const char *mask, parsed_ctx *parsed_mask,
 	cpu_mask_ctx->active_positions[i] = 1;
 }
 
-static void save_restore(cpu_mask_context *cpu_mask_ctx, int range_idx, int ch)
+static void save_restore(mask_cpu_context *cpu_mask_ctx, int range_idx, int ch)
 {
 	static int bckp_range_idx, bckp_next, toggle;
 
@@ -1202,7 +1202,7 @@ static void save_restore(cpu_mask_context *cpu_mask_ctx, int range_idx, int ch)
 }
 
 /* truncates mask after range idx */
-static void truncate_mask(cpu_mask_context *cpu_mask_ctx, int range_idx)
+static void truncate_mask(mask_cpu_context *cpu_mask_ctx, int range_idx)
 {
 	int i;
 	if (range_idx < mask_max_skip_loc && mask_max_skip_loc != -1) {
@@ -1238,8 +1238,8 @@ static void truncate_mask(cpu_mask_context *cpu_mask_ctx, int range_idx)
  * Returns the template of the keys corresponding to the mask.
  */
 static char* generate_template_key(char *mask, const char *key, int key_len,
-				   parsed_ctx *parsed_mask,
-				   cpu_mask_context *cpu_mask_ctx)
+				   mask_parsed_ctx *parsed_mask,
+				   mask_cpu_context *cpu_mask_ctx)
 {
 	int i, k, t, j, l, offset;
 	i = 0, k = 0, j = 0, l = 0, offset = 0;
@@ -1350,7 +1350,7 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 		start ? start + ranges(ps).iter:			\
 		ranges(ps).chars[ranges(ps).iter];
 
-static int generate_keys(cpu_mask_context *cpu_mask_ctx,
+static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 			  unsigned long long *my_candidates)
 {
 	int ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
@@ -1427,7 +1427,7 @@ done:
 #undef process_key
 }
 
-static int bench_generate_keys(cpu_mask_context *cpu_mask_ctx,
+static int bench_generate_keys(mask_cpu_context *cpu_mask_ctx,
                                unsigned long long *my_candidates)
 {
 	int ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
@@ -1513,7 +1513,7 @@ done:
 #undef set_template_key
 
 /* Skips iteration for positions stored in arr */
-static void skip_position(cpu_mask_context *cpu_mask_ctx, int *arr)
+static void skip_position(mask_cpu_context *cpu_mask_ctx, int *arr)
 {
 	int i;
 
@@ -1553,7 +1553,7 @@ static void skip_position(cpu_mask_context *cpu_mask_ctx, int *arr)
 		}
 }
 
-static unsigned long long divide_work(cpu_mask_context *cpu_mask_ctx)
+static unsigned long long divide_work(mask_cpu_context *cpu_mask_ctx)
 {
 	unsigned long long offset, my_candidates, total_candidates, ctr;
 	int ps;
@@ -1700,7 +1700,7 @@ void remove_slash(char *mask)
 	}
 }
 
-char *stretch_mask(char *mask, parsed_ctx *parsed_mask)
+char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
 {
 	char *stretched_mask;
 	int i, j, k;

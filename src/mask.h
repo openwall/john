@@ -1,7 +1,7 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2013 by Solar Designer
- * Copyright (c) 2013-2014 by magnum
+ * Copyright (c) 2013-2015 by magnum
  * Copyright (c) 2014 by Sayantan Datta
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@ typedef struct {
 	int stack_qtn[MAX_NUM_MASK_PLHDR + 1];
 	/* 1 if parse is successful, otherwise 0 */
 	int parse_ok;
-} parsed_ctx;
+} mask_parsed_ctx;
 
  /* Range of characters for a placeholder in the mask */
  /* Rearranging the structure could affect performance */
@@ -69,7 +69,7 @@ typedef struct {
 	int cpu_count;
 	/* offset at which mask starts in the key */
 	int offset;
-} cpu_mask_context;
+} mask_cpu_context;
 
 /*
  * Initialize mask mode cracker.

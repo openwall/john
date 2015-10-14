@@ -316,7 +316,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 #endif
 	, offset_table_size, hash_table_size, shift64_ot_sz, shift64_ht_sz,
 	shift128_ot_sz, shift128_ht_sz, num_ld_hashes,
-	mask_int_cand.num_int_cand, bitmap_para, is_static_gpu_mask,
+	mask_int_cand.num_int_cand, bitmap_para, mask_gpu_is_static,
 	(unsigned long long)const_cache_size, static_gpu_locations[0]
 #if 1 < MASK_FMT_INT_PLHDR
 	, static_gpu_locations[1]
@@ -387,7 +387,7 @@ static void set_key(char *_key, int index)
 	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
 	int len = strlen(_key);
 
-	if (mask_int_cand.num_int_cand > 1 && !is_static_gpu_mask) {
+	if (mask_int_cand.num_int_cand > 1 && !mask_gpu_is_static) {
 		int i;
 		saved_int_key_loc[index] = 0;
 		for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
@@ -443,7 +443,7 @@ static char *get_key(int index)
 
 	if (mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
 		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
-			if (is_static_gpu_mask)
+			if (mask_gpu_is_static)
 				out[static_gpu_locations[i]] =
 				mask_int_cand.int_cand[int_index].x[i];
 			else
@@ -728,7 +728,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * global_work_size, saved_idx, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_idx.");
 
-	if (!is_static_gpu_mask)
+	if (!mask_gpu_is_static)
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
 
 	if (salt != NULL && salt->count > 4500 &&
