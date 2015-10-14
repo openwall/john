@@ -1538,6 +1538,9 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 	}
 
 	if (options.verbosity > 3) {
+		if (options.flags & FLG_MASK_CHK)
+			fprintf(stderr, "Internal mask multiplier: %u/%u\n",
+			        mask_int_cand.num_int_cand, mask_int_cand_target);
 		if (!max_run_time)
 			fprintf(stderr, "Calculating best GWS for LWS="Zu"; "
 			        "max. %s single kernel invocation.\n",

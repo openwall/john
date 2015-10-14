@@ -448,7 +448,7 @@ static void init(struct fmt_main *_self)
 {
 	self = _self;
 	opencl_prepare_dev(gpu_id);
-	mask_int_cand_target = opencl_speed_index(gpu_id) / 100;
+	mask_int_cand_target = opencl_speed_index(gpu_id) / 300;
 }
 
 static void done(void)

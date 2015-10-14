@@ -374,7 +374,7 @@ static void init(struct fmt_main *_self)
 	max_num_loaded_hashes = 0;
 
 	opencl_prepare_dev(gpu_id);
-	mask_int_cand_target = opencl_speed_index(gpu_id) / 100;
+	mask_int_cand_target = opencl_speed_index(gpu_id) / 300;
 
 	if (pers_opts.target_enc == UTF_8) {
 		self->params.plaintext_length = MIN(125, UTF8_MAX_LENGTH);
