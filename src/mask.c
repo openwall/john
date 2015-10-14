@@ -2047,8 +2047,8 @@ void mask_done()
 		MEM_FREE(mask_skip_ranges);
 	if (mask_int_cand.int_cand)
 		MEM_FREE(mask_int_cand.int_cand);
-	mask_skip_ranges = NULL;
-	mask_int_cand.int_cand = NULL;
+	mask_int_cand.num_int_cand = 0;
+	mask_int_cand_target = 0;
 }
 
 int do_mask_crack(const char *extern_key)

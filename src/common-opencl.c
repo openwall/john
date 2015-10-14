@@ -90,6 +90,7 @@ static void (*create_clobj)(size_t gws, struct fmt_main *self);
 static void (*release_clobj)(void);
 static char fmt_base_name[128];
 static size_t gws_limit;
+static int printed_mask;
 
 cl_device_id devices[MAX_GPU_DEVICES];
 cl_context context[MAX_GPU_DEVICES];
@@ -792,6 +793,8 @@ unsigned int opencl_get_vector_width(int sequential_id, int size)
 void opencl_done()
 {
 	int i;
+
+	printed_mask = 0;
 
 	if (!opencl_initialized)
 		return;
@@ -1538,7 +1541,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 	}
 
 	if (options.verbosity > 3) {
-		if (mask_int_cand.num_int_cand > 1)
+		if (!printed_mask++ && mask_int_cand.num_int_cand > 1)
 			fprintf(stderr, "Internal mask, multiplier: %u (target: %u)\n",
 			        mask_int_cand.num_int_cand, mask_int_cand_target);
 		if (!max_run_time)
