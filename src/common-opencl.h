@@ -332,6 +332,13 @@ void opencl_init_auto_setup(int p_default_value, int p_hash_loops,
  * - sequential_id: the sequential number of the device in use.
  * - major: the major number of the driver version.
  * - minor: the minor number of the driver version.
- */ void opencl_driver_value(int sequential_id, int *major, int *minor);
+ */
+void opencl_driver_value(int sequential_id, int *major, int *minor);
 
+/*
+ * Rough "speed index" estimation for a device. Returns (clock * SP's) where
+ * SP is number of cores multipled by "SP's per core" if known, or the native
+ * vector width for 'int' otherwise.
+ */
+unsigned int opencl_speed_index(int sequential_id);
 #endif

@@ -157,7 +157,7 @@ static void init_global_variables()
 
 	init_checking();
 
-	mask_int_cand_target = 1024;
+	mask_int_cand_target = opencl_speed_index(gpu_id) / 1000;
 }
 
 static char* enc_salt(WORD salt_val)
@@ -196,7 +196,7 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 
 	file = fopen(full_path = path_expand_safe(kernel_bin_name), "r");
 	MEM_FREE(full_path);
-	
+
 	if (file == NULL || force_build) {
 		char build_opts[10000];
 		char *encoded_salt;

@@ -164,7 +164,7 @@ static void init_global_variables()
 
 	init_checking();
 
-	mask_int_cand_target = 1024;
+	mask_int_cand_target = opencl_speed_index(gpu_id) / 1000;
 }
 
 static char* enc_salt(WORD salt_val)

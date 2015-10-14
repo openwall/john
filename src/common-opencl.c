@@ -2001,6 +2001,7 @@ cl_uint get_processors_count(int sequential_id)
 		else if (major == 5)    // 5.x Maxwell
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
 
+#if __APPLE__
 		/*
 		 * Apple does not expose get_compute_capability() so we need this crap.
 		 * http://en.wikipedia.org/wiki/Comparison_of_Nvidia_graphics_processing_units
@@ -2020,21 +2021,36 @@ cl_uint get_processors_count(int sequential_id)
 		// Maxwell
 		else if (strstr(dname, "GTX 9"))
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
-
+#endif
 	} else if (gpu_amd(device_info[sequential_id])) {
 		// 16 thread proc * 5 SP
 		core_count *= (ocl_device_list[sequential_id].cores_per_MP = (16 *
 		               ((amd_gcn(device_info[sequential_id]) ||
 		                 amd_vliw4(device_info[sequential_id])) ? 4 : 5)));
-	} else if (!strncmp(dname, "HD Graphics", 11)) {
-		core_count *= (ocl_device_list[sequential_id].cores_per_MP = 1);
-	} else if (!strncmp(dname, "Iris", 4)) {
-		core_count *= (ocl_device_list[sequential_id].cores_per_MP = 1);
-	} else if (gpu(device_info[sequential_id]))
-		// Any other GPU, if we don't know we wont guess
-		core_count *= (ocl_device_list[sequential_id].cores_per_MP = 0);
+	} else {
+		// Nothing else known, we use the native vector width for integer
+		cl_uint v_width;
+
+		HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
+		                               CL_DEVICE_NATIVE_VECTOR_WIDTH_INT,
+		                               sizeof(v_width), &v_width, NULL),
+		               "Error querying CL_DEVICE_MAX_CLOCK_FREQUENCY");
+		core_count *= (ocl_device_list[sequential_id].cores_per_MP = v_width);
+	}
 
 	return core_count;
+}
+
+unsigned int opencl_speed_index(int sequential_id)
+{
+	cl_uint clock;
+
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
+	                               CL_DEVICE_MAX_CLOCK_FREQUENCY,
+	                               sizeof(clock), &clock, NULL),
+	               "Error querying CL_DEVICE_MAX_CLOCK_FREQUENCY");
+
+	return clock * get_processors_count(sequential_id);
 }
 
 cl_uint get_processor_family(int sequential_id)

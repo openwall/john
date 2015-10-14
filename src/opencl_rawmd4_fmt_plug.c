@@ -316,9 +316,9 @@ static void init(struct fmt_main *_self)
 {
 	self = _self;
 	num_loaded_hashes = 0;
-	mask_int_cand_target = 10000;
 
 	opencl_prepare_dev(gpu_id);
+	mask_int_cand_target = opencl_speed_index(gpu_id) / 100;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
