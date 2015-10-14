@@ -1792,6 +1792,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	max_keylen = options.req_maxlength ?
 		options.req_maxlength : fmt_maxlen;
 
+	if (options.flags & FLG_TEST_CHK)
+		max_keylen = strlen(mask_fmt->params.tests[0].plaintext);
+
 	if ((options.flags & FLG_MASK_STACKED) && max_keylen < 2) {
 		if (john_main_process)
 			fprintf(stderr,
