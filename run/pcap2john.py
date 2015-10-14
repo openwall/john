@@ -665,7 +665,6 @@ def pcap_parser_hsrp_v2(fname):
             offset = 0
             uses_authentication = False
             salt = ""
-            print data[0:8].encode("hex")
             while True:
                 try:
                     tlv_type = ord(data[offset:offset+1])
