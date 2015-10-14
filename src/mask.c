@@ -1211,8 +1211,9 @@ static void truncate_mask(cpu_mask_context *cpu_mask_ctx, int range_idx)
 		error();
 	}
 
+	mask_tot_cand = mask_int_cand.num_int_cand;
+
 	if (range_idx == -1) {
-		mask_tot_cand = 1;
 		cpu_mask_ctx->cpu_count = 0;
 		cpu_mask_ctx->ps1 = MAX_NUM_MASK_PLHDR;
 		return;
@@ -1220,7 +1221,6 @@ static void truncate_mask(cpu_mask_context *cpu_mask_ctx, int range_idx)
 
 	cpu_mask_ctx->ranges[range_idx].next = MAX_NUM_MASK_PLHDR;
 
-	mask_tot_cand = 1;
 	cpu_mask_ctx->cpu_count = 0;
 	cpu_mask_ctx->ps1 = MAX_NUM_MASK_PLHDR;
 	for (i = 0; i <= range_idx; i++)
@@ -1612,7 +1612,7 @@ static double get_progress(void)
 	if (cand_length)
 		try -= cand_length;
 
-	return 100.0 * try / (double)((mask_tot_cand * mask_int_cand.num_int_cand) / num_nodes);
+	return 100.0 * try / (double)(mask_tot_cand / num_nodes);
 }
 
 void mask_save_state(FILE *file)
@@ -2003,7 +2003,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			    cpu_mask_ctx.ranges[i].pos < max_keylen)
 				cand *= cpu_mask_ctx.ranges[i].count;
 	}
-	mask_tot_cand = cand;
+	mask_tot_cand = cand * mask_int_cand.num_int_cand;
 }
 
 void mask_crk_init(struct db_main *db)
@@ -2032,7 +2032,7 @@ void mask_done()
 			int num_nodes = options.node_count ?
 				options.node_count : 1;
 			mask_tot_cand = (((unsigned long long)status.cands.hi << 32) +
-				status.cands.lo) / mask_int_cand.num_int_cand * num_nodes;
+				status.cands.lo) * num_nodes;
 			cand_length = 0;
 		}
 		if (!(options.flags & FLG_TEST_CHK)) {

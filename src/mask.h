@@ -98,6 +98,8 @@ extern int mask_restore_state(FILE *file);
 /*
  * Total number of candidates to begin with. Remains unchanged throughout
  * one call to do_mask_crack but may vary with hybrid parent key length.
+ * The number includes the part that is processed on GPU, and is used as
+ * a multiplier in native mask mode's and parent modes' get_progress().
  */
 extern unsigned long long mask_tot_cand;
 
