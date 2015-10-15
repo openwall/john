@@ -183,6 +183,12 @@ void opencl_build_from_binary(int sequential_id, cl_program *program, char *kern
 void opencl_build_kernel(char *kernel_filename, int sequential_id,
                          char *options, int warn);
 
+/* --
+  This function get valid and sane values for LWS and GWS that can be used,
+ * e.g, during self-test in a GPU mask mode run (the real tune happens later).
+-- */
+void opencl_get_sane_lws_gws_values();
+
 cl_device_type get_device_type(int sequential_id);
 cl_ulong get_local_memory_size(int sequential_id);
 cl_ulong get_global_memory_size(int sequential_id);

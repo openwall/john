@@ -872,6 +872,21 @@ void opencl_get_user_preferences(char *format)
 		duration_time = atoi(tmp_value) * 1000000ULL;
 }
 
+void opencl_get_sane_lws_gws_values()
+{
+	if (!local_work_size) {
+		if (cpu(device_info[gpu_id]))
+			local_work_size =
+				get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
+		else
+			local_work_size = 64;
+	}
+
+	if (!global_work_size)
+		global_work_size = 768;
+}
+
 char* get_device_name_(int sequential_id)
 {
 	static char device_name[MAX_OCLINFO_STRING_LEN];

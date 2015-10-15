@@ -368,6 +368,11 @@ static void reset(struct db_main *db)
 	if (!db || (db && !autotuned)) {
 		//Auto tune and self test.
 
+		//GPU mask mode in use, do not auto tune for self test.
+		//Instead, use sane defauts. Real tune is going to be made below.
+		if ((options.flags & FLG_MASK_CHK) && !(options.flags & FLG_TEST_CHK))
+			opencl_get_sane_lws_gws_values();
+
 		//Self-test initialization.
 		for (num_loaded_hashes = 0;
 			self->params.tests[num_loaded_hashes].ciphertext;)
