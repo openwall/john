@@ -1513,7 +1513,8 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 
 static char *human_speed(unsigned long long int speed)
 {
-	static char p, out[32];
+	static char out[32];
+	char p = '\0';
 
 	if (speed > 1000000) {
 		speed /= 1000;
@@ -1531,7 +1532,11 @@ static char *human_speed(unsigned long long int speed)
 		speed /= 1000;
 		p = 'T'; /* you wish */
 	}
-	snprintf(out, sizeof(out), "%llu%cc/s", speed, p);
+	if (p)
+		snprintf(out, sizeof(out), "%llu%cc/s", speed, p);
+	else
+		snprintf(out, sizeof(out), "%lluc/s", speed);
+
 	return out;
 }
 
