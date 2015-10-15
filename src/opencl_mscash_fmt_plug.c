@@ -106,6 +106,7 @@ static size_t get_task_max_work_group_size()
 
 /* Note: some tests will be replaced in init() if running UTF-8 */
 static struct fmt_tests tests[] = {
+	{"ac562fcf730114f3cf489b33b98cdc6c", "password", {"barney"} },
 	{"176a4c2bd45ac73687676c2f09045353", "", {"root"} }, // nullstring password
 	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2" },
 	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
