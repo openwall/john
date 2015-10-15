@@ -1074,6 +1074,10 @@ static void john_load(void)
 		dummy_format.params.label = "stdout";
 		dummy_format.methods.clear_keys = &fmt_default_clear_keys;
 
+		/* Jumbo needs log_init() for session file protect code */
+		options.flags |= FLG_NOLOG;
+		log_init(LOG_NAME, NULL, options.session);
+
 		if (!pers_opts.target_enc || pers_opts.input_enc != UTF_8)
 			pers_opts.target_enc = pers_opts.input_enc;
 
