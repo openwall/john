@@ -1,3 +1,5 @@
+#if HAVE_OPENCL
+
 #include <assert.h>
 
 #include "options.h"
@@ -371,3 +373,5 @@ int ocl_hc_128_cmp_exact(char *source, int index)
 		return 0;
 	return 1;
 }
+
+#endif /* HAVE_OPENCL */
