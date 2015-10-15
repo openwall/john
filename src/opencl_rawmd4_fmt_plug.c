@@ -272,7 +272,7 @@ static void init(struct fmt_main *_self)
 	num_loaded_hashes = 0;
 	mask_int_cand_target = 10000;
 
-	opencl_hash_check_128_init(_self);
+	ocl_hc_128_init(_self);
 
 	opencl_prepare_dev(gpu_id);
 }
@@ -426,8 +426,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (salt != NULL && salt->count > 4500 &&
 		(num_loaded_hashes - num_loaded_hashes / 10) > salt->count) {
 		size_t old_ot_sz_bytes, old_ht_sz_bytes;
-		prepare_table(salt);
-		init_kernel(salt->count, select_bitmap(salt->count));
+		ocl_hc_128_prepare_table(salt);
+		init_kernel(salt->count, ocl_hc_128_select_bitmap(salt->count));
 
 		BENCH_CLERROR(clGetMemObjectInfo(buffer_offset_table, CL_MEM_SIZE, sizeof(size_t), &old_ot_sz_bytes, NULL), "failed to query buffer_offset_table.");
 
@@ -663,8 +663,8 @@ static void reset(struct db_main *db)
 		release_clobj_kpc();
 
 		num_loaded_hashes = db->salts->count;
-		prepare_table(db->salts);
-		init_kernel(num_loaded_hashes, select_bitmap(num_loaded_hashes));
+		ocl_hc_128_prepare_table(db->salts);
+		init_kernel(num_loaded_hashes, ocl_hc_128_select_bitmap(num_loaded_hashes));
 
 		create_clobj();
 		set_kernel_args();
@@ -709,7 +709,7 @@ static void reset(struct db_main *db)
 
 		hash_ids = (cl_uint*)mem_alloc((3 * num_loaded_hashes + 1) * sizeof(cl_uint));
 
-		init_kernel(num_loaded_hashes, select_bitmap(num_loaded_hashes));
+		init_kernel(num_loaded_hashes, ocl_hc_128_select_bitmap(num_loaded_hashes));
 
 		create_clobj();
 		set_kernel_args();
@@ -779,9 +779,9 @@ struct fmt_main FMT_STRUCT = {
 			get_hash_5,
 			get_hash_6
 		},
-		cmp_all,
-		cmp_one,
-		cmp_exact
+		ocl_hc_128_cmp_all,
+		ocl_hc_128_cmp_one,
+		ocl_hc_128_cmp_exact
 	}
 };
 

@@ -31,12 +31,12 @@ static struct fmt_main *self;
 
 #include "memdbg.h"
 
-void opencl_hash_check_128_init(struct fmt_main *_self)
+void ocl_hc_128_init(struct fmt_main *_self)
 {
 	self = _self;
 }
 
-void prepare_table(struct db_salt *salt) {
+void ocl_hc_128_prepare_table(struct db_salt *salt) {
 	unsigned int *bin, i;
 	struct db_password *pw, *last;
 
@@ -168,7 +168,7 @@ static void prepare_bitmap_1(cl_ulong bmp_sz, cl_uint **bitmap_ptr)
 	}
 }
 
-char* select_bitmap(unsigned int num_ld_hashes)
+char* ocl_hc_128_select_bitmap(unsigned int num_ld_hashes)
 {
 	static char kernel_params[200];
 	cl_ulong max_local_mem_sz_bytes = 0;
@@ -347,19 +347,21 @@ void ocl_hc_128_rlobj(void)
 	}
 }
 
-int cmp_all(void *binary, int count)
+int ocl_hc_128_cmp_all(void *binary, int count)
 {
 	if (count) return 1;
 	return 0;
 }
 
-int cmp_one(void *binary, int index)
+int ocl_hc_128_cmp_one(void *binary, int index)
 {
 	return (((unsigned int*)binary)[0] ==
-		hash_table_128[hash_ids[3 + 3 * index]]);
+		hash_table_128[hash_ids[3 + 3 * index]] &&
+		((unsigned int*)binary)[1] ==
+		hash_table_128[hash_table_size_128+ hash_ids[3 + 3 * index]]);
 }
 
-int cmp_exact(char *source, int index)
+int ocl_hc_128_cmp_exact(char *source, int index)
 {
 	unsigned int *t = (unsigned int *) (self->methods.binary(source));
 
