@@ -323,25 +323,33 @@ static int salt_hash(void * salt)
 /* ------- Reset functions ------- */
 static void reset(struct db_main *db)
 {
+	size_t gws_limit;
+	static unsigned int flag_l, flag_g;
+	unsigned long long  autotune_limit = 500ULL;
+
 	offset = 0;
 	offset_idx = 0;
 	key_idx = 0;
 
 	if (!autotuned) {
-		size_t gws_limit;
-		unsigned int flag;
-                char * task = "$JOHN/kernels/sha512_ng_kernel.cl";
+		//Initialize OpenCL environment.
+		char * tmp_value;
+		char * task = "$JOHN/kernels/sha512_ng_kernel.cl";
 
-                opencl_prepare_dev(gpu_id);
-                opencl_build_kernel(task, gpu_id, NULL, 0);
+		if ((tmp_value = getenv("_GPU_AUTOTUNE_LIMIT")))
+			autotune_limit = (unsigned long long) atoll(tmp_value);
 
-                /* Read LWS/GWS prefs from config or environment */
-                opencl_get_user_preferences(FORMAT_LABEL);
+		opencl_prepare_dev(gpu_id);
+		opencl_build_kernel(task, gpu_id, NULL, 0);
 
-                // create kernel(s) to execute
-                prepare_kernel = clCreateKernel(program[gpu_id], "kernel_prepare", &ret_code);
-                HANDLE_CLERROR(ret_code,
-                        "Error creating kernel_prepare. Double-check kernel name?");
+		/* Read LWS/GWS prefs from config or environment */
+		opencl_get_user_preferences(FORMAT_LABEL);
+
+		// create kernel(s) to execute
+		prepare_kernel = clCreateKernel(program[gpu_id], "kernel_prepare",
+		                                &ret_code);
+		HANDLE_CLERROR(ret_code,
+			"Error creating kernel_prepare. Double-check kernel name?");
 
                 if (salted_format)
                         crypt_kernel = clCreateKernel(program[gpu_id],
@@ -349,50 +357,62 @@ static void reset(struct db_main *db)
                 else
                         crypt_kernel = clCreateKernel(program[gpu_id],
                                 "kernel_crypt_raw", &ret_code);
-                HANDLE_CLERROR(ret_code,
-                        "Error creating kernel. Double-check kernel name?");
+		HANDLE_CLERROR(ret_code,
+		               "Error creating kernel. Double-check kernel name?");
 
-		//Mask initialization
-		flag = (options.flags & FLG_MASK_CHK) && !global_work_size;
+		//Save the local and global work sizes.
+		flag_l = (options.flags & FLG_MASK_CHK) && !local_work_size;
+		flag_g = (options.flags & FLG_MASK_CHK) && !global_work_size;
+	}
 
+	if (!db || (db && !autotuned)) {
+		//Auto tune and self test.
+
+		//Self-test initialization.
 		for (num_loaded_hashes = 0;
-		     self->params.tests[num_loaded_hashes].ciphertext;)
-			num_loaded_hashes++;
+			self->params.tests[num_loaded_hashes].ciphertext;)
+				num_loaded_hashes++;
 		create_mask_buffers();
 
 		// Auto-tune / Benckmark / Self-test.
 		gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
-		                get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
+				get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
 
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL,
-		                       warn, 1, self, create_clobj, release_clobj,
-		                       2 * BUFFER_SIZE, gws_limit);
+				       warn, 1, self, create_clobj, release_clobj,
+				       2 * BUFFER_SIZE, gws_limit);
 
 		//Auto tune execution from shared/included code.
-		autotune_run(self, 1, gws_limit, 500ULL);
+		autotune_run(self, 1, gws_limit, autotune_limit);
 
 		load_hash(NULL);
-
-		if (options.flags & FLG_MASK_CHK) {
-			fprintf(stdout,
-			        "Using Mask Mode with internal candidate generation%s",
-			        flag ? "" : "\n");
-
-			if (flag) {
-				self->params.max_keys_per_crypt /= 256;
-
-				if (self->params.max_keys_per_crypt < 1)
-					self->params.max_keys_per_crypt = 1;
-
-				fprintf(stdout, ", global worksize(GWS) set to %d\n",
-				        self->params.max_keys_per_crypt);
-			}
-		}
 	}
 	else {
 		num_loaded_hashes = db->salts->count;
 
+		if ((options.flags & FLG_MASK_CHK)) {
+			//Re-tune for mask mode.
+			if (flag_l)
+				local_work_size = 0;
+
+			if (flag_g)
+				global_work_size = 0;
+
+			create_mask_buffers();
+
+			// Auto-tune / Benckmark / Self-test.
+			gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
+					get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
+
+			//Initialize openCL tuning (library) for this format.
+			opencl_init_auto_setup(SEED, 0, NULL,
+					       warn, 1, self, create_clobj, release_clobj,
+					       2 * BUFFER_SIZE, gws_limit);
+
+			//Auto tune execution from shared/included code.
+			autotune_run(self, 1, gws_limit, autotune_limit);
+		}
 		//Cracking
 		if (ocl_initialized > 0)
 			release_clobj();
@@ -513,9 +533,14 @@ static char * get_key(int index)
 /* ------- Initialization  ------- */
 static void init_common(struct fmt_main *_self)
 {
+	char * tmp_value;
+
 	self = _self;
 	opencl_prepare_dev(gpu_id);
 	mask_int_cand_target = opencl_speed_index(gpu_id) / 300;
+
+	if ((tmp_value = getenv("_GPU_MASK_CAND")))
+		mask_int_cand_target = atoi(tmp_value);
 }
 
 static void init(struct fmt_main *_self)

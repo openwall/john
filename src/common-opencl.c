@@ -872,6 +872,17 @@ void opencl_get_user_preferences(char *format)
 		duration_time = atoi(tmp_value) * 1000000ULL;
 }
 
+char* get_device_name_(int sequential_id)
+{
+	static char device_name[MAX_OCLINFO_STRING_LEN];
+
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
+	                               sizeof(device_name), device_name, NULL),
+	               "Error querying DEVICE_NAME");
+
+	return device_name;
+}
+
 static void dev_init(int sequential_id)
 {
 	static int printed[MAX_GPU_DEVICES];
