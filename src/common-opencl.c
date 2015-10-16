@@ -1,16 +1,17 @@
 /*
  * This file is part of John the Ripper password cracker.
  *
- * Common OpenCL functions go in this file.
+ * Common OpenCL functions.
  *
  * This software is
  * Copyright (c) 2010-2012 Samuele Giovanni Tonon <samu at linuxasylum dot net>
  * Copyright (c) 2010-2013 Lukas Odzioba <ukasz@openwall.net>
- * Copyright (c) 2010-2013 magnum
+ * Copyright (c) 2010-2015 magnum
  * Copyright (c) 2012-2015 Claudio André <claudioandre.br at gmail.com>
+ *
  * and is hereby released to the general public under the following terms:
- *    Redistribution and use in source and binary forms, with or without
- *    modifications, are permitted.
+ * Redistribution and use in source and binary forms, with or without
+ * modifications, are permitted.
  */
 
 #ifdef HAVE_OPENCL
@@ -2347,7 +2348,7 @@ void opencl_list_devices(void)
 			cl_device_local_mem_type memtype;
 			cl_bool boolean;
 			char *p;
-			int ret;
+			int ret, cpu;
 			int fan, temp, util;
 
 			if (!default_gpu_selected && !get_if_device_is_in_use(sequence_nr))
@@ -2404,7 +2405,8 @@ void opencl_list_devices(void)
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_TYPE,
 			                sizeof(cl_ulong), &long_entries, NULL);
 			printf("    Device type:            ");
-			if (long_entries & CL_DEVICE_TYPE_CPU)
+			cpu = (long_entries & CL_DEVICE_TYPE_CPU);
+			if (cpu)
 				printf("CPU ");
 			if (long_entries & CL_DEVICE_TYPE_GPU)
 				printf("GPU ");
@@ -2512,7 +2514,7 @@ void opencl_list_devices(void)
 			printf("    Parallel compute cores: %d\n", entries);
 
 			long_entries = get_processors_count(sequence_nr);
-			if (ocl_device_list[sequence_nr].cores_per_MP > 1)
+			if (!cpu && ocl_device_list[sequence_nr].cores_per_MP > 1)
 				printf("    Stream processors:      "LLu" "
 				       " (%d x %d)\n",
 				       (unsigned long long)long_entries,
