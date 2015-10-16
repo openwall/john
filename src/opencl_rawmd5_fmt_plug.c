@@ -420,61 +420,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (!mask_gpu_is_static)
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, 4 * global_work_size, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
 
-	if (salt != NULL && salt->count > 4500 &&
-		(num_loaded_hashes - num_loaded_hashes / 10) > salt->count) {
-		size_t old_ot_sz_bytes, old_ht_sz_bytes;
-		ocl_hc_128_prepare_table(salt);
-		init_kernel(salt->count, ocl_hc_128_select_bitmap(salt->count));
-
-		BENCH_CLERROR(clGetMemObjectInfo(buffer_offset_table, CL_MEM_SIZE, sizeof(size_t), &old_ot_sz_bytes, NULL), "failed to query buffer_offset_table.");
-
-		if (old_ot_sz_bytes < offset_table_size *
-			sizeof(OFFSET_TABLE_WORD)) {
-			BENCH_CLERROR(clReleaseMemObject(buffer_offset_table), "Error Releasing buffer_offset_table.");
-
-			buffer_offset_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, offset_table_size * sizeof(OFFSET_TABLE_WORD), NULL, &ret_code);
-			BENCH_CLERROR(ret_code, "Error creating buffer argument buffer_offset_table.");
-		}
-
-		BENCH_CLERROR(clGetMemObjectInfo(buffer_hash_table, CL_MEM_SIZE, sizeof(size_t), &old_ht_sz_bytes, NULL), "failed to query buffer_hash_table.");
-
-		if (old_ht_sz_bytes < hash_table_size_128 * sizeof(cl_uint) * 2) {
-			BENCH_CLERROR(clReleaseMemObject(buffer_hash_table), "Error Releasing buffer_hash_table.");
-			BENCH_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Error Releasing buffer_bitmap_dupe.");
-			MEM_FREE(zero_buffer);
-
-			zero_buffer = (cl_uint *) mem_calloc(hash_table_size_128/32 + 1, sizeof(cl_uint));
-			buffer_bitmap_dupe = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, (hash_table_size_128/32 + 1) * sizeof(cl_uint), zero_buffer, &ret_code);
-			BENCH_CLERROR(ret_code, "Error creating buffer argument buffer_bitmap_dupe.");
-			buffer_hash_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, hash_table_size_128 * sizeof(cl_uint) * 2, NULL, &ret_code);
-			BENCH_CLERROR(ret_code, "Error creating buffer argument buffer_hash_table.");
-		}
-
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps, CL_TRUE, 0, (bitmap_size_bits >> 3), bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps.");
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size_128 * 2, hash_table_128, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
-		set_kernel_args();
-		set_kernel_args_kpc();
-	}
-
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
-
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), hash_ids, 0, NULL, NULL), "failed in reading back num cracked hashes.");
-
-	if (hash_ids[0] > num_loaded_hashes) {
-		fprintf(stderr, "Error, crypt_all kernel.\n");
-		error();
-	}
-
-	if (hash_ids[0]) {
-		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_return_hashes, CL_TRUE, 0, 2 * sizeof(cl_uint) * hash_ids[0], loaded_hashes, 0, NULL, NULL), "failed in reading back return_hashes.");
-		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, (3 * hash_ids[0] + 1) * sizeof(cl_uint), hash_ids, 0, NULL, NULL), "failed in reading data back hash_ids.");
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmap_dupe, CL_TRUE, 0, (hash_table_size_128/32 + 1) * sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmap_dupe.");
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
-	}
-
-	*pcount *=  mask_int_cand.num_int_cand;
-	return hash_ids[0];
+	return ocl_hc_128_extract_info(salt, set_kernel_args, set_kernel_args_kpc, init_kernel, global_work_size, lws, pcount);
 }
 
 static void auto_tune(struct db_main *db, long double kernel_run_ms)
@@ -673,39 +619,9 @@ static void reset(struct db_main *db)
 		auto_tune(db, 300);
 	}
 	else {
-		unsigned int *binary, i = 0;
-		char *ciphertext;
 		int tune_time = (options.flags & FLG_MASK_CHK) ? 300 : 50;
 
-		while (tests[num_loaded_hashes].ciphertext != NULL)
-			num_loaded_hashes++;
-
-		loaded_hashes = (cl_uint*)mem_alloc(16 * num_loaded_hashes);
-
-		while (tests[i].ciphertext != NULL) {
-			ciphertext = split(tests[i].ciphertext, 0, &FMT_STRUCT);
-			binary = (unsigned int*)get_binary(ciphertext);
-			loaded_hashes[4 * i] = binary[0];
-			loaded_hashes[4 * i + 1] = binary[1];
-			loaded_hashes[4 * i + 2] = binary[2];
-			loaded_hashes[4 * i + 3] = binary[3];
-			i++;
-		}
-
-		num_loaded_hashes = create_perfect_hash_table(128, (void *)loaded_hashes,
-				num_loaded_hashes,
-			        &offset_table,
-			        &offset_table_size,
-			        &hash_table_size_128, 0);
-
-		if (!num_loaded_hashes) {
-			MEM_FREE(hash_table_128);
-			MEM_FREE(offset_table);
-			fprintf(stderr, "Failed to create Hash Table for self test.\n");
-			error();
-		}
-
-		hash_ids = (cl_uint*)mem_alloc((3 * num_loaded_hashes + 1) * sizeof(cl_uint));
+		ocl_hc_128_prepare_table_test();
 
 		init_kernel(num_loaded_hashes, ocl_hc_128_select_bitmap(num_loaded_hashes));
 
