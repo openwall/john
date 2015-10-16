@@ -244,6 +244,5 @@ static void autotune_run(struct fmt_main *self, unsigned int rounds,
 	return autotune_run_extra(self, rounds, gws_limit, max_run_time, CL_FALSE);
 }
 
-
 #undef get_power_of_two
 #endif  /* _COMMON_TUNE_H */

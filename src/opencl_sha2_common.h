@@ -55,6 +55,7 @@
 #define ATTRIB(buf, index, val) (buf)[(index)] = val
 
 #if gpu_amd(DEVICE_INFO)
+	#pragma OPENCL EXTENSION cl_amd_media_ops : enable
 	#define USE_BITSELECT	1
 #endif
 

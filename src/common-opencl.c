@@ -872,6 +872,21 @@ void opencl_get_user_preferences(char *format)
 		duration_time = atoi(tmp_value) * 1000000ULL;
 }
 
+void opencl_get_sane_lws_gws_values()
+{
+	if (!local_work_size) {
+		if (cpu(device_info[gpu_id]))
+			local_work_size =
+				get_platform_vendor_id(platform_id) == DEV_INTEL ?
+			8 : 1;
+		else
+			local_work_size = 64;
+	}
+
+	if (!global_work_size)
+		global_work_size = 768;
+}
+
 char* get_device_name_(int sequential_id)
 {
 	static char device_name[MAX_OCLINFO_STRING_LEN];
@@ -1498,7 +1513,8 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 
 static char *human_speed(unsigned long long int speed)
 {
-	static char p, out[32];
+	static char out[32];
+	char p = '\0';
 
 	if (speed > 1000000) {
 		speed /= 1000;
@@ -1516,7 +1532,11 @@ static char *human_speed(unsigned long long int speed)
 		speed /= 1000;
 		p = 'T'; /* you wish */
 	}
-	snprintf(out, sizeof(out), "%llu%cc/s", speed, p);
+	if (p)
+		snprintf(out, sizeof(out), "%llu%cc/s", speed, p);
+	else
+		snprintf(out, sizeof(out), "%lluc/s", speed);
+
 	return out;
 }
 
