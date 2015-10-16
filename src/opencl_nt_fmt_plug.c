@@ -671,7 +671,6 @@ static void reset(struct db_main *db)
 	else {
 		unsigned int *binary, i = 0;
 		char *ciphertext;
-		int tune_time = (options.flags & FLG_MASK_CHK) ? 300 : 50;
 
 		o_lws = local_work_size;
 		o_gws = global_work_size;
@@ -714,13 +713,17 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size_128 * 2, hash_table_128, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
 
+		// GPU mask mode bench, do not auto tune for self test.
+		if ((options.flags & FLG_MASK_CHK) && !(options.flags & FLG_TEST_CHK))
+			opencl_get_sane_lws_gws_values();
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 1, NULL, warn, 2, self,
 							   create_clobj, release_clobj,
 		                       2 * BUFSIZE, gws_limit);
 
 		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, gws_limit, tune_time, CL_TRUE);
+		autotune_run_extra(self, 1, gws_limit, 300, CL_TRUE);
 
 		hash_ids[0] = 0;
 

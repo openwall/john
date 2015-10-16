@@ -992,13 +992,17 @@ static void reset(struct db_main *db)
 		MEM_FREE(offset_table);
 		MEM_FREE(bitmaps);
 
+		// GPU mask mode bench, do not auto tune for self test.
+		if ((options.flags & FLG_MASK_CHK) && !(options.flags & FLG_TEST_CHK))
+			opencl_get_sane_lws_gws_values();
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 1, NULL, warn, 2, self,
 		                       create_clobj, release_clobj,
 		                       2 * BUFSIZE, gws_limit);
 
 		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, gws_limit, 50, CL_TRUE);
+		autotune_run_extra(self, 1, gws_limit, 300, CL_TRUE);
 
 		initialized++;
 	}
