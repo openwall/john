@@ -1066,7 +1066,7 @@ static void set_key_mm(char *key, int index)
 	for (i = len; i < PLAINTEXT_LENGTH; i++)
 		memset(des_raw_keys[index].xkeys.v[i], 0, 8 * sizeof(DES_bs_vector));
 
-	if (!is_static_gpu_mask) {
+	if (!mask_gpu_is_static) {
 		des_int_key_loc[index] = 0;
 		for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
 			if (mask_skip_ranges[i] != -1)  {
@@ -1121,7 +1121,7 @@ static char *get_key_mm(int index)
 
 	if (mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
 		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
-			if (is_static_gpu_mask)
+			if (mask_gpu_is_static)
 				des_raw_keys[section].xkeys.c[static_gpu_locations[i]][depth & 7][depth >> 3] = mask_int_cand.int_cand[iter * 32 + depth].x[i];
 			else
 				des_raw_keys[section].xkeys.c[(des_int_key_loc[section] & (0xff << (i * 8))) >> (i * 8)][depth & 7][depth >> 3] = mask_int_cand.int_cand[iter * 32 + depth].x[i];
@@ -1187,7 +1187,7 @@ size_t create_keys_kernel_set_args(int mask_mode)
 #if 3 < MASK_FMT_INT_PLHDR
 		, static_gpu_locations[3]
 #endif
-		, is_static_gpu_mask, (unsigned long long)const_cache_size);
+		, mask_gpu_is_static, (unsigned long long)const_cache_size);
 
 	opencl_build_kernel("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl",
 	                    gpu_id, build_opts, 0);
@@ -1206,7 +1206,7 @@ void process_keys(size_t current_gws, size_t *lws)
 	if (keys_changed) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, current_gws * sizeof(opencl_DES_bs_transfer), des_raw_keys, 0, NULL, NULL ), "Failed to write buffer buffer_raw_keys.\n");
 
-		if (!is_static_gpu_mask)
+		if (!mask_gpu_is_static)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, current_gws * sizeof(unsigned int), des_int_key_loc, 0, NULL, NULL ), "Failed Copy data to gpu");
 
 		ret_code = clEnqueueNDRangeKernel(queue[gpu_id], keys_kernel, 1, NULL, &current_gws, lws, 0, NULL, NULL);

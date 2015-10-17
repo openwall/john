@@ -169,7 +169,8 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &show_uncracked_str},
 	{"test", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
-		~OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_time},
+		~FLG_MASK_CHK & ~FLG_NOLOG & ~OPT_REQ_PARAM,
+		"%d", &benchmark_time},
 	{"test-full", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
 		OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_level},
@@ -312,7 +313,7 @@ PRINCE_USAGE \
 "                          doc/ENCODING and --list=hidden-options.\n" \
 "--rules[=SECTION]         enable word mangling rules for wordlist modes\n" \
 "--incremental[=MODE]      \"incremental\" mode [using section MODE]\n" \
-"--mask=MASK               mask mode using MASK\n" \
+"--mask[=MASK]             mask mode using MASK (or default mask from john.conf)\n" \
 "--markov[=OPTIONS]        \"Markov\" mode (see doc/MARKOV)\n" \
 "--external=MODE           external mode or word filter\n" \
 JOHN_USAGE_REGEX \
@@ -342,10 +343,10 @@ JOHN_USAGE_FORK \
 "--devices=N[,..]          set OpenCL or CUDA device(s)\n"
 #elif defined(HAVE_OPENCL)
 #define JOHN_USAGE_GPU \
-"--devices=N[,..]          set OpenCL device(s) (list using --list=opencl-devices)\n"
+"--devices=N[,..]          set OpenCL device(s) (see --list=opencl-devices)\n"
 #elif defined (HAVE_CUDA)
 #define JOHN_USAGE_GPU \
-"--device=N                set CUDA device (list using --list=cuda-devices)\n"
+"--device=N                set CUDA device (see --list=cuda-devices)\n"
 #endif
 
 static void print_usage(char *name)
@@ -470,6 +471,22 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	opt_process(opt_list, &options.flags, argv);
 
 	if (options.flags & FLG_MASK_CHK) {
+		if (options.flags & FLG_TEST_CHK) {
+			options.flags &= ~FLG_PWD_SUP;
+			options.flags |= FLG_NOTESTS;
+
+			if (options.mask && (strstr(options.mask, "?w") ||
+			                     strstr(options.mask, "?W")))
+				options.flags |= FLG_MASK_STACKED;
+
+			if (!benchmark_time) {
+				fprintf(stderr, "Currently can't self-test with mask\n");
+				error();
+			}
+
+			if (benchmark_time == 1)
+				benchmark_time = 2;
+		} else
 		if (options.flags & FLG_CRACKING_CHK)
 			options.flags |= FLG_MASK_STACKED;
 		else if (options.mask && strcasestr(options.mask, "?w")) {

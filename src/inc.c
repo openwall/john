@@ -155,7 +155,7 @@ static void inc_new_length(unsigned int length,
 	char *buffer;
 	int count;
 
-	if (options.verbosity > 2)
+	if (options.verbosity > 3)
 	log_event("- Switching to length %d", length + 1);
 
 	char1[0] = 0;
@@ -297,7 +297,7 @@ static void inc_new_count(unsigned int length, int count, char *charset,
 	int size;
 	int error;
 
-	if (options.verbosity > 2)
+	if (options.verbosity > 3)
 	log_event("- Expanding tables for length %d to character count %d",
 	    length + 1, count + 1);
 
@@ -791,7 +791,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		if (skip)
 			continue;
 
-		if (options.verbosity > 2)
+		if (options.verbosity > 3)
 		log_event("- Trying length %d, fixed @%d, character count %d",
 		    length + 1, fixed + 1, counts[length][fixed] + 1);
 

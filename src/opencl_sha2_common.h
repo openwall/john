@@ -55,7 +55,37 @@
 #define ATTRIB(buf, index, val) (buf)[(index)] = val
 
 #if gpu_amd(DEVICE_INFO)
+	#pragma OPENCL EXTENSION cl_amd_media_ops : enable
 	#define USE_BITSELECT	1
+#endif
+
+#if SM_MAJOR >= 5 && (DEV_VER_MAJOR > 352 || (DEV_VER_MAJOR == 352 && DEV_VER_MINOR >= 21))
+#define HAVE_LUT3	1
+inline uint lut3(uint a, uint b, uint c, uint imm)
+{
+	uint r;
+	asm("lop3.b32 %0, %1, %2, %3, %4;"
+	    : "=r" (r)
+	    : "r" (a), "r" (b), "r" (c), "i" (imm));
+	return r;
+}
+
+#if 0 /* This does no good */
+#define HAVE_LUT3_64	1
+inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
+{
+	ulong t, r;
+
+	asm("lop3.b32 %0, %1, %2, %3, %4;"
+	    : "=r" (t)
+	    : "r" ((uint)a), "r" ((uint)b), "r" ((uint)c), "i" (imm));
+	r = t;
+	asm("lop3.b32 %0, %1, %2, %3, %4;"
+	    : "=r" (t)
+	    : "r" ((uint)(a >> 32)), "r" ((uint)(b >> 32)), "r" ((uint)(c >> 32)), "i" (imm));
+	return r + (t << 32);
+}
+#endif
 #endif
 
 #if cpu(DEVICE_INFO) || amd_gcn(DEVICE_INFO)

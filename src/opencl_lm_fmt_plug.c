@@ -33,8 +33,8 @@ john_register_one(&fmt_opencl_lm);
 #define LM_EMPTY			"aad3b435b51404ee"
 
 static struct fmt_tests tests[] = {
-	{"$LM$a9c604d244c4e99d", "AAAAAA"},
 	{"$LM$cbc501a4d2227783", "AAAAAAA"},
+	{"$LM$a9c604d244c4e99d", "AAAAAA"},
 	{"$LM$3466c2b0487fe39a", "CRACKPO"},
 	{"$LM$dbc5e5cba8028091", "IMPUNIT"},
 	{LM_EMPTY LM_EMPTY, ""},

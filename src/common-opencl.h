@@ -183,6 +183,12 @@ void opencl_build_from_binary(int sequential_id, cl_program *program, char *kern
 void opencl_build_kernel(char *kernel_filename, int sequential_id,
                          char *options, int warn);
 
+/* --
+  This function get valid and sane values for LWS and GWS that can be used,
+ * e.g, during self-test in a GPU mask mode run (the real tune happens later).
+-- */
+void opencl_get_sane_lws_gws_values();
+
 cl_device_type get_device_type(int sequential_id);
 cl_ulong get_local_memory_size(int sequential_id);
 cl_ulong get_global_memory_size(int sequential_id);
@@ -192,6 +198,7 @@ size_t get_kernel_max_lws(int sequential_id, cl_kernel crypt_kernel);
 cl_uint get_max_compute_units(int sequential_id);
 cl_uint get_processors_count(int sequential_id);
 cl_uint get_processor_family(int sequential_id);
+char* get_device_name_(int sequential_id);
 
 /* Vendor id for hardware */
 int get_vendor_id(int sequential_id);
@@ -332,6 +339,13 @@ void opencl_init_auto_setup(int p_default_value, int p_hash_loops,
  * - sequential_id: the sequential number of the device in use.
  * - major: the major number of the driver version.
  * - minor: the minor number of the driver version.
- */ void opencl_driver_value(int sequential_id, int *major, int *minor);
+ */
+void opencl_driver_value(int sequential_id, int *major, int *minor);
 
+/*
+ * Rough "speed index" estimation for a device. Returns (clock * SP's) where
+ * SP is number of cores multipled by "SP's per core" if known, or the native
+ * vector width for 'int' otherwise.
+ */
+unsigned int opencl_speed_index(int sequential_id);
 #endif

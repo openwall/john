@@ -51,6 +51,7 @@
 #include "unicode.h"
 #include "config.h"
 #include "common-gpu.h"
+#include "mask.h"
 
 #ifndef BENCH_BUILD
 #include "options.h"
@@ -116,6 +117,10 @@ static void bench_set_keys(struct fmt_main *format,
 {
 	char *plaintext;
 	int index, length;
+	int len;
+
+	if ((len = format->params.plaintext_length - mask_add_len) < 0)
+		len = 0;
 
 	format->methods.clear_keys();
 
@@ -136,9 +141,15 @@ static void bench_set_keys(struct fmt_main *format,
 				break;
 		} while (1);
 
-		format->methods.set_key(plaintext, index);
+		if (options.flags & FLG_MASK_CHK) {
+			plaintext[len] = 0;
+			if (do_mask_crack(len ? plaintext : NULL))
+				return;
+		} else
+			format->methods.set_key(plaintext, index);
 	}
 }
+
 #ifndef BENCH_BUILD
 static unsigned int get_cost(struct fmt_main *format, int index, int cost_idx)
 {
@@ -579,6 +590,14 @@ AGAIN:
 			strcmp(format->params.label, "crypt")==0 )
 			fmt_init(format);
 
+		/* GPU-side mask mode benchmark */
+		if (options.flags & FLG_MASK_CHK) {
+			static struct db_main fakedb;
+
+			fakedb.format = format;
+			mask_init(&fakedb, options.mask);
+		}
+
 #ifdef _OPENMP
 		// MPIOMPmutex may have capped the number of threads
 		ompt = omp_get_max_threads();
@@ -632,6 +651,7 @@ AGAIN:
 		fflush(stdout);
 #endif /* _OPENMP */
 #endif /* HAVE_MPI */
+
 		switch (format->params.benchmark_length) {
 		case 0:
 		case -1000:
@@ -769,6 +789,9 @@ AGAIN:
 next:
 		fflush(stdout);
 		fmt_done(format);
+		if (options.flags & FLG_MASK_CHK)
+			mask_done();
+
 		MEMDBG_checkSnapshot_possible_exit_on_error(memHand, 0);
 
 #ifndef BENCH_BUILD

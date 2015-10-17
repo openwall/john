@@ -15,6 +15,7 @@
 
 #include "config.h"
 #include "logger.h"
+#include "mask_ext.h"
 #include "common-opencl.h"
 
 /* Step size for work size enumeration. Zero will double. */
@@ -184,12 +185,11 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
 	need_best_gws = !global_work_size;
 	if (need_best_gws) {
-		unsigned long long int max_run_time1;
+		unsigned long long int max_run_time1 = max_run_time;
 		int have_lws = !(!local_work_size || need_best_lws);
 		if (have_lws) {
-			max_run_time1 = max_run_time;
 			need_best_gws = 0;
-		} else {
+		} else if (mask_int_cand.num_int_cand < 2) {
 			max_run_time1 = (max_run_time + 1) / 2;
 		}
 		find_best_gws(self, gpu_id, rounds, max_run_time1, have_lws);
@@ -243,7 +243,6 @@ static void autotune_run(struct fmt_main *self, unsigned int rounds,
 {
 	return autotune_run_extra(self, rounds, gws_limit, max_run_time, CL_FALSE);
 }
-
 
 #undef get_power_of_two
 #endif  /* _COMMON_TUNE_H */

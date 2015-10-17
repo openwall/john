@@ -481,7 +481,7 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 #if 3 < MASK_FMT_INT_PLHDR
 		, static_gpu_locations[3]
 #endif
-		, is_static_gpu_mask, (unsigned long long)const_cache_size, bitmap_params);
+		, mask_gpu_is_static, (unsigned long long)const_cache_size, bitmap_params);
 
 		last_build_opts[0] = full_unroll;
 		last_build_opts[1] = use_local_mem;
@@ -511,7 +511,7 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 #if 3 < MASK_FMT_INT_PLHDR
 		, static_gpu_locations[3]
 #endif
-		, is_static_gpu_mask, (unsigned long long)const_cache_size, bitmap_params);
+		, mask_gpu_is_static, (unsigned long long)const_cache_size, bitmap_params);
 	}
 
 
@@ -1125,7 +1125,7 @@ static char *get_key_mm(int index)
 
 	if (mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
 		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
-			if (is_static_gpu_mask)
+			if (mask_gpu_is_static)
 				opencl_lm_keys[section].xkeys.c[static_gpu_locations[i]][depth & 7][depth >> 3] = opencl_lm_u[mask_int_cand.int_cand[iter * 32 + depth].x[i]];
 			else
 				opencl_lm_keys[section].xkeys.c[(opencl_lm_int_key_loc[section] & (0xff << (i * 8))) >> (i * 8)][depth & 7][depth >> 3] = opencl_lm_u[mask_int_cand.int_cand[iter * 32 + depth].x[i]];
@@ -1224,7 +1224,7 @@ static void reset(struct db_main *db)
 
 static void init_global_variables()
 {
-	mask_int_cand_target = 10000;
+	mask_int_cand_target = opencl_speed_index(gpu_id) / 300;
 }
 
 static char *get_key(int index)
@@ -1268,7 +1268,7 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 	assert(current_gws <= global_work_size + PADDING);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, current_gws * sizeof(opencl_lm_transfer), opencl_lm_keys, 0, NULL, NULL ), "Failed Copy data to gpu");
 
-	if (!is_static_gpu_mask)
+	if (!mask_gpu_is_static)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, current_gws * sizeof(unsigned int), opencl_lm_int_key_loc, 0, NULL, NULL ), "Failed Copy data to gpu");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &current_gws, lws, 0, NULL, &evnt), "Failed enqueue kernel lm_bs_*.");

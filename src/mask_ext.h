@@ -21,15 +21,15 @@ typedef union {
 
 typedef struct {
 	mask_char4 *int_cand;
-	cpu_mask_context *int_cpu_mask_ctx;
+	mask_cpu_context *int_cpu_mask_ctx;
 	int num_int_cand;
 } mask_int_cand_ctx;
 
-extern void mask_calc_combination(cpu_mask_context *, int);
+extern void mask_calc_combination(mask_cpu_context *, int);
 extern int *mask_skip_ranges;
 extern int mask_max_skip_loc;
 extern int mask_int_cand_target;
-extern int is_static_gpu_mask;
+extern int mask_gpu_is_static;
 extern mask_int_cand_ctx mask_int_cand;
 
 #endif

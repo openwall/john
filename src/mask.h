@@ -1,7 +1,7 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2013 by Solar Designer
- * Copyright (c) 2013-2014 by magnum
+ * Copyright (c) 2013-2015 by magnum
  * Copyright (c) 2014 by Sayantan Datta
  *
  * Redistribution and use in source and binary forms, with or without
@@ -19,7 +19,8 @@
 
 #include "loader.h"
 
-#define MAX_NUM_MASK_PLHDR 255 // Maximum number of placeholders in a mask.
+// Maximum number of placeholders in a mask.
+#define MAX_NUM_MASK_PLHDR 127
 
 typedef struct {
 	/* store locations of op braces in mask */
@@ -30,7 +31,7 @@ typedef struct {
 	int stack_qtn[MAX_NUM_MASK_PLHDR + 1];
 	/* 1 if parse is successful, otherwise 0 */
 	int parse_ok;
-} parsed_ctx;
+} mask_parsed_ctx;
 
  /* Range of characters for a placeholder in the mask */
  /* Rearranging the structure could affect performance */
@@ -69,7 +70,7 @@ typedef struct {
 	int cpu_count;
 	/* offset at which mask starts in the key */
 	int offset;
-} cpu_mask_context;
+} mask_cpu_context;
 
 /*
  * Initialize mask mode cracker.
@@ -98,6 +99,8 @@ extern int mask_restore_state(FILE *file);
 /*
  * Total number of candidates to begin with. Remains unchanged throughout
  * one call to do_mask_crack but may vary with hybrid parent key length.
+ * The number includes the part that is processed on GPU, and is used as
+ * a multiplier in native mask mode's and parent modes' get_progress().
  */
 extern unsigned long long mask_tot_cand;
 

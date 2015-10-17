@@ -106,6 +106,7 @@ static size_t get_task_max_work_group_size()
 
 /* Note: some tests will be replaced in init() if running UTF-8 */
 static struct fmt_tests tests[] = {
+	{"ac562fcf730114f3cf489b33b98cdc6c", "password", {"barney"} },
 	{"176a4c2bd45ac73687676c2f09045353", "", {"root"} }, // nullstring password
 	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2" },
 	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
@@ -347,7 +348,7 @@ static void init_kernel(void)
 #if 3 < MASK_FMT_INT_PLHDR
 	"-D LOC_3=%d"
 #endif
-	, mask_int_cand.num_int_cand, is_static_gpu_mask,
+	, mask_int_cand.num_int_cand, mask_gpu_is_static,
 	(unsigned long long)const_cache_size, cp_id2macro(pers_opts.target_enc),
 	pers_opts.internal_cp == UTF_8 ? cp_id2macro(ASCII) :
 	cp_id2macro(pers_opts.internal_cp), PLAINTEXT_LENGTH,
@@ -372,9 +373,9 @@ static void init(struct fmt_main *_self)
 {
 	self = _self;
 	max_num_loaded_hashes = 0;
-	mask_int_cand_target = 10000;
 
 	opencl_prepare_dev(gpu_id);
+	mask_int_cand_target = opencl_speed_index(gpu_id) / 300;
 
 	if (pers_opts.target_enc == UTF_8) {
 		self->params.plaintext_length = MIN(125, UTF8_MAX_LENGTH);
@@ -535,7 +536,7 @@ static void set_key(char *_key, int index)
 	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
 	int len = strlen(_key);
 
-	if (mask_int_cand.num_int_cand > 1 && !is_static_gpu_mask) {
+	if (mask_int_cand.num_int_cand > 1 && !mask_gpu_is_static) {
 		int i;
 		saved_int_key_loc[index] = 0;
 		for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
@@ -592,7 +593,7 @@ static char *get_key(int index)
 
 	if (mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
 		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
-			if (is_static_gpu_mask)
+			if (mask_gpu_is_static)
 				out[static_gpu_locations[i]] =
 				mask_int_cand.int_cand[int_index].x[i];
 			else
@@ -817,7 +818,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (key_idx)
 			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys.");
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx.");
-		if (!is_static_gpu_mask)
+		if (!mask_gpu_is_static)
 			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, 0, 4 * gws, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
 		set_new_keys = 0;
 	}
@@ -991,13 +992,17 @@ static void reset(struct db_main *db)
 		MEM_FREE(offset_table);
 		MEM_FREE(bitmaps);
 
+		// GPU mask mode bench, do not auto tune for self test.
+		if ((options.flags & FLG_MASK_CHK) && !(options.flags & FLG_TEST_CHK))
+			opencl_get_sane_lws_gws_values();
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 1, NULL, warn, 2, self,
 		                       create_clobj, release_clobj,
 		                       2 * BUFSIZE, gws_limit);
 
 		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, gws_limit, 50, CL_TRUE);
+		autotune_run_extra(self, 1, gws_limit, 300, CL_TRUE);
 
 		initialized++;
 	}

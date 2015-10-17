@@ -152,7 +152,7 @@ inline void sha512_block(sha512_ctx * ctx) {
     #pragma unroll 2
 #endif
     for (uint i = 16U; i < 80U; i++) {
-	w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
+	w[i & 15] = w[(i - 16) & 15] + w[(i - 7) & 15] + sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]);
         t = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
 
         h = g;

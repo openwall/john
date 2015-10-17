@@ -1,19 +1,15 @@
 /*
- * OpenCL macros
+ * OpenCL common macros
  *
  * Copyright (c) 2014-2015, magnum
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
  *
- * NOTICE: After changes in headers, you probably need to drop cached
- * kernels to ensure the changes take effect:
+ * NOTICE: After changes in headers, with nvidia driver you probably
+ * need to drop cached kernels to ensure the changes take effect:
  *
- * For nvidia:
  * rm -fr ~/.nv/ComputeCache
- *
- * AMD, Apple, some others
- * rm ../run/kernels/?*.bin
  *
  */
 
@@ -39,7 +35,17 @@ typedef long int64_t;
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #endif
 
-#if 0 /* Used for testing */
+/* host code may pass -DV_WIDTH=2 or some other width */
+#if V_WIDTH > 1
+#define MAYBE_VECTOR_UINT	VECTOR(uint, V_WIDTH)
+#define MAYBE_VECTOR_ULONG	VECTOR(ulong, V_WIDTH)
+#else
+#define MAYBE_VECTOR_UINT	uint
+#define MAYBE_VECTOR_ULONG	ulong
+#define SCALAR 1
+#endif
+
+#if SCALAR && 0 /* Used for testing */
 #define HAVE_LUT3	1
 inline uint lut3(uint x, uint y, uint z, uchar m)
 {
@@ -65,7 +71,7 @@ inline uint lut3(uint x, uint y, uint z, uchar m)
 #define HAVE_ANDNOT 1
 #endif
 
-#if SM_MAJOR >= 5 && (DEV_VER_MAJOR > 352 || (DEV_VER_MAJOR == 352 && DEV_VER_MINOR >= 21))
+#if SCALAR && SM_MAJOR >= 5 && (DEV_VER_MAJOR > 352 || (DEV_VER_MAJOR == 352 && DEV_VER_MINOR >= 21))
 #define HAVE_LUT3	1
 inline uint lut3(uint a, uint b, uint c, uint imm)
 {
@@ -98,7 +104,7 @@ inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
 #pragma OPENCL EXTENSION cl_amd_media_ops : enable
 #define BITALIGN(hi, lo, s) amd_bitalign((hi), (lo), (s))
 #else
-#if SM_MAJOR > 3 || (SM_MAJOR == 3 && SM_MINOR >= 2)
+#if SCALAR && SM_MAJOR > 3 || (SM_MAJOR == 3 && SM_MINOR >= 2)
 inline uint funnel_shift_right(uint hi, uint lo, uint s)
 {
 	uint r;
@@ -129,16 +135,6 @@ inline uint funnel_shift_right_imm(uint hi, uint lo, uint s)
 
 #define CONCAT(TYPE,WIDTH)	TYPE ## WIDTH
 #define VECTOR(x, y)		CONCAT(x, y)
-
-/* host code may pass -DV_WIDTH=2 or some other width */
-#if defined(V_WIDTH) && V_WIDTH > 1
-#define MAYBE_VECTOR_UINT	VECTOR(uint, V_WIDTH)
-#define MAYBE_VECTOR_ULONG	VECTOR(ulong, V_WIDTH)
-#else
-#define MAYBE_VECTOR_UINT	uint
-#define MAYBE_VECTOR_ULONG	ulong
-#define SCALAR 1
-#endif
 
 /* Workaround for problem seen with 9600GT */
 #if OLD_NVIDIA
@@ -174,7 +170,7 @@ inline uint SWAP32(uint x)
             (((n) >> 40) & 0xff00)     | ((n)  >> 56))
 #endif
 
-#if defined(SCALAR)
+#if SCALAR
 #define VSWAP32 SWAP32
 #else
 /* Vector-capable swap32() */
@@ -222,7 +218,7 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 #define GETCHAR_MC(buf, index) (((MAYBE_CONSTANT uchar*)(buf))[(index)])
 #define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
 
-#if no_byte_addressable(DEVICE_INFO) || !defined(SCALAR) || (gpu_amd(DEVICE_INFO) && defined(AMD_PUTCHAR_NOCAST))
+#if no_byte_addressable(DEVICE_INFO) || !SCALAR || (gpu_amd(DEVICE_INFO) && defined(AMD_PUTCHAR_NOCAST))
 /* 32-bit stores */
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 #define PUTCHAR_G	PUTCHAR

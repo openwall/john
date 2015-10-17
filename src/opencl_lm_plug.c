@@ -169,7 +169,7 @@ void opencl_lm_set_key_mm(char *key, int index)
 	for (i = len; i < PLAINTEXT_LENGTH; i++)
 		memset(opencl_lm_keys[index].xkeys.v[i], 0, 8 * sizeof(lm_vector));
 
-	if (!is_static_gpu_mask) {
+	if (!mask_gpu_is_static) {
 		opencl_lm_int_key_loc[index] = 0;
 		for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
 			if (mask_skip_ranges[i] != -1)  {
