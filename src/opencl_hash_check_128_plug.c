@@ -35,6 +35,7 @@ static struct fmt_main *self;
 void ocl_hc_128_init(struct fmt_main *_self)
 {
 	self = _self;
+	hash_table_128 = NULL;
 }
 
 void ocl_hc_128_prepare_table(struct db_salt *salt) {
@@ -43,10 +44,14 @@ void ocl_hc_128_prepare_table(struct db_salt *salt) {
 
 	num_loaded_hashes = (salt->count);
 
-	MEM_FREE(loaded_hashes);
-	MEM_FREE(hash_ids);
-	MEM_FREE(offset_table);
-	MEM_FREE(hash_table_128);
+	if (loaded_hashes)
+		MEM_FREE(loaded_hashes);
+	if (hash_ids)
+		MEM_FREE(hash_ids);
+	if (offset_table)
+		MEM_FREE(offset_table);
+	if (hash_table_128)
+		MEM_FREE(hash_table_128);
 
 	loaded_hashes = (cl_uint*) mem_alloc(4 * num_loaded_hashes * sizeof(cl_uint));
 	hash_ids = (cl_uint*) mem_alloc((3 * num_loaded_hashes + 1) * sizeof(cl_uint));
@@ -98,10 +103,14 @@ void ocl_hc_128_prepare_table_test() {
 	while (self->params.tests[num_loaded_hashes].ciphertext != NULL)
 			num_loaded_hashes++;
 
-	MEM_FREE(loaded_hashes);
-	MEM_FREE(hash_ids);
-	MEM_FREE(offset_table);
-	MEM_FREE(hash_table_128);
+	if (loaded_hashes)
+		MEM_FREE(loaded_hashes);
+	if (hash_ids)
+		MEM_FREE(hash_ids);
+	if (offset_table)
+		MEM_FREE(offset_table);
+	if (hash_table_128)
+		MEM_FREE(hash_table_128);
 
 	loaded_hashes = (cl_uint*) mem_alloc(4 * num_loaded_hashes * sizeof(cl_uint));
 	hash_ids = (cl_uint*) mem_calloc((3 * num_loaded_hashes + 1), sizeof(cl_uint));
