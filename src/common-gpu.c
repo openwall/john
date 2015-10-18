@@ -47,6 +47,7 @@ int gpu_device_list[MAX_GPU_DEVICES];
 hw_bus gpu_device_bus[MAX_GPU_DEVICES];
 
 static int temp_limit;
+char *gpu_degree_sign;
 
 void *nvml_lib;
 NVMLINIT nvmlInit = NULL;
@@ -122,6 +123,10 @@ void nvidia_probe(void)
 	temp_limit = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
 	                         "AbortTemperature");
 
+	if (!(gpu_degree_sign = cfg_get_param(SECTION_OPTIONS, SUBSECTION_GPU,
+	                                      "DegreeSign")))
+		gpu_degree_sign = DEGREE_SIGN;
+
 	if (!(nvml_lib = dlopen("libnvidia-ml.so", RTLD_LAZY|RTLD_GLOBAL)))
 		return;
 
@@ -156,6 +161,10 @@ void amd_probe(void)
 
 	temp_limit = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
 	                         "AbortTemperature");
+
+	if (!(gpu_degree_sign = cfg_get_param(SECTION_OPTIONS, SUBSECTION_GPU,
+	                                      "DegreeSign")))
+		gpu_degree_sign = DEGREE_SIGN;
 
 	if (!(adl_lib = dlopen("libatiadlxx.so", RTLD_LAZY|RTLD_GLOBAL)))
 		return;
@@ -449,10 +458,11 @@ void gpu_check_temp(void)
 
 		if (temp > 125 || temp < 10) {
 			if (!warned++) {
-				log_event("GPU %d probably invalid temp reading (%d" DEGC
-				          ").", dev, temp);
-				fprintf(stderr, "GPU %d probably invalid temp reading (%d"
-				        DEGC ").\n", dev, temp);
+				log_event("GPU %d probably invalid temp reading (%d%sC).",
+				          dev, temp, gpu_degree_sign);
+				fprintf(stderr,
+				        "GPU %d probably invalid temp reading (%d%sC).\n",
+				        dev, temp, gpu_degree_sign);
 			}
 			return;
 		}
@@ -462,12 +472,11 @@ void gpu_check_temp(void)
 			if (fan >= 0)
 				sprintf(s_fan, "%u%%", fan);
 			if (!event_abort) {
-				log_event("GPU %d overheat (%d" DEGC
-				          ", fan %s), aborting job.",
-				          dev, temp, s_fan);
-				fprintf(stderr, "GPU %d overheat (%d" DEGC
-				        ", fan %s), aborting job.\n",
-				        dev, temp, s_fan);
+				log_event("GPU %d overheat (%d%sC, fan %s), aborting job.",
+				          dev, temp, gpu_degree_sign, s_fan);
+				fprintf(stderr,
+				        "GPU %d overheat (%d%sC, fan %s), aborting job.\n",
+				        dev, temp, gpu_degree_sign, s_fan);
 			}
 			event_abort++;
 		}
@@ -490,7 +499,7 @@ void gpu_log_temp(void)
 		dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util);
 		n = sprintf(s_gpu, "GPU %d:", dev);
 		if (temp >= 0)
-			n += sprintf(s_gpu + n, " temp: %u" DEGC, temp);
+			n += sprintf(s_gpu + n, " temp: %u%sC", temp, gpu_degree_sign);
 		if (util > 0)
 			n += sprintf(s_gpu + n, " util: %u%%", util);
 		if (fan >= 0)

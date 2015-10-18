@@ -179,8 +179,8 @@ void cuda_device_list()
 			else
 				printf("    Fan speed:                     n/a\n");
 			if (temp >= 0)
-				printf("    GPU temp:                      %d"
-				       DEGC "\n", temp);
+				printf("    GPU temp:                      %d%sC\n",
+				       temp, gpu_degree_sign);
 			else
 				printf("    GPU temp:                      n/a\n");
 			if (util >= 0)

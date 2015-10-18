@@ -2574,7 +2574,8 @@ void opencl_list_devices(void)
 			if (fan >= 0)
 				printf("    Fan speed:              %u%%\n", fan);
 			if (temp >= 0)
-				printf("    Temperature:            %u" DEGC "\n", temp);
+				printf("    Temperature:            %u%sC\n",
+				       temp, gpu_degree_sign);
 			if (util >= 0)
 				printf("    Utilization:            %u%%\n", util);
 			else if (temp >= 0)

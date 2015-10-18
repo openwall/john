@@ -68,7 +68,9 @@ extern int gpu_device_list[MAX_GPU_DEVICES];
 
 extern hw_bus gpu_device_bus[MAX_GPU_DEVICES];
 
-#define DEGC "\xc2\xb0" "C" // UTF-8 degree sign, Celsius
+#define DEGREE_SIGN "\xc2\xb0" // UTF-8 degree sign
+
+extern char *gpu_degree_sign;
 
 typedef struct nvmlDevice_st* nvmlDevice_t;
 
