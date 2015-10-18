@@ -281,6 +281,17 @@ extern void ldr_load_pot_file(struct db_main *db, char *name);
 extern void ldr_fix_database(struct db_main *db);
 
 /*
+ * Create a fake database from a format's test vectors and return a pointer
+ * to it.
+ */
+extern struct db_main *ldr_init_fake_db(struct fmt_main *format);
+
+/*
+ * Destroy a fake database.
+ */
+extern void ldr_free_fake_db(struct db_main *fakedb);
+
+/*
  * Loads cracked passwords into the database.
  */
 extern void ldr_show_pot_file(struct db_main *db, char *name);
