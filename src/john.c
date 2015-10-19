@@ -1381,9 +1381,6 @@ static void john_init(char *name, int argc, char **argv)
 	}
 	opt_init(name, argc, argv, show_usage);
 
-	if (options.listconf)
-		listconf_parse_early();
-
 	if (!make_check) {
 		if (options.config)
 		{
@@ -1402,6 +1399,9 @@ static void john_init(char *name, int argc, char **argv)
 			cfg_init(CFG_ALT_NAME, 0);
 		}
 	}
+
+	if (options.listconf)
+		listconf_parse_early();
 
 #if HAVE_OPENCL
 	gpu_id = -1;

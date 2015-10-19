@@ -443,12 +443,13 @@ void status_print(void)
 				if (temp >= 0) {
 					if (i == 0)
 						n += sprintf(s_gpu + n,
-						             " GPU:%u" DEGC,
-						             temp);
+						             " GPU:%u%sC", temp,
+						             gpu_degree_sign);
 					else
 						n += sprintf(s_gpu + n,
-						             " GPU%d:%u" DEGC,
-						             i, temp);
+						             " GPU%d:%u%sC",
+						             i, temp,
+						             gpu_degree_sign);
 				}
 				if (util > 0)
 					n += sprintf(s_gpu + n,
