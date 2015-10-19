@@ -401,7 +401,33 @@ __kernel
 void kernel_prepare(
 	__constant const sha512_salt     * const __restrict salt,
         __global   const sha512_password * const __restrict keys_buffer,
-        __global         buffer_64       * const __restrict global_alt_result,
+         __global         sha512_buffers  * const __restrict tmp_buffers) {
+
+    //Compute buffers (on Nvidia, better private)
+    sha512_buffers fast_buffers;
+
+    //Get the task to be done
+    size_t gid = get_global_id(0);
+
+    //Do the job
+    sha512_prepare(salt, &keys_buffer[gid], &fast_buffers);
+
+    //Save results.
+    for (uint i = 0U; i < 8; i++)
+        tmp_buffers[gid].alt_result[i].mem_64[0] = SWAP64(fast_buffers.alt_result[i].mem_64[0]);
+
+    for (uint i = 0U; i < SALT_ARRAY; i++)
+        tmp_buffers[gid].temp_result[i].mem_64[0] = SWAP64(fast_buffers.temp_result[i].mem_64[0]);
+
+    for (uint i = 0U; i < PLAINTEXT_ARRAY; i++)
+        tmp_buffers[gid].p_sequence[i].mem_64[0] = SWAP64(fast_buffers.p_sequence[i].mem_64[0]);
+}
+
+__kernel
+void kernel_preprocess(
+	__constant const sha512_salt     * const __restrict salt,
+        __global   const sha512_password * const __restrict keys_buffer,
+        __global         sha512_buffers  * const __restrict tmp_buffers,
 	__global         uint64_t	 * const __restrict work_memory) {
 
     //Compute buffers (on Nvidia, better private)
@@ -410,21 +436,15 @@ void kernel_prepare(
     //Get the task to be done
     size_t gid = get_global_id(0);
 
-    //Get temp alt_result pointer.
-    __global buffer_64 * alt_result = &global_alt_result[(gid * 8)];
-
-    //Do the job
-    sha512_prepare(salt, &keys_buffer[gid], &fast_buffers);
-
     //Save results.
     for (uint i = 0U; i < 8; i++)
-        alt_result[i].mem_64[0] = SWAP64(fast_buffers.alt_result[i].mem_64[0]);
+        fast_buffers.alt_result[i].mem_64[0] = (tmp_buffers[gid].alt_result[i].mem_64[0]);
 
     for (uint i = 0U; i < SALT_ARRAY; i++)
-        fast_buffers.temp_result[i].mem_64[0] = SWAP64(fast_buffers.temp_result[i].mem_64[0]);
+        fast_buffers.temp_result[i].mem_64[0] = (tmp_buffers[gid].temp_result[i].mem_64[0]);
 
     for (uint i = 0U; i < PLAINTEXT_ARRAY; i++)
-        fast_buffers.p_sequence[i].mem_64[0] = SWAP64(fast_buffers.p_sequence[i].mem_64[0]);
+        fast_buffers.p_sequence[i].mem_64[0] = (tmp_buffers[gid].p_sequence[i].mem_64[0]);
 
     //Preload and prepare the temp buffer.
     for (uint i = 0U; i < 8; i++) {
@@ -543,9 +563,9 @@ inline void sha512_block_be(uint64_t * buffer, uint64_t * H) {
     H[7] += h;
 }
 
-inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
-			 __global buffer_64      * const __restrict alt_result,
-			 __global uint64_t       * const __restrict work_memory) {
+inline void sha512_crypt(
+	 __global buffer_64      * const __restrict alt_result,
+	 __global uint64_t       * const __restrict work_memory) {
 
     //To compute buffers.
     uint32_t	    total;
@@ -554,7 +574,7 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
 
     //Transfer host global data to a faster memory space.
     #pragma unroll
-    for (uint i = 0U; i < 8; i++)
+    for (uint i = 0U; i < 8U; i++)
         H[i] = alt_result[i].mem_64[0];
 
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
@@ -648,10 +668,10 @@ inline void sha512_crypt(const uint32_t saltlen, const uint32_t passlen,
         alt_result[i].mem_64[0] = H[i];
 }
 
-inline void sha512_crypt_f(const uint32_t saltlen, const uint32_t passlen,
-                           const uint32_t initial, const uint32_t rounds,
-			   __global buffer_64      * const __restrict alt_result,
-			   __global uint64_t       * const __restrict work_memory) {
+inline void sha512_crypt_f(
+	const uint32_t rounds,
+	__global buffer_64      * const __restrict alt_result,
+	__global uint64_t       * const __restrict work_memory) {
 
     //To compute buffers.
     uint32_t	    total;
@@ -666,11 +686,11 @@ inline void sha512_crypt_f(const uint32_t saltlen, const uint32_t passlen,
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
     for (uint i = 0U; i < rounds; i++) {
 
-	#pragma unroll
-	for (uint32_t j = 8U; j < 16U; j++)
-	   w[j] = 0;
-
         if (i & 1) {
+	    #pragma unroll
+	    for (uint32_t j = 8U; j < 16U; j++)
+		w[j] = 0;
+
             w[0] = work_memory[OFFSET(loop_index[i], 0)];
             w[1] = work_memory[OFFSET(loop_index[i], 1)];
             w[2] = work_memory[OFFSET(loop_index[i], 2)];
@@ -683,7 +703,7 @@ inline void sha512_crypt_f(const uint32_t saltlen, const uint32_t passlen,
 
 	    {
 		uint32_t tmp, pos;
-		tmp = ((total & 7) << 3);
+		tmp = ((total & 7U) << 3);
 		pos = (total >> 3);
 
 		APPEND_BE_BUFFER(w, H[0]);
@@ -751,42 +771,38 @@ inline void sha512_crypt_f(const uint32_t saltlen, const uint32_t passlen,
 __kernel
 void kernel_crypt(
 	__constant const sha512_salt     * const __restrict salt,
-        __global   const sha512_password * const __restrict keys_buffer,
         __global         sha512_hash     * const __restrict out_buffer,
-        __global         buffer_64       * const __restrict global_alt_result,
+        __global         sha512_buffers  * const __restrict tmp_buffers,
 	__global         uint64_t	 * const __restrict work_memory) {
 
     //Get the task to be done
     size_t gid = get_global_id(0);
 
     //Get temp alt_result pointer.
-    __global buffer_64 * alt_result = &global_alt_result[(gid * 8)];
+    __global buffer_64 * alt_result = tmp_buffers[gid].alt_result;
 
     //Do the job
-    sha512_crypt(salt->length, keys_buffer[gid].length,
-		 alt_result, work_memory);
+    sha512_crypt(alt_result, work_memory);
 }
 
 __kernel
 void kernel_final(
 	__constant const sha512_salt     * const __restrict salt,
-        __global   const sha512_password * const __restrict keys_buffer,
         __global         sha512_hash     * const __restrict out_buffer,
-        __global         buffer_64       * const __restrict global_alt_result,
+        __global         sha512_buffers  * const __restrict tmp_buffers,
 	__global         uint64_t	 * const __restrict work_memory) {
 
     //Get the task to be done
     size_t gid = get_global_id(0);
 
     //Get temp alt_result pointer.
-    __global buffer_64 * alt_result = &global_alt_result[(gid * 8)];
+    __global buffer_64 * alt_result = tmp_buffers[gid].alt_result;
 
     //Do the job
-    sha512_crypt_f(salt->length, keys_buffer[gid].length, 0,
-		   MIN(salt->final,  HASH_LOOPS),
-		   alt_result, work_memory);
+    sha512_crypt_f(MIN(salt->final,  HASH_LOOPS), alt_result, work_memory);
 
     //SWAP results and put it as hash data.
-    for (uint i = 0U; i < 8; i++)
+    #pragma unroll
+    for (uint i = 0U; i < 8U; i++)
         out_buffer[gid].v[i] = SWAP64(alt_result[i].mem_64[0]);
 }
