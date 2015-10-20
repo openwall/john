@@ -413,6 +413,9 @@ int check_pkcs_pad(const unsigned char* data, size_t len, int blocksize)
 	int real_len = len - pad_len;
 	const unsigned char *p = data + real_len;
 
+	if (len & (blocksize - 1))
+		return -1;
+
 	if (pad_len > blocksize || pad_len < 1)
 		return -1;
 
