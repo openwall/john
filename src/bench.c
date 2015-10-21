@@ -119,7 +119,8 @@ static void bench_set_keys(struct fmt_main *format,
 	int index, length;
 	int len;
 
-	if ((len = format->params.plaintext_length - mask_add_len) < 0)
+	if (!(options.flags & FLG_MASK_STACKED) ||
+	    (len = format->params.plaintext_length - mask_add_len) < 0)
 		len = 0;
 
 	format->methods.clear_keys();
