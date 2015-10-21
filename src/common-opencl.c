@@ -2530,6 +2530,8 @@ void opencl_list_devices(void)
 				       " (%d x %d)\n",
 				       (unsigned long long)long_entries,
 				       entries, ocl_device_list[sequence_nr].cores_per_MP);
+			printf("    Speed index:            %u\n",
+			       opencl_speed_index(sequence_nr));
 
 			ret = clGetDeviceInfo(devices[sequence_nr],
 			                      CL_DEVICE_WARP_SIZE_NV, sizeof(cl_uint), &long_entries, NULL);
@@ -2580,8 +2582,6 @@ void opencl_list_devices(void)
 				}
 			}
 #endif
-			printf("    Speed index:            %u\n",
-			       opencl_speed_index(sequence_nr));
 			if (fan >= 0)
 				printf("    Fan speed:              %u%%\n", fan);
 			if (temp >= 0)
