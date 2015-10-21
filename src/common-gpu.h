@@ -68,9 +68,10 @@ extern int gpu_device_list[MAX_GPU_DEVICES];
 
 extern hw_bus gpu_device_bus[MAX_GPU_DEVICES];
 
-#define DEGREE_SIGN "\xc2\xb0" // UTF-8 degree sign
+extern int gpu_temp_limit;
+#define DEGREE_SIGN L"\xb0" // Degree sign as wchar_t
 
-extern char *gpu_degree_sign;
+extern const wchar_t *gpu_degree_sign;
 
 typedef struct nvmlDevice_st* nvmlDevice_t;
 

@@ -199,7 +199,8 @@ static char* plhdr2string(char p, int fmt_case)
 
 	switch(p) {
 	case 'l': /* lower-case letters */
-		add_range('a', 'z');
+		/* Rockyou character frequency */
+		add_string("aeionrlstmcdyhubkgpjvfwzxq");
 		break;
 	case 'L': /* lower-case letters, non-ASCII only */
 		switch (pers_opts.internal_cp) {
@@ -286,7 +287,8 @@ static char* plhdr2string(char p, int fmt_case)
 		}
 		break;
 	case 'u': /* upper-case letters */
-		add_range('A', 'Z');
+		/* Rockyou character frequency */
+		add_string("AEIOLRNSTMCDBYHUPKGJVFWZXQ");
 		break;
 	case 'U': /* upper-case letters, non-ASCII only */
 		switch (pers_opts.internal_cp) {
@@ -373,7 +375,8 @@ static char* plhdr2string(char p, int fmt_case)
 		}
 		break;
 	case 'd': /* digits */
-		add_range('0', '9');
+		/* Rockyou character frequency */
+		add_string("1023985467");
 		break;
 	case 'D': /* digits, non-ASCII only */
 		switch (pers_opts.internal_cp) {
@@ -440,10 +443,8 @@ static char* plhdr2string(char p, int fmt_case)
 		}
 		break;
 	case 's': /* specials */
-		add_range(32, 47);
-		add_range(58, 64);
-		add_range(91, 96);
-		add_range(123, 126);
+		/* Rockyou character frequency */
+		add_string("._!-* @#/$,\\&+=?)(';<%\"]~:[^`>{}|");
 		break;
 	case 'S': /* specials, non-ASCII only */
 		switch (pers_opts.internal_cp) {
@@ -558,20 +559,18 @@ static char* plhdr2string(char p, int fmt_case)
 		add_range(0x01, 0xff);
 		break;
 	case 'a': /* Printable ASCII */
+		/* Rockyou ASCII character frequency */
 		if (fmt_case)
-			add_range(0x20, 0x7e);
-		else {
-			add_range(0x20, 0x40);
-			add_range(0x5b, 0x7e);
-		}
+			add_string("ae1ionrls02tm3c98dy54hu6b7kgpjvfwzAxEIOLRNSTMqC.DBYH_!UPKGJ-* @VFWZ#/X$,\\&+=Q?)(';<%\"]~:[^`>{}|");
+		else
+			add_string("ae1ionrls02tm3c98dy54hu6b7kgpjvfwzxq._!-* @#/$,\\&+=?)(';<%\"]~:[^`>{}|");
 		break;
 	case 'A': /* All valid chars in codepage (including ASCII) */
+		/* Rockyou ASCII character frequency */
 		if (fmt_case)
-			add_range(0x20, 0x7e);
-		else {
-			add_range(0x20, 0x40);
-			add_range(0x5b, 0x7e);
-		}
+			add_string("ae1ionrls02tm3c98dy54hu6b7kgpjvfwzAxEIOLRNSTMqC.DBYH_!UPKGJ-* @VFWZ#/X$,\\&+=Q?)(';<%\"]~:[^`>{}|");
+		else
+			add_string("ae1ionrls02tm3c98dy54hu6b7kgpjvfwzxq._!-* @#/$,\\&+=?)(';<%\"]~:[^`>{}|");
 		switch (pers_opts.internal_cp) {
 		case CP437:
 			if (fmt_case)
