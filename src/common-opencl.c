@@ -29,7 +29,10 @@
 #include <time.h>
 #include <signal.h>
 #include <stdlib.h>
-#if (!AC_BUILT || HAVE_FCNTL_H)
+#if !AC_BUILT || HAVE_LOCALE_H
+#include <locale.h>
+#endif
+#if !AC_BUILT || HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
 
@@ -624,6 +627,14 @@ void opencl_preinit(void)
 
 		gpu_device_list[0] = -1;
 		gpu_device_list[1] = -1;
+
+		gpu_temp_limit = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
+		                             "AbortTemperature");
+
+#if !AC_BUILT || HAVE_LOCALE_H
+		if (setlocale(LC_ALL, "") && strchr(setlocale(LC_ALL, NULL), '.'))
+			gpu_degree_sign = DEGREE_SIGN;
+#endif
 
 		for (i = 0; i < MAX_GPU_DEVICES; i++) {
 			context[i] = NULL;
@@ -2574,7 +2585,7 @@ void opencl_list_devices(void)
 			if (fan >= 0)
 				printf("    Fan speed:              %u%%\n", fan);
 			if (temp >= 0)
-				printf("    Temperature:            %u%sC\n",
+				printf("    Temperature:            %u%lsC\n",
 				       temp, gpu_degree_sign);
 			if (util >= 0)
 				printf("    Utilization:            %u%%\n", util);
