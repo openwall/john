@@ -558,20 +558,30 @@ static char* plhdr2string(char p, int fmt_case)
 		add_range(0x01, 0xff);
 		break;
 	case 'a': /* Printable ASCII */
+#if 1
+		/* Rockyou ASCII character frequency */
 		if (fmt_case)
-			add_range(0x20, 0x7e);
-		else {
-			add_range(0x20, 0x40);
-			add_range(0x5b, 0x7e);
-		}
+			add_string("ae1ionrls02tm3c98dy54hu6b7kgpjvfwzAxEIOLRNSTMqC.DBYH_!UPKGJ-* @VFWZ#/X$,\\&+=Q?)(';<%\"]~:[^`>{}|");
+		else
+			add_string("ae1ionrls02tm3c98dy54hu6b7kgpjvfwzxq._!-* @#/$,\\&+=?)(';<%\"]~:[^`>{}|");
+#else
+		/* ?l?d?u?s */
+		add_range('a', 'z');
+		add_range('0', '9');
+		if (fmt_case)
+			add_range('A', 'Z');
+		add_range(32, 47);
+		add_range(58, 64);
+		add_range(91, 96);
+		add_range(123, 126);
+#endif
 		break;
 	case 'A': /* All valid chars in codepage (including ASCII) */
+		/* Rockyou ASCII character frequency */
 		if (fmt_case)
-			add_range(0x20, 0x7e);
-		else {
-			add_range(0x20, 0x40);
-			add_range(0x5b, 0x7e);
-		}
+			add_string("ae1ionrls02tm3c98dy54hu6b7kgpjvfwzAxEIOLRNSTMqC.DBYH_!UPKGJ-* @VFWZ#/X$,\\&+=Q?)(';<%\"]~:[^`>{}|");
+		else
+			add_string("ae1ionrls02tm3c98dy54hu6b7kgpjvfwzxq._!-* @#/$,\\&+=?)(';<%\"]~:[^`>{}|");
 		switch (pers_opts.internal_cp) {
 		case CP437:
 			if (fmt_case)
