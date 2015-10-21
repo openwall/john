@@ -874,10 +874,12 @@ static int crk_salt_loop(void)
 	} while ((salt = salt->next));
 
 	if (done >= 0) {
-#if 1 /* Assumes we'll never overrun 32-bit in one crypt */
+#if !HAVE_OPENCL
+		/* Assumes we'll never overrun 32-bit in one crypt */
 		add32to64(&status.cands, crk_key_index *
 		          mask_int_cand.num_int_cand);
-#else /* Safe for 64-bit */
+#else
+		/* Safe for > 4G crypts per call */
 		int64 totcand;
 		mul32by32(&totcand, crk_key_index, mask_int_cand.num_int_cand);
 		add64to64(&status.cands, &totcand);
