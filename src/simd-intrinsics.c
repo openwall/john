@@ -1550,6 +1550,16 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 
 #if SIMD_PARA_SHA256
 
+/*
+ * These optimized Sigma alternatives are from "Fast SHA-256 Implementations
+ * on Intel Architecture Processors" whitepaper by Intel. They should result
+ * in less register copy operations but in our case they definitely cause a
+ * regression. Not sure why.
+ */
+#if 0
+#define S0(x) vroti_epi32(vxor(vroti_epi32(vxor(vroti_epi32(x, -9), x), -11), x), -2)
+#define S1(x) vroti_epi32(vxor(vroti_epi32(vxor(vroti_epi32(x, -14), x), -5), x), -6)
+#else
 #define S0(x)                                   \
 (                                               \
     vxor(                                       \
@@ -1571,6 +1581,7 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
         )                                       \
     )                                           \
 )
+#endif
 
 #define s0(x)                                   \
 (                                               \
@@ -2135,6 +2146,22 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
     )                                           \
 )
 
+/*
+ * These optimized sigma alternatives are from "Fast SHA-512 Implementations
+ * on Intel Architecture Processors" whitepaper by Intel. They result in less
+ * register copy operations so is faster despite using more ops. Slight boost
+ * indeed seen on intel core i7.
+ */
+#if 1
+#undef s0
+#define s0(x)  (vxor(vsrli_epi64(vxor(vsrli_epi64(vxor(             \
+                     vsrli_epi64(x, 1), x), 6), x), 1),             \
+                     vslli_epi64(vxor(vslli_epi64(x, 7), x), 56)))
+#undef s1
+#define s1(x)  (vxor(vsrli_epi64(vxor(vsrli_epi64(vxor(             \
+                     vsrli_epi64(x, 42), x), 13), x), 6),           \
+                     vslli_epi64(vxor(vslli_epi64(x, 42), x), 3)))
+#else
 #undef s0
 #define s0(x)                                   \
 (                                               \
@@ -2158,6 +2185,7 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
         )                                       \
     )                                           \
 )
+#endif
 
 #if __AVX512F__
 #define Maj(x,y,z) vternarylogic(x, y, z, 0xE8)
