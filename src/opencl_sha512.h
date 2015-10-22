@@ -30,7 +30,7 @@
 	 rotate(x, (ulong)(64 - n)) \
 		)
 #else
-#define ror64(x, n)	rotate(x, (ulong)(64 - n))
+#define ror(x, n)	rotate(x, (ulong)(64 - n))
 #endif
 #define SWAP64(n)	bitselect( \
 		bitselect(rotate(n, 24UL), \
