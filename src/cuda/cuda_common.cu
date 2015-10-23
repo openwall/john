@@ -8,9 +8,6 @@
 
 #include <stdio.h>
 #include <assert.h>
-#if !AC_BUILT || HAVE_LOCALE_H
-#include <locale.h>
-#endif
 
 #include "../autoconfig.h"
 #define HAVE_CUDA
@@ -90,10 +87,6 @@ void cuda_device_list()
 		puts("Error: The installed NVIDIA CUDA driver is older than the CUDA runtime library.\nThis is not a supported configuration. Update your display driver.\n");
 		exit(EXIT_FAILURE);
 	}
-#if !AC_BUILT || HAVE_LOCALE_H
-	if (setlocale(LC_ALL, "") && strchr(setlocale(LC_ALL, NULL), '.'))
-		gpu_degree_sign = DEGREE_SIGN;
-#endif
 	if (cudaRuntimeGetVersion(&version) == cudaSuccess)
 		printf("CUDA runtime %d.%d, ",
 		       version / 1000, (version % 100) / 10);
@@ -186,7 +179,7 @@ void cuda_device_list()
 			else
 				printf("    Fan speed:                     n/a\n");
 			if (temp >= 0)
-				printf("    GPU temp:                      %d%lsC\n",
+				printf("    GPU temp:                      %d%sC\n",
 				       temp, gpu_degree_sign);
 			else
 				printf("    GPU temp:                      n/a\n");

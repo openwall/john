@@ -35,4 +35,7 @@ extern int john_child_count;
 extern int *john_child_pids;
 #endif
 
+/* Terminal locale is read in john_init() and copied to this variable */
+extern char *john_terminal_locale;
+
 #endif

@@ -61,6 +61,9 @@
 #include <sys/wait.h>
 #include <signal.h>
 #endif
+#if !AC_BUILT || HAVE_LOCALE_H
+#include <locale.h>
+#endif
 
 #include "params.h"
 
@@ -112,6 +115,9 @@ static int john_omp_threads_new;
 #include "regex.h"
 
 #include "unicode.h"
+#if HAVE_OPENCL || HAVE_CUDA
+#include "common-gpu.h"
+#endif
 #if HAVE_OPENCL
 #include "common-opencl.h"
 #endif
@@ -182,6 +188,8 @@ int john_main_process = 1;
 int john_child_count = 0;
 int *john_child_pids = NULL;
 #endif
+char *john_terminal_locale ="C";
+
 static int children_ok = 1;
 
 static struct db_main database;
@@ -1368,6 +1376,18 @@ static void john_init(char *name, int argc, char **argv)
 
 		path_init(argv);
 	}
+
+#if (!AC_BUILT || HAVE_LOCALE_H)
+	if (setlocale(LC_ALL, "")) {
+		john_terminal_locale = str_alloc_copy(setlocale(LC_ALL, NULL));
+#if HAVE_OPENCL || HAVE_CUDA
+		if (strchr(john_terminal_locale, '.'))
+			sprintf(gpu_degree_sign, "%ls", DEGREE_SIGN);
+#endif
+		/* We misuse ctype macros so this must be reset */
+		setlocale(LC_CTYPE, "C");
+	}
+#endif
 
 	status_init(NULL, 1);
 	if (argc < 2 ||

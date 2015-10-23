@@ -443,12 +443,12 @@ void status_print(void)
 				if (temp >= 0) {
 					if (i == 0)
 						n += sprintf(s_gpu + n,
-						             " GPU:%u%lsC",
+						             " GPU:%u%sC",
 						             temp,
 						             gpu_degree_sign);
 					else
 						n += sprintf(s_gpu + n,
-						             " GPU%d:%u%lsC",
+						             " GPU%d:%u%sC",
 						             i, temp,
 						             gpu_degree_sign);
 				}
