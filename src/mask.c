@@ -1636,7 +1636,7 @@ int mask_restore_state(FILE *file)
 	unsigned long long ull;
 	int fail = !(options.flags & FLG_MASK_STACKED);
 
-	if (fscanf(file, ""LLu"\n", &ull) == 1)
+	if (fscanf(file, LLu"\n", &ull) == 1)
 		cand = ull;
 	else
 		return fail;
@@ -1656,11 +1656,10 @@ int mask_restore_state(FILE *file)
 			restored_len = d;
 		else
 			return fail;
-		if (fscanf(file, ""LLu"\n", &ull) == 1)
+		if (fscanf(file, LLu"\n", &ull) == 1)
 			rec_cl = ull;
-		/* FIXME: enable the below at 2015-01-01 or later */
-		//else
-		//	return fail;
+		else
+			return fail;
 	}
 
 	for (i = 0; i < cpu_mask_ctx.count; i++)
