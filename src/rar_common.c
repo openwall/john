@@ -359,6 +359,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			char *archive_name;
 			archive_name = ptr;
 			if (!(fp = fopen(archive_name, "rb"))) {
+				if (!ldr_in_pot)
 				fprintf(stderr, "! %s: %s, skipping.\n", archive_name, strerror(errno));
 				goto error;
 			}

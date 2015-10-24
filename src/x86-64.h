@@ -51,11 +51,14 @@
 #define CPU_NAME		"SSE4.1"
 #endif
 
-#ifdef __XOP__
-#define JOHN_XOP
+#ifdef __AVX2__
+#define JOHN_AVX2 1
 #endif
-#if defined(__AVX__) || defined(JOHN_XOP)
-#define JOHN_AVX
+#ifdef __XOP__
+#define JOHN_XOP 1
+#endif
+#if defined(__AVX__) || defined(JOHN_XOP) || defined(JOHN_AVX2)
+#define JOHN_AVX 1
 #endif
 
 #define DES_ASM				0
@@ -128,19 +131,15 @@
 #define DES_BS_VECTOR_SIZE		8
 #define DES_BS_VECTOR			5
 #define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX-16 + 64/64"
-#elif __AVX2__
+#elif defined(JOHN_AVX2)
 /* 256-bit as 1x256 */
 #define DES_BS_VECTOR			4
-#if defined(JOHN_XOP) && defined(__GNUC__)
-/* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
-#undef DES_BS
-#define DES_BS				3
-#define DES_BS_ALGORITHM_NAME		"DES 256/256 XOP2-16"
-#else
 #undef CPU_NAME
 #define CPU_NAME			"AVX2"
+#define CPU_DETECT			1
+#define CPU_REQ				1
+#define CPU_REQ_AVX2
 #define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX2-16"
-#endif
 #elif 0
 /* 256-bit as 2x128 */
 #define DES_BS_NO_AVX256

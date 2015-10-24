@@ -49,7 +49,9 @@ UTF16 CP_to_Unicode[0x100];
 static UTF8 CP_from_Unicode[0x10000];
 
 UTF8 CP_up[0x100];
+UTF8 CP_ups[0x100];
 UTF8 CP_down[0x100];
+UTF8 CP_lows[0x100];
 
 #ifndef UNICODE_NO_OPTIONS
 static int UnicodeType = -1;
@@ -1044,7 +1046,7 @@ void initUnicode(int type)
 {
 
 #ifndef UNICODE_NO_OPTIONS
-	unsigned i;
+	unsigned i, j;
 	unsigned char *cpU, *cpL, *Sep, *Letter;
 	unsigned char *pos;
 	int encoding;
@@ -1546,6 +1548,13 @@ void initUnicode(int type)
 		CP_down[0x91] = 0x91;
 	}
 #endif
+	j = 0;
+	for (i = 0; i < 256; i++) {
+		if (CP_up[i] != CP_down[i]) {
+			CP_ups[j] = CP_up[i];
+			CP_lows[j++] = CP_down[i];
+		}
+	}
 	return;
 }
 

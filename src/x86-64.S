@@ -1636,11 +1636,12 @@ DES_bs_crypt_plain_loop:
 	ret
 #endif
 
-#if defined(CPU_REQ_AVX) || defined(CPU_REQ_XOP)
+#if defined(CPU_REQ_AVX2) || defined(CPU_REQ_AVX) || defined(CPU_REQ_XOP)
 /*
  * CPU detection.
  */
 
+#define CF_AVX2				$0x00000020
 #define CF_XSAVE_OSXSAVE_AVX		$0x1C000000
 #define CF_XOP				$0x00000800
 
@@ -1652,6 +1653,19 @@ DES_bs_crypt_plain_loop:
 .globl CPU_detect
 CPU_detect:
 	pushq %rbx
+#ifdef CPU_REQ_AVX2
+	xorl %eax,%eax
+	cpuid
+	movl $7,%edx
+	cmpl %edx,%eax
+	jl CPU_detect_fail
+	xchgl %edx,%eax
+	xorl %ecx,%ecx
+	cpuid
+	andl CF_AVX2,%ebx
+	cmpl CF_AVX2,%ebx
+	jne CPU_detect_fail
+#else
 	movl $1,%eax
 	cpuid
 	andl CF_XSAVE_OSXSAVE_AVX,%ecx
@@ -1672,6 +1686,7 @@ CPU_detect:
 	cpuid
 	testl CF_XOP,%ecx
 	jz CPU_detect_fail
+#endif
 #endif
 	movl $1,%eax
 	popq %rbx
