@@ -1636,7 +1636,7 @@ DES_bs_crypt_plain_loop:
 	ret
 #endif
 
-#if defined(CPU_REQ_AVX) || defined(CPU_REQ_XOP)
+#if defined(CPU_REQ_AVX2) || defined(CPU_REQ_AVX) || defined(CPU_REQ_XOP)
 /*
  * CPU detection.
  */
