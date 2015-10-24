@@ -1660,6 +1660,7 @@ CPU_detect:
 	cmpl %edx,%eax
 	jl CPU_detect_fail
 	xchgl %edx,%eax
+	xorl %ecx,%ecx
 	cpuid
 	andl CF_AVX2,%ebx
 	cmpl CF_AVX2,%ebx
