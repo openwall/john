@@ -246,12 +246,20 @@ extern char *enc_strupper(char *s);
 extern UTF16 CP_to_Unicode[0x100];
 
 /* Used by various formats uc/lc */
-extern UTF8  CP_up[0x100];
-extern UTF8  CP_down[0x100];
+extern UTF8 CP_up[0x100]; /* upper-case lookup table */
+extern UTF8 CP_ups[0x100]; /* all upper-case letters */
+extern UTF8 CP_down[0x100]; /* lower-case lookup table */
+extern UTF8 CP_lows[0x100]; /* all lower-case letters */
 
 /* Used by single.c and loader.c */
 extern UTF8 CP_isLetter[0x100];
 extern UTF8 CP_isSeparator[0x100];
+
+/* These are encoding-aware but not LC_CTYPE */
+#define enc_islower(c) (pers_opts.internal_cp == ASCII ? (c > 'a' && c < 'z') : (strchr((char*)CP_lows, ARCH_INDEX(c)) != NULL))
+#define enc_isupper(c) (pers_opts.internal_cp == ASCII ? (c > 'A' && c < 'Z') : ((strchr((char*)CP_ups, ARCH_INDEX(c)) != NULL))
+#define enc_tolower(c) (char)CP_down[ARCH_INDEX(c)]
+#define enc_toupper(c) (char)CP_up[ARCH_INDEX(c)]
 
 /* Conversion between encoding names and integer id */
 extern int cp_name2id(char *encoding);

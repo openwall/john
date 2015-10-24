@@ -2145,21 +2145,21 @@ int do_mask_crack(const char *extern_key)
 		i = 0;
 		while(template_key_offsets[i] != -1) {
 			int offset = template_key_offsets[i] & 0xffff;
-			unsigned char is_lower =  (template_key_offsets[i++] >> 16)
-				== 'w';
+			unsigned char toggle =  (template_key_offsets[i++] >> 16) == 'W';
 			int cpy_len = max_keylen - offset;
+
 			cpy_len = cpy_len > key_len ? key_len : cpy_len;
-			if (is_lower)
-			memcpy(template_key + offset, extern_key, cpy_len);
+			if (!toggle)
+				memcpy(template_key + offset, extern_key, cpy_len);
 			else {
 				int z;
 				for (z = 0; z < cpy_len; ++z) {
-					if (islower(ARCH_INDEX(extern_key[z])))
+					if (enc_islower(extern_key[z]))
 						template_key[offset + z] =
-							toupper(ARCH_INDEX(extern_key[z]));
+							enc_toupper(extern_key[z]);
 					else
 						template_key[offset + z] =
-							tolower(ARCH_INDEX(extern_key[z]));
+							enc_tolower(extern_key[z]);
 				}
 			}
 		}
