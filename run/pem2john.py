@@ -12,7 +12,7 @@ try:
     from asn1crypto import pem
     from asn1crypto.keys import EncryptedPrivateKeyInfo
 except ImportError:
-    sys.stderr.write("asn1crypto python package is missing, please install it\n")
+    sys.stderr.write("asn1crypto python package is missing, please install it using 'pip install asn1crypto' command.\n")
     # traceback.print_exc()
     sys.exit(-1)
 
