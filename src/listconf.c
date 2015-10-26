@@ -138,6 +138,12 @@ static void listconf_list_build_info(void)
 	puts("System-wide home: " JOHN_SYSTEMWIDE_HOME);
 	puts("Private home: " JOHN_PRIVATE_HOME);
 #endif
+#if CPU_FALLBACK
+	puts("CPU fallback binary: " CPU_FALLBACK_BINARY);
+#endif
+#if OMP_FALLBACK
+	puts("OMP fallback binary: " OMP_FALLBACK_BINARY);
+#endif
 	printf("$JOHN is %s\n", path_expand("$JOHN/"));
 	printf("Format interface version: %d\n", FMT_MAIN_VERSION);
 	printf("Max. number of reported tunable costs: %d\n", FMT_TUNABLE_COSTS);
