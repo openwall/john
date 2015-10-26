@@ -16,6 +16,8 @@
 #include <stdio.h>
 #include "stdint.h"
 #include "asn1.h"
+#include "jumbo.h"
+
 #define printf(...)
 
 int asn1_get_next(const uint8_t *buf, size_t len, struct asn1_hdr *hdr)
