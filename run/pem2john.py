@@ -6,12 +6,14 @@
 # Shouldn't this be called pkcs8tojohn.py instead?
 
 import sys
+import traceback
 
 try:
-    from asn1crypto.keys import EncryptedPrivateKeyInfo
     from asn1crypto import pem
+    from asn1crypto.keys import EncryptedPrivateKeyInfo
 except ImportError:
     sys.stderr.write("asn1crypto python package is missing, please install it\n")
+    # traceback.print_exc()
     sys.exit(-1)
 
 """
@@ -53,6 +55,8 @@ def unwrap_pkcs8(blob):
     if "algorithm" not in data["encryption_algorithm"]:
         return
     if data["encryption_algorithm"]["algorithm"] != "pbes2":
+        sys.stderr.write("[%s] encryption_algorithm <%s> is not supported currently!\n" %
+                         (sys.argv[0], data["encryption_algorithm"]["algorithm"]))
         return
 
     # encryption data
@@ -61,12 +65,13 @@ def unwrap_pkcs8(blob):
     # KDF
     params = data["encryption_algorithm"]["parameters"]
     kdf = params["key_derivation_func"]
+    if kdf["algorithm"] != "pbkdf2":
+        sys.stderr.write("[%s] kdf algorithm <%s> is not supported currently!\n" %
+                         (sys.argv[0], kdf["algorithm"]))
+        return
     kdf_params = kdf["parameters"]
     salt = kdf_params["salt"]
     iterations = kdf_params["iteration_count"]
-
-    if kdf["algorithm"] != "pbkdf2":
-        return
 
     # Cipher
     cipher_params = params["encryption_scheme"]
@@ -74,7 +79,7 @@ def unwrap_pkcs8(blob):
     iv = cipher_params["parameters"]
 
     if cipher != "tripledes_3key":
-        sys.stderr.out("[%s] cipher %s is not supported currently!\n" % (sys.argv[0], cipher))
+        sys.stderr.write("[%s] cipher <%s> is not supported currently!\n" % (sys.argv[0], cipher))
         return
 
     sys.stdout.write("$PEM$1$1$%s$%s$%s$%d$%s\n" % (salt.encode("hex"), iterations, iv.encode("hex"), len(encrypted_data), encrypted_data.encode("hex")))
@@ -93,6 +98,7 @@ if __name__ == "__main__":
                 sys.stderr.write("[%s] try using sshng2john.py or ssh2john on this file instead!\n" % sys.argv[0])
             else:
                 sys.stderr.write("[%s] is this really a private key in PKCS #8 format?\n" % sys.argv[0])
+
             continue
 
         unwrap_pkcs8(blob)
