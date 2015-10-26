@@ -165,7 +165,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 
-	fctx = mem_alloc_tiny(sizeof(struct format_context), MEM_ALIGN_WORD);
+	fctx = mem_calloc_tiny(sizeof(struct format_context), MEM_ALIGN_WORD);
 
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "$"); // type
