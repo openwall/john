@@ -12393,7 +12393,7 @@ $as_echo "$as_me: not updating unwritable cache $cache_file" >&6;}
 fi
 rm -f confcache
 
-CPU_BEST_FLAGS_MAIN=-DJOHN_${CPU_STR}
+CPU_BEST_FLAGS_MAIN=-DJOHN_$(echo ${CPU_STR} | tr . _)
 
 CC_CPU="${CPU_BEST_FLAGS}"
 

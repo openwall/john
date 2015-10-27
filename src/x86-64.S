@@ -1636,14 +1636,19 @@ DES_bs_crypt_plain_loop:
 	ret
 #endif
 
-#if defined(CPU_REQ_AVX2) || defined(CPU_REQ_AVX) || defined(CPU_REQ_XOP)
+#if CPU_REQ
 /*
  * CPU detection.
  */
 
+#define CF_AVX512F			$0x00010000
+#define CF_AVX512BW			$0x40010000
 #define CF_AVX2				$0x00000020
 #define CF_XSAVE_OSXSAVE_AVX		$0x1C000000
 #define CF_XOP				$0x00000800
+#define CF_SSSE3			$0x00000200
+#define CF_SSE41			$0x00080200
+#define CF_SSE42			$0x00180200
 
 .text
 
@@ -1653,7 +1658,7 @@ DES_bs_crypt_plain_loop:
 .globl CPU_detect
 CPU_detect:
 	pushq %rbx
-#ifdef CPU_REQ_AVX2
+#if CPU_REQ_AVX2 || CPU_REQ_AVX512F || CPU_REQ_AVX512BW
 	xorl %eax,%eax
 	cpuid
 	movl $7,%edx
@@ -1662,12 +1667,35 @@ CPU_detect:
 	xchgl %edx,%eax
 	xorl %ecx,%ecx
 	cpuid
+#if CPU_REQ_AVX512BW
+	andl CF_AVX512BW,%ebx
+	cmpl CF_AVX512BW,%ebx
+	jne CPU_detect_fail
+#elif CPU_REQ_AVX512F
+	andl CF_AVX512F,%ebx
+	cmpl CF_AVX512F,%ebx
+	jne CPU_detect_fail
+#else
 	andl CF_AVX2,%ebx
 	cmpl CF_AVX2,%ebx
 	jne CPU_detect_fail
+#endif
 #else
 	movl $1,%eax
 	cpuid
+#if CPU_REQ_SSE42
+	andl CF_SSE42,%ecx
+	cmpl CF_SSE42,%ecx
+	jne CPU_detect_fail
+#elif CPU_REQ_SSE41
+	andl CF_SSE41,%ecx
+	cmpl CF_SSE41,%ecx
+	jne CPU_detect_fail
+#elif CPU_REQ_SSSE3
+	andl CF_SSSE3,%ecx
+	cmpl CF_SSSE3,%ecx
+	jne CPU_detect_fail
+#elif CPU_REQ_AVX
 	andl CF_XSAVE_OSXSAVE_AVX,%ecx
 	cmpl CF_XSAVE_OSXSAVE_AVX,%ecx
 	jne CPU_detect_fail
@@ -1676,7 +1704,7 @@ CPU_detect:
 	andb $0x6,%al
 	cmpb $0x6,%al
 	jne CPU_detect_fail
-#ifdef CPU_REQ_XOP
+#if CPU_REQ_XOP
 	movl $0x80000000,%eax
 	cpuid
 	movl $0x80000001,%edx
@@ -1686,6 +1714,7 @@ CPU_detect:
 	cpuid
 	testl CF_XOP,%ecx
 	jz CPU_detect_fail
+#endif
 #endif
 #endif
 	movl $1,%eax

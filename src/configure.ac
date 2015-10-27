@@ -691,7 +691,7 @@ AC_CHECK_FUNCS([posix_memalign aligned_alloc memalign __mingw_aligned_malloc _al
 
 AC_CACHE_SAVE
 
-CPU_BEST_FLAGS_MAIN=-DJOHN_${CPU_STR}
+CPU_BEST_FLAGS_MAIN=-DJOHN_$(echo ${CPU_STR} | tr . _)
 
 AC_SUBST([CC_CPU],["${CPU_BEST_FLAGS}"])
 AC_SUBST([CC_MAIN_CPU],["${CPU_BEST_FLAGS_MAIN}"])
