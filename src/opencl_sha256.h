@@ -19,45 +19,15 @@
 
 //Macros.
 #ifdef USE_BITSELECT
-
-#define Ch(x, y, z)     bitselect(z, y, x)
-#define Maj(x, y, z)    bitselect(x, y, z ^ x)
-#define ror(x, n)       rotate(x, (32U-n))
-#define SWAP32(n)       rotate(n & 0x00FF00FFU, 24U) | rotate(n & 0xFF00FF00U, 8U)
-
-#ifdef AMD_STUPID_BUG_2
-#define SWAP_V(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
+#define ror32(x, n)       rotate(x, (32U-n))
 #else
-#define SWAP_V(n)	SWAP32(n)
+#define ror32(x, n)       ((x >> n) | (x << (32U-n)))
 #endif
-
-#else
-#define SWAP(n)	  \
-	(((n) << 24)	       | (((n) & 0xff00U) << 8) | \
-	 (((n) >> 8) & 0xff00U)     | ((n) >> 24))
-
-#if HAVE_LUT3
-#define Ch(x, y, z) lut3(x, y, z, 0xca)
-#elif HAVE_ANDNOT
-#define Ch(x, y, z) ((x & y) ^ ((~x) & z))
-#else
-#define Ch(x, y, z) (z ^ (x & (y ^ z)))
-#endif
-#if HAVE_LUT3
-#define Maj(x, y, z) lut3(x, y, z, 0xe8)
-#else
-#define Maj(x, y, z) ((x & y) | (z & (x | y)))
-#endif
-#define ror(x, n)       ((x >> n) | (x << (32U-n)))
-#define SWAP32(n)       SWAP(n)
-#define SWAP_V(n)       SWAP(n)
-#endif
-
-#define SWAP32_V(n)		SWAP_V(n)
-#define Sigma0(x)		((ror(x,2U))  ^ (ror(x,13U)) ^ (ror(x,22U)))
-#define Sigma1(x)		((ror(x,6U))  ^ (ror(x,11U)) ^ (ror(x,25U)))
-#define sigma0(x)		((ror(x,7U))  ^ (ror(x,18U)) ^ (x>>3))
-#define sigma1(x)		((ror(x,17U)) ^ (ror(x,19U)) ^ (x>>10))
+#define SWAP32_V(n)		SWAP32(n)
+#define Sigma0(x)		((ror32(x,2U))  ^ (ror32(x,13U)) ^ (ror32(x,22U)))
+#define Sigma1(x)		((ror32(x,6U))  ^ (ror32(x,11U)) ^ (ror32(x,25U)))
+#define sigma0(x)		((ror32(x,7U))  ^ (ror32(x,18U)) ^ (x>>3))
+#define sigma1(x)		((ror32(x,17U)) ^ (ror32(x,19U)) ^ (x>>10))
 
 //SHA256 constants.
 #define H0      0x6a09e667U

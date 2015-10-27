@@ -20,45 +20,20 @@
 //Macros.
 //OSX drivers has problems digesting this SWAP64 macro.
 #if defined(USE_BITSELECT) && !__OS_X__
-
-#define Ch(x,y,z)       bitselect(z, y, x)
-#define Maj(x, y, z) bitselect(x, y, z ^ x)
-#define ror(x, n)      ((n) < 32 ?                                                      \
+#define ror64(x, n)      ((n) < 32 ?                                                    \
 		(amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n)) |                \
 		((ulong)amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n)) << 32)) : \
 		(amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n) - 32) |           \
 		((ulong)amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n) - 32) << 32)))
-#define SWAP64(n)	bitselect( \
-		bitselect(rotate(n, 24UL), \
-		          rotate(n, 8UL), 0x000000FF000000FFUL), \
-		bitselect(rotate(n, 56UL), \
-		          rotate(n, 40UL), 0x00FF000000FF0000UL), \
-		0xFFFF0000FFFF0000UL)
-
+#else
+#define ror64(x, n)       ((x >> n) | (x << (64UL-n)))
+#endif
 #define SWAP64_V(n)     SWAP64(n)
 
-#else
-
-#define SWAP(n)	  \
-	(((n)             << 56)     | (((n) & 0xff00UL)     << 40) | \
-	 (((n) & 0xff0000UL) << 24)   | (((n) & 0xff000000UL) << 8)  | \
-	 (((n) >> 8)  & 0xff000000UL) | (((n) >> 24) & 0xff0000UL)   | \
-	 (((n) >> 40) & 0xff00UL)     | ((n)  >> 56))
-#if HAVE_ANDNOT
-#define Ch(x, y, z) ((x & y) ^ ((~x) & z))
-#else
-#define Ch(x, y, z) (z ^ (x & (y ^ z)))
-#endif
-#define Maj(x, y, z) ((x & y) | (z & (x | y)))
-#define ror(x, n)       ((x >> n) | (x << (64UL-n)))
-#define SWAP64(n)       SWAP(n)
-#define SWAP64_V(n)     SWAP(n)
-#endif
-
-#define Sigma0(x)               ((ror(x,28UL)) ^ (ror(x,34UL)) ^ (ror(x,39UL)))
-#define Sigma1(x)               ((ror(x,14UL)) ^ (ror(x,18UL)) ^ (ror(x,41UL)))
-#define sigma0(x)               ((ror(x,1UL))  ^ (ror(x,8UL))  ^ (x>>7))
-#define sigma1(x)               ((ror(x,19UL)) ^ (ror(x,61UL)) ^ (x>>6))
+#define Sigma0(x)               ((ror64(x,28UL)) ^ (ror64(x,34UL)) ^ (ror64(x,39UL)))
+#define Sigma1(x)               ((ror64(x,14UL)) ^ (ror64(x,18UL)) ^ (ror64(x,41UL)))
+#define sigma0(x)               ((ror64(x,1UL))  ^ (ror64(x,8UL))  ^ (x>>7))
+#define sigma1(x)               ((ror64(x,19UL)) ^ (ror64(x,61UL)) ^ (x>>6))
 
 //SHA512 constants.
 #define H0      0x6a09e667f3bcc908UL
