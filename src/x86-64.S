@@ -1647,8 +1647,7 @@ DES_bs_crypt_plain_loop:
 #define CF_XSAVE_OSXSAVE_AVX		$0x1C000000
 #define CF_XOP				$0x00000800
 #define CF_SSSE3			$0x00000200
-#define CF_SSE41			$0x00080200
-#define CF_SSE42			$0x00180200
+#define CF_SSE4_1			$0x00080200
 
 .text
 
@@ -1683,17 +1682,13 @@ CPU_detect:
 #else
 	movl $1,%eax
 	cpuid
-#if CPU_REQ_SSE42
-	andl CF_SSE42,%ecx
-	cmpl CF_SSE42,%ecx
-	jne CPU_detect_fail
-#elif CPU_REQ_SSE41
-	andl CF_SSE41,%ecx
-	cmpl CF_SSE41,%ecx
-	jne CPU_detect_fail
-#elif CPU_REQ_SSSE3
+#if CPU_REQ_SSSE3
 	andl CF_SSSE3,%ecx
 	cmpl CF_SSSE3,%ecx
+	jne CPU_detect_fail
+#elif CPU_REQ_SSE4_1
+	andl CF_SSE4_1,%ecx
+	cmpl CF_SSE4_1,%ecx
 	jne CPU_detect_fail
 #elif CPU_REQ_AVX
 	andl CF_XSAVE_OSXSAVE_AVX,%ecx

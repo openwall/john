@@ -45,20 +45,22 @@
 #ifdef __SSSE3__
 #undef CPU_NAME
 #define CPU_NAME			"SSSE3"
+#define JOHN_SSSE3			1
 #endif
 #ifdef __SSE4_1__
 #undef CPU_NAME
 #define CPU_NAME			"SSE4.1"
+#define JOHN_SSE4_1			1
 #endif
 
 #ifdef __AVX2__
-#define JOHN_AVX2 1
+#define JOHN_AVX2 			1
 #endif
 #ifdef __XOP__
-#define JOHN_XOP 1
+#define JOHN_XOP			1
 #endif
 #if defined(__AVX__) || defined(JOHN_XOP) || defined(JOHN_AVX2)
-#define JOHN_AVX 1
+#define JOHN_AVX			1
 #endif
 
 #define DES_ASM				0
@@ -229,22 +231,22 @@
 
 #ifndef CPU_REQ
 #if JOHN_AVX512BW
+#undef CPU_DETECT
 #define CPU_DETECT			1
 #define CPU_REQ				1
 #define CPU_REQ_AVX512BW		1
 #elif JOHN_AVX512F
+#undef CPU_DETECT
 #define CPU_DETECT			1
 #define CPU_REQ				1
 #define CPU_REQ_AVX512F			1
-#elif JOHN_SSE4_2
-#define CPU_DETECT			1
-#define CPU_REQ				1
-#define CPU_REQ_SSE4_2			1
 #elif JOHN_SSE4_1
+#undef CPU_DETECT
 #define CPU_DETECT			1
 #define CPU_REQ				1
 #define CPU_REQ_SSE4_1			1
 #elif JOHN_SSSE3
+#undef CPU_DETECT
 #define CPU_DETECT			1
 #define CPU_REQ				1
 #define CPU_REQ_SSSE3			1
