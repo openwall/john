@@ -465,7 +465,7 @@ static void reset(struct db_main *db)
 		                       ((_SPLIT_KERNEL_IN_USE) ?
 		                        split_events : NULL),
 		                       warn, 1, self, create_clobj,
-		                       release_clobj, sizeof(uint32_t) * (32 * 8), 0);
+		                       release_clobj, sizeof(uint32_t) * (32 * 8), 0, db);
 
 		if (cpu(device_info[gpu_id]))
 			max_run_time = 1000ULL;

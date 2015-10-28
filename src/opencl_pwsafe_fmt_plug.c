@@ -202,7 +202,7 @@ static void reset(struct db_main *db)
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, ROUNDS_DEFAULT/8, split_events,
 		                       warn, 2, self, create_clobj,
-		                       release_clobj, sizeof(pwsafe_pass), 0);
+		                       release_clobj, sizeof(pwsafe_pass), 0, db);
 
 		//Auto tune execution from shared/included code.
 		autotune_run(self, ROUNDS_DEFAULT, 0,

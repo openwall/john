@@ -250,7 +250,7 @@ static void reset(struct db_main *db)
 		opencl_init_auto_setup(SEED, 2 * HASH_LOOPS, split_events,
 		                       warn, 2, self,
 		                       create_clobj, release_clobj,
-		                       2 * ocl_v_width * sizeof(wpapsk_state), 0);
+		                       2 * ocl_v_width * sizeof(wpapsk_state), 0, db);
 
 		// Auto tune execution from shared/included code.
 		autotune_run(self, 2 * ITERATIONS * 2 + 2, 0,
