@@ -13,7 +13,7 @@
 
 #include "opencl_cryptsha256.h"
 
-#if (gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR < 1729) || nvidia_sm_5x(DEVICE_INFO) //#############3
+#if gpu_amd(DEVICE_INFO) || nvidia_sm_5x(DEVICE_INFO)
     #define VECTOR_USAGE
 #endif
 
@@ -697,12 +697,6 @@ inline void sha256_crypt(
         H[i] = alt_result[i].mem_32[0];
 
     /* Repeatedly run the collected hash value through SHA256 to burn cycles. */
-
-#if UNROLL_LEVEL == 0
-    //#pragma unroll 1
-#elif UNROLL_LEVEL > 4
-    //#pragma unroll 2
-#endif
     for (uint i = 0U; i < HASH_LOOPS; i++) {
         total = work_memory[OFFSET(loop_index[i], 30)];
 

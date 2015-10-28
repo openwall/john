@@ -358,7 +358,7 @@ static void reset(struct db_main *db)
 
 		//Auto tune execution from shared/included code.
 		autotune_run(self, ROUNDS_DEFAULT, 0,
-		             (cpu(device_info[gpu_id]) ? 1000ULL : 300ULL));
+		             (cpu(device_info[gpu_id]) ? 1000ULL : 200ULL));
 		memset(plaintext, '\0', sizeof(sha256_password) * global_work_size);
 	}
 }
