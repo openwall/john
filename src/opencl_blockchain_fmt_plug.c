@@ -256,6 +256,7 @@ static void *get_salt(char *ciphertext)
 	} un;
 	struct custom_salt *cs = &(un._cs);
 
+	memset(&un, 0, sizeof(un));
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "$");
 	if (!strcmp(p, "v2")) {

@@ -81,7 +81,7 @@ static struct custom_salt {
 	unsigned int has_mitm;
 	unsigned char mitm[8]; /* Meet-in-the-middle hint, if we have one */
 	int benchmark; /* Disable mitm, during benchmarking */
-} *cur_salt;
+} cur_salt;
 
 typedef struct {
 	uint len;
@@ -347,9 +347,9 @@ static char *source(char *source, void *binary)
 	unsigned char *cpi, *cp = (unsigned char*)Buf;
 	int i, len;
 
-	cp += sprintf(Buf, "%s%d*", FORMAT_TAG, cur_salt->type);
+	cp += sprintf(Buf, "%s%d*", FORMAT_TAG, cur_salt.type);
 
-	cpi = cur_salt->salt;
+	cpi = cur_salt.salt;
 	for (i = 0; i < 16; i++) {
 		*cp++ = itoa16[*cpi >> 4];
 		*cp++ = itoa16[*cpi & 0xf];
@@ -357,7 +357,7 @@ static char *source(char *source, void *binary)
 	}
 	*cp++ = '*';
 
-	cpi = cur_salt->verifier;
+	cpi = cur_salt.verifier;
 	for (i = 0; i < 16; i++) {
 		*cp++ = itoa16[*cpi >> 4];
 		*cp++ = itoa16[*cpi & 0xf];
@@ -365,17 +365,17 @@ static char *source(char *source, void *binary)
 	}
 	*cp++ = '*';
 
-	len = (cur_salt->type < 3) ? 16 : 20;
-	cpi = cur_salt->verifierHash;
+	len = (cur_salt.type < 3) ? 16 : 20;
+	cpi = cur_salt.verifierHash;
 	for (i = 0; i < len; i++) {
 		*cp++ = itoa16[*cpi >> 4];
 		*cp++ = itoa16[*cpi & 0xf];
 		cpi++;
 	}
 
-	if (cur_salt->has_mitm) {
+	if (cur_salt.has_mitm) {
 		*cp++ = '*';
-		cpi = cur_salt->mitm;
+		cpi = cur_salt.mitm;
 		for (i = 0; i < 5; i++) {
 			*cp++ = itoa16[*cpi >> 4];
 			*cp++ = itoa16[*cpi & 0xf];
@@ -390,16 +390,16 @@ static char *source(char *source, void *binary)
 
 static void set_salt(void *salt)
 {
-	cur_salt = (struct custom_salt *)salt;
-	cur_salt->benchmark = bench_running;
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, SALT_SIZE, cur_salt, 0, NULL, NULL), "Failed transferring salt");
+	memcpy(&cur_salt, (struct custom_salt*)salt, SALT_SIZE);
+	cur_salt.benchmark = bench_running;
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, SALT_SIZE, &cur_salt, 0, NULL, NULL), "Failed transferring salt");
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int index;
 	const int count = *pcount;
-	int m = cur_salt->has_mitm;
+	int m = cur_salt.has_mitm;
 	size_t lws;
 
 	/* kernel is made for lws 64, using local memory */
@@ -422,7 +422,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		new_keys = 0;
 	}
 
-	if (cur_salt->type < 3) {
+	if (cur_salt.type < 3) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_md5, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running second kernel");
 	} else {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_sha1, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running first kernel");
@@ -439,8 +439,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			break;
 		}
 	} else {
-		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, SALT_SIZE, cur_salt, 0, NULL, NULL), "Failed transferring salt");
-		if ((any_cracked = cur_salt->has_mitm))
+		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, SALT_SIZE, &cur_salt, 0, NULL, NULL), "Failed transferring salt");
+		if ((any_cracked = cur_salt.has_mitm))
 			BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, multi_profilingEvent[4]), "failed reading results back");
 	}
 

@@ -107,6 +107,7 @@ static hccap_t *decode_hccap(char *ciphertext)
 	unsigned char *dst = tbuf;
 	int i;
 
+	memset(&hccap, 0, sizeof(hccap));
 	if (hash == NULL)
 		return &hccap;
 	while (essid != hash) {	///copy essid to hccap
