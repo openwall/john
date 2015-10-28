@@ -25,23 +25,21 @@ john_register_one(&fmt_opencl_cryptsha256);
 #include "common-opencl.h"
 #include "config.h"
 #include "options.h"
+#include "opencl_cryptsha256.h"
+#define __CRYPTSHA256_CREATE_PROPER_TESTS_ARRAY__
+#include "cryptsha256_common.h"
 
 #define FORMAT_LABEL			"sha256crypt-opencl"
 #define ALGORITHM_NAME			"SHA256 OpenCL"
 #define OCL_CONFIG			"sha256crypt"
 
-#define __CRYPTSHA256_CREATE_PROPER_TESTS_ARRAY__
-#include "cryptsha256_common.h"
-#include "opencl_cryptsha256.h"
-
-
 //Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
 #define _USE_CPU_SOURCE			(cpu(source_in_use))
-#define _USE_GPU_SOURCE			(gpu(source_in_use) || platform_apple(platform_id))
-#define _SPLIT_KERNEL_IN_USE		(_USE_GPU_SOURCE)
+#define _USE_GPU_SOURCE			(gpu(source_in_use))
+#define _SPLIT_KERNEL_IN_USE		(gpu(source_in_use))
 
 static sha256_salt			* salt;
-static sha256_password			* plaintext;			// plaintext ciphertexts
+static sha256_password	 		* plaintext;			// plaintext ciphertexts
 static sha256_password			* plain_sorted;			// sorted list (by plaintext len)
 static sha256_hash			* calculated_hash;		// calculated hashes
 static sha256_hash			* computed_hash;		// calculated hashes (from plain_sorted)
@@ -51,26 +49,28 @@ static int				* indices;			// relationship between sorted and unsorted plaintext
 static cl_mem salt_buffer;		//Salt information.
 static cl_mem pass_buffer;		//Plaintext buffer.
 static cl_mem hash_buffer;		//Hash keys (output).
-static cl_mem work_buffer;		//Temporary buffer
+static cl_mem work_buffer, tmp_buffer;	//Temporary buffers
 static cl_mem pinned_saved_keys, pinned_partial_hashes;
 static struct fmt_main *self;
 
-static cl_kernel prepare_kernel, final_kernel;
+static cl_kernel prepare_kernel, preproc_kernel, final_kernel;
 
 static int new_keys, source_in_use;
-static int split_events[3] = { 1, 5, 6 };
+static int split_events[3] = { 1, 6, 7 };
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
 #include "opencl-autotune.h"
 #include "memdbg.h"
 
 /* ------- Helper functions ------- */
-static size_t get_task_max_work_group_size(){
+static size_t get_task_max_work_group_size()
+{
 	size_t s;
 
 	s = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 	if (_SPLIT_KERNEL_IN_USE) {
 		s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, prepare_kernel));
+		s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, preproc_kernel));
 		s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, final_kernel));
 	}
 	return s;
@@ -117,40 +117,60 @@ static void create_clobj(size_t gws, struct fmt_main * self)
 			sizeof(sha256_hash) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
 
-	work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
+	tmp_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
 			sizeof(sha256_buffers) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area");
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 1");
+
+        work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
+                sizeof(uint32_t) * (32 * 8) * gws, NULL, &ret_code);
+        HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 2");
 
 	//Set kernel arguments
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
 			(void *) &salt_buffer), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
+
+	if (!(_SPLIT_KERNEL_IN_USE)) {
+		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
 			(void *) &pass_buffer), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
+		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
 			(void *) &hash_buffer), "Error setting argument 2");
 
-	if (_SPLIT_KERNEL_IN_USE) {
-		//Set prepare kernel arguments
-		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
-			(void *) &salt_buffer), "Error setting argument 0");
-		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
-			(void *) &pass_buffer), "Error setting argument 1");
-		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
-			(void *) &work_buffer), "Error setting argument 2");
+	} else {
+                //Set prepare kernel arguments
+                HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
+                        (void *) &salt_buffer), "Error setting argument 0");
+                HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
+                        (void *) &pass_buffer), "Error setting argument 1");
+                HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
+                        (void *) &tmp_buffer), "Error setting argument 2");
 
-		//Set crypt kernel arguments
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
-			(void *) &work_buffer), "Error setting argument crypt_kernel (3)");
+                //Set preprocess kernel arguments
+                HANDLE_CLERROR(clSetKernelArg(preproc_kernel, 0, sizeof(cl_mem),
+                        (void *) &salt_buffer), "Error setting argument 0");
+                HANDLE_CLERROR(clSetKernelArg(preproc_kernel, 1, sizeof(cl_mem),
+                        (void *) &pass_buffer), "Error setting argument 1");
+                HANDLE_CLERROR(clSetKernelArg(preproc_kernel, 2, sizeof(cl_mem),
+                        (void *) &tmp_buffer), "Error setting argument 2");
+                HANDLE_CLERROR(clSetKernelArg(preproc_kernel, 3, sizeof(cl_mem),
+                        (void *) &work_buffer), "Error setting argument 3");
 
-		//Set final kernel arguments
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
-				(void *) &salt_buffer), "Error setting argument 0");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem),
-				(void *) &pass_buffer), "Error setting argument 1");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
-				(void *) &hash_buffer), "Error setting argument 2");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
-			(void *) &work_buffer), "Error setting argument crypt_kernel (3)");
+                //Set crypt kernel arguments
+                HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
+                        (void *) &hash_buffer), "Error setting argument 1");
+                HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
+                        (void *) &tmp_buffer), "Error setting argument 2");
+                HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
+                        (void *) &work_buffer), "Error setting argument 3");
+
+                //Set final kernel arguments
+                HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
+                        (void *) &salt_buffer), "Error setting argument 0");
+                HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem),
+                        (void *) &hash_buffer), "Error setting argument 2");
+                HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
+                        (void *) &tmp_buffer), "Error setting argument 3");
+                HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
+                        (void *) &work_buffer), "Error setting argument 3");
 	}
 	memset(plaintext, '\0', sizeof(sha256_password) * gws);
 	memset(plain_sorted, '\0', sizeof(sha256_password) * gws);
@@ -179,6 +199,8 @@ static void release_clobj(void) {
 		HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
 		ret_code = clReleaseMemObject(hash_buffer);
 		HANDLE_CLERROR(ret_code, "Error Releasing buffer_out");
+		ret_code = clReleaseMemObject(tmp_buffer);
+		HANDLE_CLERROR(ret_code, "Error Releasing tmp_buffer");
 		ret_code = clReleaseMemObject(work_buffer);
 		HANDLE_CLERROR(ret_code, "Error Releasing work_out");
 
@@ -197,7 +219,6 @@ static void * get_salt(char *ciphertext) {
 	static sha256_salt out;
 	int len;
 
-	memset(&out, 0, sizeof(out));
 	out.rounds = ROUNDS_DEFAULT;
 	ciphertext += 3;
 	if (!strncmp(ciphertext, ROUNDS_PREFIX,
@@ -233,7 +254,7 @@ static void set_salt(void * salt_info) {
 
 	//Send salt information to GPU.
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_FALSE, 0,
-		sizeof(sha256_salt), (void * ) salt, 0, NULL, NULL),
+		sizeof(sha256_salt), salt, 0, NULL, NULL),
 		"failed in clEnqueueWriteBuffer salt_buffer");
 	HANDLE_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
 }
@@ -283,6 +304,7 @@ static void build_kernel(char * task) {
 			"The OpenCL driver in use cannot run this kernel. Please, update your driver!\n");
 		error();
 	}
+
 	// create kernel(s) to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
@@ -292,6 +314,8 @@ static void build_kernel(char * task) {
 		HANDLE_CLERROR(ret_code, "Error creating kernel_prepare. Double-check kernel name?");
 		final_kernel = clCreateKernel(program[gpu_id], "kernel_final", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel_final. Double-check kernel name?");
+                preproc_kernel = clCreateKernel(program[gpu_id], "kernel_preprocess", &ret_code);
+                HANDLE_CLERROR(ret_code, "Error creating kernel_preprocess. Double-check kernel name?");
 	}
 }
 
@@ -305,6 +329,7 @@ static void reset(struct db_main *db)
 	if (!autotuned) {
                 char * tmp_value;
                 char * task = "$JOHN/kernels/cryptsha256_kernel_DEFAULT.cl";
+		int major, minor;
 
                 opencl_prepare_dev(gpu_id);
                 source_in_use = device_info[gpu_id];
@@ -312,8 +337,10 @@ static void reset(struct db_main *db)
                 if ((tmp_value = getenv("_TYPE")))
                         source_in_use = atoi(tmp_value);
 
+		opencl_driver_value(gpu_id, &major, &minor);
+
                 if (_USE_GPU_SOURCE)
-                        task = "$JOHN/kernels/cryptsha256_kernel_GPU.cl";
+                         task = "$JOHN/kernels/cryptsha256_kernel_GPU.cl";
 
                 build_kernel(task);
 
@@ -324,13 +351,15 @@ static void reset(struct db_main *db)
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS,
 		                       ((_SPLIT_KERNEL_IN_USE) ?
-		                        split_events : NULL), warn, 1,
-		                       self, create_clobj, release_clobj,
-		                       sizeof(sha256_password), 0);
+		                        split_events : NULL),
+		                       warn, 1, self, create_clobj,
+		                       release_clobj,
+		                       sizeof(uint32_t) * (32 * 8) , 0);
 
 		//Auto tune execution from shared/included code.
 		autotune_run(self, ROUNDS_DEFAULT, 0,
-		             (cpu(device_info[gpu_id]) ? 1000ULL : 300ULL));
+		             (cpu(device_info[gpu_id]) ? 1000ULL : 200ULL));
+		memset(plaintext, '\0', sizeof(sha256_password) * global_work_size);
 	}
 }
 
@@ -344,6 +373,7 @@ static void done(void) {
                 if (_SPLIT_KERNEL_IN_USE) {
                         HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
                         HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
+			HANDLE_CLERROR(clReleaseKernel(preproc_kernel), "Release kernel");
                 }
                 HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
                 autotuned = 0;
@@ -371,8 +401,7 @@ static int cmp_exact(char * source, int count) {
 }
 
 /* ------- Crypt function ------- */
-static int crypt_all(int *pcount, struct db_salt *_salt)
-{
+static int crypt_all(int *pcount, struct db_salt *_salt) {
 	int count = *pcount;
 	int i, index;
 	size_t gws;
@@ -415,6 +444,10 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 			&gws, lws, 0, NULL, multi_profilingEvent[3]),
 			"failed in clEnqueueNDRangeKernel I");
 
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], preproc_kernel, 1, NULL,
+			&gws, lws, 0, NULL, multi_profilingEvent[4]),
+			"failed in clEnqueueNDRangeKernel II");
+
 		for (i = 0; i < (ocl_autotune_running ? 3 : (salt->rounds  / HASH_LOOPS)); i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 				&gws, lws, 0, NULL,
@@ -425,8 +458,8 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 			opencl_process_event();
 		}
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL,
-			&gws, lws, 0, NULL, multi_profilingEvent[4]),
-			"failed in clEnqueueNDRangeKernel II");
+			&gws, lws, 0, NULL, multi_profilingEvent[5]),
+			"failed in clEnqueueNDRangeKernel III");
 	} else
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 			&gws, lws, 0, NULL, multi_profilingEvent[1]),
@@ -440,7 +473,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 	//Do the work
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
 	new_keys = 0;
-	
+
 	//Build calculated hash list according to original plaintext list order.
 	for (index = 0; index < count; index++)
 		memcpy(calculated_hash[indices[index]].v, computed_hash[index].v, BINARY_SIZE);
@@ -463,7 +496,6 @@ static unsigned int iteration_count(void *salt)
 	sha256crypt_salt = salt;
 	return (unsigned int)sha256crypt_salt->rounds;
 }
-
 
 /* ------- Format structure ------- */
 struct fmt_main fmt_opencl_cryptsha256 = {

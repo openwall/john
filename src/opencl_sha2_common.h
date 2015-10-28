@@ -15,16 +15,78 @@
 // Type names definition.
 // NOTE: long is always 64-bit in OpenCL, and long long is 128 bit.
 #ifdef _OPENCL_COMPILER
-	#define uint8_t  unsigned char
-	#define uint16_t unsigned short
-	#define uint32_t unsigned int
-	#define uint64_t unsigned long
+#include "opencl_misc.h"
+
+// ** Precomputed index to position/values. **
+//0:		0					=>  1
+//0: 3		14,28					=>  2
+//0: 7		6,12,18,24,30,36			=>  6
+//0: 3,7	2,4,8,10,16,20,22,26,32,34,38,40	=> 12
+//1:		21					=>  1
+//1: 3		7,35					=>  2
+//1: 7		3,9,15,27,33,39				=>  6
+//1: 3,7	1,5,11,13,17,19,23,25,29,31,37,41	=> 12
+__constant int loop_index[] = {
+    0, /* 0,000*/ 7, /* 1,111*/ 3, /* 2,011*/ 5, /* 3,101*/
+    3, /* 4,011*/ 7, /* 5,111*/ 1, /* 6,001*/ 6, /* 7,110*/
+    3, /* 8,011*/ 5, /* 9,101*/ 3, /*10,011*/ 7, /*11,111*/
+    1, /*12,001*/ 7, /*13,111*/ 2, /*14,010*/ 5, /*15,101*/
+    3, /*16,011*/ 7, /*17,111*/ 1, /*18,001*/ 7, /*19,111*/
+    3, /*20,011*/ 4, /*21,100*/ 3, /*22,011*/ 7, /*23,111*/
+    1, /*24,001*/ 7, /*25,111*/ 3, /*26,011*/ 5, /*27,101*/
+    2, /*28,010*/ 7, /*29,111*/ 1, /*30,001*/ 7, /*31,111*/
+    3, /*32,011*/ 5, /*33,101*/ 3, /*34,011*/ 6, /*35,110*/
+    1, /*36,001*/ 7, /*37,111*/ 3, /*38,011*/ 5, /*39,101*/
+    3, /*40,011*/ 7, /*41,111*/
+};
+
+__constant int generator_index[] = {
+    0,	    /*  0, 000 */
+    6,	    /*  6, 001 */
+    14,	    /* 14, 010 */
+    2,	    /*  2, 011 */
+    21,	    /* 21, 100 */
+    3,	    /*  3, 101 */
+    7,	    /*  7, 110 */
+    1	    /*  1, 111 */
+};
+#endif
+
+#undef USE_BITSELECT	    //What used in opencl_misc cannot handle all situations.
+#if gpu_amd(DEVICE_INFO)    //At least, it will fail for cpu and nvidia
+    #define USE_BITSELECT	1
+#endif
+
+//Macros.
+#ifdef USE_BITSELECT
+    #define Ch(x, y, z)     bitselect(z, y, x)
+    #define Maj(x, y, z)    bitselect(x, y, z ^ x)
+#else
+#if HAVE_LUT3 && BITS_32
+#define Ch(x, y, z) lut3(x, y, z, 0xca)
+#elif HAVE_ANDNOT
+#define Ch(x, y, z) ((x & y) ^ ((~x) & z))
+#else
+#define Ch(x, y, z) (z ^ (x & (y ^ z)))
+#endif
+
+#if HAVE_LUT3 && BITS_32
+#define Maj(x, y, z) lut3(x, y, z, 0xe8)
+#else
+#define Maj(x, y, z) ((x & y) | (z & (x | y)))
+#endif
 #endif
 
 // Start documenting AMD OpenCL bugs.
-#if amd_vliw5(DEVICE_INFO)
-    ///Fixed (back in 14.9). Kept for future reference.
+#if amd_vliw5(DEVICE_INFO) || amd_vliw4(DEVICE_INFO)
+    //amd_vliw4() is a guess.
+
+    ///Needed (at least) in 14.9 and 15.7
     ///TODO: can't remove the [unroll]. (At least) HD 6770.
+    ///#ifdef AMD_STUPID_BUG_1
+    ///  #pragma unroll 2
+    ///#endif
+    ///for (uint i = 16U; i < 80U; i++) {
     #define AMD_STUPID_BUG_1
 
     ///TODO: can't use a valid command twice on sha256crypt. (At least) HD 6770.
@@ -34,7 +96,7 @@
     ///  #ifdef AMD_STUPID_BUG_2
     ///	   #define SWAP_V(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
     /// ----------------------
-    #define AMD_STUPID_BUG_2
+    //#define AMD_STUPID_BUG_2
 
     ///TODO: can't use constant. (At least) HD 6770.
     ///Fixed. Kept for future reference.
@@ -45,52 +107,8 @@
 #endif
 
 //Functions.
-#undef MAX
-#undef MIN
-#define MAX(x,y)                ((x) > (y) ? (x) : (y))
-#define MIN(x,y)                ((x) < (y) ? (x) : (y))
-
 /* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
-#define GETCHAR(buf, index) ((buf)[(index)])
 #define ATTRIB(buf, index, val) (buf)[(index)] = val
-
-#if gpu_amd(DEVICE_INFO)
-	#pragma OPENCL EXTENSION cl_amd_media_ops : enable
-	#define USE_BITSELECT	1
-#endif
-
-#if SM_MAJOR >= 5 && (DEV_VER_MAJOR > 352 || (DEV_VER_MAJOR == 352 && DEV_VER_MINOR >= 21))
-#define HAVE_LUT3	1
-inline uint lut3(uint a, uint b, uint c, uint imm)
-{
-	uint r;
-	asm("lop3.b32 %0, %1, %2, %3, %4;"
-	    : "=r" (r)
-	    : "r" (a), "r" (b), "r" (c), "i" (imm));
-	return r;
-}
-
-#if 0 /* This does no good */
-#define HAVE_LUT3_64	1
-inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
-{
-	ulong t, r;
-
-	asm("lop3.b32 %0, %1, %2, %3, %4;"
-	    : "=r" (t)
-	    : "r" ((uint)a), "r" ((uint)b), "r" ((uint)c), "i" (imm));
-	r = t;
-	asm("lop3.b32 %0, %1, %2, %3, %4;"
-	    : "=r" (t)
-	    : "r" ((uint)(a >> 32)), "r" ((uint)(b >> 32)), "r" ((uint)(c >> 32)), "i" (imm));
-	return r + (t << 32);
-}
-#endif
-#endif
-
-#if cpu(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
-#define HAVE_ANDNOT 1
-#endif
 
 #if no_byte_addressable(DEVICE_INFO) || (gpu_amd(DEVICE_INFO) && defined(AMD_PUTCHAR_NOCAST))
 	#define USE_32BITS_FOR_CHAR
@@ -105,13 +123,6 @@ inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
     #define BUFFER      ctx->buffer->mem_08
     #define F_BUFFER    ctx.buffer->mem_08
 #endif
-
-#ifdef USE_32BITS_FOR_CHAR
-#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3U) << 3))) + ((val) << (((index) & 3U) << 3))
-#else
-#define PUTCHAR(buf, index, val) ((uchar*)(buf))[(index)] = (val)
-#endif
-
 #define TRANSFER_SIZE           (1024 * 64)
 
 #define ROUND_A(A, B, C, D, E, F, G, H, ki, wi)\
