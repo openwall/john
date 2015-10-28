@@ -558,53 +558,36 @@ static void reset(struct db_main *db)
 						get_max_mem_alloc_size(gpu_id) / BUFSIZE))
 		gws_limit >>= 1;
 
-	if (initialized && db) {
-		release_base_clobj();
-		release_clobj();
-
-		num_loaded_hashes = db->salts->count;
-		ocl_hc_128_prepare_table(db->salts);
-		init_kernel(num_loaded_hashes, ocl_hc_128_select_bitmap(num_loaded_hashes));
-
-		create_base_clobj();
-
+	if (initialized) {
 		// Forget the previous auto-tune
 		local_work_size = o_lws;
 		global_work_size = o_gws;
 
-		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, 1, NULL, warn, 2, self,
-							   create_clobj, release_clobj,
-		                       2 * BUFSIZE, gws_limit);
-
-		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, gws_limit, 300, CL_TRUE);
-	}
-	else {
-
+		release_base_clobj();
+		release_clobj();
+	} else {
 		o_lws = local_work_size;
 		o_gws = global_work_size;
-
-		ocl_hc_128_prepare_table_test();
-
-		init_kernel(num_loaded_hashes, ocl_hc_128_select_bitmap(num_loaded_hashes));
-
-		create_base_clobj();
-
-		// GPU mask mode bench, do not auto tune for self test.
-		if ((options.flags & FLG_MASK_CHK) && !(options.flags & FLG_TEST_CHK))
-			opencl_get_sane_lws_gws_values();
-
-		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, 1, NULL, warn, 2, self,
-							   create_clobj, release_clobj,
-		                       2 * BUFSIZE, gws_limit);
-
-		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, gws_limit, 300, CL_TRUE);
-
-		initialized++;
+		initialized = 1;
 	}
+
+	num_loaded_hashes = db->salts->count;
+	ocl_hc_128_prepare_table(db->salts);
+	init_kernel(num_loaded_hashes, ocl_hc_128_select_bitmap(num_loaded_hashes));
+
+	create_base_clobj();
+
+	// If real crack, do not auto tune for self test.
+	if (!(options.flags & FLG_TEST_CHK) && db->real && db->real != db)
+		opencl_get_sane_lws_gws_values();
+
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 1, NULL, warn, 2, self,
+	                       create_clobj, release_clobj,
+	                       2 * BUFSIZE, gws_limit);
+
+	// Auto tune execution from shared/included code.
+	autotune_run_extra(self, 1, gws_limit, 300, CL_TRUE);
 }
 
 struct fmt_main fmt_opencl_NT = {
