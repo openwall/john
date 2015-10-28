@@ -150,7 +150,9 @@ inline void sha512_block(sha512_ctx * ctx) {
         a = t;
     }
 
+#ifdef AMD_STUPID_BUG_1
     #pragma unroll 2
+#endif
     for (uint i = 16U; i < 80U; i++) {
 	w[i & 15] = w[(i - 16) & 15] + w[(i - 7) & 15] + sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]);
         t = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
@@ -216,7 +218,7 @@ inline void insert_to_buffer_G(         sha512_ctx    * ctx,
 }
 
 inline void insert_to_buffer_C(           sha512_ctx    * ctx,
-                               MAYBE_CONSTANT const uint8_t * string,
+                               MAYBE_CONSTANT uint8_t * string,
                                const uint32_t len) {
 
     MAYBE_CONSTANT uint64_t * s = (MAYBE_CONSTANT uint64_t *) string;
@@ -280,7 +282,7 @@ inline void ctx_update_G(         sha512_ctx * ctx,
 }
 
 inline void ctx_update_C(           sha512_ctx * ctx,
-                         MAYBE_CONSTANT const uint8_t    * string, uint32_t len) {
+                         MAYBE_CONSTANT uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
     uint32_t startpos = ctx->buflen;
@@ -330,7 +332,7 @@ inline void sha512_digest(sha512_ctx * ctx,
 }
 
 inline void sha512_prepare(
-	MAYBE_CONSTANT const sha512_salt     * const __restrict salt_data,
+	MAYBE_CONSTANT sha512_salt     * const __restrict salt_data,
         __global   const sha512_password * const __restrict keys_data,
 	                 sha512_buffers  * fast_buffers) {
 
@@ -399,7 +401,7 @@ inline void sha512_prepare(
 
 __kernel
 void kernel_prepare(
-	MAYBE_CONSTANT const sha512_salt     * const __restrict salt,
+	MAYBE_CONSTANT sha512_salt     * const __restrict salt,
         __global   const sha512_password * const __restrict keys_buffer,
         __global         sha512_buffers  * const __restrict tmp_buffers) {
 
@@ -428,7 +430,7 @@ void kernel_prepare(
 
 __kernel
 void kernel_preprocess(
-	MAYBE_CONSTANT const sha512_salt     * const __restrict salt,
+	MAYBE_CONSTANT sha512_salt     * const __restrict salt,
         __global   const sha512_password * const __restrict keys_buffer,
         __global         sha512_buffers  * const __restrict tmp_buffers,
 	__global         uint64_t	 * const __restrict work_memory) {
@@ -520,7 +522,7 @@ inline void sha512_block_be(uint64_t * buffer, uint64_t * H) {
         w[i] = buffer[i];
 #endif
 
-#if UNROLL_LEVEL > 4 //#############
+#if UNROLL_LEVEL > 4
     #pragma unroll
 #endif
     for (uint i = 0U; i < 16U; i++) {
@@ -585,7 +587,9 @@ inline void sha512_crypt(
 
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
 
-#if UNROLL_LEVEL > 4 //###################
+#if amd_gcn(DEVICE_INFO)
+    #pragma unroll 1
+#elif UNROLL_LEVEL > 4
     #pragma unroll 2
 #endif
     for (uint i = 0U; i < HASH_LOOPS; i++) {
@@ -774,7 +778,7 @@ inline void sha512_crypt_f(
 
 __kernel
 void kernel_crypt(
-	MAYBE_CONSTANT const sha512_salt     * const __restrict salt,
+	MAYBE_CONSTANT sha512_salt     * const __restrict salt,
         __global         sha512_hash     * const __restrict out_buffer,
         __global         sha512_buffers  * const __restrict tmp_buffers,
 	__global         uint64_t	 * const __restrict work_memory) {
@@ -791,7 +795,7 @@ void kernel_crypt(
 
 __kernel
 void kernel_final(
-	MAYBE_CONSTANT const sha512_salt     * const __restrict salt,
+	MAYBE_CONSTANT sha512_salt     * const __restrict salt,
         __global         sha512_hash     * const __restrict out_buffer,
         __global         sha512_buffers  * const __restrict tmp_buffers,
 	__global         uint64_t	 * const __restrict work_memory) {

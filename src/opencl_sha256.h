@@ -20,10 +20,13 @@
 //Macros.
 #ifdef USE_BITSELECT
 #define ror32(x, n)       rotate(x, (32U-n))
+#define SWAP32_V(n)	  SWAP32(n)
 #else
 #define ror32(x, n)       ((x >> n) | (x << (32U-n)))
+#define SWAP32_V(n)	  \
+	(((n) << 24)	       | (((n) & 0xff00U) << 8) | \
+	(((n) >> 8) & 0xff00U) | ((n) >> 24))
 #endif
-#define SWAP32_V(n)		SWAP32(n)
 #define Sigma0(x)		((ror32(x,2U))  ^ (ror32(x,13U)) ^ (ror32(x,22U)))
 #define Sigma1(x)		((ror32(x,6U))  ^ (ror32(x,11U)) ^ (ror32(x,25U)))
 #define sigma0(x)		((ror32(x,7U))  ^ (ror32(x,18U)) ^ (x>>3))

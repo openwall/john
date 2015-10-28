@@ -53,9 +53,8 @@ __constant int generator_index[] = {
 #endif
 
 #undef USE_BITSELECT	    //What used in opencl_misc cannot handle all situations.
-#if gpu_amd(DEVICE_INFO)
-	#pragma OPENCL EXTENSION cl_amd_media_ops : enable
-	#define USE_BITSELECT	1
+#if gpu_amd(DEVICE_INFO)    //At least, it will fail for cpu and nvidia
+    #define USE_BITSELECT	1
 #endif
 
 //Macros.
@@ -63,8 +62,7 @@ __constant int generator_index[] = {
     #define Ch(x, y, z)     bitselect(z, y, x)
     #define Maj(x, y, z)    bitselect(x, y, z ^ x)
 #else
-
-#if HAVE_LUT3
+#if HAVE_LUT3 && BITS_32
 #define Ch(x, y, z) lut3(x, y, z, 0xca)
 #elif HAVE_ANDNOT
 #define Ch(x, y, z) ((x & y) ^ ((~x) & z))
@@ -72,7 +70,7 @@ __constant int generator_index[] = {
 #define Ch(x, y, z) (z ^ (x & (y ^ z)))
 #endif
 
-#if HAVE_LUT3
+#if HAVE_LUT3 && BITS_32
 #define Maj(x, y, z) lut3(x, y, z, 0xe8)
 #else
 #define Maj(x, y, z) ((x & y) | (z & (x | y)))
@@ -80,14 +78,16 @@ __constant int generator_index[] = {
 #endif
 
 // Start documenting AMD OpenCL bugs.
-#if amd_vliw5(DEVICE_INFO)
-    ///Fixed (back in 14.9). Kept for future reference.
+#if amd_vliw5(DEVICE_INFO) || amd_vliw4(DEVICE_INFO)
+    //amd_vliw4() is a guess.
+
+    ///Needed (at least) in 14.9 and 15.7
     ///TODO: can't remove the [unroll]. (At least) HD 6770.
     ///#ifdef AMD_STUPID_BUG_1
     ///  #pragma unroll 2
     ///#endif
     ///for (uint i = 16U; i < 80U; i++) {
-    //#define AMD_STUPID_BUG_1
+    #define AMD_STUPID_BUG_1
 
     ///TODO: can't use a valid command twice on sha256crypt. (At least) HD 6770.
     ///Fixed (back in 14.12). Kept for future reference.
@@ -109,10 +109,6 @@ __constant int generator_index[] = {
 //Functions.
 /* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
 #define ATTRIB(buf, index, val) (buf)[(index)] = val
-
-#if cpu(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
-#define HAVE_ANDNOT 1
-#endif
 
 #if no_byte_addressable(DEVICE_INFO) || (gpu_amd(DEVICE_INFO) && defined(AMD_PUTCHAR_NOCAST))
 	#define USE_32BITS_FOR_CHAR
