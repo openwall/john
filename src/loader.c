@@ -1072,16 +1072,24 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 
 	fmt_init(format);
 	ldr_init_database(testdb, &options.loader);
+	testdb->options->field_sep_char = ':';
 	testdb->real = real;
 	testdb->format = format;
 	ldr_init_password_hash(testdb);
 
 	while (current->ciphertext) {
 		char line[LINE_BUFFER_SIZE];
+		int i, pos = 0;
 
+		if (!current->fields[0])
+			current->fields[0] = "?";
 		if (!current->fields[1])
 			current->fields[1] = current->ciphertext;
-		strcpy(line, format->methods.prepare(current->fields, format));
+		for (i = 0; i < 10; i++)
+			if (current->fields[i])
+				pos += sprintf(&line[pos], "%s%c",
+				               current->fields[i],
+				               testdb->options->field_sep_char);
 
 		ldr_load_pw_line(testdb, line);
 		current++;
