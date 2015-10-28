@@ -99,7 +99,7 @@ static struct fmt_tests tests[] = {
 static xsha512_key *gkey;
 static xsha512_hash *ghash;
 static xsha512_salt gsalt;
-uint8_t xsha512_key_changed;
+static uint8_t xsha512_key_changed;
 static uint8_t hash_copy_back;
 
 static uint64_t H[8] = {
@@ -235,7 +235,7 @@ static void done(void)
 	}
 }
 
-static void copy_hash_back()
+static inline void copy_hash_back()
 {
     if (!hash_copy_back) {
         HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,outsize, ghash, 0, NULL, NULL), "Copy data back");
@@ -446,13 +446,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	///Copy data to GPU memory
 	if (xsha512_key_changed || ocl_autotune_running) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer
+		BENCH_CLERROR(clEnqueueWriteBuffer
 		    (queue[gpu_id], mem_in, CL_FALSE, 0, insize, gkey, 0, NULL,
 			multi_profilingEvent[0]), "Copy memin");
 	}
 
 	///Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel
+	BENCH_CLERROR(clEnqueueNDRangeKernel
 	    (queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws,
 		0, NULL, multi_profilingEvent[1]), "Set ND range");
 
