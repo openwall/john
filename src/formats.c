@@ -715,6 +715,11 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			                   format->params.salt_size))
 				break;
 		} while ((dbsalt = dbsalt->next));
+		if (!dbsalt) {
+			//puts(ciphertext);
+			//dump_text(salt, format->params.salt_size);
+			return "Did not find salt in test db";
+		}
 #endif
 #ifndef JUMBO_JTR
 		format->methods.set_key(current->plaintext, index);
