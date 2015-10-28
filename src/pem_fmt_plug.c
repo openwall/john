@@ -56,7 +56,7 @@ john_register_one(&fmt_pem);
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(*fctx)
 #define BINARY_ALIGN            1
-#define SALT_ALIGN              1
+#define SALT_ALIGN              sizeof(int)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
