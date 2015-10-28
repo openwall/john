@@ -497,14 +497,6 @@ static void *salt(char *ciphertext)
 	return &nt_buffer.w;
 }
 
-/* Used during self-test. */
-static void set_salt(void *salt)
-{
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_salt_test, CL_TRUE, 0, 12 * sizeof(cl_uint), salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_salt_test.");
-}
-
-static void set_salt_no_op(void *salt) {}
-
 static int get_hash_0(int index) { return hash_tables[current_salt][hash_ids[3 + 3 * index]] & PH_MASK_0; }
 static int get_hash_1(int index) { return hash_tables[current_salt][hash_ids[3 + 3 * index]] & PH_MASK_1; }
 static int get_hash_2(int index) { return hash_tables[current_salt][hash_ids[3 + 3 * index]] & PH_MASK_2; }
@@ -811,18 +803,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		set_new_keys = 0;
 	}
 
-	if (salt && self->methods.set_salt == set_salt_no_op) {
-		current_salt = salt->sequential_id;
-		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_salts[current_salt]), (void *) &buffer_salts[current_salt]), "Error setting argument 3.");
-		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_bitmaps[current_salt]), (void *) &buffer_bitmaps[current_salt]), "Error setting argument 6.");
-		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_offset_tables[current_salt]), (void *) &buffer_offset_tables[current_salt]), "Error setting argument 7.");
-		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_hash_tables[current_salt]), (void *) &buffer_hash_tables[current_salt]), "Error setting argument 8.");
-	} else {
-		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_salt_test), (void *) &buffer_salt_test), "Error setting argument 3.");
-		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_bitmaps_test), (void *) &buffer_bitmaps_test), "Error setting argument 6.");
-		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_offset_table_test), (void *) &buffer_offset_table_test), "Error setting argument 7.");
-		BENCH_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_hash_table_test), (void *) &buffer_hash_table_test), "Error setting argument 8.");
-	}
+	current_salt = salt->sequential_id;
+	BENCH_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_salts[current_salt]), (void *) &buffer_salts[current_salt]), "Error setting argument 3.");
+	BENCH_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_bitmaps[current_salt]), (void *) &buffer_bitmaps[current_salt]), "Error setting argument 6.");
+	BENCH_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_offset_tables[current_salt]), (void *) &buffer_offset_tables[current_salt]), "Error setting argument 7.");
+	BENCH_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_hash_tables[current_salt]), (void *) &buffer_hash_tables[current_salt]), "Error setting argument 8.");
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
 
@@ -882,118 +867,42 @@ static void reset(struct db_main *db)
 		gws_limit >>= 1;
 
 
-	if (initialized && db) {
-		release_clobj();
-		release_base_clobj();
-
-		prepare_table(db);
-		init_kernel();
-
-		create_base_clobj();
-
-		// Use salts directly from db
-		self->methods.set_salt = set_salt_no_op;
-
+	if (initialized) {
 		// Forget the previous auto-tune
 		local_work_size = o_lws;
 		global_work_size = o_gws;
 
-		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, 1, NULL, warn, 2, self,
-		                       create_clobj, release_clobj,
-		                       2 * BUFSIZE, gws_limit, db);
-
-		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, gws_limit, 1000, CL_TRUE);
-	}
-	else {
-		unsigned int *binary_hash, i = 0;
-		char *ciphertext;
-		unsigned int salt_params[17];
-		static unsigned int hash_table_size, offset_table_size, shift64_ht_sz, shift64_ot_sz;
-
+		release_base_clobj();
+		release_clobj();
+	} else {
 		o_lws = local_work_size;
 		o_gws = global_work_size;
-
-		while (tests[max_num_loaded_hashes].ciphertext != NULL)
-			max_num_loaded_hashes++;
-
-		loaded_hashes = (cl_uint*)mem_alloc(16 * max_num_loaded_hashes);
-
-		while (tests[i].ciphertext != NULL) {
-			char **fields = tests[i].fields;
-			if (!fields[1])
-				fields[1] = tests[i].ciphertext;
-			ciphertext = split(prepare(fields, &FMT_STRUCT), 0, &FMT_STRUCT);
-			binary_hash = (unsigned int*)binary(ciphertext);
-			loaded_hashes[4 * i] = binary_hash[0];
-			loaded_hashes[4 * i + 1] = binary_hash[1];
-			loaded_hashes[4 * i + 2] = binary_hash[2];
-			loaded_hashes[4 * i + 3] = binary_hash[3];
-			i++;
-		}
-
-		max_num_loaded_hashes = create_perfect_hash_table(128, (void *)loaded_hashes,
-				max_num_loaded_hashes,
-			        &offset_table,
-			        &offset_table_size,
-			        &hash_table_size, 0);
-
-		if (!max_num_loaded_hashes) {
-			MEM_FREE(hash_table_128);
-			MEM_FREE(offset_table);
-			fprintf(stderr, "Failed to create Hash Table for self test.\n");
-			error();
-		}
-
-		hash_ids = (cl_uint*)mem_alloc((3 * max_num_loaded_hashes + 1) * sizeof(cl_uint));
-		hash_tables = (unsigned int **)mem_alloc(2 * sizeof(unsigned int*));
-		hash_tables[0] = hash_table_128;
-		hash_tables[1] = NULL;
-		current_salt = 0;
-
-		select_bitmap(max_num_loaded_hashes);
-
-		shift64_ht_sz = (((1ULL << 63) % hash_table_size) * 2) % hash_table_size;
-		shift64_ot_sz = (((1ULL << 63) % offset_table_size) * 2) % offset_table_size;
-		salt_params[12] = bitmap_size_bits - 1;
-		salt_params[13] = offset_table_size;
-		salt_params[14] = hash_table_size;
-		salt_params[15] = shift64_ot_sz;
-		salt_params[16] = shift64_ht_sz;
-		max_hash_table_size = hash_table_size;
-
-		init_kernel();
-
-		buffer_salt_test = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 17 * sizeof(cl_uint), salt_params, &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_salt_test.");
-		buffer_offset_table_test = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, offset_table_size * sizeof(OFFSET_TABLE_WORD), offset_table, &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_offset_table_test.");
-		buffer_bitmaps_test = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, (bitmap_size_bits >> 3) * 2, bitmaps, &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_bitmaps_test.");
-		buffer_hash_table_test = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, hash_table_size * sizeof(unsigned int) * 2, hash_tables[current_salt], &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_table_test.");
-
-		create_base_clobj();
-
-		hash_ids[0] = 0;
-		MEM_FREE(offset_table);
-		MEM_FREE(bitmaps);
-
-		// GPU mask mode bench, do not auto tune for self test.
-		if ((options.flags & FLG_MASK_CHK) && !(options.flags & FLG_TEST_CHK))
-			opencl_get_sane_lws_gws_values();
-
-		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, 1, NULL, warn, 2, self,
-		                       create_clobj, release_clobj,
-		                       2 * BUFSIZE, gws_limit, db);
-
-		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, gws_limit, 300, CL_TRUE);
-
-		initialized++;
+		initialized = 1;
 	}
+
+	prepare_table(db);
+	init_kernel();
+
+	create_base_clobj();
+
+	current_salt = 0;
+	hash_ids[0] = 0;
+
+	// Forget the previous auto-tune
+	local_work_size = o_lws;
+	global_work_size = o_gws;
+
+	// If real crack run, don't auto-tune for self-tests
+	if (db->real && db != db->real)
+		opencl_get_sane_lws_gws_values();
+
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 1, NULL, warn, 2, self,
+	                       create_clobj, release_clobj,
+	                       2 * BUFSIZE, gws_limit, db);
+
+	// Auto tune execution from shared/included code.
+	autotune_run_extra(self, 1, gws_limit, 300, CL_TRUE);
 }
 
 struct fmt_main FMT_STRUCT = {
@@ -1036,7 +945,7 @@ struct fmt_main FMT_STRUCT = {
 		},
 		fmt_default_salt_hash,
 		NULL,
-		set_salt,
+		fmt_default_set_salt,
 		set_key,
 		get_key,
 		clear_keys,
