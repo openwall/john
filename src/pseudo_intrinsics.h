@@ -76,13 +76,12 @@ typedef uint64x2_t vtype64;
 #define vunpacklo_epi64(x, y)   vset_epi64(vgetq_lane_u64((vtype64)(y), 0), vgetq_lane_u64((vtype64)(x), 0))
 #define vxor                    veorq_u32
 
-static inline int vtesteq_epi32(vtype x, vtype y)
+static inline int vanyeq_epi32(vtype x, vtype y)
 {
 	vtype z = vceqq_u32(x, y);
 	return vgetq_lane_u32(z, 0) || vgetq_lane_u32(z, 1) ||
 	       vgetq_lane_u32(z, 2) || vgetq_lane_u32(z, 3);
 }
-#define vtestz_epi32(x)         vtesteq_epi32(x, vsetzero())
 
 #define vswap32(x)              (x = (vtype)vrev32q_u8((vtype8)x))
 #define vswap64(x)              (x = (vtype)vrev64q_u8((vtype8)x))
@@ -132,8 +131,7 @@ typedef union {
 #define vunpacklo_epi64(x, y)   (vtype)(vtype64)vec_mergeh((vector long)(x).v64, (vector long)(y).v64)
 #define vxor(x, y)              (vtype)vec_xor((x).v32, (y).v32)
 
-#define vtesteq_epi32(x, y)     vec_any_eq((x).v32, (y).v32)
-#define vtestz_epi32(x)         vtesteq_epi32(x, vsetzero())
+#define vanyeq_epi32(x, y)     vec_any_eq((x).v32, (y).v32)
 
 #define vswap32                 vswap32_emu
 #define vswap64                 vswap64_emu
@@ -185,8 +183,7 @@ typedef __m512i vtype;
 #define vunpacklo_epi64         _mm512_unpacklo_epi64
 #define vxor                    _mm512_xor_si512
 
-#define vtesteq_epi32(x, y)     _mm512_cmp_epi32_mask(x, y, _MM_CMPINT_EQ)
-#define vtestz_epi32(n)         !_mm512_min_epu32(n)
+#define vanyeq_epi32(x, y)     _mm512_cmp_epi32_mask(x, y, _MM_CMPINT_EQ)
 
 #define GATHER_4x(x, y, z)                               \
 {                                                        \
@@ -334,8 +331,7 @@ typedef __m256i vtype;
 #define vunpacklo_epi64         _mm256_unpacklo_epi64
 #define vxor                    _mm256_xor_si256
 
-#define vtesteq_epi32(x, y)     vmovemask_epi8(vcmpeq_epi32(x, y))
-#define vtestz_epi32(x)         vtesteq_epi32(x, vsetzero())
+#define vanyeq_epi32(x, y)     vmovemask_epi8(vcmpeq_epi32(x, y))
 
 #define swap_endian_mask                                                \
     _mm256_set_epi32(0x1c1d1e1f, 0x18191a1b, 0x14151617, 0x10111213,    \
@@ -463,8 +459,7 @@ typedef __m128i vtype;
 #define vunpacklo_epi64         _mm_unpacklo_epi64
 #define vxor                    _mm_xor_si128
 
-#define vtesteq_epi32(x, y)     vmovemask_epi8(vcmpeq_epi32(x, y))
-#define vtestz_epi32(x)         vtesteq_epi32(x, vsetzero())
+#define vanyeq_epi32(x, y)     vmovemask_epi8(vcmpeq_epi32(x, y))
 
 #if __SSSE3__
 

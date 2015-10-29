@@ -388,7 +388,7 @@ static int cmp_all(void *binary, int count)
 		digest = vload((vtype*) &crypt_key[0][i]);
 		bin    = vset1_epi32(((uint32_t*) binary)[0]);
 
-        if (vtesteq_epi32(bin, digest))
+        if (vanyeq_epi32(bin, digest))
             return 1;
 	}
 
