@@ -52,6 +52,7 @@ def read_private_key(f):
         return
 
     lines = f.readlines()
+    ktype = -1
 
     tag = None
     if "BEGIN RSA PRIVATE" in lines[0]:  # XXX can we make this a bit more robust?
@@ -62,14 +63,16 @@ def read_private_key(f):
         # keys using ed25519 signatures), ed25519 stuff is not supported
         # yet!
         ktype = 2  # bcrypt pbkdf + aes-256-cbc
+        tag = "OPENSSH"
     elif "-----BEGIN DSA PRIVATE KEY-----" in lines[0]:
         ktype = 1
         tag = "DSA"
     elif "-----BEGIN EC PRIVATE KEY-----" in lines[0]:
         ktype = 3
         tag = "EC"
+
     if not tag:
-        sys.stderr.write("%s couldn't parse line saying, %s" % (sys.argv[0], lines[0]));
+        sys.stderr.write("[%s] couldn't parse line saying, %s" % (sys.argv[0], lines[0]));
         return
 
     start = 0
@@ -90,9 +93,7 @@ def read_private_key(f):
         start += 1
     # find end
     end = start
-    while ((lines[end].strip() != '-----END OPENSSH PRIVATE KEY-----')
-           and (lines[end].strip() != '-----END '
-                + tag + ' PRIVATE KEY-----')) and (end < len(lines)):
+    while (lines[end].strip() != '-----END ' + tag + ' PRIVATE KEY-----') and (end < len(lines)):
         end += 1
     # if we trudged to the end of the file, just try to cope.
     try:
