@@ -42,6 +42,7 @@ static int max_keylen, fmt_maxlen, rec_len, rec_cl, restored_len, restored = 1;
 static unsigned long long cand_length;
 static struct fmt_main *mask_fmt;
 static int mask_bench_index;
+static int parent_fix_state_pending;
 int mask_add_len, mask_num_qw, mask_cur_len;
 
 /*
@@ -1681,6 +1682,11 @@ void mask_fix_state(void)
 	rec_len = max_keylen;
 	for (i = 0; i < rec_ctx.count; i++)
 		rec_ctx.ranges[i].iter = cpu_mask_ctx.ranges[i].iter;
+
+	if (parent_fix_state_pending) {
+		crk_fix_state();
+		parent_fix_state_pending = 0;
+	}
 }
 
 void remove_slash(char *mask)
@@ -2171,9 +2177,8 @@ int do_mask_crack(const char *extern_key)
 				return 1;
 		}
 	}
-	if (!event_abort && (options.flags & FLG_MASK_STACKED) &&
-		!(options.flags & FLG_TEST_CHK))
-		crk_fix_state();
+	if ((options.flags & FLG_MASK_STACKED) && !event_abort)
+		parent_fix_state_pending = 1;
 
 	return event_abort;
 }
