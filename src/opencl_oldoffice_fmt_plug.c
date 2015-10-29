@@ -80,8 +80,7 @@ static struct custom_salt {
 	unsigned char verifierHash[20];  /* or encryptedVerifierHash */
 	unsigned int has_mitm;
 	unsigned char mitm[8]; /* Meet-in-the-middle hint, if we have one */
-	int benchmark; /* Disable mitm, during benchmarking */
-} cur_salt;
+} *cur_salt;
 
 typedef struct {
 	uint len;
@@ -100,7 +99,7 @@ static unsigned int *saved_idx, key_idx;
 static unsigned int *cracked;
 static size_t key_offset, idx_offset;
 static cl_mem cl_saved_key, cl_saved_idx, cl_salt, cl_mid_key, cl_result;
-static cl_mem pinned_key, pinned_idx, pinned_result;
+static cl_mem pinned_key, pinned_idx, pinned_result, cl_benchmark;
 static cl_kernel oldoffice_utf16, oldoffice_md5, oldoffice_sha1;
 static struct fmt_main *self;
 
@@ -152,6 +151,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	cracked = clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(unsigned int) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping cracked");
 
+	cl_benchmark = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(bench_running), NULL, &ret_code);
+
 	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, SALT_SIZE, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
 
@@ -165,10 +166,12 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 0, sizeof(cl_mem), (void*)&cl_mid_key), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 1, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 2, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 3, sizeof(cl_mem), (void*)&cl_benchmark), "Error setting argument 3");
 
 	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 0, sizeof(cl_mem), (void*)&cl_mid_key), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 1, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 2, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 3, sizeof(cl_mem), (void*)&cl_benchmark), "Error setting argument 3");
 }
 
 static void release_clobj(void)
@@ -337,6 +340,7 @@ static void *get_salt(char *ciphertext)
 	} else
 		cs.has_mitm = 0;
 	MEM_FREE(keeptr);
+
 	return (void *)&cs;
 }
 
@@ -347,9 +351,9 @@ static char *source(char *source, void *binary)
 	unsigned char *cpi, *cp = (unsigned char*)Buf;
 	int i, len;
 
-	cp += sprintf(Buf, "%s%d*", FORMAT_TAG, cur_salt.type);
+	cp += sprintf(Buf, "%s%d*", FORMAT_TAG, cur_salt->type);
 
-	cpi = cur_salt.salt;
+	cpi = cur_salt->salt;
 	for (i = 0; i < 16; i++) {
 		*cp++ = itoa16[*cpi >> 4];
 		*cp++ = itoa16[*cpi & 0xf];
@@ -357,7 +361,7 @@ static char *source(char *source, void *binary)
 	}
 	*cp++ = '*';
 
-	cpi = cur_salt.verifier;
+	cpi = cur_salt->verifier;
 	for (i = 0; i < 16; i++) {
 		*cp++ = itoa16[*cpi >> 4];
 		*cp++ = itoa16[*cpi & 0xf];
@@ -365,17 +369,17 @@ static char *source(char *source, void *binary)
 	}
 	*cp++ = '*';
 
-	len = (cur_salt.type < 3) ? 16 : 20;
-	cpi = cur_salt.verifierHash;
+	len = (cur_salt->type < 3) ? 16 : 20;
+	cpi = cur_salt->verifierHash;
 	for (i = 0; i < len; i++) {
 		*cp++ = itoa16[*cpi >> 4];
 		*cp++ = itoa16[*cpi & 0xf];
 		cpi++;
 	}
 
-	if (cur_salt.has_mitm) {
+	if (cur_salt->has_mitm) {
 		*cp++ = '*';
-		cpi = cur_salt.mitm;
+		cpi = cur_salt->mitm;
 		for (i = 0; i < 5; i++) {
 			*cp++ = itoa16[*cpi >> 4];
 			*cp++ = itoa16[*cpi & 0xf];
@@ -390,16 +394,16 @@ static char *source(char *source, void *binary)
 
 static void set_salt(void *salt)
 {
-	memcpy(&cur_salt, (struct custom_salt*)salt, SALT_SIZE);
-	cur_salt.benchmark = bench_running;
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, SALT_SIZE, &cur_salt, 0, NULL, NULL), "Failed transferring salt");
+	cur_salt = (struct custom_salt *)salt;
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_benchmark, CL_FALSE, 0, sizeof(bench_running), (void*)&bench_running, 0, NULL, NULL), "Failed transferring salt");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, SALT_SIZE, cur_salt, 0, NULL, NULL), "Failed transferring salt");
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int index;
 	const int count = *pcount;
-	int m = cur_salt.has_mitm;
+	int m = cur_salt->has_mitm;
 	size_t lws;
 
 	/* kernel is made for lws 64, using local memory */
@@ -422,7 +426,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		new_keys = 0;
 	}
 
-	if (cur_salt.type < 3) {
+	if (cur_salt->type < 3) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_md5, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running second kernel");
 	} else {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_sha1, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running first kernel");
@@ -439,8 +443,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			break;
 		}
 	} else {
-		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, SALT_SIZE, &cur_salt, 0, NULL, NULL), "Failed transferring salt");
-		if ((any_cracked = cur_salt.has_mitm))
+		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, SALT_SIZE, cur_salt, 0, NULL, NULL), "Failed transferring salt");
+		if ((any_cracked = cur_salt->has_mitm))
 			BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, multi_profilingEvent[4]), "failed reading results back");
 	}
 

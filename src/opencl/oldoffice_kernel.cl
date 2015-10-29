@@ -25,7 +25,6 @@ typedef struct {
 	uint verifierHash[20/4];  /* or encryptedVerifierHash */
 	uint has_mitm;
 	uint mitm[8/4]; /* Meet-in-the-middle hint, if we have one */
-	int benchmark; /* Disable mitm, during benchmarking */
 } salt_t;
 
 typedef struct {
@@ -166,7 +165,8 @@ __attribute__((work_group_size_hint(64,1,1)))
 #endif
 __kernel void oldoffice_md5(__global const mid_t *mid,
                             __global salt_t *cs,
-                            __global uint *result)
+                            __global uint *result,
+                            __global uint *benchmark)
 {
 	uint i;
 	uint a, b, c, d;
@@ -379,7 +379,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 		    verifier[2] == verifier[6] &&
 		    verifier[3] == verifier[7]) {
 			result[gid] = 1;
-			if (!cs->benchmark && !atomic_xchg(&cs->has_mitm, 1)) {
+			if (!*benchmark && !atomic_xchg(&cs->has_mitm, 1)) {
 				cs->mitm[0] = key[0];
 				cs->mitm[1] = key[1];
 			}
@@ -394,7 +394,8 @@ __attribute__((work_group_size_hint(64,1,1)))
 #endif
 __kernel void oldoffice_sha1(__global const mid_t *mid,
                              __global salt_t *cs,
-                             __global uint *result)
+                             __global uint *result,
+                             __global uint *benchmark)
 {
 	uint i;
 	uint gid = get_global_id(0);
@@ -526,7 +527,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 		    verifier[2] == verifier[6] &&
 		    verifier[3] == verifier[7]) {
 			result[gid] = 1;
-			if (!cs->benchmark && cs->type == 3 &&
+			if (!*benchmark && cs->type == 3 &&
 			    !atomic_xchg(&cs->has_mitm, 1)) {
 				cs->mitm[0] = sha1[0];
 				cs->mitm[1] = sha1[1];
