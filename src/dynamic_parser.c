@@ -823,7 +823,7 @@ char *dynamic_LOAD_PARSER_SIGNATURE(int which)
 
 int dynamic_IS_PARSER_VALID(int which, int single_lookup_only)
 {
-	static char valid[5001];
+	static signed char valid[5001];
 	static int init=0;
 
 	if (which < 1000 || which > 5000)
