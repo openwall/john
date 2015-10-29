@@ -793,7 +793,7 @@ const char *dynamic_Find_Function_Name(DYNAMIC_primitive_funcp p) {
 
 char *dynamic_LOAD_PARSER_SIGNATURE(int which)
 {
-	struct cfg_line *gen_line;
+	struct cfg_line *gen_line = NULL;
 	static char Sig[256];
 	if (which < 1000)
 		return NULL;
@@ -804,7 +804,8 @@ char *dynamic_LOAD_PARSER_SIGNATURE(int which)
 	// Setup the 'default' format name
 	sprintf(Sig, "dynamic_%d: ", which);
 
-	gen_line = gen_source->head;
+	if (gen_source)
+		gen_line = gen_source->head;
 	while (gen_line)
 	{
 		if (!strncasecmp(gen_line->data, "Expression=", 11))
@@ -854,10 +855,11 @@ int dynamic_IS_PARSER_VALID(int which, int single_lookup_only)
 
 static int Count_Items(char *Key)
 {
-	struct cfg_line *gen_line;
+	struct cfg_line *gen_line = NULL;
 	int Cnt=0, len=strlen(Key);
 
-	gen_line = gen_source->head;
+	if (gen_source)
+		gen_line = gen_source->head;
 	while (gen_line)
 	{
 		if (!strncasecmp(gen_line->data, Key, len))
@@ -882,7 +884,7 @@ struct fmt_main *dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS(const char *Script, int
 int dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt)
 {
 	int ret, cnt;
-	struct cfg_line *gen_line;
+	struct cfg_line *gen_line = NULL;
 	char tmp = options.loader.field_sep_char;
 
 	nPreloadCnt = 0;
@@ -940,7 +942,8 @@ int dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt)
 	// Ok, now 'grind' through the data  I do know know how to use
 	// the config stuff too much, so will grind for now, and later
 	// go back over this, and do it 'right', if there is a right way
-	gen_line = gen_source->head;
+	if (gen_source)
+		gen_line = gen_source->head;
 
 	while (gen_line)
 	{
