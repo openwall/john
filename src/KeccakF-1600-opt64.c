@@ -14,6 +14,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #include <string.h>
 #include <stdlib.h>
 #include "brg_endian.h"
+#include "KeccakHash.h"
 #include "KeccakF-1600-opt64-settings.h"
 #include "KeccakF-1600-interface.h"
 #include "memdbg.h"
@@ -59,7 +60,7 @@ void KeccakF1600_Initialize( void )
 
 void KeccakF1600_StateInitialize(void *state)
 {
-    memset(state, 0, 200);
+    memset(state, 0, sizeof(Keccak_HashInstance));
 #ifdef UseLaneComplementing
     ((UINT64*)state)[ 1] = ~(UINT64)0;
     ((UINT64*)state)[ 2] = ~(UINT64)0;
