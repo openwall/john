@@ -183,6 +183,17 @@ static char* plhdr2string(char p, int fmt_case)
 	fprintf(stderr, "%s(%c)\n", __FUNCTION__, p);
 #endif
 
+	/*
+	 * Force lowercase for case insignificant formats. Dupes will
+	 * be removed, so eg. ?l?u == ?l.
+	 */
+	if (!fmt_case) {
+		if (p == 'u')
+			p = 'l';
+		if (p == 'U')
+			p = 'L';
+	}
+
 #define add_range(a, b)	for (j = a; j <= b; j++) *o++ = j
 #define add_string(str)	for (s = (char*)str; *s; s++) *o++ = *s
 
