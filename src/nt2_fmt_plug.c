@@ -99,6 +99,7 @@ static char *source(char *source, void *binary)
 #if ARCH_LITTLE_ENDIAN==0
 	alter_endianity(b, 16);
 #endif
+
 	p = &out[TAG_LENGTH];
 	for (i = 0; i < 4; i++)
 		for (j = 0; j < 8; j++)
