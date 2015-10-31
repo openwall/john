@@ -216,10 +216,10 @@ inline void insert_to_buffer_G(         sha256_ctx    * ctx,
 }
 
 inline void insert_to_buffer_C(           sha256_ctx    * ctx,
-                               __constant const uint8_t * string,
+                               MAYBE_CONSTANT uint8_t * string,
                                const uint32_t len) {
 
-    __constant uint32_t * s = (__constant uint32_t *) string;
+    MAYBE_CONSTANT uint32_t * s = (MAYBE_CONSTANT uint32_t *) string;
     uint32_t tmp, pos;
     tmp = ((ctx->buflen & 3U) << 3);
     pos = (ctx->buflen >> 2);
@@ -280,7 +280,7 @@ inline void ctx_update_G(         sha256_ctx * ctx,
 }
 
 inline void ctx_update_C(           sha256_ctx * ctx,
-                         __constant const uint8_t    * string, uint32_t len) {
+                         MAYBE_CONSTANT uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
     uint32_t startpos = ctx->buflen;
@@ -330,7 +330,7 @@ inline void sha256_digest(sha256_ctx * ctx,
 }
 
 inline void sha256_prepare(
-	__constant const sha256_salt     * const __restrict salt_data,
+	MAYBE_CONSTANT sha256_salt     * const __restrict salt_data,
         __global   const sha256_password * const __restrict keys_data,
 	                 sha256_buffers  * fast_buffers) {
 
@@ -399,7 +399,7 @@ inline void sha256_prepare(
 
 __kernel
 void kernel_prepare(
-	__constant const sha256_salt     * const __restrict salt,
+	MAYBE_CONSTANT sha256_salt     * const __restrict salt,
         __global   const sha256_password * const __restrict keys_buffer,
         __global         sha256_buffers  * const __restrict tmp_buffers) {
 
@@ -428,7 +428,7 @@ void kernel_prepare(
 
 __kernel
 void kernel_preprocess(
-	__constant const sha256_salt     * const __restrict salt,
+	MAYBE_CONSTANT sha256_salt     * const __restrict salt,
         __global   const sha256_password * const __restrict keys_buffer,
         __global         sha256_buffers  * const __restrict tmp_buffers,
 	__global         uint32_t	 * const __restrict work_memory) {
@@ -955,7 +955,7 @@ inline void sha256_crypt_f(
 
 __kernel
 void kernel_crypt(
-	__constant const sha256_salt     * const __restrict salt,
+	MAYBE_CONSTANT sha256_salt     * const __restrict salt,
         __global         sha256_hash     * const __restrict out_buffer,
         __global         sha256_buffers  * const __restrict tmp_buffers,
 	__global         uint32_t	 * const __restrict work_memory) {
@@ -972,7 +972,7 @@ void kernel_crypt(
 
 __kernel
 void kernel_final(
-	__constant const sha256_salt     * const __restrict salt,
+	MAYBE_CONSTANT sha256_salt     * const __restrict salt,
         __global         sha256_hash     * const __restrict out_buffer,
         __global         sha256_buffers  * const __restrict tmp_buffers,
 	__global         uint32_t	 * const __restrict work_memory) {
