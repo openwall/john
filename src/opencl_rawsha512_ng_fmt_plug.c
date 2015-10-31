@@ -115,11 +115,8 @@ static size_t get_task_max_work_group_size()
 static void create_mask_buffers()
 {
 
-	if (loaded_hashes)
-		MEM_FREE(loaded_hashes);
-
-	if (hash_ids)
-		 MEM_FREE(hash_ids);
+	MEM_FREE(loaded_hashes);
+	MEM_FREE(hash_ids);
 
 	if (buffer_loaded_hashes)
 		clReleaseMemObject(buffer_loaded_hashes);
@@ -587,16 +584,9 @@ static void done(void)
                         HANDLE_CLERROR(ret_code, "Error Releasing buffer_bitmap");
                         buffer_bitmap = NULL;
                 }
-
-                if (loaded_hashes) {
-                        MEM_FREE(loaded_hashes);
-                        loaded_hashes = NULL;
-                }
-
-                if (hash_ids) {
-                        MEM_FREE(hash_ids);
-                        hash_ids = NULL;
-                }
+                MEM_FREE(loaded_hashes);
+                MEM_FREE(hash_ids);
+                
                 autotuned = 0;
         }
 }

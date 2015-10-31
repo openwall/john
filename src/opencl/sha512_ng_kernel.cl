@@ -120,7 +120,7 @@ inline void sha512_block(	  const uint64_t * const buffer,
 ***************** */
 __kernel
 void kernel_crypt_raw(
-	     __constant sha512_salt  * salt,
+	     MAYBE_CONSTANT sha512_salt  * salt,
 	     __global const uint32_t *       __restrict keys_buffer,
              __global const uint32_t * const __restrict index,
 	     __global const uint32_t * const __restrict int_key_loc,
@@ -174,7 +174,7 @@ void kernel_crypt_raw(
 
 __kernel
 void kernel_crypt_xsha(
-	     __constant sha512_salt  * salt,
+	     MAYBE_CONSTANT sha512_salt  * salt,
 	     __global const uint32_t *       __restrict keys_buffer,
              __global const uint32_t * const __restrict index,
 	     __global const uint32_t * const __restrict int_key_loc,
