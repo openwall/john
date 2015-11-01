@@ -853,7 +853,7 @@ fi
 echo "configure: creating *_plug.c and OpenCL object rules"
 if test "`echo *_plug.c`" != "*_plug.c"; then
    AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed 's/\.c/.o/g'`])
-   AC_SUBST([KERNEL_OBJS],[`echo opencl/*.cl | sed 's/\bopencl\//..\/run\/kernels\//g'`])
+   AC_SUBST([KERNEL_OBJS],[`echo opencl/*.cl | sed 's/opencl\//..\/run\/kernels\//g'`])
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
       echo "configure: creating Makefile dependencies"
       AC_SUBST([PLUGFORMATS_DEPS],[`$PERL ./plugin_deps.pl *_plug.c`])
