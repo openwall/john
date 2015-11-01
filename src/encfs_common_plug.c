@@ -75,6 +75,8 @@ void *encfs_common_get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static encfs_common_custom_salt cs;
+
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += 7;
 	p = strtokm(ctcopy, "*");
 	cs.keySize = atoi(p);

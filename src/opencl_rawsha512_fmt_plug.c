@@ -217,7 +217,7 @@ static void done(void)
 	}
 }
 
-static void copy_hash_back()
+static inline void copy_hash_back()
 {
     if (!hash_copy_back) {
         HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,outsize, ghash, 0, NULL, NULL), "Copy data back");

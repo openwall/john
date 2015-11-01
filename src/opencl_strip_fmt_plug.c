@@ -232,6 +232,7 @@ static void *get_salt(char *ciphertext)
 	if (!cs)
 		cs = mem_alloc_tiny(sizeof(struct custom_salt), 4);
 
+	memset(cs, 0, sizeof(struct custom_salt));
 	ctcopy += 7+1;	/* skip over "$strip$" and first '*' */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < 16; i++)

@@ -468,8 +468,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt) {
 		// sort passwords by length
 		int tot_todo = 0, len;
 
-		if (indices)
-		    MEM_FREE(indices);
+		MEM_FREE(indices);
 
 		indices = mem_alloc(gws * sizeof(int));
 

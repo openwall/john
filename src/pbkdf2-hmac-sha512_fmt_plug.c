@@ -212,6 +212,7 @@ static void *get_salt(char *ciphertext)
 	int saltlen;
 	char delim;
 
+	memset(&cs, 0, sizeof(cs));
 	if (!strncmp(ciphertext, FORMAT_TAG, sizeof(FORMAT_TAG) - 1))
 		ciphertext += sizeof(FORMAT_TAG) - 1;
 	else if (!strncmp(ciphertext, FORMAT_TAG2, sizeof(FORMAT_TAG2) - 1))

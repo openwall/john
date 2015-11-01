@@ -12393,7 +12393,7 @@ $as_echo "$as_me: not updating unwritable cache $cache_file" >&6;}
 fi
 rm -f confcache
 
-CPU_BEST_FLAGS_MAIN=-DJOHN_${CPU_STR}
+CPU_BEST_FLAGS_MAIN=-DJOHN_$(echo ${CPU_STR} | tr . _)
 
 CC_CPU="${CPU_BEST_FLAGS}"
 
@@ -13713,7 +13713,7 @@ echo "configure: creating *_plug.c and OpenCL object rules"
 if test "`echo *_plug.c`" != "*_plug.c"; then
    PLUGFORMATS_OBJS=`echo *_plug.c | sed 's/\.c/.o/g'`
 
-   KERNEL_OBJS=`echo opencl/*.cl | sed 's/\bopencl\//..\/run\/kernels\//g'`
+   KERNEL_OBJS=`echo opencl/*.cl | sed 's/opencl\//..\/run\/kernels\//g'`
 
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
       echo "configure: creating Makefile dependencies"

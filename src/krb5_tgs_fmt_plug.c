@@ -122,6 +122,7 @@ static void *get_salt(char *ciphertext)
 
 	static struct custom_salt cs;
 
+	memset(&cs, 0, sizeof(cs));
 	len = (strlen(ciphertext) - 33) / 2;
 	for (i = 0; i < 16; i++) {
 		cs.edata1[i] =

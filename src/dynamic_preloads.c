@@ -3298,7 +3298,7 @@ int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt)
 // 1 is valid.
 int dynamic_IS_VALID(int i, int single_lookup_only)
 {
-	static char valid[5001];
+	static signed char valid[5001];
 	static int init=0;
 	int j;
 

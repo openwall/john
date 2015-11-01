@@ -13,7 +13,7 @@ sub find_deps {
 		$base_dir = $1;
 	}
 
-	if ($src_file eq "arch.h") {
+	if ($src_file eq "arch.h" || $src_file eq "autoconfig.h") {
 		return "";
 	}
 

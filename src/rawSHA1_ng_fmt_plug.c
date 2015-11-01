@@ -683,36 +683,36 @@ static int sha1_fmt_cmp_all(void *binary, int count)
 	for (i = 0; i < count; i += 64) {
 		uint32_t R = 0;
 #if __AVX512F__ || __MIC__
-		R |= vtesteq_epi32(B, vload(&MD[i +  0]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 16]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 32]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 48]));
+		R |= vanyeq_epi32(B, vload(&MD[i +  0]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 16]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 32]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 48]));
 #elif __AVX2__
-		R |= vtesteq_epi32(B, vload(&MD[i +  0]));
-		R |= vtesteq_epi32(B, vload(&MD[i +  8]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 16]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 24]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 32]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 40]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 48]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 56]));
+		R |= vanyeq_epi32(B, vload(&MD[i +  0]));
+		R |= vanyeq_epi32(B, vload(&MD[i +  8]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 16]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 24]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 32]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 40]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 48]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 56]));
 #else
-		R |= vtesteq_epi32(B, vload(&MD[i +  0]));
-		R |= vtesteq_epi32(B, vload(&MD[i +  4]));
-		R |= vtesteq_epi32(B, vload(&MD[i +  8]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 12]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 16]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 20]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 24]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 28]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 32]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 36]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 40]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 44]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 48]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 52]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 56]));
-		R |= vtesteq_epi32(B, vload(&MD[i + 60]));
+		R |= vanyeq_epi32(B, vload(&MD[i +  0]));
+		R |= vanyeq_epi32(B, vload(&MD[i +  4]));
+		R |= vanyeq_epi32(B, vload(&MD[i +  8]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 12]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 16]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 20]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 24]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 28]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 32]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 36]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 40]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 44]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 48]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 52]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 56]));
+		R |= vanyeq_epi32(B, vload(&MD[i + 60]));
 #endif
 		M |= R;
 	}

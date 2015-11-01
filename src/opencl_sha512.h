@@ -20,49 +20,20 @@
 //Macros.
 //OSX drivers has problems digesting this SWAP64 macro.
 #if defined(USE_BITSELECT) && !__OS_X__
-
-#define Ch(x,y,z)       bitselect(z, y, x)
-#define Maj(x, y, z) bitselect(x, y, z ^ x)
-#if gpu_amd(DEVICE_INFO)
-#pragma OPENCL EXTENSION cl_amd_media_ops : enable
-#define ror(x, n)	(n % 8 ? \
-	 ((n) < 32 ? (amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n)) | ((ulong)amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n)) << 32)) : (amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n) - 32) | ((ulong)amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n) - 32) << 32))) : \
-	 rotate(x, (ulong)(64 - n)) \
-		)
+#define ror64(x, n)      ((n) < 32 ?                                                    \
+		(amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n)) |                \
+		((ulong)amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n)) << 32)) : \
+		(amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n) - 32) |           \
+		((ulong)amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n) - 32) << 32)))
 #else
-#define ror(x, n)	rotate(x, (ulong)(64 - n))
+#define ror64(x, n)       ((x >> n) | (x << (64UL-n)))
 #endif
-#define SWAP64(n)	bitselect( \
-		bitselect(rotate(n, 24UL), \
-		          rotate(n, 8UL), 0x000000FF000000FFUL), \
-		bitselect(rotate(n, 56UL), \
-		          rotate(n, 40UL), 0x00FF000000FF0000UL), \
-		0xFFFF0000FFFF0000UL)
-
 #define SWAP64_V(n)     SWAP64(n)
 
-#else
-
-#define SWAP(n)	  \
-	(((n)             << 56)     | (((n) & 0xff00UL)     << 40) | \
-	 (((n) & 0xff0000UL) << 24)   | (((n) & 0xff000000UL) << 8)  | \
-	 (((n) >> 8)  & 0xff000000UL) | (((n) >> 24) & 0xff0000UL)   | \
-	 (((n) >> 40) & 0xff00UL)     | ((n)  >> 56))
-#if HAVE_ANDNOT
-#define Ch(x, y, z) ((x & y) ^ ((~x) & z))
-#else
-#define Ch(x, y, z) (z ^ (x & (y ^ z)))
-#endif
-#define Maj(x, y, z) ((x & y) | (z & (x | y)))
-#define ror(x, n)       ((x >> n) | (x << (64UL-n)))
-#define SWAP64(n)       SWAP(n)
-#define SWAP64_V(n)     SWAP(n)
-#endif
-
-#define Sigma0(x)               ((ror(x,28UL)) ^ (ror(x,34UL)) ^ (ror(x,39UL)))
-#define Sigma1(x)               ((ror(x,14UL)) ^ (ror(x,18UL)) ^ (ror(x,41UL)))
-#define sigma0(x)               ((ror(x,1UL))  ^ (ror(x,8UL))  ^ (x>>7))
-#define sigma1(x)               ((ror(x,19UL)) ^ (ror(x,61UL)) ^ (x>>6))
+#define Sigma0(x)               ((ror64(x,28UL)) ^ (ror64(x,34UL)) ^ (ror64(x,39UL)))
+#define Sigma1(x)               ((ror64(x,14UL)) ^ (ror64(x,18UL)) ^ (ror64(x,41UL)))
+#define sigma0(x)               ((ror64(x,1UL))  ^ (ror64(x,8UL))  ^ (x>>7))
+#define sigma1(x)               ((ror64(x,19UL)) ^ (ror64(x,61UL)) ^ (x>>6))
 
 //SHA512 constants.
 #define H0      0x6a09e667f3bcc908UL
@@ -98,40 +69,6 @@ __constant uint64_t k[] = {
     0x4cc5d4becb3e42b6UL, 0x597f299cfc657e2aUL, 0x5fcb6fab3ad6faecUL, 0x6c44198c4a475817UL
 };
 
-// ** Precomputed index to position/values. **
-//0:		0					=>  1
-//0: 3		14,28					=>  2
-//0: 7		6,12,18,24,30,36			=>  6
-//0: 3,7	2,4,8,10,16,20,22,26,32,34,38,40	=> 12
-//1:		21					=>  1
-//1: 3		7,35					=>  2
-//1: 7		3,9,15,27,33,39				=>  6
-//1: 3,7	1,5,11,13,17,19,23,25,29,31,37,41	=> 12
-__constant int loop_index[] = {
-    0, /* 0,000*/ 7, /* 1,111*/ 3, /* 2,011*/ 5, /* 3,101*/
-    3, /* 4,011*/ 7, /* 5,111*/ 1, /* 6,001*/ 6, /* 7,110*/
-    3, /* 8,011*/ 5, /* 9,101*/ 3, /*10,011*/ 7, /*11,111*/
-    1, /*12,001*/ 7, /*13,111*/ 2, /*14,010*/ 5, /*15,101*/
-    3, /*16,011*/ 7, /*17,111*/ 1, /*18,001*/ 7, /*19,111*/
-    3, /*20,011*/ 4, /*21,100*/ 3, /*22,011*/ 7, /*23,111*/
-    1, /*24,001*/ 7, /*25,111*/ 3, /*26,011*/ 5, /*27,101*/
-    2, /*28,010*/ 7, /*29,111*/ 1, /*30,001*/ 7, /*31,111*/
-    3, /*32,011*/ 5, /*33,101*/ 3, /*34,011*/ 6, /*35,110*/
-    1, /*36,001*/ 7, /*37,111*/ 3, /*38,011*/ 5, /*39,101*/
-    3, /*40,011*/ 7, /*41,111*/
-};
-
-__constant int generator_index[] = {
-    0,	    /*  0, 000 */
-    6,	    /*  6, 001 */
-    14,	    /* 14, 010 */
-    2,	    /*  2, 011 */
-    21,	    /* 21, 100 */
-    3,	    /*  3, 101 */
-    7,	    /*  7, 110 */
-    1	    /*  1, 111 */
-};
-
 __constant uint64_t clear_mask[] = {
     0xffffffffffffffffUL, 0x00000000000000ffUL,	    //0,   8bits
     0x000000000000ffffUL, 0x0000000000ffffffUL,	    //16, 24bits
@@ -164,14 +101,6 @@ __constant uint64_t clear_mask[] = {
     dest[pos] = dest[pos] & clear_mask[tmp];       \
 }
 
-#define APPEND_BE(dest, src, start) {              \
-    uint32_t tmp, pos;                             \
-    tmp = (((start) & 7U) << 3);		   \
-    pos = ((start) >> 3);			   \
-    dest[pos] = (dest[pos] | (src >> tmp));	   \
-    dest[pos+1] = (tmp ? (src << (64U - tmp)) : 0UL);  \
-}
-
 #define APPEND_BE_SINGLE(dest, src, start) {       \
     uint32_t tmp, pos;                             \
     tmp = (((start) & 7U) << 3);                   \
@@ -192,15 +121,6 @@ __constant uint64_t clear_mask[] = {
     }									\
 }
 
-#define APPEND_BE_F(dest, src, start) {					\
-    uint32_t tmp, pos;							\
-    tmp = (((start) & 7U) << 3);					\
-    pos = ((start) >> 3);						\
-    dest[pos] = (dest[pos] | (src >> tmp));				\
-    if (pos < 15)							\
-       dest[pos+1] = (tmp ? (src << (64U - tmp)) : 0UL);		\
-}
-
 #define APPEND_BE_BUFFER(dest, src)					\
     dest[pos] = (dest[pos] | (src >> tmp));				\
     dest[++pos] = (tmp ? (src << (64U - tmp)) : 0UL);
@@ -209,15 +129,6 @@ __constant uint64_t clear_mask[] = {
     dest[pos] = (dest[pos] | (src >> tmp));				\
     if (pos < 15)							\
         dest[++pos] = (tmp ? (src << (64U - tmp)) : 0UL);		\
-
-#define APPEND_F(dest, src, start) {					\
-    uint32_t tmp, pos;							\
-    tmp = (((start) & 7U) << 3);					\
-    pos = ((start) >> 3);						\
-    dest[pos]   = (dest[pos] | (src << tmp));				\
-    if (pos < 15)							\
-       dest[pos+1] = (tmp ? (src >> (64U - tmp)) : 0UL);		\
-}
 
 #define APPEND_SINGLE(dest, src, start) {				\
     uint32_t tmp, pos;							\

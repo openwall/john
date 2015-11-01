@@ -130,10 +130,12 @@ inline void sha512_block(sha512_ctx * ctx) {
     w_vector = SWAP64_V(w_vector);
     vstore16(w_vector, 0, w);
 #else
+    #pragma unroll
     for (uint i = 0U; i < 16U; i++)
         w[i] = SWAP64(ctx->buffer[i].mem_64[0]);
 #endif
 
+    #pragma unroll
     for (uint i = 0U; i < 16U; i++) {
         t = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
 
@@ -216,10 +218,10 @@ inline void insert_to_buffer_G(         sha512_ctx    * ctx,
 }
 
 inline void insert_to_buffer_C(           sha512_ctx    * ctx,
-                               __constant const uint8_t * string,
+                               MAYBE_CONSTANT uint8_t * string,
                                const uint32_t len) {
 
-    __constant uint64_t * s = (__constant uint64_t *) string;
+    MAYBE_CONSTANT uint64_t * s = (MAYBE_CONSTANT uint64_t *) string;
     uint32_t tmp, pos;
     tmp = ((ctx->buflen & 7) << 3);
     pos = (ctx->buflen >> 3);
@@ -280,7 +282,7 @@ inline void ctx_update_G(         sha512_ctx * ctx,
 }
 
 inline void ctx_update_C(           sha512_ctx * ctx,
-                         __constant const uint8_t    * string, uint32_t len) {
+                         MAYBE_CONSTANT uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
     uint32_t startpos = ctx->buflen;
@@ -330,7 +332,7 @@ inline void sha512_digest(sha512_ctx * ctx,
 }
 
 inline void sha512_prepare(
-	__constant const sha512_salt     * const __restrict salt_data,
+	MAYBE_CONSTANT sha512_salt     * const __restrict salt_data,
         __global   const sha512_password * const __restrict keys_data,
 	                 sha512_buffers  * fast_buffers) {
 
@@ -399,9 +401,9 @@ inline void sha512_prepare(
 
 __kernel
 void kernel_prepare(
-	__constant const sha512_salt     * const __restrict salt,
+	MAYBE_CONSTANT sha512_salt     * const __restrict salt,
         __global   const sha512_password * const __restrict keys_buffer,
-         __global         sha512_buffers  * const __restrict tmp_buffers) {
+        __global         sha512_buffers  * const __restrict tmp_buffers) {
 
     //Compute buffers (on Nvidia, better private)
     sha512_buffers fast_buffers;
@@ -413,19 +415,22 @@ void kernel_prepare(
     sha512_prepare(salt, &keys_buffer[gid], &fast_buffers);
 
     //Save results.
+    #pragma unroll
     for (uint i = 0U; i < 8; i++)
         tmp_buffers[gid].alt_result[i].mem_64[0] = SWAP64(fast_buffers.alt_result[i].mem_64[0]);
 
+    #pragma unroll
     for (uint i = 0U; i < SALT_ARRAY; i++)
         tmp_buffers[gid].temp_result[i].mem_64[0] = SWAP64(fast_buffers.temp_result[i].mem_64[0]);
 
+    #pragma unroll
     for (uint i = 0U; i < PLAINTEXT_ARRAY; i++)
         tmp_buffers[gid].p_sequence[i].mem_64[0] = SWAP64(fast_buffers.p_sequence[i].mem_64[0]);
 }
 
 __kernel
 void kernel_preprocess(
-	__constant const sha512_salt     * const __restrict salt,
+	MAYBE_CONSTANT sha512_salt     * const __restrict salt,
         __global   const sha512_password * const __restrict keys_buffer,
         __global         sha512_buffers  * const __restrict tmp_buffers,
 	__global         uint64_t	 * const __restrict work_memory) {
@@ -437,12 +442,15 @@ void kernel_preprocess(
     size_t gid = get_global_id(0);
 
     //Save results.
+    #pragma unroll
     for (uint i = 0U; i < 8; i++)
         fast_buffers.alt_result[i].mem_64[0] = (tmp_buffers[gid].alt_result[i].mem_64[0]);
 
+    #pragma unroll
     for (uint i = 0U; i < SALT_ARRAY; i++)
         fast_buffers.temp_result[i].mem_64[0] = (tmp_buffers[gid].temp_result[i].mem_64[0]);
 
+    #pragma unroll
     for (uint i = 0U; i < PLAINTEXT_ARRAY; i++)
         fast_buffers.p_sequence[i].mem_64[0] = (tmp_buffers[gid].p_sequence[i].mem_64[0]);
 
@@ -770,7 +778,7 @@ inline void sha512_crypt_f(
 
 __kernel
 void kernel_crypt(
-	__constant const sha512_salt     * const __restrict salt,
+	MAYBE_CONSTANT sha512_salt     * const __restrict salt,
         __global         sha512_hash     * const __restrict out_buffer,
         __global         sha512_buffers  * const __restrict tmp_buffers,
 	__global         uint64_t	 * const __restrict work_memory) {
@@ -787,7 +795,7 @@ void kernel_crypt(
 
 __kernel
 void kernel_final(
-	__constant const sha512_salt     * const __restrict salt,
+	MAYBE_CONSTANT sha512_salt     * const __restrict salt,
         __global         sha512_hash     * const __restrict out_buffer,
         __global         sha512_buffers  * const __restrict tmp_buffers,
 	__global         uint64_t	 * const __restrict work_memory) {

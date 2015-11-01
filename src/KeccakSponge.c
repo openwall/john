@@ -14,6 +14,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #include <string.h>
 #include "KeccakSponge.h"
 #include "KeccakF-1600-interface.h"
+#include "johnswap.h"
 #include "memdbg.h"
 
 /* ---------------------------------------------------------------- */
@@ -42,6 +43,11 @@ int Keccak_SpongeAbsorb(Keccak_SpongeInstance *instance, const unsigned char *da
     const unsigned char *curData;
     unsigned int rateInBytes = instance->rate/8;
 
+#if ARCH_LITTLE_ENDIAN==0
+    unsigned long long lldat[rateInBytes/8];
+    const unsigned long long *ll;
+#endif
+
     if (instance->squeezing)
         return 1; // Too late for additional input
 
@@ -55,7 +61,14 @@ int Keccak_SpongeAbsorb(Keccak_SpongeInstance *instance, const unsigned char *da
                     KeccakF1600_StateXORBytesInLane(instance->state, rateInBytes/KeccakF_laneInBytes,
                         curData+(rateInBytes/KeccakF_laneInBytes)*KeccakF_laneInBytes,
                         0, rateInBytes%KeccakF_laneInBytes);
+#if ARCH_LITTLE_ENDIAN==0
+		ll = (const unsigned long long *)curData;
+		for (i = 0; i < rateInBytes/8; ++i)
+			lldat[i] = JOHNSWAP64(ll[i]);
+                KeccakF1600_StateXORPermuteExtract(instance->state, (const unsigned char *)lldat, rateInBytes/KeccakF_laneInBytes, 0, 0);
+#else
                 KeccakF1600_StateXORPermuteExtract(instance->state, curData, rateInBytes/KeccakF_laneInBytes, 0, 0);
+#endif
                 curData+=rateInBytes;
             }
             i = dataByteLen - j;

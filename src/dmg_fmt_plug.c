@@ -373,6 +373,8 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
+
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += 5;
 	p = strtokm(ctcopy, "*");
 	cs.headerver = atoi(p);

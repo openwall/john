@@ -80,7 +80,6 @@ static struct custom_salt {
 	unsigned char verifierHash[20];  /* or encryptedVerifierHash */
 	unsigned int has_mitm;
 	unsigned char mitm[8]; /* Meet-in-the-middle hint, if we have one */
-	int benchmark; /* Disable mitm, during benchmarking */
 } *cur_salt;
 
 typedef struct {
@@ -100,7 +99,7 @@ static unsigned int *saved_idx, key_idx;
 static unsigned int *cracked;
 static size_t key_offset, idx_offset;
 static cl_mem cl_saved_key, cl_saved_idx, cl_salt, cl_mid_key, cl_result;
-static cl_mem pinned_key, pinned_idx, pinned_result;
+static cl_mem pinned_key, pinned_idx, pinned_result, cl_benchmark;
 static cl_kernel oldoffice_utf16, oldoffice_md5, oldoffice_sha1;
 static struct fmt_main *self;
 
@@ -152,6 +151,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	cracked = clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(unsigned int) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping cracked");
 
+	cl_benchmark = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(bench_running), NULL, &ret_code);
+
 	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, SALT_SIZE, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
 
@@ -165,10 +166,12 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 0, sizeof(cl_mem), (void*)&cl_mid_key), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 1, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 2, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 3, sizeof(cl_mem), (void*)&cl_benchmark), "Error setting argument 3");
 
 	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 0, sizeof(cl_mem), (void*)&cl_mid_key), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 1, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 2, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 3, sizeof(cl_mem), (void*)&cl_benchmark), "Error setting argument 3");
 }
 
 static void release_clobj(void)
@@ -337,6 +340,7 @@ static void *get_salt(char *ciphertext)
 	} else
 		cs.has_mitm = 0;
 	MEM_FREE(keeptr);
+
 	return (void *)&cs;
 }
 
@@ -391,7 +395,7 @@ static char *source(char *source, void *binary)
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
-	cur_salt->benchmark = bench_running;
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_benchmark, CL_FALSE, 0, sizeof(bench_running), (void*)&bench_running, 0, NULL, NULL), "Failed transferring salt");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, SALT_SIZE, cur_salt, 0, NULL, NULL), "Failed transferring salt");
 }
 

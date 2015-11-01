@@ -62,7 +62,11 @@ extern CRC32_t JTR_CRC32_tableC[256];
  * just make sure to use either the CRC32_UpdateC() function or the jtr_crc32c() macro.
  */
 extern void CRC32_UpdateC(CRC32_t *value, void *data, unsigned int size);
-#if __SSE4_2__
+/*
+ * Only SSE4.2 is needed but we require AVX because we don't want to
+ * add another cpuid/fallback case.
+ */
+#if __SSE4_2__ && __AVX__
 #include <nmmintrin.h>
 #define jtr_crc32c(crc,byte) (_mm_crc32_u8(crc, byte))
 #define CRC32_C_ALGORITHM_NAME			"SSE4.2"
@@ -70,7 +74,5 @@ extern void CRC32_UpdateC(CRC32_t *value, void *data, unsigned int size);
 #define jtr_crc32c(crc,byte) (JTR_CRC32_tableC[(unsigned char)((crc)^(byte))] ^ ((crc) >> 8))
 #define CRC32_C_ALGORITHM_NAME			"32/" ARCH_BITS_STR
 #endif
-
-
 
 #endif

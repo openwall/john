@@ -1365,6 +1365,16 @@ static void john_init(char *name, int argc, char **argv)
 
 	CPU_detect_or_fallback(argv, make_check);
 
+#if HAVE_MPI
+	mpi_setup(argc, argv);
+#else
+	if (getenv("OMPI_COMM_WORLD_SIZE"))
+	if (atoi(getenv("OMPI_COMM_WORLD_SIZE")) > 1) {
+		fprintf(stderr, "ERROR: Running under MPI, but this is NOT an"
+		        " MPI build of John.\n");
+		error();
+	}
+#endif
 #ifdef _OPENMP
 	john_omp_init();
 #endif
@@ -1886,17 +1896,6 @@ int main(int argc, char **argv)
 		CPU_detect_or_fallback(argv, 0);
 		return base64conv(argc, argv);
 	}
-
-#if HAVE_MPI
-	mpi_setup(argc, argv);
-#else
-	if (getenv("OMPI_COMM_WORLD_SIZE"))
-	if (atoi(getenv("OMPI_COMM_WORLD_SIZE")) > 1) {
-		fprintf(stderr, "ERROR: Running under MPI, but this is NOT an"
-		        " MPI build of John.\n");
-		error();
-	}
-#endif
 	john_init(name, argc, argv);
 
 	/* Placed here to disregard load time. */

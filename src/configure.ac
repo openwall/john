@@ -691,7 +691,7 @@ AC_CHECK_FUNCS([posix_memalign aligned_alloc memalign __mingw_aligned_malloc _al
 
 AC_CACHE_SAVE
 
-CPU_BEST_FLAGS_MAIN=-DJOHN_${CPU_STR}
+CPU_BEST_FLAGS_MAIN=-DJOHN_$(echo ${CPU_STR} | tr . _)
 
 AC_SUBST([CC_CPU],["${CPU_BEST_FLAGS}"])
 AC_SUBST([CC_MAIN_CPU],["${CPU_BEST_FLAGS_MAIN}"])
@@ -853,7 +853,7 @@ fi
 echo "configure: creating *_plug.c and OpenCL object rules"
 if test "`echo *_plug.c`" != "*_plug.c"; then
    AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed 's/\.c/.o/g'`])
-   AC_SUBST([KERNEL_OBJS],[`echo opencl/*.cl | sed 's/\bopencl\//..\/run\/kernels\//g'`])
+   AC_SUBST([KERNEL_OBJS],[`echo opencl/*.cl | sed 's/opencl\//..\/run\/kernels\//g'`])
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
       echo "configure: creating Makefile dependencies"
       AC_SUBST([PLUGFORMATS_DEPS],[`$PERL ./plugin_deps.pl *_plug.c`])

@@ -63,7 +63,7 @@ inline uint lut3(uint x, uint y, uint z, uchar m)
 #define USE_BITSELECT 1
 #endif
 
-#if SM_MAJOR < 2
+#if SM_MAJOR == 1
 #define OLD_NVIDIA 1
 #endif
 

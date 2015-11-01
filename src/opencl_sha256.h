@@ -19,45 +19,17 @@
 
 //Macros.
 #ifdef USE_BITSELECT
-
-#define Ch(x, y, z)     bitselect(z, y, x)
-#define Maj(x, y, z) bitselect(x, y, z ^ x)
-#define ror(x, n)       rotate(x, (32U-n))
-#define SWAP32(n)       rotate(n & 0x00FF00FFU, 24U) | rotate(n & 0xFF00FF00U, 8U)
-
-#ifdef AMD_STUPID_BUG_2
-#define SWAP_V(n)	bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
+#define ror32(x, n)       rotate(x, (32U-n))
 #else
-#define SWAP_V(n)	SWAP32(n)
+#define ror32(x, n)       ((x >> n) | (x << (32U-n)))
 #endif
-
-#else
-#define SWAP(n)	  \
+#define SWAP32_V(n)	  \
 	(((n) << 24)	       | (((n) & 0xff00U) << 8) | \
-	 (((n) >> 8) & 0xff00U)     | ((n) >> 24))
-
-#if HAVE_LUT3
-#define Ch(x, y, z) lut3(x, y, z, 0xca)
-#elif HAVE_ANDNOT
-#define Ch(x, y, z) ((x & y) ^ ((~x) & z))
-#else
-#define Ch(x, y, z) (z ^ (x & (y ^ z)))
-#endif
-#if HAVE_LUT3
-#define Maj(x, y, z) lut3(x, y, z, 0xe8)
-#else
-#define Maj(x, y, z) ((x & y) | (z & (x | y)))
-#endif
-#define ror(x, n)       ((x >> n) | (x << (32U-n)))
-#define SWAP32(n)       SWAP(n)
-#define SWAP_V(n)       SWAP(n)
-#endif
-
-#define SWAP32_V(n)		SWAP_V(n)
-#define Sigma0(x)		((ror(x,2U))  ^ (ror(x,13U)) ^ (ror(x,22U)))
-#define Sigma1(x)		((ror(x,6U))  ^ (ror(x,11U)) ^ (ror(x,25U)))
-#define sigma0(x)		((ror(x,7U))  ^ (ror(x,18U)) ^ (x>>3))
-#define sigma1(x)		((ror(x,17U)) ^ (ror(x,19U)) ^ (x>>10))
+	(((n) >> 8) & 0xff00U) | ((n) >> 24))
+#define Sigma0(x)		((ror32(x,2U))  ^ (ror32(x,13U)) ^ (ror32(x,22U)))
+#define Sigma1(x)		((ror32(x,6U))  ^ (ror32(x,11U)) ^ (ror32(x,25U)))
+#define sigma0(x)		((ror32(x,7U))  ^ (ror32(x,18U)) ^ (x>>3))
+#define sigma1(x)		((ror32(x,17U)) ^ (ror32(x,19U)) ^ (x>>10))
 
 //SHA256 constants.
 #define H0      0x6a09e667U
@@ -95,47 +67,76 @@ __constant uint32_t clear_mask[] = {
     0xffffffffU					//32    bits
 };
 
-#define CLEAR_BUFFER_32_SINGLE(dest, start) {	\
-    uint32_t tmp, pos;				\
-    tmp = (uint32_t) ((start) & 3U);		\
-    pos = (uint32_t) ((start) >> 2);		\
-    dest[pos] = dest[pos] & clear_mask[tmp];	\
+__constant uint32_t clear_be_mask[] = {
+    0xffffffffU, 0xff000000U,			//0,   8bits
+    0xffff0000U, 0xffffff00U,			//16, 24bits
+    0xffffffffU					//32    bits
+};
+
+#define OFFSET(index, position) 		   \
+    (get_global_id(0) +				   \
+	    (get_global_size(0) *		   \
+	    (index * 32 + position))		   \
+    )
+
+#define CLEAR_BUFFER_32(dest, start) {             \
+    uint32_t tmp, pos;                             \
+    tmp = ((start) & 3U);			   \
+    pos = ((start) >> 2);			   \
+    dest[pos] = dest[pos] & clear_mask[tmp];       \
+    if (tmp)                                       \
+        length = pos + 1;                          \
+    else                                           \
+	length = pos;                              \
 }
 
-#define CLEAR_BUFFER_32(dest, start) {		\
-    uint32_t tmp, pos;				\
-    tmp = (uint32_t) ((start) & 3U);		\
-    pos = (uint32_t) ((start) >> 2);		\
-    dest[pos] = dest[pos] & clear_mask[tmp];	\
-    if (tmp)					\
-	length = pos + 1;			\
-    else					\
-	length = pos;				\
+#define CLEAR_BUFFER_32_SINGLE(dest, start) {      \
+    uint32_t tmp, pos;                             \
+    tmp = ((start) & 3U);			   \
+    pos = ((start) >> 2);			   \
+    dest[pos] = dest[pos] & clear_mask[tmp];       \
 }
 
-#define APPEND(dest, src, start) {		\
-    uint32_t tmp, pos;				\
-    tmp = (uint32_t) ((start) & 3U) << 3;		\
-    pos = (uint32_t) ((start) >> 2);		\
-    dest[pos]   = (dest[pos] | (src << tmp));	\
-    dest[pos+1] = (tmp ? (src >> (32U - tmp)) : 0U); \
+#define APPEND_BE_SINGLE(dest, src, start) {       \
+    uint32_t tmp, pos;                             \
+    tmp = (((start) & 3U) << 3);                   \
+    pos = ((start) >> 2);                          \
+    dest[pos] = (dest[pos] | (src >> tmp));        \
 }
 
-#define APPEND_F(dest, src, start) {		\
-    uint32_t tmp, pos;				\
-    tmp = (uint32_t) ((start) & 3U) << 3;		\
-    pos = (uint32_t) ((start) >> 2);		\
-    dest[pos]   = (dest[pos] | (src << tmp));	\
-    if (pos < 15)                               \
-	dest[pos+1] = (tmp ? (src >> (32U - tmp)) : 0U); \
+#define APPEND_BE_SPECIAL(dest, src, index, start) {			\
+    uint32_t tmp, pos, offset;						\
+    tmp = (((start) & 3U) << 3);					\
+    pos = ((start) >> 2);						\
+    offset = OFFSET(index, pos);					\
+    dest[offset] = (dest[offset] | (src >> tmp));			\
+    if (pos < 17) { 							\
+	pos++;								\
+	offset = OFFSET(index, pos);					\
+	dest[offset] = (tmp ? (src << (32U - tmp)) : 0U);		\
+    }									\
 }
 
-#define APPEND_SINGLE(dest, src, start) {	\
-    uint32_t tmp, pos;				\
-    tmp = (uint32_t) ((start) & 3U) << 3;		\
-    pos = (uint32_t) ((start) >> 2);		\
-    dest[pos]   = (dest[pos] | (src << tmp));	\
+#define APPEND_BE_BUFFER(dest, src)					\
+    dest[pos] = (dest[pos] | (src >> tmp));				\
+    dest[++pos] = (tmp ? (src << (32U - tmp)) : 0U);
+
+#define APPEND_BE_BUFFER_F(dest, src)					\
+    dest[pos] = (dest[pos] | (src >> tmp));				\
+    if (pos < 15)							\
+        dest[++pos] = (tmp ? (src << (32U - tmp)) : 0U);		\
+
+#define APPEND_SINGLE(dest, src, start) {				\
+    uint32_t tmp, pos;							\
+    tmp = (((start) & 3U) << 3);					\
+    pos = ((start) >> 2);						\
+    dest[pos] = (dest[pos] | (src << tmp));				\
 }
+
+#define APPEND_BUFFER_F(dest, src)					\
+    dest[pos] = (dest[pos] | (src << tmp));				\
+    if (pos < 15)							\
+        dest[++pos] = (tmp ? (src >> (32U - tmp)) : 0U);
 #endif
 
 #endif	/* OPENCL_SHA256_H */

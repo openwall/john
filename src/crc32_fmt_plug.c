@@ -32,6 +32,7 @@ john_register_one(&fmt_crc32);
 
 /* Uncomment to try out a non-SSE4.2 build (bench with -cost=1:1) */
 //#undef __SSE4_2__
+//#undef __AVX2__
 
 #include <string.h>
 

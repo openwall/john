@@ -55,11 +55,11 @@ typedef struct zip_salt_t {
 								// (under 16k), then it simply read into H[x].h at init() time.
 								// and cmp_exact does not need fname to be used.
 	u32 offset;					// this is the offset to zip data (if we have to read from the file).
+	ZIP_HASH H[MAX_PKZ_FILES];
 	u32 full_zip_idx;			// the index (0, 1, 2) which contains the 'full zip' data.
 	// start of the dyna zip 'compared' data.
 	u32 cnt;					// number of hashes
 	u32 chk_bytes;				// number of bytes valid in checksum (1 or 2)
-	ZIP_HASH H[MAX_PKZ_FILES];
 	u32 crc32;					// if a 'full' file of encr data, then this is the CRC
 	u32 compLen;				// length of compressed data (whether part or full)
 	u32 deCompLen;				// length of decompressed data (if full).

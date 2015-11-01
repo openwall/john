@@ -252,6 +252,10 @@ static char *source(char *source, void *binary)
 	alter_endianity(hash, DIGEST_SIZE);
 #endif
 
+#if ARCH_LITTLE_ENDIAN==0
+	alter_endianity(hash, DIGEST_SIZE);
+#endif
+
 	/* Convert to hex string */
 	p = hex;
 	for (i = 0; i < 5; i++)

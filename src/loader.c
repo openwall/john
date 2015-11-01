@@ -1614,6 +1614,7 @@ void ldr_fix_database(struct db_main *db)
 			fprintf(stderr, "%s%d password hash%s cracked,"
 			        " %d left\n", total ? "\n" : "", total,
 			        total != 1 ? "es" : "", db->password_count);
+		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 		exit(0);
 	}
 }

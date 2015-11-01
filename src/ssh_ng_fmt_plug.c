@@ -48,8 +48,7 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL        "SSH-ng"
 #define FORMAT_NAME         ""
-#define ALGORITHM_NAME      "RSA/DSA/EC (SSH private keys) 32/" ARCH_BITS_STR
-// #define ALGORITHM_NAME      "RSA/DSA (SSH/PEM/PKCS#8) 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME      "RSA/DSA/EC/OPENSSH (SSH private keys) 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1001
 #define PLAINTEXT_LENGTH    32 // XXX
