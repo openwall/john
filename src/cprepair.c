@@ -274,7 +274,7 @@ static int process_file(char *name)
 
 int main(int argc, char **argv)
 {
-	char c;
+	signed char c;
 
 	options.verbosity = 3;
 
