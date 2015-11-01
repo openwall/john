@@ -91,6 +91,7 @@ void *mem_alloc_func(size_t size
 #endif
 	if (!res) {
 		fprintf(stderr, "mem_alloc(): %s trying to allocate "Zu" bytes\n", strerror(ENOMEM), size);
+		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 		error();
 	}
 
@@ -115,6 +116,7 @@ void *mem_calloc_func(size_t count, size_t size
 #endif
 	if (!res) {
 		fprintf(stderr, "mem_calloc(): %s trying to allocate "Zu" bytes\n", strerror(ENOMEM), count * size);
+		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 		error();
 	}
 

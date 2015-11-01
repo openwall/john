@@ -198,7 +198,7 @@ size_t MemDbg_Used(int show_freed) {
 void MemDbg_Display(FILE *fp) {
 	MEMDBG_HDR *p;
 	int idx;
-	if (!(mem_size+mem_sizet)) return;
+	if (!(mem_size+mem_sizet) && !getenv("MEMDBG")) return;
 
 	fprintf(fp, "\n------------------------------\n");
 	fprintf(fp, "MEMDBG: allocation information (display):\n");
@@ -207,6 +207,7 @@ void MemDbg_Display(FILE *fp) {
 #ifdef MEMDBG_EXTRA_CHECKS
 	fprintf(fp, "  Freed mem size: "LLu" (freed cnt: %lu)", (unsigned long long)freed_mem_size, freed_cnt);
 #endif
+	if (!(mem_size+mem_sizet)) return;
 	fprintf(fp, "\n");
 	fprintf(fp, "Index : alloc# :   Size : File(Line)  [first 20 bytes, or size of bytes]\n");
 	idx = 0;

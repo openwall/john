@@ -122,7 +122,7 @@ extern char *MEMDBG_strdup(const char *, char *, int);
 
 /* pass the file handle to write to (normally stderr) */
 #define MEMDBG_PROGRAM_EXIT_CHECKS(a) do { \
-    if (MemDbg_Used(0) > 0) MemDbg_Display(a); \
+    if (MemDbg_Used(0) > 0 || getenv("MEMDBG")) MemDbg_Display(a); \
     MemDbg_Validate_msg2(MEMDBG_VALIDATE_DEEPEST, "At Program Exit", 1); } while(0)
 
 typedef struct MEMDBG_HANDLE_t {
