@@ -70,6 +70,8 @@ static struct fmt_tests keychain_tests[] = {
 	{"$keychain$*23328e264557b93204dc825c46a25f7fb1e17d4a*19a9efde2ca98d30*6ac89184134758a95c61bd274087ae0cffcf49f433c7f91edea98bd4fd60094e2936d99e4d985dec98284379f23259c0", "hhh"},
 	{"$keychain$*927717d8509db73aa47c5e820e3a381928b5e048*eef33a4a1483ae45*a52691580f17e295b8c2320947968503c605b2784bfe4851077782139f0de46f71889835190c361870baa56e2f4e9e43", "JtR-Jumbo"},
 	{"$keychain$*1fab88d0b8ea1a3d303e0aef519796eb29e46299*3358b0e77d60892f*286f975dcd191024227514ed9939d0fa94034294ba1eca6d5c767559e75e944b5a2fcb54fd696be64c64f9d069ce628a", "really long password -----------------------------"},
+	/* Sample keychain from OS X El Capitan, November of 2015 */
+	{"$keychain$*3a473dd308b1713ddc76fc976758eb543779a228*570b762ec2b177d0*a1f491231412ff74344244db4d98b1dab6e40a8fc63a11f0d5cdabf97fce5c4fa8ae0a1f95d0398d37e3d45e9fa07aa7", "El Capitan"},
 	{NULL}
 };
 
