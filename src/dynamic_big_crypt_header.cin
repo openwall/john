@@ -365,6 +365,7 @@ int inline large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte
 	return cpo2-cpo;
 }
 
+#if SIMD_COEF_32
 static inline uint32_t Do_FixBufferLen32(unsigned char *input_buf, int total_len, int BE_HASH)
 {
 	uint32_t *p;
@@ -457,6 +458,7 @@ static inline uint32_t Do_FixBufferLen64(unsigned char *input_buf, int total_len
 
 	return ret;
 }
+#endif
 
 #ifdef _OPENMP
 #define PRELIM_W_TID   uint32_t i=first, til=last
