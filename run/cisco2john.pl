@@ -39,6 +39,7 @@
 # at your option, any later version of Perl 5 you may have available.
 
 use strict;
+use File::Basename;
 
 my $seedNotice = 1;
 my %Alphabets = (
@@ -126,21 +127,22 @@ sub notice
 if ($ARGV[0] =~ /-h/) { usage() }
 
 my $ssid = "";
-foreach (<>) {
+while (<>) {
     chomp;
     s/[\r\n]//g;
+    my $filename = ($ARGV ne "-") ? ":" . basename($ARGV) : "";
     #print "in: $_\n";
 
     # WPA-PSK
     if ($ssid && m/hex 0 ([\dA-F]+)/) {
-	my $output = "$ssid:\$pbkdf2-hmac-sha1\$4096\$" . unpack("H*", $ssid) . '$' . $1;
+	my $output = "$ssid:\$pbkdf2-hmac-sha1\$4096\$" . unpack("H*", $ssid) . '$' . $1 . $filename;
 	if (unique($output)) {
 	    print $output, "\n";
 	}
     } elsif ($ssid && m/hex 7 ([\dA-F]+)/) {
 	#print "in: $_\nhex: $1\n";
 	my $hex = deobfuscate($1);
-	my $output = "$ssid:\$pbkdf2-hmac-sha1\$4096\$" . unpack("H*", $ssid) . '$' . $hex;
+	my $output = "$ssid:\$pbkdf2-hmac-sha1\$4096\$" . unpack("H*", $ssid) . '$' . $hex . $filename;
 	if ($hex && unique($output)) {
 	    print $output, "\n";
 	}
@@ -168,7 +170,7 @@ foreach (<>) {
 	my $hash = $1;
 	s/[ :]+/_/g;
 	m/^(.{1,})_5_\$1\$.*/;
-	my $output = $1 . ":" . $hash;
+	my $output = $1 . ":" . $hash . $filename;
 	if (unique($output)) {
 	    print $output, "\n";
 	}
@@ -180,7 +182,7 @@ foreach (<>) {
 	m/^(.{1,})_4_[\$\.\/0-9A-Za-z]{43}/;
 	my $output = $1 . ':$SHA256$';
 	my $binhash = Decode($hash, 'CISCO');
-	$output .= join("", map { sprintf("%02x", ord($_)) } split(//, join("", $binhash)));
+	$output .= join("", map { sprintf("%02x", ord($_)) } split(//, join("", $binhash))) . $filename;
 	if (unique($output)) {
 	    print $output, "\n";
 	}
