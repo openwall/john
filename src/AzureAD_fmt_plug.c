@@ -51,7 +51,7 @@ john_register_one(&fmt_AzureAD);
 
 #define FORMAT_LABEL             "AzureAD"
 #define FORMAT_NAME              ""
-#define ALGORITHM_NAME           "AzureAD " SHA256_ALGORITHM_NAME
+#define ALGORITHM_NAME           "SHA256 " SHA256_ALGORITHM_NAME
 
 #ifdef SIMD_COEF_32
 #define NBKEYS                   (SIMD_COEF_32 * SIMD_PARA_SHA256)
