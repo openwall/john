@@ -78,7 +78,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		clipperz-srp dahua fortigate lp lastpass rawmd2 mongodb mysqlna
 		o5logon postgres pst raw-blake2 raw-keccak raw-keccak256 siemens-s7
 		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip bitcoin blockchain
-		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384
+		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD
 	      ));
 
 # todo: sapb sapfg ike keepass cloudkeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring keystore krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sxc sybase-prop tripcode vtp whirlpool0 whirlpool1
@@ -1759,6 +1759,14 @@ sub bitcoin {
 sub sevenz {
 }
 sub afs {
+}
+sub azuread {
+	$salt = get_salt(10);
+	#$salt = pack("H*", "317ee9d1dec6508fa510");
+	my $rounds = 100;
+	$h = encode("UTF-16LE", uc unpack("H*",md4(encode("UTF-16LE", $_[0]))));
+	my $key = unpack("H*",pp_pbkdf2($h, $salt, $rounds, "sha256", 32, 64));
+	return "v1;PPH1_MD4,".unpack("H*",$salt).",100,$key;";
 }
 sub blockchain {
 	my $unenc = "{\n{\t\"guid\" : \"246093c1-de47-4227-89be-".randstr(12,\@chrHexLo)."\",\n\t\"sharedKey\" : \"fccdf579-707c-46bc-9ed1-".randstr(12,\@chrHexLo)."\",\n\t";
