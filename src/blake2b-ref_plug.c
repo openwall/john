@@ -52,12 +52,6 @@ static inline int blake2b_set_lastnode( blake2b_state *S )
   return 0;
 }
 
-static inline int blake2b_clear_lastnode( blake2b_state *S )
-{
-  S->f[1] = 0ULL;
-  return 0;
-}
-
 /* Some helper functions, not necessarily useful */
 static inline int blake2b_set_lastblock( blake2b_state *S )
 {
