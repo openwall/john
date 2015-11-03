@@ -214,22 +214,25 @@ static void decrypt_aes_cbc_essiv(unsigned char *src, unsigned char *dst,
 	AES_KEY aeskey;
 	unsigned char essiv[16];
 	unsigned char essivhash[32];
-	int a;
+	unsigned a;
 	SHA256_CTX ctx;
 	unsigned char sectorbuf[16];
 	unsigned char zeroiv[16];
 
+	// This should NEVER be done in the loop!!  This never changed.
+	SHA256_Init(&ctx);
+	SHA256_Update(&ctx, key, john_ntohl(cs->myphdr.keyBytes));
+	SHA256_Final(essivhash, &ctx);
+	memset(sectorbuf, 0, 16);
+	memset(essiv, 0, 16);
+
 	for (a = 0; a < (size / 512); a++) {
-		SHA256_Init(&ctx);
-		SHA256_Update(&ctx, key, john_ntohl(cs->myphdr.keyBytes));
-		SHA256_Final(essivhash, &ctx);
-		memset(sectorbuf, 0, 16);
 		memset(zeroiv, 0, 16);
-		memset(essiv, 0, 16);
+
 #if ARCH_LITTLE_ENDIAN
 		memcpy(sectorbuf, &a, 4);
 #else
-		{ int b = JOHNSWAP(a); memcpy(sectorbuf, &b, 4); }
+		{ unsigned b = JOHNSWAP(a); memcpy(sectorbuf, &b, 4); }
 #endif
 		AES_set_encrypt_key(essivhash, 256, &aeskey);
 		AES_cbc_encrypt(sectorbuf, essiv, 16, &aeskey, zeroiv, AES_ENCRYPT);
@@ -575,15 +578,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		            iterations, (unsigned char*)keycandidate[0], dklen, 0);
 #endif
 #if ARCH_LITTLE_ENDIAN==0
-		for (i = 0; i < 4; ++i)
-			keycandidate[0][i] = JOHNSWAP(keycandidate[0][i]);
+		{
+			int kb = john_ntohl(cur_salt->myphdr.keyBytes)>>2;
+			for (i = 0; i < kb; ++i)
+				keycandidate[0][i] = JOHNSWAP(keycandidate[0][i]);
+		}
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			// Decrypt the blocksi
 			decrypt_aes_cbc_essiv(cur_salt->cipherbuf, af_decrypted, (unsigned char*)keycandidate[i], cur_salt->afsize, cur_salt);
 			// AFMerge the blocks
 			AF_merge(af_decrypted, (unsigned char*)masterkeycandidate[i], cur_salt->afsize,
-			john_ntohl(cur_salt->myphdr.keyblock[cur_salt->bestslot].stripes));
+			         john_ntohl(cur_salt->myphdr.keyblock[cur_salt->bestslot].stripes));
 		}
 		// pbkdf2 again
 #ifdef SIMD_COEF_32
