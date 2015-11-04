@@ -31,49 +31,50 @@
 
 //Data types.
 typedef union {
-    uint8_t                     mem_08[4];
-    uint16_t                    mem_16[2];
-    uint32_t                    mem_32[1];
+	uint8_t mem_08[4];
+	uint16_t mem_16[2];
+	uint32_t mem_32[1];
 } buffer_32;
 
 typedef struct {
-    uint32_t                    rounds;
-    uint32_t                    length;
-    uint32_t                    final;
-    buffer_32                   salt[SALT_ARRAY];
+	uint32_t rounds;
+	uint32_t length;
+	uint32_t final;
+	buffer_32 salt[SALT_ARRAY];
 } sha256_salt;
+
 #define SALT_SIZE               sizeof(sha256_salt)
 
 typedef struct {
-    uint32_t                    length;
-    buffer_32                   pass[PLAINTEXT_ARRAY];
+	uint32_t length;
+	buffer_32 pass[PLAINTEXT_ARRAY];
 } sha256_password;
 
 typedef struct {
-    uint32_t                    v[8];           //256 bits
+	uint32_t v[8];              //256 bits
 } sha256_hash;
 
 typedef struct {
-    uint32_t                    H[8];           //256 bits
-    uint32_t                    total;
-    uint32_t                    buflen;
-    buffer_32                   buffer[16];     //512 bits
+	uint32_t H[8];              //256 bits
+	uint32_t total;
+	uint32_t buflen;
+	buffer_32 buffer[16];       //512 bits
 #if __CPU__
-    uint64_t                    safety_trail;   //To avoid memory override
+	uint64_t safety_trail;      //To avoid memory override
 #endif
 } sha256_ctx;
 
 typedef struct {
-    buffer_32                   alt_result[8];
-    buffer_32                   temp_result[SALT_ARRAY];
-    buffer_32                   p_sequence[PLAINTEXT_ARRAY];
+	buffer_32 alt_result[8];
+	buffer_32 temp_result[SALT_ARRAY];
+	buffer_32 p_sequence[PLAINTEXT_ARRAY];
 } sha256_buffers;
 
 #ifndef _OPENCL_COMPILER
-    static const char * warn[] = {
-        "xfer: "   ,  ", crypt: " , ", xfer back: ",
-        ", prep: " ,  ", pp: "    , ", final: " ,   ", var: " , "/"
+static const char *warn[] = {
+	"xfer: ", ", crypt: ", ", xfer back: ",
+	", prep: ", ", pp: ", ", final: ", ", var: ", "/"
 };
 #endif
 
-#endif  /* _CRYPTSHA256_H */
+#endif                          /* _CRYPTSHA256_H */
