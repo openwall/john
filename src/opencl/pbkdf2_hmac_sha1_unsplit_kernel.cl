@@ -103,31 +103,19 @@ inline void hmac_sha1(__private uint *output,
 
 	SHA1(A, B, C, D, E, W);
 
-	A += ipad_state[0];
-	B += ipad_state[1];
-	C += ipad_state[2];
-	D += ipad_state[3];
-	E += ipad_state[4];
-
-	PUT_UINT32BE(A, buf, 0);
-	PUT_UINT32BE(B, buf, 4);
-	PUT_UINT32BE(C, buf, 8);
-	PUT_UINT32BE(D, buf, 12);
-	PUT_UINT32BE(E, buf, 16);
-	PUT_UINT32BE(0, buf, 20);
-	PUT_UINT32BE(0, buf, 24);
-
-	buf[20] = 0x80;
-	PUT_UINT32BE(0x2A0, buf, 60);
+	W[0] = A + ipad_state[0];
+	W[1] = B + ipad_state[1];
+	W[2] = C + ipad_state[2];
+	W[3] = D + ipad_state[3];
+	W[4] = E + ipad_state[4];
+	W[5] = 0x80000000;
+	W[15] = 0x2A0;
 
 	A = opad_state[0];
 	B = opad_state[1];
 	C = opad_state[2];
 	D = opad_state[3];
 	E = opad_state[4];
-
-	for (i = 0; i < 16; i++)
-		GET_UINT32BE(W[i], buf, i * 4);
 
 	SHA1_160Z(A, B, C, D, E, W);
 
@@ -168,17 +156,11 @@ inline void big_hmac_sha1(__private uint *input, uint inputlen,
 
 		SHA1_160Z(A, B, C, D, E, W);
 
-		A += ipad_state[0];
-		B += ipad_state[1];
-		C += ipad_state[2];
-		D += ipad_state[3];
-		E += ipad_state[4];
-
-		W[0] = A;
-		W[1] = B;
-		W[2] = C;
-		W[3] = D;
-		W[4] = E;
+		W[0] = A + ipad_state[0];
+		W[1] = B + ipad_state[1];
+		W[2] = C + ipad_state[2];
+		W[3] = D + ipad_state[3];
+		W[4] = E + ipad_state[4];
 		W[5] = 0x80000000;
 		W[15] = 0x2A0;
 
