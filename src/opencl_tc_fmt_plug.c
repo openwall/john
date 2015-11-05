@@ -76,8 +76,6 @@ typedef struct {
 } pbkdf2_hash;
 
 typedef struct {
-	unsigned int iterations;
-	unsigned int outlen;
 	unsigned char salt[SALTLEN];
 } pbkdf2_salt;
 
@@ -254,8 +252,6 @@ static void set_salt(void *salt)
 	psalt = salt;
 
 	memcpy((char*)currentsalt.salt, psalt->salt, SALTLEN);
-	currentsalt.iterations = psalt->num_iterations;
-	currentsalt.outlen = OUTLEN;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
 		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
@@ -425,6 +421,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	if (psalt->nkeyfiles) {
+#if _OPENMP
+#pragma omp parallel for
+#endif
 		for (i = 0; i < count; i++) {
 			apply_keyfiles(inbuffer[i].v, 64, psalt->nkeyfiles);
 			inbuffer[i].length = 64;
@@ -448,6 +447,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (ocl_autotune_running)
 		return count;
 
+#if _OPENMP
+#pragma omp parallel for
+#endif
 	for (i = 0; i < count; i++) {
 		AES_256_XTS_first_sector((unsigned char*)outbuffer[i].v, first_block_dec[i], psalt->bin, 16);
 	}
@@ -558,7 +560,7 @@ struct fmt_main FMT_STRUCT = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
 		tests_ripemd160
 	}, {

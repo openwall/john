@@ -12,6 +12,8 @@
 #include "opencl_misc.h"
 #include "opencl_ripemd.h"
 
+#define ITERATIONS 2000
+
 typedef struct {
 	uint length;
 	uchar v[KEYLEN];
@@ -22,8 +24,6 @@ typedef struct {
 } pbkdf2_hash;
 
 typedef struct {
-	uint iterations;
-	uint outlen;
 	uint salt[SALTLEN / 4];
 } pbkdf2_salt;
 
@@ -83,7 +83,7 @@ inline void hmac_ripemd160(uint *output, uint *ipad_state, uint *opad_state,
 }
 
 inline void big_hmac_ripemd160(uint *input, uint inputlen, uint *ipad_state,
-                               uint *opad_state, uint *tmp_out, uint iterations)
+                               uint *opad_state, uint *tmp_out)
 {
 	uint i;
 	uint W[5];
@@ -91,7 +91,7 @@ inline void big_hmac_ripemd160(uint *input, uint inputlen, uint *ipad_state,
 	for (i = 0; i < 5; i++)
 		W[i] = input[i];
 
-	for (i = 1; i < iterations; i++) {
+	for (i = 1; i < ITERATIONS; i++) {
 		uint ctx[5];
 		uint j;
 
@@ -117,8 +117,7 @@ inline void big_hmac_ripemd160(uint *input, uint inputlen, uint *ipad_state,
 }
 
 inline void pbkdf2(__global const uchar *pass, uint passlen,
-                   __global const uint *salt, uint iterations,
-                   __global uint *out, uint outlen)
+                   __global const uint *salt, __global uint *out)
 {
 	uint ipad_state[5];
 	uint opad_state[5];
@@ -127,7 +126,7 @@ inline void pbkdf2(__global const uchar *pass, uint passlen,
 	preproc(pass, passlen, ipad_state, 0x36363636);
 	preproc(pass, passlen, opad_state, 0x5c5c5c5c);
 
-	for (r = 1; r <= (outlen + 19) / 20; r++) {
+	for (r = 1; r <= (OUTLEN + 19) / 20; r++) {
 		uint tmp_out[5];
 		uint i;
 
@@ -135,9 +134,9 @@ inline void pbkdf2(__global const uchar *pass, uint passlen,
 
 		big_hmac_ripemd160(tmp_out, RIPEMD160_DIGEST_LENGTH,
 		                   ipad_state, opad_state,
-		                   tmp_out, iterations);
+		                   tmp_out);
 
-		for (i = 0; i < 20 && t < (outlen + 3) / 4 * 4; i++, t++)
+		for (i = 0; i < 20 && t < (OUTLEN + 3) / 4 * 4; i++, t++)
 			PUTCHAR_G(out, t, ((uchar*)tmp_out)[i]);
 	}
 }
@@ -149,5 +148,5 @@ __kernel void pbkdf2_ripemd160(__global const pbkdf2_password *inbuffer,
 	uint idx = get_global_id(0);
 
 	pbkdf2(inbuffer[idx].v, inbuffer[idx].length, salt->salt,
-	       salt->iterations, outbuffer[idx].v, salt->outlen);
+	       outbuffer[idx].v);
 }
