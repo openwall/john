@@ -2804,7 +2804,7 @@ sub pwsafe {
 }
 sub django {
 	$salt=get_salt(12,-32);
-	my $loops = get_loops(2048);
+	my $loops = get_loops(10000);
 	return "\$django\$\*1\*pbkdf2_sha256\$$loops\$$salt\$".base64(pp_pbkdf2($_[1], $salt, $loops, "sha256", 32, 64));
 }
 sub django_scrypt {
