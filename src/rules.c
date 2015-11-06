@@ -1947,6 +1947,11 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 					count = mleft;
 				if (count <= 0)
 					break;
+				if (count+length > sizeof(memory)-1) {
+					count = (sizeof(memory)-1)-length;
+					if (count < 0)
+						break;
+				}
 				mp = memory + mpos;
 				if (ipos >= length) {
 					memcpy(&in[length], mp, count);

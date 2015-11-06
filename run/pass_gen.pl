@@ -721,6 +721,10 @@ sub get_username {
 	}
 	return randusername($len);
 }
+sub get_loops {
+	if ($arg_loops != -1) { return $arg_loops; }
+	return $_[0];
+}
 ############################################################################################
 # we need a getter function for $iv also (and content??, and possibly others) that are
 # modeled after get_salt()
@@ -1745,7 +1749,7 @@ sub bitcoin {
 	my $master; my $rounds; # my $ckey; my $public_key;
 	$master = pack("H*", "0e34a996b1ce8a1735bba1acf6d696a43bc6730b5c41224206c93006f14f951410101010101010101010101010101010");
 	$salt = get_salt(8);
-	$rounds = $arg_loops != -1 ? $arg_loops : 20000;
+	$rounds = get_loops(20000);  # 20k is a 'small' default number, but runs pretty fast.
 	$h = sha512($_[1] . $salt);
 	for (my $i = 1; $i < $rounds; $i++) {
 		$h = sha512($h);
@@ -2344,7 +2348,7 @@ sub _sha_crypts {
 	my $a; my $b, my $c, my $tmp; my $i; my $ds; my $dp; my $p; my $s;
 	my ($func, $bits, $key, $salt) = @_;
 	my $bytes = $bits/8;
-	my $loops = $arg_loops != -1 ? $arg_loops : 5000;
+	my $loops = get_loops(5000);
 
 	$b = $func->($key.$salt.$key);
 
