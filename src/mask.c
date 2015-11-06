@@ -34,6 +34,8 @@
 #include "memdbg.h"
 #include "mask_ext.h"
 
+extern void wordlist_hybrid_fix_state(void);
+
 static mask_parsed_ctx parsed_mask;
 static mask_cpu_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
@@ -1687,17 +1689,16 @@ void mask_fix_state(void)
 {
 	int i;
 
+	if (parent_fix_state_pending) {
+		crk_fix_state();
+		parent_fix_state_pending = 0;
+	}
 	rec_cand = cand;
 	rec_ctx.count = cpu_mask_ctx.count;
 	rec_ctx.offset = cpu_mask_ctx.offset;
 	rec_len = max_keylen;
 	for (i = 0; i < rec_ctx.count; i++)
 		rec_ctx.ranges[i].iter = cpu_mask_ctx.ranges[i].iter;
-
-	if (parent_fix_state_pending) {
-		crk_fix_state();
-		parent_fix_state_pending = 0;
-	}
 }
 
 void remove_slash(char *mask)
@@ -2188,8 +2189,11 @@ int do_mask_crack(const char *extern_key)
 				return 1;
 		}
 	}
-	if ((options.flags & FLG_MASK_STACKED) && !event_abort)
+
+	if (options.flags & FLG_MASK_STACKED) {
+		wordlist_hybrid_fix_state();
 		parent_fix_state_pending = 1;
+	}
 
 	return event_abort;
 }
