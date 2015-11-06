@@ -1745,8 +1745,7 @@ sub bitcoin {
 	my $master; my $rounds; # my $ckey; my $public_key;
 	$master = pack("H*", "0e34a996b1ce8a1735bba1acf6d696a43bc6730b5c41224206c93006f14f951410101010101010101010101010101010");
 	$salt = get_salt(8);
-	#$rounds = 177864;
-	$rounds = 20000;		# very SMALL number of rounds as default.
+	$rounds = $arg_loops != -1 ? $arg_loops : 20000;
 	$h = sha512($_[1] . $salt);
 	for (my $i = 1; $i < $rounds; $i++) {
 		$h = sha512($h);
