@@ -66,6 +66,7 @@ volatile int timer_abort = 0, timer_status = 0;
 static int timer_save_interval, timer_save_value;
 static clock_t timer_ticksafety_interval, timer_ticksafety_value;
 volatile int aborted_by_timer = 0;
+static int abort_grace_time = 30;
 
 #if !OS_TIMER
 
@@ -323,7 +324,12 @@ static void sig_handle_timer(int signum)
 	}
 	if (timer_abort && !--timer_abort) {
 		aborted_by_timer = 1;
-		timer_abort = 30; /* grace time */
+		if (abort_grace_time > 0)
+			timer_abort = abort_grace_time;
+		else if (abort_grace_time < 0)
+			timer_abort = 0;
+		else /* no grace time, kill immediately */
+			event_abort = 1;
 		sig_handle_abort(0);
 	}
 	if (timer_status && !--timer_status) {
@@ -352,7 +358,12 @@ static void sig_handle_timer(int signum)
 	}
 	if (timer_abort && time >= timer_abort) {
 		aborted_by_timer = 1;
-		timer_abort += 30; /* grace time */
+		if (abort_grace_time > 0)
+			timer_abort += abort_grace_time;
+		else if (abort_grace_time < 0)
+			timer_abort = 0;
+		else /* no grace time, kill immediately */
+			event_abort = 1;
 		sig_handle_abort(0);
 	}
 	if (timer_status && time >= timer_status) {
@@ -524,6 +535,10 @@ void sig_init(void)
 	else
 	if ((timer_save_interval /= TIMER_INTERVAL) <= 0)
 		timer_save_interval = 1;
+	if (cfg_get_param(SECTION_OPTIONS, NULL, "AbortGraceTime")) {
+		abort_grace_time =
+			cfg_get_int(SECTION_OPTIONS, NULL, "AbortGraceTime");
+	}
 #if OS_TIMER
 	timer_save_value = timer_save_interval;
 #elif !defined(BENCH_BUILD)

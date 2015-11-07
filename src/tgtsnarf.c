@@ -251,7 +251,8 @@ upcase(char *string)
 int
 main(int argc, char *argv[])
 {
-  char c, *p, *host, *realm, user[128];
+  signed char c;
+  char *p, *host, *realm, user[128];
   int i;
 
   host = realm = NULL;

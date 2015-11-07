@@ -377,7 +377,7 @@ static void AES_256_XTS_first_sector(const unsigned char *double_key,
 	}
 }
 
-int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles)
+static int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles)
 {
 	int pl, k;
 	unsigned char *kpool;

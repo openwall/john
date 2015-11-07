@@ -80,8 +80,6 @@
 #ifdef __ARM_NEON__
 #define SIMD_COEF_32		4
 #define SIMD_COEF_64		2
-#endif
-
 #ifndef SIMD_PARA_MD4
 #define SIMD_PARA_MD4		2
 #endif
@@ -96,6 +94,7 @@
 #endif
 #ifndef SIMD_PARA_SHA512
 #define SIMD_PARA_SHA512	1
+#endif
 #endif
 
 #define STR_VALUE(arg)			#arg

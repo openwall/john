@@ -52,26 +52,12 @@ static inline int blake2b_set_lastnode( blake2b_state *S )
   return 0;
 }
 
-static inline int blake2b_clear_lastnode( blake2b_state *S )
-{
-  S->f[1] = 0ULL;
-  return 0;
-}
-
 /* Some helper functions, not necessarily useful */
 static inline int blake2b_set_lastblock( blake2b_state *S )
 {
   if( S->last_node ) blake2b_set_lastnode( S );
 
   S->f[0] = ~0ULL;
-  return 0;
-}
-
-static inline int blake2b_clear_lastblock( blake2b_state *S )
-{
-  if( S->last_node ) blake2b_clear_lastnode( S );
-
-  S->f[0] = 0ULL;
   return 0;
 }
 
@@ -82,63 +68,7 @@ static inline int blake2b_increment_counter( blake2b_state *S, const uint64_t in
   return 0;
 }
 
-
-
 // Parameter-related functions
-static inline int blake2b_param_set_digest_length( blake2b_param *P, const uint8_t digest_length )
-{
-  P->digest_length = digest_length;
-  return 0;
-}
-
-static inline int blake2b_param_set_fanout( blake2b_param *P, const uint8_t fanout )
-{
-  P->fanout = fanout;
-  return 0;
-}
-
-static inline int blake2b_param_set_max_depth( blake2b_param *P, const uint8_t depth )
-{
-  P->depth = depth;
-  return 0;
-}
-
-static inline int blake2b_param_set_leaf_length( blake2b_param *P, const uint32_t leaf_length )
-{
-  store32( &P->leaf_length, leaf_length );
-  return 0;
-}
-
-static inline int blake2b_param_set_node_offset( blake2b_param *P, const uint64_t node_offset )
-{
-  store64( &P->node_offset, node_offset );
-  return 0;
-}
-
-static inline int blake2b_param_set_node_depth( blake2b_param *P, const uint8_t node_depth )
-{
-  P->node_depth = node_depth;
-  return 0;
-}
-
-static inline int blake2b_param_set_inner_length( blake2b_param *P, const uint8_t inner_length )
-{
-  P->inner_length = inner_length;
-  return 0;
-}
-
-static inline int blake2b_param_set_salt( blake2b_param *P, const uint8_t salt[BLAKE2B_SALTBYTES] )
-{
-  memcpy( P->salt, salt, BLAKE2B_SALTBYTES );
-  return 0;
-}
-
-static inline int blake2b_param_set_personal( blake2b_param *P, const uint8_t personal[BLAKE2B_PERSONALBYTES] )
-{
-  memcpy( P->personal, personal, BLAKE2B_PERSONALBYTES );
-  return 0;
-}
-
 static inline int blake2b_init0( blake2b_state *S )
 {
   int i;

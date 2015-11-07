@@ -16,7 +16,7 @@
 #define _JOHN_MATH_H
 
 #undef int64
-#define int64 _john_int64_t
+#define int64 _john_int64_composite
 
 typedef struct {
 	unsigned int lo, hi;
