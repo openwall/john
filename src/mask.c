@@ -2191,7 +2191,8 @@ int do_mask_crack(const char *extern_key)
 	}
 
 	if (options.flags & FLG_MASK_STACKED) {
-		wordlist_hybrid_fix_state();
+		if (options.flags & FLG_WORDLIST_CHK)
+			wordlist_hybrid_fix_state();
 		parent_fix_state_pending = 1;
 	}
 
