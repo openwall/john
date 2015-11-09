@@ -964,7 +964,7 @@ static void john_load_conf_db(void)
 	}
 }
 
-static void load_extra_pots(void)
+static void load_extra_pots(void (*process_file)(struct db_main *db, char *name))
 {
 	struct cfg_list *list;
 	struct cfg_line *line;
@@ -976,7 +976,7 @@ static void load_extra_pots(void)
 		char *name = path_expand(line->data);
 
 		if (!stat(name, &s) && s.st_mode & S_IFREG)
-			ldr_load_pot_file(&database, name);
+			process_file(&database, name);
 #if HAVE_DIRENT_H && HAVE_SYS_TYPES_H
 		else if (s.st_mode & S_IFDIR) {
 			DIR *dp;
@@ -998,8 +998,7 @@ static void load_extra_pots(void)
 
 					if (!stat(dname, &s) &&
 					    s.st_mode & S_IFREG)
-						ldr_load_pot_file(&database,
-						                  dname);
+						process_file(&database, dname);
 				}
 				(void)closedir(dp);
 			}
@@ -1017,7 +1016,7 @@ static void load_extra_pots(void)
 			do {
 				snprintf(dname, sizeof(dname), "%s/%s",
 				         name, f.cFileName);
-				ldr_load_pot_file(&database, dname);
+				process_file(&database, dname);
 			} while (FindNextFile(h, &f));
 
 			FindClose(h);
@@ -1106,6 +1105,11 @@ static void john_load(void)
 			ldr_init_database(&database, &options.loader);
 
 			ldr_show_pot_file(&database, pers_opts.activepot);
+/*
+ * Load optional extra (read-only) pot files. If an entry is a directory,
+ * we read all files in it. We currently do NOT recurse.
+ */
+			load_extra_pots(&ldr_show_pot_file);
 
 			if ((current = options.passwd->head))
 			do {
@@ -1189,7 +1193,7 @@ static void john_load(void)
  * Load optional extra (read-only) pot files. If an entry is a directory,
  * we read all files in it. We currently do NOT recurse.
  */
-		load_extra_pots();
+		load_extra_pots(&ldr_load_pot_file);
 
 		ldr_fix_database(&database);
 
@@ -1257,6 +1261,11 @@ static void john_load(void)
 		pers_opts.activepot = options.wordlist ?
 			options.wordlist : pers_opts.activepot;
 		ldr_show_pot_file(&loop_db, pers_opts.activepot);
+/*
+ * Load optional extra (read-only) pot files. If an entry is a directory,
+ * we read all files in it. We currently do NOT recurse.
+ */
+		load_extra_pots(&ldr_show_pot_file);
 
 		loop_db.options->flags |= DB_PLAINTEXTS;
 
