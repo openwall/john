@@ -1801,7 +1801,6 @@ char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
 void mask_init(struct db_main *db, char *unprocessed_mask)
 {
 	int i, max_static_range;
-	char *p;
 
 	mask_fmt = db->format;
 
@@ -1835,22 +1834,6 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		if (!options.mask && !(options.mask =
 		   cfg_get_param("Mask", NULL, "DefaultMask")))
 			options.mask = "";
-
-	/* Truncate mask before picking internal candidates from it */
-	i = 0;
-	p = options.mask;
-	while (*p) {
-		if (++i == max_keylen) {
-			while (*p == '?')
-				p++;
-			*++p = 0;
-			break;
-		}
-		if (*p++ == '?') {
-			p++;
-			continue;
-		}
-	}
 
 	/* Load defaults for custom placeholders ?1..?9 from john.conf */
 	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++) {
