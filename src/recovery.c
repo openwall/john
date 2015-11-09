@@ -210,6 +210,7 @@ static int is_default(char *name)
 
 void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 {
+	static int check_done;
 	const char *protect;
 
 	rec_done(1);
@@ -222,7 +223,7 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 	    "SessionFileProtect")))
 		protect = "Disabled";
 
-	if (!rec_restored &&
+	if (!rec_restored && !check_done++ &&
 	    (((!strcasecmp(protect, "Named")) && !is_default(rec_name)) ||
 	    (!strcasecmp(protect, "Always")))) {
 		struct stat st;
