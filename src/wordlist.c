@@ -100,6 +100,9 @@ static double progress = 0;
 static int rec_rule;
 static int64_t rec_pos;
 static int64_t rec_line;
+static int hybrid_rec_rule;
+static int64_t hybrid_rec_pos;
+static int64_t hybrid_rec_line;
 
 static int rule_number, rule_count;
 static int64_t line_number, loop_line_no;
@@ -112,9 +115,6 @@ static char *mem_map, *map_pos, *map_end, *map_scan_end;
 // used for file in 'memory buffer' mode (ready to use array)
 static char *word_file_str, **words;
 static int64_t nWordFileLines;
-
-// Used for freezing fix_state while in hybrid Regex
-static int freeze_state;
 
 static void save_state(FILE *file)
 {
@@ -319,7 +319,16 @@ static int fix_state_delay;
 
 static void fix_state(void)
 {
-	if (freeze_state)
+	if (hybrid_rec_rule || hybrid_rec_line || hybrid_rec_pos) {
+		rec_rule = hybrid_rec_rule;
+		rec_line = hybrid_rec_line;
+		rec_pos = hybrid_rec_pos;
+		hybrid_rec_rule = hybrid_rec_line = hybrid_rec_pos = 0;
+
+		return;
+	}
+
+	if (options.flags & FLG_REGEX_CHK)
 		return;
 
 	if (++fix_state_delay < options.max_fix_state_delay)
@@ -336,6 +345,24 @@ static void fix_state(void)
 #ifdef __DJGPP__
 		if (rec_pos != -1)
 			rec_pos = 0;
+		else
+#endif
+			pexit(STR_MACRO(jtr_ftell64));
+	}
+}
+
+void wordlist_hybrid_fix_state(void)
+{
+	hybrid_rec_rule = rule_number;
+	hybrid_rec_line = line_number;
+
+	if (word_file == stdin)
+		hybrid_rec_pos = line_number;
+	else
+	if ((hybrid_rec_pos = jtr_ftell64(word_file)) < 0) {
+#ifdef __DJGPP__
+		if (hybrid_rec_pos != -1)
+			hybrid_rec_pos = 0;
 		else
 #endif
 			pexit(STR_MACRO(jtr_ftell64));
@@ -1028,6 +1055,9 @@ REDO_AFTER_LMLOOP:
 			do_lmloop = 0;
 		rec_init(db, save_state);
 
+		if (options.flags & FLG_STACKING)
+			options.max_fix_state_delay = 0;
+
 		crk_init(db, fix_state, NULL);
 	}
 
@@ -1147,17 +1177,17 @@ REDO_AFTER_LMLOOP:
 				} else
 #if HAVE_REXGEN
 				if (regex) {
-					freeze_state = 1;
 					if (do_regex_hybrid_crack(db, regex,
 					                          word,
 					                          regex_case,
-					                          regex_alpha)) {
+					                          regex_alpha))
+					{
 						rule = NULL;
 						rules = 0;
 						pipe_input = 0;
 						break;
 					}
-					freeze_state = 0;
+					wordlist_hybrid_fix_state();
 				} else
 #endif
 				if (ext_filter(word))
@@ -1203,17 +1233,17 @@ REDO_AFTER_LMLOOP:
 				} else
 #if HAVE_REXGEN
 				if (regex) {
-					freeze_state = 1;
 					if (do_regex_hybrid_crack(db, regex,
 					                          word,
 					                          regex_case,
-					                          regex_alpha)) {
+					                          regex_alpha))
+					{
 						rule = NULL;
 						rules = 0;
 						pipe_input = 0;
 						break;
 					}
-					freeze_state = 0;
+					wordlist_hybrid_fix_state();
 				} else
 #endif
 				if (ext_filter(word))
@@ -1269,7 +1299,6 @@ process_word:
 					} else
 #if HAVE_REXGEN
 					if (regex) {
-						freeze_state = 1;
 						if (do_regex_hybrid_crack(
 							    db, regex, word,
 							    regex_case,
@@ -1279,7 +1308,7 @@ process_word:
 							pipe_input = 0;
 							break;
 						}
-						freeze_state = 0;
+						wordlist_hybrid_fix_state();
 					} else
 #endif
 					if (ext_filter(word))

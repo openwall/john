@@ -34,6 +34,8 @@
 #include "memdbg.h"
 #include "mask_ext.h"
 
+extern void wordlist_hybrid_fix_state(void);
+
 static mask_parsed_ctx parsed_mask;
 static mask_cpu_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
@@ -1687,17 +1689,16 @@ void mask_fix_state(void)
 {
 	int i;
 
+	if (parent_fix_state_pending) {
+		crk_fix_state();
+		parent_fix_state_pending = 0;
+	}
 	rec_cand = cand;
 	rec_ctx.count = cpu_mask_ctx.count;
 	rec_ctx.offset = cpu_mask_ctx.offset;
 	rec_len = max_keylen;
 	for (i = 0; i < rec_ctx.count; i++)
 		rec_ctx.ranges[i].iter = cpu_mask_ctx.ranges[i].iter;
-
-	if (parent_fix_state_pending) {
-		crk_fix_state();
-		parent_fix_state_pending = 0;
-	}
 }
 
 void remove_slash(char *mask)
@@ -1800,7 +1801,6 @@ char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
 void mask_init(struct db_main *db, char *unprocessed_mask)
 {
 	int i, max_static_range;
-	char *p;
 
 	mask_fmt = db->format;
 
@@ -1834,22 +1834,6 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		if (!options.mask && !(options.mask =
 		   cfg_get_param("Mask", NULL, "DefaultMask")))
 			options.mask = "";
-
-	/* Truncate mask before picking internal candidates from it */
-	i = 0;
-	p = options.mask;
-	while (*p) {
-		if (++i == max_keylen) {
-			while (*p == '?')
-				p++;
-			*++p = 0;
-			break;
-		}
-		if (*p++ == '?') {
-			p++;
-			continue;
-		}
-	}
 
 	/* Load defaults for custom placeholders ?1..?9 from john.conf */
 	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++) {
@@ -2188,8 +2172,12 @@ int do_mask_crack(const char *extern_key)
 				return 1;
 		}
 	}
-	if ((options.flags & FLG_MASK_STACKED) && !event_abort)
+
+	if (options.flags & FLG_MASK_STACKED) {
+		if (options.flags & FLG_WORDLIST_CHK)
+			wordlist_hybrid_fix_state();
 		parent_fix_state_pending = 1;
+	}
 
 	return event_abort;
 }

@@ -191,6 +191,9 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	else
 		crk_fix_state = crk_dummy_fix_state;
 
+	if (options.flags & FLG_MASK_STACKED)
+		mask_fix_state();
+
 	crk_guesses = guesses;
 
 	if (db->loaded) {
