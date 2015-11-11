@@ -215,6 +215,7 @@ typedef struct DC_list {
 
 const char *dyna_script = "Expression=dynamic=md5($p)\nFlag=MGF_KEYS_INPUT\nFunc=DynamicFunc__crypt_md5\nTest=@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72:abc";
 const char *dyna_signature = "@dynamic=md5($p)@";
+int dyna_sig_len = 17;
 const char *dyna_line[DC_NUM_VECTORS] = {
 	"@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72",
 	"@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785",
@@ -228,7 +229,6 @@ const char *dyna_line[DC_NUM_VECTORS] = {
 };
 const char *options_format="";
 
-static int dyna_sig_len = 17;
 static int OLvL = 2;
 static int gost_init = 0;
 

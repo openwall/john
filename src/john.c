@@ -228,7 +228,7 @@ static void john_register_one(struct fmt_main *format)
 				if (strcasecmp(p, pos))
 					return;
 			}
-		} else if ((pos = strchr(options.format, '@'))) {
+		} else if (strncasecmp(options.format, "dynamic=", 8) && (pos = strchr(options.format, '@'))) {
 			char *reject, *algo = strdup(++pos);
 
 			// Rejections
