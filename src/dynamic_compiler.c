@@ -433,6 +433,12 @@ static char *find_the_expression(const char *expr) {
 	if (strncmp(expr, "dynamic=", 8))
 		return "";
 	strnzcpy(buf, &expr[8], sizeof(buf));
+	cp = strchr(buf, ',');
+	if (cp) {
+		*cp = 0;
+		cp = dynamic_expr_normalize(buf);
+		return cp;
+	}
 	cp = strrchr(buf, ')');
 	if (!cp) return "";
 	while (cp[1] && cp[1] != ',')
@@ -446,9 +452,8 @@ static char *find_the_extra_params(const char *expr) {
 	char *cp;
 	if (strncmp(expr, "dynamic=", 8))
 		return "";
-	cp = strrchr(expr, ')');
+	cp = strchr(expr, ',');
 	if (!cp) return "";
-	if (cp[1] == ',') ++cp;
 	strnzcpy(buf, cp, sizeof(buf));
 	// NOTE, we should normalize this string!!
 	// we should probably call handle_extra_params, and then make a function
