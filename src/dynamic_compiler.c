@@ -254,6 +254,7 @@ static char *dynamic_expr_normalize(const char *ct) {
 	//           $user -> $u
 	//           $username -> $u
 	//           unicode( -> utf16(
+	//           -c=: into c1=\x3a  (colon ANYWHERE in the constant)
 	if (/*!strncmp(ct, "@dynamic=", 9) &&*/ (strstr(ct, "$pass") || strstr(ct, "$salt") || strstr(ct, "$user"))) {
 		static char Buf[512];
 		char *cp = Buf;
@@ -290,6 +291,31 @@ static char *dynamic_expr_normalize(const char *ct) {
 				}
 				*cp2 = 0;
 			}
+		}
+	}
+	if (strstr(ct, ",c")) {
+		// this need greatly improved. Only handling ':' char right now.
+		static char Buf[512];
+		char *cp = Buf;
+		strcpy(Buf, ct);
+		ct = Buf;
+		cp = strstr(ct, ",c");
+		while (cp) {
+			char *ctp = strchr(&cp[1], ',');
+			if (ctp) *ctp = 0;
+			if (strchr(cp, ':')) {
+				char *cp2 = &cp[strlen(cp)-1];
+				if (ctp) *ctp = ',';
+				while (cp2 > cp) {
+					if (*cp2 == ':') {
+						memmove(&cp2[4], &cp2[1], strlen(cp2));
+						memcpy(cp2, "\\x3a", 4);
+					}
+					--cp2;
+				}
+			} else
+				if (ctp) *ctp = ',';
+			cp = strstr(&cp[1], ",c");
 		}
 	}
 	//
