@@ -797,6 +797,7 @@ static void john_load_conf(void)
 		options.verbosity = cfg_get_int(SECTION_OPTIONS, NULL,
 		                                "Verbosity");
 
+		/* If it doesn't exist in john.conf it ends up as -1 */
 		if (options.verbosity == -1)
 			options.verbosity = 3;
 
