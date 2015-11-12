@@ -127,7 +127,7 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_align(sizeof(*crypt_out),
 		self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
 
-	if (pers_opts.target_enc == UTF_8)
+	if (options.target_enc == UTF_8)
 		fmt_SybaseASE.params.plaintext_length = 125;
 	// will simply set SIMD stuff here, even if not 'used'
 #ifdef SIMD_COEF_32

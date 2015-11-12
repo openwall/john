@@ -349,9 +349,9 @@ static void init_kernel(void)
 	"-D LOC_3=%d"
 #endif
 	, mask_int_cand.num_int_cand, mask_gpu_is_static,
-	(unsigned long long)const_cache_size, cp_id2macro(pers_opts.target_enc),
-	pers_opts.internal_cp == UTF_8 ? cp_id2macro(ASCII) :
-	cp_id2macro(pers_opts.internal_cp), PLAINTEXT_LENGTH,
+	(unsigned long long)const_cache_size, cp_id2macro(options.target_enc),
+	options.internal_cp == UTF_8 ? cp_id2macro(ASCII) :
+	cp_id2macro(options.internal_cp), PLAINTEXT_LENGTH,
 	static_gpu_locations[0]
 #if 1 < MASK_FMT_INT_PLHDR
 	, static_gpu_locations[1]
@@ -377,13 +377,13 @@ static void init(struct fmt_main *_self)
 	opencl_prepare_dev(gpu_id);
 	mask_int_cand_target = opencl_speed_index(gpu_id) / 300;
 
-	if (pers_opts.target_enc == UTF_8) {
+	if (options.target_enc == UTF_8) {
 		self->params.plaintext_length = MIN(125, UTF8_MAX_LENGTH);
 		tests[1].ciphertext = "M$\xC3\xBC#48f84e6f73d6d5305f6558a33fa2c9bb";
 		tests[1].plaintext = "\xC3\xBC";         // German u-umlaut in UTF-8
 		tests[2].ciphertext = "M$user#9121790702dda0fa5d353014c334c2ce";
 		tests[2].plaintext = "\xe2\x82\xac\xe2\x82\xac"; // 2 x Euro signs
-	} else if (pers_opts.target_enc == ASCII || pers_opts.target_enc == ISO_8859_1) {
+	} else if (options.target_enc == ASCII || options.target_enc == ISO_8859_1) {
 		tests[1].ciphertext = "M$\xFC#48f84e6f73d6d5305f6558a33fa2c9bb";
 		tests[1].plaintext = "\xFC";         // German u-umlaut in UTF-8
 		tests[2].ciphertext = "M$\xFC\xFC#593246a8335cf0261799bda2a2a9c623";

@@ -204,14 +204,37 @@ struct options_main {
 /* Ciphertext format name */
 	char *format;
 
-/* Ciphertext subformat name */
-	char *subformat;
-
 /* Wordlist file name */
 	char *wordlist;
 
 /* Incremental mode name or charset file name */
 	char *charset;
+
+/* External mode or word filter name */
+	char *external;
+
+/* Maximum plaintext length for stdout mode */
+	int length;
+
+/* Parallel processing options */
+	char *node_str;
+	unsigned int node_min, node_max, node_count, fork;
+
+/*
+ * ---- Jumbo options below this point ----
+ * Do NOT place any new Jumbo stuff above 'subformat'. It's used to
+ * calculate offset for a memset at resuming a session.
+ */
+
+/* Ciphertext subformat name */
+	char *subformat;
+
+/* Configuration file name */
+	char *config;
+
+/* Markov stuff */
+	char *mkv_param;
+	char *mkv_stats;
 
 #ifdef HAVE_FUZZ
 /* Fuzz dictionary file name */
@@ -223,23 +246,6 @@ struct options_main {
 
 /* Mask mode's mask */
 	char *mask;
-
-/* External mode or word filter name */
-	char *external;
-
-/* Markov stuff */
-	char *mkv_param;
-	char *mkv_stats;
-
-/* Maximum plaintext length for stdout mode */
-	int length;
-
-/* Parallel processing options */
-	char *node_str;
-	unsigned int node_min, node_max, node_count, fork;
-
-/* Configuration file name */
-	char *config;
 
 /* Can't use HAVE_WINDOWS_H here so the below need to be maintained */
 #if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
@@ -254,9 +260,50 @@ struct options_main {
 /* Maximum size of a wordlist file to be 'preloaded' into memory  */
 	size_t max_wordfile_memory;
 
-/* number of times fix_state_delay is called in wordfile.c before  any fseek()
+/* number of times fix_state_delay is called in wordlist.c before  any fseek()
    is done. */
 	unsigned int max_fix_state_delay;
+
+/* In general, an encoding of 0 (CP_UNDEF) means no conversion and we will
+   behave more or less like core John. */
+
+/* Currently initialized non-utf8 encoding */
+	int unicode_cp;
+
+/* Input encoding for word lists, and/or pot file clear-texts. */
+	int input_enc;
+
+/* True if encoding was set from john.conf as opposed to command line. */
+	int default_enc;
+	int default_target_enc;
+
+/* Output encoding. This must match what the hash origin used. An exception
+   is UTF-16 formats like NT, which can use any codepage (or UTF-8) if FMT_UTF8
+   is set, or ISO-8859-1 only if FMT_UTF8 is false. */
+	int target_enc;
+
+/* If different from target_enc, this is an intermediate encoding only
+   used within rules/mask processing. This is only applicable for the case
+   "UTF-8 -> rules -> UTF-8" or "mask -> UTF-8". Since the rules engine can't
+   do proper case conversion etc. in UTF-8, we can pick this intermediate
+   encoding (use one that matches most input) but the double conversions may
+   come with a speed penalty. */
+	int internal_cp;
+
+/* Store UTF-8 in pot file. Default is no conversion. */
+	int store_utf8;
+
+/* Show/log/report UTF-8. Default is no conversion. */
+	int report_utf8;
+
+/* Pot file used (default is $JOHN/john.pot) */
+	char *activepot;
+
+/* the wordlist rules section (default if none entered is Wordlist) */
+	char *activewordlistrules;
+
+/* the 'single' rules section (default if none entered is Single) */
+	char *activesinglerules;
 
 /* This is a 'special' flag.  It causes john to add 'extra' code to search for
  * some salted types, when we have only the hashes.  The only type supported is
@@ -326,54 +373,6 @@ struct options_main {
 };
 
 extern struct options_main options;
-
-/* "Persistent" options. Unlike the options struct above, this one is not
-   reset by the children upon resuming a session. That behavior gave me
-   gray hairs. */
-
-/* In general, an encoding of 0 (CP_UNDEF) means no conversion and we will
-   behave more or less like core John. */
-struct pers_opts {
-/* Currently initialized non-utf8 encoding */
-	int unicode_cp;
-
-/* Input encoding for word lists, and/or pot file clear-texts. */
-	int input_enc;
-
-/* True if encoding was set from john.conf defaults. */
-	int default_enc;
-	int default_target_enc;
-
-/* Output encoding. This must match what the hash origin used. An exception
-   is UTF-16 formats like NT, which can use any codepage (or UTF-8) if FMT_UTF8
-   is set, or ISO-8859-1 only if FMT_UTF8 is false. */
-	int target_enc;
-
-/* If different from target_enc, this is an intermediate encoding only
-   used within rules/mask processing. This is only applicable for the case
-   "UTF-8 -> rules -> UTF-8" or "mask -> UTF-8". Since the rules engine can't
-   do proper case conversion etc. in UTF-8, we can pick this intermediate
-   encoding (use one that matches most input) but the double conversions may
-   come with a speed penalty. */
-	int internal_cp;
-
-/* Store UTF-8 in pot file. Default is no conversion. */
-	int store_utf8;
-
-/* Show/log/report UTF-8. Default is no conversion. */
-	int report_utf8;
-
-/* Pot file used (default is $JOHN/john.pot) */
-	char *activepot;
-
-/* the wordlist rules section (default if none entered is Wordlist) */
-	char *activewordlistrules;
-
-/* the 'single' rules section (default if none entered is Single) */
-	char *activesinglerules;
-};
-
-extern struct pers_opts pers_opts;
 
 /*
  * Initializes the options structure.

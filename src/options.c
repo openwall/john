@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -57,7 +58,6 @@
 #include "memdbg.h"
 
 struct options_main options;
-struct pers_opts pers_opts; /* Not reset after forked resume */
 static char *field_sep_char_str, *show_uncracked_str, *salts_str;
 static char *encoding_str, *target_enc_str, *internal_cp_str;
 static char *costs_str;
@@ -65,7 +65,7 @@ static char *costs_str;
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
 	{"single", FLG_SINGLE_SET, FLG_CRACKING_CHK, 0, FLG_STACKING,
-		OPT_FMT_STR_ALLOC, &pers_opts.activesinglerules},
+		OPT_FMT_STR_ALLOC, &options.activesinglerules},
 	{"wordlist", FLG_WORDLIST_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK,
@@ -114,7 +114,7 @@ static struct opt_entry opt_list[] = {
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK},
 #endif
 	{"rules", FLG_RULES, FLG_RULES, FLG_RULES_ALLOW, FLG_STDIN_CHK,
-		OPT_FMT_STR_ALLOC, &pers_opts.activewordlistrules},
+		OPT_FMT_STR_ALLOC, &options.activewordlistrules},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"mask", FLG_MASK_SET, FLG_MASK_CHK,
@@ -202,7 +202,7 @@ static struct opt_entry opt_list[] = {
 		"%u", &options.fork},
 #endif
 	{"pot", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
-		OPT_FMT_STR_ALLOC, &pers_opts.activepot},
+		OPT_FMT_STR_ALLOC, &options.activepot},
 	{"format", FLG_FORMAT, FLG_FORMAT,
 		0, FLG_STDOUT | OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.format},
@@ -443,7 +443,13 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	if (show_usage)
 		print_usage(name);
 
-	memset(&options, 0, sizeof(options));
+	/*
+	 * When resuming, we can't clear the last part of this struct
+	 * (in Jumbo) because some options are already set by complicated
+	 * mechanisms (defaults vs. format vs. command-line options vs.
+	 * john.conf settings).
+	 */
+	memset(&options, 0, offsetof(struct options_main, subformat));
 
 	options.loader.field_sep_char = ':';
 	options.regen_lost_salts = 0;
@@ -878,19 +884,19 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	}
 
 	if (encoding_str)
-		pers_opts.input_enc = cp_name2id(encoding_str);
+		options.input_enc = cp_name2id(encoding_str);
 
 	if (target_enc_str)
-		pers_opts.target_enc = cp_name2id(target_enc_str);
+		options.target_enc = cp_name2id(target_enc_str);
 
 	if (internal_cp_str)
-		pers_opts.internal_cp = cp_name2id(internal_cp_str);
+		options.internal_cp = cp_name2id(internal_cp_str);
 
-	if (pers_opts.input_enc && pers_opts.input_enc != UTF_8) {
-		if (!pers_opts.target_enc)
-			pers_opts.target_enc = pers_opts.input_enc;
-		if (!pers_opts.internal_cp)
-			pers_opts.internal_cp = pers_opts.input_enc;
+	if (options.input_enc && options.input_enc != UTF_8) {
+		if (!options.target_enc)
+			options.target_enc = options.input_enc;
+		if (!options.internal_cp)
+			options.internal_cp = options.input_enc;
 	}
 
 #ifdef HAVE_OPENCL

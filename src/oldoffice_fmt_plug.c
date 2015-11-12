@@ -104,7 +104,7 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	if (pers_opts.target_enc == UTF_8)
+	if (options.target_enc == UTF_8)
 		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH > 125 ?
 			125 : 3 * PLAINTEXT_LENGTH;
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,

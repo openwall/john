@@ -210,7 +210,7 @@ static void init(struct fmt_main *_self)
 
 	opencl_prepare_dev(gpu_id);
 
-	if (pers_opts.target_enc == UTF_8) {
+	if (options.target_enc == UTF_8) {
 		max_len = self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
 
 		tests[1].plaintext = "\xC3\xBC"; // German u-umlaut in UTF-8
@@ -239,7 +239,7 @@ static void reset(struct db_main *db)
 		         "-DUCS_2 "
 #endif
 		         "-D%s -DPLAINTEXT_LENGTH=%u",
-		         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH);
+		         cp_id2macro(options.target_enc), PLAINTEXT_LENGTH);
 		opencl_init("$JOHN/kernels/krb5pa-md5_kernel.cl", gpu_id, build_opts);
 
 		/* create kernels to execute */

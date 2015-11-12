@@ -443,7 +443,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			if (!(mode = cfg_get_param(SECTION_OPTIONS, NULL,
 			                           "DefaultIncrementalLM")))
 				mode = "LM_ASCII";
-		} else if (pers_opts.target_enc == UTF_8) {
+		} else if (options.target_enc == UTF_8) {
 			if (!(mode = cfg_get_param(SECTION_OPTIONS, NULL,
 			                           "DefaultIncrementalUTF8")))
 				mode = "ASCII";

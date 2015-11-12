@@ -959,12 +959,12 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	my = self;
-	if (pers_opts.target_enc == UTF_8) {
+	if (options.target_enc == UTF_8) {
 		self->methods.set_key = set_key_utf8;
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 	} else {
-		if (pers_opts.target_enc != ASCII &&
-		    pers_opts.target_enc != ISO_8859_1)
+		if (options.target_enc != ASCII &&
+		    options.target_enc != ISO_8859_1)
 			self->methods.set_key = set_key_CP;
 	}
 	if (!saved_key) {

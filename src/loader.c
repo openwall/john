@@ -93,7 +93,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 	char line_buf[LINE_BUFFER_SIZE], *line;
 	int warn_enc;
 
-	warn_enc = john_main_process && (pers_opts.target_enc != ASCII) &&
+	warn_enc = john_main_process && (options.target_enc != ASCII) &&
 		cfg_get_bool(SECTION_OPTIONS, NULL, "WarnEncoding", 0);
 
 	if (flags & RF_ALLOW_DIR) {
@@ -123,15 +123,15 @@ static void read_file(struct db_main *db, char *name, int flags,
 				u8check = line;
 
 			if (((flags & RF_ALLOW_MISSING) &&
-			     pers_opts.store_utf8) ||
+			     options.store_utf8) ||
 			    ((flags & RF_ALLOW_DIR) &&
-			     pers_opts.input_enc == UTF_8)) {
+			     options.input_enc == UTF_8)) {
 				if (!valid_utf8((UTF8*)u8check)) {
 					warn_enc = 0;
 					fprintf(stderr, "Warning: invalid UTF-8"
 					        " seen reading %s\n", name);
 				}
-			} else if (pers_opts.input_enc != UTF_8 &&
+			} else if (options.input_enc != UTF_8 &&
 			           (line != line_buf ||
 			            valid_utf8((UTF8*)u8check) > 1)) {
 				warn_enc = 0;
@@ -142,7 +142,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 		process_line(db, line);
 		check_abort(0);
 	}
-	if (name == pers_opts.activepot)
+	if (name == options.activepot)
 		crk_pot_pos = jtr_ftell64(file);
 
 	if (ferror(file)) pexit("fgets");
@@ -289,24 +289,24 @@ static MAYBE_INLINE int ldr_check_shells(struct list_main *list, char *shell)
 
 static void ldr_set_encoding(struct fmt_main *format)
 {
-	if ((!pers_opts.target_enc || pers_opts.default_target_enc) &&
-	    !pers_opts.internal_cp) {
+	if ((!options.target_enc || options.default_target_enc) &&
+	    !options.internal_cp) {
 		if (!strcasecmp(format->params.label, "LM") ||
 		    !strcasecmp(format->params.label, "lm-opencl") ||
 		    !strcasecmp(format->params.label, "netlm") ||
 		    !strcasecmp(format->params.label, "nethalflm")) {
-			pers_opts.target_enc =
+			options.target_enc =
 				cp_name2id(cfg_get_param(SECTION_OPTIONS,
 				                         NULL,
 				                         "DefaultMSCodepage"));
-			if (pers_opts.target_enc)
-				pers_opts.default_target_enc = 1;
+			if (options.target_enc)
+				options.default_target_enc = 1;
 			else
-				pers_opts.target_enc = pers_opts.input_enc;
-		} else if (pers_opts.internal_cp &&
+				options.target_enc = options.input_enc;
+		} else if (options.internal_cp &&
 		           (format->params.flags & FMT_UNICODE) &&
 		           (format->params.flags & FMT_UTF8)) {
-			pers_opts.target_enc = pers_opts.internal_cp;
+			options.target_enc = options.internal_cp;
 		}
 	}
 
@@ -323,22 +323,22 @@ static void ldr_set_encoding(struct fmt_main *format)
 	/* john.conf alternative for --internal-codepage */
 	if (options.flags &
 	    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
-	if ((!pers_opts.target_enc || pers_opts.target_enc == UTF_8) &&
-	    !pers_opts.internal_cp) {
-		if (!(pers_opts.internal_cp =
+	if ((!options.target_enc || options.target_enc == UTF_8) &&
+	    !options.internal_cp) {
+		if (!(options.internal_cp =
 			cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
 			                         "DefaultInternalCodepage"))))
-			pers_opts.internal_cp =
+			options.internal_cp =
 			    cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
 			                         "DefaultInternalEncoding"));
 	}
 
 	/* Performance opportunity - avoid unneccessary conversions */
-	if (pers_opts.internal_cp && pers_opts.internal_cp != UTF_8 &&
-	    (!pers_opts.target_enc || pers_opts.target_enc == UTF_8)) {
+	if (options.internal_cp && options.internal_cp != UTF_8 &&
+	    (!options.target_enc || options.target_enc == UTF_8)) {
 		if ((format->params.flags & FMT_UNICODE) &&
 		    (format->params.flags & FMT_UTF8))
-			pers_opts.target_enc = pers_opts.internal_cp;
+			options.target_enc = options.internal_cp;
 	}
 
 	initUnicode(UNICODE_UNICODE);
@@ -744,7 +744,7 @@ find_format:
 
 static char* ldr_conv(char *word)
 {
-	if (pers_opts.input_enc == UTF_8 && pers_opts.target_enc != UTF_8) {
+	if (options.input_enc == UTF_8 && options.target_enc != UTF_8) {
 		static char u8[PLAINTEXT_BUFFER_SIZE + 1];
 
 		word = utf8_to_cp_r(word, u8, PLAINTEXT_BUFFER_SIZE);
@@ -1320,7 +1320,7 @@ static void ldr_show_left(struct db_main *db, struct db_password *pw)
 		uid_sep[0] = db->options->field_sep_char;
 		uid_out = pw->uid;
 	}
-	if (pers_opts.target_enc != UTF_8 && pers_opts.report_utf8)
+	if (options.target_enc != UTF_8 && options.report_utf8)
 	{
 		char utf8login[PLAINTEXT_BUFFER_SIZE + 1];
 
@@ -1795,14 +1795,14 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 			if (setting < 0)
 				setting = cfg_get_bool(SECTION_OPTIONS, NULL,
 				    "UnicodeStoreUTF8", 0);
-			pers_opts.store_utf8 = setting;
+			options.store_utf8 = setting;
 		} else {
 			static int setting = -1;
 			if (setting < 0)
-				setting = pers_opts.target_enc != ASCII &&
+				setting = options.target_enc != ASCII &&
 				    cfg_get_bool(SECTION_OPTIONS, NULL,
 				    "CPstoreUTF8", 0);
-			pers_opts.store_utf8 = setting;
+			options.store_utf8 = setting;
 		}
 	} else {
 		split = fmt_default_split;
@@ -1810,8 +1810,8 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 		unify = 0;
 	}
 
-	if (pers_opts.target_enc != UTF_8 &&
-	    !pers_opts.store_utf8 && pers_opts.report_utf8) {
+	if (options.target_enc != UTF_8 &&
+	    !options.store_utf8 && options.report_utf8) {
 		login = cp_to_utf8_r(login, utf8login, LINE_BUFFER_SIZE);
 		cp_to_utf8_r(source, utf8source, LINE_BUFFER_SIZE);
 		strnzcpy(source, utf8source, sizeof(source));
@@ -1856,7 +1856,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 				if (format)
 					chars = format->params.plaintext_length;
 				if (index < count - 1 && current &&
-				    (pers_opts.store_utf8 ?
+				    (options.store_utf8 ?
 				     (int)strlen8((UTF8*)current->plaintext) :
 				     (int)strlen(current->plaintext)) != chars)
 					current = NULL;

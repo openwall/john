@@ -176,7 +176,7 @@ void ext_init(char *mode, struct db_main *db)
 
 	ext_time = (int) time(NULL);
 
-	ext_target_utf8 = (pers_opts.target_enc == UTF_8);
+	ext_target_utf8 = (options.target_enc == UTF_8);
 
 	ext_maxlen = options.req_maxlength;
 	if (options.req_minlength > 0)

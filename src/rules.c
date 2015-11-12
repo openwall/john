@@ -366,7 +366,7 @@ static void rules_init_classes(void)
 		}
 	}
 
-	switch(pers_opts.internal_cp) {
+	switch(options.internal_cp) {
 	case ISO_8859_1:
 		rules_init_class('v', CHARS_VOWELS CHARS_VOWELS_ISO_8859_1);
 		rules_init_class('c', CHARS_CONSONANTS
@@ -781,7 +781,7 @@ static void rules_init_classes(void)
 		rules_init_class('d', CHARS_DIGITS);
 		rules_init_class('a', CHARS_LOWER CHARS_UPPER);
 		rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_DIGITS);
-		if (pers_opts.internal_cp == UTF_8) {
+		if (options.internal_cp == UTF_8) {
 			rules_init_class('Y', CHARS_INVALID_UTF8);
 			rules_init_class('o', CHARS_CONTROL_ASCII);
 		} else {
@@ -817,7 +817,7 @@ static void rules_init_convs(void)
 	conv_right = rules_init_conv(conv_source, CONV_RIGHT);
 	conv_left = rules_init_conv(conv_source, CONV_LEFT);
 
-	switch(pers_opts.internal_cp) {
+	switch(options.internal_cp) {
 	case ISO_8859_1:
 		conv_source = CONV_SOURCE CHARS_LOWER_ISO_8859_1
 			CHARS_UPPER_ISO_8859_1;
@@ -1210,12 +1210,12 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 
 		case 'u':
 			if (!db) continue;
-			if (pers_opts.internal_cp == UTF_8) continue;
+			if (options.internal_cp == UTF_8) continue;
 			return NULL;
 
 		case 'U':
 			if (!db) continue;
-			if (pers_opts.internal_cp != UTF_8) continue;
+			if (options.internal_cp != UTF_8) continue;
 			return NULL;
 
 /*
@@ -1268,13 +1268,13 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 
 			case 'u':
 				if (!db) continue;
-				if (pers_opts.internal_cp == UTF_8)
+				if (options.internal_cp == UTF_8)
 					continue;
 				return NULL;
 
 			case 'U':
 				if (!db) continue;
-				if (pers_opts.internal_cp != UTF_8)
+				if (options.internal_cp != UTF_8)
 					continue;
 				return NULL;
 
@@ -1369,7 +1369,7 @@ static char* rules_cp_to_utf8(char *in)
 	static char out[PLAINTEXT_BUFFER_SIZE + 1];
 
 	if (!(options.flags & FLG_MASK_STACKED) &&
-	    pers_opts.internal_cp != UTF_8 && pers_opts.target_enc == UTF_8)
+	    options.internal_cp != UTF_8 && options.target_enc == UTF_8)
 		return cp_to_utf8_r(in, out, rules_max_length);
 
 	return in;
@@ -1383,7 +1383,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 	int length;
 	int which;
 
-	if (pers_opts.internal_cp != UTF_8 && pers_opts.target_enc == UTF_8)
+	if (options.internal_cp != UTF_8 && options.target_enc == UTF_8)
 		memory = word = utf8_to_cp_r(word_in, cpword,
 		                             PLAINTEXT_BUFFER_SIZE);
 	else

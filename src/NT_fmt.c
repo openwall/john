@@ -245,7 +245,7 @@ static void fmt_NT_init(struct fmt_main *self)
 #else
 	memset(nt_buffer1x,0,16*4*NT_NUM_KEYS);
 #endif
-	if (pers_opts.target_enc == UTF_8) {
+	if (options.target_enc == UTF_8) {
 #if defined (NT_X86_64)
 		fmt_NT.methods.crypt_all = nt_crypt_all_x86_64;
 #endif
@@ -262,8 +262,8 @@ static void fmt_NT_init(struct fmt_main *self)
 		tests[4].plaintext = "\xE2\x82\xAC\xE2\x82\xAC";
 		tests[4].ciphertext = "$NT$682467b963bb4e61943e170a04f7db46";
 	} else {
-		if (pers_opts.target_enc == ASCII ||
-		    pers_opts.target_enc == ISO_8859_1) {
+		if (options.target_enc == ASCII ||
+		    options.target_enc == ISO_8859_1) {
 #if defined (NT_X86_64)
 			fmt_NT.methods.crypt_all = nt_crypt_all_8859_1_x86_64;
 #endif

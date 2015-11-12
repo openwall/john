@@ -541,7 +541,7 @@ static void init(struct fmt_main *self)
 	saved_len = mem_calloc(sizeof(*saved_len), self->params.max_keys_per_crypt);
 	crypt_key = mem_calloc(sizeof(*crypt_key), self->params.max_keys_per_crypt);
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
-	if (pers_opts.target_enc == UTF_8)
+	if (options.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
 }
 

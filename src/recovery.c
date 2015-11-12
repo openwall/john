@@ -291,7 +291,7 @@ void rec_save(void)
 	}
 
 	if (add_2nd_enc && (options.flags & FLG_STDOUT) &&
-	    (pers_opts.input_enc != UTF_8 || pers_opts.target_enc != UTF_8))
+	    (options.input_enc != UTF_8 || options.target_enc != UTF_8))
 		add_2nd_enc = 0;
 
 	add_argc = add_enc + add_2nd_enc + add_mkv_stats;
@@ -310,10 +310,10 @@ void rec_save(void)
 			fprintf(rec_file, "%s=%s\n", *opt, options.wordlist);
 		else if (!strcmp(*opt, "--rules"))
 			fprintf(rec_file, "%s=%s\n", *opt,
-			        pers_opts.activewordlistrules);
+			        options.activewordlistrules);
 		else if (!strcmp(*opt, "--single"))
 			fprintf(rec_file, "%s=%s\n", *opt,
-			        pers_opts.activesinglerules);
+			        options.activesinglerules);
 		else if (!strcmp(*opt, "--incremental"))
 			fprintf(rec_file, "%s=%s\n", *opt,
 			        options.charset);
@@ -330,15 +330,15 @@ void rec_save(void)
 
 	if (add_enc)
 		fprintf(rec_file, "--input-encoding=%s\n",
-		        cp_id2name(pers_opts.input_enc));
+		        cp_id2name(options.input_enc));
 
-	if (add_2nd_enc && pers_opts.input_enc == UTF_8 &&
-	    pers_opts.target_enc == UTF_8)
+	if (add_2nd_enc && options.input_enc == UTF_8 &&
+	    options.target_enc == UTF_8)
 		fprintf(rec_file, "--internal-codepage=%s\n",
-		        cp_id2name(pers_opts.internal_cp));
+		        cp_id2name(options.internal_cp));
 	else if (add_2nd_enc)
 		fprintf(rec_file, "--target-encoding=%s\n",
-		        cp_id2name(pers_opts.target_enc));
+		        cp_id2name(options.target_enc));
 
 	if (add_mkv_stats)
 		fprintf(rec_file, "--mkv-stats=%s\n", options.mkv_stats);

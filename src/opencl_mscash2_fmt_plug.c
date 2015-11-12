@@ -108,7 +108,7 @@ static void init(struct fmt_main *__self)
 
 	initNumDevices();
 
-	if (pers_opts.target_enc == UTF_8) {
+	if (options.target_enc == UTF_8) {
 		__self->params.plaintext_length *= 3;
 		if (__self->params.plaintext_length > 125)
 			__self->params.plaintext_length = 125;

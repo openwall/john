@@ -434,7 +434,7 @@ static MAYBE_INLINE char *convert(char *line)
 	    (p = strchr(line, options.loader.field_sep_char)))
 		line = p + 1;
 
-	if (pers_opts.input_enc != pers_opts.target_enc) {
+	if (options.input_enc != options.target_enc) {
 		UTF16 u16[PLAINTEXT_BUFFER_SIZE + 1];
 		char *cp, *s, *d;
 		char e;
@@ -574,8 +574,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	log_event("Proceeding with %s mode",
 	          loopBack ? "loopback" : "wordlist");
 
-	if (pers_opts.activewordlistrules)
-		log_event("- Rules: %.100s", pers_opts.activewordlistrules);
+	if (options.activewordlistrules)
+		log_event("- Rules: %.100s", options.activewordlistrules);
 
 #if HAVE_REXGEN
 	regex = prepare_regex(options.regex, &regex_case, &regex_alpha);
@@ -594,7 +594,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	/* If we did not give a name for loopback mode,
 	   we use the active pot file */
 	if (loopBack && !name)
-		name = options.wordlist = pers_opts.activepot;
+		name = options.wordlist = options.activepot;
 
 	/* These will ignore --save-memory */
 	if (loopBack || dupeCheck ||
@@ -1014,13 +1014,13 @@ SKIP_MEM_MAP_LOAD:;
 REDO_AFTER_LMLOOP:
 
 	if (rules) {
-		if (rpp_init(rule_ctx = &ctx, pers_opts.activewordlistrules)) {
+		if (rpp_init(rule_ctx = &ctx, options.activewordlistrules)) {
 			log_event("! No \"%s\" mode rules found",
-			          pers_opts.activewordlistrules);
+			          options.activewordlistrules);
 			if (john_main_process)
 				fprintf(stderr,
 				        "No \"%s\" mode rules found in %s\n",
-				        pers_opts.activewordlistrules, cfg_name);
+				        options.activewordlistrules, cfg_name);
 			error();
 		}
 
@@ -1262,7 +1262,7 @@ REDO_AFTER_LMLOOP:
 
 			if (line[0] != '#') {
 process_word:
-				if (pers_opts.input_enc != pers_opts.target_enc
+				if (options.input_enc != options.target_enc
 				    || loopBack) {
 					char *conv = convert(line);
 					int len = strlen(conv);

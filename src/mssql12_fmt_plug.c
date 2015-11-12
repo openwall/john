@@ -191,11 +191,11 @@ static void init(struct fmt_main *self)
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_len));
 #endif
-	if (pers_opts.target_enc == UTF_8)
+	if (options.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
 
-	if (pers_opts.target_enc != ISO_8859_1 &&
-	         pers_opts.target_enc != ASCII)
+	if (options.target_enc != ISO_8859_1 &&
+	         options.target_enc != ASCII)
 		self->methods.set_key = set_key_enc;
 }
 

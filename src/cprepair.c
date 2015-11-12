@@ -23,7 +23,6 @@
 static int sup, noguess, potfile;
 static int inv_cp, auto_cp;
 struct options_main options;
-struct pers_opts pers_opts;
 
 #undef LINE_BUFFER_SIZE
 #define LINE_BUFFER_SIZE 0x10000
@@ -213,13 +212,13 @@ static int process_file(char *name)
 					out = convin;
 				} else {
 					if (auto_cp != inv_cp)
-						pers_opts.internal_cp =
-							pers_opts.target_enc =
+						options.internal_cp =
+							options.target_enc =
 							contains_ascii_letters(convin) ?
 							inv_cp : auto_cp;
 					else
-						pers_opts.internal_cp =
-							pers_opts.target_enc =
+						options.internal_cp =
+							options.target_enc =
 							inv_cp;
 					initUnicode(0);
 
@@ -239,8 +238,8 @@ static int process_file(char *name)
 					              (UTF8*)dd, len);
 					if (!valid_ansi(u16))
 						break;
-					pers_opts.internal_cp =
-						pers_opts.target_enc =
+					options.internal_cp =
+						options.target_enc =
 						ISO_8859_1;
 					initUnicode(0);
 					u8 = utf16_to_enc_r(u8buf,
@@ -314,7 +313,7 @@ int main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	pers_opts.input_enc = UTF_8;
+	options.input_enc = UTF_8;
 
 	if (!auto_cp)
 		auto_cp = CP1252;
