@@ -1491,6 +1491,24 @@ static void john_init(char *name, int argc, char **argv)
 	if (rec_restored)
 		event_pending = event_status = 1;
 
+	/* Log the expanded command line used for this session. */
+	{
+		int i;
+		size_t s = 1;
+		char *cl;
+
+		for (i = 0; i < argc; i++)
+			s += strlen(argv[i]) + 1;
+		cl = mem_alloc(s);
+
+		s = 0;
+		for (i = 0; i < argc; i++)
+			s += sprintf(cl + s, "%s ", argv[i]);
+
+		log_event("Command line: %s", cl);
+		MEM_FREE(cl);
+	}
+
 #if HAVE_MPI
 	if (mpi_p > 1)
 		log_event("- MPI: Node %u/%u running on %s",
