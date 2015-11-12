@@ -376,7 +376,7 @@
  */
 #ifndef BF_X2
 #ifdef __AVX__
-#define BF_X2				1
+#define BF_X2				3
 #else
 #define BF_X2				3
 #endif
