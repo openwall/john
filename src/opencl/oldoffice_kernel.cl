@@ -400,7 +400,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 	uint i;
 	uint gid = get_global_id(0);
 	uint A, B, C, D, E, temp;
-#if PLAINTEXT_LENGTH > 27
+#if PLAINTEXT_LENGTH > (27 - 8)
 	/* Silly AMD bug workaround */
 	uint a, b, c, d, e;
 #endif

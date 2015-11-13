@@ -403,7 +403,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int index;
 	const int count = *pcount;
-	int m = cur_salt->has_mitm;
 	size_t lws;
 
 	/* kernel is made for lws 64, using local memory */
@@ -427,12 +426,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	if (cur_salt->type < 3) {
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_md5, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running second kernel");
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_md5, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running md5 kernel");
 	} else {
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_sha1, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running first kernel");
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_sha1, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running sha1 kernel");
 	}
 
-	if (bench_running || ocl_autotune_running || m) {
+	if (!cur_salt->has_mitm) {
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, multi_profilingEvent[4]), "failed reading results back");
 
 		any_cracked = 0;
