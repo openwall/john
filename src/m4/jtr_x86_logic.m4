@@ -124,7 +124,6 @@ if test "x$enable_native_tests" != xno; then
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
   CC="$CC_BACKUP -mssse3"
-  CPU_NOTFOUND=0
   AC_MSG_CHECKING([for SSSE3])
   AC_RUN_IFELSE(
     [
@@ -145,7 +144,6 @@ if test "x$enable_native_tests" != xno; then
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
   CC="$CC_BACKUP -msse4.1"
-  CPU_NOTFOUND=0
   AC_MSG_CHECKING([for SSE4.1])
   AC_RUN_IFELSE(
     [
@@ -180,6 +178,46 @@ if test "x$enable_native_tests" != xno; then
      [CPU_STR="AVX"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
+     [AC_MSG_RESULT([no])]
+    )
+  ]
+  )
+
+  AS_IF([test "x$CPU_NOTFOUND" = x0],
+  [
+  AC_MSG_CHECKING([for Hyperthreading])
+  AC_RUN_IFELSE(
+    [
+    AC_LANG_SOURCE(
+      [[#include <stdio.h>
+        #if _MSC_VER
+        #include <intrin.h>
+        #endif
+        extern void exit(int);
+        int main(){int regs[4];
+        #if _MSC_VER
+            __cpuid(regs, 1);
+        #else
+            __asm__ __volatile__(
+        #if __x86_64__
+                "pushq %%rbx\n\t"
+        #else
+                "pushl %%ebx\n\t"
+        #endif
+                "cpuid\n\t"
+                "movl %%ebx ,%[ebx]\n\t"
+        #if __x86_64__
+                "popq %%rbx\n\t"
+        #else
+                "popl %%ebx\n\t"
+        #endif
+                : "=a"(regs[0]), [ebx] "=r"(regs[1]), "=c"(regs[2]), "=d"(regs[3]) : "a"(1));
+        #endif
+            exit(!(regs[3] & (1 << 28)));}]]
+    )]
+    ,[HT="-DHAVE_HT"]
+     [AC_MSG_RESULT([yes])]
+    ,[HT="-UHAVE_HT"]
      [AC_MSG_RESULT([no])]
     )
   ]
@@ -310,7 +348,6 @@ else
   ])
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CPU_NOTFOUND=0
   AC_MSG_CHECKING([for SSSE3])
   AC_LINK_IFELSE(
     [
@@ -330,7 +367,6 @@ else
   )
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CPU_NOTFOUND=0
   AC_MSG_CHECKING([for SSE4.1])
   AC_LINK_IFELSE(
     [

@@ -705,6 +705,7 @@ build_os
 build_vendor
 build_cpu
 build
+HT
 LD
 AR
 AS
@@ -784,6 +785,7 @@ YASM
 AS
 AR
 LD
+HT
 MPICC
 CC
 CFLAGS
@@ -1436,6 +1438,7 @@ Some influential environment variables:
   AS          full pathname of assembler to use
   AR          full pathname of "ar" to use
   LD          full pathname of linker to use
+  HT          pre processor macro for telling us we have Hyperthreading
   MPICC       MPI C compiler command
   CC          C compiler command
   CFLAGS      C compiler flags
@@ -3440,6 +3443,7 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 # Define precious variables. They get included in --help and need no AC_SUBST
+
 
 
 
@@ -8086,7 +8090,6 @@ fi
   if test "x$CPU_NOTFOUND" = x0; then :
 
   CC="$CC_BACKUP -mssse3"
-  CPU_NOTFOUND=0
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSSE3" >&5
 $as_echo_n "checking for SSSE3... " >&6; }
   if test "$cross_compiling" = yes; then :
@@ -8126,7 +8129,6 @@ fi
   if test "x$CPU_NOTFOUND" = x0; then :
 
   CC="$CC_BACKUP -msse4.1"
-  CPU_NOTFOUND=0
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE4.1" >&5
 $as_echo_n "checking for SSE4.1... " >&6; }
   if test "$cross_compiling" = yes; then :
@@ -8192,6 +8194,66 @@ $as_echo "yes" >&6; }
 
 else
   CPU_NOTFOUND=1
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+
+fi
+
+  if test "x$CPU_NOTFOUND" = x0; then :
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Hyperthreading" >&5
+$as_echo_n "checking for Hyperthreading... " >&6; }
+  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #include <stdio.h>
+        #if _MSC_VER
+        #include <intrin.h>
+        #endif
+        extern void exit(int);
+        int main(){int regs[4];
+        #if _MSC_VER
+            __cpuid(regs, 1);
+        #else
+            __asm__ __volatile__(
+        #if __x86_64__
+                "pushq %%rbx\n\t"
+        #else
+                "pushl %%ebx\n\t"
+        #endif
+                "cpuid\n\t"
+                "movl %%ebx ,%[ebx]\n\t"
+        #if __x86_64__
+                "popq %%rbx\n\t"
+        #else
+                "popl %%ebx\n\t"
+        #endif
+                : "=a"(regs[0]), [ebx] "=r"(regs[1]), "=c"(regs[2]), "=d"(regs[3]) : "a"(1));
+        #endif
+            exit(!(regs[3] & (1 << 28)));}
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  HT="-DHAVE_HT"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  HT="-UHAVE_HT"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 
@@ -8431,7 +8493,6 @@ rm -f core conftest.err conftest.$ac_objext \
 fi
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CPU_NOTFOUND=0
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSSE3" >&5
 $as_echo_n "checking for SSSE3... " >&6; }
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -8462,7 +8523,6 @@ rm -f core conftest.err conftest.$ac_objext \
 fi
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CPU_NOTFOUND=0
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE4.1" >&5
 $as_echo_n "checking for SSE4.1... " >&6; }
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext

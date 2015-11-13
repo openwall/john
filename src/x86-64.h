@@ -373,10 +373,12 @@
  * some newer CPUs capable of SSE4.2 but not AVX happen to lack SMT, so will
  * likely benefit from the 3x interleaving with no adverse effects for the
  * multi-threaded case.
+ *
+ * In Jumbo, we may get BF_X2 from autoconf (after testing ht cpuid flag).
  */
 #ifndef BF_X2
-#ifdef __AVX__
-#define BF_X2				3
+#if __AVX__ && HAVE_HT
+#define BF_X2				1
 #else
 #define BF_X2				3
 #endif
