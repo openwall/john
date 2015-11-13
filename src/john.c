@@ -448,9 +448,17 @@ static void john_omp_init(void)
 static void john_omp_fallback(char **argv) {
 	if (!getenv("JOHN_NO_OMP_FALLBACK") && john_omp_threads_new <= 1) {
 		rec_done(-2);
+#ifdef JOHN_SYSTEMWIDE_EXEC
 #define OMP_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" OMP_FALLBACK_BINARY
+#else
+#define OMP_FALLBACK_PATHNAME path_expand("$JOHN/" OMP_FALLBACK_BINARY)
+#endif
 		execv(OMP_FALLBACK_PATHNAME, argv);
+#ifdef JOHN_SYSTEMWIDE_EXEC
 		perror("execv: " OMP_FALLBACK_PATHNAME);
+#else
+		perror("execv: $JOHN/" OMP_FALLBACK_BINARY);
+#endif
 	}
 }
 #endif
@@ -1345,9 +1353,17 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 #error CPU_FALLBACK is incompatible with the current DOS and Windows code
 #endif
 		if (!make_check) {
+#ifdef JOHN_SYSTEMWIDE_EXEC
 #define CPU_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" CPU_FALLBACK_BINARY
+#else
+#define CPU_FALLBACK_PATHNAME path_expand("$JOHN/" CPU_FALLBACK_BINARY)
+#endif
 			execv(CPU_FALLBACK_PATHNAME, argv);
+#ifdef JOHN_SYSTEMWIDE_EXEC
 			perror("execv: " CPU_FALLBACK_PATHNAME);
+#else
+			perror("execv: $JOHN/" CPU_FALLBACK_BINARY);
+#endif
 		}
 #endif
 		fprintf(stderr, "Sorry, %s is required for this build\n",
@@ -1381,6 +1397,7 @@ static void john_init(char *name, int argc, char **argv)
 		error();
 	}
 #endif
+	path_init(argv);
 #ifdef _OPENMP
 	john_omp_init();
 #endif
@@ -1389,8 +1406,6 @@ static void john_init(char *name, int argc, char **argv)
 #ifdef HAVE_JOHN_OMP_FALLBACK
 		john_omp_fallback(argv);
 #endif
-
-		path_init(argv);
 	}
 
 #if (!AC_BUILT || HAVE_LOCALE_H)
