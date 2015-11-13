@@ -377,7 +377,7 @@
  * In Jumbo, we may get BF_X2 from autoconf (after testing ht cpuid flag).
  */
 #ifndef BF_X2
-#if __AVX__ && HAVE_HT
+#if __AVX__ && HAVE_HT && _OPENMP
 #define BF_X2				1
 #else
 #define BF_X2				3
