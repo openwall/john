@@ -19,6 +19,7 @@
 #include "opencl_sha1.h"
 
 typedef struct {
+	dyna_salt dsalt;
 	int type;
 	uint salt[16/4];
 	uint verifier[16/4]; /* or encryptedVerifier */
