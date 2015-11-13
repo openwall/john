@@ -947,9 +947,10 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 
 	if (!(global_opts = getenv("OPENCLBUILDOPTIONS")))
 		if (!(global_opts = cfg_get_param(SECTION_OPTIONS,
-		                                  SUBSECTION_OPENCL, "GlobalBuildOpts")))
+		    SUBSECTION_OPENCL, "GlobalBuildOpts")))
 			global_opts = OPENCLBUILDOPTIONS;
-	sprintf(include, "-I %s %s %s%s%s%s%d %s -D_OPENCL_COMPILER %s",
+
+	sprintf(include, "-I %s %s %s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
 	        full_path = path_expand_safe(pathname),
 	        global_opts,
 	        get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_MESA ?
@@ -962,6 +963,7 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	        get_device_type(sequential_id) == CL_DEVICE_TYPE_CPU ? "-D__CPU__ "
 	        : get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU ? "-D__GPU__ " : "",
 	        "-DDEVICE_INFO=", device_info[sequential_id],
+	        "-DSIZEOF_SIZE_T=", (int)sizeof(size_t),
 	        opencl_driver_ver(sequential_id),
 	        opts ? opts : "");
 	MEM_FREE(full_path);
@@ -1179,11 +1181,12 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 
 	// Set salt
 	dyna_salt_init(self);
-	dyna_salt_create();
 	if (!self->params.tests[0].fields[1])
 		self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
 	ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
 	salt = self->methods.salt(ciphertext);
+	if (salt)
+		dyna_salt_create(salt);
 	self->methods.set_salt(salt);
 
 	// Activate events. Then clear them later.
@@ -1387,11 +1390,12 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 
 	// Set salt
 	dyna_salt_init(self);
-	dyna_salt_create();
 	if (!self->params.tests[0].fields[1])
 		self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
 	ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
 	salt = self->methods.salt(ciphertext);
+	if (salt)
+		dyna_salt_create(salt);
 	self->methods.set_salt(salt);
 
 	// Warm-up run

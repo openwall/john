@@ -322,7 +322,7 @@ static void status_print_cracking(double percent)
 			strnzcpy(key2, key, sizeof(key2));
 		key1 = crk_get_key1();
 
-		if (pers_opts.report_utf8 && pers_opts.target_enc != UTF_8) {
+		if (options.report_utf8 && options.target_enc != UTF_8) {
 			char t2buf[PLAINTEXT_BUFFER_SIZE + 1];
 			char *t;
 

@@ -653,7 +653,7 @@ int fuzz(struct db_main *db)
 		    format->params.benchmark_comment,
 		    format->params.algorithm_name,
 #ifndef BENCH_BUILD
-			(pers_opts.target_enc == UTF_8 &&
+			(options.target_enc == UTF_8 &&
 			 format->params.flags & FMT_UNICODE) ?
 		        " in UTF-8 mode" : "");
 #else

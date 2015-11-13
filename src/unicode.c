@@ -340,7 +340,7 @@ int enc_to_utf16(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
                  unsigned int srclen)
 {
 #ifndef UNICODE_NO_OPTIONS
-	if (pers_opts.target_enc != UTF_8) {
+	if (options.target_enc != UTF_8) {
 		int i, trunclen = (int)srclen;
 		if (trunclen > maxdstlen)
 			trunclen = maxdstlen;
@@ -398,7 +398,7 @@ int enc_to_utf16_be(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
                     unsigned int srclen)
 {
 #ifndef UNICODE_NO_OPTIONS
-	if (pers_opts.target_enc != UTF_8) {
+	if (options.target_enc != UTF_8) {
 		int i, trunclen = (int)srclen;
 		if (trunclen > maxdstlen)
 			trunclen = maxdstlen;
@@ -728,7 +728,7 @@ UTF8 *utf16_to_enc(const UTF16 *source)
 UTF8 *utf16_to_enc_r(UTF8 *dst, int dst_len, const UTF16 *source)
 {
 #ifndef UNICODE_NO_OPTIONS
-	if (pers_opts.target_enc == UTF_8)
+	if (options.target_enc == UTF_8)
 #endif
 		return utf16_to_utf8_r(dst, dst_len, source);
 #ifndef UNICODE_NO_OPTIONS
@@ -857,7 +857,7 @@ int enc_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,
                  unsigned int srclen)
 {
 #ifndef UNICODE_NO_OPTIONS
-	if (pers_opts.target_enc != UTF_8) {
+	if (options.target_enc != UTF_8) {
 		int i, trunclen = (int)srclen;
 		if (trunclen > maxdstlen)
 			trunclen = maxdstlen;
@@ -880,7 +880,7 @@ int enc_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,
 UTF8 *utf32_to_enc(UTF8 *dst, int dst_len, const UTF32 *source)
 {
 #ifndef UNICODE_NO_OPTIONS
-	if (pers_opts.target_enc == UTF_8)
+	if (options.target_enc == UTF_8)
 #endif
 		return utf32_to_utf8(dst, dst_len, source);
 #ifndef UNICODE_NO_OPTIONS
@@ -1052,45 +1052,45 @@ void initUnicode(int type)
 	int encoding;
 
 	/* Default to core John's behavior */
-	if (!pers_opts.input_enc) {
-		pers_opts.input_enc = ASCII;
-		pers_opts.default_enc = 1;
+	if (!options.input_enc) {
+		options.input_enc = ASCII;
+		options.default_enc = 1;
 	}
 
-	if (!pers_opts.target_enc)
-		pers_opts.target_enc = pers_opts.input_enc;
+	if (!options.target_enc)
+		options.target_enc = options.input_enc;
 
-	if (!pers_opts.internal_cp)
-		pers_opts.internal_cp = pers_opts.target_enc;
+	if (!options.internal_cp)
+		options.internal_cp = options.target_enc;
 
-	if (pers_opts.internal_cp != pers_opts.target_enc)
-		encoding = pers_opts.internal_cp;
-	else if (pers_opts.target_enc != pers_opts.input_enc)
-		encoding = pers_opts.target_enc;
+	if (options.internal_cp != options.target_enc)
+		encoding = options.internal_cp;
+	else if (options.target_enc != options.input_enc)
+		encoding = options.target_enc;
 	else
-		encoding = pers_opts.input_enc;
+		encoding = options.input_enc;
 
 	if (encoding != UTF_8)
-		pers_opts.unicode_cp = encoding;
+		options.unicode_cp = encoding;
 	else
-		pers_opts.unicode_cp = ISO_8859_1;
+		options.unicode_cp = ISO_8859_1;
 
-	if (UnicodeType == type && UnicodeInited == pers_opts.unicode_cp)
+	if (UnicodeType == type && UnicodeInited == options.unicode_cp)
 		return;
 
 	if (options.verbosity >= 5) {
 		fprintf(stderr, "%s(%s, %s/%s)\n", __FUNCTION__,
 		        type == 1 ? "MS_OLD" :
 		        type == 2 ? "MS_NEW" : "UNICODE",
-		        cp_id2name(encoding), cp_id2name(pers_opts.unicode_cp));
+		        cp_id2name(encoding), cp_id2name(options.unicode_cp));
 		fprintf(stderr, "%s -> %s -> %s\n",
-		        cp_id2name(pers_opts.input_enc),
-		        cp_id2name(pers_opts.internal_cp),
-		        cp_id2name(pers_opts.target_enc));
+		        cp_id2name(options.input_enc),
+		        cp_id2name(options.internal_cp),
+		        cp_id2name(options.target_enc));
 	}
 
 	UnicodeType = type;
-	UnicodeInited = pers_opts.unicode_cp;
+	UnicodeInited = options.unicode_cp;
 	memset(ucs2_upcase, 0, sizeof(ucs2_upcase));
 	memset(ucs2_downcase, 0, sizeof(ucs2_downcase));
 
@@ -1644,7 +1644,7 @@ int enc_lc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len)
 	int utf16len, i;
 
 #ifndef UNICODE_NO_OPTIONS
-	if (pers_opts.target_enc != UTF_8) {
+	if (options.target_enc != UTF_8) {
 		if (dst_bufsize <= src_len)
 			src_len = dst_bufsize - 1;
 		for (i = 0; i < src_len; ++i) {
@@ -1683,7 +1683,7 @@ int enc_uc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len)
 	int utf16len, i;
 
 #ifndef UNICODE_NO_OPTIONS
-	if (pers_opts.target_enc != UTF_8) {
+	if (options.target_enc != UTF_8) {
 		int len;
 		if (dst_bufsize <= src_len)
 			src_len = dst_bufsize - 1;

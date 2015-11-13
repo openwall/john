@@ -28,6 +28,21 @@ typedef int int32_t;
 typedef ulong uint64_t;
 typedef long int64_t;
 
+#if SIZEOF_SIZE_T == 8
+typedef uint64_t host_size_t;
+#else
+typedef uint32_t host_size_t;
+#endif
+
+/* Copy of the one in dyna_salt.h */
+typedef struct dyna_salt_t {
+	host_size_t salt_cmp_size;
+	struct { /* bit field stealing one bit of the size_t */
+		host_size_t salt_alloc_needs_free : 1;
+		host_size_t salt_cmp_offset : sizeof(host_size_t) * 8 - 1;
+	};
+} dyna_salt;
+
 #ifndef MIN
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #endif

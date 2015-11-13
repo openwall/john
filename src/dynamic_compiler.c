@@ -215,6 +215,7 @@ typedef struct DC_list {
 
 const char *dyna_script = "Expression=dynamic=md5($p)\nFlag=MGF_KEYS_INPUT\nFunc=DynamicFunc__crypt_md5\nTest=@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72:abc";
 const char *dyna_signature = "@dynamic=md5($p)@";
+int dyna_sig_len = 17;
 const char *dyna_line[DC_NUM_VECTORS] = {
 	"@dynamic=md5($p)@900150983cd24fb0d6963f7d28e17f72",
 	"@dynamic=md5($p)@527bd5b5d689e2c32ae974c6229ff785",
@@ -228,7 +229,6 @@ const char *dyna_line[DC_NUM_VECTORS] = {
 };
 const char *options_format="";
 
-static int dyna_sig_len = 17;
 static int OLvL = 2;
 static int gost_init = 0;
 
@@ -254,6 +254,7 @@ static char *dynamic_expr_normalize(const char *ct) {
 	//           $user -> $u
 	//           $username -> $u
 	//           unicode( -> utf16(
+	//           -c=: into c1=\x3a  (colon ANYWHERE in the constant)
 	if (/*!strncmp(ct, "@dynamic=", 9) &&*/ (strstr(ct, "$pass") || strstr(ct, "$salt") || strstr(ct, "$user"))) {
 		static char Buf[512];
 		char *cp = Buf;
@@ -290,6 +291,31 @@ static char *dynamic_expr_normalize(const char *ct) {
 				}
 				*cp2 = 0;
 			}
+		}
+	}
+	if (strstr(ct, ",c")) {
+		// this need greatly improved. Only handling ':' char right now.
+		static char Buf[512];
+		char *cp = Buf;
+		strcpy(Buf, ct);
+		ct = Buf;
+		cp = strstr(ct, ",c");
+		while (cp) {
+			char *ctp = strchr(&cp[1], ',');
+			if (ctp) *ctp = 0;
+			if (strchr(cp, ':')) {
+				char *cp2 = &cp[strlen(cp)-1];
+				if (ctp) *ctp = ',';
+				while (cp2 > cp) {
+					if (*cp2 == ':') {
+						memmove(&cp2[4], &cp2[1], strlen(cp2));
+						memcpy(cp2, "\\x3a", 4);
+					}
+					--cp2;
+				}
+			} else
+				if (ctp) *ctp = ',';
+			cp = strstr(&cp[1], ",c");
 		}
 	}
 	//
@@ -407,6 +433,12 @@ static char *find_the_expression(const char *expr) {
 	if (strncmp(expr, "dynamic=", 8))
 		return "";
 	strnzcpy(buf, &expr[8], sizeof(buf));
+	cp = strchr(buf, ',');
+	if (cp) {
+		*cp = 0;
+		cp = dynamic_expr_normalize(buf);
+		return cp;
+	}
 	cp = strrchr(buf, ')');
 	if (!cp) return "";
 	while (cp[1] && cp[1] != ',')
@@ -420,9 +452,8 @@ static char *find_the_extra_params(const char *expr) {
 	char *cp;
 	if (strncmp(expr, "dynamic=", 8))
 		return "";
-	cp = strrchr(expr, ')');
+	cp = strchr(expr, ',');
 	if (!cp) return "";
-	if (cp[1] == ',') ++cp;
 	strnzcpy(buf, cp, sizeof(buf));
 	// NOTE, we should normalize this string!!
 	// we should probably call handle_extra_params, and then make a function

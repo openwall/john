@@ -337,7 +337,7 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 
 /* This is because printf("%-16s") does not line up multibyte UTF-8.
    We need to count characters, not octets. */
-	if (pers_opts.target_enc == UTF_8 || pers_opts.report_utf8)
+	if (options.target_enc == UTF_8 || options.report_utf8)
 		len = strlen8((UTF8*)rep_plain);
 	else
 		len = strlen(rep_plain);

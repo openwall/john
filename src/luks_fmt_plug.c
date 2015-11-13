@@ -497,7 +497,7 @@ static void *get_salt(char *ciphertext)
 	memcpy(psalt, &cs, sizeof(cs));
 	memcpy(psalt->cipherbuf, buf, size);
 	MEM_FREE(buf);
-	psalt->dsalt.salt_alloc_needs_free = 0;  // we used mem_calloc, so JtR CAN free our pointer when done with them.
+	psalt->dsalt.salt_alloc_needs_free = 0;
 
 	// set the JtR core linkage stuff for this dyna_salt
 	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(struct custom_salt_LUKS, myphdr);
@@ -689,7 +689,7 @@ struct fmt_main fmt_luks = {
 			fmt_default_binary_hash_5,
 			fmt_default_binary_hash_6
 		},
-		fmt_default_salt_hash,
+		fmt_default_dyna_salt_hash,
 		NULL,
 		set_salt,
 		luks_set_key,

@@ -346,8 +346,8 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	} else
 		replogin = repuid = "";
 
-	if (index >= 0 && (pers_opts.store_utf8 || pers_opts.report_utf8)) {
-		if (pers_opts.target_enc == UTF_8)
+	if (index >= 0 && (options.store_utf8 || options.report_utf8)) {
+		if (options.target_enc == UTF_8)
 			utf8key = key;
 		else {
 			utf8key = cp_to_utf8_r(key, utf8buf_key,
@@ -367,13 +367,13 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 				utf8key = key;
 			}
 		}
-		if (pers_opts.report_utf8) {
+		if (options.report_utf8) {
 			repkey = utf8key;
-			if (pers_opts.target_enc != UTF_8)
+			if (options.target_enc != UTF_8)
 				replogin = cp_to_utf8_r(replogin,
 					      utf8login, PLAINTEXT_BUFFER_SIZE);
 		}
-		if (pers_opts.store_utf8)
+		if (options.store_utf8)
 			key = utf8key;
 	}
 
@@ -538,8 +538,8 @@ int crk_reload_pot(void)
 	if (crk_params.flags & FMT_NOT_EXACT)
 		return 0;
 
-	if (!(pot_file = fopen(path_expand(pers_opts.activepot), "rb")))
-		pexit("fopen: %s", path_expand(pers_opts.activepot));
+	if (!(pot_file = fopen(path_expand(options.activepot), "rb")))
+		pexit("fopen: %s", path_expand(options.activepot));
 
 	if (crk_pot_pos && (jtr_fseek64(pot_file, crk_pot_pos, SEEK_SET) == -1)) {
 		perror("fseek");

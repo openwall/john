@@ -260,10 +260,12 @@ if (@ARGV == 1) {
 	my $orig_arg = $ARGV[0];
 	my $arg = lc $ARGV[0];
 	if (substr($arg,0,8) eq "dynamic_") { substr($arg,0,8)="dynamic="; }
-	if ($arg eq "dynamic") { $arg = "dynamic="; }
+	if ($arg eq "dynamic") { dynamic_compile("") }
 	if (substr($arg,0,8) eq "dynamic=") {
 		@funcs = ();
-		push(@funcs, $arg = dynamic_compile(substr($orig_arg,8)));
+		my $dyn="";
+		if (length($orig_arg)>8) { $dyn=substr($orig_arg,8); }
+		push(@funcs, $arg = dynamic_compile($dyn));
 	}
 	my $have_something = 0;
 	foreach (@funcs) {
@@ -311,9 +313,12 @@ if (@ARGV == 1) {
 		$u = 0;
 		my $orig_arg = $_;
 		my $arg = lc $_;
+		if ($arg eq "dynamic") { dynamic_compile(""); }
 		if (substr($arg,0,8) eq "dynamic_") { substr($arg,0,8)="dynamic="; }
 		if (substr($arg,0,8) eq "dynamic=") {
-			push(@funcs, $arg = dynamic_compile(substr($orig_arg,8)));
+			my $dyn="";
+			if (length($orig_arg)>8) { $dyn=substr($orig_arg,8); }
+			push(@funcs, $arg = dynamic_compile($dyn));
 		}
 		my $have_something = 0;
 		foreach (@funcs) {

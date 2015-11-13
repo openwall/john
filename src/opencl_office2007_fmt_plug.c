@@ -252,7 +252,7 @@ static void init(struct fmt_main *_self)
 		self->params.algorithm_name = valgo;
 	}
 
-	if (pers_opts.target_enc == UTF_8)
+	if (options.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 }
 

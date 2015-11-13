@@ -228,7 +228,7 @@ static void john_register_one(struct fmt_main *format)
 				if (strcasecmp(p, pos))
 					return;
 			}
-		} else if ((pos = strchr(options.format, '@'))) {
+		} else if (strncasecmp(options.format, "dynamic=", 8) && (pos = strchr(options.format, '@'))) {
 			char *reject, *algo = strdup(++pos);
 
 			// Rejections
@@ -448,9 +448,17 @@ static void john_omp_init(void)
 static void john_omp_fallback(char **argv) {
 	if (!getenv("JOHN_NO_OMP_FALLBACK") && john_omp_threads_new <= 1) {
 		rec_done(-2);
+#ifdef JOHN_SYSTEMWIDE_EXEC
 #define OMP_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" OMP_FALLBACK_BINARY
+#else
+#define OMP_FALLBACK_PATHNAME path_expand("$JOHN/" OMP_FALLBACK_BINARY)
+#endif
 		execv(OMP_FALLBACK_PATHNAME, argv);
+#ifdef JOHN_SYSTEMWIDE_EXEC
 		perror("execv: " OMP_FALLBACK_PATHNAME);
+#else
+		perror("execv: $JOHN/" OMP_FALLBACK_BINARY);
+#endif
 	}
 }
 #endif
@@ -797,6 +805,7 @@ static void john_load_conf(void)
 		options.verbosity = cfg_get_int(SECTION_OPTIONS, NULL,
 		                                "Verbosity");
 
+		/* If it doesn't exist in john.conf it ends up as -1 */
 		if (options.verbosity == -1)
 			options.verbosity = 3;
 
@@ -808,30 +817,30 @@ static void john_load_conf(void)
 		}
 	}
 
-	if (pers_opts.activepot == NULL) {
+	if (options.activepot == NULL) {
 		if (options.secure)
-			pers_opts.activepot = str_alloc_copy(SEC_POT_NAME);
+			options.activepot = str_alloc_copy(SEC_POT_NAME);
 		else
-			pers_opts.activepot = str_alloc_copy(POT_NAME);
+			options.activepot = str_alloc_copy(POT_NAME);
 	}
 
-	if (pers_opts.activewordlistrules == NULL)
-		if (!(pers_opts.activewordlistrules =
+	if (options.activewordlistrules == NULL)
+		if (!(options.activewordlistrules =
 		      cfg_get_param(SECTION_OPTIONS, NULL,
 		                    "BatchModeWordlistRules")))
-			pers_opts.activewordlistrules =
+			options.activewordlistrules =
 				str_alloc_copy(SUBSECTION_WORDLIST);
 
-	if (pers_opts.activesinglerules == NULL)
-		if (!(pers_opts.activesinglerules =
+	if (options.activesinglerules == NULL)
+		if (!(options.activesinglerules =
 		      cfg_get_param(SECTION_OPTIONS, NULL,
 		                    "SingleRules")))
-			pers_opts.activesinglerules =
+			options.activesinglerules =
 				str_alloc_copy(SUBSECTION_SINGLE);
 
 	if ((options.flags & FLG_LOOPBACK_CHK) &&
 	    !(options.flags & FLG_RULES)) {
-		if ((pers_opts.activewordlistrules =
+		if ((options.activewordlistrules =
 		     cfg_get_param(SECTION_OPTIONS, NULL,
 		                   "LoopbackRules")))
 			options.flags |= FLG_RULES;
@@ -839,7 +848,7 @@ static void john_load_conf(void)
 
 	if ((options.flags & FLG_WORDLIST_CHK) &&
 	    !(options.flags & FLG_RULES)) {
-		if ((pers_opts.activewordlistrules =
+		if ((options.activewordlistrules =
 		     cfg_get_param(SECTION_OPTIONS, NULL,
 		                   "WordlistRules")))
 			options.flags |= FLG_RULES;
@@ -867,53 +876,53 @@ static void john_load_conf(void)
 	options.loader.log_passwords = options.secure ||
 		cfg_get_bool(SECTION_OPTIONS, NULL, "LogCrackedPasswords", 0);
 
-	if (!pers_opts.input_enc && !(options.flags & FLG_TEST_CHK)) {
+	if (!options.input_enc && !(options.flags & FLG_TEST_CHK)) {
 		if ((options.flags & FLG_LOOPBACK_CHK) &&
 		    cfg_get_bool(SECTION_OPTIONS, NULL, "UnicodeStoreUTF8", 0))
-			pers_opts.input_enc = cp_name2id("UTF-8");
+			options.input_enc = cp_name2id("UTF-8");
 		else {
-			pers_opts.input_enc =
+			options.input_enc =
 				cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
 				                          "DefaultEncoding"));
 		}
-		pers_opts.default_enc = pers_opts.input_enc;
+		options.default_enc = options.input_enc;
 	}
 
 	/* Pre-init in case some format's prepare() needs it */
-	internal = pers_opts.internal_cp;
-	target = pers_opts.target_enc;
+	internal = options.internal_cp;
+	target = options.target_enc;
 	initUnicode(UNICODE_UNICODE);
-	pers_opts.internal_cp = internal;
-	pers_opts.target_enc = target;
-	pers_opts.unicode_cp = CP_UNDEF;
+	options.internal_cp = internal;
+	options.target_enc = target;
+	options.unicode_cp = CP_UNDEF;
 }
 
 static void john_load_conf_db(void)
 {
 	if (options.flags & FLG_STDOUT) {
 		/* john.conf alternative for --internal-codepage */
-		if (!pers_opts.internal_cp &&
-		    pers_opts.target_enc == UTF_8 && options.flags &
+		if (!options.internal_cp &&
+		    options.target_enc == UTF_8 && options.flags &
 		    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
-			if (!(pers_opts.internal_cp =
+			if (!(options.internal_cp =
 			    cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
 			    "DefaultInternalCodepage"))))
-			pers_opts.internal_cp =
+			options.internal_cp =
 				cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
 			            "DefaultInternalEncoding"));
 	}
 
-	if (!pers_opts.unicode_cp)
+	if (!options.unicode_cp)
 		initUnicode(UNICODE_UNICODE);
 
-	pers_opts.report_utf8 = cfg_get_bool(SECTION_OPTIONS,
+	options.report_utf8 = cfg_get_bool(SECTION_OPTIONS,
 	                                     NULL, "AlwaysReportUTF8", 0);
 
 	/* Unicode (UTF-16) formats may lack encoding support. We
 	   must stop the user from trying to use it because it will
 	   just result in false negatives. */
-	if (database.format && pers_opts.target_enc != ASCII &&
-	    pers_opts.target_enc != ISO_8859_1 &&
+	if (database.format && options.target_enc != ASCII &&
+	    options.target_enc != ISO_8859_1 &&
 	    database.format->params.flags & FMT_UNICODE &&
 	    !(database.format->params.flags & FMT_UTF8)) {
 		if (john_main_process)
@@ -923,14 +932,14 @@ static void john_load_conf_db(void)
 	}
 
 	if (database.format && database.format->params.flags & FMT_UNICODE)
-		pers_opts.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
+		options.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
 		                                  NULL, "UnicodeStoreUTF8", 0);
 	else
-		pers_opts.store_utf8 = pers_opts.target_enc != ASCII &&
+		options.store_utf8 = options.target_enc != ASCII &&
 			cfg_get_bool(SECTION_OPTIONS, NULL, "CPstoreUTF8", 0);
 
-	if (pers_opts.target_enc != pers_opts.input_enc &&
-	    pers_opts.input_enc != UTF_8) {
+	if (options.target_enc != options.input_enc &&
+	    options.input_enc != UTF_8) {
 		if (john_main_process)
 			fprintf(stderr, "Target encoding can only be specified"
 			        " if input encoding is UTF-8\n");
@@ -940,31 +949,31 @@ static void john_load_conf_db(void)
 	if (john_main_process)
 	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked) {
 		if (options.flags & (FLG_PASSWD | FLG_STDIN_CHK))
-		if (pers_opts.default_enc && pers_opts.input_enc != ASCII)
+		if (options.default_enc && options.input_enc != ASCII)
 			fprintf(stderr, "Using default input encoding: %s\n",
-			        cp_id2name(pers_opts.input_enc));
+			        cp_id2name(options.input_enc));
 
-		if (pers_opts.target_enc != pers_opts.input_enc &&
+		if (options.target_enc != options.input_enc &&
 		    (!database.format ||
 		     !(database.format->params.flags & FMT_UNICODE))) {
-			if (pers_opts.default_target_enc)
+			if (options.default_target_enc)
 				fprintf(stderr, "Using default target "
 				        "encoding: %s\n",
-				        cp_id2name(pers_opts.target_enc));
+				        cp_id2name(options.target_enc));
 			else
 				fprintf(stderr, "Target encoding: %s\n",
-				        cp_id2name(pers_opts.target_enc));
+				        cp_id2name(options.target_enc));
 		}
 
-		if (pers_opts.input_enc != pers_opts.internal_cp)
+		if (options.input_enc != options.internal_cp)
 		if (database.format &&
 		    (database.format->params.flags & FMT_UNICODE))
 			fprintf(stderr, "Rules/masks using %s\n",
-			        cp_id2name(pers_opts.internal_cp));
+			        cp_id2name(options.internal_cp));
 	}
 }
 
-static void load_extra_pots(void (*process_file)(struct db_main *db, char *name))
+static void load_extra_pots(struct db_main *db, void (*process_file)(struct db_main *db, char *name))
 {
 	struct cfg_list *list;
 	struct cfg_line *line;
@@ -976,7 +985,7 @@ static void load_extra_pots(void (*process_file)(struct db_main *db, char *name)
 		char *name = path_expand(line->data);
 
 		if (!stat(name, &s) && s.st_mode & S_IFREG)
-			process_file(&database, name);
+			process_file(db, name);
 #if HAVE_DIRENT_H && HAVE_SYS_TYPES_H
 		else if (s.st_mode & S_IFDIR) {
 			DIR *dp;
@@ -998,7 +1007,7 @@ static void load_extra_pots(void (*process_file)(struct db_main *db, char *name)
 
 					if (!stat(dname, &s) &&
 					    s.st_mode & S_IFREG)
-						process_file(&database, dname);
+						process_file(db, dname);
 				}
 				(void)closedir(dp);
 			}
@@ -1016,7 +1025,7 @@ static void load_extra_pots(void (*process_file)(struct db_main *db, char *name)
 			do {
 				snprintf(dname, sizeof(dname), "%s/%s",
 				         name, f.cFileName);
-				process_file(&database, dname);
+				process_file(db, dname);
 			} while (FindNextFile(h, &f));
 
 			FindClose(h);
@@ -1055,7 +1064,7 @@ static void john_load(void)
 		ldr_init_database(&database, &options.loader);
 
 		if (options.flags & FLG_PASSWD) {
-			ldr_show_pot_file(&database, pers_opts.activepot);
+			ldr_show_pot_file(&database, options.activepot);
 
 			database.options->flags |= DB_PLAINTEXTS;
 			if ((current = options.passwd->head))
@@ -1064,7 +1073,7 @@ static void john_load(void)
 			} while ((current = current->next));
 		} else {
 			database.options->flags |= DB_PLAINTEXTS;
-			ldr_show_pot_file(&database, pers_opts.activepot);
+			ldr_show_pot_file(&database, options.activepot);
 		}
 
 		return;
@@ -1076,13 +1085,13 @@ static void john_load(void)
 		memset(&dummy_format, 0, sizeof(dummy_format));
 		dummy_format.params.plaintext_length = options.length;
 		dummy_format.params.flags = FMT_CASE | FMT_8_BIT | FMT_TRUNC;
-		if (pers_opts.report_utf8 || pers_opts.target_enc == UTF_8)
+		if (options.report_utf8 || options.target_enc == UTF_8)
 			dummy_format.params.flags |= FMT_UTF8;
 		dummy_format.params.label = "stdout";
 		dummy_format.methods.clear_keys = &fmt_default_clear_keys;
 
-		if (!pers_opts.target_enc || pers_opts.input_enc != UTF_8)
-			pers_opts.target_enc = pers_opts.input_enc;
+		if (!options.target_enc || options.input_enc != UTF_8)
+			options.target_enc = options.input_enc;
 
 		if (options.req_maxlength > options.length) {
 			fprintf(stderr, "Can't set max length larger than %u "
@@ -1100,12 +1109,12 @@ static void john_load(void)
 			options.loader.flags |= DB_CRACKED;
 			ldr_init_database(&database, &options.loader);
 
-			ldr_show_pot_file(&database, pers_opts.activepot);
+			ldr_show_pot_file(&database, options.activepot);
 /*
  * Load optional extra (read-only) pot files. If an entry is a directory,
  * we read all files in it. We currently do NOT recurse.
  */
-			load_extra_pots(&ldr_show_pot_file);
+			load_extra_pots(&database, &ldr_show_pot_file);
 
 			if ((current = options.passwd->head))
 			do {
@@ -1183,13 +1192,13 @@ static void john_load(void)
 		}
 
 		total = database.password_count;
-		ldr_load_pot_file(&database, pers_opts.activepot);
+		ldr_load_pot_file(&database, options.activepot);
 
 /*
  * Load optional extra (read-only) pot files. If an entry is a directory,
  * we read all files in it. We currently do NOT recurse.
  */
-		load_extra_pots(&ldr_load_pot_file);
+		load_extra_pots(&database, &ldr_load_pot_file);
 
 		ldr_fix_database(&database);
 
@@ -1247,21 +1256,21 @@ static void john_load(void)
 	    database.format != &fmt_LM && database.format != &fmt_DES) {
 		struct db_main loop_db;
 		struct fmt_main *save_list = fmt_list;
-		char *save_pot = pers_opts.activepot;
+		char *save_pot = options.activepot;
 
 		fmt_list = &fmt_LM;
 
 		options.loader.flags |= DB_CRACKED;
 		ldr_init_database(&loop_db, &options.loader);
 
-		pers_opts.activepot = options.wordlist ?
-			options.wordlist : pers_opts.activepot;
-		ldr_show_pot_file(&loop_db, pers_opts.activepot);
+		options.activepot = options.wordlist ?
+			options.wordlist : options.activepot;
+		ldr_show_pot_file(&loop_db, options.activepot);
 /*
  * Load optional extra (read-only) pot files. If an entry is a directory,
  * we read all files in it. We currently do NOT recurse.
  */
-		load_extra_pots(&ldr_show_pot_file);
+		load_extra_pots(&loop_db, &ldr_show_pot_file);
 
 		loop_db.options->flags |= DB_PLAINTEXTS;
 
@@ -1281,7 +1290,7 @@ static void john_load(void)
 		}
 		database.plaintexts = loop_db.plaintexts;
 		options.loader.flags &= ~DB_CRACKED;
-		pers_opts.activepot = save_pot;
+		options.activepot = save_pot;
 		fmt_list = save_list;
 		db_main_free(&loop_db);
 	}
@@ -1344,9 +1353,17 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 #error CPU_FALLBACK is incompatible with the current DOS and Windows code
 #endif
 		if (!make_check) {
+#ifdef JOHN_SYSTEMWIDE_EXEC
 #define CPU_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" CPU_FALLBACK_BINARY
+#else
+#define CPU_FALLBACK_PATHNAME path_expand("$JOHN/" CPU_FALLBACK_BINARY)
+#endif
 			execv(CPU_FALLBACK_PATHNAME, argv);
+#ifdef JOHN_SYSTEMWIDE_EXEC
 			perror("execv: " CPU_FALLBACK_PATHNAME);
+#else
+			perror("execv: $JOHN/" CPU_FALLBACK_BINARY);
+#endif
 		}
 #endif
 		fprintf(stderr, "Sorry, %s is required for this build\n",
@@ -1380,6 +1397,7 @@ static void john_init(char *name, int argc, char **argv)
 		error();
 	}
 #endif
+	path_init(argv);
 #ifdef _OPENMP
 	john_omp_init();
 #endif
@@ -1388,8 +1406,6 @@ static void john_init(char *name, int argc, char **argv)
 #ifdef HAVE_JOHN_OMP_FALLBACK
 		john_omp_fallback(argv);
 #endif
-
-		path_init(argv);
 	}
 
 #if (!AC_BUILT || HAVE_LOCALE_H)
@@ -1469,9 +1485,9 @@ static void john_init(char *name, int argc, char **argv)
 	john_load();
 
 	/* Init the Unicode system */
-	if (pers_opts.internal_cp) {
-		if (pers_opts.internal_cp != pers_opts.input_enc &&
-		    pers_opts.input_enc != UTF_8) {
+	if (options.internal_cp) {
+		if (options.internal_cp != options.input_enc &&
+		    options.input_enc != UTF_8) {
 			if (john_main_process)
 			fprintf(stderr, "-internal-codepage can only be "
 			        "specified if input encoding is UTF-8\n");
@@ -1479,7 +1495,7 @@ static void john_init(char *name, int argc, char **argv)
 		}
 	}
 
-	if (!pers_opts.unicode_cp)
+	if (!options.unicode_cp)
 		initUnicode(UNICODE_UNICODE);
 
 	if ((options.subformat && !strcasecmp(options.subformat, "list")) ||
@@ -1490,6 +1506,24 @@ static void john_init(char *name, int argc, char **argv)
 	if (rec_restored)
 		event_pending = event_status = 1;
 
+	/* Log the expanded command line used for this session. */
+	{
+		int i;
+		size_t s = 1;
+		char *cl;
+
+		for (i = 0; i < argc; i++)
+			s += strlen(argv[i]) + 1;
+		cl = mem_alloc(s);
+
+		s = 0;
+		for (i = 0; i < argc; i++)
+			s += sprintf(cl + s, "%s ", argv[i]);
+
+		log_event("Command line: %s", cl);
+		MEM_FREE(cl);
+	}
+
 #if HAVE_MPI
 	if (mpi_p > 1)
 		log_event("- MPI: Node %u/%u running on %s",
@@ -1499,34 +1533,34 @@ static void john_init(char *name, int argc, char **argv)
 	gpu_log_temp();
 #endif
 
-	if (pers_opts.target_enc != ASCII) {
+	if (options.target_enc != ASCII) {
 		log_event("- %s input encoding enabled",
-		          cp_id2name(pers_opts.input_enc));
+		          cp_id2name(options.input_enc));
 
 		if (!options.secure) {
-			if (pers_opts.report_utf8 &&
+			if (options.report_utf8 &&
 			    options.loader.log_passwords)
 				log_event("- Passwords in this logfile are "
 				    "UTF-8 encoded");
 
-			if (pers_opts.store_utf8)
+			if (options.store_utf8)
 				log_event("- Passwords will be stored UTF-8 "
 				    "encoded in .pot file");
 		}
 	}
 
 	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked)
-	if (pers_opts.target_enc != pers_opts.input_enc &&
+	if (options.target_enc != options.input_enc &&
 	    (!database.format ||
 	     !(database.format->params.flags & FMT_UNICODE))) {
 		log_event("- Target encoding: %s",
-		          cp_id2name(pers_opts.target_enc));
+		          cp_id2name(options.target_enc));
 	}
 
 	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked)
-	if (pers_opts.input_enc != pers_opts.internal_cp) {
+	if (options.input_enc != options.internal_cp) {
 		log_event("- Rules/masks using %s",
-		          cp_id2name(pers_opts.internal_cp));
+		          cp_id2name(options.internal_cp));
 	}
 }
 
@@ -1567,7 +1601,7 @@ static void john_run(void)
 				error();
 			}
 			trigger_reset = 1;
-			log_init(LOG_NAME, pers_opts.activepot,
+			log_init(LOG_NAME, options.activepot,
 			         options.session);
 			status_init(NULL, 1);
 			if (john_main_process) {
@@ -1600,7 +1634,7 @@ static void john_run(void)
 		if (options.force_maxlength)
 			log_event("- Will reject candidates longer than %d %s",
 				  options.force_maxlength,
-				  (pers_opts.target_enc == UTF_8) ?
+				  (options.target_enc == UTF_8) ?
 				  "bytes" : "characters");
 
 		/* Some formats have a minimum plaintext length */

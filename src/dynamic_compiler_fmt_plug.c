@@ -83,10 +83,14 @@ static char *Convert(char *Buf, char *ciphertext, int in_load)
 
 	cp = ciphertext;
 	if (!strncmp(ciphertext, "@dynamic=", 9)) {
-		cp = strchr(&ciphertext[1], '@');
-		if (!cp)
-			return "*";
-		++cp;
+		if (!strncmp(ciphertext, dyna_signature, dyna_sig_len))
+			cp = &ciphertext[dyna_sig_len];
+		else {
+			cp = strchr(&ciphertext[1], '@');
+			if (!cp)
+				return "*";
+			++cp;
+		}
 	}
 	if (in_load)
 		snprintf(Buf, sizeof(Conv_Buf), "$dynamic_6xxx$%s", cp);

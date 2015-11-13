@@ -285,7 +285,7 @@ static void init(struct fmt_main *_self)
 		self->params.algorithm_name = valgo;
 	}
 
-	if (pers_opts.target_enc == UTF_8)
+	if (options.target_enc == UTF_8)
 		max_len = self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
 }
 
@@ -300,7 +300,7 @@ static void reset(struct db_main *db)
 		         "-DUCS_2 "
 #endif
 		         "-D%s -DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
-		         cp_id2macro(pers_opts.target_enc), PLAINTEXT_LENGTH, ocl_v_width);
+		         cp_id2macro(options.target_enc), PLAINTEXT_LENGTH, ocl_v_width);
 		opencl_init("$JOHN/kernels/ntlmv2_kernel.cl", gpu_id, build_opts);
 
 		/* create kernels to execute */

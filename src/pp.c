@@ -743,7 +743,7 @@ static char *add_elem (db_entry_t *db_entry, char *input_buf, int input_len)
 
   memcpy (elem_buf->buf, input_buf, input_len);
 #else
-  if (mem_map && pers_opts.input_enc == pers_opts.target_enc)
+  if (mem_map && options.input_enc == options.target_enc)
   {
     elem_buf->buf = (u8*)input_buf;
   }
@@ -1292,7 +1292,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
   /* If we did not give a name for loopback mode, we use the active pot file */
   if (loopback && !wordlist)
-    wordlist = pers_opts.activepot;
+    wordlist = options.activepot;
 
   /* If we did not give a name for wordlist mode, we use one from john.conf */
   if (!wordlist)
@@ -1309,21 +1309,21 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     struct rpp_context ctx, *rule_ctx;
     int active_rules = 0, rule_number = 0;
 
-    if (pers_opts.activewordlistrules)
-      log_event("- Rules: %.100s", pers_opts.activewordlistrules);
+    if (options.activewordlistrules)
+      log_event("- Rules: %.100s", options.activewordlistrules);
 
-    if (rpp_init(rule_ctx = &ctx, pers_opts.activewordlistrules)) {
+    if (rpp_init(rule_ctx = &ctx, options.activewordlistrules)) {
       log_event("! No \"%s\" mode rules found",
-                pers_opts.activewordlistrules);
+                options.activewordlistrules);
       if (john_main_process)
         fprintf(stderr,
                 "No \"%s\" mode rules found in %s\n",
-                pers_opts.activewordlistrules, cfg_name);
+                options.activewordlistrules, cfg_name);
       error();
     }
 
   /* rules.c honors -min/max-len options on its own */
-    rules_init(pers_opts.internal_cp == pers_opts.target_enc ?
+    rules_init(options.internal_cp == options.target_enc ?
                pw_max : db->format->params.plaintext_length);
     rule_count = rules_count(&ctx, -1);
 
@@ -1619,7 +1619,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
     if (warn) {
       const UTF8 *ep = (UTF8*)line + input_len;
-      if (pers_opts.input_enc == UTF_8) {
+      if (options.input_enc == UTF_8) {
         if (!pp_valid_utf8((UTF8*)line, ep)) {
           warn = 0;
           fprintf(stderr, "Warning: invalid UTF-8 seen reading %s\n", wordlist);
@@ -1635,7 +1635,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
     input_buf = line;
 
-    if (pers_opts.input_enc != pers_opts.target_enc) {
+    if (options.input_enc != options.target_enc) {
       UTF16 u16[BUFSIZ];
 
       utf8_to_utf16(u16, OUT_LEN_MAX, (UTF8*)input_buf, input_len);

@@ -157,11 +157,11 @@ static void init(struct fmt_main *self)
 	initUnicode(UNICODE_MS_OLD);
 
 	memset(saved_key, 0, sizeof(saved_key));
-	if (pers_opts.target_enc == UTF_8)
+	if (options.target_enc == UTF_8)
 		fmt_mssql.params.plaintext_length = PLAINTEXT_LENGTH * 3;
 
-	if (pers_opts.target_enc != ISO_8859_1 &&
-	    pers_opts.target_enc != ASCII)
+	if (options.target_enc != ISO_8859_1 &&
+	    options.target_enc != ASCII)
 		fmt_mssql.methods.set_key = set_key_enc;
 }
 

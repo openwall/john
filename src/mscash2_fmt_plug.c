@@ -188,7 +188,7 @@ static void init(struct fmt_main *self)
 	// block is written to after this, if there are more that one SHA_PARA, then the start of each para block will be updated inside the inner loop.
 #endif
 
-	if (pers_opts.target_enc == UTF_8) {
+	if (options.target_enc == UTF_8) {
 		// UTF8 may be up to three bytes per character
 		// but core max. is 125 anyway
 		//self->params.plaintext_length = MIN(125, 3*PLAINTEXT_LENGTH);
@@ -197,7 +197,7 @@ static void init(struct fmt_main *self)
 		tests[2].plaintext = "\xe2\x82\xac\xe2\x82\xac"; // 2 x Euro signs
 		tests[2].ciphertext = "$DCC2$10240#joe#1e1e20f482ff748038e47d801d0d1bda";
 	}
-	else if (pers_opts.target_enc == ISO_8859_1) {
+	else if (options.target_enc == ISO_8859_1) {
 		tests[1].plaintext = "\xfc";
 		tests[1].ciphertext = "$DCC2$10240#joe#bdb80f2c4656a8b8591bd27d39064a54";
 		tests[2].plaintext = "\xfc\xfc";

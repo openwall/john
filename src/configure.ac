@@ -50,6 +50,7 @@ AC_ARG_VAR([YASM], [full pathname of yasm (for optional AES-NI support)])
 AC_ARG_VAR([AS], [full pathname of assembler to use])
 AC_ARG_VAR([AR], [full pathname of "ar" to use])
 AC_ARG_VAR([LD], [full pathname of linker to use])
+AC_ARG_VAR([HT], [pre processor macro for telling us we have Hyperthreading])
 
 # Define Packages.
 # Use OpenSSL (default: yes).

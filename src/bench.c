@@ -567,8 +567,8 @@ AGAIN:
 			continue;
 
 /* Just test the encoding-aware formats if --encoding was used explicitly */
-		if (!pers_opts.default_enc && pers_opts.target_enc != ASCII &&
-		    pers_opts.target_enc != ISO_8859_1 &&
+		if (!options.default_enc && options.target_enc != ASCII &&
+		    options.target_enc != ISO_8859_1 &&
 		    !(format->params.flags & FMT_UTF8)) {
 			if (options.format == NULL ||
 			    strcasecmp(format->params.label, options.format))
@@ -615,7 +615,7 @@ AGAIN:
 		    format->params.benchmark_comment,
 		    format->params.algorithm_name,
 #ifndef BENCH_BUILD
-			(pers_opts.target_enc == UTF_8 &&
+			(options.target_enc == UTF_8 &&
 			 format->params.flags & FMT_UNICODE) ?
 		        " in UTF-8 mode" : "");
 #else

@@ -165,7 +165,7 @@ static void init(struct fmt_main *self)
 {
 	static int warned = 0;
 
-	if (pers_opts.target_enc == UTF_8 && warned++ == 0)
+	if (options.target_enc == UTF_8 && warned++ == 0)
 		fprintf(stderr, "Warning: SAP-B format should never be UTF-8.\nUse --target-encoding=iso-8859-1 or whatever is applicable.\n");
 
 #if defined (_OPENMP)

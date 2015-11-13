@@ -158,15 +158,15 @@ static void init(struct fmt_main *self)
 #endif
 
 #ifdef SIMD_COEF_32
-	if (pers_opts.target_enc == UTF_8) {
+	if (options.target_enc == UTF_8) {
 		self->methods.set_key = episerver_set_key_utf8;
 		self->params.plaintext_length = PLAINTEXT_LENGTH * 3;
 	}
-	else if (pers_opts.target_enc != ISO_8859_1 &&
-	         pers_opts.target_enc != ASCII)
+	else if (options.target_enc != ISO_8859_1 &&
+	         options.target_enc != ASCII)
 		self->methods.set_key = episerver_set_key_CP;
 #else
-	if (pers_opts.target_enc == UTF_8)
+	if (options.target_enc == UTF_8)
 		self->params.plaintext_length = PLAINTEXT_LENGTH * 3;
 #endif
 }
