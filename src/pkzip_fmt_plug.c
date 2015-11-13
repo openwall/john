@@ -1680,7 +1680,7 @@ struct fmt_main fmt_pkzip = {
 		{
 			fmt_default_binary_hash
 		},
-		fmt_default_salt_hash,
+		fmt_default_dyna_salt_hash,
 		NULL,
 		set_salt,
 		set_key,

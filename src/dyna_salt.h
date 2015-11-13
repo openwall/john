@@ -34,11 +34,14 @@
 
 //#define DYNA_SALT_DEBUG
 
+/************************************************************************
+ * NOTE if changing this struct, also copy the changes to opencl_misc.h *
+ ************************************************************************/
 typedef struct dyna_salt_t {
 	size_t salt_cmp_size;
-	struct {
-		size_t salt_alloc_needs_free : 1; /* 1 if if malloc/calloc used (not mem_alloc_tiny) */
-		size_t salt_cmp_offset : (sizeof(size_t)*8-1);
+	struct { /* bit field stealing one bit of the size_t */
+		size_t salt_alloc_needs_free : 1; /* 1 if if malloc/calloc used */
+		size_t salt_cmp_offset : (sizeof(size_t) * 8 - 1);
 	};
 } dyna_salt;
 

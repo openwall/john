@@ -527,7 +527,7 @@ struct fmt_main fmt_ssh = {
 		{
 			fmt_default_binary_hash
 		},
-		fmt_default_salt_hash,
+		fmt_default_dyna_salt_hash,
 		NULL,
 		set_salt,
 		ssh_set_key,
