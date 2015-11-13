@@ -19,6 +19,7 @@
 #include "opencl_sha1.h"
 
 typedef struct {
+	dyna_salt dsalt;
 	int type;
 	uint salt[16/4];
 	uint verifier[16/4]; /* or encryptedVerifier */
@@ -242,17 +243,6 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 
 	for (i = 0; i < 4; i++)
 		salt[i] = cs->salt[i];
-
-#if __OS_X__ && gpu_intel(DEVICE_INFO)
-/*
- * Ridiculous workaround for Apple w/ Intel HD Graphics. Un-comment
- * the below, and kernel starts working for LWS=1 GWS=1. Still segfaults
- * with higher work sizes though. This is a driver bug.
- *
- * Yosemite, HD Graphics 4000, 1.2(Jul 29 2015 02:40:37)
- */
-	//dump_stuff_msg("\n", md5, 16);
-#endif
 
 	md5_init(key);
 	W[0] = md5[0];
