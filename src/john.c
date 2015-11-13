@@ -1385,6 +1385,7 @@ static void john_init(char *name, int argc, char **argv)
 	if (make_check)
 		argv[1] = "--test=0";
 
+	path_init(argv);
 	CPU_detect_or_fallback(argv, make_check);
 
 #if HAVE_MPI
@@ -1397,7 +1398,6 @@ static void john_init(char *name, int argc, char **argv)
 		error();
 	}
 #endif
-	path_init(argv);
 #ifdef _OPENMP
 	john_omp_init();
 #endif
