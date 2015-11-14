@@ -50,6 +50,7 @@ john_register_one(&FORMAT_STRUCT);
 static struct fmt_tests oo_tests[] = {
 	{"$oldoffice$1*de17a7f3c3ff03a39937ba9666d6e952*2374d5b6ce7449f57c9f252f9f9b53d2*e60e1185f7aecedba262f869c0236f81", "test"},
 	{"$oldoffice$0*e40b4fdade5be6be329c4238e2099b8a*259590322b55f7a3c38cb96b5864e72d*2e6516bfaf981770fe6819a34998295d", "123456789012345"},
+	{"$oldoffice$4*163ae8c43577b94902f58d0106b29205*87deff24175c2414cb1b2abdd30855a3*4182446a527fe4648dffa792d55ae7a15edfc4fb", "Google123"},
 	/* Meet-in-the-middle candidate produced with oclHashcat -m9710 */
 	/* Real pw is "hashcat", one collision is "zvDtu!" */
 	{"$oldoffice$1*d6aabb63363188b9b73a88efb9c9152e*afbbb9254764273f8f4fad9a5d82981f*6f09fd2eafc4ade522b5f2bee0eaf66d*f2ab1219ae", "zvDtu!"},
@@ -431,7 +432,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_sha1, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running sha1 kernel");
 	}
 
-	if (!cur_salt->has_mitm) {
+	if (cur_salt->has_mitm || cur_salt->type > 3 || bench_running) {
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, multi_profilingEvent[4]), "failed reading results back");
 
 		any_cracked = 0;
