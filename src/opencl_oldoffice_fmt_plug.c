@@ -29,6 +29,7 @@ john_register_one(&FORMAT_STRUCT);
 #include "params.h"
 #include "options.h"
 #include "unicode.h"
+#include "dyna_salt.h"
 
 #define FORMAT_LABEL		"oldoffice-opencl"
 #define FORMAT_NAME		"MS Office <= 2003"
@@ -38,8 +39,8 @@ john_register_one(&FORMAT_STRUCT);
 #define PLAINTEXT_LENGTH	19 //* 19 is leanest, 24, 28, 31, max. 51 */
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		MEM_ALIGN_NONE
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN		sizeof(int)
+#define SALT_SIZE		sizeof(dyna_salt*)
+#define SALT_ALIGN		MEM_ALIGN_WORD
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -74,21 +75,23 @@ static struct fmt_tests oo_tests[] = {
 
 extern volatile int bench_running;
 
-static struct custom_salt {
+typedef struct {
+	dyna_salt dsalt;
 	int type;
 	unsigned char salt[16];
 	unsigned char verifier[16]; /* or encryptedVerifier */
 	unsigned char verifierHash[20];  /* or encryptedVerifierHash */
 	unsigned int has_mitm;
 	unsigned char mitm[8]; /* Meet-in-the-middle hint, if we have one */
-} *cur_salt;
+} custom_salt;
+
+static custom_salt cs;
+static custom_salt *cur_salt = &cs;
 
 typedef struct {
 	uint len;
 	ushort password[PLAINTEXT_LENGTH + 1];
 } mid_t;
-
-static struct custom_salt cs;
 
 static char *saved_key;
 static int any_cracked;
@@ -342,10 +345,13 @@ static void *get_salt(char *ciphertext)
 		cs.has_mitm = 0;
 	MEM_FREE(keeptr);
 
-	return (void *)&cs;
+	cs.dsalt.salt_cmp_offset = SALT_CMP_OFF(custom_salt, type);
+	cs.dsalt.salt_cmp_size = SALT_CMP_SIZE(custom_salt, type, has_mitm, 0);
+	cs.dsalt.salt_alloc_needs_free = 0;
+
+	return mem_alloc_copy(&cs, sizeof(cs), MEM_ALIGN_WORD);
 }
 
-#if 0
 static char *source(char *source, void *binary)
 {
 	static char Buf[CIPHERTEXT_LENGTH];
@@ -391,11 +397,10 @@ static char *source(char *source, void *binary)
 	*cp = 0;
 	return Buf;
 }
-#endif
 
 static void set_salt(void *salt)
 {
-	cur_salt = (struct custom_salt *)salt;
+	cur_salt = (custom_salt *)salt;
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_benchmark, CL_FALSE, 0, sizeof(bench_running), (void*)&bench_running, 0, NULL, NULL), "Failed transferring salt");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, SALT_SIZE, cur_salt, 0, NULL, NULL), "Failed transferring salt");
 }
@@ -511,7 +516,7 @@ static char *get_key(int index)
 
 static unsigned int oo_hash_type(void *salt)
 {
-	struct custom_salt *my_salt;
+	custom_salt *my_salt;
 
 	my_salt = salt;
 	return (unsigned int) my_salt->type;
@@ -532,7 +537,7 @@ struct fmt_main FORMAT_STRUCT = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE | FMT_DYNA_SALT,
 		{
 			"hash type",
 		},
@@ -549,11 +554,11 @@ struct fmt_main FORMAT_STRUCT = {
 		{
 			oo_hash_type,
 		},
-		fmt_default_source,
+		source,
 		{
 			fmt_default_binary_hash
 		},
-		fmt_default_salt_hash,
+		fmt_default_dyna_salt_hash,
 		NULL,
 		set_salt,
 		set_key,
