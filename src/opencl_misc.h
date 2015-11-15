@@ -34,13 +34,13 @@ typedef uint64_t host_size_t;
 typedef uint32_t host_size_t;
 #endif
 
-/* Copy of the one in dyna_salt.h */
+/*
+ * "Copy" of the one in dyna_salt.h (we only need it to be right size,
+ * bitfields are not allowed in OpenCL)
+ */
 typedef struct dyna_salt_t {
 	host_size_t salt_cmp_size;
-	struct { /* bit field stealing one bit of the size_t */
-		host_size_t salt_alloc_needs_free : 1;
-		host_size_t salt_cmp_offset : sizeof(host_size_t) * 8 - 1;
-	};
+	host_size_t bitfield_and_offset;
 } dyna_salt;
 
 #ifndef MIN
