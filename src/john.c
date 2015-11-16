@@ -1349,6 +1349,8 @@ static void john_load(void)
 #if CPU_DETECT
 static void CPU_detect_or_fallback(char **argv, int make_check)
 {
+	if (cfg_get_bool("Options", "", "IgnoreCPUIDRuntimeChecks", 0))
+		return;
 	if (!CPU_detect()) {
 #if CPU_REQ
 #if CPU_FALLBACK
@@ -1389,7 +1391,6 @@ static void john_init(char *name, int argc, char **argv)
 		argv[1] = "--test=0";
 
 	path_init(argv);
-	CPU_detect_or_fallback(argv, make_check);
 
 #if HAVE_MPI
 	mpi_setup(argc, argv);
@@ -1456,6 +1457,7 @@ static void john_init(char *name, int argc, char **argv)
 			cfg_init(CFG_ALT_NAME, 0);
 		}
 	}
+	CPU_detect_or_fallback(argv, make_check);
 
 #if HAVE_OPENCL
 	gpu_id = -1;
