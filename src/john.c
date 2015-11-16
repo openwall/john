@@ -1349,11 +1349,6 @@ static void john_load(void)
 #if CPU_DETECT
 static void CPU_detect_or_fallback(char **argv, int make_check)
 {
-	// We may NOT be able to call any john.conf type functions this
-	// early in the startup cycle.  I am leaving the code for now,
-	// as a place holder. Another method may be needed at a later time.
-	//if (cfg_get_bool("Options", "", "IgnoreCPUIDRuntimeChecks", 0))
-	//	return;
 	if (!CPU_detect()) {
 #if CPU_REQ
 #if CPU_FALLBACK
