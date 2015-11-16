@@ -1352,6 +1352,9 @@ static void john_load(void)
 #if CPU_DETECT
 static void CPU_detect_or_fallback(char **argv, int make_check)
 {
+	if (getenv("CPUID_DISABLE"))
+		return;
+
 	if (!CPU_detect()) {
 #if CPU_REQ
 #if CPU_FALLBACK
