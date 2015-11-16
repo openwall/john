@@ -231,7 +231,8 @@ static void john_register_one(struct fmt_main *format)
 				if (strcasecmp(p, pos))
 					return;
 			}
-		} else if (strncasecmp(options.format, "dynamic=", 8) && (pos = strchr(options.format, '@'))) {
+		} else if (strncasecmp(options.format, "dynamic=", 8) &&
+		           (pos = strchr(options.format, '@'))) {
 			char *reject, *algo = strdup(++pos);
 
 			// Rejections
@@ -310,10 +311,12 @@ static void john_register_one(struct fmt_main *format)
 #endif
 		else if (strcasecmp(options.format, format->params.label)) {
 #ifndef DYNAMIC_DISABLED
-			if (!strncasecmp(options.format, "dynamic=", 8) && !strcasecmp(format->params.label, "dynamic=")) {
+			if (!strncasecmp(options.format, "dynamic=", 8) &&
+			    !strcasecmp(format->params.label, "dynamic=")) {
 				DC_HANDLE H;
 				if (!dynamic_compile(options.format, &H)) {
-					if (dynamic_assign_script_to_format(H, format))
+					if (dynamic_assign_script_to_format(
+						    H, format))
 						return;
 				} else
 					return;
@@ -355,7 +358,7 @@ static void john_register_all(void)
 #endif
 
 	if (options.format) {
-		// The case of the expression for this format is VERY important to keep
+/* The case of the expression for this format is VERY important to keep */
 		if (strncasecmp(options.format, "dynamic=", 8))
 			strlwr(options.format);
 	}
