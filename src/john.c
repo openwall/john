@@ -1391,6 +1391,7 @@ static void john_init(char *name, int argc, char **argv)
 		argv[1] = "--test=0";
 
 	path_init(argv);
+	CPU_detect_or_fallback(argv, make_check);
 
 #if HAVE_MPI
 	mpi_setup(argc, argv);
@@ -1457,7 +1458,6 @@ static void john_init(char *name, int argc, char **argv)
 			cfg_init(CFG_ALT_NAME, 0);
 		}
 	}
-	CPU_detect_or_fallback(argv, make_check);
 
 #if HAVE_OPENCL
 	gpu_id = -1;
