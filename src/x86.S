@@ -1296,8 +1296,11 @@ BF_body:
 #define EF_ID				$0x00200000
 #define CF_MMX				$0x00800000
 #define CF_SSE2				$0x04000000
+#define CF_SSSE3			$0x04000200 /* SSE2 + SSSE3 */
+#define CF_SSE4_1			$0x04080200 /* SSE2 + SSE4.1 + SSSE3 */
 #define CF_XSAVE_OSXSAVE_AVX		$0x1C000000
 #define CF_XOP				$0x00000800
+#define CF_AVX2				$0x1C401000 /* Quick and dirty */
 /* "GenuineIntel" */
 #define CV_INTEL			$0x6C65746E
 /* "AuthenticAMD" */
@@ -1334,6 +1337,25 @@ CPU_detect:
 	testl %eax,%eax
 	jz CPU_detect_ret		/* Newer 486s */
 	pushl %ecx
+#if CPU_REQ_AVX2
+	movl $1,%eax
+	cpuid
+	andl CF_AVX2,%ecx
+	cmpl CF_AVX2,%ecx
+	jne CPU_detect_pop_ecx_fail
+#elif CPU_REQ_SSE4_1
+	movl $1,%eax
+	cpuid
+	andl CF_SSE4_1,%ecx
+	cmpl CF_SSE4_1,%ecx
+	jne CPU_detect_pop_ecx_fail
+#elif CPU_REQ_SSSE3
+	movl $1,%eax
+	cpuid
+	andl CF_SSSE3,%ecx
+	cmpl CF_SSSE3,%ecx
+	jne CPU_detect_pop_ecx_fail
+#endif
 	movl $1,%eax
 	cpuid
 #if defined(CPU_REQ_AVX) || defined(CPU_REQ_XOP)

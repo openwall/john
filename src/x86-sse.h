@@ -44,12 +44,30 @@
 #define CPU_DETECT			1
 #define CPU_REQ				1
 #define CPU_NAME			"SSE2"
-#ifndef CPU_FALLBACK
-#define CPU_FALLBACK			0
-#endif
+
 #if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
 #define CPU_FALLBACK_BINARY		"john-non-sse"
 #define CPU_FALLBACK_BINARY_DEFAULT
+#endif
+
+#if __SSSE3__ || JOHN_SSSE3
+#define CPU_REQ_SSSE3			1
+#undef CPU_NAME
+#define CPU_NAME			"SSSE3"
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
+#define CPU_FALLBACK_BINARY		"john-non-ssse3"
+#define CPU_FALLBACK_BINARY_DEFAULT
+#endif
+#endif
+
+#if __SSE4_1__ || JOHN_SSE4_1
+#define CPU_REQ_SSE4_1			1
+#undef CPU_NAME
+#define CPU_NAME			"SSE4.1"
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
+#define CPU_FALLBACK_BINARY		"john-non-sse4.1"
+#define CPU_FALLBACK_BINARY_DEFAULT
+#endif
 #endif
 
 #ifdef __XOP__
@@ -90,7 +108,14 @@
 #define CPU_FALLBACK_BINARY		"john-non-avx"
 #endif
 #define DES_BS_ASM			0
-#if __AVX2__
+#if __AVX2__ || JOHN_AVX2
+#undef CPU_NAME
+#define CPU_NAME			"AVX2"
+#define CPU_REQ_AVX2			1
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
+#define CPU_FALLBACK_BINARY		"john-non-avx2"
+#define CPU_FALLBACK_BINARY_DEFAULT
+#endif
 #define DES_BS_VECTOR			8
 #if defined(JOHN_XOP) && defined(__GNUC__)
 /* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */

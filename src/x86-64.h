@@ -177,6 +177,10 @@
 #define CPU_DETECT			1
 #define CPU_REQ				1
 #define CPU_REQ_AVX2			1
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
+#define CPU_FALLBACK_BINARY		"john-non-avx2"
+#define CPU_FALLBACK_BINARY_DEFAULT
+#endif
 #define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX2-16"
 #elif 0
 /* 256-bit as 2x128 */
