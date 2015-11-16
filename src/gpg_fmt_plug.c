@@ -165,6 +165,7 @@ static struct custom_salt {
 	int xl;
 	int nl;
 	int dl;
+	int symmetric_mode;
 } *cur_salt;
 
 static struct fmt_tests gpg_tests[] = {
@@ -196,6 +197,10 @@ static struct fmt_tests gpg_tests[] = {
 	{"$gpg$*1*650*2048*13f86b7b625701ea33f1d9e3bfc64d70f696a8ae42fb40ba128ae248aabea98e5d1f1a2ffa10e7ead6fde1d0d652de653965098f770a20abe95fe253428dd39856b8ce84c28699164766c864b7ca61723f6f49be4d8304814a522dd7f2798580dead66a55da5203ead2e4499ec8ca6c08e13e7c6b117cfd9381fb32bdeb5d022bc21197f0c095a8e2153809f295194f5f07f55f3c547af1094cc077a1aace9005c7b57558ec4042a1f312b512861a7038d10377df6a98e03239568f556e1e3e2cd1578c621268c3f95b1a4c6ba54dc484fd9b31d561438c68c740f71d8f2ff30ca9747ea350d70a6d1cc6cbaf4f13ecbc366df574ea313859c687ef7c5dc132250aac0982462f7327d3b384c14bd02eec7c460088d3f4439ef8696dcc60f86479a4593259cb300c466f153bc59cea6a2604da1d55e0b02dd673f7b52005349a5356373f49640f26e77af2b94ff2705c7b476993e3ac0845d2c582b769a3e06e9024e518fbf6c459ee9b158f94a12ac65cd720113f88f7dd2af26466d271e67c1a79707e33d6d72189d6b566019720889706c23f66217d20bba7d7174c048e333322fa3fc8a56a176fb2fb14e4f2660dd657c98b91dc80885b26ad7ea30d8ed0e0a88f2467f266d4b0087039a7a502d7db91d2a1286173fbaa0b6781bfe4f4b12ebd28be9b11e26214a83aebbe6cb7bc95a27ebef8c6c20c62cf709d89feb389a577d6c9be9bf1bd4034309ceebbbc0f307ca378051a1e283afdb0dd8a6ad72d2bede3d0f96c30c49b5e0a8bce3e009c4f786258d3d4fa8e0ec35c9bbff056d3648f8d8a03c20edf79757cfb26b6f3682661492052118eb33a92d407c5d4aed72635dededbbf5b46894e9e045416fbab0d5d6f680dea8fa6df38e9dbe4587ab5e5ca77e85b969295fd30a*3*255*2*2*8*7ecb79e68cd01a71*65536*2355a3ead8a0a3c5*256*d7d5db86ab15ca6d9b9138e90d60b9d4697d9535f6f990a930a5cb250a6c367e90e24cd60b3165dd654786c7e94b18fe48760b7cd123e4fefc8a0ffa18ab9e81c9e0b63f7e925483b29c3e639ed02f195cfb5f24b89e5cd802f08f81b63b6602827a95bdbf720c4fe043affb195fb66e1bce7bad691317451038fd9dade9e3a6e0ce2eb9293258434a02cb9134789bed94dd71df0d82192e12c50c60d52005eb85ced465b8992dc1de0899442f7cf26ea676e9db9fa3e28ba98f498d7c63de69394030726e1b1651928f17fc7464a58a3a2c1a683737962282d90bcd781fdab03a85b0b4114c5fcb83777d5ded28bf895b65a322adf7b9a8007e4315f48e9131", "openwall"},
 	/* gpg --homedir . --s2k-cipher-algo 3des --simple-sk-checksum --gen-key */
 	{"$gpg$*1*650*2048*72624bb7243579c0c77cf1e64565251e0ac9d0dcb2f4b98fa54e1678ee4234409efe464a117b21aff978907cfbf19eb2547d44e3a2e6f7db5bfceb4af2391992f30ff55a292d0c011f05c3ab27a1a3fde1a9fd1fbf05c7e5d200f4b7941efe42b4c5dd8abee6ee3d57c4899e023399c8cfd8d9735e095857b71723ded660d9bd705dba9eb373fab976cd73569934d7dec08f9f0b8451ca15d21549dd4d09b3e7cf832645cdbcb4bac84a963c8d7bfde301fcba31d3e935bbb8a0db483583c8077ea16cfda128e1eef42588082c0038cd9f35bb77f82d138f75ba7640250c4dc49ab60f0ce138999ea6c267a256b3e5d0e0ef30fef9c943462fcb3f0df38f069a3b027e15f36bf353ca4c0340ea9e8963d49136fa47872e0fa62c75345d40b7fe794b676c5e5d9bf50f90f4465b68630fbf72e5c46721b4877c30f004cfc2cfd78903dcfa5893ce9bea86d4be7e933a2d41e55024fb6529a7197da2f4dff4ac7689666b27cad49d640d1fdde37801cf8285818884c41465afb450d6c4cb0de21211a7cafd86399398cc18492cf4b3810bbfe1c08f8b293d1c78ed3a4cfacf92d9633e86fc5591a94d514d7b45af4729c801d405645699201c4a8dea32a9098a86f5a3a7526b42676aa1179b47f070390b9c84b17fafc4a2607d3247b34fafae369f31a63e85a8179db35c9038b616fcaad621cd91bcbbe3e96b2fe09e18d0da0492b66dd9d106eb4617975dea8e9b00b9bdea1b0d9c0737dc168d83be812c91076a3c4430bdd289bec60e1b0c8b314a7886256d95ae01cb4246cae94daaa50ef2b7ed498089872e1296dd5679ea0bbfd6e4ff704124dabbddb572e38fa83fff143bf2946d3e563d7de8cc62e1d51900d3db28c9e80dc5b4b8662268d62141106c111597f38131830ecbea*3*255*2*2*8*b58b33e5bcc1d3cd*65536*2355a3ead8a0a3c5*256*bd18b0eeba7c8dd316d1a60f0828ed50aea29afa2eee307cdbbc5df3e641167136d9d659d67a412215fe577d999c4672ca4e6e0af006469b828868e334062d4b442785c616081ad9c758278564174e74d9a9bf17553b065717053d534cbc4eeb32b0f64a6b110b5f434878b6a05730ea6e5f317c84a41a3ddbe2d9ef9693c34b5e87515056395444198fba8e9542adf9276cb9147447d79f774b94a40f6ea32377f1da1ea9f40e08a9b678737fab7ee77b764a9ed7b36848ac77d5b60c0f5075fa5f130e215dab20401e944078a6d905fa54cb094bf967f1620105aaeba95d1db2925ea045e83808713f71c60ca5dfe9c20e895eb637e53dfa54629d71670971", "openwall"},
+	/* GPG symmetric encryption, "gpg -c", https://id0-rsa.pub/problem/1/ */
+	{"$gpg$*0*63*1c890c019b24ce46afd906500094ad1afde4d56b9666dee9568cf2d47315b36e501b340813a62b8b82b72492b00a4595941ebd96de8eab636a00210bc57a13*3*18*2*9*65536*20538c8d69964d96", "password"},
+	/* Challenge6_pro_Company2_hard.pgp (without MDC) */
+	{"$gpg$*0*100*2cc874cb99956585bdf31bc7122540e21043c42e5be9cdeca20daf0dea294bcd15163d4dddc8ecc62b7eaadff213185601ed7431c92c83c4510c19c906f40f8eb865c33cb4be87a63dad7ed882387781d866bbc2c98604c6ee9411a1f0bc5306301913e4*3*9*2*3*5242880*d80b2eb1fddeeda8", "3Pseuderanthemum"},
 	{NULL}
 };
 
@@ -307,6 +312,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 	int res,j,spec,usage,algorithm,ex_flds=0;
+	int symmetric_mode = 0;
 
 	if (strncmp(ciphertext, "$gpg$*", 6) != 0)
 		return 0;
@@ -318,6 +324,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	algorithm = atoi(p); // FIXME: which values are valid?
+	if (algorithm == 0) { // files using GPG symmetric encryption?
+		symmetric_mode = 1;
+	}
 	if ((p = strtokm(NULL, "*")) == NULL)	/* datalen */
 		goto err;
 	if (!isdec(p))
@@ -325,10 +334,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	res = atoi(p);
 	if (res > BIG_ENOUGH * 2)
 		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* bits */
-		goto err;
-	if (!isdec(p)) // FIXME: bits == 0 allowed?
-		goto err;
+	if (!symmetric_mode) {
+		if ((p = strtokm(NULL, "*")) == NULL)	/* bits */
+			goto err;
+		if (!isdec(p)) // FIXME: bits == 0 allowed?
+			goto err;
+	}
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data */
 		goto err;
 	if (hexlenl(p) != res*2)
@@ -343,8 +354,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	usage = atoi(p);
-	if(usage != 0 && usage != 254 && usage != 255 && usage != 1)
-		goto err;
+	if (!symmetric_mode) {
+		if(usage != 0 && usage != 254 && usage != 255 && usage != 1)
+			goto err;
+	} else {
+		if(usage != 9 && usage != 18) // https://tools.ietf.org/html/rfc4880
+			goto err;
+	}
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash_algorithm */
 		goto err;
 	if (!isdec(p))
@@ -359,17 +375,19 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	res = atoi(p);
 	if(!valid_cipher_algorithm(res))
 		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* ivlen */
-		goto err;
-	if (!isdec(p))
-		goto err;
-	res = atoi(p);
-	if (res != 8 && res != 16)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
-		goto err;
-	if (hexlenl(p) != res*2)
-		goto err;
+	if (!symmetric_mode) {
+		if ((p = strtokm(NULL, "*")) == NULL)	/* ivlen */
+			goto err;
+		if (!isdec(p))
+			goto err;
+		res = atoi(p);
+		if (res != 8 && res != 16)
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
+			goto err;
+		if (hexlenl(p) != res*2)
+			goto err;
+	}
 	/* handle "SPEC_SIMPLE" correctly */
 	if ((spec != 0 || usage == 255))
 		;
@@ -408,6 +426,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	p = strtokm(NULL, "*"); /* NOTE, do not goto err if null, we WANT p nul if there are no fields */
 
+	if (symmetric_mode) {
+		goto good;
+	}
+
 	for (j = 0; j < ex_flds; ++j) {  /* handle extra p, q, g, y fields */
 		if (!p) /* check for null p */
 			goto err;
@@ -426,6 +448,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (p)	/* at this point, there should be NO trailing stuff left from the hash. */
 		goto err;
 
+good:
 	MEM_FREE(keeptr);
 	return 1;
 
@@ -735,10 +758,15 @@ static void *get_salt(char *ciphertext)
 	ctcopy += 6;	/* skip over "$gpg$" marker and first '*' */
 	p = strtokm(ctcopy, "*");
 	cs.pk_algorithm = atoi(p);
+	if (cs.pk_algorithm == 0) {
+		cs.symmetric_mode = 1;
+	}
 	p = strtokm(NULL, "*");
 	cs.datalen = atoi(p);
-	p = strtokm(NULL, "*");
-	cs.bits = atoi(p);
+	if (!cs.symmetric_mode) {
+		p = strtokm(NULL, "*");
+		cs.bits = atoi(p);
+	}
 	p = strtokm(NULL, "*");
 	for (i = 0; i < cs.datalen; i++)
 		cs.data[i] =
@@ -752,13 +780,16 @@ static void *get_salt(char *ciphertext)
 	cs.hash_algorithm = atoi(p);
 	p = strtokm(NULL, "*");
 	cs.cipher_algorithm = atoi(p);
-	p = strtokm(NULL, "*");
-	cs.ivlen = atoi(p);
-	p = strtokm(NULL, "*");
-	for (i = 0; i < cs.ivlen; i++)
-		cs.iv[i] =
-		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
-		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	if (!cs.symmetric_mode) {
+		p = strtokm(NULL, "*");
+		cs.ivlen = atoi(p);
+		p = strtokm(NULL, "*");
+		for (i = 0; i < cs.ivlen; i++)
+			cs.iv[i] =
+				atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+				atoi16[ARCH_INDEX(p[i * 2 + 1])];
+
+	}
 	p = strtokm(NULL, "*");
 	/* handle "SPEC_SIMPLE" correctly */
 	if (cs.spec != 0 || cs.usage == 255) {
@@ -1051,12 +1082,18 @@ static int check(unsigned char *keydata, int ks)
 	unsigned char ivec[32];
 	unsigned char out[BIG_ENOUGH * 2] = { 0 };
 	int tmp = 0;
-	uint32_t num_bits;
+	uint32_t num_bits = 0;
 	int checksumOk;
 	int i;
+	uint8_t checksum[SHA_DIGEST_LENGTH];
+	SHA_CTX ctx;
 
 	// Quick Hack
-	memcpy(ivec, cur_salt->iv, blockSize(cur_salt->cipher_algorithm));
+	if (!cur_salt->symmetric_mode)
+		memcpy(ivec, cur_salt->iv, blockSize(cur_salt->cipher_algorithm));
+	else
+		memset(ivec, 0, blockSize(cur_salt->cipher_algorithm));
+
 	switch (cur_salt->cipher_algorithm) {
 		case CIPHER_IDEA: {
 					   IDEA_KEY_SCHEDULE iks;
@@ -1104,12 +1141,18 @@ static int check(unsigned char *keydata, int ks)
 				    printf("(check) Unknown Cipher Algorithm %d ;(\n", cur_salt->cipher_algorithm);
 				    break;
 	}
-	num_bits = ((out[0] << 8) | out[1]);
-	if (num_bits < MIN_BN_BITS || num_bits > cur_salt->bits) {
-		return 0;
+
+	if (!cur_salt->symmetric_mode) {
+		num_bits = ((out[0] << 8) | out[1]);
+		if (num_bits < MIN_BN_BITS || num_bits > cur_salt->bits) {
+			return 0;
+		}
 	}
 	// Decrypt all data
-	memcpy(ivec, cur_salt->iv, blockSize(cur_salt->cipher_algorithm));
+	if (!cur_salt->symmetric_mode)
+		memcpy(ivec, cur_salt->iv, blockSize(cur_salt->cipher_algorithm));
+	else
+		memset(ivec, 0, blockSize(cur_salt->cipher_algorithm));
 	tmp = 0;
 	switch (cur_salt->cipher_algorithm) {
 		case CIPHER_IDEA: {
@@ -1156,12 +1199,27 @@ static int check(unsigned char *keydata, int ks)
 		default:
 				    break;
 	}
+
+	if (cur_salt->symmetric_mode && cur_salt->usage == 18) { // uses zero IV (see g10/encrypt.c)!
+		SHA1_Init(&ctx);
+		SHA1_Update(&ctx, out, cur_salt->datalen - SHA_DIGEST_LENGTH);
+		SHA1_Final(checksum, &ctx);
+		if (memcmp(checksum, out + cur_salt->datalen - SHA_DIGEST_LENGTH, SHA_DIGEST_LENGTH) == 0)
+			return 1;  /* we have a 20 byte verifier ;) */
+		else
+			return 0;
+	} else if (cur_salt->symmetric_mode && cur_salt->usage == 9) {
+		// https://www.ietf.org/rfc/rfc2440.txt
+		if ((out[9] == out[7]) && (out[8] == out[6])) // XXX is this verifier good enough against false positives?
+			return 1;
+		else
+			return 0;
+	}
+
 	// Verify
 	checksumOk = 0;
 	switch (cur_salt->usage) {
 		case 254: {
-				  uint8_t checksum[SHA_DIGEST_LENGTH];
-				  SHA_CTX ctx;
 				  SHA1_Init(&ctx);
 				  SHA1_Update(&ctx, out, cur_salt->datalen - SHA_DIGEST_LENGTH);
 				  SHA1_Final(checksum, &ctx);
