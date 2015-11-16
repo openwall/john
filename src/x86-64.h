@@ -42,20 +42,59 @@
 #ifdef __SSE2__
 #define CPU_NAME			"SSE2"
 #endif
-#ifdef __SSSE3__
+
+#if __SSSE3__ || JOHN_SSSE3
+#undef CPU_DETECT
+#define CPU_DETECT			1
+#define CPU_REQ				1
+#define CPU_REQ_SSSE3			1
 #undef CPU_NAME
 #define CPU_NAME			"SSSE3"
-#define JOHN_SSSE3			1
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
+#define CPU_FALLBACK_BINARY		"john-non-ssse3"
+#define CPU_FALLBACK_BINARY_DEFAULT
 #endif
-#ifdef __SSE4_1__
-#undef CPU_NAME
-#define CPU_NAME			"SSE4.1"
-#define JOHN_SSE4_1			1
 #endif
 
-#ifdef __AVX2__
-#define JOHN_AVX2 			1
+#if __SSE4_1__ || JOHN_SSE4_1
+#undef CPU_DETECT
+#define CPU_DETECT			1
+#define CPU_REQ				1
+#define CPU_REQ_SSE4_1			1
+#undef CPU_NAME
+#define CPU_NAME			"SSE4.1"
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
+#define CPU_FALLBACK_BINARY		"john-non-sse4.1"
+#define CPU_FALLBACK_BINARY_DEFAULT
 #endif
+#endif
+
+#if __AVX512F__ || JOHN_AVX512F
+#undef CPU_DETECT
+#define CPU_DETECT			1
+#define CPU_REQ				1
+#define CPU_REQ_AVX512F			1
+#undef CPU_NAME
+#define CPU_NAME			"AVX512F"
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
+#define CPU_FALLBACK_BINARY		"john-non-avx512f"
+#define CPU_FALLBACK_BINARY_DEFAULT
+#endif
+#endif
+
+#if __AVX512BW__ || JOHN_AVX512BW
+#undef CPU_DETECT
+#define CPU_DETECT			1
+#define CPU_REQ				1
+#define CPU_REQ_AVX512BW			1
+#undef CPU_NAME
+#define CPU_NAME			"AVX512BW"
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
+#define CPU_FALLBACK_BINARY		"john-non-avx512bw"
+#define CPU_FALLBACK_BINARY_DEFAULT
+#endif
+#endif
+
 #ifdef __XOP__
 #define JOHN_XOP			1
 #endif
@@ -85,9 +124,6 @@
 #define CPU_REQ_AVX			1
 #undef CPU_NAME
 #define CPU_NAME			"AVX"
-#ifndef CPU_FALLBACK
-#define CPU_FALLBACK			0
-#endif
 #if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
 #define CPU_FALLBACK_BINARY		"john-non-avx"
 #define CPU_FALLBACK_BINARY_DEFAULT
@@ -133,7 +169,7 @@
 #define DES_BS_VECTOR_SIZE		8
 #define DES_BS_VECTOR			5
 #define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX-16 + 64/64"
-#elif defined(JOHN_AVX2)
+#elif __AVX2__ || JOHN_AVX2
 /* 256-bit as 1x256 */
 #define DES_BS_VECTOR			4
 #undef CPU_NAME
@@ -227,30 +263,6 @@
 #elif __MMX__
 #define SIMD_COEF_32 2
 #define SIMD_COEF_64 1
-#endif
-
-#ifndef CPU_REQ
-#if JOHN_AVX512BW
-#undef CPU_DETECT
-#define CPU_DETECT			1
-#define CPU_REQ				1
-#define CPU_REQ_AVX512BW		1
-#elif JOHN_AVX512F
-#undef CPU_DETECT
-#define CPU_DETECT			1
-#define CPU_REQ				1
-#define CPU_REQ_AVX512F			1
-#elif JOHN_SSE4_1
-#undef CPU_DETECT
-#define CPU_DETECT			1
-#define CPU_REQ				1
-#define CPU_REQ_SSE4_1			1
-#elif JOHN_SSSE3
-#undef CPU_DETECT
-#define CPU_DETECT			1
-#define CPU_REQ				1
-#define CPU_REQ_SSSE3			1
-#endif
 #endif
 
 #ifndef SIMD_PARA_MD4

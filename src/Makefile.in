@@ -566,6 +566,14 @@ wordlist.o:	wordlist.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h stdint.h w
 
 wpapcap2john.o:	wpapcap2john.c wpapcap2john.h arch.h johnswap.h common.h memory.h jumbo.h stdint.h memdbg.h os.h os-autoconf.h autoconfig.h
 
+x86-64.o:	x86-64.S arch.h
+
+x86-mmx.o:	x86-mmx.S arch.h
+
+x86-sse.o:	x86-sse.S arch.h
+
+x86.o:	x86.S arch.h
+
 zip2john.o:	zip2john.c arch.h common.h memory.h jumbo.h stdint.h formats.h params.h misc.h autoconfig.h pkzip.h dyna_salt.h crc32.h missing_getopt.h memdbg.h os.h os-autoconf.h
 
 

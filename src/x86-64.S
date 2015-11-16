@@ -1641,14 +1641,14 @@ DES_bs_crypt_plain_loop:
  * CPU detection.
  */
 
-#define C7_AVX512BW			$0x40010128
-#define C7_AVX512F			$0x00010128
-#define C7_AVX2				$0x00000128
-#define CX_AVX2				$0x00000020
-#define CX_XOP				$0x00000800
-#define CF_XSAVE_OSXSAVE_AVX		$0x1C000000
-#define CF_SSSE3			$0x00000200
-#define CF_SSE4_1			$0x00080200
+#define C7_AVX512BW             $0x40010128
+#define C7_AVX512F              $0x00010128
+#define C7_AVX2                 $0x00000128
+#define CX_ABM                  $0x00000020 /* LZCNT */
+#define CX_XOP                  $0x00000800
+#define CF_XSAVE_OSXSAVE_AVX    $0x1C000000
+#define CF_SSSE3                $0x00000200
+#define CF_SSE4_1               $0x00080200 /* SSE4.1 + SSSE3 */
 
 .text
 
@@ -1709,7 +1709,7 @@ CPU_detect:
 	xchgl %edx,%eax
 	cpuid
 #if CPU_REQ_AVX2
-	testl CX_AVX2,%ecx
+	testl CX_ABM,%ecx
 #elif CPU_REQ_XOP
 	testl CX_XOP,%ecx
 #endif
