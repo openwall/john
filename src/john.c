@@ -1620,10 +1620,12 @@ static void john_run(void)
 		tty_init(options.flags & FLG_STDIN_CHK);
 
 		if (john_main_process &&
-		    database.format->params.flags & FMT_NOT_EXACT)
-			fprintf(stderr, "Note: This format may emit false "
-			        "positives, so it will keep trying even "
-			        "after\nfinding a possible candidate.\n");
+		    database.format->params.flags & FMT_NOT_EXACT) {
+			if (options.flags & FLG_KEEP_GUESSING)
+				fprintf(stderr, "Note: Will keep guessing even after finding a possible candidate.\n");
+			else
+				fprintf(stderr, "Note: This format may emit false positives, so it will keep trying even after\nfinding a possible candidate.\n");
+		}
 
 		/* Some formats truncate at (our) max. length */
 		if (!(database.format->params.flags & FMT_TRUNC) &&
