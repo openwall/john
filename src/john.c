@@ -202,6 +202,9 @@ static void john_register_one(struct fmt_main *format)
 	if (options.format) {
 		char *pos = strchr(options.format, '*');
 
+		if (!strncasecmp(options.format, "dynamic=", 8))
+			pos = NULL;
+		else
 		if (pos != strrchr(options.format, '*')) {
 			if (john_main_process)
 			fprintf(stderr, "Only one wildcard allowed in format "
