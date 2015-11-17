@@ -277,27 +277,6 @@ void get_markov_options(struct db_main *db,
 	minlen = -1;
 	maxlen = -1;
 
-	/*
-	 * FIXME: strsep() is not portable enough!
-	 *        I would prefer it over strtok(), to allow something like
-	 *        --markov=mode:0:0:0:10-15
-	 *        or
-	 *        --markov=mode::0:10000000
-	 *        --markov=mode::10000000:20000000
-	 *        --markov=mode::20000000:30000000
-	 *        instead of
-	 *        --markov=mode:0:0:10000000
-	 *        --markov=mode:0:10000000:20000000
-	 *        --markov=mode:0:20000000:30000000
-	 *
-	 *        For now, live with strtok(), may be later I need a replacement
-	 *        for strsep().
-	 *
-	 *  FIXED:  We now use strtokm which allows --markov=mode::0:10000000
-	 *          Can also do --markov::::9-12  (default markov but only 9-12 length)
-	 *          level, start and stop are all 'optional' and handled properly
-	 *          with the strtokm() function.
-	 */
 	if (mkv_param) {
 		int i;
 
