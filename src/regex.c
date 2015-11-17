@@ -265,6 +265,9 @@ char *prepare_regex(char *regex, int *bCase, char **regex_alpha)
 {
 	char *cp, *cp2;
 
+	if (!(options.flags & FLG_REGEX_STACKED))
+		return NULL;
+
 	if (!regex || !bCase || !regex_alpha) {
 		if (options.verbosity >= 4)
 			log_event("- No Rexgen used");
@@ -310,8 +313,7 @@ char *prepare_regex(char *regex, int *bCase, char **regex_alpha)
 		++regex;
 	if (!strstr(regex, "\\0") && !(*regex_alpha)) {
 		fprintf(stderr,
-		        "--regex need to contain \"\\0\" in combination"
-		        " with wordist, or an alpha option\n");
+		        "--regex need to contain \"\\0\" in hybrid mode (or an alpha option)\n");
 		error();
 	} else {
 		log_event("- Rexgen (after rules): %s", regex);

@@ -38,6 +38,7 @@ extern void wordlist_hybrid_fix_state(void);
 extern void mkv_hybrid_fix_state(void);
 extern void inc_hybrid_fix_state(void);
 extern void pp_hybrid_fix_state(void);
+extern void ext_hybrid_fix_state(void);
 
 static mask_parsed_ctx parsed_mask;
 static mask_cpu_context cpu_mask_ctx, rec_ctx;
@@ -2185,6 +2186,8 @@ int do_mask_crack(const char *extern_key)
 			inc_hybrid_fix_state();
 		else if (options.flags & FLG_PRINCE_CHK)
 			pp_hybrid_fix_state();
+		else if (options.flags & FLG_EXTERNAL_CHK)
+			ext_hybrid_fix_state();
 		parent_fix_state_pending = 1;
 	}
 

@@ -482,8 +482,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			options.flags &= ~FLG_PWD_SUP;
 			options.flags |= FLG_NOTESTS;
 
-			if (options.mask && (strstr(options.mask, "?w") ||
-			                     strstr(options.mask, "?W")))
+			if (options.mask && strcasestr(options.mask, "?w"))
 				options.flags |= FLG_MASK_STACKED;
 
 			if (!benchmark_time) {
@@ -494,21 +493,31 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			if (benchmark_time == 1)
 				benchmark_time = 2;
 		} else
+		if (options.mask && strcasestr(options.mask, "?w")) {
+			if (options.flags & FLG_EXTERNAL_CHK)
+				options.flags |= FLG_MASK_STACKED;
+			else if (!(options.flags & FLG_CRACKING_CHK)) {
+				fprintf(stderr, "?w is only used with hybrid mask\n");
+				error();
+			}
+		}
 		if (options.flags & FLG_CRACKING_CHK)
 			options.flags |= FLG_MASK_STACKED;
-		else if (options.mask && strcasestr(options.mask, "?w")) {
-			fprintf(stderr, "?w is only used with hybrid mask\n");
-			error();
-		} else
+		else
 			options.flags |= FLG_CRACKING_SET;
 	}
 	if (options.flags & FLG_REGEX_CHK) {
+		if (options.regex && strstr(options.regex, "\\0")) {
+			if (options.flags & FLG_EXTERNAL_CHK)
+				options.flags |= FLG_REGEX_STACKED;
+			else if (!(options.flags & FLG_CRACKING_CHK)) {
+				fprintf(stderr, "\\0 is only used with hybrid regex\n");
+				error();
+			}
+		}
 		if (options.flags & FLG_CRACKING_CHK)
 			options.flags |= FLG_REGEX_STACKED;
-		else if (strstr(options.regex, "\\0")) {
-			fprintf(stderr, "\\0 is only used with hybrid regex\n");
-			error();
-		} else
+		else
 			options.flags |= FLG_CRACKING_SET;
 	}
 

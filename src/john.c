@@ -1691,12 +1691,6 @@ static void john_run(void)
 			do_prince_crack(&database, options.wordlist,
 			                (options.flags & FLG_RULES) != 0);
 #endif
-#if HAVE_REXGEN
-		else
-		if ((options.flags & FLG_REGEX_CHK) &&
-		    !(options.flags & FLG_REGEX_STACKED))
-			do_regex_crack(&database, options.regex);
-#endif
 		else
 		if (options.flags & FLG_INC_CHK)
 			do_incremental_crack(&database, options.charset);
@@ -1704,6 +1698,12 @@ static void john_run(void)
 		if (options.flags & FLG_MKV_CHK)
 			do_markov_crack(&database, options.mkv_param);
 		else
+#if HAVE_REXGEN
+		if ((options.flags & FLG_REGEX_CHK) &&
+		    !(options.flags & FLG_REGEX_STACKED))
+			do_regex_crack(&database, options.regex);
+		else
+#endif
 		if ((options.flags & FLG_MASK_CHK) &&
 		    !(options.flags & FLG_MASK_STACKED))
 			do_mask_crack(NULL);
