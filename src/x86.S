@@ -1370,8 +1370,8 @@ CPU_detect:
 	cmpb $0x6,%al
 	popl %edx
 	popl %eax
-	je CPU_detect_AVX
 #endif
+	je CPU_detect_AVX
 CPU_detect_pop_ecx_fail:
 	popl %ecx
 	xorl %eax,%eax
