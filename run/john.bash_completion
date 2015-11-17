@@ -545,7 +545,6 @@ _john()
 		--markov)
 			# completion if __john_completion != 2
 			#
-			# Should I mention [MIN_LEVEL-] and [MIN_LENGTH-]?
 			# I think not all jumbo versions support these.
 			# How to find out whether --markov=MODE is supported?
 			# Assume it is supported if at least one section
@@ -554,11 +553,11 @@ _john()
 			# OTOH, here the bash completion logic is used just
 			# as a reminder for the --markov syntax, not for
 			# actual completion.
-			COMPREPLY=( $(compgen -W "--markov --markov=LEVEL[:START[:END[:LENGTH]]] --markov=MODE --markov=MODE:LEVEL[:START[:END[:LENGTH]]]" -- ${cur}) )
+			COMPREPLY=( $(compgen -W "--markov --markov=[MINLEVEL-]LEVEL[:START[:END]] --markov=MODE --markov=MODE:[MINLEVEL-]LEVEL[:START[:END]]" -- ${cur}) )
 			return 0
 			;;
 		--markov=*)
-			# Ignore the --markov=[MINLVL-]LEVEL...?
+			# Ignore the --markov=LEVEL...?
 			# Just try completion for --markov=MODE
 			# for all [Markov:...] sections?
 			if [[ "${valopts}" == *--list=* ]] ; then
@@ -568,7 +567,7 @@ _john()
 				# just '-' and digits
 				list=`${cmd} 2>/dev/null | sed 's#^.*:.*$##' | sed 's#^[-0-9]*$##'`
 				cur=`echo ${cur#*[=:]} | tr A-Z a-z`
-				COMPREPLY=( $(compgen -W "${list} LEVEL[:START[:END[:LENGTH]]] MODE MODE:LEVEL[:START[:END[:LENGTH]]]" -- ${cur}) )
+				COMPREPLY=( $(compgen -W "${list} [MINLEVEL-]LEVEL[:START[:END]] MODE MODE:[MINLEVEL-]LEVEL[:START[:END]]" -- ${cur}) )
 				# no trailing space, just in case
 				# the user wants to add :LEVEL...
 				compopt -o nospace
