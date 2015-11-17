@@ -1,0 +1,45 @@
+The --prince mode in JtR is based on Atom's "princeprocessor" (a.k.a "pp")
+which was thankfully open-sourced (which we payed back by enhancing it and
+submitting upstream). Scoobz also contributed major enhancements, mainly
+significant speed optimizations.
+
+Original documentation:
+https://hashcat.net/events/p14-trondheim/prince-attack.pdf
+
+The basic idea is to work a bit like wordlist mode, except we also combine all
+the words to longer and longer candidates, in a clever order. A fairly small
+wordlist can result in a vast amount of candidates. You actually don't need to
+know a lot of the gory details, just try it instead of wordlist mode!
+
+JtR prince-mode crash-cource:
+
+Usage: ./john -prince[=<wordlist file>] hashfile (...)
+
+• The default wordlist file is the same as for wordlist mode.
+
+• Differences from the original princeprocessor:
+  - You can use Jumbo's universal -stdout option for output to stdout (or pipe).
+    But normally you would run it as a normal JtR mode instead.
+  - You use Jumbo's universal -min-len and -max-len options for limiting
+    password lengths (pp's original options --pw-min and --pw-max). Also,
+    the defaults are automatically determined by the format as usual.
+  - You can use Jumbo's normal -dupe option for suppressing dupes from input.
+  - You use Jumbo's universal session/resume capabilities.
+  - You use Jumbo's universal -node, -fork or MPI options for distribution.
+  - You can use JtR rules and/or external filter together with -prince.
+  - You can use JtR hybrid mask mode together with -prince. This will also
+    accelerate use on GPU with fast formats. You can even use this with rules
+    and/or external filter at the same time.
+  - Use mmap for loading: -prince-mmap. This is intended for when running many
+    processes on one same machine.
+  - You can use your .pot file as a wordlist: -prince-loopback.
+
+• Other optional parameters in JtR:
+  – Limit element length: -prince-wl-max=N.
+  - Limit element counts: -prince-elem-cnt-min and/or -prince-elem-cnt-max.
+  - Permute case: -prince-case-permute.
+  - Calculate output length distribution from wordlist: -prince-wl-dist-len
+    (the default is to use a distribution derived from "Rockyou" dataset).
+  - Just print keyspace size: -prince-keyspace.
+  - pp's "limit" and "skip" options are supported as -prince-limit and
+    -prince-skip but you normally don't need them (eg. use -node or -fork).

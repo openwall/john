@@ -90,7 +90,7 @@ static struct opt_entry opt_list[] = {
 	{"prince-case-permute", FLG_PRINCE_CASE_PERMUTE, 0,
 		FLG_PRINCE_CHK, FLG_PRINCE_MMAP},
 	{"prince-keyspace", FLG_PRINCE_KEYSPACE | FLG_STDOUT, 0,
-		FLG_PRINCE_CHK, 0},
+		FLG_PRINCE_CHK, FLG_RULES},
 	{"prince-mmap", FLG_PRINCE_MMAP, 0,
 		FLG_PRINCE_CHK, FLG_PRINCE_CASE_PERMUTE},
 #endif
