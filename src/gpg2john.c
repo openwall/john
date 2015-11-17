@@ -119,6 +119,7 @@ private bz_stream bz;
 
 #include "jumbo.h"
 #include "misc.h"
+#include "params.h"
 #include "memdbg.h"	// Must be last included header
 
 #define YES 1
@@ -915,7 +916,7 @@ public void
 Symmetrically_Encrypted_Data_Packet(int len)
 {
 	int mode = get_sym_alg_mode();
-	char hash[4096] = {0}; // XXX
+	char hash[LINE_BUFFER_SIZE] = {0};
 	char *cp = hash;
 
 	switch (mode) {
@@ -943,12 +944,17 @@ Symmetrically_Encrypted_Data_Packet(int len)
 	// let's hijack it for specifying tag values.
 	m_usage = 9; // Symmetrically Encrypted Data Packet (these lack MDC)
 	give(len, m_data, sizeof(m_data));
-	cp += sprintf(cp, "$gpg$*%d*%d*", m_algorithm, len); // m_algorithm == 0 for symmetric encryption?
-	cp += print_hex(m_data, len, cp);
-	cp += sprintf(cp, "*%d*%d*%d*%d", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm);
-	cp += sprintf(cp, "*%d*", m_count);
-	cp += print_hex(m_salt, 8, cp);
-	puts(hash);
+	if (len * 2 > LINE_BUFFER_SIZE - 128) {
+		fprintf(stderr, "[gpg2john] data is too large to be inlined, please file a bug!\n");
+	} else {
+		fprintf(stderr, "[gpg2john] MDC is misssing, expect false positives!\n");
+		cp += sprintf(cp, "$gpg$*%d*%d*", m_algorithm, len); // m_algorithm == 0 for symmetric encryption?
+		cp += print_hex(m_data, len, cp);
+		cp += sprintf(cp, "*%d*%d*%d*%d", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm);
+		cp += sprintf(cp, "*%d*", m_count);
+		cp += print_hex(m_salt, 8, cp);
+		puts(hash);
+	}
 
 	// skip(len);
 	reset_sym_alg_mode();
@@ -1036,7 +1042,7 @@ Symmetrically_Encrypted_and_MDC_Packet(int len)
 {
 	int mode = get_sym_alg_mode();
 	// printf("\tVer %d\n", Getc());
-	char hash[4096] = {0}; // XXX
+	char hash[LINE_BUFFER_SIZE] = {0};
 	char *cp = hash;
 
 	Getc(); // version
@@ -1050,17 +1056,20 @@ Symmetrically_Encrypted_and_MDC_Packet(int len)
 		break;
 	}
 	give(len - 1, m_data, sizeof(m_data));
-
-	cp += sprintf(cp, "$gpg$*%d*%d*", m_algorithm, len - 1); // m_algorithm == 0 for symmetric encryption?
-	cp += print_hex(m_data, len - 1, cp);
-	m_usage = 18; // Sym. Encrypted Integrity Protected Data Packet (Tag 18)
-	cp += sprintf(cp, "*%d*%d*%d*%d", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm);
-	cp += sprintf(cp, "*%d*", m_count);
-	cp += print_hex(m_salt, 8, cp);
-	if (m_usage == 1) { /* handle 2 byte checksum */
-		fprintf(stderr, "Symmetrically_Encrypted_and_MDC_Packet doesn't handle 2 bytes checksums yet!\n");
+	if (len * 2 > LINE_BUFFER_SIZE - 128) {
+		fprintf(stderr, "[gpg2john] data is too large to be inlined, please file a bug!\n");
+	} else {
+		cp += sprintf(cp, "$gpg$*%d*%d*", m_algorithm, len - 1); // m_algorithm == 0 for symmetric encryption?
+		cp += print_hex(m_data, len - 1, cp);
+		m_usage = 18; // Sym. Encrypted Integrity Protected Data Packet (Tag 18)
+		cp += sprintf(cp, "*%d*%d*%d*%d", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm);
+		cp += sprintf(cp, "*%d*", m_count);
+		cp += print_hex(m_salt, 8, cp);
+		if (m_usage == 1) { /* handle 2 byte checksum */
+			fprintf(stderr, "Symmetrically_Encrypted_and_MDC_Packet doesn't handle 2 bytes checksums yet!\n");
+		}
+		puts(hash);
 	}
-	puts(hash);
 
 	// printf("\t\t(plain text + MDC SHA1(20 bytes))\n");
 	// skip(len - 1); // we did "give()" already
@@ -1531,7 +1540,8 @@ parse_packet(void)
 			len = get_new_len(c);
 			partial = is_partial(c);
 			if (partial == YES)
-				fprintf(stderr, "\t(%d bytes) partial continue\n", len);
+				;
+				// fprintf(stderr, "\t(%d bytes) partial continue\n", len);
 			else
 				;
 				// fprintf(stderr, "\t(%d bytes) partial end\n", len);

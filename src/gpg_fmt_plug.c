@@ -1210,7 +1210,7 @@ static int check(unsigned char *keydata, int ks)
 			return 0;
 	} else if (cur_salt->symmetric_mode && cur_salt->usage == 9) {
 		// https://www.ietf.org/rfc/rfc2440.txt
-		if ((out[9] == out[7]) && (out[8] == out[6])) // XXX is this verifier good enough against false positives?
+		if ((out[9] == out[7]) && (out[8] == out[6])) // XXX this verifier is not good at all!
 			return 1;
 		else
 			return 0;
