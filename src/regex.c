@@ -136,6 +136,9 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 	static int bALPHA = 0;
 	int max_len = db->format->params.plaintext_length;
 
+	if (options.req_maxlength)
+		max_len = options.req_maxlength;
+
 	if (bFirst) {
 		bFirst = 0;
 		rexgen_setlocale();
@@ -223,6 +226,9 @@ void do_regex_crack(struct db_main *db, const char *regex)
 	char word[PLAINTEXT_BUFFER_SIZE];
 	int max_len = db->format->params.plaintext_length;
 
+	if (options.req_maxlength)
+		max_len = options.req_maxlength;
+
 	if (john_main_process)
 		fprintf(stderr, "Warning: regex mode currently can't be "
 		        "resumed if aborted\n");
@@ -261,7 +267,7 @@ char *prepare_regex(char *regex, int *bCase, char **regex_alpha)
 
 	if (!regex || !bCase || !regex_alpha) {
 		if (options.verbosity >= 4)
-			log_event("- NO Rexgen used");
+			log_event("- No Rexgen used");
 		return 0;
 	}
 	cp = str_alloc_copy(regex);
