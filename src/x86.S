@@ -1337,23 +1337,19 @@ CPU_detect:
 	testl %eax,%eax
 	jz CPU_detect_ret		/* Newer 486s */
 	pushl %ecx
-#if CPU_REQ_AVX2
+#if CPU_REQ_AVX2 || CPU_REQ_SSE4_1 || CPU_REQ_SSSE3
 	movl $1,%eax
 	cpuid
+#if CPU_REQ_AVX2
 	andl CF_AVX2,%ecx
 	cmpl CF_AVX2,%ecx
-	jne CPU_detect_pop_ecx_fail
 #elif CPU_REQ_SSE4_1
-	movl $1,%eax
-	cpuid
 	andl CF_SSE4_1,%ecx
 	cmpl CF_SSE4_1,%ecx
-	jne CPU_detect_pop_ecx_fail
 #elif CPU_REQ_SSSE3
-	movl $1,%eax
-	cpuid
 	andl CF_SSSE3,%ecx
 	cmpl CF_SSSE3,%ecx
+#endif
 	jne CPU_detect_pop_ecx_fail
 #endif
 	movl $1,%eax
@@ -1370,13 +1366,13 @@ CPU_detect:
 	cmpb $0x6,%al
 	popl %edx
 	popl %eax
-#endif
 	je CPU_detect_AVX
 CPU_detect_pop_ecx_fail:
 	popl %ecx
 	xorl %eax,%eax
 	jmp CPU_detect_ret
 CPU_detect_AVX:
+#endif
 #ifdef CPU_REQ_XOP
 	pushl %eax
 	pushl %edx
