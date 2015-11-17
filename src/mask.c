@@ -35,6 +35,7 @@
 #include "mask_ext.h"
 
 extern void wordlist_hybrid_fix_state(void);
+extern void mkv_hybrid_fix_state(void);
 
 static mask_parsed_ctx parsed_mask;
 static mask_cpu_context cpu_mask_ctx, rec_ctx;
@@ -2176,6 +2177,8 @@ int do_mask_crack(const char *extern_key)
 	if (options.flags & FLG_MASK_STACKED) {
 		if (options.flags & FLG_WORDLIST_CHK)
 			wordlist_hybrid_fix_state();
+		else if (options.flags & FLG_MKV_CHK)
+			mkv_hybrid_fix_state();
 		parent_fix_state_pending = 1;
 	}
 

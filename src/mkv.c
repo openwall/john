@@ -28,13 +28,19 @@
 #include "john.h"
 #include "mkv.h"
 #include "mask.h"
+#include "regex.h"
 #include "memdbg.h"
 
 #define SUBSECTION_DEFAULT  "Default"
 
 extern struct fmt_main fmt_LM;
 
-static long long tidx;
+static long long tidx, hybrid_tidx;
+#if HAVE_REXGEN
+static char *regex_alpha;
+static int regex_case;
+static char *regex;
+#endif
 
 static void save_state(FILE *file)
 {
@@ -51,10 +57,19 @@ static int restore_state(FILE *file)
 
 static void fix_state(void)
 {
-	tidx = gidx;
+	if (hybrid_tidx) {
+		tidx = hybrid_tidx;
+		hybrid_tidx = 0;
+	} else
+		tidx = gidx;
 }
 
-static int show_pwd_rnbs(struct s_pwd *pwd)
+void mkv_hybrid_fix_state(void)
+{
+	hybrid_tidx = gidx;
+}
+
+static int show_pwd_rnbs(struct db_main *db, struct s_pwd *pwd)
 {
 	unsigned long long i;
 	unsigned int k;
@@ -77,7 +92,7 @@ static int show_pwd_rnbs(struct s_pwd *pwd)
 		i -= nbparts[pwd->password[pwd->len - 1] + pwd->len * 256 +
 		             pwd->level * 256 * gmax_len];
 		if (pwd->len <= gmax_len) {
-			if (show_pwd_rnbs(pwd))
+			if (show_pwd_rnbs(db, pwd))
 				return 1;
 		}
 		if ((pwd->len >= gmin_len) && (pwd->level >= gmin_level)) {
@@ -85,6 +100,13 @@ static int show_pwd_rnbs(struct s_pwd *pwd)
 			if (options.mask) {
 				if (do_mask_crack(pass))
 					return 1;
+#if HAVE_REXGEN
+			} else if (regex) {
+				if (do_regex_hybrid_crack(db, regex, pass,
+				                          regex_case, regex_alpha))
+					return 1;
+				mkv_hybrid_fix_state();
+#endif
 			} else if (!f_filter ||
 			           ext_filter_body((char *)pwd->password, pass = pass_filtered))
 				if (crk_process_key(pass))
@@ -101,7 +123,7 @@ static int show_pwd_rnbs(struct s_pwd *pwd)
 	return 0;
 }
 
-static int show_pwd_r(struct s_pwd *pwd, unsigned int bs)
+static int show_pwd_r(struct db_main *db, struct s_pwd *pwd, unsigned int bs)
 {
 	unsigned long long i;
 	unsigned int k;
@@ -128,7 +150,7 @@ static int show_pwd_r(struct s_pwd *pwd, unsigned int bs)
 		    proba2[pwd->password[pwd->len - 2] * 256 + pwd->password[pwd->len -
 		            1]];
 		if (pwd->password[pwd->len] != 0)
-			if (show_pwd_r(pwd, 1))
+			if (show_pwd_r(db, pwd, 1))
 				return 1;
 		i -= nbparts[pwd->password[pwd->len - 1] + pwd->len * 256 +
 		             pwd->level * 256 * gmax_len];
@@ -137,6 +159,13 @@ static int show_pwd_r(struct s_pwd *pwd, unsigned int bs)
 			if (options.mask) {
 				if (do_mask_crack(pass))
 					return 1;
+#if HAVE_REXGEN
+			} else if (regex) {
+				if (do_regex_hybrid_crack(db, regex, pass,
+				                          regex_case, regex_alpha))
+					return 1;
+				mkv_hybrid_fix_state();
+#endif
 			} else if (!f_filter ||
 			           ext_filter_body((char *)pwd->password, pass = pass_filtered))
 				if (crk_process_key(pass))
@@ -155,7 +184,7 @@ static int show_pwd_r(struct s_pwd *pwd, unsigned int bs)
 		i -= nbparts[pwd->password[pwd->len - 1] + pwd->len * 256 +
 		             pwd->level * 256 * gmax_len];
 		if (pwd->len <= gmax_len) {
-			if (show_pwd_r(pwd, 0))
+			if (show_pwd_r(db, pwd, 0))
 				return 1;
 		}
 		if ((pwd->len >= gmin_len) && (pwd->level >= gmin_level)) {
@@ -163,6 +192,13 @@ static int show_pwd_r(struct s_pwd *pwd, unsigned int bs)
 			if (options.mask) {
 				if (do_mask_crack(pass))
 					return 1;
+#if HAVE_REXGEN
+			} else if (regex) {
+				if (do_regex_hybrid_crack(db, regex, pass,
+				                          regex_case, regex_alpha))
+					return 1;
+				mkv_hybrid_fix_state();
+#endif
 			} else if (!f_filter ||
 			           ext_filter_body((char *)pwd->password, pass = pass_filtered))
 				if (crk_process_key(pass))
@@ -179,7 +215,7 @@ static int show_pwd_r(struct s_pwd *pwd, unsigned int bs)
 	return 0;
 }
 
-static int show_pwd(unsigned long long start)
+static int show_pwd(struct db_main *db, unsigned long long start)
 {
 	struct s_pwd pwd;
 	unsigned int i;
@@ -197,7 +233,7 @@ static int show_pwd(unsigned long long start)
 		pwd.len = 1;
 		pwd.level = proba1[pwd.password[0]];
 		if (pwd.level <= gmax_level) {
-			if (show_pwd_r(&pwd, 1))
+			if (show_pwd_r(db, &pwd, 1))
 				return 1;
 
 			if ((pwd.len >= gmin_len) && (pwd.level >= gmin_level)) {
@@ -205,6 +241,13 @@ static int show_pwd(unsigned long long start)
 				if (options.mask) {
 					if (do_mask_crack(pass))
 						return 1;
+#if HAVE_REXGEN
+				} else if (regex) {
+					if (do_regex_hybrid_crack(db, regex, pass,
+					                          regex_case, regex_alpha))
+						return 1;
+					mkv_hybrid_fix_state();
+#endif
 				} else if (!f_filter ||
 				           ext_filter_body((char *)pwd.password, pass =
 				                               pass_filtered))
@@ -222,13 +265,20 @@ static int show_pwd(unsigned long long start)
 		pwd.password[0] = charsorted[i];
 		pwd.level = proba1[pwd.password[0]];
 		pwd.password[1] = 0;
-		if (show_pwd_rnbs(&pwd))
+		if (show_pwd_rnbs(db, &pwd))
 			return 1;
 		if ((pwd.len >= gmin_len) && (pwd.level >= gmin_level)) {
 			pass = (char *)pwd.password;
 			if (options.mask) {
 				if (do_mask_crack(pass))
 					return 1;
+#if HAVE_REXGEN
+			} else if (regex) {
+				if (do_regex_hybrid_crack(db, regex, pass,
+				                          regex_case, regex_alpha))
+					return 1;
+				mkv_hybrid_fix_state();
+#endif
 			} else if (!f_filter ||
 			           ext_filter_body((char *)pwd.password, pass = pass_filtered))
 				if (crk_process_key(pass))
@@ -578,6 +628,15 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 	                   &mkv_minlevel, &mkv_level, &start_token, &end_token,
 	                   &mkv_minlen, &mkv_maxlen, &statfile);
 
+#if HAVE_REXGEN
+	if ((regex = prepare_regex(options.regex, &regex_case, &regex_alpha))) {
+		if (mkv_minlen)
+			mkv_minlen--;
+		if (mkv_maxlen)
+			mkv_maxlen--;
+	}
+#endif
+
 	gidx = 0;
 	status_init(get_progress, 0);
 	rec_restore_mode(restore_state);
@@ -638,7 +697,7 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 	log_event("- Length: %d - %d", mkv_minlen, mkv_maxlen);
 	log_event("- Start-End: " LLd " - " LLd, mkv_start, mkv_end);
 
-	show_pwd(mkv_start);
+	show_pwd(db, mkv_start);
 
 	if (!event_abort)
 		gidx = gend;            // For reporting DONE properly
