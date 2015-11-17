@@ -12,6 +12,12 @@
 
 //#define MASK_DEBUG
 
+#if AC_BUILT
+#include "autoconfig.h"
+#else
+#define HAVE_LIBGMP 1
+#endif
+
 #include <stdio.h> /* for fprintf(stderr, ...) */
 #include <string.h>
 #include <ctype.h>
@@ -2184,8 +2190,10 @@ int do_mask_crack(const char *extern_key)
 			mkv_hybrid_fix_state();
 		else if (options.flags & FLG_INC_CHK)
 			inc_hybrid_fix_state();
+#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 		else if (options.flags & FLG_PRINCE_CHK)
 			pp_hybrid_fix_state();
+#endif
 		else if (options.flags & FLG_EXTERNAL_CHK)
 			ext_hybrid_fix_state();
 		parent_fix_state_pending = 1;
