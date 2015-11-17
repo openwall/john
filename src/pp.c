@@ -30,7 +30,6 @@
 #include "autoconfig.h"
 #else
 #include <sys/mman.h>
-#define HAVE_LIBGMP 1
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
 #define __USE_MINGW_ANSI_STDIO 1

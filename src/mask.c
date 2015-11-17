@@ -12,17 +12,12 @@
 
 //#define MASK_DEBUG
 
-#if AC_BUILT
-#include "autoconfig.h"
-#else
-#define HAVE_LIBGMP 1
-#endif
-
 #include <stdio.h> /* for fprintf(stderr, ...) */
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
 
+#include "arch.h"
 #include "misc.h" /* for error() */
 #include "logger.h"
 #include "recovery.h"
