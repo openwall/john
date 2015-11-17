@@ -15,18 +15,6 @@
 
 #define PADDING				1024
 
-#define getPowerOfTwo(v)	\
-{				\
-	v--;			\
-	v |= v >> 1;		\
-	v |= v >> 2;		\
-	v |= v >> 4;		\
-	v |= v >> 8;		\
-	v |= v >> 16;		\
-	v |= v >> 32;		\
-	v++;			\
-}
-
 typedef struct {
 	unsigned int 	istate[5];
 	unsigned int 	ostate[5];
@@ -233,7 +221,7 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 
 	gwsLimit = get_max_mem_alloc_size
 		   (jtrUniqDevId) / sizeof(devIterTempSz);
-	getPowerOfTwo(gwsLimit);
+	get_power_of_two(gwsLimit);
 	if (gwsLimit + PADDING >
 		get_max_mem_alloc_size
 		(jtrUniqDevId) / sizeof(devIterTempSz))
@@ -267,7 +255,7 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 	if (local_work_size) {
 		tuneLws = 0;
 		if (local_work_size & (local_work_size - 1))
-			getPowerOfTwo(local_work_size);
+			get_power_of_two(local_work_size);
 		if (local_work_size > lwsLimit)
 			local_work_size = lwsLimit;
 	}
@@ -466,7 +454,7 @@ size_t selectDevice(int jtrUniqDevId, struct fmt_main *self)
 
 	assert(jtrUniqDevId < MAX_GPU_DEVICES);
 
-	sprintf(buildOpts, "-D SALT_BUFFER_SIZE=%lu", SALT_BUFFER_SIZE);
+	sprintf(buildOpts, "-D SALT_BUFFER_SIZE=" Zu, SALT_BUFFER_SIZE);
 	opencl_init("$JOHN/kernels/pbkdf2_kernel.cl", jtrUniqDevId, buildOpts);
 
 	devParam[jtrUniqDevId].devKernel[0] = clCreateKernel(program[jtrUniqDevId], "pbkdf2_preprocess_short", &ret_code);

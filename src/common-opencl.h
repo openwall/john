@@ -147,6 +147,18 @@ extern int device_info[MAX_GPU_DEVICES];
 #define DUR_CONFIG_NAME         "_MaxDuration"
 #define FALSE               0
 
+#define get_power_of_two(v)                     \
+{                                               \
+    v--;                                        \
+    v |= v >> 1;                                \
+    v |= v >> 2;                                \
+    v |= v >> 4;                                \
+    v |= v >> 8;                                \
+    v |= v >> 16;                               \
+    v |= (v >> 16) >> 16;                       \
+    v++;                                        \
+}
+
 size_t opencl_read_source(char *kernel_filename, char **kernel_source);
 
 /* Passive init: enumerate platforms and devices and parse options */

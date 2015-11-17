@@ -36,18 +36,6 @@
 
 #define GWS_CONFIG		        "des_GWS"
 
-#define get_power_of_two(v)	\
-{				\
-	v--;			\
-	v |= v >> 1;		\
-	v |= v >> 2;		\
-	v |= v >> 4;		\
-	v |= v >> 8;		\
-	v |= v >> 16;		\
-	v |= v >> 32;		\
-	v++;			\
-}
-
 /* Common hash checking variables. */
 extern DES_hash_check_params *hash_chk_params;
 #define num_uncracked_hashes(k) hash_chk_params[k].num_uncracked_hashes

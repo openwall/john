@@ -97,18 +97,6 @@ static cl_mem cl_tx_keys, cl_tx_binary, cl_magic_table;
 #include "opencl-autotune.h"
 #include "memdbg.h"
 
-#define get_power_of_two(v)	\
-{				\
-	v--;			\
-	v |= v >> 1;		\
-	v |= v >> 2;		\
-	v |= v >> 4;		\
-	v |= v >> 8;		\
-	v |= v >> 16;		\
-	v |= v >> 32;		\
-	v++;			\
-}
-
 static const char *warn[] = {
 	"xfer: ",  ", crypt: ",  ", xfer: "
 };

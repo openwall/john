@@ -2577,7 +2577,9 @@ private int (*d_func3)(byte *, unsigned int);
 
 private byte tmpbuf[BUFSIZ];
 private byte d_buf1[BUFSIZ];
+#if HAVE_LIBZ || HAVE_LIBBZ2
 private byte d_buf2[BUFSIZ];
+#endif
 private byte d_buf3[BUFSIZ];
 
 private signed char

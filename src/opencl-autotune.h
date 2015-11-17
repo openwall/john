@@ -92,18 +92,6 @@ static void find_best_gws(struct fmt_main *self, int sequential_id, unsigned int
 static void autotune_run(struct fmt_main *self, unsigned int rounds,
 			 size_t gws_limit, unsigned long long int max_run_time);
 
-#define get_power_of_two(v)	\
-{				\
-	v--;			\
-	v |= v >> 1;		\
-	v |= v >> 2;		\
-	v |= v >> 4;		\
-	v |= v >> 8;		\
-	v |= v >> 16;		\
-	v |= v >> 32;		\
-	v++;			\
-}
-
 /* --
   This function does the common part of auto-tune adjustments,
   preparation and execution. It is shared code to be inserted
@@ -244,5 +232,4 @@ static void autotune_run(struct fmt_main *self, unsigned int rounds,
 	return autotune_run_extra(self, rounds, gws_limit, max_run_time, CL_FALSE);
 }
 
-#undef get_power_of_two
 #endif  /* _COMMON_TUNE_H */
