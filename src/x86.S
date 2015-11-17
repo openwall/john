@@ -1350,7 +1350,11 @@ CPU_detect:
 	andl CF_SSSE3,%ecx
 	cmpl CF_SSSE3,%ecx
 #endif
-	jne CPU_detect_pop_ecx_fail
+	je CPU_detect_AVX2
+	popl %ecx
+	xorl %eax,%eax
+	jmp CPU_detect_ret
+CPU_detect_AVX2:
 #endif
 	movl $1,%eax
 	cpuid
