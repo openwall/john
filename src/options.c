@@ -55,6 +55,7 @@
 #endif
 #include "version.h"
 #include "listconf.h" /* must be included after version.h */
+#include "jumbo.h"
 #include "memdbg.h"
 
 struct options_main options;
