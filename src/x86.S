@@ -1371,12 +1371,12 @@ CPU_detect:
 	popl %edx
 	popl %eax
 	je CPU_detect_AVX
+#endif
 CPU_detect_pop_ecx_fail:
 	popl %ecx
 	xorl %eax,%eax
 	jmp CPU_detect_ret
 CPU_detect_AVX:
-#endif
 #ifdef CPU_REQ_XOP
 	pushl %eax
 	pushl %edx
