@@ -3179,7 +3179,7 @@ static DYNAMIC_Setup Setups[] =
 	#endif
 	{ "dynamic_18: md5($s.Y.$p.0xF7.$s) (Post.Office MD5)",  _Funcs_18,_Preloads_18,_Const_18,     MGF_SALTED|MGF_NOTSSE2Safe, MGF_POSetup, 32, 110, 110 },
 	{ "dynamic_19: md5($p) (Cisco PIX)",        _Funcs_19,_Preloads_19,_ConstDefault, MGF_INPBASE64_4x6, MGF_POOR_OMP, 0, 16, 16 },
-	{ "dynamic_20: md5($p.$s) (Cisco ASA)",     _Funcs_20,_Preloads_20,_ConstDefault, MGF_INPBASE64_4x6|MGF_SALTED, MGF_NO_FLAG, 4, 12, 12 },
+	{ "dynamic_20: md5($p.$s) (Cisco ASA)",     _Funcs_20,_Preloads_20,_ConstDefault, MGF_INPBASE64_4x6|MGF_SALTED, MGF_NO_FLAG, -4, 12, 12 },
 #if 0
 	// this format has been removed. It has served its purpose. Now, the HDAA
 	// format does SIMD, and is much faster and better than this format.
