@@ -187,6 +187,10 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 
 	strcpy(BaseWord, base_word);
 	if (!regex[0]) {
+		if (options.mask) {
+			if (do_mask_crack(fmt_null_key))
+				return 1;
+		} else
 		if (ext_filter(fmt_null_key)) {
 			if (crk_process_key(fmt_null_key))
 				return 1;
@@ -204,6 +208,10 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 		c_iterator_value(iter, buffer);
 		c_simplestring_to_binary_string(buffer, &word[0], sizeof(word));
 		c_simplestring_clear(buffer);
+		if (options.mask) {
+			if (do_mask_crack(word))
+				return 1;
+		} else
 		if (ext_filter((char *)word)) {
 			word[max_len] = 0;
 			if (crk_process_key((char *)word)) {

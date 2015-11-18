@@ -2270,22 +2270,20 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
             out_push (out, pw_buf, pw_len + 1);
 #else
             if (!rules) {
-              if (options.mask) {
-                if ((jtr_done = do_mask_crack(pw_buf)))
-                  break;
-              }
 #if HAVE_REXGEN
-              else if (regex) {
+              if (regex) {
                 if ((jtr_done = do_regex_hybrid_crack(db, regex, pw_buf,
                                                       regex_case, regex_alpha)))
                   break;
                 pp_hybrid_fix_state();
-              }
+              } else
 #endif
-              else {
-                if (ext_filter(pw_buf) && (jtr_done = crk_process_key(pw_buf)))
+              if (options.mask) {
+                if ((jtr_done = do_mask_crack(pw_buf)))
                   break;
-              }
+              } else
+              if (ext_filter(pw_buf) && (jtr_done = crk_process_key(pw_buf)))
+                break;
             } else {
               struct list_entry *rule;
 
@@ -2295,26 +2293,21 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
                 if ((word = rules_apply(pw_buf, rule->data, -1, last))) {
                   last = word;
-
-                  if (options.mask) {
-                    if ((jtr_done = do_mask_crack(word)))
-                      break;
-                  }
 #if HAVE_REXGEN
-                  else if (regex) {
+                  if (regex) {
                     if ((jtr_done = do_regex_hybrid_crack(db, regex, word,
                                                           regex_case,
                                                           regex_alpha)))
                       break;
                     pp_hybrid_fix_state();
-                  }
+                  } else
 #endif
-                  else {
-                    if (ext_filter(word) && (jtr_done = crk_process_key(word)))
-                    {
+                  if (options.mask) {
+                    if ((jtr_done = do_mask_crack(word)))
                       break;
-                    }
-                  }
+                  } else
+                  if (ext_filter(word) && (jtr_done = crk_process_key(word)))
+                    break;
                 }
               } while ((rule = rule->next));
 

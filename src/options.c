@@ -479,9 +479,12 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 #if HAVE_REXGEN
 	/* We allow regex as parent for hybrid mask, not vice versa */
-	if ((options.flags & FLG_REGEX_CHK) && (options.flags & FLG_MASK_CHK))
-		options.flags |= (FLG_CRACKING_SET | FLG_MASK_STACKED);
-	else
+	if ((options.flags & FLG_REGEX_CHK) && (options.flags & FLG_MASK_CHK)) {
+		if (!(options.flags & FLG_CRACKING_CHK))
+			options.flags |= (FLG_CRACKING_SET | FLG_MASK_STACKED);
+		else
+			options.flags |= (FLG_REGEX_STACKED | FLG_MASK_STACKED);
+	} else
 #endif
 	if (options.flags & FLG_MASK_CHK) {
 		if (options.flags & FLG_TEST_CHK) {

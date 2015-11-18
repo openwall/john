@@ -453,10 +453,6 @@ void do_external_crack(struct db_main *db)
 
 			int_word[maxlen] = 0;
 		}
-		if (options.flags & FLG_MASK_STACKED) {
-			if (do_mask_crack(int_word))
-				break;
-		} else
 #if HAVE_REXGEN
 		if (regex) {
 			if (do_regex_hybrid_crack(db, regex, int_word,
@@ -465,6 +461,10 @@ void do_external_crack(struct db_main *db)
 			ext_hybrid_fix_state();
 		} else
 #endif
+		if (options.flags & FLG_MASK_STACKED) {
+			if (do_mask_crack(int_word))
+				break;
+		} else
 		if (crk_process_key(int_word)) break;
 	} while (1);
 

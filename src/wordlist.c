@@ -1166,15 +1166,6 @@ REDO_AFTER_LMLOOP:
 			loop_line_no++;
 			if ((word = apply(joined->data, rule, -1, last))) {
 				last = word;
-
-				if (options.mask) {
-					if (do_mask_crack(word)) {
-						rule = NULL;
-						rules = 0;
-						pipe_input = 0;
-						break;
-					}
-				} else
 #if HAVE_REXGEN
 				if (regex) {
 					if (do_regex_hybrid_crack(db, regex,
@@ -1190,6 +1181,14 @@ REDO_AFTER_LMLOOP:
 					wordlist_hybrid_fix_state();
 				} else
 #endif
+				if (options.mask) {
+					if (do_mask_crack(word)) {
+						rule = NULL;
+						rules = 0;
+						pipe_input = 0;
+						break;
+					}
+				} else
 				if (ext_filter(word))
 				if (crk_process_key(word)) {
 					rule = NULL;
@@ -1222,15 +1221,6 @@ REDO_AFTER_LMLOOP:
 
 			if ((word = apply(line, rule, -1, last))) {
 				last = word;
-
-				if (options.mask) {
-					if (do_mask_crack(word)) {
-						rule = NULL;
-						rules = 0;
-						pipe_input = 0;
-						break;
-					}
-				} else
 #if HAVE_REXGEN
 				if (regex) {
 					if (do_regex_hybrid_crack(db, regex,
@@ -1246,6 +1236,14 @@ REDO_AFTER_LMLOOP:
 					wordlist_hybrid_fix_state();
 				} else
 #endif
+				if (options.mask) {
+					if (do_mask_crack(word)) {
+						rule = NULL;
+						rules = 0;
+						pipe_input = 0;
+						break;
+					}
+				} else
 				if (ext_filter(word))
 				if (crk_process_key(word)) {
 					rules = 0;
@@ -1288,15 +1286,6 @@ process_word:
 						last = word;
 					else
 						strcpy(last, word);
-
-					if (options.mask) {
-						if (do_mask_crack(word)) {
-							rule = NULL;
-							rules = 0;
-							pipe_input = 0;
-							break;
-						}
-					} else
 #if HAVE_REXGEN
 					if (regex) {
 						if (do_regex_hybrid_crack(
@@ -1311,6 +1300,14 @@ process_word:
 						wordlist_hybrid_fix_state();
 					} else
 #endif
+					if (options.mask) {
+						if (do_mask_crack(word)) {
+							rule = NULL;
+							rules = 0;
+							pipe_input = 0;
+							break;
+						}
+					} else
 					if (ext_filter(word))
 					if (crk_process_key(word)) {
 						rules = 0;

@@ -97,18 +97,20 @@ static int show_pwd_rnbs(struct db_main *db, struct s_pwd *pwd)
 		}
 		if ((pwd->len >= gmin_len) && (pwd->level >= gmin_level)) {
 			pass = (char *)pwd->password;
-			if (options.mask) {
-				if (do_mask_crack(pass))
-					return 1;
 #if HAVE_REXGEN
-			} else if (regex) {
+			if (regex) {
 				if (do_regex_hybrid_crack(db, regex, pass,
 				                          regex_case, regex_alpha))
 					return 1;
 				mkv_hybrid_fix_state();
+			} else
 #endif
-			} else if (!f_filter ||
-			           ext_filter_body((char *)pwd->password, pass = pass_filtered))
+			if (options.mask) {
+				if (do_mask_crack(pass))
+					return 1;
+			} else
+			if (!f_filter ||
+			    ext_filter_body((char *)pwd->password, pass = pass_filtered))
 				if (crk_process_key(pass))
 					return 1;
 		}
@@ -156,18 +158,20 @@ static int show_pwd_r(struct db_main *db, struct s_pwd *pwd, unsigned int bs)
 		             pwd->level * 256 * gmax_len];
 		if ((pwd->len >= gmin_len) && (pwd->level >= gmin_level)) {
 			pass = (char *)pwd->password;
-			if (options.mask) {
-				if (do_mask_crack(pass))
-					return 1;
 #if HAVE_REXGEN
-			} else if (regex) {
+			if (regex) {
 				if (do_regex_hybrid_crack(db, regex, pass,
 				                          regex_case, regex_alpha))
 					return 1;
 				mkv_hybrid_fix_state();
+			} else
 #endif
-			} else if (!f_filter ||
-			           ext_filter_body((char *)pwd->password, pass = pass_filtered))
+			if (options.mask) {
+				if (do_mask_crack(pass))
+					return 1;
+			} else
+			if (!f_filter ||
+			    ext_filter_body((char *)pwd->password, pass = pass_filtered))
 				if (crk_process_key(pass))
 					return 1;
 		}
@@ -189,18 +193,20 @@ static int show_pwd_r(struct db_main *db, struct s_pwd *pwd, unsigned int bs)
 		}
 		if ((pwd->len >= gmin_len) && (pwd->level >= gmin_level)) {
 			pass = (char *)pwd->password;
-			if (options.mask) {
-				if (do_mask_crack(pass))
-					return 1;
 #if HAVE_REXGEN
-			} else if (regex) {
+			if (regex) {
 				if (do_regex_hybrid_crack(db, regex, pass,
 				                          regex_case, regex_alpha))
 					return 1;
 				mkv_hybrid_fix_state();
+			} else
 #endif
-			} else if (!f_filter ||
-			           ext_filter_body((char *)pwd->password, pass = pass_filtered))
+			if (options.mask) {
+				if (do_mask_crack(pass))
+					return 1;
+			} else
+			if (!f_filter ||
+			    ext_filter_body((char *)pwd->password, pass = pass_filtered))
 				if (crk_process_key(pass))
 					return 1;
 		}
@@ -238,19 +244,20 @@ static int show_pwd(struct db_main *db, unsigned long long start)
 
 			if ((pwd.len >= gmin_len) && (pwd.level >= gmin_level)) {
 				pass = (char *)pwd.password;
-				if (options.mask) {
-					if (do_mask_crack(pass))
-						return 1;
 #if HAVE_REXGEN
-				} else if (regex) {
+				if (regex) {
 					if (do_regex_hybrid_crack(db, regex, pass,
 					                          regex_case, regex_alpha))
 						return 1;
 					mkv_hybrid_fix_state();
+				} else
 #endif
-				} else if (!f_filter ||
-				           ext_filter_body((char *)pwd.password, pass =
-				                               pass_filtered))
+				if (options.mask) {
+					if (do_mask_crack(pass))
+						return 1;
+				} else
+				if (!f_filter ||
+				    ext_filter_body((char *)pwd.password, pass = pass_filtered))
 					if (crk_process_key(pass))
 						return 1;
 			}
@@ -269,18 +276,20 @@ static int show_pwd(struct db_main *db, unsigned long long start)
 			return 1;
 		if ((pwd.len >= gmin_len) && (pwd.level >= gmin_level)) {
 			pass = (char *)pwd.password;
-			if (options.mask) {
-				if (do_mask_crack(pass))
-					return 1;
 #if HAVE_REXGEN
-			} else if (regex) {
+			if (regex) {
 				if (do_regex_hybrid_crack(db, regex, pass,
 				                          regex_case, regex_alpha))
 					return 1;
 				mkv_hybrid_fix_state();
+			} else
 #endif
-			} else if (!f_filter ||
-			           ext_filter_body((char *)pwd.password, pass = pass_filtered))
+			if (options.mask) {
+				if (do_mask_crack(pass))
+					return 1;
+			} else
+			if (!f_filter ||
+			    ext_filter_body((char *)pwd.password, pass = pass_filtered))
 				if (crk_process_key(pass))
 					return 1;
 		}

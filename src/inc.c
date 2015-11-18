@@ -405,10 +405,6 @@ update_last:
 	}
 
 	key = key_i;
-	if (options.mask) {
-		if (do_mask_crack(key))
-			return 1;
-	} else
 #if HAVE_REXGEN
 	if (regex) {
 		if (do_regex_hybrid_crack(db, regex, key,
@@ -417,6 +413,10 @@ update_last:
 		inc_hybrid_fix_state();
 	} else
 #endif
+	if (options.mask) {
+		if (do_mask_crack(key))
+			return 1;
+	} else
 	if (!f_filter || ext_filter_body(key_i, key = key_e))
 		if (crk_process_key(key))
 			return 1;
@@ -813,10 +813,6 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 		if (!length && !min_length) {
 			min_length = 1;
-			if (options.mask) {
-				if (!skip && do_mask_crack(fmt_null_key))
-					break;
-			} else
 #if HAVE_REXGEN
 			if (regex) {
 				if (!skip && do_regex_hybrid_crack(db, regex,
@@ -827,6 +823,10 @@ void do_incremental_crack(struct db_main *db, char *mode)
 				inc_hybrid_fix_state();
 			} else
 #endif
+			if (options.mask) {
+				if (!skip && do_mask_crack(fmt_null_key))
+					break;
+			} else
 			if (!skip && crk_process_key(fmt_null_key))
 				break;
 		}
