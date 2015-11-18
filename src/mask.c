@@ -1371,14 +1371,19 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 			  unsigned long long *my_candidates)
 {
+	char key_e[PLAINTEXT_BUFFER_SIZE];
+	char *key;
 	int ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
 	    ps3 = MAX_NUM_MASK_PLHDR, ps4 = MAX_NUM_MASK_PLHDR, ps ;
 	int start1, start2, start3, start4;
 
-#define process_key(key)						\
-	if (ext_filter(template_key))					\
-		if ((crk_process_key(mask_cp_to_utf8(template_key))))   \
-			return 1;
+#define process_key(key_i)	  \
+	do { \
+		key = key_i; \
+		if (!f_filter || ext_filter_body(key_i, key = key_e)) \
+			if ((crk_process_key(mask_cp_to_utf8(key)))) \
+				return 1; \
+	} while(0)
 
 	ps1 = cpu_mask_ctx->ps1;
 	ps2 = cpu_mask_ctx->ranges[ps1].next;
