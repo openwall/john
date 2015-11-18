@@ -1648,8 +1648,8 @@ DES_bs_crypt_plain_loop:
 #define CX_ABM                  $0x00000020 /* LZCNT (AVX2) */
 #define CX_XOP                  $0x00000800
 
-#define CF_SSSE3                $0x04000200 /* SSE2 + SSSE3 */
-#define CF_SSE4_1               $0x04080200 /* SSE2 + SSE4.1 + SSSE3 */
+#define CF_SSSE3                $0x00000200 /* SSSE3 */
+#define CF_SSE4_1               $0x00080200 /* SSE4.1 + SSSE3 */
 #define CF_AVX                  $0x1C000000 /* XSAVE + OSXSAVE */
 #define CF_AVX2                 $0x1C401000 /* XSAVE + OSXSAVE + MOVBE + FMA3 */
 
@@ -1677,7 +1677,7 @@ CPU_detect:
 	andl CF_SSE4_1,%ecx
 	cmpl CF_SSE4_1,%ecx
 	jne CPU_detect_fail
-#else
+#elif CPU_REQ_SSSE3
 	andl CF_SSSE3,%ecx
 	cmpl CF_SSSE3,%ecx
 	jne CPU_detect_fail

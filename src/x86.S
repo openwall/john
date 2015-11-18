@@ -1296,8 +1296,8 @@ BF_body:
 #define EF_ID				$0x00200000
 #define CF_MMX				$0x00800000
 #define CF_SSE2				$0x04000000
-#define CF_SSSE3			$0x04000200 /* SSE2 + SSSE3 */
-#define CF_SSE4_1			$0x04080200 /* SSE2 + SSE4.1 + SSSE3 */
+#define CF_SSSE3			$0x00000200 /* SSSE3 */
+#define CF_SSE4_1			$0x00080200 /* SSE4.1 + SSSE3 */
 #define CF_XSAVE_OSXSAVE_AVX		$0x1C000000
 #define CF_XOP				$0x00000800
 #define CF_AVX2				$0x1C401000 /* Quick and dirty */
