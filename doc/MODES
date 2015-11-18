@@ -122,18 +122,46 @@ particular external mode on John's command line.  See EXTERNAL.
 
 This is a stand alone mode, where word-like strings are created based
 upon a complex algorithm based upon 'weights' or likeliness of characters
-following characters. A full description of this mode, and its usage is
-found in the ./doc/MARKOV document, and will not be repeated here.
+following characters.  A full description of this mode and its usage is
+found in the ./doc/MARKOV document.
 
 	MASK mode.
 
 This allows creation of a mask of character classes which can be in
-specific positions when building a candidate to test. There is a full
-description of this mode, and the masks available in the ./doc/MASK
-document and will not be repeated here.
+specific positions when building a candidate to test.  There is a full
+description of this mode, and the masks available, in the ./doc/MASK
+document.
+
+	REGEX mode.
+
+You can think of this as "reverse regexp".  Regex is similar to mask mode but
+more powerful (and also slower).  Basically, you write a regular expression
+and the regex mode will create all possible candidates that would match it.
+Regex can optionally be used in hybrid (a.k.a stacked) mode, using \0 as a
+placeholder for the parent mode's word.  Eg. a regex of "\0\d\d" will produce
+the same result as a rule adding two digits to the base word.
+
+	Multiple stacking of modes.
+
+The mask and regex modes can be stacked upon some other mode (any mode except
+single, but including eg. stdin and loopback modes).  Regex can be a parent
+mode to mask mode even when regex itself runs stacked on some other mode.  In
+that case, mask is always last in chain  (by design, since it can accelerate
+fast GPU formats).  Basically, the first mode is any mode except single, and
+then you can optionally add rules (provided the base mode supports it),  then
+optionally regex, then optionally mask and finally an optional external filter.
 
 	What modes should I use?
 
-See EXAMPLES for a reasonable order of cracking modes to use.
+See EXAMPLES for a reasonable order of cracking modes to use.  When choosing
+between rules, regex or mask as an "amplifier", you can often pick any of them
+with the same result.  For example, a rule of 'Az"[0-9][0-9]"', or a hybrid
+regex of '\0\d\d', or a hybrid mask of '?w?d?d' - all will produce the exact
+same results (except perhaps in a different order) but an important difference
+is that mask mode is the fastest alternative (and rules are the slowest), and
+in case of using a GPU-enabled format that supports it, mask mode will even be
+accelerated on GPU with a huge performance boost.  Having said that, there are
+things you can only do with rules, and other things that only regex can
+achieve, so mask mode is not always the best fit.
 
 $Owl$

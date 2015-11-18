@@ -11,6 +11,7 @@ the words to longer and longer candidates, in a clever order. A fairly small
 wordlist can result in a vast amount of candidates. You actually don't need to
 know a lot of the gory details, just try it instead of wordlist mode!
 
+
 JtR prince-mode crash-cource:
 
 Usage: ./john -prince[=<wordlist file>] hashfile (...)
@@ -43,3 +44,8 @@ Usage: ./john -prince[=<wordlist file>] hashfile (...)
   - Just print keyspace size: -prince-keyspace.
   - pp's "limit" and "skip" options are supported as -prince-limit and
     -prince-skip but you normally don't need them (eg. use -node or -fork).
+
+
+An important property of PRINCE is that it works like a champ with UTF-8, due
+to the fact it never actually modifes any input word (it merely concatenates
+them).
