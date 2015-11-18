@@ -1650,8 +1650,8 @@ DES_bs_crypt_plain_loop:
 
 #define CF_SSSE3                $0x00000200 /* SSSE3 */
 #define CF_SSE4_1               $0x00080200 /* SSE4.1 + SSSE3 */
-#define CF_AVX                  $0x1C000000 /* XSAVE + OSXSAVE */
-#define CF_AVX2                 $0x1C401000 /* XSAVE + OSXSAVE + MOVBE + FMA3 */
+#define CF_AVX                  $0x1C000000 /* AVX + XSAVE + OSXSAVE */
+#define CF_AVX2                 $0x1C401000 /* the above + MOVBE + FMA3 */
 
 .text
 
