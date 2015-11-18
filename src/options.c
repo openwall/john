@@ -312,7 +312,7 @@ static struct opt_entry opt_list[] = {
 PRINCE_USAGE \
 "--encoding=NAME           input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
 "                          doc/ENCODING and --list=hidden-options.\n" \
-"--rules[=SECTION]         enable word mangling rules for wordlist modes\n" \
+"--rules[=SECTION]         enable word mangling rules for wordlist or PRINCE\n" \
 "--incremental[=MODE]      \"incremental\" mode [using section MODE]\n" \
 "--mask[=MASK]             mask mode using MASK (or default mask from john.conf)\n" \
 "--markov[=OPTIONS]        \"Markov\" mode (see doc/MARKOV)\n" \

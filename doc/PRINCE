@@ -28,9 +28,10 @@ Usage: ./john -prince[=<wordlist file>] hashfile (...)
   - You use Jumbo's universal session/resume capabilities.
   - You use Jumbo's universal -node, -fork or MPI options for distribution.
   - You can use JtR rules and/or external filter together with -prince.
-  - You can use JtR hybrid mask mode together with -prince. This will also
-    accelerate use on GPU with fast formats. You can even use this with rules
-    and/or external filter at the same time.
+  - You can use JtR hybrid regex mode, or hybrid mask or even both, together
+    with -prince. You can even use this with rules and/or external filter at
+    the same time. When mask is used it will also accelerate use on GPU with
+    fast formats.
   - Use mmap for loading: -prince-mmap. This is intended for when running many
     processes on one same machine.
   - You can use your .pot file as a wordlist: -prince-loopback.
