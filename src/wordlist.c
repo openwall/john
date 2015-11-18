@@ -1055,7 +1055,7 @@ REDO_AFTER_LMLOOP:
 			do_lmloop = 0;
 		rec_init(db, save_state);
 
-		if (options.flags & FLG_STACKING)
+		if (options.flags & FLG_STACKED)
 			options.max_fix_state_delay = 0;
 
 		crk_init(db, fix_state, NULL);
