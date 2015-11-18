@@ -23,6 +23,7 @@
 #include "config.h"
 #include "cracker.h"
 #include "john.h"
+#include "mask.h"
 #include "external.h"
 #if !AC_BUILT || HAVE_LOCALE_H
 #include <locale.h>
@@ -248,6 +249,10 @@ void do_regex_crack(struct db_main *db, const char *regex)
 		c_iterator_value(iter, buffer);
 		c_simplestring_to_binary_string(buffer, &word[0], sizeof(word));
 		c_simplestring_clear(buffer);
+		if (options.mask) {
+			if (do_mask_crack(word))
+				break;
+		} else
 		if (ext_filter((char *)word)) {
 			word[max_len] = 0;
 			if (crk_process_key((char *)word))

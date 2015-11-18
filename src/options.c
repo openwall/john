@@ -119,7 +119,7 @@ static struct opt_entry opt_list[] = {
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"mask", FLG_MASK_SET, FLG_MASK_CHK,
-		0, FLG_REGEX_CHK, OPT_FMT_STR_ALLOC, &options.mask},
+		0, 0, OPT_FMT_STR_ALLOC, &options.mask},
 	{"1", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.custom_mask[0]},
 	{"2", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
@@ -147,7 +147,7 @@ static struct opt_entry opt_list[] = {
 		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.external},
 #if HAVE_REXGEN
 	{"regex", FLG_REGEX_SET, FLG_REGEX_CHK,
-		0, FLG_MASK_CHK | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC,
+		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC,
 		&options.regex},
 #endif
 	{"stdout", FLG_STDOUT, FLG_STDOUT,
@@ -477,6 +477,12 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	opt_process(opt_list, &options.flags, argv);
 
+#if HAVE_REXGEN
+	/* We allow regex as parent for hybrid mask, not vice versa */
+	if ((options.flags & FLG_REGEX_CHK) && (options.flags & FLG_MASK_CHK))
+		options.flags |= (FLG_CRACKING_SET | FLG_MASK_STACKED);
+	else
+#endif
 	if (options.flags & FLG_MASK_CHK) {
 		if (options.flags & FLG_TEST_CHK) {
 			options.flags &= ~FLG_PWD_SUP;
@@ -504,9 +510,11 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			}
 		}
 	}
+#if HAVE_REXGEN
 	if (options.flags & FLG_REGEX_CHK) {
 		if (options.regex && strstr(options.regex, "\\0")) {
-			if (options.flags & FLG_EXTERNAL_CHK)
+			if ((options.flags & FLG_EXTERNAL_CHK) &&
+			    !(options.flags & FLG_CRACKING_CHK))
 				options.flags |= FLG_REGEX_STACKED;
 			else if (!(options.flags & FLG_CRACKING_CHK)) {
 				fprintf(stderr, "\\0 is only used with hybrid regex\n");
@@ -514,13 +522,14 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			}
 		}
 		if (!(options.flags & FLG_REGEX_STACKED)) {
-			if (options.flags & FLG_CRACKING_CHK)
-				options.flags |= FLG_REGEX_STACKED;
-			else
+			if (options.flags & FLG_CRACKING_CHK) {
+				if (!(options.flags & FLG_MASK_STACKED))
+					options.flags |= FLG_REGEX_STACKED;
+			} else
 				options.flags |= FLG_CRACKING_SET;
 		}
 	}
-
+#endif
 	ext_flags = 0;
 	if (options.flags & FLG_EXTERNAL_CHK) {
 		if (options.flags & (FLG_CRACKING_CHK | FLG_MAKECHR_CHK)) {
