@@ -2269,6 +2269,9 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 #ifndef JTR_MODE
             out_push (out, pw_buf, pw_len + 1);
 #else
+            char key_e[PLAINTEXT_BUFFER_SIZE];
+            char *key;
+
             if (!rules) {
 #if HAVE_REXGEN
               if (regex) {
@@ -2282,8 +2285,12 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
                 if ((jtr_done = do_mask_crack(pw_buf)))
                   break;
               } else
-              if (ext_filter(pw_buf) && (jtr_done = crk_process_key(pw_buf)))
-                break;
+              {
+                key = pw_buf;
+                if (!f_filter || ext_filter_body(pw_buf, key = key_e))
+                  if ((jtr_done = crk_process_key(key)))
+                    break;
+              }
             } else {
               struct list_entry *rule;
 
@@ -2306,8 +2313,12 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
                     if ((jtr_done = do_mask_crack(word)))
                       break;
                   } else
-                  if (ext_filter(word) && (jtr_done = crk_process_key(word)))
-                    break;
+                  {
+                    key = word;
+                    if (!f_filter || ext_filter_body(word, key = key_e))
+                      if ((jtr_done = crk_process_key(key)))
+                        break;
+                  }
                 }
               } while ((rule = rule->next));
 
