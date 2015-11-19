@@ -1223,6 +1223,11 @@ static void save_restore(mask_cpu_context *cpu_mask_ctx, int range_idx, int ch)
 static void truncate_mask(mask_cpu_context *cpu_mask_ctx, int range_idx)
 {
 	int i;
+
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%d %d)\n", __FUNCTION__, range_idx, mask_max_skip_loc);
+#endif
+
 	if (range_idx < mask_max_skip_loc && mask_max_skip_loc != -1) {
 		fprintf(stderr, "Format internal ranges cannot be truncated!\n");
 		fprintf(stderr, "Use a bigger key length or non-gpu format.\n");
@@ -1260,6 +1265,11 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 				   mask_cpu_context *cpu_mask_ctx)
 {
 	int i, k, t, j, l, offset;
+
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s) key %s len %d (max %d)\n", __FUNCTION__, mask, key, key_len, max_keylen);
+#endif
+
 	i = 0, k = 0, j = 0, l = 0, offset = 0;
 
 	while (template_key_offsets[l] != -1)
@@ -1818,7 +1828,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	max_keylen = options.req_maxlength ?
 		options.req_maxlength : fmt_maxlen;
 
-	if (options.flags & FLG_TEST_CHK)
+	if (options.flags & FLG_TEST_CHK && !(options.flags & FLG_MASK_STACKED))
 		max_keylen = strlen(mask_fmt->params.tests[0].plaintext);
 
 	if ((options.flags & FLG_MASK_STACKED) && max_keylen < 2) {
