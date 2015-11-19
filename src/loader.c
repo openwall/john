@@ -154,6 +154,7 @@ void ldr_init_database(struct db_main *db, struct db_options *db_options)
 {
 	db->loaded = 0;
 
+	db->real = db;
 	db->pw_size = sizeof(struct db_password);
 	db->salt_size = sizeof(struct db_salt);
 	if (!(db_options->flags & DB_WORDS)) {
@@ -1053,41 +1054,63 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 		db->options->flags |= DB_NEED_REMOVAL;
 }
 
-struct db_main *ldr_init_fake_db(struct fmt_main *format)
+struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 {
-	struct db_main *fakedb;
+	struct fmt_main *real_list = fmt_list;
+	struct fmt_main fake_list;
+	struct db_main *testdb;
 	struct fmt_tests *current;
-	char *ciphertext;
 
 	if (!(current = format->params.tests))
 		return NULL;
 
-	fakedb = mem_alloc(sizeof(struct db_main));
+	memcpy(&fake_list, format, sizeof(struct fmt_main));
+	fake_list.next = NULL;
+	fmt_list = &fake_list;
 
-	ldr_init_database(fakedb, &options.loader);
-	fakedb->format = format;
-	ldr_init_password_hash(fakedb);
+	testdb = mem_alloc(sizeof(struct db_main));
 
-	while ((ciphertext = (current++)->ciphertext)) {
+	fmt_init(format);
+	ldr_init_database(testdb, &options.loader);
+	testdb->real = real;
+	testdb->format = format;
+	ldr_init_password_hash(testdb);
+
+	while (current->ciphertext) {
 		char line[LINE_BUFFER_SIZE];
 
-		strcpy(line, ciphertext);
-		ldr_load_pw_line(fakedb, line);
+		if (!current->fields[1])
+			current->fields[1] = current->ciphertext;
+		strcpy(line, format->methods.prepare(current->fields, format));
+
+		ldr_load_pw_line(testdb, line);
+		current++;
 	}
 
-	ldr_fix_database(fakedb);
+	ldr_fix_database(testdb);
 
 	if (options.verbosity > 3)
-	fprintf(stderr, "Loaded %d hashes with %d different salts to fake db from test vectors\n", fakedb->password_count, fakedb->salt_count);
+	fprintf(stderr, "Loaded %d hashes with %d different salts to test db from test vectors\n", testdb->password_count, testdb->salt_count);
 
-	return fakedb;
+	fmt_list = real_list;
+	return testdb;
 }
 
-void ldr_free_fake_db(struct db_main *fakedb)
+void ldr_free_test_db(struct db_main *db)
 {
-	if (fakedb) {
-		MEM_FREE(fakedb->salt_hash);
-		MEM_FREE(fakedb);
+	if (db) {
+		if (db->format &&
+		    (db->format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT)
+		{
+			struct db_salt *psalt = db->salts;
+			while (psalt) {
+				dyna_salt_remove(psalt->salt);
+				psalt = psalt->next;
+			}
+		}
+		MEM_FREE(db->salt_hash);
+		MEM_FREE(db->cracked_hash);
+		MEM_FREE(db);
 	}
 }
 
