@@ -25,7 +25,7 @@ __kernel void GenerateSHA1pwhash(
 	uint W[16];
 	uint output[5];
 	uint gid = get_global_id(0);
-	uint A, B, C, D, E, temp, a, b, c, d, e;
+	uint A, B, C, D, E, temp;
 
 	/* Initial hash of salt + password */
 	/* The ending 0x80 is already in the buffer */
@@ -112,7 +112,7 @@ void Generate2007key(
 	uint i;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp, a, b, c, d, e;
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 	uint gid = get_global_id(0);
 
 #if (50000 % HASH_LOOPS)

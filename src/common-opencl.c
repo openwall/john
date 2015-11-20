@@ -1832,6 +1832,12 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 		int i;
 		MD5_CTX ctx;
 		char *kernel_source = NULL;
+		char *global_opts;
+
+		if (!(global_opts = getenv("OPENCLBUILDOPTIONS")))
+			if (!(global_opts = cfg_get_param(SECTION_OPTIONS,
+			    SUBSECTION_OPENCL, "GlobalBuildOpts")))
+				global_opts = OPENCLBUILDOPTIONS;
 
 		startTime = (unsigned long)time(NULL);
 
@@ -1841,12 +1847,13 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 		                               dev_name, NULL), "Error querying DEVICE_NAME");
 
 /*
- * Create a hash of kernel source and paramters, and use as cache name.
+ * Create a hash of kernel source and parameters, and use as cache name.
  */
 		MD5_Init(&ctx);
 		md5add(kernel_filename);
 		opencl_read_source(kernel_filename, &kernel_source);
 		md5add(kernel_source);
+		md5add(global_opts);
 		if (opts)
 			md5add(opts);
 		md5add(opencl_driver_ver(sequential_id));
