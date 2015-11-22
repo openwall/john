@@ -435,6 +435,22 @@
 		ctx[3] = d + D; \
 		ctx[4] = e + E; \
 	}
+
+#define sha1_block_scalar(W, ctx) {	  \
+		uint a, b, c, d, e; \
+		A = ctx[0]; \
+		B = ctx[1]; \
+		C = ctx[2]; \
+		D = ctx[3]; \
+		E = ctx[4]; \
+		a=A, b=B, c=C, d=D, e=E; \
+		SHA1(A, B, C, D, E, W); \
+		ctx[0] = a + A; \
+		ctx[1] = b + B; \
+		ctx[2] = c + C; \
+		ctx[3] = d + D; \
+		ctx[4] = e + E; \
+	}
 #else
 #define sha1_block(W, ctx) {	\
 		A = ctx[0]; \
@@ -449,6 +465,8 @@
 		ctx[3] += D; \
 		ctx[4] += E; \
 	}
+
+#define sha1_block_scalar sha1_block
 #endif
 
 #define sha1_single(W, out) {	\

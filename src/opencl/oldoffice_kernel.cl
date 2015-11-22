@@ -417,7 +417,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 			u |= (*p++ << 16U);
 			W[i >> 1] = SWAP32(u);
 		}
-		sha1_block(W, key);
+		sha1_block_scalar(W, key);
 		for (i = 0; i < len - 32; i += 2) {
 			uint u = *p++;
 			u |= (*p++ << 16U);
@@ -427,7 +427,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 		for (i = len - 32 + 1; i < 30; i++)
 			PUTSHORT_BE(W, i, 0);
 		W[15] = len << 4;
-		sha1_block(W, key);
+		sha1_block_scalar(W, key);
 	} else
 #endif
 #if PLAINTEXT_LENGTH > (27 - 8)
@@ -440,11 +440,11 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 		PUTSHORT_BE(W, len, 0x8000);
 		for (i = len + 1; i < 32; i++)
 			PUTSHORT_BE(W, i, 0);
-		sha1_block(W, key);
+		sha1_block_scalar(W, key);
 		for (i = 0; i < 15; i++)
 			W[i] = 0;
 		W[15] = len << 4;
-		sha1_block(W, key);
+		sha1_block_scalar(W, key);
 	} else
 #endif
 	{
@@ -458,7 +458,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 			PUTSHORT_BE(W, i, 0);
 		W[15] = len << 4;
 #if PLAINTEXT_LENGTH > (27 - 8)
-		sha1_block(W, key);
+		sha1_block_scalar(W, key);
 #else
 		sha1_single(W, key);
 #endif
