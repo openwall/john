@@ -609,6 +609,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordfile")))
 		name = options.wordlist = WORDLIST_NAME;
 
+	if (options.flags & FLG_STACKED)
+		options.max_fix_state_delay = 0;
+
 	if (name) {
 		char *cp, csearch;
 		int64_t ourshare = 0;
@@ -924,7 +927,16 @@ skip:
 			words = mem_alloc(max_pipe_words * sizeof(char*));
 			rules_keep = rules;
 
-GRAB_NEXT_PIPE_LOAD:;
+			init_once = 0;
+
+			status_init(get_progress, 0);
+
+			rec_restore_mode(restore_state);
+			rec_init(db, save_state);
+
+			crk_init(db, fix_state, NULL);
+
+GRAB_NEXT_PIPE_LOAD:
 #if HAVE_WINDOWS_H
 			if (options.sharedmemoryfilename != NULL)
 				goto MEM_MAP_LOAD;
@@ -985,7 +997,7 @@ GRAB_NEXT_PIPE_LOAD:;
 			}
 #if HAVE_WINDOWS_H
 			goto SKIP_MEM_MAP_LOAD;
-MEM_MAP_LOAD:;
+MEM_MAP_LOAD:
 			{
 				rules = rules_keep;
 				nWordFileLines = 0;
@@ -1006,7 +1018,7 @@ MEM_MAP_LOAD:;
 					}
 				}
 			}
-SKIP_MEM_MAP_LOAD:;
+SKIP_MEM_MAP_LOAD:
 #endif
 		}
 	}
@@ -1054,9 +1066,6 @@ REDO_AFTER_LMLOOP:
 		                  (!nWordFileLines && rec_pos)))
 			do_lmloop = 0;
 		rec_init(db, save_state);
-
-		if (options.flags & FLG_STACKED)
-			options.max_fix_state_delay = 0;
 
 		crk_init(db, fix_state, NULL);
 	}

@@ -1629,7 +1629,7 @@ static void john_run(void)
 				log_flush();
 			}
 		}
-		tty_init(options.flags & FLG_STDIN_CHK);
+		tty_init(options.flags & (FLG_STDIN_CHK | FLG_PIPE_CHK));
 
 		if (john_main_process &&
 		    database.format->params.flags & FMT_NOT_EXACT) {

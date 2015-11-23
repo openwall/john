@@ -47,7 +47,7 @@ static int tty_fd = -1;
 static struct termios saved_ti;
 #endif
 
-void tty_init(int stdin_mode)
+void tty_init(opt_flags stdin_mode)
 {
 #if !defined(__DJGPP__) && !defined(__MINGW32__) && !defined (_MSC_VER)
 	int fd;

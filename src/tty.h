@@ -14,6 +14,7 @@
 
 #ifndef _JOHN_TTY_H
 #define _JOHN_TTY_H
+#include "options.h"
 
 /*
  * Initializes the terminal for unbuffered non-blocking input. Also registers
@@ -21,7 +22,7 @@
  * stdin_mode indicates whether we're running with "--stdin" (reading candidate
  * passwords from stdin) or not.
  */
-extern void tty_init(int stdin_mode);
+extern void tty_init(opt_flags stdin_mode);
 
 /*
  * Reads a character, returns -1 if no data available or on error.
