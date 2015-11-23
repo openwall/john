@@ -46,7 +46,7 @@ __kernel void GenerateSHA1pwhash(
 			W[i] = SWAP32(unicode_pw[gid * (UNICODE_LENGTH>>2) + i + 12]);
 		W[14] = 0;
 		W[15] = (pw_len[gid] + 16) << 3;
-		sha1_block_scalar(W, output);
+		sha1_block(W, output);
 	}
 
 #ifdef SCALAR

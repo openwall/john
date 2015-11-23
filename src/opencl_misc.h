@@ -43,6 +43,11 @@ typedef struct dyna_salt_t {
 	host_size_t bitfield_and_offset;
 } dyna_salt;
 
+/* Needed for OSX. Doesn't help on stupid intel Linux driver */
+#ifndef typeof
+#define typeof __typeof__
+#endif
+
 #ifndef MIN
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #endif
