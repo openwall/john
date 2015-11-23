@@ -998,27 +998,27 @@ GRAB_NEXT_PIPE_LOAD:
 #if HAVE_WINDOWS_H
 			goto SKIP_MEM_MAP_LOAD;
 MEM_MAP_LOAD:
-			{
-				rules = rules_keep;
-				nWordFileLines = 0;
-				if (options.verbosity > 3)
+			rules = rules_keep;
+			nWordFileLines = 0;
+			if (options.verbosity > 3)
 				log_event("- Reading next block of candidate from the memory mapped file");
-				release_sharedmem_object(pIPC);
-				pIPC = next_sharedmem_object();
-				if (!pIPC || pIPC->n == 0) {
-					pipe_input = 0;
-					shutdown_sharedmem();
-					goto EndOfFile;
-				} else {
-					int i;
-					nWordFileLines = pIPC->n;
-					words[0] = pIPC->Data;
-					for (i = 1; i < nWordFileLines; ++i) {
-						words[i] = words[i-1] + pIPC->WordOff[i-1];
-					}
+			release_sharedmem_object(pIPC);
+			pIPC = next_sharedmem_object();
+			if (!pIPC || pIPC->n == 0) {
+				pipe_input = 0;
+				shutdown_sharedmem();
+				goto EndOfFile;
+			} else {
+				int i;
+				nWordFileLines = pIPC->n;
+				words[0] = pIPC->Data;
+				for (i = 1; i < nWordFileLines; ++i) {
+					words[i] =
+						words[i-1] + pIPC->WordOff[i-1];
 				}
 			}
 SKIP_MEM_MAP_LOAD:
+			; /* Needed for the label */
 #endif
 		}
 	}
