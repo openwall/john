@@ -23,7 +23,6 @@ typedef struct {
 	uchar salt[36]; // essid
 } wpapsk_salt;
 
-/*
 typedef struct {
 	MAYBE_VECTOR_UINT W[5];
 	MAYBE_VECTOR_UINT ipad[5];
@@ -31,26 +30,19 @@ typedef struct {
 	MAYBE_VECTOR_UINT out[5];
 	MAYBE_VECTOR_UINT partial[5];
 } wpapsk_state;
-*/
-// Using a coalesced buffer instead, eg. state[(IPAD + i) * gws + gid]
-//      W    0
-#define IPAD 5
-#define OPAD 10
-#define OUT 15
-#define PARTIAL 20
 
 inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
+                      __global MAYBE_VECTOR_UINT *ipad,
+                      __global MAYBE_VECTOR_UINT *opad,
                       MAYBE_CONSTANT uchar *salt, uint saltlen, uchar add)
 {
 	uint i;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
 	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
-	uint gid = get_global_id(0);
-	uint gws = get_global_size(0);
 
 	for (i = 0; i < 5; i++)
-		output[i] = state[(IPAD + i) * gws + gid];
+		output[i] = ipad[i];
 
 	for (i = 0; i < 15; i++)
 		W[i] = 0;
@@ -67,7 +59,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 	W[5] = 0x80000000;
 
 	for (i = 0; i < 5; i++)
-		output[i] = state[(OPAD + i) * gws + gid];
+		output[i] = opad[i];
 #if USE_SHA1_SHORT
 	W[15] = (64 + 20) << 3;
 	sha1_block_160Z(W, output);
@@ -78,18 +70,16 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 	sha1_block(W, output);
 #endif
 	for (i = 0; i < 5; i++)
-		state[(OUT + i) * gws + gid] = output[i];
+		state[i] = output[i];
 }
 
 inline void preproc(__global const MAYBE_VECTOR_UINT *key,
-                    __global MAYBE_VECTOR_UINT *state, uint pad, uint padding)
+                    __global MAYBE_VECTOR_UINT *state, uint padding)
 {
 	uint i;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
 	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
-	uint gid = get_global_id(0);
-	uint gws = get_global_size(0);
 
 	for (i = 0; i < 16; i++)
 		W[i] = key[i] ^ padding;
@@ -97,34 +87,33 @@ inline void preproc(__global const MAYBE_VECTOR_UINT *key,
 	sha1_single(W, output);
 
 	for (i = 0; i < 5; i++)
-		state[(pad + i) * gws + gid] = output[i];
+		state[i] = output[i];
 }
 
 __kernel
 __attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
 void wpapsk_init(__global const MAYBE_VECTOR_UINT *inbuffer,
                  MAYBE_CONSTANT wpapsk_salt *salt,
-                 __global MAYBE_VECTOR_UINT *state)
+                 __global wpapsk_state *state)
 {
 	uint gid = get_global_id(0);
-	uint gws = get_global_size(0);
 	uint i;
 
-	preproc(&inbuffer[gid * 16], state, IPAD, 0x36363636);
-	preproc(&inbuffer[gid * 16], state, OPAD, 0x5c5c5c5c);
+	preproc(&inbuffer[gid * 16], state[gid].ipad, 0x36363636);
+	preproc(&inbuffer[gid * 16], state[gid].opad, 0x5c5c5c5c);
 
-	hmac_sha1(state, salt->salt, salt->length, 0x01);
+	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad,
+	          salt->salt, salt->length, 0x01);
 
 	for (i = 0; i < 5; i++)
-		state[i * gws + gid] = state[(OUT + i) * gws + gid];
+		state[gid].W[i] = state[gid].out[i];
 }
 
 __kernel
 __attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
-void wpapsk_loop(__global MAYBE_VECTOR_UINT *state)
+void wpapsk_loop(__global wpapsk_state *state)
 {
 	uint gid = get_global_id(0);
-	uint gws = get_global_size(0);
 	uint i, j;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT ipad[5];
@@ -132,12 +121,14 @@ void wpapsk_loop(__global MAYBE_VECTOR_UINT *state)
 	MAYBE_VECTOR_UINT output[5];
 	MAYBE_VECTOR_UINT state_out[5];
 
-	for (i = 0; i < 5; i++) {
-		W[i] = state[i * gws + gid];
-		ipad[i] = state[(i + IPAD) * gws + gid];
-		opad[i] = state[(i + OPAD) * gws + gid];
-		state_out[i] = state[(i + OUT) * gws + gid];
-	}
+	for (i = 0; i < 5; i++)
+		W[i] = state[gid].W[i];
+	for (i = 0; i < 5; i++)
+		ipad[i] = state[gid].ipad[i];
+	for (i = 0; i < 5; i++)
+		opad[i] = state[gid].opad[i];
+	for (i = 0; i < 5; i++)
+		state_out[i] = state[gid].out[i];
 
 	for (j = 0; j < HASH_LOOPS; j++) {
 		MAYBE_VECTOR_UINT A, B, C, D, E, temp;
@@ -175,31 +166,29 @@ void wpapsk_loop(__global MAYBE_VECTOR_UINT *state)
 			state_out[i] ^= output[i];
 	}
 
-	for (i = 0; i < 5; i++) {
-		state[i * gws + gid] = W[i];
-		state[(i + OUT) * gws + gid] = state_out[i];
-	}
+	for (i = 0; i < 5; i++)
+		state[gid].W[i] = W[i];
+	for (i = 0; i < 5; i++)
+		state[gid].out[i] = state_out[i];
 }
 
 __kernel
 __attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
 void wpapsk_pass2(MAYBE_CONSTANT wpapsk_salt *salt,
-                  __global MAYBE_VECTOR_UINT *state)
+                  __global wpapsk_state *state)
 {
 	uint gid = get_global_id(0);
-	uint gws = get_global_size(0);
 	uint i;
 
 	for (i = 0; i < 5; i++)
-		state[(i + PARTIAL) * gws + gid] = state[(i + OUT) * gws + gid];
+		state[gid].partial[i] = state[gid].out[i];
 	for (i = 0; i < 5; i++)
-		state[(i + OUT) * gws + gid] =
-			VSWAP32(state[(i + OUT) * gws + gid]);
+		state[gid].out[i] = VSWAP32(state[gid].out[i]);
 
-	hmac_sha1(state, salt->salt, salt->length, 0x02);
+	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad, salt->salt, salt->length, 0x02);
 
 	for (i = 0; i < 5; i++)
-		state[i * gws + gid] = state[(OUT + i) * gws + gid];
+		state[gid].W[i] = state[gid].out[i];
 }
 
 //__constant uchar *text = "Pairwise key expansion\0";
@@ -273,12 +262,11 @@ inline void prf_512(const MAYBE_VECTOR_UINT *key,
 
 __kernel
 __attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
-void wpapsk_final_md5(__global MAYBE_VECTOR_UINT *state,
+void wpapsk_final_md5(__global wpapsk_state *state,
                       MAYBE_CONSTANT wpapsk_salt *salt,
                       __global mic_t *mic)
 {
 	uint gid = get_global_id(0);
-	uint gws = get_global_size(0);
 	MAYBE_VECTOR_UINT outbuffer[8];
 	MAYBE_VECTOR_UINT prf[4];
 	MAYBE_VECTOR_UINT W[16];
@@ -288,10 +276,10 @@ void wpapsk_final_md5(__global MAYBE_VECTOR_UINT *state,
 	MAYBE_CONSTANT uint *cp = salt->eapol;
 
 	for (i = 0; i < 5; i++)
-		outbuffer[i] = state[(PARTIAL + i) * gws + gid];
+		outbuffer[i] = state[gid].partial[i];
 
 	for (i = 0; i < 3; i++)
-		outbuffer[5 + i] = state[(OUT + i) * gws + gid];
+		outbuffer[5 + i] = state[gid].out[i];
 
 	prf_512(outbuffer, salt->data, prf);
 
@@ -371,14 +359,13 @@ void wpapsk_final_md5(__global MAYBE_VECTOR_UINT *state,
 
 __kernel
 __attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
-void wpapsk_final_sha1(__global MAYBE_VECTOR_UINT *state,
+void wpapsk_final_sha1(__global wpapsk_state *state,
                        MAYBE_CONSTANT wpapsk_salt *salt,
                        __global mic_t *mic)
 {
 	MAYBE_VECTOR_UINT outbuffer[8];
 	MAYBE_VECTOR_UINT prf[4];
 	uint gid = get_global_id(0);
-	uint gws = get_global_size(0);
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
@@ -387,10 +374,10 @@ void wpapsk_final_sha1(__global MAYBE_VECTOR_UINT *state,
 	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 
 	for (i = 0; i < 5; i++)
-		outbuffer[i] = state[(PARTIAL + i) * gws + gid];
+		outbuffer[i] = state[gid].partial[i];
 
 	for (i = 0; i < 3; i++)
-		outbuffer[5 + i] = state[(OUT + i) * gws + gid];
+		outbuffer[5 + i] = state[gid].out[i];
 
 	prf_512(outbuffer, salt->data, prf);
 
