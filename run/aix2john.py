@@ -2,6 +2,7 @@
 
 import binascii
 import sys
+import re
 
 try:
 	 import argparse
@@ -20,12 +21,11 @@ def process_file(filename, is_standard):
     username = "?"
 
     for line in fd.readlines():
-        line = line.rstrip('\n')
-        if line.endswith(':'):
+        if re.match('^\s*\S+\s*:\s*$',line):
             username = line.split(':')[0]
 
         if "password = " in line and "smd5" in line:
-            h = line.split("=")[1].lstrip().rstrip()
+            h = line.split("=")[1].strip()
             if len(h) != 37:
                 continue
             if is_standard:
@@ -35,7 +35,7 @@ def process_file(filename, is_standard):
                     h))
 
         elif "password = " in line and "ssha" in line:
-            h = line.split("=")[1].lstrip().rstrip()
+            h = line.split("=")[1].strip()
 
             tc, salt, h = h.split('$')
 
@@ -43,14 +43,14 @@ def process_file(filename, is_standard):
                     tc, salt, h))
 
         elif "password = " in line:  # DES
-            h = line.split("=")[1].lstrip().rstrip()
+            h = line.split("=")[1].strip()
             if h != "*":
                 sys.stdout.write("%s:%s\n" % (username, h))
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s [-s] <AIX passwd file(s) "
+        sys.stderr.write("Usage: %s [-s] -f <AIX passwd file "
             "(/etc/security/passwd)>\n" % sys.argv[0])
         sys.exit(-1)
 
@@ -61,7 +61,13 @@ parser.add_argument('-s', action="store_true",
 						help='Use this option if "lpa_options '
 								'= std_hash=true" is activated'
 						)
+
+parser.add_argument('-f', dest="filename",
+						default=False,
+						help='Specify the filename to read'
+						)
+
 args = parser.parse_args()
 
-for f in remainder:
-    process_file(f, options.is_standard)
+if args.filename:
+    process_file(args.filename, args.is_standard)
