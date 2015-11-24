@@ -23,11 +23,11 @@
 $currentuser="";
 while(<>){
 	chomp;
-	if (m!^(\w+):$!){
+	if (m/^\s*([^:]+):\s*$/){
 		$currentuser=$1;
 		next;
 	}
-	if (m!^\s*password\s+=\s+(\S+)$! and $1 ne "*"){
+	if (m/^\s*password\s+=\s*(\S+)\s*$/ and $1 ne "*"){
 		print "$currentuser:$1\n";
 		$currentuser="";
 		next
