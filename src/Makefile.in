@@ -54,8 +54,8 @@ CPPFLAGS = @CPPFLAGS@
 CFLAGSX = -c @CFLAGS@ @CFLAGS_EXTRA@ @MEMDBG_CFLAGS@ @HAVE_CUDA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ @HT@ $(RELEASE_BLD) $(CPPFLAGS)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = -DAC_BUILT @CC_MAIN_CPU@ $(CFLAGSX)
-CFLAGS = -DAC_BUILT @CC_CPU@ $(CFLAGSX)
-ASFLAGS = -DAC_BUILT @ASFLAGS@ @CC_CPU@ -c @OPENMP_CFLAGS@ @HAVE_MPI@ @EXTRA_AS_FLAGS@ @HT@
+CFLAGS = -DAC_BUILT @CC_CPU@ @CC_MAIN_CPU@ $(CFLAGSX)
+ASFLAGS = -DAC_BUILT @ASFLAGS@ @CC_CPU@ @CC_MAIN_CPU@ -c @OPENMP_CFLAGS@ @HAVE_MPI@ @EXTRA_AS_FLAGS@ @HT@
 LIBS = @LIBS@
 LDFLAGS = -g @LDFLAGS@ $(LIBS) @HAVE_MPI@
 #
@@ -565,6 +565,14 @@ win32_memmap.o:	win32_memmap.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h st
 wordlist.o:	wordlist.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h stdint.h win32_memmap.h mmap-windows.c memdbg.h memory.h misc.h math.h params.h common.h path.h signals.h loader.h list.h formats.h logger.h status.h recovery.h options.h getopt.h rpp.h config.h rules.h external.h compiler.h cracker.h john.h unicode.h regex.h mask.h pseudo_intrinsics.h aligned.h
 
 wpapcap2john.o:	wpapcap2john.c wpapcap2john.h arch.h johnswap.h common.h memory.h jumbo.h stdint.h memdbg.h os.h os-autoconf.h autoconfig.h
+
+x86-64.o:	x86-64.S arch.h
+
+x86-mmx.o:	x86-mmx.S arch.h
+
+x86-sse.o:	x86-sse.S arch.h
+
+x86.o:	x86.S arch.h
 
 zip2john.o:	zip2john.c arch.h common.h memory.h jumbo.h stdint.h formats.h params.h misc.h autoconfig.h pkzip.h dyna_salt.h crc32.h missing_getopt.h memdbg.h os.h os-autoconf.h
 

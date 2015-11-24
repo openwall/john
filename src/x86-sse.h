@@ -23,11 +23,11 @@
 #include "autoconfig.h"
 #else
 #if defined (_MSC_VER) && !defined (_OPENMP)
-#define __SSE2__
-//#define __SSSE3__
-//#define __SSE4_1__
-//#define __XOP__
-//#define __AVX__
+#define __SSE2__ 1
+//#define __SSSE3__ 1
+//#define __SSE4_1__ 1
+//#define __XOP__ 1
+//#define __AVX__ 1
 #endif
 #define ARCH_WORD			long
 #define ARCH_SIZE			4
@@ -44,19 +44,37 @@
 #define CPU_DETECT			1
 #define CPU_REQ				1
 #define CPU_NAME			"SSE2"
-#ifndef CPU_FALLBACK
-#define CPU_FALLBACK			0
-#endif
+
 #if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
 #define CPU_FALLBACK_BINARY		"john-non-sse"
 #define CPU_FALLBACK_BINARY_DEFAULT
 #endif
 
+#if __SSSE3__ || JOHN_SSSE3
+#define CPU_REQ_SSSE3			1
+#undef CPU_NAME
+#define CPU_NAME			"SSSE3"
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
+#define CPU_FALLBACK_BINARY		"john-non-ssse3"
+#define CPU_FALLBACK_BINARY_DEFAULT
+#endif
+#endif
+
+#if __SSE4_1__ || JOHN_SSE4_1
+#define CPU_REQ_SSE4_1			1
+#undef CPU_NAME
+#define CPU_NAME			"SSE4.1"
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
+#define CPU_FALLBACK_BINARY		"john-non-sse4.1"
+#define CPU_FALLBACK_BINARY_DEFAULT
+#endif
+#endif
+
 #ifdef __XOP__
-#define JOHN_XOP
+#define JOHN_XOP			1
 #endif
 #if defined(__AVX__) || defined(JOHN_XOP)
-#define JOHN_AVX
+#define JOHN_AVX			1
 #endif
 
 #ifdef __SSSE3__
@@ -82,7 +100,7 @@
  * Require gcc for AVX/XOP because DES_bs_all is aligned in a gcc-specific way,
  * except in OpenMP-enabled builds, where it's aligned by different means.
  */
-#define CPU_REQ_AVX
+#define CPU_REQ_AVX			1
 #undef CPU_NAME
 #define CPU_NAME			"AVX"
 #ifdef CPU_FALLBACK_BINARY_DEFAULT
@@ -90,11 +108,18 @@
 #define CPU_FALLBACK_BINARY		"john-non-avx"
 #endif
 #define DES_BS_ASM			0
-#if __AVX2__
+#if __AVX2__ || JOHN_AVX2
+#undef CPU_NAME
+#define CPU_NAME			"AVX2"
+#define CPU_REQ_AVX2			1
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
+#define CPU_FALLBACK_BINARY		"john-non-avx2"
+#define CPU_FALLBACK_BINARY_DEFAULT
+#endif
 #define DES_BS_VECTOR			8
 #if defined(JOHN_XOP) && defined(__GNUC__)
 /* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
-#define CPU_REQ_XOP
+#define CPU_REQ_XOP			1
 #undef CPU_NAME
 #define CPU_NAME			"XOP2"
 #ifdef CPU_FALLBACK_BINARY_DEFAULT

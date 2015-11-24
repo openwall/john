@@ -694,14 +694,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (strcmp(ciphertext,
 		    format->methods.source(ciphertext, binary)))
 			return "source";
-#else
-		if (strcmp(ciphertext,
-		    format->methods.source(ciphertext, binary))) {
-			//static char LargeBuf[500];
-			//sprintf(LargeBuf, "source\n%.200s\n%.200s\n", ciphertext, format->methods.source(ciphertext, binary));
-			//return LargeBuf;
-			return "source";
-		}
 #endif
 
 		if ((unsigned int)format->methods.salt_hash(salt) >=
@@ -709,6 +701,12 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			return "salt_hash";
 
 		format->methods.set_salt(salt);
+#ifdef JUMBO_JTR
+		if (strcmp(ciphertext,
+		    format->methods.source(ciphertext, binary))) {
+			return "source";
+		}
+#endif
 #ifndef JUMBO_JTR
 		format->methods.set_key(current->plaintext, index);
 

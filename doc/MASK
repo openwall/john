@@ -29,29 +29,30 @@ A mask may consist of:
 - Placeholders for Hybrid Mask mode:
   ?w is a placeholder for the original word produced by the parent mode in
      Hybrid Mask mode.
-  ?W is a placeholder for the original word produced by the parent mode in
-     Hybrid Mask mode, but instead of the original word, use the word with
-     the case of all letters toggled (so PassWord becomes pASSwORD)
+  ?W is just like ?w except the original word is case toggled (so PassWord
+     becomes pASSwORD).
 
 Mask Mode alone produces words from the mask, for example ?u?l?l will generate
 all possible three-letter words, with first character uppercased and the
 remaining in lowercase.
 
-Hybrid Mask means we use eg. a wordlist with or without rules (or any other
-cracking mode), and then apply the mask to each word. So with a mask of ?w?d?d
-and an input word (from the parent cracking mode) of "pass", it will produce
-"pass00", "pass01" and so on until "pass99". Hybrid Mask can be stacked upon
-incremental, markov, wordlist, loopback and external modes. It is currently
-not supported for single or regex modes.
+Hybrid (a.k.a Stacked) Mask means we use eg. a wordlist with or without rules
+(or any other cracking mode), and then apply the mask to each word.  So with a
+mask of ?w?d?d and an input word (from the parent cracking mode) of "pass",
+it will produce "pass00", "pass01" and so on until "pass99".  Hybrid Mask can
+be stacked upon any other mode except single.  Hybrid Mask can even be applied
+after hybrid regex, eg "prince -> regex -> mask".
 
 For most fast GPU formats, mask mode (including hybrid) is several orders of
 magnitude faster than any other cracking mode, as the mask (or part of it) is
-applied on GPU side.
+applied on GPU side.  Hybrid mask can thus be used as a GPU accelerator for
+any mode except single.
 
-External filters can be applied too, and will be applied last of all. The
-"longest" chain is thus wordlist->rules->mask->filter. Using external filters
-with "GPU side mask" will cause undefined behavior though: The filter will
-be applied before the GPU-side mask has finished the word.
+External filters can be applied too, and will be applied last of all.  The
+"longest" chain is thus "wordlist -> rules -> regex -> mask -> filter".  Using
+external filters with "GPU side mask" will cause a somewhat undefined behavior
+though: The filter will be applied before the GPU-side mask has finished the
+word!
 
 You can define custom placeholders for ?1 .. ?9 using command line eg. -1=?l?u
 or in john.conf section [Mask].
@@ -64,15 +65,15 @@ produced.
 
 The -min-len=N option will skip generation of words shorter than N, and more
 importantly in this case, it will iterate length from -min-len to -max-len (or
-format's max length, if -max-len was not given). So to produce all possible
-words from 3 to 5 letters, use -mask=?l -min-len=3 -max-len=5. In case the
+format's max length, if -max-len was not given).  So to produce all possible
+words from 3 to 5 letters, use -mask=?l -min-len=3 -max-len=5.  In case the
 specified mask is shorter, the last part of it will be expanded, for example
 "-mask=?u?l -max-len=5" will use an effective mask of ?u?l?l?l?l.
 
-You can escape special characters with \. So to produce a literal "?l" you
-could say \?l or ?\l and it will not be parsed as a placeholder. Similarly you
-can escape dashes or brackets to prevent them from being parsed as specials. To
-produce a literal backslash, use \\.
+You can escape special characters with \.  So to produce a literal "?l" you
+could say \?l or ?\l and it will not be parsed as a placeholder.  Similarly,
+you can escape dashes or brackets to prevent them from being parsed as
+specials.  To produce a literal backslash, use \\.
 
 There is also a special hex notation, \xHH for specifying any character code.
 For example, \x41 is "A" and \x09 is the code for TAB.

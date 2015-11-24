@@ -170,8 +170,9 @@
 /* Mask mode is stacked */
 #define FLG_MASK_STACKED		0x0004000000000000ULL
 /* Stacking modes */
-#define FLG_STACKING	\
-	(FLG_MASK_CHK | FLG_REGEX_CHK)
+#define FLG_STACKING			(FLG_MASK_CHK | FLG_REGEX_CHK)
+/* Any stacking mode is active */
+#define FLG_STACKED			(FLG_MASK_STACKED | FLG_REGEX_STACKED)
 /* PRINCE mode enabled, options.wordlist is set to the file name, or
  * we get it from john.conf */
 #define FLG_PRINCE_CHK			0x0008000000000000ULL

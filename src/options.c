@@ -55,6 +55,7 @@
 #endif
 #include "version.h"
 #include "listconf.h" /* must be included after version.h */
+#include "jumbo.h"
 #include "memdbg.h"
 
 struct options_main options;
@@ -90,7 +91,7 @@ static struct opt_entry opt_list[] = {
 	{"prince-case-permute", FLG_PRINCE_CASE_PERMUTE, 0,
 		FLG_PRINCE_CHK, FLG_PRINCE_MMAP},
 	{"prince-keyspace", FLG_PRINCE_KEYSPACE | FLG_STDOUT, 0,
-		FLG_PRINCE_CHK, 0},
+		FLG_PRINCE_CHK, FLG_RULES},
 	{"prince-mmap", FLG_PRINCE_MMAP, 0,
 		FLG_PRINCE_CHK, FLG_PRINCE_CASE_PERMUTE},
 #endif
@@ -118,7 +119,7 @@ static struct opt_entry opt_list[] = {
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"mask", FLG_MASK_SET, FLG_MASK_CHK,
-		0, FLG_REGEX_CHK, OPT_FMT_STR_ALLOC, &options.mask},
+		0, 0, OPT_FMT_STR_ALLOC, &options.mask},
 	{"1", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.custom_mask[0]},
 	{"2", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
@@ -146,7 +147,7 @@ static struct opt_entry opt_list[] = {
 		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.external},
 #if HAVE_REXGEN
 	{"regex", FLG_REGEX_SET, FLG_REGEX_CHK,
-		0, FLG_MASK_CHK | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC,
+		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC,
 		&options.regex},
 #endif
 	{"stdout", FLG_STDOUT, FLG_STDOUT,
@@ -311,7 +312,7 @@ static struct opt_entry opt_list[] = {
 PRINCE_USAGE \
 "--encoding=NAME           input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
 "                          doc/ENCODING and --list=hidden-options.\n" \
-"--rules[=SECTION]         enable word mangling rules for wordlist modes\n" \
+"--rules[=SECTION]         enable word mangling rules for wordlist or PRINCE\n" \
 "--incremental[=MODE]      \"incremental\" mode [using section MODE]\n" \
 "--mask[=MASK]             mask mode using MASK (or default mask from john.conf)\n" \
 "--markov[=OPTIONS]        \"Markov\" mode (see doc/MARKOV)\n" \
@@ -476,13 +477,21 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	opt_process(opt_list, &options.flags, argv);
 
+#if HAVE_REXGEN
+	/* We allow regex as parent for hybrid mask, not vice versa */
+	if ((options.flags & FLG_REGEX_CHK) && (options.flags & FLG_MASK_CHK)) {
+		if (!(options.flags & FLG_CRACKING_CHK))
+			options.flags |= (FLG_CRACKING_SET | FLG_MASK_STACKED);
+		else
+			options.flags |= (FLG_REGEX_STACKED | FLG_MASK_STACKED);
+	} else
+#endif
 	if (options.flags & FLG_MASK_CHK) {
 		if (options.flags & FLG_TEST_CHK) {
 			options.flags &= ~FLG_PWD_SUP;
 			options.flags |= FLG_NOTESTS;
 
-			if (options.mask && (strstr(options.mask, "?w") ||
-			                     strstr(options.mask, "?W")))
+			if (options.mask && strcasestr(options.mask, "?w"))
 				options.flags |= FLG_MASK_STACKED;
 
 			if (!benchmark_time) {
@@ -492,25 +501,38 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 			if (benchmark_time == 1)
 				benchmark_time = 2;
-		} else
-		if (options.flags & FLG_CRACKING_CHK)
-			options.flags |= FLG_MASK_STACKED;
-		else if (options.mask && strcasestr(options.mask, "?w")) {
-			fprintf(stderr, "?w is only used with hybrid mask\n");
-			error();
-		} else
-			options.flags |= FLG_CRACKING_SET;
+		} else {
+			if (options.mask && strcasestr(options.mask, "?w") &&
+			    (options.flags & FLG_EXTERNAL_CHK))
+				options.flags |= FLG_MASK_STACKED;
+			if (!(options.flags & FLG_MASK_STACKED)) {
+				if (options.flags & FLG_CRACKING_CHK)
+					options.flags |= FLG_MASK_STACKED;
+				else
+					options.flags |= FLG_CRACKING_SET;
+			}
+		}
 	}
+#if HAVE_REXGEN
 	if (options.flags & FLG_REGEX_CHK) {
-		if (options.flags & FLG_CRACKING_CHK)
-			options.flags |= FLG_REGEX_STACKED;
-		else if (strstr(options.regex, "\\0")) {
-			fprintf(stderr, "\\0 is only used with hybrid regex\n");
-			error();
-		} else
-			options.flags |= FLG_CRACKING_SET;
+		if (options.regex && strstr(options.regex, "\\0")) {
+			if ((options.flags & FLG_EXTERNAL_CHK) &&
+			    !(options.flags & FLG_CRACKING_CHK))
+				options.flags |= FLG_REGEX_STACKED;
+			else if (!(options.flags & FLG_CRACKING_CHK)) {
+				fprintf(stderr, "\\0 is only used with hybrid regex\n");
+				error();
+			}
+		}
+		if (!(options.flags & FLG_REGEX_STACKED)) {
+			if (options.flags & FLG_CRACKING_CHK) {
+				if (!(options.flags & FLG_MASK_STACKED))
+					options.flags |= FLG_REGEX_STACKED;
+			} else
+				options.flags |= FLG_CRACKING_SET;
+		}
 	}
-
+#endif
 	ext_flags = 0;
 	if (options.flags & FLG_EXTERNAL_CHK) {
 		if (options.flags & (FLG_CRACKING_CHK | FLG_MAKECHR_CHK)) {

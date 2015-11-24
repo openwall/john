@@ -1003,7 +1003,7 @@ sub bsdicrypt {
 	return "_".Crypt::UnixCrypt_XS::int24_to_base64($rounds).$salt.Crypt::UnixCrypt_XS::block_to_base64($h);
 }
 sub md5crypt {
-	$salt = get_salt(8);
+	$salt = get_salt(-8);
 	return md5crypt_hash($_[1], $salt, "\$1\$");
 }
 sub bfx_fix_pass {

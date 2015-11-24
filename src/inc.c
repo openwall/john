@@ -30,6 +30,7 @@
 #include "options.h"
 #include "unicode.h"
 #include "mask.h"
+#include "regex.h"
 #include "memdbg.h"
 
 extern struct fmt_main fmt_LM;
@@ -59,12 +60,21 @@ typedef char (*chars_table)
 static unsigned int rec_entry, rec_length;
 static unsigned char rec_numbers[CHARSET_LENGTH];
 
+static unsigned int hybrid_rec_entry, hybrid_rec_length;
+static unsigned char hybrid_rec_numbers[CHARSET_LENGTH];
+
 static unsigned int entry, length;
 static unsigned char numbers[CHARSET_LENGTH];
 static int counts[CHARSET_LENGTH][CHARSET_LENGTH];
 
 static unsigned int real_count, real_minc, real_min, real_max, real_size;
 static unsigned char real_chars[CHARSET_SIZE];
+
+#if HAVE_REXGEN
+static char *regex_alpha;
+static int regex_case;
+static char *regex;
+#endif
 
 static void save_state(FILE *file)
 {
@@ -101,9 +111,23 @@ static int restore_state(FILE *file)
 
 static void fix_state(void)
 {
+	if (hybrid_rec_entry || hybrid_rec_length) {
+		rec_entry = hybrid_rec_entry;
+		rec_length = hybrid_rec_length;
+		memcpy(rec_numbers, hybrid_rec_numbers, hybrid_rec_length);
+		hybrid_rec_entry = hybrid_rec_length = 0;
+		return;
+	}
 	rec_entry = entry;
 	rec_length = length;
 	memcpy(rec_numbers, numbers, length);
+}
+
+void inc_hybrid_fix_state(void)
+{
+	hybrid_rec_entry = entry;
+	hybrid_rec_length = length;
+	memcpy(hybrid_rec_numbers, numbers, length);
 }
 
 static void inc_format_error(char *charset)
@@ -334,7 +358,7 @@ static void inc_new_count(unsigned int length, int count, char *charset,
 		inc_format_error(charset);
 }
 
-static int inc_key_loop(int length, int fixed, int count,
+static int inc_key_loop(struct db_main *db, int length, int fixed, int count,
 	char *char1, char2_table char2, chars_table *chars)
 {
 	char key_i[PLAINTEXT_BUFFER_SIZE];
@@ -381,6 +405,14 @@ update_last:
 	}
 
 	key = key_i;
+#if HAVE_REXGEN
+	if (regex) {
+		if (do_regex_hybrid_crack(db, regex, key,
+		                          regex_case, regex_alpha))
+			return 1;
+		inc_hybrid_fix_state();
+	} else
+#endif
 	if (options.mask) {
 		if (do_mask_crack(key))
 			return 1;
@@ -491,6 +523,18 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		max_length /= mask_num_qw;
 		our_fmt_len /= mask_num_qw;
 	}
+
+#if HAVE_REXGEN
+	/* Hybrid regex */
+	if ((regex = prepare_regex(options.regex, &regex_case, &regex_alpha))) {
+		if (min_length)
+			min_length--;
+		if (max_length)
+			max_length--;
+		if (our_fmt_len)
+			our_fmt_len--;
+	}
+#endif
 
 	/* Command-line can over-ride lengths from config file */
 	if (options.req_minlength >= 0)
@@ -769,6 +813,16 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 		if (!length && !min_length) {
 			min_length = 1;
+#if HAVE_REXGEN
+			if (regex) {
+				if (!skip && do_regex_hybrid_crack(db, regex,
+				                                   fmt_null_key,
+				                                   regex_case,
+				                                   regex_alpha))
+					break;
+				inc_hybrid_fix_state();
+			} else
+#endif
 			if (options.mask) {
 				if (!skip && do_mask_crack(fmt_null_key))
 					break;
@@ -795,7 +849,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		log_event("- Trying length %d, fixed @%d, character count %d",
 		    length + 1, fixed + 1, counts[length][fixed] + 1);
 
-		if (inc_key_loop(length, fixed, count, char1, char2, chars))
+		if (inc_key_loop(db, length, fixed, count, char1, char2, chars))
 			break;
 	}
 

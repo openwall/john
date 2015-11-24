@@ -227,8 +227,8 @@ static void set_key(char *key, int index)
 	}
 	else
 #endif
-	while(((temp = JOHNSWAP64(*keyp++)) & 0xff00000000000000)) {
-		if (!(temp & 0x00ff000000000000) || !(temp & 0x0000ff0000000000))
+	while(((temp = JOHNSWAP64(*keyp++)) & 0xff00000000000000ULL)) {
+		if (!(temp & 0x00ff000000000000ULL) || !(temp & 0x0000ff0000000000ULL))
 		{
 			((unsigned short*)ipadp)[3] ^=
 				(unsigned short)(temp >> 48);
@@ -236,7 +236,7 @@ static void set_key(char *key, int index)
 				(unsigned short)(temp >> 48);
 			break;
 		}
-		if (!(temp & 0x00ff00000000) || !(temp & 0x0000ff000000))
+		if (!(temp & 0x00ff00000000ULL) || !(temp & 0x0000ff000000ULL))
 		{
 			((ARCH_WORD_32*)ipadp)[1] ^=
 				(ARCH_WORD_32)(temp >> 32);

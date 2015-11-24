@@ -60,8 +60,8 @@ sub proc_file {
 		$type = "oclh";
 	}
 	if (!$uniqobj_ref->{$src_file}++) {
-		if ($object =~ /\.c$/) {
-			$object =~ s/\.c$/.o/;
+		if ($object =~ /\.[cS]$/) {
+			$object =~ s/\.[cS]$/.o/;
 			$type = "c";
 		} elsif ($object =~ /\.cl$/) {
 			$object =~ s/^opencl\//..\/run\/kernels\//;

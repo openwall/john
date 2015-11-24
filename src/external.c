@@ -28,12 +28,20 @@
 #include "john.h"
 #include "external.h"
 #include "mask.h"
+#include "regex.h"
 #include "options.h"
 #include "unicode.h"
 #include "memdbg.h"
 
 static char int_word[PLAINTEXT_BUFFER_SIZE];
 static char rec_word[PLAINTEXT_BUFFER_SIZE];
+static char hybrid_rec_word[PLAINTEXT_BUFFER_SIZE];
+
+#if HAVE_REXGEN
+static char *regex_alpha;
+static int regex_case;
+static char *regex;
+#endif
 
 /*
  * A "sequence number" for distributing the candidate passwords across nodes.
@@ -41,6 +49,7 @@ static char rec_word[PLAINTEXT_BUFFER_SIZE];
  * in the same way for all nodes (must be same size unsigned integer type).
  */
 static unsigned int seq, rec_seq;
+static unsigned int hybrid_rec_seq;
 
 unsigned int ext_flags = 0;
 static char *ext_mode;
@@ -184,6 +193,15 @@ void ext_init(char *mode, struct db_main *db)
 	else
 		ext_minlen = 0;
 
+#if HAVE_REXGEN
+	/* Hybrid regex */
+	if ((regex = prepare_regex(options.regex, &regex_case, &regex_alpha))) {
+		if (maxlen)
+			maxlen--;
+		if (ext_minlen)
+			ext_minlen--;
+	}
+#endif
 	if (!(ext_source = cfg_get_list(SECTION_EXT, mode))) {
 		if (john_main_process)
 			fprintf(stderr, "Unknown external mode: %s\n", mode);
@@ -334,8 +352,19 @@ static int restore_state(FILE *file)
 
 static void fix_state(void)
 {
+	if (hybrid_rec_word[0]) {
+		strcpy(rec_word, hybrid_rec_word);
+		rec_seq = hybrid_rec_seq;
+		hybrid_rec_word[0] = 0;
+	}
 	strcpy(rec_word, int_word);
 	rec_seq = seq;
+}
+
+void ext_hybrid_fix_state(void)
+{
+	strcpy(hybrid_rec_word, int_word);
+	hybrid_rec_seq = seq;
 }
 
 void do_external_crack(struct db_main *db)
@@ -424,6 +453,14 @@ void do_external_crack(struct db_main *db)
 
 			int_word[maxlen] = 0;
 		}
+#if HAVE_REXGEN
+		if (regex) {
+			if (do_regex_hybrid_crack(db, regex, int_word,
+			                          regex_case, regex_alpha))
+				break;
+			ext_hybrid_fix_state();
+		} else
+#endif
 		if (options.flags & FLG_MASK_STACKED) {
 			if (do_mask_crack(int_word))
 				break;

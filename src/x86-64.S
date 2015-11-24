@@ -28,8 +28,8 @@
  * ...with changes in the jumbo patch, by Alain Espinosa (starting with a
  * comment further down this file).
  *
- * Various tweaks & fixes and support for Win64 and Linux-X32 ABIs by
- * magnum 2010-2013.
+ * Various tweaks & fixes and support for Win64 and Linux-X32 ABIs as well
+ * as CPU detection additions by magnum 2010-2015.
  */
 
 #include "arch.h"
@@ -1641,14 +1641,17 @@ DES_bs_crypt_plain_loop:
  * CPU detection.
  */
 
-#define C7_AVX512BW			$0x40010128
-#define C7_AVX512F			$0x00010128
-#define C7_AVX2				$0x00000128
-#define CX_AVX2				$0x00000020
-#define CX_XOP				$0x00000800
-#define CF_XSAVE_OSXSAVE_AVX		$0x1C000000
-#define CF_SSSE3			$0x00000200
-#define CF_SSE4_1			$0x00080200
+#define C7_AVX2                 $0x00000128 /* BMI2 + AVX2 + BMI1 */
+#define C7_AVX512F              $0x00010000
+#define C7_AVX512BW             $0x40010000 /* AVX512BW + AVX512F */
+
+#define CX_ABM                  $0x00000020 /* LZCNT (AVX2) */
+#define CX_XOP                  $0x00000800
+
+#define CF_SSSE3                $0x00000200 /* SSSE3 */
+#define CF_SSE4_1               $0x00080200 /* SSE4.1 + SSSE3 */
+#define CF_AVX                  $0x1C000000 /* AVX + XSAVE + OSXSAVE */
+#define CF_AVX2                 $0x1C401000 /* the above + MOVBE + FMA3 */
 
 .text
 
@@ -1658,6 +1661,55 @@ DES_bs_crypt_plain_loop:
 .globl CPU_detect
 CPU_detect:
 	pushq %rbx
+
+/* First, leaf 1 checks */
+	movl $1,%eax
+	cpuid
+#if CPU_REQ_AVX2
+	andl CF_AVX2,%ecx
+	cmpl CF_AVX2,%ecx
+	jne CPU_detect_fail
+#elif CPU_REQ_AVX || CPU_REQ_XOP
+	andl CF_AVX,%ecx
+	cmpl CF_AVX,%ecx
+	jne CPU_detect_fail
+#elif CPU_REQ_SSE4_1
+	andl CF_SSE4_1,%ecx
+	cmpl CF_SSE4_1,%ecx
+	jne CPU_detect_fail
+#elif CPU_REQ_SSSE3
+	andl CF_SSSE3,%ecx
+	cmpl CF_SSSE3,%ecx
+	jne CPU_detect_fail
+#endif
+
+#if CPU_REQ_AVX2 || CPU_REQ_AVX || CPU_REQ_XOP
+/* Check that xmm and ymm state is preserved on a context switch */
+	xorl %ecx,%ecx
+	xgetbv
+	andb $0x6,%al
+	cmpb $0x6,%al
+	jne CPU_detect_fail
+#endif
+
+/* Extended feature tests (if required) */
+#if CPU_REQ_AVX2 || CPU_REQ_XOP
+	movl $0x80000000,%eax
+	cpuid
+	movl $0x80000001,%edx
+	cmpl %edx,%eax
+	jl CPU_detect_fail
+	xchgl %edx,%eax
+	cpuid
+#if CPU_REQ_AVX2
+	testl CX_ABM,%ecx
+#elif CPU_REQ_XOP
+	testl CX_XOP,%ecx
+#endif
+	jz CPU_detect_fail
+#endif
+
+/* Finally, leaf 7 tests (if required) */
 #if CPU_REQ_AVX2 || CPU_REQ_AVX512F || CPU_REQ_AVX512BW
 	xorl %eax,%eax
 	cpuid
@@ -1675,50 +1727,19 @@ CPU_detect:
 	andl C7_AVX512F,%ebx
 	cmpl C7_AVX512F,%ebx
 	jne CPU_detect_fail
-#else
+#elif CPU_REQ_AVX2
 	andl C7_AVX2,%ebx
 	cmpl C7_AVX2,%ebx
 	jne CPU_detect_fail
 #endif
 #endif
-	movl $1,%eax
-	cpuid
-#if CPU_REQ_SSSE3
-	andl CF_SSSE3,%ecx
-	cmpl CF_SSSE3,%ecx
-	jne CPU_detect_fail
-#elif CPU_REQ_SSE4_1
-	andl CF_SSE4_1,%ecx
-	cmpl CF_SSE4_1,%ecx
-	jne CPU_detect_fail
-#else
-	andl CF_XSAVE_OSXSAVE_AVX,%ecx
-	cmpl CF_XSAVE_OSXSAVE_AVX,%ecx
-	jne CPU_detect_fail
-	xorl %ecx,%ecx
-	xgetbv
-	andb $0x6,%al
-	cmpb $0x6,%al
-	jne CPU_detect_fail
-#if CPU_REQ_AVX2 || CPU_REQ_XOP
-	movl $0x80000000,%eax
-	cpuid
-	movl $0x80000001,%edx
-	cmpl %edx,%eax
-	jl CPU_detect_fail
-	xchgl %edx,%eax
-	cpuid
-#if CPU_REQ_AVX2
-	testl CX_AVX2,%ecx
-#elif CPU_REQ_XOP
-	testl CX_XOP,%ecx
-#endif
-	jz CPU_detect_fail
-#endif
-#endif
+
+/* If we reached here all is fine and we return 1 */
 	movl $1,%eax
 	popq %rbx
 	ret
+
+/* Return 0 */
 CPU_detect_fail:
 	xorl %eax,%eax
 	popq %rbx

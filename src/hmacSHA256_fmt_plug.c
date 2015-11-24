@@ -54,7 +54,8 @@ john_register_one(&fmt_hmacSHA256);
 #ifndef SIMD_COEF_32
 #define SALT_LENGTH			1024
 #else
-#define SALT_LENGTH			55
+#define SALT_LIMBS			3  /* 3 limbs, 183 bytes */
+#define SALT_LENGTH			(SALT_LIMBS * 64 - 9)
 #endif
 #define SALT_ALIGN			1
 #define CIPHERTEXT_LENGTH		(SALT_LENGTH + 1 + BINARY_SIZE * 2)
@@ -62,7 +63,7 @@ john_register_one(&fmt_hmacSHA256);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
 #define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
-#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i) & (0xffffffff - 3)) * SIMD_COEF_32 + (3 - ((i) & 3)) + (unsigned int)index/SIMD_COEF_32 * SHA_BUF_SIZ * 4 * SIMD_COEF_32)
+#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i&63) & (0xffffffff - 3)) * SIMD_COEF_32 + (3 - ((i&63) & 3)) + (unsigned int)index/SIMD_COEF_32 * SHA_BUF_SIZ * 4 * SIMD_COEF_32)
 #else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -72,6 +73,7 @@ static struct fmt_tests tests[] = {
 	{"The quick brown fox jumps over the lazy dog#f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8", "key"},
 	{"#b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad", ""},
 	{"Beppe#Grillo#14651BA87C7F7DA88BCE0DF1F89C223975AC0FDF9C35378CB0857A81DFD5C408", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
+	{"jquYnUyWT5NsbvjQDZXyCxMJB6PryALZdYOZ1bEuagcUmYcbqpx5vOvpxj7VEhqW7OIzHR2O9JLDKrhuDfZxQk9jOENQb4OzEkRZmN8czdGdo7nshdYU1zcdoDGVb3YTCbjeZvazi#c8b4b8a7888787eebca16099fd076092269919bb032bfec48eed7f41d42eba9a", "magnum"},
 #ifndef SIMD_COEF_32
 	{"1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234#5ad2e1646ed45675e2df32e5fcbf37d6c8830a814c4af0c166fe69a2ef1f277c","1234567890" },
 	{"12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012#ff504b06ee64f3ba7fe503496b451cf46ee34109a62d55cd4bf4f38077ee8145","1234567890" },
@@ -87,7 +89,8 @@ static struct fmt_tests tests[] = {
 static unsigned char *crypt_key;
 static unsigned char *ipad, *prep_ipad;
 static unsigned char *opad, *prep_opad;
-JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char cur_salt[SALT_LENGTH * 4 * MAX_KEYS_PER_CRYPT];
+JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char cur_salt[SALT_LIMBS][64 * MAX_KEYS_PER_CRYPT];
+static int salt_len;
 static int bufsize;
 #else
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
@@ -175,11 +178,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = strrchr(ciphertext, '#'); // allow # in salt
 	if (!p || p > &ciphertext[strlen(ciphertext)-1]) return 0;
 	i = (int)(p - ciphertext);
-#if SIMD_COEF_32
-	if(i > 55) return 0;
-#else
-	if(i > SALT_LENGTH) return 0;
-#endif
+	if (i > SALT_LENGTH) return 0;
 	pos = i+1;
 	if (strlen(ciphertext+pos) != BINARY_SIZE*2) return 0;
 	for (i = pos; i < BINARY_SIZE*2+pos; i++)
@@ -351,6 +350,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef SIMD_COEF_32
+		int i;
+
 		if (new_keys) {
 			SIMDSHA256body(&ipad[index * SHA_BUF_SIZ * 4],
 			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
@@ -359,10 +360,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			            (unsigned int*)&prep_opad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN);
 		}
-		SIMDSHA256body(cur_salt,
-		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
-		            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
-		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+
+		for (i = 0; i < (salt_len + 9) / 64; i++)
+			SIMDSHA256body(cur_salt[i],
+			        (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
+			        i ? (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4] :
+			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
+			            SSEi_MIXED_IN|SSEi_RELOAD);
+		SIMDSHA256body(cur_salt[i],
+			        (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
+			        i ? (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4] :
+			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
+			            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 
 		SIMDSHA256body(&crypt_key[index * SHA_BUF_SIZ * 4],
 		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
@@ -414,31 +423,30 @@ static void *get_binary(char *ciphertext)
 static void *get_salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_LENGTH+1];
+	int len;
 #ifdef SIMD_COEF_32
 	unsigned int i = 0;
-	unsigned int j;
-	unsigned total_len = 0;
+
+	salt_len = 0;
 #endif
+
 	// allow # in salt
-	int len = strrchr(ciphertext, '#') - ciphertext;
+	len = strrchr(ciphertext, '#') - ciphertext;
 	memset(salt, 0, SALT_LENGTH+1);
 	memcpy(salt, ciphertext, len);
-	salt[len] = 0;
 #ifdef SIMD_COEF_32
 	memset(cur_salt, 0, sizeof(cur_salt));
-	while(((unsigned char*)salt)[total_len])
+	while(((unsigned char*)salt)[salt_len])
 	{
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
-			cur_salt[GETPOS(total_len, i)] = ((unsigned char*)salt)[total_len];
-		++total_len;
+			cur_salt[salt_len / 64][GETPOS(salt_len, i)] =
+				((unsigned char*)salt)[salt_len];
+		++salt_len;
 	}
 	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
-		cur_salt[GETPOS(total_len, i)] = 0x80;
-	for (j = total_len + 1; j < SALT_LENGTH; ++j)
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
-			cur_salt[GETPOS(j, i)] = 0;
+		cur_salt[salt_len / 64][GETPOS(salt_len, i)] = 0x80;
 	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
-		((unsigned int*)cur_salt)[15 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * SHA_BUF_SIZ * SIMD_COEF_32] = (total_len + 64) << 3;
+		((unsigned int*)cur_salt[(salt_len + 9) / 64])[15 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * SHA_BUF_SIZ * SIMD_COEF_32] = (salt_len + 64) << 3;
 	return cur_salt;
 #else
 	return salt;

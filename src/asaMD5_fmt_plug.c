@@ -32,6 +32,7 @@ john_register_one(&fmt_asaMD5);
 // set PLAINTEXT_LENGTH to 0, so dyna will set this
 #define PLAINTEXT_LENGTH        0
 #define CIPHERTEXT_LENGTH       21
+#define CIPHERTEXT_LENGTH_MIN   18
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            MEM_ALIGN_WORD
 
@@ -55,10 +56,11 @@ static void get_ptr();
 /* this function converts a 'native' asamd5 signature string into a Dynamic_20 syntax string */
 static char *Convert(char *Buf, char *ciphertext) {
 	// 2KFQnbNIdI.2KYOU -> $dynamic_20$2KFQnbNIdI.2KYOU
+	int len;
 	if (text_in_dynamic_format_already(pDynamic_20, ciphertext))
 		return ciphertext;
-
-	if (strlen(ciphertext) == CIPHERTEXT_LENGTH) {
+	len = strlen(ciphertext);
+	if (len > CIPHERTEXT_LENGTH_MIN && len <= CIPHERTEXT_LENGTH) {
 		sprintf(Buf, "$dynamic_20$%s", ciphertext);
 		return Buf;
 	}

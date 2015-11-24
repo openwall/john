@@ -2,6 +2,10 @@
  * Copyright (C) 2013 Dhiru Kholia
  * Modified "pgpdump" for JtR
  *
+ * https://github.com/kazu-yamamoto/pgpdump
+ *
+ * cat pgpdump.c types.c tagfuncs.c packet.c subfunc.c signature.c keys.c buffer.c uatfunc.c > ~/combined.c
+ *
  * Copyright (C) 2002 Kazuhiko Yamamoto
  * All rights reserved.
  *
@@ -115,6 +119,7 @@ private bz_stream bz;
 
 #include "jumbo.h"
 #include "misc.h"
+#include "params.h"
 #include "memdbg.h"	// Must be last included header
 
 #define YES 1
@@ -321,6 +326,13 @@ warn_exit(const string fmt, ...)
 	exit(EXIT_FAILURE);
 }
 
+static int print_hex(unsigned char *str, int len, char *cp)
+{
+	int i;
+	for (i = 0; i < len; ++i)
+		cp += sprintf(cp, "%02x", str[i]);
+	return len*2;
+}
 
 int gpg2john(int argc, char **argv)
 {
@@ -824,7 +836,7 @@ give_multi_precision_integer(unsigned char *buf, const int buf_size, int *key_bi
 private int sym_alg_mode = SYM_ALG_MODE_NOT_SPECIFIED;
 private void reset_sym_alg_mode();
 private void set_sym_alg_mode(int);
-// private int get_sym_alg_mode();
+private int get_sym_alg_mode();
 
 private void
 reset_sym_alg_mode()
@@ -838,11 +850,11 @@ set_sym_alg_mode(int mode)
 	sym_alg_mode = mode;
 }
 
-/* private int
+private int
 get_sym_alg_mode()
 {
 	return sym_alg_mode;
-} */
+}
 
 public void
 Reserved(int len)
@@ -885,7 +897,6 @@ public void
 Symmetric_Key_Encrypted_Session_Key_Packet(int len)
 {
 	int left = len, alg;
-	fprintf(stderr, "[!] Symmetrically encrypted PGP files are not supported, currently. Try using \"PGPCrack-NG\" program instead.\n");
 	ver(NULL_VER, 4, Getc());
 	alg = Getc();
 	sym_algs(alg);
@@ -904,19 +915,48 @@ Symmetric_Key_Encrypted_Session_Key_Packet(int len)
 public void
 Symmetrically_Encrypted_Data_Packet(int len)
 {
-	/* int mode = get_sym_alg_mode();
+	int mode = get_sym_alg_mode();
+	char hash[LINE_BUFFER_SIZE] = {0};
+	char *cp = hash;
+
 	switch (mode) {
 	case SYM_ALG_MODE_NOT_SPECIFIED:
 		printf("\tEncrypted data [sym alg is IDEA, simple string-to-key]\n");
 		break;
 	case SYM_ALG_MODE_SYM_ENC:
-		printf("\tEncrypted data [sym alg is specified in sym-key encrypted session key]\n");
+		// printf("Symmetrically_Encrypted_Data_Packet -> Encrypted data [sym alg is specified in sym-key encrypted session key]\n");
 		break;
 	case SYM_ALG_MODE_PUB_ENC:
-		printf("\tEncrypted data [sym alg is specified in pub-key encrypted session key]\n");
+		// printf("\tEncrypted data [sym alg is specified in pub-key encrypted session key]\n");
 		break;
-	} */
-	skip(len);
+	}
+	// https://www.ietf.org/rfc/rfc2440.txt
+	//
+	// The repetition of 16 bits in the 80 bits of random data prefixed to
+	// the message allows the receiver to immediately check whether the
+	// session key is incorrect. This is a decent verifier, the MDC isn't
+	// used in Symmetrically Encrypted Data Packet (Tag 9) packets.
+	//
+	// The decrypted data will typically contain other packets (often
+	// literal data packets or compressed data packets).
+
+	// m_usage is not really used in gpg_fmt_plug.c for symmetric hashes,
+	// let's hijack it for specifying tag values.
+	m_usage = 9; // Symmetrically Encrypted Data Packet (these lack MDC)
+	give(len, m_data, sizeof(m_data));
+	if (len * 2 > LINE_BUFFER_SIZE - 128) {
+		fprintf(stderr, "[gpg2john] data is too large to be inlined, please file a bug!\n");
+	} else {
+		fprintf(stderr, "[gpg2john] MDC is misssing, expect false positives!\n");
+		cp += sprintf(cp, "$gpg$*%d*%d*", m_algorithm, len); // m_algorithm == 0 for symmetric encryption?
+		cp += print_hex(m_data, len, cp);
+		cp += sprintf(cp, "*%d*%d*%d*%d", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm);
+		cp += sprintf(cp, "*%d*", m_count);
+		cp += print_hex(m_salt, 8, cp);
+		puts(hash);
+	}
+
+	// skip(len);
 	reset_sym_alg_mode();
 }
 
@@ -1000,20 +1040,39 @@ User_Attribute_Packet(int len)
 public void
 Symmetrically_Encrypted_and_MDC_Packet(int len)
 {
-	// int mode = get_sym_alg_mode();
+	int mode = get_sym_alg_mode();
 	// printf("\tVer %d\n", Getc());
-	fprintf(stderr, "(Symmetrically_Encrypted_and_MDC_Packet) Make us add support for such files ;(\n");
-	Getc();
-	/* switch (mode) {
+	char hash[LINE_BUFFER_SIZE] = {0};
+	char *cp = hash;
+
+	Getc(); // version
+	switch (mode) {
 	case SYM_ALG_MODE_SYM_ENC:
-		printf("\tEncrypted data [sym alg is specified in sym-key encrypted session key]\n");
+		// printf("\tEncrypted data [sym alg is specified in sym-key encrypted session key]\n");
 		break;
 	case SYM_ALG_MODE_PUB_ENC:
-		printf("\tEncrypted data [sym alg is specified in pub-key encrypted session key]\n");
+		fprintf(stderr, "\tEncrypted data [sym alg is specified in pub-key encrypted session key]\n");
+		fprintf(stderr, "SYM_ALG_MODE_PUB_ENC is not supported yet!\n");
 		break;
-	} */
+	}
+	give(len - 1, m_data, sizeof(m_data));
+	if (len * 2 > LINE_BUFFER_SIZE - 128) {
+		fprintf(stderr, "[gpg2john] data is too large to be inlined, please file a bug!\n");
+	} else {
+		cp += sprintf(cp, "$gpg$*%d*%d*", m_algorithm, len - 1); // m_algorithm == 0 for symmetric encryption?
+		cp += print_hex(m_data, len - 1, cp);
+		m_usage = 18; // Sym. Encrypted Integrity Protected Data Packet (Tag 18)
+		cp += sprintf(cp, "*%d*%d*%d*%d", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm);
+		cp += sprintf(cp, "*%d*", m_count);
+		cp += print_hex(m_salt, 8, cp);
+		if (m_usage == 1) { /* handle 2 byte checksum */
+			fprintf(stderr, "Symmetrically_Encrypted_and_MDC_Packet doesn't handle 2 bytes checksums yet!\n");
+		}
+		puts(hash);
+	}
+
 	// printf("\t\t(plain text + MDC SHA1(20 bytes))\n");
-	skip(len - 1);
+	// skip(len - 1); // we did "give()" already
 	reset_sym_alg_mode();
 }
 
@@ -1456,7 +1515,8 @@ parse_packet(void)
 			fprintf(stderr, "unknown(tag %d)", tag);
 
 		if (partial == YES)
-			fprintf(stderr, "(%d bytes) partial start\n", len);
+			;
+			// fprintf(stderr, "(%d bytes) partial start\n", len);
 		else if (tag == TAG_COMPRESSED)
 			fprintf(stderr, "\n");
 		else if (len == EOF)
@@ -1475,14 +1535,16 @@ parse_packet(void)
 			skip(len);
 		}
 		while (partial == YES) {
-			fprintf(stderr, "New: ");
+			// fprintf(stderr, "New: ");
 			c = Getc();
 			len = get_new_len(c);
 			partial = is_partial(c);
 			if (partial == YES)
-				fprintf(stderr, "\t(%d bytes) partial continue\n", len);
+				;
+				// fprintf(stderr, "\t(%d bytes) partial continue\n", len);
 			else
-				fprintf(stderr, "\t(%d bytes) partial end\n", len);
+				;
+				// fprintf(stderr, "\t(%d bytes) partial end\n", len);
 			skip(len);
 		}
 		if (len == EOF) return;
@@ -2244,14 +2306,6 @@ Secret_Key_Packet(int len)
 	}
 }
 
-static int print_hex(unsigned char *str, int len, char *cp)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		cp += sprintf(cp, "%02x", str[i]);
-	return len*2;
-}
-
 private void
 plain_Secret_Key(int len)
 {
@@ -2523,7 +2577,9 @@ private int (*d_func3)(byte *, unsigned int);
 
 private byte tmpbuf[BUFSIZ];
 private byte d_buf1[BUFSIZ];
+#if HAVE_LIBZ || HAVE_LIBBZ2
 private byte d_buf2[BUFSIZ];
+#endif
 private byte d_buf3[BUFSIZ];
 
 private signed char

@@ -29,6 +29,7 @@ john_register_one(&FORMAT_STRUCT);
 #include "params.h"
 #include "options.h"
 #include "unicode.h"
+#include "dyna_salt.h"
 
 #define FORMAT_LABEL		"oldoffice-opencl"
 #define FORMAT_NAME		"MS Office <= 2003"
@@ -38,8 +39,9 @@ john_register_one(&FORMAT_STRUCT);
 #define PLAINTEXT_LENGTH	19 //* 19 is leanest, 24, 28, 31, max. 51 */
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		MEM_ALIGN_NONE
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN		sizeof(int)
+#define SALT_SIZE		sizeof(dyna_salt*)
+#define SALT_ALIGN		MEM_ALIGN_WORD
+
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -53,7 +55,7 @@ static struct fmt_tests oo_tests[] = {
 	{"$oldoffice$4*163ae8c43577b94902f58d0106b29205*87deff24175c2414cb1b2abdd30855a3*4182446a527fe4648dffa792d55ae7a15edfc4fb", "Google123"},
 	/* Meet-in-the-middle candidate produced with oclHashcat -m9710 */
 	/* Real pw is "hashcat", one collision is "zvDtu!" */
-	{"$oldoffice$1*d6aabb63363188b9b73a88efb9c9152e*afbbb9254764273f8f4fad9a5d82981f*6f09fd2eafc4ade522b5f2bee0eaf66d*f2ab1219ae", "zvDtu!"},
+	{"", "zvDtu!", {"", "$oldoffice$1*d6aabb63363188b9b73a88efb9c9152e*afbbb9254764273f8f4fad9a5d82981f*6f09fd2eafc4ade522b5f2bee0eaf66d","f2ab1219ae"} },
 #if PLAINTEXT_LENGTH >= 24
 	/* 2003-RC4-40bit-MS-Base-Crypto-1.0_myhovercraftisfullofeels_.doc */
 	{"$oldoffice$3*9f32522fe9bcb69b12f39d3c24b39b2f*fac8b91a8a578468ae7001df4947558f*f2e267a5bea45736b52d6d1051eca1b935eabf3a", "myhovercraftisfullofeels"},
@@ -74,21 +76,28 @@ static struct fmt_tests oo_tests[] = {
 
 extern volatile int bench_running;
 
-static struct custom_salt {
+typedef struct {
+	dyna_salt dsalt;
 	int type;
 	unsigned char salt[16];
 	unsigned char verifier[16]; /* or encryptedVerifier */
 	unsigned char verifierHash[20];  /* or encryptedVerifierHash */
 	unsigned int has_mitm;
 	unsigned char mitm[8]; /* Meet-in-the-middle hint, if we have one */
-} *cur_salt;
+} custom_salt;
+
+static struct {
+	int ct_hash;
+	unsigned char mitm[10];
+} mitm_catcher;
+
+static custom_salt cs;
+static custom_salt *cur_salt = &cs;
 
 typedef struct {
 	uint len;
 	ushort password[PLAINTEXT_LENGTH + 1];
 } mid_t;
-
-static struct custom_salt cs;
 
 static char *saved_key;
 static int any_cracked;
@@ -154,7 +163,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	cl_benchmark = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(bench_running), NULL, &ret_code);
 
-	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, SALT_SIZE, NULL, &ret_code);
+	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(cs), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
 
 	cl_mid_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(mid_t) * gws, NULL, &ret_code);
@@ -254,10 +263,47 @@ static void reset(struct db_main *db)
 	}
 }
 
+/* Based on ldr_cracked_hash from loader.c */
+#define HASH_LOG 30
+#define HASH_SIZE (1 << HASH_LOG)
+static int hex_hash(char *ciphertext)
+{
+	unsigned int hash, extra;
+	unsigned char *p = (unsigned char *)ciphertext;
+
+	hash = p[0] | 0x20; /* ASCII case insensitive */
+	if (!hash)
+		goto out;
+	extra = p[1] | 0x20;
+	if (!extra)
+		goto out;
+
+	p += 2;
+	while (*p) {
+		hash <<= 1; extra <<= 1;
+		hash += p[0] | 0x20;
+		if (!p[1]) break;
+		extra += p[1] | 0x20;
+		p += 2;
+		if (hash & 0xe0000000) {
+			hash ^= hash >> HASH_LOG;
+			extra ^= extra >> (HASH_LOG - 1);
+			hash &= HASH_SIZE - 1;
+		}
+	}
+
+	hash -= extra;
+	hash ^= extra << (HASH_LOG / 2);
+	hash ^= hash >> HASH_LOG;
+	hash &= HASH_SIZE - 1;
+out:
+	return hash;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *ptr, *keeptr;
-	int res;
+	int type;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LEN))
 		return 0;
@@ -269,8 +315,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += TAG_LEN;
 	if (!(ptr = strtokm(ctcopy, "*"))) /* type */
 		goto error;
-	res = atoi(ptr);
-	if (res > 4)
+	type = atoi(ptr);
+	if (type < 0 || type > 4)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* salt */
 		goto error;
@@ -282,15 +328,40 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* verifier hash */
 		goto error;
-	if (res < 3 && hexlen(ptr) != 32)
+	if (type < 3 && hexlen(ptr) != 32)
 		goto error;
-	if (res >= 3 && hexlen(ptr) != 40)
+	else if (type >= 3 && hexlen(ptr) != 40)
 		goto error;
+/*
+ * Deprecated field: mitm hash (40-bit RC4). The new way to put it is in the
+ * uid field, like hashcat's example hash.
+ */
+	if (type <= 3 && (ptr = strtokm(NULL, "*"))) {
+		if (hexlen(ptr) != 10)
+			goto error;
+	}
 	MEM_FREE(keeptr);
 	return 1;
 error:
 	MEM_FREE(keeptr);
 	return 0;
+}
+
+/* uid field may contain a meet-in-the-middle hash */
+static char *prepare(char *split_fields[10], struct fmt_main *self)
+{
+	if (split_fields[0] && valid(split_fields[0], self) && split_fields[1] &&
+	    hexlen(split_fields[1]) == 10) {
+		mitm_catcher.ct_hash = hex_hash(split_fields[0]);
+		memcpy(mitm_catcher.mitm, split_fields[1], 10);
+		return split_fields[0];
+	}
+	else if (valid(split_fields[1], self) && split_fields[2] &&
+	         hexlen(split_fields[2]) == 10) {
+		mitm_catcher.ct_hash = hex_hash(split_fields[1]);
+		memcpy(mitm_catcher.mitm, split_fields[2], 10);
+	}
+	return split_fields[1];
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
@@ -305,6 +376,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 static void *get_salt(char *ciphertext)
 {
+	static void *ptr;
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
@@ -333,19 +405,30 @@ static void *get_salt(char *ciphertext)
 			cs.verifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
-	if ((p = strtokm(NULL, "*"))) {
+	if ((p = strtokm(NULL, "*"))) { /* Deprecated field */
 		cs.has_mitm = 1;
 		for (i = 0; i < 5; i++)
 			cs.mitm[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	} else
+	if (hex_hash(ciphertext) == mitm_catcher.ct_hash) {
+		cs.has_mitm = 1;
+		for (i = 0; i < 5; i++)
+			cs.mitm[i] = atoi16[ARCH_INDEX(mitm_catcher.mitm[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(mitm_catcher.mitm[i * 2 + 1])];
+	} else
 		cs.has_mitm = 0;
+
 	MEM_FREE(keeptr);
 
-	return (void *)&cs;
+	cs.dsalt.salt_cmp_offset = SALT_CMP_OFF(custom_salt, type);
+	cs.dsalt.salt_cmp_size = SALT_CMP_SIZE(custom_salt, type, has_mitm, 0);
+	cs.dsalt.salt_alloc_needs_free = 0;
+
+	ptr = mem_alloc_copy(&cs, sizeof(custom_salt), MEM_ALIGN_WORD);
+	return &ptr;
 }
 
-#if 0
 static char *source(char *source, void *binary)
 {
 	static char Buf[CIPHERTEXT_LENGTH];
@@ -377,27 +460,34 @@ static char *source(char *source, void *binary)
 		*cp++ = itoa16[*cpi & 0xf];
 		cpi++;
 	}
+	*cp = 0;
 
-	if (cur_salt->has_mitm) {
-		*cp++ = '*';
-		cpi = cur_salt->mitm;
-		for (i = 0; i < 5; i++) {
-			*cp++ = itoa16[*cpi >> 4];
-			*cp++ = itoa16[*cpi & 0xf];
-			cpi++;
+	if (cur_salt->has_mitm && !bench_running) {
+		static int last;
+		char out[11];
+
+		if (last != hex_hash(Buf)) {
+			last = hex_hash(Buf);
+			cpi = cur_salt->mitm;
+			for (i = 0; i < 5; i++) {
+				out[2 * i + 0] = itoa16[*cpi >> 4];
+				out[2 * i + 1] = itoa16[*cpi & 0xf];
+				cpi++;
+			}
+			out[10] = 0;
+			fprintf(stderr, "MITM key: %s\n", out);
 		}
 	}
 
-	*cp = 0;
 	return Buf;
 }
-#endif
 
 static void set_salt(void *salt)
 {
-	cur_salt = (struct custom_salt *)salt;
+	cur_salt = *(custom_salt**)salt;
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_benchmark, CL_FALSE, 0, sizeof(bench_running), (void*)&bench_running, 0, NULL, NULL), "Failed transferring salt");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, SALT_SIZE, cur_salt, 0, NULL, NULL), "Failed transferring salt");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, sizeof(cs), cur_salt, 0, NULL, NULL), "Failed transferring salt");
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -443,7 +533,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			break;
 		}
 	} else {
-		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, SALT_SIZE, cur_salt, 0, NULL, NULL), "Failed transferring salt");
+		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, sizeof(cs), cur_salt, 0, NULL, NULL), "Failed transferring salt");
 		if ((any_cracked = cur_salt->has_mitm))
 			BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, multi_profilingEvent[4]), "failed reading results back");
 	}
@@ -511,9 +601,9 @@ static char *get_key(int index)
 
 static unsigned int oo_hash_type(void *salt)
 {
-	struct custom_salt *my_salt;
+	custom_salt *my_salt;
 
-	my_salt = salt;
+	my_salt = *(custom_salt**)salt;
 	return (unsigned int) my_salt->type;
 }
 
@@ -532,7 +622,7 @@ struct fmt_main FORMAT_STRUCT = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE | FMT_DYNA_SALT,
 		{
 			"hash type",
 		},
@@ -541,7 +631,7 @@ struct fmt_main FORMAT_STRUCT = {
 		init,
 		done,
 		reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		split,
 		fmt_default_binary,
@@ -549,11 +639,11 @@ struct fmt_main FORMAT_STRUCT = {
 		{
 			oo_hash_type,
 		},
-		fmt_default_source,
+		source,
 		{
 			fmt_default_binary_hash
 		},
-		fmt_default_salt_hash,
+		fmt_default_dyna_salt_hash,
 		NULL,
 		set_salt,
 		set_key,

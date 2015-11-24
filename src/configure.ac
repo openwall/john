@@ -885,9 +885,8 @@ if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
 fi
 # if the file was not created, then bail.
 if test -f fmt_externs.h -a ! -s fmt_externs.h; then
-  echo "The build of fmt_externs.h failed. Can not continue!"
   cp Makefile.stub Makefile
-  exit 1
+  AC_MSG_ERROR([The build of fmt_externs.h failed. Can not continue!])
 fi
 # if file does not exist, then create a blank one (i.e. no *_plug.c files)
 if test ! -f fmt_externs.h; then
@@ -900,9 +899,8 @@ if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
 fi
 # if the file was not created, then bail.
 if test -f fmt_registers.h -a ! -s fmt_registers.h; then
-  echo "The build of fmt_registers.h failed. Can not continue!"
   cp Makefile.stub Makefile
-  exit 1
+  AC_MSG_ERROR([The build of fmt_registers.h failed. Can not continue!])
 fi
 # if file does not exist, then create a blank one (i.e. no *_plug.c files)
 if test ! -f fmt_registers.h; then

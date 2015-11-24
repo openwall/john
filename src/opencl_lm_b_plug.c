@@ -18,17 +18,6 @@
 #include "mask_ext.h"
 
 #define PADDING 	2048
-#define get_power_of_two(v)	\
-{				\
-	v--;			\
-	v |= v >> 1;		\
-	v |= v >> 2;		\
-	v |= v >> 4;		\
-	v |= v >> 8;		\
-	v |= v >> 16;		\
-	v |= v >> 32;		\
-	v++;			\
-}
 
 #define get_num_bits(r, v)			\
 {						\

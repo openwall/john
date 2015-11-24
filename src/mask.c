@@ -17,6 +17,7 @@
 #include <ctype.h>
 #include <assert.h>
 
+#include "arch.h"
 #include "misc.h" /* for error() */
 #include "logger.h"
 #include "recovery.h"
@@ -35,6 +36,10 @@
 #include "mask_ext.h"
 
 extern void wordlist_hybrid_fix_state(void);
+extern void mkv_hybrid_fix_state(void);
+extern void inc_hybrid_fix_state(void);
+extern void pp_hybrid_fix_state(void);
+extern void ext_hybrid_fix_state(void);
 
 static mask_parsed_ctx parsed_mask;
 static mask_cpu_context cpu_mask_ctx, rec_ctx;
@@ -1218,6 +1223,11 @@ static void save_restore(mask_cpu_context *cpu_mask_ctx, int range_idx, int ch)
 static void truncate_mask(mask_cpu_context *cpu_mask_ctx, int range_idx)
 {
 	int i;
+
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%d %d)\n", __FUNCTION__, range_idx, mask_max_skip_loc);
+#endif
+
 	if (range_idx < mask_max_skip_loc && mask_max_skip_loc != -1) {
 		fprintf(stderr, "Format internal ranges cannot be truncated!\n");
 		fprintf(stderr, "Use a bigger key length or non-gpu format.\n");
@@ -1255,6 +1265,11 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 				   mask_cpu_context *cpu_mask_ctx)
 {
 	int i, k, t, j, l, offset;
+
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s) key %s len %d (max %d)\n", __FUNCTION__, mask, key, key_len, max_keylen);
+#endif
+
 	i = 0, k = 0, j = 0, l = 0, offset = 0;
 
 	while (template_key_offsets[l] != -1)
@@ -1366,14 +1381,19 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 			  unsigned long long *my_candidates)
 {
+	char key_e[PLAINTEXT_BUFFER_SIZE];
+	char *key;
 	int ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
 	    ps3 = MAX_NUM_MASK_PLHDR, ps4 = MAX_NUM_MASK_PLHDR, ps ;
 	int start1, start2, start3, start4;
 
-#define process_key(key)						\
-	if (ext_filter(template_key))					\
-		if ((crk_process_key(mask_cp_to_utf8(template_key))))   \
-			return 1;
+#define process_key(key_i)	  \
+	do { \
+		key = key_i; \
+		if (!f_filter || ext_filter_body(key_i, key = key_e)) \
+			if ((crk_process_key(mask_cp_to_utf8(key)))) \
+				return 1; \
+	} while(0)
 
 	ps1 = cpu_mask_ctx->ps1;
 	ps2 = cpu_mask_ctx->ranges[ps1].next;
@@ -1808,7 +1828,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	max_keylen = options.req_maxlength ?
 		options.req_maxlength : fmt_maxlen;
 
-	if (options.flags & FLG_TEST_CHK)
+	if (options.flags & FLG_TEST_CHK && !(options.flags & FLG_MASK_STACKED))
 		max_keylen = strlen(mask_fmt->params.tests[0].plaintext);
 
 	if ((options.flags & FLG_MASK_STACKED) && max_keylen < 2) {
@@ -2176,6 +2196,16 @@ int do_mask_crack(const char *extern_key)
 	if (options.flags & FLG_MASK_STACKED) {
 		if (options.flags & FLG_WORDLIST_CHK)
 			wordlist_hybrid_fix_state();
+		else if (options.flags & FLG_MKV_CHK)
+			mkv_hybrid_fix_state();
+		else if (options.flags & FLG_INC_CHK)
+			inc_hybrid_fix_state();
+#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
+		else if (options.flags & FLG_PRINCE_CHK)
+			pp_hybrid_fix_state();
+#endif
+		else if (options.flags & FLG_EXTERNAL_CHK)
+			ext_hybrid_fix_state();
 		parent_fix_state_pending = 1;
 	}
 

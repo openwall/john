@@ -202,6 +202,9 @@ static void john_register_one(struct fmt_main *format)
 	if (options.format) {
 		char *pos = strchr(options.format, '*');
 
+		if (!strncasecmp(options.format, "dynamic=", 8))
+			pos = NULL;
+		else
 		if (pos != strrchr(options.format, '*')) {
 			if (john_main_process)
 			fprintf(stderr, "Only one wildcard allowed in format "
@@ -228,7 +231,8 @@ static void john_register_one(struct fmt_main *format)
 				if (strcasecmp(p, pos))
 					return;
 			}
-		} else if (strncasecmp(options.format, "dynamic=", 8) && (pos = strchr(options.format, '@'))) {
+		} else if (strncasecmp(options.format, "dynamic=", 8) &&
+		           (pos = strchr(options.format, '@'))) {
 			char *reject, *algo = strdup(++pos);
 
 			// Rejections
@@ -307,10 +311,12 @@ static void john_register_one(struct fmt_main *format)
 #endif
 		else if (strcasecmp(options.format, format->params.label)) {
 #ifndef DYNAMIC_DISABLED
-			if (!strncasecmp(options.format, "dynamic=", 8) && !strcasecmp(format->params.label, "dynamic=")) {
+			if (!strncasecmp(options.format, "dynamic=", 8) &&
+			    !strcasecmp(format->params.label, "dynamic=")) {
 				DC_HANDLE H;
 				if (!dynamic_compile(options.format, &H)) {
-					if (dynamic_assign_script_to_format(H, format))
+					if (dynamic_assign_script_to_format(
+						    H, format))
 						return;
 				} else
 					return;
@@ -352,7 +358,7 @@ static void john_register_all(void)
 #endif
 
 	if (options.format) {
-		// The case of the expression for this format is VERY important to keep
+/* The case of the expression for this format is VERY important to keep */
 		if (strncasecmp(options.format, "dynamic=", 8))
 			strlwr(options.format);
 	}
@@ -452,6 +458,9 @@ static void john_omp_fallback(char **argv) {
 #define OMP_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" OMP_FALLBACK_BINARY
 #else
 #define OMP_FALLBACK_PATHNAME path_expand("$JOHN/" OMP_FALLBACK_BINARY)
+#endif
+#if HAVE_MPI
+		mpi_teardown();
 #endif
 		execv(OMP_FALLBACK_PATHNAME, argv);
 #ifdef JOHN_SYSTEMWIDE_EXEC
@@ -1346,6 +1355,9 @@ static void john_load(void)
 #if CPU_DETECT
 static void CPU_detect_or_fallback(char **argv, int make_check)
 {
+	if (getenv("CPUID_DISABLE"))
+		return;
+
 	if (!CPU_detect()) {
 #if CPU_REQ
 #if CPU_FALLBACK
@@ -1617,13 +1629,15 @@ static void john_run(void)
 				log_flush();
 			}
 		}
-		tty_init(options.flags & FLG_STDIN_CHK);
+		tty_init(options.flags & (FLG_STDIN_CHK | FLG_PIPE_CHK));
 
 		if (john_main_process &&
-		    database.format->params.flags & FMT_NOT_EXACT)
-			fprintf(stderr, "Note: This format may emit false "
-			        "positives, so it will keep trying even "
-			        "after\nfinding a possible candidate.\n");
+		    database.format->params.flags & FMT_NOT_EXACT) {
+			if (options.flags & FLG_KEEP_GUESSING)
+				fprintf(stderr, "Note: Will keep guessing even after finding a possible candidate.\n");
+			else
+				fprintf(stderr, "Note: This format may emit false positives, so it will keep trying even after\nfinding a possible candidate.\n");
+		}
 
 		/* Some formats truncate at (our) max. length */
 		if (!(database.format->params.flags & FMT_TRUNC) &&
@@ -1680,12 +1694,6 @@ static void john_run(void)
 			do_prince_crack(&database, options.wordlist,
 			                (options.flags & FLG_RULES) != 0);
 #endif
-#if HAVE_REXGEN
-		else
-		if ((options.flags & FLG_REGEX_CHK) &&
-		    !(options.flags & FLG_REGEX_STACKED))
-			do_regex_crack(&database, options.regex);
-#endif
 		else
 		if (options.flags & FLG_INC_CHK)
 			do_incremental_crack(&database, options.charset);
@@ -1693,6 +1701,12 @@ static void john_run(void)
 		if (options.flags & FLG_MKV_CHK)
 			do_markov_crack(&database, options.mkv_param);
 		else
+#if HAVE_REXGEN
+		if ((options.flags & FLG_REGEX_CHK) &&
+		    !(options.flags & FLG_REGEX_STACKED))
+			do_regex_crack(&database, options.regex);
+		else
+#endif
 		if ((options.flags & FLG_MASK_CHK) &&
 		    !(options.flags & FLG_MASK_STACKED))
 			do_mask_crack(NULL);

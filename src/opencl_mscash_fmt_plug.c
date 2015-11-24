@@ -92,18 +92,6 @@ static size_t get_task_max_work_group_size()
 	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
-#define get_power_of_two(v)	\
-{				\
-	v--;			\
-	v |= v >> 1;		\
-	v |= v >> 2;		\
-	v |= v >> 4;		\
-	v |= v >> 8;		\
-	v |= v >> 16;		\
-	v |= v >> 32;		\
-	v++;			\
-}
-
 /* Note: some tests will be replaced in init() if running UTF-8 */
 static struct fmt_tests tests[] = {
 	{"ac562fcf730114f3cf489b33b98cdc6c", "password", {"barney"} },
