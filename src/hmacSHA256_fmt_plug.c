@@ -92,7 +92,7 @@ static unsigned char *crypt_key;
 static unsigned char *ipad, *prep_ipad;
 static unsigned char *opad, *prep_opad;
 typedef struct cur_salt_t {
-	unsigned char cur_salt[SALT_LIMBS][64 * MAX_KEYS_PER_CRYPT];
+	unsigned char salt[SALT_LIMBS][64 * MAX_KEYS_PER_CRYPT];
 	int salt_len;
 } cur_salt_t;
 static cur_salt_t *cur_salt;
@@ -372,12 +372,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 		for (i = 0; i < (cur_salt->salt_len + 9) / 64; i++)
-			SIMDSHA256body(cur_salt->hmacsha256_cur_salt[i],
+			SIMDSHA256body(cur_salt->salt[i],
 			        (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
 			        i ? (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4] :
 			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
 			            SSEi_MIXED_IN|SSEi_RELOAD);
-		SIMDSHA256body(cur_salt->hmacsha256_cur_salt[i],
+		SIMDSHA256body(cur_salt->salt[i],
 			        (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
 			        i ? (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4] :
 			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
@@ -449,15 +449,15 @@ static void *get_salt(char *ciphertext)
 	while(((unsigned char*)salt)[salt_len])
 	{
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
-			cur_salt.hmacsha256_cur_salt[salt_len / 64][GETPOS(salt_len, i)] =
+			cur_salt.salt[salt_len / 64][GETPOS(salt_len, i)] =
 				((unsigned char*)salt)[salt_len];
 		++salt_len;
 	}
 	cur_salt.salt_len = salt_len;
 	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
-		cur_salt.hmacsha256_cur_salt[salt_len / 64][GETPOS(salt_len, i)] = 0x80;
+		cur_salt.salt[salt_len / 64][GETPOS(salt_len, i)] = 0x80;
 	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
-		((unsigned int*)cur_salt.hmacsha256_cur_salt[(salt_len + 9) / 64])[15 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * SHA_BUF_SIZ * SIMD_COEF_32] = (salt_len + 64) << 3;
+		((unsigned int*)cur_salt.salt[(salt_len + 9) / 64])[15 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * SHA_BUF_SIZ * SIMD_COEF_32] = (salt_len + 64) << 3;
 	return &cur_salt;
 #else
 	return salt;
