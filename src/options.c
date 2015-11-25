@@ -11,10 +11,8 @@
  */
 
 #define NEED_OS_FORK
-#ifdef HAVE_OPENCL
 #undef _GNU_SOURCE
-#define _GNU_SOURCE 1 /* for strcasestr in legacy opencl builds */
-#endif
+#define _GNU_SOURCE 1 /* for strcasestr in legacy builds */
 
 #include "os.h"
 
