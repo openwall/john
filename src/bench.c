@@ -117,10 +117,12 @@ static void bench_set_keys(struct fmt_main *format,
 {
 	char *plaintext;
 	int index, length;
+#ifndef BENCH_BUILD
 	int len = format->params.plaintext_length;
 
 	if ((len -= mask_add_len) < 0 || !(options.flags & FLG_MASK_STACKED))
 		len = 0;
+#endif
 
 	format->methods.clear_keys();
 
@@ -141,11 +143,13 @@ static void bench_set_keys(struct fmt_main *format,
 				break;
 		} while (1);
 
+#ifndef BENCH_BUILD
 		if (options.flags & FLG_MASK_CHK) {
 			plaintext[len] = 0;
 			if (do_mask_crack(len ? plaintext : NULL))
 				return;
 		} else
+#endif
 			format->methods.set_key(plaintext, index);
 	}
 }
@@ -580,7 +584,6 @@ AGAIN:
 				}
 			}
 		}
-#endif
 
 		/* FIXME: Kludge for thin dynamics, and OpenCL formats */
 		/* c3_fmt also added, since it is a somewhat dynamic   */
@@ -597,6 +600,7 @@ AGAIN:
 			fakedb.format = format;
 			mask_init(&fakedb, options.mask);
 		}
+#endif
 
 #ifdef _OPENMP
 		// MPIOMPmutex may have capped the number of threads
@@ -789,9 +793,10 @@ AGAIN:
 next:
 		fflush(stdout);
 		fmt_done(format);
+#ifndef BENCH_BUILD
 		if (options.flags & FLG_MASK_CHK)
 			mask_done();
-
+#endif
 		MEMDBG_checkSnapshot_possible_exit_on_error(memHand, 0);
 
 #ifndef BENCH_BUILD
