@@ -388,7 +388,6 @@ static void reset(struct db_main *db)
 	if (!autotuned) {
 		char *tmp_value;
 		char *task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
-		int default_value = 0;
 		int major, minor;
 
 		opencl_prepare_dev(gpu_id);
@@ -411,17 +410,8 @@ static void reset(struct db_main *db)
 			fprintf(stderr, "Selected runtime id %d, source (%s)\n",
 			        source_in_use, task);
 
-		if (gpu_amd(source_in_use))
-			default_value = get_processors_count(gpu_id);
-		else if (gpu_intel(source_in_use))
-			default_value = 1024;
-		else
-			default_value =
-			    autotune_get_task_max_size(1, KEYS_PER_CORE_CPU,
-			                               KEYS_PER_CORE_GPU, crypt_kernel);
-
 		//Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(default_value, HASH_LOOPS,
+		opencl_init_auto_setup(SEED, HASH_LOOPS,
 		                       ((_SPLIT_KERNEL_IN_USE) ?
 		                        split_events : NULL),
 		                       warn, 1, self, create_clobj,
