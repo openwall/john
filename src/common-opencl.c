@@ -262,6 +262,7 @@ static char *opencl_driver_info(int sequential_id)
 		{1729, 3},
 		{1800, 5},
 		{1800, 11},
+		{1912, 5},
 		{0, 0}
 	};
 
@@ -280,6 +281,7 @@ static char *opencl_driver_info(int sequential_id)
 		"15.5",
 		"15.7 [recommended]",
 		"15.9 [recommended]",
+		"15.11",
 		""
 	};
 	clGetDeviceInfo(devices[sequential_id], CL_DRIVER_VERSION,
@@ -294,7 +296,11 @@ static char *opencl_driver_info(int sequential_id)
 				break;
 			i++;
 		}
-		snprintf(ret, sizeof(ret), "%s - Catalyst %s", dname, drivers_info[i]);
+
+		if (major < 1912)
+			snprintf(ret, sizeof(ret), "%s - Catalyst %s", dname, drivers_info[i]);
+		else
+			snprintf(ret, sizeof(ret), "%s - Crimson %s", dname, drivers_info[i]);
 
 	} else if (gpu_nvidia(device_info[sequential_id])) {
 
