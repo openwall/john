@@ -461,7 +461,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if ARCH_ALLOWS_UNALIGNED
 				const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)saved_plain[ti];
 #else
-				char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(4);
+				char buf_aligned[UTF8_PLAINTEXT_LENGTH + 1] JTR_ALIGN(4);
 				char *key = (char*)saved_plain[ti];
 				const ARCH_WORD_32 *wkey = is_aligned(key, 4) ?
 						(uint32_t*)key : (uint32_t*)strcpy(buf_aligned, key);
