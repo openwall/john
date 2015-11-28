@@ -244,7 +244,7 @@ static char *opencl_driver_ver(int sequential_id)
 static char *opencl_driver_info(int sequential_id)
 {
 	static char ret[64];
-	char dname[MAX_OCLINFO_STRING_LEN];
+	char dname[MAX_OCLINFO_STRING_LEN], tmp[64];
 	int major = 0, minor = 0, i = 0;
 
 	int known_drivers[][2] = {
@@ -276,13 +276,13 @@ static char *opencl_driver_info(int sequential_id)
 		"13.12",
 		"14.4 (Mantle)",
 		"14.6 beta (Mantle)",
-		"14.9 (Mantle) [recommended]",
-		"14.12 (Omega) [recommended]",
+		"14.9 (Mantle)",
+		"14.12 (Omega)",
 		"15.5 beta [not recommended]",
 		"15.5",
-		"15.7 [recommended]",
+		"15.7",
 		"15.7.1",
-		"15.9 [recommended]",
+		"15.9",
 		"15.11",
 		""
 	};
@@ -300,9 +300,20 @@ static char *opencl_driver_info(int sequential_id)
 		}
 
 		if (major < 1912)
-			snprintf(ret, sizeof(ret), "%s - Catalyst %s", dname, drivers_info[i]);
+			snprintf(tmp, sizeof(tmp), "%s - Catalyst %s", dname, drivers_info[i]);
 		else
-			snprintf(ret, sizeof(ret), "%s - Crimson %s", dname, drivers_info[i]);
+			snprintf(tmp, sizeof(tmp), "%s - Crimson %s", dname, drivers_info[i]);
+
+#if HAVE_WINDOWS_H
+		if (!strcmp("15.7", b) || !strcmp("15.7.1", b))
+			snprintf(ret, sizeof(ret), "%s%s", tmp, " [recommended]");
+#else
+		if (!strcmp("14.9", drivers_info[i]) || !strcmp("14.12", drivers_info[i]) ||
+		    !strcmp("15.7", drivers_info[i]) || !strcmp("15.9", drivers_info[i]))
+			snprintf(ret, sizeof(ret), "%s%s", tmp, " [recommended]");
+		else
+			snprintf(ret, sizeof(ret), "%s%s", tmp, " ");
+#endif
 
 	} else if (gpu_nvidia(device_info[sequential_id])) {
 
