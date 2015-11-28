@@ -261,6 +261,7 @@ static char *opencl_driver_info(int sequential_id)
 		{1702, 3},
 		{1729, 3},
 		{1800, 5},
+		{1800, 8},
 		{1800, 11},
 		{1912, 5},
 		{0, 0}
@@ -280,6 +281,7 @@ static char *opencl_driver_info(int sequential_id)
 		"15.5 beta [not recommended]",
 		"15.5",
 		"15.7 [recommended]",
+		"15.7.1",
 		"15.9 [recommended]",
 		"15.11",
 		""
