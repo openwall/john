@@ -38,7 +38,7 @@ john_register_one(&fmt_sapG);
 #include "johnswap.h"
 
 #define FORMAT_LABEL			"sapg"
-#define FORMAT_NAME			"SAP CODVN F/G (PASSCODE)"
+#define FORMAT_NAME				"SAP CODVN F/G (PASSCODE)"
 
 #define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
@@ -46,7 +46,7 @@ static unsigned int omp_t = 1;
 #if defined(_OPENMP)
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE			2048
+#define OMP_SCALE				2048
 #endif
 #endif
 
@@ -57,21 +57,21 @@ static unsigned int omp_t = 1;
 
 #define SALT_FIELD_LENGTH		40
 #define USER_NAME_LENGTH		12 /* max. length of user name in characters */
-#define SALT_LENGTH			(USER_NAME_LENGTH*3)	/* 12 characters of UTF-8 */
-#define PLAINTEXT_LENGTH		40 /* Characters of UTF-8 */
-#define UTF8_PLAINTEXT_LENGTH		(PLAINTEXT_LENGTH*3) /* worst case */
+#define SALT_LENGTH				(USER_NAME_LENGTH * 4)	/* bytes of UTF-8 */
+#define PLAINTEXT_LENGTH		40 /* Characters */
+#define UTF8_PLAINTEXT_LENGTH	MIN(125, PLAINTEXT_LENGTH * 4) /* bytes */
 
-#define BINARY_SIZE			20
+#define BINARY_SIZE				20
 #define BINARY_ALIGN			4
-#define SALT_SIZE			sizeof(struct saltstruct)
-#define SALT_ALIGN			4
+#define SALT_SIZE				sizeof(struct saltstruct)
+#define SALT_ALIGN				4
 #define CIPHERTEXT_LENGTH		(SALT_LENGTH + 1 + 2*BINARY_SIZE)	/* SALT + $ + 2x20 bytes for SHA1-representation */
 
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
-#define GETWORDPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETWORDPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
 #define GETSTARTPOS(index)		( (index&(SIMD_COEF_32-1))*4 + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
 #define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*20*SIMD_COEF_32 ) //for endianity conversion
 
@@ -97,28 +97,21 @@ static const unsigned char theMagicArray[MAGIC_ARRAY_SIZE]=
 // For backwards compatibility, we must support salts padded with spaces to a field width of 40
 static struct fmt_tests tests[] = {
 	{"DDIC$6066CD3147915331EC4C602847D27A75EB3E8F0A", "DDIC"},
-	// invalid, because password is too short (would work during login, but not during password change),
-	// magnum wants to keep thesse tests anyway, because they help verifying key buffer cleaning:
+	/*
+	 * invalid IRL because password is too short (would work during login,
+	 * but not during password change). We use these tests anyway because
+	 * they help verifying key buffer cleaning:
+	 */
 	{"F           $646A0AD270DF651065669A45D171EDD62DFE39A1", "X"},
 	{"JOHNNY                                  $7D79B478E70CAAE63C41E0824EAB644B9070D10A", "CYBERPUNK"},
 	{"VAN$D15597367F24090F0A501962788E9F19B3604E73", "hauser"},
 	{"ROOT$1194E38F14B9F3F8DA1B181F14DEB70E7BDCC239", "KID"},
 	// invalid, because password is too short (would work during login, but not during password change):
 	{"MAN$22886450D0AB90FDA7F91C4F3DD5619175B372EA", "u"},
-#if 0
-	// This test case is invalid since the user name can just be
-	// up to 12 characters long.
-	// So, unless the user name doesn't contain non-ascii characters,
-	// it will not be longer than 12 bytes.
-	// Also, "-------" is not a valid SAP password, since the first 3 characters
-	// are identical.
-	{"------------------------------------$463BDDCF2D2D6E07FC64C075A0802BD87A39BBA6", "-------"},
-#else
 	// SAP user name consisting of 12 consecutive EURO characters:
 	{"\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac"
 	 "\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac"
 	 "$B20D15C088481780CD44FCF2003AAAFBD9710C7C", "--+----"},
-#endif
 	{"SAP*                                $60A0F7E06D95BC9FB45F605BDF1F7B660E5D5D4E", "MaStEr"},
 	{"DOLLAR$$$---$E0180FD4542D8B6715E7D0D9EDE7E2D2E40C3D4D", "Dollar$$$---"},
 	{NULL}
@@ -160,11 +153,12 @@ static void init(struct fmt_main *self)
 	initUnicode(UNICODE_MS_NEW);
 
 	if (!options.listconf && options.target_enc != UTF_8 &&
-	    !(options.flags & FLG_TEST_CHK) &&warned++ == 0)
-		fprintf(stderr, "Warning: SAP-F/G format should always be UTF-8.\nConvert your input files to UTF-8 and use --input-encoding=utf8\n");
+	    !(options.flags & FLG_TEST_CHK) && warned++ == 0)
+		fprintf(stderr, "Warning: SAP-F/G format should always be UTF-8.\n"
+		        "Use --target-encoding=utf8\n");
 
-	// Max 40 characters or 120 bytes of UTF-8, We actually do not truncate
-	// multibyte input at 40 characters because it's too expensive.
+	// Max 40 characters or 125 bytes of UTF-8, We actually do not truncate
+	// multibyte input at 40 characters later because it's too expensive.
 	if (options.target_enc == UTF_8)
 		self->params.plaintext_length = UTF8_PLAINTEXT_LENGTH;
 
@@ -721,7 +715,7 @@ static int get_hash_5(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_
 static int get_hash_6(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_6; }
 #endif
 
-// Here, we remove any salt padding and trim it to 36 bytes
+// Here, we remove any salt padding and trim it to 44 bytes
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
