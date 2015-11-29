@@ -53,6 +53,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 
 #include <string.h>
 #include <time.h>
+#include <stdbool.h>
 
 #if AC_BUILT
 #include "autoconfig.h"
@@ -1131,10 +1132,11 @@ static void set_salt(void *salt)
 	saltlen <<= 3;
 	saltlen += *cpsalt++ - '0';
 #if ARCH_ALLOWS_UNALIGNED
-	if (*((ARCH_WORD_32*)cpsalt) != 0x30303030)
+	bool test = *((ARCH_WORD_32*)cpsalt) != 0x30303030;
 #else
-	if (memcmp(cpsalt, "0000", 4))
+	bool test = memcmp(cpsalt, "0000", 4);
 #endif
+	if (test)
 	{
 		// this is why we used base-8. Takes an extra byte, but there is NO conditional
 		// logic, building this number, and no multiplication. We HAVE added one conditional
