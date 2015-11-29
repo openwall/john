@@ -33,6 +33,8 @@
  * Full Unicode support, magnum, August 2012.
  */
 
+#include <stdbool.h>
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_episerver;
 #elif FMT_REGISTERS_H
@@ -329,11 +331,13 @@ static int cmp_all(void *binary, int count)
 	int index = 0;
 	for (; index < count; index++) {
 #ifdef SIMD_COEF_32
-		if (*((uint32_t*)binary) == crypt_out[HASH_IDX_OUT])
+		bool test = *((uint32_t*)binary) == crypt_out[HASH_IDX_OUT];
 #else
-		if (*((ARCH_WORD_32*)binary) == crypt_out[index][0])
+		bool test = *((ARCH_WORD_32*)binary) == crypt_out[index][0];
 #endif
+		if (test) {
 			return 1;
+		}
 	}
 	return 0;
 }
