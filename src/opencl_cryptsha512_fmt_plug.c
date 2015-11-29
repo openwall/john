@@ -389,6 +389,7 @@ static void reset(struct db_main *db)
 		char *tmp_value;
 		char *task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
 		int major, minor;
+		unsigned long long int max_run_time;
 
 		opencl_prepare_dev(gpu_id);
 		source_in_use = device_info[gpu_id];
@@ -417,9 +418,17 @@ static void reset(struct db_main *db)
 		                       warn, 1, self, create_clobj,
 		                       release_clobj, sizeof(uint64_t) * 9 * 8, 0);
 
+		if (cpu(device_info[gpu_id]))
+			max_run_time = 1000ULL;
+		else if (opencl_speed_index(gpu_id) < 1500000U)
+			max_run_time = 300ULL;
+		else if (opencl_speed_index(gpu_id) < 2500000U)
+			max_run_time = 200ULL;
+		else
+			max_run_time = 100ULL;
+
 		//Auto tune execution from shared/included code.
-		autotune_run(self, ROUNDS_DEFAULT, 0,
-		             (cpu(device_info[gpu_id]) ? 1000ULL : 300ULL));
+		autotune_run(self, ROUNDS_DEFAULT, 0, max_run_time);
 		memset(plaintext, '\0', sizeof(sha512_password) * global_work_size);
 	}
 }
