@@ -10,6 +10,8 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#include <stdbool.h>
+
 #ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE /* for fileno(3) and fsync(2) */
 #endif
@@ -232,13 +234,15 @@ static int log_time(void)
 {
 	int count1, count2;
 	unsigned int time;
+	bool test;
 
 	count1 = 0;
 #ifndef HAVE_MPI
-	if (options.fork) {
+	test = options.fork;
 #else
-	if (options.fork || mpi_p > 1) {
+	test = options.fork || mpi_p > 1;
 #endif
+	if (test) {
 		count1 = (int)sprintf(log.ptr, "%u ", options.node_min);
 		if (count1 < 0)
 			return count1;
