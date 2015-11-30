@@ -136,6 +136,7 @@ extern size_t local_work_size;
 extern size_t global_work_size;
 extern size_t max_group_size;
 extern unsigned int ocl_v_width;
+extern unsigned long long global_speed;
 
 extern cl_event *profilingEvent, *firstEvent, *lastEvent;
 extern cl_event *multi_profilingEvent[MAX_EVENTS];

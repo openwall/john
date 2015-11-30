@@ -335,14 +335,14 @@ static char *get_key(int index)
 }
 
 /* ------- Initialization  ------- */
-static void build_kernel(char *task)
+static void build_kernel(char *task, char *custom_opts)
 {
-	char *custom_opts;
 	int major, minor;
 
-	if (!(custom_opts = getenv(OCL_CONFIG "_BuildOpts")))
-		custom_opts = cfg_get_param(SECTION_OPTIONS,
-		                            SUBSECTION_OPENCL, OCL_CONFIG "_BuildOpts");
+	if (!strlen(custom_opts))
+		if (!(custom_opts = getenv(OCL_CONFIG "_BuildOpts")))
+			custom_opts = cfg_get_param(SECTION_OPTIONS,
+		                                    SUBSECTION_OPENCL, OCL_CONFIG "_BuildOpts");
 
 	opencl_build_kernel(task, gpu_id, custom_opts, 1);
 	opencl_driver_value(gpu_id, &major, &minor);
@@ -377,38 +377,114 @@ static void build_kernel(char *task)
 	}
 }
 
+static void release_kernel()
+{
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(preproc_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+}
+
 static void init(struct fmt_main *_self)
 {
 
 	self = _self;
 }
 
+static int calibrate()
+{
+	static char opt[24];
+	char *task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
+	int i, j, k, l, kernel_opt, best_opt = 0;
+	unsigned long long best_speed = 0;
+	size_t best_lws = 0, best_gws = 0;
+	int loop_set[][5] = {
+		{1, 2, 3, -1, 0},   //Fist loop inside block()
+		{9, 10, 11, 0, 0},  //Second loop inside block()
+		{17, 18, 19, 0, 0}, //Main loop inside kernel crypt()
+		{1, 1, 0, 0, 0},    //Use vector operations.
+		{0, 0, 0, 0, 0}
+	};
+
+	fprintf(stderr, "Calibration is trying to figure out the best configuration to "
+		        "use at runtime. Please, wait...\n");
+
+	i = j = k = l = 0;
+	while (loop_set[0][i]) {
+
+		if (loop_set[0][i] > 0) {
+			kernel_opt = (1 << loop_set[0][i]);
+			kernel_opt += (1 << loop_set[1][j]);
+			kernel_opt += (1 << loop_set[2][k]);
+			kernel_opt += ((l & 1) << 25); // vector operations
+		} else {
+			i++;
+			kernel_opt = 0;
+		}
+		snprintf(opt, sizeof(opt), "-DUNROLL_LOOP=%i", kernel_opt);
+
+		//Build the tuned kernel
+		build_kernel(task, opt);
+		autotuned = 0; local_work_size = 0; global_work_size = 0;
+		autotune_run(self, ROUNDS_DEFAULT, 0, 300ULL);
+		release_clobj();
+		release_kernel();
+
+#ifdef OCL_DEBUG
+		fprintf(stderr, "Configuration is LWS="Zu", GWS="Zu", UNROLL_LOOP=%i, "
+	                "c/s: %llu\n", local_work_size, global_work_size,
+			kernel_opt, global_speed);
+#endif
+		if (global_speed > (1.01 * best_speed)) {
+			best_speed = global_speed;
+			best_lws = local_work_size;
+			best_gws = global_work_size;
+			best_opt = kernel_opt;
+
+			if (options.verbosity > 2)
+				fprintf(stderr, "- Good configuration found: LWS="Zu", GWS="Zu", "
+				                "UNROLL_LOOP=%i, c/s: %llu\n", local_work_size,
+				                global_work_size, kernel_opt, global_speed);
+		}
+		l++;
+
+		if (!loop_set[3][l]) {
+		    l = 0; k++;
+		}
+
+		if (!loop_set[2][k]) {
+		    k = 0; j++;
+		}
+
+		if (!loop_set[1][j]) {
+		    j = 0; i++;
+		}
+	}
+	//Keep discoverd values.
+	snprintf(opt, sizeof(opt), ""Zu"", best_gws);
+	setenv("GWS", opt, 1);
+	snprintf(opt, sizeof(opt), ""Zu"", best_lws);
+	setenv("LWS", opt, 1);
+
+	fprintf(stderr, "The best configuration is: LWS="Zu", GWS="Zu", UNROLL_LOOP=%i, "
+	                "c/s: %llu\n", best_lws, best_gws, best_opt, best_speed);
+
+	return best_opt;
+}
+
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
 		char *tmp_value;
-		char *task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
+		char *task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
+		char opt[24] = "";
+
 		int major, minor;
+		unsigned long long int max_run_time;
 
 		opencl_prepare_dev(gpu_id);
 		source_in_use = device_info[gpu_id];
-
-		if ((tmp_value = getenv("_TYPE")))
-			source_in_use = atoi(tmp_value);
-
-		opencl_driver_value(gpu_id, &major, &minor);
-		use_gcn_code = (amd_gcn(source_in_use) && major < 1800);
-
-		if (use_gcn_code)
-			task = "$JOHN/kernels/cryptsha512_kernel_GCN.cl";
-		else if (_USE_GPU_SOURCE)
-			task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
-
-		build_kernel(task);
-
-		if (source_in_use != device_info[gpu_id])
-			fprintf(stderr, "Selected runtime id %d, source (%s)\n",
-			        source_in_use, task);
 
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS,
@@ -417,9 +493,42 @@ static void reset(struct db_main *db)
 		                       warn, 1, self, create_clobj,
 		                       release_clobj, sizeof(uint64_t) * 9 * 8, 0);
 
+		if (cpu(device_info[gpu_id]))
+			max_run_time = 1000ULL;
+		else
+			max_run_time = 300ULL;
+
+		//Calibrate or a regular run.
+		if ((tmp_value = getenv("_CALIBRATE"))) {
+			int kernel_opt;
+
+			kernel_opt = calibrate();
+			snprintf(opt, sizeof(opt), "-DUNROLL_LOOP=%i", kernel_opt);
+
+		} else {
+			if ((tmp_value = getenv("_TYPE")))
+				source_in_use = atoi(tmp_value);
+
+			opencl_driver_value(gpu_id, &major, &minor);
+			use_gcn_code = (amd_gcn(source_in_use) && major < 1800);
+
+			if (use_gcn_code)
+				task = "$JOHN/kernels/cryptsha512_kernel_GCN.cl";
+			else if (_USE_GPU_SOURCE)
+				task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
+			else
+				task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
+
+			if (source_in_use != device_info[gpu_id])
+				fprintf(stderr, "Selected runtime id %d, source (%s)\n",
+					source_in_use, task);
+		}
+		build_kernel(task, opt);
+
 		//Auto tune execution from shared/included code.
-		autotune_run(self, ROUNDS_DEFAULT, 0,
-		             (cpu(device_info[gpu_id]) ? 1000ULL : 300ULL));
+		autotune_run(self, ROUNDS_DEFAULT, 0, max_run_time);
+
+		//Clear work buffers.
 		memset(plaintext, '\0', sizeof(sha512_password) * global_work_size);
 	}
 }
