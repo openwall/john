@@ -33,6 +33,14 @@
 #include <fcntl.h>
 #endif
 
+// the 2 DJ_DOS builds currently set this (and do not build the header). If other environs
+// can not build the header, then they will also have this value set.
+#ifdef NO_JOHN_BLD
+#define JOHN_BLD "unk-build-type"
+#else
+#include "john_build_rule.h"
+#endif
+
 #include "jumbo.h"
 #include "options.h"
 #include "config.h"
@@ -242,90 +250,103 @@ static char *opencl_driver_ver(int sequential_id)
 	return ret;
 }
 
+static char *remove_spaces(char *str) {
+
+	char *out = str, *put = str;
+
+	for(; *str; str++) {
+		if(*str != ' ')
+			*put++ = *str;
+	}
+	*put = '\0';
+
+	return out;
+}
+
 static char *opencl_driver_info(int sequential_id)
 {
 	static char ret[64];
-	char dname[MAX_OCLINFO_STRING_LEN], tmp[64];
-	int major = 0, minor = 0, i = 0;
+	char dname[MAX_OCLINFO_STRING_LEN], tmp[64], set[64];
+	char *name, *recommendation = NULL;
+	int major = 0, minor = 0, conf_major = 0, conf_minor = 0, found;
+	struct cfg_list *list;
+	struct cfg_line *line;
 
-	int known_drivers[][2] = {
-		{938, 2},
-		{1084, 4},
-		{1124, 2},
-		{1214, 3},
-		{1311, 2},
-		{1348, 5},
-		{1445, 5},
-		{1526, 3},
-		{1573, 4},
-		{1642, 5},
-		{1702, 3},
-		{1729, 3},
-		{1800, 5},
-		{1800, 8},
-		{1800, 11},
-		{1912, 5},
-		{0, 0}
-	};
-
-	char *drivers_info[] = {
-		"12.8",
-		"13.1",
-		"13.4",
-		"13.6 beta",
-		"13.11 beta-1",
-		"13.12",
-		"14.4 (Mantle)",
-		"14.6 beta (Mantle)",
-		"14.9 (Mantle)",
-		"14.12 (Omega)",
-		"15.5 beta [not recommended]",
-		"15.5",
-		"15.7",
-		"15.7.1",
-		"15.9",
-		"15.11",
-		""
-	};
 	clGetDeviceInfo(devices[sequential_id], CL_DRIVER_VERSION,
 	                sizeof(dname), dname, NULL);
 	opencl_driver_value(sequential_id, &major, &minor);
+	name = ret;
+
+	if ((list = cfg_get_list("List.OpenCL:", "Drivers")))
+	if ((line = list->head))
+	do {
+		char *p;
+
+		//Parse driver information.
+		strncpy(set, line->data, 64);
+		remove_spaces(set);
+
+		p = strtokm(set, ",");
+		conf_major = strtoul(p, NULL, 10);
+
+		p = strtokm(NULL, ";");
+		conf_minor = strtoul(p, NULL, 10);
+
+		name = strtokm(NULL, ";");
+		recommendation = strtokm(NULL, ";");
+
+		if (gpu_amd(device_info[sequential_id]))
+		if (conf_major == major && conf_minor == minor)
+			break;
+
+		if (gpu_nvidia(device_info[sequential_id]))
+		if (recommendation && strstr(recommendation, "N"))
+		if (conf_major <= major && conf_minor <= minor)
+			break;
+
+#ifdef OCL_DEBUG
+		fprintf(stderr, "Driver: %i, %i -> %s , %s\n",
+			conf_major, conf_minor, name, recommendation);
+#endif
+    	} while ((line = line->next));
 
 	if (gpu_amd(device_info[sequential_id])) {
 
-		while (known_drivers[i][0]) {
+		if (major < 1912)
+			snprintf(ret, sizeof(ret), "%s - Catalyst %s", dname, name);
+		else
+			snprintf(ret, sizeof(ret), "%s - Crimson %s", dname, name);
+		snprintf(tmp, sizeof(tmp), "%s", ret);
+	} else
+		snprintf(tmp, sizeof(tmp), "%s", dname);
 
-			if (known_drivers[i][0] == major && known_drivers[i][1] == minor)
-				break;
-			i++;
+	snprintf(dname, sizeof(dname), " ");
+
+	if (recommendation) {
+		//Check hardware
+		found = (strstr(recommendation, "G") && amd_gcn(device_info[sequential_id]));
+		found += (strstr(recommendation, "N") && gpu_nvidia(device_info[sequential_id]));
+		found += (strstr(recommendation, "V") &&
+			 (amd_vliw4(device_info[sequential_id]) ||
+			  amd_vliw5(device_info[sequential_id])));
+
+		//Check OS
+		if (found) {
+			found = (strstr(recommendation, "*") != NULL);
+			found += (strstr(recommendation, "L") && strstr(JOHN_BLD, "linux"));
+			found += (strstr(recommendation, "W") && strstr(JOHN_BLD, "windows"));
 		}
 
-		if (major < 1912)
-			snprintf(tmp, sizeof(tmp), "%s - Catalyst %s", dname, drivers_info[i]);
-		else
-			snprintf(tmp, sizeof(tmp), "%s - Crimson %s", dname, drivers_info[i]);
-
-#if HAVE_WINDOWS_H
-		if (!strcmp("15.7", b) || !strcmp("15.7.1", b))
-			snprintf(ret, sizeof(ret), "%s%s", tmp, " [recommended]");
-#else
-		if (!strcmp("14.9", drivers_info[i]) || !strcmp("14.12", drivers_info[i]) ||
-		    !strcmp("15.7", drivers_info[i]) || !strcmp("15.9", drivers_info[i]))
-			snprintf(ret, sizeof(ret), "%s%s", tmp, " [recommended]");
-		else
-			snprintf(ret, sizeof(ret), "%s%s", tmp, " ");
-#endif
-
-	} else if (gpu_nvidia(device_info[sequential_id])) {
-
-		if (major >= 346)
-			snprintf(ret, sizeof(ret), "%s%s", dname, " [recommended]");
-		else if (major >= 319)
-			snprintf(ret, sizeof(ret), "%s%s", dname, " [supported]");
-		else
-			snprintf(ret, sizeof(ret), "%s", dname);
-	} else
-		snprintf(ret, sizeof(ret), "%s", dname);
+		if (strstr(recommendation, "T"))
+			snprintf(dname, sizeof(dname), " [known bad]");
+		else if (found) {
+			if (strstr(recommendation, "R"))
+				snprintf(dname, sizeof(dname), " [recommended]");
+			else if (strstr(recommendation, "S"))
+				snprintf(dname, sizeof(dname), " [supported]");
+		}
+	}
+	snprintf(ret, sizeof(ret), "%s%s", tmp, dname);
 
 	return ret;
 }
@@ -732,13 +753,13 @@ void opencl_preinit(void)
 		if (platform_id == -1 || gpu_id == -1) {
 			find_valid_opencl_device(&gpu_id, &platform_id);
 			gpu_id = get_sequential_id(gpu_id, platform_id);
-			default_gpu_selected = 1;
 		}
 
 		if (!device_list[0]) {
 			sprintf(string, "%d", gpu_id);
 			device_list[0] = string;
 			device_list[1] = NULL;
+			default_gpu_selected = 1;
 		}
 
 		build_device_list(device_list);
