@@ -334,14 +334,6 @@ void listconf_parse_early(void)
 		listEncodings(stdout);
 		exit(EXIT_SUCCESS);
 	}
-#if HAVE_OPENCL
-	if (!strcasecmp(options.listconf, "opencl-devices"))
-	{
-		opencl_preinit();
-		opencl_list_devices();
-		exit(EXIT_SUCCESS);
-	}
-#endif
 #if HAVE_CUDA
 	if (!strcasecmp(options.listconf, "cuda-devices"))
 	{
@@ -349,12 +341,6 @@ void listconf_parse_early(void)
 		exit(EXIT_SUCCESS);
 	}
 #endif
-	/* For other --list options that happen in listconf_parse_late()
-	   we want to mute some GPU output */
-	if (options.listconf) {
-		options.flags |= FLG_VERBOSITY;
-		options.verbosity = 1;
-	}
 }
 
 /*
@@ -426,7 +412,20 @@ void listconf_parse_late(void)
 		exit(EXIT_SUCCESS);
 	}
 #endif
-
+#if HAVE_OPENCL
+	if (!strcasecmp(options.listconf, "opencl-devices"))
+	{
+		opencl_preinit();
+		opencl_list_devices();
+		exit(EXIT_SUCCESS);
+	}
+	/* For other --list options that happen in listconf_parse_late()
+	   we want to mute some GPU output */
+	if (options.listconf) {
+		options.flags |= FLG_VERBOSITY;
+		options.verbosity = 1;
+	}
+#endif
 	if (!strcasecmp(options.listconf, "inc-modes"))
 	{
 		cfg_print_subsections("Incremental", NULL, NULL, 0);
