@@ -364,6 +364,7 @@ static void init(struct fmt_main *_self)
 {
 
 	self = _self;
+	opencl_prepare_dev(gpu_id);
 }
 
 static int calibrate()
@@ -457,7 +458,6 @@ static void reset(struct db_main *db)
 		int major, minor;
 		unsigned long long int max_run_time;
 
-		opencl_prepare_dev(gpu_id);
 		source_in_use = device_info[gpu_id];
 
 		//Initialize openCL tuning (library) for this format.
