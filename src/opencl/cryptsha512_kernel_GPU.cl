@@ -596,7 +596,6 @@ inline void sha512_crypt(
         H[i] = alt_result[i].mem_64[0];
 
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
-
 #if (UNROLL_LOOP & (1 << 17))
     #pragma unroll 1
 #elif (UNROLL_LOOP & (1 << 18))

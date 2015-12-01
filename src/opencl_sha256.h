@@ -19,9 +19,11 @@
 
 //Macros.
 #ifdef USE_BITSELECT
-#define ror32(x, n)       rotate(x, (32U-n))
+#define ror32(x, n)             (rotate(x, (32U-n)))
+#elif (cpu(DEVICE_INFO))
+#define ror32(x, n)             ((x >> n) | (x << (32U-n)))
 #else
-#define ror32(x, n)       ((x >> n) | (x << (32U-n)))
+#define ror32(x, n)             (rotate(x, (32U-n)))
 #endif
 #define SWAP32_V(n)   \
     (((n) << 24)           | (((n) & 0xff00U) << 8) | \
