@@ -339,11 +339,25 @@ static void build_kernel(char *task, char *custom_opts)
 {
 	int major, minor;
 
-	if (!strlen(custom_opts))
-		if (!(custom_opts = getenv(OCL_CONFIG "_BuildOpts")))
+	if (!strlen(custom_opts)) {
+		char opt[MAX_OCLINFO_STRING_LEN];
+		int i;
+
+		snprintf(opt, sizeof(opt), "%s_%s", OCL_CONFIG, get_device_name_(gpu_id));
+
+		//Remove spaces.
+		for (i = 0; opt[i]; i++)
+			if (opt[i] == ' ')
+				opt[i] = '_';
+
+		if (!(custom_opts = getenv(opt)))
+			custom_opts = cfg_get_param(SECTION_OPTIONS,
+		                                    SUBSECTION_OPENCL, opt);
+
+		if (!(custom_opts) && !(custom_opts = getenv(OCL_CONFIG "_BuildOpts")))
 			custom_opts = cfg_get_param(SECTION_OPTIONS,
 		                                    SUBSECTION_OPENCL, OCL_CONFIG "_BuildOpts");
-
+	}
 	opencl_build_kernel(task, gpu_id, custom_opts, 1);
 	opencl_driver_value(gpu_id, &major, &minor);
 
@@ -394,7 +408,7 @@ static void init(struct fmt_main *_self)
 
 static int calibrate()
 {
-	static char opt[24];
+	char opt[MAX_OCLINFO_STRING_LEN];
 	char *task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
 	int i, j, k, l, kernel_opt, best_opt = 0;
 	unsigned long long best_speed = 0;
