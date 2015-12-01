@@ -13,23 +13,29 @@
 
 #include "opencl_cryptsha512.h"
 
-#if (gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR < 1729) || nvidia_sm_5x(DEVICE_INFO)
-    #define VECTOR_USAGE
+#if (gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR < 1729)
+    #define VECTOR_USAGE    1
 #endif
 
-///	    *** UNROLL ***
-///AMD: sometimes a bad thing(?).
-///NVIDIA: GTX 570 don't allow full unroll.
-#if amd_vliw4(DEVICE_INFO) || amd_vliw5(DEVICE_INFO)
-    #define UNROLL_LEVEL	5
-#elif amd_gcn(DEVICE_INFO)
-    #define UNROLL_LEVEL	5
-#elif (nvidia_sm_2x(DEVICE_INFO) || nvidia_sm_3x(DEVICE_INFO))
-    #define UNROLL_LEVEL	4
-#elif nvidia_sm_5x(DEVICE_INFO)
-    #define UNROLL_LEVEL	4
-#else
-    #define UNROLL_LEVEL	0
+#ifndef UNROLL_LOOP
+    ///	    *** UNROLL ***
+    ///AMD: sometimes a bad thing(?).
+    ///NVIDIA: GTX 570 don't allow full unroll.
+    #if amd_vliw4(DEVICE_INFO) || amd_vliw5(DEVICE_INFO)
+        #define UNROLL_LOOP    133128
+    #elif amd_gcn(DEVICE_INFO)
+        #define UNROLL_LOOP    132098
+    #elif (nvidia_sm_2x(DEVICE_INFO) || nvidia_sm_3x(DEVICE_INFO))
+        #define UNROLL_LOOP    132098
+    #elif nvidia_sm_5x(DEVICE_INFO)
+        #define UNROLL_LOOP    33686536
+    #else
+        #define UNROLL_LOOP    0
+    #endif
+#endif
+
+#if (UNROLL_LOOP & (1 << 25))
+    #define VECTOR_USAGE    1
 #endif
 
 /************************** helper **************************/
@@ -522,7 +528,11 @@ inline void sha512_block_be(uint64_t * buffer, uint64_t * H) {
         w[i] = buffer[i];
 #endif
 
-#if UNROLL_LEVEL > 4
+#if (UNROLL_LOOP & (1 << 1))
+    #pragma unroll 1
+#elif (UNROLL_LOOP & (1 << 2))
+    #pragma unroll 4
+#elif (UNROLL_LOOP & (1 << 3))
     #pragma unroll
 #endif
     for (uint i = 0U; i < 16U; i++) {
@@ -539,12 +549,12 @@ inline void sha512_block_be(uint64_t * buffer, uint64_t * H) {
         a = t;
     }
 
-#if UNROLL_LEVEL > 4
-    #pragma unroll
-#elif UNROLL_LEVEL > 3
+#if (UNROLL_LOOP & (1 << 9))
+    #pragma unroll 1
+#elif (UNROLL_LOOP & (1 << 10))
     #pragma unroll 16
-#elif UNROLL_LEVEL > 2
-    #pragma unroll 8
+#elif (UNROLL_LOOP & (1 << 11))
+    #pragma unroll
 #endif
     for (uint i = 16U; i < 80U; i++) {
         w[i & 15] = w[(i - 16) & 15] + w[(i - 7) & 15] + sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]);
@@ -587,9 +597,11 @@ inline void sha512_crypt(
 
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
 
-#if amd_gcn(DEVICE_INFO)
+#if (UNROLL_LOOP & (1 << 17))
     #pragma unroll 1
-#elif UNROLL_LEVEL > 4
+#elif (UNROLL_LOOP & (1 << 18))
+    //Compiler, do the job.
+#elif (UNROLL_LOOP & (1 << 19))
     #pragma unroll 2
 #endif
     for (uint i = 0U; i < HASH_LOOPS; i++) {

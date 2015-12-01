@@ -103,6 +103,7 @@ size_t local_work_size;
 size_t global_work_size;
 size_t max_group_size;
 unsigned int ocl_v_width = 1;
+unsigned long long global_speed;
 
 cl_event *profilingEvent, *firstEvent, *lastEvent;
 cl_event *multi_profilingEvent[MAX_EVENTS];
@@ -1674,6 +1675,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 			if (options.verbosity > 3)
 				fprintf(stderr, (speed > 2 * best_speed) ? "!" : "+");
 			best_speed = speed;
+			global_speed = raw_speed;
 			optimal_gws = num;
 		}
 		if (options.verbosity > 3)
