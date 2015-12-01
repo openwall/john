@@ -25,6 +25,8 @@
         ((ulong)amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n)) << 32)) : \
         (amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n) - 32) |           \
         ((ulong)amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n) - 32) << 32)))
+#elif cpu(DEVICE_INFO)
+#define ror64(x, n)             ((x >> n) | (x << (64UL-n)))
 #else
 #define ror64(x, n)             (rotate(x, (64UL-n)))
 #endif
