@@ -698,10 +698,9 @@ void opencl_preinit(void)
 			}
 		}
 
-		if (gpu_id == -1)
+		if (!device_list[0]) {
 			gpu_id = find_valid_opencl_device();
 
-		if (!device_list[0]) {
 			sprintf(string, "%d", gpu_id);
 			device_list[0] = string;
 			device_list[1] = NULL;
@@ -1705,7 +1704,8 @@ static int find_valid_opencl_device()
 	cl_device_id devices[MAX_GPU_DEVICES];
 	cl_uint num_platforms, num_devices;
 	cl_ulong long_entries;
-	int i, d, ret = 0, dev_number = 0;
+	int i, d, ret = 0, acc = 0, dev_number = 0;
+	unsigned int speed, best_1 = 0, best_2 = 0;
 
 	if (clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms) != CL_SUCCESS)
 		goto err;
@@ -1720,16 +1720,29 @@ static int find_valid_opencl_device()
 		for (d = 0; d < num_devices; ++d) {
 			clGetDeviceInfo(devices[d], CL_DEVICE_TYPE,
 			                sizeof(cl_ulong), &long_entries, NULL);
+			// Get the detailed information about the device.
+			opencl_get_dev_info(dev_number);
 
 			if (long_entries &
-			   (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR))
-				return dev_number;
+			   (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR)) {
+				speed = opencl_speed_index(dev_number);
 
+				if ((long_entries & CL_DEVICE_TYPE_GPU) &&
+				    (speed > best_1)) {
+					best_1 = speed;
+					ret = dev_number;
+
+				} else if ((long_entries & CL_DEVICE_TYPE_ACCELERATOR) &&
+					   (speed > best_2)) {
+					best_2 = speed;
+					acc = dev_number;
+				}
+			}
 			dev_number++;
 		}
 	}
 err:
-	return ret;
+	return ret ? ret : acc;
 }
 
 size_t opencl_read_source(char *kernel_filename, char **kernel_source)
