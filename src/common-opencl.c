@@ -80,7 +80,7 @@ static int opencl_initialized;
 
 extern volatile int bench_running;
 static char* opencl_get_dev_info(int sequential_id);
-static void find_valid_opencl_device(int *dev_id, int *platform_id);
+static int find_valid_opencl_device();
 
 // Used by auto-tuning to decide how GWS should changed between trials.
 extern int autotune_get_next_gws_size(size_t num, int step, int startup,
@@ -674,47 +674,7 @@ void opencl_preinit(void)
 			queue[i] = NULL;
 		}
 		start_opencl_environment();
-
-		if (options.ocl_platform) {
-			struct list_entry *current;
-
-			platform_id = atoi(options.ocl_platform);
-
-			if (platform_id >= get_number_of_available_platforms()) {
-				fprintf(stderr, "Invalid OpenCL platform %d\n", platform_id);
-				error();
-			}
-
-			/* Legacy syntax --platform + --device */
-			if ((current = options.gpu_devices->head)) {
-				if (current->next) {
-					fprintf(stderr, "Only one OpenCL device"
-					        " supported with --platform syntax.\n");
-					error();
-				}
-				if (!strcmp(current->data, "all") ||
-				        !strcmp(current->data, "cpu") ||
-				        !strcmp(current->data, "gpu")) {
-					fprintf(stderr, "Only a single "
-					        "numerical --device allowed "
-					        "when using legacy --platform syntax.\n");
-					error();
-				}
-				if (!isdigit(ARCH_INDEX(current->data[0]))) {
-					fprintf(stderr, "Invalid OpenCL device"
-					        " id %s\n", current->data);
-					error();
-				}
-				gpu_id = get_sequential_id(atoi(current->data), platform_id);
-
-				if (gpu_id < 0) {
-					fprintf(stderr, "Invalid OpenCL device"
-					        " id %s\n", current->data);
-					error();
-				}
-			} else
-				gpu_id = get_sequential_id(0, platform_id);
-		} else {
+		{
 			struct list_entry *current;
 
 			/* New syntax, sequential --device */
@@ -724,20 +684,8 @@ void opencl_preinit(void)
 				} while ((current = current->next));
 
 				device_list[n] = NULL;
-			} else {
+			} else
 				gpu_id = -1;
-				platform_id = -1;
-			}
-		}
-
-		// Use configuration file only if JtR knows nothing about
-		// the environment.
-		if (!options.ocl_platform && platform_id < 0) {
-			char *devcfg;
-
-			if ((devcfg = cfg_get_param(SECTION_OPTIONS,
-			                            SUBSECTION_OPENCL, "Platform")))
-				platform_id = atoi(devcfg);
 		}
 
 		if (!options.gpu_devices->head && gpu_id < 0) {
@@ -750,10 +698,8 @@ void opencl_preinit(void)
 			}
 		}
 
-		if (platform_id == -1 || gpu_id == -1) {
-			find_valid_opencl_device(&gpu_id, &platform_id);
-			gpu_id = get_sequential_id(gpu_id, platform_id);
-		}
+		if (gpu_id == -1)
+			gpu_id = find_valid_opencl_device();
 
 		if (!device_list[0]) {
 			sprintf(string, "%d", gpu_id);
@@ -1753,24 +1699,18 @@ static char* opencl_get_dev_info(int sequential_id)
 	return ret;
 }
 
-static void find_valid_opencl_device(int *dev_id, int *platform_id)
+static int find_valid_opencl_device()
 {
 	cl_platform_id platform[MAX_PLATFORMS];
 	cl_device_id devices[MAX_GPU_DEVICES];
 	cl_uint num_platforms, num_devices;
 	cl_ulong long_entries;
-	int i, d;
+	int i, d, ret = 0, dev_number = 0;
 
-	if (clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms) !=
-	        CL_SUCCESS)
+	if (clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms) != CL_SUCCESS)
 		goto err;
 
-	if (*platform_id == -1)
-		*platform_id = 0;
-	else
-		num_platforms = *platform_id + 1;
-
-	for (i = *platform_id; i < num_platforms; i++) {
+	for (i = 0; i < num_platforms; i++) {
 		clGetDeviceIDs(platform[i], CL_DEVICE_TYPE_ALL, MAX_GPU_DEVICES,
 		               devices, &num_devices);
 
@@ -1781,24 +1721,15 @@ static void find_valid_opencl_device(int *dev_id, int *platform_id)
 			clGetDeviceInfo(devices[d], CL_DEVICE_TYPE,
 			                sizeof(cl_ulong), &long_entries, NULL);
 
-			if (*platform_id == -1 || *dev_id == -1) {
-				*platform_id = i;
-				*dev_id = d;
-			}
 			if (long_entries &
-			        (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR)) {
-				*platform_id = i;
-				*dev_id = d;
-				return;
-			}
+			   (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR))
+				return dev_number;
+
+			dev_number++;
 		}
 	}
 err:
-	if (*platform_id < 0)
-		*platform_id = 0;
-	if (*dev_id < 0)
-		*dev_id = 0;
-	return;
+	return ret;
 }
 
 size_t opencl_read_source(char *kernel_filename, char **kernel_source)

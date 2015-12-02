@@ -243,8 +243,6 @@ static struct opt_entry opt_list[] = {
 	{"verbosity", FLG_VERBOSITY, FLG_VERBOSITY, 0, OPT_REQ_PARAM,
 		"%u", &options.verbosity},
 #ifdef HAVE_OPENCL
-	{"platform", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
-		OPT_FMT_STR_ALLOC, &options.ocl_platform},
 	{"force-scalar", FLG_SCALAR, FLG_SCALAR, 0, FLG_VECTOR},
 	{"force-vector-width", FLG_VECTOR, FLG_VECTOR, 0,
 		(FLG_SCALAR | OPT_REQ_PARAM), "%u", &options.v_width},
@@ -417,7 +415,6 @@ void opt_print_hidden_usage(void)
 #ifdef HAVE_OPENCL
 	puts("--force-scalar            (OpenCL) force scalar mode");
 	puts("--force-vector-width=N    (OpenCL) force vector width N");
-	puts("--platform=N              set OpenCL platform (deprecated)");
 #endif
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 	puts("\nPRINCE mode options:");
