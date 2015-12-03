@@ -16,7 +16,7 @@
 #include "memory.h"
 #include "memdbg.h"
 
-int mpi_p, mpi_id;
+int mpi_p_local, mpi_p, mpi_id;
 char mpi_name[MPI_MAX_PROCESSOR_NAME + 1];
 MPI_Request **mpi_req;
 
@@ -40,8 +40,12 @@ void mpi_teardown(void)
 void mpi_setup(int argc, char **argv)
 {
 	int namesize;
+	char *e;
 
 	MPI_Init(&argc, &argv);
+
+	if ((e = getenv("OMPI_COMM_WORLD_LOCAL_SIZE")))
+		mpi_p_local = atoi(e);
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_id);
 	MPI_Comm_size(MPI_COMM_WORLD, &mpi_p);

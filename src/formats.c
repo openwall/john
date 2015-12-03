@@ -44,7 +44,6 @@ extern volatile int bench_running;
 
 #ifndef BENCH_BUILD
 static int orig_min, orig_max, orig_len;
-#endif
 
 static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphertext, int *is_split_unifies_case, int call_cnt);
 static void test_fmt_split_unifies_case_3(struct fmt_main *format,
@@ -52,6 +51,7 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext, int *is_split_unifies_case, int call_cnt);
 static void get_longest_common_string(char *fstr, char *sstr, int *first_index,
 	int *second_index, int *size);
+#endif
 static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 	char *ciphertext, char *plaintext, int *is_ignore_8th_bit,
 	int *plaintext_is_blank);
@@ -311,6 +311,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	int salt_cleaned_warned = 0, binary_cleaned_warned = 0;
 	int salt_dupe_warned = 0, i;
 #ifndef BENCH_BUILD
+	int cnt_split_unifies_case = 0;// just in case only the last test case unifies.
 	int dhirutest = 0;
 	int maxlength = 0;
 	int extra_tests = options.flags & FLG_TEST_SET;
@@ -324,7 +325,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	int is_ignore_8th_bit = 1;     // Is ignore 8th bit, FMT_8_BIT
 	int is_split_unifies_case = 0; // Is split() unifies case
 	int is_split_unifies_case_4 = 0;
-	int cnt_split_unifies_case = 0;// just in case only the last test case unifies.
 	int is_change_case = 0;        // Is change cases of ciphertext and it is valid
 	int is_need_unify_case = 1;    // Is need to unify cases in split()
 	int fmt_split_case = ((format->params.flags & FMT_SPLIT_UNIFIES_CASE)==FMT_SPLIT_UNIFIES_CASE);
@@ -528,7 +528,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				MEM_FREE(k);
 			}
 		}
-#endif
 		if (full_lvl >= 0) {
 			// numerous tests. We need to 'merge' into 1, probably.
 			if (!fmt_split_case && format->params.binary_size && is_need_unify_case)
@@ -537,6 +536,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			test_fmt_split_unifies_case_4(format, ciphertext, &is_split_unifies_case_4, cnt_split_unifies_case);
 			++cnt_split_unifies_case;
 		}
+#endif
 
 		ciphertext = format->methods.split(ciphertext, 0, format);
 		if (!ciphertext)
@@ -1079,6 +1079,7 @@ static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 	MEM_FREE(plain_copy);
 }
 
+#ifndef BENCH_BUILD
 static int chrcasecmp(char lc, char rc)
 {
 	if (lc >= 'a' && lc <= 'z')
@@ -1516,6 +1517,7 @@ change_case:
 		*is_split_unifies_case = 0;
 	return;
 }
+#endif
 
 /*
  * Allocate memory for a copy of a binary ciphertext or salt with only the

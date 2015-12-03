@@ -3,8 +3,12 @@
 # This software is Copyright (c) 2014, Sanju Kholia <sanju.kholia at gmail.com>
 # and it is hereby released to the general public under the following terms:
 #
-# Redistribution and use in source and binary forms, with or without modification,
-# are permitted.
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+#
+# "kde-runtime/kwalletd/backend/kwalletbackend.cc" file is authoritative.
+#
+# Use gdb -p `pidof kwalletd5` and "break gcry_kdf_derive" to debug this code.
 
 import sys
 import os
@@ -15,15 +19,24 @@ KWMAGIC = "KWALLET\n\r\0\r\n"
 KWMAGIC_LEN = 12
 KWALLET_VERSION_MAJOR = 0
 KWALLET_VERSION_MINOR = 0
-KWALLET_CIPHER_BLOWFISH_CBC = 0
+KWALLET_CIPHER_BLOWFISH_ECB = 0  # this was the old KWALLET_CIPHER_BLOWFISH_CBC
 KWALLET_CIPHER_3DES_CBC = 1
+KWALLET_CIPHER_GPG = 2
+KWALLET_CIPHER_BLOWFISH_CBC = 3
 KWALLET_HASH_SHA1 = 0
-KWALLET_HASH_MD5 = 1
+KWALLET_HASH_MD5 = 1  # unsupported (even upstream)
+KWALLET_HASH_PBKDF2_SHA512 = 2  # used when using kwallet with pam or since 4.13 version
 N = 128
+
+PBKDF2_SHA512_KEYSIZE = 56
+PBKDF2_SHA512_SALTSIZE = 56
+PBKDF2_SHA512_ITERATIONS = 50000
 
 
 def process_file(filename):
     offset = 0
+    new_version = False  # PBKDF2-HMAC-SHA512 if True
+    kwallet_minor_version = -1
 
     try:
         fd = open(filename, "rb")
@@ -45,16 +58,21 @@ def process_file(filename):
 
     # First byte is major version, second byte is minor version
     if buf[0] != KWALLET_VERSION_MAJOR:
-        sys.stderr.write("%s : Unknown version!\n" % filename)
+        sys.stderr.write("%s : Unknown major version!\n" % filename)
         return
-    if buf[1] != KWALLET_VERSION_MINOR:
-        sys.stderr.write("%s : Unknown version!\n" % filename)
+    #  0 has been the MINOR version until 4.13, from that point we use it to
+    #  upgrade the hash
+    if buf[1] != 0:  # Old KWALLET_VERSION_MINOR
+        if buf[1] != 1:  # New KWALLET_VERSION_MINOR
+            sys.stderr.write("%s : Unknown minor version!\n" % filename)
+            return
+        new_version = True
+        kwallet_minor_version = buf[1]
+    if buf[2] != KWALLET_CIPHER_BLOWFISH_ECB and buf[2] != KWALLET_CIPHER_BLOWFISH_CBC:
+        sys.stderr.write("%s : Unsupported cipher <%d>\n" % (filename, buf[2]))
         return
-    if buf[2] != KWALLET_CIPHER_BLOWFISH_CBC:
-        sys.stderr.write("%s : Unsupported cipher\n" % filename)
-        return
-    if buf[3] != KWALLET_HASH_SHA1:
-        sys.stderr.write("%s : Unsupported hash\n" % filename)
+    if buf[3] != KWALLET_HASH_SHA1 and buf[3] != KWALLET_HASH_PBKDF2_SHA512:
+        sys.stderr.write("%s : Unsupported hash <%d>\n" % (filename, buf[3]))
         return
 
     # Read in the hashes
@@ -83,9 +101,22 @@ def process_file(filename):
         sys.stderr.write("%s : invalid file structure!\n", filename)
         sys.exit(7)
 
-    sys.stdout.write("%s:$kwallet$%ld$%s" % (os.path.basename(filename), encrypted_size, hexlify(encrypted)))
-
-    sys.stdout.write(":::::%s\n" % filename)
+    if new_version:
+        sys.stderr.write("%s <- KWallet 5 files aren't supported yet!\n" % filename)
+        """
+        # read salt
+        salt_filename = os.path.splitext(filename)[0] + ".salt"
+        salt = open(salt_filename).read()
+        salt_len = len(salt)
+        iterations = PBKDF2_SHA512_ITERATIONS  # is this fixed?
+        sys.stdout.write("%s:$kwallet$%ld$%s$%d$%d$%s$%s" %
+                         (os.path.basename(filename), encrypted_size,
+                          hexlify(encrypted), kwallet_minor_version, salt_len,
+                          salt.encode("hex"), iterations))
+        """
+    else:
+        sys.stdout.write("%s:$kwallet$%ld$%s" % (os.path.basename(filename), encrypted_size, hexlify(encrypted)))
+        sys.stdout.write(":::::%s\n" % filename)
 
     fd.close()
 

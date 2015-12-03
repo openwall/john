@@ -56,7 +56,7 @@ static struct fmt_main *self;
 
 static cl_kernel prepare_kernel, preproc_kernel, final_kernel;
 
-static int new_keys, source_in_use, use_gcn_code;
+static int new_keys, source_in_use;
 static int split_events[3] = { 1, 6, 7 };
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
@@ -72,10 +72,8 @@ static size_t get_task_max_work_group_size()
 	if (_SPLIT_KERNEL_IN_USE) {
 		s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0,
 		        prepare_kernel));
-
-		if (!use_gcn_code)
-			s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0,
-			        preproc_kernel));
+		s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0,
+		        preproc_kernel));
 		s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0,
 		        final_kernel));
 	}
@@ -128,16 +126,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	tmp_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
 	                            sizeof(sha512_buffers) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 1");
-
-	if (!use_gcn_code) {
-		work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
-		                             sizeof(uint64_t) * (9 * 8) * gws, NULL, &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 2");
-	} else {
-		work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
-		                             sizeof(sha512_buffers) * gws, NULL, &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area");
-	}
+	work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
+	                             sizeof(uint64_t) * (9 * 8) * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 2");
 
 	//Set kernel arguments
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
@@ -150,70 +141,41 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		                              (void *)&hash_buffer), "Error setting argument 2");
 
 	} else {
+		//Set prepare kernel arguments
+		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
+		                              (void *)&salt_buffer), "Error setting argument 0");
+		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
+		                              (void *)&pass_buffer), "Error setting argument 1");
+		HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
+		                              (void *)&tmp_buffer), "Error setting argument 2");
 
-		if (!use_gcn_code) {
-			//Set prepare kernel arguments
-			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
-			                              (void *)&salt_buffer), "Error setting argument 0");
-			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
-			                              (void *)&pass_buffer), "Error setting argument 1");
-			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
-			                              (void *)&tmp_buffer), "Error setting argument 2");
+		//Set preprocess kernel arguments
+		HANDLE_CLERROR(clSetKernelArg(preproc_kernel, 0, sizeof(cl_mem),
+		                              (void *)&salt_buffer), "Error setting argument 0");
+		HANDLE_CLERROR(clSetKernelArg(preproc_kernel, 1, sizeof(cl_mem),
+		                              (void *)&pass_buffer), "Error setting argument 1");
+		HANDLE_CLERROR(clSetKernelArg(preproc_kernel, 2, sizeof(cl_mem),
+		                              (void *)&tmp_buffer), "Error setting argument 2");
+		HANDLE_CLERROR(clSetKernelArg(preproc_kernel, 3, sizeof(cl_mem),
+		                              (void *)&work_buffer), "Error setting argument 3");
 
-			//Set preprocess kernel arguments
-			HANDLE_CLERROR(clSetKernelArg(preproc_kernel, 0, sizeof(cl_mem),
-			                              (void *)&salt_buffer), "Error setting argument 0");
-			HANDLE_CLERROR(clSetKernelArg(preproc_kernel, 1, sizeof(cl_mem),
-			                              (void *)&pass_buffer), "Error setting argument 1");
-			HANDLE_CLERROR(clSetKernelArg(preproc_kernel, 2, sizeof(cl_mem),
-			                              (void *)&tmp_buffer), "Error setting argument 2");
-			HANDLE_CLERROR(clSetKernelArg(preproc_kernel, 3, sizeof(cl_mem),
-			                              (void *)&work_buffer), "Error setting argument 3");
+		//Set crypt kernel arguments
+		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
+		                              (void *)&hash_buffer), "Error setting argument 1");
+		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
+		                              (void *)&tmp_buffer), "Error setting argument 2");
+		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
+		                              (void *)&work_buffer), "Error setting argument 3");
 
-			//Set crypt kernel arguments
-			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
-			                              (void *)&hash_buffer), "Error setting argument 1");
-			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
-			                              (void *)&tmp_buffer), "Error setting argument 2");
-			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
-			                              (void *)&work_buffer), "Error setting argument 3");
-
-			//Set final kernel arguments
-			HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
-			                              (void *)&salt_buffer), "Error setting argument 0");
-			HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem),
-			                              (void *)&hash_buffer), "Error setting argument 2");
-			HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
-			                              (void *)&tmp_buffer), "Error setting argument 3");
-			HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
-			                              (void *)&work_buffer), "Error setting argument 3");
-		} else {
-			//Set prepare kernel arguments
-			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
-			                              (void *)&salt_buffer), "Error setting argument 0");
-			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
-			                              (void *)&pass_buffer), "Error setting argument 1");
-			HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
-			                              (void *)&work_buffer), "Error setting argument 2");
-
-			//Set crypt kernel arguments
-			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
-			                              (void *)&pass_buffer), "Error setting argument 1");
-			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
-			                              (void *)&hash_buffer), "Error setting argument 2");
-			HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
-			                              (void *)&work_buffer), "Error setting argument 3");
-
-			//Set final kernel arguments
-			HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
-			                              (void *)&salt_buffer), "Error setting argument 0");
-			HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem),
-			                              (void *)&pass_buffer), "Error setting argument 1");
-			HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
-			                              (void *)&hash_buffer), "Error setting argument 2");
-			HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
-			                              (void *)&work_buffer), "Error setting argument 3");
-		}
+		//Set final kernel arguments
+		HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
+		                              (void *)&salt_buffer), "Error setting argument 0");
+		HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem),
+		                              (void *)&hash_buffer), "Error setting argument 2");
+		HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
+		                              (void *)&tmp_buffer), "Error setting argument 3");
+		HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
+		                              (void *)&work_buffer), "Error setting argument 3");
 	}
 	memset(plaintext, '\0', sizeof(sha512_password) * gws);
 	memset(plain_sorted, '\0', sizeof(sha512_password) * gws);
@@ -335,15 +297,29 @@ static char *get_key(int index)
 }
 
 /* ------- Initialization  ------- */
-static void build_kernel(char *task)
+static void build_kernel(char *task, char *custom_opts)
 {
-	char *custom_opts;
 	int major, minor;
 
-	if (!(custom_opts = getenv(OCL_CONFIG "_BuildOpts")))
-		custom_opts = cfg_get_param(SECTION_OPTIONS,
-		                            SUBSECTION_OPENCL, OCL_CONFIG "_BuildOpts");
+	if (!strlen(custom_opts)) {
+		char opt[MAX_OCLINFO_STRING_LEN];
+		int i;
 
+		snprintf(opt, sizeof(opt), "%s_%s", OCL_CONFIG, get_device_name_(gpu_id));
+
+		//Remove spaces.
+		for (i = 0; opt[i]; i++)
+			if (opt[i] == ' ')
+				opt[i] = '_';
+
+		if (!(custom_opts = getenv(opt)))
+			custom_opts = cfg_get_param(SECTION_OPTIONS,
+		                                    SUBSECTION_OPENCL, opt);
+
+		if (!(custom_opts) && !(custom_opts = getenv(OCL_CONFIG "_BuildOpts")))
+			custom_opts = cfg_get_param(SECTION_OPTIONS,
+		                                    SUBSECTION_OPENCL, OCL_CONFIG "_BuildOpts");
+	}
 	opencl_build_kernel(task, gpu_id, custom_opts, 1);
 	opencl_driver_value(gpu_id, &major, &minor);
 
@@ -366,70 +342,161 @@ static void build_kernel(char *task)
 		    clCreateKernel(program[gpu_id], "kernel_final", &ret_code);
 		HANDLE_CLERROR(ret_code,
 		               "Error creating kernel_final. Double-check kernel name?");
-
-		if (!use_gcn_code) {
-			preproc_kernel =
-			    clCreateKernel(program[gpu_id], "kernel_preprocess",
+		preproc_kernel =
+		    clCreateKernel(program[gpu_id], "kernel_preprocess",
 			                   &ret_code);
-			HANDLE_CLERROR(ret_code,
-			               "Error creating kernel_preprocess. Double-check kernel name?");
-		}
+		HANDLE_CLERROR(ret_code,
+		               "Error creating kernel_preprocess. Double-check kernel name?");
 	}
+}
+
+static void release_kernel()
+{
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(preproc_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 }
 
 static void init(struct fmt_main *_self)
 {
 
 	self = _self;
+	opencl_prepare_dev(gpu_id);
+}
+
+static int calibrate()
+{
+	char opt[MAX_OCLINFO_STRING_LEN];
+	char *task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
+	int i, j, k, l, kernel_opt, best_opt = 0;
+	unsigned long long best_speed = 0;
+	size_t best_lws = 0, best_gws = 0;
+	int loop_set[][5] = {
+		{1, 2, 3, -1, 0},   //Fist loop inside block()
+		{9, 10, 11, 0, 0},  //Second loop inside block()
+		{17, 18, 19, 0, 0}, //Main loop inside kernel crypt()
+		{1, 1, 0, 0, 0},    //Use vector operations.
+		{0, 0, 0, 0, 0}
+	};
+
+	fprintf(stderr, "Calibration is trying to figure out the best configuration to "
+		        "use at runtime. Please, wait...\n");
+
+	i = j = k = l = 0;
+	while (loop_set[0][i]) {
+
+		if (loop_set[0][i] > 0) {
+			kernel_opt = (1 << loop_set[0][i]);
+			kernel_opt += (1 << loop_set[1][j]);
+			kernel_opt += (1 << loop_set[2][k]);
+			kernel_opt += ((l & 1) << 25); // vector operations
+		} else {
+			i++;
+			kernel_opt = 0;
+		}
+		snprintf(opt, sizeof(opt), "-DUNROLL_LOOP=%i", kernel_opt);
+
+		//Build the tuned kernel
+		build_kernel(task, opt);
+		autotuned = 0; local_work_size = 0; global_work_size = 0;
+		autotune_run(self, ROUNDS_DEFAULT, 0, 300ULL);
+		release_clobj();
+		release_kernel();
+
+#ifdef OCL_DEBUG
+		fprintf(stderr, "Configuration is LWS="Zu", GWS="Zu", UNROLL_LOOP=%i, "
+	                "c/s: %llu\n", local_work_size, global_work_size,
+			kernel_opt, global_speed);
+#endif
+		if (global_speed > (1.01 * best_speed)) {
+			best_speed = global_speed;
+			best_lws = local_work_size;
+			best_gws = global_work_size;
+			best_opt = kernel_opt;
+
+			if (options.verbosity > 2)
+				fprintf(stderr, "- Good configuration found: LWS="Zu", GWS="Zu", "
+				                "UNROLL_LOOP=%i, c/s: %llu\n", local_work_size,
+				                global_work_size, kernel_opt, global_speed);
+		}
+		l++;
+
+		if (!loop_set[3][l]) {
+		    l = 0; k++;
+		}
+
+		if (!loop_set[2][k]) {
+		    k = 0; j++;
+		}
+
+		if (!loop_set[1][j]) {
+		    j = 0; i++;
+		}
+	}
+	//Keep discoverd values.
+	snprintf(opt, sizeof(opt), ""Zu"", best_gws);
+	setenv("GWS", opt, 1);
+	snprintf(opt, sizeof(opt), ""Zu"", best_lws);
+	setenv("LWS", opt, 1);
+
+	fprintf(stderr, "The best configuration is: LWS="Zu", GWS="Zu", UNROLL_LOOP=%i, "
+	                "c/s: %llu\n", best_lws, best_gws, best_opt, best_speed);
+
+	return best_opt;
 }
 
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
 		char *tmp_value;
-		char *task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
-		int default_value = 0;
-		int major, minor;
+		char *task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
+		char opt[24] = "";
 
-		opencl_prepare_dev(gpu_id);
+		int major, minor;
+		unsigned long long int max_run_time;
+
 		source_in_use = device_info[gpu_id];
 
-		if ((tmp_value = getenv("_TYPE")))
-			source_in_use = atoi(tmp_value);
-
-		opencl_driver_value(gpu_id, &major, &minor);
-		use_gcn_code = (amd_gcn(source_in_use) && major < 1800);
-
-		if (use_gcn_code)
-			task = "$JOHN/kernels/cryptsha512_kernel_GCN.cl";
-		else if (_USE_GPU_SOURCE)
-			task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
-
-		build_kernel(task);
-
-		if (source_in_use != device_info[gpu_id])
-			fprintf(stderr, "Selected runtime id %d, source (%s)\n",
-			        source_in_use, task);
-
-		if (gpu_amd(source_in_use))
-			default_value = get_processors_count(gpu_id);
-		else if (gpu_intel(source_in_use))
-			default_value = 1024;
-		else
-			default_value =
-			    autotune_get_task_max_size(1, KEYS_PER_CORE_CPU,
-			                               KEYS_PER_CORE_GPU, crypt_kernel);
-
 		//Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(default_value, HASH_LOOPS,
+		opencl_init_auto_setup(SEED, HASH_LOOPS,
 		                       ((_SPLIT_KERNEL_IN_USE) ?
 		                        split_events : NULL),
 		                       warn, 1, self, create_clobj,
 		                       release_clobj, sizeof(uint64_t) * 9 * 8, 0);
 
+		if (cpu(device_info[gpu_id]))
+			max_run_time = 1000ULL;
+		else
+			max_run_time = 300ULL;
+
+		//Calibrate or a regular run.
+		if ((tmp_value = getenv("_CALIBRATE"))) {
+			int kernel_opt;
+
+			kernel_opt = calibrate();
+			snprintf(opt, sizeof(opt), "-DUNROLL_LOOP=%i", kernel_opt);
+
+		} else {
+			if ((tmp_value = getenv("_TYPE")))
+				source_in_use = atoi(tmp_value);
+
+			opencl_driver_value(gpu_id, &major, &minor);
+
+			if (!(_USE_GPU_SOURCE))
+				task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
+
+			if (source_in_use != device_info[gpu_id])
+				fprintf(stderr, "Selected runtime id %d, source (%s)\n",
+					source_in_use, task);
+		}
+		build_kernel(task, opt);
+
 		//Auto tune execution from shared/included code.
-		autotune_run(self, ROUNDS_DEFAULT, 0,
-		             (cpu(device_info[gpu_id]) ? 1000ULL : 300ULL));
+		autotune_run(self, ROUNDS_DEFAULT, 0, max_run_time);
+
+		//Clear work buffers.
 		memset(plaintext, '\0', sizeof(sha512_password) * global_work_size);
 	}
 }
@@ -445,10 +512,7 @@ static void done(void)
 		if (_SPLIT_KERNEL_IN_USE) {
 			HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
 			HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
-
-			if (!use_gcn_code)
-				HANDLE_CLERROR(clReleaseKernel(preproc_kernel),
-				               "Release kernel");
+			HANDLE_CLERROR(clReleaseKernel(preproc_kernel), "Release kernel");
 		}
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 		autotuned = 0;
@@ -521,10 +585,9 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		                                     NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]),
 		              "failed in clEnqueueNDRangeKernel I");
 
-		if (!use_gcn_code)
-			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], preproc_kernel,
-			                                     1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]),
-			              "failed in clEnqueueNDRangeKernel II");
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], preproc_kernel, 1,
+		                                     NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]),
+		              "failed in clEnqueueNDRangeKernel II");
 
 		for (i = 0;
 		        i < (ocl_autotune_running ? 3 : (salt->rounds / HASH_LOOPS));

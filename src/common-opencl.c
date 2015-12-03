@@ -33,6 +33,14 @@
 #include <fcntl.h>
 #endif
 
+// the 2 DJ_DOS builds currently set this (and do not build the header). If other environs
+// can not build the header, then they will also have this value set.
+#ifdef NO_JOHN_BLD
+#define JOHN_BLD "unk-build-type"
+#else
+#include "john_build_rule.h"
+#endif
+
 #include "jumbo.h"
 #include "options.h"
 #include "config.h"
@@ -72,7 +80,7 @@ static int opencl_initialized;
 
 extern volatile int bench_running;
 static char* opencl_get_dev_info(int sequential_id);
-static void find_valid_opencl_device(int *dev_id, int *platform_id);
+static int find_valid_opencl_device();
 
 // Used by auto-tuning to decide how GWS should changed between trials.
 extern int autotune_get_next_gws_size(size_t num, int step, int startup,
@@ -103,6 +111,7 @@ size_t local_work_size;
 size_t global_work_size;
 size_t max_group_size;
 unsigned int ocl_v_width = 1;
+unsigned long long global_speed;
 
 cl_event *profilingEvent, *firstEvent, *lastEvent;
 cl_event *multi_profilingEvent[MAX_EVENTS];
@@ -241,71 +250,103 @@ static char *opencl_driver_ver(int sequential_id)
 	return ret;
 }
 
+static char *remove_spaces(char *str) {
+
+	char *out = str, *put = str;
+
+	for(; *str; str++) {
+		if(*str != ' ')
+			*put++ = *str;
+	}
+	*put = '\0';
+
+	return out;
+}
+
 static char *opencl_driver_info(int sequential_id)
 {
 	static char ret[64];
-	char dname[MAX_OCLINFO_STRING_LEN];
-	int major = 0, minor = 0, i = 0;
+	char dname[MAX_OCLINFO_STRING_LEN], tmp[64], set[64];
+	char *name, *recommendation = NULL;
+	int major = 0, minor = 0, conf_major = 0, conf_minor = 0, found;
+	struct cfg_list *list;
+	struct cfg_line *line;
 
-	int known_drivers[][2] = {
-		{938, 2},
-		{1084, 4},
-		{1124, 2},
-		{1214, 3},
-		{1311, 2},
-		{1348, 5},
-		{1445, 5},
-		{1526, 3},
-		{1573, 4},
-		{1642, 5},
-		{1702, 3},
-		{1729, 3},
-		{1800, 5},
-		{1800, 11},
-		{0, 0}
-	};
-
-	char *drivers_info[] = {
-		"12.8",
-		"13.1",
-		"13.4",
-		"13.6 beta",
-		"13.11 beta-1",
-		"13.12",
-		"14.4 (Mantle)",
-		"14.6 beta (Mantle)",
-		"14.9 (Mantle) [recommended]",
-		"14.12 (Omega) [recommended]",
-		"15.5 beta [not recommended]",
-		"15.5",
-		"15.7 [recommended]",
-		"15.9 [recommended]",
-		""
-	};
 	clGetDeviceInfo(devices[sequential_id], CL_DRIVER_VERSION,
 	                sizeof(dname), dname, NULL);
 	opencl_driver_value(sequential_id, &major, &minor);
+	name = ret;
+
+	if ((list = cfg_get_list("List.OpenCL:", "Drivers")))
+	if ((line = list->head))
+	do {
+		char *p;
+
+		//Parse driver information.
+		strncpy(set, line->data, 64);
+		remove_spaces(set);
+
+		p = strtokm(set, ",");
+		conf_major = strtoul(p, NULL, 10);
+
+		p = strtokm(NULL, ";");
+		conf_minor = strtoul(p, NULL, 10);
+
+		name = strtokm(NULL, ";");
+		recommendation = strtokm(NULL, ";");
+
+		if (gpu_amd(device_info[sequential_id]))
+		if (conf_major == major && conf_minor == minor)
+			break;
+
+		if (gpu_nvidia(device_info[sequential_id]))
+		if (recommendation && strstr(recommendation, "N"))
+		if (conf_major <= major && conf_minor <= minor)
+			break;
+
+#ifdef OCL_DEBUG
+		fprintf(stderr, "Driver: %i, %i -> %s , %s\n",
+			conf_major, conf_minor, name, recommendation);
+#endif
+    	} while ((line = line->next));
 
 	if (gpu_amd(device_info[sequential_id])) {
 
-		while (known_drivers[i][0]) {
-
-			if (known_drivers[i][0] == major && known_drivers[i][1] == minor)
-				break;
-			i++;
-		}
-		snprintf(ret, sizeof(ret), "%s - Catalyst %s", dname, drivers_info[i]);
-
-	} else if (gpu_nvidia(device_info[sequential_id])) {
-
-		if (major >= 346)
-			snprintf(ret, sizeof(ret), "%s%s", dname, " [recommended]");
-		else if (major >= 319)
-			snprintf(ret, sizeof(ret), "%s%s", dname, " [supported]");
+		if (major < 1912)
+			snprintf(ret, sizeof(ret), "%s - Catalyst %s", dname, name);
 		else
-			snprintf(ret, sizeof(ret), "%s", dname);
+			snprintf(ret, sizeof(ret), "%s - Crimson %s", dname, name);
+		snprintf(tmp, sizeof(tmp), "%s", ret);
 	} else
-		snprintf(ret, sizeof(ret), "%s", dname);
+		snprintf(tmp, sizeof(tmp), "%s", dname);
+
+	snprintf(dname, sizeof(dname), " ");
+
+	if (recommendation) {
+		//Check hardware
+		found = (strstr(recommendation, "G") && amd_gcn(device_info[sequential_id]));
+		found += (strstr(recommendation, "N") && gpu_nvidia(device_info[sequential_id]));
+		found += (strstr(recommendation, "V") &&
+			 (amd_vliw4(device_info[sequential_id]) ||
+			  amd_vliw5(device_info[sequential_id])));
+
+		//Check OS
+		if (found) {
+			found = (strstr(recommendation, "*") != NULL);
+			found += (strstr(recommendation, "L") && strstr(JOHN_BLD, "linux"));
+			found += (strstr(recommendation, "W") && strstr(JOHN_BLD, "windows"));
+		}
+
+		if (strstr(recommendation, "T"))
+			snprintf(dname, sizeof(dname), " [known bad]");
+		else if (found) {
+			if (strstr(recommendation, "R"))
+				snprintf(dname, sizeof(dname), " [recommended]");
+			else if (strstr(recommendation, "S"))
+				snprintf(dname, sizeof(dname), " [supported]");
+		}
+	}
+	snprintf(ret, sizeof(ret), "%s%s", tmp, dname);
 
 	return ret;
 }
@@ -633,47 +674,7 @@ void opencl_preinit(void)
 			queue[i] = NULL;
 		}
 		start_opencl_environment();
-
-		if (options.ocl_platform) {
-			struct list_entry *current;
-
-			platform_id = atoi(options.ocl_platform);
-
-			if (platform_id >= get_number_of_available_platforms()) {
-				fprintf(stderr, "Invalid OpenCL platform %d\n", platform_id);
-				error();
-			}
-
-			/* Legacy syntax --platform + --device */
-			if ((current = options.gpu_devices->head)) {
-				if (current->next) {
-					fprintf(stderr, "Only one OpenCL device"
-					        " supported with --platform syntax.\n");
-					error();
-				}
-				if (!strcmp(current->data, "all") ||
-				        !strcmp(current->data, "cpu") ||
-				        !strcmp(current->data, "gpu")) {
-					fprintf(stderr, "Only a single "
-					        "numerical --device allowed "
-					        "when using legacy --platform syntax.\n");
-					error();
-				}
-				if (!isdigit(ARCH_INDEX(current->data[0]))) {
-					fprintf(stderr, "Invalid OpenCL device"
-					        " id %s\n", current->data);
-					error();
-				}
-				gpu_id = get_sequential_id(atoi(current->data), platform_id);
-
-				if (gpu_id < 0) {
-					fprintf(stderr, "Invalid OpenCL device"
-					        " id %s\n", current->data);
-					error();
-				}
-			} else
-				gpu_id = get_sequential_id(0, platform_id);
-		} else {
+		{
 			struct list_entry *current;
 
 			/* New syntax, sequential --device */
@@ -683,20 +684,8 @@ void opencl_preinit(void)
 				} while ((current = current->next));
 
 				device_list[n] = NULL;
-			} else {
+			} else
 				gpu_id = -1;
-				platform_id = -1;
-			}
-		}
-
-		// Use configuration file only if JtR knows nothing about
-		// the environment.
-		if (!options.ocl_platform && platform_id < 0) {
-			char *devcfg;
-
-			if ((devcfg = cfg_get_param(SECTION_OPTIONS,
-			                            SUBSECTION_OPENCL, "Platform")))
-				platform_id = atoi(devcfg);
 		}
 
 		if (!options.gpu_devices->head && gpu_id < 0) {
@@ -709,16 +698,13 @@ void opencl_preinit(void)
 			}
 		}
 
-		if (platform_id == -1 || gpu_id == -1) {
-			find_valid_opencl_device(&gpu_id, &platform_id);
-			gpu_id = get_sequential_id(gpu_id, platform_id);
-			default_gpu_selected = 1;
-		}
-
 		if (!device_list[0]) {
+			gpu_id = find_valid_opencl_device();
+
 			sprintf(string, "%d", gpu_id);
 			device_list[0] = string;
 			device_list[1] = NULL;
+			default_gpu_selected = 1;
 		}
 
 		build_device_list(device_list);
@@ -728,8 +714,8 @@ void opencl_preinit(void)
 			error();
 		}
 #ifdef HAVE_MPI
-		// Poor man's multi-device support
-		if (mpi_p > 1) {
+		// Poor man's multi-device support.
+		if (mpi_p > 1 && mpi_p_local > 1) {
 			// Pick device to use for this node
 			gpu_id = gpu_device_list[mpi_id % get_number_of_devices_in_use()];
 
@@ -1655,6 +1641,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 			if (options.verbosity > 3)
 				fprintf(stderr, (speed > 2 * best_speed) ? "!" : "+");
 			best_speed = speed;
+			global_speed = raw_speed;
 			optimal_gws = num;
 		}
 		if (options.verbosity > 3)
@@ -1711,24 +1698,19 @@ static char* opencl_get_dev_info(int sequential_id)
 	return ret;
 }
 
-static void find_valid_opencl_device(int *dev_id, int *platform_id)
+static int find_valid_opencl_device()
 {
 	cl_platform_id platform[MAX_PLATFORMS];
 	cl_device_id devices[MAX_GPU_DEVICES];
 	cl_uint num_platforms, num_devices;
 	cl_ulong long_entries;
-	int i, d;
+	int i, d, ret = 0, acc = 0, dev_number = 0;
+	unsigned int speed, best_1 = 0, best_2 = 0;
 
-	if (clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms) !=
-	        CL_SUCCESS)
+	if (clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms) != CL_SUCCESS)
 		goto err;
 
-	if (*platform_id == -1)
-		*platform_id = 0;
-	else
-		num_platforms = *platform_id + 1;
-
-	for (i = *platform_id; i < num_platforms; i++) {
+	for (i = 0; i < num_platforms; i++) {
 		clGetDeviceIDs(platform[i], CL_DEVICE_TYPE_ALL, MAX_GPU_DEVICES,
 		               devices, &num_devices);
 
@@ -1738,25 +1720,29 @@ static void find_valid_opencl_device(int *dev_id, int *platform_id)
 		for (d = 0; d < num_devices; ++d) {
 			clGetDeviceInfo(devices[d], CL_DEVICE_TYPE,
 			                sizeof(cl_ulong), &long_entries, NULL);
+			// Get the detailed information about the device.
+			opencl_get_dev_info(dev_number);
 
-			if (*platform_id == -1 || *dev_id == -1) {
-				*platform_id = i;
-				*dev_id = d;
-			}
 			if (long_entries &
-			        (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR)) {
-				*platform_id = i;
-				*dev_id = d;
-				return;
+			   (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR)) {
+				speed = opencl_speed_index(dev_number);
+
+				if ((long_entries & CL_DEVICE_TYPE_GPU) &&
+				    (speed > best_1)) {
+					best_1 = speed;
+					ret = dev_number;
+
+				} else if ((long_entries & CL_DEVICE_TYPE_ACCELERATOR) &&
+					   (speed > best_2)) {
+					best_2 = speed;
+					acc = dev_number;
+				}
 			}
+			dev_number++;
 		}
 	}
 err:
-	if (*platform_id < 0)
-		*platform_id = 0;
-	if (*dev_id < 0)
-		*dev_id = 0;
-	return;
+	return ret ? ret : acc;
 }
 
 size_t opencl_read_source(char *kernel_filename, char **kernel_source)

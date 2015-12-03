@@ -139,8 +139,10 @@ struct db_salt {
  * salts are removed during cracking */
 	int sequential_id;
 
+#ifndef BENCH_BUILD
 /* Tunable costs */
 	unsigned int cost[FMT_TUNABLE_COSTS];
+#endif
 
 /* Buffered keys, allocated for "single crack" mode only */
 /* THIS MUST BE LAST IN THE STRUCT */
@@ -189,9 +191,11 @@ struct db_options {
 /* Requested passwords per salt */
 	int min_pps, max_pps;
 
+#ifndef BENCH_BUILD
 /* Requested cost values */
 	unsigned int min_cost[FMT_TUNABLE_COSTS];
 	unsigned int max_cost[FMT_TUNABLE_COSTS];
+#endif
 
 /* if --show=left is used, john dumps the non-cracked hashes */
 	int showuncracked;
@@ -242,9 +246,11 @@ struct db_main {
 /* Number of salts, passwords and guesses */
 	int salt_count, password_count, guess_count;
 
+#ifndef BENCH_BUILD
 /* min. and max. tunable costs */
 	unsigned int min_cost[FMT_TUNABLE_COSTS];
 	unsigned int max_cost[FMT_TUNABLE_COSTS];
+#endif
 
 /* Ciphertext format */
 	struct fmt_main *format;

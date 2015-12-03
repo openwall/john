@@ -1185,6 +1185,7 @@ REDO_AFTER_LMLOOP:
 						rule = NULL;
 						rules = 0;
 						pipe_input = 0;
+						do_lmloop = 0;
 						break;
 					}
 					wordlist_hybrid_fix_state();
@@ -1195,6 +1196,7 @@ REDO_AFTER_LMLOOP:
 						rule = NULL;
 						rules = 0;
 						pipe_input = 0;
+						do_lmloop = 0;
 						break;
 					}
 				} else
@@ -1203,6 +1205,7 @@ REDO_AFTER_LMLOOP:
 					rule = NULL;
 					rules = 0;
 					pipe_input = 0;
+					do_lmloop = 0;
 					break;
 				}
 			}

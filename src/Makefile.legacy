@@ -195,7 +195,7 @@ BENCH_OBJS = \
 	DES_bsg.o $(BENCH_DES_BS_OBJS_DEPEND) \
 	$(BENCH_MD5_OBJS_DEPEND) \
 	$(BENCH_BF_OBJS_DEPEND) \
-	bench-t.o best.o common.o config_g.o formats_g.o jumbo.o math.o dyna_salt.o \
+	bench-t.o best.o common_g.o config_g.o formats_g.o jumbo.o math.o dyna_salt.o \
 	memory.o miscnl.o params.o path.o signals_g.o tty.o memdbg.o
 
 GENMKVPWD_OBJS = \
@@ -2122,6 +2122,9 @@ pp.o: pp.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -DJTR_MODE -Wno-declaration-after-statement -std=c99 pp.c -o pp.o
 
 # This is for the BENCH build (to not depend upon options.o)
+common_g.o: common.o
+	$(CC) $(CFLAGS) -DBENCH_BUILD common.c -o common_g.o
+
 formats_g.o: formats.o
 	$(CC) $(CFLAGS) -DBENCH_BUILD formats.c -o formats_g.o
 

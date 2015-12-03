@@ -1,4 +1,4 @@
-Dynamic 'self-describing' mode.
+Dynamic 'self-describing' format.  (a.k.a. dynamic expression compiler)
 
 This is a new mode, that really opens up ease of use, for creating and using
 'dynamic' formats. This format is based upon work done in the dynamic format
@@ -36,32 +36,49 @@ is also found in the run/pass_gen.pl engine. There are a few deviations
 is very similar, in fact the parsing engine in john was ported from the
 parser in pass_gen.pl.
 
+------------------------------------------------------------------------------
+Here is the reference documentation for how to properly create expressions,
+and for the limitations to the expression language:
+------------------------------------------------------------------------------
+
 The expression MUST be a single crypt-hash expression. That means that
 only a single hash starts the expression, and there are not multiple
 hashes appended to each other.
-  so  md5($p) is valid, but md5($p).md5($p) is NOT valid
+  so  md5($p) is valid,
+  but md5($p).md5($p) is NOT valid
 
 All concatenation must have a dot '.' character between it.
   so  md5($p.$p) is valid, but md5($p$s) is not valid.
 
-$s or $salt is used for the 'salt' constant
-$s2 is used for the 2nd salt constant
-$p or $pass is used for the password being tried
-$u is for the user id (which is the first field in the input file)
-lc($u) is for lower case of the user name (proper unicode lower casing)
-uc($u) is for upper case of the user name (again, proper unicode up casing)
-lc($p and uc($p) are for lower/upper casing the password.
-If uc($u) or lc($u) are used in the expression, then ALL $u must be done 
-  the same way.  This also applies to the password.
-  so  md5($u.$p.$) is valid, but md5(uc($u).$p.$u) is not valid
-  This is a limitation of the dynamic format in general.
-$c1 to $c8 are 8 'constants' that can be used. NOTE, they must be used
-  in order, i.e. if you have a $c2, then you should have a $c1 already.
-  so md5($s.$c1.$p.$c1),c1=x   gives us  md5($s."x".$p."x")
-When using constants, they must be appended with commas to the end of
-  the expression.  NOTE, if there are any ':' chars used in constants
-  then these constants must be added with an escape. An example is:
-  md5($c1.$p),c1=test_\xea_test  Which is md5("test_:_test".$p)
+Variables:
+  $s or $salt is used for the 'salt' constant
+  $s2 is used for the 2nd salt constant
+  $p or $pass is used for the password being tried
+  $u is for the user id (which is the first field in the input file)
+  $c1 to $c8. These are set as 'constants'. NOTE, they must be used
+    in order, i.e. if you have a $c2, then you should have a $c1 already.
+    so md5($s.$c1.$p.$c1),c1=x   gives us  md5($s."x".$p."x")
+  
+Casing (note only a few things can be cased)
+  lc($u) is for lower case of the user name (proper unicode lower casing)
+  uc($u) is for upper case of the user name (again, proper unicode up casing)
+  lc($p and uc($p) are for lower/upper casing the password.
+** If uc($u) or lc($u) are used in the expression, then ALL $u must be done 
+   the same way.  This also applies to the password.
+   so  md5($u.$p.$) is valid, but md5(uc($u).$p.$u) is not valid
+   This is a limitation of the dynamic format in general.
+   When using constants, they must be appended with commas to the end of
+     the expression.  NOTE, if there are any ':' chars used in constants
+     then these constants must be added with an escape. An example is:
+     md5($c1.$p),c1=test_\x3a_test  Which is md5("test_:_test".$p)
+
+Grouping.  All expressions must be a single 'outer' expression, but within
+  that outer expression, can be a lot of grouped data. Functions start
+  with a function name, and use ( and ) to group data within what is used
+  within the hash.  So things like md5($p) or md5(md5(md5($s.$p))) or
+  md5(md5($p).$s.md5($s.$p)) are valid, since they all have a single outer
+  expression, with proper matching grouping characters for each hash function.
+
 The hashing functions come in multiple 'flavors', doing slightly different
   things. examples: md5(exp) MD5(exp) md5_raw(exp) md5_64(exp) md5_64c(exp)
   There is the lower case hash (like md5(...)) It returns it's results
@@ -78,13 +95,18 @@ The hashing functions come in multiple 'flavors', doing slightly different
   hash type 'looks' like (i.e. the hashes are in base-64). Same goes
   for the upper case. If the outer function is up case, then only
   upper cased hex strings of the right length will be valid.
+  
 The hashing functions (each have a lc, uc, _raw, _64 and _64c version)
   are:   md2, md4, md5, sha1, sha224, sha256, sha384, sha512, tiger,
+         sha3_224, sha3_256, sha3_384, sha3_512, keccak_256, keccak_512,
          ripemd128, ripemd160, ripemd256, ripemd320, whirlpool, gost, 
          skein224, skein256, skein384, skein512, panama,
          haval_128_3, haval_128_4, haval_128_5,
          haval_160_3, haval_160_4, haval_160_5,
          haval_192_3, haval_192_4, haval_192_5,
          haval_256_3, haval_256_4, haval_256_5,
+
 These functions can be intermixed in pretty much any way. So a hash of
-  sha512(md5(panama($p)))  is perfectly 'valid'
+  sha512(md5(panama($p).$s.ripmd128($s.$p)))  is perfectly 'valid'
+
+

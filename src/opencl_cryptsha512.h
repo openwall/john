@@ -39,6 +39,7 @@
 #define PLAINTEXT_ARRAY         ((PLAINTEXT_LENGTH + 7) / 8)
 #define BINARY_SIZE             64
 #define BINARY_ALIGN            4
+#define SEED                    1024
 #define STEP                    0
 
 #define HASH_LOOPS              (7*3*2)

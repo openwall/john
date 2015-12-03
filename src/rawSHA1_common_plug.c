@@ -24,6 +24,7 @@ struct fmt_tests rawsha1_common_tests[] = {
 	{"1813c12f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
 	{"095bec1163897ac86e393fa16d6ae2c2fce21602", "7850"},
 	{"dd3fbb0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
+	// The next is too long for raw-sha1-ng unless AVX2 or better build.
 	//{"{SHA}MtEMe4z5ZXDKBM438qGdhCQNOok=", "abcdefghijklmnopqrstuvwxyz"},
 	{"{SHA}cMiB1KJphN3OeV9vcYF8nPRIDnk=", "aaaa"},
 	{"{SHA}iu0TIuVFC62weOH7YKgXod8loso=", "bbbb"},

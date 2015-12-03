@@ -213,7 +213,8 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 		MEM_FREE(encoded_salt);
 		opencl_build(id_gpu, build_opts, save_binary, kernel_bin_name, program_ptr, kernel_filename, kernel_source);
 
-		fprintf(stderr, "Salt compiled from Source:%d\n", salt_val);
+		if (options.verbosity > 3)
+			fprintf(stderr, "Salt compiled from Source:%d\n", salt_val);
 
 	}
 	else {
@@ -222,7 +223,8 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 		program_size = opencl_read_source(kernel_bin_name, &kernel_source);
 		opencl_build_from_binary(id_gpu, program_ptr, kernel_source, program_size);
 
-		fprintf(stderr, "Salt compiled from Binary:%d\n", salt_val);
+		if (options.verbosity > 3)
+			fprintf(stderr, "Salt compiled from Binary:%d\n", salt_val);
 	}
 	MEM_FREE(kernel_source);
 }

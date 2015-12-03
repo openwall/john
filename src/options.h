@@ -351,8 +351,6 @@ struct options_main {
 	char dynamic_bare_hashes_always_valid;
 
 #ifdef HAVE_OPENCL
-	char *ocl_platform;
-
 /* Vector width of OpenCL kernel */
 	unsigned int v_width;
 #endif

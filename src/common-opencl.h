@@ -136,6 +136,7 @@ extern size_t local_work_size;
 extern size_t global_work_size;
 extern size_t max_group_size;
 extern unsigned int ocl_v_width;
+extern unsigned long long global_speed;
 
 extern cl_event *profilingEvent, *firstEvent, *lastEvent;
 extern cl_event *multi_profilingEvent[MAX_EVENTS];
@@ -242,13 +243,13 @@ void opencl_process_event(void);
 
 /* Use this macro for OpenCL Error handling in crypt_all() */
 #define BENCH_CLERROR(cl_error, message)	  \
-	do { \
-		if ((cl_error) != CL_SUCCESS) { \
+	do { cl_int __err = (cl_error); \
+		if (__err != CL_SUCCESS) { \
 			if (!ocl_autotune_running || options.verbosity > 4) \
 				fprintf(stderr, "OpenCL %s error in %s:%d - %s\n", \
-			        get_error_name(cl_error), __FILE__, __LINE__, message); \
+			        get_error_name(__err), __FILE__, __LINE__, message); \
 			else if (options.verbosity == 4) \
-				fprintf(stderr, " %s\n", get_error_name(cl_error)); \
+				fprintf(stderr, " %s\n", get_error_name(__err)); \
 			if (!ocl_autotune_running) \
 				error(); \
 			else \
@@ -258,10 +259,10 @@ void opencl_process_event(void);
 
 /* Use this macro for OpenCL Error handling anywhere else */
 #define HANDLE_CLERROR(cl_error, message)	  \
-	do { \
-		if (cl_error != CL_SUCCESS) { \
+	do { cl_int __err = (cl_error); \
+		if (__err != CL_SUCCESS) { \
 			fprintf(stderr, "OpenCL %s error in %s:%d - %s\n", \
-			    get_error_name(cl_error), __FILE__, __LINE__, message); \
+			    get_error_name(__err), __FILE__, __LINE__, (message)); \
 			error(); \
 		} \
 	} while (0)
