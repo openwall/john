@@ -25,7 +25,7 @@
 
 extern struct fmt_tests rawsha1_common_tests[];
 
-int rawsha1_common_valid(char * ciphertext, struct fmt_main * self);
+int rawsha1_common_valid(char *ciphertext, struct fmt_main *self);
 char *rawsha1_common_split(char *ciphertext, int index, struct fmt_main *self);
 char *rawsha1_common_prepare(char *split_fields[10], struct fmt_main *self);
 void *rawsha1_common_get_rev_binary(char *ciphertext);
