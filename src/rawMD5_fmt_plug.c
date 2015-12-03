@@ -21,6 +21,7 @@ john_register_one(&fmt_rawMD5);
 #include "common.h"
 #include "johnswap.h"
 #include "formats.h"
+#include "base64_convert.h"
 
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
@@ -88,6 +89,7 @@ static struct fmt_tests tests[] = {
 	{FORMAT_TAG "57edf4a22be3c955ac49da2e2107b67a","12345678901234567890123456789012345678901234567890123456789012345678901234567890"},
 #endif
 #endif
+	{"{MD5}CY9rzUYh03PK3k6DJie09g==", "test"},
 	{NULL}
 };
 
@@ -143,6 +145,24 @@ static void done(void)
 #ifndef SIMD_COEF_32
 	MEM_FREE(saved_len);
 #endif
+}
+
+/* Convert {MD5}CY9rzUYh03PK3k6DJie09g== to 098f6bcd4621d373cade4e832627b4f6 */
+static char *prepare(char *fields[10], struct fmt_main *self)
+{
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	if (!strncmp(fields[1], "{MD5}", 5) && strlen(fields[1]) == 29) {
+		int res;
+
+		res = base64_convert(&fields[1][5], e_b64_mime, 24,
+		                     out, e_b64_hex, sizeof(out),
+		                     flg_Base64_HEX_LOCASE);
+		if (res >= 0)
+			return out;
+	}
+
+	return fields[1];
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -453,7 +473,7 @@ struct fmt_main fmt_rawMD5 = {
 		init,
 		done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		split,
 		get_binary,
