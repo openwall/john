@@ -714,8 +714,8 @@ void opencl_preinit(void)
 			error();
 		}
 #ifdef HAVE_MPI
-		// Poor man's multi-device support
-		if (mpi_p > 1) {
+		// Poor man's multi-device support.
+		if (mpi_p > 1 && mpi_p_local > 1) {
 			// Pick device to use for this node
 			gpu_id = gpu_device_list[mpi_id % get_number_of_devices_in_use()];
 
