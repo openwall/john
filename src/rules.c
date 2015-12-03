@@ -1942,7 +1942,8 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 				POSITION(mpos)
 				POSITION(count)
 				POSITION(ipos)
-				mleft = (int)(rules_vars['m'] + 1) - mpos;
+				mleft = (int)(unsigned char)
+				    (rules_vars['m'] + 1) - mpos;
 				if (count > mleft)
 					count = mleft;
 				if (count <= 0)
