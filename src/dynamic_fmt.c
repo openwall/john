@@ -480,14 +480,14 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (strlen(&cp[cipherTextLen]) > SALT_SIZE)
 		return 0;
 // end NOTE.
-	if (pPriv->dynamic_FIXED_SALT_SIZE && ciphertext[pPriv->dynamic_SALT_OFFSET-1] != '$')
+	if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && ciphertext[pPriv->dynamic_SALT_OFFSET-1] != '$')
 		return 0;
 	if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]) != pPriv->dynamic_FIXED_SALT_SIZE) {
 		// check if there is a 'salt-2' or 'username', etc  If that is the case, then this is still valid.
 		if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET+pPriv->dynamic_FIXED_SALT_SIZE], "$$", 2))
 			return 0;
 	}
-	else if (pPriv->dynamic_FIXED_SALT_SIZE < -1 && strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]) > -(pPriv->dynamic_FIXED_SALT_SIZE)) {
+	else if (!regen_salts_options && pPriv->dynamic_FIXED_SALT_SIZE < -1 && strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]) > -(pPriv->dynamic_FIXED_SALT_SIZE)) {
 		// check if there is a 'salt-2' or 'username', etc  If that is the case, then this is still 'valid'
 		char *cpX = mem_alloc(-(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
 		strnzcpy(cpX, &ciphertext[pPriv->dynamic_SALT_OFFSET], -(pPriv->dynamic_FIXED_SALT_SIZE) + 3);

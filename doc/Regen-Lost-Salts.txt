@@ -1,11 +1,11 @@
 ***************************************************************************
-* JtR --regen-lost-salts code, written by JimF, 2012 and 2013, for use
+* JtR --regen-lost-salts code, written by JimF, 2012-2015, for use
 * within the salted dynamic formats.
 *
 * No copyright is claimed, and the software is hereby
 * placed in the public domain. In case this attempt to disclaim
 * copyright and place the software in the public domain is deemed
-* null and void, then the software is Copyright (c) 2012-2013 JimF
+* null and void, then the software is Copyright (c) 2012-2015 JimF
 * and it is hereby released to the general public under the following
 * terms:
 *
@@ -33,6 +33,11 @@ Usage:
 
 --regen-lost-salts=dynamic_9:32:?d?d?d-   --format=dynamic_9
 
+Note, regen has been updated to work with dynamic generic expression compiler also.
+Usage for same media-wiki as above is:
+
+--regen-lost-salts='@dynamic=md5($s.md5($p))@:32:?d?d?d-'   --format='dynamic=md5($s.md5($p))'
+
 The above command will run on a set of 32 byte 'raw' hashes, but which are known
 to contain media-wiki hashes.  Media-wiki is of the format md5(salt.-.md5(pass))
 the salt is a decimal number (it actually was the user id of the wiki user). There
@@ -43,7 +48,7 @@ adding the '-' character to the salt as a constant, dynamic_9 works just fine.
 
 So that 'parts' of the --regen-lost-salts are:
   type    - this will be some dynamic type. dynamic_4, dynamic_9, dynamic_1234 are
-            all the valid types.
+            all the valid types.  Also @dynamic=expression@ syntax works as expected.
   hash_sz - this is the hex length of the data.  It MUST match the proper input
             size for the format AND must match the data being processed (hashes
             where the salts were lost).  If the data is only 32 bytes long, but
@@ -61,8 +66,8 @@ So that 'parts' of the --regen-lost-salts are:
             records created (1 million, each taking 12+ bytes of memory, plus other
             memory overhead).  If this was a 6 digit salt, that used 95 possible
             characters each, then it would require 95^6 salt records, which is
-			735 BILLION salts, or almost 9 TRILLION bytes of memory.  The regen
-			salt code will NOT work for salts this large.
+            735 BILLION salts, or almost 9 TRILLION bytes of memory.  The regen
+            salt code will NOT work for salts this large.
 
 Here are more details about the mask value:
 - mask can contain static bytes. These will simply always be output. The example
@@ -86,7 +91,7 @@ Here are more details about the mask value:
     ?y  - 95 byte ASCII  [ -~]  (from space to ~ chars). ** very common salt **
     ?#  - # is a digit, from 0 to 9  This will load a 'user defined' character class
           from the john.conf file.  so ?0 will load the this user class:
-		  [Regen_Salts_UserClasses] / 0=    class
+          [Regen_Salts_UserClasses] / 0=    class
 
 With this information in hand, we can look back at that original example given:
 
@@ -136,8 +141,13 @@ type $B$ with the shorter numeric user id's.   The found lines in john.pot will
 be output as type $dynamic_2$ for the found PHPS (with the salts filled in). It
 will be $dynamic_4$ for the OSC (with salt), and $dynamic_9$ (with user id as
 salt), for the mediawiki items.
+
 NOTE, normally the salt is preserved with the hash, and thus JtR can properly
 find them using 'normal' methods.  This new functionality was added to handle
 leaked hashes where the original salt has been lost.  It is VERY slow to run
 in this manner, due to JtR having to check every possible salt, but it does
 allow these hashes to be cracked 'properly'.
+
+NOTE, the dyna-generic expression compiler is now supported, so dummy dynamic
+formats do not have to be hand coded simply to use the regen-salts logic on
+hashes where the salts were lost.
