@@ -43,11 +43,6 @@ typedef struct dyna_salt_t {
 	host_size_t bitfield_and_offset;
 } dyna_salt;
 
-/* Needed for OSX. Doesn't help on stupid intel Linux driver */
-#ifndef typeof
-#define typeof __typeof__
-#endif
-
 #ifndef MIN
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #endif
@@ -55,13 +50,21 @@ typedef struct dyna_salt_t {
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #endif
 
-/* host code may pass -DV_WIDTH=2 or some other width */
+/*
+ * host code may pass -DV_WIDTH=2 or some other width.
+ *
+ * I wish they'd make typeof() an OpenCL requirement. The only devices I've
+ * seen not supporting it is recent Intel but they also never want vectorized
+ * code so this workaround works fine for current use.
+ */
 #if V_WIDTH > 1
 #define MAYBE_VECTOR_UINT	VECTOR(uint, V_WIDTH)
 #define MAYBE_VECTOR_ULONG	VECTOR(ulong, V_WIDTH)
+#define typeof __typeof__
 #else
 #define MAYBE_VECTOR_UINT	uint
 #define MAYBE_VECTOR_ULONG	ulong
+#define typeof(a) uint
 #define SCALAR 1
 #endif
 

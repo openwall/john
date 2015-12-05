@@ -1,3 +1,36 @@
+The following people have contributed between 1.8.0-jumbo-1 and 1.8.0-jumbo-2:
+
+    Aleksey Cherepanov
+    Alexander Cherepanov
+    Bernhard Spil
+    c0re
+    campeador
+    Catalin Patulea
+    Christien Rioux
+    Claudio André
+    Dhirendra Kholia
+    Dhiru Kholia
+    Dmitri Lapin
+    Frank Dittrich
+    Ivan Novikov
+    Jan Starke
+    JimF
+    Kai Zhao
+    Lukas Odzioba
+    magnum
+    Mathieu
+    Michael Kramer
+    philsmd
+    R. Brenton Strickler
+    Rémi Dubois
+    Sayantan Datta
+    Shinnok
+    Solar
+    Stuart Morgan
+    Sylvain Pelissier
+    Tonimir Kisasondi
+    Zhang Lei
+
 The following people have contributed between 1.7.9-jumbo-8 and 1.8.0-jumbo-1:
 
     Aleksey Cherepanov
@@ -115,5 +148,5 @@ The following people have contributed between 1.7.9-jumbo-5 and jumbo-6:
     Tavis Ormandy
 
 ---
-git shortlog -ns --no-merges 1.7.9-jumbo-7..HEAD ^unstable-jumbo ^master | cut -f2- | sort -f
+git shortlog -ns --no-merges 1.8.0-jumbo-1..HEAD ^master | cut -f2- | sort -f
 ---
