@@ -3601,6 +3601,7 @@ sub dynamic_compile_to_pcode {
 	unless (defined($saltlen) && $saltlen =~ /^[+\-]?\d*.?\d+$/) { $saltlen = 8; }
 	$gen_stype = $hash{"salt"};
 	unless (defined($gen_stype)) { $gen_stype = "true"; }
+	#print "$gen_stype\n";
 
 	# load salt #2
 	$salt2len = $hash{"salt2len"};
@@ -3847,7 +3848,12 @@ sub dynamic_load_salt {
 			if ($slen < 0) {
 				$slen = int(rand($slen*-1));
 			}
-			$gen_s=randstr($slen);
+			#print "$gen_stype\n";
+			if ($gen_stype eq "onlyhex") {
+				$gen_s=randstr($slen, \@chrHexLo);
+			} else {
+				$gen_s=randstr($slen);
+			}
 		}
 		$gen_soutput = $gen_s;
 		if ($gen_stype eq "tohex") { $gen_s=md5_hex($gen_s); }

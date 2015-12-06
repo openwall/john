@@ -30,7 +30,7 @@
 // global data  (Options loading uses this variable).
 char *regen_salts_options;
 
-static char *regen_schema, DynaType[24], FirstSalt[11];
+static char *regen_schema, DynaType[2048], FirstSalt[11];
 static int  hash_len, DynaTypeLen;
 static int  salt_len, total_regen_salts_count;
 static int  loc_cnt[10] = {0};  /* how many chars are used for each location */
@@ -190,12 +190,28 @@ int regen_lost_salt_parse_options() {
 	else if (!strcmp(regen_salts_options, "5")) regen_salts_options="dynamic_9:32:?d?d?d?d?d-";
 	else if (!strcmp(regen_salts_options, "6")) regen_salts_options="dynamic_61:64:?d?d";
 
-	if (strncmp(regen_salts_options, "dynamic_", 8))
-		bailout("Error, invalid regen-lost-salts argument. Must start with dynamic_# value\nSee docs/REGEN-LOST-SALTS document");
-	if (sscanf(regen_salts_options, "dynamic_%d:%d:", &regen_salts_dyna_num, &hash_len) != 2)
-		 bailout("Error, invalid regen-lost-salts argument. Must start with dynamic_#:hash_len: value\nSee docs/REGEN-LOST-SALTS document");
-	// at this point in the JtR loading, we do not know if $dynamic_`regen_salts_dyna_num`$ is valid.  We have to check later.
-	sprintf(DynaType, "$dynamic_%d$", regen_salts_dyna_num);
+	if (!strncmp(regen_salts_options, "@dynamic=", 9)) {
+		char *cp = strrchr(regen_salts_options, '@');
+		int len;
+		if (!cp)
+			bailout("Error, invalid @dynamic= signature in the -salt-regen section");
+		++cp;
+		len = cp-regen_salts_options;
+		if (len > sizeof(DynaType) - 1)
+			len = sizeof(DynaType) - 1;
+		regen_salts_dyna_num=6000;
+		if (sscanf(cp, ":%d:", &hash_len) != 1)
+			bailout("Error, invalid regen-lost-salts argument. Must start with @dynamic=EXPR:hash_len: value\nSee docs/REGEN-LOST-SALTS document");
+		// at this point in the JtR loading, we do not know if $dynamic_`regen_salts_dyna_num`$ is valid.  We have to check later.
+		sprintf(DynaType, "%*.*s", len, len, regen_salts_options);
+	} else {
+		if (strncmp(regen_salts_options, "dynamic_", 8))
+			bailout("Error, invalid regen-lost-salts argument. Must start with dynamic_# value\nSee docs/REGEN-LOST-SALTS document");
+		if (sscanf(regen_salts_options, "dynamic_%d:%d:", &regen_salts_dyna_num, &hash_len) != 2)
+			bailout("Error, invalid regen-lost-salts argument. Must start with dynamic_#:hash_len: value\nSee docs/REGEN-LOST-SALTS document");
+		// at this point in the JtR loading, we do not know if $dynamic_`regen_salts_dyna_num`$ is valid.  We have to check later.
+		sprintf(DynaType, "$dynamic_%d$", regen_salts_dyna_num);
+	}
 	DynaTypeLen = strlen(DynaType);
 
 	// do 'some' sanity checking on input length.  Only known valid input lengths for raw hashes are:
