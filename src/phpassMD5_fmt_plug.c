@@ -47,7 +47,7 @@ john_register_one(&fmt_phpassmd5);
 //#undef SIMD_PARA_MD5
 
 #ifdef _OPENMP
-#define OMP_SCALE               1
+#define OMP_SCALE               32
 #include <omp.h>
 #endif
 
