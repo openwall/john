@@ -678,7 +678,11 @@ AGAIN:
 		}
 
 		total++;
+
+		/* (Ab)used to mute some messages from source() */
+		bench_running = 1;
 		test_db = ldr_init_test_db(format, NULL);
+		bench_running = 0;
 
 		if ((result = benchmark_format(format,
 		    format->params.salt_size ? BENCHMARK_MANY : 1,
