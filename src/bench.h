@@ -58,7 +58,7 @@ extern int benchmark_level;  /* for full test */
  * for this algorithm, or an empty string if aborted.
  */
 extern char *benchmark_format(struct fmt_main *format, int salts,
-	struct bench_results *results);
+	struct bench_results *results, struct db_main *db);
 
 /*
  * Converts benchmarked c/s into an ASCII string.

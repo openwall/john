@@ -314,7 +314,7 @@ static void reset(struct db_main *db)
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 3, self,
 		                       create_clobj, release_clobj,
-		                       2 * ocl_v_width * max_len, gws_limit);
+		                       2 * ocl_v_width * max_len, gws_limit, db);
 
 		//Auto tune execution from shared/included code.
 		autotune_run(self, 11, gws_limit, 500);

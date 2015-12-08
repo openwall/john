@@ -254,6 +254,12 @@ struct db_main {
 
 /* Ciphertext format */
 	struct fmt_main *format;
+
+/*
+ * Pointer to real db. NULL if there is none. If this db *is* the real db
+ * this points back to ourself (db->real == db).
+ */
+	struct db_main *real;
 };
 
 /* Non-zero while the loader is processing the pot file */
@@ -290,12 +296,13 @@ extern void ldr_fix_database(struct db_main *db);
  * Create a fake database from a format's test vectors and return a pointer
  * to it.
  */
-extern struct db_main *ldr_init_fake_db(struct fmt_main *format);
+extern struct db_main *ldr_init_test_db(struct fmt_main *format,
+                                        struct db_main *real);
 
 /*
  * Destroy a fake database.
  */
-extern void ldr_free_fake_db(struct db_main *fakedb);
+extern void ldr_free_test_db(struct db_main *db);
 
 /*
  * Loads cracked passwords into the database.
