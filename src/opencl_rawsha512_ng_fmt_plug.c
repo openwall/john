@@ -327,25 +327,44 @@ static int salt_hash(void *salt)
 }
 
 /* ------- Reset functions ------- */
+static void format_tune(struct db_main *db)
+{
+	char *tmp_value;
+	size_t gws_limit;
+	unsigned long long autotune_limit = 500ULL;
+
+	create_mask_buffers();
+
+	if ((tmp_value = getenv("_GPU_AUTOTUNE_LIMIT")))
+		autotune_limit = (unsigned long long)atoll(tmp_value);
+
+	// Auto-tune / Benckmark / Self-test.
+	gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
+			get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
+
+	//Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 0, NULL,
+			       warn, 1, self, create_clobj, release_clobj,
+			       2 * BUFFER_SIZE, gws_limit, db);
+
+	//Auto tune execution from shared/included code.
+	autotune_run(self, 1, gws_limit, autotune_limit);
+}
+
 static void reset(struct db_main *db)
 {
-	size_t gws_limit;
 	static unsigned int flag_l, flag_g;
-	unsigned long long autotune_limit = 500ULL;
 
 	offset = 0;
 	offset_idx = 0;
 	key_idx = 0;
 
+	num_loaded_hashes = db->salts->count;
+
 	if (!autotuned) {
 		//Initialize OpenCL environment.
-		char *tmp_value;
 		char *task = "$JOHN/kernels/sha512_ng_kernel.cl";
 
-		if ((tmp_value = getenv("_GPU_AUTOTUNE_LIMIT")))
-			autotune_limit = (unsigned long long)atoll(tmp_value);
-
-		opencl_prepare_dev(gpu_id);
 		opencl_build_kernel(task, gpu_id, NULL, 0);
 
 		/* Read LWS/GWS prefs from config or environment */
@@ -369,37 +388,15 @@ static void reset(struct db_main *db)
 		//Save the local and global work sizes.
 		flag_l = (options.flags & FLG_MASK_CHK) && !local_work_size;
 		flag_g = (options.flags & FLG_MASK_CHK) && !global_work_size;
-	}
-
-	if (!db || (db && !autotuned)) {
-		//Auto tune and self test.
 
 		//GPU mask mode in use, do not auto tune for self test.
 		//Instead, use sane defauts. Real tune is going to be made below.
 		if ((options.flags & FLG_MASK_CHK) && !(options.flags & FLG_TEST_CHK))
 			opencl_get_sane_lws_gws_values();
 
-		//Self-test initialization.
-		for (num_loaded_hashes = 0;
-		        self->params.tests[num_loaded_hashes].ciphertext;)
-			num_loaded_hashes++;
-		create_mask_buffers();
+		format_tune(db);
 
-		// Auto-tune / Benckmark / Self-test.
-		gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
-		                get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
-
-		//Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, 0, NULL,
-		                       warn, 1, self, create_clobj, release_clobj,
-		                       2 * BUFFER_SIZE, gws_limit, db);
-
-		//Auto tune execution from shared/included code.
-		autotune_run(self, 1, gws_limit, autotune_limit);
-
-		load_hash(NULL);
 	} else {
-		num_loaded_hashes = db->salts->count;
 
 		if ((options.flags & FLG_MASK_CHK)) {
 			//Re-tune for mask mode.
@@ -409,28 +406,15 @@ static void reset(struct db_main *db)
 			if (flag_g)
 				global_work_size = 0;
 
-			create_mask_buffers();
-
-			// Auto-tune / Benckmark / Self-test.
-			gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
-			                get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
-
-			//Initialize openCL tuning (library) for this format.
-			opencl_init_auto_setup(SEED, 0, NULL,
-			                       warn, 1, self, create_clobj, release_clobj,
-			                       2 * BUFFER_SIZE, gws_limit, db);
-
-			//Auto tune execution from shared/included code.
-			autotune_run(self, 1, gws_limit, autotune_limit);
+			format_tune(db);
 		}
 		//Cracking
 		if (ocl_initialized > 0)
 			release_clobj();
 
 		create_clobj(global_work_size, self);
-		load_hash(db->salts);
 	}
-
+	load_hash(db->salts);
 	hash_ids[0] = 0;
 }
 
@@ -605,44 +589,22 @@ static void done(void)
 /* ------- Send hashes to crack (binary) to GPU ------- */
 static void load_hash(const struct db_salt *salt)
 {
-	uint64_t *binary, i = 0, more;
+	uint64_t *binary, i = 0;
 	struct db_password *pw;
 
-	if (salt) {
-		num_loaded_hashes = salt->count;
-		pw = salt->list;
-		previous_salt = salt;
-		set_salt(salt->salt);
+	num_loaded_hashes = salt->count;
+	pw = salt->list;
+	previous_salt = salt;
+	set_salt(salt->salt);
 
-		if (previous_num_hashes < num_loaded_hashes) {
-			//Mask buffers needed to be increased.
-			previous_num_hashes = num_loaded_hashes;
-			create_mask_buffers();
-		}
-	} else
-		pw = NULL;
+	if (previous_num_hashes < num_loaded_hashes) {
+		//Mask buffers need to be increased.
+		previous_num_hashes = num_loaded_hashes;
+		create_mask_buffers();
+	}
 
 	do {
-
-		if (salt)
-			binary = (uint64_t *) pw->binary;
-		else {
-			char *ciphertext;
-			char **fields = self->params.tests[i].fields;
-
-			if (!fields[1])
-				fields[1] = self->params.tests[i].ciphertext;
-
-			if (salted_format) {
-				ciphertext =
-				    sha512_common_split_xsha(sha512_common_prepare_xsha(fields,
-				                             self), 0, self);
-				binary = (uint64_t *) sha512_common_binary_xsha(ciphertext);
-			} else {
-				ciphertext = sha512_common_split(fields[1], 0, self);
-				binary = (uint64_t *) sha512_common_binary(ciphertext);
-			}
-		}
+		binary = (uint64_t *) pw->binary;
 
 		// Skip cracked hashes (segfault if removed).
 		if (binary) {
@@ -657,14 +619,9 @@ static void load_hash(const struct db_salt *salt)
 			loaded_hashes[HASH_PARTS * i + 7] = binary[7];
 		}
 		i++;
+		pw = pw->next;
 
-		if (salt) {
-			pw = pw->next;
-			more = (pw != NULL);
-		} else
-			more = (self->params.tests[i].ciphertext != NULL);
-
-	} while (more);
+	} while (pw);
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_loaded_hashes,
 	                                    CL_TRUE, 0, BINARY_SIZE * num_loaded_hashes,
