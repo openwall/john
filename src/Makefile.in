@@ -758,26 +758,26 @@ kernels: @KERNEL_OBJS@
 ../run/genmkvpwd@EXE_EXT@: $(GENMKVPWD_OBJS)
 	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS) @M_LIBS@ @OPENMP_CFLAGS@ -o ../run/genmkvpwd
 
-../run/mkvcalcproba@EXE_EXT@: mkvcalcproba.o
+../run/mkvcalcproba@EXE_EXT@: mkvcalcproba.o memdbg.o
 	$(LD) mkvcalcproba.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @M_LIBS@ @OPENMP_CFLAGS@ -o ../run/mkvcalcproba
 
-../run/calc_stat@EXE_EXT@: calc_stat.o
+../run/calc_stat@EXE_EXT@: calc_stat.o memdbg.o
 	$(LD) calc_stat.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @M_LIBS@ @OPENMP_CFLAGS@ -o ../run/calc_stat
 
-../run/raw2dyna@EXE_EXT@: raw2dyna.o
+../run/raw2dyna@EXE_EXT@: raw2dyna.o memdbg.o
 	$(LD) raw2dyna.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @OPENMP_CFLAGS@ -o ../run/raw2dyna
 
-../run/SIPdump@EXE_EXT@: SIPdump.o
+../run/SIPdump@EXE_EXT@: SIPdump.o memdbg.o
 	$(LD) SIPdump.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o ../run/SIPdump
 
-../run/vncpcap2john@EXE_EXT@: vncpcap2john.o
+../run/vncpcap2john@EXE_EXT@: vncpcap2john.o memdbg.o
 	$(CC) -DAC_BUILT -Wall vncpcap2john.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o ../run/vncpcap2john
 
-../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode.o
+../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/uaf2john
 
 # Note that this is NOT depending on PCAP lib. It is self-contained.
-../run/wpapcap2john@EXE_EXT@: wpapcap2john.o
+../run/wpapcap2john@EXE_EXT@: wpapcap2john.o memdbg.o
 	$(LD) $(LDFLAGS) wpapcap2john.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/wpapcap2john
 
 # Note, this one is NOT build by default. To get it, do a make ../run/dynacomptest (or ../run/dynacomptest.exe for cygwin builds)
