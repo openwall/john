@@ -506,6 +506,7 @@ static void done(void)
 
 	if (autotuned) {
 		release_clobj();
+		MEM_FREE(indices);
 
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 
