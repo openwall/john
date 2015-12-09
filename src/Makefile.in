@@ -784,13 +784,13 @@ kernels: @KERNEL_OBJS@
 ../run/dynacomptest@EXE_EXT@: dynamic_compiler.c dynamic_compiler_lib.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o
 	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@  @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ -DWITH_MAIN -D_JOHN_MISC_NO_LOG -DUNICODE_NO_OPTIONS @MEMDBG_CFLAGS@ dynamic_compiler.c dynamic_compiler_lib.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o $(LDFLAGS)  @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@  -o ../run/dynacomptest
 
-../run/luks2john@EXE_EXT@: luks2john.c base64_convert.c
-	$(CC) @CFLAGS@ @CFLAGS_EXTRA@ -O2 -Wall -DAC_BUILT -D_JOHN_MISC_NO_LOG luks2john.c base64_convert.c base64.c common.c memdbg.c memory.c jumbo.c misc.c -o ../run/luks2john
+../run/luks2john@EXE_EXT@: luks2john.c base64_convert.c memdbg.o
+	$(CC) @CFLAGS@ @CFLAGS_EXTRA@ -O2 -Wall -DAC_BUILT -D_JOHN_MISC_NO_LOG luks2john.c base64_convert.c base64.c common.c memdbg.c memory.c jumbo.c misc.c -o ../run/luks2john memdbg.o
 
 ../run/cprepair@EXE_EXT@: cprepair.c autoconfig.h unicode.c unicode.h options.h misc.h misc.c memdbg.h memdbg.c
 	$(CC) -DAC_BUILT -Wall -O3 @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ -DNOT_JOHN -D_JOHN_MISC_NO_LOG $(CPPFLAGS) cprepair.c unicode.c misc.c memdbg.c -o ../run/cprepair
 
-../run/tgtsnarf@EXE_EXT@: tgtsnarf.o
+../run/tgtsnarf@EXE_EXT@: tgtsnarf.o memdbg.o
 	$(LD) tgtsnarf.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @OPENMP_CFLAGS@ -o ../run/tgtsnarf
 
 john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h stdint.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h math.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h inc.h mask.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john-mpi.h regex.h unicode.h common-opencl.h common-gpu.h adl_sdk.h adl_structures.h adl_defines.h opencl_device_info.h cuda_common.h john_build_rule.h memdbg.h fmt_externs.h fmt_registers.h
