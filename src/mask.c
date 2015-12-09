@@ -1899,6 +1899,12 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	mask_fmt = db->format;
 
 	fmt_maxlen = mask_fmt->params.plaintext_length;
+
+	if (options.req_minlength >= 0 && !options.req_maxlength)
+		options.req_maxlength = fmt_maxlen;
+	else if (options.req_maxlength > 0 && options.req_minlength == -1)
+		options.req_minlength = mask_fmt->params.plaintext_min_length;
+
 	max_keylen = options.req_maxlength ?
 		options.req_maxlength : fmt_maxlen;
 
