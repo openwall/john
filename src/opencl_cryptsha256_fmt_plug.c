@@ -507,6 +507,7 @@ static void done(void)
 
 	if (autotuned) {
 		release_clobj();
+		MEM_FREE(indices);
 
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 
@@ -518,7 +519,6 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 		autotuned = 0;
 	}
-	MEM_FREE(indices);
 }
 
 /* ------- Compare functins ------- */
