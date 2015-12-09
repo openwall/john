@@ -22,11 +22,12 @@ use utf8;  # This source file MUST be stored UTF-8 encoded
 use open ':locale';
 
 # Set to 1 to permanently enable Unicode comments
-my $verbose = 0;
+my $verbose = 1;
 if ($ARGV[0] eq "-v") {
 	$verbose++;
 	shift;
 }
+
 my $enc;
 if (@ARGV==1) {$enc=$ARGV[0];}
 else {
@@ -62,9 +63,16 @@ sub printdef {
 	if (length($param)>0)  {print "\"".$param."\"";}
 }
 
+sub printdef_null {
+	my $param = shift;
+	if (length($param)>80) {print" \\\n\t";}
+	else {print" ";}
+	print "\"".$param."\"";
+}
+
 my $to_unicode_high128="";
-my $lower="";  my $upper="";  my $lowonly="";  my $uponly="";  my $specials = "";  my $punctuation = "";  my $alpha = "";  my $digits = "";  my $control = "";  my $invalid = ""; my $whitespace = ""; my $vowels = "\\x59\\x79"; my $consonants = "";
-my $clower=""; my $cupper=""; my $clowonly=""; my $cuponly=""; my $cspecials = ""; my $cpunctuation = ""; my $calpha = ""; my $cdigits = ""; my $cvowels = "Yy"; my $cconsonants = "";
+my $lower="";  my $upper="";  my $lowonly="";  my $uponly="";  my $specials = "";  my $punctuation = "";  my $alpha = "";  my $digits = "";  my $control = "";  my $invalid = ""; my $whitespace = ""; my $vowels = "\\x59\\x79"; my $consonants = ""; my $nocase = "";
+my $clower=""; my $cupper=""; my $clowonly=""; my $cuponly=""; my $cspecials = ""; my $cpunctuation = ""; my $calpha = ""; my $cdigits = ""; my $cvowels = "Yy"; my $cconsonants = ""; my $cnocase = "";
 my $encu = uc($enc);my $hs = "";
 $encu =~ s/-/_/g;
 #######################################
@@ -138,6 +146,7 @@ foreach my $i (0x80..0xFF) {
 		# NOTE, we can have letters which fail above.  Examples are U+00AA, U+00BA.  These are letters, lower case only, and there IS no upper case.
 		# this causes the original if to not find them. Thus, we 'look them up' here.
 		my $cat = lookupCategory(ord($c));
+		#printf STDERR "Category: $cat\n";
 		switch ($cat) {
 			case /^Ll/ { $lowonly .= sprintf("\\x%02X", ord($elc)); $clowonly .= $c; }
 			case /^Lu/ { $uponly  .= sprintf("\\x%02X", ord($euc)); $cuponly  .= $c; }
@@ -154,7 +163,9 @@ foreach my $i (0x80..0xFF) {
 			case /^L[lotu]/ {
 				$alpha .= sprintf("\\x%02X", $i);
 				$calpha .= $c;
-
+				if ($cat =~ /^Lo/) {
+					$nocase .= sprintf("\\x%02X", $i); $cnocase .= $c
+				}
 				# best-effort vowel/consonant matching
 				# We normalize to decomposed and match known vowels in lc
 				my $nfd = substr(NFD($c), 0, 1);
@@ -188,7 +199,7 @@ foreach my $i (0x80..0xFF) {
 }
 print "\n// $clower\n" if $verbose;
 print "#define CHARS_LOWER_".$encu;
-printdef($lower);
+printdef_null($lower);
 print "\n";
 
 print "\n// $clowonly\n" if $verbose;
@@ -198,7 +209,7 @@ print "\n";
 
 print "\n// $cupper\n" if $verbose;
 print "#define CHARS_UPPER_".$encu;
-printdef($upper);
+printdef_null($upper);
 print "\n";
 
 print "\n// $cuponly\n" if $verbose;
@@ -206,9 +217,14 @@ print "#define CHARS_UP_ONLY_".$encu;
 printdef($uponly);
 print "\n";
 
+print "\n// $cnocase\n" if $verbose;
+print "#define CHARS_NOCASE_".$encu;
+printdef($nocase);
+print "\n";
+
 print "\n// $cdigits\n" if $verbose;
 print "#define CHARS_DIGITS_".$encu;
-printdef($digits);
+printdef_null($digits);
 print "\n";
 
 print "\n// $cpunctuation\n" if $verbose;
@@ -237,9 +253,9 @@ printdef($control);
 print "\n";
 
 print "\n" if $verbose;
-print "#define CHARS_INVALID_".$encu." ";
-if (length($invalid)>80) {print"\\\n\t";}
-print "\"".$invalid."\"\n";	# we ALWAYS want to print the "" even if string empty.
+print "#define CHARS_INVALID_".$encu;
+printdef_null($invalid);
+print "\n";
 
 print "\n// $cvowels\n" if $verbose;
 print "#define CHARS_VOWELS_".$encu;
