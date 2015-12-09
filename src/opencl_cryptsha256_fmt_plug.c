@@ -518,6 +518,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 		autotuned = 0;
 	}
+	MEM_FREE(indices);
 }
 
 /* ------- Compare functins ------- */
