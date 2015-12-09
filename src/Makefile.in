@@ -784,7 +784,7 @@ kernels: @KERNEL_OBJS@
 ../run/dynacomptest@EXE_EXT@: dynamic_compiler.c dynamic_compiler_lib.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o
 	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@  @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ -DWITH_MAIN -D_JOHN_MISC_NO_LOG -DUNICODE_NO_OPTIONS @MEMDBG_CFLAGS@ dynamic_compiler.c dynamic_compiler_lib.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o $(LDFLAGS)  @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@  -o ../run/dynacomptest
 
-../run/luks2john@EXE_EXT@: luks2john.c base64_convert.c
+../run/luks2john@EXE_EXT@: luks2john.c base64_convert.c memdbg.c
 	$(CC) @CFLAGS@ @CFLAGS_EXTRA@ -O2 -Wall -DAC_BUILT -D_JOHN_MISC_NO_LOG luks2john.c base64_convert.c base64.c common.c memdbg.c memory.c jumbo.c misc.c -o ../run/luks2john
 
 ../run/cprepair@EXE_EXT@: cprepair.c autoconfig.h unicode.c unicode.h options.h misc.h misc.c memdbg.h memdbg.c
