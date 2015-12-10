@@ -423,7 +423,7 @@ void status_print(void)
 {
 	double percent_value;
 #if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
-	char s_gpu[32 * MAX_GPU_DEVICES] = "";
+	char s_gpu[64 * MAX_GPU_DEVICES] = "";
 
 	if (!(options.flags & FLG_STDOUT) &&
 	    cfg_get_bool(SECTION_OPTIONS, SUBSECTION_GPU, "SensorsStatus", 1)) {
