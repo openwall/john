@@ -46,11 +46,12 @@ __constant UTF32 offsetsFromUTF8[6] = { 0x00000000UL, 0x00003080UL,
                                         0x000E2080UL, 0x03C82080UL,
                                         0xFA082080UL, 0x82082080UL };
 
-#define UNI_MAX_BMP         (UTF32)0x0000FFFF
-#define UNI_SUR_HIGH_START  (UTF32)0xD800
-#define UNI_SUR_HIGH_END    (UTF32)0xDBFF
-#define UNI_SUR_LOW_START   (UTF32)0xDC00
-#define UNI_SUR_LOW_END     (UTF32)0xDFFF
+#define UNI_MAX_BMP          (UTF32)0x0000FFFF
+#define UNI_SUR_HIGH_START   (UTF32)0xD800
+#define UNI_SUR_HIGH_END     (UTF32)0xDBFF
+#define UNI_SUR_LOW_START    (UTF32)0xDC00
+#define UNI_SUR_LOW_END      (UTF32)0xDFFF
+#define UNI_REPLACEMENT_CHAR (UTF32)0xFFFD
 
 /* Conversion tables from codepage to UTF-16. These define the high 128 bytes. */
 #ifdef ISO_8859_2

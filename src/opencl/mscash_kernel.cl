@@ -315,10 +315,10 @@ inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
 			++source;
 			break;
 		default:
-			*target = 0x80;
+			*target = UNI_REPLACEMENT_CHAR;
 			break; // from switch
 		}
-		if (*target == 0x80)
+		if (*target == UNI_REPLACEMENT_CHAR)
 			break; // from while
 		ch -= offsetsFromUTF8[extraBytesToRead];
 #ifdef UCS_2
@@ -341,6 +341,14 @@ inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
 	}
 
 	*target = 0x80;	// Terminate
+
+#if __OS_X__ && gpu_nvidia(DEVICE_INFO)
+	/*
+	 * Driver bug workaround. Halves the performance :-(
+	 * Bug seen with GT 650M version 10.6.47 310.42.05f01
+	 */
+	barrier(CLK_GLOBAL_MEM_FENCE);
+#endif
 
 	nt_buffer[14] = (uint)(target - (UTF16*)nt_buffer) << 4;
 }
