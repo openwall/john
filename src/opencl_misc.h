@@ -268,7 +268,8 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 
 /* Use with some caution... */
 #define memcpy_macro(dst, src, count) do {	  \
-		for (uint _i = 0; _i < count; _i++) \
+		uint c = count; \
+		for (uint _i = 0; _i < c; _i++) \
 			(dst)[_i] = (src)[_i]; \
 	} while (0)
 
@@ -276,7 +277,7 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 #define dump_stuff_msg(msg, x, size) do {	  \
 		uint ii; \
 		printf("%s : ", msg); \
-		for (ii = 0; ii < size/4; ii++) \
+		for (ii = 0; ii < (size)/4; ii++) \
 			printf("%08x ", SWAP32(x[ii])); \
 		printf("\n"); \
 	} while (0)
@@ -285,7 +286,7 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 #define dump_stuff_be_msg(msg, x, size) do {	  \
 		uint ii; \
 		printf("%s : ", msg); \
-		for (ii = 0; ii < size/4; ii++) \
+		for (ii = 0; ii < (size)/4; ii++) \
 			printf("%08x ", x[ii]); \
 		printf("\n"); \
 	} while (0)
