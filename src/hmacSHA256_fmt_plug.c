@@ -186,7 +186,9 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	if (!strchr(ciphertext, '#') && strchr(ciphertext, '.') &&
 	    strchr(ciphertext, '.') != strrchr(ciphertext, '.')) {
 		// Treat this like a JWT hash. Convert into 'normal' hmac-sha256 format.
-		char buf[BINARY_SIZE*2+10], tmp[CIPHERTEXT_LENGTH], *cpi;
+		char buf[BINARY_SIZE*2+10], tmp[CIPHERTEXT_LENGTH+1], *cpi;
+		if (strlen(ciphertext) > CIPHERTEXT_LENGTH)
+			return ciphertext;
 		strcpy(tmp, ciphertext);
 		cpi = strchr(tmp, '.');
 		cpi = strchr(&cpi[1], '.');
