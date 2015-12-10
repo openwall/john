@@ -322,6 +322,13 @@ char* ocl_hc_128_select_bitmap(unsigned int num_ld_hashes)
 	else
 		prepare_bitmap_8(bitmap_size_bits, &bitmaps);
 
+	/*
+	 * Much better speed seen on Macbook Pro with GT 650M. Not sure why -
+	 * or what we should actually test for.
+	 */
+	if (platform_apple(platform_id) && gpu_nvidia(device_info[gpu_id]))
+		use_local = 0;
+
 	sprintf(kernel_params,
 		"-D SELECT_CMP_STEPS=%u"
 		" -D BITMAP_SIZE_BITS_LESS_ONE="LLu" -D USE_LOCAL_BITMAPS=%u",
