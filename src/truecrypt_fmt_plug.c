@@ -42,7 +42,7 @@ john_register_one(&fmt_truecrypt_sha512);
 john_register_one(&fmt_truecrypt_whirlpool);
 #else
 
-#include "aes.h"
+#include "aes_xts.h"
 #include <string.h>
 #include "misc.h"
 #include "memory.h"
@@ -324,59 +324,6 @@ static void* get_salt(char *ciphertext)
 	return s;
 }
 
-/*****************************************************************************
- * we know first sector has Tweak value of 0. For this, we just AES a null 16
- * bytes, then do the XeX using the results for our xor, then modular mult
- * GF(2) that value for the next round.  NOTE, len MUST be an even multiple of
- * 16 bytes.  We do NOT handle CT stealing.  But the way we use it in the TC
- * format we only decrypt 16 bytes, and later (if it looks 'good'), we decrypt
- * the whole first sector (512-64 bytes) both which are even 16 byte data.
- * This code has NOT been optimized. It was based on simple reference code that
- * I could get my hands on.  However, 'mostly' we do a single limb AES-XTS which
- * is just 2 AES, and the buffers xored (before and after). There is no mulmod
- * GF(2) logic done in that case.   NOTE, there was NO noticeable change in
- * speed, from using original oSSL EVP_AES_256_XTS vs this code, so this code
- * is deemed 'good enough' for usage in this location.
- *****************************************************************************/
-static void AES_256_XTS_first_sector(const unsigned char *double_key,
-                                     unsigned char *out,
-                                     const unsigned char *data,
-                                     unsigned len) {
-	unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	unsigned char buf[16];
-	int i, j, cnt;
-	AES_KEY key1, key2;
-	AES_set_decrypt_key(double_key, 256, &key1);
-	AES_set_encrypt_key(&double_key[32], 256, &key2);
-
-	// first aes tweak (we do it right over tweak
-	AES_encrypt(tweak, tweak, &key2);
-
-	cnt = len/16;
-	for (j=0;;) {
-		for (i = 0; i < 16; ++i) buf[i] = data[i]^tweak[i];
-		AES_decrypt(buf, out, &key1);
-		for (i = 0; i < 16; ++i) out[i]^=tweak[i];
-		++j;
-		if (j == cnt)
-			break;
-		else {
-			unsigned char Cin, Cout;
-			unsigned x;
-			Cin = 0;
-			for (x = 0; x < 16; ++x) {
-				Cout = (tweak[x] >> 7) & 1;
-				tweak[x] = ((tweak[x] << 1) + Cin) & 0xFF;
-				Cin = Cout;
-			}
-			if (Cout)
-				tweak[0] ^= 135; //GF_128_FDBK;
-		}
-		data += 16;
-		out += 16;
-	}
-}
-
 static int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles)
 {
 	int pl, k;
@@ -509,7 +456,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				memcpy(key, Keys[j], sizeof(key));
 #endif
 			// Try to decrypt using AES
-			AES_256_XTS_first_sector(key, first_block_dec[i+j], psalt->bin, 16);
+			AES_256_XTS_decrypt(key, first_block_dec[i+j], psalt->bin, 16);
 		}
 	}
 	return count;
@@ -590,7 +537,7 @@ static int cmp_exact(char *source, int idx)
 
 	// we have 448 bytes of header (64 bytes unencrypted salt were the first 64 bytes).
 	// decrypt it and look for 3 items.
-	AES_256_XTS_first_sector(key, decr_header, psalt->bin, 512-64);
+	AES_256_XTS_decrypt(key, decr_header, psalt->bin, 512-64);
 
 	// first item we look for is a contstant string 'TRUE' in the first 4 bytes
 	if (memcmp(decr_header, "TRUE", 4))
