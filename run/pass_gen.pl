@@ -1518,6 +1518,37 @@ sub _tc_aes_256_xts_d {
 		}
 	}
 }
+sub _tc_aes_128_xts {
+	# a dodgy, but working XTS implementation. (encryption). To do decryption
+	# simply do $cipher1->decrypt($tmp) instead of encrypt. That is the only diff.
+	my $key1 = substr($_[0],0,16); my $key2 = substr($_[0],16,16);
+	my $d; my $c = $_[1]; # $c=cleartext MUST be a multiple of 16.
+	my $num = length($c) / 16;
+	my $t = $_[2];	# tweak (must be provided)
+	require Crypt::OpenSSL::AES;
+	my $cipher1 = new Crypt::OpenSSL::AES($key1);
+	my $cipher2 = new Crypt::OpenSSL::AES($key2);
+	$t = $cipher2->encrypt($t);
+	for (my $cnt = 0; ; ) {
+		my $tmp = substr($c, 16*$cnt, 16);
+		$tmp ^= $t;
+		$tmp = $cipher1->encrypt($tmp);
+		$tmp ^= $t;
+		$d .= $tmp;
+		$cnt += 1;
+		if ($cnt == $num) { return ($d); }
+		# do the mulmod in GF(2)
+		my $Cin=0; my $Cout; my $x;
+		for ($x = 0; $x < 16; $x += 1) {
+			$Cout = ((ord(substr($t,$x,1)) >> 7) & 1);
+			substr($t,$x,1) =  chr(((ord(substr($t,$x,1)) << 1) + $Cin) & 0xFF);
+			$Cin = $Cout;
+		}
+		if ($Cout != 0) {
+			substr($t,0,1) = chr(ord(substr($t,0,1))^135);
+		}
+	}
+}
 
 sub tc_ripemd160 {
 	$salt = get_salt(64);
@@ -1808,48 +1839,27 @@ sub azuread {
 	my $key = unpack("H*",pp_pbkdf2($h, $salt, $rounds, "sha256", 32, 64));
 	return "v1;PPH1_MD4,".unpack("H*",$salt).",$rounds,$key;";
 }
-sub vdi_t {  # testing code
-	my $p = "jtr";
-	my $salt1 = pack("H*","709f6df123f1ccb126ea1f3e565beb78d39cafdc98e0daa2e42cc43cef11f786");
-	my $salt2 = pack("H*","0340f137136ad54f59f4b24ef0bf35240e140dfd56bbc19ce70aee6575f0aabf");
-	my $enc_dat = pack("H*","0a27e178f47a0b05a752d6e917b89ef4205c6ae76705c34858390f8afa6cf03a45d98fab53b76d8d1c68507e7810633db4b83501a2496b7e443eccb53dbc8473");
-	$salt1 = pack("H*","ab11361f5c74fe9fb604368e9918c39be35629f28b3ca961147b645bce70c535");
-	$salt2 = pack("H*","41e11c677f446f28196b0ecf0e7b4b11bf00da1d3b015c52ae32e5857974bd5c");
-	$enc_dat = pack("H*","d6efb0ae0f7363c4ff8c2fb557f9d769891241fc39c668bf78aa3b1821e42725d7d04dfb9448c5093b0f3bde9fc8ea88a954ff96b6edb355fd14e782c7146542");
-	my $expt = "78447ed0a49951352aa67585424a15e0aa1343c3b0881757187a7868e26f82ae";
-	my $evp_pass = pp_pbkdf2($p, $salt1, 2000, \&sha256, 0x40, 64);
-	print "evp_pass = " . unpack("H*",$evp_pass)."\n";
-	print "enc_dat  = " . unpack("H*",$enc_dat)."\n";
-	my $tweak = "\x00"x16;	#first block of file
-	my $dec_pass = _tc_aes_256_xts_d($evp_pass,$enc_dat,$tweak);
-	print "dec_pass = " . unpack("H*",$dec_pass)."\n";
-	my $final = pp_pbkdf2($dec_pass, $salt2, 2000, \&sha256, 0x20, 64);
-	print unpack("H*",$final)."\n";
-	print "$expt (expected)\n";
-	exit 1;
-}
 sub vdi_256 {
 	my $salt1   = randstr(32, \@chrRawData);
 	my $salt2   = randstr(32, \@chrRawData);
 	my $dec_dat = randstr(64, , \@chrRawData);
-	my $evp_pass = pp_pbkdf2($_[0], $salt1, 2000, \&sha256, 0x40, 64);
+	my $evp_pass = pp_pbkdf2($_[0], $salt1, 2000, \&sha256, 64, 64);
 	my $tweak = "\x00"x16;
 	my $enc_pass = _tc_aes_256_xts($evp_pass,$dec_dat,$tweak);
-	my $final  = unpack("H*",pp_pbkdf2($dec_dat, $salt2, 2000, \&sha256, 0x20, 64));
+	my $final  = unpack("H*",pp_pbkdf2($dec_dat, $salt2, 2000, \&sha256, 32, 64));
 	$salt1   = unpack("H*",$salt1); $salt2   = unpack("H*",$salt2); $enc_pass = unpack("H*",$enc_pass);
 	return "\$vdi\$aes-xts256\$sha256\$2000\$2000\$64\$32\$$salt1\$$salt2\$$enc_pass\$$final";
 }
-# NOTE, still to do.
 sub vdi_128 {
-#	my $salt1   = randstr(32, \@chrRawData);
-#	my $salt2   = randstr(32, \@chrRawData);
-#	my $dec_dat = randstr(64, , \@chrRawData);
-#	my $evp_pass = pp_pbkdf2($_[0], $salt1, 2000, \&sha256, 0x40, 64);
-#	my $tweak = "\x00"x16;
-#	my $enc_pass = _tc_aes_256_xts($evp_pass,$dec_dat,$tweak);
-#	my $final  = unpack("H*",pp_pbkdf2($dec_dat, $salt2, 2000, \&sha256, 0x20, 64));
-#	$salt1   = unpack("H*",$salt1); $salt2   = unpack("H*",$salt2); $enc_pass = unpack("H*",$enc_pass);
-#	return "\$vdi\$256\$2000\$2000\$$salt1\$$salt2\$$enc_pass\$$final";
+	my $salt1   = randstr(32, \@chrRawData);
+	my $salt2   = randstr(32, \@chrRawData);
+	my $dec_dat = randstr(32, , \@chrRawData);
+	my $evp_pass = pp_pbkdf2($_[0], $salt1, 2000, \&sha256, 32, 64);
+	my $tweak = "\x00"x16;
+	my $enc_pass = _tc_aes_128_xts($evp_pass,$dec_dat,$tweak);
+	my $final  = unpack("H*",pp_pbkdf2($dec_dat, $salt2, 2000, \&sha256, 32, 64));
+	$salt1   = unpack("H*",$salt1); $salt2   = unpack("H*",$salt2); $enc_pass = unpack("H*",$enc_pass);
+	return "\$vdi\$aes-xts128\$sha256\$2000\$2000\$32\$32\$$salt1\$$salt2\$$enc_pass\$$final";
 }
 sub blockchain {
 	my $unenc = "{\n{\t\"guid\" : \"246093c1-de47-4227-89be-".randstr(12,\@chrHexLo)."\",\n\t\"sharedKey\" : \"fccdf579-707c-46bc-9ed1-".randstr(12,\@chrHexLo)."\",\n\t";

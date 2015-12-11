@@ -456,7 +456,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				memcpy(key, Keys[j], sizeof(key));
 #endif
 			// Try to decrypt using AES
-			AES_256_XTS_decrypt(key, first_block_dec[i+j], psalt->bin, 16);
+			AES_XTS_decrypt(key, first_block_dec[i+j], psalt->bin, 16, 256);
 		}
 	}
 	return count;
@@ -537,7 +537,7 @@ static int cmp_exact(char *source, int idx)
 
 	// we have 448 bytes of header (64 bytes unencrypted salt were the first 64 bytes).
 	// decrypt it and look for 3 items.
-	AES_256_XTS_decrypt(key, decr_header, psalt->bin, 512-64);
+	AES_XTS_decrypt(key, decr_header, psalt->bin, 512-64, 256);
 
 	// first item we look for is a contstant string 'TRUE' in the first 4 bytes
 	if (memcmp(decr_header, "TRUE", 4))

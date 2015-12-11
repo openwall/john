@@ -17,15 +17,23 @@
  *
  * This was also used in vdi_fmt, so the code was pulled out of those files,
  * and a 'common' file was made.
+ *
+ * Note, modified to handle multiple width AES (currently 256 and 128 bits)
  *****************************************************************************/
-void AES_256_XTS_decrypt(const unsigned char *double_key, unsigned char *out,
-                     const unsigned char *data, unsigned len) {
+void AES_XTS_decrypt(const unsigned char *double_key, unsigned char *out,
+                     const unsigned char *data, unsigned len, int bits) {
 	unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	unsigned char buf[16];
 	int i, j, cnt;
 	AES_KEY key1, key2;
-	AES_set_decrypt_key(double_key, 256, &key1);
-	AES_set_encrypt_key(&double_key[32], 256, &key2);
+	if (bits == 256) {
+		AES_set_decrypt_key(double_key, 256, &key1);
+		AES_set_encrypt_key(&double_key[32], 256, &key2);
+	} else if (bits == 128) {
+		AES_set_decrypt_key(double_key, 128, &key1);
+		AES_set_encrypt_key(&double_key[16], 128, &key2);
+	}
+	// else 192 bits???
 
 	// first aes tweak (we do it right over tweak
 	AES_encrypt(tweak, tweak, &key2);
@@ -55,6 +63,3 @@ void AES_256_XTS_decrypt(const unsigned char *double_key, unsigned char *out,
 	}
 }
 
-void AES_128_XTS_decrypt(const unsigned char *double_key, unsigned char *out,
-                     const unsigned char *data, unsigned len) {
-}
