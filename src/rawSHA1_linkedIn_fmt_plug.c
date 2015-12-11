@@ -273,7 +273,7 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[1] & PH_MAS
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[1] & PH_MASK_6; }
 #endif
 
-void *binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
 	ARCH_WORD_32 *bin = (ARCH_WORD_32*)rawsha1_common_get_binary(ciphertext);
 #ifdef SIMD_COEF_32
