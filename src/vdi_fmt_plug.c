@@ -250,10 +250,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for(i = 0; i < count;  i += inc)
 	{
 		unsigned char key[MAX_KEY_LEN];
-		unsigned char Decr[SSE_GROUP_SZ_SHA256][MAX_KEY_LEN];
 #if SSE_GROUP_SZ_SHA256
 		unsigned char Keys[SSE_GROUP_SZ_SHA256][MAX_KEY_LEN];
+		unsigned char Decr[SSE_GROUP_SZ_SHA256][MAX_KEY_LEN];
 #else
+		unsigned char Decr[1][MAX_KEY_LEN];
 		int ksz = strlen((char *)key_buffer[i]);
 #endif
 		int j;
