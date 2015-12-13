@@ -187,9 +187,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	    strchr(ciphertext, '.') != strrchr(ciphertext, '.')) {
 		// Treat this like a JWT hash. Convert into 'normal' hmac-sha256 format.
 		char buf[BINARY_SIZE*2+10], tmp[CIPHERTEXT_LENGTH+1], *cpi;
-		if (strlen(ciphertext) > CIPHERTEXT_LENGTH)
-			return ciphertext;
-		strcpy(tmp, ciphertext);
+
+		strnzcpy(tmp, ciphertext, sizeof(tmp));
 		cpi = strchr(tmp, '.');
 		cpi = strchr(&cpi[1], '.');
 		if (cpi-tmp + BINARY_SIZE*2 + 1  > CIPHERTEXT_LENGTH)
@@ -201,7 +200,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 			return ciphertext;
 		sprintf(out, "%s#%s", tmp, buf);
 	} else
-		strnzcpy(out, ciphertext, CIPHERTEXT_LENGTH + 1);
+		strnzcpy(out, ciphertext, sizeof(out));
 	strlwr(strrchr(out, '#'));
 
 	return out;
@@ -215,14 +214,19 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = strrchr(ciphertext, '#'); // allow # in salt
 	if (!p && strchr(ciphertext, '.') &&
 	    strchr(ciphertext, '.') != strrchr(ciphertext, '.')) {
+		if (strlen(ciphertext) > CIPHERTEXT_LENGTH)
+			return 0;
 		ciphertext = split(ciphertext, 0, self);
 		p = strrchr(ciphertext, '#');
 	}
-	if (!p || p > &ciphertext[strlen(ciphertext)-1]) return 0;
+	if (!p || p > &ciphertext[strlen(ciphertext)-1])
+		return 0;
 	i = (int)(p - ciphertext);
-	if (i > SALT_LENGTH) return 0;
+	if (i > SALT_LENGTH)
+		return 0;
 	pos = i+1;
-	if (strlen(ciphertext+pos) != BINARY_SIZE*2) return 0;
+	if (strlen(ciphertext+pos) != BINARY_SIZE*2)
+		return 0;
 	for (i = pos; i < BINARY_SIZE*2+pos; i++)
 	{
 		if (!(  (('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||
