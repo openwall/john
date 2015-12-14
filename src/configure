@@ -13739,9 +13739,11 @@ fi
 M4_INCLUDES=`echo m4/*.m4`
 
 
-# Handle --prefix -> JOHN_SYSTEMWIDE_EXEC
+# Handle --prefix -> JOHN_SYSTEMWIDE
+# A prefix of /usr/local will mean execs in /usr/local/bin and the rest
+# in /usr/local/share/john
 if test $prefix != "../run" && test $prefix != "NONE" ; then :
-  CFLAGS="$CFLAGS -DJOHN_SYSTEMWIDE -DJOHN_SYSTEMWIDE_EXEC='\"$prefix\"'"
+  CFLAGS="$CFLAGS -DJOHN_SYSTEMWIDE -DJOHN_SYSTEMWIDE_EXEC='\"$prefix/bin\"' -DJOHN_SYSTEMWIDE_HOME='\"$prefix/share/john\"'"
 else
   if test $with_systemwide != no; then :
   CFLAGS="$CFLAGS -DJOHN_SYSTEMWIDE"

@@ -983,9 +983,11 @@ distclean: clean
 	$(RM) arch.h
 	$(RM) fmt_registers.h fmt_externs.h dynamic_big_crypt.c john_build_rule.h version.h version.h.new
 
-install: default shell-completion
+strip: default
 	@echo Stripping executables.
 	$(STRIP) $(PROJ)
+
+install: strip shell-completion
 #ifneq ($(prefix), ../run)
 #	@echo Copying binaries to $(prefix)
 #	$(MKDIR) $(prefix)

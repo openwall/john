@@ -830,9 +830,11 @@ fi
 # code to create M4_INCLUDES (all ./m4/*.m4 )
 AC_SUBST([M4_INCLUDES],[`echo m4/*.m4`])
 
-# Handle --prefix -> JOHN_SYSTEMWIDE_EXEC
+# Handle --prefix -> JOHN_SYSTEMWIDE
+# A prefix of /usr/local will mean execs in /usr/local/bin and the rest
+# in /usr/local/share/john
 AS_IF([test $prefix != "../run" && test $prefix != "NONE" ],
-   [CFLAGS="$CFLAGS -DJOHN_SYSTEMWIDE -DJOHN_SYSTEMWIDE_EXEC='\"$prefix\"'"],
+   [CFLAGS="$CFLAGS -DJOHN_SYSTEMWIDE -DJOHN_SYSTEMWIDE_EXEC='\"$prefix/bin\"' -DJOHN_SYSTEMWIDE_HOME='\"$prefix/share/john\"'"],
    [AS_IF([test $with_systemwide != no], [CFLAGS="$CFLAGS -DJOHN_SYSTEMWIDE"
    prefix=/usr/libexec/john])]
 )
