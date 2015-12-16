@@ -86,7 +86,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-struct vdi_salt {
+static struct vdi_salt {
 	unsigned char salt1[MAX_SALT_LEN];
 	unsigned char salt2[MAX_SALT_LEN];
 	unsigned char encr[MAX_KEY_LEN];
@@ -276,10 +276,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha256((const unsigned char*)key_buffer[i], ksz, psalt->salt1, psalt->saltlen, psalt->rounds1, key, psalt->keylen, 0);
 #endif
 #if ARCH_LITTLE_ENDIAN==0
-		uint32_t *p32 = (uint32_t *)key;
-		for (j = 0; j < 8; ++j) {
-			*p32 = JOHNSWAP(*p32);
-			++p32;
+		{
+			uint32_t *p32 = (uint32_t *)key;
+			for (j = 0; j < 16; ++j) {
+				*p32 = JOHNSWAP(*p32);
+				++p32;
+			}
 		}
 #endif
 		for (j = 0; j < inc; ++j) {
@@ -348,9 +350,16 @@ static int salt_hash(void *salt)
 static void *binary(char *ciphertext) {
 	static ARCH_WORD_32 full[MAX_SALT_LEN / 4];
 	unsigned char *realcipher = (unsigned char*)full;
+#if ARCH_LITTLE_ENDIAN==0
+	int j;
+#endif
 
 	ciphertext = strrchr(ciphertext, '$') + 1;
 	base64_convert(ciphertext, e_b64_hex, strlen(ciphertext), realcipher, e_b64_raw, MAX_SALT_LEN, 0);
+#if ARCH_LITTLE_ENDIAN==0
+       for (j = 0; j < 8; ++j)
+	       full[j] = JOHNSWAP(full[j]);
+#endif
 	return (void*)realcipher;
 }
 
