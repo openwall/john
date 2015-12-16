@@ -321,11 +321,12 @@ JOHN_USAGE_REGEX \
 "--make-charset=FILE       make a charset file. It will be overwritten\n" \
 "--show[=left]             show cracked passwords [if =left, then uncracked]\n" \
 "--test[=TIME]             run tests and benchmarks for TIME seconds each\n" \
-"--test-full[=TIME]        run more tests and benchmarks for TIME seconds each\n" \
 "--users=[-]LOGIN|UID[,..] [do not] load this (these) user(s) only\n" \
 "--groups=[-]GID[,..]      load users [not] of this (these) group(s) only\n" \
 "--shells=[-]SHELL[,..]    load users with[out] this (these) shell(s) only\n" \
 "--salts=[-]COUNT[:MAX]    load salts with[out] COUNT [to MAX] hashes\n" \
+"--costs=[-]C[:M][,...]    load salts with[out] cost value Cn [to Mn]. For\n" \
+"                          tunable cost parameters, see doc/OPTIONS\n" \
 "--save-memory=LEVEL       enable memory saving, at LEVEL 1..3\n" \
 "--node=MIN[-MAX]/TOTAL    this node's number range out of TOTAL count\n" \
 JOHN_USAGE_FORK \
@@ -383,9 +384,6 @@ void opt_print_hidden_usage(void)
 	puts("--mkpc=N                  request a lower max. keys per crypt");
 	puts("--min-length=N            request a minimum candidate length");
 	puts("--max-length=N            request a maximum candidate length");
-	puts("--costs=[-]C[:M][,...]    load salts with[out] cost value Cn [to Mn] for");
-	puts("                          tunable cost parameters, see doc/OPTIONS");
-	puts("                          (comma separated list of values/ranges per param.)");
 	puts("--field-separator-char=C  use 'C' instead of the ':' in input and pot files");
 	puts("--fix-state-delay=N       performance tweak, see doc/OPTIONS");
 	puts("--nolog                   disables creation and writing to john.log file");
@@ -397,13 +395,14 @@ void opt_print_hidden_usage(void)
 	puts("--keep-guessing           try more candidates for cracked hashes (ie. search");
 	puts("                          for plaintext collisions)");
 	puts("--max-run-time=N          gracefully exit after this many seconds");
-	puts("--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)");
+	puts("--regen-lost-salts=N      brute force unknown salts (see doc/OPTIONS)");
 	puts("--mkv-stats=FILE          \"Markov\" stats file (see doc/MARKOV)");
 	puts("--reject-printable        reject printable binaries");
 	puts("--verbosity=N             change verbosity (1-5, default 3)");
 	puts("--show=types              show some information about hashes in file (machine readable)");
 	puts("--show=invalid            show the hashes which valid fails.");
 	puts("--skip-self-tests         skip self tests");
+	puts("--test-full[=LEVEL]       run more thorough self-tests");
 	puts("--stress-test[=TIME]      loop self tests forever");
 #ifdef HAVE_FUZZ
 	puts("--fuzz[=DICTFILE]         fuzz formats' prepare(), valid() and split()");
