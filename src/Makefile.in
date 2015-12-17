@@ -777,8 +777,8 @@ kernels: @KERNEL_OBJS@
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/uaf2john
 
 # Note that this is NOT depending on PCAP lib. It is self-contained.
-../run/wpapcap2john@EXE_EXT@: wpapcap2john.o memdbg.o
-	$(LD) $(LDFLAGS) wpapcap2john.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/wpapcap2john
+../run/wpapcap2john@EXE_EXT@: wpapcap2john.o jumbo.o memdbg.o
+	$(LD) $(LDFLAGS) wpapcap2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/wpapcap2john
 
 # Note, this one is NOT build by default. To get it, do a make ../run/dynacomptest (or ../run/dynacomptest.exe for cygwin builds)
 ../run/dynacomptest@EXE_EXT@: dynamic_compiler.c dynamic_compiler_lib.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o
