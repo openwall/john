@@ -23,7 +23,6 @@
 #endif
 
 #include "params.h"
-#include "memory.h"
 #include "memdbg.h"
 
 /*
@@ -54,9 +53,9 @@ int vc_fixed_snprintf(char *Dest, size_t max_cnt, const char *Fmt, ...) {
 		while (len < 0) {
 			char *cp;
 			len_now *= 2;
-			cp = (char*)mem_alloc(len_now);
+			cp = (char*)malloc(len_now);
 			len = _vsnprintf(cp, len_now, Fmt, varg);
-			MEM_FREE(cp);
+			free(cp);
 		}
 	}
 	va_end(varg);
