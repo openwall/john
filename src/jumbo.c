@@ -339,7 +339,7 @@ int setenv(const char *name, const char *val, int overwrite) {
 			return 0;
 	}
 	len = strlen(name)+1+strlen(val)+1;
-	str = malloc(len, MEM_ALIGN_NONE);
+	str = malloc(len);
 	sprintf(str, "%s=%s", name, val);
 	putenv(str);
 	return 0;
