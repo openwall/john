@@ -7,6 +7,10 @@
  * rights reserved.
  */
 
+#ifdef _MSC_VER
+#undef _OPENMP
+#endif
+
 #include "arch.h"
 #include "common.h"
 #include "DES_bs.h"
