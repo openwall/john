@@ -341,7 +341,8 @@ static void fix_state(void)
 	if (word_file == stdin)
 		rec_pos = line_number;
 	else
-	if ((rec_pos = jtr_ftell64(word_file)) < 0) {
+	if (!mem_map && !nWordFileLines &&
+	    (rec_pos = jtr_ftell64(word_file)) < 0) {
 #ifdef __DJGPP__
 		if (rec_pos != -1)
 			rec_pos = 0;
@@ -359,7 +360,8 @@ void wordlist_hybrid_fix_state(void)
 	if (word_file == stdin)
 		hybrid_rec_pos = line_number;
 	else
-	if ((hybrid_rec_pos = jtr_ftell64(word_file)) < 0) {
+	if (!mem_map && !nWordFileLines &&
+	    (hybrid_rec_pos = jtr_ftell64(word_file)) < 0) {
 #ifdef __DJGPP__
 		if (hybrid_rec_pos != -1)
 			hybrid_rec_pos = 0;
