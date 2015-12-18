@@ -466,7 +466,7 @@ static void sevenzip_kdf(int buf_idx, int *indices, unsigned char *master)
 	// padding
 	memset(buf_in[0], 0, sizeof(buf_in[0]));
 	for (i = 0; i < NBKEYS; ++i) {
-		buf_in[0][HASH_IDX_IN(i)] = (0x80 << 24);
+		buf_in[0][HASH_IDX_IN(i)] = (0x80U << 24);
 		buf_in[0][HASH_IDX_IN(i) + 15*SIMD_COEF_32] = tot_len*8;
 	}
 	SIMDSHA256body(buf_in[0], buf_out, buf_out, SSEi_MIXED_IN | SSEi_RELOAD);

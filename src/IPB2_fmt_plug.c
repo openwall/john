@@ -351,7 +351,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					goto key_cleaning;
 				}
 				if (!(temp & 0xff000000)) {
-					*kb = temp | (0x80 << 24);
+					*kb = temp | (0x80U << 24);
 					len+=3;
 					goto key_cleaning;
 				}

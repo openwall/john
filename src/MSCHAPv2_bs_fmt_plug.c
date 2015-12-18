@@ -340,7 +340,7 @@ static ARCH_WORD_32 *generate_des_format(uchar* binary)
 
 			for (src = 0; src < 8; src++) {
 				if (value & mask)
-					block[(chr/4) + (dst>>5)]|= 1 << (dst & 0x1F);
+					block[(chr/4) + (dst>>5)]|= 1U << (dst & 0x1F);
 				mask >>= 1;
 				dst++;
 			}

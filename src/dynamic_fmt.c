@@ -1238,7 +1238,7 @@ static void set_key(char *key, int index)
 				}
 				if (!(temp & 0xff000000))
 				{
-					*keybuf_word = temp | (0x80 << 24);
+					*keybuf_word = temp | (0x80U << 24);
 					len+=3;
 					goto key_cleaning;
 				}
@@ -7125,8 +7125,8 @@ static void dyna_setupOMP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 #else
 				curdat.omp_granularity=LCM(curdat.omp_granularity, OMP_INC);
 #endif
-			}
 		}
+	}
 #endif
 	for (i=0; Setup->pFuncs[i]; ++i) {
 		if (isBadOMPFunc(Setup->pFuncs[i]))

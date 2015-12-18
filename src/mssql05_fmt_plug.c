@@ -213,7 +213,7 @@ static void set_key(char *_key, int index)
 		keybuf_word += SIMD_COEF_32;
 	}
 	keybuf_word += SIMD_COEF_32;
-	*keybuf_word = (0x80 << 24);
+	*keybuf_word = (0x80U << 24);
 
 key_cleaning:
 	keybuf_word += SIMD_COEF_32;
@@ -266,7 +266,7 @@ static void set_key_CP(char *_key, int index)
 		keybuf_word += SIMD_COEF_32;
 	}
 	keybuf_word += SIMD_COEF_32;
-	*keybuf_word = (0x80 << 24);
+	*keybuf_word = (0x80U << 24);
 
 key_cleaning_enc:
 	keybuf_word += SIMD_COEF_32;
@@ -394,7 +394,7 @@ static void set_key_utf8(char *_key, int index)
 	if (chh != 0xffff || len == SALT_SIZE >> 1) {
 		*keybuf_word = 0xffffffff;
 		keybuf_word += SIMD_COEF_32;
-		*keybuf_word = (0x80 << 24);
+		*keybuf_word = (0x80U << 24);
 	} else {
 		*keybuf_word = 0xffff8000;
 	}
