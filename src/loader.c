@@ -58,6 +58,11 @@ extern struct fmt_main fmt_crypt;
 int ldr_in_pot = 0;
 
 /*
+ * If this is set, we are populating the test db
+ */
+static int ldr_loading_testdb = 0;
+
+/*
  * Flags for read_file().
  */
 #define RF_ALLOW_MISSING		1
@@ -1095,7 +1100,9 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 		current++;
 	}
 
+	ldr_loading_testdb = 1;
 	ldr_fix_database(testdb);
+	ldr_loading_testdb = 0;
 
 	if (options.verbosity > 3)
 	fprintf(stderr, "Loaded %d hashes with %d different salts to test db from test vectors\n", testdb->password_count, testdb->salt_count);
@@ -1628,7 +1635,8 @@ void ldr_fix_database(struct db_main *db)
 		MEM_FREE(db->salt_hash);
 
 	ldr_filter_salts(db);
-	ldr_filter_costs(db);
+	if (!ldr_loading_testdb)
+		ldr_filter_costs(db);
 	ldr_remove_marked(db);
 	ldr_cost_ranges(db);
 	ldr_sort_salts(db);
