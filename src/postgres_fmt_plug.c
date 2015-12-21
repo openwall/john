@@ -150,6 +150,7 @@ static void *get_salt(char *ciphertext)
 
 	ctcopy += 10;   /* skip over "$postgres$" */
 	p = strtokm(ctcopy, "*");
+	memset(&cs, 0, sizeof(cs));
 	strnzcpy((char*)cs.user, p, MAX_USERNAME_LEN + 1);
 	p = strtokm(NULL, "*");
 	for (i = 0; i < 4; i++)
