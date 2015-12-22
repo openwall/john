@@ -1634,13 +1634,13 @@ void ldr_fix_database(struct db_main *db)
 	    mem_saving_level >= 2) /* Otherwise kept for faster pot sync */
 		MEM_FREE(db->salt_hash);
 
-	ldr_filter_salts(db);
-	if (!ldr_loading_testdb)
+	if (!ldr_loading_testdb) {
+		ldr_filter_salts(db);
 		ldr_filter_costs(db);
-	ldr_remove_marked(db);
-	ldr_cost_ranges(db);
+		ldr_remove_marked(db);
+		ldr_cost_ranges(db);
+	}
 	ldr_sort_salts(db);
-
 	ldr_init_hash(db);
 
 	ldr_init_sqid(db);
