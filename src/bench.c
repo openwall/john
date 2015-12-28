@@ -738,7 +738,7 @@ AGAIN:
 
 #ifndef BENCH_BUILD
 		if (john_main_process && benchmark_time &&
-		    *cost_msg && options.verbosity >= 3)
+		    *cost_msg && options.verbosity >= VERB_DEFAULT)
 			puts(cost_msg);
 #endif
 #ifdef HAVE_MPI

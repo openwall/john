@@ -395,6 +395,10 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define WORDLIST_BUFFER_DEFAULT		0x40000000
 
 /* Number of custom Mask placeholders */
-#define MAX_NUM_CUST_PLHDR 9
+#define MAX_NUM_CUST_PLHDR		9
+
+/* Verbosity level */
+#define VERB_MAX			5
+#define VERB_DEFAULT		3
 
 #endif

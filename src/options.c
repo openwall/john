@@ -455,7 +455,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	options.req_minlength = -1; options.reload_at_crack = 0;
 	options.max_run_time = options.status_interval = 0;
 	options.reload_at_save = options.dynamic_bare_hashes_always_valid = 0;
-	options.verbosity = 3;
+	options.verbosity = VERB_DEFAULT;
 
 	list_init(&options.passwd);
 
@@ -772,7 +772,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	}
 
 	if (options.flags & FLG_VERBOSITY &&
-	    (options.verbosity < 1 || options.verbosity > 5)) {
+	    (options.verbosity < 1 || options.verbosity > VERB_MAX)) {
 		if (john_main_process)
 			fprintf(stderr, "Invalid --verbosity level, use 1-5\n");
 		error();

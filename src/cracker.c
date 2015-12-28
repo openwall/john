@@ -580,7 +580,7 @@ int crk_reload_pot(void)
 		log_event("+ pot sync removed %d hashes; %s",
 		          others, crk_loaded_counts());
 
-	if (others && options.verbosity > 3) {
+	if (others && options.verbosity > VERB_DEFAULT) {
 		if (options.node_count)
 			fprintf(stderr, "%u: %s\n",
 			        options.node_min, crk_loaded_counts());

@@ -1078,7 +1078,7 @@ void initUnicode(int type)
 	if (UnicodeType == type && UnicodeInited == options.unicode_cp)
 		return;
 
-	if (options.verbosity >= 5) {
+	if (options.verbosity == VERB_MAX) {
 		fprintf(stderr, "%s(%s, %s/%s)\n", __FUNCTION__,
 		        type == 1 ? "MS_OLD" :
 		        type == 2 ? "MS_NEW" : "UNICODE",

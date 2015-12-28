@@ -282,7 +282,7 @@ char *prepare_regex(char *regex, int *bCase, char **regex_alpha)
 		return NULL;
 
 	if (!regex || !bCase || !regex_alpha) {
-		if (options.verbosity >= 4)
+		if (options.verbosity == VERB_MAX)
 			log_event("- No Rexgen used");
 		return 0;
 	}

@@ -417,7 +417,7 @@ static int calibrate()
 			best_gws = global_work_size;
 			best_opt = kernel_opt;
 
-			if (options.verbosity > 2)
+			if (options.verbosity >= VERB_DEFAULT)
 				fprintf(stderr, "- Good configuration found: LWS="Zu", GWS="Zu", "
 				                "UNROLL_LOOP=%i, c/s: %llu\n", local_work_size,
 				                global_work_size, kernel_opt, global_speed);

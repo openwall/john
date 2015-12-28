@@ -1369,7 +1369,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
         list_add(rule_list, rule);
         active_rules++;
 
-        if (options.verbosity > 3)
+        if (options.verbosity > VERB_DEFAULT)
         {
           if (strcmp(prerule, rule))
             log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
@@ -1379,7 +1379,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
                       rule_number + 1, prerule);
         }
       } else {
-        if (options.verbosity > 3)
+        if (options.verbosity > VERB_DEFAULT)
           log_event("- Rule #%d: '%.100s' rejected",
                     rule_number + 1, prerule);
       }
@@ -1574,7 +1574,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     while (((1 << hash_log) < size) && hash_log < 27)
       hash_log++;
 
-    if (john_main_process && options.verbosity < 5)
+    if (john_main_process && options.verbosity < VERB_MAX)
       log_event("- Suppressing dupes");
 
     int in_max = MIN(IN_LEN_MAX, pw_max);
@@ -1598,7 +1598,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
       db_entry->uniq = uniq;
 
-      if (john_main_process && options.verbosity > 3)
+      if (john_main_process && options.verbosity > VERB_DEFAULT)
         log_event("- Dupe suppression len %d: hash size %u, "
                   "temporarily allocating "Zu" bytes", pw_len,
                   hash_size, sizeof(uniq_t) + hash_alloc * sizeof(uniq_data_t) +

@@ -526,7 +526,9 @@ void update_buffer(struct db_salt *salt)
 	else
 		cmp_kernel[gpu_id][salt_val] = kernel_high;
 
-	fprintf(stderr, "Updated internal tables and buffers for salt %d.\n", salt_val);
+	if (options.verbosity > VERB_DEFAULT)
+		fprintf(stderr,
+		        "Updated internal tables and buffers for salt %d.\n", salt_val);
 }
 
 int extract_info(size_t current_gws, size_t *lws, WORD salt_val)

@@ -820,7 +820,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					hash_log++;
 				hash_size = (1 << hash_log);
 				hash_mask = (hash_size - 1);
-				if (options.verbosity > 3)
+				if (options.verbosity > VERB_DEFAULT)
 				log_event("- dupe suppression: hash size %u, "
 					"temporarily allocating "LLd" bytes",
 					hash_size,
@@ -946,7 +946,7 @@ GRAB_NEXT_PIPE_LOAD:
 			{
 				char *cpi, *cpe;
 
-				if (options.verbosity > 3)
+				if (options.verbosity > VERB_DEFAULT)
 				log_event("- Reading next block of candidate passwords from stdin pipe");
 
 				rules = rules_keep;
@@ -990,7 +990,7 @@ GRAB_NEXT_PIPE_LOAD:
 						}
 					}
 				}
-				if (options.verbosity > 3) {
+				if (options.verbosity > VERB_DEFAULT) {
 					sprintf(msg_buf, "- Read block of "LLd" "
 					        "candidate passwords from pipe",
 					        (long long)nWordFileLines);
@@ -1002,7 +1002,7 @@ GRAB_NEXT_PIPE_LOAD:
 MEM_MAP_LOAD:
 			rules = rules_keep;
 			nWordFileLines = 0;
-			if (options.verbosity > 3)
+			if (options.verbosity > VERB_DEFAULT)
 				log_event("- Reading next block of candidate from the memory mapped file");
 			release_sharedmem_object(pIPC);
 			pIPC = next_sharedmem_object();
@@ -1142,18 +1142,18 @@ REDO_AFTER_LMLOOP:
 			}
 			if ((rule = rules_reject(prerule, -1, last, db))) {
 				if (strcmp(prerule, rule)) {
-					if (options.verbosity > 3)
+					if (options.verbosity > VERB_DEFAULT)
 					log_event("- Rule #%d: '%.100s'"
 						" accepted as '%.100s'",
 						rule_number + 1, prerule, rule);
 				} else {
-					if (options.verbosity > 3)
+					if (options.verbosity > VERB_DEFAULT)
 					log_event("- Rule #%d: '%.100s'"
 						" accepted",
 						rule_number + 1, prerule);
 				}
 			} else {
-				if (options.verbosity > 3)
+				if (options.verbosity > VERB_DEFAULT)
 				log_event("- Rule #%d: '%.100s' rejected",
 					rule_number + 1, prerule);
 				goto next_rule;

@@ -440,7 +440,7 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 	assert(devParam[jtrUniqDevId].devGws <= gwsLimit);
 	assert(devParam[jtrUniqDevId].devLws <= PADDING);
 
-	if (options.verbosity > 3)
+	if (options.verbosity > VERB_DEFAULT)
 	fprintf(stdout, "Device %d  GWS: "Zu", LWS: "Zu"\n", jtrUniqDevId,
 			devParam[jtrUniqDevId].devGws, devParam[jtrUniqDevId].devLws);
 

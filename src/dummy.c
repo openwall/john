@@ -85,14 +85,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		 * password length, but otherwise would be valid.
 		 * Would one warning for each invalid hash be better?
 		 */
-		if (options.verbosity > 2 && warned < 2 &&
+		if (options.verbosity >= VERB_DEFAULT && warned < 2 &&
 		    ((q - p) >> 1) > MAX_PLAINTEXT_LENGTH) {
 			warned = 2;
 			fprintf(stderr,
 			        "dummy password length %d > max. supported length %d\n",
 				(int)((q - p) >> 1), MAX_PLAINTEXT_LENGTH);
 		}
-		else if (options.verbosity > 2 && warned == 0 &&
+		else if (options.verbosity >= VERB_DEFAULT && warned == 0 &&
 		         ((q - p) >> 1) > PLAINTEXT_LENGTH) {
 			warned = 1;
 			/*
