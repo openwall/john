@@ -514,7 +514,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 						*p = 0;
 						// $tag$ only
 						if (format->methods.valid(k, format)) {
-							sprintf(s_size, "promiscuous valid (%s)", k);
+							snprintf(s_size, sizeof(s_size), "promiscuous valid (%s)", k);
 							return s_size;
 						}
 						*p = '$';

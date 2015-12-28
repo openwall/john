@@ -253,7 +253,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	if (!(current = format->params.tests) || !current->ciphertext)
 		return "FAILED (no data)";
 	if ((where = fmt_self_test(format, test_db))) {
-		sprintf(s_error, "FAILED (%s)\n", where);
+		snprintf(s_error, sizeof(s_error), "FAILED (%s)\n", where);
 		return s_error;
 	}
 	if (!current->ciphertext)
