@@ -79,6 +79,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		o5logon postgres pst raw-blake2 raw-keccak raw-keccak256 siemens-s7
 		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip bitcoin blockchain
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
+		qnx_md5 qnx_sha512 qnx_sha256
 		));
 
 # todo: sapb sapfg ike keepass cloudkeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring keystore krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sxc sybase-prop tripcode vtp whirlpool0 whirlpool1
@@ -1845,6 +1846,37 @@ sub vdi_128 {
 	my $final  = unpack("H*",pp_pbkdf2($dec_dat, $salt2, 2000, \&sha256, 32, 64));
 	$salt1   = unpack("H*",$salt1); $salt2   = unpack("H*",$salt2); $enc_pass = unpack("H*",$enc_pass);
 	return "\$vdi\$aes-xts128\$sha256\$2000\$2000\$32\$32\$$salt1\$$salt2\$$enc_pass\$$final";
+}
+sub qnx_md5 {
+	$salt = unpack("H*",get_salt(8));
+	#$salt = "6e1f9a390d50a85c";
+	my $rounds = get_loops(1000);
+	my $h = md5($salt . $_[0]x($rounds+1));
+	my $ret = "\@m";
+	if ($rounds != 1000) { $ret .= ",$rounds"; }
+	$ret .= "\@".unpack("H*",$h)."\@$salt";
+	return $ret;
+}
+sub qnx_sha512 {
+	$salt = unpack("H*",get_salt(8));
+	#$salt = "129b6761";
+	#$salt = "caa3cc118d2deb23";
+	my $rounds = get_loops(1000);
+	my $h = sha512($salt . $_[0]x($rounds+1));
+	my $ret = "\@S";
+	if ($rounds != 1000) { $ret .= ",$rounds"; }
+	$ret .= "\@".unpack("H*",$h)."\@$salt";
+	return $ret;
+}
+sub qnx_sha256 {
+	$salt = unpack("H*",get_salt(8));
+	#$salt = "36bdb8080d25f44f";
+	my $rounds = get_loops(1000);
+	my $h = sha256($salt . $_[0]x($rounds+1));
+	my $ret = "\@s";
+	if ($rounds != 1000) { $ret .= ",$rounds"; }
+	$ret .= "\@".unpack("H*",$h)."\@$salt";
+	return $ret;
 }
 sub blockchain {
 	my $unenc = "{\n{\t\"guid\" : \"246093c1-de47-4227-89be-".randstr(12,\@chrHexLo)."\",\n\t\"sharedKey\" : \"fccdf579-707c-46bc-9ed1-".randstr(12,\@chrHexLo)."\",\n\t";
