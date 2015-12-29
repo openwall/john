@@ -67,6 +67,14 @@ static void *get_binary(char *ciphertext) {
 	return (void *)outbuf;
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[2+10+128+3+32+1];
+	strnzcpy(out, ciphertext, sizeof(out));
+	strlwr(&out[2]);
+	return out;
+}
+
 /* here is our 'unified' tests array. */
 #ifdef __QNX_CREATE_PROPER_TESTS_ARRAY__
 static struct fmt_tests tests[] = {
@@ -74,6 +82,7 @@ static struct fmt_tests tests[] = {
 	{"@s@1de2b7922fa592a0100a1b2b43ea206427cc044917bf9ad219f17c5db0af0452@36bdb8080d25f44f", "password"},
 	//{"@S@386d4be6fe9625c014b2486d8617ccfc521566be190d8a982b93698b99e0e3e3a18464281a514d5dda3ec5581389086f42b5dde023e934221bbe2e0106674cf7@129b6761", "password"},
 	//{"@S@60653c9f515eb8480486450c82eaad67f894e2f4828b6340fa28f47b7c84cc2b8bc451e37396150a1ab282179c6fe4ca777a7c1a17511b5d83f0ce23ca28da5d@caa3cc118d2deb23", "password"},
+	//{"@S@1030f372de34b8caac99b481d81ad9b57b923b385edcd3ed84f6721192f5238f34aba739e1d124919bd85c8efe13948593a6b691d8b41c1be5bc9b3906577f5d@abcd1234abcd1234", "password"},
 	{NULL}
 };
 #endif

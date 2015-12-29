@@ -111,14 +111,6 @@ static void done(void)
 	MEM_FREE(saved_len);
 }
 
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[2+10+128+3+32+1];
-	strnzcpy(out, ciphertext, sizeof(out));
-	strlwr(&out[2]);
-	return out;
-}
-
 static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
 static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
 static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
