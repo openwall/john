@@ -111,6 +111,14 @@ static void done(void)
 	MEM_FREE(saved_len);
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[2+10+128+3+32+1];
+	strnzcpy(out, ciphertext, sizeof(out));
+	strlwr(&out[2]);
+	return out;
+}
+
 static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
 static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
 static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
@@ -306,7 +314,7 @@ struct fmt_main fmt_qnx = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 		{
 			"iteration count",
 			"algorithm (5=md5 256=sha256 512=sha512)",
@@ -318,7 +326,7 @@ struct fmt_main fmt_qnx = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		get_salt,
 		{
