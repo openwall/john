@@ -60,6 +60,9 @@ static struct fmt_tests postgres_tests[] = {
 	/* $postgre$ is supported but deprecated */
 	{"$postgre$postgres*684697c8*bf2a64f35feba7bf1b633d60393c1356",
 	 "openwall"},
+	/* $postgres$ with longer user name */
+	{"$postgres$Twelve_chars*55393156*c01df9affa7573ef32ec143759f3e005",
+	"HookFish__2"},
 	{"$postgres$postgres*65687433*b782eca219ad84b58f26d25e19a1bbc9",
 	 "thisisalongstring"},
 	{"$postgres$postgres*33374273*77e0016f1b92cdea7291ab0ed21798b8",
@@ -150,6 +153,7 @@ static void *get_salt(char *ciphertext)
 
 	ctcopy += 10;   /* skip over "$postgres$" */
 	p = strtokm(ctcopy, "*");
+	memset(&cs, 0, sizeof(cs));
 	strnzcpy((char*)cs.user, p, MAX_USERNAME_LEN + 1);
 	p = strtokm(NULL, "*");
 	for (i = 0; i < 4; i++)

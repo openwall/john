@@ -69,7 +69,7 @@ int main(int argc, char **argv)
 
 	common_init();
 
-	if (benchmark_format(format, BENCHMARK_MANY, &results)) {
+	if (benchmark_format(format, BENCHMARK_MANY, &results, NULL)) {
 		virtual = 0;
 
 		fprintf(stderr, "FAILED\n");

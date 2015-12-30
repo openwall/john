@@ -758,39 +758,39 @@ kernels: @KERNEL_OBJS@
 ../run/genmkvpwd@EXE_EXT@: $(GENMKVPWD_OBJS)
 	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS) @M_LIBS@ @OPENMP_CFLAGS@ -o ../run/genmkvpwd
 
-../run/mkvcalcproba@EXE_EXT@: mkvcalcproba.o
+../run/mkvcalcproba@EXE_EXT@: mkvcalcproba.o memdbg.o
 	$(LD) mkvcalcproba.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @M_LIBS@ @OPENMP_CFLAGS@ -o ../run/mkvcalcproba
 
-../run/calc_stat@EXE_EXT@: calc_stat.o
+../run/calc_stat@EXE_EXT@: calc_stat.o memdbg.o
 	$(LD) calc_stat.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @M_LIBS@ @OPENMP_CFLAGS@ -o ../run/calc_stat
 
-../run/raw2dyna@EXE_EXT@: raw2dyna.o
+../run/raw2dyna@EXE_EXT@: raw2dyna.o memdbg.o
 	$(LD) raw2dyna.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @OPENMP_CFLAGS@ -o ../run/raw2dyna
 
-../run/SIPdump@EXE_EXT@: SIPdump.o
+../run/SIPdump@EXE_EXT@: SIPdump.o memdbg.o
 	$(LD) SIPdump.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o ../run/SIPdump
 
-../run/vncpcap2john@EXE_EXT@: vncpcap2john.o
+../run/vncpcap2john@EXE_EXT@: vncpcap2john.o memdbg.o
 	$(CC) -DAC_BUILT -Wall vncpcap2john.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o ../run/vncpcap2john
 
-../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode.o
+../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/uaf2john
 
 # Note that this is NOT depending on PCAP lib. It is self-contained.
-../run/wpapcap2john@EXE_EXT@: wpapcap2john.o
-	$(LD) $(LDFLAGS) wpapcap2john.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/wpapcap2john
+../run/wpapcap2john@EXE_EXT@: wpapcap2john.o jumbo.o memdbg.o
+	$(LD) $(LDFLAGS) wpapcap2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/wpapcap2john
 
 # Note, this one is NOT build by default. To get it, do a make ../run/dynacomptest (or ../run/dynacomptest.exe for cygwin builds)
 ../run/dynacomptest@EXE_EXT@: dynamic_compiler.c dynamic_compiler_lib.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o
 	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@  @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ -DWITH_MAIN -D_JOHN_MISC_NO_LOG -DUNICODE_NO_OPTIONS @MEMDBG_CFLAGS@ dynamic_compiler.c dynamic_compiler_lib.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o gost.o jumbo.o memdbg.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o $(LDFLAGS)  @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@  -o ../run/dynacomptest
 
-../run/luks2john@EXE_EXT@: luks2john.c base64_convert.c
+../run/luks2john@EXE_EXT@: luks2john.c base64_convert.c memdbg.c
 	$(CC) @CFLAGS@ @CFLAGS_EXTRA@ -O2 -Wall -DAC_BUILT -D_JOHN_MISC_NO_LOG luks2john.c base64_convert.c base64.c common.c memdbg.c memory.c jumbo.c misc.c -o ../run/luks2john
 
 ../run/cprepair@EXE_EXT@: cprepair.c autoconfig.h unicode.c unicode.h options.h misc.h misc.c memdbg.h memdbg.c
 	$(CC) -DAC_BUILT -Wall -O3 @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ -DNOT_JOHN -D_JOHN_MISC_NO_LOG $(CPPFLAGS) cprepair.c unicode.c misc.c memdbg.c -o ../run/cprepair
 
-../run/tgtsnarf@EXE_EXT@: tgtsnarf.o
+../run/tgtsnarf@EXE_EXT@: tgtsnarf.o memdbg.o
 	$(LD) tgtsnarf.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @OPENMP_CFLAGS@ -o ../run/tgtsnarf
 
 john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h stdint.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h math.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h inc.h mask.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john-mpi.h regex.h unicode.h common-opencl.h common-gpu.h adl_sdk.h adl_structures.h adl_defines.h opencl_device_info.h cuda_common.h john_build_rule.h memdbg.h fmt_externs.h fmt_registers.h
@@ -983,9 +983,11 @@ distclean: clean
 	$(RM) arch.h
 	$(RM) fmt_registers.h fmt_externs.h dynamic_big_crypt.c john_build_rule.h version.h version.h.new
 
-install: default shell-completion
+strip: default
 	@echo Stripping executables.
 	$(STRIP) $(PROJ)
+
+install: strip shell-completion
 #ifneq ($(prefix), ../run)
 #	@echo Copying binaries to $(prefix)
 #	$(MKDIR) $(prefix)

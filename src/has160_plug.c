@@ -255,8 +255,8 @@ void rhash_has160_final(has160_ctx *ctx, unsigned char* result)
 
   /* pad message and run for last block */
 #if ARCH_LITTLE_ENDIAN
-  ctx->message[index]   &= ~(0xFFFFFFFF << shift);
-  ctx->message[index++] ^= 0x80 << shift;
+  ctx->message[index]   &= ~(0xFFFFFFFFU << shift);
+  ctx->message[index++] ^= 0x80U << shift;
 #else
   ctx->message[index]   &= ~(0xFFFFFFFF >> shift);
   ctx->message[index++] ^= 0x80000000 >> shift;

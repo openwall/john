@@ -244,7 +244,6 @@ static void hex_to_raw(const char *from, int len, unsigned char *to) {
 	int i;
 	for (i = 0; i < len; i += 2)
 		*to++ = (atoi16[(ARCH_INDEX(from[i]))]<<4)|atoi16[(ARCH_INDEX(from[i+1]))];
-	*to = 0;
 }
 
 /******************************************************************************************

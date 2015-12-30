@@ -190,7 +190,7 @@ static void reset(struct db_main *db)
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
 		                       create_clobj, release_clobj,
-		                       KEY_SIZE_IN_BYTES, gws_limit);
+		                       KEY_SIZE_IN_BYTES, gws_limit, db);
 
 		// Auto tune execution from shared/included code.
 		autotune_run_extra(self, 1, gws_limit, 300, CL_TRUE);

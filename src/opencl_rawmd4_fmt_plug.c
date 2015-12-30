@@ -565,7 +565,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	assert(global_work_size <= gws_limit);
 
 	self->params.max_keys_per_crypt = global_work_size;
-	if (options.verbosity > 3)
+	if (options.verbosity > VERB_DEFAULT)
 	fprintf(stdout, "%s GWS: "Zu", LWS: "Zu"\n", db ? "Cracking" : "Self test",
 			global_work_size, local_work_size);
 #undef calc_ms

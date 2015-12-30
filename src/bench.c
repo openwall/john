@@ -175,7 +175,7 @@ static unsigned int get_cost(struct fmt_main *format, int index, int cost_idx)
 #endif
 
 char *benchmark_format(struct fmt_main *format, int salts,
-	struct bench_results *results)
+	struct bench_results *results, struct db_main *test_db)
 {
 	static void *binary = NULL;
 	static int binary_size = 0;
@@ -252,8 +252,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 	if (!(current = format->params.tests) || !current->ciphertext)
 		return "FAILED (no data)";
-	if ((where = fmt_self_test(format, NULL))) {
-		sprintf(s_error, "FAILED (%s)\n", where);
+	if ((where = fmt_self_test(format, test_db))) {
+		snprintf(s_error, sizeof(s_error), "FAILED (%s)\n", where);
 		return s_error;
 	}
 	if (!current->ciphertext)
@@ -413,7 +413,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 		if (salts > 1) format->methods.set_salt(two_salts[index & 1]);
 		format->methods.cmp_all(binary,
-		    format->methods.crypt_all(&count, NULL));
+		    format->methods.crypt_all(&count, test_db->salts));
 
 		add32to64(&crypts, count);
 #if !OS_TIMER
@@ -529,7 +529,7 @@ int benchmark_all(void)
 #endif
 	unsigned int total, failed;
 	MEMDBG_HANDLE memHand;
-
+	struct db_main *test_db;
 #ifdef _OPENMP
 	int ompt;
 	int ompt_start = omp_get_max_threads();
@@ -679,16 +679,22 @@ AGAIN:
 
 		total++;
 
+		/* (Ab)used to mute some messages from source() */
+		bench_running = 1;
+		test_db = ldr_init_test_db(format, NULL);
+		bench_running = 0;
+
 		if ((result = benchmark_format(format,
 		    format->params.salt_size ? BENCHMARK_MANY : 1,
-		    &results_m))) {
+		    &results_m, test_db))) {
 			puts(result);
 			failed++;
 			goto next;
 		}
 
 		if (msg_1)
-		if ((result = benchmark_format(format, 1, &results_1))) {
+		if ((result = benchmark_format(format, 1, &results_1,
+		    test_db))) {
 			puts(result);
 			failed++;
 			goto next;
@@ -732,7 +738,7 @@ AGAIN:
 
 #ifndef BENCH_BUILD
 		if (john_main_process && benchmark_time &&
-		    *cost_msg && options.verbosity >= 3)
+		    *cost_msg && options.verbosity >= VERB_DEFAULT)
 			puts(cost_msg);
 #endif
 #ifdef HAVE_MPI
@@ -792,6 +798,7 @@ AGAIN:
 
 next:
 		fflush(stdout);
+		ldr_free_test_db(test_db);
 		fmt_done(format);
 #ifndef BENCH_BUILD
 		if (options.flags & FLG_MASK_CHK)

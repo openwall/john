@@ -297,17 +297,17 @@ static void *get_binary(char *ciphertext)
 	ciphertext+=4;
 	for (i=0; i<4; i++)
 	{
-		temp  = (atoi16[ARCH_INDEX(ciphertext[i*8+0])])<<4;
-		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+1])]);
+		temp  = ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+0])]))<<4;
+		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+1])]));
 
-		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+2])])<<12;
-		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+3])])<<8;
+		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+2])]))<<12;
+		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+3])]))<<8;
 
-		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+4])])<<20;
-		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+5])])<<16;
+		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+4])]))<<20;
+		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+5])]))<<16;
 
-		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+6])])<<28;
-		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+7])])<<24;
+		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+6])]))<<28;
+		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+7])]))<<24;
 
 #if ARCH_LITTLE_ENDIAN
 		out[i]=temp;
@@ -599,7 +599,7 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 #ifdef SIMD_COEF_32
-	unsigned int i = 0;
+	int i = 0;
 #ifdef _OPENMP
 	const unsigned int count = (*pcount + NBKEYS - 1) / NBKEYS;
 

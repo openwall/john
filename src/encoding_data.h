@@ -68,6 +68,9 @@ static const UTF16 ISO_8859_1_to_unicode_high128[] = {
 //
 #define CHARS_UP_ONLY_ISO_8859_1
 
+//
+#define CHARS_NOCASE_ISO_8859_1
+
 // ²³¹¼½¾
 #define CHARS_DIGITS_ISO_8859_1 "\xB2\xB3\xB9\xBC\xBD\xBE"
 
@@ -124,6 +127,9 @@ static const UTF16 ISO_8859_2_to_unicode_high128[] = {
 
 //
 #define CHARS_UP_ONLY_ISO_8859_2
+
+//
+#define CHARS_NOCASE_ISO_8859_2
 
 //
 #define CHARS_DIGITS_ISO_8859_2 ""
@@ -184,6 +190,9 @@ static const UTF16 ISO_8859_7_to_unicode_high128[] = {
 //
 #define CHARS_UP_ONLY_ISO_8859_7
 
+//
+#define CHARS_NOCASE_ISO_8859_7
+
 // ²³½
 #define CHARS_DIGITS_ISO_8859_7 "\xB2\xB3\xBD"
 
@@ -242,6 +251,9 @@ static const UTF16 ISO_8859_15_to_unicode_high128[] = {
 //
 #define CHARS_UP_ONLY_ISO_8859_15
 
+//
+#define CHARS_NOCASE_ISO_8859_15
+
 // ²³¹
 #define CHARS_DIGITS_ISO_8859_15 "\xB2\xB3\xB9"
 
@@ -297,6 +309,9 @@ static const UTF16 KOI8_R_to_unicode_high128[] = {
 
 //
 #define CHARS_UP_ONLY_KOI8_R
+
+//
+#define CHARS_NOCASE_KOI8_R
 
 // ²
 #define CHARS_DIGITS_KOI8_R "\x9D"
@@ -355,6 +370,9 @@ static const UTF16 CP437_to_unicode_high128[] = {
 //
 #define CHARS_UP_ONLY_CP437
 
+//
+#define CHARS_NOCASE_CP437
+
 // ½¼²
 #define CHARS_DIGITS_CP437 "\xAB\xAC\xFD"
 
@@ -408,6 +426,10 @@ static const UTF16 CP720_to_unicode_high128[] = {
 
 //
 #define CHARS_UP_ONLY_CP720
+
+//
+#define CHARS_NOCASE_CP720 \
+	"\x91\x92\x95\x98\x99\x9A\x9B\x9D\x9E\x9F\xA0\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8\xA9\xAA\xAB\xAC\xAD\xE0\xE1\xE2\xE3\xE4\xE5\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF0\xF1\xF2\xF3\xF4\xF5\xF6"
 
 // ²
 #define CHARS_DIGITS_CP720 "\xFD"
@@ -464,6 +486,9 @@ static const UTF16 CP737_to_unicode_high128[] = {
 
 //
 #define CHARS_UP_ONLY_CP737
+
+//
+#define CHARS_NOCASE_CP737
 
 // ²
 #define CHARS_DIGITS_CP737 "\xFD"
@@ -524,6 +549,9 @@ static const UTF16 CP850_to_unicode_high128[] = {
 //
 #define CHARS_UP_ONLY_CP850
 
+//
+#define CHARS_NOCASE_CP850
+
 // ½¼¾¹³²
 #define CHARS_DIGITS_CP850 "\xAB\xAC\xF3\xFB\xFC\xFD"
 
@@ -580,6 +608,9 @@ static const UTF16 CP852_to_unicode_high128[] = {
 
 //
 #define CHARS_UP_ONLY_CP852
+
+//
+#define CHARS_NOCASE_CP852
 
 //
 #define CHARS_DIGITS_CP852 ""
@@ -639,6 +670,9 @@ static const UTF16 CP858_to_unicode_high128[] = {
 //
 #define CHARS_UP_ONLY_CP858
 
+//
+#define CHARS_NOCASE_CP858
+
 // ½¼¾¹³²
 #define CHARS_DIGITS_CP858 "\xAB\xAC\xF3\xFB\xFC\xFD"
 
@@ -696,6 +730,9 @@ static const UTF16 CP866_to_unicode_high128[] = {
 #define CHARS_UP_ONLY_CP866
 
 //
+#define CHARS_NOCASE_CP866
+
+//
 #define CHARS_DIGITS_CP866 ""
 
 // ·
@@ -745,6 +782,10 @@ static const UTF16 CP868_to_unicode_high128[] = {
 #define CHARS_UPPER_CP868 ""
 
 #define CHARS_UP_ONLY_CP868
+
+// آاﺎبﺑپةتﺗثﺛجﺟحﺣخﺧدذرزسﺳشﺷصﺻضﺿطظعﻊﻋﻌغﻎﻏﻐفﻓقﻗﻚﻛلﻞﻠمﻣنﻧوءّﹽ
+#define CHARS_NOCASE_CP868 \
+	"\x8D\x8E\x8F\x90\x91\x92\x93\x95\x96\x97\x9A\x9B\x9C\x9D\xA0\xA1\xA2\xA3\xA4\xA6\xA7\xA9\xAB\xAC\xAD\xB0\xB1\xB7\xB8\xB9\xBA\xBF\xC0\xC8\xC9\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDA\xDF\xE3\xE4\xE5\xE6\xE7\xE9\xEA\xEC\xF1\xFB\xFC"
 
 //٠١٢٣٤٥٦٧٨٩
 #define CHARS_DIGITS_CP868 "\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89"
@@ -800,6 +841,9 @@ static const UTF16 CP1250_to_unicode_high128[] = {
 
 //
 #define CHARS_UP_ONLY_CP1250
+
+//
+#define CHARS_NOCASE_CP1250
 
 //
 #define CHARS_DIGITS_CP1250 ""
@@ -859,6 +903,9 @@ static const UTF16 CP1251_to_unicode_high128[] = {
 #define CHARS_UP_ONLY_CP1251
 
 //
+#define CHARS_NOCASE_CP1251
+
+//
 #define CHARS_DIGITS_CP1251 ""
 
 // ‚„…†‡‰‹‘’“”•–—›«·»
@@ -914,6 +961,9 @@ static const UTF16 CP1252_to_unicode_high128[] = {
 
 //
 #define CHARS_UP_ONLY_CP1252
+
+//
+#define CHARS_NOCASE_CP1252
 
 // ²³¹¼½¾
 #define CHARS_DIGITS_CP1252 "\xB2\xB3\xB9\xBC\xBD\xBE"
@@ -974,6 +1024,9 @@ static const UTF16 CP1253_to_unicode_high128[] = {
 //
 #define CHARS_UP_ONLY_CP1253
 
+//
+#define CHARS_NOCASE_CP1253
+
 // ²³½
 #define CHARS_DIGITS_CP1253 "\xB2\xB3\xBD"
 
@@ -1000,6 +1053,10 @@ static const UTF16 CP1253_to_unicode_high128[] = {
 // ƒµΒΓΔΖΘΚΛΜΝΞΠΡΣΤΦΧΨβγδζθκλμνξπρςστφχψ
 #define CHARS_CONSONANTS_CP1253 \
 	"\x83\xB5\xC2\xC3\xC4\xC6\xC8\xCA\xCB\xCC\xCD\xCE\xD0\xD1\xD3\xD4\xD6\xD7\xD8\xE2\xE3\xE4\xE6\xE8\xEA\xEB\xEC\xED\xEE\xF0\xF1\xF2\xF3\xF4\xF6\xF7\xF8"
+
+// 8               9               A               B               C               D               E               F
+// 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
+// €�‚ƒ„…†‡ˆ‰Š‹Œ����‘’“”•–—˜™š›œ��Ÿ ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖ×ØÙÚÛÜİŞßàáâãäåæçèéêëìíîïğñòóôõö÷øùúûüışÿ
 
 // here is the CP1254 to Unicode conversion for CP1254 characters from 0x80 to 0xFF
 static const UTF16 CP1254_to_unicode_high128[] = {
@@ -1028,6 +1085,9 @@ static const UTF16 CP1254_to_unicode_high128[] = {
 //
 #define CHARS_UP_ONLY_CP1254
 
+//
+#define CHARS_NOCASE_CP1254
+
 // ²³¹¼½¾
 #define CHARS_DIGITS_CP1254 "\xB2\xB3\xB9\xBC\xBD\xBE"
 
@@ -1055,6 +1115,10 @@ static const UTF16 CP1254_to_unicode_high128[] = {
 // ƒŠšŸªµºÇĞÑŞßçğñşÿ
 #define CHARS_CONSONANTS_CP1254 "\x83\x8A\x9A\x9F\xAA\xB5\xBA\xC7\xD0\xD1\xDE\xDF\xE7\xF0\xF1\xFE\xFF"
 
+// 8               9               A               B               C               D               E               F
+// 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
+// €�‚ƒ„…†‡ˆ‰�‹�����‘’“”•–—˜™�›���� ¡¢£₪¥¦§¨©×«¬­®¯°±²³´µ¶·¸¹÷»¼½¾¿ְֱֲֳִֵֶַָֹ�ֻּֽ־ֿ׀ׁׂ׃װױײ׳״�������אבגדהוזחטיךכלםמןנסעףפץצקרשת��‎‏�
+
 // here is the CP1255 to Unicode conversion for CP1255 characters from 0x80 to 0xFF
 static const UTF16 CP1255_to_unicode_high128[] = {
 0x20AC,0x0081,0x201A,0x0192,0x201E,0x2026,0x2020,0x2021,0x02C6,0x2030,0x008A,0x2039,0x008C,0x008D,0x008E,0x008F,
@@ -1077,6 +1141,10 @@ static const UTF16 CP1255_to_unicode_high128[] = {
 
 //
 #define CHARS_UP_ONLY_CP1255
+
+// װױײאבגדהוזחטיךכלםמןנסעףפץצקרשת
+#define CHARS_NOCASE_CP1255 \
+	"\xD4\xD5\xD6\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF0\xF1\xF2\xF3\xF4\xF5\xF6\xF7\xF8\xF9\xFA"
 
 // ²³¹¼½¾
 #define CHARS_DIGITS_CP1255 "\xB2\xB3\xB9\xBC\xBD\xBE"
@@ -1107,6 +1175,10 @@ static const UTF16 CP1255_to_unicode_high128[] = {
 #define CHARS_CONSONANTS_CP1255 \
 	"\x83\xB5\xD4\xD5\xD6\xE0\xE1\xE2\xE3\xE4\xE5\xE6\xE7\xE8\xE9\xEA\xEB\xEC\xED\xEE\xEF\xF0\xF1\xF2\xF3\xF4\xF5\xF6\xF7\xF8\xF9\xFA"
 
+// 8               9               A               B               C               D               E               F
+// 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
+// €پ‚ƒ„…†‡ˆ‰ٹ‹Œچژڈگ‘’“”•–—ک™ڑ›œ‌‍ں ،¢£¤¥¦§¨©ھ«¬­®¯°±²³´µ¶·¸¹؛»¼½¾؟ہءآأؤإئابةتثجحخدذرزسشصض×طظعغـفقكàلâمنهوçèéêëىيîïًٌٍَôُِ÷ّùْûü‎‏ے
+
 // here is the CP1256 to Unicode conversion for CP1256 characters from 0x80 to 0xFF
 static const UTF16 CP1256_to_unicode_high128[] = {
 0x20AC,0x067E,0x201A,0x0192,0x201E,0x2026,0x2020,0x2021,0x02C6,0x2030,0x0679,0x2039,0x0152,0x0686,0x0698,0x0688,
@@ -1129,6 +1201,10 @@ static const UTF16 CP1256_to_unicode_high128[] = {
 
 //
 #define CHARS_UP_ONLY_CP1256
+
+// پٹچژڈگکڑںھہءآأؤإئابةتثجحخدذرزسشصضطظعغفقكلمنهوىيے
+#define CHARS_NOCASE_CP1256 \
+	"\x81\x8A\x8D\x8E\x8F\x90\x98\x9A\x9F\xAA\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCA\xCB\xCC\xCD\xCE\xCF\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD8\xD9\xDA\xDB\xDD\xDE\xDF\xE1\xE3\xE4\xE5\xE6\xEC\xED\xFF"
 
 // ²³¹¼½¾
 #define CHARS_DIGITS_CP1256 "\xB2\xB3\xB9\xBC\xBD\xBE"

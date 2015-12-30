@@ -202,7 +202,7 @@ static void reset(struct db_main *db)
 		                       2, self, create_clobj, release_clobj,
 		                       ocl_v_width *
 		                       (PLAINTEXT_LENGTH + sizeof(pbkdf1_out)),
-		                       0);
+		                       0, db);
 
 		//Auto tune execution from shared/included code.
 		autotune_run(self, ITERATIONS, 0,

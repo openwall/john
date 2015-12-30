@@ -213,7 +213,7 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 		MEM_FREE(encoded_salt);
 		opencl_build(id_gpu, build_opts, save_binary, kernel_bin_name, program_ptr, kernel_filename, kernel_source);
 
-		if (options.verbosity > 3)
+		if (options.verbosity > VERB_DEFAULT)
 			fprintf(stderr, "Salt compiled from Source:%d\n", salt_val);
 
 	}
@@ -223,7 +223,7 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 		program_size = opencl_read_source(kernel_bin_name, &kernel_source);
 		opencl_build_from_binary(id_gpu, program_ptr, kernel_source, program_size);
 
-		if (options.verbosity > 3)
+		if (options.verbosity > VERB_DEFAULT)
 			fprintf(stderr, "Salt compiled from Binary:%d\n", salt_val);
 	}
 	MEM_FREE(kernel_source);
@@ -621,7 +621,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	if (lws_tune_flag)
 		save_lws_config(CONFIG_FILE, gpu_id, local_work_size, *forced_global_keys);
 
-	if (options.verbosity > 3)
+	if (options.verbosity > VERB_DEFAULT)
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",
 		global_work_size, local_work_size);
 }

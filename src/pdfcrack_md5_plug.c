@@ -54,10 +54,10 @@ void md5_50(uint8_t * msg)
 	register uint32_t a, b, c, d;
 	int i;
 
-	a = (((((msg[3] << 8) + msg[2]) << 8) + msg[1]) << 8) + msg[0];
-	b = (((((msg[7] << 8) + msg[6]) << 8) + msg[5]) << 8) + msg[4];
-	c = (((((msg[11] << 8) + msg[10]) << 8) + msg[9]) << 8) + msg[8];
-	d = (((((msg[15] << 8) + msg[14]) << 8) + msg[13]) << 8) + msg[12];
+	a = ((unsigned int)(((unsigned int)(((unsigned int)msg[3] << 8) + msg[2]) << 8) + msg[1]) << 8) + msg[0];
+	b = ((unsigned int)(((unsigned int)(((unsigned int)msg[7] << 8) + msg[6]) << 8) + msg[5]) << 8) + msg[4];
+	c = ((unsigned int)(((unsigned int)(((unsigned int)msg[11] << 8) + msg[10]) << 8) + msg[9]) << 8) + msg[8];
+	d = ((unsigned int)(((unsigned int)(((unsigned int)msg[15] << 8) + msg[14]) << 8) + msg[13]) << 8) + msg[12];
 
 	for (i = 0; i < 50; ++i) {
 		uint32_t aa, bb, cc, dd;

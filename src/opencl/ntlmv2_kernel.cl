@@ -68,10 +68,10 @@ __kernel void ntlmv2_nthash(const __global uchar *source,
 			++source;
 			break;
 		default:
-			*target = 0x80;
+			*target = UNI_REPLACEMENT_CHAR;
 			break; // from switch
 		}
-		if (*target == 0x80)
+		if (*target == UNI_REPLACEMENT_CHAR)
 			break; // from while
 		ch -= offsetsFromUTF8[extraBytesToRead];
 #ifdef UCS_2
@@ -93,6 +93,14 @@ __kernel void ntlmv2_nthash(const __global uchar *source,
 			break;
 	}
 	*target = 0x80;	// Terminate
+
+#if __OS_X__ && gpu_nvidia(DEVICE_INFO)
+	/*
+	 * Driver bug workaround. Halves the performance :-(
+	 * Bug seen with GT 650M version 10.6.47 310.42.05f01
+	 */
+	barrier(CLK_GLOBAL_MEM_FENCE);
+#endif
 
 	block[14] = (uint)(target - targetStart) << 4;
 

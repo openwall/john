@@ -151,7 +151,7 @@ static int convert_ivs(FILE *f_in)
 			memcpy(bssid, p, 6);
 			p += 6;
 
-			fprintf(stderr, "%s: bssid: %02x:%02x:%02x:%02x:%02x:%02x\n", filename, p[0], p[1], p[2], p[3], p[4], p[5]);
+			fprintf(stderr, "%s: BSSID: %02x:%02x:%02x:%02x:%02x:%02x\n", filename, p[0], p[1], p[2], p[3], p[4], p[5]);
 			bssidFound = 1;
 		}
 		if (ivs2.flags & IVS2_ESSID) {
@@ -159,7 +159,7 @@ static int convert_ivs(FILE *f_in)
 			unsigned int len = pktlen - ofs;
 
 			if (len <= 0 || len+1 > sizeof(essid)) {
-				printf("Invalid essid length (%d)\n", len);
+				printf("Invalid ESSID length (%d)\n", len);
 				return 1;
 			}
 
@@ -168,7 +168,7 @@ static int convert_ivs(FILE *f_in)
 
 			essidFound = 1;
 
-			fprintf(stderr,"essid: '%s' (%d bytes)\n", essid, len);
+			fprintf(stderr,"ESSID: '%s' (%d bytes)\n", essid, len);
 			p += len;
 		}
 
@@ -292,7 +292,7 @@ static int Process(FILE *in)
 	}
 	link_type = main_hdr.network;
 	if (link_type == LINKTYPE_IEEE802_11)
-		; //fprintf(stderr, "%s: raw 802.11\n", filename);
+		fprintf(stderr, "%s: raw 802.11\n", filename);
 	else if (link_type == LINKTYPE_PRISM_HEADER)
 		fprintf(stderr, "%s: Prism headers stripped\n", filename);
 	else if (link_type == LINKTYPE_RADIOTAP_HDR)
@@ -445,6 +445,34 @@ static int ProcessPacket()
 	return 1;
 }
 
+static void e_fail(void)
+{
+	fprintf(stderr, "Incorrect -e option.\n");
+	exit(EXIT_FAILURE);
+}
+
+static void ManualBeacon(char *essid_bssid)
+{
+	char *essid = essid_bssid;
+	char *bssid = strchr(essid_bssid, ':');
+
+	if (!bssid)
+		e_fail();
+
+	*bssid++ = 0;
+	if (strlen(essid) > 32 || strlen(bssid) != 17)
+		e_fail();
+
+	bssid = strupr(bssid);
+	fprintf(stderr, "Manually adding ESSID '%s' BSSID '%s'\n", essid, bssid);
+	strcpy(wpa[nwpa].essid, essid);
+	strcpy(wpa[nwpa].bssid, bssid);
+	if (++nwpa >= MAX_ESSIDS) {
+		fprintf(stderr, "ERROR: Too many ESSIDs seen (%d)\n", MAX_ESSIDS);
+		exit(EXIT_FAILURE);
+	}
+}
+
 static void HandleBeacon()
 {
 	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
@@ -476,6 +504,9 @@ static void HandleBeacon()
 	}
 	strcpy(wpa[nwpa].essid, essid);
 	strcpy(wpa[nwpa].bssid, bssid);
+
+	fprintf(stderr, "Learned ESSID '%s' with BSSID '%s'\n", essid, bssid);
+
 	if (++nwpa >= MAX_ESSIDS) {
 		fprintf(stderr, "ERROR: Too many ESSIDs seen (%d)\n", MAX_ESSIDS);
 		exit(EXIT_FAILURE);
@@ -773,12 +804,23 @@ int main(int argc, char **argv)
 		argv++; argc--;
 	}
 
+	while (argc > 2 && !strcmp(argv[1], "-e")) {
+		argv[1] = argv[0];
+		argv++; argc--;
+		ManualBeacon(argv[1]);
+		argv[1] = argv[0];
+		argv++; argc--;
+	}
+
 	if (argc < 2)
 		return !!fprintf(stderr,
-"Converts PCAP or IVS2 files to JtR format\n"
-"Usage: %s [-c] <file[s]>\n"
+"Converts PCAP or IVS2 files to JtR format.\n"
+"Supported encapsulations: 802.11, Prism, Radiotap and PPI.\n"
+"Usage: %s [-c] [-e essid:bssid [-e ...]] <file[s]>\n"
 "\n-c\tShow only complete auths (incomplete ones might be wrong passwords\n"
-"\tbut we can crack what passwords were tried)\n\n", argv[0]);
+"\tbut we can crack what passwords were tried).\n"
+"-e\tManually add Name:MAC pair(s) in case the file lacks beacons.\n\n",
+		                 argv[0]);
 
 	for (i = 1; i < argc; i++) {
 		in = fopen(filename = argv[i], "rb");

@@ -150,7 +150,7 @@ static void done(void)
 /* Convert {MD5}CY9rzUYh03PK3k6DJie09g== to 098f6bcd4621d373cade4e832627b4f6 */
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
-	static char out[CIPHERTEXT_LENGTH + 1];
+	static char out[CIPHERTEXT_LENGTH + 5];
 
 	if (!strncmp(fields[1], "{MD5}", 5) && strlen(fields[1]) == 29) {
 		int res;
@@ -205,17 +205,18 @@ static void *get_binary(char *ciphertext)
 	ciphertext += TAG_LENGTH;
 	for (i=0; i<4; i++)
 	{
-		temp  = (atoi16[ARCH_INDEX(ciphertext[i*8+0])])<<4;
-		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+1])]);
+		temp  = ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+0])]))<<4;
+		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+1])]));
 
-		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+2])])<<12;
-		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+3])])<<8;
+		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+2])]))<<12;
+		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+3])]))<<8;
 
-		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+4])])<<20;
-		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+5])])<<16;
+		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+4])]))<<20;
+		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+5])]))<<16;
 
-		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+6])])<<28;
-		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+7])])<<24;
+		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+6])]))<<28;
+		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+7])]))<<24;
+
 
 #if ARCH_LITTLE_ENDIAN
 		out[i]=temp;
@@ -287,7 +288,7 @@ static void set_key(char *_key, int index)
 		}
 		if (!(temp & 0xff000000))
 		{
-			*keybuf_word = temp | (0x80 << 24);
+			*keybuf_word = temp | (0x80U << 24);
 			len+=3;
 			goto key_cleaning;
 		}

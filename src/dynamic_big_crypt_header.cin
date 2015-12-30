@@ -165,19 +165,22 @@ extern private_subformat_data curdat;
 #endif
 extern unsigned short itoa16_w2_u[256], *itoa16_w2;
 
-static inline void eLargeOut_set(eLargeOut_t what, int tid)
+static inline void _eLargeOut_set(eLargeOut_t what, int tid)
 {
 	eLargeOut[tid] = what;
 }
 
-static inline int eLargeOut_get(int tid)
+static inline int _eLargeOut_get(int tid)
 {
 	return eLargeOut[tid];
 }
 
 #if !defined (_OPENMP)
-#define eLargeOut_set(what, tid)  eLargeOut_set(what, 0)
-#define eLargeOut_get(tid)        eLargeOut_get(0)
+#define eLargeOut_set(what, tid)  _eLargeOut_set(what, 0)
+#define eLargeOut_get(tid)        _eLargeOut_get(0)
+#else
+#define eLargeOut_set(what, tid)  _eLargeOut_set(what, tid)
+#define eLargeOut_get(tid)        _eLargeOut_get(tid)
 #endif
 
 /* These SIMPLE setter functions, change how the large hash output format is performed   */

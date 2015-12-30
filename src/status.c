@@ -423,7 +423,7 @@ void status_print(void)
 {
 	double percent_value;
 #if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
-	char s_gpu[32 * MAX_GPU_DEVICES] = "";
+	char s_gpu[64 * MAX_GPU_DEVICES] = "";
 
 	if (!(options.flags & FLG_STDOUT) &&
 	    cfg_get_bool(SECTION_OPTIONS, SUBSECTION_GPU, "SensorsStatus", 1)) {
@@ -440,7 +440,8 @@ void status_print(void)
 				fan = temp = util = -1;
 				dev_get_temp[dev](temp_dev_id[dev],
 				                  &temp, &fan, &util);
-				if (temp >= 0 && (options.verbosity > 3 ||
+				if (temp >= 0 &&
+				    (options.verbosity > VERB_DEFAULT ||
 				    cfg_get_bool(SECTION_OPTIONS,
 				                 SUBSECTION_GPU,
 				                 "TempStatus", 1))) {
@@ -455,13 +456,15 @@ void status_print(void)
 						             i, temp,
 						             gpu_degree_sign);
 				}
-				if (util > 0 && (options.verbosity > 3 ||
+				if (util > 0 &&
+				    (options.verbosity > VERB_DEFAULT ||
 				    cfg_get_bool(SECTION_OPTIONS,
 				                 SUBSECTION_GPU,
 				                 "UtilStatus", 0)))
 					n += sprintf(s_gpu + n,
 					             " util:%u%%", util);
-				if (fan >= 0 && (options.verbosity > 3 ||
+				if (fan >= 0 &&
+				    (options.verbosity > VERB_DEFAULT ||
 				    cfg_get_bool(SECTION_OPTIONS,
 				                 SUBSECTION_GPU,
 				                 "FanStatus", 0)))

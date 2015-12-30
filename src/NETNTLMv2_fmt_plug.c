@@ -458,7 +458,7 @@ static int salt_hash(void *salt)
 	unsigned int hash;
 	char *chal = ((char*)salt)+1+identity_length+1+2+8;
 
-	hash = chal[0] + (chal[1] << 8) + (chal[2] << 16) + (chal[3] << 24);
+	hash = chal[0] + (chal[1] << 8) + (chal[2] << 16) + (((unsigned int)chal[3]) << 24);
 	return hash & (SALT_HASH_SIZE - 1);
 }
 

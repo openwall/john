@@ -80,10 +80,10 @@ __kernel void oldoffice_utf16(__global const uchar *source,
 			++source;
 			break;
 		default:
-			*target = 0x80;
+			*target = UNI_REPLACEMENT_CHAR;
 			break; // from switch
 		}
-		if (*target == 0x80)
+		if (*target == UNI_REPLACEMENT_CHAR)
 			break; // from while
 		ch -= offsetsFromUTF8[extraBytesToRead];
 #ifdef UCS_2

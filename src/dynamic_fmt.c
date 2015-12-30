@@ -602,7 +602,7 @@ static inline void __nonMP_DynamicFunc__append_keys2()
 static void __possMP_DynamicFunc__crypt2_md5()
 {
 #ifdef _OPENMP
-	unsigned int i;
+	int i;
 	unsigned int inc = OMP_MD5_INC;
 //	if (dynamic_use_sse!=1)
 //		inc = OMP_INC;
@@ -1238,7 +1238,7 @@ static void set_key(char *key, int index)
 				}
 				if (!(temp & 0xff000000))
 				{
-					*keybuf_word = temp | (0x80 << 24);
+					*keybuf_word = temp | (0x80U << 24);
 					len+=3;
 					goto key_cleaning;
 				}
@@ -1698,7 +1698,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 #ifdef _OPENMP
 	if ((curdat.pFmtMain->params.flags & FMT_OMP) == FMT_OMP) {
-		unsigned int j;
+		int j;
 		unsigned int inc = (m_count+m_ompt-1) / m_ompt;
 		//printf ("maxkeys=%d m_count=%d inc1=%d granularity=%d inc2=%d\n", curdat.pFmtMain->params.max_keys_per_crypt, m_count, inc, curdat.omp_granularity, ((inc + curdat.omp_granularity-1)/curdat.omp_granularity)*curdat.omp_granularity);
 		inc = ((inc + curdat.omp_granularity-1)/curdat.omp_granularity)*curdat.omp_granularity;
@@ -7130,7 +7130,7 @@ static void dyna_setupOMP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 #endif
 	for (i=0; Setup->pFuncs[i]; ++i) {
 		if (isBadOMPFunc(Setup->pFuncs[i]))
-			pFmt->params.flags &= (~FMT_OMP);
+			pFmt->params.flags &= (~(FMT_OMP|FMT_OMP_BAD));
 	}
 	if ((pFmt->params.flags&FMT_OMP)==FMT_OMP && (curdat.pSetup->startFlags&MGF_POOR_OMP)==MGF_POOR_OMP)
 		pFmt->params.flags |= FMT_OMP_BAD;

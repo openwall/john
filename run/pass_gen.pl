@@ -78,8 +78,9 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		clipperz-srp dahua fortigate lp lastpass rawmd2 mongodb mysqlna
 		o5logon postgres pst raw-blake2 raw-keccak raw-keccak256 siemens-s7
 		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip bitcoin blockchain
-		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD
-	      ));
+		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
+		qnx_md5 qnx_sha512 qnx_sha256
+		));
 
 # todo: sapb sapfg ike keepass cloudkeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring keystore krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sxc sybase-prop tripcode vtp whirlpool0 whirlpool1
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
@@ -1457,13 +1458,19 @@ sub _tc_build_buffer {
 }
 # I looked high and low for a Perl implementation of AES-256-XTS and
 # could not find one.  This may be the first implementation in Perl, ever.
-sub _tc_aes_256_xts {
+sub _aes_xts {
 	# a dodgy, but working XTS implementation. (encryption). To do decryption
 	# simply do $cipher1->decrypt($tmp) instead of encrypt. That is the only diff.
-	my $key1 = substr($_[0],0,32); my $key2 = substr($_[0],32,32);
+	# switched to do both 256 and 128 bit AES ($_[3]) and can also handle decryption
+	# and not just encryption ($_[4] set to 1 will decrypt)
+	my $bytes = 32; # AES 256
+	if ($_[3] == 128) { $bytes = 16; }
+	my $key1 = substr($_[0],0,$bytes); my $key2 = substr($_[0],$bytes,$bytes);
 	my $d; my $c = $_[1]; # $c=cleartext MUST be a multiple of 16.
 	my $num = length($c) / 16;
 	my $t = $_[2];	# tweak (must be provided)
+	my $decr = $_[4];
+	if (!defined($decr)) { $decr = 0; }
 	require Crypt::OpenSSL::AES;
 	my $cipher1 = new Crypt::OpenSSL::AES($key1);
 	my $cipher2 = new Crypt::OpenSSL::AES($key2);
@@ -1471,7 +1478,48 @@ sub _tc_aes_256_xts {
 	for (my $cnt = 0; ; ) {
 		my $tmp = substr($c, 16*$cnt, 16);
 		$tmp ^= $t;
-		$tmp = $cipher1->encrypt($tmp);
+		if ($decr != 0) {
+			$tmp = $cipher1->decrypt($tmp);
+		} else {
+			$tmp = $cipher1->encrypt($tmp);
+		}
+		$tmp ^= $t;
+		$d .= $tmp;
+		$cnt += 1;
+		if ($cnt == $num) { return ($d); }
+		# do the mulmod in GF(2)
+		my $Cin=0; my $Cout; my $x;
+		for ($x = 0; $x < 16; $x += 1) {
+			$Cout = ((ord(substr($t,$x,1)) >> 7) & 1);
+			substr($t,$x,1) =  chr(((ord(substr($t,$x,1)) << 1) + $Cin) & 0xFF);
+			$Cin = $Cout;
+		}
+		if ($Cout != 0) {
+			substr($t,0,1) = chr(ord(substr($t,0,1))^135);
+		}
+	}
+}
+sub _tc_aes_128_xts {
+	# a dodgy, but working XTS implementation. (encryption). To do decryption
+	# simply do $cipher1->decrypt($tmp) instead of encrypt. That is the only diff.
+	my $key1 = substr($_[0],0,16); my $key2 = substr($_[0],16,16);
+	my $d; my $c = $_[1]; # $c=cleartext MUST be a multiple of 16.
+	my $num = length($c) / 16;
+	my $t = $_[2];	# tweak (must be provided)
+	my $decr = $_[3];
+	if (!defined($decr)) { $decr = 0; }
+	require Crypt::OpenSSL::AES;
+	my $cipher1 = new Crypt::OpenSSL::AES($key1);
+	my $cipher2 = new Crypt::OpenSSL::AES($key2);
+	$t = $cipher2->encrypt($t);
+	for (my $cnt = 0; ; ) {
+		my $tmp = substr($c, 16*$cnt, 16);
+		$tmp ^= $t;
+		if ($decr != 0) {
+			$tmp = $cipher1->decrypt($tmp);
+		} else {
+			$tmp = $cipher1->encrypt($tmp);
+		}
 		$tmp ^= $t;
 		$d .= $tmp;
 		$cnt += 1;
@@ -1493,7 +1541,7 @@ sub tc_ripemd160 {
 	my $h = pp_pbkdf2($_[0], $salt, 2000, \&ripemd160, 64, 64);
 	my $d = _tc_build_buffer();
 	my $tweak = "\x00"x16;	#first block of file
-	$h = _tc_aes_256_xts($h,$d,$tweak);
+	$h = _aes_xts($h,$d,$tweak,256);
 	return "truecrypt_RIPEMD_160\$".unpack("H*",$salt).unpack("H*",$h);
 }
 sub tc_sha512 {
@@ -1501,7 +1549,7 @@ sub tc_sha512 {
 	my $h = pp_pbkdf2($_[0], $salt, 1000, \&sha512, 64, 128);
 	my $d = _tc_build_buffer();
 	my $tweak = "\x00"x16;	#first block of file
-	$h = _tc_aes_256_xts($h,$d,$tweak);
+	$h = _aes_xts($h,$d,$tweak,256);
 	return "truecrypt_SHA_512\$".unpack("H*",$salt).unpack("H*",$h);
 }
 sub tc_whirlpool {
@@ -1509,7 +1557,7 @@ sub tc_whirlpool {
 	my $h = pp_pbkdf2($_[0], $salt, 1000, \&whirlpool, 64, 64);	# note, 64 byte ipad/opad (oSSL is buggy?!?!)
 	my $d = _tc_build_buffer();
 	my $tweak = "\x00"x16;	#first block of file
-	$h = _tc_aes_256_xts($h,$d,$tweak);
+	$h = _aes_xts($h,$d,$tweak,256);
 	return "truecrypt_WHIRLPOOL\$".unpack("H*",$salt).unpack("H*",$h);
 }
 sub dahua {
@@ -1776,6 +1824,59 @@ sub azuread {
 	$h = encode("UTF-16LE", uc unpack("H*",md4(encode("UTF-16LE", $_[0]))));
 	my $key = unpack("H*",pp_pbkdf2($h, $salt, $rounds, "sha256", 32, 64));
 	return "v1;PPH1_MD4,".unpack("H*",$salt).",$rounds,$key;";
+}
+sub vdi_256 {
+	my $salt1   = randstr(32, \@chrRawData);
+	my $salt2   = randstr(32, \@chrRawData);
+	my $dec_dat = randstr(64, , \@chrRawData);
+	my $evp_pass = pp_pbkdf2($_[0], $salt1, 2000, \&sha256, 64, 64);
+	my $tweak = "\x00"x16;
+	my $enc_pass = _aes_xts($evp_pass,$dec_dat,$tweak, 256);
+	my $final  = unpack("H*",pp_pbkdf2($dec_dat, $salt2, 2000, \&sha256, 32, 64));
+	$salt1   = unpack("H*",$salt1); $salt2   = unpack("H*",$salt2); $enc_pass = unpack("H*",$enc_pass);
+	return "\$vdi\$aes-xts256\$sha256\$2000\$2000\$64\$32\$$salt1\$$salt2\$$enc_pass\$$final";
+}
+sub vdi_128 {
+	my $salt1   = randstr(32, \@chrRawData);
+	my $salt2   = randstr(32, \@chrRawData);
+	my $dec_dat = randstr(32, , \@chrRawData);
+	my $evp_pass = pp_pbkdf2($_[0], $salt1, 2000, \&sha256, 32, 64);
+	my $tweak = "\x00"x16;
+	my $enc_pass = _aes_xts($evp_pass,$dec_dat,$tweak, 128);
+	my $final  = unpack("H*",pp_pbkdf2($dec_dat, $salt2, 2000, \&sha256, 32, 64));
+	$salt1   = unpack("H*",$salt1); $salt2   = unpack("H*",$salt2); $enc_pass = unpack("H*",$enc_pass);
+	return "\$vdi\$aes-xts128\$sha256\$2000\$2000\$32\$32\$$salt1\$$salt2\$$enc_pass\$$final";
+}
+sub qnx_md5 {
+	$salt = unpack("H*",get_salt(8));
+	#$salt = "6e1f9a390d50a85c";
+	my $rounds = get_loops(1000);
+	my $h = md5($salt . $_[0]x($rounds+1));
+	my $ret = "\@m";
+	if ($rounds != 1000) { $ret .= ",$rounds"; }
+	$ret .= "\@".unpack("H*",$h)."\@$salt";
+	return $ret;
+}
+sub qnx_sha512 {
+	$salt = unpack("H*",get_salt(8));
+	#$salt = "129b6761";
+	#$salt = "caa3cc118d2deb23";
+	my $rounds = get_loops(1000);
+	my $h = sha512($salt . $_[0]x($rounds+1));
+	my $ret = "\@S";
+	if ($rounds != 1000) { $ret .= ",$rounds"; }
+	$ret .= "\@".unpack("H*",$h)."\@$salt";
+	return $ret;
+}
+sub qnx_sha256 {
+	$salt = unpack("H*",get_salt(8));
+	#$salt = "36bdb8080d25f44f";
+	my $rounds = get_loops(1000);
+	my $h = sha256($salt . $_[0]x($rounds+1));
+	my $ret = "\@s";
+	if ($rounds != 1000) { $ret .= ",$rounds"; }
+	$ret .= "\@".unpack("H*",$h)."\@$salt";
+	return $ret;
 }
 sub blockchain {
 	my $unenc = "{\n{\t\"guid\" : \"246093c1-de47-4227-89be-".randstr(12,\@chrHexLo)."\",\n\t\"sharedKey\" : \"fccdf579-707c-46bc-9ed1-".randstr(12,\@chrHexLo)."\",\n\t";

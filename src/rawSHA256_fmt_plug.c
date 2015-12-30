@@ -216,7 +216,7 @@ static void set_key(char *key, int index) {
 		}
 		if (!(temp & 0xff000000))
 		{
-			*keybuf_word = JOHNSWAP(temp | (0x80 << 24));
+			*keybuf_word = JOHNSWAP(temp | (0x80U << 24));
 			len+=3;
 			goto key_cleaning;
 		}

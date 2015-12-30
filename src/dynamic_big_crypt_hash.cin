@@ -126,7 +126,7 @@ static void inline Do#{HASH}_crypt(void *in, uint32_t ilen, void *out, uint32_t 
 	#{HASH_Init}(&ctx);
 	#{HASH_Update}(&ctx, in, ilen);
 	#{HASH_Final}(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), #{BIN_REAL_SZ});
 		*tot_len += #{BIN_REAL_SZ}*2;

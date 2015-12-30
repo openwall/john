@@ -15,6 +15,7 @@
 #include <unistd.h>
 #endif
 
+#include "params.h"
 #include "unicode.h"
 #include "memdbg.h"
 
@@ -192,14 +193,14 @@ static int process_file(char *name)
 				}
 			}
 
-			if (options.verbosity > 4)
+			if (options.verbosity == VERB_MAX)
 				dump_stuff_msg(orig, orig, len);
 
 			plain = strchr(orig, ':');
 			if (potfile && plain) {
 				len -= (++plain - orig);
 				convin = plain;
-				if (options.verbosity > 4)
+				if (options.verbosity == VERB_MAX)
 					dump_stuff_msg(convin, convin, len);
 			} else
 				convin = skip_bom(orig);
@@ -224,7 +225,8 @@ static int process_file(char *name)
 
 					enc_to_utf16(u16, sizeof(u16), (UTF8*)convin, len);
 					out = (char*)utf16_to_utf8_r(u8buf, sizeof(u8buf), u16);
-					if (options.verbosity > 3 && strcmp(convin, out))
+					if (options.verbosity > VERB_DEFAULT &&
+					    strcmp(convin, out))
 						printf("%s -> ", orig);
 				}
 			} else if (valid > 1) {
@@ -248,11 +250,11 @@ static int process_file(char *name)
 					    !valid_utf8(u8))
 						break;
 					strcpy(dd, (char*)u8);
-					if (options.verbosity > 4)
+					if (options.verbosity == VERB_MAX)
 						fprintf(stderr, "Double-encoding\n");
 				}
 
-				if (options.verbosity > 3 &&
+				if (options.verbosity > VERB_DEFAULT &&
 				    strcmp(convin, out))
 					printf("%s => ", convin);
 			}
@@ -275,7 +277,7 @@ int main(int argc, char **argv)
 {
 	signed char c;
 
-	options.verbosity = 3;
+	options.verbosity = VERB_DEFAULT;
 
 	while ((c = getopt(argc, argv, "si:f:hldpn")) != -1) {
 		switch (c) {
@@ -327,7 +329,7 @@ int main(int argc, char **argv)
 	while (*argv) {
 		int ret;
 
-		if (options.verbosity > 3)
+		if (options.verbosity > VERB_DEFAULT)
 			printf("filename: %s\n", *argv);
 		ret = process_file(*argv++);
 		if (ret != EXIT_SUCCESS)

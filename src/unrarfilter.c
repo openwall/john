@@ -90,5 +90,5 @@ void rar_filter_delete(struct UnpackFilter *filter)
 	MEM_FREE(filter->prg.global_data);
 	MEM_FREE(filter->prg.static_data);
 	rar_cmd_array_reset(&filter->prg.cmd);
-	free(filter);
+	MEM_FREE(filter);
 }

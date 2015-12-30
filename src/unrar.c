@@ -356,6 +356,8 @@ void rar_make_decode_tables(unsigned char *len_tab, struct Decode *decode, int s
 		if (len_tab[i]!=0) {
 			// Prepare the decode table, so this position in code list will be
 			// decoded to current alphabet item number.
+			// If you had an ASan error here, it's a false positive. See
+			// https://github.com/magnumripper/JohnTheRipper/issues/1962
 			decode->DecodeNum[tmp_pos[len_tab[i] & 0x0f]++]=i;
 		}
 	}
@@ -435,6 +437,8 @@ int rar_decode_number(unpack_data_t *unpack_data, struct Decode *decode)
 
 	// Convert the position in the code list to position in alphabet
 	// and return it.
+	// If you had an ASan error here, it's a false positive. See
+	// https://github.com/magnumripper/JohnTheRipper/issues/1962
 	return(decode->DecodeNum[n]);
 }
 

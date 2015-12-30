@@ -250,7 +250,6 @@ void nvidia_get_temp(int nvml_id, int *temp, int *fanspeed, int *util)
 	nvmlUtilization_t s_util;
 	nvmlDevice_t dev;
 	unsigned int value;
-	char name[80];
 
 	if (nvmlDeviceGetHandleByIndex(nvml_id, &dev) != NVML_SUCCESS) {
 		*temp = *fanspeed = *util = -1;
@@ -269,9 +268,6 @@ void nvidia_get_temp(int nvml_id, int *temp, int *fanspeed, int *util)
 		*util = s_util.gpu;
 	else
 		*util = -1;
-
-	if (nvmlDeviceGetName(dev, name, sizeof(name)) != NVML_SUCCESS)
-		sprintf(name, "[error querying for name]");
 }
 
 #if __linux__ && HAVE_LIBDL
@@ -453,7 +449,7 @@ void gpu_check_temp(void)
 		}
 
 		if (temp >= gpu_temp_limit) {
-			char s_fan[10] = "n/a";
+			char s_fan[16] = "n/a";
 			if (fan >= 0)
 				sprintf(s_fan, "%u%%", fan);
 			if (!event_abort) {
@@ -476,7 +472,7 @@ void gpu_log_temp(void)
 
 	for (i = 0; i < MAX_GPU_DEVICES && gpu_device_list[i] != -1; i++)
 	if (dev_get_temp[gpu_device_list[i]]) {
-		char s_gpu[32] = "";
+		char s_gpu[256] = "";
 		int n, fan, temp, util;
 		int dev = gpu_device_list[i];
 

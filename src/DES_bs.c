@@ -8,6 +8,10 @@
  *
  */
 
+#ifdef _MSC_VER
+#undef _OPENMP
+#endif
+
 #include <string.h>
 
 #include "arch.h"
