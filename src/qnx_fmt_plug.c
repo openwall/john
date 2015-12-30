@@ -79,6 +79,11 @@ static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
+#ifdef SIMD_COEF_32
+static int *(sk_by_len[PLAINTEXT_LENGTH+1]);
+static int sk_by_lens[PLAINTEXT_LENGTH+1];
+#endif
+
 static struct qnx_saltstruct {
 	unsigned int len;
 	unsigned int type; // 5 for md5, 256 for sha256, 512 for sha512
@@ -102,6 +107,10 @@ static void init(struct fmt_main *self)
 	saved_len = mem_calloc(1 + max_crypts, sizeof(*saved_len));
 	saved_key = mem_calloc(1 + max_crypts, sizeof(*saved_key));
 	crypt_out = mem_calloc(1 + max_crypts, sizeof(*crypt_out));
+#ifdef SIMD_COEF_32
+	for (omp_t = 1; omp_t <= PLAINTEXT_LENGTH; ++omp_t)
+		sk_by_len[omp_t] = mem_calloc(1+max_crypts, sizeof(int));
+#endif
 }
 
 static void done(void)
@@ -109,6 +118,12 @@ static void done(void)
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
 	MEM_FREE(saved_len);
+}
+
+static void clear_keys(void) {
+#ifdef SIMD_COEF_32
+	memset(sk_by_lens, 0, sizeof(sk_by_lens));
+#endif
 }
 
 static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
@@ -127,6 +142,9 @@ static void set_key(char *key, int index)
 		len = saved_len[index] = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, len);
 	saved_key[index][len] = 0;
+#ifdef SIMD_COEF_32
+	sk_by_len[len][sk_by_lens[len]++] = index;
+#endif
 }
 
 static char *get_key(int index)
@@ -140,24 +158,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	int index = 0;
 	int tot_todo=count;
-
-#ifdef SIMD_COEF_32
-	// group based upon size splits.
-	int *MixOrder = mem_calloc((count+6*MAX_KEYS_PER_CRYPT), sizeof(int));
-	{
-		int j;
-		tot_todo = 0;
-		saved_len[count] = 0; // point all 'tail' MMX buffer elements to this location.
-		for (j = 0; j < 5; ++j) {
-			for (index = 0; index < count; ++index) {
-				if (saved_len[index] >= lens[cur_salt->len][j] && saved_len[index] < lens[cur_salt->len][j+1])
-					MixOrder[tot_todo++] = index;
-			}
-			while (tot_todo % MAX_KEYS_PER_CRYPT)
-				MixOrder[tot_todo++] = count;
-		}
-	}
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -306,7 +306,7 @@ struct fmt_main fmt_qnx = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{
 			"iteration count",
 			"algorithm (5=md5 256=sha256 512=sha512)",
@@ -318,7 +318,7 @@ struct fmt_main fmt_qnx = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		split,
+		fmt_default_split,
 		get_binary,
 		get_salt,
 		{
@@ -340,7 +340,7 @@ struct fmt_main fmt_qnx = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,

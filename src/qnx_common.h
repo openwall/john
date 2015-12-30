@@ -49,10 +49,10 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 			return 0;
 	}
 	ct = strtokm(NULL, "@");
-	if (!ishex(ct) || strlen(ct) != len)
+	if (!ishexlc(ct) || strlen(ct) != len)
 		return 0;
 	ct = strtokm(NULL, "@");
-	if (!ishex(ct) || strlen(ct) > SALT_LENGTH)
+	if (!ishexlc(ct) || strlen(ct) > SALT_LENGTH)
 		return 0;
 	MEM_FREE(origptr);
 	return 1;
@@ -65,14 +65,6 @@ static void *get_binary(char *ciphertext) {
 	ciphertext = strchr(&ciphertext[1], '@') + 1;
 	base64_convert(ciphertext, e_b64_hex, strchr(ciphertext, '@')-ciphertext, out, e_b64_raw, BINARY_SIZE, 0);
 	return (void *)outbuf;
-}
-
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[2+10+128+3+32+1];
-	strnzcpy(out, ciphertext, sizeof(out));
-	strlwr(&out[2]);
-	return out;
 }
 
 /* here is our 'unified' tests array. */
