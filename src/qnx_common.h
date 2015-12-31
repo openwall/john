@@ -45,7 +45,7 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 	// If ANYTHING follows the signtuare, it must be ",decimal" However
 	// having nothing following is valid, and specifies default of ,1000
 	if (ct[1]) {
-		if (ct[1] != ',' || isdec(&ct[2]))
+		if (ct[1] != ',' || !isdec(&ct[2]))
 			return 0;
 	}
 	ct = strtokm(NULL, "@");
@@ -75,6 +75,9 @@ static struct fmt_tests tests[] = {
 	//{"@S@386d4be6fe9625c014b2486d8617ccfc521566be190d8a982b93698b99e0e3e3a18464281a514d5dda3ec5581389086f42b5dde023e934221bbe2e0106674cf7@129b6761", "password"},
 	//{"@S@60653c9f515eb8480486450c82eaad67f894e2f4828b6340fa28f47b7c84cc2b8bc451e37396150a1ab282179c6fe4ca777a7c1a17511b5d83f0ce23ca28da5d@caa3cc118d2deb23", "password"},
 	//{"@S@1030f372de34b8caac99b481d81ad9b57b923b385edcd3ed84f6721192f5238f34aba739e1d124919bd85c8efe13948593a6b691d8b41c1be5bc9b3906577f5d@abcd1234abcd1234", "password"},
+	{"@S,98@4e1c05c14b3b590326219db534615139de00ebe8f66a571467bfaac324c975e97c85702a40aa48f660eaac0095d4c1aa0607092b0af3f2935ba4b23ce01e47b1@abcd1234abcd1234", "3"},
+	//{"@S,99@c6977abd2a945f9b45c0afff9f4f679524b9348f12bcf20a36b5b286f41d9f801cb9c883ad31073830b0d627abbe5925d0893e1daeac62d48799f0dc8efdd8eb@abcd1234abcd1234", "3"},
+
 	{NULL}
 };
 #endif
