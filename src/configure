@@ -10069,11 +10069,11 @@ LIBS=""
 using_rexgen=no
 # Check for rexgen only if rexgen wanted
 if test "x$enable_rexgen" != xno ; then
-	ac_fn_c_check_header_mongrel "$LINENO" "librexgen/c/librexgen.h" "ac_cv_header_librexgen_c_librexgen_h" "$ac_includes_default"
-if test "x$ac_cv_header_librexgen_c_librexgen_h" = xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing c_simplestring_new" >&5
-$as_echo_n "checking for library containing c_simplestring_new... " >&6; }
-if ${ac_cv_search_c_simplestring_new+:} false; then :
+  ac_fn_c_check_header_mongrel "$LINENO" "librexgen/version.h" "ac_cv_header_librexgen_version_h" "$ac_includes_default"
+if test "x$ac_cv_header_librexgen_version_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing rexgen_version_int" >&5
+$as_echo_n "checking for library containing rexgen_version_int... " >&6; }
+if ${ac_cv_search_rexgen_version_int+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_func_search_save_LIBS=$LIBS
@@ -10086,11 +10086,11 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char c_simplestring_new ();
+char rexgen_version_int ();
 int
 main ()
 {
-return c_simplestring_new ();
+return rexgen_version_int ();
   ;
   return 0;
 }
@@ -10103,37 +10103,63 @@ for ac_lib in '' rexgen librexgen; do
     LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
   fi
   if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_search_c_simplestring_new=$ac_res
+  ac_cv_search_rexgen_version_int=$ac_res
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext
-  if ${ac_cv_search_c_simplestring_new+:} false; then :
+  if ${ac_cv_search_rexgen_version_int+:} false; then :
   break
 fi
 done
-if ${ac_cv_search_c_simplestring_new+:} false; then :
+if ${ac_cv_search_rexgen_version_int+:} false; then :
 
 else
-  ac_cv_search_c_simplestring_new=no
+  ac_cv_search_rexgen_version_int=no
 fi
 rm conftest.$ac_ext
 LIBS=$ac_func_search_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_c_simplestring_new" >&5
-$as_echo "$ac_cv_search_c_simplestring_new" >&6; }
-ac_res=$ac_cv_search_c_simplestring_new
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_rexgen_version_int" >&5
+$as_echo "$ac_cv_search_rexgen_version_int" >&6; }
+ac_res=$ac_cv_search_rexgen_version_int
 if test "$ac_res" != no; then :
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+int main() { return ! (rexgen_version_int() >= 0x010300); }
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
   using_rexgen=yes
+else
+  as_fn_error $? "incompatible version of librexgen found :-( you need at least version 1.3.0" "$LINENO" 5
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+else
+  as_fn_error $? "unable to find librexgen" "$LINENO" 5
+
+fi
+
+else
+  as_fn_error $? "unable to find librexgen/version.h" "$LINENO" 5
+
+fi
+
+
+  if test "x$using_rexgen" == "xyes" ; then
 
 $as_echo "#define HAVE_LIBREXGEN 1" >>confdefs.h
 
-fi
-
-fi
-
-
-	REXGEN_LIBS=$LIBS
+  fi
+  REXGEN_LIBS=$LIBS
 
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: rexgen check not enabled" >&5
