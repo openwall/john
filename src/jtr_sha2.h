@@ -87,6 +87,7 @@ typedef struct
 	unsigned int num,md_len;    // UNUSED but here to be compatible with oSSL
 	unsigned int total;         // number of bytes processed
 	int bIs512;                 // if 1 SHA512, else SHA384
+	int bIsQnxBuggy;            // if 1, then final fails to clean last MD buffer
 } jtr_sha512_ctx;
 
 extern void jtr_sha512_init(jtr_sha512_ctx *ctx, int bIs512);
