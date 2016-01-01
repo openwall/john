@@ -479,11 +479,8 @@ if test "x$enable_rexgen" != xno ; then
   AC_CHECK_HEADER([librexgen/version.h],
     [AC_SEARCH_LIBS([rexgen_version_int],[rexgen librexgen],
       [AC_TRY_RUN([int main() { return ! (rexgen_version_int() >= 0x010300); }],
-        [using_rexgen=yes],
-        [AC_MSG_ERROR([incompatible version of librexgen found :-( you need at least version 1.3.0])])],
-      [AC_MSG_ERROR([unable to find librexgen])]
-    )],
-    [AC_MSG_ERROR([unable to find librexgen/version.h])]
+        [using_rexgen=yes])]
+    )]
   )
   if test "x$using_rexgen" == "xyes" ; then
     AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])
