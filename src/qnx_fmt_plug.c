@@ -18,7 +18,7 @@ john_register_one(&fmt_qnx);
 #include "arch.h"
 
 #undef SIMD_COEF_32
-
+#define FORCE_GENERIC_SHA2 1
 #include "sha2.h"
 #include "md5.h"
 
@@ -157,18 +157,51 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
-	int tot_todo=count;
+	int tot_todo = count, inc = 1, *MixOrder = NULL;
+#ifdef SIMD_COEF_32
+	int usesse = 0;
+	if (cur_salt->type == 5) {
+		usesse = 1;
+	}
+#ifdef SIMD_PARA_SHA256
+	if (cur_salt->type == 256) {
+		usesse = 1;
+	}
+#endif
+#ifdef SIMD_PARA_SHA512
+	if (cur_salt->type == 512)
+		usesse = 1;
+#endif
+	if (usesse) {
+		int j, k;
+		MixOrder = (int*)mem_calloc((count+PLAINTEXT_LENGTH*MAX_KEYS_PER_CRYPT), sizeof(int));
+		tot_todo = 0;
+		saved_len[count] = 0; // point all 'tail' MMX buffer elements to this location.
+		for (j = 1; j < PLAINTEXT_LENGTH; ++j) {
+			for (k = 0; k < sk_by_lens[j]; ++k)
+				MixOrder[tot_todo++] = sk_by_len[k];
+			while (tot_todo % MAX_KEYS_PER_CRYPT)
+				MixOrder[tot_todo++] = count;
+		}
+	}
+#endif
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < tot_todo; index += MAX_KEYS_PER_CRYPT)
+	for (index = 0; index < tot_todo; index += inc)
 	{
 #ifdef SIMD_COEF_32
-		char tmp_sse_out[8*MAX_KEYS_PER_CRYPT*4+MEM_ALIGN_SIMD];
-		ARCH_WORD_32 *sse_out;
-		sse_out = (ARCH_WORD_32 *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
-#else
+		if (MixOrder) {
+			int len, len_tot=0;
+			switch(cur_salt->type) {
+				case 5:
+				case 256:
+				case 512:
+			}
+		} else
+#endif
+		{
 		int i, len = saved_len[index];
 		char *pass = saved_key[index];
 		switch (cur_salt->type) {
@@ -201,6 +234,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				SHA512_Update(&ctx, cur_salt->salt, cur_salt->len);
 				for (i = 0; i <= cur_salt->rounds; ++i)
 					SHA512_Update(&ctx, pass, len);
+				ctx.bIsQnxBuggy = 1;
 				SHA512_Final((unsigned char*)(crypt_out[index]), &ctx);
 				break;
 			}
@@ -208,11 +242,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			default:
 				exit(fprintf(stderr, "Unknown QNX hash type found\n"));
 		}
-#endif
+		}
 	}
-#ifdef SIMD_COEF_32
 	MEM_FREE(MixOrder);
-#endif
 	return count;
 }
 

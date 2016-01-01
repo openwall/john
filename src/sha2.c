@@ -482,6 +482,7 @@ void jtr_sha512_hash_block(jtr_sha512_ctx *ctx, const unsigned char data[128], i
 void jtr_sha512_init(jtr_sha512_ctx *ctx, int bIs512)
 {
 	ctx->total = 0;
+	ctx->bIsQnxBuggy = 0;
 	if((ctx->bIs512 = bIs512))
 	{
 		/* SHA-512 */
@@ -557,6 +558,14 @@ void jtr_sha512_final(void *_output, jtr_sha512_ctx *ctx)
 
 	last = ctx->total & 0x7F;
 	padcnt = (last < 112) ? (112 - last) : (240 - last);
+
+	if (ctx->bIsQnxBuggy && ctx->total >= 116) {
+		if (ctx->total < 120) {
+			memcpy(&m.mlen[4], &ctx->buffer[116], ctx->total-116);
+			m.mlen[ctx->total-112] = 0x80;
+		} else
+			memcpy(&m.mlen[4], &ctx->buffer[116], 4);
+	}
 
 	jtr_sha512_update(ctx, (unsigned char *) padding, padcnt);
 	jtr_sha512_update(ctx, m.mlen, 16);
