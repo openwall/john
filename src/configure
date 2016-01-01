@@ -10136,20 +10136,14 @@ int main() { return ! (rexgen_version_int() >= 0x010300); }
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
   using_rexgen=yes
-else
-  as_fn_error $? "incompatible version of librexgen found :-( you need at least version 1.3.0" "$LINENO" 5
 fi
 rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
   conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 
-else
-  as_fn_error $? "unable to find librexgen" "$LINENO" 5
 
 fi
 
-else
-  as_fn_error $? "unable to find librexgen/version.h" "$LINENO" 5
 
 fi
 
