@@ -137,6 +137,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 	static int bFirst = 1;
 	static int bALPHA = 0;
 	int max_len = db->format->params.plaintext_length;
+	int retval;
 
 	if (options.req_maxlength)
 		max_len = options.req_maxlength;
@@ -189,18 +190,24 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 	strcpy(BaseWord, base_word);
 	if (!regex[0]) {
 		if (options.mask) {
-			if (do_mask_crack(fmt_null_key))
-				return 1;
+			if (do_mask_crack(fmt_null_key)) {
+				retval = 1;
+				goto out;
+			}
 		} else
 		if (ext_filter(fmt_null_key)) {
-			if (crk_process_key(fmt_null_key))
-				return 1;
+			if (crk_process_key(fmt_null_key)) {
+				retval = 1;
+				goto out;
+			}
 		}
-		return 0;
+		retval = 0;
+		goto out;
 	}
 
 	regex_ptr = c_regex_cb(regex, callback);
 	if (!regex_ptr) {
+		c_simplestring_delete(buffer);
 		fprintf(stderr,
 		        "Error, invalid regex expression.  John exiting now  base_word=%s  Regex= %s\n",
 		        base_word, regex);
@@ -212,22 +219,27 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 		c_simplestring_to_utf8_string(buffer, &word[0], sizeof(word));
 		c_simplestring_clear(buffer);
 		if (options.mask) {
-			if (do_mask_crack(word))
-				return 1;
+			if (do_mask_crack(word)) {
+				retval = 1;
+				goto out;
+			}
 		} else
 		if (ext_filter((char *)word)) {
 			word[max_len] = 0;
 			if (crk_process_key((char *)word)) {
-				c_simplestring_delete(buffer);
-				c_iterator_delete(iter);
-				return 1;
+				retval = 1;
+				goto out;
 			}
 		}
 	}
+	retval = 0;
+	goto out;
+
+out:
 	c_simplestring_delete(buffer);
 	c_regex_delete(regex_ptr);
 	c_iterator_delete(iter);
-	return 0;
+	return retval;
 }
 
 void do_regex_crack(struct db_main *db, const char *regex)
