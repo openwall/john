@@ -42,7 +42,7 @@ extern int vc_fixed_snprintf(char *Dest, size_t max_cnt, const char *Fmt, ...);
 #endif
 
 
-#if (JS_REGEX_MAJOR_VERSION>1) || ((JS_REGEX_MAJOR_VERSION==1)&&(JS_REGEX_MINOR_VERSION>=1))
+#if (JS_REGEX_MAJOR_VERSION>1) || ((JS_REGEX_MAJOR_VERSION==1)&&(JS_REGEX_MINOR_VERSION>=3))
 
 #include "loader.h"
 /*
