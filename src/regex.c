@@ -77,16 +77,16 @@ static char BaseWord[1024];
 
 size_t callback(char* dst, const size_t buffer_size)
 {
-  const char* last = NULL;
+	const char* last = NULL;
 
 	if (!BaseWord[0]) {
 		*dst = 0;
-  }
+	}
 	last = stpcpy(dst, BaseWord);
 	*BaseWord = 0;
 	if (*dst) {
 		return (last - dst);
-  }
+	}
 	return 0;
 }
 
@@ -121,7 +121,7 @@ void SetupAlpha(const char *regex_alpha)
 		while (x) {
 			if (x->data && x->data[1] == '=')
 				rexgen_alphabets[(unsigned char)(x->data[0])] =
-				    str_alloc_copy(&(x->data[2]));
+					str_alloc_copy(&(x->data[2]));
 			x = x->next;
 		}
 	}
@@ -132,7 +132,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 {
 	c_simplestring_ptr buffer = c_simplestring_new();
 	c_iterator_ptr iter = NULL;
-  c_regex_ptr regex_ptr = NULL;
+	c_regex_ptr regex_ptr = NULL;
 	char word[PLAINTEXT_BUFFER_SIZE];
 	static int bFirst = 1;
 	static int bALPHA = 0;
@@ -206,7 +206,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 		        base_word, regex);
 		error();
 	}
-  iter = c_regex_iterator(regex_ptr);
+	iter = c_regex_iterator(regex_ptr);
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
 		c_simplestring_to_utf8_string(buffer, &word[0], sizeof(word));
@@ -225,7 +225,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 		}
 	}
 	c_simplestring_delete(buffer);
-  c_regex_delete(regex_ptr);
+	c_regex_delete(regex_ptr);
 	c_iterator_delete(iter);
 	return 0;
 }
@@ -234,7 +234,7 @@ void do_regex_crack(struct db_main *db, const char *regex)
 {
 	c_simplestring_ptr buffer = c_simplestring_new();
 	c_iterator_ptr iter = NULL;
-  c_regex_ptr regex_ptr = NULL;
+	c_regex_ptr regex_ptr = NULL;
 	char word[PLAINTEXT_BUFFER_SIZE];
 	int max_len = db->format->params.plaintext_length;
 
@@ -256,7 +256,7 @@ void do_regex_crack(struct db_main *db, const char *regex)
 		        "Error, invalid regex expression.  John exiting now\n");
 		error();
 	}
-  iter = c_regex_iterator(regex_ptr);
+	iter = c_regex_iterator(regex_ptr);
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
 		c_simplestring_to_utf8_string(buffer, &word[0], sizeof(word));
