@@ -11,6 +11,7 @@
 
 #include <ctype.h>
 
+#include "misc.h"	// error()
 #include "cuda_common.h"
 #include "options.h"
 #include "john.h"

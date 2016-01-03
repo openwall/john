@@ -13,6 +13,7 @@
 
 #if HAVE_REXGEN
 
+#include "misc.h" // error()
 #include "loader.h"
 #include "logger.h"
 #include "status.h"

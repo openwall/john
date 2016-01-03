@@ -9,6 +9,7 @@
  */
 
 #include "mask_ext.h"
+#include "misc.h"	// error()
 #include "options.h"
 #include "memory.h"
 #include "memdbg.h"

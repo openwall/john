@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <unistd.h>
 
+#include "misc.h" // error()
 #include "bt_twister.h"
 #include "bt_hash_types.h"
 

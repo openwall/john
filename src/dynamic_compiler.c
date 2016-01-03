@@ -156,6 +156,7 @@ DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
 #ifndef DYNAMIC_DISABLED
 #include <ctype.h>
 #include <stdarg.h>
+#include "misc.h"	// error()
 #include "common.h"
 #include "stdint.h"
 #include "formats.h"

@@ -18,6 +18,7 @@ john_register_one(&fmt_rawMD5);
 #include "arch.h"
 
 #include "md5.h"
+#include "misc.h"	// error()
 #include "common.h"
 #include "johnswap.h"
 #include "formats.h"

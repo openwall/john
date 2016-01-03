@@ -28,6 +28,7 @@
 #include <sys/mman.h>
 #endif
 
+#include "misc.h"	// error()
 #include "config.h"
 #include "john.h"
 #include "params.h"
