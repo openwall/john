@@ -1161,7 +1161,7 @@ static void get_longest_common_string(char *fstr, char *sstr, int *first_index,
  */
 static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext, int *is_split_unifies_case, int call_cnt)
 {
-	char *cipher_copy, *ret, *bin_hex, *ret_copy=0;
+	char *cipher_copy, *ret, *bin_hex=0, *ret_copy=0;
 	void *bin;
 	int first_index, second_index, size, index;
 	int change_count = 0;

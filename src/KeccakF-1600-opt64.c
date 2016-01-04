@@ -166,11 +166,13 @@ void KeccakF1600_StateExtractBytesInLane(const void *state, unsigned int lanePos
         memcpy(data, (UINT8*)lane1+offset, length);
     }
 #else
-    unsigned int i;
-    lane >>= offset*8;
-    for(i=0; i<length; i++) {
-        data[i] = lane & 0xFF;
-        lane >>= 8;
+    {
+        unsigned int i;
+        lane >>= offset*8;
+        for(i=0; i<length; i++) {
+            data[i] = lane & 0xFF;
+            lane >>= 8;
+        }
     }
 #endif
 }
