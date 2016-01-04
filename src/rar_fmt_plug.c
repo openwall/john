@@ -114,18 +114,12 @@ john_register_one(&fmt_rar);
 
 #define ROUNDS			0x40000
 
-/* The reason we want to bump OMP_SCALE in this case is to even out the
-   difference in processing time for different length keys. It doesn't
-   boost performance in other ways */
 #ifdef _MSC_VER
 #undef _OPENMP
 #endif
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE		4
-#endif
 #endif
 
 #include "rar_common.c"
@@ -146,9 +140,11 @@ static void init(struct fmt_main *self)
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif /* _OPENMP */
+
+	// Length is a cost. We sort in buckets but we need them to be mostly full
+	self->params.max_keys_per_crypt *= PLAINTEXT_LENGTH;
 
 	if (options.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
