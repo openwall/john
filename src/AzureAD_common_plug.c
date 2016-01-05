@@ -65,10 +65,10 @@ char *AzureAD_common_split(char *ciphertext, int index, struct fmt_main *self) {
 }
 
 void *AzureAD_common_get_binary(char *ciphertext) {
-	static ARCH_WORD_32 full[DIGEST_SIZE / 4 + 1];
+	static ARCH_WORD_32 full[DIGEST_SIZE / 4];
 	unsigned char *realcipher = (unsigned char*)full;
 
 	ciphertext += (TAG_LENGTH + SALT_HASH_LEN + ROUNDS_LEN + 2);
-	base64_convert(ciphertext, e_b64_hex, 64, realcipher, e_b64_raw, DIGEST_SIZE, 0);
+	base64_convert(ciphertext, e_b64_hex, 64, realcipher, e_b64_raw, sizeof(full), 0);
 	return (void*)realcipher;
 }

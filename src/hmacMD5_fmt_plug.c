@@ -181,11 +181,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 			return split_fields[1];
 		len = base64_convert(p, e_b64_mime, (int)(d - p - 1),
 		                     o, e_b64_raw,
-#if SIMD_COEF_32
-		                     55,
-#else
-		                     SALT_LENGTH,
-#endif
+		                     sizeof(out),
 		                     flg_Base64_MIME_TRAIL_EQ);
 		o += len;
 		*o++ = '#';

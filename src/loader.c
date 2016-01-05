@@ -1724,12 +1724,15 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 		if (!strncmp(ciphertext, "$dynamic_26$", 12))
 			memset(ciphertext + 12, '0', 5);
 		else if (!strncmp(ciphertext, "{SHA}", 5)) {
-			char out[41+3];
+			char out[40+1];
+			static char tmp[40+5+1]; // larger than needed, but we know its big enough.
 			base64_convert(ciphertext + 5, e_b64_mime,
-			    strlen(ciphertext) - 5, out, e_b64_hex, 41, 0);
+			    strlen(ciphertext) - 5, out, e_b64_hex, sizeof(out), 0);
 			memcpy(out, "00000", 5);
+			ciphertext = tmp;
+			strcpy(tmp, "{SHA}");
 			base64_convert(out, e_b64_hex, 40, ciphertext + 5,
-			    e_b64_mime, strlen(out), flg_Base64_MIME_TRAIL_EQ);
+			    e_b64_mime, sizeof(tmp)-5, flg_Base64_MIME_TRAIL_EQ);
 		}
 	}
 #ifndef DYNAMIC_DISABLED

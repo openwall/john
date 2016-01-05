@@ -151,7 +151,7 @@ static void done(void)
 /* Convert {MD5}CY9rzUYh03PK3k6DJie09g== to 098f6bcd4621d373cade4e832627b4f6 */
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
-	static char out[CIPHERTEXT_LENGTH + 5];
+	static char out[CIPHERTEXT_LENGTH + 1];
 
 	if (!strncmp(fields[1], "{MD5}", 5) && strlen(fields[1]) == 29) {
 		int res;

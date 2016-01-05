@@ -168,7 +168,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	if (!strchr(ciphertext, '#') && strchr(ciphertext, '.') &&
 	    strchr(ciphertext, '.') != strrchr(ciphertext, '.')) {
 		// Treat this like a JWT hash. Convert into 'normal' hmac-sha512 format.
-		char buf[BINARY_SIZE * 2 + 10], tmp[CIPHERTEXT_LENGTH + 1], *cpi;
+		char buf[BINARY_SIZE*2 + 1], tmp[CIPHERTEXT_LENGTH + 1], *cpi;
 
 		strnzcpy(tmp, ciphertext, sizeof(tmp));
 		cpi = strchr(tmp, '.');
@@ -178,7 +178,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 		*cpi++ = 0;
 		memset(buf, 0, sizeof(buf));
 		base64_convert(cpi, e_b64_mime, strlen(cpi), buf, e_b64_hex,
-		               sizeof(buf)-6, flg_Base64_NO_FLAGS);
+		               sizeof(buf), flg_Base64_NO_FLAGS);
 		if (strlen(buf) != BINARY_SIZE * 2)
 			return ciphertext;
 		sprintf(out, "%s#%s", tmp, buf);
