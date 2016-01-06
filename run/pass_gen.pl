@@ -668,8 +668,13 @@ sub get_salt {
 	my $randlen = 0;
 	if ($len < 0) { $randlen = 1; $len *= -1; }
 	my $aslen = $len;
-	if (defined $_[1] && $_[1]+0 eq $_[1]) { $aslen = $_[1]; }
-	my @chr = defined($_[2]) ? @{$_[2]} : @chrAsciiTextNum;
+	my @chr = ();
+	my $chrset_arg = 1;
+	if (defined $_[1] && $_[1]+0 eq $_[1]) {
+		$aslen = $_[1];
+		$chrset_arg = 2;
+	}
+	@chr = defined($_[$chrset_arg]) ? @{$_[$chrset_arg]} : @chrAsciiTextNum;
 	if (defined $argsalt && length ($argsalt)==$aslen*2 && length(pack("H*",$argsalt))==$aslen) {
 		$argsalt = pack("H*",$argsalt);
 	} elsif (defined $argsalt && substr($argsalt, 0, 4) eq "HEX=") {
@@ -1849,8 +1854,7 @@ sub vdi_128 {
 	return "\$vdi\$aes-xts128\$sha256\$2000\$2000\$32\$32\$$salt1\$$salt2\$$enc_pass\$$final";
 }
 sub qnx_md5 {
-	$salt = unpack("H*",get_salt(8));
-	#$salt = "6e1f9a390d50a85c";
+	$salt = get_salt(16, \@chrHexLo);
 	my $rounds = get_loops(1000);
 	my $h = md5($salt . $_[0]x($rounds+1));
 	my $ret = "\@m";
@@ -1861,9 +1865,7 @@ sub qnx_md5 {
 
 sub qnx_sha512 {
 #	use SHA512_qnx;
-#	$salt = unpack("H*",get_salt(8));
-#	#$salt = "129b6761";
-#	#$salt = "caa3cc118d2deb23";
+#	$salt = get_salt(16, \@chrHexLo);
 #	my $rounds = get_loops(1000);
 #	my $h = SHA512_qnx::sha512($salt . $_[0]x($rounds+1));
 #	my $ret = "\@S";
@@ -1876,8 +1878,7 @@ sub qnx_sha512 {
 	return qnx_sha256(@_);
 }
 sub qnx_sha256 {
-	$salt = unpack("H*",get_salt(8));
-	#$salt = "36bdb8080d25f44f";
+	$salt = get_salt(16, \@chrHexLo);
 	my $rounds = get_loops(1000);
 	my $h = sha256($salt . $_[0]x($rounds+1));
 	my $ret = "\@s";
