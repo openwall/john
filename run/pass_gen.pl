@@ -84,6 +84,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 
 # todo: sapb sapfg ike keepass cloudkeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring keystore krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sxc sybase-prop tripcode vtp whirlpool0 whirlpool1
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
+my $qnx_sha512_warning=0;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
 my @chrAsciiTextHi=('A'..'Z');
@@ -1857,16 +1858,22 @@ sub qnx_md5 {
 	$ret .= "\@".unpack("H*",$h)."\@$salt";
 	return $ret;
 }
+
 sub qnx_sha512 {
-	$salt = unpack("H*",get_salt(8));
-	#$salt = "129b6761";
-	#$salt = "caa3cc118d2deb23";
-	my $rounds = get_loops(1000);
-	my $h = sha512($salt . $_[0]x($rounds+1));
-	my $ret = "\@S";
-	if ($rounds != 1000) { $ret .= ",$rounds"; }
-	$ret .= "\@".unpack("H*",$h)."\@$salt";
-	return $ret;
+#	use SHA512_qnx;
+#	$salt = unpack("H*",get_salt(8));
+#	#$salt = "129b6761";
+#	#$salt = "caa3cc118d2deb23";
+#	my $rounds = get_loops(1000);
+#	my $h = SHA512_qnx::sha512($salt . $_[0]x($rounds+1));
+#	my $ret = "\@S";
+#	if ($rounds != 1000) { $ret .= ",$rounds"; }
+#	$ret .= "\@".unpack("H*",$h)."\@$salt";
+#	return $ret;
+	if ($qnx_sha512_warning == 0) {
+		print STDERR, "\nqnx_sha512 requires SHA512_qnx.pm to be in current directory, and the qnx_sha512 function edited.\n\n";}
+	$qnx_sha512_warning += 1;
+	return qnx_sha256(@_);
 }
 sub qnx_sha256 {
 	$salt = unpack("H*",get_salt(8));
