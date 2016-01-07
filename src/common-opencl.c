@@ -2043,28 +2043,27 @@ cl_uint get_processors_count(int sequential_id)
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 192);
 		else if (major == 5)    // 5.x Maxwell
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
+/*
+ * Apple, VCL and some other environments don't expose get_compute_capability()
+ * so we need this crap - which is incomplete.
+ * http://en.wikipedia.org/wiki/Comparison_of_Nvidia_graphics_processing_units
+ *
+ * This will produce a *guessed* figure: Note that --list=cuda-devices will
+ * often show a better guess, even under OSX.
+ */
 
-#if __APPLE__
-		/*
-		 * Apple does not expose get_compute_capability() so we need this crap.
-		 * http://en.wikipedia.org/wiki/Comparison_of_Nvidia_graphics_processing_units
-		 *
-		 * This will produce a *guessed* figure: Note that --list=cuda-devices will
-		 * often show a better guess, even under OSX.
-		 */
-
-		// Fermi
-		else if (strstr(dname, "GT 5") || strstr(dname, "GTX 5"))
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 48);
+		// Maxwell
+		else if (strstr(dname, "GTX 9") || strstr(dname, "GTX TITAN X"))
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
 		// Kepler
 		else if (strstr(dname, "GT 6") || strstr(dname, "GTX 6") ||
 		         strstr(dname, "GT 7") || strstr(dname, "GTX 7") ||
-		         strstr(dname, "GT 8") || strstr(dname, "GTX 8"))
+		         strstr(dname, "GT 8") || strstr(dname, "GTX 8") ||
+		         strstr(dname, "GTX TITAN"))
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 192);
-		// Maxwell
-		else if (strstr(dname, "GTX 9"))
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
-#endif
+		// Fermi
+		else if (strstr(dname, "GT 5") || strstr(dname, "GTX 5"))
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 48);
 	} else if (gpu_amd(device_info[sequential_id])) {
 		// 16 thread proc * 5 SP
 		core_count *= (ocl_device_list[sequential_id].cores_per_MP = (16 *
