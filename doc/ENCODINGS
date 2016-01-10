@@ -69,7 +69,7 @@ building if you need that support.
 
 Example using the now default john.conf settings:
 
-   $ ../run/john hashfile -form:lm -single
+   $ ../run/john hashfile --format=lm --single
    Using default input encoding: UTF-8
    Target encoding: CP850
    Loaded 3 password hashes with no different salts (LM [DES 128/128 AVX-16])
@@ -82,7 +82,7 @@ Example using the now default john.conf settings:
    Use the "--show" option to display all of the cracked passwords reliably
    Session completed
 
-   $ ../run/john hashfile -form:nt -loopback -internal-enc:cp850
+   $ ../run/john hashfile --format=nt --loopback --internal-codepage=cp850
    Rules engine using CP850 for Unicode
    Loaded 2 password hashes with no different salts (NT [MD4 128/128 SSE2-16])
    Assembling cracked LM halves for loopback
