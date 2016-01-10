@@ -4,15 +4,15 @@ cracking in [2]. This mode similar to the "wordlist" mode because it will only
 crack a fixed quantity of passwords.
 
 UTF-8 is handled pretty good. Supply the -p option to calc_stat, and use
---encoding:utf8 when you run john. Some invalid candidates are generated but
+--encoding=utf8 when you run john. Some invalid candidates are generated but
 for fast formats it's cheaper to accept them than to try to filter them out.
-For slow formats, --external:filter_utf8 can be used to mute them.
+For slow formats, --external=filter_utf8 can be used to mute them.
 
 Specify the --markov option on the command line to use Markov mode.
 
 You can use any of these forms of the --markov option
 
---markov[:[MINLEVEL-]LEVEL[:START[:END]]]
+--markov[=[MINLEVEL-]LEVEL[:START[:END]]]
 --markov=MODE[:[MINLEVEL-]LEVEL[:START[:END]]]
 
 Where:
@@ -37,18 +37,18 @@ OPTIONS.
 
 * START is the index of the first password that is going to be tested, starting
 with 0.  NOTE, an 'empty' value is treated just like zero.  So these are equal:
---markov:100:0:0:3-12 --markov:100:::3-12
+--markov=100:0:0:3-12 --markov=100:::3-12
 
 * END is the index of the last password that is going to be tested. When it is
 set to 0, it will represent the last possible password. Note, this can also
 be an 'empty' value, see above.
 
-* The universal -min-length and -max-length options has deprecated the former
+* The universal --min-length and --max-length options has deprecated the former
 LENGTH parameter.
 
 If MODE is not specified on the command line, see CONFIGURATION OPTIONS.
 
-Using "--markov:100 --max-len=12" will let john check every password whose
+Using "--markov=100 --max-length=12" will let john check every password whose
 length is 12 or less and whose "Markov strength" is 100 or less.
 
 
@@ -57,13 +57,14 @@ The "LEVEL" parameter should be selected based on the desired maximum running
 time. In order to select the appropriate LEVEL, the following steps should be
 followed:
 
-1/ Run the -single and -wordlist modes of john, as they will find many passwords
-for a low price. Perhaps also -inc with a low -max-len that ends in minutes.
+1/ Run the --single and --wordlist modes of john, as they will find many
+passwords for a low price. Perhaps also --incremental with a low --max-length
+that ends in minutes.
 
 2/ Run john for at least 10 seconds (the longer, the more correct measurement)
-on the file, for example using the -max-run-time=SECONDS option. For example:
+on the file, for example using the --max-run-time=SECONDS option. For example:
 *******************************************************************************
-user@host:run$ ./john -markov -max-run=10 hashfile
+user@host:run$ ./john --markov --max-run=10 hashfile
 Loaded 128 password hashes with no different salts (nt, NT MD4 [128/128 X2 SSE2-16])
 Press 'q' or Ctrl-C to abort, almost any other key for status
 MKV start (stats=$JOHN/stats, lvl=200 len=12 pwd=259356431)
@@ -94,7 +95,7 @@ possible passwords is less than our targeted 269 G).
 
 5/ Run john:
 *******************************************************************************
-user@host:run$ ./john -markov:268 -max-len:12 hashfile
+user@host:run$ ./john --markov=268 --max-length=12 hashfile
 *******************************************************************************
 
 
@@ -103,14 +104,14 @@ The START and END parameter could be used to distribute work among many CPUs.
 The old method is to evaluate the combined cracking speed of all CPUs
 (adding the step 2 result for every CPUs available) and follow the previous
 method. At step 5, share the cracking space among all CPUs, where each share is
-proportional with the CPU's cracking speed. When using the new -node or -fork
+proportional with the CPU's cracking speed. When using the new --node or --fork
 options (or MPI), this will happen automatically (well, not the adjustment for
 heterogenous speeds, but an even split).
 
 For example:
-./john -markov -node=3/4      will split the space in four parts and pick the
+./john --markov --node=3/4    will split the space in four parts and pick the
                               third fourth for this session.
-./john -markov -fork=8        will split the space in eight parts and run one
+./john --markov --fork=8      will split the space in eight parts and run one
                               process for each. MPI works the same but can
                               launch the job on remote hosts.
 
