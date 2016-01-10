@@ -175,7 +175,7 @@ static void *get_salt(char *ciphertext)
 
     /* if key-file present */
     if ((p = strtokm(NULL, "*")) != NULL){
-        cs.keyfile = (char*) mem_calloc(strlen(p)/2, sizeof(char));
+        cs.keyfile = (char*) mem_calloc_tiny(strlen(p)/2 + 1, sizeof(char));
         for (i = 0; i < strlen(p)/2; i++)
             cs.keyfile[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
                 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
@@ -263,8 +263,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
             memcpy(lsb, cipher + 8, 8);
         }
         if (!memcmp(cipher, AES_WRAPPING_IV, 8)) {
-            if (cur_salt->keyfile != NULL)
-                MEM_FREE(cur_salt->keyfile);
             cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
