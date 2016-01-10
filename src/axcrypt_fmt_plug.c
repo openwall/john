@@ -52,7 +52,7 @@ john_register_one(&fmt_axcrypt);
 		(cp)[0] ^= (unsigned char)((value)), \
 		(cp)[1] ^= (unsigned char)((value) >> 8), \
 		(cp)[2] ^= (unsigned char)((value) >> 16), \
-		(cp)[3] ^= (unsigned char)(value) >> 24 )
+		(cp)[3] ^= (unsigned char)((value) >> 24 ) )
 
 static struct fmt_tests axcrypt_tests[] = {
 	/*
@@ -131,11 +131,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p) != 32)
+	if (strlen(p) != 32 || !ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* wrappedkey */
 		goto err;
-	if (strlen(p) != 48 )
+	if (strlen(p) != 48 || !ishexlc(p))
 		goto err;
 	/* optional key-file following */
 
