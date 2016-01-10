@@ -430,8 +430,8 @@ format's default. For most purposes, you would use 1. One good example is for
 studying which rules give most "hits": Without this options, you can't know for
 sure which rule produced a successful guess when analyzing the log file.
 
---min-length=N			force minimum candidate length
---max-length=N			force maximum candidate length
+--min-length=N			request a minimum candidate length in bytes
+--max-length=N			request a maximum candidate length in bytes
 
 These options limit the length of candidates that will be tried. In wordlist
 mode (after applying rules, if any), a word that is not within the requested
@@ -440,6 +440,7 @@ settings. For example, you can fully exhaust a short keyspace with incremental
 mode with eg. --max-len=4 and then start a longer session for the rest with
 --min-length=5, or use one core for lengths up to 8 and other cores for exact
 lengths of 9, 10 and so on.
+Note: With UTF-8 encoding, non-ASCII characters will use more than one byte.
 
 --max-run-time=N
 

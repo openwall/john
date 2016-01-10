@@ -382,8 +382,8 @@ void opt_print_hidden_usage(void)
 	printf("\n");
 	puts("--subformat=FORMAT        pick a benchmark format for --format=crypt");
 	puts("--mkpc=N                  request a lower max. keys per crypt");
-	puts("--min-length=N            request a minimum candidate length");
-	puts("--max-length=N            request a maximum candidate length");
+	puts("--min-length=N            request a minimum candidate length in bytes");
+	puts("--max-length=N            request a maximum candidate length in bytes");
 	puts("--field-separator-char=C  use 'C' instead of the ':' in input and pot files");
 	puts("--fix-state-delay=N       performance tweak, see doc/OPTIONS");
 	puts("--nolog                   disables creation and writing to john.log file");
