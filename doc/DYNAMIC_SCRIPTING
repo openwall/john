@@ -126,8 +126,8 @@ Func=DynamicFunc__crypt_md5
 #
 Test=$dynamic_1030$42b72f913c3201fc62660d512f5ac746:test1
 # There are also TestA= and TestU= lines.  The TestA= lines are ONLY loaded
-# if --encoding=utf8 is NOT set on the command line (not running in utf8 mode),
-# and the TestU= lines are only loaded IF the --encoding=utf8 command is used.
+# if --encoding=utf-8 is NOT set on the command line (not running in UTF-8 mode),
+# and the TestU= lines are only loaded IF the --encoding=utf-8 option is used.
 
 Ok, here is the second format.  The format being done is md5($s.md5($p).$p)
 Here are a few comments about this format:
