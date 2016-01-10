@@ -9,23 +9,23 @@ to stay up to date, the format will require ongoing work and mainainance.
 However, there is one format which may reduce a lot of this maintainance
 work to very little.  Now, that format itself will need to be kept up to
 date, but any formats that are built upon its internal workings.  That
-format is $dynamic$.  In this 'format', there is a scripting language, where
+format is dynamic.  In this format, there is a scripting language, where
 a format developer only need to describe the actual operations properly,
 and the format is 'done', and working.
 
-This document will go over how to 'build' a format that uses this $dynamic$
+This document will go over how to 'build' a format that uses this dynamic
 format, how to optimize it to work faster, and how to build a 'thin'
-quasi format which insulates the end user from the $dynamic$ format line
+quasi format which insulates the end user from the dynamic format line
 building.
 
 **** Introduction ****
 
 To start off with, a little background on 'how' and 'where' to build the
-scripts that run $dynamic$, what interanal data structures are available to
+scripts that run dynamic, what interanal data structures are available to
 be used.
 
 The 'where' which a format developer can easily build into john, is to add a
-new $dynamic$ format 'script', into john.ini file (john.conf).  This
+new dynamic format 'script', into john.ini file (john.conf).  This
 file usually is located in the current directory where john is run out
 of (but the --config=file can override the default behavior).  Within the
 john.conf, a new 'section' can be added for a md5 genercic format. The
@@ -44,7 +44,7 @@ be the 'How', and preforming this is actually outside of the intro section.
 
 The 'Data' and runtime information is this:
 
-Inside of the $dynamic$ format, there are 2 input buffers (actually ALL data
+Inside of the dynamic format, there are 2 input buffers (actually ALL data
 is arrays of 128 of each buffer type).  There is input1 and input2 buffers.
 The main operations on these buffers are to clear them, to append data,
 and to build a string which will later be md5 hashed.
@@ -140,7 +140,7 @@ Here are a few comments about this format:
 4.  After the first crypt (md5), we clear our input buffer, then put
     the salt in, append the base-16 of md5($p), and then append $p
 5.  Finally, and call to crypt is done, which leaves the results in
-    output1, so the rest of the $dynamic$ format can properly compare it.
+    output1, so the rest of the dynamic format can properly compare it.
 
 [List.Generic:dynamic_1031]
 Expression=dynamic_1031: md5($s.md5($p).$p)
@@ -179,16 +179,16 @@ that they are WORKING, and what speed they are working:
 
 Here is MinGW build 'x86'
 
-john_x86 -test -form=dynamic_1030
+john_x86 --test --format=dynamic_1030
 Benchmarking: dynamic_1030: md5($p.$p) [128x1 (MD5_Go)]... DONE
 Raw:    3530K c/s
 
-john_x86 -test -form=dynamic_1031
+john_x86 --test --format=dynamic_1031
 Benchmarking: dynamic_1031: md5($s.md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     1945K c/s
 Only one salt:  1890K c/s
 
-john_x86 -test -form=dynamic_1032
+john_x86 --test --format=dynamic_1032
 Benchmarking: dynamic_1032: md5(md5($s).md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     1016K c/s
 Only one salt:  1031K c/s
@@ -196,26 +196,26 @@ Only one salt:  1031K c/s
 
 Here is MinGW build of SSE2
 
-john_sse2 -test -form=dynamic_1030
+john_sse2 --test --format=dynamic_1030
 Benchmarking: dynamic_1030: md5($p.$p) SSE2 [SSE2 32x4 (.S)]... DONE
 Raw:    7250K c/s
 
-john_sse2 -test -form=dynamic_1031
+john_sse2 --test --format=dynamic_1031
 Benchmarking: dynamic_1031: md5($s.md5($p).$p) SSE2 [SSE2 32x4 (.S)]... DONE
 Many salts:     5065K c/s
 Only one salt:  4436K c/s
 
-john_sse2 -test -form=dynamic_1032
+john_sse2 --test --format=dynamic_1032
 Benchmarking: dynamic_1032: md5(md5($s).md5($p).$p) SSE2 [SSE2 32x4 (.S)]... FAILED (get_hash[0](0))
 
 
 Here is some timings to check against:
 
-john_x86 -test -form=dynamic_0
+john_x86 --test --format=dynamic_0
 Benchmarking:  dynamic_0: md5($p)  (raw-md5)  [128x1 (MD5_Go)]... DONE
 Raw:    4005K c/s
 
-john_sse2 -test -form=dynamic_0
+john_sse2 --test --format=dynamic_0
 Benchmarking:  dynamic_0: md5($p)  (raw-md5)  SSE2 [SSE2 32x4 (.S)]... DONE
 Raw:    10740K c/s
 
@@ -226,7 +226,7 @@ For format 1030, the speed should be very close to that of dynamic_0.
 In both formats, there is only 1 call to md5().  However, we are seeing that the
 (1030) is slower than (0).  The explanation of this, is that the (0) format has
 an optimization used, which we can not use in the (1030).  The (1030) is likely
-about as optimal as it can be made in the current $dynamic$ format.   The optimization
+about as optimal as it can be made in the current dynamic format.   The optimization
 for format (0) is:   Flag=MGF_KEYS_INPUT  What that does, is to place the keys
 directly into the input field, and then later, when john gets the keys back (it
 does this if a hash is cracked), john gets them from the input.  In the (1030)
@@ -278,22 +278,22 @@ Test=$dynamic_1042$042d1f15ed57929a2ac8ee4f0a924679$aabbccdd:test1
 
 Once the above changes have been done, here are the speeds:
 
-john_x86 -test=5 -form=dynamic_1031
+john_x86 --test=5 --format=dynamic_1031
 Benchmarking: dynamic_1031: md5($s.md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     2007K c/s
 Only one salt:  1913K c/s
 
-john_x86 -test=5 -form=dynamic_1032
+john_x86 --test=5 --format=dynamic_1032
 Benchmarking: dynamic_1032: md5(md5($s).md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     1052K c/s
 Only one salt:  1030K c/s
 
-john_x86 -test=5 -form=dynamic_1042
+john_x86 --test=5 --format=dynamic_1042
 Benchmarking: dynamic_1042: md5(md5($s).md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     1420K c/s
 Only one salt:  1372K c/s
 
-john_sse2 -test=5 -form=dynamic_1042
+john_sse2 --test=5 --format=dynamic_1042
 Benchmarking: dynamic_1042: md5(md5($s).md5($p).$p) SSE2 [128x1 (MD5_Go)]... DONE
 Many salts:     1416K c/s
 Only one salt:  1372K c/s
@@ -320,12 +320,12 @@ Test=$dynamic_1052$042d1f15ed57929a2ac8ee4f0a924679$aabbccdd:test1
 
 Here are the benchmarks for the above format:
 
-john_x86 -test=5 -form=dynamic_1052
+john_x86 --test=5 --format=dynamic_1052
 Benchmarking: dynamic_1052: md5(md5($s).md5($p).$p) [128x1 (MD5_Go)]... DONE
 Many salts:     2251K c/s
 Only one salt:  1369K c/s
 
-john_sse2 -test=5 -form=dynamic_1052
+john_sse2 --test=5 --format=dynamic_1052
 Benchmarking: dynamic_1052: md5(md5($s).md5($p).$p) SSE2 [128x1 (MD5_Go)]... DONE
 Many salts:     2251K c/s
 Only one salt:  1369K c/s
@@ -355,14 +355,14 @@ john's 'crypt all' loop.
    }
 
 The above code is certainly not 'exact', but should show close enough, the algorithm used
-within john.  Now, the algorithm as used within $dynamic$ will be shown (specifically for the
+within john.  Now, the algorithm as used within dynamic will be shown (specifically for the
 flag  MGF_KEYS_BASE16_IN1_Offset32).
 
- - SetKey() is called numerous times.  This will set a 'dirty flag' for the keys inside of $dynamic$.
+ - SetKey() is called numerous times.  This will set a 'dirty flag' for the keys inside of dynamic
  - SetSalt() will be called.  The salt handed to us is actually md5($s), since MGF_SALT_AS_HEX is set
    The SetSalt() calls are happening within the 'while(z<salt_count)' loop in john.
  - crypt_all is called.
-   Within crypt_all, $dynamic$ knows that we want the base-16 md5($p) to be placed at offset 32
+   Within crypt_all, dynamic knows that we want the base-16 md5($p) to be placed at offset 32
    within input1.  So the first call to crypt_all (for the first salt), will cause the md5($p)
    to be computed, and to be placed at offset 32.
    Then the script will overwrite the starting bytes of input1 with the 32 bytes of the salt,
@@ -370,7 +370,7 @@ flag  MGF_KEYS_BASE16_IN1_Offset32).
  - NOW, we are at the next loop within the 'while(z<salt_count)'.
  - Then john loads the next salt [ SetSalt() ].
  - Then john calls crypt_all.
-   At this time, there have been NO additional SetKey() calls. Thus, $dynamic$ knows that the
+   At this time, there have been NO additional SetKey() calls. Thus, dynamic knows that the
    base-16 text of md5($p) is STILL located at offset 32 of Input1. So, the format DOES NOT
    perform this crypt again (until new SetKey() function calls happen).
  - This SetSalt .. crypt_all .. compare continues until all salts are tested.  However, there
@@ -401,7 +401,7 @@ Func=DynamicFunc__crypt_md5
 Func=DynamicFunc__X86toSSE_switch_output1
 Test=$dynamic_1062$042d1f15ed57929a2ac8ee4f0a924679$aabbccdd:test1
 
-john_sse2 -test=5 -form=dynamic_1062
+john_sse2 --test=5 --format=dynamic_1062
 Benchmarking: dynamic_1062: md5(md5($s).md5($p).$p) SSE2 [SSE2 32x4 (.S)]... DONE
 Many salts:     1792K c/s
 Only one salt:  1715K c/s
@@ -440,12 +440,12 @@ Func=DynamicFunc__crypt_md5
 Test=$dynamic_1033$e9fb44106edf60419d26a10b5439d0c7$aabbccddeeff:test1
 SaltLen=12
 
-john_x86 -test -format=$dynamic$ -subf=dynamic_1033
+john_x86 --test --format=dynamic_1033
 Benchmarking: dynamic_1033: md5(md5($p).$s) [128x1 (MD5_Go)]... DONE
 Many salts:     1918K c/s
 Only one salt:  1889K c/s
 
-john_sse2 -test -format=$dynamic$ -subf=dynamic_1033
+john_sse2 --test --format=dynamic_1033
 Benchmarking: dynamic_1033: md5(md5($p).$s) SSE2 [SSE2 32x4 (.S)]... DONE
 Many salts:     5479K c/s
 Only one salt:  4922K c/s
@@ -466,12 +466,12 @@ Func=DynamicFunc__crypt_md5
 Test=$dynamic_1033$e9fb44106edf60419d26a10b5439d0c7$aabbccddeeff:test1
 SaltLen=12
 
-john_x86 -test -format=$dynamic$ -subf=dynamic_1043
+john_x86 --test --format=dynamic_1043
 Benchmarking: dynamic_1043: md5(md5($p).$s) [128x1 (MD5_Go)]... DONE
 Many salts:     4128K c/s
 Only one salt:  1890K c/s
 
-john_sse2 -test -format=$dynamic$ -subf=dynamic_1043
+john_sse2 --test --format=dynamic_1043
 Benchmarking: dynamic_1043: md5(md5($p).$s) SSE2 [SSE2 32x4 (.S)]... DONE
 Many salts:     13096K c/s
 Only one salt:  4834K c/s
