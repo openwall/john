@@ -28,10 +28,12 @@ john rule to start with a period, so at this time, this is not a problem.
 -8	reject this rule unless current hash type uses 8-bit characters
 -s	reject this rule unless some password hashes were split at loading
 -p	reject this rule unless word pair commands are currently allowed
--u	reject this rule unless the --encoding=utf8 flag is used
--U	reject this rule if the --encoding=utf8 flag is used
+-u	reject this rule unless --encoding=utf-8 or config variable
+	DefaultEncoding = UTF-8 is used
+-U	reject this rule if --encoding=utf-8 or config variable
+	DefaultEncoding = UTF-8 is used
 ->N	reject this rule unless length N or longer is supported
--<N     reject this rule unless length N or shorter is supported (--min-len)
+-<N     reject this rule unless length N or shorter is supported (--min-length)
 
 
 	Numeric constants and variables.
@@ -90,7 +92,7 @@ runs, it is only a-z.
 
 NOTE 2, the rules engine currently have very limited understanding of UTF-8 so
 character classes etc. will only work with ASCII characters, even if using
---encoding=utf8.
+--encoding=utf-8.
 
 
 	Simple commands.
