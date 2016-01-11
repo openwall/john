@@ -1873,7 +1873,7 @@ sub qnx_sha512 {
 #	$ret .= "\@".unpack("H*",$h)."\@$salt";
 #	return $ret;
 	if ($qnx_sha512_warning == 0) {
-		print STDERR, "\nqnx_sha512 requires SHA512_qnx.pm to be in current directory, and the qnx_sha512 function edited.\n\n";}
+		print STDERR "\nqnx_sha512 requires SHA512_qnx.pm to be in current directory, and the qnx_sha512 function edited.\n\n";}
 	$qnx_sha512_warning += 1;
 	return qnx_sha256(@_);
 }
@@ -3397,6 +3397,7 @@ sub dynamic_compile {
 			$dynamic_args==1504 && do {$fmt='sha1($s.$p.$s)';								last SWITCH; };
 			$dynamic_args==1505 && do {$fmt='md5($p.$s.md5($p.$s)),saltlen=-64';			last SWITCH; };
 			$dynamic_args==1506 && do {$fmt='md5($u.$c1.$p),const1=:XDB:,usrname=true';		last SWITCH; };
+			$dynamic_args==1507 && do {$fmt='sha1($c1.utf16($p)),const1='."\x01\x00\x0f\x00\x0d\x00\x33\x00";		last SWITCH; };
 			$dynamic_args==1588 && do {$fmt='SHA256($s.SHA1($p)),saltlen=64,salt=asHEX64';	last SWITCH; };
 			$dynamic_args==2000 && do {$fmt='md5($p)';										last SWITCH; };
 			$dynamic_args==2001 && do {$fmt='md5($p.$s),saltlen=32';						last SWITCH; };
