@@ -20,7 +20,7 @@
 #endif /* __CYGWIN */
 #endif /* _MSC_VER ... */
 
-#ifndef __linux__
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
 #include <io.h> /* mingW _mkdir */
 #endif
 
@@ -518,10 +518,10 @@ static char * get_next_fuzz_case(char *label, char *ciphertext)
 static void init_status(char *format_label)
 {
 	sprintf(status_file_path, "%s", "fuzz_status");
-#ifdef __linux__
-	if (mkdir(status_file_path, S_IRUSR | S_IWUSR | S_IXUSR)) {
-#else
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
 	if (_mkdir(status_file_path)) { // MingW
+#else
+	if (mkdir(status_file_path, S_IRUSR | S_IWUSR | S_IXUSR)) {
 #endif
 		if (errno != EEXIST) pexit("mkdir: %s", status_file_path);
 	} else
