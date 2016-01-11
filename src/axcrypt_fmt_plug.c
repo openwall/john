@@ -40,9 +40,9 @@ john_register_one(&fmt_axcrypt);
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125 /* actual max is 250 */
 #define BINARY_SIZE		0
-#define SALT_SIZE		sizeof(struct custom_salt)
+#define SALT_SIZE		sizeof(struct custom_salt *)
 #define BINARY_ALIGN		MEM_ALIGN_NONE
-#define SALT_ALIGN		sizeof(int)
+#define SALT_ALIGN		sizeof(struct custom_salt *)
 /* constant value recommended by FIPS */
 #define AES_WRAPPING_IV		"\xA6\xA6\xA6\xA6\xA6\xA6\xA6\xA6"
 #define MIN_KEYS_PER_CRYPT	1
@@ -224,11 +224,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int i, j, nb_iterations = cur_salt->key_wrapping_rounds;
 
 		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, (unsigned char *) saved_key[index], 
+		SHA1_Update(&ctx, (unsigned char *) saved_key[index],
 					strlen(saved_key[index]));
 		/* if key-file provided */
 		if (cur_salt->keyfile != NULL)
-			SHA1_Update(&ctx, (unsigned char *) cur_salt->keyfile, 
+			SHA1_Update(&ctx, (unsigned char *) cur_salt->keyfile,
 						strlen(cur_salt->keyfile));
 		SHA1_Final( KEK, &ctx );
 
