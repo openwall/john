@@ -600,7 +600,7 @@ static void dynamic_pad100() { dyna_helper_appendn(pad100(), 100); }
 #define APP_FUNC(TY,VAL) static void dynamic_app_##TY (){dyna_helper_append(VAL);}
 APP_FUNC(sh,gen_s) /*APP_FUNC(s,gen_s)*/ APP_FUNC(S,gen_s2) APP_FUNC(u,gen_u) APP_FUNC(u_lc,gen_ulc)
 APP_FUNC(u_uc,gen_uuc) APP_FUNC(p,gen_pw) APP_FUNC(p_uc,gen_puc) APP_FUNC(p_lc,gen_plc)
-#define APP_CFUNC(N) static void dynamic_app_##N (){dyna_helper_append(dynamic_Demangle((char*)Const[N],NULL));}
+#define APP_CFUNC(N) static void dynamic_app_##N (){int len; char * cp = dynamic_Demangle((char*)Const[N],&len); dyna_helper_appendn(cp, len);}
 APP_CFUNC(1) APP_CFUNC(2) APP_CFUNC(3) APP_CFUNC(4) APP_CFUNC(5) APP_CFUNC(6) APP_CFUNC(7) APP_CFUNC(8)
 //static void dynamic_ftr32  { $h = gen_Stack[--ngen_Stack]; substr($h,0,32);  strcat(gen_Stack[ngen_Stack-1], h);  }
 //static void dynamic_f54    { $h = gen_Stack[--ngen_Stack]; md5_hex(h)."00000000";	 strcat(gen_Stack[ngen_Stack-1], h);  }
