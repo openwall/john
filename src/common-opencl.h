@@ -109,12 +109,6 @@ john_clCreateBuffer(int l, char *f, cl_context context, cl_mem_flags flags,
 #endif
 
 typedef struct {
-	cl_platform_id platform;
-	int num_devices;
-} cl_platform;
-cl_platform platforms[MAX_PLATFORMS];
-
-typedef struct {
 	int device_info;
 	int cores_per_MP;
 	hw_bus pci_info;
@@ -264,6 +258,15 @@ void opencl_process_event(void);
 			fprintf(stderr, "OpenCL %s error in %s:%d - %s\n", \
 			    get_error_name(__err), __FILE__, __LINE__, (message)); \
 			error(); \
+		} \
+	} while (0)
+
+/* Non-fatal alternative */
+#define SOFT_CLERROR(cl_error, message)	  \
+	do { cl_int __err = (cl_error); \
+		if (__err != CL_SUCCESS) { \
+			fprintf(stderr, "OpenCL %s error in %s:%d - %s\n", \
+			    get_error_name(__err), __FILE__, __LINE__, (message)); \
 		} \
 	} while (0)
 

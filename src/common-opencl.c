@@ -108,6 +108,13 @@ static int printed_mask;
 static struct db_main *autotune_db;
 static struct db_salt *autotune_salts;
 
+typedef struct {
+	cl_platform_id platform;
+	int num_devices;
+} cl_platform;
+static cl_platform platforms[MAX_PLATFORMS];
+
+
 cl_device_id devices[MAX_GPU_DEVICES];
 cl_context context[MAX_GPU_DEVICES];
 cl_program program[MAX_GPU_DEVICES];
@@ -157,9 +164,10 @@ int get_number_of_available_platforms()
 {
 	int i = 0;
 
-	while (platforms[i++].platform);
+	while (platforms[i].platform)
+		i++;
 
-	return --i;
+	return i;
 }
 
 int get_number_of_available_devices()
