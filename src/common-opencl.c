@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <signal.h>
+#include <limits.h>
 #include <stdlib.h>
 #if !AC_BUILT || HAVE_FCNTL_H
 #include <fcntl.h>
@@ -60,6 +61,10 @@
 #include "memdbg.h"
 
 #define LOG_SIZE 1024*16
+
+// If true, use realpath(3) for translating eg. "-I./kernels" into an absolute
+// path before submitting as JIT compile option to OpenCL.
+#define I_REALPATH 1
 
 // If we are a release build, only output OpenCL build log if
 // there was a fatal error (or --verbosity was increased).
@@ -931,6 +936,17 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	char *include, *full_path;
 	char *global_opts;
 
+#if I_REALPATH
+	char *pex = path_expand_safe(pathname);
+
+	if (!(full_path = realpath(pex, NULL)))
+		pexit("realpath()");
+
+	MEM_FREE(pex);
+#else
+	full_path = path_expand_safe(pathname);
+#endif
+
 	include = (char *) mem_calloc(PATH_BUFFER_SIZE, sizeof(char));
 
 	if (!(global_opts = getenv("OPENCLBUILDOPTIONS")))
@@ -939,7 +955,7 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 			global_opts = OPENCLBUILDOPTIONS;
 
 	sprintf(include, "-I %s %s %s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
-	        full_path = path_expand_safe(pathname),
+	        full_path,
 	        global_opts,
 	        get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_MESA ?
 	            "-D__MESA__" : opencl_get_dev_info(sequential_id),
@@ -954,7 +970,11 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	        "-DSIZEOF_SIZE_T=", (int)sizeof(size_t),
 	        opencl_driver_ver(sequential_id),
 	        opts ? opts : "");
+#if I_REALPATH
+	libc_free(full_path);
+#else
 	MEM_FREE(full_path);
+#endif
 
 	return include;
 }
