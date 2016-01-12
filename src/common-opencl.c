@@ -401,12 +401,15 @@ static char *ns2string(cl_ulong nanosec)
 static int get_if_device_is_in_use(int sequential_id)
 {
 	int i = 0, found = 0;
+	int num_devices;
 
 	if (sequential_id >= get_number_of_available_devices()) {
 		return -1;
 	}
 
-	for (i = 0; i < get_number_of_devices_in_use() && !found; i++) {
+	num_devices = get_number_of_devices_in_use();
+
+	for (i = 0; i < num_devices && !found; i++) {
 		if (sequential_id == gpu_device_list[i])
 			found = 1;
 	}
@@ -457,6 +460,7 @@ static cl_int get_pci_info(int sequential_id, hw_bus *hardware_info)
 
 	hardware_info->bus = -1;
 	hardware_info->device = -1;
+	hardware_info->function = -1;
 	memset(hardware_info->busId, '\0', sizeof(hardware_info->busId));
 
 	if (gpu_amd(device_info[sequential_id]) || cpu(device_info[sequential_id])) {
@@ -505,7 +509,8 @@ static int start_opencl_device(int sequential_id, int *err_type)
 	cl_context_properties properties[3];
 	char opencl_data[LOG_SIZE];
 
-	// Get the detailed information about the device.
+	// Get the detailed information about the device
+	// (populate device_info[d] bitfield).
 	opencl_get_dev_info(sequential_id);
 
 	// Get hardware bus/PCIE information.
@@ -798,13 +803,16 @@ unsigned int opencl_get_vector_width(int sequential_id, int size)
 void opencl_done()
 {
 	int i;
+	int num_devices;
 
 	printed_mask = 0;
 
 	if (!opencl_initialized)
 		return;
 
-	for (i = 0; i < get_number_of_devices_in_use(); i++) {
+	num_devices = get_number_of_devices_in_use();
+
+	for (i = 0; i < num_devices; i++) {
 		if (queue[gpu_device_list[i]])
 			HANDLE_CLERROR(clReleaseCommandQueue(queue[gpu_device_list[i]]),
 			               "Release Queue");
@@ -1733,48 +1741,30 @@ static char* opencl_get_dev_info(int sequential_id)
 
 static int find_valid_opencl_device()
 {
-	cl_platform_id platform[MAX_PLATFORMS];
-	cl_device_id devices[MAX_GPU_DEVICES];
-	cl_uint num_platforms, num_devices;
-	cl_ulong long_entries;
-	int i, d, ret = 0, acc = 0, dev_number = 0;
+	int d, ret = 0, acc = 0;
 	unsigned int speed, best_1 = 0, best_2 = 0;
+	int num_devices = get_number_of_available_devices();
 
-	if (clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms) != CL_SUCCESS)
-		goto err;
+	for (d = 0; d < num_devices; d++) {
+		// Populate device_info[d] bitfield
+		opencl_get_dev_info(d);
 
-	for (i = 0; i < num_platforms; i++) {
-		clGetDeviceIDs(platform[i], CL_DEVICE_TYPE_ALL, MAX_GPU_DEVICES,
-		               devices, &num_devices);
+		if (device_info[d] &
+		    (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR)) {
+			speed = opencl_speed_index(d);
 
-		if (!num_devices)
-			continue;
+			if ((device_info[d] & CL_DEVICE_TYPE_GPU) && (speed > best_1)) {
+				best_1 = speed;
+				ret = d;
 
-		for (d = 0; d < num_devices; ++d) {
-			clGetDeviceInfo(devices[d], CL_DEVICE_TYPE,
-			                sizeof(cl_ulong), &long_entries, NULL);
-			// Get the detailed information about the device.
-			opencl_get_dev_info(dev_number);
-
-			if (long_entries &
-			   (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR)) {
-				speed = opencl_speed_index(dev_number);
-
-				if ((long_entries & CL_DEVICE_TYPE_GPU) &&
-				    (speed > best_1)) {
-					best_1 = speed;
-					ret = dev_number;
-
-				} else if ((long_entries & CL_DEVICE_TYPE_ACCELERATOR) &&
-					   (speed > best_2)) {
-					best_2 = speed;
-					acc = dev_number;
-				}
+			} else if ((device_info[d] & CL_DEVICE_TYPE_ACCELERATOR) &&
+			           (speed > best_2)) {
+				best_2 = speed;
+				acc = d;
 			}
-			dev_number++;
 		}
 	}
-err:
+
 	return ret ? ret : acc;
 }
 
@@ -2588,25 +2578,24 @@ void opencl_list_devices(void)
 				printf("    Kernel exec. timeout:   %s\n",
 				       boolean ? "yes" : "no");
 
-			if (ocl_device_list[sequence_nr].pci_info.bus >= 0) {
+			if (ocl_device_list[sequence_nr].pci_info.busId[0]) {
 				printf("    PCI device topology:    %s\n",
 				       ocl_device_list[sequence_nr].pci_info.busId);
 			}
 			fan = temp = util = -1;
 #if __linux__ && HAVE_LIBDL
-			if (gpu_nvidia(device_info[sequence_nr]) && nvml_lib) {
+			if (nvml_lib && gpu_nvidia(device_info[sequence_nr]) &&
+			    id2nvml(ocl_device_list[sequence_nr].pci_info) >= 0) {
 				printf("    NVML id:                %d\n",
 				       id2nvml(ocl_device_list[sequence_nr].pci_info));
 				nvidia_get_temp(id2nvml(ocl_device_list[sequence_nr].pci_info),
 				                &temp, &fan, &util);
-			} else if (gpu_amd(device_info[sequence_nr])) {
-				if (adl_lib) {
-					printf("    ADL:                    Overdrive%d, device id %d\n",
-					       adl2od[id2adl(ocl_device_list[sequence_nr].pci_info)],
-					       id2adl(ocl_device_list[sequence_nr].pci_info));
-					amd_get_temp(id2adl(ocl_device_list[sequence_nr].pci_info),
-					             &temp, &fan, &util);
-				}
+			} else if (adl_lib && gpu_amd(device_info[sequence_nr])) {
+				printf("    ADL:                    Overdrive%d, device id %d\n",
+				       adl2od[id2adl(ocl_device_list[sequence_nr].pci_info)],
+				       id2adl(ocl_device_list[sequence_nr].pci_info));
+				amd_get_temp(id2adl(ocl_device_list[sequence_nr].pci_info),
+				             &temp, &fan, &util);
 			}
 #endif
 			if (fan >= 0)
