@@ -8,10 +8,7 @@
 # Redistribution and use in source and binary forms, with or without modification,
 # are permitted.
 
-import sys, os
-from Crypto.Cipher import AES
-import hashlib
-import struct
+import sys, struct
 
 # file is beginning with 16bytes constant header
 GUID='\xc0\xb9\x07\x2e\x4f\x93\xf1\x46\xa0\x15\x79\x2c\xa1\xd9\xe8\x21'
