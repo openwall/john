@@ -24,7 +24,7 @@ StructKeys=[]
 
 def usage():
     print >> sys.stderr, 'usage: %s <axxfile> [KEY-FILE]\n' % sys.argv[0]
-    print >> sys.stderr, 'Script to extract informations from AxCrypt encrypted file\n'
+    print >> sys.stderr, 'Script to extract hash from AxCrypt encrypted file or self-decrypting binary\n'
     print >> sys.stderr, 'optional arguments:\n  KEY-FILE             path to optional key-file provided'
     sys.exit(1)
 
@@ -32,10 +32,23 @@ def DWORD_to_int(string_dword):
     string_dword_reversed = string_dword[::-1]
     return int('0x'+str(string_dword_reversed.encode('hex')), 16)
 
+def parse_PE(axxdata):
+    i = 0
+    while(axxdata[i:i+16] != GUID):
+        i += 1
+    return axxdata[i:]
+
 def parse_axxfile(axxfile):
     stream=open(axxfile, 'rb')
     axxdata=stream.read()
     stream.close()
+
+    # if header is 'MZ'
+    if axxdata[:2] == '\x4D\x5a':
+        offset_PE_magic = struct.unpack('<L', axxdata[60:64])[0]
+        # if 'PE' assume PE
+        if axxdata[offset_PE:offset_PE+2] == '\x50\x45':
+            axxdata = parse_PE(axxdata)
 
     sizeof_file=len(axxdata)
 
