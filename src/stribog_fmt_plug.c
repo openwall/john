@@ -492,4 +492,6 @@ struct fmt_main fmt_stribog_512 = {
 
 #endif /* plugin stanza */
 
+#else
+#warning Stribog-256 and Stribog-512 formats require SSE 4.1, formats disabled
 #endif /* __SSE4_1__ */
