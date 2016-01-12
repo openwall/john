@@ -423,7 +423,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	} while (benchmark_time &&
 		 (((wait && salts_done < salts) ||
 	          bench_running) && !event_abort));
-	//fprintf ("  salts_done=%d  ", salts_done);
+	//fprintf (stderr, "  salts_done=%d  ", salts_done);
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 	end_real = clock();
