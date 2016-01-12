@@ -482,6 +482,7 @@ linux-x86-64-clang:
 		CFLAGS="-Wall -c -O2 -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_LIBGMP) $(JOHN_CFLAGS)" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
+		OPT_INLINE="$(OPT_NORMAL)" \
 		AESNI_ARCH=64 YASM_FORMAT="elf64"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP) CC="clang"
@@ -727,6 +728,7 @@ linux-x86-clang:
 		CFLAGS="-Wall -c -O2 -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_LIBDL -D_LARGEFILE64_SOURCE $(HAVE_LIBGMP) $(OMPFLAGS) $(JOHN_CFLAGS)" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
+		OPT_INLINE="$(OPT_NORMAL)" \
 		AESNI_ARCH=86 YASM_FORMAT="elf32"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP) CC="clang"
