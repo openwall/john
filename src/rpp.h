@@ -34,7 +34,7 @@ struct rpp_range {
 	int flag_r;
 
 /* Present characters bitmask for dupe checking */
-	ARCH_WORD mask[0x100 / ARCH_BITS];
+	unsigned ARCH_WORD mask[0x100 / ARCH_BITS];
 
 /* Character values */
 	char chars[0x100];
