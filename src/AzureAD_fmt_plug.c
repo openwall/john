@@ -149,7 +149,7 @@ static void set_key(char *key, int index) {
 	MD4_Init(&ctx);
 	MD4_Update(&ctx, Buf, len*2);
 	MD4_Final(hash, &ctx);
-	base64_convert(hash, e_b64_raw, 16, hex, e_b64_hex, 32, flg_Base64_HEX_UPCASE);
+	base64_convert(hash, e_b64_raw, 16, hex, e_b64_hex, sizeof(hex), flg_Base64_HEX_UPCASE);
 	for (len = 0; len < 32; ++len)
 		saved_nt[index][len<<1] = hex[len];
 }

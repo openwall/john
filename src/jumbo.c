@@ -17,6 +17,7 @@
 #include <windows.h>
 #include <stdarg.h>
 #endif
+#include <ctype.h>
 
 #if defined (__CYGWIN32__) && !defined(__CYGWIN64__)
 #include <io.h>

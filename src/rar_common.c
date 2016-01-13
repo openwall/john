@@ -6,6 +6,8 @@
  * modification, are permitted.
  */
 
+#include "misc.h"	// error()
+
 static int omp_t = 1;
 static unsigned char *saved_salt;
 static unsigned char *saved_key;

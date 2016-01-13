@@ -1161,7 +1161,7 @@ static void get_longest_common_string(char *fstr, char *sstr, int *first_index,
  */
 static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext, int *is_split_unifies_case, int call_cnt)
 {
-	char *cipher_copy, *ret, *bin_hex, *ret_copy=0;
+	char *cipher_copy, *ret, *bin_hex=0, *ret_copy=0;
 	void *bin;
 	int first_index, second_index, size, index;
 	int change_count = 0;
@@ -1187,7 +1187,7 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 		ret_copy = strdup(ret);
 		bin = format->methods.binary(ret_copy);
 		if (format->params.binary_size>4) {
-			bin_hex = mem_alloc(format->params.binary_size*2 + 4);
+			bin_hex = mem_alloc(format->params.binary_size*2+1);
 			base64_convert(bin, e_b64_raw, format->params.binary_size, bin_hex, e_b64_hex, format->params.binary_size*2+1, 0);
 			cp = strstr(ret_copy, bin_hex);
 			strupr(bin_hex);
@@ -1211,7 +1211,7 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 			MEM_FREE(bin_hex);
 		}
 		if (format->params.salt_size>4 && format->params.salt_size < strlen(ret_copy)-10) {
-			bin_hex = mem_alloc(format->params.salt_size*2 + 4);
+			bin_hex = mem_alloc(format->params.salt_size*2+1);
 			bin = format->methods.salt(ret_copy);
 			dyna_salt_create(bin);
 			base64_convert(bin, e_b64_raw, format->params.salt_size, bin_hex, e_b64_hex, format->params.salt_size*2+1, 0);

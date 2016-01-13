@@ -1480,8 +1480,8 @@ static void john_init(char *name, int argc, char **argv)
 #ifdef _OPENMP
 	john_omp_maybe_adjust_or_fallback(argv);
 #endif
-
-	john_register_all(); /* maybe restricted to one format by options */
+	if(!(options.flags & FLG_STDOUT))
+		john_register_all(); /* maybe restricted to one format by options */
 	common_init();
 	sig_init();
 

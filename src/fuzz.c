@@ -20,7 +20,7 @@
 #endif /* __CYGWIN */
 #endif /* _MSC_VER ... */
 
-#ifndef __linux__
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
 #include <io.h> /* mingW _mkdir */
 #endif
 
@@ -28,6 +28,7 @@
 #include <sys/mman.h>
 #endif
 
+#include "misc.h"	// error()
 #include "config.h"
 #include "john.h"
 #include "params.h"
@@ -517,10 +518,10 @@ static char * get_next_fuzz_case(char *label, char *ciphertext)
 static void init_status(char *format_label)
 {
 	sprintf(status_file_path, "%s", "fuzz_status");
-#ifdef __linux__
-	if (mkdir(status_file_path, S_IRUSR | S_IWUSR | S_IXUSR)) {
-#else
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
 	if (_mkdir(status_file_path)) { // MingW
+#else
+	if (mkdir(status_file_path, S_IRUSR | S_IWUSR | S_IXUSR)) {
 #endif
 		if (errno != EEXIST) pexit("mkdir: %s", status_file_path);
 	} else
@@ -568,6 +569,7 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 		}
 	}
 	if (fclose(s_file)) pexit("fclose");
+	remove(status_file_path);
 }
 
 // Dump fuzzed hashes which index is between from and to, including from and excluding to
@@ -576,10 +578,11 @@ static void fuzz_dump(struct fmt_main *format, const int from, const int to)
 	int index;
 	char *ret;
 	struct fmt_tests *current;
-	char file_name[PATH_BUFFER_SIZE];
+	static char file_name[PATH_BUFFER_SIZE];
 	FILE *file;
 
-	sprintf(file_name, "pwfile.%s", format->params.label);
+	init_status(format->params.label);
+	sprintf(file_name, "fuzz_status/pwfile.%s", format->params.label);
 	if (!(file = fopen(file_name, "w")))
 		pexit("fopen: %s", file_name);
 
@@ -591,6 +594,7 @@ static void fuzz_dump(struct fmt_main *format, const int from, const int to)
 		if (index >= from) {
 			if (index == to)
 				break;
+			save_index(index);
 			fprintf(file, "%s\n", fuzz_hash);
 		}
 		index++;
@@ -600,6 +604,7 @@ static void fuzz_dump(struct fmt_main *format, const int from, const int to)
 		}
 	}
 	if (fclose(file)) pexit("fclose");
+	remove(file_name);
 }
 
 

@@ -144,7 +144,7 @@ static void done(void)
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
 	static char Buf[120];
-	char tmp[43+3], *cp;
+	char tmp[43+1], *cp;
 
 	if (strncmp(fields[1], FMT_CISCO8, 3) != 0)
 		return fields[1];
@@ -200,26 +200,29 @@ static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt salt;
 	char *p, *c = ciphertext;
+	uint32_t rounds;
 
 	memset(&salt, 0, sizeof(salt));
 	c += strlen(FMT_PREFIX);
-	salt.rounds = strtol(c, NULL, 10);
+	rounds = strtol(c, NULL, 10);
 	c = strchr(c, '$') + 1;
 	p = strchr(c, '$');
-	if (p-c==14 && salt.rounds==20000) {
+	if (p-c==14 && rounds==20000) {
 		// for now, assume this is a cisco8 hash
 		strnzcpy((char*)(salt.salt), c, 15);
 		salt.length = 14;
+		salt.rounds = rounds;
 		return (void*)&salt;
 	}
 	salt.length = base64_convert(c, e_b64_mime, p-c, salt.salt, e_b64_raw, sizeof(salt.salt), flg_Base64_MIME_PLUS_TO_DOT);
+	salt.rounds = rounds;
 	return (void *)&salt;
 }
 
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		char c[BINARY_SIZE + 1];
+		char c[BINARY_SIZE];
 		ARCH_WORD dummy;
 	} buf;
 	char *ret = buf.c;

@@ -179,7 +179,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *cp = ciphertext;
 	char *keeptr;
 	int len, hash_len=0;
-	char tmp[MAX_BINARY_SIZE+SALT_LENGTH+4];
+	char tmp[MAX_BINARY_SIZE+SALT_LENGTH];
 	/* first check for 'simple' signatures before allocation other stuff. */
 	if (strncmp(cp, "{x-is", 5) || !strchr(cp, '}'))
 		return 0;
@@ -208,7 +208,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(cp) != base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ|flg_Base64_MIME_TRAIL_EQ_CNT))
 		goto err;
 	len = base64_convert(cp, e_b64_mime, strlen(cp), tmp, e_b64_raw,
-	                     MAX_BINARY_SIZE+SALT_LENGTH, flg_Base64_MIME_TRAIL_EQ);
+	                     sizeof(tmp), flg_Base64_MIME_TRAIL_EQ);
 	len -= hash_len;
 	if (len < 1 || len > SALT_LENGTH)
 		goto err;
@@ -567,8 +567,8 @@ static void *get_binary(char *ciphertext)
 		ARCH_WORD_32 jnk[BINARY_SIZE/4];
 	} b;
 	char *cp = ciphertext;
-	unsigned char tmp[MAX_BINARY_SIZE+SALT_LENGTH+4];
 
+	memset(b.cp, 0, sizeof(b.cp));
 	cp += 5; /* skip the {x-is */
 	if (!strncasecmp(cp, "sha, ", 5)) { cp += 5; }
 	else if (!strncasecmp(cp, "sha256, ", 8)) { cp += 8; }
@@ -577,9 +577,8 @@ static void *get_binary(char *ciphertext)
 	else { fprintf(stderr, "error, bad signature in sap-H format!\n"); error(); }
 	while (*cp != '}') ++cp;
 	++cp;
-	base64_convert(cp, e_b64_mime, strlen(cp), tmp, e_b64_raw,
-	               MAX_BINARY_SIZE+SALT_LENGTH, flg_Base64_MIME_TRAIL_EQ);
-	memcpy(b.cp, tmp, BINARY_SIZE);
+	base64_convert(cp, e_b64_mime, strlen(cp), b.cp, e_b64_raw,
+	               sizeof(b.cp), flg_Base64_MIME_TRAIL_EQ);
 	return b.cp;
 
 }
@@ -588,7 +587,7 @@ static void *get_salt(char *ciphertext)
 {
 	static struct sapH_salt s;
 	char *cp = ciphertext;
-	unsigned char tmp[MAX_BINARY_SIZE+SALT_LENGTH+4];
+	unsigned char tmp[MAX_BINARY_SIZE+SALT_LENGTH];
 	int total_len, hash_len = 0;
 
 	memset(&s, 0, sizeof(s));
@@ -602,7 +601,7 @@ static void *get_salt(char *ciphertext)
 	while (*cp != '}') ++cp;
 	++cp;
 	total_len = base64_convert(cp, e_b64_mime, strlen(cp), tmp, e_b64_raw,
-	                           MAX_BINARY_SIZE+SALT_LENGTH, flg_Base64_MIME_TRAIL_EQ);
+	                           sizeof(tmp), flg_Base64_MIME_TRAIL_EQ);
 	s.slen = total_len-hash_len;
 	memcpy(s.s, &tmp[hash_len], s.slen);
 	return &s;

@@ -32,30 +32,33 @@
 /* ------- Check if the ciphertext if a valid QNX crypt ------- */
 static int valid(char *ciphertext, struct fmt_main *self) {
 	char *origptr = strdup(ciphertext), *ct = origptr;
-	int len;
+	int len, ret = 0;
+
 	if (*ct != '@')
-		return 0;
+		goto Exit;
 	ct = strtokm(&ct[1], "@");
 	// Only allow @m @s or @S signatures.
 	if (*ct == 'm') len = 32;
 	else if (*ct == 's') len = 64;
 	else if (*ct == 'S') len = 128;
-	else return 0;
+	else goto Exit;
 
 	// If ANYTHING follows the signtuare, it must be ",decimal" However
 	// having nothing following is valid, and specifies default of ,1000
 	if (ct[1]) {
 		if (ct[1] != ',' || !isdec(&ct[2]))
-			return 0;
+			goto Exit;
 	}
 	ct = strtokm(NULL, "@");
 	if (!ishexlc(ct) || strlen(ct) != len)
-		return 0;
+		goto Exit;
 	ct = strtokm(NULL, "@");
 	if (!ishexlc(ct) || strlen(ct) > SALT_LENGTH)
-		return 0;
+		goto Exit;
+	ret = 1;
+Exit:;
 	MEM_FREE(origptr);
-	return 1;
+	return ret;
 }
 
 static void *get_binary(char *ciphertext) {

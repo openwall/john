@@ -84,6 +84,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 
 # todo: sapb sapfg ike keepass cloudkeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring keystore krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sxc sybase-prop tripcode vtp whirlpool0 whirlpool1
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
+my $qnx_sha512_warning=0;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
 my @chrAsciiTextHi=('A'..'Z');
@@ -667,8 +668,13 @@ sub get_salt {
 	my $randlen = 0;
 	if ($len < 0) { $randlen = 1; $len *= -1; }
 	my $aslen = $len;
-	if (defined $_[1] && $_[1]+0 eq $_[1]) { $aslen = $_[1]; }
-	my @chr = defined($_[2]) ? @{$_[2]} : @chrAsciiTextNum;
+	my @chr = ();
+	my $chrset_arg = 1;
+	if (defined $_[1] && $_[1]+0 eq $_[1]) {
+		$aslen = $_[1];
+		$chrset_arg = 2;
+	}
+	@chr = defined($_[$chrset_arg]) ? @{$_[$chrset_arg]} : @chrAsciiTextNum;
 	if (defined $argsalt && length ($argsalt)==$aslen*2 && length(pack("H*",$argsalt))==$aslen) {
 		$argsalt = pack("H*",$argsalt);
 	} elsif (defined $argsalt && substr($argsalt, 0, 4) eq "HEX=") {
@@ -1848,8 +1854,7 @@ sub vdi_128 {
 	return "\$vdi\$aes-xts128\$sha256\$2000\$2000\$32\$32\$$salt1\$$salt2\$$enc_pass\$$final";
 }
 sub qnx_md5 {
-	$salt = unpack("H*",get_salt(8));
-	#$salt = "6e1f9a390d50a85c";
+	$salt = get_salt(16, \@chrHexLo);
 	my $rounds = get_loops(1000);
 	my $h = md5($salt . $_[0]x($rounds+1));
 	my $ret = "\@m";
@@ -1857,20 +1862,23 @@ sub qnx_md5 {
 	$ret .= "\@".unpack("H*",$h)."\@$salt";
 	return $ret;
 }
+
 sub qnx_sha512 {
-	$salt = unpack("H*",get_salt(8));
-	#$salt = "129b6761";
-	#$salt = "caa3cc118d2deb23";
-	my $rounds = get_loops(1000);
-	my $h = sha512($salt . $_[0]x($rounds+1));
-	my $ret = "\@S";
-	if ($rounds != 1000) { $ret .= ",$rounds"; }
-	$ret .= "\@".unpack("H*",$h)."\@$salt";
-	return $ret;
+#	use SHA512_qnx;
+#	$salt = get_salt(16, \@chrHexLo);
+#	my $rounds = get_loops(1000);
+#	my $h = SHA512_qnx::sha512($salt . $_[0]x($rounds+1));
+#	my $ret = "\@S";
+#	if ($rounds != 1000) { $ret .= ",$rounds"; }
+#	$ret .= "\@".unpack("H*",$h)."\@$salt";
+#	return $ret;
+	if ($qnx_sha512_warning == 0) {
+		print STDERR "\nqnx_sha512 requires SHA512_qnx.pm to be in current directory, and the qnx_sha512 function edited.\n\n";}
+	$qnx_sha512_warning += 1;
+	return qnx_sha256(@_);
 }
 sub qnx_sha256 {
-	$salt = unpack("H*",get_salt(8));
-	#$salt = "36bdb8080d25f44f";
+	$salt = get_salt(16, \@chrHexLo);
 	my $rounds = get_loops(1000);
 	my $h = sha256($salt . $_[0]x($rounds+1));
 	my $ret = "\@s";
@@ -3389,6 +3397,7 @@ sub dynamic_compile {
 			$dynamic_args==1504 && do {$fmt='sha1($s.$p.$s)';								last SWITCH; };
 			$dynamic_args==1505 && do {$fmt='md5($p.$s.md5($p.$s)),saltlen=-64';			last SWITCH; };
 			$dynamic_args==1506 && do {$fmt='md5($u.$c1.$p),const1=:XDB:,usrname=true';		last SWITCH; };
+			$dynamic_args==1507 && do {$fmt='sha1($c1.utf16($p)),const1='."\x01\x00\x0f\x00\x0d\x00\x33\x00";		last SWITCH; };
 			$dynamic_args==1588 && do {$fmt='SHA256($s.SHA1($p)),saltlen=64,salt=asHEX64';	last SWITCH; };
 			$dynamic_args==2000 && do {$fmt='md5($p)';										last SWITCH; };
 			$dynamic_args==2001 && do {$fmt='md5($p.$s),saltlen=32';						last SWITCH; };

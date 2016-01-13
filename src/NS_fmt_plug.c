@@ -98,7 +98,7 @@ static int NS_valid(char *ciphertext, struct fmt_main *self);
 static char *Convert(char *Buf, char *ciphertext)
 {
 	char *cp, *cpo;
-	unsigned char *bin, hash[32+3], salt_hex[(ADM_LEN+SALT_SIZE)*2+3], salt_raw[(ADM_LEN+SALT_SIZE)+1];
+	unsigned char *bin, hash[32+1], salt_hex[(ADM_LEN+SALT_SIZE)*2+1], salt_raw[(ADM_LEN+SALT_SIZE)+1];
 
 	if (text_in_dynamic_format_already(pDynamic, ciphertext))
 		return ciphertext;
@@ -107,12 +107,12 @@ static char *Convert(char *Buf, char *ciphertext)
 		return "*";
 
 	bin = (unsigned char*)get_binary(ciphertext);
-	base64_convert(bin, e_b64_raw, 16, hash, e_b64_hex, 32, 0);
+	base64_convert(bin, e_b64_raw, 16, hash, e_b64_hex, sizeof(hash), 0);
 	cp = ciphertext; cpo = (char*)salt_raw;
 	while (*cp != '$')
 		*cpo++ = *cp++;
 	strcpy(cpo, adm);
-	base64_convert(salt_raw, e_b64_raw, strlen((char*)salt_raw), salt_hex, e_b64_hex, (ADM_LEN+SALT_SIZE)*2, 0);
+	base64_convert(salt_raw, e_b64_raw, strlen((char*)salt_raw), salt_hex, e_b64_hex, sizeof(salt_hex), 0);
 	snprintf(Buf, sizeof(Conv_Buf) - SALT_SIZE, "$dynamic_2004$%s$HEX$%s", hash, salt_hex);
 	return Buf;
 }

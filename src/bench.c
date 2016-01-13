@@ -420,8 +420,10 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		sig_timer_emu_tick();
 #endif
 		salts_done++;
-	} while (((wait && salts_done < salts) ||
-	          bench_running) && !event_abort);
+	} while (benchmark_time &&
+		 (((wait && salts_done < salts) ||
+	          bench_running) && !event_abort));
+	//fprintf (stderr, "  salts_done=%d  ", salts_done);
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 	end_real = clock();

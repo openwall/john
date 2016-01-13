@@ -28,7 +28,7 @@
 
     sudo apt-get install cmake bison flex libicu-dev
     cd ~/src
-    git clone --recursive -b 1.2.5 https://github.com/teeshop/rexgen.git
+    git clone --recursive https://github.com/teeshop/rexgen.git
     cd rexgen/src
     ./install.sh
 

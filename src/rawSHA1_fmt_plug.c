@@ -218,11 +218,11 @@ static char *get_key(int index) {
 
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 full[DIGEST_SIZE / 4 + 1];
+	static ARCH_WORD_32 full[DIGEST_SIZE / 4];
 	unsigned char *realcipher = (unsigned char*)full;
 
 	ciphertext += TAG_LENGTH;
-	base64_convert(ciphertext, e_b64_mime, 28, realcipher, e_b64_raw, DIGEST_SIZE, flg_Base64_MIME_TRAIL_EQ);
+	base64_convert(ciphertext, e_b64_mime, 28, realcipher, e_b64_raw, sizeof(full), flg_Base64_MIME_TRAIL_EQ);
 
 #ifdef SIMD_COEF_32
 	alter_endianity(realcipher, DIGEST_SIZE);

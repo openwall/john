@@ -73,7 +73,6 @@ john_register_one(&fmt_dmg);
 #define NEED_OS_FLOCK
 #include "os.h"
 #endif
-#include "filevault.h"
 #include "arch.h"
 #include "jumbo.h"
 #include "params.h"

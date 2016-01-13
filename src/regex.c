@@ -13,6 +13,7 @@
 
 #if HAVE_REXGEN
 
+#include "misc.h" // error()
 #include "loader.h"
 #include "logger.h"
 #include "status.h"
@@ -75,18 +76,19 @@ static void rexgen_setlocale()
 
 static char BaseWord[1024];
 
-const char *callback()
+size_t callback(char* dst, const size_t buffer_size)
 {
-	static char Buf[1024];
+	const char* last = NULL;
 
-	if (!BaseWord[0])
-		*Buf = 0;
-	strcpy(Buf, BaseWord);
+	if (!BaseWord[0]) {
+		*dst = 0;
+	}
+	last = stpcpy(dst, BaseWord);
 	*BaseWord = 0;
-	if (*Buf)
-		return Buf;
-	//printf ("Returning %s\n", Buf);
-	return NULL;
+	if (*dst) {
+		return (last - dst);
+	}
+	return 0;
 }
 
 void SetupAlpha(const char *regex_alpha)
@@ -120,7 +122,7 @@ void SetupAlpha(const char *regex_alpha)
 		while (x) {
 			if (x->data && x->data[1] == '=')
 				rexgen_alphabets[(unsigned char)(x->data[0])] =
-				    str_alloc_copy(&(x->data[2]));
+					str_alloc_copy(&(x->data[2]));
 			x = x->next;
 		}
 	}
@@ -131,11 +133,12 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 {
 	c_simplestring_ptr buffer = c_simplestring_new();
 	c_iterator_ptr iter = NULL;
-	charset encoding = CHARSET_UTF8;
+	c_regex_ptr regex_ptr = NULL;
 	char word[PLAINTEXT_BUFFER_SIZE];
 	static int bFirst = 1;
 	static int bALPHA = 0;
 	int max_len = db->format->params.plaintext_length;
+	int retval;
 
 	if (options.req_maxlength)
 		max_len = options.req_maxlength;
@@ -188,50 +191,63 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 	strcpy(BaseWord, base_word);
 	if (!regex[0]) {
 		if (options.mask) {
-			if (do_mask_crack(fmt_null_key))
-				return 1;
+			if (do_mask_crack(fmt_null_key)) {
+				retval = 1;
+				goto out;
+			}
 		} else
 		if (ext_filter(fmt_null_key)) {
-			if (crk_process_key(fmt_null_key))
-				return 1;
+			if (crk_process_key(fmt_null_key)) {
+				retval = 1;
+				goto out;
+			}
 		}
-		return 0;
+		retval = 0;
+		goto out;
 	}
-	iter = c_regex_iterator_cb(regex, regex_case, encoding, callback);
-	if (!iter) {
+
+	regex_ptr = c_regex_cb(regex, callback);
+	if (!regex_ptr) {
+		c_simplestring_delete(buffer);
 		fprintf(stderr,
 		        "Error, invalid regex expression.  John exiting now  base_word=%s  Regex= %s\n",
 		        base_word, regex);
 		error();
 	}
+	iter = c_regex_iterator(regex_ptr);
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
-		c_simplestring_to_binary_string(buffer, &word[0], sizeof(word));
+		c_simplestring_to_utf8_string(buffer, &word[0], sizeof(word));
 		c_simplestring_clear(buffer);
 		if (options.mask) {
-			if (do_mask_crack(word))
-				return 1;
+			if (do_mask_crack(word)) {
+				retval = 1;
+				goto out;
+			}
 		} else
 		if (ext_filter((char *)word)) {
 			word[max_len] = 0;
 			if (crk_process_key((char *)word)) {
-				c_simplestring_delete(buffer);
-				c_iterator_delete(iter);
-				return 1;
+				retval = 1;
+				goto out;
 			}
 		}
 	}
+	retval = 0;
+	goto out;
+
+out:
 	c_simplestring_delete(buffer);
+	c_regex_delete(regex_ptr);
 	c_iterator_delete(iter);
-	return 0;
+	return retval;
 }
 
 void do_regex_crack(struct db_main *db, const char *regex)
 {
 	c_simplestring_ptr buffer = c_simplestring_new();
 	c_iterator_ptr iter = NULL;
-	charset encoding = CHARSET_UTF8;
-	int ignore_case = 0;
+	c_regex_ptr regex_ptr = NULL;
 	char word[PLAINTEXT_BUFFER_SIZE];
 	int max_len = db->format->params.plaintext_length;
 
@@ -247,15 +263,16 @@ void do_regex_crack(struct db_main *db, const char *regex)
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 	crk_init(db, fix_state, NULL);
-	iter = c_regex_iterator_cb(regex, ignore_case, encoding, callback);
-	if (!iter) {
+	regex_ptr = c_regex_cb(regex, callback);
+	if (!regex_ptr) {
 		fprintf(stderr,
 		        "Error, invalid regex expression.  John exiting now\n");
 		error();
 	}
+	iter = c_regex_iterator(regex_ptr);
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
-		c_simplestring_to_binary_string(buffer, &word[0], sizeof(word));
+		c_simplestring_to_utf8_string(buffer, &word[0], sizeof(word));
 		c_simplestring_clear(buffer);
 		if (options.mask) {
 			if (do_mask_crack(word))

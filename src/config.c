@@ -461,7 +461,7 @@ static int cfg_process_directive_include_config(char *line, int number)
 {
 	char *p, *p2, *saved_fname;
 	char Name[PATH_BUFFER_SIZE];
-	int allow_missing;
+	int allow_missing = 0;
 
 	// Ok, we are including a file.
 	if (!strncmp(line, ".include \"", 10)) {

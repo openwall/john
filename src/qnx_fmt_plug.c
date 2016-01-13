@@ -232,8 +232,31 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				SHA512_CTX ctx;
 				SHA512_Init(&ctx);
 				SHA512_Update(&ctx, cur_salt->salt, cur_salt->len);
-				for (i = 0; i <= cur_salt->rounds; ++i)
-					SHA512_Update(&ctx, pass, len);
+				if (128 % len == 0 && cur_salt->len+len*cur_salt->rounds > 256) {
+					// we can optimize this, by filling buffer (after the
+					// first salted buffer), and then simply calling
+					// jtr_sha512_hash_block 'natively' never having to
+					// refill the buffer again.
+					for (i = 0; i <= cur_salt->rounds; ++i) {
+						SHA512_Update(&ctx, pass, len);
+						if (ctx.total > 128+cur_salt->len)
+							break;
+					}
+					++i;
+					i += (256-ctx.total)/len;
+					ctx.total = 256;
+					jtr_sha512_hash_block(&ctx, ctx.buffer, 1);
+					while (i+128/len <= cur_salt->rounds) {
+						ctx.total += 128;
+						jtr_sha512_hash_block(&ctx, ctx.buffer, 1);
+						i += 128/len;
+					}
+					for (;i <= cur_salt->rounds; ++i)
+						ctx.total += len;
+				} else {
+					for (i = 0; i <= cur_salt->rounds; ++i)
+						SHA512_Update(&ctx, pass, len);
+				}
 				ctx.bIsQnxBuggy = 1;
 				SHA512_Final((unsigned char*)(crypt_out[index]), &ctx);
 				break;
@@ -273,6 +296,7 @@ static void *get_salt(char *ciphertext)
 	ct = strtokm(NULL, "@");
 	out.len = strlen(ct);
 	memcpy(out.salt, ct, out.len);
+	MEM_FREE(origptr);
 	return &out;
 }
 

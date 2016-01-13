@@ -20,6 +20,7 @@
 
 
 #include <stdio.h>
+#include "misc.h"	// error()
 #include "config.h"
 #include "john.h"
 #include "memory.h"
