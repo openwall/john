@@ -29,7 +29,8 @@ static void rpp_add_char(struct rpp_range *range, unsigned char c)
 		if (range->count >= 0x100) return;
 	} else {
 		int index = c / ARCH_BITS;
-		ARCH_WORD mask = (ARCH_WORD)1 << (c % ARCH_BITS);
+		unsigned ARCH_WORD mask =
+		    (unsigned ARCH_WORD)1 << (c % ARCH_BITS);
 
 		if (range->mask[index] & mask) return;
 
