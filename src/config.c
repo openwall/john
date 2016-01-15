@@ -24,6 +24,9 @@
 #include "john.h"
 #include "logger.h"
 #include "external.h"
+#ifndef BENCH_BUILD
+#include "options.h"
+#endif
 #include "memdbg.h"
 
 char *cfg_name = NULL;
@@ -103,6 +106,10 @@ static void cfg_add_section(char *name)
 			if (!strcmp(last->name, name)) {
 				if (!cfg_loading_john_local)
 					fprintf(stderr, "Warning! john.conf section [%s] is multiple declared.\n", name);
+#ifndef BENCH_BUILD
+				else if (options.verbosity > VERB_DEFAULT)
+					fprintf(stderr, "Warning! Section [%s] overridden by john-local.conf\n", name);
+#endif
 				break;
 			}
 			last = last->next;
