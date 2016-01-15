@@ -368,7 +368,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	while ((current++)->ciphertext)
 		ntests++;
 	current = format->params.tests;
-#ifdef _MSC_VER
+#if defined (_MSC_VER) && !defined (BENCH_BUILD)
 	if (current->ciphertext[0] == 0 &&
 	    !strcasecmp(format->params.label, "LUKS")) {
 		// luks has a string that is longer than the 64k max string length of
@@ -709,6 +709,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		    format->methods.source(ciphertext, binary))) {
 			return "source";
 		}
+#ifndef BENCH_BUILD
 		if ((dbsalt = db->salts))
 		do {
 			if (!dyna_salt_cmp(salt, dbsalt->salt,
@@ -718,6 +719,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (db->salts && !dbsalt) {
 			return "Could not find salt in db - salt() return inconsistent?";
 		}
+#endif
 #endif
 #ifndef JUMBO_JTR
 		format->methods.set_key(current->plaintext, index);
