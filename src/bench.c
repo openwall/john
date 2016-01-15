@@ -82,7 +82,7 @@ static void _ldr_init_database(struct db_main *db) {
 	db->format = NULL;
 }
 
-static struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
+struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 {
 	struct fmt_main *real_list = fmt_list;
 	struct fmt_main fake_list;
@@ -161,7 +161,7 @@ static struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main 
 }
 
 // lol, who cares about memory leaks here.  This is just the benchmark builder
-static void ldr_free_test_db(struct db_main *db)
+void ldr_free_test_db(struct db_main *db)
 {
 }
 #endif
