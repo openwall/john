@@ -493,7 +493,11 @@ struct fmt_main fmt_stribog_512 = {
 #endif /* plugin stanza */
 
 #else
-#if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H) && !defined (_MSC_VER)
+#if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H)
+#ifdef __GNUC__
 #warning Stribog-256 and Stribog-512 formats require SSE 4.1, formats disabled
+#elif _MSC_VER
+#pragma message(": warning Stribog-256 and Stribog-512 formats require SSE 4.1, formats disabled:")
+#endif
 #endif
 #endif /* __SSE4_1__ */
