@@ -182,7 +182,7 @@ static int cmp_all(void *binary, int count) {
 				return 1;
 	return 0;
 #else
-	return !memcmp(&((ARCH_WORD_32*)binary)[1], &crypt_key[1], BINARY_SIZE - 4);
+	return !memcmp(&((ARCH_WORD_32*)binary)[0], &crypt_key[0], BINARY_SIZE - 4);
 #endif
 }
 
