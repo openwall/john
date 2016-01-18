@@ -90,8 +90,6 @@ static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 static SHA_CTX ctx;
 #endif
 
-extern volatile int bench_running;
-
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[40+1];
