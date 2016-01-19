@@ -10,7 +10,9 @@
 
 #include "opencl_device_info.h"
 #include "opencl_unicode.h"
+#if DEV_VER_MAJOR < 1912
 #define AMD_PUTCHAR_NOCAST /* AMD bug workaround */
+#endif
 #include "opencl_misc.h"
 #define RC4_BUFLEN 32
 #define RC4_IN_PLACE
