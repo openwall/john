@@ -31,7 +31,7 @@
 
 #define DES_BS_VECTOR_LOOPS 0
 
-#if defined(__ARM_NEON__) && DES_BS_DEPTH == 64
+#if defined(__ARM_NEON) && DES_BS_DEPTH == 64
 #include <arm_neon.h>
 
 typedef uint32x2_t vtype;
@@ -62,7 +62,7 @@ typedef uint32x2_t vtype;
 #define vshr(dst, src, shift) \
 	(dst) = vshr_n_u32((src), (shift))
 
-#elif defined(__ARM_NEON__) && ARCH_BITS == 32 && DES_BS_DEPTH == 96
+#elif defined(__ARM_NEON) && ARCH_BITS == 32 && DES_BS_DEPTH == 96
 #include <arm_neon.h>
 
 typedef struct {
@@ -96,7 +96,7 @@ typedef struct {
 	(dst).f = vbsl_u32((c).f, (b).f, (a).f); \
 	(dst).g = (((a).g & ~(c).g) ^ ((b).g & (c).g))
 
-#elif defined(__ARM_NEON__) && DES_BS_DEPTH == 128 && defined(DES_BS_2X64)
+#elif defined(__ARM_NEON) && DES_BS_DEPTH == 128 && defined(DES_BS_2X64)
 #include <arm_neon.h>
 
 typedef struct {
@@ -131,7 +131,7 @@ typedef struct {
 	(dst).f = vbsl_u32((c).f, (b).f, (a).f); \
 	(dst).g = vbsl_u32((c).g, (b).g, (a).g)
 
-#elif defined(__ARM_NEON__) && DES_BS_DEPTH == 128
+#elif defined(__ARM_NEON) && DES_BS_DEPTH == 128
 #include <arm_neon.h>
 
 typedef uint32x4_t vtype;
@@ -162,7 +162,7 @@ typedef uint32x4_t vtype;
 #define vshr(dst, src, shift) \
 	(dst) = vshrq_n_u32((src), (shift))
 
-#elif defined(__ARM_NEON__) && \
+#elif defined(__ARM_NEON) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 192) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 160))
 #include <arm_neon.h>
@@ -198,7 +198,7 @@ typedef struct {
 	(dst).f = vbslq_u32((c).f, (b).f, (a).f); \
 	(dst).g = (((a).g & ~(c).g) ^ ((b).g & (c).g))
 
-#elif defined(__ARM_NEON__) && DES_BS_DEPTH == 256
+#elif defined(__ARM_NEON) && DES_BS_DEPTH == 256
 #include <arm_neon.h>
 
 typedef struct {

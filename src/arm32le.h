@@ -41,7 +41,7 @@
 #define DES_COPY			1
 #define DES_BS_ASM			0
 #define DES_BS				1
-#ifdef __ARM_NEON__
+#ifdef __ARM_NEON
 #if 0
 #define DES_BS_VECTOR			2
 #define DES_BS_ALGORITHM_NAME		"DES 64/64 NEON"
