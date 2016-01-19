@@ -67,7 +67,7 @@
 #if __AVX512F__
 #define MD5_I(x,y,z)                            \
     tmp[i] = vternarylogic(x[i], y[i], z[i], 0x39);
-#elif __ARM_NEON__
+#elif __ARM_NEON
 #define MD5_I(x,y,z)                            \
     tmp[i] = vorn((x[i]), (z[i]));              \
     tmp[i] = vxor((tmp[i]), (y[i]));
@@ -131,7 +131,7 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	unsigned int i;
 	vtype *data;
 
-#if !__AVX512F__ && !__ARM_NEON__
+#if !__AVX512F__ && !__ARM_NEON
 	vtype mask;
 	mask = vset1_epi32(0xffffffff);
 #endif
@@ -435,7 +435,7 @@ static MAYBE_INLINE void mmxput2(void *buf, unsigned int bid, void *src)
 		memcpy( nbuf+i*64*VS32, ((unsigned char*)src)+i*16*VS32, 16*VS32);
 }
 
-#if (ARCH_SIZE >= 8) || defined(__i386__) || defined(__ARM_NEON__)
+#if (ARCH_SIZE >= 8) || defined(__i386__) || defined(__ARM_NEON)
 #define BITALIGN(hi, lo, s) ((((uint64_t)(hi) << 32) | (lo)) >> (s))
 #else
 #define BITALIGN(hi, lo, s) (((hi) << (32 - (s))) | ((lo) >> (s)))

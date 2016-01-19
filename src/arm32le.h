@@ -77,7 +77,7 @@
 #define BF_SCALE			1
 #define BF_X2				0
 
-#ifdef __ARM_NEON__
+#ifdef __ARM_NEON
 #define SIMD_COEF_32		4
 #define SIMD_COEF_64		2
 #ifndef SIMD_PARA_MD4
