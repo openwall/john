@@ -14,6 +14,7 @@
 #include "params.h"
 #include "path.h"
 #include "memory.h"
+#include "common.h"
 #include "list.h"
 #include "signals.h"
 #include "formats.h"
@@ -208,7 +209,7 @@ static int ldr_check_list(struct list_main *list, char *s1, char *s2)
 	return 0;
 }
 
-static int ldr_check_shells(struct list_main *list, char *shell)
+static MAYBE_INLINE int ldr_check_shells(struct list_main *list, char *shell)
 {
 	char *name;
 
@@ -233,7 +234,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 	fields[1] = *ciphertext = ldr_get_field(&line);
 
 /* Check for NIS stuff */
-	if ((!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) &&
+	if (((*login)[0] == '+' && (!(*login)[1] || (*login)[1] == '@')) &&
 	    strlen(*ciphertext) < 10 && strncmp(*ciphertext, "$dummy$", 7))
 		return 0;
 
@@ -248,7 +249,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 		p++;
 /* Some valid dummy hashes may be shorter than 10 characters, so don't subject
  * them to the length checks. */
-		if (strncmp(*ciphertext, "$dummy$", 7) &&
+		if (((*ciphertext)[0] != '$' ||
+		    strncmp(*ciphertext, "$dummy$", 7)) &&
 		    p - *ciphertext != 10 /* not tripcode */) {
 /* Check for a special case: possibly a traditional crypt(3) hash with
  * whitespace in its invalid salt.  Only support such hashes at the very start
@@ -286,10 +288,14 @@ static int ldr_split_line(char **login, char **ciphertext,
 	}
 
 	/* /etc/passwd */
-	uid = fields[2];
-	gid = fields[3];
 	*gecos = fields[4];
 	*home = fields[5];
+
+	if (fields[0] == no_username)
+		goto find_format;
+
+	uid = fields[2];
+	gid = fields[3];
 	shell = fields[6];
 
 	if (fields[5][0] != '/' &&
@@ -323,6 +329,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 	if (ldr_check_list(options->groups, gid, gid)) return 0;
 	if (ldr_check_shells(options->shells, shell)) return 0;
 
+find_format:
 	if (*format) {
 		char *prepared;
 		int valid;
