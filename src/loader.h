@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2010-2013 by Solar Designer
+ * Copyright (c) 1996-98,2010-2013,2015 by Solar Designer
  */
 
 /*
@@ -179,6 +179,10 @@ struct db_options {
 struct db_main {
 /* Are hashed passwords loaded into this database? */
 	int loaded;
+
+/* Base allocation sizes for "struct db_password" and "struct db_salt" as
+ * possibly adjusted by ldr_init_database() given options->flags and such. */
+	size_t pw_size, salt_size;
 
 /* Options */
 	struct db_options *options;
