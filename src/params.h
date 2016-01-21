@@ -264,6 +264,16 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define LDR_HASH_COLLISIONS_MAX		1000
 
 /*
+ * How many bitmap entries should the cracker prefetch at once.  Set this to 0
+ * to disable prefetching.
+ */
+#ifdef __SSE__
+#define CRK_PREFETCH			64
+#else
+#define CRK_PREFETCH			0
+#endif
+
+/*
  * Maximum number of GECOS words to try in pairs.
  */
 #define SINGLE_WORDS_PAIR_MAX		4
