@@ -45,8 +45,8 @@ static mask_parsed_ctx parsed_mask;
 static mask_cpu_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
-static int max_keylen, fmt_maxlen, rec_len, rec_cl, restored_len, restored = 1;
-static unsigned long long cand_length;
+static int max_keylen, fmt_maxlen, rec_len, restored_len, restored;
+static unsigned long long rec_cl, cand_length;
 static struct fmt_main *mask_fmt;
 static int mask_bench_index;
 static int parent_fix_state_pending;
@@ -1682,6 +1682,7 @@ static unsigned long long divide_work(mask_cpu_context *cpu_mask_ctx)
 	my_candidates = offset;
 	offset = my_candidates * (options.node_min - 1);
 
+	/* Compensate for rounding errors */
 	if (options.node_max == options.node_count)
 		my_candidates = total_candidates - offset;
 
@@ -1704,10 +1705,15 @@ static unsigned long long divide_work(mask_cpu_context *cpu_mask_ctx)
 	return my_candidates;
 }
 
+/*
+ * When iterating over lengths, The progress shows percent cracked of all
+ * lengths up to and including the current one, while the ETA shows the
+ * estimated time for current length to finish.
+ */
 static double get_progress(void)
 {
 	double try;
-	int num_nodes = options.node_count ? options.node_count : 1;
+	unsigned long long total = mask_tot_cand;
 
 	emms();
 
@@ -1717,9 +1723,9 @@ static double get_progress(void)
 		return -1;
 
 	if (cand_length)
-		try -= cand_length;
+		total += cand_length;
 
-	return 100.0 * try / (double)(mask_tot_cand / num_nodes);
+	return 100.0 * try / total;
 }
 
 void mask_save_state(FILE *file)
@@ -1731,7 +1737,7 @@ void mask_save_state(FILE *file)
 	fprintf(file, "%d\n", rec_ctx.offset);
 	if (options.req_minlength >= 0) {
 		fprintf(file, "%d\n", rec_len);
-		fprintf(file, ""LLu"\n", cand_length);
+		fprintf(file, ""LLu"\n", cand_length + 1);
 	}
 	for (i = 0; i < rec_ctx.count; i++)
 		fprintf(file, "%u\n", (unsigned)rec_ctx.ranges[i].iter);
@@ -1775,7 +1781,7 @@ int mask_restore_state(FILE *file)
 		cpu_mask_ctx.ranges[i].iter = uc;
 	else
 		return fail;
-	restored = 0;
+	restored = 1;
 	return 0;
 }
 
@@ -2146,12 +2152,10 @@ void mask_done()
 		if (parsed_mask.parse_ok &&
 		    options.req_maxlength > 0)
 			MEM_FREE(mask);
-		// For reporting DONE regardless of rounding errors
+		/* For reporting DONE regardless of rounding errors */
 		if (!event_abort) {
-			int num_nodes = options.node_count ?
-				options.node_count : 1;
 			mask_tot_cand = (((unsigned long long)status.cands.hi << 32) +
-				status.cands.lo) * num_nodes;
+				status.cands.lo);
 			cand_length = 0;
 		}
 		if (!(options.flags & FLG_TEST_CHK)) {
@@ -2199,9 +2203,8 @@ int do_mask_crack(const char *extern_key)
 		}
 
 		for (i = mask_cur_len; i <= max_len; i++) {
-
 			mask_cur_len = max_keylen = i;
-			cand_length = rec_cl ? rec_cl :
+			cand_length = rec_cl ? rec_cl - 1 :
 				((unsigned long long)status.cands.hi << 32) +
 				status.cands.lo;
 			rec_cl = 0;
@@ -2212,10 +2215,18 @@ int do_mask_crack(const char *extern_key)
 			generate_template_key(mask, extern_key, key_len,
 					      &parsed_mask, &cpu_mask_ctx);
 
-			if (options.node_count &&
-			    !(options.flags & FLG_MASK_STACKED) && restored)
-				cand = divide_work(&cpu_mask_ctx);
-			restored = 1;
+			if (options.node_count && !(options.flags & FLG_MASK_STACKED)) {
+				if (restored) {
+					mask_tot_cand = mask_tot_cand *
+						(options.node_max + 1 - options.node_min) /
+						options.node_count;
+					restored = 0;
+				}
+				else {
+					cand = divide_work(&cpu_mask_ctx);
+					mask_tot_cand = cand * mask_int_cand.num_int_cand;
+				}
+			}
 
 			if (template_key_len == strlen(template_key)) break;
 

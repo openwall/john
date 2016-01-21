@@ -1750,15 +1750,13 @@ static int find_valid_opencl_device()
 		opencl_get_dev_info(d);
 
 		if (device_info[d] &
-		    (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR)) {
+		    (DEV_GPU | DEV_ACCELERATOR)) {
 			speed = opencl_speed_index(d);
 
-			if ((device_info[d] & CL_DEVICE_TYPE_GPU) && (speed > best_1)) {
+			if ((device_info[d] & DEV_GPU) && (speed > best_1)) {
 				best_1 = speed;
 				ret = d;
-
-			} else if ((device_info[d] & CL_DEVICE_TYPE_ACCELERATOR) &&
-			           (speed > best_2)) {
+			} else if ((device_info[d] & DEV_ACCELERATOR) && (speed > best_2)) {
 				best_2 = speed;
 				acc = d;
 			}

@@ -55,6 +55,115 @@
 
 #ifndef BENCH_BUILD
 #include "options.h"
+#else
+/*
+ * This code was copied from loader.c.  It has been stripped to bare bones
+ * to get what is 'needed' for the bench executable to run.
+ */
+
+static void _ldr_init_database(struct db_main *db) {
+	db->loaded = 0;
+	db->real = db;
+	db->pw_size = sizeof(struct db_password);
+	db->salt_size = sizeof(struct db_salt);
+	db->pw_size -= sizeof(struct list_main *);
+	db->pw_size -= sizeof(char *) * 2;
+	db->salt_size -= sizeof(struct db_keys *);
+	db->options = mem_calloc(sizeof(struct db_options), 1);
+	db->salts = NULL;
+	db->password_hash = NULL;
+	db->password_hash_func = NULL;
+	db->salt_hash = mem_alloc(
+		SALT_HASH_SIZE * sizeof(struct db_salt *));
+	memset(db->salt_hash, 0,
+		SALT_HASH_SIZE * sizeof(struct db_salt *));
+	db->cracked_hash = NULL;
+	db->salt_count = db->password_count = db->guess_count = 0;
+	db->format = NULL;
+}
+
+struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
+{
+	struct fmt_main *real_list = fmt_list;
+	struct fmt_main fake_list;
+	struct db_main *testdb;
+	struct fmt_tests *current;
+
+	if (!(current = format->params.tests))
+		return NULL;
+
+	memcpy(&fake_list, format, sizeof(struct fmt_main));
+	fake_list.next = NULL;
+	fmt_list = &fake_list;
+	testdb = mem_alloc(sizeof(struct db_main));
+	fmt_init(format);
+
+	//ldr_init_database(testdb, &options.loader);
+	_ldr_init_database(testdb);
+	testdb->options->field_sep_char = ':';
+	testdb->real = real;
+	testdb->format = format;
+
+	//ldr_init_password_hash(testdb);
+	testdb->password_hash_func = fmt_default_binary_hash;
+	testdb->password_hash = mem_alloc(password_hash_sizes[0] * sizeof(struct db_password *));
+	memset(testdb->password_hash, 0, password_hash_sizes[0] * sizeof(struct db_password *));
+	while (current->ciphertext) {
+		char line[LINE_BUFFER_SIZE];
+		int i, pos = 0;
+		char *piece;
+		void *salt;
+		struct db_salt *current_salt, *last_salt;
+		int salt_hash;
+		if (!current->fields[0])
+			current->fields[0] = "?";
+		if (!current->fields[1])
+			current->fields[1] = current->ciphertext;
+		for (i = 0; i < 10; i++)
+			if (current->fields[i])
+				pos += sprintf(&line[pos], "%s%c",
+				               current->fields[i],
+				               testdb->options->field_sep_char);
+
+		//ldr_load_pw_line(testdb, line);
+		piece = format->methods.split(line, 0, format);
+		salt = format->methods.salt(piece);
+		salt_hash = format->methods.salt_hash(salt);
+		if ((current_salt = testdb->salt_hash[salt_hash])) {
+			do {
+				if (!dyna_salt_cmp(current_salt->salt, salt, format->params.salt_size))
+					break;
+			}  while ((current_salt = current_salt->next));
+		}
+		if (!current_salt) {
+			last_salt = testdb->salt_hash[salt_hash];
+			current_salt = testdb->salt_hash[salt_hash] =
+				mem_alloc_tiny(testdb->salt_size, MEM_ALIGN_WORD);
+			current_salt->next = last_salt;
+			current_salt->salt = mem_alloc_copy(salt,
+				format->params.salt_size,
+				format->params.salt_align);
+			current_salt->index = fmt_dummy_hash;
+			current_salt->bitmap = NULL;
+			current_salt->list = NULL;
+			current_salt->hash = &current_salt->list;
+			current_salt->hash_size = -1;
+			current_salt->count = 0;
+			testdb->salt_count++;
+		}
+		current_salt->count++;
+		testdb->password_count++;
+		current++;
+	}
+	//ldr_fix_database(testdb);
+	fmt_list = real_list;
+	return testdb;
+}
+
+// lol, who cares about memory leaks here.  This is just the benchmark builder
+void ldr_free_test_db(struct db_main *db)
+{
+}
 #endif
 
 #ifdef HAVE_MPI
@@ -412,8 +521,13 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		}
 
 		if (salts > 1) format->methods.set_salt(two_salts[index & 1]);
+#ifndef BENCH_BUILD
 		format->methods.cmp_all(binary,
 		    format->methods.crypt_all(&count, test_db->salts));
+#else
+		format->methods.cmp_all(binary,
+		    format->methods.crypt_all(&count, 0));
+#endif
 
 		add32to64(&crypts, count);
 #if !OS_TIMER

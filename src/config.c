@@ -24,12 +24,16 @@
 #include "john.h"
 #include "logger.h"
 #include "external.h"
+#ifndef BENCH_BUILD
+#include "options.h"
+#endif
 #include "memdbg.h"
 
 char *cfg_name = NULL;
 static struct cfg_section *cfg_database = NULL;
 static int cfg_recursion;
 static int cfg_process_directive(char *line, int number);
+static int cfg_loading_john_local = 0;
 
 /* we have exposed this to the dyna_parser file, so that it can easily
  * walk the configuration list one time, to determine which dynamic formats
@@ -54,15 +58,15 @@ static char *trim(char *s)
 	return s;
 }
 
-static void cfg_merge_local_section() {
+static int cfg_merge_local_section() {
 	struct cfg_section *parent;
 	struct cfg_param *p1, *p2;
 
-	if (!cfg_database) return;
-	if (strncmp(cfg_database->name, "local:", 6)) return;
-	if (!strncmp(cfg_database->name, "local:list.", 11)) return;
+	if (!cfg_database) return 0;
+	if (strncmp(cfg_database->name, "local:", 6)) return 0;
+	if (!strncmp(cfg_database->name, "local:list.", 11)) return 0;
 	parent = cfg_get_section(&cfg_database->name[6], NULL);
-	if (!parent) return;
+	if (!parent) return 0;
 	// now update the params in parent section
 	p1 = cfg_database->params;
 	while (p1) {
@@ -87,13 +91,30 @@ static void cfg_merge_local_section() {
 		}
 		p1 = p1->next;
 	}
+	return 1;
 }
 static void cfg_add_section(char *name)
 {
 	struct cfg_section *last;
+	int merged;
 
 	// if the last section was a 'Local:" section, then merge it.
-	cfg_merge_local_section();
+	merged = cfg_merge_local_section();
+	if (!merged && !strncmp(name, "list.", 5)) {
+		last = cfg_database;
+		while (last) {
+			if (!strcmp(last->name, name)) {
+				if (!cfg_loading_john_local)
+					fprintf(stderr, "Warning! john.conf section [%s] is multiple declared.\n", name);
+#ifndef BENCH_BUILD
+				else if (options.verbosity > VERB_DEFAULT)
+					fprintf(stderr, "Warning! Section [%s] overridden by john-local.conf\n", name);
+#endif
+				break;
+			}
+			last = last->next;
+		}
+	}
 	last = cfg_database;
 	cfg_database = mem_alloc_tiny(
 		sizeof(struct cfg_section), MEM_ALIGN_WORD);
@@ -511,6 +532,8 @@ static int cfg_process_directive_include_config(char *line, int number)
 		return 1;
 	}
 
+	if (strstr(Name, "/john-local.conf"))
+		cfg_loading_john_local = 1;
 	saved_fname = cfg_name;
 	cfg_recursion++;
 	cfg_init(Name, allow_missing);

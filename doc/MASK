@@ -68,7 +68,9 @@ importantly in this case, it will iterate length from -min-len to -max-len (or
 format's max length, if -max-len was not given).  So to produce all possible
 words from 3 to 5 letters, use -mask=?l -min-len=3 -max-len=5.  In case the
 specified mask is shorter, the last part of it will be expanded, for example
-"-mask=?u?l -max-len=5" will use an effective mask of ?u?l?l?l?l.
+"-mask=?u?l -max-len=5" will use an effective mask of ?u?l?l?l?l. Whenever
+iterating over lengths, the ETA shows estimated time to complete the *current*
+length, as opposed to the whole run.
 
 You can escape special characters with \.  So to produce a literal "?l" you
 could say \?l or ?\l and it will not be parsed as a placeholder.  Similarly,

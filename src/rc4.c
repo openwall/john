@@ -94,7 +94,7 @@ void RC4_single(void *key, int keylen, const unsigned char *in, int len, unsigne
 	}
 
 	while (len--) {
-		x++;
+		x = (x + 1) & 255;
 		y = (state[x] + y) & 255;
 		swap_byte(&state[x], &state[y]);
 		*out++ = *in++ ^ state[(state[x] + state[y]) & 255];

@@ -23,7 +23,7 @@
 //
 
 #include "arch.h"
-#if defined(SIMD_COEF_32) && (SIMD_COEF_32 < 16 || ARCH_BITS >= 64) && !_MSC_VER && !__ARM_NEON__
+#if defined(SIMD_COEF_32) && (SIMD_COEF_32 < 16 || ARCH_BITS >= 64) && !_MSC_VER && !__ARM_NEON
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_sha1_ng;
@@ -276,7 +276,7 @@ static void sha1_fmt_set_key(char *key, int index)
 	vtype  B;
 
 	// First, find the length of the key by scanning for a zero byte.
-#if (__AVX512F__ && !__AVX512BW__) || __MIC__ || __ALTIVEC__ || __ARM_NEON__
+#if (__AVX512F__ && !__AVX512BW__) || __MIC__ || __ALTIVEC__ || __ARM_NEON
 	uint32_t len = strlen(key);
 #else
 	// FIXME: even uint64_t won't be long enough for AVX-1024
@@ -793,7 +793,7 @@ struct fmt_main fmt_sha1_ng = {
 		.algorithm_name     = "SHA1 128/128 "
 #if __ALTIVEC__
 		"AltiVec"
-#elif __ARM_NEON__
+#elif __ARM_NEON
 		"NEON"
 #elif __XOP__
 		"XOP"

@@ -584,10 +584,8 @@ static char *get_key(int index)
 /* report hash type: 1 SHA1, 2 SHA256 */
 static unsigned int hash_type(void *salt)
 {
-	struct custom_salt *my_salt;
+	struct custom_salt *my_salt = salt;
 
-	memset(&my_salt, 0, sizeof(my_salt));
-	my_salt = salt;
 	return (unsigned int) (1 + my_salt->version);
 }
 struct fmt_main fmt_episerver = {

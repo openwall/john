@@ -92,7 +92,7 @@
 _john()
 {
 	local first cur options valopts compreplya compreplyb encodings formats format_classes
-	local subformats list dir cmd cmd2 i ver ver1 ver2 ver3 prev words prefix option
+	local primitives subformats list dir cmd cmd2 i ver ver1 ver2 ver3 prev words prefix option
 
 	# Without LC_ALL=C, [A-Z] match [a-z] (case "${cur}" in ... esac)
 	LC_ALL=C
@@ -315,7 +315,35 @@ _john()
 	# Also, some simple cases have already been taken care of in the
 	# previous if ... fi.
 	case "${option}" in
-		--format=dynamic*)
+		--format=dynamic)
+			cur=${cur#*[=:]}
+			COMPREPLY=( $(compgen -W "dynamic_ dynamic=" -- ${cur}) )
+			return 0
+			;;
+## work in progress: attempt to suggest completions for --format=dynamic=gost\( etc.
+#		--format=dynamic=*[\(])
+#			cur=${cur#*[=:]}
+#			cur=${cur#*[=:]}
+#			primitives=`${first} 2>/dev/null --list=subformats | awk '{print $7}' |  cut -d\( -f1 | sort -u|sed "s#^\(.*\)#${cur}\1\x5c\x5c\x5c\x5c(#"|sed "s#\x5c\(.\)#\x5c\x5c\x5c\x5c\1#g"`
+#			if [[ "_${primitives}" == "_" ]] ; then
+#				return 0
+#			fi
+#			COMPREPLY=( $(compgen -W "${primitives}" -- ${cur}) )
+#			 compopt -o nospace
+#			return 0
+#			;;
+		--format=dynamic=*)
+			primitives=`${first} 2>/dev/null --list=subformats | awk '{print $7}' |  cut -d\( -f1 | sort -u|sed "s#^\(.*\)#\1\x5c\x5c\x5c\x5c(#"`
+			if [[ "_${primitives}" == "_" ]] ; then
+				return 0
+			fi
+			cur=${cur#*[=:]}
+			cur=${cur#*[=:]}
+			COMPREPLY=( $(compgen -W "${primitives}" -- ${cur}) )
+			compopt -o nospace
+			return 0
+			;;
+		--format=dynamic_*)
 			subformats=`${first} 2>/dev/null --list=subformats|sed 's#^\(User\)\?Format = \(dynamic_[0-9]*\).*$#\2#'`
 			if [[ "_${subformats}" != _dynamic_0* ]] ; then
 				subformats=`${first} 2>/dev/null --subformat=LIST|sed 's#^\(User\)\?Format = \(dynamic_[0-9]*\).*$#\2#'`

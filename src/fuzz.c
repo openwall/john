@@ -569,7 +569,6 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 		}
 	}
 	if (fclose(s_file)) pexit("fclose");
-	remove(status_file_path);
 }
 
 // Dump fuzzed hashes which index is between from and to, including from and excluding to
@@ -578,11 +577,10 @@ static void fuzz_dump(struct fmt_main *format, const int from, const int to)
 	int index;
 	char *ret;
 	struct fmt_tests *current;
-	static char file_name[PATH_BUFFER_SIZE];
+	char file_name[PATH_BUFFER_SIZE];
 	FILE *file;
 
-	init_status(format->params.label);
-	sprintf(file_name, "fuzz_status/pwfile.%s", format->params.label);
+	sprintf(file_name, "pwfile.%s", format->params.label);
 	if (!(file = fopen(file_name, "w")))
 		pexit("fopen: %s", file_name);
 
@@ -594,7 +592,6 @@ static void fuzz_dump(struct fmt_main *format, const int from, const int to)
 		if (index >= from) {
 			if (index == to)
 				break;
-			save_index(index);
 			fprintf(file, "%s\n", fuzz_hash);
 		}
 		index++;
@@ -604,7 +601,6 @@ static void fuzz_dump(struct fmt_main *format, const int from, const int to)
 		}
 	}
 	if (fclose(file)) pexit("fclose");
-	remove(file_name);
 }
 
 

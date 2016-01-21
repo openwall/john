@@ -32,7 +32,7 @@ static void rpp_add_char(struct rpp_range *range, unsigned char c)
 	} else {
 		int index = c / ARCH_BITS;
 		unsigned ARCH_WORD mask =
-			(unsigned ARCH_WORD)1 << (c % ARCH_BITS);
+		    (unsigned ARCH_WORD)1 << (c % ARCH_BITS);
 
 		if (range->mask[index] & mask) return;
 
