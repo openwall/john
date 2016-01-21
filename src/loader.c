@@ -150,8 +150,11 @@ static void ldr_init_password_hash(struct db_main *db)
 	int (*func)(void *binary);
 	int size = PASSWORD_HASH_SIZE_FOR_LDR;
 
-	if (size > 0 && mem_saving_level >= 2)
+	if (size >= 2 && mem_saving_level >= 2) {
 		size--;
+		if (mem_saving_level >= 3)
+			size--;
+	}
 
 	do {
 		func = db->format->methods.binary_hash[size];
