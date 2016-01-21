@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2015 by Solar Designer
+ * Copyright (c) 1996-2016 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -22,7 +22,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.8.0.6"
+#define JOHN_VERSION			"1.8.0.7"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
@@ -174,7 +174,7 @@
  * its own purposes.  This does not affect password cracking speed after the
  * loading is complete.
  */
-#define PASSWORD_HASH_SIZE_FOR_LDR	4
+#define PASSWORD_HASH_SIZE_FOR_LDR	5
 
 /*
  * Hash table sizes.  These may also be hardcoded into the hash functions.
@@ -205,8 +205,8 @@
 /*
  * Tables of the above values.
  */
-extern int password_hash_sizes[PASSWORD_HASH_SIZES];
-extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
+extern unsigned int password_hash_sizes[PASSWORD_HASH_SIZES];
+extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 
 /*
  * How much smaller should the hash tables be than bitmaps in terms of entry
@@ -215,12 +215,16 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * 5 or 6 will make them the same size in bytes on systems with 32-bit or
  * 64-bit pointers, respectively.
  */
+#if ARCH_BITS >= 64
+#define PASSWORD_HASH_SHR		0
+#else
 #define PASSWORD_HASH_SHR		2
+#endif
 
 /*
  * Cracked password hash size, used while loading.
  */
-#define CRACKED_HASH_LOG		16
+#define CRACKED_HASH_LOG		21
 #define CRACKED_HASH_SIZE		(1 << CRACKED_HASH_LOG)
 
 /*
@@ -247,9 +251,14 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Hash and buffer sizes for unique.
  */
-#define UNIQUE_HASH_LOG			20
+#if ARCH_BITS >= 64
+#define UNIQUE_HASH_LOG			25
+#define UNIQUE_BUFFER_SIZE		0x80000000U
+#else
+#define UNIQUE_HASH_LOG			24
+#define UNIQUE_BUFFER_SIZE		0x40000000
+#endif
 #define UNIQUE_HASH_SIZE		(1 << UNIQUE_HASH_LOG)
-#define UNIQUE_BUFFER_SIZE		0x4000000
 
 /*
  * Maximum number of GECOS words per password to load.
@@ -262,6 +271,16 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * hashes (since it could be too slow).
  */
 #define LDR_HASH_COLLISIONS_MAX		1000
+
+/*
+ * How many bitmap entries should the cracker prefetch at once.  Set this to 0
+ * to disable prefetching.
+ */
+#ifdef __SSE__
+#define CRK_PREFETCH			64
+#else
+#define CRK_PREFETCH			0
+#endif
 
 /*
  * Maximum number of GECOS words to try in pairs.
@@ -317,8 +336,8 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * john.pot and log file buffer sizes, can be zero.
  */
-#define POT_BUFFER_SIZE			0x8000
-#define LOG_BUFFER_SIZE			0x8000
+#define POT_BUFFER_SIZE			0x100000
+#define LOG_BUFFER_SIZE			0x100000
 
 /*
  * Buffer size for path names.

@@ -14,6 +14,7 @@
 #include "params.h"
 #include "path.h"
 #include "memory.h"
+#include "common.h"
 #include "list.h"
 #include "signals.h"
 #include "formats.h"
@@ -87,25 +88,38 @@ static void ldr_init_issep(void)
 	issep_initialized = 1;
 }
 
-void ldr_init_database(struct db_main *db, struct db_options *options)
+void ldr_init_database(struct db_main *db, struct db_options *db_options)
 {
 	db->loaded = 0;
 
-	db->options = mem_alloc_copy(options,
+	db->pw_size = sizeof(struct db_password);
+	db->salt_size = sizeof(struct db_salt);
+	if (!(db_options->flags & DB_WORDS)) {
+		db->pw_size -= sizeof(struct list_main *);
+		if (!(db_options->flags & DB_LOGIN))
+			db->pw_size -= sizeof(char *);
+		db->salt_size -= sizeof(struct db_keys *);
+	}
+
+	db->options = mem_alloc_copy(db_options,
 	    sizeof(struct db_options), MEM_ALIGN_WORD);
+
+	if (db->options->flags & DB_WORDS) {
+		db->options->flags |= DB_LOGIN;
+
+		ldr_init_issep();
+	}
 
 	db->salts = NULL;
 
 	db->password_hash = NULL;
 	db->password_hash_func = NULL;
 
-	if (options->flags & DB_CRACKED) {
+	if (db_options->flags & DB_CRACKED) {
 		db->salt_hash = NULL;
 
-		db->cracked_hash = mem_alloc(
-			CRACKED_HASH_SIZE * sizeof(struct db_cracked *));
-		memset(db->cracked_hash, 0,
-			CRACKED_HASH_SIZE * sizeof(struct db_cracked *));
+		db->cracked_hash = mem_calloc(
+			CRACKED_HASH_SIZE, sizeof(struct db_cracked *));
 	} else {
 		db->salt_hash = mem_alloc(
 			SALT_HASH_SIZE * sizeof(struct db_salt *));
@@ -113,12 +127,6 @@ void ldr_init_database(struct db_main *db, struct db_options *options)
 			SALT_HASH_SIZE * sizeof(struct db_salt *));
 
 		db->cracked_hash = NULL;
-
-		if (options->flags & DB_WORDS) {
-			options->flags |= DB_LOGIN;
-
-			ldr_init_issep();
-		}
 	}
 
 	list_init(&db->plaintexts);
@@ -138,20 +146,25 @@ void ldr_init_database(struct db_main *db, struct db_options *options)
 static void ldr_init_password_hash(struct db_main *db)
 {
 	int (*func)(void *binary);
-	int size = PASSWORD_HASH_SIZE_FOR_LDR;
+	int size_num = PASSWORD_HASH_SIZE_FOR_LDR;
+	size_t size;
 
-	if (size > 0 && mem_saving_level >= 2)
-		size--;
+	if (size_num >= 2 && mem_saving_level >= 2) {
+		size_num--;
+		if (mem_saving_level >= 3)
+			size_num--;
+	}
 
 	do {
-		func = db->format->methods.binary_hash[size];
+		func = db->format->methods.binary_hash[size_num];
 		if (func && func != fmt_default_binary_hash)
 			break;
-	} while (--size >= 0);
-	if (size < 0)
-		size = 0;
+	} while (--size_num >= 0);
+	if (size_num < 0)
+		size_num = 0;
 	db->password_hash_func = func;
-	size = password_hash_sizes[size] * sizeof(struct db_password *);
+	size = (size_t)password_hash_sizes[size_num] *
+	    sizeof(struct db_password *);
 	db->password_hash = mem_alloc(size);
 	memset(db->password_hash, 0, size);
 }
@@ -199,7 +212,7 @@ static int ldr_check_list(struct list_main *list, char *s1, char *s2)
 	return 0;
 }
 
-static int ldr_check_shells(struct list_main *list, char *shell)
+static MAYBE_INLINE int ldr_check_shells(struct list_main *list, char *shell)
 {
 	char *name;
 
@@ -224,7 +237,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 	fields[1] = *ciphertext = ldr_get_field(&line);
 
 /* Check for NIS stuff */
-	if ((!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) &&
+	if (((*login)[0] == '+' && (!(*login)[1] || (*login)[1] == '@')) &&
 	    strlen(*ciphertext) < 10 && strncmp(*ciphertext, "$dummy$", 7))
 		return 0;
 
@@ -239,7 +252,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 		p++;
 /* Some valid dummy hashes may be shorter than 10 characters, so don't subject
  * them to the length checks. */
-		if (strncmp(*ciphertext, "$dummy$", 7) &&
+		if (((*ciphertext)[0] != '$' ||
+		    strncmp(*ciphertext, "$dummy$", 7)) &&
 		    p - *ciphertext != 10 /* not tripcode */) {
 /* Check for a special case: possibly a traditional crypt(3) hash with
  * whitespace in its invalid salt.  Only support such hashes at the very start
@@ -277,10 +291,14 @@ static int ldr_split_line(char **login, char **ciphertext,
 	}
 
 	/* /etc/passwd */
-	uid = fields[2];
-	gid = fields[3];
 	*gecos = fields[4];
 	*home = fields[5];
+
+	if (fields[0] == no_username)
+		goto find_format;
+
+	uid = fields[2];
+	gid = fields[3];
 	shell = fields[6];
 
 	if (fields[5][0] != '/' &&
@@ -314,6 +332,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 	if (ldr_check_list(options->groups, gid, gid)) return 0;
 	if (ldr_check_shells(options->shells, shell)) return 0;
 
+find_format:
 	if (*format) {
 		char *prepared;
 		int valid;
@@ -469,7 +488,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	struct db_salt *current_salt, *last_salt;
 	struct db_password *current_pw, *last_pw;
 	struct list_main *words;
-	size_t pw_size, salt_size;
+	size_t pw_size;
 
 	count = ldr_split_line(&login, &ciphertext, &gecos, &home,
 		NULL, &db->format, db->options, line);
@@ -479,20 +498,6 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	format = db->format;
 
 	words = NULL;
-
-	if (db->options->flags & DB_WORDS) {
-		pw_size = sizeof(struct db_password);
-		salt_size = sizeof(struct db_salt);
-	} else {
-		if (db->options->flags & DB_LOGIN)
-			pw_size = sizeof(struct db_password) -
-				sizeof(struct list_main *);
-		else
-			pw_size = sizeof(struct db_password) -
-				(sizeof(char *) + sizeof(struct list_main *));
-		salt_size = sizeof(struct db_salt) -
-			sizeof(struct db_keys *);
-	}
 
 	if (!db->password_hash)
 		ldr_init_password_hash(db);
@@ -550,7 +555,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		if (!current_salt) {
 			last_salt = db->salt_hash[salt_hash];
 			current_salt = db->salt_hash[salt_hash] =
-				mem_alloc_tiny(salt_size, MEM_ALIGN_WORD);
+				mem_alloc_tiny(db->salt_size, MEM_ALIGN_WORD);
 			current_salt->next = last_salt;
 
 			current_salt->salt = mem_alloc_copy(salt,
@@ -574,6 +579,13 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		current_salt->count++;
 		db->password_count++;
 
+/* If we're not allocating memory for the "login" field, we may as well not
+ * allocate it for the "source" field if the format doesn't need it. */
+		pw_size = db->pw_size;
+		if (!(db->options->flags & DB_LOGIN) &&
+		    format->methods.source != fmt_default_source)
+			pw_size -= sizeof(char *);
+
 		last_pw = current_salt->list;
 		current_pw = current_salt->list = mem_alloc_tiny(
 			pw_size, MEM_ALIGN_WORD);
@@ -583,9 +595,11 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		db->password_hash[pw_hash] = current_pw;
 		current_pw->next_hash = last_pw;
 
-/* If we're not going to use the source field for its usual purpose, see if we
- * can pack the binary value in it. */
-		if (format->methods.source != fmt_default_source &&
+/* If we're not going to use the source field for its usual purpose yet we had
+ * to allocate memory for it (because we need at least one field after it), see
+ * if we can pack the binary value in it. */
+		if ((db->options->flags & DB_LOGIN) &&
+		    format->methods.source != fmt_default_source &&
 		    sizeof(current_pw->source) >= format->params.binary_size)
 			current_pw->binary = memcpy(&current_pw->source,
 				binary, format->params.binary_size);
@@ -632,6 +646,7 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 	char *ciphertext;
 	void *binary;
 	int hash;
+	int need_removal;
 	struct db_password *current;
 
 	ciphertext = ldr_get_field(&line);
@@ -640,6 +655,7 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 	ciphertext = format->methods.split(ciphertext, 0, format);
 	binary = format->methods.binary(ciphertext);
 	hash = db->password_hash_func(binary);
+	need_removal = 0;
 
 	if ((current = db->password_hash[hash]))
 	do {
@@ -651,7 +667,11 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 		    format->methods.source(current->source, current->binary)))
 			continue;
 		current->binary = NULL; /* mark for removal */
+		need_removal = 1;
 	} while ((current = current->next_hash));
+
+	if (need_removal)
+		db->options->flags |= DB_NEED_REMOVAL;
 }
 
 void ldr_load_pot_file(struct db_main *db, char *name)
@@ -699,6 +719,9 @@ static void ldr_remove_marked(struct db_main *db)
 	struct db_salt *current_salt, *last_salt;
 	struct db_password *current_pw, *last_pw;
 
+	if (!(db->options->flags & DB_NEED_REMOVAL))
+		return;
+
 	last_salt = NULL;
 	if ((current_salt = db->salts))
 	do {
@@ -727,6 +750,8 @@ static void ldr_remove_marked(struct db_main *db)
 		} else
 			last_salt = current_salt;
 	} while ((current_salt = current_salt->next));
+
+	db->options->flags &= ~DB_NEED_REMOVAL;
 }
 
 /*
@@ -767,7 +792,7 @@ static void ldr_init_hash_for_salt(struct db_main *db, struct db_salt *salt)
 {
 	struct db_password *current;
 	int (*hash_func)(void *binary);
-	int bitmap_size, hash_size;
+	size_t bitmap_size, hash_size;
 	int hash;
 
 	if (salt->hash_size < 0) {
@@ -873,21 +898,52 @@ void ldr_fix_database(struct db_main *db)
 
 static int ldr_cracked_hash(char *ciphertext)
 {
-	unsigned int hash = 0;
-	char *p = ciphertext;
+	unsigned int hash, extra;
+	unsigned char *p = (unsigned char *)ciphertext;
 
+	hash = p[0] | 0x20; /* ASCII case insensitive */
+	if (!hash)
+		goto out;
+	extra = p[1] | 0x20;
+	if (!extra)
+#if CRACKED_HASH_SIZE >= 0x100
+		goto out;
+#else
+		goto out_and;
+#endif
+
+	p += 2;
 	while (*p) {
-		hash <<= 1;
-		hash += (unsigned char)*p++ | 0x20; /* ASCII case insensitive */
-		if (hash >> (2 * CRACKED_HASH_LOG - 1)) {
+		hash <<= 3; extra <<= 2;
+		hash += p[0] | 0x20;
+		if (!p[1]) break;
+		extra += p[1] | 0x20;
+		p += 2;
+		if (hash & 0xe0000000) {
 			hash ^= hash >> CRACKED_HASH_LOG;
+			extra ^= extra >> CRACKED_HASH_LOG;
 			hash &= CRACKED_HASH_SIZE - 1;
 		}
 	}
 
+	hash -= extra;
+	hash ^= extra << (CRACKED_HASH_LOG / 2);
+
 	hash ^= hash >> CRACKED_HASH_LOG;
+
+#if CRACKED_HASH_LOG <= 15
+	hash ^= hash >> (2 * CRACKED_HASH_LOG);
+#endif
+#if CRACKED_HASH_LOG <= 10
+	hash ^= hash >> (3 * CRACKED_HASH_LOG);
+#endif
+
+#if CRACKED_HASH_SIZE < 0x100
+out_and:
+#endif
 	hash &= CRACKED_HASH_SIZE - 1;
 
+out:
 	return hash;
 }
 

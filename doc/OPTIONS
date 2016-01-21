@@ -129,12 +129,20 @@ passwords cracked earlier.
 --save-memory=LEVEL		enable memory saving, at LEVEL 1..3
 
 You might need this option if you don't have enough memory or don't
-want John to affect other processes too much.  Level 1 tells John to
-not waste memory on login names; it is only supported when a cracking
-mode other than "single crack" is explicitly requested.  The only
-impact is that you won't see the login names while cracking.  Higher
-memory saving levels have a performance impact; you should probably
-avoid using them unless John doesn't work or gets into swap otherwise.
+want John to affect other processes too much or don't need it to load
+and print login names along with cracked passwords.  Level 1 tells John
+not to waste memory on login names; it is only supported when a cracking
+mode other than "single crack" is explicitly requested.  It has no
+negative performance impact - in fact, it sometimes speeds things up.
+Please note that without the --save-memory=1 option (or higher), John
+will waste some memory on potential login names even if the password
+hash files don't happen to contain any login names.  (The complete lack
+of login names isn't known to John when it starts parsing the files, so
+it has to record the fact that each individual entry doesn't have a
+login name unless you specify this option.)  Levels 2 and 3 reduce use
+of performance optimizations involving large lookup tables, and thus
+have a negative performance impact.  You should probably avoid using
+them unless John doesn't work or gets into swap otherwise.
 
 --node=MIN[-MAX]/TOTAL		this node's number range out of TOTAL count
 
