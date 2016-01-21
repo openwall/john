@@ -646,6 +646,7 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 	char *ciphertext;
 	void *binary;
 	int hash;
+	int need_removal;
 	struct db_password *current;
 
 	ciphertext = ldr_get_field(&line);
@@ -654,6 +655,7 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 	ciphertext = format->methods.split(ciphertext, 0, format);
 	binary = format->methods.binary(ciphertext);
 	hash = db->password_hash_func(binary);
+	need_removal = 0;
 
 	if ((current = db->password_hash[hash]))
 	do {
@@ -665,7 +667,11 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 		    format->methods.source(current->source, current->binary)))
 			continue;
 		current->binary = NULL; /* mark for removal */
+		need_removal = 1;
 	} while ((current = current->next_hash));
+
+	if (need_removal)
+		db->options->flags |= DB_NEED_REMOVAL;
 }
 
 void ldr_load_pot_file(struct db_main *db, char *name)
@@ -713,6 +719,9 @@ static void ldr_remove_marked(struct db_main *db)
 	struct db_salt *current_salt, *last_salt;
 	struct db_password *current_pw, *last_pw;
 
+	if (!(db->options->flags & DB_NEED_REMOVAL))
+		return;
+
 	last_salt = NULL;
 	if ((current_salt = db->salts))
 	do {
@@ -741,6 +750,8 @@ static void ldr_remove_marked(struct db_main *db)
 		} else
 			last_salt = current_salt;
 	} while ((current_salt = current_salt->next));
+
+	db->options->flags &= ~DB_NEED_REMOVAL;
 }
 
 /*
