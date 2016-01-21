@@ -118,10 +118,8 @@ void ldr_init_database(struct db_main *db, struct db_options *db_options)
 	if (db_options->flags & DB_CRACKED) {
 		db->salt_hash = NULL;
 
-		db->cracked_hash = mem_alloc(
-			CRACKED_HASH_SIZE * sizeof(struct db_cracked *));
-		memset(db->cracked_hash, 0,
-			CRACKED_HASH_SIZE * sizeof(struct db_cracked *));
+		db->cracked_hash = mem_calloc(
+			CRACKED_HASH_SIZE, sizeof(struct db_cracked *));
 	} else {
 		db->salt_hash = mem_alloc(
 			SALT_HASH_SIZE * sizeof(struct db_salt *));

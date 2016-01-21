@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2010,2012 by Solar Designer
+ * Copyright (c) 1996-98,2010,2012,2016 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -23,10 +23,26 @@ void *mem_alloc(size_t size)
 {
 	void *res;
 
-	if (!size) return NULL;
+	if (!size)
+		return NULL;
 
 	if (!(res = malloc(size))) {
 		fprintf(stderr, "malloc: %s\n", strerror(ENOMEM));
+		error();
+	}
+
+	return res;
+}
+
+void *mem_calloc(size_t nmemb, size_t size)
+{
+	void *res;
+
+	if (!nmemb || !size)
+		return NULL;
+
+	if (!(res = calloc(nmemb, size))) {
+		fprintf(stderr, "calloc: %s\n", strerror(ENOMEM));
 		error();
 	}
 
