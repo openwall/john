@@ -4,12 +4,12 @@
  * This software is Copyright (c) 2016, Fist0urs <eddy.maaalou at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted. 
+ * are permitted.
  *
  * Optimised set_key() by magnum, 2012
  *
- * This implementation is highly inspirated from bartavelle, <simon at banquise.net>, 
- * raw-sha1-linkedin one. 
+ * This implementation is highly inspirated from bartavelle, <simon at banquise.net>,
+ * raw-sha1-linkedin one.
  * It aims to crack AxCrypt in-memory cached keys which are stored in raw-sha1
  * format, reduced to 16bytes. */
 
@@ -347,4 +347,3 @@ struct fmt_main fmt_rawSHA1_axcrypt = {
 };
 
 #endif
-

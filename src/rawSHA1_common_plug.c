@@ -45,6 +45,17 @@ struct fmt_tests rawsha1_common_tests[] = {
 	{NULL}
 };
 
+struct fmt_tests axcrypt_common_tests[] = {
+	{"e5b1b15baef2fc90a5673262440a959200000000", "oHemeheme"},
+	{"2fbf0eba37de1d1d633bc1ed943b907f00000000", "azertyuiop1"},
+	{"ebb7d1eff90b09efb3b3dd996e33b96700000000", "Fist0urs"},
+	{"c336d15500be1804021533cb9cc0ac2f00000000", "enerveAPZ"},
+	{"2a53e6ef507fabede6032a934c21aafc00000000", "gArich1g0"},
+	{"145595ef8b1d96d7bd9c5ea1c6d2876600000000", "BasicSHA1"},
+	{"{SHA}VaiuD3vBn9alvHyZcuPY0wAAAAA=", "base64test"},
+	{"{SHA}COqO1HN3nVE2Fh45LQs05wAAAAA=", "base64test0truncated"},
+	{NULL}
+};
 extern int ldr_in_pot;
 
 char *rawsha1_common_split(char *ciphertext, int index, struct fmt_main *self)
