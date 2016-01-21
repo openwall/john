@@ -900,21 +900,52 @@ void ldr_fix_database(struct db_main *db)
 
 static int ldr_cracked_hash(char *ciphertext)
 {
-	unsigned int hash = 0;
-	char *p = ciphertext;
+	unsigned int hash, extra;
+	unsigned char *p = (unsigned char *)ciphertext;
 
+	hash = p[0] | 0x20; /* ASCII case insensitive */
+	if (!hash)
+		goto out;
+	extra = p[1] | 0x20;
+	if (!extra)
+#if CRACKED_HASH_SIZE >= 0x100
+		goto out;
+#else
+		goto out_and;
+#endif
+
+	p += 2;
 	while (*p) {
-		hash <<= 1;
-		hash += (unsigned char)*p++ | 0x20; /* ASCII case insensitive */
-		if (hash >> (2 * CRACKED_HASH_LOG - 1)) {
+		hash <<= 3; extra <<= 2;
+		hash += p[0] | 0x20;
+		if (!p[1]) break;
+		extra += p[1] | 0x20;
+		p += 2;
+		if (hash & 0xe0000000) {
 			hash ^= hash >> CRACKED_HASH_LOG;
+			extra ^= extra >> CRACKED_HASH_LOG;
 			hash &= CRACKED_HASH_SIZE - 1;
 		}
 	}
 
+	hash -= extra;
+	hash ^= extra << (CRACKED_HASH_LOG / 2);
+
 	hash ^= hash >> CRACKED_HASH_LOG;
+
+#if CRACKED_HASH_LOG <= 15
+	hash ^= hash >> (2 * CRACKED_HASH_LOG);
+#endif
+#if CRACKED_HASH_LOG <= 10
+	hash ^= hash >> (3 * CRACKED_HASH_LOG);
+#endif
+
+#if CRACKED_HASH_SIZE < 0x100
+out_and:
+#endif
 	hash &= CRACKED_HASH_SIZE - 1;
 
+out:
 	return hash;
 }
 

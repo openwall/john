@@ -224,7 +224,7 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Cracked password hash size, used while loading.
  */
-#define CRACKED_HASH_LOG		16
+#define CRACKED_HASH_LOG		25
 #define CRACKED_HASH_SIZE		(1 << CRACKED_HASH_LOG)
 
 /*
@@ -251,9 +251,14 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Hash and buffer sizes for unique.
  */
-#define UNIQUE_HASH_LOG			20
+#if ARCH_BITS >= 64
+#define UNIQUE_HASH_LOG			25
+#define UNIQUE_BUFFER_SIZE		0x80000000U
+#else
+#define UNIQUE_HASH_LOG			24
+#define UNIQUE_BUFFER_SIZE		0x40000000
+#endif
 #define UNIQUE_HASH_SIZE		(1 << UNIQUE_HASH_LOG)
-#define UNIQUE_BUFFER_SIZE		0x4000000
 
 /*
  * Maximum number of GECOS words per password to load.
