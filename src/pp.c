@@ -940,53 +940,6 @@ static MAYBE_INLINE char *skip_bom(char *string)
   return string;
 }
 
-static MAYBE_INLINE int pp_valid_utf8(const UTF8 *source, const UTF8 *source_end)
-{
-  UTF8 a;
-  int length, ret = 1;
-  const UTF8 *srcptr;
-
-  while (source < source_end) {
-    if (*source < 0x80) {
-      source++;
-      continue;
-    }
-
-    length = opt_trailingBytesUTF8[*source & 0x3f] + 1;
-    srcptr = source + length;
-
-    switch (length) {
-    default:
-      return 0;
-      /* Everything else falls through when valid */
-    case 4:
-      if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return 0;
-    case 3:
-      if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return 0;
-    case 2:
-      if ((a = (*--srcptr)) > 0xBF) return 0;
-
-      switch (*source) {
-        /* no fall-through in this inner switch */
-      case 0xE0: if (a < 0xA0) return 0; break;
-      case 0xED: if (a > 0x9F) return 0; break;
-      case 0xF0: if (a < 0x90) return 0; break;
-      case 0xF4: if (a > 0x8F) return 0; break;
-      default:   if (a < 0x80) return 0;
-      }
-
-    case 1:
-      if (*source >= 0x80 && *source < 0xC2) return 0;
-    }
-    if (*source > 0xF4)
-      return 0;
-
-    source += length;
-    ret++;
-  }
-  return ret;
-}
-
 /* Sort-of fgets() but for a memory-mapped file. Updates len, returns pointer to string */
 static MAYBE_INLINE char *mgets(int *len)
 {
@@ -1647,13 +1600,12 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
       input_len = in_superchop (input_buf);
 
     if (warn) {
-      const UTF8 *ep = (UTF8*)line + input_len;
       if (options.input_enc == UTF_8) {
-        if (!pp_valid_utf8((UTF8*)line, ep)) {
+        if (!valid_utf8((UTF8*)line)) {
           warn = 0;
           fprintf(stderr, "Warning: invalid UTF-8 seen reading %s\n", wordlist);
         }
-      } else if (line != input_buf || pp_valid_utf8((UTF8*)line, ep) > 1) {
+      } else if (line != input_buf || valid_utf8((UTF8*)line) > 1) {
         warn = 0;
         fprintf(stderr, "Warning: UTF-8 seen reading %s\n", wordlist);
       }
