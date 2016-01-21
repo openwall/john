@@ -215,7 +215,11 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * 5 or 6 will make them the same size in bytes on systems with 32-bit or
  * 64-bit pointers, respectively.
  */
+#if ARCH_BITS >= 64
+#define PASSWORD_HASH_SHR		0
+#else
 #define PASSWORD_HASH_SHR		2
+#endif
 
 /*
  * Cracked password hash size, used while loading.
