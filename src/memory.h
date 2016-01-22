@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2003,2010-2012 by Solar Designer
+ * Copyright (c) 1996-98,2003,2010-2012,2016 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -72,7 +72,8 @@
 extern unsigned int mem_saving_level;
 
 /*
- * Allocates size bytes and returns a pointer to the allocated memory.
+ * Allocates size bytes and returns a pointer to the allocated memory, or NULL
+ * if size is 0.
  * If an error occurs, the function does not return.
  */
 extern void *mem_alloc_func(size_t size
@@ -81,10 +82,11 @@ extern void *mem_alloc_func(size_t size
 #endif
 	);
 /*
- * this version same as mem_alloc, but initialized the memory
- * to NULL bytes, like CALLOC(3) function does
+ * Allocates nmemb*size bytes using calloc(3) and returns a pointer to the
+ * allocated memory, or NULL if nmemb or/and size are 0.
+ * If an error occurs, the function does not return.
  */
-extern void *mem_calloc_func(size_t count, size_t size
+extern void *mem_calloc_func(size_t nmemb, size_t size
 #if defined (MEMDBG_ON)
 	, char *file, int line
 #endif
