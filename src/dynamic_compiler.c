@@ -249,8 +249,6 @@ static void add_checksum_list(DC_HANDLE pHand);
 
 // TODO
 static char *dynamic_expr_normalize(const char *ct) {
-	static char Buf[512];
-	static char Buf2[512];
 	// normalize $pass -> $p
 	//           $password -> $p
 	//           $salt -> $s
@@ -259,8 +257,9 @@ static char *dynamic_expr_normalize(const char *ct) {
 	//           unicode( -> utf16(
 	//           -c=: into c1=\x3a  (colon ANYWHERE in the constant)
 	if (/*!strncmp(ct, "@dynamic=", 9) &&*/ (strstr(ct, "$pass") || strstr(ct, "$salt") || strstr(ct, "$user"))) {
+		static char Buf[1024];
 		char *cp = Buf;
-		strcpy(Buf, ct);
+		strnzcpy(Buf, ct, sizeof(Buf));
 		ct = Buf;
 		cp = Buf;
 		while (*cp) {
@@ -297,9 +296,10 @@ static char *dynamic_expr_normalize(const char *ct) {
 	}
 	if (strstr(ct, ",c")) {
 		// this need greatly improved. Only handling ':' char right now.
-		char *cp = Buf2;
-		strcpy(Buf2, ct);
-		ct = Buf2;
+		static char Buf[1024];
+		char *cp = Buf;
+		strnzcpy(Buf, ct, sizeof(Buf));
+		ct = Buf;
 		cp = strstr(ct, ",c");
 		while (cp) {
 			char *ctp = strchr(&cp[1], ',');
@@ -2219,9 +2219,9 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 			char *cpBuilding=fld1;
 			char *cp, *cpo;
 			int bGood=1;
-			static char ct[512];
+			static char ct[1024];
 
-			strcpy(ct, cpBuilding);
+			strnzcpy(ct, cpBuilding, sizeof(ct));
 			cp = strstr(ct, "$HEX$");
 			cpo = cp;
 			*cpo++ = *cp;
@@ -2380,15 +2380,15 @@ char *dynamic_compile_split(char *ct) {
 		// convert back into dynamic= format
 		// Note we should probably ONLY do this on 'raw' hashes!
 		static char Buf[512];
-		sprintf(Buf, "%s%s", dyna_signature, ct);
+		snprintf(Buf, sizeof(Buf), "%s%s", dyna_signature, ct);
 		ct = Buf;
 	} else {
 		if (ldr_in_pot == 1 && !strncmp(ct, "@dynamic=", 9)) {
 			static char Buf[512], Buf2[512];
 			char *cp = strchr(&ct[1], '@');
 			if (cp) {
-				strcpy(Buf, &cp[1]);
-				sprintf(Buf2, "%s%s", dyna_signature, Buf);
+				strnzcpy(Buf, &cp[1], sizeof(Buf));
+				snprintf(Buf2, sizeof(Buf2), "%s%s", dyna_signature, Buf);
 				ct = Buf2;
 			}
 		}
