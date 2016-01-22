@@ -249,6 +249,8 @@ static void add_checksum_list(DC_HANDLE pHand);
 
 // TODO
 static char *dynamic_expr_normalize(const char *ct) {
+	static char Buf[512];
+	static char Buf2[512];
 	// normalize $pass -> $p
 	//           $password -> $p
 	//           $salt -> $s
@@ -257,7 +259,6 @@ static char *dynamic_expr_normalize(const char *ct) {
 	//           unicode( -> utf16(
 	//           -c=: into c1=\x3a  (colon ANYWHERE in the constant)
 	if (/*!strncmp(ct, "@dynamic=", 9) &&*/ (strstr(ct, "$pass") || strstr(ct, "$salt") || strstr(ct, "$user"))) {
-		static char Buf[512];
 		char *cp = Buf;
 		strcpy(Buf, ct);
 		ct = Buf;
@@ -296,10 +297,9 @@ static char *dynamic_expr_normalize(const char *ct) {
 	}
 	if (strstr(ct, ",c")) {
 		// this need greatly improved. Only handling ':' char right now.
-		static char Buf[512];
-		char *cp = Buf;
-		strcpy(Buf, ct);
-		ct = Buf;
+		char *cp = Buf2;
+		strcpy(Buf2, ct);
+		ct = Buf2;
 		cp = strstr(ct, ",c");
 		while (cp) {
 			char *ctp = strchr(&cp[1], ',');
