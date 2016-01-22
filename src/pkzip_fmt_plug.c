@@ -977,15 +977,14 @@ static int isLegalUTF8_char(const u8 *source, int length) {
 		/* Everything else falls through when "true"... */
 		case 4: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return -1;
 		case 3: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return -1;
-		case 2: if ((a = (*--srcptr)) > 0xBF) return -1;
+		case 2: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return -1;
 
 		switch (*source) {
 			/* no fall-through in this inner switch */
 			case 0xE0: if (a < 0xA0) return -1; break;
 			case 0xED: if (a > 0x9F) return -1; break;
 			case 0xF0: if (a < 0x90) return -1; break;
-			case 0xF4: if (a > 0x8F) return -1; break;
-			default:   if (a < 0x80) return -1;
+			case 0xF4: if (a > 0x8F) return -1;
 		}
 
 	    case 1: if (*source >= 0x80 && *source < 0xC2) return -1;
