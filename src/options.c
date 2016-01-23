@@ -406,7 +406,7 @@ void opt_print_hidden_usage(void)
 	puts("--stress-test[=TIME]      loop self tests forever");
 #ifdef HAVE_FUZZ
 	puts("--fuzz[=DICTFILE]         fuzz formats' prepare(), valid() and split()");
-	puts("--fuzz-dump[=from,to]     dump the fuzzed hashes between from and to to file pwfile.format");
+	puts("--fuzz-dump[=FROM,TO]     dump the fuzzed hashes between FROM and TO to file pwfile.format");
 #endif
 	puts("--input-encoding=NAME     input encoding (alias for --encoding)");
 	puts("--internal-codepage=NAME  codepage used in rules/masks (see doc/ENCODING)");
