@@ -244,6 +244,10 @@ _john()
 	# --prince= is a hack for now, should be made generic:
 	if [[ "${cur}" == --prince[=:]* || "${cur}" == -prince[=:]* ]]; then
 		COMPREPLY=("--prince")
+	# The ame hack is needed for --fuzz as well, because we have
+	# --fuzz[=something] and --fuzz-dump[=something]
+	elif [[ "${cur}" == --fuzz[=:]* || "${cur}" == -fuzz[=:]* ]]; then
+		COMPREPLY=("--fuzz")
 	elif [[ "${cur}" == --* ]] ; then
 		COMPREPLY=( $(compgen -W "${options}" -- "${cur%%[=:]*}") )
 	else
@@ -314,6 +318,7 @@ _john()
 	# has already been replaced with the complete option name).
 	# Also, some simple cases have already been taken care of in the
 	# previous if ... fi.
+
 	case "${option}" in
 		--format=dynamic)
 			cur=${cur#*[=:]}
@@ -425,7 +430,7 @@ _john()
 			done
 			return 0
 			;;
-		--wordlist=*|--mkv-stats=*|--prince=*)
+		--wordlist=*|--mkv-stats=*|--prince=*|--fuzz=*)
 			# as long as Markov stats files can have any name,
 			# I can just reuse the --wordlist= logic for --mkv-stats=*
 			cur=${cur#*[=:]}
