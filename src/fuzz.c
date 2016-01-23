@@ -28,6 +28,7 @@
 #include <sys/mman.h>
 #endif
 
+#include "jumbo.h"
 #include "misc.h"	// error()
 #include "config.h"
 #include "john.h"
@@ -595,10 +596,11 @@ static void fuzz_dump(struct fmt_main *format, const int from, const int to)
 	struct fmt_tests *current;
 	char file_name[PATH_BUFFER_SIZE];
 	FILE *file;
+	size_t len = 0;
 
 	sprintf(file_name, "pwfile.%s", format->params.label);
 
-	printf("Generating %s for %s%s%s%s ...\n",
+	printf("Generating %s for %s%s%s%s ... ",
 	       file_name,
 	       format->params.label,
 	       format->params.format_name[0] ? ", " : "",
@@ -617,6 +619,7 @@ static void fuzz_dump(struct fmt_main *format, const int from, const int to)
 			if (index == to)
 				break;
 			fprintf(file, "%s\n", fuzz_hash);
+			len += 1 + strlen(fuzz_hash);
 		}
 		index++;
 		if (!ret) {
@@ -624,6 +627,7 @@ static void fuzz_dump(struct fmt_main *format, const int from, const int to)
 				break;
 		}
 	}
+	printf(LLu" bytes\n", (unsigned long long) len);
 	if (fclose(file)) pexit("fclose");
 }
 
