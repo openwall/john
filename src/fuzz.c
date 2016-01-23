@@ -606,6 +606,7 @@ static void fuzz_dump(struct fmt_main *format, const int from, const int to)
 	       format->params.format_name[0] ? ", " : "",
 	       format->params.format_name,
 	       format->params.benchmark_comment);
+	fflush(stdout);
 
 	if (!(file = fopen(file_name, "w")))
 		pexit("fopen: %s", file_name);
