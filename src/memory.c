@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2010,2012 by Solar Designer
+ * Copyright (c) 1996-98,2010,2012,2016 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -83,7 +83,8 @@ void *mem_alloc_func(size_t size
 {
 	void *res;
 
-	if (!size) return NULL;
+	if (!size)
+		return NULL;
 #if defined (MEMDBG_ON)
 	res = (char*) MEMDBG_alloc(size, file, line);
 #else
@@ -98,7 +99,7 @@ void *mem_alloc_func(size_t size
 	return res;
 }
 
-void *mem_calloc_func(size_t count, size_t size
+void *mem_calloc_func(size_t nmemb, size_t size
 #if defined (MEMDBG_ON)
 	, char *file, int line
 #endif
@@ -106,16 +107,17 @@ void *mem_calloc_func(size_t count, size_t size
 {
 	void *res;
 
-	if (!count || !size) return NULL;
+	if (!nmemb || !size)
+		return NULL;
 #if defined (MEMDBG_ON)
-	size *= count;
+	size *= nmemb;
 	res = (char*) MEMDBG_alloc(size, file, line);
 	memset(res, 0, size);
 #else
-	res = calloc(count, size);
+	res = calloc(nmemb, size);
 #endif
 	if (!res) {
-		fprintf(stderr, "mem_calloc(): %s trying to allocate "Zu" bytes\n", strerror(ENOMEM), count * size);
+		fprintf(stderr, "mem_calloc(): %s trying to allocate "Zu" bytes\n", strerror(ENOMEM), nmemb * size);
 		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 		error();
 	}

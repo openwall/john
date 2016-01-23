@@ -29,9 +29,14 @@
 #endif
 
 #include "arch.h"
+#include "params.h"
+
+#if CRK_PREFETCH && defined(__SSE__)
+#include <xmmintrin.h>
+#endif
+
 #include "misc.h"
 #include "math.h"
-#include "params.h"
 #include "memory.h"
 #include "signals.h"
 #include "idle.h"
@@ -775,7 +780,7 @@ static int crk_password_loop(struct db_salt *salt)
 			unsigned int *b = &salt->bitmap[h / (sizeof(*salt->bitmap) * 8)];
 			a[slot].i = h;
 			a[slot].u.b = b;
-#ifdef __SSE2__
+#ifdef __SSE__
 			_mm_prefetch((const char *)b, _MM_HINT_NTA);
 #else
 			*(volatile unsigned int *)b;
@@ -786,7 +791,7 @@ static int crk_password_loop(struct db_salt *salt)
 			unsigned int h = a[slot].i;
 			if (*a[slot].u.b & (1U << (h % (sizeof(*salt->bitmap) * 8)))) {
 				struct db_password **pwp = &salt->hash[h >> PASSWORD_HASH_SHR];
-#ifdef __SSE2__
+#ifdef __SSE__
 				_mm_prefetch((const char *)pwp, _MM_HINT_NTA);
 #else
 				*(void * volatile *)pwp;
@@ -803,9 +808,9 @@ static int crk_password_loop(struct db_salt *salt)
 /*
  * Chances are this will also prefetch the next_hash field and the actual
  * binary (pointed to by the binary field, but likely located right after
- * this struct.
+ * this struct).
  */
-#ifdef __SSE2__
+#ifdef __SSE__
 			_mm_prefetch((const char *)&pw->binary, _MM_HINT_NTA);
 #else
 			*(void * volatile *)&pw->binary;
