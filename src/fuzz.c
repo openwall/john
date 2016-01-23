@@ -544,6 +544,22 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 	char *ret, *line;
 	struct fmt_tests *current;
 
+	printf("Fuzzing: %s%s%s%s [%s]%s... ",
+	       format->params.label,
+	       format->params.format_name[0] ? ", " : "",
+	       format->params.format_name,
+	       format->params.benchmark_comment,
+	       format->params.algorithm_name,
+#ifndef BENCH_BUILD
+	       (options.target_enc == UTF_8 &&
+	       format->params.flags & FMT_UNICODE) ?
+	       " in UTF-8 mode" : "");
+#else
+	       "");
+#endif
+	printf("\n");
+
+
 	// validate that there are no NULL function pointers
 	if (format->methods.prepare == NULL)    return;
 	if (format->methods.valid == NULL)      return;
@@ -581,6 +597,14 @@ static void fuzz_dump(struct fmt_main *format, const int from, const int to)
 	FILE *file;
 
 	sprintf(file_name, "pwfile.%s", format->params.label);
+
+	printf("Generating %s for %s%s%s%s ...\n",
+	       file_name,
+	       format->params.label,
+	       format->params.format_name[0] ? ", " : "",
+	       format->params.format_name,
+	       format->params.benchmark_comment);
+
 	if (!(file = fopen(file_name, "w")))
 		pexit("fopen: %s", file_name);
 
@@ -646,22 +670,6 @@ int fuzz(struct db_main *db)
 		if (!format->params.tests && format != fmt_list)
 			continue;
 
-		printf("%s: %s%s%s%s [%s]%s... ",
-		    "Fuzzing",
-		    format->params.label,
-		    format->params.format_name[0] ? ", " : "",
-		    format->params.format_name,
-		    format->params.benchmark_comment,
-		    format->params.algorithm_name,
-#ifndef BENCH_BUILD
-			(options.target_enc == UTF_8 &&
-			 format->params.flags & FMT_UNICODE) ?
-		        " in UTF-8 mode" : "");
-#else
-			"");
-#endif
-		printf("\n");
-
 		if (options.flags & FLG_FUZZ_DUMP_CHK)
 			fuzz_dump(format, from, to);
 		else
@@ -670,7 +678,10 @@ int fuzz(struct db_main *db)
 		total++;
 	} while ((format = format->next) && !event_abort);
 
-	printf("All %u formats passed fuzzing test!\n", total);
+	if (options.flags & FLG_FUZZ_DUMP_CHK)
+		printf("Generated pwfile.<format> for %u formats\n", total);
+	else
+		printf("All %u formats passed fuzzing test!\n", total);
 
 	return 0;
 }
