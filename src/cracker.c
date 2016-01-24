@@ -61,9 +61,6 @@
 #if HAVE_LIBDL && defined(HAVE_CUDA) || defined(HAVE_OPENCL)
 #include "common-gpu.h"
 #endif
-#if CRK_PREFETCH && defined(__SSE2__)
-#include <emmintrin.h>
-#endif
 #include "memdbg.h"
 
 #ifdef index
