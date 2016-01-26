@@ -2576,12 +2576,12 @@ void opencl_list_devices(void)
 				printf("    Kernel exec. timeout:   %s\n",
 				       boolean ? "yes" : "no");
 
-			if (ocl_device_list[sequence_nr].pci_info.busId[0]) {
+			if (ocl_device_list[sequence_nr].pci_info.bus >= 0) {
 				printf("    PCI device topology:    %s\n",
 				       ocl_device_list[sequence_nr].pci_info.busId);
 			}
 			fan = temp = util = -1;
-#if __linux__ && HAVE_LIBDL
+#if HAVE_LIBDL
 			if (nvml_lib && gpu_nvidia(device_info[sequence_nr]) &&
 			    id2nvml(ocl_device_list[sequence_nr].pci_info) >= 0) {
 				printf("    NVML id:                %d\n",
