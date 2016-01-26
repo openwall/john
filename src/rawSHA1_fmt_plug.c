@@ -297,6 +297,9 @@ static char *source(char *source, void *binary)
 	}
 #endif
 	alter_endianity(hash, DIGEST_SIZE);
+#else
+	if (algo == AX_FORMAT)
+		hash[4] = 0;
 #endif
 
 #if ARCH_LITTLE_ENDIAN==0
