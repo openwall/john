@@ -48,9 +48,9 @@ struct fmt_tests rawsha1_common_tests[] = {
 struct fmt_tests axcrypt_common_tests[] = {
 	{"e5b1b15baef2fc90a5673262440a959200000000", "oHemeheme"},
 	{"2fbf0eba37de1d1d633bc1ed943b907f00000000", "azertyuiop1"},
-	{"ebb7d1eff90b09efb3b3dd996e33b96700000000", "Fist0urs"},
-	{"c336d15500be1804021533cb9cc0ac2f00000000", "enerveAPZ"},
-	{"2a53e6ef507fabede6032a934c21aafc00000000", "gArich1g0"},
+	{"ebb7d1eff90b09efb3b3dd996e33b967", "Fist0urs"},
+	{"c336d15500be1804021533cb9cc0ac2f", "enerveAPZ"},
+	{"2a53e6ef507fabede6032a934c21aafc", "gArich1g0"},
 	{"145595ef8b1d96d7bd9c5ea1c6d2876600000000", "BasicSHA1"},
 	{"{SHA}VaiuD3vBn9alvHyZcuPY0wAAAAA=", "base64test"},
 	{"{SHA}COqO1HN3nVE2Fh45LQs05wAAAAA=", "base64test0truncated"},
@@ -73,6 +73,7 @@ char *rawsha1_common_split(char *ciphertext, int index, struct fmt_main *self)
 
 	return out;
 }
+
 int rawsha1_common_valid(char *ciphertext, struct fmt_main *self)
 {
 	if (ldr_in_pot && (!strncmp(ciphertext, FORMAT_TAG_OLD, TAG_LENGTH_OLD) || strlen(ciphertext) == 40))
@@ -103,6 +104,25 @@ char *rawsha1_common_prepare(char *split_fields[10], struct fmt_main *self)
 	base64_convert(ciphertext, e_b64_hex, DIGEST_SIZE*2, &out[TAG_LENGTH], e_b64_mime, sizeof(out)-TAG_LENGTH, flg_Base64_MIME_TRAIL_EQ);
 
 	return out;
+}
+
+char *rawsha1_axcrypt_prepare(char *split_fields[10], struct fmt_main *self)
+{
+	static char out[41];
+	if (strlen(split_fields[1]) != 32)
+		return rawsha1_common_prepare(split_fields, self);
+	sprintf(out, "%s00000000", split_fields[1]);
+	split_fields[1] = out;
+	return rawsha1_common_prepare(split_fields, self);
+}
+
+char *rawsha1_axcrypt_split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[41];
+	if (strlen(ciphertext) != 32)
+		return rawsha1_common_split(ciphertext, index, self);
+	sprintf(out, "%s00000000", ciphertext);
+	return rawsha1_common_split(out, index, self);
 }
 
 void *rawsha1_common_get_binary(char *ciphertext)
