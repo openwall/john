@@ -198,7 +198,7 @@ static char* is_key_right(struct fmt_main *format, int index,
 	void *binary, char *ciphertext, char *plaintext,
 	int is_test_fmt_case, struct db_salt *dbsalt)
 {
-	static char err_buf[100];
+	static char err_buf[200];
 	int i, size, count, match, len;
 	char *key;
 
@@ -210,7 +210,10 @@ static char* is_key_right(struct fmt_main *format, int index,
 
 	if ((match && !format->methods.cmp_all(binary, match)) ||
 	    (!match && format->methods.cmp_all(binary, match))) {
-		sprintf(err_buf, "cmp_all(%d)", match);
+		if (options.verbosity > VERB_DEFAULT)
+			snprintf(err_buf, sizeof(err_buf), "cmp_all(%d) %s", match, ciphertext);
+		else
+			sprintf(err_buf, "cmp_all(%d)", match);
 		return err_buf;
 	}
 
@@ -220,7 +223,10 @@ static char* is_key_right(struct fmt_main *format, int index,
 	}
 
 	if (i == -1) {
-		sprintf(err_buf, "cmp_one(%d)", match);
+		if (options.verbosity > VERB_DEFAULT)
+			snprintf(err_buf, sizeof(err_buf), "cmp_one(%d) %s", match, ciphertext);
+		else
+			sprintf(err_buf, "cmp_one(%d)", match);
 		return err_buf;
 	}
 
@@ -229,9 +235,14 @@ static char* is_key_right(struct fmt_main *format, int index,
 	    format->methods.get_hash[size](i) !=
 	    format->methods.binary_hash[size](binary)) {
 #ifndef DEBUG
-		sprintf(err_buf, "get_hash[%d](%d) %x!=%x", size,
-			index, format->methods.get_hash[size](index),
-			format->methods.binary_hash[size](binary));
+		if (options.verbosity > VERB_DEFAULT)
+			snprintf(err_buf, sizeof(err_buf), "get_hash[%d](%d) %x!=%x %s", size,
+				index, format->methods.get_hash[size](index),
+				format->methods.binary_hash[size](binary), ciphertext);
+		else
+			sprintf(err_buf, "get_hash[%d](%d) %x!=%x", size,
+				index, format->methods.get_hash[size](index),
+				format->methods.binary_hash[size](binary));
 #else
 		// Dump out as much as possible (up to 3 full bytes). This can
 		// help in trying to track down problems, like needing to SWAP
@@ -256,7 +267,10 @@ static char* is_key_right(struct fmt_main *format, int index,
 	}
 
 	if (!format->methods.cmp_exact(ciphertext, i)) {
-		sprintf(err_buf, "cmp_exact(%d)", i);
+		if (options.verbosity > VERB_DEFAULT)
+			snprintf(err_buf, sizeof(err_buf), "cmp_exact(%d) %s", match, ciphertext);
+		else
+			sprintf(err_buf, "cmp_exact(%d)", i);
 		return err_buf;
 	}
 
@@ -265,6 +279,12 @@ static char* is_key_right(struct fmt_main *format, int index,
 
 	if (len < format->params.plaintext_min_length ||
 		len > format->params.plaintext_length) {
+		if (options.verbosity > VERB_DEFAULT)
+			snprintf(err_buf, sizeof(err_buf), "The length of string returned by get_key() is %d"
+			"which should be between plaintext_min_length=%d and plaintext_length=%d %s",
+			len, format->params.plaintext_min_length,
+			format->params.plaintext_length, key);
+		else
 		sprintf(err_buf, "The length of string returned by get_key() is %d"
 			"which should be between plaintext_min_length=%d and plaintext_length=%d",
 			len, format->params.plaintext_min_length,
@@ -278,14 +298,20 @@ static char* is_key_right(struct fmt_main *format, int index,
 	if (format->params.flags & FMT_CASE) {
 		// Case-sensitive passwords
 		if (strncmp(key, plaintext, format->params.plaintext_length)) {
-			sprintf(err_buf, "get_key(%d)", i);
+			if (options.verbosity > VERB_DEFAULT)
+				snprintf(err_buf, sizeof(err_buf), "get_key(%d) (case) %s %s", key, plaintext);
+			else
+				sprintf(err_buf, "get_key(%d)", i);
 			return err_buf;
 		}
 	} else {
 		// Case-insensitive passwords
 		if (strncasecmp(key, plaintext,
 			format->params.plaintext_length)) {
-			sprintf(err_buf, "get_key(%d)", i);
+			if (options.verbosity > VERB_DEFAULT)
+				snprintf(err_buf, sizeof(err_buf), "get_key(%d) (no case) %s %s", key, plaintext);
+			else
+				sprintf(err_buf, "get_key(%d)", i);
 			return err_buf;
 		}
 	}
