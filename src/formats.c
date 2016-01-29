@@ -299,7 +299,7 @@ static char* is_key_right(struct fmt_main *format, int index,
 		// Case-sensitive passwords
 		if (strncmp(key, plaintext, format->params.plaintext_length)) {
 			if (options.verbosity > VERB_DEFAULT)
-				snprintf(err_buf, sizeof(err_buf), "get_key(%d) (case) %s %s", key, plaintext);
+				snprintf(err_buf, sizeof(err_buf), "get_key(%d) (case) %s %s", i, key, plaintext);
 			else
 				sprintf(err_buf, "get_key(%d)", i);
 			return err_buf;
@@ -309,7 +309,7 @@ static char* is_key_right(struct fmt_main *format, int index,
 		if (strncasecmp(key, plaintext,
 			format->params.plaintext_length)) {
 			if (options.verbosity > VERB_DEFAULT)
-				snprintf(err_buf, sizeof(err_buf), "get_key(%d) (no case) %s %s", key, plaintext);
+				snprintf(err_buf, sizeof(err_buf), "get_key(%d) (no case) %s %s", i, key, plaintext);
 			else
 				sprintf(err_buf, "get_key(%d)", i);
 			return err_buf;
