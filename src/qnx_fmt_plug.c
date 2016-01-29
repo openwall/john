@@ -237,14 +237,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					// first salted buffer), and then simply calling
 					// jtr_sha512_hash_block 'natively' never having to
 					// refill the buffer again.
+					int ex;
 					for (i = 0; i <= cur_salt->rounds; ++i) {
 						SHA512_Update(&ctx, pass, len);
 						if (ctx.total > 128+cur_salt->len)
 							break;
 					}
 					++i;
-					i += (256-ctx.total)/len;
-					ctx.total = 256;
+					ex = (256-ctx.total)/len;
+					i += ex;
+					ctx.total += ex*len;
 					jtr_sha512_hash_block(&ctx, ctx.buffer, 1);
 					while (i+128/len <= cur_salt->rounds) {
 						ctx.total += 128;

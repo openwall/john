@@ -559,12 +559,23 @@ void jtr_sha512_final(void *_output, jtr_sha512_ctx *ctx)
 	last = ctx->total & 0x7F;
 	padcnt = (last < 112) ? (112 - last) : (240 - last);
 
+	// QNX has a bug in it (for the QNX-sha512 hash. That bug is that
+	// the final bit length data 'may' be dirty.  This dirty data is from
+	// the prior block.Our method of using the 'padding' and padcnt is
+	// different from QNX, so we have to preserve and copy this possibly
+	// dirty data from the right spot in the buffer.  It looks like QNX
+	// set the lower 8 bytes of bit count properly, but then used a 4 byte
+	// int to set the top 8 bytes (leaving 4 bytes as dirty buffer). I am
+	// not sure about this, but this is what it 'appears' to be. However,
+	// this code does replicate the buggy the behavior.
 	if (ctx->bIsQnxBuggy && ctx->total >= 116) {
-		if (ctx->total < 120) {
-			memcpy(&m.mlen[4], &ctx->buffer[116], ctx->total-116);
-			m.mlen[ctx->total-112] = 0x80;
-		} else
-			memcpy(&m.mlen[4], &ctx->buffer[116], 4);
+		int off = ctx->total&0x7f;
+		if (off >= 128-16 && off < 128-7) {
+			ctx->buffer[off++] = 0x80;
+			while (off < 128-7)
+				ctx->buffer[off++] = 0;
+		}
+		memcpy(&m.mlen[4], &ctx->buffer[116], 4);
 	}
 
 	jtr_sha512_update(ctx, (unsigned char *) padding, padcnt);

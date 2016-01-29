@@ -210,13 +210,8 @@ sub _shafinish {
 	# that over to $self->{priorblock} so that we have those 4 bytes
 	# which do not properly get cleaned out.
 	my $len = $self->{lenll}/8;
-	if ($len > 116) { # NOTE, only work up to 4gbit string (good enough for JtR)
-		if ($len < 120) {
-			substr($self->{block}, 116, $len-116) = substr($self->{priorblock}, 116, $len-116);
-			substr($self->{block}, $len, 1) = chr(0x80);
-		} else {
-			substr($self->{block}, 116, 4) = substr($self->{priorblock}, 116, 4);
-		}
+	if ($len >= 116) { # NOTE, only work up to 4gbit string (good enough for JtR)
+		substr($self->{block}, 116, 4) = substr($self->{priorblock}, 116, 4);
 	}
 	&{$self->{sha}}($self, $self->{block});
 }
