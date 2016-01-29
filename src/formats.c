@@ -234,36 +234,35 @@ static char* is_key_right(struct fmt_main *format, int index,
 	if (format->methods.binary_hash[size] &&
 	    format->methods.get_hash[size](i) !=
 	    format->methods.binary_hash[size](binary)) {
-#ifndef DEBUG
-		if (options.verbosity > VERB_DEFAULT)
-			snprintf(err_buf, sizeof(err_buf), "get_hash[%d](%d) %x!=%x %s", size,
-				index, format->methods.get_hash[size](index),
-				format->methods.binary_hash[size](binary), ciphertext);
-		else
+    		if (options.verbosity > VERB_DEFAULT) {
+			// Dump out as much as possible (up to 3 full bytes). This can
+			// help in trying to track down problems, like needing to SWAP
+			// the binary or other issues, when doing BE ports.  Here
+			// PASSWORD_HASH_SIZES is assumed to be 7. This loop will max
+			// out at 6, in that case (i.e. 3 full bytes).
+			int maxi=size;
+			while (maxi+2 < PASSWORD_HASH_SIZES && format->methods.binary_hash[maxi]) {
+				if (format->methods.binary_hash[++maxi] == NULL) {
+					--maxi;
+					break;
+				}
+			}
+			if (format->methods.get_hash[maxi] && format->methods.binary_hash[maxi])
+				sprintf(err_buf, "get_hash[%d](%d) %x!=%x", size, index,
+					format->methods.get_hash[maxi](index),
+					format->methods.binary_hash[maxi](binary),
+					ciphertext);
+			else
+				sprintf(err_buf, "get_hash[%d](%d) %x!=%x %s", size,
+					index, format->methods.get_hash[size](index),
+					format->methods.binary_hash[size](binary),
+					ciphertext);
+		} else {
 			sprintf(err_buf, "get_hash[%d](%d) %x!=%x", size,
 				index, format->methods.get_hash[size](index),
 				format->methods.binary_hash[size](binary));
-#else
-		// Dump out as much as possible (up to 3 full bytes). This can
-		// help in trying to track down problems, like needing to SWAP
-		// the binary or other issues, when doing BE ports.  Here
-		// PASSWORD_HASH_SIZES is assumed to be 7. This loop will max
-		// out at 6, in that case (i.e. 3 full bytes).
-		int maxi=size;
-		while (maxi+2 < PASSWORD_HASH_SIZES && format->methods.binary_hash[maxi]) {
-			if (format->methods.binary_hash[++maxi] == NULL) {
-				--maxi;
-				break;
-			}
 		}
-		if (format->methods.get_hash[maxi] && format->methods.binary_hash[maxi])
-			sprintf(err_buf, "get_hash[%d](%d) %x!=%x", size, index,
-			        format->methods.get_hash[maxi](index),
-			        format->methods.binary_hash[maxi](binary));
-			else
-				sprintf(err_buf, "get_hash[%d](%d)", size, index);
-#endif
-			return err_buf;
+		return err_buf;
 	}
 
 	if (!format->methods.cmp_exact(ciphertext, i)) {
@@ -280,7 +279,7 @@ static char* is_key_right(struct fmt_main *format, int index,
 	if (len < format->params.plaintext_min_length ||
 		len > format->params.plaintext_length) {
 		if (options.verbosity > VERB_DEFAULT)
-			snprintf(err_buf, sizeof(err_buf), "The length of string returned by get_key() is %d"
+		snprintf(err_buf, sizeof(err_buf), "The length of string returned by get_key() is %d"
 			"which should be between plaintext_min_length=%d and plaintext_length=%d %s",
 			len, format->params.plaintext_min_length,
 			format->params.plaintext_length, key);
