@@ -1741,7 +1741,7 @@ static char* opencl_get_dev_info(int sequential_id)
 
 static int find_valid_opencl_device()
 {
-	int d, ret = 0, acc = 0;
+	int d, ret = 0, acc = 0, gpu_found = 0;
 	unsigned int speed, best_1 = 0, best_2 = 0;
 	int num_devices = get_number_of_available_devices();
 
@@ -1754,6 +1754,7 @@ static int find_valid_opencl_device()
 			speed = opencl_speed_index(d);
 
 			if ((device_info[d] & DEV_GPU) && (speed > best_1)) {
+				gpu_found = 1;
 				best_1 = speed;
 				ret = d;
 			} else if ((device_info[d] & DEV_ACCELERATOR) && (speed > best_2)) {
@@ -1763,7 +1764,7 @@ static int find_valid_opencl_device()
 		}
 	}
 
-	return ret ? ret : acc;
+	return gpu_found ? ret : acc;
 }
 
 size_t opencl_read_source(char *kernel_filename, char **kernel_source)
