@@ -83,8 +83,10 @@ void cuda_init()
 
 void cuda_done(void)
 {
+#if __linux__ && HAVE_LIBDL
 	if (nvml_lib)
 		nvmlShutdown();
+#endif
 }
 
 #endif

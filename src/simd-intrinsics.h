@@ -95,6 +95,8 @@ void md4_unreverse(uint32_t *hash);
 void SIMDSHA1body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
 void sha1_reverse(uint32_t *hash);
 void sha1_unreverse(uint32_t *hash);
+void sha1_reverse3(uint32_t *hash);
+void sha1_unreverse3(uint32_t *hash);
 #define SHA1_ALGORITHM_NAME		BITS " " SIMD_TYPE " " SHA1_N_STR
 #else
 #define SHA1_ALGORITHM_NAME		"32/" ARCH_BITS_STR

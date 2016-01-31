@@ -214,26 +214,27 @@ void ldr_init_database(struct db_main *db, struct db_options *db_options)
 static void ldr_init_password_hash(struct db_main *db)
 {
 	int (*func)(void *binary);
-	int size = PASSWORD_HASH_SIZE_FOR_LDR;
-	size_t sz;
+	int size_num = PASSWORD_HASH_SIZE_FOR_LDR;
+	size_t size;
 
-	if (size >= 2 && mem_saving_level >= 2) {
-		size--;
+	if (size_num >= 2 && mem_saving_level >= 2) {
+		size_num--;
 		if (mem_saving_level >= 3)
-			size--;
+			size_num--;
 	}
 
 	do {
-		func = db->format->methods.binary_hash[size];
+		func = db->format->methods.binary_hash[size_num];
 		if (func && func != fmt_default_binary_hash)
 			break;
-	} while (--size >= 0);
-	if (size < 0)
-		size = 0;
+	} while (--size_num >= 0);
+	if (size_num < 0)
+		size_num = 0;
 	db->password_hash_func = func;
-	sz = (size_t)password_hash_sizes[size] * sizeof(struct db_password *);
-	db->password_hash = mem_alloc(sz);
-	memset(db->password_hash, 0, sz);
+	size = (size_t)password_hash_sizes[size_num] *
+		sizeof(struct db_password *);
+	db->password_hash = mem_alloc(size);
+	memset(db->password_hash, 0, size);
 }
 
 static char *ldr_get_field(char **ptr, char field_sep_char)

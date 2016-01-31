@@ -20,16 +20,19 @@
 #define CIPHERTEXT_LENGTH		(HASH_LENGTH + TAG_LENGTH)
 
 #define DIGEST_SIZE				20
+#define AX_DIGEST_SIZE				16
 #define SALT_SIZE				0
 #define SALT_ALIGN				1
 
 extern struct fmt_tests rawsha1_common_tests[];
+extern struct fmt_tests axcrypt_common_tests[];
 
 int rawsha1_common_valid(char *ciphertext, struct fmt_main *self);
 char *rawsha1_common_split(char *ciphertext, int index, struct fmt_main *self);
 char *rawsha1_common_prepare(char *split_fields[10], struct fmt_main *self);
 void *rawsha1_common_get_rev_binary(char *ciphertext);
 void *rawsha1_common_get_binary(char *ciphertext);
-void *rawsha1_common_get_binary(char * ciphertext);
+char *rawsha1_axcrypt_split(char *ciphertext, int index, struct fmt_main *self);
+char *rawsha1_axcrypt_prepare(char *split_fields[10], struct fmt_main *self);
 
 #endif // #define rawsha1_common_h__

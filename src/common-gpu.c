@@ -49,6 +49,7 @@ int gpu_temp_limit;
 char gpu_degree_sign[8] = "";
 
 void *nvml_lib;
+#if __linux__ && HAVE_LIBDL
 NVMLINIT nvmlInit = NULL;
 NVMLSHUTDOWN nvmlShutdown = NULL;
 NVMLDEVICEGETHANDLEBYINDEX nvmlDeviceGetHandleByIndex = NULL;
@@ -59,20 +60,21 @@ NVMLDEVICEGETPCIINFO nvmlDeviceGetPciInfo = NULL;
 NVMLDEVICEGETNAME nvmlDeviceGetName = NULL;
 NVMLDEVICEGETHANDLEBYPCIBUSID nvmlDeviceGetHandleByPciBusId = NULL;
 NVMLDEVICEGETINDEX nvmlDeviceGetIndex = NULL;
+#endif /* __linux__ && HAVE_LIBDL */
 
 void *adl_lib;
 
-#if __linux__ && HAVE_LIBDL
+#if HAVE_LIBDL
 static int amd = 0;
 int amd2adl[MAX_GPU_DEVICES];
 int adl2od[MAX_GPU_DEVICES];
 
-ADL_MAIN_CONTROL_CREATE ADL_Main_Control_Create;
-ADL_MAIN_CONTROL_DESTROY ADL_Main_Control_Destroy;
-ADL_ADAPTER_NUMBEROFADAPTERS_GET ADL_Adapter_NumberOfAdapters_Get;
-ADL_ADAPTER_ADAPTERINFO_GET ADL_Adapter_AdapterInfo_Get;
-ADL_ADAPTER_ACTIVE_GET ADL_Adapter_Active_Get;
-ADL_OVERDRIVE_CAPS ADL_Overdrive_Caps;
+ADL_MAIN_CONTROL_CREATE ADL_Main_Control_Create = NULL;
+ADL_MAIN_CONTROL_DESTROY ADL_Main_Control_Destroy = NULL;
+ADL_ADAPTER_NUMBEROFADAPTERS_GET ADL_Adapter_NumberOfAdapters_Get = NULL;
+ADL_ADAPTER_ADAPTERINFO_GET ADL_Adapter_AdapterInfo_Get = NULL;
+ADL_ADAPTER_ACTIVE_GET ADL_Adapter_Active_Get = NULL;
+ADL_OVERDRIVE_CAPS ADL_Overdrive_Caps = NULL;
 
 ADL_OVERDRIVE5_THERMALDEVICES_ENUM ADL_Overdrive5_ThermalDevices_Enum = NULL;
 ADL_OVERDRIVE5_ODPARAMETERS_GET ADL_Overdrive5_ODParameters_Get = NULL;
@@ -94,7 +96,7 @@ static void* ADL_Main_Memory_Alloc(int iSize)
 	return lpBuffer;
 }
 
-#endif /* __linux__ && HAVE_LIBDL */
+#endif /* HAVE_LIBDL */
 
 void advance_cursor()
 {
@@ -115,7 +117,7 @@ unsigned int temp_dev_id[MAX_GPU_DEVICES];
 
 void nvidia_probe(void)
 {
-#if HAVE_LIBDL
+#if __linux__ && HAVE_LIBDL
 	if (nvml_lib)
 		return;
 
@@ -139,7 +141,7 @@ void nvidia_probe(void)
 
 void amd_probe(void)
 {
-#if __linux__ && HAVE_LIBDL
+#if HAVE_LIBDL
 	LPAdapterInfo lpAdapterInfo = NULL;
 	int i, ret;
 	int iNumberAdapters = 0;
@@ -151,8 +153,14 @@ void amd_probe(void)
 	if (adl_lib)
 		return;
 
+#if HAVE_WINDOWS_H
+	if (!(adl_lib = dlopen("atiadlxx.dll", RTLD_LAZY|RTLD_GLOBAL)) &&
+	    !(adl_lib = dlopen("atiadlxy.dll", RTLD_LAZY|RTLD_GLOBAL)))
+		return;
+#else
 	if (!(adl_lib = dlopen("libatiadlxx.so", RTLD_LAZY|RTLD_GLOBAL)))
 		return;
+#endif
 
 	env = getenv("COMPUTE");
 	if (env && *env)
@@ -247,6 +255,7 @@ void amd_probe(void)
 
 void nvidia_get_temp(int nvml_id, int *temp, int *fanspeed, int *util)
 {
+#if __linux__ && HAVE_LIBDL
 	nvmlUtilization_t s_util;
 	nvmlDevice_t dev;
 	unsigned int value;
@@ -268,9 +277,10 @@ void nvidia_get_temp(int nvml_id, int *temp, int *fanspeed, int *util)
 		*util = s_util.gpu;
 	else
 		*util = -1;
+#endif /* __linux__ && HAVE_LIBDL */
 }
 
-#if __linux__ && HAVE_LIBDL
+#if HAVE_LIBDL
 static void get_temp_od5(int adl_id, int *temp, int *fanspeed, int *util)
 {
 	int ADL_Err = ADL_ERR;
@@ -375,7 +385,7 @@ static void get_temp_od6(int adl_id, int *temp, int *fanspeed, int *util)
 
 void amd_get_temp(int amd_id, int *temp, int *fanspeed, int *util)
 {
-#if __linux__ && HAVE_LIBDL
+#if HAVE_LIBDL
 	int adl_id = amd_id;
 
 	if (adl2od[adl_id] == 5) {
@@ -405,7 +415,7 @@ int id2nvml(const hw_bus busInfo) {
 }
 
 int id2adl(const hw_bus busInfo) {
-#if __linux__ && HAVE_LIBDL
+#if HAVE_LIBDL
 	int hardware_id = 0;
 
 	while (hardware_id < amd) {

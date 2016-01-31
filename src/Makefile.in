@@ -244,7 +244,7 @@ cuda_mscash.o:  cuda_mscash.h cuda/mscash.cu cuda_common.o
 cuda_rawsha256.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
 	cd cuda; $(NVCC) $(NVCC_FLAGS) -DSHA256 rawsha256.cu -o ../cuda_rawsha256.o
 
-cuda_rawsha256_fmt.o:	cuda_rawsha256_fmt.c arch.h formats.h params.h misc.h jumbo.h stdint.h autoconfig.h common.h memory.h cuda_common.h common-gpu.h adl_sdk.h adl_structures.h adl_defines.h cuda_rawsha256.h memdbg.h os.h os-autoconf.h
+cuda_rawsha256_fmt.o:	cuda_rawsha256_fmt.c arch.h formats.h params.h misc.h jumbo.h stdint.h autoconfig.h common.h memory.h cuda_common.h common-gpu.h gpu_sensors.h cuda_rawsha256.h memdbg.h os.h os-autoconf.h
 	$(CC)  $(CFLAGS) -DSHA256 cuda_rawsha256_fmt.c -o cuda_rawsha256_fmt.o
 
 cuda_rawsha224.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
@@ -288,7 +288,7 @@ base64_convert.o:	base64_convert.c missing_getopt.h memory.h arch.h misc.h jumbo
 
 batch.o:	batch.c params.h arch.h os.h os-autoconf.h autoconfig.h jumbo.h stdint.h signals.h loader.h list.h formats.h misc.h status.h math.h config.h single.h wordlist.h inc.h memdbg.h memory.h
 
-bench.o:	bench.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h times.h misc.h math.h params.h memory.h signals.h formats.h dyna_salt.h bench.h john.h unicode.h options.h list.h loader.h getopt.h common.h config.h common-gpu.h adl_sdk.h adl_structures.h adl_defines.h john-mpi.h memdbg.h
+bench.o:	bench.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h times.h misc.h math.h params.h memory.h signals.h formats.h dyna_salt.h bench.h john.h unicode.h options.h list.h loader.h getopt.h common.h config.h common-gpu.h gpu_sensors.h john-mpi.h memdbg.h
 
 best.o:	best.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h math.h params.h common.h memory.h formats.h misc.h bench.h memdbg.h
 
@@ -320,11 +320,11 @@ charset.o:	charset.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h mis
 
 common.o:	common.c arch.h common.h memory.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h stdint.h misc.h base64_convert.h
 
-common-cuda.o:	common-cuda.c cuda_common.h common-gpu.h adl_sdk.h adl_structures.h adl_defines.h options.h autoconfig.h list.h loader.h params.h arch.h formats.h misc.h jumbo.h stdint.h getopt.h common.h memory.h john.h os.h os-autoconf.h memdbg.h
+common-cuda.o:	common-cuda.c cuda_common.h common-gpu.h gpu_sensors.h options.h autoconfig.h list.h loader.h params.h arch.h formats.h misc.h jumbo.h stdint.h getopt.h common.h memory.h john.h os.h os-autoconf.h memdbg.h
 
-common-gpu.o:	common-gpu.c autoconfig.h Win32-dlfcn-port.h common-gpu.h adl_sdk.h adl_structures.h adl_defines.h john.h os.h os-autoconf.h jumbo.h arch.h stdint.h memory.h params.h logger.h config.h signals.h memdbg.h
+common-gpu.o:	common-gpu.c autoconfig.h Win32-dlfcn-port.h common-gpu.h gpu_sensors.h john.h os.h os-autoconf.h jumbo.h arch.h stdint.h memory.h params.h logger.h config.h signals.h memdbg.h
 
-common-opencl.o:	common-opencl.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h memory.h config.h logger.h common-opencl.h common-gpu.h adl_sdk.h adl_structures.h adl_defines.h path.h opencl_device_info.h mask_ext.h mask.h opencl_mask.h dyna_salt.h signals.h recovery.h status.h math.h john.h md5.h john-mpi.h memdbg.h
+common-opencl.o:	common-opencl.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h memory.h config.h logger.h common-opencl.h common-gpu.h gpu_sensors.h path.h opencl_device_info.h mask_ext.h mask.h opencl_mask.h dyna_salt.h signals.h recovery.h status.h math.h john.h md5.h john-mpi.h memdbg.h
 
 compiler.o:	compiler.c arch.h params.h memory.h compiler.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h stdint.h
 
@@ -332,7 +332,7 @@ config.o:	config.c misc.h jumbo.h arch.h stdint.h autoconfig.h params.h path.h m
 
 cprepair.o:	cprepair.c autoconfig.h unicode.h options.h list.h loader.h params.h arch.h formats.h misc.h jumbo.h stdint.h getopt.h common.h memory.h memdbg.h os.h os-autoconf.h
 
-cracker.o:	cracker.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h misc.h math.h params.h memory.h signals.h idle.h formats.h dyna_salt.h loader.h list.h logger.h status.h recovery.h external.h compiler.h options.h getopt.h common.h mask_ext.h mask.h opencl_mask.h unicode.h john.h fake_salts.h john-mpi.h path.h common-gpu.h adl_sdk.h adl_structures.h adl_defines.h memdbg.h
+cracker.o:	cracker.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h misc.h math.h params.h memory.h signals.h idle.h formats.h dyna_salt.h loader.h list.h logger.h status.h recovery.h external.h compiler.h options.h getopt.h common.h mask_ext.h mask.h opencl_mask.h unicode.h john.h fake_salts.h john-mpi.h path.h common-gpu.h gpu_sensors.h memdbg.h
 
 crc32.o:	crc32.c memory.h arch.h crc32.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h stdint.h
 
@@ -370,7 +370,7 @@ external.o:	external.c misc.h jumbo.h arch.h stdint.h autoconfig.h params.h os.h
 
 fake_salts.o:	fake_salts.c config.h john.h os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h memory.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h fake_salts.h memdbg.h
 
-formats.o:	formats.c params.h arch.h memory.h formats.h misc.h jumbo.h stdint.h autoconfig.h dyna_salt.h unicode.h options.h list.h loader.h getopt.h common.h base64_convert.h common-opencl.h common-gpu.h adl_sdk.h adl_structures.h adl_defines.h path.h opencl_device_info.h cuda_common.h bench.h math.h memdbg.h os.h os-autoconf.h
+formats.o:	formats.c params.h arch.h memory.h formats.h misc.h jumbo.h stdint.h autoconfig.h dyna_salt.h unicode.h options.h list.h loader.h getopt.h common.h base64_convert.h common-opencl.h common-gpu.h gpu_sensors.h path.h opencl_device_info.h cuda_common.h bench.h math.h memdbg.h os.h os-autoconf.h
 
 fuzz.o:	fuzz.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h win32_memmap.h mmap-windows.c memdbg.h memory.h config.h john.h params.h signals.h unicode.h options.h list.h loader.h formats.h misc.h getopt.h common.h
 
@@ -412,7 +412,7 @@ keepass2john.o:	keepass2john.c autoconfig.h stdint.h arch.h missing_getopt.h jum
 
 list.o:	list.c memory.h arch.h list.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h stdint.h
 
-listconf.o:	listconf.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h stdint.h simd-intrinsics.h common.h memory.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h params.h path.h formats.h misc.h options.h list.h loader.h getopt.h unicode.h dynamic.h dynamic_types.h config.h regex.h john_build_rule.h common-opencl.h common-gpu.h adl_sdk.h adl_structures.h adl_defines.h opencl_device_info.h version.h listconf.h memdbg.h
+listconf.o:	listconf.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h stdint.h simd-intrinsics.h common.h memory.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h params.h path.h formats.h misc.h options.h list.h loader.h getopt.h unicode.h dynamic.h dynamic_types.h config.h regex.h john_build_rule.h common-opencl.h common-gpu.h gpu_sensors.h opencl_device_info.h version.h listconf.h memdbg.h
 
 LM_fmt.o:	LM_fmt.c arch.h misc.h jumbo.h stdint.h autoconfig.h memory.h DES_bs.h common.h loader.h params.h list.h formats.h memdbg.h os.h os-autoconf.h
 
@@ -460,9 +460,9 @@ nonstd.o:	nonstd.c
 
 NT_fmt.o:	NT_fmt.c arch.h misc.h jumbo.h stdint.h autoconfig.h memory.h common.h formats.h params.h options.h list.h loader.h getopt.h unicode.h aligned.h johnswap.h memdbg.h os.h os-autoconf.h
 
-opencl_autotune.o:	opencl_autotune.c common-opencl.h common-gpu.h adl_sdk.h adl_structures.h adl_defines.h arch.h misc.h jumbo.h stdint.h autoconfig.h memory.h common.h formats.h params.h path.h opencl_device_info.h memdbg.h os.h os-autoconf.h
+opencl_autotune.o:	opencl_autotune.c common-opencl.h common-gpu.h gpu_sensors.h arch.h misc.h jumbo.h stdint.h autoconfig.h memory.h common.h formats.h params.h path.h opencl_device_info.h memdbg.h os.h os-autoconf.h
 
-options.o:	options.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h misc.h params.h memory.h list.h loader.h formats.h logger.h status.h math.h recovery.h options.h getopt.h common.h bench.h external.h compiler.h john.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h unicode.h fake_salts.h path.h regex.h john-mpi.h common-opencl.h common-gpu.h adl_sdk.h adl_structures.h adl_defines.h opencl_device_info.h prince.h version.h listconf.h memdbg.h john_build_rule.h
+options.o:	options.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h misc.h params.h memory.h list.h loader.h formats.h logger.h status.h math.h recovery.h options.h getopt.h common.h bench.h external.h compiler.h john.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h unicode.h fake_salts.h path.h regex.h john-mpi.h common-opencl.h common-gpu.h gpu_sensors.h opencl_device_info.h prince.h version.h listconf.h memdbg.h john_build_rule.h
 
 panama.o:	panama.c sph_panama.h sph_types.h autoconfig.h arch.h stdint.h memdbg.h os.h os-autoconf.h jumbo.h memory.h
 
@@ -516,7 +516,7 @@ skein.o:	skein.c sph_skein.h sph_types.h autoconfig.h arch.h stdint.h memdbg.h o
 
 ssh2john.o:	ssh2john.c arch.h jumbo.h stdint.h common.h memory.h params.h memdbg.h os.h os-autoconf.h autoconfig.h
 
-status.o:	status.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h times.h misc.h math.h params.h cracker.h loader.h list.h formats.h options.h getopt.h common.h memory.h status.h bench.h config.h unicode.h signals.h mask.h john-mpi.h common-gpu.h adl_sdk.h adl_structures.h adl_defines.h memdbg.h
+status.o:	status.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h times.h misc.h math.h params.h cracker.h loader.h list.h formats.h options.h getopt.h common.h memory.h status.h bench.h config.h unicode.h signals.h mask.h john-mpi.h common-gpu.h gpu_sensors.h memdbg.h
 
 symlink.o:	symlink.c
 
@@ -793,7 +793,7 @@ kernels: @KERNEL_OBJS@
 ../run/tgtsnarf@EXE_EXT@: tgtsnarf.o memdbg.o
 	$(LD) tgtsnarf.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @OPENMP_CFLAGS@ -o ../run/tgtsnarf
 
-john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h stdint.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h math.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h inc.h mask.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john-mpi.h regex.h unicode.h common-opencl.h common-gpu.h adl_sdk.h adl_structures.h adl_defines.h opencl_device_info.h cuda_common.h john_build_rule.h memdbg.h fmt_externs.h fmt_registers.h
+john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h stdint.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h math.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h inc.h mask.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john-mpi.h regex.h unicode.h common-opencl.h common-gpu.h gpu_sensors.h opencl_device_info.h cuda_common.h john_build_rule.h memdbg.h fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
 
 # Workaround for gcc 3.4.6 (seen on Sparc32) (do not use -funroll-loops)

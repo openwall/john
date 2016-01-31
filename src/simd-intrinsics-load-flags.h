@@ -90,6 +90,7 @@ typedef enum {
 	SSEi_RELOAD_INP_FMT          = 0x10 | SSEi_RELOAD,
 	SSEi_OUTPUT_AS_INP_FMT       = 0x20,
 	SSEi_REVERSE_STEPS           = 0x40,
+	SSEi_REVERSE_3STEPS          = 0x4000,
 	SSEi_2BUF_INPUT              = 0x80,
 	SSEi_2BUF_INPUT_FIRST_BLK    = 0x100 | SSEi_2BUF_INPUT,
 	SSEi_4BUF_INPUT              = 0x200,

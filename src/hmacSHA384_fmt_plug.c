@@ -56,11 +56,12 @@ john_register_one(&fmt_hmacSHA384);
 
 #ifndef SIMD_COEF_64
 #define SALT_LENGTH			1024
+#define SALT_ALIGN			1
 #else
 #define SALT_LIMBS			2  /* 2 limbs, 239 bytes */
 #define SALT_LENGTH			(SALT_LIMBS * 128 - 17)
-#endif
 #define SALT_ALIGN			MEM_ALIGN_SIMD
+#endif
 #define CIPHERTEXT_LENGTH		(SALT_LENGTH + 1 + BINARY_SIZE * 2)
 
 #ifdef SIMD_COEF_64
