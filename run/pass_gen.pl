@@ -79,10 +79,10 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		o5logon postgres pst raw-blake2 raw-keccak raw-keccak256 siemens-s7
 		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip bitcoin blockchain
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
-		qnx_md5 qnx_sha512 qnx_sha256
+		qnx_md5 qnx_sha512 qnx_sha256 sxc
 		));
 
-# todo: sapb sapfg ike keepass cloudkeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring keystore krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sxc sybase-prop tripcode vtp whirlpool0 whirlpool1
+# todo: sapb sapfg ike keepass cloudkeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring keystore krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sybase-prop tripcode vtp whirlpool0 whirlpool1
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
 my $qnx_sha512_warning=0;
 my @chrAsciiText=('a'..'z','A'..'Z');
@@ -711,9 +711,9 @@ sub get_content {
 	if (defined $_[1] && $_[1]+0 eq $_[1]) { $aslen = $_[1]; }
 	my @chr = defined($_[2]) ? @{$_[2]} : @chrAsciiTextNum;
 	if (defined $argcontent && length ($argcontent)==$len*2 && length(pack("H*",$argcontent))==$len) {
-		$argcontent = pack("H*",$argcontent);
+		return pack("H*",$argcontent);
 	} elsif (defined $argcontent && substr($argcontent, 0, 4) eq "HEX=") {
-		$argcontent = pack("H*",substr($argcontent,4));
+		return pack("H*",substr($argcontent, 4));
 	}
 	if (defined $argcontent && ($aslen == -1 || ($aslen < -1 && length($argcontent) <= -1*$aslen) || length ($argcontent)==$aslen  || ($randlen == 1 && length($argcontent) <= $len)) ) {
 		return ($argcontent);
@@ -1933,8 +1933,6 @@ sub krb4 {
 }
 sub krb5 {
 }
-sub krb5pa_sha1 {
-}
 sub kwallet {
 }
 sub luks {
@@ -1980,6 +1978,19 @@ sub snefru_256 {
 sub ssh_ng {
 }
 sub sxc {
+	$salt = get_salt(16);
+	my$iv = get_iv(8);
+	my $r = get_loops(1024);
+	my $content = get_content(-1024, -4095);
+	my $len = length($content);
+	my $len2 = floor(length($content)/20) * 20;
+	$h = sha1($_[0]);
+	my $key = pp_pbkdf2($h, $salt, $r, "sha1", 16 , 64);
+	require Crypt::OpenSSL::Blowfish::CFB64;
+	my $crypt = Crypt::OpenSSL::Blowfish::CFB64->new($key, $iv);
+	my $output = $crypt->decrypt($content);
+	my $res = sha1_hex(substr($output, 0, $len2));
+	return "\$sxc\$*0*0*$r*16*$res*8*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*$len2*$len*".unpack("H*",$content);
 }
 sub sybase_prop {
 }
@@ -2568,6 +2579,8 @@ sub xsha512 {
 	$salt = get_salt(4);
 	if ($u&1) { $ret = "\$LION\$"; }
 	$ret .= unpack("H*", $salt).sha512_hex($salt . $_[1]);
+}
+sub krb5pa_sha1 {
 }
 sub krb5pa_md5 {
 	require Crypt::RC4;
