@@ -4,7 +4,7 @@
  * More information at http://openwall.info/wiki/john/OpenCL-RAWSHA-512
  * More information at http://openwall.info/wiki/john/OpenCL-XSHA-512
  *
- * Copyright (c) 2012-2015 Claudio André <claudioandre.br at gmail.com>
+ * Copyright (c) 2012-2016 Claudio André <claudioandre.br at gmail.com>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
  *
  * This is free software, and you are welcome to redistribute it
@@ -26,15 +26,25 @@
 #define BINARY_SIZE             64
 #endif
 
-#define HASH_PARTS      BINARY_SIZE / 8
+#define HASH_PARTS              BINARY_SIZE / 8
 #define SALT_SIZE_RAW           0
 #define SALT_SIZE_X             4
 #define SALT_ALIGN              4
-#define STEP            0
-#define SEED            1024
+#define STEP                    0
+#define SEED                    128
 
 #define KEYS_PER_CORE_CPU       65536
 #define KEYS_PER_CORE_GPU       512
+
+#define SPREAD_64(X0, X1, SIZE_MIN_1, RESULT) {                               \
+	RESULT = ((uint)((X0) >> 32)) + ((uint)(X0));                         \
+	RESULT ^= (RESULT >> 7);                                              \
+	RESULT *= ((uint)((X1) >> 32));                                       \
+	RESULT = (RESULT << 17) | (RESULT >> (32 - 17));                      \
+	RESULT ^= (RESULT >> 13);                                             \
+	RESULT += ((uint)(X1));                                               \
+	RESULT = RESULT & SIZE_MIN_1;                                         \
+}
 
 //Data types.
 typedef union {
@@ -59,7 +69,7 @@ typedef struct {
 
 #ifndef _OPENCL_COMPILER
 static const char *warn[] = {
-	"pass xfer: ", ", crypt: ", ", result xfer: ", ", index xfer: ",
+	"prep: ", ", xfer pass: ", ", idx: ", ", crypt: ", ", result: ",
 	", mask xfer: ", " + "
 };
 #endif
