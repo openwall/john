@@ -425,7 +425,7 @@ static void tune(struct db_main *db)
 
 static void reset(struct db_main *db)
 {
-	static unsigned int flag_l, flag_g;
+	static size_t saved_lws, saved_gws;
 
 	offset = 0;
 	offset_idx = 0;
@@ -445,8 +445,8 @@ static void reset(struct db_main *db)
 		opencl_get_user_preferences(FORMAT_LABEL);
 
 		//Save the local and global work sizes.
-		flag_l = (options.flags & FLG_MASK_CHK) && !local_work_size;
-		flag_g = (options.flags & FLG_MASK_CHK) && !global_work_size;
+		saved_lws = local_work_size;
+		saved_gws = global_work_size;
 
 		//GPU mask mode in use, do not auto tune for self test.
 		//Instead, use sane defauts. Real tune is going to be made below.
@@ -458,11 +458,8 @@ static void reset(struct db_main *db)
 
 	} else if ((options.flags & FLG_MASK_CHK)) {
 		//Tune for mask mode.
-		if (flag_l)
-			local_work_size = 0;
-
-		if (flag_g)
-			global_work_size = 0;
+		local_work_size = saved_lws;
+		global_work_size = saved_gws;
 
 		tune(db);
 	} else {
@@ -716,17 +713,12 @@ static void load_hash()
 static int crypt_all(int *pcount, struct db_salt *_salt)
 {
 	const int count = *pcount;
-	const struct db_salt *salt = _salt;
 	size_t gws, initial = 128;
 	size_t *lws = local_work_size ? &local_work_size : &initial;
 
 	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	//Check if any password was cracked and reload (if necessary)
-	if (!salt) {///FIXME
-	    printf("DISASTER\n");
-	    exit(1);
-	}
 	if (num_loaded_hashes != get_num_loaded_hashes())
 		load_hash();
 
