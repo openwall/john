@@ -79,10 +79,10 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		o5logon postgres pst raw-blake2 raw-keccak raw-keccak256 siemens-s7
 		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip bitcoin blockchain
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
-		qnx_md5 qnx_sha512 qnx_sha256 sxc
+		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc
 		));
 
-# todo: sapb sapfg ike keepass cloudkeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring keystore krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sybase-prop tripcode vtp whirlpool0 whirlpool1
+# todo: sapb sapfg ike keepass cloudkeychain pfx racf pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring keystore krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sybase-prop tripcode vtp whirlpool0 whirlpool1
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
 my $qnx_sha512_warning=0;
 my @chrAsciiText=('a'..'z','A'..'Z');
@@ -475,6 +475,68 @@ sub word_encode {
         $s = encode($arg_codepage, $_[0]);
     }
     return $s;
+}
+# sets parity bit to odd. 'truncates' chars to 7 bit before computing odd parity.
+sub str_odd_parity {
+	my $i;
+	my $s = $_[0];
+	for ($i = 0; $i < length($s); $i++) {
+		my $b = ord(substr($s, $i, 1))&0x7F; #strip off high bit.
+		my $b_7bit = $b;
+		my $c = 0;
+		while ($b) {
+			if ($b & 1) { $c++; }
+			$b >>= 1;
+		}
+		if ($c & 1) {
+			substr($s, $i, 1) = chr($b_7bit); # already odd
+		} else {
+			substr($s, $i, 1) = chr($b_7bit+0x80);
+		}
+	}
+	return $s;
+}
+# sets parity bit to even. 'truncates' chars to 7 bit before computing even parity.
+sub str_even_parity {
+	my $i;
+	my $s = $_[0];
+	for ($i = 0; $i < length($s); $i++) {
+		my $b = ord(substr($s, $i, 1))&0x7F; #strip off high bit.
+		my $b_7bit = $b;
+		my $c = 0;
+		while ($b) {
+			if ($b & 1) { $c++; }
+			$b >>= 1;
+		}
+		if ( ($c & 1) == 0) {
+			substr($s, $i, 1) = chr($b_7bit); # already even
+		} else {
+			substr($s, $i, 1) = chr($b_7bit+0x80);
+		}
+	}
+	return $s;
+}
+# str_force_length(str, len, padd);  does padding to proper len (or truncation).
+sub str_force_length_pad {
+	my $str = $_[0];
+	while (length($str) < $_[1]) { $str .= $_[2]; }
+	$str = substr($str, 0, $_[1]);
+	return $str;
+}
+# every byte of the string has it's bits put into reverse order.
+# vnc does this for some reason. But I put into a function so if
+# needed again, we can do this.
+sub str_reverse_bits_in_bytes {
+	my $i;
+	my $s = $_[0];
+	for ($i = 0; $i < length($s); $i++) {
+		my $b = ord(substr($s, $i, 1));
+		$b = ($b & 0xF0) >> 4 | ($b & 0x0F) << 4;
+		$b = ($b & 0xCC) >> 2 | ($b & 0x33) << 2;
+		$b = ($b & 0xAA) >> 1 | ($b & 0x55) << 1;
+		substr($s, $i, 1) = chr($b);
+	}
+	return $s;
 }
 #############################################################################
 # this function does the LM hash in pure perl. It uses an existing
@@ -1952,6 +2014,18 @@ sub raw_skein_512 {
 sub ssh {
 }
 sub vnc {
+	require Crypt::ECB;
+	use Crypt::ECB;
+	my $chal = get_salt(16);
+	my $key = str_force_length_pad($_[0], 8, "\0");
+	$key = str_odd_parity($key);
+	$key = str_reverse_bits_in_bytes($key);
+	my $cr = Crypt::ECB->new;
+	$cr->padding(PADDING_NONE);
+	$cr->cipher("DES");
+	$cr->key($key);
+	my $hash = $cr->encrypt($chal);
+	return "\$vnc\$*".uc(unpack("H*",$chal))."*".uc(unpack('H*', $hash));
 }
 sub rar5 {
 }
