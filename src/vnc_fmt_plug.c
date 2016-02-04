@@ -111,6 +111,8 @@ static void print_hex(unsigned char *str, int len)
 #endif
 
 static struct fmt_tests vnc_tests[] = {
+	{"$vnc$*2F7532B3EFD17EEA5DD3A0949FFDF1D8*0EB42D4D9AC1EF1B6EF6647B9594A621", "12345678"}, // truncated password, typed password was "1234567890"
+	{"$vnc$*7963F9BB7BA6A42A085763808156F570*475B10D05648E4110D77F03916106F98", "123"}, // short password
 	{"$vnc$*84076F040550EEA9341967633B5F3855*DD96D21781A70DA49443279975404DD0", "pass1234"},
 	{"$vnc$*6EFF78767762AD104E52A2E15FDA3A1A*C448C3C4BA7218EBAC29FD6623E85BAC", "pass1234"},
 	{"$vnc$*0805B790B58E967F2A350A0C99DE3881*AECB26FAEAAA62D79636A5934BAC1078", "Password"},
@@ -242,6 +244,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		DES_cblock ivec;
 		unsigned char encrypted_challenge[16] = { 0 };
 		/* process key */
+		memset(des_key, 0, sizeof(des_key)); // this is required for handling short passwords, thanks JimF!
 		for(i = 0; i < strlen((const char*)saved_key[index]); i++)
 			des_key[i] = bit_flip[ARCH_INDEX(saved_key[index][i])];
 		memset(ivec, 0, 8);
