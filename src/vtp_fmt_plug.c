@@ -67,7 +67,8 @@ static struct fmt_tests tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int *saved_len;
+static unsigned char (*secret)[16];
+static int *saved_len, bDirty;
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 /* VTP summary advertisement packet, partially based on original Yersinia code */
@@ -107,10 +108,12 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_calloc(sizeof(*saved_len), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
+	secret    = mem_calloc(sizeof(*secret), self->params.max_keys_per_crypt);
 }
 
 static void done(void)
 {
+	MEM_FREE(secret);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_len);
 	MEM_FREE(saved_key);
@@ -342,10 +345,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char buf[8192] = {0};
 		int offset = 0;
 
-		// derive and append "secret"
-		unsigned char secret[16];
-		vtp_secret_derive(saved_key[index], saved_len[index], secret);
-		memcpy(buf, secret, 16);
+		// derive and append "secret", but do it only the FIRST time for a password (not for extra salts).
+		if (bDirty)
+			vtp_secret_derive(saved_key[index], saved_len[index], secret[index]);
+		memcpy(buf, secret[index], 16);
 		offset = offset + 16;
 
 		// append vtp_summary_packet
@@ -370,6 +373,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD5_Update(&ctx, buf, offset);
 		MD5_Final((unsigned char*)crypt_out[index], &ctx);
 	}
+	bDirty = 0;
 	return count;
 }
 
@@ -400,6 +404,8 @@ static void vtp_set_key(char *key, int index)
 
 	/* strncpy will pad with zeros, which is needed */
 	strncpy(saved_key[index], key, sizeof(saved_key[0]));
+	bDirty = 1;
+
 }
 
 static char *get_key(int index)
