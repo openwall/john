@@ -68,7 +68,7 @@ static struct fmt_tests tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static unsigned char (*secret)[16];
-static int *saved_len, bDirty;
+static int *saved_len, dirty;
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 /* VTP summary advertisement packet, partially based on original Yersinia code */
@@ -334,6 +334,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
+	int compute_secret = dirty;
+	dirty = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -346,7 +348,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int offset = 0;
 
 		// derive and append "secret", but do it only the FIRST time for a password (not for extra salts).
-		if (bDirty)
+		if (compute_secret)
 			vtp_secret_derive(saved_key[index], saved_len[index], secret[index]);
 		memcpy(buf, secret[index], 16);
 		offset = offset + 16;
@@ -373,7 +375,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD5_Update(&ctx, buf, offset);
 		MD5_Final((unsigned char*)crypt_out[index], &ctx);
 	}
-	bDirty = 0;
 	return count;
 }
 
@@ -404,7 +405,7 @@ static void vtp_set_key(char *key, int index)
 
 	/* strncpy will pad with zeros, which is needed */
 	strncpy(saved_key[index], key, sizeof(saved_key[0]));
-	bDirty = 1;
+	dirty = 1;
 
 }
 
