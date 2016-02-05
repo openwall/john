@@ -1848,6 +1848,20 @@ sub keepass {
 sub ike {
 }
 sub cloudkeychain {
+	$salt = get_salt(16);
+	my $iv = get_iv(16);
+	my $iter = get_loops(227272);
+	my $master_key = "  ";
+	my $hmacdata = get_content(96, -1024);
+	my $p = pp_pbkdf2($_[1],$salt,$iter,"sha512",64, 128);
+	my $expectedhmac = _hmac_shas(\&sha256, 64, substr($p,32), $hmacdata);
+	my $mklen = length($master_key);
+	my $hmdl = length($hmacdata);
+	my $ct = pack("H*", "000");
+	my $ctlen = length($ct);
+	$salt = unpack("H*",$salt); $iv = unpack("H*",$iv); $ct = unpack("H*",$ct); $master_key = unpack("H*",$master_key);
+	$expectedhmac = unpack("H*",$expectedhmac); $hmacdata = unpack("H*",$hmacdata); 
+	return "\$cloudkeychain\$16\$$salt\$$iter\$$mklen\$$master_key\$256\$16\$$iv\$$ctlen\$$ct\$32\$$expectedhmac\$$hmdl\$$hmacdata";
 }
 sub agilekeychain {
 	my $nkeys=1;
