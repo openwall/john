@@ -292,7 +292,7 @@ static void pbkdf2_sha256_sse(const unsigned char *K[SSE_GROUP_SZ_SHA256], int K
 		}
 
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.
-		for(i = 1; i < R; i++) {
+		for(i = 1; i < (unsigned)R; i++) {
 			unsigned int k;
 			SIMDSHA256body(o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SIMDSHA256body(o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
