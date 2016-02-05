@@ -334,8 +334,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
-	int compute_secret = dirty;
-	dirty = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -344,37 +342,29 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD5_CTX ctx;
 
 		// space for (secret + SUMMARY ADVERTISEMENT + VLANS DATA + secret)
-		unsigned char buf[8192] = {0};
-		int offset = 0;
 
 		// derive and append "secret", but do it only the FIRST time for a password (not for extra salts).
-		if (compute_secret)
+		if (dirty)
 			vtp_secret_derive(saved_key[index], saved_len[index], secret[index]);
-		memcpy(buf, secret[index], 16);
-		offset = offset + 16;
+		MD5_Init(&ctx);
+		MD5_Update(&ctx, secret[index], 16);
 
 		// append vtp_summary_packet
-		memcpy(buf + offset, &cur_salt->vsp, sizeof(vtp_summary_packet));
-		offset = offset + sizeof(vtp_summary_packet);
+		MD5_Update(&ctx, &cur_salt->vsp, sizeof(vtp_summary_packet));
 
 		// add trailing bytes (for VTP version >= 2)
-		if (cur_salt->version != 1) {
-			memcpy(buf + offset, cur_salt->trailer_data, cur_salt->trailer_length);
-			offset += cur_salt->trailer_length;
-		}
+		if (cur_salt->version != 1)
+			MD5_Update(&ctx, cur_salt->trailer_data, cur_salt->trailer_length);
 
 		// append vlans_data
-		memcpy(buf + offset, cur_salt->vlans_data, cur_salt->vlans_data_length);
-		offset += cur_salt->vlans_data_length;
+		MD5_Update(&ctx, cur_salt->vlans_data, cur_salt->vlans_data_length);
 
 		// append "secret" again
-		memcpy(buf + offset, secret, 16);
-		offset += 16;
+		MD5_Update(&ctx, secret[index], 16);
 
-		MD5_Init(&ctx);
-		MD5_Update(&ctx, buf, offset);
 		MD5_Final((unsigned char*)crypt_out[index], &ctx);
 	}
+	dirty = 0;
 	return count;
 }
 
@@ -403,8 +393,7 @@ static void vtp_set_key(char *key, int index)
 {
 	saved_len[index] = strlen(key);
 
-	/* strncpy will pad with zeros, which is needed */
-	strncpy(saved_key[index], key, sizeof(saved_key[0]));
+	strnzcpy(saved_key[index], key, sizeof(saved_key[0]));
 	dirty = 1;
 
 }
