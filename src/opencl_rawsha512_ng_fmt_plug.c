@@ -110,7 +110,7 @@ static size_t get_task_max_work_group_size()
 	s = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0,
 	        prepare_kernel));
-	return MAX(s, 512);
+	return MIN(s, 512);
 }
 
 static uint32_t get_bitmap_size_bits(uint32_t num_elements, int sequential_id)
