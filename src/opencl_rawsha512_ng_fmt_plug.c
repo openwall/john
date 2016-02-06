@@ -263,9 +263,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	                            sizeof(uint32_t) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument idx_buffer");
 
-	hash_id_size = mask_int_cand.num_int_cand * gws + 1;
+	hash_id_size = mask_int_cand.num_int_cand * gws;
 	hash_ids = (uint32_t *) mem_alloc(
-		hash_id_size * 3 * sizeof(uint32_t));
+		hash_id_size * 3 * sizeof(uint32_t) + sizeof(uint32_t));
 	buffer_hash_ids = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
 		hash_id_size * 3 * sizeof(uint32_t),
 		NULL, &ret_code);
@@ -412,7 +412,7 @@ static void tune(struct db_main *db)
 	if (options.flags & FLG_MASK_CHK)
 		gws_limit = MIN(gws_limit,
 			get_max_mem_alloc_size(gpu_id) /
-			((mask_int_cand.num_int_cand  + 1 ) * 3 * sizeof(uint32_t)));
+			(mask_int_cand.num_int_cand  * 3 * sizeof(uint32_t)));
 
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL,
@@ -777,7 +777,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 	if (hash_ids[0]) {
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_FALSE,
-						  0, (hash_ids[0] * 3 + 1) * sizeof(uint32_t), hash_ids,
+			0, (hash_ids[0] * 3 * sizeof(uint32_t) + sizeof(uint32_t)), hash_ids,
 						  0, NULL, NULL),
 			      "failed in reading data back buffer_hash_ids");
 
