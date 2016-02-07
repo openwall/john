@@ -91,6 +91,10 @@ typedef union {
 #define CL_DEVICE_BOARD_NAME_AMD                    0x4038
 #endif
 
+#ifndef CL_DEVICE_SIMD_WIDTH_AMD
+#define CL_DEVICE_SIMD_WIDTH_AMD                    0x4041
+#endif
+
 #ifndef CL_DEVICE_WAVEFRONT_WIDTH_AMD
 #define CL_DEVICE_WAVEFRONT_WIDTH_AMD               0x4043
 #endif
