@@ -9,6 +9,8 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * optimized Feb 2016, JimF.
  */
 
 #if FMT_EXTERNS_H
@@ -75,8 +77,9 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int *saved_len;
+static char (*saved_key)[64];	// 1 full limb of MD5, we do out work IN this buffer.
+static MD5_CTX (*saved_ctx);
+static int *saved_len, dirty;
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
@@ -99,10 +102,13 @@ static void init(struct fmt_main *self)
 	                       sizeof(*saved_len));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_out));
+	saved_ctx = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_ctx));
 }
 
 static void done(void)
 {
+	MEM_FREE(saved_ctx);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_len);
 	MEM_FREE(saved_key);
@@ -203,18 +209,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		uint32_t block[16] = { 0 };
-		int len = saved_len[index];
 		MD5_CTX ctx;
-		MD5_Init(&ctx);
-		// key + keyfill
-		memcpy(block, saved_key[index], len);
-		PUTCHAR(block, len, 0x80);
-		block[14] = len << 3;
+		int len = saved_len[index];
+		if (dirty) {
+			// we use the saved_key buffer in-line.
+			unsigned int *block = (unsigned int*)saved_key[index];
+			MD5_Init(&saved_ctx[index]);
+			// set bit
+			saved_key[index][len] = 0x80;
+			block[14] = len << 3;
 #if (ARCH_LITTLE_ENDIAN==0)
-		block[14] = JOHNSWAP(block[14]);
+			block[14] = JOHNSWAP(block[14]);
 #endif
-		MD5_Update(&ctx, (unsigned char*)block, 64);
+			MD5_Update(&saved_ctx[index], (unsigned char*)block, 64);
+			// clear the bit, so that get_key returns proper key.
+			saved_key[index][len] = 0;
+		}
+		memcpy(&ctx, &saved_ctx[index], sizeof(MD5_CTX));
 		// data
 		MD5_Update(&ctx, cur_salt->salt, cur_salt->length);
 		// key (again)
@@ -222,6 +233,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		MD5_Final((unsigned char*)crypt_out[index], &ctx);
 	}
+	dirty = 0;
 	return count;
 }
 
@@ -248,10 +260,13 @@ static int cmp_exact(char *source, int index)
 
 static void hsrp_set_key(char *key, int index)
 {
-	saved_len[index] = strlen(key);
-
-	/* strncpy will pad with zeros, which is needed */
-	strncpy(saved_key[index], key, sizeof(saved_key[0]));
+	int olen = saved_len[index];
+	int len= strlen(key);
+	saved_len[index] = len;
+	strcpy(saved_key[index], key);
+	if (olen > len)
+		memset(&(saved_key[index][len]), 0, olen-len);
+	dirty = 1;
 }
 
 static char *get_key(int index)
