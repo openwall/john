@@ -87,7 +87,7 @@ john_register_one(&fmt_blizzard);
 #define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR EXP_STR
 
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#define BENCHMARK_LENGTH	-1
 
 #define WOWSIG			"$WoWSRP$"
 #define WOWSIGLEN		8
@@ -132,9 +132,8 @@ static SRP_CTX *pSRP_CTX;
 static unsigned char saved_salt[SALT_SIZE];
 static unsigned char user_id[USERNAMELEN];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static unsigned char (*saved_sha1)[20];
 static ARCH_WORD_32 (*crypt_out)[8];
-static int max_keys_per_crypt, dirty;
+static int max_keys_per_crypt;
 
 static void init(struct fmt_main *self)
 {
@@ -151,8 +150,6 @@ static void init(struct fmt_main *self)
 	                       sizeof(*crypt_out));
 	pSRP_CTX  = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*pSRP_CTX));
-	saved_sha1  = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*saved_sha1));
 	max_keys_per_crypt = self->params.max_keys_per_crypt;
 	for (i = 0; i < max_keys_per_crypt; ++i) {
 #ifdef HAVE_LIBGMP
@@ -187,7 +184,6 @@ static void done(void)
 		mpz_clear(pSRP_CTX[i].z_rop);
 	}
 #endif
-	MEM_FREE(saved_sha1);
 	MEM_FREE(pSRP_CTX);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
@@ -404,7 +400,6 @@ static void set_key(char *key, int index)
 {
 	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH+1);
 	enc_strupper(saved_key[index]);
-	dirty = 1;
 }
 
 static char *get_key(int index)
@@ -427,16 +422,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char Tmp[20];
 
 		memset(crypt_out[j], 0, sizeof(crypt_out[j]));
-		if (dirty) {
-			SHA1_Init(&ctx);
-			SHA1_Update(&ctx, user_id, strlen((char*)user_id));
-			SHA1_Update(&ctx, ":", 1);
-			SHA1_Update(&ctx, saved_key[j], strlen(saved_key[j]));
-			SHA1_Final(saved_sha1[j], &ctx);
-		}
+		SHA1_Init(&ctx);
+		SHA1_Update(&ctx, user_id, strlen((char*)user_id));
+		SHA1_Update(&ctx, ":", 1);
+		SHA1_Update(&ctx, saved_key[j], strlen(saved_key[j]));
+		SHA1_Final(Tmp, &ctx);
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, saved_salt, strlen((char*)saved_salt));
-		SHA1_Update(&ctx, saved_sha1[j], 20);
+		SHA1_Update(&ctx, Tmp, 20);
 		SHA1_Final(Tmp, &ctx);
 		// Ok, now Tmp is v
 
@@ -494,7 +487,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		//}
 #endif
 	}
-	dirty = 0;
 	return count;
 }
 
