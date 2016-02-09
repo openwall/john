@@ -406,12 +406,24 @@ void rec_done(int save)
 	else
 		log_flush();
 
+/*
+ * In Jumbo we close [releasing the lock] *after* unlinking, avoiding
+ * race conditions. Except we can't do this on b0rken systems.
+ */
+#if __DJGPP__ || _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
 	if (fclose(rec_file))
 		pexit("fclose");
 	rec_file = NULL;
+#endif
 
 	if ((!save || save == -1) && unlink(path_expand(rec_name)))
 		pexit("unlink: %s", path_expand(rec_name));
+
+	if (rec_file) {
+		if (fclose(rec_file))
+			pexit("fclose");
+		rec_file = NULL;
+	}
 }
 
 static void rec_format_error(char *fn)

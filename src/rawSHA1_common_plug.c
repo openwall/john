@@ -67,6 +67,8 @@ char *rawsha1_common_split(char *ciphertext, int index, struct fmt_main *self)
 
 	if (!strncmp(ciphertext, FORMAT_TAG_OLD, TAG_LENGTH_OLD))
 		ciphertext += TAG_LENGTH_OLD;
+	if (strlen(ciphertext) != DIGEST_SIZE*2 || hexlen(ciphertext) != DIGEST_SIZE*2)
+		return ciphertext;
 	memset(out, 0, sizeof(out));
 	strncpy(out, FORMAT_TAG, sizeof(out));
 	base64_convert(ciphertext, e_b64_hex, DIGEST_SIZE*2, &out[TAG_LENGTH], e_b64_mime, sizeof(out)-TAG_LENGTH, flg_Base64_MIME_TRAIL_EQ);
@@ -97,7 +99,7 @@ char *rawsha1_common_prepare(char *split_fields[10], struct fmt_main *self)
 	if (!strncmp(ciphertext, FORMAT_TAG_OLD, TAG_LENGTH_OLD))
 		ciphertext += TAG_LENGTH_OLD;
 
-	if (strlen(ciphertext) != DIGEST_SIZE*2)
+	if (strlen(ciphertext) != DIGEST_SIZE*2 || hexlen(ciphertext) != DIGEST_SIZE*2)
 		return split_fields[1];
 	memset(out, 0, sizeof(out));
 	strncpy(out, FORMAT_TAG, sizeof(out));
@@ -109,7 +111,7 @@ char *rawsha1_common_prepare(char *split_fields[10], struct fmt_main *self)
 char *rawsha1_axcrypt_prepare(char *split_fields[10], struct fmt_main *self)
 {
 	static char out[41];
-	if (strlen(split_fields[1]) != 32)
+	if (strlen(split_fields[1]) != 32 || hexlen(split_fields[1]) != 32)
 		return rawsha1_common_prepare(split_fields, self);
 	sprintf(out, "%s00000000", split_fields[1]);
 	split_fields[1] = out;
@@ -119,7 +121,7 @@ char *rawsha1_axcrypt_prepare(char *split_fields[10], struct fmt_main *self)
 char *rawsha1_axcrypt_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[41];
-	if (strlen(ciphertext) != 32)
+	if (strlen(ciphertext) != 32 || hexlen(ciphertext) != 32)
 		return rawsha1_common_split(ciphertext, index, self);
 	sprintf(out, "%s00000000", ciphertext);
 	return rawsha1_common_split(out, index, self);

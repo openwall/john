@@ -67,7 +67,8 @@ static struct fmt_tests tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int *saved_len;
+static unsigned char (*secret)[16];
+static int *saved_len, dirty;
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 /* VTP summary advertisement packet, partially based on original Yersinia code */
@@ -107,10 +108,12 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_calloc(sizeof(*saved_len), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
+	secret    = mem_calloc(sizeof(*secret), self->params.max_keys_per_crypt);
 }
 
 static void done(void)
 {
+	MEM_FREE(secret);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_len);
 	MEM_FREE(saved_key);
@@ -339,37 +342,29 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD5_CTX ctx;
 
 		// space for (secret + SUMMARY ADVERTISEMENT + VLANS DATA + secret)
-		unsigned char buf[8192] = {0};
-		int offset = 0;
 
-		// derive and append "secret"
-		unsigned char secret[16];
-		vtp_secret_derive(saved_key[index], saved_len[index], secret);
-		memcpy(buf, secret, 16);
-		offset = offset + 16;
+		// derive and append "secret", but do it only the FIRST time for a password (not for extra salts).
+		if (dirty)
+			vtp_secret_derive(saved_key[index], saved_len[index], secret[index]);
+		MD5_Init(&ctx);
+		MD5_Update(&ctx, secret[index], 16);
 
 		// append vtp_summary_packet
-		memcpy(buf + offset, &cur_salt->vsp, sizeof(vtp_summary_packet));
-		offset = offset + sizeof(vtp_summary_packet);
+		MD5_Update(&ctx, &cur_salt->vsp, sizeof(vtp_summary_packet));
 
 		// add trailing bytes (for VTP version >= 2)
-		if (cur_salt->version != 1) {
-			memcpy(buf + offset, cur_salt->trailer_data, cur_salt->trailer_length);
-			offset += cur_salt->trailer_length;
-		}
+		if (cur_salt->version != 1)
+			MD5_Update(&ctx, cur_salt->trailer_data, cur_salt->trailer_length);
 
 		// append vlans_data
-		memcpy(buf + offset, cur_salt->vlans_data, cur_salt->vlans_data_length);
-		offset += cur_salt->vlans_data_length;
+		MD5_Update(&ctx, cur_salt->vlans_data, cur_salt->vlans_data_length);
 
 		// append "secret" again
-		memcpy(buf + offset, secret, 16);
-		offset += 16;
+		MD5_Update(&ctx, secret[index], 16);
 
-		MD5_Init(&ctx);
-		MD5_Update(&ctx, buf, offset);
 		MD5_Final((unsigned char*)crypt_out[index], &ctx);
 	}
+	dirty = 0;
 	return count;
 }
 
@@ -398,8 +393,9 @@ static void vtp_set_key(char *key, int index)
 {
 	saved_len[index] = strlen(key);
 
-	/* strncpy will pad with zeros, which is needed */
-	strncpy(saved_key[index], key, sizeof(saved_key[0]));
+	strnzcpy(saved_key[index], key, sizeof(saved_key[0]));
+	dirty = 1;
+
 }
 
 static char *get_key(int index)

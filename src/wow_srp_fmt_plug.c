@@ -150,7 +150,6 @@ static void init(struct fmt_main *self)
 	                       sizeof(*crypt_out));
 	pSRP_CTX  = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*pSRP_CTX));
-
 	max_keys_per_crypt = self->params.max_keys_per_crypt;
 	for (i = 0; i < max_keys_per_crypt; ++i) {
 #ifdef HAVE_LIBGMP

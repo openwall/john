@@ -53,7 +53,7 @@ john_register_one(&fmt_cloud_keychain);
 #define HASH_LENGTH		64
 #define BINARY_SIZE 		0
 #define BINARY_ALIGN		1
-#define PLAINTEXT_LENGTH	125
+#define PLAINTEXT_LENGTH	111
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		4
 #ifdef SIMD_COEF_64
@@ -409,7 +409,7 @@ struct fmt_main fmt_cloud_keychain = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{
 			"iteration count",
 		},

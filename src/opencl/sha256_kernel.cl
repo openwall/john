@@ -159,7 +159,7 @@ void kernel_crypt(
     for (uint i = 0; i < candidates_number; i++) {
 
 	//Mask Mode: keys generation/finalization.
-	MASK_KEYS_GENERATION
+	MASK_KEYS_GENERATION_0
 
 	/* Run the collected hash value through SHA256. */
 	sha256_block(w, total, H);

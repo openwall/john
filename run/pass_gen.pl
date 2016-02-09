@@ -79,10 +79,10 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		o5logon postgres pst raw-blake2 raw-keccak raw-keccak256 siemens-s7
 		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip bitcoin blockchain
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
-		qnx_md5 qnx_sha512 qnx_sha256
+		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp
 		));
 
-# todo: sapb sapfg ike keepass cloudkeychain pfx racf vnc pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring keystore krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sxc sybase-prop tripcode vtp whirlpool0 whirlpool1
+# todo: sapb sapfg ike keepass cloudkeychain pfx racf pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring keystore krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
 my $qnx_sha512_warning=0;
 my @chrAsciiText=('a'..'z','A'..'Z');
@@ -476,6 +476,68 @@ sub word_encode {
     }
     return $s;
 }
+# sets parity bit to odd. 'truncates' chars to 7 bit before computing odd parity.
+sub str_odd_parity {
+	my $i;
+	my $s = $_[0];
+	for ($i = 0; $i < length($s); $i++) {
+		my $b = ord(substr($s, $i, 1))&0x7F; #strip off high bit.
+		my $b_7bit = $b;
+		my $c = 0;
+		while ($b) {
+			if ($b & 1) { $c++; }
+			$b >>= 1;
+		}
+		if ($c & 1) {
+			substr($s, $i, 1) = chr($b_7bit); # already odd
+		} else {
+			substr($s, $i, 1) = chr($b_7bit+0x80);
+		}
+	}
+	return $s;
+}
+# sets parity bit to even. 'truncates' chars to 7 bit before computing even parity.
+sub str_even_parity {
+	my $i;
+	my $s = $_[0];
+	for ($i = 0; $i < length($s); $i++) {
+		my $b = ord(substr($s, $i, 1))&0x7F; #strip off high bit.
+		my $b_7bit = $b;
+		my $c = 0;
+		while ($b) {
+			if ($b & 1) { $c++; }
+			$b >>= 1;
+		}
+		if ( ($c & 1) == 0) {
+			substr($s, $i, 1) = chr($b_7bit); # already even
+		} else {
+			substr($s, $i, 1) = chr($b_7bit+0x80);
+		}
+	}
+	return $s;
+}
+# str_force_length(str, len, padd);  does padding to proper len (or truncation).
+sub str_force_length_pad {
+	my $str = $_[0];
+	while (length($str) < $_[1]) { $str .= $_[2]; }
+	$str = substr($str, 0, $_[1]);
+	return $str;
+}
+# every byte of the string has it's bits put into reverse order.
+# vnc does this for some reason. But I put into a function so if
+# needed again, we can do this.
+sub str_reverse_bits_in_bytes {
+	my $i;
+	my $s = $_[0];
+	for ($i = 0; $i < length($s); $i++) {
+		my $b = ord(substr($s, $i, 1));
+		$b = ($b & 0xF0) >> 4 | ($b & 0x0F) << 4;
+		$b = ($b & 0xCC) >> 2 | ($b & 0x33) << 2;
+		$b = ($b & 0xAA) >> 1 | ($b & 0x55) << 1;
+		substr($s, $i, 1) = chr($b);
+	}
+	return $s;
+}
 #############################################################################
 # this function does the LM hash in pure perl. It uses an existing
 # setup_des_key we were using for the net_ntlm stuff.
@@ -711,9 +773,9 @@ sub get_content {
 	if (defined $_[1] && $_[1]+0 eq $_[1]) { $aslen = $_[1]; }
 	my @chr = defined($_[2]) ? @{$_[2]} : @chrAsciiTextNum;
 	if (defined $argcontent && length ($argcontent)==$len*2 && length(pack("H*",$argcontent))==$len) {
-		$argcontent = pack("H*",$argcontent);
+		return pack("H*",$argcontent);
 	} elsif (defined $argcontent && substr($argcontent, 0, 4) eq "HEX=") {
-		$argcontent = pack("H*",substr($argcontent,4));
+		return pack("H*",substr($argcontent, 4));
 	}
 	if (defined $argcontent && ($aslen == -1 || ($aslen < -1 && length($argcontent) <= -1*$aslen) || length ($argcontent)==$aslen  || ($randlen == 1 && length($argcontent) <= $len)) ) {
 		return ($argcontent);
@@ -1786,6 +1848,20 @@ sub keepass {
 sub ike {
 }
 sub cloudkeychain {
+	$salt = get_salt(16);
+	my $iv = get_iv(16);
+	my $iter = get_loops(227272);
+	my $master_key = "  ";
+	my $hmacdata = get_content(96, -1024);
+	my $p = pp_pbkdf2($_[1],$salt,$iter,"sha512",64, 128);
+	my $expectedhmac = _hmac_shas(\&sha256, 64, substr($p,32), $hmacdata);
+	my $mklen = length($master_key);
+	my $hmdl = length($hmacdata);
+	my $ct = pack("H*", "000");
+	my $ctlen = length($ct);
+	$salt = unpack("H*",$salt); $iv = unpack("H*",$iv); $ct = unpack("H*",$ct); $master_key = unpack("H*",$master_key);
+	$expectedhmac = unpack("H*",$expectedhmac); $hmacdata = unpack("H*",$hmacdata); 
+	return "\$cloudkeychain\$16\$$salt\$$iter\$$mklen\$$master_key\$256\$16\$$iv\$$ctlen\$$ct\$32\$$expectedhmac\$$hmdl\$$hmacdata";
 }
 sub agilekeychain {
 	my $nkeys=1;
@@ -1933,8 +2009,6 @@ sub krb4 {
 }
 sub krb5 {
 }
-sub krb5pa_sha1 {
-}
 sub kwallet {
 }
 sub luks {
@@ -1954,6 +2028,18 @@ sub raw_skein_512 {
 sub ssh {
 }
 sub vnc {
+	require Crypt::ECB;
+	use Crypt::ECB;
+	my $chal = get_salt(16);
+	my $key = str_force_length_pad($_[0], 8, "\0");
+	$key = str_odd_parity($key);
+	$key = str_reverse_bits_in_bytes($key);
+	my $cr = Crypt::ECB->new;
+	$cr->padding(PADDING_NONE);
+	$cr->cipher("DES");
+	$cr->key($key);
+	my $hash = $cr->encrypt($chal);
+	return "\$vnc\$*".uc(unpack("H*",$chal))."*".uc(unpack('H*', $hash));
 }
 sub rar5 {
 }
@@ -1980,12 +2066,72 @@ sub snefru_256 {
 sub ssh_ng {
 }
 sub sxc {
+	$salt = get_salt(16);
+	my$iv = get_iv(8);
+	my $r = get_loops(1024);
+	my $content = get_content(-1024, -4095);
+	my $len = length($content);
+	my $len2 = floor(length($content)/20) * 20;
+	$h = sha1($_[0]);
+	my $key = pp_pbkdf2($h, $salt, $r, "sha1", 16 , 64);
+	require Crypt::OpenSSL::Blowfish::CFB64;
+	my $crypt = Crypt::OpenSSL::Blowfish::CFB64->new($key, $iv);
+	my $output = $crypt->decrypt($content);
+	my $res = sha1_hex(substr($output, 0, $len2));
+	return "\$sxc\$*0*0*$r*16*$res*8*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*$len2*$len*".unpack("H*",$content);
 }
 sub sybase_prop {
 }
 sub tripcode {
 }
 sub vtp {
+	my $secret = $_[0];
+	if (length($secret)) {
+		while (length($secret) < 1563*64) { $secret .= $_[0]; }
+		if (length($secret) > 1563*64) { $secret = substr($secret, 0, 1563*64); }
+		$secret = md5($secret);
+	} else {
+		$secret = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+	}
+	my $c = randstr(1,\@chrRawData);
+	my $vtp;
+	my $trailer_data;
+	my $vlans_data;
+	my $v = 2;
+	my $salt = get_salt(10);
+	if (ord($c) < 20) {
+		# create v1 record.
+		$v = 1;
+		$vtp = pack("H*","0101000c646f6d61696e31323334353600000000000000000000000000000000000000000000001".
+						 "00000000000000000000000000000000000000000000000000000000000000000");
+		$trailer_data = pack("H*","0101000200");
+		$vlans_data = pack("H*","14000107000105dc000186a164656661756c740014000105000505dc000186a568656c6c6".
+								"f0000002000020c03ea05dc00018a8a666464692d64656661756c74010100000401000028".
+								"00031203eb05dc00018a8b746f6b656e2d72696e672d64656661756c74000001010000040".
+								"100002400040f03ec05dc00018a8c666464696e65742d64656661756c7400020100000301".
+								"00012400050d03ed05dc00018a8d74726e65742d64656661756c740000000201000003010002");
+	} else {
+		# create v2 record.
+		$vtp = pack("H*","0201000c646f6d61696e313233343536000000000000000000000000000000000000000000000015".
+						 "0000000000000000000000000000000000000000000000000000000000000000");
+		$trailer_data = pack("H*","0000000106010002");
+		$vlans_data = pack("H*","14000107000105dc000186a164656661756c740014000105000505dc000186a56368656e61".
+								"00000010000103000605dc000186a6666666001800020c03ea05dc00018a8a666464692d64".
+								"656661756c743000030d03eb117800018a8b74726372662d64656661756c7400000001010c".
+								"cc040103ed0701000208010007090100072000040f03ec05dc00018a8c666464696e65742d".
+								"64656661756c7400030100012400050d03ed117800018a8d74726272662d64656661756c740000000201000f03010002");
+	}
+	substr($vtp, 4, 10) = "\0\0\0\0\0\0\0\0\0\0";
+	substr($vtp, 4, length($salt)) = $salt;
+	my $h =	$secret.$vtp;
+	if ($v != 1) { $h .= $trailer_data; }
+	my $vdl = length($vlans_data);
+	my $sl = length($vtp)+length($trailer_data);
+	$h = unpack("H*",md5($h.$vlans_data.$secret));
+	$vtp = unpack("H*",$vtp);
+	$vlans_data = unpack("H*",$vlans_data);
+	$trailer_data = unpack("H*",$trailer_data);
+	return "\$vtp\$$v\$$vdl\$$vlans_data\$$sl\$$vtp$trailer_data\$$h";
 }
 sub whirlpool0 {
 }
@@ -2568,6 +2714,8 @@ sub xsha512 {
 	$salt = get_salt(4);
 	if ($u&1) { $ret = "\$LION\$"; }
 	$ret .= unpack("H*", $salt).sha512_hex($salt . $_[1]);
+}
+sub krb5pa_sha1 {
 }
 sub krb5pa_md5 {
 	require Crypt::RC4;

@@ -160,7 +160,7 @@ inline uint funnel_shift_right_imm(uint hi, uint lo, uint s)
 #define VECTOR(x, y)		CONCAT(x, y)
 
 /* Workaround for problem seen with 9600GT */
-#if OLD_NVIDIA
+#if OLD_NVIDIA || __OS_X__
 #define MAYBE_CONSTANT	__global const
 #else
 #define MAYBE_CONSTANT	__constant

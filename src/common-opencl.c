@@ -2544,13 +2544,22 @@ void opencl_list_devices(void)
 			       opencl_speed_index(sequence_nr));
 
 			ret = clGetDeviceInfo(devices[sequence_nr],
-			                      CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof(cl_uint), &long_entries, NULL);
+			                      CL_DEVICE_SIMD_WIDTH_AMD, sizeof(cl_uint),
+			                      &long_entries, NULL);
+			if (ret == CL_SUCCESS)
+				printf("    SIMD width:             "LLu"\n",
+				       (unsigned long long)long_entries);
+
+			ret = clGetDeviceInfo(devices[sequence_nr],
+			                      CL_DEVICE_WAVEFRONT_WIDTH_AMD,
+			                      sizeof(cl_uint), &long_entries, NULL);
 			if (ret == CL_SUCCESS)
 				printf("    Wavefront width:        "LLu"\n",
 				       (unsigned long long)long_entries);
 
 			ret = clGetDeviceInfo(devices[sequence_nr],
-			                      CL_DEVICE_WARP_SIZE_NV, sizeof(cl_uint), &long_entries, NULL);
+			                      CL_DEVICE_WARP_SIZE_NV, sizeof(cl_uint),
+			                      &long_entries, NULL);
 			if (ret == CL_SUCCESS)
 				printf("    Warp size:              "LLu"\n",
 				       (unsigned long long)long_entries);
