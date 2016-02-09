@@ -257,7 +257,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		DES_cblock des_key;
 		DES_key_schedule schedule;
-		DES_cblock ivec;
 		int i;
 
 		/* process key */
@@ -271,8 +270,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		DES_set_key_unchecked(&des_key, &schedule);
 
 		/* do encryption */
-		memset(ivec, 0, 8);
-		DES_cbc_encrypt(cur_salt->userid, (unsigned char*)crypt_out[index], 8, &schedule, &ivec, DES_ENCRYPT);
+		DES_ecb_encrypt((const_DES_cblock*)cur_salt->userid, (DES_cblock*)crypt_out[index], &schedule, DES_ENCRYPT);
 	}
 	return count;
 }
