@@ -151,6 +151,8 @@ static void dynamic_RESET(struct fmt_main *fmt);
 
 #define eLargeOut dyna_eLargeOut
 eLargeOut_t *eLargeOut;
+#define nLargeOff dyna_nLargeOff
+unsigned *nLargeOff;
 
 
 #if ARCH_LITTLE_ENDIAN
@@ -249,6 +251,7 @@ static int keys_dirty;
 static unsigned char *cursalt;
 // length of salt (so we don't have to call strlen() all the time.
 static int saltlen;
+int get_dynamic_fmt_saltlen() { return saltlen; }
 // This array is for the 2nd salt in the hash.  I know of no hashes with double salts,
 // but test type dynamic_16 (which is 'fake') has 2 salts, and this is the data/code to
 // handle double salts.
@@ -562,6 +565,15 @@ void __nonMP_eLargeOut(eLargeOut_t what)
 #endif
 	eLargeOut[0] = what;
 }
+void __nonMP_nLargeOff(unsigned val)
+{
+#ifdef _OPENMP
+	unsigned int i;
+	for (i = 1; i < m_ompt; ++i)
+		nLargeOff[i] = val;
+#endif
+	nLargeOff[0] = val;
+}
 
 static inline void md5_unicode_convert_set(int what, int tid)
 {
@@ -588,6 +600,8 @@ void __nonMP_md5_unicode_convert(int what)
 #define md5_unicode_convert_get(tid)       md5_unicode_convert_get(0)
 #define eLargeOut_set(what, tid)  eLargeOut_set(what, 0)
 #define eLargeOut_get(tid)        eLargeOut_get(0)
+#define nLargeOff_set(val, tid)   nLargeOff_set(val, 0)
+#define nLargeOff_get(tid)        nLargeOff_get(0)
 #endif
 
 static inline void __nonMP_DynamicFunc__append_keys2()
@@ -734,14 +748,19 @@ static void init(struct fmt_main *pFmt)
 	if (!md5_unicode_convert) {
 		md5_unicode_convert = (int*)mem_calloc(m_ompt, sizeof(int));
 		eLargeOut = (eLargeOut_t*)mem_calloc(m_ompt, sizeof(eLargeOut_t));
-		for (i = 0; i < m_ompt; ++i)
+		nLargeOff = (unsigned*)mem_calloc(m_ompt, sizeof(unsigned));
+		for (i = 0; i < m_ompt; ++i) {
 			eLargeOut[i] = eBase16;
+			nLargeOff[i] = 0;
+		}
 	}
 #else
 	if (!md5_unicode_convert) {
 		md5_unicode_convert = (int*)mem_calloc(1, sizeof(int));
 		eLargeOut = (eLargeOut_t*)mem_calloc(1, sizeof(eLargeOut_t));
 		eLargeOut[0] = eBase16;
+		nLargeOff = (unsigned*)mem_calloc(1, sizeof(unsigned));
+		nLargeOff[0] = 0;
 	}
 #endif
 #ifdef SIMD_COEF_32
@@ -862,6 +881,7 @@ static void done(void)
 	MEM_FREE(total_len);
 	MEM_FREE(input_buf);
 #endif
+	MEM_FREE(nLargeOff);
 	MEM_FREE(eLargeOut);
 	MEM_FREE(md5_unicode_convert);
 	for (i = 0; i < 4; ++i)
@@ -1513,6 +1533,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// many keys are loaded, and how much work we do.
 	m_count = *pcount;
 	__nonMP_eLargeOut(eBase16);
+	__nonMP_nLargeOff(0);
 
 #ifdef SIMD_COEF_32
 	// If this format is MMX built, but is supposed to start in X86 (but be switchable), then we
@@ -7422,7 +7443,8 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		curdat.store_keys_normal_but_precompute_hash_to_output2 = 1;
 
 #define IF_CDOFF32(F,L) if (!curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1_offsetX) \
-	curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1_offsetX = (!!(Setup->startFlags&MGF_KEYS_BASE16_IN1_Offset_ ## F))*L
+	curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1_offsetX = \
+		(!!((Setup->startFlags&MGF_KEYS_BASE16_IN1_Offset_TYPE)==MGF_KEYS_BASE16_IN1_Offset_ ## F))*L
 
 	curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1_offsetX = 0;
 	IF_CDOFF32(MD5,32); IF_CDOFF32(MD4,32); IF_CDOFF32(SHA1,40); IF_CDOFF32(SHA224,56);

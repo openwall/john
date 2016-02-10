@@ -142,6 +142,8 @@ extern unsigned int m_count;
 
 #define eLargeOut dyna_eLargeOut
 extern eLargeOut_t *eLargeOut;
+#define nLargeOff dyna_nLargeOff
+extern unsigned *nLargeOff;
 
 extern MD5_OUT *crypt_key_X86;
 extern MD5_OUT *crypt_key2_X86;
@@ -175,12 +177,26 @@ static inline int _eLargeOut_get(int tid)
 	return eLargeOut[tid];
 }
 
+static inline void _nLargeOff_set(unsigned what, int tid)
+{
+	nLargeOff[tid] = what;
+}
+
+static inline int _nLargeOff_get(int tid)
+{
+	return nLargeOff[tid];
+}
+
 #if !defined (_OPENMP)
 #define eLargeOut_set(what, tid)  _eLargeOut_set(what, 0)
 #define eLargeOut_get(tid)        _eLargeOut_get(0)
+#define nLargeOff_set(what, tid)  _nLargeOff_set(what, 0)
+#define nLargeOff_get(tid)        _nLargeOff_get(0)
 #else
 #define eLargeOut_set(what, tid)  _eLargeOut_set(what, tid)
 #define eLargeOut_get(tid)        _eLargeOut_get(tid)
+#define nLargeOff_set(what, tid)  _nLargeOff_set(what, tid)
+#define nLargeOff_get(tid)        _nLargeOff_get(tid)
 #endif
 
 /* These SIMPLE setter functions, change how the large hash output format is performed   */
@@ -217,6 +233,76 @@ void DynamicFunc__LargeHash_OUTMode_raw(DYNA_OMP_PARAMS)
 	eLargeOut_set(eBaseRaw,tid);
 }
 
+
+void DynamicFunc__LargeHash_set_offset_16(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(16,tid);
+}
+void DynamicFunc__LargeHash_set_offset_20(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(20,tid);
+}
+void DynamicFunc__LargeHash_set_offset_24(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(24,tid);
+}
+void DynamicFunc__LargeHash_set_offset_28(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(28,tid);
+}
+void DynamicFunc__LargeHash_set_offset_32(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(32,tid);
+}
+void DynamicFunc__LargeHash_set_offset_40(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(40,tid);
+}
+void DynamicFunc__LargeHash_set_offset_48(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(48,tid);
+}
+void DynamicFunc__LargeHash_set_offset_56(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(56,tid);
+}
+void DynamicFunc__LargeHash_set_offset_64(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(64,tid);
+}
+void DynamicFunc__LargeHash_set_offset_80(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(80,tid);
+}
+void DynamicFunc__LargeHash_set_offset_96(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(96,tid);
+}
+void DynamicFunc__LargeHash_set_offset_100(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(100,tid);
+}
+void DynamicFunc__LargeHash_set_offset_112(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(112,tid);
+}
+void DynamicFunc__LargeHash_set_offset_128(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(128,tid);
+}
+void DynamicFunc__LargeHash_set_offset_160(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(160,tid);
+}
+void DynamicFunc__LargeHash_set_offset_192(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(192,tid);
+}
+extern int get_dynamic_fmt_saltlen();
+void DynamicFunc__LargeHash_set_offset_saltlen(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(get_dynamic_fmt_saltlen(),tid);
+}
 /******************************************************************************
  *****  These helper functions are used by all of the 'LARGE' hash functions.
  *****  These are used to convert an 'out' into the proper format, and writing

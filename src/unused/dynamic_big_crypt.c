@@ -1,6 +1,6 @@
 /*
  * The source for this file AUTO-GENERATED on:
- * Wed, Sep 16, 2015  9:18:31 AM
+ * Tue, Feb  9, 2016  8:27:33 PM
  *
  * NOTE.  This file IS 100% auto-generated code.
  *
@@ -168,6 +168,8 @@ extern unsigned int m_count;
 
 #define eLargeOut dyna_eLargeOut
 extern eLargeOut_t *eLargeOut;
+#define nLargeOff dyna_nLargeOff
+extern unsigned *nLargeOff;
 
 extern MD5_OUT *crypt_key_X86;
 extern MD5_OUT *crypt_key2_X86;
@@ -191,19 +193,36 @@ extern private_subformat_data curdat;
 #endif
 extern unsigned short itoa16_w2_u[256], *itoa16_w2;
 
-static inline void eLargeOut_set(eLargeOut_t what, int tid)
+static inline void _eLargeOut_set(eLargeOut_t what, int tid)
 {
 	eLargeOut[tid] = what;
 }
 
-static inline int eLargeOut_get(int tid)
+static inline int _eLargeOut_get(int tid)
 {
 	return eLargeOut[tid];
 }
 
+static inline void _nLargeOff_set(unsigned what, int tid)
+{
+	nLargeOff[tid] = what;
+}
+
+static inline int _nLargeOff_get(int tid)
+{
+	return nLargeOff[tid];
+}
+
 #if !defined (_OPENMP)
-#define eLargeOut_set(what, tid)  eLargeOut_set(what, 0)
-#define eLargeOut_get(tid)        eLargeOut_get(0)
+#define eLargeOut_set(what, tid)  _eLargeOut_set(what, 0)
+#define eLargeOut_get(tid)        _eLargeOut_get(0)
+#define nLargeOff_set(what, tid)  _nLargeOff_set(what, 0)
+#define nLargeOff_get(tid)        _nLargeOff_get(0)
+#else
+#define eLargeOut_set(what, tid)  _eLargeOut_set(what, tid)
+#define eLargeOut_get(tid)        _eLargeOut_get(tid)
+#define nLargeOff_set(what, tid)  _nLargeOff_set(what, tid)
+#define nLargeOff_get(tid)        _nLargeOff_get(tid)
 #endif
 
 /* These SIMPLE setter functions, change how the large hash output format is performed   */
@@ -240,6 +259,76 @@ void DynamicFunc__LargeHash_OUTMode_raw(DYNA_OMP_PARAMS)
 	eLargeOut_set(eBaseRaw,tid);
 }
 
+
+void DynamicFunc__LargeHash_set_offset_16(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(16,tid);
+}
+void DynamicFunc__LargeHash_set_offset_20(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(20,tid);
+}
+void DynamicFunc__LargeHash_set_offset_24(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(24,tid);
+}
+void DynamicFunc__LargeHash_set_offset_28(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(28,tid);
+}
+void DynamicFunc__LargeHash_set_offset_32(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(32,tid);
+}
+void DynamicFunc__LargeHash_set_offset_40(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(40,tid);
+}
+void DynamicFunc__LargeHash_set_offset_48(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(48,tid);
+}
+void DynamicFunc__LargeHash_set_offset_56(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(56,tid);
+}
+void DynamicFunc__LargeHash_set_offset_64(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(64,tid);
+}
+void DynamicFunc__LargeHash_set_offset_80(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(80,tid);
+}
+void DynamicFunc__LargeHash_set_offset_96(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(96,tid);
+}
+void DynamicFunc__LargeHash_set_offset_100(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(100,tid);
+}
+void DynamicFunc__LargeHash_set_offset_112(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(112,tid);
+}
+void DynamicFunc__LargeHash_set_offset_128(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(128,tid);
+}
+void DynamicFunc__LargeHash_set_offset_160(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(160,tid);
+}
+void DynamicFunc__LargeHash_set_offset_192(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(192,tid);
+}
+extern int get_dynamic_fmt_saltlen();
+void DynamicFunc__LargeHash_set_offset_saltlen(DYNA_OMP_PARAMS)
+{
+	nLargeOff_set(get_dynamic_fmt_saltlen(),tid);
+}
 /******************************************************************************
  *****  These helper functions are used by all of the 'LARGE' hash functions.
  *****  These are used to convert an 'out' into the proper format, and writing
@@ -391,6 +480,7 @@ int inline large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte
 	return cpo2-cpo;
 }
 
+#if SIMD_COEF_32
 static inline uint32_t Do_FixBufferLen32(unsigned char *input_buf, int total_len, int BE_HASH)
 {
 	uint32_t *p;
@@ -483,6 +573,7 @@ static inline uint32_t Do_FixBufferLen64(unsigned char *input_buf, int total_len
 
 	return ret;
 }
+#endif
 
 #ifdef _OPENMP
 #define PRELIM_W_TID   uint32_t i=first, til=last
@@ -619,7 +710,7 @@ static void inline DoMD5_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot
 	MD5_Init(&ctx);
 	MD5_Update(&ctx, in, ilen);
 	MD5_Final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 16);
 		*tot_len += 16*2;
@@ -685,6 +776,122 @@ void DynamicFunc__MD5_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoMD5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+#endif
+	}
+}
+
+void DynamicFunc__MD5_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += MD5_inc) {
+#ifdef SIMD_PARA_MD5
+		uint32_t j, len[MD5_LOOPS], x[MD5_LOOPS];
+		void *out[MD5_LOOPS];
+		for (j = 0; j < MD5_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoMD5_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__MD5_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += MD5_inc) {
+#ifdef SIMD_PARA_MD5
+		uint32_t j, len[MD5_LOOPS], x[MD5_LOOPS];
+		void *out[MD5_LOOPS];
+		for (j = 0; j < MD5_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoMD5_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__MD5_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += MD5_inc) {
+#ifdef SIMD_PARA_MD5
+		uint32_t j, len[MD5_LOOPS], x[MD5_LOOPS];
+		void *out[MD5_LOOPS];
+		for (j = 0; j < MD5_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoMD5_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__MD5_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += MD5_inc) {
+#ifdef SIMD_PARA_MD5
+		uint32_t j, len[MD5_LOOPS], x[MD5_LOOPS];
+		void *out[MD5_LOOPS];
+		for (j = 0; j < MD5_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoMD5_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 #endif
 	}
 }
@@ -1015,7 +1222,7 @@ static void inline DoMD4_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot
 	MD4_Init(&ctx);
 	MD4_Update(&ctx, in, ilen);
 	MD4_Final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 16);
 		*tot_len += 16*2;
@@ -1081,6 +1288,122 @@ void DynamicFunc__MD4_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoMD4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+#endif
+	}
+}
+
+void DynamicFunc__MD4_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += MD4_inc) {
+#ifdef SIMD_PARA_MD4
+		uint32_t j, len[MD4_LOOPS], x[MD4_LOOPS];
+		void *out[MD4_LOOPS];
+		for (j = 0; j < MD4_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoMD4_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__MD4_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += MD4_inc) {
+#ifdef SIMD_PARA_MD4
+		uint32_t j, len[MD4_LOOPS], x[MD4_LOOPS];
+		void *out[MD4_LOOPS];
+		for (j = 0; j < MD4_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoMD4_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__MD4_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += MD4_inc) {
+#ifdef SIMD_PARA_MD4
+		uint32_t j, len[MD4_LOOPS], x[MD4_LOOPS];
+		void *out[MD4_LOOPS];
+		for (j = 0; j < MD4_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoMD4_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__MD4_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += MD4_inc) {
+#ifdef SIMD_PARA_MD4
+		uint32_t j, len[MD4_LOOPS], x[MD4_LOOPS];
+		void *out[MD4_LOOPS];
+		for (j = 0; j < MD4_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoMD4_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 #endif
 	}
 }
@@ -1411,7 +1734,7 @@ static void inline DoSHA1_crypt(void *in, uint32_t ilen, void *out, uint32_t *to
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, in, ilen);
 	SHA1_Final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 20);
 		*tot_len += 20*2;
@@ -1477,6 +1800,122 @@ void DynamicFunc__SHA1_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoSHA1_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA1_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA1_inc) {
+#ifdef SIMD_PARA_SHA1
+		uint32_t j, len[SHA1_LOOPS], x[SHA1_LOOPS];
+		void *out[SHA1_LOOPS];
+		for (j = 0; j < SHA1_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA1_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA1_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA1_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA1_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA1_inc) {
+#ifdef SIMD_PARA_SHA1
+		uint32_t j, len[SHA1_LOOPS], x[SHA1_LOOPS];
+		void *out[SHA1_LOOPS];
+		for (j = 0; j < SHA1_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA1_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA1_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA1_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA1_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA1_inc) {
+#ifdef SIMD_PARA_SHA1
+		uint32_t j, len[SHA1_LOOPS], x[SHA1_LOOPS];
+		void *out[SHA1_LOOPS];
+		for (j = 0; j < SHA1_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA1_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA1_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA1_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA1_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA1_inc) {
+#ifdef SIMD_PARA_SHA1
+		uint32_t j, len[SHA1_LOOPS], x[SHA1_LOOPS];
+		void *out[SHA1_LOOPS];
+		for (j = 0; j < SHA1_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA1_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA1_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA1_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 #endif
 	}
 }
@@ -1807,7 +2246,7 @@ static void inline DoSHA224_crypt(void *in, uint32_t ilen, void *out, uint32_t *
 	SHA224_Init(&ctx);
 	SHA256_Update(&ctx, in, ilen);
 	SHA256_Final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 28);
 		*tot_len += 28*2;
@@ -1873,6 +2312,122 @@ void DynamicFunc__SHA224_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoSHA224_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA224_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA224_inc) {
+#ifdef SIMD_PARA_SHA256
+		uint32_t j, len[SHA224_LOOPS], x[SHA224_LOOPS];
+		void *out[SHA224_LOOPS];
+		for (j = 0; j < SHA224_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA224_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA224_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA224_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA224_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA224_inc) {
+#ifdef SIMD_PARA_SHA256
+		uint32_t j, len[SHA224_LOOPS], x[SHA224_LOOPS];
+		void *out[SHA224_LOOPS];
+		for (j = 0; j < SHA224_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA224_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA224_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA224_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA224_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA224_inc) {
+#ifdef SIMD_PARA_SHA256
+		uint32_t j, len[SHA224_LOOPS], x[SHA224_LOOPS];
+		void *out[SHA224_LOOPS];
+		for (j = 0; j < SHA224_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA224_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA224_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA224_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA224_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA224_inc) {
+#ifdef SIMD_PARA_SHA256
+		uint32_t j, len[SHA224_LOOPS], x[SHA224_LOOPS];
+		void *out[SHA224_LOOPS];
+		for (j = 0; j < SHA224_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA224_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA224_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA224_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 #endif
 	}
 }
@@ -2203,7 +2758,7 @@ static void inline DoSHA256_crypt(void *in, uint32_t ilen, void *out, uint32_t *
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, in, ilen);
 	SHA256_Final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 32);
 		*tot_len += 32*2;
@@ -2269,6 +2824,122 @@ void DynamicFunc__SHA256_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA256_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA256_inc) {
+#ifdef SIMD_PARA_SHA256
+		uint32_t j, len[SHA256_LOOPS], x[SHA256_LOOPS];
+		void *out[SHA256_LOOPS];
+		for (j = 0; j < SHA256_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA256_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA256_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA256_inc) {
+#ifdef SIMD_PARA_SHA256
+		uint32_t j, len[SHA256_LOOPS], x[SHA256_LOOPS];
+		void *out[SHA256_LOOPS];
+		for (j = 0; j < SHA256_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA256_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA256_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA256_inc) {
+#ifdef SIMD_PARA_SHA256
+		uint32_t j, len[SHA256_LOOPS], x[SHA256_LOOPS];
+		void *out[SHA256_LOOPS];
+		for (j = 0; j < SHA256_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA256_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA256_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA256_inc) {
+#ifdef SIMD_PARA_SHA256
+		uint32_t j, len[SHA256_LOOPS], x[SHA256_LOOPS];
+		void *out[SHA256_LOOPS];
+		for (j = 0; j < SHA256_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA256_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 #endif
 	}
 }
@@ -2599,7 +3270,7 @@ static void inline DoSHA384_crypt(void *in, uint32_t ilen, void *out, uint32_t *
 	SHA384_Init(&ctx);
 	SHA512_Update(&ctx, in, ilen);
 	SHA512_Final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 48);
 		*tot_len += 48*2;
@@ -2665,6 +3336,122 @@ void DynamicFunc__SHA384_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoSHA384_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA384_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA384_inc) {
+#ifdef SIMD_PARA_SHA512
+		uint32_t j, len[SHA384_LOOPS], x[SHA384_LOOPS];
+		void *out[SHA384_LOOPS];
+		for (j = 0; j < SHA384_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA384_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA384_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA384_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA384_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA384_inc) {
+#ifdef SIMD_PARA_SHA512
+		uint32_t j, len[SHA384_LOOPS], x[SHA384_LOOPS];
+		void *out[SHA384_LOOPS];
+		for (j = 0; j < SHA384_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA384_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA384_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA384_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA384_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA384_inc) {
+#ifdef SIMD_PARA_SHA512
+		uint32_t j, len[SHA384_LOOPS], x[SHA384_LOOPS];
+		void *out[SHA384_LOOPS];
+		for (j = 0; j < SHA384_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA384_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA384_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA384_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA384_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA384_inc) {
+#ifdef SIMD_PARA_SHA512
+		uint32_t j, len[SHA384_LOOPS], x[SHA384_LOOPS];
+		void *out[SHA384_LOOPS];
+		for (j = 0; j < SHA384_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA384_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA384_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA384_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 #endif
 	}
 }
@@ -2995,7 +3782,7 @@ static void inline DoSHA512_crypt(void *in, uint32_t ilen, void *out, uint32_t *
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, in, ilen);
 	SHA512_Final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 64);
 		*tot_len += 64*2;
@@ -3061,6 +3848,122 @@ void DynamicFunc__SHA512_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoSHA512_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA512_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA512_inc) {
+#ifdef SIMD_PARA_SHA512
+		uint32_t j, len[SHA512_LOOPS], x[SHA512_LOOPS];
+		void *out[SHA512_LOOPS];
+		for (j = 0; j < SHA512_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA512_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA512_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA512_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA512_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA512_inc) {
+#ifdef SIMD_PARA_SHA512
+		uint32_t j, len[SHA512_LOOPS], x[SHA512_LOOPS];
+		void *out[SHA512_LOOPS];
+		for (j = 0; j < SHA512_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA512_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA512_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA512_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA512_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA512_inc) {
+#ifdef SIMD_PARA_SHA512
+		uint32_t j, len[SHA512_LOOPS], x[SHA512_LOOPS];
+		void *out[SHA512_LOOPS];
+		for (j = 0; j < SHA512_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA512_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA512_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA512_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif
+	}
+}
+
+void DynamicFunc__SHA512_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA512_inc) {
+#ifdef SIMD_PARA_SHA512
+		uint32_t j, len[SHA512_LOOPS], x[SHA512_LOOPS];
+		void *out[SHA512_LOOPS];
+		for (j = 0; j < SHA512_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		DoSHA512_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA512_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA512_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 #endif
 	}
 }
@@ -3307,7 +4210,7 @@ static void inline DoSHA3_224_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	SHA3_224_Init(&ctx);
 	KECCAK_Update(&ctx, in, ilen);
 	KECCAK_Final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 28);
 		*tot_len += 28*2;
@@ -3343,6 +4246,58 @@ void DynamicFunc__SHA3_224_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoSHA3_224_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__SHA3_224_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_224_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_224_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_224_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SHA3_224_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_224_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_224_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_224_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SHA3_224_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_224_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_224_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_224_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SHA3_224_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_224_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_224_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_224_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -3491,7 +4446,7 @@ static void inline DoSHA3_256_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	SHA3_256_Init(&ctx);
 	KECCAK_Update(&ctx, in, ilen);
 	KECCAK_Final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 32);
 		*tot_len += 32*2;
@@ -3527,6 +4482,58 @@ void DynamicFunc__SHA3_256_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoSHA3_256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__SHA3_256_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SHA3_256_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SHA3_256_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SHA3_256_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -3675,7 +4682,7 @@ static void inline DoSHA3_384_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	SHA3_384_Init(&ctx);
 	KECCAK_Update(&ctx, in, ilen);
 	KECCAK_Final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 48);
 		*tot_len += 48*2;
@@ -3711,6 +4718,58 @@ void DynamicFunc__SHA3_384_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoSHA3_384_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__SHA3_384_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_384_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_384_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_384_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SHA3_384_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_384_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_384_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_384_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SHA3_384_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_384_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_384_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_384_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SHA3_384_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_384_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_384_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_384_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -3859,7 +4918,7 @@ static void inline DoSHA3_512_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	SHA3_512_Init(&ctx);
 	KECCAK_Update(&ctx, in, ilen);
 	KECCAK_Final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 64);
 		*tot_len += 64*2;
@@ -3895,6 +4954,58 @@ void DynamicFunc__SHA3_512_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoSHA3_512_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__SHA3_512_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_512_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_512_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_512_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SHA3_512_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_512_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_512_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_512_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SHA3_512_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_512_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_512_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_512_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SHA3_512_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SHA3_512_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSHA3_512_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSHA3_512_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -4043,7 +5154,7 @@ static void inline DoKECCAK_256_crypt(void *in, uint32_t ilen, void *out, uint32
 	KECCAK_256_Init(&ctx);
 	KECCAK_Update(&ctx, in, ilen);
 	KECCAK_Final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 32);
 		*tot_len += 32*2;
@@ -4079,6 +5190,58 @@ void DynamicFunc__KECCAK_256_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoKECCAK_256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__KECCAK_256_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += KECCAK_256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoKECCAK_256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoKECCAK_256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__KECCAK_256_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += KECCAK_256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoKECCAK_256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoKECCAK_256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__KECCAK_256_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += KECCAK_256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoKECCAK_256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoKECCAK_256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__KECCAK_256_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += KECCAK_256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoKECCAK_256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoKECCAK_256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -4227,7 +5390,7 @@ static void inline DoKECCAK_512_crypt(void *in, uint32_t ilen, void *out, uint32
 	KECCAK_512_Init(&ctx);
 	KECCAK_Update(&ctx, in, ilen);
 	KECCAK_Final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 64);
 		*tot_len += 64*2;
@@ -4263,6 +5426,58 @@ void DynamicFunc__KECCAK_512_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoKECCAK_512_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__KECCAK_512_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += KECCAK_512_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoKECCAK_512_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoKECCAK_512_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__KECCAK_512_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += KECCAK_512_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoKECCAK_512_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoKECCAK_512_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__KECCAK_512_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += KECCAK_512_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoKECCAK_512_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoKECCAK_512_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__KECCAK_512_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += KECCAK_512_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoKECCAK_512_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoKECCAK_512_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -4411,7 +5626,7 @@ static void inline DoGOST_crypt(void *in, uint32_t ilen, void *out, uint32_t *to
 	john_gost_init(&ctx);
 	john_gost_update(&ctx, in, ilen);
 	john_gost_final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 32);
 		*tot_len += 32*2;
@@ -4447,6 +5662,58 @@ void DynamicFunc__GOST_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoGOST_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__GOST_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += GOST_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoGOST_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoGOST_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__GOST_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += GOST_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoGOST_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoGOST_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__GOST_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += GOST_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoGOST_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoGOST_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__GOST_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += GOST_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoGOST_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoGOST_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -4595,7 +5862,7 @@ static void inline DoWHIRLPOOL_crypt(void *in, uint32_t ilen, void *out, uint32_
 	WHIRLPOOL_Init(&ctx);
 	WHIRLPOOL_Update(&ctx, in, ilen);
 	WHIRLPOOL_Final(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 64);
 		*tot_len += 64*2;
@@ -4631,6 +5898,58 @@ void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoWHIRLPOOL_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__WHIRLPOOL_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += WHIRLPOOL_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoWHIRLPOOL_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoWHIRLPOOL_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__WHIRLPOOL_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += WHIRLPOOL_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoWHIRLPOOL_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoWHIRLPOOL_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__WHIRLPOOL_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += WHIRLPOOL_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoWHIRLPOOL_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoWHIRLPOOL_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__WHIRLPOOL_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += WHIRLPOOL_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoWHIRLPOOL_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoWHIRLPOOL_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -4779,7 +6098,7 @@ static void inline DoTiger_crypt(void *in, uint32_t ilen, void *out, uint32_t *t
 	sph_tiger_init(&ctx);
 	sph_tiger(&ctx, in, ilen);
 	sph_tiger_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 24);
 		*tot_len += 24*2;
@@ -4815,6 +6134,58 @@ void DynamicFunc__Tiger_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoTiger_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__Tiger_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += Tiger_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoTiger_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoTiger_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__Tiger_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += Tiger_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoTiger_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoTiger_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__Tiger_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += Tiger_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoTiger_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoTiger_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__Tiger_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += Tiger_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoTiger_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoTiger_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -4961,7 +6332,7 @@ static void inline DoRIPEMD128_crypt(void *in, uint32_t ilen, void *out, uint32_
 	sph_ripemd128_init(&ctx);
 	sph_ripemd128(&ctx, in, ilen);
 	sph_ripemd128_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 16);
 		*tot_len += 16*2;
@@ -4997,6 +6368,58 @@ void DynamicFunc__RIPEMD128_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoRIPEMD128_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__RIPEMD128_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD128_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD128_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD128_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__RIPEMD128_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD128_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD128_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD128_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__RIPEMD128_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD128_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD128_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD128_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__RIPEMD128_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD128_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD128_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD128_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -5145,7 +6568,7 @@ static void inline DoRIPEMD160_crypt(void *in, uint32_t ilen, void *out, uint32_
 	sph_ripemd160_init(&ctx);
 	sph_ripemd160(&ctx, in, ilen);
 	sph_ripemd160_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 20);
 		*tot_len += 20*2;
@@ -5181,6 +6604,58 @@ void DynamicFunc__RIPEMD160_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoRIPEMD160_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__RIPEMD160_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD160_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD160_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD160_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__RIPEMD160_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD160_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD160_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD160_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__RIPEMD160_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD160_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD160_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD160_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__RIPEMD160_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD160_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD160_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD160_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -5329,7 +6804,7 @@ static void inline DoRIPEMD256_crypt(void *in, uint32_t ilen, void *out, uint32_
 	sph_ripemd256_init(&ctx);
 	sph_ripemd256(&ctx, in, ilen);
 	sph_ripemd256_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 32);
 		*tot_len += 32*2;
@@ -5365,6 +6840,58 @@ void DynamicFunc__RIPEMD256_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoRIPEMD256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__RIPEMD256_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__RIPEMD256_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__RIPEMD256_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__RIPEMD256_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -5513,7 +7040,7 @@ static void inline DoRIPEMD320_crypt(void *in, uint32_t ilen, void *out, uint32_
 	sph_ripemd320_init(&ctx);
 	sph_ripemd320(&ctx, in, ilen);
 	sph_ripemd320_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 40);
 		*tot_len += 40*2;
@@ -5549,6 +7076,58 @@ void DynamicFunc__RIPEMD320_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoRIPEMD320_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__RIPEMD320_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD320_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD320_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD320_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__RIPEMD320_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD320_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD320_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD320_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__RIPEMD320_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD320_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD320_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD320_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__RIPEMD320_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += RIPEMD320_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoRIPEMD320_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoRIPEMD320_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -5697,7 +7276,7 @@ static void inline DoHAVAL128_3_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval128_3_init(&ctx);
 	sph_haval128_3(&ctx, in, ilen);
 	sph_haval128_3_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 16);
 		*tot_len += 16*2;
@@ -5733,6 +7312,58 @@ void DynamicFunc__HAVAL128_3_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL128_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL128_3_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL128_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL128_3_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL128_3_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL128_3_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL128_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL128_3_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL128_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL128_3_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL128_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL128_3_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL128_3_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL128_3_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL128_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL128_3_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL128_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -5881,7 +7512,7 @@ static void inline DoHAVAL128_4_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval128_4_init(&ctx);
 	sph_haval128_4(&ctx, in, ilen);
 	sph_haval128_4_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 16);
 		*tot_len += 16*2;
@@ -5917,6 +7548,58 @@ void DynamicFunc__HAVAL128_4_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL128_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL128_4_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL128_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL128_4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL128_4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL128_4_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL128_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL128_4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL128_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL128_4_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL128_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL128_4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL128_4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL128_4_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL128_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL128_4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL128_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -6065,7 +7748,7 @@ static void inline DoHAVAL128_5_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval128_5_init(&ctx);
 	sph_haval128_5(&ctx, in, ilen);
 	sph_haval128_5_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 16);
 		*tot_len += 16*2;
@@ -6101,6 +7784,58 @@ void DynamicFunc__HAVAL128_5_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL128_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL128_5_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL128_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL128_5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL128_5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL128_5_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL128_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL128_5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL128_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL128_5_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL128_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL128_5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL128_5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL128_5_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL128_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL128_5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL128_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -6249,7 +7984,7 @@ static void inline DoHAVAL160_3_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval160_3_init(&ctx);
 	sph_haval160_3(&ctx, in, ilen);
 	sph_haval160_3_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 20);
 		*tot_len += 20*2;
@@ -6285,6 +8020,58 @@ void DynamicFunc__HAVAL160_3_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL160_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL160_3_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL160_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL160_3_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL160_3_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL160_3_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL160_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL160_3_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL160_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL160_3_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL160_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL160_3_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL160_3_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL160_3_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL160_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL160_3_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL160_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -6433,7 +8220,7 @@ static void inline DoHAVAL160_4_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval160_4_init(&ctx);
 	sph_haval160_4(&ctx, in, ilen);
 	sph_haval160_4_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 20);
 		*tot_len += 20*2;
@@ -6469,6 +8256,58 @@ void DynamicFunc__HAVAL160_4_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL160_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL160_4_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL160_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL160_4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL160_4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL160_4_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL160_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL160_4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL160_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL160_4_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL160_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL160_4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL160_4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL160_4_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL160_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL160_4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL160_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -6617,7 +8456,7 @@ static void inline DoHAVAL160_5_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval160_5_init(&ctx);
 	sph_haval160_5(&ctx, in, ilen);
 	sph_haval160_5_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 20);
 		*tot_len += 20*2;
@@ -6653,6 +8492,58 @@ void DynamicFunc__HAVAL160_5_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL160_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL160_5_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL160_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL160_5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL160_5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL160_5_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL160_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL160_5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL160_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL160_5_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL160_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL160_5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL160_5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL160_5_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL160_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL160_5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL160_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -6801,7 +8692,7 @@ static void inline DoHAVAL192_3_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval192_3_init(&ctx);
 	sph_haval192_3(&ctx, in, ilen);
 	sph_haval192_3_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 24);
 		*tot_len += 24*2;
@@ -6837,6 +8728,58 @@ void DynamicFunc__HAVAL192_3_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL192_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL192_3_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL192_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL192_3_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL192_3_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL192_3_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL192_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL192_3_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL192_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL192_3_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL192_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL192_3_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL192_3_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL192_3_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL192_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL192_3_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL192_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -6985,7 +8928,7 @@ static void inline DoHAVAL192_4_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval192_4_init(&ctx);
 	sph_haval192_4(&ctx, in, ilen);
 	sph_haval192_4_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 24);
 		*tot_len += 24*2;
@@ -7021,6 +8964,58 @@ void DynamicFunc__HAVAL192_4_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL192_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL192_4_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL192_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL192_4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL192_4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL192_4_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL192_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL192_4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL192_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL192_4_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL192_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL192_4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL192_4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL192_4_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL192_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL192_4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL192_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -7169,7 +9164,7 @@ static void inline DoHAVAL192_5_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval192_5_init(&ctx);
 	sph_haval192_5(&ctx, in, ilen);
 	sph_haval192_5_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 24);
 		*tot_len += 24*2;
@@ -7205,6 +9200,58 @@ void DynamicFunc__HAVAL192_5_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL192_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL192_5_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL192_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL192_5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL192_5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL192_5_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL192_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL192_5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL192_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL192_5_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL192_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL192_5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL192_5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL192_5_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL192_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL192_5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL192_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -7353,7 +9400,7 @@ static void inline DoHAVAL224_3_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval224_3_init(&ctx);
 	sph_haval224_3(&ctx, in, ilen);
 	sph_haval224_3_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 28);
 		*tot_len += 28*2;
@@ -7389,6 +9436,58 @@ void DynamicFunc__HAVAL224_3_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL224_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL224_3_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL224_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL224_3_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL224_3_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL224_3_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL224_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL224_3_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL224_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL224_3_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL224_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL224_3_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL224_3_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL224_3_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL224_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL224_3_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL224_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -7537,7 +9636,7 @@ static void inline DoHAVAL224_4_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval224_4_init(&ctx);
 	sph_haval224_4(&ctx, in, ilen);
 	sph_haval224_4_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 28);
 		*tot_len += 28*2;
@@ -7573,6 +9672,58 @@ void DynamicFunc__HAVAL224_4_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL224_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL224_4_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL224_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL224_4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL224_4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL224_4_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL224_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL224_4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL224_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL224_4_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL224_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL224_4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL224_4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL224_4_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL224_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL224_4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL224_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -7721,7 +9872,7 @@ static void inline DoHAVAL224_5_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval224_5_init(&ctx);
 	sph_haval224_5(&ctx, in, ilen);
 	sph_haval224_5_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 28);
 		*tot_len += 28*2;
@@ -7757,6 +9908,58 @@ void DynamicFunc__HAVAL224_5_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL224_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL224_5_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL224_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL224_5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL224_5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL224_5_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL224_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL224_5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL224_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL224_5_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL224_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL224_5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL224_5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL224_5_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL224_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL224_5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL224_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -7905,7 +10108,7 @@ static void inline DoHAVAL256_3_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval256_3_init(&ctx);
 	sph_haval256_3(&ctx, in, ilen);
 	sph_haval256_3_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 32);
 		*tot_len += 32*2;
@@ -7941,6 +10144,58 @@ void DynamicFunc__HAVAL256_3_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL256_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL256_3_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL256_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL256_3_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL256_3_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL256_3_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL256_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL256_3_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL256_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL256_3_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL256_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL256_3_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL256_3_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL256_3_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL256_3_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL256_3_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL256_3_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -8089,7 +10344,7 @@ static void inline DoHAVAL256_4_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval256_4_init(&ctx);
 	sph_haval256_4(&ctx, in, ilen);
 	sph_haval256_4_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 32);
 		*tot_len += 32*2;
@@ -8125,6 +10380,58 @@ void DynamicFunc__HAVAL256_4_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL256_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL256_4_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL256_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL256_4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL256_4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL256_4_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL256_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL256_4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL256_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL256_4_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL256_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL256_4_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL256_4_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL256_4_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL256_4_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL256_4_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL256_4_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -8273,7 +10580,7 @@ static void inline DoHAVAL256_5_crypt(void *in, uint32_t ilen, void *out, uint32
 	sph_haval256_5_init(&ctx);
 	sph_haval256_5(&ctx, in, ilen);
 	sph_haval256_5_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 32);
 		*tot_len += 32*2;
@@ -8309,6 +10616,58 @@ void DynamicFunc__HAVAL256_5_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoHAVAL256_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__HAVAL256_5_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL256_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL256_5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL256_5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL256_5_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL256_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL256_5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL256_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL256_5_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL256_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL256_5_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL256_5_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__HAVAL256_5_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += HAVAL256_5_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoHAVAL256_5_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoHAVAL256_5_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -8457,7 +10816,7 @@ static void inline DoPANAMA_crypt(void *in, uint32_t ilen, void *out, uint32_t *
 	sph_panama_init(&ctx);
 	sph_panama(&ctx, in, ilen);
 	sph_panama_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 32);
 		*tot_len += 32*2;
@@ -8493,6 +10852,58 @@ void DynamicFunc__PANAMA_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoPANAMA_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__PANAMA_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += PANAMA_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoPANAMA_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoPANAMA_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__PANAMA_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += PANAMA_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoPANAMA_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoPANAMA_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__PANAMA_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += PANAMA_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoPANAMA_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoPANAMA_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__PANAMA_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += PANAMA_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoPANAMA_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoPANAMA_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -8641,7 +11052,7 @@ static void inline DoMD2_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot
 	sph_md2_init(&ctx);
 	sph_md2(&ctx, in, ilen);
 	sph_md2_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 16);
 		*tot_len += 16*2;
@@ -8677,6 +11088,58 @@ void DynamicFunc__MD2_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoMD2_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__MD2_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += MD2_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD2_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD2_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__MD2_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += MD2_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD2_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD2_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__MD2_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += MD2_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD2_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD2_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__MD2_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += MD2_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoMD2_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoMD2_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -8825,7 +11288,7 @@ static void inline DoSKEIN224_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	sph_skein224_init(&ctx);
 	sph_skein224(&ctx, in, ilen);
 	sph_skein224_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 28);
 		*tot_len += 28*2;
@@ -8861,6 +11324,58 @@ void DynamicFunc__SKEIN224_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoSKEIN224_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__SKEIN224_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN224_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN224_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN224_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SKEIN224_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN224_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN224_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN224_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SKEIN224_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN224_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN224_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN224_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SKEIN224_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN224_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN224_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN224_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -9009,7 +11524,7 @@ static void inline DoSKEIN256_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	sph_skein256_init(&ctx);
 	sph_skein256(&ctx, in, ilen);
 	sph_skein256_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 32);
 		*tot_len += 32*2;
@@ -9045,6 +11560,58 @@ void DynamicFunc__SKEIN256_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoSKEIN256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__SKEIN256_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SKEIN256_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SKEIN256_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN256_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN256_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SKEIN256_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN256_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN256_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN256_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -9193,7 +11760,7 @@ static void inline DoSKEIN384_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	sph_skein384_init(&ctx);
 	sph_skein384(&ctx, in, ilen);
 	sph_skein384_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 48);
 		*tot_len += 48*2;
@@ -9229,6 +11796,58 @@ void DynamicFunc__SKEIN384_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoSKEIN384_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__SKEIN384_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN384_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN384_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN384_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SKEIN384_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN384_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN384_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN384_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SKEIN384_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN384_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN384_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN384_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SKEIN384_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN384_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN384_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN384_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
@@ -9377,7 +11996,7 @@ static void inline DoSKEIN512_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	sph_skein512_init(&ctx);
 	sph_skein512(&ctx, in, ilen);
 	sph_skein512_close(crypt_out, &ctx);
-	if (eLargeOut[0] == eBase16) {
+	if (eLargeOut_get(tid) == eBase16) {
 		// since this is the usual, we avoid the extra overhead of large_hash_output, and go directly to the hex_out.
 		hex_out_buf(crypt_out, &(((unsigned char*)out)[*tot_len]), 64);
 		*tot_len += 64*2;
@@ -9413,6 +12032,58 @@ void DynamicFunc__SKEIN512_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 		else
 		#endif
 		DoSKEIN512_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &(total_len_X86[i]), tid);
+	}
+}
+
+void DynamicFunc__SKEIN512_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN512_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN512_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN512_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SKEIN512_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN512_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN512_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN512_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SKEIN512_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN512_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN512_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN512_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+	}
+}
+
+void DynamicFunc__SKEIN512_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += SKEIN512_inc) {
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			DoSKEIN512_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		DoSKEIN512_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
 	}
 }
 
