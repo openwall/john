@@ -157,9 +157,15 @@ static char* expand_cplhdr(char *string)
 		if (!in_brackets && *s == '?' && s[1] >= '1' && s[1] <= '9') {
 			int ab = 0;
 			char *cs = options.custom_mask[s[1] - '1'];
-			if (*cs != '[') {
-				*d++ = '[';
-				ab = 1;
+			if (*cs) {
+				if (*cs != '[') {
+					*d++ = '[';
+					ab = 1;
+				}
+				while (*cs && d < &out[sizeof(out) - 2])
+					*d++ = *cs++;
+				if (ab)
+					*d++ = ']';
 			}
 			while (*cs && d < &out[sizeof(out) - 2])
 				*d++ = *cs++;
