@@ -158,8 +158,9 @@ static char* expand_cplhdr(char *string)
 			int ab = 0;
 			char *cs = options.custom_mask[s[1] - '1'];
 			if (*cs == 0) {
-				errno = EINVAL;
-				pexit ("Mask error: custom placeholder %.2s not defined\n", s);
+				fprintf(stderr, "Mask error: custom placeholder"
+					" %.2s not defined\n", s);
+				error();
 			}
 			if (*cs != '[') {
 				*d++ = '[';
@@ -176,8 +177,9 @@ static char* expand_cplhdr(char *string)
 					++in_brackets;
 					if (s[1] == ']')  {
 						// empty brace. Abort with error.
-						errno = EINVAL;
-						pexit("Mask error: empty group [] not valid\n");
+						fprintf(stderr,"Mask error: "
+							"empty group [] not valid\n");
+						error();
 					}
 				}
 				else if (*s == ']')
