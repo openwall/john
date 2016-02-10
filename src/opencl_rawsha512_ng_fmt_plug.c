@@ -156,8 +156,9 @@ static uint32_t get_num_loaded_hashes()
 	return num_hashes;
 }
 
-static void crypt_one(int index, sha512_hash * hash) {
+static ARCH_WORD_64 *crypt_one(int index) {
 	SHA512_CTX ctx;
+	static ARCH_WORD_64 hash[DIGEST_SIZE / sizeof(ARCH_WORD_64)];
 
 	char * key = get_key(index);
 	int len = strlen(key);
@@ -167,12 +168,14 @@ static void crypt_one(int index, sha512_hash * hash) {
 	SHA512_Final((unsigned char *) (hash), &ctx);
 
 #ifdef SIMD_COEF_64
-	alter_endianity_to_BE64(hash->v, DIGEST_SIZE/8);
+	alter_endianity_to_BE64(hash, DIGEST_SIZE / sizeof(ARCH_WORD_64));
 #endif
+	return hash;
 }
 
-static void crypt_one_x(int index, sha512_hash * hash) {
+static ARCH_WORD_64 *crypt_one_x(int index) {
 	SHA512_CTX ctx;
+	static ARCH_WORD_64 hash[DIGEST_SIZE / sizeof(ARCH_WORD_64)];
 
 	char * key = get_key(index);
 	int len = strlen(key);
@@ -183,8 +186,9 @@ static void crypt_one_x(int index, sha512_hash * hash) {
 	SHA512_Final((unsigned char *) (hash), &ctx);
 
 #ifdef SIMD_COEF_64
-	alter_endianity_to_BE64(hash->v, DIGEST_SIZE/8);
+	alter_endianity_to_BE64(hash, DIGEST_SIZE / sizeof(ARCH_WORD_64));
 #endif
+	return hash;
 }
 
 /* ------- Create and destroy necessary objects ------- */
@@ -810,30 +814,30 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact_raw(char *source, int index)
 {
 	uint64_t *binary;
-	sha512_hash full_hash;
+	ARCH_WORD_64 *full_hash;
 
 #ifdef DEBUG
 	fprintf(stderr, "Stressing CPU\n");
 #endif
 	binary = (uint64_t *) sha512_common_binary(source);
 
-	crypt_one(index, &full_hash);
-	return !memcmp(binary, (void *) &full_hash, BINARY_SIZE);
+	full_hash = crypt_one(index);
+	return !memcmp(binary, (void *) full_hash, BINARY_SIZE);
 }
 
 static int cmp_exact_x(char *source, int index)
 {
 	uint64_t *binary;
-	sha512_hash full_hash;
+	ARCH_WORD_64 *full_hash;
 
 #ifdef DEBUG
 	fprintf(stderr, "Stressing CPU\n");
 #endif
 	binary = (uint64_t *) sha512_common_binary_xsha(source);
 
-	crypt_one_x(index, &full_hash);
+	full_hash = crypt_one_x(index);
 
-	return !memcmp(binary, (void *) &full_hash, BINARY_SIZE);
+	return !memcmp(binary, (void *) full_hash, BINARY_SIZE);
 }
 
 //Get Hash functions group.
