@@ -157,15 +157,13 @@ static char* expand_cplhdr(char *string)
 		if (!in_brackets && *s == '?' && s[1] >= '1' && s[1] <= '9') {
 			int ab = 0;
 			char *cs = options.custom_mask[s[1] - '1'];
-			if (*cs) {
-				if (*cs != '[') {
-					*d++ = '[';
-					ab = 1;
-				}
-				while (*cs && d < &out[sizeof(out) - 2])
-					*d++ = *cs++;
-				if (ab)
-					*d++ = ']';
+			if (*cs == 0) {
+				errno = EINVAL;
+				pexit ("Mask error: custom placeholder %.2s not defined\n", s);
+			}
+			if (*cs != '[') {
+				*d++ = '[';
+				ab = 1;
 			}
 			while (*cs && d < &out[sizeof(out) - 2])
 				*d++ = *cs++;
@@ -174,8 +172,14 @@ static char* expand_cplhdr(char *string)
 			s += 2;
 		} else {
 			if (!esc) {
-				if (*s == '[')
+				if (*s == '[') {
 					++in_brackets;
+					if (s[1] == ']')  {
+						// empty brace. Abort with error.
+						errno = EINVAL;
+						pexit("Mask error: empty group [] not valid\n");
+					}
+				}
 				else if (*s == ']')
 					--in_brackets;
 			} else
