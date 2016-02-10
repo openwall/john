@@ -136,7 +136,7 @@ static char* expand_cplhdr(char *string)
 	static char out[0x8000];
 	unsigned char *s = (unsigned char*)string;
 	char *d = out;
-	int in_brackets = 0;
+	int in_brackets = 0, esc=0;
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "%s(%s)\n", __FUNCTION__, string);
@@ -152,6 +152,7 @@ static char* expand_cplhdr(char *string)
 		} else
 		if (*s == '\\') {
 			*d++ = *s++;
+			esc = 1;
 		} else
 		if (!in_brackets && *s == '?' && s[1] >= '1' && s[1] <= '9') {
 			int ab = 0;
@@ -166,10 +167,13 @@ static char* expand_cplhdr(char *string)
 				*d++ = ']';
 			s += 2;
 		} else {
-			if (*s == '[')
-				++in_brackets;
-			else if (*s == ']')
-				--in_brackets;
+			if (!esc) {
+				if (*s == '[')
+					++in_brackets;
+				else if (*s == ']')
+					--in_brackets;
+			} else
+				esc = 0;
 			*d++ = *s++;
 		}
 	}
