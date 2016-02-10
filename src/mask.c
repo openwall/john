@@ -129,12 +129,14 @@ static void parse_hex(char *string)
  * with -1=?u?l, "A?1abc[3-6]" will expand to "A[?u?l]abc[3-6]"
  *
  * This function must pass any escaped characters on, as-is (still escaped).
+ * This function must ignore ? inside square brackets as unchanged [a-c1?2] is [a-c1?2]
  */
 static char* expand_cplhdr(char *string)
 {
 	static char out[0x8000];
 	unsigned char *s = (unsigned char*)string;
 	char *d = out;
+	int in_brackets = 0;
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "%s(%s)\n", __FUNCTION__, string);
@@ -151,7 +153,7 @@ static char* expand_cplhdr(char *string)
 		if (*s == '\\') {
 			*d++ = *s++;
 		} else
-		if (*s == '?' && s[1] >= '1' && s[1] <= '9') {
+		if (!in_brackets && *s == '?' && s[1] >= '1' && s[1] <= '9') {
 			int ab = 0;
 			char *cs = options.custom_mask[s[1] - '1'];
 			if (*cs != '[') {
@@ -163,8 +165,13 @@ static char* expand_cplhdr(char *string)
 			if (ab)
 				*d++ = ']';
 			s += 2;
-		} else
+		} else {
+			if (*s == '[')
+				++in_brackets;
+			else if (*s == ']')
+				--in_brackets;
 			*d++ = *s++;
+		}
 	}
 	*d = '\0';
 
