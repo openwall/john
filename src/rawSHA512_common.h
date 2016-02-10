@@ -18,20 +18,32 @@
 #define BENCHMARK_COMMENT               ""
 #define BENCHMARK_LENGTH	        -1
 #define XSHA512_BENCHMARK_LENGTH	0
+#define NSLDAP_BENCHMARK_LENGTH	        -1
 
 #define FORMAT_TAG			"$SHA512$"
 #define XSHA512_FORMAT_TAG              "$LION$"
+#define NSLDAP_FORMAT_TAG               "{SSHA512}"
 
 #define TAG_LENGTH			(sizeof(FORMAT_TAG) - 1)
 #define XSHA512_TAG_LENGTH              (sizeof(XSHA512_FORMAT_TAG) - 1)
+#define NSLDAP_TAG_LENGTH               (sizeof(NSLDAP_FORMAT_TAG) - 1)
+
+#define NSLDAP_SALT_LEN                 16      // bytes, the base64 representation is longer
+#define NSLDAP_SALT_SIZE                (NSLDAP_SALT_LEN + sizeof(unsigned int))
 
 #define CIPHERTEXT_LENGTH		128
 #define XSHA512_CIPHERTEXT_LENGTH	136
+#define NSLDAP_CIPHERTEXT_LENGTH        ((DIGEST_SIZE + 1 + NSLDAP_SALT_LEN + 2) / 3 * 4)
+
+#define NSLDAP_BASE64_ALPHABET	  \
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 int sha512_common_valid(char *ciphertext, struct fmt_main *self);
 int sha512_common_valid_xsha(char *ciphertext, struct fmt_main *self);
+int sha512_common_valid_nsldap(char *ciphertext, struct fmt_main *self);
 void * sha512_common_binary(char *ciphertext);
 void * sha512_common_binary_xsha(char *ciphertext);
+void * sha512_common_binary_nsldap(char *ciphertext);
 char * sha512_common_prepare_xsha(char *split_fields[10], struct fmt_main *self);
 char * sha512_common_split(char *ciphertext, int index, struct fmt_main *self);
 char * sha512_common_split_xsha(char *ciphertext, int index, struct fmt_main *pFmt);
@@ -86,6 +98,15 @@ static struct fmt_tests sha512_common_tests_xsha512[] = {
 	{"66726849de71b8757c15933a6c1dda60e8253e649bef07b93199ccafe1897186ed0ad448ddbfdbe86681e70c0d1a427eaf3b269a7b78dcc4fa67c89e6273b062b29b0410", "12345678901"},
 	{"$LION$51334c32935aaa987ca03d0085c566e57b50cd5277834cd54995b4bc7255b798303b7e000c8b0d59d1ab15ce895c331c0c9a3fe021f5485dbf5955835ecd02de169f39cd", "123456789012"},
 	{"4d7677548a5ab1517073cd317db2639c6f7f9de5b4e5246ef7805fc0619c474ed82e3fa88c99bf3dc7f9f670ff70d9a23af429181cc2c79ff38f5cad1937e4fc02db1e5a", "1234567890123"},
+	{NULL}
+};
+#endif
+
+#ifdef __SSHA512_CREATE_PROPER_TESTS_ARRAY__
+static struct fmt_tests tests[] = {
+	{"{SSHA512}SCMmLlStPIxVtJc8Y6REiGTMsgSEFF7xVQFoYZYg39H0nEeDuK/fWxxNZCdSYlRgJK3U3q0lYTka3Nre2CjXzeNUjbvHabYP", "password"},
+	{"{SSHA512}WucBQuH6NyeRYMz6gHQddkJLwzTUXaf8Ag0n9YM0drMFHG9XCO+FllvvwjXmo5/yFPvs+n1JVvJmdsvX5XHYvSUn9Xw=", "test123"},
+	{"{SSHA512}uURShqzuCx/8BKVrc4HkTpYnv2eVfwEzg+Zi2AbsTQaIV7Xo6pDhRAZnp70h5P8MC6XyotrB2f27aLhhRj4GYrkJSFmbKmuF", "testpass"},
 	{NULL}
 };
 #endif
