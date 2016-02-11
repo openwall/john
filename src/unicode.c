@@ -230,7 +230,7 @@ static
 #ifndef __SUNPRO_C
 inline
 #endif
-int utf8_to_utf16_be(UTF16 *target, unsigned int len, const UTF8 *source,
+int _utf8_to_utf16_be(UTF16 *target, unsigned int len, const UTF8 *source,
                             unsigned int sourceLen)
 {
 	const UTF16 *targetStart = target;
@@ -329,6 +329,11 @@ int utf8_to_utf16_be(UTF16 *target, unsigned int len, const UTF8 *source,
 	return (target - targetStart);
 }
 
+/* external function */
+int utf8_to_utf16_be(UTF16 *target, unsigned int len, const UTF8 *source,
+                            unsigned int sourceLen) {
+	return _utf8_to_utf16_be(target, len, source, sourceLen);
+}
 /*
  * Convert from current encoding to UTF-16LE regardless of system arch
  *
@@ -418,7 +423,7 @@ int enc_to_utf16_be(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
 			return i;
 	} else {
 #endif
-		return utf8_to_utf16_be(dst, maxdstlen, src, srclen);
+		return _utf8_to_utf16_be(dst, maxdstlen, src, srclen);
 #ifndef UNICODE_NO_OPTIONS
 	}
 #endif
