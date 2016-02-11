@@ -54,6 +54,7 @@ typedef struct DYNAMIC_Constants_t
 // as flags. They are defines making the type enumerations easier to read.
 // These come into play for things like MGF_SALT_AS_HEX_* and
 // MGF_KEYS_BASE16_IN1_* types
+#define MGF__TYPE        0xFF
 #define MGF__MD5         0x00
 #define MGF__MD4         0x01
 #define MGF__SHA1        0x02
@@ -113,8 +114,9 @@ typedef struct DYNAMIC_Constants_t
 // for salt_as_hex for other formats, we do this:  (flag>>56)
 // Then 00 is md5, 01 is md4, 02 is SHA1, etc
 // NOTE, all top 8 bits of the flags are reserved, and should NOT be used for flags.
-#define MGF_SALT_AS_HEX_MD5	        ((((ARCH_WORD_64)MGF__MD5       )<<56)|MGF_SALT_AS_HEX)
-#define MGF_SALT_AS_HEX_MD4	        ((((ARCH_WORD_64)MGF__MD4       )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_TYPE        ((((ARCH_WORD_64)MGF__TYPE      )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_MD5         ((((ARCH_WORD_64)MGF__MD5       )<<56)|MGF_SALT_AS_HEX)
+#define MGF_SALT_AS_HEX_MD4         ((((ARCH_WORD_64)MGF__MD4       )<<56)|MGF_SALT_AS_HEX)
 #define MGF_SALT_AS_HEX_SHA1        ((((ARCH_WORD_64)MGF__SHA1      )<<56)|MGF_SALT_AS_HEX)
 #define MGF_SALT_AS_HEX_SHA224      ((((ARCH_WORD_64)MGF__SHA224    )<<56)|MGF_SALT_AS_HEX)
 #define MGF_SALT_AS_HEX_SHA256      ((((ARCH_WORD_64)MGF__SHA256    )<<56)|MGF_SALT_AS_HEX)
@@ -195,6 +197,7 @@ typedef struct DYNAMIC_Constants_t
 // Then 00 is md5, 01 is md4, 02 is SHA1, etc
 // NOTE, all top 8 bits of the flags are reserved, and should NOT be used for flags.
 #define MGF_KEYS_BASE16_IN1              0x00000004   // deprecated (use the _MD5 version)
+#define MGF_KEYS_BASE16_IN1_TYPE        ((((ARCH_WORD_64)MGF__TYPE      )<<56)|MGF_KEYS_BASE16_IN1)
 #define MGF_KEYS_BASE16_IN1_MD5         ((((ARCH_WORD_64)MGF__MD5       )<<56)|MGF_KEYS_BASE16_IN1)
 #define MGF_KEYS_BASE16_IN1_MD4         ((((ARCH_WORD_64)MGF__MD4       )<<56)|MGF_KEYS_BASE16_IN1)
 #define MGF_KEYS_BASE16_IN1_SHA1        ((((ARCH_WORD_64)MGF__SHA1      )<<56)|MGF_KEYS_BASE16_IN1)
@@ -239,7 +242,8 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_KEYS_BASE16_IN1_KECCAK_512  ((((ARCH_WORD_64)MGF__KECCAK_512)<<56)|MGF_KEYS_BASE16_IN1)
 // LARGE_HASH_EDIT_POINT
 
-#define MGF_KEYS_BASE16_IN1_Offset32         0x00000008   // deprecated (use the _MD5 version)
+#define MGF_KEYS_BASE16_IN1_Offset32          0x00000008   // deprecated (use the _MD5 version)
+#define MGF_KEYS_BASE16_IN1_Offset_TYPE       ((((ARCH_WORD_64)MGF__TYPE      )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
 #define MGF_KEYS_BASE16_IN1_Offset_MD5        ((((ARCH_WORD_64)MGF__MD5       )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
 #define MGF_KEYS_BASE16_IN1_Offset_MD4        ((((ARCH_WORD_64)MGF__MD4       )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
 #define MGF_KEYS_BASE16_IN1_Offset_SHA1       ((((ARCH_WORD_64)MGF__SHA1      )<<56)|MGF_KEYS_BASE16_IN1_Offset32)
@@ -427,6 +431,24 @@ extern void DynamicFunc__set_input2_len_160(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input2_len_192(DYNA_OMP_PARAMS);
 extern void DynamicFunc__set_input2_len_256(DYNA_OMP_PARAMS);
 
+extern void DynamicFunc__LargeHash_set_offset_16(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_20(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_24(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_28(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_32(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_40(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_48(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_56(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_64(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_80(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_96(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_100(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_112(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_128(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_160(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_192(DYNA_OMP_PARAMS);
+extern void DynamicFunc__LargeHash_set_offset_saltlen(DYNA_OMP_PARAMS);
+
 extern void DynamicFunc__clean_input2(DYNA_OMP_PARAMS);
 extern void DynamicFunc__clean_input2_kwik(DYNA_OMP_PARAMS);
 extern void DynamicFunc__clean_input2_full(DYNA_OMP_PARAMS);
@@ -541,6 +563,10 @@ extern void DynamicFunc__LargeHash_OUTMode_raw(DYNA_OMP_PARAMS);
 #define LARGE_HASH_FUNCTION_DECLARAION(HASH) \
 	extern void DynamicFunc__##HASH##_crypt_input1_append_input2(DYNA_OMP_PARAMS); \
 	extern void DynamicFunc__##HASH##_crypt_input2_append_input1(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS); \
+	extern void DynamicFunc__##HASH##_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS); \
 	extern void DynamicFunc__##HASH##_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS); \
 	extern void DynamicFunc__##HASH##_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS); \
 	extern void DynamicFunc__##HASH##_crypt_input1_overwrite_input2(DYNA_OMP_PARAMS); \

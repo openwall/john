@@ -10,6 +10,7 @@
 
 #include "formats.h"
 #include "johnswap.h"
+#include "base64.h"
 #include "rawSHA512_common.h"
 #include "memdbg.h"
 
@@ -40,6 +41,27 @@ int sha512_common_valid_xsha(char *ciphertext, struct fmt_main *self)
 	while (atoi16[ARCH_INDEX(*pos)] != 0x7F && (*pos <= '9' || *pos >= 'a'))
 		pos++;
 	return !*pos && pos - ciphertext == XSHA512_CIPHERTEXT_LENGTH+6;
+}
+
+int sha512_common_valid_nsldap(char *ciphertext, struct fmt_main *self)
+{
+	int len;
+
+	if (strncasecmp(ciphertext, NSLDAP_FORMAT_TAG, NSLDAP_TAG_LENGTH))
+		return 0;
+	ciphertext += NSLDAP_TAG_LENGTH;
+
+	len = strspn(ciphertext, NSLDAP_BASE64_ALPHABET);
+	if (len < (DIGEST_SIZE+1+2)/3*4-2)
+		return 0;
+
+	len = strspn(ciphertext, NSLDAP_BASE64_ALPHABET "=");
+	if (len != strlen(ciphertext))
+		return 0;
+	if (len & 3 || len > NSLDAP_CIPHERTEXT_LENGTH)
+		return 0;
+
+	return 1;
 }
 
 /* ------- Binary ------- */
@@ -86,6 +108,21 @@ void * sha512_common_binary_xsha(char *ciphertext)
 	alter_endianity_to_BE64(out, DIGEST_SIZE/8);
 #endif
 	return out;
+}
+
+void *sha512_common_binary_nsldap(char *ciphertext) {
+	static char *realcipher;
+
+	if (!realcipher) realcipher = mem_alloc_tiny(DIGEST_SIZE + 1 + NSLDAP_SALT_SIZE, 8);
+
+	ciphertext += NSLDAP_TAG_LENGTH;
+	memset(realcipher, 0, DIGEST_SIZE);
+	base64_decode(ciphertext, strlen(ciphertext), realcipher);
+
+#ifdef SIMD_COEF_64
+	alter_endianity_to_BE64 (realcipher, DIGEST_SIZE/8);
+#endif
+	return (void*)realcipher;
 }
 
 /* ------- Prepare ------- */

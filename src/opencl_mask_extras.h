@@ -82,19 +82,20 @@ inline void compare(
 
 #define MASK_KEYS_GENERATION(id)                                    \
         uint32_t ikl = int_key_loc[get_global_id(0)];               \
-        PUTCHAR(w, (ikl & 0xff) + W_OFFSET, (int_keys[id] & 0xff)); \
+        uint32_t pos = (ikl & 0xff) + W_OFFSET;                     \
+        PUTCHAR(w, pos, (int_keys[id] & 0xff));                     \
                                                                     \
+        pos = ((ikl & 0xff00U) >> 8) + W_OFFSET;                    \
         if ((ikl & 0xff00) != 0x8000)                               \
-            PUTCHAR(w, ((ikl & 0xff00U) >> 8) + W_OFFSET,           \
-                        ((int_keys[id] & 0xff00U) >> 8));           \
+            PUTCHAR(w, pos, ((int_keys[id] & 0xff00U) >> 8));       \
                                                                     \
+        pos = ((ikl & 0xff0000U) >> 16) + W_OFFSET;                 \
         if ((ikl & 0xff0000) != 0x800000)                           \
-            PUTCHAR(w, ((ikl & 0xff0000U) >> 16) + W_OFFSET,        \
-                            ((int_keys[id] & 0xff0000U) >> 16));    \
+            PUTCHAR(w, pos, ((int_keys[id] & 0xff0000U) >> 16));    \
                                                                     \
+        pos = ((ikl & 0xff000000U) >> 24) + W_OFFSET;               \
         if ((ikl & 0xff000000) != 0x80000000)                       \
-            PUTCHAR(w, ((ikl & 0xff000000U) >> 24) + W_OFFSET,      \
-                            ((int_keys[id] & 0xff000000U) >> 24));
+            PUTCHAR(w, pos, ((int_keys[id] & 0xff000000U) >> 24));  \
 
 #endif
 

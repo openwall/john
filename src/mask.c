@@ -129,12 +129,14 @@ static void parse_hex(char *string)
  * with -1=?u?l, "A?1abc[3-6]" will expand to "A[?u?l]abc[3-6]"
  *
  * This function must pass any escaped characters on, as-is (still escaped).
+ * This function must ignore ? inside square brackets as unchanged [a-c1?2] is [a-c1?2]
  */
 static char* expand_cplhdr(char *string)
 {
 	static char out[0x8000];
 	unsigned char *s = (unsigned char*)string;
 	char *d = out;
+	int in_brackets = 0, esc=0;
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "%s(%s)\n", __FUNCTION__, string);
@@ -150,10 +152,16 @@ static char* expand_cplhdr(char *string)
 		} else
 		if (*s == '\\') {
 			*d++ = *s++;
+			esc = 1;
 		} else
-		if (*s == '?' && s[1] >= '1' && s[1] <= '9') {
+		if (!in_brackets && *s == '?' && s[1] >= '1' && s[1] <= '9') {
 			int ab = 0;
 			char *cs = options.custom_mask[s[1] - '1'];
+			if (*cs == 0) {
+				fprintf(stderr, "Mask error: custom placeholder"
+					" %.2s not defined\n", s);
+				error();
+			}
 			if (*cs != '[') {
 				*d++ = '[';
 				ab = 1;
@@ -163,8 +171,23 @@ static char* expand_cplhdr(char *string)
 			if (ab)
 				*d++ = ']';
 			s += 2;
-		} else
+		} else {
+			if (!esc) {
+				if (*s == '[') {
+					++in_brackets;
+					if (s[1] == ']')  {
+						// empty brace. Abort with error.
+						fprintf(stderr,"Mask error: "
+							"empty group [] not valid\n");
+						error();
+					}
+				}
+				else if (*s == ']')
+					--in_brackets;
+			} else
+				esc = 0;
 			*d++ = *s++;
+		}
 	}
 	*d = '\0';
 

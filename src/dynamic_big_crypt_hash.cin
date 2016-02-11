@@ -196,6 +196,122 @@ void DynamicFunc__#{HASH}_crypt_input2_append_input1(DYNA_OMP_PARAMS) {
 	}
 }
 
+void DynamicFunc__#{HASH}_crypt_input1_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += #{HASH}_inc) {
+#ifdef SIMD_PARA_#{PARAHASH}
+		uint32_t j, len[#{HASH}_LOOPS], x[#{HASH}_LOOPS];
+		void *out[#{HASH}_LOOPS];
+		for (j = 0; j < #{HASH}_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		Do#{HASH}_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else  // defined SIMD_PARA_#{PARAHASH}
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			Do#{HASH}_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		Do#{HASH}_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif  // defined SIMD_PARA_#{PARAHASH}
+	}
+}
+
+void DynamicFunc__#{HASH}_crypt_input2_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += #{HASH}_inc) {
+#ifdef SIMD_PARA_#{PARAHASH}
+		uint32_t j, len[#{HASH}_LOOPS], x[#{HASH}_LOOPS];
+		void *out[#{HASH}_LOOPS];
+		for (j = 0; j < #{HASH}_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		Do#{HASH}_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else  // defined SIMD_PARA_#{PARAHASH}
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			Do#{HASH}_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		Do#{HASH}_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif  // defined SIMD_PARA_#{PARAHASH}
+	}
+}
+
+void DynamicFunc__#{HASH}_crypt_input1_at_offset_input1(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += #{HASH}_inc) {
+#ifdef SIMD_PARA_#{PARAHASH}
+		uint32_t j, len[#{HASH}_LOOPS], x[#{HASH}_LOOPS];
+		void *out[#{HASH}_LOOPS];
+		for (j = 0; j < #{HASH}_LOOPS; ++j) {
+			len[j] = total_len_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		Do#{HASH}_crypt_sse(input_buf_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else  // defined SIMD_PARA_#{PARAHASH}
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			Do#{HASH}_crypt(input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i], input_buf_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		Do#{HASH}_crypt(input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i], input_buf_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif  // defined SIMD_PARA_#{PARAHASH}
+	}
+}
+
+void DynamicFunc__#{HASH}_crypt_input2_at_offset_input2(DYNA_OMP_PARAMS) {
+	PRELIM_W_TID;
+	for (; i < til; i += #{HASH}_inc) {
+#ifdef SIMD_PARA_#{PARAHASH}
+		uint32_t j, len[#{HASH}_LOOPS], x[#{HASH}_LOOPS];
+		void *out[#{HASH}_LOOPS];
+		for (j = 0; j < #{HASH}_LOOPS; ++j) {
+			len[j] = total_len2_X86[i+j];
+			#if (MD5_X2)
+			if (j&1)
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x2.b2;
+			else
+			#endif
+				out[j] = input_buf2_X86[(i+j)>>MD5_X2].x1.b;
+			x[j] = nLargeOff_get(tid);
+		}
+		Do#{HASH}_crypt_sse(input_buf2_X86[i>>MD5_X2].x1.b, len, out, x, tid);
+#else  // defined SIMD_PARA_#{PARAHASH}
+		uint32_t x = nLargeOff_get(tid);
+		#if (MD5_X2)
+		if (i & 1)
+			Do#{HASH}_crypt(input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x2.b2, &x, tid);
+		else
+		#endif
+		Do#{HASH}_crypt(input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i], input_buf2_X86[i>>MD5_X2].x1.b, &x, tid);
+#endif  // defined SIMD_PARA_#{PARAHASH}
+	}
+}
+
 void DynamicFunc__#{HASH}_crypt_input1_overwrite_input1(DYNA_OMP_PARAMS) {
 	PRELIM_W_TID;
 	for (; i < til; i += #{HASH}_inc) {

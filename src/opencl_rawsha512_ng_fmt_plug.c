@@ -110,7 +110,7 @@ static size_t get_task_max_work_group_size()
 	s = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0,
 	        prepare_kernel));
-	return MAX(s, 512);
+	return MIN(s, 512);
 }
 
 static uint32_t get_bitmap_size_bits(uint32_t num_elements, int sequential_id)
@@ -156,8 +156,9 @@ static uint32_t get_num_loaded_hashes()
 	return num_hashes;
 }
 
-static void crypt_one(int index, sha512_hash * hash) {
+static ARCH_WORD_64 *crypt_one(int index) {
 	SHA512_CTX ctx;
+	static ARCH_WORD_64 hash[DIGEST_SIZE / sizeof(ARCH_WORD_64)];
 
 	char * key = get_key(index);
 	int len = strlen(key);
@@ -167,12 +168,14 @@ static void crypt_one(int index, sha512_hash * hash) {
 	SHA512_Final((unsigned char *) (hash), &ctx);
 
 #ifdef SIMD_COEF_64
-	alter_endianity_to_BE64(hash->v, DIGEST_SIZE/8);
+	alter_endianity_to_BE64(hash, DIGEST_SIZE / sizeof(ARCH_WORD_64));
 #endif
+	return hash;
 }
 
-static void crypt_one_x(int index, sha512_hash * hash) {
+static ARCH_WORD_64 *crypt_one_x(int index) {
 	SHA512_CTX ctx;
+	static ARCH_WORD_64 hash[DIGEST_SIZE / sizeof(ARCH_WORD_64)];
 
 	char * key = get_key(index);
 	int len = strlen(key);
@@ -183,8 +186,9 @@ static void crypt_one_x(int index, sha512_hash * hash) {
 	SHA512_Final((unsigned char *) (hash), &ctx);
 
 #ifdef SIMD_COEF_64
-	alter_endianity_to_BE64(hash->v, DIGEST_SIZE/8);
+	alter_endianity_to_BE64(hash, DIGEST_SIZE / sizeof(ARCH_WORD_64));
 #endif
+	return hash;
 }
 
 /* ------- Create and destroy necessary objects ------- */
@@ -425,7 +429,7 @@ static void tune(struct db_main *db)
 
 static void reset(struct db_main *db)
 {
-	static unsigned int flag_l, flag_g;
+	static size_t saved_lws, saved_gws;
 
 	offset = 0;
 	offset_idx = 0;
@@ -445,8 +449,8 @@ static void reset(struct db_main *db)
 		opencl_get_user_preferences(FORMAT_LABEL);
 
 		//Save the local and global work sizes.
-		flag_l = (options.flags & FLG_MASK_CHK) && !local_work_size;
-		flag_g = (options.flags & FLG_MASK_CHK) && !global_work_size;
+		saved_lws = local_work_size;
+		saved_gws = global_work_size;
 
 		//GPU mask mode in use, do not auto tune for self test.
 		//Instead, use sane defauts. Real tune is going to be made below.
@@ -458,11 +462,8 @@ static void reset(struct db_main *db)
 
 	} else if ((options.flags & FLG_MASK_CHK)) {
 		//Tune for mask mode.
-		if (flag_l)
-			local_work_size = 0;
-
-		if (flag_g)
-			global_work_size = 0;
+		local_work_size = saved_lws;
+		global_work_size = saved_gws;
 
 		tune(db);
 	} else {
@@ -716,17 +717,12 @@ static void load_hash()
 static int crypt_all(int *pcount, struct db_salt *_salt)
 {
 	const int count = *pcount;
-	const struct db_salt *salt = _salt;
 	size_t gws, initial = 128;
 	size_t *lws = local_work_size ? &local_work_size : &initial;
 
 	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	//Check if any password was cracked and reload (if necessary)
-	if (!salt) {///FIXME
-	    printf("DISASTER\n");
-	    exit(1);
-	}
 	if (num_loaded_hashes != get_num_loaded_hashes())
 		load_hash();
 
@@ -810,30 +806,30 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact_raw(char *source, int index)
 {
 	uint64_t *binary;
-	sha512_hash full_hash;
+	ARCH_WORD_64 *full_hash;
 
 #ifdef DEBUG
 	fprintf(stderr, "Stressing CPU\n");
 #endif
 	binary = (uint64_t *) sha512_common_binary(source);
 
-	crypt_one(index, &full_hash);
-	return !memcmp(binary, (void *) &full_hash, BINARY_SIZE);
+	full_hash = crypt_one(index);
+	return !memcmp(binary, (void *) full_hash, BINARY_SIZE);
 }
 
 static int cmp_exact_x(char *source, int index)
 {
 	uint64_t *binary;
-	sha512_hash full_hash;
+	ARCH_WORD_64 *full_hash;
 
 #ifdef DEBUG
 	fprintf(stderr, "Stressing CPU\n");
 #endif
 	binary = (uint64_t *) sha512_common_binary_xsha(source);
 
-	crypt_one_x(index, &full_hash);
+	full_hash = crypt_one_x(index);
 
-	return !memcmp(binary, (void *) &full_hash, BINARY_SIZE);
+	return !memcmp(binary, (void *) full_hash, BINARY_SIZE);
 }
 
 //Get Hash functions group.

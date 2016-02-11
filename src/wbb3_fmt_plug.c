@@ -46,7 +46,7 @@ john_register_one(&fmt_wbb3);
 #define FORMAT_NAME		"WoltLab BB3"
 #define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1 /* change to 0 once there's any speedup for "many salts" */
+#define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		20
 #define SALT_SIZE		sizeof(struct custom_salt)
@@ -69,6 +69,8 @@ static struct fmt_tests wbb3_tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static unsigned char (*hexhash1)[40];
+static int dirty;
 
 static struct custom_salt {
 	int type;
@@ -98,10 +100,13 @@ static void init(struct fmt_main *self)
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_out));
+	hexhash1 = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*hexhash1));
 }
 
 static void done(void)
 {
+	MEM_FREE(hexhash1);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
 }
@@ -199,13 +204,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		unsigned char hexhash[40];
 		SHA_CTX ctx;
-		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
-		SHA1_Final((unsigned char*)crypt_out[index], &ctx);
-		hex_encode((unsigned char*)crypt_out[index], 20, hexhash);
+		if (dirty) {
+			unsigned char out[20];
+			SHA1_Init(&ctx);
+			SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
+			SHA1_Final(out, &ctx);
+			hex_encode(out, 20, hexhash1[index]);
+		}
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, cur_salt->salt, 40);
-		SHA1_Update(&ctx, hexhash, 40);
+		SHA1_Update(&ctx, hexhash1[index], 40);
 		SHA1_Final((unsigned char*)crypt_out[index], &ctx);
 		hex_encode((unsigned char*)crypt_out[index], 20, hexhash);
 		SHA1_Init(&ctx);
@@ -213,6 +221,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA1_Update(&ctx, hexhash, 40);
 		SHA1_Final((unsigned char*)crypt_out[index], &ctx);
 	}
+	dirty = 0;
 	return count;
 }
 
@@ -243,6 +252,7 @@ static void wbb3_set_key(char *key, int index)
 		saved_len = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, saved_len);
 	saved_key[index][saved_len] = 0;
+	dirty = 1;
 }
 
 static char *get_key(int index)
