@@ -108,7 +108,11 @@ extern const char opt_trailingBytesUTF8[64];
  */
 extern int utf8_to_utf16(UTF16 *target, unsigned int maxtargetlen,
                          const UTF8 *source, unsigned int sourcelen);
-
+/*
+ * same utf8 to utf16 convertion, but to BE format output
+ */
+extern int utf8_to_utf16_be(UTF16 *target, unsigned int len, const UTF8 *source,
+                            unsigned int sourceLen);
 /*
  * Convert to UTF-16LE from whatever encoding is used (--encoding aware).
  * 'maxdstlen' is max. number of characters (as opposed to bytes) in output,
