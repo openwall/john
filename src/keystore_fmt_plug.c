@@ -164,8 +164,8 @@ static void init(struct fmt_main *self)
 	// in SIMD code, for all part full grouped blocks.
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt + 1);
 	saved_len = mem_calloc(sizeof(*saved_len), self->params.max_keys_per_crypt + 1);
-	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
-	saved_ctx = mem_calloc(sizeof(*saved_ctx), self->params.max_keys_per_crypt);
+	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt + 1);
+	saved_ctx = mem_calloc(sizeof(*saved_ctx), self->params.max_keys_per_crypt + 1);
 	MixOrderLen = self->params.max_keys_per_crypt*MAX_KEYS_PER_CRYPT+MAX_KEYS_PER_CRYPT;
 	MixOrder = mem_calloc(MixOrderLen, sizeof(int));
 }
