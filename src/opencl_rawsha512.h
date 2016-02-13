@@ -37,12 +37,9 @@
 #define KEYS_PER_CORE_GPU       512
 
 #define SPREAD_64(X0, X1, SIZE_MIN_1, RESULT) {                               \
-	RESULT = ((uint)((X0) >> 32)) + ((uint)(X0));                         \
-	RESULT ^= (RESULT >> 7);                                              \
-	RESULT *= ((uint)((X1) >> 32));                                       \
-	RESULT = (RESULT << 17) | (RESULT >> (32 - 17));                      \
-	RESULT ^= (RESULT >> 13);                                             \
-	RESULT += ((uint)(X1));                                               \
+	RESULT = ((uint)((X0) >> 26)) ^ ((uint)(X0));                         \
+	RESULT &= ((uint)((X1) >> 16));                                       \
+	RESULT ^= ((uint)(X1));                                               \
 	RESULT = RESULT & SIZE_MIN_1;                                         \
 }
 
