@@ -464,9 +464,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (index = 0; index < tot_todo; index += MAX_KEYS_PER_CRYPT)
-#endif
 	{
 		SHA_CTX ctx;
 #ifdef SIMD_COEF_32
@@ -538,6 +536,14 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
+	if (((ARCH_WORD_32*)binary)[0] == crypt_out[index][0])
+		return 1;
+	return 0;
+}
+
+static int cmp_exact(char *source, int index)
+{
+	unsigned char *binary = (unsigned char *)get_binary(source);
 #ifdef SIMD_COEF_32
 	// in SIMD, we only have the first 4 bytes copied into the binary buffer.
 	// to for a cmp_one, so we do a full CTX type check
@@ -548,11 +554,6 @@ static int cmp_one(void *binary, int index)
 	SHA1_Final((unsigned char*)crypt_out[index], &ctx);
 #endif
 	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
-}
-
-static int cmp_exact(char *source, int index)
-{
-	return 1;
 }
 
 static void keystore_set_key(char *key, int index)
