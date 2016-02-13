@@ -79,10 +79,10 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		o5logon postgres pst raw-blake2 raw-keccak raw-keccak256 siemens-s7
 		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip bitcoin blockchain
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
-		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp
+		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore
 		));
 
-# todo: sapb sapfg ike keepass cloudkeychain pfx racf pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring keystore krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
+# todo: sapb sapfg ike keepass cloudkeychain pfx racf pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
 my $qnx_sha512_warning=0;
 my @chrAsciiText=('a'..'z','A'..'Z');
@@ -2004,6 +2004,15 @@ sub haval_256 {
 sub keyring {
 }
 sub keystore {
+	$salt = pack("H*", "feedfeed000000020000000100000001000") . get_salt(-128);
+	my $p = unpack("H*", $_[0]);
+	my $p2 = "";
+	for (my $i = 0; $i < length($p); $i += 2) {
+		$p2 .= "00" . substr($p, $i, 2);
+	}
+	$p = pack("H*", $p2);
+	my $hash = sha1_hex($p . "Mighty Aphrodite" . $salt);
+	return "\$keystore\$0\$".length($salt).'$'.unpack("H*",$salt)."\$$hash\$1\$1\$00";
 }
 sub krb4 {
 }
