@@ -792,16 +792,16 @@ static void john_mpi_wait(void)
 static char *john_loaded_counts(void)
 {
 	static char s_loaded_counts[80];
+	char nbuf[24];
 
 	if (database.password_count == 1)
 		return "1 password hash";
 
 	sprintf(s_loaded_counts,
-		database.salt_count > 1 ?
-		"%d password hashes with %d different salts" :
-		"%d password hashes with no different salts",
+		"%d password hashes with %s different salts",
 		database.password_count,
-		database.salt_count);
+		database.salt_count > 1 ?
+		jtr_itoa(database.salt_count, nbuf, 24, 10) : "no");
 
 	return s_loaded_counts;
 }
