@@ -6260,8 +6260,8 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
    # clang warnings
      if test "1" = 1; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wno-format-extra-args" >&5
-$as_echo_n "checking if $CC supports -Wno-format-extra-args... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wformat-extra-args" >&5
+$as_echo_n "checking if $CC supports -Wformat-extra-args... " >&6; }
 fi
   ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -6270,7 +6270,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   ac_saved_cflags="$CFLAGS"
-  CFLAGS="-Werror -Wno-format-extra-args"
+  CFLAGS="-Werror -Wformat-extra-args"
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -6287,7 +6287,53 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX="$CFLAGS_EX -Wno-format-extra-args"
+      CFLAGS_EX="$CFLAGS_EX -Wformat-extra-args"
+
+else
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+     if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports  -Wunused-but-set-variable" >&5
+$as_echo_n "checking if $CC supports  -Wunused-but-set-variable... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror  -Wunused-but-set-variable"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX  -Wunused-but-set-variable"
 
 else
   if test "1" = 1; then :

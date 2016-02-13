@@ -231,7 +231,8 @@ fi
    # Silly OSX warnings
    JTR_FLAG_CHECK([-Wno-deprecated-declarations], 1)
    # clang warnings
-   JTR_FLAG_CHECK([-Wno-format-extra-args], 1)
+   JTR_FLAG_CHECK([-Wformat-extra-args], 1)
+   JTR_FLAG_CHECK([ -Wunused-but-set-variable], 1)
    #JTR_FLAG_CHECK([-Wno-unneeded-internal-declaration], 1)
    AS_IF([test "x$JTR_FLAG_Q_CHECK_WORKS" = xyes], [JTR_FLAG_CHECK([-Qunused-arguments],1)])
    # Justified and Ancient (see #1093)
