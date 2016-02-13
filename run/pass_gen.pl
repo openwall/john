@@ -2004,7 +2004,9 @@ sub haval_256 {
 sub keyring {
 }
 sub keystore {
-	$salt = pack("H*", "feedfeed000000020000000100000001000") . get_salt(-128);
+	# we want to assure that we will NEVER set the 0x80 bit in the first block.
+	# so, salt and contant have to be > 64 bytes (at min).
+	$salt = pack("H*", "feedfeed000000020000000100000001000") . get_salt(36) . get_salt(-128);
 	my $p = unpack("H*", $_[0]);
 	my $p2 = "";
 	for (my $i = 0; $i < length($p); $i += 2) {
