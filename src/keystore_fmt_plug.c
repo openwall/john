@@ -23,7 +23,7 @@ john_register_one(&fmt_keystore);
 #include "arch.h"
 #include "simd-intrinsics.h"
 
-#undef SIMD_COEF_32
+//#undef SIMD_COEF_32
 
 #include "sha.h"
 #include "misc.h"
@@ -291,12 +291,11 @@ void link_salt(keystore_salt *ps) {
 		}
 		if (t==0) {
 			// we only add 1 instance of the ex_data. for each
-			// oassword length, since this data is read only.
+			// password length, since this data is read only.
 			// All threads can share it.
-			p->n_ex[j] = (len+8)/64;
-			p->ex_data[j] = mem_calloc_align(p->n_ex[j],
+			p->ex_data[j] = mem_calloc_align((len+8)/64+1,
 				64*NBKEYS, MEM_ALIGN_SIMD);
-			salt_mem_total += p->n_ex[j]*64*NBKEYS;
+			salt_mem_total += ((len+8)/64+1)*64*NBKEYS;
 			for (idx = 0; idx < NBKEYS; ++idx) {
 				int x, z=64-((j+4)*2+16);
 				cpm = ps->data;
@@ -305,6 +304,9 @@ void link_salt(keystore_salt *ps) {
 				for (x=0; x+z < ps->data_length; ++x)
 					cpo[GETPOS(x, idx)] = *cpm++;
 				cpo[GETPOS(x, idx)]  = 0x80;
+				p->n_ex[j] = x/64+1;
+				if (x%64 > 55)
+					++p->n_ex[j];
 				// now put bit length;
 				p->ex_data[j][16*NBKEYS*(p->n_ex[j]-1)+15*NBKEYS+idx] = len << 3;
 			}
