@@ -101,7 +101,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	}
 
 	for (i = 0; i < strlen(ciphertext) + 1; i++)
-		ptr[i] = tolower(ciphertext[i]);
+		ptr[i] = tolower(ARCH_INDEX(ciphertext[i]));
 
 	return keeptr;
 }
