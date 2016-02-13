@@ -23,7 +23,7 @@ john_register_one(&fmt_keystore);
 #include "arch.h"
 #include "simd-intrinsics.h"
 
-//#undef SIMD_COEF_32
+#undef SIMD_COEF_32
 
 #include "sha.h"
 #include "misc.h"
