@@ -231,7 +231,7 @@ unsigned atou(const char *src) {
  * atoi replacement(s) but smarter/safer/better. atoi is super useful, BUT
  * not a standard C function.  I have added atoi
  */
-inline const char *_lltoa(long long num, char *ret, int ret_sz, int base)
+MAYBE_INLINE const char *_lltoa(long long num, char *ret, int ret_sz, int base)
 {
 	char *p = ret, *p1 = ret;
 	long long t;
@@ -275,7 +275,7 @@ inline const char *_lltoa(long long num, char *ret, int ret_sz, int base)
 // almost same, but for unsigned types. there were enough changes that I did not
 // want to make a single 'common' function.  Would have added many more if's to
 // and already semi-complex function.
-inline const char *_ulltoa(unsigned long long num, char *ret, int ret_sz, int base)
+MAYBE_INLINE const char *_ulltoa(unsigned long long num, char *ret, int ret_sz, int base)
 {
 	char *p = ret, *p1 = ret;
 	unsigned long long t;
