@@ -164,8 +164,8 @@ static void init(struct fmt_main *self)
 	// in SIMD code, for all part full grouped blocks.
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt + 1);
 	saved_len = mem_calloc(sizeof(*saved_len), self->params.max_keys_per_crypt + 1);
-	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt + 1);
-	saved_ctx = mem_calloc(sizeof(*saved_ctx), self->params.max_keys_per_crypt + 1);
+	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
+	saved_ctx = mem_calloc(sizeof(*saved_ctx), self->params.max_keys_per_crypt);
 	MixOrderLen = self->params.max_keys_per_crypt*MAX_KEYS_PER_CRYPT+MAX_KEYS_PER_CRYPT;
 	MixOrder = mem_calloc(MixOrderLen, sizeof(int));
 }
@@ -500,7 +500,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// but we only marshal the first 4 bytes.
 			for (x = 0; x <  MAX_KEYS_PER_CRYPT; ++x) {
 				idx = MixOrder[index+x];
-				crypt_out[idx][0] = JOHNSWAP(sse_out[5*SIMD_COEF_32*(x/SIMD_COEF_32)+x%SIMD_COEF_32]);
+				if (idx < count)
+					crypt_out[idx][0] = JOHNSWAP(sse_out[5*SIMD_COEF_32*(x/SIMD_COEF_32)+x%SIMD_COEF_32]);
 			}
 #endif
 
