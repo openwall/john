@@ -142,4 +142,20 @@ char *strtokm(char *s1, const char *delimit);
   #define ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS
 #endif
 
+/*
+ * itoa type functions. Thread and buffer safe. Handles base from 2 to 36
+ * note if buffer empty (result_len < 1), then a constant "" is returned
+ * otherwise all work is done in the result buffer (which should be
+ * result_len bytes long). If the buffer is too small, the number returned
+ * will be truncated, but the LSB of data will be returned.  Not exactly
+ * the right result, BUT buffer safe.
+ * A truncated example would be: jtr_itoa(-1234567,b,6,10) returns "-4567"
+ * note, itoa and utoa exist on certain systems (even though not stdC funcs)
+ * so they have been renamed.
+ */
+const char *jtr_itoa(int num, char *result, int result_len, int base);
+const char *jtr_utoa(unsigned int num, char *result, int result_len, int base);
+const char *jtr_lltoa(long long num, char *result, int result_len, int base);
+const char *jtr_ulltoa(unsigned long long num, char *result, int result_len, int base);
+
 #endif

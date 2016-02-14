@@ -260,6 +260,7 @@ static void *get_binary(char *ciphertext)
 	static ARCH_WORD_32 full[DIGEST_SIZE / 4];
 	unsigned char *realcipher = (unsigned char*)full;
 
+	memset(full, 0, sizeof(full)); // since ax-crypt 'may' be short.
 	ciphertext += TAG_LENGTH;
 	base64_convert(ciphertext, e_b64_mime, 28, realcipher, e_b64_raw, sizeof(full), flg_Base64_MIME_TRAIL_EQ);
 
@@ -461,7 +462,7 @@ struct fmt_main fmt_rawSHA1_axcrypt = {
 		BENCHMARK_LENGTH,
 		0,
 		PLAINTEXT_LENGTH,
-		AX_DIGEST_SIZE,
+		DIGEST_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,

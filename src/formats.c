@@ -248,7 +248,7 @@ static char* is_key_right(struct fmt_main *format, int index,
 				}
 			}
 			if (format->methods.get_hash[maxi] && format->methods.binary_hash[maxi])
-				sprintf(err_buf, "get_hash[%d](%d) %x!=%x", size, index,
+				sprintf(err_buf, "get_hash[%d](%d) %x!=%x %s", size, index,
 					format->methods.get_hash[maxi](index),
 					format->methods.binary_hash[maxi](binary),
 					ciphertext);
