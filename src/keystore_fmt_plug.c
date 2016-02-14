@@ -8,6 +8,8 @@
  * released to the general public under the following terms: *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
+ *
+ * major re-write - JimF, Feb, 2016.
  */
 
 #if FMT_EXTERNS_H
