@@ -436,7 +436,7 @@ static void reset(struct db_main *db)
 	key_idx = 0;
 
 	if (!db)
-	    return;
+		return;
 
 	main_db = db;
 	num_loaded_hashes = get_num_loaded_hashes();
