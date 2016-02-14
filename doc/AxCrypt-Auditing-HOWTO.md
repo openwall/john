@@ -103,5 +103,4 @@ the right integrity level ;-)
 **How to crack these SHA1 using Jtr cracker:**
 
     if you really want to retrieve the passphrase:
-        - append '0'*8 to the hash to fit 20bytes raw-SHA1 standard length
         - use "--format=raw-sha1-axcrypt"
