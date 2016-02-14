@@ -5,6 +5,7 @@
 *.pot
 *.rec
 *.rej
+*.tmp
 *~
 
 *.o
