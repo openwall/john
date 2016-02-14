@@ -271,7 +271,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	hash_ids = (uint32_t *) mem_alloc(
 		hash_id_size * 3 * sizeof(uint32_t) + sizeof(uint32_t));
 	buffer_hash_ids = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
-		hash_id_size * 3 * sizeof(uint32_t),
+		hash_id_size * 3 * sizeof(uint32_t) + sizeof(uint32_t),
 		NULL, &ret_code);
 
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_buffer_hash_ids");
