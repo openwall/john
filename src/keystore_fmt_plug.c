@@ -275,7 +275,7 @@ void link_salt(keystore_salt *ps) {
 	for (t = 0; t < threads; ++t) {	// t is threads
 	for (j = 0; j < 21; ++j) {	// j is length-4 of candidate password
 		// actual length of this full string to SHA1.
-		int len = (j+4)*2+16+ps->data_length;
+		unsigned bits, len = (j+4)*2+16+ps->data_length;
 
 		cpo = (unsigned char*)p->first_blk[t][j];
 		for (idx = 0; idx < NBKEYS; ++idx) {
@@ -297,18 +297,34 @@ void link_salt(keystore_salt *ps) {
 				64*NBKEYS, MEM_ALIGN_SIMD);
 			salt_mem_total += ((len+8)/64+1)*64*NBKEYS;
 			for (idx = 0; idx < NBKEYS; ++idx) {
-				int x, z=64-((j+4)*2+16);
+				int x, z=64-((j+4)*2+16), x_full=0;
 				cpm = ps->data;
 				cpm += z;
 				cpo =  (unsigned char*)p->ex_data[j];
-				for (x=0; x+z < ps->data_length; ++x)
+				for (x=0; x+z < ps->data_length; ++x) {
 					cpo[GETPOS(x, idx)] = *cpm++;
+					if (x == 63) {
+						x -= 64;
+						cpo += 64*NBKEYS;
+						z += 64;
+						x_full += 64;
+					}
+				}
 				cpo[GETPOS(x, idx)]  = 0x80;
+				x += x_full;
 				p->n_ex[j] = x/64+1;
-				if (x%64 > 55)
+				if (x%64 > 55) {
 					++p->n_ex[j];
+					cpo += 64*NBKEYS;
+				}
 				// now put bit length;
-				p->ex_data[j][16*NBKEYS*(p->n_ex[j]-1)+15*NBKEYS+idx] = len << 3;
+				bits = len<<3;
+				x = 63;
+				while (bits) {
+					cpo[GETPOS(x, idx)] = bits&0xFF;
+					bits >>= 8;
+					--x;
+				}
 			}
 		}
 	}
