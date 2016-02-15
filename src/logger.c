@@ -62,6 +62,8 @@
 
 static char *cfg_exec_on_cracked_password;
 static int cfg_beep;
+static int cfg_pass_login;
+static int cfg_pass_plain_pwd;
 static int cfg_log_passwords;
 static int cfg_showcand;
 
@@ -298,6 +300,10 @@ void log_init(char *log_name, char *pot_name, char *session)
 
 	cfg_exec_on_cracked_password = cfg_get_param(SECTION_OPTIONS, NULL,
 	                                             "ExecOnCrackedPassword");
+
+	cfg_pass_login = cfg_get_bool(SECTION_OPTIONS, NULL, "PassArgLogin", 0);
+	cfg_pass_plain_pwd = cfg_get_bool(SECTION_OPTIONS, NULL, "PassArgPassword", 0);
+
 	if (cfg_exec_on_cracked_password) {
 		cfg_exec_on_cracked_password =
 			str_alloc_copy(path_expand(cfg_exec_on_cracked_password));
@@ -441,21 +447,23 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 		char *command;
 		size_t len;
 		int command_retval;
-		int cfg_pass_login = cfg_get_bool(SECTION_OPTIONS, NULL, "PassArgLogin", 0);
-		int cfg_pass_plain_pwd = cfg_get_bool(SECTION_OPTIONS, NULL, "PassArgPassword", 0);
 
-		len = strlen(cfg_exec_on_cracked_password) + 1;
-		if (cfg_pass_login) 
-			len += strlen(login) + 1;
-		if (cfg_pass_plain_pwd) 
-			len += strlen(rep_plain) + 1;
-		
+		len = strlen(cfg_exec_on_cracked_password) 
+			+ (cfg_pass_login ? strlen(login) + 4 : 0) 
+			+ (cfg_pass_plain_pwd ? strlen(rep_plain) + 4 : 0);
+
 		command = mem_alloc(len);
-		snprintf(command, len, "%s", cfg_exec_on_cracked_password);
-		if (cfg_pass_login)
-			sprintf(command, "%s %s", command, login);
-		if (cfg_pass_plain_pwd)
-			sprintf(command, "%s %s", command, rep_plain);
+		strncpy(command, cfg_exec_on_cracked_password, len);
+	
+		if (cfg_pass_login) {
+			strncat(command, " -l ", len);
+			strncat(command, login, len);
+		}
+
+		if (cfg_pass_plain_pwd) {
+			strncat(command, " -p ", len);
+			strncat(command, rep_plain, len);
+		}
 
 		command_retval = system(command);
 		if (command_retval == -1) {
