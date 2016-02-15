@@ -15,30 +15,36 @@
 #include "opencl_rawsha512.h"
 #include "opencl_mask_extras.h"
 
-///	    *** UNROLL ***
-///AMD: sometimes a bad thing(?).
-///NVIDIA: GTX 570 don't allow full unroll.
-#if amd_vliw4(DEVICE_INFO) || amd_vliw5(DEVICE_INFO)
-    #define UNROLL_LEVEL	5
-#elif amd_gcn(DEVICE_INFO)
-    #define UNROLL_LEVEL	5
-#elif (nvidia_sm_2x(DEVICE_INFO) || nvidia_sm_3x(DEVICE_INFO))
-    #define UNROLL_LEVEL	4
-#elif nvidia_sm_5x(DEVICE_INFO)
-    #define UNROLL_LEVEL	4
-#else
-    #define UNROLL_LEVEL	0
+#ifndef UNROLL_LOOP
+    ///	    *** UNROLL ***
+    ///AMD: sometimes a bad thing(?).
+    ///NVIDIA: GTX 570 don't allow full unroll.
+    #if amd_vliw4(DEVICE_INFO) || amd_vliw5(DEVICE_INFO)
+        #define UNROLL_LOOP    133128
+    #elif amd_gcn(DEVICE_INFO)
+        #define UNROLL_LOOP    132098
+    #elif (nvidia_sm_2x(DEVICE_INFO) || nvidia_sm_3x(DEVICE_INFO))
+        #define UNROLL_LOOP    132098
+    #elif nvidia_sm_5x(DEVICE_INFO)
+        #define UNROLL_LOOP    33686536
+    #else
+        #define UNROLL_LOOP    0
+    #endif
+#endif
+
+#if (UNROLL_LOOP & (1 << 25))
+    #define VECTOR_USAGE    1
 #endif
 
 #if gpu_amd(DEVICE_INFO)
-#define USE_LOCAL               1
+    #define USE_LOCAL       1
 #endif
 
 inline void _memcpy(               uint32_t * dest,
                     __global const uint32_t * src,
                              const uint32_t   len) {
 
-    for (uint32_t i = 0; i < len; i += 4)
+    for (uint i = 0; i < len; i += 4)
         *dest++ = *src++;
 }
 
@@ -81,18 +87,26 @@ inline void sha512_block(	  const uint64_t * const buffer,
     uint64_t t;
     uint64_t w[16];	//#define  w   buffer
 
-#if UNROLL_LEVEL > 0
+#ifdef VECTOR_USAGE
+    ulong16  w_vector;
+    w_vector = vload16(0, buffer);
+    w_vector = SWAP64_V(w_vector);
+    vstore16(w_vector, 0, w);
+#else
     #pragma unroll
-#endif
-    for (uint64_t i = 0; i < 15; i++)
+    for (uint i = 0U; i < 15U; i++)
         w[i] = SWAP64(buffer[i]);
+#endif
     w[15] = (total * 8UL);
 
-    /* Do the job. */
-#if UNROLL_LEVEL > 4
+#if (UNROLL_LOOP & (1 << 1))
+    #pragma unroll 1
+#elif (UNROLL_LOOP & (1 << 2))
+    #pragma unroll 4
+#elif (UNROLL_LOOP & (1 << 3))
     #pragma unroll
 #endif
-    for (uint64_t i = 0U; i < 16U; i++) {
+    for (uint i = 0U; i < 16U; i++) {
 	t = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
 
 	h = g;
@@ -106,14 +120,14 @@ inline void sha512_block(	  const uint64_t * const buffer,
 	a = t;
     }
 
-#if UNROLL_LEVEL > 4
-    #pragma unroll
-#elif UNROLL_LEVEL > 3
+#if (UNROLL_LOOP & (1 << 9))
+    #pragma unroll 1
+#elif (UNROLL_LOOP & (1 << 10))
     #pragma unroll 16
-#elif UNROLL_LEVEL > 2
-    #pragma unroll 8
+#elif (UNROLL_LOOP & (1 << 11))
+    #pragma unroll
 #endif
-    for (uint64_t i = 16U; i < 80U; i++) {
+    for (uint i = 16U; i < 80U; i++) {
 	w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
 	t = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
 
@@ -183,7 +197,7 @@ void kernel_plaintext_raw(
 
     //Clear the buffer.
     #pragma unroll
-    for (uint32_t i = 0; i < 15; i++)
+    for (uint i = 0; i < 15; i++)
         w[i] = 0;
 
     //Get password.
@@ -203,7 +217,7 @@ void kernel_plaintext_raw(
     computed_total[gid] = total;
 
     #pragma unroll
-    for (uint32_t i = 0; i < 15; i++)
+    for (uint i = 0; i < 15; i++)
         computed_w[gid * 16 + i] = w[i];
 }
 #undef		W_OFFSET
@@ -233,7 +247,7 @@ void kernel_crypt(
     total = computed_total[gid];
 
     #pragma unroll
-    for (uint32_t i = 0; i < 15; i++)
+    for (uint i = 0; i < 15; i++)
         w[i] = computed_w[gid * 16 + i];
 
     /* Run the collected hash value through sha512. */
@@ -277,7 +291,7 @@ void kernel_crypt_raw(
 
     //Clear the buffer.
     #pragma unroll
-    for (uint32_t i = 0; i < 15; i++)
+    for (uint i = 0; i < 15; i++)
         w[i] = 0;
 
     //Get password.
@@ -350,7 +364,7 @@ void kernel_crypt_xsha(
 
     //Clear the buffer.
     #pragma unroll
-    for (uint32_t i = 1; i < 15; i++)
+    for (uint i = 1; i < 15; i++)
         w[i] = 0;
 
     //Get password.
