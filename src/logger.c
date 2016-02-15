@@ -434,7 +434,7 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 		write_loop(fileno(stderr), "\007", 1);
 
 	if (strlen(cfg_exec_on_cracked_password)) {
-		sprintf(command, "%s %s %s", cfg_exec_on_cracked_password, login, rep_plain);
+		snprintf(command, sizeof(command), "%s %s %s", cfg_exec_on_cracked_password, login, rep_plain);
 		command_retval = system(command);
 		if (command_retval == -1) {
 			printf("Command '%s' failed.", command);
