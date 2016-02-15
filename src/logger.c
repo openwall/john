@@ -433,7 +433,7 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 	if (cfg_beep)
 		write_loop(fileno(stderr), "\007", 1);
 
-	if (strlen(cfg_exec_on_cracked_password)) {
+	if (cfg_exec_on_cracked_password != NULL && strlen(cfg_exec_on_cracked_password)) {
 		snprintf(command, sizeof(command), "%s %s %s", cfg_exec_on_cracked_password, login, rep_plain);
 		command_retval = system(command);
 		if (command_retval == -1) {
