@@ -77,6 +77,11 @@ __constant int generator_index[] = {
 #endif
 #endif
 
+// Start documenting NVIDIA OpenCL bugs.
+#if gpu_nvidia(DEVICE_INFO)
+#define NVIDIA_STUPID_BUG_1    1
+#endif
+
 // Start documenting AMD OpenCL bugs.
 #if amd_vliw5(DEVICE_INFO) || amd_vliw4(DEVICE_INFO)
 //amd_vliw4() is a guess.
@@ -87,7 +92,7 @@ __constant int generator_index[] = {
 ///  #pragma unroll 2
 ///#endif
 ///for (uint i = 16U; i < 80U; i++) {
-#define AMD_STUPID_BUG_1
+#define AMD_STUPID_BUG_1    1
 
 ///TODO: can't use a valid command twice on sha256crypt. (At least) HD 6770.
 ///Fixed (back in 14.12). Kept for future reference.
