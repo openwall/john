@@ -450,6 +450,9 @@ static int calibrate()
 
 static void reset(struct db_main *db)
 {
+	if (!db)
+		return;
+
 	if (!autotuned) {
 		char *tmp_value;
 		char *task = "$JOHN/kernels/cryptsha256_kernel_GPU.cl";
