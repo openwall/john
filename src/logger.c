@@ -441,12 +441,22 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 		char *command;
 		size_t len;
 		int command_retval;
+		int cfg_pass_login = cfg_get_bool(SECTION_OPTIONS, NULL, "PassArgLogin", 0);
+		int cfg_pass_plain_pwd = cfg_get_bool(SECTION_OPTIONS, NULL, "PassArgPassword", 0);
 
-		len = strlen(cfg_exec_on_cracked_password) + strlen(login) +
-			strlen(rep_plain) + 3;
+		len = strlen(cfg_exec_on_cracked_password) + 1;
+		if (cfg_pass_login) 
+			len += strlen(login) + 1;
+		if (cfg_pass_plain_pwd) 
+			len += strlen(rep_plain) + 1;
+		
 		command = mem_alloc(len);
-		snprintf(command, len, "%s %s %s",
-		         cfg_exec_on_cracked_password, login, rep_plain);
+		snprintf(command, len, "%s", cfg_exec_on_cracked_password);
+		if (cfg_pass_login)
+			sprintf(command, "%s %s", command, login);
+		if (cfg_pass_plain_pwd)
+			sprintf(command, "%s %s", command, rep_plain);
+
 		command_retval = system(command);
 		if (command_retval == -1) {
 			fprintf(stderr, "Failed spawning '%s'.", command);
