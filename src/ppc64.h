@@ -23,7 +23,11 @@
 #define ARCH_BITS			64
 #define ARCH_BITS_LOG			6
 #define ARCH_BITS_STR			"64"
-#define ARCH_LITTLE_ENDIAN		0
+#if defined(__LITTLE_ENDIAN__)
+#define ARCH_LITTLE_ENDIAN              1
+#else
+#define ARCH_LITTLE_ENDIAN              0
+#endif
 #define ARCH_INT_GT_32			0
 #endif
 
