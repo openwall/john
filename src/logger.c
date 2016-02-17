@@ -39,7 +39,6 @@
 #include <stdarg.h>
 #include <string.h>
 #include <signal.h>
-#include <stdlib.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -60,7 +59,6 @@
 #include "signals.h"
 #include "memdbg.h"
 
-static char *cfg_exec_on_cracked_password;
 static int cfg_beep;
 static int cfg_log_passwords;
 static int cfg_showcand;
@@ -296,13 +294,6 @@ void log_init(char *log_name, char *pot_name, char *session)
 	cfg_showcand = cfg_get_bool(SECTION_OPTIONS, NULL,
 	                            "StatusShowCandidates", 0);
 
-	cfg_exec_on_cracked_password = cfg_get_param(SECTION_OPTIONS, NULL,
-	                                             "ExecOnCrackedPassword");
-	if (cfg_exec_on_cracked_password) {
-		cfg_exec_on_cracked_password =
-			str_alloc_copy(path_expand(cfg_exec_on_cracked_password));
-	}
-
 	in_logger = 0;
 }
 
@@ -436,23 +427,6 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 
 	if (cfg_beep)
 		write_loop(fileno(stderr), "\007", 1);
-
-	if (cfg_exec_on_cracked_password && *cfg_exec_on_cracked_password) {
-		char *command;
-		size_t len;
-		int command_retval;
-
-		len = strlen(cfg_exec_on_cracked_password) + strlen(login) +
-			strlen(rep_plain) + 3;
-		command = mem_alloc(len);
-		snprintf(command, len, "%s %s %s",
-		         cfg_exec_on_cracked_password, login, rep_plain);
-		command_retval = system(command);
-		if (command_retval == -1) {
-			fprintf(stderr, "Failed spawning '%s'.", command);
-		}
-		MEM_FREE(command);
-	}
 }
 
 void log_event(const char *format, ...)
