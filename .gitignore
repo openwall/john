@@ -72,6 +72,7 @@ src/dyna-comp.in
 src/dyna-comp.pot
 src/dyna-comp.rec
 src/dynamic_big_crypt.c
+src/escrypt/tests
 src/fmt_externs.h
 src/fmt_registers.h
 src/generic.h
