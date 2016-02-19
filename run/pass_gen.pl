@@ -1860,7 +1860,7 @@ sub cloudkeychain {
 	my $ct = pack("H*", "000");
 	my $ctlen = length($ct);
 	$salt = unpack("H*",$salt); $iv = unpack("H*",$iv); $ct = unpack("H*",$ct); $master_key = unpack("H*",$master_key);
-	$expectedhmac = unpack("H*",$expectedhmac); $hmacdata = unpack("H*",$hmacdata); 
+	$expectedhmac = unpack("H*",$expectedhmac); $hmacdata = unpack("H*",$hmacdata);
 	return "\$cloudkeychain\$16\$$salt\$$iter\$$mklen\$$master_key\$256\$16\$$iv\$$ctlen\$$ct\$32\$$expectedhmac\$$hmdl\$$hmacdata";
 }
 sub agilekeychain {
@@ -2040,13 +2040,13 @@ sub ssh {
 }
 sub vnc {
 	require Crypt::ECB;
-	use Crypt::ECB;
+	Crypt::ECB->import();
 	my $chal = get_salt(16);
 	my $key = str_force_length_pad($_[0], 8, "\0");
 	$key = str_odd_parity($key);
 	$key = str_reverse_bits_in_bytes($key);
 	my $cr = Crypt::ECB->new;
-	$cr->padding(PADDING_NONE);
+	$cr->padding(Crypt::ECB->PADDING_NONE);
 	$cr->cipher("DES");
 	$cr->key($key);
 	my $hash = $cr->encrypt($chal);
