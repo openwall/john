@@ -241,10 +241,14 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH];
+	char *p;
 
 	strnzcpy(out, ciphertext, sizeof(out));
 	strlwr(out);
 
+	/* Drop legacy embedded MITM hash */
+	if ((p = strrchr(out, '*')) && hexlen(&p[1]) == 10)
+		*p = 0;
 	return out;
 }
 

@@ -49,8 +49,14 @@ john_register_one(&fmt_hmacMD5);
 #define PAD_SIZE                64
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
-#define SALT_LENGTH             PAD_SIZE
-#define SALT_ALIGN              MEM_ALIGN_NONE
+#ifdef SIMD_COEF_32
+#define SALT_LIMBS              3  /* 3 limbs, 183 bytes */
+#define SALT_LENGTH             (SALT_LIMBS * 64 - 9)
+#define SALT_ALIGN              MEM_ALIGN_SIMD
+#else
+#define SALT_LENGTH             1024
+#define SALT_ALIGN              1
+#endif
 #define CIPHERTEXT_LENGTH       (2 * SALT_LENGTH + 2 * BINARY_SIZE)
 
 #define HEXCHARS                "0123456789abcdef"
@@ -58,7 +64,7 @@ john_register_one(&fmt_hmacMD5);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      MD5_N
 #define MAX_KEYS_PER_CRYPT      MD5_N
-#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i) & (0xffffffff - 3)) * SIMD_COEF_32 + ((i) & 3) + (unsigned int)index/SIMD_COEF_32 * 64 * SIMD_COEF_32)
+#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i&63) & (0xffffffff - 3)) * SIMD_COEF_32 + ((i&63) & 3) + (unsigned int)index/SIMD_COEF_32 * 64 * SIMD_COEF_32)
 
 #else
 #define MIN_KEYS_PER_CRYPT      1
@@ -76,6 +82,7 @@ static struct fmt_tests tests[] = {
 	{"MEaEObR2JNXgchVn93GLLH1Ud4qTzuC0#9a80bea0acd72231ea043210a173ec7f", "123"},
 	{"d2BbCbiSXTlglEstbFFlrRgPhR1KUa2s#7a553738bc4997e656329c1b1ef99e4f", "123456789"},
 	{"dBTmX1AdmnWyVkMKp7BEt4O3eBktdN2S#f6af0afd4f397504c3bfa3836bc04a0f", "passWOrd"},
+	{"0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789#050a9dee01b2302914b2a78346721d9b", "magnum"},
 	{NULL}
 };
 
@@ -84,8 +91,13 @@ static struct fmt_tests tests[] = {
 static unsigned char *crypt_key;
 static unsigned char *ipad, *prep_ipad;
 static unsigned char *opad, *prep_opad;
-JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char cur_salt[PAD_SIZE * MD5_N];
+typedef struct cur_salt_t {
+	unsigned char salt[SALT_LIMBS][64 * MAX_KEYS_PER_CRYPT];
+	int salt_len;
+} cur_salt_t;
+static cur_salt_t *cur_salt;
 static int bufsize;
+#define SALT_SIZE               sizeof(cur_salt_t)
 #else
 static unsigned char cur_salt[SALT_LENGTH];
 
@@ -94,11 +106,10 @@ static unsigned char (*ipad)[PAD_SIZE];
 static unsigned char (*opad)[PAD_SIZE];
 static MD5_CTX *ipad_ctx;
 static MD5_CTX *opad_ctx;
+#define SALT_SIZE               sizeof(cur_salt)
 #endif
 static char (*saved_plain)[PLAINTEXT_LENGTH + 1];
 static int new_keys;
-
-#define SALT_SIZE               sizeof(cur_salt)
 
 #ifdef SIMD_COEF_32
 static void clear_keys(void)
@@ -214,22 +225,24 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 
 	p = strrchr(ciphertext, '#'); // allow # in salt
-	if (!p || p > &ciphertext[strlen(ciphertext) - 1]) return 0;
+	if (!p || p > &ciphertext[strlen(ciphertext) - 1])
+		return 0;
+
 	i = (int)(p - ciphertext);
-#if SIMD_COEF_32
-	if(i > 55) return 0;
-#else
-	if(i > SALT_LENGTH) return 0;
-#endif
+	if (i > SALT_LENGTH)
+		return 0;
+
 	pos = i + 1;
-	if (strlen(ciphertext+pos) != BINARY_SIZE * 2) return 0;
-	for (i = pos; i < BINARY_SIZE*2+pos; i++)
-	{
+	if (strlen(ciphertext+pos) != BINARY_SIZE * 2)
+		return 0;
+
+	for (i = pos; i < BINARY_SIZE*2+pos; i++) {
 		if (!((('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||
-		        (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
-		        || (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))))
+		      (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
+		      || (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))))
 			return 0;
 	}
+
 	return 1;
 }
 
@@ -245,7 +258,11 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 static void set_salt(void *salt)
 {
+#ifdef SIMD_COEF_32
+	cur_salt = salt;
+#else
 	memcpy(&cur_salt, salt, SALT_SIZE);
+#endif
 }
 
 static void set_key(char *key, int index)
@@ -343,7 +360,7 @@ static int cmp_all(void *binary, int count)
 		for(x = 0; x < SIMD_COEF_32; x++)
 		{
 			// NOTE crypt_key is in input format (64 * SIMD_COEF_32)
-			if(((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x + y * SIMD_COEF_32 * 16])
+			if (((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x + y * SIMD_COEF_32 * 16])
 				return 1;
 		}
 	return 0;
@@ -389,6 +406,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #ifdef SIMD_COEF_32
+		int i;
+
 		if (new_keys) {
 			SIMDmd5body(&ipad[index * PAD_SIZE],
 			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
@@ -397,8 +416,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			            (unsigned int*)&prep_opad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN);
 		}
-		SIMDmd5body(cur_salt,
+		for (i = 0; i < (cur_salt->salt_len + 9) / 64; i++)
+			SIMDmd5body(cur_salt->salt[i],
+			            (unsigned int*)&crypt_key[index * PAD_SIZE],
+			            i ? (unsigned int*)&crypt_key[index * PAD_SIZE] :
+			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
+			            SSEi_MIXED_IN|SSEi_RELOAD);
+		SIMDmd5body(cur_salt->salt[i],
 		            (unsigned int*)&crypt_key[index * PAD_SIZE],
+		            i ? (unsigned int*)&crypt_key[index * PAD_SIZE] :
 		            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		SIMDmd5body(&crypt_key[index * PAD_SIZE],
@@ -452,29 +478,32 @@ static void *get_binary(char *ciphertext)
 static void *get_salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_LENGTH];
+	int len;
 #ifdef SIMD_COEF_32
 	unsigned int i = 0;
-	unsigned int j;
-	unsigned total_len = 0;
+	static cur_salt_t cur_salt;
+	int salt_len = 0;
 #endif
-	memset(salt, 0, sizeof(salt));
+
 	// allow # in salt
-	memcpy(salt, ciphertext, strrchr(ciphertext, '#') - ciphertext);
+	len = strrchr(ciphertext, '#') - ciphertext;
+	memset(salt, 0, SALT_LENGTH);
+	memcpy(salt, ciphertext, len);
 #ifdef SIMD_COEF_32
-	while(((unsigned char*)salt)[total_len])
+	memset(&cur_salt, 0, sizeof(cur_salt));
+	while(((unsigned char*)salt)[salt_len])
 	{
 		for (i = 0; i < MD5_N; ++i)
-			cur_salt[GETPOS(total_len, i)] = ((unsigned char*)salt)[total_len];
-		++total_len;
+			cur_salt.salt[salt_len / 64][GETPOS(salt_len, i)] =
+				((unsigned char*)salt)[salt_len];
+		++salt_len;
 	}
-	for (i = 0; i < MD5_N; ++i)
-		cur_salt[GETPOS(total_len, i)] = 0x80;
-	for (j = total_len + 1; j < SALT_LENGTH; ++j)
-		for (i = 0; i < MD5_N; ++i)
-			cur_salt[GETPOS(j, i)] = 0;
-	for (i = 0; i < MD5_N; ++i)
-		((unsigned int*)cur_salt)[14 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * 16 * SIMD_COEF_32] = (total_len + 64) << 3;
-	return cur_salt;
+	cur_salt.salt_len = salt_len;
+	for (i = 0; i < MD5_N; ++i) {
+		cur_salt.salt[salt_len / 64][GETPOS(salt_len, i)] = 0x80;
+		((unsigned int*)cur_salt.salt[(salt_len + 9) / 64])[14 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * 16 * SIMD_COEF_32] = (salt_len + 64) << 3;
+	}
+	return &cur_salt;
 #else
 	return salt;
 #endif
