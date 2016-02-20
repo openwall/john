@@ -635,7 +635,7 @@ static void *get_salt(char *ciphertext)
 	MD5_CTX ctx;
 
 	/* parse the password string */
-	if (!r) r = mem_calloc_tiny(sizeof(*r), MEM_ALIGN_WORD);
+	if (!r) r = mem_alloc_tiny(sizeof(*r), MEM_ALIGN_WORD);
 	memset(r, 0, sizeof(*r));
 	for (nb = 0, i = 1; ciphertext[i] != 0; i++) {
 		if (ciphertext[i] == SEPARATOR) {

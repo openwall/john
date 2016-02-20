@@ -21,7 +21,7 @@ void *ms_office_common_get_salt(char *ciphertext)
 	char *keeptr = ctcopy, *p;
 	static ms_office_custom_salt *cur_salt;
 
-	if (!cur_salt) cur_salt = mem_calloc_tiny(sizeof(ms_office_custom_salt), MEM_ALIGN_WORD);
+	if (!cur_salt) cur_salt = mem_alloc_tiny(sizeof(ms_office_custom_salt), MEM_ALIGN_WORD);
 	memset(cur_salt, 0, sizeof(*cur_salt));
 	ctcopy += 9;	/* skip over "$office$*" */
 	p = strtokm(ctcopy, "*");
