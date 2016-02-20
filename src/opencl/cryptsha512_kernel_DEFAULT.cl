@@ -350,10 +350,34 @@ inline void sha512_crypt(sha512_buffers  * fast_buffers,
 #undef ctx
 
 __kernel
-void kernel_crypt(__constant sha512_salt     * salt,
+void kernel_crypt_full(__constant sha512_salt     * salt,
                   __global   sha512_password * keys_buffer,
                   __global   sha512_hash     * out_buffer) {
 
+    //Compute buffers (on CPU, better private)
+    sha512_buffers fast_buffers;
+    sha512_ctx     ctx;
+
+    //Get the task to be done
+    size_t gid = get_global_id(0);
+
+    //Do the job
+    sha512_prepare(salt, &keys_buffer[gid], &fast_buffers, &ctx);
+    sha512_crypt(&fast_buffers, &ctx,
+                 salt->length, keys_buffer[gid].length, salt->rounds);
+
+    //Send results to the host.
+#ifdef UNROLL
+    #pragma unroll
+#endif
+    for (int i = 0; i < 8; i++)
+        out_buffer[gid].v[i] = fast_buffers.alt_result[i].mem_64[0];
+}
+
+__kernel
+void kernel_crypt_fast(__constant sha512_salt     * salt,
+                  __global   sha512_password * keys_buffer,
+                  __global   sha512_hash     * out_buffer) {
     //Compute buffers (on CPU, better private)
     sha512_buffers fast_buffers;
     sha512_ctx     ctx;

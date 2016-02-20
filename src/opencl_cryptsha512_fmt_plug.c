@@ -31,12 +31,12 @@ john_register_one(&fmt_opencl_cryptsha512);
 
 #define FORMAT_LABEL            "sha512crypt-opencl"
 #define ALGORITHM_NAME          "SHA512 OpenCL"
-#define OCL_CONFIG          "sha512crypt"
+#define OCL_CONFIG              "sha512crypt"
 
 //Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
 #define _USE_CPU_SOURCE         (cpu(source_in_use))
 #define _USE_GPU_SOURCE         (gpu(source_in_use))
-#define _SPLIT_KERNEL_IN_USE        (gpu(source_in_use))
+#define _SPLIT_KERNEL_IN_USE    (gpu(source_in_use))
 
 static sha512_salt *salt;
 static sha512_password *plaintext;  // plaintext ciphertexts
@@ -55,6 +55,7 @@ static cl_mem pinned_saved_keys, pinned_partial_hashes;
 static struct fmt_main *self;
 
 static cl_kernel prepare_kernel, preproc_kernel, final_kernel;
+static cl_kernel crypt_full_kernel, crypt_fast_kernel;
 
 static int new_keys, source_in_use;
 static int split_events[3] = { 1, 6, 7 };
@@ -131,13 +132,19 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area 2");
 
 	//Set kernel arguments
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
+	HANDLE_CLERROR(clSetKernelArg(crypt_full_kernel, 0, sizeof(cl_mem),
+	                              (void *)&salt_buffer), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_fast_kernel, 0, sizeof(cl_mem),
 	                              (void *)&salt_buffer), "Error setting argument 0");
 
 	if (!(_SPLIT_KERNEL_IN_USE)) {
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
+		HANDLE_CLERROR(clSetKernelArg(crypt_full_kernel, 1, sizeof(cl_mem),
 		                              (void *)&pass_buffer), "Error setting argument 1");
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
+		HANDLE_CLERROR(clSetKernelArg(crypt_full_kernel, 2, sizeof(cl_mem),
+		                              (void *)&hash_buffer), "Error setting argument 2");
+		HANDLE_CLERROR(clSetKernelArg(crypt_fast_kernel, 1, sizeof(cl_mem),
+		                              (void *)&pass_buffer), "Error setting argument 1");
+		HANDLE_CLERROR(clSetKernelArg(crypt_fast_kernel, 2, sizeof(cl_mem),
 		                              (void *)&hash_buffer), "Error setting argument 2");
 
 	} else {
@@ -160,11 +167,17 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		                              (void *)&work_buffer), "Error setting argument 3");
 
 		//Set crypt kernel arguments
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
+		HANDLE_CLERROR(clSetKernelArg(crypt_full_kernel, 1, sizeof(cl_mem),
 		                              (void *)&hash_buffer), "Error setting argument 1");
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
+		HANDLE_CLERROR(clSetKernelArg(crypt_full_kernel, 2, sizeof(cl_mem),
 		                              (void *)&tmp_buffer), "Error setting argument 2");
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
+		HANDLE_CLERROR(clSetKernelArg(crypt_full_kernel, 3, sizeof(cl_mem),
+		                              (void *)&work_buffer), "Error setting argument 3");
+		HANDLE_CLERROR(clSetKernelArg(crypt_fast_kernel, 1, sizeof(cl_mem),
+		                              (void *)&hash_buffer), "Error setting argument 1");
+		HANDLE_CLERROR(clSetKernelArg(crypt_fast_kernel, 2, sizeof(cl_mem),
+		                              (void *)&tmp_buffer), "Error setting argument 2");
+		HANDLE_CLERROR(clSetKernelArg(crypt_fast_kernel, 3, sizeof(cl_mem),
 		                              (void *)&work_buffer), "Error setting argument 3");
 
 		//Set final kernel arguments
@@ -272,6 +285,11 @@ static int salt_hash(void *salt)
 }
 
 /* ------- Key functions ------- */
+static void clear_keys(void)
+{
+	crypt_kernel = crypt_fast_kernel;
+}
+
 static void set_key(char *key, int index)
 {
 	int len;
@@ -285,6 +303,9 @@ static void set_key(char *key, int index)
 	memcpy(plaintext[index].pass, key, len);
 	plaintext[index].length = len;
 	new_keys = 1;
+
+	if (len > 15)
+		crypt_kernel = crypt_full_kernel;
 }
 
 static char *get_key(int index)
@@ -329,9 +350,13 @@ static void build_kernel(char *task, char *custom_opts)
 		error();
 	}
 	// create kernel(s) to execute
-	crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
+	crypt_full_kernel = clCreateKernel(program[gpu_id], "kernel_crypt_full", &ret_code);
 	HANDLE_CLERROR(ret_code,
 	               "Error creating kernel. Double-check kernel name?");
+	crypt_fast_kernel = clCreateKernel(program[gpu_id], "kernel_crypt_fast", &ret_code);
+	HANDLE_CLERROR(ret_code,
+	               "Error creating kernel. Double-check kernel name?");
+	crypt_kernel = crypt_fast_kernel;
 
 	if (_SPLIT_KERNEL_IN_USE) {
 		prepare_kernel =
@@ -352,7 +377,8 @@ static void build_kernel(char *task, char *custom_opts)
 
 static void release_kernel()
 {
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(crypt_full_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(crypt_fast_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseKernel(preproc_kernel), "Release kernel");
@@ -472,7 +498,7 @@ static void reset(struct db_main *db)
 		if (cpu(device_info[gpu_id]))
 			max_run_time = 1000ULL;
 		else
-			max_run_time = 300ULL;
+			max_run_time = 200ULL;
 
 		//Calibrate or a regular run.
 		if ((tmp_value = getenv("_CALIBRATE"))) {
@@ -511,7 +537,8 @@ static void done(void)
 		release_clobj();
 		MEM_FREE(indices);
 
-		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(crypt_full_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(crypt_fast_kernel), "Release kernel");
 
 		if (_SPLIT_KERNEL_IN_USE) {
 			HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
@@ -722,7 +749,7 @@ struct fmt_main fmt_opencl_cryptsha512 = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
