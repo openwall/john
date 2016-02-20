@@ -481,7 +481,7 @@ static void *get_salt(char *ciphertext)
 	int len;
 #ifdef SIMD_COEF_32
 	unsigned int i = 0;
-	static cur_salt_t cur_salt;
+	static JTR_ALIGN(MEM_ALIGN_SIMD) cur_salt_t cur_salt;
 	int salt_len = 0;
 #endif
 

@@ -377,7 +377,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	}
 
 	for (index = 0; index < 2; index++) {
-		two_salts[index] = mem_alloc(format->params.salt_size);
+		two_salts[index] = mem_alloc_align(format->params.salt_size, format->params.salt_align);
 
 		if ((ciphertext = format->params.tests[index].ciphertext)) {
 			char **fields = format->params.tests[index].fields;
