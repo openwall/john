@@ -401,20 +401,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			            NULL, SSEi_MIXED_IN);
 		}
 
-		for (i = 0; i < (cur_salt->salt_len + 8) / 64; i++)
+		SIMDSHA256body(cur_salt->salt[0],
+			        (unsigned int*)&crypt_key[index * PAD_SIZE],
+			        (unsigned int*)&prep_ipad[index * BINARY_SIZE],
+			        SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+		for (i = 1; i <= (cur_salt->salt_len + 8) / 64; i++)
 			SIMDSHA256body(cur_salt->salt[i],
-			        (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
-			        i ? (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4] :
-			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
-			            SSEi_MIXED_IN|SSEi_RELOAD);
-		SIMDSHA256body(cur_salt->salt[i],
-			        (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
-			        i ? (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4] :
-			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
-			            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+			        (unsigned int*)&crypt_key[index * PAD_SIZE],
+			        (unsigned int*)&crypt_key[index * PAD_SIZE],
+			         SSEi_MIXED_IN|SSEi_RELOAD_INP_FMT|SSEi_OUTPUT_AS_INP_FMT);
 
 		SIMDSHA256body(&crypt_key[index * SHA_BUF_SIZ * 4],
-		            (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
+		            (unsigned int*)&crypt_key[index * PAD_SIZE],
 		            (unsigned int*)&prep_opad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #else
