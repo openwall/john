@@ -49,6 +49,7 @@
 #define __MEMDBG__
 #include "memdbg.h"
 #include "pseudo_intrinsics.h"
+#include "jumbo.h"
 
 #ifdef _OPENMP
 #include <omp.h>
