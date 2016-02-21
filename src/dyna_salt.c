@@ -37,8 +37,10 @@ static struct fmt_main *format;
 static int salt_count;
 #endif
 
-void dyna_salt_init(struct fmt_main *_format) {
+struct fmt_main *dyna_salt_init(struct fmt_main *_format) {
+	struct fmt_main *p = format;
 	format=_format;
+	return p;
 }
 
 #ifdef DYNA_SALT_DEBUG
