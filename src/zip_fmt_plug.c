@@ -109,7 +109,7 @@ typedef struct my_salt_t {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static unsigned char (*crypt_key)[((BINARY_SIZE+3)/4)*4];
-
+static int old_warn=0;
 static my_salt *saved_salt;
 
 
@@ -229,6 +229,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int ret = 0;
 	int zip_file_validate=0;
 
+	if (!strncmp(ciphertext, "$zip$", 5)) {
+		if (!old_warn)
+			fprintf(stderr, "Warning, Older unhandled WinZip format hash seen. This hash can not be processed\n");
+		old_warn = 1;
+		return 0;
+	}
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) || ciphertext[TAG_LENGTH] != '*')
 		return 0;
 	if (!(ctcopy = strdup(ciphertext)))
