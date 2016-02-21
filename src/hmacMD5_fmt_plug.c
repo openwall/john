@@ -83,6 +83,7 @@ static struct fmt_tests tests[] = {
 	{"d2BbCbiSXTlglEstbFFlrRgPhR1KUa2s#7a553738bc4997e656329c1b1ef99e4f", "123456789"},
 	{"dBTmX1AdmnWyVkMKp7BEt4O3eBktdN2S#f6af0afd4f397504c3bfa3836bc04a0f", "passWOrd"},
 	{"0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789#050a9dee01b2302914b2a78346721d9b", "magnum"},
+//	{"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123#e4d0097fdc52f6fc50545d832784232d", "MaxLenSaltUsed"},
 	{NULL}
 };
 
@@ -501,7 +502,7 @@ static void *get_salt(char *ciphertext)
 	cur_salt.salt_len = salt_len;
 	for (i = 0; i < MD5_N; ++i) {
 		cur_salt.salt[salt_len / 64][GETPOS(salt_len, i)] = 0x80;
-		((unsigned int*)cur_salt.salt[(salt_len + 9) / 64])[14 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * 16 * SIMD_COEF_32] = (salt_len + 64) << 3;
+		((unsigned int*)cur_salt.salt[(salt_len + 8) / 64])[14 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * 16 * SIMD_COEF_32] = (salt_len + 64) << 3;
 	}
 	return &cur_salt;
 #else

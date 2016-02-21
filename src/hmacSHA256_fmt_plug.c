@@ -466,7 +466,7 @@ static void *get_salt(char *ciphertext)
 	int len;
 #ifdef SIMD_COEF_32
 	unsigned int i = 0;
-	static cur_salt_t cur_salt;
+	static JTR_ALIGN(MEM_ALIGN_SIMD) cur_salt_t cur_salt;
 	int salt_len = 0;
 #endif
 
@@ -487,7 +487,7 @@ static void *get_salt(char *ciphertext)
 	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
 		cur_salt.salt[salt_len / 64][GETPOS(salt_len, i)] = 0x80;
 	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
-		((unsigned int*)cur_salt.salt[(salt_len + 9) / 64])[15 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * SHA_BUF_SIZ * SIMD_COEF_32] = (salt_len + 64) << 3;
+		((unsigned int*)cur_salt.salt[(salt_len + 8) / 64])[15 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * SHA_BUF_SIZ * SIMD_COEF_32] = (salt_len + 64) << 3;
 	return &cur_salt;
 #else
 	return salt;
