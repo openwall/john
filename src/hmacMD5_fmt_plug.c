@@ -83,7 +83,7 @@ static struct fmt_tests tests[] = {
 	{"d2BbCbiSXTlglEstbFFlrRgPhR1KUa2s#7a553738bc4997e656329c1b1ef99e4f", "123456789"},
 	{"dBTmX1AdmnWyVkMKp7BEt4O3eBktdN2S#f6af0afd4f397504c3bfa3836bc04a0f", "passWOrd"},
 	{"0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789#050a9dee01b2302914b2a78346721d9b", "magnum"},
-//	{"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123#e4d0097fdc52f6fc50545d832784232d", "MaxLenSaltUsed"},
+	{"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123#e4d0097fdc52f6fc50545d832784232d", "MaxLenSaltUsed"},
 	{NULL}
 };
 
@@ -417,17 +417,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			            (unsigned int*)&prep_opad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN);
 		}
-		for (i = 0; i < (cur_salt->salt_len + 8) / 64; i++)
-			SIMDmd5body(cur_salt->salt[i],
-			            (unsigned int*)&crypt_key[index * PAD_SIZE],
-			            i ? (unsigned int*)&crypt_key[index * PAD_SIZE] :
-			            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
-			            SSEi_MIXED_IN|SSEi_RELOAD);
-		SIMDmd5body(cur_salt->salt[i],
+		SIMDmd5body(cur_salt->salt[0],
 		            (unsigned int*)&crypt_key[index * PAD_SIZE],
-		            i ? (unsigned int*)&crypt_key[index * PAD_SIZE] :
 		            (unsigned int*)&prep_ipad[index * BINARY_SIZE],
 		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+		for (i = 1; i <= (cur_salt->salt_len + 8) / 64; i++) {
+			SIMDmd5body(cur_salt->salt[i],
+				    (unsigned int*)&crypt_key[index * PAD_SIZE],
+				    (unsigned int*)&crypt_key[index * PAD_SIZE],
+				    SSEi_MIXED_IN|SSEi_RELOAD_INP_FMT|SSEi_OUTPUT_AS_INP_FMT);
+		}
 		SIMDmd5body(&crypt_key[index * PAD_SIZE],
 		            (unsigned int*)&crypt_key[index * PAD_SIZE],
 		            (unsigned int*)&prep_opad[index * BINARY_SIZE],
