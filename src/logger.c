@@ -64,6 +64,7 @@ static int cfg_beep;
 static int cfg_log_passwords;
 static int cfg_showcand;
 static char *LogDateFormat;
+static int LogDateFormatUTC=0;
 
 /*
  * Note: the file buffer is allocated as (size + LINE_BUFFER_SIZE) bytes
@@ -254,7 +255,10 @@ static int log_time(void)
 		time_t t;
 
 		t = time(0);
-		t_m = localtime(&t);
+		if (LogDateFormatUTC)
+			t_m = gmtime(&t);
+		else
+			t_m = localtime(&t);
 		strftime(Buf, sizeof(Buf), LogDateFormat, t_m);
 		count2 = (int)sprintf(log.ptr + count1, "%s ", Buf);
 		count1 += count2;
@@ -309,7 +313,8 @@ void log_init(char *log_name, char *pot_name, char *session)
 	                            "StatusShowCandidates", 0);
 	LogDateFormat = cfg_get_param(SECTION_OPTIONS, NULL,
 			            "LogDateFormat");
-
+	LogDateFormatUTC = cfg_get_bool(SECTION_OPTIONS, NULL,
+	                            "LogDateFormatUTC", 0);
 	in_logger = 0;
 }
 
