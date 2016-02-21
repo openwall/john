@@ -245,7 +245,7 @@ static void *get_salt(char *ciphertext)
 	EVP_PKEY pk;
 	long len;
 
-	psalt = (struct custom_salt*)mem_calloc_tiny(sizeof(struct custom_salt), 16);
+	psalt = (struct custom_salt*)mem_calloc(sizeof(struct custom_salt), 1);
 	pk.type = 0;
 	pk.save_type = 0;
 
@@ -327,7 +327,7 @@ static void *get_salt(char *ciphertext)
 		OPENSSL_free(data);
 	}
 
-	psalt->dsalt.salt_alloc_needs_free = 0;
+	psalt->dsalt.salt_alloc_needs_free = 1;
 	// NOTE, we need some way to close the BIO and EVP crap!!
 
 	// set the JtR core linkage stuff for this dyna_salt
