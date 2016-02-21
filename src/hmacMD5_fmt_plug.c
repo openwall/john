@@ -417,7 +417,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			            (unsigned int*)&prep_opad[index * BINARY_SIZE],
 			            NULL, SSEi_MIXED_IN);
 		}
-		for (i = 0; i < (cur_salt->salt_len + 9) / 64; i++)
+		for (i = 0; i < (cur_salt->salt_len + 8) / 64; i++)
 			SIMDmd5body(cur_salt->salt[i],
 			            (unsigned int*)&crypt_key[index * PAD_SIZE],
 			            i ? (unsigned int*)&crypt_key[index * PAD_SIZE] :

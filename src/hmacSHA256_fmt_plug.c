@@ -401,7 +401,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			            NULL, SSEi_MIXED_IN);
 		}
 
-		for (i = 0; i < (cur_salt->salt_len + 9) / 64; i++)
+		for (i = 0; i < (cur_salt->salt_len + 8) / 64; i++)
 			SIMDSHA256body(cur_salt->salt[i],
 			        (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4],
 			        i ? (unsigned int*)&crypt_key[index * SHA_BUF_SIZ * 4] :
