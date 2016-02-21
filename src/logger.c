@@ -36,6 +36,7 @@
 #include <fcntl.h>
 #endif
 #include <errno.h>
+#include <time.h>
 #include <stdarg.h>
 #include <string.h>
 #include <signal.h>
@@ -62,6 +63,7 @@
 static int cfg_beep;
 static int cfg_log_passwords;
 static int cfg_showcand;
+static char *LogDateFormat;
 
 /*
  * Note: the file buffer is allocated as (size + LINE_BUFFER_SIZE) bytes
@@ -231,7 +233,7 @@ static void log_file_done(struct log_file *f, int do_sync)
 static int log_time(void)
 {
 	int count1, count2;
-	unsigned int time;
+	unsigned int Time;
 
 	count1 = 0;
 #ifndef HAVE_MPI
@@ -244,11 +246,23 @@ static int log_time(void)
 			return count1;
 	}
 
-	time = pot.fd >= 0 ? status_get_time() : status_restored_time;
+	Time = pot.fd >= 0 ? status_get_time() : status_restored_time;
+
+	if (LogDateFormat) {
+		struct tm *t_m;
+		char Buf[128];
+		time_t t;
+
+		t = time(0);
+		t_m = localtime(&t);
+		strftime(Buf, sizeof(Buf), LogDateFormat, t_m);
+		count2 = (int)sprintf(log.ptr + count1, "%s ", Buf);
+		count1 += count2;
+	}
 
 	count2 = (int)sprintf(log.ptr + count1, "%u:%02u:%02u:%02u ",
-	    time / 86400, time % 86400 / 3600,
-	    time % 3600 / 60, time % 60);
+	    Time / 86400, Time % 86400 / 3600,
+	    Time % 3600 / 60, Time % 60);
 	if (count2 < 0)
 		return count2;
 
@@ -293,6 +307,8 @@ void log_init(char *log_name, char *pot_name, char *session)
 	                                 "LogCrackedPasswords", 0);
 	cfg_showcand = cfg_get_bool(SECTION_OPTIONS, NULL,
 	                            "StatusShowCandidates", 0);
+	LogDateFormat = cfg_get_param(SECTION_OPTIONS, NULL,
+			            "LogDateFormat");
 
 	in_logger = 0;
 }
