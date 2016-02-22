@@ -52,10 +52,10 @@ john_register_one(&fmt_hmacMD5);
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #ifdef SIMD_COEF_32
 #define SALT_LIMBS              3  /* 3 limbs, 183 bytes */
-#define SALT_LENGTH             (SALT_LIMBS * 64 - 9)
+#define SALT_LENGTH             (SALT_LIMBS * PAD_SIZE - 9)
 #define SALT_ALIGN              MEM_ALIGN_SIMD
 #else
-#define SALT_LENGTH             1024
+#define SALT_LENGTH             1023
 #define SALT_ALIGN              1
 #endif
 #define CIPHERTEXT_LENGTH       (2 * SALT_LENGTH + 2 * BINARY_SIZE)
@@ -93,22 +93,22 @@ static unsigned char *crypt_key;
 static unsigned char *ipad, *prep_ipad;
 static unsigned char *opad, *prep_opad;
 typedef struct cur_salt_t {
-	unsigned char salt[SALT_LIMBS][64 * MAX_KEYS_PER_CRYPT];
+	unsigned char salt[SALT_LIMBS][PAD_SIZE * MAX_KEYS_PER_CRYPT];
 	int salt_len;
 } cur_salt_t;
 static cur_salt_t *cur_salt;
 static int bufsize;
 #define SALT_SIZE               sizeof(cur_salt_t)
 #else
-static unsigned char cur_salt[SALT_LENGTH];
-
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 static unsigned char (*ipad)[PAD_SIZE];
 static unsigned char (*opad)[PAD_SIZE];
+static unsigned char cur_salt[SALT_LENGTH+1];
 static MD5_CTX *ipad_ctx;
 static MD5_CTX *opad_ctx;
 #define SALT_SIZE               sizeof(cur_salt)
 #endif
+
 static char (*saved_plain)[PLAINTEXT_LENGTH + 1];
 static int new_keys;
 
@@ -126,8 +126,7 @@ static void init(struct fmt_main *self)
 	unsigned int i;
 #endif
 #ifdef _OPENMP
-	int omp_t = omp_get_num_threads();
-
+	int omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
@@ -137,15 +136,13 @@ static void init(struct fmt_main *self)
 	crypt_key = mem_calloc_align(1, bufsize, MEM_ALIGN_SIMD);
 	ipad = mem_calloc_align(1, bufsize, MEM_ALIGN_SIMD);
 	opad = mem_calloc_align(1, bufsize, MEM_ALIGN_SIMD);
-	prep_ipad = mem_calloc_align(self->params.max_keys_per_crypt *
-	                             BINARY_SIZE,
-	                             sizeof(*prep_ipad), MEM_ALIGN_SIMD);
-	prep_opad = mem_calloc_align(self->params.max_keys_per_crypt *
-	                             BINARY_SIZE,
-	                             sizeof(*prep_opad), MEM_ALIGN_SIMD);
+	prep_ipad = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             BINARY_SIZE, MEM_ALIGN_SIMD);
+	prep_opad = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             BINARY_SIZE, MEM_ALIGN_SIMD);
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
 		crypt_key[GETPOS(BINARY_SIZE, i)] = 0x80;
-		((unsigned int*)crypt_key)[14 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * PAD_SIZE_W * SIMD_COEF_32] = (BINARY_SIZE + 64) << 3;
+		((unsigned int*)crypt_key)[14 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + (i/SIMD_COEF_32) * PAD_SIZE_W * SIMD_COEF_32] = (BINARY_SIZE + PAD_SIZE) << 3;
 	}
 	clear_keys();
 #else
@@ -214,6 +211,16 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	return p;
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	strnzcpy(out, ciphertext, CIPHERTEXT_LENGTH + 1);
+	strlwr(strrchr(out, '#'));
+
+	return out;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int pos, i;
@@ -247,22 +254,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[CIPHERTEXT_LENGTH + 1];
-
-	strnzcpy(out, ciphertext, CIPHERTEXT_LENGTH + 1);
-	strlwr(strrchr(out, '#'));
-
-	return out;
-}
-
 static void set_salt(void *salt)
 {
 #ifdef SIMD_COEF_32
 	cur_salt = salt;
 #else
-	memcpy(&cur_salt, salt, SALT_SIZE);
+	strcpy((char*)cur_salt, (char*)salt);
 #endif
 }
 
@@ -477,7 +474,7 @@ static void *get_binary(char *ciphertext)
 
 static void *get_salt(char *ciphertext)
 {
-	static unsigned char salt[SALT_LENGTH];
+	static unsigned char salt[SALT_LENGTH+1];
 	int len;
 #ifdef SIMD_COEF_32
 	unsigned int i = 0;
@@ -487,20 +484,20 @@ static void *get_salt(char *ciphertext)
 
 	// allow # in salt
 	len = strrchr(ciphertext, '#') - ciphertext;
-	memset(salt, 0, SALT_LENGTH);
+	memset(salt, 0, sizeof(salt));
 	memcpy(salt, ciphertext, len);
 #ifdef SIMD_COEF_32
 	memset(&cur_salt, 0, sizeof(cur_salt));
 	while(((unsigned char*)salt)[salt_len])
 	{
-		for (i = 0; i < MD5_N; ++i)
-			cur_salt.salt[salt_len / 64][GETPOS(salt_len, i)] =
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+			cur_salt.salt[salt_len / PAD_SIZE][GETPOS(salt_len, i)] =
 				((unsigned char*)salt)[salt_len];
 		++salt_len;
 	}
 	cur_salt.salt_len = salt_len;
-	for (i = 0; i < MD5_N; ++i) {
-		cur_salt.salt[salt_len / 64][GETPOS(salt_len, i)] = 0x80;
+	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		cur_salt.salt[salt_len / PAD_SIZE][GETPOS(salt_len, i)] = 0x80;
 		((unsigned int*)cur_salt.salt[(salt_len + 8) / PAD_SIZE])[14 * SIMD_COEF_32 + (i&(SIMD_COEF_32-1)) + i/SIMD_COEF_32 * PAD_SIZE_W * SIMD_COEF_32] = (salt_len + PAD_SIZE) << 3;
 	}
 	return &cur_salt;
@@ -510,7 +507,7 @@ static void *get_salt(char *ciphertext)
 }
 
 #ifdef SIMD_COEF_32
-// NOTE crypt_key is in input format (64 * SIMD_COEF_32)
+// NOTE crypt_key is in input format (PAD_SIZE * SIMD_COEF_32)
 #define HASH_OFFSET (index & (SIMD_COEF_32 - 1)) + ((unsigned int)index / SIMD_COEF_32) * SIMD_COEF_32 * PAD_SIZE_W
 static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & PH_MASK_0; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & PH_MASK_1; }
