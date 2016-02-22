@@ -1066,6 +1066,7 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 	struct fmt_main fake_list;
 	struct db_main *testdb;
 	struct fmt_tests *current;
+	extern volatile int bench_running;
 
 	if (!(current = format->params.tests))
 		return NULL;
@@ -1084,6 +1085,7 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 	testdb->format = format;
 	ldr_init_password_hash(testdb);
 
+	bench_running++;
 	while (current->ciphertext) {
 		char line[LINE_BUFFER_SIZE];
 		int i, pos = 0;
@@ -1101,6 +1103,7 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 		ldr_load_pw_line(testdb, line);
 		current++;
 	}
+	bench_running--;
 
 	ldr_loading_testdb = 1;
 	ldr_fix_database(testdb);
