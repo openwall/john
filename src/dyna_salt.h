@@ -62,9 +62,10 @@ typedef struct dyna_salt_john_core_t {
  * each time a format change happens, during self test
  * and loading. There are times where other functions
  * are called, where we do not have a format structure.
+ * Returns the format previously set (may be NULL)
  */
 struct fmt_main;
-void dyna_salt_init(struct fmt_main *format);
+struct fmt_main *dyna_salt_init(struct fmt_main *format);
 
 /*
  * NOTE, will compare dyna and non-dyna salts.

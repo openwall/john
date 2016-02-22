@@ -2565,7 +2565,7 @@ sub _hmacmd5 {
 	return md5($opad,md5($ipad,$data));
 }
 sub hmac_md5 {
-	$salt = get_salt(32);
+	$salt = get_salt(-183);
 	my $bin = _hmacmd5($_[1], $salt);
 	return "$salt#".unpack("H*",$bin);
 }
@@ -2591,22 +2591,22 @@ sub hmac_sha1 {
 	return "$salt#".unpack("H*",$bin);
 }
 sub hmac_sha224 {
-	$salt = get_salt(32);
+	$salt = get_salt(-183);
 	my $bin = _hmac_shas(\&sha224, 64, $_[1], $salt);
 	return "$salt#".unpack("H*",$bin);
 }
 sub hmac_sha256 {
-	$salt = get_salt(32);
+	$salt = get_salt(-183);
 	my $bin = _hmac_shas(\&sha256, 64, $_[1], $salt);
 	return "$salt#".unpack("H*",$bin);
 }
 sub hmac_sha384 {
-	$salt = get_salt(32);
+	$salt = get_salt(-239);
 	my $bin = _hmac_shas(\&sha384, 128, $_[1], $salt);
 	return "$salt#".unpack("H*",$bin);
 }
 sub hmac_sha512 {
-	$salt = get_salt(32);
+	$salt = get_salt(-239);
 	my $bin = _hmac_shas(\&sha512, 128, $_[1], $salt);
 	return "$salt#".unpack("H*",$bin);
 }

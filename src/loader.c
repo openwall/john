@@ -1077,6 +1077,7 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 	testdb = mem_alloc(sizeof(struct db_main));
 
 	fmt_init(format);
+	dyna_salt_init(format);
 	ldr_init_database(testdb, &options.loader);
 	testdb->options->field_sep_char = ':';
 	testdb->real = real;

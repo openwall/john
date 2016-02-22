@@ -49,6 +49,7 @@
 #define __MEMDBG__
 #include "memdbg.h"
 #include "pseudo_intrinsics.h"
+#include "jumbo.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -1021,9 +1022,12 @@ void MEMDBG_checkSnapshot_possible_exit_on_error(MEMDBG_HANDLE h, int exit_on_an
 
 	/* first step, walk allocation list, looking for leaks */
 	while (p) {
-		if (p->mdbg_cnt > h.alloc_cnt && !memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4)) {
-			leak = 1;
-			fprintf(stderr, "Mem leak: "LLu" bytes, alloc_num %d, file %s, line %d\n", (unsigned long long)p->mdbg_size, p->mdbg_cnt, p->mdbg_file, p->mdbg_line);
+		if (p->mdbg_cnt > h.alloc_cnt) {
+			if (!memcmp(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4)) {
+				leak = 1;
+				fprintf(stderr, "Mem leak: "LLu" bytes, alloc_num %d, file %s, line %d\n", (unsigned long long)p->mdbg_size, p->mdbg_cnt, p->mdbg_file, p->mdbg_line);
+			}
+			//else fprintf(stderr, "Mem     : "LLu" bytes, alloc_num %d, file %s, line %d\n", (unsigned long long)p->mdbg_size, p->mdbg_cnt, p->mdbg_file, p->mdbg_line);
 		}
 		p = p->mdbg_next;
 	}
