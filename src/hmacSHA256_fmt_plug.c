@@ -131,7 +131,7 @@ static void clear_keys(void)
 }
 #endif
 
-static void init(struct fmt_main *self, int B_LEN)
+static void init(struct fmt_main *self, const int B_LEN)
 {
 #ifdef SIMD_COEF_32
 	int i;
@@ -191,7 +191,7 @@ static void done(void)
 	MEM_FREE(crypt_key);
 }
 
-static char *split(char *ciphertext, int index, struct fmt_main *self, int B_LEN, int CT_LEN)
+static char *split(char *ciphertext, int index, struct fmt_main *self, const int B_LEN, const int CT_LEN)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
@@ -226,7 +226,7 @@ static char *split_224(char *ciphertext, int index, struct fmt_main *self) {
 	return split(ciphertext, index, self, BINARY_SIZE_224, CIPHERTEXT_LENGTH_224);
 }
 
-static int valid(char *ciphertext, struct fmt_main *self, int B_LEN, int CT_LEN)
+static int valid(char *ciphertext, struct fmt_main *self, const int B_LEN, const int CT_LEN)
 {
 	int pos, i;
 	char *p;
@@ -272,7 +272,7 @@ static void set_salt(void *salt)
 #endif
 }
 
-static MAYBE_INLINE void set_key(char *key, int index, int B_LEN)
+static MAYBE_INLINE void set_key(char *key, int index, const int B_LEN)
 {
 	int len;
 
@@ -403,7 +403,7 @@ static int cmp_all(void *binary, int count)
 #endif
 }
 
-static MAYBE_INLINE int cmp_one(void *binary, int index, int B_LEN)
+static MAYBE_INLINE int cmp_one(void *binary, int index, const int B_LEN)
 {
 #ifdef SIMD_COEF_32
 	int i;
@@ -429,11 +429,11 @@ static int cmp_exact(char *source, int index)
 	return (1);
 }
 
-static int crypt_all(int *pcount, struct db_salt *salt
+static int crypt_all(int *pcount, struct db_salt *salt,
 #ifdef SIMD_COEF_32
-	, unsigned EX_FLAGS
+	const unsigned EX_FLAGS
 #else
-	, int B_LEN
+	const int B_LEN
 #endif
 	)
 {
@@ -499,7 +499,7 @@ static int crypt_all(int *pcount, struct db_salt *salt
 			SHA256_Final( (unsigned char*) crypt_key[index], &ctx);
 
 			memcpy(&ctx, &opad_ctx[index], sizeof(ctx));
-			SHA256_Update( &ctx, crypt_key[index], BINARY_SIZE);
+			SHA256_Update( &ctx, crypt_key[index], B_LEN);
 			SHA256_Final( (unsigned char*) crypt_key[index], &ctx);
 		} else {
 			if (new_keys) {
@@ -514,7 +514,7 @@ static int crypt_all(int *pcount, struct db_salt *salt
 			SHA224_Final( (unsigned char*) crypt_key[index], &ctx);
 
 			memcpy(&ctx, &opad_ctx[index], sizeof(ctx));
-			SHA224_Update( &ctx, crypt_key[index], BINARY_SIZE_224);
+			SHA224_Update( &ctx, crypt_key[index], B_LEN);
 			SHA224_Final( (unsigned char*) crypt_key[index], &ctx);
 		}
 #endif
@@ -538,7 +538,7 @@ static int crypt_all_224(int *pcount, struct db_salt *salt) {
 #endif
 }
 
-static void *get_binary(char *ciphertext, int B_LEN)
+static void *get_binary(char *ciphertext, const int B_LEN)
 {
 	static union toalign {
 		unsigned char c[BINARY_SIZE];
@@ -553,7 +553,7 @@ static void *get_binary(char *ciphertext, int B_LEN)
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2+pos])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1+pos])];
 
 #ifdef SIMD_COEF_32
-	alter_endianity(realcipher, BINARY_SIZE);
+	alter_endianity(realcipher, B_LEN);
 #endif
 	return (void*)realcipher;
 }
