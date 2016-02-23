@@ -418,8 +418,10 @@
  * AMD bug (seen in eg. Catalyst 14.9). We should really do without them
  * but somehow we get thrashed output without them.
  * On the other hand, they also seem to work as an optimization for nvidia!
+ *
+ * Intel doesn't support typeof() but also doesn't need the workaround.
  */
-#if 1 /* DEV_VER_MAJOR == 1573 && DEV_VER_MINOR == 4 */
+#if !(DEVICE_INFO & DEV_INTEL)
 #define sha1_block(W, ctx) {	\
 		typeof(A) a, b, c, d, e; \
 		A = ctx[0]; \
@@ -434,6 +436,20 @@
 		ctx[2] = c + C; \
 		ctx[3] = d + D; \
 		ctx[4] = e + E; \
+	}
+#else
+#define sha1_block(W, ctx) {	\
+		A = ctx[0]; \
+		B = ctx[1]; \
+		C = ctx[2]; \
+		D = ctx[3]; \
+		E = ctx[4]; \
+		SHA1(A, B, C, D, E, W); \
+		ctx[0] += A; \
+		ctx[1] += B; \
+		ctx[2] += C; \
+		ctx[3] += D; \
+		ctx[4] += E; \
 	}
 #endif
 
