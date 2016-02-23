@@ -139,6 +139,8 @@ static void init(struct fmt_main *self)
 static void done(void)
 {
 	MEM_FREE(cracked);
+	MEM_FREE(rc4_key);
+	MEM_FREE(mitm_key);
 	MEM_FREE(saved_len);
 	MEM_FREE(saved_key);
 }
