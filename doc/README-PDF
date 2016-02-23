@@ -1,0 +1,14 @@
+Cracking PDF files with JtR
+---------------------------
+
+1. Run pdf2john.py on the .pdf file(s).
+
+E.g. $ ../run/pdf2john.py test.pdf > hashes
+
+2. Run john on the output of pdf2john.py program.
+
+E.g. $ ../run/john hashes
+
+In case of problems with the pdf2john.py tool, you may use the "npdf2john"
+program (https://github.com/kholia/npdf2john) instead. Please report such
+problems on the https://github.com/magnumripper/JohnTheRipper/issues page.
