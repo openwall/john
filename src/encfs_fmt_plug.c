@@ -168,14 +168,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			memcpy(master[i], out[i], cur_salt->keySize + cur_salt->ivLength);
 #else
 		pbkdf2_sha1((const unsigned char *)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->saltLen, cur_salt->iterations, out[0], cur_salt->keySize + cur_salt->ivLength, 0);
-#if !ARCH_LITTLE_ENDIAN
-		{
-			int i;
-			for (i = 0; i < (cur_salt->keySize + cur_salt->ivLength)/sizeof(ARCH_WORD_32); ++i) {
-				((ARCH_WORD_32*)out[0])[i] = JOHNSWAP(((ARCH_WORD_32*)out[0])[i]);
-			}
-		}
-#endif
 		memcpy(master[0], out[0], cur_salt->keySize + cur_salt->ivLength);
 #endif
 		for (j = 0; j < MAX_KEYS_PER_CRYPT; ++j) {

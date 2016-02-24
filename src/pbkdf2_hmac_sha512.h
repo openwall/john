@@ -128,11 +128,7 @@ static void pbkdf2_sha512(const unsigned char *K, int KL, unsigned char *S, int 
 	while (loop <= loops) {
 		_pbkdf2_sha512(S,SL,R,tmp.x64,loop,&ipad,&opad);
 		for (i = skip_bytes%SHA512_DIGEST_LENGTH; i < SHA512_DIGEST_LENGTH && accum < outlen; i++) {
-#if ARCH_LITTLE_ENDIAN
 			out[accum++] = ((uint8_t*)tmp.out)[i];
-#else
-			out[accum++] = ((uint8_t*)tmp.out)[i^7];
-#endif
 		}
 		loop++;
 		skip_bytes = 0;

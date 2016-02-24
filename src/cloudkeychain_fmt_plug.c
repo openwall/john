@@ -340,13 +340,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha512((const unsigned char*)(saved_key[index]), strlen(saved_key[index]),
 			cur_salt->salt, cur_salt->saltlen,
 			cur_salt->iterations, (unsigned char*)key, HASH_LENGTH, 0);
-#if ARCH_LITTLE_ENDIAN==0
-		{
-			int j;
-			for (j = 0; j < 8; ++j)
-				key[j] = JOHNSWAP64(key[j]);
-		}
-#endif
 		cracked[index] = ckcdecrypt((unsigned char*)key);
 #endif
 	}

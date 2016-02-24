@@ -507,14 +507,6 @@ static void hash_plugin_check_hash(int index)
 		pbkdf2_sha1((const unsigned char*)password, strlen(password),
 		       cur_salt->salt, 20, cur_salt->iterations, derived_key, 32, 0);
 #endif
-#if !ARCH_LITTLE_ENDIAN
-		{
-			int i;
-			for (i = 0; i < 32/sizeof(ARCH_WORD_32); ++i) {
-				((ARCH_WORD_32*)derived_key)[i] = JOHNSWAP(((ARCH_WORD_32*)derived_key)[i]);
-			}
-		}
-#endif
 		j = 0;
 #ifdef SIMD_COEF_32
 		for(j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
@@ -559,14 +551,6 @@ static void hash_plugin_check_hash(int index)
 		const char *password = saved_key[index];
 		pbkdf2_sha1((const unsigned char*)password, strlen(password),
 		       cur_salt->salt, 20, cur_salt->iterations, derived_key, 32, 0);
-#endif
-#if !ARCH_LITTLE_ENDIAN
-		{
-			int i;
-			for (i = 0; i < 32/sizeof(ARCH_WORD_32); ++i) {
-				((ARCH_WORD_32*)derived_key)[i] = JOHNSWAP(((ARCH_WORD_32*)derived_key)[i]);
-			}
-		}
 #endif
 		j = 0;
 #ifdef SIMD_COEF_32

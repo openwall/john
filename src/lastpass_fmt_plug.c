@@ -200,14 +200,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 		unsigned char key[32];
 		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->salt_length, 500, key, 32, 0);
-#if !ARCH_LITTLE_ENDIAN
-		{
-			int i;
-			for (i = 0; i < 8; ++i) {
-				((ARCH_WORD_32*)key)[i] = JOHNSWAP(((ARCH_WORD_32*)key)[i]);
-			}
-		}
-#endif
 		memset(&akey, 0, sizeof(AES_KEY));
 		AES_set_encrypt_key((unsigned char*)key, 256, &akey);
 		AES_ecb_encrypt((unsigned char*)"lastpass rocks\x02\x02", (unsigned char*)crypt_out[index], &akey, AES_ENCRYPT);

@@ -227,9 +227,6 @@ static void *get_binary(char *ciphertext)
 	} buf;
 	char *ret = buf.c;
 	char *c = ciphertext;
-#if !ARCH_LITTLE_ENDIAN
-	int i;
-#endif
 	c += strlen(FMT_PREFIX) + 1;
 	c = strchr(c, '$') + 1;
 	c = strchr(c, '$') + 1;
@@ -237,11 +234,6 @@ static void *get_binary(char *ciphertext)
 	assert(strlen(c) == 43);
 #endif
 	base64_convert(c, e_b64_mime, 43, buf.c, e_b64_raw, sizeof(buf.c), flg_Base64_MIME_PLUS_TO_DOT);
-#if !ARCH_LITTLE_ENDIAN
-	for (i = 0; i < BINARY_SIZE/4; ++i) {
-		((ARCH_WORD_32*)ret)[i] = JOHNSWAP(((ARCH_WORD_32*)ret)[i]);
-	}
-#endif
 	return ret;
 }
 

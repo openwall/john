@@ -211,14 +211,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha1_sse((const unsigned char**)pin, lens, salt_struct->salt, SALTLEN, 1000, pout, 24, 0);
 #else
 		pbkdf2_sha1((unsigned char *)saved_key[index],  strlen(saved_key[index]), salt_struct->salt, SALTLEN, 1000, master[0], 24, 0);
-#if !ARCH_LITTLE_ENDIAN
-		{
-			int i;
-			for (i = 0; i < 24/sizeof(ARCH_WORD_32); ++i) {
-				((ARCH_WORD_32*)master[0])[i] = JOHNSWAP(((ARCH_WORD_32*)master[0])[i]);
-			}
-		}
-#endif
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			if(kcdecrypt(master[i], salt_struct->iv, salt_struct->ct) == 0)

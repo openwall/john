@@ -308,16 +308,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha1(out2[0], 20, cur_salt->iv, 16, cur_salt->iterations, out[0], 32, 0);
 #endif
 
-#if ARCH_LITTLE_ENDIAN==0
-		{
-			uint32_t *p32 = (uint32_t *)out;
-			for (i = 0; i < 8; ++i) {
-				*p32 = JOHNSWAP(*p32);
-				++p32;
-			}
-		}
-#endif
-
 		// kcdecrypt will use 32 bytes, we only initialized 20 so far
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			unsigned char iv[8];

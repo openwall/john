@@ -309,11 +309,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			       cur_salt->salt_length,
 			       cur_salt->iterations, key[0],
 			       cur_salt->key_size, 0);
-#if !ARCH_LITTLE_ENDIAN
-			for (i = 0; i < cur_salt->key_size/sizeof(ARCH_WORD_32); ++i) {
-				((ARCH_WORD_32*)key[0])[i] = JOHNSWAP(((ARCH_WORD_32*)key[0])[i]);
-			}
-#endif
 #endif
 
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
@@ -350,11 +345,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			       cur_salt->salt_length,
 			       cur_salt->iterations, key[0],
 			       cur_salt->key_size, 0);
-#if !ARCH_LITTLE_ENDIAN
-			for (i = 0; i < cur_salt->key_size/sizeof(ARCH_WORD_32); ++i) {
-				((ARCH_WORD_32*)key[0])[i] = JOHNSWAP(((ARCH_WORD_32*)key[0])[i]);
-			}
-#endif
 #endif
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				memcpy(iv, cur_salt->iv, 16);

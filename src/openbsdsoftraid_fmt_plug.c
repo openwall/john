@@ -217,10 +217,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 
-#if !ARCH_LITTLE_ENDIAN
-		alter_endianity(mask_key[i], 32);
-#endif
-
 		/* decrypt sector keys */
 		AES_set_decrypt_key(mask_key[i], 256, &akey);
 		for(j = 0; j < (OPENBSD_SOFTRAID_KEYLENGTH * OPENBSD_SOFTRAID_KEYS) / 16;  j++) {

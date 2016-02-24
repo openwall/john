@@ -106,11 +106,7 @@ static void pbkdf2_ripemd160(const unsigned char *K, int KL, const unsigned char
 	while (loop <= loops) {
 		_pbkdf2_ripemd160(S,SL,R,tmp.x32,loop,&ipad,&opad);
 		for (i = skip_bytes%RIPEMD160_DIGEST_LENGTH; i < RIPEMD160_DIGEST_LENGTH && accum < outlen; i++) {
-#if ARCH_LITTLE_ENDIAN
 			out[accum++] = ((uint8_t*)tmp.out)[i];
-#else
-			out[accum++] = ((uint8_t*)tmp.out)[i^3];
-#endif
 		}
 		loop++;
 		skip_bytes = 0;

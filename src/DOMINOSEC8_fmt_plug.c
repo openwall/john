@@ -580,9 +580,6 @@ static void *get_binary(char *ciphertext)
 
 	decode((unsigned char*)ciphertext, (unsigned char*)&cipher_binary_struct);
 	memcpy(out, cipher_binary_struct.hash, BINARY_SIZE);
-#if !ARCH_LITTLE_ENDIAN
-	alter_endianity(out, 8);
-#endif
 	return (void*)out;
 }
 

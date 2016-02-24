@@ -240,23 +240,6 @@ static void *get_binary(char *ciphertext)
 		out.c[i++] = value >> 8;
 		out.c[i++] = value;
 	}
-
-#if !ARCH_LITTLE_ENDIAN
-	{
-		// we need to know if we are using sha1 or sha256  OR a 64 bit (sha384/512)
-		int j;
-		if (!strncasecmp(ciphertext, "{ssha512}", 9)) {
-			for (j = 0; j < 3; ++j) { // we only need 20 bytes -2
-				((ARCH_WORD_64*)out.c)[j] = JOHNSWAP64(((ARCH_WORD_64*)out.c)[j]);
-			}
-		} else {
-			//for (j = 0; j*sizeof(ARCH_WORD_32) < i; ++j) {
-			for (j = 0; j < 5; ++j) {
-				((ARCH_WORD_32*)out.c)[j] = JOHNSWAP(((ARCH_WORD_32*)out.c)[j]);
-			}
-		}
-	}
-#endif
 	return (void *)out.c;
 }
 

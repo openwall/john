@@ -232,11 +232,6 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		for (; i < SSE_GROUP_SZ_SHA1; ++i) {
 			memcpy(key, Key[i], 32);
 #endif
-#if (ARCH_LITTLE_ENDIAN==0)
-		for (i = 0; i < 8; ++i)
-			((ARCH_WORD_32*)key)[i] = JOHNSWAP(((ARCH_WORD_32*)key)[i]);
-		i = 0;
-#endif
 		AES_set_encrypt_key(key, 256, &aeskey);
 		AES_encrypt((unsigned char*)"kerberos{\x9b[+\x93\x13+\x93", (unsigned char*)(crypt_out[index+i]), &aeskey);
 		AES_encrypt((unsigned char*)(crypt_out[index+i]), (unsigned char*)&crypt_out[index+i][4], &aeskey);
