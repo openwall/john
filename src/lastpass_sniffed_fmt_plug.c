@@ -198,11 +198,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha256_sse((const unsigned char **)pin, lens, (unsigned char*)cur_salt->username, strlen(cur_salt->username), cur_salt->iterations, &(x.poutc), 32, 0);
 #else
 		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen(cur_salt->username), cur_salt->iterations, (unsigned char*)(&key[0]),32,0);
-#if !ARCH_LITTLE_ENDIAN
-		for (i = 0; i < 8; ++i) {
-			key[0][i] = JOHNSWAP(key[0][i]);
-		}
-#endif
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			unsigned char *Key = (unsigned char*)key[i];

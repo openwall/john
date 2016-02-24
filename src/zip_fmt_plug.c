@@ -492,21 +492,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 		int LEN = 2+2*KEY_LENGTH(saved_salt->v.mode);
 		union {
-			// MUST be aligned on 4 byte boundary for alter endianity on BE
-			// we also need 2 extra bytes for endianity flipping.
 			unsigned char pwd_ver[4+64];
 			ARCH_WORD_32 w;
 		} x;
 		unsigned char *pwd_ver = x.pwd_ver;
-#if !ARCH_LITTLE_ENDIAN
-		LEN += 2;
-#endif
 		pbkdf2_sha1((unsigned char *)saved_key[index],
 		       strlen(saved_key[index]), saved_salt->salt, SALT_LENGTH(saved_salt->v.mode),
 		       KEYING_ITERATIONS, pwd_ver, LEN, 0);
-#if !ARCH_LITTLE_ENDIAN
-		alter_endianity(pwd_ver, LEN);
-#endif
 		if (!memcmp(&(pwd_ver[KEY_LENGTH(saved_salt->v.mode)<<1]), saved_salt->passverify, 2))
 		{
 			hmac_sha1(&(pwd_ver[KEY_LENGTH(saved_salt->v.mode)]), KEY_LENGTH(saved_salt->v.mode),
