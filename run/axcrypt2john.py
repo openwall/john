@@ -44,7 +44,7 @@ def parse_axxfile(axxfile):
 	if axxdata[:2] == '\x4D\x5a':
 		offset_PE_magic = struct.unpack('<L', axxdata[60:64])[0]
 		# if 'PE' assume PE
-		if axxdata[offset_PE:offset_PE+2] == '\x50\x45':
+		if axxdata[offset_PE_magic:offset_PE_magic+2] == '\x50\x45':
 			axxdata = parse_PE(axxdata)
 
 	sizeof_file=len(axxdata)
