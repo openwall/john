@@ -271,11 +271,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((cp = strtokm(NULL, "*")) == NULL)		// data blob, OR file structure
 		goto Bail;
 	if (!strcmp((char*)cp, "ZFILE")) {
-		if ((Fn = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp))
+		if ((Fn = strtokm(NULL, "*")) == NULL)
 			goto Bail;
-		if ((Oh = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp))
+		if ((Oh = strtokm(NULL, "*")) == NULL)
 			goto Bail;
-		if ((Ob = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp))
+		if ((Ob = strtokm(NULL, "*")) == NULL)
 			goto Bail;
 		zip_file_validate = 1;
 	} else {
