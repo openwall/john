@@ -192,6 +192,12 @@ static void set_key(char *key, int index)
 	saved_len[index] = length;
 	memcpy(saved_key[index], key, length);
 #else
+	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
+	ARCH_WORD_64 *keybuf_word = keybuffer;
+	unsigned int len;
+	ARCH_WORD_64 temp;
+	unsigned char *wucp = (unsigned char*)saved_key;
+
 	// ok, first 4 bytes (if there are that many or more), we handle one offs.
 	// this is because we already have 4 byte salt loaded into our saved_key.
 	// IF there are more bytes of password, we drop into the multi loader.
@@ -201,14 +207,9 @@ static void set_key(char *key, int index)
 	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint64_t));
 	const ARCH_WORD_64 *wkey = is_aligned(key + 4, sizeof(uint64_t)) ?
 		(ARCH_WORD_64*)(key + 4) : (ARCH_WORD_64*)buf_aligned;
-	if (wkey == buf_aligned && length >= 4)
+	if ((char *)wkey == buf_aligned && strlen(key) >= 4)
 		strcpy(buf_aligned, key + 4);
 #endif
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
-	ARCH_WORD_64 *keybuf_word = keybuffer;
-	unsigned int len;
-	ARCH_WORD_64 temp;
-	unsigned char *wucp = (unsigned char*)saved_key;
 	len = 4;
 	if (key[0] == 0) {wucp[GETPOS(4, index)] = 0x80; wucp[GETPOS(5, index)] = wucp[GETPOS(6, index)] = wucp[GETPOS(7, index)] = 0; goto key_cleaning; }
 	wucp[GETPOS(4, index)] = key[0];
