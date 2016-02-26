@@ -253,8 +253,12 @@ void *mem_alloc_align_func(size_t size, size_t align
 	void *ptr = NULL;
 	if (align<sizeof(void*))
 		align = sizeof(void*);
-	if (size < 1)
-		size = 1; // memalign on sparc fails
+	if (!size)
+		return NULL;
+#ifdef DEBUG
+    assert(size);
+    assert(!(align & (align - 1)));
+#endif
 #if defined (MEMDBG_ON)
 	ptr = (char*) MEMDBG_alloc_align(size, align, file, line);
 #elif HAVE_POSIX_MEMALIGN
