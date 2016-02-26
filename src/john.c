@@ -1975,5 +1975,9 @@ int main(int argc, char **argv)
 
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
+#if __CYGWIN__
+	system ("stty sane");
+#endif
+
 	return exit_status;
 }
