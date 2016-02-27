@@ -32,8 +32,6 @@ john_register_one(&fmt_opencl_ng_xsha512);
 #include "config.h"
 #include "options.h"
 #include "opencl_rawsha512.h"
-#define __RAWSHA512_CREATE_PROPER_TESTS_ARRAY__
-#define __XSHA512_CREATE_PROPER_TESTS_ARRAY__
 #include "rawSHA512_common.h"
 
 #include "mask_ext.h"
@@ -825,10 +823,9 @@ static int cmp_exact_x(char *source, int index)
 #ifdef DEBUG
 	fprintf(stderr, "Stressing CPU\n");
 #endif
-	binary = (uint64_t *) sha512_common_binary_xsha(source);
+	binary = (uint64_t *) sha512_common_binary_xsha512(source);
 
 	full_hash = crypt_one_x(index);
-
 	return !memcmp(binary, (void *) full_hash, BINARY_SIZE);
 }
 
@@ -886,7 +883,7 @@ struct fmt_main fmt_opencl_ng_rawsha512 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{NULL},
-		sha512_common_tests
+		sha512_common_tests_rawsha512_20
 	}, {
 		init_raw,
 		done,
@@ -951,10 +948,10 @@ struct fmt_main fmt_opencl_ng_xsha512 = {
 		init_x,
 		done,
 		reset,
-		sha512_common_prepare_xsha,
-		sha512_common_valid_xsha,
-		sha512_common_split_xsha,
-		sha512_common_binary_xsha,
+		sha512_common_prepare_xsha512,
+		sha512_common_valid_xsha512,
+		sha512_common_split_xsha512,
+		sha512_common_binary_xsha512,
 		get_salt,
 		{NULL},
 		fmt_default_source,

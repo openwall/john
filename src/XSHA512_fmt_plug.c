@@ -17,6 +17,7 @@ john_register_one(&fmt_XSHA512);
 #include "formats.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
+#include "rawSHA512_common.h"
 
 //#undef SIMD_COEF_64
 
@@ -58,9 +59,6 @@ john_register_one(&fmt_XSHA512);
 #else
 #undef PRECOMPUTE_CTX_FOR_SALT
 #endif
-
-#define __XSHA512_CREATE_PROPER_TESTS_ARRAY__
-#include "rawSHA512_common.h"
 
 #define BINARY_SIZE				DIGEST_SIZE
 
@@ -388,10 +386,10 @@ struct fmt_main fmt_XSHA512 = {
 		init,
 		done,
 		fmt_default_reset,
-		sha512_common_prepare_xsha,
-		sha512_common_valid_xsha,
-		sha512_common_split_xsha,
-		sha512_common_binary_xsha,
+		sha512_common_prepare_xsha512,
+		sha512_common_valid_xsha512,
+		sha512_common_split_xsha512,
+		sha512_common_binary_xsha512,
 		get_salt,
 		{ NULL },
 		fmt_default_source,

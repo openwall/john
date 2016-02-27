@@ -44,6 +44,8 @@ john_register_one(&fmt_rawSHA512_ng);
 #include "common.h"
 #include "formats.h"
 #include "johnswap.h"
+#include "rawSHA512_common.h"
+
 #include "memdbg.h"
 
 #if __MIC__
@@ -83,8 +85,6 @@ john_register_one(&fmt_rawSHA512_ng);
 #define SALT_ALIGN                1
 #define MIN_KEYS_PER_CRYPT        VWIDTH
 #define MAX_KEYS_PER_CRYPT        VWIDTH
-#define __RAWSHA512_CREATE_PROPER_TESTS_ARRAY__
-#include "rawSHA512_common.h"
 
 
 #undef GATHER /* This one is not like the shared ones in pseudo_intrinsics.h */
@@ -221,38 +221,6 @@ static void alter_endianity_64(uint64_t *x, unsigned int size)
     for (i=0; i < (size / sizeof(*x)); i++)
         x[i] = JOHNSWAP64(x[i]);
 }
-
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-    char *p, *q;
-
-    p = ciphertext;
-
-    if (! strncmp(p, FORMAT_TAG, TAG_LENGTH))
-        p += TAG_LENGTH;
-
-    q = p;
-    while (atoi16[ARCH_INDEX(*q)] != 0x7F) q++;
-
-    return !*q && q - p == CIPHERTEXT_LENGTH;
-}
-
-
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-    static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
-
-    if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-        ciphertext += TAG_LENGTH;
-
-    memcpy(out,  FORMAT_TAG, TAG_LENGTH);
-    memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
-    strlwr(out + TAG_LENGTH);
-
-    return out;
-}
-
 
 static void *get_binary(char *ciphertext)
 {
@@ -517,15 +485,15 @@ struct fmt_main fmt_rawSHA512_ng = {
         MAX_KEYS_PER_CRYPT,
         FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
-        sha512_common_tests
+        sha512_common_tests_rawsha512_111
     }, {
         init,
         done,
         fmt_default_reset,
         fmt_default_prepare,
-        valid,
-        split,
-        get_binary,
+        sha512_common_valid,
+        sha512_common_split,
+        get_binary,	// do not use the 'common' one.
         fmt_default_salt,
 		{ NULL },
         fmt_default_source,

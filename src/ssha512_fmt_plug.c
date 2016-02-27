@@ -22,6 +22,7 @@ john_register_one(&fmt_saltedsha2);
 #include "base64.h"
 #include "simd-intrinsics.h"
 #include <string.h>
+#include "rawSHA512_common.h"
 
 #ifdef _OPENMP
 #ifdef SIMD_COEF_64
@@ -50,9 +51,6 @@ john_register_one(&fmt_saltedsha2);
 #define ALGORITHM_NAME					"SHA512 32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
 #endif
-
-#define __SSHA512_CREATE_PROPER_TESTS_ARRAY__
-#include "rawSHA512_common.h"
 
 #define PLAINTEXT_LENGTH                (111-NSLDAP_SALT_LEN)
 #define SALT_ALIGN                      4
@@ -375,7 +373,7 @@ struct fmt_main fmt_saltedsha2 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		tests
+		sha512_common_tests_ssha512
 	}, {
 		init,
 		done,
