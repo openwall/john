@@ -79,7 +79,8 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		o5logon postgres pst raw-blake2 raw-keccak raw-keccak256 siemens-s7
 		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip bitcoin blockchain
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
-		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore
+		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4 
+		pbkdf2-hmac-md5
 		));
 
 # todo: sapb sapfg ike keepass cloudkeychain pfx racf pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
@@ -3130,6 +3131,16 @@ sub pbkdf2_hmac_sha1 {
 	$salt=get_salt(16);
 	my $itr = get_loops(1000);
 	return "\$pbkdf2-hmac-sha1\$${itr}.".unpack("H*", $salt).".".pp_pbkdf2_hex($_[1],$salt,$itr,"sha1",20, 64);
+}
+sub pbkdf2_hmac_md4 {
+	$salt=get_salt(16, -115);
+	my $itr = get_loops(1000);
+	return "\$pbkdf2-hmac-md4\$${itr}\$".unpack("H*", $salt).'$'.pp_pbkdf2_hex($_[1],$salt,$itr,"md4",16, 64);
+}
+sub pbkdf2_hmac_md5 {
+	$salt=get_salt(16, -115);
+	my $itr = get_loops(1000);
+	return "\$pbkdf2-hmac-md5\$${itr}\$".unpack("H*", $salt).'$'.pp_pbkdf2_hex($_[1],$salt,$itr,"md5",16, 64);
 }
 sub pbkdf2_hmac_sha1_pkcs5s2 {
 	$salt=get_salt(16);
