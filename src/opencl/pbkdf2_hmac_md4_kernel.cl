@@ -4,6 +4,10 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
+ * increased salt_len from 52 (which was a bug), to 115.  salts [52-115] bytes
+ * require 2 md4 limbs to handle.  Salts [0-51] bytes in length are handled by
+ * 1 md4 limb.  (Feb. 2/16, JimF)
+ *
  * This is a generic pbkdf2-hmac-md4
  *
  * Build-time (at run-time for host code) defines:
@@ -61,6 +65,7 @@ inline void hmac_md4(__global MAYBE_VECTOR_UINT *state,
 	uint i;
 	MAYBE_VECTOR_UINT a, b, c, d;
 	MAYBE_VECTOR_UINT W[16];
+	MAYBE_VECTOR_UINT W2[16];
 	MAYBE_VECTOR_UINT output[4];
 
 	for (i = 0; i < 4; i++)
@@ -68,15 +73,41 @@ inline void hmac_md4(__global MAYBE_VECTOR_UINT *state,
 
 	for (i = 0; i < 14; i++)
 		W[i] = 0;
-
-	for (i = 0; i < saltlen; i++)
-		PUTCHAR(W, i, salt[i]);
-	PUTCHAR(W, saltlen + 3, add);
-	PUTCHAR(W, saltlen + 4, 0x80);
-	W[14] = (64 + saltlen + 4) << 3;
-	W[15] = 0;
-	md4_block(W, output);
-
+	if (saltlen >= 52) {
+		// takes 2 limbs to handle this salt, so prep 2nd buffer
+		for (i = 0; i < 14; i++)
+			W2[i] = 0;
+		W[14] = 0;	// first buffer will NOT get length, so zero it out also.
+		W[15] = 0;
+	}
+	if (saltlen < 52) {
+		// only needs 1 limb
+		for (i = 0; i < saltlen; i++)
+			PUTCHAR(W, i, salt[i]);
+		PUTCHAR(W, saltlen + 3, add);
+		PUTCHAR(W, saltlen + 4, 0x80);
+		W[14] = (64 + saltlen + 4) << 3;
+		W[15] = 0;
+		md4_block(W, output);
+	} else {
+		// handles 2 limbs of salt and loop-count (up to 115 byte salt)
+		for (i = 0; i < saltlen && i < 64; i++)
+			PUTCHAR(W, i, salt[i]);
+		for (; i < saltlen; i++)
+			PUTCHAR(W2, i - 64, salt[i]);
+		if (saltlen < 61)
+			PUTCHAR(W, saltlen + 3, add);
+		else
+			PUTCHAR(W2, saltlen + 3 - 64, add);
+		if (saltlen < 60)
+			PUTCHAR(W, saltlen + 4, 0x80);
+		else
+			PUTCHAR(W2, saltlen + 4 - 64, 0x80);
+		W2[14] = (64 + saltlen + 4) << 3;
+		W2[15] = 0;
+		md4_block(W, output);
+		md4_block(W2, output);
+	}
 	for (i = 0; i < 4; i++)
 		W[i] = output[i];
 	W[4] = 0x80;

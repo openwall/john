@@ -3,13 +3,19 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * JimF  (Feb, 2016)
+ * bumped salt to 2 limb (115 byte max). Originally this was 1 limb  and 'should'
+ * have only allowed 51 byte salts. But a bug in code listed 52 as max salt size.
+ * this has been fixed, and now 2 limb salts work just fine.
  */
 #ifndef _OPENCL_PBKDF2_HMAC_MD4_H
 #define _OPENCL_PBKDF2_HMAC_MD4_H
 
 /*
- * The SHA-1 block size used for HMAC dictates (for optimised code) a max.
- * plaintext length of 64 and a max. salt length of 52.
+ * The MD4 block size used for HMAC dictates (for optimised code) a max.
+ * plaintext length of 64 and a max. salt length of 52. (should have actually
+ * only been 51! but it has been bumped 2 to md4 limbs and 115 byte salt.)
  *
  * These structs do NOT have space for any cstring trailing NULL
  */
@@ -26,7 +32,7 @@ typedef struct {
 	unsigned int  length;
 	unsigned int  outlen;
 	unsigned int  iterations;
-	unsigned char salt[52];
+	unsigned char salt[115];
 } pbkdf2_salt;
 
 #ifndef _OPENCL_COMPILER

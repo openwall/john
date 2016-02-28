@@ -24,6 +24,7 @@ john_register_one(&fmt_pbkdf2_hmac_md4);
 #include "formats.h"
 #include "stdint.h"
 #include "pbkdf2_hmac_md4.h"
+#include "pbkdf2_hmac_common.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -33,23 +34,13 @@ john_register_one(&fmt_pbkdf2_hmac_md4);
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-MD4"
-#define FORMAT_NAME             ""
-#define FORMAT_TAG              "$pbkdf2-hmac-md4$"
-#define TAG_LEN                 (sizeof(FORMAT_TAG) - 1)
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF2-MD4 " MD4_ALGORITHM_NAME
 #else
 #define ALGORITHM_NAME          "PBKDF2-MD4 32/" ARCH_BITS_STR
 #endif
-#define BINARY_SIZE             16
-#define BINARY_ALIGN            sizeof(ARCH_WORD_32)
-#define MAX_BINARY_SIZE         (4 * BINARY_SIZE)
-#define MAX_SALT_SIZE           64
-#define MAX_CIPHERTEXT_LENGTH   256 // XXX
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(ARCH_WORD_32)
-#define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
 #if SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_32 * SIMD_PARA_MD4)
 #define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32 * SIMD_PARA_MD4)
@@ -59,22 +50,14 @@ john_register_one(&fmt_pbkdf2_hmac_md4);
 #endif
 #define PLAINTEXT_LENGTH        125
 
-static struct fmt_tests tests[] = {
-	{"$pbkdf2-hmac-md4$1$73616c74$1857f69412150bca4542581d0f9e7fd1", "password"},
-	{"$pbkdf2-hmac-md4$1000$6d61676e756d$32ebfcea201e61cc498948916a213459c259c7b0a8ce9473368665f0808dcde1", "magnum"},
-	{"$pbkdf2-hmac-md4$10000$6d61676e756d$72afea482e97ffbba4171f5cc251215e", "Borkum"},
-	{"$pbkdf2-hmac-md4$10000$6d61676e756d$2a945628a540f074a99a47cba86081b7", "Riff"},
-	{NULL}
-};
-
 static struct custom_salt {
 	unsigned int length;
 	unsigned int rounds;
-	char salt[MAX_SALT_SIZE];
+	char salt[PBKDF2_MD4_MAX_SALT_SIZE];
 } *cur_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_32 (*crypt_out)[PBKDF2_MDx_BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static void init(struct fmt_main *self)
 {
@@ -94,50 +77,6 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *ptr, *ctcopy, *keeptr;
-	size_t len;
-	char *delim;
-
-	if (strncmp(ciphertext, FORMAT_TAG, TAG_LEN))
-		return 0;
-
-	if (strlen(ciphertext) > MAX_CIPHERTEXT_LENGTH)
-		return 0;
-
-	ciphertext += TAG_LEN;
-
-	delim = strchr(ciphertext, '.') ? "." : "$";
-
-	if (!(ctcopy = strdup(ciphertext)))
-		return 0;
-	keeptr = ctcopy;
-	if (!(ptr = strtokm(ctcopy, delim)))
-		goto error;
-	if (!atoi(ptr))
-		goto error;
-	if (!(ptr = strtokm(NULL, delim)))
-		goto error;
-	len = strlen(ptr); // salt hex length
-	if (len > 2 * MAX_SALT_SIZE || len & 1)
-		goto error;
-	if (!ishexlc(ptr))
-		goto error;
-	if (!(ptr = strtokm(NULL, delim)))
-		goto error;
-	len = strlen(ptr); // binary hex length
-	if (len < BINARY_SIZE || len > MAX_BINARY_SIZE || len & 1)
-		goto error;
-	if (!ishexlc(ptr))
-		goto error;
-	MEM_FREE(keeptr);
-	return 1;
-error:
-	MEM_FREE(keeptr);
-	return 0;
-}
-
 static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
@@ -145,8 +84,9 @@ static void *get_salt(char *ciphertext)
 	int saltlen;
 	char delim;
 
-	if (!strncmp(ciphertext, FORMAT_TAG, sizeof(FORMAT_TAG) - 1))
-		ciphertext += sizeof(FORMAT_TAG) - 1;
+	if (!strncmp(ciphertext, PBKDF2_MD4_FORMAT_TAG, sizeof(PBKDF2_MD4_FORMAT_TAG) - 1))
+		ciphertext += sizeof(PBKDF2_MD4_FORMAT_TAG) - 1;
+	memset(&cs, 0, sizeof(cs));
 	cs.rounds = atoi(ciphertext);
 	delim = strchr(ciphertext, '.') ? '.' : '$';
 	ciphertext = strchr(ciphertext, delim) + 1;
@@ -162,27 +102,6 @@ static void *get_salt(char *ciphertext)
 	cs.length = saltlen;
 
 	return (void*)&cs;
-}
-
-static void *get_binary(char *ciphertext)
-{
-	static union {
-		unsigned char c[MAX_BINARY_SIZE];
-		ARCH_WORD dummy;
-	} buf;
-	unsigned char *out = buf.c;
-	int i;
-	char *p;
-
-	p = strrchr(ciphertext, '$') + 1;
-	for (i = 0; i < BINARY_SIZE && *p; i++) {
-		out[i] =
-			(atoi16[ARCH_INDEX(*p)] << 4) |
-			atoi16[ARCH_INDEX(p[1])];
-		p += 2;
-	}
-
-	return out;
 }
 
 static void set_salt(void *salt)
@@ -223,13 +142,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_md4_sse((const unsigned char **)pin, lens,
 		               (unsigned char*)cur_salt->salt, cur_salt->length,
 		               cur_salt->rounds, &(x.poutc),
-		               BINARY_SIZE, 0);
+		               PBKDF2_MDx_BINARY_SIZE, 0);
 #else
 		pbkdf2_md4((unsigned char*)(saved_key[index]),
 		           strlen(saved_key[index]),
 		           (unsigned char*)cur_salt->salt, cur_salt->length,
 		           cur_salt->rounds, (unsigned char*)crypt_out[index],
-		           BINARY_SIZE, 0);
+		           PBKDF2_MDx_BINARY_SIZE, 0);
 #endif
 	}
 	return count;
@@ -249,12 +168,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
-}
-
-static int cmp_exact(char *source, int index)
-{
-	return 1;
+	return !memcmp(binary, crypt_out[index], PBKDF2_MDx_BINARY_SIZE);
 }
 
 static void set_key(char *key, int index)
@@ -269,6 +183,12 @@ static void set_key(char *key, int index)
 static char *get_key(int index)
 {
 	return saved_key[index];
+}
+
+static int cmp_exact(char *source, int index)
+{
+	/* does a FULL compare, if the binary buffer of the hash is larger than 16 bytes */
+	return pbkdf2_hmac_md4_cmp_exact(get_key(index), source, (unsigned char*)cur_salt->salt, cur_salt->length, cur_salt->rounds);
 }
 
 static unsigned int iteration_count(void *salt)
@@ -288,8 +208,8 @@ struct fmt_main fmt_pbkdf2_hmac_md4 = {
 		BENCHMARK_LENGTH,
 		0,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
-		BINARY_ALIGN,
+		PBKDF2_MDx_BINARY_SIZE,
+		PBKDF2_32_BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
@@ -298,15 +218,15 @@ struct fmt_main fmt_pbkdf2_hmac_md4 = {
 		{
 			"iteration count",
 		},
-		tests
+		pbkdf2_hmac_md4_common_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		valid,
-		fmt_default_split,
-		get_binary,
+		pbkdf2_hmac_md4_valid,
+		pbkdf2_hmac_md4_split,
+		pbkdf2_hmac_md4_binary,
 		get_salt,
 		{
 			iteration_count,
