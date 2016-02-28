@@ -91,7 +91,7 @@ static ARCH_WORD_32 (*cursalt)[MD5_BUF_SIZ*NBKEYS];
 static ARCH_WORD_32 (*crypt_key)[DIGEST_SIZE/4*NBKEYS];
 static unsigned max_keys;
 #else
-static char (*crypt_key)[PHPASS_CPU_PLAINTEXT_LENGTH+1+BINARY_SIZE];
+static char (*crypt_key)[PHPASS_CPU_PLAINTEXT_LENGTH+1+PHPASS_BINARY_SIZE];
 static char (*saved_key)[PHPASS_CPU_PLAINTEXT_LENGTH + 1];
 static unsigned (*saved_len);
 static unsigned char cursalt[SALT_SIZE];
@@ -232,7 +232,7 @@ static int cmp_all(void *binary, int count) {
 	return 0;
 #else
 	for (i = 0; i < count; i++)
-		if (!memcmp(binary, crypt_key[i], BINARY_SIZE))
+		if (!memcmp(binary, crypt_key[i], PHPASS_BINARY_SIZE))
 			return 1;
 	return 0;
 #endif
@@ -253,7 +253,7 @@ static int cmp_one(void * binary, int index)
 	       (((ARCH_WORD_32 *)binary)[2] == ((ARCH_WORD_32 *)crypt_key)[off+2*SIMD_COEF_32+idx]) &&
 	       (((ARCH_WORD_32 *)binary)[3] == ((ARCH_WORD_32 *)crypt_key)[off+3*SIMD_COEF_32+idx]));
 #else
-	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
+	return !memcmp(binary, crypt_key[index], PHPASS_BINARY_SIZE);
 #endif
 }
 
@@ -285,12 +285,12 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 		MD5_Update( &ctx, saved_key[index], saved_len[index] );
 		MD5_Final( (unsigned char *) crypt_key[index], &ctx);
 
-		strcpy(((char*)&(crypt_key[index]))+BINARY_SIZE, saved_key[index]);
+		strcpy(((char*)&(crypt_key[index]))+PHPASS_BINARY_SIZE, saved_key[index]);
 		Lcount = loopCnt;
 
 		do {
 			MD5_Init( &ctx );
-			MD5_Update( &ctx, crypt_key[index],  BINARY_SIZE+saved_len[index]);
+			MD5_Update( &ctx, crypt_key[index],  PHPASS_BINARY_SIZE+saved_len[index]);
 			MD5_Final( (unsigned char *)&(crypt_key[index]), &ctx);
 		} while (--Lcount);
 #endif
