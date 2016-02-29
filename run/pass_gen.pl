@@ -3124,7 +3124,7 @@ sub pbkdf2_hmac_sha256 {
 	my $itr = get_loops(12000);
 	my $s64 = base64pl($salt);
 	my $h64 = substr(base64pl(pack("H*",pp_pbkdf2_hex($_[1],$salt,$itr,"sha256",32, 64))),0,43);
-	$s64 = substr($s64, 0, 22);
+	while (substr($s64, length($s64)-1) eq "=") { $s64 = substr($s64, 0, length($s64)-1); }
 	return "\$pbkdf2-sha256\$${itr}\$${s64}\$${h64}";
 }
 sub pbkdf2_hmac_sha1 {
