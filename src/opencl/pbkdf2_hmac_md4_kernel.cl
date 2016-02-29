@@ -83,27 +83,30 @@ inline void hmac_md4(__global MAYBE_VECTOR_UINT *state,
 		md4_block(W, output);
 	} else {
 		// handles 2 limbs of salt and loop-count (up to 115 byte salt)
-		MAYBE_VECTOR_UINT W2[16];
+		uint j;
 		W[14] = 0;	// first buffer will NOT get length, so zero it out also.
 		W[15] = 0;
-		for (i = 0; i < 14; i++)
-			W2[i] = 0;
 		for (i = 0; i < saltlen && i < 64; i++)
 			PUTCHAR(W, i, salt[i]);
-		for (; i < saltlen; i++)
-			PUTCHAR(W2, i - 64, salt[i]);
+		// i MUST be preserved.  It if our count of # of salt bytes consumed.
 		if (saltlen < 61)
 			PUTCHAR(W, saltlen + 3, add);
-		else
-			PUTCHAR(W2, saltlen + 3 - 64, add);
 		if (saltlen < 60)
 			PUTCHAR(W, saltlen + 4, 0x80);
-		else
-			PUTCHAR(W2, saltlen + 4 - 64, 0x80);
-		W2[14] = (64 + saltlen + 4) << 3;
-		W2[15] = 0;
 		md4_block(W, output);
-		md4_block(W2, output);
+
+		// now build and process 2nd limb
+		for (j = 0; j < 14; j++)  // do not fuk with i!
+			W[j] = 0;
+		for (; i < saltlen; i++)
+			PUTCHAR(W, i - 64, salt[i]);
+		if (saltlen >= 61)
+			PUTCHAR(W, saltlen + 3 - 64, add);
+		if (saltlen >= 60)
+			PUTCHAR(W, saltlen + 4 - 64, 0x80);
+		W[14] = (64 + saltlen + 4) << 3;
+		W[15] = 0;
+		md4_block(W, output);
 	}
 	for (i = 0; i < 4; i++)
 		W[i] = output[i];
