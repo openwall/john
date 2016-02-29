@@ -391,7 +391,7 @@ char *pbkdf2_hmac_sha1_split(char *ciphertext, int index, struct fmt_main *self)
 
 char *pbkdf2_hmac_sha1_prepare(char *fields[10], struct fmt_main *self)
 {
-	static char Buf[256];
+	static char Buf[PBKDF2_SHA1_MAX_CIPHERTEXT_LENGTH + 1];
 	if (strncmp(fields[1], PKCS5S2_TAG, 9) != 0 && strncmp(fields[1], PK5K2_TAG, 6))
 		return fields[1];
 	if (!strncmp(fields[1], PKCS5S2_TAG, 9)) {
@@ -557,6 +557,8 @@ int pbkdf2_hmac_sha256_valid(char *ciphertext, struct fmt_main *self) {
 		return 0;
 	if (strlen(ciphertext) < 44 + PBKDF2_SHA256_TAG_LEN)
 		return 0;
+	if (strlen(ciphertext) > PBKDF2_SHA256_MAX_CIPHERTEXT_LENGTH)
+		return 0;
 	c += PBKDF2_SHA256_TAG_LEN;
 	if (strtol(c, NULL, 10) == 0)
 		return 0;
@@ -580,7 +582,7 @@ int pbkdf2_hmac_sha256_valid(char *ciphertext, struct fmt_main *self) {
 }
 
 char *pbkdf2_hmac_sha256_prepare(char *fields[10], struct fmt_main *self) {
-	static char Buf[120];
+	static char Buf[PBKDF2_SHA256_MAX_CIPHERTEXT_LENGTH + 1];
 	char tmp[43+1], *cp;
 
 	if (strncmp(fields[1], FMT_CISCO8, 3) != 0)

@@ -39,6 +39,7 @@
 #define PBKDF2_SHA256_FORMAT_TAG            "$pbkdf2-sha256$"
 #define PBKDF2_SHA256_TAG_LEN               (sizeof(PBKDF2_SHA256_FORMAT_TAG) - 1)
 #define PBKDF2_SHA256_MAX_BINARY_SIZE       (4 * PBKDF2_SHA256_BINARY_SIZE)
+#define PBKDF2_SHA256_MAX_CIPHERTEXT_LENGTH (PBKDF2_SHA256_TAG_LEN + 6 + 1 + 2*PBKDF2_32_MAX_SALT_SIZE + 1 + 2*PBKDF2_SHA256_MAX_BINARY_SIZE)
 
 /* md4 common functions/data */
 extern struct fmt_tests pbkdf2_hmac_md4_common_tests[];
@@ -57,7 +58,7 @@ extern int pbkdf2_hmac_md5_cmp_exact(char *key, char *source, unsigned char *sal
 /* sha1 common functions/data */
 extern struct fmt_tests pbkdf2_hmac_sha1_common_tests[];
 extern int pbkdf2_hmac_sha1_valid(char *ciphertext, struct fmt_main *self);
-extern char *pbkdf2_hmac_sha1_prepare();
+extern char *pbkdf2_hmac_sha1_prepare(char *fields[10], struct fmt_main *self);
 extern char *pbkdf2_hmac_sha1_split(char *ciphertext, int index, struct fmt_main *self);
 extern void *pbkdf2_hmac_sha1_binary(char *ciphertext);
 extern int pbkdf2_hmac_sha1_cmp_exact(char *key, char *source, unsigned char *salt, int salt_len, int iterations);
