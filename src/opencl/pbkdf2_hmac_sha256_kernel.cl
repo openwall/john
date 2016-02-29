@@ -21,7 +21,7 @@ typedef struct {
 
 typedef struct {
 	uchar length;
-	uchar salt[64];
+	uchar salt[115];
 	uint rounds;
 } salt_t;
 
@@ -73,18 +73,67 @@ inline void hmac_sha256(uint * output, uint * ipad_state,
 	uint i, t;
 	uint W[16];
 	uint A, B, C, D, E, F, G, H;
-	uchar buf[64] = { 0 };
 
-	for (i = 0; i < saltlen; i++)
-		buf[i] = salt[i];
-
-	buf[saltlen + 3] = 0x1;
-	buf[saltlen + 4] = 0x80;
-
-	PUT_UINT32BE((uint) ((64 + saltlen + 4) << 3), buf, 60);
-
-	for (i = 0; i < 16; i++)
-		GET_UINT32BE(W[i], buf, i * 4);
+// Not sure if either 'method' (i.e. a buf[128]={0} or simply dropping right into W[] array)
+// is better than the other, so both have been left in the kernel for now.  Once we know
+// one is better, or easier to follow, then we can drop the other.
+//
+//	uchar buf[128] = { 0 };
+//
+//	for (i = 0; i < saltlen; i++)
+//		buf[i] = salt[i];
+//
+//	buf[saltlen + 3] = 0x1;
+//	buf[saltlen + 4] = 0x80;
+//
+//	A = ipad_state[0];
+//	B = ipad_state[1];
+//	C = ipad_state[2];
+//	D = ipad_state[3];
+//	E = ipad_state[4];
+//	F = ipad_state[5];
+//	G = ipad_state[6];
+//	H = ipad_state[7];
+//
+//	for (i = 0; i < 15; i++)
+//		GET_UINT32BE(W[i], buf, i * 4);
+//	if (saltlen < 52) {
+//		PUT_UINT32BE((uint) ((64 + saltlen + 4) << 3), buf, 60);
+//		GET_UINT32BE(W[15], buf, 60);
+//		SHA256(A, B, C, D, E, F, G, H);
+//		W[0] = A + ipad_state[0];
+//		W[1] = B + ipad_state[1];
+//		W[2] = C + ipad_state[2];
+//		W[3] = D + ipad_state[3];
+//		W[4] = E + ipad_state[4];
+//		W[5] = F + ipad_state[5];
+//		W[6] = G + ipad_state[6];
+//		W[7] = H + ipad_state[7];
+//	} else {
+//		uint a, b, c, d, e, f, g, h;
+//		GET_UINT32BE(W[15], buf, 60);
+//		SHA256(A, B, C, D, E, F, G, H);
+//		PUT_UINT32BE((uint) ((64 + saltlen + 4) << 3), buf, 60+64);
+//		for (i = 0; i < 16; i++)
+//			GET_UINT32BE(W[i], buf, 64 + i * 4);
+//		a = (A += ipad_state[0]);
+//		b = (B += ipad_state[1]);
+//		c = (C += ipad_state[2]);
+//		d = (D += ipad_state[3]);
+//		e = (E += ipad_state[4]);
+//		f = (F += ipad_state[5]);
+//		g = (G += ipad_state[6]);
+//		h = (H += ipad_state[7]);
+//		SHA256(A, B, C, D, E, F, G, H);
+//		W[0] = A + a;
+//		W[1] = B + b;
+//		W[2] = C + c;
+//		W[3] = D + d;
+//		W[4] = E + e;
+//		W[5] = F + f;
+//		W[6] = G + g;
+//		W[7] = H + h;
+//	}
 
 	A = ipad_state[0];
 	B = ipad_state[1];
@@ -95,16 +144,69 @@ inline void hmac_sha256(uint * output, uint * ipad_state,
 	G = ipad_state[6];
 	H = ipad_state[7];
 
-	SHA256(A, B, C, D, E, F, G, H);
+	for (i = 0; i < 15; i++)
+		W[i] = 0;
+	if (saltlen < 52) {
+		// only needs 1 limb
+		for (i = 0; i < saltlen; i++)
+			PUTCHAR_BE(W, i, salt[i]);
+		PUTCHAR_BE(W, saltlen + 3, 1);
+		PUTCHAR_BE(W, saltlen + 4, 0x80);
+		W[15] = (64 + saltlen + 4) << 3;
+		SHA256(A, B, C, D, E, F, G, H);
+		W[0] = A + ipad_state[0];
+		W[1] = B + ipad_state[1];
+		W[2] = C + ipad_state[2];
+		W[3] = D + ipad_state[3];
+		W[4] = E + ipad_state[4];
+		W[5] = F + ipad_state[5];
+		W[6] = G + ipad_state[6];
+		W[7] = H + ipad_state[7];
+	} else {
+		// handles 2 limbs of salt and loop-count (up to 115 byte salt)
+		uint a, b, c, d, e, f, g; // we use i for h
+		W[15] = 0;	// first buffer will NOT get length, so zero it out also.
+		for (i = 0; i < saltlen && i < 64; i++)
+			PUTCHAR_BE(W, i, salt[i]);
+		// i MUST be preserved.  It if our count of # of salt bytes consumed.
+		a = i;
+		if (saltlen < 61)
+			PUTCHAR_BE(W, saltlen + 3, 1);
+		if (saltlen < 60)
+			PUTCHAR_BE(W, saltlen + 4, 0x80);
+		SHA256(A, B, C, D, E, F, G, H);
 
-	W[0] = A + ipad_state[0];
-	W[1] = B + ipad_state[1];
-	W[2] = C + ipad_state[2];
-	W[3] = D + ipad_state[3];
-	W[4] = E + ipad_state[4];
-	W[5] = F + ipad_state[5];
-	W[6] = G + ipad_state[6];
-	W[7] = H + ipad_state[7];
+		// now build and process 2nd limb
+		for (i = 0; i < 15; i++)  // do not fuk with i!
+			W[i] = 0;
+		for (i = a; i < saltlen; i++)
+			PUTCHAR_BE(W, i - 64, salt[i]);
+		if (saltlen >= 61)
+			PUTCHAR_BE(W, saltlen + 3 - 64, 1);
+		if (saltlen >= 60)
+			PUTCHAR_BE(W, saltlen + 4 - 64, 0x80);
+		W[15] = (64 + saltlen + 4) << 3;
+		{
+			a = (A += ipad_state[0]);
+			b = (B += ipad_state[1]);
+			c = (C += ipad_state[2]);
+			d = (D += ipad_state[3]);
+			e = (E += ipad_state[4]);
+			f = (F += ipad_state[5]);
+			g = (G += ipad_state[6]);
+			i = (H += ipad_state[7]);
+			SHA256(A, B, C, D, E, F, G, H);
+			W[0] = A + a;
+			W[1] = B + b;
+			W[2] = C + c;
+			W[3] = D + d;
+			W[4] = E + e;
+			W[5] = F + f;
+			W[6] = G + g;
+			W[7] = H + i;
+		}
+	}
+
 	W[8] = 0x80000000;
 	W[15] = 0x300;
 
@@ -119,23 +221,14 @@ inline void hmac_sha256(uint * output, uint * ipad_state,
 
 	SHA256_ZEROS(A, B, C, D, E, F, G, H);
 
-	A += opad_state[0];
-	B += opad_state[1];
-	C += opad_state[2];
-	D += opad_state[3];
-	E += opad_state[4];
-	F += opad_state[5];
-	G += opad_state[6];
-	H += opad_state[7];
-
-	output[0] = A;
-	output[1] = B;
-	output[2] = C;
-	output[3] = D;
-	output[4] = E;
-	output[5] = F;
-	output[6] = G;
-	output[7] = H;
+	output[0] = A + opad_state[0];
+	output[1] = B + opad_state[1];
+	output[2] = C + opad_state[2];
+	output[3] = D + opad_state[3];
+	output[4] = E + opad_state[4];
+	output[5] = F + opad_state[5];
+	output[6] = G + opad_state[6];
+	output[7] = H + opad_state[7];
 }
 
 __kernel void pbkdf2_sha256_loop(__global state_t *state,

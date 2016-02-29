@@ -61,7 +61,7 @@ static struct custom_salt {
 	unsigned int rounds;
 	unsigned int use_utf8;
 	//unsigned int outlen; /* Not used yet */
-	unsigned char salt[PBKDF2_MDx_MAX_SALT_SIZE];
+	unsigned char salt[PBKDF2_32_MAX_SALT_SIZE];
 } *cur_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];

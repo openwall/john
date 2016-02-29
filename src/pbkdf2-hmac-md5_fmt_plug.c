@@ -55,7 +55,7 @@ john_register_one(&fmt_pbkdf2_hmac_md5);
 static struct custom_salt {
 	unsigned int length;
 	unsigned int rounds;
-	char salt[PBKDF2_MDx_MAX_SALT_SIZE];
+	char salt[PBKDF2_32_MAX_SALT_SIZE];
 } *cur_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
