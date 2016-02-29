@@ -16,7 +16,8 @@
 #define SHA1_MAGIC "$sha1$"
 // max valid salt len in hash is shorter than this (by length of "$sha1$" and length of base10 string of rounds)
 #undef  SALT_LENGTH
-#define SALT_LENGTH                 115
+#define SALT_LENGTH                 64
+#define SALT_BUFFER_LENGTH          115
 
 #undef  CHECKSUM_LENGTH
 #define CHECKSUM_LENGTH             28

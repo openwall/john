@@ -68,7 +68,7 @@ john_register_one(&fmt_cryptsha1);
  *
  * $sha1$ is the prefix used to identify sha1-crypt hashes, following the Modular Crypt Format
  * rounds is the decimal number of rounds to use (40000 in the example).
- * salt is 0-115 characters drawn from [./0-9A-Za-z] (jtNX3nZ2 in the example).
+ * salt is 0-64 characters drawn from [./0-9A-Za-z] (jtNX3nZ2 in the example).
  * checksum is 28 characters drawn from the same set, encoding a 168-bit checksum.
  */
 
@@ -80,7 +80,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 static struct saltstruct {
 	unsigned int length;
 	unsigned int rounds;
-	unsigned char salt[SALT_LENGTH+sizeof(SHA1_MAGIC)+7+1]; // allows up to 9999999 sized rounds with 115 byte salt.
+	unsigned char salt[SALT_BUFFER_LENGTH+sizeof(SHA1_MAGIC)+7+1]; // allows up to 9999999 sized rounds with 64 byte salt.
 } *cur_salt;
 
 static void init(struct fmt_main *self)
