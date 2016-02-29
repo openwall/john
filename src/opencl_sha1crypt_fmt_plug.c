@@ -33,8 +33,6 @@ john_register_one(&fmt_ocl_cryptsha1);
 #define FORMAT_LABEL                "sha1crypt-opencl"
 #define FORMAT_NAME                 "(NetBSD)"
 #define ALGORITHM_NAME              "PBKDF1-SHA1 OpenCL"
-#define BENCHMARK_COMMENT           ""
-#define BENCHMARK_LENGTH            -1001
 
 #define BINARY_ALIGN                4
 #define SALT_SIZE                   sizeof(pbkdf1_salt)
