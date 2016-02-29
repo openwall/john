@@ -24,6 +24,8 @@
 #include "pbkdf2_hmac_md5.h"
 #define PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX 1
 #include "pbkdf2_hmac_sha1.h"
+#define PBKDF2_HMAC_SHA512_ALSO_INCLUDE_CTX 1
+#include "pbkdf2_hmac_sha512.h"
 
 /**************************************
  * Common stuff for pbkdf2-md4 hashes
@@ -614,4 +616,180 @@ void *pbkdf2_hmac_sha256_binary(char *ciphertext) {
 #endif
 	base64_convert(c, e_b64_mime, 43, buf.c, e_b64_raw, sizeof(buf.c), flg_Base64_MIME_PLUS_TO_DOT);
 	return ret;
+}
+
+/**************************************
+ * Common stuff for pbkdf2-sha512 hashes
+ **************************************/
+
+struct fmt_tests pbkdf2_hmac_sha512_common_tests[] = {
+	{"$pbkdf2-hmac-sha512$1000.6b635263736c70346869307a304b5276.80cf814855f2299103a6084366e41d7e14f9894b05ed77fa19881d28f06cde18da9ab44972cd00496843371ce922c70e64f3862b036b59b581fe32fc4408fe49", "magnum"},
+	{"$pbkdf2-hmac-sha512$1000.55636d4344326e537236437677674a46.e7a60f0cf216c40b31cc6fc34d6a0093c978bbb49d6934dbca286b63fe28473bd3683917807173aef122e5a6bc5c7b4178ed6225f414c994df46013754a52177", "Ripper"},
+	/* GRUB hash, GRUB format */
+	{"grub.pbkdf2.sha512.10000.4483972AD2C52E1F590B3E2260795FDA9CA0B07B96FF492814CA9775F08C4B59CD1707F10B269E09B61B1E2D11729BCA8D62B7827B25B093EC58C4C1EAC23137.DF4FCB5DD91340D6D31E33423E4210AD47C7A4DF9FA16F401663BF288C20BF973530866178FE6D134256E4DBEFBD984B652332EED3ACAED834FEA7B73CAE851D", "password"},
+	/* Canonical format */
+	{"$pbkdf2-hmac-sha512$10000.82dbab96e072834d1f725db9aded51e703f1d449e77d01f6be65147a765c997d8865a1f1ab50856aa3b08d25a5602fe538ad0757b8ca2933fe8ca9e7601b3fbf.859d65960e6d05c6858f3d63fa35c6adfc456637b4a0a90f6afa7d8e217ce2d3dfdc56c8deaca217f0864ae1efb4a09b00eb84cf9e4a2723534f34e26a279193", "openwall"},
+//  {"$pbkdf2-hmac-sha512$10000.2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e.cd9f205b20c3cc9699b1304d02cfa4dd2f69adda583402e99d1102911b14519653f4d2d09d0c8576d745ec9fa14888e0b3f32b254bb4d80aad2bd8b0c433e56d", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
+	/* max length password (and longer salt) made by pass_gen.pl */
+	/*110*/
+	{"$pbkdf2-hmac-sha512$10000.78783334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334.33cfd654a173d39fcae804ba07744d276d184ca85f1e422a623aa7eec66b6bc372074551f9ded2bdff225a9afc22f4f0565d32fab2a0a639f81dddd8f347523e","12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"},
+	/* 80 */
+	{"$pbkdf2-hmac-sha512$10000.78783334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334.302c2f7f2a6366f4cc854aca7c74be3b5b7c2110c05d3a0700e51740b4fbb929a233e9fad8e36c6b7f8d80a3ede00dbef057a95ffef96a998f234d44c84608fd","12345678901234567890123456789012345678901234567890123456789012345678901234567890"},
+	/* 107 salt, 110 pw */
+	{"$pbkdf2-hmac-sha512$10000.7878333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637.8e3b24e8dd572201c5294edb2605ce14acbd9645f616bb9b3be8e558d2ec2018fbb52df026fef71854cf0277e2a5adb3162e93c9e897e21368e5091f3a581598","12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"},
+	/* OS X 10.8 Mountain Lion hashes, "dave" format */
+	{"$ml$23923$c3fa2e153466f7619286024fe7d812d0a8ae836295f84b9133ccc65456519fc3$ccb903ee691ade6d5dee9b3c6931ebed6ddbb1348f1b26c21add8ba0d45f27e61e97c0b80d9a18020944bb78f1ebda6fdd79c5cf08a12c80522caf987c287b6d", "openwall"},
+	{"$ml$37174$ef768765ba15907760b71789fe62436e3584dfadbbf1eb8bf98673b60ff4e12b$294d42f6e0c3a93d598340bfb256efd630b53f32173c2b0d278eafab3753c10ec57b7d66e0fa79be3b80b3693e515cdd06e9e9d26d665b830159dcae152ad156", "m\xC3\xBCller"},
+	{"$ml$24213$db9168b655339be3ff8936d2cf3cb573bdf7d40afd9a17fca439a0fae1375960$471a868524d66d995c6a8b7a0d27bbbc1af0c203f1ac31e7ceb2fde92f94997b887b38131ac2b543d285674dce639560997136c9af91916a2865ba960762196f", "applecrap"},
+	{"$ml$37313$189dce2ede21e297a8884d0a33e4431107e3e40866f3c493e5f9506c2bd2fe44$948010870e110a6d185494799552d8cf30b0203c6706ab06e6270bf0ac17d496d820c5a75c12caf9070051f34acd2a2911bb38b202eebd4413e571e4fbff883e75f35c36c88a2b42a4fb521a97953438c72b2182fd9c5bba902395766e703b52b9aaa3895770d3cebffbee05076d9110ebb9f0342692a238174655b1acdce1c0", "crackable4us"},
+//	/* max length password (and longer salt) made by pass_gen.pl */
+//  {"$pbkdf2-hmac-sha512$56789.3132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738.c4ac265e1b5d30694d04454e88f3f363a401aa82c7936d08d6bfc0751bc3e395b38422116665feecade927e7fa339d60022796f1354b064a4dc3c5304adf102a","12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
+	{NULL}
+};
+
+int pbkdf2_hmac_sha512_valid(char *ciphertext, struct fmt_main *self) {
+	char *ptr, *ctcopy, *keeptr;
+	size_t len;
+
+	if (strncmp(ciphertext, PBKDF2_SHA512_FORMAT_TAG, PBKDF2_SHA512_TAG_LEN))
+		return 0;
+	if (strlen(ciphertext) > PBKDF2_SHA512_MAX_CIPHERTEXT_LENGTH)
+		return 0;
+	ciphertext += PBKDF2_SHA512_TAG_LEN;
+	if (!(ctcopy = strdup(ciphertext)))
+		return 0;
+	keeptr = ctcopy;
+	if (!(ptr = strtokm(ctcopy, ".")))
+		goto error;
+	if (!isdecu(ptr))
+		goto error;
+	if (!(ptr = strtokm(NULL, ".")))
+		goto error;
+	len = strlen(ptr); // salt length
+	if (len > 2 * PBKDF2_64_MAX_SALT_SIZE || len & 1)
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtokm(NULL, ".")))
+		goto error;
+	len = strlen(ptr); // binary length
+	if (len < PBKDF2_SHA512_BINARY_SIZE || len > PBKDF2_SHA512_MAX_BINARY_SIZE || len & 1)
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	ptr = strtokm(NULL, ".");
+	if (ptr)
+		goto error;
+	MEM_FREE(keeptr);
+	return 1;
+error:
+	MEM_FREE(keeptr);
+	return 0;
+}
+
+#define FORMAT_TAG2             "$ml$"
+#define FORMAT_TAG3             "grub.pbkdf2.sha512."
+
+char *pbkdf2_hmac_sha512_prepare(char *split_fields[10], struct fmt_main *self) {
+	static char out[PBKDF2_SHA512_MAX_CIPHERTEXT_LENGTH + 1];
+	int i;
+
+	if (!*split_fields[1])
+		return split_fields[1];
+
+	/* Unify format */
+	if (!strncmp(split_fields[1], PBKDF2_SHA512_FORMAT_TAG, PBKDF2_SHA512_TAG_LEN))
+		i = PBKDF2_SHA512_TAG_LEN;
+	else if (!strncmp(split_fields[1], FORMAT_TAG2, sizeof(FORMAT_TAG2)-1))
+		i = sizeof(FORMAT_TAG2) - 1;
+	else if (!strncmp(split_fields[1], FORMAT_TAG3, sizeof(FORMAT_TAG3)-1))
+		i = sizeof(FORMAT_TAG3) - 1;
+	else
+		return split_fields[1];
+
+	strcpy(out, PBKDF2_SHA512_FORMAT_TAG);
+	strnzcpy(&out[PBKDF2_SHA512_TAG_LEN], &split_fields[1][i], sizeof(out)-PBKDF2_SHA512_TAG_LEN-1);
+
+	if (!strncmp(split_fields[1], FORMAT_TAG2, sizeof(FORMAT_TAG2) - 1))
+		for (i = PBKDF2_SHA512_TAG_LEN+1; out[i]; i++)
+			if (out[i] == '$')
+				out[i] = '.';
+
+	if (pbkdf2_hmac_sha512_valid(out, self))
+		return out;
+	else
+		return split_fields[1];
+}
+
+char *pbkdf2_hmac_sha512_split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[PBKDF2_SHA512_MAX_CIPHERTEXT_LENGTH + 1];
+	char *cp;
+
+	strnzcpy(out, ciphertext, sizeof(out));
+	strlwr(out);
+	if (*out == '$') {
+		cp = strchr(&out[1], '$');
+		if (cp) {
+			++cp;
+			cp = strchr(cp, '$');
+			while (cp) {
+				*cp = '.';
+			}
+		}
+	}
+	return out;
+}
+
+void *pbkdf2_hmac_sha512_binary(char *ciphertext) {
+	static union {
+		unsigned char c[PBKDF2_SHA512_BINARY_SIZE];
+		uint64_t dummy;
+	} buf;
+	unsigned char *out = buf.c;
+	char *p;
+	int i;
+
+	p = strrchr(ciphertext, '.') + 1;
+	for (i = 0; i < PBKDF2_SHA512_BINARY_SIZE && *p; i++) {
+		out[i] =
+			(atoi16[ARCH_INDEX(*p)] << 4) |
+			atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	return out;
+}
+
+int pbkdf2_hmac_sha512_cmp_exact(char *key, char *source, unsigned char *salt, int length, int rounds)
+{
+	int i = 0, len, result;
+	char *p;
+	char delim;
+	unsigned char *binary, *crypt;
+
+	delim = strchr(source, '.') ? '.' : '$';
+	p = strrchr(source, delim) + 1;
+	len = strlen(p) / 2;
+
+	if (len == PBKDF2_SHA512_BINARY_SIZE) return 1;
+
+	binary = mem_alloc(len);
+	crypt = mem_alloc(len);
+
+	while (*p) {
+		binary[i++] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	pbkdf2_sha512((const unsigned char *)key, strlen(key), salt, length, rounds, crypt, len, 0);
+	result = !memcmp(binary, crypt, len);
+	if (!result) {
+		fprintf(stderr, "\npbkdf2-hmac-sha512: Warning: Partial match for '%s'   salt_len=%d rounds=%d bin_len=%d.\n"
+		        "This is a bug or a malformed input line of:\n%s\n",
+		        key, length, rounds, len, source);
+		dump_stuff_msg("crypt results", crypt, len);
+		dump_stuff_msg("salt hex     ", salt, length);
+	}
+	MEM_FREE(binary);
+	MEM_FREE(crypt);
+	return result;
 }
