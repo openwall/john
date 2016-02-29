@@ -5,6 +5,10 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
+ * increased salt_len from 52 (which was a bug), to 115.  salts [52-115] bytes
+ * require 2 md4 limbs to handle.  Salts [0-51] bytes in length are handled by
+ * 1 md4 limb.  (Feb. 28/16, JimF)
+ *
  * This is a generic pbkdf2-hmac-sha1 for use by several formats.
  *
  * Build-time (at run-time for host code) defines:
@@ -69,14 +73,39 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 
 	for (i = 0; i < 15; i++)
 		W[i] = 0;
+	if (saltlen < 52) {
+		// only needs 1 limb
+		for (i = 0; i < saltlen; i++)
+			PUTCHAR_BE(W, i, salt[i]);
+		PUTCHAR_BE(W, saltlen + 3, add);
+		PUTCHAR_BE(W, saltlen + 4, 0x80);
+		W[15] = (64 + saltlen + 4) << 3;
+		sha1_block(W, output);
+	} else {
+		// handles 2 limbs of salt and loop-count (up to 115 byte salt)
+		uint j;
+		W[15] = 0;	// first buffer will NOT get length, so zero it out also.
+		for (i = 0; i < saltlen && i < 64; i++)
+			PUTCHAR_BE(W, i, salt[i]);
+		// i MUST be preserved.  It if our count of # of salt bytes consumed.
+		if (saltlen < 61)
+			PUTCHAR_BE(W, saltlen + 3, add);
+		if (saltlen < 60)
+			PUTCHAR_BE(W, saltlen + 4, 0x80);
+		sha1_block(W, output);
 
-	for (i = 0; i < saltlen; i++)
-		PUTCHAR_BE(W, i, salt[i]);
-	PUTCHAR_BE(W, saltlen + 3, add);
-	PUTCHAR_BE(W, saltlen + 4, 0x80);
-	W[15] = (64 + saltlen + 4) << 3;
-	sha1_block(W, output);
-
+		// now build and process 2nd limb
+		for (j = 0; j < 15; j++)  // do not fuk with i!
+			W[j] = 0;
+		for (; i < saltlen; i++)
+			PUTCHAR_BE(W, i - 64, salt[i]);
+		if (saltlen >= 61)
+			PUTCHAR_BE(W, saltlen + 3 - 64, add);
+		if (saltlen >= 60)
+			PUTCHAR_BE(W, saltlen + 4 - 64, 0x80);
+		W[15] = (64 + saltlen + 4) << 3;
+		sha1_block(W, output);
+	}
 	for (i = 0; i < 5; i++)
 		W[i] = output[i];
 	W[5] = 0x80000000;
