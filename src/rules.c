@@ -1311,11 +1311,11 @@ accept:
 
 static char* rules_cp_to_utf8(char *in)
 {
-	static char out[PLAINTEXT_BUFFER_SIZE + 1];
+	char out[PLAINTEXT_BUFFER_SIZE + 1];
 
 	if (!(options.flags & FLG_MASK_STACKED) &&
 	    options.internal_cp != UTF_8 && options.target_enc == UTF_8)
-		return cp_to_utf8_r(in, out, rules_max_length);
+		strcpy(in, cp_to_utf8_r(in, out, rules_max_length));
 
 	return in;
 }
