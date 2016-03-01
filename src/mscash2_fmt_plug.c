@@ -70,6 +70,7 @@ john_register_one(&fmt_mscash2);
 #include "md4.h"
 #include "simd-intrinsics.h"
 #include "loader.h"
+#include "mscash_common.h"
 
 #if defined (_OPENMP)
 #include <omp.h>
@@ -83,43 +84,13 @@ john_register_one(&fmt_mscash2);
 #define ITERATIONS			10240
 static unsigned iteration_cnt =	(ITERATIONS); /* this will get changed at runtime, salt loading */
 
-/* Note: some tests will be replaced in init() if running UTF-8 */
-static struct fmt_tests tests[] = {
-	{"c0cbe0313a861062e29f92ede58f9b36", "", {"bin"} },           // nullstring password
-	{"$DCC2$10240#test1#607bbe89611e37446e736f7856515bf8", "test1" },
-	{"$DCC2$10240#Joe#e09b38f84ab0be586b730baf61781e30", "qerwt" },
-	{"$DCC2$10240#Joe#6432f517a900b3fc34ffe57f0f346e16", "12345" },
-	{"87136ae0a18b2dafe4a41d555425b2ed", "w00t", {"nineteen_characters"} }, // max salt length
-	{"fc5df74eca97afd7cd5abb0032496223", "w00t", {"eighteencharacters"} },
-	{"cfc6a1e33eb36c3d4f84e4c2606623d2", "longpassword", {"twentyXXX_characters"} },
-	{"99ff74cea552799da8769d30b2684bee", "longpassword", {"twentyoneX_characters"} },
-	{"0a721bdc92f27d7fb23b87a445ec562f", "longpassword", {"twentytwoXX_characters"} },
-	{"$DCC2$10240#TEST2#c6758e5be7fc943d00b97972a8a97620", "test2" },    // salt is lowercased before hashing
-	{"$DCC2$10240#test3#360e51304a2d383ea33467ab0b639cc4", "test3" },
-	{"$DCC2$10240#test4#6f79ee93518306f071c47185998566ae", "test4" },
-
-	// max length user name 128 bytes, and max length password, 125 bytes
-	{"$DCC2$10240#12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678#5ba26de44bd3a369f43a1c72fba76d45", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
-	// Critical length salt
-	{"$DCC2$twentytwoXX_characters#c22936e38aac84474d9a4821b196ef5c", "password"},
-	// Non-standard iterations count
-	{"$DCC2$10000#Twelve_chars#54236c670e185043c8016006c001e982", "magnum"},
-	{NULL}
-};
-
 #define FORMAT_LABEL			"mscash2"
 #define FORMAT_NAME			"MS Cache Hash 2 (DCC2)"
 
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define MAX_SALT_LEN            128
+#define PLAINTEXT_LENGTH        125
 
-#define PLAINTEXT_LENGTH		125
-#define MAX_CIPHERTEXT_LENGTH		(6 + 5 + 128*3 + 2 + 32) // x3 because salt may be UTF-8 in input  // changed to $DCC2$num#salt#hash  WARNING, only handles num of 5 digits!!
-
-#define BINARY_SIZE			16
-#define BINARY_ALIGN			4
-#define SALT_SIZE			(64*4+4)
-#define SALT_ALIGN			2
+#define SALT_SIZE			(MAX_SALT_LEN*2+4)
 
 #define ALGORITHM_NAME			"PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 
@@ -188,21 +159,7 @@ static void init(struct fmt_main *self)
 	// block is written to after this, if there are more that one SHA_PARA, then the start of each para block will be updated inside the inner loop.
 #endif
 
-	if (options.target_enc == UTF_8) {
-		// UTF8 may be up to three bytes per character
-		// but core max. is 125 anyway
-		//self->params.plaintext_length = MIN(125, 3*PLAINTEXT_LENGTH);
-		tests[1].plaintext = "\xc3\xbc";         // German u-umlaut in UTF-8
-		tests[1].ciphertext = "$DCC2$10240#joe#bdb80f2c4656a8b8591bd27d39064a54";
-		tests[2].plaintext = "\xe2\x82\xac\xe2\x82\xac"; // 2 x Euro signs
-		tests[2].ciphertext = "$DCC2$10240#joe#1e1e20f482ff748038e47d801d0d1bda";
-	}
-	else if (options.target_enc == ISO_8859_1) {
-		tests[1].plaintext = "\xfc";
-		tests[1].ciphertext = "$DCC2$10240#joe#bdb80f2c4656a8b8591bd27d39064a54";
-		tests[2].plaintext = "\xfc\xfc";
-		tests[2].ciphertext = "$DCC2$10240#admin#0839e4a07c00f18a8c65cf5b985b9e73";
-	}
+	mscash2_adjust_tests(options.target_enc, PLAINTEXT_LENGTH, MAX_SALT_LEN);
 }
 
 static void done(void)
@@ -217,113 +174,9 @@ static void done(void)
 	MEM_FREE(key);
 }
 
-char * mscash2_split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[MAX_CIPHERTEXT_LENGTH + 1];
-	int i = 0;
-
-	for(; ciphertext[i] && i < MAX_CIPHERTEXT_LENGTH; i++)
-		out[i] = ciphertext[i];
-
-	out[i] = 0;
-
-	// lowercase salt as well as hash, encoding-aware
-	enc_strlwr(&out[6]);
-
-	return out;
-}
-
-int mscash2_valid(char *ciphertext, int max_salt_length, struct fmt_main *self)
-{
-	unsigned int i;
-	unsigned int l;
-	char insalt[3*128+1];
-	UTF16 realsalt[129];
-	int saltlen;
-
-	if (strncmp(ciphertext, "$DCC2$", 6))
-		return 0;
-
-	/* We demand an iteration count (after prepare()) */
-	if (strchr(ciphertext, '#') == strrchr(ciphertext, '#'))
-		return 0;
-
-	l = strlen(ciphertext);
-	if (l <= 32 || l > MAX_CIPHERTEXT_LENGTH)
-		return 0;
-
-	l -= 32;
-	if(ciphertext[l-1]!='#')
-		return 0;
-
-	for (i = l; i < l + 32; i++)
-		if (atoi16[ARCH_INDEX(ciphertext[i])] == 0x7F)
-			return 0;
-
-	// This is tricky: Max supported salt length is 128 characters of Unicode
-	i = 6;
-	while (ciphertext[i] && ciphertext[i] != '#') ++i;
-	++i;
-	saltlen = enc_to_utf16(realsalt, max_salt_length, (UTF8*)strnzcpy(insalt, &ciphertext[i], l-i), l-(i+1));
-	if (saltlen < 0 || saltlen > max_salt_length) {
-		static int warned = 0;
-
-		if (!ldr_in_pot)
-		if (!warned++)
-			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", self->params.label);
-
-		return 0;
-	}
-
-	// iteration count must currently be less than 2^16. It must fit in a UTF16 (salt[1]);
-	sscanf(&ciphertext[6], "%d", &i);
-	if (i >= 1<<16)
-		return 0;
-
-	return 1;
-}
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return mscash2_valid(ciphertext, 128, self);
-}
-
-char *mscash2_prepare(char *split_fields[10], struct fmt_main *self)
-{
-	char *cp;
-	int i;
-
-	if (!strncmp(split_fields[1], "$DCC2$", 6) &&
-	    strchr(split_fields[1], '#') == strrchr(split_fields[1], '#')) {
-		if (valid(split_fields[1], self))
-			return split_fields[1];
-		// see if this is a form $DCC2$salt#hash.  If so, make it $DCC2$10240#salt#hash and retest (insert 10240# into the line).
-		cp = mem_alloc(strlen(split_fields[1]) + 7);
-		sprintf(cp, "$DCC2$10240#%s", &(split_fields[1][6]));
-		if (valid(cp, self)) {
-			char *cipher = str_alloc_copy(cp);
-			MEM_FREE(cp);
-			return cipher;
-		}
-		MEM_FREE(cp);
-		return split_fields[1];
-	}
-	if (!split_fields[0])
-		return split_fields[1];
-	// ONLY check, if this string split_fields[1], is ONLY a 32 byte hex string.
-	for (i = 0; i < 32; i++)
-		if (atoi16[ARCH_INDEX(split_fields[1][i])] == 0x7F)
-			return split_fields[1];
-	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
-	sprintf (cp, "$DCC2$10240#%s#%s", split_fields[0], split_fields[1]);
-	if (valid(cp, self))
-	{
-		char *cipher = str_alloc_copy(cp);
-		MEM_FREE(cp);
-		return cipher;
-	}
-	MEM_FREE(cp);
-	return split_fields[1];
+	return mscash2_common_valid(ciphertext, MAX_SALT_LEN, self);
 }
 
 static void set_salt(void *salt) {
@@ -337,7 +190,7 @@ static void *get_salt(char *_ciphertext)
 {
 	unsigned char *ciphertext = (unsigned char *)_ciphertext;
 	static UTF16 out[130+1];
-	unsigned char input[128*3+1];
+	unsigned char input[MAX_SALT_LEN*3+1];
 	int iterations, utf16len, md4_size;
 
 	memset(out, 0, sizeof(out));
@@ -353,7 +206,7 @@ static void *get_salt(char *_ciphertext)
 	}
 	input[md4_size] = 0;
 
-	utf16len = enc_to_utf16(&out[2], 128, input, md4_size);
+	utf16len = enc_to_utf16(&out[2], MAX_SALT_LEN, input, md4_size);
 	if (utf16len < 0)
 		utf16len = strlen16(&out[2]);
 	out[0] = utf16len << 1;
@@ -766,14 +619,14 @@ struct fmt_main fmt_mscash2 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
-		tests
+		mscash2_common_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		mscash2_prepare,
+		mscash2_common_prepare,
 		valid,
-		mscash2_split,
+		mscash2_common_split,
 		get_binary,
 		get_salt,
 		{ NULL },

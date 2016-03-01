@@ -22,36 +22,16 @@ john_register_one(&fmt_cuda_mscash);
 #include "cuda_mscash.h"
 #include "cuda_common.h"
 #include "unicode.h"
+#include "mscash_common.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"mscash-cuda"
 #define FORMAT_NAME		"MS Cache Hash (DCC)"
 #define ALGORITHM_NAME		"MD4 CUDA (inefficient, development use only)"
-#define MAX_CIPHERTEXT_LENGTH	(2 + 19*3 + 1 + 32)
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
-
-#define BINARY_ALIGN		sizeof(uint32_t)
-#define SALT_ALIGN			sizeof(uint32_t)
 
 static mscash_password *inbuffer;
 static mscash_hash *outbuffer;
 static mscash_salt currentsalt;
-
-static struct fmt_tests tests[] = {
-	{"ab60bdb4493822b175486810ac2abe63", "test2", {"test2"}},
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
-	{"176a4c2bd45ac73687676c2f09045353", "", {"root"}},	// nullstring password
-	{"M$test3#14dd041848e12fc48c0aa7a416a4a00c", "test3"},
-	{"M$test4#b945d24866af4b01a6d89b9d932a153c", "test4"},
-
-	{"64cd29e36a8431a2b111378564a10631", "test1", {"TEST1"}},	// salt is lowercased before hashing
-	{"290efa10307e36a79b3eebf2a6b29455", "okolada", {"nineteen_characters"}},	// max salt length
-	{"b945d24866af4b01a6d89b9d932a153c", "test4", {"test4"}},
-	{NULL}
-};
 
 extern void cuda_mscash(mscash_password *, mscash_hash *, mscash_salt *, int);
 
@@ -60,6 +40,9 @@ static void done(void)
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
 }
+
+static void set_key(char *_key, int index);
+static void *get_salt(char *_ciphertext);
 
 static void init(struct fmt_main *self)
 {
@@ -72,103 +55,14 @@ static void init(struct fmt_main *self)
 	//Initialize CUDA
 	cuda_init();
 
-	if (options.target_enc == UTF_8) {
-		self->params.plaintext_length *= 3;
-		if (self->params.plaintext_length > 125)
-			self->params.plaintext_length = 125;
-	}
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	unsigned int i;
-	unsigned int l;
-	char insalt[3*19+1];
-	UTF16 realsalt[21];
-	int saltlen;
-
-	if (strncmp(ciphertext, "M$", 2))
-		return 0;
-
-	l = strlen(ciphertext);
-	if (l <= 32 || l > MAX_CIPHERTEXT_LENGTH)
-		return 0;
-
-	l -= 32;
-	if(ciphertext[l-1]!='#')
-		return 0;
-
-	for (i = l; i < l + 32; i++)
-		if (atoi16[ARCH_INDEX(ciphertext[i])] == 0x7F)
-			return 0;
-
-	// This is tricky: Max supported salt length is 19 characters of Unicode
-	saltlen = enc_to_utf16(realsalt, 20, (UTF8*)strnzcpy(insalt, &ciphertext[2], l - 2), l - 3);
-	if (saltlen < 0 || saltlen > 19) {
-		static int warned = 0;
-
-		if (!ldr_in_pot)
-		if (!warned++)
-			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
-
-		return 0;
-	}
-
-	return 1;
-}
-
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[MAX_CIPHERTEXT_LENGTH + 1];
-	int i = 0;
-	for (; i < MAX_CIPHERTEXT_LENGTH && ciphertext[i]; i++)
-		out[i] = ciphertext[i];
-	out[i] = 0;
-	// lowercase salt as well as hash, encoding-aware
-	enc_strlwr(&out[2]);
-	return out;
-}
-
-static char *prepare(char *split_fields[10], struct fmt_main *self)
-{
-	char *cp;
-	int i;
-	if (!strncmp(split_fields[1], "M$", 2) || !split_fields[0])
-		return split_fields[1];
-	if (!split_fields[0])
-		return split_fields[1];
-	// ONLY check, if this string split_fields[1], is ONLY a 32 byte hex string.
-	for (i = 0; i < 32; i++)
-		if (atoi16[ARCH_INDEX(split_fields[1][i])] == 0x7F)
-			return split_fields[1];
-	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
-	sprintf (cp, "M$%s#%s", split_fields[0], split_fields[1]);
-	if (valid(cp, self))
-	{
-		char *cipher = str_alloc_copy(cp);
-		MEM_FREE(cp);
-		return cipher;
-	}
-	MEM_FREE(cp);
-	return split_fields[1];
-}
-
-static void *get_binary(char *ciphertext)
-{
-	static uint32_t binary[4];
-	char *hash = strrchr(ciphertext, '#') + 1;
-	int i;
-	for (i = 0; i < 4; i++) {
-		sscanf(hash + (8 * i), "%08x", &binary[i]);
-		binary[i] = SWAP(binary[i]);
-	}
-	return binary;
+	mscash1_adjust_tests(self, options.target_enc, PLAINTEXT_LENGTH,
+	                     set_key, set_key, get_salt, get_salt);
 }
 
 static void *get_salt(char *ciphertext)
 {
 	static mscash_salt salt;
-	UTF8 insalt[SALT_LENGTH + 1];
+	UTF8 insalt[MSCASH1_MAX_SALT_LENGTH + 1];
 	char *pos = ciphertext + strlen(mscash_prefix);
 	char *end = strrchr(ciphertext, '#');
 	int length = 0;
@@ -178,7 +72,7 @@ static void *get_salt(char *ciphertext)
 		insalt[length++] = *pos++;
 	insalt[length] = 0;
 
-	enc_to_utf16(salt.salt, SALT_LENGTH, insalt, length);
+	enc_to_utf16(salt.salt, MSCASH1_MAX_SALT_LENGTH, insalt, length);
 	salt.length = length;
 
 	return &salt;
@@ -298,15 +192,15 @@ struct fmt_main fmt_cuda_mscash = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
-		tests
+		mscash1_common_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
-		valid,
-		split,
-		get_binary,
+		mscash1_common_prepare,
+		mscash1_common_valid,
+		mscash1_common_split,
+		mscash_common_binary,
 		get_salt,
 		{ NULL },
 		fmt_default_source,

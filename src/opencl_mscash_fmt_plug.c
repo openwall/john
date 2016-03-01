@@ -30,6 +30,7 @@ john_register_one(&FMT_STRUCT);
 #include "unicode.h"
 #include "mask_ext.h"
 #include "bt_interface.h"
+#include "mscash_common.h"
 
 #define PLAINTEXT_LENGTH    27 /* Max. is 55 with current kernel */
 #define UTF8_MAX_LENGTH     (3 * PLAINTEXT_LENGTH)
@@ -38,15 +39,7 @@ john_register_one(&FMT_STRUCT);
 #define FORMAT_LABEL        "mscash-opencl"
 #define FORMAT_NAME         "M$ Cache Hash"
 #define ALGORITHM_NAME      "MD4 OpenCL"
-#define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    0
-#define CIPHERTEXT_LENGTH   (2 + 19*3 + 1 + 32)
-#define DIGEST_SIZE         16
-#define BINARY_SIZE         16
-#define BINARY_ALIGN        sizeof(unsigned int)
-#define SALT_LENGTH         19
 #define SALT_SIZE           (12 * sizeof(unsigned int))
-#define SALT_ALIGN          sizeof(unsigned int)
 
 static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_int_key_loc;
 static cl_mem buffer_keys, buffer_idx, buffer_int_keys, buffer_int_key_loc;
@@ -72,9 +65,6 @@ static char mscash_prefix[] = "M$";
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
-#define SWAP(n) \
-    (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
-
 #define STEP                    0
 #define SEED                    1024
 
@@ -91,23 +81,6 @@ static size_t get_task_max_work_group_size()
 {
 	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
-
-/* Note: some tests will be replaced in init() if running UTF-8 */
-static struct fmt_tests tests[] = {
-	{"ac562fcf730114f3cf489b33b98cdc6c", "password", {"barney"} },
-	{"176a4c2bd45ac73687676c2f09045353", "", {"root"} }, // nullstring password
-	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2" },
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
-	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
-	{"M$test3#14dd041848e12fc48c0aa7a416a4a00c", "test3" },
-	{"M$test4#b945d24866af4b01a6d89b9d932a153c", "test4" },
-	{"64cd29e36a8431a2b111378564a10631", "test1", {"TEST1"} },    // salt is lowercased before hashing
-	{"290efa10307e36a79b3eebf2a6b29455", "okolada", {"nineteen_characters"} }, // max salt length
-	{"ab60bdb4493822b175486810ac2abe63", "test2", {"test2"} },
-	{"b945d24866af4b01a6d89b9d932a153c", "test4", {"test4"} },
-	{NULL}
-};
 
 struct fmt_main FMT_STRUCT;
 
@@ -357,6 +330,9 @@ static void init_kernel(void)
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 }
 
+static void set_key(char *_key, int index);
+static void *salt(char *_ciphertext);
+
 static void init(struct fmt_main *_self)
 {
 	self = _self;
@@ -365,103 +341,8 @@ static void init(struct fmt_main *_self)
 	opencl_prepare_dev(gpu_id);
 	mask_int_cand_target = opencl_speed_index(gpu_id) / 300;
 
-	if (options.target_enc == UTF_8) {
-		self->params.plaintext_length = MIN(125, UTF8_MAX_LENGTH);
-		tests[1].ciphertext = "M$\xC3\xBC#48f84e6f73d6d5305f6558a33fa2c9bb";
-		tests[1].plaintext = "\xC3\xBC";         // German u-umlaut in UTF-8
-		tests[2].ciphertext = "M$user#9121790702dda0fa5d353014c334c2ce";
-		tests[2].plaintext = "\xe2\x82\xac\xe2\x82\xac"; // 2 x Euro signs
-	} else if (options.target_enc == ASCII || options.target_enc == ISO_8859_1) {
-		tests[1].ciphertext = "M$\xFC#48f84e6f73d6d5305f6558a33fa2c9bb";
-		tests[1].plaintext = "\xFC";         // German u-umlaut in UTF-8
-		tests[2].ciphertext = "M$\xFC\xFC#593246a8335cf0261799bda2a2a9c623";
-		tests[2].plaintext = "\xFC\xFC"; // 2 x Euro signs
-	}
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	unsigned int i;
-	unsigned int l;
-	char insalt[3*19+1];
-	UTF16 realsalt[21];
-	int saltlen;
-
-	if (strncmp(ciphertext, "M$", 2))
-		return 0;
-
-	l = strlen(ciphertext);
-	if (l <= 32 || l > CIPHERTEXT_LENGTH)
-		return 0;
-
-	l -= 32;
-	if (ciphertext[l-1]!='#')
-		return 0;
-
-	for (i = l; i < l + 32; i++)
-		if (atoi16[ARCH_INDEX(ciphertext[i])] == 0x7F)
-			return 0;
-
-	// This is tricky: Max supported salt length is 19 characters of Unicode
-	saltlen = enc_to_utf16(realsalt, 20, (UTF8*)strnzcpy(insalt, &ciphertext[2], l - 2), l - 3);
-	if (saltlen < 0 || saltlen > 19) {
-		static int warned = 0;
-
-		if (!ldr_in_pot)
-		if (!warned++)
-			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
-
-		return 0;
-	}
-
-	return 1;
-}
-
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[CIPHERTEXT_LENGTH + 1];
-	int i = 0;
-	for (; i < CIPHERTEXT_LENGTH && ciphertext[i]; i++)
-		out[i] = ciphertext[i];
-	out[i] = 0;
-	// lowercase salt as well as hash, encoding-aware
-	enc_strlwr(&out[6]);
-	return out;
-}
-
-static char *prepare(char *split_fields[10], struct fmt_main *self)
-{
-	char *cp;
-	int i;
-	if (!strncmp(split_fields[1], "M$", 2) || !split_fields[0])
-		return split_fields[1];
-	if (!split_fields[0])
-		return split_fields[1];
-	for (i = 0; i < 32; i++)
-		if (atoi16[ARCH_INDEX(split_fields[1][i])] == 0x7F)
-			return split_fields[1];
-	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
-	sprintf (cp, "M$%s#%s", split_fields[0], split_fields[1]);
-	if (valid(cp, self))
-	{
-		char *cipher = str_alloc_copy(cp);
-		MEM_FREE(cp);
-		return cipher;
-	}
-	MEM_FREE(cp);
-	return split_fields[1];
-}
-
-static void *binary(char *ciphertext)
-{
-	static unsigned int binary[4];
-	char *hash = strrchr(ciphertext, '#') + 1;
-	int i;
-	for (i = 0; i < 4; i++) {
-		sscanf(hash + (8 * i), "%08x", &binary[i]);
-		binary[i] = SWAP(binary[i]);
-	}
-	return binary;
+	mscash1_adjust_tests(self, options.target_enc, PLAINTEXT_LENGTH,
+	                     set_key, set_key, salt, salt);
 }
 
 static void *salt(char *ciphertext)
@@ -471,21 +352,21 @@ static void *salt(char *ciphertext)
 		UTF16 s[24];
 	} nt_buffer;
 	UTF16 *out = nt_buffer.s;
-	UTF16 usalt[SALT_LENGTH + 1 + 2];
+	UTF16 usalt[MSCASH1_MAX_SALT_LENGTH + 1 + 2];
 	UTF16 *login = usalt;
-	UTF8 csalt[3 * SALT_LENGTH + 1];
+	UTF8 csalt[3 * MSCASH1_MAX_SALT_LENGTH + 1];
 	int i, length = 0;
 	char *pos = ciphertext + strlen(mscash_prefix);
 
 	memset(nt_buffer.w, 0, sizeof(nt_buffer.w));
 	memset(usalt, 0, sizeof(usalt));
 
-	while (*pos != '#' && length < 3 * SALT_LENGTH)
+	while (*pos != '#' && length < 3 * MSCASH1_MAX_SALT_LENGTH)
 		csalt[length++] = *pos++;
 	csalt[length] = 0;
 
 	enc_strlwr((char*)csalt);
-	enc_to_utf16(usalt, SALT_LENGTH, csalt, length);
+	enc_to_utf16(usalt, MSCASH1_MAX_SALT_LENGTH, csalt, length);
 	length = strlen16(usalt);
 
 	for (i = 0; i < length; i++)
@@ -843,7 +724,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	unsigned int *t = (unsigned int *) binary(source);
+	unsigned int *t = (unsigned int *) mscash_common_binary(source);
 
 	if (t[2] != loaded_hashes[2 * index])
 		return 0;
@@ -922,15 +803,15 @@ struct fmt_main FMT_STRUCT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8 | FMT_REMOVE,
 		{ NULL },
-		tests
+		mscash1_common_tests
 	}, {
 		init,
 		done,
 		reset,
-		prepare,
-		valid,
-		split,
-		binary,
+		mscash1_common_prepare,
+		mscash1_common_valid,
+		mscash1_common_split,
+		mscash_common_binary,
 		salt,
 		{ NULL },
 		fmt_default_source,
