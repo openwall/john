@@ -4,7 +4,11 @@
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted. */
+ * modification, are permitted.
+ *
+ * converted to use 'common' code, Feb29-Mar1 2016, JimF.  Also, added
+ * CPU handling of all 'types' which we do not yet have in GPU.
+ */
 
 #ifdef HAVE_OPENCL
 
@@ -50,6 +54,8 @@ john_register_one(&fmt_opencl_gpg);
 
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+
+extern volatile int bench_running;
 
 typedef struct {
 	uint32_t length;
@@ -239,8 +245,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (gpg_common_cur_salt->spec != SPEC_ITERATED_SALTED ||
 	    gpg_common_cur_salt->hash_algorithm != HASH_SHA1 ||
 	    gpg_common_keySize(gpg_common_cur_salt->cipher_algorithm) > 20) {
-		    // Code taken straight from the CPU version.  Since we do not
-		    // have 'special' GPU support, we simply fall back.
+		// Code taken straight from the CPU version.  Since we do not
+		// have 'special' GPU support, we simply fall back.
+		static int warned_once = 0;
+		if (!warned_once && !bench_running) {
+			fprintf(stderr, "WARNING, there are some input gpg hashes which will be run using CPU code, not GPU code\n");
+			warned_once = 1;
+		}
 #ifdef _OPENMP
 #pragma omp parallel for
 		for (index = 0; index < count; index++)

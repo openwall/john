@@ -18,7 +18,10 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/> */
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ * converted to use 'common' code, Feb29-Mar1 2016, JimF.
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_gpg;

@@ -375,6 +375,8 @@ static void S2KSaltedMD5Generator(char *password, unsigned char *key, int length
 	}
 }
 
+// TODO, port this logic to the GPU version, to allow it to handle keys
+// of length > 20 (i.e. numHashes > 1)
 static void S2KItSaltedSHA1Generator(char *password, unsigned char *key, int length)
 {
 	unsigned char keybuf[KEYBUFFER_LENGTH + 128];
