@@ -20,6 +20,8 @@
 #include "johnswap.h"
 #include "mscash_common.h"
 
+#include "memdbg.h"
+
 /**************************************
  * Common stuff for mscash(1) hashes
  **************************************/

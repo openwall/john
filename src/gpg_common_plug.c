@@ -29,6 +29,7 @@
 #include "memory.h"
 #include "common.h"
 #include "gpg_common.h"
+#include "memdbg.h"
 
 struct gpg_common_custom_salt *gpg_common_cur_salt;
 

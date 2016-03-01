@@ -27,6 +27,8 @@
 #define PBKDF2_HMAC_SHA512_ALSO_INCLUDE_CTX 1
 #include "pbkdf2_hmac_sha512.h"
 
+#include "memdbg.h"
+
 /**************************************
  * Common stuff for pbkdf2-md4 hashes
  **************************************/
@@ -377,7 +379,7 @@ error:
 char *pbkdf2_hmac_sha1_split(char *ciphertext, int index, struct fmt_main *self) {
 	static char out[PBKDF2_SHA1_MAX_CIPHERTEXT_LENGTH + 1];
 	char *cp;
-	
+
 	strnzcpy(out, ciphertext, sizeof(out));
 	strlwr(out);
 	cp = strchr(out, '.');
@@ -451,7 +453,7 @@ void *pbkdf2_hmac_sha1_binary(char *ciphertext) {
 			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	return out;	
+	return out;
 }
 
 int pbkdf2_hmac_sha1_cmp_exact(char *key, char *source, unsigned char *salt, int salt_len, int iterations) {
