@@ -175,7 +175,7 @@ static void S2KSimpleMD5Generator(char *password, unsigned char *key, int length
 }
 
 
-void S2KSaltedSHA1Generator(char *password, unsigned char *key, int length)
+static void S2KSaltedSHA1Generator(char *password, unsigned char *key, int length)
 {
 	SHA_CTX ctx;
 	uint32_t numHashes = (length + SHA_DIGEST_LENGTH - 1) / SHA_DIGEST_LENGTH;
@@ -192,7 +192,7 @@ void S2KSaltedSHA1Generator(char *password, unsigned char *key, int length)
 	}
 }
 
-void S2KSaltedMD5Generator(char *password, unsigned char *key, int length)
+static void S2KSaltedMD5Generator(char *password, unsigned char *key, int length)
 {
 	MD5_CTX ctx;
 	uint32_t numHashes = (length + MD5_DIGEST_LENGTH - 1) / MD5_DIGEST_LENGTH;
@@ -211,44 +211,64 @@ void S2KSaltedMD5Generator(char *password, unsigned char *key, int length)
 
 static void S2KItSaltedSHA1Generator(char *password, unsigned char *key, int length)
 {
-	unsigned char keybuf[KEYBUFFER_LENGTH];
+	unsigned char keybuf[KEYBUFFER_LENGTH + 128];
 	SHA_CTX ctx;
 	int i, j;
 	int32_t tl;
 	int32_t mul;
 	int32_t bs;
-	uint8_t *bptr;
-	int32_t n;
+	uint8_t *bptr, *sptr;
+	int32_t n, n2, n3;
 
 	uint32_t numHashes = (length + SHA_DIGEST_LENGTH - 1) / SHA_DIGEST_LENGTH;
-	memcpy(keybuf, gpg_common_cur_salt->salt, SALT_LENGTH);
 
-	// TODO: This is not very efficient with multiple hashes
 	for (i = 0; i < numHashes; i++) {
 		SHA1_Init(&ctx);
-		for (j = 0; j < i; j++) {
-			SHA1_Update(&ctx, "\0", 1);
-		}
 		// Find multiplicator
 		tl = strlen(password) + SALT_LENGTH;
 		mul = 1;
+		// +i added for leading nulls
 		while (mul < tl && ((64 * mul) % tl)) {
 			++mul;
 		}
+		bptr = keybuf;
+		if (i) {
+			for (j = 0; j < i; j++) {
+				*bptr++ = 0;
+			}
+		}
 		// Try to feed the hash function with 64-byte blocks
 		bs = mul * 64;
-		bptr = keybuf + tl;
 		n = bs / tl;
-		memcpy(keybuf + SALT_LENGTH, password, strlen(password));
-		while (n-- > 1) {
-			memcpy(bptr, keybuf, tl);
+		// compute n2. it is the count we 'really' need to completely fill at lease 1 buffer past normal.
+		n2 = n;
+		n3 = bs;
+		while (n3 < bs+64) {
+			++n2;
+			n3 += tl;
+		}
+		n3 = n2;
+		sptr = bptr;
+		memcpy(bptr, gpg_common_cur_salt->salt, SALT_LENGTH);
+		bptr += SALT_LENGTH;
+		memcpy(bptr, password, strlen(password));
+		bptr += strlen(password);
+		while (n2-- > 1) {
+			memcpy(bptr, sptr, tl);
 			bptr += tl;
 		}
-		n = gpg_common_cur_salt->count / bs;
+		// note first 64 byte block is handled specially, SO we have to remove the
+		// number of bytes of salt-pw contained within that block, from the count
+		// value when computing count/bs and count%bs.  The correct amount of bytes
+		// processed is (64 - i)
+		n = (gpg_common_cur_salt->count - (64-i)) / bs;
+		// first buffer 'may' have appended nulls.  BUT we may actually be processing
+		// LESS than 64 bytes of the count.
+		SHA1_Update(&ctx, keybuf, 64);
 		while (n-- > 0) {
-			SHA1_Update(&ctx, keybuf, bs);
+			SHA1_Update(&ctx, &keybuf[64], bs);
 		}
-		SHA1_Update(&ctx, keybuf, gpg_common_cur_salt->count % bs);
+		SHA1_Update(&ctx, &keybuf[64], (gpg_common_cur_salt->count - (64-i)) % bs);
 		SHA1_Final(key + (i * SHA_DIGEST_LENGTH), &ctx);
 	}
 }
@@ -269,6 +289,8 @@ static void S2KItSaltedSHA256Generator(char *password, unsigned char *key, int l
 	memcpy(keybuf, gpg_common_cur_salt->salt, SALT_LENGTH);
 
 	// TODO: This is not very efficient with multiple hashes
+	// NOTE, with 32 bit hash digest, we should never have numHashes > 1 if
+	// all keys being requested are 32 bytes or less.
 	for (i = 0; i < numHashes; i++) {
 		SHA256_Init(&ctx);
 		for (j = 0; j < i; j++) {
@@ -313,6 +335,8 @@ static void S2KItSaltedSHA512Generator(char *password, unsigned char *key, int l
 	memcpy(keybuf, gpg_common_cur_salt->salt, SALT_LENGTH);
 
 	// TODO: This is not very efficient with multiple hashes
+	// NOTE, with 64 bit hash digest, we should never have numHashes > 1 if
+	// all keys being requested are 32 bytes or less.
 	for (i = 0; i < numHashes; i++) {
 		SHA512_Init(&ctx);
 		for (j = 0; j < i; j++) {
@@ -321,11 +345,11 @@ static void S2KItSaltedSHA512Generator(char *password, unsigned char *key, int l
 		// Find multiplicator
 		tl = strlen(password) + SALT_LENGTH;
 		mul = 1;
-		while (mul < tl && ((64 * mul) % tl)) {
+		while (mul < tl && ((128 * mul) % tl)) {
 			++mul;
 		}
-		// Try to feed the hash function with 64-byte blocks
-		bs = mul * 64;
+		// Try to feed the hash function with 128-byte blocks
+		bs = mul * 128;
 		bptr = keybuf + tl;
 		n = bs / tl;
 		memcpy(keybuf + SALT_LENGTH, password, strlen(password));
@@ -344,44 +368,64 @@ static void S2KItSaltedSHA512Generator(char *password, unsigned char *key, int l
 
 static void S2KItSaltedRIPEMD160Generator(char *password, unsigned char *key, int length)
 {
-	unsigned char keybuf[KEYBUFFER_LENGTH];
+	unsigned char keybuf[KEYBUFFER_LENGTH + 128];
 	RIPEMD160_CTX ctx;
 	int i, j;
 	int32_t tl;
 	int32_t mul;
 	int32_t bs;
-	uint8_t *bptr;
-	int32_t n;
+	uint8_t *bptr, *sptr;
+	int32_t n, n2, n3;
 
 	uint32_t numHashes = (length + RIPEMD160_DIGEST_LENGTH - 1) / RIPEMD160_DIGEST_LENGTH;
-	memcpy(keybuf, gpg_common_cur_salt->salt, SALT_LENGTH);
 
-	// TODO: This is not very efficient with multiple hashes
 	for (i = 0; i < numHashes; i++) {
 		RIPEMD160_Init(&ctx);
-		for (j = 0; j < i; j++) {
-			RIPEMD160_Update(&ctx, "\0", 1);
-		}
 		// Find multiplicator
 		tl = strlen(password) + SALT_LENGTH;
 		mul = 1;
+		// +i added for leading nulls
 		while (mul < tl && ((64 * mul) % tl)) {
 			++mul;
 		}
+		bptr = keybuf;
+		if (i) {
+			for (j = 0; j < i; j++) {
+				*bptr++ = 0;
+			}
+		}
 		// Try to feed the hash function with 64-byte blocks
 		bs = mul * 64;
-		bptr = keybuf + tl;
 		n = bs / tl;
-		memcpy(keybuf + SALT_LENGTH, password, strlen(password));
-		while (n-- > 1) {
-			memcpy(bptr, keybuf, tl);
+		// compute n2. it is the count we 'really' need to completely fill at lease 1 buffer past normal.
+		n2 = n;
+		n3 = bs;
+		while (n3 < bs+64) {
+			++n2;
+			n3 += tl;
+		}
+		n3 = n2;
+		sptr = bptr;
+		memcpy(bptr, gpg_common_cur_salt->salt, SALT_LENGTH);
+		bptr += SALT_LENGTH;
+		memcpy(bptr, password, strlen(password));
+		bptr += strlen(password);
+		while (n2-- > 1) {
+			memcpy(bptr, sptr, tl);
 			bptr += tl;
 		}
-		n = gpg_common_cur_salt->count / bs;
+		// note first 64 byte block is handled specially, SO we have to remove the
+		// number of bytes of salt-pw contained within that block, from the count
+		// value when computing count/bs and count%bs.  The correct amount of bytes
+		// processed is (64 - i)
+		n = (gpg_common_cur_salt->count - (64-i)) / bs;
+		// first buffer 'may' have appended nulls.  BUT we may actually be processing
+		// LESS than 64 bytes of the count.
+		RIPEMD160_Update(&ctx, keybuf, 64);
 		while (n-- > 0) {
-			RIPEMD160_Update(&ctx, keybuf, bs);
+			RIPEMD160_Update(&ctx, &keybuf[64], bs);
 		}
-		RIPEMD160_Update(&ctx, keybuf, gpg_common_cur_salt->count % bs);
+		RIPEMD160_Update(&ctx, &keybuf[64], (gpg_common_cur_salt->count - (64-i)) % bs);
 		RIPEMD160_Final(key + (i * RIPEMD160_DIGEST_LENGTH), &ctx);
 	}
 }
