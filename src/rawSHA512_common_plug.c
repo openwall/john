@@ -178,7 +178,7 @@ void * sha512_common_binary(char *ciphertext)
 	char *p;
 	int i;
 
-	if (!out) out = mem_calloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
+	if (!out) out = mem_calloc_tiny(DIGEST_SIZE, BINARY_ALIGN);
 
 	p = ciphertext + TAG_LENGTH;
 	for (i = 0; i < DIGEST_SIZE; i++) {
