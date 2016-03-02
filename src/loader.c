@@ -658,6 +658,10 @@ find_format:
 			if (alt->params.flags & FMT_WARNED)
 				continue;
 #ifdef HAVE_CRYPT
+#if 1 /* Jumbo has "all" crypt(3) formats implemented */
+			if (alt == &fmt_crypt)
+				continue;
+#else
 			if (alt == &fmt_crypt &&
 #ifdef __sun
 			    strncmp(*ciphertext, "$md5$", 5) &&
@@ -666,6 +670,7 @@ find_format:
 			    strncmp(*ciphertext, "$5$", 3) &&
 			    strncmp(*ciphertext, "$6$", 3))
 				continue;
+#endif
 #endif
 			prepared = alt->methods.prepare(fields, alt);
 			if (alt->methods.valid(prepared, alt)) {
@@ -699,6 +704,10 @@ find_format:
  * those that are only supported in that way.  Avoid the probe in other cases
  * because it may be slow and undesirable (false detection is possible).
  */
+#if 1 /* Jumbo has "all" crypt(3) formats implemented */
+		if (alt == &fmt_crypt && fmt_list != &fmt_crypt)
+			continue;
+#else
 		if (alt == &fmt_crypt &&
 		    fmt_list != &fmt_crypt /* not forced */ &&
 #ifdef __sun
@@ -708,6 +717,7 @@ find_format:
 		    strncmp(*ciphertext, "$5$", 3) &&
 		    strncmp(*ciphertext, "$6$", 3))
 			continue;
+#endif
 #endif
 
 		prepared = alt->methods.prepare(fields, alt);
