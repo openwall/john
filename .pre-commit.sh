@@ -37,4 +37,5 @@ echo "$SCRIPT_LISTING" | cut -b 4 | grep -v -q x && \
 	echo 'COMMIT REJECTED Found script files WITHOUT execute bit set:' && echo "$SCRIPT_LISTING" | grep ^-..- && exit 1
 fi
 
-return 0
+exit 0
+
