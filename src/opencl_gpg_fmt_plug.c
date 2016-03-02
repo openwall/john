@@ -63,12 +63,13 @@ typedef struct {
 } gpg_password;
 
 typedef struct {
-	uint8_t v[16];
+	uint8_t v[32];
 } gpg_hash;
 
 typedef struct {
 	uint32_t length;
 	uint32_t count;
+	uint32_t key_len;
 	uint8_t salt[SALT_LENGTH];
 } gpg_salt;
 
@@ -195,6 +196,7 @@ static void set_salt(void *salt)
 	currentsalt.length = SALT_LENGTH;
 	memcpy((char*)currentsalt.salt, gpg_common_cur_salt->salt, currentsalt.length);
 	currentsalt.count = gpg_common_cur_salt->count;
+	currentsalt.key_len = gpg_common_keySize(gpg_common_cur_salt->cipher_algorithm);
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
 		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
@@ -243,13 +245,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// Ok, if a format we do NOT handle, then use CPU code.
 	// Right now we ONLY handle 'simple' SHA1 spec-iterated-salt in GPU
 	if (gpg_common_cur_salt->spec != SPEC_ITERATED_SALTED ||
-	    gpg_common_cur_salt->hash_algorithm != HASH_SHA1 ||
-	    gpg_common_keySize(gpg_common_cur_salt->cipher_algorithm) > 20) {
+	    gpg_common_cur_salt->hash_algorithm != HASH_SHA1/* ||
+	    gpg_common_keySize(gpg_common_cur_salt->cipher_algorithm) > 20*/
+		) {
 		// Code taken straight from the CPU version.  Since we do not
 		// have 'special' GPU support, we simply fall back.
 		static int warned_once = 0;
+		int ks = gpg_common_keySize(gpg_common_cur_salt->cipher_algorithm);
+
 		if (!warned_once && !bench_running) {
-			fprintf(stderr, "WARNING, there are some input gpg hashes which will be run using CPU code, not GPU code\n");
+			fprintf(stderr, "[-] WARNING there are some input gpg hashes which"
+			                " will be run using CPU code, not GPU code\n");
 			warned_once = 1;
 		}
 #ifdef _OPENMP
@@ -257,11 +263,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (index = 0; index < count; index++)
 #endif
 		{
-			// allocate string2key buffer
 			int res;
 			char pass[128];
-			int ks = gpg_common_keySize(gpg_common_cur_salt->cipher_algorithm);
-			unsigned char keydata[64 * ((32 + 64 - 1) / 64)];
+			unsigned char keydata[64];
 
 			memcpy(pass, inbuffer[index].v, inbuffer[index].length);
 			pass[inbuffer[index].length] = '\0';

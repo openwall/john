@@ -122,6 +122,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
+	int ks = gpg_common_keySize(gpg_common_cur_salt->cipher_algorithm);
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
@@ -133,11 +134,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		// allocate string2key buffer
 		int res;
-		int ks = gpg_common_keySize(gpg_common_cur_salt->cipher_algorithm);
-		//int ds = digestSize(gpg_common_cur_salt->hash_algorithm);
-		unsigned char keydata[64 * ((32 + 64 - 1) / 64)];
+		unsigned char keydata[64];
 
 		gpg_common_cur_salt->s2kfun(saved_key[index], keydata, ks);
 		res = gpg_common_check(keydata, ks);

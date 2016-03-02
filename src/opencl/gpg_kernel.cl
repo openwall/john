@@ -21,23 +21,28 @@
 #error SALT_LENGTH must be defined
 #endif
 
+#ifndef SHA_DIGEST_LENGTH
+#define SHA_DIGEST_LENGTH 20
+#endif
+
 #ifndef _memcpy
 #define _memcpy	memcpy_macro
 #endif
 
 typedef struct {
-        uint length;
-        uchar v[PLAINTEXT_LENGTH];
+	uint length;
+	uchar v[PLAINTEXT_LENGTH];
 } gpg_password;
 
 typedef struct {
-	uchar v[16];
+	uchar v[32];
 } gpg_hash;
 
 typedef struct {
-        uint length;
+	uint length;
 	uint count;
-        uchar salt[SALT_LENGTH];
+	uint key_len;
+	uchar salt[SALT_LENGTH];
 } gpg_salt;
 
 // Slower on CPU
@@ -50,65 +55,100 @@ typedef struct {
 inline void S2KItSaltedSHA1Generator(__global const uchar *password,
                                      uint password_length,
                                      __global const uchar *salt,
-                                     uint count,
-                                     __global uchar *key)
+                                     uint _count,
+                                     __global uchar *key,
+                                     uint key_len)
 {
 	SHA_CTX ctx;
 	const uint tl = password_length + SALT_LENGTH;
-	uint n;
-	uint bs;
+	uint i, j=0, n, count;
+
 #ifdef LEAN
-	uchar keybuf[128 + PLAINTEXT_LENGTH + SALT_LENGTH];
+	uchar keybuf[128 + 64+1 + PLAINTEXT_LENGTH + SALT_LENGTH];
 #else
 	uchar keybuf[64 * (PLAINTEXT_LENGTH + SALT_LENGTH)];
-	uchar *bptr;
-	uint mul;
+	uint bs;
 #endif
-	uchar *lkey = keybuf;	//uchar lkey[20];
 
-	_memcpy(keybuf, salt, SALT_LENGTH);
-	_memcpy(keybuf + SALT_LENGTH, password, password_length);
-
-	SHA1_Init(&ctx);
-
+	for (i = 0; ; ++i) {
+		count = _count;
+		SHA1_Init(&ctx);
 #ifdef LEAN
-	bs = tl;
-	while (bs < 128) {
-		_memcpy(keybuf + bs, keybuf, tl);
-		bs += tl;
-	}
+		for(j=0;j<i;++j)
+			keybuf[j] = 0;
+		n = j;
+		_memcpy(keybuf + j, salt, SALT_LENGTH);
+		_memcpy(keybuf + j + SALT_LENGTH, password, password_length);
+		j += tl;
 
-	bs = 0;
-	while (count > 64) {
-		SHA1_Update(&ctx, &keybuf[bs], 64);
-		count -= 64;
-		bs = (bs + 64) % tl;
-	}
-	SHA1_Update(&ctx, &keybuf[bs], count);
+		while (j < 128 + 64+1) {
+			_memcpy(keybuf + j, keybuf + n, tl);
+			j += tl;
+		}
+
+		SHA1_Update(&ctx, keybuf, 64);
+		count -= (64-i);
+		j = 64;
+		while (count >= 64) {
+			SHA1_Update(&ctx, &keybuf[j], 64);
+			count -= 64;
+			j = j % tl + 64;
+		}
+		if (count) SHA1_Update(&ctx, &keybuf[j], count);
 #else
-	// Find multiplicator
-	mul = 1;
-	while (mul < tl && ((64 * mul) % tl)) {
-		++mul;
-	}
-	// Try to feed the hash function with 64-byte blocks
-	bs = mul * 64;
-	bptr = keybuf + tl;
-	n = bs / tl;
-	while (n-- > 1) {
-		_memcpy(bptr, keybuf, tl);
-		bptr += tl;
-	}
-	n = count / bs;
-	while (n-- > 0) {
-		SHA1_Update(&ctx, keybuf, bs);
-	}
-	SHA1_Update(&ctx, keybuf, count % bs);
+		// Find multiplicator
+		n = 1;
+		while (n < tl && ((64 * n) % tl)) {
+			++n;
+		}
+		// this is an optimization (surprisingly). I get about 10%
+		// better on oSSL, and I can run this on my tahiti with this
+		// optimization turned on, without crashing the video driver.
+		// it is still slower than the LEAN code on the tahiti, but
+		// only about 5% slower.  We might be able to find a sweet
+		// spot, AND possibly improve times on the LEAN code, since
+		// it is only processing 1 64 byte block per call.
+#define BIGGER_SMALL_BUFS 1
+#if BIGGER_SMALL_BUFS
+		if (n < 7) {
+			// evenly divisible multiples of each count. We simply want
+			// to cut down on the calls to SHA1_Update, I think.
+			const uint incs[] = {0,8,8,9,8,10,12};
+			n = incs[n];
+		}
 #endif
-	SHA1_Final(lkey, &ctx);
+		bs = n * 64;
+		for (j = 0; j < i; j++) {
+			keybuf[j] = 0;
+		}
+		n = j;
 
-	for(n = 0; n < 16; n++)
-		key[n] = lkey[n];
+		_memcpy(keybuf + j, salt, SALT_LENGTH);
+		_memcpy(keybuf + j + SALT_LENGTH, password, password_length);
+		j += tl;
+		while (j+i <= bs+64) { // bs+64 since we need 1 'pre' block that may be dirty.
+			_memcpy(keybuf + j, keybuf + n, tl);
+			j += tl;
+		}
+		// first buffer 'may' have appended nulls.  So we may actually
+		// be processing LESS than 64 bytes of the count. Thus we have
+		// -i in the count expression.
+		SHA1_Update(&ctx, keybuf, 64);
+		count -= (64-i);
+		while (count > bs) {
+			SHA1_Update(&ctx, keybuf + 64, bs);
+			count -= bs;
+		}
+		if (count) SHA1_Update(&ctx, keybuf + 64, count);
+#endif
+		SHA1_Final(keybuf, &ctx);
+
+		j = i * SHA_DIGEST_LENGTH;
+		for(n = 0; j < key_len && n < SHA_DIGEST_LENGTH; ++j, ++n)
+			key[j] = keybuf[n];
+		if (j == key_len)
+			return;
+	}
 }
 
 __kernel void gpg(__global const gpg_password * inbuffer,
@@ -121,5 +161,6 @@ __kernel void gpg(__global const gpg_password * inbuffer,
 	                         inbuffer[idx].length,
 	                         salt->salt,
 	                         salt->count,
-	                         outbuffer[idx].v);
+	                         outbuffer[idx].v,
+	                         salt->key_len);
 }

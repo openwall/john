@@ -375,69 +375,104 @@ static void S2KSaltedMD5Generator(char *password, unsigned char *key, int length
 	}
 }
 
-// TODO, port this logic to the GPU version, to allow it to handle keys
-// of length > 20 (i.e. numHashes > 1)
-static void S2KItSaltedSHA1Generator(char *password, unsigned char *key, int length)
+//#define LEAN
+
+// Note, using this as 'test-bed' for writing the GPU code.
+// trying to minimize variables, reusing them if possible.
+static void S2KItSaltedSHA1Generator(char *password, unsigned char *key, int key_len)
 {
-	unsigned char keybuf[KEYBUFFER_LENGTH + 128];
+	// vars needed to 'fake' data like we see on GPU
+	unsigned char *salt = gpg_common_cur_salt->salt;
+	uint32_t _count = gpg_common_cur_salt->count;
+
 	SHA_CTX ctx;
-	int i, j;
-	int32_t tl;
-	int32_t mul;
-	int32_t bs;
-	uint8_t *bptr, *sptr;
-	int32_t n, n2, n3;
+	uint32_t password_length = strlen(password);
+	const uint32_t tl = password_length + SALT_LENGTH;
+	uint32_t i, j, n, count;
+#ifdef LEAN
+	uint8_t keybuf[128 + 64+1 + PLAINTEXT_LENGTH + SALT_LENGTH];
+#else
+	unsigned char keybuf[KEYBUFFER_LENGTH + 128];
+	uint32_t bs;
+#endif
 
-	uint32_t numHashes = (length + SHA_DIGEST_LENGTH - 1) / SHA_DIGEST_LENGTH;
-
-	for (i = 0; i < numHashes; i++) {
+	for (i = 0;;++i) {
+		count = _count;
 		SHA1_Init(&ctx);
-		// Find multiplicator
-		tl = strlen(password) + SALT_LENGTH;
-		mul = 1;
-		// +i added for leading nulls
-		while (mul < tl && ((64 * mul) % tl)) {
-			++mul;
+#ifdef LEAN
+		for(j=0;j<i;++j)
+			keybuf[j] = 0;
+		n = j;
+		memcpy(keybuf + j, salt, SALT_LENGTH);
+		memcpy(keybuf + j + SALT_LENGTH, password, password_length);
+		j += tl;
+
+		while (j < 128 + 64+1) {
+			memcpy(keybuf + j, keybuf + n, tl);
+			j += tl;
 		}
-		bptr = keybuf;
+
+		SHA1_Update(&ctx, keybuf, 64);
+		count -= (64-i);
+		j = 64;
+		while (count >= 64) {
+			SHA1_Update(&ctx, &keybuf[j], 64);
+			count -= 64;
+			j = j % tl + 64;
+		}
+		if (count) SHA1_Update(&ctx, &keybuf[j], count);
+#else
+		// Find multiplicator
+		n = 1;
+		while (n < tl && ((64 * n) % tl)) {
+			++n;
+		}
+		// this is an optimization for oSSL builds (NOT for GPU I think)
+		// it does gain us about 10%, more for length 2/4/8/16 passwords
+		// which is case 1
+#define BIGGER_SMALL_BUFS 1
+#if BIGGER_SMALL_BUFS
+		if (n < 7) {
+			// evenly divisible multiples of each count. We simply want
+			// to cut down on the calls to SHA1_Update, I think.
+			//const uint32_t incs[] = {0,16,16,15,16,15,18,14,16,18};
+			const uint32_t incs[] = {0,8,8,9,8,10,12};
+			n = incs[n];
+		}
+#endif
+		bs = n * 64;
+		j = 0;
 		if (i) {
 			for (j = 0; j < i; j++) {
-				*bptr++ = 0;
+				keybuf[j] = 0;
 			}
 		}
-		// Try to feed the hash function with 64-byte blocks
-		bs = mul * 64;
-		n = bs / tl;
-		// compute n2. it is the count we 'really' need to completely fill at lease 1 buffer past normal.
-		n2 = n;
-		n3 = bs;
-		while (n3 < bs+64) {
-			++n2;
-			n3 += tl;
+		n = j;
+
+		memcpy(keybuf + j, salt, SALT_LENGTH);
+		memcpy(keybuf + j + SALT_LENGTH, password, password_length);
+		j += tl;
+		while (j+i <= bs+64) { // bs+64 since we need 1 'pre' block that may be dirty.
+			memcpy(keybuf + j, keybuf + n, tl);
+			j += tl;
 		}
-		n3 = n2;
-		sptr = bptr;
-		memcpy(bptr, gpg_common_cur_salt->salt, SALT_LENGTH);
-		bptr += SALT_LENGTH;
-		memcpy(bptr, password, strlen(password));
-		bptr += strlen(password);
-		while (n2-- > 1) {
-			memcpy(bptr, sptr, tl);
-			bptr += tl;
-		}
-		// note first 64 byte block is handled specially, SO we have to remove the
-		// number of bytes of salt-pw contained within that block, from the count
-		// value when computing count/bs and count%bs.  The correct amount of bytes
-		// processed is (64 - i)
-		n = (gpg_common_cur_salt->count - (64-i)) / bs;
-		// first buffer 'may' have appended nulls.  BUT we may actually be processing
-		// LESS than 64 bytes of the count.
+		// first buffer 'may' have appended nulls.  So we may actually
+		// be processing LESS than 64 bytes of the count. Thus we have
+		// -i in the count expression.
 		SHA1_Update(&ctx, keybuf, 64);
-		while (n-- > 0) {
-			SHA1_Update(&ctx, &keybuf[64], bs);
+		count -= (64-i);
+		while (count > bs) {
+			SHA1_Update(&ctx, keybuf + 64, bs);
+			count -= bs;
 		}
-		SHA1_Update(&ctx, &keybuf[64], (gpg_common_cur_salt->count - (64-i)) % bs);
-		SHA1_Final(key + (i * SHA_DIGEST_LENGTH), &ctx);
+		if (count) SHA1_Update(&ctx, keybuf + 64, count);
+#endif
+		SHA1_Final(keybuf, &ctx);
+		j = i * SHA_DIGEST_LENGTH;
+		for(n = 0; j < key_len && n < SHA_DIGEST_LENGTH; ++j, ++n)
+			key[j] = keybuf[n];
+		if (j == key_len)
+			return;
 	}
 }
 
