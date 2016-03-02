@@ -137,7 +137,7 @@ static void pbkdf2_sha512(const unsigned char *K, int KL, unsigned char *S, int 
 
 #endif
 
-#ifdef SIMD_COEF_64
+#if defined (SIMD_COEF_64) && !defined(OPENCL_FORMAT)
 
 #ifndef __JTR_SHA2___H_
 // we MUST call our sha2.c functions, to know the layout.  Since it is possible that apple's CommonCrypto lib could
