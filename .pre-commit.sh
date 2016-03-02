@@ -65,8 +65,8 @@ if [ "x$TXT_FILES" != "x" ] ; then
                           open(F,"<",$n); seek(F,-1,2); read(F,$c,1);
                           if($c ne "\n") { $r=1; print "Missing final EOL in file $n\n"; } 
                           close(F); exit($r);
-                        }' \
-          || ( echo 'COMMIT REJECTED Found src/text files missing final EOL:' && exit 1 )
+                        }'
+        if [ "x$?" != "x0" ] ; then echo 'COMMIT REJECTED Found src/text files missing final EOL:' && exit 1 ; fi
    else
       # slow but should be portable.
       MISSING_EOF=""
