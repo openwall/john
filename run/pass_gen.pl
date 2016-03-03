@@ -122,7 +122,9 @@ my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singles
 #########################################################
 my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "stdin";
 my $arg_count = 1500, my $argsalt, my $argiv, my $argcontent; my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
-my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode; my $arguser; my $arg_vectors;
+my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode; my $arguser; my $arg_outformat="normal";
+# these are 'converted' from whatever the user typed in for $arg_outformat
+my $bVectors = 0; my $bUserIDs=1; my $bFullNormal=1;
 
 GetOptions(
 	'codepage=s'       => \$arg_codepage,
@@ -141,9 +143,23 @@ GetOptions(
 	'tstall!'          => \$arg_tstall,
 	'genall!'          => \$arg_genall,
 	'nrgenall!'        => \$arg_nrgenall,
-	'vectors!'         => \$arg_vectors,
+	'outformat=s'      => \$arg_outformat,
 	'user=s'           => \$arguser
 	) || usage();
+
+if ($arg_outformat eq substr("vectors", 0, length($arg_outformat))) {
+	$bVectors = 1;
+	$bUserIDs=0;
+	$bFullNormal=0;
+	$arg_nocomment = 1;
+} elsif ($arg_outformat eq substr("raw", 0, length($arg_outformat))) {
+	$bUserIDs=0;
+	$bFullNormal=0;
+	$arg_nocomment = 1;
+}  elsif ($arg_outformat eq substr("user", 0, length($arg_outformat))) {
+	$bFullNormal=0;
+	$arg_nocomment = 1;
+}
 
 sub pretty_print_hash_names {
 	my $s; my $s2; my $i;
@@ -192,8 +208,8 @@ $s
     -tstall       runs a 'simple' test for all known types.
     -genall       generates all hashes with random salts.
     -nrgenall     generates all hashes (non-random, repeatable)
-    -vectors      output in test vector source code format
-
+    -outformat<s> output format. Valid formats are:
+                     'normal' 'vectors' 'raw' 'user'
     -help         shows this help screen.
 UsageHelp
 }
@@ -221,8 +237,6 @@ if (-t STDIN) {
 	if (@ARGV != 1) { print STDERR "When all entered ^D starts the processing.\n\n"; }
 	$arg_nocomment = 1;  # we do not output 'comment' line if writing to stdout.
 }
-
-if ($arg_vectors) { $arg_nocomment = 1; }
 
 ###############################################################################################
 # modifications to character set used.  This is to get pass_gen.pl working correctly
@@ -256,6 +270,7 @@ if ($arg_genall != 0) {
 #### function(s) to build into john valid input lines.
 ###############################################################################################
 ###############################################################################################
+
 if (@ARGV == 1) {
 	# if only one format (how this script SHOULD be used), then we do not slurp the file, but we
 	# read STDIN line by line.  Cuts down on memory usage GREATLY within the running of the script.
@@ -270,13 +285,14 @@ if (@ARGV == 1) {
 		if (length($orig_arg)>8) { $dyn=substr($orig_arg,8); }
 		push(@funcs, $arg = dynamic_compile($dyn));
 	}
+
 	my $have_something = 0;
 	foreach (@funcs) {
 		if ($arg eq lc $_) {
 			$have_something = 1;
 			if (!$arg_nocomment) {
 				print "\n  ** Here are the ";
-				print $arg_vectors ? "test vectors" : "hashes";
+				print $bVectors ? "test vectors" : "hashes";
 				print " for format $orig_arg **\n";
 			}
 			$arg =~ s/-/_/g;
@@ -381,7 +397,7 @@ sub output_hash {
 		print "$_[0]:$_[1]:\n";
 		return;
 	}
-	elsif ($arg_vectors) {
+	elsif ($bVectors) {
 		printf("\t{\"%s\", \"%s\"},\n", $_[0], $_[1]);
 		return;
 	}
@@ -389,8 +405,10 @@ sub output_hash {
 	if ($out_uc_pass) {$p = uc $p; }
 	if ($out_extras == 2)    { $p = "$u:0:".$p;}
 	elsif ($out_extras == 1) { $p = "$u:".$p;}
-	if (length($out_username)) { print "$out_username:"; } else { print "u$u:"; }
-	print "$_[0]:$p:\n"
+	if (length($out_username)) { print "$out_username:"; } elsif ($bUserIDs == 1) { print "u$u:"; }
+	print "$_[0]";
+	if ($bFullNormal == 1) {print ":$p:";}
+	print "\n";
 }
 #############################################################################
 # these 3 functions (the pp_pbkdf2/pp_pbkdf2_hex are the 'exported' functions,
