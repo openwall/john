@@ -3,7 +3,7 @@
  *
  * More information at http://openwall.info/wiki/john/OpenCL-RAWSHA-256
  *
- * Copyright (c) 2012-2015 Claudio André <claudioandre.br at gmail.com>
+ * Copyright (c) 2012-2016 Claudio André <claudioandre.br at gmail.com>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
  *
  * This is free software, and you are welcome to redistribute it
@@ -14,30 +14,70 @@
 #include "opencl_rawsha256.h"
 #include "opencl_mask_extras.h"
 
-///	    *** UNROLL ***
-///AMD: sometimes a bad thing(?).
-#if amd_vliw4(DEVICE_INFO) || amd_vliw5(DEVICE_INFO)
-    #define UNROLL_LEVEL	5
-#elif amd_gcn(DEVICE_INFO)
-    #define UNROLL_LEVEL	5
-#elif (nvidia_sm_2x(DEVICE_INFO) || nvidia_sm_3x(DEVICE_INFO))
-    #define UNROLL_LEVEL	4
-#elif nvidia_sm_5x(DEVICE_INFO)
-    #define UNROLL_LEVEL	4
-#else
-    #define UNROLL_LEVEL	0
+#ifndef UNROLL_LOOP
+    ///	    *** UNROLL ***
+    ///AMD: sometimes a bad thing(?).
+    ///NVIDIA: GTX 570 don't allow full unroll.
+    #if amd_vliw4(DEVICE_INFO) || amd_vliw5(DEVICE_INFO)
+        #define UNROLL_LOOP    133128
+    #elif amd_gcn(DEVICE_INFO)
+        #define UNROLL_LOOP    132098
+    #elif (nvidia_sm_2x(DEVICE_INFO) || nvidia_sm_3x(DEVICE_INFO))
+        #define UNROLL_LOOP    132098
+    #elif nvidia_sm_5x(DEVICE_INFO)
+        #define UNROLL_LOOP    33686536
+    #else
+        #define UNROLL_LOOP    0
+    #endif
+#endif
+
+#if (UNROLL_LOOP & (1 << 25))
+    #define VECTOR_USAGE    1
+#endif
+
+#if gpu_amd(DEVICE_INFO)
+    #define USE_LOCAL       1
 #endif
 
 inline void _memcpy(               uint32_t * dest,
                     __global const uint32_t * src,
                              const uint32_t   len) {
 
-    for (uint32_t i = 0; i < len; i += 4)
+    for (uint i = 0; i < len; i += 4)
         *dest++ = *src++;
+}
+
+inline void any_hash_cracked(
+	const uint32_t iter,                        //which candidates_number is this one
+	volatile __global uint32_t * const hash_id, //information about how recover the cracked password
+	const uint32_t * const hash,                //the hash calculated by this kernel
+	__global const uint32_t * const bitmap) {
+
+    uint32_t bit_mask_x, bit_mask_y, found;
+
+    SPREAD_32(hash[0], hash[1], hash[2], hash[3], BITMAP_SIZE_MINUS1, bit_mask_x, bit_mask_y)
+
+    if (bitmap[bit_mask_x >> 5] & (1U << (bit_mask_x & 31))) {
+
+	if (bitmap[bit_mask_y >> 5] & (1U << (bit_mask_y & 31))) {
+	    //A possible crack have been found.
+	    found = atomic_inc(&hash_id[0]);
+
+	    {
+		//Save (the probably) hashed key metadata.
+		uint32_t base = get_global_id(0);
+
+		hash_id[1 + 3 * found] = base;
+		hash_id[2 + 3 * found] = iter;
+		hash_id[3 + 3 * found] = (uint32_t) hash[0];
+	    }
+	}
+    }
 }
 
 inline void sha256_block(	  const uint32_t * const buffer,
 				  const uint32_t total, uint32_t * const H) {
+
     uint32_t a = H0;
     uint32_t b = H1;
     uint32_t c = H2;
@@ -49,18 +89,26 @@ inline void sha256_block(	  const uint32_t * const buffer,
     uint32_t t;
     uint32_t w[16];	//#define  w   buffer
 
-#if UNROLL_LEVEL > 0
+#ifdef VECTOR_USAGE
+    uint16  w_vector;
+    w_vector = vload16(0, buffer);
+    w_vector = SWAP32_V(w_vector);
+    vstore16(w_vector, 0, w);
+#else
     #pragma unroll
-#endif
-    for (uint32_t i = 0; i < 15; i++)
+    for (uint i = 0U; i < 15U; i++)
         w[i] = SWAP32(buffer[i]);
+#endif
     w[15] = (total * 8U);
 
-    /* Do the job. */
-#if UNROLL_LEVEL > 4
+#if (UNROLL_LOOP & (1 << 1))
+    #pragma unroll 1
+#elif (UNROLL_LOOP & (1 << 2))
+    #pragma unroll 4
+#elif (UNROLL_LOOP & (1 << 3))
     #pragma unroll
 #endif
-    for (uint32_t i = 0U; i < 16U; i++) {
+    for (uint i = 0U; i < 16U; i++) {
 	t = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
 
 	h = g;
@@ -74,14 +122,14 @@ inline void sha256_block(	  const uint32_t * const buffer,
 	a = t;
     }
 
-#if UNROLL_LEVEL > 4
-    #pragma unroll
-#elif UNROLL_LEVEL > 3
+#if (UNROLL_LOOP & (1 << 9))
+    #pragma unroll 1
+#elif (UNROLL_LOOP & (1 << 10))
     #pragma unroll 16
-#elif UNROLL_LEVEL > 2
-    #pragma unroll 8
+#elif (UNROLL_LOOP & (1 << 11))
+    #pragma unroll
 #endif
-    for (uint32_t i = 16U; i < 64U; i++) {
+    for (uint i = 16U; i < 64U; i++) {
 	w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
 	t = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
 
@@ -112,28 +160,123 @@ inline void sha256_block(	  const uint32_t * const buffer,
 - int_key_loc,		//the position of the mask to apply
 - int_keys,		//mask to be applied
 - candidates_number,	//the number of candidates by mask mode
-- num_loaded_hashes,	//number of password hashes transfered
-- loaded_hashes,	//buffer of password hashes transfered
 - hash_id,		//information about how recover the cracked password
+- bitmap,		//bitmap containing all to crack hashes
 ***************** */
 __kernel
+void kernel_plaintext_raw(
+	     __global const uint32_t *       __restrict keys_buffer,
+             __global const uint32_t * const __restrict index,
+	     __global const uint32_t * const __restrict int_key_loc,
+	     __global const uint32_t * const __restrict int_keys,
+		      const uint32_t              candidate_id,
+	     __global       uint32_t * const __restrict computed_total,
+	     __global       uint32_t * const __restrict computed_w) {
+
+    //Compute buffers (on CPU and NVIDIA, better private)
+    uint32_t		w[16];
+    size_t gid = get_global_id(0);
+
+#ifdef USE_LOCAL
+    __local uint32_t	_ltotal[512];
+    #define		total    _ltotal[get_local_id(0)]
+#else
+    uint32_t            _ltotal;
+    #define		total    _ltotal
+#endif
+
+    {
+	//Get the position and length of the target key.
+	uint32_t base = index[gid];
+	total = base & 63;
+
+	//Ajust keys to it start position.
+	keys_buffer += (base >> 6);
+    }
+    //- Differences -------------------------------
+    #define		W_OFFSET    0
+
+    //Clear the buffer.
+    #pragma unroll
+    for (uint i = 0; i < 15; i++)
+        w[i] = 0;
+
+    //Get password.
+    _memcpy((uint32_t *) w, keys_buffer, total);
+    //---------------------------------------------
+
+    //Prepare buffer.
+    CLEAR_BUFFER_32_SINGLE(w, total);
+    APPEND_SINGLE(w, 0x80U, total);
+
+#ifdef GPU_MASK_MODE
+	    //Mask Mode: keys generation/finalization.
+	    MASK_KEYS_GENERATION(candidate_id)
+#endif
+
+    //save computed w[]
+    computed_total[gid] = total;
+
+    #pragma unroll
+    for (uint i = 0; i < 15; i++)
+        computed_w[gid * 16 + i] = w[i];
+}
+#undef		W_OFFSET
+
+__kernel
 void kernel_crypt(
+		      const uint32_t              candidate_id,
+    volatile __global       uint32_t * const __restrict hash_id,
+             __global       uint32_t * const __restrict bitmap,
+	     __global const uint32_t *       __restrict computed_total,
+	     __global const uint32_t *       __restrict computed_w) {
+
+    //Compute buffers (on CPU and NVIDIA, better private)
+    uint32_t		w[16];
+    uint32_t		H[8];
+    size_t gid = get_global_id(0);
+
+#ifdef USE_LOCAL
+    __local uint32_t	_ltotal[512];
+    #define		total    _ltotal[get_local_id(0)]
+#else
+    uint32_t            _ltotal;
+    #define		total    _ltotal
+#endif
+
+    //Get w[].
+    total = computed_total[gid];
+
+    #pragma unroll
+    for (uint i = 0; i < 15; i++)
+        w[i] = computed_w[gid * 16 + i];
+
+    /* Run the collected hash value through sha256. */
+    sha256_block(w, total, H);
+
+    any_hash_cracked(candidate_id, hash_id, H, bitmap);
+}
+
+__kernel
+void kernel_crypt_raw(
 	     __global const uint32_t *       __restrict keys_buffer,
              __global const uint32_t * const __restrict index,
 	     __global const uint32_t * const __restrict int_key_loc,
 	     __global const uint32_t * const __restrict int_keys,
 		      const uint32_t              candidates_number,
-		      const uint32_t              num_loaded_hashes,
-	     __global const uint32_t * const __restrict loaded_hashes,
     volatile __global       uint32_t * const __restrict hash_id,
-    volatile __global       uint32_t * const __restrict bitmap) {
+             __global const uint32_t * const __restrict bitmap) {
 
     //Compute buffers (on CPU and NVIDIA, better private)
     uint32_t		w[16];
     uint32_t		H[8];
+#ifdef USE_LOCAL
     __local uint32_t	_ltotal[512];
     #define		total    _ltotal[get_local_id(0)]
-    #define		W_OFFSET    0
+#else
+    uint32_t            _ltotal;
+    #define		total    _ltotal
+#endif
 
     {
 	//Get position and length of informed key.
@@ -143,42 +286,51 @@ void kernel_crypt(
 	//Ajust keys to it start position.
 	keys_buffer += (base >> 6);
     }
+    //- Differences -------------------------------
+    #define		W_OFFSET    0
+
     //Clear the buffer.
     #pragma unroll
-    for (uint32_t i = 0; i < 15; i++)
+    for (uint i = 0; i < 15; i++)
         w[i] = 0;
 
     //Get password.
-    _memcpy(w, keys_buffer, total);
+    _memcpy((uint32_t *) w, keys_buffer, total);
+    //---------------------------------------------
 
     //Prepare buffer.
     CLEAR_BUFFER_32_SINGLE(w, total);
     APPEND_SINGLE(w, 0x80U, total);
 
-    //Handle the candidates (candidates_number) to be produced.
-    for (uint i = 0; i < candidates_number; i++) {
+    {
+	uint32_t i = 0;
 
-	//Mask Mode: keys generation/finalization.
-	MASK_KEYS_GENERATION_0
+#ifdef GPU_MASK_MODE
+	//Handle the GPU mask mode candidates generation.
+	for (; i < candidates_number; i++) {
+#endif
 
-	/* Run the collected hash value through SHA256. */
-	sha256_block(w, total, H);
+#ifdef GPU_MASK_MODE
+	    //Mask Mode: keys generation/finalization.
+	    MASK_KEYS_GENERATION(i)
+#endif
+	    /* Run the collected hash value through sha256. */
+	    sha256_block(w, total, H);
 
-	compare(i, num_loaded_hashes, loaded_hashes, hash_id, H, bitmap);
+	    any_hash_cracked(i, hash_id, H, bitmap);
+#ifdef GPU_MASK_MODE
+	}
+#endif
     }
 }
+#undef		W_OFFSET
 
 __kernel
 void kernel_prepare(
-		      const uint32_t                    num_loaded_hashes,
-    volatile __global       uint32_t * const __restrict hash_id,
-    volatile __global       uint32_t * const __restrict bitmap) {
+    const    uint32_t                    candidates_number,
+    __global uint32_t * const __restrict hash_id) {
 
     //Clean bitmap and result buffer
-    if (get_global_id(0) == 0) {
+    if (get_global_id(0) == 0)
 	hash_id[0] = 0;
-
-	for (uint32_t i = 0; i < (num_loaded_hashes - 1)/32 + 1; i++)
-	    bitmap[i] = 0;
-    }
 }
