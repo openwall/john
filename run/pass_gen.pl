@@ -26,6 +26,8 @@ use Encode;
 use POSIX;
 use Getopt::Long;
 use MIME::Base64;
+use File::Basename;
+use Term::ReadKey;
 
 #############################################################################
 #
@@ -123,6 +125,7 @@ my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singles
 my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "stdin";
 my $arg_count = 1500, my $argsalt, my $argiv, my $argcontent; my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
 my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode; my $arguser; my $arg_outformat="normal";
+my $arg_help = 0;
 # these are 'converted' from whatever the user typed in for $arg_outformat
 my $bVectors = 0; my $bUserIDs=1; my $bFullNormal=1;
 
@@ -144,8 +147,11 @@ GetOptions(
 	'genall!'          => \$arg_genall,
 	'nrgenall!'        => \$arg_nrgenall,
 	'outformat=s'      => \$arg_outformat,
-	'user=s'           => \$arguser
+	'user=s'           => \$arguser,
+	'help+'            => \$arg_help
 	) || usage();
+
+if ($arg_help != 0) {die usage();}
 
 if ($arg_outformat eq substr("vectors", 0, length($arg_outformat))) {
 	$bVectors = 1;
@@ -162,13 +168,16 @@ if ($arg_outformat eq substr("vectors", 0, length($arg_outformat))) {
 }
 
 sub pretty_print_hash_names {
+	my ($wchar, $hchar, $wpixels, $hpixels) = GetTerminalSize();
+	#if ($wchar > 120) {$wchar = 121;}
+	--$wchar;
 	my $s; my $s2; my $i;
 	my @sorted_funcs = sort {lc($a) cmp lc($b)} @funcs;
-	$s2 = "       ";
+	$s2 = "  ";
 	for ($i = 0; $i < scalar @sorted_funcs; ++$i) {
-		if (length($s2)+length($sorted_funcs[$i]) > 78) {
+		if (length($s2)+length($sorted_funcs[$i]) > $wchar) {
 			$s .= $s2."\n";
-			$s2 = "       ";
+			$s2 = "  ";
 		}
 		$s2 .= $sorted_funcs[$i]." ";
 	}
@@ -176,41 +185,39 @@ sub pretty_print_hash_names {
 }
 
 sub usage {
-my $s = pretty_print_hash_names();
-die <<"UsageHelp";
-usage:
-  $0 [-codepage=CP|-utf8] [-option[s]] HashType [HashType2 [...]] [<wordfile]
-    Options can be abbreviated!
-    HashType is one or more (space separated) from the following list:
-$s
-    Multiple hashtypes are done one after the other. All sample words
-    are read from stdin or redirection of a wordfile
+	my $hash_str = pretty_print_hash_names();
+	my $name = basename($0);
+	my $hidden_opts = "    -help         shows this screen (-help -help shows hidden options)";
+	if ($arg_help > 1) { $hidden_opts =
+"    -dictfile <s> Put name of dict file into the first line comment
+    -nocomment    eliminate the first line comment
+    -tstall       runs a 'simple' test for all known types.
+    -genall       generates all hashes with random salts.
+    -nrgenall     generates all hashes (non-random, repeatable)";
+	}
+	die <<"UsageHelp";
+usage: $name [-codepage=CP] [-option[s]] HashType [...] [<wordfile]
+  Options can be abbreviated!
 
-    Default is to read and write files as binary, no conversions
+  Default is to read and write files as binary, no conversions
     -utf8         shortcut to -codepage=UTF-8.
     -codepage=CP  Read and write files in CP encoding.
 
-    Options are:
-    -minlen <n>   Discard lines shorter than <n> characters  (0)
-    -maxlen <n>   Discard lines longer than <n> characters (128)
-    -count <n>    Stop when we have produced <n> hashes   (1320)
-    -loops <n>    some format (pbkdf2, etc), have a loop count. This
-                  allows setting a custom count for some formats.
-
-    -salt <s>     Force a single salt (only supported in a few formats)
-    -iv <s>       Force a single iv (only supported in a few formats)
-    -content <s>  Force a single content (for ODF hash)
+  Options are:
+    -minlen <n>   Discard lines shorter than <n> characters  [0]
+    -maxlen <n>   Discard lines longer than <n> characters   [125]
+    -count <n>    Stop when we have produced <n> hashes      [1500]
+    -loops <n>    Some formats have a loop count. This allows overriding.
+    -salt <s>     Force a single salt
+    -iv <s>       Force a single iv
+    -content <s>  Force a single content
     -mode <s>     Force mode (zip, mode 1..3, rar4 modes 1..10, etc)
     -user <s>     Provide a fixed user name, vs random user name.
-    -dictfile <s> Put name of dict file into the first line comment
-    -nocomment    eliminate the first line comment
+    -outformat<s> output format. 'normal' 'vectors' 'raw' 'user' [normal]
+$hidden_opts
 
-    -tstall       runs a 'simple' test for all known types.
-    -genall       generates all hashes with random salts.
-    -nrgenall     generates all hashes (non-random, repeatable)
-    -outformat<s> output format. Valid formats are:
-                     'normal' 'vectors' 'raw' 'user'
-    -help         shows this help screen.
+HashType is one or more (space separated) from the following list:
+$hash_str
 UsageHelp
 }
 
@@ -231,13 +238,6 @@ if ($arg_utf8) {
 	$arg_codepage="UTF-8";
 }
 
-#if not a redirected file, prompt the user
-if (-t STDIN) {
-	print STDERR "\nEnter words to hash, one per line.\n";
-	if (@ARGV != 1) { print STDERR "When all entered ^D starts the processing.\n\n"; }
-	$arg_nocomment = 1;  # we do not output 'comment' line if writing to stdout.
-}
-
 ###############################################################################################
 # modifications to character set used.  This is to get pass_gen.pl working correctly
 # with john's -utf8 switch.  Also added is code to do max length of passwords.
@@ -250,6 +250,18 @@ if (defined $arg_codepage and length($arg_codepage)) {
 	binmode(STDIN,":raw");
 	binmode(STDOUT,":raw");
 	if (!$arg_nocomment) { printf("#!comment: Built with pass_gen.pl using RAW mode, $arg_minlen to $arg_maxlen characters dict file=$arg_dictfile\n"); }
+}
+
+if ($bVectors == 1 && (@ARGV != 1 || $arg_genall != 0)) {
+	print "\n\nNOTE, if using --outformat=vector you must ONLY be processing for a single format\n\n";
+	die usage();
+}
+
+#if not a redirected file, prompt the user
+if (-t STDIN) {
+	print STDERR "\nEnter words to hash, one per line.\n";
+	if (@ARGV != 1) { print STDERR "When all entered ^D starts the processing.\n\n"; }
+	$arg_nocomment = 1;  # we do not output 'comment' line if writing to stdout.
 }
 
 if ($arg_genall != 0) {
