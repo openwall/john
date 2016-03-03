@@ -640,7 +640,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		load_hash();
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1,
-	                                     NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[0]),
+	                                     NULL, &gws, lws, 0, NULL, multi_profilingEvent[0]),
 	              "failed in clEnqueueNDRangeKernel I");
 
 	//Send data to device.
