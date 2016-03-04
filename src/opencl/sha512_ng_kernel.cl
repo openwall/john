@@ -63,7 +63,7 @@ inline void any_hash_cracked(
 	found = atomic_inc(&hash_id[0]);
 
 	{
-	    //Get position and length of informed key.
+	    //Save (the probably) hashed key metadata.
 	    uint32_t base = get_global_id(0);
 
 	    hash_id[1 + 3 * found] = base;
