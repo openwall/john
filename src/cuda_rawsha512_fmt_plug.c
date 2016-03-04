@@ -31,6 +31,7 @@ john_register_one(&fmt_cuda_rawsha512);
 #include "common.h"
 #include "formats.h"
 #include "rawSHA512_common.h"
+#include "johnswap.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-SHA512-cuda"

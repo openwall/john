@@ -28,6 +28,7 @@ john_register_one(&fmt_cuda_cryptmd5);
 #include "cuda_common.h"
 #include "cuda_cryptmd5.h"
 #include "cryptmd5_common.h"
+#inculde "johnswap.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"md5crypt-cuda"
