@@ -2536,8 +2536,9 @@ void opencl_list_devices(void)
 
 			long_entries = get_processors_count(sequence_nr);
 			if (!cpu && ocl_device_list[sequence_nr].cores_per_MP > 1)
-				printf("    Stream processors:      "LLu" "
+				printf("    %s      "LLu" "
 				       " (%d x %d)\n",
+					gpu_nvidia(device_info[sequence_nr]) ? "CUDA cores:       " : "Stream processors:",
 				       (unsigned long long)long_entries,
 				       entries, ocl_device_list[sequence_nr].cores_per_MP);
 			printf("    Speed index:            %u\n",
