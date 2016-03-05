@@ -2233,6 +2233,11 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
                 pp_hybrid_fix_state();
               } else
 #endif
+              if (f_new) {
+                if (do_external_hybrid_crack(db, pw_buf))
+                  break;
+                pp_hybrid_fix_state();
+              } else
               if (options.mask) {
                 if ((jtr_done = do_mask_crack(pw_buf)))
                   break;
@@ -2261,6 +2266,11 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
                     pp_hybrid_fix_state();
                   } else
 #endif
+                  if (f_new) {
+                    if (do_external_hybrid_crack(db, word))
+                      break;
+                    pp_hybrid_fix_state();
+                  } else
                   if (options.mask) {
                     if ((jtr_done = do_mask_crack(word)))
                       break;

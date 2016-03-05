@@ -53,6 +53,7 @@
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "external.h"
 #include "john.h"
 #include "mask.h"
 #include "unicode.h"
@@ -75,6 +76,8 @@ static int rec_fd;
 static FILE *rec_file = NULL;
 static struct db_main *rec_db;
 static void (*rec_save_mode)(FILE *file);
+static void (*rec_save_mode2)(FILE *file);
+static void (*rec_save_mode3)(FILE *file);
 
 static void rec_name_complete(void)
 {
@@ -364,7 +367,8 @@ void rec_save(void)
 	    rec_check);
 
 	if (rec_save_mode) rec_save_mode(rec_file);
-
+	if (rec_save_mode2) rec_save_mode2(rec_file);
+	if (rec_save_mode3) rec_save_mode3(rec_file);
 	if (options.flags & FLG_MASK_STACKED)
 		mask_save_state(rec_file);
 
@@ -379,6 +383,13 @@ void rec_save(void)
 	if (!options.fork && fsync(rec_fd))
 		pexit("fsync");
 #endif
+}
+
+void rec_init_hybrid(void (*save_mode)(FILE *file)) {
+	if (!rec_save_mode2)
+		rec_save_mode2 = save_mode;
+	else if (!rec_save_mode3)
+		rec_save_mode3 = save_mode;
 }
 
 /* See the comment in recovery.h on how the "save" parameter is used */
@@ -565,6 +576,8 @@ void rec_restore_args(int lock)
 
 void rec_restore_mode(int (*restore_mode)(FILE *file))
 {
+	char buf[128];
+
 	rec_name_complete();
 
 	if (!rec_file) return;
@@ -582,6 +595,25 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
  * we don't explicitly remove the lock, there may be a race condition between
  * our children closing the fd and us proceeding to re-open and re-lock it.
  */
+
+	/* we may be pointed at appended hybrid records.  If so, then process them */
+	fgetl(buf, sizeof(buf), rec_file);
+	while (!feof(rec_file)) {
+		if (!strncmp(buf, "ext-v", 5)) {
+			if (ext_restore_state_hybrid(buf, rec_file)) rec_format_error("external-hybrid");
+			fgetl(buf, sizeof(buf), rec_file);
+			continue;
+		}
+		/*
+		if (!strncmp(buf, "rex-v", 5)) {
+			if (rexgen_restore_state_hybrid(buf, rec_file)) rec_format_error("rexgen-hybrid");
+			fgetl(buf, sizeof(buf), rec_file);
+			continue;
+		}
+		*/
+		fgetl(buf, sizeof(buf), rec_file);
+	}
+
 	rec_unlock();
 
 	if (fclose(rec_file)) pexit("fclose");

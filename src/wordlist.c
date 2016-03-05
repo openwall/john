@@ -1193,6 +1193,17 @@ REDO_AFTER_LMLOOP:
 					wordlist_hybrid_fix_state();
 				} else
 #endif
+				if (f_new) {
+					if (do_external_hybrid_crack(db, word))
+					{
+						rule = NULL;
+						rules = 0;
+						pipe_input = 0;
+						do_lmloop = 0;
+						break;
+					}
+					wordlist_hybrid_fix_state();
+				} else
 				if (options.mask) {
 					if (do_mask_crack(word)) {
 						rule = NULL;
@@ -1250,6 +1261,16 @@ REDO_AFTER_LMLOOP:
 					wordlist_hybrid_fix_state();
 				} else
 #endif
+				if (f_new) {
+					if (do_external_hybrid_crack(db, word))
+					{
+						rule = NULL;
+						rules = 0;
+						pipe_input = 0;
+						break;
+					}
+					wordlist_hybrid_fix_state();
+				} else
 				if (options.mask) {
 					if (do_mask_crack(word)) {
 						rule = NULL;
@@ -1314,6 +1335,16 @@ process_word:
 						wordlist_hybrid_fix_state();
 					} else
 #endif
+					if (f_new) {
+						if (do_external_hybrid_crack(db, word))
+						{
+							rule = NULL;
+							rules = 0;
+							pipe_input = 0;
+							break;
+						}
+						wordlist_hybrid_fix_state();
+					} else
 					if (options.mask) {
 						if (do_mask_crack(word)) {
 							rule = NULL;
