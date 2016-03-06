@@ -34,10 +34,10 @@
 #include "memdbg.h"
 
 /*
- * int_word_hybrid is set to the original word before call to new(). This
- * is needed, so that we can store this proper word for a resume.
+ * int_hybrid_base_word is set to the original word before call to new().
+ * This is needed, so that we can store this proper word for a resume.
  */
-static char int_word_hybrid[PLAINTEXT_BUFFER_SIZE];
+static char int_hybrid_base_word[PLAINTEXT_BUFFER_SIZE];
 static char int_word[PLAINTEXT_BUFFER_SIZE];
 static char rec_word[PLAINTEXT_BUFFER_SIZE];
 static char hybrid_rec_word[PLAINTEXT_BUFFER_SIZE];
@@ -359,7 +359,7 @@ static void save_state(FILE *file)
 static void save_state_hybrid(FILE *file)
 {
 	fprintf(file, "ext-v1\n");
-	fprintf(file, "%u %u\n%s\n", ext_hybrid_resume, ext_hybrid_total, int_word_hybrid);
+	fprintf(file, "%u %u\n%s\n", ext_hybrid_resume, ext_hybrid_total, int_hybrid_base_word);
 }
 
 static int restore_state(FILE *file)
@@ -398,8 +398,8 @@ int ext_restore_state_hybrid(const char *sig, FILE *file)
 		fgetl(buf, sizeof(buf), file);
 		if (sscanf(buf, "%u %u", &hybrid_resume, &tot) != 2)
 			return 1;
-		fgetl(int_word_hybrid, sizeof(int_word_hybrid), file);
-		strcpy(int_word, int_word_hybrid);
+		fgetl(int_hybrid_base_word, sizeof(int_hybrid_base_word), file);
+		strcpy(int_word, int_hybrid_base_word);
 		ext_hybrid_total = -1;
 		ext_hybrid_resume = 0;
 		c_execute(c_lookup("restore"));
@@ -416,6 +416,7 @@ static void fix_state(void)
 		strcpy(rec_word, hybrid_rec_word);
 		rec_seq = hybrid_rec_seq;
 		hybrid_rec_word[0] = 0;
+		return;
 	}
 	strcpy(rec_word, int_word);
 	rec_seq = seq;
@@ -559,10 +560,10 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 	ext_hybrid_total = -1;
 	count = ext_hybrid_resume;
 	if (!rec_restored) {
-		strcpy(int_word_hybrid, base_word);
+		strcpy(int_hybrid_base_word, base_word);
 		internal = (unsigned char *)int_word;
 		external = ext_word;
-		cp = (unsigned char*)int_word_hybrid;
+		cp = (unsigned char*)int_hybrid_base_word;
 		while (*cp)
 			*internal++ = *external++ = *cp++;
 		*internal = 0;
@@ -585,7 +586,7 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 
 	internal = (unsigned char *)int_word;
 	external = ext_word;
-	cp = (unsigned char*)int_word_hybrid;
+	cp = (unsigned char*)int_hybrid_base_word;
 	while (*cp)
 		*internal++ = *external++ = *cp++;
 	*internal = 0;
