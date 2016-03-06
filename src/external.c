@@ -536,6 +536,11 @@ void do_external_crack(struct db_main *db)
 }
 
 
+/*
+ * NOTE, we do absolutely NO node splitting here.  If running MPI or fork,
+ * then each word will only be sent to ONE thread. Thus that thread has
+ * to process ALL candidates that the external script will build
+ */
 int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 	char word[1024];
 	int count;
@@ -553,8 +558,16 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 
 	ext_hybrid_total = -1;
 	count = ext_hybrid_resume;
-	if (!rec_restored)
+	if (!rec_restored) {
 		strcpy(int_word_hybrid, base_word);
+		internal = (unsigned char *)int_word;
+		external = ext_word;
+		cp = (unsigned char*)int_word_hybrid;
+		while (*cp)
+			*internal++ = *external++ = *cp++;
+		*internal = 0;
+		*external = 0;
+	}
 	if (!rec_restored || hybrid_resume) {
 		ext_hybrid_total = -1;
 		c_execute_fast(f_new);
@@ -601,6 +614,7 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 			}
 		}
 		/* gets the next word, OR if word[0] is null, this word is done */
+		++count;
 		c_execute_fast(f_next);
 	}
 out:;
