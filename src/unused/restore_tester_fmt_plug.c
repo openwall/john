@@ -68,7 +68,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -80,8 +80,17 @@ static void init(struct fmt_main *self)
 	total_cnt = MAX_KEYS_PER_CRYPT;
 #ifdef _OPENMP
 	total_cnt *= omp_get_max_threads();
+	self->params.max_keys_per_crypt = total_cnt;
+	self->params.max_keys_per_crypt = total_cnt;
 #endif
-	delay = mem_alloc_tiny(total_cnt*sizeof(struct timespec), sizeof(ARCH_WORD));
+	saved_key = mem_calloc(total_cnt, sizeof(*saved_key));
+	delay = mem_calloc(total_cnt, sizeof(struct timespec));
+}
+
+static void done(void)
+{
+	MEM_FREE(delay);
+	MEM_FREE(saved_key);
 }
 
 static void set_key(char *key, int index)
@@ -154,7 +163,7 @@ struct fmt_main fmt_restore_tester = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
