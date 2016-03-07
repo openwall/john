@@ -725,7 +725,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		load_hash();
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1,
-	                                     NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[0]),
+	                                     NULL, &gws, lws, 0, NULL, multi_profilingEvent[0]),
 	              "failed in clEnqueueNDRangeKernel I");
 
 	//Send data to device.
@@ -770,7 +770,8 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 #ifdef DEBUG
 	if (hash_ids[0])
-		fprintf(stderr, "Some checks are going to be done on CPU: %u\n", hash_ids[0]);
+		fprintf(stderr, "Some checks are going to be done on CPU: %u: %1.4f%%\n", hash_ids[0],
+			((double) hash_ids[0]) / (global_work_size * mask_int_cand.num_int_cand) * 100);
 #endif
 	if (hash_ids[0] > global_work_size * mask_int_cand.num_int_cand) {
 		fprintf(stderr, "Error, crypt_all() kernel: %u.\n", hash_ids[0]);
