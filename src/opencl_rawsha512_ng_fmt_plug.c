@@ -683,19 +683,23 @@ static void prepare_bit_array()
 		pw = current_salt->list;
 
 		do {
-			unsigned int bit_mask;
+			unsigned int bit_mask_x, bit_mask_y;
 			binary = (uint64_t *) pw->binary;
 
 			// Skip cracked.
 			if (binary) {
-				SPREAD_64(binary[0], binary[1], (bitmap_size - 1U), bit_mask)
+				SPREAD_64(binary[0], binary[1], (bitmap_size - 1U),
+					bit_mask_x, bit_mask_y)
 #ifdef DEBUG
-				if (saved_bitmap[bit_mask >> 5] & (1U << (bit_mask & 31)))
-					fprintf(stderr, "Collision: %u %08x %08x %08x\n",
-						num_loaded_hashes, bit_mask, (unsigned int) binary[0],
-						saved_bitmap[bit_mask >> 5]);
+				if (saved_bitmap[bit_mask_x >> 5] & (1U << (bit_mask_x & 31)) &&
+				    saved_bitmap[bit_mask_y >> 5] & (1U << (bit_mask_y & 31)))
+					fprintf(stderr, "Collision: %u %08x %08x %08x %08x\n",
+						num_loaded_hashes, (unsigned int) binary[0],
+						bit_mask_x, bit_mask_y,
+						saved_bitmap[bit_mask_x >> 5]);
 #endif
-				saved_bitmap[bit_mask >> 5] |= (1U << (bit_mask & 31));
+				saved_bitmap[bit_mask_x >> 5] |= (1U << (bit_mask_x & 31));
+				saved_bitmap[bit_mask_y >> 5] |= (1U << (bit_mask_y & 31));
 			}
 		} while ((pw = pw->next));
 

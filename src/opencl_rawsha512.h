@@ -36,11 +36,11 @@
 #define KEYS_PER_CORE_CPU       65536
 #define KEYS_PER_CORE_GPU       512
 
-#define SPREAD_64(X0, X1, SIZE_MIN_1, RESULT) {                               \
-	RESULT = ((uint)((X0) >> 26)) ^ ((uint)(X0));                         \
-	RESULT &= ((uint)((X1) >> 16));                                       \
-	RESULT ^= ((uint)(X1));                                               \
-	RESULT = RESULT & SIZE_MIN_1;                                         \
+#define SPREAD_64(X0, X1, SIZE_MIN_1, X, Y) {                                 \
+	X = ((uint)((X0) >> 32)) ^ ((uint)(X0)) ^ ((uint)((X1) >> 32));       \
+	X = X & SIZE_MIN_1;                                                   \
+	Y = (X + ((uint)(X1))) ^ ((uint)((X0) >> 32));                        \
+	Y = Y & SIZE_MIN_1;                                                   \
 }
 
 //Data types.
