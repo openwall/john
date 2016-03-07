@@ -37,6 +37,13 @@
 #define KEYS_PER_CORE_CPU       65536
 #define KEYS_PER_CORE_GPU       512
 
+#define SPREAD_32(X0, X1, X2, X3, SIZE_MIN_1, X, Y) {                         \
+	X = (X0) ^ (X1) ^ (X2);                                               \
+	X = X & SIZE_MIN_1;                                                   \
+	Y = (X + (X3)) ^ (X0);                                                \
+	Y = Y & SIZE_MIN_1;                                                   \
+}
+
 //Data types.
 typedef union {
 	uint8_t mem_08[4];
@@ -55,7 +62,7 @@ typedef struct {
 
 #ifndef _OPENCL_COMPILER
 static const char *warn[] = {
-	"pass xfer: ", ", crypt: ", ", result xfer: ", ", index xfer: ",
+	"prep: ", ", xfer pass: ", ", idx: ", ", crypt: ", ", result: ",
 	", mask xfer: ", " + "
 };
 #endif
