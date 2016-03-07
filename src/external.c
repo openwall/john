@@ -363,10 +363,10 @@ static void save_state_hybrid(FILE *file)
 {
 	unsigned char *ptr;
 	ptr = (unsigned char *)hybrid_actual_completed_base_word;
-	fprintf(file, "ext-v1\n%u %u, %u\n", hybrid_actual_completed_resume,
+	fprintf(file, "ext-v1\n%u %u %u\n", hybrid_actual_completed_resume,
 	        hybrid_actual_completed_total, (unsigned)strlen((char*)ptr));
 	while (*ptr)
-		fprintf(file, "%d ", (int)*ptr);
+		fprintf(file, "%d ", (int)*ptr++);
 }
 
 static int restore_state(FILE *file)
@@ -411,9 +411,9 @@ int ext_restore_state_hybrid(const char *sig, FILE *file)
 		ext_hybrid_resume = hybrid_resume;
 		internal = (unsigned char*)int_word;
 		external = ext_word;
-		cp = int_hybrid_base_word;
+		cp = (unsigned char*)int_hybrid_base_word;
 		do {
-			if (fscanf(file, "%d ", &c) != 1) return 1;
+			if (fscanf(file, "%d ", &c) != 1) { if (cnt == count) break; return 1; }
 			if (++count >= PLAINTEXT_BUFFER_SIZE) return 1;
 		} while ((*internal++ = *external++ = *cp++ = c));
 		*internal = 0;
