@@ -1575,6 +1575,21 @@ static char *human_speed(unsigned long long int speed)
 	return out;
 }
 
+unsigned int lcm(unsigned int x, unsigned int y)
+{
+	unsigned int tmp, a, b;
+
+	a = MAX(x, y);
+	b = MIN(x, y);
+
+	while (b) {
+		tmp = b;
+		b = a % b;
+		a = tmp;
+	}
+	return x / a * y;
+}
+
 void opencl_find_best_gws(int step, unsigned long long int max_run_time,
                           int sequential_id, unsigned int rounds, int have_lws)
 {
@@ -1583,11 +1598,11 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 	unsigned long long speed, best_speed = 0, raw_speed;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	unsigned long long int save_duration_time = duration_time;
-	cl_uint core_count = get_max_compute_units(sequential_id);
+	cl_uint core_count = get_processors_count(sequential_id);
 
 	if (have_lws) {
 		if (core_count > 2)
-			optimal_gws *= core_count;
+			optimal_gws = lcm(core_count, optimal_gws);
 		default_value = optimal_gws;
 	} else {
 		soft_limit = local_work_size * core_count * 128;
