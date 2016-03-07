@@ -390,7 +390,8 @@ static int restore_state(FILE *file)
 int ext_restore_state_hybrid(const char *sig, FILE *file)
 {
 	int tot = -1, ver;
-	char buf[128+PLAINTEXT_BUFFER_SIZE];
+	char buf[128+PLAINTEXT_BUFFER_SIZE], *cp, *internal;
+	c_int *external;
 
 	if (strncmp(sig, "ext-v", 5))
 		return 1;
@@ -399,9 +400,15 @@ int ext_restore_state_hybrid(const char *sig, FILE *file)
 		if (sscanf(buf, "%u %u", &hybrid_resume, &tot) != 2)
 			return 1;
 		fgetl(int_hybrid_base_word, sizeof(int_hybrid_base_word), file);
-		strcpy(int_word, int_hybrid_base_word);
 		ext_hybrid_total = -1;
 		ext_hybrid_resume = 0;
+		internal = int_word;
+		external = ext_word;
+		cp = int_hybrid_base_word;
+		while (*cp)
+			*internal++ = *external++ = *cp++;
+		*internal = 0;
+		*external = 0;
 		c_execute(c_lookup("restore"));
 		if (ext_hybrid_total > 0 && ext_hybrid_total == tot)
 			hybrid_resume = 0; // the script handled resuming.
@@ -553,17 +560,16 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 
 	if (first) {
 		rec_init_hybrid(save_state_hybrid);
+		strcpy(int_hybrid_base_word, base_word);
 		first = 0;
 	}
-// log_event("Proceeding with external hybrid mode: %.25s on word %.50s", ext_mode, base_word);
 
 	ext_hybrid_total = -1;
 	count = ext_hybrid_resume;
 	if (!rec_restored) {
-		strcpy(int_hybrid_base_word, base_word);
 		internal = (unsigned char *)int_word;
 		external = ext_word;
-		cp = (unsigned char*)int_hybrid_base_word;
+		cp = (unsigned char*)base_word;
 		while (*cp)
 			*internal++ = *external++ = *cp++;
 		*internal = 0;
@@ -573,6 +579,7 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 		ext_hybrid_total = -1;
 		c_execute_fast(f_new);
 		count = hybrid_resume;
+		strcpy(int_hybrid_base_word, base_word);
 		while (hybrid_resume) {
 			c_execute_fast(f_next);
 			--hybrid_resume;
@@ -583,10 +590,11 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 			}
 		}
 	}
+	log_event("Proceeding with external hybrid count: %d mode: %.25s word: %.50s", count, ext_mode, int_hybrid_base_word);
 
 	internal = (unsigned char *)int_word;
 	external = ext_word;
-	cp = (unsigned char*)int_hybrid_base_word;
+	cp = (unsigned char*)base_word;
 	while (*cp)
 		*internal++ = *external++ = *cp++;
 	*internal = 0;
@@ -611,14 +619,26 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 			word[max_len] = 0;
 			if (crk_process_key((char *)word)) {
 				retval = 1;
+				log_event("aborting external hybrid count: %d word: %.50s", ext_hybrid_resume, int_hybrid_base_word);
 				goto out;
 			}
+			strcpy(int_hybrid_base_word, base_word);
+			log_event("Proceed with external hybrid count: %d word: %.50s", count, int_hybrid_base_word);
+		} else {
+			/* Filter skip, and next() skip use the 'same' bail */
+			/* out flag (i.e. int_word[0]==0. So since this was */
+			/* a filter skip, we just reset ext_word[0] back to */
+			/* what it was and continue. We want to just skip   */
+			/* the word not break from the entire cracking loop */
+			ext_word[0] = int_word[0];
 		}
+
 		/* gets the next word, OR if word[0] is null, this word is done */
 		++count;
 		c_execute_fast(f_next);
 	}
 out:;
 	ext_hybrid_resume = count;
+	log_event("exiting external hybrid count: %d word: %.50s", ext_hybrid_resume, int_hybrid_base_word);
 	return retval;
 }
