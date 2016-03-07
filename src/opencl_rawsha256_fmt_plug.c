@@ -190,6 +190,12 @@ static void release_mask_buffers()
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	uint32_t hash_id_size;
+	size_t mask_cand = 1, mask_gws = 1;
+
+	if (mask_int_cand.num_int_cand > 1) {
+		mask_cand = mask_int_cand.num_int_cand;
+		mask_gws = gws;
+	}
 
 	pinned_plaintext = clCreateBuffer(context[gpu_id],
 	                                  CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
@@ -213,18 +219,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	            sizeof(uint32_t) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx");
 
-	pinned_int_key_loc = clCreateBuffer(context[gpu_id],
-	                                    CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-	                                    sizeof(uint32_t) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code,
-	               "Error creating page-locked memory pinned_int_key_loc");
-
-	saved_int_key_loc = (uint32_t *) clEnqueueMapBuffer(queue[gpu_id],
-	                    pinned_int_key_loc, CL_TRUE, CL_MAP_WRITE, 0,
-	                    sizeof(uint32_t) * gws, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code,
-	               "Error mapping page-locked memory saved_int_key_loc");
-
 	// create arguments (buffers)
 	pass_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
 	                             BUFFER_SIZE * gws, NULL, &ret_code);
@@ -244,13 +238,25 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_buffer_hash_ids");
 
 	//Mask mode
-	buffer_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-	                                    sizeof(uint32_t) * gws, NULL, &ret_code);
+	pinned_int_key_loc = clCreateBuffer(context[gpu_id],
+					    CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
+					    sizeof(uint32_t) * mask_gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,
-	               "Error creating buffer argument buffer_int_key_loc");
+		       "Error creating page-locked memory pinned_int_key_loc");
+
+	saved_int_key_loc = (uint32_t *) clEnqueueMapBuffer(queue[gpu_id],
+			    pinned_int_key_loc, CL_TRUE, CL_MAP_WRITE, 0,
+			    sizeof(uint32_t) * mask_gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,
+		       "Error mapping page-locked memory saved_int_key_loc");
+
+	buffer_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
+					    sizeof(uint32_t) * mask_gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,
+		       "Error creating buffer argument buffer_int_key_loc");
 
 	buffer_int_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-	                                 4 * mask_int_cand.num_int_cand, NULL, &ret_code);
+					 4 * mask_cand, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys");
 
 	//Set prepare kernel arguments
@@ -265,14 +271,14 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
 	                              (void *)&idx_buffer), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_int_key_loc),
-	                              (void *)&buffer_int_key_loc), "Error setting argument 2");
+				      (void *)&buffer_int_key_loc), "Error setting argument 2");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_int_keys),
-	                              (void *)&buffer_int_keys), "Error setting argument 3");
+				      (void *)&buffer_int_keys), "Error setting argument 3");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_uint),
-	                              (void *)&(mask_int_cand.num_int_cand)),
-	               "Error setting argument 4");
+				      (void *)&(mask_int_cand.num_int_cand)),
+			              "Error setting argument 4");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_hash_ids),
-	                              (void *)&buffer_hash_ids), "Error setting argument 5");
+			      (void *)&buffer_hash_ids), "Error setting argument 5");
 
 	//Indicates that the OpenCL objetcs are initialized.
 	ocl_initialized++;
@@ -280,7 +286,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	//Assure buffers have no "trash data".
 	memset(plaintext, '\0', BUFFER_SIZE * gws);
 	memset(saved_idx, '\0', sizeof(uint32_t) * gws);
-	memset(saved_int_key_loc, '\0', sizeof(uint32_t) * gws);
+	memset(saved_int_key_loc, 0x80, sizeof(uint32_t) * mask_gws);
 }
 
 static void release_clobj()
@@ -295,7 +301,7 @@ static void release_clobj()
 		                                   saved_idx, 0, NULL, NULL);
 		HANDLE_CLERROR(ret_code, "Error Unmapping indexes");
 		ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_int_key_loc,
-		                                   saved_int_key_loc, 0, NULL, NULL);
+							   saved_int_key_loc, 0, NULL, NULL);
 		HANDLE_CLERROR(ret_code, "Error Unmapping key locations");
 		HANDLE_CLERROR(clFinish(queue[gpu_id]),
 		               "Error releasing memory mappings");
@@ -573,7 +579,7 @@ static void done(void)
 
 static void prepare_bit_array()
 {
-    	uint32_t *binary;
+	uint32_t *binary;
 	struct db_password *pw;
 	struct db_salt *current_salt;
 
