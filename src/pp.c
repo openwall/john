@@ -2234,7 +2234,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
               } else
 #endif
               if (f_new) {
-                if (do_external_hybrid_crack(db, pw_buf))
+                if ((jtr_done = do_external_hybrid_crack(db, pw_buf)))
                   break;
                 pp_hybrid_fix_state();
               } else

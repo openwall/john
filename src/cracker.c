@@ -711,6 +711,7 @@ static int crk_process_event(void)
 
 static int crk_password_loop(struct db_salt *salt)
 {
+	void ext_hybrid_fix_state(void);
 	int count;
 	unsigned int match, index;
 #if CRK_PREFETCH
@@ -725,6 +726,8 @@ static int crk_password_loop(struct db_salt *salt)
 
 	if (event_pending && crk_process_event())
 		return -1;
+
+	ext_hybrid_fix_state();
 
 	count = crk_key_index;
 	match = crk_methods.crypt_all(&count, salt);

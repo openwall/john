@@ -829,7 +829,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			} else
 #endif
 			if (f_new) {
-				if (do_external_hybrid_crack(db, fmt_null_key))
+				if (!skip && do_external_hybrid_crack(db, fmt_null_key))
 					break;
 				inc_hybrid_fix_state();
 			} else

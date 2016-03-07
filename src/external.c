@@ -38,6 +38,7 @@
  * This is needed, so that we can store this proper word for a resume.
  */
 static char int_hybrid_base_word[PLAINTEXT_BUFFER_SIZE];
+static char hybrid_actual_completed_base_word[PLAINTEXT_BUFFER_SIZE];
 static char int_word[PLAINTEXT_BUFFER_SIZE];
 static char rec_word[PLAINTEXT_BUFFER_SIZE];
 static char hybrid_rec_word[PLAINTEXT_BUFFER_SIZE];
@@ -56,6 +57,8 @@ static char *regex;
 static unsigned int seq, rec_seq;
 static unsigned int hybrid_rec_seq;
 static unsigned int hybrid_resume;
+static unsigned int hybrid_actual_completed_resume;
+static unsigned int hybrid_actual_completed_total;
 
 unsigned int ext_flags = 0;
 static char *ext_mode;
@@ -77,8 +80,14 @@ static struct c_ident ext_ident_hybrid_resume = {
 	&ext_hybrid_resume
 };
 
-static struct c_ident ext_ident_utf32 = {
+static struct c_ident ext_ident_hybrid_total = {
 	&ext_ident_hybrid_resume,
+	"hybrid_total",
+	&ext_hybrid_total
+};
+
+static struct c_ident ext_ident_utf32 = {
+	&ext_ident_hybrid_total,
 	"utf32",
 	&ext_utf32
 };
@@ -119,14 +128,8 @@ static struct c_ident ext_ident_time = {
 	&ext_time
 };
 
-static struct c_ident ext_ident_hybrid_total = {
-	&ext_ident_time,
-	"hybrid_total",
-	&ext_hybrid_total
-};
-
 static struct c_ident ext_globals = {
-	&ext_ident_hybrid_total,
+	&ext_ident_time,
 	"word",
 	ext_word
 };
@@ -359,7 +362,7 @@ static void save_state(FILE *file)
 static void save_state_hybrid(FILE *file)
 {
 	fprintf(file, "ext-v1\n");
-	fprintf(file, "%u %u\n%s\n", ext_hybrid_resume, ext_hybrid_total, int_hybrid_base_word);
+	fprintf(file, "%u %u\n%s\n", hybrid_actual_completed_resume, hybrid_actual_completed_total, hybrid_actual_completed_base_word);
 }
 
 static int restore_state(FILE *file)
@@ -401,7 +404,7 @@ int ext_restore_state_hybrid(const char *sig, FILE *file)
 			return 1;
 		fgetl(int_hybrid_base_word, sizeof(int_hybrid_base_word), file);
 		ext_hybrid_total = -1;
-		ext_hybrid_resume = 0;
+		ext_hybrid_resume = hybrid_resume;
 		internal = int_word;
 		external = ext_word;
 		cp = int_hybrid_base_word;
@@ -433,6 +436,10 @@ void ext_hybrid_fix_state(void)
 {
 	strcpy(hybrid_rec_word, int_word);
 	hybrid_rec_seq = seq;
+
+	hybrid_actual_completed_resume = ext_hybrid_resume;
+	hybrid_actual_completed_total  = ext_hybrid_total;
+	strcpy(hybrid_actual_completed_base_word, int_hybrid_base_word);
 }
 
 void do_external_crack(struct db_main *db)
@@ -551,35 +558,42 @@ void do_external_crack(struct db_main *db)
  */
 int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 	char word[1024];
-	int count;
 	static int first=1;
 	int retval = 0;
 	int max_len = db->format->params.plaintext_length;
 	unsigned char *internal, *cp;
 	c_int *external;
+	int do_load = 0;
+	int just_restored = 0;
 
 	if (first) {
-		rec_init_hybrid(save_state_hybrid);
 		strcpy(int_hybrid_base_word, base_word);
+		rec_init_hybrid(save_state_hybrid);
 		first = 0;
+		just_restored = rec_restored;
+		if (!rec_restored) {
+			ext_hybrid_resume = hybrid_resume;
+			if (hybrid_resume)
+				do_load = 1;
+		}
+	} else {
+		ext_hybrid_resume = 0;
+		do_load = 1;
 	}
-
-	ext_hybrid_total = -1;
-	count = ext_hybrid_resume;
-	if (!rec_restored) {
+	if (do_load) {
+		strcpy(int_hybrid_base_word, base_word);
+		ext_hybrid_total = -1;
+		cp = (unsigned char*)base_word;
 		internal = (unsigned char *)int_word;
 		external = ext_word;
-		cp = (unsigned char*)base_word;
 		while (*cp)
 			*internal++ = *external++ = *cp++;
 		*internal = 0;
 		*external = 0;
 	}
-	if (!rec_restored || hybrid_resume) {
-		ext_hybrid_total = -1;
+
+	if (hybrid_resume) {
 		c_execute_fast(f_new);
-		count = hybrid_resume;
-		strcpy(int_hybrid_base_word, base_word);
 		while (hybrid_resume) {
 			c_execute_fast(f_next);
 			--hybrid_resume;
@@ -589,16 +603,10 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 				return 0;
 			}
 		}
-	}
-	log_event("Proceeding with external hybrid count: %d mode: %.25s word: %.50s", count, ext_mode, int_hybrid_base_word);
+	} else if (!just_restored)
+		c_execute_fast(f_new);
+//	log_event("Proceeding with external hybrid count: %d mode: %.25s word: %.50s", ext_hybrid_resume, ext_mode, int_hybrid_base_word);
 
-	internal = (unsigned char *)int_word;
-	external = ext_word;
-	cp = (unsigned char*)base_word;
-	while (*cp)
-		*internal++ = *external++ = *cp++;
-	*internal = 0;
-	*external = 0;
 	/* gets the next word, OR if word[0] is null, this word is done */
 	c_execute_fast(f_next);
 	while (ext_word[0]) {
@@ -619,11 +627,11 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 			word[max_len] = 0;
 			if (crk_process_key((char *)word)) {
 				retval = 1;
-				log_event("aborting external hybrid count: %d word: %.50s", ext_hybrid_resume, int_hybrid_base_word);
+//				log_event("aborting external hybrid count: %d word: %.50s", ext_hybrid_resume, int_hybrid_base_word);
 				goto out;
 			}
 			strcpy(int_hybrid_base_word, base_word);
-			log_event("Proceed with external hybrid count: %d word: %.50s", count, int_hybrid_base_word);
+//			log_event("Proceed with external hybrid count: %d word: %.50s", ext_hybrid_resume, int_hybrid_base_word);
 		} else {
 			/* Filter skip, and next() skip use the 'same' bail */
 			/* out flag (i.e. int_word[0]==0. So since this was */
@@ -634,11 +642,10 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 		}
 
 		/* gets the next word, OR if word[0] is null, this word is done */
-		++count;
+		++ext_hybrid_resume;
 		c_execute_fast(f_next);
 	}
 out:;
-	ext_hybrid_resume = count;
-	log_event("exiting external hybrid count: %d word: %.50s", ext_hybrid_resume, int_hybrid_base_word);
+//	log_event("exiting external hybrid count: %d word: %.50s", ext_hybrid_resume, int_hybrid_base_word);
 	return retval;
 }
