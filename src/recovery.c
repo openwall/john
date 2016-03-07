@@ -238,10 +238,12 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 
 	if ((rec_fd = open(path_expand(rec_name), O_RDWR | O_CREAT, 0600)) < 0)
 		pexit("open: %s", path_expand(rec_name));
-#ifdef __CYGWIN__
+#if __DJGPP__ || _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
 	// works around bug in cygwin, that has file locking problems with a handle
 	// from a just created file.  If we close and reopen, cygwin does not seem
 	// to have any locking problems.  Go figure???
+	// Note, changed from just __CYGWIN__ to all 'Dos/Windows' as the OS environments
+	// likely this is a Win32 'issue'
 	close(rec_fd);
 	if ((rec_fd = open(path_expand(rec_name), O_RDWR | O_CREAT, 0600)) < 0)
 		pexit("open: %s", path_expand(rec_name));
