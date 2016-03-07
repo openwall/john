@@ -361,8 +361,12 @@ static void save_state(FILE *file)
 
 static void save_state_hybrid(FILE *file)
 {
-	fprintf(file, "ext-v1\n");
-	fprintf(file, "%u %u\n%s\n", hybrid_actual_completed_resume, hybrid_actual_completed_total, hybrid_actual_completed_base_word);
+	unsigned char *ptr;
+	ptr = (unsigned char *)hybrid_actual_completed_base_word;
+	fprintf(file, "ext-v1\n%u %u, %u\n", hybrid_actual_completed_resume,
+	        hybrid_actual_completed_total, (unsigned)strlen((char*)ptr));
+	while (*ptr)
+		fprintf(file, "%d ", (int)*ptr);
 }
 
 static int restore_state(FILE *file)
@@ -392,26 +396,32 @@ static int restore_state(FILE *file)
 
 int ext_restore_state_hybrid(const char *sig, FILE *file)
 {
-	int tot = -1, ver;
-	char buf[128+PLAINTEXT_BUFFER_SIZE], *cp, *internal;
+	int tot = -1, ver, c, cnt = 0, count = 0;
+	char buf[128+PLAINTEXT_BUFFER_SIZE];
+	unsigned char *cp, *internal;
 	c_int *external;
 
 	if (strncmp(sig, "ext-v", 5))
 		return 1;
 	if (sscanf(sig, "ext-v%d", &ver) == 1 && ver == 1) {
 		fgetl(buf, sizeof(buf), file);
-		if (sscanf(buf, "%u %u", &hybrid_resume, &tot) != 2)
+		if (sscanf(buf, "%d %d %d\n", &hybrid_resume, &tot, &cnt) != 3)
 			return 1;
-		fgetl(int_hybrid_base_word, sizeof(int_hybrid_base_word), file);
 		ext_hybrid_total = -1;
 		ext_hybrid_resume = hybrid_resume;
-		internal = int_word;
+		internal = (unsigned char*)int_word;
 		external = ext_word;
 		cp = int_hybrid_base_word;
-		while (*cp)
-			*internal++ = *external++ = *cp++;
+		do {
+			if (fscanf(file, "%d ", &c) != 1) return 1;
+			if (++count >= PLAINTEXT_BUFFER_SIZE) return 1;
+		} while ((*internal++ = *external++ = *cp++ = c));
 		*internal = 0;
 		*external = 0;
+		if (cnt != count) return 1;
+		if (ext_utf32)
+			enc_to_utf32((UTF32*)ext_word, PLAINTEXT_BUFFER_SIZE,
+				     (UTF8*)int_word, strlen(int_word));
 		c_execute(c_lookup("restore"));
 		if (ext_hybrid_total > 0 && ext_hybrid_total == tot)
 			hybrid_resume = 0; // the script handled resuming.
@@ -610,13 +620,17 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 	/* gets the next word, OR if word[0] is null, this word is done */
 	c_execute_fast(f_next);
 	while (ext_word[0]) {
-		cp = (unsigned char*)word;
-		internal = (unsigned char *)int_word;
-		external = ext_word;
-		while (*external)
-			*cp++ = *internal++ = *external++;
-		*internal = 0;
-		*cp = 0;
+		if (ext_utf32) {
+			utf32_to_enc((UTF8*)int_word, maxlen, (UTF32*)ext_word);
+		} else {
+			cp = (unsigned char*)word;
+			internal = (unsigned char *)int_word;
+			external = ext_word;
+			while (*external)
+				*cp++ = *internal++ = *external++;
+			*internal = 0;
+			*cp = 0;
+		}
 
 		if (options.mask) {
 			if (do_mask_crack(word)) {	// can this cause infinite recursion ??
