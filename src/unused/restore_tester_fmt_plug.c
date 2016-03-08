@@ -31,8 +31,13 @@ extern struct fmt_main fmt_restore_tester;
 john_register_one(&fmt_restore_tester);
 #else
 
+#include "autoconfig.h"
+
 #include <string.h>
 #include <time.h>
+#if defined (_MSC_VER) || defined (__MINGW__)
+#include <windows.h>
+#endif
 #include "common.h"
 #include "formats.h"
 #include "memory.h"
@@ -60,9 +65,6 @@ john_register_one(&fmt_restore_tester);
 #define MIN_KEYS_PER_CRYPT		16
 #define MAX_KEYS_PER_CRYPT		16
 
-static struct timespec *delay;
-static int total_cnt;
-
 static struct fmt_tests tests[] = {
 	{FORMAT_VALID, "any pasword will be ok"},
 	{NULL}
@@ -77,19 +79,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void init(struct fmt_main *self)
 {
-	total_cnt = MAX_KEYS_PER_CRYPT;
+	int total_cnt = MAX_KEYS_PER_CRYPT;
 #ifdef _OPENMP
 	total_cnt *= omp_get_max_threads();
 	self->params.max_keys_per_crypt = total_cnt;
 	self->params.max_keys_per_crypt = total_cnt;
 #endif
 	saved_key = mem_calloc(total_cnt, sizeof(*saved_key));
-	delay = mem_calloc(total_cnt, sizeof(struct timespec));
 }
 
 static void done(void)
 {
-	MEM_FREE(delay);
 	MEM_FREE(saved_key);
 }
 
@@ -103,27 +103,25 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-void load_delays(int count) {
-	int i;
-	for (i = 0; i < count; ++i) {
-		delay[i].tv_sec = 0;
-		delay[i].tv_nsec = 100000 + rand()%50000;
-	}
-}
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
 
-	load_delays(count);
-
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
-		struct timespec res;
-		nanosleep(&delay[index], &res);
+#if defined (_MSC_VER) || defined (__MINGW__)
+		Sleep(20);
+#else
+		struct timespec res, delay;
+
+		delay.tv_sec = 0;
+		delay.tv_nsec = 20000000;
+		nanosleep(&delay, &res);
+#endif
 	}
 	return count;
 }
