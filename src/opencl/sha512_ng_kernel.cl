@@ -54,21 +54,24 @@ inline void any_hash_cracked(
 	const uint64_t * const hash,                //the hash calculated by this kernel
 	__global const uint32_t * const bitmap) {
 
-    uint32_t bit_mask, found;
+    uint32_t bit_mask_x, bit_mask_y, found;
 
-    SPREAD_64(hash[0], hash[1], BITMAP_SIZE_MINUS1, bit_mask)
+    SPREAD_64(hash[0], hash[1], BITMAP_SIZE_MINUS1, bit_mask_x, bit_mask_y)
 
-    if (bitmap[bit_mask >> 5] & (1U << (bit_mask & 31))) {
-	//A possible crack have been found.
-	found = atomic_inc(&hash_id[0]);
+    if (bitmap[bit_mask_x >> 5] & (1U << (bit_mask_x & 31))) {
 
-	{
-	    //Save (the probably) hashed key metadata.
-	    uint32_t base = get_global_id(0);
+	if (bitmap[bit_mask_y >> 5] & (1U << (bit_mask_y & 31))) {
+	    //A possible crack have been found.
+	    found = atomic_inc(&hash_id[0]);
 
-	    hash_id[1 + 3 * found] = base;
-	    hash_id[2 + 3 * found] = iter;
-	    hash_id[3 + 3 * found] = (uint32_t) hash[0];
+	    {
+		//Save (the probably) hashed key metadata.
+		uint32_t base = get_global_id(0);
+
+		hash_id[1 + 3 * found] = base;
+		hash_id[2 + 3 * found] = iter;
+		hash_id[3 + 3 * found] = (uint32_t) hash[0];
+	    }
 	}
     }
 }
