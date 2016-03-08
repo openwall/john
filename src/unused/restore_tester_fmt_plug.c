@@ -31,8 +31,13 @@ extern struct fmt_main fmt_restore_tester;
 john_register_one(&fmt_restore_tester);
 #else
 
+#include "autoconfig.h"
+
 #include <string.h>
 #include <time.h>
+#if HAVE_WINDOWS_H
+#include <windows.h>
+#endif
 #include "common.h"
 #include "formats.h"
 #include "memory.h"
@@ -60,7 +65,9 @@ john_register_one(&fmt_restore_tester);
 #define MIN_KEYS_PER_CRYPT		16
 #define MAX_KEYS_PER_CRYPT		16
 
+#if !HAVE_WINDOWS_H
 static struct timespec *delay;
+#endif
 static int total_cnt;
 
 static struct fmt_tests tests[] = {
@@ -84,12 +91,16 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt = total_cnt;
 #endif
 	saved_key = mem_calloc(total_cnt, sizeof(*saved_key));
+#if !HAVE_WINDOWS_H
 	delay = mem_calloc(total_cnt, sizeof(struct timespec));
+#endif
 }
 
 static void done(void)
 {
+#if !HAVE_WINDOWS_H
 	MEM_FREE(delay);
+#endif
 	MEM_FREE(saved_key);
 }
 
@@ -106,8 +117,10 @@ static char *get_key(int index)
 void load_delays(int count) {
 	int i;
 	for (i = 0; i < count; ++i) {
+#if !HAVE_WINDOWS_H
 		delay[i].tv_sec = 0;
 		delay[i].tv_nsec = 100000 + rand()%50000;
+#endif
 	}
 }
 
@@ -122,8 +135,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
+#if !HAVE_WINDOWS_H
 		struct timespec res;
 		nanosleep(&delay[index], &res);
+#else
+		Sleep(20);
+#endif
 	}
 	return count;
 }
