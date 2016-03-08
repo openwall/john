@@ -85,8 +85,8 @@ extern void cuda_device_list();
  */
 static void listconf_list_options()
 {
-	puts("help[:WHAT], subformats, inc-modes, rules, externals, ext-filters,");
-	puts("ext-filters-only, ext-modes, build-info, hidden-options, encodings,");
+	puts("help[:WHAT], subformats, inc-modes, rules, externals, ext-modes, ext-hybrids,");
+	puts("ext-filters, ext-filters-only, build-info, hidden-options, encodings,");
 	puts("formats, format-details, format-all-details, format-methods[:WHICH],");
 	// With "opencl-devices, cuda-devices, <conf section name>" added,
 	// the resulting line will get too long
@@ -473,6 +473,12 @@ void listconf_parse_late(void)
 	if (!strcasecmp(options.listconf, "ext-modes"))
 	{
 		cfg_print_subsections("List.External", "generate", NULL, 0);
+		cfg_print_subsections("List.External", "new", NULL, 0);
+		exit(EXIT_SUCCESS);
+	}
+	if (!strcasecmp(options.listconf, "ext-hybrids"))
+	{
+		cfg_print_subsections("List.External", "new", NULL, 0);
 		exit(EXIT_SUCCESS);
 	}
 

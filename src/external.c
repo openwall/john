@@ -33,6 +33,12 @@
 #include "unicode.h"
 #include "memdbg.h"
 
+/*
+ * int_hybrid_base_word is set to the original word before call to new().
+ * This is needed, so that we can store this proper word for a resume.
+ */
+static char int_hybrid_base_word[PLAINTEXT_BUFFER_SIZE];
+static char hybrid_actual_completed_base_word[PLAINTEXT_BUFFER_SIZE];
 static char int_word[PLAINTEXT_BUFFER_SIZE];
 static char rec_word[PLAINTEXT_BUFFER_SIZE];
 static char hybrid_rec_word[PLAINTEXT_BUFFER_SIZE];
@@ -50,13 +56,17 @@ static char *regex;
  */
 static unsigned int seq, rec_seq;
 static unsigned int hybrid_rec_seq;
+static unsigned int hybrid_resume;
+static unsigned int hybrid_actual_completed_resume;
+static unsigned int hybrid_actual_completed_total;
 
 unsigned int ext_flags = 0;
 static char *ext_mode;
 
 static c_int ext_word[PLAINTEXT_BUFFER_SIZE];
-c_int ext_abort, ext_status, ext_cipher_limit, ext_minlen, ext_maxlen;
-c_int ext_time, ext_utf32, ext_target_utf8;
+c_int ext_abort, ext_status; /* cracker needs to know about these */
+static c_int ext_cipher_limit, ext_minlen, ext_maxlen, ext_hybrid_resume, ext_hybrid_total;
+static c_int ext_time, ext_utf32, ext_target_utf8;
 
 static struct c_ident ext_ident_status = {
 	NULL,
@@ -64,8 +74,20 @@ static struct c_ident ext_ident_status = {
 	&ext_status
 };
 
-static struct c_ident ext_ident_utf32 = {
+static struct c_ident ext_ident_hybrid_resume = {
 	&ext_ident_status,
+	"hybrid_resume",
+	&ext_hybrid_resume
+};
+
+static struct c_ident ext_ident_hybrid_total = {
+	&ext_ident_hybrid_resume,
+	"hybrid_total",
+	&ext_hybrid_total
+};
+
+static struct c_ident ext_ident_utf32 = {
+	&ext_ident_hybrid_total,
 	"utf32",
 	&ext_utf32
 };
@@ -113,6 +135,8 @@ static struct c_ident ext_globals = {
 };
 
 static void *f_generate;
+static void *f_next = NULL;
+void *f_new = NULL;
 void *f_filter = NULL;
 
 static struct cfg_list *ext_source;
@@ -224,6 +248,15 @@ void ext_init(char *mode, struct db_main *db)
 
 	f_generate = c_lookup("generate");
 	f_filter = c_lookup("filter");
+	f_new = c_lookup("new");
+	f_next = c_lookup("next");
+
+	if (f_new && !f_next) {
+		if (john_main_process)
+			fprintf(stderr,
+			    "No next() when new() found for external mode: %s\n", mode);
+		error();
+	}
 
 	if ((ext_flags & EXT_REQ_GENERATE) && !f_generate) {
 		if (john_main_process)
@@ -243,7 +276,10 @@ void ext_init(char *mode, struct db_main *db)
 				        "Warning: external mode '%s' can't be"
 				        " resumed if aborted\n", mode);
 	}
-	if ((ext_flags & EXT_REQ_FILTER) && !f_filter) {
+	/* in 'filter' mode, it may be a filter run, OR a hybrid run */
+	if ((ext_flags & EXT_REQ_FILTER) && f_next && f_new) {
+		; // this one is 'ok'.  A wordlist mode CAN run with next() and new()
+	} else	if ((ext_flags & EXT_REQ_FILTER) && !f_filter) {
 		if (john_main_process)
 			fprintf(stderr,
 			    "No filter() for external mode: %s\n", mode);
@@ -323,6 +359,16 @@ static void save_state(FILE *file)
 	} while (*ptr++);
 }
 
+static void save_state_hybrid(FILE *file)
+{
+	unsigned char *ptr;
+	ptr = (unsigned char *)hybrid_actual_completed_base_word;
+	fprintf(file, "ext-v1\n%u %u %u\n", hybrid_actual_completed_resume,
+	        hybrid_actual_completed_total, (unsigned)strlen((char*)ptr));
+	while (*ptr)
+		fprintf(file, "%d ", (int)*ptr++);
+}
+
 static int restore_state(FILE *file)
 {
 	int c;
@@ -344,10 +390,44 @@ static int restore_state(FILE *file)
 	if (ext_utf32)
 		enc_to_utf32((UTF32*)ext_word, PLAINTEXT_BUFFER_SIZE,
 		             (UTF8*)int_word, strlen(int_word));
-
 	c_execute(c_lookup("restore"));
-
 	return 0;
+}
+
+int ext_restore_state_hybrid(const char *sig, FILE *file)
+{
+	int tot = -1, ver, c, cnt = 0, count = 0;
+	char buf[128+PLAINTEXT_BUFFER_SIZE];
+	unsigned char *cp, *internal;
+	c_int *external;
+
+	if (strncmp(sig, "ext-v", 5))
+		return 1;
+	if (sscanf(sig, "ext-v%d", &ver) == 1 && ver == 1) {
+		fgetl(buf, sizeof(buf), file);
+		if (sscanf(buf, "%d %d %d\n", &hybrid_resume, &tot, &cnt) != 3)
+			return 1;
+		ext_hybrid_total = -1;
+		ext_hybrid_resume = hybrid_resume;
+		internal = (unsigned char*)int_word;
+		external = ext_word;
+		cp = (unsigned char*)int_hybrid_base_word;
+		do {
+			if (fscanf(file, "%d ", &c) != 1) { if (cnt == count) break; return 1; }
+			if (++count >= PLAINTEXT_BUFFER_SIZE) return 1;
+		} while ((*internal++ = *external++ = *cp++ = c));
+		*internal = 0;
+		*external = 0;
+		if (cnt != count) return 1;
+		if (ext_utf32)
+			enc_to_utf32((UTF32*)ext_word, PLAINTEXT_BUFFER_SIZE,
+				     (UTF8*)int_word, strlen(int_word));
+		c_execute(c_lookup("restore"));
+		if (ext_hybrid_total > 0 && ext_hybrid_total == tot)
+			hybrid_resume = 0; // the script handled resuming.
+		return 0;
+	}
+	return 1;
 }
 
 static void fix_state(void)
@@ -356,6 +436,7 @@ static void fix_state(void)
 		strcpy(rec_word, hybrid_rec_word);
 		rec_seq = hybrid_rec_seq;
 		hybrid_rec_word[0] = 0;
+		return;
 	}
 	strcpy(rec_word, int_word);
 	rec_seq = seq;
@@ -365,6 +446,10 @@ void ext_hybrid_fix_state(void)
 {
 	strcpy(hybrid_rec_word, int_word);
 	hybrid_rec_seq = seq;
+
+	hybrid_actual_completed_resume = ext_hybrid_resume;
+	hybrid_actual_completed_total  = ext_hybrid_total;
+	strcpy(hybrid_actual_completed_base_word, int_hybrid_base_word);
 }
 
 void do_external_crack(struct db_main *db)
@@ -473,4 +558,108 @@ void do_external_crack(struct db_main *db)
 
 	crk_done();
 	rec_done(event_abort);
+}
+
+
+/*
+ * NOTE, we do absolutely NO node splitting here.  If running MPI or fork,
+ * then each word will only be sent to ONE thread. Thus that thread has
+ * to process ALL candidates that the external script will build
+ */
+int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
+	char word[1024];
+	static int first=1;
+	int retval = 0;
+	int max_len = db->format->params.plaintext_length;
+	unsigned char *internal, *cp;
+	c_int *external;
+	int do_load = 0;
+	int just_restored = 0;
+
+	if (first) {
+		strcpy(int_hybrid_base_word, base_word);
+		rec_init_hybrid(save_state_hybrid);
+		first = 0;
+		just_restored = rec_restored;
+		if (!rec_restored) {
+			ext_hybrid_resume = hybrid_resume;
+			if (hybrid_resume)
+				do_load = 1;
+		}
+	} else {
+		ext_hybrid_resume = 0;
+		do_load = 1;
+	}
+	if (do_load) {
+		strcpy(int_hybrid_base_word, base_word);
+		ext_hybrid_total = -1;
+		cp = (unsigned char*)base_word;
+		internal = (unsigned char *)int_word;
+		external = ext_word;
+		while (*cp)
+			*internal++ = *external++ = *cp++;
+		*internal = 0;
+		*external = 0;
+	}
+
+	if (hybrid_resume) {
+		c_execute_fast(f_new);
+		while (hybrid_resume) {
+			c_execute_fast(f_next);
+			--hybrid_resume;
+			if (ext_word[0] == 0) {
+				hybrid_resume = 0;
+				ext_hybrid_resume = 0;
+				return 0;
+			}
+		}
+	} else if (!just_restored)
+		c_execute_fast(f_new);
+//	log_event("Proceeding with external hybrid count: %d mode: %.25s word: %.50s", ext_hybrid_resume, ext_mode, int_hybrid_base_word);
+
+	/* gets the next word, OR if word[0] is null, this word is done */
+	c_execute_fast(f_next);
+	while (ext_word[0]) {
+		if (ext_utf32) {
+			utf32_to_enc((UTF8*)int_word, maxlen, (UTF32*)ext_word);
+		} else {
+			cp = (unsigned char*)word;
+			internal = (unsigned char *)int_word;
+			external = ext_word;
+			while (*external)
+				*cp++ = *internal++ = *external++;
+			*internal = 0;
+			*cp = 0;
+		}
+
+		if (options.mask) {
+			if (do_mask_crack(word)) {	// can this cause infinite recursion ??
+				retval = 1;
+				goto out;
+			}
+		} else if (ext_filter((char*)word)) {
+			word[max_len] = 0;
+			if (crk_process_key((char *)word)) {
+				retval = 1;
+//				log_event("aborting external hybrid count: %d word: %.50s", ext_hybrid_resume, int_hybrid_base_word);
+				goto out;
+			}
+			strcpy(int_hybrid_base_word, base_word);
+//			log_event("Proceed with external hybrid count: %d word: %.50s", ext_hybrid_resume, int_hybrid_base_word);
+		} else {
+			/* Filter skip, and next() skip use the 'same' bail */
+			/* out flag (i.e. int_word[0]==0. So since this was */
+			/* a filter skip, we just reset ext_word[0] back to */
+			/* what it was and continue. We want to just skip   */
+			/* the word not break from the entire cracking loop */
+			ext_word[0] = int_word[0];
+		}
+
+		/* gets the next word, OR if word[0] is null, this word is done */
+		++ext_hybrid_resume;
+		c_execute_fast(f_next);
+	}
+out:;
+//	log_event("exiting external hybrid count: %d word: %.50s", ext_hybrid_resume, int_hybrid_base_word);
+	return retval;
 }
