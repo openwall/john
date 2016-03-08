@@ -576,7 +576,6 @@ void do_external_crack(struct db_main *db)
  * to process ALL candidates that the external script will build
  */
 int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
-	char word[1024];
 	static int first=1;
 	int retval = 0;
 	int max_len = db->format->params.plaintext_length;
@@ -629,26 +628,25 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 	/* gets the next word, OR if word[0] is null, this word is done */
 	c_execute_fast(f_next);
 	while (ext_word[0]) {
+		c_int ext_word_0 = ext_word[0];
 		if (ext_utf32) {
 			utf32_to_enc((UTF8*)int_word, maxlen, (UTF32*)ext_word);
 		} else {
-			cp = (unsigned char*)word;
 			internal = (unsigned char *)int_word;
 			external = ext_word;
 			while (*external)
-				*cp++ = *internal++ = *external++;
+				*internal++ = *external++;
 			*internal = 0;
-			*cp = 0;
 		}
 
 		if (options.mask) {
-			if (do_mask_crack(word)) {	// can this cause infinite recursion ??
+			if (do_mask_crack(int_word)) {	// can this cause infinite recursion ??
 				retval = 1;
 				goto out;
 			}
-		} else if (ext_filter((char*)word)) {
-			word[max_len] = 0;
-			if (crk_process_key((char *)word)) {
+		} else if (ext_filter((char*)int_word)) {
+			int_word[max_len] = 0;
+			if (crk_process_key((char *)int_word)) {
 				retval = 1;
 //				log_event("aborting external hybrid count: %d word: %.50s", ext_hybrid_resume, int_hybrid_base_word);
 				goto out;
@@ -661,7 +659,7 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 			/* a filter skip, we just reset ext_word[0] back to */
 			/* what it was and continue. We want to just skip   */
 			/* the word not break from the entire cracking loop */
-			ext_word[0] = int_word[0];
+			ext_word[0] = ext_word_0;
 		}
 
 		/* gets the next word, OR if word[0] is null, this word is done */
