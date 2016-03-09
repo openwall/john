@@ -16,7 +16,7 @@ filter()	called for each word to be tried, can filter some words out
 generate()	called to generate words, when no other cracking modes used
 restore()	called when restoring an interrupted session
 new()		called when starting each base word (hybrid cracking mode)
-next()		called to iterate during the hybrid cracking (see hybrid cracking) 
+next()		called to iterate during the hybrid cracking (see hybrid cracking)
 
 All of them are of type "void", with no arguments, and should use the
 global variable "word" (pre-defined as "int word[]"), except for init()
