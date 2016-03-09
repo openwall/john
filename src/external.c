@@ -195,7 +195,7 @@ int ext_has_function(char *mode, char *function)
 
 void ext_init(char *mode, struct db_main *db)
 {
-	if (db != NULL && db->format != NULL) {
+	if (db && db->format) {
 		/* This is second time we are called, just update max length */
 		ext_cipher_limit = maxlen =
 			db->format->params.plaintext_length - mask_add_len;
@@ -205,7 +205,7 @@ void ext_init(char *mode, struct db_main *db)
 		}
 		return;
 	} else
-		ext_cipher_limit = options.length;
+		ext_cipher_limit = maxlen = options.length;
 
 	ext_time = (int) time(NULL);
 
@@ -578,7 +578,6 @@ void do_external_crack(struct db_main *db)
 int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 	static int first=1;
 	int retval = 0;
-	int max_len = db->format->params.plaintext_length;
 	unsigned char *internal, *cp;
 	c_int *external;
 	int do_load = 0;
@@ -645,7 +644,7 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 				goto out;
 			}
 		} else if (ext_filter((char*)int_word)) {
-			int_word[max_len] = 0;
+			int_word[maxlen] = 0;
 			if (crk_process_key((char *)int_word)) {
 				retval = 1;
 //				log_event("aborting external hybrid count: %d word: %.50s", ext_hybrid_resume, int_hybrid_base_word);
