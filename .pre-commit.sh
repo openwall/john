@@ -36,7 +36,7 @@ fi
 ########################################################
 # Tests 2/3/4/5. Make sure source does not have execute bit set
 ########################################################
-TXT_FILE_PATTERN='\.(cl|c|h|txt|S|s|in|chr|conf|txt|md|asm|cin|dep|gost|legacy|macros|stub|m4|cu|bash_completion|zsh_completion|lst)(\..+)?$'
+TXT_FILE_PATTERN='\.(ac|cl|c|h|txt|S|s|in|chr|conf|txt|md|asm|cin|dep|gost|legacy|macros|stub|m4|cu|bash_completion|zsh_completion|lst)(\..+)?$'
 TXT_FILES=`git diff --cached --name-only | grep -E $TXT_FILE_PATTERN`
 TXT_FILES="$TXT_FILES"`git diff --cached --name-only | grep -E ^doc/`
 if [ "x$TXT_FILES" != "x" ] ; then

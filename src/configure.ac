@@ -472,7 +472,7 @@ AC_CHECK_LIB([dl],[dlopen],[AC_DEFINE(HAVE_LIBDL,1,[Define to 1 if you have the 
 AC_CHECK_HEADERS([intrin.h], break)
 
 BACKUP_LIBS="$LIBS"
-  
+
 LIBS=""
 using_rexgen=no
 # Check for rexgen only if rexgen wanted
