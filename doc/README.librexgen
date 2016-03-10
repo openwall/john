@@ -14,8 +14,8 @@ The current options we have are:
               will be run to convert the reg-ex AFTER the word has been
               prepared and delivered.  Fun things like f mapping to ph
               or M mapping to |\/| can be done.  Case can also easily be
-              done here, but the case option is also used. These options
-              are stored in teh regex_alphabest.conf file in ./run dir
+              done here if the case option is also used. These options
+              are stored in the regex_alphabets.conf file in ./run dir
               of JtR.  There are these current alphabets:
               The default (if just =alpha is used). It is an empty
               alphabet, nothing will change.  alpha:case  This is the
@@ -31,8 +31,9 @@ The current options we have are:
               letter replacements which likely are not seen in garden
               variety passwords. h -> h H  |-|  ]-[  }-{  (-)  )-(  }{  #
               is one example of alpha:leet3.
-
-
+              alpha:ascii2nonascii is a alphabet which will convert ascii
+              characters into non ascii utf8 characters which 'look'
+              similar (i.e. a with grave, umlat, accent, hook, etc)
 
 Currently, rexgen can be used stand alone, OR with wordlist and rules.
 There are plans to also add this to single mode at some time.
@@ -108,11 +109,14 @@ rexgen '[0-2]password[A-C]'
 1passwordC
 2passwordC
 
-Once you are at this point, rexgen is installed.  JtR Makefile will
-(should) autodetect the library, and now build in code to use it.
+Once you are at this point, rexgen is installed.  JtR ./configure should
+autodetect the library, and now build in code to use it. NOTE, JtR requires
+at least version 1.4.x to work properly. There were some bug fixes done
+when save/restore was added to rexgen, and versions of rexgen prior to
+this, simply do not work properly.
 
 Note, JtR help document is NOT here to troubleshoot installation of this
-library.  A simple how to do it (when thing work write), is what was listed.
+library.  A simple how to do it (when thing work right), is what was listed.
 If there problems beyond what is addressed in this document, then the lib's
 author is probably the best way to go.  A quick 'help me' post on john-users
 may get the proper answer, AND if we get a quick resolve, we will likely
