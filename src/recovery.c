@@ -54,6 +54,7 @@
 #include "status.h"
 #include "recovery.h"
 #include "external.h"
+#include "regex.h"
 #include "john.h"
 #include "mask.h"
 #include "unicode.h"
@@ -611,16 +612,10 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
 	while (!feof(rec_file)) {
 		if (!strncmp(buf, "ext-v", 5)) {
 			if (ext_restore_state_hybrid(buf, rec_file)) rec_format_error("external-hybrid");
-			fgetl(buf, sizeof(buf), rec_file);
-			continue;
 		}
-		/*
-		if (!strncmp(buf, "rex-v", 5)) {
+		else if (!strncmp(buf, "rex-v", 5)) {
 			if (rexgen_restore_state_hybrid(buf, rec_file)) rec_format_error("rexgen-hybrid");
-			fgetl(buf, sizeof(buf), rec_file);
-			continue;
 		}
-		*/
 		fgetl(buf, sizeof(buf), rec_file);
 	}
 

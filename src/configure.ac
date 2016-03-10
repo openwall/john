@@ -472,15 +472,16 @@ AC_CHECK_LIB([dl],[dlopen],[AC_DEFINE(HAVE_LIBDL,1,[Define to 1 if you have the 
 AC_CHECK_HEADERS([intrin.h], break)
 
 BACKUP_LIBS="$LIBS"
-
+  
 LIBS=""
 using_rexgen=no
 # Check for rexgen only if rexgen wanted
 if test "x$enable_rexgen" != xno ; then
   AC_CHECK_HEADER([librexgen/version.h],
     [AC_SEARCH_LIBS([rexgen_version_int],[rexgen librexgen],
-      [AC_TRY_RUN([int main() { return ! (rexgen_version_int() >= 0x010300); }],
-        [using_rexgen=yes])]
+      [AC_MSG_CHECKING([librexgen minimum version])] && [AC_TRY_RUN([int main() { return ! (rexgen_version_int() >= 0x010400); }],
+        AC_MSG_RESULT([usable]) && [using_rexgen=yes],
+        AC_MSG_RESULT([TOO OLD. Rexgen not usable!]))]
     )]
   )
   if test "x$using_rexgen" == "xyes" ; then
