@@ -613,9 +613,11 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
 		if (!strncmp(buf, "ext-v", 5)) {
 			if (ext_restore_state_hybrid(buf, rec_file)) rec_format_error("external-hybrid");
 		}
+#if HAVE_REXGEN
 		else if (!strncmp(buf, "rex-v", 5)) {
 			if (rexgen_restore_state_hybrid(buf, rec_file)) rec_format_error("rexgen-hybrid");
 		}
+#endif
 		fgetl(buf, sizeof(buf), rec_file);
 	}
 
