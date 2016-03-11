@@ -875,27 +875,11 @@ static int crk_salt_loop(void)
 		return 1;
 
 	salt = crk_db->salts;
-
-	/* on first run, right after restore, this can be non-zero */
-	if (status.salt_idx) {
-		int i = status.salt_idx;
-		while (i--) {
-			salt = salt->next;
-			if (!salt) {
-				salt = crk_db->salts;
-				status.salt_idx = 0;
-				break;
-			}
-		}
-	}
 	do {
 		crk_methods.set_salt(salt->salt);
 		if ((done = crk_password_loop(salt)))
 			break;
-		++status.salt_idx;
 	} while ((salt = salt->next));
-	if (!salt)
-		status.salt_idx = 0;
 
 	if (done >= 0) {
 #if !HAVE_OPENCL

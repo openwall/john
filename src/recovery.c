@@ -377,11 +377,6 @@ void rec_save(void)
 	    rec_check);
 
 	if (rec_save_mode) rec_save_mode(rec_file);
-
-	/* these are 'appended' resume blocks */
-	/* add a v1 record for salt resume, if salt_idx not at start */
-	if (status.salt_idx)
-		fprintf(rec_file, "slt-v1\n%x\n", status.salt_idx);
 	if (rec_save_mode2) rec_save_mode2(rec_file);
 	if (rec_save_mode3) rec_save_mode3(rec_file);
 	if (options.flags & FLG_MASK_STACKED)
@@ -615,19 +610,17 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
 	fgetl(buf, sizeof(buf), rec_file);
 	while (!feof(rec_file)) {
 		if (!strncmp(buf, "ext-v", 5)) {
-			if (ext_restore_state_hybrid(buf, rec_file))
-				rec_format_error("external-hybrid");
+			if (ext_restore_state_hybrid(buf, rec_file)) rec_format_error("external-hybrid");
+			fgetl(buf, sizeof(buf), rec_file);
+			continue;
 		}
 		/*
-		else if (!strncmp(buf, "rex-v", 5)) {
-			if (rexgen_restore_state_hybrid(buf, rec_file))
-				rec_format_error("rexgen-hybrid");
+		if (!strncmp(buf, "rex-v", 5)) {
+			if (rexgen_restore_state_hybrid(buf, rec_file)) rec_format_error("rexgen-hybrid");
+			fgetl(buf, sizeof(buf), rec_file);
+			continue;
 		}
 		*/
-		if (!strcmp(buf, "slt-v1")) {
-			if (fscanf(rec_file, "%x\n", &status.salt_idx) != 1)
-				rec_format_error("salt-restore block");
-		}
 		fgetl(buf, sizeof(buf), rec_file);
 	}
 

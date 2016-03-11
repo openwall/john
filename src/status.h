@@ -41,7 +41,6 @@ struct status_main {
 	int compat;
 	int pass;
 	int progress;
-	int salt_idx;
 };
 
 extern struct status_main status;
