@@ -311,6 +311,8 @@ static int restore_state(FILE *file)
 			pexit(STR_MACRO(jtr_fseek64));
 		line_number = rec_line;
 	}
+	else
+		line_number = rec_line;
 
 	return 0;
 }
