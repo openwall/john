@@ -53,6 +53,7 @@
 #include "unicode.h"
 #include "john.h"
 #include "fake_salts.h"
+#include "sha.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
@@ -135,6 +136,25 @@ static void crk_help(void)
 	fprintf(stderr, "Press 'q' or Ctrl-C to abort, "
 	    "almost any other key for status\n");
 	printed = 1;
+}
+
+int crk_update_cur_salt_checksum(unsigned char buf[20])
+{
+	SHA_CTX ctx;
+	struct db_salt *salt;
+	int total = 0;
+
+	SHA1_Init(&ctx);
+	/* does the salt list EVER change during runtime?  note, if so, */
+	/* then we 'could' simply recompute this info when it changes */
+	salt = crk_db->salts;
+	while (salt) {
+		++total;
+		SHA1_Update(&ctx, salt->salt, crk_params.salt_size);
+		salt = salt->next;
+	}
+	SHA1_Final(buf, &ctx);
+	return total;
 }
 
 void crk_init(struct db_main *db, void (*fix_state)(void),
@@ -875,11 +895,47 @@ static int crk_salt_loop(void)
 		return 1;
 
 	salt = crk_db->salts;
+
+	/* on first run, right after restore, this can be non-zero */
+	if (status.salt_idx) {
+		int i = status.salt_idx;
+		int total;
+		unsigned char sha1_hash[20];
+
+		total = crk_update_cur_salt_checksum(sha1_hash);
+		if (total != status.total_salts ||
+		    memcmp(sha1_hash, status.salts_sha1, 20)) {
+			    char *msg =
+"unable to restore the multi-salt data.  Something has changed since the "
+".rec file was made. All salts for the first candidates will be tested.";
+			    /*
+			     *something is different about the salt list we
+			     * have now, and what was used when the .rec file
+			     * was written, SO we can not resume and must
+			     * fully redo all the salts for the input words.
+			     */
+			    i = 0;
+			    status.salt_idx = 0;
+			    log_event(msg);
+			    fprintf(stderr, "%s\n", msg);
+		}
+		while (i--) {
+			salt = salt->next;
+			if (!salt) {
+				salt = crk_db->salts;
+				status.salt_idx = 0;
+				break;
+			}
+		}
+	}
 	do {
 		crk_methods.set_salt(salt->salt);
 		if ((done = crk_password_loop(salt)))
 			break;
+		++status.salt_idx;
 	} while ((salt = salt->next));
+	if (!salt)
+		status.salt_idx = 0;
 
 	if (done >= 0) {
 #if !HAVE_OPENCL
