@@ -306,6 +306,16 @@ static int restore_state(FILE *file)
 		if (mem_map) {
 			char line[LINE_BUFFER_SIZE];
 			skip_lines(rec_line, line);
+			rec_pos = 0;
+		} else if (rec_line && !rec_pos) {
+			/* from mem_map build does not have rec_pos */
+			int64_t i = rec_line;
+			char line[LINE_BUFFER_SIZE];
+			jtr_fseek64(word_file, 0, SEEK_SET);
+			while (i--)
+				if (!fgetl(line, sizeof(line), word_file))
+					pexit(STR_MACRO(jtr_fseek64));
+			rec_pos = jtr_ftell64(word_file);
 		} else
 		if (jtr_fseek64(word_file, rec_pos, SEEK_SET))
 			pexit(STR_MACRO(jtr_fseek64));
