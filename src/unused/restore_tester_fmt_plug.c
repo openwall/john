@@ -27,8 +27,10 @@
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_restore_tester;
+extern struct fmt_main fmt_restore_tester_s;
 #elif FMT_REGISTERS_H
 john_register_one(&fmt_restore_tester);
+john_register_one(&fmt_restore_tester_s);
 #else
 
 #include "autoconfig.h"
@@ -47,7 +49,7 @@ john_register_one(&fmt_restore_tester);
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"restore_tester"
-#define FORMAT_VALID			"$restore_tester$valid" // the only valid hash ;)
+#define FORMAT_VALID			"$restore_tester$valid" // the only valid hash for non-salted
 #define FORMAT_NAME			""
 #define ALGORITHM_NAME			"None"
 
@@ -70,11 +72,24 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
+static struct fmt_tests tests_s[] = {
+	{FORMAT_VALID"$SLT1", "any pasword will be ok"},
+	{FORMAT_VALID"$SLT2", "any pasword will be ok"},
+	{FORMAT_VALID"$SLT3", "any pasword will be ok"},
+	{NULL}
+};
+
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static char *cur_salt;
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strcmp(ciphertext, FORMAT_VALID);
+}
+
+static int valid_s(char *ciphertext, struct fmt_main *self)
+{
+	return !strncmp(ciphertext, FORMAT_VALID"$", sizeof(FORMAT_VALID));
 }
 
 static void init(struct fmt_main *self)
@@ -103,6 +118,16 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static char *get_key_s(int index)
+{
+	static char KEY[PLAINTEXT_LENGTH+10];
+	extern volatile int bench_running;
+	if (bench_running)
+		return saved_key[index];
+	sprintf(KEY, "%s$%s", saved_key[index], cur_salt);
+	return KEY;
+}
+
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -114,12 +139,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index++) {
 #if defined (_MSC_VER) || defined (__MINGW__)
-		Sleep(20);
+		Sleep(50);
 #else
 		struct timespec res, delay;
 
 		delay.tv_sec = 0;
-		delay.tv_nsec = 20000000;
+		delay.tv_nsec = 50000000;
 		nanosleep(&delay, &res);
 #endif
 	}
@@ -139,6 +164,21 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	return 1;
+}
+
+static void *salt(char *ciphertext) {
+	static char salt[5];
+	char *cp = strrchr(ciphertext, '$')+1;
+	int len;
+	len = strlen(cp);
+	if (len > 4) len = 4;
+	memcpy(salt, cp, len);
+	salt[len] = 0;
+	return salt;
+}
+
+static void set_salt(void *salt) {
+	cur_salt = (char*)salt;
 }
 
 struct fmt_main fmt_restore_tester = {
@@ -179,6 +219,55 @@ struct fmt_main fmt_restore_tester = {
 		fmt_default_set_salt,
 		set_key,
 		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			fmt_default_get_hash
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
+};
+
+struct fmt_main fmt_restore_tester_s = {
+	{
+		FORMAT_LABEL"_salted",
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		0,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		BINARY_ALIGN,
+		4,
+		SALT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
+		{ NULL },
+		tests_s
+	}, {
+		init,
+		done,
+		fmt_default_reset,
+		fmt_default_prepare,
+		valid_s,
+		fmt_default_split,
+		fmt_default_binary,
+		salt,
+		{ NULL },
+		fmt_default_source,
+		{
+			fmt_default_binary_hash
+
+		},
+		fmt_default_salt_hash,
+		NULL,
+		set_salt,
+		set_key,
+		get_key_s,
 		fmt_default_clear_keys,
 		crypt_all,
 		{
