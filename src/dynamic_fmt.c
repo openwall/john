@@ -2473,10 +2473,11 @@ static int salt_compare(const void *x, const void *y)
 void dynamic_salt_md5(struct db_salt *s) {
 	MD5_CTX ctx;
 	int len;
+	const char *S = *((const char**)s->salt);
 
 	MD5_Init(&ctx);
-	len = dynamic_this_salt_length(s->salt);
-	MD5_Update(&ctx, ((unsigned char*)s->salt) + 6, len);
+	len = dynamic_this_salt_length(S);
+	MD5_Update(&ctx, S + 6, len);
 	MD5_Final((unsigned char*)(s->salt_md5), &ctx);
 }
 
