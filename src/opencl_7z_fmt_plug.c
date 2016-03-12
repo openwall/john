@@ -463,10 +463,16 @@ static char *get_key(int index)
 
 static int salt_compare(const void *x, const void *y)
 {
+	int c;
 	const struct custom_salt *s1 = x;
 	const struct custom_salt *s2 = y;
 
-	return (s1->NumCyclesPower - s2->NumCyclesPower);
+	// we had to make the salt order deterministic, so that intersalt-restore works
+	if (s1->NumCyclesPower != s2->NumCyclesPower)
+		return (s1->NumCyclesPower - s2->NumCyclesPower);
+	c = memcmp(s1->salt, s2->salt, 16);
+	if (c) return c;
+	return memcmp(s1->iv, s2->iv, 16);
 }
 
 // XXX port Python code to C *OR* use code from LZMA SDK

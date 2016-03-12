@@ -2404,6 +2404,36 @@ static int salt_hash(void *salt)
 	return ( (H^(H>>9)) & (SALT_HASH_SIZE-1) );
 }
 
+unsigned dyna_full_salt_len(const char *s) {
+	unsigned l = *s++ - '0';
+	unsigned bits;
+	l <<= 3;
+	l += *s++ - '0';
+#if ARCH_ALLOWS_UNALIGNED
+	if (*((ARCH_WORD_32*)s) != 0x30303030)
+#else
+	if (memcmp(s, "0000", 4))
+#endif
+		return l;
+	bits = *s++ - '0';
+	bits <<= 3;
+	bits += *s++ - '0';
+	bits <<= 3;
+	bits += *s++ - '0';
+	bits <<= 3;
+	bits += *s++ - '0';
+	s += l;
+	while(bits) {
+		if (bits & 1) {
+			l += *s;
+			s += *s;
+			++s;
+		}
+		bits >>= 1;
+	}
+	return l;
+}
+
 /*
  * dyna compare is required, to get all the shortest
  * salt strings first, then the next longer, then the
@@ -2422,11 +2452,21 @@ static int salt_compare(const void *x, const void *y)
 	   The first 2 bytes of string are length (base 8 ascii) */
 	const char *X = *((const char**)x);
 	const char *Y = *((const char**)y);
+	int l1, l2, l;
 	if (*X<*Y) return -1;
 	if (*X>*Y) return 1;
 	if (X[1]<Y[1]) return -1;
 	if (X[1]>Y[1]) return 1;
-	return 0;
+
+	// we had to make the salt order 100% deterministic, so that intersalt-restore
+	l = l1 = dyna_full_salt_len(X);
+	l2 = dyna_full_salt_len(Y);
+	if (l2 < l) l = l2;
+	l = memcmp(&X[6], &Y[6], l);
+	if (l) return l;
+	if (l1==l2) return 0;
+	if (l1 > l2) return 1;
+	return -1;
 }
 
 /*********************************************************************************

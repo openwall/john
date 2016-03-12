@@ -63,6 +63,11 @@ int ldr_in_pot = 0;
 static int ldr_loading_testdb = 0;
 
 /*
+ * this is set during salt_sort, so it knows the size
+ */
+static int ldr_fmt_salt_size;
+
+/*
  * Flags for read_file().
  */
 #define RF_ALLOW_MISSING		1
@@ -1199,11 +1204,12 @@ static void ldr_init_sqid(struct db_main *db)
 /* #define DEBUG_SALT_SORT */
 
 /* Default: Most used salts first */
-static int salt_compare_num(int a, int b)
+static int salt_compare_num(int a, int b, const void *x, const void *y)
 {
 	if (a > b) return -1;
 	if (a < b) return 1;
-	return 0;
+	/* added to get deterministic sorted salt order for restoring */
+	return dyna_salt_cmp((void*)x, (void*)y, ldr_fmt_salt_size);
 }
 
 /*
@@ -1253,7 +1259,7 @@ static int ldr_salt_cmp(const void *x, const void *y) {
 static int ldr_salt_cmp_num(const void *x, const void *y) {
 	salt_cmp_t *X = (salt_cmp_t *)x;
 	salt_cmp_t *Y = (salt_cmp_t *)y;
-	int cmp = salt_compare_num(X->p->count, Y->p->count);
+	int cmp = salt_compare_num(X->p->count, Y->p->count, X->p->salt, Y->p->salt);
 	return cmp;
 }
 
@@ -1315,6 +1321,9 @@ static void ldr_sort_salts(struct db_main *db)
 		s = s->next;
 	}
 
+	ldr_fmt_salt_size = db->format->params.salt_size;
+
+	dyna_salt_init(db->format);
 	if (fmt_salt_compare)
 		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp);
 	else /* Most used salt first */
