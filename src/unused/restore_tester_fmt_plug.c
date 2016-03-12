@@ -28,9 +28,11 @@
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_restore_tester;
 extern struct fmt_main fmt_restore_tester_s;
+extern struct fmt_main fmt_restore_tester_sh;
 #elif FMT_REGISTERS_H
 john_register_one(&fmt_restore_tester);
 john_register_one(&fmt_restore_tester_s);
+john_register_one(&fmt_restore_tester_sh);
 #else
 
 #include "autoconfig.h"
@@ -64,8 +66,8 @@ john_register_one(&fmt_restore_tester_s);
 #define SALT_SIZE			0
 #define SALT_ALIGN			1
 
-#define MIN_KEYS_PER_CRYPT		16
-#define MAX_KEYS_PER_CRYPT		16
+#define MIN_KEYS_PER_CRYPT		3
+#define MAX_KEYS_PER_CRYPT		3
 
 static struct fmt_tests tests[] = {
 	{FORMAT_VALID, "any pasword will be ok"},
@@ -76,6 +78,12 @@ static struct fmt_tests tests_s[] = {
 	{FORMAT_VALID"$SLT1", "any pasword will be ok"},
 	{FORMAT_VALID"$SLT2", "any pasword will be ok"},
 	{FORMAT_VALID"$SLT3", "any pasword will be ok"},
+	{NULL}
+};
+static struct fmt_tests tests_sh[] = {
+	{FORMAT_VALID"*SLT1", "any pasword will be ok"},
+	{FORMAT_VALID"*SLT2", "any pasword will be ok"},
+	{FORMAT_VALID"*SLT3", "any pasword will be ok"},
 	{NULL}
 };
 
@@ -89,7 +97,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static int valid_s(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, FORMAT_VALID"$", sizeof(FORMAT_VALID));
+	// the strncasecmp allows us to have multiple hashes with identical
+	// salt.  Simply mangle the case of the FORMAT_VALID string and
+	// then using the same salt will have multiple hashes with same salt.
+	return !strncasecmp(ciphertext, FORMAT_VALID"$", sizeof(FORMAT_VALID));
+}
+static int valid_sh(char *ciphertext, struct fmt_main *self)
+{
+	return !strncasecmp(ciphertext, FORMAT_VALID"*", sizeof(FORMAT_VALID));
 }
 
 static void init(struct fmt_main *self)
@@ -120,11 +135,36 @@ static char *get_key(int index)
 
 static char *get_key_s(int index)
 {
-	static char KEY[PLAINTEXT_LENGTH+10];
+	static char KEY[PLAINTEXT_LENGTH+20];
 	extern volatile int bench_running;
 	if (bench_running)
 		return saved_key[index];
-	sprintf(KEY, "%s$%s", saved_key[index], cur_salt);
+	sprintf(KEY, "%s salt->%s", saved_key[index], cur_salt);
+	return KEY;
+}
+
+static int salt_hash(void *salt)
+{
+	unsigned char *p = (unsigned char *)salt;
+	//unsigned v, i;
+	//v = 0;
+	//for (i = 0; i < 4; ++i)
+	//{
+	//	v <<= 3;
+	//	v |= *p++;
+	//	v ^= ((v >> 7) & 0x37);
+	//}
+	//return v & (SALT_HASH_SIZE - 1);
+	return (p[3]-'0') & (SALT_HASH_SIZE - 1);
+}
+
+static char *get_key_sh(int index)
+{
+	static char KEY[PLAINTEXT_LENGTH+60];
+	extern volatile int bench_running;
+	if (bench_running)
+		return saved_key[index];
+	sprintf(KEY, "%s salt->%s salthash->%x", saved_key[index], cur_salt, salt_hash(cur_salt));
 	return KEY;
 }
 
@@ -169,6 +209,17 @@ static int cmp_exact(char *source, int index)
 static void *salt(char *ciphertext) {
 	static char salt[5];
 	char *cp = strrchr(ciphertext, '$')+1;
+	int len;
+	len = strlen(cp);
+	if (len > 4) len = 4;
+	memcpy(salt, cp, len);
+	salt[len] = 0;
+	return salt;
+}
+
+static void *salt_sh(char *ciphertext) {
+	static char salt[5];
+	char *cp = strrchr(ciphertext, '*')+1;
 	int len;
 	len = strlen(cp);
 	if (len > 4) len = 4;
@@ -268,6 +319,54 @@ struct fmt_main fmt_restore_tester_s = {
 		set_salt,
 		set_key,
 		get_key_s,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			fmt_default_get_hash
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
+};
+struct fmt_main fmt_restore_tester_sh = {
+	{
+		FORMAT_LABEL"_salt_hashed",
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		0,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		BINARY_ALIGN,
+		4,
+		SALT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
+		{ NULL },
+		tests_sh
+	}, {
+		init,
+		done,
+		fmt_default_reset,
+		fmt_default_prepare,
+		valid_sh,
+		fmt_default_split,
+		fmt_default_binary,
+		salt_sh,
+		{ NULL },
+		fmt_default_source,
+		{
+			fmt_default_binary_hash
+
+		},
+		salt_hash,
+		NULL,
+		set_salt,
+		set_key,
+		get_key_sh,
 		fmt_default_clear_keys,
 		crypt_all,
 		{
