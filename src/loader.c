@@ -1289,14 +1289,10 @@ static void ldr_gen_salt_md5(struct db_salt *s, int dynamic) {
  * this issue goes away with no performance overhead.  So this function
  * is now also used for dynamic.
  *
- * There's also an experimental john.conf setting AlwaysSortSalts that,
- * if true, will fallback to sort "most used first" if the format does
- * not have a salt_compare method defined.
- *
- * the experemental part aside, we now sort salts always, so that they
- * are put into a deterministic order. That way, we can restore a session
- * and skip ahead until we find the last salt being worked on. Without
- * a deterministic sort, that logic would fail under many situations.
+ * we sort salts always, so that they are put into a deterministic order.
+ * That way, we can restore a session and skip ahead until we find the
+ * last salt being worked on. Without a deterministic sort, that logic
+ * would fail under many situations.
  *
  */
 static void ldr_sort_salts(struct db_main *db)
