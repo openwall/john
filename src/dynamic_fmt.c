@@ -2410,9 +2410,9 @@ unsigned dyna_full_salt_len(const char *s) {
 	l <<= 3;
 	l += *s++ - '0';
 #if ARCH_ALLOWS_UNALIGNED
-	if (*((ARCH_WORD_32*)s) != 0x30303030)
+	if (*((ARCH_WORD_32*)s) == 0x30303030)
 #else
-	if (memcmp(s, "0000", 4))
+	if (!memcmp(s, "0000", 4))
 #endif
 		return l;
 	bits = *s++ - '0';
