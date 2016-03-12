@@ -30,6 +30,8 @@
 #include "formats.h"
 #include "memory.h"
 #include "dyna_salt.h"
+#include "loader.h"
+#include "md5.h"
 #include "memdbg.h"
 
 static struct fmt_main *format;
@@ -105,6 +107,19 @@ int dyna_salt_cmp(void *_p1, void *_p2, int comp_size) {
 #endif
 	// non-dyna salt compare.
 	return memcmp(_p1, _p2, comp_size);
+}
+
+void dyna_salt_md5(struct db_salt *p, int comp_size) {
+	MD5_CTX ctx;
+
+	MD5_Init(&ctx);
+	if ((format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
+		dyna_salt_john_core *ds = *((dyna_salt_john_core**)p->salt);
+		MD5_Update(&ctx, &((unsigned char*)ds)[ds->dyna_salt.salt_cmp_offset],
+		           ds->dyna_salt.salt_cmp_size);
+	} else
+		MD5_Update(&ctx, (unsigned char*)p->salt, comp_size);
+	MD5_Final((unsigned char *)p->salt_md5, &ctx);
 }
 
 void dyna_salt_smash(void *p, char c) {

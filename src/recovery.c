@@ -261,16 +261,20 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 
 static void save_salt_state()
 {
-	if (status.salt_idx) {
-		int i, total;
-		unsigned char sha_buf[20];
+	int i;
+	char md5_buf[33], *p=md5_buf;
+	unsigned char *h = (unsigned char*)status.resume_salt_md5;
 
-		total = crk_update_cur_salt_checksum(sha_buf);
-		fprintf(rec_file, "slt-v1\n%x\n%x\n", status.salt_idx, total);
-		for (i = 0; i < 20; ++i)
-			fprintf(rec_file, "%02x",sha_buf[i]);
-		fprintf(rec_file, "\n");
+	if (!status.resume_salt_md5)
+		return;
+
+	for (i = 0; i < 16; ++i) {
+		*p++ = itoa16[*h >> 4];
+		*p++ = itoa16[*h & 0xF];
+		++h;
 	}
+	*p = 0;
+	fprintf(rec_file, "slt-v1\n%s\n", md5_buf);
 }
 
 void rec_save(void)
@@ -603,20 +607,20 @@ void rec_restore_args(int lock)
 
 static void restore_salt_state()
 {
-	char buf[42];
+	char buf[34];
+	static uint32_t hash[4];
+	unsigned char *h = (unsigned char*)hash;
 	int i;
 
-	if (fscanf(rec_file, "%x\n%x\n", &status.salt_idx,
-	           &status.total_salts) != 2)
-		rec_format_error("multi-salt");
-
 	fgetl(buf, sizeof(buf), rec_file);
-	if (strlen(buf) != 40 || !ishex(buf))
+	if (strlen(buf) != 32 || !ishex(buf))
 		rec_format_error("multi-salt");
-	for (i = 0; i < 20; ++i) {
-		status.salts_sha1[i] = atoi16[ARCH_INDEX(buf[i*2])] << 4;
-		status.salts_sha1[i] += atoi16[ARCH_INDEX(buf[i*2+1])];
+	for (i = 0; i < 16; ++i) {
+		h[i] = atoi16[ARCH_INDEX(buf[i*2])] << 4;
+		h[i] += atoi16[ARCH_INDEX(buf[i*2+1])];
 	}
+	status.resume_salt_md5 = hash;
+	status.resume_salt = 1;
 }
 
 void rec_restore_mode(int (*restore_mode)(FILE *file))

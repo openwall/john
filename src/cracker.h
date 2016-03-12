@@ -57,11 +57,6 @@ extern void crk_done(void);
 extern int crk_reload_pot(void);
 
 /*
- * return count of current salts, and a SHA1 hash of salt contents (in order)
- */
-extern int crk_update_cur_salt_checksum(unsigned char buf[20]);
-
-/*
  * Exported for stacked modes
  */
 extern void (*crk_fix_state)(void);

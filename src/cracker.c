@@ -138,25 +138,6 @@ static void crk_help(void)
 	printed = 1;
 }
 
-int crk_update_cur_salt_checksum(unsigned char buf[20])
-{
-	SHA_CTX ctx;
-	struct db_salt *salt;
-	int total = 0;
-
-	SHA1_Init(&ctx);
-	/* does the salt list EVER change during runtime?  note, if so, */
-	/* then we 'could' simply recompute this info when it changes */
-	salt = crk_db->salts;
-	while (salt) {
-		++total;
-		SHA1_Update(&ctx, salt->salt, crk_params.salt_size);
-		salt = salt->next;
-	}
-	SHA1_Final(buf, &ctx);
-	return total;
-}
-
 void crk_init(struct db_main *db, void (*fix_state)(void),
 	struct db_keys *guesses)
 {
@@ -897,45 +878,29 @@ static int crk_salt_loop(void)
 	salt = crk_db->salts;
 
 	/* on first run, right after restore, this can be non-zero */
-	if (status.salt_idx) {
-		int i = status.salt_idx;
-		int total;
-		unsigned char sha1_hash[20];
+	if (status.resume_salt) {
+		struct db_salt *s = salt;
 
-		total = crk_update_cur_salt_checksum(sha1_hash);
-		if (total != status.total_salts ||
-		    memcmp(sha1_hash, status.salts_sha1, 20)) {
-			    char *msg =
-"unable to restore the multi-salt data.  Something has changed since the "
-".rec file was made. All salts for the first candidates will be tested.";
-			    /*
-			     *something is different about the salt list we
-			     * have now, and what was used when the .rec file
-			     * was written, SO we can not resume and must
-			     * fully redo all the salts for the input words.
-			     */
-			    i = 0;
-			    status.salt_idx = 0;
-			    log_event(msg);
-			    fprintf(stderr, "%s\n", msg);
-		}
-		while (i--) {
-			salt = salt->next;
-			if (!salt) {
-				salt = crk_db->salts;
-				status.salt_idx = 0;
+		status.resume_salt = 0;	/* only resume the first time */
+		while (s) {
+			if (s->salt_md5[0] == status.resume_salt_md5[0] &&
+			    !memcmp(s->salt_md5, status.resume_salt_md5, 16))
+			{
+				/* found it!! */
+				salt = s;
 				break;
 			}
+			s = s->next;
 		}
 	}
 	do {
 		crk_methods.set_salt(salt->salt);
+		status.resume_salt_md5 = salt->salt_md5;
 		if ((done = crk_password_loop(salt)))
 			break;
-		++status.salt_idx;
 	} while ((salt = salt->next));
 	if (!salt)
-		status.salt_idx = 0;
+		status.resume_salt_md5 = 0;
 
 	if (done >= 0) {
 #if !HAVE_OPENCL

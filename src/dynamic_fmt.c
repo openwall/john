@@ -2404,7 +2404,8 @@ static int salt_hash(void *salt)
 	return ( (H^(H>>9)) & (SALT_HASH_SIZE-1) );
 }
 
-unsigned dyna_full_salt_len(const char *s) {
+static unsigned dynamic_this_salt_length(const void *v) {
+	const unsigned char *s = (unsigned char*)v;
 	unsigned l = *s++ - '0';
 	unsigned bits;
 	l <<= 3;
@@ -2459,14 +2460,24 @@ static int salt_compare(const void *x, const void *y)
 	if (X[1]>Y[1]) return 1;
 
 	// we had to make the salt order 100% deterministic, so that intersalt-restore
-	l = l1 = dyna_full_salt_len(X);
-	l2 = dyna_full_salt_len(Y);
+	l = l1 = dynamic_this_salt_length(X);
+	l2 = dynamic_this_salt_length(Y);
 	if (l2 < l) l = l2;
 	l = memcmp(&X[6], &Y[6], l);
 	if (l) return l;
 	if (l1==l2) return 0;
 	if (l1 > l2) return 1;
 	return -1;
+}
+
+void dynamic_salt_md5(struct db_salt *s) {
+	MD5_CTX ctx;
+	int len;
+
+	MD5_Init(&ctx);
+	len = dynamic_this_salt_length(s->salt);
+	MD5_Update(&ctx, ((unsigned char*)s->salt) + 6, len);
+	MD5_Final((unsigned char*)(s->salt_md5), &ctx);
 }
 
 /*********************************************************************************

@@ -1263,6 +1263,13 @@ static int ldr_salt_cmp_num(const void *x, const void *y) {
 	return cmp;
 }
 
+static void ldr_gen_salt_md5(struct db_salt *s, int dynamic) {
+	if (dynamic) {
+		dynamic_salt_md5(s);
+		return;
+	}
+	dyna_salt_md5(s, ldr_fmt_salt_size);
+}
 /*
  * If there are more than 1 salt AND the format exports a salt_compare
  * function, then we reorder the salt array into the order the format
@@ -1285,6 +1292,12 @@ static int ldr_salt_cmp_num(const void *x, const void *y) {
  * There's also an experimental john.conf setting AlwaysSortSalts that,
  * if true, will fallback to sort "most used first" if the format does
  * not have a salt_compare method defined.
+ *
+ * the experemental part aside, we now sort salts always, so that they
+ * are put into a deterministic order. That way, we can restore a session
+ * and skip ahead until we find the last salt being worked on. Without
+ * a deterministic sort, that logic would fail under many situations.
+ *
  */
 static void ldr_sort_salts(struct db_main *db)
 {
@@ -1295,11 +1308,7 @@ static void ldr_sort_salts(struct db_main *db)
 #else
 	salt_cmp_t ar[100];  /* array is easier to debug in VC */
 #endif
-	int always;
-
-	always = cfg_get_bool(SECTION_OPTIONS, NULL, "AlwaysSortSalts", 1);
-
-	if (db->salt_count < 2 || (!fmt_salt_compare && !always))
+	if (db->salt_count < 2)
 		return;
 
 	log_event("Sorting salts, for performance");
@@ -1338,6 +1347,7 @@ static void ldr_sort_salts(struct db_main *db)
 	/* finally, we re-build the linked list of salts */
 	db->salts = ar[0].p;
 	s = db->salts;
+	ldr_gen_salt_md5(s, (db->format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC);
 	for (i = 1; i <= db->salt_count; ++i) {
 		/* Rebuild salt hash table, if we still had one */
 		if (db->salt_hash) {
@@ -1350,6 +1360,7 @@ static void ldr_sort_salts(struct db_main *db)
 		if (i < db->salt_count) {
 			s->next = ar[i].p;
 			s = s->next;
+			ldr_gen_salt_md5(s, (db->format->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC);
 		}
 	}
 	s->next = 0;

@@ -72,6 +72,11 @@ struct fmt_main *dyna_salt_init(struct fmt_main *format);
  */
 int dyna_salt_cmp(void *p1, void *p2, int comp_size);
 
+/*
+ * NOTE, will do the MD5 salt hashing for either non or dyna-salts.
+ */
+void dyna_salt_md5(struct db_salt *p, int comp_size);
+
 //#define DYNA_SALT_DEBUG
 
 #ifdef DYNA_SALT_DEBUG
