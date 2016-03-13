@@ -1203,15 +1203,6 @@ static void ldr_init_sqid(struct db_main *db)
 
 /* #define DEBUG_SALT_SORT */
 
-/* Default: Most used salts first */
-static int salt_compare_num(int a, int b, const void *x, const void *y)
-{
-	if (a > b) return -1;
-	if (a < b) return 1;
-	/* added to get deterministic sorted salt order for restoring */
-	return dyna_salt_cmp((void*)x, (void*)y, ldr_fmt_salt_size);
-}
-
 /*
  * This was done as a structure to allow more data to be
  * placed into it, beyond just the simple pointer. The
@@ -1259,7 +1250,7 @@ static int ldr_salt_cmp(const void *x, const void *y) {
 static int ldr_salt_cmp_num(const void *x, const void *y) {
 	salt_cmp_t *X = (salt_cmp_t *)x;
 	salt_cmp_t *Y = (salt_cmp_t *)y;
-	int cmp = salt_compare_num(X->p->count, Y->p->count, X->p->salt, Y->p->salt);
+	int cmp = dyna_salt_cmp(X->p->salt, Y->p->salt, ldr_fmt_salt_size);
 	return cmp;
 }
 
