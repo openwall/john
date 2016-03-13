@@ -62,15 +62,15 @@ if [ "x$TXT_FILES" != "x" ] ; then
       echo $TXT_FILES | \
          xargs perl -e '$r=0; foreach $n (@ARGV)
                         {
-                          open(F,"<",$n); seek(F,-1,2); read(F,$c,1);
+                          if (open(F,"<",$n)) { seek(F,-1,2); read(F,$c,1);
                           if($c ne "\n") { $r=1; print "Missing final EOL in file $n\n"; } 
-                          close(F); exit($r);
+                          close(F); exit($r); }
                         }'
         if [ "x$?" != "x0" ] ; then echo 'COMMIT REJECTED Found src/text files missing final EOL:' && exit 1 ; fi
    else
       # slow but should be portable.
       MISSING_EOF=""
-      for f in $TXT_FILES; do if [ -n "$(tail -c 1 <"$f")" ]; then echo "missing final EOL in file $f" && MISSING_EOF="Yup" ; fi ; done
+      for f in $TXT_FILES; do if [ -e "$f" ]; then if [ -n "$(tail -c 1 <"$f")" ]; then echo "missing final EOL in file $f" && MISSING_EOF="Yup" ; fi ; fi ; done
       if [ "x$MISSING_EOF" != "x" ] ; then
          echo 'COMMIT REJECTED Found src/text files missing final EOL:' && exit 1
       fi
