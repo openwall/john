@@ -276,6 +276,7 @@ static int actual_base64_to_base64_conv(const char *cpi, char *cpo, int to_len, 
 			memset(tmp, 0, 4);
 			memcpy(tmp, cpi, len_left);
 			cpi = tmp;
+			memset(Tmp, 0, 3);
 		}
 		decode(cpi, len_left < 4 ? len_left : 4, Tmp);
 		encode(Tmp, use_bytes, Tmp2, flags);
