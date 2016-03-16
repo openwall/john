@@ -102,34 +102,6 @@ static size_t get_task_max_work_group_size()
 	return MIN(s, 512);
 }
 
-static uint32_t get_bitmap_size_bits(uint32_t num_elements, int sequential_id)
-{
-	uint32_t size, elements = num_elements;
-	//On super: 128MB , 1GB, 2GB
-	cl_ulong memory_available = get_max_mem_alloc_size(sequential_id);
-
-	elements = (get_power_of_two(elements)) + 1;
-
-	size = (elements * 8);
-
-	if (num_elements < (16))
-		size = (16 * 1024 * 8); //Cache?
-	else if (num_elements < (128))
-		size = (1024 * 1024 * 8 * 16);
-	else if (num_elements < (16 * 1024))
-		size *= 1024 * 4;
-	else
-		size *= 256;
-
-	if (size > memory_available)
-		size = (get_power_of_two(memory_available));
-
-	if (!size || size > INT_MAX)
-		size = (uint)INT_MAX + 1U;
-
-	return size;
-}
-
 static uint32_t get_num_loaded_hashes()
 {
 	uint32_t num_hashes;

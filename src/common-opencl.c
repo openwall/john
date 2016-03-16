@@ -1575,6 +1575,36 @@ static char *human_speed(unsigned long long int speed)
 	return out;
 }
 
+uint32_t get_bitmap_size_bits(uint32_t num_elements, int sequential_id)
+{
+	uint32_t size, elements = num_elements;
+	//On super: 128MB , 1GB, 2GB
+	cl_ulong memory_available = get_max_mem_alloc_size(sequential_id);
+
+	get_power_of_two(elements);
+
+	size = (elements * 8);
+
+	if (num_elements < (16))
+		size = (16 * 1024 * 8); //Cache?
+	else if (num_elements < (128))
+		size = (1024 * 1024 * 8 * 16);
+	else if (num_elements < (16 * 1024))
+		size *= 1024 * 4;
+	else
+		size *= 256;
+
+	if (size > memory_available) {
+		size = memory_available;
+		get_power_of_two(size);
+
+	}
+	if (!size || size > INT_MAX)
+		size = (uint)INT_MAX + 1U;
+
+	return size;
+}
+
 unsigned int lcm(unsigned int x, unsigned int y)
 {
 	unsigned int tmp, a, b;
