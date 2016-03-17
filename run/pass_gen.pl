@@ -82,10 +82,10 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip bitcoin blockchain
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
 		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4 
-		pbkdf2-hmac-md5
+		pbkdf2-hmac-md5 racf
 		));
 
-# todo: sapb sapfg ike keepass cloudkeychain pfx racf pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring krb4 krb5 krb5pa-sha1 kwallet luks pfx racf mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
+# todo: sapb sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring krb4 krb5 krb5pa-sha1 kwallet luks pfx mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
 my $qnx_sha512_warning=0;
 my @chrAsciiText=('a'..'z','A'..'Z');
@@ -1872,12 +1872,98 @@ sub sip {
 ##############################################################################
 sub pfx {
 }
-sub racf {
-}
 sub keepass {
 }
 sub ike {
 }
+sub mdc2 {
+}
+sub sevenz {
+}
+sub afs {
+}
+sub cq {
+}
+sub dmg {
+}
+sub dominosec {
+}
+sub efs {
+}
+sub eigrp {
+}
+sub encfs {
+}
+sub fde {
+}
+sub gpg {
+}
+sub haval_128 {
+}
+sub haval_256 {
+	# NOTE, haval is busted in perl at this time.
+	#print "u$u-haval256_3:".haval256_hex($_[0]).":$u:0:$_[0]::\n";
+}
+sub keyring {
+}
+sub krb4 {
+}
+sub krb5 {
+}
+sub kwallet {
+}
+sub luks {
+}
+sub raw_skein_256 {
+	# NOTE, uses v1.2 of this hash, while JtR uses v 1.3. They are NOT compatible!
+#	require Digest::Skein;
+#	import Digest::Skein qw(skein_256);
+#	print "u$u:\$skein\$".unpack("H*",skein_256($_[1])).":$u:0:$_[0]::\n";
+}
+sub raw_skein_512 {
+	# NOTE, uses v1.2 of this hash, while JtR uses v 1.3. They are NOT compatible!
+#	require Digest::Skein;
+#	import Digest::Skein qw(skein_512);
+#	print "u$u:\$skein\$".unpack("H*",skein_512($_[1])).":$u:0:$_[0]::\n";
+}
+sub ssh {
+}
+sub rar5 {
+}
+sub pdf {
+}
+sub pkzip {
+}
+sub oldoffice {
+}
+sub openbsd_softraid {
+}
+sub openssl_enc {
+}
+sub openvms {
+}
+sub panama {
+}
+sub putty {
+}
+sub snefru_128 {
+}
+sub snefru_256 {
+}
+sub ssh_ng {
+}
+sub sybase_prop {
+}
+sub tripcode {
+}
+sub whirlpool0 {
+}
+sub whirlpool1 {
+}
+##############################################################################
+# stub functions.  When completed, move the function out of this section
+##############################################################################
+
 sub cloudkeychain {
 	$salt = get_salt(16);
 	my $iv = get_iv(16);
@@ -1910,8 +1996,6 @@ sub agilekeychain {
 
 	return "\$agilekeychain\$$nkeys*$iterations*8*".unpack("H*", $salt)."*1040*".unpack("H*", $dat)."*".unpack("H*", $key);
 }
-sub mdc2 {
-}
 sub bitcoin {
 	my $master; my $rounds; # my $ckey; my $public_key;
 	$master = pack("H*", "0e34a996b1ce8a1735bba1acf6d696a43bc6730b5c41224206c93006f14f951410101010101010101010101010101010");
@@ -1925,10 +2009,6 @@ sub bitcoin {
 	require Crypt::CBC;
 	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => substr($h,0,32), -keysize => 32, -iv => substr($h,32,16), -cipher => 'Crypt::OpenSSL::AES', -header => 'none');
 	return '$bitcoin$96$'.substr(unpack("H*", $crypt->encrypt($master)),0,96).'$16$'.unpack("H*", $salt).'$'.$rounds.'$2$00$2$00';
-}
-sub sevenz {
-}
-sub afs {
 }
 sub azuread {
 	$salt = get_salt(10);
@@ -1969,7 +2049,6 @@ sub qnx_md5 {
 	$ret .= "\@".unpack("H*",$h)."\@$salt";
 	return $ret;
 }
-
 sub qnx_sha512 {
 #	use SHA512_qnx;
 #	$salt = get_salt(16, \@chrHexLo);
@@ -2010,30 +2089,6 @@ sub blockchain {
 	$data = $iv.substr($h,0,$len);
 	return '$blockchain$'.length($data).'$'.unpack("H*", $data);
 }
-sub cq {
-}
-sub dmg {
-}
-sub dominosec {
-}
-sub efs {
-}
-sub eigrp {
-}
-sub encfs {
-}
-sub fde {
-}
-sub gpg {
-}
-sub haval_128 {
-}
-sub haval_256 {
-	# NOTE, haval is busted in perl at this time.
-	#print "u$u-haval256_3:".haval256_hex($_[0]).":$u:0:$_[0]::\n";
-}
-sub keyring {
-}
 sub keystore {
 	# we want to assure that we will NEVER set the 0x80 bit in the first block.
 	# so, salt and contant have to be > 64 bytes (at min).
@@ -2046,28 +2101,6 @@ sub keystore {
 	$p = pack("H*", $p2);
 	my $hash = sha1_hex($p . "Mighty Aphrodite" . $salt);
 	return "\$keystore\$0\$".length($salt).'$'.unpack("H*",$salt)."\$$hash\$1\$1\$00";
-}
-sub krb4 {
-}
-sub krb5 {
-}
-sub kwallet {
-}
-sub luks {
-}
-sub raw_skein_256 {
-	# NOTE, uses v1.2 of this hash, while JtR uses v 1.3. They are NOT compatible!
-#	require Digest::Skein;
-#	import Digest::Skein qw(skein_256);
-#	print "u$u:\$skein\$".unpack("H*",skein_256($_[1])).":$u:0:$_[0]::\n";
-}
-sub raw_skein_512 {
-	# NOTE, uses v1.2 of this hash, while JtR uses v 1.3. They are NOT compatible!
-#	require Digest::Skein;
-#	import Digest::Skein qw(skein_512);
-#	print "u$u:\$skein\$".unpack("H*",skein_512($_[1])).":$u:0:$_[0]::\n";
-}
-sub ssh {
 }
 sub vnc {
 	require Crypt::ECB;
@@ -2083,30 +2116,6 @@ sub vnc {
 	my $hash = $cr->encrypt($chal);
 	return "\$vnc\$*".uc(unpack("H*",$chal))."*".uc(unpack('H*', $hash));
 }
-sub rar5 {
-}
-sub pdf {
-}
-sub pkzip {
-}
-sub oldoffice {
-}
-sub openbsd_softraid {
-}
-sub openssl_enc {
-}
-sub openvms {
-}
-sub panama {
-}
-sub putty {
-}
-sub snefru_128 {
-}
-sub snefru_256 {
-}
-sub ssh_ng {
-}
 sub sxc {
 	$salt = get_salt(16);
 	my$iv = get_iv(8);
@@ -2121,10 +2130,6 @@ sub sxc {
 	my $output = $crypt->decrypt($content);
 	my $res = sha1_hex(substr($output, 0, $len2));
 	return "\$sxc\$*0*0*$r*16*$res*8*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*$len2*$len*".unpack("H*",$content);
-}
-sub sybase_prop {
-}
-sub tripcode {
 }
 sub vtp {
 	my $secret = $_[0];
@@ -2175,13 +2180,29 @@ sub vtp {
 	$trailer_data = unpack("H*",$trailer_data);
 	return "\$vtp\$$v\$$vdl\$$vlans_data\$$sl\$$vtp$trailer_data\$$h";
 }
-sub whirlpool0 {
+sub racf {
+	require Convert::EBCDIC;
+	import Convert::EBCDIC qw (ascii2ebcdic);
+	require Crypt::DES;
+	my $user = uc get_username(12);
+	$_[0] = uc $_[0];
+	my $pad_user = substr ($user . " " x 8, 0, 8);
+	my $pad_pass = substr ($_[0] . " " x 8, 0, 8);
+	my $usr_ebc = ascii2ebcdic ($pad_user);
+	my $pass_ebc = ascii2ebcdic ($pad_pass);
+	my @pw = split ("", $pass_ebc);
+	for (my $i = 0; $i < 8; $i++) {
+		$pw[$i] = unpack ("C", $pw[$i]);
+		$pw[$i] ^= 0x55;
+		$pw[$i] <<= 1;
+		$pw[$i] = pack ("C", $pw[$i] & 0xff);
+	}
+	my $key = join ("", @pw);
+	my $des = new Crypt::DES $key;
+	my $h = $des->encrypt ($usr_ebc);
+	$h = uc unpack ("H16", $h);
+	return "\$racf\$*$user*$h";
 }
-sub whirlpool1 {
-}
-##############################################################################
-# stub functions.  When completed, move the function out of this section
-##############################################################################
 
 sub mozilla {
 	$salt = get_salt(20);
@@ -2799,7 +2820,7 @@ sub sha1s {
 sub mysql_sha1 {
 	return "*".sha1_hex(sha1($_[1]));
 }
-sub mysql{
+sub mysql {
 	my $nr=0x50305735;
 	my $nr2=0x12345671;
 	my $add=7;
