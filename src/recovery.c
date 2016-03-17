@@ -287,6 +287,8 @@ void rec_save(void)
 #endif
 	opt = rec_argv;
 	while (*++opt) {
+		if (!memcmp(*opt, "--internal-encoding", 19))
+			memcpy(*opt, "--internal-codepage", 19);
 #ifdef HAVE_MPI
 		if (!strncmp(*opt, "--fork", 6))
 			fake_fork = 0;
@@ -296,7 +298,6 @@ void rec_save(void)
 			!strncmp(*opt, "--input-encoding", 16))
 			add_enc = 0;
 		else if (!strncmp(*opt, "--internal-codepage", 19) ||
-		         !strncmp(*opt, "--internal-encoding", 19) ||
 		         !strncmp(*opt, "--target-encoding", 17))
 			add_2nd_enc = 0;
 		else if (!strncmp(*opt, "--mkv-stats", 11))
