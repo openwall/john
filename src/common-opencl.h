@@ -369,4 +369,9 @@ void opencl_driver_value(int sequential_id, int *major, int *minor);
  * vector width for 'int' otherwise.
  */
 unsigned int opencl_speed_index(int sequential_id);
+
+/*
+ * Calculates the size of the bitmap used by the Bloom Filter buffer.
+ */
+uint32_t get_bitmap_size_bits(uint32_t num_elements, int sequential_id);
 #endif
