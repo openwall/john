@@ -408,10 +408,10 @@ char *pbkdf2_hmac_sha1_prepare(char *fields[10], struct fmt_main *self)
 		return Buf;
 	}
 	if (!strncmp(fields[1], PK5K2_TAG, 6)) {
-		char tmps[160+1], tmph[160+1], *cp, *cp2;
+		char tmps[240+1], tmph[60+1], *cp, *cp2;
 		unsigned iter=0;
-		// salt was listed as 1024 bytes max. But our max salt size is 64 bytes (~90 base64 bytes).
-		if (strlen(fields[1]) > 128) return fields[1];
+		// salt was listed as 1024 bytes max. But our max salt size is 115 bytes (~150 base64 bytes).
+		if (strlen(fields[1]) > 186) return fields[1];
 		//{"$p5k2$2710$oX9ZZOcNgYoAsYL-8bqxKg==$AU2JLf2rNxWoZxWxRCluY0u6h6c=", "password" },
 		//{"$pbkdf2-hmac-sha1$10000$a17f5964e70d818a00b182fef1bab12a$014d892dfdab3715a86715b144296e634bba87a7", "password"},
 		cp = fields[1];
@@ -427,7 +427,7 @@ char *pbkdf2_hmac_sha1_prepare(char *fields[10], struct fmt_main *self)
 		cp2 = strchr(cp, '$');
 		if (!cp2) return fields[1];
 		base64_convert(cp, e_b64_mime, cp2-cp, tmps, e_b64_hex, sizeof(tmps), flg_Base64_MIME_DASH_UNDER);
-		if (strlen(tmps) > 64) return fields[1];
+		if (strlen(tmps) > 115) return fields[1];
 		++cp2;
 		base64_convert(cp2, e_b64_mime, strlen(cp2), tmph, e_b64_hex, sizeof(tmph), flg_Base64_MIME_DASH_UNDER);
 		if (strlen(tmph) != 40) return fields[1];
@@ -439,7 +439,7 @@ char *pbkdf2_hmac_sha1_prepare(char *fields[10], struct fmt_main *self)
 
 void *pbkdf2_hmac_sha1_binary(char *ciphertext) {
 	static union {
-		unsigned char c[PBKDF2_SHA1_BINARY_SIZE];
+		unsigned char c[PBKDF2_SHA1_MAX_BINARY_SIZE];
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;
@@ -447,7 +447,7 @@ void *pbkdf2_hmac_sha1_binary(char *ciphertext) {
 	int i;
 
 	p = strrchr(ciphertext, '$') + 1;
-	for (i = 0; i < PBKDF2_SHA1_BINARY_SIZE; i++) {
+	for (i = 0; i < PBKDF2_SHA1_MAX_BINARY_SIZE; i++) {
 		out[i] =
 			(atoi16[ARCH_INDEX(*p)] << 4) |
 			atoi16[ARCH_INDEX(p[1])];

@@ -221,7 +221,9 @@ static void *get_binary(char *ciphertext)
 {
 	unsigned char *out = pbkdf2_hmac_sha1_binary(ciphertext);
 #if !ARCH_LITTLE_ENDIAN
-	for (i = 0; i < PBKDF2_SHA1_BINARY_SIZE/sizeof(uint32_t); ++i) {
+	char *p = strrchr(ciphertext, '$') + 1;
+	int len = strlen(p) / 2;
+	for (i = 0; i < len / sizeof(uint32_t); ++i) {
 		((uint32_t*)out)[i] = JOHNSWAP(((uint32_t*)out)[i]);
 	}
 #endif

@@ -6,8 +6,8 @@
  * modification, are permitted.
  *
  * increased salt_len from 52 (which was a bug), to 115.  salts [52-115] bytes
- * require 2 md4 limbs to handle.  Salts [0-51] bytes in length are handled by
- * 1 md4 limb.  (Feb. 28/16, JimF)
+ * require 2 sha1 limbs to handle.  Salts [0-51] bytes in length are handled by
+ * 1 sha1 limb.  (Feb. 28/16, JimF)
  *
  * This is a generic pbkdf2-hmac-sha1 for use by several formats.
  *
