@@ -378,7 +378,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (options.flags & FLG_NOTESTS) {
 		fmt_init(format);
 		dyna_salt_init(format);
-		format->methods.reset(db);
+		if (db)
+			format->methods.reset(db);
 		format->private.initialized = 2;
 		format->methods.clear_keys();
 		return NULL;
