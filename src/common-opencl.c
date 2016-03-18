@@ -1208,6 +1208,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	if (!self->params.tests[0].fields[1])
 		self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
 	ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
+	ciphertext = self->methods.split(ciphertext, 0, self);
 	salt = self->methods.salt(ciphertext);
 	if (salt)
 		dyna_salt_create(salt);
@@ -1420,6 +1421,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	if (!self->params.tests[0].fields[1])
 		self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
 	ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
+	ciphertext = self->methods.split(ciphertext, 0, self);
 	salt = self->methods.salt(ciphertext);
 	if (salt)
 		dyna_salt_create(salt);
