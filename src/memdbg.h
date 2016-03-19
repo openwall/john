@@ -108,14 +108,13 @@ extern char *MEMDBG_strdup(const char *, char *, int);
 #undef libc_free
 #undef libc_calloc
 #undef libc_malloc
-#define libc_free(a)    do {if(a) MEMDBG_libc_free(a); a=0; } while(0)
+#define libc_free(a)    MEMDBG_libc_free(a)
 #define libc_malloc(a)   MEMDBG_libc_alloc(a)
 #define libc_calloc(a,b) MEMDBG_libc_calloc(a,b)
 #define malloc(a)     MEMDBG_alloc((a),__FILE__,__LINE__)
 #define calloc(a,b)   MEMDBG_calloc(a,b,__FILE__,__LINE__)
 #define realloc(a,b)  MEMDBG_realloc((a),(b),__FILE__,__LINE__)
-/* this code mimicks JtR's FREE_MEM(a) but does it for any MEMDBG_free(a,F,L) call (a hooked free(a) call) */
-#define free(a)       do { if (a) MEMDBG_free((a),__FILE__,__LINE__); a=0; } while(0)
+#define free(a)       MEMDBG_free((a),__FILE__,__LINE__)
 #define strdup(a)     MEMDBG_strdup((a),__FILE__,__LINE__)
 
 #endif /* !defined __MEMDBG__ */
@@ -173,31 +172,6 @@ void MEMDBG_tag_mem_from_alloc_tiny(void *);
 extern void MEMDBG_libc_free(void *);
 extern void *MEMDBG_libc_alloc(size_t size);
 extern void *MEMDBG_libc_calloc(size_t count, size_t size);
-
-#elif 0
-/* NOTE, we DO keep one special function here.  We make free a little
- * smarter. this function gets used, even when we do NOT compile with
- * any memory debugging on. This makes free work more like C++ delete,
- * in that it is valid to call it on a NULL. Also, it sets the pointer
- * to NULL, so that we can call free(x) on x multiple times, without
- * causing a crash. NOTE, the multiple frees SHOULD be caught when
- * someone builds and runs with MEMDBG_ON. But when it is off, we do
- * try to protect the program.
- */
-#undef libc_free
-#undef libc_calloc
-#undef libc_malloc
-#define libc_free(a)  do {if(a) MEMDBG_libc_free(a); a=0; } while(0)
-#define libc_malloc(a)   MEMDBG_libc_alloc(a)
-#define libc_calloc(a,b) MEMDBG_libc_calloc(a,b)
-
-#if !defined(__MEMDBG__)
-/* this code mimicks JtR's FREE_MEM(a) but does it for any normal free(a) call */
-#if !defined _MSC_VER
-extern void MEMDBG_off_free(void *a);
-#define free(a)   do { if(a) MEMDBG_off_free(a); a=0; } while(0)
-#endif
-#endif /* !defined(__MEMDBG__) */
 
 #else
 
