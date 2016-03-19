@@ -660,15 +660,19 @@ void * MEMDBG_alloc_align(size_t size, int align, char *file, int line)
  *  MEMDBG_realloc
  *  Reallocate a memory block makes a protected call to realloc(), allocating
  *  extra data, and adding data to all required structures.
- *  *** realloc is a NASTY function.  The code here has taken a few turns,
- *  trying to handle all of the nuances of this function, and how we hook it,
- *  and how we deal with trying to not free data (if in MEMDBG_EXTRA_CHECKS mode)
+ *  *** realloc is a NASTY function.  The code here has taken a few turns, and
+ *  has reduced this to simply allocating a new block (or freeing if size is 0)
+ *  and copying the 'known' amount of data to the new block, and then freeing
+ *  the prior block.  If the realloc is larger than before, then then undefined
+ *  data at end of the block is set to 0xcd.  NOTE, this code was changed in
+ *  this manner due to not being able to find the bug in the original re-alloc
+ *  and bug #2062 in the rar format.
  */
 void *
-MEMDBG_realloc(const void *ptr, size_t size, char *file, int line)
+MEMDBG_realloc(void *ptr, size_t size, char *file, int line)
 {
 	MEMDBG_HDR *p;
-	int err=0, i;
+	unsigned char *v;
 
 	if ( ((signed long long)mem_size) < 0)
 		fprintf(stderr, "MEMDBG_realloc("LLd") %s:%d  mem:"LLd"\n", (unsigned long long)size, file, line, (unsigned long long)mem_size);
@@ -676,149 +680,21 @@ MEMDBG_realloc(const void *ptr, size_t size, char *file, int line)
 	/* if ptr is null, this function works just like alloc, so simply use alloc */
 	if (!ptr)
 		return MEMDBG_alloc(size, file, line);
-
-#ifdef _OPENMP
-#pragma omp critical
-#endif
-	{
-		p = CLIENT_2_HDR(ptr);
-		for (i = 0; i < 4; ++i) {
-			if (((char*)(p->mdbg_hdr1->mdbg_fpst))[i] != cpMEMFPOST[i] ||
-				((char*)(p->mdbg_hdr2->mdbg_fpst))[i] != cpMEMFPOST[i]) {
-				err = 1;
-				for (i = 0; i < 4; ++i) {
-					if (((char*)(p->mdbg_hdr1->mdbg_fpst))[i] != cpMEMFPOSTd[i] ||
-						((char*)(p->mdbg_hdr2->mdbg_fpst))[i] != cpMEMFPOSTd[i]) {
-						break;
-					}
-				}
-				if (i == 4)
-					err = 2;
-				break;
-			}
-		}
-	}
-	if (err) {
-		if (err == 2)
-			mem_fence_post_errd(p, file, line);
-		else
-			mem_fence_post_err(p, file, line);
-		return NULL;
-	}
-	/* if size == 0, this function works exactly like free, so just use free */
 	if (!size) {
-		/* NOTE, use ptr, and NOT p */
-		MEMDBG_free(ptr, file, line);
+		MEM_FREE(ptr);
 		return NULL;
 	}
-	memcpy(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOSTd, 4);
-	memcpy(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOSTd, 4);
-#ifdef _OPENMP
-#pragma omp critical (memdbg_crit)
-#endif
-	{
-		mem_size -= p->mdbg_size;
-		MEMDBG_LIST_delete(p);
-	}
-#ifdef MEMDBG_EXTRA_CHECKS
+
+	v = (unsigned char*)MEMDBG_alloc(size, file, line);
+	p = CLIENT_2_HDR(ptr);
 	if (size > p->mdbg_size) {
-		void *p2 = MEMDBG_alloc(size, file, line);
-		if (p2) {
-			memcpy(p2, ((char*)p)+RESERVE_SZ, p->mdbg_size);
-			/* we had to keep the original data 'clean' until now.
-			 * but Now, we can put it on free list (which smashes
-			 * the original memory block
-			 */
-			MEMDBG_FREEDLIST_add(p);
-			return p2;
-		}
-		/* We have to undo the MEMDBG_LIST_delete(p); because realloc should
-		 * leave the ORIGINAL buffer alone, if we can not allocate more
-		 * memory.  Thus we need to 'leave' the leak alone. This is a leak
-		 * unless the client code frees the original pointer.  'undoing' the
-		 * MEMDBG_LIST_delete(p) keeps our code knowing this is a lost pointer.
-		 */
-		memcpy(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4);
-		memcpy(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOST, 4);
-#ifdef _OPENMP
-#pragma omp critical (memdbg_crit)
-#endif
-		{
-			mem_size += p->mdbg_size;
-			if (mem_size > max_mem_size)
-				max_mem_size = mem_size;
-			MEMDBG_LIST_add(p);
-		}
-		return NULL;
+		memcpy(v, ((unsigned char*)(p->mdbg_hdr1))+4, p->mdbg_size);
+		memset(v+p->mdbg_size, 0xcd, size-p->mdbg_size);
 	}
-	/* NOTE, it is assumed that the memory will NOT be freed, so we simply drop
-	   through, and allow normal realloc to work, and DO NOT try to put anything
-	   onto the FREEDLIST, since it will just be the same block */
-#endif
-	p = (MEMDBG_HDR *) realloc(p, RESERVE_SZ + size + 4);
-#ifdef MEMDBG_EXTRA_CHECKS
-#ifdef _OPENMP
-	{
-		int i = 0;
-		do {
-#pragma omp critical (memdbg_crit)
-			{
-				if (!p && freed_mem_size > (RESERVE_SZ + size + 4) && !p && freed_cnt)
-					i = 1;
-			}
-			if (i) {
-				release_oldest_freed_block();
-				p = (MEMDBG_HDR*)realloc(CLIENT_2_HDR(ptr), RESERVE_SZ + size + 4);
-			}
-		} while (i && !p);
-	}
-#else
-	/* this is the 'right' block, but hard to do with the restrictions of no branching out that omp critical places on us */
-	if (!p && freed_mem_size > (RESERVE_SZ + size + 4)) {
-		while (!p && freed_cnt) {
-			release_oldest_freed_block();
-			p = (MEMDBG_HDR*)realloc(CLIENT_2_HDR(ptr), RESERVE_SZ + size + 4);
-		}
-	}
-#endif
-#endif
-	if (!p)
-	{
-		/* We have to undo the MEMDBG_LIST_delete(p); because realloc should
-		 * leave the ORIGINAL buffer alone, if we can not allocate more
-		 * memory.  Thus we need to 'leave' the leak alone.
-		 */
-		p = CLIENT_2_HDR(ptr);	/* we have to get 'original' pointer again */
-		memcpy(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4);
-		memcpy(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOST, 4);
-#ifdef _OPENMP
-#pragma omp critical (memdbg_crit)
-#endif
-		{
-			mem_size += p->mdbg_size;
-			if (mem_size > max_mem_size)
-				max_mem_size = mem_size;
-			MEMDBG_LIST_add(p);
-		}
-		return NULL;
-	}
-	memcpy(p->mdbg_hdr1->mdbg_fpst, cpMEMFPOST, 4);
-	p->mdbg_size = size;
-	p->mdbg_file = file;
-	p->mdbg_line = line;
-	p->mdbg_hdr2 = (MEMDBG_HDR2*)(((char*)p)+RESERVE_SZ + size);
-	memcpy(p->mdbg_hdr2->mdbg_fpst, cpMEMFPOST, 4);
-#ifdef _OPENMP
-#pragma omp critical (memdbg_crit)
-#endif
-	{
-		p->mdbg_cnt = ++alloc_cnt;
-		mem_size += size;
-		if (mem_size > max_mem_size)
-			max_mem_size = mem_size;
-		MEMDBG_LIST_add(p);
-	}
-	return HDR_2_CLIENT(p);
+	else
+		memcpy(v, ((unsigned char*)(p->mdbg_hdr1))+4, size);
+	MEMDBG_free(ptr,file,line);
+	return v;
 }
 
 /*

@@ -133,6 +133,10 @@ void *mem_calloc_align_func(size_t count, size_t size, size_t align
 
 #ifdef _MSC_VER
 #if !defined (MEMDBG_ON)
+#define malloc(a) _aligned_malloc(a,16)
+#define realloc(a,b) _aligned_realloc(a,b,16)
+#define calloc(a,b) memset(_aligned_malloc(a*b,16),0,a*b)
+#define free(a) _aligned_free(a)
 #define strdup(a) strdup_MSVC(a)
 char *strdup_MSVC(const char *str);
 #define MEM_FREE(ptr) \

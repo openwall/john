@@ -95,7 +95,7 @@ extern void		MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExData);
 extern void *MEMDBG_alloc(size_t, char *, int);
 extern void *MEMDBG_alloc_align(size_t, int, char *, int);
 extern void *MEMDBG_calloc(size_t count, size_t, char *, int);
-extern void *MEMDBG_realloc(const void *, size_t, char *, int);
+extern void *MEMDBG_realloc(void *, size_t, char *, int);
 extern void MEMDBG_free(const void *, char *, int);
 extern char *MEMDBG_strdup(const char *, char *, int);
 
