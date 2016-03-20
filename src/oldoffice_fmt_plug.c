@@ -92,6 +92,7 @@ static unsigned char (*rc4_key)[16];
 static int any_cracked, *cracked;
 static size_t cracked_size;
 static int new_keys;
+extern struct fmt_main fmt_oldoffice;
 
 typedef struct {
 	dyna_salt dsalt;
@@ -378,7 +379,16 @@ static void set_salt(void *salt)
 
 static int salt_compare(const void *x, const void *y)
 {
-	return memcmp((*(custom_salt**)x)->salt, (*(custom_salt**)y)->salt, 16);
+	int c;
+	struct fmt_main *pold;
+
+	c = memcmp((*(custom_salt**)x)->salt, (*(custom_salt**)y)->salt, 16);
+	if (c)
+		return c;
+	pold = dyna_salt_init(&fmt_oldoffice);
+	c = dyna_salt_cmp((void*)x, (void*)y, SALT_SIZE);
+	dyna_salt_init(pold);
+	return c;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
