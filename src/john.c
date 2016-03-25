@@ -1611,8 +1611,9 @@ static void john_run(void)
 			struct db_main *test_db = 0;
 			char *where;
 
-			if ( (options.flags & FLG_NOTESTS) == 0)
-				test_db = ldr_init_test_db(database.format, &database);
+			if (!(options.flags & FLG_NOTESTS))
+				test_db = ldr_init_test_db(database.format,
+				                           &database);
 			where = fmt_self_test(database.format, test_db);
 			ldr_free_test_db(test_db);
 			if (where) {

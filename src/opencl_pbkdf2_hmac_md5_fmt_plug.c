@@ -27,32 +27,19 @@ john_register_one(&fmt_ocl_pbkdf2_md5);
 #include "options.h"
 #define OUTLEN 16
 #include "opencl_pbkdf2_hmac_md5.h"
-#define OPENCL_FORMAT
-#define PBKDF2_HMAC_MD5_ALSO_INCLUDE_CTX 1
-#include "pbkdf2_hmac_md5.h"
+#include "pbkdf2_hmac_common.h"
 
 //#define DEBUG
 #define dump_stuff_msg(a, b, c)	dump_stuff_msg((void*)a, b, c)
 
 #define FORMAT_LABEL		"PBKDF2-HMAC-MD5-opencl"
-#define FORMAT_NAME		""
 #define ALGORITHM_NAME		"PBKDF2-MD5 OpenCL"
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#define BINARY_SIZE		16
-#define BINARY_ALIGN		sizeof(uint32_t)
-#define MAX_BINARY_SIZE         (4 * BINARY_SIZE)
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(pbkdf2_salt)
 #define SALT_ALIGN		sizeof(int)
-#define MAX_SALT_SIZE           52
-#define MAX_CIPHERTEXT_LENGTH   (TAG_LEN + 6 + 1 + 2*MAX_SALT_SIZE + 1 + 2*MAX_BINARY_SIZE)
-
-#define FORMAT_TAG              "$pbkdf2-hmac-md5$"
-#define TAG_LEN                 (sizeof(FORMAT_TAG) - 1)
 
 /* This handles all widths */
 #define GETPOS(i, index)	(((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + ((i) & 3) + ((index) / ocl_v_width) * PLAINTEXT_LENGTH * ocl_v_width)
@@ -89,16 +76,6 @@ static size_t get_task_max_work_group_size()
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, pbkdf2_final));
 	return s;
 }
-
-static struct fmt_tests tests[] = {
-//	{"$pbkdf2-hmac-md5$1000$8335443238$9EXW0O1cvp/BLAPqlTDBxveeeIamrxVStA83BKi4eEc=", "hashcat"},
-	{"$pbkdf2-hmac-md5$1000$38333335343433323338$f445d6d0ed5cbe9fc12c03ea9530c1c6", "hashcat"},
-	{"$pbkdf2-hmac-md5$1000$38333335343433323338$f445d6d0ed5cbe9fc12c03ea9530c1c6f79e7886a6af1552b40f3704a8b87847", "hashcat"},
-	{"$pbkdf2-hmac-md5$1$73616c74$f31afb6d931392daa5e3130f47f9a9b6", "password"},
-	{"$pbkdf2-hmac-md5$10000$6d61676e756d$8802b8d3bc1ba8fe973313a3606d0db3", "Borkum"},
-	{"$pbkdf2-hmac-md5$10000$6d61676e756d$0d21b39b60a304aa649b5da493c8e202", "Riff"},
-	{NULL}
-};
 
 static size_t key_buf_size;
 static unsigned int *inbuffer;
@@ -215,72 +192,19 @@ static void reset(struct db_main *db)
 	}
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *ptr, *ctcopy, *keeptr;
-	size_t len;
-	char *delim;
-
-	if (strncmp(ciphertext, FORMAT_TAG, TAG_LEN))
-		return 0;
-
-	if (strlen(ciphertext) > MAX_CIPHERTEXT_LENGTH)
-		return 0;
-
-	ciphertext += TAG_LEN;
-
-	delim = strchr(ciphertext, '.') ? "." : "$";
-
-	if (!(ctcopy = strdup(ciphertext)))
-		return 0;
-	keeptr = ctcopy;
-	if (!(ptr = strtokm(ctcopy, delim)))
-		goto error;
-	if (!atoi(ptr))
-		goto error;
-	if (!(ptr = strtokm(NULL, delim)))
-		goto error;
-	len = strlen(ptr); // salt hex length
-	if (len > 2 * MAX_SALT_SIZE || len & 1)
-		goto error;
-	if (!ishex(ptr))
-		goto error;
-	if (!(ptr = strtokm(NULL, delim)))
-		goto error;
-	len = strlen(ptr); // binary hex length
-	if (len < BINARY_SIZE || len > MAX_BINARY_SIZE || len & 1)
-		goto error;
-	if (!ishex(ptr))
-		goto error;
-	MEM_FREE(keeptr);
-	return 1;
-error:
-	MEM_FREE(keeptr);
-	return 0;
-}
-
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[MAX_CIPHERTEXT_LENGTH + 1];
-
-	strnzcpy(out, ciphertext, sizeof(out));
-	strlwr(out);
-	return out;
-}
 
 static void *get_salt(char *ciphertext)
 {
 	static pbkdf2_salt cs;
 	char *p;
 	int saltlen;
-	char delim;
 
-	if (!strncmp(ciphertext, FORMAT_TAG, sizeof(FORMAT_TAG) - 1))
-		ciphertext += sizeof(FORMAT_TAG) - 1;
+	memset(&cs, 0, sizeof(cs));
+	if (!strncmp(ciphertext, PBKDF2_MD5_FORMAT_TAG, PBKDF2_MD5_TAG_LEN))
+		ciphertext += PBKDF2_MD5_TAG_LEN;
 	cs.iterations = atoi(ciphertext);
-	delim = strchr(ciphertext, '.') ? '.' : '$';
-	ciphertext = strchr(ciphertext, delim) + 1;
-	p = strchr(ciphertext, delim);
+	ciphertext = strchr(ciphertext, '$') + 1;
+	p = strchr(ciphertext, '$');
 	saltlen = 0;
 	memset(cs.salt, 0, sizeof(cs.salt));
 	while (ciphertext < p) {        /** extract salt **/
@@ -290,35 +214,9 @@ static void *get_salt(char *ciphertext)
 		ciphertext += 2;
 	}
 	cs.length = saltlen;
-	cs.outlen = BINARY_SIZE;
+	cs.outlen = PBKDF2_MDx_BINARY_SIZE;
 
 	return (void*)&cs;
-}
-
-static void *get_binary(char *ciphertext)
-{
-	static union {
-		unsigned char c[MAX_BINARY_SIZE];
-		uint32_t dummy;
-	} buf;
-	unsigned char *out = buf.c;
-	char *p;
-	int i, len;
-	char delim;
-
-	delim = strchr(ciphertext, '.') ? '.' : '$';
-	p = strrchr(ciphertext, delim) + 1;
-	len = strlen(p) / 2;
-	for (i = 0; i < len && *p; i++) {
-		out[i] =
-			(atoi16[ARCH_INDEX(*p)] << 4) |
-			atoi16[ARCH_INDEX(p[1])];
-		p += 2;
-	}
-#if 0
-	dump_stuff_msg(__FUNCTION__, out, BINARY_SIZE);
-#endif
-	return out;
 }
 
 static void set_salt(void *salt)
@@ -396,7 +294,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int binary_hash_0(void *binary)
 {
 #if 0
-	dump_stuff_msg(__FUNCTION__, binary, BINARY_SIZE);
+	dump_stuff_msg(__FUNCTION__, binary, PBKDF2_MDx_BINARY_SIZE);
 #endif
 	return (((uint32_t *) binary)[0] & PH_MASK_0);
 }
@@ -404,7 +302,7 @@ static int binary_hash_0(void *binary)
 static int get_hash_0(int index)
 {
 #if 0
-	dump_stuff_msg(__FUNCTION__, output[index].dk, BINARY_SIZE);
+	dump_stuff_msg(__FUNCTION__, output[index].dk, PBKDF2_MDx_BINARY_SIZE);
 #endif
 	return *(uint32_t*)output[index].dk & PH_MASK_0;
 }
@@ -427,48 +325,14 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, output[index].dk, BINARY_SIZE);
+	return !memcmp(binary, output[index].dk, PBKDF2_MDx_BINARY_SIZE);
 }
 
 /* Check the FULL binary, just for good measure. There is not a chance we'll
    have a false positive here but this function is not performance critical. */
 static int cmp_exact(char *source, int index)
 {
-	int i = 0, len, result;
-	char *p, *key = get_key(index);
-	char delim;
-	unsigned char *binary, *crypt;
-
-	delim = strchr(source, '.') ? '.' : '$';
-	p = strrchr(source, delim) + 1;
-	len = strlen(p) / 2;
-
-	if (len == BINARY_SIZE) return 1;
-
-	binary = mem_alloc(len);
-	crypt = mem_alloc(len);
-
-	while (*p) {
-		binary[i++] = (atoi16[ARCH_INDEX(*p)] << 4) |
-			atoi16[ARCH_INDEX(p[1])];
-		p += 2;
-	}
-	pbkdf2_md5((const unsigned char*)key,
-	            strlen(key),
-	            cur_salt->salt, cur_salt->length,
-	            cur_salt->iterations, crypt, len, 0);
-	result = !memcmp(binary, crypt, len);
-#if 0
-	dump_stuff_msg("hash binary", binary, len);
-	dump_stuff_msg("calc binary", crypt, len);
-#endif
-	MEM_FREE(binary);
-	MEM_FREE(crypt);
-	if (!result)
-		fprintf(stderr, "\n%s: Warning: Partial match for '%s'.\n"
-		        "This is a bug or a malformed input line of:\n%s\n",
-		        FORMAT_LABEL, key, source);
-	return result;
+	return pbkdf2_hmac_md5_cmp_exact(get_key(index), source, cur_salt->salt, cur_salt->length, cur_salt->iterations);
 }
 
 static int salt_hash(void *salt)
@@ -497,8 +361,8 @@ struct fmt_main fmt_ocl_pbkdf2_md5 = {
 		BENCHMARK_LENGTH,
 		0,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
-		BINARY_ALIGN,
+		PBKDF2_MDx_BINARY_SIZE,
+		PBKDF2_32_BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
@@ -507,15 +371,15 @@ struct fmt_main fmt_ocl_pbkdf2_md5 = {
 		{
 			"iterations",
 		},
-		tests
+		pbkdf2_hmac_md5_common_tests
 	}, {
 		init,
 		done,
 		reset,
 		fmt_default_prepare,
-		valid,
-		split,
-		get_binary,
+		pbkdf2_hmac_md5_valid,
+		pbkdf2_hmac_md5_split,
+		pbkdf2_hmac_md5_binary,
 		get_salt,
 		{
 			iteration_count,

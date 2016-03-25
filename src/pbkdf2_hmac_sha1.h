@@ -126,11 +126,7 @@ static void pbkdf2_sha1(const unsigned char *K, int KL, const unsigned char *S, 
 	while (loop <= loops) {
 		_pbkdf2_sha1(S,SL,R,tmp.x32,loop,&ipad,&opad);
 		for (i = skip_bytes%SHA_DIGEST_LENGTH; i < SHA_DIGEST_LENGTH && accum < outlen; i++) {
-#if ARCH_LITTLE_ENDIAN
 			out[accum++] = ((uint8_t*)tmp.out)[i];
-#else
-			out[accum++] = ((uint8_t*)tmp.out)[i^3];
-#endif
 		}
 		loop++;
 		skip_bytes = 0;
@@ -290,11 +286,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 		alter_endianity(dgst, sizeof(dgst));
 		for (i = skip_bytes%SHA_DIGEST_LENGTH; i < SHA_DIGEST_LENGTH && accum < outlen; ++i) {
 			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
-#if ARCH_LITTLE_ENDIAN
 				out[j][accum] = ((unsigned char*)(dgst[j]))[i];
-#else
-				out[j][accum] = ((unsigned char*)(dgst[j]))[i^3];
-#endif
 			}
 			++accum;
 		}

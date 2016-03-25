@@ -36,11 +36,10 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 #include "johnswap.h"
 #include "stdint.h"
 #include "pbkdf2_hmac_sha256.h"
+#include "pbkdf2_hmac_common.h"
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-SHA256"
 #define FORMAT_NAME		""
-
-#define BENCHMARK_COMMENT	""
 
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
@@ -52,13 +51,8 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 #endif
 #endif
 
-#define BINARY_SIZE             32
 #define MAX_CIPHERTEXT_LENGTH   1024 /* Bump this and code will adopt */
-#define MAX_BINARY_SIZE         (4*32) /* Bump this and code will adopt */
-#define MAX_SALT_SIZE           128 /* Bump this and code will adopt */
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define FMT_PREFIX		"$pbkdf2-sha256$"
-#define FMT_CISCO8		"$8$"
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
 #define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
@@ -80,46 +74,14 @@ static int omp_t = 1;
 #define PAD_SIZE                128
 #define PLAINTEXT_LENGTH        125
 
-static struct fmt_tests tests[] = {
-	{"$pbkdf2-sha256$1000$a0dhTGhwMXUxZ1BOblkzNg$twzYxQMX.zUZtX6ajJFUKfJzyKXKi4xjnObm6kJ8.U0", "magnum"},
-	{"$pbkdf2-sha256$1000$WEI2ZTVJcWdTZ3JQQjVnMA$6n1V7Ffm1tsB4q7uk4mi8z5Sco.fL28pScSSc5Qr27Y", "Ripper"},
-	{"$pbkdf2-sha256$10000$UWthWUhuRXdPZkZPMnF0Ug$l/T9Bmy7qtaPEvbPC2qAfYuj5RAxTbv8I.hSTfyIwYg", "10K worth of looping"},
-	{"$pbkdf2-sha256$10000$Sm1hNlBZWDVYd1FWT3FUUQ$foweCatpTeXpaba1tS7fJTPUquByBb5oI8vilOSspaI", "moebusring"},
-	{"$pbkdf2-sha256$12000$2NtbSwkhRChF6D3nvJfSGg$OEWLc4keep8Vx3S/WnXgsfalb9q0RQdS1s05LfalSG4", ""},
-	{"$pbkdf2-sha256$12000$fK8VAoDQuvees5ayVkpp7Q$xfzKAoBR/Iaa68tjn.O8KfGxV.zdidcqEeDoTFvDz2A", "1"},
-	{"$pbkdf2-sha256$12000$GoMQYsxZ6/0fo5QyhtAaAw$xQ9L6toKn0q245SIZKoYjCu/Fy15hwGme9.08hBde1w", "12"},
-	{"$pbkdf2-sha256$12000$6r3XWgvh/D/HeA/hXAshJA$11YY39OaSkJuwb.ONKVy5ebCZ00i5f8Qpcgwfe3d5kY", "123"},
-	{"$pbkdf2-sha256$12000$09q711rLmbMWYgwBIGRMqQ$kHdAHlnQ1i1FHKBCPLV0sA20ai2xtYA1Ev8ODfIkiQg", "1234"},
-	{"$pbkdf2-sha256$12000$Nebce08pJcT43zuHUMo5Rw$bMW/EsVqy8tMaDecFwuZNEPVfQbXBclwN78okLrxJoA", "openwall"},
-	{"$pbkdf2-sha256$12000$mtP6/39PSQlhzBmDsJZS6g$zUXxf/9XBGrkedXVwhpC9wLLwwKSvHX39QRz7MeojYE", "password"},
-	{"$pbkdf2-sha256$12000$35tzjhGi9J5TSilF6L0XAg$MiJA1gPN1nkuaKPVzSJMUL7ucH4bWIQetzX/JrXRYpw", "pbkdf2-sha256"},
-	{"$pbkdf2-sha256$12000$sxbCeE8pxVjL2ds7hxBizA$uIiwKdo9DbPiiaLi1y3Ljv.r9G1tzxLRdlkD1uIOwKM", " 15 characters "},
-	{"$pbkdf2-sha256$12000$CUGI8V7rHeP8nzMmhJDyXg$qjq3rBcsUgahqSO/W4B1bvsuWnrmmC4IW8WKMc5bKYE", " 16 characters__"},
-	{"$pbkdf2-sha256$12000$FmIM4VxLaY1xLuWc8z6n1A$OVe6U1d5dJzYFKlJsZrW1NzUrfgiTpb9R5cAfn96WCk", " 20 characters______"},
-	{"$pbkdf2-sha256$12000$fA8BAMAY41wrRQihdO4dow$I9BSCuV6UjG55LktTKbV.bIXtyqKKNvT3uL7JQwMLp8", " 24 characters______1234"},
-	{"$pbkdf2-sha256$12000$/j8npJTSOmdMKcWYszYGgA$PbhiSNRzrELfAavXEsLI1FfitlVjv9NIB.jU1HHRdC8", " 28 characters______12345678"},
-	{"$pbkdf2-sha256$12000$xfj/f6/1PkcIoXROCeE8Bw$ci.FEcPOKKKhX5b3JwzSDo6TGuYjgj1jKfCTZ9UpDM0", " 32 characters______123456789012"},
-	{"$pbkdf2-sha256$12000$6f3fW8tZq7WWUmptzfmfEw$GDm/yhq1TnNR1MVGy73UngeOg9QJ7DtW4BnmV2F065s", " 40 characters______12345678901234567890"},
-	{"$pbkdf2-sha256$12000$dU5p7T2ndM7535tzjpGyVg$ILbppLkipmonlfH1I2W3/vFMyr2xvCI8QhksH8DWn/M", " 55 characters______________________________________end"},
-	{"$pbkdf2-sha256$12000$iDFmDCHE2FtrDaGUEmKMEaL0Xqv1/t/b.x.DcC6lFEI$tUdEcw3csCnsfiYbFdXH6nvbftH8rzvBDl1nABeN0nE", "salt length = 32"},
-	{"$pbkdf2-sha256$12000$0zoHwNgbIwSAkDImZGwNQUjpHcNYa43xPqd0DuH8H0OIUWqttfY.h5DynvPeG.O8N.Y$.XK4LNIeewI7w9QF5g9p5/NOYMYrApW03bcv/MaD6YQ", "salt length = 50"},
-	{"$pbkdf2-sha256$12000$HGPMeS9lTAkhROhd653Tuvc.ZyxFSOk9x5gTYgyBEAIAgND6PwfAmA$WdCipc7O/9tTgbpZvcz.mAkIDkdrebVKBUgGbncvoNw", "salt length = 40"},
-	{"$pbkdf2-sha256$12001$ay2F0No7p1QKgVAqpbQ2hg$UbKdswiLpjc5wT8Zl2M6VlE2cNiKuhAUntGciP8JjPw", "test"},
-	// cisco type 8 hashes.  20k iterations, different base-64 (same as WPA).  Also salt is used RAW, it is not base64 decoded prior to usage
-	{"$8$dsYGNam3K1SIJO$7nv/35M/qr6t.dVc7UY9zrJDWRVqncHub1PE9UlMQFs", "cisco"},
-	{"$8$6NHinlEjiwvb5J$RjC.H.ydVb34wDLqJvfjyG1ubxYKpfXqv.Ry9mtrNBY", "password"},
-	{"$8$lGO8juTOQLPCHw$cBv2WEaFCLUA24Z48CKUGixIywyGFP78r/slQcMXr3M", "JtR"},
-	{NULL}
-};
-
 static struct custom_salt {
 	uint8_t length;
-	uint8_t salt[MAX_SALT_SIZE + 3];
+	uint8_t salt[PBKDF2_32_MAX_SALT_SIZE + 3];
 	uint32_t rounds;
 } *cur_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_32 (*crypt_out)[PBKDF2_SHA256_BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static void init(struct fmt_main *self)
 {
@@ -141,61 +103,6 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
-static char *prepare(char *fields[10], struct fmt_main *self)
-{
-	static char Buf[120];
-	char tmp[43+1], *cp;
-
-	if (strncmp(fields[1], FMT_CISCO8, 3) != 0)
-		return fields[1];
-	if (strlen(fields[1]) != 4+14+43)
-		return fields[1];
-	sprintf (Buf, "%s20000$%14.14s$%s", FMT_PREFIX, &(fields[1][3]),
-		base64_convert_cp(&(fields[1][3+14+1]), e_b64_crypt, 43, tmp, e_b64_mime, sizeof(tmp), flg_Base64_NO_FLAGS));
-	cp = strchr(Buf, '+');
-	while (cp) {
-		*cp = '.';
-		cp = strchr(cp, '+');
-	}
-	return Buf;
-}
-
-static int valid(char *ciphertext, struct fmt_main *pFmt)
-{
-	int saltlen = 0;
-	char *p, *c = ciphertext;
-
-	if (strncmp(ciphertext, FMT_CISCO8, 3) == 0) {
-		char *f[10];
-		f[1] = ciphertext;
-		ciphertext = prepare(f, pFmt);
-	}
-	if (strncmp(ciphertext, FMT_PREFIX, strlen(FMT_PREFIX)) != 0)
-		return 0;
-	if (strlen(ciphertext) < 44 + strlen(FMT_PREFIX))
-		return 0;
-	c += strlen(FMT_PREFIX);
-	if (strtol(c, NULL, 10) == 0)
-		return 0;
-	c = strchr(c, '$');
-	if (c == NULL)
-		return 0;
-	c++;
-	p = strchr(c, '$');
-	if (p == NULL)
-		return 0;
-	saltlen = base64_valid_length(c, e_b64_mime, flg_Base64_MIME_PLUS_TO_DOT);
-	c += saltlen;
-	saltlen = B64_TO_RAW_LEN(saltlen);
-	if (saltlen > MAX_SALT_SIZE)
-		return 0;
-	if (*c != '$') return 0;
-	c++;
-	if (base64_valid_length(c, e_b64_mime, flg_Base64_MIME_PLUS_TO_DOT) != 43)
-		return 0;
-	return 1;
-}
-
 static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt salt;
@@ -203,7 +110,7 @@ static void *get_salt(char *ciphertext)
 	uint32_t rounds;
 
 	memset(&salt, 0, sizeof(salt));
-	c += strlen(FMT_PREFIX);
+	c += PBKDF2_SHA256_TAG_LEN;
 	rounds = strtol(c, NULL, 10);
 	c = strchr(c, '$') + 1;
 	p = strchr(c, '$');
@@ -217,32 +124,6 @@ static void *get_salt(char *ciphertext)
 	salt.length = base64_convert(c, e_b64_mime, p-c, salt.salt, e_b64_raw, sizeof(salt.salt), flg_Base64_MIME_PLUS_TO_DOT);
 	salt.rounds = rounds;
 	return (void *)&salt;
-}
-
-static void *get_binary(char *ciphertext)
-{
-	static union {
-		char c[BINARY_SIZE];
-		ARCH_WORD dummy;
-	} buf;
-	char *ret = buf.c;
-	char *c = ciphertext;
-#if !ARCH_LITTLE_ENDIAN
-	int i;
-#endif
-	c += strlen(FMT_PREFIX) + 1;
-	c = strchr(c, '$') + 1;
-	c = strchr(c, '$') + 1;
-#ifdef DEBUG
-	assert(strlen(c) == 43);
-#endif
-	base64_convert(c, e_b64_mime, 43, buf.c, e_b64_raw, sizeof(buf.c), flg_Base64_MIME_PLUS_TO_DOT);
-#if !ARCH_LITTLE_ENDIAN
-	for (i = 0; i < BINARY_SIZE/4; ++i) {
-		((ARCH_WORD_32*)ret)[i] = JOHNSWAP(((ARCH_WORD_32*)ret)[i]);
-	}
-#endif
-	return ret;
 }
 
 static void set_salt(void *salt)
@@ -280,11 +161,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pin[i] = (unsigned char*)saved_key[index+i];
 			x.pout[i] = crypt_out[index+i];
 		}
-		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, cur_salt->length, cur_salt->rounds, &(x.poutc), BINARY_SIZE, 0);
+		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, cur_salt->length, cur_salt->rounds, &(x.poutc), PBKDF2_SHA256_BINARY_SIZE, 0);
 #else
 		pbkdf2_sha256((const unsigned char*)(saved_key[index]), strlen(saved_key[index]),
 			cur_salt->salt, cur_salt->length,
-			cur_salt->rounds, (unsigned char*)crypt_out[index], BINARY_SIZE, 0);
+			cur_salt->rounds, (unsigned char*)crypt_out[index], PBKDF2_SHA256_BINARY_SIZE, 0);
 #endif
 	}
 	return count;
@@ -301,7 +182,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return !memcmp(binary, crypt_out[index], PBKDF2_SHA256_BINARY_SIZE);
 }
 
 /* Check the FULL binary, just for good measure. There is no chance we'll
@@ -345,8 +226,8 @@ struct fmt_main fmt_pbkdf2_hmac_sha256 = {
 		BENCHMARK_LENGTH,
 		0,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
-		sizeof(ARCH_WORD_32),
+		PBKDF2_SHA256_BINARY_SIZE,
+		PBKDF2_32_BINARY_ALIGN,
 		SALT_SIZE,
 		sizeof(ARCH_WORD),
 		MIN_KEYS_PER_CRYPT,
@@ -355,15 +236,15 @@ struct fmt_main fmt_pbkdf2_hmac_sha256 = {
 		{
 			"iteration count",
 		},
-		tests
+		pbkdf2_hmac_sha256_common_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
-		valid,
+		pbkdf2_hmac_sha256_prepare,
+		pbkdf2_hmac_sha256_valid,
 		fmt_default_split,
-		get_binary,
+		pbkdf2_hmac_sha256_binary,
 		get_salt,
 		{
 			iteration_count,

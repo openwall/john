@@ -27,6 +27,8 @@ john_register_one(&fmt_opencl_mscash2);
 #include "opencl_mscash2_helper_plug.h"
 #include "loader.h"
 #include "config.h"
+#include "mscash_common.h"
+
 #include "memdbg.h"
 
 #define INIT_MD4_A                  0x67452301
@@ -39,18 +41,14 @@ john_register_one(&fmt_opencl_mscash2);
 #define FORMAT_NAME		   "MS Cache Hash 2 (DCC2)"
 #define KERNEL_NAME		   "PBKDF2"
 #define ALGORITHM_NAME		   "PBKDF2-SHA1 OpenCL"
-#define BENCHMARK_COMMENT	   ""
-#define BENCHMARK_LENGTH	  -1
 #define MSCASH2_PREFIX            "$DCC2$"
 #define MAX_PLAINTEXT_LENGTH      125
 
 #define MAX_KEYS_PER_CRYPT        1
 #define MIN_KEYS_PER_CRYPT        1
 
-#define BINARY_SIZE               4
-#define BINARY_ALIGN              4
+#define GPU_BINARY_SIZE           4
 #define SALT_SIZE                 sizeof(ms_cash2_salt)
-#define SALT_ALIGN                4
 
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
@@ -61,40 +59,12 @@ typedef struct {
 	unsigned char 	username[MAX_SALT_LENGTH + 1] ;
 } ms_cash2_salt ;
 
-static struct fmt_tests tests[] = {
-	{"$DCC2$test#a86012faf7d88d1fc037a69764a92cac", "password"},
-	{"$DCC2$test3#360e51304a2d383ea33467ab0b639cc4", "test3" },
-	{"$DCC2$10240#test4#6f79ee93518306f071c47185998566ae", "test4" },
-	{"$DCC2$january#26b5495b21f9ad58255d99b5e117abe2", "verylongpassword" },
-	{"$DCC2$february#469375e08b5770b989aa2f0d371195ff", "(##)(&#*%%" },
-	{"$DCC2$nineteen_characters#c4201b8267d74a2db1d5d19f5c9f7b57", "verylongpassword" },
-	{"$DCC2$nineteen_characters#87136ae0a18b2dafe4a41d555425b2ed", "w00t"},
-	{"$DCC2$administrator#56f8c24c5a914299db41f70e9b43f36d", "w00t" },
-	{"$DCC2$AdMiNiStRaToR#56f8C24c5A914299Db41F70e9b43f36d", "w00t" }, //Salt and hash are lowercased
-	{"$DCC2$10240#TEST2#c6758e5be7fc943d00b97972a8a97620", "test2" }, // salt is lowercased before hashing
-	{"$DCC2$10240#eighteencharacters#fc5df74eca97afd7cd5abb0032496223", "w00t" },
-	{"$DCC2$john-the-ripper#495c800a038d11e55fafc001eb689d1d", "batman#$@#1991" },
-	{"$DCC2$#59137848828d14b1fca295a5032b52a1", "a" }, //Empty Salt
-	{"$DCC2$10240#nineteen_characters#cda4cef92db4398ce648a8fed8dc6853", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
-	//MAX length salt with MAX length password
-	{"$DCC2$10240#12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678#5ba26de44bd3a369f43a1c72fba76d45", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"},
-	// Critical length salt
-	{"$DCC2$twentytwoXX_characters#c22936e38aac84474d9a4821b196ef5c", "password"},
-	// Non-standard iterations count
-	{"$DCC2$10000#Twelve_chars#54236c670e185043c8016006c001e982", "magnum"},
-	{NULL}
-} ;
-
 static cl_uint 		*dcc_hash_host ;
 static cl_uint 		*dcc2_hash_host ;
 static unsigned char 	(*key_host)[MAX_PLAINTEXT_LENGTH + 1] ;
 static ms_cash2_salt 	currentsalt ;
 static cl_uint          *hmac_sha1_out ;
 static struct fmt_main  *self = NULL;
-
-extern int mscash2_valid(char *, int,  struct fmt_main *);
-extern char * mscash2_prepare(char **, struct fmt_main *);
-extern char * mscash2_split(char *, int, struct fmt_main *);
 
 static void set_key(char*, int) ;
 
@@ -108,6 +78,7 @@ static void init(struct fmt_main *__self)
 
 	initNumDevices();
 
+	mscash2_adjust_tests(options.target_enc, __self->params.plaintext_length, MAX_SALT_LENGTH);
 	if (options.target_enc == UTF_8) {
 		__self->params.plaintext_length *= 3;
 		if (__self->params.plaintext_length > 125)
@@ -184,26 +155,7 @@ static void done(void) {
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return mscash2_valid(ciphertext, MAX_SALT_LENGTH, self);
-}
-
-static void *get_binary(char *ciphertext)
-{
-	static unsigned int 	binary[4] ;
-	int 			i ;
-	char 			*hash ;
-
-	hash = strrchr(ciphertext, '#') + 1 ;
-
-	if (hash == NULL)
-		return binary ;
-
-	for (i = 0; i < 4; i++) {
-		sscanf(hash + (8 * i), "%08x", &binary[i]) ;
-		binary[i] = SWAP(binary[i]) ;
-	}
-
-	return binary ;
+	return mscash2_common_valid(ciphertext, MAX_SALT_LENGTH, self);
 }
 
 static void *get_salt(char *ciphertext)
@@ -383,7 +335,7 @@ static int cmp_exact(char *source, int index)
 {
       unsigned int 	*bin, i ;
 
-      bin = (unsigned int*)get_binary(source) ;
+      bin = (unsigned int*)mscash_common_binary(source) ;
       i = 4 * index + 1 ;
 
       if (bin[1] != dcc2_hash_host[i++])
@@ -418,7 +370,7 @@ struct fmt_main fmt_opencl_mscash2 = {
 		BENCHMARK_LENGTH,
 		0,
 		MAX_PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		GPU_BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
@@ -426,15 +378,15 @@ struct fmt_main fmt_opencl_mscash2 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
-		tests
+		mscash2_common_tests
 	},{
 		init,
 		done,
 		reset,
-		mscash2_prepare,
+		mscash2_common_prepare,
 		valid,
-		mscash2_split,
-		get_binary,
+		mscash2_common_split,
+		mscash_common_binary,
 		get_salt,
 		{ NULL },
 		fmt_default_source,

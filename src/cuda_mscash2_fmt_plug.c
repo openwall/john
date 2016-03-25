@@ -22,43 +22,19 @@ john_register_one(&fmt_cuda_mscash2);
 #include "cuda_mscash2.h"
 #include "cuda_common.h"
 #include "loader.h"
+#include "mscash_common.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"mscash2-cuda"
 #define FORMAT_NAME		"MS Cache Hash 2 (DCC2)"
-#define MAX_CIPHERTEXT_LENGTH	(8 + 5 + 3 * MAX_SALT_LENGTH + 32)
 #define ALGORITHM_NAME		"PBKDF2-SHA1 CUDA"
 #define MAX_SALT_LENGTH		19
 
-#define BINARY_ALIGN		sizeof(uint32_t)
-#define SALT_ALIGN			sizeof(uint32_t)
-
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
 //#define _MSCASH2_DEBUG
 
 static mscash2_password *inbuffer;
 static mscash2_hash *outbuffer;
 static mscash2_salt currentsalt;
-
-static struct fmt_tests tests[] = {
-	{"c0cbe0313a861062e29f92ede58f9b36", "", {"bin"}},	// nullstring password
-	{"$DCC2$10240#test1#607bbe89611e37446e736f7856515bf8", "test1"},
-	{"$DCC2$10240#Joe#e09b38f84ab0be586b730baf61781e30", "qerwt"},
-	{"$DCC2$10240#Joe#6432f517a900b3fc34ffe57f0f346e16", "12345"},
-	{"87136ae0a18b2dafe4a41d555425b2ed", "w00t", {"nineteen_characters"}},	// max salt length
-	{"fc5df74eca97afd7cd5abb0032496223", "w00t", {"eighteencharacters"}},
-//unsupported salts lengths
-//      {"cfc6a1e33eb36c3d4f84e4c2606623d2", "longpassword", {"twentyXXX_characters"} },
-//      {"99ff74cea552799da8769d30b2684bee", "longpassword", {"twentyoneX_characters"} },
-//      {"0a721bdc92f27d7fb23b87a445ec562f", "longpassword", {"twentytwoXX_characters"} },
-	{"$DCC2$10240#TEST2#c6758e5be7fc943d00b97972a8a97620", "test2"},	// salt is lowercased before hashing
-	{"$DCC2$10240#test3#360e51304a2d383ea33467ab0b639cc4", "test3"},
-	{"$DCC2$10240#test4#6f79ee93518306f071c47185998566ae", "test4"},
-	// Non-standard iterations count
-	{"$DCC2$10000#Twelve_chars#54236c670e185043c8016006c001e982", "magnum"},
-	{NULL}
-};
 
 extern void mscash2_gpu(mscash2_password *, mscash2_hash *, mscash2_salt *,
                         int count);
@@ -81,6 +57,7 @@ static void init(struct fmt_main *self)
 	//Initialize CUDA
 	cuda_init();
 
+	mscash2_adjust_tests(options.target_enc, self->params.plaintext_length, MAX_SALT_LENGTH);
 	if (options.target_enc == UTF_8) {
 		self->params.plaintext_length *= 3;
 		if (self->params.plaintext_length > 125)
@@ -94,21 +71,7 @@ extern char * mscash2_split(char *, int, struct fmt_main *);
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return mscash2_valid(ciphertext, MAX_SALT_LENGTH, self);
-}
-
-static void *get_binary(char *ciphertext)
-{
-	static uint32_t binary[4];
-	char *hash = strrchr(ciphertext, '#') + 1;
-	int i;
-	if (hash == NULL)
-		return binary;
-	for (i = 0; i < 4; i++) {
-		sscanf(hash + (8 * i), "%08x", &binary[i]);
-		binary[i] = SWAP(binary[i]);
-	}
-	return binary;
+	return mscash2_common_valid(ciphertext, MAX_SALT_LENGTH, self);
 }
 
 static void *get_salt(char *ciphertext)
@@ -272,15 +235,15 @@ struct fmt_main fmt_cuda_mscash2 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
-		tests
+		mscash2_common_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		mscash2_prepare,
+		mscash2_common_prepare,
 		valid,
-		mscash2_split,
-		get_binary,
+		mscash2_common_split,
+		mscash_common_binary,
 		get_salt,
 		{ NULL },
 		fmt_default_source,

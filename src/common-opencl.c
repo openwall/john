@@ -1208,6 +1208,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	if (!self->params.tests[0].fields[1])
 		self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
 	ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
+	ciphertext = self->methods.split(ciphertext, 0, self);
 	salt = self->methods.salt(ciphertext);
 	if (salt)
 		dyna_salt_create(salt);
@@ -1420,6 +1421,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	if (!self->params.tests[0].fields[1])
 		self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
 	ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
+	ciphertext = self->methods.split(ciphertext, 0, self);
 	salt = self->methods.salt(ciphertext);
 	if (salt)
 		dyna_salt_create(salt);
@@ -1575,6 +1577,51 @@ static char *human_speed(unsigned long long int speed)
 	return out;
 }
 
+uint32_t get_bitmap_size_bits(uint32_t num_elements, int sequential_id)
+{
+	uint32_t size, elements = num_elements;
+	//On super: 128MB , 1GB, 2GB
+	cl_ulong memory_available = get_max_mem_alloc_size(sequential_id);
+
+	get_power_of_two(elements);
+
+	size = (elements * 8);
+
+	if (num_elements < (16))
+		size = (16 * 1024 * 8); //Cache?
+	else if (num_elements < (128))
+		size = (1024 * 1024 * 8 * 16);
+	else if (num_elements < (16 * 1024))
+		size *= 1024 * 4;
+	else
+		size *= 256;
+
+	if (size > memory_available) {
+		size = memory_available;
+		get_power_of_two(size);
+
+	}
+	if (!size || size > INT_MAX)
+		size = (uint)INT_MAX + 1U;
+
+	return size;
+}
+
+unsigned int lcm(unsigned int x, unsigned int y)
+{
+	unsigned int tmp, a, b;
+
+	a = MAX(x, y);
+	b = MIN(x, y);
+
+	while (b) {
+		tmp = b;
+		b = a % b;
+		a = tmp;
+	}
+	return x / a * y;
+}
+
 void opencl_find_best_gws(int step, unsigned long long int max_run_time,
                           int sequential_id, unsigned int rounds, int have_lws)
 {
@@ -1583,11 +1630,11 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 	unsigned long long speed, best_speed = 0, raw_speed;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	unsigned long long int save_duration_time = duration_time;
-	cl_uint core_count = get_max_compute_units(sequential_id);
+	cl_uint core_count = get_processors_count(sequential_id);
 
 	if (have_lws) {
 		if (core_count > 2)
-			optimal_gws *= core_count;
+			optimal_gws = lcm(core_count, optimal_gws);
 		default_value = optimal_gws;
 	} else {
 		soft_limit = local_work_size * core_count * 128;
@@ -2536,8 +2583,9 @@ void opencl_list_devices(void)
 
 			long_entries = get_processors_count(sequence_nr);
 			if (!cpu && ocl_device_list[sequence_nr].cores_per_MP > 1)
-				printf("    Stream processors:      "LLu" "
+				printf("    %s      "LLu" "
 				       " (%d x %d)\n",
+					gpu_nvidia(device_info[sequence_nr]) ? "CUDA cores:       " : "Stream processors:",
 				       (unsigned long long)long_entries,
 				       entries, ocl_device_list[sequence_nr].cores_per_MP);
 			printf("    Speed index:            %u\n",

@@ -116,11 +116,7 @@ static void pbkdf2_md4(const unsigned char *K, int KL, const unsigned char *S, i
 	while (loop <= loops) {
 		_pbkdf2_md4(S,SL,R,tmp.x32,loop,&ipad,&opad);
 		for (i = skip_bytes%MD4_DIGEST_LENGTH; i < MD4_DIGEST_LENGTH && accum < outlen; i++) {
-#if ARCH_LITTLE_ENDIAN
 			out[accum++] = ((uint8_t*)tmp.out)[i];
-#else
-			out[accum++] = ((uint8_t*)tmp.out)[i^3];
-#endif
 		}
 		loop++;
 		skip_bytes = 0;

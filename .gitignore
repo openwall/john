@@ -81,5 +81,6 @@ src/memdbg_defines.h
 src/stamp-h1
 src/version.h
 src/version.h.new
+src/restore_tester_fmt_plug.c
 
 test/

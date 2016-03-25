@@ -8,6 +8,7 @@
 #include "formats.h"
 #include "base64_convert.h"
 #include "salted_sha1_common.h"
+#include "memdbg.h"
 
 struct fmt_tests salted_sha1_common_tests[] = {
 // Test hashes originally(?) in OPENLDAPS_fmt (openssha) (salt length 4)

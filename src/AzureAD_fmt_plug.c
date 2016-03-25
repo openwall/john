@@ -192,13 +192,6 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 		pbkdf2_sha256((unsigned char *)saved_nt[index], 64,
 			AzureAD_cur_salt->salt, AzureAD_cur_salt->salt_len,
 			AzureAD_cur_salt->iterations, (unsigned char*)crypt_out[index], 32, 0);
-#if !ARCH_LITTLE_ENDIAN
-		{
-			int i;
-			for (i = 0; i < 32/sizeof(ARCH_WORD_32); ++i)
-				((ARCH_WORD_32*)crypt_out[index])[i] = JOHNSWAP(((ARCH_WORD_32*)crypt_out[index])[i]);
-		}
-#endif
 #endif
 	}
 	dirty = 0;

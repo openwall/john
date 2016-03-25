@@ -25,10 +25,6 @@
 #include "memdbg.h"
 
 #if defined (_MSC_VER) && !defined (MEMDBG_ON)
-#define malloc(a) _aligned_malloc(a,16)
-#define realloc(a,b) _aligned_realloc(a,b,16)
-#define calloc(a,b) memset(_aligned_malloc(a*b,16),0,a*b)
-#define free(a) _aligned_free(a)
 char *strdup_MSVC(const char *str)
 {
 	char * s;
@@ -251,8 +247,13 @@ void *mem_alloc_align_func(size_t size, size_t align
 	)
 {
 	void *ptr = NULL;
-	if (align<sizeof(void*))
+	if (align < sizeof(void*))
 		align = sizeof(void*);
+	if (!size)
+		return NULL;
+#ifdef DEBUG
+    assert(!(align & (align - 1)));
+#endif
 #if defined (MEMDBG_ON)
 	ptr = (char*) MEMDBG_alloc_align(size, align, file, line);
 #elif HAVE_POSIX_MEMALIGN

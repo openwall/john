@@ -128,11 +128,7 @@ static void pbkdf2_sha512(const unsigned char *K, int KL, unsigned char *S, int 
 	while (loop <= loops) {
 		_pbkdf2_sha512(S,SL,R,tmp.x64,loop,&ipad,&opad);
 		for (i = skip_bytes%SHA512_DIGEST_LENGTH; i < SHA512_DIGEST_LENGTH && accum < outlen; i++) {
-#if ARCH_LITTLE_ENDIAN
 			out[accum++] = ((uint8_t*)tmp.out)[i];
-#else
-			out[accum++] = ((uint8_t*)tmp.out)[i^7];
-#endif
 		}
 		loop++;
 		skip_bytes = 0;
@@ -141,7 +137,7 @@ static void pbkdf2_sha512(const unsigned char *K, int KL, unsigned char *S, int 
 
 #endif
 
-#ifdef SIMD_COEF_64
+#if defined (SIMD_COEF_64) && !defined(OPENCL_FORMAT)
 
 #ifndef __JTR_SHA2___H_
 // we MUST call our sha2.c functions, to know the layout.  Since it is possible that apple's CommonCrypto lib could

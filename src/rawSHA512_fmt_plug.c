@@ -27,6 +27,7 @@ john_register_one(&fmt_raw0_SHA512);
 #include "common.h"
 #include "johnswap.h"
 #include "formats.h"
+#include "rawSHA512_common.h"
 
 //#undef SIMD_COEF_64
 //#undef SIMD_PARA_SHA512
@@ -79,8 +80,6 @@ john_register_one(&fmt_raw0_SHA512);
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
-#define __RAWSHA512_CREATE_PROPER_TESTS_ARRAY__
-#include "rawSHA512_common.h"
 
 #ifdef SIMD_COEF_64
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
@@ -376,7 +375,7 @@ struct fmt_main fmt_raw0_SHA512 = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		sha512_common_tests
+		sha512_common_tests_rawsha512_111
 	}, {
 		init,
 		done,

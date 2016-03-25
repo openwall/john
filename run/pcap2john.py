@@ -26,7 +26,7 @@ except ImportError:
     sys.stderr.write("Please install scapy, http://www.secdev.org/projects/scapy/\n")
     sys.exit(-1)
 
-VTP_DOMAIN_SIZE = 32
+# VTP_DOMAIN_SIZE = 32
 
 
 def pcap_parser_bfd(fname):
@@ -138,6 +138,13 @@ def pcap_parser_vtp(fname):
             vlans_data = data[40:]
             revision = data[36:40]
             revision_to_subset_mapping[revision] = vlans_data
+
+        # VTP v1 "Summary Advertisement" message, see "vtp_validate_md5_digest"
+        # function in cisco_IOS-11.2-8_source.tar.bz2
+        if data.startswith("\x01\x01"):
+            # hash is "towards" the end of the packet
+            h = data[56:56+16].encode("hex")
+            sys.stderr.write("[WIP] VTP packet found with MD5 hash %s!\n" % (h))
 
         if not (data.startswith("\x02\x01") or data.startswith("\x01\x01")):  # VTP Version + Summary Advertisement
             continue

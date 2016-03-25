@@ -2440,7 +2440,7 @@ def find_rc4_passinfo_xls(filename, stream):
     return None
 
 
-def find_doc_type(filename, stream):
+def find_table(filename, stream):
     w_ident = stream.read(2)
     assert(w_ident == b"\xec\xa5")
     stream.read(9)  # unused
@@ -2449,6 +2449,10 @@ def find_doc_type(filename, stream):
         F = 1
     else:
         F = 0
+    if (flags & 2) != 0:
+        G = 1
+    else:
+        G = 0
     if (flags & 128) != 0:
         M = 1
     else:
@@ -2458,10 +2462,14 @@ def find_doc_type(filename, stream):
         i_key = stream.read(4)
         sys.stderr.write("%s : XOR obfuscation detected, Password Verifier : %s\n" % \
                 (filename, binascii.hexlify(i_key)))
-        return True
+        return "none"
     if F == 0:
         sys.stderr.write("%s : Document is not encrypted!\n" % (filename))
-        return True
+        return "none"
+    if G == 0:
+        return "0Table"
+    else:
+        return "1Table"
 
 
 def find_ppt_type(filename, stream):
@@ -2859,7 +2867,12 @@ def process_file(filename):
     if ["Workbook"] in ole.listdir():
         stream = "Workbook"
     elif ["WordDocument"] in ole.listdir():
-        stream = "1Table"
+        typ = 1
+        sdoc = ole.openstream("WordDocument")
+        stream = find_table(filename, sdoc)
+        if stream == "none":
+            return 5
+
     elif ["PowerPoint Document"] in ole.listdir():
         stream = "Current User"
     else:
@@ -2884,16 +2897,10 @@ def process_file(filename):
         passinfo = find_rc4_passinfo_xls(filename, workbookStream)
         if passinfo is None:
             return 4
-    elif stream == "1Table":
-        typ = 1
-        sdoc = ole.openstream("WordDocument")
-        ret = find_doc_type(filename, sdoc)
-        if not ret:
-            passinfo = find_rc4_passinfo_doc(filename, workbookStream)
-            if passinfo is None:
-                return 4
-        else:
-            return 5
+    elif stream == "0Table" or stream == "1Table":
+        passinfo = find_rc4_passinfo_doc(filename, workbookStream)
+        if passinfo is None:
+            return 4
     else:
         sppt = ole.openstream("Current User")
         offset = find_ppt_type(filename, sppt)

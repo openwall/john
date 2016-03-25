@@ -64,6 +64,7 @@ static int cfg_beep;
 static int cfg_log_passwords;
 static int cfg_showcand;
 static char *LogDateFormat;
+static char *LogDateStderrFormat;
 static int LogDateFormatUTC=0;
 
 /*
@@ -237,15 +238,6 @@ static int log_time(void)
 	unsigned int Time;
 
 	count1 = 0;
-#ifndef HAVE_MPI
-	if (options.fork) {
-#else
-	if (options.fork || mpi_p > 1) {
-#endif
-		count1 = (int)sprintf(log.ptr, "%u ", options.node_min);
-		if (count1 < 0)
-			return count1;
-	}
 
 	Time = pot.fd >= 0 ? status_get_time() : status_restored_time;
 
@@ -261,6 +253,19 @@ static int log_time(void)
 			t_m = localtime(&t);
 		strftime(Buf, sizeof(Buf), LogDateFormat, t_m);
 		count2 = (int)sprintf(log.ptr + count1, "%s ", Buf);
+		if (count2 < 0)
+			return count2;
+		count1 += count2;
+	}
+
+#ifndef HAVE_MPI
+	if (options.fork) {
+#else
+	if (options.fork || mpi_p > 1) {
+#endif
+		count2 = (int)sprintf(log.ptr + count1, "%u ", options.node_min);
+		if (count2 < 0)
+			return count2;
 		count1 += count2;
 	}
 
@@ -315,6 +320,8 @@ void log_init(char *log_name, char *pot_name, char *session)
 			            "LogDateFormat");
 	LogDateFormatUTC = cfg_get_bool(SECTION_OPTIONS, NULL,
 	                            "LogDateFormatUTC", 0);
+	LogDateStderrFormat = cfg_get_param(SECTION_OPTIONS, NULL,
+			            "LogDateStderrFormat");
 	in_logger = 0;
 }
 
@@ -456,7 +463,21 @@ void log_event(const char *format, ...)
 	int count1, count2;
 
 	if (options.flags & FLG_LOG_STDERR) {
-		unsigned int time;
+		unsigned int Time;
+
+		if (LogDateStderrFormat) {
+			struct tm *t_m;
+			char Buf[128];
+			time_t t;
+
+			t = time(0);
+			if (LogDateFormatUTC)
+				t_m = gmtime(&t);
+			else
+				t_m = localtime(&t);
+			strftime(Buf, sizeof(Buf), LogDateStderrFormat, t_m);
+			fprintf(stderr, "%s ", Buf);
+		}
 
 #ifndef HAVE_MPI
 		if (options.fork)
@@ -465,11 +486,11 @@ void log_event(const char *format, ...)
 #endif
 			fprintf(stderr, "%u ", options.node_min);
 
-		time = pot.fd >= 0 ? status_get_time() : status_restored_time;
+		Time = pot.fd >= 0 ? status_get_time() : status_restored_time;
 
 		fprintf(stderr, "%u:%02u:%02u:%02u ",
-		        time / 86400, time % 86400 / 3600,
-		        time % 3600 / 60, time % 60);
+		        Time / 86400, Time % 86400 / 3600,
+		        Time % 3600 / 60, Time % 60);
 
 		va_start(args, format);
 		vfprintf(stderr, format, args);

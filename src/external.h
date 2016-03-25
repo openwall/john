@@ -37,6 +37,12 @@ extern c_int ext_abort, ext_status;
 extern void *f_filter;
 
 /*
+ * Defined for use in the ext_new() macro, below. If set, then f_next will also
+ * be set. So an external for f_next is not required.
+ */
+extern void *f_new;
+
+/*
  * Returns true if the external mode has function()
  * Used for list=ext-filter and list=ext-mode
  */
@@ -62,5 +68,15 @@ extern int ext_filter_body(char *in, char *out);
  * Runs the external mode cracker.
  */
 extern void do_external_crack(struct db_main *db);
+
+/*
+ * Runs the Regular expression cracker in hybrid mode
+ */
+extern int do_external_hybrid_crack(struct db_main *db, const char *base_word);
+
+/*
+ * This is required by recovery to be able to recover external's state
+ */
+extern int ext_restore_state_hybrid(const char *sig, FILE *file);
 
 #endif

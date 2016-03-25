@@ -183,7 +183,8 @@ struct fmt_methods {
 
 /* Called whenever the set of password hashes being cracked changes, such as
  * after self-test, but before actual cracking starts.  When called before a
- * self-test or benchmark rather than before actual cracking, db may be NULL.
+ * self-test or benchmark rather than before actual cracking, db may be made
+ * out of test vectors.
  * Normally, this is a no-op since a format implementation shouldn't mess with
  * the database unnecessarily.  However, when there is a good reason to do so
  * this may e.g. transfer the salts and hashes onto a GPU card. */

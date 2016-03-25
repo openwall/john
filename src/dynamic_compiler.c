@@ -1514,11 +1514,11 @@ static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex
 			++p;
 			if (*p == 's') {
 				++p;
-				if (*p == '2')    { ++p; comp_add_script_line("Func=DynamicFunc__append_2nd_salt%s\n", side==2?"2":""); }
-				else                     comp_add_script_line("Func=DynamicFunc__append_salt%s\n", side==2?"2":"");
+				if (*p == '2'){ ++p; comp_add_script_line("Func=DynamicFunc__append_2nd_salt%s\n", side==2?"2":""); }
+				else                 comp_add_script_line("Func=DynamicFunc__append_salt%s\n", side==2?"2":"");
 			} else if (*p == 'p') { ++p; comp_add_script_line("Func=DynamicFunc__append_keys%s\n", side==2?"2":"");
 			} else if (*p == 'u') { ++p; comp_add_script_line("Func=DynamicFunc__append_userid%s\n", side==2?"2":"");
-			} else if (*p == 'c') { ++p; comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST%c\n", side, *p++);
+			} else if (*p == 'c') { ++p; comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST%c\n", side==2?"2":"1", *p++);
 			}
 		} else if (!strncmp(p, keys_base16_in1_type, len)) {
 			p += len;

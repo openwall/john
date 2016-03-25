@@ -64,8 +64,6 @@ john_register_one(&fmt_opencl_iwork);
 static int *cracked;
 static int any_cracked;
 
-static const int KEY_CHECKSUM_BYTES = 4;
-
 static iwork_common_custom_salt *fctx;
 
 static struct fmt_tests iwork_tests[] = {

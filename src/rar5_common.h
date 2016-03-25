@@ -162,11 +162,6 @@ static void *get_binary(char *ciphertext)
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-#if (ARCH_LITTLE_ENDIAN==0)
-	for (i = 0; i < sizeof(buf.c)/4; ++i) {
-		buf.swap[i] = JOHNSWAP(buf.swap[i]);
-	}
-#endif
 	return out;
 }
 

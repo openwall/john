@@ -53,6 +53,7 @@
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "external.h"
 #include "john.h"
 #include "mask.h"
 #include "unicode.h"
@@ -75,6 +76,8 @@ static int rec_fd;
 static FILE *rec_file = NULL;
 static struct db_main *rec_db;
 static void (*rec_save_mode)(FILE *file);
+static void (*rec_save_mode2)(FILE *file);
+static void (*rec_save_mode3)(FILE *file);
 
 static void rec_name_complete(void)
 {
@@ -238,6 +241,16 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 
 	if ((rec_fd = open(path_expand(rec_name), O_RDWR | O_CREAT, 0600)) < 0)
 		pexit("open: %s", path_expand(rec_name));
+#if __DJGPP__ || _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
+	// works around bug in cygwin, that has file locking problems with a handle
+	// from a just created file.  If we close and reopen, cygwin does not seem
+	// to have any locking problems.  Go figure???
+	// Note, changed from just __CYGWIN__ to all 'Dos/Windows' as the OS environments
+	// likely this is a Win32 'issue'
+	close(rec_fd);
+	if ((rec_fd = open(path_expand(rec_name), O_RDWR | O_CREAT, 0600)) < 0)
+		pexit("open: %s", path_expand(rec_name));
+#endif
 	rec_lock(1);
 	if (!(rec_file = fdopen(rec_fd, "w"))) pexit("fdopen");
 
@@ -274,6 +287,8 @@ void rec_save(void)
 #endif
 	opt = rec_argv;
 	while (*++opt) {
+		if (!memcmp(*opt, "--internal-encoding", 19))
+			memcpy(*opt, "--internal-codepage", 19);
 #ifdef HAVE_MPI
 		if (!strncmp(*opt, "--fork", 6))
 			fake_fork = 0;
@@ -283,7 +298,6 @@ void rec_save(void)
 			!strncmp(*opt, "--input-encoding", 16))
 			add_enc = 0;
 		else if (!strncmp(*opt, "--internal-codepage", 19) ||
-		         !strncmp(*opt, "--internal-encoding", 19) ||
 		         !strncmp(*opt, "--target-encoding", 17))
 			add_2nd_enc = 0;
 		else if (!strncmp(*opt, "--mkv-stats", 11))
@@ -364,7 +378,8 @@ void rec_save(void)
 	    rec_check);
 
 	if (rec_save_mode) rec_save_mode(rec_file);
-
+	if (rec_save_mode2) rec_save_mode2(rec_file);
+	if (rec_save_mode3) rec_save_mode3(rec_file);
 	if (options.flags & FLG_MASK_STACKED)
 		mask_save_state(rec_file);
 
@@ -379,6 +394,13 @@ void rec_save(void)
 	if (!options.fork && fsync(rec_fd))
 		pexit("fsync");
 #endif
+}
+
+void rec_init_hybrid(void (*save_mode)(FILE *file)) {
+	if (!rec_save_mode2)
+		rec_save_mode2 = save_mode;
+	else if (!rec_save_mode3)
+		rec_save_mode3 = save_mode;
 }
 
 /* See the comment in recovery.h on how the "save" parameter is used */
@@ -565,6 +587,8 @@ void rec_restore_args(int lock)
 
 void rec_restore_mode(int (*restore_mode)(FILE *file))
 {
+	char buf[128];
+
 	rec_name_complete();
 
 	if (!rec_file) return;
@@ -582,6 +606,25 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
  * we don't explicitly remove the lock, there may be a race condition between
  * our children closing the fd and us proceeding to re-open and re-lock it.
  */
+
+	/* we may be pointed at appended hybrid records.  If so, then process them */
+	fgetl(buf, sizeof(buf), rec_file);
+	while (!feof(rec_file)) {
+		if (!strncmp(buf, "ext-v", 5)) {
+			if (ext_restore_state_hybrid(buf, rec_file)) rec_format_error("external-hybrid");
+			fgetl(buf, sizeof(buf), rec_file);
+			continue;
+		}
+		/*
+		if (!strncmp(buf, "rex-v", 5)) {
+			if (rexgen_restore_state_hybrid(buf, rec_file)) rec_format_error("rexgen-hybrid");
+			fgetl(buf, sizeof(buf), rec_file);
+			continue;
+		}
+		*/
+		fgetl(buf, sizeof(buf), rec_file);
+	}
+
 	rec_unlock();
 
 	if (fclose(rec_file)) pexit("fclose");

@@ -3,13 +3,17 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * increased salt_len from 52 (which was a bug), to 115.  salts [52-115] bytes
+ * require 2 sha1 limbs to handle.  Salts [0-51] bytes in length are handled by
+ * 1 sha1 limb.  (Feb. 28/16, JimF)
  */
 #ifndef _OPENCL_PBKDF2_HMAC_SHA1_H
 #define _OPENCL_PBKDF2_HMAC_SHA1_H
 
 /*
  * The SHA-1 block size used for HMAC dictates (for optimized code) a max.
- * plaintext length of 64 and a max. salt length of 52.
+ * plaintext length of 64 and a max. salt length of 115.
  *
  * These structs do NOT have space for any cstring trailing NULL
  */
@@ -26,7 +30,7 @@ typedef struct {
 	unsigned int  length;
 	unsigned int  outlen;
 	unsigned int  iterations;
-	unsigned char salt[52];
+	unsigned char salt[115];
 } pbkdf2_salt;
 
 #ifndef _OPENCL_COMPILER

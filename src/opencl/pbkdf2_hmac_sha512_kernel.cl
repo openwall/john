@@ -22,7 +22,7 @@ typedef struct {
 } crack_t;
 
 typedef struct {
-	ulong salt[(MAX_SALT_SIZE + 1 + 4 + 7) / 8];
+	ulong salt[(107 + 1 + 4 + 7) / 8];
 	uint length;
 	uint rounds;
 } salt_t;

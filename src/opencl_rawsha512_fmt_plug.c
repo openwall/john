@@ -28,7 +28,9 @@ john_register_one(&fmt_opencl_rawsha512);
 #include "options.h"
 #include "common.h"
 #include "formats.h"
+#include "johnswap.h"
 #include "sha2.h"
+#include "rawSHA512_common.h"
 
 #define FORMAT_LABEL			"Raw-SHA512-opencl"
 #define FORMAT_NAME			""
@@ -44,23 +46,11 @@ john_register_one(&fmt_opencl_rawsha512);
 #define MAX_KEYS_PER_CRYPT	(MIN_KEYS_PER_CRYPT)
 #define hash_addr(j,idx) (((j)*(global_work_size))+(idx))
 
-#define SWAP64(n) \
-  (((n) << 56)					\
-   | (((n) & 0xff00) << 40)			\
-   | (((n) & 0xff0000) << 24)			\
-   | (((n) & 0xff000000) << 8)			\
-   | (((n) >> 8) & 0xff000000)			\
-   | (((n) >> 24) & 0xff0000)			\
-   | (((n) >> 40) & 0xff00)			\
-   | ((n) >> 56))
-
-
 #define SALT_SIZE 0
 #define SALT_ALIGN 1
 
 #define BINARY_SIZE 8
 #define FULL_BINARY_SIZE 64
-#define BINARY_ALIGN sizeof(uint64_t)
 
 #define PLAINTEXT_LENGTH 20
 #define CIPHERTEXT_LENGTH 128
@@ -82,28 +72,10 @@ typedef struct {
 } sha512_hash;
 
 
-static struct fmt_tests tests[] = {
-	{"b109f3bbbc244eb82441917ed06d618b9008dd09b3befd1b5e07394c706a8bb980b1d7785e5976ec049b46df5f1326af5a2ea6d103fd07c95385ffab0cacbc86", "password"},
-	{"2c80f4c2b3db6b677d328775be4d38c8d8cd9a4464c3b6273644fb148f855e3db51bc33b54f3f6fa1f5f52060509f0e4d350bb0c7f51947728303999c6eff446", "john-user"},
-	{NULL}
-};
-
-
 static sha512_key *gkey;
 static sha512_hash *ghash;
 static uint8_t sha512_key_changed;
 static uint8_t hash_copy_back;
-
-static uint64_t H[8] = {
-	0x6a09e667f3bcc908LL,
-	0xbb67ae8584caa73bLL,
-	0x3c6ef372fe94f82bLL,
-	0xa54ff53a5f1d36f1LL,
-	0x510e527fade682d1LL,
-	0x9b05688c2b3e6c1fLL,
-	0x1f83d9abfb41bd6bLL,
-	0x5be0cd19137e2179LL
-};
 
 //OpenCL variables:
 static cl_mem mem_in, mem_out, mem_binary, mem_cmp;
@@ -239,41 +211,6 @@ static char *get_key(int index)
 {
 	gkey[index].v[gkey[index].length] = 0;
 	return gkey[index].v;
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *pos;
-
-	/* Require lowercase hex digits (assume ASCII) */
-	pos = ciphertext;
-	while (atoi16[ARCH_INDEX(*pos)] != 0x7F && (*pos <= '9' || *pos >= 'a'))
-		pos++;
-	return !*pos && pos - ciphertext == CIPHERTEXT_LENGTH;
-
-}
-
-static void *get_binary(char *ciphertext)
-{
-	static unsigned char out[FULL_BINARY_SIZE];
-	char *p;
-	int i;
-	uint64_t *b;
-
-	p = ciphertext;
-	for (i = 0; i < sizeof(out); i++) {
-		out[i] =
-		    (atoi16[ARCH_INDEX(*p)] << 4) |
-		    atoi16[ARCH_INDEX(p[1])];
-		p += 2;
-	}
-	b = (uint64_t*)out;
-	for (i = 0; i < 8; i++) {
-		uint64_t t = SWAP64(b[i])-H[i];
-		b[i] = SWAP64(t);
-	}
-	return out;
-
 }
 
 static int binary_hash_0(void *binary)
@@ -417,23 +354,19 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	SHA512_CTX ctx;
-	uint64_t *b,*c,crypt_out[8];
+	uint64_t *b, crypt_out[8];
 	int i;
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
 	SHA512_Final((unsigned char *)(crypt_out), &ctx);
+#ifdef SIMD_COEF_64
+	alter_endianity_to_BE64(crypt_out, DIGEST_SIZE / sizeof(ARCH_WORD_64));
+#endif
 
-	b = (uint64_t *)get_binary(source);
-	c = (uint64_t *)crypt_out;
-
-	for (i = 0; i < 8; i++) {
-		uint64_t t = SWAP64(c[i])-H[i];
-		c[i] = SWAP64(t);
-	}
-
+	b = (uint64_t *)sha512_common_binary(source);
 
 	for (i = 0; i < FULL_BINARY_SIZE / 8; i++) { //examin 512bits
-		if (b[i] != c[i])
+		if (b[i] != crypt_out[i])
 			return 0;
 	}
 	return 1;
@@ -459,15 +392,15 @@ struct fmt_main fmt_opencl_rawsha512 = {
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
-		tests
+		sha512_common_tests_rawsha512_20
 	}, {
 		init,
 		done,
 		reset,
 		fmt_default_prepare,
-		valid,
-		fmt_default_split,
-		get_binary,
+		sha512_common_valid,
+		sha512_common_split,
+		sha512_common_binary_rev,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

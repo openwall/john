@@ -3,13 +3,15 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * JimF.  Increased max salt len to 115 (max that can be handled by 2 limbs)
  */
 #ifndef _OPENCL_PBKDF1_HMAC_SHA1_H
 #define _OPENCL_PBKDF1_HMAC_SHA1_H
 
 /*
  * The SHA-1 block size used for HMAC dictates (for optimised code) a max.
- * plaintext length of 64 and a max. salt length of 52.
+ * plaintext length of 64 and a max. salt length of 115.
  *
  * These structs do NOT have space for any cstring trailing NULL
  */
@@ -26,7 +28,7 @@ typedef struct {
 	unsigned int  length;
 	unsigned int  outlen;
 	unsigned int  iterations;
-	unsigned char salt[52];
+	unsigned char salt[115];
 } pbkdf1_salt;
 
 #ifndef _OPENCL_COMPILER

@@ -21,6 +21,7 @@ john_register_one(&fmt_opencl_phpass);
 #include "misc.h"
 #include "options.h"
 #include "common-opencl.h"
+#include "phpass_common.h"
 
 #define FORMAT_LABEL            "phpass-opencl"
 #define FORMAT_NAME             ""
@@ -28,14 +29,9 @@ john_register_one(&fmt_opencl_phpass);
 #define ALGORITHM_NAME          "MD5 OpenCL"
 
 #define BENCHMARK_COMMENT	" ($P$9 lengths 0 to 15)"
-#define BENCHMARK_LENGTH        -1
 
-#define PLAINTEXT_LENGTH        15
-#define CIPHERTEXT_LENGTH       34	// header = 3 | loopcnt = 1 | salt = 8 | ciphertext = 22
-#define BINARY_SIZE             16
 #define ACTUAL_SALT_SIZE        8
 #define SALT_SIZE               (ACTUAL_SALT_SIZE + 1) // 1 byte for iterations
-#define BINARY_ALIGN		MEM_ALIGN_WORD
 #define SALT_ALIGN		1
 
 #define MIN_KEYS_PER_CRYPT      1
@@ -44,7 +40,7 @@ john_register_one(&fmt_opencl_phpass);
 //#define _PHPASS_DEBUG
 
 typedef struct {
-	unsigned char v[PLAINTEXT_LENGTH];
+	unsigned char v[PHPASS_GPU_PLAINTEXT_LENGTH];
 	unsigned char length;
 } phpass_password;
 
@@ -57,54 +53,6 @@ static phpass_hash *outbuffer;			/** calculated hashes **/
 static const char phpassP_prefix[] = "$P$";
 static const char phpassH_prefix[] = "$H$";
 static char currentsalt[SALT_SIZE];
-
-static struct fmt_tests tests[] = {
-	{"$P$90000000000tbNYOc9TwXvLEI62rPt1", ""},
-	{"$P$9saltstriAcRMGl.91RgbAD6WSq64z.", "a"},
-	{"$P$9saltstriMljTzvdluiefEfDeGGQEl/", "ab"},
-//	{"$P$9saltstrikCftjZCE7EY2Kg/pjbl8S.", "abc"},
-	{"$P$900000000jPBDh/JWJIyrF0.DmP7kT.", "ala"},
-//	{"$P$9saltstriV/GXRIRi9UVeMLMph9BxF0", "abcd"},
-//	{"$P$900000000a94rg7R/nUK0icmALICKj1", "john"},
-//	{"$P$900000001ahWiA6cMRZxkgUxj4x/In0", "john"},
-//	{"$P$900000000a94rg7R/nUK0icmALICKj1", "john"},
-	{"$P$9sadli2.wzQIuzsR2nYVhUSlHNKgG/0", "john"},
-	{"$P$9saltstri3JPgLni16rBZtI03oeqT.0", "abcde"},
-//	{"$P$9saltstri0D3A6JyITCuY72ZoXdejV.", "abcdef"},
-	{"$P$900000000zgzuX4Dc2091D8kak8RdR0", "h3ll00"},
-	{"$P$9saltstriXeNc.xV8N.K9cTs/XEn13.", "abcdefg"},
-//	{"$P$9saltstrinwvfzVRP3u1gxG2gTLWqv.", "abcdefgh"},
-	{"$P$900000000m6YEJzWtTmNBBL4jypbHv1", "openwall"},
-	{"$H$9saltstriSUQTD.yC2WigjF8RU0Q.Z.", "abcdefghi"},
-//	{"$P$9saltstriWPpGLG.jwJkwGRwdKNEsg.", "abcdefghij"},
-//	{"$P$900000000qZTL5A0XQUX9hq0t8SoKE0", "1234567890"},
-	{"$P$900112200B9LMtPy2FSq910c1a6BrH0", "1234567890"},
-//	{"$P$9saltstrizjDEWUMXTlQHQ3/jhpR4C.", "abcdefghijk"},
-	{"$P$9RjH.g0cuFtd6TnI/A5MRR90TXPc43/", "password__1"},
-	{"$P$9saltstriGLUwnE6bl91BPJP6sxyka.", "abcdefghijkl"},
-	{"$P$9saltstriq7s97e2m7dXnTEx2mtPzx.", "abcdefghijklm"},
-	{"$P$9saltstriTWMzWKsEeiE7CKOVVU.rS0", "abcdefghijklmn"},
-	{"$P$9saltstriXt7EDPKtkyRVOqcqEW5UU.", "abcdefghijklmno"},
-#if 0
-	{"$H$9aaaaaSXBjgypwqm.JsMssPLiS8YQ00", "test1"},
-	{"$H$9PE8jEklgZhgLmZl5.HYJAzfGCQtzi1", "123456"},
-	{"$H$9pdx7dbOW3Nnt32sikrjAxYFjX8XoK1", "123456"},
-//	{"$P$912345678LIjjb6PhecupozNBmDndU0", "thisisalongertestPW"},
-	{"$H$9A5she.OeEiU583vYsRXZ5m2XIpI68/", "123456"},
-	{"$P$917UOZtDi6ksoFt.y2wUYvgUI6ZXIK/", "test1"},
-//	{"$P$91234567AQwVI09JXzrV1hEC6MSQ8I0", "thisisalongertest"},
-	{"$P$9234560A8hN6sXs5ir0NfozijdqT6f0", "test2"},
-	{"$P$9234560A86ySwM77n2VA/Ey35fwkfP0", "test3"},
-	{"$P$9234560A8RZBZDBzO5ygETHXeUZX5b1", "test4"},
-	{"$P$612345678si5M0DDyPpmRCmcltU/YW/", "JohnRipper"}, // 256
-	{"$P$6T4Krr44HLrUqGkL8Lu67lzZVbvHLC1", "test12345"}, // 256
-	{"$H$712345678WhEyvy1YWzT4647jzeOmo0", "JohnRipper"}, // 512 (phpBB w/older PHP version)
-	{"$P$8DkV/nqeaQNTdp4NvWjCkgN48AK69X.", "test12345"}, // 1024
-	{"$P$B12345678L6Lpt4BxNotVIMILOa9u81", "JohnRipper"}, // 8192 (WordPress)
-//	{"$P$91234567xogA.H64Lkk8Cx8vlWBVzH0", "thisisalongertst"},
-#endif
-	{NULL}
-};
 
 // OpenCL variables:
 static cl_int cl_error;
@@ -193,14 +141,14 @@ static void set_key(char *key, int index)
 #ifdef _PHPASS_DEBUG
 	printf("set_key(%d) = %s\n", index, key);
 #endif
-	memset(inbuffer[index].v, 0, PLAINTEXT_LENGTH);
+	memset(inbuffer[index].v, 0, PHPASS_GPU_PLAINTEXT_LENGTH);
 	inbuffer[index].length = length;
 	memcpy(inbuffer[index].v, key, length);
 }
 
 static char *get_key(int index)
 {
-	static char ret[PLAINTEXT_LENGTH + 1];
+	static char ret[PHPASS_GPU_PLAINTEXT_LENGTH + 1];
 
 	memcpy(ret, inbuffer[index].v, inbuffer[index].length);
 	ret[inbuffer[index].length] = 0;
@@ -229,67 +177,6 @@ static void reset(struct db_main *db)
 		// Auto tune execution from shared/included code.
 		autotune_run(self, 1, 0, 200);
 	}
-}
-
-static int valid(char *ciphertext, struct fmt_main *pFmt)
-{
-	uint32_t i, j, count_log2, found;
-
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
-		return 0;
-	found = 0;
-	if (strncmp(ciphertext, phpassP_prefix, 3) == 0)
-		found = 1;
-	if (strncmp(ciphertext, phpassH_prefix, 3) == 0)
-		found = 1;
-	if (!found)
-		return 0;
-
-	for (i = 3; i < CIPHERTEXT_LENGTH; i++) {
-		found = 0;
-		for (j = 0; j < 64; j++)
-			if (itoa64[j] == ARCH_INDEX(ciphertext[i])) {
-				found = 1;
-				break;
-			}
-		if (!found)
-			return 0;
-	}
-	count_log2 = atoi64[ARCH_INDEX(ciphertext[3])];
-	if (count_log2 < 7 || count_log2 > 31)
-		return 0;
-
-	return 1;
-};
-
-//code from historical JtR phpass patch
-static void *get_binary(char *ciphertext)
-{
-	static unsigned char b[BINARY_SIZE];
-	int i, bidx = 0;
-	unsigned sixbits;
-	char *pos = &ciphertext[3 + 1 + 8];
-	memset(b, 0, BINARY_SIZE);
-
-	for (i = 0; i < 5; i++) {
-		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		b[bidx] = sixbits;
-		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		b[bidx++] |= (sixbits << 6);
-		sixbits >>= 2;
-		b[bidx] = sixbits;
-		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		b[bidx++] |= (sixbits << 4);
-		sixbits >>= 4;
-		b[bidx] = sixbits;
-		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		b[bidx++] |= (sixbits << 2);
-	}
-	sixbits = atoi64[ARCH_INDEX(*pos++)];
-	b[bidx] = sixbits;
-	sixbits = atoi64[ARCH_INDEX(*pos++)];
-	b[bidx] |= (sixbits << 6);
-	return (void *) b;
 }
 
 static void *get_salt(char *ciphertext)
@@ -450,26 +337,30 @@ struct fmt_main fmt_opencl_phpass = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		0,
-		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
-		BINARY_ALIGN,
+		PHPASS_GPU_PLAINTEXT_LENGTH,
+		PHPASS_BINARY_SIZE,
+		PHPASS_BINARY_ALIGN,
 		SALT_SIZE,
-		SALT_ALIGN,
+		PHPASS_SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-		{ NULL },
-		tests
+		{
+			"iteration count",
+		},
+		phpass_common_tests_15
 	}, {
 		init,
 		done,
 		reset,
-		fmt_default_prepare,
-		valid,
-		fmt_default_split,
-		get_binary,
+		phpass_common_prepare,
+		phpass_common_valid,
+		phpass_common_split,
+		phpass_common_binary,
 		get_salt,
-		{ NULL },
+		{
+			phpass_common_iteration_count,
+		},
 		fmt_default_source,
 		{
 			binary_hash_0,

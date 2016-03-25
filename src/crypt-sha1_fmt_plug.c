@@ -41,8 +41,6 @@ john_register_one(&fmt_cryptsha1);
 
 #define FORMAT_LABEL                "sha1crypt"
 #define FORMAT_NAME                 "NetBSD's sha1crypt"
-#define BENCHMARK_COMMENT           ""
-#define BENCHMARK_LENGTH            -1001
 
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF1-SHA1 " SHA1_ALGORITHM_NAME
@@ -82,7 +80,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 static struct saltstruct {
 	unsigned int length;
 	unsigned int rounds;
-	unsigned char salt[SALT_LENGTH+sizeof(SHA1_MAGIC)+7+1]; // allows up to 9999999 sized rounds with 64 byte salt.
+	unsigned char salt[SALT_BUFFER_LENGTH+sizeof(SHA1_MAGIC)+7+1]; // allows up to 9999999 sized rounds with 64 byte salt.
 } *cur_salt;
 
 static void init(struct fmt_main *self)

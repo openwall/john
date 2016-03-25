@@ -29,14 +29,15 @@ john_register_one(&fmt_opencl_xsha512);
 #include "options.h"
 #include "common.h"
 #include "formats.h"
+#include "johnswap.h"
 #include "sha2.h"
+#include "rawSHA512_common.h"
 
 #define FORMAT_LABEL			"XSHA512-opencl"
 #define FORMAT_NAME			"Mac OS X 10.7+"
 #define ALGORITHM_NAME			"SHA512 OpenCL (efficient at \"many salts\" only)"
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
 
 #define KERNEL_NAME "kernel_xsha512"
 #define CMP_KERNEL_NAME "kernel_cmp"
@@ -44,17 +45,6 @@ john_register_one(&fmt_opencl_xsha512);
 #define MIN_KEYS_PER_CRYPT	(1024*512)
 #define MAX_KEYS_PER_CRYPT	(MIN_KEYS_PER_CRYPT)
 #define hash_addr(j,idx) (((j)*(global_work_size))+(idx))
-
-#define SWAP64(n) \
-  (((n) << 56)					\
-   | (((n) & 0xff00) << 40)			\
-   | (((n) & 0xff0000) << 24)			\
-   | (((n) & 0xff000000) << 8)			\
-   | (((n) >> 8) & 0xff000000)			\
-   | (((n) >> 24) & 0xff0000)			\
-   | (((n) >> 40) & 0xff00)			\
-   | ((n) >> 56))
-
 
 #define SALT_SIZE 4
 #define SALT_ALIGN 4
@@ -65,7 +55,6 @@ john_register_one(&fmt_opencl_xsha512);
 
 
 #define PLAINTEXT_LENGTH 20
-#define CIPHERTEXT_LENGTH 136
 
 typedef struct {		// notice memory align problem
 	uint32_t buffer[32];	//1024 bits
@@ -89,29 +78,11 @@ typedef struct {
 } xsha512_hash;
 
 
-static struct fmt_tests tests[] = {
-	{"bb0489df7b073e715f19f83fd52d08ede24243554450f7159dd65c100298a5820525b55320f48182491b72b4c4ba50d7b0e281c1d98e06591a5e9c6167f42a742f0359c7", "password"},
-	{"$LION$74911f723bd2f66a3255e0af4b85c639776d510b63f0b939c432ab6e082286c47586f19b4e2f3aab74229ae124ccb11e916a7a1c9b29c64bd6b0fd6cbd22e7b1f0ba1673", "hello"},
-	{"$LION$5e3ab14c8bd0f210eddafbe3c57c0003147d376bf4caf75dbffa65d1891e39b82c383d19da392d3fcc64ea16bf8203b1fc3f2b14ab82c095141bb6643de507e18ebe7489", "boobies"},
-	{NULL}
-};
-
 static xsha512_key *gkey;
 static xsha512_hash *ghash;
 static xsha512_salt gsalt;
 static uint8_t xsha512_key_changed;
 static uint8_t hash_copy_back;
-
-static uint64_t H[8] = {
-	0x6a09e667f3bcc908LL,
-	0xbb67ae8584caa73bLL,
-	0x3c6ef372fe94f82bLL,
-	0xa54ff53a5f1d36f1LL,
-	0x510e527fade682d1LL,
-	0x9b05688c2b3e6c1fLL,
-	0x1f83d9abfb41bd6bLL,
-	0x5be0cd19137e2179LL
-};
 
 //OpenCL variables:
 static cl_mem mem_in, mem_out, mem_salt, mem_binary, mem_cmp;
@@ -257,73 +228,6 @@ static char *get_key(int index)
 {
 	gkey[index].v[gkey[index].length] = 0;
 	return gkey[index].v;
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *pos;
-
-	/* Require lowercase hex digits (assume ASCII) */
-	pos = ciphertext;
-	if (strncmp(pos, "$LION$", 6))
-		return 0;
-	pos += 6;
-	while (atoi16[ARCH_INDEX(*pos)] != 0x7F && (*pos <= '9' ||
-		*pos >= 'a'))
-		pos++;
-	return !*pos && pos - ciphertext == CIPHERTEXT_LENGTH + 6;
-}
-
-static char *prepare(char *split_fields[10], struct fmt_main *self)
-{
-	char Buf[200];
-	if (!strncmp(split_fields[1], "$LION$", 6))
-		return split_fields[1];
-	if (split_fields[0] && strlen(split_fields[0]) == CIPHERTEXT_LENGTH) {
-		sprintf(Buf, "$LION$%s", split_fields[0]);
-		if (valid(Buf, self)) {
-			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH + 7,
-			    MEM_ALIGN_NONE);
-			strcpy(cp, Buf);
-			return cp;
-		}
-	}
-	if (strlen(split_fields[1]) == CIPHERTEXT_LENGTH) {
-		sprintf(Buf, "$LION$%s", split_fields[1]);
-		if (valid(Buf, self)) {
-			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH + 7,
-			    MEM_ALIGN_NONE);
-			strcpy(cp, Buf);
-			return cp;
-		}
-	}
-	return split_fields[1];
-}
-
-static void *get_binary(char *ciphertext)
-{
-	static union {
-		unsigned char c[FULL_BINARY_SIZE];
-		uint64_t l[FULL_BINARY_SIZE / sizeof(uint64_t)];
-	} buf;
-	unsigned char *out = buf.c;
-	char *p;
-	int i;
-	uint64_t *b;
-
-	ciphertext += 6;
-	p = ciphertext + 8;
-	for (i = 0; i < sizeof(buf.c); i++) {
-		out[i] =
-		    (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
-		p += 2;
-	}
-	b = buf.l;
-	for (i = 0; i < 8; i++) {
-		uint64_t t = SWAP64(b[i]) - H[i];
-		b[i] = SWAP64(t);
-	}
-	return out;
 }
 
 static void *salt(char *ciphertext)
@@ -499,23 +403,20 @@ static int cmp_exact(char *source, int index)
 {
 	SHA512_CTX ctx;
 	int i;
-	uint64_t *b,*c,crypt_out[8];
+	uint64_t *b, crypt_out[8];
 
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, gsalt.v, SALT_SIZE);
 	SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
 	SHA512_Final((unsigned char *) (crypt_out), &ctx);
+#ifdef SIMD_COEF_64
+	alter_endianity_to_BE64(crypt_out, DIGEST_SIZE / sizeof(ARCH_WORD_64));
+#endif
 
-	b = (uint64_t *) get_binary(source);
-	c = (uint64_t *) crypt_out;
-
-	for (i = 0; i < 8; i++) {
-		uint64_t t = SWAP64(c[i]) - H[i];
-		c[i] = SWAP64(t);
-	}
+	b = (uint64_t *) sha512_common_binary_xsha512(source);
 
 	for (i = 0; i < FULL_BINARY_SIZE / 8; i++) {	//examin 512bits
-		if (b[i] != c[i])
+		if (b[i] != crypt_out[i])
 			return 0;
 	}
 	return 1;
@@ -528,7 +429,7 @@ struct fmt_main fmt_opencl_xsha512 = {
 		FORMAT_NAME,
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
-		BENCHMARK_LENGTH,
+		XSHA512_BENCHMARK_LENGTH,
 		0,
 		PLAINTEXT_LENGTH,
 		FULL_BINARY_SIZE,
@@ -541,15 +442,15 @@ struct fmt_main fmt_opencl_xsha512 = {
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
-	    tests
+	    sha512_common_tests_xsha512_20
 	}, {
 		init,
 		done,
 		reset,
-		prepare,
-		valid,
-		fmt_default_split,
-		get_binary,
+		sha512_common_prepare_xsha512,
+		sha512_common_valid_xsha512,
+		sha512_common_split_xsha512,
+		sha512_common_binary_xsha512_rev,
 		salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },

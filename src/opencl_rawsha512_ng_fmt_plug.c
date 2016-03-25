@@ -32,8 +32,6 @@ john_register_one(&fmt_opencl_ng_xsha512);
 #include "config.h"
 #include "options.h"
 #include "opencl_rawsha512.h"
-#define __RAWSHA512_CREATE_PROPER_TESTS_ARRAY__
-#define __XSHA512_CREATE_PROPER_TESTS_ARRAY__
 #include "rawSHA512_common.h"
 
 #include "mask_ext.h"
@@ -111,34 +109,6 @@ static size_t get_task_max_work_group_size()
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0,
 	        prepare_kernel));
 	return MIN(s, 512);
-}
-
-static uint32_t get_bitmap_size_bits(uint32_t num_elements, int sequential_id)
-{
-	uint32_t size, elements = num_elements;
-	//On super: 128MB , 1GB, 2GB
-	cl_ulong memory_available = get_max_mem_alloc_size(sequential_id);
-
-	elements = (get_power_of_two(elements)) + 1;
-
-	size = (elements * 8);
-
-	if (num_elements < (16))
-		size = (16 * 1024 * 8); //Cache?
-	else if (num_elements < (128))
-		size = (1024 * 1024 * 8 * 16);
-	else if (num_elements < (16 * 1024))
-		size *= 1024 * 4;
-	else
-		size *= 256;
-
-	if (size > memory_available)
-		size = (get_power_of_two(memory_available));
-
-	if (!size || size > INT_MAX)
-		size = (uint)INT_MAX + 1U;
-
-	return size;
 }
 
 static uint32_t get_num_loaded_hashes()
@@ -219,6 +189,12 @@ static void release_mask_buffers()
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	uint32_t hash_id_size;
+	size_t mask_cand = 1, mask_gws = 1;
+
+	if (mask_int_cand.num_int_cand > 1) {
+		mask_cand = mask_int_cand.num_int_cand;
+		mask_gws = gws;
+	}
 
 	pinned_plaintext = clCreateBuffer(context[gpu_id],
 	                                  CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
@@ -241,18 +217,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	            pinned_saved_idx, CL_TRUE, CL_MAP_WRITE, 0,
 	            sizeof(uint32_t) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx");
-
-	pinned_int_key_loc = clCreateBuffer(context[gpu_id],
-	                                    CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-	                                    sizeof(uint32_t) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code,
-	               "Error creating page-locked memory pinned_int_key_loc");
-
-	saved_int_key_loc = (uint32_t *) clEnqueueMapBuffer(queue[gpu_id],
-	                    pinned_int_key_loc, CL_TRUE, CL_MAP_WRITE, 0,
-	                    sizeof(uint32_t) * gws, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code,
-	               "Error mapping page-locked memory saved_int_key_loc");
 
 	// create arguments (buffers)
 	salt_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
@@ -277,13 +241,25 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_buffer_hash_ids");
 
 	//Mask mode
-	buffer_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-	                                    sizeof(uint32_t) * gws, NULL, &ret_code);
+	pinned_int_key_loc = clCreateBuffer(context[gpu_id],
+					    CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
+					    sizeof(uint32_t) * mask_gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,
-	               "Error creating buffer argument buffer_int_key_loc");
+		       "Error creating page-locked memory pinned_int_key_loc");
+
+	saved_int_key_loc = (uint32_t *) clEnqueueMapBuffer(queue[gpu_id],
+			    pinned_int_key_loc, CL_TRUE, CL_MAP_WRITE, 0,
+			    sizeof(uint32_t) * mask_gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,
+		       "Error mapping page-locked memory saved_int_key_loc");
+
+	buffer_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
+					    sizeof(uint32_t) * mask_gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,
+		       "Error creating buffer argument buffer_int_key_loc");
 
 	buffer_int_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-	                                 4 * mask_int_cand.num_int_cand, NULL, &ret_code);
+					 4 * mask_cand, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys");
 
 	//Set prepare kernel arguments
@@ -304,7 +280,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(buffer_int_keys),
 	                              (void *)&buffer_int_keys), "Error setting argument 4");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(cl_uint),
-	                              (void *)&(mask_int_cand.num_int_cand)),
+				      (void *)&(mask_int_cand.num_int_cand)),
 	               "Error setting argument 5");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_hash_ids),
 	                              (void *)&buffer_hash_ids), "Error setting argument 6");
@@ -315,7 +291,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	//Assure buffers have no "trash data".
 	memset(plaintext, '\0', BUFFER_SIZE * gws);
 	memset(saved_idx, '\0', sizeof(uint32_t) * gws);
-	memset(saved_int_key_loc, '\0', sizeof(uint32_t) * gws);
+	memset(saved_int_key_loc, 0x80, sizeof(uint32_t) * mask_gws);
 }
 
 static void release_clobj()
@@ -679,19 +655,23 @@ static void prepare_bit_array()
 		pw = current_salt->list;
 
 		do {
-			unsigned int bit_mask;
+			unsigned int bit_mask_x, bit_mask_y;
 			binary = (uint64_t *) pw->binary;
 
 			// Skip cracked.
 			if (binary) {
-				SPREAD_64(binary[0], binary[1], (bitmap_size - 1U), bit_mask)
+				SPREAD_64(binary[0], binary[1], (bitmap_size - 1U),
+					bit_mask_x, bit_mask_y)
 #ifdef DEBUG
-				if (saved_bitmap[bit_mask >> 5] & (1U << (bit_mask & 31)))
-					fprintf(stderr, "Collision: %u %08x %08x %08x\n",
-						num_loaded_hashes, bit_mask, (unsigned int) binary[0],
-						saved_bitmap[bit_mask >> 5]);
+				if (saved_bitmap[bit_mask_x >> 5] & (1U << (bit_mask_x & 31)) &&
+				    saved_bitmap[bit_mask_y >> 5] & (1U << (bit_mask_y & 31)))
+					fprintf(stderr, "Collision: %u %08x %08x %08x %08x\n",
+						num_loaded_hashes, (unsigned int) binary[0],
+						bit_mask_x, bit_mask_y,
+						saved_bitmap[bit_mask_x >> 5]);
 #endif
-				saved_bitmap[bit_mask >> 5] |= (1U << (bit_mask & 31));
+				saved_bitmap[bit_mask_x >> 5] |= (1U << (bit_mask_x & 31));
+				saved_bitmap[bit_mask_y >> 5] |= (1U << (bit_mask_y & 31));
 			}
 		} while ((pw = pw->next));
 
@@ -727,7 +707,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		load_hash();
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1,
-	                                     NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[0]),
+	                                     NULL, &gws, lws, 0, NULL, multi_profilingEvent[0]),
 	              "failed in clEnqueueNDRangeKernel I");
 
 	//Send data to device.
@@ -772,7 +752,8 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 #ifdef DEBUG
 	if (hash_ids[0])
-		fprintf(stderr, "Some checks are going to be done on CPU: %u\n", hash_ids[0]);
+		fprintf(stderr, "Some checks are going to be done on CPU: %u: %1.4f%%\n", hash_ids[0],
+			((double) hash_ids[0]) / (global_work_size * mask_int_cand.num_int_cand) * 100);
 #endif
 	if (hash_ids[0] > global_work_size * mask_int_cand.num_int_cand) {
 		fprintf(stderr, "Error, crypt_all() kernel: %u.\n", hash_ids[0]);
@@ -825,10 +806,9 @@ static int cmp_exact_x(char *source, int index)
 #ifdef DEBUG
 	fprintf(stderr, "Stressing CPU\n");
 #endif
-	binary = (uint64_t *) sha512_common_binary_xsha(source);
+	binary = (uint64_t *) sha512_common_binary_xsha512(source);
 
 	full_hash = crypt_one_x(index);
-
 	return !memcmp(binary, (void *) full_hash, BINARY_SIZE);
 }
 
@@ -886,7 +866,7 @@ struct fmt_main fmt_opencl_ng_rawsha512 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{NULL},
-		sha512_common_tests
+		sha512_common_tests_rawsha512_20
 	}, {
 		init_raw,
 		done,
@@ -951,10 +931,10 @@ struct fmt_main fmt_opencl_ng_xsha512 = {
 		init_x,
 		done,
 		reset,
-		sha512_common_prepare_xsha,
-		sha512_common_valid_xsha,
-		sha512_common_split_xsha,
-		sha512_common_binary_xsha,
+		sha512_common_prepare_xsha512,
+		sha512_common_valid_xsha512,
+		sha512_common_split_xsha512,
+		sha512_common_binary_xsha512,
 		get_salt,
 		{NULL},
 		fmt_default_source,

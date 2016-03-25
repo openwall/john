@@ -1309,17 +1309,6 @@ accept:
 	return out_rule;
 }
 
-static char* rules_cp_to_utf8(char *in)
-{
-	static char out[PLAINTEXT_BUFFER_SIZE + 1];
-
-	if (!(options.flags & FLG_MASK_STACKED) &&
-	    options.internal_cp != UTF_8 && options.target_enc == UTF_8)
-		return cp_to_utf8_r(in, out, rules_max_length);
-
-	return in;
-}
-
 char *rules_apply(char *word_in, char *rule, int split, char *last)
 {
 	char cpword[PLAINTEXT_BUFFER_SIZE + 1];
@@ -1997,23 +1986,31 @@ out_OK:
 	if (maxlength)
 		if (length > maxlength)
 			return NULL;
+	if (!(options.flags & FLG_MASK_STACKED) &&
+	    options.internal_cp != UTF_8 && options.target_enc == UTF_8) {
+		char out[PLAINTEXT_BUFFER_SIZE + 1];
+
+		strcpy(in, cp_to_utf8_r(in, out, rules_max_length));
+		length = strlen(in);
+	}
+
 	if (last) {
 		if (length > rules_max_length)
 			length = rules_max_length;
 		if (length >= ARCH_SIZE - 1) {
 			if (*(ARCH_WORD *)in != *(ARCH_WORD *)last)
-				return rules_cp_to_utf8(in);
+				return in;
 			if (strcmp(&in[ARCH_SIZE - 1], &last[ARCH_SIZE - 1]))
-				return rules_cp_to_utf8(in);
+				return in;
 			return NULL;
 		}
 		if (last[length])
-			return rules_cp_to_utf8(in);
+			return in;
 		if (memcmp(in, last, length))
-			return rules_cp_to_utf8(in);
+			return in;
 		return NULL;
 	}
-	return rules_cp_to_utf8(in);
+	return in;
 
 out_which:
 	if (which == 1) {

@@ -72,9 +72,10 @@ typedef struct {
 	uint32_t hash[8];
 } crack_t;
 
+// This structure HAS to match what is in pbkdf2_hmac_sha256_kernel.cl
 typedef struct {
 	uint8_t length;
-	uint8_t salt[64];
+	uint8_t salt[115];
 	uint32_t rounds;
 } salt_t;
 

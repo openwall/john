@@ -17,6 +17,7 @@ john_register_one(&fmt_XSHA512);
 #include "formats.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
+#include "rawSHA512_common.h"
 
 //#undef SIMD_COEF_64
 
@@ -58,9 +59,6 @@ john_register_one(&fmt_XSHA512);
 #else
 #undef PRECOMPUTE_CTX_FOR_SALT
 #endif
-
-#define __XSHA512_CREATE_PROPER_TESTS_ARRAY__
-#include "rawSHA512_common.h"
 
 #define BINARY_SIZE				DIGEST_SIZE
 
@@ -192,6 +190,12 @@ static void set_key(char *key, int index)
 	saved_len[index] = length;
 	memcpy(saved_key[index], key, length);
 #else
+	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
+	ARCH_WORD_64 *keybuf_word = keybuffer;
+	unsigned int len;
+	ARCH_WORD_64 temp;
+	unsigned char *wucp = (unsigned char*)saved_key;
+
 	// ok, first 4 bytes (if there are that many or more), we handle one offs.
 	// this is because we already have 4 byte salt loaded into our saved_key.
 	// IF there are more bytes of password, we drop into the multi loader.
@@ -199,14 +203,11 @@ static void set_key(char *key, int index)
 	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)&(key[4]);
 #else
 	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint64_t));
-	const ARCH_WORD_64 *wkey = is_aligned(key+4, sizeof(uint64_t)) ?
-			(ARCH_WORD_64*)(key+4) : (ARCH_WORD_64*)strcpy(buf_aligned, key+4);
+	const ARCH_WORD_64 *wkey = is_aligned(key + 4, sizeof(uint64_t)) ?
+		(ARCH_WORD_64*)(key + 4) : (ARCH_WORD_64*)buf_aligned;
+	if ((char *)wkey == buf_aligned && strlen(key) >= 4)
+		strcpy(buf_aligned, key + 4);
 #endif
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
-	ARCH_WORD_64 *keybuf_word = keybuffer;
-	unsigned int len;
-	ARCH_WORD_64 temp;
-	unsigned char *wucp = (unsigned char*)saved_key;
 	len = 4;
 	if (key[0] == 0) {wucp[GETPOS(4, index)] = 0x80; wucp[GETPOS(5, index)] = wucp[GETPOS(6, index)] = wucp[GETPOS(7, index)] = 0; goto key_cleaning; }
 	wucp[GETPOS(4, index)] = key[0];
@@ -385,10 +386,10 @@ struct fmt_main fmt_XSHA512 = {
 		init,
 		done,
 		fmt_default_reset,
-		sha512_common_prepare_xsha,
-		sha512_common_valid_xsha,
-		sha512_common_split_xsha,
-		sha512_common_binary_xsha,
+		sha512_common_prepare_xsha512,
+		sha512_common_valid_xsha512,
+		sha512_common_split_xsha512,
+		sha512_common_binary_xsha512,
 		get_salt,
 		{ NULL },
 		fmt_default_source,

@@ -73,4 +73,17 @@ typedef union MY_WORD {
 	u8  c[4];
 } MY_WORD;
 
+/* Here is the 'common' code */
+#define WINZIP_BENCHMARK_COMMENT	""
+#define WINZIP_BENCHMARK_LENGTH	-1001
+#define WINZIP_BINARY_SIZE         10
+#define WINZIP_FORMAT_TAG		"$zip2$"
+#define WINZIP_FORMAT_CLOSE_TAG	"$/zip2$"
+#define WINZIP_TAG_LENGTH		6
+
+
+extern int winzip_common_valid(char *ciphertext, struct fmt_main *self);
+extern void *winzip_common_binary(char *ciphertext);
+
+extern struct fmt_tests winzip_common_tests[];
 #endif

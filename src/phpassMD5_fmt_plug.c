@@ -41,6 +41,7 @@ john_register_one(&fmt_phpassmd5);
 #include "common.h"
 #include "formats.h"
 #include "md5.h"
+#include "phpass_common.h"
 
 //#undef _OPENMP
 //#undef SIMD_COEF_32
@@ -63,15 +64,11 @@ john_register_one(&fmt_phpassmd5);
 #endif
 
 #define BENCHMARK_COMMENT		" ($P$9)"
-#define BENCHMARK_LENGTH		-1 // only 1 salt is pretty much same speed.
 
-#define PLAINTEXT_LENGTH		39
-#define CIPHERTEXT_LENGTH		34
 #ifndef MD5_BUF_SIZ
 #define MD5_BUF_SIZ				16
 #endif
 
-#define BINARY_SIZE				16
 #define DIGEST_SIZE				16
 #define SALT_SIZE				8
 // NOTE salts are only 8 bytes, but we tell john they are 9.
@@ -86,24 +83,6 @@ john_register_one(&fmt_phpassmd5);
 #define MAX_KEYS_PER_CRYPT	1
 #endif
 
-static struct fmt_tests tests[] = {
-		{"$H$9aaaaaSXBjgypwqm.JsMssPLiS8YQ00", "test1"},
-		{"$H$9PE8jEklgZhgLmZl5.HYJAzfGCQtzi1", "123456"},
-		{"$H$9pdx7dbOW3Nnt32sikrjAxYFjX8XoK1", "123456"},
-		{"$P$912345678LIjjb6PhecupozNBmDndU0", "thisisalongertestPW"},
-		{"$H$9A5she.OeEiU583vYsRXZ5m2XIpI68/", "123456"},
-		{"$P$917UOZtDi6ksoFt.y2wUYvgUI6ZXIK/", "test1"},
-		{"$P$91234567AQwVI09JXzrV1hEC6MSQ8I0", "thisisalongertest"},
-		{"$P$9234560A8hN6sXs5ir0NfozijdqT6f0", "test2"},
-		{"$P$9234560A86ySwM77n2VA/Ey35fwkfP0", "test3"},
-		{"$P$9234560A8RZBZDBzO5ygETHXeUZX5b1", "test4"},
-		{"$P$91234567xogA.H64Lkk8Cx8vlWBVzH0", "thisisalongertst"},
-		{"$P$612345678si5M0DDyPpmRCmcltU/YW/", "JohnRipper"}, // note smaller loop count
-		{"$H$712345678WhEyvy1YWzT4647jzeOmo0", "JohnRipper"}, // note smaller loop count (phpbb w/older PHP version)
-		{"$P$B12345678L6Lpt4BxNotVIMILOa9u81", "JohnRipper"}, // note larber loop count  (Wordpress)
-		{NULL}
-};
-
 #ifdef SIMD_COEF_32
 // hash with key appended (used on all steps other than first)
 static ARCH_WORD_32 (*hash_key)[MD5_BUF_SIZ*NBKEYS];
@@ -112,34 +91,12 @@ static ARCH_WORD_32 (*cursalt)[MD5_BUF_SIZ*NBKEYS];
 static ARCH_WORD_32 (*crypt_key)[DIGEST_SIZE/4*NBKEYS];
 static unsigned max_keys;
 #else
-static char (*crypt_key)[PLAINTEXT_LENGTH+1+BINARY_SIZE];
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static char (*crypt_key)[PHPASS_CPU_PLAINTEXT_LENGTH+1+PHPASS_BINARY_SIZE];
+static char (*saved_key)[PHPASS_CPU_PLAINTEXT_LENGTH + 1];
 static unsigned (*saved_len);
 static unsigned char cursalt[SALT_SIZE];
 #endif
 static unsigned loopCnt;
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	int i;
-	unsigned count_log2;
-
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
-		return 0;
-	// Handle both the phpass signature, and the phpBB v3 signature (same formula)
-	// NOTE we are only dealing with the 'portable' encryption method
-	if (strncmp(ciphertext, "$P$", 3) != 0 && strncmp(ciphertext, "$H$", 3) != 0)
-		return 0;
-	for (i = 3; i < CIPHERTEXT_LENGTH; ++i)
-		if (atoi64[ARCH_INDEX(ciphertext[i])] == 0x7F)
-			return 0;
-
-	count_log2 = atoi64[ARCH_INDEX(ciphertext[3])];
-	if (count_log2 < 7 || count_log2 > 31)
-		return 0;
-
-	return 1;
-}
 
 static void init(struct fmt_main *self) {
 #ifdef _OPENMP
@@ -164,31 +121,6 @@ static void init(struct fmt_main *self) {
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 #endif
-}
-
-// convert dynamic_17 back into phpass format
-char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[CIPHERTEXT_LENGTH + 1];
-	char *cpH, *cpS;
-
-	if (strncmp(ciphertext, "$dynamic_17$", 12))
-		return ciphertext;
-	cpH = ciphertext + 12;
-	strcpy(out, "$P$");
-	cpS = strchr(cpH, '$');
-	if (!cpS)
-		return ciphertext;
-	++cpS;
-	out[3] = cpS[8];
-	memcpy(&out[4], cpS, 8);
-	memcpy(&out[12], cpH, 22);
-	return out;
-}
-
-char *prepare(char *split_fields[10], struct fmt_main *self)
-{
-	return split(split_fields[1], 0, self);
 }
 
 static void done(void)
@@ -262,7 +194,7 @@ static void set_key(char *key, int index) {
 static char *get_key(int index) {
 #ifdef SIMD_COEF_32
 	unsigned char *saltb8 = (unsigned char*)cursalt;
-	static char out[PLAINTEXT_LENGTH+1];
+	static char out[PHPASS_CPU_PLAINTEXT_LENGTH+1];
 	int len, i;
 
 	// get salt length (in bits)
@@ -300,7 +232,7 @@ static int cmp_all(void *binary, int count) {
 	return 0;
 #else
 	for (i = 0; i < count; i++)
-		if (!memcmp(binary, crypt_key[i], BINARY_SIZE))
+		if (!memcmp(binary, crypt_key[i], PHPASS_BINARY_SIZE))
 			return 1;
 	return 0;
 #endif
@@ -321,7 +253,7 @@ static int cmp_one(void * binary, int index)
 	       (((ARCH_WORD_32 *)binary)[2] == ((ARCH_WORD_32 *)crypt_key)[off+2*SIMD_COEF_32+idx]) &&
 	       (((ARCH_WORD_32 *)binary)[3] == ((ARCH_WORD_32 *)crypt_key)[off+3*SIMD_COEF_32+idx]));
 #else
-	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
+	return !memcmp(binary, crypt_key[index], PHPASS_BINARY_SIZE);
 #endif
 }
 
@@ -353,48 +285,17 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 		MD5_Update( &ctx, saved_key[index], saved_len[index] );
 		MD5_Final( (unsigned char *) crypt_key[index], &ctx);
 
-		strcpy(((char*)&(crypt_key[index]))+BINARY_SIZE, saved_key[index]);
+		strcpy(((char*)&(crypt_key[index]))+PHPASS_BINARY_SIZE, saved_key[index]);
 		Lcount = loopCnt;
 
 		do {
 			MD5_Init( &ctx );
-			MD5_Update( &ctx, crypt_key[index],  BINARY_SIZE+saved_len[index]);
+			MD5_Update( &ctx, crypt_key[index],  PHPASS_BINARY_SIZE+saved_len[index]);
 			MD5_Final( (unsigned char *)&(crypt_key[index]), &ctx);
 		} while (--Lcount);
 #endif
 	}
 	return count;
-}
-
-static void * binary(char *ciphertext)
-{
-	int i;
-	unsigned sixbits;
-	static unsigned char b[16];
-	int bidx=0;
-	char *pos;
-
-	pos = &ciphertext[3+1+8];
-	for (i = 0; i < 5; ++i)
-	{
-		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		b[bidx] = sixbits;
-		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		b[bidx++] |= (sixbits<<6);
-		sixbits >>= 2;
-		b[bidx] = sixbits;
-		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		b[bidx++] |= (sixbits<<4);
-		sixbits >>= 4;
-		b[bidx] = sixbits;
-		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		b[bidx++] |= (sixbits<<2);
-	}
-	sixbits = atoi64[ARCH_INDEX(*pos++)];
-	b[bidx] = sixbits;
-	sixbits = atoi64[ARCH_INDEX(*pos++)];
-	b[bidx] |= (sixbits<<6);
-	return b;
 }
 
 static void * salt(char *ciphertext)
@@ -432,11 +333,6 @@ static int salt_hash(void *salt)
 	return *((ARCH_WORD *)salt) & 0x3FF;
 }
 
-static unsigned int iteration_count(void *salt)
-{
-	return 1U<<atoi64[(((unsigned char*)salt)[8])];
-}
-
 struct fmt_main fmt_phpassmd5 = {
 	{
 		FORMAT_LABEL,
@@ -445,11 +341,11 @@ struct fmt_main fmt_phpassmd5 = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		0,
-		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
-		4,
+		PHPASS_CPU_PLAINTEXT_LENGTH,
+		PHPASS_BINARY_SIZE,
+		PHPASS_BINARY_ALIGN,
 		SALT_SIZE+1,
-		4,
+		PHPASS_SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #ifdef _OPENMP
@@ -459,18 +355,18 @@ struct fmt_main fmt_phpassmd5 = {
 		{
 			"iteration count",
 		},
-		tests
+		phpass_common_tests_39
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
-		valid,
-		split,
-		binary,
+		phpass_common_prepare,
+		phpass_common_valid,
+		phpass_common_split,
+		phpass_common_binary,
 		salt,
 		{
-			iteration_count,
+			phpass_common_iteration_count,
 		},
 		fmt_default_source,
 		{

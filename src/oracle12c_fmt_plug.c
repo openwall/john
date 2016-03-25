@@ -214,9 +214,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		              strlen(saved_key[index]), cur_salt->salt,
 		              cur_salt->saltlen, 4096,
 		              (unsigned char*)crypt_out[index], BINARY_SIZE, 0);
-#if !ARCH_LITTLE_ENDIAN
-		alter_endianity_w64(crypt_out[index], BINARY_SIZE/8);
-#endif
 #endif
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++)

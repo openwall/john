@@ -40,51 +40,58 @@
 #include <arm_neon.h>
 
 typedef uint8x16_t vtype8;
-typedef uint32x4_t vtype; /* the default one */
+typedef uint32x4_t vtype32;
 typedef uint64x2_t vtype64;
+typedef union {
+    vtype8 v8;
+    vtype32 v32;
+    vtype64 v64;
+    uint32_t s32[SIMD_COEF_32];
+    uint64_t s64[SIMD_COEF_64];
+} vtype;
 
-#define vadd_epi32              vaddq_u32
-#define vadd_epi64(x, y)        (vtype)vaddq_u64((vtype64)(x), (vtype64)(y))
-#define vand                    vandq_u32
-#define vandnot(x, y)           vbicq_u32(y, x)
-#define vcmov(x, y, z)          vbslq_u32(z, x, y)
-#define vload(m)                vld1q_u32((uint32_t*)(m))
+#define vadd_epi32(x, y)        (vtype)vaddq_u32((x).v32, (y).v32)
+#define vadd_epi64(x, y)        (vtype)vaddq_u64((x).v64, (y).v64)
+#define vand(x, y)              (vtype)vandq_u32((x).v32, (y).v32)
+#define vandnot(x, y)           (vtype)vbicq_u32((y).v32, (x).v32)
+#define vcmov(x, y, z)          (vtype)vbslq_u32((z).v32, (x).v32, (y).v32)
+#define vload(m)                (vtype)vld1q_u32((uint32_t*)(m))
 #define vloadu                  vloadu_emu
 #define VLOADU_EMULATED         1
-#define vor                     vorrq_u32
-#define vorn                    vornq_u32
-#define vroti_epi32(x, i)       (i > 0 ? vsliq_n_u32(vshrq_n_u32(x, 32-(i)), x, i) : \
-                                         vsriq_n_u32(vshlq_n_u32(x, 32+(i)), x, -(i)))
-#define vroti_epi64(x, i)       (i > 0 ? (vtype)vsliq_n_u64(vshrq_n_u64((vtype64)(x), 64-(i)), (vtype64)(x), i) : \
-                                         (vtype)vsriq_n_u64(vshlq_n_u64((vtype64)(x), 64+(i)), (vtype64)(x), -(i)))
+#define vor(x, y)               (vtype)vorrq_u32((x).v32, (y).v32)
+#define vorn(x, y)              (vtype)vornq_u32((x).v32, (y).v32)
+#define vroti_epi32(x, i)       (i > 0 ? (vtype)vsliq_n_u32(vshrq_n_u32((x).v32, 32 - (i)), (x).v32, i) : \
+                                         (vtype)vsriq_n_u32(vshlq_n_u32((x).v32, 32 + (i)), (x).v32, -(i)))
+#define vroti_epi64(x, i)       (i > 0 ? (vtype)vsliq_n_u64(vshrq_n_u64((x).v64, 64 - (i)), (x).v64, i) : \
+                                         (vtype)vsriq_n_u64(vshlq_n_u64((x).v64, 64 + (i)), (x).v64, -(i)))
 #define vroti16_epi32           vroti_epi32
-#define vset1_epi32(x)          vdupq_n_u32(x)
-#define vset1_epi64(x)          (vtype)vdupq_n_u64(x)
-#define vset_epi32(x3,x2,x1,x0) vcombine_u32(vcreate_u32(((uint64_t)(x1) << 32) | x0), vcreate_u32(((uint64_t)(x3) << 32) | x2))
-#define vset_epi64(x1,x0)       (vtype)vcombine_u64(vcreate_u64(x0), vcreate_u64(x1))
+#define vset1_epi32(i)          (vtype)vdupq_n_u32(i)
+#define vset1_epi64(i)          (vtype)vdupq_n_u64(i)
+#define vset_epi32(d, c, b, a)  (vtype)vcombine_u32(vcreate_u32(((uint64_t)(b) << 32) | a), vcreate_u32(((uint64_t)(d) << 32) | c))
+#define vset_epi64(b, a)        (vtype)vcombine_u64(vcreate_u64(a), vcreate_u64(b))
 #define vsetzero()              vset1_epi32(0)
-#define vslli_epi32(x, i)       vshlq_n_u32(x, i)
-#define vslli_epi64(x, i)       (vtype)vshlq_n_u64((vtype64)(x), i)
-#define vsrli_epi32(x, i)       vshrq_n_u32(x, i)
-#define vsrli_epi64(x, i)       (vtype)vshrq_n_u64((vtype64)(x), i)
-#define vstore(m, x)            vst1q_u32((uint32_t*)(m), x)
+#define vslli_epi32(x, i)       (vtype)vshlq_n_u32((x).v32, i)
+#define vslli_epi64(x, i)       (vtype)vshlq_n_u64((x).v64, i)
+#define vsrli_epi32(x, i)       (vtype)vshrq_n_u32((x).v32, i)
+#define vsrli_epi64(x, i)       (vtype)vshrq_n_u64((x).v64, i)
+#define vstore(m, x)            vst1q_u32((uint32_t*)(m), (x).v32)
 #define vstoreu                 vstoreu_emu
 #define VSTOREU_EMULATED        1
-#define vunpackhi_epi32(x, y)   (vzipq_u32(x, y)).val[1]
-#define vunpackhi_epi64(x, y)   vset_epi64(vgetq_lane_u64((vtype64)(y), 1), vgetq_lane_u64((vtype64)(x), 1))
-#define vunpacklo_epi32(x, y)   (vzipq_u32(x, y)).val[0]
-#define vunpacklo_epi64(x, y)   vset_epi64(vgetq_lane_u64((vtype64)(y), 0), vgetq_lane_u64((vtype64)(x), 0))
-#define vxor                    veorq_u32
+#define vunpackhi_epi32(x, y)   (vtype)(vzipq_u32((x).v32, (y).v32)).val[1]
+#define vunpackhi_epi64(x, y)   vset_epi64(vgetq_lane_u64(((y).v64, 1), vgetq_lane_u64((x).v64, 1))
+#define vunpacklo_epi32(x, y)   (vtype)(vzipq_u32(x, y)).val[0]
+#define vunpacklo_epi64(x, y)   vset_epi64(vgetq_lane_u64(((y).v64, 0), vgetq_lane_u64((x).v64, 0))
+#define vxor(x, y)              (vtype)veorq_u32((x).v32, (y).v32)
 
 static inline int vanyeq_epi32(vtype x, vtype y)
 {
-	vtype z = vceqq_u32(x, y);
-	return vgetq_lane_u32(z, 0) || vgetq_lane_u32(z, 1) ||
-	       vgetq_lane_u32(z, 2) || vgetq_lane_u32(z, 3);
+	vtype z = (vtype)vceqq_u32(x.v32, y.v32);
+	return vgetq_lane_u32(z.v32, 0) || vgetq_lane_u32(z.v32, 1) ||
+	       vgetq_lane_u32(z.v32, 2) || vgetq_lane_u32(z.v32, 3);
 }
 
-#define vswap32(x)              (x = (vtype)vrev32q_u8((vtype8)x))
-#define vswap64(x)              (x = (vtype)vrev64q_u8((vtype8)x))
+#define vswap32(x)              (x = (vtype)vrev32q_u8(x.v8))
+#define vswap64(x)              (x = (vtype)vrev64q_u8(x.v8))
 
 #define GATHER64(x,y,z)     { x = vset_epi64 (y[1][z], y[0][z]); }
 

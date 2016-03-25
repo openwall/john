@@ -25,13 +25,10 @@
 #define BINARY_SIZE 8
 #define FULL_BINARY_SIZE 64
 #endif
-#define BINARY_ALIGN 1
 
 #define PLAINTEXT_LENGTH		16
 #define MAX_PLAINTEXT_LENGTH	125
 #define EXTEND_PLAINTEXT_LENGTH	(MAX_PLAINTEXT_LENGTH-PLAINTEXT_LENGTH)
-
-#define CIPHERTEXT_LENGTH		136
 
 extern uint8_t xsha512_key_changed;
 extern uint8_t use_extend;

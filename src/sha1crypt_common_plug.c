@@ -88,10 +88,5 @@ void * sha1crypt_common_get_binary(char * ciphertext) {
 		TO_BINARY(i, i + 1, i + 2);
 		i = i + 3;
 	} while (i <= 18);
-#if (ARCH_LITTLE_ENDIAN==0)
-	for (i = 0; i < sizeof(buf.c)/4; ++i) {
-		buf.swap[i] = JOHNSWAP(buf.swap[i]);
-	}
-#endif
 	return (void *)out;
 }

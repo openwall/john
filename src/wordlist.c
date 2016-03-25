@@ -306,11 +306,23 @@ static int restore_state(FILE *file)
 		if (mem_map) {
 			char line[LINE_BUFFER_SIZE];
 			skip_lines(rec_line, line);
+			rec_pos = 0;
+		} else if (rec_line && !rec_pos) {
+			/* from mem_map build does not have rec_pos */
+			int64_t i = rec_line;
+			char line[LINE_BUFFER_SIZE];
+			jtr_fseek64(word_file, 0, SEEK_SET);
+			while (i--)
+				if (!fgetl(line, sizeof(line), word_file))
+					pexit(STR_MACRO(jtr_fseek64));
+			rec_pos = jtr_ftell64(word_file);
 		} else
 		if (jtr_fseek64(word_file, rec_pos, SEEK_SET))
 			pexit(STR_MACRO(jtr_fseek64));
 		line_number = rec_line;
 	}
+	else
+		line_number = rec_line;
 
 	return 0;
 }
@@ -1193,6 +1205,17 @@ REDO_AFTER_LMLOOP:
 					wordlist_hybrid_fix_state();
 				} else
 #endif
+				if (f_new) {
+					if (do_external_hybrid_crack(db, word))
+					{
+						rule = NULL;
+						rules = 0;
+						pipe_input = 0;
+						do_lmloop = 0;
+						break;
+					}
+					wordlist_hybrid_fix_state();
+				} else
 				if (options.mask) {
 					if (do_mask_crack(word)) {
 						rule = NULL;
@@ -1250,6 +1273,16 @@ REDO_AFTER_LMLOOP:
 					wordlist_hybrid_fix_state();
 				} else
 #endif
+				if (f_new) {
+					if (do_external_hybrid_crack(db, word))
+					{
+						rule = NULL;
+						rules = 0;
+						pipe_input = 0;
+						break;
+					}
+					wordlist_hybrid_fix_state();
+				} else
 				if (options.mask) {
 					if (do_mask_crack(word)) {
 						rule = NULL;
@@ -1314,6 +1347,16 @@ process_word:
 						wordlist_hybrid_fix_state();
 					} else
 #endif
+					if (f_new) {
+						if (do_external_hybrid_crack(db, word))
+						{
+							rule = NULL;
+							rules = 0;
+							pipe_input = 0;
+							break;
+						}
+						wordlist_hybrid_fix_state();
+					} else
 					if (options.mask) {
 						if (do_mask_crack(word)) {
 							rule = NULL;
