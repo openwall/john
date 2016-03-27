@@ -56,7 +56,7 @@ __kernel void keystore(__global const keystore_password *inbuffer,
 	// message length is password length*2 + salt length
 	uint msg_len = (pwd_len<<1) + salt_len;
 
-	// But the bytes we actually need to accomodate in
+	// But the bytes we actually need to accommodate in
 	// each exactly 64-byte block must also include:
 	// 	- sizeof(uchar) for salt-terminating bit 1, set as uchar 0x80
 	//	- 0 or more '\0' byte padding, so that bit length is at proper location.

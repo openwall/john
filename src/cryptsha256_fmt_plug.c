@@ -121,7 +121,7 @@ john_register_one(&fmt_cryptsha256);
 // them in groups that all 'fit' together, and do so until we exhaust all from a given length
 // range, then do all in the next range.  Thus, until we get to the last set within a length
 // range, we are doing a fully packed SSE run, and having a LOT less wasted space. This will
-// get even more interesting, when we start doing OMP, but it should just be the same principal,
+// get even more interesting, when we start doing OMP, but it should just be the same principle,
 // preload more passwords, and group them, then run the OMP threads over a single length, then
 // go to the next length, until done, trying to keep each thread running, and keeping each block
 // of SSE data full, until the last in a range.  We probably can simply build all the rearrangments,

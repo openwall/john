@@ -2193,7 +2193,7 @@ test_utf8_verbose:
 
 bash-completion:
 	@echo
-	@echo NOTE: Administrative priviledges required for this make target.
+	@echo NOTE: Administrative privileges required for this make target.
 	[ -d $(DESTDIR)/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/etc/bash_completion.d/ || true
 	[ -d $(DESTDIR)/usr/local/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/usr/local/etc/bash_completion.d/ || true
 	[ -d $(DESTDIR)/opt/local/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/opt/local/etc/bash_completion.d/ || true
@@ -2203,7 +2203,7 @@ bash-completion:
 
 zsh-completion:
 	@echo
-	@echo NOTE: Administrative priviledges required for this make target.
+	@echo NOTE: Administrative privileges required for this make target.
 	[ -d $(DESTDIR)/usr/share/zsh/functions/Completion/Unix ] && $(CP) ../run/john.zsh_completion $(DESTDIR)/usr/share/zsh/functions/Completion/Unix/_john || true
 	[ -d $(DESTDIR)/usr/share/zsh/site-functions ] && $(CP) ../run/john.zsh_completion $(DESTDIR)/usr/share/zsh/site-functions/_john || true
 	[ -d $(DESTDIR)/usr/local/share/zsh/site-functions ] && $(CP) ../run/john.zsh_completion $(DESTDIR)/usr/local/share/zsh/site-functions/_john || true
