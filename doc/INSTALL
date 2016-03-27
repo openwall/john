@@ -159,7 +159,7 @@ that probably work fine but these instructions are for "Homebrew":
   3. Link whatever gcc version you got from Homebrew to just "gcc" in the
      /usr/local/bin directory. This example is for gcc-4.9:
         ln -s gcc-4.9 /usr/local/bin/gcc
-  4. Make sure /usr/local/bin preceeds /usr/bin in your $PATH
+  4. Make sure /usr/local/bin precedes /usr/bin in your $PATH
 
 Instead of #3 and #4 you could obviously pass parameters to autoconf, such as:
 

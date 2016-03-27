@@ -1,12 +1,12 @@
 For most hashes where MD5 is used, building a proper md5 format is likely
-not the best bet overall.  A format is not trivial.  It requires maintainance
+not the best bet overall.  A format is not trivial.  It requires maintenance
 and will likely requires specific enhancements to get it to perform
 optimally on all hardware.  Likely there will need to be 'generic' C
 code done, then it will need code to tie it into CPU specific optimizations,
 such as SSE, MMX, intrisic SSE, GPU, ... ... ...    This will also mean that
 to stay up to date, the format will require ongoing work and mainainance.
 
-However, there is one format which may reduce a lot of this maintainance
+However, there is one format which may reduce a lot of this maintenance
 work to very little.  Now, that format itself will need to be kept up to
 date, but any formats that are built upon its internal workings.  That
 format is dynamic.  In this format, there is a scripting language, where
