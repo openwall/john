@@ -153,7 +153,7 @@
 
 /*
  * Portable basename() function.  DO NOT USE basename().  Use this
- * proper working equivelent.  The _r version is thread safe. In the
+ * proper working equivalent.  The _r version is thread safe. In the
  * _r version, pass in a buffer that is at least strlen(name)+1 bytes
  * long, however, PATH_BUFFER_SIZE+1 can also be used.
  *

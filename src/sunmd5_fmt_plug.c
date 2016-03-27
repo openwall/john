@@ -832,7 +832,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 #endif
 			/*
-			 * this is the equivelent of the original code:
+			 * this is the equivalent of the original code:
 			 *    roundasciilen = sprintf(roundascii, "%d", round);
 			 * that was at the top of this rounds loop.  We have moved
 			 * it to the bottom. It does compute one 'extra' value that
