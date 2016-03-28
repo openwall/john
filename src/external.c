@@ -584,28 +584,46 @@ void do_external_crack(struct db_main *db)
  * then each word will only be sent to ONE thread. Thus that thread has
  * to process ALL candidates that the external script will build
  */
+
+
+extern void(*crk_fix_state)(void);
+void(*saved_crk_fix_state)(void);
+void save_fix_state(void(*new_crk_fix_state)(void))
+{
+	saved_crk_fix_state = crk_fix_state;
+	crk_fix_state = new_crk_fix_state;
+}
+void restore_fix_state(void)
+{
+	crk_fix_state = saved_crk_fix_state;
+}
+
+
 int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 	static int first=1;
 	int retval = 0;
 	unsigned char *internal, *cp;
 	c_int *external;
-	int do_load = 0;
+	int do_load = 1;
 	int just_restored = 0;
+
+	/* Save off fix_state to use hybrid fix state */
+	save_fix_state(ext_hybrid_fix_state);
 
 	if (first) {
 		strcpy(int_hybrid_base_word, base_word);
 		rec_init_hybrid(save_state_hybrid);
 		first = 0;
 		just_restored = rec_restored;
-		if (!rec_restored) {
-			ext_hybrid_resume = hybrid_resume;
-			if (hybrid_resume)
-				do_load = 1;
+		if (rec_restored) {
+			++ext_hybrid_resume;
+			if (!hybrid_resume)
+				do_load = 0;
 		}
 	} else {
 		ext_hybrid_resume = 0;
-		do_load = 1;
 	}
+
 	if (do_load) {
 		strcpy(int_hybrid_base_word, base_word);
 		ext_hybrid_total = -1;
@@ -626,6 +644,7 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 			if (ext_word[0] == 0) {
 				hybrid_resume = 0;
 				ext_hybrid_resume = 0;
+				restore_fix_state();
 				return 0;
 			}
 		}
@@ -658,7 +677,6 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 				retval = 1;
 				goto out;
 			}
-			strcpy(int_hybrid_base_word, base_word);
 		} else {
 			/* Filter skip, and next() skip use the 'same' bail */
 			/* out flag (i.e. int_word[0]==0. So since this was */
@@ -671,7 +689,11 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 		/* gets the next word */
 		++ext_hybrid_resume;
 		c_execute_fast(f_next);
+
 	}
 out:;
+
+	restore_fix_state();
+
 	return retval;
 }
