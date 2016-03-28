@@ -380,6 +380,7 @@ static void save_state_hybrid(FILE *file)
 	        hybrid_actual_completed_total, (unsigned)strlen((char*)ptr));
 	while (*ptr)
 		fprintf(file, "%d ", (int)*ptr++);
+	fprintf(file, "\n");
 }
 
 static int restore_state(FILE *file)
@@ -428,8 +429,12 @@ int ext_restore_state_hybrid(const char *sig, FILE *file)
 		cp = (unsigned char*)int_hybrid_base_word;
 		do {
 			if (fscanf(file, "%d ", &c) != 1) {
-				if (cnt == count)
+				if (cnt == count) {
+					/* eat the trailing \n */
+					char buf[128];
+					fgetl(buf, 128, file);
 					break;
+				}
 				return 1;
 			}
 			if (++count >= PLAINTEXT_BUFFER_SIZE) return 1;
