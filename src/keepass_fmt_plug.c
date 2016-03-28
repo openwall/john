@@ -463,7 +463,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					any_cracked |= 1;
 				}
 			}
-		} else {  // KeePass version 2 with Twofish is TODO
+		} else {
+			// KeePass version 2 with Twofish is TODO. Twofish support under KeePass version 2
+			// requires a third-party plugin. See http://keepass.info/plugins.html for details.
 			abort();
 		}
 	}
