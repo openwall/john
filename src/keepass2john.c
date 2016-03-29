@@ -379,6 +379,13 @@ static void process_database(char* encryptedDatabase)
 		fprintf(stderr, "! %s : parsing failed, please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
 		goto bailout;
 	}
+
+	if (keyfile) {
+		// abort();  // TODO
+		fprintf(stderr, "Keyfile support in KeepPass 2 is yet to be implemented!\n");
+		return;
+	}
+
 	dbname = strip_suffixes(basename(encryptedDatabase),extension, 1);
 	printf("%s:$keepass$*2*%ld*%ld*",dbname, transformRounds, dataStartOffset);
 	print_hex(masterSeed, masterSeedLength);
@@ -394,9 +401,6 @@ static void process_database(char* encryptedDatabase)
 	}
 	printf("*");
 	print_hex(out, 32);
-	if (keyfile) {
-		abort();  // TODO
-	}
 	printf("\n");
 
 bailout:
@@ -446,9 +450,6 @@ int keepass2john(int argc, char **argv)
 	if(argc == 0)
 		return usage(argv[0]);
 	argv += optind;
-
-	if (keyfile)
-		puts(keyfile);
 
 	while(argc--)
 		process_database(*argv++);
