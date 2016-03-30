@@ -27,6 +27,19 @@
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #endif
 
+/* sets v to the next higher even power of 2 */
+#define get_power_of_two(v)                     \
+{                                               \
+    v--;                                        \
+    v |= v >> 1;                                \
+    v |= v >> 2;                                \
+    v |= v >> 4;                                \
+    v |= v >> 8;                                \
+    v |= v >> 16;                               \
+    v |= (v >> 16) >> 16;                       \
+    v++;                                        \
+}
+
 #if !defined(_OPENCL_COMPILER)
 
 #if ARCH_INT_GT_32
