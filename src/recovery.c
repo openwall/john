@@ -274,11 +274,6 @@ void rec_save(void)
 	if (!rec_file) return;
 
 	if (fseek(rec_file, 0, SEEK_SET)) pexit("fseek");
-#ifdef _MSC_VER
-	if (_write(fileno(rec_file), "", 0)) pexit("ftruncate");
-#elif __CYGWIN__
-	if (ftruncate(rec_fd, 0)) pexit("ftruncate");
-#endif
 
 	save_format = !options.format && rec_db->loaded;
 
@@ -389,8 +384,12 @@ void rec_save(void)
 	if (fflush(rec_file)) pexit("fflush");
 #ifndef _MSC_VER
 	if (ftruncate(rec_fd, size)) pexit("ftruncate");
+#else
+	if (_chsize(rec_fd, size)) pexit("ftruncate");
 #endif
-#if HAVE_WINDOWS_H==0
+#if defined (_MSC_VER) || defined (__MINGW__)
+	_close(_dup(rec_fd));
+#else
 	if (!options.fork && fsync(rec_fd))
 		pexit("fsync");
 #endif
