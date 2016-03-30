@@ -387,7 +387,7 @@ void rec_save(void)
 #else
 	if (_chsize(rec_fd, size)) pexit("ftruncate");
 #endif
-#if defined (_MSC_VER) || defined (__MINGW__)
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__MINGW64__)
 	_close(_dup(rec_fd));
 #else
 	if (!options.fork && fsync(rec_fd))
