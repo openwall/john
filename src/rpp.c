@@ -16,6 +16,32 @@ int rpp_init(struct rpp_context *ctx, char *subsection)
 {
 	struct cfg_list *list;
 
+	if (*subsection == ':') {
+		char *p, *buf;
+		const int sz = sizeof(struct cfg_line);
+		struct cfg_line *cfg_cur = mem_calloc_tiny(sz, 8);
+
+		buf = str_alloc_copy(subsection+1);
+		cfg_cur->cfg_name = "Command Line Rule";
+		cfg_cur->data = buf;
+		ctx->input = cfg_cur;
+		p = strchr(buf, ';');
+		while (p && p > buf && p[-1] == '\\')
+			p = strchr(p+1, ';');
+		while (p && *p) {
+			*p++ = 0;
+			if (!p[0]) continue;
+			cfg_cur->next = mem_calloc_tiny(sz, 8);
+			cfg_cur = cfg_cur->next;
+			cfg_cur->cfg_name = "Command Line Rule";
+			cfg_cur->data = p;
+			p = strchr(p, ';');
+			while (p && p > buf && p[-1] == '\\')
+				p = strchr(p+1, ';');
+		}
+		ctx->count = -1;
+		return 0;
+	} else
 	if ((list = cfg_get_list(SECTION_RULES, subsection)))
 	if ((ctx->input = list->head)) {
 		ctx->count = -1;
