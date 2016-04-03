@@ -41,6 +41,8 @@ struct status_main {
 	int compat;
 	int pass;
 	int progress;
+	int resume_salt;
+	uint32_t *resume_salt_md5;
 };
 
 extern struct status_main status;

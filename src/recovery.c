@@ -50,6 +50,7 @@
 #include "config.h"
 #include "options.h"
 #include "loader.h"
+#include "cracker.h"
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
@@ -258,6 +259,24 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 	rec_save_mode = save_mode;
 }
 
+static void save_salt_state()
+{
+	int i;
+	char md5_buf[33], *p=md5_buf;
+	unsigned char *h = (unsigned char*)status.resume_salt_md5;
+
+	if (!status.resume_salt_md5)
+		return;
+
+	for (i = 0; i < 16; ++i) {
+		*p++ = itoa16[*h >> 4];
+		*p++ = itoa16[*h & 0xF];
+		++h;
+	}
+	*p = 0;
+	fprintf(rec_file, "slt-v1\n%s\n", md5_buf);
+}
+
 void rec_save(void)
 {
 	int save_format;
@@ -373,6 +392,8 @@ void rec_save(void)
 	    rec_check);
 
 	if (rec_save_mode) rec_save_mode(rec_file);
+	/* these are 'appended' resume blocks */
+	save_salt_state();
 	if (rec_save_mode2) rec_save_mode2(rec_file);
 	if (rec_save_mode3) rec_save_mode3(rec_file);
 	if (options.flags & FLG_MASK_STACKED)
@@ -584,6 +605,24 @@ void rec_restore_args(int lock)
 	rec_restoring_now = 1;
 }
 
+static void restore_salt_state()
+{
+	char buf[34];
+	static uint32_t hash[4];
+	unsigned char *h = (unsigned char*)hash;
+	int i;
+
+	fgetl(buf, sizeof(buf), rec_file);
+	if (strlen(buf) != 32 || !ishex(buf))
+		rec_format_error("multi-salt");
+	for (i = 0; i < 16; ++i) {
+		h[i] = atoi16[ARCH_INDEX(buf[i*2])] << 4;
+		h[i] += atoi16[ARCH_INDEX(buf[i*2+1])];
+	}
+	status.resume_salt_md5 = hash;
+	status.resume_salt = 1;
+}
+
 void rec_restore_mode(int (*restore_mode)(FILE *file))
 {
 	char buf[128];
@@ -610,17 +649,18 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
 	fgetl(buf, sizeof(buf), rec_file);
 	while (!feof(rec_file)) {
 		if (!strncmp(buf, "ext-v", 5)) {
-			if (ext_restore_state_hybrid(buf, rec_file)) rec_format_error("external-hybrid");
-			fgetl(buf, sizeof(buf), rec_file);
-			continue;
+			if (ext_restore_state_hybrid(buf, rec_file))
+				rec_format_error("external-hybrid");
 		}
 		/*
-		if (!strncmp(buf, "rex-v", 5)) {
-			if (rexgen_restore_state_hybrid(buf, rec_file)) rec_format_error("rexgen-hybrid");
-			fgetl(buf, sizeof(buf), rec_file);
-			continue;
+		else if (!strncmp(buf, "rex-v", 5)) {
+			if (rexgen_restore_state_hybrid(buf, rec_file))
+				rec_format_error("rexgen-hybrid");
 		}
 		*/
+		if (!strcmp(buf, "slt-v1")) {
+			restore_salt_state();
+		}
 		fgetl(buf, sizeof(buf), rec_file);
 	}
 

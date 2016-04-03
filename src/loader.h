@@ -113,6 +113,9 @@ struct db_salt {
 /* Salt in internal representation */
 	void *salt;
 
+/* md5 of the salt 'data'. Used to find the salt in resume session logic */
+	uint32_t salt_md5[4];
+
 /* Bitmap indicating whether a computed hash is potentially present in the list
  * and hash table below.  Normally, the bitmap is large enough that most of its
  * bits are zero. */

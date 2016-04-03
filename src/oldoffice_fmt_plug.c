@@ -378,7 +378,13 @@ static void set_salt(void *salt)
 
 static int salt_compare(const void *x, const void *y)
 {
-	return memcmp((*(custom_salt**)x)->salt, (*(custom_salt**)y)->salt, 16);
+	int c;
+
+	c = memcmp((*(custom_salt**)x)->salt, (*(custom_salt**)y)->salt, 16);
+	if (c)
+		return c;
+	c = dyna_salt_cmp((void*)x, (void*)y, SALT_SIZE);
+	return c;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)

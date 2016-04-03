@@ -460,7 +460,9 @@ static int cmp_exact(char *source, int index)
 
 static int salt_compare(const void *x, const void *y)
 {
-	return strncmp((const char*)x, (const char*)y, 36);
+	int c = strncmp((const char*)x, (const char*)y, 36);
+	if (c) return c;
+	return memcmp((const char*)x, (const char*)y, SALT_SIZE);
 }
 
 #endif

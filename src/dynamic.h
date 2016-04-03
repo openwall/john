@@ -345,6 +345,7 @@ extern int dynamic_allow_rawhash_fixup;
 int dynamic_SETUP(DYNAMIC_Setup *, struct fmt_main *pFmt);
 int dynamic_IS_VALID(int i, int single_lookup_only);
 int dynamic_real_salt_length(struct fmt_main *pFmt);
+void dynamic_salt_md5(struct db_salt *p);
 void dynamic_DISPLAY_ALL_FORMATS();
 char *RemoveHEX(char *output, char *input);
 const char *dynamic_Find_Function_Name(DYNAMIC_primitive_funcp p);

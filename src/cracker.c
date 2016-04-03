@@ -53,6 +53,7 @@
 #include "unicode.h"
 #include "john.h"
 #include "fake_salts.h"
+#include "sha.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
@@ -875,11 +876,31 @@ static int crk_salt_loop(void)
 		return 1;
 
 	salt = crk_db->salts;
+
+	/* on first run, right after restore, this can be non-zero */
+	if (status.resume_salt) {
+		struct db_salt *s = salt;
+
+		status.resume_salt = 0;	/* only resume the first time */
+		while (s) {
+			if (s->salt_md5[0] == status.resume_salt_md5[0] &&
+			    !memcmp(s->salt_md5, status.resume_salt_md5, 16))
+			{
+				/* found it!! */
+				salt = s;
+				break;
+			}
+			s = s->next;
+		}
+	}
 	do {
 		crk_methods.set_salt(salt->salt);
+		status.resume_salt_md5 = salt->salt_md5;
 		if ((done = crk_password_loop(salt)))
 			break;
 	} while ((salt = salt->next));
+	if (!salt)
+		status.resume_salt_md5 = 0;
 
 	if (done >= 0) {
 #if !HAVE_OPENCL
