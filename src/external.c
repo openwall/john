@@ -428,16 +428,11 @@ int ext_restore_state_hybrid(const char *sig, FILE *file)
 		external = ext_word;
 		cp = (unsigned char*)int_hybrid_base_word;
 		do {
-			if (fscanf(file, "%d ", &c) != 1) {
-				/* eat the trailing \n */
-				char buf[128];
-				fgetl(buf, 128, file);
-				if (cnt == count)
-					break;
-				return 1;
-			}
+			if (fscanf(file, "%d ", &c) != 1)
+				break;
 			if (++count >= PLAINTEXT_BUFFER_SIZE) return 1;
-		} while ((*internal++ = *external++ = *cp++ = c));
+			*internal++ = *external++ = *cp++ = c;
+		} while (c && cnt != count);
 		*internal = 0;
 		*external = 0;
 		if (cnt != count) return 1;
