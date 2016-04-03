@@ -429,12 +429,11 @@ int ext_restore_state_hybrid(const char *sig, FILE *file)
 		cp = (unsigned char*)int_hybrid_base_word;
 		do {
 			if (fscanf(file, "%d ", &c) != 1) {
-				if (cnt == count) {
-					/* eat the trailing \n */
-					char buf[128];
-					fgetl(buf, 128, file);
+				/* eat the trailing \n */
+				char buf[128];
+				fgetl(buf, 128, file);
+				if (cnt == count)
 					break;
-				}
 				return 1;
 			}
 			if (++count >= PLAINTEXT_BUFFER_SIZE) return 1;
