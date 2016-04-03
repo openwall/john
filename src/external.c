@@ -618,6 +618,7 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 	if (first) {
 		strcpy(int_hybrid_base_word, base_word);
 		rec_init_hybrid(save_state_hybrid);
+		crk_set_hybrid_fix_state_func_ptr(ext_hybrid_fix_state);
 		first = 0;
 		just_restored = rec_restored;
 		if (rec_restored) {
