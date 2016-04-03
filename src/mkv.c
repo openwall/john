@@ -35,7 +35,7 @@
 
 extern struct fmt_main fmt_LM;
 
-static long long tidx, hybrid_tidx;
+static long long tidx;
 #if HAVE_REXGEN
 static char *regex_alpha;
 static int regex_case;
@@ -57,16 +57,7 @@ static int restore_state(FILE *file)
 
 static void fix_state(void)
 {
-	if (hybrid_tidx) {
-		tidx = hybrid_tidx;
-		hybrid_tidx = 0;
-	} else
-		tidx = gidx;
-}
-
-void mkv_hybrid_fix_state(void)
-{
-	hybrid_tidx = gidx;
+	tidx = gidx;
 }
 
 static int show_pwd_rnbs(struct db_main *db, struct s_pwd *pwd)
@@ -102,17 +93,18 @@ static int show_pwd_rnbs(struct db_main *db, struct s_pwd *pwd)
 				if (do_regex_hybrid_crack(db, regex, pass,
 				                          regex_case, regex_alpha))
 					return 1;
-				mkv_hybrid_fix_state();
+				fix_state();
 			} else
 #endif
 			if (f_new) {
 				if (do_external_hybrid_crack(db, pass))
 					return 1;
-				mkv_hybrid_fix_state();
+				fix_state();
 			} else
 			if (options.mask) {
 				if (do_mask_crack(pass))
 					return 1;
+				fix_state();
 			} else
 			if (!f_filter ||
 			    ext_filter_body((char *)pwd->password, pass = pass_filtered))
@@ -168,17 +160,18 @@ static int show_pwd_r(struct db_main *db, struct s_pwd *pwd, unsigned int bs)
 				if (do_regex_hybrid_crack(db, regex, pass,
 				                          regex_case, regex_alpha))
 					return 1;
-				mkv_hybrid_fix_state();
+				fix_state();
 			} else
 #endif
 			if (f_new) {
 				if (do_external_hybrid_crack(db, pass))
 					return 1;
-				mkv_hybrid_fix_state();
+				fix_state();
 			} else
 			if (options.mask) {
 				if (do_mask_crack(pass))
 					return 1;
+				fix_state();
 			} else
 			if (!f_filter ||
 			    ext_filter_body((char *)pwd->password, pass = pass_filtered))
@@ -208,17 +201,18 @@ static int show_pwd_r(struct db_main *db, struct s_pwd *pwd, unsigned int bs)
 				if (do_regex_hybrid_crack(db, regex, pass,
 				                          regex_case, regex_alpha))
 					return 1;
-				mkv_hybrid_fix_state();
+				fix_state();
 			} else
 #endif
 			if (f_new) {
 				if (do_external_hybrid_crack(db, pass))
 					return 1;
-				mkv_hybrid_fix_state();
+				fix_state();
 			} else
 			if (options.mask) {
 				if (do_mask_crack(pass))
 					return 1;
+				fix_state();
 			} else
 			if (!f_filter ||
 			    ext_filter_body((char *)pwd->password, pass = pass_filtered))
@@ -264,17 +258,18 @@ static int show_pwd(struct db_main *db, unsigned long long start)
 					if (do_regex_hybrid_crack(db, regex, pass,
 					                          regex_case, regex_alpha))
 						return 1;
-					mkv_hybrid_fix_state();
+					fix_state();
 				} else
 #endif
 				if (f_new) {
 					if (do_external_hybrid_crack(db, pass))
 						return 1;
-					mkv_hybrid_fix_state();
+					fix_state();
 				} else
 				if (options.mask) {
 					if (do_mask_crack(pass))
 						return 1;
+					fix_state();
 				} else
 				if (!f_filter ||
 				    ext_filter_body((char *)pwd.password, pass = pass_filtered))
@@ -301,17 +296,18 @@ static int show_pwd(struct db_main *db, unsigned long long start)
 				if (do_regex_hybrid_crack(db, regex, pass,
 				                          regex_case, regex_alpha))
 					return 1;
-				mkv_hybrid_fix_state();
+				fix_state();
 			} else
 #endif
 			if (f_new) {
 				if (do_external_hybrid_crack(db, pass))
 					return 1;
-				mkv_hybrid_fix_state();
+				fix_state();
 			} else
 			if (options.mask) {
 				if (do_mask_crack(pass))
 					return 1;
+				fix_state();
 			} else
 			if (!f_filter ||
 			    ext_filter_body((char *)pwd.password, pass = pass_filtered))
