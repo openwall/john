@@ -899,7 +899,7 @@ static int crk_salt_loop(void)
 		if ((done = crk_password_loop(salt)))
 			break;
 	} while ((salt = salt->next));
-	if (!salt)
+	if (!salt || salt->count < 2)
 		status.resume_salt_md5 = 0;
 
 	if (done >= 0) {
