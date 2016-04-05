@@ -46,6 +46,8 @@
 #include "memory.h"
 #include "memdbg.h"
 
+#include "sha2.h"
+
 const char *extension[] = {".kdbx"};
 static char *keyfile = NULL;
 
@@ -155,7 +157,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	uint32_t num_groups;
 	uint32_t num_entries;
 	uint32_t key_transf_rounds;
-	unsigned char buffer[LINE_BUFFER_SIZE];
+	unsigned char *buffer;
 	long long filesize = 0;
 	long long filesize_keyfile = 0;
 	long long datasize;
@@ -163,6 +165,10 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	char *dbname;
 	FILE *kfp = NULL;
 
+	SHA256_CTX ctx;
+	unsigned char hash[32];
+	int counter;
+	
 	enc_flag = fget32(fp);
 	version = fget32(fp);
 
@@ -225,7 +231,10 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	print_hex(contents_hash, 32);
 	filesize = (long long)get_file_size(encryptedDatabase);
 	datasize = filesize - 124;
-	if((filesize + datasize) < inline_thr && sizeof(buffer) > datasize) {
+
+	buffer = (unsigned char*) malloc (datasize * sizeof(char));
+
+	if((filesize + datasize) < inline_thr){
 		/* we can inline the content with the hash */
 		fprintf(stderr, "Inlining %s\n", encryptedDatabase);
 		printf("*1*"LLd"*", datasize);
@@ -235,6 +244,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 				encryptedDatabase, strerror(errno));
 
 		print_hex(buffer, datasize);
+		free(buffer);
 	}
 	else {
 		fprintf(stderr, "[!] Not inlining %s. You will need %s too for cracking!\n",
@@ -242,16 +252,41 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 
 		printf("*0*%s", dbname); /* data is not inline */
 	}
-	if (keyfile && sizeof(buffer) > filesize_keyfile) {
-		printf("*1*"LLd"*", filesize_keyfile); /* inline keyfile content */
+
+	if (keyfile) {
+		buffer = (unsigned char*) malloc(filesize_keyfile * sizeof(char));
+		printf("*1*64*"); /* inline keyfile content */
 		if (fread(buffer, filesize_keyfile, 1, kfp) != 1)
 			warn_exit("%s: Error: read failed: %s.",
 				encryptedDatabase, strerror(errno));
 
-		print_hex(buffer, filesize_keyfile);
+		/* as in Keepass 1.x implementation:
+		 *  if filesize_keyfile == 32 then assume byte_array
+		 *  if filesize_keyfile == 64 then assume hex(byte_array)
+		 *  else byte_array = sha256(keyfile_content)
+		 */
+
+		if (filesize_keyfile == 32)
+			print_hex(buffer, filesize_keyfile);
+		else if (filesize_keyfile == 64)
+		{
+			for(counter = 0; counter <64; counter++)
+				printf ("%c", buffer[counter]);
+		}
+		else
+		{
+		  /* precompute sha256 to speed-up cracking */
+
+		  SHA256_Init(&ctx);
+		  SHA256_Update(&ctx, buffer, filesize_keyfile);
+		  SHA256_Final(hash, &ctx);
+		  print_hex(hash, 32);
+		}
+		free(buffer);
 	}
 	printf("\n");
 }
+
 
 static void process_database(char* encryptedDatabase)
 {
@@ -291,7 +326,7 @@ static void process_database(char* encryptedDatabase)
 		fclose(fp);
 		return;
 	}
-        uVersion = fget32(fp);
+		uVersion = fget32(fp);
 	if ((uVersion & FileVersionCriticalMask) > (FileVersion32 & FileVersionCriticalMask)) {
 		fprintf(stderr, "! %s : Unknown format: File version unsupported\n", encryptedDatabase);
 		fclose(fp);
@@ -301,8 +336,8 @@ static void process_database(char* encryptedDatabase)
 	while (!endReached)
 	{
 		unsigned char btFieldID = fgetc(fp);
-                uint16_t uSize = fget16(fp);
-                enum Kdb4HeaderFieldID kdbID;
+				uint16_t uSize = fget16(fp);
+				enum Kdb4HeaderFieldID kdbID;
 		unsigned char *pbData = NULL;
 
 		if (uSize > 0)
@@ -323,14 +358,14 @@ static void process_database(char* encryptedDatabase)
 				MEM_FREE(pbData);
 				break;
 
-                        case MasterSeed:
+			case MasterSeed:
 				if (masterSeed)
 					MEM_FREE(masterSeed);
 				masterSeed = pbData;
 				masterSeedLength = uSize;
 				break;
 
-                        case TransformSeed:
+			case TransformSeed:
 				if (transformSeed)
 					MEM_FREE(transformSeed);
 
@@ -338,7 +373,7 @@ static void process_database(char* encryptedDatabase)
 				transformSeedLength = uSize;
 				break;
 
-                        case TransformRounds:
+			case TransformRounds:
 				if(!pbData) {
 					fprintf(stderr, "! %s : parsing failed (pbData is NULL), please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
 					goto bailout;
@@ -349,14 +384,14 @@ static void process_database(char* encryptedDatabase)
 				}
 				break;
 
-                        case EncryptionIV:
+			case EncryptionIV:
 				if (initializationVectors)
 					MEM_FREE(initializationVectors);
 				initializationVectors = pbData;
 				initializationVectorsLength = uSize;
 				break;
 
-                        case StreamStartBytes:
+			case StreamStartBytes:
 				if (expectedStartBytes)
 					MEM_FREE(expectedStartBytes);
 				expectedStartBytes = pbData;
@@ -379,12 +414,6 @@ static void process_database(char* encryptedDatabase)
 	if (!masterSeed || !transformSeed || !initializationVectors || !expectedStartBytes) {
 		fprintf(stderr, "! %s : parsing failed, please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
 		goto bailout;
-	}
-
-	if (keyfile) {
-		// abort();  // TODO
-		fprintf(stderr, "Keyfile support in KeepPass 2 is yet to be implemented!\n");
-		return;
 	}
 
 	dbname = strip_suffixes(basename(encryptedDatabase),extension, 1);
@@ -415,8 +444,8 @@ bailout:
 static int usage(char *name)
 {
 	fprintf(stderr, "Usage: %s [-i <inline threshold>] [-k <keyfile>] <.kdbx database(s)>\n"
-	        "Default threshold is %d bytes (files smaller than that will be inlined)\n",
-	        name, MAX_INLINE_SIZE);
+			"Default threshold is %d bytes (files smaller than that will be inlined)\n",
+			name, MAX_INLINE_SIZE);
 
 	return EXIT_FAILURE;
 }
@@ -433,8 +462,8 @@ int keepass2john(int argc, char **argv)
 			inline_thr = (int)strtol(optarg, NULL, 0);
 			if (inline_thr > MAX_THR) {
 				fprintf(stderr, "%s error: threshold %d, can't"
-				        " be larger than %d\n", argv[0],
-				        inline_thr, MAX_THR);
+						" be larger than %d\n", argv[0],
+						inline_thr, MAX_THR);
 				return EXIT_FAILURE;
 			}
 			break;
