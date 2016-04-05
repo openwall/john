@@ -11,6 +11,9 @@
  * an API to KeePass 1.x files. http://gitorious.org/kppy/kppy
  * Copyright (C) 2012 Karsten-Kai König <kkoenig@posteo.de>
  *
+ * Keyfile support for Keepass 1.x and Keepass 2.x was added by Fist0urs  
+ * <eddy.maaalou at gmail.com>
+ *
  * kppy is free software: you can redistribute it and/or modify it under the terms
  * of the GNU General Public License as published by the Free Software Foundation,
  * either version 3 of the License, or at your option) any later version.
@@ -232,7 +235,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	filesize = (long long)get_file_size(encryptedDatabase);
 	datasize = filesize - 124;
 
-	buffer = (unsigned char*) malloc (datasize * sizeof(char));
+	buffer = (unsigned char*) mem_alloc (datasize * sizeof(char));
 
 	if((filesize + datasize) < inline_thr){
 		/* we can inline the content with the hash */
@@ -244,7 +247,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 				encryptedDatabase, strerror(errno));
 
 		print_hex(buffer, datasize);
-		free(buffer);
+		MEM_FREE(buffer);
 	}
 	else {
 		fprintf(stderr, "[!] Not inlining %s. You will need %s too for cracking!\n",
@@ -254,13 +257,13 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	}
 
 	if (keyfile) {
-		buffer = (unsigned char*) malloc (filesize_keyfile * sizeof(char));
+		buffer = (unsigned char*) mem_alloc (filesize_keyfile * sizeof(char));
 		printf("*1*64*"); /* inline keyfile content */
 		if (fread(buffer, filesize_keyfile, 1, kfp) != 1)
 			warn_exit("%s: Error: read failed: %s.",
 				encryptedDatabase, strerror(errno));
 
-		/* as in Keepass 1.x implementation:
+		/* as in Keepass implementation:
 		 *  if filesize_keyfile == 32 then assume byte_array
 		 *  if filesize_keyfile == 64 then assume hex(byte_array)
 		 *  else byte_array = sha256(keyfile_content)
@@ -282,7 +285,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 		  SHA256_Final(hash, &ctx);
 		  print_hex(hash, 32);
 		}
-		free(buffer);
+		MEM_FREE(buffer);
 	}
 	printf("\n");
 }
@@ -305,6 +308,14 @@ static void process_database(char* encryptedDatabase)
 	unsigned char out[32];
 	char *dbname;
 
+	/* specific to keyfile handling */
+	unsigned char *buffer;
+	long long filesize_keyfile = 0;
+	FILE *kfp = NULL;
+	SHA256_CTX ctx;
+	unsigned char hash[32];
+	int counter;
+   
 	fp = fopen(encryptedDatabase, "rb");
 	if (!fp) {
 		fprintf(stderr, "! %s : %s\n", encryptedDatabase, strerror(errno));
@@ -417,9 +428,12 @@ static void process_database(char* encryptedDatabase)
 	}
 
 	if (keyfile) {
-		// abort();  // TODO
- 		fprintf(stderr, "Keyfile support in KeepPass 2 is yet to be implemented!\n");
- 		return;
+		kfp = fopen(keyfile, "rb");
+		if (!kfp) {
+			fprintf(stderr, "! %s : %s\n", keyfile, strerror(errno));
+			return;
+		}
+		filesize_keyfile = (long long)get_file_size(keyfile);
  	}
 
 	dbname = strip_suffixes(basename(encryptedDatabase),extension, 1);
@@ -437,6 +451,38 @@ static void process_database(char* encryptedDatabase)
 	}
 	printf("*");
 	print_hex(out, 32);
+   
+	if (keyfile) {
+		buffer = (unsigned char*) mem_alloc (filesize_keyfile * sizeof(char));
+		printf("*1*64*"); /* inline keyfile content */
+		if (fread(buffer, filesize_keyfile, 1, kfp) != 1)
+			warn_exit("%s: Error: read failed: %s.",
+				encryptedDatabase, strerror(errno));
+
+		/* as in Keepass implementation:
+		 *  if filesize_keyfile == 32 then assume byte_array
+		 *  if filesize_keyfile == 64 then assume hex(byte_array)
+		 *  else byte_array = sha256(keyfile_content)
+		 */
+
+		if (filesize_keyfile == 32)
+			print_hex(buffer, filesize_keyfile);
+		else if (filesize_keyfile == 64)
+		{
+			for(counter = 0; counter <64; counter++)
+				printf ("%c", buffer[counter]);
+		}
+		else
+		{
+		  /* precompute sha256 to speed-up cracking */
+
+		  SHA256_Init(&ctx);
+		  SHA256_Update(&ctx, buffer, filesize_keyfile);
+		  SHA256_Final(hash, &ctx);
+		  print_hex(hash, 32);
+		}
+		MEM_FREE(buffer);
+	}   
 	printf("\n");
 
 bailout:

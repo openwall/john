@@ -4,8 +4,8 @@
  * Support for cracking KeePass databases, which use key file(s), was added by
  * m3g9tr0n (Spiros Fraganastasis) and Dhiru Kholia in September of 2014.
  *
- * Support for all types of keyfile within Keepass 1.x added by Fist0urs
- * <eddy.maaalou at gmail.com>
+ * Support for all types of keyfile within Keepass 1.x ans Keepass 2.x was
+ * added by Fist0urs <eddy.maaalou at gmail.com>
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
@@ -104,7 +104,8 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, masterkey, strlen(masterkey));
 	SHA256_Final(hash, &ctx);
-	if(csp->version == 2) {
+	
+	if(csp->version == 2 && cur_salt->have_keyfile == 0) {
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, hash, 32);
 		SHA256_Final(hash, &ctx);
@@ -113,7 +114,7 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 	if(AES_set_encrypt_key(csp->transf_randomseed, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_encrypt_key failed!\n");
 	}
-	/* keyfile handling (only working for KeePass 1.x files) */
+
 	if (cur_salt->have_keyfile) {
 		SHA256_CTX composite_ctx;
 		SHA256_Init(&composite_ctx);
@@ -266,10 +267,25 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		}
 	}
 	else {
-		if ((p = strtokm(NULL, "*")) == NULL)	/* content */
+		if ((p = strtokm(NULL, "*")) == NULL)
+			/* content */
 			goto err;
 		if (hexlenl(p) != 64)
 			goto err;
+		p = strtokm(NULL, "*");
+		// keyfile handling
+		if (p) {
+			res = atoi(p);
+			if (res == 1) {
+				if ((p = strtokm(NULL, "*")) == NULL)
+					goto err;
+				res = atoi(p);
+				if ((p = strtokm(NULL, "*")) == NULL)
+					goto err;
+				if (res != 64 &&  strlen(p) != 64)
+					goto err;
+			}
+		}
 	}
 
 	MEM_FREE(keeptr);
@@ -360,6 +376,16 @@ static void *get_salt(char *ciphertext)
 		for (i = 0; i < 32; i++)
 			cs.contents[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtokm(NULL, "*");
+		if (p) { /* keyfile handling */
+			p = strtokm(NULL, "*");
+			cs.keyfilesize = atoi(p);
+			p = strtokm(NULL, "*");
+			for (i = 0; i < 32; i++)
+				cs.keyfile[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+			cs.have_keyfile = 1;
+		}
 	}
 	MEM_FREE(keeptr);
 
