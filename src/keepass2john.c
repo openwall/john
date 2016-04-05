@@ -157,6 +157,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	uint32_t key_transf_rounds;
 	unsigned char buffer[LINE_BUFFER_SIZE];
 	long long filesize = 0;
+	long long filesize_keyfile = 0;
 	long long datasize;
 	int algorithm = -1;
 	char *dbname;
@@ -207,7 +208,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 			fprintf(stderr, "! %s : %s\n", keyfile, strerror(errno));
 			return;
 		}
-		filesize = (long long)get_file_size(keyfile);
+		filesize_keyfile = (long long)get_file_size(keyfile);
 	}
 
 	dbname = strip_suffixes(basename(encryptedDatabase), extension, 1);
@@ -241,13 +242,13 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 
 		printf("*0*%s", dbname); /* data is not inline */
 	}
-	if (keyfile && sizeof(buffer) > filesize) {
-		printf("*1*"LLd"*", filesize); /* inline keyfile content */
-		if (fread(buffer, filesize, 1, kfp) != 1)
+	if (keyfile && sizeof(buffer) > filesize_keyfile) {
+		printf("*1*"LLd"*", filesize_keyfile); /* inline keyfile content */
+		if (fread(buffer, filesize_keyfile, 1, kfp) != 1)
 			warn_exit("%s: Error: read failed: %s.",
 				encryptedDatabase, strerror(errno));
 
-		print_hex(buffer, filesize);
+		print_hex(buffer, filesize_keyfile);
 	}
 	printf("\n");
 }
