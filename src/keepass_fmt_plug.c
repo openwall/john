@@ -95,7 +95,7 @@ static struct custom_salt {
 
 static void transform_key(char *masterkey, struct custom_salt *csp, unsigned char *final_key)
 {
-		// First, hash the masterkey
+	// First, hash the masterkey
 	SHA256_CTX ctx;
 	unsigned char hash[32];
 	unsigned char temphash[32];
@@ -125,7 +125,7 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 		SHA256_Final(hash, &composite_ctx);
 	}
 
-		// Next, encrypt the created hash
+	// Next, encrypt the created hash
 	i = csp->key_transf_rounds >> 2;
 	while (i--) {
 		AES_encrypt(hash, hash, &akey);
@@ -142,12 +142,12 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 		AES_encrypt(hash, hash, &akey);
 		AES_encrypt(hash+16, hash+16, &akey);
 	}
-		// Finally, hash it again...
+	// Finally, hash it again...
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, hash, 32);
 	SHA256_Final(hash, &ctx);
 
-		// ...and hash the result together with the randomseed
+	// ...and hash the result together with the randomseed
 	SHA256_Init(&ctx);
 	if(csp->version == 1) {
 		SHA256_Update(&ctx, csp->final_randomseed, 16);
@@ -169,7 +169,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
-						   sizeof(*saved_key));
+				sizeof(*saved_key));
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc(cracked_size, 1);
@@ -328,7 +328,7 @@ static void *get_salt(char *ciphertext)
 			p = strtokm(NULL, "*");
 			cs.keyfilesize = atoi(p);
 			p = strtokm(NULL, "*");
-			for (i = 0; i < 32 /*cs.keyfilesize*/; i++)
+			for (i = 0; i < 32; i++)
 				cs.keyfile[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 			cs.have_keyfile = 1;

@@ -254,7 +254,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	}
 
 	if (keyfile) {
-		buffer = (unsigned char*) malloc(filesize_keyfile * sizeof(char));
+		buffer = (unsigned char*) malloc (filesize_keyfile * sizeof(char));
 		printf("*1*64*"); /* inline keyfile content */
 		if (fread(buffer, filesize_keyfile, 1, kfp) != 1)
 			warn_exit("%s: Error: read failed: %s.",
@@ -326,7 +326,7 @@ static void process_database(char* encryptedDatabase)
 		fclose(fp);
 		return;
 	}
-		uVersion = fget32(fp);
+	uVersion = fget32(fp);
 	if ((uVersion & FileVersionCriticalMask) > (FileVersion32 & FileVersionCriticalMask)) {
 		fprintf(stderr, "! %s : Unknown format: File version unsupported\n", encryptedDatabase);
 		fclose(fp);
@@ -336,8 +336,8 @@ static void process_database(char* encryptedDatabase)
 	while (!endReached)
 	{
 		unsigned char btFieldID = fgetc(fp);
-				uint16_t uSize = fget16(fp);
-				enum Kdb4HeaderFieldID kdbID;
+		uint16_t uSize = fget16(fp);
+		enum Kdb4HeaderFieldID kdbID;
 		unsigned char *pbData = NULL;
 
 		if (uSize > 0)
@@ -415,6 +415,12 @@ static void process_database(char* encryptedDatabase)
 		fprintf(stderr, "! %s : parsing failed, please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
 		goto bailout;
 	}
+
+	if (keyfile) {
+		// abort();  // TODO
+ 		fprintf(stderr, "Keyfile support in KeepPass 2 is yet to be implemented!\n");
+ 		return;
+ 	}
 
 	dbname = strip_suffixes(basename(encryptedDatabase),extension, 1);
 	printf("%s:$keepass$*2*%ld*%ld*",dbname, transformRounds, dataStartOffset);
