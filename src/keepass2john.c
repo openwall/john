@@ -11,7 +11,7 @@
  * an API to KeePass 1.x files. http://gitorious.org/kppy/kppy
  * Copyright (C) 2012 Karsten-Kai König <kkoenig@posteo.de>
  *
- * Keyfile support for Keepass 1.x and Keepass 2.x was added by Fist0urs  
+ * Keyfile support for Keepass 1.x and Keepass 2.x was added by Fist0urs
  * <eddy.maaalou at gmail.com>
  *
  * kppy is free software: you can redistribute it and/or modify it under the terms
@@ -50,6 +50,7 @@
 #include "memdbg.h"
 
 #include "sha2.h"
+#include "base64.h"
 
 const char *extension[] = {".kdbx"};
 static char *keyfile = NULL;
@@ -162,16 +163,17 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	uint32_t key_transf_rounds;
 	unsigned char *buffer;
 	long long filesize = 0;
-	long long filesize_keyfile = 0;
 	long long datasize;
 	int algorithm = -1;
 	char *dbname;
 	FILE *kfp = NULL;
 
+	/* specific to keyfile handling */
+	long long filesize_keyfile = 0;
 	SHA256_CTX ctx;
 	unsigned char hash[32];
 	int counter;
-	
+
 	enc_flag = fget32(fp);
 	version = fget32(fp);
 
@@ -263,7 +265,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 			warn_exit("%s: Error: read failed: %s.",
 				encryptedDatabase, strerror(errno));
 
-		/* as in Keepass implementation:
+		/* as in Keepass 1.x implementation:
 		 *  if filesize_keyfile == 32 then assume byte_array
 		 *  if filesize_keyfile == 64 then assume hex(byte_array)
 		 *  else byte_array = sha256(keyfile_content)
@@ -271,15 +273,12 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 
 		if (filesize_keyfile == 32)
 			print_hex(buffer, filesize_keyfile);
-		else if (filesize_keyfile == 64)
-		{
+		else if (filesize_keyfile == 64){
 			for(counter = 0; counter <64; counter++)
 				printf ("%c", buffer[counter]);
 		}
-		else
-		{
+		else{
 		  /* precompute sha256 to speed-up cracking */
-
 		  SHA256_Init(&ctx);
 		  SHA256_Update(&ctx, buffer, filesize_keyfile);
 		  SHA256_Final(hash, &ctx);
@@ -311,11 +310,14 @@ static void process_database(char* encryptedDatabase)
 	/* specific to keyfile handling */
 	unsigned char *buffer;
 	long long filesize_keyfile = 0;
+	char *p;
+	char *data;
+	char b64_decoded[64];
 	FILE *kfp = NULL;
 	SHA256_CTX ctx;
 	unsigned char hash[32];
 	int counter;
-   
+
 	fp = fopen(encryptedDatabase, "rb");
 	if (!fp) {
 		fprintf(stderr, "! %s : %s\n", encryptedDatabase, strerror(errno));
@@ -359,7 +361,6 @@ static void process_database(char* encryptedDatabase)
 				MEM_FREE(pbData);
 				goto bailout;
 			}
-
 		}
 		kdbID = btFieldID;
 		switch (kdbID)
@@ -451,7 +452,7 @@ static void process_database(char* encryptedDatabase)
 	}
 	printf("*");
 	print_hex(out, 32);
-   
+
 	if (keyfile) {
 		buffer = (unsigned char*) mem_alloc (filesize_keyfile * sizeof(char));
 		printf("*1*64*"); /* inline keyfile content */
@@ -459,13 +460,25 @@ static void process_database(char* encryptedDatabase)
 			warn_exit("%s: Error: read failed: %s.",
 				encryptedDatabase, strerror(errno));
 
-		/* as in Keepass implementation:
+		/* as in Keepass 2.x implementation:
+		 *  if keyfile is an xml, get <Data> content
 		 *  if filesize_keyfile == 32 then assume byte_array
 		 *  if filesize_keyfile == 64 then assume hex(byte_array)
 		 *  else byte_array = sha256(keyfile_content)
 		 */
 
-		if (filesize_keyfile == 32)
+		if (!memcmp((char *) buffer, "<?xml", 5)
+			&& ((p = strstr((char *) buffer, "<Key>")) != NULL)
+			&& ((p = strstr(p, "<Data>")) != NULL)
+			)
+		{
+			p += strlen("<Data>");
+			data = p;
+			p = strstr(p, "</Data>");
+			base64_decode(data, p - data, b64_decoded);
+			print_hex((unsigned char *) b64_decoded, 32);
+		}
+		else if (filesize_keyfile == 32)
 			print_hex(buffer, filesize_keyfile);
 		else if (filesize_keyfile == 64)
 		{
@@ -482,7 +495,7 @@ static void process_database(char* encryptedDatabase)
 		  print_hex(hash, 32);
 		}
 		MEM_FREE(buffer);
-	}   
+	}
 	printf("\n");
 
 bailout:
