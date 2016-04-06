@@ -4,6 +4,9 @@
  * Support for cracking KeePass databases, which use key file(s), was added by
  * m3g9tr0n (Spiros Fraganastasis) and Dhiru Kholia in September of 2014.
  *
+ * Support for all types of keyfile within Keepass 1.x ans Keepass 2.x was
+ * added by Fist0urs <eddy.maaalou at gmail.com>
+ *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
@@ -32,7 +35,7 @@ john_register_one(&fmt_KeePass);
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               1
+#define OMP_SCALE		1
 #endif
 #endif
 #include "memdbg.h"
@@ -92,7 +95,7 @@ static struct custom_salt {
 
 static void transform_key(char *masterkey, struct custom_salt *csp, unsigned char *final_key)
 {
-        // First, hash the masterkey
+	// First, hash the masterkey
 	SHA256_CTX ctx;
 	unsigned char hash[32];
 	unsigned char temphash[32];
@@ -101,7 +104,8 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, masterkey, strlen(masterkey));
 	SHA256_Final(hash, &ctx);
-	if(csp->version == 2) {
+	
+	if(csp->version == 2 && cur_salt->have_keyfile == 0) {
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, hash, 32);
 		SHA256_Final(hash, &ctx);
@@ -110,29 +114,19 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 	if(AES_set_encrypt_key(csp->transf_randomseed, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_encrypt_key failed!\n");
 	}
-	/* keyfile handling (only tested for KeePass 1.x files) */
-	if (cur_salt->have_keyfile) {
-		SHA256_CTX composite_ctx;  // for keyfile handling
-		SHA256_CTX keyfile_ctx;
 
+	if (cur_salt->have_keyfile) {
+		SHA256_CTX composite_ctx;
 		SHA256_Init(&composite_ctx);
 		SHA256_Update(&composite_ctx, hash, 32);
 
-		if (cur_salt->keyfilesize != 32 && cur_salt->keyfilesize != 64) {
-			SHA256_Init(&keyfile_ctx);
-			SHA256_Update(&keyfile_ctx, cur_salt->keyfile, cur_salt->keyfilesize);
-			SHA256_Final(temphash, &keyfile_ctx);
-		} else if(cur_salt->keyfilesize == 32) {
-			memcpy(temphash, cur_salt->keyfile, 32);
-		} else if (cur_salt->keyfilesize == 64) { /* do hex decoding */
-			abort();  // TODO
-		}
+		memcpy(temphash, cur_salt->keyfile, 32);
 
 		SHA256_Update(&composite_ctx, temphash, 32);
 		SHA256_Final(hash, &composite_ctx);
 	}
 
-        // Next, encrypt the created hash
+	// Next, encrypt the created hash
 	i = csp->key_transf_rounds >> 2;
 	while (i--) {
 		AES_encrypt(hash, hash, &akey);
@@ -149,12 +143,12 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 		AES_encrypt(hash, hash, &akey);
 		AES_encrypt(hash+16, hash+16, &akey);
 	}
-        // Finally, hash it again...
+	// Finally, hash it again...
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, hash, 32);
 	SHA256_Final(hash, &ctx);
 
-        // ...and hash the result together with the randomseed
+	// ...and hash the result together with the randomseed
 	SHA256_Init(&ctx);
 	if(csp->version == 1) {
 		SHA256_Update(&ctx, csp->final_randomseed, 16);
@@ -176,7 +170,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*saved_key));
+				sizeof(*saved_key));
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc(cracked_size, 1);
@@ -256,27 +250,42 @@ static int valid(char *ciphertext, struct fmt_main *self)
 				goto err;
 			if (hexlenl(p) / 2 != contentsize)
 				goto err;
-			p = strtokm(NULL, "*");
-			if (p)
-				goto err;
 		}
 		p = strtokm(NULL, "*");
+		// keyfile handling
 		if (p) {
-			// keyfile handling
-			if ((p = strtokm(NULL, "*")) == NULL)
-				goto err;
-			res = hexlenl(p);
-			if ((p = strtokm(NULL, "*")) == NULL)
-				goto err;
-			if (res != 32 || hexlenl(p) != 64)
-				goto err;
+			res = atoi(p);
+			if (res == 1) {
+				if ((p = strtokm(NULL, "*")) == NULL)
+					goto err;
+				res = atoi(p);
+				if ((p = strtokm(NULL, "*")) == NULL)
+					goto err;
+				if (res != 64 &&  strlen(p) != 64)
+					goto err;
+			}
 		}
 	}
 	else {
-		if ((p = strtokm(NULL, "*")) == NULL)	/* content */
+		if ((p = strtokm(NULL, "*")) == NULL)
+			/* content */
 			goto err;
 		if (hexlenl(p) != 64)
 			goto err;
+		p = strtokm(NULL, "*");
+		// keyfile handling
+		if (p) {
+			res = atoi(p);
+			if (res == 1) {
+				if ((p = strtokm(NULL, "*")) == NULL)
+					goto err;
+				res = atoi(p);
+				if ((p = strtokm(NULL, "*")) == NULL)
+					goto err;
+				if (res != 64 &&  strlen(p) != 64)
+					goto err;
+			}
+		}
 	}
 
 	MEM_FREE(keeptr);
@@ -335,7 +344,7 @@ static void *get_salt(char *ciphertext)
 			p = strtokm(NULL, "*");
 			cs.keyfilesize = atoi(p);
 			p = strtokm(NULL, "*");
-			for (i = 0; i < cs.keyfilesize; i++)
+			for (i = 0; i < 32; i++)
 				cs.keyfile[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 			cs.have_keyfile = 1;
@@ -367,6 +376,16 @@ static void *get_salt(char *ciphertext)
 		for (i = 0; i < 32; i++)
 			cs.contents[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtokm(NULL, "*");
+		if (p) { /* keyfile handling */
+			p = strtokm(NULL, "*");
+			cs.keyfilesize = atoi(p);
+			p = strtokm(NULL, "*");
+			for (i = 0; i < 32; i++)
+				cs.keyfile[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+			cs.have_keyfile = 1;
+		}
 	}
 	MEM_FREE(keeptr);
 
