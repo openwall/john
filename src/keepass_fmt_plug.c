@@ -4,6 +4,9 @@
  * Support for cracking KeePass databases, which use key file(s), was added by
  * m3g9tr0n (Spiros Fraganastasis) and Dhiru Kholia in September of 2014.
  *
+ * Support for all types of keyfile within Keepass 1.x ans Keepass 2.x was
+ * added by Fist0urs <eddy.maaalou at gmail.com>
+ *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
@@ -32,7 +35,7 @@ john_register_one(&fmt_KeePass);
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               1
+#define OMP_SCALE		1
 #endif
 #endif
 #include "memdbg.h"
@@ -65,7 +68,10 @@ static struct fmt_tests KeePass_tests[] = {
 	{"$keepass$*2*6000*222*a279e37c38b0124559a83fa452a0269d56dc4119a5866d18e76f1f3fd536d64d*7ec7a06bc975ea2ae7c8dcb99e826a308564849b6b25d858cbbc78475af3733f*d477c849bf2278b7a1f626c81e343553*e61db922e9b77a161e9b674ddadfb8c660d61b5f68d97a3b1596ae94cfa9d169*7c80c7db9de77f176e86ba11697152c4c8f182bdb8133ad1bca22e9ec5bc275b", "Sh4RK%nAD0*"},
 	/* twofish version 1 hash from http://openwall.info/wiki/john/sample-non-hashes#KeePass */
 	{"$keepass$*1*50000*1*1ff21bd79aa8e9c3f439281a4ce6a97b*cfbdb00057ee0c9e889ca9d93b069ab5ae19f78852bc21aae4f60d0d325e0034*c1a7e6138a49a2dcfb3a84afbc1d918b*a704f9d060f0de5a070155d1d5a8727da92f404242cb3aa2b9aa53a145f87474*1*608*c2d3d18e416af56788d1c3e4257da9ce6e5dcad4db012d7422d17b4527bbb2bb994d9db03907ae01cc1565f5fd0729b930c9ee352426c57de5dee7e941e1d6aedeaf2b0e6509819385de9b4dd6a09979b3edfa0959a7186c422031e426f18d295c55ac616aabeec99f89e696be1d585950ef16a94ae610f2449cc3964bb63ec6043ef36c89117bc78e99e5fbf083b48cb84f85a964e8a037018b3afc2cc55fbe7d74cbdb53d5a54bcd202a1d0a342dbf48a8f7a24264cde8d800a506bf134008b1d8d9b8dd80c19511d9f43b3c23b19eb4a7dcf584f80c49961f73dcba3d2d0390a39a683ddcc8771b49cc3c673ea0aa902d075e25bc814608e2e6d1d6218a6379fd677bc5daaa18b6f5a021d2f661338ca8cc3645dc6cddb860af222a5cdb59a5e2a2c1921203344ced4e2154446239f6c1af8c1bace8207e0f519ea9c08db2f5d0bde0416b09ef6c530213e648641ae56c9af9fbdcb0a286cc4de121655697b9eb00c0fd89ed7269c3859eca20e0c7b60be8d2a1323eb915139cf90c55f9cff01a5bdf757e09ee6d64c2de9aec8d3ea42feeb67caf51b9ba1a80b435e271fdb7f9144ca31e41671768b2c5e8adf70245fdf52005de418efbe2a156d19eeb2ed9e97a0ddb133d11bd8655356d9d3edbbdbf9d0db345b2eb2c1f550ce070f5b0f8f8e58a6ffd52ae8089627dc4a0dac4b4846349066bfa0d2f395d2cb3871e57e353d622e0904a9f54a3e4706797d95b34619f792c15ab8efb3ac523becc3023f01aaad169bc08db8d01e2dd22eff8f6b4f7b741d196bc3de466590011e6d5c9703a19c07d96d26fe1ad93d0931454730ee1f3146428a126d1ed02763f827ff4", "twofish"},
-	{NULL}
+	/* keyfile test cases*/
+    {"$keepass$*1*6000*0*1a1d38235ccbeae4ca2a9edfbd3b290c*8e1e81b37a6161b6033fbd6dd350aaeaa0712cf2649fe40e3fbbaa4b61684f54*d9517d352aea00c2b7f57f1154b9c0a0*0a8ae9b13347402c242d7cde4d58d01f1e129287eaf62df768856bbb9d0633a1*1*1360*6555a7e9eca9d5a2c9504a5c888846f0a8902fa31e3dc90f8fcc118856d5daabcaaf4316c4d589e11cce5b9a209e9a7ec1db5b848a706c78f7c7dfac4fd9ea86ac15af500518766dbf4525ee7c1b477a8fec4abdd6f4ad36894ec5aee0c9a5662c5091ceb61b3aa99ff3eacd687ed797b0a1e8ceecd5c51456cb1f70dadf0fda190752e4efe4fb101d5fc5d7745ff01d68cb4c0cc32c6003f85c310e43d7d659748bfc260cbb329c4076c2c9948386c74bb967362a98d6490dbe340f5d440b557b105edd5561836fbb6894f4a1d9a5cd0182536a28f60ca268d682065f8f5226e24a07d635a3c4f04760094cee033fb2f7c3a0cbdf7f174d31c827f6911a75ca95b21332bb47ea6359aa2d70ff4b16e8481cd536e0ec4ba90963edda754b6e0e694855e4f266899b3dd2b0f74c3e688caa376b22810945249ac4e1c38e8d1093ce272ed45d26037a1fd6e0cfcdbdf096c8b2795ba736641bafe9938b6eb2b40ea347f9c49952c118d86ec671c065e3c94f0de2409fec2fde318ad7e6dd0189baf4fa0044fc1d2974b9dafb1608f4bca525706e44ca6af09e305ad29f5e4ba0831145713d5d8b6d6d955c4b5ca031e34b4292aee5383179e1e0afe92ee6565e69825c90bb5e79612a4ad4a3babbd4a75b5481ea710c93595781b71532c17730409482e6b59bb9831be4efadadf36eda5bc5fcf0f3541aaba6662807e531a3e28078f5960e50f80e624c5434b545c1232fdd64359f53b90d6635107f4f005ac02110eebdbdda4f2c92addd686059e9d799a55902526f87f78b8844e2000f82e7b5c8ba3a19fe26117c43f69ba26eee75cc385737791ca4554ce935af26c50331963e500605e87ac3602a76669bf6318e797ef01fe1c25e567cc864de11bd00f555fdf188648bf4179658e325be39a4050b7b01553422e5cd1bbaf5e8f75ce34f0e92f1253c880d4e77f484f14817e288f01efbfe1a8f8b90e9d18b86898856bdf3ee6b5754853cb99a746fa0b753f1a49f529a89d9a0c2fbd5365477be829190dbf491bc886f66ae1bfe014a7e23a420f76a4a0d0d5ebcea51dc0021651a6cdbe5c89a7ae8bfdae2e30d404c31790c0aba8791793ce3072adf21e5a3c5b5e4f9cea82ebff5070e13f94300d5688523ba2a142ae8f82f6ef940e69beba1d665ab17a2ae471500fc48ded336b27450f08dfe07fa5e556963f035a01950f43b2f649bf7f552e9ee7154f5ffdec109fd5bdf0e879d044ef4b78e590ac769efcdd7dad74228872af966d2e8d976336de1ee4289e933288b5b0b43195df1c248176ac944f5e99918dbc067f93d15e95602c9cb8246f378377785b7ebfee44f81b385a3e1c9c5276e4b477c4841af871e6b0e3f4387c58cea01fe2aff04df0f51ac93757172d7537ee0df51ec931564ed2c8a11a45da8c03644d0bc93a14d9f79555250b9c8245690bc1c72ea7e9104a9f570680f704c1f8759a65e210e1b9a855b46ed6801354175b27fc288a7bc39a2003f4400c124ec41d7f54f67be99f778895d9c3e33623a346021215a369487457e78322dbd71a3d969b3e22dfea987ac93d5c4f8252142824f5a67e54a2b1b78ea928fbb63653e122555f6c76150f2541bdad6524f69964c91e9175406d0b824e175e63c7677d990341ee69c4ca9612a05e3bd2ed304c45cd97051aaf0b63c0d917af8d01723e215bb93f816b51d79e29e4e885b98f8ca8320443503c07e67b4d546f544ffced62ef7298a8ac6175f77c180900f638466cd15d6511d7b16992a8e0674563c02fe7776079ee92739bc142a1e601b3aaee284f6f828656e43e58b93bcfd5f69b6aa8c003788d1ae88f569f64402d64e18cb8ffc2268013fe4da9ba7da557da3e259623168b7fd57cf0e4c8327bae66e02bc12978725022ef4cc03b4021d3a*1*64*3a96fb77fbbbca7336ee699f17be31fde552191128553c6d89bfce4035dc0af0", "choupinette"},
+    {"$keepass$*2*6000*222*aa511591cb50394d044f31abb2febdb2788c9ee41d78a53f3efe0f83fdd64e81*7ceab79302a794cef818d9426e53a78458f82e72575967c4fb3788d4bc685874*1c5c1c0c475ee2f22bd56e9c75cfd67c*e7bf79115c83a0236260c71c17a816f9bd9288a683eb4b5e0d48666c66e97774*53f26838a293b392bfde1ad21b444b834cf5c02155a1378ac496653b2f3779ec*1*64*98df4f35fe74c031992d81a639305c4520f303fd1ca4bb09b53e33032b44c46a", "kukudanlaplace"},
+    {NULL}
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -92,7 +98,7 @@ static struct custom_salt {
 
 static void transform_key(char *masterkey, struct custom_salt *csp, unsigned char *final_key)
 {
-        // First, hash the masterkey
+	// First, hash the masterkey
 	SHA256_CTX ctx;
 	unsigned char hash[32];
 	unsigned char temphash[32];
@@ -101,7 +107,8 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, masterkey, strlen(masterkey));
 	SHA256_Final(hash, &ctx);
-	if(csp->version == 2) {
+	
+	if(csp->version == 2 && cur_salt->have_keyfile == 0) {
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, hash, 32);
 		SHA256_Final(hash, &ctx);
@@ -110,29 +117,19 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 	if(AES_set_encrypt_key(csp->transf_randomseed, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_encrypt_key failed!\n");
 	}
-	/* keyfile handling (only tested for KeePass 1.x files) */
-	if (cur_salt->have_keyfile) {
-		SHA256_CTX composite_ctx;  // for keyfile handling
-		SHA256_CTX keyfile_ctx;
 
+	if (cur_salt->have_keyfile) {
+		SHA256_CTX composite_ctx;
 		SHA256_Init(&composite_ctx);
 		SHA256_Update(&composite_ctx, hash, 32);
 
-		if (cur_salt->keyfilesize != 32 && cur_salt->keyfilesize != 64) {
-			SHA256_Init(&keyfile_ctx);
-			SHA256_Update(&keyfile_ctx, cur_salt->keyfile, cur_salt->keyfilesize);
-			SHA256_Final(temphash, &keyfile_ctx);
-		} else if(cur_salt->keyfilesize == 32) {
-			memcpy(temphash, cur_salt->keyfile, 32);
-		} else if (cur_salt->keyfilesize == 64) { /* do hex decoding */
-			abort();  // TODO
-		}
+		memcpy(temphash, cur_salt->keyfile, 32);
 
 		SHA256_Update(&composite_ctx, temphash, 32);
 		SHA256_Final(hash, &composite_ctx);
 	}
 
-        // Next, encrypt the created hash
+	// Next, encrypt the created hash
 	i = csp->key_transf_rounds >> 2;
 	while (i--) {
 		AES_encrypt(hash, hash, &akey);
@@ -149,12 +146,12 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 		AES_encrypt(hash, hash, &akey);
 		AES_encrypt(hash+16, hash+16, &akey);
 	}
-        // Finally, hash it again...
+	// Finally, hash it again...
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, hash, 32);
 	SHA256_Final(hash, &ctx);
 
-        // ...and hash the result together with the randomseed
+	// ...and hash the result together with the randomseed
 	SHA256_Init(&ctx);
 	if(csp->version == 1) {
 		SHA256_Update(&ctx, csp->final_randomseed, 16);
@@ -176,7 +173,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*saved_key));
+				sizeof(*saved_key));
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc(cracked_size, 1);
@@ -256,27 +253,42 @@ static int valid(char *ciphertext, struct fmt_main *self)
 				goto err;
 			if (hexlenl(p) / 2 != contentsize)
 				goto err;
-			p = strtokm(NULL, "*");
-			if (p)
-				goto err;
 		}
 		p = strtokm(NULL, "*");
+		// keyfile handling
 		if (p) {
-			// keyfile handling
-			if ((p = strtokm(NULL, "*")) == NULL)
-				goto err;
-			res = hexlenl(p);
-			if ((p = strtokm(NULL, "*")) == NULL)
-				goto err;
-			if (res != 32 || hexlenl(p) != 64)
-				goto err;
+			res = atoi(p);
+			if (res == 1) {
+				if ((p = strtokm(NULL, "*")) == NULL)
+					goto err;
+				res = atoi(p);
+				if ((p = strtokm(NULL, "*")) == NULL)
+					goto err;
+				if (res != 64 &&  strlen(p) != 64)
+					goto err;
+			}
 		}
 	}
 	else {
-		if ((p = strtokm(NULL, "*")) == NULL)	/* content */
+		if ((p = strtokm(NULL, "*")) == NULL)
+			/* content */
 			goto err;
 		if (hexlenl(p) != 64)
 			goto err;
+		p = strtokm(NULL, "*");
+		// keyfile handling
+		if (p) {
+			res = atoi(p);
+			if (res == 1) {
+				if ((p = strtokm(NULL, "*")) == NULL)
+					goto err;
+				res = atoi(p);
+				if ((p = strtokm(NULL, "*")) == NULL)
+					goto err;
+				if (res != 64 &&  strlen(p) != 64)
+					goto err;
+			}
+		}
 	}
 
 	MEM_FREE(keeptr);
@@ -335,7 +347,7 @@ static void *get_salt(char *ciphertext)
 			p = strtokm(NULL, "*");
 			cs.keyfilesize = atoi(p);
 			p = strtokm(NULL, "*");
-			for (i = 0; i < cs.keyfilesize; i++)
+			for (i = 0; i < 32; i++)
 				cs.keyfile[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 			cs.have_keyfile = 1;
@@ -367,6 +379,16 @@ static void *get_salt(char *ciphertext)
 		for (i = 0; i < 32; i++)
 			cs.contents[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtokm(NULL, "*");
+		if (p) { /* keyfile handling */
+			p = strtokm(NULL, "*");
+			cs.keyfilesize = atoi(p);
+			p = strtokm(NULL, "*");
+			for (i = 0; i < 32; i++)
+				cs.keyfile[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+			cs.have_keyfile = 1;
+		}
 	}
 	MEM_FREE(keeptr);
 

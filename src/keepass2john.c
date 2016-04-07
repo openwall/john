@@ -11,6 +11,9 @@
  * an API to KeePass 1.x files. http://gitorious.org/kppy/kppy
  * Copyright (C) 2012 Karsten-Kai König <kkoenig@posteo.de>
  *
+ * Keyfile support for Keepass 1.x and Keepass 2.x was added by Fist0urs
+ * <eddy.maaalou at gmail.com>
+ *
  * kppy is free software: you can redistribute it and/or modify it under the terms
  * of the GNU General Public License as published by the Free Software Foundation,
  * either version 3 of the License, or at your option) any later version.
@@ -45,6 +48,9 @@
 #include "params.h"
 #include "memory.h"
 #include "memdbg.h"
+
+#include "sha2.h"
+#include "base64.h"
 
 const char *extension[] = {".kdbx"};
 static char *keyfile = NULL;
@@ -155,12 +161,18 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	uint32_t num_groups;
 	uint32_t num_entries;
 	uint32_t key_transf_rounds;
-	unsigned char buffer[LINE_BUFFER_SIZE];
+	unsigned char *buffer;
 	long long filesize = 0;
 	long long datasize;
 	int algorithm = -1;
 	char *dbname;
 	FILE *kfp = NULL;
+
+	/* specific to keyfile handling */
+	long long filesize_keyfile = 0;
+	SHA256_CTX ctx;
+	unsigned char hash[32];
+	int counter;
 
 	enc_flag = fget32(fp);
 	version = fget32(fp);
@@ -207,7 +219,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 			fprintf(stderr, "! %s : %s\n", keyfile, strerror(errno));
 			return;
 		}
-		filesize = (long long)get_file_size(keyfile);
+		filesize_keyfile = (long long)get_file_size(keyfile);
 	}
 
 	dbname = strip_suffixes(basename(encryptedDatabase), extension, 1);
@@ -224,7 +236,10 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	print_hex(contents_hash, 32);
 	filesize = (long long)get_file_size(encryptedDatabase);
 	datasize = filesize - 124;
-	if((filesize + datasize) < inline_thr && sizeof(buffer) > datasize) {
+
+	buffer = (unsigned char*) mem_alloc (datasize * sizeof(char));
+
+	if((filesize + datasize) < inline_thr){
 		/* we can inline the content with the hash */
 		fprintf(stderr, "Inlining %s\n", encryptedDatabase);
 		printf("*1*"LLd"*", datasize);
@@ -234,6 +249,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 				encryptedDatabase, strerror(errno));
 
 		print_hex(buffer, datasize);
+		MEM_FREE(buffer);
 	}
 	else {
 		fprintf(stderr, "[!] Not inlining %s. You will need %s too for cracking!\n",
@@ -241,16 +257,38 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 
 		printf("*0*%s", dbname); /* data is not inline */
 	}
-	if (keyfile && sizeof(buffer) > filesize) {
-		printf("*1*"LLd"*", filesize); /* inline keyfile content */
-		if (fread(buffer, filesize, 1, kfp) != 1)
+
+	if (keyfile) {
+		buffer = (unsigned char*) mem_alloc (filesize_keyfile * sizeof(char));
+		printf("*1*64*"); /* inline keyfile content */
+		if (fread(buffer, filesize_keyfile, 1, kfp) != 1)
 			warn_exit("%s: Error: read failed: %s.",
 				encryptedDatabase, strerror(errno));
 
-		print_hex(buffer, filesize);
+		/* as in Keepass 1.x implementation:
+		 *  if filesize_keyfile == 32 then assume byte_array
+		 *  if filesize_keyfile == 64 then assume hex(byte_array)
+		 *  else byte_array = sha256(keyfile_content)
+		 */
+
+		if (filesize_keyfile == 32)
+			print_hex(buffer, filesize_keyfile);
+		else if (filesize_keyfile == 64){
+			for(counter = 0; counter <64; counter++)
+				printf ("%c", buffer[counter]);
+		}
+		else{
+		  /* precompute sha256 to speed-up cracking */
+		  SHA256_Init(&ctx);
+		  SHA256_Update(&ctx, buffer, filesize_keyfile);
+		  SHA256_Final(hash, &ctx);
+		  print_hex(hash, 32);
+		}
+		MEM_FREE(buffer);
 	}
 	printf("\n");
 }
+
 
 static void process_database(char* encryptedDatabase)
 {
@@ -268,6 +306,17 @@ static void process_database(char* encryptedDatabase)
 	FILE *fp;
 	unsigned char out[32];
 	char *dbname;
+
+	/* specific to keyfile handling */
+	unsigned char *buffer;
+	long long filesize_keyfile = 0;
+	char *p;
+	char *data;
+	char b64_decoded[64];
+	FILE *kfp = NULL;
+	SHA256_CTX ctx;
+	unsigned char hash[32];
+	int counter;
 
 	fp = fopen(encryptedDatabase, "rb");
 	if (!fp) {
@@ -290,7 +339,7 @@ static void process_database(char* encryptedDatabase)
 		fclose(fp);
 		return;
 	}
-        uVersion = fget32(fp);
+	uVersion = fget32(fp);
 	if ((uVersion & FileVersionCriticalMask) > (FileVersion32 & FileVersionCriticalMask)) {
 		fprintf(stderr, "! %s : Unknown format: File version unsupported\n", encryptedDatabase);
 		fclose(fp);
@@ -300,8 +349,8 @@ static void process_database(char* encryptedDatabase)
 	while (!endReached)
 	{
 		unsigned char btFieldID = fgetc(fp);
-                uint16_t uSize = fget16(fp);
-                enum Kdb4HeaderFieldID kdbID;
+		uint16_t uSize = fget16(fp);
+		enum Kdb4HeaderFieldID kdbID;
 		unsigned char *pbData = NULL;
 
 		if (uSize > 0)
@@ -312,7 +361,6 @@ static void process_database(char* encryptedDatabase)
 				MEM_FREE(pbData);
 				goto bailout;
 			}
-
 		}
 		kdbID = btFieldID;
 		switch (kdbID)
@@ -322,14 +370,14 @@ static void process_database(char* encryptedDatabase)
 				MEM_FREE(pbData);
 				break;
 
-                        case MasterSeed:
+			case MasterSeed:
 				if (masterSeed)
 					MEM_FREE(masterSeed);
 				masterSeed = pbData;
 				masterSeedLength = uSize;
 				break;
 
-                        case TransformSeed:
+			case TransformSeed:
 				if (transformSeed)
 					MEM_FREE(transformSeed);
 
@@ -337,7 +385,7 @@ static void process_database(char* encryptedDatabase)
 				transformSeedLength = uSize;
 				break;
 
-                        case TransformRounds:
+			case TransformRounds:
 				if(!pbData) {
 					fprintf(stderr, "! %s : parsing failed (pbData is NULL), please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
 					goto bailout;
@@ -348,14 +396,14 @@ static void process_database(char* encryptedDatabase)
 				}
 				break;
 
-                        case EncryptionIV:
+			case EncryptionIV:
 				if (initializationVectors)
 					MEM_FREE(initializationVectors);
 				initializationVectors = pbData;
 				initializationVectorsLength = uSize;
 				break;
 
-                        case StreamStartBytes:
+			case StreamStartBytes:
 				if (expectedStartBytes)
 					MEM_FREE(expectedStartBytes);
 				expectedStartBytes = pbData;
@@ -381,10 +429,13 @@ static void process_database(char* encryptedDatabase)
 	}
 
 	if (keyfile) {
-		// abort();  // TODO
-		fprintf(stderr, "Keyfile support in KeepPass 2 is yet to be implemented!\n");
-		return;
-	}
+		kfp = fopen(keyfile, "rb");
+		if (!kfp) {
+			fprintf(stderr, "! %s : %s\n", keyfile, strerror(errno));
+			return;
+		}
+		filesize_keyfile = (long long)get_file_size(keyfile);
+ 	}
 
 	dbname = strip_suffixes(basename(encryptedDatabase),extension, 1);
 	printf("%s:$keepass$*2*%ld*%ld*",dbname, transformRounds, dataStartOffset);
@@ -401,6 +452,50 @@ static void process_database(char* encryptedDatabase)
 	}
 	printf("*");
 	print_hex(out, 32);
+
+	if (keyfile) {
+		buffer = (unsigned char*) mem_alloc (filesize_keyfile * sizeof(char));
+		printf("*1*64*"); /* inline keyfile content */
+		if (fread(buffer, filesize_keyfile, 1, kfp) != 1)
+			warn_exit("%s: Error: read failed: %s.",
+				encryptedDatabase, strerror(errno));
+
+		/* as in Keepass 2.x implementation:
+		 *  if keyfile is an xml, get <Data> content
+		 *  if filesize_keyfile == 32 then assume byte_array
+		 *  if filesize_keyfile == 64 then assume hex(byte_array)
+		 *  else byte_array = sha256(keyfile_content)
+		 */
+
+		if (!memcmp((char *) buffer, "<?xml", 5)
+			&& ((p = strstr((char *) buffer, "<Key>")) != NULL)
+			&& ((p = strstr(p, "<Data>")) != NULL)
+			)
+		{
+			p += strlen("<Data>");
+			data = p;
+			p = strstr(p, "</Data>");
+			base64_decode(data, p - data, b64_decoded);
+			print_hex((unsigned char *) b64_decoded, 32);
+		}
+		else if (filesize_keyfile == 32)
+			print_hex(buffer, filesize_keyfile);
+		else if (filesize_keyfile == 64)
+		{
+			for(counter = 0; counter <64; counter++)
+				printf ("%c", buffer[counter]);
+		}
+		else
+		{
+		  /* precompute sha256 to speed-up cracking */
+
+		  SHA256_Init(&ctx);
+		  SHA256_Update(&ctx, buffer, filesize_keyfile);
+		  SHA256_Final(hash, &ctx);
+		  print_hex(hash, 32);
+		}
+		MEM_FREE(buffer);
+	}
 	printf("\n");
 
 bailout:
@@ -414,8 +509,8 @@ bailout:
 static int usage(char *name)
 {
 	fprintf(stderr, "Usage: %s [-i <inline threshold>] [-k <keyfile>] <.kdbx database(s)>\n"
-	        "Default threshold is %d bytes (files smaller than that will be inlined)\n",
-	        name, MAX_INLINE_SIZE);
+			"Default threshold is %d bytes (files smaller than that will be inlined)\n",
+			name, MAX_INLINE_SIZE);
 
 	return EXIT_FAILURE;
 }
@@ -432,8 +527,8 @@ int keepass2john(int argc, char **argv)
 			inline_thr = (int)strtol(optarg, NULL, 0);
 			if (inline_thr > MAX_THR) {
 				fprintf(stderr, "%s error: threshold %d, can't"
-				        " be larger than %d\n", argv[0],
-				        inline_thr, MAX_THR);
+						" be larger than %d\n", argv[0],
+						inline_thr, MAX_THR);
 				return EXIT_FAILURE;
 			}
 			break;
