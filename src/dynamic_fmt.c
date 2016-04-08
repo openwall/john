@@ -807,7 +807,9 @@ static void init(struct fmt_main *pFmt)
 	force_md5_ctx = curdat.force_md5_ctx;
 
 	fmt_Dynamic.params.max_keys_per_crypt = pFmt->params.max_keys_per_crypt;
-	fmt_Dynamic.params.min_keys_per_crypt = pFmt->params.min_keys_per_crypt;
+	fmt_Dynamic.params.min_keys_per_crypt = pFmt->params.max_keys_per_crypt;
+	if (pFmt->params.min_keys_per_crypt > 64)
+		pFmt->params.min_keys_per_crypt = 64;
 	fmt_Dynamic.params.flags              = pFmt->params.flags;
 	fmt_Dynamic.params.format_name        = pFmt->params.format_name;
 	fmt_Dynamic.params.algorithm_name     = pFmt->params.algorithm_name;
@@ -7277,7 +7279,6 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	pFmt->params.format_name = "";
 	pFmt->params.benchmark_length = 0;		// NOTE 0 'assumes' salted. If unsalted, we set back to -1
 	pFmt->params.salt_size = 0;
-	pFmt->params.min_keys_per_crypt = 1;
 	curdat.using_flat_buffers_sse2_ok = 0;	// used to distingish MGF_NOTSSE2Safe from MGF_FLAT_BUFFERS
 	if ((Setup->flags & MGF_FLAT_BUFFERS) == MGF_FLAT_BUFFERS)
 		curdat.using_flat_buffers_sse2_ok = 1;
@@ -7303,6 +7304,9 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	pFmt->params.max_keys_per_crypt = MAX_KEYS_PER_CRYPT_X86;
 	pFmt->params.algorithm_name = ALGORITHM_NAME_X86;
 #endif
+	pFmt->params.min_keys_per_crypt = pFmt->params.max_keys_per_crypt;
+	if (pFmt->params.min_keys_per_crypt > 64)
+		pFmt->params.min_keys_per_crypt = 64;
 	dynamic_use_sse = curdat.dynamic_use_sse;
 
 	// Ok, set the new 'constants' data
@@ -7998,7 +8002,9 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 		pFmt->params.plaintext_min_length = pFmtLocal->params.plaintext_min_length;
 	}
 	pFmt->params.max_keys_per_crypt = pFmtLocal->params.max_keys_per_crypt;
-	pFmt->params.min_keys_per_crypt = pFmtLocal->params.min_keys_per_crypt;
+	pFmt->params.min_keys_per_crypt = pFmtLocal->params.max_keys_per_crypt;
+	if (pFmt->params.min_keys_per_crypt > 64)
+		pFmt->params.min_keys_per_crypt = 64;
 	pFmt->params.flags = pFmtLocal->params.flags;
 	if (pFmtLocal->params.salt_size)
 		pFmt->params.salt_size = sizeof(void*);
