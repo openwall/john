@@ -2505,14 +2505,10 @@ int rules_count(struct rpp_context *start, int split)
 {
 	int count1, count2;
 
-	if (!strcmp(start->input->data, "!! HashCat logic ON")) {
+	if (!strcmp(start->input->data, "!! HashCat logic ON"))
 		hc_logic = 1;
-		return 0;
-	}
-	if (!strcmp(start->input->data, "!! HashCat logic OFF")) {
+	if (!strcmp(start->input->data, "!! HashCat logic OFF"))
 		hc_logic = 0;
-		return 0;
-	}
 
 	if (!(count1 = rules_check(start, split))) {
 		log_event("! Invalid rule at line %d: %.100s",
