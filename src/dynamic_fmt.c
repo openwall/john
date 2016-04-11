@@ -486,19 +486,38 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && ciphertext[pPriv->dynamic_SALT_OFFSET-1] != '$')
 		return 0;
 	if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]) != pPriv->dynamic_FIXED_SALT_SIZE) {
-		// check if there is a 'salt-2' or 'username', etc  If that is the case, then this is still valid.
-		if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET+pPriv->dynamic_FIXED_SALT_SIZE], "$$", 2))
-			return 0;
+		// first check to see if this salt has left the $HEX$ in the string (i.e. embedded nulls).  If so, then
+		// validate length with this in mind.
+		if (!memcmp(&ciphertext[pPriv->dynamic_SALT_OFFSET], "HEX$", 4)) {
+			int len = strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]);
+			len = (len-4)>>1;
+			if (len != pPriv->dynamic_FIXED_SALT_SIZE)
+				return 0;
+		} else {
+			// check if there is a 'salt-2' or 'username', etc  If that is the case, then this is still valid.
+			if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET+pPriv->dynamic_FIXED_SALT_SIZE], "$$", 2))
+				return 0;
+		}
 	}
 	else if (!regen_salts_options && pPriv->dynamic_FIXED_SALT_SIZE < -1 && strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]) > -(pPriv->dynamic_FIXED_SALT_SIZE)) {
-		// check if there is a 'salt-2' or 'username', etc  If that is the case, then this is still 'valid'
-		char *cpX = mem_alloc(-(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
-		strnzcpy(cpX, &ciphertext[pPriv->dynamic_SALT_OFFSET], -(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
-		if (!strstr(cpX, "$$")) {
+		char *cpX;
+		// first check to see if this salt has left the $HEX$ in the string (i.e. embedded nulls).  If so, then
+		// validate length with this in mind.
+		if (!memcmp(&ciphertext[pPriv->dynamic_SALT_OFFSET], "HEX$", 4)) {
+			int len = strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]);
+			len = (len-4)>>1;
+			if (len > -(pPriv->dynamic_FIXED_SALT_SIZE))
+				return 0;
+		} else {
+			// check if there is a 'salt-2' or 'username', etc  If that is the case, then this is still 'valid'
+			cpX = mem_alloc(-(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
+			strnzcpy(cpX, &ciphertext[pPriv->dynamic_SALT_OFFSET], -(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
+			if (!strstr(cpX, "$$")) {
+				MEM_FREE(cpX);
+				return 0;
+			}
 			MEM_FREE(cpX);
-			return 0;
 		}
-		MEM_FREE(cpX);
 	}
 	if (pPriv->b2Salts==1 && !strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], "$$2"))
 		return 0;
