@@ -60,6 +60,7 @@ static int rules_errno;
 static int rules_line;
 
 static int rules_max_length = 0, minlength, maxlength;
+int hc_logic; /* can not be static. rpp.c needs to see it */
 
 /* data structures used in 'dupe' removal code */
 unsigned HASH_LOG, HASH_SIZE, HASH_LOG_HALF, HASH_MASK;
@@ -177,7 +178,7 @@ static char *conv_tolower, *conv_toupper;
 
 #define CLASS_export_pos(start, true, false) { \
 	char value, *class; \
-	if ((value = RULE) == '?') { \
+	if ((value = RULE) == '?' && !hc_logic) { \
 		if (!(class = rules_classes[ARCH_INDEX(RULE)])) \
 			goto out_ERROR_CLASS; \
 		for (pos = (start); ARCH_INDEX(in[pos]); pos++) \
@@ -216,6 +217,14 @@ static char *conv_tolower, *conv_toupper;
 #define GET_OUT { \
 	out = alt; \
 	alt = in; \
+}
+
+#define SWAP2(a,b) { \
+	if (length > b && length > a) { \
+		int tmp = in[a]; \
+		in[a] = in[b]; \
+		in[b] = tmp; \
+	} \
 }
 
 static void rules_init_class(char name, char *valid)
@@ -1131,6 +1140,7 @@ void rules_init(int max_length)
 {
 	rules_pass = 0;
 	rules_errno = RULES_ERROR_NONE;
+	hc_logic = 0;
 
 	if (max_length > RULE_WORD_SIZE - 1)
 		max_length = RULE_WORD_SIZE - 1;
@@ -1151,6 +1161,9 @@ void rules_init(int max_length)
 char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 {
 	static char out_rule[RULE_BUFFER_SIZE];
+
+	if (hc_logic)
+		return rule;
 
 	while (RULE)
 	switch (LAST) {
@@ -1445,6 +1458,19 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case 'p':
+			if (hc_logic || (*rule >= '1' && *rule <= '9')) {
+				/* HC rule: duplicate word N times */
+				unsigned char x, y;
+				POSITION(x)
+				y = x;
+				in[length*(x+1)] = 0;
+				while (x) {
+					memcpy(in + length*x, in, length);
+					--x;
+				}
+				length *= (y+1);
+				break;
+			} else { /* else john's original pluralize rule. */
 			if (length < 2) break;
 			{
 				int pos = length - 1;
@@ -1469,6 +1495,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 					strcat(in, "s");
 			}
 			length = strlen(in);
+			}
 			break;
 
 		case '$':
@@ -1516,6 +1543,21 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case 'x':
+			if (hc_logic) {
+				/* Slightly different edge logic for HC */
+				int pos, pos2;
+				POSITION(pos)
+				POSITION(pos2)
+				if (pos < length && pos+pos2 <= length) {
+					char *out;
+					GET_OUT
+					in += pos;
+					strnzcpy(out, in, pos2 + 1);
+					length = strlen(in = out);
+					break;
+				}
+				break;
+			} else
 			{
 				int pos;
 				POSITION(pos)
@@ -1542,6 +1584,16 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 					memmove(p + 1, p, length++ - pos);
 					VALUE(*p)
 					in[length] = 0;
+					break;
+				}
+				if (hc_logic) {
+					/* different edge logic for HC */
+					int x;
+					VALUE(x)
+					if (pos == length) {
+						in[length++] = x;
+						in[length] = 0;
+					}
 					break;
 				}
 			}
@@ -1806,10 +1858,34 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case 'R':
+			if (hc_logic || (*rule >= '0' && *rule <= '9')) {
+				/* HC rule: bit-shift character right */
+				unsigned char n;
+				unsigned char val;
+				POSITION(n)
+				if (n < length) {
+					val = in[n];
+					val >>= 1;
+					in[n] = val;
+				}
+				break;
+			}
 			CONV(conv_right);
 			break;
 
 		case 'L':
+			if (hc_logic || (*rule >= '0' && *rule <= '9')) {
+				/* HC rule: bit-shift character left */
+				unsigned char n;
+				unsigned char val;
+				POSITION(n)
+				if (n < length) {
+					val = in[n];
+					val <<= 1;
+					in[n] = val;
+				}
+				break;
+			}
 			CONV(conv_left);
 			break;
 
@@ -1945,6 +2021,13 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case '+':
+			if (hc_logic || split < 0) {
+				/* HC rule: increment character */
+				unsigned char x;
+				POSITION(x)
+				if (x  <length)
+					++in[x];
+			} else {
 			switch (which) {
 			case 1:
 				strcat(in, buffer[2]);
@@ -1963,9 +2046,184 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			default:
 				goto out_ERROR_UNALLOWED;
 			}
-			length = strlen(in);
 			which = 0;
+			length = strlen(in);
+			}
 			break;
+
+		/*
+		 * these are HashCat specific rules added to jumbo JtR
+		 */
+
+		case '-': /* HC rule: decrement character */
+			{
+				unsigned char x;
+				POSITION(x)
+				if (x < length)
+					--in[x];
+			}
+			break;
+
+		case 'k': /* HC rule: swap leading 2 characters */
+			if (length > 1)
+				SWAP2(0,1)
+			break;
+
+		case 'K': /* HC rule: swap last 2 characters */
+			if (length > 1)
+				SWAP2((unsigned)length-1,(unsigned)length-2)
+			break;
+
+		case '*': /* HC rule: 2 characters */
+			{
+				unsigned char x, y;
+				POSITION(x)
+				POSITION(y)
+				if (length > x && length > y)
+					SWAP2(x,y)
+			}
+			break;
+
+		case 'z': /* HC rule: duplicate first char N times */
+			{
+				unsigned char x;
+				int y;
+				POSITION(x)
+				y = length;
+				while (y) {
+					in[y+x] = in[y];
+					--y;
+				}
+				length += x;
+				in[length] = 0;
+				while(x) {
+					in[x] = in[0];
+					--x;
+				}
+			}
+			break;
+
+		case 'Z': /* HC rule: duplicate char char N times */
+			{
+				unsigned char x;
+				POSITION(x)
+				while (x) {
+					in[length] = in[length-1];
+					++length;
+					--x;
+				}
+				in[length] = 0;
+			}
+			break;
+
+		case 'q': /* HC rule: duplicate every character */
+			{
+				int x = length<<1;
+				in[x--] = 0;
+				while (x>0) {
+					in[x] = in[x-1] = in[x>>1];
+					x -= 2;
+				}
+				length <<= 1;
+			}
+			break;
+
+		case '.': /* HC rule: replace character with next */
+			{
+				unsigned char n;
+				POSITION(n)
+				if (n < length-1 && length > 1)
+					in[n] = in[n+1];
+			}
+			break;
+
+		case ',': /* HC rule: replace character with prior */
+			{
+				unsigned char n;
+				POSITION(n)
+				if (n >= 1 && length > 1 && n < length)
+					in[n] = in[n-1];
+			}
+			break;
+
+		case 'y': /* HC rule: duplicate first n characters */
+			{
+				unsigned char n;
+				POSITION(n)
+				if (n <= length) {
+					memmove(&in[n], in, length);
+					length += n;
+					in[length] = 0;
+				}
+			}
+			break;
+
+		case 'Y': /* HC rule: duplicate last n characters */
+			{
+				unsigned char n;
+				POSITION(n)
+				if (n <= length) {
+					memmove(&in[length], &in[length-n], n);
+					length += n;
+					in[length] = 0;
+				}
+			}
+			break;
+
+		case '4': /*  HC rule: append memory */
+			{
+				int m = rules_vars['m']+1;
+				memcpy(&in[length], memory, m);
+				in[length+=m] = 0;
+				break;
+			}
+			break;
+
+		case '6': /*  HC rule: prepend memory */
+			{
+				int m = rules_vars['m']+1;
+				memmove(&in[m], in, length);
+				memcpy(in, memory, m);
+				in[length+=m] = 0;
+				break;
+			}
+			break;
+
+		case 'E': /*  HC rule: Title Case */
+			{
+				int up=1, idx=0;
+				while (in[idx]) {
+					if (up) {
+						if (in[idx] != ' ') {
+							if (in[idx] >= 'a' &&
+							    in[idx] <= 'z')
+								in[idx] -= 0x20;
+							up = 0;
+						}
+					} else {
+						if (in[idx] == ' ')
+							up = 1;
+						else if (in[idx] >= 'A' &&
+						         in[idx] <= 'Z')
+							in[idx] += 0x20;
+					}
+					++idx;
+				}
+
+			}
+			break;
+
+		/*case 'e':
+			{
+				/ *
+				 * todo. Was thinking an 'extended' version of
+				 * the E command. Something that would also
+				 * case after symbols, etc. So something like
+				 * my-login-account -> My-Login-Account
+				 * /
+			}
+			break;
+		*/
 
 		default:
 			goto out_ERROR_UNKNOWN;
@@ -2246,6 +2504,15 @@ int rules_remove_dups(struct cfg_line *pLines, int log)
 int rules_count(struct rpp_context *start, int split)
 {
 	int count1, count2;
+
+	if (!strcmp(start->input->data, "!! HashCat logic ON")) {
+		hc_logic = 1;
+		return 0;
+	}
+	if (!strcmp(start->input->data, "!! HashCat logic OFF")) {
+		hc_logic = 0;
+		return 0;
+	}
 
 	if (!(count1 = rules_check(start, split))) {
 		log_event("! Invalid rule at line %d: %.100s",

@@ -1397,7 +1397,7 @@ next_rule:
 			if (!(rule = rpp_next(&ctx))) break;
 			rule_number++;
 
-			if (rule_number >= dist_switch) {
+			if (options.node_count && rule_number >= dist_switch) {
 				log_event("- Switching to distributing words");
 				dist_rules = 0;
 				dist_switch = rule_count; /* not anymore */
