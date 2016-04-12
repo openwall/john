@@ -1,4 +1,4 @@
-	Wordlist rules syntax (HashCat extensions).
+	*** Wordlist rules syntax (HashCat extensions). ***
 
 John 1.8-jumbo-2 has added new rules syntax (and some slightly different
 rules processing logic), so that HashCat rules are handled 100% identical
@@ -38,7 +38,16 @@ quoting.  Also, there are no 'character classes' within HashCat logic, so
 the ? will be usable as is :  such as  $? where in john's normal rules, this
 would have to be $??  (for class ?)
 
-New rules added:
+Note, the "!! HashCat logic ON" / "!! HashCat logic OFF" do not have to
+be used right before/after a .include statement.  However, be very cautious
+when using '!! HashCat logic ON' pragma lines, as this will cause the
+.conf file loading to fail to load sections, and has other strange side
+effects, if the '!! HashCat logic OFF' is not present, and there will be
+few or no side effects, other than sections which are expected to be seen
+or options that are expected to be changed, are NOT showing up or working.
+
+
+	*** New rules added (many work fine outside of HashCat logic sections) ***
 
 +-------+------------------+-------+------------+------------------------+-----+
 | Rule  |  Explanation     |Example| Input data |      Output Data       |notes|
