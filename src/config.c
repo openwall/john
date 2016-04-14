@@ -180,9 +180,9 @@ static int cfg_process_line(char *line, int number)
 
 	line = trim(line);
 	if (*line == '!' && line[1] == '!') {
-		if (!strcmp(line, "!! HashCat logic ON"))
+		if (!strcmp(line, "!! hashcat logic ON"))
 			in_hc_mode = 1;
-		else if (!strcmp(line, "!! HashCat logic OFF"))
+		else if (!strcmp(line, "!! hashcat logic OFF"))
 			in_hc_mode = 0;
 
 	}

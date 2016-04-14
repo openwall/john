@@ -1,18 +1,18 @@
-	*** Wordlist rules syntax (HashCat extensions). ***
+	*** Wordlist rules syntax (hashcat extensions). ***
 
 John 1.8-jumbo-2 has added new rules syntax (and some slightly different
-rules processing logic), so that HashCat rules are handled 100% identical
-to how HashCat (cpu) proccesses them.
+rules processing logic), so that hashcat rules are handled 100% identical
+to how hashcat (cpu) proccesses them.
 
 New .conf file flags added.
 
 There are 2 new 'flags' added.  These tell both the config loader (part of
 john which loads the .conf files), how to process things a bit differently,
 and tells the rules engine that the rules processing should be done fully
-using HashCat logic (or not).  These flags are:
+using hashcat logic (or not).  These flags are:
 
-!! HashCat logic ON
-!! HashCat logic OFF
+!! hashcat logic ON
+!! hashcat logic OFF
 
 Normally, the hashcat rules files should be included into johns configuration
 and the best way to do this, is to add lines to a john-local.conf file that
@@ -21,33 +21,33 @@ in the run directory where the john process is located.  Within this file,
 one simply creates include sections, like this:
 
 [List.Rules:HC_dive]
-!! HashCat logic ON
-.include '/code/HashCat/rules/dive.rule'
-!! HashCat logic OFF
+!! hashcat logic ON
+.include '/code/hashcat/rules/dive.rule'
+!! hashcat logic OFF
 
 [List.Rules:HC_deadone]
-!! HashCat logic ON
-.include '/code/HashCat//rules/d3ad0ne.rule'
-!! HashCat logic OFF
+!! hashcat logic ON
+.include '/code/hashcat//rules/d3ad0ne.rule'
+!! hashcat logic OFF
 
 ... etc.
 
-Within HashCat mode, there is no rules preprocessor. So rules such as [ and ]
+Within hashcat mode, there is no rules preprocessor. So rules such as [ and ]
 which would NORMALLY require quoting such as \[ or \] no longer require
-quoting.  Also, there are no 'character classes' within HashCat logic, so
+quoting.  Also, there are no 'character classes' within hashcat logic, so
 the ? will be usable as is :  such as  $? where in john's normal rules, this
 would have to be $??  (for class ?)
 
-Note, the "!! HashCat logic ON" / "!! HashCat logic OFF" do not have to
+Note, the "!! hashcat logic ON" / "!! hashcat logic OFF" do not have to
 be used right before/after a .include statement.  However, be very cautious
-when using '!! HashCat logic ON' pragma lines, as this will cause the
+when using '!! hashcat logic ON' pragma lines, as this will cause the
 .conf file loading to fail to load sections, and has other strange side
-effects, if the '!! HashCat logic OFF' is not present, and there will be
+effects, if the '!! hashcat logic OFF' is not present, and there will be
 few or no side effects, other than sections which are expected to be seen
 or options that are expected to be changed, are NOT showing up or working.
 
 
-	*** New rules added (many work fine outside of HashCat logic sections) ***
+	*** New rules added (many work fine outside of hashcat logic sections) ***
 
 +-------+------------------+-------+------------+------------------------+-----+
 | Rule  |  Explanation     |Example| Input data |      Output Data       |notes|
@@ -93,10 +93,10 @@ or options that are expected to be changed, are NOT showing up or working.
 
 Notes:
 1. works fully without being in HaskCat mode
-2. works in limited extent without being in HashCat mode
-3. p in non HashCat mode is pluralize.  If p is followed by 0 to 9, then it is
+2. works in limited extent without being in hashcat mode
+3. p in non hashcat mode is pluralize.  If p is followed by 0 to 9, then it is
    treated as the hashcat duplicate word, even if not in HC mode.
 4. R and L are keyboard shift R and L if not in hashcat mode. But in hashcat
    mode, these are bitshift character at location N. If R or N are followed by
    0 to 9 in non hashcat mode, then they are treated as the hashcat rules.
-5. +N does not work in single mode, unless HashCat logic is used.
+5. +N does not work in single mode, unless hashcat logic is used.
