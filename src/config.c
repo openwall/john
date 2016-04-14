@@ -32,7 +32,7 @@
 char *cfg_name = NULL;
 static struct cfg_section *cfg_database = NULL;
 static int cfg_recursion;
-static int cfg_process_directive(char *line, int number);
+static int cfg_process_directive(char *line, int number, int in_hcmode);
 static int cfg_loading_john_local = 0;
 
 /* we have exposed this to the dyna_parser file, so that it can easily
@@ -54,6 +54,11 @@ static char *trim(char *s)
 
 	e = s + strlen(s) - 1;
 	while (e >= s && (*e == ' ' || *e == '\t')) e--;
+	/*
+	 * NOTE, if there are trailing spaces, then leave 1 of them. There are
+	 * VALID rules, that need a trailing space like $   i.e. appends space
+	 */
+	if (*(e+1) == ' ' || *(e+1) =='\t') ++e;
 	*++e = 0;
 	return s;
 }
@@ -171,15 +176,28 @@ static void cfg_add_param(char *name, char *value)
 static int cfg_process_line(char *line, int number)
 {
 	char *p;
+	static int in_hc_mode;
 
 	line = trim(line);
+	if (*line == '!' && line[1] == '!') {
+		if (!strcmp(line, "!! HashCat logic ON"))
+			in_hc_mode = 1;
+		else if (!strcmp(line, "!! HashCat logic OFF"))
+			in_hc_mode = 0;
+
+	}
 	if (!*line || *line == '#' || *line == ';')
 		return 0;
-	if (*line == '.')
-		return cfg_process_directive(line, number);
+	if (*line == '.') {
+		int ret = cfg_process_directive(line, number, in_hc_mode);
+		if (ret != -1)
+			return ret;
+	}
 	if (*line == '[') {
-		if ((p = strchr(line, ']'))) *p = 0; else return 1;
-		cfg_add_section(strlwr(trim(line + 1)));
+		if (!in_hc_mode) {
+			if ((p = strchr(line, ']'))) *p = 0; else return 1;
+			cfg_add_section(strlwr(trim(line + 1)));
+		}
 	} else
 	if (cfg_database && cfg_database->list) {
 		cfg_add_line(line, number);
@@ -543,12 +561,14 @@ static int cfg_process_directive_include_config(char *line, int number)
 }
 
 // Handle a .directive line.  Currently only .include syntax is handled.
-static int cfg_process_directive(char *line, int number)
+static int cfg_process_directive(char *line, int number, int in_hc_mode)
 {
 	if (!strncmp(line, ".include \"", 10) || !strncmp(line, ".include <", 10) || !strncmp(line, ".include '", 10))
 		return cfg_process_directive_include_config(line, number);
 	if (!strncmp(line, ".include [", 10))
 		return cfg_process_directive_include_section(line, number);
+	if (in_hc_mode)
+		return -1;
 	fprintf (stderr, "Unknown directive in the .conf file:  '%s'\n", line);
 #ifndef BENCH_BUILD
 	log_event("! Unknown directive in the .conf file:  %s", line);

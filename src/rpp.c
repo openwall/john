@@ -198,9 +198,14 @@ char *rpp_next(struct rpp_context *ctx)
 {
 	struct rpp_range *range;
 	int index, done;
+	extern int hc_logic;
 
 	if (ctx->count < 0) {
 		if (!ctx->input) return NULL;
+		if (hc_logic) {
+			ctx->count = 0;
+			strcpy(ctx->output, ctx->input->data);
+		} else
 		rpp_process_rule(ctx);
 	}
 
