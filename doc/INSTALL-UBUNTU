@@ -18,7 +18,13 @@
 
 ==== If you have an AMD GPU (or want to use CPU as OpenCL device)
 
-    sudo apt-get install fglrx-updates-dev
+    - Up to Ubuntu 15.10 (<= 15.10). This will work on Intel hardware but warnings will be seen.
+    sudo apt-get install ocl-icd-opencl-dev opencl-headers fglrx-dev
+
+    - Ubuntu Xenial 16.04 LTS and above (>= 16.04)
+    The fglrx driver would not be supported in 16.04 (XServer 1.18 is not supported).
+    Canonical and AMD decided to use the new hybrid driver stack for 16.04. JtR OpenCL
+    users should stay on a supported release until the hybrid stack is available.
 
 ==== Optional MPI support
 
