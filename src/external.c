@@ -597,6 +597,39 @@ void restore_fix_state(void)
 	crk_fix_state = saved_crk_fix_state;
 }
 
+char *external_hybrid_next() {
+	char *internal;
+	c_int *external;
+	c_execute_fast(f_next);
+	if (ext_word[0]) {
+		if (ext_utf32) {
+			utf32_to_enc((UTF8*)int_word, maxlen, (UTF32*)ext_word);
+		} else {
+			internal = (char *)int_word;
+			external = ext_word;
+			while (*external)
+				*internal++ = *external++;
+			*internal = 0;
+		}
+		return int_word;
+	}
+	return 0;
+}
+
+char *external_hybrid_start(const char *base_word) {
+	char *cp, *internal;
+	c_int *external;
+	strcpy(int_hybrid_base_word, base_word);
+	cp = (char*)base_word;
+	internal = (char *)int_word;
+	external = ext_word;
+	while (*cp)
+		*internal++ = *external++ = *cp++;
+	*internal = 0;
+	*external = 0;
+	c_execute_fast(f_new);
+	return external_hybrid_next();
+}
 
 int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 	static int first=1;
