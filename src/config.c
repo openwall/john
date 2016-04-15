@@ -45,7 +45,7 @@ const struct cfg_section *get_cfg_db() {
 	return cfg_database;
 }
 
-static char *trim(char *s)
+static char *trim(char *s, int force)
 {
 	char *e;
 
@@ -58,7 +58,8 @@ static char *trim(char *s)
 	 * NOTE, if there are trailing spaces, then leave 1 of them. There are
 	 * VALID rules, that need a trailing space like $   i.e. appends space
 	 */
-	if (*(e+1) == ' ' || *(e+1) =='\t') ++e;
+	if (!force && (*(e+1) == ' ' || *(e+1) =='\t'))
+		++e;
 	*++e = 0;
 	return s;
 }
@@ -178,7 +179,7 @@ static int cfg_process_line(char *line, int number)
 	char *p;
 	static int in_hc_mode;
 
-	line = trim(line);
+	line = trim(line, 0);
 	if (*line == '!' && line[1] == '!') {
 		if (!strcmp(line, "!! hashcat logic ON"))
 			in_hc_mode = 1;
@@ -196,7 +197,7 @@ static int cfg_process_line(char *line, int number)
 	if (*line == '[') {
 		if (!in_hc_mode) {
 			if ((p = strchr(line, ']'))) *p = 0; else return 1;
-			cfg_add_section(strlwr(trim(line + 1)));
+			cfg_add_section(strlwr(trim(line + 1, 1)));
 		}
 	} else
 	if (cfg_database && cfg_database->list) {
@@ -204,7 +205,7 @@ static int cfg_process_line(char *line, int number)
 	} else
 	if (cfg_database && (p = strchr(line, '='))) {
 		*p++ = 0;
-		cfg_add_param(strlwr(trim(line)), trim(p));
+		cfg_add_param(strlwr(trim(line, 1)), trim(p, 1));
 	} else {
 		return 1;
 	}
