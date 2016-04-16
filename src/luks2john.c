@@ -133,6 +133,12 @@ static int hash_plugin_parse_hash(char *filename)
 	if (strcmp(myphdr.cipherName, "aes") != 0) {
 		fprintf(stderr, "%s : Only AES cipher supported. Used cipher: %s\n",
 			filename, myphdr.cipherName);
+		return -3;
+	}
+	if (strcmp(myphdr.hashSpec, "sha1") != 0) {
+		fprintf(stderr, "%s : Only sha1 hash is supported. Used hash: %s\n",
+			filename, myphdr.hashSpec);
+		return -4;
 	}
 
 	for (cnt = 0; cnt < LUKS_NUMKEYS; cnt++) {
