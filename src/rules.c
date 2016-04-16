@@ -1162,8 +1162,8 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 {
 	static char out_rule[RULE_BUFFER_SIZE];
 
-	if (hc_logic)
-		return rule;
+	if (hc_logic && !strncmp(rule, "!! hashcat logic", 13))
+		return NULL;
 
 	while (RULE)
 	switch (LAST) {
@@ -1173,6 +1173,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 		break;
 
 	case '-':
+		if (!hc_logic)
 		switch (RULE) {
 		case ':':
 			continue;
