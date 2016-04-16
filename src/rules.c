@@ -2052,7 +2052,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		/*
-		 * these are HashCat specific rules added to jumbo JtR
+		 * these are hashcat specific rules added to jumbo JtR
 		 */
 
 		case '-': /* HC rule: decrement character */
@@ -2505,9 +2505,9 @@ int rules_count(struct rpp_context *start, int split)
 {
 	int count1, count2;
 
-	if (!strcmp(start->input->data, "!! HashCat logic ON"))
+	if (!strcmp(start->input->data, "!! hashcat logic ON"))
 		hc_logic = 1;
-	if (!strcmp(start->input->data, "!! HashCat logic OFF"))
+	if (!strcmp(start->input->data, "!! hashcat logic OFF"))
 		hc_logic = 0;
 
 	if (!(count1 = rules_check(start, split))) {
