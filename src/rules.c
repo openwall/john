@@ -2232,17 +2232,16 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			break;
 
-		/*case 'e':
+		case 'e': /* extended title case JtR specific, not HC 'yet' */
 			{
-				/ *
-				 * todo. Was thinking an 'extended' version of
-				 * the E command. Something that would also
-				 * case after symbols, etc. So something like
-				 * my-login-account -> My-Login-Account
-				 * /
+				int up=1;
+				CLASS(0,
+				      up=1,
+				      if(up) in[pos] = conv_toupper[ARCH_INDEX(in[pos])];
+				      else   in[pos] = conv_tolower[ARCH_INDEX(in[pos])];
+				      up=0)
 			}
 			break;
-		*/
 
 		default:
 			goto out_ERROR_UNKNOWN;
