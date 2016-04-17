@@ -2190,6 +2190,24 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			break;
 
+		case 'O': /*  HC rule: Omit */
+			{
+				int pos, pos2;
+				POSITION(pos)
+				POSITION(pos2)
+				if (pos < length && pos+pos2 <= length) {
+					char *out;
+					GET_OUT
+					strncpy(out, in, pos);
+					in += pos+pos2;
+					strnzcpy(out+pos, in, length-(pos+pos2)+1);
+					length -= pos2;
+					in = out;
+					break;
+				}
+			}
+			break;
+
 		case 'E': /*  HC rule: Title Case */
 			{
 				int up=1, idx=0;
