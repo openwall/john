@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 #include <ctype.h> /* for isprint() */
 #if HAVE_MEMALIGN && HAVE_MALLOC_H
 #include <malloc.h>

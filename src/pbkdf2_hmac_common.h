@@ -11,6 +11,8 @@
  *  (CPU, OpenCL)
  */
 
+#include <assert.h>
+
 #define BENCHMARK_COMMENT                  ""
 #define BENCHMARK_LENGTH                   -1
 #define FORMAT_NAME		                   ""
@@ -83,3 +85,4 @@ extern char *pbkdf2_hmac_sha512_prepare(char *fields[10], struct fmt_main *self)
 extern char *pbkdf2_hmac_sha512_split(char *ciphertext, int index, struct fmt_main *self);
 extern void *pbkdf2_hmac_sha512_binary(char *ciphertext);
 extern int pbkdf2_hmac_sha512_cmp_exact(char *key, char *source, unsigned char *salt, int salt_len, int iterations);
+
