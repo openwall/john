@@ -99,3 +99,61 @@ openwall         (?)
 
 TurnKey PunBB 14.0 (which comes with PunBB 1.4.3) was used for generating PunBB
 hashes.
+
+## Cracking JBoss AS 7.1 hashes
+
+This information is contributed by Davy Douhine (@ddouhine).
+
+JBoss uses the `md5($u:<realm>:$p)` hashing scheme, and 'ManagementRealm' is
+the default realm for new AS 7.1 installations.
+
+
+```
+$ cat hashes
+user:1c3470194afdc84b90a0781c5e4462fc
+```
+
+```
+$ ../run/john -format='dynamic=md5($u.$c1.$p),c1=:ManagementRealm:' hashes
+Loaded 1 password hash (dynamic=md5($u.$c1.$p) [256/256 AVX2 8x3])
+...
+test             (user)
+```
+
+JBoss hashes can be created by using the "add-user.sh" utility included with JBoss.
+
+```
+user@kali:~/jboss-as-7.1.1.Final/bin# ./add-user.sh
+
+What type of user do you wish to add?
+ a) Management User (mgmt-users.properties)
+ b) Application User (application-users.properties)
+(a): a
+
+Enter the details of the new user to add.
+Realm (ManagementRealm) :
+Username : user
+Password :
+Re-enter Password :
+About to add user 'user' for realm 'ManagementRealm'
+Is this correct yes/no? yes
+Added user 'user' to file '~/jboss-as-7.1.1.Final/standalone/configuration/mgmt-users.properties'
+Added user 'user' to file '~/jboss-as-7.1.1.Final/domain/configuration/mgmt-users.properties'
+$ cat ~/jboss-as-7.1.1.Final/standalone/configuration/mgmt-users.properties
+#
+# Properties declaration of users for the realm 'ManagementRealm' which is the default realm
+# for new AS 7.1 installations. Further authentication mechanism can be configured
+# as part of the <management /> in standalone.xml.
+#
+# ...
+#
+# By default the properties realm expects the entries to be in the format: -
+# username=HEX( MD5( username ':' realm ':' password))
+#
+# ...
+#
+# The following illustrates how an admin user could be defined, this
+# is for illustration only and does not correspond to a usable password.
+#
+user=1c3470194afdc84b90a0781c5e4462fc
+```
