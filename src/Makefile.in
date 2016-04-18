@@ -42,7 +42,7 @@ top_srcdir = @top_srcdir@
 srcdir = @srcdir@
 prefix = @prefix@
 
-JTR_GIT_VERSION = \"$(shell git describe --tags --dirty=+ 2>/dev/null)\"
+JTR_GIT_VERSION = \"$(shell git describe --tags --dirty=+ --always 2>/dev/null)\"
 ifeq ($(JTR_GIT_VERSION), \"\")
 JTR_GIT_VERSION = JOHN_VERSION
 endif
