@@ -37,7 +37,7 @@ sub handle_include { my ($line, $i) = @_;
 	if (substr($line, 0, 10) eq '.include [') {
 		# section
 		$inc_name = lc $inc_name;
-		splice $_[2], $i+1, 0, @{$sections{$inc_name}};
+		splice @{$_[2]}, $i+1, 0, @{$sections{$inc_name}};
 		return;
 	}
 	my $missing_ok = 0;
@@ -59,7 +59,7 @@ sub handle_include { my ($line, $i) = @_;
 		open (FILE, $dirname.$inc_name);
 		my @lines = (<FILE>);
 		close (FILE);
-		splice $_[2], $i+1, 0, @lines;
+		splice @{$_[2]}, $i+1, 0, @lines;
 	} else {
 		if ($missing_ok != 0) { return; }
 		die print STDERR "can not include file $dirname.$inc_name\n";
