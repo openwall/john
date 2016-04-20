@@ -100,7 +100,7 @@ sub load {
 		}
 		push @cur_section, "$line\n";
 	}
-	$sections{$cur_section_name} = @cur_section;
+	$sections{$cur_section_name} = [@cur_section];
 }
 
 # returns a section's data.
