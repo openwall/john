@@ -59,6 +59,7 @@
 
 #else	// OPENSSL_VERSION_NUMBER ! >= 0x00908000
 
+#include <openssl/sha.h>
 #include "jtr_sha2.h"
 
 #define SHA2_LIB "generic"
