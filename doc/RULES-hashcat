@@ -79,7 +79,7 @@ or options that are expected to be changed, are NOT showing up or working.
 |  ZN   | dupe last char   |  Z2   | P@sS       |   P@sSSS               |  1  |
 +-------+------------------+-------+------------+------------------------+-----+
 |  .N   | replace char N   |  .2   | P@sS       |   P@SS                 |  1  |
-|       | with next char   |       |            |                        |    |
+|       | with next char   |       |            |                        |     |
 +-------+------------------+-------+------------+------------------------+-----+
 |  ,N   | replace char N   |  ,2   | P@sS       |   P@@S                 |  1  |
 |       | with prior char  |       |            |                        |     |
