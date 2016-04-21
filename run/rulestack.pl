@@ -4,6 +4,7 @@
 
 use File::Basename;
 use lib dirname(__FILE__).'/';
+use lib dirname(__FILE__).'/../run';
 use jtrconf;
 
 # example of how easy it is to use this lib:
