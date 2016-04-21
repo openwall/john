@@ -3,8 +3,9 @@ package jtrconf;
 use strict;
 use warnings;
 use Exporter;
+use File::Basename;
 
-my $basepath = '../run/';
+my $basepath = dirname(__FILE__).'/';
 my $confname = 'john.conf';
 my %sections = ();
 
