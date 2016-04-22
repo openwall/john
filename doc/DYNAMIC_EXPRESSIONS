@@ -18,7 +18,7 @@ user ease of usage.
 At the current time, the only way to tell John the expression for this
 new format, is within the --format= command line. Here is an example.
 
-./john input.txt --format='sha512(ripemd320($s.$p).$p)'
+./john input.txt --format=dynamic='sha512(ripemd320($s.$p).$p)'
 
 NOTE, there likely will have to be shell quoting done. For unix, you
 will likely have to use single quotes.  To see what is needed, use
@@ -58,12 +58,12 @@ Variables:
   $c1 to $c8. These are set as 'constants'. NOTE, they must be used
     in order, i.e. if you have a $c2, then you should have a $c1 already.
     so md5($s.$c1.$p.$c1),c1=x   gives us  md5($s."x".$p."x")
-  
+
 Casing (note only a few things can be cased)
   lc($u) is for lower case of the user name (proper unicode lower casing)
   uc($u) is for upper case of the user name (again, proper unicode up casing)
   lc($p and uc($p) are for lower/upper casing the password.
-** If uc($u) or lc($u) are used in the expression, then ALL $u must be done 
+** If uc($u) or lc($u) are used in the expression, then ALL $u must be done
    the same way.  This also applies to the password.
    so  md5($u.$p.$) is valid, but md5(uc($u).$p.$u) is not valid
    This is a limitation of the dynamic format in general.
@@ -95,11 +95,11 @@ The hashing functions come in multiple 'flavors', doing slightly different
   hash type 'looks' like (i.e. the hashes are in base-64). Same goes
   for the upper case. If the outer function is up case, then only
   upper cased hex strings of the right length will be valid.
-  
+
 The hashing functions (each have a lc, uc, _raw, _64 and _64c version)
   are:   md2, md4, md5, sha1, sha224, sha256, sha384, sha512, tiger,
          sha3_224, sha3_256, sha3_384, sha3_512, keccak_256, keccak_512,
-         ripemd128, ripemd160, ripemd256, ripemd320, whirlpool, gost, 
+         ripemd128, ripemd160, ripemd256, ripemd320, whirlpool, gost,
          skein224, skein256, skein384, skein512, panama,
          haval_128_3, haval_128_4, haval_128_5,
          haval_160_3, haval_160_4, haval_160_5,
