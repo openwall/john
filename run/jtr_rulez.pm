@@ -231,7 +231,25 @@ sub jtr_run_rule { my ($rule, $word, $hc_logic) = @_;
 		if ($c eq '<') { my $n=get_num_val_raw($rc[++$i],$word); if(length($word)>=$n){$rejected=1; return ""; }    next; }
 		if ($c eq '_') { my $n=get_num_val_raw($rc[++$i],$word); if(length($word)!=$n){$rejected=1; return ""; }    next; }
 		if ($c eq '\''){ my $n=get_num_val_raw($rc[++$i],$word); if(length($word)> $n){ $word=substr($word,0,$n); } next; }
-		if ($c eq 'p') { $word=pluralizes($word); next; }
+		if ($c eq 'p') {
+			my $do_hc = 1;
+			my $n = 0;
+			if (length($rule) > $i+1) {$n=get_num_val_raw($rc[$i+1],$word,1);}
+			if ($hc_logic == 0 && ($n < 1 || $n > 9)) {
+				$word=pluralizes($word);
+				$do_hc = 0;
+			}
+			if ($hc_logic > 0 || $do_hc > 0) {
+				++$i;
+				if ($n < 1) {$rejected=1; return ""; }
+				my $s = $word;
+				while ($n--) {
+					$s .= $word;
+				}
+				$word = $s;
+			}
+			next;
+		}
 		if ($c eq 'P') { $word=pluralized($word); next; }
 		if ($c eq 'I') { $word=pluralizing($word); next; }
 		#
@@ -305,6 +323,14 @@ sub jtr_run_rule { my ($rule, $word, $hc_logic) = @_;
 			if ($n>length($word)) { $rejected = 1; return ""; }
 			if ($n+$m>length($word)) { $m = length($word)-$n; }
 			$word = substr($word, $n, $m);
+			next;
+		}
+		if ($c eq 'O') { # ONM
+			my $n=get_num_val_raw($rc[++$i],$word);
+			my $m=get_num_val_raw($rc[++$i],$word);
+			if ($n>length($word)) { $rejected = 1; return ""; }
+			if ($n+$m>length($word)) { $m = length($word)-$n; }
+			substr($word, $n, $m) = "";
 			next;
 		}
 		if ($c eq 's') { #   sXY & s?CY
@@ -492,7 +518,7 @@ sub jtr_run_rule { my ($rule, $word, $hc_logic) = @_;
 			my $n=get_num_val_raw($rc[++$i],$word);
 			if (length($word) > 0) {
 				while ($n-- > 0) {
-					$word = substr($word, 1, 1) . $word;
+					$word = substr($word, 0, 1) . $word;
 				}
 			}
 			next;
@@ -520,7 +546,7 @@ sub jtr_run_rule { my ($rule, $word, $hc_logic) = @_;
 			for ($p = 0; $p < length($word); $p++) {
 				$s .= substr($word, $p, 1).substr($word, $p, 1);
 			}
-			$word = $p;
+			$word = $s;
 			next;
 		}
 		if ($c eq '.') {
@@ -569,31 +595,46 @@ sub jtr_run_rule { my ($rule, $word, $hc_logic) = @_;
 		if ($c eq 'y') {
 			my $n=get_num_val_raw($rc[++$i],$word);
 			if ($n < length($word)) {
-				$n = substr($word,0,$n) . $n;
+				$word = substr($word,0,$n).$word;
 			}
 			next;
 		}
 		if ($c eq 'Y') {
 			my $n=get_num_val_raw($rc[++$i],$word);
 			if ($n < length($word)) {
-				$n .= substr($word,length($word)-$n);
+				$word .= substr($word,length($word)-$n);
 			}
 			next;
 		}
 		if ($c eq 'E') {
-			if ( ord(substr($word, 0, 1)) >= ord('a') && ord(substr($word, 0, 1)) >= ord('z')) {
-				substr($word, 0, 1) = uc substr($word, 0, 1);
-			}
-			my $pos = index(' ', $word);
+			$word = lc $word;
+			substr($word, 0, 1) = uc substr($word, 0, 1);
+			my $pos = index($word, ' ');
 			while ($pos >= 0) {
 				++$pos;
-				if ( ord(substr($word, $pos, 1)) >= ord('a') && ord(substr($word, $pos, 1)) >= ord('z')) {
-					substr($word, $pos, 1) = uc substr($word, $pos, 1);
-				}
-				$pos = index(' ', $word, $pos+1);
+				substr($word, $pos, 1) = uc substr($word, $pos, 1);
+				$pos = index($word, ' ', $pos);
 			}
 			next;
 		}
+		if ($c eq 'e') {
+			my $chars;
+			if ($rc[++$i] eq '?' && $hc_logic==0) { $chars = get_class($rc[++$i]); }
+			else { $chars = $rc[$i]; }
+			$word = lc $word;
+			substr($word, 0, 1) = uc substr($word, 0, 1);
+			for (my $i = 0; $i < length($chars); ++$i) {
+				my $c = substr($chars, $i, 1);
+				my $pos = index($word, $c);
+				while ($pos >= 0) {
+					++$pos;
+					substr($word, $pos, 1) = uc substr($word, $pos, 1);
+					$pos = index($word, $c, $pos);
+				}
+			}
+			next;
+		}
+
 		print "\nDo not know how to handle character $c in $rule\n";
 		exit(-1);
 	}
@@ -616,7 +657,7 @@ sub get_class {
 	if ($c eq '?') { dbg(2,"Doing get class of ?\n"); return $cclass{'?'}; }
 	return $cclass{$c};
 }
-sub get_num_val_raw { my ($p, $w) = (@_);
+sub get_num_val_raw { my ($p, $w, $dont_warn) = (@_);
 #0...9	for 0...9
 #A...Z	for 10...35
 #*	for max_length
@@ -637,7 +678,9 @@ sub get_num_val_raw { my ($p, $w) = (@_);
 	if ($p eq 'l') { return $l_num; }
 	if ($p eq 'p') { return $p_num; }
 	if ($p eq 'm') { my $m = length($M); if ($m>0){$m-=1;} return $m; }
-	print "ERROR, $p is NOT a valid length item\n";
+	if (!defined $dont_warn || $dont_warn < 1) {
+		print "ERROR, $p is NOT a valid length item\n";
+	}
 	return -1;
 }
 sub get_num_val { my ($p, $w) = (@_);
@@ -772,7 +815,30 @@ sub jtr_rule_pp_init { my ($pre_pp_rule, $len, $max_cnt, $hc_logic) = (@_);
 	# removed all stray spaces. HOWEVER, we must preserve them within groups, so we
 	# first find all spaces in groups, and replace them with \x20 and then purge spaces.
 	my $stripped = hexify_space_in_groups($pre_pp_rule);
-	$stripped = purge($stripped,' ');
+
+	#$stripped = purge($stripped,' ');
+	# They must ALSO need to be preserved for any character in character based commands $^ios@!/=()%e
+	my $p = index($stripped, ' ');
+	while ($p != -1) {
+		if ($p > 0) {
+			if (index('$^s@!/()e', substr($stripped, $p-1, 1)) != -1) {
+				#substr($stripped, $p, 1) = '[\\x20]';
+				$p = index($stripped, ' ', $p+1);
+				next;
+			}
+		}
+		if ($p > 1) {
+			if (index('sio=%', substr($stripped, $p-2, 1)) != -1) {
+				#substr($stripped, $p, 1) = '[\\x20]';
+				$p = index($stripped, ' ', $p+1);
+				next;
+			}
+		}
+		substr($stripped, $p, 1) = '';
+		$p = index($stripped, ' ', $p);
+	}
+	#print "stripped = $stripped\n";
+
 	# normalize all \r\p[] or \r\px[] into \p\r[] and \px\r[]
 	$stripped =~ s/\\r\\p\[/\\p\\r\[/g;
 	$stripped =~ s/\\r\\p([0-9])\[/\\p$1\\r\[/g;
@@ -850,6 +916,7 @@ sub handle_backref { my ($gnum, $c, $s, $total, $idx) = (@_);
 	# NOTE, there must not be ANY groups ahead of this, else we leave it for later.
 	$i = index($s, "\\p[");
 	while ($i >= 0) {
+		#print"here $s : ".substr($s,$i)."\n";
 		$i2 = index($s, '[');
 		if ($i > 0 && $i2 >= 0 && $i2 < $i) {
 			while ($i2 < $i) {
