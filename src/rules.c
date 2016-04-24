@@ -1425,7 +1425,6 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 					    conv_tolower[ARCH_INDEX(in[pos])];
 				in[pos] = 0;
 			}
-			in[2] = conv_toupper[ARCH_INDEX(in[2])];
 			break;
 
 		case 'r':
