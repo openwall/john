@@ -1030,9 +1030,8 @@ int cp_class(int encoding)
 /* Load the 'case-conversion' and other translation tables. */
 void initUnicode(int type)
 {
-
-#ifndef UNICODE_NO_OPTIONS
 	unsigned i, j;
+#ifndef UNICODE_NO_OPTIONS
 	unsigned char *cpU, *cpL, *Sep, *Letter;
 	unsigned char *pos;
 	int encoding;
