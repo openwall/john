@@ -411,6 +411,18 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 				                      "%s%c%s\n", ciphertext,
 				                      field_sep, store_plain);
 			if (count1 > 0) pot.ptr += count1;
+		} else {
+			// since we do not know the size, we flush, then write the actual line to the .pot file.
+			log_file_flush(&pot);
+			log_file_flush(&log);
+			write(pot.fd, ciphertext, strlen(ciphertext));
+			write(pot.fd, &field_sep, 1);
+			if (options.secure) {
+				secret = components(store_plain, len);
+				write(pot.fd, secret, strlen(secret));
+			} else
+				write(pot.fd, store_plain, strlen(store_plain));
+			write(pot.fd, "\n", 1);
 		}
 	}
 
