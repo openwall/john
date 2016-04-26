@@ -100,7 +100,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 {
 	struct stat file_stat;
 	FILE *file;
-	char line_buf[LINE_BUFFER_SIZE], *line;
+	char line_buf[LINE_BUFFER_SIZE], *line, *ex_size_line=NULL;
 	int warn_enc;
 
 	warn_enc = john_main_process && (options.target_enc != ASCII) &&
@@ -123,6 +123,13 @@ static void read_file(struct db_main *db, char *name, int flags,
 	dyna_salt_init(db->format);
 	while (fgets(line_buf, sizeof(line_buf), file)) {
 		line = skip_bom(line_buf);
+		if (!strncmp(line, "$JTR_BIG_LINE$", 14)) {
+			unsigned len;  // NOTE, max size 4gb.
+			sscanf(line, "$JTR_BIG_LINE$%u\n", &len);
+			ex_size_line = mem_alloc(len);
+			fread(ex_size_line, 1, len, file);
+			line = ex_size_line;
+		}
 
 		if (warn_enc) {
 			char *u8check;
@@ -150,6 +157,8 @@ static void read_file(struct db_main *db, char *name, int flags,
 			}
 		}
 		process_line(db, line);
+		if (ex_size_line)
+			MEM_FREE(ex_size_line);
 		check_abort(0);
 	}
 	if (name == options.activepot)
@@ -1102,9 +1111,12 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 
 	bench_running++;
 	while (current->ciphertext) {
-		char line[LINE_BUFFER_SIZE];
+		char *ex_len_line = NULL, _line[LINE_BUFFER_SIZE], *line = _line;
 		int i, pos = 0;
-
+		if (strlen(current->ciphertext) > LINE_BUFFER_SIZE-200) {
+			ex_len_line = mem_alloc(strlen(current->ciphertext)+300);
+			line = ex_len_line;
+		}
 		if (!current->fields[0])
 			current->fields[0] = "?";
 		if (!current->fields[1])
@@ -1117,6 +1129,7 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 
 		ldr_load_pw_line(testdb, line);
 		current++;
+		MEM_FREE(ex_len_line);
 	}
 	bench_running--;
 

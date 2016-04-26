@@ -316,6 +316,9 @@ static void init(struct fmt_main *self)
 
 //	 This printf will 'help' debug a system that truncates that monster hash, but does not cause compiler to die.
 //	printf ("length=%d end=%s\n", strlen(fmt_luks.params.tests[0].ciphertext), &((fmt_luks.params.tests[0].ciphertext)[strlen(fmt_luks.params.tests[0].ciphertext)-30]));
+#ifdef _MSC_VER
+	LUKS_test_fixup();
+#endif
 }
 
 static void done(void)
