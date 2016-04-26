@@ -1959,7 +1959,12 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 	if (found && show) {
 		if (source[0])
+		{
 			printf("%c%s", db->options->field_sep_char, source);
+			/* with change to fgetll() vs fgets() source may no longer be \n term */
+			if (source[strlen(source)-1] != '\n')
+				printf("\n");
+		}
 		else
 			putchar('\n');
 	}
