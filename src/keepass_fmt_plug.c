@@ -85,7 +85,8 @@ static struct custom_salt {
 	int keyfilesize;
 	int have_keyfile;
 	int contentsize;
-	unsigned char contents[LINE_BUFFER_SIZE];
+//	unsigned char contents[LINE_BUFFER_SIZE];
+	unsigned char contents[0x30000];	// We need to fix this in some other way, now that LINE_BUFFER_SIZE has been dropped so heavily!
 	unsigned char final_randomseed[32];
 	unsigned char enc_iv[16];
 	unsigned char keyfile[32];
@@ -107,7 +108,7 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, masterkey, strlen(masterkey));
 	SHA256_Final(hash, &ctx);
-	
+
 	if(csp->version == 2 && cur_salt->have_keyfile == 0) {
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, hash, 32);
@@ -419,7 +420,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 		unsigned char final_key[32];
-		unsigned char decrypted_content[LINE_BUFFER_SIZE];
+		//unsigned char decrypted_content[LINE_BUFFER_SIZE];
+		unsigned char decrypted_content[0x30000];
 		SHA256_CTX ctx;
 		unsigned char iv[16];
 		unsigned char out[32];
