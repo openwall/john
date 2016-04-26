@@ -100,7 +100,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 {
 	struct stat file_stat;
 	FILE *file;
-	char line_buf[LINE_BUFFER_SIZE], *line, *ex_size_line=NULL;
+	char line_buf[LINE_BUFFER_SIZE], *line, *ex_size_line;
 	int warn_enc;
 
 	warn_enc = john_main_process && (options.target_enc != ASCII) &&
@@ -121,15 +121,8 @@ static void read_file(struct db_main *db, char *name, int flags,
 	}
 
 	dyna_salt_init(db->format);
-	while (fgets(line_buf, sizeof(line_buf), file)) {
-		line = skip_bom(line_buf);
-		if (!strncmp(line, "$JTR_BIG_LINE$", 14)) {
-			unsigned len;  // NOTE, max size 4gb.
-			sscanf(line, "$JTR_BIG_LINE$%u\n", &len);
-			ex_size_line = mem_alloc(len);
-			fread(ex_size_line, 1, len, file);
-			line = ex_size_line;
-		}
+	while ((ex_size_line=fgetll(line_buf, sizeof(line_buf), file))) {
+		line = skip_bom(ex_size_line);
 
 		if (warn_enc) {
 			char *u8check;
@@ -157,7 +150,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 			}
 		}
 		process_line(db, line);
-		if (ex_size_line)
+		if (ex_size_line!=line_buf)
 			MEM_FREE(ex_size_line);
 		check_abort(0);
 	}
