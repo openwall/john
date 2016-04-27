@@ -360,7 +360,18 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Buffer size for fgets().
  */
-#define LINE_BUFFER_SIZE		0x400
+#define LINE_BUFFER_SIZE		0x1000
+
+/*
+ * We trim ciphertext being stored into the .pot file for all CTs >
+ * LINE_BUFFER_SIZE.  We have to append a 'binary' record to this, so
+ * it has to be smaller than LINE_BUFFER_SIZE.
+ *  NOTE, changing this will have impacts upon long hashes stored in
+ *  .pot files being auto-removed, or listed in the -show command!!
+ *  If the hash was cracked and put into the .pot file with a specific
+ *  POT_BUFFER_CT_TRIM_SIZE will only be 'shown' for that value.
+ */
+#define POT_BUFFER_CT_TRIM_SIZE		0x400
 
 /*
  * Default threshold for inlining files in rar2john, zip2john, etc.

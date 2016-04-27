@@ -30,6 +30,7 @@
 
 #include "arch.h"
 #include "params.h"
+#include "base64_convert.h"
 
 #if CRK_PREFETCH && defined(__SSE__)
 #include <xmmintrin.h>
@@ -386,11 +387,30 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 
 	/* If we got this crack from a pot sync, don't report or count */
 	if (index >= 0) {
+		char *ct;
+		int needs_free=0;
+		if (dupe)
+			ct = NULL;
+		else {
+			ct = crk_methods.source(pw->source, pw->binary);
+			if (strlen(ct) > LINE_BUFFER_SIZE) {
+				char *p;
+				int blen = crk_db->format->params.binary_size;
+				needs_free = 1;
+				p = mem_alloc(POT_BUFFER_CT_TRIM_SIZE + 1 + blen*2 + 4);
+				sprintf(p, "%.*s$", POT_BUFFER_CT_TRIM_SIZE, ct);
+				ct = p;
+				p += (POT_BUFFER_CT_TRIM_SIZE + 1);
+				base64_convert(pw->binary, e_b64_raw, blen, p,
+				               e_b64_hex, blen*2 + 4, 0);
+			}
+		}
 		log_guess(crk_db->options->flags & DB_LOGIN ? replogin : "?",
 		          crk_db->options->flags & DB_LOGIN ? repuid : "",
-		          dupe ?
-		          NULL : crk_methods.source(pw->source, pw->binary),
+		          ct,
 		          repkey, key, crk_db->options->field_sep_char, index);
+		if (needs_free)
+			MEM_FREE(ct);
 
 		if (options.flags & FLG_CRKSTAT)
 			event_pending = event_status = 1;

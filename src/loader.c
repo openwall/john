@@ -121,7 +121,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 	}
 
 	dyna_salt_init(db->format);
-	while ((ex_size_line=fgetll(line_buf, sizeof(line_buf), file))) {
+	while ((ex_size_line = fgetll(line_buf, sizeof(line_buf), file))) {
 		line = skip_bom(ex_size_line);
 
 		if (warn_enc) {
@@ -150,7 +150,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 			}
 		}
 		process_line(db, line);
-		if (ex_size_line!=line_buf)
+		if (ex_size_line != line_buf)
 			MEM_FREE(ex_size_line);
 		check_abort(0);
 	}
@@ -1692,6 +1692,24 @@ static int ldr_cracked_hash(char *ciphertext)
 {
 	unsigned int hash, extra;
 	unsigned char *p = (unsigned char *)ciphertext;
+	unsigned char tmp[POT_BUFFER_CT_TRIM_SIZE+1];
+	int len;
+
+	/* these checks handle .pot chopped plaintext */
+	len = strlen(ciphertext);
+	if (len > LINE_BUFFER_SIZE) {
+		memcpy(tmp, ciphertext, POT_BUFFER_CT_TRIM_SIZE);
+		tmp[POT_BUFFER_CT_TRIM_SIZE] = 0;
+		p = tmp;
+	}
+	if (ldr_in_pot &&
+	    len > POT_BUFFER_CT_TRIM_SIZE &&
+	    ciphertext[POT_BUFFER_CT_TRIM_SIZE] == '$' &&
+	    ishex(&ciphertext[POT_BUFFER_CT_TRIM_SIZE+1])) {
+		memcpy(tmp, ciphertext, POT_BUFFER_CT_TRIM_SIZE);
+		tmp[POT_BUFFER_CT_TRIM_SIZE] = 0;
+		p = tmp;
+	}
 
 	hash = p[0] | 0x20; /* ASCII case insensitive */
 	if (!hash)
@@ -1913,6 +1931,16 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
  * is only needed for matching some pot file records produced by older
  * versions of John and contributed patches where split() didn't unify the
  * case of hex-encoded hashes. */
+
+/* This check added when we reduced the length of .pot entries for SUPER long
+ * hash data. We only store the first part of the hash into the .pot file, AND
+ * we append the binary (in hex) to this data. Thus, we must only check the
+ * first part of the .pot entry to our piece, and if they match, then this is
+ * a match. */
+			if (strlen(piece) > LINE_BUFFER_SIZE &&
+			    !strncmp(pot, piece, POT_BUFFER_CT_TRIM_SIZE))
+				break;
+
 			if (unify &&
 			    format->methods.valid(pot, format) == 1 &&
 			    !strcmp(split(pot, 0, format), piece))
@@ -1959,14 +1987,8 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 	if (found && show) {
 		if (source[0])
-		{
 			printf("%c%s", db->options->field_sep_char, source);
-			/* with change to fgetll() vs fgets() source may no longer be \n term */
-			if (source[strlen(source)-1] != '\n')
-				printf("\n");
-		}
-		else
-			putchar('\n');
+		putchar('\n');
 	}
 	else if (*joined && found && loop) {
 		char *plain = enc_strlwr(ldr_conv(joined));

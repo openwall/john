@@ -344,6 +344,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	out = (unsigned char*)&cs.myphdr;
 	if (strncmp(ciphertext, "$luks$", 6) != 0)
 		return 0;
+	/* handle 'chopped' .pot lines */
+	if (ldr_in_pot &&
+	    strlen(ciphertext) == POT_BUFFER_CT_TRIM_SIZE + BINARY_SIZE*2 + 1
+	    && ciphertext[POT_BUFFER_CT_TRIM_SIZE] == '$') {
+		if (hexlen(&ciphertext[POT_BUFFER_CT_TRIM_SIZE+1]) == BINARY_SIZE)
+			return 1;
+	}
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;
@@ -516,6 +523,7 @@ static void *get_binary(char *ciphertext)
 		unsigned char c[LUKS_DIGESTSIZE];
 		ARCH_WORD dummy;
 	} buf;
+
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
