@@ -348,7 +348,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (ldr_in_pot &&
 	    strlen(ciphertext) == POT_BUFFER_CT_TRIM_SIZE + BINARY_SIZE*2 + 1
 	    && ciphertext[POT_BUFFER_CT_TRIM_SIZE] == '$') {
-		if (hexlen(&ciphertext[POT_BUFFER_CT_TRIM_SIZE+1]) == BINARY_SIZE)
+		if (ishex(&ciphertext[POT_BUFFER_CT_TRIM_SIZE+1]))
 			return 1;
 	}
 	ctcopy = strdup(ciphertext);

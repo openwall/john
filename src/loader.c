@@ -1068,7 +1068,18 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 			continue;
 		if (strcmp(ciphertext,
 		    format->methods.source(current->source, current->binary)))
+		{
+			if (ldr_in_pot &&
+			    strlen(format->methods.source(current->source, current->binary)) > LINE_BUFFER_SIZE) {
+				if (strncmp(ciphertext,
+				    format->methods.source(current->source, current->binary),
+				    POT_BUFFER_CT_TRIM_SIZE))
+					continue;
+				/* we have a match from a cut down .pot record. */
+			}
+			else
 			continue;
+		}
 		current->binary = NULL; /* mark for removal */
 		need_removal = 1;
 	} while ((current = current->next_hash));
