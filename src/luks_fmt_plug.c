@@ -344,6 +344,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	out = (unsigned char*)&cs.myphdr;
 	if (strncmp(ciphertext, "$luks$", 6) != 0)
 		return 0;
+	/* handle 'chopped' .pot lines */
+	if (ldr_in_pot && ldr_isa_pot_source(ciphertext))
+		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;
@@ -516,9 +519,12 @@ static void *get_binary(char *ciphertext)
 		unsigned char c[LUKS_DIGESTSIZE];
 		ARCH_WORD dummy;
 	} buf;
+
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+
+	/* should work just fine for redeced lengtth .pot format lines with no change */
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < LUKS_DIGESTSIZE; i++) {
 		out[i] =
