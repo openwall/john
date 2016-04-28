@@ -45,6 +45,7 @@
 #include "config.h"
 #include "logger.h" /* Beware: log_init() happens after most functions here */
 #include "base64_convert.h"
+#include "md5.h"
 #include "memdbg.h"
 
 #ifdef HAVE_CRYPT
@@ -93,6 +94,89 @@ static char *skip_bom(char *string)
 	if (!memcmp(string, "\xEF\xBB\xBF", 3))
 		string += 3;
 	return string;
+}
+
+/* we have made changes so that SUPER long lines (greater than LINE_BUFFER_SIZE
+ * will now get 'trimmed' when put into the .pot file. Here is the trimming
+ * method:
+ *    input:    $hashtype$abcdefghijk..........qrstuvwxzy$something$else
+ *    pot:      $hashtype$abcdefghijk.......$SOURCE_HASH$<md5 of full hash>$SOURCE_BIN$<binary() of hash in hex>
+ * this way we can fully compare this .pot record (against the full input line)
+ */
+static int ldr_pot_source_cmp(const char *pot_entry, const char *full_source) {
+	MD5_CTX ctx;
+	unsigned char srcH[16], potH[16];
+	const char *p;
+	if (!strcmp(pot_entry, full_source))
+		return 0;
+	p = strstr(pot_entry, "$SOURCE_HASH$");
+	if (!p)
+		return 1; /* can not be a match */
+	if (strncmp(full_source, pot_entry, p-pot_entry))
+		return 1; /* simple str compare shows they are not the same */
+	/* ok, this could be a match.  Now we check the hashes */
+	MD5_Init(&ctx);
+	MD5_Update(&ctx, full_source, strlen(full_source));
+	MD5_Final(srcH, &ctx);
+	p += 13;
+	base64_convert(p, e_b64_hex, 32, potH, e_b64_raw, 16, 0);
+	if (!memcmp(srcH, potH, 16))
+		return 0;
+	return 1;
+}
+
+/*
+ * not static function.  Used by cracker.c This function builds a proper
+ * source line to be written to the .pot file. This string MAY be the
+ * original source line, OR it may be a chopped down (shortened) source
+ * line with some extra data tacked on. However, it will always be shorter
+ * or equal to LINE_BUFFER_SIZE
+ */
+const char *ldr_pot_source(const char *full_source,
+                           char buffer[LINE_BUFFER_SIZE+1],
+                           void *bin, int blen)
+{
+	MD5_CTX ctx;
+	int len;
+	char *p = buffer;
+	unsigned char mbuf[16];
+
+	if (strlen(full_source) <= LINE_BUFFER_SIZE)
+		return full_source;
+
+	/* we create a .pot record that is LINE_BUFFER_SIZE lone
+	 * but that has a hash of the full source, and the binary
+	 * from the full source appened. Both of those strings are
+	 * later needed for .pot comparison, and .pot removal logic
+	 */
+
+	/* 13=len sig1, 32=len hash, 12=len sig2 */
+	len = LINE_BUFFER_SIZE - 13 - 32 - 12 - blen*2;
+	memcpy(p, full_source, len);
+	p += len;
+	memcpy(p, "$SOURCE_HASH$", 13);
+	p += 13;
+	MD5_Init(&ctx);
+	MD5_Update(&ctx, full_source, strlen(full_source));
+	MD5_Final(mbuf, &ctx);
+	base64_convert(mbuf, e_b64_raw, 16, p, e_b64_hex, 33, 0);
+	p += 32;
+	memcpy(p, "$SOURCE_BIN$", 12);
+	p += 12;
+	base64_convert(bin, e_b64_raw, blen, p,
+	               e_b64_hex, blen*2 + 1, 0);
+	return buffer;
+}
+
+/* returns true or false depending if this ciphertext is a trimmed .pot line */
+int ldr_isa_pot_source(const char *ciphertext) {
+	if (strlen(ciphertext) <= LINE_BUFFER_SIZE) {
+		const char *cp = strstr(ciphertext, "$SOURCE_HASH$");
+		if (!cp)
+			return 0;
+		return !!strstr(cp, "$SOURCE_BIN$");
+	}
+	return 0;
 }
 
 static void read_file(struct db_main *db, char *name, int flags,
@@ -1066,20 +1150,9 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 			continue;
 		if (memcmp(binary, current->binary, format->params.binary_size))
 			continue;
-		if (strcmp(ciphertext,
+		if (ldr_pot_source_cmp(ciphertext,
 		    format->methods.source(current->source, current->binary)))
-		{
-			if (ldr_in_pot &&
-			    strlen(format->methods.source(current->source, current->binary)) > LINE_BUFFER_SIZE) {
-				if (strncmp(ciphertext,
-				    format->methods.source(current->source, current->binary),
-				    POT_BUFFER_CT_TRIM_SIZE))
-					continue;
-				/* we have a match from a cut down .pot record. */
-			}
-			else
 			continue;
-		}
 		current->binary = NULL; /* mark for removal */
 		need_removal = 1;
 	} while ((current = current->next_hash));
@@ -1708,15 +1781,7 @@ static int ldr_cracked_hash(char *ciphertext)
 
 	/* these checks handle .pot chopped plaintext */
 	len = strlen(ciphertext);
-	if (len > LINE_BUFFER_SIZE) {
-		memcpy(tmp, ciphertext, POT_BUFFER_CT_TRIM_SIZE);
-		tmp[POT_BUFFER_CT_TRIM_SIZE] = 0;
-		p = tmp;
-	}
-	if (ldr_in_pot &&
-	    len > POT_BUFFER_CT_TRIM_SIZE &&
-	    ciphertext[POT_BUFFER_CT_TRIM_SIZE] == '$' &&
-	    ishex(&ciphertext[POT_BUFFER_CT_TRIM_SIZE+1])) {
+	if (len >= LINE_BUFFER_SIZE) {
 		memcpy(tmp, ciphertext, POT_BUFFER_CT_TRIM_SIZE);
 		tmp[POT_BUFFER_CT_TRIM_SIZE] = 0;
 		p = tmp;
@@ -1936,21 +2001,13 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 		if ((current = db->cracked_hash[hash]))
 		do {
 			char *pot = current->ciphertext;
-			if (!strcmp(pot, piece))
+
+			if (!ldr_pot_source_cmp(pot, piece))
 				break;
 /* This extra check, along with ldr_cracked_hash() being case-insensitive,
  * is only needed for matching some pot file records produced by older
  * versions of John and contributed patches where split() didn't unify the
  * case of hex-encoded hashes. */
-
-/* This check added when we reduced the length of .pot entries for SUPER long
- * hash data. We only store the first part of the hash into the .pot file, AND
- * we append the binary (in hex) to this data. Thus, we must only check the
- * first part of the .pot entry to our piece, and if they match, then this is
- * a match. */
-			if (strlen(piece) > LINE_BUFFER_SIZE &&
-			    !strncmp(pot, piece, POT_BUFFER_CT_TRIM_SIZE))
-				break;
 
 			if (unify &&
 			    format->methods.valid(pot, format) == 1 &&
