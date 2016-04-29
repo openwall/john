@@ -128,9 +128,31 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 
 edata:
+
 	if (((p = strtokm(ctcopy, "$")) == NULL) || strlen(p) != 32)	/* assume checksum */
 		goto err;
-		/* assume edata2 following */
+	if (!ishex(p))
+		goto err;
+	/* assume edata2 following */
+	p += 33;
+	if (!ishex(p) || strlen(p) < 500) {
+		/* handle 'chopped' .pot lines */
+		/* since this format has an inconsistant signature, we do not
+		 * use the common ldr_isa_pot_source, sense we can not validate
+		 * that this hash is not some other format from the .pot file
+		 * that has 32 byte hex, and $ and is a chopped pot line.
+		 */
+		int len;
+		if (!ldr_in_pot || strlen(ciphertext) != LINE_BUFFER_SIZE)
+			goto err;
+		len = hexlen(p);
+		if (len < LINE_BUFFER_SIZE - 100 || len > LINE_BUFFER_SIZE)
+			goto err;
+		p += len;
+		if (*p != '$' || !strstr(p, LDR_TRIMMED_POT_BIN_SIG))
+			goto err;
+		return 1;
+	}
 
 	MEM_FREE(keeptr);
 	return 1;
