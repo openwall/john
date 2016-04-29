@@ -29,6 +29,7 @@
 #include "memory.h"
 #include "common.h"
 #include "gpg_common.h"
+#include "loader.h"
 #include "memdbg.h"
 
 struct gpg_common_custom_salt *gpg_common_cur_salt;
@@ -165,6 +166,9 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, "$gpg$*", 6) != 0)
 		return 0;
+	/* handle 'chopped' .pot lines */
+	if (ldr_in_pot && ldr_isa_pot_source(ciphertext))
+		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;	/* skip over "$gpg$" marker and '*' */

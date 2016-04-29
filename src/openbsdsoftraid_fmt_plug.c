@@ -32,6 +32,7 @@ john_register_one(&fmt_openbsd_softraid);
 #include "common.h"
 #include "formats.h"
 #include "pbkdf2_hmac_sha1.h"
+#include "loader.h"
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
@@ -94,6 +95,9 @@ static int valid(char* ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, "$openbsd-softraid$", 18) != 0)
 		return 0;
+	/* handle 'chopped' .pot lines */
+	if (ldr_in_pot && ldr_isa_pot_source(ciphertext))
+		return 1;
 
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
@@ -169,6 +173,7 @@ static void *get_binary(char *ciphertext)
 	char *p;
 	int i;
 
+	/* should work just fine for redeced lengtth .pot format lines as is */
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) |

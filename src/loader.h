@@ -18,6 +18,8 @@
 #include "formats.h"
 #endif
 
+#define LDR_TRIMMED_POT_BIN_SIG "$SOURCE_BIN$"
+
 /*
  * Password hash list entry (with a fixed salt).
  */

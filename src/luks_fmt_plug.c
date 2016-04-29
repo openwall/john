@@ -523,6 +523,8 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+
+	/* should work just fine for redeced lengtth .pot format lines with no change */
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < LUKS_DIGESTSIZE; i++) {
 		out[i] =

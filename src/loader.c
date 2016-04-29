@@ -132,6 +132,7 @@ static int ldr_pot_source_cmp(const char *pot_entry, const char *full_source) {
  * line with some extra data tacked on. However, it will always be shorter
  * or equal to LINE_BUFFER_SIZE
  */
+#define BIN_LEN (sizeof(LDR_TRIMMED_POT_BIN_SIG)+1)
 const char *ldr_pot_source(const char *full_source,
                            char buffer[LINE_BUFFER_SIZE+1],
                            void *bin, int blen)
@@ -150,8 +151,8 @@ const char *ldr_pot_source(const char *full_source,
 	 * later needed for .pot comparison, and .pot removal logic
 	 */
 
-	/* 13=len sig1, 32=len hash, 12=len sig2 */
-	len = LINE_BUFFER_SIZE - 13 - 32 - 12 - blen*2;
+	/* 13=len sig1, 32=len hash */
+	len = LINE_BUFFER_SIZE - 13 - 32 - BIN_LEN - blen*2;
 	memcpy(p, full_source, len);
 	p += len;
 	memcpy(p, "$SOURCE_HASH$", 13);
@@ -161,8 +162,8 @@ const char *ldr_pot_source(const char *full_source,
 	MD5_Final(mbuf, &ctx);
 	base64_convert(mbuf, e_b64_raw, 16, p, e_b64_hex, 33, 0);
 	p += 32;
-	memcpy(p, "$SOURCE_BIN$", 12);
-	p += 12;
+	memcpy(p, LDR_TRIMMED_POT_BIN_SIG, BIN_LEN);
+	p += BIN_LEN;
 	base64_convert(bin, e_b64_raw, blen, p,
 	               e_b64_hex, blen*2 + 1, 0);
 	return buffer;
