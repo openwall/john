@@ -194,11 +194,9 @@ static int cfg_process_line(char *line, int number)
 		if (ret != -1)
 			return ret;
 	}
-	if (*line == '[') {
-		if (!in_hc_mode) {
-			if ((p = strchr(line, ']'))) *p = 0; else return 1;
-			cfg_add_section(strlwr(trim(line + 1, 1)));
-		}
+	if (*line == '[' && !in_hc_mode) {
+		if ((p = strchr(line, ']'))) *p = 0; else return 1;
+		cfg_add_section(strlwr(trim(line + 1, 1)));
 	} else
 	if (cfg_database && cfg_database->list) {
 		cfg_add_line(line, number);
