@@ -208,7 +208,7 @@ PROJ = find_version ../run/john ../run/unshadow ../run/unafs ../run/unique ../ru
 	../run/raw2dyna ../run/keepass2john ../run/pfx2john \
 	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
 	../run/wpapcap2john \
-	../run/gpg2john ../run/luks2john ../run/cprepair ../run/base64conv
+	../run/gpg2john ../run/cprepair ../run/base64conv
 PROJ_DOS = find_version ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
@@ -2097,9 +2097,6 @@ john.com: john.asm
 
 ../run/wpapcap2john: wpapcap2john.o jumbo.o memdbg.o
 	$(LD) $(LDFLAGS) wpapcap2john.o jumbo.o memdbg.o $(OMPFLAGS) -o ../run/wpapcap2john
-
-../run/luks2john: luks2john.c
-	$(CC) -D_JOHN_MISC_NO_LOG luks2john.c base64_convert.c common.c memory.c memdbg.c misc.c base64.c jumbo.c -o ../run/luks2john
 
 ../run/cprepair: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
 	memdbg.h memdbg.c
