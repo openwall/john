@@ -91,6 +91,17 @@ extern int write_loop(int fd, const char *buffer, int count);
 extern char *fgetl(char *s, int size, FILE *stream);
 
 /*
+ * Similar to fgetl(), but handles super long lines (longer than
+ * size, by allocating a buffer, and filling it. So, if the return
+ * to fgetll is a valid pointer, but NOT pointed to the original
+ * s buffer, then the caller MUST call MEM_FREE to that pointer
+ * once it is done with it.
+ */
+#ifndef _JOHN_MISC_NO_LOG
+extern char *fgetll(char *s, int size, FILE *stream);
+#endif
+
+/*
  * Similar to strncpy(), but terminates with only one NUL if there's room
  * instead of padding to the supplied size like strncpy() does.
  */

@@ -316,6 +316,9 @@ static void init(struct fmt_main *self)
 
 //	 This printf will 'help' debug a system that truncates that monster hash, but does not cause compiler to die.
 //	printf ("length=%d end=%s\n", strlen(fmt_luks.params.tests[0].ciphertext), &((fmt_luks.params.tests[0].ciphertext)[strlen(fmt_luks.params.tests[0].ciphertext)-30]));
+#ifdef _MSC_VER
+	LUKS_test_fixup();
+#endif
 }
 
 static void done(void)
@@ -341,6 +344,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	out = (unsigned char*)&cs.myphdr;
 	if (strncmp(ciphertext, "$luks$", 6) != 0)
 		return 0;
+	/* handle 'chopped' .pot lines */
+	if (ldr_in_pot && ldr_isa_pot_source(ciphertext))
+		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;
@@ -513,9 +519,12 @@ static void *get_binary(char *ciphertext)
 		unsigned char c[LUKS_DIGESTSIZE];
 		ARCH_WORD dummy;
 	} buf;
+
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+
+	/* should work just fine for redeced lengtth .pot format lines with no change */
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < LUKS_DIGESTSIZE; i++) {
 		out[i] =

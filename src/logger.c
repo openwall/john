@@ -103,7 +103,10 @@ static void log_file_init(struct log_file *f, char *name, int size)
 	    O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0)
 		pexit("open: %s", path_expand(name));
 
-	f->ptr = f->buffer = mem_alloc(size + LINE_BUFFER_SIZE);
+	/* plain will now always be < LINE_BUFFER_SIZE. We add some extra bytes
+	 * so that there is ALWAYS enough buffer to write our line, and we no
+	 * longer have to check length before a write (.pot or .log file) */
+	f->ptr = f->buffer = mem_alloc(size + LINE_BUFFER_SIZE + 512);
 	f->size = size;
 }
 
@@ -398,24 +401,21 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 		if (!strncmp(ciphertext, "$dynamic_", 9))
 			ciphertext = dynamic_FIX_SALT_TO_HEX(ciphertext);
 #endif
-		if (strlen(ciphertext) + strlen(store_plain) <= LINE_BUFFER_SIZE - 3) {
-			if (options.secure) {
-				secret = components(store_plain, len);
-				count1 = (int)sprintf(pot.ptr,
-				                      "%s%c%s\n",
-				                      ciphertext,
-				                      field_sep,
-				                      secret);
-			} else
-				count1 = (int)sprintf(pot.ptr,
-				                      "%s%c%s\n", ciphertext,
-				                      field_sep, store_plain);
-			if (count1 > 0) pot.ptr += count1;
-		}
+		if (options.secure) {
+			secret = components(store_plain, len);
+			count1 = (int)sprintf(pot.ptr,
+				                "%s%c%s\n",
+				                ciphertext,
+				                field_sep,
+				                secret);
+		} else
+			count1 = (int)sprintf(pot.ptr,
+				                "%s%c%s\n", ciphertext,
+				                field_sep, store_plain);
+		if (count1 > 0) pot.ptr += count1;
 	}
 
-	if (log.fd >= 0 &&
-	    strlen(login) < LINE_BUFFER_SIZE - 64) {
+	if (log.fd >= 0) {
 		count1 = log_time();
 		if (count1 > 0) {
 			log.ptr += count1;
