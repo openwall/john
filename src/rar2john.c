@@ -304,6 +304,7 @@ next_file_header:
 		printf(":%d::::%s\n", type, archive_name);
 	} else {
 		size_t file_header_pack_size = 0, file_header_unp_size = 0;
+		size_t b64size;
 		int ext_time_size;
 		uint16_t file_header_head_size, file_name_size;
 		unsigned char file_name[256], file_crc[4];
@@ -472,7 +473,7 @@ next_file_header:
 
 		bestsize = file_header_unp_size;
 		if (!best)
-			best = mem_calloc(1, LINE_BUFFER_SIZE + (file_header_unp_size * 4 + 2) / 3);
+			best = mem_calloc(1, LINE_BUFFER_SIZE + (file_header_pack_size * 4 + 2) / 3);
 
 		/* process encrypted data of size "file_header_pack_size" */
 		best_len = sprintf(best, "%s:$RAR3$*%d*", base_aname, type);
@@ -529,13 +530,13 @@ next_file_header:
 
 		/* Now the actual blob */
 		*p++ = '*';
-		for (i = 0; i < file_header_pack_size; i++) {
-			*p++ = itoa16[data[i] >> 4];
-			*p++ = itoa16[data[i] & 0xf];
-		}
+
+		b64size = (file_header_pack_size * 4 + 2) / 3 + 1;
+		p += base64_convert(data, e_b64_raw, file_header_pack_size,
+		                    p, e_b64_mime, b64size, flg_Base64_NO_FLAGS);
+		best_len += 32 + 1 + b64size;
 
 		MEM_FREE(data);
-		best_len += 32 + 1 + 2 * file_header_pack_size;
 		best_len += sprintf(p, ":%d::", type);
 
 		/* Keep looking for better candidates */
