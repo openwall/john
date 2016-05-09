@@ -30,14 +30,10 @@
  * Thanks also to Pavel Semjanov for crucial help with Huffman table checks.
  *
  * For type = 0 for files encrypted with "rar -hp ..." option
- * archive_name:$RAR3$*type*hex(salt)*hex(partial-file-contents):type::::archive_name
+ * $RAR3$*0*hex(salt)*hex(partial-file-contents)
  *
- * For type = 1 for files encrypted with "rar -p ..." option
- * archive_name:$RAR3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*archive_name*offset-for-ciphertext*method:type::file_name
- *
- * or (inlined binary)
- *
- * archive_name:$RAR3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*1*hex(full encrypted file)*method:type::file_name
+ * For type = 2 for files encrypted with "rar -p ..." option
+ * $RAR3$*2*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*method*hash(blob)*base64(full encrypted file blob)
  *
  */
 
@@ -51,16 +47,6 @@ john_register_one(&fmt_rar);
 #include <errno.h>
 #if AC_BUILT
 #include "autoconfig.h"
-#endif
-#if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
-#include "win32_memmap.h"
-#if !defined(__CYGWIN__) && !defined(__MINGW64__)
-#include "mmap-windows.c"
-#elif defined HAVE_MMAP
-#include <sys/mman.h>
-#endif
-#elif defined(HAVE_MMAP)
-#include <sys/mman.h>
 #endif
 
 #include "arch.h"
@@ -391,7 +377,7 @@ struct fmt_main fmt_rar = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		fmt_default_binary,
 		get_salt,
 		{ NULL },
