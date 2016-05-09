@@ -7,6 +7,7 @@
  */
 
 #include "misc.h"	// error()
+#include "md5.h"
 #include "base64_convert.h"
 #include "assert.h"
 
@@ -217,6 +218,23 @@ static void *get_salt(char *ciphertext)
 
 		assert(pack_size <= split_size);
 		memcpy(psalt->raw_data, split_blob, psalt->pack_size);
+		{
+			MD5_CTX ctx;
+			unsigned char blob_hash[16], hash[16];
+			int i;
+
+			MD5_Init(&ctx);
+			MD5_Update(&ctx, psalt->raw_data, psalt->pack_size);
+			MD5_Final(hash, &ctx);
+
+			for (i = 0; i < 16; i++) {
+				blob_hash[i] = atoi16[ARCH_INDEX(*p++)] << 4;
+				blob_hash[i] |=	atoi16[ARCH_INDEX(*p++)];
+			}
+			dump_stuff_msg("\nstored", blob_hash, 16);
+			dump_stuff_msg("found ", hash, 16);
+			assert(!memcmp(blob_hash, hash, 16));
+		}
 		psalt->blob = psalt->raw_data;
 	}
 	MEM_FREE(keep_ptr);
@@ -259,7 +277,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	mode = atoi(ptr);
 	if (mode > 2)
 		goto error;
-	if (mode == 1) {
+	if (mode == 1 && !ldr_in_pot) {
 		static int is_warned;
 
 		if (!is_warned++)
