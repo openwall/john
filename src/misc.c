@@ -135,9 +135,9 @@ char *fgetl(char *s, int size, FILE *stream)
 }
 
 #ifndef _JOHN_MISC_NO_LOG
-char *fgetll(char *s, int size, FILE *stream)
+char *fgetll(char *s, size_t size, FILE *stream)
 {
-	int len;
+	size_t len;
 	char *cp, *cp2;
 
 	if (!fgets(s, size, stream))
