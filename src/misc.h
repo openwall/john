@@ -98,7 +98,7 @@ extern char *fgetl(char *s, int size, FILE *stream);
  * once it is done with it.
  */
 #ifndef _JOHN_MISC_NO_LOG
-extern char *fgetll(char *s, int size, FILE *stream);
+extern char *fgetll(char *s, size_t size, FILE *stream);
 #endif
 
 /*

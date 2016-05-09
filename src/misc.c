@@ -135,10 +135,11 @@ char *fgetl(char *s, int size, FILE *stream)
 }
 
 #ifndef _JOHN_MISC_NO_LOG
-char *fgetll(char *s, int size, FILE *stream)
+char *fgetll(char *s, size_t size, FILE *stream)
 {
-	int len;
+	size_t len;
 	char *cp, *cp2;
+
 	if (!fgets(s, size, stream)) return NULL;
 	len = strlen(s);
 	if (!len) return s; /* ?? not sure this can happen */
@@ -155,7 +156,7 @@ char *fgetll(char *s, int size, FILE *stream)
 			s[--len] = 0;
 		/* we may have gotten the first byte of \r\n */
 		c = getc(stream);
-		if (c== EOF)
+		if (c == EOF)
 			return s;
 		if (c != '\n')
 			ungetc(c, stream);
@@ -185,7 +186,7 @@ char *fgetll(char *s, int size, FILE *stream)
 				cp[--len] = 0;
 			/* we may have gotten the first byte of \r\n */
 			c = getc(stream);
-			if (c== EOF)
+			if (c == EOF)
 				return cp;
 			if (c != '\n')
 				ungetc(c, stream);
