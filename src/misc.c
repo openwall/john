@@ -138,7 +138,7 @@ char *fgetl(char *s, int size, FILE *stream)
 char *fgetll(char *s, size_t size, FILE *stream)
 {
 	size_t len;
-	char *cp, *cp2;
+	char *cp;
 
 	if (!fgets(s, size, stream))
 		return NULL;
@@ -165,15 +165,13 @@ char *fgetll(char *s, size_t size, FILE *stream)
 			ungetc(c, stream);
 		return s;
 	}
-	cp = s;
+	cp = strdup(s);
+
 	while (1) {
-		cp2 = cp;
-		cp = mem_alloc(len + 60000);
-		strcpy(cp, cp2);
-		if (cp2 != s)
-			MEM_FREE(cp2);
+		cp = realloc(cp, 2 * len);
+
 		/* return we read some data. I think we get an EOF if there is no trailing \n on the last line */
-		if (!fgets(&cp[len], 60000, stream))
+		if (!fgets(&cp[len], len, stream))
 			return cp;
 		len = strlen(cp);
 		if (cp[len - 1] == '\n') {
@@ -192,7 +190,7 @@ char *fgetll(char *s, size_t size, FILE *stream)
 				cp[--len] = 0;
 			/* we may have gotten the first byte of \r\n */
 			c = getc(stream);
-			if (c== EOF)
+			if (c == EOF)
 				return cp;
 			if (c != '\n')
 				ungetc(c, stream);
