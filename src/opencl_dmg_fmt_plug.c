@@ -45,6 +45,7 @@ john_register_one(&fmt_opencl_dmg);
 #include "stdint.h"
 #include "options.h"
 #include "jumbo.h"
+#include "loader.h"
 #include "common-opencl.h"
 
 #define FORMAT_LABEL		"dmg-opencl"
@@ -314,6 +315,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, "$dmg$", 5) != 0)
 		return 0;
+	/* handle 'chopped' .pot lines */
+	if (ldr_in_pot && ldr_isa_pot_source(ciphertext))
+		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 5;	/* skip over "$dmg$" marker */

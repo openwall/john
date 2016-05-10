@@ -29,6 +29,7 @@ john_register_one(&FMT_STRUCT);
 #include "johnswap.h"
 #include "aes.h"
 #include "pbkdf2_hmac_ripemd160.h"
+#include "loader.h"
 #include "common-opencl.h"
 
 #define FORMAT_LABEL            "truecrypt-opencl"
@@ -221,6 +222,10 @@ static int valid(char* ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, TAG_RIPEMD160, TAG_RIPEMD160_LEN))
 		return 0;
+
+	/* handle 'chopped' .pot lines */
+	if (ldr_in_pot && ldr_isa_pot_source(ciphertext))
+		return 1;
 
 	ciphertext += TAG_RIPEMD160_LEN;
 	p = ciphertext;

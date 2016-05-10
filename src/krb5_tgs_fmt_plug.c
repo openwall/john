@@ -116,6 +116,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 
 	if (strncmp(ciphertext, "$krb5tgs$23$", 12) == 0) {
+		/* handle 'chopped' .pot lines (they always have the tag!) */
+		if (ldr_in_pot && ldr_isa_pot_source(ciphertext)) {
+			MEM_FREE(keeptr);
+			return 1;
+		}
+
 		ctcopy += 12;
 		if (ctcopy[0] == '*') {			/* assume account's info provided */
 			ctcopy++;
@@ -128,31 +134,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 
 edata:
-
-	if (((p = strtokm(ctcopy, "$")) == NULL) || strlen(p) != 32)	/* assume checksum */
+	/* assume checksum */
+	if (((p = strtokm(ctcopy, "$")) == NULL) || strlen(p) != 32)
 		goto err;
-	if (!ishex(p))
-		goto err;
-	/* assume edata2 following */
-	p += 33;
-	if (!ishex(p) || strlen(p) < 500) {
-		/* handle 'chopped' .pot lines */
-		/* since this format has an inconsistant signature, we do not
-		 * use the common ldr_isa_pot_source, sense we can not validate
-		 * that this hash is not some other format from the .pot file
-		 * that has 32 byte hex, and $ and is a chopped pot line.
-		 */
-		int len;
-		if (!ldr_in_pot || strlen(ciphertext) != LINE_BUFFER_SIZE)
-			goto err;
-		len = hexlen(p);
-		if (len < LINE_BUFFER_SIZE - 100 || len > LINE_BUFFER_SIZE)
-			goto err;
-		p += len;
-		if (*p != '$' || !strstr(p, LDR_TRIMMED_POT_BIN_SIG))
-			goto err;
-		return 1;
-	}
+		/* assume edata2 following */
 
 	MEM_FREE(keeptr);
 	return 1;

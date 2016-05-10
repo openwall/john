@@ -211,8 +211,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *keeptr;
 	char *p;
 	int res;
+
 	if (strncmp(ciphertext, "$odf$*", 6))
 		return 0;
+
+	/* handle 'chopped' .pot lines */
+	if (ldr_in_pot && ldr_isa_pot_source(ciphertext))
+		return 1;
+
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;
@@ -328,12 +334,18 @@ static void *get_binary(char *ciphertext)
 	int i;
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
-	ctcopy += 6;	/* skip over "$odf$*" */
-	p = strtokm(ctcopy, "*");
-	p = strtokm(NULL, "*");
-	p = strtokm(NULL, "*");
-	p = strtokm(NULL, "*");
-	p = strtokm(NULL, "*");
+
+	if (ldr_isa_pot_source(ciphertext)) {
+		p = strstr(ciphertext, LDR_TRIMMED_POT_BIN_SIG) +
+			(sizeof(LDR_TRIMMED_POT_BIN_SIG)+1);
+	} else {
+		ctcopy += 6;	/* skip over "$odf$*" */
+		strtokm(ctcopy, "*");
+		strtokm(NULL, "*");
+		strtokm(NULL, "*");
+		strtokm(NULL, "*");
+		p = strtokm(NULL, "*");
+	}
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
 			(atoi16[ARCH_INDEX(*p)] << 4) |
