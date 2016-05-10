@@ -103,10 +103,13 @@ static void log_file_init(struct log_file *f, char *name, int size)
 	    O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0)
 		pexit("open: %s", path_expand(name));
 
-	/* plain will now always be < LINE_BUFFER_SIZE. We add some extra bytes
+	/*
+	 * plain will now always be < LINE_BUFFER_SIZE. We add some extra bytes
 	 * so that there is ALWAYS enough buffer to write our line, and we no
-	 * longer have to check length before a write (.pot or .log file) */
-	f->ptr = f->buffer = mem_alloc(size + LINE_BUFFER_SIZE + 512);
+	 * longer have to check length before a write (.pot or .log file).
+	 * The "64" comes from core.
+	 */
+	f->ptr = f->buffer = mem_alloc(size + LINE_BUFFER_SIZE + PLAINTEXT_BUFFER_SIZE + 64);
 	f->size = size;
 }
 
