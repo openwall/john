@@ -455,7 +455,7 @@ static int crk_remove_pot_entry(char *ciphertext)
 	 * that function again and compare the results. Thanks to
 	 * Christien Rioux for pointing this out.
 	 */
-	ciphertext = strncpy(argcopy, ciphertext, sizeof(argcopy));
+	ciphertext = strnzcpy(argcopy, ciphertext, sizeof(argcopy));
 	pot_salt = crk_methods.salt(ciphertext);
 	dyna_salt_create(pot_salt);
 
