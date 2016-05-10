@@ -116,7 +116,7 @@ char *fgetl(char *s, int size, FILE *stream)
 	int c;
 
 	if ((res = fgets(s, size, stream))) {
-		if (!*res) return res; /* ?? can this ever happen? */
+		if (!*res) return res;
 
 		pos = res + strlen(res) - 1;
 		if (*pos == '\n') {
@@ -140,9 +140,14 @@ char *fgetll(char *s, size_t size, FILE *stream)
 	size_t len;
 	char *cp;
 
-	if (!fgets(s, size, stream)) return NULL;
+	if (!fgets(s, size, stream))
+		return NULL;
+
 	len = strlen(s);
-	if (!len) return s; /* ?? not sure this can happen */
+
+	if (!len)
+		return s;
+
 	if (s[len-1] == '\n') {
 		s[--len] = 0;
 		while (len && (s[len-1] == '\n' || s[len-1] == '\r'))
@@ -165,12 +170,26 @@ char *fgetll(char *s, size_t size, FILE *stream)
 	cp = strdup(s);
 
 	while (1) {
-		cp = realloc(cp, 2 * len);
+		size_t increase = MAX(len, 0x8000000);
+		void *new_cp;
 
-		/* return we read some data. I think we get an EOF if there is no trailing \n on the last line */
-		if (!fgets(&cp[len], len, stream))
+		new_cp = realloc(cp, len + increase);
+
+		while (!new_cp) {
+			increase >>= 2;
+			if (increase < 0x10000)
+				pexit("realloc");
+			new_cp = realloc(cp, len + increase);
+		}
+
+		cp = new_cp;
+
+		/* We get an EOF if there is no trailing \n on the last line */
+		if (!fgets(&cp[len], increase, stream))
 			return cp;
-		len = strlen(cp);
+
+		len += strlen(&cp[len]);
+
 		if (cp[len-1] == '\n') {
 			cp[--len] = 0;
 			while (len && (cp[len-1] == '\n' || cp[len-1] == '\r'))
