@@ -96,7 +96,9 @@
  * Name........: princeprocessor (pp)
  * Description.: Standalone password candidate generator using the PRINCE algorithm
  * Version.....: 0.22
- * Autor.......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Steve Thomas (Sc00bz)
+ *               magnum <john.magnum@hushmail.com>
  * License.....: MIT
  */
 
@@ -1118,9 +1120,9 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     return (-1);
   }
 
-  if (elem_cnt_max <= 0)
+  if (elem_cnt_max < (1 - pw_max))
   {
-    fprintf (stderr, "Value of --elem-cnt-max (%d) must be greater than %d\n", elem_cnt_max, 0);
+    fprintf (stderr, "Value of --elem-cnt-max (%d) must be greater than %d\n", elem_cnt_max, (0 - pw_max));
 
     return (-1);
   }
@@ -1132,7 +1134,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     return (-1);
   }
 
-  if (elem_cnt_min > elem_cnt_max)
+  if (elem_cnt_max > 0 && elem_cnt_min > elem_cnt_max)
   {
     fprintf (stderr, "Value of --elem-cnt-min (%d) must be smaller or equal than value of --elem-cnt-max (%d)\n", elem_cnt_min, elem_cnt_max);
 
@@ -1258,7 +1260,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   if (options.flags & FLG_PRINCE_KEYSPACE)
     keyspace = 1;
 
-  if (elem_cnt_min > elem_cnt_max)
+  if (elem_cnt_max > 0 && elem_cnt_min > elem_cnt_max)
   {
     if (john_main_process)
     fprintf (stderr, "Error: --prince-elem-cnt-min (%d) must be smaller than or equal to\n--prince-elem-cnt-max (%d)\n", elem_cnt_min, elem_cnt_max);
@@ -1284,7 +1286,8 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
   log_event("- Wordlist file: %.100s", path_expand(wordlist));
   log_event("- Will generate candidates of length %d - %d", pw_min, pw_max);
-  log_event("- Using chains with %d - %d elements.", elem_cnt_min, elem_cnt_max);
+  log_event("- Using chains with %d - %d elements.", elem_cnt_min,
+            elem_cnt_max > 0 ? elem_cnt_max : pw_max + elem_cnt_max);
 
   if (rules) {
     char *prerule="";
@@ -1751,7 +1754,20 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
       if (valid2 == 0) continue;
 
-      int valid3 = chain_valid_with_cnt_max (&chain_buf_new, elem_cnt_max);
+      int eff_elem_cnt_max;
+
+      if (elem_cnt_max > 0)
+      {
+        eff_elem_cnt_max = elem_cnt_max;
+      }
+      else
+      {
+        eff_elem_cnt_max = pw_len + elem_cnt_max;
+
+        if (eff_elem_cnt_max <= elem_cnt_min) continue;
+      }
+
+      int valid3 = chain_valid_with_cnt_max (&chain_buf_new, eff_elem_cnt_max);
 
       if (valid3 == 0) continue;
 
