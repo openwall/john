@@ -113,7 +113,7 @@ typedef struct {
 	int num_devices;
 } cl_platform;
 static cl_platform platforms[MAX_PLATFORMS];
-
+int none_opencl_device = 1;
 
 cl_device_id devices[MAX_GPU_DEVICES];
 cl_context context[MAX_GPU_DEVICES];
@@ -416,7 +416,7 @@ static int get_if_device_is_in_use(int sequential_id)
 	return found;
 }
 
-static void start_opencl_environment()
+void start_opencl_environment()
 {
 	cl_platform_id platform_list[MAX_PLATFORMS];
 	char opencl_data[LOG_SIZE];
@@ -451,6 +451,7 @@ static void start_opencl_environment()
 	// Set NULL to the final buffer position.
 	platforms[i].platform = NULL;
 	devices[device_pos] = NULL;
+	none_opencl_device = (device_pos == 0);
 }
 
 static cl_int get_pci_info(int sequential_id, hw_bus *hardware_info)
@@ -683,9 +684,6 @@ void opencl_preinit(void)
 		amd_probe();
 		device_list[0] = NULL;
 
-		gpu_device_list[0] = -1;
-		gpu_device_list[1] = -1;
-
 		gpu_temp_limit = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
 		                             "AbortTemperature");
 
@@ -693,7 +691,7 @@ void opencl_preinit(void)
 			context[i] = NULL;
 			queue[i] = NULL;
 		}
-		start_opencl_environment();
+
 		{
 			struct list_entry *current;
 
@@ -727,6 +725,10 @@ void opencl_preinit(void)
 			default_gpu_selected = 1;
 		}
 
+		if (get_number_of_available_devices() == 0) {
+			fprintf(stderr, "No OpenCL devices found\n");
+			error();
+		}
 		build_device_list(device_list);
 
 		if (get_number_of_devices_in_use() == 0) {
@@ -764,7 +766,6 @@ unsigned int opencl_get_vector_width(int sequential_id, int size)
 		cl_uint v_width = 0;
 
 		/* OK, we supply the real figure */
-		opencl_preinit();
 		switch (size) {
 		case sizeof(cl_char):
 			HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id],

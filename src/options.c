@@ -350,8 +350,11 @@ static void print_usage(char *name)
 		exit(0);
 
 	printf(JOHN_USAGE, name);
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#if defined(HAVE_CUDA)
 	printf("%s", JOHN_USAGE_GPU);
+#elif defined(HAVE_OPENCL)
+	if (!none_opencl_device)
+		printf("%s", JOHN_USAGE_GPU);
 #endif
 	printf("%s", JOHN_USAGE_FORMAT);
 	exit(0);
@@ -370,7 +373,8 @@ void opt_print_hidden_usage(void)
 	printf(", cuda");
 #endif
 #ifdef HAVE_OPENCL
-	printf(", opencl");
+	if (!none_opencl_device)
+		printf(", opencl");
 #endif
 #endif
 #ifdef _OPENMP
@@ -409,8 +413,10 @@ void opt_print_hidden_usage(void)
 	puts("--internal-codepage=NAME  codepage used in rules/masks (see doc/ENCODING)");
 	puts("--target-encoding=NAME    output encoding (used by format, see doc/ENCODING)");
 #ifdef HAVE_OPENCL
-	puts("--force-scalar            (OpenCL) force scalar mode");
-	puts("--force-vector-width=N    (OpenCL) force vector width N");
+	if (!none_opencl_device) {
+		puts("--force-scalar            (OpenCL) force scalar mode");
+		puts("--force-vector-width=N    (OpenCL) force vector width N");
+	}
 #endif
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 	puts("\nPRINCE mode options:");
