@@ -140,6 +140,7 @@ extern cl_event *profilingEvent, *firstEvent, *lastEvent;
 extern cl_event *multi_profilingEvent[MAX_EVENTS];
 
 extern int device_info[MAX_GPU_DEVICES];
+extern int none_opencl_device;
 
 #define LWS_CONFIG_NAME         "_LWS"
 #define GWS_CONFIG_NAME         "_GWS"
@@ -148,7 +149,10 @@ extern int device_info[MAX_GPU_DEVICES];
 
 size_t opencl_read_source(char *kernel_filename, char **kernel_source);
 
-/* Passive init: enumerate platforms and devices and parse options */
+/* Passive init: enumerate platforms and devices */
+void start_opencl_environment(void);
+
+/* Parse --device parameter. Initialize requested devices. */
 void opencl_preinit(void);
 
 /* Tear-down. Safe to call even if no device was used */
@@ -161,7 +165,10 @@ void opencl_done(void);
  */
 unsigned int opencl_get_vector_width(int sequential_id, int size);
 
-/* Returns number of selected devices */
+/* Returns the number of all available devices */
+int get_number_of_available_devices(void);
+
+/* Returns the number of devices in use (listed in --device list) */
 int get_number_of_devices_in_use(void);
 
 /* Initialize a specific device. If necessary, parse command line and get

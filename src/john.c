@@ -347,6 +347,10 @@ static void john_register_one(struct fmt_main *format)
 			return;
 	}
 
+#if defined(HAVE_OPENCL)
+	if (strstr(format->params.label, "-opencl") && none_opencl_device)
+		return;
+#endif
 	fmt_register(format);
 }
 
@@ -1473,6 +1477,11 @@ static void john_init(char *name, int argc, char **argv)
 #endif
 #if HAVE_OPENCL || HAVE_CUDA
 	gpu_device_list[0] = gpu_device_list[1] = -1;
+
+#if defined(HAVE_OPENCL)
+	/* Build a list of all OpenCL devices. */
+	start_opencl_environment();
+#endif
 #endif
 	/* Process configuration options that depend on cfg_init() */
 	john_load_conf();
