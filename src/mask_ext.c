@@ -55,6 +55,10 @@ static void generate_int_keys(mask_cpu_context *ptr)
 {
 	int i, repeat = 1, modulo;
 
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s()\n", __FUNCTION__);
+#endif
+
 #define fill_cand(t) \
 	for (i = 0; i < mask_int_cand.num_int_cand; i++) \
 		mask_int_cand.int_cand[i].x[t] =	 \
@@ -94,6 +98,10 @@ static void check_static_gpu_mask(int max_static_range)
 {	unsigned int i;
 	mask_gpu_is_static = 1;
 
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s()\n", __FUNCTION__);
+#endif
+
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
 		if (max_static_range <= mask_skip_ranges[i]) {
 			mask_gpu_is_static = 0;
@@ -106,6 +114,10 @@ static void check_static_gpu_mask(int max_static_range)
 void mask_calc_combination(mask_cpu_context *ptr, int max_static_range) {
 	int *data, i, n;
 	int delta_to_target = 0x7fffffff;
+
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s()\n", __FUNCTION__);
+#endif
 
 	mask_int_cand.num_int_cand = 1;
 	mask_int_cand.int_cpu_mask_ctx = NULL;

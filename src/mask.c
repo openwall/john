@@ -10,8 +10,6 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-//#define MASK_DEBUG
-
 #include <stdio.h> /* for fprintf(stderr, ...) */
 #include <string.h>
 #include <ctype.h>
@@ -987,6 +985,58 @@ static char* expand_plhdr(char *string, int fmt_case)
 }
 
 /*
+ * Return effective length of a mask. \xHH must already be handled.
+ *
+ * abc -> 3
+ * abc?d -> 4
+ * abc?l[0-9abcdef] -> 5
+ * abc?w -> 3 (the parent-mode word placeholder does not count)
+ */
+static int mask_len(char *mask)
+{
+	int len = 0;
+	char *p = mask;
+
+	while (*p) {
+		if (*p == '?') {
+			if (p[1] == 'w' || p[1] == 'W') {
+				p += 2;
+			} else if (strchr(BUILT_IN_CHARSET "?", (int)p[1])) {
+				len++;
+				p += 2;
+			} else {
+				len++;
+				p++;
+			}
+		} else if (*p == '\\') {
+			len++;
+			if (*(++p))
+				p++;
+		} else if (*p == '[') {
+			char *q = strchr(++p, ']');
+			char *m = p;
+
+			while (q && q > m && q[-1] == '\\') {
+				m = q;
+				q = strchr(++m, ']');
+			}
+
+			len++;
+			if (q)
+				p = q + 1;
+		} else {
+			len++;
+			p++;
+		}
+	}
+
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s): %d\n", __FUNCTION__, mask, len);
+#endif
+	return len;
+}
+
+/*
  * valid braces:
  * [abcd], [[[[[abcde], []]abcde]]], [[[ab]cdefr]]
  * invalid braces:
@@ -1860,12 +1910,19 @@ char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
 	char *stretched_mask;
 	int i, j, k;
 
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s(%s)\n", __FUNCTION__, mask);
+#endif
+
 	j = strlen(mask);
 	stretched_mask = (char*)mem_alloc((options.req_maxlength + 2) * j);
 
-	strncpy(stretched_mask, mask, j);
-	k = 0;
+	strcpy(stretched_mask, mask);
+	k = mask_len(mask);
 	while (k < options.req_maxlength) {
+#ifdef MASK_DEBUG
+		fprintf(stderr, "%s(): %d/%d %s\n", __FUNCTION__, k, options.req_maxlength, stretched_mask);
+#endif
 		i = strlen(mask) - 1;
 		if (mask[i] == '\\' && i - 1 >= 0) {
 			i--;
@@ -1873,13 +1930,13 @@ char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
 		}
 		if (mask[i] == '\\') {
 			if(!k) j++;
-			strncpy(stretched_mask + j, mask + i, 2);
+			strnzcpy(stretched_mask + j, mask + i, 3);
 			j += 2;
 		}
-		else if(mask[i] != ']') {
+		else if (mask[i] != ']') {
 		 	if (strchr(BUILT_IN_CHARSET, ARCH_INDEX(mask[i])) &&
 			    i - 1 >= 0 && mask[i - 1] == '?') {
-				strncpy(stretched_mask + j, mask + i - 1, 2);
+				strnzcpy(stretched_mask + j, mask + i - 1, 3);
 				j += 2;
 			}
 			else {
@@ -1887,7 +1944,7 @@ char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
 			      j++;
 			}
 		}
-		else if (mask[i] == ']') {
+		else /*if (mask[i] == ']')*/ {
 			int l = 0;
 			while (parsed_mask->stack_op_br[l] != -1) l++;
 			if (parsed_mask->stack_cl_br[l-1] == i) {
@@ -1909,6 +1966,10 @@ char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
 		parsed_mask->stack_cl_br[i] = -1;
 		parsed_mask->stack_op_br[i++] = -1;
 	}
+
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s:%s returned\n", __FUNCTION__, stretched_mask);
+#endif
 	return stretched_mask;
 }
 
@@ -2106,18 +2167,19 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		if (mask_add_len > max_keylen)
 			mask_add_len = max_keylen;
 		else
-		if (options.req_maxlength && mask_add_len < max_keylen)
+		if (options.req_maxlength && mask_add_len < max_keylen) {
 			if (john_main_process)
-			fprintf(stderr, "Warning: mask is shorter than "
-			        "-max-length parameter\n");
-
+				fprintf(stderr, "Error: mask is shorter than "
+				        "-max-length parameter\n");
+			error();
+		}
 		if (mask_num_qw && john_main_process)
 		fprintf(stderr, "Warning: ?w has no special meaning in pure "
 		        "mask mode\n");
 	}
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d\n", mask_num_qw, options.req_minlength, options.req_maxlength, fmt_maxlen, mask_add_len);
+	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d eff len %d\n", mask_num_qw, options.req_minlength, options.req_maxlength, fmt_maxlen, mask_add_len, mask_len(mask));
 #endif
 	/* We decrease these here instead of changing parent modes. */
 	if (options.flags & FLG_MASK_STACKED) {

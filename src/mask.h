@@ -22,6 +22,8 @@
 // Maximum number of placeholders in a mask.
 #define MAX_NUM_MASK_PLHDR 127
 
+//#define MASK_DEBUG
+
 typedef struct {
 	/* store locations of op braces in mask */
 	int stack_op_br[MAX_NUM_MASK_PLHDR + 1];
