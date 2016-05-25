@@ -432,6 +432,18 @@ static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
 	return word;
 }
 
+static MAYBE_INLINE void clean_bom(char *line)
+{
+	static int checkbomfirst = 1;
+
+	if (line_number == 0 && checkbomfirst && options.input_enc == UTF_8) {
+		if (!strncmp("\xEF\xBB\xBF", line, 3)) {
+			memmove(line, line + 3, strlen(line) - 2);
+		}
+		checkbomfirst = 0;
+	}
+}
+
 /*
  * This function does two separate things (either or both) just to confuse you.
  * 1. In case we're in loopback mode, skip ciphertext and field separator.
@@ -1254,6 +1266,8 @@ REDO_AFTER_LMLOOP:
 #else
 			strcpy(line, words[line_number]);
 #endif
+			clean_bom(line);
+
 			line_number++;
 
 			if ((word = apply(line, rule, -1, last))) {
@@ -1303,6 +1317,9 @@ REDO_AFTER_LMLOOP:
 		else if (rule)
 		while (mem_map ? mgetl(line) :
 		       fgetl(line, LINE_BUFFER_SIZE, word_file)) {
+
+			clean_bom(line);
+
 			line_number++;
 
 			if (line[0] != '#') {
