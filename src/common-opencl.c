@@ -727,6 +727,10 @@ void opencl_preinit(void)
 			default_gpu_selected = 1;
 		}
 
+		if (get_number_of_available_devices() == 0) {
+			fprintf(stderr, "No OpenCL devices found\n");
+			error();
+		}
 		build_device_list(device_list);
 
 		if (get_number_of_devices_in_use() == 0) {
