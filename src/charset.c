@@ -176,7 +176,7 @@ static int charset_new_length(int length,
 	int result;
 	long offset;
 
-	if ((result = length < CHARSET_LENGTH)) {
+	if ((result = (length < CHARSET_LENGTH))) {
 		putchar('.');
 		fflush(stdout);
 
