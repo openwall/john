@@ -3,7 +3,7 @@
 To define an external cracking mode you need to create a configuration
 file section called [List.External:MODE], where MODE is any name that
 you assign to the mode.  The section should contain some functions
-programmed in a subset of the C language.  John will compile and use the
+programmed in a C-like language.  John will compile and use the
 functions if you enable this cracking mode via the command line.
 
 
@@ -57,34 +57,78 @@ be delayed in order to process any buffered candidate passwords.
 
 	The language.
 
-As it has been mentioned above, the compiler supports a subset of C.
-The supported keywords are: void, int, if, else, while, continue, break,
-and return.
+The compiler supports a C-like language, which includes only a basic
+subset of C and differs from C in multiple ways.  The supported keywords
+are: break, continue, else, if, int, return, void, while.
 
 You can define functions to be called by John (the ones described
-above), define global and local variables (including single dimensional
+above), define global and local variables (including one-dimensional
 arrays), use all the integer operations supported in C, and use C and
 C++ comments.
 
-The following C features are missing from John's compiler:
+The following C features or traits are missing from John's compiler:
 
-* function calls (any functions defined as a part of an external mode
-can only be called by John core, but not from within other external mode
-functions);
+* short-circuit evaluation (instead, full expressions are currently
+evaluated, with any side effects they might have);
 
-* only "while" loops are supported;
+* function calls (any functions defined as part of an external mode can
+only be called by John core, but not by other external mode functions);
 
-* only "int" and "void" data types are supported;
+* "do" and "for" loops (there's only "while");
 
-* only single dimensional arrays are supported;
+* data type declarations other than "int", one-dimensional arrays of
+"int", and "void";
 
-* structs/unions are not supported;
+* "static" local variables (as it happens, all local variables are
+currently static by default);
 
-* pointers are not supported (array name refers to the first element);
+* pointers (array name alone refers to the first element);
 
-* probably something else...
+* type casting (there's no use for it when we only have "int" anyway);
+
+* comma operator;
+
+* probably a lot more...
 
 You can find some external mode examples in the default configuration
 file supplied with John.
+
+
+	Limited portability, and undefined behavior.
+
+The "int" data type is currently implemented in John using the system's
+native C "int" data type.  Thus, its size can vary, but on systems
+supported by John it can be assumed to be at least 32 bits (and usually
+is exactly 32 bits).  Also, being a signed integer type, its behavior on
+overflow is undefined (but in practice will usually be two's complement
+wraparound).
+
+Starting with version 1.8.0, literal character constants (given in
+single quotes, such as 'a') are treated as "unsigned char" cast to
+"int", thus producing values in the range 0 to 255.  We intend to
+preserve this behavior in future versions.  However, in pre-1.8.0
+versions, literal character constants with the 8th bit set could appear
+as negative "int" values.
+
+While the current implementation and all older versions of John so far
+consistently lack short-circuit evaluation, treat local variables as
+"static", and treat array name alone as referring to the first element,
+these properties might change in the future.
+
+
+	Limited robustness, and insecurity.
+
+While the current implementation is meant to be reasonably robust for
+use, it lacks array bounds checking.  It is external mode authors' and
+users' responsibility to ensure array sizes and indices are correct.
+
+There's currently no compile-time checking that expressions being
+assigned to or modified are valid lvalues.  Attempting to assign to or
+modify an expression that isn't a valid lvalue results in John crashing.
+
+In general, external mode programs (and John configuration files in
+general) are treated as trusted input, much like you would treat a C
+file in John source tree.  A malicious external mode can use out of
+bounds array accesses to trigger arbitrary machine code execution.
 
 $Owl$

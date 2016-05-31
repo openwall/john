@@ -424,9 +424,6 @@ char *rules_apply(char *word, char *rule, int split, char *last)
 					    conv_tolower[ARCH_INDEX(in[pos])];
 				in[pos] = 0;
 			}
-			if (in[0] != 'M' || in[1] != 'c')
-				break;
-			in[2] = conv_toupper[ARCH_INDEX(in[2])];
 			break;
 
 		case 'r':
@@ -655,8 +652,6 @@ char *rules_apply(char *word, char *rule, int split, char *last)
 					    conv_toupper[ARCH_INDEX(in[pos])];
 				in[pos] = 0;
 			}
-			if (in[0] == 'm' && in[1] == 'C')
-				in[2] = conv_tolower[ARCH_INDEX(in[2])];
 			break;
 
 		case 't':

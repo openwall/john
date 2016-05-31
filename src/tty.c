@@ -54,11 +54,9 @@ void tty_init(int stdin_mode)
 
 	if ((fd = open("/dev/tty", O_RDONLY | O_NONBLOCK)) < 0) return;
 
-#ifndef __CYGWIN__
 	if (tcgetpgrp(fd) != getpid()) {
 		close(fd); return;
 	}
-#endif
 
 	tcgetattr(fd, &ti);
 	saved_ti = ti;

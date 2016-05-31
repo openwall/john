@@ -176,7 +176,7 @@ static int charset_new_length(int length,
 	int result;
 	long offset;
 
-	if ((result = length < CHARSET_LENGTH)) {
+	if ((result = (length < CHARSET_LENGTH))) {
 		putchar('.');
 		fflush(stdout);
 
@@ -645,20 +645,19 @@ static void charset_generate_all(struct list_main **lists, char *charset)
 	fflush(stdout);
 
 	charset_generate_chars(lists, file, header, chars, cracks);
-	if (event_abort) {
-		fclose(file);
-		unlink(charset);
-		putchar('\n'); check_abort(0);
+	if (!event_abort) {
+		printf(" DONE\nGenerating cracking order");
+		fflush(stdout);
+
+		charset_generate_order(cracks,
+		    header->order, sizeof(header->order));
 	}
-
-	printf(" DONE\nGenerating cracking order");
-	fflush(stdout);
-
-	charset_generate_order(cracks, header->order, sizeof(header->order));
 	if (event_abort) {
 		fclose(file);
 		unlink(charset);
-		putchar('\n'); check_abort(0);
+		putchar('\n');
+		check_abort(0); /* doesn't return because event_abort is set */
+		return; /* not reached */
 	}
 
 	fflush(file);
@@ -681,8 +680,9 @@ static void charset_generate_all(struct list_main **lists, char *charset)
 		error();
 	}
 
-	printf("Successfully wrote charset file: %s (%d character%s)\n",
-		charset, header->count, header->count != 1 ? "s" : "");
+	printf("Successfully wrote charset file: %s (%u character%s)\n",
+	    charset,
+	    (unsigned int)header->count, header->count != 1 ? "s" : "");
 
 	MEM_FREE(header);
 }
