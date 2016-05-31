@@ -94,6 +94,28 @@ You can find some external mode examples in the default configuration
 file supplied with John.
 
 
+	Limited portability, and undefined behavior.
+
+The "int" data type is currently implemented in John using the system's
+native C "int" data type.  Thus, its size can vary, but on systems
+supported by John it can be assumed to be at least 32 bits (and usually
+is exactly 32 bits).  Also, being a signed integer type, its behavior on
+overflow is undefined (but in practice will usually be two's complement
+wraparound).
+
+Starting with version 1.8.0, literal character constants (given in
+single quotes, such as 'a') are treated as "unsigned char" cast to
+"int", thus producing values in the range 0 to 255.  We intend to
+preserve this behavior in future versions.  However, in pre-1.8.0
+versions, literal character constants with the 8th bit set could appear
+as negative "int" values.
+
+While the current implementation and all older versions of John so far
+consistently lack short-circuit evaluation, treat local variables as
+"static", and treat array name alone as referring to the first element,
+these properties might change in the future.
+
+
 	Limited robustness, and insecurity.
 
 While the current implementation is meant to be reasonably robust for
