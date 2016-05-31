@@ -185,6 +185,10 @@
 #define FLG_PRINCE_MMAP			0x0100000000000000ULL
 #define FLG_RULES_ALLOW			0x0200000000000000ULL
 #define FLG_REGEX_STACKED		0x0400000000000000ULL
+/* Abort run after this many seconds */
+#define FLG_MAX_RUN_TIME		0x0800000000000000ULL
+/* Reset max-run-time on each crack */
+#define FLG_MAX_RUN_TIME_RESET		0x1000000000000000ULL
 
 /*
  * Structure with option flags and all the parameters.

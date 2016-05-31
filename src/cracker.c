@@ -386,6 +386,14 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 
 	/* If we got this crack from a pot sync, don't report or count */
 	if (index >= 0) {
+		if (options.flags & FLG_MAX_RUN_TIME_RESET) {
+#if OS_TIMER
+			timer_abort = options.max_run_time;
+#else
+			timer_abort = status_get_time() + options.max_run_time;
+#endif
+		}
+
 		log_guess(crk_db->options->flags & DB_LOGIN ? replogin : "?",
 		          crk_db->options->flags & DB_LOGIN ? repuid : "",
 		          dupe ?
