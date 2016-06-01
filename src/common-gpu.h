@@ -60,12 +60,15 @@ void amd_probe(void);
  * nvidia temperature/fan monitoring
  * https://developer.nvidia.com/sites/default/files/akamai/cuda/files/CUDADownloads/NVML_cuda5/nvml.4.304.55.pdf
  */
-extern void nvidia_get_temp(int gpu_id, int *temp, int *fanspeed, int *util);
+extern void nvidia_get_temp(int gpu_id, int *temp, int *fanspeed, int *util,
+                            int *cl, int *ml);
 
-extern void amd_get_temp(int adl_gpu_id, int *temp, int *fanspeed, int *util);
+extern void amd_get_temp(int adl_gpu_id, int *temp, int *fanspeed, int *util,
+                         int *cl, int *ml);
 
 /* Function pointer to read temperature for device n */
-extern void (*dev_get_temp[MAX_GPU_DEVICES]) (int, int *, int *, int *);
+extern void (*dev_get_temp[MAX_GPU_DEVICES]) (int id, int *temp, int *fanspeed,
+                                              int *util, int *cl, int *ml);
 
 /* Map OpenCL device number to ADL/NVML device number */
 extern unsigned int temp_dev_id[MAX_GPU_DEVICES];

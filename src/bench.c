@@ -821,13 +821,13 @@ AGAIN:
 		for (i = 0; i < MAX_GPU_DEVICES &&
 			     gpu_device_list[i] != -1; i++) {
 			int dev = gpu_device_list[i];
-			int fan, temp, util;
+			int fan, temp, util, cl, ml;
 
-			fan = temp = util = -1;
+			fan = temp = util = cl = ml = -1;
 
 			if (dev_get_temp[dev])
 				dev_get_temp[dev](temp_dev_id[dev],
-				                  &temp, &fan, &util);
+				                  &temp, &fan, &util, &cl, &ml);
 #if 1
 			if (util <= 0)
 				continue;

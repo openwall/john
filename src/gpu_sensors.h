@@ -311,6 +311,8 @@ typedef nvmlReturn_t (*NVMLDEVICEGETPCIINFO) (nvmlDevice_t, nvmlPciInfo_t *);
 typedef nvmlReturn_t (*NVMLDEVICEGETNAME) (nvmlDevice_t, char *, unsigned int);
 typedef nvmlReturn_t (*NVMLDEVICEGETHANDLEBYPCIBUSID) (const char *, nvmlDevice_t *);
 typedef nvmlReturn_t (*NVMLDEVICEGETINDEX) (nvmlDevice_t, unsigned int *);
+typedef nvmlReturn_t (*NVMLDEVICEGETCURRPCIELINKWIDTH) (nvmlDevice_t, unsigned int *);
+typedef nvmlReturn_t (*NVMLDEVICEGETMAXPCIELINKWIDTH) (nvmlDevice_t, unsigned int *);
 
 extern NVMLSHUTDOWN nvmlShutdown;
 

@@ -2426,7 +2426,7 @@ void opencl_list_devices(void)
 			cl_bool boolean;
 			char *p;
 			int ret, cpu;
-			int fan, temp, util;
+			int fan, temp, util, cl, ml;
 
 			if (!default_gpu_selected && !get_if_device_is_in_use(sequence_nr))
 				/* Nothing to do, skipping */
@@ -2643,26 +2643,28 @@ void opencl_list_devices(void)
 				printf("    Kernel exec. timeout:   %s\n",
 				       boolean ? "yes" : "no");
 
-			if (ocl_device_list[sequence_nr].pci_info.bus >= 0) {
-				printf("    PCI device topology:    %s\n",
-				       ocl_device_list[sequence_nr].pci_info.busId);
-			}
-			fan = temp = util = -1;
+			fan = temp = util = cl = ml = -1;
 #if HAVE_LIBDL
 			if (nvml_lib && gpu_nvidia(device_info[sequence_nr]) &&
 			    id2nvml(ocl_device_list[sequence_nr].pci_info) >= 0) {
 				printf("    NVML id:                %d\n",
 				       id2nvml(ocl_device_list[sequence_nr].pci_info));
 				nvidia_get_temp(id2nvml(ocl_device_list[sequence_nr].pci_info),
-				                &temp, &fan, &util);
+				                &temp, &fan, &util, &cl, &ml);
 			} else if (adl_lib && gpu_amd(device_info[sequence_nr])) {
 				printf("    ADL:                    Overdrive%d, device id %d\n",
 				       adl2od[id2adl(ocl_device_list[sequence_nr].pci_info)],
 				       id2adl(ocl_device_list[sequence_nr].pci_info));
 				amd_get_temp(id2adl(ocl_device_list[sequence_nr].pci_info),
-				             &temp, &fan, &util);
+				             &temp, &fan, &util, &cl, &ml);
 			}
 #endif
+			if (ocl_device_list[sequence_nr].pci_info.bus >= 0) {
+				printf("    PCI device topology:    %s\n",
+				       ocl_device_list[sequence_nr].pci_info.busId);
+			}
+			if (cl >= 0)
+				printf("    PCI lanes:              %d/%d\n", cl, ml);
 			if (fan >= 0)
 				printf("    Fan speed:              %u%%\n", fan);
 			if (temp >= 0)
