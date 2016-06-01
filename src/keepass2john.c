@@ -55,10 +55,6 @@
 const char *extension[] = {".kdbx"};
 static char *keyfile = NULL;
 
-#define MAX_THR (LINE_BUFFER_SIZE / 2 - 2 * PLAINTEXT_BUFFER_SIZE)
-// static int inline_thr = MAX_INLINE_SIZE;
-static int inline_thr = MAX_THR;  // don't try to produce short hashes by default!
-
 // KeePass 1.x signature
 uint32_t FileSignatureOld1 = 0x9AA2D903;
 uint32_t FileSignatureOld2 = 0xB54BFB65;
@@ -239,24 +235,16 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 
 	buffer = (unsigned char*) mem_alloc (datasize * sizeof(char));
 
-	if((filesize + datasize) < inline_thr){
-		/* we can inline the content with the hash */
-		fprintf(stderr, "Inlining %s\n", encryptedDatabase);
-		printf("*1*"LLd"*", datasize);
-		fseek(fp, 124, SEEK_SET);
-		if (fread(buffer, datasize, 1, fp) != 1)
-			warn_exit("%s: Error: read failed: %s.",
-				encryptedDatabase, strerror(errno));
+	/* we inline the content with the hash */
+	fprintf(stderr, "Inlining %s\n", encryptedDatabase);
+	printf("*1*"LLd"*", datasize);
+	fseek(fp, 124, SEEK_SET);
+	if (fread(buffer, datasize, 1, fp) != 1)
+		warn_exit("%s: Error: read failed: %s.",
+		          encryptedDatabase, strerror(errno));
 
-		print_hex(buffer, datasize);
-		MEM_FREE(buffer);
-	}
-	else {
-		fprintf(stderr, "[!] Not inlining %s. You will need %s too for cracking!\n",
-				encryptedDatabase, encryptedDatabase);
-
-		printf("*0*%s", dbname); /* data is not inline */
-	}
+	print_hex(buffer, datasize);
+	MEM_FREE(buffer);
 
 	if (keyfile) {
 		buffer = (unsigned char*) mem_alloc (filesize_keyfile * sizeof(char));
@@ -508,9 +496,7 @@ bailout:
 
 static int usage(char *name)
 {
-	fprintf(stderr, "Usage: %s [-i <inline threshold>] [-k <keyfile>] <.kdbx database(s)>\n"
-			"Default threshold is %d bytes (files smaller than that will be inlined)\n",
-			name, MAX_INLINE_SIZE);
+	fprintf(stderr, "Usage: %s [-k <keyfile>] <.kdbx database(s)>\n", name);
 
 	return EXIT_FAILURE;
 }
@@ -521,17 +507,8 @@ int keepass2john(int argc, char **argv)
 
 	errno = 0;
 	/* Parse command line */
-	while ((c = getopt(argc, argv, "i:k:")) != -1) {
+	while ((c = getopt(argc, argv, "k:")) != -1) {
 		switch (c) {
-		case 'i':
-			inline_thr = (int)strtol(optarg, NULL, 0);
-			if (inline_thr > MAX_THR) {
-				fprintf(stderr, "%s error: threshold %d, can't"
-						" be larger than %d\n", argv[0],
-						inline_thr, MAX_THR);
-				return EXIT_FAILURE;
-			}
-			break;
 		case 'k':
 			keyfile = (char *)mem_alloc(strlen(optarg) + 1);
 			strcpy(keyfile, optarg);

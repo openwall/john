@@ -1,4 +1,5 @@
-/* zip2john processes input ZIP files into a format suitable for use with JtR.
+/*
+ * zip2john processes input ZIP files into a format suitable for use with JtR.
  *
  * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
@@ -117,8 +118,6 @@
 static int checksum_only=0, use_magic=0;
 static int force_2_byte_checksum = 0;
 static char *ascii_fname, *only_fname;
-static int inline_thr = MAX_INLINE_SIZE;
-#define MAX_THR (LINE_BUFFER_SIZE / 2 - 2 * PLAINTEXT_BUFFER_SIZE)
 
 static char *MagicTypes[]= { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", NULL };
 static int  MagicToEnum[] = {0,  1,    1,     1,     1,     2,     2,     3,     4,     4,     5,     6,     7,    7,     8,     8,     9,     10,    11,  0};
@@ -129,7 +128,6 @@ static void process_file(const char *fname)
 	unsigned char filename[1024];
 	FILE *fp;
 	int i;
-	unsigned long long off_sig;
 	char path[LARGE_ENOUGH];
 	char *cur=0, *cp;
 	uint32_t best_len = 0xffffffff;
@@ -143,7 +141,6 @@ static void process_file(const char *fname)
 	while (!feof(fp)) {
 		uint32_t id = fget32LE(fp);
 		uint32_t store = 0;
-		off_sig = (unsigned long long) (ftell(fp)-4);
 
 		if (id == 0x04034b50UL) {	/* local header */
 			uint16_t version = fget16LE(fp);
@@ -237,17 +234,13 @@ static void process_file(const char *fname)
 				// not quite sure why the real_cmpr_len is 'off by 1' ????
 				++real_cmpr_len;
 				if (store) cp += sprintf(cp, "*%x*", real_cmpr_len);
-				if (real_cmpr_len < inline_thr) {
-					for (i = 0; i < real_cmpr_len; i++) {
-						d = fgetc(fp);
-						if (store) cp += sprintf(cp, "%c%c",
-							itoa16[ARCH_INDEX(d >> 4)],
-							itoa16[ARCH_INDEX(d & 0x0f)]);
-					}
-				} else {
-					if (store) cp += sprintf(cp, "ZFILE*%s*"LLx"*"LLx,
-							fname, off_sig, (unsigned long long)(ftell(fp)));
-					fseek(fp, real_cmpr_len, SEEK_CUR);
+
+				for (i = 0; i < real_cmpr_len; i++) {
+					d = fgetc(fp);
+					if (store)
+						cp += sprintf(cp, "%c%c",
+						              itoa16[ARCH_INDEX(d >> 4)],
+						              itoa16[ARCH_INDEX(d & 0x0f)]);
 				}
 				if (store) cp += sprintf(cp, "*");
 				for (i = 0; i < 10; i++) {
@@ -545,11 +538,8 @@ print_and_cleanup:;
 		}
 		// Ok, now output the 'little' one (the first).
 		if (!checksum_only) {
-			printf("%x*%x*%x*%x*%x*%x*%x*%x*", hashes[0].cmp_len < inline_thr ? 2 : 3, hashes[0].magic_type, hashes[0].cmp_len, hashes[0].decomp_len, hashes[0].crc, hashes[0].offset, hashes[0].offex, hashes[0].cmptype);
-			if (hashes[0].cmp_len < inline_thr)
-				printf("%x*%s*%s*%s*", hashes[0].cmp_len, hashes[0].chksum, hashes[0].chksum2, toHex((unsigned char*)hashes[0].hash_data, hashes[0].cmp_len));
-			else
-				printf("%x*%s*%s*%s*", (unsigned int)strlen(fname), hashes[0].chksum, hashes[0].chksum2, fname);
+			printf("%x*%x*%x*%x*%x*%x*%x*%x*", 2, hashes[0].magic_type, hashes[0].cmp_len, hashes[0].decomp_len, hashes[0].crc, hashes[0].offset, hashes[0].offex, hashes[0].cmptype);
+			printf("%x*%s*%s*%s*", hashes[0].cmp_len, hashes[0].chksum, hashes[0].chksum2, toHex((unsigned char*)hashes[0].hash_data, hashes[0].cmp_len));
 		}
 		printf("$/pkzip2$:::::%s\n", fname);
 	}
@@ -558,7 +548,6 @@ print_and_cleanup:;
 
 static int usage(char *name) {
 	fprintf(stderr, "Usage: %s [options] [zip files]\n", name);
-	fprintf(stderr, " -i <inline threshold> Set threshold for inlining data. Default is %d bytes\n", MAX_INLINE_SIZE);
 	fprintf(stderr, "Options for 'old' PKZIP encrypted files only:\n");
 	fprintf(stderr, " -a <filename>   This is a 'known' ASCII file\n");
 	fprintf(stderr, "    Using 'ascii' mode is a serious speedup, IF all files are larger, and\n");
@@ -582,17 +571,8 @@ int zip2john(int argc, char **argv)
 	int c;
 
 	/* Parse command line */
-	while ((c = getopt(argc, argv, "a:o:i:cn2")) != -1) {
+	while ((c = getopt(argc, argv, "a:o:cn2")) != -1) {
 		switch (c) {
-		case 'i':
-			inline_thr = (int)strtol(optarg, NULL, 0);
-			if (inline_thr > MAX_THR) {
-				fprintf(stderr, "%s error: threshold %d, can't"
-				        " be larger than %d\n", argv[0],
-				        inline_thr, MAX_THR);
-				return EXIT_FAILURE;
-			}
-			break;
 		case 'a':
 			ascii_fname = optarg;
 			fprintf(stderr, "Using file %s as an 'ASCII' quick check file\n", ascii_fname);

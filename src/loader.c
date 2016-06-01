@@ -52,8 +52,6 @@
 extern struct fmt_main fmt_crypt;
 #endif
 
-#define MAX_CIPHERTEXT_SIZE (LINE_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE)
-
 /*
  * If this is set, we are loading john.pot so we should
  * probably not emit warnings from valid().

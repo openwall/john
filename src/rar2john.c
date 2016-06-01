@@ -41,8 +41,6 @@
  *
  */
 
-//#define DEBUG
-
 #include <stdio.h>
 #include <stdlib.h>
 #if !AC_BUILT || HAVE_LIMITS_H
@@ -71,6 +69,8 @@
 #include "memdbg.h"
 
 #define CHUNK_SIZE 4096
+
+static int verbose;
 
 static int process_file5(const char *archive_name);
 
@@ -263,9 +263,9 @@ next_file_header:
 	count = fread(file_header_block, 32, 1, fp);
 
 	if (feof(fp))  {
-#ifdef DEBUG
-		fprintf(stderr, "! %s: End of file\n", archive_name);
-#endif
+		if (verbose) {
+			fprintf(stderr, "! %s: End of file\n", archive_name);
+		}
 		goto BailOut;
 	}
 
@@ -276,9 +276,9 @@ next_file_header:
 	}
 
 	if (type == 1 && file_header_block[2] == 0x7a) {
-#ifdef DEBUG
-		fprintf(stderr, "! %s: Comment block present?\n", archive_name);
-#endif
+		if (verbose) {
+			fprintf(stderr, "! %s: Comment block present?\n", archive_name);
+		}
 	}
 	else if (type == 1 && file_header_block[2] != 0x74) {
 		fprintf(stderr, "! %s: Not recognising any more headers.\n", archive_name);
@@ -293,9 +293,9 @@ next_file_header:
 	if (type == 0) {
 		unsigned char buf[24];
 
-#ifdef DEBUG
-		fprintf(stderr, "! -hp mode entry found in %s\n", base_aname);
-#endif
+		if (verbose) {
+			fprintf(stderr, "! -hp mode entry found in %s\n", base_aname);
+		}
 		printf("%s:$RAR3$*%d*", base_aname, type);
 		jtr_fseek64(fp, -24, SEEK_END);
 		if (fread(buf, 24, 1, fp) != 1) {
@@ -340,20 +340,20 @@ next_file_header:
 			(file_header_block[12] << 8) +
 			(file_header_block[13] << 16) +
 			(file_header_block[14] << 24);
-#ifdef DEBUG
-		fprintf(stderr,
-		        "! HEAD_SIZE: %d, PACK_SIZE: "LLu", UNP_SIZE: "LLu"\n",
-		        file_header_head_size,
-		        (unsigned long long)file_header_pack_size,
-		        (unsigned long long)file_header_unp_size);
-#endif
+		if (verbose) {
+			fprintf(stderr,
+			        "! HEAD_SIZE: %d, PACK_SIZE: "LLu", UNP_SIZE: "LLu"\n",
+			        file_header_head_size,
+			        (unsigned long long)file_header_pack_size,
+			        (unsigned long long)file_header_unp_size);
+		}
 		/* calculate EXT_TIME size */
 		ext_time_size = file_header_head_size - 32;
 
 		if (file_header_head_flags & 0x100) {
-#ifdef DEBUG
-			fprintf(stderr, "! HIGH_PACK_SIZE present\n");
-#endif
+			if (verbose) {
+				fprintf(stderr, "! HIGH_PACK_SIZE present\n");
+			}
 			if (fread(rejbuf, 4, 1, fp) != 1) {
 				fprintf(stderr, "%s: Error: read failed: %s.\n",
 					archive_name, strerror(errno));
@@ -363,9 +363,9 @@ next_file_header:
 			ext_time_size -= 4;
 		}
 		if (file_header_head_flags & 0x100) {
-#ifdef DEBUG
-			fprintf(stderr, "! HIGH_UNP_SIZE present\n");
-#endif
+			if (verbose) {
+				fprintf(stderr, "! HIGH_UNP_SIZE present\n");
+			}
 			if (fread(rejbuf, 4, 1, fp) != 1) {
 				fprintf(stderr, "%s: Error: read failed: %s.\n",
 					archive_name, strerror(errno));
@@ -377,9 +377,9 @@ next_file_header:
 		/* file name processing */
 		file_name_size =
 		    file_header_block[27] << 8 | file_header_block[26];
-#ifdef DEBUG
-		fprintf(stderr, "file name size: %d bytes\n", file_name_size);
-#endif
+		if (verbose) {
+			fprintf(stderr, "file name size: %d bytes\n", file_name_size);
+		}
 		memset(file_name, 0, sizeof(file_name));
 
 		if (!check_fread(sizeof(file_name), file_name_size, 1))
@@ -399,17 +399,18 @@ next_file_header:
 			UTF16 FileNameW[256];
 			int Length = strlen((char*)file_name);
 
-#ifdef DEBUG
-			dump_stuff_msg("Encoded filenames", file_name, file_name_size);
-#endif
+			if (verbose) {
+				dump_stuff_msg("Encoded filenames", file_name, file_name_size);
+			}
 			DecodeFileName(file_name, file_name + Length + 1,
 			               file_name_size, FileNameW, 256);
 
 			if (*FileNameW) {
-#ifdef DEBUG
-				dump_stuff_msg("UTF16 filename", FileNameW, strlen16(FileNameW) << 1);
-				fprintf(stderr, "OEM name:  %s\n", file_name);
-#endif
+				if (verbose) {
+					dump_stuff_msg("UTF16 filename", FileNameW,
+					               strlen16(FileNameW) << 1);
+					fprintf(stderr, "OEM name:  %s\n", file_name);
+				}
 				utf16_to_utf8_r(file_name, 256, FileNameW);
 				fprintf(stderr, "Unicode:   %s\n", file_name);
 			} else
@@ -434,10 +435,10 @@ next_file_header:
 
 		/* EXT_TIME processing */
 		if (file_header_head_flags & 0x1000) {
-#ifdef DEBUG
-			fprintf(stderr, "! EXT_TIME present with size %d\n",
-			    ext_time_size);
-#endif
+			if (verbose) {
+				fprintf(stderr, "! EXT_TIME present with size %d\n",
+				        ext_time_size);
+			}
 
 			if (!check_fread(sizeof(rejbuf), ext_time_size, 1))
 				goto err;
@@ -459,16 +460,16 @@ next_file_header:
 		}
 
 		if ((file_header_head_flags & 0xe0)>>5 == 7) {
-#ifdef DEBUG
-			fprintf(stderr, "! Is a directory, skipping\n");
-#endif
+			if (verbose) {
+				fprintf(stderr, "! Is a directory, skipping\n");
+			}
 			jtr_fseek64(fp, file_header_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
-#ifdef DEBUG
-		else
+		else if (verbose) {
 			fprintf(stderr, "! Dictionary size: %u KB\n", 64<<((file_header_head_flags & 0xe0)>>5));
-#endif
+		}
+
 		/* Check if encryption is being used */
 		if (!(file_header_head_flags & 0x04)) {
 			fprintf(stderr, "! not encrypted, skipping\n");
@@ -492,18 +493,18 @@ next_file_header:
 		for (i = 0; i < 8; i++) { /* encode salt */
 			best_len += sprintf(&best[best_len], "%c%c", itoa16[ARCH_INDEX(salt[i] >> 4)], itoa16[ARCH_INDEX(salt[i] & 0x0f)]);
 		}
-#ifdef DEBUG
-		fprintf(stderr, "salt: '%s'\n", best);
-#endif
+		if (verbose) {
+			fprintf(stderr, "salt: '%s'\n", best);
+		}
 		best_len += sprintf(&best[best_len], "*");
 		memcpy(file_crc, file_header_block + 16, 4);
 		for (i = 0; i < 4; i++) { /* encode file_crc */
 			best_len += sprintf(&best[best_len], "%c%c", itoa16[ARCH_INDEX(file_crc[i] >> 4)], itoa16[ARCH_INDEX(file_crc[i] & 0x0f)]);
 		}
-#ifdef DEBUG
-		/* Minimal version needed to unpack this file */
-		fprintf(stderr, "! UNP_VER is %0.1f\n", (float)file_header_block[24] / 10.);
-#endif
+		if (verbose) {
+			/* Minimal version needed to unpack this file */
+			fprintf(stderr, "! UNP_VER is %0.1f\n", (float)file_header_block[24] / 10.);
+		}
 		/*
 		 * 0x30 - storing
 		 * 0x31 - fastest compression
@@ -514,10 +515,10 @@ next_file_header:
 		 *
 		 * m3b means 0x33 and a dictionary size of 128KB (a == 64KB .. g == 4096KB)
 		 */
-#ifdef DEBUG
-		fprintf(stderr, "! METHOD is m%x%c\n", file_header_block[25]-0x30, 'a'+((file_header_head_flags&0xe0)>>5));
-		//fprintf(stderr, "! file_header_flags is 0x%04x\n", file_header_head_flags);
-#endif
+		if (verbose) {
+			fprintf(stderr, "! METHOD is m%x%c\n", file_header_block[25]-0x30, 'a'+((file_header_head_flags&0xe0)>>5));
+			//fprintf(stderr, "! file_header_flags is 0x%04x\n", file_header_head_flags);
+		}
 
 		best_len += sprintf(&best[best_len], "*"LLu"*"LLu"*",
 		        (unsigned long long)file_header_pack_size,
@@ -541,9 +542,9 @@ next_file_header:
 
 BailOut:
 		if (*best) {
-#ifdef DEBUG
-			fprintf(stderr, "Found a valid -p mode candidate in %s\n", base_aname);
-#endif
+			if (verbose) {
+				fprintf(stderr, "Found a valid -p mode candidate in %s\n", base_aname);
+			}
 			strncat(best, gecos, LINE_BUFFER_SIZE - best_len - 1);
 			puts(best);
 		} else
@@ -832,8 +833,11 @@ int rar2john(int argc, char **argv)
 	int c;
 
 	/* Parse command line */
-	while ((c = getopt(argc, argv, "i:")) != -1) {
+	while ((c = getopt(argc, argv, "v")) != -1) {
 		switch (c) {
+		case 'v':
+			verbose = 1;
+			break;
 		case '?':
 		default:
 			return usage(argv[0]);

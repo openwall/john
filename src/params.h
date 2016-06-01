@@ -363,26 +363,17 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define LINE_BUFFER_SIZE		0x400
 
 /*
- * We trim ciphertext being stored into the .pot file for all CTs >
- * LINE_BUFFER_SIZE.  We chop this, and then append a hash.
- * HOWEVER, during the call to ldr_cracked_hash() we do not
- * know exactly how much of the hash is VALID, since we do not know
- * the format used or it's binary size. Thus, we check this amount
- * of bytes for any hash >= LINE_BUFFER_SIZE (these would be cut
- * OR they are the cut lines read from a .pot file).
+ * Max. ciphertext size that's sure to fit a line when cleartext field
+ * is added.
  */
-#define POT_BUFFER_CT_TRIM_SIZE	  \
-	(LINE_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE - 13 - 32)
+#define MAX_CIPHERTEXT_SIZE	(LINE_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE)
 
 /*
- * Default threshold for inlining files in rar2john, zip2john, etc.
- * Data blobs larger than this will not be inlined. Note that this is
- * original data size, eg. encoded size will be twice this if hex encoding
- * is used, or 25% larger if using Base64. All tools should have an option
- * to override this default but has to take care not to ever produce lines
- * with a *total* length exceeding LINE_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE.
+ * We trim ciphertext being stored into the .pot file for all CTs >
+ * MAX_CIPHERTEXT_SIZE.  We truncate, and then append a hash of the
+ * full ciphertext.
  */
-#define MAX_INLINE_SIZE			0x400
+#define POT_BUFFER_CT_TRIM_SIZE		(MAX_CIPHERTEXT_SIZE - 13 - 32)
 
 /*
  * john.pot and log file buffer sizes, can be zero.
@@ -411,6 +402,6 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 
 /* Verbosity level */
 #define VERB_MAX			5
-#define VERB_DEFAULT		3
+#define VERB_DEFAULT			3
 
 #endif
