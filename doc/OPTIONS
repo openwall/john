@@ -453,10 +453,12 @@ mode with eg. --max-len=4 and then start a longer session for the rest with
 lengths of 9, 10 and so on.
 Note: With UTF-8 encoding, non-ASCII characters will use more than one byte.
 
---max-run-time=N
+--max-run-time=[-]N
 
 Gracefully exit after N seconds. If you resume it, it will run for another N
 seconds and exit again.
+If a negative value is specified,  john will run for N seconds afte the last
+crack, i.e., each cracked password will reset the timer.
 
 --keep-guessing			search for alternative plaintexts
 
