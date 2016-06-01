@@ -1967,7 +1967,7 @@ int main(int argc, char **argv)
 	time = status_get_time();
 #endif
 	if (options.max_run_time)
-		timer_abort = time + options.max_run_time;
+		timer_abort = time + abs(options.max_run_time);
 	if (options.status_interval)
 		timer_status = time + options.status_interval;
 
