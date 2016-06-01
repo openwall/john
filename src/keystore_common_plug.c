@@ -31,7 +31,7 @@ MAYBE_INLINE static int keystore_common_valid(char *ciphertext, struct fmt_main 
 	if (strncmp(ciphertext, "$keystore$", 10) != 0)
 		return 0;
 	/* handle 'chopped' .pot lines */
-	if (ldr_in_pot && ldr_isa_pot_source(ciphertext))
+	if (ldr_isa_pot_source(ciphertext))
 		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
@@ -102,16 +102,12 @@ void *keystore_common_get_binary(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 
-	if (ldr_isa_pot_source(ciphertext)) {
-		p = strstr(ciphertext, LDR_TRIMMED_POT_BIN_SIG) +
-			(sizeof(LDR_TRIMMED_POT_BIN_SIG)+1);
-	} else {
-		ctcopy += 10; /* skip over "$keystore$" */
-		p = strtokm(ctcopy, "$");
-		p = strtokm(NULL, "$");
-		p = strtokm(NULL, "$");
-		p = strtokm(NULL, "$"); /* at hash now */
-	}
+	ctcopy += 10; /* skip over "$keystore$" */
+	p = strtokm(ctcopy, "$");
+	p = strtokm(NULL, "$");
+	p = strtokm(NULL, "$");
+	p = strtokm(NULL, "$"); /* at hash now */
+
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |

@@ -67,7 +67,7 @@ int winzip_common_valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, WINZIP_FORMAT_TAG, WINZIP_TAG_LENGTH) || ciphertext[WINZIP_TAG_LENGTH] != '*')
 		return 0;
 	/* handle 'chopped' .pot lines */
-	if (ldr_in_pot && ldr_isa_pot_source(ciphertext))
+	if (ldr_isa_pot_source(ciphertext))
 		return 1;
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
@@ -205,11 +205,6 @@ void *winzip_common_binary(char *ciphertext) {
 	unsigned char *bin = x.buf;
 	char *c = strrchr(ciphertext, '*')-2*WINZIP_BINARY_SIZE;
 	int i;
-
-	if (ldr_isa_pot_source(ciphertext)) {
-		c = strstr(ciphertext, LDR_TRIMMED_POT_BIN_SIG) +
-			(sizeof(LDR_TRIMMED_POT_BIN_SIG)+1);
-	}
 
 	for (i = 0; i < WINZIP_BINARY_SIZE; ++i) {
 		bin[i] = atoi16[ARCH_INDEX(c[i<<1])] << 4 | atoi16[ARCH_INDEX(c[(i<<1)+1])];

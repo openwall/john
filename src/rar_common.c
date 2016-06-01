@@ -291,7 +291,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, "$RAR3$*", 7))
 		return 0;
 	/* handle 'chopped' .pot lines */
-	if (ldr_in_pot && ldr_isa_pot_source(ciphertext))
+	if (ldr_isa_pot_source(ciphertext))
 		return 1;
 	if (!(ctcopy = strdup(ciphertext))) {
 		fprintf(stderr, "Memory allocation failed in %s, unable to check if hash is valid!", FORMAT_LABEL);

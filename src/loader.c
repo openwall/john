@@ -52,6 +52,8 @@
 extern struct fmt_main fmt_crypt;
 #endif
 
+#define MAX_CIPHERTEXT_SIZE (LINE_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE)
+
 /*
  * If this is set, we are loading john.pot so we should
  * probably not emit warnings from valid().
@@ -96,17 +98,19 @@ static char *skip_bom(char *string)
 	return string;
 }
 
-/* we have made changes so that SUPER long lines (greater than LINE_BUFFER_SIZE
+/*
+ * We have made changes so that long lines (greater than MAX_CIPHERTEXT_SIZE)
  * will now get 'trimmed' when put into the .pot file. Here is the trimming
  * method:
  *    input:    $hashtype$abcdefghijk..........qrstuvwxzy$something$else
- *    pot:      $hashtype$abcdefghijk.......$SOURCE_HASH$<md5 of full hash>$SOURCE_BIN$<binary() of hash in hex>
+ *    pot:      $hashtype$abcdefghijk.......$SOURCE_HASH$<md5 of full hash>
  * this way we can fully compare this .pot record (against the full input line)
  */
 static int ldr_pot_source_cmp(const char *pot_entry, const char *full_source) {
 	MD5_CTX ctx;
 	unsigned char srcH[16], potH[16];
 	const char *p;
+
 	if (!strcmp(pot_entry, full_source))
 		return 0;
 	p = strstr(pot_entry, "$SOURCE_HASH$");
@@ -128,30 +132,27 @@ static int ldr_pot_source_cmp(const char *pot_entry, const char *full_source) {
  * not static function.  Used by cracker.c This function builds a proper
  * source line to be written to the .pot file. This string MAY be the
  * original source line, OR it may be a chopped down (shortened) source
- * line with some extra data tacked on. However, it will always be shorter
- * or equal to LINE_BUFFER_SIZE
+ * line with a hash tacked on. However, it will always be shorter or equal
+ * to (LINE_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE)
  */
-#define BIN_LEN (sizeof(LDR_TRIMMED_POT_BIN_SIG)+1)
 const char *ldr_pot_source(const char *full_source,
-                           char buffer[LINE_BUFFER_SIZE + 1],
-                           void *bin, int blen)
+                           char buffer[LINE_BUFFER_SIZE + 1])
 {
 	MD5_CTX ctx;
 	int len;
 	char *p = buffer;
 	unsigned char mbuf[16];
 
-	if (strlen(full_source) <= LINE_BUFFER_SIZE)
+	if (strnlen(full_source, MAX_CIPHERTEXT_SIZE + 1) <= MAX_CIPHERTEXT_SIZE)
 		return full_source;
 
-	/* we create a .pot record that is LINE_BUFFER_SIZE lone
-	 * but that has a hash of the full source, and the binary
-	 * from the full source appened. Both of those strings are
-	 * later needed for .pot comparison, and .pot removal logic
+	/*
+	 * We create a .pot record that is MAX_CIPHERTEXT_SIZE long
+	 * but that has a hash of the full source
 	 */
 
 	/* 13=len sig1, 32=len hash */
-	len = LINE_BUFFER_SIZE - 13 - 32 - BIN_LEN - blen*2;
+	len = MAX_CIPHERTEXT_SIZE - 13 - 32;
 	memcpy(p, full_source, len);
 	p += len;
 	memcpy(p, "$SOURCE_HASH$", 13);
@@ -161,21 +162,15 @@ const char *ldr_pot_source(const char *full_source,
 	MD5_Final(mbuf, &ctx);
 	base64_convert(mbuf, e_b64_raw, 16, p, e_b64_hex, 33, 0);
 	p += 32;
-	memcpy(p, LDR_TRIMMED_POT_BIN_SIG, BIN_LEN);
-	p += BIN_LEN;
-	base64_convert(bin, e_b64_raw, blen, p,
-	               e_b64_hex, blen*2 + 1, 0);
+	*p = 0;
 	return buffer;
 }
 
 /* returns true or false depending if this ciphertext is a trimmed .pot line */
 int ldr_isa_pot_source(const char *ciphertext) {
-	const char *cp = strstr(ciphertext, "$SOURCE_HASH$");
-
-	if (!cp)
+	if (!ldr_in_pot)
 		return 0;
-
-	return !!strstr(cp, LDR_TRIMMED_POT_BIN_SIG);
+	return (strstr(ciphertext, "$SOURCE_HASH$") != NULL);
 }
 
 static void read_file(struct db_main *db, char *name, int flags,
@@ -1784,8 +1779,8 @@ static int ldr_cracked_hash(char *ciphertext)
 	int len;
 
 	/* these checks handle .pot chopped plaintext */
-	len = strlen(ciphertext);
-	if (len >= LINE_BUFFER_SIZE || strstr(ciphertext, "$SOURCE_HASH$")) {
+	len = strnlen(ciphertext, MAX_CIPHERTEXT_SIZE);
+	if (len >= MAX_CIPHERTEXT_SIZE || strstr(ciphertext, "$SOURCE_HASH$")) {
 		memcpy(tmp, ciphertext, POT_BUFFER_CT_TRIM_SIZE);
 		tmp[POT_BUFFER_CT_TRIM_SIZE] = 0;
 		p = tmp;

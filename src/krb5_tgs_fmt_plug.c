@@ -117,7 +117,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, "$krb5tgs$23$", 12) == 0) {
 		/* handle 'chopped' .pot lines (they always have the tag!) */
-		if (ldr_in_pot && ldr_isa_pot_source(ciphertext)) {
+		if (ldr_isa_pot_source(ciphertext)) {
 			MEM_FREE(keeptr);
 			return 1;
 		}

@@ -18,8 +18,6 @@
 #include "formats.h"
 #endif
 
-#define LDR_TRIMMED_POT_BIN_SIG "$SOURCE_BIN$"
-
 /*
  * Password hash list entry (with a fixed salt).
  */
@@ -324,8 +322,7 @@ extern void ldr_show_pw_file(struct db_main *db, char *name);
  *original source (with some extra tags added).
  */
 extern const char *ldr_pot_source(const char *full_source,
-                                  char buffer[LINE_BUFFER_SIZE+1],
-                                  void *binary, int binary_len);
+                                  char buffer[LINE_BUFFER_SIZE+1]);
 
 /*
  * this function simply returns true of false if this is a chopped pot line

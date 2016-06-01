@@ -167,7 +167,7 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, "$gpg$*", 6) != 0)
 		return 0;
 	/* handle 'chopped' .pot lines */
-	if (ldr_in_pot && ldr_isa_pot_source(ciphertext))
+	if (ldr_isa_pot_source(ciphertext))
 		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;

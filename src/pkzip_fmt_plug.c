@@ -203,7 +203,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			return ret;
 	}
 	/* handle 'chopped' .pot lines */
-	if (ldr_in_pot && ldr_isa_pot_source(ciphertext))
+	if (ldr_isa_pot_source(ciphertext))
 		return 1;
 
 	cpkeep = strdup(ciphertext);

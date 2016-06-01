@@ -364,14 +364,15 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 
 /*
  * We trim ciphertext being stored into the .pot file for all CTs >
- * LINE_BUFFER_SIZE.  We chop this, and then append a hash, and the
- * binary. HOWEVER, during the call to ldr_cracked_hash() we do not
+ * LINE_BUFFER_SIZE.  We chop this, and then append a hash.
+ * HOWEVER, during the call to ldr_cracked_hash() we do not
  * know exactly how much of the hash is VALID, since we do not know
  * the format used or it's binary size. Thus, we check this amount
  * of bytes for any hash >= LINE_BUFFER_SIZE (these would be cut
  * OR they are the cut lines read from a .pot file).
  */
-#define POT_BUFFER_CT_TRIM_SIZE		0x200
+#define POT_BUFFER_CT_TRIM_SIZE	  \
+	(LINE_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE - 13 - 32)
 
 /*
  * Default threshold for inlining files in rar2john, zip2john, etc.

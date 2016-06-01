@@ -184,7 +184,7 @@ static int valid(char* ciphertext, int pos)
 	int nkeyfiles = -1;
 
 	/* handle 'chopped' .pot lines */
-	if (ldr_in_pot && ldr_isa_pot_source(ciphertext))
+	if (ldr_isa_pot_source(ciphertext))
 		return 1;
 
 	p = ciphertext + pos;
