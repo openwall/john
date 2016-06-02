@@ -316,9 +316,14 @@ static int magic_type(const char *filename) {
 	return 0;
 }
 static char *toHex(unsigned char *p, int len) {
-	static char Buf[4096];
-	char *cp = Buf;
+	static char *Buf;
+	static size_t BufSz = 4096;
+	char *cp;
 	int i;
+
+	BufSz = MAX(BufSz, 2 * len + 1);
+	Buf = realloc(Buf, BufSz);
+	cp = Buf;
 	for (i = 0; i < len; ++i)
 		cp += sprintf(cp, "%02x", p[i]);
 	return Buf;
