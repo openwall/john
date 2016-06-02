@@ -2112,7 +2112,7 @@ cl_uint get_processors_count(int sequential_id)
 		else if (major == 5)    // 5.x Maxwell
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
 		else if (major == 6)    // 6.x Pascal
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 64);
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
 /*
  * Apple, VCL and some other environments don't expose get_compute_capability()
  * so we need this crap - which is incomplete.
@@ -2124,7 +2124,7 @@ cl_uint get_processors_count(int sequential_id)
 
 		// Pascal
 		else if (strstr(dname, "GTX 10"))
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 64);
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
 		// Maxwell
 		else if (strstr(dname, "GTX 9") || strstr(dname, "GTX TITAN X"))
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
