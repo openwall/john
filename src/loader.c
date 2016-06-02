@@ -1910,8 +1910,8 @@ void ldr_show_pot_file(struct db_main *db, char *name)
 static void ldr_show_pw_line(struct db_main *db, char *line)
 {
 	int show, loop;
-	char source[LINE_BUFFER_SIZE];
-	char orig_line[LINE_BUFFER_SIZE];
+	char *source = NULL;
+	char *orig_line = NULL;
 	struct fmt_main *format;
 	char *(*split)(char *ciphertext, int index, struct fmt_main *self);
 	int index, count, unify;
@@ -1920,16 +1920,19 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	int pass, found, chars;
 	int hash;
 	struct db_cracked *current;
-	char utf8login[LINE_BUFFER_SIZE + 1];
-	char utf8source[LINE_BUFFER_SIZE + 1];
+	char *utf8login = NULL;
 	char joined[PLAINTEXT_BUFFER_SIZE + 1] = "";
+	size_t line_size = strlen(line) + 1;
+
+	source = mem_alloc(line_size);
+	orig_line = mem_alloc(line_size);
 
 	if (db->options->showinvalid)
 		strnzcpy(orig_line, line, sizeof(orig_line));
 	format = NULL;
 	count = ldr_split_line(&login, &ciphertext, &gecos, &home, &uid,
 		source, &format, db->options, line);
-	if (!count) return;
+	if (!count) goto free_and_return;
 
 /* If we are just showing the invalid, then simply run that logic */
 	if (db->options->showinvalid) {
@@ -1938,11 +1941,11 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 			printf ("%s", orig_line);
 		} else
 			db->guess_count += count;
-		return;
+		goto free_and_return;
 	}
 
 /* If just one format was forced on the command line, insist on it */
-	if (!fmt_list->next && !format) return;
+	if (!fmt_list->next && !format) goto free_and_return;
 
 /* DB_PLAINTEXTS is set when we --make-charset rather than --show */
 	show = !(db->options->flags & DB_PLAINTEXTS);
@@ -1975,9 +1978,17 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 	if (options.target_enc != UTF_8 &&
 	    !options.store_utf8 && options.report_utf8) {
-		login = cp_to_utf8_r(login, utf8login, LINE_BUFFER_SIZE);
-		cp_to_utf8_r(source, utf8source, LINE_BUFFER_SIZE);
-		strnzcpy(source, utf8source, sizeof(source));
+		size_t login_size = strlen(login) + 1;
+		char *utf8source;
+
+		utf8login = mem_alloc(4 * login_size);
+		utf8source = mem_alloc(line_size + 3 * login_size);
+		login = cp_to_utf8_r(login, utf8login, 4 * login_size);
+		line_size += 3 * login_size;
+		source = realloc(source, line_size);
+		cp_to_utf8_r(source, utf8source, line_size);
+		strnzcpy(source, utf8source, line_size);
+		MEM_FREE(utf8source);
 	}
 
 	if (!*ciphertext) {
@@ -2064,6 +2075,11 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 			list_add(db->plaintexts, plain);
 	}
 	if (format || found) db->password_count += count;
+
+free_and_return:
+	MEM_FREE(source);
+	MEM_FREE(orig_line);
+	MEM_FREE(utf8login);
 }
 
 void ldr_show_pw_file(struct db_main *db, char *name)
