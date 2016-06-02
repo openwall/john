@@ -541,7 +541,7 @@ next_file_header:
 		goto next_file_header;
 
 BailOut:
-		if (*best) {
+		if (best && *best) {
 			if (verbose) {
 				fprintf(stderr, "Found a valid -p mode candidate in %s\n", base_aname);
 			}
