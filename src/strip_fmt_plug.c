@@ -104,6 +104,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	if (strncmp(ciphertext, "$strip$*", 8))
 		return 0;
+	/* handle 'chopped' .pot lines */
+	if (ldr_isa_pot_source(ciphertext))
+		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 7+1;	/* skip over "$strip$" and first '*' */

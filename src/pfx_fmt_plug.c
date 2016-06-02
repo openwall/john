@@ -143,6 +143,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int len, i;
 	if (strncmp(ciphertext, "$pfx$*", 6))
 		return 0;
+	/* handle 'chopped' .pot lines */
+	if (ldr_isa_pot_source(ciphertext))
+		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;

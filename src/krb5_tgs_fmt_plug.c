@@ -57,7 +57,7 @@ john_register_one(&fmt_krb5tgs);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-/* 
+/*
   assuming checksum == edata1
 
   formats are:
@@ -116,19 +116,26 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 
 	if (strncmp(ciphertext, "$krb5tgs$23$", 12) == 0) {
+		/* handle 'chopped' .pot lines (they always have the tag!) */
+		if (ldr_isa_pot_source(ciphertext)) {
+			MEM_FREE(keeptr);
+			return 1;
+		}
+
 		ctcopy += 12;
 		if (ctcopy[0] == '*') {			/* assume account's info provided */
 			ctcopy++;
 			p = strtokm(ctcopy, "*");
 			ctcopy += strlen(p) + 2;	/* set after '$' */
 			goto edata;
-		}	
+		}
 		if (ctcopy[0] == '$')
 			ctcopy++;
 	}
 
 edata:
-	if (((p = strtokm(ctcopy, "$")) == NULL) || strlen(p) != 32)	/* assume checksum */
+	/* assume checksum */
+	if (((p = strtokm(ctcopy, "$")) == NULL) || strlen(p) != 32)
 		goto err;
 		/* assume edata2 following */
 
@@ -264,7 +271,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	for (index = 0; index < count; index++) {
 		unsigned char K3[16];
+#ifdef _MSC_VER
+		unsigned char ddata[65536];
+#else
 		unsigned char ddata[cur_salt->edata2len + 1];
+#endif
 		unsigned char checksum[16];
 		RC4_KEY rckey;
 
@@ -294,16 +305,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		RC4_set_key(&rckey, 16, K3);
 		RC4(&rckey, 32, cur_salt->edata2, ddata);
 
-		 /* 
+		 /*
 			8 first bytes are nonce, then ASN1 structures
 			(DER encoding: type-length-data)
 
 			if length >= 128 bytes:
-				length is on 2 bytes and type is 
-				\x63\x82 (encode_krb5_enc_tkt_part) 
+				length is on 2 bytes and type is
+				\x63\x82 (encode_krb5_enc_tkt_part)
 				and data is an ASN1 sequence \x30\x82
 			else:
-				length is on 1 byte and type is \x63\x81 
+				length is on 1 byte and type is \x63\x81
 				and data is an ASN1 sequence \x30\x81
 
 			next headers follow the same ASN1 "type-length-data" scheme

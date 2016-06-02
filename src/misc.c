@@ -25,6 +25,7 @@
 #include <stdarg.h>
 #include <errno.h>
 
+#include "memory.h"
 #include "logger.h"
 #include "params.h"
 #include "misc.h"
@@ -132,6 +133,85 @@ char *fgetl(char *s, int size, FILE *stream)
 
 	return res;
 }
+
+#ifndef _JOHN_MISC_NO_LOG
+char *fgetll(char *s, size_t size, FILE *stream)
+{
+	size_t len;
+	char *cp;
+
+	if (!fgets(s, size, stream))
+		return NULL;
+
+	len = strlen(s);
+
+	if (!len)
+		return s;
+
+	if (s[len-1] == '\n') {
+		s[--len] = 0;
+		while (len && (s[len-1] == '\n' || s[len-1] == '\r'))
+			s[--len] = 0;
+		return s;
+	}
+	if (s[len-1] == '\r') {
+		int c;
+		s[--len] = 0;
+		while (len && (s[len-1] == '\n' || s[len-1] == '\r'))
+			s[--len] = 0;
+		/* we may have gotten the first byte of \r\n */
+		c = getc(stream);
+		if (c == EOF)
+			return s;
+		if (c != '\n')
+			ungetc(c, stream);
+		return s;
+	}
+	cp = strdup(s);
+
+	while (1) {
+		size_t increase = MAX(len, 0x8000000);
+		void *new_cp;
+
+		new_cp = realloc(cp, len + increase);
+
+		while (!new_cp) {
+			increase >>= 2;
+			if (increase < 0x10000)
+				pexit("realloc");
+			new_cp = realloc(cp, len + increase);
+		}
+
+		cp = new_cp;
+
+		/* We get an EOF if there is no trailing \n on the last line */
+		if (!fgets(&cp[len], increase, stream))
+			return cp;
+
+		len += strlen(&cp[len]);
+
+		if (cp[len-1] == '\n') {
+			cp[--len] = 0;
+			while (len && (cp[len-1] == '\n' || cp[len-1] == '\r'))
+				cp[--len] = 0;
+			return cp;
+		}
+		if (cp[len-1] == '\r') {
+			int c;
+			cp[--len] = 0;
+			while (len && (cp[len-1] == '\n' || cp[len-1] == '\r'))
+				cp[--len] = 0;
+			/* we may have gotten the first byte of \r\n */
+			c = getc(stream);
+			if (c == EOF)
+				return cp;
+			if (c != '\n')
+				ungetc(c, stream);
+			return cp;
+		}
+	}
+}
+#endif
 
 char *strnfcpy(char *dst, const char *src, int size)
 {

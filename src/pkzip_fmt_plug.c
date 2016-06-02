@@ -202,6 +202,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		else
 			return ret;
 	}
+	/* handle 'chopped' .pot lines */
+	if (ldr_isa_pot_source(ciphertext))
+		return 1;
 
 	cpkeep = strdup(ciphertext);
 	cp = cpkeep;

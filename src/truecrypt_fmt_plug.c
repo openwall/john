@@ -50,6 +50,7 @@ john_register_one(&fmt_truecrypt_whirlpool);
 #include "formats.h"
 #include "crc32.h"
 #include "johnswap.h"
+#include "loader.h"
 #define PBKDF2_HMAC_SHA512_ALSO_INCLUDE_CTX
 #include "pbkdf2_hmac_sha512.h"
 #include "pbkdf2_hmac_ripemd160.h"
@@ -181,6 +182,10 @@ static int valid(char* ciphertext, int pos)
 	unsigned int i;
 	char *p, *q;
 	int nkeyfiles = -1;
+
+	/* handle 'chopped' .pot lines */
+	if (ldr_isa_pot_source(ciphertext))
+		return 1;
 
 	p = ciphertext + pos;
 	q = strchr(p, '$');

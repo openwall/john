@@ -8,6 +8,7 @@
 #include "common.h"
 #include "formats.h"
 #include "keystore_common.h"
+#include "loader.h"
 #include "memdbg.h"
 
 static int MAX_SALT_SIZE=819200;
@@ -29,6 +30,9 @@ MAYBE_INLINE static int keystore_common_valid(char *ciphertext, struct fmt_main 
 	int v;
 	if (strncmp(ciphertext, "$keystore$", 10) != 0)
 		return 0;
+	/* handle 'chopped' .pot lines */
+	if (ldr_isa_pot_source(ciphertext))
+		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 10;
@@ -97,11 +101,13 @@ void *keystore_common_get_binary(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
+
 	ctcopy += 10; /* skip over "$keystore$" */
 	p = strtokm(ctcopy, "$");
 	p = strtokm(NULL, "$");
 	p = strtokm(NULL, "$");
 	p = strtokm(NULL, "$"); /* at hash now */
+
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
