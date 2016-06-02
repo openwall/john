@@ -30,6 +30,7 @@ typedef struct {
 typedef struct {
 	uint iterations;
 	uint outlen;
+	uint skip_bytes;
 	uchar length;
 	uchar salt[SALTLEN];
 } pbkdf2_salt;
@@ -194,36 +195,48 @@ inline void big_hmac_sha1(__private uint *input, uint inputlen,
 
 inline void pbkdf2(__global const uchar *pass, uint passlen,
                    __global const uchar *salt, uint saltlen, uint iterations,
-                   __global uint *out, uint outlen)
+                   __global uint *out, uint outlen, uint skip_bytes)
 {
 	uint ipad_state[5];
 	uint opad_state[5];
-	uint r, t = 0;
+	uint accum = 0;
+	uint loop, loops;
 
 	preproc(pass, passlen, ipad_state, 0x36363636);
 	preproc(pass, passlen, opad_state, 0x5c5c5c5c);
 
-	for (r = 1; r <= (outlen + 19) / 20; r++) {
+	loops = (skip_bytes + outlen + (SHA1_DIGEST_LENGTH-1)) / SHA1_DIGEST_LENGTH;
+	loop = skip_bytes / SHA1_DIGEST_LENGTH + 1;
+
+	while (loop <= loops) {
 		uint tmp_out[5];
 		int i;
 
-		hmac_sha1(tmp_out, ipad_state, opad_state, salt, saltlen, r);
+		hmac_sha1(tmp_out, ipad_state, opad_state, salt, saltlen, loop);
 
 		big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH,
 		              ipad_state, opad_state,
 		              tmp_out, iterations);
 
-		for (i = 0; i < 20 && t < (outlen + 3) / 4 * 4; i++, t++)
-			PUTCHAR_BE_G(out, t, ((uchar*)tmp_out)[i]);
+		for (i = skip_bytes % SHA1_DIGEST_LENGTH;
+		     i < SHA1_DIGEST_LENGTH && accum < (outlen + 3) / 4 * 4;
+		     i++, accum++)
+		{
+			PUTCHAR_BE_G(out, accum, ((uchar*)tmp_out)[i]);
+		}
+
+		loop++;
+		skip_bytes = 0;
 	}
 }
 
 __kernel void derive_key(__global const pbkdf2_password *inbuffer,
-    __global pbkdf2_hash *outbuffer, __global const pbkdf2_salt *salt)
+                         __global pbkdf2_hash *outbuffer,
+                         __global const pbkdf2_salt *salt)
 {
 	uint idx = get_global_id(0);
 
 	pbkdf2(inbuffer[idx].v, inbuffer[idx].length,
-	       salt->salt, salt->length,
-	       salt->iterations, outbuffer[idx].v, salt->outlen);
+	       salt->salt, salt->length, salt->iterations,
+	       outbuffer[idx].v, salt->outlen, salt->skip_bytes);
 }

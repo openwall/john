@@ -33,6 +33,8 @@ john_register_one(&fmt_opencl_zip);
 #include "hmac_sha.h"
 #include "options.h"
 #include "stdint.h"
+#define OPENCL_FORMAT 1
+#include "pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL		"zip-opencl"
 #define FORMAT_NAME		"ZIP"
@@ -57,10 +59,11 @@ typedef struct {
 } zip_hash;
 
 typedef struct {
-	int     iterations;
-	int     outlen;
-	uint8_t length;
-	uint8_t salt[64];
+	uint32_t iterations;
+	uint32_t outlen;
+	uint32_t skip_bytes;
+	uint8_t  length;
+	uint8_t  salt[64];
 } zip_salt;
 
 typedef struct my_salt_t {
@@ -299,7 +302,8 @@ static void set_salt(void *salt)
 	memcpy((char*)currentsalt.salt, saved_salt->salt, SALT_LENGTH(saved_salt->v.mode));
 	currentsalt.length = SALT_LENGTH(saved_salt->v.mode);
 	currentsalt.iterations = KEYING_ITERATIONS;
-	currentsalt.outlen = 2 * KEY_LENGTH(saved_salt->v.mode) + PWD_VER_LENGTH;
+	currentsalt.outlen = PWD_VER_LENGTH;
+	currentsalt.skip_bytes = 2 * KEY_LENGTH(saved_salt->v.mode);
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
 	               CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
@@ -363,12 +367,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
-		if (!memcmp(&((unsigned char*)outbuffer[index].v)[2 * KEY_LENGTH(saved_salt->v.mode)], saved_salt->passverify, 2))
-			hmac_sha1(&((unsigned char*)outbuffer[index].v)[KEY_LENGTH(saved_salt->v.mode)],
+		if (!memcmp((unsigned char*)outbuffer[index].v,
+		            saved_salt->passverify, 2)) {
+			unsigned char pwd_ver[4+64];
+
+			pbkdf2_sha1(inbuffer[index].v,
+			            inbuffer[index].length, saved_salt->salt,
+			            SALT_LENGTH(saved_salt->v.mode), KEYING_ITERATIONS,
+			            pwd_ver, KEY_LENGTH(saved_salt->v.mode),
+			            KEY_LENGTH(saved_salt->v.mode));
+			hmac_sha1(pwd_ver,
 			          KEY_LENGTH(saved_salt->v.mode),
 			          (const unsigned char*)saved_salt->datablob,
 			          saved_salt->comp_len,
 			          crypt_key[index], WINZIP_BINARY_SIZE);
+		}
 		else
 			memset(crypt_key[index], 0, WINZIP_BINARY_SIZE);
 	}

@@ -60,8 +60,9 @@ typedef struct {
 typedef struct {
 	uint32_t iterations;
 	uint32_t outlen;
+	uint32_t skip_bytes;
 	uint8_t  length;
-	uint8_t  salt[SALTLEN];
+	uint8_t  salt[64];
 } keychain_salt;
 
 static int *cracked;
@@ -264,6 +265,8 @@ static void set_salt(void *salt)
 	currentsalt.length = 20;
 	currentsalt.iterations = 1000;
 	currentsalt.outlen = 24;
+	currentsalt.skip_bytes = 0;
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
 		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
 	    "Copy salt to gpu");

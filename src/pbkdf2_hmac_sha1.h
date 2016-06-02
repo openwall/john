@@ -34,7 +34,7 @@
 #define pbkdf2_sha1_sse pbkdf1_sha1_sse
 #endif
 
-#if !defined(SIMD_COEF_32) || defined (PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX)
+#if !defined(SIMD_COEF_32) || defined(PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX) || defined(OPENCL_FORMAT)
 
 static void _pbkdf2_sha1_load_hmac(const unsigned char *K, int KL, SHA_CTX *pIpad, SHA_CTX *pOpad) {
 	unsigned char ipad[SHA_CBLOCK], opad[SHA_CBLOCK], k0[SHA_DIGEST_LENGTH];

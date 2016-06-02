@@ -288,7 +288,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_32
-		unsigned char pwd_ver[(2+64)*MAX_KEYS_PER_CRYPT];
+		unsigned char pwd_ver[64*MAX_KEYS_PER_CRYPT];
 		int lens[MAX_KEYS_PER_CRYPT], i;
 		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
@@ -296,32 +296,45 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pin[i] = (unsigned char*)saved_key[i+index];
 			pout[i] = &pwd_ver[i*(2+2*KEY_LENGTH(saved_salt->v.mode))];
 		}
-		pbkdf2_sha1_sse((const unsigned char **)pin, lens, saved_salt->salt, SALT_LENGTH(saved_salt->v.mode), KEYING_ITERATIONS, pout, 2+2*KEY_LENGTH(saved_salt->v.mode), 0);
+		pbkdf2_sha1_sse((const unsigned char **)pin, lens, saved_salt->salt,
+		                SALT_LENGTH(saved_salt->v.mode), KEYING_ITERATIONS,
+		                pout, 2, 2*KEY_LENGTH(saved_salt->v.mode));
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			if (!memcmp(&(pout[i][KEY_LENGTH(saved_salt->v.mode)<<1]), saved_salt->passverify, 2))
-			{
-				hmac_sha1(&(pout[i][KEY_LENGTH(saved_salt->v.mode)]), KEY_LENGTH(saved_salt->v.mode),
-						   (const unsigned char*)saved_salt->datablob, saved_salt->comp_len,
-						   crypt_key[index+i], WINZIP_BINARY_SIZE);
+			if (!memcmp(pout[i], saved_salt->passverify, 2)) {
+				pbkdf2_sha1_sse((const unsigned char **)pin, lens,
+				                saved_salt->salt,
+				                SALT_LENGTH(saved_salt->v.mode),
+				                KEYING_ITERATIONS, pout,
+				                KEY_LENGTH(saved_salt->v.mode),
+				                KEY_LENGTH(saved_salt->v.mode));
+				hmac_sha1(pout[i], KEY_LENGTH(saved_salt->v.mode),
+				          (const unsigned char*)saved_salt->datablob,
+				          saved_salt->comp_len, crypt_key[index+i],
+				          WINZIP_BINARY_SIZE);
 			}
 			else
 				memset(crypt_key[index+i], 0, WINZIP_BINARY_SIZE);
 		}
 #else
-		int LEN = 2+2*KEY_LENGTH(saved_salt->v.mode);
 		union {
-			unsigned char pwd_ver[4+64];
+			unsigned char pwd_ver[64];
 			ARCH_WORD_32 w;
 		} x;
 		unsigned char *pwd_ver = x.pwd_ver;
-		pbkdf2_sha1((unsigned char *)saved_key[index],
-		       strlen(saved_key[index]), saved_salt->salt, SALT_LENGTH(saved_salt->v.mode),
-		       KEYING_ITERATIONS, pwd_ver, LEN, 0);
-		if (!memcmp(&(pwd_ver[KEY_LENGTH(saved_salt->v.mode)<<1]), saved_salt->passverify, 2))
-		{
-			hmac_sha1(&(pwd_ver[KEY_LENGTH(saved_salt->v.mode)]), KEY_LENGTH(saved_salt->v.mode),
-                       (const unsigned char*)saved_salt->datablob, saved_salt->comp_len,
-                       crypt_key[index], WINZIP_BINARY_SIZE);
+		pbkdf2_sha1((unsigned char *)saved_key[index], strlen(saved_key[index]),
+		            saved_salt->salt, SALT_LENGTH(saved_salt->v.mode),
+		            KEYING_ITERATIONS, pwd_ver, 2,
+		            2*KEY_LENGTH(saved_salt->v.mode));
+		if (!memcmp(pwd_ver, saved_salt->passverify, 2)) {
+			pbkdf2_sha1((unsigned char *)saved_key[index],
+			            strlen(saved_key[index]), saved_salt->salt,
+			            SALT_LENGTH(saved_salt->v.mode), KEYING_ITERATIONS,
+			            pwd_ver, KEY_LENGTH(saved_salt->v.mode),
+			            KEY_LENGTH(saved_salt->v.mode));
+			hmac_sha1(pwd_ver, KEY_LENGTH(saved_salt->v.mode),
+			          (const unsigned char*)saved_salt->datablob,
+			          saved_salt->comp_len, crypt_key[index],
+			          WINZIP_BINARY_SIZE);
 		}
 		else
 			memset(crypt_key[index], 0, WINZIP_BINARY_SIZE);
