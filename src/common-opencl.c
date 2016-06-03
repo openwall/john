@@ -1863,6 +1863,27 @@ size_t opencl_read_source(char *kernel_filename, char **kernel_source)
 	return source_size;
 }
 
+#if JOHN_SYSTEMWIDE
+static char *replace_str(char *string, char *from, char *to)
+{
+	static char buffer[512];
+	char *p;
+	int len;
+
+	if(!(p = strstr(string, from)))
+		return string;
+
+	len = p - string;
+	strncpy(buffer, string, len);
+	buffer[len] = '\0';
+
+	sprintf(buffer + len, "%s%s", to, p + strlen(from));
+
+	return buffer;
+}
+#endif
+
+
 void opencl_build_kernel_opt(char *kernel_filename, int sequential_id,
                              char *opts)
 {
@@ -1878,7 +1899,7 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
                          int warn)
 {
 	struct stat source_stat, bin_stat;
-	char dev_name[512], bin_name[512];
+	char dev_name[512], bin_name[512], *tmp_name;
 	unsigned char hash[16];
 	char hash_str[33];
 	uint64_t startTime, runtime;
@@ -1926,8 +1947,13 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 		}
 		hash_str[32] = 0;
 
+#if JOHN_SYSTEMWIDE
+		tmp_name = replace_str(kernel_filename, "$JOHN", JOHN_PRIVATE_HOME);
+#else
+		tmp_name = kernel_filename;
+#endif
 		snprintf(bin_name, sizeof(bin_name), "%s_%s.bin",
-		         kernel_filename, hash_str);
+		         tmp_name, hash_str);
 
 		// Select the kernel to run.
 		if (!getenv("DUMP_BINARY") && !stat(path_expand(bin_name), &bin_stat) &&
