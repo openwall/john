@@ -1,4 +1,4 @@
-The following changes have been made between John 1.8.0 and 1.8.0.7:
+The following changes have been made between John 1.8.0 and 1.8.0.8:
 
 * 3x interleaving for bcrypt on x86-64, except in AVX-enabled builds.
 Provides significant speedup on Core 2 CPUs.
@@ -8,6 +8,7 @@ as separate id's for our heuristics on supported hash types.
 * Introduced a number of optimizations for faster handling of large password
 hash files, including loading, cracking, and "--show".  Some of these use more
 memory than before, yet in a more efficient manner.
+* Dropped undocumented special handling of "Mc" in 'c' and 'C' rule commands.
 * Implemented special-case handling of repeated rule commands '$', '^', '[',
 ']', '{', and '}', as well as faster handling of the 'D' command.
 * When built with "--fork" support, disallow session names with all-digit
