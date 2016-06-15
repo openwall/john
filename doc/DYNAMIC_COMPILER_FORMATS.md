@@ -5,8 +5,6 @@ dynamic compiler.
 
 `run/dynamic.conf` contains documentation for Redmine, XenForo hash formats.
 
-TODO hash formats -> sha512(sha512($p).$s)  # XenForo SHA-512
-
 ## Cracking OpenCart hashes
 
 ```
@@ -100,7 +98,7 @@ openwall         (?)
 TurnKey PunBB 14.0 (which comes with PunBB 1.4.3) was used for generating PunBB
 hashes.
 
-## Cracking JBoss AS 7.1 hashes
+## Cracking JBoss AS 7.1 and EAP 6.4 hashes
 
 This information is contributed by Davy Douhine (@ddouhine).
 
@@ -123,7 +121,7 @@ test             (user)
 JBoss hashes can be created by using the "add-user.sh" utility included with JBoss.
 
 ```
-user@kali:~/jboss-as-7.1.1.Final/bin# ./add-user.sh
+user@kali:~/jboss-as-7.1.1.Final/bin$ ./add-user.sh
 
 What type of user do you wish to add?
  a) Management User (mgmt-users.properties)
