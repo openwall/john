@@ -1266,16 +1266,15 @@ static void john_load(void)
 	    database.format != &fmt_LM && database.format != &fmt_DES) {
 		struct db_main loop_db;
 		struct fmt_main *save_list = fmt_list;
-		char *save_pot = options.activepot;
+		char *loop_pot = options.wordlist ?
+			options.wordlist : options.activepot;
 
 		fmt_list = &fmt_LM;
 
 		options.loader.flags |= DB_CRACKED;
 		ldr_init_database(&loop_db, &options.loader);
 
-		options.activepot = options.wordlist ?
-			options.wordlist : options.activepot;
-		ldr_show_pot_file(&loop_db, options.activepot);
+		ldr_show_pot_file(&loop_db, loop_pot);
 /*
  * Load optional extra (read-only) pot files. If an entry is a directory,
  * we read all files in it. We currently do NOT recurse.
@@ -1301,7 +1300,6 @@ static void john_load(void)
 		}
 		database.plaintexts = loop_db.plaintexts;
 		options.loader.flags &= ~DB_CRACKED;
-		options.activepot = save_pot;
 		fmt_list = save_list;
 		db_main_free(&loop_db);
 	}

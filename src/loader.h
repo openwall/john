@@ -317,9 +317,12 @@ extern void ldr_show_pot_file(struct db_main *db, char *name);
  */
 extern void ldr_show_pw_file(struct db_main *db, char *name);
 
+/* Compare a possibly truncated pot source with a full one */
+extern int ldr_pot_source_cmp(const char *pot_entry, const char *full_source);
+
 /*
- * this returns the line to write to a .pot file. It may be shorter than the
- *original source (with some extra tags added).
+ * This returns the line to write to a .pot file. It may be shorter than the
+ * original source (with some extra tags added).
  */
 extern const char *ldr_pot_source(const char *full_source,
                                   char buffer[LINE_BUFFER_SIZE+1]);

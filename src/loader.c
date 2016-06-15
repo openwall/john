@@ -104,7 +104,7 @@ static char *skip_bom(char *string)
  *    pot:      $hashtype$abcdefghijk.......$SOURCE_HASH$<md5 of full hash>
  * this way we can fully compare this .pot record (against the full input line)
  */
-static int ldr_pot_source_cmp(const char *pot_entry, const char *full_source) {
+int ldr_pot_source_cmp(const char *pot_entry, const char *full_source) {
 	MD5_CTX ctx;
 	unsigned char srcH[16], potH[16];
 	const char *p;

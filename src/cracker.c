@@ -467,6 +467,37 @@ static int crk_remove_pot_entry(char *ciphertext)
 #endif
 
 	/*
+	 * If the pot entry is truncated from a huge ciphertext, we have
+	 * this alternate code path that's slower but aware of the magic.
+	 */
+	if (ldr_isa_pot_source(ciphertext)) {
+		if ((salt = crk_db->salts))
+		do {
+			if ((pw = salt->list))
+			do {
+				char *source;
+
+				source = crk_methods.source(pw->source,
+				                            pw->binary);
+
+				if (!ldr_pot_source_cmp(ciphertext, source)) {
+					if (crk_process_guess(salt, pw, -1))
+						return 1;
+
+					if (!(crk_db->options->flags & DB_WORDS))
+						break;
+				}
+			} while ((pw = pw->next));
+		}  while ((salt = salt->next));
+
+#ifdef POTSYNC_DEBUG
+		end = times(&buffer);
+		salt_time += (end - start);
+#endif
+		return 0;
+	}
+
+	/*
 	 * We need to copy ciphertext, because the one we got actually
 	 * points to a static buffer in split() and we are going to call
 	 * that function again and compare the results. Thanks to
