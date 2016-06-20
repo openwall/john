@@ -166,14 +166,20 @@ void cuda_device_list()
 		    devProp.pciBusID, devProp.pciDeviceID, devProp.pciDomainID);
 #if __linux__ && HAVE_LIBDL
 		if (nvml_lib) {
-			int fan, temp, util;
+			int fan, temp, util, cl, ml;
 			int nvml_id = cuda_id2nvml(i);
 
+			fan = temp = util = cl = ml = -1;
+
+			nvidia_get_temp(nvml_id, &temp, &fan, &util, &cl, &ml);
+			if (cl > ml)
+				ml = cl;
+			if (cl >= 0)
+				printf("    PCI lanes:                     %d/%d\n", cl, ml);
+			else
+				printf("    PCI lanes:                     n/a\n");
 			printf("    NVML id:                       %d\n",
 			       nvml_id);
-			fan = temp = util = -1;
-
-			nvidia_get_temp(nvml_id, &temp, &fan, &util);
 			if (fan >= 0)
 				printf("    Fan speed:                     %d%%\n", fan);
 			else
