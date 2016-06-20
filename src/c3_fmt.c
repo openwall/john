@@ -17,6 +17,11 @@
 
 #if HAVE_CRYPT
 
+#undef _XOPEN_SOURCE
+#undef _XOPEN_SOURCE_EXTENDED
+#undef _XOPEN_VERSION
+#undef  _XPG4_2
+#undef _GNU_SOURCE
 #define _XOPEN_SOURCE 4 /* for crypt(3) */
 #define _XOPEN_SOURCE_EXTENDED 1 /* for OpenBSD */
 #define _XOPEN_VERSION 4
