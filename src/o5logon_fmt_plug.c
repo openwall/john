@@ -32,13 +32,14 @@ john_register_one(&fmt_o5logon);
 #include "params.h"
 #include "options.h"
 #include "aes.h"
+#include "md5.h"
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE               512 // tuned on core i7
-#endif
 //#define OMP_SCALE                8192 // tuned on K8-Dual HT
+#endif
 #endif
 #include "memdbg.h"
 
@@ -47,7 +48,7 @@ static int omp_t = 1;
 #define ALGORITHM_NAME		"SHA1 AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
+#define PLAINTEXT_LENGTH	32 /* Multiple of 16 */
 #define CIPHERTEXT_LENGTH	48
 #define SALT_LENGTH		10
 #define BINARY_SIZE		0
@@ -75,14 +76,18 @@ static struct fmt_tests o5logon_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static int *saved_len;
 static int *cracked, any_cracked;
 
 static struct custom_salt {
-	char unsigned salt[SALT_LENGTH]; /* AUTH_VFR_DATA */
-	char unsigned ct[CIPHERTEXT_LENGTH]; /* AUTH_SESSKEY */
+	unsigned char salt[SALT_LENGTH];         /* AUTH_VFR_DATA */
+	unsigned char ct[CIPHERTEXT_LENGTH];     /* Server's AUTH_SESSKEY */
+	unsigned char csk[CIPHERTEXT_LENGTH];    /* Client's AUTH_SESSKEY */
+	unsigned char pw[16 + PLAINTEXT_LENGTH]; /* Client's AUTH_PASSWORD */
+	int pw_len;                              /* AUTH_PASSWORD length (blocks) */
 } *cur_salt;
 
-static aes_fptr_cbc aesFunc;
+static aes_fptr_cbc aesDec, aesEnc;
 
 static void init(struct fmt_main *self)
 {
@@ -96,10 +101,13 @@ static void init(struct fmt_main *self)
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
+	saved_len = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_len));
 	cracked = mem_calloc(self->params.max_keys_per_crypt,
 	                     sizeof(*cracked));
 
-	aesFunc = get_AES_dec192_CBC();
+	aesDec = get_AES_dec192_CBC();
+	aesEnc = get_AES_enc192_CBC();
 	sprintf(Buf, "%s %s", self->params.algorithm_name,
 	        get_AES_type_string());
 	self->params.algorithm_name=Buf;
@@ -108,6 +116,7 @@ static void init(struct fmt_main *self)
 static void done(void)
 {
 	MEM_FREE(cracked);
+	MEM_FREE(saved_len);
 	MEM_FREE(saved_key);
 }
 
@@ -116,20 +125,32 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
+
 	if (strncmp(ciphertext,  "$o5logon$", 9))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 9;
-	p = strtokm(ctcopy, "*"); /* ciphertext */
-	if(!p)
+	p = strtokm(ctcopy, "*"); /* server's sesskey */
+	if (!p)
 		goto err;
-	if(hexlenu(p) != CIPHERTEXT_LENGTH * 2)
+	if (hexlenu(p) != CIPHERTEXT_LENGTH * 2)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if(hexlenu(p) != SALT_LENGTH * 2)
+	if (hexlenu(p) != SALT_LENGTH * 2)
 		goto err;
+	/* optional fields follow */
+	if ((p = strtokm(NULL, "*"))) {	/* client's encrypted password */
+		int len = hexlenu(p);
+
+		if (len < 64 || len % 32 || len > 2 * PLAINTEXT_LENGTH + 16)
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL)	/* client's sesskey */
+			goto err;
+		if (hexlenu(p) != CIPHERTEXT_LENGTH * 2)
+			goto err;
+	}
 	MEM_FREE(keeptr);
 	return 1;
 
@@ -140,11 +161,13 @@ err:
 
 static void *get_salt(char *ciphertext)
 {
+	static struct custom_salt cs;
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
-	static struct custom_salt cs;
+
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += 9;	/* skip over "$o5logon$" */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < CIPHERTEXT_LENGTH; i++)
@@ -154,6 +177,19 @@ static void *get_salt(char *ciphertext)
 	for (i = 0; i < SALT_LENGTH; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+
+	/* Oracle 12 hashes may have more fields (optional for older ver) */
+	if ((p = strtokm(NULL, "*"))) {
+		cs.pw_len = hexlenu(p) / 2 / 16 - 1;
+		for (i = 0; p[i * 2]; i++)
+			cs.pw[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtokm(NULL, "*");
+		for (i = 0; i < CIPHERTEXT_LENGTH; i++)
+			cs.csk[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	}
+
 	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
@@ -179,32 +215,87 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 		unsigned char key[24];
-		unsigned char pt[16];
 		unsigned char iv[16];
-
-		// No longer using AES key here.
-
 		SHA_CTX ctx;
 
-		memset(&key[20], 0, 4);
 		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
+		SHA1_Update(&ctx, saved_key[index], saved_len[index]);
 		SHA1_Update(&ctx, cur_salt->salt, 10);
 		SHA1_Final(key, &ctx);
+		memset(key + 20, 0, 4);
 
-		memcpy(iv, cur_salt->ct + 16, 16);
+		if (cur_salt->pw_len) {
+			int i;
+			unsigned char s_secret[48];
+			unsigned char c_secret[48];
+			unsigned char combined_sk[24];
+			unsigned char final_key[32];
+			unsigned char password[16 + PLAINTEXT_LENGTH + 16];
+			char *dec_pw = (char*)password + 16;
+			int blen = (saved_len[index] + 15) / 16;
+			MD5_CTX ctx;
 
-		// Using AES function:
-		// in (cipher), out (plain), key, block count, iv
-		aesFunc(cur_salt->ct + 32, pt, key, 1, iv);
-		if (!memcmp(pt + 8, "\x08\x08\x08\x08\x08\x08\x08\x08", 8)) {
-			cracked[index] = 1;
+			if (cur_salt->pw_len == blen) {
+				memset(iv, 0, 16);
+				aesDec(cur_salt->ct, s_secret, key, 3, iv);
+
+				memset(iv, 0, 16);
+				aesDec(cur_salt->csk, c_secret, key, 3, iv);
+
+				for (i = 0; i < 24; i++)
+					combined_sk[i] = s_secret[16 + i] ^ c_secret[16 + i];
+
+				MD5_Init(&ctx);
+				MD5_Update(&ctx, combined_sk, 16);
+				MD5_Final(final_key, &ctx);
+				MD5_Init(&ctx);
+				MD5_Update(&ctx, combined_sk + 16, 8);
+				MD5_Final(final_key + 16, &ctx);
+
+				memset(iv, 0, 16);
+				aesDec(cur_salt->pw, password, final_key,
+				       cur_salt->pw_len + 1, iv);
+
+				if (!memcmp(dec_pw, saved_key[index], saved_len[index]))
+				{
+					char *p = dec_pw + 16 * blen - 1;
+					int n, pad;
+					int res = 1;
+
+					n = pad = *p;
+					while (n--) {
+						if (*p-- != pad) {
+							res = 0;
+							break;
+						}
+					}
+
+					if (res) {
+						cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-			any_cracked |= 1;
+						any_cracked |= 1;
+					}
+				}
+			}
+		} else {
+			unsigned char pt[16];
+
+			memcpy(iv, cur_salt->ct + 16, 16);
+			aesDec(cur_salt->ct + 32, pt, key, 1, iv);
+
+			if (!memcmp(pt + 8, "\x08\x08\x08\x08\x08\x08\x08\x08", 8))
+			{
+				cracked[index] = 1;
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+				any_cracked |= 1;
+			}
 		}
 	}
+
 	return count;
 }
 
@@ -225,11 +316,8 @@ static int cmp_exact(char *source, int index)
 
 static void o5logon_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	saved_len[index] =
+		strnzcpyn(saved_key[index], key, sizeof(saved_key[index]));
 }
 
 static char *get_key(int index)
