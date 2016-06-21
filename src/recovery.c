@@ -301,7 +301,7 @@ void rec_save(void)
 #endif
 	opt = rec_argv;
 	while (*++opt) {
-		if (!memcmp(*opt, "--internal-encoding", 19))
+		if (!strncmp(*opt, "--internal-encoding", 19))
 			memcpy(*opt, "--internal-codepage", 19);
 #ifdef HAVE_MPI
 		if (!strncmp(*opt, "--fork", 6))
