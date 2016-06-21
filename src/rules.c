@@ -1213,8 +1213,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 				rules_errno = RULES_ERROR_END;
 				return NULL;
 			}
-			if (!minlength ||
-			    (rules_vars[ARCH_INDEX(RULE)] >= minlength))
+			if (rules_vars[ARCH_INDEX(RULE)] >= minlength)
 				continue;
 			return NULL;
 
