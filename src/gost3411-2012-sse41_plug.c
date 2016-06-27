@@ -21,9 +21,14 @@ static inline __m128i _mm_cvtsi64_si128(long long a) {
 #define _mm_insert_epi64 my__mm_insert_epi64
 
 static inline __m128i _mm_insert_epi64(__m128i a, uint64_t b, int c) {
-	c <<= 1;
-	a = _mm_insert_epi32(a, (unsigned int)b, c);
-	return _mm_insert_epi32(a, (unsigned int)(b >> 32), c + 1);
+//	c <<= 1;
+//	a = _mm_insert_epi32(a, (unsigned int)b, c);
+//	return _mm_insert_epi32(a, (unsigned int)(b >> 32), c + 1);
+/* The above code failes to build UNLESS optimizations are set. Since we only call
+   this function with a constant of 1, we can simply use 2 and 3 constants and
+   then the code build either in optimized or non optimized mode */
+	a = _mm_insert_epi32(a, (unsigned int)b, 2);
+	return _mm_insert_epi32(a, (unsigned int)(b >> 32), 3);
 }
 #endif
 
