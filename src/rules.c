@@ -1234,80 +1234,6 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 			if (options.internal_cp != UTF_8) continue;
 			return NULL;
 
-#if 0
-/*
- * This inner case was added to handle things like this, which ARE seen in the
- * wild:
- * -[:c] other_rule_stuff    This case will chew up the -[.....] items,
- * handling them in proper method, just like stand alone -c -:, etc
- */
-		case '[':
-		do {
-			switch (*rule) {
-			case ':':
-				continue;
-
-			case 'c':
-				if (!db) continue;
-				if (db->format->params.flags & FMT_CASE)
-					continue;
-				return NULL;
-
-			case '8':
-				if (!db) continue;
-				if (db->format->params.flags & FMT_8_BIT)
-					continue;
-				return NULL;
-
-			case 's':
-				if (!db) continue;
-				if (db->options->flags & DB_SPLIT) continue;
-				return NULL;
-
-			case 'p':
-				if (split >= 0) continue;
-				return NULL;
-
-			case '>':
-				if (!db && RULE) continue;
-				if (!NEXT) {
-					rules_errno = RULES_ERROR_END;
-					return NULL;
-				}
-				if (rules_vars[ARCH_INDEX(RULE)] <=
-				    rules_max_length)
-					continue;
-				return NULL;
-
-			case '\0':
-				rules_errno = RULES_ERROR_END;
-				return NULL;
-
-			case 'u':
-				if (!db) continue;
-				if (options.internal_cp == UTF_8)
-					continue;
-				return NULL;
-
-			case 'U':
-				if (!db) continue;
-				if (options.internal_cp != UTF_8)
-					continue;
-				return NULL;
-
-			case ']':
-// skip the ']', since we are not dropping down to the while clause.
-				++rule;
-				goto EndPP;
-
-			default:
-				rules_errno = RULES_ERROR_REJECT;
-				return NULL;
-			}
-		} while (RULE);
-EndPP:
-		continue;
-#endif
 		default:
 			rules_errno = RULES_ERROR_REJECT;
 			return NULL;
@@ -1459,7 +1385,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case 'p':
-			if (hc_logic /*|| (*rule >= '1' && *rule <= '9')*/) {
+			if (hc_logic || (*rule >= '1' && *rule <= '9')) {
 				/* HC rule: duplicate word N times */
 				unsigned char x, y;
 				POSITION(x)
@@ -1857,7 +1783,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case 'R':
-			if (hc_logic /*|| (*rule >= '0' && *rule <= '9')*/) {
+			if (hc_logic || (*rule >= '0' && *rule <= '9')) {
 				/* HC rule: bit-shift character right */
 				unsigned char n;
 				unsigned char val;
@@ -1873,7 +1799,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case 'L':
-			if (hc_logic /*|| (*rule >= '0' && *rule <= '9')*/) {
+			if (hc_logic || (*rule >= '0' && *rule <= '9')) {
 				/* HC rule: bit-shift character left */
 				unsigned char n;
 				unsigned char val;
