@@ -445,15 +445,11 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	memset(&options, 0, offsetof(struct options_main, subformat));
 
 	options.loader.field_sep_char = ':';
-	options.regen_lost_salts = 0;
-	options.max_fix_state_delay = 0;
 	options.max_wordfile_memory = WORDLIST_BUFFER_DEFAULT;
-	options.force_maxkeys = 0;
-	options.req_maxlength = options.force_maxlength = 0;
-	options.req_minlength = -1; options.reload_at_crack = 0;
-	options.max_run_time = options.status_interval = 0;
-	options.reload_at_save = options.dynamic_bare_hashes_always_valid = 0;
-	options.verbosity = VERB_DEFAULT;
+	options.req_minlength = -1;
+
+	if (!options.verbosity)
+		options.verbosity = VERB_DEFAULT;
 
 	list_init(&options.passwd);
 
