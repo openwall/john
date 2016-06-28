@@ -80,9 +80,12 @@
 #include <starlet.h>
 #include <lib$routines.h>
 #include <uaidef.h>
-#endif
-#ifndef UAI$M_PWDMIX
-#define UAI$M_PWDMIX 0
+#define UAIsM_PWDMIX UAI$M_PWDMIX
+#else
+/*
+ * Emulate symbols defined for VMS services.
+ */
+#define UAIsM_PWDMIX 0
 #endif
 
 #include "uaf_encode.h"
@@ -172,11 +175,11 @@ int uaf_extract_from_raw(void *rec_vp, int rec_len,
 	 */
 	memcpy(pwd, rec->pwd, 8);	/* assume hash is first member */
 	pwd->flags = rec->flagbits;
-	if ((pwd->flags & UAI$M_PWDMIX) && !rec->flags.pwdmix)
+	if ((pwd->flags & UAIsM_PWDMIX) && !rec->flags.pwdmix)
 		printf("Bugcheck, pwdmix bitfield definition wrong: %d\n",
 		    rec->flags.pwdmix);
 	if (rec->flags.pwdmix)
-		pwd->flags |= UAI$M_PWDMIX;
+		pwd->flags |= UAIsM_PWDMIX;
 	pwd->salt = rec->salt;
 	pwd->alg = rec->encrypt;
 	pwd->opt = rec->flags.pwdmix;
@@ -186,7 +189,7 @@ int uaf_extract_from_raw(void *rec_vp, int rec_len,
 	memcpy(pwd2, rec->pwd2, 8);	/* assume hash is first member */
 	pwd2->flags = 0;
 	if (rec->flags.pwdmix)
-		pwd2->flags |= UAI$M_PWDMIX;
+		pwd2->flags |= UAIsM_PWDMIX;
 	pwd2->salt = rec->salt;
 	pwd2->alg = rec->encrypt;
 	pwd2->opt = rec->flags.pwdmix;
@@ -401,7 +404,7 @@ static void process_file(char *infile)
 			    acct.uic[0],
 			    acct.uic[1],
 			    colon_blow(acct.owner),
-			    (pwd.flags & UAI$M_PWDMIX) ? "Users" : "USERS",
+			    (pwd.flags & UAIsM_PWDMIX) ? "Users" : "USERS",
 			    prefix[0] ? "/" : "", prefix, priv_summary,
 			    colon_blow(acct.shell));
 			if (suffix[0] == '.') {
@@ -415,7 +418,7 @@ static void process_file(char *infile)
 				    acct.uic[0], acct.uic[1],
 				    colon_blow(acct.owner),
 				    (pwd.
-					flags & UAI$M_PWDMIX) ? "Users" :
+					flags & UAIsM_PWDMIX) ? "Users" :
 				    "USERS", prefix[0] ? "/" : "", prefix,
 				    priv_summary, colon_blow(acct.shell));
 			}

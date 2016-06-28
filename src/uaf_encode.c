@@ -49,14 +49,20 @@
 #include <descrip.h>
 #include <uaidef.h>
 #include <starlet.h>
+#define UAIsC_AD_II UAI$C_AD_II
+#define UAIsC_PURDY UAI$C_PURDY
+#define UAIsC_PURDY_V UAI$C_PURDY_V
+#define UAIsC_PURDY_S UAI$C_PURDY_S
+#define UAIsM_PWDMIX UAI$M_PWDMIX
 #else
 /*
  * Emulate symbols defined for VMS services.
  */
-#define UAI$C_AD_II 0
-#define UAI$C_PURDY 1
-#define UAI$C_PURDY_V 2
-#define UAI$C_PURDY_S 3
+#define UAIsC_AD_II 0
+#define UAIsC_PURDY 1
+#define UAIsC_PURDY_V 2
+#define UAIsC_PURDY_S 3
+#define UAIsM_PWDMIX 0x2000000
 
 struct dsc$descriptor_s {
     unsigned short int dsc$w_length;
@@ -66,9 +72,6 @@ struct dsc$descriptor_s {
 #define $DESCRIPTOR(x,s) struct dsc$descriptor_s x={sizeof(s), 1, 1, s}
 #endif
 
-#ifndef UAI$M_PWDMIX
-#define UAI$M_PWDMIX 0x2000000
-#endif
 #ifdef HAVE_PTHREADS
 #include <pthread.h>
 #define PTHREAD_MUTEX_INITIALIZER 0
@@ -391,7 +394,7 @@ char *uaf_hash_encode (
      * Collapse the preserved flags to a 4-bit field.
      */
     pwd->opt = 0;
-    if ( pwd->flags & UAI$M_PWDMIX ) pwd->opt |= 1;
+    if ( pwd->flags & UAIsM_PWDMIX ) pwd->opt |= 1;
     /*
      * Encode the string.
      */
@@ -413,7 +416,7 @@ int uaf_hash_decode (
     /*
      * expand 4-bit flags field into standard UAI$_FLAGS bits.
      */
-    pwd->flags = ((pwd->opt&1) ? UAI$M_PWDMIX : 0);
+    pwd->flags = ((pwd->opt&1) ? UAIsM_PWDMIX : 0);
 
     return (err==0);
 }
@@ -444,12 +447,12 @@ int uaf_getuai_info (
     /*
      * Build item list for GETUAI call, the acct argument is optional.
      */
-    SET_ITEM(item[0], 8, UAI$_PWD, &pwd->hash, 0 );
-    SET_ITEM(item[1], 4, UAI$_FLAGS, &pwd->flags, 0 );
-    SET_ITEM(item[2], 2, UAI$_SALT, &pwd->salt, 0 );
-    SET_ITEM(item[3], 1, UAI$_ENCRYPT, &pwd->alg, 0 );
-    SET_ITEM(item[4], 8, UAI$_PWD2, &pwd2->hash, 0 );
-    SET_ITEM(item[5], 2, UAI$_ENCRYPT2, &pwd2->alg, 0 );
+    SET_ITEM(item[0], 8, UAIs_PWD, &pwd->hash, 0 );
+    SET_ITEM(item[1], 4, UAIs_FLAGS, &pwd->flags, 0 );
+    SET_ITEM(item[2], 2, UAIs_SALT, &pwd->salt, 0 );
+    SET_ITEM(item[3], 1, UAIs_ENCRYPT, &pwd->alg, 0 );
+    SET_ITEM(item[4], 8, UAIs_PWD2, &pwd2->hash, 0 );
+    SET_ITEM(item[5], 2, UAIs_ENCRYPT2, &pwd2->alg, 0 );
     SET_ITEM(item[6], 0, 0, 0, 0 );
     for ( i = 0; (i < 12) && username[i]; i++ )
 	pwd->username.s[i] = toupper(username[i]);
@@ -457,11 +460,11 @@ int uaf_getuai_info (
     memcpy (pwd2->username.s, pwd->username.s, sizeof(pwd->username.s));
     if ( acct ) {
 	strcpy ( acct->username, pwd->username.s );
-	SET_ITEM(item[6], 4, UAI$_UIC, &acct->uic, 0 );
-	SET_ITEM(item[7], 32, UAI$_OWNER, owner, &retlen[7] );  /* counted str! */
-	SET_ITEM(item[8], 32, UAI$_DEFDEV, defdev, &retlen[8] );
-	SET_ITEM(item[9], 64, UAI$_DEFDIR, defdir, &retlen[9] );
-	SET_ITEM(item[10], 32, UAI$_DEFCLI, defcli, &retlen[10] );
+	SET_ITEM(item[6], 4, UAIs_UIC, &acct->uic, 0 );
+	SET_ITEM(item[7], 32, UAIs_OWNER, owner, &retlen[7] );  /* counted str! */
+	SET_ITEM(item[8], 32, UAIs_DEFDEV, defdev, &retlen[8] );
+	SET_ITEM(item[9], 64, UAIs_DEFDIR, defdir, &retlen[9] );
+	SET_ITEM(item[10], 32, UAIs_DEFCLI, defcli, &retlen[10] );
 	SET_ITEM(item[11], 0, 0, 0, 0 );
     }
     /*
@@ -537,7 +540,7 @@ int uaf_test_password (
     username_dx.dsc$w_length = ulen;
 
     password_dx.dsc$w_length = strlen(password);
-    if ( pwd->flags & UAI$M_PWDMIX ) {	/* take password verbatim */
+    if ( pwd->flags & UAIsM_PWDMIX ) {	/* take password verbatim */
 	password_dx.dsc$a_pointer = (char *) password;
     } else {
 	/*
@@ -559,7 +562,7 @@ int uaf_test_password (
     if ( ((status&1) == 0) ) {
 	printf ("Retry... (lgi$hpwd2 status %d)\n", status );
     }
-    if ( pwd->flags & UAI$M_PWDMIX ) memset ( uc_password, 0, sizeof(uc_password) );
+    if ( pwd->flags & UAIsM_PWDMIX ) memset ( uc_password, 0, sizeof(uc_password) );
 
     if ( (status&1) == 0 ) return 0;
 

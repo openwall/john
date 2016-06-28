@@ -19,12 +19,17 @@
 #include "uaf_encode.c"
 
 #ifdef VMS
-#	include <ssdef.h>
+#include <ssdef.h>
+#define SSs_ABORT SS$_ABORT
+#define SSs_BADPARAM SS$_BADPARAM
+#define SSs_NORMAL SS$_NORMAL
 #else
-#	define SS$_ABORT	44
-#	define SS$_BADPARAM     20
-#	define SS$_NORMAL	1
-#	define __SSDEF_LOADED	1
+/*
+ * Emulate symbols defined for VMS services.
+ */
+#define SSs_ABORT	44
+#define SSs_BADPARAM     20
+#define SSs_NORMAL	1
 #endif
 
 #include "memdbg.h"
@@ -172,12 +177,12 @@ static int hash_password (
     if ((encrypt < 1) || (encrypt > 3)) {
 	  puts("BAD BAD!");
 	    return -1;
-//         exit(SS$_BADPARAM);
+//         exit(SSs_BADPARAM);
     }
     if (username->dsc$w_length > 31) {
 	    puts("2");
 	printf("Internal coding error, username is more than 31 bytes long.\n");
-	exit(SS$_ABORT);
+	exit(SSs_ABORT);
     }
 
 
@@ -194,16 +199,16 @@ static int hash_password (
 
     /* Check for the null password and return zero as the hash value if so */
     if (password->dsc$w_length == 0) {
-	return SS$_NORMAL;
+	return SSs_NORMAL;
     }
 
     switch (encrypt) {
       int ulen;
-      case UAI$C_AD_II:		/* CRC algorithm with Autodin II poly */
+      case UAIsC_AD_II:		/* CRC algorithm with Autodin II poly */
 	/* As yet unsupported */
-	return SS$_BADPARAM;
+	return SSs_BADPARAM;
 
-      case UAI$C_PURDY:		/* Purdy algorithm */
+      case UAIsC_PURDY:		/* Purdy algorithm */
 
 	/* Use a blank padded username */
 	strncpy(uname,"            ",sizeof(uname));
@@ -212,8 +217,8 @@ static int hash_password (
 	username->dsc$w_length = 12;
 	break;
 
-      case UAI$C_PURDY_V:		/* Purdy with blanks stripped */
-      case UAI$C_PURDY_S:		/* Hickory algorithm; Purdy_V with rotation */
+      case UAIsC_PURDY_V:		/* Purdy with blanks stripped */
+      case UAIsC_PURDY_S:		/* Hickory algorithm; Purdy_V with rotation */
 
 	/* Check padding.  Don't count blanks in the string length.
 	* Remember:  r6->username_descriptor   the first word is length, then
@@ -267,7 +272,7 @@ static int hash_password (
     *((quad *) output_hash) = qword;
 
     /* Normal exit */
-    return SS$_NORMAL;
+    return SSs_NORMAL;
 
 } /* LGI$HPWD */
 

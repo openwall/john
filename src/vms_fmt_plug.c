@@ -41,10 +41,16 @@ static int omp_t = 1;
 #define OMP_SCALE               1024 // Tuned on K8-Dual HT
 #endif
 #endif
-#include "memdbg.h"
-#ifndef UAI$M_PWDMIX
-#define UAI$M_PWDMIX 0x2000000
+#ifdef VMS
+#include <ssdef.h>
+#define UAIsM_PWDMIX UAI$M_PWDMIX
+#else
+/*
+ * Emulate symbols defined for VMS services.
+ */
+#define UAIsM_PWDMIX 0x2000000
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"OpenVMS"
 #define FORMAT_NAME			"Purdy"
